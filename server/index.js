@@ -161,8 +161,9 @@ async function buildServer() {
   return fastify;
 }
 
-if (require.main === module) {
-  buildServer().then(server => {
+async function startServer() {
+  const server = await buildServer();
+  return new Promise((resolve, reject) => {
     server.listen({ port: PORT, host: HOST }, (err, address) => {
       if (err) {
         console.error('Erro ao iniciar servidor:', err);
@@ -174,8 +175,13 @@ if (require.main === module) {
       console.log(`📱 Cockpit RPC API: ${address}/api/cockpit`);
       console.log(`🤖 Telegram Webhook: ${address}/webhook`);
       console.log(`======================================================\n`);
+      resolve(server);
     });
   });
 }
 
-module.exports = { buildServer };
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { buildServer, startServer };
