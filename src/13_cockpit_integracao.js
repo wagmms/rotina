@@ -308,3 +308,45 @@ function cockpitRegistrarPeso(initData, pesoKg, bfPercent, semana) {
   ConfigService.invalidar();
   return { sucesso: true, peso: peso };
 }
+
+/**
+ * cockpitAulasProgresso — retorna lista de IDs de aulas flash assistidas.
+ */
+function cockpitAulasProgresso(initData) {
+  var chat = cockpitAutorizar_(initData);
+  var raw = PersistenciaBot.ler('aulas_progresso_' + chat);
+  var concluidas = [];
+  try {
+    concluidas = raw ? JSON.parse(raw) : [];
+  } catch(e) {
+    concluidas = [];
+  }
+  return { assistidas: concluidas, total: concluidas.length };
+}
+
+/**
+ * cockpitAlternarAula — marca ou desmarca uma aula como assistida.
+ */
+function cockpitAlternarAula(initData, aulaId, assistida) {
+  var chat = cockpitAutorizar_(initData);
+  if (!aulaId) throw new Error('ID da aula não informado.');
+  var lock = LockService.getUserLock();
+  if (!lock.tryLock(5000)) throw new Error('Servidor ocupado. Tente novamente.');
+  try {
+    var raw = PersistenciaBot.ler('aulas_progresso_' + chat);
+    var lista = [];
+    try { lista = raw ? JSON.parse(raw) : []; } catch(e) { lista = []; }
+    var set = {};
+    lista.forEach(function(id) { set[id] = true; });
+    if (assistida) {
+      set[aulaId] = true;
+    } else {
+      delete set[aulaId];
+    }
+    var novaLista = Object.keys(set);
+    PersistenciaBot.salvar('aulas_progresso_' + chat, JSON.stringify(novaLista));
+    return { ok: true, aulaId: aulaId, assistida: !!assistida, assistidas: novaLista, total: novaLista.length };
+  } finally {
+    lock.releaseLock();
+  }
+}

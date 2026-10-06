@@ -84,6 +84,22 @@ async function buildServer() {
     }
   });
 
+  // 4.1 Catálogo de Aulas Flash R1 (cacheado em memória para o Cockpit)
+  const pathAulas = require('path').join(__dirname, '..', 'src', 'data', 'aulas_compactas.json');
+  let cacheAulasJson = null;
+  fastify.get('/api/aulas-flash', async (request, reply) => {
+    try {
+      if (!cacheAulasJson && require('fs').existsSync(pathAulas)) {
+        cacheAulasJson = JSON.parse(require('fs').readFileSync(pathAulas, 'utf8'));
+      }
+      reply.header('Cache-Control', 'public, max-age=3600');
+      return { ok: true, total: cacheAulasJson ? cacheAulasJson.length : 0, aulas: cacheAulasJson || [] };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, erro: err.message };
+    }
+  });
+
   // 5. API RPC DO COCKPIT PWA (Substitui o doGet/doPost lento do GAS)
   fastify.post('/api/cockpit', async (request, reply) => {
     const t0 = performance.now();

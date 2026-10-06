@@ -349,7 +349,9 @@ module.exports = {
       cockpitRemume: ctx.cockpitRemume,
       cockpitConversar: ctx.cockpitConversar,
       cockpitPerfil: ctx.cockpitPerfil,
-      cockpitRegistrarPeso: ctx.cockpitRegistrarPeso
+      cockpitRegistrarPeso: ctx.cockpitRegistrarPeso,
+      cockpitAulasProgresso: ctx.cockpitAulasProgresso,
+      cockpitAlternarAula: ctx.cockpitAlternarAula
     };
     if (typeof funcoes[metodo] !== 'function') {
       throw new Error(`Método do Cockpit não suportado: ${metodo}`);

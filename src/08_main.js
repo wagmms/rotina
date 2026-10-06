@@ -91,7 +91,9 @@ function doPost(e) {
         cockpitRemume: cockpitRemume,
         cockpitConversar: cockpitConversar,
         cockpitPerfil: cockpitPerfil,
-        cockpitRegistrarPeso: cockpitRegistrarPeso
+        cockpitRegistrarPeso: cockpitRegistrarPeso,
+        cockpitAulasProgresso: cockpitAulasProgresso,
+        cockpitAlternarAula: cockpitAlternarAula
       };
       
       if (!funcoesCockpit[metodo]) {
