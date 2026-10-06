@@ -20,6 +20,10 @@ const SRC_DIR = path.resolve(ROOT_DIR, 'src');
 const PROPERTIES_FILE = path.join(DATA_DIR, 'properties.json');
 const DEPLOY_STATE_FILE = path.join(ROOT_DIR, '.deploy_state.json');
 const REMUME_CSV_FILE = path.join(ROOT_DIR, 'REMUME_RP.csv');
+const INTERACOES_JSON_FILE = path.join(DATA_DIR, 'interacoes.json');
+const INTERACOES_SRC_JSON_FILE = path.join(SRC_DIR, 'data', 'interacoes.json');
+const GUIA_HSL_SRC_JSON_FILE = path.join(SRC_DIR, 'data', 'guia_farmaceutico_hsl.json');
+const GUIA_HSL_DATA_JSON_FILE = path.join(DATA_DIR, 'guia_farmaceutico_hsl.json');
 
 // Garante que o diretório de dados persistentes exista
 if (!fs.existsSync(DATA_DIR)) {
@@ -202,7 +206,7 @@ iniciarHttpWorker();
 // 2. CACHE EM MEMÓRIA DE ALTA VELOCIDADE (CacheService)
 const cacheMemoryStore = new Map();
 
-// 3. TABELA REMUME LOCAL EM MEMÓRIA (SpreadsheetApp)
+// 3. TABELAS LOCAIS EM MEMÓRIA (REMUME E INTERAÇÕES MEDICAMENTOSAS)
 let remumeRows = [];
 try {
   if (fs.existsSync(REMUME_CSV_FILE)) {
@@ -215,6 +219,33 @@ try {
   }
 } catch (eCsv) {
   console.warn('[Runtime] Não foi possível carregar REMUME_RP.csv:', eCsv.message);
+}
+
+let interacoesRows = [];
+try {
+  const jsonPath = fs.existsSync(INTERACOES_SRC_JSON_FILE)
+    ? INTERACOES_SRC_JSON_FILE
+    : (fs.existsSync(INTERACOES_JSON_FILE) ? INTERACOES_JSON_FILE : null);
+  if (jsonPath) {
+    interacoesRows = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    console.log(`[Runtime] Interações Medicamentosas carregadas localmente: ${interacoesRows.length - 1} regras prontas em RAM.`);
+  }
+} catch (eInt) {
+  console.warn('[Runtime] Não foi possível carregar interacoes.json:', eInt.message);
+}
+
+let guiaHslData = { metadados: {}, medicamentos: [] };
+try {
+  const hslPath = fs.existsSync(GUIA_HSL_SRC_JSON_FILE)
+    ? GUIA_HSL_SRC_JSON_FILE
+    : (fs.existsSync(GUIA_HSL_DATA_JSON_FILE) ? GUIA_HSL_DATA_JSON_FILE : null);
+  if (hslPath) {
+    guiaHslData = JSON.parse(fs.readFileSync(hslPath, 'utf8'));
+    const totalMed = (guiaHslData.medicamentos || []).length;
+    console.log(`[Runtime] Guia Farmacêutico HSL carregado localmente: ${totalMed} medicamentos oficiais prontos em RAM.`);
+  }
+} catch (eHsl) {
+  console.warn('[Runtime] Não foi possível carregar guia_farmaceutico_hsl.json:', eHsl.message);
 }
 
 // 4. CONSTRUÇÃO DO CONTEXTO VIRTUAL (GAS COMPATIBLE)
@@ -243,6 +274,9 @@ const ctx = {
   Logger: {
     log: (...args) => console.log('[BOT LOG]', ...args)
   },
+
+  __BASE_GUIA_HSL__: guiaHslData,
+  obterBaseGuiaHSL: () => guiaHslData,
 
   PropertiesService: {
     getScriptProperties: () => ({
@@ -358,6 +392,30 @@ const ctx = {
       if (options.contentType) {
         headers['Content-Type'] = options.contentType;
       }
+      let requestPayload = options.payload || null;
+      if (requestPayload && typeof requestPayload === 'object' && !Buffer.isBuffer(requestPayload)) {
+        const hasBlob = Object.values(requestPayload).some(v => v && typeof v === 'object' && typeof v.getBytes === 'function');
+        if (hasBlob) {
+          const boundary = '----GASCompatibilityBoundary' + crypto.randomBytes(8).toString('hex');
+          const chunks = [];
+          for (const [key, val] of Object.entries(requestPayload)) {
+            if (val === undefined || val === null) continue;
+            if (typeof val === 'object' && typeof val.getBytes === 'function') {
+              const bytes = Buffer.from(val.getBytes());
+              const filename = val.getName ? val.getName() : 'file';
+              const contentType = val.getContentType ? val.getContentType() : 'application/octet-stream';
+              chunks.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${key}"; filename="${filename}"\r\nContent-Type: ${contentType}\r\n\r\n`));
+              chunks.push(bytes);
+              chunks.push(Buffer.from('\r\n'));
+            } else {
+              chunks.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${key}"\r\n\r\n${String(val)}\r\n`));
+            }
+          }
+          chunks.push(Buffer.from(`--${boundary}--\r\n`));
+          requestPayload = Buffer.concat(chunks);
+          headers['Content-Type'] = `multipart/form-data; boundary=${boundary}`;
+        }
+      }
       const timeoutMs = options.timeoutMs || options.timeout || 60000;
 
       // 1. Despacho Ultra-Rápido via Worker Thread Persistente (Keep-Alive & Zero Fork)
@@ -365,7 +423,7 @@ const ctx = {
         ctrl[0] = 0; ctrl[1] = 0; ctrl[2] = 0; ctrl[3] = 0;
         httpWorker.postMessage({
           sabCtrl, sabData, url, method, headers,
-          body: options.payload || null,
+          body: requestPayload,
           timeoutMs
         });
 
@@ -429,8 +487,8 @@ const ctx = {
 
       // 2. Fallback de Segurança com sync-fetch caso Worker não esteja inicializado
       const fetchOpts = { method, headers, timeout: timeoutMs };
-      if (options.payload) {
-        fetchOpts.body = options.payload;
+      if (requestPayload) {
+        fetchOpts.body = requestPayload;
       }
 
       try {
@@ -466,7 +524,18 @@ const ctx = {
             getResponseCode: () => 500,
             getContentText: () => JSON.stringify({ error: err.message }),
             getHeaders: () => ({}),
-            getBlob: () => ({ getBytes: () => Buffer.from(''), getContentType: () => 'text/plain', getName: () => 'error' })
+            getBlob: () => {
+              let ct = 'text/plain';
+              let nm = 'error';
+              const b = {
+                getBytes: () => Buffer.from(''),
+                getContentType: () => ct,
+                setContentType: (t) => { ct = t; return b; },
+                getName: () => nm,
+                setName: (n) => { nm = n; return b; }
+              };
+              return b;
+            }
           };
         }
         throw err;
@@ -486,7 +555,7 @@ const ctx = {
       return Array.from(hash.digest());
     },
     base64Encode: (data) => Buffer.from(data).toString('base64'),
-    base64Decode: (data) => Buffer.from(data, 'base64').toString('utf8'),
+    base64Decode: (data) => Buffer.from(data, 'base64'),
     getUuid: () => crypto.randomUUID(),
     formatDate: (date, tz, fmt) => {
       const d = new Date(date);
@@ -523,15 +592,23 @@ const ctx = {
   },
 
   SpreadsheetApp: {
-    openById: (id) => ({
-      getSheets: () => [{
-        getLastRow: () => remumeRows.length,
-        getLastColumn: () => 1,
-        getRange: (startRow, startCol, numRows, numCols) => ({
-          getValues: () => remumeRows.slice(startRow - 1, startRow - 1 + numRows)
-        })
-      }]
-    })
+    openById: (id) => {
+      const idStr = String(id || '').trim();
+      const idPropInteracoes = String(propsStore.SPREADSHEET_ID_INTERACOES || '').trim();
+      const isInteracaoId = (idPropInteracoes && idStr === idPropInteracoes) ||
+                            idStr.toLowerCase().includes('interac');
+      const activeRows = isInteracaoId ? interacoesRows : remumeRows;
+      const numCols = (activeRows.length > 0 && Array.isArray(activeRows[0])) ? activeRows[0].length : 1;
+      return {
+        getSheets: () => [{
+          getLastRow: () => activeRows.length,
+          getLastColumn: () => numCols,
+          getRange: (startRow, startCol, numRows, numColsToFetch) => ({
+            getValues: () => activeRows.slice(startRow - 1, startRow - 1 + numRows).map(r => Array.isArray(r) ? r : [r])
+          })
+        }]
+      };
+    }
   },
 
   ContentService: {

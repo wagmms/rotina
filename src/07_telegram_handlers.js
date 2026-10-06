@@ -219,7 +219,7 @@ function processarMensagemTexto(message) {
     var stRemume = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_REMUME"), false);
     var stInteracoes = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_INTERACOES"), true);
     var msgStatus = "⚡ *STATUS DO SISTEMA*\n\n" +
-      "• *Modo:* Nuvem 24/7 (Google Apps Script)\n" +
+      "• *Modo:* Servidor Oficial Node.js 20+ / Docker (Render 24/7)\n" +
       "• *REMUME Ribeirão Preto:* " + stRemume + "\n" +
       "• *Base de Interações:* " + stInteracoes + "\n" +
       "• *Notion & Calendar:* ✅ Operacionais";
@@ -340,6 +340,24 @@ function processarMensagemTexto(message) {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
     if (!dadosPrescricao) return enviarMensagemParaChat(chatId, "💊 Envie o pedido. Ex: `/rx amigdalite 16kg, alergia a penicilina`");
     return processarEEntregarIA(chatId, gerarPrescricaoComIA, dadosPrescricao, "rx");
+  }
+
+  if (comando === "/dose" || comando === "/posologia" || comando === "/hsl") {
+    var termoDose = texto.replace(/^\/(dose|posologia|hsl)\s*/i, "").trim();
+    if (!termoDose) {
+      return enviarMensagemParaChat(
+        chatId,
+        "💊 *CONSULTA DE POSOLOGIA OFICIAL (GUIA FARMACÊUTICO HSL)*\n\n" +
+        "Envie o nome do medicamento para consultar as doses adultas, pediátricas, ajuste renal e disponibilidade na REMUME.\n\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/dose amoxicilina`\n" +
+        "• `/dose dipirona`\n" +
+        "• `/dose ceftriaxona`\n" +
+        "• `/dose losartana`\n" +
+        "• `/dose amoxicilina + clavulanato`"
+      );
+    }
+    return responderConsultaPosologiaHSL(chatId, termoDose);
   }
 
   if (comando === "/plantao" || comando === "/sbar") {
@@ -1091,6 +1109,76 @@ function enviarMenuExamesEspeciais(chatId) {
   return enviarMensagemComTecladoParaChat(chatId, txt, kb);
 }
 
+/**
+ * Responde à consulta direta de posologia oficial utilizando o Guia Farmacêutico do HSL
+ * com cálculo determinístico de fórmulas fixas para doses pediátricas.
+ */
+function responderConsultaPosologiaHSL(chatId, termo) {
+  // 1. Se informou peso, calcula determinísticamente em código puro (Zero Alucinação)
+  var calcPed = (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularPosologiaPorTextoLivre === "function")
+    ? CalculadorasClinicas.calcularPosologiaPorTextoLivre(termo)
+    : null;
+
+  if (calcPed) {
+    var txtPed = [
+      "👶 *CÁLCULO POSOLÓGICO PEDIÁTRICO DETERMINÍSTICO (FÓRMULA FIXA)*",
+      "",
+      "📋 *Fármaco:* *" + calcPed.farmaco + "*",
+      "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`",
+      "⚖️ *Peso Informado:* `" + calcPed.pesoKg + " kg`",
+      "",
+      "💊 *POSOLOGIA OFICIAL DETERMINÍSTICA:*",
+      "👉 *" + calcPed.instrucaoPosologica + "*",
+      "📦 *Quantidade a Dispensar:* *" + calcPed.quantidadeDispensar + "*",
+      "",
+      "🧮 *Memória de Cálculo Matemática:*",
+      "_" + calcPed.memoriaCalculo + "_",
+      "",
+      "💡 *Orientações:* " + calcPed.orientacoes,
+      "",
+      "🔒 *Segurança:* Cálculo matemático determinístico em código puro (Zero Alucinação de IA)."
+    ].join("\n");
+
+    var kbPed = {
+      "inline_keyboard": [
+        [
+          { "text": "📝 Prescrever no /rx com esta dose", "callback_data": "rx_med:" + calcPed.farmaco + " " + calcPed.pesoKg + "kg" }
+        ]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtPed, kbPed);
+  }
+
+  // 2. Consulta da ficha técnica oficial do Guia HSL
+  var med = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(termo) : null;
+  if (!med) {
+    return enviarMensagemParaChat(
+      chatId,
+      "🔍 *MEDICAMENTO NÃO ENCONTRADO NO GUIA HSL*\n\n" +
+      "Não encontramos registro exato para `\"" + termo + "\"` no Guia Farmacêutico do Hospital Sírio-Libanês.\n\n" +
+      "💡 *Dicas:*\n" +
+      "• Busque pelo princípio ativo genérico (ex: `/dose amoxicilina`, `/dose dipirona`, `/dose ceftriaxona`).\n" +
+      "• Se for caso infantil, informe o peso: `/dose amoxicilina 16kg` ou `/dose dipirona 12kg`.\n" +
+      "• Ou utilize o gerador de receita `/rx " + termo + "` para avaliação clínica completa."
+    );
+  }
+
+  var respostaTexto = (typeof formatarFichaPosologicaHSL === "function")
+    ? formatarFichaPosologicaHSL(med)
+    : "Ficha posológica indisponível.";
+
+  var rotuloPrescrever = "💊 Prescrever no /rx (" + (med.farnaco.length > 15 ? med.farnaco.substring(0, 15) + "..." : med.farnaco) + ")";
+  var kb = {
+    "inline_keyboard": [
+      [
+        { "text": rotuloPrescrever, "callback_data": "rx_med:" + med.farnaco.substring(0, 30) }
+      ]
+    ]
+  };
+
+  return enviarMensagemComTecladoParaChat(chatId, respostaTexto, kb);
+}
+
 function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageIdParaEditar) {
   enviarChatAction(chatId, "typing", true);
   var origemSoap = tipoCache === "soap" ? modoBot(chatId) : null;
@@ -1454,6 +1542,13 @@ function processarCallbackBotao(cb) {
       return false;
     }
   }
+  // F2. PRESCRIÇÃO DIRETA A PARTIR DA CONSULTA DO GUIA HSL
+  else if (data.startsWith("rx_med:")) {
+    var medNome = data.replace("rx_med:", "").trim();
+    responderCallbackTelegram(cb.id, "Gerando prescrição de " + medNome + "...");
+    var chatIdRx = (cb.message && cb.message.chat) ? cb.message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
+    return processarEEntregarIA(chatIdRx, gerarPrescricaoComIA, medNome, "rx");
+  }
   // G. OUVIR CRÍTICA SOCRÁTICA DO PRECEPTOR VIA ÁUDIO / TTS
   // CORREÇÃO: passa apenasNarrar=true para ir direto ao TTS sem nova chamada LLM
   else if (data.startsWith("ouvirPreceptor_")) {
@@ -1724,7 +1819,7 @@ function processarMensagemVoz(message) {
       // 3.1. Emergência clínica (Sala Vermelha / PCR / Choque / Sepse)
       var ehEmerg = (typeof _iaEhEmergencia === "function")
         ? _iaEhEmergencia(tLimpo)
-        : /(?:pcr|parada|choque|sepse|infarto|\biam\b|anafila|intubacao|intubar|\biot\b|glasgow\s*[3-8])/i.test(tLimpo);
+        : /(?:pcr|parada|parou|choque|chocand|sepse|infarto|\biam\b|anafila|intub|iot|tubo|rebaix|glasgow\s*[3-8]|sala\s+vermelha|c[oó]digo\s+azul)/i.test(tLimpo);
       if (ehEmerg) {
         enviarChatAction(chatId, "typing");
         return processarEEntregarIA(chatId, gerarCondutaEmergenciaComIA, tLimpo, "emergencia");
@@ -1732,17 +1827,24 @@ function processarMensagemVoz(message) {
 
       // 3.2. Prescrição médica ambulatorial / Receita
       var tnVoz = (typeof _iaNormalizarParaRegex === "function") ? _iaNormalizarParaRegex(tLimpo) : tLimpo.toLowerCase();
-      var ehRx = /prescrev|receita|medicamento|mg.*comprimido/i.test(tLimpo) ||
-        /(?:prescrev|passar\s+receita|medicamento\s+para|rem[eé]dio\s+para|dose\s+de|posologia\s+de|como\s+prescrever|\breceita\b)/.test(tnVoz);
+      var ehRx =
+        // Termos explícitos e verbos médicos de prescrição
+        /prescrev|receit|\brx\b|medicamento|rem[eé]dio/i.test(tLimpo) ||
+        /(?:passa|passar|inicia|iniciar)\b.*(?:\d+\s*(?:mg|mcg|g|ml|gotas|ui)|comprimido|ampola|xarope|gotas|pomada|cp\b)/i.test(tLimpo) ||
+        /(?:dose|posologia)\s+(?:para|pra|de|d[aeo])/i.test(tLimpo) ||
+        // Padrão farmacológico puro: dose + frequência posológica de tomada
+        /(?:\d+\s*(?:mg|mcg|g|ml|gotas|ui))\b.*(?:de\s*\d+\s*em\s*\d+\s*(?:horas?|h)?|[0-9]+\s*[\/x]\s*[0-9]+\s*h?|\d+\s*x(?:\s*ao)?\s*dia|uma\s+vez\s+ao\s+dia|se\s+dor|se\s+febre|se\s+necess[aá]rio|\bsn\b|\bem\s+jejum\b)/i.test(tLimpo) ||
+        /(?:prescrev|passar\s+receita|medicamento\s+pr?[ao]|rem[eé]dio\s+pr?[ao]|dose\s+d[aeo]|posologia\s+d[aeo]|como\s+prescrever|\breceita\b)/.test(tnVoz);
       if (ehRx) {
         if (typeof definirModoBot !== "undefined") definirModoBot(chatId, "rx", tLimpo);
         enviarChatAction(chatId, "typing");
         return processarEEntregarIA(chatId, gerarPrescricaoComIA, tLimpo, "rx");
       }
 
-      // 3.3. Gasometria arterial
-      var ehGaso = (/ph\s*[:=]?\s*[\d,.]+/i.test(tLimpo) && /(pco2|hco3|bicarbonato)/i.test(tLimpo)) ||
-        (tLimpo.toLowerCase().indexOf("ph") !== -1 && (tLimpo.toLowerCase().indexOf("pco2") !== -1 || tLimpo.toLowerCase().indexOf("hco3") !== -1));
+      // 3.3. Gasometria arterial / Avaliação ácido-base
+      var ehGaso = /\b(?:gaso|gasometria)\b/i.test(tLimpo) ||
+        (/ph\s*[:=]?\s*[\d,.]+/i.test(tLimpo) && /(pco2|hco3|bicarbonato|\bbic\b|\bco2\b)/i.test(tLimpo)) ||
+        (tLimpo.toLowerCase().indexOf("ph") !== -1 && (tLimpo.toLowerCase().indexOf("pco2") !== -1 || tLimpo.toLowerCase().indexOf("hco3") !== -1 || tLimpo.toLowerCase().indexOf("bicarb") !== -1));
       if (ehGaso) {
         enviarChatAction(chatId, "typing");
         return processarEEntregarIA(chatId, gerarAnaliseGasometriaComIA, tLimpo, "gaso");

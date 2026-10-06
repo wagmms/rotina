@@ -26,8 +26,13 @@ def run_cmd(cmd, cwd=BASE_DIR, check=True):
 
 def main():
     print("=" * 60)
-    print("INICIANDO DEPLOY COMPLETO NO GOOGLE APPS SCRIPT")
+    print("❌ DEPLOY GOOGLE APPS SCRIPT BLOQUEADO")
     print("=" * 60)
+    print("[ERRO]: O Google Apps Script foi permanentemente descontinuado pelo usuário.")
+    print("O Ultra Rotina opera exclusivamente no backend Node.js/Docker hospedado no Render.")
+    print("O deploy é automatizado diretamente via Git (git push origin main).")
+    print("Nenhuma alteração deve ser enviada para o Google Apps Script (clasp).")
+    sys.exit(1)
 
     # Validar antes de alterar o artefato ou a nuvem.
     run_cmd([str(BASE_DIR / ".venv" / "bin" / "python"), "-m", "pytest", "tests", "-q"])

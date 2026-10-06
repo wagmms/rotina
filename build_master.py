@@ -4,8 +4,9 @@
 ==============================================================================
 BUILD MASTER - COMPILADOR E AUDITOR DO ULTRA ROTINA MASTER
 ==============================================================================
-Empacota os módulos de src/ em um único arquivo de produção para Google Apps Script
+Empacota os módulos de src/ em um único bundle de integridade (ultra_rotina_master.js)
 com verificação de integridade sintática e geração de checksum.
+O backend oficial roda em Node.js/Docker no Render (server.js).
 ==============================================================================
 """
 
@@ -22,9 +23,9 @@ OUTPUT_FILE = os.path.join(os.path.dirname(__file__), "ultra_rotina_master.js")
 
 HEADER = """/**
  * ==============================================================================
- * ULTRA ROTINA · MASTER CLOUD ASSISTANT & COPILOTO CLÍNICO MULTIMODAL (v2.0)
+ * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
- * Executa 100% na nuvem do Google (24/7), gratuito, sem precisar de PC ligado.
+ * Servidor oficial Node.js/Docker no Render.
  * Gerado automaticamente via build_master.py em: {timestamp}
  * Checksum SHA256: {checksum}
  * ==============================================================================
@@ -91,15 +92,7 @@ def main():
     # Substituição atômica segura
     os.replace(tmp_output, OUTPUT_FILE)
 
-    # Artefato de publicação: somente endpoints autenticados e acionadores expostos.
-    gas_output = os.path.join(os.path.dirname(__file__), "ultra_rotina_gas.js")
-    gas_tmp = gas_output + ".tmp.js"
-    with open(gas_tmp, "w", encoding="utf-8") as f:
-        f.write(empacotar(conteudo_final))
-    if not verificar_sintaxe_js(gas_tmp):
-        os.remove(gas_tmp)
-        sys.exit(1)
-    os.replace(gas_tmp, gas_output)
+    # Observação: ultra_rotina_gas.js é legado congelado e não é mais gerado ou utilizado.
 
     total_linhas = len(conteudo_final.splitlines())
     total_bytes = len(conteudo_final.encode("utf-8"))

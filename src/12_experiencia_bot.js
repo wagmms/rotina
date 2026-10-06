@@ -24,7 +24,7 @@ var UX_CB_PASSAGEM_SBAR = 'enfermaria_passagem'; // Callback original da Passage
 
 var UX_NOMES_MODO = {
   soap: 'SOAP (Caso Clínico)',
-  rx: 'Prescrição Ambulatorial (REMUME)',
+  rx: 'Prescrição & Posologias (REMUME & Guia HSL)',
   gaso: 'Gasometria Arterial',
   voz: 'Preceptor Socrático',
   calc: 'Calculadoras Clínicas',
@@ -322,7 +322,7 @@ function enviarHubPrincipal(chat, messageId) {
     '🩺 *Ambulatório (SOAP):* Síntese de prontuário e Preceptor de Voz\n' +
     '🏥 *Enfermaria:* Quadro de Leitos e Passagem SBAR\n' +
     '🚨 *Emergência:* DVA em mL/h, SRI, Gasometria e Condutas\n' +
-    '💊 *Prescrição:* REMUME Ribeirão Preto com emissão de PDF\n' +
+    '💊 *Prescrição & Posologias:* Guia Farmacêutico HSL + REMUME com emissão de PDF\n' +
     '📐 *Calculadoras:* Escores clínicos e clearance determinísticos\n' +
     '📅 *Rotina & Estudo:* Calendar, Notion Tasks e MedQuest';
 

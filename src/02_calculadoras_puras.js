@@ -1434,6 +1434,277 @@ var CalculadorasClinicas = (function () {
     });
   }
 
+  // ═════════════════════════════ POSOLOGIA PEDIÁTRICA DETERMINÍSTICA ═════════════════════════════
+
+  /**
+   * Calculadora Posológica Pediátrica Determinística (Fórmulas Fixas · Zero Alucinação)
+   * Referências: SBP (Sociedade Brasileira de Pediatria) / Ministério da Saúde / Guia Farmacêutico HSL / REMUME
+   */
+  function posologiaPediatrica(pesoKg, farmacoOuCondicao, opcoes) {
+    var ID = 'posologia_pediatrica', NOME = 'Posologia Pediátrica Determinística';
+    return seguro(ID, NOME, function () {
+      var ctx = novoCtx();
+      var peso = num(ctx, pesoKg, 'Peso (kg)', 1, 80);
+      if (!isFinite(peso) || peso <= 0) {
+        return entradaInvalida(ID, NOME, ctx);
+      }
+
+      var opt = opcoes || {};
+      var termo = semAcento(farmacoOuCondicao || '');
+
+      var tabela = {
+        amoxicilina: {
+          nome: 'Amoxicilina',
+          apresentacao: 'Amoxicilina 250 mg/5 mL (suspensão oral)',
+          concentracaoMgPorMl: 50,
+          doseMgKgDia: opt.doseAlta ? 90 : 50,
+          tomadasDia: opt.tomadasDia || 3,
+          intervaloHoras: (opt.tomadasDia === 2) ? 12 : 8,
+          diasTratamento: opt.diasTratamento || 10,
+          doseMaximaAdultoMgDia: 1500,
+          volumeFrascoMl: 150,
+          indicacao: opt.doseAlta ? 'Otite Média Aguda / Sinusite / PAC (dose alta 90 mg/kg/dia)' : 'Amigdalite / Faringite / Infecções bacterianas leves (50 mg/kg/dia)',
+          instrucoes: 'Pode ser administrado com ou sem alimentos. Agitar bem antes de usar.'
+        },
+        amoxicilina_clavulanato: {
+          nome: 'Amoxicilina + Clavulanato de Potássio',
+          apresentacao: 'Amoxicilina 250 mg + Clavulanato 62,5 mg / 5 mL (suspensão oral)',
+          concentracaoMgPorMl: 50,
+          doseMgKgDia: opt.doseAlta ? 90 : 50,
+          tomadasDia: 3,
+          intervaloHoras: 8,
+          diasTratamento: opt.diasTratamento || 10,
+          doseMaximaAdultoMgDia: 1500,
+          volumeFrascoMl: 75,
+          indicacao: opt.doseAlta ? 'Otite complicada / Sinusite refratária (dose alta 90 mg/kg/dia)' : 'Infecções de vias aéreas com suspeita de germes produtores de beta-lactamase (50 mg/kg/dia)',
+          instrucoes: 'Administrar preferencialmente no início da refeição para minimizar risco de intolerância gastrintestinal.'
+        },
+        azitromicina: {
+          nome: 'Azitromicina',
+          apresentacao: 'Azitromicina 200 mg/5 mL (suspensão oral)',
+          concentracaoMgPorMl: 40,
+          doseMgKgDia: 10,
+          tomadasDia: 1,
+          intervaloHoras: 24,
+          diasTratamento: opt.diasTratamento || 5,
+          doseMaximaAdultoMgDia: 500,
+          volumeFrascoMl: 15,
+          indicacao: 'Faringite/Amigdalite (opção se alergia a penicilina), PAC atípica (10 mg/kg/dia)',
+          instrucoes: 'Administrar 1h antes ou 2h após alimentos. Tomada única diária no mesmo horário.'
+        },
+        cefalexina: {
+          nome: 'Cefalexina',
+          apresentacao: 'Cefalexina 250 mg/5 mL (suspensão oral)',
+          concentracaoMgPorMl: 50,
+          doseMgKgDia: opt.doseAlta ? 100 : 50,
+          tomadasDia: 4,
+          intervaloHoras: 6,
+          diasTratamento: opt.diasTratamento || 7,
+          doseMaximaAdultoMgDia: 2000,
+          volumeFrascoMl: 100,
+          indicacao: 'Piodermites, impetigo, celulite leve, ITU baixa (50 mg/kg/dia)',
+          instrucoes: 'Tomar a cada 6 horas. Agitar bem antes de usar.'
+        },
+        dipirona: {
+          nome: 'Dipirona',
+          apresentacao: 'Dipirona 500 mg/mL (solução oral gotas)',
+          tipo: 'gotas',
+          mgPorGota: 25,
+          doseMgKgDose: 12.5,
+          tomadasDia: 4,
+          intervaloHoras: 6,
+          doseMaximaPorDoseMg: 500,
+          indicacao: 'Dor ou febre (1 gota para cada 2 kg de peso de 6/6h se necessário)',
+          instrucoes: 'Administrar com um pouco de líquido a cada 6 horas se dor ou febre (máximo 4 vezes ao dia).'
+        },
+        paracetamol: {
+          nome: 'Paracetamol',
+          apresentacao: 'Paracetamol 200 mg/mL (solução oral gotas)',
+          tipo: 'gotas',
+          mgPorGota: 10,
+          doseMgKgDose: 10,
+          tomadasDia: 4,
+          intervaloHoras: 6,
+          doseMaximaPorDoseMg: 500,
+          indicacao: 'Dor ou febre (1 gota por kg de peso de 6/6h se necessário)',
+          instrucoes: 'Administrar a cada 6 horas se dor ou febre. Não ultrapassar 5 tomadas ao dia.'
+        },
+        ibuprofeno: {
+          nome: 'Ibuprofeno',
+          apresentacao: 'Ibuprofeno 50 mg/mL (solução oral gotas)',
+          tipo: 'gotas',
+          mgPorGota: 2.5,
+          doseMgKgDose: 10,
+          tomadasDia: 3,
+          intervaloHoras: 8,
+          doseMaximaPorDoseMg: 400,
+          indicacao: 'Dor, febre ou inflamação (4 gotas por kg da suspensão 50 mg/mL de 8/8h se dor/febre)',
+          instrucoes: 'Administrar junto ou logo após alimentos para proteção gástrica.'
+        },
+        prednisolona: {
+          nome: 'Prednisolona (Fosfato Sódico)',
+          apresentacao: 'Prednisolona 3 mg/mL (solução oral)',
+          concentracaoMgPorMl: 3,
+          doseMgKgDia: opt.doseMgKgDia || 1,
+          tomadasDia: 1,
+          intervaloHoras: 24,
+          diasTratamento: opt.diasTratamento || 5,
+          doseMaximaAdultoMgDia: 40,
+          volumeFrascoMl: 60,
+          indicacao: 'Crise asmática / Laringite estridulosa / Broncoespasmo (1 a 2 mg/kg/dia)',
+          instrucoes: 'Administrar em dose única pela manhã, após o desjejum, por 3 a 5 dias.'
+        },
+        sulfametoxazol_trimetoprima: {
+          nome: 'Sulfametoxazol + Trimetoprima',
+          apresentacao: 'Sulfametoxazol 200 mg + Trimetoprima 40 mg / 5 mL (suspensão oral)',
+          concentracaoMgPorMl: 8,
+          doseMgKgDia: 8,
+          tomadasDia: 2,
+          intervaloHoras: 12,
+          diasTratamento: opt.diasTratamento || 10,
+          doseMaximaAdultoMgDia: 320,
+          volumeFrascoMl: 100,
+          indicacao: 'Infecções urinárias (ITU) / Infecções respiratórias selecionadas (8 mg TMP/kg/dia)',
+          instrucoes: 'Tomar a cada 12 horas com boa ingestão hídrica durante o dia.'
+        }
+      };
+
+      var chaveAlvo = null;
+      if (termo.indexOf('clavulan') !== -1 || termo.indexOf('clavulin') !== -1 || termo.indexOf('amoxiclav') !== -1 || termo.indexOf('otite') !== -1 || termo.indexOf('oma') !== -1) {
+        chaveAlvo = 'amoxicilina_clavulanato';
+      } else if (termo.indexOf('amoxi') !== -1) {
+        chaveAlvo = 'amoxicilina';
+      } else if (termo.indexOf('azitro') !== -1) {
+        chaveAlvo = 'azitromicina';
+      } else if (termo.indexOf('cefalex') !== -1) {
+        chaveAlvo = 'cefalexina';
+      } else if (termo.indexOf('dipi') !== -1 || termo.indexOf('novalgina') !== -1 || termo.indexOf('dor') !== -1 || termo.indexOf('febre') !== -1) {
+        chaveAlvo = 'dipirona';
+      } else if (termo.indexOf('paracet') !== -1 || termo.indexOf('tylenol') !== -1) {
+        chaveAlvo = 'paracetamol';
+      } else if (termo.indexOf('ibuprof') !== -1 || termo.indexOf('alivium') !== -1) {
+        chaveAlvo = 'ibuprofeno';
+      } else if (termo.indexOf('prednis') !== -1 || termo.indexOf('prelone') !== -1 || termo.indexOf('asma') !== -1 || termo.indexOf('laring') !== -1) {
+        chaveAlvo = 'prednisolona';
+      } else if (termo.indexOf('sulfa') !== -1 || termo.indexOf('bactrim') !== -1 || termo.indexOf('trimetop') !== -1) {
+        chaveAlvo = 'sulfametoxazol_trimetoprima';
+      } else if (termo.indexOf('amigdalite') !== -1 || termo.indexOf('faringite') !== -1) {
+        if (termo.indexOf('alerg') !== -1 || termo.indexOf('penicil') !== -1) {
+          chaveAlvo = 'azitromicina';
+        } else {
+          chaveAlvo = 'amoxicilina';
+        }
+      }
+
+      if (!chaveAlvo || !tabela[chaveAlvo]) {
+        chaveAlvo = 'amoxicilina';
+      }
+
+      var cfg = tabela[chaveAlvo];
+      var dadosCalculados = {};
+
+      if (cfg.tipo === 'gotas') {
+        var doseDesejadaMg = cfg.doseMgKgDose * peso;
+        var doseEfetivaMg = Math.min(doseDesejadaMg, cfg.doseMaximaPorDoseMg);
+        var gotas = Math.round(doseEfetivaMg / cfg.mgPorGota);
+        if (gotas < 1) gotas = 1;
+
+        dadosCalculados = {
+          chave: chaveAlvo,
+          farmaco: cfg.nome,
+          apresentacao: cfg.apresentacao,
+          tipo: 'gotas',
+          pesoKg: peso,
+          dosePorTomadaMg: doseEfetivaMg,
+          gotasPorTomada: gotas,
+          intervaloHoras: cfg.intervaloHoras,
+          instrucaoPosologica: 'Dar ' + gotas + ' gotas por via oral a cada ' + cfg.intervaloHoras + ' horas se dor ou febre (máximo 4 vezes ao dia).',
+          memoriaCalculo: 'Dose base: ' + cfg.doseMgKgDose + ' mg/kg × ' + peso + ' kg = ' + fmt(doseDesejadaMg, 1) + ' mg (máx ' + cfg.doseMaximaPorDoseMg + ' mg) ➔ ' + doseEfetivaMg + ' mg ÷ ' + cfg.mgPorGota + ' mg/gota = ' + gotas + ' gotas.',
+          quantidadeDispensar: '1 frasco conta-gotas',
+          frascos: 1,
+          orientacoes: cfg.instrucoes,
+          indicacao: cfg.indicacao
+        };
+      } else {
+        var doseDiariaBrutaMg = cfg.doseMgKgDia * peso;
+        var doseDiariaEfetivaMg = Math.min(doseDiariaBrutaMg, cfg.doseMaximaAdultoMgDia);
+        var dosePorTomadaMg = doseDiariaEfetivaMg / cfg.tomadasDia;
+        var volumeMlBruto = dosePorTomadaMg / cfg.concentracaoMgPorMl;
+        var volumeMl = Math.round(volumeMlBruto * 10) / 10;
+        if (volumeMl < 0.5) volumeMl = 0.5;
+
+        var volumeTotalTratamentoMl = volumeMl * cfg.tomadasDia * cfg.diasTratamento;
+        var frascos = Math.ceil(volumeTotalTratamentoMl / cfg.volumeFrascoMl);
+
+        dadosCalculados = {
+          chave: chaveAlvo,
+          farmaco: cfg.nome,
+          apresentacao: cfg.apresentacao,
+          tipo: 'suspensao',
+          pesoKg: peso,
+          doseDiariaTotalMg: doseDiariaEfetivaMg,
+          dosePorTomadaMg: Math.round(dosePorTomadaMg * 10) / 10,
+          volumePorTomadaMl: volumeMl,
+          tomadasDia: cfg.tomadasDia,
+          intervaloHoras: cfg.intervaloHoras,
+          diasTratamento: cfg.diasTratamento,
+          volumeTotalTratamentoMl: Math.round(volumeTotalTratamentoMl * 10) / 10,
+          volumeFrascoMl: cfg.volumeFrascoMl,
+          frascosNecessarios: frascos,
+          quantidadeDispensar: frascos + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL',
+          instrucaoPosologica: 'Tomar ' + fmtMl(volumeMl) + ' mL por via oral a cada ' + cfg.intervaloHoras + ' horas durante ' + cfg.diasTratamento + ' dias.',
+          memoriaCalculo: 'Dose base: ' + cfg.doseMgKgDia + ' mg/kg/dia × ' + peso + ' kg = ' + fmt(doseDiariaBrutaMg, 1) + ' mg/dia (máx ' + cfg.doseMaximaAdultoMgDia + ' mg/dia) ➔ ' + fmt(dosePorTomadaMg, 1) + ' mg por dose (' + cfg.intervaloHoras + '/' + cfg.intervaloHoras + 'h) ➔ Conversão: ' + fmt(dosePorTomadaMg, 1) + ' mg ÷ ' + cfg.concentracaoMgPorMl + ' mg/mL = ' + fmtMl(volumeMl) + ' mL. Volume total: ' + fmtMl(volumeMl) + ' mL × ' + cfg.tomadasDia + ' tomadas × ' + cfg.diasTratamento + ' dias = ' + fmt(volumeTotalTratamentoMl, 1) + ' mL ➔ ' + frascos + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL.',
+          orientacoes: cfg.instrucoes,
+          indicacao: cfg.indicacao
+        };
+      }
+
+      var linhasResultado = [
+        '<b>Fármaco:</b> ' + dadosCalculados.farmaco,
+        '<b>Apresentação (REMUME/HSL):</b> ' + dadosCalculados.apresentacao,
+        '<b>Peso do Paciente:</b> ' + fmt(peso, 1) + ' kg',
+        '<b>Posologia Oficial:</b> ' + dadosCalculados.instrucaoPosologica,
+        '<b>Quantidade a Dispensar:</b> ' + dadosCalculados.quantidadeDispensar,
+        '',
+        '<b>Memória de Cálculo (Determinística · Zero Alucinação):</b>',
+        dadosCalculados.memoriaCalculo,
+        '',
+        '<b>Orientações Clínicas:</b> ' + dadosCalculados.orientacoes
+      ];
+
+      return {
+        ok: true,
+        id: ID,
+        nome: NOME,
+        estado: ESTADOS.CALCULO.texto,
+        icone: ESTADOS.CALCULO.icone,
+        dados: dadosCalculados,
+        textoFormatado: '👶 <b>CÁLCULO POSOLÓGICO PEDIÁTRICO DETERMINÍSTICO (FÓRMULA FIXA)</b>\n\n' + linhasResultado.join('\n'),
+        botoes: [
+          [btn('💊 Gerar Receita no /rx', 'rx', 'prescrever'), btn('↩️ Outro cálculo', ID, 'voltar')]
+        ],
+        versao: VERSAO
+      };
+    });
+  }
+
+  /**
+   * Extrai parâmetros e executa o cálculo determinístico direto a partir de texto livre.
+   */
+  function calcularPosologiaPorTextoLivre(texto) {
+    if (!texto || typeof texto !== 'string') return null;
+    var matchPeso = texto.match(/\b(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)\b/i);
+    if (!matchPeso) return null;
+    var pesoNum = parseFloat(matchPeso[1].replace(',', '.'));
+    if (!isFinite(pesoNum) || pesoNum <= 0 || pesoNum > 80) return null;
+
+    var res = posologiaPediatrica(pesoNum, texto);
+    if (res && res.ok && res.dados) {
+      return res.dados;
+    }
+    return null;
+  }
+
   // ═════════════════════════════ AUTOTESTE ═════════════════════════════
 
   function autoTeste() {
@@ -1462,6 +1733,11 @@ var CalculadorasClinicas = (function () {
     r = API.calcioCorrigido(7.5, 2.5); ok(r.ok && r.dados.calcioCorrigido === 8.7, 'Cálcio corrigido Payne');
     r = API.gapOsmolar(315, 140, 90, 30); ok(r.ok && r.dados.gapOsmolar > 15, 'Gap osmolar elevado');
     r = API.estadiamentoKDIGO(2.5, 1.0, null, null); ok(r.ok && r.dados.estagio === 2, 'KDIGO estagio 2');
+    r = API.posologiaPediatrica(16, 'amoxicilina'); ok(r.ok && r.dados.volumePorTomadaMl === 5.3 && r.dados.frascosNecessarios === 2, 'Amoxi 16 kg 5.3 mL');
+    r = API.posologiaPediatrica(15, 'azitromicina'); ok(r.ok && r.dados.volumePorTomadaMl === 3.8, 'Azitro 15 kg 3.8 mL');
+    r = API.posologiaPediatrica(16, 'dipirona'); ok(r.ok && r.dados.gotasPorTomada === 8, 'Dipirona 16 kg 8 gotas');
+    r = API.posologiaPediatrica(14, 'paracetamol'); ok(r.ok && r.dados.gotasPorTomada === 14, 'Paracetamol 14 kg 14 gotas');
+    r = API.calcularPosologiaPorTextoLivre('amigdalite crianca 16kg'); ok(r && r.farmaco === 'Amoxicilina' && r.volumePorTomadaMl === 5.3, 'Texto livre amigdalite 16kg');
     r = API.processarAcao(null, 'curb65', 'criterios'); ok(r.ok && /CURB-65/.test(r.textoFormatado), 'processarAcao curb65 criterios');
     return f;
   }
@@ -1707,6 +1983,8 @@ var CalculadorasClinicas = (function () {
     meld: meld,
     drogasVasoativas: drogasVasoativas,
     sequenciaRapidaIntubacao: sequenciaRapidaIntubacao,
+    posologiaPediatrica: posologiaPediatrica,
+    calcularPosologiaPorTextoLivre: calcularPosologiaPorTextoLivre,
     processarAcao: processarAcao,
     autoTeste: autoTeste
   };

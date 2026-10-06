@@ -277,6 +277,297 @@ function checarStatusFonteDrive(idPlanilha, isInteracao) {
 }
 
 // ==============================================================================
+// BASE OFICIAL DE POSOLOGIAS: GUIA FARMACÊUTICO HOSPITAL SÍRIO-LIBANÊS (HSL)
+// ==============================================================================
+
+var _cacheGuiaHSL = null;
+
+/**
+ * Obtém a coleção de medicamentos do Guia HSL da memória RAM ou arquivo local.
+ */
+function obterGuiaFarmaceuticoHSL() {
+  if (_cacheGuiaHSL && _cacheGuiaHSL.length > 0) return _cacheGuiaHSL;
+
+  // 1. Injetado no contexto global do runtime Node.js
+  if (typeof __BASE_GUIA_HSL__ !== "undefined" && __BASE_GUIA_HSL__ && Array.isArray(__BASE_GUIA_HSL__.medicamentos)) {
+    _cacheGuiaHSL = __BASE_GUIA_HSL__.medicamentos;
+    return _cacheGuiaHSL;
+  }
+
+  // 2. Função helper injetada pelo runtime
+  if (typeof obterBaseGuiaHSL === "function") {
+    var raw = obterBaseGuiaHSL();
+    if (raw && Array.isArray(raw.medicamentos)) {
+      _cacheGuiaHSL = raw.medicamentos;
+      return _cacheGuiaHSL;
+    }
+  }
+
+  // 3. Fallback lendo arquivo json em src/data ou data/
+  try {
+    if (typeof require !== "undefined") {
+      var fs = require("fs");
+      var path = require("path");
+      var caminhos = [
+        path.resolve(__dirname, "data", "guia_farmaceutico_hsl.json"),
+        path.resolve(__dirname, "..", "data", "guia_farmaceutico_hsl.json"),
+        path.resolve(process.cwd(), "src", "data", "guia_farmaceutico_hsl.json"),
+        path.resolve(process.cwd(), "data", "guia_farmaceutico_hsl.json")
+      ];
+      for (var i = 0; i < caminhos.length; i++) {
+        if (fs.existsSync(caminhos[i])) {
+          var payload = JSON.parse(fs.readFileSync(caminhos[i], "utf8"));
+          if (payload && Array.isArray(payload.medicamentos)) {
+            _cacheGuiaHSL = payload.medicamentos;
+            return _cacheGuiaHSL;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log("Aviso ao carregar Guia HSL via arquivo: " + e.message);
+  }
+
+  return [];
+}
+
+/**
+ * Normaliza termo para busca fonética e semântica de medicamentos.
+ */
+function normalizarTermoMedicamento(txt) {
+  return String(txt || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/\([A-Z]\)/g, "")
+    .replace(/[^A-Z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Busca um medicamento específico na base do HSL por nome DCI, sinônimo ou marca comercial.
+ */
+function buscarMedicamentoNoHSL(termo) {
+  if (!termo) return null;
+  var meds = obterGuiaFarmaceuticoHSL();
+  if (!meds || meds.length === 0) return null;
+
+  var termoLimpo = termo.trim().toLowerCase();
+  var termoNorm = normalizarTermoMedicamento(termo);
+
+  // Expansão por dicionário de sinônimos/marcas
+  var sin = DICIONARIO_FARMACO[termoLimpo];
+  var sinNorm = sin ? normalizarTermoMedicamento(sin) : null;
+
+  // 1. Correspondência exata no nome normalizado
+  for (var i = 0; i < meds.length; i++) {
+    var m = meds[i];
+    if (m.nome_normalizado === termoNorm || (sinNorm && m.nome_normalizado === sinNorm)) {
+      return m;
+    }
+  }
+
+  // 2. Prefixo exato (ex: "AMOXICILINA" casa com "AMOXICILINA + CLAVULANATO")
+  for (var j = 0; j < meds.length; j++) {
+    var med = meds[j];
+    if (med.nome_normalizado.indexOf(termoNorm) === 0 || (sinNorm && med.nome_normalizado.indexOf(sinNorm) === 0)) {
+      return med;
+    }
+  }
+
+  // 3. Contém substring
+  for (var k = 0; k < meds.length; k++) {
+    var item = meds[k];
+    if (item.nome_normalizado.indexOf(termoNorm) !== -1 || (sinNorm && item.nome_normalizado.indexOf(sinNorm) !== -1)) {
+      return item;
+    }
+  }
+
+  // 4. Busca nas apresentações comerciais
+  for (var x = 0; x < meds.length; x++) {
+    var cand = meds[x];
+    if (cand.apresentacoes_hsl && cand.apresentacoes_hsl.length > 0) {
+      for (var a = 0; a < cand.apresentacoes_hsl.length; a++) {
+        var aprNorm = normalizarTermoMedicamento(cand.apresentacoes_hsl[a]);
+        if (aprNorm.indexOf(termoNorm) !== -1) {
+          return cand;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Formata a ficha posológica oficial completa do medicamento para exibição imediata no Telegram.
+ */
+function formatarFichaPosologicaHSL(med) {
+  if (!med) return "❌ Medicamento não encontrado no Guia Farmacêutico HSL.";
+
+  var linhas = [];
+  linhas.push("💊 *GUIA FARMACÊUTICO HSL — POSOLOGIA OFICIAL*");
+  linhas.push("📋 *Fármaco (DCI):* *" + med.farnaco + "*");
+  
+  if (med.na_remume) {
+    linhas.push("🏛️ *Status SUS:* ✅ *PADRONIZADO NA REMUME (Ribeirão Preto)*");
+    if (med.apresentacoes_remume && med.apresentacoes_remume.length > 0) {
+      linhas.push("📦 *Apresentações na Rede Municipal:*");
+      med.apresentacoes_remume.forEach(function(apr) {
+        linhas.push("  • `" + apr + "`");
+      });
+    }
+  } else {
+    linhas.push("🏛️ *Status SUS:* ⚠️ *NÃO CONSTA NA REMUME MUNICIPAL*");
+    linhas.push("_(Uso hospitalar, componente especializado ou compra pelo paciente)_");
+  }
+
+  if (med.dose_adulto) {
+    linhas.push("\n👤 *DOSE ADULTO:*");
+    linhas.push(med.dose_adulto);
+  }
+
+  if (med.dose_pediatria) {
+    linhas.push("\n👶 *DOSE PEDIÁTRICA:*");
+    linhas.push(med.dose_pediatria);
+  }
+
+  if (med.dose_maxima) {
+    linhas.push("\n⚖️ *DOSE MÁXIMA:*");
+    linhas.push(med.dose_maxima);
+  }
+
+  if (med.ajuste_dose) {
+    linhas.push("\n⚠️ *AJUSTE DE DOSE (RENAL / HEPÁTICO):*");
+    linhas.push(med.ajuste_dose);
+  }
+
+  if (med.administracao) {
+    linhas.push("\n🍽️ *ADMINISTRAÇÃO & RECOMENDAÇÕES:*");
+    linhas.push(med.administracao);
+  }
+
+  if (med.preparo_diluicao) {
+    linhas.push("\n💧 *PREPARO & DILUIÇÃO:*");
+    linhas.push(med.preparo_diluicao);
+  }
+
+  if (med.gestacao_lactacao) {
+    linhas.push("\n🤰 *GESTAÇÃO & LACTAÇÃO:*");
+    linhas.push(med.gestacao_lactacao);
+  }
+
+  if (med.cuidados_especificos) {
+    linhas.push("\n🔍 *MONITORAMENTO & CUIDADOS:*");
+    linhas.push(med.cuidados_especificos);
+  }
+
+  if (med.contraindicacoes) {
+    linhas.push("\n🛑 *CONTRAINDICAÇÕES:*");
+    linhas.push(med.contraindicacoes);
+  }
+
+  linhas.push("\n📚 *Fonte Oficial:* Guia Farmacêutico Hospital Sírio-Libanês (https://guiafarmaceutico.hsl.org.br)");
+  return linhas.join("\n");
+}
+
+/**
+ * Filtra e compacta medicamentos do HSL relevantes para o caso clínico / prescrição.
+ * Respeita a regra de ouro: MEDICAMENTOS DA REMUME VÊM SEMPRE PRIMEIRO.
+ */
+function filtrarContextoPosologiasHSL(pedidoUsuario) {
+  var meds = obterGuiaFarmaceuticoHSL();
+  if (!meds || meds.length === 0) return "";
+
+  var pedidoLower = (typeof normalizarTexto === "function") ? normalizarTexto(pedidoUsuario) : String(pedidoUsuario || "").toLowerCase();
+  var pedidoUpper = normalizarTermoMedicamento(pedidoUsuario);
+  var termos = pedidoUpper.split(/\s+/).filter(function(t) { return t.length >= 3; });
+
+  // Expansão por sinônimos
+  var termosSet = {};
+  termos.forEach(function(t) { termosSet[t] = true; });
+  termos.slice().forEach(function(termo) {
+    var sin = DICIONARIO_FARMACO[termo.toLowerCase()];
+    if (sin) {
+      var sn = normalizarTermoMedicamento(sin);
+      if (!termosSet[sn]) {
+        termosSet[sn] = true;
+        termos.push(sn);
+      }
+    }
+  });
+
+  // Expansão por síndromes clínicas mapeadas (amigdalite, pneumonia, etc.)
+  for (var sindrome in MAPA_SINDROMES_APS) {
+    if (pedidoLower.indexOf(sindrome.toLowerCase()) !== -1) {
+      MAPA_SINDROMES_APS[sindrome].forEach(function(item) {
+        var itemNorm = normalizarTermoMedicamento(item);
+        if (!termosSet[itemNorm]) {
+          termosSet[itemNorm] = true;
+          termos.push(itemNorm);
+        }
+      });
+    }
+  }
+
+  // Localiza matches
+  var selecionados = [];
+  var vistos = {};
+
+  for (var i = 0; i < meds.length; i++) {
+    var m = meds[i];
+    var mNorm = m.nome_normalizado;
+
+    for (var k = 0; k < termos.length; k++) {
+      var t = termos[k];
+      if (mNorm.indexOf(t) !== -1) {
+        if (!vistos[m.farnaco]) {
+          vistos[m.farnaco] = true;
+          selecionados.push(m);
+        }
+        break;
+      }
+    }
+  }
+
+  if (selecionados.length === 0) return "";
+
+  // Prioridade absoluta para medicamentos que constam na REMUME
+  selecionados.sort(function(a, b) {
+    if (a.na_remume && !b.na_remume) return -1;
+    if (!a.na_remume && b.na_remume) return 1;
+    return a.farnaco.localeCompare(b.farnaco);
+  });
+
+  // Limita para os 8 medicamentos mais aderentes
+  selecionados = selecionados.slice(0, 8);
+
+  var blocos = [];
+  for (var s = 0; s < selecionados.length; s++) {
+    var item = selecionados[s];
+    var tagRemume = item.na_remume
+      ? "✅ DISPONÍVEL NA REMUME (1ª ESCOLHA OBRIGATÓRIA)"
+      : "⚠️ FORA DA REMUME (USAR SÓ SE NÃO HOUVER ALTERNATIVA NA REDE MUNICIPAL)";
+
+    var bloco = [
+      "• MEDICAMENTO: " + item.farnaco + " [" + tagRemume + "]",
+      item.apresentacoes_remume && item.apresentacoes_remume.length > 0
+        ? "  Apresentações REMUME: " + item.apresentacoes_remume.join(" | ")
+        : "",
+      item.dose_adulto ? "  Dose Adulto Oficial HSL: " + item.dose_adulto.replace(/\n/g, " ") : "",
+      item.dose_pediatria ? "  Dose Pediátrica Oficial HSL: " + item.dose_pediatria.replace(/\n/g, " ") : "",
+      item.ajuste_dose ? "  Ajuste Renal/Hepático HSL: " + item.ajuste_dose.replace(/\n/g, " ") : "",
+      item.administracao ? "  Administração & Orientações: " + item.administracao.replace(/\n/g, " ") : ""
+    ].filter(Boolean).join("\n");
+
+    blocos.push(bloco);
+  }
+
+  return blocos.join("\n\n");
+}
+
+// ==============================================================================
 // BASE DE PROTOCOLOS DETERMINÍSTICOS E DIRETRIZES BRASILEIRAS (FMRP-USP / SBC / ILAS)
 // ==============================================================================
 

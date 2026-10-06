@@ -29,7 +29,7 @@ var ConfigService = (function() {
     PROVEDOR_TEXTO_PADRAO: "GEMINI",
     IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
     IA_MODELOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
-    IA_MODELOS_TTS_GEMINI: "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts,gemini-3.1-flash-tts-preview",
+    IA_MODELOS_TTS_GEMINI: "gemini-2.5-flash-preview-tts,gemini-3.8-flash-tts",
     IA_VOZ_PRECEPTOR: "Fenrir",
     TIMEZONE: "America/Sao_Paulo",
     SPREADSHEET_ID_REMUME: "",

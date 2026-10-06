@@ -62,7 +62,7 @@ CATALOGO_TAREFAS: Dict[str, Dict[str, Any]] = {
     "tenda_carnes": {
         "id": "tenda_carnes",
         "nome": "Tenda: Comparador Multicortes de Carnes",
-        "descricao": "Pesquisa cortes bovinos, aves e suínos no Tenda Atacado RP e acha os melhores preços.",
+        "descricao": "Compara cortes por preço por kg e monta o carrinho de carnes no Tenda Atacado RP.",
         "categoria": "Nutrição & Compras",
         "icone": "beef",
         "cor": "rose",
@@ -73,7 +73,7 @@ CATALOGO_TAREFAS: Dict[str, Dict[str, Any]] = {
     "tenda_completo": {
         "id": "tenda_completo",
         "nome": "Tenda: Cotação Quinzenal Completa",
-        "descricao": "Varre lista de compras de mercearia, hortifrúti, laticínios e radar de oportunidades.",
+        "descricao": "Monta o carrinho quinzenal com mercearia, hortifrúti, laticínios e radar de oportunidades.",
         "categoria": "Nutrição & Compras",
         "icone": "shopping-cart",
         "cor": "purple",

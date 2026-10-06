@@ -482,6 +482,61 @@ function enviarDocumentoTelegram(chatId, blobDocumento, legenda) {
   }
 }
 
+/**
+ * Garante que o áudio retornado possua cabeçalho RIFF WAV padrão de 44 bytes (24kHz, 16-bit, Mono)
+ * quando gerado por modelos TTS que retornam PCM Linear (audio/L16).
+ */
+function adicionarCabecalhoWavSeNecessario(bytes, mime) {
+  if (!bytes || bytes.length === 0) return bytes;
+  var b0 = (typeof bytes[0] === "number") ? bytes[0] : (bytes[0] || 0);
+  var b1 = (typeof bytes[1] === "number") ? bytes[1] : (bytes[1] || 0);
+  var b2 = (typeof bytes[2] === "number") ? bytes[2] : (bytes[2] || 0);
+  var b3 = (typeof bytes[3] === "number") ? bytes[3] : (bytes[3] || 0);
+  if (b0 === 0x52 && b1 === 0x49 && b2 === 0x46 && b3 === 0x46) {
+    return bytes;
+  }
+  var taxaAmostragem = 24000;
+  if (mime && mime.indexOf("rate=") !== -1) {
+    var matchRate = mime.match(/rate=(\d+)/);
+    if (matchRate) taxaAmostragem = parseInt(matchRate[1], 10) || 24000;
+  }
+  var canais = 1;
+  var bitsPorAmostra = 16;
+  var byteRate = (taxaAmostragem * canais * bitsPorAmostra) / 8;
+  var blockAlign = (canais * bitsPorAmostra) / 8;
+  var tamanhoDados = bytes.length;
+  var tamanhoTotal = 36 + tamanhoDados;
+  var cabecalho = [
+    0x52, 0x49, 0x46, 0x46, // "RIFF"
+    tamanhoTotal & 0xff, (tamanhoTotal >> 8) & 0xff, (tamanhoTotal >> 16) & 0xff, (tamanhoTotal >> 24) & 0xff,
+    0x57, 0x41, 0x56, 0x45, // "WAVE"
+    0x66, 0x6d, 0x74, 0x20, // "fmt "
+    16, 0, 0, 0,            // Subchunk1Size
+    1, 0,                   // AudioFormat (1 = PCM)
+    canais, 0,              // NumChannels (1 = Mono)
+    taxaAmostragem & 0xff, (taxaAmostragem >> 8) & 0xff, (taxaAmostragem >> 16) & 0xff, (taxaAmostragem >> 24) & 0xff,
+    byteRate & 0xff, (byteRate >> 8) & 0xff, (byteRate >> 16) & 0xff, (byteRate >> 24) & 0xff,
+    blockAlign, 0,          // BlockAlign
+    bitsPorAmostra, 0,      // BitsPerSample
+    0x64, 0x61, 0x74, 0x61, // "data"
+    tamanhoDados & 0xff, (tamanhoDados >> 8) & 0xff, (tamanhoDados >> 16) & 0xff, (tamanhoDados >> 24) & 0xff
+  ];
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(bytes)) {
+    return Buffer.concat([Buffer.from(cabecalho), bytes]);
+  }
+  if (typeof Uint8Array !== "undefined" && bytes instanceof Uint8Array) {
+    var resUint8 = new Uint8Array(44 + bytes.length);
+    resUint8.set(cabecalho, 0);
+    resUint8.set(bytes, 44);
+    return resUint8;
+  }
+  if (Array.isArray(bytes)) {
+    var cabSigned = cabecalho.map(function(b) { return b > 127 ? b - 256 : b; });
+    return cabSigned.concat(bytes);
+  }
+  return bytes;
+}
+
 function gerarAudioTtsGeminiNeural(texto) {
   var limpo = String(texto || "").replace(/[*_#`\[\]\(\)]/g, "").replace(/\s+/g, " ").trim();
   if (!limpo) return null;
@@ -511,7 +566,7 @@ function gerarAudioTtsGeminiNeural(texto) {
 
   var modelosTts = ConfigService.getArray("IA_MODELOS_TTS_GEMINI");
   if (!modelosTts || modelosTts.length === 0) {
-    modelosTts = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts", "gemini-3.1-flash-tts-preview"];
+    modelosTts = ["gemini-2.5-flash-preview-tts", "gemini-3.8-flash-tts"];
   }
 
   var payload = {
@@ -528,11 +583,22 @@ function gerarAudioTtsGeminiNeural(texto) {
     }
   };
 
+  var ttsInicio = new Date().getTime();
+  var MAX_TENTATIVAS_CHAVE_POR_MODELO = Math.min(chaves.length, 3);
+
   for (var m = 0; m < modelosTts.length; m++) {
+    // Se já gastamos mais de 15 segundos tentando áudio neural, cai para o fallback rápido
+    if (new Date().getTime() - ttsInicio >= 15000) {
+      Logger.log("Tempo limite para TTS neural esgotado; acionando contingência de voz.");
+      break;
+    }
+
     var modeloAtual = modelosTts[m];
     var url = "https://generativelanguage.googleapis.com/v1beta/models/" + modeloAtual + ":generateContent";
 
-    for (var k = 0; k < chaves.length; k++) {
+    for (var k = 0; k < MAX_TENTATIVAS_CHAVE_POR_MODELO; k++) {
+      if (new Date().getTime() - ttsInicio >= 15000) break;
+
       var idx = (inicio + k) % chaves.length;
       var chave = chaves[idx];
 
@@ -542,7 +608,8 @@ function gerarAudioTtsGeminiNeural(texto) {
           "contentType": "application/json",
           "headers": { "x-goog-api-key": chave },
           "payload": JSON.stringify(payload),
-          "muteHttpExceptions": true
+          "muteHttpExceptions": true,
+          "timeoutMs": 10000
         });
         var code = res.getResponseCode();
         if (code === 200) {
@@ -556,11 +623,12 @@ function gerarAudioTtsGeminiNeural(texto) {
               var bytes = Utilities.base64Decode(part.inlineData.data);
               var mime = part.inlineData.mimeType || "audio/wav";
               var ext = (mime.indexOf("mp3") !== -1) ? "mp3" : "wav";
-              var blob = Utilities.newBlob(bytes, mime, "preceptor_voz." + ext);
+              bytes = adicionarCabecalhoWavSeNecessario(bytes, mime);
+              var blob = Utilities.newBlob(bytes, mime.indexOf("mp3") !== -1 ? "audio/mpeg" : "audio/wav", "preceptor_voz." + ext);
               return blob;
             }
           }
-        } else if (code === 429) {
+        } else if (code === 429 || code === 504 || code >= 500) {
           continue;
         }
       } catch (e) {

@@ -1,7 +1,7 @@
 # Ambientes e segredos locais
 .env
 .deploy_state.json
-data/properties.json
+/data/
 
 # Dependências e ambientes virtuais
 .venv/

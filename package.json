@@ -7,7 +7,8 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "PYTHONPATH=. .venv/bin/pytest tests/ -q",
-    "build": "python3 build_master.py"
+    "build": "python3 build_master.py",
+    "extrair:hsl": "node scripts/extrair_guia_hsl.js"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",

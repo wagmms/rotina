@@ -1,0 +1,1147 @@
+ID,Medicamento,Interage com,Grau da interação,Efeito da interação,Recomendações farmacêuticas
+1,ANFOTERICINA B,Digoxina,Moderado,"Hipocalemia e
+toxicidade digitálica.","Os níveis de potássio devem ser
+acompanhados, juntamente à função
+cardíaca, em pacientes que receberam esta
+combinação. Cloreto de potássio pode ser
+necessário para suplementação."
+2,AMICACINA,"Furosemida,
+Anfotericina B/
+Polimixina B/
+Vancomicina",Moderado,"Aumento do risco
+de nefrotoxicidade.",Deve-se monitorar a função renal.
+3,AMICACINA,Ibuprofeno,Moderado,"Por diminui a excreção
+de amicacina resultando
+em um aumento da meia vida
+plasmática, pode aumentar os
+efeitos nefrotóxicos e
+ototóxicos da micacina.","Os intervalos de dosagem da
+amicacina devem ser aumentados
+quando a amicacina é coadministrada
+com ibuprofeno. Monitorar a função renal."
+4,AMICACINA,Piperacilina + Tazobactam,Moderado,"Inativação do
+Aminoglicosídeo.","Intervalo de 1 hora antes ou
+após o aminoglicosídeo."
+5,AMICACINA,"Cefalotina, Cefazolina,
+Cefuroxima, Ceftazidima,
+Ceftriaxona e Cefepime",Grave,"Potencialização dos efeitos
+nefrotóxicos.","Intervalo de 1 hora antes ou
+após o aminoglicosídeo."
+6,AMIODARONA,Amitriptilina,Grave,Arritmias ventriculares.,"Uso concomitante deve ser feito com
+cautela. Observar risco-benefício.
+Monitorar a ocorrência de arritmias."
+7,AMIODARONA,Azitromicina/ Claritromicina,Grave,"↑ do intervalo QT
+(arritmias cardíacas graves).","Devem ser usados com
+bastante cautela."
+8,AMIODARONA,Metronidazol,Grave,"O metronidazol inibe o
+citocromo P450 aumentando
+os níveis séricos da amiodarona,
+aumentando o risco de
+cardiotoxicidade e aumentando
+o intervalo QT.","A administração concomitante de
+amiodarona e o metronidazol não são
+recomendados. Se o uso concomitante for
+inevitável, monitorar o intervalo QT e
+observar o paciente quanto aos sinais
+de uma possível intoxicação."
+9,AMIODARONA,Atorvastatina e sinvastatina,Grave,"↑ da concentração plasmática
+da estatina podendo levar
+a quadro clínico de miopatia
+e rabdomiólise.","A dose de sinvastatina não deve exceder a
+20 mg/dia em pacientes que fazem uso de
+amiodarona. Não sendo possível suspender
+a amiodarona, é necessário observar os
+pacientes observando os sintomas
+de miopatia e rabdomiólise.
+Avaliar substituição por outro
+da mesma classe."
+10,AMIODARONA,Digoxina,Grave,"↑ da concentração plasmática da
+digoxina podendo resultar em
+toxicidade digitálica (náuseas,
+vômitos e arritmias cardíacas).","Avaliar a suspensão ou redução da
+dose da digoxina 1/3 ou metade."
+11,AMIODARONA,Fenitoína,Moderado,"↑ de 40% da concentração
+plasmática da Fenitoína após
+2-6 semanas de tratamento que
+leva a redução de 33 a 49%
+de redução na concentração sérica
+de Amiodarona.","Deve-se evitar o uso concomitante
+após duas semanas."
+12,AMIODARONA,Fluconazol e Voriconazol,Contraindicado,"↑ do intervalo QT
+(arritmias cardíacas graves).",Deve-se evitar uso concomitante.
+13,AMIODARONA,Hidrocortisona,Grave,"Risco de arritmias;
+Hipocalemia; Hipomagnesemia.","Monitorar frequência cardíaca e níveis
+séricos de potássio e magnésio."
+14,AMIODARONA,Metoprolol e propranolol,Grave,Bradicardia e Hipotensão severa.,Avaliar substituição por Atenolol.
+15,AMIODARONA,"Sulfametoxazol +
+Trimetoprima",Grave,"↑ os riscos de cardiotoxicidade,
+causando arritmia cardíaca severa,
+taquicardia ventricular e fibrilação.","A administração concomitante dessas duas
+drogas não é recomendada. Avaliar risco e
+benefício. Se o uso concomitante for
+inevitável, monitorar o intervalo QT e
+observar o paciente quanto aos sinais
+de uma possível intoxicação."
+16,AMIODARONA,Varfarina,Grave,"↑ risco de sangramento por
+diminuição do metabolismo
+da varfarina.","Redução de 30 a 50% da dose da varfarina
+e monitorar TP. Recomendado monitorar
+com frequência os resultados do RNI."
+17,AMITRIPTILINA,"Amiodarona e
+eritromicina",Contraindicado,"Prolongamento do
+intervalo QT.",Deve-se evitar essa combinação.
+18,AMITRIPTILINA,Clonidina,Contraindicado,↑ súbito e grave de PA.,Deve-se evitar essa combinação.
+19,AMITRIPTILINA,Fluconazol,Moderado,"↑ dos níveis séricos dos ATC
+podendo causar arritmias
+cardíacas.",Avaliar ajuste de dose no ATC.
+20,AMITRIPTILINA,"Fluoxetina, Escitalopram,
+Paroxetina e Sertralina",Contraindicado,Risco de síndrome serotoninérgica.,Deve-se evitar essa combinação.
+21,AMITRIPTILINA,Fenobarbital,Grave,"↓ da concentração plasmática dos
+ATC por indução do metabolismo
+enzimático.","Avaliar outro antidepressivo
+ou ajuste de dose."
+22,AMITRIPTILINA,Tramadol,Contraindicado,"Risco de neuroexcitabilidade e
+↓ do limiar convulsivo
+– Síndrome Serotoninérgica.",Deve-se evitar essa combinação.
+23,"AMOXICILINA +
+CLAVULANATO",Varfarina,Moderado,↑ o risco de sangramento.,"Monitorar a coagulação
+sanguínea do paciente."
+24,ANLODIPINO,"Atenolol/
+Metoprolol/
+Propranolol",Moderado,"↑ Efeito hipotensor do anlodipino
+e ocorrência de bradicardia.","Monitorar a ocorrência de bradicardia,
+hipotensão arterial, ou sinais
+de insuficiência cardíaca."
+25,ANLODIPINO,Carbamazepina,Moderado,"↓ efeito terapêutico
+do anlodipino.",Monitorar a pressão arterial.
+26,"ANLODIPINO/
+NIFEDIPINO/
+DILTIAZEM/
+VERAPAMIL","Atracúrio/
+Pancurônio /
+Suxametônio",Grave,"↑ efeito bloqueador
+neuromuscular do
+atracúrio/pancurônio.","Monitorar o aumento/prolongamento
+dos efeitos terapêuticos (paralisia
+muscular) de agentes bloqueadores
+neuromusculares (não despolarizantes)."
+27,"ANLODIPINO/
+NIFEDIPINO/
+DILTIAZEM/
+VERAPAMIL","AINEs: Diclofenaco/
+Ibuprofeno/ Naproxeno",Leve,"↓ efeito anti-hipertensivo dos
+bloqueadores de canal de cálcio.",Monitorar a pressão arterial.
+28,"ANLODIPINO/
+NIFEDIPINO/
+DILTIAZEM/
+VERAPAMIL",Claritromicina,Moderado,"↑ efeitos terapêuticos
+e tóxicos dos bloqueadores de
+canal de cálcio.","Monitorar o aumento dos efeitos
+terapêuticos (hipotensão arterial) e
+tóxicos (fadiga; edema; alterações do ritmo
+cardíaco). Considerar troca por macrolídeo
+não interagente (Azitromicina)."
+29,"ANLODIPINO/
+NIFEDIPINO/
+DILTIAZEM/
+VERAPAMIL",Fenitoína,Moderado,↑ efeitos tóxicos da Fenitoína.,"Monitorar ocorrência de efeitos tóxicos
+(depressão do SNC, nistagmo,
+vertigem, sonolência, ataxia)."
+30,"ANLODIPINO/
+NIFEDIPINO/
+DILTIAZEM/
+VERAPAMIL",Fluconazol,Moderado,"↑ efeitos terapêuticos e
+tóxicos dos bloqueadores
+de canal de cálcio.","Monitorar o aumento dos efeitos
+terapêuticos (hipotensão arterial)
+e tóxicos (fadiga; edema; alterações
+do ritmo cardíaco)."
+31,"ANLODIPINO/
+NIFEDIPINO/
+DILTIAZEM/
+VERAPAMIL","Nitroprussiato
+de sódio",Moderado,"↑ efeito hipotensor
+do Nitroprussiato.","Usar com cautela. Redução da dose de
+Nitroprussiato pode ser necessária para
+controle pressórico adequado."
+32,ATENOLOL,Ampicilina,Moderado,"↓ efeito anti-hipertensivo do
+betabloqueador (atenolol).",Monitorar a pressão arterial.
+33,AZITROMICINA,Amiodarona,Grave,"↑ do intervalo QT – Arritmias
+Cardíaca Grave.",Devem ser usados com bastante cautela.
+34,AZITROMICINA,"Atorvastatina e
+Sinvastatina",Grave,"↑ concentração plasmática da
+estatina podendo levar ao quadro
+clínico de rabdomiólise.","Avaliar substituição por
+outro da mesma classe."
+35,AZITROMICINA,Levofloxacino,Contraindicado,"↑ do intervalo QT –
+Arritmias Cardíaca Grave.",Deve-se evitar essa combinação.
+36,AZITROMICINA,Digoxina,Grave,"↑ dos níveis séricos da Digoxina,
+podendo causar toxicidade.","Avaliar a necessidade de reduzir
+a dose da digoxina."
+37,AZITROMICINA,Varfarina,Grave,↑ dos efeitos do anticoagulante.,"Monitorar os parâmetros de coagulação e
+avaliar a necessidade de ajustar a dose."
+38,CARBAMAZEPINA,"Diltiazem/
+Verapamil",Moderado,"↑ efeitos adversos/tóxicos
+da Carbamazepina.","Monitorar efeitos tóxicos (ataxia,
+sonolência, fadiga, leucopenia,
+trombocitopenia, outros)."
+39,CARBAMAZEPINA,Fluconazol,Grave,"↑ concentração plasmática de
+carbamazepina (toxicidade).","Deve-se monitorar as concentrações
+plasmáticas de carbamazepina."
+40,CARBAMAZEPINA,Fluoxetina,Moderado,"↑ concentração plasmática de
+carbamazepina (inibição do
+metabolismo hepático da
+carbamazepina).","Avaliar substituição por outro
+da mesma classe."
+41,CARBAMAZEPINA,"Haloperidol/
+Lamotrigina",Moderado,"↓ dos efeitos terapêuticos do
+haloperidol/lamotrigina e
+↑ dos efeitos da carbamazepina.","Verificar ajuste de dose de
+um dos medicamentos."
+42,CARBAMAZEPINA,Metronidazol,Moderado,"↑ da toxicidade da carbamazepina
+(náuseas,
+tonturas e diplopia).","Se possível, evitar a administração
+concomitante. Caso não seja, monitorar
+quanto aos sinais de toxicidade da
+carbamazepina."
+43,CARBAMAZEPINA,Paracetamol,Moderado,"↓ efeito terapêutico do
+paracetamol e aumenta risco
+de dano hepático.","Monitorar diminuição dos efeitos
+terapêuticos e hepatotoxicidade."
+44,CARBAMAZEPINA,Quetiapina,Moderado,"↑ concentração plasmática do
+metabólito ativo da carbamazepina
+(neurotoxicidade) e ↓ dos níveis
+séricos
+da quetiapina.","Deve-se monitorar os níveis
+de carbamazepina e do seu
+metabólito e monitorar a resposta
+clínica da quetiapina."
+45,CARBAMAZEPINA,Sertralina,Moderado,"↓ do efeito terapêutico
+da sertralina.","Avaliar ajuste de dose da sertralina ou
+avaliar a substituição por outro da mesma
+classe."
+46,CARBAMAZEPINA,Topiramato,Moderado,"↓ do efeito terapêutico
+do topiramato.",Avaliar ajuste de dose.
+47,CARBAMAZEPINA,Varfarina,Moderado,"↓ do efeito anticoagulante
+da varfarina.","Monitorar os parâmetros anticoagulantes
+da varfarina e ajustar a dose."
+48,"CAPTOPRIL/
+ENALAPRIL",AAS,Moderado,↓ resposta anti-hipertensiva.,Monitorar a pressão arterial.
+49,"CAPTOPRIL/
+ENALAPRIL","AINEs (Diclofenaco;
+Ibuprofeno; Naproxeno)",Moderado,"↓ resposta anti-hipertensiva;
+↑ risco de disfunção renal.","Monitorar a pressão arterial. Considerar
+terapia antiinflamatória alternativa
+(principalmente pacientes com ICC)."
+50,"CAPTOPRIL/
+ENALAPRIL",Alopurinol,Grave,"↑ risco de reações
+alérgicas ao alopurinol.","Observar evidências de hipersensibilidade
+ao alopurinol por no mínimo 5 semanas."
+51,"CAPTOPRIL/
+ENALAPRIL",Espironolactona,Moderado,"↑ efeito hipercalêmico
+dos IECA (Captopril/Enalapril).","Monitorar níveis séricos de potássio
+(principalmente na ICC)."
+52,"CAPTOPRIL/
+ENALAPRIL",Hidroclorotiazida,Moderado,"Hipotensão postural;
+↑ efeito nefrotóxico dos
+IECA (Captopril/Enalapril).","Observar evidências de hipotensão
+postural no início do tratamento.
+Observar sinais e sintomas
+de disfunção renal."
+53,CEFALEXINA,Metformina,Moderado,"A metformina tem sua secreção
+tubular diminuída quando
+associado os fármacos catiônicos
+como a cefalexina aumentando
+assim a concentração plasmática
+da droga, consequentemente dos
+efeitos hipoglicemiantes.","Se possível, evitar a administração
+concomitante, caso não seja,
+monitorar a glicemia."
+54,"CEFEPIME/
+CEFALOTINA/
+CEFTAZIDIMA/
+CEFTRIAXONA",Amicacina/ Gentamicina,Moderado,↑ risco de nefrotoxicidade.,"A menor dose eficaz de aminoglicosídeos e
+cefalosporinas deve ser utilizada quando
+prescritos em combinação. Monitorar
+função renal (uréia e creatinina)."
+55,"CEFEPIME/
+CEFALOTINA/
+CEFTAZIDIMA/
+CEFTRIAXONA",Varfarina,Moderado,↑ risco hemorrágico.,"Monitorar tempo de protrombina (TAP)
+e aumento das evidências de sangramento.
+Exceção: Cefepime."
+56,CEFTRIAXONA,"Substância que contenha
+cálcio (gluconato de
+cálcio, fosfato de cálcio,
+ringer lactato,
+ringer simples)",Grave,"Quando a ceftriaxona é
+administrada com substância que
+contenham cálcio, como gluconato
+de cálcio, acetato de cálcio, ocorre
+precipitação, causando risco de
+morte por eventos
+cardiopulmonares.","Evitar misturar essas drogas em uma
+mesma solução. Evitar a administração em
+Y. Caso for necessário a administração das
+duas drogas, realizá-las em vias separadas
+ou lavar
+o equipo com solução fisiológica."
+57,CIPROFLOXACINO,Amiodarona,Grave,"O ciprofloxacino inibecitocromo
+CYP1A2 diminuindo a
+metabolização hepática da
+tizanidina, elevando seus níveis
+séricos, causando hipotensão
+e efeitos sedativos.","O uso concomitante é contra-indicado,
+devido à hipotensão e sedação severas.
+Outra terapia antiespasmódica é indicada."
+58,CIPROFLOXACINO,Diclofenaco,Moderado,"↑ da toxicidade do ciprofloxacino
+(nervosismo, náuseas e diarreia).","Atentar-se para os sinais e sintomas de uma
+possível intoxicação por ciprofloxacino."
+59,CIPROFLOXACINO,Fenitoína,Moderado,"↑ ou diminui os níveis de
+fenitoína.","Monitorar possíveis efeitos tóxicos da
+fenitoína ou ineficácia da mesma."
+60,CIPROFLOXACINO,Haloperidol,Moderado,"Prolongamento do intervalo QT,
+que pode resultar em efeitos
+aditivos e aumento do risco
+de arritmias ventriculares.","Se realmente for necessário utilizar o
+haloperidol e não tiver outra alternativa,
+monitorizar de perto, sobretudo se o uso for
+parenteral e em doses elevadas."
+61,CIPROFLOXACINO,"Metilprednisolona/
+Hidrocortisona/
+Dexametasona/
+Betametasona/ Prednisona",Grave,"↑ risco de tendinite e
+ruptura do tendão.","Uso concomitante deve ser evitado.
+Monitorar paciente para sinais de dor,
+inchaço ou inflamação de um tendão."
+62,CIPROFLOXACINO,"Hidróxido de Magnésio, sais de
+cálcio, sais de ferro
+e sais de magnésio",Moderado,"↓ da absorção significativa das
+quinolonas administradas por V. O.","Administrar a quinolona
+2 horas antes ou 6 horas após."
+63,CIPROFLOXACINO,Metadona,Contraindicado,Prolongamento do Intervalo QT.,Deve-se evitar o uso concomitante.
+64,CIPROFLOXACINO,Sinvastatina,Grave,"↑ da concentração plasmática da
+estatina podendo levar a quadro
+clínico de miopatia e rabdomiólise.","Deve-se monitorar os pacientes,
+observando os sintomas de miopatia
+ou rabdomiólise (dores musculares,
+sensibilidade ou fraqueza).
+Monitorar CK e descontinuar o uso
+de sinvastatina se esta estiver alterada."
+65,CIPROFLOXACINO,Sulfato Ferroso,Moderado,"↓ a absorção devido à quelação,
+diminuindo a eficácia
+do ciprofloxacino.","De preferência evitar a associação ou
+escolher uma outra via para o antibiótico
+(IV). Caso associação for inevitável
+administrar o ciprofloxacino pelo menos
+duas horas antes ou seis horas após
+medicamentos que contenham ferro."
+66,CIPROFLOXACINO,Tizanidina,Contraindicado,"↑ dos níveis séricos da tizanidina
+por inibição do metabolismo
+hepático (tontura e hipotensão
+severa).",Deve-se evitar o uso concomitante.
+67,CLARITROMICINA,Ácido Valpróico,Moderado,"↑ problemas de deambulação,
+fala e concentração..","Monitorar efeitos tóxicos do ácido valpróico
+(distúrbios na deambulação, fala e
+concentração). Considerar escolha de
+macrolídeo não interagente (Azitromicina)."
+68,CLARITROMICINA,Cetoconazol/ Itraconazol,Moderado,"↑ efeitos terapêuticos e tóxicos
+dos antifúngicos.","Monitorar efeitos tóxicos dos antifúngicos
+(náusea, vômito, dor abdominal, prurido)."
+69,CLARITROMICINA,Clopidogrel,Moderado,Risco hemorrágico.,"Monitorar evidências de redução da função
+plaquetária (hemorragia)."
+70,CLARITROMICINA,Fluconazol,Grave,"↑ dos riscos de cardiotoxicidade,
+causando arritmia cardíaca severa,
+taquicardia ventricular e fibrilação.","A administração concomitante de
+claritromicina com fluconazol não é
+recomendada. Se o uso concomitante for
+inevitável, monitorar o intervalo QT e
+observar o paciente quanto
+aos sinais de uma possível intoxicação."
+71,CLARITROMICINA,Midazolam,Moderado,↑ efeitos sedativos e hipnóticos.,Monitorar terapia.
+72,CLARITROMICINA,"Sulfametoxazol
++ Trimetoprima",Grave,"Efeito aditivo no prolongamento
+do intervalo QTc corrigido,
+aumentando os riscos de
+cardiotoxicidade,
+causando arritmia cardíaca severa,
+taquicardia ventricular e fibrilação.","A administração concomitante dessas duas
+drogas não é recomendada. Avaliar risco e
+benefício. Se o uso concomitante for
+inevitável, monitorar o intervalo QT e
+observar o paciente quanto aos sinais de
+uma possível intoxicação."
+73,CLINDAMICINA,"Bloqueador neuromuscular
+(ex.: atracúrio)",Moderado,"Potencializa os efeitos dos
+bloqueadores musculares podendo
+causar depressão respiratória.","Monitorar os pacientes quanto aos sinais e
+sintomas de um efeito exacerbado dos
+bloqueadores e se necessário ajustar a
+dose."
+74,CLINDAMICINA,Eritromicina,Contraindicado,"↓ efeito terapêutico
+da eritromicina.",O uso concomitante deve ser evitado.
+75,CLONIDINA,"Atenolol/
+Metoprolol/
+Propranolol",Grave,"↑ efeito hipertensivo de rebote
+devido retirada abrupta de
+Clonidina.","Monitorar aumentos agudos de pressão
+arterial. Suspender o betabloqueador
+vários dias antes da
+clonidina ser gradualmente retirada.
+Preferir utilização debetabloqueador
+cardiosseletivo."
+76,CLOPIDOGREL,"AAS e AINESs (Diclofenaco;
+Ibuprofeno;Naproxeno)",Moderado,Risco hemorrágico.,"Monitorar a evidência de redução da função
+plaquetária (hemorragia)."
+77,CLORETO DE POTÁSSIO,Captopril/ Enalapril,Moderado,"↑ risco de
+hipercalcemia.","Monitorar níveis plasmáticos de cálcio e
+sinais e sintomas de hipercalcemia
+(arritmias; alterações dos níveis
+de consciência; constipação)."
+78,CLORETO DE POTÁSSIO,Espironolactona,Moderado,"↑ níveis plasmáticos
+de potássio.","Evitar o uso concomitante (exceto
+hipocalemia importante). Monitorar sinais
+de hipercalemia (fraqueza muscular; fadiga;
+arritmias; bradicardia). Pacientes com
+comprometimento renal apresentam
+maiores riscos de efeitos adversos."
+79,CLORETO DE POTÁSSIO,Losartana,Moderado,↑ níveis plasmáticos de potássio.,"Monitorar sinais e sintomas de
+hipercalemia."
+80,DEXCLORFENIRAMINA,Clorpromazina,Contraindicado,Risco de arritmias cardíacas.,O uso concomitante deve ser evitado.
+81,DIGOXINA,"Cetoconazol/
+Itraconazol",Moderado,"Bradicardia; Distúrbios do SNC;
+náusea e vômito.","Monitorar ocorrência de efeitos tóxicos da
+digoxina (bradicardia, Distúrbios do SNC,
+etc)."
+82,DIGOXINA,"Claritromicina/
+Azitromicina",Moderado,"Bradicardia; Distúrbios do SNC;
+náusea e vômito.","Monitorar ocorrência de efeitos tóxicos da
+digoxina
+(bradicardia, distúrbios do SNC, etc)."
+83,DIGOXINA,"Atenolol/
+Metoprolol/
+Propranolol",Moderado,Bradicardia excessiva; Arritmias.,Monitorar aumento de bradicardia.
+84,"DILTIAZEM/
+VERAPAMIL",AAS,Moderado,"↑ risco de hemorragias
+anormais e equimoses.","Monitorar o aumento dos efeitos
+antiplaquetários
+do AAS (hemorragias e equimose)."
+85,"DILTIAZEM/
+VERAPAMIL","Atazanavir/ Lopinavir/
+Ritonavir",Grave,"↓ efeitos terapêuticos do
+Diltiazem/ Verapamil.","Evitar uso concomitante.
+Monitorar a pressão arterial."
+86,"DILTIAZEM/
+VERAPAMIL","Atenolol/ Propranolol/
+Metoprolol",Moderado,"Hipotensão, bradicardia e
+sinais de insuficiência cardíaca.","Monitorar as evidências de
+bradicardia, hipotensão e
+sinais de insuficiência cardíaca."
+87,"DILTIAZEM/
+VERAPAMIL","Diazepam/ Midazolam/
+Clonazepam",Moderado,"↑ das concentrações e toxicidade
+dos benzodiazepínicos (sedação
+excessiva e efeitos hipnóticos
+prolongados).","Evitar uso concomitante. Se uso
+concomitante, monitorar ocorrência
+e efeitos tóxicos dos benzodiazepínicos
+e considerar redução da dose."
+88,"DILTIAZEM/
+VERAPAMIL",Digoxina,Grave,"↑ efeito de bloqueio
+Atrioventricular da Digoxina.","Monitorar efeitos adversos/ tóxicos da
+Digoxina (arritmias)."
+89,DOBUTAMINA,Linezolida,Grave,"↑ resposta pressora da
+dobutamina.",Monitorar a pressão arterial.
+90,ENOXAPARINA,"AINES, varfarina,",Moderado,Potencialização dos seus efeitos.,Deve-se monitorar risco de sangramento.
+91,ENOXAPARINA,"Duloxetina/ Paroxetina
+Fluoxetina/ Sertralina.",Moderado,Potencialização dos seus efeitos.,Deve-se monitorar risco de sangramento.
+92,ERITROMICINA,"Atorvastatina e
+Sinvastatina",Grave,"↑ da concentração plasmática da
+estatina podendo levar ao quadro
+clínico de rabdomiólise.","Avaliar substituição por outro
+da mesma classe."
+93,ERITROMICINA,Carbamazepina,Grave,"↑ da concentração plasmática de
+carbamazepina por inibição do
+metabolismo hepático.",Avaliar substituição por azitromicina.
+94,ERITROMICINA,Cilostazol,Moderado,"↑ da concentração plasmática do
+cilostazol por inibição do
+metabolismo hepático.","Avaliar o uso de 50 mg a cada 12 horas,
+durante o tratamento com antibióticos
+macrolídeos"
+95,ERITROMICINA,Colchicina,Grave,"↑ dos níveis séricos da colchicina
+por inibição
+do metabolismo hepático,
+podendo levar intoxicação
+que alguns casos são fatais.","Deve-se evitar o uso concomitante.
+Avaliar a substituição por azitromicina."
+96,ERITROMICINA,Digoxina,Grave,"↑ dos níveis séricos da
+digoxina(toxicidade).","Avaliar a necessidade de reduzir
+a dose da digoxina."
+97,ERITROMICINA,"Diltiazem, verapamil",Grave,"↑ das concentrações plasmáticas
+dos inibidores dos canais de cálcio
+(cardiotoxicidade).",Avaliar a substituição pela Azitromicina.
+98,ERITROMICINA,"Dexametasona, fludicortisona,
+hidrocortisona,
+metilprednisolona,
+prednisolona",Moderado,"↑ da concentração plasmática dos
+corticosteroides por inibição do
+metabolismo hepático
+(toxicidade).","Avaliar a substituição por azitromicina ou
+redução
+da dose dos corticosteroides."
+99,FENITOÍNA,Ácido Valpróico,Moderado,Hepatotoxicidade.,"Monitorar a diminuição dos efeitos
+terapêuticos da Fenitoína."
+100,FENITOÍNA,Amiodarona,Moderado,"↑ dos níveis séricos da fenitoína
+(toxicidade) e ↓ da concentração
+plasmática da amiodarona.","Observar os sinais de toxicidade da
+carbamazepina e a ineficácia dos efeitos da
+amiodarona."
+101,FENITOÍNA,Carbamazepina,Moderado,"↑ da concentração plasmática de
+carbamazepina (toxicidade).","Deve-se monitorar as concentrações
+plasmáticas de carbamazepina."
+102,FENITOÍNA,Cetoconazol/ Itraconazol,Grave,Fracasso da terapia antifúngica.,"Evitar uso concomitante. Utilizar terapia
+antifúngica alternativa
+(exceção: Miconazol)."
+103,FENITOÍNA,Dopamina,Grave,Hipotensão.,Monitorar a pressão arterial.
+104,FENITOÍNA,"Fluoxetina, Sertralina",Moderado,"↑ da concentração plasmática
+da fenitoína por inibição
+do metabolismo hepático.","Avaliar substituição por outro
+da mesma classe."
+105,FENITOÍNA,Fluconazol,Moderado,"↑ do risco de toxicidade da
+fenitoína (ataxia, hiperreflexia
+e tremores).","Se possível, evitar a administração
+concomitante. Caso não seja, monitorar
+os pacientes para possíveis sinais e
+sintomas dos efeitos tóxicos da fenitoína."
+106,FENITOÍNA,Metronidazol,Moderado,"1º O metronidazol pode inibir o
+citocromo P450 aumentando os
+níveis séricos da fenitoína.
+2º A fenitoína pode induzir o
+citocromo P450 , aumentando o
+metabolismo do metronidazol
+diminuindo seus níveis séricos.","Se possível, evitar a administração
+concomitante. Caso não seja, monitorar
+quanto a possíveis sintomas de intoxicação
+de fenitoína (ataxia, sonolência, nistagmo
+{movimento involuntário e convulsivo do
+globo ocular} Avaliar a eficácia do
+metronidazol."
+107,FENOBARBITAL,Ácido Valpróico,Moderado,"↑ dos efeitos tóxicos do
+barbitúrico.","Deve-se monitorar os efeitos tóxicos
+(sedação, nistagmo e ataxia)."
+108,FENOBARBITAL,Nifedipino,Moderado,"↓ dos efeitos terapêuticos do
+nifedipino por metabolismo
+hepático.","Deve-se monitorar o efeito terapêutico e
+ajustar a dose se necessário."
+109,FENOBARBITAL,"Anlodipino/ Diltiazem/
+Verapamil",Moderado,"↓ efeito terapêutico dos
+bloqueadores de canal de cálcio.","Monitorar a pressão arterial.
+Considerar modificação da terapia."
+110,FENOBARBITAL,Varfarina,Grave,"↓ efeitos terapêuticos
+da Varfarina.","Monitorar TAP. Monitorar a diminuição dos
+efeitos terapêuticos da Varfarina.
+Considerar modificação da terapia ou
+aumento de dose da Varfarina."
+111,FENOBARBITAL,Voriconazol,Grave,"↓ dos efeitos terapêuticos do
+voriconazol.",Deve-se evitar o uso concomitante.
+112,FENTANIL,"Clorpromazina e
+Carvedilol",Moderado,Risco de Hipotensão Severa.,Monitorar a pressão arterial.
+113,FENTANIL,"Diazepam/
+Midazolam",Moderado,Depressão respiratória e SNC.,"Monitorar a terapia e observar
+intensificação dos efeitos
+(hipotensão, hipoventilação
+e sedação profunda ou coma)."
+114,FENTANIL,Fluconazol,Moderado,Depressão do SNC.,"Monitorar aumentos dos efeitos do fentanil.
+Ajuste de dose do fentanil se necessário."
+115,FENTANIL,Octreotida,Moderado,"↓ os efeitos dos
+analgésicos narcóticos.","Monitorar a diminuição dos efeitos dos
+analgésicos narcóticos."
+116,FLUCONAZOL,Losartana,Moderado,Hipotensão.,"Monitorar o aumento dos efeitos
+terapêuticos. Monitorar a pressão arterial."
+117,FLUCONAZOL,Glibenclamida,Moderado,Hipoglicemia.,Monitorar glicemia.
+118,FLUCONAZOL,Sinvastatina,Moderado,"↑ risco de
+rabdomiólise.","Observar sinais e sintomas de rabdomiólise.
+Monitorar níveis de Creatina-fosfoquinase
+sérica (CK). Avaliar substituição da
+sinvastatina."
+119,FLUCONAZOL,"Diazepam/
+Midazolam/
+Clonazepam",Moderado,"↑ das concentrações e toxicidade
+dos benzodiazepínicos (sedação
+excessiva e efeitos hipnóticos
+prolongados).","Monitorar a ocorrência de
+efeitos tóxicos dos benzodiazepínicos."
+120,FLUOXETINA,"Amiodarona, amitriptilina,
+eritromicina, fluconazol,
+haloperidol, quetiapina,
+sulfametoxazol + trimetoprima",Contraindicado,"Risco de prolongamento do
+intervalo QT.","Deve-se evitar
+o uso concomitante."
+121,FLUOXETINA,Carbamazepina,Grave,"↑ da concentração plasmática de
+carbamazepina por inibição do
+metabolismo hepático e
+diminuição dos níveis séricos dos
+inibidores de recaptação de
+serotonina por indução enzimática.","Deve-se monitorar os níveis séricos
+da carbamazepina e/ou substituir
+por outra classe de antidepressivo."
+122,FLUOXETINA,Fenitoína,Moderado,"↑ da concentração plasmática da
+fenitoína por inibição do
+metabolismo hepático
+(toxicidade).","Avaliar a substituição por outro
+da mesma classe."
+123,FLUOXETINA,Tramadol,Contraindicado,"Risco de neuroexcitabilidade e
+diminuição do limiar convulsivo.
+Risco de síndrome serotoninérgica",Deve-se evitar o uso concomitante.
+124,FUROSEMIDA,Captopril/ Enalapril,Moderado,"Hipotensão, hipovolemia,
+hiponatremia. Sinais e sintomas
+de disfunção renal quando uso
+concomitante e prolongado.","Monitorar terapia e monitorar níveis de
+creatinina sérica, se ↑, considerar redução
+da dose da Furosemida ou IECA."
+125,FUROSEMIDA,"AINEs: Diclofenaco/
+Ibuprofeno/ Naproxeno",Moderado,↓ da diurese.,"Monitorar diurese. Evitar uso
+concomitante de Furosemida e AINEs
+em pacientes com insuficiência cardíaca
+e cirrose com ascite (pacientes
+sensíveis a alterações de diurese)."
+126,GENTAMICINA,"Furosemida, Anfotericina B,
+Vancomicina e AINES",Moderado,"↑ nefrotoxicidade e
+ototoxicidade.",Deve-se monitorar a função renal.
+127,GENTAMICINA,"Ampicilina, Penicilina,
+Ticarcilina e Penicilina G",Moderado,"↓ na eficácia da
+gentamicina (antagonismo)","Intervalo de 1 hora antes ou após
+o aminoglicosídeo."
+128,GENTAMICINA,Succinilcolina,Grave,"↑ dos efeitos tóxicos da
+succinilcolina como a
+depressão respiratória.","Se possível, evitar a administração
+concomitante, caso não seja, acompanhar
+o estado respiratório e a oxigenação
+do paciente."
+129,HALOPERIDOL,"Amiodarona, Amitriptilina,
+Eritromicina, Fluconazol e
+Fluoxetina",Contraindicado,"Risco de prolongamento do
+intervalo QT (cardiotoxicidade).",Deve-se evitar o uso concomitante.
+130,HALOPERIDOL,"Quetiapina,
+Sulfametoxazol +
+trimetoprima",Contraindicado,"Risco de prolongamento do
+intervalo QT (cardiotoxicidade).",Deve-se evitar o uso concomitante
+131,HALOPERIDOL,Carbamazepina,Grave,"↓ dos efeitos terapêuticos do
+haloperidol e ↑ dos efeitos da
+Carbamazepina.","Avaliar ajuste de dose de 1 ou
+ambos fármacos se necessário"
+132,HALOPERIDOL,"Eritromicina/ Azitromicina/
+Levofloxacino",Grave,↑ risco de arritmias ventriculares.,"Evitar uso concomitante. Monitorar
+paciente para sinais e sintomas como
+tonturas, palpitações ou síncope."
+133,HALOPERIDOL,Lítio,Moderado,"↑efeito neurotóxico (fraquezas,
+discinesias, aumento dos sintomas
+extrapiramidais, encefalopatias e
+danos cerebrais irreversíveis).","Monitorar atentamente os pacientes para
+algum sinal de neurotoxicidade e sintomas
+extrapiramidais. Uso isolado do haloperidol
+no controle inicial de manias agudas e se
+necessário adicionar o lítio
+em dosagem reduzida."
+134,HALOPERIDOL,Metoclopramida,Grave,"Podem ocorrer reações distônicas
+agudas, discinesia tardia, acatisia,
+raramente, estridor e dispneia
+devido ao laringoespasmo.","Metoclopramida não deve ser prescrita
+em combinação com outros agentes
+antidopaminérgicos (haloperidol)."
+135,HALOPERIDOL,Ondansetrona,Grave,"↑ risco de arritmias
+ventriculares.","Evitar uso concomitante. Monitorar
+paciente para sinais e sintomas como
+tonturas, palpitações ou síncope."
+136,HALOPERIDOL,Tramadol,Moderado,↑ risco de convulsões.,Evitar uso simultâneo.
+137,HEPARINA,Alteplase,Grave,↑ risco de hemorragias.,"Monitorar ↑ TTPa. Monitorar sinais de
+sangramento, especialmente em locais de
+punção arterial. A dose de heparina deve
+ser ajustada para manter os valores normais
+de TTPa. Trombolítico e/ ou terapia
+anticoagulante deve ser interrompido
+imediatamente se ocorrer sangramento
+grave ou incontrolável. O Alteplase é
+contra-indicado em receberam
+heparina nas últimas 48 horas e
+apresenta TTPa elevado."
+138,HEPARINA,"Captopril,
+Enalapril",Moderado,Hipercalemia.,"Deve-se monitorar níveis séricos de
+potássio e função renal periodicamente."
+139,HEPARINA,"Cefalosporinas:
+Ceftriaxona/ Cefazolina/
+Cefalotina/ Cefoxitina",Leve,↑ risco de hemorragias.,"Monitorar sinais hemorrágicos.
+Monitorar TAP. O uso de vitamina K
+é indicado para coagulopatias
+induzidas por cefalosporinas."
+140,HEPARINA,"AINES, AAS e
+Diclofenaco",Moderado,↑ risco de hemorragias.,"Deve-se evitar o uso concomitante
+de AINES, caso necessário, monitorar
+sinais clínicos (hemorragia)."
+141,HEPARINA,Nitroglicerina,Moderado,"↓ efeito anticoagulante da
+Heparina.","Se estes agentes são co-administrados,
+ou se a nitroglicerina é interrompida,
+monitorar TAP e TTPa do paciente e ajustar
+a dose de heparina, conforme necessário."
+142,HEPARINA,"Penicilinas IV:
+Ampicilina/ Oxacilina/
+Piperacilina + Tazobactam",Leve,↑ risco de hemorragias.,"Monitorar sinais hemorrágicos.
+Sulfato de protamina pode ser útil em
+hemorragias clinicamente importantes."
+143,HEPARINA,Varfarina sódica,Grave,↑ risco de hemorragias.,"Deve-se monitorar sinais
+clínicos (hemorragia)."
+144,HIDROCLOROTIAZIDA,Amiodarona,Grave,"Hipopotassemia e
+hipomagnesemia. Aparecimento
+de sinais de toxicidade da
+digoxina (letargia, fraqueza,
+dores musculares, náuseas,
+batimentos cardíacos irregulares).","Monitorar níveis séricos de potássio
+e magnésio. Hipopotassemia e
+hipomagnesemia devem ser tratados
+adequadamente. Ajustes de dose
+da digoxina podem ser necessários."
+145,HIDROCLOROTIAZIDA,Anfotericina B,Moderado,"Aumento do risco de hipocalemia
+devido a efeitos aditivos.
+Ocorrência de fraqueza, letargia e
+dores musculares ou cãibras.","Monitorar níveis séricos de potássio.
+Suplementação de potássio
+pode ser necessária."
+146,HIDROCLOROTIAZIDA,"AINEs:
+Diclofenaco/
+Ibuprofeno/
+Naproxeno",Grave,"Aumenta o risco de nefropatia
+aguda (insuficiência renal aguda;
+proteinúria mínima).","Monitorar eletrólitos séricos. Administração
+de uma solução de reidratação eletrólito
+pode atenuar as alterações de eletrólitos
+e hipovolemia. A hospitalização e
+hidratação intravenosa de fluidos pode
+ser apropriado para pacientes
+debilitados ou idosos que podem
+ser incapazes de beber um
+volume adequado de fluido."
+147,HIDROCLOROTIAZIDA,Atenolol,Moderado,"Hiperglicemia e
+hipertrigliceridemia em alguns
+pacientes, especialmente em
+pacientes com diabetes ou
+diabetes latente. Ocorrência
+de sinais como: tonturas, fraqueza,
+desmaios, batimentos cardíacos
+rápidos ou irregulares, ou perda do
+controle da glicose no sangue.","Monitorar níveis séricos de potássio,
+pressão arterial e glicemia."
+148,HIDROCLOROTIAZIDA,Carbamazepina,Moderado,"Ocorrência de hiponatremia, com
+sinais característicos tais como
+náusea, vômito, letargia, fraqueza,
+cãibras musculares, espasmos,
+confusão mental e convulsões.","Monitorar paciente clinicamente em relação
+ao seu estado mental. Monitorar
+periodicamente níveis séricos de sódio."
+149,HIDROCLOROTIAZIDA,"Hidrocortisona/
+Dexametasona/
+Metilprednisolona/
+Betametasona",Moderado,"Risco de hipocalemia (fraqueza,
+letargia e dores musculares ou
+cãibras).","Monitorar níveis séricos
+de potássio. Suplementação de
+potássio pode ser necessária."
+150,"HIDROCORTISONA/
+DEXAMETASONA/
+METILPREDNISOLONA
+/ BETAMETASONA/
+PREDNISONA",AAS,Moderado,"↑ ulcerações e sangramentos
+gastrintestinais. ↓ filtração
+glomerular ↑metabolismo do AAS.","Monitorar terapia. Redução gradativa
+da dose do AAS juntamente a redução
+gradativa dos corticosteroides."
+151,"HIDROCORTISONA/
+DEXAMETASONA/
+METILPREDNISOLONA
+/ BETAMETASONA/
+PREDNISONA",Claritromicina,Moderado,"↑ efeitos terapêuticos e
+Tóxicos dos corticosteroides.","Observar ocorrência de efeitos tóxicos
+(edema por retenção de líquidos,
+cicatrização prejudicada de feridas,
+petéquias e equimoses). OBS.: Azitromicina
+não apresenta interação."
+152,"HIDROCORTISONA/
+DEXAMETASONA/
+METILPREDNISOLONA
+/ BETAMETASONA/
+PREDNISONA",Diltiazem/ Verapamil,Moderado,"↑ efeitos terapêuticos e Tóxicos
+dos corticosteroides.","Observar ocorrência de efeitos tóxicos
+(edema por retenção de líquidos,
+cicatrização prejudicada de feridas,
+petéquias e equimoses)."
+153,"HIDROCORTISONA/
+DEXAMETASONA/
+METILPREDNISOLONA
+/ BETAMETASONA/
+PREDNISONA",Fluconazol,Moderado,"↑ efeitos terapêuticos e tóxicos
+dos corticosteroides.","Observar ocorrência de efeitos tóxicos
+(edema por retenção de líquidos,
+cicatrização prejudicada de feridas,
+petéquias e equimoses)."
+154,"IMIPENEM +
+CILASTATINA/
+MEROPENEM",Ácido Valpróico,Grave,"↓ efeitos terapêuticos do ácido
+valproico (aumenta risco de
+convulsões e crises epilépticas).","Evitar uso concomitante. Considerar
+utilização de antibióticos ou
+anticonvulsivantes alternativos
+(carbamazepina)."
+155,"IMIPENEM +
+CILASTATINA/
+MEROPENEM",Tramadol,Grave,↑ risco de convulsões.,"Precaução ao administrar tramadol com
+imipenem + cilastatina. Monitorar paciente
+para os sintomas (crises convulsivas)."
+156,INSULINAS,Ciprofloxacino,Grave,"Mudança na glicose sanguínea e
+↑ do risco de hiper ou
+hipoglicemia.","Deve-se acompanhar o nível de glicose e
+ajustar a dose do hipoglicemiante.
+Se ocorrer hipoglicemia deve
+interromper a fluoroquinolona."
+157,INSULINAS,Propranolol/ Carvedilol,Moderado,"Hipoglicemia prolongada e
+mascaramento dos sintomas.","Utilizar com cautela em Diabéticos;
+Monitorar sinais e sintomas de
+hipoglicemia; Preferir betabloqueadores
+seletivos (Atenolol; Metoprolol)."
+158,INSULINAS,Varfarina,Moderado,"↑ efeito hipoglicemiante (pode
+ocorrer cefaleia, tontura,
+sonolência, náuseas, fome,
+tremores, fraqueza, sudorese,
+palpitações).","Monitorar glicemia. A dose de insulina
+pode necessitar de ajuste se
+uma interação é suspeita."
+159,LEVOFLOXACINO,"Amiodarona, Clorpromazina,
+Fluconazol, Sotalol",Grave,"Risco de prolongamento do
+intervalo QT (cardiotoxicidade).",Deve-se evitar o uso concomitante.
+160,LEVOFLOXACINO,"Carbonato de Cálcio e
+hidróxido de magnésio",Moderado,↓ do efeito do levofloxacino.,"Administrar a quinolona 2 horas
+antes ou 6 horas após."
+161,LEVOFLOXACINO,Insulinas,Grave,"Causa hipoglicemia e às vezes
+hiperglicemia.","Se possível, evitar a administração
+concomitante, caso não seja, monitorar a
+glicemia, ajustando
+a dose da insulina caso necessário."
+162,LEVOFLOXACINO,Sulfato Ferroso,Moderado,"↓ da eficácia do
+levofloxacino.","De preferência evitar a associação ou
+escolher uma outra via para o antibiótico
+(IV). Caso associação for inevitável
+administrar a ciprofloxacina pelo menos
+duas horas antes ou seis horas após
+medicamentos que contenham ferro."
+163,LEVOFLOXACINO,Varfarina,Grave,"↑ dos efeitos anticoagulantes da
+varfarina.","Avaliar substituição da quinolona
+ou ajuste de dose."
+164,LIDOCAÍNA,Octreotida,Moderado,"↓ frequência cardíaca e
+↑ risco de bradicardias.","Monitorar a frequência cardíaca
+e a pressão arterial."
+165,LIDOCAÍNA,Tramadol,Grave,Aumenta risco de convulsões.,"Monitorar o paciente quanto ao risco de
+crises convulsivas. Evitar terapia combinada."
+166,LIDOCAÍNA,"Atenolol/
+Metoprolol/
+Propranolol",Moderado,"Pode ocorrer sonolência,
+alterações do estado mental,
+bradicardia e hipotensão.","Se houver suspeita de toxicidade, a infusão
+de lidocaína deve ser reduzida,
+tanto quanto possível."
+167,LINEZOLIDA,Amitriptilina,Contraindicado,"A linezolida por possuir ação como
+inibidor da MAO, aumenta o risco
+da síndrome serotoninérgica
+(Hipertermia, hipertensão,
+hiperreflexia, mudanças
+no estado mental).","Teoricamente não deve ser administrados
+concomitantemente, mas se clinicamente a
+associação for justificada, acompanhar os
+pacientes para os sinais e sintomas
+da síndrome serotoninérgica."
+168,LINEZOLIDA,Dopamina e Dobutamina,Contraindicado,↑ dos efeitos anti-hipertensivos.,"Se os sinais de pressão arterial não forem
+monitorados adequadamente, está contra
+indicado esta associação."
+169,LINEZOLIDA,Lítio,Grave,"↑ do risco da síndrome
+Serotoninérgica (Hipertermia,
+hipertensão, Hiperreflexia,
+mudanças no estado mental).","Evitar a associação, entretanto se isto for
+acompanhar os pacientes para os sinais e
+sintomas da síndrome serotoninérgica."
+170,MEROPENEM,Ácido Valpróico,Grave,↓ os efeitos anticonvulsivantes,"Considerar terapia alternativa de antibiótico
+ou de anticonvulsivante, caso não seja
+possível evitar esta junção, monitorar
+quanto a possível diminuição dos efeitos do
+ácido valproico."
+171,"NOREPINEFRINA/
+EPINEFRINA",Clorpromazina,Grave,"↑ efeito arritmogênico
+noradrenalina/adrenalina.","Evitar o uso concomitante de noradrenalina
+e clorpromazina. Observar a existência de
+arritmias ventriculares e redução de efeitos
+pressóricos."
+172,"NOREPINEFRINA/
+EPINEFRINA",Amitriptilina,Grave,"↑ efeito vasopressórico da
+noradrenalina/adrenalina.","Evitar o uso concomitante. Monitorar
+o paciente observando efeitos
+simpatomiméticos (aumento de pressão
+arterial; dor torácica e cefaleia).
+Recomenda-se redução de dose."
+173,"NOREPINEFRINA/
+EPINEFRINA",Linezolida,Grave,"↑ efeito vasopressórico da
+noradrenalina/adrenalina.","Monitorar terapia, observando aumento da
+resposta pressórica."
+174,OMEPRAZOL,Clopidogrel,Grave,"↓ do efeito anticoagulante do
+clopidogrel: risco de infarto do
+miocárdio, acidente vascular
+cerebral isquêmico.","Deve-se evitar o uso concomitante.
+Antagonistas dos receptores H2 ou antiácidos
+devem ser prescritos sempre que possível."
+175,OMEPRAZOL,Fenitoína,Moderado,"Ataxia, hiperreflexia,
+nistagmo e tremores.","Considerar alteração de
+um dos medicamentos."
+176,OMEPRAZOL,Varfarina,Moderado,"↑ do RNI e potencialização
+do efeito (risco de hemorragia).","Monitorar o RNI, e considerar redução da
+dose de varfarina quando necessário.
+Acompanhamento do TAP."
+177,PARACETAMOL,Fenitoína/Fenobarbital,Moderado,"↓ efeito terapêutico do
+paracetamol e aumenta risco
+de dano hepático.","Monitorar a diminuição dos efeitos
+terapêuticos e hepatotoxidade"
+178,PARACETAMOL,Isoniazida,Moderado,↑ efeito do paracetamol,"Monitorar o paciente e considerar a
+utilização de outro analgésico/antipirético."
+179,PARACETAMOL,Varfarina,Moderado,"↑ efeito anticoagulante
+da Varfarina e ↑ RNI","Monitorar o ↑ dos efeitos terapêuticos
+dos anticoagulantes e limitar o uso
+de Paracetamol a 1,3g/dia.
+Acompanhamento do TAP."
+180,"PIPERACILINA +
+TAZOBACTAM","Amicacina/
+Gentamicina",Moderado,"↓ efeitos terapêuticos dos
+Aminoglicosídeos (inativação).","Não misturar os antibióticos na mesma
+solução de infusão e nem administrar
+simultaneamente no mesmo catéter
+(inativação dos Aminoglicosídeos)."
+181,"PIPERACILINA +
+TAZOBACTAM",Doxiciclina,Grave,"↓ efeitos terapêuticos da
+Piperacilina + Tazobactam.","Administrar os medicamentos com
+intervalo de, pelo menos, duas horas."
+182,POLIMIXINA B,"Atracúrio/
+ancurônio /
+Suxametônio",Grave,"↑ efeito bloqueador
+neuromuscular do atracúrio/
+pancurônio – Paralisia da
+musculatura respiratória.","Evitar uso concomitante.
+Monitorar a função respiratória."
+183,POLIMIXINA B,"Amicacina/
+Gentamicina",Contraindicado,"↑ risco de paralisia respiratória
+e disfunção renal.","O uso concomitante
+é contra-indicado."
+184,RIVAROXABANA,"AAS, Cetoprofeno, Cilostazol,
+Clopidogrel, Diclofenaco,
+Enoxaparina, Heparina e
+Varfarina.",Moderado,↑ risco de hemorragias.,"Deve-se monitorar sinais
+clínicos (hemorragias)."
+185,RIVAROXABANA,"Amiodarona, Azitromicina,
+Diltiazem, Eritromicina,
+Fluconazol e Verapamil",Moderado,"↑ da concentração plasmática
+de rivaroxabana e do risco de
+hemorragia.","Deve-se monitorar sinais
+clínicos (hemorragias)."
+186,SINVASTATINA,Diclofenaco,Grave,↑ risco de rabdomiólise.,"Considerar o uso de AINE não
+interagente ou antilipêmico
+de baixo risco."
+187,SINVASTATINA,Fenitoína,Moderado,"↓ efeitos terapêuticos da
+Sinvastatina.","Evitar uso concomitante. Monitorar
+a redução dos efeitos terapêuticos
+da Sinvastatina."
+188,"SULFAMETOXAZOL +
+TRIMETOPRIMA",Digoxina,Moderado,"↓ da secreção tubular renal da
+digoxina, aumentando o risco de
+toxicidade.","Em pacientes que recebem digitálicos e
+trimetoprim por mais de sete dias,
+monitorar as concentrações séricas de
+digoxina e acompanhar o paciente para
+os sinais e sintomas de toxicidade (náuseas,
+vômitos, arritmias)."
+189,"SULFAMETOXAZOL +
+TRIMETOPRIMA","Enalapril e
+Inibidores da ECA",Moderado,"Hipercalemia grave tem sido
+relatada com o uso concomitante
+de IECA e sulfametoxazol.","Evitar o uso de IECA com trimetropim,
+principalmente em pacientes com disfunção
+renal. Caso seja coadministrado, monitorar
+os níveis séricos de potássio."
+190,"SULFAMETOXAZOL +
+TRIMETOPRIMA",Fenitoína,Moderado,↑ efeitos tóxicos da Fenitoína.,"Monitorar ocorrência de efeitos tóxicos
+(depressão do SNC, nistagmo, vertigem,
+sonolência, ataxia)."
+191,"SULFAMETOXAZOL +
+TRIMETOPRIMA",Fluconazol,Grave,"Efeito aditivo no prolongamento
+do intervalo QTc corrigido,
+aumentando os riscos de
+cardiotoxicidade, causando
+arritmia cardíaca severa,
+taquicardia ventricular e fibrilação.","A administração concomitante dessas duas
+drogas não é recomendada. Avaliar risco e
+benefício. Se o uso concomitante for
+inevitável, monitorar o intervalo QT e
+observar o paciente quanto aos sinais de
+uma possível intoxicação."
+192,"SULFAMETOXAZOL +
+TRIMETOPRIMA",Metformina,Moderado,"A metformina tem sua secreção
+tubular diminuída quando
+associado aos fármacos catiônicos
+como sulfametoxazol, aumentando
+assim a concentração plasmática
+da droga.","Se possível, evitar a administração
+concomitante, caso não seja, monitorar a
+glicemia."
+193,"SULFAMETOXAZOL +
+TRIMETOPRIMA",Vasopressina,Grave,↑ o risco de sangramento.,"Se possível, evitar a administração
+concomitante. Caso não seja monitorar o
+tempo de protrombina, e observação do
+paciente quanto a sinais de hemorragia."
+194,"SULFATO DE
+MAGNÉSIO","Anlodipino/ Nifedipino/
+Diltiazem/ Verapamil",Grave,Hipotensão arterial.,"Considerar modificação na terapia.
+Monitorar o magnésio sérico. Pacientes de
+alto risco: comprometimento renal e
+administração parenteral de magnésio
+(pode ocorrer paralisia muscular —
+Nifedipino)."
+195,"SULFATO DE
+MAGNÉSIO","Atracúrio/
+Pancurônio/ Suxametônio",Grave,"↑ efeito bloqueador
+neuromuscular.","Monitorar terapia. Monitorar
+o magnésio sérico.
+Pacientes de alto risco:
+comprometimento renal e administração
+parenteral de magnésio."
+196,"SUXAMETÔNIO/
+ATRACÚRIO/
+PANCURÔNIO/","Amicacina/
+Gentamicina",Grave,↑ efeito depressor respiratório.,"Monitorar ocorrência de efeito
+depressor respiratório."
+197,"SUXAMETÔNIO/
+ATRACÚRIO/
+PANCURÔNIO/",Clindamicina,Moderado,"↑ efeito bloqueador
+neuromuscular.","Observar a ocorrência de bloqueio
+neuromuscular prolongado."
+198,"SUXAMETÔNIO/
+ATRACÚRIO/
+PANCURÔNIO/",Digoxina,Moderado,"↑ efeito arritmogênico da
+digoxina.","Monitorar ocorrência de
+arritmias cardíacas."
+199,TRAMADOL,Linezolida,Contraindicado,"↑ neurotoxicidade e/ou efeitos de
+potencialização de crises
+convulsivas dos IMAO.",Evitar uso concomitante.
+200,TRAMADOL,Fentanil,Grave,"Risco de convulsão, depressão do
+SNC e depressão respiratória.","Deve-se evitar o uso concomitante.
+Ajuste de dose do Tramadol é
+recomendado. Monitorar os pacientes
+quanto aos efeitos clínicos."
+201,TRAMADOL,Fluoxetina,Grave,"Ocorrência de irritabilidade,
+alteração da consciência, confusão,
+ataxia, cólicas abdominais,
+hipertermia, tremores, dilatação
+das pupilas, sudorese, hipertensão
+arterial e taquicardia.","Monitorar pressão arterial; Monitorar
+frequência cardíaca; Monitorar paciente
+para aparecimento dos sinais clínicos."
+202,TRAMADOL,Morfina,Grave,"Risco de convulsão, depressão do
+SNC e depressão respiratória.","Deve-se evitar o uso concomitante.
+Ajuste de dose do Tramadol é
+recomendado. Monitorar os
+pacientes quanto aos efeitos clínicos."
+203,TRAMADOL,Ciprofloxacino,Grave,"Risco de depressão do SNC e
+depressão respiratória.","Monitorar o paciente para o
+Aparecimento dos sinais clínicos."
+204,"VARFARINA
+SÓDICA",AAS,Grave,↑ risco hemorrágico.,Deve-se monitorar INR.
+205,"VARFARINA
+SÓDICA","AINEs: Diclofenaco/
+Ibuprofeno/ Naproxeno",Moderado,↑ risco hemorrágico.,"Monitorar tempo de protrombina (TAP);
+Monitorar aumento das
+evidências de sangramento."
+206,"VARFARINA
+SÓDICA","Carbamazepina, Fenobarbital
+e Rifampicina",Moderado,"Pode ocorrer ↓ dos efeitos
+anticoagulantes da varfarina.",Deve-se monitorar INR.
+207,"VARFARINA
+SÓDICA","Azitromicina, Claritromicina,
+Eritromicina",Grave,"Inibição do metabolismo da
+varfarina, tendo sua ação
+prolongada pela redução da flora
+intestinal causada pelo uso dos
+macrolídeos (↑ o risco
+de sangramento).","Deve-se monitorar os parâmetros de
+coagulação e ajustar a dose da varfarina."
+208,"VARFARINA
+SÓDICA",Amiodarona,Grave,↑ do efeito anticoagulante.,Redução de 30 a 50% da dose da varfarina.
+209,"VARFARINA
+SÓDICA","Ciprofloxacino e
+Levofloxacino",Grave,↑ de risco hemorrágico.,Deve-se evitar o uso concomitante.
+210,"VARFARINA
+SÓDICA","Fitomenadiona
+(vitamina K)",Moderado,"↓efeito anticoagulante
+da varfarina.","Monitorar a diminuição do tempo de
+protrombina (TAP). Monitorar efeitos
+terapêuticos da varfarina."
+211,"VARFARINA
+SÓDICA","Fluconazol, Metronidazol",Grave,↑ o risco de sangramento.,"Deve-se monitorar tempo de protrombina,
+INR e sinais de sangramento.
+Ajustar a dose se necessário."
+212,"VARFARINA
+SÓDICA",Metronidazol,Grave,↑ risco hemorrágico.,"Monitorar o tempo de protrombina (TAP);
+aumento das evidências de hemorragia
+(dor, inchaço, dor de cabeça, tontura,
+fraqueza, sangramento prolongado de
+cortes, aumento do fluxo menstrual,
+sangramento vaginal, sangramento nasal,
+sangramento de gengivas, ou nódoas
+negras, fezes urina vermelha ou marrom);
+Considerar modificação na terapia; Quando
+a terapia se faz necessária considerar ajuste
+de dose (redução empírica de
+aproximadamente um terço do
+anticoagulante)."
+213,"VARFARINA
+SÓDICA",Metronidazol,Grave,↑ risco hemorrágico.,"Monitorar tempo de protrombina (TAP);
+Monitorar aumento das evidências de
+hemorragia (dor, inchaço, dor de cabeça,
+tontura, fraqueza, sangramento prolongado
+de cortes, aumento do fluxo menstrual,
+sangramento vaginal, sangramento nasal,
+sangramento de gengivas de escovar o
+sangramento, ou nódoas negras , fezes
+urina vermelha ou marrom); Considerar
+modificação na terapia; Quando a terapia
+se faz necessária considerar ajuste de dose
+(redução empírica de aproximadamente
+um terço do anticoagulante)."
+214,"VARFARINA
+SÓDICA",Sinvastatina,Grave,"↑ do efeito anticoagulante
+da varfarina.","Analisar substituição por
+outro da mesma classe."
+215,VANCOMICINA,Amicacina/ Gentamicina,Moderado,"↑ nefrotoxicidade e ototoxicidade
+dos Aminoglicosídeos.","Monitorar terapia e ajustar as doses de
+Aminoglicosídeos se necessário."
+216,VANCOMICINA,"AINESs (Diclofenaco;
+Ibuprofeno; Naproxeno)",Moderado,↑ toxidade da Vancomicina.,"Monitorar terapia. Interação
+prevalente em neonatos."
+217,VANCOMICINA,Metformina,Moderado,"A metformina tem sua secreção
+tubular diminuída quando
+associado aos fármacos catiônicos
+como a vancomicina, aumentando
+assim a concentração plasmática
+da droga.","Se possível, evitar a administração
+concomitante, caso não seja,
+monitorar a glicemia."
+218,VANCOMICINA,"Succinilcolina e
+bloqueador neuromuscular",Moderado,"Potencializa os efeitos dos
+bloqueadores musculares podendo
+causar depressão respiratória.","Monitorar os pacientes quanto aos
+sinais e sintomas de um efeito exacerbado
+dos bloqueadores e se necessário
+ajustar a dose."
+219,VANCOMICINA,Varfarina,Moderado,↑ o risco de sangramento.,"Se possível, evitar a administração
+concomitante. Caso não seja, monitorar o
+tempo de protrombina, e observação do
+paciente quanto a sinais de hemorragia."

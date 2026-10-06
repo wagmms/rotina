@@ -23,6 +23,7 @@ import time
 import shutil
 import argparse
 import subprocess
+import unicodedata
 from typing import List, Dict, Any, Optional
 
 # Garante a resolução do pacote 'src' independentemente do diretório de execução
@@ -31,7 +32,6 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from playwright.sync_api import sync_playwright, Page, BrowserContext
-from src.food_optimizer import FoodOptimizer
 
 # Configurações de Localização (Ribeirão Preto)
 CEP_DESTINO = "14055220"  # 14055-220 (Sumarezinho / Rua Adalberto Pajuaba)
@@ -442,39 +442,90 @@ def limpar_cookies(page: Page):
         pass
 
 
+def localizacao_ja_confirmada(page: Page, cep: str = CEP_DESTINO) -> bool:
+    """Verifica se a localização já está ativa na sessão atual."""
+    try:
+        modal = page.locator('#modal-shipping')
+        if modal.is_visible():
+            return False
+
+        body_text = page.locator('body').inner_text().lower()
+        if "retirar na loja: ribeirão preto" in body_text or "retirar na loja: ribeirao preto" in body_text:
+            return True
+        if "ribeirão preto" in body_text and "seu carrinho ainda está vazio" in body_text:
+            return True
+        if cep[:5] in body_text and "sumarezinho" in body_text:
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def resolver_modal_cep_se_presente(page: Page, cep: str = CEP_DESTINO) -> bool:
     """Detecta se o modal de CEP (#modal-shipping) está aberto e conclui a seleção."""
     try:
         modal = page.locator('#modal-shipping')
-        if not modal.is_visible(timeout=3000):
-            return False
+        if not modal.is_visible():
+            try:
+                modal.wait_for(state="visible", timeout=4000)
+            except Exception:
+                return False
 
         print(f"📦 Modal de frete detectado! Configurando CEP: {cep[:5]}-{cep[5:]}...")
 
         inp = modal.locator('#shipping-cep, input[name="zipCode"]').first
         if inp.is_visible():
             inp.click()
-            inp.fill('')
-            inp.press_sequentially(cep, delay=80)
-            page.wait_for_timeout(2500)
+            inp.focus()
+            page.keyboard.press("Control+A")
+            page.keyboard.press("Backspace")
+            page.keyboard.press("Home")
+            page.wait_for_timeout(150)
 
-        cr_card = modal.locator('.card-information-component:has-text("Clique & Retire")')
-        if cr_card.count() > 0 and cr_card.first.is_visible():
-            cr_card.first.click(force=True)
+            for char in cep:
+                inp.press(char)
+                page.wait_for_timeout(50)
+
+        # 1. Aguarda modalidade 'Clique & Retire'
+        print("  ⏳ Aguardando opções de entrega/retirada...")
+        cr_card = modal.locator('.card-information-component:has-text("Clique & Retire"), .card-information-component:has-text("Retire")').first
+        try:
+            cr_card.wait_for(state="visible", timeout=12000)
+            cr_card.click(force=True)
             page.wait_for_timeout(1500)
+        except Exception as e:
+            print(f"  ⚠️ Opção Clique & Retire não apareceu ou falhou: {e}")
+            return False
 
-        store = modal.locator(f':has-text("{NOME_FILIAL}")')
-        if store.count() > 0 and store.last.is_visible():
-            store.last.click(force=True)
+        # 2. Seleciona Card da Loja de Ribeirão Preto
+        print(f"  🏬 Selecionando filial Ribeirão Preto ({NOME_FILIAL})...")
+        store_card = modal.locator('.card-information-component:has-text("Ribeirão Preto"), .card-information-component:has-text("Marechal Costa e Silva")').first
+        try:
+            store_card.wait_for(state="visible", timeout=8000)
+            store_card.click(force=True)
+            page.wait_for_timeout(1500)
+        except Exception as e:
+            print(f"  ⚠️ Card da filial não encontrado: {e}")
+            return False
+
+        # 3. Seleciona primeiro período / horário de agendamento disponível
+        print("  🕒 Selecionando período de agendamento...")
+        period_slot = modal.locator('.content-periods .card-information-component, .card-information-component:has-text("Grátis"), .card-information-component:has-text(":")').first
+        try:
+            period_slot.wait_for(state="visible", timeout=8000)
+            period_slot.click(force=True)
             page.wait_for_timeout(2000)
+        except Exception as e:
+            print(f"  ⚠️ Período de agendamento não encontrado: {e}")
+            return False
 
-        period_slot = modal.locator('.content-periods .card-information-component')
-        if period_slot.count() > 0 and period_slot.first.is_visible():
-            period_slot.first.click(force=True)
-            page.wait_for_timeout(2500)
-            print("✅ Loja de Ribeirão Preto (Marechal Costa e Silva) e horário de retirada confirmados!")
-            return True
+        # 4. Aguarda fechamento do modal
+        try:
+            modal.wait_for(state="hidden", timeout=8000)
+        except Exception:
+            pass
 
+        print("✅ Loja de Ribeirão Preto (Marechal Costa e Silva) e horário de retirada confirmados!")
         return True
     except Exception as e:
         print(f"⚠️ Erro ao resolver modal de CEP: {e}")
@@ -484,32 +535,55 @@ def resolver_modal_cep_se_presente(page: Page, cep: str = CEP_DESTINO) -> bool:
 def configurar_localizacao_completa(page: Page, context: BrowserContext, cep: str = CEP_DESTINO) -> bool:
     """Configura o CEP 14055-220 e filial garantindo o desbloqueio do carrinho."""
     print(f"📍 Configurando localização: CEP {cep[:5]}-{cep[5:]} (Ribeirão Preto)...")
-    limpar_cookies(page)
-
-    header_text = page.locator('header, .HeaderComponent, [class*="Header"]').inner_text().lower() if page.locator('header').count() > 0 else ""
-    if cep[:5] in header_text:
-        print("✅ Localização já confirmada na sessão!")
-        return True
-
     page.goto("https://www.tendaatacado.com.br/busca?q=frango", timeout=30000)
     page.wait_for_load_state("domcontentloaded")
     page.wait_for_timeout(2000)
     limpar_cookies(page)
 
+    if localizacao_ja_confirmada(page, cep):
+        print("✅ Localização já confirmada na sessão!")
+        return True
+
+    # Se o modal de CEP já estiver presente ou abriu na carga da página
+    if resolver_modal_cep_se_presente(page, cep):
+        try:
+            context.storage_state(path=ARQUIVO_SESSAO)
+            print(f"💾 Sessão salva em {ARQUIVO_SESSAO}")
+        except Exception:
+            pass
+        return True
+
+    # Se ainda não abriu, clica em 'Adicionar' para forçar a abertura
     btn_add = page.locator('button:has-text("Adicionar")').first
     if btn_add.count() > 0 and btn_add.is_visible():
         btn_add.click(force=True)
         page.wait_for_timeout(2000)
 
-    sucesso = resolver_modal_cep_se_presente(page, cep)
-    if sucesso:
+    if resolver_modal_cep_se_presente(page, cep):
         try:
             context.storage_state(path=ARQUIVO_SESSAO)
+            print(f"💾 Sessão salva em {ARQUIVO_SESSAO}")
         except Exception:
             pass
         return True
 
-    return False
+    return localizacao_ja_confirmada(page, cep)
+
+
+def texto_indica_carrinho_vazio(texto: str) -> bool:
+    """Reconhece mensagens de carrinho vazio sem depender de um único seletor."""
+    return bool(re.search(
+        r'\b0\s+itens?\b|carrinho\s+(?:est[aá]\s+)?vazio|nenhum\s+produto\s+(?:no|em\s+seu)\s+carrinho',
+        texto, re.IGNORECASE,
+    ))
+
+
+def carrinho_vazio_confirmado(page: Page) -> bool:
+    if "/carrinho" not in page.url:
+        return False
+    texto = page.locator("body").inner_text(timeout=5000)
+    selecionador = page.locator('input[name="vehicle1"]').first
+    return texto_indica_carrinho_vazio(texto) and not selecionador.is_visible()
 
 
 def esvaziar_carrinho_se_necessario(page: Page, context: BrowserContext, cep: str = CEP_DESTINO) -> bool:
@@ -524,36 +598,58 @@ def esvaziar_carrinho_se_necessario(page: Page, context: BrowserContext, cep: st
         page.wait_for_load_state("domcontentloaded")
         page.wait_for_timeout(2500)
 
-        # Se redirecionou para fora de /carrinho (ex: home) ou exibe 0 item / R$ 0,00
-        if "/carrinho" not in page.url or page.locator('text="0 item"').is_visible() or page.locator('text="0 itens"').is_visible():
+        if carrinho_vazio_confirmado(page):
             print("  ✅ Carrinho já está completamente limpo (R$ 0,00).")
             return True
+
+        if "/carrinho" not in page.url:
+            print("  ❌ Não foi possível abrir o carrinho para limpeza.")
+            return False
 
         # Verifica se há controle de seleção
         chk_todos = page.locator('input[name="vehicle1"]').first
         if not chk_todos.is_visible():
-            print("  ✅ Nenhum item selecionável no carrinho.")
-            return True
+            print("  ❌ Estado do carrinho desconhecido; limpeza não confirmada.")
+            return False
 
         print("  🗑️ Itens residuais detectados no carrinho. Selecionando todos para apagar...")
-        chk_todos.click(force=True)
-        page.wait_for_timeout(800)
+        chk_todos.check(force=True)
+        if not chk_todos.is_checked():
+            print("  ❌ Não foi possível selecionar os itens para remoção.")
+            return False
 
         trash_btn = page.locator('.icon-trash:has-text("Apagar"), .icon-trash').first
-        if trash_btn.is_visible():
-            trash_btn.click(force=True)
-            page.wait_for_timeout(1000)
+        if not trash_btn.is_visible():
+            print("  ❌ Botão de apagar não encontrado.")
+            return False
+        trash_btn.click(force=True)
 
-            # Confirma no modal de remoção
-            modal_confirm = page.locator('.modal:has-text("Você está prestes a remover"), .modal.show')
-            btn_continuar = modal_confirm.locator('button:has-text("Continuar"), a:has-text("Continuar")').first
-            if not btn_continuar.is_visible():
-                btn_continuar = page.locator('button:has-text("Continuar"):visible').last
+        modal_confirm = page.locator('.modal:visible, [role="dialog"]:visible').filter(
+            has_text=re.compile(r'remov|apagar|exclu', re.IGNORECASE)
+        ).first
+        try:
+            modal_confirm.wait_for(state="visible", timeout=3000)
+            btn_confirmar = modal_confirm.locator(
+                'button:has-text("Continuar"), a:has-text("Continuar"), '
+                'button:has-text("Confirmar"), button:has-text("Apagar"), '
+                'button:has-text("Remover"), button:has-text("Excluir")'
+            ).first
+            btn_confirmar.click(timeout=5000)
+        except Exception:
+            # Algumas versões removem diretamente, sem modal.
+            if modal_confirm.count() and modal_confirm.is_visible():
+                print("  ❌ Modal de remoção aberto, mas a confirmação falhou.")
+                return False
 
-            if btn_continuar.is_visible():
-                btn_continuar.click(force=True)
-                page.wait_for_timeout(3000)
-
+        # O site atualiza o carrinho de modo assíncrono; confira também após recarregar.
+        for tentativa in range(3):
+            page.wait_for_timeout(1200)
+            if carrinho_vazio_confirmado(page):
+                break
+            page.reload(wait_until="domcontentloaded")
+        else:
+            print("  ❌ Carrinho ainda contém itens ou a página não confirmou que está vazio.")
+            return False
         print("  ✨ Carrinho limpo e zerado com sucesso!")
 
         # Atualiza a sessão persistente com o carrinho limpo
@@ -626,6 +722,89 @@ def extrair_dados_card(card_locator, btn_locator) -> Dict[str, Any]:
     }
 
 
+def preco_por_kg(info: Dict[str, Any]) -> Optional[float]:
+    """Compara alimentos frescos apenas quando o preço por kg é conhecido."""
+    if info["preco_kg"] and info["preco_kg"] > 0:
+        return info["preco_kg"]
+    titulo = info["titulo"].lower()
+    peso = re.search(r'(\d+(?:[.,]\d+)?)\s*(kg|g)\b', titulo)
+    if not peso or not info["preco_unit"]:
+        return None
+    quilos = float(peso.group(1).replace(',', '.'))
+    if peso.group(2) == 'g':
+        quilos /= 1000
+    return info["preco_unit"] / quilos if quilos > 0 else None
+
+
+def normalizar_nome(nome: str) -> str:
+    sem_acento = unicodedata.normalize("NFKD", nome.casefold())
+    return " ".join("".join(c for c in sem_acento if not unicodedata.combining(c)).split())
+
+
+def reconciliar_itens(itens: List[Dict[str, Any]], linhas: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Confirma somente linhas com nome, quantidade e preço unitário legíveis."""
+    por_nome = {}
+    for linha in linhas:
+        por_nome.setdefault(normalizar_nome(linha["titulo"]), []).append(linha)
+    resultado = []
+    for item in itens:
+        encontrados = por_nome.get(normalizar_nome(item["produto_escolhido"]), [])
+        if not encontrados:
+            status = "Não encontrado"
+        elif len(encontrados) != 1:
+            status = "Não verificado (nome duplicado)"
+        else:
+            linha = encontrados[0]
+            if linha.get("qtd") is None or not linha.get("precos"):
+                status = "Não verificado (dados incompletos)"
+            elif linha["qtd"] != item["qtd"]:
+                status = "Quantidade divergente"
+            elif not any(abs(preco - item["preco_unit"]) <= 0.01 for preco in linha["precos"]):
+                status = "Preço divergente"
+            else:
+                status = "Confirmado"
+        resultado.append({**item, "status": status, "linha_carrinho": encontrados[0] if len(encontrados) == 1 else None})
+    return resultado
+
+
+def verificar_carrinho(page: Page, itens: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Lê a página do carrinho; não infere sucesso a partir dos cliques."""
+    page.goto("https://www.tendaatacado.com.br/carrinho", timeout=30000)
+    page.wait_for_load_state("domcontentloaded")
+    page.wait_for_timeout(1500)
+    if "/carrinho" not in page.url:
+        raise RuntimeError("Carrinho redirecionou para outra página")
+    titulos = [it["produto_escolhido"] for it in itens]
+    linhas = page.evaluate("""(titulos) => {
+      const norm = s => (s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/\\s+/g, ' ').trim();
+      const nomes = new Set(titulos.map(norm));
+      const parseMoeda = s => { const m = (s || '').match(/R\\$\\s*([\\d.]+,\\d{2})/); return m ? Number(m[1].replace(/\\./g, '').replace(',', '.')) : null; };
+      const nodes = [...document.querySelectorAll('a, span, p, h2, h3, h4, div')]
+        .filter(el => el.getClientRects().length && nomes.has(norm(el.textContent))
+          && ![...el.children].some(child => nomes.has(norm(child.textContent))));
+      return nodes.map(el => {
+        let row = el;
+        for (let i = 0; i < 7 && row.parentElement; i++) {
+          const matches = [...row.querySelectorAll('input')].filter(inp =>
+            /quant|qtd|amount|number/i.test([inp.name, inp.className, inp.getAttribute('aria-label'), inp.type].join(' ')));
+          const otherNames = [...nomes].filter(n => n !== norm(el.textContent) && norm(row.textContent).includes(n));
+          if (matches.length === 1 && otherNames.length === 0 && /R\\$/.test(row.textContent)) {
+            const qtd = /^\\d+$/.test(matches[0].value) ? Number(matches[0].value) : null;
+            const priceNodes = [...row.querySelectorAll('span, p, strong, div')].filter(n =>
+              n.getClientRects().length && /^\\s*R\\$\\s*[\\d.]+,\\d{2}\\s*$/.test(n.textContent));
+            const prices = [...new Set(priceNodes.map(n => parseMoeda(n.textContent)).filter(v => v !== null))];
+            return {titulo: el.textContent.trim(), qtd, precos: prices};
+          }
+          row = row.parentElement;
+        }
+        return {titulo: el.textContent.trim(), qtd: null, precos: []};
+      });
+    }""", titulos)
+    if not linhas and not carrinho_vazio_confirmado(page):
+        raise RuntimeError("Não foi possível ler produtos na página do carrinho")
+    return reconciliar_itens(itens, linhas)
+
+
 def buscar_melhor_opcao_corte(page: Page, candidato: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Pesquisa um corte específico e retorna seus melhores dados para comparação."""
     termo = candidato["busca"]
@@ -645,7 +824,7 @@ def buscar_melhor_opcao_corte(page: Page, candidato: Dict[str, Any]) -> Optional
         btn = btn_add.nth(i)
         card = btn.locator('xpath=ancestor::*[contains(@class, "ProductCardShowcase") or contains(@class, "showcase-card") or contains(@class, "card")][1]')
         info = extrair_dados_card(card, btn)
-        texto = info["texto_lower"]
+        texto = info["titulo"].lower()
 
         if any(ev.lower() in texto for ev in candidato["evitar"]):
             continue
@@ -654,9 +833,9 @@ def buscar_melhor_opcao_corte(page: Page, candidato: Dict[str, Any]) -> Optional
         if score == 0:
             continue
 
-        preco_comp = info["preco_kg"] if info["preco_kg"] else info["preco_unit"]
-        if preco_comp is None:
-            preco_comp = 9999.0
+        preco_comp = preco_por_kg(info)
+        if preco_comp is None or not info["preco_unit"]:
+            continue
 
         opcoes.append({
             "nome_corte": candidato["nome_corte"],
@@ -674,7 +853,7 @@ def buscar_melhor_opcao_corte(page: Page, candidato: Dict[str, Any]) -> Optional
     if not opcoes:
         return None
 
-    opcoes.sort(key=lambda x: (-x["score"], x["preco_comp"]))
+    opcoes.sort(key=lambda x: (x["preco_comp"], -x["score"]))
     return opcoes[0]
 
 
@@ -746,18 +925,23 @@ def processar_grupo_carne_dinamico(page: Page, grupo: Dict[str, Any], apenas_pes
         except Exception:
             pass
 
+        cliques = 0
         for _ in range(qtd):
             if page.locator('#modal-shipping').is_visible():
                 resolver_modal_cep_se_presente(page, cep)
                 page.wait_for_timeout(1000)
 
-            btn_atual = page.locator('button:has-text("Adicionar")')
-            if btn_atual.count() > 0:
-                idx = min(vencedor["indice"], btn_atual.count() - 1)
-                btn_atual.nth(idx).click(force=True)
-                page.wait_for_timeout(750)
+            card_atual = page.locator('[class*="ProductCardShowcase"], [class*="showcase-card"]').filter(has_text=vencedor["titulo"]).first
+            if not card_atual.count():
+                raise RuntimeError(f"Produto vencedor não encontrado após recarregar: {vencedor['titulo']}")
+            card_atual.locator('button:has-text("Adicionar")').first.click()
+            cliques += 1
+            page.wait_for_timeout(750)
 
-        print(f"  🛒 [NO CARRINHO - CORTE VENCEDOR] {vencedor['titulo']}")
+        if cliques != qtd:
+            raise RuntimeError("Quantidade de cliques divergente")
+
+        print(f"  🛒 [ADIÇÃO SOLICITADA - CORTE VENCEDOR] {vencedor['titulo']}")
         print(f"     Preço: {preco_fmt} {preco_kg_fmt} x {qtd} un = R$ {subtotal:.2f}".replace('.', ','))
         if aviso_atacado:
             print(f"     {aviso_atacado}")
@@ -771,7 +955,7 @@ def processar_grupo_carne_dinamico(page: Page, grupo: Dict[str, Any], apenas_pes
             "qtd": qtd,
             "subtotal": subtotal,
             "dica_atacado": aviso_atacado,
-            "status": "No Carrinho"
+            "status": "Adição solicitada"
         }
     except Exception as e:
         print(f"  ❌ Erro ao adicionar corte vencedor: {e}")
@@ -802,7 +986,7 @@ def selecionar_produto_despensa(page: Page, item: Dict[str, Any], apenas_pesquis
         btn = btn_add.nth(i)
         card = btn.locator('xpath=ancestor::*[contains(@class, "ProductCardShowcase") or contains(@class, "showcase-card") or contains(@class, "card")][1]')
         info = extrair_dados_card(card, btn)
-        texto = info["texto_lower"]
+        texto = info["titulo"].lower()
 
         if any(ev.lower() in texto for ev in item["evitar"]):
             continue
@@ -811,9 +995,10 @@ def selecionar_produto_despensa(page: Page, item: Dict[str, Any], apenas_pesquis
         if score == 0:
             continue
 
-        preco_comp = info["preco_kg"] if info["preco_kg"] else info["preco_unit"]
-        if preco_comp is None:
-            preco_comp = 9999.0
+        fresco = item["categoria"] == "Hortifrúti Inteligente"
+        preco_comp = preco_por_kg(info) if fresco else info["preco_unit"]
+        if preco_comp is None or not info["preco_unit"]:
+            continue
 
         candidatos.append({
             "btn": btn,
@@ -829,7 +1014,7 @@ def selecionar_produto_despensa(page: Page, item: Dict[str, Any], apenas_pesquis
         print(f"  ❌ Nenhum produto atendeu aos critérios de preferência para '{termo}'.")
         return None
 
-    candidatos.sort(key=lambda x: (-x["score"], x["preco_comp"]))
+    candidatos.sort(key=lambda x: (x["preco_comp"], -x["score"]))
     melhor = candidatos[0]
 
     aviso_atacado = ""
@@ -870,7 +1055,7 @@ def selecionar_produto_despensa(page: Page, item: Dict[str, Any], apenas_pesquis
                 page.wait_for_timeout(1000)
                 alvo_btn.click(force=True)
 
-        print(f"  🛒 [NO CARRINHO] {melhor['titulo']}")
+        print(f"  🛒 [ADIÇÃO SOLICITADA] {melhor['titulo']}")
         print(f"     Preço Unit: {preco_formatado} x {qtd} un = R$ {subtotal:.2f}".replace('.', ','))
         if aviso_atacado:
             print(f"     {aviso_atacado}")
@@ -883,7 +1068,7 @@ def selecionar_produto_despensa(page: Page, item: Dict[str, Any], apenas_pesquis
             "qtd": qtd,
             "subtotal": subtotal,
             "dica_atacado": aviso_atacado,
-            "status": "No Carrinho"
+            "status": "Adição solicitada"
         }
     except Exception as e:
         print(f"  ❌ Erro ao adicionar ao carrinho: {e}")
@@ -948,35 +1133,18 @@ def exportar_relatorio_markdown(itens_adicionados: List[Dict[str, Any]], achados
         f"**Data da Geração:** {time.strftime('%d/%m/%Y %H:%M')}",
         f"**Filial:** Av. Marechal Costa e Silva, 1231 | **CEP:** {cep[:5]}-{cep[5:]}",
         "**Perfil:** Alta Qualidade & Sabor (7 Proteínas, Molho Premium, Queijos Nobres, Refrigerante Zero e Doces) | Sem Ovo | Higiene Pessoal Inclusa\n",
-        "## 📋 Itens Selecionados no Carrinho\n",
-        "| Categoria | Objetivo / Corte Escolhido | Preço Unit. | Qtd | Subtotal | Observação |",
-        "| :--- | :--- | :---: | :---: | :---: | :--- |"
+        "## 📋 Itens selecionados e resultado da conferência\n",
+        "| Categoria | Produto | Preço estimado | Qtd | Subtotal estimado | Conferência | Observação |",
+        "| :--- | :--- | :---: | :---: | :---: | :--- | :--- |"
     ]
 
     for it in itens_adicionados:
-        p_u = f"R$ {it['preco_unit']:.2f}".replace('.', ',')
-        sub = f"R$ {it['subtotal']:.2f}".replace('.', ',')
+        p_u = f"R$ {it['preco_unit']:.2f}".replace('.', ',') if it['preco_unit'] else "—"
+        sub = f"R$ {it['subtotal']:.2f}".replace('.', ',') if it['preco_unit'] else "—"
         dica = it.get("dica_atacado", "")
-        conteudo.append(f"| {it['categoria']} | {it['produto_escolhido']} | {p_u} | {it['qtd']} | {sub} | {dica} |")
+        conteudo.append(f"| {it['categoria']} | {it['produto_escolhido']} | {p_u} | {it['qtd']} | {sub} | {it['status']} | {dica} |")
 
     conteudo.append(f"\n### 💰 Valor Total Estimado: **R$ {total_geral:.2f}**\n".replace('.', ','))
-
-    # Painel Nutricional do Arquiteto Radical no Markdown
-    try:
-        from src.food_optimizer import FoodOptimizer
-        diag = FoodOptimizer.gerar_diagnostico_cesta(itens_adicionados)
-        conteudo.append("## 🧬 Painel de Engenharia Nutricional (Custo por Proteína Real)")
-        conteudo.append(f"- **Total de Proteína Entregue na Cesta:** `{diag['total_proteina_g']}g`")
-        conteudo.append(f"- **Média Diária de Proteína:** `{diag['media_proteina_diaria_g']}g / dia` (Meta de 15 dias)")
-        conteudo.append(f"- **Custo Médio por 100g de Proteína Pura:** `R$ {diag['custo_medio_100g_proteina']:.2f}`\n")
-        conteudo.append("### 🏆 Campeões de Eficiência (Maior Proteína / Menor R$ Investido)")
-        conteudo.append("| Posição | Alimento / Corte | Proteína Entregue | Custo por 100g de Proteína Pura |")
-        conteudo.append("| :---: | :--- | :---: | :---: |")
-        for rank, c in enumerate(diag["top_eficientes"], 1):
-            conteudo.append(f"| {rank}º | {c['produto']} | {c['proteina_g']}g | R$ {c['custo_100g_prot']:.2f} |")
-        conteudo.append("")
-    except Exception:
-        pass
 
     if achados_radar:
         conteudo.append("## 📡 Achados do Radar de Oportunidades & Ofertas")
@@ -995,47 +1163,28 @@ def exportar_relatorio_markdown(itens_adicionados: List[Dict[str, Any]], achados
 
 
 def imprimir_relatorio_financeiro(itens_adicionados: List[Dict[str, Any]]):
-    """Imprime uma tabela financeira detalhada no terminal e painel de eficiência nutricional."""
-    from src.food_optimizer import FoodOptimizer
+    """Imprime uma tabela financeira detalhada no terminal."""
 
     print("\n" + "=" * 92)
     print("📊 RESUMO FINANCEIRO DA COMPRA QUINZENAL (TENDA ATACADO - RIBEIRÃO PRETO)")
     print("=" * 92)
 
-    header = f"{'Categoria':<18} | {'Produto Selecionado':<40} | {'Preço Unit.':<10} | {'Qtd':<4} | {'Subtotal'}"
+    header = f"{'Categoria':<18} | {'Produto Selecionado':<40} | {'Preço Unit.':<10} | {'Qtd':<4} | {'Subtotal':<12} | Conferência"
     print(header)
     print("-" * 92)
 
     total_geral = 0.0
     for it in itens_adicionados:
         nome_curto = it["produto_escolhido"][:38] + (".." if len(it["produto_escolhido"]) > 38 else "")
-        preco_u = f"R$ {it['preco_unit']:.2f}".replace('.', ',')
-        subt = f"R$ {it['subtotal']:.2f}".replace('.', ',')
+        preco_u = f"R$ {it['preco_unit']:.2f}".replace('.', ',') if it['preco_unit'] else "—"
+        subt = f"R$ {it['subtotal']:.2f}".replace('.', ',') if it['preco_unit'] else "—"
         total_geral += it["subtotal"]
 
-        print(f"{it['categoria']:<18} | {nome_curto:<40} | {preco_u:<10} | {it['qtd']:<4} | {subt}")
+        print(f"{it['categoria']:<18} | {nome_curto:<40} | {preco_u:<10} | {it['qtd']:<4} | {subt:<12} | {it['status']}")
 
     print("-" * 92)
     print(f"{'VALOR TOTAL ESTIMADO DA QUINZENA:':<76} R$ {total_geral:.2f}".replace('.', ','))
     print("=" * 92)
-
-    # Painel de Eficiência Nutricional do Arquiteto Radical
-    try:
-        diag = FoodOptimizer.gerar_diagnostico_cesta(itens_adicionados)
-        print("\n" + "=" * 92)
-        print("🧬 PAINEL DE ENGENHARIA NUTRICIONAL (CUSTO POR PROTEÍNA REAL)")
-        print("=" * 92)
-        print(f"• Total de Proteína Entregue na Cesta: {diag['total_proteina_g']}g")
-        print(f"• Aporte Médio Estimado: {diag['media_proteina_diaria_g']}g de proteína / dia (Meta de 15 dias)")
-        print(f"• Custo Médio por 100g de Proteína Pura: R$ {diag['custo_medio_100g_proteina']:.2f}")
-        print("\n🏆 CAMPEÕES DE EFICIÊNCIA (MAIOR PROTEÍNA PELO MENOR REAL INVESTIDO):")
-        for rank, c in enumerate(diag["top_eficientes"], 1):
-            print(f"  {rank}. {c['produto'][:45]}")
-            print(f"     Entregou: {c['proteina_g']}g de proteína | Custo: R$ {c['custo_100g_prot']:.2f} por 100g de proteína pura")
-        print("=" * 92)
-    except Exception as e:
-        print(f"Aviso no cálculo nutricional: {e}")
-
 
 def abrir_carrinho_final(page: Page):
     """Navega diretamente para a página oficial do carrinho."""
@@ -1055,6 +1204,8 @@ def main():
     parser.add_argument("--apenas-pesquisa", action="store_true", help="Apenas compara preços sem adicionar ao carrinho")
     parser.add_argument("--sem-radar", action="store_true", help="Pula a busca de oportunidades extras")
     parser.add_argument("--apenas-carnes", action="store_true", help="Executa apenas a comparação e compra de carnes")
+    parser.add_argument("--modo-completo", action="store_true", help="Compatibilidade com o painel: monta a cesta completa")
+    parser.add_argument("--sem-fechamento", action="store_true", help="Não abre a janela de conferência ao terminar")
     parser.add_argument("--sem-hortifruti", action="store_true", help="Pula a adição de itens de hortifrúti inteligente")
     parser.add_argument("--com-azeite", action="store_true", help="Inclui azeite extra virgem na compra quinzenal (padrão é falso para reposição lenta)")
     parser.add_argument("--com-higiene", action="store_true", help="(Legado) Mantido para compatibilidade")
@@ -1098,11 +1249,14 @@ def main():
         page = context.new_page()
 
         # 1. Configura Localização e desbloqueia o carrinho
-        configurar_localizacao_completa(page, context, cep_limpo)
+        if not configurar_localizacao_completa(page, context, cep_limpo):
+            raise RuntimeError("Localização não confirmada; carrinho preservado")
 
         # 2. Limpeza Prévia: Esvazia carrinho residual se houver
         if not args.apenas_pesquisa and not args.manter_carrinho:
-            esvaziar_carrinho_se_necessario(page, context, cep_limpo)
+            if not esvaziar_carrinho_se_necessario(page, context, cep_limpo):
+                print("❌ Limpeza do carrinho não confirmada; montagem interrompida.")
+                sys.exit(2)
 
         itens_selecionados = []
 
@@ -1158,13 +1312,47 @@ def main():
         if not args.sem_radar:
             achados_radar = executar_radar_oportunidades(page)
 
+        planejados = [(g["nome_geral"], g["categoria"], g["qtd"]) for g in GRUPOS_CARNES_DINAMICAS]
+        if not args.apenas_carnes:
+            grupos_itens = [ITENS_CARBOIDRATOS, ITENS_LATICINIOS_E_BEBIDAS]
+            if not args.sem_doces:
+                grupos_itens.append(ITENS_CONDIMENTOS_E_DOCES)
+            if not args.sem_hortifruti:
+                grupos_itens.append(ITENS_HORTIFRUTI_INTELIGENTE)
+            if not args.sem_higiene:
+                grupos_itens.append(ITENS_HIGIENE)
+            if args.com_azeite:
+                grupos_itens.append([ITEM_AZEITE])
+            planejados.extend((it["nome"], it["categoria"], it["qtd"]) for grupo_itens in grupos_itens for it in grupo_itens)
+        encontrados = {it["nome_planejado"] for it in itens_selecionados}
+        pendencias = [
+            {"categoria": categoria, "nome_planejado": nome, "produto_escolhido": nome,
+             "preco_unit": 0.0, "qtd": qtd, "subtotal": 0.0, "status": "Não encontrado na busca"}
+            for nome, categoria, qtd in planejados if nome not in encontrados
+        ]
+
         # Salva a sessão atualizada com o carrinho montado
         try:
             context.storage_state(path=ARQUIVO_SESSAO)
         except Exception:
             pass
 
-        # 9. Relatório Financeiro e Nutricional
+        # 9. Confere o carrinho real antes de gerar o relatório.
+        verificacao_ok = True
+        if itens_selecionados and not args.apenas_pesquisa:
+            try:
+                itens_selecionados = verificar_carrinho(page, itens_selecionados)
+            except Exception as e:
+                print(f"❌ Não foi possível verificar o carrinho: {e}")
+                itens_selecionados = [{**it, "status": "Não verificado (erro no carrinho)"} for it in itens_selecionados]
+            verificacao_ok = all(it["status"] == "Confirmado" for it in itens_selecionados)
+        itens_selecionados.extend(pendencias)
+        if pendencias and not args.apenas_pesquisa:
+            verificacao_ok = False
+        if not verificacao_ok:
+            print("⚠️ Carrinho com itens divergentes, ausentes ou sem confirmação. Revise antes de pagar.")
+
+        # 10. Relatório financeiro
         if itens_selecionados:
             imprimir_relatorio_financeiro(itens_selecionados)
             exportar_relatorio_markdown(itens_selecionados, achados_radar, cep_limpo)
@@ -1174,7 +1362,7 @@ def main():
         largura_tela, altura_tela = obter_resolucao_tela()
 
         # FASE 2: Exibição visual do carrinho pronto (uma única janela, estável e em tela cheia)
-        if not args.headless and not args.apenas_pesquisa:
+        if not args.headless and not args.sem_fechamento and not args.apenas_pesquisa:
             launch_kwargs = {
                 "headless": False,
                 "args": [
@@ -1222,6 +1410,8 @@ def main():
                 browser_gui.close()
 
         print("\n🔒 Nenhuma compra foi cobrada. A finalização depende do seu pagamento manual.")
+        if not verificacao_ok:
+            sys.exit(2)
 
 
 if __name__ == "__main__":

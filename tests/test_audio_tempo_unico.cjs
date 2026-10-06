@@ -164,4 +164,122 @@ test('3. Resiliência: se o modelo responder em texto simples, faz fallback grac
   assert(entregas.includes('S - Subjetivo'), 'Deve ter gerado o SOAP via fallback sem falhar');
 });
 
+// -----------------------------------------------------------------------------
+// 4. ROTEAMENTO DIRETO DE PRESCRIÇÃO DITADA POR VOZ (BYPASS DE LLM INTERMEDIÁRIO)
+// -----------------------------------------------------------------------------
+test('4. Áudio com ditado de prescrição chama gerarPrescricaoComIA diretamente', () => {
+  const { c, sent } = env();
+
+  c.baixarMidiaTelegram = () => ({ data: 'base64_audio_bytes', mime: 'audio/ogg' });
+  c.chamarGeminiPoolMultimodal = () => 'Prescrever amoxicilina 500mg comprimido de 8 em 8 horas por 7 dias';
+
+  let chamouPrescricao = false;
+  let tipoCacheRecebido = '';
+  const origProcessarEEntregarIA = c.processarEEntregarIA;
+  c.processarEEntregarIA = (chatId, fnGeradora, dados, tipoCache) => {
+    if (fnGeradora === c.gerarPrescricaoComIA) chamouPrescricao = true;
+    tipoCacheRecebido = tipoCache;
+    return origProcessarEEntregarIA(chatId, () => 'RECEITA MÉDICA GERADA', dados, tipoCache);
+  };
+
+  c.processarMensagemVoz({ chat: { id: 123 }, voice: { file_id: 'voice_rx' } });
+
+  assert(chamouPrescricao, 'Deve chamar gerarPrescricaoComIA diretamente');
+  assert.equal(tipoCacheRecebido, 'rx', 'Tipo de cache deve ser rx');
+});
+
+// -----------------------------------------------------------------------------
+// 5. ROTEAMENTO DIRETO DE GASOMETRIA DITADA POR VOZ (BYPASS DE LLM INTERMEDIÁRIO)
+// -----------------------------------------------------------------------------
+test('5. Áudio com valores de gasometria chama gerarAnaliseGasometriaComIA diretamente', () => {
+  const { c, sent } = env();
+
+  c.baixarMidiaTelegram = () => ({ data: 'base64_audio_bytes', mime: 'audio/ogg' });
+  c.chamarGeminiPoolMultimodal = () => 'Gasometria arterial ph 7.25 pco2 50 hco3 18';
+
+  let chamouGaso = false;
+  let tipoCacheRecebido = '';
+  const origProcessarEEntregarIA = c.processarEEntregarIA;
+  c.processarEEntregarIA = (chatId, fnGeradora, dados, tipoCache) => {
+    if (fnGeradora === c.gerarAnaliseGasometriaComIA) chamouGaso = true;
+    tipoCacheRecebido = tipoCache;
+    return origProcessarEEntregarIA(chatId, () => 'ANÁLISE DE GASOMETRIA GERADA', dados, tipoCache);
+  };
+
+  c.processarMensagemVoz({ chat: { id: 123 }, voice: { file_id: 'voice_gaso' } });
+
+  assert(chamouGaso, 'Deve chamar gerarAnaliseGasometriaComIA diretamente');
+  assert.equal(tipoCacheRecebido, 'gaso', 'Tipo de cache deve ser gaso');
+});
+
+// -----------------------------------------------------------------------------
+// 6. ROTEAMENTO DIRETO DE EMERGÊNCIA DITADA POR VOZ (SALA VERMELHA / PCR)
+// -----------------------------------------------------------------------------
+test('6. Áudio com emergência chama gerarCondutaEmergenciaComIA diretamente', () => {
+  const { c, sent } = env();
+
+  c.baixarMidiaTelegram = () => ({ data: 'base64_audio_bytes', mime: 'audio/ogg' });
+  c.chamarGeminiPoolMultimodal = () => 'Paciente em parada cardiorrespiratória em ritmo de fibrilação ventricular choque imediato';
+
+  let chamouEmergencia = false;
+  let tipoCacheRecebido = '';
+  const origProcessarEEntregarIA = c.processarEEntregarIA;
+  c.processarEEntregarIA = (chatId, fnGeradora, dados, tipoCache) => {
+    if (fnGeradora === c.gerarCondutaEmergenciaComIA) chamouEmergencia = true;
+    tipoCacheRecebido = tipoCache;
+    return origProcessarEEntregarIA(chatId, () => 'CONDUTA DE EMERGÊNCIA GERADA', dados, tipoCache);
+  };
+
+  c.processarMensagemVoz({ chat: { id: 123 }, voice: { file_id: 'voice_emergencia' } });
+
+  assert(chamouEmergencia, 'Deve chamar gerarCondutaEmergenciaComIA diretamente');
+  assert.equal(tipoCacheRecebido, 'emergencia', 'Tipo de cache deve ser emergencia');
+});
+
+// -----------------------------------------------------------------------------
+// 7. PRESCRIÇÃO EM JARGÃO NATURAL (SEM COMPRIMIDO / "PASSA [DROGA] DE X EM X H")
+// -----------------------------------------------------------------------------
+test('7. Áudio com "passa dipirona 1g de 6 em 6 se dor" reconhece rx diretamente', () => {
+  const { c, sent } = env();
+
+  c.baixarMidiaTelegram = () => ({ data: 'base64_audio_bytes', mime: 'audio/ogg' });
+  c.chamarGeminiPoolMultimodal = () => 'Passa dipirona 1g de 6 em 6 se dor ou febre';
+
+  let chamouPrescricao = false;
+  let tipoCacheRecebido = '';
+  c.processarEEntregarIA = (chatId, fnGeradora, dados, tipoCache) => {
+    if (fnGeradora === c.gerarPrescricaoComIA) chamouPrescricao = true;
+    tipoCacheRecebido = tipoCache;
+    return true;
+  };
+
+  c.processarMensagemVoz({ chat: { id: 123 }, voice: { file_id: 'voice_passa_dipirona' } });
+
+  assert(chamouPrescricao, 'Deve chamar gerarPrescricaoComIA com verbo "passa"');
+  assert.equal(tipoCacheRecebido, 'rx');
+});
+
+// -----------------------------------------------------------------------------
+// 8. EMERGÊNCIA EM JARGÃO NATURAL ("PAROU NO BOX 1" / "SALA VERMELHA")
+// -----------------------------------------------------------------------------
+test('8. Áudio com "paciente parou no box 1" reconhece emergência diretamente', () => {
+  const { c, sent } = env();
+
+  c.baixarMidiaTelegram = () => ({ data: 'base64_audio_bytes', mime: 'audio/ogg' });
+  c.chamarGeminiPoolMultimodal = () => 'Paciente parou no box 1, choque!';
+
+  let chamouEmergencia = false;
+  let tipoCacheRecebido = '';
+  c.processarEEntregarIA = (chatId, fnGeradora, dados, tipoCache) => {
+    if (fnGeradora === c.gerarCondutaEmergenciaComIA) chamouEmergencia = true;
+    tipoCacheRecebido = tipoCache;
+    return true;
+  };
+
+  c.processarMensagemVoz({ chat: { id: 123 }, voice: { file_id: 'voice_parou' } });
+
+  assert(chamouEmergencia, 'Deve chamar gerarCondutaEmergenciaComIA com "parou"');
+  assert.equal(tipoCacheRecebido, 'emergencia');
+});
+
 console.log(`\n🎉 ÁUDIO CLÍNICO EM TEMPO ÚNICO: ${pass}/${total} testes aprovados com 100% de êxito!`);

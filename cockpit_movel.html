@@ -1138,9 +1138,6 @@
     // 1. Inicialização do Telegram WebApp SDK e Persistência de Sessão (PWA / Web)
     const tg = window.Telegram?.WebApp;
     let cockpitSessionRaw = '';
-    try {
-      cockpitSessionRaw = <?!= JSON.stringify(cockpitSession || '') ?>;
-    } catch (eSession) {}
     let sessionFromUrl = '';
     let customBackendFromUrl = '';
     try {

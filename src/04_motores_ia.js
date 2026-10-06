@@ -1438,41 +1438,70 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     ? filtrarMedicamentosRelevantes(baseCompleta, dadosPrescricao)
     : String(baseCompleta || "");
 
+  var contextoPosologiaHSL = (typeof filtrarContextoPosologiasHSL === "function")
+    ? filtrarContextoPosologiasHSL(dadosPrescricao)
+    : "";
+
+  var calculoFixoPed = (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularPosologiaPorTextoLivre === "function")
+    ? CalculadorasClinicas.calcularPosologiaPorTextoLivre(dadosPrescricao)
+    : null;
+
+  var travaDeterministica = "";
+  if (calculoFixoPed) {
+    travaDeterministica = [
+      "",
+      "=======================================================================",
+      "🔒 TRAVA MATEMÁTICA DETERMINÍSTICA OBRIGATÓRIA (FÓRMULA FIXA EM CÓDIGO PURO - ZERO ALUCINAÇÃO):",
+      "• Fármaco Eleito: " + calculoFixoPed.farmaco,
+      "• Apresentação Padronizada: " + calculoFixoPed.apresentacao,
+      "• Posologia no Receituário: " + calculoFixoPed.instrucaoPosologica,
+      "• Quantidade a Dispensar: " + calculoFixoPed.quantidadeDispensar,
+      "• Memória de Cálculo Auditada: " + calculoFixoPed.memoriaCalculo,
+      "• Orientações: " + calculoFixoPed.orientacoes,
+      "⚠️ REGRA DE SEGURANÇA MÁXIMA: NÃO RECALCULE NENHUM NÚMERO.",
+      "Copie EXATAMENTE a dose (" + (calculoFixoPed.tipo === 'gotas' ? (calculoFixoPed.gotasPorTomada + " gotas") : (calculoFixoPed.volumePorTomadaMl + " mL")) + "), o intervalo e a quantidade de frascos acima calculados.",
+      "======================================================================="
+    ].join("\n");
+  }
+
   var promptSistema = [
     IA_PERSONA, "", IA_VISUAL, "",
     "MODO: PRESCRIÇÃO AMBULATORIAL (RASCUNHO PARA REVISÃO). Gere prescrições precisas a partir da doença informada ou do medicamento solicitado.",
     "",
-    "REGRA DE OURO (REMUME LOCAL): SÓ PRESCREVA MEDICAMENTOS E APRESENTAÇÕES QUE CONSTAM EXATAMENTE NA LISTA ABAIXO.",
-    "=== LISTA DE MEDICAMENTOS DISPONÍVEIS NO MUNICÍPIO ===",
-    listaMedicamentos,
-    "=====================================================",
+    "REGRA DE OURO (REMUME SUS + GUIA FARMACÊUTICO HSL):",
+    "1. MEDICAMENTOS DA REMUME SÃO SEMPRE PRIMEIRA OPÇÃO: Prescreva preferencialmente fármacos e apresentações padronizadas na rede municipal (REMUME Ribeirão Preto).",
+    "2. SE NÃO HOUVER ALTERNATIVA NA REMUME: Apenas se a condição clínica não puder ser tratada com itens da rede municipal, utilize a alternativa do Guia HSL declarando: '⚠️ Medicamento fora da REMUME municipal (componente especializado/compra)'.",
+    "3. POSOLOGIA OFICIAL DO HOSPITAL SÍRIO-LIBANÊS (HSL): Siga as doses adultas, pediátricas por kg/dia, intervalos e ajustes para insuficiência renal (ClCr/TFG) oficiais da base HSL.",
+    travaDeterministica,
+    "",
+    "=== BASE OFICIAL DE POSOLOGIAS & APRESENTAÇÕES (GUIA HSL + REMUME) ===",
+    contextoPosologiaHSL ? contextoPosologiaHSL : ("LISTA MUNICIPAL:\n" + listaMedicamentos),
+    "=======================================================================",
     "",
     "DIRETRIZES DE SEGURANÇA FARMACOLÓGICA E DIDÁTICA (FMRP-USP):",
-    "1. Escolha a melhor opção clínica DENTRO da lista. Se nenhum item da lista atende com segurança, diga 'Sem alternativa adequada na REMUME' e indique a classe/fármaco ideal fora da lista como sugestão ao prescritor, sem montá-lo como receita.",
-    "2. PEDIATRIA E MEMÓRIA DE CÁLCULO DIDÁTICA TRANSPARENTE:",
+    "1. PEDIATRIA E MEMÓRIA DE CÁLCULO DIDÁTICA TRANSPARENTE:",
     "   - Sem peso informado: NUNCA presuma peso de criança. Declare imediatamente em Status: 'Dados pendentes (Peso em kg obrigatório para cálculo pediátrico seguro)' e cobre o peso sem calcular dosagem arbitrária em mL.",
-    "   - Com peso informado: Exiba no receituário a posologia clara e no campo de conferência a MEMÓRIA DE CÁLCULO COMPLETA E DIDÁTICA:",
-    "     • Dose de referência: dose recomendada na diretriz brasileira em mg/kg/dia dividida em X tomadas/dia.",
+    "   - Com peso informado: Exiba no receituário a posologia clara e no campo de conferência a MEMÓRIA DE CÁLCULO COMPLETA E DIDÁTICA baseada na dose de referência do Guia HSL:",
+    "     • Dose de referência: dose recomendada na diretriz/HSL em mg/kg/dia dividida em X tomadas/dia.",
     "     • Dose diária total: mg/kg/dia × peso (kg) = total de mg/dia.",
     "     • Dose por tomada: total de mg/dia ÷ número de tomadas = mg por dose.",
-    "     • Conversão volumétrica: concentração da apresentação da REMUME (ex: 250 mg/5 mL) ➔ volume exato por tomada em mL.",
-    "     • Checagem de dose máxima: comparar com a dose máxima diária e por tomada do adulto (nunca ultrapassar).",
+    "     • Conversão volumétrica: concentração da apresentação da REMUME/HSL (ex: 250 mg/5 mL) ➔ volume exato por tomada em mL.",
+    "     • Checagem de dose máxima: comparar com a dose máxima diária e por tomada do HSL/adulto (nunca ultrapassar).",
     "     • Quantidade a dispensar: volume por tomada × tomadas/dia × dias = volume total em mL ➔ número de frascos a dispensar.",
-    "3. QUANTIDADE TOTAL A DISPENSAR MATEMATICAMENTE COERENTE:",
+    "2. QUANTIDADE TOTAL A DISPENSAR MATEMATICAMENTE COERENTE:",
     "   - Calcule e informe sempre a quantidade total a dispensar no receituário (ex: 21 cápsulas, 2 frascos de 100 mL, 1 tubo de 30 g) compatível com a posologia e duração do tratamento para evitar desabastecimento do paciente.",
-    "4. AJUSTE RENAL, HEPÁTICO E CRITÉRIOS DE BEERS (SEGURANÇA ATIVA):",
+    "3. AJUSTE RENAL, HEPÁTICO E CRITÉRIOS DE BEERS (SEGURANÇA ATIVA):",
     "   - Medicamentos com depuração renal (ex: antimicrobianos, AINEs, metformina, atenolol, enoxaparina):",
-    "     • Se creatinina/TFG foi informada: apresentar o ajuste de dose ou espaçamento de intervalo.",
+    "     • Aplique o ajuste de dose do Guia HSL conforme a faixa de ClCr informada.",
     "     • Se NÃO foi informada e o paciente for idoso ou de risco: declarar formalmente: '⚠️ Função renal não informada — fármaco de depuração renal; conferir ClCr/TFG antes de administrar (se TFG < 50 mL/min, necessária redução posológica)'.",
-    "   - Idosos (>= 65 anos): verificar Critérios de Beers / STOPP-START. Alertar se a classe for potencialmente inapropriada (ex: AINEs de uso contínuo, benzodiazepínicos, anti-histamínicos sedativos) e sugerir alternativa mais segura.",
+    "   - Idosos (>= 65 anos): verificar Critérios de Beers / STOPP-START. Alertar se a classe for potencialmente inapropriada e sugerir alternativa mais segura.",
     "   - Alergias e Interações: CHECAGEM CRUZADA OBRIGATÓRIA de alergias (penicilina, dipirona, sulfas, AINEs) e interações com medicações de uso contínuo relatadas.",
-    "5. Formato copiável para o prontuário eletrônico / e-SUS.",
-    "6. Não escreva que o medicamento está 'validado' ou 'em estoque': escreva apenas que o item consta na lista fornecida (conferir disponibilidade no estoque).",
+    "4. Formato copiável para o prontuário eletrônico / e-SUS.",
     "",
     IA_SEGURANCA_MEDICAMENTOSA,
     "",
     "ESTRUTURA:",
-    "\uD83D\uDC8A *PRESCRIÇÃO AMBULATORIAL - RASCUNHO (REMUME)*",
+    "\uD83D\uDC8A *PRESCRIÇÃO AMBULATORIAL - RASCUNHO (REMUME & GUIA HSL)*",
     "*Status:* [Completa para revisão / Dados pendentes: listar]",
     "",
     "\uD83D\uDCDD *Receituário*",
@@ -1485,10 +1514,11 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "",
     "\uD83D\uDCCB *Conferência médica*",
     "- *Indicação clínica:* [...]",
-    "- *Memória de cálculo (se pediátrico):* [passo a passo: dose diretriz ➔ mg/kg/dia ➔ mg/dose ➔ mL/dose na apresentação da lista ➔ checagem de dose máxima ➔ frascos totais]",
-    "- *Ajustes de segurança (renal, hepático, idade/Beers, gestação):* [faixas de TFG, alertas ou conformidade]",
+    "- *Memória de cálculo (se pediátrico):* [passo a passo: dose HSL ➔ mg/kg/dia ➔ mg/dose ➔ mL/dose na apresentação da lista ➔ checagem de dose máxima ➔ frascos totais]",
+    "- *Ajustes de segurança (renal, hepático, idade/Beers, gestação):* [faixas de TFG do Guia HSL, alertas ou conformidade]",
     "- *Alergias e interações:* [conferido com dados do caso ou pendências]",
-    "- *REMUME:* item presente na lista fornecida (conferir disponibilidade no estoque)."
+    "- *Disponibilidade na Rede:* [Item da REMUME de Ribeirão Preto / Não consta na REMUME - opção referenciada no Guia HSL].",
+    "- *Base Posológica Oficial:* Guia Farmacêutico Hospital Sírio-Libanês (HSL)."
   ].join("\n");
 
   var dados = "DADOS DO PACIENTE / PEDIDO:\n" + dadosPrescricao;
@@ -1635,25 +1665,30 @@ function verificarInteracaoComIA(drogas) {
   var registrosEncontrados = [];
   if (baseInteracoes) {
     var linhas = String(baseInteracoes).split("\n");
+    var registrosComScore = [];
     for (var j = 0; j < linhas.length; j++) {
       var linhaNorm = (typeof normalizarTexto === "function") ? normalizarTexto(linhas[j]) : linhas[j].toLowerCase();
       var matchCount = 0;
       for (var k = 0; k < termos.length; k++) {
         if (linhaNorm.indexOf(termos[k]) !== -1) matchCount++;
       }
-      if (matchCount > 0) registrosEncontrados.push(linhas[j]);
+      if (matchCount > 0) {
+        registrosComScore.push({ linha: linhas[j], score: matchCount });
+      }
     }
+    registrosComScore.sort(function(a, b) { return b.score - a.score; });
+    registrosEncontrados = registrosComScore.map(function(item) { return item.linha; });
   }
 
   var instrucaoBase = "";
   if (erroPlanilha) {
-    instrucaoBase = "AVISO TÉCNICO: a planilha de interações retornou erro de acesso (" + erroPlanilha + "). Avalie pelo conhecimento clínico e escreva no campo Fonte: 'Conhecimento Geral (planilha local inacessível)'.";
+    instrucaoBase = "AVISO TÉCNICO: a base de interações retornou erro de acesso (" + erroPlanilha + "). Avalie pelo conhecimento clínico e escreva no campo Fonte: 'Conhecimento Geral (base local inacessível)'.";
   } else if (!baseInteracoes || String(baseInteracoes).trim().length === 0) {
-    instrucaoBase = "AVISO TÉCNICO: a planilha de interações está vazia. Avalie pelo conhecimento clínico e escreva no campo Fonte: 'Conhecimento Geral (planilha local sem registros)'.";
+    instrucaoBase = "AVISO TÉCNICO: a base de interações está vazia. Avalie pelo conhecimento clínico e escreva no campo Fonte: 'Conhecimento Geral (base local sem registros)'.";
   } else if (registrosEncontrados.length > 0) {
-    instrucaoBase = "=== REGISTROS DA BASE LOCAL DE INTERAÇÕES (PLANILHA) ===\n" +
-      registrosEncontrados.join("\n") + "\n=======================================================\n\n" +
-      "REGRA: os termos foram localizados na base local. Use-a como referência primária e indique no campo Fonte: 'Base Local (Planilha Google Drive)'. " +
+    instrucaoBase = "=== REGISTROS DA BASE LOCAL DE INTERAÇÕES (TABELA FARMACOLÓGICA) ===\n" +
+      registrosEncontrados.join("\n") + "\n===================================================================\n\n" +
+      "REGRA: os termos foram localizados na base local. Use-a como referência primária e indique no campo Fonte: 'Base Local (Tabela Farmacológica)'. " +
       "Se seu conhecimento clínico indicar risco MAIOR do que o registrado, ou uma interação relevante ausente, sinalize a divergência explicitamente.";
   } else {
     instrucaoBase = "=== BASE LOCAL DE INTERAÇÕES ===\n[Nenhum registro para '" + drogas + "']\n================================\n\n" +
@@ -1675,7 +1710,7 @@ function verificarInteracaoComIA(drogas) {
     "*Grau de risco:* [Nenhum / Menor / Moderado / Grave / Contraindicado]",
     "- *Mecanismo:* [...]",
     "- *Conduta:* [evitar / ajustar / monitorizar o que e quando]",
-    "- *Fonte:* [Base Local (Planilha Google Drive) OU Conhecimento Geral (medicamento não cadastrado na Base Local)]",
+    "- *Fonte:* [Base Local (Tabela Farmacológica) OU Conhecimento Geral (medicamento não cadastrado na Base Local)]",
     "",
     "ESTRUTURA (1 droga):",
     "\uD83D\uDD2C *PRINCIPAIS INTERAÇÕES: [DROGA]*",
@@ -1683,7 +1718,7 @@ function verificarInteracaoComIA(drogas) {
     "- [Droga X]: [mecanismo resumido]",
     "\u26A0\uFE0F *Moderadas:*",
     "- [Droga Y]: [mecanismo resumido]",
-    "- *Fonte:* [Base Local (Planilha Google Drive) OU Conhecimento Geral (medicamento não cadastrado na Base Local)]"
+    "- *Fonte:* [Base Local (Tabela Farmacológica) OU Conhecimento Geral (medicamento não cadastrado na Base Local)]"
   ].join("\n");
   return _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, "Drogas informadas: " + drogas, 1500));
 }
@@ -1724,7 +1759,7 @@ function gerarAnaliseGasometriaComIA(dadosGaso) {
   }
   var ph = num(/\bph\s*[:=]?\s*([67][.,]?\d+)/i);
   var pco2 = num(/\bp?a?co2\s*[:=]?\s*(\d+[.,]?\d*)/i);
-  var hco3 = num(/\bhco3\s*[:=]?\s*(\d+[.,]?\d*)/i) || num(/bicarb[^\d]*(\d+[.,]?\d*)/i);
+  var hco3 = num(/\bhco3\s*[:=]?\s*(\d+[.,]?\d*)/i) || num(/bicarb[^\d]*(\d+[.,]?\d*)/i) || num(/\bbic\s*[:=]?\s*(\d+[.,]?\d*)/i);
   var na = num(/\bna\b\s*[:=]?\s*(\d+[.,]?\d*)/i) || num(/s[oó]dio\s*[:=]?\s*(\d+[.,]?\d*)/i);
   var cl = num(/\bcl\b\s*[:=]?\s*(\d+[.,]?\d*)/i) || num(/cloro\s*[:=]?\s*(\d+[.,]?\d*)/i);
   var alb = num(/\balb\b\s*[:=]?\s*(\d+[.,]?\d*)/i) || num(/albumina\s*[:=]?\s*(\d+[.,]?\d*)/i);
@@ -1860,13 +1895,13 @@ function _iaNormalizarParaRegex(texto) {
 }
 
 var IA_RE_EMERGENCIA_FORTE = new RegExp(
-  "dor\\s+(tor[áa]cica|precordial|no\\s+peito|retroesternal)|\\bchoque\\b|\\bsepse\\b|\\bsepsis\\b|septic|rebaixamento|rebaixad|" +
+  "dor\\s+(tor[áa]cica|precordial|no\\s+peito|retroesternal)|\\bchoque\\b|chocand[oa]|chocad[oa]|\\bsepse\\b|\\bsepsis\\b|septic|rebaixament[oa]|rebaixad[oa]|\\brebaixou\\b|" +
   "glasgow\\s*(de\\s*)?[3-8]\\b|\\bconvuls|crise\\s+convulsiva|status\\s+epilep|anafila|\\biam\\b|infarto|supra\\s*(de\\s*)?st|" +
   "\\bavc\\b|acidente\\s+vascular|edema\\s+agudo|\\btep\\b|embolia\\s+pulmonar|pneumot[óo]rax|tamponamento|hipotens|\\bdva\\b|" +
-  "vasopressor|noradrenalina|adrenalina|dobutamina|vasopressina|\\bsri\\b|intubacao|intubar|\\biot\\b|" +
-  "parada\\s+(cardio|respirat)|ressuscit|\\brcp\\b|desfibril|assistolia|fibrilacao\\s+ventricular|taquicardia\\s+ventricular|" +
+  "vasopressor|noradrenalina|adrenalina|dobutamina|vasopressina|\\bsri\\b|intubacao|intubar|\\biot\\b|passar\\s+tubo|\\bbavt\\b|arritmia\\s+inst[aá]vel|" +
+  "parada\\s+(cardio|respirat)|\\bparou\\b|ressuscit|\\brcp\\b|desfibril|assistolia|fibrilacao\\s+ventricular|taquicardia\\s+ventricular|" +
   "sangramento\\s+(maci|ativo|volumoso)|hemorragia|hematemese|intoxicacao|overdose|hipoglicemia\\s+grave|cetoacidose|" +
-  "dessatur|sat(uracao)?\\s*(de|em)?\\s*[<=]?\\s*[5-8]\\d\\s*%?|spo2\\s*[<=]?\\s*[5-8]\\d|\\bpa\\s*(de\\s*)?[<]?\\s*[5-8]\\d\\s*[x\\/]"
+  "dessatur|sat(uracao)?\\s*(de|em)?\\s*[<=]?\\s*[5-8]\\d\\s*%?|spo2\\s*[<=]?\\s*[5-8]\\d|\\bpa\\s*(de\\s*)?[<]?\\s*[5-8]\\d\\s*[x\\/]|sala\\s+vermelha|c[oó]digo\\s+(?:azul|vermelho)"
 );
 
 function _iaEhEmergencia(t) {
@@ -1915,13 +1950,18 @@ function classificarIntencaoMensagem(textoMensagem) {
     return { intencao: "HABITO_PROATIVO", confianca: 0.9 };
   }
   var culinaria = /(bolo|culinar|comida|jantar|almo[çc]o|janta|frango|prato|ingrediente|air\s*fryer|marmita|molho|torta|massa\s+de)/.test(tn);
-  if (/(?:prescrev|passar\s+receita|medicamento\s+para|rem[eé]dio\s+para|dose\s+de|posologia\s+de|como\s+prescrever)/.test(tn) || (/\breceita\b/.test(tn) && !culinaria)) {
+  var ehRxIntencao =
+    /(?:prescrev|passar\s+receita|medicamento\s+pr?[ao]|rem[eé]dio\s+pr?[ao]|dose\s+d[aeo]|posologia\s+d[aeo]|como\s+prescrever)/.test(tn) ||
+    (/(?:passa|passar|inicia|iniciar)\b.*(?:\d+\s*(?:mg|mcg|g|ml|gotas|ui)|comprimido|ampola|xarope|gotas|pomada|cp\b)/i.test(texto) && !culinaria) ||
+    ((/\breceita\b/.test(tn) || /^\s*rx\b/i.test(texto)) && !culinaria) ||
+    (/(?:\d+\s*(?:mg|mcg|g|ml|gotas|ui))\b.*(?:de\s*\d+\s*em\s*\d+\s*(?:horas?|h)?|[0-9]+\s*[\/x]\s*[0-9]+\s*h?|\d+\s*x(?:\s*ao)?\s*dia|uma\s+vez\s+ao\s+dia|se\s+dor|se\s+febre|se\s+necess[aá]rio|\bsn\b|\bem\s+jejum\b)/i.test(texto) && !culinaria);
+  if (ehRxIntencao) {
     return { intencao: "CLINICO_RX", confianca: 0.9 };
   }
-  if (t.indexOf("ph") !== -1 && (t.indexOf("pco2") !== -1 || t.indexOf("hco3") !== -1)) {
+  if (/\b(?:gaso|gasometria)\b/i.test(t) || (t.indexOf("ph") !== -1 && (t.indexOf("pco2") !== -1 || t.indexOf("hco3") !== -1 || t.indexOf("bicarb") !== -1 || /\bbic\b/.test(tn)))) {
     return { intencao: "CLINICO_GASO", confianca: 0.95 };
   }
-  if (t.indexOf("dúvida") !== -1 || t.indexOf("duvida") !== -1 && t.indexOf("medquest") !== -1) {
+  if ((t.indexOf("dúvida") !== -1 || t.indexOf("duvida") !== -1) && (t.indexOf("medquest") !== -1 || t.indexOf("notion") !== -1 || t.indexOf("card") !== -1 || t.indexOf("flashcard") !== -1)) {
     return { intencao: "NOTION_DUVIDA", confianca: 0.85 };
   }
   if (/(?:evid[êe]ncia|pubmed|artigos?\s+(?:sobre|de)|estudos?\s+(?:sobre|de)|meta-an[áa]lise|ensaios?\s+cl[íi]nicos?)/i.test(t)) {

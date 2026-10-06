@@ -164,7 +164,7 @@ test('2. gerarAudioTtsGeminiNeural suporta GEMINI_API_KEY singular e rotação c
   const blob = c.gerarAudioTtsGeminiNeural("Pergunta socrática curta.");
   assert(blob !== null, 'gerarAudioTtsGeminiNeural deve ter sucesso mesmo com apenas GEMINI_API_KEY singular');
   assert.equal(sent[0].opts.headers['x-goog-api-key'], 'minha-chave-singular-123', 'Deve usar a chave singular no header');
-  assert(sent[0].url.includes('gemini-3.8-flash-tts'), 'URL deve priorizar o modelo gemini-3.8-flash-tts');
+  assert(sent[0].url.includes('gemini-2.5-flash-preview-tts') || sent[0].url.includes('gemini-3.8-flash-tts'), 'URL deve priorizar modelo Gemini TTS funcional');
 });
 
 // -----------------------------------------------------------------------------

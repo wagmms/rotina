@@ -1,10 +1,10 @@
 /**
  * ==============================================================================
- * ULTRA ROTINA · MASTER CLOUD ASSISTANT & COPILOTO CLÍNICO MULTIMODAL (v2.0)
+ * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
- * Executa 100% na nuvem do Google (24/7), gratuito, sem precisar de PC ligado.
- * Gerado automaticamente via build_master.py em: 2026-10-05 22:20:49
- * Checksum SHA256: 4ba66b48a7c31a5c
+ * Servidor oficial Node.js/Docker no Render.
+ * Gerado automaticamente via build_master.py em: 2026-10-06 13:39:37
+ * Checksum SHA256: 9c15104f640cf05b
  * ==============================================================================
  */
 
@@ -45,7 +45,7 @@ var ConfigService = (function() {
     PROVEDOR_TEXTO_PADRAO: "GEMINI",
     IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
     IA_MODELOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
-    IA_MODELOS_TTS_GEMINI: "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts,gemini-3.1-flash-tts-preview",
+    IA_MODELOS_TTS_GEMINI: "gemini-2.5-flash-preview-tts,gemini-3.8-flash-tts",
     IA_VOZ_PRECEPTOR: "Fenrir",
     TIMEZONE: "America/Sao_Paulo",
     SPREADSHEET_ID_REMUME: "",
@@ -594,6 +594,61 @@ function enviarDocumentoTelegram(chatId, blobDocumento, legenda) {
   }
 }
 
+/**
+ * Garante que o áudio retornado possua cabeçalho RIFF WAV padrão de 44 bytes (24kHz, 16-bit, Mono)
+ * quando gerado por modelos TTS que retornam PCM Linear (audio/L16).
+ */
+function adicionarCabecalhoWavSeNecessario(bytes, mime) {
+  if (!bytes || bytes.length === 0) return bytes;
+  var b0 = (typeof bytes[0] === "number") ? bytes[0] : (bytes[0] || 0);
+  var b1 = (typeof bytes[1] === "number") ? bytes[1] : (bytes[1] || 0);
+  var b2 = (typeof bytes[2] === "number") ? bytes[2] : (bytes[2] || 0);
+  var b3 = (typeof bytes[3] === "number") ? bytes[3] : (bytes[3] || 0);
+  if (b0 === 0x52 && b1 === 0x49 && b2 === 0x46 && b3 === 0x46) {
+    return bytes;
+  }
+  var taxaAmostragem = 24000;
+  if (mime && mime.indexOf("rate=") !== -1) {
+    var matchRate = mime.match(/rate=(\d+)/);
+    if (matchRate) taxaAmostragem = parseInt(matchRate[1], 10) || 24000;
+  }
+  var canais = 1;
+  var bitsPorAmostra = 16;
+  var byteRate = (taxaAmostragem * canais * bitsPorAmostra) / 8;
+  var blockAlign = (canais * bitsPorAmostra) / 8;
+  var tamanhoDados = bytes.length;
+  var tamanhoTotal = 36 + tamanhoDados;
+  var cabecalho = [
+    0x52, 0x49, 0x46, 0x46, // "RIFF"
+    tamanhoTotal & 0xff, (tamanhoTotal >> 8) & 0xff, (tamanhoTotal >> 16) & 0xff, (tamanhoTotal >> 24) & 0xff,
+    0x57, 0x41, 0x56, 0x45, // "WAVE"
+    0x66, 0x6d, 0x74, 0x20, // "fmt "
+    16, 0, 0, 0,            // Subchunk1Size
+    1, 0,                   // AudioFormat (1 = PCM)
+    canais, 0,              // NumChannels (1 = Mono)
+    taxaAmostragem & 0xff, (taxaAmostragem >> 8) & 0xff, (taxaAmostragem >> 16) & 0xff, (taxaAmostragem >> 24) & 0xff,
+    byteRate & 0xff, (byteRate >> 8) & 0xff, (byteRate >> 16) & 0xff, (byteRate >> 24) & 0xff,
+    blockAlign, 0,          // BlockAlign
+    bitsPorAmostra, 0,      // BitsPerSample
+    0x64, 0x61, 0x74, 0x61, // "data"
+    tamanhoDados & 0xff, (tamanhoDados >> 8) & 0xff, (tamanhoDados >> 16) & 0xff, (tamanhoDados >> 24) & 0xff
+  ];
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(bytes)) {
+    return Buffer.concat([Buffer.from(cabecalho), bytes]);
+  }
+  if (typeof Uint8Array !== "undefined" && bytes instanceof Uint8Array) {
+    var resUint8 = new Uint8Array(44 + bytes.length);
+    resUint8.set(cabecalho, 0);
+    resUint8.set(bytes, 44);
+    return resUint8;
+  }
+  if (Array.isArray(bytes)) {
+    var cabSigned = cabecalho.map(function(b) { return b > 127 ? b - 256 : b; });
+    return cabSigned.concat(bytes);
+  }
+  return bytes;
+}
+
 function gerarAudioTtsGeminiNeural(texto) {
   var limpo = String(texto || "").replace(/[*_#`\[\]\(\)]/g, "").replace(/\s+/g, " ").trim();
   if (!limpo) return null;
@@ -623,7 +678,7 @@ function gerarAudioTtsGeminiNeural(texto) {
 
   var modelosTts = ConfigService.getArray("IA_MODELOS_TTS_GEMINI");
   if (!modelosTts || modelosTts.length === 0) {
-    modelosTts = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts", "gemini-3.1-flash-tts-preview"];
+    modelosTts = ["gemini-2.5-flash-preview-tts", "gemini-3.8-flash-tts"];
   }
 
   var payload = {
@@ -640,11 +695,22 @@ function gerarAudioTtsGeminiNeural(texto) {
     }
   };
 
+  var ttsInicio = new Date().getTime();
+  var MAX_TENTATIVAS_CHAVE_POR_MODELO = Math.min(chaves.length, 3);
+
   for (var m = 0; m < modelosTts.length; m++) {
+    // Se já gastamos mais de 15 segundos tentando áudio neural, cai para o fallback rápido
+    if (new Date().getTime() - ttsInicio >= 15000) {
+      Logger.log("Tempo limite para TTS neural esgotado; acionando contingência de voz.");
+      break;
+    }
+
     var modeloAtual = modelosTts[m];
     var url = "https://generativelanguage.googleapis.com/v1beta/models/" + modeloAtual + ":generateContent";
 
-    for (var k = 0; k < chaves.length; k++) {
+    for (var k = 0; k < MAX_TENTATIVAS_CHAVE_POR_MODELO; k++) {
+      if (new Date().getTime() - ttsInicio >= 15000) break;
+
       var idx = (inicio + k) % chaves.length;
       var chave = chaves[idx];
 
@@ -654,7 +720,8 @@ function gerarAudioTtsGeminiNeural(texto) {
           "contentType": "application/json",
           "headers": { "x-goog-api-key": chave },
           "payload": JSON.stringify(payload),
-          "muteHttpExceptions": true
+          "muteHttpExceptions": true,
+          "timeoutMs": 10000
         });
         var code = res.getResponseCode();
         if (code === 200) {
@@ -668,11 +735,12 @@ function gerarAudioTtsGeminiNeural(texto) {
               var bytes = Utilities.base64Decode(part.inlineData.data);
               var mime = part.inlineData.mimeType || "audio/wav";
               var ext = (mime.indexOf("mp3") !== -1) ? "mp3" : "wav";
-              var blob = Utilities.newBlob(bytes, mime, "preceptor_voz." + ext);
+              bytes = adicionarCabecalhoWavSeNecessario(bytes, mime);
+              var blob = Utilities.newBlob(bytes, mime.indexOf("mp3") !== -1 ? "audio/mpeg" : "audio/wav", "preceptor_voz." + ext);
               return blob;
             }
           }
-        } else if (code === 429) {
+        } else if (code === 429 || code === 504 || code >= 500) {
           continue;
         }
       } catch (e) {
@@ -2203,6 +2271,277 @@ var CalculadorasClinicas = (function () {
     });
   }
 
+  // ═════════════════════════════ POSOLOGIA PEDIÁTRICA DETERMINÍSTICA ═════════════════════════════
+
+  /**
+   * Calculadora Posológica Pediátrica Determinística (Fórmulas Fixas · Zero Alucinação)
+   * Referências: SBP (Sociedade Brasileira de Pediatria) / Ministério da Saúde / Guia Farmacêutico HSL / REMUME
+   */
+  function posologiaPediatrica(pesoKg, farmacoOuCondicao, opcoes) {
+    var ID = 'posologia_pediatrica', NOME = 'Posologia Pediátrica Determinística';
+    return seguro(ID, NOME, function () {
+      var ctx = novoCtx();
+      var peso = num(ctx, pesoKg, 'Peso (kg)', 1, 80);
+      if (!isFinite(peso) || peso <= 0) {
+        return entradaInvalida(ID, NOME, ctx);
+      }
+
+      var opt = opcoes || {};
+      var termo = semAcento(farmacoOuCondicao || '');
+
+      var tabela = {
+        amoxicilina: {
+          nome: 'Amoxicilina',
+          apresentacao: 'Amoxicilina 250 mg/5 mL (suspensão oral)',
+          concentracaoMgPorMl: 50,
+          doseMgKgDia: opt.doseAlta ? 90 : 50,
+          tomadasDia: opt.tomadasDia || 3,
+          intervaloHoras: (opt.tomadasDia === 2) ? 12 : 8,
+          diasTratamento: opt.diasTratamento || 10,
+          doseMaximaAdultoMgDia: 1500,
+          volumeFrascoMl: 150,
+          indicacao: opt.doseAlta ? 'Otite Média Aguda / Sinusite / PAC (dose alta 90 mg/kg/dia)' : 'Amigdalite / Faringite / Infecções bacterianas leves (50 mg/kg/dia)',
+          instrucoes: 'Pode ser administrado com ou sem alimentos. Agitar bem antes de usar.'
+        },
+        amoxicilina_clavulanato: {
+          nome: 'Amoxicilina + Clavulanato de Potássio',
+          apresentacao: 'Amoxicilina 250 mg + Clavulanato 62,5 mg / 5 mL (suspensão oral)',
+          concentracaoMgPorMl: 50,
+          doseMgKgDia: opt.doseAlta ? 90 : 50,
+          tomadasDia: 3,
+          intervaloHoras: 8,
+          diasTratamento: opt.diasTratamento || 10,
+          doseMaximaAdultoMgDia: 1500,
+          volumeFrascoMl: 75,
+          indicacao: opt.doseAlta ? 'Otite complicada / Sinusite refratária (dose alta 90 mg/kg/dia)' : 'Infecções de vias aéreas com suspeita de germes produtores de beta-lactamase (50 mg/kg/dia)',
+          instrucoes: 'Administrar preferencialmente no início da refeição para minimizar risco de intolerância gastrintestinal.'
+        },
+        azitromicina: {
+          nome: 'Azitromicina',
+          apresentacao: 'Azitromicina 200 mg/5 mL (suspensão oral)',
+          concentracaoMgPorMl: 40,
+          doseMgKgDia: 10,
+          tomadasDia: 1,
+          intervaloHoras: 24,
+          diasTratamento: opt.diasTratamento || 5,
+          doseMaximaAdultoMgDia: 500,
+          volumeFrascoMl: 15,
+          indicacao: 'Faringite/Amigdalite (opção se alergia a penicilina), PAC atípica (10 mg/kg/dia)',
+          instrucoes: 'Administrar 1h antes ou 2h após alimentos. Tomada única diária no mesmo horário.'
+        },
+        cefalexina: {
+          nome: 'Cefalexina',
+          apresentacao: 'Cefalexina 250 mg/5 mL (suspensão oral)',
+          concentracaoMgPorMl: 50,
+          doseMgKgDia: opt.doseAlta ? 100 : 50,
+          tomadasDia: 4,
+          intervaloHoras: 6,
+          diasTratamento: opt.diasTratamento || 7,
+          doseMaximaAdultoMgDia: 2000,
+          volumeFrascoMl: 100,
+          indicacao: 'Piodermites, impetigo, celulite leve, ITU baixa (50 mg/kg/dia)',
+          instrucoes: 'Tomar a cada 6 horas. Agitar bem antes de usar.'
+        },
+        dipirona: {
+          nome: 'Dipirona',
+          apresentacao: 'Dipirona 500 mg/mL (solução oral gotas)',
+          tipo: 'gotas',
+          mgPorGota: 25,
+          doseMgKgDose: 12.5,
+          tomadasDia: 4,
+          intervaloHoras: 6,
+          doseMaximaPorDoseMg: 500,
+          indicacao: 'Dor ou febre (1 gota para cada 2 kg de peso de 6/6h se necessário)',
+          instrucoes: 'Administrar com um pouco de líquido a cada 6 horas se dor ou febre (máximo 4 vezes ao dia).'
+        },
+        paracetamol: {
+          nome: 'Paracetamol',
+          apresentacao: 'Paracetamol 200 mg/mL (solução oral gotas)',
+          tipo: 'gotas',
+          mgPorGota: 10,
+          doseMgKgDose: 10,
+          tomadasDia: 4,
+          intervaloHoras: 6,
+          doseMaximaPorDoseMg: 500,
+          indicacao: 'Dor ou febre (1 gota por kg de peso de 6/6h se necessário)',
+          instrucoes: 'Administrar a cada 6 horas se dor ou febre. Não ultrapassar 5 tomadas ao dia.'
+        },
+        ibuprofeno: {
+          nome: 'Ibuprofeno',
+          apresentacao: 'Ibuprofeno 50 mg/mL (solução oral gotas)',
+          tipo: 'gotas',
+          mgPorGota: 2.5,
+          doseMgKgDose: 10,
+          tomadasDia: 3,
+          intervaloHoras: 8,
+          doseMaximaPorDoseMg: 400,
+          indicacao: 'Dor, febre ou inflamação (4 gotas por kg da suspensão 50 mg/mL de 8/8h se dor/febre)',
+          instrucoes: 'Administrar junto ou logo após alimentos para proteção gástrica.'
+        },
+        prednisolona: {
+          nome: 'Prednisolona (Fosfato Sódico)',
+          apresentacao: 'Prednisolona 3 mg/mL (solução oral)',
+          concentracaoMgPorMl: 3,
+          doseMgKgDia: opt.doseMgKgDia || 1,
+          tomadasDia: 1,
+          intervaloHoras: 24,
+          diasTratamento: opt.diasTratamento || 5,
+          doseMaximaAdultoMgDia: 40,
+          volumeFrascoMl: 60,
+          indicacao: 'Crise asmática / Laringite estridulosa / Broncoespasmo (1 a 2 mg/kg/dia)',
+          instrucoes: 'Administrar em dose única pela manhã, após o desjejum, por 3 a 5 dias.'
+        },
+        sulfametoxazol_trimetoprima: {
+          nome: 'Sulfametoxazol + Trimetoprima',
+          apresentacao: 'Sulfametoxazol 200 mg + Trimetoprima 40 mg / 5 mL (suspensão oral)',
+          concentracaoMgPorMl: 8,
+          doseMgKgDia: 8,
+          tomadasDia: 2,
+          intervaloHoras: 12,
+          diasTratamento: opt.diasTratamento || 10,
+          doseMaximaAdultoMgDia: 320,
+          volumeFrascoMl: 100,
+          indicacao: 'Infecções urinárias (ITU) / Infecções respiratórias selecionadas (8 mg TMP/kg/dia)',
+          instrucoes: 'Tomar a cada 12 horas com boa ingestão hídrica durante o dia.'
+        }
+      };
+
+      var chaveAlvo = null;
+      if (termo.indexOf('clavulan') !== -1 || termo.indexOf('clavulin') !== -1 || termo.indexOf('amoxiclav') !== -1 || termo.indexOf('otite') !== -1 || termo.indexOf('oma') !== -1) {
+        chaveAlvo = 'amoxicilina_clavulanato';
+      } else if (termo.indexOf('amoxi') !== -1) {
+        chaveAlvo = 'amoxicilina';
+      } else if (termo.indexOf('azitro') !== -1) {
+        chaveAlvo = 'azitromicina';
+      } else if (termo.indexOf('cefalex') !== -1) {
+        chaveAlvo = 'cefalexina';
+      } else if (termo.indexOf('dipi') !== -1 || termo.indexOf('novalgina') !== -1 || termo.indexOf('dor') !== -1 || termo.indexOf('febre') !== -1) {
+        chaveAlvo = 'dipirona';
+      } else if (termo.indexOf('paracet') !== -1 || termo.indexOf('tylenol') !== -1) {
+        chaveAlvo = 'paracetamol';
+      } else if (termo.indexOf('ibuprof') !== -1 || termo.indexOf('alivium') !== -1) {
+        chaveAlvo = 'ibuprofeno';
+      } else if (termo.indexOf('prednis') !== -1 || termo.indexOf('prelone') !== -1 || termo.indexOf('asma') !== -1 || termo.indexOf('laring') !== -1) {
+        chaveAlvo = 'prednisolona';
+      } else if (termo.indexOf('sulfa') !== -1 || termo.indexOf('bactrim') !== -1 || termo.indexOf('trimetop') !== -1) {
+        chaveAlvo = 'sulfametoxazol_trimetoprima';
+      } else if (termo.indexOf('amigdalite') !== -1 || termo.indexOf('faringite') !== -1) {
+        if (termo.indexOf('alerg') !== -1 || termo.indexOf('penicil') !== -1) {
+          chaveAlvo = 'azitromicina';
+        } else {
+          chaveAlvo = 'amoxicilina';
+        }
+      }
+
+      if (!chaveAlvo || !tabela[chaveAlvo]) {
+        chaveAlvo = 'amoxicilina';
+      }
+
+      var cfg = tabela[chaveAlvo];
+      var dadosCalculados = {};
+
+      if (cfg.tipo === 'gotas') {
+        var doseDesejadaMg = cfg.doseMgKgDose * peso;
+        var doseEfetivaMg = Math.min(doseDesejadaMg, cfg.doseMaximaPorDoseMg);
+        var gotas = Math.round(doseEfetivaMg / cfg.mgPorGota);
+        if (gotas < 1) gotas = 1;
+
+        dadosCalculados = {
+          chave: chaveAlvo,
+          farmaco: cfg.nome,
+          apresentacao: cfg.apresentacao,
+          tipo: 'gotas',
+          pesoKg: peso,
+          dosePorTomadaMg: doseEfetivaMg,
+          gotasPorTomada: gotas,
+          intervaloHoras: cfg.intervaloHoras,
+          instrucaoPosologica: 'Dar ' + gotas + ' gotas por via oral a cada ' + cfg.intervaloHoras + ' horas se dor ou febre (máximo 4 vezes ao dia).',
+          memoriaCalculo: 'Dose base: ' + cfg.doseMgKgDose + ' mg/kg × ' + peso + ' kg = ' + fmt(doseDesejadaMg, 1) + ' mg (máx ' + cfg.doseMaximaPorDoseMg + ' mg) ➔ ' + doseEfetivaMg + ' mg ÷ ' + cfg.mgPorGota + ' mg/gota = ' + gotas + ' gotas.',
+          quantidadeDispensar: '1 frasco conta-gotas',
+          frascos: 1,
+          orientacoes: cfg.instrucoes,
+          indicacao: cfg.indicacao
+        };
+      } else {
+        var doseDiariaBrutaMg = cfg.doseMgKgDia * peso;
+        var doseDiariaEfetivaMg = Math.min(doseDiariaBrutaMg, cfg.doseMaximaAdultoMgDia);
+        var dosePorTomadaMg = doseDiariaEfetivaMg / cfg.tomadasDia;
+        var volumeMlBruto = dosePorTomadaMg / cfg.concentracaoMgPorMl;
+        var volumeMl = Math.round(volumeMlBruto * 10) / 10;
+        if (volumeMl < 0.5) volumeMl = 0.5;
+
+        var volumeTotalTratamentoMl = volumeMl * cfg.tomadasDia * cfg.diasTratamento;
+        var frascos = Math.ceil(volumeTotalTratamentoMl / cfg.volumeFrascoMl);
+
+        dadosCalculados = {
+          chave: chaveAlvo,
+          farmaco: cfg.nome,
+          apresentacao: cfg.apresentacao,
+          tipo: 'suspensao',
+          pesoKg: peso,
+          doseDiariaTotalMg: doseDiariaEfetivaMg,
+          dosePorTomadaMg: Math.round(dosePorTomadaMg * 10) / 10,
+          volumePorTomadaMl: volumeMl,
+          tomadasDia: cfg.tomadasDia,
+          intervaloHoras: cfg.intervaloHoras,
+          diasTratamento: cfg.diasTratamento,
+          volumeTotalTratamentoMl: Math.round(volumeTotalTratamentoMl * 10) / 10,
+          volumeFrascoMl: cfg.volumeFrascoMl,
+          frascosNecessarios: frascos,
+          quantidadeDispensar: frascos + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL',
+          instrucaoPosologica: 'Tomar ' + fmtMl(volumeMl) + ' mL por via oral a cada ' + cfg.intervaloHoras + ' horas durante ' + cfg.diasTratamento + ' dias.',
+          memoriaCalculo: 'Dose base: ' + cfg.doseMgKgDia + ' mg/kg/dia × ' + peso + ' kg = ' + fmt(doseDiariaBrutaMg, 1) + ' mg/dia (máx ' + cfg.doseMaximaAdultoMgDia + ' mg/dia) ➔ ' + fmt(dosePorTomadaMg, 1) + ' mg por dose (' + cfg.intervaloHoras + '/' + cfg.intervaloHoras + 'h) ➔ Conversão: ' + fmt(dosePorTomadaMg, 1) + ' mg ÷ ' + cfg.concentracaoMgPorMl + ' mg/mL = ' + fmtMl(volumeMl) + ' mL. Volume total: ' + fmtMl(volumeMl) + ' mL × ' + cfg.tomadasDia + ' tomadas × ' + cfg.diasTratamento + ' dias = ' + fmt(volumeTotalTratamentoMl, 1) + ' mL ➔ ' + frascos + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL.',
+          orientacoes: cfg.instrucoes,
+          indicacao: cfg.indicacao
+        };
+      }
+
+      var linhasResultado = [
+        '<b>Fármaco:</b> ' + dadosCalculados.farmaco,
+        '<b>Apresentação (REMUME/HSL):</b> ' + dadosCalculados.apresentacao,
+        '<b>Peso do Paciente:</b> ' + fmt(peso, 1) + ' kg',
+        '<b>Posologia Oficial:</b> ' + dadosCalculados.instrucaoPosologica,
+        '<b>Quantidade a Dispensar:</b> ' + dadosCalculados.quantidadeDispensar,
+        '',
+        '<b>Memória de Cálculo (Determinística · Zero Alucinação):</b>',
+        dadosCalculados.memoriaCalculo,
+        '',
+        '<b>Orientações Clínicas:</b> ' + dadosCalculados.orientacoes
+      ];
+
+      return {
+        ok: true,
+        id: ID,
+        nome: NOME,
+        estado: ESTADOS.CALCULO.texto,
+        icone: ESTADOS.CALCULO.icone,
+        dados: dadosCalculados,
+        textoFormatado: '👶 <b>CÁLCULO POSOLÓGICO PEDIÁTRICO DETERMINÍSTICO (FÓRMULA FIXA)</b>\n\n' + linhasResultado.join('\n'),
+        botoes: [
+          [btn('💊 Gerar Receita no /rx', 'rx', 'prescrever'), btn('↩️ Outro cálculo', ID, 'voltar')]
+        ],
+        versao: VERSAO
+      };
+    });
+  }
+
+  /**
+   * Extrai parâmetros e executa o cálculo determinístico direto a partir de texto livre.
+   */
+  function calcularPosologiaPorTextoLivre(texto) {
+    if (!texto || typeof texto !== 'string') return null;
+    var matchPeso = texto.match(/\b(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)\b/i);
+    if (!matchPeso) return null;
+    var pesoNum = parseFloat(matchPeso[1].replace(',', '.'));
+    if (!isFinite(pesoNum) || pesoNum <= 0 || pesoNum > 80) return null;
+
+    var res = posologiaPediatrica(pesoNum, texto);
+    if (res && res.ok && res.dados) {
+      return res.dados;
+    }
+    return null;
+  }
+
   // ═════════════════════════════ AUTOTESTE ═════════════════════════════
 
   function autoTeste() {
@@ -2231,6 +2570,11 @@ var CalculadorasClinicas = (function () {
     r = API.calcioCorrigido(7.5, 2.5); ok(r.ok && r.dados.calcioCorrigido === 8.7, 'Cálcio corrigido Payne');
     r = API.gapOsmolar(315, 140, 90, 30); ok(r.ok && r.dados.gapOsmolar > 15, 'Gap osmolar elevado');
     r = API.estadiamentoKDIGO(2.5, 1.0, null, null); ok(r.ok && r.dados.estagio === 2, 'KDIGO estagio 2');
+    r = API.posologiaPediatrica(16, 'amoxicilina'); ok(r.ok && r.dados.volumePorTomadaMl === 5.3 && r.dados.frascosNecessarios === 2, 'Amoxi 16 kg 5.3 mL');
+    r = API.posologiaPediatrica(15, 'azitromicina'); ok(r.ok && r.dados.volumePorTomadaMl === 3.8, 'Azitro 15 kg 3.8 mL');
+    r = API.posologiaPediatrica(16, 'dipirona'); ok(r.ok && r.dados.gotasPorTomada === 8, 'Dipirona 16 kg 8 gotas');
+    r = API.posologiaPediatrica(14, 'paracetamol'); ok(r.ok && r.dados.gotasPorTomada === 14, 'Paracetamol 14 kg 14 gotas');
+    r = API.calcularPosologiaPorTextoLivre('amigdalite crianca 16kg'); ok(r && r.farmaco === 'Amoxicilina' && r.volumePorTomadaMl === 5.3, 'Texto livre amigdalite 16kg');
     r = API.processarAcao(null, 'curb65', 'criterios'); ok(r.ok && /CURB-65/.test(r.textoFormatado), 'processarAcao curb65 criterios');
     return f;
   }
@@ -2476,6 +2820,8 @@ var CalculadorasClinicas = (function () {
     meld: meld,
     drogasVasoativas: drogasVasoativas,
     sequenciaRapidaIntubacao: sequenciaRapidaIntubacao,
+    posologiaPediatrica: posologiaPediatrica,
+    calcularPosologiaPorTextoLivre: calcularPosologiaPorTextoLivre,
     processarAcao: processarAcao,
     autoTeste: autoTeste
   };
@@ -2767,6 +3113,297 @@ function checarStatusFonteDrive(idPlanilha, isInteracao) {
   } catch (e) {
     return "❌ Erro ao acessar: " + e.message;
   }
+}
+
+// ==============================================================================
+// BASE OFICIAL DE POSOLOGIAS: GUIA FARMACÊUTICO HOSPITAL SÍRIO-LIBANÊS (HSL)
+// ==============================================================================
+
+var _cacheGuiaHSL = null;
+
+/**
+ * Obtém a coleção de medicamentos do Guia HSL da memória RAM ou arquivo local.
+ */
+function obterGuiaFarmaceuticoHSL() {
+  if (_cacheGuiaHSL && _cacheGuiaHSL.length > 0) return _cacheGuiaHSL;
+
+  // 1. Injetado no contexto global do runtime Node.js
+  if (typeof __BASE_GUIA_HSL__ !== "undefined" && __BASE_GUIA_HSL__ && Array.isArray(__BASE_GUIA_HSL__.medicamentos)) {
+    _cacheGuiaHSL = __BASE_GUIA_HSL__.medicamentos;
+    return _cacheGuiaHSL;
+  }
+
+  // 2. Função helper injetada pelo runtime
+  if (typeof obterBaseGuiaHSL === "function") {
+    var raw = obterBaseGuiaHSL();
+    if (raw && Array.isArray(raw.medicamentos)) {
+      _cacheGuiaHSL = raw.medicamentos;
+      return _cacheGuiaHSL;
+    }
+  }
+
+  // 3. Fallback lendo arquivo json em src/data ou data/
+  try {
+    if (typeof require !== "undefined") {
+      var fs = require("fs");
+      var path = require("path");
+      var caminhos = [
+        path.resolve(__dirname, "data", "guia_farmaceutico_hsl.json"),
+        path.resolve(__dirname, "..", "data", "guia_farmaceutico_hsl.json"),
+        path.resolve(process.cwd(), "src", "data", "guia_farmaceutico_hsl.json"),
+        path.resolve(process.cwd(), "data", "guia_farmaceutico_hsl.json")
+      ];
+      for (var i = 0; i < caminhos.length; i++) {
+        if (fs.existsSync(caminhos[i])) {
+          var payload = JSON.parse(fs.readFileSync(caminhos[i], "utf8"));
+          if (payload && Array.isArray(payload.medicamentos)) {
+            _cacheGuiaHSL = payload.medicamentos;
+            return _cacheGuiaHSL;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log("Aviso ao carregar Guia HSL via arquivo: " + e.message);
+  }
+
+  return [];
+}
+
+/**
+ * Normaliza termo para busca fonética e semântica de medicamentos.
+ */
+function normalizarTermoMedicamento(txt) {
+  return String(txt || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/\([A-Z]\)/g, "")
+    .replace(/[^A-Z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Busca um medicamento específico na base do HSL por nome DCI, sinônimo ou marca comercial.
+ */
+function buscarMedicamentoNoHSL(termo) {
+  if (!termo) return null;
+  var meds = obterGuiaFarmaceuticoHSL();
+  if (!meds || meds.length === 0) return null;
+
+  var termoLimpo = termo.trim().toLowerCase();
+  var termoNorm = normalizarTermoMedicamento(termo);
+
+  // Expansão por dicionário de sinônimos/marcas
+  var sin = DICIONARIO_FARMACO[termoLimpo];
+  var sinNorm = sin ? normalizarTermoMedicamento(sin) : null;
+
+  // 1. Correspondência exata no nome normalizado
+  for (var i = 0; i < meds.length; i++) {
+    var m = meds[i];
+    if (m.nome_normalizado === termoNorm || (sinNorm && m.nome_normalizado === sinNorm)) {
+      return m;
+    }
+  }
+
+  // 2. Prefixo exato (ex: "AMOXICILINA" casa com "AMOXICILINA + CLAVULANATO")
+  for (var j = 0; j < meds.length; j++) {
+    var med = meds[j];
+    if (med.nome_normalizado.indexOf(termoNorm) === 0 || (sinNorm && med.nome_normalizado.indexOf(sinNorm) === 0)) {
+      return med;
+    }
+  }
+
+  // 3. Contém substring
+  for (var k = 0; k < meds.length; k++) {
+    var item = meds[k];
+    if (item.nome_normalizado.indexOf(termoNorm) !== -1 || (sinNorm && item.nome_normalizado.indexOf(sinNorm) !== -1)) {
+      return item;
+    }
+  }
+
+  // 4. Busca nas apresentações comerciais
+  for (var x = 0; x < meds.length; x++) {
+    var cand = meds[x];
+    if (cand.apresentacoes_hsl && cand.apresentacoes_hsl.length > 0) {
+      for (var a = 0; a < cand.apresentacoes_hsl.length; a++) {
+        var aprNorm = normalizarTermoMedicamento(cand.apresentacoes_hsl[a]);
+        if (aprNorm.indexOf(termoNorm) !== -1) {
+          return cand;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Formata a ficha posológica oficial completa do medicamento para exibição imediata no Telegram.
+ */
+function formatarFichaPosologicaHSL(med) {
+  if (!med) return "❌ Medicamento não encontrado no Guia Farmacêutico HSL.";
+
+  var linhas = [];
+  linhas.push("💊 *GUIA FARMACÊUTICO HSL — POSOLOGIA OFICIAL*");
+  linhas.push("📋 *Fármaco (DCI):* *" + med.farnaco + "*");
+  
+  if (med.na_remume) {
+    linhas.push("🏛️ *Status SUS:* ✅ *PADRONIZADO NA REMUME (Ribeirão Preto)*");
+    if (med.apresentacoes_remume && med.apresentacoes_remume.length > 0) {
+      linhas.push("📦 *Apresentações na Rede Municipal:*");
+      med.apresentacoes_remume.forEach(function(apr) {
+        linhas.push("  • `" + apr + "`");
+      });
+    }
+  } else {
+    linhas.push("🏛️ *Status SUS:* ⚠️ *NÃO CONSTA NA REMUME MUNICIPAL*");
+    linhas.push("_(Uso hospitalar, componente especializado ou compra pelo paciente)_");
+  }
+
+  if (med.dose_adulto) {
+    linhas.push("\n👤 *DOSE ADULTO:*");
+    linhas.push(med.dose_adulto);
+  }
+
+  if (med.dose_pediatria) {
+    linhas.push("\n👶 *DOSE PEDIÁTRICA:*");
+    linhas.push(med.dose_pediatria);
+  }
+
+  if (med.dose_maxima) {
+    linhas.push("\n⚖️ *DOSE MÁXIMA:*");
+    linhas.push(med.dose_maxima);
+  }
+
+  if (med.ajuste_dose) {
+    linhas.push("\n⚠️ *AJUSTE DE DOSE (RENAL / HEPÁTICO):*");
+    linhas.push(med.ajuste_dose);
+  }
+
+  if (med.administracao) {
+    linhas.push("\n🍽️ *ADMINISTRAÇÃO & RECOMENDAÇÕES:*");
+    linhas.push(med.administracao);
+  }
+
+  if (med.preparo_diluicao) {
+    linhas.push("\n💧 *PREPARO & DILUIÇÃO:*");
+    linhas.push(med.preparo_diluicao);
+  }
+
+  if (med.gestacao_lactacao) {
+    linhas.push("\n🤰 *GESTAÇÃO & LACTAÇÃO:*");
+    linhas.push(med.gestacao_lactacao);
+  }
+
+  if (med.cuidados_especificos) {
+    linhas.push("\n🔍 *MONITORAMENTO & CUIDADOS:*");
+    linhas.push(med.cuidados_especificos);
+  }
+
+  if (med.contraindicacoes) {
+    linhas.push("\n🛑 *CONTRAINDICAÇÕES:*");
+    linhas.push(med.contraindicacoes);
+  }
+
+  linhas.push("\n📚 *Fonte Oficial:* Guia Farmacêutico Hospital Sírio-Libanês (https://guiafarmaceutico.hsl.org.br)");
+  return linhas.join("\n");
+}
+
+/**
+ * Filtra e compacta medicamentos do HSL relevantes para o caso clínico / prescrição.
+ * Respeita a regra de ouro: MEDICAMENTOS DA REMUME VÊM SEMPRE PRIMEIRO.
+ */
+function filtrarContextoPosologiasHSL(pedidoUsuario) {
+  var meds = obterGuiaFarmaceuticoHSL();
+  if (!meds || meds.length === 0) return "";
+
+  var pedidoLower = (typeof normalizarTexto === "function") ? normalizarTexto(pedidoUsuario) : String(pedidoUsuario || "").toLowerCase();
+  var pedidoUpper = normalizarTermoMedicamento(pedidoUsuario);
+  var termos = pedidoUpper.split(/\s+/).filter(function(t) { return t.length >= 3; });
+
+  // Expansão por sinônimos
+  var termosSet = {};
+  termos.forEach(function(t) { termosSet[t] = true; });
+  termos.slice().forEach(function(termo) {
+    var sin = DICIONARIO_FARMACO[termo.toLowerCase()];
+    if (sin) {
+      var sn = normalizarTermoMedicamento(sin);
+      if (!termosSet[sn]) {
+        termosSet[sn] = true;
+        termos.push(sn);
+      }
+    }
+  });
+
+  // Expansão por síndromes clínicas mapeadas (amigdalite, pneumonia, etc.)
+  for (var sindrome in MAPA_SINDROMES_APS) {
+    if (pedidoLower.indexOf(sindrome.toLowerCase()) !== -1) {
+      MAPA_SINDROMES_APS[sindrome].forEach(function(item) {
+        var itemNorm = normalizarTermoMedicamento(item);
+        if (!termosSet[itemNorm]) {
+          termosSet[itemNorm] = true;
+          termos.push(itemNorm);
+        }
+      });
+    }
+  }
+
+  // Localiza matches
+  var selecionados = [];
+  var vistos = {};
+
+  for (var i = 0; i < meds.length; i++) {
+    var m = meds[i];
+    var mNorm = m.nome_normalizado;
+
+    for (var k = 0; k < termos.length; k++) {
+      var t = termos[k];
+      if (mNorm.indexOf(t) !== -1) {
+        if (!vistos[m.farnaco]) {
+          vistos[m.farnaco] = true;
+          selecionados.push(m);
+        }
+        break;
+      }
+    }
+  }
+
+  if (selecionados.length === 0) return "";
+
+  // Prioridade absoluta para medicamentos que constam na REMUME
+  selecionados.sort(function(a, b) {
+    if (a.na_remume && !b.na_remume) return -1;
+    if (!a.na_remume && b.na_remume) return 1;
+    return a.farnaco.localeCompare(b.farnaco);
+  });
+
+  // Limita para os 8 medicamentos mais aderentes
+  selecionados = selecionados.slice(0, 8);
+
+  var blocos = [];
+  for (var s = 0; s < selecionados.length; s++) {
+    var item = selecionados[s];
+    var tagRemume = item.na_remume
+      ? "✅ DISPONÍVEL NA REMUME (1ª ESCOLHA OBRIGATÓRIA)"
+      : "⚠️ FORA DA REMUME (USAR SÓ SE NÃO HOUVER ALTERNATIVA NA REDE MUNICIPAL)";
+
+    var bloco = [
+      "• MEDICAMENTO: " + item.farnaco + " [" + tagRemume + "]",
+      item.apresentacoes_remume && item.apresentacoes_remume.length > 0
+        ? "  Apresentações REMUME: " + item.apresentacoes_remume.join(" | ")
+        : "",
+      item.dose_adulto ? "  Dose Adulto Oficial HSL: " + item.dose_adulto.replace(/\n/g, " ") : "",
+      item.dose_pediatria ? "  Dose Pediátrica Oficial HSL: " + item.dose_pediatria.replace(/\n/g, " ") : "",
+      item.ajuste_dose ? "  Ajuste Renal/Hepático HSL: " + item.ajuste_dose.replace(/\n/g, " ") : "",
+      item.administracao ? "  Administração & Orientações: " + item.administracao.replace(/\n/g, " ") : ""
+    ].filter(Boolean).join("\n");
+
+    blocos.push(bloco);
+  }
+
+  return blocos.join("\n\n");
 }
 
 // ==============================================================================
@@ -4464,41 +5101,70 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     ? filtrarMedicamentosRelevantes(baseCompleta, dadosPrescricao)
     : String(baseCompleta || "");
 
+  var contextoPosologiaHSL = (typeof filtrarContextoPosologiasHSL === "function")
+    ? filtrarContextoPosologiasHSL(dadosPrescricao)
+    : "";
+
+  var calculoFixoPed = (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularPosologiaPorTextoLivre === "function")
+    ? CalculadorasClinicas.calcularPosologiaPorTextoLivre(dadosPrescricao)
+    : null;
+
+  var travaDeterministica = "";
+  if (calculoFixoPed) {
+    travaDeterministica = [
+      "",
+      "=======================================================================",
+      "🔒 TRAVA MATEMÁTICA DETERMINÍSTICA OBRIGATÓRIA (FÓRMULA FIXA EM CÓDIGO PURO - ZERO ALUCINAÇÃO):",
+      "• Fármaco Eleito: " + calculoFixoPed.farmaco,
+      "• Apresentação Padronizada: " + calculoFixoPed.apresentacao,
+      "• Posologia no Receituário: " + calculoFixoPed.instrucaoPosologica,
+      "• Quantidade a Dispensar: " + calculoFixoPed.quantidadeDispensar,
+      "• Memória de Cálculo Auditada: " + calculoFixoPed.memoriaCalculo,
+      "• Orientações: " + calculoFixoPed.orientacoes,
+      "⚠️ REGRA DE SEGURANÇA MÁXIMA: NÃO RECALCULE NENHUM NÚMERO.",
+      "Copie EXATAMENTE a dose (" + (calculoFixoPed.tipo === 'gotas' ? (calculoFixoPed.gotasPorTomada + " gotas") : (calculoFixoPed.volumePorTomadaMl + " mL")) + "), o intervalo e a quantidade de frascos acima calculados.",
+      "======================================================================="
+    ].join("\n");
+  }
+
   var promptSistema = [
     IA_PERSONA, "", IA_VISUAL, "",
     "MODO: PRESCRIÇÃO AMBULATORIAL (RASCUNHO PARA REVISÃO). Gere prescrições precisas a partir da doença informada ou do medicamento solicitado.",
     "",
-    "REGRA DE OURO (REMUME LOCAL): SÓ PRESCREVA MEDICAMENTOS E APRESENTAÇÕES QUE CONSTAM EXATAMENTE NA LISTA ABAIXO.",
-    "=== LISTA DE MEDICAMENTOS DISPONÍVEIS NO MUNICÍPIO ===",
-    listaMedicamentos,
-    "=====================================================",
+    "REGRA DE OURO (REMUME SUS + GUIA FARMACÊUTICO HSL):",
+    "1. MEDICAMENTOS DA REMUME SÃO SEMPRE PRIMEIRA OPÇÃO: Prescreva preferencialmente fármacos e apresentações padronizadas na rede municipal (REMUME Ribeirão Preto).",
+    "2. SE NÃO HOUVER ALTERNATIVA NA REMUME: Apenas se a condição clínica não puder ser tratada com itens da rede municipal, utilize a alternativa do Guia HSL declarando: '⚠️ Medicamento fora da REMUME municipal (componente especializado/compra)'.",
+    "3. POSOLOGIA OFICIAL DO HOSPITAL SÍRIO-LIBANÊS (HSL): Siga as doses adultas, pediátricas por kg/dia, intervalos e ajustes para insuficiência renal (ClCr/TFG) oficiais da base HSL.",
+    travaDeterministica,
+    "",
+    "=== BASE OFICIAL DE POSOLOGIAS & APRESENTAÇÕES (GUIA HSL + REMUME) ===",
+    contextoPosologiaHSL ? contextoPosologiaHSL : ("LISTA MUNICIPAL:\n" + listaMedicamentos),
+    "=======================================================================",
     "",
     "DIRETRIZES DE SEGURANÇA FARMACOLÓGICA E DIDÁTICA (FMRP-USP):",
-    "1. Escolha a melhor opção clínica DENTRO da lista. Se nenhum item da lista atende com segurança, diga 'Sem alternativa adequada na REMUME' e indique a classe/fármaco ideal fora da lista como sugestão ao prescritor, sem montá-lo como receita.",
-    "2. PEDIATRIA E MEMÓRIA DE CÁLCULO DIDÁTICA TRANSPARENTE:",
+    "1. PEDIATRIA E MEMÓRIA DE CÁLCULO DIDÁTICA TRANSPARENTE:",
     "   - Sem peso informado: NUNCA presuma peso de criança. Declare imediatamente em Status: 'Dados pendentes (Peso em kg obrigatório para cálculo pediátrico seguro)' e cobre o peso sem calcular dosagem arbitrária em mL.",
-    "   - Com peso informado: Exiba no receituário a posologia clara e no campo de conferência a MEMÓRIA DE CÁLCULO COMPLETA E DIDÁTICA:",
-    "     • Dose de referência: dose recomendada na diretriz brasileira em mg/kg/dia dividida em X tomadas/dia.",
+    "   - Com peso informado: Exiba no receituário a posologia clara e no campo de conferência a MEMÓRIA DE CÁLCULO COMPLETA E DIDÁTICA baseada na dose de referência do Guia HSL:",
+    "     • Dose de referência: dose recomendada na diretriz/HSL em mg/kg/dia dividida em X tomadas/dia.",
     "     • Dose diária total: mg/kg/dia × peso (kg) = total de mg/dia.",
     "     • Dose por tomada: total de mg/dia ÷ número de tomadas = mg por dose.",
-    "     • Conversão volumétrica: concentração da apresentação da REMUME (ex: 250 mg/5 mL) ➔ volume exato por tomada em mL.",
-    "     • Checagem de dose máxima: comparar com a dose máxima diária e por tomada do adulto (nunca ultrapassar).",
+    "     • Conversão volumétrica: concentração da apresentação da REMUME/HSL (ex: 250 mg/5 mL) ➔ volume exato por tomada em mL.",
+    "     • Checagem de dose máxima: comparar com a dose máxima diária e por tomada do HSL/adulto (nunca ultrapassar).",
     "     • Quantidade a dispensar: volume por tomada × tomadas/dia × dias = volume total em mL ➔ número de frascos a dispensar.",
-    "3. QUANTIDADE TOTAL A DISPENSAR MATEMATICAMENTE COERENTE:",
+    "2. QUANTIDADE TOTAL A DISPENSAR MATEMATICAMENTE COERENTE:",
     "   - Calcule e informe sempre a quantidade total a dispensar no receituário (ex: 21 cápsulas, 2 frascos de 100 mL, 1 tubo de 30 g) compatível com a posologia e duração do tratamento para evitar desabastecimento do paciente.",
-    "4. AJUSTE RENAL, HEPÁTICO E CRITÉRIOS DE BEERS (SEGURANÇA ATIVA):",
+    "3. AJUSTE RENAL, HEPÁTICO E CRITÉRIOS DE BEERS (SEGURANÇA ATIVA):",
     "   - Medicamentos com depuração renal (ex: antimicrobianos, AINEs, metformina, atenolol, enoxaparina):",
-    "     • Se creatinina/TFG foi informada: apresentar o ajuste de dose ou espaçamento de intervalo.",
+    "     • Aplique o ajuste de dose do Guia HSL conforme a faixa de ClCr informada.",
     "     • Se NÃO foi informada e o paciente for idoso ou de risco: declarar formalmente: '⚠️ Função renal não informada — fármaco de depuração renal; conferir ClCr/TFG antes de administrar (se TFG < 50 mL/min, necessária redução posológica)'.",
-    "   - Idosos (>= 65 anos): verificar Critérios de Beers / STOPP-START. Alertar se a classe for potencialmente inapropriada (ex: AINEs de uso contínuo, benzodiazepínicos, anti-histamínicos sedativos) e sugerir alternativa mais segura.",
+    "   - Idosos (>= 65 anos): verificar Critérios de Beers / STOPP-START. Alertar se a classe for potencialmente inapropriada e sugerir alternativa mais segura.",
     "   - Alergias e Interações: CHECAGEM CRUZADA OBRIGATÓRIA de alergias (penicilina, dipirona, sulfas, AINEs) e interações com medicações de uso contínuo relatadas.",
-    "5. Formato copiável para o prontuário eletrônico / e-SUS.",
-    "6. Não escreva que o medicamento está 'validado' ou 'em estoque': escreva apenas que o item consta na lista fornecida (conferir disponibilidade no estoque).",
+    "4. Formato copiável para o prontuário eletrônico / e-SUS.",
     "",
     IA_SEGURANCA_MEDICAMENTOSA,
     "",
     "ESTRUTURA:",
-    "\uD83D\uDC8A *PRESCRIÇÃO AMBULATORIAL - RASCUNHO (REMUME)*",
+    "\uD83D\uDC8A *PRESCRIÇÃO AMBULATORIAL - RASCUNHO (REMUME & GUIA HSL)*",
     "*Status:* [Completa para revisão / Dados pendentes: listar]",
     "",
     "\uD83D\uDCDD *Receituário*",
@@ -4511,10 +5177,11 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "",
     "\uD83D\uDCCB *Conferência médica*",
     "- *Indicação clínica:* [...]",
-    "- *Memória de cálculo (se pediátrico):* [passo a passo: dose diretriz ➔ mg/kg/dia ➔ mg/dose ➔ mL/dose na apresentação da lista ➔ checagem de dose máxima ➔ frascos totais]",
-    "- *Ajustes de segurança (renal, hepático, idade/Beers, gestação):* [faixas de TFG, alertas ou conformidade]",
+    "- *Memória de cálculo (se pediátrico):* [passo a passo: dose HSL ➔ mg/kg/dia ➔ mg/dose ➔ mL/dose na apresentação da lista ➔ checagem de dose máxima ➔ frascos totais]",
+    "- *Ajustes de segurança (renal, hepático, idade/Beers, gestação):* [faixas de TFG do Guia HSL, alertas ou conformidade]",
     "- *Alergias e interações:* [conferido com dados do caso ou pendências]",
-    "- *REMUME:* item presente na lista fornecida (conferir disponibilidade no estoque)."
+    "- *Disponibilidade na Rede:* [Item da REMUME de Ribeirão Preto / Não consta na REMUME - opção referenciada no Guia HSL].",
+    "- *Base Posológica Oficial:* Guia Farmacêutico Hospital Sírio-Libanês (HSL)."
   ].join("\n");
 
   var dados = "DADOS DO PACIENTE / PEDIDO:\n" + dadosPrescricao;
@@ -4661,25 +5328,30 @@ function verificarInteracaoComIA(drogas) {
   var registrosEncontrados = [];
   if (baseInteracoes) {
     var linhas = String(baseInteracoes).split("\n");
+    var registrosComScore = [];
     for (var j = 0; j < linhas.length; j++) {
       var linhaNorm = (typeof normalizarTexto === "function") ? normalizarTexto(linhas[j]) : linhas[j].toLowerCase();
       var matchCount = 0;
       for (var k = 0; k < termos.length; k++) {
         if (linhaNorm.indexOf(termos[k]) !== -1) matchCount++;
       }
-      if (matchCount > 0) registrosEncontrados.push(linhas[j]);
+      if (matchCount > 0) {
+        registrosComScore.push({ linha: linhas[j], score: matchCount });
+      }
     }
+    registrosComScore.sort(function(a, b) { return b.score - a.score; });
+    registrosEncontrados = registrosComScore.map(function(item) { return item.linha; });
   }
 
   var instrucaoBase = "";
   if (erroPlanilha) {
-    instrucaoBase = "AVISO TÉCNICO: a planilha de interações retornou erro de acesso (" + erroPlanilha + "). Avalie pelo conhecimento clínico e escreva no campo Fonte: 'Conhecimento Geral (planilha local inacessível)'.";
+    instrucaoBase = "AVISO TÉCNICO: a base de interações retornou erro de acesso (" + erroPlanilha + "). Avalie pelo conhecimento clínico e escreva no campo Fonte: 'Conhecimento Geral (base local inacessível)'.";
   } else if (!baseInteracoes || String(baseInteracoes).trim().length === 0) {
-    instrucaoBase = "AVISO TÉCNICO: a planilha de interações está vazia. Avalie pelo conhecimento clínico e escreva no campo Fonte: 'Conhecimento Geral (planilha local sem registros)'.";
+    instrucaoBase = "AVISO TÉCNICO: a base de interações está vazia. Avalie pelo conhecimento clínico e escreva no campo Fonte: 'Conhecimento Geral (base local sem registros)'.";
   } else if (registrosEncontrados.length > 0) {
-    instrucaoBase = "=== REGISTROS DA BASE LOCAL DE INTERAÇÕES (PLANILHA) ===\n" +
-      registrosEncontrados.join("\n") + "\n=======================================================\n\n" +
-      "REGRA: os termos foram localizados na base local. Use-a como referência primária e indique no campo Fonte: 'Base Local (Planilha Google Drive)'. " +
+    instrucaoBase = "=== REGISTROS DA BASE LOCAL DE INTERAÇÕES (TABELA FARMACOLÓGICA) ===\n" +
+      registrosEncontrados.join("\n") + "\n===================================================================\n\n" +
+      "REGRA: os termos foram localizados na base local. Use-a como referência primária e indique no campo Fonte: 'Base Local (Tabela Farmacológica)'. " +
       "Se seu conhecimento clínico indicar risco MAIOR do que o registrado, ou uma interação relevante ausente, sinalize a divergência explicitamente.";
   } else {
     instrucaoBase = "=== BASE LOCAL DE INTERAÇÕES ===\n[Nenhum registro para '" + drogas + "']\n================================\n\n" +
@@ -4701,7 +5373,7 @@ function verificarInteracaoComIA(drogas) {
     "*Grau de risco:* [Nenhum / Menor / Moderado / Grave / Contraindicado]",
     "- *Mecanismo:* [...]",
     "- *Conduta:* [evitar / ajustar / monitorizar o que e quando]",
-    "- *Fonte:* [Base Local (Planilha Google Drive) OU Conhecimento Geral (medicamento não cadastrado na Base Local)]",
+    "- *Fonte:* [Base Local (Tabela Farmacológica) OU Conhecimento Geral (medicamento não cadastrado na Base Local)]",
     "",
     "ESTRUTURA (1 droga):",
     "\uD83D\uDD2C *PRINCIPAIS INTERAÇÕES: [DROGA]*",
@@ -4709,7 +5381,7 @@ function verificarInteracaoComIA(drogas) {
     "- [Droga X]: [mecanismo resumido]",
     "\u26A0\uFE0F *Moderadas:*",
     "- [Droga Y]: [mecanismo resumido]",
-    "- *Fonte:* [Base Local (Planilha Google Drive) OU Conhecimento Geral (medicamento não cadastrado na Base Local)]"
+    "- *Fonte:* [Base Local (Tabela Farmacológica) OU Conhecimento Geral (medicamento não cadastrado na Base Local)]"
   ].join("\n");
   return _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, "Drogas informadas: " + drogas, 1500));
 }
@@ -4750,7 +5422,7 @@ function gerarAnaliseGasometriaComIA(dadosGaso) {
   }
   var ph = num(/\bph\s*[:=]?\s*([67][.,]?\d+)/i);
   var pco2 = num(/\bp?a?co2\s*[:=]?\s*(\d+[.,]?\d*)/i);
-  var hco3 = num(/\bhco3\s*[:=]?\s*(\d+[.,]?\d*)/i) || num(/bicarb[^\d]*(\d+[.,]?\d*)/i);
+  var hco3 = num(/\bhco3\s*[:=]?\s*(\d+[.,]?\d*)/i) || num(/bicarb[^\d]*(\d+[.,]?\d*)/i) || num(/\bbic\s*[:=]?\s*(\d+[.,]?\d*)/i);
   var na = num(/\bna\b\s*[:=]?\s*(\d+[.,]?\d*)/i) || num(/s[oó]dio\s*[:=]?\s*(\d+[.,]?\d*)/i);
   var cl = num(/\bcl\b\s*[:=]?\s*(\d+[.,]?\d*)/i) || num(/cloro\s*[:=]?\s*(\d+[.,]?\d*)/i);
   var alb = num(/\balb\b\s*[:=]?\s*(\d+[.,]?\d*)/i) || num(/albumina\s*[:=]?\s*(\d+[.,]?\d*)/i);
@@ -4886,13 +5558,13 @@ function _iaNormalizarParaRegex(texto) {
 }
 
 var IA_RE_EMERGENCIA_FORTE = new RegExp(
-  "dor\\s+(tor[áa]cica|precordial|no\\s+peito|retroesternal)|\\bchoque\\b|\\bsepse\\b|\\bsepsis\\b|septic|rebaixamento|rebaixad|" +
+  "dor\\s+(tor[áa]cica|precordial|no\\s+peito|retroesternal)|\\bchoque\\b|chocand[oa]|chocad[oa]|\\bsepse\\b|\\bsepsis\\b|septic|rebaixament[oa]|rebaixad[oa]|\\brebaixou\\b|" +
   "glasgow\\s*(de\\s*)?[3-8]\\b|\\bconvuls|crise\\s+convulsiva|status\\s+epilep|anafila|\\biam\\b|infarto|supra\\s*(de\\s*)?st|" +
   "\\bavc\\b|acidente\\s+vascular|edema\\s+agudo|\\btep\\b|embolia\\s+pulmonar|pneumot[óo]rax|tamponamento|hipotens|\\bdva\\b|" +
-  "vasopressor|noradrenalina|adrenalina|dobutamina|vasopressina|\\bsri\\b|intubacao|intubar|\\biot\\b|" +
-  "parada\\s+(cardio|respirat)|ressuscit|\\brcp\\b|desfibril|assistolia|fibrilacao\\s+ventricular|taquicardia\\s+ventricular|" +
+  "vasopressor|noradrenalina|adrenalina|dobutamina|vasopressina|\\bsri\\b|intubacao|intubar|\\biot\\b|passar\\s+tubo|\\bbavt\\b|arritmia\\s+inst[aá]vel|" +
+  "parada\\s+(cardio|respirat)|\\bparou\\b|ressuscit|\\brcp\\b|desfibril|assistolia|fibrilacao\\s+ventricular|taquicardia\\s+ventricular|" +
   "sangramento\\s+(maci|ativo|volumoso)|hemorragia|hematemese|intoxicacao|overdose|hipoglicemia\\s+grave|cetoacidose|" +
-  "dessatur|sat(uracao)?\\s*(de|em)?\\s*[<=]?\\s*[5-8]\\d\\s*%?|spo2\\s*[<=]?\\s*[5-8]\\d|\\bpa\\s*(de\\s*)?[<]?\\s*[5-8]\\d\\s*[x\\/]"
+  "dessatur|sat(uracao)?\\s*(de|em)?\\s*[<=]?\\s*[5-8]\\d\\s*%?|spo2\\s*[<=]?\\s*[5-8]\\d|\\bpa\\s*(de\\s*)?[<]?\\s*[5-8]\\d\\s*[x\\/]|sala\\s+vermelha|c[oó]digo\\s+(?:azul|vermelho)"
 );
 
 function _iaEhEmergencia(t) {
@@ -4941,13 +5613,18 @@ function classificarIntencaoMensagem(textoMensagem) {
     return { intencao: "HABITO_PROATIVO", confianca: 0.9 };
   }
   var culinaria = /(bolo|culinar|comida|jantar|almo[çc]o|janta|frango|prato|ingrediente|air\s*fryer|marmita|molho|torta|massa\s+de)/.test(tn);
-  if (/(?:prescrev|passar\s+receita|medicamento\s+para|rem[eé]dio\s+para|dose\s+de|posologia\s+de|como\s+prescrever)/.test(tn) || (/\breceita\b/.test(tn) && !culinaria)) {
+  var ehRxIntencao =
+    /(?:prescrev|passar\s+receita|medicamento\s+pr?[ao]|rem[eé]dio\s+pr?[ao]|dose\s+d[aeo]|posologia\s+d[aeo]|como\s+prescrever)/.test(tn) ||
+    (/(?:passa|passar|inicia|iniciar)\b.*(?:\d+\s*(?:mg|mcg|g|ml|gotas|ui)|comprimido|ampola|xarope|gotas|pomada|cp\b)/i.test(texto) && !culinaria) ||
+    ((/\breceita\b/.test(tn) || /^\s*rx\b/i.test(texto)) && !culinaria) ||
+    (/(?:\d+\s*(?:mg|mcg|g|ml|gotas|ui))\b.*(?:de\s*\d+\s*em\s*\d+\s*(?:horas?|h)?|[0-9]+\s*[\/x]\s*[0-9]+\s*h?|\d+\s*x(?:\s*ao)?\s*dia|uma\s+vez\s+ao\s+dia|se\s+dor|se\s+febre|se\s+necess[aá]rio|\bsn\b|\bem\s+jejum\b)/i.test(texto) && !culinaria);
+  if (ehRxIntencao) {
     return { intencao: "CLINICO_RX", confianca: 0.9 };
   }
-  if (t.indexOf("ph") !== -1 && (t.indexOf("pco2") !== -1 || t.indexOf("hco3") !== -1)) {
+  if (/\b(?:gaso|gasometria)\b/i.test(t) || (t.indexOf("ph") !== -1 && (t.indexOf("pco2") !== -1 || t.indexOf("hco3") !== -1 || t.indexOf("bicarb") !== -1 || /\bbic\b/.test(tn)))) {
     return { intencao: "CLINICO_GASO", confianca: 0.95 };
   }
-  if (t.indexOf("dúvida") !== -1 || t.indexOf("duvida") !== -1 && t.indexOf("medquest") !== -1) {
+  if ((t.indexOf("dúvida") !== -1 || t.indexOf("duvida") !== -1) && (t.indexOf("medquest") !== -1 || t.indexOf("notion") !== -1 || t.indexOf("card") !== -1 || t.indexOf("flashcard") !== -1)) {
     return { intencao: "NOTION_DUVIDA", confianca: 0.85 };
   }
   if (/(?:evid[êe]ncia|pubmed|artigos?\s+(?:sobre|de)|estudos?\s+(?:sobre|de)|meta-an[áa]lise|ensaios?\s+cl[íi]nicos?)/i.test(t)) {
@@ -4987,10 +5664,13 @@ function classificarIntencaoMensagem(textoMensagem) {
   var ehDuvidaClinicaDireta =
     // Perguntas interrogativas diretas com termos médicos
     /^(?:qual|quais|como|quando|por\s*qu[eê]|explique?|defina|resuma|diferencie|compare|cite|liste|descreva|o\s+que\s+[eé])\s/i.test(t) &&
-    /(?:dose|posologia|tratamento|conduta|esquema|antibiótico|antibi[oó]tico|diagn[oó]stico|etiologia|fisiopatologia|complica[çc]|progn[oó]stico|indica[çc]|contraindica[çc]|mecanismo|farmacologia|s[ií]ndrome|patologia|semiologia|classifica[çc]|estadiamento|crit[eé]rio|escala|escore|rastreio|profilaxia|vacina|cirurgia|operar|internar|medicar|intubação|dreno|cateter|sonda)/i.test(t) ||
-    // "diferença entre X e Y" (padrão frequente de dúvida acadêmica)
+    /(?:dose|posologia|tratamento|conduta|esquema|antibiótico|antibi[oó]tico|diagn[oó]stico|etiologia|fisiopatologia|complica[çc]|progn[oó]stico|indica[çc]|contraindica[çc]|mecanismo|farmacologia|s[ií]ndrome|patologia|semiologia|classifica[çc]|estadiamento|crit[eé]rio|escala|escore|rastreio|profilaxia|vacina|cirurgia|operar|internar|medicar|intubação|dreno|cateter|sonda|tratar|manejar|abordar|investigar|diagnosticar|prevenir|rastrear)/i.test(t) ||
+    // "diferença entre X e Y" / "qual a diferença entre" (dúvida acadêmica)
     /\bdiferen[çc]a\s+entre\b/i.test(t) &&
     /(?:choque|sepse|s[ií]ndrome|infec[çc]|les[aã]o|tumor|tipo|classe|grau|est[aá]gio|agudo|cr[oô]nico|viral|bacterian|fúngic)/i.test(t) ||
+    // "como tratar/manejar/abordar [doença]?" sem contexto de paciente real
+    /^como\s+(?:tratar|manejar|abordar|investigar|diagnosticar|prevenir|rastrear)\s/i.test(t) &&
+    !/(?:paciente|pcte|leito|enfermaria)\b/i.test(t) ||
     // Perguntas com "de escolha", "de primeira linha", "padrão-ouro", "gold standard"
     /(?:de\s+escolha|primeira\s+linha|segunda\s+linha|padr[aã]o[- ]ouro|gold\s+standard|mais\s+indicad|mais\s+efica|melhor\s+(?:exame|tratamento|conduta|abordagem))/i.test(t) ||
     // Perguntas farmacológicas diretas: "amoxicilina para otite", "dipirona em gestante"
@@ -6820,7 +7500,7 @@ function processarMensagemTexto(message) {
     var stRemume = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_REMUME"), false);
     var stInteracoes = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_INTERACOES"), true);
     var msgStatus = "⚡ *STATUS DO SISTEMA*\n\n" +
-      "• *Modo:* Nuvem 24/7 (Google Apps Script)\n" +
+      "• *Modo:* Servidor Oficial Node.js 20+ / Docker (Render 24/7)\n" +
       "• *REMUME Ribeirão Preto:* " + stRemume + "\n" +
       "• *Base de Interações:* " + stInteracoes + "\n" +
       "• *Notion & Calendar:* ✅ Operacionais";
@@ -6941,6 +7621,24 @@ function processarMensagemTexto(message) {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
     if (!dadosPrescricao) return enviarMensagemParaChat(chatId, "💊 Envie o pedido. Ex: `/rx amigdalite 16kg, alergia a penicilina`");
     return processarEEntregarIA(chatId, gerarPrescricaoComIA, dadosPrescricao, "rx");
+  }
+
+  if (comando === "/dose" || comando === "/posologia" || comando === "/hsl") {
+    var termoDose = texto.replace(/^\/(dose|posologia|hsl)\s*/i, "").trim();
+    if (!termoDose) {
+      return enviarMensagemParaChat(
+        chatId,
+        "💊 *CONSULTA DE POSOLOGIA OFICIAL (GUIA FARMACÊUTICO HSL)*\n\n" +
+        "Envie o nome do medicamento para consultar as doses adultas, pediátricas, ajuste renal e disponibilidade na REMUME.\n\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/dose amoxicilina`\n" +
+        "• `/dose dipirona`\n" +
+        "• `/dose ceftriaxona`\n" +
+        "• `/dose losartana`\n" +
+        "• `/dose amoxicilina + clavulanato`"
+      );
+    }
+    return responderConsultaPosologiaHSL(chatId, termoDose);
   }
 
   if (comando === "/plantao" || comando === "/sbar") {
@@ -7692,6 +8390,76 @@ function enviarMenuExamesEspeciais(chatId) {
   return enviarMensagemComTecladoParaChat(chatId, txt, kb);
 }
 
+/**
+ * Responde à consulta direta de posologia oficial utilizando o Guia Farmacêutico do HSL
+ * com cálculo determinístico de fórmulas fixas para doses pediátricas.
+ */
+function responderConsultaPosologiaHSL(chatId, termo) {
+  // 1. Se informou peso, calcula determinísticamente em código puro (Zero Alucinação)
+  var calcPed = (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularPosologiaPorTextoLivre === "function")
+    ? CalculadorasClinicas.calcularPosologiaPorTextoLivre(termo)
+    : null;
+
+  if (calcPed) {
+    var txtPed = [
+      "👶 *CÁLCULO POSOLÓGICO PEDIÁTRICO DETERMINÍSTICO (FÓRMULA FIXA)*",
+      "",
+      "📋 *Fármaco:* *" + calcPed.farmaco + "*",
+      "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`",
+      "⚖️ *Peso Informado:* `" + calcPed.pesoKg + " kg`",
+      "",
+      "💊 *POSOLOGIA OFICIAL DETERMINÍSTICA:*",
+      "👉 *" + calcPed.instrucaoPosologica + "*",
+      "📦 *Quantidade a Dispensar:* *" + calcPed.quantidadeDispensar + "*",
+      "",
+      "🧮 *Memória de Cálculo Matemática:*",
+      "_" + calcPed.memoriaCalculo + "_",
+      "",
+      "💡 *Orientações:* " + calcPed.orientacoes,
+      "",
+      "🔒 *Segurança:* Cálculo matemático determinístico em código puro (Zero Alucinação de IA)."
+    ].join("\n");
+
+    var kbPed = {
+      "inline_keyboard": [
+        [
+          { "text": "📝 Prescrever no /rx com esta dose", "callback_data": "rx_med:" + calcPed.farmaco + " " + calcPed.pesoKg + "kg" }
+        ]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtPed, kbPed);
+  }
+
+  // 2. Consulta da ficha técnica oficial do Guia HSL
+  var med = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(termo) : null;
+  if (!med) {
+    return enviarMensagemParaChat(
+      chatId,
+      "🔍 *MEDICAMENTO NÃO ENCONTRADO NO GUIA HSL*\n\n" +
+      "Não encontramos registro exato para `\"" + termo + "\"` no Guia Farmacêutico do Hospital Sírio-Libanês.\n\n" +
+      "💡 *Dicas:*\n" +
+      "• Busque pelo princípio ativo genérico (ex: `/dose amoxicilina`, `/dose dipirona`, `/dose ceftriaxona`).\n" +
+      "• Se for caso infantil, informe o peso: `/dose amoxicilina 16kg` ou `/dose dipirona 12kg`.\n" +
+      "• Ou utilize o gerador de receita `/rx " + termo + "` para avaliação clínica completa."
+    );
+  }
+
+  var respostaTexto = (typeof formatarFichaPosologicaHSL === "function")
+    ? formatarFichaPosologicaHSL(med)
+    : "Ficha posológica indisponível.";
+
+  var rotuloPrescrever = "💊 Prescrever no /rx (" + (med.farnaco.length > 15 ? med.farnaco.substring(0, 15) + "..." : med.farnaco) + ")";
+  var kb = {
+    "inline_keyboard": [
+      [
+        { "text": rotuloPrescrever, "callback_data": "rx_med:" + med.farnaco.substring(0, 30) }
+      ]
+    ]
+  };
+
+  return enviarMensagemComTecladoParaChat(chatId, respostaTexto, kb);
+}
+
 function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageIdParaEditar) {
   enviarChatAction(chatId, "typing", true);
   var origemSoap = tipoCache === "soap" ? modoBot(chatId) : null;
@@ -8055,6 +8823,13 @@ function processarCallbackBotao(cb) {
       return false;
     }
   }
+  // F2. PRESCRIÇÃO DIRETA A PARTIR DA CONSULTA DO GUIA HSL
+  else if (data.startsWith("rx_med:")) {
+    var medNome = data.replace("rx_med:", "").trim();
+    responderCallbackTelegram(cb.id, "Gerando prescrição de " + medNome + "...");
+    var chatIdRx = (cb.message && cb.message.chat) ? cb.message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
+    return processarEEntregarIA(chatIdRx, gerarPrescricaoComIA, medNome, "rx");
+  }
   // G. OUVIR CRÍTICA SOCRÁTICA DO PRECEPTOR VIA ÁUDIO / TTS
   // CORREÇÃO: passa apenasNarrar=true para ir direto ao TTS sem nova chamada LLM
   else if (data.startsWith("ouvirPreceptor_")) {
@@ -8319,6 +9094,41 @@ function processarMensagemVoz(message) {
         safePutCache(contextoCache, contextoKey, tLimpo, 900);
         enviarChatAction(chatId, "typing");
         return processarEEntregarIA(chatId, function() { return resAudio.soapTexto; }, tLimpo, "soap");
+      }
+
+      // 3. Roteamento direto de alta performance para ditados clínicos (Bypass de LLM intermediário):
+      // 3.1. Emergência clínica (Sala Vermelha / PCR / Choque / Sepse)
+      var ehEmerg = (typeof _iaEhEmergencia === "function")
+        ? _iaEhEmergencia(tLimpo)
+        : /(?:pcr|parada|parou|choque|chocand|sepse|infarto|\biam\b|anafila|intub|iot|tubo|rebaix|glasgow\s*[3-8]|sala\s+vermelha|c[oó]digo\s+azul)/i.test(tLimpo);
+      if (ehEmerg) {
+        enviarChatAction(chatId, "typing");
+        return processarEEntregarIA(chatId, gerarCondutaEmergenciaComIA, tLimpo, "emergencia");
+      }
+
+      // 3.2. Prescrição médica ambulatorial / Receita
+      var tnVoz = (typeof _iaNormalizarParaRegex === "function") ? _iaNormalizarParaRegex(tLimpo) : tLimpo.toLowerCase();
+      var ehRx =
+        // Termos explícitos e verbos médicos de prescrição
+        /prescrev|receit|\brx\b|medicamento|rem[eé]dio/i.test(tLimpo) ||
+        /(?:passa|passar|inicia|iniciar)\b.*(?:\d+\s*(?:mg|mcg|g|ml|gotas|ui)|comprimido|ampola|xarope|gotas|pomada|cp\b)/i.test(tLimpo) ||
+        /(?:dose|posologia)\s+(?:para|pra|de|d[aeo])/i.test(tLimpo) ||
+        // Padrão farmacológico puro: dose + frequência posológica de tomada
+        /(?:\d+\s*(?:mg|mcg|g|ml|gotas|ui))\b.*(?:de\s*\d+\s*em\s*\d+\s*(?:horas?|h)?|[0-9]+\s*[\/x]\s*[0-9]+\s*h?|\d+\s*x(?:\s*ao)?\s*dia|uma\s+vez\s+ao\s+dia|se\s+dor|se\s+febre|se\s+necess[aá]rio|\bsn\b|\bem\s+jejum\b)/i.test(tLimpo) ||
+        /(?:prescrev|passar\s+receita|medicamento\s+pr?[ao]|rem[eé]dio\s+pr?[ao]|dose\s+d[aeo]|posologia\s+d[aeo]|como\s+prescrever|\breceita\b)/.test(tnVoz);
+      if (ehRx) {
+        if (typeof definirModoBot !== "undefined") definirModoBot(chatId, "rx", tLimpo);
+        enviarChatAction(chatId, "typing");
+        return processarEEntregarIA(chatId, gerarPrescricaoComIA, tLimpo, "rx");
+      }
+
+      // 3.3. Gasometria arterial / Avaliação ácido-base
+      var ehGaso = /\b(?:gaso|gasometria)\b/i.test(tLimpo) ||
+        (/ph\s*[:=]?\s*[\d,.]+/i.test(tLimpo) && /(pco2|hco3|bicarbonato|\bbic\b|\bco2\b)/i.test(tLimpo)) ||
+        (tLimpo.toLowerCase().indexOf("ph") !== -1 && (tLimpo.toLowerCase().indexOf("pco2") !== -1 || tLimpo.toLowerCase().indexOf("hco3") !== -1 || tLimpo.toLowerCase().indexOf("bicarb") !== -1));
+      if (ehGaso) {
+        enviarChatAction(chatId, "typing");
+        return processarEEntregarIA(chatId, gerarAnaliseGasometriaComIA, tLimpo, "gaso");
       }
 
       // Feedback contínuo de digitação e roteamento para o processador semântico
@@ -10779,7 +11589,7 @@ var UX_CB_PASSAGEM_SBAR = 'enfermaria_passagem'; // Callback original da Passage
 
 var UX_NOMES_MODO = {
   soap: 'SOAP (Caso Clínico)',
-  rx: 'Prescrição Ambulatorial (REMUME)',
+  rx: 'Prescrição & Posologias (REMUME & Guia HSL)',
   gaso: 'Gasometria Arterial',
   voz: 'Preceptor Socrático',
   calc: 'Calculadoras Clínicas',
@@ -11077,7 +11887,7 @@ function enviarHubPrincipal(chat, messageId) {
     '🩺 *Ambulatório (SOAP):* Síntese de prontuário e Preceptor de Voz\n' +
     '🏥 *Enfermaria:* Quadro de Leitos e Passagem SBAR\n' +
     '🚨 *Emergência:* DVA em mL/h, SRI, Gasometria e Condutas\n' +
-    '💊 *Prescrição:* REMUME Ribeirão Preto com emissão de PDF\n' +
+    '💊 *Prescrição & Posologias:* Guia Farmacêutico HSL + REMUME com emissão de PDF\n' +
     '📐 *Calculadoras:* Escores clínicos e clearance determinísticos\n' +
     '📅 *Rotina & Estudo:* Calendar, Notion Tasks e MedQuest';
 
