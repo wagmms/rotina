@@ -1,0 +1,74 @@
+{
+  "sha256": "7950f3519415ab18958af91296cd067941f31ed1ce881a24becbcd14b8c39c15",
+  "node": [
+    {
+      "file": "tests/test_correcao_oitava_rodada.cjs",
+      "exit": 0,
+      "stdout": "OK SOAP: resposta livre com medidas inventadas não é exportada\nOK SOAP: objetivo exige frases completas e preserva negação\nOK SOAP: achados ausentes não recebem medidas ou normalidade padrão\nOK CHA: ordem dos fatores e operadores afirmativos preservam HAS\nOK CHA: não tem e lista coordenada continuam negadas\nOK CHA: fatores omitidos não recebem pontuação final\nOK Memória: navegação /ef_neuro e retorno preservam caso\nOK Memória: navegação /neuro e retorno preservam caso\nOK Memória: navegação /ef e retorno preservam caso\nOK Memória: navegação /exames_especiais e retorno preservam caso\nOK Memória: botão EF recebe dados canônicos e caso expirado não é reutilizado\nOK Memória: novo continua limpando dados\nOK EF: copia apenas modelo de referência, sem checklist\nOK EF dirigido: achado inventado não é copiável\nOK Gasometria: metas estruturadas preservadas, valores da amostra separados\nOK Gasometria: linha mista medição/meta não contorna contrato\nOK Gasometria: meta isolada legada não é reescrita\nOK Receita: medicamento genérico ou nome inventado não libera PDF\nOK Receita: apresentação, via ou quantidade isoladas não completam posologia\nOK Receita: linhas de posologia compõem o mesmo item, com PDF\nOK Receita: item incompleto bloqueia independentemente da ordem\nOK Receita: catálogo REMUME em cache amplia identidade validável\nOK PDF: callback antigo não ignora validação de completude\n23/23 testes aprovados\n",
+      "stderr": ""
+    },
+    {
+      "file": "tests/test_soap_exame_fisico.cjs",
+      "exit": 0,
+      "stdout": "✅ APROVADO: 1. SOAP preserva dados fornecidos e rejeita sinais vitais inventados\n✅ APROVADO: 2. Biblioteca completa com 11 Exames Físicos Especiais determinísticos e copiáveis\n✅ APROVADO: 3. Comandos especializados /ef, /ef_ortopo, /ef_orl respondem com guia e cópia\n✅ APROVADO: 4. Entrega de SOAP embute botões de navegação expandidos para EF Especial\n✅ APROVADO: 5. Enviar respostas às perguntas do SOAP no mesmo chat acumula contexto\n\n🎉 TESTES DE EXAME FÍSICO E SOAP: 5 DE 5 APROVADOS COM 100% DE ÊXITO!\n",
+      "stderr": ""
+    },
+    {
+      "file": "reviews/setima_rodada_contraprova.cjs",
+      "exit": 0,
+      "stdout": "✅ APROVADO: X01: Dois fatores negados sem declaração dos demais recusa 0/9 e exige fatores faltantes\n✅ APROVADO: X02: Um fator positivo isolado recusa fechamento em 1/9 e exige confirmação dos outros quatro fatores\n✅ APROVADO: X03: Negação posterior em lista com vírgulas não apaga HAS afirmada (calcula 1/9 risco intermediário)\n✅ APROVADO: X04: Palavra conduta na linha de interpretação não isenta medições contraditórias da validação\n✅ APROVADO: X05: Verbo e dosagem sem nome de medicamento (\"1. Usar 500 mg\") rejeita receita e não emite PDF\n✅ APROVADO: X06: Prescrição com um item completo e um incompleto recusa PDF até que todos estejam conformes\n\n🎉 RESULTADO DA CONTRAPROVA DA 7ª RODADA: 6 DE 6 TESTES VALIDADOS COM 100% DE ÊXITO!\n",
+      "stderr": ""
+    },
+    {
+      "file": "reviews/sexta_rodada_contraprova.cjs",
+      "exit": 0,
+      "stdout": "✅ APROVADO: W01: CHA com apenas um fator negado recusa 0/9 e exige confirmação dos fatores pendentes\n✅ APROVADO: W02: CHA com afirmação e negações coordenadas pós-adversativas calcula 1/9 e não 6/9\n✅ APROVADO: W03: Gasometria higieniza pH contraditório expresso em linguagem natural\n✅ APROVADO: W04: Gasometria preserva alvo ventilatório e não o sobrescreve com valor da amostra\n✅ APROVADO: W05: Apresentação farmacológica sem posologia/via recusa PDF; receita completa habilita\n✅ APROVADO: W06: Calculadoras suportadas (incluindo HAS-BLED e Wells) têm cobertura determinística e zero fallback de IA\n\n🎉 RESULTADO DA CONTRAPROVA DA 6ª RODADA: 6 DE 6 TESTES VALIDADOS COM 100% DE ÊXITO!\n",
+      "stderr": ""
+    },
+    {
+      "file": "reviews/quinta_rodada_contraprova.cjs",
+      "exit": 0,
+      "stdout": "✅ APROVADO: V01: CHA com antecedentes desconhecidos recusa 0/9 e alerta sobre risco clínico\n✅ APROVADO: V02: CHA com negações seguidas de \"mas HAS\" pontua 1/9 (risco intermediário) e não zera o escore\n✅ APROVADO: V03: Gasometria substitui pH alucinado da IA pelo pH real da amostra determinística\n✅ APROVADO: V04: Orientação \"1. Revisar exames.\" não habilita PDF; prescrição real estruturada habilita\n✅ APROVADO: V05: /calc clearance Cr 0 é rejeitado pelo motor puro e não faz fallback para IA\n\n🎉 RESULTADO DA CONTRAPROVA DA 5ª RODADA: 5 DE 5 TESTES VALIDADOS COM 100% DE ÊXITO!\n",
+      "stderr": ""
+    },
+    {
+      "file": "reviews/quarta_rodada_contraprova.cjs",
+      "exit": 0,
+      "stdout": "✅ APROVADO: U01: CHA com idade/sexo mas sem relato de comorbidades exige fatores e não assume 0/9\n✅ APROVADO: U02: CHA negação coordenada em lista (\"sem HAS, DM ou AVC\") zera todos os fatores da lista\n✅ APROVADO: U03: MELD com parâmetro fora da faixa (bili 0) rejeita deterministicamente e não cai na IA\n✅ APROVADO: U04: Gasometria higieniza alucinações e contradições de AG e HCO3 da IA\n✅ APROVADO: U05: Mensagem sem prescrição estruturada não inclui botão de PDF\n✅ APROVADO: U06: Gravação de leitos respeita o orçamento global de armazenamento UTF-8\n✅ APROVADO: U07: Poda de histórico elimina registros legados antigos e retém atualizações recentes\n✅ APROVADO: V01 (Positiva): Modo async enfileira update e worker explícito conclui processamento\n✅ APROVADO: V02 (Positiva): Sem flag de async worker, comportamento continua síncrono\n✅ APROVADO: V03 (Positiva): Orçamento multibyte rejeita excesso mesmo sem Buffer e sem newBlob\n✅ APROVADO: V04 (Positiva): Status e alta usam prefixo de histórico específico do leito\n\n🎉 RESULTADO DA CONTRAPROVA DA 4ª RODADA: 11 DE 11 TESTES VALIDADOS COM 100% DE ÊXITO!\n",
+      "stderr": ""
+    },
+    {
+      "file": "reviews/terceira_rodada_contraprova.cjs",
+      "exit": 0,
+      "stdout": "✅ APROVADO: T01 CHA sem dados mínimos não calcula 0/9 e solicita parâmetros obrigatórios\n✅ APROVADO: T02 CHA com fatores expressamente negados calcula 1/9 (apenas sexo) e não 3/9\n✅ APROVADO: T03 CHA não reconhece IC dentro da palavra diabético\n✅ APROVADO: T04 MELD incompleto não chama IA e retorna pendências obrigatórias\n✅ APROVADO: T05 MELD com negação não faz hemodiálise passa diálise false\n✅ APROVADO: T06 Gasometria com falha matemática interrompe e não chama IA\n✅ APROVADO: T07 Gasometria neutraliza cálculos contraditórios de ânion gap da IA\n✅ APROVADO: T08 Orçamento UTF-8 ativa contrapressão antes de 512 KiB em caracteres multibyte\n✅ APROVADO: T09 Poda sob pressão não apaga deduplicação recente (< 24h)\n✅ APROVADO: T10 Histórico de leito mantém registros cronologicamente recentes independentemente do UUID\n✅ APROVADO: T11 Mudança de status cria histórico prefixado com ID do leito\n✅ APROVADO: T12 Prescrição incompleta ou com pendência não recebe botão de PDF\n✅ APROVADO: T13 Flag TELEGRAM_ASYNC_WORKER=true evita execução síncrona do worker\n✅ APROVADO: T14 Lease de envio permanece sending durante fetch ativo e não vira uncertain prematuramente\n✅ APROVADO: T15 Classificação de CHA imprime valor válido e nunca undefined\n\n🎉 RESULTADO DA CONTRAPROVA: 15 DE 15 COMPORTAMENTOS CORRIGIDOS E VALIDADOS COM 100% DE ÊXITO!\n",
+      "stderr": ""
+    },
+    {
+      "file": "tests/test_auditoria_resolvida.cjs",
+      "exit": 0,
+      "stdout": "CORRIGIDO & VALIDADO: 1. REMUME: expansão autorreferente sem loop infinito\nCORRIGIDO & VALIDADO: 2. Nora concentrada: preparo textual de 128 mcg/mL coerente com dados\nCORRIGIDO & VALIDADO: 3. Vasopressina: vazão para 0,03 UI/min é 9 mL/h na tabela e no campo legado\nCORRIGIDO & VALIDADO: 4. KDIGO: anúria por 12h recebe estágio 3\nCORRIGIDO & VALIDADO: 5. KDIGO: DU 0,4 por 24h recebe estágio 2\nCORRIGIDO & VALIDADO: 6. KDIGO: sem basal nem diurese não inventa ausência de IRA\nCORRIGIDO & VALIDADO: 7. CHA2DS2-VASc: mulher com 2 pontos (1 fator clínico) é risco intermediário (Classe IIa)\nCORRIGIDO & VALIDADO: 8. Glasgow-P: pupilas não informadas não viram 0/2 e GCS-P não é inventado\nCORRIGIDO & VALIDADO: 9. SRI: cartão de doses restrito estritamente aos fármacos selecionados\nCORRIGIDO & VALIDADO: 10. /calc clearance calcula deterministicamente sem IA\nCORRIGIDO & VALIDADO: 11. Gasometria com valores inválidos bloqueia prompt com undefined\nCORRIGIDO & VALIDADO: 12. Gasometria: atualização analisa a amostra mais recente\nCORRIGIDO & VALIDADO: 13. Linguagem natural: nora concentrada repassa solução\nCORRIGIDO & VALIDADO: 14. GET clean não apaga pedido pending recente de 11 minutos\nCORRIGIDO & VALIDADO: 15. Replay protegido: update retido por 24h não reexecuta aos 31 min\nCORRIGIDO & VALIDADO: 16. Leitura chunk concorrente relê novo manifesto\nCORRIGIDO & VALIDADO: 17. Outbox: leitura sob lock impede envio duplicado de snapshot antigo\nCORRIGIDO & VALIDADO: 18. Histórico de leito é podado e respeita limite global de 500 KB\nCORRIGIDO & VALIDADO: 19. Falha no Notion preserva texto original do pedido na fila\nCORRIGIDO & VALIDADO: 20. Hábitos no Notion: falha no PATCH não confirma hábito\nCORRIGIDO & VALIDADO: 21. /tasks reporta erro quando consulta falha\nCORRIGIDO & VALIDADO: 22. HabitLog não cria página se consulta falhar com null\nCORRIGIDO & VALIDADO: 23. Novo SOAP limpa destino de evolução de leito pendente\nCORRIGIDO & VALIDADO: 24. Botão antigo de status não altera novo ocupante do leito\nCORRIGIDO & VALIDADO: 25. Status não confirmado não é computado como estável no censo\nCORRIGIDO & VALIDADO: 26. PDF preserva posologia multilinha e não presume via oral\nCORRIGIDO & VALIDADO: 27. PDF sanitiza HTML recebido e preserva banner de rascunho\nCORRIGIDO & VALIDADO: 28. PDF reporta sucesso falso quando Drive e Telegram falham\nCORRIGIDO & VALIDADO: 29. Erro na prescrição REMUME não exibe botão de PDF\nCORRIGIDO & VALIDADO: 30. Mensagem com HTML é enviada com parse_mode HTML\nCORRIGIDO & VALIDADO: 31. Botão de cópia para texto curto utiliza copy_text nativo\nCORRIGIDO & VALIDADO: 32. botoesBot sanitiza callback em objeto nativo > 64 bytes\nCORRIGIDO & VALIDADO: 33. Segmentação não corta palavras e preserva surrogate pairs\nCORRIGIDO & VALIDADO: 34. Fallback de tela envia nova mensagem se edição falhar\nCORRIGIDO & VALIDADO: 35. MELD e MELD-Na 2016 determinísticos disponíveis e exatos\nCORRIGIDO & VALIDADO: 36. Cetoacidose diabética atualizada com limiar de potássio 3,5 mEq/L\nCORRIGIDO & VALIDADO: 37. Protocolo de crise de asma com alvo SpO2 93-95% GINA\n\n🎉 SUCESSO ABSOLUTO: 37 DE 37 CENÁRIOS AUDITADOS E CORRIGIDOS COM 100% DE ÊXITO!\n",
+      "stderr": ""
+    }
+  ],
+  "pytest": "........................................................................ [ 67%]\n..................................                                       [100%]\n106 passed in 4.58s\n",
+  "reprodutor_antigo": {
+    "exit": 1,
+    "stdout": "{\"defeitos_reproduzidos\":0,\"verificacoes_nao_confirmadas\":8}\n",
+    "stderr": "{\"caso\":\"Y01 SOAP permite exportar sinais vitais do modelo sem medidas informadas\",\"defeito_reproduzido\":false,\"erro\":\"The expression evaluated to a falsy value:\\n\\n  assert(model)\\n\"}\n{\"caso\":\"Y02 CHA negação anterior apaga afirmativa explícita tem HAS\",\"defeito_reproduzido\":false,\"erro\":\"The expression evaluated to a falsy value:\\n\\n  assert(output.includes('0/9'))\\n\"}\n{\"caso\":\"Y03 Botão EF recebe contexto vazio apesar de SOAP ativo\",\"defeito_reproduzido\":false,\"erro\":\"Expected values to be strictly equal:\\n+ actual - expected\\n\\n+ 'Paciente com fraqueza no braço direito há duas horas'\\n- ''\\n\"}\n{\"caso\":\"Y04 Comando EF apaga caso e voltar ao SOAP restaura dados vazios\",\"defeito_reproduzido\":false,\"erro\":\"Expected values to be strictly equal:\\n+ actual - expected\\n\\n+ {\\n+   data: 'Paciente com fraqueza no braço direito há duas horas',\\n+   expires: 2000000900000,\\n+   mode: 'soap',\\n+   version: 2\\n+ }\\n- null\\n\"}\n{\"caso\":\"Y05 Higienização da gasometria reescreve meta explícita de pH\",\"defeito_reproduzido\":false,\"erro\":\"The expression evaluated to a falsy value:\\n\\n  assert(!output.includes('7.30'))\\n\"}\n{\"caso\":\"Y06 Receita sem identificação do medicamento habilita PDF\",\"defeito_reproduzido\":false,\"erro\":\"Expected values to be strictly equal:\\n\\nfalse !== true\\n\"}\n{\"caso\":\"Y07 Receita completa em duas linhas não habilita PDF\",\"defeito_reproduzido\":false,\"erro\":\"Expected values to be strictly equal:\\n\\ntrue !== false\\n\"}\n{\"caso\":\"Y08 Copiar Modelo exporta também o checklist inteiro\",\"defeito_reproduzido\":false,\"erro\":\"The expression evaluated to a falsy value:\\n\\n  assert(output.includes('Checklist de Execução'))\\n\"}\n"
+  },
+  "files_sha256": {
+    "src/01_utils.js": "6bf8658ea779f1e09b03fd88cb5a960e3939c0e046c04aacd0955a7edb9a48de",
+    "src/00_config.js": "25c7c56c1f11d0a2dcd259e67102bbb6375b4a13f98741bb9dad3b0ea10892f5",
+    "src/08_main.js": "1d718634b5c66ae1c7996c68b4e533140cce01b471000059f73a2526e7139f9b",
+    "src/12_experiencia_bot.js": "d526aa4937aefffd7ca6570f48df0c633d6b4eaeca91f429aa2b8da206617b29",
+    "src/02_calculadoras_puras.js": "fc435457ddd792a9f5049193ec83b2b0474fa54ddafb74625bdff26d4958cb7f",
+    "src/07_telegram_handlers.js": "c2731cd9c2994e0bac96e725c56781740c7de8adb8eeb628acd1f0f6e013e7d0",
+    "src/10_pdf_receita.js": "db503cba510515bc70c432485df83460ab1dcd48f1dd8c73922ed9ea6003e810",
+    "src/05_notion.js": "cf5bca2e1b1796be3c70c011a8ae882e3c7b0c103db63cf6de8ff2b9ad6752fe",
+    "src/09_enfermaria.js": "08501002d7baa37516c8f612794c94e382de38df9c0b1552162204ae97b06adb",
+    "src/06_rotina_agenda.js": "345251eba6325363afabc935a7e1583bc38837c073aa78cc1a3fd67c14493f74",
+    "src/04_motores_ia.js": "0ecef518912aeff00c873b6c4af4520b9017ed3ac7e33b3a47cac95cfb93966b",
+    "src/11_entrega_confiavel.js": "eaccbca893742fe10233e43e98e92a8127f987691e216711fd03cf6dc8692942",
+    "src/03_bases_locais.js": "037b91e61a00e2820513dc6db7114ffa5910899e710b42a5eac894c5e04557af"
+  }
+}

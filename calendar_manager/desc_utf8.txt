@@ -1,0 +1,168 @@
+DATA: 2026-08-17
+TITULO: [Estudo] Cirurgia - Atendimento Inicial ao Politraumatizado e Manejo de Vias A├®reas
+DESCRICAO: Estudo aprofundado do protocolo ATLS e suporte de via a├®rea cir├║rgica/avan├ºada. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-17
+TITULO: [Estudo] Cirurgia - Trauma Cranioencef├ílico e Cervical
+DESCRICAO: Abordagem das les├Áes encef├ílicas e coluna cervical, refor├ºando o t├│pico cr├¡tico identificado nos analytics com baixa acur├ícia pr├®via. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-18
+TITULO: [Estudo] Cirurgia - Trauma de T├│rax e Abdome
+DESCRICAO: Manejo imediato de pneumot├│rax hipertensivo, tamponamento card├¡aco e trauma abdominal contuso/penetrante. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-18
+TITULO: [Estudo] Cirurgia - Trauma Vascular, Pelve e Grande Queimado
+DESCRICAO: Abordagem do choque hemorr├ígico no trauma p├®lvico/vascular e ressuscita├º├úo vol├¬mica do grande queimado. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-19
+TITULO: [Revis├úo] Revis├úo D+1/D+2 - Trauma Cir├║rgico e TCE
+DESCRICAO: Revis├úo ativa por recupera├º├úo de mem├│ria e releitura de esquemas de ATLS, TCE e condutas toracoabdominais (sem flashcards). Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-19
+TITULO: [Estudo] Cirurgia - Abdome Agudo e Hemorragia Digestiva
+DESCRICAO: Diagn├│stico diferencial de abdome agudo inflamat├│rio/perfurativo/obstrutivo e conduta em HDA/HDB. Bloco com dura├º├úo de 100 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-20
+TITULO: [Estudo] Cirurgia - Urg├¬ncias Vasculares e Urol├│gicas
+DESCRICAO: Manejo de oclus├úo arterial aguda, s├¡ndromes a├│rticas agudas, escroto agudo e reten├º├úo urin├íria. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-20
+TITULO: [Estudo] Cl├¡nica M├®dica - S├¡ndromes Coronarianas Agudas (CSST e SSST)
+DESCRICAO: Diagn├│stico eletrocardiogr├ífico, estratifica├º├úo de risco e terapia antitromb├│tica/reperfus├úo coronariana. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-21
+TITULO: [Estudo] Cl├¡nica M├®dica - PCR, Taquiarritmias e Bradiarritmias
+DESCRICAO: Protocolos ACLS de parada cardiorrespirat├│ria, cardiovers├úo, desfibrila├º├úo e controle farmacol├│gico de ritmo/frequ├¬ncia. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-21
+TITULO: [Revis├úo] Revis├úo D+3 - Cirurgia de Urg├¬ncia e Emerg├¬ncias Cardiovasculares
+DESCRICAO: Recupera├º├úo ativa das condutas em abdome agudo, grandes queimados e infarto agudo do mioc├írdio. Bloco com dura├º├úo de 100 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-22
+TITULO: [Estudo] Cl├¡nica M├®dica - Crise Convulsiva, Estado de Mal e Meningite Aguda
+DESCRICAO: Algoritmo de seda├º├úo escalonada em estado de mal epil├®ptico e terapia antimicrobiana emp├¡rica precoce. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-22
+TITULO: [Estudo] Cl├¡nica M├®dica - AVC Isqu├¬mico e Hemorr├ígico
+DESCRICAO: Janela de tromb├│lise/trombectomia mec├ónica no AVCI e manejo de press├úo intracraniana e PA no AVCH. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-23
+TITULO: [Estudo] Cl├¡nica M├®dica - Insufici├¬ncia Respirat├│ria Aguda, TEP e Crise Asm├ítica
+DESCRICAO: Intuba├º├úo de sequ├¬ncia r├ípida, estratifica├º├úo e anticoagula├º├úo/tromb├│lise no TEP e broncodilata├º├úo intensiva. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-23
+TITULO: [Estudo] Cl├¡nica M├®dica - Choque, Sepse e Drogas Vasoativas
+DESCRICAO: Ressuscita├º├úo hemodin├ómica na sepse (bundle de 1h), escolha de inotr├│picos e vasopressores. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-24
+TITULO: [Revis├úo] Revis├úo D+7 (Cirurgia) e D+3 (Cl├¡nica) - Trauma e Choque
+DESCRICAO: Consolida├º├úo de protocolos cr├¡ticos: via a├®rea no trauma, choque s├®ptico versus cardiog├¬nico e arritmias. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-24
+TITULO: [Estudo] Cl├¡nica M├®dica - Emerg├¬ncias Metab├│licas (CAD, Hipercalemia e Intoxica├º├Áes)
+DESCRICAO: Manejo de insuliniza├º├úo e reposi├º├úo de pot├íssio na CAD, estabiliza├º├úo de membrana mioc├írdica e ant├¡dotos em toxicologia. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-25
+TITULO: [Estudo] Pediatria - Crise Asm├ítica Grave, Anafilaxia e Intoxica├º├Áes Pedi├ítricas
+DESCRICAO: Manejo de insufici├¬ncia respirat├│ria asm├ítica na inf├óncia, doses de adrenalina IM e tox├¡ndromes comuns. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-25
+TITULO: [Estudo] Pediatria - Reanima├º├úo Neonatal e PALS
+DESCRICAO: Passos da reanima├º├úo em sala de parto no RN a termo/prematuro e ritmos de parada e choque pedi├ítrico (PALS). Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-26
+TITULO: [Estudo] Ginecologia e Obstetr├¡cia - Hemorragia P├│s-Parto e Emerg├¬ncia Hipertensiva
+DESCRICAO: Manejo dos 4Ts da HPP (atonia uterina, lacera├º├úo, restos, trombina) e sulfata├º├úo de magn├®sio na pr├®-ecl├ómpsia grave/ecl├ómpsia. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-26
+TITULO: [Estudo] Pediatria - TCE Pedi├ítrico, Crise Febril, Convuls├úo e Meningite
+DESCRICAO: Crit├®rios de PECARN no TCE infantil, abortamento de crise convulsiva febril e conduta na meningococcemia. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-27
+TITULO: [Revis├úo] Revis├úo D+1/D+2 - Emerg├¬ncias Pedi├ítricas e Obst├®tricas
+DESCRICAO: Autoexplica├º├úo e s├¡ntese escrita das condutas em reanima├º├úo neonatal, sulfato de magn├®sio e hemorragia p├│s-parto. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-27
+TITULO: [Estudo] Ginecologia e Obstetr├¡cia - Sangramentos da Gesta├º├úo e Urg├¬ncias Ginecol├│gicas
+DESCRICAO: Diagn├│stico de descolamento prematuro de placenta, placenta pr├®via, gravidez ect├│pica rota e tor├º├úo anexial. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-28
+TITULO: [Revis├úo] Revis├úo de Fechamento I - Urg├¬ncias Cl├¡nico-Cir├║rgicas e Trauma Cranioencef├ílico
+DESCRICAO: Segunda rodada de revis├úo espa├ºada com foco nas fraquezas de TCE, choque e s├¡ndromes coronarianas agudas. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------
+DATA: 2026-08-28
+TITULO: [Revis├úo] Revis├úo de Fechamento II - Emerg├¬ncias em Pediatria e GO
+DESCRICAO: Segunda rodada de revis├úo espa├ºada consolidando algoritmos de PALS, crise febril, ecl├ómpsia e sangramentos obst├®tricos. Bloco com dura├º├úo de 110 minutos.
+Curso: Extensivo Internato 2026 (stream)
+Status: A fazer
+Sincronizado pelo Katomart (katomaro.com)
+--------------------------------------------------

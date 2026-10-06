@@ -1,0 +1,14 @@
+node_modules
+.git
+.venv
+tests
+reviews
+scratch
+archive
+*.pyc
+__pycache__
+.pytest_cache
+audio_*
+*.ogg
+*.ics
+*.diff

@@ -1,0 +1,75 @@
+{
+  "id": "F01",
+  "version": "baseline",
+  "round": 1,
+  "synthetic": true,
+  "mode": "grounding",
+  "created": "2026-10-04T21:17:44.863Z",
+  "total_ms": 1265,
+  "http_ms": 1073,
+  "calls": [
+    {
+      "phase": "geracao",
+      "model": "gemini-2.5-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 345,
+      "bridge_ms": 400,
+      "prompt_sha256": "7d890014d17ef1e172efb97468cb40c06ff4725919c4fea3629f84c410ef3586",
+      "prompt_chars": 2136,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-2.0-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 405,
+      "bridge_ms": 471,
+      "prompt_sha256": "7d890014d17ef1e172efb97468cb40c06ff4725919c4fea3629f84c410ef3586",
+      "prompt_chars": 2136,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-1.5-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 323,
+      "bridge_ms": 391,
+      "prompt_sha256": "7d890014d17ef1e172efb97468cb40c06ff4725919c4fea3629f84c410ef3586",
+      "prompt_chars": 2136,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    }
+  ],
+  "metrics": {
+    "cache_get": 4,
+    "cache_getAll": 0,
+    "cache_put": 3,
+    "cache_putAll": 0,
+    "sheets": 0
+  },
+  "pdf_eligible": null,
+  "result": null,
+  "error": null,
+  "logs": [
+    "[IA eval-1] GEMINI gemini-2.5-flash: 404 (bloqueado por 1h)",
+    "[IA eval-1] GEMINI gemini-2.0-flash: 404 (bloqueado por 1h)",
+    "[IA eval-1] GEMINI gemini-1.5-flash: 404 (bloqueado por 1h)"
+  ]
+}

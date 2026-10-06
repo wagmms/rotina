@@ -1,0 +1,30 @@
+# Ambientes e segredos locais
+.env
+.deploy_state.json
+data/properties.json
+
+# Dependências e ambientes virtuais
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Sessões do Telegram / Userbot
+*.session
+*.session-journal
+
+# Arquivos de mídia temporários e PDFs de testes
+audio_*
+*.ogg
+*.pdf
+*.ics
+*.diff
+receita_baixada_telegram.pdf
+audios_usuario/
+
+# Diretórios locais e deploys aninhados
+gh_cockpit_deploy/
+archive/
+scratch/
+gas_deploy/

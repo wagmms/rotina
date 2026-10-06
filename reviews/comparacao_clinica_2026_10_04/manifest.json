@@ -1,0 +1,53 @@
+{
+  "baseline": {
+    "sha256": "400e05712be633f0fd26c7ce873b2118b2b60e1e4d845dc24722a56b709a187c",
+    "modulos": {
+      "00_config.js": "5e066d53eabe9e27f0a98b65ef766aa5501c11ce631749a8505b92dae81ee446",
+      "01_utils.js": "6bf8658ea779f1e09b03fd88cb5a960e3939c0e046c04aacd0955a7edb9a48de",
+      "02_calculadoras_puras.js": "fc435457ddd792a9f5049193ec83b2b0474fa54ddafb74625bdff26d4958cb7f",
+      "03_bases_locais.js": "ad4945b50bd6f93495d764e3a6656f8ff4468da46fa2fb6ed7bdcde2de741f0f",
+      "04_motores_ia.js": "9d3a717ba65477eb5e8777e333057f7cc8750ce6f899acdea44946050c2da8ec",
+      "05_notion.js": "cf5bca2e1b1796be3c70c011a8ae882e3c7b0c103db63cf6de8ff2b9ad6752fe",
+      "06_rotina_agenda.js": "8f87458541cca6203a552f4ad600722df4da05cbdc1ab8fee3fd15de3b044fcd",
+      "07_telegram_handlers.js": "f9d41edf95e687505a9ca0087fbee04ce8866cd6e857919f44603ae1d073330b",
+      "08_main.js": "20a0065a835aaa9a3b8ab3fbb5490c919c3c9ad97b0b9701d9aa4ed5421e5d17",
+      "09_enfermaria.js": "cf84c66f0f56a20b2754f333d3577a408a7a602aff13f18d04f427908be292e8",
+      "10_pdf_receita.js": "db503cba510515bc70c432485df83460ab1dcd48f1dd8c73922ed9ea6003e810",
+      "11_entrega_confiavel.js": "aa889a95510249899c00a400e45dca7f9258963acd8e467f2777f266c9c01ace",
+      "12_experiencia_bot.js": "bb9baec4901cb7983a770ff3e55c5ca7e675266f49148dd5705d0a49e3d7d0b3"
+    }
+  },
+  "candidate": {
+    "sha256": "51d3d737201aec70b7eee047ea532f7d6745fb8dddfd8f8afa23b45893411142",
+    "modulos": {
+      "00_config.js": "5e066d53eabe9e27f0a98b65ef766aa5501c11ce631749a8505b92dae81ee446",
+      "01_utils.js": "9e09cbab3949305c359daca4e56d93b3fdbc0ccfd38fabf205357bf1d7fbe0b8",
+      "02_calculadoras_puras.js": "fc435457ddd792a9f5049193ec83b2b0474fa54ddafb74625bdff26d4958cb7f",
+      "03_bases_locais.js": "ebfa844f5f19185e3b6458d6eb1abf526d181068d961e51c513574851f68418e",
+      "04_motores_ia.js": "0c90c168d66cd43a516e3f715cdaa35e1c7083a785330b475984a56c0f8f8253",
+      "05_notion.js": "cf5bca2e1b1796be3c70c011a8ae882e3c7b0c103db63cf6de8ff2b9ad6752fe",
+      "06_rotina_agenda.js": "8f87458541cca6203a552f4ad600722df4da05cbdc1ab8fee3fd15de3b044fcd",
+      "07_telegram_handlers.js": "73effb5986e6cdbdafb8326cf3278a1b7c75e2096ae134393ae6c3898634ce13",
+      "08_main.js": "fb56d2676f49ca52754d1f7af50268d0af366d72711f2a43cac6eb3938752c05",
+      "09_enfermaria.js": "cf84c66f0f56a20b2754f333d3577a408a7a602aff13f18d04f427908be292e8",
+      "10_pdf_receita.js": "db503cba510515bc70c432485df83460ab1dcd48f1dd8c73922ed9ea6003e810",
+      "11_entrega_confiavel.js": "aa889a95510249899c00a400e45dca7f9258963acd8e467f2777f266c9c01ace",
+      "12_experiencia_bot.js": "bb9baec4901cb7983a770ff3e55c5ca7e675266f49148dd5705d0a49e3d7d0b3"
+    }
+  },
+  "configuracao": "Credenciais do snapshot local; padrão GEMINI nas duas versões, sem alterar os defaults de modelos ou auditoria. Configuração de produção não verificada.",
+  "casos.json_sha256": "41961b9a301876d0bc3248c4d887ba274b4f64737e5ca82a6ea4905ef7cd6e9f",
+  "fontes.json_sha256": "96cb9b9c20c7310b27b20b008cd6343286294da4e6bfefc88106f023915f689f",
+  "remume_fixture.json_sha256": "b7e9e419da68e08cf421da70f1b929a15afc626e53ee4b2d133125a5493bec4f",
+  "protocolo": {
+    "rodadas_planejadas": 2,
+    "casos_por_rodada": 8,
+    "ordem": "Alternância baseline/candidate por caso e rodada",
+    "reprovacao": "Qualquer falha clínica relevante impede publicação, mesmo presente em ambas as versões.",
+    "medicao": "Tempo local de geração integral + auditoria, rede real dos provedores; Sheets e cache simulados, sem Telegram.",
+    "avaliador": "Revisão qualitativa pelo assistente contra fontes primárias; não equivale a validação médica humana.",
+    "transport_timeout_s": 45,
+    "case_timeout_s": 180,
+    "max_http_calls_per_case": 12
+  }
+}

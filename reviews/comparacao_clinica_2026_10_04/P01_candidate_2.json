@@ -1,0 +1,184 @@
+{
+  "id": "P01",
+  "version": "candidate",
+  "round": 2,
+  "synthetic": true,
+  "mode": "rx",
+  "created": "2026-10-04T21:18:04.127Z",
+  "total_ms": 19205,
+  "http_ms": 17949,
+  "calls": [
+    {
+      "phase": "geracao",
+      "model": "gemini-2.5-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 359,
+      "bridge_ms": 416,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-2.0-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 344,
+      "bridge_ms": 416,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-1.5-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 1436,
+      "bridge_ms": 1497,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-flash-latest",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 429,
+      "http_ms": 355,
+      "bridge_ms": 421,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "RESOURCE_EXHAUSTED"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-flash-latest",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 429,
+      "http_ms": 349,
+      "bridge_ms": 407,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "RESOURCE_EXHAUSTED"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-flash-latest",
+      "resolved_model": "gemini-3.8-flash",
+      "host": "generativelanguage.googleapis.com",
+      "status": 200,
+      "http_ms": 7251,
+      "bridge_ms": 7331,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": {
+        "promptTokenCount": 2307,
+        "candidatesTokenCount": 585,
+        "totalTokenCount": 4133,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2307
+          }
+        ],
+        "thoughtsTokenCount": 1241,
+        "serviceTier": "standard"
+      },
+      "finish": "STOP",
+      "text": "💊 *PRESCRIÇÃO AMBULATORIAL - RASCUNHO (REMUME)*\n*Status:* Completa para revisão\n\n📝 *Receituário*\n*[USO ORAL]*\n1. *Amoxicilina* - 250 mg/5 mL suspensão oral - volume total necessário: 200 mL (dispensar frascos suficientes para perfazer 200 mL)\n- *Posologia:* tomar **amoxicilina 500 mg (10 mL) por via oral** de 12 em 12 horas por 10 dias.\n\n💡 *Orientações ao paciente*\n- Agitar bem o frasco antes de administrar cada dose.\n- Utilizar seringa dosadora ou copo-medida para conferir exatamente 10 mL por tomada; pode ser ingerido com ou sem alimentos.\n- Cumprir integralmente os 10 dias de tratamento prescritos para erradicação do estreptococo e prevenção de febre reumática, mesmo se houver melhora dos sintomas nos primeiros dias.\n- Sinais de alerta: dificuldade para deglutir ou respirar, recusa alimentar importante, vômitos persistentes ou manchas avermelhadas pelo corpo exigem reavaliação médica imediata.\n\n📋 *Conferência médica*\n- *Indicação:* faringite estreptocócica com teste rápido positivo.\n- *Cálculo (pediátrico):* 25 mg/kg x 20 kg = **500 mg por dose**; na concentração 250 mg/5 mL (50 mg/mL), 500 mg / 50 mg/mL = **10 mL por dose**. Dose diária total de 50 mg/kg/dia (1000 mg/dia divididos em 2 tomadas). Tratamento de 10 dias (20 tomadas de 10 mL) = **200 mL** no total.\n- *Dose máxima:* dose máxima usual diária de 1000 mg/dia respeitada (500 mg por tomada).\n- *Alergias e interações:* ausência de alergias relatada pelo responsável; sem uso de medicamentos contínuos.\n- *Ajustes (renal, hepático, idade, gestação):* funções renal e hepática normais documentadas; não requer ajuste de dose.\n- *REMUME:* item presente na lista fornecida (conferir disponibilidade no estoque e tamanho do frasco para quantitativo da dispensação).\n\nSugestão gerada por IA. Conferir dose, diluição e diretriz; a responsabilidade da prescrição é do prescritor.",
+      "groundingMetadata": null,
+      "error": null
+    },
+    {
+      "phase": "auditoria",
+      "model": "gemini-flash-latest",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 503,
+      "http_ms": 2406,
+      "bridge_ms": 2489,
+      "prompt_sha256": "3fd57112ac9d22bf506cf914567c5f82b075f18031ce0cc2347ea95e96c6a2c3",
+      "prompt_chars": 4078,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "UNAVAILABLE"
+    },
+    {
+      "phase": "auditoria",
+      "model": "gemini-flash-latest",
+      "resolved_model": "gemini-3.8-flash",
+      "host": "generativelanguage.googleapis.com",
+      "status": 200,
+      "http_ms": 5449,
+      "bridge_ms": 5512,
+      "prompt_sha256": "3fd57112ac9d22bf506cf914567c5f82b075f18031ce0cc2347ea95e96c6a2c3",
+      "prompt_chars": 4078,
+      "usage": {
+        "promptTokenCount": 1394,
+        "candidatesTokenCount": 4,
+        "totalTokenCount": 1911,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1394
+          }
+        ],
+        "thoughtsTokenCount": 513,
+        "serviceTier": "standard"
+      },
+      "finish": "STOP",
+      "text": "SEM ALERTAS.",
+      "groundingMetadata": null,
+      "error": null
+    }
+  ],
+  "metrics": {
+    "cache_get": 11,
+    "cache_getAll": 0,
+    "cache_put": 6,
+    "cache_putAll": 1,
+    "sheets": 1
+  },
+  "pdf_eligible": false,
+  "result": "💊 *PRESCRIÇÃO AMBULATORIAL - RASCUNHO (REMUME)*\n*Status:* Completa para revisão\n\n📝 *Receituário*\n*[USO ORAL]*\n1. *Amoxicilina* - 250 mg/5 mL suspensão oral - volume total necessário: 200 mL (dispensar frascos suficientes para perfazer 200 mL)\n- *Posologia:* tomar *amoxicilina 500 mg (10 mL) por via oral* de 12 em 12 horas por 10 dias.\n\n💡 *Orientações ao paciente*\n- Agitar bem o frasco antes de administrar cada dose.\n- Utilizar seringa dosadora ou copo-medida para conferir exatamente 10 mL por tomada; pode ser ingerido com ou sem alimentos.\n- Cumprir integralmente os 10 dias de tratamento prescritos para erradicação do estreptococo e prevenção de febre reumática, mesmo se houver melhora dos sintomas nos primeiros dias.\n- Sinais de alerta: dificuldade para deglutir ou respirar, recusa alimentar importante, vômitos persistentes ou manchas avermelhadas pelo corpo exigem reavaliação médica imediata.\n\n📋 *Conferência médica*\n- *Indicação:* faringite estreptocócica com teste rápido positivo.\n- *Cálculo (pediátrico):* 25 mg/kg x 20 kg = *500 mg por dose*; na concentração 250 mg/5 mL (50 mg/mL), 500 mg / 50 mg/mL = *10 mL por dose*. Dose diária total de 50 mg/kg/dia (1000 mg/dia divididos em 2 tomadas). Tratamento de 10 dias (20 tomadas de 10 mL) = *200 mL* no total.\n- *Dose máxima:* dose máxima usual diária de 1000 mg/dia respeitada (500 mg por tomada).\n- *Alergias e interações:* ausência de alergias relatada pelo responsável; sem uso de medicamentos contínuos.\n- *Ajustes (renal, hepático, idade, gestação):* funções renal e hepática normais documentadas; não requer ajuste de dose.\n- *REMUME:* item presente na lista fornecida (conferir disponibilidade no estoque e tamanho do frasco para quantitativo da dispensação).\n\nSugestão gerada por IA. Conferir dose, diluição e diretriz; a responsabilidade da prescrição é do prescritor.",
+  "error": null,
+  "logs": [
+    "[IA eval-2] GEMINI gemini-2.5-flash: 404 (bloqueado por 1h)",
+    "[IA eval-2] GEMINI gemini-2.0-flash: 404 (bloqueado por 1h)",
+    "[IA eval-2] GEMINI gemini-1.5-flash: 404 (bloqueado por 1h)",
+    "[IA eval-2] GEMINI gemini-flash-latest: 429 na chave #0, rotacionando",
+    "[IA eval-2] GEMINI gemini-flash-latest: 429 na chave #1, rotacionando",
+    "[IA eval-2] OK via GEMINI (gemini-flash-latest) em 10495 ms",
+    "[IA eval-3] GEMINI gemini-flash-latest: 503, repetindo uma vez",
+    "[IA eval-3] OK via GEMINI (gemini-flash-latest) em 8703 ms"
+  ]
+}

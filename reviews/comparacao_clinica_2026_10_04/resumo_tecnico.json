@@ -1,0 +1,176 @@
+{
+  "n": 10,
+  "publication": "NOT_APPROVED",
+  "note": "Tempos descritivos de geração + auditoria em ambiente local com APIs reais. Sem comprovação de não inferioridade clínica ou latência do GAS/Telegram.",
+  "versions": {
+    "baseline": {
+      "runs": 5,
+      "with_text": 5,
+      "http_statuses": {
+        "404": 15,
+        "200": 9,
+        "503": 11,
+        "403": 1
+      },
+      "requests": 36,
+      "median_ms_with_text": 23606,
+      "max_ms_with_text": 43477
+    },
+    "candidate": {
+      "runs": 5,
+      "with_text": 5,
+      "http_statuses": {
+        "404": 15,
+        "200": 9,
+        "503": 3
+      },
+      "requests": 27,
+      "median_ms_with_text": 15206,
+      "max_ms_with_text": 22509
+    }
+  },
+  "pairs": [
+    {
+      "id": "A01",
+      "round": 1,
+      "baseline_ms": 18967,
+      "candidate_ms": 22509,
+      "both_returned_text": true,
+      "same_reported_success_models": true,
+      "baseline_profile": [
+        [
+          "geracao",
+          "gemini-3.8-flash"
+        ],
+        [
+          "auditoria",
+          "gemini-3.8-flash"
+        ]
+      ],
+      "candidate_profile": [
+        [
+          "geracao",
+          "gemini-3.8-flash"
+        ],
+        [
+          "auditoria",
+          "gemini-3.8-flash"
+        ]
+      ],
+      "baseline_errors": 5,
+      "candidate_errors": 4
+    },
+    {
+      "id": "I01",
+      "round": 1,
+      "baseline_ms": 16728,
+      "candidate_ms": 11920,
+      "both_returned_text": true,
+      "same_reported_success_models": true,
+      "baseline_profile": [
+        [
+          "geracao",
+          "gemini-3.8-flash"
+        ]
+      ],
+      "candidate_profile": [
+        [
+          "geracao",
+          "gemini-3.8-flash"
+        ]
+      ],
+      "baseline_errors": 4,
+      "candidate_errors": 4
+    },
+    {
+      "id": "P01",
+      "round": 1,
+      "baseline_ms": 43477,
+      "candidate_ms": 15322,
+      "both_returned_text": true,
+      "same_reported_success_models": false,
+      "baseline_profile": [
+        [
+          "geracao",
+          null
+        ],
+        [
+          "auditoria",
+          null
+        ]
+      ],
+      "candidate_profile": [
+        [
+          "geracao",
+          null
+        ],
+        [
+          "auditoria",
+          null
+        ]
+      ],
+      "baseline_errors": 8,
+      "candidate_errors": 3
+    },
+    {
+      "id": "P02",
+      "round": 1,
+      "baseline_ms": 23606,
+      "candidate_ms": 15206,
+      "both_returned_text": true,
+      "same_reported_success_models": true,
+      "baseline_profile": [
+        [
+          "geracao",
+          "gemini-3.8-flash"
+        ],
+        [
+          "auditoria",
+          "gemini-3.8-flash"
+        ]
+      ],
+      "candidate_profile": [
+        [
+          "geracao",
+          "gemini-3.8-flash"
+        ],
+        [
+          "auditoria",
+          "gemini-3.8-flash"
+        ]
+      ],
+      "baseline_errors": 5,
+      "candidate_errors": 4
+    },
+    {
+      "id": "R01",
+      "round": 1,
+      "baseline_ms": 24650,
+      "candidate_ms": 12879,
+      "both_returned_text": true,
+      "same_reported_success_models": true,
+      "baseline_profile": [
+        [
+          "geracao",
+          "gemini-3.8-flash"
+        ],
+        [
+          "auditoria",
+          "gemini-3.8-flash"
+        ]
+      ],
+      "candidate_profile": [
+        [
+          "geracao",
+          "gemini-3.8-flash"
+        ],
+        [
+          "auditoria",
+          "gemini-3.8-flash"
+        ]
+      ],
+      "baseline_errors": 5,
+      "candidate_errors": 3
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: ultra-rotina-backend
+    env: node
+    plan: free
+    region: ohio # ou oregon / frankfurt
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: TIMEZONE
+        value: America/Sao_Paulo
+      # Os segredos abaixo podem ser sincronizados automaticamente ou inseridos no dashboard do Render:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: WEBHOOK_SECRET
+        sync: false
+      - key: GEMINI_API_KEYS
+        sync: false
+      - key: NOTION_TOKEN
+        sync: false
+      - key: NOTION_TASKS_DB_ID
+        sync: false
+      - key: NOTION_HABIT_LOG_DB_ID
+        sync: false
+      - key: PROVEDOR_TEXTO_PADRAO
+        value: GEMINI

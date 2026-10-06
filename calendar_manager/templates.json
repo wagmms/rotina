@@ -1,0 +1,54 @@
+{
+  "ingles": {
+    "0": {
+      "summary": "📚 Inglês: British Council (Listening) & Busuu (Gramática)",
+      "desc": "FOCO: Compreensão Auditiva & Estrutura Gramatical (45 min)\n\n1. (15 min) Busuu Premium: 1 Lição guiada de Gramática/Situação + envio do exercício para a comunidade de nativos.\n2. (20 min) British Council (LearnEnglish): Áudio/Podcast com transcrição interativa + exercícios de compreensão.\n3. (10 min) Anki / Vocab Trainer: Salvar novas palavras e collocations."
+    },
+    "1": {
+      "summary": "📚 Inglês: British Council (Leitura) & Busuu (Vocab Trainer)",
+      "desc": "FOCO: Leitura Ativa & Aquisição Lexical (45 min)\n\n1. (15 min) Busuu Premium: Revisão Inteligente de Vocabulário (Smart Review).\n2. (20 min) British Council (Reading Section B2/C1): Leitura de artigo temático/científico + exercícios.\n3. (10 min) Anki: Mineração de 3 a 5 novas frases de exemplo com o vocabulário do dia."
+    },
+    "2": {
+      "summary": "📚 Inglês: British Council (Pronúncia/Shadowing) & Busuu (Fala Nativa)",
+      "desc": "FOCO: Dicção, Sons Conectados & Fala (45 min)\n\n1. (20 min) British Council (Pronunciation Lab): Estudo de sons conectados (connected speech), redução fonética e shadowing.\n2. (15 min) Busuu Premium: Gravação do exercício de fala (Speaking) para avaliação de nativos.\n3. (10 min) Anki: Revisão rápida dos cards de pronúncia e frases."
+    },
+    "3": {
+      "summary": "📚 Inglês: British Council (Grammar Clinic) & Busuu (Escrita Ativa)",
+      "desc": "FOCO: Escrita Deliberada & Precisão Gramatical (45 min)\n\n1. (20 min) British Council (Grammar Reference & Practice): Resolução de exercícios de gramática aplicada B2/C1.\n2. (15 min) Busuu Premium: Exercício dissertativo de escrita (Writing Challenge) e submissão para correção por nativos.\n3. (10 min) Anki: Adicionar correções e frases bem estruturadas aos flashcards."
+    },
+    "4": {
+      "summary": "📚 Inglês: Busuu (Feedback de Nativos) & British Council (Fluência)",
+      "desc": "FOCO: Análise de Erros, Fluência & Fechamento Semanal (45 min)\n\n1. (15 min) Busuu Premium: Analisar o feedback e correções recebidas dos nativos.\n2. (20 min) British Council (Everyday English / Speaking Skills): Prática de conversação e expressões idiomáticas.\n3. (10 min) Anki: Zerar flashcards pendentes da semana."
+    },
+    "5": {
+      "summary": "📚 Inglês: Smart Review & Imersão Natural",
+      "desc": "FOCO: Manutenção de Hábito & Revisão Rápida (45 min)\n\n1. (20 min) Busuu Smart Review: Manter a ofensiva/streak e revisar palavras salvas.\n2. (25 min) Podcast / Artigo / Vídeo em inglês com áudio original."
+    },
+    "6": {
+      "summary": "📚 Inglês: Smart Review & Imersão Natural",
+      "desc": "FOCO: Manutenção de Hábito & Revisão Rápida (45 min)\n\n1. (20 min) Busuu Smart Review: Manter a ofensiva/streak e revisar palavras salvas.\n2. (25 min) Podcast / Artigo / Vídeo em inglês com áudio original."
+    }
+  },
+  "violao": {
+    "1": {
+      "summary": "🎸 Violão: Mês 1 - Fundamentos & Troca Fluida (A ⇄ D)",
+      "desc": "MÉTODO TRÍADE (HEITOR CASTRO) - MÊS 1 • SEMANA 1 (30-45 min)\nAulas Katomart: 01 a 14\n\n1. (05 min) Aquecimento: Postura do polegar e digitação preliminar 1-2-3-4 nas cordas.\n2. (15-20 min) Teoria & Acordes: H_P 1 e 2 (Compassos) + Montagem dos acordes Lá Maior (A) e Ré Maior (D).\n3. (10-15 min) Fluência: Treino Bruno Mars e Um dedo por vez - troca A ⇄ D no tempo sem chiar."
+    },
+    "2": {
+      "summary": "🎸 Violão: Mês 1 - Batida Balada Básica & Acorde E (Let It Be)",
+      "desc": "MÉTODO TRÍADE (HEITOR CASTRO) - MÊS 1 • SEMANA 2 (30-45 min)\nAulas Katomart: 15 a 22\n\n1. (05 min) Aquecimento: Afinação e digitação leve.\n2. (15 min) Ritmo & Teoria: H_P 3.1 (Intervalos) + Batida Balada Básica (punho solto).\n3. (15-20 min) Repertório: Sequência E ➔ A ➔ D e base de Let It Be / É o Amor."
+    },
+    "3": {
+      "summary": "🎸 Violão: Mês 1 - Acordes G e C & Hiperdetalhamento (Rita Lee / Guns)",
+      "desc": "MÉTODO TRÍADE (HEITOR CASTRO) - MÊS 1 • SEMANA 3 (30-45 min)\nAulas Katomart: 23 a 30\n\n1. (05 min) Aquecimento: Alongamento e troca rápida C ⇄ G.\n2. (15 min) Teoria & Mecânica: H_P 4 (Notas Musicais) + Transição fluida para Dó Maior (C).\n3. (15-20 min) Repertório: Hiperdetalhamento de Ovelha Negra (Rita Lee) e trecho de Patience (Guns N' Roses)."
+    },
+    "4": {
+      "summary": "🎸 Violão: Mês 1 - Batida Pop Básica & Repertório Completo",
+      "desc": "MÉTODO TRÍADE (HEITOR CASTRO) - MÊS 1 • SEMANA 4 (30-45 min)\nAulas Katomart: 31 a 46\n\n1. (05 min) Aquecimento: Digitação alternada com metrônomo.\n2. (15 min) Ritmo: Aprender e cravar a Batida POP Básica.\n3. (15-20 min) Repertório Mês 1: Knockin' on Heaven's Door, Let It Be, Ovelha Negra e Wicked Game."
+    },
+    "5": {
+      "summary": "🎸 Violão: Mês 2 - Tríades Menores (Am, Em, Dm) & Fluência Rítmica",
+      "desc": "MÉTODO TRÍADE (HEITOR CASTRO) - MÊS 2 • SEMANA 1 (30-45 min)\nAulas Katomart: Módulo 2 (Aulas 47 em diante)\n\n1. (05 min) Aquecimento: Digitação cromática e agilidade.\n2. (15 min) Novos Acordes Menores: Formação de Lá Menor (Am), Mi Menor (Em) e Ré Menor (Dm).\n3. (15-20 min) Repertório: Que País É Esse (Legião Urbana) e Como Eu Quero (Kid Abelha)."
+    }
+  }
+}

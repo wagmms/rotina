@@ -1,0 +1,86 @@
+{
+  "sha256": "fda46b80e19fdcab86df3e77d9939c968119c3cc46df927e6a37a777fe11e1b8",
+  "sintaxe": {
+    "comando": [
+      "node",
+      "--check",
+      "reviews/sexta_rodada_2026_10_04/master_auditado.js"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "contraprova_5": {
+    "comando": [
+      "node",
+      "reviews/quinta_rodada_contraprova.cjs",
+      "reviews/sexta_rodada_2026_10_04/master_auditado.js"
+    ],
+    "exit_code": 0,
+    "stdout": "✅ APROVADO: V01: CHA com antecedentes desconhecidos recusa 0/9 e alerta sobre risco clínico\n✅ APROVADO: V02: CHA com negações seguidas de \"mas HAS\" pontua 1/9 (risco intermediário) e não zera o escore\n✅ APROVADO: V03: Gasometria substitui pH alucinado da IA pelo pH real da amostra determinística\n✅ APROVADO: V04: Orientação \"1. Revisar exames.\" não habilita PDF; prescrição real estruturada habilita\n✅ APROVADO: V05: /calc clearance Cr 0 é rejeitado pelo motor puro e não faz fallback para IA\n\n🎉 RESULTADO DA CONTRAPROVA DA 5ª RODADA: 5 DE 5 TESTES VALIDADOS COM 100% DE ÊXITO!\n",
+    "stderr": ""
+  },
+  "contraprova_11": {
+    "comando": [
+      "node",
+      "reviews/quarta_rodada_contraprova.cjs",
+      "reviews/sexta_rodada_2026_10_04/master_auditado.js"
+    ],
+    "exit_code": 0,
+    "stdout": "✅ APROVADO: U01: CHA com idade/sexo mas sem relato de comorbidades exige fatores e não assume 0/9\n✅ APROVADO: U02: CHA negação coordenada em lista (\"sem HAS, DM ou AVC\") zera todos os fatores da lista\n✅ APROVADO: U03: MELD com parâmetro fora da faixa (bili 0) rejeita deterministicamente e não cai na IA\n✅ APROVADO: U04: Gasometria higieniza alucinações e contradições de AG e HCO3 da IA\n✅ APROVADO: U05: Mensagem sem prescrição estruturada não inclui botão de PDF\n✅ APROVADO: U06: Gravação de leitos respeita o orçamento global de armazenamento UTF-8\n✅ APROVADO: U07: Poda de histórico elimina registros legados antigos e retém atualizações recentes\n✅ APROVADO: V01 (Positiva): Modo async enfileira update e worker explícito conclui processamento\n✅ APROVADO: V02 (Positiva): Sem flag de async worker, comportamento continua síncrono\n✅ APROVADO: V03 (Positiva): Orçamento multibyte rejeita excesso mesmo sem Buffer e sem newBlob\n✅ APROVADO: V04 (Positiva): Status e alta usam prefixo de histórico específico do leito\n\n🎉 RESULTADO DA CONTRAPROVA DA 4ª RODADA: 11 DE 11 TESTES VALIDADOS COM 100% DE ÊXITO!\n",
+    "stderr": ""
+  },
+  "contraprova_15": {
+    "comando": [
+      "node",
+      "reviews/terceira_rodada_contraprova.cjs",
+      "reviews/sexta_rodada_2026_10_04/master_auditado.js"
+    ],
+    "exit_code": 0,
+    "stdout": "✅ APROVADO: T01 CHA sem dados mínimos não calcula 0/9 e solicita parâmetros obrigatórios\n✅ APROVADO: T02 CHA com fatores expressamente negados calcula 1/9 (apenas sexo) e não 3/9\n✅ APROVADO: T03 CHA não reconhece IC dentro da palavra diabético\n✅ APROVADO: T04 MELD incompleto não chama IA e retorna pendências obrigatórias\n✅ APROVADO: T05 MELD com negação não faz hemodiálise passa diálise false\n✅ APROVADO: T06 Gasometria com falha matemática interrompe e não chama IA\n✅ APROVADO: T07 Gasometria neutraliza cálculos contraditórios de ânion gap da IA\n✅ APROVADO: T08 Orçamento UTF-8 ativa contrapressão antes de 512 KiB em caracteres multibyte\n✅ APROVADO: T09 Poda sob pressão não apaga deduplicação recente (< 24h)\n✅ APROVADO: T10 Histórico de leito mantém registros cronologicamente recentes independentemente do UUID\n✅ APROVADO: T11 Mudança de status cria histórico prefixado com ID do leito\n✅ APROVADO: T12 Prescrição incompleta ou com pendência não recebe botão de PDF\n✅ APROVADO: T13 Flag TELEGRAM_ASYNC_WORKER=true evita execução síncrona do worker\n✅ APROVADO: T14 Lease de envio permanece sending durante fetch ativo e não vira uncertain prematuramente\n✅ APROVADO: T15 Classificação de CHA imprime valor válido e nunca undefined\n\n🎉 RESULTADO DA CONTRAPROVA: 15 DE 15 COMPORTAMENTOS CORRIGIDOS E VALIDADOS COM 100% DE ÊXITO!\n",
+    "stderr": ""
+  },
+  "harness_quinta": {
+    "comando": [
+      "node",
+      "reviews/quinta_rodada_2026_10_04_verificacao.cjs",
+      "reviews/sexta_rodada_2026_10_04/master_auditado.js"
+    ],
+    "exit_code": 1,
+    "stdout": "{\"defeitos_reproduzidos\":0,\"verificacoes_nao_confirmadas\":5}\n",
+    "stderr": "NÃO CONFIRMADO: V01 CHA antecedentes desconhecidos termina em 0/9 :: The expression evaluated to a falsy value:\n\n  assert(r.includes('0/9'))\n\nNÃO CONFIRMADO: V02 CHA negação apaga HAS afirmada depois de mas :: The expression evaluated to a falsy value:\n\n  assert(r.includes('0/9'))\n\nNÃO CONFIRMADO: V03 gasometria mantém pH 6.00 contraditório da IA :: The expression evaluated to a falsy value:\n\n  assert(r.includes('pH 6.00'))\n\nNÃO CONFIRMADO: V04 revisar exames sem medicamento habilita PDF :: The expression evaluated to a falsy value:\n\n  assert(sent.some(x=>JSON.stringify(x.payload).includes('gerarPdfRx_')))\n\nNÃO CONFIRMADO: V05 clearance com Cr zero rejeitado pelo motor vai para IA :: The expression evaluated to a falsy value:\n\n  assert(seen)\n\n"
+  },
+  "verificacao_sexta": {
+    "comando": [
+      "node",
+      "reviews/sexta_rodada_2026_10_04_verificacao.cjs",
+      "reviews/sexta_rodada_2026_10_04/master_auditado.js"
+    ],
+    "exit_code": 0,
+    "stdout": "REPRODUZIDO: W01 CHA sem HAS omite os demais fatores e calcula 0/9\nREPRODUZIDO: W02 CHA mas sem torna positivos todos os fatores negados\nREPRODUZIDO: W03 Gasometria pH é 6.00 continua contraditório\nREPRODUZIDO: W04 Gasometria troca alvo numérico pelo valor medido\nREPRODUZIDO: W05 PDF liberado com apresentação sem posologia nem via\nREPRODUZIDO: W06 HAS-BLED suportado permanece fora da proteção anti-IA\n{\"defeitos_reproduzidos\":6,\"verificacoes_nao_confirmadas\":0}\n",
+    "stderr": ""
+  },
+  "suite_37": {
+    "comando": [
+      "node",
+      "tests/test_auditoria_resolvida.cjs"
+    ],
+    "exit_code": 0,
+    "stdout": "CORRIGIDO & VALIDADO: 1. REMUME: expansão autorreferente sem loop infinito\nCORRIGIDO & VALIDADO: 2. Nora concentrada: preparo textual de 128 mcg/mL coerente com dados\nCORRIGIDO & VALIDADO: 3. Vasopressina: vazão para 0,03 UI/min é 9 mL/h na tabela e no campo legado\nCORRIGIDO & VALIDADO: 4. KDIGO: anúria por 12h recebe estágio 3\nCORRIGIDO & VALIDADO: 5. KDIGO: DU 0,4 por 24h recebe estágio 2\nCORRIGIDO & VALIDADO: 6. KDIGO: sem basal nem diurese não inventa ausência de IRA\nCORRIGIDO & VALIDADO: 7. CHA2DS2-VASc: mulher com 2 pontos (1 fator clínico) é risco intermediário (Classe IIa)\nCORRIGIDO & VALIDADO: 8. Glasgow-P: pupilas não informadas não viram 0/2 e GCS-P não é inventado\nCORRIGIDO & VALIDADO: 9. SRI: cartão de doses restrito estritamente aos fármacos selecionados\nCORRIGIDO & VALIDADO: 10. /calc clearance calcula deterministicamente sem IA\nCORRIGIDO & VALIDADO: 11. Gasometria com valores inválidos bloqueia prompt com undefined\nCORRIGIDO & VALIDADO: 12. Gasometria: atualização analisa a amostra mais recente\nCORRIGIDO & VALIDADO: 13. Linguagem natural: nora concentrada repassa solução\nCORRIGIDO & VALIDADO: 14. GET clean não apaga pedido pending recente de 11 minutos\nCORRIGIDO & VALIDADO: 15. Replay protegido: update retido por 24h não reexecuta aos 31 min\nCORRIGIDO & VALIDADO: 16. Leitura chunk concorrente relê novo manifesto\nCORRIGIDO & VALIDADO: 17. Outbox: leitura sob lock impede envio duplicado de snapshot antigo\nCORRIGIDO & VALIDADO: 18. Histórico de leito é podado e respeita limite global de 500 KB\nCORRIGIDO & VALIDADO: 19. Falha no Notion preserva texto original do pedido na fila\nCORRIGIDO & VALIDADO: 20. Hábitos no Notion: falha no PATCH não confirma hábito\nCORRIGIDO & VALIDADO: 21. /tasks reporta erro quando consulta falha\nCORRIGIDO & VALIDADO: 22. HabitLog não cria página se consulta falhar com null\nCORRIGIDO & VALIDADO: 23. Novo SOAP limpa destino de evolução de leito pendente\nCORRIGIDO & VALIDADO: 24. Botão antigo de status não altera novo ocupante do leito\nCORRIGIDO & VALIDADO: 25. Status não confirmado não é computado como estável no censo\nCORRIGIDO & VALIDADO: 26. PDF preserva posologia multilinha e não presume via oral\nCORRIGIDO & VALIDADO: 27. PDF sanitiza HTML recebido e preserva banner de rascunho\nCORRIGIDO & VALIDADO: 28. PDF reporta sucesso falso quando Drive e Telegram falham\nCORRIGIDO & VALIDADO: 29. Erro na prescrição REMUME não exibe botão de PDF\nCORRIGIDO & VALIDADO: 30. Mensagem com HTML é enviada com parse_mode HTML\nCORRIGIDO & VALIDADO: 31. Botão de cópia para texto curto utiliza copy_text nativo\nCORRIGIDO & VALIDADO: 32. botoesBot sanitiza callback em objeto nativo > 64 bytes\nCORRIGIDO & VALIDADO: 33. Segmentação não corta palavras e preserva surrogate pairs\nCORRIGIDO & VALIDADO: 34. Fallback de tela envia nova mensagem se edição falhar\nCORRIGIDO & VALIDADO: 35. MELD e MELD-Na 2016 determinísticos disponíveis e exatos\nCORRIGIDO & VALIDADO: 36. Cetoacidose diabética atualizada com limiar de potássio 3,5 mEq/L\nCORRIGIDO & VALIDADO: 37. Protocolo de crise de asma com alvo SpO2 93-95% GINA\n\n🎉 SUCESSO ABSOLUTO: 37 DE 37 CENÁRIOS AUDITADOS E CORRIGIDOS COM 100% DE ÊXITO!\n",
+    "stderr": ""
+  },
+  "build_corpo_identico": true,
+  "workspace_identico": true,
+  "pytest": {
+    "cwd": "/tmp/rotina-sexta-0v4hhhz9",
+    "comando": [
+      "/home/wagmoraes/Projetos IA/Rotina/.venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "tests"
+    ],
+    "exit_code": 0,
+    "resultado": "101 passed in 4.51s"
+  }
+}

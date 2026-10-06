@@ -1,0 +1,11 @@
+{
+  "IA_PADROES_preservado": true,
+  "IA_PERSONA_preservado": true,
+  "IA_SEGURANCA_MEDICAMENTOSA_preservado": true,
+  "limites_e_raciocinio_provedores_preservados": true,
+  "sha256_master": "491edfd3d16797b7fca381dc803277150e5ce8e048b682adecc52ef7bfb8a29a",
+  "testes_pytest_sem_central_hub": 122,
+  "cenarios_novos_node": 24,
+  "central_hub": "5 testes do scanner passaram; test_api_status_endpoint não concluiu no limite de 20s",
+  "master_corresponde_fontes": true
+}

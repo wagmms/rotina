@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Composição Corporal & Protocolo Mounjaro — Wagner Moraes</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              400: '#4ade80',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+              900: '#14532d'
+            },
+            surface: {
+              800: '#1e293b',
+              850: '#172033',
+              900: '#0f172a',
+              950: '#020617'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glass-card-accent {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(30, 41, 59, 0.7) 100%);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+    @media print {
+      body { background: white !important; color: black !important; }
+      header { position: static !important; border-bottom: 1px solid #ccc !important; }
+      header button, #modal-alimento, button { display: none !important; }
+      .glass-card, .glass-card-accent { background: white !important; color: black !important; border: 1px solid #ddd !important; box-shadow: none !important; }
+      .text-white { color: #111827 !important; }
+      .text-slate-400, .text-slate-300 { color: #4b5563 !important; }
+      #tab-dashboard, #tab-proteinas, #tab-calculadoras, #tab-historico { display: block !important; margin-bottom: 2rem !important; }
+    }
+  </style>
+</head>
+<body class="bg-surface-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white pb-16">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800 bg-surface-900/90 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-bold text-xl">
+          🧬
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            BioComp & Mounjaro OS
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">v2.0 Pro</span>
+          </h1>
+          <p class="text-xs text-slate-400">Wagner Moraes • 173 cm • 28 anos • Mounjaro (Tirzepatida)</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="window.print()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-800/40 transition flex items-center gap-1.5" title="Gerar Laudo para Consulta Médica/Nutricional">
+          📄 <span>Laudo PDF</span>
+        </button>
+        <button onclick="exportarDados()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5" title="Exportar Backup em JSON">
+          💾 <span>Exportar</span>
+        </button>
+        <button onclick="importarDados()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5" title="Restaurar Dados">
+          📥 <span>Importar</span>
+        </button>
+        <button onclick="resetarDadosPadrao()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-300 border border-red-800/30 transition flex items-center gap-1.5" title="Restaurar valores de fábrica">
+          🔄 <span>Reset</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-8">
+
+    <!-- HERO CLINICAL ALERT -->
+    <div class="glass-card-accent rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div class="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
+        <div class="space-y-2 max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-300 text-xs font-semibold">
+            <span>🛡️ DIRETRIZ CLÍNICA DE PROTEÇÃO MUSCULAR (GLP-1/GIP)</span>
+          </div>
+          <h2 class="text-2xl font-bold text-white tracking-tight">
+            Você perdeu 7,70 kg com 84% de perda em GORDURA PURA!
+          </h2>
+          <p class="text-sm text-slate-300 leading-relaxed">
+            De 82,7 kg (22/07) para 75,0 kg (atual), sua perda muscular foi contida em apenas ~1,2 kg. O risco crítico do Mounjaro é a <strong class="text-amber-300 font-semibold">saciedade precoce severa</strong> sabotar a ingestão diária de proteínas e desviar o déficit calórico para catabolismo muscular. Sua meta prioritária atual é ingerir entre <strong class="text-brand-400 font-bold">135g e 150g de proteína/dia (1,8 a 2,0g/kg)</strong> com estratégias anti-saciedade precoce.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 w-full lg:w-auto shrink-0">
+          <div class="bg-surface-900/80 p-3.5 rounded-xl border border-slate-800 text-center">
+            <span class="text-xs text-slate-400 block font-medium">Peso Atual</span>
+            <span class="text-2xl font-black text-white">75,0 <span class="text-sm font-normal text-slate-400">kg</span></span>
+            <span class="text-[11px] text-emerald-400 block mt-0.5">-7,7 kg acumulado</span>
+          </div>
+          <div class="bg-surface-900/80 p-3.5 rounded-xl border border-slate-800 text-center">
+            <span class="text-xs text-slate-400 block font-medium">Gordura Estimada</span>
+            <span class="text-2xl font-black text-amber-400" id="hero-bf">13,5% <span class="text-xs font-normal text-slate-400">médio</span></span>
+            <span class="text-[11px] text-slate-400 block mt-0.5">Siri 11,9% | Navy 15,7%</span>
+          </div>
+          <div class="bg-surface-900/80 p-3.5 rounded-xl border border-slate-800 text-center">
+            <span class="text-xs text-slate-400 block font-medium">Massa Magra</span>
+            <span class="text-2xl font-black text-brand-400">~64,0 <span class="text-sm font-normal text-slate-400">kg</span></span>
+            <span class="text-[11px] text-slate-400 block mt-0.5">MME InBody: ~37kg</span>
+          </div>
+          <div class="bg-surface-900/80 p-3.5 rounded-xl border border-slate-800 text-center">
+            <span class="text-xs text-slate-400 block font-medium">Meta Proteica Diária</span>
+            <span class="text-2xl font-black text-cyan-400">140 <span class="text-sm font-normal text-slate-400">g/dia</span></span>
+            <span class="text-[11px] text-cyan-300 block mt-0.5">1,87 g/kg corporal</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAVEGAÇÃO DE TABS -->
+    <div class="flex border-b border-slate-800 gap-2 overflow-x-auto pb-1 text-sm font-medium">
+      <button onclick="mudarTab('tab-dashboard')" id="btn-tab-dashboard" class="px-4 py-2.5 rounded-t-xl bg-surface-800 text-brand-400 border-b-2 border-brand-500 font-semibold flex items-center gap-2">
+        📊 <span>Evolução & Gráficos</span>
+      </button>
+      <button onclick="mudarTab('tab-proteinas')" id="btn-tab-proteinas" class="px-4 py-2.5 rounded-t-xl hover:bg-surface-800/60 text-slate-400 hover:text-white transition flex items-center gap-2">
+        🍗 <span>Estratégia Proteica Mounjaro</span>
+      </button>
+      <button onclick="mudarTab('tab-calculadoras')" id="btn-tab-calculadoras" class="px-4 py-2.5 rounded-t-xl hover:bg-surface-800/60 text-slate-400 hover:text-white transition flex items-center gap-2">
+        🧮 <span>Calculadora Antropométrica</span>
+      </button>
+      <button onclick="mudarTab('tab-historico')" id="btn-tab-historico" class="px-4 py-2.5 rounded-t-xl hover:bg-surface-800/60 text-slate-400 hover:text-white transition flex items-center gap-2">
+        📜 <span>Registros & InBody</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: DASHBOARD & GRÁFICOS -->
+    <div id="tab-dashboard" class="space-y-6">
+      
+      <!-- Comparativo Métodos Atuais -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="glass-card rounded-2xl p-5 border border-slate-800">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Jackson & Pollock 3 Dobras</span>
+            <span class="text-xs px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20">Adipômetro</span>
+          </div>
+          <div class="text-3xl font-black text-white" id="jp-bf-display">11,9%</div>
+          <p class="text-xs text-slate-400 mt-2">
+            Baseado em Peito (5mm), Abdome (22mm) e Coxa (13mm). Soma = <strong>40mm</strong>.
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between text-xs text-slate-400">
+            <span>Massa Gorda: <strong class="text-slate-200">8,9 kg</strong></span>
+            <span>Massa Magra: <strong class="text-slate-200">66,1 kg</strong></span>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-slate-800">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">US Navy (Circunferências)</span>
+            <span class="text-xs px-2 py-0.5 bg-cyan-500/10 text-cyan-400 rounded border border-cyan-500/20">Fita Métrica</span>
+          </div>
+          <div class="text-3xl font-black text-white" id="navy-bf-display">15,7%</div>
+          <p class="text-xs text-slate-400 mt-2">
+            Baseado em Cintura (82cm), Pescoço (37cm) e Altura (173cm).
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between text-xs text-slate-400">
+            <span>Massa Gorda: <strong class="text-slate-200">11,8 kg</strong></span>
+            <span>Massa Magra: <strong class="text-slate-200">63,2 kg</strong></span>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 border border-slate-800">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">InBody 270 (Último Exame)</span>
+            <span class="text-xs px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded border border-purple-500/20">24/09/2026</span>
+          </div>
+          <div class="text-3xl font-black text-white">15,4%</div>
+          <p class="text-xs text-slate-400 mt-2">
+            Peso no exame: 76,7kg • Massa Muscular: 37,4kg • TMB: 1771 kcal.
+          </p>
+          <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between text-xs text-slate-400">
+            <span>Massa Gorda: <strong class="text-slate-200">11,8 kg</strong></span>
+            <span>Massa Magra: <strong class="text-slate-200">64,9 kg</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Explicação Clínica da Divergência das Dobras vs Navy -->
+      <div class="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 text-xs text-slate-300 flex items-start gap-3">
+        <span class="text-xl">💡</span>
+        <div class="space-y-1">
+          <strong class="text-slate-100 font-semibold">Por que Jackson-Pollock indica 11,9% e a Marinha/InBody indicam ~15,5%?</strong>
+          <p class="text-slate-400 leading-relaxed">
+            Seus membros estão extremamente secos (peitoral com incríveis 5mm e coxa com 13mm), enquanto a gordura corporal residual está concentrada no tecido subcutâneo e visceral abdominal (abdome 22mm e cintura 82cm). O protocolo de 3 dobras dá um peso idêntico aos 3 pontos, o que tende a puxar a estimativa para baixo. A estimativa real mais fidedigna está na faixa de <strong class="text-brand-400">13,5% a 14,5% de gordura corporal</strong>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Gráficos Principais -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Gráfico 1: Peso vs Músculo vs Gordura -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-800">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-white">Composição Corporal Absoluta (kg)</h3>
+              <p class="text-xs text-slate-400">Acompanhamento de Peso, Massa Muscular e Gordura</p>
+            </div>
+            <span class="text-xs text-slate-500 font-mono">InBody + Check-in</span>
+          </div>
+          <div class="h-72">
+            <canvas id="chart-kg"></canvas>
+          </div>
+        </div>
+
+        <!-- Gráfico 2: Percentual de Gordura (%) -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-800">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-white">Percentual de Gordura Corporal (%)</h3>
+              <p class="text-xs text-slate-400">Trajetória de secagem desde o início do Mounjaro</p>
+            </div>
+            <span class="text-xs text-emerald-400 font-semibold">Tendência: Decrescente ↘</span>
+          </div>
+          <div class="h-72">
+            <canvas id="chart-bf"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Análise de Particionamento de Perda (Gordura vs Músculo) -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800">
+        <h3 class="text-base font-bold text-white mb-1">Balanço de Proteção Muscular (Fase a Fase)</h3>
+        <p class="text-xs text-slate-400 mb-4">Em tratamentos com GLP-1 sem controle, a perda muscular média varia de 25% a 40%. Veja seu desempenho:</p>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-surface-900 text-slate-400 uppercase font-semibold border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4">Período</th>
+                <th class="py-3 px-4">Variação de Peso</th>
+                <th class="py-3 px-4">Gordura Perdida</th>
+                <th class="py-3 px-4">Músculo Poupado / Perdido</th>
+                <th class="py-3 px-4">Qualidade da Perda</th>
+                <th class="py-3 px-4">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 font-medium">
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3 px-4 font-semibold text-white">22/07 ➔ 21/08</td>
+                <td class="py-3 px-4 text-amber-300">-4,10 kg</td>
+                <td class="py-3 px-4 text-emerald-400">-2,90 kg (70,7%)</td>
+                <td class="py-3 px-4 text-red-300">-0,80 kg (29,3% MME)</td>
+                <td class="py-3 px-4">Típica do choque inicial do GLP-1</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Atenção</span></td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3 px-4 font-semibold text-white">21/08 ➔ 24/09</td>
+                <td class="py-3 px-4 text-amber-300">-1,90 kg</td>
+                <td class="py-3 px-4 text-emerald-400">-1,70 kg (89,5%)</td>
+                <td class="py-3 px-4 text-emerald-300">-0,20 kg (10,5% MME)</td>
+                <td class="py-3 px-4">Retenção de massa magra de nível atlético</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Excelente</span></td>
+              </tr>
+              <tr class="hover:bg-slate-800/30">
+                <td class="py-3 px-4 font-semibold text-white">24/09 ➔ 04/10 (Atual)</td>
+                <td class="py-3 px-4 text-amber-300">-1,70 kg</td>
+                <td class="py-3 px-4 text-emerald-400">~ -1,50 kg est.</td>
+                <td class="py-3 px-4 text-cyan-300">Preservação prioritária</td>
+                <td class="py-3 px-4">Cintura desceu para 82cm</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">Zona Alvo</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: ESTRATÉGIAS MOUNJARO PARA PROTEÍNAS -->
+    <div id="tab-proteinas" class="space-y-6 hidden">
+      
+      <div class="glass-card rounded-2xl p-6 border border-slate-800">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-cyan-500/10 text-cyan-400 text-xs font-semibold mb-2 border border-cyan-500/20">
+            <span>🥩 DIRETRIZ PERSONALIZADA: SEMPRE UM OU OUTRO + COMIDA REAL</span>
+          </div>
+          <h2 class="text-xl font-bold text-white mb-2">Protocolo de Alta Densidade: ~115g em Comida Real + 1 Único Suplemento Diário</h2>
+          <p class="text-sm text-slate-300 leading-relaxed">
+            Você definiu uma regra clara e assertiva: <strong class="text-brand-400">nunca tomar Whey e YoPro juntos no mesmo dia</strong>. Em cada dia você escolhe apenas <strong>UM OU OUTRO</strong> (máximo 1 dose/garrafinha = 25g a 30g de suplemento), e todo o restante da meta proteica (<strong class="text-cyan-300">~115g a 120g de proteína</strong>) vem exclusivamente de <strong class="text-white">comida sólida de verdade</strong> (sem ovos).
+          </p>
+        </div>
+
+        <!-- 4 Regras de Ouro Mounjaro para Comida Real -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+          <div class="bg-surface-900/90 p-4 rounded-xl border border-slate-800">
+            <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold mb-2">1</div>
+            <h4 class="text-sm font-semibold text-white mb-1">Regra "Um ou Outro"</h4>
+            <p class="text-xs text-slate-400">Dia de Whey: zero YoPro. Dia de YoPro: zero Whey. Apenas 1 apoio líquido/prático diário para não depender de shakes.</p>
+          </div>
+          <div class="bg-surface-900/90 p-4 rounded-xl border border-slate-800">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold mb-2">2</div>
+            <h4 class="text-sm font-semibold text-white mb-1">115g em Comida Real</h4>
+            <p class="text-xs text-slate-400">Distribuídas em 3 refeições sólidas (Almoço, Tarde/Lanche e Jantar) com 35g a 50g de proteína pura por refeição.</p>
+          </div>
+          <div class="bg-surface-900/90 p-4 rounded-xl border border-slate-800">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold mb-2">3</div>
+            <h4 class="text-sm font-semibold text-white mb-1">Carnes Moídas ou Desfiadas</h4>
+            <p class="text-xs text-slate-400">No Mounjaro, bife seco empanturra após 4 garfadas. Moer a alcatra 2x ou desfiar o suíno/frango quadruplica a digestibilidade.</p>
+          </div>
+          <div class="bg-surface-900/90 p-4 rounded-xl border border-slate-800">
+            <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold mb-2">4</div>
+            <h4 class="text-sm font-semibold text-white mb-1">Comer a Proteína Primeiro</h4>
+            <p class="text-xs text-slate-400">Em cada prato, coma 100% da carne ou peixe antes de tocar no arroz ou acompanhamentos para a saciedade não bloquear a meta.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- MONITOR DO CICLO SEMANAL DO MOUNJARO & SUPORTE GÁSTRICO -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Ciclo Farmacocinético Semanal (D1 a D7) -->
+        <div class="lg:col-span-2 glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span>💉 Ciclo Farmacocinético Semanal da Tirzepatida</span>
+              </h3>
+              <p class="text-[11px] text-slate-400">O apetite varia drasticamente conforme a meia-vida da droga (5 dias). Selecione seu dia pós-aplicação:</p>
+            </div>
+            <span id="badge-ciclo-status" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">D1: Pico Máximo</span>
+          </div>
+
+          <!-- Botões dos Dias D1 a D7 -->
+          <div class="grid grid-cols-7 gap-1.5" id="botoes-ciclo-dias">
+            <button onclick="selecionarDiaCiclo(1)" id="btn-dia-1" class="py-2 rounded-lg text-xs font-bold transition bg-brand-600 text-white shadow-sm">D1</button>
+            <button onclick="selecionarDiaCiclo(2)" id="btn-dia-2" class="py-2 rounded-lg text-xs font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300">D2</button>
+            <button onclick="selecionarDiaCiclo(3)" id="btn-dia-3" class="py-2 rounded-lg text-xs font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300">D3</button>
+            <button onclick="selecionarDiaCiclo(4)" id="btn-dia-4" class="py-2 rounded-lg text-xs font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300">D4</button>
+            <button onclick="selecionarDiaCiclo(5)" id="btn-dia-5" class="py-2 rounded-lg text-xs font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300">D5</button>
+            <button onclick="selecionarDiaCiclo(6)" id="btn-dia-6" class="py-2 rounded-lg text-xs font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300">D6</button>
+            <button onclick="selecionarDiaCiclo(7)" id="btn-dia-7" class="py-2 rounded-lg text-xs font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300">D7</button>
+          </div>
+
+          <!-- Painel Dinâmico do Dia Selecionado -->
+          <div class="p-3.5 rounded-xl bg-surface-900/90 border border-slate-800 space-y-2 text-xs">
+            <div class="flex justify-between items-center text-slate-300 font-medium">
+              <span>Nível Sérico Estimado: <strong class="text-white" id="ciclo-nivel-serico">100% (Pico Plasmático Cmax)</strong></span>
+              <span id="ciclo-apetite-status" class="text-amber-400 font-semibold">Apetite: Mínimo / Risco de Náusea</span>
+            </div>
+            <p id="ciclo-orientacao-clinica" class="text-slate-400 leading-relaxed text-[11px]">
+              Nas primeiras 24-48h pós-aplicação, o esvaziamento gástrico atinge lentidão máxima. <strong>Não force carnes pesadas em quantidade.</strong> Use seu único apoio líquido (Whey gelado ou YoPro) para garantir as primeiras 25-30g e monte as refeições sólidas com peixes leves ou atum.
+            </p>
+          </div>
+        </div>
+
+        <!-- Rastreador de Suporte Gástrico (Água & Fibras Anti-Constipação) -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
+          <div>
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span>💧 Hidratação & Fibras GLP-1</span>
+            </h3>
+            <p class="text-[11px] text-slate-400">Prevenção contra constipação e cefaleia por déficit hídrico</p>
+          </div>
+
+          <!-- Água -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300">Água: <strong class="text-cyan-400" id="display-agua">1.500 ml</strong> / 2.600 ml</span>
+              <span class="text-slate-400 text-[10px]">Meta: 35ml/kg</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+              <div id="bar-agua" class="bg-cyan-500 h-full rounded-full transition-all duration-300" style="width: 58%"></div>
+            </div>
+            <div class="flex gap-2 pt-1">
+              <button onclick="adicionarAgua(250)" class="flex-1 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded border border-slate-700 transition">+250ml</button>
+              <button onclick="adicionarAgua(500)" class="flex-1 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded border border-slate-700 transition">+500ml</button>
+              <button onclick="zerarAgua()" class="px-2 py-1 text-[10px] bg-slate-900 text-slate-500 hover:text-slate-400 rounded transition">Zerar</button>
+            </div>
+          </div>
+
+          <!-- Fibras -->
+          <div class="space-y-1.5 pt-2 border-t border-slate-800">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-300">Fibras Solúveis: <strong class="text-emerald-400" id="display-fibras">15g</strong> / 25g</span>
+              <span class="text-slate-400 text-[10px]">Psyllium / Feijão</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+              <div id="bar-fibras" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 60%"></div>
+            </div>
+            <div class="flex gap-2 pt-1">
+              <button onclick="adicionarFibra(5)" class="flex-1 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-emerald-300 rounded border border-slate-700 transition">+5g Psyllium</button>
+              <button onclick="zerarFibra()" class="px-2 py-1 text-[10px] bg-slate-900 text-slate-500 hover:text-slate-400 rounded transition">Zerar</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SIMULADOR INTERATIVO DE CARDÁPIO DO DIA -->
+      <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              Simulador Dinâmico: Comida Real + Suplemento Único
+            </h3>
+            <p class="text-xs text-slate-400">Regra: Sempre um ou outro (Whey OU YoPro no dia) + o restante em comida sólida.</p>
+          </div>
+          
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="carregarPresetWhey()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center gap-1.5 shadow-sm">
+              <span>🥤 Dia com Whey</span>
+            </button>
+            <button onclick="carregarPresetYoPro()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition flex items-center gap-1.5 shadow-sm">
+              <span>🥛 Dia com YoPro</span>
+            </button>
+            <button onclick="limparCardapio()" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Limpar todas as refeições">
+              <span>🧹 Limpar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Painel de Divisão da Proteína: Comida Real vs Suplemento Único -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-surface-900/90 border border-slate-800">
+          <div>
+            <span class="text-[11px] text-slate-400 block font-medium">🥩 Proteína em Comida Real</span>
+            <span class="text-xl font-black text-emerald-400" id="prot-comida-display">0,0g</span>
+            <span class="text-[10px] text-slate-400 block">Carnes, peixes, laticínios ZL, grãos</span>
+          </div>
+          <div>
+            <span class="text-[11px] text-slate-400 block font-medium">🥤 Suplemento Líquido Único</span>
+            <span class="text-xl font-black text-cyan-400" id="prot-supl-display">0,0g</span>
+            <span class="text-[10px] text-slate-400 block" id="supl-nome-display">Nenhum no momento</span>
+          </div>
+          <div>
+            <span class="text-[11px] text-slate-400 block font-medium">🎯 Total do Dia</span>
+            <span class="text-xl font-black text-brand-400" id="total-prot-simulador">0,0 <span class="text-xs font-normal text-slate-400">/ 140g</span></span>
+            <div id="badge-regra-supl" class="text-[10px] font-semibold text-emerald-400 mt-0.5">✅ Regra "Um ou outro" OK</div>
+          </div>
+        </div>
+
+        <!-- Barra de Progresso da Proteína -->
+        <div class="space-y-1.5">
+          <div class="flex justify-between text-xs font-medium">
+            <span class="text-slate-400">Progresso Proteico Total: <span id="percent-prot-bar" class="text-white font-bold">0%</span></span>
+            <span id="status-prot-bar" class="text-amber-400">Faltam 140g para a meta</span>
+          </div>
+          <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden p-0.5">
+            <div id="prog-prot-bar" class="bg-gradient-to-r from-emerald-500 to-brand-400 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- As 4 Refeições Fracionadas -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="slots-refeicoes">
+          
+          <!-- Bloco 1: Café da Manhã Líquido/Fácil -->
+          <div class="bg-surface-900/90 rounded-xl p-4 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-cyan-400">🌅 Bloco 1: Manhã (08:00 - 09:00)</span>
+              <span class="text-xs font-mono font-bold text-slate-200" id="slot-1-subtotal">0g prot</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Manhã após acordar: o estômago ainda está vazio. Ideal para absorção líquida.</p>
+            <div class="space-y-2" id="slot-1-itens"></div>
+            <button onclick="adicionarItemRefeicao(1)" class="w-full py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-lg border border-slate-700/60 transition flex items-center justify-center gap-1">
+              + Adicionar Alimento
+            </button>
+          </div>
+
+          <!-- Bloco 2: Almoço Magro & Úmido -->
+          <div class="bg-surface-900/90 rounded-xl p-4 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">☀️ Bloco 2: Almoço (12:30 - 13:30)</span>
+              <span class="text-xs font-mono font-bold text-slate-200" id="slot-2-subtotal">0g prot</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Foco em carnes nobres macias + pouco carboidrato para não empanturrar.</p>
+            <div class="space-y-2" id="slot-2-itens"></div>
+            <button onclick="adicionarItemRefeicao(2)" class="w-full py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-lg border border-slate-700/60 transition flex items-center justify-center gap-1">
+              + Adicionar Alimento
+            </button>
+          </div>
+
+          <!-- Bloco 3: Lanche Proteico Estratégico -->
+          <div class="bg-surface-900/90 rounded-xl p-4 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-400">🕒 Bloco 3: Tarde (16:30 - 17:30)</span>
+              <span class="text-xs font-mono font-bold text-slate-200" id="slot-3-subtotal">0g prot</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Janela onde o apetite some completamente. Soluções práticas prontas para beber.</p>
+            <div class="space-y-2" id="slot-3-itens"></div>
+            <button onclick="adicionarItemRefeicao(3)" class="w-full py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-lg border border-slate-700/60 transition flex items-center justify-center gap-1">
+              + Adicionar Alimento
+            </button>
+          </div>
+
+          <!-- Bloco 4: Jantar Leve / Ceia Digestiva -->
+          <div class="bg-surface-900/90 rounded-xl p-4 border border-slate-800 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-purple-400">🌙 Bloco 4: Jantar/Ceia (20:00 - 21:00)</span>
+              <span class="text-xs font-mono font-bold text-slate-200" id="slot-4-subtotal">0g prot</span>
+            </div>
+            <p class="text-[11px] text-slate-400">Peixes leves ou segundo shake leve. Evite gorduras pesadas antes de deitar.</p>
+            <div class="space-y-2" id="slot-4-itens"></div>
+            <button onclick="adicionarItemRefeicao(4)" class="w-full py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-lg border border-slate-700/60 transition flex items-center justify-center gap-1">
+              + Adicionar Alimento
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- GUIA DE ALIMENTOS CAMPEÕES (Custo por Proteína e Digestibilidade) -->
+      <div class="glass-card rounded-2xl p-6 border border-slate-800">
+        <h3 class="text-base font-bold text-white mb-2">Tabela de Densidade Proteica Recomendada para Sua Rotina</h3>
+        <p class="text-xs text-slate-400 mb-4">Baseada no catálogo do Tenda Atacado RP, sem ovos e com máxima facilidade digestiva sob Mounjaro:</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="p-4 rounded-xl bg-surface-900/80 border border-slate-800 space-y-2">
+            <span class="text-xs font-semibold text-brand-400 uppercase tracking-wide">🏆 Padrão-Ouro Digestivo</span>
+            <h4 class="text-sm font-bold text-white">Whey Protein Isolado / 100% Concentrado</h4>
+            <ul class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+              <li><strong>Proteína:</strong> 24g por dose (30g)</li>
+              <li><strong>Volume:</strong> 200ml de água fria</li>
+              <li><strong>Vantagem Mounjaro:</strong> Não exige mastigação, digestão em 45 min, zero empachamento.</li>
+            </ul>
+          </div>
+
+          <div class="p-4 rounded-xl bg-surface-900/80 border border-slate-800 space-y-2">
+            <span class="text-xs font-semibold text-blue-400 uppercase tracking-wide">🥤 Praticidade Portátil</span>
+            <h4 class="text-sm font-bold text-white">YoPro / Itambé PRO (Zero Lactose)</h4>
+            <ul class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+              <li><strong>Proteína:</strong> 15g a 25g por garrafinha</li>
+              <li><strong>Volume:</strong> 250ml líquido</li>
+              <li><strong>Vantagem Mounjaro:</strong> Sabor agradável, gelado corta leve sensação de náusea.</li>
+            </ul>
+          </div>
+
+          <div class="p-4 rounded-xl bg-surface-900/80 border border-slate-800 space-y-2">
+            <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wide">🥩 Carne Sólida Nobre</span>
+            <h4 class="text-sm font-bold text-white">Filé Mignon Suíno / Miolo de Alcatra</h4>
+            <ul class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+              <li><strong>Proteína:</strong> ~26g a 27g por 100g</li>
+              <li><strong>Preparo:</strong> Moído ou iscas tenras com molho</li>
+              <li><strong>Vantagem Mounjaro:</strong> Menos seco que peito de frango tradicional, desce suave.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 3: CALCULADORAS ANTROPOMÉTRICAS -->
+    <div id="tab-calculadoras" class="space-y-6 hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Calculadora Jackson-Pollock 3 Dobras -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white">Protocolo Jackson & Pollock (3 Dobras)</h3>
+            <span class="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Homens</span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Calcula a densidade corporal através da soma das dobras de Peitoral, Abdome e Coxa, aplicando a Equação de Siri e Brozek.
+          </p>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-300 block mb-1">Idade (anos)</label>
+              <input type="number" id="calc-jp-idade" value="28" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs text-slate-300 block mb-1">Peso Atual (kg)</label>
+              <input type="number" step="0.1" id="calc-jp-peso" value="75.0" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs text-slate-300 block mb-1">Dobra Peitoral (mm)</label>
+              <input type="number" step="0.5" id="calc-jp-peito" value="5.0" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs text-slate-300 block mb-1">Dobra Abdominal (mm)</label>
+              <input type="number" step="0.5" id="calc-jp-abd" value="22.0" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-brand-500 outline-none">
+            </div>
+            <div class="col-span-2 sm:col-span-1">
+              <label class="text-xs text-slate-300 block mb-1">Dobra da Coxa (mm)</label>
+              <input type="number" step="0.5" id="calc-jp-coxa" value="13.0" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-brand-500 outline-none">
+            </div>
+            <div class="col-span-2 sm:col-span-1 flex items-end">
+              <button onclick="recalcularJP()" class="w-full py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition">
+                Calcular JP-3
+              </button>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-surface-900/80 border border-slate-800 space-y-2 mt-4">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400">Soma das 3 Dobras (Σ3):</span>
+              <span class="font-bold text-white" id="res-jp-soma">40,0 mm</span>
+            </div>
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400">Densidade Corporal (D):</span>
+              <span class="font-mono text-cyan-300 font-bold" id="res-jp-densidade">1,0717 g/cm³</span>
+            </div>
+            <div class="flex justify-between items-center text-xs pt-1 border-t border-slate-800">
+              <span class="text-slate-300 font-medium">Gordura Corporal (Fórmula Siri):</span>
+              <span class="text-base font-black text-brand-400" id="res-jp-siri">11,91%</span>
+            </div>
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400">Gordura Corporal (Fórmula Brozek):</span>
+              <span class="font-semibold text-slate-300" id="res-jp-brozek">12,22%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calculadora US Navy -->
+        <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white">Método da Marinha Americana (US Navy)</h3>
+            <span class="text-xs text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">Circunferências</span>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Equação logarítmica amplamente utilizada pelas forças armadas americanas baseada em Altura, Pescoço e Cintura.
+          </p>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-300 block mb-1">Altura (cm)</label>
+              <input type="number" id="calc-navy-altura" value="173" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-brand-500 outline-none">
+            </div>
+            <div>
+              <label class="text-xs text-slate-300 block mb-1">Pescoço (cm)</label>
+              <input type="number" step="0.5" id="calc-navy-pescoco" value="37.0" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-brand-500 outline-none">
+            </div>
+            <div class="col-span-2 sm:col-span-1">
+              <label class="text-xs text-slate-300 block mb-1">Cintura Umbilical (cm)</label>
+              <input type="number" step="0.5" id="calc-navy-cintura" value="82.0" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-brand-500 outline-none">
+            </div>
+            <div class="col-span-2 sm:col-span-1 flex items-end">
+              <button onclick="recalcularNavy()" class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold transition">
+                Calcular Navy
+              </button>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-surface-900/80 border border-slate-800 space-y-2 mt-4">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400">Gradiente Cintura - Pescoço:</span>
+              <span class="font-bold text-white" id="res-navy-gradiente">45,0 cm</span>
+            </div>
+            <div class="flex justify-between items-center text-xs pt-1 border-t border-slate-800">
+              <span class="text-slate-300 font-medium">Gordura Corporal (US Navy):</span>
+              <span class="text-base font-black text-cyan-400" id="res-navy-bf">15,69%</span>
+            </div>
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-slate-400">Classificação:</span>
+              <span class="font-semibold text-emerald-400">Fitness / Saudável Atlético</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Calculadora de Gasto Energético (Katch-McArdle) -->
+      <div class="glass-card rounded-2xl p-6 border border-slate-800">
+        <h3 class="text-base font-bold text-white mb-1">Taxa Metabólica Basal & Gasto Diário (Katch-McArdle)</h3>
+        <p class="text-xs text-slate-400 mb-4">
+          A fórmula mais precisa para quem conhece sua composição corporal, pois calcula a energia basal a partir da <strong>massa livre de gordura</strong>:
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-surface-900/90 p-4 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 block">TMB Katch-McArdle</span>
+            <span class="text-2xl font-black text-white" id="tmb-katch">1730 <span class="text-xs font-normal text-slate-400">kcal</span></span>
+            <span class="text-[11px] text-slate-400 block mt-1">InBody marcou 1771 kcal</span>
+          </div>
+          <div class="bg-surface-900/90 p-4 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 block">Gasto Total com Treino (1.4x)</span>
+            <span class="text-2xl font-black text-brand-400" id="get-treino">2420 <span class="text-xs font-normal text-slate-400">kcal</span></span>
+            <span class="text-[11px] text-slate-400 block mt-1">Musculação moderada</span>
+          </div>
+          <div class="bg-surface-900/90 p-4 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 block">Déficit Mounjaro Seguro</span>
+            <span class="text-2xl font-black text-amber-400">1800 - 1950 <span class="text-xs font-normal text-slate-400">kcal</span></span>
+            <span class="text-[11px] text-emerald-400 block mt-1">Preserva massa magra</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: HISTÓRICO COMPLETO & INSERIR NOVO REGISTRO -->
+    <div id="tab-historico" class="space-y-6 hidden">
+      
+      <!-- Formulário de Novo Check-in -->
+      <div class="glass-card rounded-2xl p-6 border border-slate-800">
+        <h3 class="text-base font-bold text-white mb-2">Adicionar Novo Check-in de Medidas</h3>
+        <p class="text-xs text-slate-400 mb-4">Insira novas pesagens ou dobras para atualizar imediatamente os gráficos e métricas.</p>
+        
+        <form id="form-novo-registro" onsubmit="salvarNovoRegistro(event)" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          <div>
+            <label class="text-[11px] text-slate-300 block mb-1">Data</label>
+            <input type="date" id="reg-data" required class="w-full bg-surface-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white outline-none">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-300 block mb-1">Peso (kg)</label>
+            <input type="number" step="0.1" id="reg-peso" required placeholder="75.0" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white outline-none">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-300 block mb-1">Peito (mm)</label>
+            <input type="number" step="0.5" id="reg-peito" placeholder="5.0" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white outline-none">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-300 block mb-1">Abdome (mm)</label>
+            <input type="number" step="0.5" id="reg-abd" placeholder="22.0" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white outline-none">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-300 block mb-1">Coxa (mm)</label>
+            <input type="number" step="0.5" id="reg-coxa" placeholder="13.0" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white outline-none">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-300 block mb-1">Cintura (cm)</label>
+            <input type="number" step="0.5" id="reg-cintura" placeholder="82.0" class="w-full bg-surface-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white outline-none">
+          </div>
+          <div class="flex items-end">
+            <button type="submit" class="w-full py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition">
+              Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tabela Histórica Completa -->
+      <div class="glass-card rounded-2xl p-6 border border-slate-800">
+        <h3 class="text-base font-bold text-white mb-4">Linha do Tempo de Avaliações</h3>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-surface-900 text-slate-400 uppercase font-semibold border-b border-slate-800">
+              <tr>
+                <th class="py-3 px-4">Data</th>
+                <th class="py-3 px-4">Tipo</th>
+                <th class="py-3 px-4">Peso (kg)</th>
+                <th class="py-3 px-4">Gordura (%)</th>
+                <th class="py-3 px-4">Massa Muscular (kg)</th>
+                <th class="py-3 px-4">Massa Gorda (kg)</th>
+                <th class="py-3 px-4">Detalhes</th>
+                <th class="py-3 px-4 text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-historico-corpo" class="divide-y divide-slate-800/60">
+              <!-- Renderizado via Javascript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL / DIALOG PARA SELECIONAR ALIMENTO DO SIMULADOR -->
+  <div id="modal-alimento" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-card bg-surface-900 rounded-2xl max-w-md w-full p-6 border border-slate-700 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white">Adicionar Alimento Proteico</h3>
+        <button onclick="fecharModalAlimento()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs text-slate-300 block mb-1">Selecione o Alimento</label>
+          <select id="modal-select-alimento" onchange="atualizarPreviewModal()" class="w-full bg-surface-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
+            <!-- Opções injetadas dinamicamente -->
+          </select>
+        </div>
+
+        <div>
+          <label class="text-xs text-slate-300 block mb-1">Porção / Quantidade</label>
+          <div class="flex items-center gap-2">
+            <input type="number" id="modal-qtd-alimento" value="1" min="0.1" step="0.5" oninput="atualizarPreviewModal()" class="w-24 bg-surface-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none">
+            <span id="modal-unidade-alimento" class="text-xs text-slate-400">porção</span>
+          </div>
+        </div>
+
+        <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+          <span class="text-slate-400">Proteína que será somada:</span>
+          <span id="modal-prot-preview" class="font-bold text-brand-400 text-sm">24.0g</span>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="confirmarAdicionarItem()" class="flex-1 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition">
+          Confirmar no Cardápio
+        </button>
+        <button onclick="fecharModalAlimento()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // BANCO DE DADOS & ESTADO INICIAL
+    // ==========================================
+    const DADOS_INICIAIS = {
+      perfil: {
+        nome: "Wagner Moraes de Souza",
+        idade: 28,
+        altura: 173,
+        pesoAtual: 75.0,
+        cinturaAtual: 82.0,
+        pescocoAtual: 37.0,
+        dobras: { peito: 5.0, abdome: 22.0, coxa: 13.0 }
+      },
+      registros: [
+        {
+          id: "rec-1",
+          data: "2026-07-22",
+          tipo: "InBody 270",
+          peso: 82.7,
+          mme: 38.4,
+          gorduraKg: 16.4,
+          bf: 19.8,
+          tmb: 1802,
+          cinturaQuadril: 0.95,
+          visceral: 6,
+          detalhes: "Exame inicial pré-choque Mounjaro"
+        },
+        {
+          id: "rec-2",
+          data: "2026-08-21",
+          tipo: "InBody 270",
+          peso: 78.6,
+          mme: 37.6,
+          gorduraKg: 13.5,
+          bf: 17.2,
+          tmb: 1776,
+          cinturaQuadril: 0.92,
+          visceral: 5,
+          detalhes: "Perda acentuada de 4.1kg no 1º mês"
+        },
+        {
+          id: "rec-3",
+          data: "2026-09-24",
+          tipo: "InBody 270",
+          peso: 76.7,
+          mme: 37.4,
+          gorduraKg: 11.8,
+          bf: 15.4,
+          tmb: 1771,
+          cinturaQuadril: 0.90,
+          visceral: 4,
+          detalhes: "Alta preservação muscular (90% gordura perdida)"
+        },
+        {
+          id: "rec-4",
+          data: "2026-10-04",
+          tipo: "Antropometria (Adipômetro + Fita)",
+          peso: 75.0,
+          mme: 37.2,
+          gorduraKg: 9.8,
+          bf: 13.5,
+          tmb: 1730,
+          cinturaQuadril: 0.89,
+          visceral: 4,
+          detalhes: "Peito 5mm, Abd 22mm, Coxa 13mm, Cintura 82cm"
+        }
+      ],
+      alimentosRef: [
+        { id: "whey_iso", nome: "Whey Protein Isolado / 100% (Dose)", unidade: "dose (30g)", protPorUn: 24.0, categoria: "Suplemento" },
+        { id: "yopro_15g", nome: "YoPro Líquido 15g Prot", unidade: "garrafa (250ml)", protPorUn: 15.0, categoria: "Líquido Prático" },
+        { id: "yopro_25g", nome: "YoPro Líquido 25g Prot", unidade: "garrafa (250ml)", protPorUn: 25.0, categoria: "Líquido Prático" },
+        { id: "leite_desn_zero", nome: "Leite Desnatado Zero Lactose 250ml", unidade: "copo (250ml)", protPorUn: 8.0, categoria: "Comida Real" },
+        { id: "pao_forma_fatias", nome: "Pão de Forma (2 fatias)", unidade: "porção (50g)", protPorUn: 4.5, categoria: "Comida Real" },
+        { id: "mussarela_fatias", nome: "Queijo Mussarela (2 fatias)", unidade: "porção (30g)", protPorUn: 7.2, categoria: "Comida Real" },
+        { id: "mignon_suino_100g", nome: "Filé Mignon Suíno Macio", unidade: "porção (100g)", protPorUn: 26.5, categoria: "Comida Real" },
+        { id: "alcatra_moida_100g", nome: "Miolo de Alcatra Moído 2x", unidade: "porção (100g)", protPorUn: 26.0, categoria: "Comida Real" },
+        { id: "frango_desfiado_100g", nome: "Filé de Frango Desfiado Úmido", unidade: "porção (100g)", protPorUn: 27.0, categoria: "Comida Real" },
+        { id: "merluza_grelhada_100g", nome: "Filé de Merluza Grelhado", unidade: "porção (100g)", protPorUn: 19.5, categoria: "Comida Real" },
+        { id: "tilapia_100g", nome: "Filé de Tilápia Grelhado", unidade: "porção (100g)", protPorUn: 22.0, categoria: "Comida Real" },
+        { id: "atum_solido_lata", nome: "Atum Sólido em Água (Lata inteira)", unidade: "lata (120g)", protPorUn: 30.0, categoria: "Comida Real" },
+        { id: "feijao_concha", nome: "Feijão Carioca Cozido (1 concha)", unidade: "concha (100g)", protPorUn: 6.5, categoria: "Comida Real" }
+      ],
+      refeicoesPlano: {
+        1: [
+          { alimentoId: "whey_iso", qtd: 1 },
+          { alimentoId: "leite_desn_zero", qtd: 1 },
+          { alimentoId: "pao_forma_fatias", qtd: 1 },
+          { alimentoId: "mussarela_fatias", qtd: 1 }
+        ],
+        2: [
+          { alimentoId: "mignon_suino_100g", qtd: 1.6 },
+          { alimentoId: "feijao_concha", qtd: 1 }
+        ],
+        3: [
+          { alimentoId: "atum_solido_lata", qtd: 1 }
+        ],
+        4: [
+          { alimentoId: "merluza_grelhada_100g", qtd: 1.5 }
+        ]
+      }
+    };
+
+    // Obter do localStorage ou inicializar com proteção para mobile
+    function obterEstadoSalvo() {
+      try {
+        const salvo = localStorage.getItem('biocomp_mounjaro_state');
+        return salvo ? JSON.parse(salvo) : JSON.parse(JSON.stringify(DADOS_INICIAIS));
+      } catch (e) {
+        console.warn('Armazenamento local restrito:', e);
+        return JSON.parse(JSON.stringify(DADOS_INICIAIS));
+      }
+    }
+
+    let estadoApp = obterEstadoSalvo();
+
+    function salvarEstado() {
+      try {
+        localStorage.setItem('biocomp_mounjaro_state', JSON.stringify(estadoApp));
+      } catch (e) {
+        console.warn('Não foi possível salvar no localStorage:', e);
+      }
+    }
+
+
+    // ==========================================
+    // FÓRMULAS CIENTÍFICAS
+    // ==========================================
+    function calcularJacksonPollock3(idade, peito, abd, coxa) {
+      const soma = peito + abd + coxa;
+      // Jackson & Pollock (1978) - Homens
+      const densidade = 1.10938 - (0.0008267 * soma) + (0.0000016 * Math.pow(soma, 2)) - (0.0002574 * idade);
+      const siri = ((4.95 / densidade) - 4.50) * 100;
+      const brozek = ((4.57 / densidade) - 4.142) * 100;
+      return {
+        soma,
+        densidade,
+        siri: Math.max(3, siri),
+        brozek: Math.max(3, brozek)
+      };
+    }
+
+    function calcularUSNavyHomens(altura, pescoco, cintura) {
+      // US Navy Equation (Men): %BF = 495 / (1.0324 - 0.19077*log10(waist-neck) + 0.15456*log10(height)) - 450
+      const diff = cintura - pescoco;
+      if (diff <= 0) return 10.0;
+      const logDiff = Math.log10(diff);
+      const logHeight = Math.log10(altura);
+      const denom = 1.0324 - (0.19077 * logDiff) + (0.15456 * logHeight);
+      const bf = (495 / denom) - 450;
+      return Math.max(3, bf);
+    }
+
+    // ==========================================
+    // CONTROLE DE TABS
+    // ==========================================
+    function mudarTab(tabId) {
+      const tabs = ['tab-dashboard', 'tab-proteinas', 'tab-calculadoras', 'tab-historico'];
+      tabs.forEach(t => {
+        document.getElementById(t).classList.add('hidden');
+        const btn = document.getElementById('btn-' + t);
+        if (btn) {
+          btn.classList.remove('bg-surface-800', 'text-brand-400', 'border-b-2', 'border-brand-500', 'font-semibold');
+          btn.classList.add('text-slate-400');
+        }
+      });
+      document.getElementById(tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('btn-' + tabId);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-surface-800', 'text-brand-400', 'border-b-2', 'border-brand-500', 'font-semibold');
+        activeBtn.classList.remove('text-slate-400');
+      }
+      if (tabId === 'tab-dashboard') {
+        renderizarGraficos();
+      }
+    }
+
+    // ==========================================
+    // GRÁFICOS (CHART.JS)
+    // ==========================================
+    let chartKgInstancia = null;
+    let chartBfInstancia = null;
+
+    function renderizarGraficos() {
+      const labels = estadoApp.registros.map(r => {
+        const d = r.data.split('-');
+        return `${d[2]}/${d[1]}`;
+      });
+      const pesos = estadoApp.registros.map(r => r.peso);
+      const massasGordura = estadoApp.registros.map(r => r.gorduraKg || (r.peso * (r.bf / 100)));
+      const massasMagra = estadoApp.registros.map(r => r.mme || (r.peso - (r.gorduraKg || (r.peso * (r.bf / 100)))));
+      const bfs = estadoApp.registros.map(r => r.bf);
+
+      // Destruir gráficos anteriores se existirem
+      if (chartKgInstancia) chartKgInstancia.destroy();
+      if (chartBfInstancia) chartBfInstancia.destroy();
+
+      const ctxKg = document.getElementById('chart-kg').getContext('2d');
+      chartKgInstancia = new Chart(ctxKg, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Peso Total (kg)',
+              data: pesos,
+              borderColor: '#38bdf8',
+              backgroundColor: 'rgba(56, 189, 248, 0.1)',
+              tension: 0.3,
+              fill: false,
+              borderWidth: 3,
+              pointRadius: 5
+            },
+            {
+              label: 'Massa Muscular / Magra (kg)',
+              data: massasMagra,
+              borderColor: '#22c55e',
+              backgroundColor: 'rgba(34, 197, 94, 0.1)',
+              tension: 0.3,
+              fill: false,
+              borderWidth: 2.5,
+              pointRadius: 5
+            },
+            {
+              label: 'Massa de Gordura (kg)',
+              data: massasGordura,
+              borderColor: '#f59e0b',
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              tension: 0.3,
+              fill: false,
+              borderWidth: 2.5,
+              pointRadius: 5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#94a3b8', font: { size: 11 } } },
+            tooltip: { mode: 'index', intersect: false }
+          },
+          scales: {
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#64748b', font: { size: 10 } }
+            },
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#64748b', font: { size: 10 } }
+            }
+          }
+        }
+      });
+
+      const ctxBf = document.getElementById('chart-bf').getContext('2d');
+      chartBfInstancia = new Chart(ctxBf, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: '% Gordura Corporal (% PGC)',
+              data: bfs,
+              borderColor: '#a855f7',
+              backgroundColor: 'rgba(168, 85, 247, 0.15)',
+              tension: 0.3,
+              fill: true,
+              borderWidth: 3,
+              pointRadius: 6,
+              pointBackgroundColor: '#a855f7'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#94a3b8', font: { size: 11 } } }
+          },
+          scales: {
+            y: {
+              suggestedMin: 10,
+              suggestedMax: 22,
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#64748b',
+                font: { size: 10 },
+                callback: function(v) { return v + '%'; }
+              }
+            },
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#64748b', font: { size: 10 } }
+            }
+          }
+        }
+      });
+    }
+
+    // ==========================================
+    // RECALCULO DE CALCULADORAS
+    // ==========================================
+    function recalcularJP() {
+      const idade = parseFloat(document.getElementById('calc-jp-idade').value) || 28;
+      const peito = parseFloat(document.getElementById('calc-jp-peito').value) || 5;
+      const abd = parseFloat(document.getElementById('calc-jp-abd').value) || 22;
+      const coxa = parseFloat(document.getElementById('calc-jp-coxa').value) || 13;
+      const res = calcularJacksonPollock3(idade, peito, abd, coxa);
+
+      document.getElementById('res-jp-soma').innerText = res.soma.toFixed(1) + ' mm';
+      document.getElementById('res-jp-densidade').innerText = res.densidade.toFixed(4) + ' g/cm³';
+      document.getElementById('res-jp-siri').innerText = res.siri.toFixed(2) + '%';
+      document.getElementById('res-jp-brozek').innerText = res.brozek.toFixed(2) + '%';
+      document.getElementById('jp-bf-display').innerText = res.siri.toFixed(1) + '%';
+    }
+
+    function recalcularNavy() {
+      const altura = parseFloat(document.getElementById('calc-navy-altura').value) || 173;
+      const pescoco = parseFloat(document.getElementById('calc-navy-pescoco').value) || 37;
+      const cintura = parseFloat(document.getElementById('calc-navy-cintura').value) || 82;
+      const bf = calcularUSNavyHomens(altura, pescoco, cintura);
+
+      document.getElementById('res-navy-gradiente').innerText = (cintura - pescoco).toFixed(1) + ' cm';
+      document.getElementById('res-navy-bf').innerText = bf.toFixed(2) + '%';
+      document.getElementById('navy-bf-display').innerText = bf.toFixed(1) + '%';
+    }
+
+    // ==========================================
+    // SIMULADOR DE DIETA & PROTEÍNA
+    // ==========================================
+    let slotAtivoParaModal = null;
+
+    function renderizarSimulador() {
+      let totalGeral = 0;
+      let totalComida = 0;
+      let totalSuplemento = 0;
+      let temWhey = false;
+      let temYoPro = false;
+
+      for (let slot = 1; slot <= 4; slot++) {
+        const container = document.getElementById(`slot-${slot}-itens`);
+        const subtotalEl = document.getElementById(`slot-${slot}-subtotal`);
+        container.innerHTML = '';
+        let subtotalSlot = 0;
+
+        const itens = estadoApp.refeicoesPlano[slot] || [];
+        itens.forEach((it, index) => {
+          const alimento = estadoApp.alimentosRef.find(a => a.id === it.alimentoId);
+          if (!alimento) return;
+          const protItem = alimento.protPorUn * it.qtd;
+          subtotalSlot += protItem;
+
+          // Categorização: Comida Real vs Suplemento Líquido
+          const isSuplemento = alimento.id.startsWith('whey') || alimento.id.startsWith('yopro');
+          if (isSuplemento) {
+            totalSuplemento += protItem;
+            if (alimento.id.startsWith('whey')) temWhey = true;
+            if (alimento.id.startsWith('yopro')) temYoPro = true;
+          } else {
+            totalComida += protItem;
+          }
+
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'flex items-center justify-between text-xs bg-surface-950/60 p-2 rounded-lg border border-slate-800';
+          itemDiv.innerHTML = `
+            <div class="truncate pr-2">
+              <span class="font-medium text-slate-200 block truncate">${alimento.nome}</span>
+              <span class="text-[10px] text-slate-500">${it.qtd}x ${alimento.unidade} • <span class="${isSuplemento ? 'text-cyan-400' : 'text-emerald-400'}">${isSuplemento ? 'Suplemento' : 'Comida'}</span></span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="font-bold text-brand-400 font-mono">${protItem.toFixed(1)}g</span>
+              <button onclick="removerItemRefeicao(${slot}, ${index})" class="text-slate-500 hover:text-red-400 text-sm font-bold">&times;</button>
+            </div>
+          `;
+          container.appendChild(itemDiv);
+        });
+
+        subtotalEl.innerText = subtotalSlot.toFixed(1) + 'g prot';
+        totalGeral += subtotalSlot;
+      }
+
+      // Atualiza mostradores principais
+      document.getElementById('total-prot-simulador').innerHTML = `${totalGeral.toFixed(1)} <span class="text-xs font-normal text-slate-300">/ 140g</span>`;
+      document.getElementById('prot-comida-display').innerText = totalComida.toFixed(1) + 'g';
+      document.getElementById('prot-supl-display').innerText = totalSuplemento.toFixed(1) + 'g';
+
+      // Validação da Regra 'Sempre Um ou Outro'
+      const badgeRegra = document.getElementById('badge-regra-supl');
+      const nomeSuplEl = document.getElementById('supl-nome-display');
+
+      if (temWhey && temYoPro) {
+        nomeSuplEl.innerText = '⚠️ Whey + YoPro no mesmo dia';
+        nomeSuplEl.className = 'text-[10px] text-rose-400 block font-semibold';
+        badgeRegra.className = 'text-[10px] font-bold text-rose-400 mt-0.5 bg-rose-950/40 px-2 py-0.5 rounded border border-rose-800/40 inline-block';
+        badgeRegra.innerText = '⚠️ Regra Violada: Use sempre Whey OU YoPro, nunca ambos!';
+      } else if (temWhey) {
+        nomeSuplEl.innerText = 'Apenas Whey ativo hoje';
+        nomeSuplEl.className = 'text-[10px] text-cyan-400 block';
+        badgeRegra.className = 'text-[10px] font-semibold text-emerald-400 mt-0.5 inline-block';
+        badgeRegra.innerText = '✅ Regra "Um ou Outro" OK (Dia com Whey)';
+      } else if (temYoPro) {
+        nomeSuplEl.innerText = 'Apenas YoPro ativo hoje';
+        nomeSuplEl.className = 'text-[10px] text-blue-400 block';
+        badgeRegra.className = 'text-[10px] font-semibold text-emerald-400 mt-0.5 inline-block';
+        badgeRegra.innerText = '✅ Regra "Um ou Outro" OK (Dia com YoPro)';
+      } else {
+        nomeSuplEl.innerText = 'Nenhum suplemento (100% Comida)';
+        nomeSuplEl.className = 'text-[10px] text-slate-400 block';
+        badgeRegra.className = 'text-[10px] font-semibold text-emerald-400 mt-0.5 inline-block';
+        badgeRegra.innerText = '✅ 100% Comida Real';
+      }
+
+      const percent = Math.min(100, Math.round((totalGeral / 140) * 100));
+      document.getElementById('percent-prot-bar').innerText = percent + '%';
+      document.getElementById('prog-prot-bar').style.width = percent + '%';
+
+      const diff = 140 - totalGeral;
+      const statusEl = document.getElementById('status-prot-bar');
+      if (diff <= 0) {
+        statusEl.className = 'text-emerald-400 font-semibold';
+        statusEl.innerText = `🎯 Meta batida! (+${Math.abs(diff).toFixed(1)}g excedente seguro)`;
+      } else {
+        statusEl.className = 'text-amber-400';
+        statusEl.innerText = `Faltam ${diff.toFixed(1)}g para a meta de 140g`;
+      }
+
+      salvarEstado();
+    }
+
+    function adicionarItemRefeicao(slot) {
+      slotAtivoParaModal = slot;
+      const select = document.getElementById('modal-select-alimento');
+      select.innerHTML = '';
+      estadoApp.alimentosRef.forEach(al => {
+        const opt = document.createElement('option');
+        opt.value = al.id;
+        opt.innerText = `${al.nome} (${al.protPorUn}g prot / ${al.unidade})`;
+        select.appendChild(opt);
+      });
+      document.getElementById('modal-qtd-alimento').value = 1;
+      atualizarPreviewModal();
+      document.getElementById('modal-alimento').classList.remove('hidden');
+    }
+
+    function fecharModalAlimento() {
+      document.getElementById('modal-alimento').classList.add('hidden');
+      slotAtivoParaModal = null;
+    }
+
+    function atualizarPreviewModal() {
+      const select = document.getElementById('modal-select-alimento');
+      const alId = select.value;
+      const al = estadoApp.alimentosRef.find(a => a.id === alId);
+      const qtd = parseFloat(document.getElementById('modal-qtd-alimento').value) || 1;
+      if (al) {
+        document.getElementById('modal-unidade-alimento').innerText = al.unidade;
+        const total = al.protPorUn * qtd;
+        document.getElementById('modal-prot-preview').innerText = total.toFixed(1) + 'g';
+      }
+    }
+
+    function confirmarAdicionarItem() {
+      if (!slotAtivoParaModal) return;
+      const alId = document.getElementById('modal-select-alimento').value;
+      const qtd = parseFloat(document.getElementById('modal-qtd-alimento').value) || 1;
+      if (!estadoApp.refeicoesPlano[slotAtivoParaModal]) {
+        estadoApp.refeicoesPlano[slotAtivoParaModal] = [];
+      }
+      estadoApp.refeicoesPlano[slotAtivoParaModal].push({ alimentoId: alId, qtd: qtd });
+      fecharModalAlimento();
+      renderizarSimulador();
+    }
+
+    function removerItemRefeicao(slot, index) {
+      if (estadoApp.refeicoesPlano[slot]) {
+        estadoApp.refeicoesPlano[slot].splice(index, 1);
+        renderizarSimulador();
+      }
+    }
+
+    function carregarPresetWhey() {
+      estadoApp.refeicoesPlano = {
+        1: [
+          { alimentoId: "whey_iso", qtd: 1 },
+          { alimentoId: "leite_desn_zero", qtd: 1 },
+          { alimentoId: "pao_forma_fatias", qtd: 1 },
+          { alimentoId: "mussarela_fatias", qtd: 1 }
+        ],
+        2: [
+          { alimentoId: "mignon_suino_100g", qtd: 1.6 },
+          { alimentoId: "feijao_concha", qtd: 1 }
+        ],
+        3: [
+          { alimentoId: "atum_solido_lata", qtd: 1 }
+        ],
+        4: [
+          { alimentoId: "merluza_grelhada_100g", qtd: 1.5 }
+        ]
+      };
+      renderizarSimulador();
+    }
+
+    function carregarPresetYoPro() {
+      estadoApp.refeicoesPlano = {
+        1: [
+          { alimentoId: "pao_forma_fatias", qtd: 1 },
+          { alimentoId: "mussarela_fatias", qtd: 2 },
+          { alimentoId: "leite_desn_zero", qtd: 1 }
+        ],
+        2: [
+          { alimentoId: "alcatra_moida_100g", qtd: 1.8 },
+          { alimentoId: "feijao_concha", qtd: 1 }
+        ],
+        3: [
+          { alimentoId: "yopro_25g", qtd: 1 }
+        ],
+        4: [
+          { alimentoId: "merluza_grelhada_100g", qtd: 1.8 }
+        ]
+      };
+      renderizarSimulador();
+    }
+
+    function limparCardapio() {
+      estadoApp.refeicoesPlano = { 1: [], 2: [], 3: [], 4: [] };
+      renderizarSimulador();
+    }
+
+    function carregarCardapioExemplo() {
+      carregarPresetWhey();
+    }
+
+    // ==========================================
+    // HISTÓRICO & REGISTROS
+    // ==========================================
+    function renderizarHistorico() {
+      const tbody = document.getElementById('tabela-historico-corpo');
+      tbody.innerHTML = '';
+
+      estadoApp.registros.forEach((reg, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/30';
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-semibold text-white whitespace-nowrap">${formatarData(reg.data)}</td>
+          <td class="py-3 px-4 text-slate-400">${reg.tipo}</td>
+          <td class="py-3 px-4 text-white font-mono font-bold">${reg.peso.toFixed(1)} kg</td>
+          <td class="py-3 px-4 text-amber-400 font-mono font-bold">${reg.bf.toFixed(1)}%</td>
+          <td class="py-3 px-4 text-emerald-400 font-mono">${(reg.mme || 0).toFixed(1)} kg</td>
+          <td class="py-3 px-4 text-slate-300 font-mono">${(reg.gorduraKg || 0).toFixed(1)} kg</td>
+          <td class="py-3 px-4 text-slate-400 max-w-xs truncate" title="${reg.detalhes || ''}">${reg.detalhes || '-'}</td>
+          <td class="py-3 px-4 text-right">
+            ${idx >= 3 ? `<button onclick="removerRegistro(${idx})" class="text-xs text-red-400 hover:text-red-300">Excluir</button>` : '<span class="text-slate-600 text-[10px]">Oficial</span>'}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function formatarData(isoStr) {
+      if (!isoStr) return '';
+      const p = isoStr.split('-');
+      if (p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`;
+      return isoStr;
+    }
+
+    function salvarNovoRegistro(e) {
+      e.preventDefault();
+      const data = document.getElementById('reg-data').value;
+      const peso = parseFloat(document.getElementById('reg-peso').value);
+      const peito = parseFloat(document.getElementById('reg-peito').value) || 0;
+      const abd = parseFloat(document.getElementById('reg-abd').value) || 0;
+      const coxa = parseFloat(document.getElementById('reg-coxa').value) || 0;
+      const cintura = parseFloat(document.getElementById('reg-cintura').value) || 0;
+
+      let bf = 14.0;
+      let detalhes = [];
+      if (peito && abd && coxa) {
+        const resJP = calcularJacksonPollock3(28, peito, abd, coxa);
+        bf = resJP.siri;
+        detalhes.push(`JP: ${resJP.siri.toFixed(1)}% (Soma ${resJP.soma}mm)`);
+      }
+      if (cintura) {
+        const resNavy = calcularUSNavyHomens(173, 37, cintura);
+        detalhes.push(`Navy: ${resNavy.toFixed(1)}%`);
+        if (!peito) bf = resNavy;
+      }
+
+      const gorduraKg = peso * (bf / 100);
+      const mme = peso - gorduraKg;
+
+      const novo = {
+        id: "rec-" + Date.now(),
+        data: data,
+        tipo: "Check-in do Usuário",
+        peso: peso,
+        mme: mme,
+        gorduraKg: gorduraKg,
+        bf: bf,
+        tmb: Math.round(370 + (21.6 * mme)),
+        detalhes: detalhes.join(' | ') || "Medição manual"
+      };
+
+      estadoApp.registros.push(novo);
+      salvarEstado();
+      renderizarHistorico();
+      renderizarGraficos();
+      mudarTab('tab-dashboard');
+      alert('Novo check-in registrado com sucesso!');
+    }
+
+    function removerRegistro(idx) {
+      if (confirm('Deseja excluir este registro?')) {
+        estadoApp.registros.splice(idx, 1);
+        salvarEstado();
+        renderizarHistorico();
+        renderizarGraficos();
+      }
+    }
+
+    // ==========================================
+    // BACKUP & RESTAURAÇÃO
+    // ==========================================
+    function exportarDados() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(estadoApp, null, 2));
+      const dl = document.createElement('a');
+      dl.setAttribute("href", dataStr);
+      dl.setAttribute("download", `biocomp_backup_${new Date().toISOString().slice(0,10)}.json`);
+      dl.click();
+    }
+
+    function importarDados() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json';
+      input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = evt => {
+          try {
+            const parsed = JSON.parse(evt.target.result);
+            if (parsed.registros && parsed.refeicoesPlano) {
+              estadoApp = parsed;
+              salvarEstado();
+              location.reload();
+            } else {
+              alert('Arquivo JSON inválido para a plataforma.');
+            }
+          } catch(err) {
+            alert('Erro ao processar JSON: ' + err.message);
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    function resetarDadosPadrao() {
+      if (confirm('Tem certeza que deseja restaurar as medições de fábrica? Seus dados inseridos serão resetados.')) {
+        estadoApp = JSON.parse(JSON.stringify(DADOS_INICIAIS));
+        salvarEstado();
+        location.reload();
+      }
+    }
+
+    // ==========================================
+    // CICLO DO MOUNJARO & SUPORTE GÁSTRICO
+    // ==========================================
+    const DADOS_CICLO = {
+      1: {
+        status: "D1: Pico Máximo",
+        nivel: "100% (Pico Plasmático Cmax)",
+        apetite: "Apetite: Mínimo / Risco de Náusea",
+        corApetite: "text-amber-400 font-semibold",
+        orientacao: "Nas primeiras 24-48h pós-aplicação, o esvaziamento gástrico atinge lentidão máxima. Não force carnes pesadas em quantidade. Use seu único apoio líquido (Whey gelado ou YoPro) para garantir as primeiras 25-30g e monte as refeições sólidas com peixes leves ou atum."
+      },
+      2: {
+        status: "D2: Pico Mantido",
+        nivel: "95% de concentração sérica",
+        apetite: "Apetite: Muito Baixo",
+        corApetite: "text-amber-400 font-semibold",
+        orientacao: "Saciedade precoce intensa após poucas garfadas. Priorize filé de merluza, tilápia ou atum macio com purê leve ou feijão ralo. Não tome água junto da refeição."
+      },
+      3: {
+        status: "D3: Fase Estável",
+        nivel: "80% de concentração sérica",
+        apetite: "Apetite: Moderadamente Controlado",
+        corApetite: "text-cyan-400 font-semibold",
+        orientacao: "Estômago estabilizado. Excelente dia para alcatra moída duas vezes ou filé mignon suíno bem tenro. Mantenha hidratação firme para evitar trânsito lento."
+      },
+      4: {
+        status: "D4: Fase Estável",
+        nivel: "70% de concentração sérica",
+        apetite: "Apetite: Confortável e Controlado",
+        corApetite: "text-cyan-400 font-semibold",
+        orientacao: "Fase de ouro para bater 120g de comida sólida de verdade com conforto. Carne bovina e suína entram com facilidade no almoço."
+      },
+      5: {
+        status: "D5: Queda Fisiológica",
+        nivel: "55% de concentração sérica",
+        apetite: "Apetite: Retornando sutilmente",
+        corApetite: "text-emerald-400 font-semibold",
+        orientacao: "A meia-vida de 5 dias começa a se manifestar. O apetite ressurge de forma saudável. Aproveite para garantir 100% da meta proteica sem qualquer aversão."
+      },
+      6: {
+        status: "D6: Pré-Injeção",
+        nivel: "40% de concentração sérica",
+        apetite: "Apetite: Normal / Alto",
+        corApetite: "text-emerald-400 font-semibold",
+        orientacao: "A fome antes das refeições fica mais perceptível. Atenção para não exagerar em gorduras ou carboidratos ultraprocessados. Foque na proteína primeiro no prato!"
+      },
+      7: {
+        status: "D7: Dia da Próxima Dose",
+        nivel: "30% (Fim do ciclo semanal)",
+        apetite: "Apetite: Normal pleno",
+        corApetite: "text-emerald-400 font-semibold",
+        orientacao: "Último dia antes da próxima aplicação. Faça refeições ricas em fibras e hidratação farta para preparar o trato gastrointestinal para a próxima dose."
+      }
+    };
+
+    let diaCicloAtual = 1;
+    let aguaAtualMl = 1500;
+    let fibraAtualG = 15;
+
+    function selecionarDiaCiclo(dia) {
+      diaCicloAtual = dia;
+      for (let i = 1; i <= 7; i++) {
+        const btn = document.getElementById(`btn-dia-${i}`);
+        if (btn) {
+          if (i === dia) {
+            btn.className = "py-2 rounded-lg text-xs font-bold transition bg-brand-600 text-white shadow-sm";
+          } else {
+            btn.className = "py-2 rounded-lg text-xs font-bold transition bg-slate-800 hover:bg-slate-700 text-slate-300";
+          }
+        }
+      }
+
+      const info = DADOS_CICLO[dia];
+      if (info) {
+        document.getElementById('badge-ciclo-status').innerText = info.status;
+        document.getElementById('ciclo-nivel-serico').innerText = info.nivel;
+        const apEl = document.getElementById('ciclo-apetite-status');
+        apEl.innerText = info.apetite;
+        apEl.className = info.corApetite;
+        document.getElementById('ciclo-orientacao-clinica').innerText = info.orientacao;
+      }
+    }
+
+    function atualizarDisplaySuporte() {
+      document.getElementById('display-agua').innerText = `${aguaAtualMl.toLocaleString('pt-BR')} ml`;
+      const pctAgua = Math.min(100, Math.round((aguaAtualMl / 2600) * 100));
+      document.getElementById('bar-agua').style.width = pctAgua + '%';
+
+      document.getElementById('display-fibras').innerText = `${fibraAtualG}g`;
+      const pctFibras = Math.min(100, Math.round((fibraAtualG / 25) * 100));
+      document.getElementById('bar-fibras').style.width = pctFibras + '%';
+    }
+
+    function adicionarAgua(ml) {
+      aguaAtualMl += ml;
+      atualizarDisplaySuporte();
+    }
+
+    function zerarAgua() {
+      aguaAtualMl = 0;
+      atualizarDisplaySuporte();
+    }
+
+    function adicionarFibra(g) {
+      fibraAtualG += g;
+      atualizarDisplaySuporte();
+    }
+
+    function zerarFibra() {
+      fibraAtualG = 0;
+      atualizarDisplaySuporte();
+    }
+
+    // Inicialização ao carregar
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('reg-data').value = new Date().toISOString().slice(0, 10);
+      recalcularJP();
+      recalcularNavy();
+      renderizarSimulador();
+      renderizarHistorico();
+      renderizarGraficos();
+      selecionarDiaCiclo(1);
+      atualizarDisplaySuporte();
+    });
+  </script>
+</body>
+</html>

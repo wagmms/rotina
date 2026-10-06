@@ -1,0 +1,121 @@
+{
+  "id": "D01",
+  "version": "baseline",
+  "round": 1,
+  "synthetic": true,
+  "mode": "soap",
+  "created": "2026-10-04T21:17:23.221Z",
+  "total_ms": 7630,
+  "http_ms": 7255,
+  "calls": [
+    {
+      "phase": "geracao",
+      "model": "gemini-2.5-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 368,
+      "bridge_ms": 433,
+      "prompt_sha256": "d1efff79e9341e24789b3f7c16df8304af0209cea50469f73c9fcc551df07e98",
+      "prompt_chars": 4636,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-2.0-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 357,
+      "bridge_ms": 437,
+      "prompt_sha256": "d1efff79e9341e24789b3f7c16df8304af0209cea50469f73c9fcc551df07e98",
+      "prompt_chars": 4636,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-1.5-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 339,
+      "bridge_ms": 400,
+      "prompt_sha256": "d1efff79e9341e24789b3f7c16df8304af0209cea50469f73c9fcc551df07e98",
+      "prompt_chars": 4636,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-flash-latest",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 429,
+      "http_ms": 332,
+      "bridge_ms": 419,
+      "prompt_sha256": "d1efff79e9341e24789b3f7c16df8304af0209cea50469f73c9fcc551df07e98",
+      "prompt_chars": 4636,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "RESOURCE_EXHAUSTED"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-flash-latest",
+      "resolved_model": "gemini-3.8-flash",
+      "host": "generativelanguage.googleapis.com",
+      "status": 200,
+      "http_ms": 5859,
+      "bridge_ms": 5935,
+      "prompt_sha256": "d1efff79e9341e24789b3f7c16df8304af0209cea50469f73c9fcc551df07e98",
+      "prompt_chars": 4636,
+      "usage": {
+        "promptTokenCount": 1323,
+        "candidatesTokenCount": 638,
+        "totalTokenCount": 2303,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1323
+          }
+        ],
+        "thoughtsTokenCount": 342,
+        "serviceTier": "standard"
+      },
+      "finish": "STOP",
+      "text": "{\"subjetivo\":\"Queixa Principal: Tosse seca há 3 dias.\\n\\nHistória da Doença Atual: Paciente feminina, 41 anos, procura atendimento referindo quadro de tosse não produtiva de início há aproximadamente 3 dias. Não há, no relato inicial, caracterização de fatores desencadeantes, de melhora ou de piora, tampouco relato espontâneo de sintomas associados como febre, dispneia, dor torácica pleurítica, odinofagia ou sintomas nasais.\\n\\nAntecedentes Pessoais, Comorbidades e Hábitos: Dados pendentes de esclarecimento (histórico de asma, rinite alérgica, refluxo gastroesofágico, tabagismo ativo ou passivo).\\nMedicações de uso contínuo: Não informadas (investigar uso recente de inibidores da ECA).\\nAlergias: Desconhecidas até o momento.\",\"objetivo\":\"Geral: Dados pendentes. Não informados sinais vitais nem estado geral basal da paciente.\\nACV: Pendente de avaliação física no momento.\\nAR: FOCO DA QUEIXA - Exame pendente de realização. Avaliar padrão respiratório, presença de tiragens e ausculta pulmonar detalhada (ruídos adventícios como sibilos, estertores ou creptações).\\nAbdome: Pendente de avaliação física formal.\\nExtremidades: Pendente de avaliação de perfusão periférica, cianose de extremidades e edemas.\",\"perguntas_anamnese\":[\"Há presença de febre aferida ou referida, dispneia, dor torácica ventilatório-dependente ou queda do estado geral?\",\"A tosse piora em algum período específico (noturno, ao deitar) ou após esforço, e há sintomas associados como azia, regurgitação, coriza ou prurido nasal?\",\"Faz uso contínuo de alguma medicação, em especial anti-hipertensivos da classe dos inibidores da ECA (ex.: enalapril, captopril)?\",\"Possui histórico prévio de atopia, asma, tabagismo ou exposição recente a pessoas com infecções respiratórias virais?\"],\"exame_dirigido\":[\"Aferição completa de Sinais Vitais: Frequência Respiratória (FR), Saturação Periférica de O2 (SpO2 em ar ambiente), Frequência Cardíaca (FC), Pressão Arterial (PA) e Temperatura Axilar (Tax).\",\"Inspeção do padrão respiratório e avaliação de sinais de esforço ventilatório (tiragem intercostal, uso de musculatura acessória, batimento de asa nasal).\",\"Ausculta pulmonar detalhada em todos os campos pleuropulmonares (anterior, posterior e axilar).\",\"Oroscopia detalhada para pesquisa de secreção em parede posterior de faringe (gotejamento pós-nasal), hiperemia ou placas bacterianas.\"]}",
+      "groundingMetadata": null,
+      "error": null
+    }
+  ],
+  "metrics": {
+    "cache_get": 5,
+    "cache_getAll": 0,
+    "cache_put": 4,
+    "cache_putAll": 0,
+    "sheets": 0
+  },
+  "pdf_eligible": null,
+  "result": "⚠️ *Rascunho para conferência médica*\n\n🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*\n\n👤 *S - Subjetivo (Anamnese Estruturada)*\nQueixa Principal: Tosse seca há 3 dias.\n\nHistória da Doença Atual: Paciente feminina, 41 anos, procura atendimento referindo quadro de tosse não produtiva de início há aproximadamente 3 dias. Não há, no relato inicial, caracterização de fatores desencadeantes, de melhora ou de piora, tampouco relato espontâneo de sintomas associados como febre, dispneia, dor torácica pleurítica, odinofagia ou sintomas nasais.\n\nAntecedentes Pessoais, Comorbidades e Hábitos: Dados pendentes de esclarecimento (histórico de asma, rinite alérgica, refluxo gastroesofágico, tabagismo ativo ou passivo).\nMedicações de uso contínuo: Não informadas (investigar uso recente de inibidores da ECA).\nAlergias: Desconhecidas até o momento.\n\n🔍 *O - Objetivo (Exame Físico)*\nGeral: Dados pendentes. Não informados sinais vitais nem estado geral basal da paciente.\nACV: Pendente de avaliação física no momento.\nAR: FOCO DA QUEIXA - Exame pendente de realização. Avaliar padrão respiratório, presença de tiragens e ausculta pulmonar detalhada (ruídos adventícios como sibilos, estertores ou creptações).\nAbdome: Pendente de avaliação física formal.\nExtremidades: Pendente de avaliação de perfusão periférica, cianose de extremidades e edemas.\n\n❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n• Há presença de febre aferida ou referida, dispneia, dor torácica ventilatório-dependente ou queda do estado geral?\n• A tosse piora em algum período específico (noturno, ao deitar) ou após esforço, e há sintomas associados como azia, regurgitação, coriza ou prurido nasal?\n• Faz uso contínuo de alguma medicação, em especial anti-hipertensivos da classe dos inibidores da ECA (ex.: enalapril, captopril)?\n• Possui histórico prévio de atopia, asma, tabagismo ou exposição recente a pessoas com infecções respiratórias virais?\n\n🎯 *Cobrança Ativa do Exame Físico Dirigido*\n• Aferição completa de Sinais Vitais: Frequência Respiratória (FR), Saturação Periférica de O2 (SpO2 em ar ambiente), Frequência Cardíaca (FC), Pressão Arterial (PA) e Temperatura Axilar (Tax).\n• Inspeção do padrão respiratório e avaliação de sinais de esforço ventilatório (tiragem intercostal, uso de musculatura acessória, batimento de asa nasal).\n• Ausculta pulmonar detalhada em todos os campos pleuropulmonares (anterior, posterior e axilar).\n• Oroscopia detalhada para pesquisa de secreção em parede posterior de faringe (gotejamento pós-nasal), hiperemia ou placas bacterianas.\n\n_💡 Envie dados adicionais para atualizar ou clique em [📋 Gerar Avaliação & Plano] quando desejar fechar a conduta._",
+  "error": null,
+  "logs": [
+    "[IA eval-1] GEMINI gemini-2.5-flash: 404 (bloqueado por 1h)",
+    "[IA eval-1] GEMINI gemini-2.0-flash: 404 (bloqueado por 1h)",
+    "[IA eval-1] GEMINI gemini-1.5-flash: 404 (bloqueado por 1h)",
+    "[IA eval-1] GEMINI gemini-flash-latest: 429 na chave #0, rotacionando",
+    "[IA eval-1] OK via GEMINI (gemini-flash-latest) em 7627 ms"
+  ]
+}

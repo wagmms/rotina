@@ -1,0 +1,140 @@
+[
+  {
+    "file": "A01_baseline_1.json",
+    "pdf_button": false,
+    "parsed_invalid_items": [
+      {
+        "nome": "dose maxima azitromicina dose maxima de",
+        "texto": "Dose máxima: Azitromicina: dose máxima de 500 mg por dose e 500 mg por dia. Dipirona: dose máxima de 1000 mg por dose e 4000 mg por dia. Doses propostas dentro da margem de segurança. USO ORAL",
+        "identificado": false,
+        "completo": false
+      },
+      {
+        "nome": "remume azitromicina",
+        "texto": "REMUME: Azitromicina 500 mg e Dipirona 500 mg constam na lista fornecida (conferir disponibilidade no estoque). A claritromicina 500 mg da lista exigiria fração de dose (250 mg 12/12h), tornando a azitromicina a escolha mais segura e com melhor posologia. USO ORAL",
+        "identificado": false,
+        "completo": false
+      }
+    ]
+  },
+  {
+    "file": "A01_candidate_1.json",
+    "pdf_button": false,
+    "parsed_invalid_items": [
+      {
+        "nome": "azitromicina",
+        "texto": "Azitromicina - 500 mg - 5 comprimidos USO ORAL Posologia: tomar 500 mg (1 comprimido) por via oral a cada 24 horas por 5 dias.",
+        "identificado": true,
+        "completo": false
+      },
+      {
+        "nome": "intervencao de seguranca amoxicilina",
+        "texto": "Intervenção de segurança: Amoxicilina 500 mg e Cefalexina 500 mg descartadas devido à anafilaxia prévia documentada. Optado por Azitromicina oral. USO ORAL",
+        "identificado": false,
+        "completo": false
+      },
+      {
+        "nome": "dose maxima azitromicina dose maxima de",
+        "texto": "Dose máxima: Azitromicina: dose máxima de 500 mg ao dia em adultos. Dipirona: dose máxima de 1000 mg por tomada e 4000 mg ao dia. USO ORAL",
+        "identificado": false,
+        "completo": false
+      },
+      {
+        "nome": "remume azitromicina",
+        "texto": "REMUME: Azitromicina 500 mg e Dipirona 500 mg constam na lista fornecida (conferir disponibilidade no estoque). USO ORAL",
+        "identificado": false,
+        "completo": false
+      }
+    ]
+  },
+  {
+    "file": "P01_baseline_1.json",
+    "pdf_button": false,
+    "parsed_invalid_items": [
+      {
+        "nome": "calculo pediatrico 20 kg x",
+        "texto": "Cálculo pediátrico: 20 kg x 25 mg/kg/dose = 500 mg por dose. Em 250 mg/5 mL (50 mg/mL): 500 mg / 50 mg/mL = 10 mL por dose. Dose diária: 1000 mg/dia (50 mg/kg/dia). Volume total para 10 dias: 10 mL x 2 tomadas/dia x 10 dias = 200 mL. [USO ORAL]",
+        "identificado": false,
+        "completo": false
+      },
+      {
+        "nome": "dose maxima dose habitual pediatrica para faringite e de",
+        "texto": "Dose máxima: dose habitual pediátrica para faringite é de 50 mg/kg/dia (máx. habitual 1000 mg/dia); a dose calculada de 1000 mg/dia atinge o alvo terapêutico sem ultrapassar os limites de segurança. [USO ORAL]",
+        "identificado": false,
+        "completo": false
+      }
+    ]
+  },
+  {
+    "file": "P01_candidate_1.json",
+    "pdf_button": false,
+    "parsed_invalid_items": [
+      {
+        "nome": "calculo 20 kg x",
+        "texto": "Cálculo: 20 kg x 25 mg/kg/dose = 500 mg/dose (50 mg/kg/dia). Conversão: 500 mg / (250 mg / 5 mL) = 10 mL por dose. Total: 2 doses/dia x 10 dias = 20 tomadas x 10 mL = 200 mL no total. USO ORAL",
+        "identificado": false,
+        "completo": false
+      },
+      {
+        "nome": "dose maxima dose diaria prescrita de",
+        "texto": "Dose máxima: Dose diária prescrita de 1000 mg/dia está dentro do limite preconizado para faringite estreptocócica (máximo de 1000 mg/dia). USO ORAL",
+        "identificado": false,
+        "completo": false
+      },
+      {
+        "nome": "remume item presente na lista fornecida conferir disponibilidade no estoque e verificar o volume nominal dos frascos da farmacia local para dispensar a quantidade necessaria de frascos que cubra",
+        "texto": "REMUME: item presente na lista fornecida (conferir disponibilidade no estoque e verificar o volume nominal dos frascos da farmácia local para dispensar a quantidade necessária de frascos que cubra 200 mL). USO ORAL",
+        "identificado": false,
+        "completo": false
+      }
+    ]
+  },
+  {
+    "file": "P02_baseline_1.json",
+    "pdf_button": false,
+    "parsed_invalid_items": [
+      {
+        "nome": "amoxicilina",
+        "texto": "Amoxicilina - 250 mg/5 mL suspensão oral - [quantidade a calcular conforme o peso final] USO ORAL Posologia: PENDENTE. Administrar via oral a cada 8 horas (ou a cada 12 horas) por 10 dias. Dose exata em mL depende da pesagem.",
+        "identificado": true,
+        "completo": false
+      },
+      {
+        "nome": "calculo pediatrico",
+        "texto": "Cálculo pediátrico: 50 mg/kg/dia divididos a cada 8 horas (ou a cada 12 horas) por 10 dias. USO ORAL",
+        "identificado": false,
+        "completo": false
+      },
+      {
+        "nome": "formula de conversao a suspensao tem concentracao de",
+        "texto": "Fórmula de conversão: A suspensão tem concentração de 50 mg/mL (250 mg / 5 mL). Logo: (Peso em kg x 50 mg) / 3 tomadas = mg por tomada. Dividir os mg por 50 para obter o volume em mL por dose. USO ORAL",
+        "identificado": false,
+        "completo": false
+      },
+      {
+        "nome": "dose maxima diaria",
+        "texto": "Dose máxima diária: 1000 mg/dia (20 mL/dia da suspensão 250 mg/5 mL). Não exceder 500 mg por dose. USO ORAL",
+        "identificado": false,
+        "completo": false
+      },
+      {
+        "nome": "remume amoxicilina",
+        "texto": "REMUME: Amoxicilina 250 mg/5 mL consta na lista fornecida (conferir disponibilidade no estoque). USO ORAL",
+        "identificado": false,
+        "completo": false
+      }
+    ]
+  },
+  {
+    "file": "P02_candidate_1.json",
+    "pdf_button": false,
+    "parsed_invalid_items": [
+      {
+        "nome": "calculo se pediatrico calculo em ml bloqueado por ausencia de peso aferido regra para faringoamigdalite",
+        "texto": "Cálculo (se pediátrico): Cálculo em mL bloqueado por ausência de peso aferido. Regra para faringoamigdalite: 50 mg/kg/dia divididos a cada 8 horas (ou a cada 12 horas) por 10 dias. Fórmula da suspensão (50 mg/mL): volume diário em mL = peso em kg x 50 / 50 = peso em kg. Dose máxima: 1.000 mg/dia (20 mL/dia). USO ORAL",
+        "identificado": false,
+        "completo": false
+      }
+    ]
+  }
+]

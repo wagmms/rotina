@@ -1,0 +1,715 @@
+[
+  {
+    "d": "2026-08-31",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-08-31",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-08-31",
+    "s": "20:05",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-01",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-01",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-01",
+    "s": "20:00",
+    "dur": 150,
+    "t": "❤️ Namorada",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-02",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-02",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-02",
+    "s": "20:05",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-03",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-03",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-03",
+    "s": "20:05",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-04",
+    "s": "08:00",
+    "dur": 285,
+    "t": "[MedQuest] 📖 Hipertensão Arterial Sistêmica e Crises Hipertensivas (Clínica Médica)",
+    "c": "9",
+    "desc": "📚 Carga: 4.81h (Teoria: 2.81h + Questões: 2.0h)\nSemana 2 • Clínica Médica\n\n🔗 Questões: https://medquest.live/estudar?subtema=Hipertens%C3%A3o%20Arterial%20Sist%C3%AAmica%20e%20Crises%20Hipertensivas"
+  },
+  {
+    "d": "2026-09-04",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-04",
+    "s": "19:00",
+    "dur": 210,
+    "t": "❤️ Date Night!",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-09",
+    "s": "08:30",
+    "dur": 180,
+    "t": "[MedQuest] 📖 Abdome Agudo Obstrutivo (Bridas, Neoplasias e Volvo) (Cirurgia)",
+    "c": "9",
+    "desc": "📚 Carga: 2.99h (Teoria: 0.99h + Questões: 2.0h)\nSemana 3 • Cirurgia\n\n🔗 Questões: https://medquest.live/estudar?subtema=Abdome%20Agudo%20Obstrutivo%20%28Bridas%2C%20Neoplasias%20e%20Volvo%29"
+  },
+  {
+    "d": "2026-09-09",
+    "s": "11:45",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-09",
+    "s": "14:00",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-09",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-10",
+    "s": "08:30",
+    "dur": 225,
+    "t": "[MedQuest] 📖 Rastreamento Citopatológico e Conduta em Lesões Cervicais (HPV) (Ginecologia e Obstetrícia)",
+    "c": "9",
+    "desc": "📚 Carga: 3.78h (Teoria: 1.78h + Questões: 2.0h)\nSemana 3 • Ginecologia e Obstetrícia\n\n🔗 Questões: https://medquest.live/estudar?subtema=Rastreamento%20Citopatol%C3%B3gico%20e%20Conduta%20em%20Les%C3%B5es%20Cervicais%20%28HPV%29"
+  },
+  {
+    "d": "2026-09-10",
+    "s": "14:00",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-10",
+    "s": "15:00",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-10",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-11",
+    "s": "08:30",
+    "dur": 215,
+    "t": "[MedQuest] 📖 Cardiopatias Congênitas Cianogênicas e Acianogênicas (Pediatria)",
+    "c": "9",
+    "desc": "📚 Carga: 3.6h (Teoria: 1.6h + Questões: 2.0h)\nSemana 3 • Pediatria\n\n🔗 Questões: https://medquest.live/estudar?subtema=Cardiopatias%20Cong%C3%AAnicas%20Cianog%C3%AAnicas%20e%20Acianog%C3%AAnicas"
+  },
+  {
+    "d": "2026-09-11",
+    "s": "14:00",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-11",
+    "s": "15:00",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-11",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-11",
+    "s": "19:00",
+    "dur": 210,
+    "t": "❤️ Date Night!",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-12",
+    "s": "08:30",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-12",
+    "s": "09:30",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-12",
+    "s": "14:00",
+    "dur": 510,
+    "t": "❤️ Namorada",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-13",
+    "s": "08:30",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-13",
+    "s": "09:30",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-13",
+    "s": "18:30",
+    "dur": 240,
+    "t": "❤️ Namorada",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-14",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-14",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-14",
+    "s": "20:05",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-15",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-15",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-15",
+    "s": "20:00",
+    "dur": 150,
+    "t": "❤️ Namorada",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-16",
+    "s": "17:45",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-16",
+    "s": "19:30",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-16",
+    "s": "20:20",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-17",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-17",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-17",
+    "s": "20:05",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-18",
+    "s": "08:00",
+    "dur": 230,
+    "t": "[MedQuest] 📖 Atendimento Inicial ao Politraumatizado (Protocolo xABCDE) (Cirurgia)",
+    "c": "9",
+    "desc": "📚 Carga: 3.82h (Teoria: 1.82h + Questões: 2.0h)\nSemana 4 • Cirurgia\n\n🔗 Questões: https://medquest.live/estudar?subtema=Atendimento%20Inicial%20ao%20Politraumatizado%20%28Protocolo%20xABCDE%29"
+  },
+  {
+    "d": "2026-09-18",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-18",
+    "s": "19:00",
+    "dur": 210,
+    "t": "❤️ Date Night!",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-19",
+    "s": "08:00",
+    "dur": 255,
+    "t": "[MedQuest] 📖 Insuficiência Cardíaca: Diagnóstico, Estadiamento e Terapia Farmacológica (Clínica Médica)",
+    "c": "9",
+    "desc": "📚 Carga: 4.24h (Teoria: 2.24h + Questões: 2.0h)\nSemana 4 • Clínica Médica\n\n🔗 Questões: https://medquest.live/estudar?subtema=Insufici%C3%AAncia%20Card%C3%ADaca%3A%20Diagn%C3%B3stico%2C%20Estadiamento%20e%20Terapia%20Farmacol%C3%B3gica"
+  },
+  {
+    "d": "2026-09-19",
+    "s": "12:30",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-19",
+    "s": "14:00",
+    "dur": 510,
+    "t": "❤️ Namorada",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-20",
+    "s": "08:30",
+    "dur": 195,
+    "t": "[MedQuest] 📖 Diabetes Gestacional e Pré-Gestacional (Ginecologia e Obstetrícia)",
+    "c": "9",
+    "desc": "📚 Carga: 3.19h (Teoria: 1.19h + Questões: 2.0h)\nSemana 4 • Ginecologia e Obstetrícia\n\n🔗 Questões: https://medquest.live/estudar?subtema=Diabetes%20Gestacional%20e%20Pr%C3%A9-Gestacional"
+  },
+  {
+    "d": "2026-09-20",
+    "s": "11:55",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-20",
+    "s": "14:00",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-20",
+    "s": "18:30",
+    "dur": 240,
+    "t": "❤️ Namorada",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-21",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-21",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-21",
+    "s": "20:05",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-22",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-22",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-22",
+    "s": "20:00",
+    "dur": 150,
+    "t": "❤️ Namorada",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-23",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-23",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-23",
+    "s": "20:05",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-24",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-24",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-24",
+    "s": "20:05",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-25",
+    "s": "08:00",
+    "dur": 235,
+    "t": "[MedQuest] 📖 Litíase Biliar, Colecistite, Coledocolitíase e Colangite (Cirurgia)",
+    "c": "9",
+    "desc": "📚 Carga: 3.91h (Teoria: 1.91h + Questões: 2.0h)\nSemana 5 • Cirurgia\n\n🔗 Questões: https://medquest.live/estudar?subtema=Lit%C3%ADase%20Biliar%2C%20Colecistite%2C%20Coledocolit%C3%ADase%20e%20Colangite"
+  },
+  {
+    "d": "2026-09-25",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-25",
+    "s": "19:00",
+    "dur": 210,
+    "t": "❤️ Date Night!",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-26",
+    "s": "08:00",
+    "dur": 260,
+    "t": "[MedQuest] 📖 Síndromes Coronarianas Agudas (Com e Sem Supra de ST) (Clínica Médica)",
+    "c": "9",
+    "desc": "📚 Carga: 4.34h (Teoria: 2.34h + Questões: 2.0h)\nSemana 5 • Clínica Médica\n\n🔗 Questões: https://medquest.live/estudar?subtema=S%C3%ADndromes%20Coronarianas%20Agudas%20%28Com%20e%20Sem%20Supra%20de%20ST%29"
+  },
+  {
+    "d": "2026-09-26",
+    "s": "12:30",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-26",
+    "s": "14:00",
+    "dur": 510,
+    "t": "❤️ Namorada",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-27",
+    "s": "08:30",
+    "dur": 192,
+    "t": "[MedQuest] 📖 Arritmias, Síncope e Parada Cardiorrespiratória Pediátrica (PALS) (Pediatria)",
+    "c": "9",
+    "desc": "📚 Carga: 3.2h (Teoria: 1.2h + Questões: 2.0h)\nSemana 5 • Pediatria\n\n🔗 Questões: https://medquest.live/estudar?subtema=Arritmias%2C%20S%C3%ADncope%20e%20Parada%20Cardiorrespirat%C3%B3ria%20Pedi%C3%A1trica%20%28PALS%29"
+  },
+  {
+    "d": "2026-09-27",
+    "s": "11:55",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-27",
+    "s": "14:00",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-27",
+    "s": "18:30",
+    "dur": 240,
+    "t": "❤️ Namorada",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-28",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-28",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-28",
+    "s": "20:05",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-09-29",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-29",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-29",
+    "s": "20:00",
+    "dur": 150,
+    "t": "❤️ Namorada",
+    "c": "4"
+  },
+  {
+    "d": "2026-09-30",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-09-30",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-09-30",
+    "s": "20:05",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-10-01",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-10-01",
+    "s": "19:15",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-10-01",
+    "s": "20:05",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-10-02",
+    "s": "08:00",
+    "dur": 235,
+    "t": "[MedQuest] 📖 Estudos Epidemiológicos: Medidas de Associação e Análise Estatística (Preventiva)",
+    "c": "9",
+    "desc": "📚 Carga: 3.91h (Teoria: 1.91h + Questões: 2.0h)\nSemana 6 • Preventiva\n\n🔗 Questões: https://medquest.live/estudar?subtema=Estudos%20Epidemiol%C3%B3gicos%3A%20Medidas%20de%20Associa%C3%A7%C3%A3o%20e%20An%C3%A1lise%20Estat%C3%ADstica"
+  },
+  {
+    "d": "2026-10-02",
+    "s": "17:30",
+    "dur": 90,
+    "t": "🏋️ Academia",
+    "c": "8"
+  },
+  {
+    "d": "2026-10-02",
+    "s": "19:00",
+    "dur": 210,
+    "t": "❤️ Date Night!",
+    "c": "4"
+  },
+  {
+    "d": "2026-10-03",
+    "s": "08:00",
+    "dur": 198,
+    "t": "[MedQuest] 📖 Dermatologia Clínica: Farmacodermias Graves, Eczemas e Psoríase (Clínica Médica)",
+    "c": "9",
+    "desc": "📚 Carga: 3.3h (Teoria: 1.3h + Questões: 2.0h)\nSemana 6 • Clínica Médica\n\n🔗 Questões: https://medquest.live/estudar?subtema=Dermatologia%20Cl%C3%ADnica%3A%20Farmacodermias%20Graves%2C%20Eczemas%20e%20Psor%C3%ADase"
+  },
+  {
+    "d": "2026-10-03",
+    "s": "11:30",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-10-03",
+    "s": "14:00",
+    "dur": 510,
+    "t": "❤️ Namorada",
+    "c": "4"
+  },
+  {
+    "d": "2026-10-04",
+    "s": "08:30",
+    "dur": 199,
+    "t": "[MedQuest] 📖 Síndromes Hipertensivas na Gravidez (Pré-eclâmpsia e Eclâmpsia) (Ginecologia e Obstetrícia)",
+    "c": "9",
+    "desc": "📚 Carga: 3.31h (Teoria: 1.31h + Questões: 2.0h)\nSemana 6 • Ginecologia e Obstetrícia\n\n🔗 Questões: https://medquest.live/estudar?subtema=S%C3%ADndromes%20Hipertensivas%20na%20Gravidez%20%28Pr%C3%A9-ecl%C3%A2mpsia%20e%20Ecl%C3%A2mpsia%29"
+  },
+  {
+    "d": "2026-10-04",
+    "s": "12:00",
+    "dur": 45,
+    "t": "📚 Inglês",
+    "c": "3"
+  },
+  {
+    "d": "2026-10-04",
+    "s": "14:00",
+    "dur": 45,
+    "t": "🎸 Violão",
+    "c": "6"
+  },
+  {
+    "d": "2026-10-04",
+    "s": "18:30",
+    "dur": 240,
+    "t": "❤️ Namorada",
+    "c": "4"
+  }
+]

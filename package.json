@@ -1,0 +1,21 @@
+{
+  "name": "ultra-rotina-backend",
+  "version": "2.5.0",
+  "description": "Backend de alta performance para o Assistente Clínico Ultra Rotina e Cockpit PWA",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "PYTHONPATH=. .venv/bin/pytest tests/ -q",
+    "build": "python3 build_master.py"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.2",
+    "fastify": "^5.2.1",
+    "sync-fetch": "^0.5.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "ISC"
+}

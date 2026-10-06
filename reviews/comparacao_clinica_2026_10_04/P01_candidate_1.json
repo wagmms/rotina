@@ -1,0 +1,128 @@
+{
+  "id": "P01",
+  "version": "candidate",
+  "round": 1,
+  "synthetic": true,
+  "mode": "rx",
+  "created": "2026-10-04T21:12:38.691Z",
+  "total_ms": 15322,
+  "http_ms": 14917,
+  "calls": [
+    {
+      "phase": "geracao",
+      "model": "gemini-2.5-flash",
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 1478,
+      "bridge_ms": 1558,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-2.0-flash",
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 1163,
+      "bridge_ms": 1253,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-1.5-flash",
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 977,
+      "bridge_ms": 1051,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-flash-latest",
+      "host": "generativelanguage.googleapis.com",
+      "status": 200,
+      "http_ms": 6971,
+      "bridge_ms": 7040,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": {
+        "promptTokenCount": 2307,
+        "candidatesTokenCount": 550,
+        "totalTokenCount": 3495,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2307
+          }
+        ],
+        "thoughtsTokenCount": 638,
+        "serviceTier": "standard"
+      },
+      "finish": "STOP",
+      "text": "💊 *PRESCRIÇÃO AMBULATORIAL - RASCUNHO (REMUME)*\n*Status:* Completa para revisão.\n\n📝 *Receituário*\n*USO ORAL*\n1. *Amoxicilina* - 250 mg/5 mL suspensão oral - volume total de 200 mL\n- *Posologia:* administrar *10 mL por via oral de 12 em 12 horas por 10 dias*.\n\n💡 *Orientações ao paciente*\n- Agitar bem o frasco antes de cada administração.\n- Pode ser administrado com ou sem alimentos; manter oferta hídrica adequada.\n- Manter o tratamento até o final dos 10 dias, mesmo se houver melhora completa dos sintomas antes, para prevenção de febre reumática.\n- Retornar ao serviço de saúde em caso de piora da dor, dificuldade para engolir ou respirar, vômitos incoercíveis, manchas vermelhas no corpo ou febre persistente após 48 a 72 horas de antibiótico.\n\n📋 *Conferência médica*\n- *Indicação:* Faringite estreptocócica aguda com teste rápido positivo.\n- *Cálculo:* 20 kg x 25 mg/kg/dose = 500 mg/dose (50 mg/kg/dia). Conversão: 500 mg / (250 mg / 5 mL) = 10 mL por dose. Total: 2 doses/dia x 10 dias = 20 tomadas x 10 mL = 200 mL no total.\n- *Dose máxima:* Dose diária prescrita de 1000 mg/dia está dentro do limite preconizado para faringite estreptocócica (máximo de 1000 mg/dia).\n- *Alergias e interações:* Sem alergias relatadas pelo responsável; sem uso de medicações contínuas.\n- *Ajustes (renal, hepático, idade, gestação):* Funções renal e hepática normais documentadas, sem necessidade de ajuste posológico.\n- *REMUME:* item presente na lista fornecida (conferir disponibilidade no estoque e verificar o volume nominal dos frascos da farmácia local para dispensar a quantidade necessária de frascos que cubra 200 mL).\n\nSugestão gerada por IA. Conferir dose, diluição e diretriz; a responsabilidade da prescrição é do prescritor.",
+      "groundingMetadata": null,
+      "error": null
+    },
+    {
+      "phase": "auditoria",
+      "model": "gemini-flash-latest",
+      "host": "generativelanguage.googleapis.com",
+      "status": 200,
+      "http_ms": 4328,
+      "bridge_ms": 4407,
+      "prompt_sha256": "7ddf177e5670ad1f8dadf10ee43ef730e2d5f6a80e4364027a25e16796d2b8c4",
+      "prompt_chars": 3965,
+      "usage": {
+        "promptTokenCount": 1360,
+        "candidatesTokenCount": 3,
+        "totalTokenCount": 1824,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 1360
+          }
+        ],
+        "thoughtsTokenCount": 461,
+        "serviceTier": "standard"
+      },
+      "finish": "STOP",
+      "text": "SEM ALERTAS",
+      "groundingMetadata": null,
+      "error": null
+    }
+  ],
+  "metrics": {
+    "cache_get": 11,
+    "cache_getAll": 0,
+    "cache_put": 6,
+    "cache_putAll": 1,
+    "sheets": 1
+  },
+  "pdf_eligible": false,
+  "result": "💊 *PRESCRIÇÃO AMBULATORIAL - RASCUNHO (REMUME)*\n*Status:* Completa para revisão.\n\n📝 *Receituário*\n*USO ORAL*\n1. *Amoxicilina* - 250 mg/5 mL suspensão oral - volume total de 200 mL\n- *Posologia:* administrar *10 mL por via oral de 12 em 12 horas por 10 dias*.\n\n💡 *Orientações ao paciente*\n- Agitar bem o frasco antes de cada administração.\n- Pode ser administrado com ou sem alimentos; manter oferta hídrica adequada.\n- Manter o tratamento até o final dos 10 dias, mesmo se houver melhora completa dos sintomas antes, para prevenção de febre reumática.\n- Retornar ao serviço de saúde em caso de piora da dor, dificuldade para engolir ou respirar, vômitos incoercíveis, manchas vermelhas no corpo ou febre persistente após 48 a 72 horas de antibiótico.\n\n📋 *Conferência médica*\n- *Indicação:* Faringite estreptocócica aguda com teste rápido positivo.\n- *Cálculo:* 20 kg x 25 mg/kg/dose = 500 mg/dose (50 mg/kg/dia). Conversão: 500 mg / (250 mg / 5 mL) = 10 mL por dose. Total: 2 doses/dia x 10 dias = 20 tomadas x 10 mL = 200 mL no total.\n- *Dose máxima:* Dose diária prescrita de 1000 mg/dia está dentro do limite preconizado para faringite estreptocócica (máximo de 1000 mg/dia).\n- *Alergias e interações:* Sem alergias relatadas pelo responsável; sem uso de medicações contínuas.\n- *Ajustes (renal, hepático, idade, gestação):* Funções renal e hepática normais documentadas, sem necessidade de ajuste posológico.\n- *REMUME:* item presente na lista fornecida (conferir disponibilidade no estoque e verificar o volume nominal dos frascos da farmácia local para dispensar a quantidade necessária de frascos que cubra 200 mL).\n\nSugestão gerada por IA. Conferir dose, diluição e diretriz; a responsabilidade da prescrição é do prescritor.",
+  "error": null,
+  "logs": [
+    "[IA eval-2] GEMINI gemini-2.5-flash: 404 (bloqueado por 1h)",
+    "[IA eval-2] GEMINI gemini-2.0-flash: 404 (bloqueado por 1h)",
+    "[IA eval-2] GEMINI gemini-1.5-flash: 404 (bloqueado por 1h)",
+    "[IA eval-2] OK via GEMINI (gemini-flash-latest) em 10908 ms",
+    "[IA eval-3] OK via GEMINI (gemini-flash-latest) em 4408 ms"
+  ]
+}

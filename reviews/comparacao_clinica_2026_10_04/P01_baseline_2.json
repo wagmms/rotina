@@ -1,0 +1,167 @@
+{
+  "id": "P01",
+  "version": "baseline",
+  "round": 2,
+  "synthetic": true,
+  "mode": "rx",
+  "created": "2026-10-04T21:18:17.849Z",
+  "total_ms": 13665,
+  "http_ms": 13183,
+  "calls": [
+    {
+      "phase": "geracao",
+      "model": "gemini-2.5-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 351,
+      "bridge_ms": 414,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-2.0-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 333,
+      "bridge_ms": 395,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-1.5-flash",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 404,
+      "http_ms": 338,
+      "bridge_ms": 404,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "NOT_FOUND"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-flash-latest",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 429,
+      "http_ms": 410,
+      "bridge_ms": 476,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "RESOURCE_EXHAUSTED"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-flash-latest",
+      "resolved_model": null,
+      "host": "generativelanguage.googleapis.com",
+      "status": 429,
+      "http_ms": 374,
+      "bridge_ms": 445,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": null,
+      "finish": null,
+      "text": "",
+      "groundingMetadata": null,
+      "error": "RESOURCE_EXHAUSTED"
+    },
+    {
+      "phase": "geracao",
+      "model": "gemini-flash-latest",
+      "resolved_model": "gemini-3.8-flash",
+      "host": "generativelanguage.googleapis.com",
+      "status": 200,
+      "http_ms": 5449,
+      "bridge_ms": 5528,
+      "prompt_sha256": "fb370ac869ec00cdbff3b80770d7f12ba66ee8cb92558e9d347c392e25fd84c2",
+      "prompt_chars": 7422,
+      "usage": {
+        "promptTokenCount": 2307,
+        "candidatesTokenCount": 544,
+        "totalTokenCount": 3353,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 2307
+          }
+        ],
+        "thoughtsTokenCount": 502,
+        "serviceTier": "standard"
+      },
+      "finish": "STOP",
+      "text": "💊 *PRESCRIÇÃO AMBULATORIAL - RASCUNHO (REMUME)*\n*Status:* Completa para revisão médica.\n\n📝 *Receituário*\n*USO ORAL*\n1. *Amoxicilina* - 250 mg/5 mL suspensão oral - 200 mL no total (quantidade suficiente para o tratamento)\n- *Posologia:* tomar **10 mL (500 mg) por via oral de 12 em 12 horas por 10 dias**.\n\n💡 *Orientações ao paciente / responsável*\n- Agitar bem o frasco antes de cada administração e medir a dose com seringa dosadora ou copo-medida.\n- Pode ser administrado com ou sem alimentos.\n- Manter o tratamento pelos 10 dias completos, mesmo com desaparecimento precoce da febre e da dor de garganta, para prevenir complicações como febre reumática.\n- Retornar imediatamente ao serviço se houver piora do estado geral, dificuldade para respirar ou engolir saliva, vômitos incoercíveis ou aparecimento de manchas vermelhas pelo corpo.\n\n📋 *Conferência médica*\n- *Indicação:* Faringoamigdalite estreptocócica confirmada por teste rápido.\n- *Cálculo:* 25 mg/kg por dose x 20 kg = 500 mg por dose (50 mg/kg/dia). Concentração de 250 mg/5 mL (50 mg/mL) -> 500 mg / 50 mg/mL = 10 mL por dose. Volume diário = 20 mL. Volume total para 10 dias = 200 mL.\n- *Dose máxima:* 500 mg por dose e 1000 mg/dia (dentro dos limites pediátricos recomendados para faringoamigdalite).\n- *Alergias e interações:* Sem alergias medicamentosas relatadas pelo responsável; sem medicações de uso contínuo.\n- *Ajustes (renal, hepático, idade, gestação):* Função renal e hepática normais documentadas; sem necessidade de ajuste posológico.\n- *REMUME:* Amoxicilina 250 mg/5 mL consta na lista fornecida (conferir disponibilidade no estoque municipal).\n\nSugestão gerada por IA. Conferir dose, diluição e diretriz; a responsabilidade da prescrição é do prescritor.",
+      "groundingMetadata": null,
+      "error": null
+    },
+    {
+      "phase": "auditoria",
+      "model": "gemini-flash-latest",
+      "resolved_model": "gemini-3.8-flash",
+      "host": "generativelanguage.googleapis.com",
+      "status": 200,
+      "http_ms": 5928,
+      "bridge_ms": 5989,
+      "prompt_sha256": "f578a687ddab5eb8a4841da63be77938b834ebcccc896c0ed9040698747b6dc7",
+      "prompt_chars": 3058,
+      "usage": {
+        "promptTokenCount": 927,
+        "candidatesTokenCount": 4,
+        "totalTokenCount": 1423,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 927
+          }
+        ],
+        "thoughtsTokenCount": 492,
+        "serviceTier": "standard"
+      },
+      "finish": "STOP",
+      "text": "SEM ALERTAS.",
+      "groundingMetadata": null,
+      "error": null
+    }
+  ],
+  "metrics": {
+    "cache_get": 13,
+    "cache_getAll": 0,
+    "cache_put": 6,
+    "cache_putAll": 1,
+    "sheets": 1
+  },
+  "pdf_eligible": false,
+  "result": "💊 *PRESCRIÇÃO AMBULATORIAL - RASCUNHO (REMUME)*\n*Status:* Completa para revisão médica.\n\n📝 *Receituário*\n*USO ORAL*\n1. *Amoxicilina* - 250 mg/5 mL suspensão oral - 200 mL no total (quantidade suficiente para o tratamento)\n- *Posologia:* tomar *10 mL (500 mg) por via oral de 12 em 12 horas por 10 dias*.\n\n💡 *Orientações ao paciente / responsável*\n- Agitar bem o frasco antes de cada administração e medir a dose com seringa dosadora ou copo-medida.\n- Pode ser administrado com ou sem alimentos.\n- Manter o tratamento pelos 10 dias completos, mesmo com desaparecimento precoce da febre e da dor de garganta, para prevenir complicações como febre reumática.\n- Retornar imediatamente ao serviço se houver piora do estado geral, dificuldade para respirar ou engolir saliva, vômitos incoercíveis ou aparecimento de manchas vermelhas pelo corpo.\n\n📋 *Conferência médica*\n- *Indicação:* Faringoamigdalite estreptocócica confirmada por teste rápido.\n- *Cálculo:* 25 mg/kg por dose x 20 kg = 500 mg por dose (50 mg/kg/dia). Concentração de 250 mg/5 mL (50 mg/mL) -> 500 mg / 50 mg/mL = 10 mL por dose. Volume diário = 20 mL. Volume total para 10 dias = 200 mL.\n- *Dose máxima:* 500 mg por dose e 1000 mg/dia (dentro dos limites pediátricos recomendados para faringoamigdalite).\n- *Alergias e interações:* Sem alergias medicamentosas relatadas pelo responsável; sem medicações de uso contínuo.\n- *Ajustes (renal, hepático, idade, gestação):* Função renal e hepática normais documentadas; sem necessidade de ajuste posológico.\n- *REMUME:* Amoxicilina 250 mg/5 mL consta na lista fornecida (conferir disponibilidade no estoque municipal).\n\nSugestão gerada por IA. Conferir dose, diluição e diretriz; a responsabilidade da prescrição é do prescritor.",
+  "error": null,
+  "logs": [
+    "[IA eval-1] GEMINI gemini-2.5-flash: 404 (bloqueado por 1h)",
+    "[IA eval-1] GEMINI gemini-2.0-flash: 404 (bloqueado por 1h)",
+    "[IA eval-1] GEMINI gemini-1.5-flash: 404 (bloqueado por 1h)",
+    "[IA eval-1] GEMINI gemini-flash-latest: 429 na chave #0, rotacionando",
+    "[IA eval-1] GEMINI gemini-flash-latest: 429 na chave #1, rotacionando",
+    "[IA eval-1] OK via GEMINI (gemini-flash-latest) em 7668 ms",
+    "[IA eval-2] OK via GEMINI (gemini-flash-latest) em 5989 ms"
+  ]
+}
