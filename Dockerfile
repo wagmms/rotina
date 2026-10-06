@@ -11,7 +11,6 @@ COPY server/ ./server/
 COPY src/ ./src/
 COPY server.js ./
 COPY REMUME_RP.csv ./
-COPY .deploy_state.json ./
 
 # Cria pasta de dados persistentes
 RUN mkdir -p /app/data
