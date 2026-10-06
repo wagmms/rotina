@@ -11,7 +11,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F01.%20Abdome%20Agudo%20Inflamat%C3%B3rio%20(Apendicite%20e%20Diverticulite%20Aguda)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F04.%20Aula%20%E2%80%94%20Abdome%20Agudo%20Inflamat%C3%B3rio%20(Apendicite%20e%20Diverticulite%20Aguda)%20-%20Diverticulite%20Aguda.mp4?size=87724199&name=04.%20Aula%20%E2%80%94%20Abdome%20Agudo%20Inflamat%C3%B3rio%20(Apendicite%20e%20Diverticulite%20Aguda)%20-%20Diverticulite%20Aguda.mp4",
     "duracao_segundos": 0,
     "modulo_index": 0,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b9c3c39f-0a0b-548e-8771-714ab8eb4d8d",
@@ -25,7 +26,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F03.%20Abdome%20Agudo%20Vascular%20e%20Isquemia%20Mesent%C3%A9rica%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=165234134&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 2,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0ed676ea-6e07-5d66-b62f-1d16d9ae0bb1",
@@ -39,7 +41,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F04.%20Abdome%20Agudo%20Obstrutivo%20(Bridas%2C%20Neoplasias%20e%20Volvo)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=79958793&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 3,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "1db83877-6829-56aa-aa1b-750f1916722a",
@@ -53,7 +56,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F05.%20Abdome%20Agudo%20Perfurativo%20e%20%C3%9Alcera%20P%C3%A9ptica%20Perfurada%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=123794669&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 4,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "26cef734-1581-5e85-91b5-dd9fce926125",
@@ -67,7 +71,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F06.%20Atendimento%20Inicial%20ao%20Politraumatizado%20(Protocolo%20xABCDE)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=245608904&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 5,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "ad5f3499-58e7-5d8a-a14c-6e403fdd1491",
@@ -81,7 +86,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F06.%20Atendimento%20Inicial%20ao%20Politraumatizado%20(Protocolo%20xABCDE)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=278642506&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 5,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "345701ef-27fe-56e4-91b6-7d1f2208bc70",
@@ -95,7 +101,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F06.%20Atendimento%20Inicial%20ao%20Politraumatizado%20(Protocolo%20xABCDE)%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=289170373&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 5,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3d4b7fc5-b31e-5157-a39b-2314f84ba33f",
@@ -109,7 +116,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F08.%20Afec%C3%A7%C3%B5es%20Pancre%C3%A1ticas%20(Pancreatite%20Aguda%2C%20Cr%C3%B4nica%20e%20Neoplasias)%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=120882848&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 6,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6101f339-67e2-5287-853b-646a26df9b58",
@@ -123,7 +131,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F08.%20Afec%C3%A7%C3%B5es%20Pancre%C3%A1ticas%20(Pancreatite%20Aguda%2C%20Cr%C3%B4nica%20e%20Neoplasias)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=248712452&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 6,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "c8e80b30-9384-59bc-a968-a4d99582727c",
@@ -137,7 +146,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F08.%20Afec%C3%A7%C3%B5es%20Pancre%C3%A1ticas%20(Pancreatite%20Aguda%2C%20Cr%C3%B4nica%20e%20Neoplasias)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=236660002&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 6,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "520f2ace-5dad-583b-9ac4-4e68a0468bc2",
@@ -151,7 +161,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F09.%20Afec%C3%A7%C3%B5es%20Urol%C3%B3gicas%20Benignas%20(HPB%2C%20Lit%C3%ADase%20Urin%C3%A1ria%20e%20Escroto%20Agudo)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=257179377&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 7,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "fbf66665-7a46-5190-a459-d09e4af56f63",
@@ -165,7 +176,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F09.%20Afec%C3%A7%C3%B5es%20Urol%C3%B3gicas%20Benignas%20(HPB%2C%20Lit%C3%ADase%20Urin%C3%A1ria%20e%20Escroto%20Agudo)%2F15.%20V%C3%ADdeo%20Aula%20-%20Flash%2F15.%20Aula.mp4?size=208856563&name=15.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 7,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b6da1a1b-1566-5ab9-b6e1-23a2aa6a6b2c",
@@ -179,7 +191,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F09.%20Afec%C3%A7%C3%B5es%20Urol%C3%B3gicas%20Benignas%20(HPB%2C%20Lit%C3%ADase%20Urin%C3%A1ria%20e%20Escroto%20Agudo)%2F16.%20V%C3%ADdeo%20Aula%20-%20Flash%2F16.%20Aula.mp4?size=170862099&name=16.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 7,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "255fe4ff-f277-5cac-b608-eb5e2586e25f",
@@ -193,7 +206,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F10.%20Avalia%C3%A7%C3%A3o%20Pr%C3%A9-Anest%C3%A9sica%2C%20Anest%C3%A9sicos%20Locais%20e%20Bloqueios%2F1.%20V%C3%ADdeo%20Aula%20-%20Flash%2F1.%20Aula.mp4?size=215397903&name=1.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 8,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f34c5994-edee-5f7d-83c9-ec6d0110520c",
@@ -207,7 +221,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F10.%20Avalia%C3%A7%C3%A3o%20Pr%C3%A9-Anest%C3%A9sica%2C%20Anest%C3%A9sicos%20Locais%20e%20Bloqueios%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%2F2.%20Aula.mp4?size=206685675&name=2.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 8,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "583e0498-895d-5c05-b48c-5e5600942de3",
@@ -221,7 +236,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F10.%20Avalia%C3%A7%C3%A3o%20Pr%C3%A9-Anest%C3%A9sica%2C%20Anest%C3%A9sicos%20Locais%20e%20Bloqueios%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=173234197&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 8,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "917611c7-f7b0-5f53-a680-01fb66979609",
@@ -235,7 +251,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F11.%20Aneurismas%20de%20Aorta%20Abdominal%20e%20Tor%C3%A1cica%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=83145968&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 9,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "91a6ddcf-1bf3-55d7-809d-3bf2f9e18dc8",
@@ -249,7 +266,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F12.%20Cirurgia%20Bari%C3%A1trica%20e%20Metab%C3%B3lica%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F03.%20Aula%20%E2%80%94%20Cirurgia%20Bari%C3%A1trica%20e%20Metab%C3%B3lica.mp4?size=132065246&name=03.%20Aula%20%E2%80%94%20Cirurgia%20Bari%C3%A1trica%20e%20Metab%C3%B3lica.mp4",
     "duracao_segundos": 0,
     "modulo_index": 10,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "66655119-48aa-50ce-ab81-a3c9275c1603",
@@ -263,7 +281,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F13.%20Cirurgia%20Pedi%C3%A1trica%20e%20Malforma%C3%A7%C3%B5es%20Digestivas%20Neonatais%2F12.%20V%C3%ADdeo%20Aula%20-%20Flash%2F12.%20Aula.mp4?size=225067211&name=12.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 11,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "1b322b3e-030e-5d4f-ac50-7cba75df7e4b",
@@ -277,7 +296,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F13.%20Cirurgia%20Pedi%C3%A1trica%20e%20Malforma%C3%A7%C3%B5es%20Digestivas%20Neonatais%2F24.%20V%C3%ADdeo%20Aula%20-%20Flash%2F24.%20Aula.mp4?size=209558754&name=24.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 11,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "867a6498-4a76-5dae-b8ec-921aa48e9f75",
@@ -291,7 +311,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F13.%20Cirurgia%20Pedi%C3%A1trica%20e%20Malforma%C3%A7%C3%B5es%20Digestivas%20Neonatais%2F25.%20V%C3%ADdeo%20Aula%20-%20Flash%2F25.%20Aula.mp4?size=148671998&name=25.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 11,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "fb7dbee9-a4cb-5c11-969a-e270f60bf70b",
@@ -305,7 +326,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F14.%20Como%20cai%20na%20PED%20-%20Cirurgia%20Pedi%C3%A1trica%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=110668297&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 12,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3c8781db-542a-5dce-bfe0-8df1db281bf5",
@@ -319,7 +341,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F15.%20Cirurgia%20Tor%C3%A1cica%20Geral%20e%20Doen%C3%A7as%20Pleurais%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=137893287&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 13,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a8d2014b-0a93-58f8-989b-e2adabd11ab7",
@@ -333,7 +356,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F16.%20Coloproctologia%20-%20Doen%C3%A7as%20Orificiais%20e%20Afec%C3%A7%C3%B5es%20Colorretais%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=132034077&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 14,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "68a9b815-2cb2-58e0-a46f-1eaaed5a461f",
@@ -347,7 +371,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F163.%20Ortopedia%20Pedi%C3%A1trica%20-%20Displasia%20do%20Quadril%2C%20P%C3%A9%20Torto%20e%20Epifisi%C3%B3lise%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=104616535&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 15,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "5e02aa77-bf0a-5f00-9cae-82c77c9b22ed",
@@ -361,7 +386,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F17.%20Cuidados%20e%20Complica%C3%A7%C3%B5es%20P%C3%B3s-Operat%C3%B3rias%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=326079333&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 16,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "294fdd02-d921-58eb-8fa8-a2d62e4fe93c",
@@ -375,7 +401,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F17.%20Cuidados%20e%20Complica%C3%A7%C3%B5es%20P%C3%B3s-Operat%C3%B3rias%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=281815809&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 16,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e8ab3f71-151b-5f6e-a21b-a00816ac4ac6",
@@ -389,7 +416,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F17.%20Cuidados%20e%20Complica%C3%A7%C3%B5es%20P%C3%B3s-Operat%C3%B3rias%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=79232797&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 16,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "c931d2a2-05d8-50ff-987b-23ac1d74f9bf",
@@ -403,7 +431,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F17.%20Cuidados%20e%20Complica%C3%A7%C3%B5es%20P%C3%B3s-Operat%C3%B3rias%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=318937455&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 16,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "ed9faa25-2f62-51ad-94c0-ee56b9bf5bda",
@@ -417,7 +446,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F18.%20Abordagem%20Cir%C3%BArgica%20das%20Doen%C3%A7as%20Inflamat%C3%B3rias%20Intestinais%20(Crohn%20e%20RCU)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=236546886&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 17,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "228bc365-b3d5-5a8c-ab21-45517faf9dbf",
@@ -431,7 +461,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F18.%20Abordagem%20Cir%C3%BArgica%20das%20Doen%C3%A7as%20Inflamat%C3%B3rias%20Intestinais%20(Crohn%20e%20RCU)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=163272884&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 17,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "d9f2c25b-b8dc-5cce-acbb-0b691d50f77a",
@@ -445,7 +476,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F19.%20Avalia%C3%A7%C3%A3o%20e%20Cuidados%20Pr%C3%A9-Operat%C3%B3rios%20(Risco%20Cir%C3%BArgico)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=281798416&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 18,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e547b19c-94e4-5f97-9578-6646493ba6ea",
@@ -459,7 +491,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F19.%20Avalia%C3%A7%C3%A3o%20e%20Cuidados%20Pr%C3%A9-Operat%C3%B3rios%20(Risco%20Cir%C3%BArgico)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=283135581&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 18,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f0b90f6c-48e0-5b8b-a68a-cf52a8c69654",
@@ -473,7 +506,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F19.%20Avalia%C3%A7%C3%A3o%20e%20Cuidados%20Pr%C3%A9-Operat%C3%B3rios%20(Risco%20Cir%C3%BArgico)%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=267250843&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 18,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "8db14bf9-c185-5a0d-b932-2fd7e19638f3",
@@ -487,7 +521,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F19.%20Avalia%C3%A7%C3%A3o%20e%20Cuidados%20Pr%C3%A9-Operat%C3%B3rios%20(Risco%20Cir%C3%BArgico)%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=249108561&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 18,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6fccf622-ef8b-5cca-b167-b989456a586e",
@@ -501,7 +536,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F19.%20Avalia%C3%A7%C3%A3o%20e%20Cuidados%20Pr%C3%A9-Operat%C3%B3rios%20(Risco%20Cir%C3%BArgico)%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=195967426&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 18,
-    "aula_index": 8
+    "aula_index": 8,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a6187a4d-470a-5c67-9beb-c45894b9c645",
@@ -515,7 +551,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F19.%20Avalia%C3%A7%C3%A3o%20e%20Cuidados%20Pr%C3%A9-Operat%C3%B3rios%20(Risco%20Cir%C3%BArgico)%2F12.%20V%C3%ADdeo%20Aula%20-%20Flash%2F12.%20Aula.mp4?size=190529054&name=12.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 18,
-    "aula_index": 9
+    "aula_index": 9,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0577f4e9-489b-5621-9133-aa04b1d6a348",
@@ -529,7 +566,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F20.%20Doen%C3%A7a%20Arterial%20Obstrutiva%20Perif%C3%A9rica%20e%20Oclus%C3%B5es%20Arteriais%20Agudas%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=208137063&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 19,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "1fca66ec-c6f2-5b9e-abf6-38ea67a56a6a",
@@ -543,7 +581,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F20.%20Doen%C3%A7a%20Arterial%20Obstrutiva%20Perif%C3%A9rica%20e%20Oclus%C3%B5es%20Arteriais%20Agudas%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=164963305&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 19,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "61714446-20ba-5f42-973a-d951267fd792",
@@ -557,7 +596,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F21.%20Insufici%C3%AAncia%20Venosa%20Cr%C3%B4nica%20e%20Trombose%20Venosa%20Profunda%20(TVP)%2F1.%20V%C3%ADdeo%20Aula%20-%20Flash%2F1.%20Aula.mp4?size=255519032&name=1.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 20,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "786ccbbd-1c4d-57f2-9f08-47007c5b11b9",
@@ -571,7 +611,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F21.%20Insufici%C3%AAncia%20Venosa%20Cr%C3%B4nica%20e%20Trombose%20Venosa%20Profunda%20(TVP)%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%2F2.%20Aula.mp4?size=68824573&name=2.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 20,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "fc56412a-c380-5ad5-b431-ab6aa61d0f13",
@@ -585,7 +626,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F21.%20Insufici%C3%AAncia%20Venosa%20Cr%C3%B4nica%20e%20Trombose%20Venosa%20Profunda%20(TVP)%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=277908602&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 20,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "4eb40cbf-f640-5a99-9743-8533c93e9712",
@@ -599,7 +641,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F21.%20Insufici%C3%AAncia%20Venosa%20Cr%C3%B4nica%20e%20Trombose%20Venosa%20Profunda%20(TVP)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=98601400&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 20,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "ace8ebdb-4cb9-5f76-96f7-7568c7033743",
@@ -613,7 +656,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F22.%20Cicatriza%C3%A7%C3%A3o%2C%20Tratamento%20de%20Feridas%2C%20Enxertos%20e%20Retalhos%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=264931456&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 21,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0b3af4a9-59a7-56fc-94c1-dd78401172c4",
@@ -627,7 +671,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F22.%20Cicatriza%C3%A7%C3%A3o%2C%20Tratamento%20de%20Feridas%2C%20Enxertos%20e%20Retalhos%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=178588059&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 21,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e52368ea-19ba-54e2-8f5b-48a58529e7b1",
@@ -641,7 +686,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F22.%20Cicatriza%C3%A7%C3%A3o%2C%20Tratamento%20de%20Feridas%2C%20Enxertos%20e%20Retalhos%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=349441297&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 21,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "dfc38902-bcb8-5f4e-a74d-2a2802349e2b",
@@ -655,7 +701,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F23.%20T%C3%A9cnica%20Operat%C3%B3ria%2C%20Di%C3%A9rese%2C%20Hemostasia%20e%20S%C3%ADntese%20(Fios%20Cir%C3%BArgicos)%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=240736449&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 22,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f1cd3be7-d8ae-55d9-8d3e-b4f3e8ebd435",
@@ -669,7 +716,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F23.%20T%C3%A9cnica%20Operat%C3%B3ria%2C%20Di%C3%A9rese%2C%20Hemostasia%20e%20S%C3%ADntese%20(Fios%20Cir%C3%BArgicos)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=188896092&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 22,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "9998c4a5-616b-5064-aaa1-e7e1aab4913e",
@@ -683,7 +731,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F26.%20Particularidades%20das%20Queimaduras%20na%20Faixa%20Et%C3%A1ria%20Pedi%C3%A1trica%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=129757012&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 24,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "079f1248-64e0-50e7-b495-5a4e41f60cee",
@@ -697,7 +746,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F27.%20Como%20cai%20na%20PED%20-%20Queimaduras%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=112731923&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 25,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "aa848051-a4dc-5627-b857-2e6a56d7c977",
@@ -711,7 +761,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F28.%20Dist%C3%BArbios%20Motores%20do%20Es%C3%B4fago%2C%20Megaes%C3%B4fago%20e%20S%C3%ADndrome%20Disf%C3%A1gica%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=255609722&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 26,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f0e1022f-e826-50de-82c8-c7785a3763cb",
@@ -725,7 +776,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F28.%20Dist%C3%BArbios%20Motores%20do%20Es%C3%B4fago%2C%20Megaes%C3%B4fago%20e%20S%C3%ADndrome%20Disf%C3%A1gica%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=230877889&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 26,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "4af1c188-eacd-568f-afe7-66cc2599e783",
@@ -739,7 +791,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F28.%20Dist%C3%BArbios%20Motores%20do%20Es%C3%B4fago%2C%20Megaes%C3%B4fago%20e%20S%C3%ADndrome%20Disf%C3%A1gica%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=195602060&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 26,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "360238f1-5e3a-5a86-bca2-ef55cd6ce043",
@@ -753,7 +806,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F28.%20Dist%C3%BArbios%20Motores%20do%20Es%C3%B4fago%2C%20Megaes%C3%B4fago%20e%20S%C3%ADndrome%20Disf%C3%A1gica%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=242549644&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 26,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "9a02f495-7f76-5fbc-b927-64055e22f5d3",
@@ -767,7 +821,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F29.%20Como%20cai%20na%20CM%20-%20S%C3%ADndrome%20Disf%C3%A1gica%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=130469375&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 27,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e2e767c8-ed7d-5f69-9bde-8667ddc17716",
@@ -781,7 +836,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F30.%20Doen%C3%A7a%20do%20Refluxo%20Gastroesof%C3%A1gico%20(DRGE)%20e%20%C3%9Alcera%20P%C3%A9ptica%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=137849876&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 28,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "93ef3476-7f62-5172-b507-c856d3863c47",
@@ -795,7 +851,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F30.%20Doen%C3%A7a%20do%20Refluxo%20Gastroesof%C3%A1gico%20(DRGE)%20e%20%C3%9Alcera%20P%C3%A9ptica%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=107690083&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 28,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "bd38cc83-0980-5766-ba38-42c1e1c58ab5",
@@ -809,7 +866,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F30.%20Doen%C3%A7a%20do%20Refluxo%20Gastroesof%C3%A1gico%20(DRGE)%20e%20%C3%9Alcera%20P%C3%A9ptica%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=219436584&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 28,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f1efc791-fc6c-53de-a98c-93d1bbe1c36a",
@@ -823,7 +881,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F32.%20Trauma%20Cranioencef%C3%A1lico%20(TCE)%20e%20Hipertens%C3%A3o%20Intracraniana%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=56293917&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 29,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a3b83cdf-5944-5413-9b4b-8d52e79d0c56",
@@ -837,7 +896,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F33.%20Trauma%20de%20Face%20e%20Pesco%C3%A7o%20(Trauma%20Cervical%20e%20Fraturas%20Maxilofaciais)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=317809916&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 30,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "392c2035-1ebf-5120-ab4d-6a78d718925f",
@@ -851,7 +911,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F33.%20Trauma%20de%20Face%20e%20Pesco%C3%A7o%20(Trauma%20Cervical%20e%20Fraturas%20Maxilofaciais)%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=373581475&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 30,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f7b17b80-a404-5299-aa35-7b700f37e50e",
@@ -865,7 +926,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F34.%20Trauma%20Tor%C3%A1cico%20-%20Pneumot%C3%B3rax%2C%20Hemot%C3%B3rax%20e%20Tamponamento%20Card%C3%ADaco%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=120046683&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 31,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "652f9f32-5aa6-5b92-b4bb-5c76771a5744",
@@ -879,7 +941,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F35.%20C%C3%A2ncer%20de%20Pele%20N%C3%A3o-Melanoma%20e%20Melanoma%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=258477498&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 32,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "cce99995-f759-58aa-9b1e-bba8e2c16b17",
@@ -893,7 +956,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F35.%20C%C3%A2ncer%20de%20Pele%20N%C3%A3o-Melanoma%20e%20Melanoma%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=234578994&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 32,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "9cfea8e9-c7e9-55d5-a3ab-e698b055d707",
@@ -907,7 +971,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F36.%20Neoplasias%20do%20Aparelho%20Digestivo%20(Es%C3%B4fago%2C%20Est%C3%B4mago%20e%20C%C3%B3lon)%2F13.%20V%C3%ADdeo%20Aula%20-%20Flash%2F13.%20Aula.mp4?size=108485364&name=13.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 33,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "708d3d4a-71f4-54f7-8faf-e3a57e39822d",
@@ -921,7 +986,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F39.%20Fraturas%20%C3%93sseas%20e%20Princ%C3%ADpios%20Gerais%20de%20Osteoss%C3%ADntese%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=130792599&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 35,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "cb170f42-61e0-5c49-956c-0210ef80dfec",
@@ -935,7 +1001,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F41.%20Luxa%C3%A7%C3%B5es%20Articulares%20e%20Les%C3%B5es%20Ligamentares%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=138070454&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 36,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a8678a20-1cf4-5735-a3fc-a717302b2c14",
@@ -949,7 +1016,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F43.%20Neoplasias%20%C3%93sseas%20Benignas%20e%20Sarcomas%20%C3%93sseos%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=144305279&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 38,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "8ed3ce60-6da6-5197-8032-5405c72a1230",
@@ -963,7 +1031,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F43.%20Neoplasias%20%C3%93sseas%20Benignas%20e%20Sarcomas%20%C3%93sseos%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=142097825&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 38,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "d729e6c3-948c-5f3a-aa3c-89a6dfca8706",
@@ -977,7 +1046,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F47.%20P%C3%B3lipos%20Intestinais%20e%20S%C3%ADndromes%20de%20Polipose%20Heredit%C3%A1ria%2F1.%20V%C3%ADdeo%20Aula%20-%20Flash%2F1.%20Aula.mp4?size=138657598&name=1.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 42,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "8640db54-4c56-56c2-8dfc-0a99960e4b50",
@@ -991,7 +1061,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F48.%20Emerg%C3%AAncias%20Oftalmol%C3%B3gicas%20e%20Afec%C3%A7%C3%B5es%20Oculares%20Frequentes%2F1.%20V%C3%ADdeo%20Aula%20-%20Flash%2F1.%20Aula.mp4?size=64339016&name=1.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 43,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "5f955e88-43fd-52a8-b7d5-c1c6b4908805",
@@ -1005,7 +1076,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F48.%20Emerg%C3%AAncias%20Oftalmol%C3%B3gicas%20e%20Afec%C3%A7%C3%B5es%20Oculares%20Frequentes%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%2F2.%20Aula.mp4?size=97349582&name=2.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 43,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "91d0da61-eab8-5d46-b38d-2376a560788e",
@@ -1019,7 +1091,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F51.%20Neoplasias%20Malignas%20de%20Cabe%C3%A7a%20e%20Pesco%C3%A7o%2F1.%20V%C3%ADdeo%20Aula%20-%20Flash%2F1.%20Aula.mp4?size=114812591&name=1.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 46,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "61df7d89-8234-5db0-8d39-41342f87595b",
@@ -1033,7 +1106,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F83.%20Trauma%20Abdominal%20Fechado%20e%20Penetrante%20(FAST%20e%20Laparotomia)%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F03.%20Aula%20%E2%80%94%20Trauma%20Abdominal%20Fechado%20e%20Penetrante%20(FAST%20e%20Laparotomia).mp4?size=169743689&name=03.%20Aula%20%E2%80%94%20Trauma%20Abdominal%20Fechado%20e%20Penetrante%20(FAST%20e%20Laparotomia).mp4",
     "duracao_segundos": 0,
     "modulo_index": 47,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0e1f96b3-6c37-5452-a42c-5ebd7580b26f",
@@ -1047,7 +1121,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F1.%20Cirurgia%20Geral%2F95.%20Hemorragia%20Digestiva%20Alta%20e%20Baixa%20na%20Emerg%C3%AAncia%20Cir%C3%BArgica%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=176439605&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 48,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "ffd36b16-1733-515b-9dac-94abed86c6da",
@@ -1061,7 +1136,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F01.%20Taquiarritmias%2C%20Bradiarritmias%2C%20S%C3%ADncope%20e%20Suporte%20Avan%C3%A7ado%20(ACLS)%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=155498561&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 49,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "4373b42b-89ab-557c-9906-1a6584684c51",
@@ -1075,7 +1151,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F03.%20Parasitoses%20Intestinais%20-%20Helmint%C3%ADases%20e%20Protozooses%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F02.%20Material%20de%20apoio%20%E2%80%94%20Parasitoses%20Intestinais%20-%20Helmint%C3%ADases%20e%20Protozooses.mp4?size=75976702&name=02.%20Material%20de%20apoio%20%E2%80%94%20Parasitoses%20Intestinais%20-%20Helmint%C3%ADases%20e%20Protozooses.mp4",
     "duracao_segundos": 0,
     "modulo_index": 51,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "17851e1e-2c2f-5b55-89a4-7171924489a7",
@@ -1089,7 +1166,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F04.%20Parada%20Cardiorrespirat%C3%B3ria%20(PCR)%20e%20Ritmos%20de%20Choque%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=275140832&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 52,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "d00e902b-6d87-53cc-b2c5-3a18ea6a1848",
@@ -1103,7 +1181,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F04.%20Parada%20Cardiorrespirat%C3%B3ria%20(PCR)%20e%20Ritmos%20de%20Choque%2F13.%20V%C3%ADdeo%20Aula%20-%20Flash%2F13.%20Aula.mp4?size=355013675&name=13.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 52,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "9cc5d8cc-6950-5d62-b390-b28c08a1b5be",
@@ -1117,7 +1196,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F04.%20Parada%20Cardiorrespirat%C3%B3ria%20(PCR)%20e%20Ritmos%20de%20Choque%2F14.%20V%C3%ADdeo%20Aula%20-%20Flash%2F14.%20Aula.mp4?size=149539406&name=14.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 52,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "698f372b-598a-5443-89af-44000042cd7f",
@@ -1131,7 +1211,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F04.%20Parada%20Cardiorrespirat%C3%B3ria%20(PCR)%20e%20Ritmos%20de%20Choque%2F15.%20V%C3%ADdeo%20Aula%20-%20Flash%2F15.%20Aula.mp4?size=142538462&name=15.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 52,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3da1e74c-037f-59cc-9cc7-894103c0fd81",
@@ -1145,7 +1226,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F04.%20Parada%20Cardiorrespirat%C3%B3ria%20(PCR)%20e%20Ritmos%20de%20Choque%2F16.%20V%C3%ADdeo%20Aula%20-%20Flash%2F16.%20Aula.mp4?size=360930551&name=16.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 52,
-    "aula_index": 8
+    "aula_index": 8,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "086cb095-f5bf-5d13-b4b8-336ca4ce7c2f",
@@ -1159,7 +1241,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F05.%20Valvopatias%20Adquiridas%20e%20Miocardiopatias%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=104236553&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 53,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a54ed19d-c652-5b3c-9ca8-0ea277ef61d5",
@@ -1173,7 +1256,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F05.%20Valvopatias%20Adquiridas%20e%20Miocardiopatias%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=206456168&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 53,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3f11a8ef-6b68-5d96-ad5f-6c70e69d746e",
@@ -1187,7 +1271,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F06.%20Hipertens%C3%A3o%20Arterial%20Sist%C3%AAmica%20e%20Crises%20Hipertensivas%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F02.%20Aula%20%E2%80%94%20Hipertens%C3%A3o%20Arterial%20Sist%C3%AAmica%20e%20Crises%20Hipertensivas%20-%20Vasculite.mp4?size=168338622&name=02.%20Aula%20%E2%80%94%20Hipertens%C3%A3o%20Arterial%20Sist%C3%AAmica%20e%20Crises%20Hipertensivas%20-%20Vasculite.mp4",
     "duracao_segundos": 0,
     "modulo_index": 54,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "87831d9a-ef16-5cd0-9a60-195a6fdceafe",
@@ -1201,7 +1286,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F06.%20Hipertens%C3%A3o%20Arterial%20Sist%C3%AAmica%20e%20Crises%20Hipertensivas%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=324137815&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 54,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "8f98dbdd-73f2-5e54-a80a-492c7124c339",
@@ -1215,7 +1301,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F06.%20Hipertens%C3%A3o%20Arterial%20Sist%C3%AAmica%20e%20Crises%20Hipertensivas%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=249555135&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 54,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "5c318c55-c375-59e6-a62d-9eceb651944e",
@@ -1229,7 +1316,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F07.%20Como%20cai%20na%20PED%20-%20Hipertens%C3%A3o%20Arterial%20Sist%C3%AAmica%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=204737178&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 55,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a9f44c5f-0d1a-5293-bf3f-479d9732137d",
@@ -1243,7 +1331,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F08.%20Insufici%C3%AAncia%20Card%C3%ADaca%20-%20Diagn%C3%B3stico%2C%20Estadiamento%20e%20Terapia%20Farmacol%C3%B3gica%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=252194801&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 56,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "ab73095e-9244-5ba1-a86e-57f8972b3564",
@@ -1257,7 +1346,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F08.%20Insufici%C3%AAncia%20Card%C3%ADaca%20-%20Diagn%C3%B3stico%2C%20Estadiamento%20e%20Terapia%20Farmacol%C3%B3gica%2F12.%20V%C3%ADdeo%20Aula%20-%20Flash%2F12.%20Aula.mp4?size=253171238&name=12.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 56,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "48f5209b-9d8d-5c30-b56b-279b0aa14054",
@@ -1271,7 +1361,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F08.%20Insufici%C3%AAncia%20Card%C3%ADaca%20-%20Diagn%C3%B3stico%2C%20Estadiamento%20e%20Terapia%20Farmacol%C3%B3gica%2F13.%20V%C3%ADdeo%20Aula%20-%20Flash%2F13.%20Aula.mp4?size=188337100&name=13.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 56,
-    "aula_index": 8
+    "aula_index": 8,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "be9ac1a5-2dae-54d4-a2b1-ee0aa0a08be0",
@@ -1285,7 +1376,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F08.%20Insufici%C3%AAncia%20Card%C3%ADaca%20-%20Diagn%C3%B3stico%2C%20Estadiamento%20e%20Terapia%20Farmacol%C3%B3gica%2F14.%20V%C3%ADdeo%20Aula%20-%20Flash%2F14.%20Aula.mp4?size=243481148&name=14.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 56,
-    "aula_index": 9
+    "aula_index": 9,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f5483f56-4a6a-5c75-9b10-d224842a02d7",
@@ -1299,7 +1391,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F09.%20S%C3%ADndromes%20Coronarianas%20Agudas%20(Com%20e%20Sem%20Supra%20de%20ST)%2F12.%20V%C3%ADdeo%20Aula%20-%20Flash%2F12.%20Aula.mp4?size=322510680&name=12.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 57,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "568e223e-73b4-55ec-bdc8-58f5ed567b47",
@@ -1313,7 +1406,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F09.%20S%C3%ADndromes%20Coronarianas%20Agudas%20(Com%20e%20Sem%20Supra%20de%20ST)%2F13.%20V%C3%ADdeo%20Aula%20-%20Flash%2F13.%20Aula.mp4?size=196489725&name=13.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 57,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "7399a2b3-e183-5243-9fba-45469634eccd",
@@ -1327,7 +1421,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F09.%20S%C3%ADndromes%20Coronarianas%20Agudas%20(Com%20e%20Sem%20Supra%20de%20ST)%2F14.%20V%C3%ADdeo%20Aula%20-%20Flash%2F14.%20Aula.mp4?size=226909735&name=14.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 57,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "be341701-c8ee-5b56-aafa-8ccf8c8ba674",
@@ -1341,7 +1436,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F09.%20S%C3%ADndromes%20Coronarianas%20Agudas%20(Com%20e%20Sem%20Supra%20de%20ST)%2F15.%20V%C3%ADdeo%20Aula%20-%20Flash%2F15.%20Aula.mp4?size=181993950&name=15.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 57,
-    "aula_index": 8
+    "aula_index": 8,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "d0243aee-4c84-5087-aa5d-5e398da62209",
@@ -1355,7 +1451,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F10.%20Cefaleias%20Prim%C3%A1rias%20(Enxaqueca%2C%20Tensional)%20e%20Secund%C3%A1rias%20de%20Alarme%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F04.%20Aula%20%E2%80%94%20Cefaleias%20Prim%C3%A1rias%20(Enxaqueca%2C%20Tensional)%20e%20Secund%C3%A1rias%20de%20Alarme.mp4?size=245930081&name=04.%20Aula%20%E2%80%94%20Cefaleias%20Prim%C3%A1rias%20(Enxaqueca%2C%20Tensional)%20e%20Secund%C3%A1rias%20de%20Alarme.mp4",
     "duracao_segundos": 0,
     "modulo_index": 58,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "d2396247-6b62-52d1-9cd1-886c75b3206a",
@@ -1369,7 +1466,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F10.%20Cefaleias%20Prim%C3%A1rias%20(Enxaqueca%2C%20Tensional)%20e%20Secund%C3%A1rias%20de%20Alarme%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=264640396&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 58,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "bd1ec5df-d9fc-5938-8006-d3d339028626",
@@ -1383,7 +1481,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F10.%20Dermatologia%20Cl%C3%ADnica%20-%20Farmacodermias%20Graves%2C%20Eczemas%20e%20Psor%C3%ADase%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=246787721&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 59,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3ea082ed-1ab4-586a-8398-2818d0b45c75",
@@ -1397,7 +1496,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F10.%20Dermatologia%20Cl%C3%ADnica%20-%20Farmacodermias%20Graves%2C%20Eczemas%20e%20Psor%C3%ADase%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=197166862&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 59,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "84ad005e-7255-55db-a7f3-c6db9358b102",
@@ -1411,7 +1511,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F11.%20Dermatoses%20Infecciosas%2C%20Hansen%C3%ADase%20e%20Leishmanioses%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=248461445&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 60,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b41c35b5-0705-5c75-bdb6-18b570f14126",
@@ -1425,7 +1526,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F11.%20Dermatoses%20Infecciosas%2C%20Hansen%C3%ADase%20e%20Leishmanioses%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=237104324&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 60,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "7bcdb955-365e-52c2-b5e3-32c74772ed3b",
@@ -1439,7 +1541,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F12.%20Doen%C3%A7as%20da%20Suprarrenal%2C%20Paratireoides%20e%20Dist%C3%BArbios%20do%20C%C3%A1lcio%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%2F2.%20Aula.mp4?size=166066607&name=2.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 61,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6a00eb90-09db-5d3f-a612-a1590c0c85c1",
@@ -1453,7 +1556,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F12.%20Doen%C3%A7as%20da%20Suprarrenal%2C%20Paratireoides%20e%20Dist%C3%BArbios%20do%20C%C3%A1lcio%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=197706376&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 61,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "8556cfb3-148d-501c-8f1a-16660bb12342",
@@ -1467,7 +1571,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F12.%20Doen%C3%A7as%20da%20Suprarrenal%2C%20Paratireoides%20e%20Dist%C3%BArbios%20do%20C%C3%A1lcio%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=215272557&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 61,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b2f15c58-70bd-543b-b21a-f6063ad93e2e",
@@ -1481,7 +1586,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F12.%20Doen%C3%A7as%20da%20Suprarrenal%2C%20Paratireoides%20e%20Dist%C3%BArbios%20do%20C%C3%A1lcio%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=173381886&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 61,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6f2ff6b1-3d05-5623-a731-638cf069870c",
@@ -1495,7 +1601,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F15.%20Diabetes%20Mellitus%20-%20Diagn%C3%B3stico%2C%20Metas%20e%20Terap%C3%AAutica%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F04.%20Aula%20%E2%80%94%20Diabetes%20Mellitus%20-%20Metas%20Glic%C3%AAmicas%2C%20Complica%C3%A7%C3%B5es%20e%20Tratamento.mp4?size=138912935&name=04.%20Aula%20%E2%80%94%20Diabetes%20Mellitus%20-%20Metas%20Glic%C3%AAmicas%2C%20Complica%C3%A7%C3%B5es%20e%20Tratamento.mp4",
     "duracao_segundos": 0,
     "modulo_index": 63,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "35eaf893-0be0-5378-89c9-54f313d45c8a",
@@ -1509,7 +1616,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F18.%20Como%20cai%20na%20PED%20-%20S%C3%ADndrome%20Metab%C3%B3lica%20e%20Dislipidemia%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=78744750&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 65,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "4f129487-415b-5ccf-9f14-6dfd3799947c",
@@ -1523,7 +1631,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F18.%20Dislipidemias%2C%20S%C3%ADndrome%20Metab%C3%B3lica%20e%20Risco%20Cardiovascular%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=222340834&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 66,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "1dc5a856-9005-5055-ae28-4f65ca29c92e",
@@ -1537,7 +1646,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F19.%20S%C3%ADndromes%20Demenciais%20e%20Grandes%20S%C3%ADndromes%20Geri%C3%A1tricas%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=203532450&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 67,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "647497b2-23ea-5828-990e-9d4462a6221b",
@@ -1551,7 +1661,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F19.%20S%C3%ADndromes%20Demenciais%20e%20Grandes%20S%C3%ADndromes%20Geri%C3%A1tricas%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=256668924&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 67,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "ad23b73a-e33d-53e0-8527-00e7cf2af4b1",
@@ -1565,7 +1676,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F19.%20S%C3%ADndromes%20Demenciais%20e%20Grandes%20S%C3%ADndromes%20Geri%C3%A1tricas%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=275066790&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 67,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "7509e25b-7fda-569a-9e6c-dfb875407e73",
@@ -1579,7 +1691,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F19.%20S%C3%ADndromes%20Demenciais%20e%20Grandes%20S%C3%ADndromes%20Geri%C3%A1tricas%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=296677270&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 67,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3ae60c8b-d8c6-5170-a1bb-5347e5a4034e",
@@ -1593,7 +1706,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F20.%20Cirrose%20Hep%C3%A1tica%20e%20suas%20Complica%C3%A7%C3%B5es%20(Ascite%2C%20HDA%20e%20Encefalopatia)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=233418535&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 68,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "094de50e-5bb3-5c03-a769-836fdfb070a0",
@@ -1607,7 +1721,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F20.%20Cirrose%20Hep%C3%A1tica%20e%20suas%20Complica%C3%A7%C3%B5es%20(Ascite%2C%20HDA%20e%20Encefalopatia)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=186463514&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 68,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "50b4b6ef-af13-5123-88a8-920ba30f9f63",
@@ -1621,7 +1736,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F21.%20Hepatites%20Virais%20(A%2C%20B%2C%20C)%20e%20Icter%C3%ADcias%20Metab%C3%B3licas%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=278005084&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 69,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "80ee05a2-6804-5bba-85d4-d68b201cb2bc",
@@ -1635,7 +1751,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F21.%20Hepatites%20Virais%20(A%2C%20B%2C%20C)%20e%20Icter%C3%ADcias%20Metab%C3%B3licas%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=385381595&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 69,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "62dba8d6-980f-5ac7-8a0e-182975b42c86",
@@ -1649,7 +1766,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F23.%20Meningites%2C%20Encefalites%20e%20Infec%C3%A7%C3%B5es%20do%20SNC%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=217109232&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 70,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "4dfb4573-7a08-52e6-a4a4-102e3a02db33",
@@ -1663,7 +1781,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F23.%20Meningites%2C%20Encefalites%20e%20Infec%C3%A7%C3%B5es%20do%20SNC%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=103703621&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 70,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a203e93f-3a50-5891-8eb9-e79bc8832155",
@@ -1677,7 +1796,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F27.%20Pneumonias%20Adquiridas%20na%20Comunidade%20e%20S%C3%ADndromes%20Gripais%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=103774419&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 72,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "c8b5ba6b-258b-5945-a4de-8aea4e1adccf",
@@ -1691,7 +1811,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F27.%20Pneumonias%20Adquiridas%20na%20Comunidade%20e%20S%C3%ADndromes%20Gripais%2F_tmp_27.%20Como%20cai%20na%20PED_%20Pneumonias%20e%20S%C3%AD%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=118067056&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 72,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "bfc81150-daef-5152-b307-02e78cbb0aea",
@@ -1705,7 +1826,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F29.%20Infec%C3%A7%C3%B5es%20de%20Pele%2C%20Partes%20Moles%20e%20Osteoarticulares%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=263285855&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 74,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "229b65c6-ae16-5e5f-8a77-0202cc62dcfa",
@@ -1719,7 +1841,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F29.%20Infec%C3%A7%C3%B5es%20de%20Pele%2C%20Partes%20Moles%20e%20Osteoarticulares%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=225449858&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 74,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "5010b0bb-987d-51d2-890d-261e48fd54ba",
@@ -1733,7 +1856,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F29.%20Infec%C3%A7%C3%B5es%20de%20Pele%2C%20Partes%20Moles%20e%20Osteoarticulares%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=285084209&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 74,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "5d9c22df-066d-5408-9d9d-3e16095d7ef2",
@@ -1747,7 +1871,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F30.%20Endocardite%20Infecciosa%20e%20Infec%C3%A7%C3%A3o%20de%20Corrente%20Sangu%C3%ADnea%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=268645994&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 75,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "06c31836-3615-59e8-a9ba-62f561bbc1da",
@@ -1761,7 +1886,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F30.%20Endocardite%20Infecciosa%20e%20Infec%C3%A7%C3%A3o%20de%20Corrente%20Sangu%C3%ADnea%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=227273227&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 75,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "2bdb39b9-0fc8-5a1b-b81a-b56f3716773e",
@@ -1775,7 +1901,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F301.%20Infec%C3%A7%C3%A3o%20do%20Trato%20Urin%C3%A1rio%20e%20Pielonefrite%20Aguda%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=147544551&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 76,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "5d3b30d8-4dc7-5066-b8ff-838199e8afb0",
@@ -1789,7 +1916,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F301.%20Infec%C3%A7%C3%A3o%20do%20Trato%20Urin%C3%A1rio%20e%20Pielonefrite%20Aguda%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=79201179&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 76,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "d444c840-5733-5a80-bc16-10d42001accf",
@@ -1803,7 +1931,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F32.%20Manejo%20Cl%C3%ADnico%20do%20HIV%20-%20AIDS%20e%20Doen%C3%A7as%20Oportunistas%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=276518417&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 77,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "9fa88b1a-9248-569f-be70-6b086f890957",
@@ -1817,7 +1946,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F32.%20Manejo%20Cl%C3%ADnico%20do%20HIV%20-%20AIDS%20e%20Doen%C3%A7as%20Oportunistas%2F_tmp_32.%20Como%20cai%20na%20PREV_%20HIV%20e%20AIDS%20no%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=118350580&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 77,
-    "aula_index": 8
+    "aula_index": 8,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "8e7b6c94-5b10-507f-974a-60dbf538eb86",
@@ -1831,7 +1961,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F33.%20S%C3%ADndromes%20Febris%20e%20Arboviroses%20(Dengue%2C%20Zika%2C%20Chikungunya%20e%20Febre%20Amarela)%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=293946269&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 78,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "2ed2a86c-125a-5dd9-b411-063ac96e1d8f",
@@ -1845,7 +1976,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F33.%20S%C3%ADndromes%20Febris%20e%20Arboviroses%20(Dengue%2C%20Zika%2C%20Chikungunya%20e%20Febre%20Amarela)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=313975889&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 78,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "290559eb-e433-5e00-a10d-0ed39efff648",
@@ -1859,7 +1991,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F33.%20S%C3%ADndromes%20Febris%20e%20Arboviroses%20(Dengue%2C%20Zika%2C%20Chikungunya%20e%20Febre%20Amarela)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=288259062&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 78,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "18d3f46b-9af9-584e-a1b6-316de83abffe",
@@ -1873,7 +2006,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F34.%20Como%20cai%20na%20PED%20-%20S%C3%ADndromes%20Febris%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=75186667&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 79,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e89cd38c-92ff-590f-9fdd-23c89afa115d",
@@ -1887,7 +2021,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F36.%20S%C3%ADndrome%20Nefr%C3%ADtica%2C%20S%C3%ADndrome%20Nefr%C3%B3tica%20e%20Glomerulopatias%2F_tmp_36.%20Como%20cai%20na%20PED_%20Glomerulopatias%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=97781191&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 80,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "cb351cb1-f1d6-5f14-b845-671642a3dc5b",
@@ -1901,7 +2036,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F37.%20Dist%C3%BArbios%20Hidroeletrol%C3%ADticos%20e%20%C3%81cido-B%C3%A1sicos%20(S%C3%B3dio%2C%20Pot%C3%A1ssio%20e%20Gasometria)%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=154705124&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 81,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "2b1e02a6-b0c3-5e3e-b500-f1aa3d3ce5e6",
@@ -1915,7 +2051,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F37.%20Dist%C3%BArbios%20Hidroeletrol%C3%ADticos%20e%20%C3%81cido-B%C3%A1sicos%20(S%C3%B3dio%2C%20Pot%C3%A1ssio%20e%20Gasometria)%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=161331717&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 81,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a5b55821-bbda-5edd-aa11-6fc7fa186ed4",
@@ -1929,7 +2066,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F38.%20Inj%C3%BAria%20Renal%20Aguda%20(IRA)%20e%20Doen%C3%A7a%20Renal%20Cr%C3%B4nica%20(DRC)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=170125480&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 82,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "ccaeba86-260a-5da7-8969-b72f3328ad72",
@@ -1943,7 +2081,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F40.%20S%C3%ADndromes%20Motores%2C%20Miastenias%20e%20Polineuropatias%20(Guillain-Barr%C3%A9)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=104358302&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 83,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a40fd61d-c3ff-5e87-b1cc-498c7b2bb6b7",
@@ -1957,7 +2096,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F40.%20S%C3%ADndromes%20Motores%2C%20Miastenias%20e%20Polineuropatias%20(Guillain-Barr%C3%A9)%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=250956892&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 83,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e65199a1-bd3a-551a-b845-0b729e3d195c",
@@ -1971,7 +2111,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F40.%20S%C3%ADndromes%20Motores%2C%20Miastenias%20e%20Polineuropatias%20(Guillain-Barr%C3%A9)%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=122028709&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 83,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "64faf64e-91ae-5494-b655-def6485333a3",
@@ -1985,7 +2126,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F41.%20Neurointensivismo%2C%20Morte%20Encef%C3%A1lica%20e%20Cuidados%20Cr%C3%ADticos%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=216118874&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 84,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "1a97d4fd-8dac-57fb-8e26-052f33343cd6",
@@ -1999,7 +2141,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F41.%20Neurointensivismo%2C%20Morte%20Encef%C3%A1lica%20e%20Cuidados%20Cr%C3%ADticos%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=351215322&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 84,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "2251bece-5429-561d-b60a-2b5b69f1da40",
@@ -2013,7 +2156,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F42.%20Acidente%20Vascular%20Cerebral%20Isqu%C3%AAmico%20e%20Hemorr%C3%A1gico%20(AVCi%20e%20AVCh)%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%2F2.%20Aula.mp4?size=158209748&name=2.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 85,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b0b05fa5-9781-520b-80e3-4456c5a123b4",
@@ -2027,7 +2171,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F42.%20Acidente%20Vascular%20Cerebral%20Isqu%C3%AAmico%20e%20Hemorr%C3%A1gico%20(AVCi%20e%20AVCh)%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=165548701&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 85,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "eb324f52-3c75-5d2d-8b2b-e07adb3e44e2",
@@ -2041,7 +2186,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F44.%20Dist%C3%BArbios%20da%20Coagula%C3%A7%C3%A3o%2C%20Plaquetopenias%20e%20Trombofilias%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=213475380&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 87,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "1e29378a-c98a-5e70-9dad-899f550fd750",
@@ -2055,7 +2201,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F44.%20Dist%C3%BArbios%20da%20Coagula%C3%A7%C3%A3o%2C%20Plaquetopenias%20e%20Trombofilias%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=203605915&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 87,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "eae63c7e-13d5-50b4-bb68-de4db76e8bc7",
@@ -2069,7 +2216,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F44.%20Dist%C3%BArbios%20da%20Coagula%C3%A7%C3%A3o%2C%20Plaquetopenias%20e%20Trombofilias%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=201659943&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 87,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "bd19821c-fc60-5dbd-93df-7bafcddf771c",
@@ -2083,7 +2231,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F46.%20Leucemias%2C%20Linfomas%20e%20Mieloma%20M%C3%BAltiplo%20no%20Adulto%2F1.%20V%C3%ADdeo%20Aula%20-%20Flash%2F1.%20Aula.mp4?size=124540214&name=1.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 89,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "410b6b40-d465-5dc9-809d-b16de80901f5",
@@ -2097,7 +2246,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F46.%20Leucemias%2C%20Linfomas%20e%20Mieloma%20M%C3%BAltiplo%20no%20Adulto%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%2F2.%20Aula.mp4?size=141564674&name=2.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 89,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "daa17e5b-7fd4-5465-9799-e7ea166d1a06",
@@ -2111,7 +2261,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F46.%20Leucemias%2C%20Linfomas%20e%20Mieloma%20M%C3%BAltiplo%20no%20Adulto%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=118037301&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 89,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "4be9b076-51ba-53a4-83fd-08862e5cdfb4",
@@ -2125,7 +2276,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F46.%20Leucemias%2C%20Linfomas%20e%20Mieloma%20M%C3%BAltiplo%20no%20Adulto%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=198587526&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 89,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "42fbcbe4-d533-5f8b-b926-7dca7f698b2a",
@@ -2139,7 +2291,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F46.%20Leucemias%2C%20Linfomas%20e%20Mieloma%20M%C3%BAltiplo%20no%20Adulto%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=153668990&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 89,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0c65a970-701f-512d-8a35-2827426712b1",
@@ -2153,7 +2306,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F47.%20Diagn%C3%B3stico%20Diferencial%20das%20Anemias%20e%20Hemoglobinopatias%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=221713846&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 90,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b604c0d4-40d3-5266-ad81-7523c0fc339a",
@@ -2167,7 +2321,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F47.%20Diagn%C3%B3stico%20Diferencial%20das%20Anemias%20e%20Hemoglobinopatias%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=285842461&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 90,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "37d3b3fc-55d1-5b23-baab-3b94c0be4dab",
@@ -2181,7 +2336,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F49.%20Tromboembolismo%20Pulmonar%20(TEP)%20e%20Hipertens%C3%A3o%20Pulmonar%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=138030348&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 92,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "87749991-6565-521d-bd8c-68b107607edb",
@@ -2195,7 +2351,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F51.%20Doen%C3%A7as%20Pulmonares%20Intersticiais%20e%20Fibrose%20Pulmonar%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F03.%20Aula%20%E2%80%94%20Doen%C3%A7as%20Pulmonares%20Intersticiais%20e%20Fibrose%20Pulmonar.mp4?size=103448108&name=03.%20Aula%20%E2%80%94%20Doen%C3%A7as%20Pulmonares%20Intersticiais%20e%20Fibrose%20Pulmonar.mp4",
     "duracao_segundos": 0,
     "modulo_index": 93,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b9c47f2e-8e78-50b5-9da0-053e2d4f2c7b",
@@ -2209,7 +2366,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F52.%20Psiquiatria%20-%20Transtornos%20do%20Humor%2C%20Ansiedade%20e%20Psicoses%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=295171538&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 94,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "5d0f4839-1a41-5b3b-97de-1ebc739a90e4",
@@ -2223,7 +2381,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F52.%20Psiquiatria%20-%20Transtornos%20do%20Humor%2C%20Ansiedade%20e%20Psicoses%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=271461510&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 94,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6974058e-d1d2-5ccd-a7e4-4b4fd7b645de",
@@ -2237,7 +2396,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F52.%20Psiquiatria%20-%20Transtornos%20do%20Humor%2C%20Ansiedade%20e%20Psicoses%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=213033137&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 94,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "58e780c5-d970-588a-bb12-b046f8e7f068",
@@ -2251,7 +2411,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F52.%20Psiquiatria%20-%20Transtornos%20do%20Humor%2C%20Ansiedade%20e%20Psicoses%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=240814128&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 94,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "413f87dc-bf3f-526d-b726-341417dd4051",
@@ -2265,7 +2426,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F53.%20Transtornos%20por%20Uso%20de%20Subst%C3%A2ncias%20(%C3%81lcool%2C%20Tabaco%20e%20Drogas%20de%20Abuso)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F04.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Transtornos%20por%20Uso%20de%20Subst%C3%A2ncias%20(%C3%81lcool%2C%20Tabaco%20e%20Drogas%20de%20Abuso).mp4?size=215015418&name=04.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Transtornos%20por%20Uso%20de%20Subst%C3%A2ncias%20(%C3%81lcool%2C%20Tabaco%20e%20Drogas%20de%20Abuso).mp4",
     "duracao_segundos": 0,
     "modulo_index": 95,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "159c7f35-6903-5a98-8693-3756bc02de65",
@@ -2279,7 +2441,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F53.%20Transtornos%20por%20Uso%20de%20Subst%C3%A2ncias%20(%C3%81lcool%2C%20Tabaco%20e%20Drogas%20de%20Abuso)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=254708092&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 95,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "fd29a4e4-2c06-5a69-9864-34727dee7e7a",
@@ -2293,7 +2456,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F53.%20Transtornos%20por%20Uso%20de%20Subst%C3%A2ncias%20(%C3%81lcool%2C%20Tabaco%20e%20Drogas%20de%20Abuso)%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=243872417&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 95,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "7aaf9826-3b3f-56e6-9a76-84db8e813069",
@@ -2307,7 +2471,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F53.%20Transtornos%20por%20Uso%20de%20Subst%C3%A2ncias%20(%C3%81lcool%2C%20Tabaco%20e%20Drogas%20de%20Abuso)%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=174465980&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 95,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0e1d9b3c-3ea3-5d68-b8f2-9a1ab4b8ce08",
@@ -2321,7 +2486,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F54.%20Artrite%20Reumatoide%2C%20Espondiloartropatias%20e%20Artrites%20Microcristalinas%20(Gota)%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=212522885&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 96,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6521da65-1b47-5d33-af53-1b199b9adc29",
@@ -2335,7 +2501,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F54.%20Artrite%20Reumatoide%2C%20Espondiloartropatias%20e%20Artrites%20Microcristalinas%20(Gota)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=54500283&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 96,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3bccc38f-d7d3-5417-bc7d-eb5a9582e161",
@@ -2349,7 +2516,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F54.%20Artrite%20Reumatoide%2C%20Espondiloartropatias%20e%20Artrites%20Microcristalinas%20(Gota)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=73865915&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 96,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "5d376aa3-9f1d-57bf-8187-3e0879b4ee5e",
@@ -2363,7 +2531,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F56.%20Vasculites%20Sist%C3%AAmicas%20no%20Adulto%20(ANCA%2C%20Takayasu%20e%20Arterite%20Temporal)%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%2F2.%20Aula.mp4?size=219618891&name=2.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 98,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "1b14332a-6ce7-58d6-9a00-7b7013b392f8",
@@ -2377,7 +2546,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F56.%20Vasculites%20Sist%C3%AAmicas%20no%20Adulto%20(ANCA%2C%20Takayasu%20e%20Arterite%20Temporal)%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=295624967&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 98,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a9fad263-88e7-5511-b298-f14a3a75db09",
@@ -2391,7 +2561,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F57.%20Sepse%20no%20Adulto%2C%20Choque%20S%C3%A9ptico%20e%20Ressuscita%C3%A7%C3%A3o%20Hemodin%C3%A2mica%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=403495978&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 99,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0ca8e666-13cc-531c-89eb-9b396c58052a",
@@ -2405,7 +2576,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F57.%20Sepse%20no%20Adulto%2C%20Choque%20S%C3%A9ptico%20e%20Ressuscita%C3%A7%C3%A3o%20Hemodin%C3%A2mica%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=413104741&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 99,
-    "aula_index": 8
+    "aula_index": 8,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "7c40ef2f-e147-5591-8002-59cb881e86fb",
@@ -2419,7 +2591,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F58.%20Insufici%C3%AAncia%20Respirat%C3%B3ria%20Aguda%20e%20Ventila%C3%A7%C3%A3o%20Mec%C3%A2nica%20(Pneumointensivismo)%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=252935254&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 100,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f090b1c8-9b97-5639-a121-3b19ae4f3d1d",
@@ -2433,7 +2606,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F58.%20Insufici%C3%AAncia%20Respirat%C3%B3ria%20Aguda%20e%20Ventila%C3%A7%C3%A3o%20Mec%C3%A2nica%20(Pneumointensivismo)%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=390275599&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 100,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "10b9b5d9-cb78-5d5c-963a-5bd2daf60a49",
@@ -2447,7 +2621,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F58.%20Insufici%C3%AAncia%20Respirat%C3%B3ria%20Aguda%20e%20Ventila%C3%A7%C3%A3o%20Mec%C3%A2nica%20(Pneumointensivismo)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=397663050&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 100,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b796a538-5e54-5ca6-9a60-b25af3bd0953",
@@ -2461,7 +2636,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F58.%20Insufici%C3%AAncia%20Respirat%C3%B3ria%20Aguda%20e%20Ventila%C3%A7%C3%A3o%20Mec%C3%A2nica%20(Pneumointensivismo)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=391351664&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 100,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "5aea3f65-7257-5a70-b905-ad202d6c7b34",
@@ -2475,7 +2651,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F60.%20Intoxica%C3%A7%C3%B5es%20Ex%C3%B3genas%20Agudas%20e%20Acidentes%20por%20Animais%20Pe%C3%A7onhentos%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=164266730&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 101,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3c23dd77-8c5a-5b98-a2e8-ad95653367a6",
@@ -2489,7 +2666,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F60.%20Intoxica%C3%A7%C3%B5es%20Ex%C3%B3genas%20Agudas%20e%20Acidentes%20por%20Animais%20Pe%C3%A7onhentos%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=119826264&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 101,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e55bd780-03bb-58fc-9f8e-501b6f0bcbdc",
@@ -2503,7 +2681,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F60.%20Intoxica%C3%A7%C3%B5es%20Ex%C3%B3genas%20Agudas%20e%20Acidentes%20por%20Animais%20Pe%C3%A7onhentos%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=157339908&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 101,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b334853b-a44d-5ebb-850e-3501d0563357",
@@ -2517,7 +2696,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F61.%20Lit%C3%ADase%20Biliar%2C%20Colecistite%2C%20Coledocolit%C3%ADase%20e%20Colangite%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%2F2.%20Aula.mp4?size=215640994&name=2.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 102,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "93a97ad4-dd59-578c-8479-42dcae184647",
@@ -2531,7 +2711,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F61.%20Lit%C3%ADase%20Biliar%2C%20Colecistite%2C%20Coledocolit%C3%ADase%20e%20Colangite%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=144545936&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 102,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "fa12b798-889e-5780-a489-4961d73b9306",
@@ -2545,7 +2726,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F61.%20Lit%C3%ADase%20Biliar%2C%20Colecistite%2C%20Coledocolit%C3%ADase%20e%20Colangite%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=154229681&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 102,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "cf55e431-e9c3-5eaf-af61-d2c01f20e575",
@@ -2559,7 +2741,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F65.%20C%C3%A2ncer%20de%20Pr%C3%B3stata%2C%20Bexiga%20e%20Rim%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=228483396&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 106,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "54ed52ff-5b52-5f87-884e-85eca1218429",
@@ -2573,7 +2756,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F65.%20C%C3%A2ncer%20de%20Pr%C3%B3stata%2C%20Bexiga%20e%20Rim%2F15.%20V%C3%ADdeo%20Aula%20-%20Flash%2F15.%20Aula.mp4?size=203258447&name=15.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 106,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6c75d119-deae-5e10-97c9-702b3ca42491",
@@ -2587,7 +2771,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F65.%20C%C3%A2ncer%20de%20Pr%C3%B3stata%2C%20Bexiga%20e%20Rim%2F16.%20V%C3%ADdeo%20Aula%20-%20Flash%2F16.%20Aula.mp4?size=154421094&name=16.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 106,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b84fa738-b845-55b8-a6f8-b8daf6afdfb3",
@@ -2601,7 +2786,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F2.%20Cl%C3%ADnica%20M%C3%A9dica%2F65.%20C%C3%A2ncer%20de%20Pr%C3%B3stata%2C%20Bexiga%20e%20Rim%2F17.%20V%C3%ADdeo%20Aula%20-%20Flash%2F17.%20Aula.mp4?size=179729825&name=17.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 106,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "9f045950-8e7b-5697-a6e5-e87d2323129d",
@@ -2615,7 +2801,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F01.%20Fisiologia%20Menstrual%20e%20Planejamento%20Reprodutivo%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=213295905&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 108,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "55eaaf73-cb5d-5cff-87c9-7dc44804eed2",
@@ -2629,7 +2816,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F02.%20Assist%C3%AAncia%20Pr%C3%A9-Natal%20de%20Baixo%20e%20Alto%20Risco%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=141535128&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 109,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "2fbab3ae-3525-5952-b3f6-556b1495bbb6",
@@ -2643,7 +2831,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F03.%20Rastreamento%20Citopatol%C3%B3gico%20e%20Conduta%20em%20Les%C3%B5es%20Cervicais%20(HPV)%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=291869267&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 110,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "26ded313-ab9a-5f9c-b149-3c8ca1d90c09",
@@ -2657,7 +2846,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F04.%20Doen%C3%A7as%20Benignas%20do%20Corpo%20Uterino%20(Miomatose%20e%20P%C3%B3lipos)%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=94686190&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 111,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "c6f57ced-393c-507c-ae5f-968e2354753b",
@@ -2671,7 +2861,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F04.%20Doen%C3%A7as%20Benignas%20do%20Corpo%20Uterino%20(Miomatose%20e%20P%C3%B3lipos)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=235200336&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 111,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "18512b10-b2a6-5f28-9e52-f33b30421a86",
@@ -2685,7 +2876,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F06.%20Cardiopatias%2C%20Nefropatias%20e%20Doen%C3%A7as%20Tireoidianas%20na%20Gravidez%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=70505636&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 113,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "920a1f09-e69d-5f97-9a66-55be2e6fe41e",
@@ -2699,7 +2891,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F06.%20Cardiopatias%2C%20Nefropatias%20e%20Doen%C3%A7as%20Tireoidianas%20na%20Gravidez%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=114917055&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 113,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "ba146f6d-6a37-59c5-8d69-a9f6e02d2a09",
@@ -2713,7 +2906,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F06.%20Cardiopatias%2C%20Nefropatias%20e%20Doen%C3%A7as%20Tireoidianas%20na%20Gravidez%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=160423262&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 113,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "68eaf80c-29cd-5d61-9b66-18ccf0c52549",
@@ -2727,7 +2921,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F06.%20Cardiopatias%2C%20Nefropatias%20e%20Doen%C3%A7as%20Tireoidianas%20na%20Gravidez%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=113668399&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 113,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3b1abb44-305e-54b8-aca8-b5bf20b13572",
@@ -2741,7 +2936,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F06.%20Cardiopatias%2C%20Nefropatias%20e%20Doen%C3%A7as%20Tireoidianas%20na%20Gravidez%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=83039496&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 113,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a04b89cf-a5fd-55ce-bd40-6fd8ffa4adad",
@@ -2755,7 +2951,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F07.%20S%C3%ADndromes%20Hipertensivas%20na%20Gravidez%20(Pr%C3%A9-ecl%C3%A2mpsia%20e%20Ecl%C3%A2mpsia)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F04.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20S%C3%ADndromes%20Hipertensivas%20na%20Gravidez%20(Pr%C3%A9-ecl%C3%A2mpsia%20e%20Ecl%C3%A2mpsia).mp4?size=159032582&name=04.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20S%C3%ADndromes%20Hipertensivas%20na%20Gravidez%20(Pr%C3%A9-ecl%C3%A2mpsia%20e%20Ecl%C3%A2mpsia).mp4",
     "duracao_segundos": 0,
     "modulo_index": 114,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3c3332b3-c0b1-58de-8bc2-ec6667472e54",
@@ -2769,7 +2966,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F08.%20Infec%C3%A7%C3%B5es%20de%20Transmiss%C3%A3o%20Vertical%20(TORCH%2C%20HIV%2C%20S%C3%ADfilis%20e%20Hepatites)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F04.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Hepatites%20Virais%20(A%2C%20B%2C%20C)%20e%20Icter%C3%ADcias%20Metab%C3%B3licas.mp4?size=99444566&name=04.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Hepatites%20Virais%20(A%2C%20B%2C%20C)%20e%20Icter%C3%ADcias%20Metab%C3%B3licas.mp4",
     "duracao_segundos": 0,
     "modulo_index": 115,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "fe610085-19c2-5ea9-a6d9-a40dfff587a6",
@@ -2783,7 +2981,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F09.%20Fisiologia%20do%20Ciclo%20Menstrual%20e%20Eixo%20Hipot%C3%A1lamo-Hip%C3%B3fise-Ov%C3%A1rio%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=149109710&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 116,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "c3a3932a-f3c1-5266-8e08-e9578a942eb9",
@@ -2797,7 +2996,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F09.%20Fisiologia%20do%20Ciclo%20Menstrual%20e%20Eixo%20Hipot%C3%A1lamo-Hip%C3%B3fise-Ov%C3%A1rio%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=208945059&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 116,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0a5a6b86-bb12-5215-983a-de8027b61fc8",
@@ -2811,7 +3011,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F10.%20M%C3%A9todos%20Contraceptivos%20-%20Hormonais%2C%20DIU%20e%20Cir%C3%BArgicos%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=60274518&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 117,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f397d3e7-6614-51ec-b854-924e98b16161",
@@ -2825,7 +3026,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F10.%20M%C3%A9todos%20Contraceptivos%20-%20Hormonais%2C%20DIU%20e%20Cir%C3%BArgicos%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=265178791&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 117,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "dfd58690-4801-5f37-8f7e-2cc237e5f86c",
@@ -2839,7 +3041,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F10.%20M%C3%A9todos%20Contraceptivos%20-%20Hormonais%2C%20DIU%20e%20Cir%C3%BArgicos%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=264495068&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 117,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "72d3f8b4-f009-5e66-8ac3-67d75eb0ecc2",
@@ -2853,7 +3056,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F10.%20M%C3%A9todos%20Contraceptivos%20-%20Hormonais%2C%20DIU%20e%20Cir%C3%BArgicos%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=258437453&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 117,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "c83d79ec-d416-5a8e-ba29-1ecbd62eedd4",
@@ -2867,7 +3071,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F10.%20M%C3%A9todos%20Contraceptivos%20-%20Hormonais%2C%20DIU%20e%20Cir%C3%BArgicos%2F12.%20V%C3%ADdeo%20Aula%20-%20Flash%2F12.%20Aula.mp4?size=236036760&name=12.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 117,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a88058b9-a7bf-5eef-8f55-dea47ebaa9ef",
@@ -2881,7 +3086,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F11.%20Climat%C3%A9rio%2C%20Menopausa%20e%20Terapia%20de%20Reposi%C3%A7%C3%A3o%20Hormonal%20(TRH)%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F02.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Climat%C3%A9rio%2C%20Menopausa%20e%20Terapia%20de%20Reposi%C3%A7%C3%A3o%20Hormonal%20(TRH).mp4?size=164917081&name=02.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Climat%C3%A9rio%2C%20Menopausa%20e%20Terapia%20de%20Reposi%C3%A7%C3%A3o%20Hormonal%20(TRH).mp4",
     "duracao_segundos": 0,
     "modulo_index": 118,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "8ea3793e-fc53-544c-af1e-55086a6177af",
@@ -2895,7 +3101,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F111.%20Vulvovaginites%20e%20Diagn%C3%B3stico%20Diferencial%20dos%20Corrimentos%20Vaginais%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=190793210&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 119,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "60a033e3-27ae-59c4-b2e6-4e846cb3d493",
@@ -2909,7 +3116,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F111.%20Vulvovaginites%20e%20Diagn%C3%B3stico%20Diferencial%20dos%20Corrimentos%20Vaginais%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=206028262&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 119,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "96dbde00-ea79-55cf-8420-08beff5c924e",
@@ -2923,7 +3131,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F111.%20Vulvovaginites%20e%20Diagn%C3%B3stico%20Diferencial%20dos%20Corrimentos%20Vaginais%2F12.%20V%C3%ADdeo%20Aula%20-%20Flash%2F12.%20Aula.mp4?size=172977238&name=12.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 119,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "c21b5821-6ec0-58ad-945d-d398b8999e91",
@@ -2937,7 +3146,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F113.%20%C3%9Alceras%20Genitais%20e%20Infec%C3%A7%C3%B5es%20Sexualmente%20Transmiss%C3%ADveis%20na%20Mulher%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=246584661&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 120,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a5472f04-ce66-557e-8d0e-69923dc3eec1",
@@ -2951,7 +3161,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F113.%20%C3%9Alceras%20Genitais%20e%20Infec%C3%A7%C3%B5es%20Sexualmente%20Transmiss%C3%ADveis%20na%20Mulher%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=143438604&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 120,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e925caa4-ee3c-5fbf-a16b-1ee26071063b",
@@ -2965,7 +3176,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F13.%20Anatomia%20Cir%C3%BArgica%20e%20Estruturas%20P%C3%A9lvicas%20Femininas%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=307457844&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 121,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "64a3f553-4fc8-5941-8492-acd440e7db64",
@@ -2979,7 +3191,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F14.%20Endometriose%2C%20Adenomiose%20e%20Dor%20P%C3%A9lvica%20Cr%C3%B4nica%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=218933700&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 122,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f9a4970f-13a7-56db-9407-c6a120fb84ad",
@@ -2993,7 +3206,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F14.%20Endometriose%2C%20Adenomiose%20e%20Dor%20P%C3%A9lvica%20Cr%C3%B4nica%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=169307571&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 122,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f50842b4-320c-5a8f-9041-86648dcf5a82",
@@ -3007,7 +3221,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F14.%20Endometriose%2C%20Adenomiose%20e%20Dor%20P%C3%A9lvica%20Cr%C3%B4nica%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=206530162&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 122,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e09833c3-5812-5fa0-96ec-18847dfb1383",
@@ -3021,7 +3236,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F15.%20Doen%C3%A7a%20Inflamat%C3%B3ria%20P%C3%A9lvica%20(DIP)%20e%20Atendimento%20%C3%A0%20Viol%C3%AAncia%20Sexual%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=216189904&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 123,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6d54473c-e97a-57ef-abfc-4e30b0e49e4f",
@@ -3035,7 +3251,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F15.%20Doen%C3%A7a%20Inflamat%C3%B3ria%20P%C3%A9lvica%20(DIP)%20e%20Atendimento%20%C3%A0%20Viol%C3%AAncia%20Sexual%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=213345679&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 123,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e1921604-d5dd-56b4-b579-956079642049",
@@ -3049,7 +3266,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F18.%20Doen%C3%A7as%20Benignas%20da%20Mama%20(Fibroadenoma%2C%20Cistos%20e%20Mastite)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=199772761&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 124,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "cfb62fcc-90df-53f4-9304-3ea9175baf00",
@@ -3063,7 +3281,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F18.%20Doen%C3%A7as%20Benignas%20da%20Mama%20(Fibroadenoma%2C%20Cistos%20e%20Mastite)%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=251593107&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 124,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "59080d12-69bf-58af-973a-636636628fdf",
@@ -3077,7 +3296,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F18.%20Doen%C3%A7as%20Benignas%20da%20Mama%20(Fibroadenoma%2C%20Cistos%20e%20Mastite)%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=279136446&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 124,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "5d39b0e0-b8fa-50b3-b0b3-ae8dbb45adcc",
@@ -3091,7 +3311,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F19.%20C%C3%A2ncer%20de%20Mama%20-%20Rastreamento%2C%20Diagn%C3%B3stico%20e%20Estadiamento%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=228080641&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 125,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "01844273-d04c-5d6e-b0ed-a527900f14f9",
@@ -3105,7 +3326,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F19.%20C%C3%A2ncer%20de%20Mama%20-%20Rastreamento%2C%20Diagn%C3%B3stico%20e%20Estadiamento%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=197207275&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 125,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "cccca30c-b47a-561c-b3ee-27dfaf258948",
@@ -3119,7 +3341,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F19.%20C%C3%A2ncer%20de%20Mama%20-%20Rastreamento%2C%20Diagn%C3%B3stico%20e%20Estadiamento%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=235577251&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 125,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "22a25e34-3809-504a-8f6c-554385689715",
@@ -3133,7 +3356,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F21.%20Massas%20Anexiais%20e%20Neoplasias%20Ovarianas%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=170354586&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 127,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b889fa58-2b01-5a77-8bc4-8ef962ed2cc2",
@@ -3147,7 +3371,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F21.%20Massas%20Anexiais%20e%20Neoplasias%20Ovarianas%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=268613775&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 127,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "2a473058-6b8b-5216-b324-0236a6a443f3",
@@ -3161,7 +3386,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F21.%20Massas%20Anexiais%20e%20Neoplasias%20Ovarianas%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=293368062&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 127,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6572d6db-3988-5bf2-b5d9-0725ced5a7f5",
@@ -3175,7 +3401,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F22.%20Bacia%20Obst%C3%A9trica%2C%20Est%C3%A1tica%20Fetal%20e%20Mecanismo%20do%20Parto%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%2F2.%20Aula.mp4?size=110548948&name=2.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 128,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "12cbaa59-e617-5f66-93dd-fd331b13ae82",
@@ -3189,7 +3416,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F23.%20Assist%C3%AAncia%20Cl%C3%ADnica%20ao%20Trabalho%20de%20Parto%20e%20Partograma%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=108578435&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 129,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "9685c4da-12b7-50c9-b365-a5ae8917bd78",
@@ -3203,7 +3431,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F23.%20Assist%C3%AAncia%20Cl%C3%ADnica%20ao%20Trabalho%20de%20Parto%20e%20Partograma%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=116434880&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 129,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b986aed6-99cb-5401-8e36-0b4d1e67a6ea",
@@ -3217,7 +3446,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F24.%20Amniorrexe%20Prematura%20(RPMO)%20e%20Corioamnionite%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=79475398&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 130,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "d913c1d0-a603-50db-b7f0-b6dcb69e326a",
@@ -3231,7 +3461,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F24.%20Amniorrexe%20Prematura%20(RPMO)%20e%20Corioamnionite%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=62934859&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 130,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "8f53c5ee-afec-5580-aea2-1b6e11ac546e",
@@ -3245,7 +3476,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F25.%20Trabalho%20de%20Parto%20Prematuro%20e%20Toc%C3%B3lise%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=99931617&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 131,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f7a26401-57c8-597f-b471-42bbab8c6ce0",
@@ -3259,7 +3491,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F25.%20Trabalho%20de%20Parto%20Prematuro%20e%20Toc%C3%B3lise%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=104261429&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 131,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3fe9bdb5-8d96-5f7e-9b1a-c307d0acc597",
@@ -3273,7 +3506,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F27.%20Hemorragias%20da%20Primeira%20Metade%20(Abortamento%2C%20Ect%C3%B3pica%20e%20Mola)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=210783526&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 132,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "79897d57-4de2-50e0-b7fd-4c689da7bc85",
@@ -3287,7 +3521,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F28.%20Hemorragias%20da%20Segunda%20Metade%20(Placenta%20Pr%C3%A9via%20e%20DPP)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=54377364&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 133,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6bd44b1a-a430-5c65-a235-eeb75fcac5da",
@@ -3301,7 +3536,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F33.%20Patologias%20Benignas%20e%20Neopl%C3%A1sicas%20da%20Vulva%20e%20Vagina%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F04.%20Aula%20%E2%80%94%20Patologias%20Benignas%20e%20Neopl%C3%A1sicas%20da%20Vulva%20e%20Vagina.mp4?size=133589566&name=04.%20Aula%20%E2%80%94%20Patologias%20Benignas%20e%20Neopl%C3%A1sicas%20da%20Vulva%20e%20Vagina.mp4",
     "duracao_segundos": 0,
     "modulo_index": 134,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b5bc3faf-48ad-593b-8807-1058ff0dad72",
@@ -3315,7 +3551,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F34.%20Fundamentos%20em%20Sexualidade%20Humana%20e%20Sa%C3%BAde%20Reprodutiva%2F1.%20V%C3%ADdeo%20Aula%20-%20Flash%2F1.%20Aula.mp4?size=224781423&name=1.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 135,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "29774cfa-1025-51ba-bf50-b52a23ac23f8",
@@ -3329,7 +3566,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F37.%20Mortalidade%20Materna%20e%20Near%20Miss%2F1.%20V%C3%ADdeo%20Aula%20-%20Flash%2F1.%20Aula.mp4?size=125164007&name=1.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 138,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "84c3f59e-9058-5a67-af1b-ca3099673edc",
@@ -3343,7 +3581,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F38.%20Investiga%C3%A7%C3%A3o%20e%20Prop%C3%AAd%C3%AAutica%20da%20Infertilidade%20Conjugal%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=237020386&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 139,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "13401bad-537f-5719-a533-21631811f83b",
@@ -3357,7 +3596,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F38.%20Investiga%C3%A7%C3%A3o%20e%20Prop%C3%AAd%C3%AAutica%20da%20Infertilidade%20Conjugal%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=238862562&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 139,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "973f4799-bd39-5ca0-8bae-5d3121fb710f",
@@ -3371,7 +3611,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F38.%20Investiga%C3%A7%C3%A3o%20e%20Prop%C3%AAd%C3%AAutica%20da%20Infertilidade%20Conjugal%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=170645101&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 139,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e0403c71-add3-5184-9280-9071f8acfdb1",
@@ -3385,7 +3626,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F42.%20Investiga%C3%A7%C3%A3o%20das%20Amenorreias%20e%20S%C3%ADndrome%20dos%20Ov%C3%A1rios%20Polic%C3%ADsticos%20(SOP)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F04.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Investiga%C3%A7%C3%A3o%20das%20Amenorreias%20e%20S%C3%ADndrome%20dos%20Ov%C3%A1rios%20Polic%C3%ADsticos%20(SOP).mp4?size=65640642&name=04.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Investiga%C3%A7%C3%A3o%20das%20Amenorreias%20e%20S%C3%ADndrome%20dos%20Ov%C3%A1rios%20Polic%C3%ADsticos%20(SOP).mp4",
     "duracao_segundos": 0,
     "modulo_index": 140,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "c484146b-5a9a-53a7-8132-03a081fc1ba7",
@@ -3399,7 +3641,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F42.%20Investiga%C3%A7%C3%A3o%20das%20Amenorreias%20e%20S%C3%ADndrome%20dos%20Ov%C3%A1rios%20Polic%C3%ADsticos%20(SOP)%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F05.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Investiga%C3%A7%C3%A3o%20das%20Amenorreias%20e%20S%C3%ADndrome%20dos%20Ov%C3%A1rios%20Polic%C3%ADsticos%20(SOP)%20-%20Antiga%20s%C3%ADndrome%20dos%20ov%C3%A1rios%20polic%C3%ADsticos.mp4?size=226135900&name=05.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Investiga%C3%A7%C3%A3o%20das%20Amenorreias%20e%20S%C3%ADndrome%20dos%20Ov%C3%A1rios%20Polic%C3%ADsticos%20(SOP)%20-%20Antiga%20s%C3%ADndrome%20dos%20ov%C3%A1rios%20polic%C3%ADsticos.mp4",
     "duracao_segundos": 0,
     "modulo_index": 140,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "bb004e2b-4daa-5206-b6b7-afafe4cd96db",
@@ -3413,7 +3656,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F45.%20Uroginecologia%20-%20Incontin%C3%AAncia%20Urin%C3%A1ria%20e%20Prolapso%20Genital%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=220869371&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 141,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "df4905b7-d9ba-51e3-a508-d01868ef1cab",
@@ -3427,7 +3671,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F45.%20Uroginecologia%20-%20Incontin%C3%AAncia%20Urin%C3%A1ria%20e%20Prolapso%20Genital%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=221164877&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 141,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6ba9502b-cd63-5d4c-877d-a2ae90490a5d",
@@ -3441,7 +3686,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F59.%20Sangramento%20Uterino%20Anormal%20(SUA)%20-%20Classifica%C3%A7%C3%A3o%20PALM-COEIN%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F04.%20Aula%20%E2%80%94%20Sangramento%20Uterino%20Anormal%20(SUA)%20e%20Classifica%C3%A7%C3%A3o%20PALM-COEIN%20-%20Miomatose.mp4?size=86788991&name=04.%20Aula%20%E2%80%94%20Sangramento%20Uterino%20Anormal%20(SUA)%20e%20Classifica%C3%A7%C3%A3o%20PALM-COEIN%20-%20Miomatose.mp4",
     "duracao_segundos": 0,
     "modulo_index": 142,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "2a0673ae-20f4-5529-81f4-b9eb13e5b155",
@@ -3455,7 +3701,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F81.%20Puerp%C3%A9rio%20Fisiol%C3%B3gico%2C%20Patol%C3%B3gico%20e%20Hemorragia%20P%C3%B3s-Parto%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=133911549&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 143,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "920b803e-fedb-5cfb-95ab-ce6f6a5154a4",
@@ -3469,7 +3716,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F83.%20Avalia%C3%A7%C3%A3o%20da%20Vitalidade%20Fetal%2C%20Cardiotocografia%20e%20Sofrimento%20Fetal%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=225930124&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 144,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "38bb2d49-a46c-5489-9bef-ec32d2f9ffd7",
@@ -3483,7 +3731,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F3.%20Ginecologia%20e%20Obstetr%C3%ADcia%2F83.%20Avalia%C3%A7%C3%A3o%20da%20Vitalidade%20Fetal%2C%20Cardiotocografia%20e%20Sofrimento%20Fetal%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=271008711&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 144,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b7711d65-1c08-583a-9e64-964ce8b92c6c",
@@ -3497,7 +3746,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F01.%20Imunodefici%C3%AAncias%2C%20Alergias%20e%20Anafilaxia%20na%20Inf%C3%A2ncia%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=255444524&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 145,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b9992b2b-b842-5a5b-9c39-a3d702946fd7",
@@ -3511,7 +3761,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F01.%20Imunodefici%C3%AAncias%2C%20Alergias%20e%20Anafilaxia%20na%20Inf%C3%A2ncia%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=222397158&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 145,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3f490ada-4433-51c1-962a-12c631df28cf",
@@ -3525,7 +3776,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F02.%20Cardiopatias%20Cong%C3%AAnitas%20Cianog%C3%AAnicas%20e%20Acianog%C3%AAnicas%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=254274049&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 146,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "71703bd4-dc10-54d5-991e-f79c4090d7a9",
@@ -3539,7 +3791,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F02.%20Cardiopatias%20Cong%C3%AAnitas%20Cianog%C3%AAnicas%20e%20Acianog%C3%AAnicas%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=235480980&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 146,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0e80d82b-0706-5f41-8a5b-35510b942b80",
@@ -3553,7 +3806,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F03.%20Arritmias%2C%20S%C3%ADncope%20e%20Parada%20Cardiorrespirat%C3%B3ria%20Pedi%C3%A1trica%20(PALS)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=147574142&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 147,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "7debe6af-a829-5106-bbd2-4b8d511983e7",
@@ -3567,7 +3821,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F04.%20Constipa%C3%A7%C3%A3o%20Intestinal%20Funcional%20e%20Org%C3%A2nica%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=188014925&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 148,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b8f0b9a5-c195-51f9-a4a3-b5b3bd5821c9",
@@ -3581,7 +3836,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F06.%20Diarreia%20Aguda%2C%20Reidrata%C3%A7%C3%A3o%20Oral%20e%20Doen%C3%A7as%20Disabsortivas%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=233478839&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 149,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "28d95f94-3c96-5afc-9a13-8deb79b62366",
@@ -3595,7 +3851,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F06.%20Diarreia%20Aguda%2C%20Reidrata%C3%A7%C3%A3o%20Oral%20e%20Doen%C3%A7as%20Disabsortivas%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=241704346&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 149,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "14fe5fff-8d02-554f-9256-6c5352622ab0",
@@ -3609,7 +3866,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F06.%20Diarreia%20Aguda%2C%20Reidrata%C3%A7%C3%A3o%20Oral%20e%20Doen%C3%A7as%20Disabsortivas%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=190172155&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 149,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "96a78ba4-1110-52ef-825b-5d290c35bb8d",
@@ -3623,7 +3881,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F06.%20Diarreia%20Aguda%2C%20Reidrata%C3%A7%C3%A3o%20Oral%20e%20Doen%C3%A7as%20Disabsortivas%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=218808266&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 149,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "4665b76e-dca3-53d9-a20e-aa69e1f49b36",
@@ -3637,7 +3896,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F06.%20Diarreia%20Aguda%2C%20Reidrata%C3%A7%C3%A3o%20Oral%20e%20Doen%C3%A7as%20Disabsortivas%2F_tmp_6.%20Como%20cai%20na%20CM_%20S%C3%ADndromes%20Diarreicas%20e%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=107922977&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 149,
-    "aula_index": 9
+    "aula_index": 9,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "9f1e8bec-4fb3-5021-8a66-62e46e08d6e2",
@@ -3651,7 +3911,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F07.%20Desordens%20Gen%C3%A9ticas%20e%20Erros%20Inatos%20do%20Metabolismo%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F04.%20Aula%20%E2%80%94%20Gen%C3%A9tica%20M%C3%A9dica%2C%20Cromossomopatias%20e%20Erros%20Inatos%20do%20Metabolismo.mp4?size=214554698&name=04.%20Aula%20%E2%80%94%20Gen%C3%A9tica%20M%C3%A9dica%2C%20Cromossomopatias%20e%20Erros%20Inatos%20do%20Metabolismo.mp4",
     "duracao_segundos": 0,
     "modulo_index": 150,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "3ed9ab1d-78c2-55c6-8ca1-6fd01840879a",
@@ -3665,7 +3926,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F07.%20Desordens%20Gen%C3%A9ticas%20e%20Erros%20Inatos%20do%20Metabolismo%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=213356766&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 150,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "4a434b82-b8ec-5d43-ade6-7866d5ba62c0",
@@ -3679,7 +3941,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F07.%20Desordens%20Gen%C3%A9ticas%20e%20Erros%20Inatos%20do%20Metabolismo%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=211928446&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 150,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "540723b2-caeb-56ff-a309-7d566e000e26",
@@ -3693,7 +3956,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F09.%20Doen%C3%A7as%20Exantem%C3%A1ticas%20e%20Diagn%C3%B3stico%20Diferencial%20dos%20Exantemas%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=198171975&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 151,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "8e8440ce-381d-5145-968c-c6efd602e908",
@@ -3707,7 +3971,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F09.%20Doen%C3%A7as%20Exantem%C3%A1ticas%20e%20Diagn%C3%B3stico%20Diferencial%20dos%20Exantemas%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=210715439&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 151,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "841ada2e-edab-5515-b2b1-7c99ca1f8ff0",
@@ -3721,7 +3986,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F10.%20Imuniza%C3%A7%C3%B5es%20e%20Calend%C3%A1rio%20Vacinal%20do%20PNI%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=147848157&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 152,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "38600f96-0063-5791-8409-1bea7a6ac8d0",
@@ -3735,7 +4001,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F11.%20Vacinas%20Especiais%20(CRIE)%20e%20Soroprofilaxia%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=205197970&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 153,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a597ff1a-9903-59f3-8c54-bd06a8d3bbac",
@@ -3749,7 +4016,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F13.%20Neonatologia%20-%20Icter%C3%ADcia%20Neonatal%20e%20Doen%C3%A7as%20Hematol%C3%B3gicas%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=47397067&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 154,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b7d2b3ee-abfd-5377-a433-1274bb1f2eae",
@@ -3763,7 +4031,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F14.%20Infec%C3%A7%C3%B5es%20Cong%C3%AAnitas%20e%20Sepse%20Neonatal%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=204261147&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 155,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "bcea0f60-486e-5708-90ad-e5f78946f994",
@@ -3777,7 +4046,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F14.%20Infec%C3%A7%C3%B5es%20Cong%C3%AAnitas%20e%20Sepse%20Neonatal%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=232945461&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 155,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f5bfa1a1-b3a4-57ab-851a-e531165cb7f7",
@@ -3791,7 +4061,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F14.%20Infec%C3%A7%C3%B5es%20Cong%C3%AAnitas%20e%20Sepse%20Neonatal%2F12.%20V%C3%ADdeo%20Aula%20-%20Flash%2F12.%20Aula.mp4?size=151807745&name=12.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 155,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "11a16d4e-d6f1-58dd-b12d-b5d067215418",
@@ -3805,7 +4076,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F14.%20Infec%C3%A7%C3%B5es%20Cong%C3%AAnitas%20e%20Sepse%20Neonatal%2F13.%20V%C3%ADdeo%20Aula%20-%20Flash%2F13.%20Aula.mp4?size=201593519&name=13.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 155,
-    "aula_index": 8
+    "aula_index": 8,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "65de28a6-5aa0-5c4e-8dd4-9b19e1ece98c",
@@ -3819,7 +4091,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F14.%20Reanima%C3%A7%C3%A3o%20Neonatal%20em%20Sala%20de%20Parto%20(Diretrizes%20SBP)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=183339475&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 156,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "d3c8bb4a-a71c-5dff-94fe-f5046fd0e8f9",
@@ -3833,7 +4106,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F14.%20Reanima%C3%A7%C3%A3o%20Neonatal%20em%20Sala%20de%20Parto%20(Diretrizes%20SBP)%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=124186824&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 156,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "fd689e29-deb7-5cdb-92df-e6337266e5de",
@@ -3847,7 +4121,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F15.%20Neonatologia%20-%20Dist%C3%BArbios%20Metab%C3%B3licos%20e%20Hipoglicemia%20no%20RN%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=70957767&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 157,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "2c70ed35-8513-5d09-818f-e2493786b1e5",
@@ -3861,7 +4136,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F16.%20S%C3%ADndromes%20do%20Desconforto%20Respirat%C3%B3rio%20no%20Rec%C3%A9m-Nascido%20(SDRN)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=197011058&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 158,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f1cc269d-ad23-5bbf-ac67-c9fd0e5b237a",
@@ -3875,7 +4151,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F19.%20Cuidados%20no%20Alojamento%20Conjunto%20e%20Triagem%20Neonatal%20(Testes%20do%20Pezinho%2C%20Olhinho%2C%20Orelhinha%20e%20Cora%C3%A7%C3%A3ozinho)%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F02.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Alojamento%20Conjunto%20e%20Testes%20de%20Triagem%20Neonatal%20(Pezinho%2C%20Olhinho%2C%20Cora%C3%A7%C3%A3ozinho).mp4?size=262414010&name=02.%20Revis%C3%A3o%20r%C3%A1pida%20%E2%80%94%20Alojamento%20Conjunto%20e%20Testes%20de%20Triagem%20Neonatal%20(Pezinho%2C%20Olhinho%2C%20Cora%C3%A7%C3%A3ozinho).mp4",
     "duracao_segundos": 0,
     "modulo_index": 160,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "d9c0b19a-3553-5154-a83f-7e0d136a578f",
@@ -3889,7 +4166,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F19.%20Cuidados%20no%20Alojamento%20Conjunto%20e%20Triagem%20Neonatal%20(Testes%20do%20Pezinho%2C%20Olhinho%2C%20Orelhinha%20e%20Cora%C3%A7%C3%A3ozinho)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=280637228&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 160,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "37585a7e-373b-5292-8546-3a11ac37d3db",
@@ -3903,7 +4181,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F19.%20Cuidados%20no%20Alojamento%20Conjunto%20e%20Triagem%20Neonatal%20(Testes%20do%20Pezinho%2C%20Olhinho%2C%20Orelhinha%20e%20Cora%C3%A7%C3%A3ozinho)%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=226383656&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 160,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "a086478b-f630-5fc5-8e02-0b9b9057d61f",
@@ -3917,7 +4196,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F20.%20Crise%20Convulsiva%20Febril%20e%20Epilepsias%20na%20Inf%C3%A2ncia%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=200553705&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 161,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "cb1b0533-150b-5507-884d-ee4d19259749",
@@ -3931,7 +4211,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F20.%20Crise%20Convulsiva%20Febril%20e%20Epilepsias%20na%20Inf%C3%A2ncia%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=217623820&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 161,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "aab97f66-35bd-53c8-a7b6-d1fe7082f1cc",
@@ -3945,7 +4226,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F21.%20Anemias%20Carenciais%2C%20Raquitismo%20e%20Hipovitaminoses%20na%20Inf%C3%A2ncia%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=81921752&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 162,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "14618a7a-ba0b-577f-adb5-5a6b99641bbc",
@@ -3959,7 +4241,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F22.%20Aleitamento%20Materno%20e%20Alimenta%C3%A7%C3%A3o%20Complementar%20Saud%C3%A1vel%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=78672562&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 163,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e07ab112-d685-50cc-87b2-6bb1b3c51d31",
@@ -3973,7 +4256,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F23.%20Otorrinopediatria%20-%20Otites%2C%20Sinusites%20e%20Laringites%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=267077284&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 164,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "4cfdc7ac-3da3-5879-8a5e-808ef098a262",
@@ -3987,7 +4271,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F23.%20Otorrinopediatria%20-%20Otites%2C%20Sinusites%20e%20Laringites%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=277838921&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 164,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "680bf595-273f-5a5c-90a0-197bd252d64a",
@@ -4001,7 +4286,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F23.%20Otorrinopediatria%20-%20Otites%2C%20Sinusites%20e%20Laringites%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=277813347&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 164,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "2bf3ea13-6a93-5a07-a1dc-57e605a204ec",
@@ -4015,7 +4301,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F24.%20Dist%C3%BArbios%20Obstrutivos%2C%20Asma%20e%20Bronquiolite%20Viral%20Aguda%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F03.%20Aula%20%E2%80%94%20Dist%C3%BArbios%20Obstrutivos%2C%20Asma%20e%20Bronquiolite%20na%20Inf%C3%A2ncia.mp4?size=118348889&name=03.%20Aula%20%E2%80%94%20Dist%C3%BArbios%20Obstrutivos%2C%20Asma%20e%20Bronquiolite%20na%20Inf%C3%A2ncia.mp4",
     "duracao_segundos": 0,
     "modulo_index": 165,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "543890e5-d4ff-5ba7-a8e5-b02e5061471d",
@@ -4029,7 +4316,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F24.%20Dist%C3%BArbios%20Obstrutivos%2C%20Asma%20e%20Bronquiolite%20Viral%20Aguda%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=212242748&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 165,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b076d4f7-1804-52b4-b339-907cabe6c88c",
@@ -4043,7 +4331,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F26.%20Transtornos%20do%20Neurodesenvolvimento%20(TEA%2C%20TDAH)%20e%20Sa%C3%BAde%20Mental%20na%20Inf%C3%A2ncia%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=105184013&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 167,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "25c7e092-20fc-5467-8ff2-ea21b0d6a574",
@@ -4057,7 +4346,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F27.%20Baixa%20Estatura%20e%20Dist%C3%BArbios%20da%20Puberdade%20(Precoce%20e%20Tardia)%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=94724461&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 168,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "21873fc6-d698-5308-97e5-76bbec172728",
@@ -4071,7 +4361,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F28.%20Vigil%C3%A2ncia%20do%20Desenvolvimento%20Neuropsicomotor%20(DNPM)%20e%20Puericultura%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=139374826&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 169,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "cd86b428-4ea0-56fe-8e79-2b28ebeb0819",
@@ -4085,7 +4376,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F4.%20Pediatria%2F58.%20Tuberculose%20na%20Inf%C3%A2ncia%20e%20Adolesc%C3%AAncia%20-%20Diagn%C3%B3stico%20e%20Tratamento%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F03.%20Ficha-resumo%20%E2%80%94%20Cl%C3%ADnica%20M%C3%A9dica%20%20Como%20cai%20na%20PED%20-%20Tuberculose.mp4?size=288411847&name=03.%20Ficha-resumo%20%E2%80%94%20Cl%C3%ADnica%20M%C3%A9dica%20%20Como%20cai%20na%20PED%20-%20Tuberculose.mp4",
     "duracao_segundos": 0,
     "modulo_index": 171,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "68308b5a-7c56-5536-aefd-585beaff73f4",
@@ -4099,7 +4391,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F101.%20Transi%C3%A7%C3%A3o%20Demogr%C3%A1fica%2C%20Perfis%20Epidemiol%C3%B3gicos%20e%20Indicadores%20de%20Sa%C3%BAde%2F3.%20V%C3%ADdeo%20Aula%20-%20Flash%2F3.%20Aula.mp4?size=285034608&name=3.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 172,
-    "aula_index": 0
+    "aula_index": 0,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "6d8b3a4f-b67e-5029-b09b-9f0b81ad8c29",
@@ -4113,7 +4406,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F101.%20Transi%C3%A7%C3%A3o%20Demogr%C3%A1fica%2C%20Perfis%20Epidemiol%C3%B3gicos%20e%20Indicadores%20de%20Sa%C3%BAde%2F4.%20V%C3%ADdeo%20Aula%20-%20Flash%2F4.%20Aula.mp4?size=196415412&name=4.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 172,
-    "aula_index": 1
+    "aula_index": 1,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "1c3b8bf8-d708-566e-9207-8720009b4e79",
@@ -4127,7 +4421,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F101.%20Transi%C3%A7%C3%A3o%20Demogr%C3%A1fica%2C%20Perfis%20Epidemiol%C3%B3gicos%20e%20Indicadores%20de%20Sa%C3%BAde%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=193630957&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 172,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "68c09f13-3e21-5e7c-98d7-82b56a0c34fb",
@@ -4141,7 +4436,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F101.%20Transi%C3%A7%C3%A3o%20Demogr%C3%A1fica%2C%20Perfis%20Epidemiol%C3%B3gicos%20e%20Indicadores%20de%20Sa%C3%BAde%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=162012677&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 172,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0103049e-e81a-5699-8644-eb225e2c3a31",
@@ -4155,7 +4451,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F101.%20Transi%C3%A7%C3%A3o%20Demogr%C3%A1fica%2C%20Perfis%20Epidemiol%C3%B3gicos%20e%20Indicadores%20de%20Sa%C3%BAde%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=520297646&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 172,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "70495150-9fe4-53f0-b9ea-c4e27f934e49",
@@ -4169,7 +4466,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F102.%20Hist%C3%B3ria%20Natural%20da%20Doen%C3%A7a%20e%20N%C3%ADveis%20de%20Preven%C3%A7%C3%A3o%20(Leavell%20e%20Clark)%2F2.%20V%C3%ADdeo%20Aula%20-%20Flash%20(Flash)%2F02.%20Aula%20%E2%80%94%20Hist%C3%B3ria%20Natural%20da%20Doen%C3%A7a%20e%20N%C3%ADveis%20de%20Preven%C3%A7%C3%A3o.mp4?size=322319641&name=02.%20Aula%20%E2%80%94%20Hist%C3%B3ria%20Natural%20da%20Doen%C3%A7a%20e%20N%C3%ADveis%20de%20Preven%C3%A7%C3%A3o.mp4",
     "duracao_segundos": 0,
     "modulo_index": 173,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "933d5e3a-0767-5172-ab44-f76db132c3f0",
@@ -4183,7 +4481,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F103.%20Aspectos%20Hist%C3%B3ricos%20e%20Marcos%20da%20Sa%C3%BAde%20P%C3%BAblica%20Brasileira%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=243082446&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 174,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0e45d9c7-1720-51e1-9aaf-271ae862738c",
@@ -4197,7 +4496,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F103.%20Aspectos%20Hist%C3%B3ricos%20e%20Marcos%20da%20Sa%C3%BAde%20P%C3%BAblica%20Brasileira%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=229177541&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 174,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0db259f5-c9cf-511c-a2df-487808377d27",
@@ -4211,7 +4511,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F103.%20Aspectos%20Hist%C3%B3ricos%20e%20Marcos%20da%20Sa%C3%BAde%20P%C3%BAblica%20Brasileira%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=238637860&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 174,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e754440a-b7a7-5154-b377-d7d56b294edb",
@@ -4225,7 +4526,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F104.%20Legisla%C3%A7%C3%A3o%2C%20Diretrizes%2C%20Financiamento%20e%20Evolu%C3%A7%C3%A3o%20do%20SUS%20(Leis%208080%20e%208142)%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=215279457&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 175,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "05c72d74-aa6e-5054-baf2-ee60424c9ab7",
@@ -4239,7 +4541,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F104.%20Legisla%C3%A7%C3%A3o%2C%20Diretrizes%2C%20Financiamento%20e%20Evolu%C3%A7%C3%A3o%20do%20SUS%20(Leis%208080%20e%208142)%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.mp4?size=223224200&name=10.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 175,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "2c6ba300-10bb-53e7-8298-97b64079327e",
@@ -4253,7 +4556,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F105.%20Aten%C3%A7%C3%A3o%20Prim%C3%A1ria%20%C3%A0%20Sa%C3%BAde%20e%20Estrat%C3%A9gia%20Sa%C3%BAde%20da%20Fam%C3%ADlia%20(ESF)%2F11.%20V%C3%ADdeo%20Aula%20-%20Flash%2F11.%20Aula.mp4?size=50948557&name=11.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 176,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "5055937f-13c3-5579-ae77-f6e2cc769f2a",
@@ -4267,7 +4571,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F106.%20Avalia%C3%A7%C3%A3o%20de%20Testes%20Diagn%C3%B3sticos%2C%20Sensibilidade%2C%20Especificidade%20e%20Curva%20ROC%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=220324219&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 177,
-    "aula_index": 3
+    "aula_index": 3,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "2be7807a-3bd5-57fe-846d-ab6416378933",
@@ -4281,7 +4586,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F106.%20Avalia%C3%A7%C3%A3o%20de%20Testes%20Diagn%C3%B3sticos%2C%20Sensibilidade%2C%20Especificidade%20e%20Curva%20ROC%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=234776866&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 177,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "fc147952-db1a-5bba-b761-becb174a66b9",
@@ -4295,7 +4601,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F107.%20Investiga%C3%A7%C3%A3o%20de%20Surtos%2C%20Epidemias%20e%20Medidas%20de%20Frequ%C3%AAncia%2F5.%20V%C3%ADdeo%20Aula%20-%20Flash%2F5.%20Aula.mp4?size=155816281&name=5.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 178,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "fd5a8a89-be79-567c-a6d1-7f03676dabd9",
@@ -4309,7 +4616,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F33.%20Desenhos%20de%20Estudos%20Epidemiol%C3%B3gicos%20e%20Medidas%20de%20Associa%C3%A7%C3%A3o%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=237352521&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 179,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "0c527ad4-4274-58c6-8bbf-dec378addf20",
@@ -4323,7 +4631,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F33.%20Desenhos%20de%20Estudos%20Epidemiol%C3%B3gicos%20e%20Medidas%20de%20Associa%C3%A7%C3%A3o%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=243331470&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 179,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "658c6191-8e15-5423-a23f-bfdd670d7ec4",
@@ -4337,7 +4646,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F33.%20Desenhos%20de%20Estudos%20Epidemiol%C3%B3gicos%20e%20Medidas%20de%20Associa%C3%A7%C3%A3o%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=186261150&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 179,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "09ae683d-6362-55bd-bf6a-6e35074a04b1",
@@ -4351,7 +4661,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F72.%20Vigil%C3%A2ncia%20em%20Sa%C3%BAde%2C%20Notifica%C3%A7%C3%A3o%20Compuls%C3%B3ria%20e%20Sistemas%20de%20Informa%C3%A7%C3%A3o%20(SINAN%2C%20SIM%2C%20SINASC)%2F7.%20V%C3%ADdeo%20Aula%20-%20Flash%2F7.%20Aula.mp4?size=79245151&name=7.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 180,
-    "aula_index": 5
+    "aula_index": 5,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "e66a26ac-b503-59c9-8821-904ef5edff09",
@@ -4365,7 +4676,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F72.%20Vigil%C3%A2ncia%20em%20Sa%C3%BAde%2C%20Notifica%C3%A7%C3%A3o%20Compuls%C3%B3ria%20e%20Sistemas%20de%20Informa%C3%A7%C3%A3o%20(SINAN%2C%20SIM%2C%20SINASC)%2F8.%20V%C3%ADdeo%20Aula%20-%20Flash%2F8.%20Aula.mp4?size=96986503&name=8.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 180,
-    "aula_index": 6
+    "aula_index": 6,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b19b2e27-0bdc-562f-a763-38e33648c1e6",
@@ -4379,7 +4691,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F72.%20Vigil%C3%A2ncia%20em%20Sa%C3%BAde%2C%20Notifica%C3%A7%C3%A3o%20Compuls%C3%B3ria%20e%20Sistemas%20de%20Informa%C3%A7%C3%A3o%20(SINAN%2C%20SIM%2C%20SINASC)%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=137349758&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 180,
-    "aula_index": 7
+    "aula_index": 7,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b5b9488c-bb89-5708-9a6e-62564c6c8b5e",
@@ -4393,7 +4706,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F72.%20Vigil%C3%A2ncia%20em%20Sa%C3%BAde%2C%20Notifica%C3%A7%C3%A3o%20Compuls%C3%B3ria%20e%20Sistemas%20de%20Informa%C3%A7%C3%A3o%20(SINAN%2C%20SIM%2C%20SINASC)%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.fhls-fastly_skyfire-1720.mp4?size=60961827&name=10.%20Aula.fhls-fastly_skyfire-1720.mp4",
     "duracao_segundos": 0,
     "modulo_index": 180,
-    "aula_index": 8
+    "aula_index": 8,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "b5b9488c-bb89-5708-9a6e-62564c6c8b5e",
@@ -4407,7 +4721,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F72.%20Vigil%C3%A2ncia%20em%20Sa%C3%BAde%2C%20Notifica%C3%A7%C3%A3o%20Compuls%C3%B3ria%20e%20Sistemas%20de%20Informa%C3%A7%C3%A3o%20(SINAN%2C%20SIM%2C%20SINASC)%2F10.%20V%C3%ADdeo%20Aula%20-%20Flash%2F10.%20Aula.fhls-fastly_skyfire-audio-high-portugu%C3%AAs.mp4?size=7463436&name=10.%20Aula.fhls-fastly_skyfire-audio-high-portugu%C3%AAs.mp4",
     "duracao_segundos": 0,
     "modulo_index": 180,
-    "aula_index": 8
+    "aula_index": 8,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "f892cea1-7b64-56e0-96f2-2c981c5c571f",
@@ -4421,7 +4736,8 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F97.%20%C3%89tica%20M%C3%A9dica%2C%20Bio%C3%A9tica%2C%20Sigilo%20Profissional%20e%20Documentos%20M%C3%A9dicos%2F6.%20V%C3%ADdeo%20Aula%20-%20Flash%2F6.%20Aula.mp4?size=71461189&name=6.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 181,
-    "aula_index": 2
+    "aula_index": 2,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   },
   {
     "id": "22b497df-a520-540e-8715-2df429bb623d",
@@ -4435,6 +4751,7 @@
     "video_path": "stream://rclone/Drive%3A/katomart-backup%2Fcourses%2Fextensivo-r1-2027-bonus-2026_eaa33d7e%2F5.%20Medicina%20Preventiva%20e%20Social%2F97.%20%C3%89tica%20M%C3%A9dica%2C%20Bio%C3%A9tica%2C%20Sigilo%20Profissional%20e%20Documentos%20M%C3%A9dicos%2F9.%20V%C3%ADdeo%20Aula%20-%20Flash%2F9.%20Aula.mp4?size=137708373&name=9.%20Aula.mp4",
     "duracao_segundos": 0,
     "modulo_index": 181,
-    "aula_index": 4
+    "aula_index": 4,
+    "drive_id": "17fBQRzgpfE4PPBIASRAtHZZe4LAVZHVu"
   }
 ]
