@@ -111,6 +111,7 @@ MAPA_EXPLICITO = {
     ("Medicina Preventiva e Social", 101, 4): "Indicadores de Mortalidade Geral, Infantil e Taxa de Letalidade",
     ("Medicina Preventiva e Social", 101, 5): "Mortalidade Proporcional por Idade (Nelson de Moraes e Razão de Swaroop-Uemura)",
     ("Medicina Preventiva e Social", 101, 6): "Carga Global de Doença e Indicadores Compostos: DALY, QALY e APVP",
+    ("Medicina Preventiva e Social", 101, 8): "Mortalidade Proporcional, Letalidade e Indicadores Ajustados (DALY/APVP) em Questões",
     ("Medicina Preventiva e Social", 102, 3): "Evolução Histórica do SUS: Das Caixas de Aposentadoria (CAPs) à Constituição de 1988",
     ("Medicina Preventiva e Social", 102, 4): "Princípios Doutrinários e Organizativos do SUS (Leis 8.080 e 8.142)",
     ("Medicina Preventiva e Social", 103, 3): "Estratégia Saúde da Família (ESF) e Atributos da Atenção Primária à Saúde",
