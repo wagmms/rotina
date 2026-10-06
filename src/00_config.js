@@ -27,8 +27,8 @@ var ConfigService = (function() {
   // Todos os segredos e credenciais devem ser definidos exclusivamente em ScriptProperties.
   var DEFAULTS = {
     PROVEDOR_TEXTO_PADRAO: "GEMINI",
-    IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest",
-    IA_MODELOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite",
+    IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
+    IA_MODELOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
     IA_MODELOS_TTS_GEMINI: "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts,gemini-3.1-flash-tts-preview",
     IA_VOZ_PRECEPTOR: "Fenrir",
     TIMEZONE: "America/Sao_Paulo",

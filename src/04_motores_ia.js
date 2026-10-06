@@ -26,8 +26,8 @@ var IA_PADROES = {
   GROQ: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
   OPENROUTER: ["openrouter/free"],
   ZAI: ["glm-4.7-flash", "glm-4.5-flash"],
-  GEMINI: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite"],
-  GEMINI_GROUNDING: ["gemini-3.5-flash", "gemini-flash-lite-latest"]
+  GEMINI: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"],
+  GEMINI_GROUNDING: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"]
 };
 
 var IA_INTENCOES_VALIDAS = [
@@ -114,7 +114,7 @@ function _iaLista(chave, padrao) {
   }
   lista = lista.map(function (x) { return String(x).trim(); }).filter(function (x) { return x; });
   // Ignora modelos obsoletos ou descontinuados pela API do Gemini
-  var obsoletos = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-3.8-flash"];
+  var obsoletos = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
   lista = lista.filter(function (m) { return obsoletos.indexOf(m) === -1; });
   return lista.length ? lista : padrao.slice();
 }
@@ -485,15 +485,9 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
           continue;
         } else if (code === 500 || code === 502 || code === 503 || code === 504) {
           todas429 = false;
-          if (!tentou5xx) {
-            tentou5xx = true;
-            _iaLog(ctx, "GEMINI " + modelo + ": " + code + ", repetindo uma vez");
-            _iaEsperar(res, 1000, 500);
-            j--;
-            continue;
-          }
-          _iaBloquear("GEMINI_" + modelo, 60);
-          break;
+          _iaBloquear("GEMINI_K_" + hashChave + "_" + modelo, 30);
+          _iaLog(ctx, "GEMINI " + modelo + ": " + code + " na chave #" + idx + ", tentando próxima chave");
+          continue;
         } else if (code === 404) {
           todas429 = false;
           _iaBloquear("GEMINI_" + modelo, 3600);
@@ -683,10 +677,21 @@ function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario
     mimeNormalizado = "image/jpeg";
   }
   var partes = [{ inlineData: { mimeType: mimeNormalizado, data: base64Data } }, { text: msg }];
-  return _iaPublico(function (t, ctx) {
+  var res = _iaPublico(function (t, ctx) {
     var opts = Object.assign({ clinico: true }, opcoes, { partesUsuario: partes });
     return _iaProvGemini(sistema, msg, t, ctx, opts);
   }, 2500, 2500);
+
+  if (!res) {
+    // Fallback resiliente multimodal: se o pool clínico prioritário sofrer saturação/429,
+    // aciona imediatamente os modelos leves com cota separada e alta disponibilidade
+    var modelosLeves = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest"];
+    res = _iaPublico(function (t, ctx) {
+      var optsFallback = Object.assign({ clinico: true, modelos: modelosLeves }, opcoes, { partesUsuario: partes });
+      return _iaProvGemini(sistema, msg, t, ctx, optsFallback);
+    }, 2500, 2500);
+  }
+  return res;
 }
 
 /**
@@ -1947,6 +1952,30 @@ function classificarIntencaoMensagem(textoMensagem) {
 
   if (ehRelatoClinico) {
     return { intencao: "CLINICO_SOAP", confianca: 0.95 };
+  }
+
+  // Dúvidas clínicas diretas — perguntas formuladas sobre dose, tratamento, conduta,
+  // diagnóstico, fisiopatologia, etc. que hoje caem desnecessariamente no LLM classificador.
+  // Cobertura: "qual a dose de X?", "como tratar Y?", "diferença entre X e Y",
+  // "o que é síndrome Z?", "quando indicar cirurgia?", "explique a fisiopatologia de..."
+  var ehDuvidaClinicaDireta =
+    // Perguntas interrogativas diretas com termos médicos
+    /^(?:qual|quais|como|quando|por\s*qu[eê]|explique?|defina|resuma|diferencie|compare|cite|liste|descreva|o\s+que\s+[eé])\s/i.test(t) &&
+    /(?:dose|posologia|tratamento|conduta|esquema|antibiótico|antibi[oó]tico|diagn[oó]stico|etiologia|fisiopatologia|complica[çc]|progn[oó]stico|indica[çc]|contraindica[çc]|mecanismo|farmacologia|s[ií]ndrome|patologia|semiologia|classifica[çc]|estadiamento|crit[eé]rio|escala|escore|rastreio|profilaxia|vacina|cirurgia|operar|internar|medicar|intubação|dreno|cateter|sonda|tratar|manejar|abordar|investigar|diagnosticar|prevenir|rastrear)/i.test(t) ||
+    // "diferença entre X e Y" / "qual a diferença entre" (dúvida acadêmica)
+    /\bdiferen[çc]a\s+entre\b/i.test(t) &&
+    /(?:choque|sepse|s[ií]ndrome|infec[çc]|les[aã]o|tumor|tipo|classe|grau|est[aá]gio|agudo|cr[oô]nico|viral|bacterian|fúngic)/i.test(t) ||
+    // "como tratar/manejar/abordar [doença]?" sem contexto de paciente real
+    /^como\s+(?:tratar|manejar|abordar|investigar|diagnosticar|prevenir|rastrear)\s/i.test(t) &&
+    !/(?:paciente|pcte|leito|enfermaria)\b/i.test(t) ||
+    // Perguntas com "de escolha", "de primeira linha", "padrão-ouro", "gold standard"
+    /(?:de\s+escolha|primeira\s+linha|segunda\s+linha|padr[aã]o[- ]ouro|gold\s+standard|mais\s+indicad|mais\s+efica|melhor\s+(?:exame|tratamento|conduta|abordagem))/i.test(t) ||
+    // Perguntas farmacológicas diretas: "amoxicilina para otite", "dipirona em gestante"
+    /(?:para\s+(?:otite|pneumonia|itu|sinusite|faringite|meningite|sepse|asma|dpoc|hiv|tb|tuberculose|dengue|malária|celulite|erisipela))/i.test(t) &&
+    /(?:dose|mg|comprimido|via\s+oral|ev|im|posologia|quanto|como\s+prescr)/i.test(t);
+
+  if (ehDuvidaClinicaDireta) {
+    return { intencao: "CONVERSA", confianca: 0.90 };
   }
 
   // 3) Classificador por LLM

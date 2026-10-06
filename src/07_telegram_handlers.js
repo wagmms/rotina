@@ -872,7 +872,8 @@ function processarRespostaPreceptorSocratico(chatId, textoResposta, ehAudio) {
 /**
  * Responde diretamente com Áudio de Voz Neural do Preceptor Socrático
  */
-function responderPreceptorVozComIA(chatId, casoOuDuvida) {
+function responderPreceptorVozComIA(chatId, casoOuDuvida, opcoes) {
+  opcoes = opcoes || {};
   enviarChatAction(chatId, "record_voice", true);
 
   var kbAcoes = {
@@ -883,6 +884,37 @@ function responderPreceptorVozComIA(chatId, casoOuDuvida) {
       ]
     ]
   };
+
+  // Se opcoes.apenasNarrar === true, pula a geração de texto e vai direto para TTS
+  // (usado pelo callback "Ouvir no Fone" para narrar texto já existente)
+  if (opcoes.apenasNarrar && casoOuDuvida) {
+    enviarChatAction(chatId, "record_voice", true);
+    var blobNarrado = sintetizarVozPreceptor(casoOuDuvida);
+    if (blobNarrado) {
+      var legendaNarrada = "🎧 *Preceptor Socrático:*\n" + casoOuDuvida;
+      var enviadoNarrado = enviarAudioVozTelegram(chatId, blobNarrado, legendaNarrada, kbAcoes);
+      if (enviadoNarrado) return true;
+    }
+    // Se TTS falhar, entrega como texto
+    var cacheKeyN = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(CacheService.getScriptCache(), cacheKeyN, casoOuDuvida, 21600);
+    var kbTextoN = {
+      "inline_keyboard": [
+        [
+          {"text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKeyN},
+          {"text": "📋 Gerar SOAP", "callback_data": "preceptor_gerar_soap"}
+        ],
+        [
+          {"text": "🛑 Encerrar", "callback_data": "preceptor_encerrar"}
+        ]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, "🎧 *Preceptor Socrático:*\n\n" + casoOuDuvida, kbTextoN);
+  }
+
+  // Variável que preserva texto entre modo direto e fallback,
+  // evitando chamar o LLM de novo se apenas o TTS falhou
+  var textoGeradoDireto = null;
 
   // 1. MODO RÁPIDO: Geração direta de áudio em tempo único (Single-Pass Audio)
   if (typeof gerarAudioPreceptorDireto === "function") {
@@ -905,16 +937,22 @@ function responderPreceptorVozComIA(chatId, casoOuDuvida) {
         var enviadoDireto = enviarAudioVozTelegram(chatId, resDireto.audioBlob, legendaDireta, kbAcoes);
         if (enviadoDireto) return true;
       }
+      // Se o modo direto gerou texto mas o envio/TTS falhou,
+      // preserva o texto para o fallback não precisar chamar o LLM de novo
+      if (resDireto && resDireto.texto) {
+        textoGeradoDireto = resDireto.texto;
+      }
     } catch (eDireto) {
       Logger.log("Geração direta de áudio falhou; recorrendo ao modo em dois tempos: " + eDireto.message);
     }
   }
 
   // 2. FALLBACK RESILIENTE EM DOIS TEMPOS (Texto -> TTS)
+  // CORREÇÃO: reutiliza textoGeradoDireto se disponível, evitando chamada LLM redundante
   if (typeof renovarChatActionSeNecessario === "function") {
     renovarChatActionSeNecessario(chatId, "record_voice");
   }
-  var provocacao = gerarProvocacaoPreceptorAudio(casoOuDuvida);
+  var provocacao = textoGeradoDireto || gerarProvocacaoPreceptorAudio(casoOuDuvida);
   if (!provocacao) {
     provocacao = "Diante deste quadro clínico, qual é a principal hipótese diagnóstica e a conduta imediata para descartar gravidade?";
   }
@@ -1417,6 +1455,7 @@ function processarCallbackBotao(cb) {
     }
   }
   // G. OUVIR CRÍTICA SOCRÁTICA DO PRECEPTOR VIA ÁUDIO / TTS
+  // CORREÇÃO: passa apenasNarrar=true para ir direto ao TTS sem nova chamada LLM
   else if (data.startsWith("ouvirPreceptor_")) {
     var cacheKeyVoz = data.replace("ouvirPreceptor_", "");
     var conteudoCaso = (typeof safeGetCache === "function")
@@ -1427,7 +1466,7 @@ function processarCallbackBotao(cb) {
     }
     if (conteudoCaso) {
       responderCallbackTelegram(cb.id, "Transmitindo áudio para o fone...");
-      return responderPreceptorVozComIA(cb.message.chat.id, conteudoCaso);
+      return responderPreceptorVozComIA(cb.message.chat.id, conteudoCaso, { apenasNarrar: true });
     } else {
       responderCallbackTelegram(cb.id, "⚠️ Caso expirado do cache.");
     }
@@ -1679,6 +1718,34 @@ function processarMensagemVoz(message) {
         safePutCache(contextoCache, contextoKey, tLimpo, 900);
         enviarChatAction(chatId, "typing");
         return processarEEntregarIA(chatId, function() { return resAudio.soapTexto; }, tLimpo, "soap");
+      }
+
+      // 3. Roteamento direto de alta performance para ditados clínicos (Bypass de LLM intermediário):
+      // 3.1. Emergência clínica (Sala Vermelha / PCR / Choque / Sepse)
+      var ehEmerg = (typeof _iaEhEmergencia === "function")
+        ? _iaEhEmergencia(tLimpo)
+        : /(?:pcr|parada|choque|sepse|infarto|\biam\b|anafila|intubacao|intubar|\biot\b|glasgow\s*[3-8])/i.test(tLimpo);
+      if (ehEmerg) {
+        enviarChatAction(chatId, "typing");
+        return processarEEntregarIA(chatId, gerarCondutaEmergenciaComIA, tLimpo, "emergencia");
+      }
+
+      // 3.2. Prescrição médica ambulatorial / Receita
+      var tnVoz = (typeof _iaNormalizarParaRegex === "function") ? _iaNormalizarParaRegex(tLimpo) : tLimpo.toLowerCase();
+      var ehRx = /prescrev|receita|medicamento|mg.*comprimido/i.test(tLimpo) ||
+        /(?:prescrev|passar\s+receita|medicamento\s+para|rem[eé]dio\s+para|dose\s+de|posologia\s+de|como\s+prescrever|\breceita\b)/.test(tnVoz);
+      if (ehRx) {
+        if (typeof definirModoBot !== "undefined") definirModoBot(chatId, "rx", tLimpo);
+        enviarChatAction(chatId, "typing");
+        return processarEEntregarIA(chatId, gerarPrescricaoComIA, tLimpo, "rx");
+      }
+
+      // 3.3. Gasometria arterial
+      var ehGaso = (/ph\s*[:=]?\s*[\d,.]+/i.test(tLimpo) && /(pco2|hco3|bicarbonato)/i.test(tLimpo)) ||
+        (tLimpo.toLowerCase().indexOf("ph") !== -1 && (tLimpo.toLowerCase().indexOf("pco2") !== -1 || tLimpo.toLowerCase().indexOf("hco3") !== -1));
+      if (ehGaso) {
+        enviarChatAction(chatId, "typing");
+        return processarEEntregarIA(chatId, gerarAnaliseGasometriaComIA, tLimpo, "gaso");
       }
 
       // Feedback contínuo de digitação e roteamento para o processador semântico

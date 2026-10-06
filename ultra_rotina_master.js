@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER CLOUD ASSISTANT & COPILOTO CLÍNICO MULTIMODAL (v2.0)
  * ==============================================================================
  * Executa 100% na nuvem do Google (24/7), gratuito, sem precisar de PC ligado.
- * Gerado automaticamente via build_master.py em: 2026-10-05 22:07:37
- * Checksum SHA256: 84430af5c09180bc
+ * Gerado automaticamente via build_master.py em: 2026-10-05 22:20:49
+ * Checksum SHA256: 4ba66b48a7c31a5c
  * ==============================================================================
  */
 
@@ -43,8 +43,8 @@ var ConfigService = (function() {
   // Todos os segredos e credenciais devem ser definidos exclusivamente em ScriptProperties.
   var DEFAULTS = {
     PROVEDOR_TEXTO_PADRAO: "GEMINI",
-    IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest",
-    IA_MODELOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite",
+    IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
+    IA_MODELOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
     IA_MODELOS_TTS_GEMINI: "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts,gemini-3.1-flash-tts-preview",
     IA_VOZ_PRECEPTOR: "Fenrir",
     TIMEZONE: "America/Sao_Paulo",
@@ -3052,8 +3052,8 @@ var IA_PADROES = {
   GROQ: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
   OPENROUTER: ["openrouter/free"],
   ZAI: ["glm-4.7-flash", "glm-4.5-flash"],
-  GEMINI: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite"],
-  GEMINI_GROUNDING: ["gemini-3.5-flash", "gemini-flash-lite-latest"]
+  GEMINI: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"],
+  GEMINI_GROUNDING: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"]
 };
 
 var IA_INTENCOES_VALIDAS = [
@@ -3140,7 +3140,7 @@ function _iaLista(chave, padrao) {
   }
   lista = lista.map(function (x) { return String(x).trim(); }).filter(function (x) { return x; });
   // Ignora modelos obsoletos ou descontinuados pela API do Gemini
-  var obsoletos = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-3.8-flash"];
+  var obsoletos = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
   lista = lista.filter(function (m) { return obsoletos.indexOf(m) === -1; });
   return lista.length ? lista : padrao.slice();
 }
@@ -3511,15 +3511,9 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
           continue;
         } else if (code === 500 || code === 502 || code === 503 || code === 504) {
           todas429 = false;
-          if (!tentou5xx) {
-            tentou5xx = true;
-            _iaLog(ctx, "GEMINI " + modelo + ": " + code + ", repetindo uma vez");
-            _iaEsperar(res, 1000, 500);
-            j--;
-            continue;
-          }
-          _iaBloquear("GEMINI_" + modelo, 60);
-          break;
+          _iaBloquear("GEMINI_K_" + hashChave + "_" + modelo, 30);
+          _iaLog(ctx, "GEMINI " + modelo + ": " + code + " na chave #" + idx + ", tentando próxima chave");
+          continue;
         } else if (code === 404) {
           todas429 = false;
           _iaBloquear("GEMINI_" + modelo, 3600);
@@ -3709,10 +3703,21 @@ function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario
     mimeNormalizado = "image/jpeg";
   }
   var partes = [{ inlineData: { mimeType: mimeNormalizado, data: base64Data } }, { text: msg }];
-  return _iaPublico(function (t, ctx) {
+  var res = _iaPublico(function (t, ctx) {
     var opts = Object.assign({ clinico: true }, opcoes, { partesUsuario: partes });
     return _iaProvGemini(sistema, msg, t, ctx, opts);
   }, 2500, 2500);
+
+  if (!res) {
+    // Fallback resiliente multimodal: se o pool clínico prioritário sofrer saturação/429,
+    // aciona imediatamente os modelos leves com cota separada e alta disponibilidade
+    var modelosLeves = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest"];
+    res = _iaPublico(function (t, ctx) {
+      var optsFallback = Object.assign({ clinico: true, modelos: modelosLeves }, opcoes, { partesUsuario: partes });
+      return _iaProvGemini(sistema, msg, t, ctx, optsFallback);
+    }, 2500, 2500);
+  }
+  return res;
 }
 
 /**
@@ -4973,6 +4978,27 @@ function classificarIntencaoMensagem(textoMensagem) {
 
   if (ehRelatoClinico) {
     return { intencao: "CLINICO_SOAP", confianca: 0.95 };
+  }
+
+  // Dúvidas clínicas diretas — perguntas formuladas sobre dose, tratamento, conduta,
+  // diagnóstico, fisiopatologia, etc. que hoje caem desnecessariamente no LLM classificador.
+  // Cobertura: "qual a dose de X?", "como tratar Y?", "diferença entre X e Y",
+  // "o que é síndrome Z?", "quando indicar cirurgia?", "explique a fisiopatologia de..."
+  var ehDuvidaClinicaDireta =
+    // Perguntas interrogativas diretas com termos médicos
+    /^(?:qual|quais|como|quando|por\s*qu[eê]|explique?|defina|resuma|diferencie|compare|cite|liste|descreva|o\s+que\s+[eé])\s/i.test(t) &&
+    /(?:dose|posologia|tratamento|conduta|esquema|antibiótico|antibi[oó]tico|diagn[oó]stico|etiologia|fisiopatologia|complica[çc]|progn[oó]stico|indica[çc]|contraindica[çc]|mecanismo|farmacologia|s[ií]ndrome|patologia|semiologia|classifica[çc]|estadiamento|crit[eé]rio|escala|escore|rastreio|profilaxia|vacina|cirurgia|operar|internar|medicar|intubação|dreno|cateter|sonda)/i.test(t) ||
+    // "diferença entre X e Y" (padrão frequente de dúvida acadêmica)
+    /\bdiferen[çc]a\s+entre\b/i.test(t) &&
+    /(?:choque|sepse|s[ií]ndrome|infec[çc]|les[aã]o|tumor|tipo|classe|grau|est[aá]gio|agudo|cr[oô]nico|viral|bacterian|fúngic)/i.test(t) ||
+    // Perguntas com "de escolha", "de primeira linha", "padrão-ouro", "gold standard"
+    /(?:de\s+escolha|primeira\s+linha|segunda\s+linha|padr[aã]o[- ]ouro|gold\s+standard|mais\s+indicad|mais\s+efica|melhor\s+(?:exame|tratamento|conduta|abordagem))/i.test(t) ||
+    // Perguntas farmacológicas diretas: "amoxicilina para otite", "dipirona em gestante"
+    /(?:para\s+(?:otite|pneumonia|itu|sinusite|faringite|meningite|sepse|asma|dpoc|hiv|tb|tuberculose|dengue|malária|celulite|erisipela))/i.test(t) &&
+    /(?:dose|mg|comprimido|via\s+oral|ev|im|posologia|quanto|como\s+prescr)/i.test(t);
+
+  if (ehDuvidaClinicaDireta) {
+    return { intencao: "CONVERSA", confianca: 0.90 };
   }
 
   // 3) Classificador por LLM
@@ -7447,7 +7473,8 @@ function processarRespostaPreceptorSocratico(chatId, textoResposta, ehAudio) {
 /**
  * Responde diretamente com Áudio de Voz Neural do Preceptor Socrático
  */
-function responderPreceptorVozComIA(chatId, casoOuDuvida) {
+function responderPreceptorVozComIA(chatId, casoOuDuvida, opcoes) {
+  opcoes = opcoes || {};
   enviarChatAction(chatId, "record_voice", true);
 
   var kbAcoes = {
@@ -7458,6 +7485,37 @@ function responderPreceptorVozComIA(chatId, casoOuDuvida) {
       ]
     ]
   };
+
+  // Se opcoes.apenasNarrar === true, pula a geração de texto e vai direto para TTS
+  // (usado pelo callback "Ouvir no Fone" para narrar texto já existente)
+  if (opcoes.apenasNarrar && casoOuDuvida) {
+    enviarChatAction(chatId, "record_voice", true);
+    var blobNarrado = sintetizarVozPreceptor(casoOuDuvida);
+    if (blobNarrado) {
+      var legendaNarrada = "🎧 *Preceptor Socrático:*\n" + casoOuDuvida;
+      var enviadoNarrado = enviarAudioVozTelegram(chatId, blobNarrado, legendaNarrada, kbAcoes);
+      if (enviadoNarrado) return true;
+    }
+    // Se TTS falhar, entrega como texto
+    var cacheKeyN = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(CacheService.getScriptCache(), cacheKeyN, casoOuDuvida, 21600);
+    var kbTextoN = {
+      "inline_keyboard": [
+        [
+          {"text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKeyN},
+          {"text": "📋 Gerar SOAP", "callback_data": "preceptor_gerar_soap"}
+        ],
+        [
+          {"text": "🛑 Encerrar", "callback_data": "preceptor_encerrar"}
+        ]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, "🎧 *Preceptor Socrático:*\n\n" + casoOuDuvida, kbTextoN);
+  }
+
+  // Variável que preserva texto entre modo direto e fallback,
+  // evitando chamar o LLM de novo se apenas o TTS falhou
+  var textoGeradoDireto = null;
 
   // 1. MODO RÁPIDO: Geração direta de áudio em tempo único (Single-Pass Audio)
   if (typeof gerarAudioPreceptorDireto === "function") {
@@ -7480,16 +7538,22 @@ function responderPreceptorVozComIA(chatId, casoOuDuvida) {
         var enviadoDireto = enviarAudioVozTelegram(chatId, resDireto.audioBlob, legendaDireta, kbAcoes);
         if (enviadoDireto) return true;
       }
+      // Se o modo direto gerou texto mas o envio/TTS falhou,
+      // preserva o texto para o fallback não precisar chamar o LLM de novo
+      if (resDireto && resDireto.texto) {
+        textoGeradoDireto = resDireto.texto;
+      }
     } catch (eDireto) {
       Logger.log("Geração direta de áudio falhou; recorrendo ao modo em dois tempos: " + eDireto.message);
     }
   }
 
   // 2. FALLBACK RESILIENTE EM DOIS TEMPOS (Texto -> TTS)
+  // CORREÇÃO: reutiliza textoGeradoDireto se disponível, evitando chamada LLM redundante
   if (typeof renovarChatActionSeNecessario === "function") {
     renovarChatActionSeNecessario(chatId, "record_voice");
   }
-  var provocacao = gerarProvocacaoPreceptorAudio(casoOuDuvida);
+  var provocacao = textoGeradoDireto || gerarProvocacaoPreceptorAudio(casoOuDuvida);
   if (!provocacao) {
     provocacao = "Diante deste quadro clínico, qual é a principal hipótese diagnóstica e a conduta imediata para descartar gravidade?";
   }
@@ -7992,6 +8056,7 @@ function processarCallbackBotao(cb) {
     }
   }
   // G. OUVIR CRÍTICA SOCRÁTICA DO PRECEPTOR VIA ÁUDIO / TTS
+  // CORREÇÃO: passa apenasNarrar=true para ir direto ao TTS sem nova chamada LLM
   else if (data.startsWith("ouvirPreceptor_")) {
     var cacheKeyVoz = data.replace("ouvirPreceptor_", "");
     var conteudoCaso = (typeof safeGetCache === "function")
@@ -8002,7 +8067,7 @@ function processarCallbackBotao(cb) {
     }
     if (conteudoCaso) {
       responderCallbackTelegram(cb.id, "Transmitindo áudio para o fone...");
-      return responderPreceptorVozComIA(cb.message.chat.id, conteudoCaso);
+      return responderPreceptorVozComIA(cb.message.chat.id, conteudoCaso, { apenasNarrar: true });
     } else {
       responderCallbackTelegram(cb.id, "⚠️ Caso expirado do cache.");
     }
