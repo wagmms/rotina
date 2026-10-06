@@ -164,8 +164,9 @@ async function buildServer() {
 
     const item = webhookQueue.shift();
     const { fakeGasEvent, updateId, t0, kind } = item;
-    const esperaMs = performance.now() - t0;
     const inicioProcessamento = performance.now();
+    const ateInicioMs = inicioProcessamento - t0;
+    const filaMs = inicioProcessamento - (item.enqueuedAt ?? t0);
     let reservadoRemoto = false;
     let tentarNovamente = false;
     let estado = 'unknown';
@@ -211,7 +212,7 @@ async function buildServer() {
         catch (statusErr) { fastify.log.error({ err: statusErr, updateId }, '[Webhook] Estado remoto incerto'); }
       }
     } finally {
-      fastify.log.info({ updateId, kind, estado, esperaMs: roundMs(esperaMs), processamentoMs: roundMs(performance.now() - inicioProcessamento), ...tempos, http, etapasClinicas: clinicalStages(job) }, '[Webhook] Medicao de entrega');
+      fastify.log.info({ updateId, kind, estado, ateInicioMs: roundMs(ateInicioMs), filaMs: roundMs(filaMs), processamentoMs: roundMs(performance.now() - inicioProcessamento), ...tempos, http, etapasClinicas: clinicalStages(job) }, '[Webhook] Medicao de entrega');
       webhookProcessing = false;
       // Processa próximo item da fila no próximo tick, liberando o event loop
       // para healthchecks e outras requisições entre processamentos
@@ -233,7 +234,8 @@ async function buildServer() {
       const pendentes = await d1Inbox.recoverPending(50, afterId);
       for (const update of pendentes) {
         const fakeGasEvent = { parameter: { secret: runtime.ctx.ConfigService.get('WEBHOOK_SECRET') }, postData: { contents: JSON.stringify(update) } };
-        webhookQueue.push({ fakeGasEvent, updateId: update.update_id, t0: performance.now(), kind: updateKind(update) });
+        const now = performance.now();
+        webhookQueue.push({ fakeGasEvent, updateId: update.update_id, t0: now, enqueuedAt: now, kind: updateKind(update) });
         afterId = update.update_id;
         totalPendentes++;
       }
@@ -311,7 +313,7 @@ async function buildServer() {
       if (!novo) return { ok: true, duplicate: true };
 
       // Enfileira para processamento em background e responde 200.
-      webhookQueue.push({ fakeGasEvent, updateId, t0, kind: updateKind(updateData) });
+      webhookQueue.push({ fakeGasEvent, updateId, t0, enqueuedAt: performance.now(), kind: updateKind(updateData) });
       const elapsed = (performance.now() - t0).toFixed(2);
       fastify.log.info(`[Webhook Telegram] Update ${updateId} enfileirado em ${elapsed}ms. Fila: ${webhookQueue.length} item(ns).`);
 
