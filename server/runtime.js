@@ -15,7 +15,7 @@ const syncFetch = require('sync-fetch');
 const { Worker } = require('worker_threads');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
-const DATA_DIR = path.resolve(ROOT_DIR, 'data');
+const DATA_DIR = process.env.BOT_DATA_DIR ? path.resolve(process.env.BOT_DATA_DIR) : path.resolve(ROOT_DIR, 'data');
 const SRC_DIR = path.resolve(ROOT_DIR, 'src');
 const PROPERTIES_FILE = path.join(DATA_DIR, 'properties.json');
 const DEPLOY_STATE_FILE = path.join(ROOT_DIR, '.deploy_state.json');
@@ -52,6 +52,7 @@ if (fs.existsSync(PROPERTIES_FILE)) {
 }
 
 const ENV_BLOCKLIST = new Set([
+  'CF_D1_API_TOKEN', 'BOT_INBOX_KEY',
   'SHELL', 'PATH', 'PWD', 'HOME', 'USER', 'LANG', 'TERM', 'SHLVL',
   'LOGNAME', 'OLDPWD', 'HOSTNAME', 'DISPLAY', 'XDG_SESSION_TYPE',
   'XDG_RUNTIME_DIR', 'XDG_DATA_DIRS', 'XDG_CONFIG_DIRS', 'DBUS_SESSION_BUS_ADDRESS',
@@ -82,21 +83,28 @@ for (const [k, v] of Object.entries(process.env)) {
 }
 
 let persistTimer = null;
+function escreverPropriedades() {
+  const temporario = path.join(DATA_DIR, `.properties-${process.pid}.tmp`);
+  try {
+    fs.writeFileSync(temporario, JSON.stringify(propsStore, null, 2), { encoding: 'utf8', mode: 0o600 });
+    fs.renameSync(temporario, PROPERTIES_FILE);
+  } catch (err) {
+    try { fs.unlinkSync(temporario); } catch (_) {}
+    throw err;
+  }
+}
 function persistirPropriedades(imediato = false) {
   if (imediato) {
     if (persistTimer) { clearTimeout(persistTimer); persistTimer = null; }
-    try {
-      fs.writeFileSync(PROPERTIES_FILE, JSON.stringify(propsStore, null, 2), 'utf8');
-    } catch (e) {
-      console.error('[Runtime] Erro ao persistir properties.json:', e.message);
-    }
+    // O webhook só pode confirmar o update se a gravação local foi concluída.
+    escreverPropriedades();
     return;
   }
   if (persistTimer) return;
   persistTimer = setTimeout(() => {
     persistTimer = null;
     try {
-      fs.writeFileSync(PROPERTIES_FILE, JSON.stringify(propsStore, null, 2), 'utf8');
+      escreverPropriedades();
     } catch (e) {
       console.error('[Runtime] Erro ao persistir properties.json:', e.message);
     }
@@ -105,7 +113,7 @@ function persistirPropriedades(imediato = false) {
 
 process.on('beforeExit', () => {
   try {
-    fs.writeFileSync(PROPERTIES_FILE, JSON.stringify(propsStore, null, 2), 'utf8');
+    escreverPropriedades();
   } catch (e) {}
 });
 
@@ -128,11 +136,10 @@ const httpWorkerCode = `
         signal: controller.signal
       };
       if (body && method !== 'GET' && method !== 'HEAD') {
-        fetchOpts.body = Buffer.isBuffer(body) ? body : String(body);
+        fetchOpts.body = (body instanceof Uint8Array || Buffer.isBuffer(body)) ? Buffer.from(body.buffer || body, body.byteOffset || 0, body.byteLength || body.length) : String(body);
       }
 
       const res = await fetch(url, fetchOpts);
-      clearTimeout(timer);
 
       const resHeaders = {};
       for (const [k, v] of res.headers.entries()) {
@@ -140,6 +147,7 @@ const httpWorkerCode = `
       }
 
       const arrayBuf = await res.arrayBuffer();
+      clearTimeout(timer);
       const bodyBuf = Buffer.from(arrayBuf);
 
       const metaStr = JSON.stringify({ status: res.status, headers: resHeaders });
@@ -176,16 +184,20 @@ let sabCtrl = null;
 let ctrl = null;
 let sabData = null;
 
-try {
-  sabCtrl = new SharedArrayBuffer(32);
-  ctrl = new Int32Array(sabCtrl);
-  sabData = new SharedArrayBuffer(16 * 1024 * 1024); // 16MB
-  httpWorker = new Worker(httpWorkerCode, { eval: true });
-  httpWorker.unref();
-} catch (eWorker) {
-  console.warn('[Runtime] Worker Threads indisponível, usando fallback sync-fetch:', eWorker.message);
-  httpWorker = null;
+function iniciarHttpWorker() {
+  try {
+    sabCtrl = new SharedArrayBuffer(32);
+    ctrl = new Int32Array(sabCtrl);
+    sabData = new SharedArrayBuffer(16 * 1024 * 1024); // 16MB
+    httpWorker = new Worker(httpWorkerCode, { eval: true });
+    httpWorker.unref();
+  } catch (eWorker) {
+    console.warn('[Runtime] Worker Threads indisponível, usando fallback sync-fetch:', eWorker.message);
+    httpWorker = null;
+  }
 }
+
+iniciarHttpWorker();
 
 // 2. CACHE EM MEMÓRIA DE ALTA VELOCIDADE (CacheService)
 const cacheMemoryStore = new Map();
@@ -359,6 +371,12 @@ const ctx = {
 
         const waitRes = Atomics.wait(ctrl, 0, 0, timeoutMs + 1000);
         if (waitRes === 'timed-out' || ctrl[0] === 0) {
+          // A chamada anterior ainda pode concluir. Descarte o worker e os
+          // buffers compartilhados antes de aceitar outra requisição.
+          const workerAntigo = httpWorker;
+          httpWorker = null;
+          iniciarHttpWorker();
+          workerAntigo.terminate().catch(() => {});
           if (options.muteHttpExceptions) {
             return {
               getResponseCode: () => 504,
@@ -387,17 +405,25 @@ const ctx = {
         const metaLen = ctrl[3];
         const bodyLen = ctrl[1];
         const meta = JSON.parse(Buffer.from(sabData, 0, metaLen).toString('utf8'));
-        const bodyBuf = Buffer.from(sabData, metaLen, bodyLen);
+        // O próximo fetch sobrescreve sabData; o blob precisa manter seus bytes.
+        const bodyBuf = Buffer.from(Buffer.from(sabData, metaLen, bodyLen));
 
         return {
           getResponseCode: () => meta.status,
           getContentText: () => bodyBuf.toString('utf8'),
           getHeaders: () => meta.headers,
-          getBlob: () => ({
-            getBytes: () => bodyBuf,
-            getContentType: () => meta.headers['content-type'] || 'application/octet-stream',
-            getName: () => 'response'
-          })
+          getBlob: () => {
+            let ct = meta.headers['content-type'] || 'application/octet-stream';
+            let nm = 'response';
+            const b = {
+              getBytes: () => bodyBuf,
+              getContentType: () => ct,
+              setContentType: (t) => { ct = t; return b; },
+              getName: () => nm,
+              setName: (n) => { nm = n; return b; }
+            };
+            return b;
+          }
         };
       }
 
@@ -410,7 +436,8 @@ const ctx = {
       try {
         const res = syncFetch(url, fetchOpts);
         const statusCode = res.status;
-        const text = res.text();
+        const bodyBuf = Buffer.from(res.arrayBuffer());
+        const text = bodyBuf.toString('utf8');
         const responseHeaders = {};
         for (const [k, v] of res.headers.entries()) {
           responseHeaders[k.toLowerCase()] = v;
@@ -420,11 +447,18 @@ const ctx = {
           getResponseCode: () => statusCode,
           getContentText: () => text,
           getHeaders: () => responseHeaders,
-          getBlob: () => ({
-            getBytes: () => Buffer.from(text),
-            getContentType: () => responseHeaders['content-type'] || 'application/octet-stream',
-            getName: () => 'response'
-          })
+          getBlob: () => {
+            let ct = responseHeaders['content-type'] || 'application/octet-stream';
+            let nm = 'response';
+            const b = {
+              getBytes: () => bodyBuf,
+              getContentType: () => ct,
+              setContentType: (t) => { ct = t; return b; },
+              getName: () => nm,
+              setName: (n) => { nm = n; return b; }
+            };
+            return b;
+          }
         };
       } catch (err) {
         if (options.muteHttpExceptions) {

@@ -14,6 +14,8 @@ const fastify = require('fastify')({
 
 const cors = require('@fastify/cors');
 const runtime = require('./runtime');
+const { createD1Inbox } = require('./d1-inbox');
+const d1Inbox = createD1Inbox();
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -139,25 +141,130 @@ async function buildServer() {
     }
   });
 
-  // 6. WEBHOOK DO TELEGRAM (Despacho ultra-rápido com persistência em RAM)
+  // 6. WEBHOOK DO TELEGRAM (checkpoint durável antes da resposta + processamento em background)
+  //
+  // ARQUITETURA: O Telegram espera HTTP 200 em até ~60s. Processamento de IA
+  // (LLM, TTS, auditoria) pode levar 10-50s. Respondemos 200 após
+  // validação e gravação durável do pedido, e processamos o update
+  // fora do ciclo request/response. Isso evita:
+  //   1. Reenvios duplicados pelo Telegram (timeout do webhook)
+  //   2. Espera do Telegram pelo processamento clínico completo
+  //   3. Erros 504 em proxies/load balancers com timeouts curtos
+  //
+  // Fila de processamento com controle de concorrência: apenas 1 update
+  // é processado por vez (serialização), evitando race conditions no
+  // runtime síncrono que não tem LockService real.
+  const webhookQueue = [];
+  let webhookProcessing = false;
+
+  async function processWebhookQueue() {
+    if (webhookProcessing || webhookQueue.length === 0) return;
+    webhookProcessing = true;
+
+    const item = webhookQueue.shift();
+    const { fakeGasEvent, updateId, t0 } = item;
+    const esperaMs = performance.now() - t0;
+    const inicioProcessamento = performance.now();
+    let reservadoRemoto = false;
+    let tentarNovamente = false;
+    try {
+      if (d1Inbox) {
+        reservadoRemoto = await d1Inbox.markRunning(updateId);
+        if (!reservadoRemoto) return;
+      }
+      runtime.doPost(fakeGasEvent);
+      if (runtime.ctx.ConfigService.get('TELEGRAM_ASYNC_WORKER') === 'true') {
+        runtime.ctx.processarFilaTelegram();
+      }
+      if (d1Inbox) {
+        const job = runtime.ctx.PersistenciaBot.ler('inbox_' + updateId);
+        const estado = job && job.status === 'done' ? 'done' : job && job.status === 'failed' ? 'failed' : 'uncertain';
+        await d1Inbox.markState(updateId, estado);
+      }
+      const processamentoMs = performance.now() - inicioProcessamento;
+      fastify.log.info({ updateId, esperaMs: Math.round(esperaMs), processamentoMs: Math.round(processamentoMs) }, '[Webhook] Update processado');
+    } catch (err) {
+      fastify.log.error(`[Webhook Background Erro] Update ${updateId}: ${err.message}`);
+      if (d1Inbox && !reservadoRemoto) {
+        webhookQueue.unshift(item);
+        tentarNovamente = true;
+      } else if (d1Inbox) {
+        try { await d1Inbox.markState(updateId, 'uncertain'); }
+        catch (statusErr) { fastify.log.error({ err: statusErr, updateId }, '[Webhook] Estado remoto incerto'); }
+      }
+    } finally {
+      webhookProcessing = false;
+      // Processa próximo item da fila no próximo tick, liberando o event loop
+      // para healthchecks e outras requisições entre processamentos
+      if (webhookQueue.length > 0) {
+        if (tentarNovamente) setTimeout(processWebhookQueue, 5000);
+        else setImmediate(processWebhookQueue);
+      }
+    }
+  }
+
+  fastify.decorate('recoverD1Inbox', async () => {
+    if (!d1Inbox) return;
+    await d1Inbox.init();
+    const interrompidos = await d1Inbox.markInterrupted();
+    if (interrompidos) fastify.log.warn({ interrompidos }, '[Webhook] Pedidos em execução exigem conferência após reinício');
+    let afterId = -1;
+    let totalPendentes = 0;
+    for (;;) {
+      const pendentes = await d1Inbox.recoverPending(50, afterId);
+      for (const update of pendentes) {
+        const fakeGasEvent = { parameter: { secret: runtime.ctx.ConfigService.get('WEBHOOK_SECRET') }, postData: { contents: JSON.stringify(update) } };
+        webhookQueue.push({ fakeGasEvent, updateId: update.update_id, t0: performance.now() });
+        afterId = update.update_id;
+        totalPendentes++;
+      }
+      if (pendentes.length < 50) break;
+    }
+    if (totalPendentes) {
+      setImmediate(processWebhookQueue);
+    }
+  });
+
   fastify.post('/webhook', async (request, reply) => {
     const t0 = performance.now();
     try {
       const secretEsperado = runtime.ctx.ConfigService.get('WEBHOOK_SECRET');
+      const chatPermitido = runtime.ctx.ConfigService.get('TELEGRAM_CHAT_ID');
       const secretHeader = request.headers['x-telegram-bot-api-secret-token'];
       const secretQuery = request.query ? request.query.secret : null;
 
-      // Validação de segredo do webhook
-      if (secretEsperado) {
-        const secretRecebido = secretHeader || secretQuery;
-        if (secretRecebido !== secretEsperado) {
-          fastify.log.warn('[Webhook] Acesso não autorizado ao webhook.');
-          reply.status(401);
-          return { ok: false, erro: 'Unauthorized' };
-        }
+      if (!secretEsperado || !chatPermitido) {
+        fastify.log.error('[Webhook] Configuração obrigatória ausente.');
+        reply.status(503);
+        return { ok: false, erro: 'Webhook indisponível' };
+      }
+      const secretRecebido = secretHeader || secretQuery;
+      if (secretRecebido !== secretEsperado) {
+        fastify.log.warn('[Webhook] Acesso não autorizado ao webhook.');
+        reply.status(401);
+        return { ok: false, erro: 'Unauthorized' };
       }
 
-      const updateData = request.body;
+      const updateData = request.body || {};
+      if (!Number.isSafeInteger(updateData.update_id) || updateData.update_id < 0) {
+        reply.status(400);
+        return { ok: false, erro: 'Update inválido' };
+      }
+      const updateId = updateData.update_id;
+      const mensagem = updateData.message || (updateData.callback_query && updateData.callback_query.message);
+      if (!mensagem || !mensagem.chat || String(mensagem.chat.id) !== String(chatPermitido)) {
+        // O Telegram repete respostas fora de 2xx; updates de outros chats
+        // são ignorados definitivamente para não bloquear a fila legítima.
+        return { ok: true, ignored: true };
+      }
+
+      // Proteção de contrapressão: evita saturação de memória se houver flood de updates
+      if (webhookQueue.length >= 50) {
+        fastify.log.warn(`[Webhook Telegram] Fila cheia (${webhookQueue.length} itens). Rejeitando update ${updateId}.`);
+        reply.status(429);
+        return { ok: false, erro: 'Fila cheia' };
+      }
+
       const fakeGasEvent = {
         parameter: {
           secret: secretEsperado
@@ -167,14 +274,27 @@ async function buildServer() {
         }
       };
 
-      // Executa o pipeline de entrega e raciocínio clínico
-      runtime.doPost(fakeGasEvent);
+      if (d1Inbox && !(await d1Inbox.accept(updateData))) {
+        return { ok: true, duplicate: true };
+      }
+      if (!d1Inbox) {
+        // Sem D1, o checkpoint local precisa ser persistido antes do ACK.
+        runtime.ctx.enfileirarUpdate(updateData);
+        runtime.persistirPropriedades(true);
+      }
+
+      // Enfileira para processamento em background e responde 200.
+      webhookQueue.push({ fakeGasEvent, updateId, t0 });
       const elapsed = (performance.now() - t0).toFixed(2);
-      fastify.log.info(`[Webhook Telegram] Update processado com sucesso em ${elapsed}ms.`);
+      fastify.log.info(`[Webhook Telegram] Update ${updateId} enfileirado em ${elapsed}ms. Fila: ${webhookQueue.length} item(ns).`);
+
+      // Dispara processamento da fila fora do ciclo de resposta HTTP
+      setImmediate(processWebhookQueue);
 
       return { ok: true, tempo_ms: Number(elapsed) };
     } catch (err) {
       fastify.log.error(`[Webhook Erro] ${err.message}`);
+      reply.status(500);
       return { ok: false, erro: err.message };
     }
   });
@@ -194,6 +314,7 @@ async function buildServer() {
 
 async function startServer() {
   const server = await buildServer();
+  await server.recoverD1Inbox();
   return new Promise((resolve, reject) => {
     server.listen({ port: PORT, host: HOST }, (err, address) => {
       if (err) {
@@ -206,6 +327,18 @@ async function startServer() {
       console.log(`📱 Cockpit RPC API: ${address}/api/cockpit`);
       console.log(`🤖 Telegram Webhook: ${address}/webhook`);
       console.log(`======================================================\n`);
+      // Recupera pedidos locais que ficaram pendentes em uma reinicialização.
+      // Estados "running" não são reexecutados automaticamente para evitar
+      // duplicar ações clínicas ou mensagens cujo efeito externo é incerto.
+      if (!d1Inbox) setImmediate(() => {
+        try {
+          if (runtime.ctx.ConfigService.get('WEBHOOK_SECRET') && runtime.ctx.ConfigService.get('TELEGRAM_CHAT_ID')) {
+            runtime.ctx.processarFilaTelegram();
+          }
+        } catch (recoveryErr) {
+          server.log.error({ err: recoveryErr }, '[Webhook] Falha ao recuperar pedidos pendentes');
+        }
+      });
       resolve(server);
     });
   });
