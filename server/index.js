@@ -15,6 +15,7 @@ const fastify = require('fastify')({
 const cors = require('@fastify/cors');
 const runtime = require('./runtime');
 const { createD1Inbox } = require('./d1-inbox');
+const { roundMs, updateKind, measureLegacyHttp, clinicalStages } = require('./telemetry');
 const d1Inbox = createD1Inbox();
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -162,28 +163,45 @@ async function buildServer() {
     webhookProcessing = true;
 
     const item = webhookQueue.shift();
-    const { fakeGasEvent, updateId, t0 } = item;
+    const { fakeGasEvent, updateId, t0, kind } = item;
     const esperaMs = performance.now() - t0;
     const inicioProcessamento = performance.now();
     let reservadoRemoto = false;
     let tentarNovamente = false;
+    let estado = 'unknown';
+    let job = null;
+    const http = {};
+    const tempos = { reservaD1Ms: 0, botMs: 0, workerMs: 0, conclusaoD1Ms: 0 };
     try {
       if (d1Inbox) {
-        reservadoRemoto = await d1Inbox.markRunning(updateId);
-        if (!reservadoRemoto) return;
+        const inicio = performance.now();
+        try { reservadoRemoto = await d1Inbox.markRunning(updateId); }
+        finally { tempos.reservaD1Ms = roundMs(performance.now() - inicio); }
+        if (!reservadoRemoto) { estado = 'nao_reservado'; return; }
       }
-      runtime.doPost(fakeGasEvent);
+      const inicioBot = performance.now();
+      try { measureLegacyHttp(runtime.ctx, http, () => runtime.doPost(fakeGasEvent)); }
+      finally { tempos.botMs = roundMs(performance.now() - inicioBot); }
       if (runtime.ctx.ConfigService.get('TELEGRAM_ASYNC_WORKER') === 'true') {
-        runtime.ctx.processarFilaTelegram();
+        const inicioWorker = performance.now();
+        try { measureLegacyHttp(runtime.ctx, http, () => runtime.ctx.processarFilaTelegram()); }
+        finally { tempos.workerMs = roundMs(performance.now() - inicioWorker); }
       }
+      if (d1Inbox) job = runtime.ctx.PersistenciaBot.ler('inbox_' + updateId);
+      else {
+        try { job = runtime.ctx.PersistenciaBot.ler('inbox_' + updateId); }
+        catch (_) { /* a telemetria nunca altera a entrega sem D1 */ }
+      }
+      estado = job && ['pending', 'running', 'done', 'failed', 'uncertain', 'awaiting_delivery'].includes(job.status)
+        ? job.status : 'unknown';
       if (d1Inbox) {
-        const job = runtime.ctx.PersistenciaBot.ler('inbox_' + updateId);
-        const estado = job && job.status === 'done' ? 'done' : job && job.status === 'failed' ? 'failed' : 'uncertain';
-        await d1Inbox.markState(updateId, estado);
+        const estadoD1 = estado === 'done' ? 'done' : estado === 'failed' ? 'failed' : 'uncertain';
+        const inicio = performance.now();
+        try { await d1Inbox.markState(updateId, estadoD1); }
+        finally { tempos.conclusaoD1Ms = roundMs(performance.now() - inicio); }
       }
-      const processamentoMs = performance.now() - inicioProcessamento;
-      fastify.log.info({ updateId, esperaMs: Math.round(esperaMs), processamentoMs: Math.round(processamentoMs) }, '[Webhook] Update processado');
     } catch (err) {
+      estado = 'error';
       fastify.log.error(`[Webhook Background Erro] Update ${updateId}: ${err.message}`);
       if (d1Inbox && !reservadoRemoto) {
         webhookQueue.unshift(item);
@@ -193,6 +211,7 @@ async function buildServer() {
         catch (statusErr) { fastify.log.error({ err: statusErr, updateId }, '[Webhook] Estado remoto incerto'); }
       }
     } finally {
+      fastify.log.info({ updateId, kind, estado, esperaMs: roundMs(esperaMs), processamentoMs: roundMs(performance.now() - inicioProcessamento), ...tempos, http, etapasClinicas: clinicalStages(job) }, '[Webhook] Medicao de entrega');
       webhookProcessing = false;
       // Processa próximo item da fila no próximo tick, liberando o event loop
       // para healthchecks e outras requisições entre processamentos
@@ -214,7 +233,7 @@ async function buildServer() {
       const pendentes = await d1Inbox.recoverPending(50, afterId);
       for (const update of pendentes) {
         const fakeGasEvent = { parameter: { secret: runtime.ctx.ConfigService.get('WEBHOOK_SECRET') }, postData: { contents: JSON.stringify(update) } };
-        webhookQueue.push({ fakeGasEvent, updateId: update.update_id, t0: performance.now() });
+        webhookQueue.push({ fakeGasEvent, updateId: update.update_id, t0: performance.now(), kind: updateKind(update) });
         afterId = update.update_id;
         totalPendentes++;
       }
@@ -274,17 +293,25 @@ async function buildServer() {
         }
       };
 
-      if (d1Inbox && !(await d1Inbox.accept(updateData))) {
-        return { ok: true, duplicate: true };
+      const inicioCheckpoint = performance.now();
+      let novo = true;
+      let checkpointOk = false;
+      try {
+        if (d1Inbox) novo = await d1Inbox.accept(updateData);
+        else {
+          // Sem D1, o checkpoint local precisa ser persistido antes do ACK.
+          runtime.ctx.enfileirarUpdate(updateData);
+          runtime.persistirPropriedades(true);
+        }
+        checkpointOk = true;
+      } finally {
+        const checkpointMs = roundMs(performance.now() - inicioCheckpoint);
+        fastify.log.info({ updateId, kind: updateKind(updateData), storage: d1Inbox ? 'd1' : 'local', checkpointMs, ackPreparadoMs: roundMs(performance.now() - t0), checkpointOk, duplicate: checkpointOk && !novo }, '[Webhook] Medicao de entrada');
       }
-      if (!d1Inbox) {
-        // Sem D1, o checkpoint local precisa ser persistido antes do ACK.
-        runtime.ctx.enfileirarUpdate(updateData);
-        runtime.persistirPropriedades(true);
-      }
+      if (!novo) return { ok: true, duplicate: true };
 
       // Enfileira para processamento em background e responde 200.
-      webhookQueue.push({ fakeGasEvent, updateId, t0 });
+      webhookQueue.push({ fakeGasEvent, updateId, t0, kind: updateKind(updateData) });
       const elapsed = (performance.now() - t0).toFixed(2);
       fastify.log.info(`[Webhook Telegram] Update ${updateId} enfileirado em ${elapsed}ms. Fila: ${webhookQueue.length} item(ns).`);
 
