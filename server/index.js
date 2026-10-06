@@ -26,13 +26,25 @@ async function buildServer() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Telegram-Bot-Api-Secret-Token']
   });
 
+  let pingTracker = {
+    total: 0,
+    lastPing: null,
+    lastUserAgent: null
+  };
+
   // 2. Healthcheck & Keep-Alive (Evita hibernação no Render Free)
   fastify.get('/health', async (request, reply) => {
+    pingTracker.total++;
+    pingTracker.lastPing = new Date().toISOString();
+    pingTracker.lastUserAgent = request.headers['user-agent'] || 'unknown';
+
     return {
       status: 'ok',
       service: 'Ultra Rotina — Backend Render',
       uptime_seconds: Math.floor(process.uptime()),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      pings_received: pingTracker.total,
+      last_ping_from: pingTracker.lastUserAgent
     };
   });
 
@@ -50,7 +62,10 @@ async function buildServer() {
         gemini_keys_configured: cfg.getArray('GEMINI_API_KEYS').length,
         provedor_padrao: cfg.get('PROVEDOR_TEXTO_PADRAO'),
         uptime: Math.floor(process.uptime()),
-        memoria_mb: Math.round(process.memoryUsage().rss / (1024 * 1024))
+        memoria_mb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
+        pings_received: pingTracker.total,
+        last_ping_time: pingTracker.lastPing,
+        last_ping_from: pingTracker.lastUserAgent
       };
     } catch (err) {
       reply.status(500);
