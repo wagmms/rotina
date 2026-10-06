@@ -51,8 +51,31 @@ if (fs.existsSync(PROPERTIES_FILE)) {
   }
 }
 
+const ENV_BLOCKLIST = new Set([
+  'SHELL', 'PATH', 'PWD', 'HOME', 'USER', 'LANG', 'TERM', 'SHLVL',
+  'LOGNAME', 'OLDPWD', 'HOSTNAME', 'DISPLAY', 'XDG_SESSION_TYPE',
+  'XDG_RUNTIME_DIR', 'XDG_DATA_DIRS', 'XDG_CONFIG_DIRS', 'DBUS_SESSION_BUS_ADDRESS',
+  'SSH_AUTH_SOCK', 'SSH_AGENT_PID', 'GPG_AGENT_INFO', 'LESSOPEN', 'LESSCLOSE',
+  'LS_COLORS', 'COLORTERM', 'TERM_PROGRAM', 'TERM_PROGRAM_VERSION',
+  '_', 'MAIL', 'EDITOR', 'VISUAL', 'PAGER'
+]);
+
 // Sobrescreve com variáveis de ambiente reais do sistema (Render / Docker)
 for (const [k, v] of Object.entries(process.env)) {
+  if (ENV_BLOCKLIST.has(k)) continue;
+  if (k.startsWith('npm_') || k.startsWith('LC_') || k.startsWith('XDG_') ||
+      k.startsWith('QT_') || k.startsWith('COSMIC_') || k.startsWith('ANTIGRAVITY_') ||
+      k.startsWith('AGY_') || k.startsWith('FZF_') || k.startsWith('STARSHIP_') ||
+      k.startsWith('NODE_') || k.startsWith('PYTEST_') || k.startsWith('GTK_') ||
+      k.startsWith('ZSH') || ['LSCOLORS', 'LESS', 'LANGUAGE', 'COLOR', 'NODE', 'PYTHONPATH',
+      'INIT_CWD', 'PAPERSIZE', 'FC_FONTATIONS', 'PANEL_NOTIFICATIONS_FD', 'MOZ_ENABLE_WAYLAND',
+      'GSM_SKIP_SSH_AGENT_WORKAROUND', 'GIT_PAGER', 'EGL_PLATFORM', 'GDK_BACKEND',
+      'DCONF_PROFILE', 'CHROME_DESKTOP', 'CHROME_DEVTOOLS_MCP_JS', 'CLUTTER_IM_MODULE',
+      'QTWEBENGINE_DICTIONARIES_PATH', 'XMODIFIERS', 'NO_AT_BRIDGE', 'GTK_MODULES',
+      'IM_CONFIG_PHASE', 'DISABLE_AUTO_UPDATE', '_JAVA_AWT_WM_NONREPARENTING',
+      'WAYLAND_DISPLAY', 'X_MINIMIZE_APPLET', 'X_PRIVILEGED_WAYLAND_SOCKET'].includes(k)) {
+    continue;
+  }
   if (v !== undefined && v !== '') {
     propsStore[k] = v;
   }
@@ -96,7 +119,7 @@ const httpWorkerCode = `
     const dataArr = new Uint8Array(sabData);
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs || 15000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs || 60000);
 
     try {
       const fetchOpts = {
@@ -271,27 +294,50 @@ const ctx = {
     })
   },
 
-  LockService: {
-    getScriptLock: () => ({
-      waitLock: () => true,
-      tryLock: () => true,
-      releaseLock: () => {}
-    }),
-    getUserLock: () => {
-      let isBusy = false;
+  LockService: (() => {
+    // Mutex simples para ambiente Node.js single-threaded com processamento
+    // serializado. Previne race conditions quando webhooks são processados
+    // via fila (processWebhookQueue) mas código GAS assume locks reais.
+    const locks = new Map();
+
+    function createLock(lockId) {
       return {
-        waitLock: () => true,
-        tryLock: () => {
-          if (isBusy) return false;
-          isBusy = true;
+        waitLock: (timeoutMs) => {
+          const deadline = Date.now() + (timeoutMs || 30000);
+          while (locks.get(lockId)) {
+            if (Date.now() >= deadline) return false;
+            // Espera curta não-bloqueante — no ambiente serializado do webhook,
+            // isso quase nunca executa mais de 1 iteração
+            try {
+              const sleepBuf = new Int32Array(new SharedArrayBuffer(4));
+              Atomics.wait(sleepBuf, 0, 0, 50);
+            } catch (e) {
+              const end = Date.now() + 50;
+              while (Date.now() < end) {}
+            }
+          }
+          locks.set(lockId, true);
+          return true;
+        },
+        tryLock: (timeoutMs) => {
+          if (locks.get(lockId)) return false;
+          locks.set(lockId, true);
           return true;
         },
         releaseLock: () => {
-          isBusy = false;
-        }
+          locks.delete(lockId);
+        },
+        hasLock: () => locks.has(lockId)
       };
     }
-  },
+
+    const scriptLock = createLock('__script__');
+
+    return {
+      getScriptLock: () => scriptLock,
+      getUserLock: () => createLock('__user__')
+    };
+  })(),
 
   UrlFetchApp: {
     fetch: (url, options = {}) => {
@@ -300,7 +346,7 @@ const ctx = {
       if (options.contentType) {
         headers['Content-Type'] = options.contentType;
       }
-      const timeoutMs = options.timeoutMs || options.timeout || 15000;
+      const timeoutMs = options.timeoutMs || options.timeout || 60000;
 
       // 1. Despacho Ultra-Rápido via Worker Thread Persistente (Keep-Alive & Zero Fork)
       if (httpWorker && ctrl && sabData) {
@@ -458,11 +504,12 @@ const ctx = {
     MimeType: { JSON: 'application/json', TEXT: 'text/plain' },
     createTextOutput: (t) => {
       let mime = 'text/plain';
-      return {
-        setMimeType: (m) => { mime = m; return this; },
+      const obj = {
+        setMimeType: (m) => { mime = m; return obj; },
         getContent: () => t,
         getMimeType: () => mime
       };
+      return obj;
     }
   },
 
