@@ -4,7 +4,7 @@ var rotinaPrivada_ = (function(Logger, PropertiesService, Utilities, CalendarApp
  * ULTRA ROTINA · MASTER CLOUD ASSISTANT & COPILOTO CLÍNICO MULTIMODAL (v2.0)
  * ==============================================================================
  * Executa 100% na nuvem do Google (24/7), gratuito, sem precisar de PC ligado.
- * Gerado automaticamente via build_master.py em: 2026-10-05 21:46:51
+ * Gerado automaticamente via build_master.py em: 2026-10-05 21:52:39
  * Checksum SHA256: 84430af5c09180bc
  * ==============================================================================
  */
