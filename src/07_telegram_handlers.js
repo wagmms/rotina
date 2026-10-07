@@ -488,7 +488,7 @@ function processarMensagemTexto(message) {
     }
 
     // Se o usuário invocou uma calculadora reconhecida deterministicamente mas resDet não retornou resultado, NUNCA cai na IA!
-    if (typeof ehCalculadoraReconhecida === "function" && ehCalculadoraReconhecida(dadosCalc)) {
+    if (typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(dadosCalc)) {
       var instrucoes = obterInstrucoesCalculadora(dadosCalc);
       return enviarMensagemParaChat(chatId, "⚠️ *Calculadora Clínica: Parâmetros Insuficientes ou Inválidos*\n\n" + instrucoes);
     }
@@ -2053,8 +2053,13 @@ var CATALOGO_CALCULADORAS = {
   },
   meld: {
     id: "meld",
-    nome: "MELD / MELD-Na / Child-Pugh",
-    aliases: ["meld", "meld-na", "meldna", "child", "child-pugh", "childpugh"]
+    nome: "MELD / MELD-Na",
+    aliases: ["meld", "meld-na", "meldna"]
+  },
+  child: {
+    id: "child",
+    nome: "Child-Pugh",
+    aliases: ["child", "child-pugh", "childpugh"]
   },
   glasgow: {
     id: "glasgow",
@@ -2133,6 +2138,16 @@ var CATALOGO_CALCULADORAS = {
   }
 };
 
+var LISTA_CALCULADORAS_DETERMINISTICAS = [
+  "curb65", "ckd", "cockcroft", "cha2ds2vasc", "hasbled", "wells",
+  "glasgow", "calcio", "gap_osmolar", "agua", "kdigo", "ldl", "meld"
+];
+
+function ehCalculadoraDeterministica(texto) {
+  var id = identificarCalculadora(texto);
+  return id ? LISTA_CALCULADORAS_DETERMINISTICAS.indexOf(id) !== -1 : false;
+}
+
 function ehApenasNomeCalculadora(texto) {
   var s = (texto || "").trim().toLowerCase();
   for (var k in CATALOGO_CALCULADORAS) {
@@ -2178,18 +2193,188 @@ function tentarCalcularDeterministico(texto) {
   if (!texto || typeof CalculadorasClinicas === "undefined") return null;
   var t = texto.toLowerCase();
   var identidade = identificarCalculadora(texto);
+
+  // 1. CKD-EPI 2021
   if (identidade === "ckd") {
     var crCkd = t.match(/\b(?:cr|creatinina)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
     var idadeCkd = t.match(/\bidade\s*[:=]?\s*(\d+)/i) || t.match(/\b(\d+)\s*anos?\b/i);
     var femCkd = /\b(?:mulher|feminino|fem|f)\b/i.test(t), mascCkd = /\b(?:homem|masculino|masc|m)\b/i.test(t);
-    if (!crCkd || !idadeCkd || femCkd === mascCkd) return "⚠️ CKD-EPI: informe creatinina, idade e um único sexo biológico. Peso não altera a fórmula escolhida.";
+    if (!crCkd || !idadeCkd || femCkd === mascCkd) {
+      return "⚠️ *Calculadora CKD-EPI 2021: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("ckd");
+    }
     var rCkd = CalculadorasClinicas.ckdEpi2021(Number(crCkd[1].replace(",", ".")), Number(idadeCkd[1]), femCkd);
     return rCkd.ok ? rCkd.textoFormatado : "⚠️ CKD-EPI: " + rCkd.erro;
   }
-  // Não deixar parâmetros de outra calculadora acionarem uma heurística de clearance.
-  if (identidade && ["meld", "cockcroft", "cha2ds2vasc", "hasbled"].indexOf(identidade) === -1) return null;
 
-  // 1. MELD / MELD-Na (Prioritário para evitar colisão com "cr" de clearance)
+  // 2. CURB-65
+  if (identidade === "curb65") {
+    var mIdadeCurb = t.match(/\bidade\s*[:=]?\s*(\d+)/i) || t.match(/\b(\d+)\s*anos?\b/i) || t.match(/\b(\d+)a\b/i);
+    var mConfMatch = t.match(/confus[ãa]o(?:\s*mental)?\s*[:=]?\s*(sim|n[aã]o|s|n|1|0|presente|ausente)/i);
+    var confCurb = null;
+    if (mConfMatch) {
+      confCurb = /sim|s|1|presente/i.test(mConfMatch[1]);
+    } else {
+      var ehConfuso = /\b(?:confus[ao]|desorientad[ao]|rebaixad[ao])\b/i.test(t) && !/\b(?:sem\s+confus[ãa]o|n[aã]o\s+confus[ao]|l[úu]cid[ao]|orientad[ao])\b/i.test(t);
+      var ehLucido = /\b(?:l[úu]cid[ao]|orientad[ao]|vigil|sem\s+confus[ãa]o|n[aã]o\s+confus[ao])\b/i.test(t);
+      if (ehConfuso) confCurb = true;
+      else if (ehLucido) confCurb = false;
+    }
+    var mUreia = t.match(/\b(?:ureia|ur[eé]ia)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || t.match(/\bbun\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mFr = t.match(/\b(?:fr|frequ[êe]ncia\s+respirat[oó]ria|respira[çc][ãa]o)\s*[:=]?\s*(\d+)/i) || t.match(/\b(\d+)\s*(?:irpm|mrpm|rpm)\b/i);
+    var mPa = t.match(/\b(?:pa|press[ãa]o(?:\s+arterial)?)\s*[:=]?\s*(\d{2,3})\s*[/xX]\s*(\d{2,3})/i) || t.match(/\b(\d{2,3})\s*[/xX]\s*(\d{2,3})\b/i);
+    var mPas = t.match(/\bpas\s*[:=]?\s*(\d{2,3})/i);
+    var mPad = t.match(/\bpad\s*[:=]?\s*(\d{2,3})/i);
+    var pasVal = null, padVal = null;
+    if (mPa) { pasVal = Number(mPa[1]); padVal = Number(mPa[2]); }
+    else if (mPas && mPad) { pasVal = Number(mPas[1]); padVal = Number(mPad[1]); }
+    if (pasVal && padVal && pasVal <= 30 && padVal <= 20) { pasVal *= 10; padVal *= 10; }
+
+    if (!mIdadeCurb || confCurb === null || !mUreia || !mFr || pasVal === null || padVal === null) {
+      return "⚠️ *Calculadora CURB-65: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("curb65");
+    }
+
+    var rCurb = CalculadorasClinicas.curb65(confCurb, Number(mUreia[1].replace(",", ".")), Number(mFr[1]), pasVal, padVal, Number(mIdadeCurb[1]));
+    return rCurb.ok ? rCurb.textoFormatado : "⚠️ CURB-65: " + rCurb.erro;
+  }
+
+  // 3. Cálcio Corrigido
+  if (identidade === "calcio") {
+    var mCa = t.match(/(?:c[aá]lcio(?:\s+total)?|ca)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mAlb = t.match(/(?:albumina|alb)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (!mCa || !mAlb) {
+      return "⚠️ *Calculadora Cálcio Corrigido: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("calcio");
+    }
+    var rCa = CalculadorasClinicas.calcioCorrigido(Number(mCa[1].replace(",", ".")), Number(mAlb[1].replace(",", ".")));
+    return rCa.ok ? rCa.textoFormatado : "⚠️ Cálcio Corrigido: " + rCa.erro;
+  }
+
+  // 4. Gap Osmolar
+  if (identidade === "gap_osmolar") {
+    var mOsm = t.match(/(?:osmolaridade(?:\s+medida)?|osm(?:\s+medida)?)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mNaOsm = t.match(/(?:s[oó]dio|na)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mGliOsm = t.match(/(?:glicose|glicemia|gli)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mUrOsm = t.match(/(?:ureia|ur[eé]ia)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (!mOsm || !mNaOsm || !mGliOsm || !mUrOsm) {
+      return "⚠️ *Calculadora Gap Osmolar: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("gap_osmolar");
+    }
+    var rGap = CalculadorasClinicas.gapOsmolar(
+      Number(mOsm[1].replace(",", ".")),
+      Number(mNaOsm[1].replace(",", ".")),
+      Number(mGliOsm[1].replace(",", ".")),
+      Number(mUrOsm[1].replace(",", "."))
+    );
+    return rGap.ok ? rGap.textoFormatado : "⚠️ Gap Osmolar: " + rGap.erro;
+  }
+
+  // 5. Déficit de Água Livre
+  if (identidade === "agua") {
+    var mNaAtual = t.match(/(?:s[oó]dio(?:\s+atual)?|na(?:\s+atual)?)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mNaAlvo = t.match(/(?:s[oó]dio\s+alvo|na\s+alvo|alvo)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mPesoAgua = t.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i) || t.match(/peso\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var perfilAgua = "Homem adulto";
+    if (/homem\s+idoso|idoso/i.test(t)) perfilAgua = "Homem idoso";
+    else if (/mulher\s+idosa|idosa/i.test(t)) perfilAgua = "Mulher idosa";
+    else if (/mulher|feminino/i.test(t)) perfilAgua = "Mulher adulta";
+    else if (/homem|masculino/i.test(t)) perfilAgua = "Homem adulto";
+    else if (/crian[çc]a/i.test(t)) perfilAgua = "Criança";
+
+    if (!mNaAtual || !mPesoAgua) {
+      return "⚠️ *Calculadora Déficit de Água Livre: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("agua");
+    }
+    var naAt = Number(mNaAtual[1].replace(",", "."));
+    var naAl = mNaAlvo ? Number(mNaAlvo[1].replace(",", ".")) : 140;
+    var pesoAg = Number(mPesoAgua[1].replace(",", "."));
+    var rAgua = CalculadorasClinicas.deficitAguaLivre(naAt, naAl, pesoAg, perfilAgua);
+    return rAgua.ok ? rAgua.textoFormatado : "⚠️ Déficit de Água Livre: " + rAgua.erro;
+  }
+
+  // 6. Glasgow-P
+  if (identidade === "glasgow") {
+    var mO = t.match(/(?:abertura\s*ocular|ocular|\bo\b)\s*[:=]?\s*(\d)/i);
+    var mV = t.match(/(?:resposta\s*verbal|verbal|\bv\b)\s*[:=]?\s*(\d)/i);
+    var mM = t.match(/(?:resposta\s*motora|motora|\bm\b)\s*[:=]?\s*(\d)/i);
+    var mP = t.match(/(?:pupilas?(?:\s+n[aã]o\s+reagentes?)?|pupilar?|\bp\b)\s*[:=]?\s*(\d)/i);
+    var pupVal = 0;
+    if (mP) {
+      pupVal = Number(mP[1]);
+    } else if (/nenhuma\s+reage|2\s+pupilas/i.test(t)) {
+      pupVal = 2;
+    } else if (/uma\s+reage|1\s+pupila/i.test(t)) {
+      pupVal = 1;
+    } else if (/ambas\s+reagem|reagentes|fotorreagentes/i.test(t)) {
+      pupVal = 0;
+    }
+
+    if (!mO || !mV || !mM) {
+      return "⚠️ *Calculadora Glasgow-P: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("glasgow");
+    }
+    var rGcs = CalculadorasClinicas.glasgowP(Number(mO[1]), Number(mV[1]), Number(mM[1]), pupVal);
+    return rGcs.ok ? rGcs.textoFormatado : "⚠️ Glasgow-P: " + rGcs.erro;
+  }
+
+  // 7. KDIGO IRA
+  if (identidade === "kdigo") {
+    var mCrAt = t.match(/(?:cr(?:eatinina)?\s*atual|cr\s*atual|cr|creatinina)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mCrBs = t.match(/(?:cr(?:eatinina)?\s*basal|basal)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mDu = t.match(/(?:d[eé]bito(?:\s+urin[aá]rio)?|du)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mTempo = t.match(/(?:tempo|horas?|h)\s*[:=]?\s*(\d+)/i);
+    if (!mCrAt) {
+      return "⚠️ *Calculadora KDIGO: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("kdigo");
+    }
+    var crAtVal = Number(mCrAt[1].replace(",", "."));
+    var crBsVal = mCrBs ? Number(mCrBs[1].replace(",", ".")) : null;
+    var duVal = mDu ? Number(mDu[1].replace(",", ".")) : null;
+    var tempoVal = mTempo ? Number(mTempo[1]) : null;
+    var rKdigo = CalculadorasClinicas.estadiamentoKDIGO(crAtVal, crBsVal, duVal, tempoVal);
+    return rKdigo.ok ? rKdigo.textoFormatado : "⚠️ KDIGO: " + rKdigo.erro;
+  }
+
+  // 8. Wells (TEP)
+  if (identidade === "wells") {
+    var temCriterioWells = /(?:tvp|edema|panturrilha|mais\s+prov[aá]vel|alternativo|fc\s*[:=]?\s*\d+|fc\s*>\s*100|taquicardia|cirurgia|imobiliza|hemoptise|c[aâ]ncer|neoplasia)/i.test(t);
+    if (!temCriterioWells) return null;
+
+    function extrairBoolWells(rePos, reNeg) {
+      if (reNeg && reNeg.test(t)) return false;
+      if (rePos && rePos.test(t)) {
+        var m = t.match(rePos);
+        if (m) {
+          var antes = t.substring(Math.max(0, m.index - 30), m.index);
+          if (/\b(?:sem|n[aã]o|nega|aus[êe]ncia)\b/i.test(antes)) return false;
+          return true;
+        }
+      }
+      return null;
+    }
+
+    var sinaisTvp = extrairBoolWells(/\b(?:sinais|sinais\s+cl[ií]nicos|tvp\s+cl[ií]nica|dor\s+panturrilha|edema\s+assim[eé]trico)\b/i, /\bsem\s+tvp|sem\s+sinais\b/i);
+    var diagMaisProv = extrairBoolWells(/\b(?:mais\s+prov[aá]vel|hip[oó]tese\s+principal|diagn[oó]stico\s+principal)\b/i, /\bdiagn[oó]stico\s+alternativo|outro\s+diagn[oó]stico|improv[aá]vel\b/i);
+    var mFcWells = t.match(/\bfc\s*[:=]?\s*(\d+)/i) || t.match(/(\d+)\s*bpm/i);
+    var fcMaior100 = mFcWells ? (Number(mFcWells[1]) > 100) : extrairBoolWells(/\bfc\s*>\s*100|taquicardia\b/i, /\bfc\s*<\s*100|normoc[aá]rdico\b/i);
+    var imobCirurg = extrairBoolWells(/\b(?:imobiliza|acamado|cirurgia(?:\s+recente)?|p[oó]s[- ]op)\b/i, /\bsem\s+cirurgia|sem\s+imobiliza|deambulando\b/i);
+    var tepPrevio = extrairBoolWells(/\b(?:tep\s+pr[eé]vio|tvp\s+pr[eé]vi[ao]|hist[oó]rico\s+de\s+tep|hist[oó]rico\s+de\s+tvp)\b/i, /\bsem\s+tep\s+pr[eé]vio|sem\s+tvp\s+pr[eé]via\b/i);
+    var hemoptise = extrairBoolWells(/\bhemoptise\b/i, /\bsem\s+hemoptise|nega\s+hemoptise\b/i);
+    var cancer = extrairBoolWells(/\b(?:c[aâ]ncer|neoplasia|maligna)\b/i, /\bsem\s+c[aâ]ncer|sem\s+neoplasia\b/i);
+
+    if (sinaisTvp !== null && diagMaisProv !== null && fcMaior100 !== null) {
+      var rW = CalculadorasClinicas.wellsTEP(
+        !!sinaisTvp,
+        !!diagMaisProv,
+        !!fcMaior100,
+        !!imobCirurg,
+        !!tepPrevio,
+        !!hemoptise,
+        !!cancer
+      );
+      if (rW && rW.ok) return rW.textoFormatado;
+    }
+    return "⚠️ *Calculadora Wells (TEP): Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("wells");
+  }
+
+  // Não deixar parâmetros de outra calculadora não determinística acionarem heurísticas soltas de clearance.
+  if (identidade && LISTA_CALCULADORAS_DETERMINISTICAS.indexOf(identidade) === -1) return null;
+
+  // 9. MELD / MELD-Na (Prioritário para evitar colisão com "cr" de clearance)
   if (/\bmeld\b/i.test(t) && CalculadorasClinicas.meld) {
     var mBili = t.match(/bili(?:rrubina)?\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
     var mInr = t.match(/inr\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
@@ -2211,9 +2396,8 @@ function tentarCalcularDeterministico(texto) {
       if (!mCrM) faltasMeld.push("Creatinina sérica (mg/dL)");
       if (!mInr) faltasMeld.push("INR");
       return "⚠️ *Calculadora MELD / MELD-Na Incompleta*\n\n" +
-             "Para calcular o escore com segurança clínica, informe os parâmetros obrigatórios:\n" +
-             "• " + faltasMeld.join("\n• ") + "\n\n" +
-             "💡 *Exemplo:* `/calc MELD bili 2.0, cr 1.5, inr 1.2, sódio 135` (e diálise na última semana se houver).";
+             "Informe os parâmetros obrigatórios:\n• " + faltasMeld.join("\n• ") + "\n\n" +
+             obterInstrucoesCalculadora("meld");
     }
 
     var bili = parseFloat(mBili[1].replace(",", "."));
@@ -2229,7 +2413,7 @@ function tentarCalcularDeterministico(texto) {
     }
   }
 
-  // 2. Clearance de Creatinina (Cockcroft-Gault)
+  // 10. Clearance de Creatinina (Cockcroft-Gault)
   if (identidade === "cockcroft" || (!identidade && /cr(?:eatinina)?\b/i.test(t) && /peso/i.test(t))) {
     var mCr = t.match(/(?:cr(?:eatinina)?|cre)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
     var mPeso = t.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i) || t.match(/peso\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
@@ -2238,19 +2422,12 @@ function tentarCalcularDeterministico(texto) {
     var temFem = /fem(?:inino)?|mulher|\bf\b/i.test(t);
     var temMasc = /masc(?:ulino)?|homem|\bm\b/i.test(t);
     if (!temFem && !temMasc) {
-      return "⚠️ *Clearance de Creatinina (Cockcroft-Gault)*\n\nPor favor, informe o sexo biológico do paciente (masculino ou feminino). O cálculo exige essa distinção para precisão clínica (fator de correção de 0,85 para mulheres).";
+      return "⚠️ *Clearance de Creatinina (Cockcroft-Gault)*\n\n" + obterInstrucoesCalculadora("cockcroft");
     }
     var ehMulher = temFem && !temMasc;
 
     if (!mCr || !mPeso || !mIdade) {
-      var faltasCg = [];
-      if (!mCr) faltasCg.push("Creatinina sérica (mg/dL)");
-      if (!mPeso) faltasCg.push("Peso corporal (kg)");
-      if (!mIdade) faltasCg.push("Idade (anos)");
-      return "⚠️ *Clearance de Creatinina Incompleto*\n\n" +
-             "Para estimar a taxa de filtração por Cockcroft-Gault, informe:\n" +
-             "• " + faltasCg.join("\n• ") + "\n\n" +
-             "💡 *Exemplo:* `/calc clearance Cr 1.2, peso 70 kg, 65 anos, masculino`";
+      return "⚠️ *Clearance de Creatinina Incompleto*\n\n" + obterInstrucoesCalculadora("cockcroft");
     }
 
     if (CalculadorasClinicas.cockcroftGault) {
@@ -2280,7 +2457,7 @@ function tentarCalcularDeterministico(texto) {
     }
   }
 
-  // 3. HAS-BLED Determinístico
+  // 11. HAS-BLED Determinístico
   if (/\bhas-?bled\b/i.test(t) && CalculadorasClinicas.hasbled) {
     var semFatoresBled = /\b(?:sem\s+comorbidades?|sem\s+fatores?|sem\s+antecedentes?|h[íi]gid[ao]|previamente\s+h[íi]gid[ao])\b/i.test(t);
 
@@ -2333,48 +2510,27 @@ function tentarCalcularDeterministico(texto) {
     return "⚠️ *Calculadora HAS-BLED: Parâmetros Insuficientes ou Inválidos*\n\n" + instrucoesHasbled;
   }
 
-  // 4. CHA2DS2-VASc Determinístico
+  // 12. CHA2DS2-VASc Determinístico
   if (/cha2?ds2|vasc/i.test(t) && CalculadorasClinicas.cha2ds2vasc) {
     var temFemC = /\b(?:mulher|fem(?:inino)?|f)\b/i.test(t);
     var temMascC = /\b(?:homem|masc(?:ulino)?|m)\b/i.test(t);
     var mIdadeC = t.match(/(\d+)\s*a(?:nos)?\b/) || t.match(/idade\s*[:=]?\s*(\d+)/i);
     var idadeC = mIdadeC ? parseInt(mIdadeC[1], 10) : null;
 
-    // Se não há dados mínimos (idade ou sexo ausentes), exige parâmetros obrigatórios
     if (idadeC === null || (!temFemC && !temMascC)) {
-      return "⚠️ *Calculadora CHA₂DS₂-VASc (Risco Tromboembólico na FA)*\n\n" +
-             "Para calcular o escore com segurança clínica, informe no mínimo:\n" +
-             "• *Idade* do paciente (anos)\n" +
-             "• *Sexo biológico* (homem ou mulher)\n" +
-             "• *Fatores de risco* presentes ou ausentes (IC, HAS, DM, AVC/AIT prévio, Doença Vascular).\n\n" +
-             "💡 *Exemplo:* `/calc CHA2DS2-VASc mulher, 68 anos, hipertensa, diabética, sem IC, sem AVC`";
+      return "⚠️ *Calculadora CHA₂DS₂-VASc (Risco Tromboembólico na FA)*\n\n" + obterInstrucoesCalculadora("cha2ds2vasc");
     }
 
-    // Detecção de histórico/antecedentes/comorbidades desconhecidos (V01)
     var temFatoresDesconhecidos = /(?:antecedentes?|fatores?|comorbidades?|hist[oó]rico|doen[çc]as?)\s+(?:desconhecid[ao]s?|n[aã]o\s+informad[ao]s?|incert[ao]s?|d[uú]vidos[ao]s?|ignorad[ao]s?)|n[aã]o\s+sabe\s+(?:antecedentes|comorbidades|hist[oó]rico|fatores)|hist[oó]rico\s+desconhecido|sem\s+informa[çc][ãa]o\s+de\s+(?:antecedentes|comorbidades|fatores)|\bdesconhecid[ao]s?\b/i.test(t);
     if (temFatoresDesconhecidos) {
       return "⚠️ *Calculadora CHA₂DS₂-VASc: Antecedentes Desconhecidos*\n\n" +
-             "Não é seguro calcular o escore com comorbidades desconhecidas. Subestimar o risco tromboembólico pode privar o paciente de anticoagulação indicada para prevenção de AVC.\n\n" +
-             "Para calcular o escore com segurança clínica, informe a presença ou ausência dos fatores de risco:\n" +
-             "• *IC:* Insuficiência Cardíaca Congestiva / Disfunção de VE\n" +
-             "• *HAS:* Hipertensão Arterial Sistêmica\n" +
-             "• *DM:* Diabetes Mellitus\n" +
-             "• *AVC/AIT:* Tromboembolismo ou AVC prévio\n" +
-             "• *Doença Vascular:* IAM prévio, DAOP ou placa aórtica\n\n" +
-             "💡 *Exemplo:* `/calc CHA2DS2-VASc homem, 60 anos, sem HAS, sem DM, sem AVC, sem IC, sem doença vascular` (ou informe se for previamente hígido/sem comorbidades).";
+             "Não é seguro calcular o escore com comorbidades desconhecidas para prevenção de AVC.\n\n" +
+             obterInstrucoesCalculadora("cha2ds2vasc");
     }
 
-    // Se nenhum fator foi mencionado (positivo ou negativamente), exige confirmação dos fatores
     var temMencaoFatores = /(?:ic|insufici[êe]ncia|has|hipertens|dm|diab[eé]t|avc|ait|stroke|trombo|vascular|iam|infarto|daop|coronario|comorbidade|fator|antecedente|h[íi]gid[ao]|doen[çc]a)/i.test(t);
     if (!temMencaoFatores) {
-      return "⚠️ *Calculadora CHA₂DS₂-VASc (Risco Tromboembólico na FA)*\n\n" +
-             "Para calcular o escore com segurança clínica, informe a presença ou ausência dos fatores de risco:\n" +
-             "• *IC:* Insuficiência Cardíaca Congestiva / Disfunção de VE\n" +
-             "• *HAS:* Hipertensão Arterial Sistêmica\n" +
-             "• *DM:* Diabetes Mellitus\n" +
-             "• *AVC/AIT:* Tromboembolismo ou AVC prévio\n" +
-             "• *Doença Vascular:* IAM prévio, DAOP ou placa aórtica\n\n" +
-             "💡 *Exemplo:* `/calc CHA2DS2-VASc homem, 60 anos, sem HAS, sem DM, sem AVC, sem IC, sem doença vascular` (ou informe se for previamente hígido/sem comorbidades).";
+      return "⚠️ *Calculadora CHA₂DS₂-VASc (Risco Tromboembólico na FA)*\n\n" + obterInstrucoesCalculadora("cha2ds2vasc");
     }
 
     var ehMulherC = temFemC && !temMascC;
@@ -2415,7 +2571,6 @@ function tentarCalcularDeterministico(texto) {
       vasc: semComorbidadesGeral ? "ausente" : "desconhecido"
     };
 
-    // Extração com resolução léxica estrita de polaridade para cada fator
     for (var fKey in defFatores) {
       var fDef = defFatores[fKey];
       if (fDef.reAutoNeg && fDef.reAutoNeg.test(t)) {
@@ -2428,8 +2583,6 @@ function tentarCalcularDeterministico(texto) {
       while ((match = regexBusca.exec(t)) !== null) {
         var pos = match.index;
         var trechoAntes = t.substring(0, pos).split(/[.;\n]/).pop();
-        // O último operador explícito determina o escopo; vírgulas preservam listas coordenadas.
-        // "não tem" é uma única negação, enquanto "sem IC, tem HAS" muda para afirmativo.
         var operadores = /\b(?:n[aã]o\s+(?:tem|apresenta|possui)|sem|n[aã]o|nega|aus[êe]ncia\s+de|livre\s+de|tem|apresenta|possui|com|portador[ae]?\s+de|mas|por[eé]m|contudo|todavia|entretanto|exceto|salvo)\b/gi;
         var op, negado = false;
         while ((op = operadores.exec(trechoAntes)) !== null) {
@@ -2445,12 +2598,8 @@ function tentarCalcularDeterministico(texto) {
     var avcC = (estados.avc === "presente");
     var vascC = (estados.vasc === "presente");
 
-    // Executa a função pura determinística (para compatibilidade e mocks)
     var rCha = CalculadorasClinicas.cha2ds2vasc(icC, hasC, i75C, dmC, avcC, vascC, i65C, ehMulherC);
 
-    // Validação estrita de completude clínica (X01/X02/W01):
-    // Se QUALQUER um dos cinco fatores clínicos permanecer desconhecido (e não houver atestado geral de higidez):
-    // O escore recusa o fechamento e NUNCA emite pontuação definitiva (0/9, 1/9) nem recomendação de conduta.
     var faltantes = [];
     for (var kF in defFatores) {
       if (estados[kF] === "desconhecido") {
@@ -2460,9 +2609,9 @@ function tentarCalcularDeterministico(texto) {
 
     if (faltantes.length > 0) {
       return "⚠️ *Calculadora CHA₂DS₂-VASc: Fatores Incompletos*\n\n" +
-             "Para calcular o escore com segurança clínica sem presumir ausência de dados, informe a presença ou ausência dos fatores de risco clínicos não declarados:\n" +
+             "Informe a presença ou ausência dos fatores não declarados:\n" +
              "• " + faltantes.join("\n• ") + "\n\n" +
-             "💡 *Exemplo:* `/calc CHA2DS2-VASc homem, 60 anos, HAS, sem DM, sem AVC, sem IC, sem doença vascular` (ou declare se o paciente for previamente hígido / sem comorbidades).";
+             obterInstrucoesCalculadora("cha2ds2vasc");
     }
 
     if (rCha && rCha.ok) {
@@ -2486,164 +2635,482 @@ function tentarCalcularDeterministico(texto) {
 }
 
 function obterInstrucoesCalculadora(tipo) {
-  var t = (tipo || "").toUpperCase();
+  var t = (tipo || "").toUpperCase().replace(/[\-_]/g, " ");
 
   if (t.indexOf("CURB") !== -1) {
     return "📐 *CALCULADORA: CURB-65 (Gravidade na PAC)*\n\n" +
-      "Envie os seguintes dados do paciente:\n" +
-      "• *C (Confusão mental):* Desorientação aguda? (Sim/Não)\n" +
-      "• *U (Ureia):* Ureia sérica (mg/dL) ou BUN (mg/dL)\n" +
-      "• *R (Respiração):* Frequência Respiratória (irpm)\n" +
-      "• *B (Blood Pressure):* Pressão Arterial (PAS < 90 ou PAD ≤ 60 mmHg)\n" +
-      "• *65:* Idade do paciente (anos)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`71 anos, lúcido, PA 100/60, FR 32, Ureia 68`";
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Confusão mental aguda (sim/não)\n" +
+      "• Ureia sérica (mg/dL) ou BUN\n" +
+      "• Frequência respiratória (irpm)\n" +
+      "• Pressão arterial (PAS e PAD em mmHg)\n" +
+      "• Idade (anos)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc curb65\n" +
+      "Idade: [ ] anos\n" +
+      "Confusão mental: [sim/não]\n" +
+      "Ureia: [ ] mg/dL\n" +
+      "FR: [ ] irpm\n" +
+      "PA: [ ]x[ ] mmHg\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
-  if (t.indexOf("CKD") !== -1 || t.indexOf("COCKCROFT") !== -1) {
-    return "📐 *CALCULADORA: FUNÇÃO RENAL (CKD-EPI / Cockcroft-Gault)*\n\n" +
-      "Envie os seguintes dados para estimar a TFG / Clearance:\n" +
-      "• *Idade:* (em anos)\n" +
-      "• *Sexo biológico:* (Masculino / Feminino)\n" +
-      "• *Creatinina sérica:* (em mg/dL)\n" +
-      "• *Peso atual:* (em kg - fundamental para Cockcroft)\n" +
-      "• *Altura:* (em cm - opcional)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Homem, 68 anos, 74 kg, Creatinina 1.9 mg/dL`";
+  if (t.indexOf("COCKCROFT") !== -1 || t.indexOf("CLEARANCE") !== -1 || t.indexOf("CLCR") !== -1) {
+    return "📐 *CALCULADORA: Cockcroft-Gault (Clearance de Creatinina)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade (anos)\n" +
+      "• Sexo biológico (Masculino / Feminino)\n" +
+      "• Creatinina sérica (mg/dL)\n" +
+      "• Peso corporal (kg)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc cockcroft\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "Peso: [ ] kg\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
-  if (t.indexOf("WELLS") !== -1) {
-    return "📐 *CALCULADORA: ESCORE DE WELLS (TEP ou TVP)*\n\n" +
-      "Especifique se a suspeita é de *TEP* ou *TVP* e informe:\n" +
-      "• Sinais/sintomas clínicos de TVP (edema assimétrico, dor à palpação)?\n" +
-      "• Frequência Cardíaca (bpm) — FC > 100?\n" +
-      "• Imobilização ≥ 3 dias ou cirurgia nas últimas 4 semanas?\n" +
-      "• Episódio prévio documentado de TVP ou TEP?\n" +
-      "• Presença de hemoptise?\n" +
-      "• Câncer ativo (tratamento nos últimos 6 meses ou paliativo)?\n" +
-      "• Diagnóstico de TEP é o mais provável ou tão provável quanto outro?\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Suspeita TEP, FC 108, cirurgia de fêmur há 15 dias, sem hemoptise, TEP é hipótese principal`";
+  if (t.indexOf("CKD") !== -1 && t.indexOf("COCKCROFT") === -1 && t.indexOf("CLEARANCE") === -1) {
+    return "📐 *CALCULADORA: CKD-EPI 2021 (Taxa de Filtração Glomerular)*\n\n" +
+      "Dados estritamente necessários para o cálculo (sem raça e sem peso):\n" +
+      "• Idade (anos)\n" +
+      "• Sexo biológico (Masculino / Feminino)\n" +
+      "• Creatinina sérica (mg/dL)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc ckd\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
-  if (t.indexOf("SOFA") !== -1) {
-    return "📐 *CALCULADORA: qSOFA & SOFA (Sepse)*\n\n" +
-      "Para *qSOFA* (beira do leito), envie:\n" +
-      "• *Glasgow:* (< 15 ou rebaixamento agudo?)\n" +
-      "• *Pressão Sistólica:* (PAS ≤ 100 mmHg?)\n" +
-      "• *Frequência Respiratória:* (FR ≥ 22 irpm?)\n\n" +
-      "Para *SOFA Completo* (UTI), informe também:\n" +
-      "• PaO2/FiO2, Plaquetas, Bilirrubinas, PAM/Noradrenalina, Creatinina/Diurese.\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Confuso (Glasgow 13), PA 85/50, FR 24 irpm, febre e tosse produtiva`";
+  // Caso seja seleção mista do menu legado (CKD-EPI / Cockcroft)
+  if (t.indexOf("CKD") !== -1 || t.indexOf("RENAL") !== -1 || t.indexOf("TFG") !== -1) {
+    return "📐 *CALCULADORA: FUNÇÃO RENAL (CKD-EPI & Cockcroft-Gault)*\n\n" +
+      "Escolha a equação desejada e copie a caixa correspondente:\n\n" +
+      "🔹 *1. CKD-EPI 2021 (TFG - Estadiamento de DRC)*\n" +
+      "```\n" +
+      "/calc ckd\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "```\n\n" +
+      "🔹 *2. Cockcroft-Gault (ClCr - Ajuste Posológico)*\n" +
+      "```\n" +
+      "/calc cockcroft\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "Peso: [ ] kg\n" +
+      "```\n" +
+      "*(Toque na caixa desejada para copiar, preencha os valores e envie)*";
+  }
+
+  if (t.indexOf("WELLS") !== -1 || t.indexOf("TEP") !== -1 || t.indexOf("TVP") !== -1) {
+    var ehTvp = t.indexOf("TVP") !== -1 && t.indexOf("TEP") === -1;
+    if (ehTvp) {
+      return "📐 *CALCULADORA: ESCORE DE WELLS PARA TVP*\n\n" +
+        "Dados estritamente necessários para o cálculo:\n" +
+        "• Fatores clínicos e de exame físico do membro inferior.\n\n" +
+        "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+        "```\n" +
+        "/calc wellstvp\n" +
+        "Câncer ativo: [sim/não]\n" +
+        "Paralisia ou gesso recente: [sim/não]\n" +
+        "Acamado ≥ 3 dias ou cirurgia recente: [sim/não]\n" +
+        "Dor trajeto venoso profundo: [sim/não]\n" +
+        "Edema de toda a perna: [sim/não]\n" +
+        "Panturrilha assimétrica (> 3 cm): [sim/não]\n" +
+        "Edema com cacifo unilateral: [sim/não]\n" +
+        "Veias colaterais visíveis: [sim/não]\n" +
+        "TVP prévia documentada: [sim/não]\n" +
+        "Diagnóstico alternativo tão provável: [sim/não]\n" +
+        "```\n" +
+        "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+    }
+    return "📐 *CALCULADORA: ESCORE DE WELLS PARA TEP*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Avaliação clínica direta de risco tromboembólico pulmonar.\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc wellstep\n" +
+      "Sinais clínicos de TVP: [sim/não]\n" +
+      "TEP hipótese mais provável: [sim/não]\n" +
+      "FC > 100 bpm: [sim/não]\n" +
+      "Imobilização ≥ 3d ou cirurgia recente: [sim/não]\n" +
+      "Histórico prévio de TVP ou TEP: [sim/não]\n" +
+      "Hemoptise: [sim/não]\n" +
+      "Câncer ativo: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("CHA2") !== -1 || t.indexOf("VAS") !== -1) {
-    return "📐 *CALCULADORA: CHA2DS2-VASc (Risco Tromboembólico na FA)*\n\n" +
-      "Envie o perfil clínico do paciente:\n" +
-      "• *Idade:* (em anos)\n" +
-      "• *Sexo:* (Masculino / Feminino)\n" +
-      "• *IC:* Insuficiência Cardíaca congestiva? (Sim/Não)\n" +
-      "• *HAS:* Hipertensão arterial sistêmica? (Sim/Não)\n" +
-      "• *DM:* Diabetes Mellitus? (Sim/Não)\n" +
-      "• *AVC/AIT:* AVC, AIT ou embolia prévia? (Sim/Não)\n" +
-      "• *Doença Vascular:* IAM prévio, DAOP ou placa aórtica? (Sim/Não)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Mulher, 74 anos, hipertensa, diabética, sem histórico de AVC ou IC`";
+    return "📐 *CALCULADORA: CHA₂DS₂-VASc (Risco Tromboembólico na FA)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade (anos)\n" +
+      "• Sexo biológico (Masculino / Feminino)\n" +
+      "• Fatores de risco tromboembólico (IC, HAS, DM, AVC, Vascular)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc cha2ds2vasc\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Insuficiência Cardíaca (IC): [sim/não]\n" +
+      "Hipertensão (HAS): [sim/não]\n" +
+      "Diabetes (DM): [sim/não]\n" +
+      "AVC ou AIT prévio: [sim/não]\n" +
+      "Doença Vascular (IAM/DAOP): [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("BLED") !== -1) {
     return "📐 *CALCULADORA: HAS-BLED (Risco de Sangramento na Anticoagulação)*\n\n" +
-      "Envie os fatores de risco presentes:\n" +
-      "• *H (Hipertensão):* PAS não controlada > 160 mmHg?\n" +
-      "• *A (Renal/Hepático):* Diálise, Cr > 2.26 ou Cirrose/Bilirrubina > 2x?\n" +
-      "• *S (AVC):* Histórico de AVC prévio?\n" +
-      "• *B (Bleeding):* Histórico de sangramento maior ou anemia grave?\n" +
-      "• *L (Lábil):* RNI lábil se usa Varfarina?\n" +
-      "• *E (Elderly):* Idade > 65 anos?\n" +
-      "• *D (Drogas/Álcool):* Usa AAS/AINEs ou ingere álcool ≥ 8 doses/semana?\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`70 anos, HAS controlada, sem sangramento prévio, Cr 1.1, usa AAS e faz uso social de álcool`";
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade (anos)\n" +
+      "• Presença ou ausência dos fatores de sangramento\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc hasbled\n" +
+      "Idade: [ ] anos\n" +
+      "Hipertensão não controlada (PAS > 160): [sim/não]\n" +
+      "Doença Renal grave (diálise ou Cr > 2.26): [sim/não]\n" +
+      "Doença Hepática crônica (cirrose ou Bilirrubina > 2x): [sim/não]\n" +
+      "Histórico de AVC: [sim/não]\n" +
+      "Histórico de sangramento maior: [sim/não]\n" +
+      "INR lábil (se usa varfarina): [sim/não]\n" +
+      "Uso de AAS, clopidogrel ou AINE: [sim/não]\n" +
+      "Consumo excessivo de álcool: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("MELD") !== -1) {
+    return "📐 *CALCULADORA: MELD & MELD-Na (Gravidade na Hepatopatia)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Bilirrubina total (mg/dL)\n" +
+      "• Creatinina sérica (mg/dL)\n" +
+      "• INR\n" +
+      "• Sódio sérico (mEq/L - para MELD-Na)\n" +
+      "• Diálise na última semana (sim/não)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc meld\n" +
+      "Bilirrubina total: [ ] mg/dL\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "INR: [ ]\n" +
+      "Sódio: [ ] mEq/L\n" +
+      "Diálise na última semana: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("CHILD") !== -1) {
+    return "📐 *CALCULADORA: Escore de Child-Pugh (Cirrose Hepática)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Bilirrubina total (mg/dL)\n" +
+      "• Albumina sérica (g/dL)\n" +
+      "• INR\n" +
+      "• Ascite (ausente / leve / moderada)\n" +
+      "• Encefalopatia (ausente / grau 1-2 / grau 3-4)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc child\n" +
+      "Bilirrubina total: [ ] mg/dL\n" +
+      "Albumina: [ ] g/dL\n" +
+      "INR: [ ]\n" +
+      "Ascite: [ausente / leve / moderada]\n" +
+      "Encefalopatia: [ausente / grau 1-2 / grau 3-4]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("GLASGOW") !== -1 || t.indexOf("GCS") !== -1) {
+    return "📐 *CALCULADORA: Escala de Coma de Glasgow com Pupilas (Glasgow-P)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Abertura ocular (1 a 4)\n" +
+      "• Resposta verbal (1 a 5)\n" +
+      "• Resposta motora (1 a 6)\n" +
+      "• Reatividade pupilar (0, 1 ou 2 pupilas não reagentes)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc glasgow\n" +
+      "Abertura ocular (1-4): [ ]\n" +
+      "Resposta verbal (1-5): [ ]\n" +
+      "Resposta motora (1-6): [ ]\n" +
+      "Pupilas não reagentes (0, 1 ou 2): [ ]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("CALCIO") !== -1) {
+    return "📐 *CALCULADORA: Cálcio Corrigido pela Albumina*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Cálcio total sérico (mg/dL)\n" +
+      "• Albumina sérica (g/dL)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc calcio\n" +
+      "Cálcio total: [ ] mg/dL\n" +
+      "Albumina: [ ] g/dL\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("GAP") !== -1 || t.indexOf("OSMOLAR") !== -1 || t.indexOf("OSMOLAL") !== -1) {
+    return "📐 *CALCULADORA: Gap Osmolar Plasmático*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Osmolaridade sérica medida (mOsm/kg)\n" +
+      "• Sódio sérico (mEq/L)\n" +
+      "• Glicose sérica (mg/dL)\n" +
+      "• Ureia sérica (mg/dL)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc gap osmolar\n" +
+      "Osmolaridade medida: [ ] mOsm/kg\n" +
+      "Sódio: [ ] mEq/L\n" +
+      "Glicose: [ ] mg/dL\n" +
+      "Ureia: [ ] mg/dL\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("AGUA") !== -1 || t.indexOf("DEFICIT") !== -1 || t.indexOf("HIPERNATREMIA") !== -1) {
+    return "📐 *CALCULADORA: Déficit de Água Livre (Hipernatremia)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Sódio sérico atual (mEq/L)\n" +
+      "• Sódio alvo (mEq/L - padrão 140)\n" +
+      "• Peso corporal (kg)\n" +
+      "• Perfil do paciente (homem jovem / homem idoso / mulher jovem / mulher idosa)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc deficit agua\n" +
+      "Sódio atual: [ ] mEq/L\n" +
+      "Sódio alvo: [ 140 ] mEq/L\n" +
+      "Peso: [ ] kg\n" +
+      "Perfil: [homem jovem / homem idoso / mulher jovem / mulher idosa]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("KDIGO") !== -1 || t.indexOf("IRA") !== -1) {
+    return "📐 *CALCULADORA: KDIGO (Estadiamento de Injúria Renal Aguda)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Creatinina sérica atual (mg/dL)\n" +
+      "• Creatinina sérica basal (mg/dL)\n" +
+      "• Débito urinário em mL/kg/h (opcional)\n" +
+      "• Duração da oligúria em horas (opcional)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc kdigo\n" +
+      "Creatinina atual: [ ] mg/dL\n" +
+      "Creatinina basal: [ ] mg/dL\n" +
+      "Débito urinário (opcional): [ ] mL/kg/h\n" +
+      "Tempo em horas (opcional): [ ] h\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("LDL") !== -1 || t.indexOf("MARTIN") !== -1 || t.indexOf("HOPKINS") !== -1) {
+    return "📐 *CALCULADORA: LDL Martin-Hopkins / Friedewald*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Colesterol Total (mg/dL)\n" +
+      "• HDL-colesterol (mg/dL)\n" +
+      "• Triglicerídeos (mg/dL)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc ldl\n" +
+      "Colesterol total: [ ] mg/dL\n" +
+      "HDL: [ ] mg/dL\n" +
+      "Triglicerídeos: [ ] mg/dL\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("SOFA") !== -1) {
+    return "📐 *CALCULADORA: qSOFA (Rastreio de Sepse à Beira do Leito)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Glasgow < 15 (sim/não)\n" +
+      "• Pressão Arterial Sistólica ≤ 100 mmHg (sim/não)\n" +
+      "• Frequência Respiratória ≥ 22 irpm (sim/não)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc qsofa\n" +
+      "Glasgow < 15: [sim/não]\n" +
+      "PAS ≤ 100 mmHg: [sim/não]\n" +
+      "FR ≥ 22 irpm: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("HEART") !== -1 || t.indexOf("TIMI") !== -1) {
-    return "📐 *CALCULADORA: HEART SCORE & TIMI (Dor Torácica / SCA)*\n\n" +
-      "Envie os dados de estratificação no pronto-socorro:\n" +
-      "• *História clínica:* (Altamente suspeita / Moderadamente suspeita / Pouco suspeita)\n" +
-      "• *ECG:* (Normal / Repolarização inespecífica / Isquemia aguda/onda T)\n" +
-      "• *Idade:* (em anos)\n" +
-      "• *Fatores de risco:* (HAS, Diabetes, Tabagismo, DLP, Obesidade, Histórico familiar precoce)\n" +
-      "• *Troponina:* (Valor sérico e referência ou Positiva/Negativa)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Dor opressiva retroesternal típica há 2h com irradiação MSE, 58 anos, hipertenso e fumante, ECG com T invertida V4-V6, Troponina positiva`";
+    return "📐 *CALCULADORA: HEART SCORE (Dor Torácica / SCA)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• História (pouco suspeita / moderada / altamente suspeita)\n" +
+      "• ECG (normal / inespecífico / desvio de ST significativo)\n" +
+      "• Idade (anos)\n" +
+      "• Fatores de risco (HAS, DM, fumo, DLP, IMC>30, HF precoce) - informar quantidade\n" +
+      "• Troponina (normal / 1-3x limite / >3x limite)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc heart\n" +
+      "História: [pouco suspeita / moderada / altamente suspeita]\n" +
+      "ECG: [normal / inespecífico / desvio de ST significativo]\n" +
+      "Idade: [ ] anos\n" +
+      "Fatores de risco: [ ] fatores\n" +
+      "Troponina: [normal / 1 a 3x limite / > 3x limite]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("GRACE") !== -1) {
-    return "📐 *CALCULADORA: GRACE SCORE (SCA com ou sem Supra de ST)*\n\n" +
-      "Envie os parâmetros clínicos da admissão:\n" +
+    return "📐 *CALCULADORA: GRACE SCORE (Síndrome Coronariana Aguda)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
       "• Idade (anos), FC (bpm), PAS (mmHg), Creatinina (mg/dL)\n" +
-      "• Classe Killip (I a IV)\n" +
-      "• PCR na admissão? Desvio de ST no ECG? Troponina elevada?\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`65 anos, FC 88, PA 115/70, Cr 1.2, Killip I, sem PCR, infra de ST 1.5mm, Troponina positiva`";
-  }
-
-  if (t.indexOf("MELD") !== -1 || t.indexOf("CHILD") !== -1) {
-    return "📐 *CALCULADORA: CHILD-PUGH & MELD (Hepatopatia Crônica)*\n\n" +
-      "Envie os parâmetros laboratoriais e clínicos:\n" +
-      "• Bilirrubina total (mg/dL), Albumina (g/dL), RNI\n" +
-      "• Ascite (Ausente/Leve/Refratária), Encefalopatia (Ausente/Grau 1-2/Grau 3-4)\n" +
-      "• Creatinina (mg/dL) e Sódio sérico (mEq/L)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Bilirrubina 2.7, Albumina 3.0, RNI 1.8, Creatinina 1.3, Sódio 134, ascite leve, sem encefalopatia`";
-  }
-
-  if (t.indexOf("GLASGOW") !== -1) {
-    return "📐 *CALCULADORA: ESCALA DE COMA DE GLASGOW COM PUPILAS (Glasgow-P)*\n\n" +
-      "Envie as respostas avaliadas:\n" +
-      "• *Abertura Ocular (1–4):* Espontânea (4), Ao chamado (3), À pressão (2), Nenhuma (1)\n" +
-      "• *Resposta Verbal (1–5):* Orientada (5), Confusa (4), Inapropriada (3), Sons ininteligíveis (2), Nenhuma (1)\n" +
-      "• *Resposta Motora (1–6):* Obedece comandos (6), Localiza dor (5), Flexão normal (4), Flexão anormal (3), Extensão (2), Nenhuma (1)\n" +
-      "• *Pupilas:* Ambas fotorreagentes (0), Apenas uma reage (-1), Nenhuma reage (-2)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Abertura ao chamado (3), palavras desconexas (3), localiza dor (5), pupilas reagentes (0)`";
+      "• Classe Killip (I, II, III, IV)\n" +
+      "• PCR na admissão? Desvio de ST? Marcadores miocárdicos elevados?\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc grace\n" +
+      "Idade: [ ] anos\n" +
+      "FC: [ ] bpm\n" +
+      "PAS: [ ] mmHg\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "Killip (I, II, III, IV): [ ]\n" +
+      "Parada cardíaca na admissão: [sim/não]\n" +
+      "Desvio de ST: [sim/não]\n" +
+      "Marcadores miocárdicos elevados: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("NIHSS") !== -1) {
     return "📐 *CALCULADORA: NIHSS (Escala de AVC Isquêmico)*\n\n" +
-      "Envie os achados neurológicos observados:\n" +
-      "• Nível de consciência, olhar conjugado, campo visual, paresia facial, força motora (MSD, MSE, MID, MIE), ataxia, sensibilidade, linguagem/disartria, extinção.\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Alerta, desvio de rima à D, paresia braquiocrural D grau 3, disartria moderada, sem afasia`";
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Nível de consciência, paresia facial, força em 4 membros, linguagem, disartria.\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc nihss\n" +
+      "Nível de consciência: [alerta / sonolento / torporoso / coma]\n" +
+      "Paresia facial: [normal / leve / evidente / total]\n" +
+      "Força MSD: [normal / queda leve / esforço contra gravidade / sem movimento]\n" +
+      "Força MSE: [normal / queda leve / esforço contra gravidade / sem movimento]\n" +
+      "Força MID: [normal / queda leve / esforço contra gravidade / sem movimento]\n" +
+      "Força MIE: [normal / queda leve / esforço contra gravidade / sem movimento]\n" +
+      "Linguagem / afasia: [normal / leve / grave / mutismo]\n" +
+      "Disartria: [normal / leve / grave]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("RANSON") !== -1 || t.indexOf("BISAP") !== -1) {
-    return "📐 *CALCULADORA: BISAP & RANSON (Pancreatite Aguda)*\n\n" +
-      "Envie as variáveis clínicas das primeiras 24h:\n" +
-      "• Ureia > 50 mg/dL, Idade > 60 anos, SIRS presente, Glasgow < 15, Derrame pleural no RX.\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`64 anos, lúcido, FC 102, FR 22, Tax 38.2, Ureia 58, RX com derrame pleural à esquerda`";
+    return "📐 *CALCULADORA: BISAP (Gravidade na Pancreatite Aguda)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Ureia > 50 mg/dL (ou BUN > 25) (sim/não)\n" +
+      "• Glasgow < 15 (alteração mental) (sim/não)\n" +
+      "• SIRS presente (≥ 2 critérios vitais) (sim/não)\n" +
+      "• Idade > 60 anos (sim/não)\n" +
+      "• Derrame pleural (sim/não)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc bisap\n" +
+      "Ureia > 50 mg/dL: [sim/não]\n" +
+      "Glasgow < 15: [sim/não]\n" +
+      "SIRS (≥ 2 critérios vitais): [sim/não]\n" +
+      "Idade > 60 anos: [sim/não]\n" +
+      "Derrame pleural: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("FRAMINGHAM") !== -1) {
-    return "📐 *CALCULADORA: RISCO CARDIOVASCULAR (Framingham / SBC)*\n\n" +
-      "Envie os parâmetros:\n" +
-      "• Idade, Sexo, Colesterol Total, HDL, PAS, uso de anti-hipertensivo, tabagismo, diabetes.\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Homem, 54 anos, CT 225, HDL 38, PA 145/90 com Losartana, fumante, não diabético`";
+    return "📐 *CALCULADORA: RISCO CARDIOVASCULAR DE FRAMINGHAM*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade (anos), Sexo biológico (M/F)\n" +
+      "• Colesterol Total (mg/dL), HDL (mg/dL), PAS (mmHg)\n" +
+      "• Tratamento de HAS (sim/não), Tabagismo (sim/não), Diabetes (sim/não)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc framingham\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Colesterol total: [ ] mg/dL\n" +
+      "HDL: [ ] mg/dL\n" +
+      "PAS: [ ] mmHg\n" +
+      "Tratamento para HAS: [sim/não]\n" +
+      "Tabagismo atual: [sim/não]\n" +
+      "Diabetes: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
-  if (t.indexOf("AGUA") !== -1 || t.indexOf("DEFICIT") !== -1) {
-    return "📐 *CALCULADORA: DÉFICIT DE ÁGUA LIVRE (Hipernatremia)*\n\n" +
-      "Envie os parâmetros para reposição:\n" +
-      "• Sódio sérico atual (mEq/L), Sódio alvo (ex: 140 mEq/L), Peso (kg), Perfil (Homem idoso, Mulher adulta, etc.).\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Homem idoso, 65 kg, Sódio atual 162 mEq/L, alvo 145 mEq/L`";
+  if (t.indexOf("FRAX") !== -1) {
+    return "📐 *CALCULADORA: FRAX (Risco de Fratura Osteoporótica)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade (anos), Sexo (M/F), Peso (kg), Altura (cm)\n" +
+      "• Fratura prévia, fratura pais, fumo, corticoide, artrite, osteoporose 2ª, álcool, DMO colo\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc frax\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Peso: [ ] kg\n" +
+      "Altura: [ ] cm\n" +
+      "Fratura prévia: [sim/não]\n" +
+      "Pais com fratura de quadril: [sim/não]\n" +
+      "Tabagismo atual: [sim/não]\n" +
+      "Uso de corticoide: [sim/não]\n" +
+      "Artrite reumatoide: [sim/não]\n" +
+      "Osteoporose secundária: [sim/não]\n" +
+      "Álcool ≥ 3 doses/dia: [sim/não]\n" +
+      "T-score colo fêmur (opcional): [ ]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
-  return "📐 *" + tipo + "*\n\n" +
-    "Por favor, envie os dados clínicos e laboratoriais do paciente para este cálculo.\n" +
-    "💡 *Exemplo:* Idade, sexo, sinais vitais e valores laboratoriais relevantes.";
+  if (t.indexOf("APACHE") !== -1) {
+    return "📐 *CALCULADORA: APACHE II (Terapia Intensiva)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade, Temperatura, PAM, FC, FR, PaO2/AaDO2, pH, Na, K, Cr, Ht, Leucócitos, Glasgow, insuficiência crônica, admissão.\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc apache\n" +
+      "Idade: [ ] anos\n" +
+      "Temperatura: [ ] °C\n" +
+      "PAM: [ ] mmHg\n" +
+      "FC: [ ] bpm\n" +
+      "FR: [ ] irpm\n" +
+      "PaO2: [ ] mmHg\n" +
+      "pH: [ ]\n" +
+      "Sódio: [ ] mEq/L\n" +
+      "Potássio: [ ] mEq/L\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "Hematócrito: [ ] %\n" +
+      "Leucócitos: [ ] /mm³\n" +
+      "Glasgow: [ ]\n" +
+      "Insuficiência orgânica crônica: [sim/não]\n" +
+      "Tipo de admissão: [clínica / urgência / eletiva]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  // Fallback geral sem dados genéricos:
+  return "📐 *CALCULADORA CLÍNICA: " + tipo.toUpperCase() + "*\n\n" +
+    "Informe estritamente as variáveis necessárias para este cálculo.\n\n" +
+    "📋 *Copie a caixa abaixo, preencha os parâmetros e envie:*\n" +
+    "```\n" +
+    "/calc " + tipo + "\n" +
+    "[Parâmetros e valores necessários]: [ ]\n" +
+    "```\n" +
+    "*(Toque na caixa acima para copiar, complete apenas os dados necessários e envie)*";
 }
 
 function enviarMenuCategoriasCalculadoras(chatId, messageId) {
@@ -2682,8 +3149,10 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
   } else if (categoria === "calc_cat_renal") {
     tituloCat = "🧪 *Calculadoras Nefro, Metabólicas & Gerais:*";
     teclado = [
-      [{"text": "CKD-EPI / Cockcroft", "callback_data": "calc_CKD-EPI"}, {"text": "CURB-65", "callback_data": "calc_CURB-65"}],
-      [{"text": "Déficit de Água", "callback_data": "calc_Agua"}, {"text": "LDL Martin-Hopkins", "callback_data": "calc_LDL-Martin-Hopkins"}],
+      [{"text": "CKD-EPI (TFG)", "callback_data": "calc_CKD"}, {"text": "Cockcroft (ClCr)", "callback_data": "calc_Cockcroft"}],
+      [{"text": "CURB-65", "callback_data": "calc_CURB-65"}, {"text": "Déficit de Água", "callback_data": "calc_Agua"}],
+      [{"text": "Cálcio Corrigido", "callback_data": "calc_Calcio"}, {"text": "Gap Osmolar", "callback_data": "calc_Gap_Osmolar"}],
+      [{"text": "KDIGO (IRA)", "callback_data": "calc_KDIGO"}, {"text": "LDL Martin-Hopkins", "callback_data": "calc_LDL-Martin-Hopkins"}],
       [{"text": "FRAX (Fratura)", "callback_data": "calc_FRAX"}],
       [{"text": "⬅️ Voltar ao Menu", "callback_data": "calc_menu_principal"}]
     ];
@@ -2691,8 +3160,9 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
     tituloCat = "🧠 *Calculadoras Neuro & Terapia Intensiva:*";
     teclado = [
       [{"text": "Glasgow-P", "callback_data": "calc_Glasgow"}, {"text": "NIHSS (AVC)", "callback_data": "calc_NIHSS"}],
-      [{"text": "qSOFA / SOFA", "callback_data": "calc_SOFA"}, {"text": "Child-Pugh / MELD", "callback_data": "calc_MELD"}],
-      [{"text": "Ranson / BISAP", "callback_data": "calc_Ranson"}, {"text": "APACHE II", "callback_data": "calc_APACHE"}],
+      [{"text": "qSOFA (Sepse)", "callback_data": "calc_SOFA"}, {"text": "MELD / MELD-Na", "callback_data": "calc_MELD"}],
+      [{"text": "Child-Pugh", "callback_data": "calc_Child"}, {"text": "BISAP (Pancreatite)", "callback_data": "calc_Ranson"}],
+      [{"text": "APACHE II", "callback_data": "calc_APACHE"}],
       [{"text": "⬅️ Voltar ao Menu", "callback_data": "calc_menu_principal"}]
     ];
   }

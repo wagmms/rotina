@@ -37,7 +37,57 @@ var DICIONARIO_FARMACO = {
   "tegretol": "carbamazepina",
   "depakene": "acido valproico",
   "omeprazol": "omeprazol",
-  "pantoprazol": "pantoprazol"
+  "pantoprazol": "pantoprazol",
+  "claritin": "loratadina",
+  "allegra": "fexofenadina",
+  "desalex": "desloratadina",
+  "hixizine": "hidroxizina",
+  "hixizina": "hidroxizina",
+  "zyrtec": "cetirizina",
+  "polaramine": "dexclorfeniramina",
+  "ebastel": "ebastina",
+  "celestamine": "betametasona + dexclorfeniramina",
+  "zentel": "albendazol",
+  "pantelmin": "mebendazol",
+  "annita": "nitazoxanida",
+  "anita": "nitazoxanida",
+  "alivium": "ibuprofeno",
+  "advil": "ibuprofeno",
+  "toragesic": "trometamol cetorolaco",
+  "nisulid": "nimesulida",
+  "scafit": "nimesulida",
+  "proflam": "aceclofenaco",
+  "flanax": "naproxeno",
+  "prelone": "prednisolona",
+  "predsim": "prednisolona",
+  "decadron": "dexametasona",
+  "busonid": "budesonida",
+  "beclosol": "beclometasona",
+  "clenil": "beclometasona",
+  "atrovent": "ipratropio",
+  "berotec": "fenoterol",
+  "novocilin": "amoxicilina",
+  "keflex": "cefalexina",
+  "zitromax": "azitromicina",
+  "astro": "azitromicina",
+  "tavanic": "levofloxacino",
+  "losec": "omeprazol",
+  "pantozol": "pantoprazol",
+  "nexium": "esomeprazol",
+  "vonau": "ondansetrona",
+  "luftal": "simeticona",
+  "dramin": "dimenidrinato",
+  "cozaar": "losartana",
+  "renitec": "enalapril",
+  "capoten": "captopril",
+  "ancoron": "amiodarona",
+  "lexapro": "escitalopram",
+  "rivotril": "clonazepam",
+  "frontin": "alprazolam",
+  "valium": "diazepam",
+  "stilnox": "zolpidem",
+  "risperdal": "risperidona",
+  "seroquel": "quetiapina"
 };
 
 // Mapeamento de condições clínicas frequentes na APS para classes prioritárias
@@ -56,6 +106,18 @@ var MAPA_SINDROMES_APS = {
   "dm": ["metformina", "glibenclamida", "insulina"],
   "asma": ["salbutamol", "beclometasona", "budesonida", "prednisona", "prednisolona", "ipratropio"],
   "dpoc": ["salbutamol", "ipratropio", "beclometasona", "prednisona", "azitromicina"],
+  "broncoespasmo": ["salbutamol", "ipratropio", "prednisolona"],
+  "laringite": ["prednisolona", "dexametasona", "adrenalina"],
+  "rinite": ["loratadina", "dexclorfeniramina", "budesonida", "soro fisiologico"],
+  "alergia": ["loratadina", "dexclorfeniramina", "hidroxizina", "prednisolona"],
+  "urticaria": ["loratadina", "dexclorfeniramina", "hidroxizina", "prednisolona"],
+  "prurido": ["loratadina", "dexclorfeniramina", "hidroxizina"],
+  "parasitose": ["albendazol", "mebendazol", "nitazoxanida"],
+  "verminose": ["albendazol", "mebendazol", "nitazoxanida"],
+  "vermes": ["albendazol", "mebendazol", "nitazoxanida"],
+  "oxiuríase": ["albendazol", "mebendazol"],
+  "ascaridíase": ["albendazol", "mebendazol"],
+  "diarreia": ["soro de reidratacao", "zinco", "ondansetrona", "dipirona"],
   "lombalgia": ["dipirona", "paracetamol", "ibuprofeno", "ciclobenzaprina", "tramadol"],
   "dor": ["dipirona", "paracetamol", "ibuprofeno", "tramadol"],
   "depressao": ["fluoxetina", "sertralina", "amitriptilina", "nortriptilina", "escitalopram"],
@@ -428,9 +490,11 @@ function formatarFichaPosologicaHSL(med) {
     linhas.push(med.dose_adulto);
   }
 
-  if (med.dose_pediatria) {
-    linhas.push("\n👶 *DOSE PEDIÁTRICA:*");
+  linhas.push("\n👶 *DOSE PEDIÁTRICA:*");
+  if (med.dose_pediatria && med.dose_pediatria.trim()) {
     linhas.push(med.dose_pediatria);
+  } else {
+    linhas.push("⚠️ *Não padronizada no Guia HSL.* (Fármaco de uso restrito a adultos, componente especializado ou sem posologia ambulatorial pediátrica estabelecida na base oficial do Sírio-Libanês).");
   }
 
   if (med.dose_maxima) {
@@ -480,9 +544,32 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
   var meds = obterGuiaFarmaceuticoHSL();
   if (!meds || meds.length === 0) return "";
 
+  var STOP_WORDS_MEDICAS_HSL = {
+    "ANOS": true, "ANO": true, "MES": true, "MESES": true, "DIA": true, "DIAS": true,
+    "PESO": true, "QUILOS": true, "QUILO": true, "KGS": true, "KG": true, "CRIANCA": true,
+    "CRIANCAS": true, "ADULTO": true, "ADULTOS": true, "PACIENTE": true, "PACIENTES": true,
+    "RECEITA": true, "PRESCREVER": true, "TOMAR": true, "FAZER": true, "USO": true,
+    "VIA": true, "ORAL": true, "COMP": true, "COMPRIMIDO": true, "COMPRIMIDOS": true,
+    "XAROPE": true, "GOTAS": true, "DOSE": true, "DOSES": true, "PARA": true, "COM": true,
+    "SEM": true, "HORA": true, "HORAS": true, "FEBRE": true, "DOR": true, "TOSSE": true,
+    "QUADRO": true, "CASO": true, "PRESCRICAO": true, "SOLUCAO": true, "SUSPENSAO": true
+  };
+
+  function termoCasaMedicamentoHSL(mNorm, t) {
+    if (!mNorm || !t) return false;
+    var palavras = mNorm.split(/[\s\+\/\(\)]+/).filter(Boolean);
+    for (var pIdx = 0; pIdx < palavras.length; pIdx++) {
+      var p = palavras[pIdx];
+      if (p === t) return true;
+      if (t.length >= 4 && p.indexOf(t) === 0) return true;
+      if (t.length >= 5 && p.length >= 5 && p.indexOf(t) !== -1) return true;
+    }
+    return false;
+  }
+
   var pedidoLower = (typeof normalizarTexto === "function") ? normalizarTexto(pedidoUsuario) : String(pedidoUsuario || "").toLowerCase();
   var pedidoUpper = normalizarTermoMedicamento(pedidoUsuario);
-  var termos = pedidoUpper.split(/\s+/).filter(function(t) { return t.length >= 3; });
+  var termos = pedidoUpper.split(/\s+/).filter(function(t) { return t.length >= 3 && !STOP_WORDS_MEDICAS_HSL[t]; });
 
   // Expansão por sinônimos
   var termosSet = {};
@@ -498,7 +585,7 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
     }
   });
 
-  // Expansão por síndromes clínicas mapeadas (amigdalite, pneumonia, etc.)
+  // Expansão por síndromes clínicas mapeadas (amigdalite, pneumonia, rinite, etc.)
   for (var sindrome in MAPA_SINDROMES_APS) {
     if (pedidoLower.indexOf(sindrome.toLowerCase()) !== -1) {
       MAPA_SINDROMES_APS[sindrome].forEach(function(item) {
@@ -511,7 +598,7 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
     }
   }
 
-  // Localiza matches
+  // Localiza matches com proteção contra falso positivo
   var selecionados = [];
   var vistos = {};
 
@@ -521,7 +608,7 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
 
     for (var k = 0; k < termos.length; k++) {
       var t = termos[k];
-      if (mNorm.indexOf(t) !== -1) {
+      if (termoCasaMedicamentoHSL(mNorm, t)) {
         if (!vistos[m.farnaco]) {
           vistos[m.farnaco] = true;
           selecionados.push(m);
@@ -556,7 +643,9 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
         ? "  Apresentações REMUME: " + item.apresentacoes_remume.join(" | ")
         : "",
       item.dose_adulto ? "  Dose Adulto Oficial HSL: " + item.dose_adulto.replace(/\n/g, " ") : "",
-      item.dose_pediatria ? "  Dose Pediátrica Oficial HSL: " + item.dose_pediatria.replace(/\n/g, " ") : "",
+      item.dose_pediatria && item.dose_pediatria.trim()
+        ? "  Dose Pediátrica Oficial HSL: " + item.dose_pediatria.replace(/\n/g, " ")
+        : "  Dose Pediátrica Oficial HSL: ⚠️ NÃO PADRONIZADA NO GUIA HSL (fármaco de uso adulto/hospitalar especializado)",
       item.ajuste_dose ? "  Ajuste Renal/Hepático HSL: " + item.ajuste_dose.replace(/\n/g, " ") : "",
       item.administracao ? "  Administração & Orientações: " + item.administracao.replace(/\n/g, " ") : ""
     ].filter(Boolean).join("\n");

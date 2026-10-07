@@ -1565,12 +1565,121 @@ var CalculadorasClinicas = (function () {
           doseMaximaAdultoMgDia: 320,
           volumeFrascoMl: 100,
           indicacao: 'Infecções urinárias (ITU) / Infecções respiratórias selecionadas (8 mg TMP/kg/dia)',
-          instrucoes: 'Tomar a cada 12 horas com boa ingestão hídrica durante o dia.'
+          instrucoes: 'Tomar a cada 12 horas (sugestão: 08:00 e 20:00) com boa ingestão hídrica durante o dia.'
+        },
+        loratadina: {
+          nome: 'Loratadina',
+          apresentacao: 'Loratadina 1 mg/mL (xarope - frasco com 100 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 1,
+          tomadasDia: 1,
+          intervaloHoras: 24,
+          horarioSugerido: '20:00 (à noite)',
+          diasTratamento: opt.diasTratamento || 10,
+          volumeFrascoMl: 100,
+          indicacao: 'Rinite alérgica / Urticária / Prurido (dose fixa por faixa de peso/idade: 5 mg se 2-12 anos até 30 kg; 10 mg se > 30 kg ou > 12 anos)',
+          instrucoes: 'Administrar preferencialmente à noite (às 20:00) para otimizar alívio matinal e evitar sonolência diurna. Não requer cálculo em mg/kg.'
+        },
+        dexclorfeniramina: {
+          nome: 'Dexclorfeniramina (Maleato)',
+          apresentacao: 'Dexclorfeniramina 2 mg/5 mL (solução oral - frasco com 120 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 0.4,
+          tomadasDia: 3,
+          intervaloHoras: 8,
+          horarioSugerido: '07:00 - 15:00 - 23:00',
+          diasTratamento: opt.diasTratamento || 5,
+          volumeFrascoMl: 120,
+          indicacao: 'Alergia aguda / Prurido / Urticária (2-6 anos: 1,25 mL de 8/8h; 6-12 anos: 2,5 mL de 8/8h; >12 anos: 5 mL de 8/8h)',
+          instrucoes: 'Tomar a cada 8 horas (sugestão: 07h - 15h - 23h). Pode causar sonolência.'
+        },
+        albendazol: {
+          nome: 'Albendazol',
+          apresentacao: 'Albendazol 400 mg/10 mL (suspensão oral - frasco com 10 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 40,
+          tomadasDia: 1,
+          intervaloHoras: 24,
+          horarioSugerido: '08:00 (com café da manhã)',
+          diasTratamento: 1,
+          volumeFrascoMl: 10,
+          indicacao: 'Ascaridíase / Oxiuríase / Ancilostomíase / Parasitoses intestinais (400 mg dose única se > 2 anos)',
+          instrucoes: 'Tomar em dose única pela manhã junto com alimentos gordurosos para otimizar absorção. Repetir em 14 dias se suspeita de oxiuríase.'
+        },
+        mebendazol: {
+          nome: 'Mebendazol',
+          apresentacao: 'Mebendazol 100 mg/5 mL (suspensão oral - frasco com 30 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 20,
+          tomadasDia: 2,
+          intervaloHoras: 12,
+          horarioSugerido: '08:00 e 20:00',
+          diasTratamento: 3,
+          volumeFrascoMl: 30,
+          indicacao: 'Nematodíases / Ascaris / Oxiúrus / Tricocefalo (100 mg 12/12h por 3 dias para > 2 anos)',
+          instrucoes: 'Tomar a cada 12 horas (sugestão: 08:00 e 20:00) por 3 dias consecutivos. Não necessita de jejum.'
+        },
+        nitazoxanida: {
+          nome: 'Nitazoxanida',
+          apresentacao: 'Nitazoxanida 20 mg/mL (100 mg/5 mL suspensão oral - frasco com 100 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 20,
+          tomadasDia: 2,
+          intervaloHoras: 12,
+          horarioSugerido: '08:00 e 20:00',
+          diasTratamento: 3,
+          volumeFrascoMl: 100,
+          indicacao: 'Gastroenterite viral, Giardíase, Criptosporidíase, Helmintíases mistas (1-3 anos: 100 mg; 4-11 anos: 200 mg de 12/12h por 3 dias)',
+          instrucoes: 'Tomar a cada 12 horas (sugestão: 08:00 e 20:00) OBRIGATORIAMENTE junto a alimentos por 3 dias consecutivos.'
+        },
+        sais_reidratacao: {
+          nome: 'Sais de Reidratação Oral (SRO)',
+          apresentacao: 'SRO pó para solução oral (envelope para 1000 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 1,
+          tomadasDia: 4,
+          intervaloHoras: 6,
+          horarioSugerido: 'Após cada evacuação líquida ou vômito',
+          diasTratamento: 3,
+          volumeFrascoMl: 1000,
+          indicacao: 'Prevenção e tratamento da desidratação em gastroenterite aguda / diarreia (Plano A / Plano B da OMS/MS)',
+          instrucoes: 'Diluir 1 envelope em 1 litro de água tratada ou fervida. Oferecer com frequência em pequenas quantidades.'
+        },
+        budesonida_nasal: {
+          nome: 'Budesonida Spray Nasal',
+          apresentacao: 'Budesonida 50 mcg/dose spray nasal (frasco com 120 doses)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 1,
+          tomadasDia: 1,
+          intervaloHoras: 24,
+          horarioSugerido: '08:00 (pela manhã)',
+          diasTratamento: 30,
+          volumeFrascoMl: 120,
+          indicacao: 'Rinite alérgica moderada a grave / Rinite vasomotora',
+          instrucoes: 'Aplicar 1 jato em cada narina pela manhã (ou de 12/12h se sintomas graves). Assoar e lavar narinas com soro fisiológico antes.'
         }
       };
 
       var chaveAlvo = null;
-      if (termo.indexOf('clavulan') !== -1 || termo.indexOf('clavulin') !== -1 || termo.indexOf('amoxiclav') !== -1 || termo.indexOf('otite') !== -1 || termo.indexOf('oma') !== -1) {
+      if (termo.indexOf('albendazol') !== -1 || termo.indexOf('zentel') !== -1 || termo.indexOf('ascaris') !== -1 || termo.indexOf('oxiur') !== -1 || termo.indexOf('lombriga') !== -1) {
+        chaveAlvo = 'albendazol';
+      } else if (termo.indexOf('mebendazol') !== -1 || termo.indexOf('pantelmin') !== -1) {
+        chaveAlvo = 'mebendazol';
+      } else if (termo.indexOf('nitazoxanida') !== -1 || termo.indexOf('annita') !== -1 || termo.indexOf('anita') !== -1) {
+        chaveAlvo = 'nitazoxanida';
+      } else if (termo.indexOf('reidratacao') !== -1 || termo.indexOf('sro') !== -1 || termo.indexOf('soro oral') !== -1 || termo.indexOf('sais_reidratacao') !== -1) {
+        chaveAlvo = 'sais_reidratacao';
+      } else if (termo.indexOf('budesonid') !== -1 || termo.indexOf('busonid') !== -1 || termo.indexOf('spray nasal') !== -1) {
+        chaveAlvo = 'budesonida_nasal';
+      } else if (termo.indexOf('loratad') !== -1 || termo.indexOf('claritin') !== -1) {
+        chaveAlvo = 'loratadina';
+      } else if (termo.indexOf('dexclor') !== -1 || termo.indexOf('polaramine') !== -1) {
+        chaveAlvo = 'dexclorfeniramina';
+      } else if (termo.indexOf('rinite') !== -1 || termo.indexOf('urtic') !== -1) {
+        chaveAlvo = 'loratadina';
+      } else if (termo.indexOf('verme') !== -1 || termo.indexOf('parasit') !== -1) {
+        chaveAlvo = 'albendazol';
+      } else if (termo.indexOf('clavulan') !== -1 || termo.indexOf('clavulin') !== -1 || termo.indexOf('amoxiclav') !== -1 || termo.indexOf('otite') !== -1 || termo.indexOf('oma') !== -1) {
         chaveAlvo = 'amoxicilina_clavulanato';
       } else if (termo.indexOf('amoxi') !== -1) {
         chaveAlvo = 'amoxicilina';
@@ -1603,7 +1712,199 @@ var CalculadorasClinicas = (function () {
       var cfg = tabela[chaveAlvo];
       var dadosCalculados = {};
 
-      if (cfg.tipo === 'gotas') {
+      if (cfg.tipo === 'dose_fixa_idade') {
+        var doseEfetivaMg = 5;
+        var volumeMl = 5;
+        var diasT = cfg.diasTratamento;
+
+        if (chaveAlvo === 'albendazol') {
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'suspensao',
+            pesoKg: peso,
+            doseDiariaTotalMg: 400,
+            dosePorTomadaMg: 400,
+            volumePorTomadaMl: 10,
+            tomadasDia: 1,
+            intervaloHoras: 24,
+            diasTratamento: 1,
+            volumeTotalTratamentoMl: 10,
+            volumeFrascoMl: 10,
+            frascosNecessarios: 1,
+            quantidadeDispensar: '1 frasco(s) de 10 mL (ou 1 comprimido mastigável de 400 mg)',
+            instrucaoPosologica: 'Tomar 10 mL (400 mg) por via oral em dose única pela manhã (sugestão: 08:00 com refeição ou alimento gorduroso para melhor absorção). Repetir em 14 dias se suspeita de Enterobius/oxiuríase.',
+            memoriaCalculo: 'Dose oficial Ministério da Saúde / HSL: Crianças > 2 anos e adultos recebem 400 mg (10 mL ou 1 comp 400 mg) em dose única INDEPENDENTE DO PESO. Não se calcula por mg/kg. Contraindicado em menores de 2 anos.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'mebendazol') {
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'suspensao',
+            pesoKg: peso,
+            doseDiariaTotalMg: 200,
+            dosePorTomadaMg: 100,
+            volumePorTomadaMl: 5,
+            tomadasDia: 2,
+            intervaloHoras: 12,
+            diasTratamento: 3,
+            volumeTotalTratamentoMl: 30,
+            volumeFrascoMl: 30,
+            frascosNecessarios: 1,
+            quantidadeDispensar: '1 frasco(s) de 30 mL',
+            instrucaoPosologica: 'Tomar 5 mL (100 mg) por via oral a cada 12 horas (sugestão: 08:00 e 20:00) durante 3 dias consecutivos.',
+            memoriaCalculo: 'Dose oficial HSL / REMUME: Crianças > 2 anos recebem 100 mg (5 mL) de 12/12h por 3 dias (dose fixa por idade, não por peso). Frasco de 30 mL cobre o tratamento completo.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'nitazoxanida') {
+          var menor4N = (opt.idadeAnos && opt.idadeAnos < 4) || (peso && peso < 15);
+          var menor12N = (opt.idadeAnos && opt.idadeAnos < 12) || (peso && peso < 35);
+          var volN = menor4N ? 5 : (menor12N ? 10 : 25);
+          var doseN = menor4N ? 100 : (menor12N ? 200 : 500);
+          var volTotN = volN * 2 * 3;
+          var frascosN = Math.ceil(volTotN / 100) || 1;
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'suspensao',
+            pesoKg: peso,
+            doseDiariaTotalMg: doseN * 2,
+            dosePorTomadaMg: doseN,
+            volumePorTomadaMl: volN,
+            tomadasDia: 2,
+            intervaloHoras: 12,
+            diasTratamento: 3,
+            volumeTotalTratamentoMl: volTotN,
+            volumeFrascoMl: 100,
+            frascosNecessarios: frascosN,
+            quantidadeDispensar: frascosN + ' frasco(s) de 100 mL' + (menor12N ? '' : ' (ou comprimidos de 500 mg)'),
+            instrucaoPosologica: 'Tomar ' + volN + ' mL por via oral a cada 12 horas (sugestão: 08:00 e 20:00) OBRIGATORIAMENTE junto a alimentos durante 3 dias consecutivos.',
+            memoriaCalculo: 'Dose oficial HSL / bula: 1 a 3 anos: 100 mg (5 mL) 12/12h; 4 a 11 anos: 200 mg (10 mL) 12/12h; >= 12 anos: 500 mg 12/12h com alimentos durante 3 dias.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'sais_reidratacao') {
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'po_solucao',
+            pesoKg: peso,
+            doseDiariaTotalMg: 1,
+            dosePorTomadaMg: 1,
+            volumePorTomadaMl: 150,
+            tomadasDia: 4,
+            intervaloHoras: 6,
+            diasTratamento: 3,
+            volumeTotalTratamentoMl: 1000,
+            volumeFrascoMl: 1000,
+            frascosNecessarios: 4,
+            quantidadeDispensar: '4 a 6 envelopes de SRO',
+            instrucaoPosologica: 'Diluir 1 envelope em 1 litro de água tratada ou fervida. Oferecer frequentemente em pequenas colheres ou goles após cada evacuação líquida ou vômito.',
+            memoriaCalculo: 'Diretriz OMS / MS: Prevenção e tratamento de desidratação (Plano A ambulatorial). Fracionar volume para evitar vômitos reflexos. Solução dura 24h.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'budesonida_nasal') {
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'spray_nasal',
+            pesoKg: peso,
+            doseDiariaTotalMg: 0.1,
+            dosePorTomadaMg: 0.05,
+            volumePorTomadaMl: 1,
+            tomadasDia: 1,
+            intervaloHoras: 24,
+            diasTratamento: 30,
+            volumeTotalTratamentoMl: 120,
+            volumeFrascoMl: 120,
+            frascosNecessarios: 1,
+            quantidadeDispensar: '1 frasco(s) de spray nasal (120 doses)',
+            instrucaoPosologica: 'Aplicar 1 jato (50 mcg) em cada narina 1 vez ao dia pela manhã (ou de 12/12h se sintomas intensos).',
+            memoriaCalculo: 'Diretriz Brasileira de Rinite / HSL: Corticoide tópico nasal de primeira escolha. Uso contínuo diário; efeito pleno a partir de 3 a 7 dias.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'loratadina') {
+          var pesoMaior30 = (peso > 30) || (opt.idadeAnos && opt.idadeAnos >= 12);
+          if (pesoMaior30) {
+            doseEfetivaMg = 10;
+            volumeMl = 10;
+          } else {
+            doseEfetivaMg = 5;
+            volumeMl = 5;
+          }
+          var volTotalL = volumeMl * 1 * diasT;
+          var frascosL = Math.ceil(volTotalL / cfg.volumeFrascoMl) || 1;
+
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'xarope',
+            pesoKg: peso,
+            doseDiariaTotalMg: doseEfetivaMg,
+            dosePorTomadaMg: doseEfetivaMg,
+            volumePorTomadaMl: volumeMl,
+            tomadasDia: 1,
+            intervaloHoras: 24,
+            diasTratamento: diasT,
+            volumeTotalTratamentoMl: volTotalL,
+            volumeFrascoMl: cfg.volumeFrascoMl,
+            frascosNecessarios: frascosL,
+            quantidadeDispensar: frascosL + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL',
+            instrucaoPosologica: 'Tomar ' + volumeMl + ' mL por via oral 1 vez ao dia, à noite (às 20:00), durante ' + diasT + ' dias.',
+            memoriaCalculo: 'Dose oficial do Guia HSL: 2 a 12 anos (até 30 kg): 5 mg (5 mL) 1 vez ao dia. > 12 anos ou > 30 kg: 10 mg (10 mL ou 1 comp) 1 vez ao dia. Dose fixa por faixa etária/peso (NÃO calculada em mg/kg). Apresentação: ' + cfg.apresentacao + '. Horário sugerido: 20:00 (à noite).',
+            orientacoes: cfg.instrucoes + (pesoMaior30 ? ' (Paciente com > 30 kg ou >= 12 anos recebe a dose máxima de 10 mg).' : ' (Para pacientes com > 30 kg ou >= 12 anos, a dose oficial é de 10 mL).'),
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'dexclorfeniramina') {
+          var menor6 = (opt.idadeAnos && opt.idadeAnos < 6) || (peso && peso < 20);
+          var menor12 = (opt.idadeAnos && opt.idadeAnos < 12) || (peso && peso < 35);
+          if (menor6) {
+            volumeMl = 1.25;
+            doseEfetivaMg = 0.5;
+          } else if (menor12) {
+            volumeMl = 2.5;
+            doseEfetivaMg = 1.0;
+          } else {
+            volumeMl = 5.0;
+            doseEfetivaMg = 2.0;
+          }
+          var volTotalD = Math.round(volumeMl * 3 * diasT * 10) / 10;
+          var frascosD = Math.ceil(volTotalD / cfg.volumeFrascoMl) || 1;
+
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'solucao_oral',
+            pesoKg: peso,
+            doseDiariaTotalMg: doseEfetivaMg * 3,
+            dosePorTomadaMg: doseEfetivaMg,
+            volumePorTomadaMl: volumeMl,
+            tomadasDia: 3,
+            intervaloHoras: 8,
+            diasTratamento: diasT,
+            volumeTotalTratamentoMl: volTotalD,
+            volumeFrascoMl: cfg.volumeFrascoMl,
+            frascosNecessarios: frascosD,
+            quantidadeDispensar: frascosD + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL',
+            instrucaoPosologica: 'Tomar ' + fmtMl(volumeMl) + ' mL por via oral a cada 8 horas (sugestão: 07:00 - 15:00 - 23:00) durante ' + diasT + ' dias.',
+            memoriaCalculo: 'Dose oficial do Guia HSL: 2 a 6 anos: 1,25 mL (0,5 mg) 3x/dia; 6 a 12 anos: 2,5 mL (1 mg) 3x/dia; > 12 anos: 5 mL (2 mg) 3x/dia. Horários sugeridos: 07h - 15h - 23h. Apresentação: ' + cfg.apresentacao + '.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        }
+      } else if (cfg.tipo === 'gotas') {
         var doseDesejadaMg = cfg.doseMgKgDose * peso;
         var doseEfetivaMg = Math.min(doseDesejadaMg, cfg.doseMaximaPorDoseMg);
         var gotas = Math.round(doseEfetivaMg / cfg.mgPorGota);
@@ -1618,7 +1919,7 @@ var CalculadorasClinicas = (function () {
           dosePorTomadaMg: doseEfetivaMg,
           gotasPorTomada: gotas,
           intervaloHoras: cfg.intervaloHoras,
-          instrucaoPosologica: 'Dar ' + gotas + ' gotas por via oral a cada ' + cfg.intervaloHoras + ' horas se dor ou febre (máximo 4 vezes ao dia).',
+          instrucaoPosologica: 'Dar ' + gotas + ' gotas por via oral a cada ' + cfg.intervaloHoras + ' horas se dor ou febre (intervalo mínimo de 6h, máx 4 vezes ao dia).',
           memoriaCalculo: 'Dose base: ' + cfg.doseMgKgDose + ' mg/kg × ' + peso + ' kg = ' + fmt(doseDesejadaMg, 1) + ' mg (máx ' + cfg.doseMaximaPorDoseMg + ' mg) ➔ ' + doseEfetivaMg + ' mg ÷ ' + cfg.mgPorGota + ' mg/gota = ' + gotas + ' gotas.',
           quantidadeDispensar: '1 frasco conta-gotas',
           frascos: 1,
@@ -1636,6 +1937,14 @@ var CalculadorasClinicas = (function () {
         var volumeTotalTratamentoMl = volumeMl * cfg.tomadasDia * cfg.diasTratamento;
         var frascos = Math.ceil(volumeTotalTratamentoMl / cfg.volumeFrascoMl);
 
+        var sugestaoHorario = (cfg.intervaloHoras === 8)
+          ? ' (sugestão: 07:00 - 15:00 - 23:00)'
+          : ((cfg.intervaloHoras === 12)
+            ? ' (sugestão: 08:00 e 20:00)'
+            : ((cfg.intervaloHoras === 24)
+              ? (chaveAlvo === 'prednisolona' ? ' pela manhã (às 08:00, com alimento)' : ' no mesmo horário (às 10:00)')
+              : ''));
+
         dadosCalculados = {
           chave: chaveAlvo,
           farmaco: cfg.nome,
@@ -1652,8 +1961,8 @@ var CalculadorasClinicas = (function () {
           volumeFrascoMl: cfg.volumeFrascoMl,
           frascosNecessarios: frascos,
           quantidadeDispensar: frascos + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL',
-          instrucaoPosologica: 'Tomar ' + fmtMl(volumeMl) + ' mL por via oral a cada ' + cfg.intervaloHoras + ' horas durante ' + cfg.diasTratamento + ' dias.',
-          memoriaCalculo: 'Dose base: ' + cfg.doseMgKgDia + ' mg/kg/dia × ' + peso + ' kg = ' + fmt(doseDiariaBrutaMg, 1) + ' mg/dia (máx ' + cfg.doseMaximaAdultoMgDia + ' mg/dia) ➔ ' + fmt(dosePorTomadaMg, 1) + ' mg por dose (' + cfg.intervaloHoras + '/' + cfg.intervaloHoras + 'h) ➔ Conversão: ' + fmt(dosePorTomadaMg, 1) + ' mg ÷ ' + cfg.concentracaoMgPorMl + ' mg/mL = ' + fmtMl(volumeMl) + ' mL. Volume total: ' + fmtMl(volumeMl) + ' mL × ' + cfg.tomadasDia + ' tomadas × ' + cfg.diasTratamento + ' dias = ' + fmt(volumeTotalTratamentoMl, 1) + ' mL ➔ ' + frascos + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL.',
+          instrucaoPosologica: 'Tomar ' + fmtMl(volumeMl) + ' mL por via oral a cada ' + cfg.intervaloHoras + ' horas' + sugestaoHorario + ' durante ' + cfg.diasTratamento + ' dias.',
+          memoriaCalculo: 'Dose base: ' + cfg.doseMgKgDia + ' mg/kg/dia × ' + peso + ' kg = ' + fmt(doseDiariaBrutaMg, 1) + ' mg/dia (máx ' + cfg.doseMaximaAdultoMgDia + ' mg/dia) ➔ ' + fmt(dosePorTomadaMg, 1) + ' mg por dose (' + cfg.intervaloHoras + '/' + cfg.intervaloHoras + 'h' + sugestaoHorario + ') ➔ Conversão: ' + fmt(dosePorTomadaMg, 1) + ' mg ÷ ' + cfg.concentracaoMgPorMl + ' mg/mL = ' + fmtMl(volumeMl) + ' mL. Volume total: ' + fmtMl(volumeMl) + ' mL × ' + cfg.tomadasDia + ' tomadas × ' + cfg.diasTratamento + ' dias = ' + fmt(volumeTotalTratamentoMl, 1) + ' mL ➔ ' + frascos + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL.',
           orientacoes: cfg.instrucoes,
           indicacao: cfg.indicacao
         };
@@ -1693,10 +2002,62 @@ var CalculadorasClinicas = (function () {
    */
   function calcularPosologiaPorTextoLivre(texto) {
     if (!texto || typeof texto !== 'string') return null;
+    var tNorm = semAcento(texto.toLowerCase());
+
     var matchPeso = texto.match(/\b(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)\b/i);
-    if (!matchPeso) return null;
-    var pesoNum = parseFloat(matchPeso[1].replace(',', '.'));
-    if (!isFinite(pesoNum) || pesoNum <= 0 || pesoNum > 80) return null;
+    var pesoNum = matchPeso ? parseFloat(matchPeso[1].replace(',', '.')) : null;
+
+    var matchIdade = texto.match(/\b(\d+)\s*(?:anos?|a)\b/i);
+    var idadeNum = matchIdade ? parseInt(matchIdade[1], 10) : null;
+
+    // 1. Fármacos por faixa etária ou dose fixa (Anti-histamínicos, Vermífugos, SRO, Corticoide Nasal)
+    if (tNorm.indexOf('loratad') !== -1 || tNorm.indexOf('claritin') !== -1 || (tNorm.indexOf('rinite') !== -1 && (pesoNum || idadeNum || tNorm.indexOf('crianca') !== -1 || tNorm.indexOf('pediat') !== -1) && tNorm.indexOf('spray') === -1 && tNorm.indexOf('nasal') === -1)) {
+      var optLora = { idadeAnos: idadeNum };
+      var pesoParam = pesoNum || (idadeNum ? (idadeNum >= 12 ? 35 : 20) : 20);
+      var resL = posologiaPediatrica(pesoParam, 'loratadina', optLora);
+      if (resL && resL.ok && resL.dados) return resL.dados;
+    }
+
+    if (tNorm.indexOf('polaramine') !== -1 || tNorm.indexOf('dexclor') !== -1) {
+      var optDex = { idadeAnos: idadeNum };
+      var pesoDex = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : (idadeNum >= 6 ? 25 : 15)) : 15);
+      var resD = posologiaPediatrica(pesoDex, 'dexclorfeniramina', optDex);
+      if (resD && resD.ok && resD.dados) return resD.dados;
+    }
+
+    if (tNorm.indexOf('albendazol') !== -1 || tNorm.indexOf('zentel') !== -1 || tNorm.indexOf('oxiur') !== -1 || (tNorm.indexOf('verme') !== -1 && tNorm.indexOf('mebendazol') === -1)) {
+      var optAlb = { idadeAnos: idadeNum };
+      var pesoAlb = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : 20) : 20);
+      var resAlb = posologiaPediatrica(pesoAlb, 'albendazol', optAlb);
+      if (resAlb && resAlb.ok && resAlb.dados) return resAlb.dados;
+    }
+
+    if (tNorm.indexOf('mebendazol') !== -1 || tNorm.indexOf('pantelmin') !== -1) {
+      var optMeb = { idadeAnos: idadeNum };
+      var pesoMeb = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : 20) : 20);
+      var resMeb = posologiaPediatrica(pesoMeb, 'mebendazol', optMeb);
+      if (resMeb && resMeb.ok && resMeb.dados) return resMeb.dados;
+    }
+
+    if (tNorm.indexOf('nitazoxanida') !== -1 || tNorm.indexOf('annita') !== -1 || tNorm.indexOf('anita') !== -1) {
+      var optNit = { idadeAnos: idadeNum };
+      var pesoNit = pesoNum || (idadeNum ? (idadeNum >= 12 ? 45 : (idadeNum >= 4 ? 25 : 12)) : 20);
+      var resNit = posologiaPediatrica(pesoNit, 'nitazoxanida', optNit);
+      if (resNit && resNit.ok && resNit.dados) return resNit.dados;
+    }
+
+    if (tNorm.indexOf('reidratacao') !== -1 || tNorm.indexOf('sro') !== -1 || (tNorm.indexOf('diarreia') !== -1 && (tNorm.indexOf('soro') !== -1 || tNorm.indexOf('sais') !== -1))) {
+      var resSro = posologiaPediatrica(pesoNum || 15, 'sais_reidratacao', { idadeAnos: idadeNum });
+      if (resSro && resSro.ok && resSro.dados) return resSro.dados;
+    }
+
+    if (tNorm.indexOf('budesonid') !== -1 || tNorm.indexOf('busonid') !== -1 || (tNorm.indexOf('spray') !== -1 && tNorm.indexOf('nasal') !== -1)) {
+      var resBudN = posologiaPediatrica(pesoNum || 20, 'budesonida_nasal', { idadeAnos: idadeNum });
+      if (resBudN && resBudN.ok && resBudN.dados) return resBudN.dados;
+    }
+
+    // 2. Fármacos peso-dependentes convencionais
+    if (!pesoNum || !isFinite(pesoNum) || pesoNum <= 0 || pesoNum > 80) return null;
 
     var res = posologiaPediatrica(pesoNum, texto);
     if (res && res.ok && res.dados) {

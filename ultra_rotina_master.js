@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-06 13:39:37
- * Checksum SHA256: 9c15104f640cf05b
+ * Gerado automaticamente via build_master.py em: 2026-10-07 13:47:01
+ * Checksum SHA256: 9ed90e05dde25873
  * ==============================================================================
  */
 
@@ -2402,12 +2402,121 @@ var CalculadorasClinicas = (function () {
           doseMaximaAdultoMgDia: 320,
           volumeFrascoMl: 100,
           indicacao: 'Infecções urinárias (ITU) / Infecções respiratórias selecionadas (8 mg TMP/kg/dia)',
-          instrucoes: 'Tomar a cada 12 horas com boa ingestão hídrica durante o dia.'
+          instrucoes: 'Tomar a cada 12 horas (sugestão: 08:00 e 20:00) com boa ingestão hídrica durante o dia.'
+        },
+        loratadina: {
+          nome: 'Loratadina',
+          apresentacao: 'Loratadina 1 mg/mL (xarope - frasco com 100 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 1,
+          tomadasDia: 1,
+          intervaloHoras: 24,
+          horarioSugerido: '20:00 (à noite)',
+          diasTratamento: opt.diasTratamento || 10,
+          volumeFrascoMl: 100,
+          indicacao: 'Rinite alérgica / Urticária / Prurido (dose fixa por faixa de peso/idade: 5 mg se 2-12 anos até 30 kg; 10 mg se > 30 kg ou > 12 anos)',
+          instrucoes: 'Administrar preferencialmente à noite (às 20:00) para otimizar alívio matinal e evitar sonolência diurna. Não requer cálculo em mg/kg.'
+        },
+        dexclorfeniramina: {
+          nome: 'Dexclorfeniramina (Maleato)',
+          apresentacao: 'Dexclorfeniramina 2 mg/5 mL (solução oral - frasco com 120 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 0.4,
+          tomadasDia: 3,
+          intervaloHoras: 8,
+          horarioSugerido: '07:00 - 15:00 - 23:00',
+          diasTratamento: opt.diasTratamento || 5,
+          volumeFrascoMl: 120,
+          indicacao: 'Alergia aguda / Prurido / Urticária (2-6 anos: 1,25 mL de 8/8h; 6-12 anos: 2,5 mL de 8/8h; >12 anos: 5 mL de 8/8h)',
+          instrucoes: 'Tomar a cada 8 horas (sugestão: 07h - 15h - 23h). Pode causar sonolência.'
+        },
+        albendazol: {
+          nome: 'Albendazol',
+          apresentacao: 'Albendazol 400 mg/10 mL (suspensão oral - frasco com 10 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 40,
+          tomadasDia: 1,
+          intervaloHoras: 24,
+          horarioSugerido: '08:00 (com café da manhã)',
+          diasTratamento: 1,
+          volumeFrascoMl: 10,
+          indicacao: 'Ascaridíase / Oxiuríase / Ancilostomíase / Parasitoses intestinais (400 mg dose única se > 2 anos)',
+          instrucoes: 'Tomar em dose única pela manhã junto com alimentos gordurosos para otimizar absorção. Repetir em 14 dias se suspeita de oxiuríase.'
+        },
+        mebendazol: {
+          nome: 'Mebendazol',
+          apresentacao: 'Mebendazol 100 mg/5 mL (suspensão oral - frasco com 30 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 20,
+          tomadasDia: 2,
+          intervaloHoras: 12,
+          horarioSugerido: '08:00 e 20:00',
+          diasTratamento: 3,
+          volumeFrascoMl: 30,
+          indicacao: 'Nematodíases / Ascaris / Oxiúrus / Tricocefalo (100 mg 12/12h por 3 dias para > 2 anos)',
+          instrucoes: 'Tomar a cada 12 horas (sugestão: 08:00 e 20:00) por 3 dias consecutivos. Não necessita de jejum.'
+        },
+        nitazoxanida: {
+          nome: 'Nitazoxanida',
+          apresentacao: 'Nitazoxanida 20 mg/mL (100 mg/5 mL suspensão oral - frasco com 100 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 20,
+          tomadasDia: 2,
+          intervaloHoras: 12,
+          horarioSugerido: '08:00 e 20:00',
+          diasTratamento: 3,
+          volumeFrascoMl: 100,
+          indicacao: 'Gastroenterite viral, Giardíase, Criptosporidíase, Helmintíases mistas (1-3 anos: 100 mg; 4-11 anos: 200 mg de 12/12h por 3 dias)',
+          instrucoes: 'Tomar a cada 12 horas (sugestão: 08:00 e 20:00) OBRIGATORIAMENTE junto a alimentos por 3 dias consecutivos.'
+        },
+        sais_reidratacao: {
+          nome: 'Sais de Reidratação Oral (SRO)',
+          apresentacao: 'SRO pó para solução oral (envelope para 1000 mL)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 1,
+          tomadasDia: 4,
+          intervaloHoras: 6,
+          horarioSugerido: 'Após cada evacuação líquida ou vômito',
+          diasTratamento: 3,
+          volumeFrascoMl: 1000,
+          indicacao: 'Prevenção e tratamento da desidratação em gastroenterite aguda / diarreia (Plano A / Plano B da OMS/MS)',
+          instrucoes: 'Diluir 1 envelope em 1 litro de água tratada ou fervida. Oferecer com frequência em pequenas quantidades.'
+        },
+        budesonida_nasal: {
+          nome: 'Budesonida Spray Nasal',
+          apresentacao: 'Budesonida 50 mcg/dose spray nasal (frasco com 120 doses)',
+          tipo: 'dose_fixa_idade',
+          concentracaoMgPorMl: 1,
+          tomadasDia: 1,
+          intervaloHoras: 24,
+          horarioSugerido: '08:00 (pela manhã)',
+          diasTratamento: 30,
+          volumeFrascoMl: 120,
+          indicacao: 'Rinite alérgica moderada a grave / Rinite vasomotora',
+          instrucoes: 'Aplicar 1 jato em cada narina pela manhã (ou de 12/12h se sintomas graves). Assoar e lavar narinas com soro fisiológico antes.'
         }
       };
 
       var chaveAlvo = null;
-      if (termo.indexOf('clavulan') !== -1 || termo.indexOf('clavulin') !== -1 || termo.indexOf('amoxiclav') !== -1 || termo.indexOf('otite') !== -1 || termo.indexOf('oma') !== -1) {
+      if (termo.indexOf('albendazol') !== -1 || termo.indexOf('zentel') !== -1 || termo.indexOf('ascaris') !== -1 || termo.indexOf('oxiur') !== -1 || termo.indexOf('lombriga') !== -1) {
+        chaveAlvo = 'albendazol';
+      } else if (termo.indexOf('mebendazol') !== -1 || termo.indexOf('pantelmin') !== -1) {
+        chaveAlvo = 'mebendazol';
+      } else if (termo.indexOf('nitazoxanida') !== -1 || termo.indexOf('annita') !== -1 || termo.indexOf('anita') !== -1) {
+        chaveAlvo = 'nitazoxanida';
+      } else if (termo.indexOf('reidratacao') !== -1 || termo.indexOf('sro') !== -1 || termo.indexOf('soro oral') !== -1 || termo.indexOf('sais_reidratacao') !== -1) {
+        chaveAlvo = 'sais_reidratacao';
+      } else if (termo.indexOf('budesonid') !== -1 || termo.indexOf('busonid') !== -1 || termo.indexOf('spray nasal') !== -1) {
+        chaveAlvo = 'budesonida_nasal';
+      } else if (termo.indexOf('loratad') !== -1 || termo.indexOf('claritin') !== -1) {
+        chaveAlvo = 'loratadina';
+      } else if (termo.indexOf('dexclor') !== -1 || termo.indexOf('polaramine') !== -1) {
+        chaveAlvo = 'dexclorfeniramina';
+      } else if (termo.indexOf('rinite') !== -1 || termo.indexOf('urtic') !== -1) {
+        chaveAlvo = 'loratadina';
+      } else if (termo.indexOf('verme') !== -1 || termo.indexOf('parasit') !== -1) {
+        chaveAlvo = 'albendazol';
+      } else if (termo.indexOf('clavulan') !== -1 || termo.indexOf('clavulin') !== -1 || termo.indexOf('amoxiclav') !== -1 || termo.indexOf('otite') !== -1 || termo.indexOf('oma') !== -1) {
         chaveAlvo = 'amoxicilina_clavulanato';
       } else if (termo.indexOf('amoxi') !== -1) {
         chaveAlvo = 'amoxicilina';
@@ -2440,7 +2549,199 @@ var CalculadorasClinicas = (function () {
       var cfg = tabela[chaveAlvo];
       var dadosCalculados = {};
 
-      if (cfg.tipo === 'gotas') {
+      if (cfg.tipo === 'dose_fixa_idade') {
+        var doseEfetivaMg = 5;
+        var volumeMl = 5;
+        var diasT = cfg.diasTratamento;
+
+        if (chaveAlvo === 'albendazol') {
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'suspensao',
+            pesoKg: peso,
+            doseDiariaTotalMg: 400,
+            dosePorTomadaMg: 400,
+            volumePorTomadaMl: 10,
+            tomadasDia: 1,
+            intervaloHoras: 24,
+            diasTratamento: 1,
+            volumeTotalTratamentoMl: 10,
+            volumeFrascoMl: 10,
+            frascosNecessarios: 1,
+            quantidadeDispensar: '1 frasco(s) de 10 mL (ou 1 comprimido mastigável de 400 mg)',
+            instrucaoPosologica: 'Tomar 10 mL (400 mg) por via oral em dose única pela manhã (sugestão: 08:00 com refeição ou alimento gorduroso para melhor absorção). Repetir em 14 dias se suspeita de Enterobius/oxiuríase.',
+            memoriaCalculo: 'Dose oficial Ministério da Saúde / HSL: Crianças > 2 anos e adultos recebem 400 mg (10 mL ou 1 comp 400 mg) em dose única INDEPENDENTE DO PESO. Não se calcula por mg/kg. Contraindicado em menores de 2 anos.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'mebendazol') {
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'suspensao',
+            pesoKg: peso,
+            doseDiariaTotalMg: 200,
+            dosePorTomadaMg: 100,
+            volumePorTomadaMl: 5,
+            tomadasDia: 2,
+            intervaloHoras: 12,
+            diasTratamento: 3,
+            volumeTotalTratamentoMl: 30,
+            volumeFrascoMl: 30,
+            frascosNecessarios: 1,
+            quantidadeDispensar: '1 frasco(s) de 30 mL',
+            instrucaoPosologica: 'Tomar 5 mL (100 mg) por via oral a cada 12 horas (sugestão: 08:00 e 20:00) durante 3 dias consecutivos.',
+            memoriaCalculo: 'Dose oficial HSL / REMUME: Crianças > 2 anos recebem 100 mg (5 mL) de 12/12h por 3 dias (dose fixa por idade, não por peso). Frasco de 30 mL cobre o tratamento completo.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'nitazoxanida') {
+          var menor4N = (opt.idadeAnos && opt.idadeAnos < 4) || (peso && peso < 15);
+          var menor12N = (opt.idadeAnos && opt.idadeAnos < 12) || (peso && peso < 35);
+          var volN = menor4N ? 5 : (menor12N ? 10 : 25);
+          var doseN = menor4N ? 100 : (menor12N ? 200 : 500);
+          var volTotN = volN * 2 * 3;
+          var frascosN = Math.ceil(volTotN / 100) || 1;
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'suspensao',
+            pesoKg: peso,
+            doseDiariaTotalMg: doseN * 2,
+            dosePorTomadaMg: doseN,
+            volumePorTomadaMl: volN,
+            tomadasDia: 2,
+            intervaloHoras: 12,
+            diasTratamento: 3,
+            volumeTotalTratamentoMl: volTotN,
+            volumeFrascoMl: 100,
+            frascosNecessarios: frascosN,
+            quantidadeDispensar: frascosN + ' frasco(s) de 100 mL' + (menor12N ? '' : ' (ou comprimidos de 500 mg)'),
+            instrucaoPosologica: 'Tomar ' + volN + ' mL por via oral a cada 12 horas (sugestão: 08:00 e 20:00) OBRIGATORIAMENTE junto a alimentos durante 3 dias consecutivos.',
+            memoriaCalculo: 'Dose oficial HSL / bula: 1 a 3 anos: 100 mg (5 mL) 12/12h; 4 a 11 anos: 200 mg (10 mL) 12/12h; >= 12 anos: 500 mg 12/12h com alimentos durante 3 dias.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'sais_reidratacao') {
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'po_solucao',
+            pesoKg: peso,
+            doseDiariaTotalMg: 1,
+            dosePorTomadaMg: 1,
+            volumePorTomadaMl: 150,
+            tomadasDia: 4,
+            intervaloHoras: 6,
+            diasTratamento: 3,
+            volumeTotalTratamentoMl: 1000,
+            volumeFrascoMl: 1000,
+            frascosNecessarios: 4,
+            quantidadeDispensar: '4 a 6 envelopes de SRO',
+            instrucaoPosologica: 'Diluir 1 envelope em 1 litro de água tratada ou fervida. Oferecer frequentemente em pequenas colheres ou goles após cada evacuação líquida ou vômito.',
+            memoriaCalculo: 'Diretriz OMS / MS: Prevenção e tratamento de desidratação (Plano A ambulatorial). Fracionar volume para evitar vômitos reflexos. Solução dura 24h.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'budesonida_nasal') {
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'spray_nasal',
+            pesoKg: peso,
+            doseDiariaTotalMg: 0.1,
+            dosePorTomadaMg: 0.05,
+            volumePorTomadaMl: 1,
+            tomadasDia: 1,
+            intervaloHoras: 24,
+            diasTratamento: 30,
+            volumeTotalTratamentoMl: 120,
+            volumeFrascoMl: 120,
+            frascosNecessarios: 1,
+            quantidadeDispensar: '1 frasco(s) de spray nasal (120 doses)',
+            instrucaoPosologica: 'Aplicar 1 jato (50 mcg) em cada narina 1 vez ao dia pela manhã (ou de 12/12h se sintomas intensos).',
+            memoriaCalculo: 'Diretriz Brasileira de Rinite / HSL: Corticoide tópico nasal de primeira escolha. Uso contínuo diário; efeito pleno a partir de 3 a 7 dias.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'loratadina') {
+          var pesoMaior30 = (peso > 30) || (opt.idadeAnos && opt.idadeAnos >= 12);
+          if (pesoMaior30) {
+            doseEfetivaMg = 10;
+            volumeMl = 10;
+          } else {
+            doseEfetivaMg = 5;
+            volumeMl = 5;
+          }
+          var volTotalL = volumeMl * 1 * diasT;
+          var frascosL = Math.ceil(volTotalL / cfg.volumeFrascoMl) || 1;
+
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'xarope',
+            pesoKg: peso,
+            doseDiariaTotalMg: doseEfetivaMg,
+            dosePorTomadaMg: doseEfetivaMg,
+            volumePorTomadaMl: volumeMl,
+            tomadasDia: 1,
+            intervaloHoras: 24,
+            diasTratamento: diasT,
+            volumeTotalTratamentoMl: volTotalL,
+            volumeFrascoMl: cfg.volumeFrascoMl,
+            frascosNecessarios: frascosL,
+            quantidadeDispensar: frascosL + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL',
+            instrucaoPosologica: 'Tomar ' + volumeMl + ' mL por via oral 1 vez ao dia, à noite (às 20:00), durante ' + diasT + ' dias.',
+            memoriaCalculo: 'Dose oficial do Guia HSL: 2 a 12 anos (até 30 kg): 5 mg (5 mL) 1 vez ao dia. > 12 anos ou > 30 kg: 10 mg (10 mL ou 1 comp) 1 vez ao dia. Dose fixa por faixa etária/peso (NÃO calculada em mg/kg). Apresentação: ' + cfg.apresentacao + '. Horário sugerido: 20:00 (à noite).',
+            orientacoes: cfg.instrucoes + (pesoMaior30 ? ' (Paciente com > 30 kg ou >= 12 anos recebe a dose máxima de 10 mg).' : ' (Para pacientes com > 30 kg ou >= 12 anos, a dose oficial é de 10 mL).'),
+            indicacao: cfg.indicacao
+          };
+        } else if (chaveAlvo === 'dexclorfeniramina') {
+          var menor6 = (opt.idadeAnos && opt.idadeAnos < 6) || (peso && peso < 20);
+          var menor12 = (opt.idadeAnos && opt.idadeAnos < 12) || (peso && peso < 35);
+          if (menor6) {
+            volumeMl = 1.25;
+            doseEfetivaMg = 0.5;
+          } else if (menor12) {
+            volumeMl = 2.5;
+            doseEfetivaMg = 1.0;
+          } else {
+            volumeMl = 5.0;
+            doseEfetivaMg = 2.0;
+          }
+          var volTotalD = Math.round(volumeMl * 3 * diasT * 10) / 10;
+          var frascosD = Math.ceil(volTotalD / cfg.volumeFrascoMl) || 1;
+
+          dadosCalculados = {
+            chave: chaveAlvo,
+            farmaco: cfg.nome,
+            apresentacao: cfg.apresentacao,
+            tipo: 'solucao_oral',
+            pesoKg: peso,
+            doseDiariaTotalMg: doseEfetivaMg * 3,
+            dosePorTomadaMg: doseEfetivaMg,
+            volumePorTomadaMl: volumeMl,
+            tomadasDia: 3,
+            intervaloHoras: 8,
+            diasTratamento: diasT,
+            volumeTotalTratamentoMl: volTotalD,
+            volumeFrascoMl: cfg.volumeFrascoMl,
+            frascosNecessarios: frascosD,
+            quantidadeDispensar: frascosD + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL',
+            instrucaoPosologica: 'Tomar ' + fmtMl(volumeMl) + ' mL por via oral a cada 8 horas (sugestão: 07:00 - 15:00 - 23:00) durante ' + diasT + ' dias.',
+            memoriaCalculo: 'Dose oficial do Guia HSL: 2 a 6 anos: 1,25 mL (0,5 mg) 3x/dia; 6 a 12 anos: 2,5 mL (1 mg) 3x/dia; > 12 anos: 5 mL (2 mg) 3x/dia. Horários sugeridos: 07h - 15h - 23h. Apresentação: ' + cfg.apresentacao + '.',
+            orientacoes: cfg.instrucoes,
+            indicacao: cfg.indicacao
+          };
+        }
+      } else if (cfg.tipo === 'gotas') {
         var doseDesejadaMg = cfg.doseMgKgDose * peso;
         var doseEfetivaMg = Math.min(doseDesejadaMg, cfg.doseMaximaPorDoseMg);
         var gotas = Math.round(doseEfetivaMg / cfg.mgPorGota);
@@ -2455,7 +2756,7 @@ var CalculadorasClinicas = (function () {
           dosePorTomadaMg: doseEfetivaMg,
           gotasPorTomada: gotas,
           intervaloHoras: cfg.intervaloHoras,
-          instrucaoPosologica: 'Dar ' + gotas + ' gotas por via oral a cada ' + cfg.intervaloHoras + ' horas se dor ou febre (máximo 4 vezes ao dia).',
+          instrucaoPosologica: 'Dar ' + gotas + ' gotas por via oral a cada ' + cfg.intervaloHoras + ' horas se dor ou febre (intervalo mínimo de 6h, máx 4 vezes ao dia).',
           memoriaCalculo: 'Dose base: ' + cfg.doseMgKgDose + ' mg/kg × ' + peso + ' kg = ' + fmt(doseDesejadaMg, 1) + ' mg (máx ' + cfg.doseMaximaPorDoseMg + ' mg) ➔ ' + doseEfetivaMg + ' mg ÷ ' + cfg.mgPorGota + ' mg/gota = ' + gotas + ' gotas.',
           quantidadeDispensar: '1 frasco conta-gotas',
           frascos: 1,
@@ -2473,6 +2774,14 @@ var CalculadorasClinicas = (function () {
         var volumeTotalTratamentoMl = volumeMl * cfg.tomadasDia * cfg.diasTratamento;
         var frascos = Math.ceil(volumeTotalTratamentoMl / cfg.volumeFrascoMl);
 
+        var sugestaoHorario = (cfg.intervaloHoras === 8)
+          ? ' (sugestão: 07:00 - 15:00 - 23:00)'
+          : ((cfg.intervaloHoras === 12)
+            ? ' (sugestão: 08:00 e 20:00)'
+            : ((cfg.intervaloHoras === 24)
+              ? (chaveAlvo === 'prednisolona' ? ' pela manhã (às 08:00, com alimento)' : ' no mesmo horário (às 10:00)')
+              : ''));
+
         dadosCalculados = {
           chave: chaveAlvo,
           farmaco: cfg.nome,
@@ -2489,8 +2798,8 @@ var CalculadorasClinicas = (function () {
           volumeFrascoMl: cfg.volumeFrascoMl,
           frascosNecessarios: frascos,
           quantidadeDispensar: frascos + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL',
-          instrucaoPosologica: 'Tomar ' + fmtMl(volumeMl) + ' mL por via oral a cada ' + cfg.intervaloHoras + ' horas durante ' + cfg.diasTratamento + ' dias.',
-          memoriaCalculo: 'Dose base: ' + cfg.doseMgKgDia + ' mg/kg/dia × ' + peso + ' kg = ' + fmt(doseDiariaBrutaMg, 1) + ' mg/dia (máx ' + cfg.doseMaximaAdultoMgDia + ' mg/dia) ➔ ' + fmt(dosePorTomadaMg, 1) + ' mg por dose (' + cfg.intervaloHoras + '/' + cfg.intervaloHoras + 'h) ➔ Conversão: ' + fmt(dosePorTomadaMg, 1) + ' mg ÷ ' + cfg.concentracaoMgPorMl + ' mg/mL = ' + fmtMl(volumeMl) + ' mL. Volume total: ' + fmtMl(volumeMl) + ' mL × ' + cfg.tomadasDia + ' tomadas × ' + cfg.diasTratamento + ' dias = ' + fmt(volumeTotalTratamentoMl, 1) + ' mL ➔ ' + frascos + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL.',
+          instrucaoPosologica: 'Tomar ' + fmtMl(volumeMl) + ' mL por via oral a cada ' + cfg.intervaloHoras + ' horas' + sugestaoHorario + ' durante ' + cfg.diasTratamento + ' dias.',
+          memoriaCalculo: 'Dose base: ' + cfg.doseMgKgDia + ' mg/kg/dia × ' + peso + ' kg = ' + fmt(doseDiariaBrutaMg, 1) + ' mg/dia (máx ' + cfg.doseMaximaAdultoMgDia + ' mg/dia) ➔ ' + fmt(dosePorTomadaMg, 1) + ' mg por dose (' + cfg.intervaloHoras + '/' + cfg.intervaloHoras + 'h' + sugestaoHorario + ') ➔ Conversão: ' + fmt(dosePorTomadaMg, 1) + ' mg ÷ ' + cfg.concentracaoMgPorMl + ' mg/mL = ' + fmtMl(volumeMl) + ' mL. Volume total: ' + fmtMl(volumeMl) + ' mL × ' + cfg.tomadasDia + ' tomadas × ' + cfg.diasTratamento + ' dias = ' + fmt(volumeTotalTratamentoMl, 1) + ' mL ➔ ' + frascos + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL.',
           orientacoes: cfg.instrucoes,
           indicacao: cfg.indicacao
         };
@@ -2530,10 +2839,62 @@ var CalculadorasClinicas = (function () {
    */
   function calcularPosologiaPorTextoLivre(texto) {
     if (!texto || typeof texto !== 'string') return null;
+    var tNorm = semAcento(texto.toLowerCase());
+
     var matchPeso = texto.match(/\b(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)\b/i);
-    if (!matchPeso) return null;
-    var pesoNum = parseFloat(matchPeso[1].replace(',', '.'));
-    if (!isFinite(pesoNum) || pesoNum <= 0 || pesoNum > 80) return null;
+    var pesoNum = matchPeso ? parseFloat(matchPeso[1].replace(',', '.')) : null;
+
+    var matchIdade = texto.match(/\b(\d+)\s*(?:anos?|a)\b/i);
+    var idadeNum = matchIdade ? parseInt(matchIdade[1], 10) : null;
+
+    // 1. Fármacos por faixa etária ou dose fixa (Anti-histamínicos, Vermífugos, SRO, Corticoide Nasal)
+    if (tNorm.indexOf('loratad') !== -1 || tNorm.indexOf('claritin') !== -1 || (tNorm.indexOf('rinite') !== -1 && (pesoNum || idadeNum || tNorm.indexOf('crianca') !== -1 || tNorm.indexOf('pediat') !== -1) && tNorm.indexOf('spray') === -1 && tNorm.indexOf('nasal') === -1)) {
+      var optLora = { idadeAnos: idadeNum };
+      var pesoParam = pesoNum || (idadeNum ? (idadeNum >= 12 ? 35 : 20) : 20);
+      var resL = posologiaPediatrica(pesoParam, 'loratadina', optLora);
+      if (resL && resL.ok && resL.dados) return resL.dados;
+    }
+
+    if (tNorm.indexOf('polaramine') !== -1 || tNorm.indexOf('dexclor') !== -1) {
+      var optDex = { idadeAnos: idadeNum };
+      var pesoDex = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : (idadeNum >= 6 ? 25 : 15)) : 15);
+      var resD = posologiaPediatrica(pesoDex, 'dexclorfeniramina', optDex);
+      if (resD && resD.ok && resD.dados) return resD.dados;
+    }
+
+    if (tNorm.indexOf('albendazol') !== -1 || tNorm.indexOf('zentel') !== -1 || tNorm.indexOf('oxiur') !== -1 || (tNorm.indexOf('verme') !== -1 && tNorm.indexOf('mebendazol') === -1)) {
+      var optAlb = { idadeAnos: idadeNum };
+      var pesoAlb = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : 20) : 20);
+      var resAlb = posologiaPediatrica(pesoAlb, 'albendazol', optAlb);
+      if (resAlb && resAlb.ok && resAlb.dados) return resAlb.dados;
+    }
+
+    if (tNorm.indexOf('mebendazol') !== -1 || tNorm.indexOf('pantelmin') !== -1) {
+      var optMeb = { idadeAnos: idadeNum };
+      var pesoMeb = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : 20) : 20);
+      var resMeb = posologiaPediatrica(pesoMeb, 'mebendazol', optMeb);
+      if (resMeb && resMeb.ok && resMeb.dados) return resMeb.dados;
+    }
+
+    if (tNorm.indexOf('nitazoxanida') !== -1 || tNorm.indexOf('annita') !== -1 || tNorm.indexOf('anita') !== -1) {
+      var optNit = { idadeAnos: idadeNum };
+      var pesoNit = pesoNum || (idadeNum ? (idadeNum >= 12 ? 45 : (idadeNum >= 4 ? 25 : 12)) : 20);
+      var resNit = posologiaPediatrica(pesoNit, 'nitazoxanida', optNit);
+      if (resNit && resNit.ok && resNit.dados) return resNit.dados;
+    }
+
+    if (tNorm.indexOf('reidratacao') !== -1 || tNorm.indexOf('sro') !== -1 || (tNorm.indexOf('diarreia') !== -1 && (tNorm.indexOf('soro') !== -1 || tNorm.indexOf('sais') !== -1))) {
+      var resSro = posologiaPediatrica(pesoNum || 15, 'sais_reidratacao', { idadeAnos: idadeNum });
+      if (resSro && resSro.ok && resSro.dados) return resSro.dados;
+    }
+
+    if (tNorm.indexOf('budesonid') !== -1 || tNorm.indexOf('busonid') !== -1 || (tNorm.indexOf('spray') !== -1 && tNorm.indexOf('nasal') !== -1)) {
+      var resBudN = posologiaPediatrica(pesoNum || 20, 'budesonida_nasal', { idadeAnos: idadeNum });
+      if (resBudN && resBudN.ok && resBudN.dados) return resBudN.dados;
+    }
+
+    // 2. Fármacos peso-dependentes convencionais
+    if (!pesoNum || !isFinite(pesoNum) || pesoNum <= 0 || pesoNum > 80) return null;
 
     var res = posologiaPediatrica(pesoNum, texto);
     if (res && res.ok && res.dados) {
@@ -2876,7 +3237,57 @@ var DICIONARIO_FARMACO = {
   "tegretol": "carbamazepina",
   "depakene": "acido valproico",
   "omeprazol": "omeprazol",
-  "pantoprazol": "pantoprazol"
+  "pantoprazol": "pantoprazol",
+  "claritin": "loratadina",
+  "allegra": "fexofenadina",
+  "desalex": "desloratadina",
+  "hixizine": "hidroxizina",
+  "hixizina": "hidroxizina",
+  "zyrtec": "cetirizina",
+  "polaramine": "dexclorfeniramina",
+  "ebastel": "ebastina",
+  "celestamine": "betametasona + dexclorfeniramina",
+  "zentel": "albendazol",
+  "pantelmin": "mebendazol",
+  "annita": "nitazoxanida",
+  "anita": "nitazoxanida",
+  "alivium": "ibuprofeno",
+  "advil": "ibuprofeno",
+  "toragesic": "trometamol cetorolaco",
+  "nisulid": "nimesulida",
+  "scafit": "nimesulida",
+  "proflam": "aceclofenaco",
+  "flanax": "naproxeno",
+  "prelone": "prednisolona",
+  "predsim": "prednisolona",
+  "decadron": "dexametasona",
+  "busonid": "budesonida",
+  "beclosol": "beclometasona",
+  "clenil": "beclometasona",
+  "atrovent": "ipratropio",
+  "berotec": "fenoterol",
+  "novocilin": "amoxicilina",
+  "keflex": "cefalexina",
+  "zitromax": "azitromicina",
+  "astro": "azitromicina",
+  "tavanic": "levofloxacino",
+  "losec": "omeprazol",
+  "pantozol": "pantoprazol",
+  "nexium": "esomeprazol",
+  "vonau": "ondansetrona",
+  "luftal": "simeticona",
+  "dramin": "dimenidrinato",
+  "cozaar": "losartana",
+  "renitec": "enalapril",
+  "capoten": "captopril",
+  "ancoron": "amiodarona",
+  "lexapro": "escitalopram",
+  "rivotril": "clonazepam",
+  "frontin": "alprazolam",
+  "valium": "diazepam",
+  "stilnox": "zolpidem",
+  "risperdal": "risperidona",
+  "seroquel": "quetiapina"
 };
 
 // Mapeamento de condições clínicas frequentes na APS para classes prioritárias
@@ -2895,6 +3306,18 @@ var MAPA_SINDROMES_APS = {
   "dm": ["metformina", "glibenclamida", "insulina"],
   "asma": ["salbutamol", "beclometasona", "budesonida", "prednisona", "prednisolona", "ipratropio"],
   "dpoc": ["salbutamol", "ipratropio", "beclometasona", "prednisona", "azitromicina"],
+  "broncoespasmo": ["salbutamol", "ipratropio", "prednisolona"],
+  "laringite": ["prednisolona", "dexametasona", "adrenalina"],
+  "rinite": ["loratadina", "dexclorfeniramina", "budesonida", "soro fisiologico"],
+  "alergia": ["loratadina", "dexclorfeniramina", "hidroxizina", "prednisolona"],
+  "urticaria": ["loratadina", "dexclorfeniramina", "hidroxizina", "prednisolona"],
+  "prurido": ["loratadina", "dexclorfeniramina", "hidroxizina"],
+  "parasitose": ["albendazol", "mebendazol", "nitazoxanida"],
+  "verminose": ["albendazol", "mebendazol", "nitazoxanida"],
+  "vermes": ["albendazol", "mebendazol", "nitazoxanida"],
+  "oxiuríase": ["albendazol", "mebendazol"],
+  "ascaridíase": ["albendazol", "mebendazol"],
+  "diarreia": ["soro de reidratacao", "zinco", "ondansetrona", "dipirona"],
   "lombalgia": ["dipirona", "paracetamol", "ibuprofeno", "ciclobenzaprina", "tramadol"],
   "dor": ["dipirona", "paracetamol", "ibuprofeno", "tramadol"],
   "depressao": ["fluoxetina", "sertralina", "amitriptilina", "nortriptilina", "escitalopram"],
@@ -3267,9 +3690,11 @@ function formatarFichaPosologicaHSL(med) {
     linhas.push(med.dose_adulto);
   }
 
-  if (med.dose_pediatria) {
-    linhas.push("\n👶 *DOSE PEDIÁTRICA:*");
+  linhas.push("\n👶 *DOSE PEDIÁTRICA:*");
+  if (med.dose_pediatria && med.dose_pediatria.trim()) {
     linhas.push(med.dose_pediatria);
+  } else {
+    linhas.push("⚠️ *Não padronizada no Guia HSL.* (Fármaco de uso restrito a adultos, componente especializado ou sem posologia ambulatorial pediátrica estabelecida na base oficial do Sírio-Libanês).");
   }
 
   if (med.dose_maxima) {
@@ -3319,9 +3744,32 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
   var meds = obterGuiaFarmaceuticoHSL();
   if (!meds || meds.length === 0) return "";
 
+  var STOP_WORDS_MEDICAS_HSL = {
+    "ANOS": true, "ANO": true, "MES": true, "MESES": true, "DIA": true, "DIAS": true,
+    "PESO": true, "QUILOS": true, "QUILO": true, "KGS": true, "KG": true, "CRIANCA": true,
+    "CRIANCAS": true, "ADULTO": true, "ADULTOS": true, "PACIENTE": true, "PACIENTES": true,
+    "RECEITA": true, "PRESCREVER": true, "TOMAR": true, "FAZER": true, "USO": true,
+    "VIA": true, "ORAL": true, "COMP": true, "COMPRIMIDO": true, "COMPRIMIDOS": true,
+    "XAROPE": true, "GOTAS": true, "DOSE": true, "DOSES": true, "PARA": true, "COM": true,
+    "SEM": true, "HORA": true, "HORAS": true, "FEBRE": true, "DOR": true, "TOSSE": true,
+    "QUADRO": true, "CASO": true, "PRESCRICAO": true, "SOLUCAO": true, "SUSPENSAO": true
+  };
+
+  function termoCasaMedicamentoHSL(mNorm, t) {
+    if (!mNorm || !t) return false;
+    var palavras = mNorm.split(/[\s\+\/\(\)]+/).filter(Boolean);
+    for (var pIdx = 0; pIdx < palavras.length; pIdx++) {
+      var p = palavras[pIdx];
+      if (p === t) return true;
+      if (t.length >= 4 && p.indexOf(t) === 0) return true;
+      if (t.length >= 5 && p.length >= 5 && p.indexOf(t) !== -1) return true;
+    }
+    return false;
+  }
+
   var pedidoLower = (typeof normalizarTexto === "function") ? normalizarTexto(pedidoUsuario) : String(pedidoUsuario || "").toLowerCase();
   var pedidoUpper = normalizarTermoMedicamento(pedidoUsuario);
-  var termos = pedidoUpper.split(/\s+/).filter(function(t) { return t.length >= 3; });
+  var termos = pedidoUpper.split(/\s+/).filter(function(t) { return t.length >= 3 && !STOP_WORDS_MEDICAS_HSL[t]; });
 
   // Expansão por sinônimos
   var termosSet = {};
@@ -3337,7 +3785,7 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
     }
   });
 
-  // Expansão por síndromes clínicas mapeadas (amigdalite, pneumonia, etc.)
+  // Expansão por síndromes clínicas mapeadas (amigdalite, pneumonia, rinite, etc.)
   for (var sindrome in MAPA_SINDROMES_APS) {
     if (pedidoLower.indexOf(sindrome.toLowerCase()) !== -1) {
       MAPA_SINDROMES_APS[sindrome].forEach(function(item) {
@@ -3350,7 +3798,7 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
     }
   }
 
-  // Localiza matches
+  // Localiza matches com proteção contra falso positivo
   var selecionados = [];
   var vistos = {};
 
@@ -3360,7 +3808,7 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
 
     for (var k = 0; k < termos.length; k++) {
       var t = termos[k];
-      if (mNorm.indexOf(t) !== -1) {
+      if (termoCasaMedicamentoHSL(mNorm, t)) {
         if (!vistos[m.farnaco]) {
           vistos[m.farnaco] = true;
           selecionados.push(m);
@@ -3395,7 +3843,9 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
         ? "  Apresentações REMUME: " + item.apresentacoes_remume.join(" | ")
         : "",
       item.dose_adulto ? "  Dose Adulto Oficial HSL: " + item.dose_adulto.replace(/\n/g, " ") : "",
-      item.dose_pediatria ? "  Dose Pediátrica Oficial HSL: " + item.dose_pediatria.replace(/\n/g, " ") : "",
+      item.dose_pediatria && item.dose_pediatria.trim()
+        ? "  Dose Pediátrica Oficial HSL: " + item.dose_pediatria.replace(/\n/g, " ")
+        : "  Dose Pediátrica Oficial HSL: ⚠️ NÃO PADRONIZADA NO GUIA HSL (fármaco de uso adulto/hospitalar especializado)",
       item.ajuste_dose ? "  Ajuste Renal/Hepático HSL: " + item.ajuste_dose.replace(/\n/g, " ") : "",
       item.administracao ? "  Administração & Orientações: " + item.administracao.replace(/\n/g, " ") : ""
     ].filter(Boolean).join("\n");
@@ -4553,6 +5003,7 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   var sistema = [
     "Você é um auditor de segurança medicamentosa e de conformidade com diretrizes. Receba o CASO e o RASCUNHO e liste SOMENTE problemas reais:",
     "- dose acima do máximo ou abaixo do terapêutico; falta de ajuste renal/hepático/peso/idade; alergia ou interação ignorada;",
+    "- erro de cálculo pediátrico (ex: calcular anti-histamínico por mg/kg em vez da dose fixa por idade/peso do HSL; cobrar peso quando a idade define a dose; horários desnecessários de madrugada);",
     "- diluente, velocidade de infusão ou acesso incorretos; erro aritmético (refaça a conta); medicamento fora da lista informada;",
     "- conduta em desacordo com AHA 2025 (PCR), Surviving Sepsis Campaign (sepse) ou diretrizes brasileiras vigentes.",
     "Se não houver problema, responda exatamente: SEM ALERTAS. Caso contrário, liste todos os problemas identificados em linhas iniciadas por '- ', sem omitir alertas por brevidade.",
@@ -5142,24 +5593,41 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "=======================================================================",
     "",
     "DIRETRIZES DE SEGURANÇA FARMACOLÓGICA E DIDÁTICA (FMRP-USP):",
-    "1. PEDIATRIA E MEMÓRIA DE CÁLCULO DIDÁTICA TRANSPARENTE:",
-    "   - Sem peso informado: NUNCA presuma peso de criança. Declare imediatamente em Status: 'Dados pendentes (Peso em kg obrigatório para cálculo pediátrico seguro)' e cobre o peso sem calcular dosagem arbitrária em mL.",
-    "   - Com peso informado: Exiba no receituário a posologia clara e no campo de conferência a MEMÓRIA DE CÁLCULO COMPLETA E DIDÁTICA baseada na dose de referência do Guia HSL:",
-    "     • Dose de referência: dose recomendada na diretriz/HSL em mg/kg/dia dividida em X tomadas/dia.",
-    "     • Dose diária total: mg/kg/dia × peso (kg) = total de mg/dia.",
-    "     • Dose por tomada: total de mg/dia ÷ número de tomadas = mg por dose.",
-    "     • Conversão volumétrica: concentração da apresentação da REMUME/HSL (ex: 250 mg/5 mL) ➔ volume exato por tomada em mL.",
-    "     • Checagem de dose máxima: comparar com a dose máxima diária e por tomada do HSL/adulto (nunca ultrapassar).",
-    "     • Quantidade a dispensar: volume por tomada × tomadas/dia × dias = volume total em mL ➔ número de frascos a dispensar.",
-    "2. QUANTIDADE TOTAL A DISPENSAR MATEMATICAMENTE COERENTE:",
+    "1. PEDIATRIA E MEMÓRIA DE CÁLCULO DIDÁTICA TRANSPARENTE (SÓ PEÇA PESO SE REALMENTE PRECISAR):",
+    "   - Sem peso informado: NUNCA presuma peso de criança para fármacos dependentes de peso (antimicrobianos, analgésicos gotas, corticoides). Declare imediatamente em Status: 'Dados pendentes (Peso em kg obrigatório para cálculo pediátrico seguro de [medicamento])' e cobre o peso sem calcular dosagem arbitrária em mL.",
+    "   - Com peso informado: Exiba no receituário a posologia clara e no campo de conferência a MEMÓRIA DE CÁLCULO COMPLETA E DIDÁTICA baseada na dose de referência do Guia HSL (mg/kg/dia ➔ mg/dose ➔ mL/dose na lista ➔ frascos).",
+    "   - FÁRMACOS COM DOSE POR FAIXA ETÁRIA OU DOSE FIXA PEDIÁTRICA (ANTI-HISTAMÍNICOS E ANTI-HELMÍNTICOS):",
+    "     • Exemplos: anti-histamínicos (Loratadina, Dexclorfeniramina, Cetirizina, Desloratadina), anti-helmínticos (Albendazol, Mebendazol), tópicos e nasais.",
+    "     • REGRA DE OURO CLÍNICA: Se a idade for informada (ex: 'criança de 5 anos'), NUNCA COBRE PESO NEM BLOQUEIE A PRESCRIÇÃO.",
+    "     • É TERMINANTEMENTE PROIBIDO inventar taxas em 'mg/kg/dia' para anti-histamínicos (erro grave de '1 mg/kg/dia').",
+    "     • Prescreva imediatamente a dose volumétrica da faixa etária conforme o Guia HSL:",
+    "       - Loratadina 1 mg/mL: 2 a 12 anos (até 30 kg) = 5 mL (5 mg) VO 1 vez ao dia à noite; > 12 anos (ou > 30 kg) = 10 mL (10 mg) VO 1 vez ao dia.",
+    "       - Dexclorfeniramina 2 mg/5 mL: 2 a 6 anos = 1,25 mL (0,5 mg) VO 3 vezes ao dia; 6 a 12 anos = 2,5 mL (1 mg) VO 3 vezes ao dia; > 12 anos = 5 mL (2 mg) VO 3 vezes ao dia.",
+    "       - Albendazol 400 mg: > 2 anos e adultos = 400 mg (10 mL ou 1 comp) em DOSE ÚNICA INDEPENDENTE DO PESO (repetir em 14 dias se oxiuríase).",
+    "       - Mebendazol 100 mg/5 mL: > 2 anos = 5 mL (100 mg) de 12 em 12 horas por 3 dias consecutivos.",
+    "       - Nitazoxanida 20 mg/mL: 1 a 3 anos = 5 mL (100 mg) 12/12h; 4 a 11 anos = 10 mL (200 mg) 12/12h; >= 12 anos = 500 mg 12/12h com alimentos por 3 dias.",
+    "     • FÁRMACOS SEM DOSE PEDIÁTRICA NO HSL: Se o fármaco solicitado não possuir posologia pediátrica catalogada no Guia HSL, NUNCA invente dose em mg/kg. Declare em Status: '⚠️ Fármaco sem padronização pediátrica no Guia HSL' e indique a alternativa da REMUME.",
+    "2. CRONOFARMACOLOGIA E DISTRIBUIÇÃO EXATA DE HORÁRIOS DE TOMADA (OBRIGATÓRIO):",
+    "   - Toda posologia e orientação ao paciente DEVE conter os horários sugeridos de tomada alinhados à farmacocinética e à rotina:",
+    "     • Intervalo de 8 em 8 horas: horários práticos que preservam o sono: '07:00 - 15:00 - 23:00' (ou 06:00 - 14:00 - 22:00). NUNCA sugerir despertares de madrugada desnecessários.",
+    "     • Intervalo de 12 em 12 horas: '08:00 e 20:00' (ou 07:00 e 19:00).",
+    "     • Anti-histamínicos (1x/dia): 'À noite (às 20:00 ou 21:00)' para controle dos sintomas matinais e prevenção de sonolência diurna.",
+    "     • Corticoides orais (Prednisona/Prednisolona): 'Pela manhã (às 07:00 às 08:00), logo após o café da manhã' (ritmo do cortisol, evita insônia e supressão adrenal).",
+    "     • Inibidores da bomba de prótons (Omeprazol): 'Pela manhã em jejum, 30 a 60 minutos antes do café da manhã'.",
+    "     • Estatinas (Sinvastatina): 'À noite (às 21:00 ou ao deitar)' (pico noturno da síntese hepática de colesterol).",
+    "     • Diuréticos (Furosemida, Hidroclorotiazida): 'Pela manhã (às 07:00 às 08:00)' para evitar noctúria e quedas noturnas.",
+    "     • Metformina: 'Durante ou logo após o almoço e/ou jantar' (reduz intolerância gastrointestinal).",
+    "     • AINEs: 'Sempre após as refeições' (proteção gástrica).",
+    "     • Analgésicos/Antitérmicos SOS: 'a cada 6 horas se dor ou febre (intervalo mínimo 6h, máx 4 tomadas ao dia)'.",
+    "3. QUANTIDADE TOTAL A DISPENSAR MATEMATICAMENTE COERENTE:",
     "   - Calcule e informe sempre a quantidade total a dispensar no receituário (ex: 21 cápsulas, 2 frascos de 100 mL, 1 tubo de 30 g) compatível com a posologia e duração do tratamento para evitar desabastecimento do paciente.",
-    "3. AJUSTE RENAL, HEPÁTICO E CRITÉRIOS DE BEERS (SEGURANÇA ATIVA):",
+    "4. AJUSTE RENAL, HEPÁTICO E CRITÉRIOS DE BEERS (SEGURANÇA ATIVA):",
     "   - Medicamentos com depuração renal (ex: antimicrobianos, AINEs, metformina, atenolol, enoxaparina):",
     "     • Aplique o ajuste de dose do Guia HSL conforme a faixa de ClCr informada.",
     "     • Se NÃO foi informada e o paciente for idoso ou de risco: declarar formalmente: '⚠️ Função renal não informada — fármaco de depuração renal; conferir ClCr/TFG antes de administrar (se TFG < 50 mL/min, necessária redução posológica)'.",
     "   - Idosos (>= 65 anos): verificar Critérios de Beers / STOPP-START. Alertar se a classe for potencialmente inapropriada e sugerir alternativa mais segura.",
     "   - Alergias e Interações: CHECAGEM CRUZADA OBRIGATÓRIA de alergias (penicilina, dipirona, sulfas, AINEs) e interações com medicações de uso contínuo relatadas.",
-    "4. Formato copiável para o prontuário eletrônico / e-SUS.",
+    "5. Formato copiável para o prontuário eletrônico / e-SUS.",
     "",
     IA_SEGURANCA_MEDICAMENTOSA,
     "",
@@ -5170,14 +5638,14 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "\uD83D\uDCDD *Receituário*",
     "*[USO ORAL / TÓPICO / INALATÓRIO / OFTÁLMICO / INJETÁVEL]*",
     "1. *Nome genérico (DCI)* - [concentração da lista] - [quantidade total calculada a dispensar]",
-    "- *Posologia:* [instrução clara de tomada por via, dose, intervalo e duração]",
+    "- *Posologia:* [instrução clara com via, dose, intervalo, horários sugeridos de tomada e duração]",
     "",
     "\uD83D\uDCA1 *Orientações ao paciente*",
-    "- [horários com/sem alimentos, conservação, sinais de alerta e quando retornar]",
+    "- [horários práticos de tomada, relação com refeições, conservação, sinais de alerta e retorno]",
     "",
     "\uD83D\uDCCB *Conferência médica*",
     "- *Indicação clínica:* [...]",
-    "- *Memória de cálculo (se pediátrico):* [passo a passo: dose HSL ➔ mg/kg/dia ➔ mg/dose ➔ mL/dose na apresentação da lista ➔ checagem de dose máxima ➔ frascos totais]",
+    "- *Memória de cálculo (se pediátrico):* [se por peso: dose HSL ➔ mg/kg/dia ➔ mg/dose ➔ mL/dose na lista ➔ frascos; se por idade (ex: Loratadina/Dexclorfeniramina): dose fixa oficial HSL por idade/peso ➔ mL/dose ➔ frascos, sem inventar mg/kg]",
     "- *Ajustes de segurança (renal, hepático, idade/Beers, gestação):* [faixas de TFG do Guia HSL, alertas ou conformidade]",
     "- *Alergias e interações:* [conferido com dados do caso ou pendências]",
     "- *Disponibilidade na Rede:* [Item da REMUME de Ribeirão Preto / Não consta na REMUME - opção referenciada no Guia HSL].",
@@ -5283,7 +5751,7 @@ function processarCalculadoraClinicaComIA(dadosCalc) {
     "MODO: CALCULADORA E ESTRATIFICAÇÃO DE RISCO. Interprete escores e cálculos do internato com concisão.",
     "REGRAS:",
     "1. Se o texto trouxer um resultado já calculado pelo motor do sistema, PRESERVE-o integralmente; apenas interprete.",
-    "2. Se precisar calcular, mostre a soma item a item em texto simples. Se faltar variável, diga qual falta e NÃO estime.",
+    "2. Se precisar calcular, mostre a soma item a item em texto simples. Se faltar variável da fórmula, aponte estritamente o parâmetro ausente e forneça uma caixa de texto monospaçada para completar, sem nunca solicitar dados genéricos ou exames não relacionados.",
     "3. Escore não deve substituir julgamento clínico: cite a principal limitação.",
     "4. Use apenas hifens para tópicos.",
     "",
@@ -7769,7 +8237,7 @@ function processarMensagemTexto(message) {
     }
 
     // Se o usuário invocou uma calculadora reconhecida deterministicamente mas resDet não retornou resultado, NUNCA cai na IA!
-    if (typeof ehCalculadoraReconhecida === "function" && ehCalculadoraReconhecida(dadosCalc)) {
+    if (typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(dadosCalc)) {
       var instrucoes = obterInstrucoesCalculadora(dadosCalc);
       return enviarMensagemParaChat(chatId, "⚠️ *Calculadora Clínica: Parâmetros Insuficientes ou Inválidos*\n\n" + instrucoes);
     }
@@ -9334,8 +9802,13 @@ var CATALOGO_CALCULADORAS = {
   },
   meld: {
     id: "meld",
-    nome: "MELD / MELD-Na / Child-Pugh",
-    aliases: ["meld", "meld-na", "meldna", "child", "child-pugh", "childpugh"]
+    nome: "MELD / MELD-Na",
+    aliases: ["meld", "meld-na", "meldna"]
+  },
+  child: {
+    id: "child",
+    nome: "Child-Pugh",
+    aliases: ["child", "child-pugh", "childpugh"]
   },
   glasgow: {
     id: "glasgow",
@@ -9414,6 +9887,16 @@ var CATALOGO_CALCULADORAS = {
   }
 };
 
+var LISTA_CALCULADORAS_DETERMINISTICAS = [
+  "curb65", "ckd", "cockcroft", "cha2ds2vasc", "hasbled", "wells",
+  "glasgow", "calcio", "gap_osmolar", "agua", "kdigo", "ldl", "meld"
+];
+
+function ehCalculadoraDeterministica(texto) {
+  var id = identificarCalculadora(texto);
+  return id ? LISTA_CALCULADORAS_DETERMINISTICAS.indexOf(id) !== -1 : false;
+}
+
 function ehApenasNomeCalculadora(texto) {
   var s = (texto || "").trim().toLowerCase();
   for (var k in CATALOGO_CALCULADORAS) {
@@ -9459,18 +9942,188 @@ function tentarCalcularDeterministico(texto) {
   if (!texto || typeof CalculadorasClinicas === "undefined") return null;
   var t = texto.toLowerCase();
   var identidade = identificarCalculadora(texto);
+
+  // 1. CKD-EPI 2021
   if (identidade === "ckd") {
     var crCkd = t.match(/\b(?:cr|creatinina)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
     var idadeCkd = t.match(/\bidade\s*[:=]?\s*(\d+)/i) || t.match(/\b(\d+)\s*anos?\b/i);
     var femCkd = /\b(?:mulher|feminino|fem|f)\b/i.test(t), mascCkd = /\b(?:homem|masculino|masc|m)\b/i.test(t);
-    if (!crCkd || !idadeCkd || femCkd === mascCkd) return "⚠️ CKD-EPI: informe creatinina, idade e um único sexo biológico. Peso não altera a fórmula escolhida.";
+    if (!crCkd || !idadeCkd || femCkd === mascCkd) {
+      return "⚠️ *Calculadora CKD-EPI 2021: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("ckd");
+    }
     var rCkd = CalculadorasClinicas.ckdEpi2021(Number(crCkd[1].replace(",", ".")), Number(idadeCkd[1]), femCkd);
     return rCkd.ok ? rCkd.textoFormatado : "⚠️ CKD-EPI: " + rCkd.erro;
   }
-  // Não deixar parâmetros de outra calculadora acionarem uma heurística de clearance.
-  if (identidade && ["meld", "cockcroft", "cha2ds2vasc", "hasbled"].indexOf(identidade) === -1) return null;
 
-  // 1. MELD / MELD-Na (Prioritário para evitar colisão com "cr" de clearance)
+  // 2. CURB-65
+  if (identidade === "curb65") {
+    var mIdadeCurb = t.match(/\bidade\s*[:=]?\s*(\d+)/i) || t.match(/\b(\d+)\s*anos?\b/i) || t.match(/\b(\d+)a\b/i);
+    var mConfMatch = t.match(/confus[ãa]o(?:\s*mental)?\s*[:=]?\s*(sim|n[aã]o|s|n|1|0|presente|ausente)/i);
+    var confCurb = null;
+    if (mConfMatch) {
+      confCurb = /sim|s|1|presente/i.test(mConfMatch[1]);
+    } else {
+      var ehConfuso = /\b(?:confus[ao]|desorientad[ao]|rebaixad[ao])\b/i.test(t) && !/\b(?:sem\s+confus[ãa]o|n[aã]o\s+confus[ao]|l[úu]cid[ao]|orientad[ao])\b/i.test(t);
+      var ehLucido = /\b(?:l[úu]cid[ao]|orientad[ao]|vigil|sem\s+confus[ãa]o|n[aã]o\s+confus[ao])\b/i.test(t);
+      if (ehConfuso) confCurb = true;
+      else if (ehLucido) confCurb = false;
+    }
+    var mUreia = t.match(/\b(?:ureia|ur[eé]ia)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || t.match(/\bbun\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mFr = t.match(/\b(?:fr|frequ[êe]ncia\s+respirat[oó]ria|respira[çc][ãa]o)\s*[:=]?\s*(\d+)/i) || t.match(/\b(\d+)\s*(?:irpm|mrpm|rpm)\b/i);
+    var mPa = t.match(/\b(?:pa|press[ãa]o(?:\s+arterial)?)\s*[:=]?\s*(\d{2,3})\s*[/xX]\s*(\d{2,3})/i) || t.match(/\b(\d{2,3})\s*[/xX]\s*(\d{2,3})\b/i);
+    var mPas = t.match(/\bpas\s*[:=]?\s*(\d{2,3})/i);
+    var mPad = t.match(/\bpad\s*[:=]?\s*(\d{2,3})/i);
+    var pasVal = null, padVal = null;
+    if (mPa) { pasVal = Number(mPa[1]); padVal = Number(mPa[2]); }
+    else if (mPas && mPad) { pasVal = Number(mPas[1]); padVal = Number(mPad[1]); }
+    if (pasVal && padVal && pasVal <= 30 && padVal <= 20) { pasVal *= 10; padVal *= 10; }
+
+    if (!mIdadeCurb || confCurb === null || !mUreia || !mFr || pasVal === null || padVal === null) {
+      return "⚠️ *Calculadora CURB-65: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("curb65");
+    }
+
+    var rCurb = CalculadorasClinicas.curb65(confCurb, Number(mUreia[1].replace(",", ".")), Number(mFr[1]), pasVal, padVal, Number(mIdadeCurb[1]));
+    return rCurb.ok ? rCurb.textoFormatado : "⚠️ CURB-65: " + rCurb.erro;
+  }
+
+  // 3. Cálcio Corrigido
+  if (identidade === "calcio") {
+    var mCa = t.match(/(?:c[aá]lcio(?:\s+total)?|ca)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mAlb = t.match(/(?:albumina|alb)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (!mCa || !mAlb) {
+      return "⚠️ *Calculadora Cálcio Corrigido: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("calcio");
+    }
+    var rCa = CalculadorasClinicas.calcioCorrigido(Number(mCa[1].replace(",", ".")), Number(mAlb[1].replace(",", ".")));
+    return rCa.ok ? rCa.textoFormatado : "⚠️ Cálcio Corrigido: " + rCa.erro;
+  }
+
+  // 4. Gap Osmolar
+  if (identidade === "gap_osmolar") {
+    var mOsm = t.match(/(?:osmolaridade(?:\s+medida)?|osm(?:\s+medida)?)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mNaOsm = t.match(/(?:s[oó]dio|na)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mGliOsm = t.match(/(?:glicose|glicemia|gli)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mUrOsm = t.match(/(?:ureia|ur[eé]ia)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (!mOsm || !mNaOsm || !mGliOsm || !mUrOsm) {
+      return "⚠️ *Calculadora Gap Osmolar: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("gap_osmolar");
+    }
+    var rGap = CalculadorasClinicas.gapOsmolar(
+      Number(mOsm[1].replace(",", ".")),
+      Number(mNaOsm[1].replace(",", ".")),
+      Number(mGliOsm[1].replace(",", ".")),
+      Number(mUrOsm[1].replace(",", "."))
+    );
+    return rGap.ok ? rGap.textoFormatado : "⚠️ Gap Osmolar: " + rGap.erro;
+  }
+
+  // 5. Déficit de Água Livre
+  if (identidade === "agua") {
+    var mNaAtual = t.match(/(?:s[oó]dio(?:\s+atual)?|na(?:\s+atual)?)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mNaAlvo = t.match(/(?:s[oó]dio\s+alvo|na\s+alvo|alvo)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mPesoAgua = t.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i) || t.match(/peso\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var perfilAgua = "Homem adulto";
+    if (/homem\s+idoso|idoso/i.test(t)) perfilAgua = "Homem idoso";
+    else if (/mulher\s+idosa|idosa/i.test(t)) perfilAgua = "Mulher idosa";
+    else if (/mulher|feminino/i.test(t)) perfilAgua = "Mulher adulta";
+    else if (/homem|masculino/i.test(t)) perfilAgua = "Homem adulto";
+    else if (/crian[çc]a/i.test(t)) perfilAgua = "Criança";
+
+    if (!mNaAtual || !mPesoAgua) {
+      return "⚠️ *Calculadora Déficit de Água Livre: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("agua");
+    }
+    var naAt = Number(mNaAtual[1].replace(",", "."));
+    var naAl = mNaAlvo ? Number(mNaAlvo[1].replace(",", ".")) : 140;
+    var pesoAg = Number(mPesoAgua[1].replace(",", "."));
+    var rAgua = CalculadorasClinicas.deficitAguaLivre(naAt, naAl, pesoAg, perfilAgua);
+    return rAgua.ok ? rAgua.textoFormatado : "⚠️ Déficit de Água Livre: " + rAgua.erro;
+  }
+
+  // 6. Glasgow-P
+  if (identidade === "glasgow") {
+    var mO = t.match(/(?:abertura\s*ocular|ocular|\bo\b)\s*[:=]?\s*(\d)/i);
+    var mV = t.match(/(?:resposta\s*verbal|verbal|\bv\b)\s*[:=]?\s*(\d)/i);
+    var mM = t.match(/(?:resposta\s*motora|motora|\bm\b)\s*[:=]?\s*(\d)/i);
+    var mP = t.match(/(?:pupilas?(?:\s+n[aã]o\s+reagentes?)?|pupilar?|\bp\b)\s*[:=]?\s*(\d)/i);
+    var pupVal = 0;
+    if (mP) {
+      pupVal = Number(mP[1]);
+    } else if (/nenhuma\s+reage|2\s+pupilas/i.test(t)) {
+      pupVal = 2;
+    } else if (/uma\s+reage|1\s+pupila/i.test(t)) {
+      pupVal = 1;
+    } else if (/ambas\s+reagem|reagentes|fotorreagentes/i.test(t)) {
+      pupVal = 0;
+    }
+
+    if (!mO || !mV || !mM) {
+      return "⚠️ *Calculadora Glasgow-P: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("glasgow");
+    }
+    var rGcs = CalculadorasClinicas.glasgowP(Number(mO[1]), Number(mV[1]), Number(mM[1]), pupVal);
+    return rGcs.ok ? rGcs.textoFormatado : "⚠️ Glasgow-P: " + rGcs.erro;
+  }
+
+  // 7. KDIGO IRA
+  if (identidade === "kdigo") {
+    var mCrAt = t.match(/(?:cr(?:eatinina)?\s*atual|cr\s*atual|cr|creatinina)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mCrBs = t.match(/(?:cr(?:eatinina)?\s*basal|basal)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mDu = t.match(/(?:d[eé]bito(?:\s+urin[aá]rio)?|du)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mTempo = t.match(/(?:tempo|horas?|h)\s*[:=]?\s*(\d+)/i);
+    if (!mCrAt) {
+      return "⚠️ *Calculadora KDIGO: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("kdigo");
+    }
+    var crAtVal = Number(mCrAt[1].replace(",", "."));
+    var crBsVal = mCrBs ? Number(mCrBs[1].replace(",", ".")) : null;
+    var duVal = mDu ? Number(mDu[1].replace(",", ".")) : null;
+    var tempoVal = mTempo ? Number(mTempo[1]) : null;
+    var rKdigo = CalculadorasClinicas.estadiamentoKDIGO(crAtVal, crBsVal, duVal, tempoVal);
+    return rKdigo.ok ? rKdigo.textoFormatado : "⚠️ KDIGO: " + rKdigo.erro;
+  }
+
+  // 8. Wells (TEP)
+  if (identidade === "wells") {
+    var temCriterioWells = /(?:tvp|edema|panturrilha|mais\s+prov[aá]vel|alternativo|fc\s*[:=]?\s*\d+|fc\s*>\s*100|taquicardia|cirurgia|imobiliza|hemoptise|c[aâ]ncer|neoplasia)/i.test(t);
+    if (!temCriterioWells) return null;
+
+    function extrairBoolWells(rePos, reNeg) {
+      if (reNeg && reNeg.test(t)) return false;
+      if (rePos && rePos.test(t)) {
+        var m = t.match(rePos);
+        if (m) {
+          var antes = t.substring(Math.max(0, m.index - 30), m.index);
+          if (/\b(?:sem|n[aã]o|nega|aus[êe]ncia)\b/i.test(antes)) return false;
+          return true;
+        }
+      }
+      return null;
+    }
+
+    var sinaisTvp = extrairBoolWells(/\b(?:sinais|sinais\s+cl[ií]nicos|tvp\s+cl[ií]nica|dor\s+panturrilha|edema\s+assim[eé]trico)\b/i, /\bsem\s+tvp|sem\s+sinais\b/i);
+    var diagMaisProv = extrairBoolWells(/\b(?:mais\s+prov[aá]vel|hip[oó]tese\s+principal|diagn[oó]stico\s+principal)\b/i, /\bdiagn[oó]stico\s+alternativo|outro\s+diagn[oó]stico|improv[aá]vel\b/i);
+    var mFcWells = t.match(/\bfc\s*[:=]?\s*(\d+)/i) || t.match(/(\d+)\s*bpm/i);
+    var fcMaior100 = mFcWells ? (Number(mFcWells[1]) > 100) : extrairBoolWells(/\bfc\s*>\s*100|taquicardia\b/i, /\bfc\s*<\s*100|normoc[aá]rdico\b/i);
+    var imobCirurg = extrairBoolWells(/\b(?:imobiliza|acamado|cirurgia(?:\s+recente)?|p[oó]s[- ]op)\b/i, /\bsem\s+cirurgia|sem\s+imobiliza|deambulando\b/i);
+    var tepPrevio = extrairBoolWells(/\b(?:tep\s+pr[eé]vio|tvp\s+pr[eé]vi[ao]|hist[oó]rico\s+de\s+tep|hist[oó]rico\s+de\s+tvp)\b/i, /\bsem\s+tep\s+pr[eé]vio|sem\s+tvp\s+pr[eé]via\b/i);
+    var hemoptise = extrairBoolWells(/\bhemoptise\b/i, /\bsem\s+hemoptise|nega\s+hemoptise\b/i);
+    var cancer = extrairBoolWells(/\b(?:c[aâ]ncer|neoplasia|maligna)\b/i, /\bsem\s+c[aâ]ncer|sem\s+neoplasia\b/i);
+
+    if (sinaisTvp !== null && diagMaisProv !== null && fcMaior100 !== null) {
+      var rW = CalculadorasClinicas.wellsTEP(
+        !!sinaisTvp,
+        !!diagMaisProv,
+        !!fcMaior100,
+        !!imobCirurg,
+        !!tepPrevio,
+        !!hemoptise,
+        !!cancer
+      );
+      if (rW && rW.ok) return rW.textoFormatado;
+    }
+    return "⚠️ *Calculadora Wells (TEP): Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("wells");
+  }
+
+  // Não deixar parâmetros de outra calculadora não determinística acionarem heurísticas soltas de clearance.
+  if (identidade && LISTA_CALCULADORAS_DETERMINISTICAS.indexOf(identidade) === -1) return null;
+
+  // 9. MELD / MELD-Na (Prioritário para evitar colisão com "cr" de clearance)
   if (/\bmeld\b/i.test(t) && CalculadorasClinicas.meld) {
     var mBili = t.match(/bili(?:rrubina)?\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
     var mInr = t.match(/inr\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
@@ -9492,9 +10145,8 @@ function tentarCalcularDeterministico(texto) {
       if (!mCrM) faltasMeld.push("Creatinina sérica (mg/dL)");
       if (!mInr) faltasMeld.push("INR");
       return "⚠️ *Calculadora MELD / MELD-Na Incompleta*\n\n" +
-             "Para calcular o escore com segurança clínica, informe os parâmetros obrigatórios:\n" +
-             "• " + faltasMeld.join("\n• ") + "\n\n" +
-             "💡 *Exemplo:* `/calc MELD bili 2.0, cr 1.5, inr 1.2, sódio 135` (e diálise na última semana se houver).";
+             "Informe os parâmetros obrigatórios:\n• " + faltasMeld.join("\n• ") + "\n\n" +
+             obterInstrucoesCalculadora("meld");
     }
 
     var bili = parseFloat(mBili[1].replace(",", "."));
@@ -9510,7 +10162,7 @@ function tentarCalcularDeterministico(texto) {
     }
   }
 
-  // 2. Clearance de Creatinina (Cockcroft-Gault)
+  // 10. Clearance de Creatinina (Cockcroft-Gault)
   if (identidade === "cockcroft" || (!identidade && /cr(?:eatinina)?\b/i.test(t) && /peso/i.test(t))) {
     var mCr = t.match(/(?:cr(?:eatinina)?|cre)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
     var mPeso = t.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i) || t.match(/peso\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
@@ -9519,19 +10171,12 @@ function tentarCalcularDeterministico(texto) {
     var temFem = /fem(?:inino)?|mulher|\bf\b/i.test(t);
     var temMasc = /masc(?:ulino)?|homem|\bm\b/i.test(t);
     if (!temFem && !temMasc) {
-      return "⚠️ *Clearance de Creatinina (Cockcroft-Gault)*\n\nPor favor, informe o sexo biológico do paciente (masculino ou feminino). O cálculo exige essa distinção para precisão clínica (fator de correção de 0,85 para mulheres).";
+      return "⚠️ *Clearance de Creatinina (Cockcroft-Gault)*\n\n" + obterInstrucoesCalculadora("cockcroft");
     }
     var ehMulher = temFem && !temMasc;
 
     if (!mCr || !mPeso || !mIdade) {
-      var faltasCg = [];
-      if (!mCr) faltasCg.push("Creatinina sérica (mg/dL)");
-      if (!mPeso) faltasCg.push("Peso corporal (kg)");
-      if (!mIdade) faltasCg.push("Idade (anos)");
-      return "⚠️ *Clearance de Creatinina Incompleto*\n\n" +
-             "Para estimar a taxa de filtração por Cockcroft-Gault, informe:\n" +
-             "• " + faltasCg.join("\n• ") + "\n\n" +
-             "💡 *Exemplo:* `/calc clearance Cr 1.2, peso 70 kg, 65 anos, masculino`";
+      return "⚠️ *Clearance de Creatinina Incompleto*\n\n" + obterInstrucoesCalculadora("cockcroft");
     }
 
     if (CalculadorasClinicas.cockcroftGault) {
@@ -9561,7 +10206,7 @@ function tentarCalcularDeterministico(texto) {
     }
   }
 
-  // 3. HAS-BLED Determinístico
+  // 11. HAS-BLED Determinístico
   if (/\bhas-?bled\b/i.test(t) && CalculadorasClinicas.hasbled) {
     var semFatoresBled = /\b(?:sem\s+comorbidades?|sem\s+fatores?|sem\s+antecedentes?|h[íi]gid[ao]|previamente\s+h[íi]gid[ao])\b/i.test(t);
 
@@ -9614,48 +10259,27 @@ function tentarCalcularDeterministico(texto) {
     return "⚠️ *Calculadora HAS-BLED: Parâmetros Insuficientes ou Inválidos*\n\n" + instrucoesHasbled;
   }
 
-  // 4. CHA2DS2-VASc Determinístico
+  // 12. CHA2DS2-VASc Determinístico
   if (/cha2?ds2|vasc/i.test(t) && CalculadorasClinicas.cha2ds2vasc) {
     var temFemC = /\b(?:mulher|fem(?:inino)?|f)\b/i.test(t);
     var temMascC = /\b(?:homem|masc(?:ulino)?|m)\b/i.test(t);
     var mIdadeC = t.match(/(\d+)\s*a(?:nos)?\b/) || t.match(/idade\s*[:=]?\s*(\d+)/i);
     var idadeC = mIdadeC ? parseInt(mIdadeC[1], 10) : null;
 
-    // Se não há dados mínimos (idade ou sexo ausentes), exige parâmetros obrigatórios
     if (idadeC === null || (!temFemC && !temMascC)) {
-      return "⚠️ *Calculadora CHA₂DS₂-VASc (Risco Tromboembólico na FA)*\n\n" +
-             "Para calcular o escore com segurança clínica, informe no mínimo:\n" +
-             "• *Idade* do paciente (anos)\n" +
-             "• *Sexo biológico* (homem ou mulher)\n" +
-             "• *Fatores de risco* presentes ou ausentes (IC, HAS, DM, AVC/AIT prévio, Doença Vascular).\n\n" +
-             "💡 *Exemplo:* `/calc CHA2DS2-VASc mulher, 68 anos, hipertensa, diabética, sem IC, sem AVC`";
+      return "⚠️ *Calculadora CHA₂DS₂-VASc (Risco Tromboembólico na FA)*\n\n" + obterInstrucoesCalculadora("cha2ds2vasc");
     }
 
-    // Detecção de histórico/antecedentes/comorbidades desconhecidos (V01)
     var temFatoresDesconhecidos = /(?:antecedentes?|fatores?|comorbidades?|hist[oó]rico|doen[çc]as?)\s+(?:desconhecid[ao]s?|n[aã]o\s+informad[ao]s?|incert[ao]s?|d[uú]vidos[ao]s?|ignorad[ao]s?)|n[aã]o\s+sabe\s+(?:antecedentes|comorbidades|hist[oó]rico|fatores)|hist[oó]rico\s+desconhecido|sem\s+informa[çc][ãa]o\s+de\s+(?:antecedentes|comorbidades|fatores)|\bdesconhecid[ao]s?\b/i.test(t);
     if (temFatoresDesconhecidos) {
       return "⚠️ *Calculadora CHA₂DS₂-VASc: Antecedentes Desconhecidos*\n\n" +
-             "Não é seguro calcular o escore com comorbidades desconhecidas. Subestimar o risco tromboembólico pode privar o paciente de anticoagulação indicada para prevenção de AVC.\n\n" +
-             "Para calcular o escore com segurança clínica, informe a presença ou ausência dos fatores de risco:\n" +
-             "• *IC:* Insuficiência Cardíaca Congestiva / Disfunção de VE\n" +
-             "• *HAS:* Hipertensão Arterial Sistêmica\n" +
-             "• *DM:* Diabetes Mellitus\n" +
-             "• *AVC/AIT:* Tromboembolismo ou AVC prévio\n" +
-             "• *Doença Vascular:* IAM prévio, DAOP ou placa aórtica\n\n" +
-             "💡 *Exemplo:* `/calc CHA2DS2-VASc homem, 60 anos, sem HAS, sem DM, sem AVC, sem IC, sem doença vascular` (ou informe se for previamente hígido/sem comorbidades).";
+             "Não é seguro calcular o escore com comorbidades desconhecidas para prevenção de AVC.\n\n" +
+             obterInstrucoesCalculadora("cha2ds2vasc");
     }
 
-    // Se nenhum fator foi mencionado (positivo ou negativamente), exige confirmação dos fatores
     var temMencaoFatores = /(?:ic|insufici[êe]ncia|has|hipertens|dm|diab[eé]t|avc|ait|stroke|trombo|vascular|iam|infarto|daop|coronario|comorbidade|fator|antecedente|h[íi]gid[ao]|doen[çc]a)/i.test(t);
     if (!temMencaoFatores) {
-      return "⚠️ *Calculadora CHA₂DS₂-VASc (Risco Tromboembólico na FA)*\n\n" +
-             "Para calcular o escore com segurança clínica, informe a presença ou ausência dos fatores de risco:\n" +
-             "• *IC:* Insuficiência Cardíaca Congestiva / Disfunção de VE\n" +
-             "• *HAS:* Hipertensão Arterial Sistêmica\n" +
-             "• *DM:* Diabetes Mellitus\n" +
-             "• *AVC/AIT:* Tromboembolismo ou AVC prévio\n" +
-             "• *Doença Vascular:* IAM prévio, DAOP ou placa aórtica\n\n" +
-             "💡 *Exemplo:* `/calc CHA2DS2-VASc homem, 60 anos, sem HAS, sem DM, sem AVC, sem IC, sem doença vascular` (ou informe se for previamente hígido/sem comorbidades).";
+      return "⚠️ *Calculadora CHA₂DS₂-VASc (Risco Tromboembólico na FA)*\n\n" + obterInstrucoesCalculadora("cha2ds2vasc");
     }
 
     var ehMulherC = temFemC && !temMascC;
@@ -9696,7 +10320,6 @@ function tentarCalcularDeterministico(texto) {
       vasc: semComorbidadesGeral ? "ausente" : "desconhecido"
     };
 
-    // Extração com resolução léxica estrita de polaridade para cada fator
     for (var fKey in defFatores) {
       var fDef = defFatores[fKey];
       if (fDef.reAutoNeg && fDef.reAutoNeg.test(t)) {
@@ -9709,8 +10332,6 @@ function tentarCalcularDeterministico(texto) {
       while ((match = regexBusca.exec(t)) !== null) {
         var pos = match.index;
         var trechoAntes = t.substring(0, pos).split(/[.;\n]/).pop();
-        // O último operador explícito determina o escopo; vírgulas preservam listas coordenadas.
-        // "não tem" é uma única negação, enquanto "sem IC, tem HAS" muda para afirmativo.
         var operadores = /\b(?:n[aã]o\s+(?:tem|apresenta|possui)|sem|n[aã]o|nega|aus[êe]ncia\s+de|livre\s+de|tem|apresenta|possui|com|portador[ae]?\s+de|mas|por[eé]m|contudo|todavia|entretanto|exceto|salvo)\b/gi;
         var op, negado = false;
         while ((op = operadores.exec(trechoAntes)) !== null) {
@@ -9726,12 +10347,8 @@ function tentarCalcularDeterministico(texto) {
     var avcC = (estados.avc === "presente");
     var vascC = (estados.vasc === "presente");
 
-    // Executa a função pura determinística (para compatibilidade e mocks)
     var rCha = CalculadorasClinicas.cha2ds2vasc(icC, hasC, i75C, dmC, avcC, vascC, i65C, ehMulherC);
 
-    // Validação estrita de completude clínica (X01/X02/W01):
-    // Se QUALQUER um dos cinco fatores clínicos permanecer desconhecido (e não houver atestado geral de higidez):
-    // O escore recusa o fechamento e NUNCA emite pontuação definitiva (0/9, 1/9) nem recomendação de conduta.
     var faltantes = [];
     for (var kF in defFatores) {
       if (estados[kF] === "desconhecido") {
@@ -9741,9 +10358,9 @@ function tentarCalcularDeterministico(texto) {
 
     if (faltantes.length > 0) {
       return "⚠️ *Calculadora CHA₂DS₂-VASc: Fatores Incompletos*\n\n" +
-             "Para calcular o escore com segurança clínica sem presumir ausência de dados, informe a presença ou ausência dos fatores de risco clínicos não declarados:\n" +
+             "Informe a presença ou ausência dos fatores não declarados:\n" +
              "• " + faltantes.join("\n• ") + "\n\n" +
-             "💡 *Exemplo:* `/calc CHA2DS2-VASc homem, 60 anos, HAS, sem DM, sem AVC, sem IC, sem doença vascular` (ou declare se o paciente for previamente hígido / sem comorbidades).";
+             obterInstrucoesCalculadora("cha2ds2vasc");
     }
 
     if (rCha && rCha.ok) {
@@ -9767,164 +10384,482 @@ function tentarCalcularDeterministico(texto) {
 }
 
 function obterInstrucoesCalculadora(tipo) {
-  var t = (tipo || "").toUpperCase();
+  var t = (tipo || "").toUpperCase().replace(/[\-_]/g, " ");
 
   if (t.indexOf("CURB") !== -1) {
     return "📐 *CALCULADORA: CURB-65 (Gravidade na PAC)*\n\n" +
-      "Envie os seguintes dados do paciente:\n" +
-      "• *C (Confusão mental):* Desorientação aguda? (Sim/Não)\n" +
-      "• *U (Ureia):* Ureia sérica (mg/dL) ou BUN (mg/dL)\n" +
-      "• *R (Respiração):* Frequência Respiratória (irpm)\n" +
-      "• *B (Blood Pressure):* Pressão Arterial (PAS < 90 ou PAD ≤ 60 mmHg)\n" +
-      "• *65:* Idade do paciente (anos)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`71 anos, lúcido, PA 100/60, FR 32, Ureia 68`";
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Confusão mental aguda (sim/não)\n" +
+      "• Ureia sérica (mg/dL) ou BUN\n" +
+      "• Frequência respiratória (irpm)\n" +
+      "• Pressão arterial (PAS e PAD em mmHg)\n" +
+      "• Idade (anos)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc curb65\n" +
+      "Idade: [ ] anos\n" +
+      "Confusão mental: [sim/não]\n" +
+      "Ureia: [ ] mg/dL\n" +
+      "FR: [ ] irpm\n" +
+      "PA: [ ]x[ ] mmHg\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
-  if (t.indexOf("CKD") !== -1 || t.indexOf("COCKCROFT") !== -1) {
-    return "📐 *CALCULADORA: FUNÇÃO RENAL (CKD-EPI / Cockcroft-Gault)*\n\n" +
-      "Envie os seguintes dados para estimar a TFG / Clearance:\n" +
-      "• *Idade:* (em anos)\n" +
-      "• *Sexo biológico:* (Masculino / Feminino)\n" +
-      "• *Creatinina sérica:* (em mg/dL)\n" +
-      "• *Peso atual:* (em kg - fundamental para Cockcroft)\n" +
-      "• *Altura:* (em cm - opcional)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Homem, 68 anos, 74 kg, Creatinina 1.9 mg/dL`";
+  if (t.indexOf("COCKCROFT") !== -1 || t.indexOf("CLEARANCE") !== -1 || t.indexOf("CLCR") !== -1) {
+    return "📐 *CALCULADORA: Cockcroft-Gault (Clearance de Creatinina)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade (anos)\n" +
+      "• Sexo biológico (Masculino / Feminino)\n" +
+      "• Creatinina sérica (mg/dL)\n" +
+      "• Peso corporal (kg)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc cockcroft\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "Peso: [ ] kg\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
-  if (t.indexOf("WELLS") !== -1) {
-    return "📐 *CALCULADORA: ESCORE DE WELLS (TEP ou TVP)*\n\n" +
-      "Especifique se a suspeita é de *TEP* ou *TVP* e informe:\n" +
-      "• Sinais/sintomas clínicos de TVP (edema assimétrico, dor à palpação)?\n" +
-      "• Frequência Cardíaca (bpm) — FC > 100?\n" +
-      "• Imobilização ≥ 3 dias ou cirurgia nas últimas 4 semanas?\n" +
-      "• Episódio prévio documentado de TVP ou TEP?\n" +
-      "• Presença de hemoptise?\n" +
-      "• Câncer ativo (tratamento nos últimos 6 meses ou paliativo)?\n" +
-      "• Diagnóstico de TEP é o mais provável ou tão provável quanto outro?\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Suspeita TEP, FC 108, cirurgia de fêmur há 15 dias, sem hemoptise, TEP é hipótese principal`";
+  if (t.indexOf("CKD") !== -1 && t.indexOf("COCKCROFT") === -1 && t.indexOf("CLEARANCE") === -1) {
+    return "📐 *CALCULADORA: CKD-EPI 2021 (Taxa de Filtração Glomerular)*\n\n" +
+      "Dados estritamente necessários para o cálculo (sem raça e sem peso):\n" +
+      "• Idade (anos)\n" +
+      "• Sexo biológico (Masculino / Feminino)\n" +
+      "• Creatinina sérica (mg/dL)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc ckd\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
-  if (t.indexOf("SOFA") !== -1) {
-    return "📐 *CALCULADORA: qSOFA & SOFA (Sepse)*\n\n" +
-      "Para *qSOFA* (beira do leito), envie:\n" +
-      "• *Glasgow:* (< 15 ou rebaixamento agudo?)\n" +
-      "• *Pressão Sistólica:* (PAS ≤ 100 mmHg?)\n" +
-      "• *Frequência Respiratória:* (FR ≥ 22 irpm?)\n\n" +
-      "Para *SOFA Completo* (UTI), informe também:\n" +
-      "• PaO2/FiO2, Plaquetas, Bilirrubinas, PAM/Noradrenalina, Creatinina/Diurese.\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Confuso (Glasgow 13), PA 85/50, FR 24 irpm, febre e tosse produtiva`";
+  // Caso seja seleção mista do menu legado (CKD-EPI / Cockcroft)
+  if (t.indexOf("CKD") !== -1 || t.indexOf("RENAL") !== -1 || t.indexOf("TFG") !== -1) {
+    return "📐 *CALCULADORA: FUNÇÃO RENAL (CKD-EPI & Cockcroft-Gault)*\n\n" +
+      "Escolha a equação desejada e copie a caixa correspondente:\n\n" +
+      "🔹 *1. CKD-EPI 2021 (TFG - Estadiamento de DRC)*\n" +
+      "```\n" +
+      "/calc ckd\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "```\n\n" +
+      "🔹 *2. Cockcroft-Gault (ClCr - Ajuste Posológico)*\n" +
+      "```\n" +
+      "/calc cockcroft\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "Peso: [ ] kg\n" +
+      "```\n" +
+      "*(Toque na caixa desejada para copiar, preencha os valores e envie)*";
+  }
+
+  if (t.indexOf("WELLS") !== -1 || t.indexOf("TEP") !== -1 || t.indexOf("TVP") !== -1) {
+    var ehTvp = t.indexOf("TVP") !== -1 && t.indexOf("TEP") === -1;
+    if (ehTvp) {
+      return "📐 *CALCULADORA: ESCORE DE WELLS PARA TVP*\n\n" +
+        "Dados estritamente necessários para o cálculo:\n" +
+        "• Fatores clínicos e de exame físico do membro inferior.\n\n" +
+        "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+        "```\n" +
+        "/calc wellstvp\n" +
+        "Câncer ativo: [sim/não]\n" +
+        "Paralisia ou gesso recente: [sim/não]\n" +
+        "Acamado ≥ 3 dias ou cirurgia recente: [sim/não]\n" +
+        "Dor trajeto venoso profundo: [sim/não]\n" +
+        "Edema de toda a perna: [sim/não]\n" +
+        "Panturrilha assimétrica (> 3 cm): [sim/não]\n" +
+        "Edema com cacifo unilateral: [sim/não]\n" +
+        "Veias colaterais visíveis: [sim/não]\n" +
+        "TVP prévia documentada: [sim/não]\n" +
+        "Diagnóstico alternativo tão provável: [sim/não]\n" +
+        "```\n" +
+        "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+    }
+    return "📐 *CALCULADORA: ESCORE DE WELLS PARA TEP*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Avaliação clínica direta de risco tromboembólico pulmonar.\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc wellstep\n" +
+      "Sinais clínicos de TVP: [sim/não]\n" +
+      "TEP hipótese mais provável: [sim/não]\n" +
+      "FC > 100 bpm: [sim/não]\n" +
+      "Imobilização ≥ 3d ou cirurgia recente: [sim/não]\n" +
+      "Histórico prévio de TVP ou TEP: [sim/não]\n" +
+      "Hemoptise: [sim/não]\n" +
+      "Câncer ativo: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("CHA2") !== -1 || t.indexOf("VAS") !== -1) {
-    return "📐 *CALCULADORA: CHA2DS2-VASc (Risco Tromboembólico na FA)*\n\n" +
-      "Envie o perfil clínico do paciente:\n" +
-      "• *Idade:* (em anos)\n" +
-      "• *Sexo:* (Masculino / Feminino)\n" +
-      "• *IC:* Insuficiência Cardíaca congestiva? (Sim/Não)\n" +
-      "• *HAS:* Hipertensão arterial sistêmica? (Sim/Não)\n" +
-      "• *DM:* Diabetes Mellitus? (Sim/Não)\n" +
-      "• *AVC/AIT:* AVC, AIT ou embolia prévia? (Sim/Não)\n" +
-      "• *Doença Vascular:* IAM prévio, DAOP ou placa aórtica? (Sim/Não)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Mulher, 74 anos, hipertensa, diabética, sem histórico de AVC ou IC`";
+    return "📐 *CALCULADORA: CHA₂DS₂-VASc (Risco Tromboembólico na FA)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade (anos)\n" +
+      "• Sexo biológico (Masculino / Feminino)\n" +
+      "• Fatores de risco tromboembólico (IC, HAS, DM, AVC, Vascular)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc cha2ds2vasc\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Insuficiência Cardíaca (IC): [sim/não]\n" +
+      "Hipertensão (HAS): [sim/não]\n" +
+      "Diabetes (DM): [sim/não]\n" +
+      "AVC ou AIT prévio: [sim/não]\n" +
+      "Doença Vascular (IAM/DAOP): [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("BLED") !== -1) {
     return "📐 *CALCULADORA: HAS-BLED (Risco de Sangramento na Anticoagulação)*\n\n" +
-      "Envie os fatores de risco presentes:\n" +
-      "• *H (Hipertensão):* PAS não controlada > 160 mmHg?\n" +
-      "• *A (Renal/Hepático):* Diálise, Cr > 2.26 ou Cirrose/Bilirrubina > 2x?\n" +
-      "• *S (AVC):* Histórico de AVC prévio?\n" +
-      "• *B (Bleeding):* Histórico de sangramento maior ou anemia grave?\n" +
-      "• *L (Lábil):* RNI lábil se usa Varfarina?\n" +
-      "• *E (Elderly):* Idade > 65 anos?\n" +
-      "• *D (Drogas/Álcool):* Usa AAS/AINEs ou ingere álcool ≥ 8 doses/semana?\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`70 anos, HAS controlada, sem sangramento prévio, Cr 1.1, usa AAS e faz uso social de álcool`";
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade (anos)\n" +
+      "• Presença ou ausência dos fatores de sangramento\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc hasbled\n" +
+      "Idade: [ ] anos\n" +
+      "Hipertensão não controlada (PAS > 160): [sim/não]\n" +
+      "Doença Renal grave (diálise ou Cr > 2.26): [sim/não]\n" +
+      "Doença Hepática crônica (cirrose ou Bilirrubina > 2x): [sim/não]\n" +
+      "Histórico de AVC: [sim/não]\n" +
+      "Histórico de sangramento maior: [sim/não]\n" +
+      "INR lábil (se usa varfarina): [sim/não]\n" +
+      "Uso de AAS, clopidogrel ou AINE: [sim/não]\n" +
+      "Consumo excessivo de álcool: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("MELD") !== -1) {
+    return "📐 *CALCULADORA: MELD & MELD-Na (Gravidade na Hepatopatia)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Bilirrubina total (mg/dL)\n" +
+      "• Creatinina sérica (mg/dL)\n" +
+      "• INR\n" +
+      "• Sódio sérico (mEq/L - para MELD-Na)\n" +
+      "• Diálise na última semana (sim/não)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc meld\n" +
+      "Bilirrubina total: [ ] mg/dL\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "INR: [ ]\n" +
+      "Sódio: [ ] mEq/L\n" +
+      "Diálise na última semana: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("CHILD") !== -1) {
+    return "📐 *CALCULADORA: Escore de Child-Pugh (Cirrose Hepática)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Bilirrubina total (mg/dL)\n" +
+      "• Albumina sérica (g/dL)\n" +
+      "• INR\n" +
+      "• Ascite (ausente / leve / moderada)\n" +
+      "• Encefalopatia (ausente / grau 1-2 / grau 3-4)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc child\n" +
+      "Bilirrubina total: [ ] mg/dL\n" +
+      "Albumina: [ ] g/dL\n" +
+      "INR: [ ]\n" +
+      "Ascite: [ausente / leve / moderada]\n" +
+      "Encefalopatia: [ausente / grau 1-2 / grau 3-4]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("GLASGOW") !== -1 || t.indexOf("GCS") !== -1) {
+    return "📐 *CALCULADORA: Escala de Coma de Glasgow com Pupilas (Glasgow-P)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Abertura ocular (1 a 4)\n" +
+      "• Resposta verbal (1 a 5)\n" +
+      "• Resposta motora (1 a 6)\n" +
+      "• Reatividade pupilar (0, 1 ou 2 pupilas não reagentes)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc glasgow\n" +
+      "Abertura ocular (1-4): [ ]\n" +
+      "Resposta verbal (1-5): [ ]\n" +
+      "Resposta motora (1-6): [ ]\n" +
+      "Pupilas não reagentes (0, 1 ou 2): [ ]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("CALCIO") !== -1) {
+    return "📐 *CALCULADORA: Cálcio Corrigido pela Albumina*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Cálcio total sérico (mg/dL)\n" +
+      "• Albumina sérica (g/dL)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc calcio\n" +
+      "Cálcio total: [ ] mg/dL\n" +
+      "Albumina: [ ] g/dL\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("GAP") !== -1 || t.indexOf("OSMOLAR") !== -1 || t.indexOf("OSMOLAL") !== -1) {
+    return "📐 *CALCULADORA: Gap Osmolar Plasmático*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Osmolaridade sérica medida (mOsm/kg)\n" +
+      "• Sódio sérico (mEq/L)\n" +
+      "• Glicose sérica (mg/dL)\n" +
+      "• Ureia sérica (mg/dL)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc gap osmolar\n" +
+      "Osmolaridade medida: [ ] mOsm/kg\n" +
+      "Sódio: [ ] mEq/L\n" +
+      "Glicose: [ ] mg/dL\n" +
+      "Ureia: [ ] mg/dL\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("AGUA") !== -1 || t.indexOf("DEFICIT") !== -1 || t.indexOf("HIPERNATREMIA") !== -1) {
+    return "📐 *CALCULADORA: Déficit de Água Livre (Hipernatremia)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Sódio sérico atual (mEq/L)\n" +
+      "• Sódio alvo (mEq/L - padrão 140)\n" +
+      "• Peso corporal (kg)\n" +
+      "• Perfil do paciente (homem jovem / homem idoso / mulher jovem / mulher idosa)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc deficit agua\n" +
+      "Sódio atual: [ ] mEq/L\n" +
+      "Sódio alvo: [ 140 ] mEq/L\n" +
+      "Peso: [ ] kg\n" +
+      "Perfil: [homem jovem / homem idoso / mulher jovem / mulher idosa]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("KDIGO") !== -1 || t.indexOf("IRA") !== -1) {
+    return "📐 *CALCULADORA: KDIGO (Estadiamento de Injúria Renal Aguda)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Creatinina sérica atual (mg/dL)\n" +
+      "• Creatinina sérica basal (mg/dL)\n" +
+      "• Débito urinário em mL/kg/h (opcional)\n" +
+      "• Duração da oligúria em horas (opcional)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc kdigo\n" +
+      "Creatinina atual: [ ] mg/dL\n" +
+      "Creatinina basal: [ ] mg/dL\n" +
+      "Débito urinário (opcional): [ ] mL/kg/h\n" +
+      "Tempo em horas (opcional): [ ] h\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("LDL") !== -1 || t.indexOf("MARTIN") !== -1 || t.indexOf("HOPKINS") !== -1) {
+    return "📐 *CALCULADORA: LDL Martin-Hopkins / Friedewald*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Colesterol Total (mg/dL)\n" +
+      "• HDL-colesterol (mg/dL)\n" +
+      "• Triglicerídeos (mg/dL)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc ldl\n" +
+      "Colesterol total: [ ] mg/dL\n" +
+      "HDL: [ ] mg/dL\n" +
+      "Triglicerídeos: [ ] mg/dL\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("SOFA") !== -1) {
+    return "📐 *CALCULADORA: qSOFA (Rastreio de Sepse à Beira do Leito)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Glasgow < 15 (sim/não)\n" +
+      "• Pressão Arterial Sistólica ≤ 100 mmHg (sim/não)\n" +
+      "• Frequência Respiratória ≥ 22 irpm (sim/não)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc qsofa\n" +
+      "Glasgow < 15: [sim/não]\n" +
+      "PAS ≤ 100 mmHg: [sim/não]\n" +
+      "FR ≥ 22 irpm: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("HEART") !== -1 || t.indexOf("TIMI") !== -1) {
-    return "📐 *CALCULADORA: HEART SCORE & TIMI (Dor Torácica / SCA)*\n\n" +
-      "Envie os dados de estratificação no pronto-socorro:\n" +
-      "• *História clínica:* (Altamente suspeita / Moderadamente suspeita / Pouco suspeita)\n" +
-      "• *ECG:* (Normal / Repolarização inespecífica / Isquemia aguda/onda T)\n" +
-      "• *Idade:* (em anos)\n" +
-      "• *Fatores de risco:* (HAS, Diabetes, Tabagismo, DLP, Obesidade, Histórico familiar precoce)\n" +
-      "• *Troponina:* (Valor sérico e referência ou Positiva/Negativa)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Dor opressiva retroesternal típica há 2h com irradiação MSE, 58 anos, hipertenso e fumante, ECG com T invertida V4-V6, Troponina positiva`";
+    return "📐 *CALCULADORA: HEART SCORE (Dor Torácica / SCA)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• História (pouco suspeita / moderada / altamente suspeita)\n" +
+      "• ECG (normal / inespecífico / desvio de ST significativo)\n" +
+      "• Idade (anos)\n" +
+      "• Fatores de risco (HAS, DM, fumo, DLP, IMC>30, HF precoce) - informar quantidade\n" +
+      "• Troponina (normal / 1-3x limite / >3x limite)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc heart\n" +
+      "História: [pouco suspeita / moderada / altamente suspeita]\n" +
+      "ECG: [normal / inespecífico / desvio de ST significativo]\n" +
+      "Idade: [ ] anos\n" +
+      "Fatores de risco: [ ] fatores\n" +
+      "Troponina: [normal / 1 a 3x limite / > 3x limite]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("GRACE") !== -1) {
-    return "📐 *CALCULADORA: GRACE SCORE (SCA com ou sem Supra de ST)*\n\n" +
-      "Envie os parâmetros clínicos da admissão:\n" +
+    return "📐 *CALCULADORA: GRACE SCORE (Síndrome Coronariana Aguda)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
       "• Idade (anos), FC (bpm), PAS (mmHg), Creatinina (mg/dL)\n" +
-      "• Classe Killip (I a IV)\n" +
-      "• PCR na admissão? Desvio de ST no ECG? Troponina elevada?\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`65 anos, FC 88, PA 115/70, Cr 1.2, Killip I, sem PCR, infra de ST 1.5mm, Troponina positiva`";
-  }
-
-  if (t.indexOf("MELD") !== -1 || t.indexOf("CHILD") !== -1) {
-    return "📐 *CALCULADORA: CHILD-PUGH & MELD (Hepatopatia Crônica)*\n\n" +
-      "Envie os parâmetros laboratoriais e clínicos:\n" +
-      "• Bilirrubina total (mg/dL), Albumina (g/dL), RNI\n" +
-      "• Ascite (Ausente/Leve/Refratária), Encefalopatia (Ausente/Grau 1-2/Grau 3-4)\n" +
-      "• Creatinina (mg/dL) e Sódio sérico (mEq/L)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Bilirrubina 2.7, Albumina 3.0, RNI 1.8, Creatinina 1.3, Sódio 134, ascite leve, sem encefalopatia`";
-  }
-
-  if (t.indexOf("GLASGOW") !== -1) {
-    return "📐 *CALCULADORA: ESCALA DE COMA DE GLASGOW COM PUPILAS (Glasgow-P)*\n\n" +
-      "Envie as respostas avaliadas:\n" +
-      "• *Abertura Ocular (1–4):* Espontânea (4), Ao chamado (3), À pressão (2), Nenhuma (1)\n" +
-      "• *Resposta Verbal (1–5):* Orientada (5), Confusa (4), Inapropriada (3), Sons ininteligíveis (2), Nenhuma (1)\n" +
-      "• *Resposta Motora (1–6):* Obedece comandos (6), Localiza dor (5), Flexão normal (4), Flexão anormal (3), Extensão (2), Nenhuma (1)\n" +
-      "• *Pupilas:* Ambas fotorreagentes (0), Apenas uma reage (-1), Nenhuma reage (-2)\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Abertura ao chamado (3), palavras desconexas (3), localiza dor (5), pupilas reagentes (0)`";
+      "• Classe Killip (I, II, III, IV)\n" +
+      "• PCR na admissão? Desvio de ST? Marcadores miocárdicos elevados?\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc grace\n" +
+      "Idade: [ ] anos\n" +
+      "FC: [ ] bpm\n" +
+      "PAS: [ ] mmHg\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "Killip (I, II, III, IV): [ ]\n" +
+      "Parada cardíaca na admissão: [sim/não]\n" +
+      "Desvio de ST: [sim/não]\n" +
+      "Marcadores miocárdicos elevados: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("NIHSS") !== -1) {
     return "📐 *CALCULADORA: NIHSS (Escala de AVC Isquêmico)*\n\n" +
-      "Envie os achados neurológicos observados:\n" +
-      "• Nível de consciência, olhar conjugado, campo visual, paresia facial, força motora (MSD, MSE, MID, MIE), ataxia, sensibilidade, linguagem/disartria, extinção.\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Alerta, desvio de rima à D, paresia braquiocrural D grau 3, disartria moderada, sem afasia`";
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Nível de consciência, paresia facial, força em 4 membros, linguagem, disartria.\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc nihss\n" +
+      "Nível de consciência: [alerta / sonolento / torporoso / coma]\n" +
+      "Paresia facial: [normal / leve / evidente / total]\n" +
+      "Força MSD: [normal / queda leve / esforço contra gravidade / sem movimento]\n" +
+      "Força MSE: [normal / queda leve / esforço contra gravidade / sem movimento]\n" +
+      "Força MID: [normal / queda leve / esforço contra gravidade / sem movimento]\n" +
+      "Força MIE: [normal / queda leve / esforço contra gravidade / sem movimento]\n" +
+      "Linguagem / afasia: [normal / leve / grave / mutismo]\n" +
+      "Disartria: [normal / leve / grave]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("RANSON") !== -1 || t.indexOf("BISAP") !== -1) {
-    return "📐 *CALCULADORA: BISAP & RANSON (Pancreatite Aguda)*\n\n" +
-      "Envie as variáveis clínicas das primeiras 24h:\n" +
-      "• Ureia > 50 mg/dL, Idade > 60 anos, SIRS presente, Glasgow < 15, Derrame pleural no RX.\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`64 anos, lúcido, FC 102, FR 22, Tax 38.2, Ureia 58, RX com derrame pleural à esquerda`";
+    return "📐 *CALCULADORA: BISAP (Gravidade na Pancreatite Aguda)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Ureia > 50 mg/dL (ou BUN > 25) (sim/não)\n" +
+      "• Glasgow < 15 (alteração mental) (sim/não)\n" +
+      "• SIRS presente (≥ 2 critérios vitais) (sim/não)\n" +
+      "• Idade > 60 anos (sim/não)\n" +
+      "• Derrame pleural (sim/não)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc bisap\n" +
+      "Ureia > 50 mg/dL: [sim/não]\n" +
+      "Glasgow < 15: [sim/não]\n" +
+      "SIRS (≥ 2 critérios vitais): [sim/não]\n" +
+      "Idade > 60 anos: [sim/não]\n" +
+      "Derrame pleural: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("FRAMINGHAM") !== -1) {
-    return "📐 *CALCULADORA: RISCO CARDIOVASCULAR (Framingham / SBC)*\n\n" +
-      "Envie os parâmetros:\n" +
-      "• Idade, Sexo, Colesterol Total, HDL, PAS, uso de anti-hipertensivo, tabagismo, diabetes.\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Homem, 54 anos, CT 225, HDL 38, PA 145/90 com Losartana, fumante, não diabético`";
+    return "📐 *CALCULADORA: RISCO CARDIOVASCULAR DE FRAMINGHAM*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade (anos), Sexo biológico (M/F)\n" +
+      "• Colesterol Total (mg/dL), HDL (mg/dL), PAS (mmHg)\n" +
+      "• Tratamento de HAS (sim/não), Tabagismo (sim/não), Diabetes (sim/não)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc framingham\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Colesterol total: [ ] mg/dL\n" +
+      "HDL: [ ] mg/dL\n" +
+      "PAS: [ ] mmHg\n" +
+      "Tratamento para HAS: [sim/não]\n" +
+      "Tabagismo atual: [sim/não]\n" +
+      "Diabetes: [sim/não]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
-  if (t.indexOf("AGUA") !== -1 || t.indexOf("DEFICIT") !== -1) {
-    return "📐 *CALCULADORA: DÉFICIT DE ÁGUA LIVRE (Hipernatremia)*\n\n" +
-      "Envie os parâmetros para reposição:\n" +
-      "• Sódio sérico atual (mEq/L), Sódio alvo (ex: 140 mEq/L), Peso (kg), Perfil (Homem idoso, Mulher adulta, etc.).\n\n" +
-      "💡 *Exemplo de envio:*\n" +
-      "`Homem idoso, 65 kg, Sódio atual 162 mEq/L, alvo 145 mEq/L`";
+  if (t.indexOf("FRAX") !== -1) {
+    return "📐 *CALCULADORA: FRAX (Risco de Fratura Osteoporótica)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade (anos), Sexo (M/F), Peso (kg), Altura (cm)\n" +
+      "• Fratura prévia, fratura pais, fumo, corticoide, artrite, osteoporose 2ª, álcool, DMO colo\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc frax\n" +
+      "Idade: [ ] anos\n" +
+      "Sexo biológico: [M/F]\n" +
+      "Peso: [ ] kg\n" +
+      "Altura: [ ] cm\n" +
+      "Fratura prévia: [sim/não]\n" +
+      "Pais com fratura de quadril: [sim/não]\n" +
+      "Tabagismo atual: [sim/não]\n" +
+      "Uso de corticoide: [sim/não]\n" +
+      "Artrite reumatoide: [sim/não]\n" +
+      "Osteoporose secundária: [sim/não]\n" +
+      "Álcool ≥ 3 doses/dia: [sim/não]\n" +
+      "T-score colo fêmur (opcional): [ ]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
-  return "📐 *" + tipo + "*\n\n" +
-    "Por favor, envie os dados clínicos e laboratoriais do paciente para este cálculo.\n" +
-    "💡 *Exemplo:* Idade, sexo, sinais vitais e valores laboratoriais relevantes.";
+  if (t.indexOf("APACHE") !== -1) {
+    return "📐 *CALCULADORA: APACHE II (Terapia Intensiva)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Idade, Temperatura, PAM, FC, FR, PaO2/AaDO2, pH, Na, K, Cr, Ht, Leucócitos, Glasgow, insuficiência crônica, admissão.\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc apache\n" +
+      "Idade: [ ] anos\n" +
+      "Temperatura: [ ] °C\n" +
+      "PAM: [ ] mmHg\n" +
+      "FC: [ ] bpm\n" +
+      "FR: [ ] irpm\n" +
+      "PaO2: [ ] mmHg\n" +
+      "pH: [ ]\n" +
+      "Sódio: [ ] mEq/L\n" +
+      "Potássio: [ ] mEq/L\n" +
+      "Creatinina: [ ] mg/dL\n" +
+      "Hematócrito: [ ] %\n" +
+      "Leucócitos: [ ] /mm³\n" +
+      "Glasgow: [ ]\n" +
+      "Insuficiência orgânica crônica: [sim/não]\n" +
+      "Tipo de admissão: [clínica / urgência / eletiva]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  // Fallback geral sem dados genéricos:
+  return "📐 *CALCULADORA CLÍNICA: " + tipo.toUpperCase() + "*\n\n" +
+    "Informe estritamente as variáveis necessárias para este cálculo.\n\n" +
+    "📋 *Copie a caixa abaixo, preencha os parâmetros e envie:*\n" +
+    "```\n" +
+    "/calc " + tipo + "\n" +
+    "[Parâmetros e valores necessários]: [ ]\n" +
+    "```\n" +
+    "*(Toque na caixa acima para copiar, complete apenas os dados necessários e envie)*";
 }
 
 function enviarMenuCategoriasCalculadoras(chatId, messageId) {
@@ -9963,8 +10898,10 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
   } else if (categoria === "calc_cat_renal") {
     tituloCat = "🧪 *Calculadoras Nefro, Metabólicas & Gerais:*";
     teclado = [
-      [{"text": "CKD-EPI / Cockcroft", "callback_data": "calc_CKD-EPI"}, {"text": "CURB-65", "callback_data": "calc_CURB-65"}],
-      [{"text": "Déficit de Água", "callback_data": "calc_Agua"}, {"text": "LDL Martin-Hopkins", "callback_data": "calc_LDL-Martin-Hopkins"}],
+      [{"text": "CKD-EPI (TFG)", "callback_data": "calc_CKD"}, {"text": "Cockcroft (ClCr)", "callback_data": "calc_Cockcroft"}],
+      [{"text": "CURB-65", "callback_data": "calc_CURB-65"}, {"text": "Déficit de Água", "callback_data": "calc_Agua"}],
+      [{"text": "Cálcio Corrigido", "callback_data": "calc_Calcio"}, {"text": "Gap Osmolar", "callback_data": "calc_Gap_Osmolar"}],
+      [{"text": "KDIGO (IRA)", "callback_data": "calc_KDIGO"}, {"text": "LDL Martin-Hopkins", "callback_data": "calc_LDL-Martin-Hopkins"}],
       [{"text": "FRAX (Fratura)", "callback_data": "calc_FRAX"}],
       [{"text": "⬅️ Voltar ao Menu", "callback_data": "calc_menu_principal"}]
     ];
@@ -9972,8 +10909,9 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
     tituloCat = "🧠 *Calculadoras Neuro & Terapia Intensiva:*";
     teclado = [
       [{"text": "Glasgow-P", "callback_data": "calc_Glasgow"}, {"text": "NIHSS (AVC)", "callback_data": "calc_NIHSS"}],
-      [{"text": "qSOFA / SOFA", "callback_data": "calc_SOFA"}, {"text": "Child-Pugh / MELD", "callback_data": "calc_MELD"}],
-      [{"text": "Ranson / BISAP", "callback_data": "calc_Ranson"}, {"text": "APACHE II", "callback_data": "calc_APACHE"}],
+      [{"text": "qSOFA (Sepse)", "callback_data": "calc_SOFA"}, {"text": "MELD / MELD-Na", "callback_data": "calc_MELD"}],
+      [{"text": "Child-Pugh", "callback_data": "calc_Child"}, {"text": "BISAP (Pancreatite)", "callback_data": "calc_Ranson"}],
+      [{"text": "APACHE II", "callback_data": "calc_APACHE"}],
       [{"text": "⬅️ Voltar ao Menu", "callback_data": "calc_menu_principal"}]
     ];
   }
