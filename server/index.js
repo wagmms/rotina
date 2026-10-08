@@ -368,6 +368,28 @@ async function startServer() {
           server.log.error({ err: recoveryErr }, '[Webhook] Falha ao recuperar pedidos pendentes');
         }
       });
+
+      // Ciclo autônomo de rotina (Briefing Matinal 06:15, Check-in Noturno 21:30, Sentinela de Hábitos)
+      const INTERVALO_ROTINA_MS = 5 * 60 * 1000;
+      const rotinaTimer = setInterval(() => {
+        try {
+          if (runtime.ctx && typeof runtime.ctx.executarCicloRotina5Min === 'function') {
+            runtime.ctx.executarCicloRotina5Min();
+          }
+        } catch (errRotina) {
+          server.log.error({ err: errRotina }, '[Rotina 5min] Erro no ciclo periódico');
+        }
+      }, INTERVALO_ROTINA_MS);
+      if (rotinaTimer.unref) rotinaTimer.unref();
+
+      setTimeout(() => {
+        try {
+          if (runtime.ctx && typeof runtime.ctx.executarCicloRotina5Min === 'function') {
+            runtime.ctx.executarCicloRotina5Min();
+          }
+        } catch (_) {}
+      }, 15000).unref();
+
       resolve(server);
     });
   });

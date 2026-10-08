@@ -1,0 +1,48 @@
+OK fármaco explícito prevalece sobre febre e dor
+OK sintomas, diagnósticos e termos desconhecidos não elegem tratamento
+OK múltiplos fármacos não viram um único cálculo obrigatório
+OK negação, alergia e valores conflitantes não recebem esquema automático
+OK dose por idade não é alterada pelo peso
+OK loratadina preserva a faixa de peso até 12 anos inclusive
+OK lactente, peso inválido e adulto não recebem cálculo pediátrico automático
+OK choques diferentes, sintomas e hipóteses ambíguas não recebem protocolo de sepse
+OK negação não contamina o cenário positivo seguinte
+OK medidas equivalentes são preservadas e medidas novas são sinalizadas
+OK negativas não relatadas não entram como fato
+OK SOAP final conserva dez itens e revisa com a mesma base do gerador
+OK SOAP mantém aviso quando a revisão está indisponível
+OK áudio usa a mesma barreira para medidas e negativas
+OK extração reconhece títulos em texto, sobrescritos e HTML
+OK normalização HSL preserva texto original e separa restrições pediátricas
+OK contexto preserva contraindicações, diluição e gestação
+OK fontes ficam internas por padrão e podem ser solicitadas
+OK HTTP 429/500 contam como erro sem alterar resposta nem registrar conteúdo
+OK autotestes matemáticos permanecem aprovados
+20 grupos aprovados; 1 falhas. Isto não substitui avaliação clínica com respostas reais.
+FALHA idade e peso ausentes não são inventados: loratadina 5 anos
++ actual - expected
+
++ {
++   apresentacao: 'Loratadina 1 mg/mL (xarope - frasco com 100 mL)',
++   chave: 'loratadina',
++   diasTratamento: 10,
++   doseDiariaTotalMg: 5,
++   dosePorTomadaMg: 5,
++   farmaco: 'Loratadina',
++   frascosNecessarios: 1,
++   idadeAnos: 5,
++   indicacao: 'Rinite alérgica / Urticária / Prurido (dose fixa por faixa de peso/idade: 5 mg se 2-12 anos até 30 kg; 10 mg se > 30 kg ou > 12 anos)',
++   instrucaoPosologica: 'Tomar 5 mL por via oral 1 vez ao dia, à noite (às 20:00), durante 10 dias.',
++   intervaloHoras: 24,
++   memoriaCalculo: 'Dose oficial do Guia HSL: 2 a 12 anos (até 30 kg): 5 mg (5 mL) 1 vez ao dia. > 12 anos ou > 30 kg: 10 mg (10 mL ou 1 comp) 1 vez ao dia. Dose fixa por faixa etária/peso (NÃO calculada em mg/kg). Apresentação: Loratadina 1 mg/mL (xarope - frasco com 100 mL). Horário sugerido: 20:00 (à noite).',
++   orientacoes: 'Administrar preferencialmente à noite (às 20:00) para otimizar alívio matinal e evitar sonolência diurna. Não requer cálculo em mg/kg. (Para pacientes com > 30 kg ou > 12 anos, a dose oficial é de 10 mL).',
++   pesoKg: null,
++   quantidadeDispensar: '1 frasco(s) de 100 mL',
++   tipo: 'xarope',
++   tomadasDia: 1,
++   volumeFrascoMl: 100,
++   volumePorTomadaMl: 5,
++   volumeTotalTratamentoMl: 50
++ }
+- null
+

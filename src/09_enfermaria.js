@@ -39,14 +39,10 @@ var EnfermariaService=(function(){
   function gravar(id,obj){
     var texto=JSON.stringify(obj);
     var bTexto = bytesUtf8(texto);
-    if(bTexto>8000)throw new Error('Evolução excede 8 KB. Nenhum dado foi alterado; divida o conteúdo.');
+    if(bTexto>100000)throw new Error('Evolução muito extensa. Divida o conteúdo.');
     var bTotal = totalBytesPersistencia();
-    if (bTotal + bTexto > 350000) {
+    if (bTotal + bTexto > 5000000) {
       podarHistorico(props());
-      bTotal = totalBytesPersistencia();
-    }
-    if (bTotal + bTexto > 400000) {
-      throw new Error('Orçamento global de armazenamento excedido (cota 500 KB do GAS). Contrapressão ativada na enfermaria.');
     }
     props().setProperty(key(id),texto);
   }

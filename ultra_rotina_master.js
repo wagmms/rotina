@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-07 13:47:01
- * Checksum SHA256: 9ed90e05dde25873
+ * Gerado automaticamente via build_master.py em: 2026-10-08 13:50:35
+ * Checksum SHA256: befc08461b31b049
  * ==============================================================================
  */
 
@@ -2274,20 +2274,47 @@ var CalculadorasClinicas = (function () {
   // ═════════════════════════════ POSOLOGIA PEDIÁTRICA DETERMINÍSTICA ═════════════════════════════
 
   /**
-   * Calculadora Posológica Pediátrica Determinística (Fórmulas Fixas · Zero Alucinação)
+   * Calculadora Posológica Pediátrica Determinística (Fórmulas Fixas · Revisão clínica necessária)
    * Referências: SBP (Sociedade Brasileira de Pediatria) / Ministério da Saúde / Guia Farmacêutico HSL / REMUME
    */
+  // Identifica apenas fármacos explícitos. Sintoma, diagnóstico ou termo desconhecido
+  // nunca elege tratamento. Mais de um fármaco exige seleção individual.
+  function identificarFarmacoPosologico(texto) {
+    var t = semAcento(texto).replace(/_/g, ' ');
+    var aliases = {
+      amoxicilina_clavulanato: /\b(?:clavulanato|clavulin|amoxiclav)\b/,
+      amoxicilina: /\b(?:amoxicilina|amoxil)\b/,
+      azitromicina: /\b(?:azitromicina|azitro)\b/,
+      cefalexina: /\bcefalexina\b/,
+      dipirona: /\b(?:dipirona|novalgina)\b/,
+      paracetamol: /\b(?:paracetamol|tylenol)\b/,
+      ibuprofeno: /\b(?:ibuprofeno|alivium)\b/,
+      prednisolona: /\b(?:prednisolona|prelone)\b/,
+      sulfametoxazol_trimetoprima: /\b(?:sulfametoxazol|trimetoprima|bactrim)\b/,
+      loratadina: /\b(?:loratadina|claritin)\b/,
+      dexclorfeniramina: /\b(?:dexclorfeniramina|polaramine)\b/,
+      albendazol: /\b(?:albendazol|zentel)\b/,
+      mebendazol: /\b(?:mebendazol|pantelmin)\b/,
+      nitazoxanida: /\b(?:nitazoxanida|annita)\b/,
+      sais_reidratacao: /\b(?:sro|sais (?:de )?reidratacao|soro oral)\b/,
+      budesonida_nasal: /\b(?:budesonida|busonid)\b/
+    };
+    var encontrados = Object.keys(aliases).filter(function(k) { return aliases[k].test(t); });
+    if (encontrados.indexOf('amoxicilina_clavulanato') >= 0) {
+      encontrados = encontrados.filter(function(k) { return k !== 'amoxicilina'; });
+    }
+    return encontrados.length === 1 ? encontrados[0] : null;
+  }
+
   function posologiaPediatrica(pesoKg, farmacoOuCondicao, opcoes) {
     var ID = 'posologia_pediatrica', NOME = 'Posologia Pediátrica Determinística';
     return seguro(ID, NOME, function () {
       var ctx = novoCtx();
-      var peso = num(ctx, pesoKg, 'Peso (kg)', 1, 80);
-      if (!isFinite(peso) || peso <= 0) {
-        return entradaInvalida(ID, NOME, ctx);
-      }
-
       var opt = opcoes || {};
       var termo = semAcento(farmacoOuCondicao || '');
+      var peso = num(ctx, pesoKg, 'Peso (kg)', 1, 80, { opcional: true });
+      var idade = num(ctx, opt.idadeAnos, 'Idade (anos)', 0, 17, { opcional: true });
+      if (ctx.erros.length) return entradaInvalida(ID, NOME, ctx);
 
       var tabela = {
         amoxicilina: {
@@ -2497,56 +2524,19 @@ var CalculadorasClinicas = (function () {
         }
       };
 
-      var chaveAlvo = null;
-      if (termo.indexOf('albendazol') !== -1 || termo.indexOf('zentel') !== -1 || termo.indexOf('ascaris') !== -1 || termo.indexOf('oxiur') !== -1 || termo.indexOf('lombriga') !== -1) {
-        chaveAlvo = 'albendazol';
-      } else if (termo.indexOf('mebendazol') !== -1 || termo.indexOf('pantelmin') !== -1) {
-        chaveAlvo = 'mebendazol';
-      } else if (termo.indexOf('nitazoxanida') !== -1 || termo.indexOf('annita') !== -1 || termo.indexOf('anita') !== -1) {
-        chaveAlvo = 'nitazoxanida';
-      } else if (termo.indexOf('reidratacao') !== -1 || termo.indexOf('sro') !== -1 || termo.indexOf('soro oral') !== -1 || termo.indexOf('sais_reidratacao') !== -1) {
-        chaveAlvo = 'sais_reidratacao';
-      } else if (termo.indexOf('budesonid') !== -1 || termo.indexOf('busonid') !== -1 || termo.indexOf('spray nasal') !== -1) {
-        chaveAlvo = 'budesonida_nasal';
-      } else if (termo.indexOf('loratad') !== -1 || termo.indexOf('claritin') !== -1) {
-        chaveAlvo = 'loratadina';
-      } else if (termo.indexOf('dexclor') !== -1 || termo.indexOf('polaramine') !== -1) {
-        chaveAlvo = 'dexclorfeniramina';
-      } else if (termo.indexOf('rinite') !== -1 || termo.indexOf('urtic') !== -1) {
-        chaveAlvo = 'loratadina';
-      } else if (termo.indexOf('verme') !== -1 || termo.indexOf('parasit') !== -1) {
-        chaveAlvo = 'albendazol';
-      } else if (termo.indexOf('clavulan') !== -1 || termo.indexOf('clavulin') !== -1 || termo.indexOf('amoxiclav') !== -1 || termo.indexOf('otite') !== -1 || termo.indexOf('oma') !== -1) {
-        chaveAlvo = 'amoxicilina_clavulanato';
-      } else if (termo.indexOf('amoxi') !== -1) {
-        chaveAlvo = 'amoxicilina';
-      } else if (termo.indexOf('azitro') !== -1) {
-        chaveAlvo = 'azitromicina';
-      } else if (termo.indexOf('cefalex') !== -1) {
-        chaveAlvo = 'cefalexina';
-      } else if (termo.indexOf('dipi') !== -1 || termo.indexOf('novalgina') !== -1 || termo.indexOf('dor') !== -1 || termo.indexOf('febre') !== -1) {
-        chaveAlvo = 'dipirona';
-      } else if (termo.indexOf('paracet') !== -1 || termo.indexOf('tylenol') !== -1) {
-        chaveAlvo = 'paracetamol';
-      } else if (termo.indexOf('ibuprof') !== -1 || termo.indexOf('alivium') !== -1) {
-        chaveAlvo = 'ibuprofeno';
-      } else if (termo.indexOf('prednis') !== -1 || termo.indexOf('prelone') !== -1 || termo.indexOf('asma') !== -1 || termo.indexOf('laring') !== -1) {
-        chaveAlvo = 'prednisolona';
-      } else if (termo.indexOf('sulfa') !== -1 || termo.indexOf('bactrim') !== -1 || termo.indexOf('trimetop') !== -1) {
-        chaveAlvo = 'sulfametoxazol_trimetoprima';
-      } else if (termo.indexOf('amigdalite') !== -1 || termo.indexOf('faringite') !== -1) {
-        if (termo.indexOf('alerg') !== -1 || termo.indexOf('penicil') !== -1) {
-          chaveAlvo = 'azitromicina';
-        } else {
-          chaveAlvo = 'amoxicilina';
-        }
-      }
-
+      var chaveAlvo = identificarFarmacoPosologico(termo);
       if (!chaveAlvo || !tabela[chaveAlvo]) {
-        chaveAlvo = 'amoxicilina';
+        ctx.faltas.push('Um único medicamento explícito; a calculadora não escolhe tratamento por sintomas');
+        return entradaInvalida(ID, NOME, ctx);
       }
-
       var cfg = tabela[chaveAlvo];
+      if (cfg.tipo === 'dose_fixa_idade') {
+        if (idade === null && peso === null) ctx.faltas.push('Idade em anos ou peso para a faixa etária');
+        else if (idade !== null && idade < (chaveAlvo === 'nitazoxanida' ? 1 : 2)) {
+          ctx.erros.push('Faixa etária não coberta por este cálculo; consultar avaliação pediátrica');
+        }
+      } else if (peso === null) ctx.faltas.push('Peso (kg)');
+      if (pendente(ctx)) return entradaInvalida(ID, NOME, ctx);
       var dadosCalculados = {};
 
       if (cfg.tipo === 'dose_fixa_idade') {
@@ -2599,8 +2589,8 @@ var CalculadorasClinicas = (function () {
             indicacao: cfg.indicacao
           };
         } else if (chaveAlvo === 'nitazoxanida') {
-          var menor4N = (opt.idadeAnos && opt.idadeAnos < 4) || (peso && peso < 15);
-          var menor12N = (opt.idadeAnos && opt.idadeAnos < 12) || (peso && peso < 35);
+          var menor4N = idade < 4;
+          var menor12N = idade < 12;
           var volN = menor4N ? 5 : (menor12N ? 10 : 25);
           var doseN = menor4N ? 100 : (menor12N ? 200 : 500);
           var volTotN = volN * 2 * 3;
@@ -2671,7 +2661,7 @@ var CalculadorasClinicas = (function () {
             indicacao: cfg.indicacao
           };
         } else if (chaveAlvo === 'loratadina') {
-          var pesoMaior30 = (peso > 30) || (opt.idadeAnos && opt.idadeAnos >= 12);
+          var pesoMaior30 = (peso > 30) || idade > 12;
           if (pesoMaior30) {
             doseEfetivaMg = 10;
             volumeMl = 10;
@@ -2700,12 +2690,12 @@ var CalculadorasClinicas = (function () {
             quantidadeDispensar: frascosL + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL',
             instrucaoPosologica: 'Tomar ' + volumeMl + ' mL por via oral 1 vez ao dia, à noite (às 20:00), durante ' + diasT + ' dias.',
             memoriaCalculo: 'Dose oficial do Guia HSL: 2 a 12 anos (até 30 kg): 5 mg (5 mL) 1 vez ao dia. > 12 anos ou > 30 kg: 10 mg (10 mL ou 1 comp) 1 vez ao dia. Dose fixa por faixa etária/peso (NÃO calculada em mg/kg). Apresentação: ' + cfg.apresentacao + '. Horário sugerido: 20:00 (à noite).',
-            orientacoes: cfg.instrucoes + (pesoMaior30 ? ' (Paciente com > 30 kg ou >= 12 anos recebe a dose máxima de 10 mg).' : ' (Para pacientes com > 30 kg ou >= 12 anos, a dose oficial é de 10 mL).'),
+            orientacoes: cfg.instrucoes + (pesoMaior30 ? ' (Paciente com > 30 kg ou > 12 anos recebe a dose máxima de 10 mg).' : ' (Para pacientes com > 30 kg ou > 12 anos, a dose oficial é de 10 mL).'),
             indicacao: cfg.indicacao
           };
         } else if (chaveAlvo === 'dexclorfeniramina') {
-          var menor6 = (opt.idadeAnos && opt.idadeAnos < 6) || (peso && peso < 20);
-          var menor12 = (opt.idadeAnos && opt.idadeAnos < 12) || (peso && peso < 35);
+          var menor6 = idade < 6;
+          var menor12 = idade < 12;
           if (menor6) {
             volumeMl = 1.25;
             doseEfetivaMg = 0.5;
@@ -2805,14 +2795,15 @@ var CalculadorasClinicas = (function () {
         };
       }
 
+      dadosCalculados.idadeAnos = idade;
       var linhasResultado = [
         '<b>Fármaco:</b> ' + dadosCalculados.farmaco,
         '<b>Apresentação (REMUME/HSL):</b> ' + dadosCalculados.apresentacao,
-        '<b>Peso do Paciente:</b> ' + fmt(peso, 1) + ' kg',
-        '<b>Posologia Oficial:</b> ' + dadosCalculados.instrucaoPosologica,
+        '<b>Peso do Paciente:</b> ' + (peso === null ? 'Não informado (não utilizado neste cálculo)' : fmt(peso, 1) + ' kg'),
+        '<b>Esquema calculado para revisão:</b> ' + dadosCalculados.instrucaoPosologica,
         '<b>Quantidade a Dispensar:</b> ' + dadosCalculados.quantidadeDispensar,
         '',
-        '<b>Memória de Cálculo (Determinística · Zero Alucinação):</b>',
+        '<b>Memória de Cálculo (Determinística · Revisão clínica necessária):</b>',
         dadosCalculados.memoriaCalculo,
         '',
         '<b>Orientações Clínicas:</b> ' + dadosCalculados.orientacoes
@@ -2839,68 +2830,219 @@ var CalculadorasClinicas = (function () {
    */
   function calcularPosologiaPorTextoLivre(texto) {
     if (!texto || typeof texto !== 'string') return null;
-    var tNorm = semAcento(texto.toLowerCase());
+    var farmaco = identificarFarmacoPosologico(texto);
+    if (!farmaco) return null;
+    // Múltiplos valores (inclusive correções) precisam de reconciliação clínica.
+    var pesos = Array.from(texto.matchAll(/\b(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)\b/gi));
+    var idades = Array.from(texto.matchAll(/\b(\d+(?:[.,]\d+)?)\s*(?:anos?|meses|mes)\b/gi));
+    if (pesos.length > 1 || idades.length > 1) return null;
+    var peso = pesos.length ? Number(pesos[0][1].replace(',', '.')) : null;
+    var idade = idades.length ? Number(idades[0][1].replace(',', '.')) : null;
+    if (idades.length && /mes/i.test(idades[0][0])) idade /= 12;
+    // Contextos de contraindicação ou dose individualizada não recebem esquema fixo.
+    if (/\b(?:alerg\w*|nao|evitar|suspender|renal|hepat\w*|gestante|gestacao|dose alta)\b/.test(semAcento(texto))) return null;
+    var res = posologiaPediatrica(peso, farmaco, { idadeAnos: idade });
+    return res && res.ok && res.dados ? res.dados : null;
+  }
 
-    var matchPeso = texto.match(/\b(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)\b/i);
-    var pesoNum = matchPeso ? parseFloat(matchPeso[1].replace(',', '.')) : null;
+  /**
+   * Tabela canônica de ajuste renal de antimicrobianos hospitalares críticos (Guia HSL / Sanford / UpToDate).
+   */
+  function ajusteRenalAntimicrobiano(droga, clcr, hemodialise) {
+    var ID = 'ajuste_renal', NOME = 'Ajuste Renal de Antimicrobianos';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var dStr = String(droga || '').toLowerCase().trim();
+      var crClVal = null;
+      if (!ausente(clcr)) crClVal = num(c, clcr, 'Clearance de Creatinina (mL/min)', 0, 200);
+      var hd = false;
+      if (!ausente(hemodialise)) hd = bool(c, hemodialise, 'Hemodiálise intermitente');
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+      if (crClVal === null && !hd && atb !== 'ceftriaxona' && atb !== 'polimixina_b') {
+        c.faltas.push('Informe o Clearance de Creatinina (mL/min) ou declare se está em Hemodiálise');
+        return falhaCtx(ID, NOME, c);
+      }
 
-    var matchIdade = texto.match(/\b(\d+)\s*(?:anos?|a)\b/i);
-    var idadeNum = matchIdade ? parseInt(matchIdade[1], 10) : null;
+      var atb = null;
+      if (/vanco/i.test(dStr)) atb = 'vancomicina';
+      else if (/mero/i.test(dStr)) atb = 'meropenem';
+      else if (/pip|tazo/i.test(dStr)) atb = 'piperacilina_tazobactam';
+      else if (/cefepim/i.test(dStr)) atb = 'cefepime';
+      else if (/ceftriax/i.test(dStr)) atb = 'ceftriaxona';
+      else if (/cipro/i.test(dStr)) atb = 'ciprofloxacino';
+      else if (/polimixina|polimix/i.test(dStr)) atb = 'polimixina_b';
+      else if (/fluconazol/i.test(dStr)) atb = 'fluconazol';
 
-    // 1. Fármacos por faixa etária ou dose fixa (Anti-histamínicos, Vermífugos, SRO, Corticoide Nasal)
-    if (tNorm.indexOf('loratad') !== -1 || tNorm.indexOf('claritin') !== -1 || (tNorm.indexOf('rinite') !== -1 && (pesoNum || idadeNum || tNorm.indexOf('crianca') !== -1 || tNorm.indexOf('pediat') !== -1) && tNorm.indexOf('spray') === -1 && tNorm.indexOf('nasal') === -1)) {
-      var optLora = { idadeAnos: idadeNum };
-      var pesoParam = pesoNum || (idadeNum ? (idadeNum >= 12 ? 35 : 20) : 20);
-      var resL = posologiaPediatrica(pesoParam, 'loratadina', optLora);
-      if (resL && resL.ok && resL.dados) return resL.dados;
+      if (!atb) {
+        return {
+          ok: false,
+          mensagem: 'Antimicrobiano não encontrado. Disponíveis: Vancomicina, Meropenem, Piperacilina-Tazobactam, Cefepime, Ceftriaxona, Ciprofloxacino, Polimixina B, Fluconazol.'
+        };
+      }
+
+      var res = {
+        farmaco: atb,
+        nomeExibicao: '',
+        dosePadrao: '',
+        doseAjustada: '',
+        cuidados: '',
+        monitorizacao: '',
+        clcrInformado: crClVal,
+        hemodialise: hd
+      };
+
+      if (atb === 'vancomicina') {
+        res.nomeExibicao = 'Vancomicina';
+        res.dosePadrao = 'Ataque: 25-30 mg/kg (máx 2g). Manutenção: 15-20 mg/kg a cada 8-12h.';
+        if (hd) {
+          res.doseAjustada = 'Ataque 25-30 mg/kg; redoses subsequentes (500-1000 mg) pós-hemodiálise guiadas por nível sérico.';
+        } else if (crClVal >= 90) {
+          res.doseAjustada = '15-20 mg/kg EV a cada 8-12h (em infusão lenta de pelo menos 1-2h).';
+        } else if (crClVal >= 50) {
+          res.doseAjustada = '15-20 mg/kg EV a cada 12h.';
+        } else if (crClVal >= 30) {
+          res.doseAjustada = '15 mg/kg EV a cada 24h.';
+        } else if (crClVal >= 15) {
+          res.doseAjustada = '15 mg/kg EV a cada 24-48h (guiar por nível sérico).';
+        } else {
+          res.doseAjustada = 'Dose de ataque 25 mg/kg; redoses guiadas por nível sérico pré-dose (alvo vale 15-20 mcg/mL).';
+        }
+        res.cuidados = 'Infusão lenta (máx 10 mg/min ou 1g em 60 min) para prevenir síndrome do homem vermelho. Hidratação adequada.';
+        res.monitorizacao = 'Nível de vale sérico pré-4ª dose (alvo: 15-20 mcg/mL para infecções graves ou AUC/MIC 400-600). Creatinina a cada 48h.';
+      } else if (atb === 'meropenem') {
+        res.nomeExibicao = 'Meropenem';
+        res.dosePadrao = '1g EV a cada 8h (2g 8/8h em meningite ou sepse grave).';
+        if (hd) {
+          res.doseAjustada = '500 mg EV a cada 24h, administrado imediatamente APÓS a hemodiálise nos dias de sessão.';
+        } else if (crClVal > 50) {
+          res.doseAjustada = '1g EV a cada 8h (recomenda-se infusão estendida em 3 horas para otimização PK/PD).';
+        } else if (crClVal >= 26) {
+          res.doseAjustada = '1g EV a cada 12h (infusão estendida em 3 horas).';
+        } else if (crClVal >= 10) {
+          res.doseAjustada = '500 mg EV a cada 12h.';
+        } else {
+          res.doseAjustada = '500 mg EV a cada 24h.';
+        }
+        res.cuidados = 'Compatível com infusão estendida (3 horas) para maximizar tempo acima da MIC (T > MIC).';
+        res.monitorizacao = 'Função renal e vigilância de crises convulsivas em doses elevadas com disfunção renal.';
+      } else if (atb === 'piperacilina_tazobactam') {
+        res.nomeExibicao = 'Piperacilina + Tazobactam (Pip-Tazo)';
+        res.dosePadrao = '4,5g EV a cada 6h (infusão de 3-4h) ou 4,5g a cada 8h (infusão de 4h).';
+        if (hd) {
+          res.doseAjustada = '2,25g EV a cada 8h + dose de reforço de 0,75g após cada sessão de hemodiálise.';
+        } else if (crClVal > 50) {
+          res.doseAjustada = '4,5g EV a cada 6h (ou 4,5g 8/8h em infusão estendida de 3-4h).';
+        } else if (crClVal >= 20) {
+          res.doseAjustada = '3,375g EV a cada 6h.';
+        } else {
+          res.doseAjustada = '2,25g EV a cada 6h.';
+        }
+        res.cuidados = 'Evitar associação com Vancomicina além de 48-72h se houver alternativa, pelo risco de IRA sinérgica.';
+        res.monitorizacao = 'Creatinina sérica diária; eletrólitos (contém 2,79 mEq de Na+ por grama de piperacilina).';
+      } else if (atb === 'cefepime') {
+        res.nomeExibicao = 'Cefepime';
+        res.dosePadrao = '2g EV a cada 8h (infusão em 30 min ou estendida em 3h).';
+        if (hd) {
+          res.doseAjustada = '1g EV dose de ataque no D1; depois 500 mg a 1g EV a cada 24h (administrar dose após a hemodiálise nos dias de sessão).';
+        } else if (crClVal > 60) {
+          res.doseAjustada = '2g EV a cada 8h.';
+        } else if (crClVal >= 30) {
+          res.doseAjustada = '2g EV a cada 12h.';
+        } else if (crClVal >= 11) {
+          res.doseAjustada = '2g EV a cada 24h.';
+        } else {
+          res.doseAjustada = '1g EV a cada 24h.';
+        }
+        res.cuidados = '⚠️ RISCO CRÍTICO DE ENCEFALOPATIA POR CEFEPIME: se CrCl reduzido sem ajuste, causa rebaixamento, confusão e mioclonias.';
+        res.monitorizacao = 'Exame neurológico diário e função renal.';
+      } else if (atb === 'ceftriaxona') {
+        res.nomeExibicao = 'Ceftriaxona';
+        res.dosePadrao = '1g a 2g EV a cada 24h (2g 12/12h em meningite bacteriana).';
+        res.doseAjustada = 'NÃO REQUER AJUSTE RENAL. Manter 1g a 2g EV a cada 24h (eliminação mista renal 60% e biliar 40%).';
+        res.cuidados = 'Não infundir simultaneamente com soluções que contenham cálcio (como Ringer Lactato) na mesma via pelo risco de precipitação.';
+        res.monitorizacao = 'Transaminases e bilirrubinas se uso prolongado.';
+      } else if (atb === 'ciprofloxacino') {
+        res.nomeExibicao = 'Ciprofloxacino';
+        res.dosePadrao = '400 mg EV a cada 12h ou 500-750 mg VO a cada 12h.';
+        if (hd) {
+          res.doseAjustada = '400 mg EV a cada 24h ou 500 mg VO a cada 24h (administrar após diálise).';
+        } else if (crClVal > 50) {
+          res.doseAjustada = '400 mg EV 12/12h ou 500 mg VO 12/12h.';
+        } else if (crClVal >= 30) {
+          res.doseAjustada = '400 mg EV 12/12h ou 500 mg VO 12/12h (monitorar se terapia prolongada).';
+        } else {
+          res.doseAjustada = '400 mg EV a cada 24h ou 500 mg VO a cada 24h.';
+        }
+        res.cuidados = 'Prolongamento do intervalo QTc; evitar quelantes orais (cálcio, ferro, antiácidos) se via oral.';
+        res.monitorizacao = 'ECG se associado a outras drogas que prolongam QT; função renal.';
+      } else if (atb === 'polimixina_b') {
+        res.nomeExibicao = 'Polimixina B';
+        res.dosePadrao = 'Ataque: 20.000 a 25.000 UI/kg (baseado no peso magro). Manutenção: 15.000 a 25.000 UI/kg/dia divididos em 2 doses (12/12h).';
+        res.doseAjustada = 'NÃO REDUZIR DOSE NA INSUFICIÊNCIA RENAL. A depuração da Polimixina B é predominantemente não-renal. Reduções causam subdosagem e falha terapêutica grave.';
+        res.cuidados = 'Diferente da Colistina (que requer ajuste renal rígido), a Polimixina B mantém dose plena com suporte e vigilância de IRA.';
+        res.monitorizacao = 'Creatinina sérica a cada 24-48h; bloqueio neuromuscular / parestesias.';
+      } else if (atb === 'fluconazol') {
+        res.nomeExibicao = 'Fluconazol';
+        res.dosePadrao = 'Ataque: 400-800 mg dose única. Manutenção: 200-400 mg EV/VO a cada 24h.';
+        if (hd) {
+          res.doseAjustada = '100% da dose recomendada administrada imediatamente APÓS cada sessão de hemodiálise.';
+        } else if (crClVal > 50) {
+          res.doseAjustada = 'Manter 100% da dose recomendada (200-400 mg a cada 24h).';
+        } else {
+          res.doseAjustada = 'Dose de ataque plena no D1; a partir de então, REDUZIR PARA 50% DA DOSE (100-200 mg a cada 24h).';
+        }
+        res.cuidados = 'Potente inibidor de CYP3A4; verificar interações com imunossupressores e anticoagulantes orais.';
+        res.monitorizacao = 'Enzimas hepáticas (TGO/TGP) e eletrólitos.';
+      }
+
+      var linhas = [
+        '<b>Fármaco:</b> ' + res.nomeExibicao,
+        '<b>Dose Padrão (CrCl Normal):</b> ' + res.dosePadrao,
+        '<b>Dose Ajustada para o Paciente:</b> <code>' + res.doseAjustada + '</code>',
+        '<b>Condições Informadas:</b> ' + (hd ? 'Em Hemodiálise' : ('CrCl ' + (crClVal !== null ? crClVal + ' mL/min' : 'não informado'))),
+        '<b>Orientações e Cuidados Farmacológicos:</b> ' + res.cuidados,
+        '<b>Monitorização de Segurança:</b> ' + res.monitorizacao
+      ];
+
+      return {
+        ok: true,
+        icone: '💉',
+        dados: res,
+        textoFormatado: '💉 <b>AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)</b>\n\n' + linhas.join('\n\n'),
+        versao: VERSAO
+      };
+    });
+  }
+  /**
+   * Extrai parâmetros e executa o cálculo determinístico de ajuste renal a partir de texto livre.
+   */
+  function calcularAjusteRenalPorTextoLivre(texto) {
+    if (!texto || typeof texto !== 'string') return null;
+    var dStr = String(texto).toLowerCase();
+    var atb = null;
+    if (/vanco/i.test(dStr)) atb = 'vancomicina';
+    else if (/mero/i.test(dStr)) atb = 'meropenem';
+    else if (/pip|tazo/i.test(dStr)) atb = 'piperacilina_tazobactam';
+    else if (/cefepim/i.test(dStr)) atb = 'cefepime';
+    else if (/ceftriax/i.test(dStr)) atb = 'ceftriaxona';
+    else if (/cipro/i.test(dStr)) atb = 'ciprofloxacino';
+    else if (/polimixina|polimix/i.test(dStr)) atb = 'polimixina_b';
+    else if (/fluconazol/i.test(dStr)) atb = 'fluconazol';
+    if (!atb) return null;
+
+    var ehHD = /\b(?:hd|hemodialise|dialise)\b/i.test(dStr);
+    var clcrVal = null;
+    var clcrMatch = dStr.match(/\b(?:clcr|crcl|tfg|clearance)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\b/i);
+    if (clcrMatch && clcrMatch[1]) {
+      clcrVal = Number(clcrMatch[1].replace(',', '.'));
+    } else {
+      var nums = dStr.match(/\b(\d{1,3})\b/g);
+      if (nums && nums.length > 0) {
+        clcrVal = Number(nums[0]);
+      }
     }
-
-    if (tNorm.indexOf('polaramine') !== -1 || tNorm.indexOf('dexclor') !== -1) {
-      var optDex = { idadeAnos: idadeNum };
-      var pesoDex = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : (idadeNum >= 6 ? 25 : 15)) : 15);
-      var resD = posologiaPediatrica(pesoDex, 'dexclorfeniramina', optDex);
-      if (resD && resD.ok && resD.dados) return resD.dados;
-    }
-
-    if (tNorm.indexOf('albendazol') !== -1 || tNorm.indexOf('zentel') !== -1 || tNorm.indexOf('oxiur') !== -1 || (tNorm.indexOf('verme') !== -1 && tNorm.indexOf('mebendazol') === -1)) {
-      var optAlb = { idadeAnos: idadeNum };
-      var pesoAlb = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : 20) : 20);
-      var resAlb = posologiaPediatrica(pesoAlb, 'albendazol', optAlb);
-      if (resAlb && resAlb.ok && resAlb.dados) return resAlb.dados;
-    }
-
-    if (tNorm.indexOf('mebendazol') !== -1 || tNorm.indexOf('pantelmin') !== -1) {
-      var optMeb = { idadeAnos: idadeNum };
-      var pesoMeb = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : 20) : 20);
-      var resMeb = posologiaPediatrica(pesoMeb, 'mebendazol', optMeb);
-      if (resMeb && resMeb.ok && resMeb.dados) return resMeb.dados;
-    }
-
-    if (tNorm.indexOf('nitazoxanida') !== -1 || tNorm.indexOf('annita') !== -1 || tNorm.indexOf('anita') !== -1) {
-      var optNit = { idadeAnos: idadeNum };
-      var pesoNit = pesoNum || (idadeNum ? (idadeNum >= 12 ? 45 : (idadeNum >= 4 ? 25 : 12)) : 20);
-      var resNit = posologiaPediatrica(pesoNit, 'nitazoxanida', optNit);
-      if (resNit && resNit.ok && resNit.dados) return resNit.dados;
-    }
-
-    if (tNorm.indexOf('reidratacao') !== -1 || tNorm.indexOf('sro') !== -1 || (tNorm.indexOf('diarreia') !== -1 && (tNorm.indexOf('soro') !== -1 || tNorm.indexOf('sais') !== -1))) {
-      var resSro = posologiaPediatrica(pesoNum || 15, 'sais_reidratacao', { idadeAnos: idadeNum });
-      if (resSro && resSro.ok && resSro.dados) return resSro.dados;
-    }
-
-    if (tNorm.indexOf('budesonid') !== -1 || tNorm.indexOf('busonid') !== -1 || (tNorm.indexOf('spray') !== -1 && tNorm.indexOf('nasal') !== -1)) {
-      var resBudN = posologiaPediatrica(pesoNum || 20, 'budesonida_nasal', { idadeAnos: idadeNum });
-      if (resBudN && resBudN.ok && resBudN.dados) return resBudN.dados;
-    }
-
-    // 2. Fármacos peso-dependentes convencionais
-    if (!pesoNum || !isFinite(pesoNum) || pesoNum <= 0 || pesoNum > 80) return null;
-
-    var res = posologiaPediatrica(pesoNum, texto);
-    if (res && res.ok && res.dados) {
-      return res.dados;
-    }
-    return null;
+    var res = ajusteRenalAntimicrobiano(atb, clcrVal, ehHD);
+    return res && res.ok ? res : null;
   }
 
   // ═════════════════════════════ AUTOTESTE ═════════════════════════════
@@ -2935,7 +3077,12 @@ var CalculadorasClinicas = (function () {
     r = API.posologiaPediatrica(15, 'azitromicina'); ok(r.ok && r.dados.volumePorTomadaMl === 3.8, 'Azitro 15 kg 3.8 mL');
     r = API.posologiaPediatrica(16, 'dipirona'); ok(r.ok && r.dados.gotasPorTomada === 8, 'Dipirona 16 kg 8 gotas');
     r = API.posologiaPediatrica(14, 'paracetamol'); ok(r.ok && r.dados.gotasPorTomada === 14, 'Paracetamol 14 kg 14 gotas');
-    r = API.calcularPosologiaPorTextoLivre('amigdalite crianca 16kg'); ok(r && r.farmaco === 'Amoxicilina' && r.volumePorTomadaMl === 5.3, 'Texto livre amigdalite 16kg');
+    r = API.calcularPosologiaPorTextoLivre('amigdalite crianca 16kg'); ok(r === null, 'Diagnóstico não elege antibiótico');
+    r = API.ajusteRenalAntimicrobiano('meropenem', 20); ok(r.ok && r.dados.doseAjustada.indexOf('500 mg') !== -1, 'Meropenem CrCl 20 500mg');
+    r = API.ajusteRenalAntimicrobiano('ceftriaxona', 15); ok(r.ok && /NÃO REQUER AJUSTE/.test(r.dados.doseAjustada), 'Ceftriaxona sem ajuste renal');
+    r = API.ajusteRenalAntimicrobiano('vancomicina', 40); ok(r.ok && /24h/.test(r.dados.doseAjustada), 'Vancomicina CrCl 40 24h');
+    r = API.ajusteRenalAntimicrobiano('polimixina b', 10); ok(r.ok && /NÃO REDUZIR DOSE/.test(r.dados.doseAjustada), 'Polimixina B sem redução');
+    r = API.calcularAjusteRenalPorTextoLivre('ajuste meropenem clcr 25'); ok(r && r.ok && r.dados.doseAjustada.indexOf('12h') !== -1, 'Ajuste livre Meropenem CrCl 25');
     r = API.processarAcao(null, 'curb65', 'criterios'); ok(r.ok && /CURB-65/.test(r.textoFormatado), 'processarAcao curb65 criterios');
     return f;
   }
@@ -3183,6 +3330,8 @@ var CalculadorasClinicas = (function () {
     sequenciaRapidaIntubacao: sequenciaRapidaIntubacao,
     posologiaPediatrica: posologiaPediatrica,
     calcularPosologiaPorTextoLivre: calcularPosologiaPorTextoLivre,
+    ajusteRenalAntimicrobiano: ajusteRenalAntimicrobiano,
+    calcularAjusteRenalPorTextoLivre: calcularAjusteRenalPorTextoLivre,
     processarAcao: processarAcao,
     autoTeste: autoTeste
   };
@@ -3192,6 +3341,30 @@ var CalculadorasClinicas = (function () {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = CalculadorasClinicas;
 }
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_secoes_posologicas.js
+// ==============================================================================
+
+/** Separa títulos explícitos; ausência de campo nunca significa contraindicação. */
+function separarSecoesPosologicas(texto) {
+  var resultado = { adulto: '', pediatria: '', dose_maxima: '', ajuste_dose: '', geral: '', reconhecidas: 0 };
+  var atual = 'geral';
+  String(texto || '').split(/\r?\n/).forEach(function(linha) {
+    var titulo = linha.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      .replace(/[¹²³⁰⁴⁵⁶⁷⁸⁹]+/g, '').replace(/[,:\s]+$/g, '').trim();
+    var chave = /^adultos?$/.test(titulo) ? 'adulto'
+      : /^(?:pediatria|criancas?)$/.test(titulo) ? 'pediatria'
+      : /^dose maxima(?: diaria)?$/.test(titulo) ? 'dose_maxima'
+      : /^(?:ajustes?(?: de dose)?|insuficiencia renal)$/.test(titulo) ? 'ajuste_dose' : null;
+    if (chave) { atual = chave; resultado.reconhecidas++; }
+    else if (linha.trim()) resultado[atual] += (resultado[atual] ? '\n' : '') + linha.trim();
+  });
+  return resultado;
+}
+
+if (typeof module !== 'undefined' && module.exports) module.exports = { separarSecoesPosologicas };
 
 
 // ==============================================================================
@@ -3547,12 +3720,26 @@ var _cacheGuiaHSL = null;
 /**
  * Obtém a coleção de medicamentos do Guia HSL da memória RAM ou arquivo local.
  */
+function normalizarSecoesGuiaHSL(meds) {
+  return meds.map(function(med) {
+    var secoes = separarSecoesPosologicas(med.posologia_completa);
+    if (!secoes.reconhecidas) return med;
+    return Object.assign({}, med, {
+      dose_adulto: secoes.adulto,
+      dose_pediatria: secoes.pediatria,
+      dose_maxima: secoes.dose_maxima,
+      ajuste_dose: secoes.ajuste_dose,
+      posologia_geral: secoes.geral
+    });
+  });
+}
+
 function obterGuiaFarmaceuticoHSL() {
   if (_cacheGuiaHSL && _cacheGuiaHSL.length > 0) return _cacheGuiaHSL;
 
   // 1. Injetado no contexto global do runtime Node.js
   if (typeof __BASE_GUIA_HSL__ !== "undefined" && __BASE_GUIA_HSL__ && Array.isArray(__BASE_GUIA_HSL__.medicamentos)) {
-    _cacheGuiaHSL = __BASE_GUIA_HSL__.medicamentos;
+    _cacheGuiaHSL = normalizarSecoesGuiaHSL(__BASE_GUIA_HSL__.medicamentos);
     return _cacheGuiaHSL;
   }
 
@@ -3560,7 +3747,7 @@ function obterGuiaFarmaceuticoHSL() {
   if (typeof obterBaseGuiaHSL === "function") {
     var raw = obterBaseGuiaHSL();
     if (raw && Array.isArray(raw.medicamentos)) {
-      _cacheGuiaHSL = raw.medicamentos;
+      _cacheGuiaHSL = normalizarSecoesGuiaHSL(raw.medicamentos);
       return _cacheGuiaHSL;
     }
   }
@@ -3580,7 +3767,7 @@ function obterGuiaFarmaceuticoHSL() {
         if (fs.existsSync(caminhos[i])) {
           var payload = JSON.parse(fs.readFileSync(caminhos[i], "utf8"));
           if (payload && Array.isArray(payload.medicamentos)) {
-            _cacheGuiaHSL = payload.medicamentos;
+            _cacheGuiaHSL = normalizarSecoesGuiaHSL(payload.medicamentos);
             return _cacheGuiaHSL;
           }
         }
@@ -3689,12 +3876,13 @@ function formatarFichaPosologicaHSL(med) {
     linhas.push("\n👤 *DOSE ADULTO:*");
     linhas.push(med.dose_adulto);
   }
+  if (med.posologia_geral) linhas.push("\n*Observações posológicas:*\n" + med.posologia_geral);
 
   linhas.push("\n👶 *DOSE PEDIÁTRICA:*");
   if (med.dose_pediatria && med.dose_pediatria.trim()) {
     linhas.push(med.dose_pediatria);
   } else {
-    linhas.push("⚠️ *Não padronizada no Guia HSL.* (Fármaco de uso restrito a adultos, componente especializado ou sem posologia ambulatorial pediátrica estabelecida na base oficial do Sírio-Libanês).");
+    linhas.push("⚠️ *Informação pediátrica não localizada na extração.* Não concluir contraindicação ou ausência de padronização a partir deste campo vazio; conferir a ficha original.");
   }
 
   if (med.dose_maxima) {
@@ -3820,21 +4008,26 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
 
   if (selecionados.length === 0) return "";
 
-  // Prioridade absoluta para medicamentos que constam na REMUME
+  function pedidoExplicito(med) {
+    var nome = normalizarTermoMedicamento(med.farnaco).replace(/\s*\([^)]*\)/g, '').trim();
+    return nome && (' ' + pedidoUpper + ' ').indexOf(' ' + nome + ' ') >= 0;
+  }
+  // Nome solicitado precede expansão sindrômica e disponibilidade municipal.
   selecionados.sort(function(a, b) {
+    if (pedidoExplicito(a) !== pedidoExplicito(b)) return pedidoExplicito(a) ? -1 : 1;
     if (a.na_remume && !b.na_remume) return -1;
     if (!a.na_remume && b.na_remume) return 1;
     return a.farnaco.localeCompare(b.farnaco);
   });
 
-  // Limita para os 8 medicamentos mais aderentes
-  selecionados = selecionados.slice(0, 8);
+  // Nunca exclui fármacos explicitamente mencionados para cumprir o limite.
+  selecionados = selecionados.filter(function(m, i) { return i < 8 || pedidoExplicito(m); });
 
   var blocos = [];
   for (var s = 0; s < selecionados.length; s++) {
     var item = selecionados[s];
     var tagRemume = item.na_remume
-      ? "✅ DISPONÍVEL NA REMUME (1ª ESCOLHA OBRIGATÓRIA)"
+      ? "PADRONIZADO NA REMUME (não comprova estoque; adequação clínica tem prioridade)"
       : "⚠️ FORA DA REMUME (USAR SÓ SE NÃO HOUVER ALTERNATIVA NA REDE MUNICIPAL)";
 
     var bloco = [
@@ -3842,12 +4035,19 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
       item.apresentacoes_remume && item.apresentacoes_remume.length > 0
         ? "  Apresentações REMUME: " + item.apresentacoes_remume.join(" | ")
         : "",
-      item.dose_adulto ? "  Dose Adulto Oficial HSL: " + item.dose_adulto.replace(/\n/g, " ") : "",
+      item.dose_adulto ? "  Dose Adulto Oficial HSL (uso adulto): " + item.dose_adulto.replace(/\n/g, " ") : "",
       item.dose_pediatria && item.dose_pediatria.trim()
         ? "  Dose Pediátrica Oficial HSL: " + item.dose_pediatria.replace(/\n/g, " ")
-        : "  Dose Pediátrica Oficial HSL: ⚠️ NÃO PADRONIZADA NO GUIA HSL (fármaco de uso adulto/hospitalar especializado)",
+        : "  ⚠️ DOSE PEDIÁTRICA NÃO PADRONIZADA NO GUIA HSL (uso adulto / conferir ficha original e especialista; não inventar dose em mg/kg)",
       item.ajuste_dose ? "  Ajuste Renal/Hepático HSL: " + item.ajuste_dose.replace(/\n/g, " ") : "",
-      item.administracao ? "  Administração & Orientações: " + item.administracao.replace(/\n/g, " ") : ""
+      item.administracao ? "  Administração & Orientações: " + item.administracao.replace(/\n/g, " ") : "",
+      item.dose_maxima ? "  Dose máxima: " + item.dose_maxima : "",
+      item.contraindicacoes ? "  Contraindicações: " + item.contraindicacoes : "",
+      item.gestacao_lactacao ? "  Gestação/lactação: " + item.gestacao_lactacao : "",
+      item.preparo_diluicao ? "  Preparo/diluição: " + item.preparo_diluicao : "",
+      item.cuidados_especificos ? "  Cuidados e monitorização: " + item.cuidados_especificos : "",
+      item.posologia_geral ? "  Observações: " + item.posologia_geral : "",
+      "  Rastreabilidade interna: HSL, ficha " + item.id + "; conferir condições da indicação."
     ].filter(Boolean).join("\n");
 
     blocos.push(bloco);
@@ -3976,21 +4176,28 @@ var PROTOCOLOS_CLINICOS_EMERGENCIA = {
  */
 function obterProtocoloClinico(termo) {
   if (!termo) return null;
-  var t = termo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  for (var chave in PROTOCOLOS_CLINICOS_EMERGENCIA) {
-    if (t.indexOf(chave) !== -1) {
-      return PROTOCOLOS_CLINICOS_EMERGENCIA[chave];
-    }
-  }
-  // Mapeamentos adicionais
-  if (t.indexOf("choque") !== -1 || t.indexOf("infeccao grave") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["sepse"];
-  if (t.indexOf("coronaria") !== -1 || t.indexOf("infarto") !== -1 || t.indexOf("dor toracica") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["iam"];
-  if (t.indexOf("insuficiencia cardiaca") !== -1 || t.indexOf("congestao") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["eap"];
-  if (t.indexOf("cetoacidose") !== -1 || t.indexOf("descompensacao diabetica") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["cad"];
-  if (t.indexOf("embolia") !== -1 || t.indexOf("tvp") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["tep"];
-  if (t.indexOf("asma") !== -1 || t.indexOf("broncoespasmo") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["asma"];
-  if (t.indexOf("dpoc") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["dpoc"];
-  return null;
+  var texto = String(termo).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  var aliases = {
+    sepse: /\b(?:sepse|sepsis|choque septico|infeccao grave)\b/g,
+    iam: /\b(?:iam|infarto|sindrome coronariana(?: aguda)?)\b/g,
+    eap: /\b(?:eap|edema agudo (?:de )?pulmao|insuficiencia cardiaca descompensada)\b/g,
+    cad: /\b(?:cad|cetoacidose(?: diabetica)?)\b/g,
+    tep: /\b(?:tep|tromboembolismo pulmonar|embolia pulmonar)\b/g,
+    dpoc: /\bdpoc\b/g,
+    asma: /\b(?:asma|crise asmatica)\b/g
+  };
+  // Um protocolo único não representa choques de etiologias diferentes.
+  if (/\b(?:anafil\w*|choque (?:hemorragico|cardiogenico|hipovolemico|obstrutivo))\b/.test(texto)) return null;
+  var candidatos = [];
+  Object.keys(aliases).forEach(function(chave) {
+    var matches = Array.from(texto.matchAll(aliases[chave]));
+    if (matches.some(function(m) {
+      var antes = texto.slice(0, m.index).split(/[.,;!?:\n]|\bmas\b/).pop();
+      // Negação, antecedentes e hipótese a excluir não confirmam o cenário.
+      return !/\b(?:sem|nega|negou|nao|ausencia|descartar|afastar|suspeita|possivel|hipotese|historico|antecedente)\b/.test(antes);
+    })) candidatos.push(chave);
+  });
+  return candidatos.length === 1 ? PROTOCOLOS_CLINICOS_EMERGENCIA[candidatos[0]] : null;
 }
 
 // ==============================================================================
@@ -4106,6 +4313,455 @@ function buscarEvidenciaMedica(tema) {
   return texto;
 }
 
+// ==============================================================================
+// GUIA PEDIÁTRICO OFICIAL DO PEDBOOK (pedb.com.br) & CONDUTAS PEDIÁTRICAS
+// ==============================================================================
+
+var _cacheGuiaPedB = null;
+var _cacheCondutasPedB = null;
+
+/**
+ * Obtém a base oficial de medicamentos pediátricos do PedBook em RAM.
+ */
+function obterGuiaPediatricoPedB() {
+  if (_cacheGuiaPedB && Array.isArray(_cacheGuiaPedB) && _cacheGuiaPedB.length > 0) {
+    return _cacheGuiaPedB;
+  }
+  if (typeof __BASE_GUIA_PEDB__ !== "undefined" && __BASE_GUIA_PEDB__ && Array.isArray(__BASE_GUIA_PEDB__.medicamentos)) {
+    _cacheGuiaPedB = __BASE_GUIA_PEDB__.medicamentos;
+    return _cacheGuiaPedB;
+  }
+  if (typeof obterBaseGuiaPedB === "function") {
+    try {
+      var base = obterBaseGuiaPedB();
+      if (base && Array.isArray(base.medicamentos)) {
+        _cacheGuiaPedB = base.medicamentos;
+        return _cacheGuiaPedB;
+      }
+    } catch (e) {}
+  }
+  try {
+    if (typeof require !== "undefined") {
+      var fs = require("fs");
+      var path = require("path");
+      var caminhos = [
+        path.resolve(__dirname, "data", "guia_pediatrico_pedb.json"),
+        path.resolve(__dirname, "..", "data", "guia_pediatrico_pedb.json"),
+        path.resolve(process.cwd(), "src", "data", "guia_pediatrico_pedb.json"),
+        path.resolve(process.cwd(), "data", "guia_pediatrico_pedb.json")
+      ];
+      for (var i = 0; i < caminhos.length; i++) {
+        if (fs.existsSync(caminhos[i])) {
+          var payload = JSON.parse(fs.readFileSync(caminhos[i], "utf8"));
+          if (payload && Array.isArray(payload.medicamentos)) {
+            _cacheGuiaPedB = payload.medicamentos;
+            return _cacheGuiaPedB;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log("Aviso ao carregar Guia PedBook via arquivo: " + e.message);
+  }
+  return [];
+}
+
+/**
+ * Busca um medicamento pediátrico no PedBook por nome genérico, comercial, sinônimo ou indicação.
+ */
+function buscarMedicamentoPediatricoPedB(termo) {
+  if (!termo) return null;
+  var meds = obterGuiaPediatricoPedB();
+  if (!meds || meds.length === 0) return null;
+
+  var termoLimpo = termo.trim().toLowerCase();
+  var termoNorm = normalizarTermoMedicamento(termo);
+
+  var sin = DICIONARIO_FARMACO[termoLimpo];
+  var sinNorm = sin ? normalizarTermoMedicamento(sin) : null;
+
+  // 1. Correspondência exata no nome normalizado ou slug
+  for (var i = 0; i < meds.length; i++) {
+    var m = meds[i];
+    var mNorm = m.nome_normalizado || normalizarTermoMedicamento(m.nome);
+    if (mNorm === termoNorm || (sinNorm && mNorm === sinNorm)) {
+      return m;
+    }
+    if (m.slug && (m.slug === termoLimpo || (sin && m.slug === sin))) {
+      return m;
+    }
+  }
+
+  // 2. Correspondência exata em marca comercial ou marcas texto
+  for (var k = 0; k < meds.length; k++) {
+    var medK = meds[k];
+    if (medK.marcas_texto) {
+      var marcasNorm = normalizarTermoMedicamento(medK.marcas_texto);
+      var palavrasMarcas = marcasNorm.split(/\s+/);
+      for (var pm = 0; pm < palavrasMarcas.length; pm++) {
+        if (palavrasMarcas[pm] === termoNorm || (sinNorm && palavrasMarcas[pm] === sinNorm)) {
+          return medK;
+        }
+      }
+    }
+  }
+
+  // 3. Prefixo exato (ex: "AMOXICILINA" casa com "AMOXICILINA + CLAVULANATO")
+  for (var j = 0; j < meds.length; j++) {
+    var med = meds[j];
+    var mNomeNorm = med.nome_normalizado || normalizarTermoMedicamento(med.nome);
+    if (mNomeNorm.indexOf(termoNorm) === 0 || (sinNorm && mNomeNorm.indexOf(sinNorm) === 0)) {
+      return med;
+    }
+  }
+
+  // 4. Substring no nome (comprimento >= 4)
+  if (termoNorm.length >= 4) {
+    for (var l = 0; l < meds.length; l++) {
+      var medL = meds[l];
+      var mNN = medL.nome_normalizado || normalizarTermoMedicamento(medL.nome);
+      if (mNN.indexOf(termoNorm) !== -1 || (sinNorm && mNN.indexOf(sinNorm) !== -1)) {
+        return medL;
+      }
+    }
+  }
+
+  // 5. Palavras-chave
+  for (var p = 0; p < meds.length; p++) {
+    var medP = meds[p];
+    if (Array.isArray(medP.palavras_chave)) {
+      for (var pk = 0; pk < medP.palavras_chave.length; pk++) {
+        var kwNorm = normalizarTermoMedicamento(medP.palavras_chave[pk]);
+        if (kwNorm === termoNorm || (sinNorm && kwNorm === sinNorm)) {
+          return medP;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Formata a ficha pediátrica oficial do PedBook para exibição em markdown/Telegram.
+ */
+function formatarFichaPediatricaPedB(med) {
+  if (!med) return "Ficha pediátrica não encontrada.";
+
+  var linhas = [];
+  linhas.push("👶 *GUIA PEDIÁTRICO OFICIAL (PEDBOOK)*");
+  linhas.push("═══════════════════════════════════════");
+  linhas.push("🏷️ *" + med.nome.toUpperCase() + "*");
+  if (med.categoria) {
+    linhas.push("📂 *Classe:* " + med.categoria);
+  }
+
+  // Status REMUME / SUS
+  if (med.na_remume) {
+    linhas.push("🏛️ *SUS / REMUME:* ✅ PADRONIZADO NA REDE MUNICIPAL");
+    if (med.apresentacoes_remume && med.apresentacoes_remume.length > 0) {
+      linhas.push("   _Apresentações SUS:_ " + med.apresentacoes_remume.slice(0, 3).join(", "));
+    }
+  } else {
+    linhas.push("🏛️ *SUS / REMUME:* ⚠️ NÃO CONSTA NA REMUME MUNICIPAL");
+  }
+
+  if (med.marcas) {
+    linhas.push("🏭 *Marcas / Comerciais:* " + med.marcas.replace(/®/g, ''));
+  }
+
+  // Apresentações pediátricas
+  if (med.apresentacoes && med.apresentacoes.length > 0) {
+    linhas.push("\n💊 *APRESENTAÇÕES PEDIÁTRICAS:*");
+    var maxPres = Math.min(med.apresentacoes.length, 6);
+    for (var i = 0; i < maxPres; i++) {
+      var ap = med.apresentacoes[i];
+      var linhaAp = "• *" + ap.forma + "*";
+      if (ap.concentracao && ap.forma.indexOf(ap.concentracao) === -1) {
+        linhaAp += " (" + ap.concentracao + ")";
+      }
+      if (ap.idade_minima_meses) {
+        linhaAp += " [≥ " + ap.idade_minima_meses + "m]";
+      }
+      if (ap.peso_minimo_kg) {
+        linhaAp += " [≥ " + ap.peso_minimo_kg + " kg]";
+      }
+      linhas.push(linhaAp);
+      if (ap.notas_administracao) {
+        linhas.push("  ↳ _Nota:_ " + ap.notas_administracao);
+      }
+    }
+    if (med.apresentacoes.length > maxPres) {
+      linhas.push("• _(+ " + (med.apresentacoes.length - maxPres) + " apresentações no catálogo)_");
+    }
+  }
+
+  // Esquemas posológicos pediátricos
+  if (med.posologias && med.posologias.length > 0) {
+    linhas.push("\n⚖️ *DOSES & ESQUEMAS POSOLÓGICOS (POR KG / IDADE):*");
+    var maxPos = Math.min(med.posologias.length, 4);
+    for (var j = 0; j < maxPos; j++) {
+      var pos = med.posologias[j];
+      linhas.push("📌 *" + (pos.caso_de_uso || pos.nome) + "* (" + (pos.via || 'VO') + "):");
+      if (pos.resumo) {
+        var resumoLimpo = pos.resumo
+          .replace(/^-\s+/gm, '  • ')
+          .replace(/\*\*/g, '*');
+        linhas.push(resumoLimpo);
+      } else if (pos.template) {
+        linhas.push("  • " + pos.template.replace(/\(\([^)]+\)\)/g, 'X'));
+      }
+      if (pos.alerta) {
+        linhas.push("  ⚠️ _Alerta:_ " + pos.alerta);
+      }
+    }
+    if (med.posologias.length > maxPos) {
+      linhas.push("• _(+ " + (med.posologias.length - maxPos) + " esquemas no PedBook)_");
+    }
+  }
+
+  // Contraindicações e Alertas
+  if (med.contraindicacoes) {
+    linhas.push("\n🚫 *CONTRAINDICAÇÕES & CUIDADOS:*");
+    var contraCurta = med.contraindicacoes.length > 280
+      ? med.contraindicacoes.substring(0, 280) + "..."
+      : med.contraindicacoes;
+    linhas.push(contraCurta);
+  }
+
+  var slugLink = med.slug ? "https://pedb.com.br/medicamentos/" + med.slug : "https://pedb.com.br/";
+  linhas.push("\n📚 *Fonte Oficial:* PedBook (" + slugLink + ")");
+  return linhas.join("\n");
+}
+
+/**
+ * Filtra contexto de posologias pediátricas do PedBook para injeção na IA (RAG).
+ */
+function filtrarContextoPediatricoPedB(pedidoUsuario) {
+  var meds = obterGuiaPediatricoPedB();
+  if (!meds || meds.length === 0) return "";
+
+  var pedidoUpper = normalizarTermoMedicamento(pedidoUsuario);
+  var pedidoLower = String(pedidoUsuario || "").toLowerCase();
+
+  var STOP_WORDS = {
+    "ANOS": true, "ANO": true, "MES": true, "MESES": true, "DIA": true, "DIAS": true,
+    "PESO": true, "QUILOS": true, "QUILO": true, "KGS": true, "KG": true, "CRIANCA": true,
+    "CRIANCAS": true, "ADULTO": true, "ADULTOS": true, "PACIENTE": true, "PACIENTES": true,
+    "RECEITA": true, "PRESCREVER": true, "TOMAR": true, "FAZER": true, "USO": true,
+    "VIA": true, "ORAL": true, "COMP": true, "COMPRIMIDO": true, "COMPRIMIDOS": true,
+    "XAROPE": true, "GOTAS": true, "DOSE": true, "DOSES": true, "PARA": true, "COM": true,
+    "SEM": true, "HORA": true, "HORAS": true, "FEBRE": true, "DOR": true, "TOSSE": true,
+    "QUADRO": true, "CASO": true, "PRESCRICAO": true, "SOLUCAO": true, "SUSPENSAO": true
+  };
+
+  var termos = pedidoUpper.split(/\s+/).filter(function(t) { return t.length >= 3 && !STOP_WORDS[t]; });
+  var termosSet = {};
+  termos.forEach(function(t) { termosSet[t] = true; });
+
+  termos.slice().forEach(function(termo) {
+    var sin = DICIONARIO_FARMACO[termo.toLowerCase()];
+    if (sin) {
+      var sn = normalizarTermoMedicamento(sin);
+      if (!termosSet[sn]) {
+        termosSet[sn] = true;
+        termos.push(sn);
+      }
+    }
+  });
+
+  for (var sindrome in MAPA_SINDROMES_APS) {
+    if (pedidoLower.indexOf(sindrome.toLowerCase()) !== -1) {
+      MAPA_SINDROMES_APS[sindrome].forEach(function(item) {
+        var itemNorm = normalizarTermoMedicamento(item);
+        if (!termosSet[itemNorm]) {
+          termosSet[itemNorm] = true;
+          termos.push(itemNorm);
+        }
+      });
+    }
+  }
+
+  var selecionados = [];
+  var vistos = {};
+
+  for (var i = 0; i < meds.length; i++) {
+    var m = meds[i];
+    var mNorm = m.nome_normalizado || normalizarTermoMedicamento(m.nome);
+    for (var k = 0; k < termos.length; k++) {
+      var t = termos[k];
+      if (mNorm === t || mNorm.indexOf(t) === 0 || (t.length >= 4 && mNorm.indexOf(t) !== -1)) {
+        if (!vistos[m.id]) {
+          vistos[m.id] = true;
+          selecionados.push(m);
+        }
+        break;
+      }
+    }
+  }
+
+  if (selecionados.length === 0) return "";
+
+  selecionados.sort(function(a, b) {
+    var aExp = (' ' + pedidoUpper + ' ').indexOf(' ' + (a.nome_normalizado || '') + ' ') >= 0;
+    var bExp = (' ' + pedidoUpper + ' ').indexOf(' ' + (b.nome_normalizado || '') + ' ') >= 0;
+    if (aExp !== bExp) return aExp ? -1 : 1;
+    if (a.na_remume && !b.na_remume) return -1;
+    if (!a.na_remume && b.na_remume) return 1;
+    return a.nome.localeCompare(b.nome);
+  });
+
+  selecionados = selecionados.slice(0, 5);
+
+  var blocos = [];
+  for (var s = 0; s < selecionados.length; s++) {
+    var item = selecionados[s];
+    var b = [
+      "-----------------------------------------------------------------------",
+      "MEDICAMENTO PEDIÁTRICO (PEDBOOK): " + item.nome.toUpperCase(),
+      "CATEGORIA: " + item.categoria,
+      "STATUS REMUME SUS: " + (item.na_remume ? "PADRONIZADO NA REMUME" : "FORA DA REMUME MUNICIPAL"),
+      "MARCAS: " + (item.marcas || "Não informadas")
+    ];
+
+    if (item.apresentacoes && item.apresentacoes.length > 0) {
+      b.push("APRESENTAÇÕES PEDIÁTRICAS DISPONÍVEIS:");
+      item.apresentacoes.slice(0, 4).forEach(function(ap) {
+        b.push("  • " + ap.forma + (ap.concentracao ? " (" + ap.concentracao + ")" : "") +
+          (ap.idade_minima_meses ? " [≥ " + ap.idade_minima_meses + " meses]" : "") +
+          (ap.peso_minimo_kg ? " [≥ " + ap.peso_minimo_kg + " kg]" : ""));
+      });
+    }
+
+    if (item.posologias && item.posologias.length > 0) {
+      b.push("DOSES PEDIÁTRICAS OFICIAIS (PEDBOOK):");
+      item.posologias.slice(0, 3).forEach(function(p) {
+        b.push("  • [" + (p.caso_de_uso || p.nome) + "] " + (p.resumo ? p.resumo.replace(/\n/g, ' ') : p.template));
+        if (p.alerta) b.push("    ALERTA: " + p.alerta);
+      });
+    }
+
+    if (item.contraindicacoes) {
+      b.push("CONTRAINDICAÇÕES PEDIÁTRICAS: " + item.contraindicacoes.replace(/\n/g, ' ').substring(0, 250));
+    }
+
+    b.push("FONTE: PedBook (pedb.com.br/medicamentos/" + (item.slug || "") + ")");
+    blocos.push(b.join("\n"));
+  }
+
+  return blocos.join("\n\n");
+}
+
+/**
+ * Obtém a base oficial de condutas e manejos pediátricos do PedBook.
+ */
+function obterCondutasPediatricasPedB() {
+  if (_cacheCondutasPedB && Array.isArray(_cacheCondutasPedB) && _cacheCondutasPedB.length > 0) {
+    return _cacheCondutasPedB;
+  }
+  if (typeof __BASE_CONDUTAS_PEDB__ !== "undefined" && __BASE_CONDUTAS_PEDB__ && Array.isArray(__BASE_CONDUTAS_PEDB__.condutas)) {
+    _cacheCondutasPedB = __BASE_CONDUTAS_PEDB__.condutas;
+    return _cacheCondutasPedB;
+  }
+  if (typeof obterBaseCondutasPedB === "function") {
+    try {
+      var base = obterBaseCondutasPedB();
+      if (base && Array.isArray(base.condutas)) {
+        _cacheCondutasPedB = base.condutas;
+        return _cacheCondutasPedB;
+      }
+    } catch (e) {}
+  }
+  try {
+    if (typeof require !== "undefined") {
+      var fs = require("fs");
+      var path = require("path");
+      var caminhos = [
+        path.resolve(__dirname, "data", "condutas_pediatricas_pedb.json"),
+        path.resolve(__dirname, "..", "data", "condutas_pediatricas_pedb.json"),
+        path.resolve(process.cwd(), "src", "data", "condutas_pediatricas_pedb.json"),
+        path.resolve(process.cwd(), "data", "condutas_pediatricas_pedb.json")
+      ];
+      for (var i = 0; i < caminhos.length; i++) {
+        if (fs.existsSync(caminhos[i])) {
+          var payload = JSON.parse(fs.readFileSync(caminhos[i], "utf8"));
+          if (payload && Array.isArray(payload.condutas)) {
+            _cacheCondutasPedB = payload.condutas;
+            return _cacheCondutasPedB;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log("Aviso ao carregar Condutas PedBook via arquivo: " + e.message);
+  }
+  return [];
+}
+
+/**
+ * Busca protocolo clínico ou conduta pediátrica no PedBook.
+ */
+function buscarCondutaPediatricaPedB(termo) {
+  if (!termo) return null;
+  var conds = obterCondutasPediatricasPedB();
+  if (!conds || conds.length === 0) return null;
+
+  var termoNorm = normalizarTermoMedicamento(termo);
+  var termoLower = termo.trim().toLowerCase();
+
+  for (var i = 0; i < conds.length; i++) {
+    var c = conds[i];
+    if (c.titulo_normalizado === termoNorm || c.slug === termoLower) {
+      return c;
+    }
+  }
+
+  for (var j = 0; j < conds.length; j++) {
+    var cond = conds[j];
+    if (cond.titulo_normalizado.indexOf(termoNorm) !== -1) {
+      return cond;
+    }
+  }
+
+  for (var k = 0; k < conds.length; k++) {
+    var cTag = conds[k];
+    if (Array.isArray(cTag.tags)) {
+      for (var t = 0; t < cTag.tags.length; t++) {
+        if (normalizarTermoMedicamento(cTag.tags[t]) === termoNorm) {
+          return cTag;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Formata conduta pediátrica do PedBook em markdown legível.
+ */
+function formatarResumoCondutaPedB(conduta) {
+  if (!conduta) return "Conduta pediátrica não encontrada.";
+  var linhas = [];
+  linhas.push("📋 *CONDUTA PEDIÁTRICA OFICIAL (PEDBOOK)*");
+  linhas.push("═══════════════════════════════════════");
+  linhas.push("🩺 *" + conduta.titulo.toUpperCase() + "*");
+
+  if (conduta.resumo_rapido) {
+    linhas.push("\n⚡ *RESUMO RÁPIDO & PONTOS-CHAVE:*");
+    linhas.push(conduta.resumo_rapido.replace(/\*\*/g, '*'));
+  }
+
+  if (conduta.conteudo_tratamento) {
+    linhas.push("\n💊 *TRATAMENTO & CONDUTA FARMACOLÓGICA:*");
+    linhas.push(conduta.conteudo_tratamento.replace(/\*\*/g, '*'));
+  }
+
+  var link = conduta.slug ? "https://pedb.com.br/condutas-e-manejos/" + conduta.slug : "https://pedb.com.br/condutas-e-manejos";
+  linhas.push("\n📚 *Fonte:* PedBook (" + link + ")");
+  return linhas.join("\n");
+}
+
 
 // ==============================================================================
 // ARQUIVO FONTE: 04_motores_ia.js
@@ -4163,7 +4819,8 @@ var IA_PERSONA = [
   "- Separe dado informado, interpretação e dado pendente. Nunca transforme ausência de informação em achado normal. Nunca invente dados do paciente.",
   "- Não use 'validado', 'seguro' ou 'confirmado' sem suporte verificável nos dados recebidos.",
   "- Não encerre com ofertas genéricas de ajuda. Pergunte apenas quando a resposta mudar a conduta ou sustentar a atividade pedagógica.",
-  "- Brevidade nunca autoriza omitir condição de segurança."
+  "- Brevidade nunca autoriza omitir condição de segurança.",
+  "- Nas respostas assistenciais, não inclua bibliografia, URLs ou seção de fontes automaticamente. Preserve o embasamento e as condições clínicas; apresente referências apenas quando solicitadas."
 ].join("\n");
 
 var IA_VISUAL = [
@@ -4731,7 +5388,11 @@ function _iaPublico(chamarInterno, tokensPadrao, maxTokens, opcoes) {
   var chamar = function (t) { return chamarInterno(t, ctx); };
   var r = _iaResolverTruncamento(chamar, tokens, chamar(tokens), ctx, false);
   if (!r || !r.texto) return null;
-  var texto = (opcoes && opcoes.grounding) ? _iaAcrescentarFontesBusca(r.texto, r.groundingMetadata) : r.texto;
+  if (opcoes && opcoes.grounding && typeof EXECUCAO_ATUAL !== 'undefined' && EXECUCAO_ATUAL) {
+    if (!EXECUCAO_ATUAL.fontesClinicas) EXECUCAO_ATUAL.fontesClinicas = [];
+    EXECUCAO_ATUAL.fontesClinicas.push({ chamada: ctx.id, modelo: r.modelo, textoGerado: r.texto, groundingMetadata: r.groundingMetadata || null });
+  }
+  var texto = (opcoes && opcoes.grounding && opcoes.exibirFontes === true) ? _iaAcrescentarFontesBusca(r.texto, r.groundingMetadata) : r.texto;
   return _iaRemoverLatex(texto);
 }
 
@@ -4762,16 +5423,17 @@ function chamarGeminiPool(sistema, promptUsuario, maxTokens) {
 /**
  * Gemini com Google Search Grounding. Embasamento em diretrizes oficiais.
  */
-function chamarGeminiPoolComGrounding(sistema, promptUsuario, maxTokens) {
+function chamarGeminiPoolComGrounding(sistema, promptUsuario, maxTokens, opcoes) {
+  opcoes = opcoes || {};
   var instrucao = sistema + "\n\nDIRETRIZ DE EMBASAMENTO CIENTÍFICO:\n" +
     "1. PRIORIDADE: diretrizes brasileiras oficiais (SBC, SBPT, SBD, ILAS, AMIB, CFM, AMB, Conitec/PCDT Ministério da Saúde).\n" +
     "2. DIVERGÊNCIAS: aponte discrepâncias com diretrizes internacionais (AHA/ACC, ESC, SSC, GOLD, GINA, IDSA) apenas se mudarem a conduta prática.\n" +
-    "3. CITAÇÃO: indique diretriz, sociedade e ano somente quando verificados na busca; caso contrário diga 'conferir versão vigente'.\n" +
+    (opcoes.exibirFontes === true ? "3. CITAÇÃO: cite somente referências verificadas na busca.\n" : "3. APRESENTAÇÃO: use as fontes consultadas para fundamentar a resposta, sem exibir citações, URLs ou bibliografia. Não omita incertezas ou limitações clínicas.\n") +
     "4. NUNCA use LaTeX ($). Retorne Markdown simples do Telegram.";
   var modelos = _iaLista("IA_MODELOS_GEMINI_GROUNDING", IA_PADROES.GEMINI_GROUNDING);
   return _iaPublico(function (t, ctx) {
     return _iaProvGemini(sistema, promptUsuario, t, ctx, { grounding: true, modelos: modelos, instrucaoSistema: instrucao });
-  }, 2500, maxTokens, { grounding: true });
+  }, 2500, maxTokens, { grounding: true, exibirFontes: opcoes.exibirFontes === true });
 }
 
 function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario, opcoes) {
@@ -4880,14 +5542,14 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
   // 2. Rota Clássica SOAP Ambulatorial
   if (ehClinico && obj.subjetivo && obj.objetivo) {
     var oSanitizado = (typeof sanitizarObjetivoComRelato === "function")
-      ? sanitizarObjetivoComRelato(obj.objetivo, transcricao || obj.subjetivo)
+      ? sanitizarObjetivoComRelato(obj.objetivo, transcricao)
       : String(obj.objetivo).trim();
     var perguntas = obj.perguntas_anamnese || obj.perguntas || [];
     var exameDirigido = obj.exame_dirigido || [];
 
     var blocosRasc = [
       "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
-      "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + String(obj.subjetivo).trim(),
+      "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + sanitizarNegativasSOAP(obj.subjetivo, transcricao),
       "🔍 *O - Objetivo (Exame Físico)*\n" + (oSanitizado || "Exame físico em estruturação; conferir sinais vitais e achados."),
       "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."),
       "🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa.") +
@@ -5003,16 +5665,16 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   var sistema = [
     "Você é um auditor de segurança medicamentosa e de conformidade com diretrizes. Receba o CASO e o RASCUNHO e liste SOMENTE problemas reais:",
     "- dose acima do máximo ou abaixo do terapêutico; falta de ajuste renal/hepático/peso/idade; alergia ou interação ignorada;",
-    "- erro de cálculo pediátrico (ex: calcular anti-histamínico por mg/kg em vez da dose fixa por idade/peso do HSL; cobrar peso quando a idade define a dose; horários desnecessários de madrugada);",
+    "- erro de cálculo pediátrico, faixa etária/peso não confirmados, apresentação divergente ou ausência de dado exigido pela referência; horários inadequados;",
     "- diluente, velocidade de infusão ou acesso incorretos; erro aritmético (refaça a conta); medicamento fora da lista informada;",
     "- conduta em desacordo com AHA 2025 (PCR), Surviving Sepsis Campaign (sepse) ou diretrizes brasileiras vigentes.",
     "Se não houver problema, responda exatamente: SEM ALERTAS. Caso contrário, liste todos os problemas identificados em linhas iniciadas por '- ', sem omitir alertas por brevidade.",
     "Não use LaTeX. Não reescreva o rascunho."
   ].join("\n");
   var contexto = "CASO:\n" + dadosCaso + "\n\nRASCUNHO:\n" + rascunho;
-  if (typeof baseMedicamentos === "string") contexto += "\n\nLISTA REMUME FORNECIDA AO GERADOR:\n" + baseMedicamentos;
+  if (typeof baseMedicamentos === "string") contexto += "\n\nBASE MEDICAMENTOSA FORNECIDA AO GERADOR (REMUME E HSL; padronização não comprova indicação ou estoque):\n" + baseMedicamentos;
   var r = null;
-  try { r = _iaExecutar(sistema, contexto, 600, { exigirRespostaCompleta: true }); }
+  try { r = _iaExecutar(sistema, contexto, 600, { clinico: true, exigirRespostaCompleta: true }); }
   catch (e) { Logger.log("Auditoria automática indisponível."); }
   var limpo = String(r || "").trim();
   if (!limpo) return rascunho + "\n\n⚠️ *Auditoria automática indisponível — revisão pendente*\nNão foi possível concluir a segunda revisão. Este rascunho não foi liberado pela auditoria; confira-o antes de qualquer uso.";
@@ -5051,8 +5713,72 @@ function verificarPedidoExplicitoPlano(texto) {
 }
 
 function formatarListaTopicos(v, fallback) {
-  var itens = Array.isArray(v) ? v.filter(function(x) { return typeof x === "string" && x.trim(); }).slice(0, 8) : [];
+  var itens = Array.isArray(v) ? v.filter(function(x) { return typeof x === "string" && x.trim(); }) : [];
   return itens.length ? itens.map(function(x) { return "• " + x; }).join("\n") : fallback;
+}
+
+// Mesma barreira factual para SOAP escrito, consolidado e extraído de áudio.
+// Verifica medidas; não pretende validar semanticamente todo o exame físico.
+function sanitizarObjetivoComRelato(objetivo, casoClinico) {
+  var fonte = String(casoClinico || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  var texto = Array.isArray(objetivo) ? objetivo.join("\n") : String(objetivo || "");
+  var regras = [
+    { re: /\b(?:pa\s*[:=]?\s*)?(\d{2,3})\s*[x/]\s*(\d{2,3})\b/gi, tipo: "pa" },
+    { re: /\b(?:fc|frequencia cardiaca)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(?:bpm)?\b/gi, tipo: "fc" },
+    { re: /\b(\d+(?:[.,]\d+)?)\s*bpm\b/gi, tipo: "fc" },
+    { re: /\b(?:fr|frequencia respiratoria)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(?:irpm|rpm)?\b/gi, tipo: "fr" },
+    { re: /\b(\d+(?:[.,]\d+)?)\s*(?:irpm|rpm)\b/gi, tipo: "fr" },
+    { re: /\b(?:spo2|sp[oO]₂|sato2|sat|saturacao)\s*[:=]?\s*(\d+(?:[.,]\d+)?)%?/gi, tipo: "spo2" },
+    { re: /\b(?:tax|temperatura|temp)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(?:°?c)?\b/gi, tipo: "temperatura" },
+    { re: /\b(\d+(?:[.,]\d+)?)\s*°c\b/gi, tipo: "temperatura" },
+    { re: /\b(\d+(?:[.,]\d+)?)\s*mmhg\b/gi, tipo: "pressao" }
+  ];
+  function chave(regra, match) {
+    return regra.tipo + ':' + match.slice(1).map(function(v) { return Number(String(v).replace(',', '.')); }).join('/');
+  }
+  var confirmadas = {};
+  regras.forEach(function(regra) {
+    Array.from(fonte.matchAll(regra.re)).forEach(function(m) { confirmadas[chave(regra, Array.from(m))] = true; });
+  });
+  // Usa índices do texto normalizado (acentos portugueses não alteram o tamanho).
+  var normalizado = texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  var pendentes = [], intervalosConfirmados = [];
+  regras.forEach(function(regra) {
+    Array.from(normalizado.matchAll(regra.re)).forEach(function(m) {
+      var intervalo = { inicio: m.index, fim: m.index + m[0].length };
+      if (!confirmadas[chave(regra, Array.from(m))]) pendentes.push(intervalo);
+      else intervalosConfirmados.push(intervalo);
+    });
+  });
+  // Ex.: PA 120/80 mmHg é a mesma medida de PA 120x80; a captura
+  // secundária de "80 mmHg" não invalida uma PA já confirmada.
+  pendentes = pendentes.filter(function(p) {
+    return !intervalosConfirmados.some(function(ok) { return p.inicio >= ok.inicio && p.inicio < ok.fim; });
+  });
+  // Une capturas sobrepostas (ex.: FC 80 bpm e 80 bpm).
+  pendentes.sort(function(a,b) { return a.inicio - b.inicio; });
+  var unidas = [];
+  pendentes.forEach(function(p) {
+    var ultima = unidas[unidas.length - 1];
+    if (ultima && p.inicio <= ultima.fim) ultima.fim = Math.max(ultima.fim, p.fim);
+    else unidas.push(p);
+  });
+  unidas.reverse().forEach(function(p) {
+    texto = texto.slice(0, p.inicio) + '[medida não confirmada no relato]' + texto.slice(p.fim);
+  });
+  return texto.trim();
+}
+
+function sanitizarNegativasSOAP(texto, casoClinico) {
+  var fonte = String(casoClinico || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  var t = String(texto || '');
+  if (!/\b(?:nega|sem)\s+alergias?\b|alergias?\s*:\s*(?:nega|nenhuma)/.test(fonte)) {
+    t = t.replace(/(?:nega|sem)\s+alergias?(?:\s+medicamentosas?)?(?:\s+conhecidas?)?/gi, 'Alergias: informação não confirmada; conferir relato');
+  }
+  if (!/\b(?:nega|sem)\s+(?:uso\s+de\s+)?medica(?:coes|mentos)\b|nao\s+(?:usa|toma)\s+medica(?:coes|mentos)/.test(fonte)) {
+    t = t.replace(/nega\s+(?:uso\s+de\s+)?medica(?:ções|mentos)(?:\s+cont[ií]nu[oa]s?)?/gi, 'Medicações de uso contínuo: não informado');
+  }
+  return t;
 }
 
 function gerarSOAPComIA(casoClinico, opcoes) {
@@ -5064,8 +5790,11 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     // =========================================================================
     // FASE 2: SOAP COMPLETO CONSOLIDADO (AVALIAÇÃO E PLANO)
     // =========================================================================
+    var baseSoap;
+    try { baseSoap = obterContextoMedicamentosParaIA(dadosCaso).texto; }
+    catch (eBaseSoap) { baseSoap = 'Base medicamentosa indisponível. Não finalize doses ou prescrições sem conferir a referência e os dados necessários.'; }
     var promptSistemaConsolidado = [
-      IA_PERSONA, IA_SEGURANCA_MEDICAMENTOSA,
+      IA_PERSONA, IA_SEGURANCA_MEDICAMENTOSA, baseSoap,
       "MODO: DOCUMENTAÇÃO CLÍNICA SOAP - FASE 2: CONSOLIDAÇÃO COMPLETA (AVALIAÇÃO E PLANO).",
       "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o caso em prontuário SOAP definitivo pronto para o prontuário eletrônico.",
       "",
@@ -5076,8 +5805,8 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "     • Queixa Principal (QP): sintoma-guia e tempo de evolução.",
       "     • História da Doença Atual (HDA): cronologia clara e detalhada, caracterização semiológica rica (tipo, intensidade, irradiação), fatores desencadeantes, de melhora e de piora, sintomas associados cardinais ou negados relevantes.",
       "     • Antecedentes Gineco-Obstétricos / Clínicos: histórico prévio, métodos contraceptivos (ex: DIU, ACO), cirurgias e comorbidades.",
-      "     • Medicações de Uso Contínuo: fármacos em uso ou 'Nega uso de medicações contínuas'.",
-      "     • Alergias: alergias relatadas ou 'Nega alergias medicamentosas conhecidas'.",
+      "     • Medicações de Uso Contínuo: fármacos relatados; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
+      "     • Alergias: alergias relatadas; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
       "     • Hábitos de Vida: álcool, tabaco, outros ou 'Não relatados'.",
       "2. INTEGRAÇÃO INTELIGENTE DE NOVOS DADOS (SEM 'ATUALIZAÇÃO:' SOLTA):",
       "   - Se o relato do médico contiver dados complementares, novas mensagens ou adendos enviados em etapas:",
@@ -5088,7 +5817,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "   - Sinais Vitais: PA, FC, FR, SpO2, Tax (apenas os relatados; se ausentes, declare 'Sinais vitais pendentes de aferição').",
       "   - Registre os achados por sistemas (Geral/Ectoscopia, ACV, AR, Abdome, Ginecológico, Extremidades e sistemas pertinentes à queixa).",
       "   - NUNCA invente normalidade para sistemas que não foram relatados nem examinados. Para sistemas não informados, aponte 'Pendente de avaliação'.",
-      "   - Se o médico declarou 'exame físico normal' ou 'EF normal', registre os 5 sistemas clássicos padrão.",
+      "   - Se o médico declarou 'exame físico normal' ou 'EF normal', preserve a declaração genérica; não invente manobras ou sinais específicos.",
       "   - INTEGRAÇÃO DE EXAMES ESPECIAIS: Se o caso contiver exame especial anexado/incorporado (ex: [EXAME DO ESTADO MENTAL / PSICOPATOLÓGICO], [EXAME NEUROLÓGICO], ginecológico, etc.) ou se for diretamente relevante à queixa, transcreva a seção completa desse exame no Objetivo (O).",
       "4. AVALIAÇÃO (A):",
       "   - Diagnóstico principal ou problema sindrômico com código CID-10 e CIAP-2.",
@@ -5099,8 +5828,8 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "   - Exames complementares prioritários solicitados.",
       "   - Medidas não farmacológicas e orientações ao paciente.",
       "   - Critérios de alarme e tempo de retorno ambulatorial.",
-      "6. DADOS PENDENTES OPCIONAIS:",
-      "   - Liste até 3 dados ou medições clínicas ainda ausentes que enriqueceriam a conduta se o médico desejar complementar.",
+      "6. DADOS PENDENTES E SEGURANÇA:",
+      "   - Liste todas as pendências que condicionam a segurança da conduta. Diferencie dados obrigatórios antes de prescrever e complementos opcionais.",
       "",
       "Contrato JSON estrito:",
       '{"subjetivo":"Texto multi-linhas perfeitamente organizado com QP, HDA, Antecedentes, Medicações, Alergias e Hábitos","objetivo":"Texto estruturado do O por sistemas com achados e exames","avaliacao":["hipótese principal com CID-10 e CIAP-2","diferenciais em ordem de probabilidade/gravidade"],"plano":["item 1 da conduta com prescrição detalhada","exames solicitados","medidas não farmacológicas e orientações","critérios de alarme e retorno"],"pendencias_opcionais":["dado ausente que enriqueceria o caso"]}'
@@ -5110,9 +5839,9 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     var objCons = _iaExtrairJSON(rawCons) || {};
 
     var sTexto = (typeof objCons.subjetivo === "string" && objCons.subjetivo.trim())
-      ? objCons.subjetivo.trim()
+      ? sanitizarNegativasSOAP(objCons.subjetivo.trim(), dadosCaso)
       : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
-    var oTexto = (typeof objCons.objetivo === "string" && objCons.objetivo.trim()) ? objCons.objetivo.trim() : "Exame físico conforme relato médico.";
+    var oTexto = sanitizarObjetivoComRelato(objCons.objetivo, dadosCaso) || "Exame físico não informado; pendente de avaliação.";
     var pendencias = Array.isArray(objCons.pendencias_opcionais) ? objCons.pendencias_opcionais.filter(Boolean) : [];
 
     var blocosCons = [
@@ -5125,13 +5854,17 @@ function gerarSOAPComIA(casoClinico, opcoes) {
 
     if (pendencias.length > 0) {
       blocosCons.push(
-        "⚠️ *Dados adicionais que enriqueceriam o caso:*\n" +
+        "⚠️ *Dados adicionais que enriqueceriam o caso (Dados pendentes — conferir antes de concluir):*\n" +
         formatarListaTopicos(pendencias, "") +
         "\n\n_💡 Se desejar complementar algum dado acima, basta enviar por áudio ou texto que a Avaliação e o Plano serão atualizados._"
       );
     }
 
-    return _iaFinalizarTexto(blocosCons.join("\n\n"));
+    var consolidado = _iaFinalizarTexto(blocosCons.join("\n\n"));
+    if (_iaCfgBool("IA_AUDITORIA_PRESCRICAO", true)) {
+      consolidado = _iaAuditarRascunho(consolidado, dadosCaso, "plano SOAP", baseSoap);
+    }
+    return consolidado;
   }
 
   // =========================================================================
@@ -5150,8 +5883,8 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "     • Queixa Principal (QP): sintoma-guia e tempo de evolução.",
     "     • História da Doença Atual (HDA): cronologia clara e detalhada, caracterização semiológica rica (tipo, intensidade, irradiação), fatores desencadeantes, de melhora e de piora, sintomas associados cardinais ou negados relevantes.",
     "     • Antecedentes Gineco-Obstétricos / Clínicos: histórico prévio, métodos contraceptivos (ex: DIU, ACO), cirurgias e comorbidades.",
-    "     • Medicações de Uso Contínuo: fármacos em uso ou 'Nega uso de medicações contínuas'.",
-    "     • Alergias: alergias relatadas ou 'Nega alergias medicamentosas conhecidas'.",
+    "     • Medicações de Uso Contínuo: fármacos relatados; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
+    "     • Alergias: alergias relatadas; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
     "     • Hábitos de Vida: álcool, tabaco, outros ou 'Não relatados'.",
     "2. INTEGRAÇÃO INTELIGENTE DE NOVOS DADOS (SEM 'ATUALIZAÇÃO:' SOLTA):",
     "   - Se o relato do médico contiver dados complementares, novas mensagens ou adendos enviados em etapas:",
@@ -5161,7 +5894,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "3. EXAME FÍSICO INTELIGENTE (O):",
     "   - Sinais Vitais: PA, FC, FR, SpO2, Tax (apenas os relatados; se ausentes, declare 'Sinais vitais pendentes de aferição').",
     "   - Registre rigorosamente os achados por sistemas (Geral/Ectoscopia, ACV, AR, Abdome, Extremidades e sistemas pertinentes à queixa).",
-    "   - Se o médico declarou 'exame físico normal' ou 'EF normal', registre os 5 sistemas clássicos padrão.",
+    "   - Se o médico declarou 'exame físico normal' ou 'EF normal', preserve a declaração genérica; não invente manobras ou sinais específicos.",
     "   - NUNCA invente sinais vitais numéricos (PA, FC, FR, SpO2, Tax). Se não constarem no relato, declare 'Sinais vitais pendentes de aferição' e cobre na seção dirigida.",
     "   - NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa a menos que o médico tenha dito expressamente 'normal'. Para sistemas não informados e não examinados, declare explicitamente como pendentes à beira-leito.",
     "   - INTEGRAÇÃO DE EXAMES ESPECIAIS: Se o caso contiver exame especial anexado/incorporado (ex: [EXAME DO ESTADO MENTAL / PSICOPATOLÓGICO], [EXAME NEUROLÓGICO], ortopédico, etc.) ou se for diretamente relevante à queixa, transcreva a seção completa desse exame no Objetivo (O) após os 5 sistemas clássicos.",
@@ -5177,38 +5910,15 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     '{"subjetivo":"Texto multi-linhas perfeitamente organizado com QP, HDA, Antecedentes, Medicações, Alergias e Hábitos","objetivo":"Texto estruturado do O por sistemas com achados e pendências","perguntas_anamnese":["Pergunta 1? (justificativa semiológica/hipótese a afastar)","Pergunta 2? (racional clínico)"],"exame_dirigido":["sinal vital ou manobra física imprescindível"]}'
   ].join("\n");
 
-function sanitizarObjetivoComRelato(objetivo, casoClinico) {
-  var textoCaso = String(casoClinico || "");
-  var reMedicao = /\b\d{2,3}\s*[x/]\s*\d{2,3}\b|\b\d+\s*bpm\b|\b\d+\s*mmHg\b|\b\d+[.,]\d+\s*°c\b|\bspo2\s*[:=]?\s*\d{2,3}%?\b|\bsat(?:ura[çc][ãa]o)?\s*[:=]?\s*\d{2,3}%?\b|\bfr\s*[:=]?\s*\d{1,2}\s*(?:irpm)?\b/i;
-  function sanitizarLinha(l) {
-    if (typeof l !== "string" || !l.trim()) return false;
-    if (reMedicao.test(l)) {
-      var medidasInventadas = l.match(/\b\d{2,3}\s*[x/]\s*\d{2,3}\b|\b\d+\s*bpm\b|\b\d+\s*mmHg\b|\b\d+[.,]\d+\s*°c\b|\bspo2\s*[:=]?\s*\d{2,3}%?\b|\bsat(?:ura[çc][ãa]o)?\s*[:=]?\s*\d{2,3}%?\b|\bfr\s*[:=]?\s*\d{1,2}\s*(?:irpm)?\b/gi) || [];
-      for (var i = 0; i < medidasInventadas.length; i++) {
-        if (textoCaso.toLowerCase().indexOf(medidasInventadas[i].toLowerCase().trim()) === -1) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-  if (Array.isArray(objetivo)) {
-    return objetivo.filter(sanitizarLinha).join("\n");
-  }
-  if (typeof objetivo === "string" && objetivo.trim()) {
-    return objetivo.split("\n").filter(sanitizarLinha).join("\n");
-  }
-  return "";
-}
 
   var rawRasc = executarRaciocinioClinico(promptSistemaRascunho, "CASO CLÍNICO:\n" + dadosCaso, 3000);
   if (typeof rawRasc === "string" && rawRasc.indexOf("🩺") !== -1 && rawRasc.indexOf("S -") !== -1) {
-    return _iaFinalizarTexto(rawRasc);
+    return "⚠️ Estruturação SOAP incompleta. Revise o relato original antes de registrar.\n\nRelato recebido:\n" + dadosCaso;
   }
   var objRasc = _iaExtrairJSON(rawRasc) || {};
 
   var sRasc = (typeof objRasc.subjetivo === "string" && objRasc.subjetivo.trim())
-    ? objRasc.subjetivo.trim()
+    ? sanitizarNegativasSOAP(objRasc.subjetivo.trim(), dadosCaso)
     : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
   var oRasc = sanitizarObjetivoComRelato(objRasc.objetivo, dadosCaso);
   if (!oRasc) oRasc = "Exame físico em estruturação; conferir sinais vitais e achados.";
@@ -5539,22 +6249,27 @@ function gerarGuiaExameFisicoEspecial(tipo, contexto) {
   return "📚 MODELO DE REFERÊNCIA — confirmar os achados antes de registrar.\n\n" + padrao;
 }
 
-function gerarPrescricaoComIA(dadosPrescricao) {
-  var idRemume = ConfigService.get("SPREADSHEET_ID_REMUME");
-  var baseCompleta = "";
-  try {
-    baseCompleta = obterPlanilha("remume", idRemume, false);
-  } catch (erro) {
-    return "\u274C " + erro.message;
+function obterContextoMedicamentosParaIA(dados) {
+  var base = obterPlanilha("remume", ConfigService.get("SPREADSHEET_ID_REMUME"), false);
+  var remume = typeof filtrarMedicamentosRelevantes === 'function' ? filtrarMedicamentosRelevantes(base, dados) : String(base || '');
+  var hsl = typeof filtrarContextoPosologiasHSL === 'function' ? filtrarContextoPosologiasHSL(dados) : '';
+  var pedb = typeof filtrarContextoPediatricoPedB === 'function' ? filtrarContextoPediatricoPedB(dados) : '';
+  
+  var texto = 'LISTA MUNICIPAL (PADRONIZAÇÃO):\n' + remume +
+    '\n\nFICHAS POSOLÓGICAS E CONDIÇÕES DE SEGURANÇA (GUIA HSL):\n' + (hsl || 'Nenhuma ficha HSL recuperada para este pedido; não atribua doses não consultadas ao HSL.');
+  if (pedb) {
+    texto += '\n\nDOSES & APRESENTAÇÕES PEDIÁTRICAS OFICIAIS (PEDBOOK pedb.com.br):\n' + pedb;
   }
+  return { remume: remume, hsl: hsl, pedb: pedb, texto: texto };
+}
 
-  var listaMedicamentos = (typeof filtrarMedicamentosRelevantes === "function")
-    ? filtrarMedicamentosRelevantes(baseCompleta, dadosPrescricao)
-    : String(baseCompleta || "");
-
-  var contextoPosologiaHSL = (typeof filtrarContextoPosologiasHSL === "function")
-    ? filtrarContextoPosologiasHSL(dadosPrescricao)
-    : "";
+function gerarPrescricaoComIA(dadosPrescricao) {
+  var baseClinica;
+  try { baseClinica = obterContextoMedicamentosParaIA(dadosPrescricao); }
+  catch (erro) { return "❌ " + erro.message; }
+  var listaMedicamentos = baseClinica.remume;
+  var contextoPosologiaHSL = baseClinica.hsl;
+  var contextoPedB = baseClinica.pedb;
 
   var calculoFixoPed = (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularPosologiaPorTextoLivre === "function")
     ? CalculadorasClinicas.calcularPosologiaPorTextoLivre(dadosPrescricao)
@@ -5565,15 +6280,15 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     travaDeterministica = [
       "",
       "=======================================================================",
-      "🔒 TRAVA MATEMÁTICA DETERMINÍSTICA OBRIGATÓRIA (FÓRMULA FIXA EM CÓDIGO PURO - ZERO ALUCINAÇÃO):",
+      "CÁLCULO AUXILIAR PARA CONFERÊNCIA (não determina indicação nem substitui a base clínica):",
       "• Fármaco Eleito: " + calculoFixoPed.farmaco,
       "• Apresentação Padronizada: " + calculoFixoPed.apresentacao,
       "• Posologia no Receituário: " + calculoFixoPed.instrucaoPosologica,
       "• Quantidade a Dispensar: " + calculoFixoPed.quantidadeDispensar,
       "• Memória de Cálculo Auditada: " + calculoFixoPed.memoriaCalculo,
       "• Orientações: " + calculoFixoPed.orientacoes,
-      "⚠️ REGRA DE SEGURANÇA MÁXIMA: NÃO RECALCULE NENHUM NÚMERO.",
-      "Copie EXATAMENTE a dose (" + (calculoFixoPed.tipo === 'gotas' ? (calculoFixoPed.gotasPorTomada + " gotas") : (calculoFixoPed.volumePorTomadaMl + " mL")) + "), o intervalo e a quantidade de frascos acima calculados.",
+      "Verifique indicação, faixa etária, contraindicações, apresentação e duração antes de aproveitar este cálculo. Se houver conflito com o caso ou a base, declare a pendência e não copie a dose.",
+      "Dose calculada para a apresentação acima (" + (calculoFixoPed.tipo === 'gotas' ? (calculoFixoPed.gotasPorTomada + " gotas") : (calculoFixoPed.volumePorTomadaMl + " mL")) + "); confira também intervalo e quantidade total.",
       "======================================================================="
     ].join("\n");
   }
@@ -5582,14 +6297,15 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     IA_PERSONA, "", IA_VISUAL, "",
     "MODO: PRESCRIÇÃO AMBULATORIAL (RASCUNHO PARA REVISÃO). Gere prescrições precisas a partir da doença informada ou do medicamento solicitado.",
     "",
-    "REGRA DE OURO (REMUME SUS + GUIA FARMACÊUTICO HSL):",
+    "REGRA DE OURO (REMUME SUS + GUIA FARMACÊUTICO HSL + PEDBOOK PEDIÁTRICO):",
     "1. MEDICAMENTOS DA REMUME SÃO SEMPRE PRIMEIRA OPÇÃO: Prescreva preferencialmente fármacos e apresentações padronizadas na rede municipal (REMUME Ribeirão Preto).",
-    "2. SE NÃO HOUVER ALTERNATIVA NA REMUME: Apenas se a condição clínica não puder ser tratada com itens da rede municipal, utilize a alternativa do Guia HSL declarando: '⚠️ Medicamento fora da REMUME municipal (componente especializado/compra)'.",
+    "2. SE NÃO HOUVER ALTERNATIVA NA REMUME: Apenas se a condição clínica não puder ser tratada com itens da rede municipal, utilize a alternativa do Guia HSL/PedBook declarando: '⚠️ Medicamento fora da REMUME municipal (componente especializado/compra)'.",
     "3. POSOLOGIA OFICIAL DO HOSPITAL SÍRIO-LIBANÊS (HSL): Siga as doses adultas, pediátricas por kg/dia, intervalos e ajustes para insuficiência renal (ClCr/TFG) oficiais da base HSL.",
+    "4. POSOLOGIA E APRESENTAÇÕES PEDIÁTRICAS (PEDBOOK pedb.com.br): Para pacientes pediátricos (lactentes, crianças, adolescentes), utilize as doses por kg/dia, volumes em mL/gotas de suspensão e faixas mínimas do guia pediátrico oficial PedBook.",
     travaDeterministica,
     "",
-    "=== BASE OFICIAL DE POSOLOGIAS & APRESENTAÇÕES (GUIA HSL + REMUME) ===",
-    contextoPosologiaHSL ? contextoPosologiaHSL : ("LISTA MUNICIPAL:\n" + listaMedicamentos),
+    "=== BASE OFICIAL DE POSOLOGIAS & APRESENTAÇÕES (GUIA HSL + PEDBOOK + REMUME) ===",
+    baseClinica.texto,
     "=======================================================================",
     "",
     "DIRETRIZES DE SEGURANÇA FARMACOLÓGICA E DIDÁTICA (FMRP-USP):",
@@ -5598,9 +6314,9 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "   - Com peso informado: Exiba no receituário a posologia clara e no campo de conferência a MEMÓRIA DE CÁLCULO COMPLETA E DIDÁTICA baseada na dose de referência do Guia HSL (mg/kg/dia ➔ mg/dose ➔ mL/dose na lista ➔ frascos).",
     "   - FÁRMACOS COM DOSE POR FAIXA ETÁRIA OU DOSE FIXA PEDIÁTRICA (ANTI-HISTAMÍNICOS E ANTI-HELMÍNTICOS):",
     "     • Exemplos: anti-histamínicos (Loratadina, Dexclorfeniramina, Cetirizina, Desloratadina), anti-helmínticos (Albendazol, Mebendazol), tópicos e nasais.",
-    "     • REGRA DE OURO CLÍNICA: Se a idade for informada (ex: 'criança de 5 anos'), NUNCA COBRE PESO NEM BLOQUEIE A PRESCRIÇÃO.",
+    "     • Solicite peso quando a dose depender de peso ou faixa de peso, inclusive loratadina entre 2 e 12 anos. Não exija peso para esquema exclusivamente etário com idade confirmada.",
     "     • É TERMINANTEMENTE PROIBIDO inventar taxas em 'mg/kg/dia' para anti-histamínicos (erro grave de '1 mg/kg/dia').",
-    "     • Prescreva imediatamente a dose volumétrica da faixa etária conforme o Guia HSL:",
+    "     • As faixas abaixo exigem confirmação da idade, apresentação, indicação e condições de segurança:",
     "       - Loratadina 1 mg/mL: 2 a 12 anos (até 30 kg) = 5 mL (5 mg) VO 1 vez ao dia à noite; > 12 anos (ou > 30 kg) = 10 mL (10 mg) VO 1 vez ao dia.",
     "       - Dexclorfeniramina 2 mg/5 mL: 2 a 6 anos = 1,25 mL (0,5 mg) VO 3 vezes ao dia; 6 a 12 anos = 2,5 mL (1 mg) VO 3 vezes ao dia; > 12 anos = 5 mL (2 mg) VO 3 vezes ao dia.",
     "       - Albendazol 400 mg: > 2 anos e adultos = 400 mg (10 mL ou 1 comp) em DOSE ÚNICA INDEPENDENTE DO PESO (repetir em 14 dias se oxiuríase).",
@@ -5649,15 +6365,80 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "- *Ajustes de segurança (renal, hepático, idade/Beers, gestação):* [faixas de TFG do Guia HSL, alertas ou conformidade]",
     "- *Alergias e interações:* [conferido com dados do caso ou pendências]",
     "- *Disponibilidade na Rede:* [Item da REMUME de Ribeirão Preto / Não consta na REMUME - opção referenciada no Guia HSL].",
-    "- *Base Posológica Oficial:* Guia Farmacêutico Hospital Sírio-Libanês (HSL)."
+    "- Não acrescente seção de fontes ou bibliografia à resposta assistencial."
   ].join("\n");
 
   var dados = "DADOS DO PACIENTE / PEDIDO:\n" + dadosPrescricao;
   var resposta = _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, dados, 1800));
   if (resposta && _iaCfgBool("IA_AUDITORIA_PRESCRICAO", true)) {
-    resposta = _iaAuditarRascunho(resposta, dadosPrescricao, "prescricao", listaMedicamentos);
+    resposta = _iaAuditarRascunho(resposta, dadosPrescricao, "prescricao", baseClinica.texto);
   }
   return resposta;
+}
+
+/**
+ * Prescrição Hospitalar Completa (Enfermaria, Semi-Intensiva e CTI).
+ * Segue a ordem canônica hospitalar: Dieta, Hidratação, ATB, Contínuos, Profilaxias, SOS, Cuidados.
+ */
+function gerarPrescricaoHospitalarComIA(dadosCaso) {
+  var baseClinica;
+  try { baseClinica = obterContextoMedicamentosParaIA(dadosCaso); }
+  catch (erro) { baseClinica = { remume: "", hsl: "", texto: "Base hospitalar HSL de segurança." }; }
+
+  var promptSistemaHospitalar = [
+    IA_PERSONA, "", IA_VISUAL, "",
+    "MODO: PRESCRIÇÃO HOSPITALAR COMPLETA (ORDEM CANÔNICA DE ENFERMARIA / UTI - FMRP-USP).",
+    "Você é o Médico Assistente e Preceptor Hospitalar. Estruture a prescrição hospitalar completa para internação/enfermaria, pronta para o prontuário eletrônico e checagem de enfermagem.",
+    "",
+    "ORDEM CANÔNICA OBRIGATÓRIA DA PRESCRIÇÃO HOSPITALAR:",
+    "1. DIETA: Via, consistência, fracionamento e restrições metabólicas (ex: Geral, Diabética, Hipossódica, Pastosa, Branda, Zero com hidratação, Enteral SNE com meta calórica/proteica).",
+    "2. HIDRATAÇÃO VENOSA & ELETRÓLITOS: Solução base (SF 0,9%, SG 5%, Ringer Lactato), volume, adições eletrolíticas (ex: KCl 19,1%), vazão contínua em mL/h em Bomba de Infusão Contínua (BIC) e macrogotas/min. Se euvolêmico/hipervolêmico/ICC/congesto, declare formalmente: 'Hidratação venosa zero / Manter veia periférica salinizada'.",
+    "3. ANTIMICROBIANOS (COM DIA D_ E AJUSTE RENAL):",
+    "   - Fármaco, dose miligramada precisa, via EV, diluente (volume e solução), tempo de infusão (ex: correr em 60 min; betalactâmicos preferencialmente em infusão estendida de 3 a 4h), intervalo de tomada com horários sugeridos.",
+    "   - Identificação do dia de tratamento: 'D1/?', 'D3/7', etc.",
+    "   - Ajuste obrigatório conforme ClCr/TFG do paciente (verificar base HSL).",
+    "4. MEDICAÇÕES DE USO CONTÍNUO (CONCILIAÇÃO MEDICAMENTOSA):",
+    "   - Avaliação crítica das medicações prévias do paciente: manter, suspender temporariamente (ex: suspender metformina se instabilidade/IRA; suspender IECA/BRA se choque/IRA hipercalêmica) ou substituir.",
+    "5. PROFILAXIAS HOSPITALARES OBRIGATÓRIAS (SEGURANÇA DO PACIENTE):",
+    "   - Profilaxia de Tromboembolismo Venoso (TEV): Enoxaparina 40 mg SC 1x/dia (ajustar para 20 mg SC 1x/dia se ClCr < 30 mL/min, ou HNF 5.000 UI SC 8/8h). Se contraindicação absoluta (plaquetas < 50.000, sangramento ativo recente): prescrever profilaxia mecânica (compressão pneumática intermitente / meias elásticas).",
+    "   - Profilaxia de Lesão Aguda de Mucosa Gástrica (Úlcera de Estresse): Omeprazol 40 mg EV 1x/dia pela manhã. Aplicar critérios estritos (apenas se Ventilação Mecânica > 48h, coagulopatia grave, sepse grave, TCE grave, grande queimado ou antecedente recente de HDA). Se sem critérios, declarar 'Sem indicação formal no momento'.",
+    "6. MEDICAMENTOS SINTOMÁTICOS & SE NECESSÁRIO (SOS):",
+    "   - Analgésicos / Antitérmicos: Dipirona 1g EV em 100 mL SF até de 6/6h se dor ou febre (Tax ≥ 37,8°C).",
+    "   - Antieméticos: Ondansetrona 8 mg EV até de 8/8h se náuseas/vômitos.",
+    "   - Esquema de Insulina Regular SC conforme HGT pré-refeições se diabético.",
+    "   - Analgesia de resgate (Tramadol/Morfina) se dor intensa, com parâmetros de vigilância de sedação.",
+    "7. CUIDADOS DE ENFERMAGEM & MONITORIZAÇÃO:",
+    "   - Sinais vitais com PA, FC, FR, SpO2 e Tax a cada 6 horas.",
+    "   - Glicemia capilar pré-refeições e às 22h (se aplicável).",
+    "   - Cabeceira elevada a 30° - 45° (prevenção de PAV e broncoaspiração).",
+    "   - Mudança de decúbito a cada 2 horas (prevenção de lesões por pressão).",
+    "   - Balanço hídrico rigoroso de 24h.",
+    "   - Sinais de alarme para chamar o médico assistente (PAS < 90 ou > 180 mmHg, FC < 50 ou > 120 bpm, FR < 10 ou > 26 irpm, SpO2 < 92%, Tax ≥ 37,8°C ou débito urinário < 0,5 mL/kg/h).",
+    "",
+    IA_SEGURANCA_MEDICAMENTOSA,
+    "",
+    "ESTRUTURA DE RESPOSTA:",
+    "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO (ORDEM CANÔNICA)*",
+    "*Paciente / Leito:* [Dados informados] | *Status:* [Completa / Dados pendentes]",
+    "",
+    "1. *DIETA:* [Descrição detalhada da dieta]",
+    "2. *HIDRATAÇÃO VENOSA:* [Solução, eletrólitos, vazão em mL/h e macrogotas/min ou 'Salinizar acesso']",
+    "3. *ANTIMICROBIANOS:* [Lista de antimicrobianos com diluição, tempo de infusão, dia D_ e ajuste renal]",
+    "4. *MEDICAÇÕES DE USO CONTÍNUO:* [Conciliação medicamentosa com justificativa de suspensões]",
+    "5. *PROFILAXIAS DE LEITO:* [TEV química/mecânica e úlcera de estresse fundamentadas]",
+    "6. *SINTOMÁTICOS & SOS:* [Dipirona, antiemético, insulina, com intervalo mínimo e gatilhos]",
+    "7. *CUIDADOS DE ENFERMAGEM:* [Sinais vitais, decúbito, cabeceira, balanço e metas de alerta]",
+    "",
+    "⚠️ *NOTAS MÉDICAS & PENDÊNCIAS:*",
+    "- [Pendências laboratoriais, culturas colhidas aguardando resultado, reavaliação de disfunção orgânica]"
+  ].join("\n");
+
+  var dados = "CASO CLÍNICO / DADOS DA INTERNAÇÃO:\n" + String(dadosCaso || "").trim();
+  var res = _iaFinalizarTexto(executarRaciocinioClinico(promptSistemaHospitalar, dados, 2800));
+  if (res && _iaCfgBool("IA_AUDITORIA_PRESCRICAO", true)) {
+    res = _iaAuditarRascunho(res, dadosCaso, "prescricao_hospitalar", baseClinica.texto);
+  }
+  return res;
 }
 
 function gerarPassagemPlantaoSBAR(dadosCaso) {
@@ -5996,7 +6777,7 @@ function gerarCondutaEmergenciaComIA(dadosEmergencia) {
     "- [parâmetro + momento + resposta esperada]; se [critério], [escalonar].",
     "",
     "\u26A0\uFE0F [dado crítico pendente ou restrição que condiciona a conduta]",
-    "\uD83D\uDCDA *Referência:* [diretriz, sociedade e ano - ou 'conferir versão vigente']",
+    "Não acrescente seção de fontes ou bibliografia à resposta assistencial.",
     "_Sugestão gerada por IA. Conferir dose, diluição e diretriz; a responsabilidade da prescrição é do prescritor._"
   ].join("\n");
 
@@ -7925,7 +8706,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/rx", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina"];
+  var clinicos = ["/soap", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -7937,7 +8718,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/rx":"rx","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
+      var mapaModos={"/soap":"soap","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -8081,7 +8862,7 @@ function processarMensagemTexto(message) {
   if (comando === "/ef_dermato" || comando === "/dermato" || comando === "/pele") return responderComGuiaExameFisico(chatId, "dermato");
   if (comando === "/ef_gineco" || comando === "/gineco" || comando === "/go") return responderComGuiaExameFisico(chatId, "gineco");
   if (comando === "/ef_procto" || comando === "/procto" || comando === "/uro") return responderComGuiaExameFisico(chatId, "procto");
-  if (comando === "/ef_ped" || comando === "/ped" || comando === "/pedia") return responderComGuiaExameFisico(chatId, "ped");
+  if (comando === "/ef_ped" || comando === "/ef_pedia") return responderComGuiaExameFisico(chatId, "ped");
   if (comando === "/ef_geriatria" || comando === "/geriatria" || comando === "/aga") return responderComGuiaExameFisico(chatId, "geriatria");
   if (comando === "/ef_vascular" || comando === "/vascular" || comando === "/tvp") return responderComGuiaExameFisico(chatId, "vascular");
 
@@ -8091,22 +8872,88 @@ function processarMensagemTexto(message) {
     return processarEEntregarIA(chatId, gerarPrescricaoComIA, dadosPrescricao, "rx");
   }
 
+  if (comando === "/rxh" || comando === "/prescricao_hospitalar") {
+    var dadosRxh = texto.replace(/^\/(rxh|prescricao_hospitalar)\s*/i, "").trim();
+    if (!dadosRxh) {
+      return enviarMensagemParaChat(chatId, "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\nEnvie os dados do paciente internado (diagnóstico, peso, idade, função renal, alergias):\n💡 *Exemplo:* `/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`");
+    }
+    return processarEEntregarIA(chatId, gerarPrescricaoHospitalarComIA, dadosRxh, "rxh");
+  }
+
+  if (comando === "/atb" || comando === "/ajuste" || comando === "/ajuste_renal") {
+    var dadosAtb = texto.replace(/^\/(atb|ajuste|ajuste_renal)\s*/i, "").trim();
+    if (!dadosAtb) {
+      return enviarMensagemParaChat(
+        chatId,
+        "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
+        "Envie o antimicrobiano e o clearance de creatinina ou se o paciente está em hemodiálise:\n\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/atb meropenem clcr 25`\n" +
+        "• `/atb vanco 40`\n" +
+        "• `/atb pip-tazo clcr 30`\n" +
+        "• `/atb cefepime hd`\n" +
+        "• `/atb polimixina b 10`"
+      );
+    }
+    if (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
+      var calcDetAtb = CalculadorasClinicas.calcularAjusteRenalPorTextoLivre(dadosAtb);
+      if (calcDetAtb && calcDetAtb.ok && calcDetAtb.dados) {
+        var dAtb = calcDetAtb.dados;
+        var msgAtb = "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
+          "• *Fármaco:* " + dAtb.nomeExibicao + "\n" +
+          "• *Dose Padrão:* " + dAtb.dosePadrao + "\n" +
+          "• *Dose Ajustada:* `" + dAtb.doseAjustada + "`\n" +
+          "• *Condições:* " + (dAtb.hemodialise ? "Em Hemodiálise" : ("ClCr " + (dAtb.clcrInformado !== null ? dAtb.clcrInformado + " mL/min" : "não informado"))) + "\n\n" +
+          "💡 *Cuidados Farmacológicos:*\n" + dAtb.cuidados + "\n\n" +
+          "🛡️ *Monitorização:*\n" + dAtb.monitorizacao;
+        return enviarMensagemParaChat(chatId, msgAtb);
+      }
+    }
+    return responderConsultaPosologiaHSL(chatId, dadosAtb);
+  }
+
   if (comando === "/dose" || comando === "/posologia" || comando === "/hsl") {
     var termoDose = texto.replace(/^\/(dose|posologia|hsl)\s*/i, "").trim();
     if (!termoDose) {
       return enviarMensagemParaChat(
         chatId,
-        "💊 *CONSULTA DE POSOLOGIA OFICIAL (GUIA FARMACÊUTICO HSL)*\n\n" +
+        "💊 *CONSULTA DE POSOLOGIA OFICIAL (GUIA FARMACÊUTICO HSL & PEDBOOK)*\n\n" +
         "Envie o nome do medicamento para consultar as doses adultas, pediátricas, ajuste renal e disponibilidade na REMUME.\n\n" +
         "💡 *Exemplos:*\n" +
         "• `/dose amoxicilina`\n" +
         "• `/dose dipirona`\n" +
         "• `/dose ceftriaxona`\n" +
-        "• `/dose losartana`\n" +
-        "• `/dose amoxicilina + clavulanato`"
+        "• `/ped azitromicina` (doses pediátricas dedicadas)\n" +
+        "• `/dose amoxicilina 16kg`"
       );
     }
     return responderConsultaPosologiaHSL(chatId, termoDose);
+  }
+
+  if (comando === "/ped" || comando === "/dose_ped" || comando === "/pediatria") {
+    var termoPed = texto.replace(/^\/(ped|dose_ped|pediatria)\s*/i, "").trim();
+    if (!termoPed) {
+      return enviarMensagemParaChat(
+        chatId,
+        "👶 *CONSULTA DE DOSES PEDIÁTRICAS (PEDBOOK pedb.com.br)*\n\n" +
+        "Envie o nome do medicamento ou conduta para consultar doses por kg/idade, apresentações líquidas e alertas de segurança.\n\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/ped amoxicilina`\n" +
+        "• `/ped dipirona`\n" +
+        "• `/ped azitromicina`\n" +
+        "• `/ped cefalexina`\n" +
+        "• `/ped bronquiolite`"
+      );
+    }
+    return responderConsultaPediatricaPedB(chatId, termoPed);
+  }
+
+  if (comando === "/conduta_ped") {
+    var termoCond = texto.replace(/^\/conduta_ped\s*/i, "").trim();
+    if (!termoCond) {
+      return enviarMensagemParaChat(chatId, "🩺 Envie o tema da conduta pediátrica. Ex: `/conduta_ped bronquiolite` ou `/conduta_ped crup`");
+    }
+    return responderConsultaCondutaPedB(chatId, termoCond);
   }
 
   if (comando === "/plantao" || comando === "/sbar") {
@@ -8874,9 +9721,10 @@ function responderConsultaPosologiaHSL(chatId, termo) {
       "",
       "📋 *Fármaco:* *" + calcPed.farmaco + "*",
       "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`",
-      "⚖️ *Peso Informado:* `" + calcPed.pesoKg + " kg`",
+      "⚖️ *Peso Informado:* " + (calcPed.pesoKg == null ? "Não informado (não utilizado no cálculo)." : "`" + calcPed.pesoKg + " kg`"),
+      calcPed.idadeAnos == null ? "" : "*Idade informada:* " + calcPed.idadeAnos + " anos",
       "",
-      "💊 *POSOLOGIA OFICIAL DETERMINÍSTICA:*",
+      "💊 *ESQUEMA CALCULADO PARA REVISÃO:*",
       "👉 *" + calcPed.instrucaoPosologica + "*",
       "📦 *Quantidade a Dispensar:* *" + calcPed.quantidadeDispensar + "*",
       "",
@@ -8885,29 +9733,41 @@ function responderConsultaPosologiaHSL(chatId, termo) {
       "",
       "💡 *Orientações:* " + calcPed.orientacoes,
       "",
-      "🔒 *Segurança:* Cálculo matemático determinístico em código puro (Zero Alucinação de IA)."
+      "*Conferência:* Validar indicação, apresentação, dose, duração, alergias e ajustes antes de prescrever. O cálculo não substitui a avaliação clínica."
     ].join("\n");
 
     var kbPed = {
       "inline_keyboard": [
         [
-          { "text": "📝 Prescrever no /rx com esta dose", "callback_data": "rx_med:" + calcPed.farmaco + " " + calcPed.pesoKg + "kg" }
+          { "text": "📝 Revisar no /rx", "callback_data": "rx_med:" + calcPed.chave + (calcPed.pesoKg == null ? "" : " " + calcPed.pesoKg + "kg") + (calcPed.idadeAnos == null ? "" : " " + calcPed.idadeAnos + " anos") }
         ]
       ]
     };
     return enviarMensagemComTecladoParaChat(chatId, txtPed, kbPed);
   }
 
-  // 2. Consulta da ficha técnica oficial do Guia HSL
+  // 2. Se a busca tiver indicação explícita pediátrica, consulta primariamente o PedBook
+  var ehBuscaPediatrica = /(\bkg\b|\bquilo|\bmeses\b|\bmes\b|\banos\b|\bano\b|crian|pediat|lactente|gotas|suspens)/i.test(termo);
+  var medPed = (typeof buscarMedicamentoPediatricoPedB === "function") ? buscarMedicamentoPediatricoPedB(termo) : null;
+
+  if (ehBuscaPediatrica && medPed) {
+    return responderConsultaPediatricaPedB(chatId, termo);
+  }
+
+  // 3. Consulta da ficha técnica oficial do Guia HSL
   var med = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(termo) : null;
   if (!med) {
+    // Se não encontrou no HSL, mas existe no PedBook, entrega a ficha do PedBook!
+    if (medPed) {
+      return responderConsultaPediatricaPedB(chatId, termo);
+    }
     return enviarMensagemParaChat(
       chatId,
-      "🔍 *MEDICAMENTO NÃO ENCONTRADO NO GUIA HSL*\n\n" +
-      "Não encontramos registro exato para `\"" + termo + "\"` no Guia Farmacêutico do Hospital Sírio-Libanês.\n\n" +
+      "🔍 *MEDICAMENTO NÃO ENCONTRADO*\n\n" +
+      "Não encontramos registro exato para `\"" + termo + "\"` nos guias oficiais (HSL e PedBook).\n\n" +
       "💡 *Dicas:*\n" +
-      "• Busque pelo princípio ativo genérico (ex: `/dose amoxicilina`, `/dose dipirona`, `/dose ceftriaxona`).\n" +
-      "• Se for caso infantil, informe o peso: `/dose amoxicilina 16kg` ou `/dose dipirona 12kg`.\n" +
+      "• Busque pelo princípio ativo genérico (ex: `/dose amoxicilina`, `/dose dipirona`, `/ped azitromicina`).\n" +
+      "• Se for caso infantil, informe o peso: `/dose amoxicilina 16kg` ou consulte `/ped amoxicilina`.\n" +
       "• Ou utilize o gerador de receita `/rx " + termo + "` para avaliação clínica completa."
     );
   }
@@ -8917,15 +9777,76 @@ function responderConsultaPosologiaHSL(chatId, termo) {
     : "Ficha posológica indisponível.";
 
   var rotuloPrescrever = "💊 Prescrever no /rx (" + (med.farnaco.length > 15 ? med.farnaco.substring(0, 15) + "..." : med.farnaco) + ")";
-  var kb = {
-    "inline_keyboard": [
-      [
-        { "text": rotuloPrescrever, "callback_data": "rx_med:" + med.farnaco.substring(0, 30) }
-      ]
-    ]
-  };
+  var botoes = [
+    [{ "text": rotuloPrescrever, "callback_data": "rx_med:" + med.farnaco.substring(0, 30) }]
+  ];
+  if (medPed) {
+    botoes.push([{ "text": "👶 Ver Doses Pediátricas (PedBook)", "callback_data": "ped_med:" + medPed.nome.substring(0, 30) }]);
+  }
+  var kb = { "inline_keyboard": botoes };
 
   return enviarMensagemComTecladoParaChat(chatId, respostaTexto, kb);
+}
+
+/**
+ * Responde à consulta de doses pediátricas e apresentações do PedBook (pedb.com.br).
+ */
+function responderConsultaPediatricaPedB(chatId, termo) {
+  var medPed = (typeof buscarMedicamentoPediatricoPedB === "function") ? buscarMedicamentoPediatricoPedB(termo) : null;
+  if (!medPed) {
+    // Se não encontrou medicamento, verifica se é uma conduta clínica pediátrica
+    var cond = (typeof buscarCondutaPediatricaPedB === "function") ? buscarCondutaPediatricaPedB(termo) : null;
+    if (cond) {
+      return responderConsultaCondutaPedB(chatId, termo);
+    }
+    return enviarMensagemParaChat(
+      chatId,
+      "🔍 *MEDICAMENTO PEDIÁTRICO NÃO ENCONTRADO NO PEDBOOK*\n\n" +
+      "Não encontramos ficha pediátrica específica para `\"" + termo + "\"` no PedBook.\n\n" +
+      "💡 *Dicas:*\n" +
+      "• Busque pelo princípio ativo (ex: `/ped amoxicilina`, `/ped dipirona`, `/ped prednisolona`).\n" +
+      "• Ou busque condutas: `/conduta_ped bronquiolite` ou `/conduta_ped crup`.\n" +
+      "• Para posologia geral ou adulto, utilize `/dose " + termo + "`."
+    );
+  }
+
+  var respostaTexto = (typeof formatarFichaPediatricaPedB === "function")
+    ? formatarFichaPediatricaPedB(medPed)
+    : "Ficha pediátrica indisponível.";
+
+  var botoes = [
+    [{ "text": "💊 Prescrever no /rx (" + (medPed.nome.length > 15 ? medPed.nome.substring(0, 15) + "..." : medPed.nome) + ")", "callback_data": "rx_med:" + medPed.nome.substring(0, 30) }]
+  ];
+
+  var medHsl = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(medPed.nome) : null;
+  if (medHsl) {
+    botoes.push([{ "text": "🏢 Ver Doses Adulto / HSL", "callback_data": "hsl_med:" + medHsl.farnaco.substring(0, 30) }]);
+  }
+
+  var kb = { "inline_keyboard": botoes };
+  return enviarMensagemComTecladoParaChat(chatId, respostaTexto, kb);
+}
+
+/**
+ * Responde à consulta de condutas e manejos pediátricos oficiais do PedBook.
+ */
+function responderConsultaCondutaPedB(chatId, termo) {
+  var cond = (typeof buscarCondutaPediatricaPedB === "function") ? buscarCondutaPediatricaPedB(termo) : null;
+  if (!cond) {
+    return enviarMensagemParaChat(
+      chatId,
+      "🔍 *CONDUTA PEDIÁTRICA NÃO ENCONTRADA*\n\n" +
+      "Não encontramos protocolo específico para `\"" + termo + "\"` no PedBook.\n\n" +
+      "💡 *Exemplos de condutas disponíveis:*\n" +
+      "• `/conduta_ped bronquiolite`\n" +
+      "• `/conduta_ped crup` ou `/conduta_ped laringite`\n" +
+      "• `/conduta_ped asma`\n" +
+      "• `/conduta_ped convulsao febril`\n" +
+      "• `/conduta_ped anafilaxia`"
+    );
+  }
+  var txt = (typeof formatarResumoCondutaPedB === "function") ? formatarResumoCondutaPedB(cond) : "Conduta indisponível.";
+  return enviarMensagemParaChat(chatId, txt);
 }
 
 function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageIdParaEditar) {
@@ -9291,12 +10212,26 @@ function processarCallbackBotao(cb) {
       return false;
     }
   }
-  // F2. PRESCRIÇÃO DIRETA A PARTIR DA CONSULTA DO GUIA HSL
+  // F2. PRESCRIÇÃO DIRETA A PARTIR DA CONSULTA DO GUIA HSL OU PEDBOOK
   else if (data.startsWith("rx_med:")) {
     var medNome = data.replace("rx_med:", "").trim();
     responderCallbackTelegram(cb.id, "Gerando prescrição de " + medNome + "...");
     var chatIdRx = (cb.message && cb.message.chat) ? cb.message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
     return processarEEntregarIA(chatIdRx, gerarPrescricaoComIA, medNome, "rx");
+  }
+  // F3. CONSULTA PEDIÁTRICA VIA CALLBACK (PEDBOOK)
+  else if (data.startsWith("ped_med:")) {
+    var medPedNome = data.replace("ped_med:", "").trim();
+    responderCallbackTelegram(cb.id, "Abrindo guia pediátrico de " + medPedNome + "...");
+    var chatIdPedCb = (cb.message && cb.message.chat) ? cb.message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
+    return responderConsultaPediatricaPedB(chatIdPedCb, medPedNome);
+  }
+  // F4. CONSULTA ADULTO VIA CALLBACK (GUIA HSL)
+  else if (data.startsWith("hsl_med:")) {
+    var medHslNome = data.replace("hsl_med:", "").trim();
+    responderCallbackTelegram(cb.id, "Abrindo guia adulto HSL de " + medHslNome + "...");
+    var chatIdHslCb = (cb.message && cb.message.chat) ? cb.message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
+    return responderConsultaPosologiaHSL(chatIdHslCb, medHslNome);
   }
   // G. OUVIR CRÍTICA SOCRÁTICA DO PRECEPTOR VIA ÁUDIO / TTS
   // CORREÇÃO: passa apenasNarrar=true para ir direto ao TTS sem nova chamada LLM
@@ -9942,6 +10877,24 @@ function tentarCalcularDeterministico(texto) {
   if (!texto || typeof CalculadorasClinicas === "undefined") return null;
   var t = texto.toLowerCase();
   var identidade = identificarCalculadora(texto);
+
+  // Ajuste Renal de Antimicrobianos
+  if (/\b(?:atb|antimicrobiano|vanco|vancomicina|meropenem|mero|pip-?tazo|piperacilina|cefepime?|ceftriaxona?|cipro|ciprofloxacino|polimixina|fluconazol)\b/i.test(t) &&
+      /\b(?:ajuste|renal|clcr|crcl|tfg|hd|hemodialise|dialise|clearance|\d+\s*ml\/min)\b/i.test(t)) {
+    if (typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
+      var resAtbDet = CalculadorasClinicas.calcularAjusteRenalPorTextoLivre(texto);
+      if (resAtbDet && resAtbDet.ok && resAtbDet.dados) {
+        var dDet = resAtbDet.dados;
+        return "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
+          "• *Fármaco:* " + dDet.nomeExibicao + "\n" +
+          "• *Dose Padrão:* " + dDet.dosePadrao + "\n" +
+          "• *Dose Ajustada:* `" + dDet.doseAjustada + "`\n" +
+          "• *Condições:* " + (dDet.hemodialise ? "Em Hemodiálise" : ("ClCr " + (dDet.clcrInformado !== null ? dDet.clcrInformado + " mL/min" : "não informado"))) + "\n\n" +
+          "💡 *Cuidados Farmacológicos:*\n" + dDet.cuidados + "\n\n" +
+          "🛡️ *Monitorização:*\n" + dDet.monitorizacao;
+      }
+    }
+  }
 
   // 1. CKD-EPI 2021
   if (identidade === "ckd") {
@@ -10969,6 +11922,8 @@ function enviarManual(chatId) {
     "💊 *5. PRESCRIÇÃO, AMBULATÓRIO & ROUND*\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
     "• `/rx <pedido ou diagnóstico>`: Busca na REMUME municipal (Ribeirão Preto), estrutura a posologia padrão e gera botão para emissão de PDF A4 timbrado oficial no Google Drive e botão nativo de cópia para prontuário.\n" +
+    "• `/rxh <caso ou leito>`: Prescrição Hospitalar Completa de internação na ordem canônica (Dieta, Hidratação venosa, Antimicrobianos com contagem D_ e ajuste renal, Conciliação, Profilaxias de TEV/úlcera de estresse, Sintomáticos SOS e Cuidados de enfermagem).\n" +
+    "• `/atb <droga> <clcr>`: Consulta determinística instantânea de ajuste renal de antimicrobianos hospitalares críticos (Vancomicina, Meropenem, Pip-Tazo, Cefepime, Ceftriaxona, Ciprofloxacino, Polimixina B, Fluconazol ou hemodiálise).\n" +
     "• `/soap <caso>`: Síntese estruturada completa (Subjetivo, Objetivo, Avaliação, Plano) pronta para o prontuário eletrônico.\n" +
     "• `/round <caso>`: Pitch oral de 60 segundos para apresentar o paciente no round da enfermaria/UTI + 3 perguntas socráticas antecipadas.\n" +
     "• `/voz <caso>`: Sabatina médica cirúrgica enviada como mensagem de áudio de voz para você ouvir e responder no fone de ouvido enquanto caminha.\n" +
@@ -11468,14 +12423,10 @@ var EnfermariaService=(function(){
   function gravar(id,obj){
     var texto=JSON.stringify(obj);
     var bTexto = bytesUtf8(texto);
-    if(bTexto>8000)throw new Error('Evolução excede 8 KB. Nenhum dado foi alterado; divida o conteúdo.');
+    if(bTexto>100000)throw new Error('Evolução muito extensa. Divida o conteúdo.');
     var bTotal = totalBytesPersistencia();
-    if (bTotal + bTexto > 350000) {
+    if (bTotal + bTexto > 5000000) {
       podarHistorico(props());
-      bTotal = totalBytesPersistencia();
-    }
-    if (bTotal + bTexto > 400000) {
-      throw new Error('Orçamento global de armazenamento excedido (cota 500 KB do GAS). Contrapressão ativada na enfermaria.');
     }
     props().setProperty(key(id),texto);
   }
@@ -11937,9 +12888,30 @@ var ReceitaPdfService = (function() {
       var html = gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente);
       var nomeBase = "Receita_" + stampArquivo + "_" + nomePaciente.replace(/\s+/g, "_");
 
-      var blobHtml = Utilities.newBlob(html, "text/html", nomeBase + ".html");
-      var blobPdf = blobHtml.getAs("application/pdf");
-      blobPdf.setName(nomeBase + ".pdf");
+      var blobPdf = null;
+      if (typeof gerarPdfReceitaNativo === "function") {
+        try {
+          var dadosEstruturados = extrairItensReceitaLimpos(textoPrescricao);
+          var pdfBytes = gerarPdfReceitaNativo({
+            nomePaciente: nomePaciente,
+            dataFormatada: dataFormatada,
+            itens: dadosEstruturados.itens,
+            orientacoes: dadosEstruturados.orientacoes,
+            ehRascunho: dadosEstruturados.ehRascunho
+          });
+          if (pdfBytes) {
+            blobPdf = Utilities.newBlob(pdfBytes, "application/pdf", nomeBase + ".pdf");
+          }
+        } catch (ePdfNativo) {
+          Logger.log("Aviso ao gerar PDF nativo: " + ePdfNativo.message);
+        }
+      }
+
+      if (!blobPdf) {
+        var blobHtml = Utilities.newBlob(html, "text/html", nomeBase + ".html");
+        blobPdf = blobHtml.getAs("application/pdf");
+        blobPdf.setName(nomeBase + ".pdf");
+      }
 
       var linkDrive = "";
       try {
@@ -12088,7 +13060,6 @@ var PersistenciaBot = (function() {
     var p=props(), s=JSON.stringify(valor);
     var sBytes = bytesUtf8(s);
     if (sBytes > 25000) throw new Error('Conteúdo muito grande para armazenamento. Divida o pedido.');
-    // Um snapshot fornece orçamento global e registro anterior (antes: varredura + releitura).
     var all = snapshot(), bAtual = totalBytes(all);
     if (bAtual + sBytes > 350000) {
       podarPersistenciaAntiga(all);
@@ -12260,6 +13231,7 @@ function executarPedidoTelegram(key, job) {
     job.metricas = EXECUCAO_ATUAL.metricas;
     job.metricas.processamentoMs = Math.max(0, job.processedAt-job.startedAt);
     job.metricas.canal = EXECUCAO_ATUAL.canal;
+    if (EXECUCAO_ATUAL.fontesClinicas) job.fontesClinicas = EXECUCAO_ATUAL.fontesClinicas;
     EXECUCAO_ATUAL = anterior;
   }
   PersistenciaBot.salvar(key, job);

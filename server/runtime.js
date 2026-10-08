@@ -24,6 +24,10 @@ const INTERACOES_JSON_FILE = path.join(DATA_DIR, 'interacoes.json');
 const INTERACOES_SRC_JSON_FILE = path.join(SRC_DIR, 'data', 'interacoes.json');
 const GUIA_HSL_SRC_JSON_FILE = path.join(SRC_DIR, 'data', 'guia_farmaceutico_hsl.json');
 const GUIA_HSL_DATA_JSON_FILE = path.join(DATA_DIR, 'guia_farmaceutico_hsl.json');
+const GUIA_PEDB_SRC_JSON_FILE = path.join(SRC_DIR, 'data', 'guia_pediatrico_pedb.json');
+const GUIA_PEDB_DATA_JSON_FILE = path.join(DATA_DIR, 'guia_pediatrico_pedb.json');
+const CONDUTAS_PEDB_SRC_JSON_FILE = path.join(SRC_DIR, 'data', 'condutas_pediatricas_pedb.json');
+const CONDUTAS_PEDB_DATA_JSON_FILE = path.join(DATA_DIR, 'condutas_pediatricas_pedb.json');
 
 // Garante que o diretório de dados persistentes exista
 if (!fs.existsSync(DATA_DIR)) {
@@ -65,24 +69,30 @@ const ENV_BLOCKLIST = new Set([
   '_', 'MAIL', 'EDITOR', 'VISUAL', 'PAGER'
 ]);
 
+const BOT_ENV_PREFIXES = [
+  'BOT_', 'TELEGRAM_', 'GEMINI_', 'NOTION_', 'GROQ_', 'OPENROUTER_', 'ZAI_',
+  'SPREADSHEET_', 'WEBHOOK_', 'WEB_APP_', 'IA_', 'TIMEZONE', 'PORT', 'HOST',
+  'D1_', 'CF_', 'RENDER_', 'NODE_ENV'
+];
+
+function ehVariavelPermitida(chave) {
+  if (ENV_BLOCKLIST.has(chave)) return false;
+  return BOT_ENV_PREFIXES.some(prefix => chave.startsWith(prefix)) ||
+         ['WEB_APP_URL', 'TIMEZONE', 'PORT', 'HOST'].includes(chave);
+}
+
 // Sobrescreve com variáveis de ambiente reais do sistema (Render / Docker)
 for (const [k, v] of Object.entries(process.env)) {
-  if (ENV_BLOCKLIST.has(k)) continue;
-  if (k.startsWith('npm_') || k.startsWith('LC_') || k.startsWith('XDG_') ||
-      k.startsWith('QT_') || k.startsWith('COSMIC_') || k.startsWith('ANTIGRAVITY_') ||
-      k.startsWith('AGY_') || k.startsWith('FZF_') || k.startsWith('STARSHIP_') ||
-      k.startsWith('NODE_') || k.startsWith('PYTEST_') || k.startsWith('GTK_') ||
-      k.startsWith('ZSH') || ['LSCOLORS', 'LESS', 'LANGUAGE', 'COLOR', 'NODE', 'PYTHONPATH',
-      'INIT_CWD', 'PAPERSIZE', 'FC_FONTATIONS', 'PANEL_NOTIFICATIONS_FD', 'MOZ_ENABLE_WAYLAND',
-      'GSM_SKIP_SSH_AGENT_WORKAROUND', 'GIT_PAGER', 'EGL_PLATFORM', 'GDK_BACKEND',
-      'DCONF_PROFILE', 'CHROME_DESKTOP', 'CHROME_DEVTOOLS_MCP_JS', 'CLUTTER_IM_MODULE',
-      'QTWEBENGINE_DICTIONARIES_PATH', 'XMODIFIERS', 'NO_AT_BRIDGE', 'GTK_MODULES',
-      'IM_CONFIG_PHASE', 'DISABLE_AUTO_UPDATE', '_JAVA_AWT_WM_NONREPARENTING',
-      'WAYLAND_DISPLAY', 'X_MINIMIZE_APPLET', 'X_PRIVILEGED_WAYLAND_SOCKET'].includes(k)) {
-    continue;
-  }
+  if (!ehVariavelPermitida(k)) continue;
   if (v !== undefined && v !== '') {
     propsStore[k] = v;
+  }
+}
+
+// Higieniza chaves de sistema legadas do arquivo de propriedades
+for (const k of Object.keys(propsStore)) {
+  if (!ehVariavelPermitida(k) && !k.startsWith('LEITO_') && !k.startsWith('inbox_') && !k.startsWith('outbox_') && !k.startsWith('ctx_') && !k.startsWith('modo_') && !k.startsWith('ultima_') && !k.startsWith('RECEITAS_')) {
+    delete propsStore[k];
   }
 }
 
@@ -248,6 +258,34 @@ try {
   console.warn('[Runtime] Não foi possível carregar guia_farmaceutico_hsl.json:', eHsl.message);
 }
 
+let guiaPedBData = { metadados: {}, medicamentos: [] };
+try {
+  const pedbPath = fs.existsSync(GUIA_PEDB_SRC_JSON_FILE)
+    ? GUIA_PEDB_SRC_JSON_FILE
+    : (fs.existsSync(GUIA_PEDB_DATA_JSON_FILE) ? GUIA_PEDB_DATA_JSON_FILE : null);
+  if (pedbPath) {
+    guiaPedBData = JSON.parse(fs.readFileSync(pedbPath, 'utf8'));
+    const totalMedPedB = (guiaPedBData.medicamentos || []).length;
+    console.log(`[Runtime] Guia Pediátrico PedBook carregado localmente: ${totalMedPedB} medicamentos pediátricos prontos em RAM.`);
+  }
+} catch (ePedB) {
+  console.warn('[Runtime] Não foi possível carregar guia_pediatrico_pedb.json:', ePedB.message);
+}
+
+let condutasPedBData = { metadados: {}, condutas: [] };
+try {
+  const condPath = fs.existsSync(CONDUTAS_PEDB_SRC_JSON_FILE)
+    ? CONDUTAS_PEDB_SRC_JSON_FILE
+    : (fs.existsSync(CONDUTAS_PEDB_DATA_JSON_FILE) ? CONDUTAS_PEDB_DATA_JSON_FILE : null);
+  if (condPath) {
+    condutasPedBData = JSON.parse(fs.readFileSync(condPath, 'utf8'));
+    const totalCond = (condutasPedBData.condutas || []).length;
+    console.log(`[Runtime] Condutas Pediátricas PedBook carregadas localmente: ${totalCond} protocolos clínicos prontos em RAM.`);
+  }
+} catch (eCond) {
+  console.warn('[Runtime] Não foi possível carregar condutas_pediatricas_pedb.json:', eCond.message);
+}
+
 // 4. CONSTRUÇÃO DO CONTEXTO VIRTUAL (GAS COMPATIBLE)
 const ctx = {
   console,
@@ -277,6 +315,22 @@ const ctx = {
 
   __BASE_GUIA_HSL__: guiaHslData,
   obterBaseGuiaHSL: () => guiaHslData,
+
+  __BASE_GUIA_PEDB__: guiaPedBData,
+  obterBaseGuiaPedB: () => guiaPedBData,
+
+  __BASE_CONDUTAS_PEDB__: condutasPedBData,
+  obterBaseCondutasPedB: () => condutasPedBData,
+
+  gerarPdfReceitaNativo: (dados) => {
+    try {
+      const { gerarPdfReceitaSync } = require('./pdf-generator');
+      return gerarPdfReceitaSync(dados);
+    } catch (e) {
+      console.warn('[Runtime] Falha na geração nativa de PDF:', e.message);
+      return null;
+    }
+  },
 
   PropertiesService: {
     getScriptProperties: () => ({

@@ -8,7 +8,7 @@
  * - Fidelidade na persistência de sessões clínicas longas
  */
 const fs = require('fs'), vm = require('vm'), path = require('path'), assert = require('assert');
-const source = fs.readFileSync(path.resolve(__dirname, '../ultra_rotina_master.js'), 'utf8');
+const source = require('./source_producao.cjs');
 
 function env() {
   const props = {
@@ -136,7 +136,7 @@ test('SOAP Fase 2: Fechamento completo com CID-10, estratificação, prescriçã
   assert(res.includes('I21.1'), 'Deve incluir CID-10 correto');
   assert(res.includes('AAS 200mg VO'), 'Deve prescrever AAS com posologia');
   assert(res.includes('Ticagrelor 180mg'), 'Deve prescrever segundo antiagregante com posologia');
-  assert(res.includes('Dados adicionais que enriqueceriam o caso'), 'Deve listar dados complementares opcionais');
+  assert(res.includes('Dados pendentes — conferir antes de concluir'), 'Deve listar as pendências para conferência');
 });
 
 // -----------------------------------------------------------------------------

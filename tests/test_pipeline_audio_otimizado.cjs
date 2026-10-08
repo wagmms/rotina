@@ -4,7 +4,7 @@
  * e preserva rigorosamente agendamentos, hábitos, preceptor e emergências.
  */
 const fs = require('fs'), vm = require('vm'), path = require('path'), assert = require('assert');
-const source = fs.readFileSync(path.resolve(__dirname, '../ultra_rotina_master.js'), 'utf8');
+const source = require('./source_producao.cjs');
 
 function env() {
   const props = {

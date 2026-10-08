@@ -1,0 +1,9 @@
+✅ APROVADO: 1. Fase 1 não gera Avaliação nem Plano prematuros e organiza anamnese
+✅ APROVADO: 2. Teclado de Fase 1 embute botões de Gerar Avaliação & Plano e EF 100% Normal
+✅ APROVADO: 3. EF normal exige confirmação antes de alterar o caso
+✅ APROVADO: 4. Solicitação explícita por texto gera Fase 2 completa com A, P e pendências
+✅ APROVADO: 5. Mensagem consolidada de Fase 2 embute botões de prontuário, REMUME e Notion
+✅ APROVADO: Confirmação EF protege contra troca
+✅ APROVADO: Confirmação EF protege contra expiracao
+✅ APROVADO: Confirmação EF protege contra cancelamento
+8/8 cenários SOAP aprovados

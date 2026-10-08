@@ -6,7 +6,7 @@
  * 4. Fase 2: Fechamento sob demanda (comando ou callback) com A, P e pendências opcionais
  */
 const fs = require('fs'), vm = require('vm'), path = require('path'), assert = require('assert');
-const source = fs.readFileSync(path.resolve(__dirname, '../ultra_rotina_master.js'), 'utf8');
+const source = require('./source_producao.cjs');
 
 function env() {
   const props = { TELEGRAM_CHAT_ID: '123', TELEGRAM_BOT_TOKEN: 'fake', WEBHOOK_SECRET: 'secret', NOTION_TASKS_DB_ID: 'fake-db' }, cache = {}, sent = [];
@@ -114,12 +114,14 @@ test('4. Solicitação explícita por texto gera Fase 2 completa com A, P e pend
   assert(r.includes('P - Plano'));
   assert(r.includes('Enxaqueca sem aura'));
   assert(r.includes('Dipirona 1g'));
-  assert(r.includes('Dados adicionais que enriqueceriam o caso'));
+  assert(r.includes('Dados pendentes — conferir antes de concluir'));
 });
 
 // 5. Botões inline de Fase 2 consolidada
 test('5. Mensagem consolidada de Fase 2 embute botões de prontuário, REMUME e Notion', () => {
   const { c, sent } = env();
+  // Este cenário cobre revisão concluída; a indisponibilidade tem regressão própria.
+  c._iaExecutar = () => 'SEM ALERTAS';
   c.executarRaciocinioClinico = () => JSON.stringify({
     subjetivo: 'Dor de cabeça.',
     objetivo: 'EF normal.',

@@ -1,0 +1,76 @@
+{
+  "scope": "Reproduções locais; não mede respostas reais de LLM nem produção",
+  "evidence": [
+    {
+      "id": "A01_paracetamol_trocado",
+      "observed": {
+        "input": "paracetamol para febre criança 20kg",
+        "drug": "Dipirona",
+        "weight": 20,
+        "instruction": "Dar 10 gotas por via oral a cada 6 horas se dor ou febre (intervalo mínimo de 6h, máx 4 vezes ao dia)."
+      }
+    },
+    {
+      "id": "A02_antibiotico_sem_pedido",
+      "observed": {
+        "input": "hidratação criança 20kg",
+        "drug": "Amoxicilina",
+        "weight": 20,
+        "instruction": "Tomar 6,7 mL por via oral a cada 8 horas (sugestão: 07:00 - 15:00 - 23:00) durante 10 dias."
+      }
+    },
+    {
+      "id": "A03_peso_inventado",
+      "observed": {
+        "input": "loratadina",
+        "drug": "Loratadina",
+        "weight": 20,
+        "instruction": "Tomar 5 mL por via oral 1 vez ao dia, à noite (às 20:00), durante 10 dias."
+      }
+    },
+    {
+      "id": "A04_anafilaxia_sepse",
+      "observed": "Sepse e Choque Séptico"
+    },
+    {
+      "id": "A05_negacao_ignorada",
+      "observed": "Sepse e Choque Séptico"
+    },
+    {
+      "id": "A06_prompt_negativa_sem_dado",
+      "observed": true
+    },
+    {
+      "id": "A07_fase2_aceita_dado_inventado",
+      "observed": true
+    },
+    {
+      "id": "A08_plano_cortado",
+      "observed": {
+        "item8": true,
+        "item9": false
+      }
+    },
+    {
+      "id": "A09_extracao_pediatria_em_adulto",
+      "observed": {
+        "count": 257,
+        "examples": [
+          "ABATACEPTE",
+          "ABCIXIMABE",
+          "ACICLOVIR (Tópico)",
+          "ÁCIDO ACÉTICO",
+          "ÁCIDO ÉPSILON-AMINOCAPROICO"
+        ]
+      }
+    },
+    {
+      "id": "A10_429_nao_conta_erro",
+      "observed": {
+        "calls": 1,
+        "errors": 0,
+        "ms": 0
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 const fs = require('fs'), vm = require('vm'), path = require('path'), assert = require('assert');
-const source = fs.readFileSync(path.resolve(__dirname, '../ultra_rotina_master.js'), 'utf8');
+const source = require('./source_producao.cjs');
 
 function env({ legacy = false } = {}) {
   const store = {}, props = {SPREADSHEET_ID_REMUME:'remume-id', SPREADSHEET_ID_INTERACOES:'interacoes-id', GEMINI_API_KEY:'fake'};
@@ -148,7 +148,7 @@ test('grounding mantém fontes e associação exata em uma única requisição',
  const e=env();e.response({candidates:[{content:{parts:[{text:'Afirmação clínica.'}]},finishReason:'STOP',groundingMetadata:{
  groundingChunks:[{web:{uri:'https://exemplo.org/diretriz_atual',title:'Diretriz'}}],
  groundingSupports:[{segment:{text:'Afirmação clínica.'},groundingChunkIndices:[0]}]}}]});
- const result=e.c.chamarGeminiPoolComGrounding('sistema','caso');assert.equal(e.ops.fetch,1);
+ const result=e.c.chamarGeminiPoolComGrounding('sistema','caso',2500,{exibirFontes:true});assert.equal(e.ops.fetch,1);
  assert(result.includes('Afirmação clínica. [1]'));assert(result.includes('https://exemplo.org/diretriz_atual'));
  assert(e.c.limparMarkdownTelegram(e.c._iaFinalizarTexto(result)).includes('https://exemplo.org/diretriz_atual'));
 });

@@ -347,12 +347,26 @@ var _cacheGuiaHSL = null;
 /**
  * Obtém a coleção de medicamentos do Guia HSL da memória RAM ou arquivo local.
  */
+function normalizarSecoesGuiaHSL(meds) {
+  return meds.map(function(med) {
+    var secoes = separarSecoesPosologicas(med.posologia_completa);
+    if (!secoes.reconhecidas) return med;
+    return Object.assign({}, med, {
+      dose_adulto: secoes.adulto,
+      dose_pediatria: secoes.pediatria,
+      dose_maxima: secoes.dose_maxima,
+      ajuste_dose: secoes.ajuste_dose,
+      posologia_geral: secoes.geral
+    });
+  });
+}
+
 function obterGuiaFarmaceuticoHSL() {
   if (_cacheGuiaHSL && _cacheGuiaHSL.length > 0) return _cacheGuiaHSL;
 
   // 1. Injetado no contexto global do runtime Node.js
   if (typeof __BASE_GUIA_HSL__ !== "undefined" && __BASE_GUIA_HSL__ && Array.isArray(__BASE_GUIA_HSL__.medicamentos)) {
-    _cacheGuiaHSL = __BASE_GUIA_HSL__.medicamentos;
+    _cacheGuiaHSL = normalizarSecoesGuiaHSL(__BASE_GUIA_HSL__.medicamentos);
     return _cacheGuiaHSL;
   }
 
@@ -360,7 +374,7 @@ function obterGuiaFarmaceuticoHSL() {
   if (typeof obterBaseGuiaHSL === "function") {
     var raw = obterBaseGuiaHSL();
     if (raw && Array.isArray(raw.medicamentos)) {
-      _cacheGuiaHSL = raw.medicamentos;
+      _cacheGuiaHSL = normalizarSecoesGuiaHSL(raw.medicamentos);
       return _cacheGuiaHSL;
     }
   }
@@ -380,7 +394,7 @@ function obterGuiaFarmaceuticoHSL() {
         if (fs.existsSync(caminhos[i])) {
           var payload = JSON.parse(fs.readFileSync(caminhos[i], "utf8"));
           if (payload && Array.isArray(payload.medicamentos)) {
-            _cacheGuiaHSL = payload.medicamentos;
+            _cacheGuiaHSL = normalizarSecoesGuiaHSL(payload.medicamentos);
             return _cacheGuiaHSL;
           }
         }
@@ -489,12 +503,13 @@ function formatarFichaPosologicaHSL(med) {
     linhas.push("\n👤 *DOSE ADULTO:*");
     linhas.push(med.dose_adulto);
   }
+  if (med.posologia_geral) linhas.push("\n*Observações posológicas:*\n" + med.posologia_geral);
 
   linhas.push("\n👶 *DOSE PEDIÁTRICA:*");
   if (med.dose_pediatria && med.dose_pediatria.trim()) {
     linhas.push(med.dose_pediatria);
   } else {
-    linhas.push("⚠️ *Não padronizada no Guia HSL.* (Fármaco de uso restrito a adultos, componente especializado ou sem posologia ambulatorial pediátrica estabelecida na base oficial do Sírio-Libanês).");
+    linhas.push("⚠️ *Informação pediátrica não localizada na extração.* Não concluir contraindicação ou ausência de padronização a partir deste campo vazio; conferir a ficha original.");
   }
 
   if (med.dose_maxima) {
@@ -620,21 +635,26 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
 
   if (selecionados.length === 0) return "";
 
-  // Prioridade absoluta para medicamentos que constam na REMUME
+  function pedidoExplicito(med) {
+    var nome = normalizarTermoMedicamento(med.farnaco).replace(/\s*\([^)]*\)/g, '').trim();
+    return nome && (' ' + pedidoUpper + ' ').indexOf(' ' + nome + ' ') >= 0;
+  }
+  // Nome solicitado precede expansão sindrômica e disponibilidade municipal.
   selecionados.sort(function(a, b) {
+    if (pedidoExplicito(a) !== pedidoExplicito(b)) return pedidoExplicito(a) ? -1 : 1;
     if (a.na_remume && !b.na_remume) return -1;
     if (!a.na_remume && b.na_remume) return 1;
     return a.farnaco.localeCompare(b.farnaco);
   });
 
-  // Limita para os 8 medicamentos mais aderentes
-  selecionados = selecionados.slice(0, 8);
+  // Nunca exclui fármacos explicitamente mencionados para cumprir o limite.
+  selecionados = selecionados.filter(function(m, i) { return i < 8 || pedidoExplicito(m); });
 
   var blocos = [];
   for (var s = 0; s < selecionados.length; s++) {
     var item = selecionados[s];
     var tagRemume = item.na_remume
-      ? "✅ DISPONÍVEL NA REMUME (1ª ESCOLHA OBRIGATÓRIA)"
+      ? "PADRONIZADO NA REMUME (não comprova estoque; adequação clínica tem prioridade)"
       : "⚠️ FORA DA REMUME (USAR SÓ SE NÃO HOUVER ALTERNATIVA NA REDE MUNICIPAL)";
 
     var bloco = [
@@ -642,12 +662,19 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
       item.apresentacoes_remume && item.apresentacoes_remume.length > 0
         ? "  Apresentações REMUME: " + item.apresentacoes_remume.join(" | ")
         : "",
-      item.dose_adulto ? "  Dose Adulto Oficial HSL: " + item.dose_adulto.replace(/\n/g, " ") : "",
+      item.dose_adulto ? "  Dose Adulto Oficial HSL (uso adulto): " + item.dose_adulto.replace(/\n/g, " ") : "",
       item.dose_pediatria && item.dose_pediatria.trim()
         ? "  Dose Pediátrica Oficial HSL: " + item.dose_pediatria.replace(/\n/g, " ")
-        : "  Dose Pediátrica Oficial HSL: ⚠️ NÃO PADRONIZADA NO GUIA HSL (fármaco de uso adulto/hospitalar especializado)",
+        : "  ⚠️ DOSE PEDIÁTRICA NÃO PADRONIZADA NO GUIA HSL (uso adulto / conferir ficha original e especialista; não inventar dose em mg/kg)",
       item.ajuste_dose ? "  Ajuste Renal/Hepático HSL: " + item.ajuste_dose.replace(/\n/g, " ") : "",
-      item.administracao ? "  Administração & Orientações: " + item.administracao.replace(/\n/g, " ") : ""
+      item.administracao ? "  Administração & Orientações: " + item.administracao.replace(/\n/g, " ") : "",
+      item.dose_maxima ? "  Dose máxima: " + item.dose_maxima : "",
+      item.contraindicacoes ? "  Contraindicações: " + item.contraindicacoes : "",
+      item.gestacao_lactacao ? "  Gestação/lactação: " + item.gestacao_lactacao : "",
+      item.preparo_diluicao ? "  Preparo/diluição: " + item.preparo_diluicao : "",
+      item.cuidados_especificos ? "  Cuidados e monitorização: " + item.cuidados_especificos : "",
+      item.posologia_geral ? "  Observações: " + item.posologia_geral : "",
+      "  Rastreabilidade interna: HSL, ficha " + item.id + "; conferir condições da indicação."
     ].filter(Boolean).join("\n");
 
     blocos.push(bloco);
@@ -776,21 +803,28 @@ var PROTOCOLOS_CLINICOS_EMERGENCIA = {
  */
 function obterProtocoloClinico(termo) {
   if (!termo) return null;
-  var t = termo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  for (var chave in PROTOCOLOS_CLINICOS_EMERGENCIA) {
-    if (t.indexOf(chave) !== -1) {
-      return PROTOCOLOS_CLINICOS_EMERGENCIA[chave];
-    }
-  }
-  // Mapeamentos adicionais
-  if (t.indexOf("choque") !== -1 || t.indexOf("infeccao grave") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["sepse"];
-  if (t.indexOf("coronaria") !== -1 || t.indexOf("infarto") !== -1 || t.indexOf("dor toracica") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["iam"];
-  if (t.indexOf("insuficiencia cardiaca") !== -1 || t.indexOf("congestao") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["eap"];
-  if (t.indexOf("cetoacidose") !== -1 || t.indexOf("descompensacao diabetica") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["cad"];
-  if (t.indexOf("embolia") !== -1 || t.indexOf("tvp") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["tep"];
-  if (t.indexOf("asma") !== -1 || t.indexOf("broncoespasmo") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["asma"];
-  if (t.indexOf("dpoc") !== -1) return PROTOCOLOS_CLINICOS_EMERGENCIA["dpoc"];
-  return null;
+  var texto = String(termo).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  var aliases = {
+    sepse: /\b(?:sepse|sepsis|choque septico|infeccao grave)\b/g,
+    iam: /\b(?:iam|infarto|sindrome coronariana(?: aguda)?)\b/g,
+    eap: /\b(?:eap|edema agudo (?:de )?pulmao|insuficiencia cardiaca descompensada)\b/g,
+    cad: /\b(?:cad|cetoacidose(?: diabetica)?)\b/g,
+    tep: /\b(?:tep|tromboembolismo pulmonar|embolia pulmonar)\b/g,
+    dpoc: /\bdpoc\b/g,
+    asma: /\b(?:asma|crise asmatica)\b/g
+  };
+  // Um protocolo único não representa choques de etiologias diferentes.
+  if (/\b(?:anafil\w*|choque (?:hemorragico|cardiogenico|hipovolemico|obstrutivo))\b/.test(texto)) return null;
+  var candidatos = [];
+  Object.keys(aliases).forEach(function(chave) {
+    var matches = Array.from(texto.matchAll(aliases[chave]));
+    if (matches.some(function(m) {
+      var antes = texto.slice(0, m.index).split(/[.,;!?:\n]|\bmas\b/).pop();
+      // Negação, antecedentes e hipótese a excluir não confirmam o cenário.
+      return !/\b(?:sem|nega|negou|nao|ausencia|descartar|afastar|suspeita|possivel|hipotese|historico|antecedente)\b/.test(antes);
+    })) candidatos.push(chave);
+  });
+  return candidatos.length === 1 ? PROTOCOLOS_CLINICOS_EMERGENCIA[candidatos[0]] : null;
 }
 
 // ==============================================================================
@@ -905,3 +939,453 @@ function buscarEvidenciaMedica(tema) {
   texto += "💡 *Dica:* Utilize os PMIDs para acessar os artigos originais e meta-análises completas.";
   return texto;
 }
+
+// ==============================================================================
+// GUIA PEDIÁTRICO OFICIAL DO PEDBOOK (pedb.com.br) & CONDUTAS PEDIÁTRICAS
+// ==============================================================================
+
+var _cacheGuiaPedB = null;
+var _cacheCondutasPedB = null;
+
+/**
+ * Obtém a base oficial de medicamentos pediátricos do PedBook em RAM.
+ */
+function obterGuiaPediatricoPedB() {
+  if (_cacheGuiaPedB && Array.isArray(_cacheGuiaPedB) && _cacheGuiaPedB.length > 0) {
+    return _cacheGuiaPedB;
+  }
+  if (typeof __BASE_GUIA_PEDB__ !== "undefined" && __BASE_GUIA_PEDB__ && Array.isArray(__BASE_GUIA_PEDB__.medicamentos)) {
+    _cacheGuiaPedB = __BASE_GUIA_PEDB__.medicamentos;
+    return _cacheGuiaPedB;
+  }
+  if (typeof obterBaseGuiaPedB === "function") {
+    try {
+      var base = obterBaseGuiaPedB();
+      if (base && Array.isArray(base.medicamentos)) {
+        _cacheGuiaPedB = base.medicamentos;
+        return _cacheGuiaPedB;
+      }
+    } catch (e) {}
+  }
+  try {
+    if (typeof require !== "undefined") {
+      var fs = require("fs");
+      var path = require("path");
+      var caminhos = [
+        path.resolve(__dirname, "data", "guia_pediatrico_pedb.json"),
+        path.resolve(__dirname, "..", "data", "guia_pediatrico_pedb.json"),
+        path.resolve(process.cwd(), "src", "data", "guia_pediatrico_pedb.json"),
+        path.resolve(process.cwd(), "data", "guia_pediatrico_pedb.json")
+      ];
+      for (var i = 0; i < caminhos.length; i++) {
+        if (fs.existsSync(caminhos[i])) {
+          var payload = JSON.parse(fs.readFileSync(caminhos[i], "utf8"));
+          if (payload && Array.isArray(payload.medicamentos)) {
+            _cacheGuiaPedB = payload.medicamentos;
+            return _cacheGuiaPedB;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log("Aviso ao carregar Guia PedBook via arquivo: " + e.message);
+  }
+  return [];
+}
+
+/**
+ * Busca um medicamento pediátrico no PedBook por nome genérico, comercial, sinônimo ou indicação.
+ */
+function buscarMedicamentoPediatricoPedB(termo) {
+  if (!termo) return null;
+  var meds = obterGuiaPediatricoPedB();
+  if (!meds || meds.length === 0) return null;
+
+  var termoLimpo = termo.trim().toLowerCase();
+  var termoNorm = normalizarTermoMedicamento(termo);
+
+  var sin = DICIONARIO_FARMACO[termoLimpo];
+  var sinNorm = sin ? normalizarTermoMedicamento(sin) : null;
+
+  // 1. Correspondência exata no nome normalizado ou slug
+  for (var i = 0; i < meds.length; i++) {
+    var m = meds[i];
+    var mNorm = m.nome_normalizado || normalizarTermoMedicamento(m.nome);
+    if (mNorm === termoNorm || (sinNorm && mNorm === sinNorm)) {
+      return m;
+    }
+    if (m.slug && (m.slug === termoLimpo || (sin && m.slug === sin))) {
+      return m;
+    }
+  }
+
+  // 2. Correspondência exata em marca comercial ou marcas texto
+  for (var k = 0; k < meds.length; k++) {
+    var medK = meds[k];
+    if (medK.marcas_texto) {
+      var marcasNorm = normalizarTermoMedicamento(medK.marcas_texto);
+      var palavrasMarcas = marcasNorm.split(/\s+/);
+      for (var pm = 0; pm < palavrasMarcas.length; pm++) {
+        if (palavrasMarcas[pm] === termoNorm || (sinNorm && palavrasMarcas[pm] === sinNorm)) {
+          return medK;
+        }
+      }
+    }
+  }
+
+  // 3. Prefixo exato (ex: "AMOXICILINA" casa com "AMOXICILINA + CLAVULANATO")
+  for (var j = 0; j < meds.length; j++) {
+    var med = meds[j];
+    var mNomeNorm = med.nome_normalizado || normalizarTermoMedicamento(med.nome);
+    if (mNomeNorm.indexOf(termoNorm) === 0 || (sinNorm && mNomeNorm.indexOf(sinNorm) === 0)) {
+      return med;
+    }
+  }
+
+  // 4. Substring no nome (comprimento >= 4)
+  if (termoNorm.length >= 4) {
+    for (var l = 0; l < meds.length; l++) {
+      var medL = meds[l];
+      var mNN = medL.nome_normalizado || normalizarTermoMedicamento(medL.nome);
+      if (mNN.indexOf(termoNorm) !== -1 || (sinNorm && mNN.indexOf(sinNorm) !== -1)) {
+        return medL;
+      }
+    }
+  }
+
+  // 5. Palavras-chave
+  for (var p = 0; p < meds.length; p++) {
+    var medP = meds[p];
+    if (Array.isArray(medP.palavras_chave)) {
+      for (var pk = 0; pk < medP.palavras_chave.length; pk++) {
+        var kwNorm = normalizarTermoMedicamento(medP.palavras_chave[pk]);
+        if (kwNorm === termoNorm || (sinNorm && kwNorm === sinNorm)) {
+          return medP;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Formata a ficha pediátrica oficial do PedBook para exibição em markdown/Telegram.
+ */
+function formatarFichaPediatricaPedB(med) {
+  if (!med) return "Ficha pediátrica não encontrada.";
+
+  var linhas = [];
+  linhas.push("👶 *GUIA PEDIÁTRICO OFICIAL (PEDBOOK)*");
+  linhas.push("═══════════════════════════════════════");
+  linhas.push("🏷️ *" + med.nome.toUpperCase() + "*");
+  if (med.categoria) {
+    linhas.push("📂 *Classe:* " + med.categoria);
+  }
+
+  // Status REMUME / SUS
+  if (med.na_remume) {
+    linhas.push("🏛️ *SUS / REMUME:* ✅ PADRONIZADO NA REDE MUNICIPAL");
+    if (med.apresentacoes_remume && med.apresentacoes_remume.length > 0) {
+      linhas.push("   _Apresentações SUS:_ " + med.apresentacoes_remume.slice(0, 3).join(", "));
+    }
+  } else {
+    linhas.push("🏛️ *SUS / REMUME:* ⚠️ NÃO CONSTA NA REMUME MUNICIPAL");
+  }
+
+  if (med.marcas) {
+    linhas.push("🏭 *Marcas / Comerciais:* " + med.marcas.replace(/®/g, ''));
+  }
+
+  // Apresentações pediátricas
+  if (med.apresentacoes && med.apresentacoes.length > 0) {
+    linhas.push("\n💊 *APRESENTAÇÕES PEDIÁTRICAS:*");
+    var maxPres = Math.min(med.apresentacoes.length, 6);
+    for (var i = 0; i < maxPres; i++) {
+      var ap = med.apresentacoes[i];
+      var linhaAp = "• *" + ap.forma + "*";
+      if (ap.concentracao && ap.forma.indexOf(ap.concentracao) === -1) {
+        linhaAp += " (" + ap.concentracao + ")";
+      }
+      if (ap.idade_minima_meses) {
+        linhaAp += " [≥ " + ap.idade_minima_meses + "m]";
+      }
+      if (ap.peso_minimo_kg) {
+        linhaAp += " [≥ " + ap.peso_minimo_kg + " kg]";
+      }
+      linhas.push(linhaAp);
+      if (ap.notas_administracao) {
+        linhas.push("  ↳ _Nota:_ " + ap.notas_administracao);
+      }
+    }
+    if (med.apresentacoes.length > maxPres) {
+      linhas.push("• _(+ " + (med.apresentacoes.length - maxPres) + " apresentações no catálogo)_");
+    }
+  }
+
+  // Esquemas posológicos pediátricos
+  if (med.posologias && med.posologias.length > 0) {
+    linhas.push("\n⚖️ *DOSES & ESQUEMAS POSOLÓGICOS (POR KG / IDADE):*");
+    var maxPos = Math.min(med.posologias.length, 4);
+    for (var j = 0; j < maxPos; j++) {
+      var pos = med.posologias[j];
+      linhas.push("📌 *" + (pos.caso_de_uso || pos.nome) + "* (" + (pos.via || 'VO') + "):");
+      if (pos.resumo) {
+        var resumoLimpo = pos.resumo
+          .replace(/^-\s+/gm, '  • ')
+          .replace(/\*\*/g, '*');
+        linhas.push(resumoLimpo);
+      } else if (pos.template) {
+        linhas.push("  • " + pos.template.replace(/\(\([^)]+\)\)/g, 'X'));
+      }
+      if (pos.alerta) {
+        linhas.push("  ⚠️ _Alerta:_ " + pos.alerta);
+      }
+    }
+    if (med.posologias.length > maxPos) {
+      linhas.push("• _(+ " + (med.posologias.length - maxPos) + " esquemas no PedBook)_");
+    }
+  }
+
+  // Contraindicações e Alertas
+  if (med.contraindicacoes) {
+    linhas.push("\n🚫 *CONTRAINDICAÇÕES & CUIDADOS:*");
+    var contraCurta = med.contraindicacoes.length > 280
+      ? med.contraindicacoes.substring(0, 280) + "..."
+      : med.contraindicacoes;
+    linhas.push(contraCurta);
+  }
+
+  var slugLink = med.slug ? "https://pedb.com.br/medicamentos/" + med.slug : "https://pedb.com.br/";
+  linhas.push("\n📚 *Fonte Oficial:* PedBook (" + slugLink + ")");
+  return linhas.join("\n");
+}
+
+/**
+ * Filtra contexto de posologias pediátricas do PedBook para injeção na IA (RAG).
+ */
+function filtrarContextoPediatricoPedB(pedidoUsuario) {
+  var meds = obterGuiaPediatricoPedB();
+  if (!meds || meds.length === 0) return "";
+
+  var pedidoUpper = normalizarTermoMedicamento(pedidoUsuario);
+  var pedidoLower = String(pedidoUsuario || "").toLowerCase();
+
+  var STOP_WORDS = {
+    "ANOS": true, "ANO": true, "MES": true, "MESES": true, "DIA": true, "DIAS": true,
+    "PESO": true, "QUILOS": true, "QUILO": true, "KGS": true, "KG": true, "CRIANCA": true,
+    "CRIANCAS": true, "ADULTO": true, "ADULTOS": true, "PACIENTE": true, "PACIENTES": true,
+    "RECEITA": true, "PRESCREVER": true, "TOMAR": true, "FAZER": true, "USO": true,
+    "VIA": true, "ORAL": true, "COMP": true, "COMPRIMIDO": true, "COMPRIMIDOS": true,
+    "XAROPE": true, "GOTAS": true, "DOSE": true, "DOSES": true, "PARA": true, "COM": true,
+    "SEM": true, "HORA": true, "HORAS": true, "FEBRE": true, "DOR": true, "TOSSE": true,
+    "QUADRO": true, "CASO": true, "PRESCRICAO": true, "SOLUCAO": true, "SUSPENSAO": true
+  };
+
+  var termos = pedidoUpper.split(/\s+/).filter(function(t) { return t.length >= 3 && !STOP_WORDS[t]; });
+  var termosSet = {};
+  termos.forEach(function(t) { termosSet[t] = true; });
+
+  termos.slice().forEach(function(termo) {
+    var sin = DICIONARIO_FARMACO[termo.toLowerCase()];
+    if (sin) {
+      var sn = normalizarTermoMedicamento(sin);
+      if (!termosSet[sn]) {
+        termosSet[sn] = true;
+        termos.push(sn);
+      }
+    }
+  });
+
+  for (var sindrome in MAPA_SINDROMES_APS) {
+    if (pedidoLower.indexOf(sindrome.toLowerCase()) !== -1) {
+      MAPA_SINDROMES_APS[sindrome].forEach(function(item) {
+        var itemNorm = normalizarTermoMedicamento(item);
+        if (!termosSet[itemNorm]) {
+          termosSet[itemNorm] = true;
+          termos.push(itemNorm);
+        }
+      });
+    }
+  }
+
+  var selecionados = [];
+  var vistos = {};
+
+  for (var i = 0; i < meds.length; i++) {
+    var m = meds[i];
+    var mNorm = m.nome_normalizado || normalizarTermoMedicamento(m.nome);
+    for (var k = 0; k < termos.length; k++) {
+      var t = termos[k];
+      if (mNorm === t || mNorm.indexOf(t) === 0 || (t.length >= 4 && mNorm.indexOf(t) !== -1)) {
+        if (!vistos[m.id]) {
+          vistos[m.id] = true;
+          selecionados.push(m);
+        }
+        break;
+      }
+    }
+  }
+
+  if (selecionados.length === 0) return "";
+
+  selecionados.sort(function(a, b) {
+    var aExp = (' ' + pedidoUpper + ' ').indexOf(' ' + (a.nome_normalizado || '') + ' ') >= 0;
+    var bExp = (' ' + pedidoUpper + ' ').indexOf(' ' + (b.nome_normalizado || '') + ' ') >= 0;
+    if (aExp !== bExp) return aExp ? -1 : 1;
+    if (a.na_remume && !b.na_remume) return -1;
+    if (!a.na_remume && b.na_remume) return 1;
+    return a.nome.localeCompare(b.nome);
+  });
+
+  selecionados = selecionados.slice(0, 5);
+
+  var blocos = [];
+  for (var s = 0; s < selecionados.length; s++) {
+    var item = selecionados[s];
+    var b = [
+      "-----------------------------------------------------------------------",
+      "MEDICAMENTO PEDIÁTRICO (PEDBOOK): " + item.nome.toUpperCase(),
+      "CATEGORIA: " + item.categoria,
+      "STATUS REMUME SUS: " + (item.na_remume ? "PADRONIZADO NA REMUME" : "FORA DA REMUME MUNICIPAL"),
+      "MARCAS: " + (item.marcas || "Não informadas")
+    ];
+
+    if (item.apresentacoes && item.apresentacoes.length > 0) {
+      b.push("APRESENTAÇÕES PEDIÁTRICAS DISPONÍVEIS:");
+      item.apresentacoes.slice(0, 4).forEach(function(ap) {
+        b.push("  • " + ap.forma + (ap.concentracao ? " (" + ap.concentracao + ")" : "") +
+          (ap.idade_minima_meses ? " [≥ " + ap.idade_minima_meses + " meses]" : "") +
+          (ap.peso_minimo_kg ? " [≥ " + ap.peso_minimo_kg + " kg]" : ""));
+      });
+    }
+
+    if (item.posologias && item.posologias.length > 0) {
+      b.push("DOSES PEDIÁTRICAS OFICIAIS (PEDBOOK):");
+      item.posologias.slice(0, 3).forEach(function(p) {
+        b.push("  • [" + (p.caso_de_uso || p.nome) + "] " + (p.resumo ? p.resumo.replace(/\n/g, ' ') : p.template));
+        if (p.alerta) b.push("    ALERTA: " + p.alerta);
+      });
+    }
+
+    if (item.contraindicacoes) {
+      b.push("CONTRAINDICAÇÕES PEDIÁTRICAS: " + item.contraindicacoes.replace(/\n/g, ' ').substring(0, 250));
+    }
+
+    b.push("FONTE: PedBook (pedb.com.br/medicamentos/" + (item.slug || "") + ")");
+    blocos.push(b.join("\n"));
+  }
+
+  return blocos.join("\n\n");
+}
+
+/**
+ * Obtém a base oficial de condutas e manejos pediátricos do PedBook.
+ */
+function obterCondutasPediatricasPedB() {
+  if (_cacheCondutasPedB && Array.isArray(_cacheCondutasPedB) && _cacheCondutasPedB.length > 0) {
+    return _cacheCondutasPedB;
+  }
+  if (typeof __BASE_CONDUTAS_PEDB__ !== "undefined" && __BASE_CONDUTAS_PEDB__ && Array.isArray(__BASE_CONDUTAS_PEDB__.condutas)) {
+    _cacheCondutasPedB = __BASE_CONDUTAS_PEDB__.condutas;
+    return _cacheCondutasPedB;
+  }
+  if (typeof obterBaseCondutasPedB === "function") {
+    try {
+      var base = obterBaseCondutasPedB();
+      if (base && Array.isArray(base.condutas)) {
+        _cacheCondutasPedB = base.condutas;
+        return _cacheCondutasPedB;
+      }
+    } catch (e) {}
+  }
+  try {
+    if (typeof require !== "undefined") {
+      var fs = require("fs");
+      var path = require("path");
+      var caminhos = [
+        path.resolve(__dirname, "data", "condutas_pediatricas_pedb.json"),
+        path.resolve(__dirname, "..", "data", "condutas_pediatricas_pedb.json"),
+        path.resolve(process.cwd(), "src", "data", "condutas_pediatricas_pedb.json"),
+        path.resolve(process.cwd(), "data", "condutas_pediatricas_pedb.json")
+      ];
+      for (var i = 0; i < caminhos.length; i++) {
+        if (fs.existsSync(caminhos[i])) {
+          var payload = JSON.parse(fs.readFileSync(caminhos[i], "utf8"));
+          if (payload && Array.isArray(payload.condutas)) {
+            _cacheCondutasPedB = payload.condutas;
+            return _cacheCondutasPedB;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log("Aviso ao carregar Condutas PedBook via arquivo: " + e.message);
+  }
+  return [];
+}
+
+/**
+ * Busca protocolo clínico ou conduta pediátrica no PedBook.
+ */
+function buscarCondutaPediatricaPedB(termo) {
+  if (!termo) return null;
+  var conds = obterCondutasPediatricasPedB();
+  if (!conds || conds.length === 0) return null;
+
+  var termoNorm = normalizarTermoMedicamento(termo);
+  var termoLower = termo.trim().toLowerCase();
+
+  for (var i = 0; i < conds.length; i++) {
+    var c = conds[i];
+    if (c.titulo_normalizado === termoNorm || c.slug === termoLower) {
+      return c;
+    }
+  }
+
+  for (var j = 0; j < conds.length; j++) {
+    var cond = conds[j];
+    if (cond.titulo_normalizado.indexOf(termoNorm) !== -1) {
+      return cond;
+    }
+  }
+
+  for (var k = 0; k < conds.length; k++) {
+    var cTag = conds[k];
+    if (Array.isArray(cTag.tags)) {
+      for (var t = 0; t < cTag.tags.length; t++) {
+        if (normalizarTermoMedicamento(cTag.tags[t]) === termoNorm) {
+          return cTag;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Formata conduta pediátrica do PedBook em markdown legível.
+ */
+function formatarResumoCondutaPedB(conduta) {
+  if (!conduta) return "Conduta pediátrica não encontrada.";
+  var linhas = [];
+  linhas.push("📋 *CONDUTA PEDIÁTRICA OFICIAL (PEDBOOK)*");
+  linhas.push("═══════════════════════════════════════");
+  linhas.push("🩺 *" + conduta.titulo.toUpperCase() + "*");
+
+  if (conduta.resumo_rapido) {
+    linhas.push("\n⚡ *RESUMO RÁPIDO & PONTOS-CHAVE:*");
+    linhas.push(conduta.resumo_rapido.replace(/\*\*/g, '*'));
+  }
+
+  if (conduta.conteudo_tratamento) {
+    linhas.push("\n💊 *TRATAMENTO & CONDUTA FARMACOLÓGICA:*");
+    linhas.push(conduta.conteudo_tratamento.replace(/\*\*/g, '*'));
+  }
+
+  var link = conduta.slug ? "https://pedb.com.br/condutas-e-manejos/" + conduta.slug : "https://pedb.com.br/condutas-e-manejos";
+  linhas.push("\n📚 *Fonte:* PedBook (" + link + ")");
+  return linhas.join("\n");
+}
+

@@ -1,0 +1,44 @@
+[
+  {
+    "teste": "test_soap_dois_tempos.cjs",
+    "exit_code": 0,
+    "falhas": []
+  },
+  {
+    "teste": "test_auditoria_qualidade_clinica.cjs",
+    "exit_code": 0,
+    "falhas": []
+  },
+  {
+    "teste": "test_audio_tempo_unico.cjs",
+    "exit_code": 0,
+    "falhas": []
+  },
+  {
+    "teste": "test_pipeline_audio_otimizado.cjs",
+    "exit_code": 0,
+    "falhas": []
+  },
+  {
+    "teste": "test_atendimento_persistente.cjs",
+    "exit_code": 0,
+    "falhas": []
+  },
+  {
+    "teste": "test_otimizacao_qualidade.cjs",
+    "exit_code": 0,
+    "falhas": []
+  },
+  {
+    "teste": "test_auditoria_clinica_20261008.cjs",
+    "exit_code": 1,
+    "falhas": [
+      "FALHA idade e peso ausentes não são inventados: loratadina 5 anos"
+    ]
+  },
+  {
+    "teste": "test_server_telemetry.cjs",
+    "exit_code": 0,
+    "falhas": []
+  }
+]

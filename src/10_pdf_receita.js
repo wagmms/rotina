@@ -310,9 +310,30 @@ var ReceitaPdfService = (function() {
       var html = gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente);
       var nomeBase = "Receita_" + stampArquivo + "_" + nomePaciente.replace(/\s+/g, "_");
 
-      var blobHtml = Utilities.newBlob(html, "text/html", nomeBase + ".html");
-      var blobPdf = blobHtml.getAs("application/pdf");
-      blobPdf.setName(nomeBase + ".pdf");
+      var blobPdf = null;
+      if (typeof gerarPdfReceitaNativo === "function") {
+        try {
+          var dadosEstruturados = extrairItensReceitaLimpos(textoPrescricao);
+          var pdfBytes = gerarPdfReceitaNativo({
+            nomePaciente: nomePaciente,
+            dataFormatada: dataFormatada,
+            itens: dadosEstruturados.itens,
+            orientacoes: dadosEstruturados.orientacoes,
+            ehRascunho: dadosEstruturados.ehRascunho
+          });
+          if (pdfBytes) {
+            blobPdf = Utilities.newBlob(pdfBytes, "application/pdf", nomeBase + ".pdf");
+          }
+        } catch (ePdfNativo) {
+          Logger.log("Aviso ao gerar PDF nativo: " + ePdfNativo.message);
+        }
+      }
+
+      if (!blobPdf) {
+        var blobHtml = Utilities.newBlob(html, "text/html", nomeBase + ".html");
+        blobPdf = blobHtml.getAs("application/pdf");
+        blobPdf.setName(nomeBase + ".pdf");
+      }
 
       var linkDrive = "";
       try {

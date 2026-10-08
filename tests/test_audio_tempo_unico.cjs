@@ -4,7 +4,7 @@
  * cortando 50% da latência de áudio e preservando a transcrição e rigor semiológico.
  */
 const fs = require('fs'), vm = require('vm'), path = require('path'), assert = require('assert');
-const source = fs.readFileSync(path.resolve(__dirname, '../ultra_rotina_master.js'), 'utf8');
+const source = require('./source_producao.cjs');
 
 function env() {
   const props = {
@@ -106,7 +106,9 @@ test('1. Áudio clínico multimodal gera SOAP direto em 1 única inferência', (
 
   assert(textoEntregue.includes('SÍNTESE SOAP · ATENDIMENTO CLÍNICO'), 'Deve entregar o cabeçalho do SOAP');
   assert(textoEntregue.includes('Dor precordial opressiva'), 'Deve conter o Subjetivo formal');
-  assert(textoEntregue.includes('PA 150x90 mmHg'), 'Deve conter o Exame Físico com sinais vitais');
+  assert(!textoEntregue.includes('150x90'), 'Não deve publicar PA ausente da transcrição');
+  assert(!textoEntregue.includes('92 bpm'), 'Não deve publicar FC ausente da transcrição');
+  assert(textoEntregue.includes('medida não confirmada'), 'Deve sinalizar a pendência sem inventar aferição');
   assert(textoEntregue.includes('ECG de 12 derivações imediato'), 'Deve conter o Exame Dirigido');
 
   // 3. Verificação do cache de contexto do médico

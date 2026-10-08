@@ -50,7 +50,8 @@ var IA_PERSONA = [
   "- Separe dado informado, interpretação e dado pendente. Nunca transforme ausência de informação em achado normal. Nunca invente dados do paciente.",
   "- Não use 'validado', 'seguro' ou 'confirmado' sem suporte verificável nos dados recebidos.",
   "- Não encerre com ofertas genéricas de ajuda. Pergunte apenas quando a resposta mudar a conduta ou sustentar a atividade pedagógica.",
-  "- Brevidade nunca autoriza omitir condição de segurança."
+  "- Brevidade nunca autoriza omitir condição de segurança.",
+  "- Nas respostas assistenciais, não inclua bibliografia, URLs ou seção de fontes automaticamente. Preserve o embasamento e as condições clínicas; apresente referências apenas quando solicitadas."
 ].join("\n");
 
 var IA_VISUAL = [
@@ -618,7 +619,11 @@ function _iaPublico(chamarInterno, tokensPadrao, maxTokens, opcoes) {
   var chamar = function (t) { return chamarInterno(t, ctx); };
   var r = _iaResolverTruncamento(chamar, tokens, chamar(tokens), ctx, false);
   if (!r || !r.texto) return null;
-  var texto = (opcoes && opcoes.grounding) ? _iaAcrescentarFontesBusca(r.texto, r.groundingMetadata) : r.texto;
+  if (opcoes && opcoes.grounding && typeof EXECUCAO_ATUAL !== 'undefined' && EXECUCAO_ATUAL) {
+    if (!EXECUCAO_ATUAL.fontesClinicas) EXECUCAO_ATUAL.fontesClinicas = [];
+    EXECUCAO_ATUAL.fontesClinicas.push({ chamada: ctx.id, modelo: r.modelo, textoGerado: r.texto, groundingMetadata: r.groundingMetadata || null });
+  }
+  var texto = (opcoes && opcoes.grounding && opcoes.exibirFontes === true) ? _iaAcrescentarFontesBusca(r.texto, r.groundingMetadata) : r.texto;
   return _iaRemoverLatex(texto);
 }
 
@@ -649,16 +654,17 @@ function chamarGeminiPool(sistema, promptUsuario, maxTokens) {
 /**
  * Gemini com Google Search Grounding. Embasamento em diretrizes oficiais.
  */
-function chamarGeminiPoolComGrounding(sistema, promptUsuario, maxTokens) {
+function chamarGeminiPoolComGrounding(sistema, promptUsuario, maxTokens, opcoes) {
+  opcoes = opcoes || {};
   var instrucao = sistema + "\n\nDIRETRIZ DE EMBASAMENTO CIENTÍFICO:\n" +
     "1. PRIORIDADE: diretrizes brasileiras oficiais (SBC, SBPT, SBD, ILAS, AMIB, CFM, AMB, Conitec/PCDT Ministério da Saúde).\n" +
     "2. DIVERGÊNCIAS: aponte discrepâncias com diretrizes internacionais (AHA/ACC, ESC, SSC, GOLD, GINA, IDSA) apenas se mudarem a conduta prática.\n" +
-    "3. CITAÇÃO: indique diretriz, sociedade e ano somente quando verificados na busca; caso contrário diga 'conferir versão vigente'.\n" +
+    (opcoes.exibirFontes === true ? "3. CITAÇÃO: cite somente referências verificadas na busca.\n" : "3. APRESENTAÇÃO: use as fontes consultadas para fundamentar a resposta, sem exibir citações, URLs ou bibliografia. Não omita incertezas ou limitações clínicas.\n") +
     "4. NUNCA use LaTeX ($). Retorne Markdown simples do Telegram.";
   var modelos = _iaLista("IA_MODELOS_GEMINI_GROUNDING", IA_PADROES.GEMINI_GROUNDING);
   return _iaPublico(function (t, ctx) {
     return _iaProvGemini(sistema, promptUsuario, t, ctx, { grounding: true, modelos: modelos, instrucaoSistema: instrucao });
-  }, 2500, maxTokens, { grounding: true });
+  }, 2500, maxTokens, { grounding: true, exibirFontes: opcoes.exibirFontes === true });
 }
 
 function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario, opcoes) {
@@ -767,14 +773,14 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
   // 2. Rota Clássica SOAP Ambulatorial
   if (ehClinico && obj.subjetivo && obj.objetivo) {
     var oSanitizado = (typeof sanitizarObjetivoComRelato === "function")
-      ? sanitizarObjetivoComRelato(obj.objetivo, transcricao || obj.subjetivo)
+      ? sanitizarObjetivoComRelato(obj.objetivo, transcricao)
       : String(obj.objetivo).trim();
     var perguntas = obj.perguntas_anamnese || obj.perguntas || [];
     var exameDirigido = obj.exame_dirigido || [];
 
     var blocosRasc = [
       "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
-      "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + String(obj.subjetivo).trim(),
+      "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + sanitizarNegativasSOAP(obj.subjetivo, transcricao),
       "🔍 *O - Objetivo (Exame Físico)*\n" + (oSanitizado || "Exame físico em estruturação; conferir sinais vitais e achados."),
       "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."),
       "🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa.") +
@@ -890,16 +896,16 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   var sistema = [
     "Você é um auditor de segurança medicamentosa e de conformidade com diretrizes. Receba o CASO e o RASCUNHO e liste SOMENTE problemas reais:",
     "- dose acima do máximo ou abaixo do terapêutico; falta de ajuste renal/hepático/peso/idade; alergia ou interação ignorada;",
-    "- erro de cálculo pediátrico (ex: calcular anti-histamínico por mg/kg em vez da dose fixa por idade/peso do HSL; cobrar peso quando a idade define a dose; horários desnecessários de madrugada);",
+    "- erro de cálculo pediátrico, faixa etária/peso não confirmados, apresentação divergente ou ausência de dado exigido pela referência; horários inadequados;",
     "- diluente, velocidade de infusão ou acesso incorretos; erro aritmético (refaça a conta); medicamento fora da lista informada;",
     "- conduta em desacordo com AHA 2025 (PCR), Surviving Sepsis Campaign (sepse) ou diretrizes brasileiras vigentes.",
     "Se não houver problema, responda exatamente: SEM ALERTAS. Caso contrário, liste todos os problemas identificados em linhas iniciadas por '- ', sem omitir alertas por brevidade.",
     "Não use LaTeX. Não reescreva o rascunho."
   ].join("\n");
   var contexto = "CASO:\n" + dadosCaso + "\n\nRASCUNHO:\n" + rascunho;
-  if (typeof baseMedicamentos === "string") contexto += "\n\nLISTA REMUME FORNECIDA AO GERADOR:\n" + baseMedicamentos;
+  if (typeof baseMedicamentos === "string") contexto += "\n\nBASE MEDICAMENTOSA FORNECIDA AO GERADOR (REMUME E HSL; padronização não comprova indicação ou estoque):\n" + baseMedicamentos;
   var r = null;
-  try { r = _iaExecutar(sistema, contexto, 600, { exigirRespostaCompleta: true }); }
+  try { r = _iaExecutar(sistema, contexto, 600, { clinico: true, exigirRespostaCompleta: true }); }
   catch (e) { Logger.log("Auditoria automática indisponível."); }
   var limpo = String(r || "").trim();
   if (!limpo) return rascunho + "\n\n⚠️ *Auditoria automática indisponível — revisão pendente*\nNão foi possível concluir a segunda revisão. Este rascunho não foi liberado pela auditoria; confira-o antes de qualquer uso.";
@@ -938,8 +944,72 @@ function verificarPedidoExplicitoPlano(texto) {
 }
 
 function formatarListaTopicos(v, fallback) {
-  var itens = Array.isArray(v) ? v.filter(function(x) { return typeof x === "string" && x.trim(); }).slice(0, 8) : [];
+  var itens = Array.isArray(v) ? v.filter(function(x) { return typeof x === "string" && x.trim(); }) : [];
   return itens.length ? itens.map(function(x) { return "• " + x; }).join("\n") : fallback;
+}
+
+// Mesma barreira factual para SOAP escrito, consolidado e extraído de áudio.
+// Verifica medidas; não pretende validar semanticamente todo o exame físico.
+function sanitizarObjetivoComRelato(objetivo, casoClinico) {
+  var fonte = String(casoClinico || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  var texto = Array.isArray(objetivo) ? objetivo.join("\n") : String(objetivo || "");
+  var regras = [
+    { re: /\b(?:pa\s*[:=]?\s*)?(\d{2,3})\s*[x/]\s*(\d{2,3})\b/gi, tipo: "pa" },
+    { re: /\b(?:fc|frequencia cardiaca)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(?:bpm)?\b/gi, tipo: "fc" },
+    { re: /\b(\d+(?:[.,]\d+)?)\s*bpm\b/gi, tipo: "fc" },
+    { re: /\b(?:fr|frequencia respiratoria)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(?:irpm|rpm)?\b/gi, tipo: "fr" },
+    { re: /\b(\d+(?:[.,]\d+)?)\s*(?:irpm|rpm)\b/gi, tipo: "fr" },
+    { re: /\b(?:spo2|sp[oO]₂|sato2|sat|saturacao)\s*[:=]?\s*(\d+(?:[.,]\d+)?)%?/gi, tipo: "spo2" },
+    { re: /\b(?:tax|temperatura|temp)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(?:°?c)?\b/gi, tipo: "temperatura" },
+    { re: /\b(\d+(?:[.,]\d+)?)\s*°c\b/gi, tipo: "temperatura" },
+    { re: /\b(\d+(?:[.,]\d+)?)\s*mmhg\b/gi, tipo: "pressao" }
+  ];
+  function chave(regra, match) {
+    return regra.tipo + ':' + match.slice(1).map(function(v) { return Number(String(v).replace(',', '.')); }).join('/');
+  }
+  var confirmadas = {};
+  regras.forEach(function(regra) {
+    Array.from(fonte.matchAll(regra.re)).forEach(function(m) { confirmadas[chave(regra, Array.from(m))] = true; });
+  });
+  // Usa índices do texto normalizado (acentos portugueses não alteram o tamanho).
+  var normalizado = texto.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  var pendentes = [], intervalosConfirmados = [];
+  regras.forEach(function(regra) {
+    Array.from(normalizado.matchAll(regra.re)).forEach(function(m) {
+      var intervalo = { inicio: m.index, fim: m.index + m[0].length };
+      if (!confirmadas[chave(regra, Array.from(m))]) pendentes.push(intervalo);
+      else intervalosConfirmados.push(intervalo);
+    });
+  });
+  // Ex.: PA 120/80 mmHg é a mesma medida de PA 120x80; a captura
+  // secundária de "80 mmHg" não invalida uma PA já confirmada.
+  pendentes = pendentes.filter(function(p) {
+    return !intervalosConfirmados.some(function(ok) { return p.inicio >= ok.inicio && p.inicio < ok.fim; });
+  });
+  // Une capturas sobrepostas (ex.: FC 80 bpm e 80 bpm).
+  pendentes.sort(function(a,b) { return a.inicio - b.inicio; });
+  var unidas = [];
+  pendentes.forEach(function(p) {
+    var ultima = unidas[unidas.length - 1];
+    if (ultima && p.inicio <= ultima.fim) ultima.fim = Math.max(ultima.fim, p.fim);
+    else unidas.push(p);
+  });
+  unidas.reverse().forEach(function(p) {
+    texto = texto.slice(0, p.inicio) + '[medida não confirmada no relato]' + texto.slice(p.fim);
+  });
+  return texto.trim();
+}
+
+function sanitizarNegativasSOAP(texto, casoClinico) {
+  var fonte = String(casoClinico || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  var t = String(texto || '');
+  if (!/\b(?:nega|sem)\s+alergias?\b|alergias?\s*:\s*(?:nega|nenhuma)/.test(fonte)) {
+    t = t.replace(/(?:nega|sem)\s+alergias?(?:\s+medicamentosas?)?(?:\s+conhecidas?)?/gi, 'Alergias: informação não confirmada; conferir relato');
+  }
+  if (!/\b(?:nega|sem)\s+(?:uso\s+de\s+)?medica(?:coes|mentos)\b|nao\s+(?:usa|toma)\s+medica(?:coes|mentos)/.test(fonte)) {
+    t = t.replace(/nega\s+(?:uso\s+de\s+)?medica(?:ções|mentos)(?:\s+cont[ií]nu[oa]s?)?/gi, 'Medicações de uso contínuo: não informado');
+  }
+  return t;
 }
 
 function gerarSOAPComIA(casoClinico, opcoes) {
@@ -951,8 +1021,11 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     // =========================================================================
     // FASE 2: SOAP COMPLETO CONSOLIDADO (AVALIAÇÃO E PLANO)
     // =========================================================================
+    var baseSoap;
+    try { baseSoap = obterContextoMedicamentosParaIA(dadosCaso).texto; }
+    catch (eBaseSoap) { baseSoap = 'Base medicamentosa indisponível. Não finalize doses ou prescrições sem conferir a referência e os dados necessários.'; }
     var promptSistemaConsolidado = [
-      IA_PERSONA, IA_SEGURANCA_MEDICAMENTOSA,
+      IA_PERSONA, IA_SEGURANCA_MEDICAMENTOSA, baseSoap,
       "MODO: DOCUMENTAÇÃO CLÍNICA SOAP - FASE 2: CONSOLIDAÇÃO COMPLETA (AVALIAÇÃO E PLANO).",
       "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o caso em prontuário SOAP definitivo pronto para o prontuário eletrônico.",
       "",
@@ -963,8 +1036,8 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "     • Queixa Principal (QP): sintoma-guia e tempo de evolução.",
       "     • História da Doença Atual (HDA): cronologia clara e detalhada, caracterização semiológica rica (tipo, intensidade, irradiação), fatores desencadeantes, de melhora e de piora, sintomas associados cardinais ou negados relevantes.",
       "     • Antecedentes Gineco-Obstétricos / Clínicos: histórico prévio, métodos contraceptivos (ex: DIU, ACO), cirurgias e comorbidades.",
-      "     • Medicações de Uso Contínuo: fármacos em uso ou 'Nega uso de medicações contínuas'.",
-      "     • Alergias: alergias relatadas ou 'Nega alergias medicamentosas conhecidas'.",
+      "     • Medicações de Uso Contínuo: fármacos relatados; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
+      "     • Alergias: alergias relatadas; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
       "     • Hábitos de Vida: álcool, tabaco, outros ou 'Não relatados'.",
       "2. INTEGRAÇÃO INTELIGENTE DE NOVOS DADOS (SEM 'ATUALIZAÇÃO:' SOLTA):",
       "   - Se o relato do médico contiver dados complementares, novas mensagens ou adendos enviados em etapas:",
@@ -975,7 +1048,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "   - Sinais Vitais: PA, FC, FR, SpO2, Tax (apenas os relatados; se ausentes, declare 'Sinais vitais pendentes de aferição').",
       "   - Registre os achados por sistemas (Geral/Ectoscopia, ACV, AR, Abdome, Ginecológico, Extremidades e sistemas pertinentes à queixa).",
       "   - NUNCA invente normalidade para sistemas que não foram relatados nem examinados. Para sistemas não informados, aponte 'Pendente de avaliação'.",
-      "   - Se o médico declarou 'exame físico normal' ou 'EF normal', registre os 5 sistemas clássicos padrão.",
+      "   - Se o médico declarou 'exame físico normal' ou 'EF normal', preserve a declaração genérica; não invente manobras ou sinais específicos.",
       "   - INTEGRAÇÃO DE EXAMES ESPECIAIS: Se o caso contiver exame especial anexado/incorporado (ex: [EXAME DO ESTADO MENTAL / PSICOPATOLÓGICO], [EXAME NEUROLÓGICO], ginecológico, etc.) ou se for diretamente relevante à queixa, transcreva a seção completa desse exame no Objetivo (O).",
       "4. AVALIAÇÃO (A):",
       "   - Diagnóstico principal ou problema sindrômico com código CID-10 e CIAP-2.",
@@ -986,8 +1059,8 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "   - Exames complementares prioritários solicitados.",
       "   - Medidas não farmacológicas e orientações ao paciente.",
       "   - Critérios de alarme e tempo de retorno ambulatorial.",
-      "6. DADOS PENDENTES OPCIONAIS:",
-      "   - Liste até 3 dados ou medições clínicas ainda ausentes que enriqueceriam a conduta se o médico desejar complementar.",
+      "6. DADOS PENDENTES E SEGURANÇA:",
+      "   - Liste todas as pendências que condicionam a segurança da conduta. Diferencie dados obrigatórios antes de prescrever e complementos opcionais.",
       "",
       "Contrato JSON estrito:",
       '{"subjetivo":"Texto multi-linhas perfeitamente organizado com QP, HDA, Antecedentes, Medicações, Alergias e Hábitos","objetivo":"Texto estruturado do O por sistemas com achados e exames","avaliacao":["hipótese principal com CID-10 e CIAP-2","diferenciais em ordem de probabilidade/gravidade"],"plano":["item 1 da conduta com prescrição detalhada","exames solicitados","medidas não farmacológicas e orientações","critérios de alarme e retorno"],"pendencias_opcionais":["dado ausente que enriqueceria o caso"]}'
@@ -997,9 +1070,9 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     var objCons = _iaExtrairJSON(rawCons) || {};
 
     var sTexto = (typeof objCons.subjetivo === "string" && objCons.subjetivo.trim())
-      ? objCons.subjetivo.trim()
+      ? sanitizarNegativasSOAP(objCons.subjetivo.trim(), dadosCaso)
       : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
-    var oTexto = (typeof objCons.objetivo === "string" && objCons.objetivo.trim()) ? objCons.objetivo.trim() : "Exame físico conforme relato médico.";
+    var oTexto = sanitizarObjetivoComRelato(objCons.objetivo, dadosCaso) || "Exame físico não informado; pendente de avaliação.";
     var pendencias = Array.isArray(objCons.pendencias_opcionais) ? objCons.pendencias_opcionais.filter(Boolean) : [];
 
     var blocosCons = [
@@ -1012,13 +1085,17 @@ function gerarSOAPComIA(casoClinico, opcoes) {
 
     if (pendencias.length > 0) {
       blocosCons.push(
-        "⚠️ *Dados adicionais que enriqueceriam o caso:*\n" +
+        "⚠️ *Dados adicionais que enriqueceriam o caso (Dados pendentes — conferir antes de concluir):*\n" +
         formatarListaTopicos(pendencias, "") +
         "\n\n_💡 Se desejar complementar algum dado acima, basta enviar por áudio ou texto que a Avaliação e o Plano serão atualizados._"
       );
     }
 
-    return _iaFinalizarTexto(blocosCons.join("\n\n"));
+    var consolidado = _iaFinalizarTexto(blocosCons.join("\n\n"));
+    if (_iaCfgBool("IA_AUDITORIA_PRESCRICAO", true)) {
+      consolidado = _iaAuditarRascunho(consolidado, dadosCaso, "plano SOAP", baseSoap);
+    }
+    return consolidado;
   }
 
   // =========================================================================
@@ -1037,8 +1114,8 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "     • Queixa Principal (QP): sintoma-guia e tempo de evolução.",
     "     • História da Doença Atual (HDA): cronologia clara e detalhada, caracterização semiológica rica (tipo, intensidade, irradiação), fatores desencadeantes, de melhora e de piora, sintomas associados cardinais ou negados relevantes.",
     "     • Antecedentes Gineco-Obstétricos / Clínicos: histórico prévio, métodos contraceptivos (ex: DIU, ACO), cirurgias e comorbidades.",
-    "     • Medicações de Uso Contínuo: fármacos em uso ou 'Nega uso de medicações contínuas'.",
-    "     • Alergias: alergias relatadas ou 'Nega alergias medicamentosas conhecidas'.",
+    "     • Medicações de Uso Contínuo: fármacos relatados; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
+    "     • Alergias: alergias relatadas; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
     "     • Hábitos de Vida: álcool, tabaco, outros ou 'Não relatados'.",
     "2. INTEGRAÇÃO INTELIGENTE DE NOVOS DADOS (SEM 'ATUALIZAÇÃO:' SOLTA):",
     "   - Se o relato do médico contiver dados complementares, novas mensagens ou adendos enviados em etapas:",
@@ -1048,7 +1125,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "3. EXAME FÍSICO INTELIGENTE (O):",
     "   - Sinais Vitais: PA, FC, FR, SpO2, Tax (apenas os relatados; se ausentes, declare 'Sinais vitais pendentes de aferição').",
     "   - Registre rigorosamente os achados por sistemas (Geral/Ectoscopia, ACV, AR, Abdome, Extremidades e sistemas pertinentes à queixa).",
-    "   - Se o médico declarou 'exame físico normal' ou 'EF normal', registre os 5 sistemas clássicos padrão.",
+    "   - Se o médico declarou 'exame físico normal' ou 'EF normal', preserve a declaração genérica; não invente manobras ou sinais específicos.",
     "   - NUNCA invente sinais vitais numéricos (PA, FC, FR, SpO2, Tax). Se não constarem no relato, declare 'Sinais vitais pendentes de aferição' e cobre na seção dirigida.",
     "   - NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa a menos que o médico tenha dito expressamente 'normal'. Para sistemas não informados e não examinados, declare explicitamente como pendentes à beira-leito.",
     "   - INTEGRAÇÃO DE EXAMES ESPECIAIS: Se o caso contiver exame especial anexado/incorporado (ex: [EXAME DO ESTADO MENTAL / PSICOPATOLÓGICO], [EXAME NEUROLÓGICO], ortopédico, etc.) ou se for diretamente relevante à queixa, transcreva a seção completa desse exame no Objetivo (O) após os 5 sistemas clássicos.",
@@ -1064,38 +1141,15 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     '{"subjetivo":"Texto multi-linhas perfeitamente organizado com QP, HDA, Antecedentes, Medicações, Alergias e Hábitos","objetivo":"Texto estruturado do O por sistemas com achados e pendências","perguntas_anamnese":["Pergunta 1? (justificativa semiológica/hipótese a afastar)","Pergunta 2? (racional clínico)"],"exame_dirigido":["sinal vital ou manobra física imprescindível"]}'
   ].join("\n");
 
-function sanitizarObjetivoComRelato(objetivo, casoClinico) {
-  var textoCaso = String(casoClinico || "");
-  var reMedicao = /\b\d{2,3}\s*[x/]\s*\d{2,3}\b|\b\d+\s*bpm\b|\b\d+\s*mmHg\b|\b\d+[.,]\d+\s*°c\b|\bspo2\s*[:=]?\s*\d{2,3}%?\b|\bsat(?:ura[çc][ãa]o)?\s*[:=]?\s*\d{2,3}%?\b|\bfr\s*[:=]?\s*\d{1,2}\s*(?:irpm)?\b/i;
-  function sanitizarLinha(l) {
-    if (typeof l !== "string" || !l.trim()) return false;
-    if (reMedicao.test(l)) {
-      var medidasInventadas = l.match(/\b\d{2,3}\s*[x/]\s*\d{2,3}\b|\b\d+\s*bpm\b|\b\d+\s*mmHg\b|\b\d+[.,]\d+\s*°c\b|\bspo2\s*[:=]?\s*\d{2,3}%?\b|\bsat(?:ura[çc][ãa]o)?\s*[:=]?\s*\d{2,3}%?\b|\bfr\s*[:=]?\s*\d{1,2}\s*(?:irpm)?\b/gi) || [];
-      for (var i = 0; i < medidasInventadas.length; i++) {
-        if (textoCaso.toLowerCase().indexOf(medidasInventadas[i].toLowerCase().trim()) === -1) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-  if (Array.isArray(objetivo)) {
-    return objetivo.filter(sanitizarLinha).join("\n");
-  }
-  if (typeof objetivo === "string" && objetivo.trim()) {
-    return objetivo.split("\n").filter(sanitizarLinha).join("\n");
-  }
-  return "";
-}
 
   var rawRasc = executarRaciocinioClinico(promptSistemaRascunho, "CASO CLÍNICO:\n" + dadosCaso, 3000);
   if (typeof rawRasc === "string" && rawRasc.indexOf("🩺") !== -1 && rawRasc.indexOf("S -") !== -1) {
-    return _iaFinalizarTexto(rawRasc);
+    return "⚠️ Estruturação SOAP incompleta. Revise o relato original antes de registrar.\n\nRelato recebido:\n" + dadosCaso;
   }
   var objRasc = _iaExtrairJSON(rawRasc) || {};
 
   var sRasc = (typeof objRasc.subjetivo === "string" && objRasc.subjetivo.trim())
-    ? objRasc.subjetivo.trim()
+    ? sanitizarNegativasSOAP(objRasc.subjetivo.trim(), dadosCaso)
     : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
   var oRasc = sanitizarObjetivoComRelato(objRasc.objetivo, dadosCaso);
   if (!oRasc) oRasc = "Exame físico em estruturação; conferir sinais vitais e achados.";
@@ -1426,22 +1480,27 @@ function gerarGuiaExameFisicoEspecial(tipo, contexto) {
   return "📚 MODELO DE REFERÊNCIA — confirmar os achados antes de registrar.\n\n" + padrao;
 }
 
-function gerarPrescricaoComIA(dadosPrescricao) {
-  var idRemume = ConfigService.get("SPREADSHEET_ID_REMUME");
-  var baseCompleta = "";
-  try {
-    baseCompleta = obterPlanilha("remume", idRemume, false);
-  } catch (erro) {
-    return "\u274C " + erro.message;
+function obterContextoMedicamentosParaIA(dados) {
+  var base = obterPlanilha("remume", ConfigService.get("SPREADSHEET_ID_REMUME"), false);
+  var remume = typeof filtrarMedicamentosRelevantes === 'function' ? filtrarMedicamentosRelevantes(base, dados) : String(base || '');
+  var hsl = typeof filtrarContextoPosologiasHSL === 'function' ? filtrarContextoPosologiasHSL(dados) : '';
+  var pedb = typeof filtrarContextoPediatricoPedB === 'function' ? filtrarContextoPediatricoPedB(dados) : '';
+  
+  var texto = 'LISTA MUNICIPAL (PADRONIZAÇÃO):\n' + remume +
+    '\n\nFICHAS POSOLÓGICAS E CONDIÇÕES DE SEGURANÇA (GUIA HSL):\n' + (hsl || 'Nenhuma ficha HSL recuperada para este pedido; não atribua doses não consultadas ao HSL.');
+  if (pedb) {
+    texto += '\n\nDOSES & APRESENTAÇÕES PEDIÁTRICAS OFICIAIS (PEDBOOK pedb.com.br):\n' + pedb;
   }
+  return { remume: remume, hsl: hsl, pedb: pedb, texto: texto };
+}
 
-  var listaMedicamentos = (typeof filtrarMedicamentosRelevantes === "function")
-    ? filtrarMedicamentosRelevantes(baseCompleta, dadosPrescricao)
-    : String(baseCompleta || "");
-
-  var contextoPosologiaHSL = (typeof filtrarContextoPosologiasHSL === "function")
-    ? filtrarContextoPosologiasHSL(dadosPrescricao)
-    : "";
+function gerarPrescricaoComIA(dadosPrescricao) {
+  var baseClinica;
+  try { baseClinica = obterContextoMedicamentosParaIA(dadosPrescricao); }
+  catch (erro) { return "❌ " + erro.message; }
+  var listaMedicamentos = baseClinica.remume;
+  var contextoPosologiaHSL = baseClinica.hsl;
+  var contextoPedB = baseClinica.pedb;
 
   var calculoFixoPed = (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularPosologiaPorTextoLivre === "function")
     ? CalculadorasClinicas.calcularPosologiaPorTextoLivre(dadosPrescricao)
@@ -1452,15 +1511,15 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     travaDeterministica = [
       "",
       "=======================================================================",
-      "🔒 TRAVA MATEMÁTICA DETERMINÍSTICA OBRIGATÓRIA (FÓRMULA FIXA EM CÓDIGO PURO - ZERO ALUCINAÇÃO):",
+      "CÁLCULO AUXILIAR PARA CONFERÊNCIA (não determina indicação nem substitui a base clínica):",
       "• Fármaco Eleito: " + calculoFixoPed.farmaco,
       "• Apresentação Padronizada: " + calculoFixoPed.apresentacao,
       "• Posologia no Receituário: " + calculoFixoPed.instrucaoPosologica,
       "• Quantidade a Dispensar: " + calculoFixoPed.quantidadeDispensar,
       "• Memória de Cálculo Auditada: " + calculoFixoPed.memoriaCalculo,
       "• Orientações: " + calculoFixoPed.orientacoes,
-      "⚠️ REGRA DE SEGURANÇA MÁXIMA: NÃO RECALCULE NENHUM NÚMERO.",
-      "Copie EXATAMENTE a dose (" + (calculoFixoPed.tipo === 'gotas' ? (calculoFixoPed.gotasPorTomada + " gotas") : (calculoFixoPed.volumePorTomadaMl + " mL")) + "), o intervalo e a quantidade de frascos acima calculados.",
+      "Verifique indicação, faixa etária, contraindicações, apresentação e duração antes de aproveitar este cálculo. Se houver conflito com o caso ou a base, declare a pendência e não copie a dose.",
+      "Dose calculada para a apresentação acima (" + (calculoFixoPed.tipo === 'gotas' ? (calculoFixoPed.gotasPorTomada + " gotas") : (calculoFixoPed.volumePorTomadaMl + " mL")) + "); confira também intervalo e quantidade total.",
       "======================================================================="
     ].join("\n");
   }
@@ -1469,14 +1528,15 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     IA_PERSONA, "", IA_VISUAL, "",
     "MODO: PRESCRIÇÃO AMBULATORIAL (RASCUNHO PARA REVISÃO). Gere prescrições precisas a partir da doença informada ou do medicamento solicitado.",
     "",
-    "REGRA DE OURO (REMUME SUS + GUIA FARMACÊUTICO HSL):",
+    "REGRA DE OURO (REMUME SUS + GUIA FARMACÊUTICO HSL + PEDBOOK PEDIÁTRICO):",
     "1. MEDICAMENTOS DA REMUME SÃO SEMPRE PRIMEIRA OPÇÃO: Prescreva preferencialmente fármacos e apresentações padronizadas na rede municipal (REMUME Ribeirão Preto).",
-    "2. SE NÃO HOUVER ALTERNATIVA NA REMUME: Apenas se a condição clínica não puder ser tratada com itens da rede municipal, utilize a alternativa do Guia HSL declarando: '⚠️ Medicamento fora da REMUME municipal (componente especializado/compra)'.",
+    "2. SE NÃO HOUVER ALTERNATIVA NA REMUME: Apenas se a condição clínica não puder ser tratada com itens da rede municipal, utilize a alternativa do Guia HSL/PedBook declarando: '⚠️ Medicamento fora da REMUME municipal (componente especializado/compra)'.",
     "3. POSOLOGIA OFICIAL DO HOSPITAL SÍRIO-LIBANÊS (HSL): Siga as doses adultas, pediátricas por kg/dia, intervalos e ajustes para insuficiência renal (ClCr/TFG) oficiais da base HSL.",
+    "4. POSOLOGIA E APRESENTAÇÕES PEDIÁTRICAS (PEDBOOK pedb.com.br): Para pacientes pediátricos (lactentes, crianças, adolescentes), utilize as doses por kg/dia, volumes em mL/gotas de suspensão e faixas mínimas do guia pediátrico oficial PedBook.",
     travaDeterministica,
     "",
-    "=== BASE OFICIAL DE POSOLOGIAS & APRESENTAÇÕES (GUIA HSL + REMUME) ===",
-    contextoPosologiaHSL ? contextoPosologiaHSL : ("LISTA MUNICIPAL:\n" + listaMedicamentos),
+    "=== BASE OFICIAL DE POSOLOGIAS & APRESENTAÇÕES (GUIA HSL + PEDBOOK + REMUME) ===",
+    baseClinica.texto,
     "=======================================================================",
     "",
     "DIRETRIZES DE SEGURANÇA FARMACOLÓGICA E DIDÁTICA (FMRP-USP):",
@@ -1485,9 +1545,9 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "   - Com peso informado: Exiba no receituário a posologia clara e no campo de conferência a MEMÓRIA DE CÁLCULO COMPLETA E DIDÁTICA baseada na dose de referência do Guia HSL (mg/kg/dia ➔ mg/dose ➔ mL/dose na lista ➔ frascos).",
     "   - FÁRMACOS COM DOSE POR FAIXA ETÁRIA OU DOSE FIXA PEDIÁTRICA (ANTI-HISTAMÍNICOS E ANTI-HELMÍNTICOS):",
     "     • Exemplos: anti-histamínicos (Loratadina, Dexclorfeniramina, Cetirizina, Desloratadina), anti-helmínticos (Albendazol, Mebendazol), tópicos e nasais.",
-    "     • REGRA DE OURO CLÍNICA: Se a idade for informada (ex: 'criança de 5 anos'), NUNCA COBRE PESO NEM BLOQUEIE A PRESCRIÇÃO.",
+    "     • Solicite peso quando a dose depender de peso ou faixa de peso, inclusive loratadina entre 2 e 12 anos. Não exija peso para esquema exclusivamente etário com idade confirmada.",
     "     • É TERMINANTEMENTE PROIBIDO inventar taxas em 'mg/kg/dia' para anti-histamínicos (erro grave de '1 mg/kg/dia').",
-    "     • Prescreva imediatamente a dose volumétrica da faixa etária conforme o Guia HSL:",
+    "     • As faixas abaixo exigem confirmação da idade, apresentação, indicação e condições de segurança:",
     "       - Loratadina 1 mg/mL: 2 a 12 anos (até 30 kg) = 5 mL (5 mg) VO 1 vez ao dia à noite; > 12 anos (ou > 30 kg) = 10 mL (10 mg) VO 1 vez ao dia.",
     "       - Dexclorfeniramina 2 mg/5 mL: 2 a 6 anos = 1,25 mL (0,5 mg) VO 3 vezes ao dia; 6 a 12 anos = 2,5 mL (1 mg) VO 3 vezes ao dia; > 12 anos = 5 mL (2 mg) VO 3 vezes ao dia.",
     "       - Albendazol 400 mg: > 2 anos e adultos = 400 mg (10 mL ou 1 comp) em DOSE ÚNICA INDEPENDENTE DO PESO (repetir em 14 dias se oxiuríase).",
@@ -1536,15 +1596,80 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "- *Ajustes de segurança (renal, hepático, idade/Beers, gestação):* [faixas de TFG do Guia HSL, alertas ou conformidade]",
     "- *Alergias e interações:* [conferido com dados do caso ou pendências]",
     "- *Disponibilidade na Rede:* [Item da REMUME de Ribeirão Preto / Não consta na REMUME - opção referenciada no Guia HSL].",
-    "- *Base Posológica Oficial:* Guia Farmacêutico Hospital Sírio-Libanês (HSL)."
+    "- Não acrescente seção de fontes ou bibliografia à resposta assistencial."
   ].join("\n");
 
   var dados = "DADOS DO PACIENTE / PEDIDO:\n" + dadosPrescricao;
   var resposta = _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, dados, 1800));
   if (resposta && _iaCfgBool("IA_AUDITORIA_PRESCRICAO", true)) {
-    resposta = _iaAuditarRascunho(resposta, dadosPrescricao, "prescricao", listaMedicamentos);
+    resposta = _iaAuditarRascunho(resposta, dadosPrescricao, "prescricao", baseClinica.texto);
   }
   return resposta;
+}
+
+/**
+ * Prescrição Hospitalar Completa (Enfermaria, Semi-Intensiva e CTI).
+ * Segue a ordem canônica hospitalar: Dieta, Hidratação, ATB, Contínuos, Profilaxias, SOS, Cuidados.
+ */
+function gerarPrescricaoHospitalarComIA(dadosCaso) {
+  var baseClinica;
+  try { baseClinica = obterContextoMedicamentosParaIA(dadosCaso); }
+  catch (erro) { baseClinica = { remume: "", hsl: "", texto: "Base hospitalar HSL de segurança." }; }
+
+  var promptSistemaHospitalar = [
+    IA_PERSONA, "", IA_VISUAL, "",
+    "MODO: PRESCRIÇÃO HOSPITALAR COMPLETA (ORDEM CANÔNICA DE ENFERMARIA / UTI - FMRP-USP).",
+    "Você é o Médico Assistente e Preceptor Hospitalar. Estruture a prescrição hospitalar completa para internação/enfermaria, pronta para o prontuário eletrônico e checagem de enfermagem.",
+    "",
+    "ORDEM CANÔNICA OBRIGATÓRIA DA PRESCRIÇÃO HOSPITALAR:",
+    "1. DIETA: Via, consistência, fracionamento e restrições metabólicas (ex: Geral, Diabética, Hipossódica, Pastosa, Branda, Zero com hidratação, Enteral SNE com meta calórica/proteica).",
+    "2. HIDRATAÇÃO VENOSA & ELETRÓLITOS: Solução base (SF 0,9%, SG 5%, Ringer Lactato), volume, adições eletrolíticas (ex: KCl 19,1%), vazão contínua em mL/h em Bomba de Infusão Contínua (BIC) e macrogotas/min. Se euvolêmico/hipervolêmico/ICC/congesto, declare formalmente: 'Hidratação venosa zero / Manter veia periférica salinizada'.",
+    "3. ANTIMICROBIANOS (COM DIA D_ E AJUSTE RENAL):",
+    "   - Fármaco, dose miligramada precisa, via EV, diluente (volume e solução), tempo de infusão (ex: correr em 60 min; betalactâmicos preferencialmente em infusão estendida de 3 a 4h), intervalo de tomada com horários sugeridos.",
+    "   - Identificação do dia de tratamento: 'D1/?', 'D3/7', etc.",
+    "   - Ajuste obrigatório conforme ClCr/TFG do paciente (verificar base HSL).",
+    "4. MEDICAÇÕES DE USO CONTÍNUO (CONCILIAÇÃO MEDICAMENTOSA):",
+    "   - Avaliação crítica das medicações prévias do paciente: manter, suspender temporariamente (ex: suspender metformina se instabilidade/IRA; suspender IECA/BRA se choque/IRA hipercalêmica) ou substituir.",
+    "5. PROFILAXIAS HOSPITALARES OBRIGATÓRIAS (SEGURANÇA DO PACIENTE):",
+    "   - Profilaxia de Tromboembolismo Venoso (TEV): Enoxaparina 40 mg SC 1x/dia (ajustar para 20 mg SC 1x/dia se ClCr < 30 mL/min, ou HNF 5.000 UI SC 8/8h). Se contraindicação absoluta (plaquetas < 50.000, sangramento ativo recente): prescrever profilaxia mecânica (compressão pneumática intermitente / meias elásticas).",
+    "   - Profilaxia de Lesão Aguda de Mucosa Gástrica (Úlcera de Estresse): Omeprazol 40 mg EV 1x/dia pela manhã. Aplicar critérios estritos (apenas se Ventilação Mecânica > 48h, coagulopatia grave, sepse grave, TCE grave, grande queimado ou antecedente recente de HDA). Se sem critérios, declarar 'Sem indicação formal no momento'.",
+    "6. MEDICAMENTOS SINTOMÁTICOS & SE NECESSÁRIO (SOS):",
+    "   - Analgésicos / Antitérmicos: Dipirona 1g EV em 100 mL SF até de 6/6h se dor ou febre (Tax ≥ 37,8°C).",
+    "   - Antieméticos: Ondansetrona 8 mg EV até de 8/8h se náuseas/vômitos.",
+    "   - Esquema de Insulina Regular SC conforme HGT pré-refeições se diabético.",
+    "   - Analgesia de resgate (Tramadol/Morfina) se dor intensa, com parâmetros de vigilância de sedação.",
+    "7. CUIDADOS DE ENFERMAGEM & MONITORIZAÇÃO:",
+    "   - Sinais vitais com PA, FC, FR, SpO2 e Tax a cada 6 horas.",
+    "   - Glicemia capilar pré-refeições e às 22h (se aplicável).",
+    "   - Cabeceira elevada a 30° - 45° (prevenção de PAV e broncoaspiração).",
+    "   - Mudança de decúbito a cada 2 horas (prevenção de lesões por pressão).",
+    "   - Balanço hídrico rigoroso de 24h.",
+    "   - Sinais de alarme para chamar o médico assistente (PAS < 90 ou > 180 mmHg, FC < 50 ou > 120 bpm, FR < 10 ou > 26 irpm, SpO2 < 92%, Tax ≥ 37,8°C ou débito urinário < 0,5 mL/kg/h).",
+    "",
+    IA_SEGURANCA_MEDICAMENTOSA,
+    "",
+    "ESTRUTURA DE RESPOSTA:",
+    "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO (ORDEM CANÔNICA)*",
+    "*Paciente / Leito:* [Dados informados] | *Status:* [Completa / Dados pendentes]",
+    "",
+    "1. *DIETA:* [Descrição detalhada da dieta]",
+    "2. *HIDRATAÇÃO VENOSA:* [Solução, eletrólitos, vazão em mL/h e macrogotas/min ou 'Salinizar acesso']",
+    "3. *ANTIMICROBIANOS:* [Lista de antimicrobianos com diluição, tempo de infusão, dia D_ e ajuste renal]",
+    "4. *MEDICAÇÕES DE USO CONTÍNUO:* [Conciliação medicamentosa com justificativa de suspensões]",
+    "5. *PROFILAXIAS DE LEITO:* [TEV química/mecânica e úlcera de estresse fundamentadas]",
+    "6. *SINTOMÁTICOS & SOS:* [Dipirona, antiemético, insulina, com intervalo mínimo e gatilhos]",
+    "7. *CUIDADOS DE ENFERMAGEM:* [Sinais vitais, decúbito, cabeceira, balanço e metas de alerta]",
+    "",
+    "⚠️ *NOTAS MÉDICAS & PENDÊNCIAS:*",
+    "- [Pendências laboratoriais, culturas colhidas aguardando resultado, reavaliação de disfunção orgânica]"
+  ].join("\n");
+
+  var dados = "CASO CLÍNICO / DADOS DA INTERNAÇÃO:\n" + String(dadosCaso || "").trim();
+  var res = _iaFinalizarTexto(executarRaciocinioClinico(promptSistemaHospitalar, dados, 2800));
+  if (res && _iaCfgBool("IA_AUDITORIA_PRESCRICAO", true)) {
+    res = _iaAuditarRascunho(res, dadosCaso, "prescricao_hospitalar", baseClinica.texto);
+  }
+  return res;
 }
 
 function gerarPassagemPlantaoSBAR(dadosCaso) {
@@ -1883,7 +2008,7 @@ function gerarCondutaEmergenciaComIA(dadosEmergencia) {
     "- [parâmetro + momento + resposta esperada]; se [critério], [escalonar].",
     "",
     "\u26A0\uFE0F [dado crítico pendente ou restrição que condiciona a conduta]",
-    "\uD83D\uDCDA *Referência:* [diretriz, sociedade e ano - ou 'conferir versão vigente']",
+    "Não acrescente seção de fontes ou bibliografia à resposta assistencial.",
     "_Sugestão gerada por IA. Conferir dose, diluição e diretriz; a responsabilidade da prescrição é do prescritor._"
   ].join("\n");
 

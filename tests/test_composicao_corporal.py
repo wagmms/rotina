@@ -10,7 +10,7 @@ import os
 import re
 import pytest
 
-HTML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "composicao_corporal.html")
+HTML_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "composicao_corporal", "composicao_corporal.html")
 
 
 def calcular_jp3_siri(idade: int, peito: float, abd: float, coxa: float) -> float:
@@ -102,7 +102,7 @@ def test_regra_sempre_um_ou_outro_whey_vs_yopro():
 
 
 def test_bio_composicao_hub_integracao():
-    from scripts.bio_composicao_hub import calcular_projecao_compras_quinzenal, executar_doctor
+    from composicao_corporal.bio_composicao_hub import calcular_projecao_compras_quinzenal, executar_doctor
 
     # Valida execução do doctor
     assert executar_doctor() is True

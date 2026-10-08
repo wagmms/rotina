@@ -40,6 +40,12 @@ function measureLegacyHttp(ctx, metrics, action) {
     try {
       const response = original.apply(this, args);
       failed = false;
+      // muteHttpExceptions transforma 4xx/5xx em respostas, não em exceções.
+      // Falha na leitura da métrica jamais altera o resultado da chamada.
+      try {
+        const status = typeof response.getResponseCode === 'function' ? Number(response.getResponseCode()) : Number(response.status);
+        if (status >= 400) failed = true;
+      } catch (_) {}
       return response;
     } finally {
       const entry = metrics[kind] || { calls: 0, errors: 0, ms: 0 };

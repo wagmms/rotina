@@ -11,7 +11,6 @@ O backend oficial roda em Node.js/Docker no Render (server.js).
 """
 
 import os
-from scripts.empacotar_gas import empacotar
 import sys
 import glob
 import hashlib

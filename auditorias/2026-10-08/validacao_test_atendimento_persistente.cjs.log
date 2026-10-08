@@ -1,0 +1,13 @@
+OK cache perdido e pausa não apagam atendimento
+OK novo caso e alterações invalidam versão, leitura não invalida
+OK encerramento prevalece sobre cache antigo
+OK migração preserva legado válido
+OK legado expirado não ressuscita
+OK falha de gravação preserva estado anterior e auxiliares
+OK falha de leitura não retorna atendimento vazio
+OK botão antigo ou sem versão não chama IA
+OK botão de exame normal antigo não abre confirmação
+OK teclado entregue usa revisão de origem e respeita 64 bytes
+OK comando de navegação suspende modo sem apagar caso
+OK casos de chats distintos não compartilham estado
+12 cenários aprovados

@@ -106,7 +106,6 @@ var PersistenciaBot = (function() {
     var p=props(), s=JSON.stringify(valor);
     var sBytes = bytesUtf8(s);
     if (sBytes > 25000) throw new Error('Conteúdo muito grande para armazenamento. Divida o pedido.');
-    // Um snapshot fornece orçamento global e registro anterior (antes: varredura + releitura).
     var all = snapshot(), bAtual = totalBytes(all);
     if (bAtual + sBytes > 350000) {
       podarPersistenciaAntiga(all);
@@ -278,6 +277,7 @@ function executarPedidoTelegram(key, job) {
     job.metricas = EXECUCAO_ATUAL.metricas;
     job.metricas.processamentoMs = Math.max(0, job.processedAt-job.startedAt);
     job.metricas.canal = EXECUCAO_ATUAL.canal;
+    if (EXECUCAO_ATUAL.fontesClinicas) job.fontesClinicas = EXECUCAO_ATUAL.fontesClinicas;
     EXECUCAO_ATUAL = anterior;
   }
   PersistenciaBot.salvar(key, job);

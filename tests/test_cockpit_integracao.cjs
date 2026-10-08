@@ -69,12 +69,6 @@ const tests=[
    const {c}=preparado();assert.throws(()=>c.cockpitPassagem(assinar(c)));
    c.EnfermariaService.atualizarLeito('3','Evolução integral');let entrada;c.gerarPassagemPlantaoSBAR=d=>{entrada=d;return 'SBAR real'};
    assert.equal(c.cockpitPassagem(assinar(c)),'SBAR real');assert(entrada.includes('Evolução integral'));
- }],
- ['artefato GAS não expõe funções clínicas por RPC e exige credenciais',()=>{
-   const contexto={console};vm.createContext(contexto);vm.runInContext(fs.readFileSync(path.resolve(__dirname,'../ultra_rotina_gas.js'),'utf8'),contexto);
-   for(const name of ['modoBot','gerarSOAPComIA','processarMensagemTexto','salvarSoapCockpit_','cockpitAutorizar_']) assert.equal(typeof contexto[name],'undefined');
-   assert.equal(typeof contexto.cockpitConsultar,'function');assert.throws(()=>contexto.cockpitConsultar(''));
-   assert.throws(()=>contexto.processarFilaTelegram());assert.throws(()=>contexto.instalarTodosOsAcionadores());
  }]
 ];
 

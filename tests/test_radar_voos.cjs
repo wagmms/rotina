@@ -319,7 +319,7 @@ global.SpreadsheetApp = mockSpreadsheetApp;
 global.ScriptApp = mockScriptApp;
 
 // Carregar o módulo Code.js
-const codePath = path.resolve(__dirname, "../scripts/voos_gas/Code.js");
+const codePath = path.resolve(__dirname, "../radar_voos/Code.js");
 const radar = require(codePath);
 
 let totalTestes = 0;

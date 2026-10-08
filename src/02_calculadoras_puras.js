@@ -1437,20 +1437,47 @@ var CalculadorasClinicas = (function () {
   // ═════════════════════════════ POSOLOGIA PEDIÁTRICA DETERMINÍSTICA ═════════════════════════════
 
   /**
-   * Calculadora Posológica Pediátrica Determinística (Fórmulas Fixas · Zero Alucinação)
+   * Calculadora Posológica Pediátrica Determinística (Fórmulas Fixas · Revisão clínica necessária)
    * Referências: SBP (Sociedade Brasileira de Pediatria) / Ministério da Saúde / Guia Farmacêutico HSL / REMUME
    */
+  // Identifica apenas fármacos explícitos. Sintoma, diagnóstico ou termo desconhecido
+  // nunca elege tratamento. Mais de um fármaco exige seleção individual.
+  function identificarFarmacoPosologico(texto) {
+    var t = semAcento(texto).replace(/_/g, ' ');
+    var aliases = {
+      amoxicilina_clavulanato: /\b(?:clavulanato|clavulin|amoxiclav)\b/,
+      amoxicilina: /\b(?:amoxicilina|amoxil)\b/,
+      azitromicina: /\b(?:azitromicina|azitro)\b/,
+      cefalexina: /\bcefalexina\b/,
+      dipirona: /\b(?:dipirona|novalgina)\b/,
+      paracetamol: /\b(?:paracetamol|tylenol)\b/,
+      ibuprofeno: /\b(?:ibuprofeno|alivium)\b/,
+      prednisolona: /\b(?:prednisolona|prelone)\b/,
+      sulfametoxazol_trimetoprima: /\b(?:sulfametoxazol|trimetoprima|bactrim)\b/,
+      loratadina: /\b(?:loratadina|claritin)\b/,
+      dexclorfeniramina: /\b(?:dexclorfeniramina|polaramine)\b/,
+      albendazol: /\b(?:albendazol|zentel)\b/,
+      mebendazol: /\b(?:mebendazol|pantelmin)\b/,
+      nitazoxanida: /\b(?:nitazoxanida|annita)\b/,
+      sais_reidratacao: /\b(?:sro|sais (?:de )?reidratacao|soro oral)\b/,
+      budesonida_nasal: /\b(?:budesonida|busonid)\b/
+    };
+    var encontrados = Object.keys(aliases).filter(function(k) { return aliases[k].test(t); });
+    if (encontrados.indexOf('amoxicilina_clavulanato') >= 0) {
+      encontrados = encontrados.filter(function(k) { return k !== 'amoxicilina'; });
+    }
+    return encontrados.length === 1 ? encontrados[0] : null;
+  }
+
   function posologiaPediatrica(pesoKg, farmacoOuCondicao, opcoes) {
     var ID = 'posologia_pediatrica', NOME = 'Posologia Pediátrica Determinística';
     return seguro(ID, NOME, function () {
       var ctx = novoCtx();
-      var peso = num(ctx, pesoKg, 'Peso (kg)', 1, 80);
-      if (!isFinite(peso) || peso <= 0) {
-        return entradaInvalida(ID, NOME, ctx);
-      }
-
       var opt = opcoes || {};
       var termo = semAcento(farmacoOuCondicao || '');
+      var peso = num(ctx, pesoKg, 'Peso (kg)', 1, 80, { opcional: true });
+      var idade = num(ctx, opt.idadeAnos, 'Idade (anos)', 0, 17, { opcional: true });
+      if (ctx.erros.length) return entradaInvalida(ID, NOME, ctx);
 
       var tabela = {
         amoxicilina: {
@@ -1660,56 +1687,19 @@ var CalculadorasClinicas = (function () {
         }
       };
 
-      var chaveAlvo = null;
-      if (termo.indexOf('albendazol') !== -1 || termo.indexOf('zentel') !== -1 || termo.indexOf('ascaris') !== -1 || termo.indexOf('oxiur') !== -1 || termo.indexOf('lombriga') !== -1) {
-        chaveAlvo = 'albendazol';
-      } else if (termo.indexOf('mebendazol') !== -1 || termo.indexOf('pantelmin') !== -1) {
-        chaveAlvo = 'mebendazol';
-      } else if (termo.indexOf('nitazoxanida') !== -1 || termo.indexOf('annita') !== -1 || termo.indexOf('anita') !== -1) {
-        chaveAlvo = 'nitazoxanida';
-      } else if (termo.indexOf('reidratacao') !== -1 || termo.indexOf('sro') !== -1 || termo.indexOf('soro oral') !== -1 || termo.indexOf('sais_reidratacao') !== -1) {
-        chaveAlvo = 'sais_reidratacao';
-      } else if (termo.indexOf('budesonid') !== -1 || termo.indexOf('busonid') !== -1 || termo.indexOf('spray nasal') !== -1) {
-        chaveAlvo = 'budesonida_nasal';
-      } else if (termo.indexOf('loratad') !== -1 || termo.indexOf('claritin') !== -1) {
-        chaveAlvo = 'loratadina';
-      } else if (termo.indexOf('dexclor') !== -1 || termo.indexOf('polaramine') !== -1) {
-        chaveAlvo = 'dexclorfeniramina';
-      } else if (termo.indexOf('rinite') !== -1 || termo.indexOf('urtic') !== -1) {
-        chaveAlvo = 'loratadina';
-      } else if (termo.indexOf('verme') !== -1 || termo.indexOf('parasit') !== -1) {
-        chaveAlvo = 'albendazol';
-      } else if (termo.indexOf('clavulan') !== -1 || termo.indexOf('clavulin') !== -1 || termo.indexOf('amoxiclav') !== -1 || termo.indexOf('otite') !== -1 || termo.indexOf('oma') !== -1) {
-        chaveAlvo = 'amoxicilina_clavulanato';
-      } else if (termo.indexOf('amoxi') !== -1) {
-        chaveAlvo = 'amoxicilina';
-      } else if (termo.indexOf('azitro') !== -1) {
-        chaveAlvo = 'azitromicina';
-      } else if (termo.indexOf('cefalex') !== -1) {
-        chaveAlvo = 'cefalexina';
-      } else if (termo.indexOf('dipi') !== -1 || termo.indexOf('novalgina') !== -1 || termo.indexOf('dor') !== -1 || termo.indexOf('febre') !== -1) {
-        chaveAlvo = 'dipirona';
-      } else if (termo.indexOf('paracet') !== -1 || termo.indexOf('tylenol') !== -1) {
-        chaveAlvo = 'paracetamol';
-      } else if (termo.indexOf('ibuprof') !== -1 || termo.indexOf('alivium') !== -1) {
-        chaveAlvo = 'ibuprofeno';
-      } else if (termo.indexOf('prednis') !== -1 || termo.indexOf('prelone') !== -1 || termo.indexOf('asma') !== -1 || termo.indexOf('laring') !== -1) {
-        chaveAlvo = 'prednisolona';
-      } else if (termo.indexOf('sulfa') !== -1 || termo.indexOf('bactrim') !== -1 || termo.indexOf('trimetop') !== -1) {
-        chaveAlvo = 'sulfametoxazol_trimetoprima';
-      } else if (termo.indexOf('amigdalite') !== -1 || termo.indexOf('faringite') !== -1) {
-        if (termo.indexOf('alerg') !== -1 || termo.indexOf('penicil') !== -1) {
-          chaveAlvo = 'azitromicina';
-        } else {
-          chaveAlvo = 'amoxicilina';
-        }
-      }
-
+      var chaveAlvo = identificarFarmacoPosologico(termo);
       if (!chaveAlvo || !tabela[chaveAlvo]) {
-        chaveAlvo = 'amoxicilina';
+        ctx.faltas.push('Um único medicamento explícito; a calculadora não escolhe tratamento por sintomas');
+        return entradaInvalida(ID, NOME, ctx);
       }
-
       var cfg = tabela[chaveAlvo];
+      if (cfg.tipo === 'dose_fixa_idade') {
+        if (idade === null && peso === null) ctx.faltas.push('Idade em anos ou peso para a faixa etária');
+        else if (idade !== null && idade < (chaveAlvo === 'nitazoxanida' ? 1 : 2)) {
+          ctx.erros.push('Faixa etária não coberta por este cálculo; consultar avaliação pediátrica');
+        }
+      } else if (peso === null) ctx.faltas.push('Peso (kg)');
+      if (pendente(ctx)) return entradaInvalida(ID, NOME, ctx);
       var dadosCalculados = {};
 
       if (cfg.tipo === 'dose_fixa_idade') {
@@ -1762,8 +1752,8 @@ var CalculadorasClinicas = (function () {
             indicacao: cfg.indicacao
           };
         } else if (chaveAlvo === 'nitazoxanida') {
-          var menor4N = (opt.idadeAnos && opt.idadeAnos < 4) || (peso && peso < 15);
-          var menor12N = (opt.idadeAnos && opt.idadeAnos < 12) || (peso && peso < 35);
+          var menor4N = idade < 4;
+          var menor12N = idade < 12;
           var volN = menor4N ? 5 : (menor12N ? 10 : 25);
           var doseN = menor4N ? 100 : (menor12N ? 200 : 500);
           var volTotN = volN * 2 * 3;
@@ -1834,7 +1824,7 @@ var CalculadorasClinicas = (function () {
             indicacao: cfg.indicacao
           };
         } else if (chaveAlvo === 'loratadina') {
-          var pesoMaior30 = (peso > 30) || (opt.idadeAnos && opt.idadeAnos >= 12);
+          var pesoMaior30 = (peso > 30) || idade > 12;
           if (pesoMaior30) {
             doseEfetivaMg = 10;
             volumeMl = 10;
@@ -1863,12 +1853,12 @@ var CalculadorasClinicas = (function () {
             quantidadeDispensar: frascosL + ' frasco(s) de ' + cfg.volumeFrascoMl + ' mL',
             instrucaoPosologica: 'Tomar ' + volumeMl + ' mL por via oral 1 vez ao dia, à noite (às 20:00), durante ' + diasT + ' dias.',
             memoriaCalculo: 'Dose oficial do Guia HSL: 2 a 12 anos (até 30 kg): 5 mg (5 mL) 1 vez ao dia. > 12 anos ou > 30 kg: 10 mg (10 mL ou 1 comp) 1 vez ao dia. Dose fixa por faixa etária/peso (NÃO calculada em mg/kg). Apresentação: ' + cfg.apresentacao + '. Horário sugerido: 20:00 (à noite).',
-            orientacoes: cfg.instrucoes + (pesoMaior30 ? ' (Paciente com > 30 kg ou >= 12 anos recebe a dose máxima de 10 mg).' : ' (Para pacientes com > 30 kg ou >= 12 anos, a dose oficial é de 10 mL).'),
+            orientacoes: cfg.instrucoes + (pesoMaior30 ? ' (Paciente com > 30 kg ou > 12 anos recebe a dose máxima de 10 mg).' : ' (Para pacientes com > 30 kg ou > 12 anos, a dose oficial é de 10 mL).'),
             indicacao: cfg.indicacao
           };
         } else if (chaveAlvo === 'dexclorfeniramina') {
-          var menor6 = (opt.idadeAnos && opt.idadeAnos < 6) || (peso && peso < 20);
-          var menor12 = (opt.idadeAnos && opt.idadeAnos < 12) || (peso && peso < 35);
+          var menor6 = idade < 6;
+          var menor12 = idade < 12;
           if (menor6) {
             volumeMl = 1.25;
             doseEfetivaMg = 0.5;
@@ -1968,14 +1958,15 @@ var CalculadorasClinicas = (function () {
         };
       }
 
+      dadosCalculados.idadeAnos = idade;
       var linhasResultado = [
         '<b>Fármaco:</b> ' + dadosCalculados.farmaco,
         '<b>Apresentação (REMUME/HSL):</b> ' + dadosCalculados.apresentacao,
-        '<b>Peso do Paciente:</b> ' + fmt(peso, 1) + ' kg',
-        '<b>Posologia Oficial:</b> ' + dadosCalculados.instrucaoPosologica,
+        '<b>Peso do Paciente:</b> ' + (peso === null ? 'Não informado (não utilizado neste cálculo)' : fmt(peso, 1) + ' kg'),
+        '<b>Esquema calculado para revisão:</b> ' + dadosCalculados.instrucaoPosologica,
         '<b>Quantidade a Dispensar:</b> ' + dadosCalculados.quantidadeDispensar,
         '',
-        '<b>Memória de Cálculo (Determinística · Zero Alucinação):</b>',
+        '<b>Memória de Cálculo (Determinística · Revisão clínica necessária):</b>',
         dadosCalculados.memoriaCalculo,
         '',
         '<b>Orientações Clínicas:</b> ' + dadosCalculados.orientacoes
@@ -2002,68 +1993,219 @@ var CalculadorasClinicas = (function () {
    */
   function calcularPosologiaPorTextoLivre(texto) {
     if (!texto || typeof texto !== 'string') return null;
-    var tNorm = semAcento(texto.toLowerCase());
+    var farmaco = identificarFarmacoPosologico(texto);
+    if (!farmaco) return null;
+    // Múltiplos valores (inclusive correções) precisam de reconciliação clínica.
+    var pesos = Array.from(texto.matchAll(/\b(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)\b/gi));
+    var idades = Array.from(texto.matchAll(/\b(\d+(?:[.,]\d+)?)\s*(?:anos?|meses|mes)\b/gi));
+    if (pesos.length > 1 || idades.length > 1) return null;
+    var peso = pesos.length ? Number(pesos[0][1].replace(',', '.')) : null;
+    var idade = idades.length ? Number(idades[0][1].replace(',', '.')) : null;
+    if (idades.length && /mes/i.test(idades[0][0])) idade /= 12;
+    // Contextos de contraindicação ou dose individualizada não recebem esquema fixo.
+    if (/\b(?:alerg\w*|nao|evitar|suspender|renal|hepat\w*|gestante|gestacao|dose alta)\b/.test(semAcento(texto))) return null;
+    var res = posologiaPediatrica(peso, farmaco, { idadeAnos: idade });
+    return res && res.ok && res.dados ? res.dados : null;
+  }
 
-    var matchPeso = texto.match(/\b(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)\b/i);
-    var pesoNum = matchPeso ? parseFloat(matchPeso[1].replace(',', '.')) : null;
+  /**
+   * Tabela canônica de ajuste renal de antimicrobianos hospitalares críticos (Guia HSL / Sanford / UpToDate).
+   */
+  function ajusteRenalAntimicrobiano(droga, clcr, hemodialise) {
+    var ID = 'ajuste_renal', NOME = 'Ajuste Renal de Antimicrobianos';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var dStr = String(droga || '').toLowerCase().trim();
+      var crClVal = null;
+      if (!ausente(clcr)) crClVal = num(c, clcr, 'Clearance de Creatinina (mL/min)', 0, 200);
+      var hd = false;
+      if (!ausente(hemodialise)) hd = bool(c, hemodialise, 'Hemodiálise intermitente');
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+      if (crClVal === null && !hd && atb !== 'ceftriaxona' && atb !== 'polimixina_b') {
+        c.faltas.push('Informe o Clearance de Creatinina (mL/min) ou declare se está em Hemodiálise');
+        return falhaCtx(ID, NOME, c);
+      }
 
-    var matchIdade = texto.match(/\b(\d+)\s*(?:anos?|a)\b/i);
-    var idadeNum = matchIdade ? parseInt(matchIdade[1], 10) : null;
+      var atb = null;
+      if (/vanco/i.test(dStr)) atb = 'vancomicina';
+      else if (/mero/i.test(dStr)) atb = 'meropenem';
+      else if (/pip|tazo/i.test(dStr)) atb = 'piperacilina_tazobactam';
+      else if (/cefepim/i.test(dStr)) atb = 'cefepime';
+      else if (/ceftriax/i.test(dStr)) atb = 'ceftriaxona';
+      else if (/cipro/i.test(dStr)) atb = 'ciprofloxacino';
+      else if (/polimixina|polimix/i.test(dStr)) atb = 'polimixina_b';
+      else if (/fluconazol/i.test(dStr)) atb = 'fluconazol';
 
-    // 1. Fármacos por faixa etária ou dose fixa (Anti-histamínicos, Vermífugos, SRO, Corticoide Nasal)
-    if (tNorm.indexOf('loratad') !== -1 || tNorm.indexOf('claritin') !== -1 || (tNorm.indexOf('rinite') !== -1 && (pesoNum || idadeNum || tNorm.indexOf('crianca') !== -1 || tNorm.indexOf('pediat') !== -1) && tNorm.indexOf('spray') === -1 && tNorm.indexOf('nasal') === -1)) {
-      var optLora = { idadeAnos: idadeNum };
-      var pesoParam = pesoNum || (idadeNum ? (idadeNum >= 12 ? 35 : 20) : 20);
-      var resL = posologiaPediatrica(pesoParam, 'loratadina', optLora);
-      if (resL && resL.ok && resL.dados) return resL.dados;
+      if (!atb) {
+        return {
+          ok: false,
+          mensagem: 'Antimicrobiano não encontrado. Disponíveis: Vancomicina, Meropenem, Piperacilina-Tazobactam, Cefepime, Ceftriaxona, Ciprofloxacino, Polimixina B, Fluconazol.'
+        };
+      }
+
+      var res = {
+        farmaco: atb,
+        nomeExibicao: '',
+        dosePadrao: '',
+        doseAjustada: '',
+        cuidados: '',
+        monitorizacao: '',
+        clcrInformado: crClVal,
+        hemodialise: hd
+      };
+
+      if (atb === 'vancomicina') {
+        res.nomeExibicao = 'Vancomicina';
+        res.dosePadrao = 'Ataque: 25-30 mg/kg (máx 2g). Manutenção: 15-20 mg/kg a cada 8-12h.';
+        if (hd) {
+          res.doseAjustada = 'Ataque 25-30 mg/kg; redoses subsequentes (500-1000 mg) pós-hemodiálise guiadas por nível sérico.';
+        } else if (crClVal >= 90) {
+          res.doseAjustada = '15-20 mg/kg EV a cada 8-12h (em infusão lenta de pelo menos 1-2h).';
+        } else if (crClVal >= 50) {
+          res.doseAjustada = '15-20 mg/kg EV a cada 12h.';
+        } else if (crClVal >= 30) {
+          res.doseAjustada = '15 mg/kg EV a cada 24h.';
+        } else if (crClVal >= 15) {
+          res.doseAjustada = '15 mg/kg EV a cada 24-48h (guiar por nível sérico).';
+        } else {
+          res.doseAjustada = 'Dose de ataque 25 mg/kg; redoses guiadas por nível sérico pré-dose (alvo vale 15-20 mcg/mL).';
+        }
+        res.cuidados = 'Infusão lenta (máx 10 mg/min ou 1g em 60 min) para prevenir síndrome do homem vermelho. Hidratação adequada.';
+        res.monitorizacao = 'Nível de vale sérico pré-4ª dose (alvo: 15-20 mcg/mL para infecções graves ou AUC/MIC 400-600). Creatinina a cada 48h.';
+      } else if (atb === 'meropenem') {
+        res.nomeExibicao = 'Meropenem';
+        res.dosePadrao = '1g EV a cada 8h (2g 8/8h em meningite ou sepse grave).';
+        if (hd) {
+          res.doseAjustada = '500 mg EV a cada 24h, administrado imediatamente APÓS a hemodiálise nos dias de sessão.';
+        } else if (crClVal > 50) {
+          res.doseAjustada = '1g EV a cada 8h (recomenda-se infusão estendida em 3 horas para otimização PK/PD).';
+        } else if (crClVal >= 26) {
+          res.doseAjustada = '1g EV a cada 12h (infusão estendida em 3 horas).';
+        } else if (crClVal >= 10) {
+          res.doseAjustada = '500 mg EV a cada 12h.';
+        } else {
+          res.doseAjustada = '500 mg EV a cada 24h.';
+        }
+        res.cuidados = 'Compatível com infusão estendida (3 horas) para maximizar tempo acima da MIC (T > MIC).';
+        res.monitorizacao = 'Função renal e vigilância de crises convulsivas em doses elevadas com disfunção renal.';
+      } else if (atb === 'piperacilina_tazobactam') {
+        res.nomeExibicao = 'Piperacilina + Tazobactam (Pip-Tazo)';
+        res.dosePadrao = '4,5g EV a cada 6h (infusão de 3-4h) ou 4,5g a cada 8h (infusão de 4h).';
+        if (hd) {
+          res.doseAjustada = '2,25g EV a cada 8h + dose de reforço de 0,75g após cada sessão de hemodiálise.';
+        } else if (crClVal > 50) {
+          res.doseAjustada = '4,5g EV a cada 6h (ou 4,5g 8/8h em infusão estendida de 3-4h).';
+        } else if (crClVal >= 20) {
+          res.doseAjustada = '3,375g EV a cada 6h.';
+        } else {
+          res.doseAjustada = '2,25g EV a cada 6h.';
+        }
+        res.cuidados = 'Evitar associação com Vancomicina além de 48-72h se houver alternativa, pelo risco de IRA sinérgica.';
+        res.monitorizacao = 'Creatinina sérica diária; eletrólitos (contém 2,79 mEq de Na+ por grama de piperacilina).';
+      } else if (atb === 'cefepime') {
+        res.nomeExibicao = 'Cefepime';
+        res.dosePadrao = '2g EV a cada 8h (infusão em 30 min ou estendida em 3h).';
+        if (hd) {
+          res.doseAjustada = '1g EV dose de ataque no D1; depois 500 mg a 1g EV a cada 24h (administrar dose após a hemodiálise nos dias de sessão).';
+        } else if (crClVal > 60) {
+          res.doseAjustada = '2g EV a cada 8h.';
+        } else if (crClVal >= 30) {
+          res.doseAjustada = '2g EV a cada 12h.';
+        } else if (crClVal >= 11) {
+          res.doseAjustada = '2g EV a cada 24h.';
+        } else {
+          res.doseAjustada = '1g EV a cada 24h.';
+        }
+        res.cuidados = '⚠️ RISCO CRÍTICO DE ENCEFALOPATIA POR CEFEPIME: se CrCl reduzido sem ajuste, causa rebaixamento, confusão e mioclonias.';
+        res.monitorizacao = 'Exame neurológico diário e função renal.';
+      } else if (atb === 'ceftriaxona') {
+        res.nomeExibicao = 'Ceftriaxona';
+        res.dosePadrao = '1g a 2g EV a cada 24h (2g 12/12h em meningite bacteriana).';
+        res.doseAjustada = 'NÃO REQUER AJUSTE RENAL. Manter 1g a 2g EV a cada 24h (eliminação mista renal 60% e biliar 40%).';
+        res.cuidados = 'Não infundir simultaneamente com soluções que contenham cálcio (como Ringer Lactato) na mesma via pelo risco de precipitação.';
+        res.monitorizacao = 'Transaminases e bilirrubinas se uso prolongado.';
+      } else if (atb === 'ciprofloxacino') {
+        res.nomeExibicao = 'Ciprofloxacino';
+        res.dosePadrao = '400 mg EV a cada 12h ou 500-750 mg VO a cada 12h.';
+        if (hd) {
+          res.doseAjustada = '400 mg EV a cada 24h ou 500 mg VO a cada 24h (administrar após diálise).';
+        } else if (crClVal > 50) {
+          res.doseAjustada = '400 mg EV 12/12h ou 500 mg VO 12/12h.';
+        } else if (crClVal >= 30) {
+          res.doseAjustada = '400 mg EV 12/12h ou 500 mg VO 12/12h (monitorar se terapia prolongada).';
+        } else {
+          res.doseAjustada = '400 mg EV a cada 24h ou 500 mg VO a cada 24h.';
+        }
+        res.cuidados = 'Prolongamento do intervalo QTc; evitar quelantes orais (cálcio, ferro, antiácidos) se via oral.';
+        res.monitorizacao = 'ECG se associado a outras drogas que prolongam QT; função renal.';
+      } else if (atb === 'polimixina_b') {
+        res.nomeExibicao = 'Polimixina B';
+        res.dosePadrao = 'Ataque: 20.000 a 25.000 UI/kg (baseado no peso magro). Manutenção: 15.000 a 25.000 UI/kg/dia divididos em 2 doses (12/12h).';
+        res.doseAjustada = 'NÃO REDUZIR DOSE NA INSUFICIÊNCIA RENAL. A depuração da Polimixina B é predominantemente não-renal. Reduções causam subdosagem e falha terapêutica grave.';
+        res.cuidados = 'Diferente da Colistina (que requer ajuste renal rígido), a Polimixina B mantém dose plena com suporte e vigilância de IRA.';
+        res.monitorizacao = 'Creatinina sérica a cada 24-48h; bloqueio neuromuscular / parestesias.';
+      } else if (atb === 'fluconazol') {
+        res.nomeExibicao = 'Fluconazol';
+        res.dosePadrao = 'Ataque: 400-800 mg dose única. Manutenção: 200-400 mg EV/VO a cada 24h.';
+        if (hd) {
+          res.doseAjustada = '100% da dose recomendada administrada imediatamente APÓS cada sessão de hemodiálise.';
+        } else if (crClVal > 50) {
+          res.doseAjustada = 'Manter 100% da dose recomendada (200-400 mg a cada 24h).';
+        } else {
+          res.doseAjustada = 'Dose de ataque plena no D1; a partir de então, REDUZIR PARA 50% DA DOSE (100-200 mg a cada 24h).';
+        }
+        res.cuidados = 'Potente inibidor de CYP3A4; verificar interações com imunossupressores e anticoagulantes orais.';
+        res.monitorizacao = 'Enzimas hepáticas (TGO/TGP) e eletrólitos.';
+      }
+
+      var linhas = [
+        '<b>Fármaco:</b> ' + res.nomeExibicao,
+        '<b>Dose Padrão (CrCl Normal):</b> ' + res.dosePadrao,
+        '<b>Dose Ajustada para o Paciente:</b> <code>' + res.doseAjustada + '</code>',
+        '<b>Condições Informadas:</b> ' + (hd ? 'Em Hemodiálise' : ('CrCl ' + (crClVal !== null ? crClVal + ' mL/min' : 'não informado'))),
+        '<b>Orientações e Cuidados Farmacológicos:</b> ' + res.cuidados,
+        '<b>Monitorização de Segurança:</b> ' + res.monitorizacao
+      ];
+
+      return {
+        ok: true,
+        icone: '💉',
+        dados: res,
+        textoFormatado: '💉 <b>AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)</b>\n\n' + linhas.join('\n\n'),
+        versao: VERSAO
+      };
+    });
+  }
+  /**
+   * Extrai parâmetros e executa o cálculo determinístico de ajuste renal a partir de texto livre.
+   */
+  function calcularAjusteRenalPorTextoLivre(texto) {
+    if (!texto || typeof texto !== 'string') return null;
+    var dStr = String(texto).toLowerCase();
+    var atb = null;
+    if (/vanco/i.test(dStr)) atb = 'vancomicina';
+    else if (/mero/i.test(dStr)) atb = 'meropenem';
+    else if (/pip|tazo/i.test(dStr)) atb = 'piperacilina_tazobactam';
+    else if (/cefepim/i.test(dStr)) atb = 'cefepime';
+    else if (/ceftriax/i.test(dStr)) atb = 'ceftriaxona';
+    else if (/cipro/i.test(dStr)) atb = 'ciprofloxacino';
+    else if (/polimixina|polimix/i.test(dStr)) atb = 'polimixina_b';
+    else if (/fluconazol/i.test(dStr)) atb = 'fluconazol';
+    if (!atb) return null;
+
+    var ehHD = /\b(?:hd|hemodialise|dialise)\b/i.test(dStr);
+    var clcrVal = null;
+    var clcrMatch = dStr.match(/\b(?:clcr|crcl|tfg|clearance)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\b/i);
+    if (clcrMatch && clcrMatch[1]) {
+      clcrVal = Number(clcrMatch[1].replace(',', '.'));
+    } else {
+      var nums = dStr.match(/\b(\d{1,3})\b/g);
+      if (nums && nums.length > 0) {
+        clcrVal = Number(nums[0]);
+      }
     }
-
-    if (tNorm.indexOf('polaramine') !== -1 || tNorm.indexOf('dexclor') !== -1) {
-      var optDex = { idadeAnos: idadeNum };
-      var pesoDex = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : (idadeNum >= 6 ? 25 : 15)) : 15);
-      var resD = posologiaPediatrica(pesoDex, 'dexclorfeniramina', optDex);
-      if (resD && resD.ok && resD.dados) return resD.dados;
-    }
-
-    if (tNorm.indexOf('albendazol') !== -1 || tNorm.indexOf('zentel') !== -1 || tNorm.indexOf('oxiur') !== -1 || (tNorm.indexOf('verme') !== -1 && tNorm.indexOf('mebendazol') === -1)) {
-      var optAlb = { idadeAnos: idadeNum };
-      var pesoAlb = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : 20) : 20);
-      var resAlb = posologiaPediatrica(pesoAlb, 'albendazol', optAlb);
-      if (resAlb && resAlb.ok && resAlb.dados) return resAlb.dados;
-    }
-
-    if (tNorm.indexOf('mebendazol') !== -1 || tNorm.indexOf('pantelmin') !== -1) {
-      var optMeb = { idadeAnos: idadeNum };
-      var pesoMeb = pesoNum || (idadeNum ? (idadeNum >= 12 ? 40 : 20) : 20);
-      var resMeb = posologiaPediatrica(pesoMeb, 'mebendazol', optMeb);
-      if (resMeb && resMeb.ok && resMeb.dados) return resMeb.dados;
-    }
-
-    if (tNorm.indexOf('nitazoxanida') !== -1 || tNorm.indexOf('annita') !== -1 || tNorm.indexOf('anita') !== -1) {
-      var optNit = { idadeAnos: idadeNum };
-      var pesoNit = pesoNum || (idadeNum ? (idadeNum >= 12 ? 45 : (idadeNum >= 4 ? 25 : 12)) : 20);
-      var resNit = posologiaPediatrica(pesoNit, 'nitazoxanida', optNit);
-      if (resNit && resNit.ok && resNit.dados) return resNit.dados;
-    }
-
-    if (tNorm.indexOf('reidratacao') !== -1 || tNorm.indexOf('sro') !== -1 || (tNorm.indexOf('diarreia') !== -1 && (tNorm.indexOf('soro') !== -1 || tNorm.indexOf('sais') !== -1))) {
-      var resSro = posologiaPediatrica(pesoNum || 15, 'sais_reidratacao', { idadeAnos: idadeNum });
-      if (resSro && resSro.ok && resSro.dados) return resSro.dados;
-    }
-
-    if (tNorm.indexOf('budesonid') !== -1 || tNorm.indexOf('busonid') !== -1 || (tNorm.indexOf('spray') !== -1 && tNorm.indexOf('nasal') !== -1)) {
-      var resBudN = posologiaPediatrica(pesoNum || 20, 'budesonida_nasal', { idadeAnos: idadeNum });
-      if (resBudN && resBudN.ok && resBudN.dados) return resBudN.dados;
-    }
-
-    // 2. Fármacos peso-dependentes convencionais
-    if (!pesoNum || !isFinite(pesoNum) || pesoNum <= 0 || pesoNum > 80) return null;
-
-    var res = posologiaPediatrica(pesoNum, texto);
-    if (res && res.ok && res.dados) {
-      return res.dados;
-    }
-    return null;
+    var res = ajusteRenalAntimicrobiano(atb, clcrVal, ehHD);
+    return res && res.ok ? res : null;
   }
 
   // ═════════════════════════════ AUTOTESTE ═════════════════════════════
@@ -2098,7 +2240,12 @@ var CalculadorasClinicas = (function () {
     r = API.posologiaPediatrica(15, 'azitromicina'); ok(r.ok && r.dados.volumePorTomadaMl === 3.8, 'Azitro 15 kg 3.8 mL');
     r = API.posologiaPediatrica(16, 'dipirona'); ok(r.ok && r.dados.gotasPorTomada === 8, 'Dipirona 16 kg 8 gotas');
     r = API.posologiaPediatrica(14, 'paracetamol'); ok(r.ok && r.dados.gotasPorTomada === 14, 'Paracetamol 14 kg 14 gotas');
-    r = API.calcularPosologiaPorTextoLivre('amigdalite crianca 16kg'); ok(r && r.farmaco === 'Amoxicilina' && r.volumePorTomadaMl === 5.3, 'Texto livre amigdalite 16kg');
+    r = API.calcularPosologiaPorTextoLivre('amigdalite crianca 16kg'); ok(r === null, 'Diagnóstico não elege antibiótico');
+    r = API.ajusteRenalAntimicrobiano('meropenem', 20); ok(r.ok && r.dados.doseAjustada.indexOf('500 mg') !== -1, 'Meropenem CrCl 20 500mg');
+    r = API.ajusteRenalAntimicrobiano('ceftriaxona', 15); ok(r.ok && /NÃO REQUER AJUSTE/.test(r.dados.doseAjustada), 'Ceftriaxona sem ajuste renal');
+    r = API.ajusteRenalAntimicrobiano('vancomicina', 40); ok(r.ok && /24h/.test(r.dados.doseAjustada), 'Vancomicina CrCl 40 24h');
+    r = API.ajusteRenalAntimicrobiano('polimixina b', 10); ok(r.ok && /NÃO REDUZIR DOSE/.test(r.dados.doseAjustada), 'Polimixina B sem redução');
+    r = API.calcularAjusteRenalPorTextoLivre('ajuste meropenem clcr 25'); ok(r && r.ok && r.dados.doseAjustada.indexOf('12h') !== -1, 'Ajuste livre Meropenem CrCl 25');
     r = API.processarAcao(null, 'curb65', 'criterios'); ok(r.ok && /CURB-65/.test(r.textoFormatado), 'processarAcao curb65 criterios');
     return f;
   }
@@ -2346,6 +2493,8 @@ var CalculadorasClinicas = (function () {
     sequenciaRapidaIntubacao: sequenciaRapidaIntubacao,
     posologiaPediatrica: posologiaPediatrica,
     calcularPosologiaPorTextoLivre: calcularPosologiaPorTextoLivre,
+    ajusteRenalAntimicrobiano: ajusteRenalAntimicrobiano,
+    calcularAjusteRenalPorTextoLivre: calcularAjusteRenalPorTextoLivre,
     processarAcao: processarAcao,
     autoTeste: autoTeste
   };

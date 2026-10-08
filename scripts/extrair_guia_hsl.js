@@ -15,6 +15,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { separarSecoesPosologicas } = require('../src/02_secoes_posologicas');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const REMUME_CSV_PATH = path.join(ROOT_DIR, 'REMUME_RP.csv');
@@ -113,13 +114,20 @@ function parseSecoesDose(doseHtml) {
   }
 
   let bruto = doseHtml.replace(/<sup[^>]*>.*?<\/sup>/gi, '');
+  const textoOriginal = htmlParaTextoLimpo(doseHtml);
+  const porTitulos = separarSecoesPosologicas(textoOriginal);
+  if (porTitulos.reconhecidas) {
+    return { adulto: porTitulos.adulto, pediatria: porTitulos.pediatria,
+      dose_maxima: porTitulos.dose_maxima, ajuste_dose: porTitulos.ajuste_dose,
+      geral: porTitulos.geral, texto_completo: textoOriginal };
+  }
 
   // Marcações de início de seção
   bruto = bruto.replace(/<(h[1-6]|b|strong|p|blockquote)[^>]*>\s*(?:​|\s)*(?:<strong>|<b>)?\s*(adulto[s]?|pediatria|crian[cç]as?|dose\s+m[aá]xima|ajuste\s+de\s+dose|insufici[eê]ncia\s+renal)\s*(?:<\/strong>|<\/b>)?\s*(?::|&#58;)?\s*<\/\1>/gi, (match, tag, title) => {
     const t = title.toLowerCase();
     if (t.includes('adulto')) return '\n\n===SEC_ADULTO===\n';
     if (t.includes('pediatria') || t.includes('crian')) return '\n\n===SEC_PEDIATRIA===\n';
-    if (t.includes('m[aá]xima') || t.includes('maxima')) return '\n\n===SEC_MAXIMA===\n';
+    if (/m[aá]xima/.test(t)) return '\n\n===SEC_MAXIMA===\n';
     if (t.includes('ajuste') || t.includes('renal')) return '\n\n===SEC_AJUSTE===\n';
     return match;
   });
@@ -129,7 +137,7 @@ function parseSecoesDose(doseHtml) {
     const t = title.toLowerCase();
     if (t.includes('adulto')) return '\n\n===SEC_ADULTO===\n';
     if (t.includes('pediatria') || t.includes('crian')) return '\n\n===SEC_PEDIATRIA===\n';
-    if (t.includes('m[aá]xima') || t.includes('maxima')) return '\n\n===SEC_MAXIMA===\n';
+    if (/m[aá]xima/.test(t)) return '\n\n===SEC_MAXIMA===\n';
     if (t.includes('ajuste')) return '\n\n===SEC_AJUSTE===\n';
     return match;
   });

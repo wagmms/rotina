@@ -176,7 +176,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/rx", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina"];
+  var clinicos = ["/soap", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -188,7 +188,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/rx":"rx","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
+      var mapaModos={"/soap":"soap","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -332,7 +332,7 @@ function processarMensagemTexto(message) {
   if (comando === "/ef_dermato" || comando === "/dermato" || comando === "/pele") return responderComGuiaExameFisico(chatId, "dermato");
   if (comando === "/ef_gineco" || comando === "/gineco" || comando === "/go") return responderComGuiaExameFisico(chatId, "gineco");
   if (comando === "/ef_procto" || comando === "/procto" || comando === "/uro") return responderComGuiaExameFisico(chatId, "procto");
-  if (comando === "/ef_ped" || comando === "/ped" || comando === "/pedia") return responderComGuiaExameFisico(chatId, "ped");
+  if (comando === "/ef_ped" || comando === "/ef_pedia") return responderComGuiaExameFisico(chatId, "ped");
   if (comando === "/ef_geriatria" || comando === "/geriatria" || comando === "/aga") return responderComGuiaExameFisico(chatId, "geriatria");
   if (comando === "/ef_vascular" || comando === "/vascular" || comando === "/tvp") return responderComGuiaExameFisico(chatId, "vascular");
 
@@ -342,22 +342,88 @@ function processarMensagemTexto(message) {
     return processarEEntregarIA(chatId, gerarPrescricaoComIA, dadosPrescricao, "rx");
   }
 
+  if (comando === "/rxh" || comando === "/prescricao_hospitalar") {
+    var dadosRxh = texto.replace(/^\/(rxh|prescricao_hospitalar)\s*/i, "").trim();
+    if (!dadosRxh) {
+      return enviarMensagemParaChat(chatId, "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\nEnvie os dados do paciente internado (diagnóstico, peso, idade, função renal, alergias):\n💡 *Exemplo:* `/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`");
+    }
+    return processarEEntregarIA(chatId, gerarPrescricaoHospitalarComIA, dadosRxh, "rxh");
+  }
+
+  if (comando === "/atb" || comando === "/ajuste" || comando === "/ajuste_renal") {
+    var dadosAtb = texto.replace(/^\/(atb|ajuste|ajuste_renal)\s*/i, "").trim();
+    if (!dadosAtb) {
+      return enviarMensagemParaChat(
+        chatId,
+        "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
+        "Envie o antimicrobiano e o clearance de creatinina ou se o paciente está em hemodiálise:\n\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/atb meropenem clcr 25`\n" +
+        "• `/atb vanco 40`\n" +
+        "• `/atb pip-tazo clcr 30`\n" +
+        "• `/atb cefepime hd`\n" +
+        "• `/atb polimixina b 10`"
+      );
+    }
+    if (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
+      var calcDetAtb = CalculadorasClinicas.calcularAjusteRenalPorTextoLivre(dadosAtb);
+      if (calcDetAtb && calcDetAtb.ok && calcDetAtb.dados) {
+        var dAtb = calcDetAtb.dados;
+        var msgAtb = "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
+          "• *Fármaco:* " + dAtb.nomeExibicao + "\n" +
+          "• *Dose Padrão:* " + dAtb.dosePadrao + "\n" +
+          "• *Dose Ajustada:* `" + dAtb.doseAjustada + "`\n" +
+          "• *Condições:* " + (dAtb.hemodialise ? "Em Hemodiálise" : ("ClCr " + (dAtb.clcrInformado !== null ? dAtb.clcrInformado + " mL/min" : "não informado"))) + "\n\n" +
+          "💡 *Cuidados Farmacológicos:*\n" + dAtb.cuidados + "\n\n" +
+          "🛡️ *Monitorização:*\n" + dAtb.monitorizacao;
+        return enviarMensagemParaChat(chatId, msgAtb);
+      }
+    }
+    return responderConsultaPosologiaHSL(chatId, dadosAtb);
+  }
+
   if (comando === "/dose" || comando === "/posologia" || comando === "/hsl") {
     var termoDose = texto.replace(/^\/(dose|posologia|hsl)\s*/i, "").trim();
     if (!termoDose) {
       return enviarMensagemParaChat(
         chatId,
-        "💊 *CONSULTA DE POSOLOGIA OFICIAL (GUIA FARMACÊUTICO HSL)*\n\n" +
+        "💊 *CONSULTA DE POSOLOGIA OFICIAL (GUIA FARMACÊUTICO HSL & PEDBOOK)*\n\n" +
         "Envie o nome do medicamento para consultar as doses adultas, pediátricas, ajuste renal e disponibilidade na REMUME.\n\n" +
         "💡 *Exemplos:*\n" +
         "• `/dose amoxicilina`\n" +
         "• `/dose dipirona`\n" +
         "• `/dose ceftriaxona`\n" +
-        "• `/dose losartana`\n" +
-        "• `/dose amoxicilina + clavulanato`"
+        "• `/ped azitromicina` (doses pediátricas dedicadas)\n" +
+        "• `/dose amoxicilina 16kg`"
       );
     }
     return responderConsultaPosologiaHSL(chatId, termoDose);
+  }
+
+  if (comando === "/ped" || comando === "/dose_ped" || comando === "/pediatria") {
+    var termoPed = texto.replace(/^\/(ped|dose_ped|pediatria)\s*/i, "").trim();
+    if (!termoPed) {
+      return enviarMensagemParaChat(
+        chatId,
+        "👶 *CONSULTA DE DOSES PEDIÁTRICAS (PEDBOOK pedb.com.br)*\n\n" +
+        "Envie o nome do medicamento ou conduta para consultar doses por kg/idade, apresentações líquidas e alertas de segurança.\n\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/ped amoxicilina`\n" +
+        "• `/ped dipirona`\n" +
+        "• `/ped azitromicina`\n" +
+        "• `/ped cefalexina`\n" +
+        "• `/ped bronquiolite`"
+      );
+    }
+    return responderConsultaPediatricaPedB(chatId, termoPed);
+  }
+
+  if (comando === "/conduta_ped") {
+    var termoCond = texto.replace(/^\/conduta_ped\s*/i, "").trim();
+    if (!termoCond) {
+      return enviarMensagemParaChat(chatId, "🩺 Envie o tema da conduta pediátrica. Ex: `/conduta_ped bronquiolite` ou `/conduta_ped crup`");
+    }
+    return responderConsultaCondutaPedB(chatId, termoCond);
   }
 
   if (comando === "/plantao" || comando === "/sbar") {
@@ -1125,9 +1191,10 @@ function responderConsultaPosologiaHSL(chatId, termo) {
       "",
       "📋 *Fármaco:* *" + calcPed.farmaco + "*",
       "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`",
-      "⚖️ *Peso Informado:* `" + calcPed.pesoKg + " kg`",
+      "⚖️ *Peso Informado:* " + (calcPed.pesoKg == null ? "Não informado (não utilizado no cálculo)." : "`" + calcPed.pesoKg + " kg`"),
+      calcPed.idadeAnos == null ? "" : "*Idade informada:* " + calcPed.idadeAnos + " anos",
       "",
-      "💊 *POSOLOGIA OFICIAL DETERMINÍSTICA:*",
+      "💊 *ESQUEMA CALCULADO PARA REVISÃO:*",
       "👉 *" + calcPed.instrucaoPosologica + "*",
       "📦 *Quantidade a Dispensar:* *" + calcPed.quantidadeDispensar + "*",
       "",
@@ -1136,29 +1203,41 @@ function responderConsultaPosologiaHSL(chatId, termo) {
       "",
       "💡 *Orientações:* " + calcPed.orientacoes,
       "",
-      "🔒 *Segurança:* Cálculo matemático determinístico em código puro (Zero Alucinação de IA)."
+      "*Conferência:* Validar indicação, apresentação, dose, duração, alergias e ajustes antes de prescrever. O cálculo não substitui a avaliação clínica."
     ].join("\n");
 
     var kbPed = {
       "inline_keyboard": [
         [
-          { "text": "📝 Prescrever no /rx com esta dose", "callback_data": "rx_med:" + calcPed.farmaco + " " + calcPed.pesoKg + "kg" }
+          { "text": "📝 Revisar no /rx", "callback_data": "rx_med:" + calcPed.chave + (calcPed.pesoKg == null ? "" : " " + calcPed.pesoKg + "kg") + (calcPed.idadeAnos == null ? "" : " " + calcPed.idadeAnos + " anos") }
         ]
       ]
     };
     return enviarMensagemComTecladoParaChat(chatId, txtPed, kbPed);
   }
 
-  // 2. Consulta da ficha técnica oficial do Guia HSL
+  // 2. Se a busca tiver indicação explícita pediátrica, consulta primariamente o PedBook
+  var ehBuscaPediatrica = /(\bkg\b|\bquilo|\bmeses\b|\bmes\b|\banos\b|\bano\b|crian|pediat|lactente|gotas|suspens)/i.test(termo);
+  var medPed = (typeof buscarMedicamentoPediatricoPedB === "function") ? buscarMedicamentoPediatricoPedB(termo) : null;
+
+  if (ehBuscaPediatrica && medPed) {
+    return responderConsultaPediatricaPedB(chatId, termo);
+  }
+
+  // 3. Consulta da ficha técnica oficial do Guia HSL
   var med = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(termo) : null;
   if (!med) {
+    // Se não encontrou no HSL, mas existe no PedBook, entrega a ficha do PedBook!
+    if (medPed) {
+      return responderConsultaPediatricaPedB(chatId, termo);
+    }
     return enviarMensagemParaChat(
       chatId,
-      "🔍 *MEDICAMENTO NÃO ENCONTRADO NO GUIA HSL*\n\n" +
-      "Não encontramos registro exato para `\"" + termo + "\"` no Guia Farmacêutico do Hospital Sírio-Libanês.\n\n" +
+      "🔍 *MEDICAMENTO NÃO ENCONTRADO*\n\n" +
+      "Não encontramos registro exato para `\"" + termo + "\"` nos guias oficiais (HSL e PedBook).\n\n" +
       "💡 *Dicas:*\n" +
-      "• Busque pelo princípio ativo genérico (ex: `/dose amoxicilina`, `/dose dipirona`, `/dose ceftriaxona`).\n" +
-      "• Se for caso infantil, informe o peso: `/dose amoxicilina 16kg` ou `/dose dipirona 12kg`.\n" +
+      "• Busque pelo princípio ativo genérico (ex: `/dose amoxicilina`, `/dose dipirona`, `/ped azitromicina`).\n" +
+      "• Se for caso infantil, informe o peso: `/dose amoxicilina 16kg` ou consulte `/ped amoxicilina`.\n" +
       "• Ou utilize o gerador de receita `/rx " + termo + "` para avaliação clínica completa."
     );
   }
@@ -1168,15 +1247,76 @@ function responderConsultaPosologiaHSL(chatId, termo) {
     : "Ficha posológica indisponível.";
 
   var rotuloPrescrever = "💊 Prescrever no /rx (" + (med.farnaco.length > 15 ? med.farnaco.substring(0, 15) + "..." : med.farnaco) + ")";
-  var kb = {
-    "inline_keyboard": [
-      [
-        { "text": rotuloPrescrever, "callback_data": "rx_med:" + med.farnaco.substring(0, 30) }
-      ]
-    ]
-  };
+  var botoes = [
+    [{ "text": rotuloPrescrever, "callback_data": "rx_med:" + med.farnaco.substring(0, 30) }]
+  ];
+  if (medPed) {
+    botoes.push([{ "text": "👶 Ver Doses Pediátricas (PedBook)", "callback_data": "ped_med:" + medPed.nome.substring(0, 30) }]);
+  }
+  var kb = { "inline_keyboard": botoes };
 
   return enviarMensagemComTecladoParaChat(chatId, respostaTexto, kb);
+}
+
+/**
+ * Responde à consulta de doses pediátricas e apresentações do PedBook (pedb.com.br).
+ */
+function responderConsultaPediatricaPedB(chatId, termo) {
+  var medPed = (typeof buscarMedicamentoPediatricoPedB === "function") ? buscarMedicamentoPediatricoPedB(termo) : null;
+  if (!medPed) {
+    // Se não encontrou medicamento, verifica se é uma conduta clínica pediátrica
+    var cond = (typeof buscarCondutaPediatricaPedB === "function") ? buscarCondutaPediatricaPedB(termo) : null;
+    if (cond) {
+      return responderConsultaCondutaPedB(chatId, termo);
+    }
+    return enviarMensagemParaChat(
+      chatId,
+      "🔍 *MEDICAMENTO PEDIÁTRICO NÃO ENCONTRADO NO PEDBOOK*\n\n" +
+      "Não encontramos ficha pediátrica específica para `\"" + termo + "\"` no PedBook.\n\n" +
+      "💡 *Dicas:*\n" +
+      "• Busque pelo princípio ativo (ex: `/ped amoxicilina`, `/ped dipirona`, `/ped prednisolona`).\n" +
+      "• Ou busque condutas: `/conduta_ped bronquiolite` ou `/conduta_ped crup`.\n" +
+      "• Para posologia geral ou adulto, utilize `/dose " + termo + "`."
+    );
+  }
+
+  var respostaTexto = (typeof formatarFichaPediatricaPedB === "function")
+    ? formatarFichaPediatricaPedB(medPed)
+    : "Ficha pediátrica indisponível.";
+
+  var botoes = [
+    [{ "text": "💊 Prescrever no /rx (" + (medPed.nome.length > 15 ? medPed.nome.substring(0, 15) + "..." : medPed.nome) + ")", "callback_data": "rx_med:" + medPed.nome.substring(0, 30) }]
+  ];
+
+  var medHsl = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(medPed.nome) : null;
+  if (medHsl) {
+    botoes.push([{ "text": "🏢 Ver Doses Adulto / HSL", "callback_data": "hsl_med:" + medHsl.farnaco.substring(0, 30) }]);
+  }
+
+  var kb = { "inline_keyboard": botoes };
+  return enviarMensagemComTecladoParaChat(chatId, respostaTexto, kb);
+}
+
+/**
+ * Responde à consulta de condutas e manejos pediátricos oficiais do PedBook.
+ */
+function responderConsultaCondutaPedB(chatId, termo) {
+  var cond = (typeof buscarCondutaPediatricaPedB === "function") ? buscarCondutaPediatricaPedB(termo) : null;
+  if (!cond) {
+    return enviarMensagemParaChat(
+      chatId,
+      "🔍 *CONDUTA PEDIÁTRICA NÃO ENCONTRADA*\n\n" +
+      "Não encontramos protocolo específico para `\"" + termo + "\"` no PedBook.\n\n" +
+      "💡 *Exemplos de condutas disponíveis:*\n" +
+      "• `/conduta_ped bronquiolite`\n" +
+      "• `/conduta_ped crup` ou `/conduta_ped laringite`\n" +
+      "• `/conduta_ped asma`\n" +
+      "• `/conduta_ped convulsao febril`\n" +
+      "• `/conduta_ped anafilaxia`"
+    );
+  }
+  var txt = (typeof formatarResumoCondutaPedB === "function") ? formatarResumoCondutaPedB(cond) : "Conduta indisponível.";
+  return enviarMensagemParaChat(chatId, txt);
 }
 
 function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageIdParaEditar) {
@@ -1542,12 +1682,26 @@ function processarCallbackBotao(cb) {
       return false;
     }
   }
-  // F2. PRESCRIÇÃO DIRETA A PARTIR DA CONSULTA DO GUIA HSL
+  // F2. PRESCRIÇÃO DIRETA A PARTIR DA CONSULTA DO GUIA HSL OU PEDBOOK
   else if (data.startsWith("rx_med:")) {
     var medNome = data.replace("rx_med:", "").trim();
     responderCallbackTelegram(cb.id, "Gerando prescrição de " + medNome + "...");
     var chatIdRx = (cb.message && cb.message.chat) ? cb.message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
     return processarEEntregarIA(chatIdRx, gerarPrescricaoComIA, medNome, "rx");
+  }
+  // F3. CONSULTA PEDIÁTRICA VIA CALLBACK (PEDBOOK)
+  else if (data.startsWith("ped_med:")) {
+    var medPedNome = data.replace("ped_med:", "").trim();
+    responderCallbackTelegram(cb.id, "Abrindo guia pediátrico de " + medPedNome + "...");
+    var chatIdPedCb = (cb.message && cb.message.chat) ? cb.message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
+    return responderConsultaPediatricaPedB(chatIdPedCb, medPedNome);
+  }
+  // F4. CONSULTA ADULTO VIA CALLBACK (GUIA HSL)
+  else if (data.startsWith("hsl_med:")) {
+    var medHslNome = data.replace("hsl_med:", "").trim();
+    responderCallbackTelegram(cb.id, "Abrindo guia adulto HSL de " + medHslNome + "...");
+    var chatIdHslCb = (cb.message && cb.message.chat) ? cb.message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
+    return responderConsultaPosologiaHSL(chatIdHslCb, medHslNome);
   }
   // G. OUVIR CRÍTICA SOCRÁTICA DO PRECEPTOR VIA ÁUDIO / TTS
   // CORREÇÃO: passa apenasNarrar=true para ir direto ao TTS sem nova chamada LLM
@@ -2193,6 +2347,24 @@ function tentarCalcularDeterministico(texto) {
   if (!texto || typeof CalculadorasClinicas === "undefined") return null;
   var t = texto.toLowerCase();
   var identidade = identificarCalculadora(texto);
+
+  // Ajuste Renal de Antimicrobianos
+  if (/\b(?:atb|antimicrobiano|vanco|vancomicina|meropenem|mero|pip-?tazo|piperacilina|cefepime?|ceftriaxona?|cipro|ciprofloxacino|polimixina|fluconazol)\b/i.test(t) &&
+      /\b(?:ajuste|renal|clcr|crcl|tfg|hd|hemodialise|dialise|clearance|\d+\s*ml\/min)\b/i.test(t)) {
+    if (typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
+      var resAtbDet = CalculadorasClinicas.calcularAjusteRenalPorTextoLivre(texto);
+      if (resAtbDet && resAtbDet.ok && resAtbDet.dados) {
+        var dDet = resAtbDet.dados;
+        return "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
+          "• *Fármaco:* " + dDet.nomeExibicao + "\n" +
+          "• *Dose Padrão:* " + dDet.dosePadrao + "\n" +
+          "• *Dose Ajustada:* `" + dDet.doseAjustada + "`\n" +
+          "• *Condições:* " + (dDet.hemodialise ? "Em Hemodiálise" : ("ClCr " + (dDet.clcrInformado !== null ? dDet.clcrInformado + " mL/min" : "não informado"))) + "\n\n" +
+          "💡 *Cuidados Farmacológicos:*\n" + dDet.cuidados + "\n\n" +
+          "🛡️ *Monitorização:*\n" + dDet.monitorizacao;
+      }
+    }
+  }
 
   // 1. CKD-EPI 2021
   if (identidade === "ckd") {
@@ -3220,6 +3392,8 @@ function enviarManual(chatId) {
     "💊 *5. PRESCRIÇÃO, AMBULATÓRIO & ROUND*\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
     "• `/rx <pedido ou diagnóstico>`: Busca na REMUME municipal (Ribeirão Preto), estrutura a posologia padrão e gera botão para emissão de PDF A4 timbrado oficial no Google Drive e botão nativo de cópia para prontuário.\n" +
+    "• `/rxh <caso ou leito>`: Prescrição Hospitalar Completa de internação na ordem canônica (Dieta, Hidratação venosa, Antimicrobianos com contagem D_ e ajuste renal, Conciliação, Profilaxias de TEV/úlcera de estresse, Sintomáticos SOS e Cuidados de enfermagem).\n" +
+    "• `/atb <droga> <clcr>`: Consulta determinística instantânea de ajuste renal de antimicrobianos hospitalares críticos (Vancomicina, Meropenem, Pip-Tazo, Cefepime, Ceftriaxona, Ciprofloxacino, Polimixina B, Fluconazol ou hemodiálise).\n" +
     "• `/soap <caso>`: Síntese estruturada completa (Subjetivo, Objetivo, Avaliação, Plano) pronta para o prontuário eletrônico.\n" +
     "• `/round <caso>`: Pitch oral de 60 segundos para apresentar o paciente no round da enfermaria/UTI + 3 perguntas socráticas antecipadas.\n" +
     "• `/voz <caso>`: Sabatina médica cirúrgica enviada como mensagem de áudio de voz para você ouvir e responder no fone de ouvido enquanto caminha.\n" +
