@@ -337,10 +337,12 @@ const ctx = {
       getProperty: (k) => (propsStore[k] !== undefined && propsStore[k] !== null) ? String(propsStore[k]) : null,
       setProperty: (k, v) => {
         propsStore[k] = String(v);
+        if (ctx.ConfigService && typeof ctx.ConfigService.invalidar === 'function') ctx.ConfigService.invalidar();
         persistirPropriedades();
       },
       deleteProperty: (k) => {
         delete propsStore[k];
+        if (ctx.ConfigService && typeof ctx.ConfigService.invalidar === 'function') ctx.ConfigService.invalidar();
         persistirPropriedades();
       },
       getProperties: () => ({ ...propsStore }),
@@ -348,6 +350,7 @@ const ctx = {
         for (const k in obj) {
           propsStore[k] = String(obj[k]);
         }
+        if (ctx.ConfigService && typeof ctx.ConfigService.invalidar === 'function') ctx.ConfigService.invalidar();
         persistirPropriedades();
       }
     }),

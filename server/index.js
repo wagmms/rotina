@@ -328,14 +328,47 @@ async function buildServer() {
     }
   });
 
-  // Rota raiz de boas-vindas e verificação
+  const pathCockpitHtml = require('path').join(__dirname, '..', 'cockpit_movel.html');
+
+  function renderCockpitHtml() {
+    if (!require('fs').existsSync(pathCockpitHtml)) {
+      return '<h1>Cockpit Móvel não encontrado</h1>';
+    }
+    let html = require('fs').readFileSync(pathCockpitHtml, 'utf8');
+    try {
+      const chatId = runtime.ctx.ConfigService.get('TELEGRAM_CHAT_ID');
+      if (chatId) {
+        const token = runtime.ctx.criarSessaoCockpit_(chatId);
+        html = html.replace('</head>', `<script>window.cockpitSessionRaw = "${token}";</script>\n</head>`);
+      }
+    } catch (_) {}
+    return html;
+  }
+
+  // Rota raiz: serve o Cockpit PWA para navegadores e JSON para clientes de API
   fastify.get('/', async (request, reply) => {
+    const accept = request.headers['accept'] || '';
+    if (accept.includes('text/html') || (request.query && request.query.ui)) {
+      reply.type('text/html; charset=utf-8');
+      return renderCockpitHtml();
+    }
     return {
       status: 'online',
       message: 'Ultra Rotina — Backend Server Ativo e Operacional',
       docs: '/api/status',
-      health: '/health'
+      health: '/health',
+      cockpit: '/cockpit'
     };
+  });
+
+  fastify.get('/cockpit', async (request, reply) => {
+    reply.type('text/html; charset=utf-8');
+    return renderCockpitHtml();
+  });
+
+  fastify.get('/index.html', async (request, reply) => {
+    reply.type('text/html; charset=utf-8');
+    return renderCockpitHtml();
   });
 
   return fastify;

@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Cockpit Móvel — Assistente Clínico & Pessoal</title>
+  <title>Ultra Rotina</title>
+  <meta name="description" content="Assistente Clínico & Cockpit PWA para rotina médica, cálculos e protocolos">
+  <meta property="og:title" content="Ultra Rotina">
+  <meta property="og:description" content="Assistente Clínico & Cockpit PWA para rotina médica, cálculos e protocolos">
 
   <!-- PWA & Mobile Meta Tags -->
   <meta name="theme-color" content="#020617">
@@ -1667,7 +1670,9 @@
         }
 
         // 2. Se executado no GitHub Pages / Navegador (Render primário de alta velocidade com fallback para GAS)
-        const RENDER_BACKEND = "https://ultra-rotina-backend.onrender.com";
+        const RENDER_BACKEND = (typeof window !== 'undefined' && window.location && window.location.origin && !window.location.hostname.includes('github.io'))
+          ? window.location.origin
+          : "https://ultra-rotina-backend.onrender.com";
         const GAS_BACKEND = "https://script.google.com/macros/s/AKfycbwo6GqTmc0_8fl9peKlw5d5jpfL5nqsc-ozLrqHiVk2RHD4h968EZAG4P75i2qSBlw9EQ/exec";
 
         let customBackend = '';
@@ -3859,7 +3864,7 @@
       } else if (tg?.close) {
         tg.close();
       } else {
-        window.open('https://t.me/ultrarotina_bot', '_blank');
+        copiarToast('Canal oficial do Telegram: @ultrarotina_bot');
       }
     }
 

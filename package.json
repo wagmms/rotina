@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "PYTHONPATH=. .venv/bin/pytest tests/ -q",
+    "lint": "node --check server.js && node --check server/index.js && node --check server/runtime.js",
+    "test": "node tests/test_server_render.cjs",
     "build": "python3 build_master.py",
     "extrair:hsl": "node scripts/extrair_guia_hsl.js"
   },

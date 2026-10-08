@@ -1,0 +1,9 @@
+{
+  "name": "Ultra Rotina",
+  "description": "Assistente Clínico & Cockpit PWA para rotina médica, cálculos e protocolos",
+  "prompt": "Assistente Clínico Ultra Rotina e Cockpit PWA para rotina médica",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

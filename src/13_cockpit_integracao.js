@@ -158,7 +158,7 @@ function cockpitCalcular(initData, tipo, entrada) {
 
 function cockpitRemume(initData) {
   cockpitAutorizar_(initData);
-  var id = ConfigService.exigir('SPREADSHEET_ID_REMUME');
+  var id = ConfigService.get('SPREADSHEET_ID_REMUME') || 'remume_local';
   var base = obterPlanilha('remume', id, false);
   return {fonte:'REMUME configurada no bot', itens:String(base || '').split(/\r?\n/).filter(function(l){return l.trim().length > 0;})};
 }
