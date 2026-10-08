@@ -140,6 +140,15 @@ function salvarSoapCockpit_(chat, origem, texto) {
 function cockpitCalcular(initData, tipo, entrada) {
   cockpitAutorizar_(initData);
   if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) throw new Error('Informe os parâmetros do cálculo.');
+
+  // Validação fisiológica prévia e sanitização de limites
+  if (typeof ValidadorFisiologico !== 'undefined' && typeof ValidadorFisiologico.sanitizarEntradaCalculo === 'function') {
+    var checagemFisio = ValidadorFisiologico.sanitizarEntradaCalculo(tipo, entrada);
+    if (!checagemFisio.valido) {
+      throw new Error(checagemFisio.erro);
+    }
+  }
+
   switch (tipo) {
     case 'dva':
       if (['nora','dobuta','vaso'].indexOf(entrada.droga) < 0) throw new Error('Selecione uma droga válida.');
@@ -152,8 +161,18 @@ function cockpitCalcular(initData, tipo, entrada) {
       return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino);
     case 'gaso':
       return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3);
+    case 'interacoes':
+    case 'seguranca':
+      var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';
+      return executarCrossCheckSegurancaClinica(alvos, entrada.contexto || entrada);
     default: throw new Error('Calculadora desconhecida.');
   }
+}
+
+function cockpitChecarSeguranca(initData, drogasOuTexto, contextoClinico) {
+  cockpitAutorizar_(initData);
+  if (!drogasOuTexto) throw new Error('Informe os medicamentos ou texto para checagem.');
+  return executarCrossCheckSegurancaClinica(drogasOuTexto, contextoClinico);
 }
 
 function cockpitRemume(initData) {
@@ -232,6 +251,26 @@ function cockpitConversar(initData, params) {
 
     if (!texto) throw new Error('Envie uma mensagem de texto ou grave um áudio para prosseguir.');
 
+    // ⚡ SEPARAÇÃO RÍGIDA: LÓGICA DETERMINÍSTICA EM RAM PURA (0ms a 15ms)
+    // Cálculos puros (CURB-65, Glasgow, Parkland, DVA em mcg/kg/min, clearance de creatinina, diluição de antibióticos)
+    // NUNCA envie essas tarefas para o modelo de linguagem se a matemática e a tabela já estão no código Node.js!
+    if (typeof tentarCalcularDeterministico === 'function') {
+      var resDetCockpit = tentarCalcularDeterministico(texto);
+      if (resDetCockpit) {
+        return {
+          sucesso: true,
+          acao: 'enviar',
+          textoRecebido: texto,
+          transcricao: transcricaoAudio || null,
+          resposta: String(resDetCockpit),
+          soap: dadosAtuais,
+          deterministico: true,
+          revision: estado ? estado.revision : null
+        };
+      }
+    }
+
+    // Inferência de IA (Gemini): Reservada exclusivamente para casos abertos (evolução SOAP complexa)
     var novoContexto = dadosAtuais ? (dadosAtuais + '\n' + texto) : texto;
     var novoEstado = definirModoBot(chat, 'soap', novoContexto);
     var resultadoSoap = gerarSOAPComIA(novoContexto);

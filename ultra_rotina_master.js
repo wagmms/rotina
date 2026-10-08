@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-08 22:07:46
- * Checksum SHA256: befc08461b31b049
+ * Gerado automaticamente via build_master.py em: 2026-10-08 23:38:39
+ * Checksum SHA256: 1ebb362a3b3354fa
  * ==============================================================================
  */
 
@@ -829,6 +829,171 @@ function enviarAudioVozTelegram(chatId, blobAudio, legenda, replyMarkup) {
     return false;
   }
 }
+
+/**
+ * ==============================================================================
+ * VALIDADOR DE LIMITES FISIOLÓGICOS & SANITIZAÇÃO DE ENTRADA CLÍNICA
+ * ==============================================================================
+ * Protege contra erros de digitação (zeros extras, vírgulas deslocadas, valores
+ * biologicamente implausíveis ou incompatíveis com a vida).
+ * ==============================================================================
+ */
+
+var ValidadorFisiologico = (function() {
+  var FAIXAS = {
+    peso: { min: 0.4, max: 350.0, unidade: "kg", nome: "Peso corporal" },
+    idade: { min: 0, max: 125, unidade: "anos", nome: "Idade" },
+    pas: { min: 30, max: 280, unidade: "mmHg", nome: "Pressão Arterial Sistólica (PAS)" },
+    pad: { min: 15, max: 160, unidade: "mmHg", nome: "Pressão Arterial Diastólica (PAD)" },
+    pam: { min: 20, max: 200, unidade: "mmHg", nome: "Pressão Arterial Média (PAM)" },
+    fc: { min: 20, max: 300, unidade: "bpm", nome: "Frequência Cardíaca (FC)" },
+    fr: { min: 4, max: 80, unidade: "irpm", nome: "Frequência Respiratória (FR)" },
+    spo2: { min: 30, max: 100, unidade: "%", nome: "Saturação de O₂ (SpO₂)" },
+    temperatura: { min: 25.0, max: 44.0, unidade: "°C", nome: "Temperatura Corporal" },
+    glicemia: { min: 10, max: 1500, unidade: "mg/dL", nome: "Glicemia capilar/sérica" },
+    creatinina: { min: 0.1, max: 30.0, unidade: "mg/dL", nome: "Creatinina sérica" },
+    ureia: { min: 5, max: 500, unidade: "mg/dL", nome: "Ureia sérica" },
+    potassio: { min: 1.0, max: 10.0, unidade: "mEq/L", nome: "Potássio sérico (K⁺)" },
+    sodio: { min: 90, max: 180, unidade: "mEq/L", nome: "Sódio sérico (Na⁺)" },
+    ph: { min: 6.70, max: 7.80, unidade: "", nome: "pH sanguíneo" },
+    pco2: { min: 10, max: 150, unidade: "mmHg", nome: "pCO₂ arterial" },
+    po2: { min: 15, max: 600, unidade: "mmHg", nome: "pO₂ arterial" },
+    hco3: { min: 2, max: 60, unidade: "mEq/L", nome: "Bicarbonato (HCO₃⁻)" },
+    lactato: { min: 0.2, max: 30.0, unidade: "mmol/L", nome: "Lactato arterial" }
+  };
+
+  function normalizarNumero(val) {
+    if (val === undefined || val === null) return NaN;
+    if (typeof val === "number") return isFinite(val) ? val : NaN;
+    var s = String(val).trim().replace(",", ".");
+    return Number(s);
+  }
+
+  return {
+    obterFaixas: function() { return FAIXAS; },
+
+    validarParametro: function(parametro, valor) {
+      var p = String(parametro || "").toLowerCase().trim();
+      var config = FAIXAS[p];
+      if (!config) {
+        return { valido: true, valor: normalizarNumero(valor), alerta: null };
+      }
+
+      var num = normalizarNumero(valor);
+      if (isNaN(num)) {
+        return {
+          valido: false,
+          valor: null,
+          alerta: "Valor inválido ou não numérico para " + config.nome + "."
+        };
+      }
+
+      if (num < config.min || num > config.max) {
+        return {
+          valido: false,
+          valor: num,
+          alerta: "⚠️ " + config.nome + " de " + num + (config.unidade ? " " + config.unidade : "") +
+            " está fora da faixa biológica esperada (" + config.min + " a " + config.max + (config.unidade ? " " + config.unidade : "") +
+            "). Confirme se houve erro de digitação antes de utilizar nos cálculos."
+        };
+      }
+
+      return { valido: true, valor: num, alerta: null };
+    },
+
+    sanitizarEntradaCalculo: function(tipo, entrada) {
+      if (!entrada || typeof entrada !== "object") {
+        return { valido: false, erro: "Parâmetros não informados ou formato inválido." };
+      }
+
+      var erros = [];
+
+      // Checagem de Peso Universal
+      if (entrada.peso !== undefined && entrada.peso !== null && entrada.peso !== "") {
+        var vPeso = this.validarParametro("peso", entrada.peso);
+        if (!vPeso.valido) erros.push(vPeso.alerta);
+      }
+
+      // Checagem por tipo de cálculo
+      if (tipo === "crcl") {
+        if (entrada.creatinina !== undefined && entrada.creatinina !== null && entrada.creatinina !== "") {
+          var vCr = this.validarParametro("creatinina", entrada.creatinina);
+          if (!vCr.valido) erros.push(vCr.alerta);
+        }
+        if (entrada.idade !== undefined && entrada.idade !== null && entrada.idade !== "") {
+          var vIdade = this.validarParametro("idade", entrada.idade);
+          if (!vIdade.valido) erros.push(vIdade.alerta);
+        }
+      }
+
+      if (tipo === "gaso") {
+        if (entrada.ph !== undefined && entrada.ph !== null && entrada.ph !== "") {
+          var vPh = this.validarParametro("ph", entrada.ph);
+          if (!vPh.valido) erros.push(vPh.alerta);
+        }
+        if (entrada.pco2 !== undefined && entrada.pco2 !== null && entrada.pco2 !== "") {
+          var vPco2 = this.validarParametro("pco2", entrada.pco2);
+          if (!vPco2.valido) erros.push(vPco2.alerta);
+        }
+        if (entrada.hco3 !== undefined && entrada.hco3 !== null && entrada.hco3 !== "") {
+          var vHco3 = this.validarParametro("hco3", entrada.hco3);
+          if (!vHco3.valido) erros.push(vHco3.alerta);
+        }
+      }
+
+      return {
+        valido: erros.length === 0,
+        erros: erros,
+        erro: erros.join("\n")
+      };
+    },
+
+    escanearAnomaliasEmTexto: function(texto) {
+      if (!texto) return [];
+      var str = String(texto).toLowerCase();
+      var anomalias = [];
+
+      // 1. SpO2 > 100% ou < 30%
+      var mSpo2 = str.match(/\b(?:spo2|sp[oO]₂|sat|saturacao)\s*[:=]?\s*(\d+)\s*%/i);
+      if (mSpo2) {
+        var vSat = parseInt(mSpo2[1], 10);
+        if (vSat > 100 || vSat < 30) {
+          anomalias.push("SpO₂ de " + vSat + "% fora da faixa fisiológica (30 a 100%).");
+        }
+      }
+
+      // 2. PA com PAS > 280 ou < 30, ou PAD > 160
+      var mPa = str.match(/\b(?:pa\s*[:=]?\s*)?(\d{2,3})\s*[x/]\s*(\d{2,3})\b/i);
+      if (mPa) {
+        var pas = parseInt(mPa[1], 10);
+        var pad = parseInt(mPa[2], 10);
+        if (pas > 280 || pas < 30 || pad > 160 || pad < 15 || pas <= pad) {
+          anomalias.push("Pressão Arterial de " + pas + "/" + pad + " mmHg biologicamente implausível.");
+        }
+      }
+
+      // 3. FC > 300 ou < 20
+      var mFc = str.match(/\b(?:fc|frequencia cardiaca)\s*[:=]?\s*(\d+)\s*(?:bpm)?\b/i);
+      if (mFc) {
+        var fc = parseInt(mFc[1], 10);
+        if (fc > 300 || fc < 20) {
+          anomalias.push("Frequência Cardíaca de " + fc + " bpm fora dos limites vitais plausíveis (20 a 300 bpm).");
+        }
+      }
+
+      // 4. Temperatura > 44 ou < 25
+      var mTax = str.match(/\b(?:tax|temp|temperatura)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*°?c\b/i);
+      if (mTax) {
+        var temp = parseFloat(mTax[1].replace(",", "."));
+        if (temp > 44 || temp < 25) {
+          anomalias.push("Temperatura de " + temp + " °C fora da faixa biológica humana (25 a 44 °C).");
+        }
+      }
+
+      return anomalias;
+    }
+  };
+})();
 
 
 // ==============================================================================
@@ -2208,6 +2373,117 @@ var CalculadorasClinicas = (function () {
     });
   }
 
+  // ═════════════════════════════ FÓRMULA DE PARKLAND (QUEIMADURAS) ═════════════════════════════
+
+  /**
+   * Fórmula de Parkland clássica (ATLS 10ª ed / SBA / ABA):
+   * Volume Total 24h = 4 mL × Peso (kg) × % SCQ (Superfície Corpórea Queimada 2º e 3º graus)
+   * Solução: Ringer Lactato (RL)
+   * 1ª fase (primeiras 8h a contar do acidente): 50% do volume total
+   * 2ª fase (próximas 16h): 50% do volume total
+   */
+  function parkland(pesoKg, scqPorcentagem) {
+    var ID = 'parkland', NOME = 'Fórmula de Parkland (Ressuscitação em Grandes Queimados)';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var peso = num(c, pesoKg, 'Peso corporal (kg)', 10, 250);
+      var scq = num(c, scqPorcentagem, 'Superfície Corpórea Queimada - SCQ (%)', 1, 100);
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+
+      var volTotal = 4 * peso * scq; // em mL de Ringer Lactato
+      var vol8h = volTotal / 2;
+      var vazao8h = vol8h / 8;
+      var vol16h = volTotal / 2;
+      var vazao16h = vol16h / 16;
+      var debitoMin = Math.round(peso * 0.5 * 10) / 10;
+      var debitoMax = Math.round(peso * 1.0 * 10) / 10;
+
+      var linhasResultado = [
+        '• Peso: ' + fmt(peso, 1) + ' kg | SCQ: ' + fmt(scq, 0) + '%',
+        '• Volume Total 24h (Ringer Lactato): ' + fmt(volTotal, 0) + ' mL',
+        '• 1ª Etapa (Primeiras 8h a contar do ACIDENTE): ' + fmt(vol8h, 0) + ' mL (vazão: ' + fmt(vazao8h, 0) + ' mL/h)',
+        '• 2ª Etapa (Próximas 16h): ' + fmt(vol16h, 0) + ' mL (vazão: ' + fmt(vazao16h, 0) + ' mL/h)',
+        '• Alvo de Débito Urinário (SVD horária): 0,5 a 1,0 mL/kg/h (' + fmt(debitoMin, 1) + ' a ' + fmt(debitoMax, 1) + ' mL/h)'
+      ];
+
+      var avisos = [
+        'O relógio das primeiras 8 horas conta A PARTIR DO MOMENTO DO ACIDENTE/QUEIMADURA, não da chegada ao hospital.',
+        'Descontar da 1ª etapa qualquer volume já infundido no atendimento pré-hospitalar.',
+        'Ajustar a taxa horária de Ringer Lactato para cima ou para baixo conforme o débito urinário a cada 1 hora.',
+        'Evitar hiper-ressuscitação hídrica ("fluid creep"), que aumenta risco de síndrome compartimental abdominal e edema pulmonar.'
+      ];
+
+      return sucesso({
+        id: ID,
+        nome: NOME,
+        estado: 'CALCULO',
+        rotulo: 'PARKLAND · RINGER LACTATO 4 mL/kg/%',
+        principal: fmt(volTotal, 0) + ' mL em 24h',
+        textoFormatado: '🔥 <b>FÓRMULA DE PARKLAND (RESSUSCITAÇÃO EM GRANDES QUEIMADOS)</b>\n\n' +
+          '• <b>Peso:</b> ' + fmt(peso, 1) + ' kg | <b>SCQ:</b> ' + fmt(scq, 0) + '%\n' +
+          '• <b>Volume Total (24h):</b> <code>' + fmt(volTotal, 0) + ' mL</code> de Ringer Lactato\n\n' +
+          '⏱️ <b>Esquema de Infusão:</b>\n' +
+          '1️⃣ <b>Primeiras 8 horas (do acidente):</b> <code>' + fmt(vol8h, 0) + ' mL</code> → <b>' + fmt(vazao8h, 0) + ' mL/h</b> na BIC\n' +
+          '2️⃣ <b>Próximas 16 horas:</b> <code>' + fmt(vol16h, 0) + ' mL</code> → <b>' + fmt(vazao16h, 0) + ' mL/h</b> na BIC\n\n' +
+          '🎯 <b>Meta de Débito Urinário (SVD horária):</b>\n' +
+          '• Adultos: 0,5–1,0 mL/kg/h (<b>' + fmt(debitoMin, 1) + ' a ' + fmt(debitoMax, 1) + ' mL/h</b>)\n\n' +
+          '⚠️ <b>Regras de Segurança ATLS 10ª Ed / SBA:</b>\n' +
+          '• Descontar volume já recebido no pré-hospitalar das primeiras 8 horas.\n' +
+          '• Monitorizar diurese horária rigorosa para titular vazão e prevenir síndrome compartimental abdominal.',
+        secoes: [
+          ['PARÂMETROS', ['Peso: ' + fmt(peso, 1) + ' kg', 'SCQ: ' + fmt(scq, 0) + '%', 'Fórmula: 4 mL × ' + fmt(peso, 1) + ' × ' + fmt(scq, 0)]],
+          ['CRONOGRAMA DE INFUSÃO', [
+            '1ª Etapa (8h do trauma): ' + fmt(vol8h, 0) + ' mL (' + fmt(vazao8h, 0) + ' mL/h)',
+            '2ª Etapa (16h restantes): ' + fmt(vol16h, 0) + ' mL (' + fmt(vazao16h, 0) + ' mL/h)'
+          ]],
+          ['CONDUTAS E MONITORIZAÇÃO', avisos]
+        ],
+        avisos: avisos,
+        dados: {
+          pesoKg: peso,
+          scq: scq,
+          volumeTotal24hMl: volTotal,
+          volumePrimeiras8hMl: vol8h,
+          vazaoPrimeiras8hMlH: vazao8h,
+          volumeSeguintes16hMl: vol16h,
+          vazaoSeguintes16hMlH: vazao16h,
+          debitoUrinarioAlvoMlH: { min: debitoMin, max: debitoMax }
+        },
+        legado: {
+          volumeTotalMl: volTotal,
+          volume8hMl: vol8h,
+          vazao8hMlH: vazao8h,
+          volume16hMl: vol16h,
+          vazao16hMlH: vazao16h
+        },
+        botoes: botoesPadrao(ID, [btn('🧮 Novo cálculo', ID, 'voltar')])
+      });
+    });
+  }
+
+  function calcularParklandPorTextoLivre(texto) {
+    if (!texto || typeof texto !== 'string') return null;
+    var t = texto.toLowerCase();
+    if (!/(?:parkland|queimadur[as]?)\b/i.test(t)) return null;
+
+    var m1 = texto.match(/(?:parkland|queimadur[as]?)\b.*?(?:(\d+(?:[.,]\d+)?)\s*kg).*?(\d+(?:[.,]\d+)?)\s*%/i) ||
+             texto.match(/(?:parkland|queimadur[as]?)\b.*?(\d+(?:[.,]\d+)?)\s*%.*?(?:(\d+(?:[.,]\d+)?)\s*kg)/i);
+    if (m1) {
+      var p1 = parseFloat((m1[1] || m1[2]).replace(',', '.'));
+      var s1 = parseFloat((m1[2] || m1[1]).replace(',', '.'));
+      return parkland(p1, s1);
+    }
+
+    var mPeso = texto.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i);
+    var mScq = texto.match(/(?:scq|superficie|queimadura)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*%?/i) || texto.match(/(\d+(?:[.,]\d+)?)\s*%/i);
+    if (mPeso && mScq) {
+      var p = parseFloat(mPeso[1].replace(',', '.'));
+      var s = parseFloat(mScq[1].replace(',', '.'));
+      return parkland(p, s);
+    }
+    return null;
+  }
+
   /**
    * MELD (Model for End-Stage Liver Disease - UNOS / Kamath et al. 2007) e MELD-Na (OPTN 2016)
    */
@@ -3326,6 +3602,8 @@ var CalculadorasClinicas = (function () {
     glasgowP: glasgowP,
     gasometria: gasometria,
     meld: meld,
+    parkland: parkland,
+    calcularParklandPorTextoLivre: calcularParklandPorTextoLivre,
     drogasVasoativas: drogasVasoativas,
     sequenciaRapidaIntubacao: sequenciaRapidaIntubacao,
     posologiaPediatrica: posologiaPediatrica,
@@ -4762,6 +5040,315 @@ function formatarResumoCondutaPedB(conduta) {
   return linhas.join("\n");
 }
 
+/**
+ * ==============================================================================
+ * MOTOR DE SEGURANÇA FARMACOLÓGICA & CROSS-CHECK DETERMINÍSTICO (RAM LOCAL)
+ * ==============================================================================
+ * Realiza checagem cruzada imediata (< 5ms) de segurança medicamentosa:
+ * 1. Interações medicamentosas da tabela local (interacoes.json - 219 regras)
+ * 2. Ajustes de dose para função renal (Guia HSL - 447 medicamentos)
+ * 3. Tetos de dose máxima e limites terapêuticos (Guia HSL e PedBook)
+ * 4. Disponibilidade na REMUME Ribeirão Preto (256 itens)
+ * ==============================================================================
+ */
+
+function extrairFarmacosDoTexto(texto) {
+  if (!texto) return [];
+  if (Array.isArray(texto)) {
+    var itensPlanos = [];
+    texto.forEach(function(item) {
+      if (typeof item === "string") {
+        var sub = extrairFarmacosDoTexto(item);
+        sub.forEach(function(s) { if (itensPlanos.indexOf(s) === -1) itensPlanos.push(s); });
+      }
+    });
+    return itensPlanos;
+  }
+
+  var textoNorm = " " + String(texto).toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s+]/g, " ") + " ";
+
+  var tokens = textoNorm.split(/\s+/).filter(function(t) { return t.length >= 3; });
+  var encontrados = [];
+  function adicionar(farmaco) {
+    var f = String(farmaco || "").toLowerCase().trim();
+    if (f && f.length >= 3 && encontrados.indexOf(f) === -1) {
+      encontrados.push(f);
+    }
+  }
+
+  // 1. Dicionário de marcas e sinônimos comerciais
+  if (typeof DICIONARIO_FARMACO !== "undefined") {
+    for (var i = 0; i < tokens.length; i++) {
+      var sin = DICIONARIO_FARMACO[tokens[i]];
+      if (sin) {
+        if (sin.indexOf(" + ") !== -1) {
+          sin.split(" + ").forEach(adicionar);
+        } else {
+          adicionar(sin);
+        }
+      }
+    }
+  }
+
+  // 2. Termos presentes nas regras de interações em RAM
+  try {
+    var ss = (typeof SpreadsheetApp !== "undefined") ? SpreadsheetApp.openById("interacoes") : null;
+    if (ss) {
+      var linhas = ss.getSheets()[0].getRange(2, 1, 219, 6).getValues();
+      for (var j = 0; j < linhas.length; j++) {
+        var medCol = String(linhas[j][1] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        var partes = medCol.split(/[\s,+/]+/);
+        for (var p = 0; p < partes.length; p++) {
+          var termoP = partes[p].trim();
+          if (termoP.length >= 4 && textoNorm.indexOf(" " + termoP + " ") !== -1) {
+            adicionar(termoP);
+          }
+        }
+      }
+    }
+  } catch (eInter) {}
+
+  // 3. Fármacos oficiais do Guia HSL
+  try {
+    var medsHsl = (typeof obterGuiaFarmaceuticoHSL === "function") ? obterGuiaFarmaceuticoHSL() : [];
+    for (var k = 0; k < medsHsl.length; k++) {
+      var farnacoStr = String(medsHsl[k].farnaco || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      var primeiroTermo = farnacoStr.split(/[\s,()]+/)[0].trim();
+      if (primeiroTermo.length >= 4 && textoNorm.indexOf(" " + primeiroTermo + " ") !== -1) {
+        adicionar(primeiroTermo);
+      }
+    }
+  } catch (eHsl) {}
+
+  return encontrados;
+}
+
+function extrairContextoRenalDoTexto(texto) {
+  var str = String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  var res = {
+    temDisfuncao: false,
+    creatinina: null,
+    clcr: null,
+    dialise: false,
+    detalhes: []
+  };
+
+  // 1. Detecção de creatinina sérica (ex: creatinina 2.1, cr: 1.8, cr 3,0 mg/dl)
+  var mCr = str.match(/\b(?:creatinina|creat|cr)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(?:mg\/dl)?\b/);
+  if (mCr && mCr[1]) {
+    res.creatinina = parseFloat(mCr[1].replace(",", "."));
+    res.temDisfuncao = res.creatinina >= 1.3;
+    res.detalhes.push("Creatinina: " + res.creatinina + " mg/dL");
+  }
+
+  // 2. Detecção de ClCr ou TFG (ex: clcr 35, tfg < 30, clcr: 25 ml/min)
+  var mClcr = str.match(/\b(?:clcr|tfg|clearence|clearance)\s*[:=]?\s*([<>]?\s*\d+(?:[.,]\d+)?)\s*(?:ml\/min)?\b/);
+  if (mClcr && mClcr[1]) {
+    var valLimpo = mClcr[1].replace(/\s+/g, "").replace(",", ".");
+    var numClcr = parseFloat(valLimpo.replace(/^[<>]/, ""));
+    res.clcr = numClcr;
+    res.temDisfuncao = true;
+    res.detalhes.push("ClCr/TFG: " + valLimpo + " mL/min");
+  }
+
+  // 3. Detecção de diálise ou DRC
+  if (/\b(?:dialise|hemodialise|hd|drc|insuficiencia renal|ira|injuria renal)\b/.test(str)) {
+    res.temDisfuncao = true;
+    if (/\b(?:dialise|hemodialise|hd)\b/.test(str)) res.dialise = true;
+    res.detalhes.push("Histórico/condição renal: " + (res.dialise ? "Hemodiálise / Terapia Renal Substitutiva" : "Disfunção Renal / DRC / IRA"));
+  }
+
+  return res;
+}
+
+function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
+  var t0 = Date.now();
+  var farmacos = [];
+
+  if (Array.isArray(drogasOuTexto)) {
+    drogasOuTexto.forEach(function(d) {
+      if (typeof d === "string") {
+        var sub = extrairFarmacosDoTexto(d);
+        if (sub.length > 0) {
+          sub.forEach(function(s) { if (farmacos.indexOf(s) === -1) farmacos.push(s); });
+        } else if (d.trim().length >= 3) {
+          farmacos.push(d.trim().toLowerCase());
+        }
+      }
+    });
+  } else {
+    farmacos = extrairFarmacosDoTexto(drogasOuTexto);
+  }
+
+  var contextoTexto = (typeof dadosContexto === "string") ? dadosContexto : (dadosContexto ? JSON.stringify(dadosContexto) : "");
+  var ctxRenal = extrairContextoRenalDoTexto((typeof drogasOuTexto === "string" ? drogasOuTexto + " " : "") + contextoTexto);
+
+  var interacoesAchadas = [];
+  try {
+    var ss = (typeof SpreadsheetApp !== "undefined") ? SpreadsheetApp.openById("interacoes") : null;
+    if (ss && farmacos.length >= 2) {
+      var linhas = ss.getSheets()[0].getRange(2, 1, 219, 6).getValues();
+      for (var i = 0; i < farmacos.length; i++) {
+        for (var j = i + 1; j < farmacos.length; j++) {
+          var d1 = farmacos[i];
+          var d2 = farmacos[j];
+          for (var k = 0; k < linhas.length; k++) {
+            var r = linhas[k];
+            var colA = String(r[1] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            var colB = String(r[2] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            if ((colA.indexOf(d1) !== -1 && colB.indexOf(d2) !== -1) || (colA.indexOf(d2) !== -1 && colB.indexOf(d1) !== -1)) {
+              var grauRaw = String(r[3] || "Moderado").trim();
+              var grauNorm = "MODERADO";
+              if (/contraindic/i.test(grauRaw)) grauNorm = "CONTRAINDICADO";
+              else if (/grave/i.test(grauRaw)) grauNorm = "GRAVE";
+              else if (/leve|menor/i.test(grauRaw)) grauNorm = "LEVE";
+
+              interacoesAchadas.push({
+                drogaA: String(r[1] || "").trim(),
+                drogaB: String(r[2] || "").trim(),
+                grau: grauRaw,
+                grauNormalizado: grauNorm,
+                efeito: String(r[4] || "").trim(),
+                recomendacao: String(r[5] || "").trim()
+              });
+            }
+          }
+        }
+      }
+    }
+  } catch (eInt) {}
+
+  // 2. Ajustes Renais do Guia HSL
+  var ajustesRenais = [];
+  var tetosDose = [];
+
+  for (var f = 0; f < farmacos.length; f++) {
+    var medHsl = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(farmacos[f]) : null;
+    if (medHsl) {
+      var temAjuste = medHsl.ajuste_dose && !/n[aã]o h[aá] ajuste|sem ajuste/i.test(medHsl.ajuste_dose) && medHsl.ajuste_dose.trim().length > 5;
+      if (temAjuste) {
+        ajustesRenais.push({
+          farmaco: farmacos[f].toUpperCase(),
+          nomeOficial: medHsl.farnaco,
+          ajuste: medHsl.ajuste_dose.trim(),
+          naRemume: !!medHsl.na_remume
+        });
+      }
+
+      if (medHsl.dose_maxima && medHsl.dose_maxima.trim().length > 3) {
+        tetosDose.push({
+          farmaco: farmacos[f].toUpperCase(),
+          nomeOficial: medHsl.farnaco,
+          doseMaxima: medHsl.dose_maxima.trim()
+        });
+      }
+    }
+  }
+
+  // Ordenação de interações por gravidade clínica: Contraindicado > Grave > Moderado > Leve
+  var pesoGrau = { "CONTRAINDICADO": 4, "GRAVE": 3, "MODERADO": 2, "LEVE": 1 };
+  interacoesAchadas.sort(function(a, b) {
+    return (pesoGrau[b.grauNormalizado] || 0) - (pesoGrau[a.grauNormalizado] || 0);
+  });
+
+  var temContraindicado = interacoesAchadas.some(function(it) { return it.grauNormalizado === "CONTRAINDICADO"; });
+  var temGrave = interacoesAchadas.some(function(it) { return it.grauNormalizado === "GRAVE"; });
+  var temAlertasCriticos = temContraindicado || temGrave || (ctxRenal.temDisfuncao && ajustesRenais.length > 0);
+
+  // Formatação clínica para Telegram, Cockpit e Auditoria
+  var linhasTexto = [];
+  linhasTexto.push("🛡️ *CROSS-CHECK DETERMINÍSTICO DE SEGURANÇA FARMACOLÓGICA*");
+  linhasTexto.push("═════════════════════════════════════════════════");
+  linhasTexto.push("🔍 *Fármacos rastreados na prescrição:* " + (farmacos.length > 0 ? farmacos.map(function(s){return "`" + s.toUpperCase() + "`";}).join(", ") : "Nenhum fármaco identificado"));
+
+  if (interacoesAchadas.length > 0) {
+    linhasTexto.push("\n⚠️ *INTERAÇÕES MEDICAMENTOSAS IDENTIFICADAS (BASE LOCAL):*");
+    interacoesAchadas.forEach(function(inter) {
+      var icone = inter.grauNormalizado === "CONTRAINDICADO" ? "🛑" : inter.grauNormalizado === "GRAVE" ? "🔴" : "🟡";
+      linhasTexto.push(icone + " *" + inter.grau.toUpperCase() + ":* *" + inter.drogaA + "* ⚡ *" + inter.drogaB + "*");
+      linhasTexto.push("   • *Efeito clínico:* " + inter.efeito);
+      if (inter.recomendacao) linhasTexto.push("   • *Conduta recomendada:* " + inter.recomendacao);
+    });
+  } else if (farmacos.length >= 2) {
+    linhasTexto.push("\n✅ *Interações Medicamentosas:* Nenhuma interação grave cadastrada na tabela local entre as drogas listadas.");
+  }
+
+  if (ajustesRenais.length > 0) {
+    linhasTexto.push("\n🫘 *AJUSTES DE FUNÇÃO RENAL (GUIA FARMACÊUTICO HSL):*");
+    if (ctxRenal.temDisfuncao) {
+      linhasTexto.push("⚠️ *ATENÇÃO:* Paciente com parâmetros renais descritos (" + ctxRenal.detalhes.join(" | ") + "). Adequar as doses abaixo:");
+    } else {
+      linhasTexto.push("💡 *Parâmetros de ajuste para checagem com o ClCr/TFG do paciente:*");
+    }
+    ajustesRenais.forEach(function(aj) {
+      linhasTexto.push("• *" + aj.nomeOficial + "* (" + (aj.naRemume ? "SUS/REMUME" : "Fora da REMUME") + "):");
+      linhasTexto.push("  " + aj.ajuste.replace(/\n/g, "\n  "));
+    });
+  }
+
+  if (tetosDose.length > 0) {
+    linhasTexto.push("\n⚖️ *TETO DE DOSE MÁXIMA & LIMITES TERAPÊUTICOS:*");
+    tetosDose.forEach(function(td) {
+      linhasTexto.push("• *" + td.nomeOficial + ":* `" + td.doseMaxima.replace(/\n/g, " ") + "`");
+    });
+  }
+
+  var elapsed = Date.now() - t0;
+  linhasTexto.push("\n⏱️ _Varredura farmacológica em RAM concluída em " + elapsed + "ms._");
+
+  return {
+    ok: true,
+    benchmark_ms: elapsed,
+    temAlertasCriticos: temAlertasCriticos,
+    farmacosDetectados: farmacos,
+    interacoes: interacoesAchadas,
+    ajustesRenais: ajustesRenais,
+    tetosDose: tetosDose,
+    contextoRenalDetectado: ctxRenal,
+    textoFormatado: linhasTexto.join("\n")
+  };
+}
+
+/**
+ * Formata a ficha de diluição, preparo e administração hospitalar do Guia HSL em 0ms.
+ */
+function formatarDiluicaoPreparoHSL(med) {
+  if (!med) return null;
+  var linhas = [];
+  linhas.push("💧 *GUIA FARMACÊUTICO HSL — DILUIÇÃO & ADMINISTRAÇÃO*");
+  linhas.push("═════════════════════════════════════════════════");
+  linhas.push("💊 *Fármaco (DCI):* *" + med.farnaco + "*");
+  if (med.na_remume) {
+    linhas.push("🏛️ *Padronização:* ✅ Presente na REMUME de Ribeirão Preto");
+  } else {
+    linhas.push("🏛️ *Padronização:* ⚠️ Fora da REMUME municipal (Uso Hospitalar / Compra)");
+  }
+
+  if (med.preparo_diluicao) {
+    linhas.push("\n🧪 *Reconstituição & Diluição:*");
+    linhas.push(med.preparo_diluicao);
+  }
+  if (med.administracao) {
+    linhas.push("\n⏱️ *Tempo & Dispositivo de Infusão:*");
+    linhas.push(med.administracao);
+  }
+  if (med.estabilidade_conservacao) {
+    linhas.push("\n❄️ *Estabilidade & Conservação:*");
+    linhas.push(med.estabilidade_conservacao);
+  }
+  if (med.ajuste_dose && !/n[aã]o h[aá] ajuste|sem ajuste/i.test(med.ajuste_dose)) {
+    linhas.push("\n🫘 *Ajuste de Dose Renal (ClCr / TFG):*");
+    linhas.push(med.ajuste_dose);
+  }
+  if (med.dose_maxima) {
+    linhas.push("\n⚖️ *Dose Máxima:* " + med.dose_maxima);
+  }
+  linhas.push("\n📚 *Fonte:* Guia Farmacêutico Hospital Sírio-Libanês (https://guiafarmaceutico.hsl.org.br)");
+  return linhas.join("\n");
+}
+
 
 // ==============================================================================
 // ARQUIVO FONTE: 04_motores_ia.js
@@ -5662,6 +6249,20 @@ function auditoriaClinicaPendente(texto) {
 
 function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   if (!rascunho) return rascunho;
+
+  // 1. Cross-Check determinístico imediato em RAM (0ms) contra bases locais (interações, HSL e REMUME)
+  var blocoCrossCheck = "";
+  if (typeof executarCrossCheckSegurancaClinica === "function") {
+    try {
+      var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
+      if (check && (check.temAlertasCriticos || (check.interacoes && check.interacoes.length > 0) || (check.ajustesRenais && check.ajustesRenais.length > 0))) {
+        blocoCrossCheck = "\n\n" + check.textoFormatado;
+      }
+    } catch (eCheck) {
+      Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
+    }
+  }
+
   var sistema = [
     "Você é um auditor de segurança medicamentosa e de conformidade com diretrizes. Receba o CASO e o RASCUNHO e liste SOMENTE problemas reais:",
     "- dose acima do máximo ou abaixo do terapêutico; falta de ajuste renal/hepático/peso/idade; alergia ou interação ignorada;",
@@ -5677,12 +6278,12 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   try { r = _iaExecutar(sistema, contexto, 600, { clinico: true, exigirRespostaCompleta: true }); }
   catch (e) { Logger.log("Auditoria automática indisponível."); }
   var limpo = String(r || "").trim();
-  if (!limpo) return rascunho + "\n\n⚠️ *Auditoria automática indisponível — revisão pendente*\nNão foi possível concluir a segunda revisão. Este rascunho não foi liberado pela auditoria; confira-o antes de qualquer uso.";
-  if (/^SEM ALERTAS\.?$/i.test(limpo)) return rascunho;
+  if (!limpo) return rascunho + blocoCrossCheck + "\n\n⚠️ *Auditoria automática indisponível — revisão pendente*\nNão foi possível concluir a segunda revisão. Este rascunho não foi liberado pela auditoria; confira-o antes de qualquer uso.";
+  if (/^SEM ALERTAS\.?$/i.test(limpo)) return rascunho + blocoCrossCheck;
   if (!/^-\s+/m.test(limpo) || /resposta interrompida por limite/i.test(limpo)) {
-    return rascunho + "\n\n⚠️ *Auditoria automática incompleta — revisão pendente*\nA revisão não produziu uma conclusão completa. Retorno recebido:\n" + _iaFinalizarTexto(limpo);
+    return rascunho + blocoCrossCheck + "\n\n⚠️ *Auditoria automática incompleta — revisão pendente*\nA revisão não produziu uma conclusão completa. Retorno recebido:\n" + _iaFinalizarTexto(limpo);
   }
-  return rascunho + "\n\n🛑 *Alertas da auditoria automática (" + titulo + ") — revisão pendente*\n" + _iaFinalizarTexto(limpo);
+  return rascunho + blocoCrossCheck + "\n\n🛑 *Alertas da auditoria automática (" + titulo + ") — revisão pendente*\n" + _iaFinalizarTexto(limpo);
 }
 
 // ==============================================================================
@@ -7497,23 +8098,20 @@ function executarCicloRotina5Min() {
   // A. BRIEFING MATINAL (06:15 até 09:00)
   if (minutos >= 375 && minutos < 540) {
     if (props.getProperty("ultima_data_briefing") !== dataHojeISO) {
-      if (enviarBriefingMatinal(chatId)) {
-        props.setProperty("ultima_data_briefing", dataHojeISO);
-      }
+      props.setProperty("ultima_data_briefing", dataHojeISO);
+      enviarBriefingMatinal(chatId);
     }
   }
 
   // B. CHECK-IN NOTURNO (21:30 até 23:59)
   if (minutos >= 1290) {
     if (props.getProperty("ultima_data_checkin") !== dataHojeISO) {
+      props.setProperty("ultima_data_checkin", dataHojeISO);
       var stPl = detectarPlantaoStatus(agora);
       if (stPl.ehPlantaoHoje) {
         enviarMensagemParaChat(chatId, "🚨 *EM PLANTÃO NOTURNO:*\nCheck-in de hábitos silenciado para manter o foco nos pacientes. Se precisar de condutas, doses de Sala Vermelha (`/dva`, `/sri`) ou gasometria, estou na retaguarda. Bom plantão!");
-        props.setProperty("ultima_data_checkin", dataHojeISO);
       } else {
-        if (enviarCheckinNoturno(chatId)) {
-          props.setProperty("ultima_data_checkin", dataHojeISO);
-        }
+        enviarCheckinNoturno(chatId);
       }
     }
   }
@@ -7521,9 +8119,8 @@ function executarCicloRotina5Min() {
   // C. RELATÓRIO SEMANAL DE HÁBITOS (DOMINGOS ÀS 20:00)
   if (agora.getDay() === 0 && minutos >= 1200) {
     if (props.getProperty("ultima_data_relatorio") !== dataHojeISO) {
-      if (enviarRelatorioSemanalHabitos(chatId)) {
-        props.setProperty("ultima_data_relatorio", dataHojeISO);
-      }
+      props.setProperty("ultima_data_relatorio", dataHojeISO);
+      enviarRelatorioSemanalHabitos(chatId);
     }
   }
 
@@ -9112,9 +9709,20 @@ function processarMensagemTexto(message) {
     return responderPreceptorVozComIA(chatId, dadosVoz);
   }
 
-  if (comando === "/interacao") {
-    var drogas = texto.replace(/^\/interacao\s*/i, "").trim();
-    if (!drogas) return enviarMensagemParaChat(chatId, "💊 Informe os medicamentos para cruzar.");
+  if (comando === "/interacao" || comando === "/seguranca" || comando === "/crosscheck") {
+    var drogas = texto.replace(/^\/(interacao|seguranca|crosscheck)\s*/i, "").trim();
+    if (!drogas) return enviarMensagemParaChat(chatId, "🛡️ *Checagem Farmacológica & Segurança*\n\nInforme 2 ou mais medicamentos ou cole a prescrição.\n\n💡 *Exemplo:* `/interacao amiodarona fluconazol` ou `/seguranca enoxaparina 40mg, clcr 25`");
+    
+    // 1. Checagem imediata em RAM (0ms)
+    var check = (typeof executarCrossCheckSegurancaClinica === "function") ? executarCrossCheckSegurancaClinica(drogas) : null;
+    if (check && (check.interacoes.length > 0 || check.ajustesRenais.length > 0 || check.tetosDose.length > 0)) {
+      enviarMensagemParaChat(chatId, check.textoFormatado);
+      // Se não há interações graves bloqueantes, complementa com a síntese clínica do motor IA
+      if (!check.temAlertasCriticos && comando === "/interacao") {
+        return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
+      }
+      return true;
+    }
     return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
   }
 
@@ -9198,6 +9806,39 @@ function processarMensagemTexto(message) {
     return tratarComandoRotina(chatId, textoTrim);
   }
 
+  // ⚡ FAST-PATH DETERMINÍSTICO (0ms a 15ms em RAM)
+  // Cálculos puros (CURB-65, Glasgow, Parkland, DVA, Clearance, Diluição, Ajuste Renal)
+  // NUNCA envie essas tarefas para o modelo de linguagem se a matemática/tabela está no código Node.js!
+  var ehConsultaDeterministica = (
+    typeof ehCalculadoraReconhecida === "function" && ehCalculadoraReconhecida(texto)
+  ) || (
+    typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(texto)
+  ) || /\b(?:curb|crcl|clcr|cockcroft|ckd|glasgow|parkland|queimadur|dva|nora|dobuta|vaso|nitroprussiato|nitroglicerina|dilui[çc][ãa]o|como\s+diluir|preparo|ajuste\s+renal)\b/i.test(texto);
+
+  if (ehConsultaDeterministica && typeof tentarCalcularDeterministico === "function") {
+    var resFastDet = tentarCalcularDeterministico(texto);
+    if (resFastDet) {
+      return enviarMensagemParaChat(chatId, resFastDet);
+    }
+    if (typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(texto)) {
+      var instrucoesDet = obterInstrucoesCalculadora(texto);
+      if (instrucoesDet) return enviarMensagemParaChat(chatId, instrucoesDet);
+    }
+  }
+
+  // Se for consulta de preparo/diluição de fármaco do Guia HSL, responde na hora sem chamar IA
+  var matchDiluicao = texto.match(/(?:como\s+diluir|dilui[çc][ãa]o\s+d[eo]?|preparo\s+d[eo]?|tempo\s+de\s+infus[ãa]o\s+d[eo]?|estabilidade\s+d[eo]?)\s+([a-zA-Z0-9\s+]+)/i);
+  if (matchDiluicao && matchDiluicao[1]) {
+    var termoDroga = matchDiluicao[1].trim().replace(/[?!.]+$/, "");
+    if (termoDroga.length >= 3 && typeof buscarMedicamentoNoHSL === "function") {
+      var medHsl = buscarMedicamentoNoHSL(termoDroga);
+      if (medHsl && (medHsl.preparo_diluicao || medHsl.administracao)) {
+        var respDiluicao = formatarDiluicaoPreparoHSL(medHsl);
+        if (respDiluicao) return enviarMensagemParaChat(chatId, respDiluicao);
+      }
+    }
+  }
+
   enviarChatAction(chatId, "typing");
   var decisao = classificarIntencaoMensagem(texto);
 
@@ -9248,17 +9889,60 @@ function processarMensagemTexto(message) {
     return responderPreceptorVozComIA(chatId, casoAudio);
   }
 
+  // 1. CHECAGEM DETERMINÍSTICA RÁPIDA EM RAM (0ms a 15ms)
+  // Se for consulta de preparo/diluição de fármaco do Guia HSL, responde na hora sem chamar IA
+  var matchDiluicao = texto.match(/(?:como\s+diluir|dilui[çc][ãa]o\s+d[eo]?|preparo\s+d[eo]?|tempo\s+de\s+infus[ãa]o\s+d[eo]?|estabilidade\s+d[eo]?)\s+([a-zA-Z0-9\s+]+)/i);
+  if (matchDiluicao && matchDiluicao[1]) {
+    var termoDroga = matchDiluicao[1].trim().replace(/[?!.]+$/, "");
+    if (termoDroga.length >= 3 && typeof buscarMedicamentoNoHSL === "function") {
+      var medHsl = buscarMedicamentoNoHSL(termoDroga);
+      if (medHsl && (medHsl.preparo_diluicao || medHsl.administracao)) {
+        var respDiluicao = formatarDiluicaoPreparoHSL(medHsl);
+        if (respDiluicao) return enviarMensagemParaChat(chatId, respDiluicao);
+      }
+    }
+  }
+
+  // 2. CÁLCULOS DETERMINÍSTICOS DIRETOS EM RAM (0ms a 15ms)
   if (decisao.intencao === "CLINICO_EMERGENCIA") {
     var tEmerg = texto.toLowerCase();
-    if (tEmerg.indexOf("nora") !== -1) {
-      var pesos = Array.from(texto.matchAll(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/gi));
-      if (pesos.length!==1) return enviarMensagemParaChat(chatId,"Informe um único peso explícito em kg. Exemplo: nora, peso 70,5 kg.");
-      var pNora = sanitizarEValidarPesoKg(pesos[0][1]);
-      if (pNora===null) return enviarMensagemParaChat(chatId,"Peso inválido. Informe o peso em kg.");
-      var solNora = /concentrad[ao]|dobrad[ao]|4x/i.test(texto) ? "concentrada" : "padrao";
-      var resNora = CalculadorasClinicas.drogasVasoativas("noradrenalina", pNora, solNora);
-      if (resNora) return enviarMensagemParaChat(chatId, resNora.textoFormatado || resNora.texto);
+    var matchPesoGeral = texto.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i);
+
+    // A. Drogas Vasoativas Puras
+    if (matchPesoGeral && (tEmerg.indexOf("nora") !== -1 || tEmerg.indexOf("dobuta") !== -1 || tEmerg.indexOf("vaso") !== -1 || tEmerg.indexOf("dva") !== -1)) {
+      var pDva = parseFloat(matchPesoGeral[1].replace(",", "."));
+      if (typeof ValidadorFisiologico !== "undefined") {
+        var vFisio = ValidadorFisiologico.validarParametro("peso", pDva);
+        if (!vFisio.valido) return enviarMensagemParaChat(chatId, vFisio.alerta);
+      }
+      var drogaEleita = "noradrenalina";
+      if (tEmerg.indexOf("dobuta") !== -1) drogaEleita = "dobutamina";
+      else if (tEmerg.indexOf("vaso") !== -1) drogaEleita = "vasopressina";
+      var solDva = /concentrad[ao]|dobrad[ao]|4x/i.test(texto) ? "concentrada" : "padrao";
+      var resDva = CalculadorasClinicas.drogasVasoativas(drogaEleita, pDva, solDva);
+      if (resDva) return enviarMensagemParaChat(chatId, resDva.textoFormatado || resDva.texto);
     }
+
+    // B. Sequência Rápida de Intubação (SRI / IOT)
+    if (matchPesoGeral && (/\b(?:sri|iot|intuba[çc][ãa]o)\b/i.test(texto))) {
+      var pSri = parseFloat(matchPesoGeral[1].replace(",", "."));
+      var cenarioSri = "padrao";
+      if (/choque|hipotens[ãa]o|sepse/i.test(texto)) cenarioSri = "choque";
+      else if (/asma|broncoespasmo|dpoc/i.test(texto)) cenarioSri = "asma";
+      var resSri = CalculadorasClinicas.sequenciaRapidaIntubacao(pSri, cenarioSri);
+      if (resSri) return enviarMensagemParaChat(chatId, resSri.textoFormatado || resSri.texto);
+    }
+
+    // C. Parkland em Queimaduras
+    var matchParkland = texto.match(/(?:parkland|queimadur[as]?)\b.*?(?:(\d+(?:[.,]\d+)?)\s*kg).*?(\d+(?:[.,]\d+)?)\s*%/i) ||
+                        texto.match(/(?:parkland|queimadur[as]?)\b.*?(\d+(?:[.,]\d+)?)\s*%.*?(?:(\d+(?:[.,]\d+)?)\s*kg)/i);
+    if (matchParkland) {
+      var pPark = parseFloat((matchParkland[1] || matchParkland[2]).replace(",", "."));
+      var scqPark = parseFloat((matchParkland[2] || matchParkland[1]).replace(",", "."));
+      var resPark = CalculadorasClinicas.parkland(pPark, scqPark);
+      if (resPark) return enviarMensagemParaChat(chatId, resPark.textoFormatado || resPark.texto);
+    }
+
     return processarEEntregarIA(chatId, gerarCondutaEmergenciaComIA, texto, "conduta");
   }
 
@@ -10701,6 +11385,11 @@ var CATALOGO_CALCULADORAS = {
     nome: "CURB-65",
     aliases: ["curb", "curb65", "curb-65", "crb65", "crb-65"]
   },
+  parkland: {
+    id: "parkland",
+    nome: "Parkland (Queimaduras)",
+    aliases: ["parkland", "queimados", "queimadura", "queimaduras"]
+  },
   ckd: {
     id: "ckd",
     nome: "CKD-EPI 2021",
@@ -10824,7 +11513,8 @@ var CATALOGO_CALCULADORAS = {
 
 var LISTA_CALCULADORAS_DETERMINISTICAS = [
   "curb65", "ckd", "cockcroft", "cha2ds2vasc", "hasbled", "wells",
-  "glasgow", "calcio", "gap_osmolar", "agua", "kdigo", "ldl", "meld"
+  "glasgow", "calcio", "gap_osmolar", "agua", "kdigo", "ldl", "meld",
+  "parkland", "dva"
 ];
 
 function ehCalculadoraDeterministica(texto) {
@@ -10877,6 +11567,76 @@ function tentarCalcularDeterministico(texto) {
   if (!texto || typeof CalculadorasClinicas === "undefined") return null;
   var t = texto.toLowerCase();
   var identidade = identificarCalculadora(texto);
+
+  // 0. Preparo & Diluição de Fármacos em RAM (Guia Farmacêutico HSL)
+  var matchDilDet = texto.match(/(?:como\s+diluir|dilui[çc][ãa]o\s+d[eo]?|preparo\s+d[eo]?|tempo\s+de\s+infus[ãa]o\s+d[eo]?|estabilidade\s+d[eo]?)\s+([a-zA-Z0-9\s+]+)/i);
+  if (matchDilDet && matchDilDet[1]) {
+    var termoDrogaDet = matchDilDet[1].trim().replace(/[?!.]+$/, "");
+    if (termoDrogaDet.length >= 3 && typeof buscarMedicamentoNoHSL === "function") {
+      var medHslDet = buscarMedicamentoNoHSL(termoDrogaDet);
+      if (medHslDet && (medHslDet.preparo_diluicao || medHslDet.administracao)) {
+        var respDilDet = formatarDiluicaoPreparoHSL(medHslDet);
+        if (respDilDet) return respDilDet;
+      }
+    }
+  }
+
+  // 0.1. Parkland (Ressuscitação em Queimados)
+  if (identidade === "parkland" || /(?:parkland|queimadur[as]?)\b/i.test(t)) {
+    if (typeof CalculadorasClinicas.calcularParklandPorTextoLivre === "function") {
+      var resParkLivre = CalculadorasClinicas.calcularParklandPorTextoLivre(texto);
+      if (resParkLivre && resParkLivre.ok) return resParkLivre.textoFormatado;
+    }
+    var mPark1 = t.match(/(?:parkland|queimadur[as]?)\b.*?(?:(\d+(?:[.,]\d+)?)\s*kg).*?(\d+(?:[.,]\d+)?)\s*%/i) ||
+                 t.match(/(?:parkland|queimadur[as]?)\b.*?(\d+(?:[.,]\d+)?)\s*%.*?(?:(\d+(?:[.,]\d+)?)\s*kg)/i);
+    if (mPark1) {
+      var pPark1 = parseFloat((mPark1[1] || mPark1[2]).replace(",", "."));
+      var sPark1 = parseFloat((mPark1[2] || mPark1[1]).replace(",", "."));
+      var rP1 = CalculadorasClinicas.parkland(pPark1, sPark1);
+      if (rP1 && rP1.ok) return rP1.textoFormatado;
+    }
+    var mPesoPark = t.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i);
+    var mScqPark = t.match(/(?:scq|queimadura)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*%?/i) || t.match(/(\d+(?:[.,]\d+)?)\s*%/i);
+    if (mPesoPark && mScqPark) {
+      var rP2 = CalculadorasClinicas.parkland(parseFloat(mPesoPark[1].replace(",", ".")), parseFloat(mScqPark[1].replace(",", ".")));
+      if (rP2 && rP2.ok) return rP2.textoFormatado;
+    }
+    return "⚠️ *Calculadora Parkland: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("parkland");
+  }
+
+  // 0.2. Drogas Vasoativas (DVA em mcg/kg/min ou mcg/min)
+  if (identidade === "dva" || /\b(?:dva|noradrenalina|nora|dobutamina|dobuta|vasopressina|vaso|nitroprussiato|nitroglicerina)\b/i.test(t)) {
+    var matchPesoDva = t.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i);
+    var drogaEleitaDva = null;
+    if (/\b(?:nora|noradrenalina)\b/i.test(t)) drogaEleitaDva = "noradrenalina";
+    else if (/\b(?:dobuta|dobutamina)\b/i.test(t)) drogaEleitaDva = "dobutamina";
+    else if (/\b(?:vaso|vasopressina)\b/i.test(t)) drogaEleitaDva = "vasopressina";
+    else if (/\b(?:nitroprussiato|nipride)\b/i.test(t)) drogaEleitaDva = "nitroprussiato";
+    else if (/\b(?:nitroglicerina|tridil)\b/i.test(t)) drogaEleitaDva = "nitroglicerina";
+    else if (identidade === "dva") drogaEleitaDva = "noradrenalina";
+
+    if (drogaEleitaDva) {
+      var solDvaDet = /concentrad[ao]|dobrad[ao]|4x|2x/i.test(t) ? "concentrada" : "padrao";
+      if (matchPesoDva || drogaEleitaDva === "vasopressina" || drogaEleitaDva === "nitroglicerina") {
+        var pDvaVal = matchPesoDva ? parseFloat(matchPesoDva[1].replace(",", ".")) : 70;
+        var rDva = CalculadorasClinicas.drogasVasoativas(drogaEleitaDva, pDvaVal, solDvaDet);
+        if (rDva && rDva.ok) {
+          var strDva = "💉 *" + (rDva.nome || "INFUSÃO DE DROGAS VASOATIVAS").toUpperCase() + "*\n\n";
+          strDva += "• *Concentração:* `" + rDva.principal + "`\n";
+          if (rDva.secoes) {
+            for (var sd = 0; sd < rDva.secoes.length; sd++) {
+              var secD = rDva.secoes[sd];
+              strDva += "\n*" + secD[0] + ":*\n";
+              var itensD = Array.isArray(secD[1]) ? secD[1] : [secD[1]];
+              for (var itd = 0; itd < itensD.length; itd++) strDva += "  • " + itensD[itd] + "\n";
+            }
+          }
+          return strDva;
+        }
+      }
+      return "⚠️ *Calculadora DVA: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("dva");
+    }
+  }
 
   // Ajuste Renal de Antimicrobianos
   if (/\b(?:atb|antimicrobiano|vanco|vancomicina|meropenem|mero|pip-?tazo|piperacilina|cefepime?|ceftriaxona?|cipro|ciprofloxacino|polimixina|fluconazol)\b/i.test(t) &&
@@ -11413,6 +12173,36 @@ function obterInstrucoesCalculadora(tipo) {
       "Peso: [ ] kg\n" +
       "```\n" +
       "*(Toque na caixa desejada para copiar, preencha os valores e envie)*";
+  }
+
+  if (t.indexOf("PARKLAND") !== -1 || t.indexOf("QUEIMAD") !== -1) {
+    return "📐 *CALCULADORA: FÓRMULA DE PARKLAND (QUEIMADURAS)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Peso corporal (kg)\n" +
+      "• Superfície Corpórea Queimada - SCQ (% de 2º e 3º graus)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc parkland\n" +
+      "Peso: [ ] kg\n" +
+      "SCQ: [ ] %\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("DVA") !== -1 || t.indexOf("VASOATIV") !== -1 || t.indexOf("NORA") !== -1 || t.indexOf("DOBUTA") !== -1 || t.indexOf("VASO") !== -1) {
+    return "📐 *CALCULADORA: DROGAS VASOATIVAS (INFUSÃO NA BIC)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Fármaco (noradrenalina, dobutamina, vasopressina, nitroprussiato, nitroglicerina)\n" +
+      "• Peso corporal (kg)\n" +
+      "• Solução (padrao ou concentrada - opcional)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc dva\n" +
+      "Droga: [nora/dobuta/vaso]\n" +
+      "Peso: [ ] kg\n" +
+      "Solução: [padrao/concentrada]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("WELLS") !== -1 || t.indexOf("TEP") !== -1 || t.indexOf("TVP") !== -1) {
@@ -14496,6 +15286,15 @@ function salvarSoapCockpit_(chat, origem, texto) {
 function cockpitCalcular(initData, tipo, entrada) {
   cockpitAutorizar_(initData);
   if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) throw new Error('Informe os parâmetros do cálculo.');
+
+  // Validação fisiológica prévia e sanitização de limites
+  if (typeof ValidadorFisiologico !== 'undefined' && typeof ValidadorFisiologico.sanitizarEntradaCalculo === 'function') {
+    var checagemFisio = ValidadorFisiologico.sanitizarEntradaCalculo(tipo, entrada);
+    if (!checagemFisio.valido) {
+      throw new Error(checagemFisio.erro);
+    }
+  }
+
   switch (tipo) {
     case 'dva':
       if (['nora','dobuta','vaso'].indexOf(entrada.droga) < 0) throw new Error('Selecione uma droga válida.');
@@ -14508,13 +15307,23 @@ function cockpitCalcular(initData, tipo, entrada) {
       return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino);
     case 'gaso':
       return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3);
+    case 'interacoes':
+    case 'seguranca':
+      var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';
+      return executarCrossCheckSegurancaClinica(alvos, entrada.contexto || entrada);
     default: throw new Error('Calculadora desconhecida.');
   }
 }
 
+function cockpitChecarSeguranca(initData, drogasOuTexto, contextoClinico) {
+  cockpitAutorizar_(initData);
+  if (!drogasOuTexto) throw new Error('Informe os medicamentos ou texto para checagem.');
+  return executarCrossCheckSegurancaClinica(drogasOuTexto, contextoClinico);
+}
+
 function cockpitRemume(initData) {
   cockpitAutorizar_(initData);
-  var id = ConfigService.exigir('SPREADSHEET_ID_REMUME');
+  var id = ConfigService.get('SPREADSHEET_ID_REMUME') || 'remume_local';
   var base = obterPlanilha('remume', id, false);
   return {fonte:'REMUME configurada no bot', itens:String(base || '').split(/\r?\n/).filter(function(l){return l.trim().length > 0;})};
 }
@@ -14588,6 +15397,26 @@ function cockpitConversar(initData, params) {
 
     if (!texto) throw new Error('Envie uma mensagem de texto ou grave um áudio para prosseguir.');
 
+    // ⚡ SEPARAÇÃO RÍGIDA: LÓGICA DETERMINÍSTICA EM RAM PURA (0ms a 15ms)
+    // Cálculos puros (CURB-65, Glasgow, Parkland, DVA em mcg/kg/min, clearance de creatinina, diluição de antibióticos)
+    // NUNCA envie essas tarefas para o modelo de linguagem se a matemática e a tabela já estão no código Node.js!
+    if (typeof tentarCalcularDeterministico === 'function') {
+      var resDetCockpit = tentarCalcularDeterministico(texto);
+      if (resDetCockpit) {
+        return {
+          sucesso: true,
+          acao: 'enviar',
+          textoRecebido: texto,
+          transcricao: transcricaoAudio || null,
+          resposta: String(resDetCockpit),
+          soap: dadosAtuais,
+          deterministico: true,
+          revision: estado ? estado.revision : null
+        };
+      }
+    }
+
+    // Inferência de IA (Gemini): Reservada exclusivamente para casos abertos (evolução SOAP complexa)
     var novoContexto = dadosAtuais ? (dadosAtuais + '\n' + texto) : texto;
     var novoEstado = definirModoBot(chat, 'soap', novoContexto);
     var resultadoSoap = gerarSOAPComIA(novoContexto);

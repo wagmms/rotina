@@ -254,11 +254,47 @@
           </span>
           <span class="text-[9px] bg-rose-500/30 text-rose-200 px-1.5 py-0.5 rounded font-mono font-bold tracking-tight">HC-UE</span>
         </button>
-        <div class="grid grid-cols-4 gap-1 text-center text-[10px] font-bold">
+        <div class="grid grid-cols-5 gap-1 text-center text-[10px] font-bold">
           <button onclick="abrirSubCalc('calc-dva', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-slate-800 text-slate-400">DVA</button>
           <button onclick="abrirSubCalc('calc-sri', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-slate-800 text-slate-400">SRI / IOT</button>
-          <button onclick="abrirSubCalc('calc-crcl', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-slate-800 text-slate-400">Clearance Cr</button>
-          <button onclick="abrirSubCalc('calc-gaso', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-slate-800 text-slate-400">Gasometria</button>
+          <button onclick="abrirSubCalc('calc-crcl', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-slate-800 text-slate-400">Clearance</button>
+          <button onclick="abrirSubCalc('calc-gaso', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-slate-800 text-slate-400">Gaso</button>
+          <button onclick="abrirSubCalc('calc-crosscheck', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🛡️ Segurança</button>
+        </div>
+      </div>
+
+      <!-- Subcalc: Cross-Check Farmacológico & Interações (RAM Local 0ms) -->
+      <div id="calc-crosscheck" class="subcalc-pane hidden glass-card rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Segurança & Cross-Check Farmacológico
+          </h4>
+          <span class="text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold font-mono">RAM 0ms</span>
+        </div>
+        <p class="text-[11px] text-slate-400">Varredura automática contra 219 interações locais, Guia HSL (ajuste renal e tetos de dose) e REMUME.</p>
+
+        <div class="space-y-2">
+          <div>
+            <label class="block text-slate-300 text-xs mb-1 font-medium">Medicamentos a cruzar ou texto da prescrição:</label>
+            <textarea id="crosscheck-input" rows="3" placeholder="Ex: amiodarona 200mg, fluconazol 150mg, enoxaparina 40mg, clcr 28" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"></textarea>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="executarCrossCheckCockpit()" class="flex-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-950 transition active:scale-[0.98]">
+              <i data-lucide="search" class="w-3.5 h-3.5"></i> Verificar Interações & Ajuste Renal
+            </button>
+            <button onclick="document.getElementById('crosscheck-input').value=''; document.getElementById('crosscheck-resultado').classList.add('hidden');" class="py-2 px-3 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs border border-slate-700 transition">
+              Limpar
+            </button>
+          </div>
+        </div>
+
+        <!-- Container do Resultado -->
+        <div id="crosscheck-resultado" class="hidden space-y-2.5 pt-2 border-t border-slate-800">
+          <div id="crosscheck-status-badge" class="p-2.5 rounded-lg border text-xs font-semibold flex items-center gap-2"></div>
+          <div id="crosscheck-detalhes" class="p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px] font-mono whitespace-pre-wrap leading-relaxed text-slate-200 max-h-72 overflow-y-auto"></div>
+          <button onclick="copiarCrossCheckPEP()" class="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Parecer Farmacológico para o Prontuário
+          </button>
         </div>
       </div>
 
@@ -596,11 +632,19 @@
             <button
               onclick="solicitarSabatinaPreceptorPlantao()"
               title="Perguntar ao Preceptor IA sobre este caso"
-              class="py-1.5 px-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-md shadow-purple-950 active:scale-[0.98] shrink-0"
+              class="py-1.5 px-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-md shadow-purple-950 active:scale-[0.98] shrink-0"
             >
               <i data-lucide="brain" class="w-3.5 h-3.5"></i>
-              <span class="hidden sm:inline">Auditar com Preceptor</span>
-              <span class="sm:hidden">Auditar</span>
+              <span class="hidden sm:inline">Auditar</span>
+            </button>
+
+            <button
+              onclick="abrirModalPreceptorLive()"
+              title="Iniciar conversa por voz em tempo real no fone (Gemini 3.8 Live)"
+              class="py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-md shadow-emerald-950 active:scale-[0.98] shrink-0 animate-pulse"
+            >
+              <i data-lucide="headphones" class="w-3.5 h-3.5"></i>
+              <span>Voz Live</span>
             </button>
 
             <button
@@ -649,6 +693,9 @@
             </button>
             <button onclick="provocarPreceptorSocratico()" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-semibold hover:bg-amber-500/30 flex items-center gap-1 transition">
               <i data-lucide="brain" class="w-3 h-3"></i> Preceptor
+            </button>
+            <button onclick="abrirModalPreceptorLive()" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold hover:bg-emerald-500/30 flex items-center gap-1 transition">
+              <i data-lucide="headphones" class="w-3 h-3"></i> Preceptor Live
             </button>
             <button onclick="executarAcaoConversa('novo')" class="px-2 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-rose-400 text-[11px] font-semibold flex items-center gap-1 transition" title="Limpar e Iniciar Novo Caso">
               <i data-lucide="trash-2" class="w-3 h-3"></i> Novo Caso
@@ -968,6 +1015,107 @@
             <span>Provocar Preceptor</span>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL: PRECEPTOR IA — VOZ EM TEMPO REAL (GEMINI-3.8-LIVE)        -->
+  <!-- ================================================================= -->
+  <div id="modal-preceptor-live" class="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/85 backdrop-blur-md hidden animate-in fade-in duration-200">
+    <div class="relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-2xl border border-emerald-500/40 bg-slate-900 shadow-2xl overflow-hidden">
+      <!-- Header do Modal Live -->
+      <div class="flex items-center justify-between border-b border-slate-800 p-3.5 bg-slate-950/80">
+        <div class="flex items-center gap-2.5">
+          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30">
+            <i data-lucide="headphones" class="w-5 h-5 animate-pulse"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[9.5px] font-extrabold uppercase tracking-wider text-emerald-400">Preceptor Socrático Live</span>
+              <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-mono font-bold">gemini-3.8-live</span>
+            </div>
+            <h4 class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+              Discussão Clínica em Tempo Real no Fone
+            </h4>
+          </div>
+        </div>
+
+        <button onclick="fecharModalPreceptorLive()" class="p-1.5 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Corpo da Sessão Live -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        <!-- Visualizador / Status Card -->
+        <div class="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex flex-col items-center justify-center text-center space-y-3">
+          <!-- Animação do Visualizador de Áudio -->
+          <div id="live-visualizer-container" class="relative flex items-center justify-center h-20 w-20">
+            <div id="live-pulse-ring" class="absolute inset-0 rounded-full border-2 border-emerald-500/20 scale-100 transition-all duration-300"></div>
+            <div id="live-avatar" class="h-14 w-14 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-950/60 transition-transform">
+              <i data-lucide="brain" class="w-7 h-7" id="live-avatar-icon"></i>
+            </div>
+          </div>
+
+          <div>
+            <div id="live-status-badge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+              <span class="h-2 w-2 rounded-full bg-slate-500" id="live-status-dot"></span>
+              <span id="live-status-text">Pronto para conectar ao vivo</span>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1.5 max-w-xs mx-auto">
+              Fale pelo microfone como se estivesse com o Preceptor FMRP-USP no fone. Latência &lt; 500ms com interrupção natural (barge-in).
+            </p>
+          </div>
+
+          <!-- Controles da Conexão Live -->
+          <div class="flex items-center gap-2 pt-1">
+            <button
+              id="btn-iniciar-live"
+              onclick="alternarSessaoLivePreceptor()"
+              class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950 active:scale-95 transition"
+            >
+              <i data-lucide="mic" class="w-4 h-4" id="btn-iniciar-live-icone"></i>
+              <span id="btn-iniciar-live-label">Conectar Preceptor Live</span>
+            </button>
+
+            <button
+              id="btn-mutar-live"
+              onclick="toggleMuteLivePreceptor()"
+              class="hidden px-3 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition"
+              title="Mutar/Desmutar Microfone"
+            >
+              <i data-lucide="mic-off" class="w-4 h-4" id="icone-btn-mutar-live"></i>
+              <span id="label-btn-mutar-live">Mudo</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Transcrição ao Vivo dos Turnos da Discussão -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[10.5px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+              <i data-lucide="message-square" class="w-3 h-3 text-emerald-400"></i> Transcrição em Tempo Real
+            </span>
+            <button onclick="limparTranscricaoLive()" class="text-[10px] text-slate-400 hover:text-rose-300">
+              Limpar
+            </button>
+          </div>
+          <div id="live-transcricao-container" class="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 min-h-[140px] max-h-[220px] overflow-y-auto space-y-2 text-[11px] text-slate-300 font-sans">
+            <p class="text-slate-500 italic text-center py-4">Toque em "Conectar Preceptor Live" e fale o caso clínico no microfone para iniciar a sabatina socrática...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer com Ações -->
+      <div class="p-3 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between">
+        <button onclick="copiarTranscricaoLiveParaSOAP()" class="px-3 py-1.5 rounded-lg border border-purple-500/40 bg-purple-500/15 hover:bg-purple-500/25 text-purple-200 text-xs font-bold flex items-center gap-1.5 transition">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+          <span>Enviar Caso ao SOAP</span>
+        </button>
+        <button onclick="fecharModalPreceptorLive()" class="px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-semibold transition">
+          Fechar
+        </button>
       </div>
     </div>
   </div>
@@ -1956,12 +2104,41 @@
       }
     }
 
+    const FAIXAS_FISIO = {
+      peso: { min: 0.4, max: 350, rotulo: 'Peso', unidade: 'kg' },
+      idade: { min: 0, max: 125, rotulo: 'Idade', unidade: 'anos' },
+      creatinina: { min: 0.1, max: 30, rotulo: 'Creatinina', unidade: 'mg/dL' },
+      ph: { min: 6.70, max: 7.80, rotulo: 'pH', unidade: '' },
+      pco2: { min: 10, max: 150, rotulo: 'pCO₂', unidade: 'mmHg' },
+      hco3: { min: 2, max: 60, rotulo: 'HCO₃', unidade: 'mEq/L' }
+    };
+
+    function validarEntradaFisiologica(tipo, entrada) {
+      if (!entrada) return null;
+      for (const [campo, faixa] of Object.entries(FAIXAS_FISIO)) {
+        if (entrada[campo] !== undefined && entrada[campo] !== '' && entrada[campo] !== null) {
+          const num = parseFloat(String(entrada[campo]).replace(',', '.'));
+          if (!isNaN(num) && (num < faixa.min || num > faixa.max)) {
+            return `⚠️ ${faixa.rotulo} de ${num}${faixa.unidade ? ' ' + faixa.unidade : ''} fora da faixa biológica esperada (${faixa.min} a ${faixa.max}${faixa.unidade ? ' ' + faixa.unidade : ''}). Confirme se houve erro de digitação antes do cálculo.`;
+          }
+        }
+      }
+      return null;
+    }
+
     const pedidosCalc = {};
     function solicitarCalculo(tipo, entrada, destino) {
+      const alertaFisio = validarEntradaFisiologica(tipo, entrada);
+      const resultado = document.getElementById(destino);
+      if (alertaFisio) {
+        resultado.classList.add('whitespace-pre-wrap');
+        resultado.textContent = alertaFisio;
+        hapticFeedback('error');
+        return;
+      }
       const anterior = pedidosCalc[tipo];
       if (anterior) clearTimeout(anterior.timer);
       const pedido = {entrada};pedidosCalc[tipo] = pedido;
-      const resultado = document.getElementById(destino);
       resultado.classList.add('whitespace-pre-wrap');
       resultado.textContent = 'Conferindo parâmetros…';
       pedido.timer = setTimeout(async () => {
@@ -1986,6 +2163,66 @@
     }
     function calcularGaso() {
       solicitarCalculo('gaso', {ph:valorCalc('gaso-ph'), pco2:valorCalc('gaso-pco2'), hco3:valorCalc('gaso-hco3')}, 'gaso-resultado');
+    }
+
+    let ultimoCrossCheckResultado = null;
+
+    async function executarCrossCheckCockpit() {
+      const entrada = document.getElementById('crosscheck-input')?.value?.trim();
+      if (!entrada) {
+        copiarToast('Digite medicamentos para checagem.');
+        return;
+      }
+      hapticFeedback('medium');
+      const badge = document.getElementById('crosscheck-status-badge');
+      const detalhes = document.getElementById('crosscheck-detalhes');
+      const container = document.getElementById('crosscheck-resultado');
+
+      container.classList.remove('hidden');
+      badge.className = 'p-2.5 rounded-lg border bg-slate-800/80 border-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-2 animate-pulse';
+      badge.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin text-emerald-400"></i> Varrendo 219 interações e Guia HSL em RAM...';
+      detalhes.textContent = 'Processando...';
+      if (window.lucide) lucide.createIcons();
+
+      try {
+        const resp = await cockpitRpc('cockpitChecarSeguranca', entrada);
+        ultimoCrossCheckResultado = resp;
+
+        if (resp.temAlertasCriticos) {
+          badge.className = 'p-2.5 rounded-lg border bg-rose-500/20 border-rose-500/50 text-rose-200 text-xs font-bold flex items-center gap-2';
+          badge.innerHTML = '<i data-lucide="alert-octagon" class="w-4 h-4 text-rose-400"></i> 🛑 Alerta Crítico Farmacológico Detectado';
+        } else if (resp.interacoes && resp.interacoes.length > 0) {
+          badge.className = 'p-2.5 rounded-lg border bg-amber-500/20 border-amber-500/50 text-amber-200 text-xs font-bold flex items-center gap-2';
+          badge.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i> ⚠️ Interações Moderadas Detectadas';
+        } else {
+          badge.className = 'p-2.5 rounded-lg border bg-emerald-500/20 border-emerald-500/50 text-emerald-200 text-xs font-bold flex items-center gap-2';
+          badge.innerHTML = '<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> ✅ Prescrição Sem Interações Graves';
+        }
+
+        detalhes.textContent = resp.textoFormatado || 'Nenhum alerta para os termos informados.';
+        copiarToast('Varredura concluída (' + (resp.benchmark_ms || 1) + 'ms)');
+        if (window.lucide) lucide.createIcons();
+      } catch (err) {
+        badge.className = 'p-2.5 rounded-lg border bg-rose-950/60 border-rose-800 text-rose-300 text-xs font-semibold flex items-center gap-2';
+        badge.innerHTML = '<i data-lucide="x-circle" class="w-4 h-4 text-rose-400"></i> Falha na checagem: ' + err.message;
+        detalhes.textContent = err.message;
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    function copiarCrossCheckPEP() {
+      if (!ultimoCrossCheckResultado || !ultimoCrossCheckResultado.textoFormatado) {
+        copiarToast('Execute a checagem antes de copiar.');
+        return;
+      }
+      const dataHora = new Date().toLocaleString('pt-BR');
+      const textoPEP = '--- PARECER DE SEGURANÇA FARMACOLÓGICA ---\n' +
+        'Data/Hora: ' + dataHora + '\n\n' +
+        ultimoCrossCheckResultado.textoFormatado + '\n\n' +
+        'Prescritor responsável ciente das diretrizes e ajustes farmacológicos.';
+      navigator.clipboard?.writeText(textoPEP)
+        .then(() => copiarToast('Parecer farmacológico copiado p/ prontuário!'))
+        .catch(() => copiarToast('Erro ao copiar.'));
     }
 
     // =========================================================================
@@ -3510,6 +3747,359 @@
       }
     }
 
+    // ═════════════════════════════════════════════════════════════════════════
+    // PRECEPTOR IA · VOZ EM TEMPO REAL (GEMINI-3.8-LIVE / WEBSOCKET FULL-DUPLEX)
+    // ═════════════════════════════════════════════════════════════════════════
+    let liveWs = null;
+    let liveConectado = false;
+    let liveInputAudioCtx = null;
+    let liveOutputAudioCtx = null;
+    let liveMicStream = null;
+    let liveMicProcessor = null;
+    let liveScheduledTime = 0;
+    let liveActiveSources = [];
+    let liveMudo = false;
+    let historicoTranscricaoLive = [];
+
+    function abrirModalPreceptorLive() {
+      hapticFeedback('medium');
+      const modal = document.getElementById('modal-preceptor-live');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function fecharModalPreceptorLive() {
+      hapticFeedback('light');
+      if (liveConectado) {
+        desconectarLivePreceptor();
+      }
+      const modal = document.getElementById('modal-preceptor-live');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function setLiveStatus(texto, estado = 'idle') {
+      const badge = document.getElementById('live-status-badge');
+      const dot = document.getElementById('live-status-dot');
+      const statusText = document.getElementById('live-status-text');
+      const pulseRing = document.getElementById('live-pulse-ring');
+      const avatar = document.getElementById('live-avatar');
+      if (!badge || !statusText) return;
+
+      statusText.textContent = texto;
+
+      if (dot) {
+        dot.className = 'h-2 w-2 rounded-full ' + (
+          estado === 'connected' ? 'bg-emerald-400 animate-pulse' :
+          estado === 'speaking' ? 'bg-teal-300 animate-ping' :
+          estado === 'listening' ? 'bg-amber-400 animate-pulse' :
+          estado === 'connecting' ? 'bg-amber-400' : 'bg-slate-500'
+        );
+      }
+
+      if (pulseRing) {
+        if (estado === 'speaking') {
+          pulseRing.className = 'absolute inset-0 rounded-full border-2 border-teal-400 animate-ping opacity-60';
+        } else if (estado === 'listening') {
+          pulseRing.className = 'absolute inset-0 rounded-full border-2 border-amber-400 animate-pulse opacity-40';
+        } else if (estado === 'connected') {
+          pulseRing.className = 'absolute inset-0 rounded-full border-2 border-emerald-500/40 scale-105';
+        } else {
+          pulseRing.className = 'absolute inset-0 rounded-full border-2 border-slate-700/20 scale-100';
+        }
+      }
+
+      if (avatar) {
+        if (estado === 'speaking') {
+          avatar.className = 'h-14 w-14 rounded-full bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-xl shadow-teal-950/80 scale-105 transition-transform';
+        } else {
+          avatar.className = 'h-14 w-14 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-950/60 scale-100 transition-transform';
+        }
+      }
+    }
+
+    async function alternarSessaoLivePreceptor() {
+      if (liveConectado) {
+        desconectarLivePreceptor();
+      } else {
+        await conectarLivePreceptor();
+      }
+    }
+
+    async function conectarLivePreceptor() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        copiarToast('Microfone indisponível neste navegador.');
+        return;
+      }
+
+      setLiveStatus('Conectando ao Gemini 3.8 Live...', 'connecting');
+      const btnIniciar = document.getElementById('btn-iniciar-live');
+      const btnIniciarLabel = document.getElementById('btn-iniciar-live-label');
+      const btnMutar = document.getElementById('btn-mutar-live');
+      if (btnIniciarLabel) btnIniciarLabel.textContent = 'Conectando...';
+
+      try {
+        // Obter stream de microfone 16kHz
+        liveMicStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            sampleRate: 16000,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+
+        // Configurar URL do WebSocket
+        let wsUrl;
+        if (typeof window !== 'undefined' && window.location && window.location.origin && !window.location.hostname.includes('github.io')) {
+          const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          wsUrl = `${proto}//${window.location.host}/live`;
+        } else {
+          wsUrl = 'wss://ultra-rotina-backend.onrender.com/live';
+        }
+
+        liveWs = new WebSocket(wsUrl);
+
+        liveWs.onopen = () => {
+          liveConectado = true;
+          setLiveStatus('🟢 Conectado no Fone (gemini-3.8-live)', 'connected');
+          hapticFeedback('success');
+
+          if (btnIniciar) {
+            btnIniciar.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+            btnIniciar.classList.add('bg-rose-600', 'hover:bg-rose-500');
+          }
+          if (btnIniciarLabel) btnIniciarLabel.textContent = 'Encerrar Sessão Live';
+          if (btnMutar) btnMutar.classList.remove('hidden');
+
+          // Enviar caso clínico atual como contexto prévio se houver
+          if (cockpitDados && cockpitDados.soap) {
+            const contextoResumo = `[Contexto do Paciente em Atendimento no Cockpit]:\n${cockpitDados.soap.substring(0, 1000)}`;
+            liveWs.send(JSON.stringify({ text: contextoResumo }));
+          }
+
+          iniciarCapturaAudioLive();
+        };
+
+        liveWs.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'ready') {
+              setLiveStatus('🎙️ Ouvindo você... (fale agora)', 'listening');
+            } else if (msg.type === 'audio' && msg.audio) {
+              setLiveStatus('🔊 Preceptor Falando (Voz Fenrir)...', 'speaking');
+              tocarChunkAudioLive(msg.audio);
+            } else if (msg.type === 'transcript') {
+              adicionarItemTranscricaoLive(msg.role || 'model', msg.text);
+            } else if (msg.type === 'interrupted') {
+              // Barge-in: o médico falou e interrompeu a fala do Preceptor
+              pararReproducaoAudioLive();
+              setLiveStatus('🎙️ Ouvindo você...', 'listening');
+            } else if (msg.type === 'turnComplete') {
+              setLiveStatus('🎙️ Ouvindo você...', 'listening');
+            } else if (msg.type === 'error') {
+              copiarToast(msg.error || 'Erro na sessão Live');
+              setLiveStatus('⚠️ ' + (msg.error || 'Erro'), 'idle');
+            }
+          } catch (eMsg) {
+            console.warn('[Live Parse Msg]:', eMsg);
+          }
+        };
+
+        liveWs.onerror = (e) => {
+          console.error('[Live Ws Error]:', e);
+          copiarToast('Erro de conexão com o Preceptor Live.');
+          desconectarLivePreceptor();
+        };
+
+        liveWs.onclose = () => {
+          desconectarLivePreceptor();
+        };
+
+      } catch (err) {
+        console.error('Falha ao iniciar Live:', err);
+        copiarToast('Não foi possível acessar o microfone ou conectar: ' + err.message);
+        desconectarLivePreceptor();
+      }
+    }
+
+    function iniciarCapturaAudioLive() {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      liveInputAudioCtx = new AudioCtx({ sampleRate: 16000 });
+      liveOutputAudioCtx = new AudioCtx({ sampleRate: 24000 });
+      liveScheduledTime = 0;
+
+      const source = liveInputAudioCtx.createMediaStreamSource(liveMicStream);
+      liveMicProcessor = liveInputAudioCtx.createScriptProcessor(2048, 1, 1);
+      source.connect(liveMicProcessor);
+      liveMicProcessor.connect(liveInputAudioCtx.destination);
+
+      liveMicProcessor.onaudioprocess = (e) => {
+        if (!liveConectado || liveMudo || !liveWs || liveWs.readyState !== WebSocket.OPEN) return;
+        const float32 = e.inputBuffer.getChannelData(0);
+
+        // VAD básico no cliente: só transmite se houver energia sonora para economizar banda
+        let soma = 0;
+        for (let i = 0; i < float32.length; i++) soma += float32[i] * float32[i];
+        const rms = Math.sqrt(soma / float32.length);
+        if (rms < 0.006) return; // Silêncio de fundo descartado
+
+        // Converte Float32 para Int16 Little-Endian
+        const int16 = new Int16Array(float32.length);
+        for (let i = 0; i < float32.length; i++) {
+          const s = Math.max(-1, Math.min(1, float32[i]));
+          int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+
+        const uint8 = new Uint8Array(int16.buffer);
+        let binary = '';
+        for (let i = 0; i < uint8.length; i++) {
+          binary += String.fromCharCode(uint8[i]);
+        }
+        const base64 = btoa(binary);
+        liveWs.send(JSON.stringify({ audio: base64 }));
+      };
+    }
+
+    function tocarChunkAudioLive(base64Audio) {
+      if (!liveOutputAudioCtx) return;
+      try {
+        const binary = atob(base64Audio);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const int16 = new Int16Array(bytes.buffer);
+        const float32 = new Float32Array(int16.length);
+        for (let i = 0; i < int16.length; i++) {
+          float32[i] = int16[i] / (int16[i] < 0 ? 0x8000 : 0x7FFF);
+        }
+
+        const buffer = liveOutputAudioCtx.createBuffer(1, float32.length, 24000);
+        buffer.copyToChannel(float32, 0);
+
+        const source = liveOutputAudioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(liveOutputAudioCtx.destination);
+
+        const now = liveOutputAudioCtx.currentTime;
+        if (liveScheduledTime < now) liveScheduledTime = now + 0.02;
+
+        source.start(liveScheduledTime);
+        liveScheduledTime += buffer.duration;
+        liveActiveSources.push(source);
+
+        source.onended = () => {
+          liveActiveSources = liveActiveSources.filter(s => s !== source);
+          if (liveActiveSources.length === 0) {
+            setLiveStatus('🎙️ Ouvindo você...', 'listening');
+          }
+        };
+      } catch (ePlay) {
+        console.warn('[Audio Playback Error]:', ePlay);
+      }
+    }
+
+    function pararReproducaoAudioLive() {
+      liveActiveSources.forEach(s => {
+        try { s.stop(); } catch (_) {}
+      });
+      liveActiveSources = [];
+      liveScheduledTime = 0;
+    }
+
+    function desconectarLivePreceptor() {
+      liveConectado = false;
+      pararReproducaoAudioLive();
+
+      if (liveMicProcessor) {
+        try { liveMicProcessor.disconnect(); } catch (_) {}
+        liveMicProcessor = null;
+      }
+      if (liveMicStream) {
+        liveMicStream.getTracks().forEach(t => t.stop());
+        liveMicStream = null;
+      }
+      if (liveInputAudioCtx) {
+        try { liveInputAudioCtx.close(); } catch (_) {}
+        liveInputAudioCtx = null;
+      }
+      if (liveOutputAudioCtx) {
+        try { liveOutputAudioCtx.close(); } catch (_) {}
+        liveOutputAudioCtx = null;
+      }
+      if (liveWs) {
+        try { liveWs.close(); } catch (_) {}
+        liveWs = null;
+      }
+
+      setLiveStatus('Pronto para conectar ao vivo', 'idle');
+      const btnIniciar = document.getElementById('btn-iniciar-live');
+      const btnIniciarLabel = document.getElementById('btn-iniciar-live-label');
+      const btnMutar = document.getElementById('btn-mutar-live');
+
+      if (btnIniciar) {
+        btnIniciar.classList.remove('bg-rose-600', 'hover:bg-rose-500');
+        btnIniciar.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+      }
+      if (btnIniciarLabel) btnIniciarLabel.textContent = 'Conectar Preceptor Live';
+      if (btnMutar) btnMutar.classList.add('hidden');
+    }
+
+    function toggleMuteLivePreceptor() {
+      liveMudo = !liveMudo;
+      hapticFeedback('light');
+      const label = document.getElementById('label-btn-mutar-live');
+      const icone = document.getElementById('icone-btn-mutar-live');
+      if (label) label.textContent = liveMudo ? 'Desmutar' : 'Mudo';
+      if (icone) {
+        icone.setAttribute('data-lucide', liveMudo ? 'mic' : 'mic-off');
+        if (window.lucide) lucide.createIcons();
+      }
+      copiarToast(liveMudo ? 'Microfone mutado no Preceptor' : 'Microfone ativo');
+    }
+
+    function adicionarItemTranscricaoLive(papel, texto) {
+      const container = document.getElementById('live-transcricao-container');
+      if (!container || !texto) return;
+
+      historicoTranscricaoLive.push({ papel, texto, hora: new Date() });
+
+      const itemEl = document.createElement('div');
+      itemEl.className = papel === 'model'
+        ? 'p-2 rounded-lg bg-purple-950/40 border border-purple-800/40 text-purple-200'
+        : 'p-2 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-200';
+
+      const tag = papel === 'model' ? '🎧 Preceptor FMRP-USP:' : '👨‍⚕️ Wagner:';
+      itemEl.innerHTML = `<span class="font-bold text-[10px] block text-emerald-400">${tag}</span><p class="mt-0.5">${escapeHtml(texto)}</p>`;
+      container.appendChild(itemEl);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function limparTranscricaoLive() {
+      historicoTranscricaoLive = [];
+      const container = document.getElementById('live-transcricao-container');
+      if (container) {
+        container.innerHTML = '<p class="text-slate-500 italic text-center py-4">Transcrição limpa. Fale no microfone para continuar a discussão socrática...</p>';
+      }
+    }
+
+    function copiarTranscricaoLiveParaSOAP() {
+      if (historicoTranscricaoLive.length === 0) {
+        copiarToast('Nenhuma discussão registrada ainda.');
+        return;
+      }
+      const resumoDiscussao = historicoTranscricaoLive.map(t =>
+        (t.papel === 'model' ? '[Preceptor]: ' : '[Dr. Wagner]: ') + t.texto
+      ).join('\n');
+
+      const campoEntrada = document.getElementById('input-conversa-texto');
+      if (campoEntrada) {
+        campoEntrada.value = (campoEntrada.value ? campoEntrada.value + '\n\n' : '') +
+          `[Discussão Socrática Preceptor Live]:\n${resumoDiscussao}`;
+      }
+      copiarToast('Discussão copiada para o campo de atendimento!');
+      fecharModalPreceptorLive();
+    }
+
     function limparCamposSOAP() {
       document.getElementById('resposta-preceptor-box').classList.add('hidden');
       carregarLeitos();
@@ -3664,6 +4254,42 @@
     let gravadorSegundos = 0;
     let gravandoAudio = false;
 
+    function pcmToWavBlob(pcm, sampleRate) {
+      const numChannels = 1;
+      const bytesPerSample = 2;
+      const blockAlign = numChannels * bytesPerSample;
+      const byteRate = sampleRate * blockAlign;
+      const dataSize = pcm.length * bytesPerSample;
+      const buffer = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(buffer);
+
+      function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+      }
+
+      writeString(view, 0, 'RIFF');
+      view.setUint32(4, 36 + dataSize, true);
+      writeString(view, 8, 'WAVE');
+      writeString(view, 12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true); // PCM
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, byteRate, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, 16, true);
+      writeString(view, 36, 'data');
+      view.setUint32(40, dataSize, true);
+
+      let offset = 44;
+      for (let i = 0; i < pcm.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, pcm[i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+
+      return new Blob([buffer], { type: 'audio/wav' });
+    }
+
     async function alternarGravacaoAudio() {
       if (gravandoAudio) {
         pararGravacaoAudio();
@@ -3680,14 +4306,24 @@
       }
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            channelCount: 1,
+            sampleRate: 16000,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
         audioChunks = [];
 
-        let opcoes = {};
-        if (window.MediaRecorder && MediaRecorder.isTypeSupported('audio/webm')) {
-          opcoes = { mimeType: 'audio/webm' };
+        let opcoes = { audioBitsPerSecond: 16000 };
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          opcoes.mimeType = 'audio/webm;codecs=opus';
+        } else if (window.MediaRecorder && MediaRecorder.isTypeSupported('audio/webm')) {
+          opcoes.mimeType = 'audio/webm';
         } else if (window.MediaRecorder && MediaRecorder.isTypeSupported('audio/mp4')) {
-          opcoes = { mimeType: 'audio/mp4' };
+          opcoes.mimeType = 'audio/mp4';
         }
 
         mediaRecorder = new MediaRecorder(stream, opcoes);
@@ -3698,20 +4334,74 @@
           }
         };
 
-        mediaRecorder.onstop = () => {
+        mediaRecorder.onstop = async () => {
           stream.getTracks().forEach(track => track.stop());
 
           if (audioChunks.length === 0) return;
-          const mimeFinal = mediaRecorder.mimeType || 'audio/webm';
-          const audioBlob = new Blob(audioChunks, { type: mimeFinal });
+          let mimeFinal = mediaRecorder.mimeType || 'audio/webm';
+          let audioBlob = new Blob(audioChunks, { type: mimeFinal });
           audioChunks = [];
 
-          adicionarMensagemFeed('audio', 'Áudio gravado (' + gravadorSegundos + 's) · Enviando para transcrição e análise...');
+          let vadReducaoPct = 0;
+          let audioBlobFinal = audioBlob;
+
+          // VAD & Silence Trimming (remover silêncios mortos no início e fim do áudio antes do upload)
+          try {
+            const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtxClass) {
+              const audioCtx = new AudioCtxClass({ sampleRate: 16000 });
+              const arrayBuf = await audioBlob.arrayBuffer();
+              const decoded = await audioCtx.decodeAudioData(arrayBuf);
+              const pcm = decoded.getChannelData(0);
+              const sr = decoded.sampleRate || 16000;
+              const janela = Math.floor(sr * 0.05); // 50ms
+
+              // 1. Detecção do início da fala (RMS > 0.012 com margem de segurança de 150ms)
+              let inicioFisio = 0;
+              for (let i = 0; i < pcm.length - janela; i += janela) {
+                let soma = 0;
+                for (let j = 0; j < janela; j++) soma += pcm[i + j] * pcm[i + j];
+                if (Math.sqrt(soma / janela) > 0.012) {
+                  inicioFisio = Math.max(0, i - Math.floor(sr * 0.15));
+                  break;
+                }
+              }
+
+              // 2. Detecção do fim da fala (RMS > 0.012 com margem de segurança de 250ms)
+              let fimFisio = pcm.length;
+              for (let i = pcm.length - janela; i > inicioFisio; i -= janela) {
+                let soma = 0;
+                for (let j = 0; j < janela; j++) soma += pcm[i + j] * pcm[i + j];
+                if (Math.sqrt(soma / janela) > 0.012) {
+                  fimFisio = Math.min(pcm.length, i + janela + Math.floor(sr * 0.25));
+                  break;
+                }
+              }
+              audioCtx.close();
+
+              const amostrasCortadas = inicioFisio + (pcm.length - fimFisio);
+              // Se há silêncio relevante (> 300ms) removível
+              if (amostrasCortadas > sr * 0.3 && fimFisio > inicioFisio) {
+                const pcmTrimmed = pcm.subarray(inicioFisio, fimFisio);
+                const trimmedWav = pcmToWavBlob(pcmTrimmed, sr);
+                vadReducaoPct = Math.round((amostrasCortadas / pcm.length) * 100);
+                audioBlobFinal = trimmedWav;
+                mimeFinal = 'audio/wav';
+              }
+            }
+          } catch (eVad) {
+            console.warn('[VAD Client Fallback]:', eVad);
+          }
+
+          const kbTamanho = (audioBlobFinal.size / 1024).toFixed(1);
+          const msgVoz = 'Áudio otimizado (16kHz · ' + kbTamanho + ' KB · ' + gravadorSegundos + 's' +
+            (vadReducaoPct > 0 ? ' · ' + vadReducaoPct + '% silêncio removido' : '') + ') · Enviando...';
+          adicionarMensagemFeed('audio', msgVoz);
           setConversaLoading(true, 'Transcrevendo e raciocinando caso com IA...');
           conversaOcupada = true;
 
           const reader = new FileReader();
-          reader.readAsDataURL(audioBlob);
+          reader.readAsDataURL(audioBlobFinal);
           reader.onloadend = async () => {
             try {
               const base64Data = String(reader.result).split(',')[1];
@@ -7531,6 +8221,17 @@
       } else {
         copiarToast('Esta é a primeira aula do curso.');
       }
+    }
+
+    // Registro do PWA Service Worker (Cache-First 0ms Offline para plantão)
+    if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((reg) => {
+          console.log('[PWA] Service Worker ativo em modo Cache-First:', reg.scope);
+        }).catch((err) => {
+          console.warn('[PWA] Service Worker offline não pôde ser registrado:', err.message);
+        });
+      });
     }
 
   </script>

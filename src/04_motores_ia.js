@@ -893,6 +893,20 @@ function auditoriaClinicaPendente(texto) {
 
 function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   if (!rascunho) return rascunho;
+
+  // 1. Cross-Check determinístico imediato em RAM (0ms) contra bases locais (interações, HSL e REMUME)
+  var blocoCrossCheck = "";
+  if (typeof executarCrossCheckSegurancaClinica === "function") {
+    try {
+      var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
+      if (check && (check.temAlertasCriticos || (check.interacoes && check.interacoes.length > 0) || (check.ajustesRenais && check.ajustesRenais.length > 0))) {
+        blocoCrossCheck = "\n\n" + check.textoFormatado;
+      }
+    } catch (eCheck) {
+      Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
+    }
+  }
+
   var sistema = [
     "Você é um auditor de segurança medicamentosa e de conformidade com diretrizes. Receba o CASO e o RASCUNHO e liste SOMENTE problemas reais:",
     "- dose acima do máximo ou abaixo do terapêutico; falta de ajuste renal/hepático/peso/idade; alergia ou interação ignorada;",
@@ -908,12 +922,12 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   try { r = _iaExecutar(sistema, contexto, 600, { clinico: true, exigirRespostaCompleta: true }); }
   catch (e) { Logger.log("Auditoria automática indisponível."); }
   var limpo = String(r || "").trim();
-  if (!limpo) return rascunho + "\n\n⚠️ *Auditoria automática indisponível — revisão pendente*\nNão foi possível concluir a segunda revisão. Este rascunho não foi liberado pela auditoria; confira-o antes de qualquer uso.";
-  if (/^SEM ALERTAS\.?$/i.test(limpo)) return rascunho;
+  if (!limpo) return rascunho + blocoCrossCheck + "\n\n⚠️ *Auditoria automática indisponível — revisão pendente*\nNão foi possível concluir a segunda revisão. Este rascunho não foi liberado pela auditoria; confira-o antes de qualquer uso.";
+  if (/^SEM ALERTAS\.?$/i.test(limpo)) return rascunho + blocoCrossCheck;
   if (!/^-\s+/m.test(limpo) || /resposta interrompida por limite/i.test(limpo)) {
-    return rascunho + "\n\n⚠️ *Auditoria automática incompleta — revisão pendente*\nA revisão não produziu uma conclusão completa. Retorno recebido:\n" + _iaFinalizarTexto(limpo);
+    return rascunho + blocoCrossCheck + "\n\n⚠️ *Auditoria automática incompleta — revisão pendente*\nA revisão não produziu uma conclusão completa. Retorno recebido:\n" + _iaFinalizarTexto(limpo);
   }
-  return rascunho + "\n\n🛑 *Alertas da auditoria automática (" + titulo + ") — revisão pendente*\n" + _iaFinalizarTexto(limpo);
+  return rascunho + blocoCrossCheck + "\n\n🛑 *Alertas da auditoria automática (" + titulo + ") — revisão pendente*\n" + _iaFinalizarTexto(limpo);
 }
 
 // ==============================================================================

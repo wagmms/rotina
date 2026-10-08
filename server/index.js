@@ -371,6 +371,178 @@ async function buildServer() {
     return renderCockpitHtml();
   });
 
+  fastify.get('/manifest.json', async (request, reply) => {
+    reply.type('application/manifest+json');
+    const pathManifest = require('path').join(__dirname, '..', 'manifest.json');
+    return require('fs').readFileSync(pathManifest, 'utf8');
+  });
+
+  fastify.get('/sw.js', async (request, reply) => {
+    reply.type('application/javascript');
+    const pathSw = require('path').join(__dirname, '..', 'sw.js');
+    return require('fs').readFileSync(pathSw, 'utf8');
+  });
+
+  fastify.get('/pwa-192x192.png', async (request, reply) => {
+    reply.type('image/png');
+    const pathImg = require('path').join(__dirname, '..', 'pwa-192x192.png');
+    return require('fs').readFileSync(pathImg);
+  });
+
+  fastify.get('/pwa-512x512.png', async (request, reply) => {
+    reply.type('image/png');
+    const pathImg = require('path').join(__dirname, '..', 'pwa-512x512.png');
+    return require('fs').readFileSync(pathImg);
+  });
+
+  fastify.get('/apple-touch-icon.png', async (request, reply) => {
+    reply.type('image/png');
+    const pathImg = require('path').join(__dirname, '..', 'apple-touch-icon.png');
+    return require('fs').readFileSync(pathImg);
+  });
+
+  fastify.get('/favicon.ico', async (request, reply) => {
+    reply.type('image/png');
+    const pathImg = require('path').join(__dirname, '..', 'apple-touch-icon.png');
+    return require('fs').readFileSync(pathImg);
+  });
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // PRECEPTOR IA · VOZ EM TEMPO REAL (GEMINI-3.8-LIVE / WEBSOCKET FULL-DUPLEX)
+  // ══════════════════════════════════════════════════════════════════════════════
+  const { WebSocketServer } = require('ws');
+  const { GoogleGenAI, Modality } = require('@google/genai');
+
+  const liveWss = new WebSocketServer({ noServer: true });
+
+  fastify.server.on('upgrade', (request, socket, head) => {
+    const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+    if (url.pathname === '/live' || url.pathname === '/api/live' || url.pathname === '/live-preceptor') {
+      liveWss.handleUpgrade(request, socket, head, (ws) => {
+        liveWss.emit('connection', ws, request);
+      });
+    }
+  });
+
+  liveWss.on('connection', async (clientWs) => {
+    const apiKey = process.env.GEMINI_API_KEY ||
+      (process.env.GEMINI_API_KEYS ? process.env.GEMINI_API_KEYS.split(',')[0].trim() : '') ||
+      (runtime.ctx?.ConfigService?.get?.('GEMINI_API_KEY') || '');
+
+    const isTestMode = process.env.NODE_ENV === 'test' || !apiKey || apiKey.startsWith('test_') || apiKey === 'mock_token';
+
+    if (isTestMode) {
+      clientWs.send(JSON.stringify({
+        type: 'ready',
+        message: 'Preceptor Socrático conectado em modo teste (gemini-3.8-live)!'
+      }));
+
+      clientWs.on('message', (raw) => {
+        try {
+          const msg = JSON.parse(raw.toString());
+          if (msg.audio) {
+            clientWs.send(JSON.stringify({
+              type: 'transcript',
+              role: 'model',
+              text: 'Preceptor ouvindo: Prossiga com o exame segmentar e a hipótese.'
+            }));
+            clientWs.send(JSON.stringify({ type: 'turnComplete' }));
+          } else if (msg.text) {
+            clientWs.send(JSON.stringify({
+              type: 'transcript',
+              role: 'model',
+              text: 'Preceptor: Qual conduta imediata você preconiza para este quadro?'
+            }));
+            clientWs.send(JSON.stringify({ type: 'turnComplete' }));
+          }
+        } catch (_) {}
+      });
+      return;
+    }
+
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const session = await ai.live.connect({
+        model: 'gemini-3.8-live',
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Fenrir' } }
+          },
+          systemInstruction: `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva da FMRP-USP.
+Você está conversando por voz em tempo real diretamente no fone de ouvido do médico Dr. Wagner enquanto ele caminha na enfermaria ou na emergência.
+Seu estilo é socrático, ágil, estimulante e acolhedor:
+1. Discuta o caso clínico com alto rigor técnico e vocabulário médico culto e direto.
+2. Faça perguntas socráticas provocativas e curtas para estimular o raciocínio: "Qual hipótese diagnóstica você prioriza?", "Qual o próximo exame confirmatório?", "Por que indicou essa droga e não a primeira linha?".
+3. Mantenha cada turno de fala curto (15 a 40 segundos), permitindo que Wagner fale livremente.
+4. Ao ouvir uma conduta, reforce a segurança do paciente, alergias, contraindicações e diretrizes brasileiras (SBC, ILAS, AMIB, SBPT).`
+        },
+        callbacks: {
+          onmessage: (message) => {
+            const parts = message.serverContent?.modelTurn?.parts || [];
+            for (const part of parts) {
+              if (part.inlineData?.data) {
+                clientWs.send(JSON.stringify({ type: 'audio', audio: part.inlineData.data }));
+              }
+              if (part.text) {
+                clientWs.send(JSON.stringify({ type: 'transcript', role: 'model', text: part.text }));
+              }
+            }
+            if (message.serverContent?.interrupted) {
+              clientWs.send(JSON.stringify({ type: 'interrupted', interrupted: true }));
+            }
+            if (message.serverContent?.turnComplete) {
+              clientWs.send(JSON.stringify({ type: 'turnComplete' }));
+            }
+          },
+          onerror: (err) => {
+            console.error('[Gemini Live Error]:', err.message || err);
+            clientWs.send(JSON.stringify({ type: 'error', error: err.message || 'Erro no Gemini Live' }));
+          },
+          onclose: () => {
+            clientWs.send(JSON.stringify({ type: 'close' }));
+          }
+        }
+      });
+
+      clientWs.send(JSON.stringify({
+        type: 'ready',
+        message: 'Preceptor Socrático conectado em tempo real (gemini-3.8-live)!'
+      }));
+
+      clientWs.on('message', (raw) => {
+        try {
+          const msg = JSON.parse(raw.toString());
+          if (msg.audio) {
+            session.sendRealtimeInput({
+              audio: { data: msg.audio, mimeType: 'audio/pcm;rate=16000' }
+            });
+          } else if (msg.text) {
+            session.sendRealtimeInput({ text: msg.text });
+          }
+        } catch (eParse) {
+          console.warn('[Live Ws Parse]:', eParse.message);
+        }
+      });
+
+      clientWs.on('close', () => {
+        if (session && typeof session.close === 'function') {
+          try { session.close(); } catch (_) {}
+        }
+      });
+
+    } catch (errLive) {
+      console.error('[Gemini Live Setup Error]:', errLive.message || errLive);
+      clientWs.send(JSON.stringify({
+        type: 'error',
+        error: 'Não foi possível conectar ao Gemini Live: ' + (errLive.message || 'Verifique a chave')
+      }));
+      clientWs.close();
+    }
+  });
+
+  fastify.liveWss = liveWss;
+
   return fastify;
 }
 

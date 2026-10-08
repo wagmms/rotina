@@ -582,9 +582,20 @@ function processarMensagemTexto(message) {
     return responderPreceptorVozComIA(chatId, dadosVoz);
   }
 
-  if (comando === "/interacao") {
-    var drogas = texto.replace(/^\/interacao\s*/i, "").trim();
-    if (!drogas) return enviarMensagemParaChat(chatId, "💊 Informe os medicamentos para cruzar.");
+  if (comando === "/interacao" || comando === "/seguranca" || comando === "/crosscheck") {
+    var drogas = texto.replace(/^\/(interacao|seguranca|crosscheck)\s*/i, "").trim();
+    if (!drogas) return enviarMensagemParaChat(chatId, "🛡️ *Checagem Farmacológica & Segurança*\n\nInforme 2 ou mais medicamentos ou cole a prescrição.\n\n💡 *Exemplo:* `/interacao amiodarona fluconazol` ou `/seguranca enoxaparina 40mg, clcr 25`");
+    
+    // 1. Checagem imediata em RAM (0ms)
+    var check = (typeof executarCrossCheckSegurancaClinica === "function") ? executarCrossCheckSegurancaClinica(drogas) : null;
+    if (check && (check.interacoes.length > 0 || check.ajustesRenais.length > 0 || check.tetosDose.length > 0)) {
+      enviarMensagemParaChat(chatId, check.textoFormatado);
+      // Se não há interações graves bloqueantes, complementa com a síntese clínica do motor IA
+      if (!check.temAlertasCriticos && comando === "/interacao") {
+        return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
+      }
+      return true;
+    }
     return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
   }
 
@@ -668,6 +679,39 @@ function processarMensagemTexto(message) {
     return tratarComandoRotina(chatId, textoTrim);
   }
 
+  // ⚡ FAST-PATH DETERMINÍSTICO (0ms a 15ms em RAM)
+  // Cálculos puros (CURB-65, Glasgow, Parkland, DVA, Clearance, Diluição, Ajuste Renal)
+  // NUNCA envie essas tarefas para o modelo de linguagem se a matemática/tabela está no código Node.js!
+  var ehConsultaDeterministica = (
+    typeof ehCalculadoraReconhecida === "function" && ehCalculadoraReconhecida(texto)
+  ) || (
+    typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(texto)
+  ) || /\b(?:curb|crcl|clcr|cockcroft|ckd|glasgow|parkland|queimadur|dva|nora|dobuta|vaso|nitroprussiato|nitroglicerina|dilui[çc][ãa]o|como\s+diluir|preparo|ajuste\s+renal)\b/i.test(texto);
+
+  if (ehConsultaDeterministica && typeof tentarCalcularDeterministico === "function") {
+    var resFastDet = tentarCalcularDeterministico(texto);
+    if (resFastDet) {
+      return enviarMensagemParaChat(chatId, resFastDet);
+    }
+    if (typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(texto)) {
+      var instrucoesDet = obterInstrucoesCalculadora(texto);
+      if (instrucoesDet) return enviarMensagemParaChat(chatId, instrucoesDet);
+    }
+  }
+
+  // Se for consulta de preparo/diluição de fármaco do Guia HSL, responde na hora sem chamar IA
+  var matchDiluicao = texto.match(/(?:como\s+diluir|dilui[çc][ãa]o\s+d[eo]?|preparo\s+d[eo]?|tempo\s+de\s+infus[ãa]o\s+d[eo]?|estabilidade\s+d[eo]?)\s+([a-zA-Z0-9\s+]+)/i);
+  if (matchDiluicao && matchDiluicao[1]) {
+    var termoDroga = matchDiluicao[1].trim().replace(/[?!.]+$/, "");
+    if (termoDroga.length >= 3 && typeof buscarMedicamentoNoHSL === "function") {
+      var medHsl = buscarMedicamentoNoHSL(termoDroga);
+      if (medHsl && (medHsl.preparo_diluicao || medHsl.administracao)) {
+        var respDiluicao = formatarDiluicaoPreparoHSL(medHsl);
+        if (respDiluicao) return enviarMensagemParaChat(chatId, respDiluicao);
+      }
+    }
+  }
+
   enviarChatAction(chatId, "typing");
   var decisao = classificarIntencaoMensagem(texto);
 
@@ -718,17 +762,60 @@ function processarMensagemTexto(message) {
     return responderPreceptorVozComIA(chatId, casoAudio);
   }
 
+  // 1. CHECAGEM DETERMINÍSTICA RÁPIDA EM RAM (0ms a 15ms)
+  // Se for consulta de preparo/diluição de fármaco do Guia HSL, responde na hora sem chamar IA
+  var matchDiluicao = texto.match(/(?:como\s+diluir|dilui[çc][ãa]o\s+d[eo]?|preparo\s+d[eo]?|tempo\s+de\s+infus[ãa]o\s+d[eo]?|estabilidade\s+d[eo]?)\s+([a-zA-Z0-9\s+]+)/i);
+  if (matchDiluicao && matchDiluicao[1]) {
+    var termoDroga = matchDiluicao[1].trim().replace(/[?!.]+$/, "");
+    if (termoDroga.length >= 3 && typeof buscarMedicamentoNoHSL === "function") {
+      var medHsl = buscarMedicamentoNoHSL(termoDroga);
+      if (medHsl && (medHsl.preparo_diluicao || medHsl.administracao)) {
+        var respDiluicao = formatarDiluicaoPreparoHSL(medHsl);
+        if (respDiluicao) return enviarMensagemParaChat(chatId, respDiluicao);
+      }
+    }
+  }
+
+  // 2. CÁLCULOS DETERMINÍSTICOS DIRETOS EM RAM (0ms a 15ms)
   if (decisao.intencao === "CLINICO_EMERGENCIA") {
     var tEmerg = texto.toLowerCase();
-    if (tEmerg.indexOf("nora") !== -1) {
-      var pesos = Array.from(texto.matchAll(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/gi));
-      if (pesos.length!==1) return enviarMensagemParaChat(chatId,"Informe um único peso explícito em kg. Exemplo: nora, peso 70,5 kg.");
-      var pNora = sanitizarEValidarPesoKg(pesos[0][1]);
-      if (pNora===null) return enviarMensagemParaChat(chatId,"Peso inválido. Informe o peso em kg.");
-      var solNora = /concentrad[ao]|dobrad[ao]|4x/i.test(texto) ? "concentrada" : "padrao";
-      var resNora = CalculadorasClinicas.drogasVasoativas("noradrenalina", pNora, solNora);
-      if (resNora) return enviarMensagemParaChat(chatId, resNora.textoFormatado || resNora.texto);
+    var matchPesoGeral = texto.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i);
+
+    // A. Drogas Vasoativas Puras
+    if (matchPesoGeral && (tEmerg.indexOf("nora") !== -1 || tEmerg.indexOf("dobuta") !== -1 || tEmerg.indexOf("vaso") !== -1 || tEmerg.indexOf("dva") !== -1)) {
+      var pDva = parseFloat(matchPesoGeral[1].replace(",", "."));
+      if (typeof ValidadorFisiologico !== "undefined") {
+        var vFisio = ValidadorFisiologico.validarParametro("peso", pDva);
+        if (!vFisio.valido) return enviarMensagemParaChat(chatId, vFisio.alerta);
+      }
+      var drogaEleita = "noradrenalina";
+      if (tEmerg.indexOf("dobuta") !== -1) drogaEleita = "dobutamina";
+      else if (tEmerg.indexOf("vaso") !== -1) drogaEleita = "vasopressina";
+      var solDva = /concentrad[ao]|dobrad[ao]|4x/i.test(texto) ? "concentrada" : "padrao";
+      var resDva = CalculadorasClinicas.drogasVasoativas(drogaEleita, pDva, solDva);
+      if (resDva) return enviarMensagemParaChat(chatId, resDva.textoFormatado || resDva.texto);
     }
+
+    // B. Sequência Rápida de Intubação (SRI / IOT)
+    if (matchPesoGeral && (/\b(?:sri|iot|intuba[çc][ãa]o)\b/i.test(texto))) {
+      var pSri = parseFloat(matchPesoGeral[1].replace(",", "."));
+      var cenarioSri = "padrao";
+      if (/choque|hipotens[ãa]o|sepse/i.test(texto)) cenarioSri = "choque";
+      else if (/asma|broncoespasmo|dpoc/i.test(texto)) cenarioSri = "asma";
+      var resSri = CalculadorasClinicas.sequenciaRapidaIntubacao(pSri, cenarioSri);
+      if (resSri) return enviarMensagemParaChat(chatId, resSri.textoFormatado || resSri.texto);
+    }
+
+    // C. Parkland em Queimaduras
+    var matchParkland = texto.match(/(?:parkland|queimadur[as]?)\b.*?(?:(\d+(?:[.,]\d+)?)\s*kg).*?(\d+(?:[.,]\d+)?)\s*%/i) ||
+                        texto.match(/(?:parkland|queimadur[as]?)\b.*?(\d+(?:[.,]\d+)?)\s*%.*?(?:(\d+(?:[.,]\d+)?)\s*kg)/i);
+    if (matchParkland) {
+      var pPark = parseFloat((matchParkland[1] || matchParkland[2]).replace(",", "."));
+      var scqPark = parseFloat((matchParkland[2] || matchParkland[1]).replace(",", "."));
+      var resPark = CalculadorasClinicas.parkland(pPark, scqPark);
+      if (resPark) return enviarMensagemParaChat(chatId, resPark.textoFormatado || resPark.texto);
+    }
+
     return processarEEntregarIA(chatId, gerarCondutaEmergenciaComIA, texto, "conduta");
   }
 
@@ -2171,6 +2258,11 @@ var CATALOGO_CALCULADORAS = {
     nome: "CURB-65",
     aliases: ["curb", "curb65", "curb-65", "crb65", "crb-65"]
   },
+  parkland: {
+    id: "parkland",
+    nome: "Parkland (Queimaduras)",
+    aliases: ["parkland", "queimados", "queimadura", "queimaduras"]
+  },
   ckd: {
     id: "ckd",
     nome: "CKD-EPI 2021",
@@ -2294,7 +2386,8 @@ var CATALOGO_CALCULADORAS = {
 
 var LISTA_CALCULADORAS_DETERMINISTICAS = [
   "curb65", "ckd", "cockcroft", "cha2ds2vasc", "hasbled", "wells",
-  "glasgow", "calcio", "gap_osmolar", "agua", "kdigo", "ldl", "meld"
+  "glasgow", "calcio", "gap_osmolar", "agua", "kdigo", "ldl", "meld",
+  "parkland", "dva"
 ];
 
 function ehCalculadoraDeterministica(texto) {
@@ -2347,6 +2440,76 @@ function tentarCalcularDeterministico(texto) {
   if (!texto || typeof CalculadorasClinicas === "undefined") return null;
   var t = texto.toLowerCase();
   var identidade = identificarCalculadora(texto);
+
+  // 0. Preparo & Diluição de Fármacos em RAM (Guia Farmacêutico HSL)
+  var matchDilDet = texto.match(/(?:como\s+diluir|dilui[çc][ãa]o\s+d[eo]?|preparo\s+d[eo]?|tempo\s+de\s+infus[ãa]o\s+d[eo]?|estabilidade\s+d[eo]?)\s+([a-zA-Z0-9\s+]+)/i);
+  if (matchDilDet && matchDilDet[1]) {
+    var termoDrogaDet = matchDilDet[1].trim().replace(/[?!.]+$/, "");
+    if (termoDrogaDet.length >= 3 && typeof buscarMedicamentoNoHSL === "function") {
+      var medHslDet = buscarMedicamentoNoHSL(termoDrogaDet);
+      if (medHslDet && (medHslDet.preparo_diluicao || medHslDet.administracao)) {
+        var respDilDet = formatarDiluicaoPreparoHSL(medHslDet);
+        if (respDilDet) return respDilDet;
+      }
+    }
+  }
+
+  // 0.1. Parkland (Ressuscitação em Queimados)
+  if (identidade === "parkland" || /(?:parkland|queimadur[as]?)\b/i.test(t)) {
+    if (typeof CalculadorasClinicas.calcularParklandPorTextoLivre === "function") {
+      var resParkLivre = CalculadorasClinicas.calcularParklandPorTextoLivre(texto);
+      if (resParkLivre && resParkLivre.ok) return resParkLivre.textoFormatado;
+    }
+    var mPark1 = t.match(/(?:parkland|queimadur[as]?)\b.*?(?:(\d+(?:[.,]\d+)?)\s*kg).*?(\d+(?:[.,]\d+)?)\s*%/i) ||
+                 t.match(/(?:parkland|queimadur[as]?)\b.*?(\d+(?:[.,]\d+)?)\s*%.*?(?:(\d+(?:[.,]\d+)?)\s*kg)/i);
+    if (mPark1) {
+      var pPark1 = parseFloat((mPark1[1] || mPark1[2]).replace(",", "."));
+      var sPark1 = parseFloat((mPark1[2] || mPark1[1]).replace(",", "."));
+      var rP1 = CalculadorasClinicas.parkland(pPark1, sPark1);
+      if (rP1 && rP1.ok) return rP1.textoFormatado;
+    }
+    var mPesoPark = t.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i);
+    var mScqPark = t.match(/(?:scq|queimadura)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*%?/i) || t.match(/(\d+(?:[.,]\d+)?)\s*%/i);
+    if (mPesoPark && mScqPark) {
+      var rP2 = CalculadorasClinicas.parkland(parseFloat(mPesoPark[1].replace(",", ".")), parseFloat(mScqPark[1].replace(",", ".")));
+      if (rP2 && rP2.ok) return rP2.textoFormatado;
+    }
+    return "⚠️ *Calculadora Parkland: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("parkland");
+  }
+
+  // 0.2. Drogas Vasoativas (DVA em mcg/kg/min ou mcg/min)
+  if (identidade === "dva" || /\b(?:dva|noradrenalina|nora|dobutamina|dobuta|vasopressina|vaso|nitroprussiato|nitroglicerina)\b/i.test(t)) {
+    var matchPesoDva = t.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i);
+    var drogaEleitaDva = null;
+    if (/\b(?:nora|noradrenalina)\b/i.test(t)) drogaEleitaDva = "noradrenalina";
+    else if (/\b(?:dobuta|dobutamina)\b/i.test(t)) drogaEleitaDva = "dobutamina";
+    else if (/\b(?:vaso|vasopressina)\b/i.test(t)) drogaEleitaDva = "vasopressina";
+    else if (/\b(?:nitroprussiato|nipride)\b/i.test(t)) drogaEleitaDva = "nitroprussiato";
+    else if (/\b(?:nitroglicerina|tridil)\b/i.test(t)) drogaEleitaDva = "nitroglicerina";
+    else if (identidade === "dva") drogaEleitaDva = "noradrenalina";
+
+    if (drogaEleitaDva) {
+      var solDvaDet = /concentrad[ao]|dobrad[ao]|4x|2x/i.test(t) ? "concentrada" : "padrao";
+      if (matchPesoDva || drogaEleitaDva === "vasopressina" || drogaEleitaDva === "nitroglicerina") {
+        var pDvaVal = matchPesoDva ? parseFloat(matchPesoDva[1].replace(",", ".")) : 70;
+        var rDva = CalculadorasClinicas.drogasVasoativas(drogaEleitaDva, pDvaVal, solDvaDet);
+        if (rDva && rDva.ok) {
+          var strDva = "💉 *" + (rDva.nome || "INFUSÃO DE DROGAS VASOATIVAS").toUpperCase() + "*\n\n";
+          strDva += "• *Concentração:* `" + rDva.principal + "`\n";
+          if (rDva.secoes) {
+            for (var sd = 0; sd < rDva.secoes.length; sd++) {
+              var secD = rDva.secoes[sd];
+              strDva += "\n*" + secD[0] + ":*\n";
+              var itensD = Array.isArray(secD[1]) ? secD[1] : [secD[1]];
+              for (var itd = 0; itd < itensD.length; itd++) strDva += "  • " + itensD[itd] + "\n";
+            }
+          }
+          return strDva;
+        }
+      }
+      return "⚠️ *Calculadora DVA: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("dva");
+    }
+  }
 
   // Ajuste Renal de Antimicrobianos
   if (/\b(?:atb|antimicrobiano|vanco|vancomicina|meropenem|mero|pip-?tazo|piperacilina|cefepime?|ceftriaxona?|cipro|ciprofloxacino|polimixina|fluconazol)\b/i.test(t) &&
@@ -2883,6 +3046,36 @@ function obterInstrucoesCalculadora(tipo) {
       "Peso: [ ] kg\n" +
       "```\n" +
       "*(Toque na caixa desejada para copiar, preencha os valores e envie)*";
+  }
+
+  if (t.indexOf("PARKLAND") !== -1 || t.indexOf("QUEIMAD") !== -1) {
+    return "📐 *CALCULADORA: FÓRMULA DE PARKLAND (QUEIMADURAS)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Peso corporal (kg)\n" +
+      "• Superfície Corpórea Queimada - SCQ (% de 2º e 3º graus)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc parkland\n" +
+      "Peso: [ ] kg\n" +
+      "SCQ: [ ] %\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("DVA") !== -1 || t.indexOf("VASOATIV") !== -1 || t.indexOf("NORA") !== -1 || t.indexOf("DOBUTA") !== -1 || t.indexOf("VASO") !== -1) {
+    return "📐 *CALCULADORA: DROGAS VASOATIVAS (INFUSÃO NA BIC)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Fármaco (noradrenalina, dobutamina, vasopressina, nitroprussiato, nitroglicerina)\n" +
+      "• Peso corporal (kg)\n" +
+      "• Solução (padrao ou concentrada - opcional)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc dva\n" +
+      "Droga: [nora/dobuta/vaso]\n" +
+      "Peso: [ ] kg\n" +
+      "Solução: [padrao/concentrada]\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
   if (t.indexOf("WELLS") !== -1 || t.indexOf("TEP") !== -1 || t.indexOf("TVP") !== -1) {

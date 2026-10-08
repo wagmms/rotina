@@ -73,6 +73,42 @@ async function run() {
   assert(jsonRemume.resultado.itens.length > 200);
   console.log(`✓ Cockpit REMUME OK (${jsonRemume.resultado.itens.length} itens)`);
 
+  // 6. Cockpit RPC - Cross-Check de Segurança Clínica & Interações (< 20ms)
+  const tCross0 = performance.now();
+  const resCross = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitChecarSeguranca',
+      session: token,
+      args: ['amiodarona 200mg, fluconazol 150mg, enoxaparina 40mg, clcr 28']
+    }
+  });
+  const tCross = performance.now() - tCross0;
+  assert.equal(resCross.statusCode, 200);
+  const jsonCross = resCross.json();
+  assert.equal(jsonCross.ok, true);
+  assert.equal(jsonCross.resultado.ok, true);
+  assert.equal(jsonCross.resultado.temAlertasCriticos, true);
+  assert(jsonCross.resultado.interacoes.length >= 1);
+  assert(jsonCross.resultado.ajustesRenais.length >= 1);
+  assert(tCross < 50, `Tempo de Cross-Check (${tCross}ms) deve ser menor que 50ms`);
+  console.log(`✓ Cockpit Cross-Check de Segurança OK (${tCross.toFixed(2)}ms, ${jsonCross.resultado.interacoes.length} interações, ${jsonCross.resultado.ajustesRenais.length} ajustes renais)`);
+
+  // 7. PWA Manifest & Service Worker
+  const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
+  assert.equal(resManifest.statusCode, 200);
+  const jsonManifest = JSON.parse(resManifest.body);
+  assert.equal(jsonManifest.short_name, 'Cockpit');
+  assert.equal(jsonManifest.display, 'standalone');
+  console.log('✓ PWA Manifest.json OK');
+
+  const resSw = await app.inject({ method: 'GET', url: '/sw.js' });
+  assert.equal(resSw.statusCode, 200);
+  assert(resSw.body.includes('CACHE_NAME'));
+  assert(resSw.body.includes('caches.match'));
+  console.log('✓ PWA Service Worker (sw.js) OK');
+
   console.log('\n🚀 TODOS OS TESTES DO SERVIDOR RENDER PASSARAM COM SUCESSO!');
 }
 

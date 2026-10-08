@@ -1371,6 +1371,117 @@ var CalculadorasClinicas = (function () {
     });
   }
 
+  // ═════════════════════════════ FÓRMULA DE PARKLAND (QUEIMADURAS) ═════════════════════════════
+
+  /**
+   * Fórmula de Parkland clássica (ATLS 10ª ed / SBA / ABA):
+   * Volume Total 24h = 4 mL × Peso (kg) × % SCQ (Superfície Corpórea Queimada 2º e 3º graus)
+   * Solução: Ringer Lactato (RL)
+   * 1ª fase (primeiras 8h a contar do acidente): 50% do volume total
+   * 2ª fase (próximas 16h): 50% do volume total
+   */
+  function parkland(pesoKg, scqPorcentagem) {
+    var ID = 'parkland', NOME = 'Fórmula de Parkland (Ressuscitação em Grandes Queimados)';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var peso = num(c, pesoKg, 'Peso corporal (kg)', 10, 250);
+      var scq = num(c, scqPorcentagem, 'Superfície Corpórea Queimada - SCQ (%)', 1, 100);
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+
+      var volTotal = 4 * peso * scq; // em mL de Ringer Lactato
+      var vol8h = volTotal / 2;
+      var vazao8h = vol8h / 8;
+      var vol16h = volTotal / 2;
+      var vazao16h = vol16h / 16;
+      var debitoMin = Math.round(peso * 0.5 * 10) / 10;
+      var debitoMax = Math.round(peso * 1.0 * 10) / 10;
+
+      var linhasResultado = [
+        '• Peso: ' + fmt(peso, 1) + ' kg | SCQ: ' + fmt(scq, 0) + '%',
+        '• Volume Total 24h (Ringer Lactato): ' + fmt(volTotal, 0) + ' mL',
+        '• 1ª Etapa (Primeiras 8h a contar do ACIDENTE): ' + fmt(vol8h, 0) + ' mL (vazão: ' + fmt(vazao8h, 0) + ' mL/h)',
+        '• 2ª Etapa (Próximas 16h): ' + fmt(vol16h, 0) + ' mL (vazão: ' + fmt(vazao16h, 0) + ' mL/h)',
+        '• Alvo de Débito Urinário (SVD horária): 0,5 a 1,0 mL/kg/h (' + fmt(debitoMin, 1) + ' a ' + fmt(debitoMax, 1) + ' mL/h)'
+      ];
+
+      var avisos = [
+        'O relógio das primeiras 8 horas conta A PARTIR DO MOMENTO DO ACIDENTE/QUEIMADURA, não da chegada ao hospital.',
+        'Descontar da 1ª etapa qualquer volume já infundido no atendimento pré-hospitalar.',
+        'Ajustar a taxa horária de Ringer Lactato para cima ou para baixo conforme o débito urinário a cada 1 hora.',
+        'Evitar hiper-ressuscitação hídrica ("fluid creep"), que aumenta risco de síndrome compartimental abdominal e edema pulmonar.'
+      ];
+
+      return sucesso({
+        id: ID,
+        nome: NOME,
+        estado: 'CALCULO',
+        rotulo: 'PARKLAND · RINGER LACTATO 4 mL/kg/%',
+        principal: fmt(volTotal, 0) + ' mL em 24h',
+        textoFormatado: '🔥 <b>FÓRMULA DE PARKLAND (RESSUSCITAÇÃO EM GRANDES QUEIMADOS)</b>\n\n' +
+          '• <b>Peso:</b> ' + fmt(peso, 1) + ' kg | <b>SCQ:</b> ' + fmt(scq, 0) + '%\n' +
+          '• <b>Volume Total (24h):</b> <code>' + fmt(volTotal, 0) + ' mL</code> de Ringer Lactato\n\n' +
+          '⏱️ <b>Esquema de Infusão:</b>\n' +
+          '1️⃣ <b>Primeiras 8 horas (do acidente):</b> <code>' + fmt(vol8h, 0) + ' mL</code> → <b>' + fmt(vazao8h, 0) + ' mL/h</b> na BIC\n' +
+          '2️⃣ <b>Próximas 16 horas:</b> <code>' + fmt(vol16h, 0) + ' mL</code> → <b>' + fmt(vazao16h, 0) + ' mL/h</b> na BIC\n\n' +
+          '🎯 <b>Meta de Débito Urinário (SVD horária):</b>\n' +
+          '• Adultos: 0,5–1,0 mL/kg/h (<b>' + fmt(debitoMin, 1) + ' a ' + fmt(debitoMax, 1) + ' mL/h</b>)\n\n' +
+          '⚠️ <b>Regras de Segurança ATLS 10ª Ed / SBA:</b>\n' +
+          '• Descontar volume já recebido no pré-hospitalar das primeiras 8 horas.\n' +
+          '• Monitorizar diurese horária rigorosa para titular vazão e prevenir síndrome compartimental abdominal.',
+        secoes: [
+          ['PARÂMETROS', ['Peso: ' + fmt(peso, 1) + ' kg', 'SCQ: ' + fmt(scq, 0) + '%', 'Fórmula: 4 mL × ' + fmt(peso, 1) + ' × ' + fmt(scq, 0)]],
+          ['CRONOGRAMA DE INFUSÃO', [
+            '1ª Etapa (8h do trauma): ' + fmt(vol8h, 0) + ' mL (' + fmt(vazao8h, 0) + ' mL/h)',
+            '2ª Etapa (16h restantes): ' + fmt(vol16h, 0) + ' mL (' + fmt(vazao16h, 0) + ' mL/h)'
+          ]],
+          ['CONDUTAS E MONITORIZAÇÃO', avisos]
+        ],
+        avisos: avisos,
+        dados: {
+          pesoKg: peso,
+          scq: scq,
+          volumeTotal24hMl: volTotal,
+          volumePrimeiras8hMl: vol8h,
+          vazaoPrimeiras8hMlH: vazao8h,
+          volumeSeguintes16hMl: vol16h,
+          vazaoSeguintes16hMlH: vazao16h,
+          debitoUrinarioAlvoMlH: { min: debitoMin, max: debitoMax }
+        },
+        legado: {
+          volumeTotalMl: volTotal,
+          volume8hMl: vol8h,
+          vazao8hMlH: vazao8h,
+          volume16hMl: vol16h,
+          vazao16hMlH: vazao16h
+        },
+        botoes: botoesPadrao(ID, [btn('🧮 Novo cálculo', ID, 'voltar')])
+      });
+    });
+  }
+
+  function calcularParklandPorTextoLivre(texto) {
+    if (!texto || typeof texto !== 'string') return null;
+    var t = texto.toLowerCase();
+    if (!/(?:parkland|queimadur[as]?)\b/i.test(t)) return null;
+
+    var m1 = texto.match(/(?:parkland|queimadur[as]?)\b.*?(?:(\d+(?:[.,]\d+)?)\s*kg).*?(\d+(?:[.,]\d+)?)\s*%/i) ||
+             texto.match(/(?:parkland|queimadur[as]?)\b.*?(\d+(?:[.,]\d+)?)\s*%.*?(?:(\d+(?:[.,]\d+)?)\s*kg)/i);
+    if (m1) {
+      var p1 = parseFloat((m1[1] || m1[2]).replace(',', '.'));
+      var s1 = parseFloat((m1[2] || m1[1]).replace(',', '.'));
+      return parkland(p1, s1);
+    }
+
+    var mPeso = texto.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i);
+    var mScq = texto.match(/(?:scq|superficie|queimadura)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*%?/i) || texto.match(/(\d+(?:[.,]\d+)?)\s*%/i);
+    if (mPeso && mScq) {
+      var p = parseFloat(mPeso[1].replace(',', '.'));
+      var s = parseFloat(mScq[1].replace(',', '.'));
+      return parkland(p, s);
+    }
+    return null;
+  }
+
   /**
    * MELD (Model for End-Stage Liver Disease - UNOS / Kamath et al. 2007) e MELD-Na (OPTN 2016)
    */
@@ -2489,6 +2600,8 @@ var CalculadorasClinicas = (function () {
     glasgowP: glasgowP,
     gasometria: gasometria,
     meld: meld,
+    parkland: parkland,
+    calcularParklandPorTextoLivre: calcularParklandPorTextoLivre,
     drogasVasoativas: drogasVasoativas,
     sequenciaRapidaIntubacao: sequenciaRapidaIntubacao,
     posologiaPediatrica: posologiaPediatrica,

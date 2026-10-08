@@ -615,15 +615,54 @@ const ctx = {
     base64Decode: (data) => Buffer.from(data, 'base64'),
     getUuid: () => crypto.randomUUID(),
     formatDate: (date, tz, fmt) => {
-      const d = new Date(date);
+      const d = (date instanceof Date) ? date : new Date(date);
+      const targetTz = tz || 'America/Sao_Paulo';
+      let m = {};
+      try {
+        const formatter = new Intl.DateTimeFormat('pt-BR', {
+          timeZone: targetTz,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          weekday: 'short',
+          hour12: false
+        });
+        for (const p of formatter.formatToParts(d)) {
+          m[p.type] = p.value;
+        }
+      } catch (_) {
+        m = {};
+      }
       const pad = n => String(n).padStart(2, '0');
-      if (fmt === 'dd/MM/yyyy') {
-        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-      }
-      if (fmt === 'yyyyMMdd_HHmm') {
-        return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
-      }
-      return d.toISOString();
+      const YYYY = m.year || String(d.getFullYear());
+      const MM = m.month || pad(d.getMonth() + 1);
+      const DD = m.day || pad(d.getDate());
+      let HH = m.hour || pad(d.getHours());
+      if (HH === '24') HH = '00';
+      const mm = m.minute || pad(d.getMinutes());
+      const ss = m.second || pad(d.getSeconds());
+      const eee = (m.weekday || '').replace(/\.$/, '');
+
+      if (!fmt || fmt === 'yyyy-MM-dd') return `${YYYY}-${MM}-${DD}`;
+      if (fmt === 'HH:mm') return `${HH}:${mm}`;
+      if (fmt === 'dd/MM') return `${DD}/${MM}`;
+      if (fmt === 'dd/MM/yyyy') return `${DD}/${MM}/${YYYY}`;
+      if (fmt === 'dd/MM HH:mm') return `${DD}/${MM} ${HH}:${mm}`;
+      if (fmt === 'yyyyMMdd_HHmm') return `${YYYY}${MM}${DD}_${HH}${mm}`;
+      if (fmt === 'dd/MM/yyyy (EEE)') return `${DD}/${MM}/${YYYY} (${eee})`;
+      if (fmt === "yyyy-MM-dd'T'HH:mm:ss" || fmt === 'yyyy-MM-ddTHH:mm:ss') return `${YYYY}-${MM}-${DD}T${HH}:${mm}:${ss}`;
+
+      return String(fmt)
+        .replace(/yyyy/g, YYYY)
+        .replace(/MM/g, MM)
+        .replace(/dd/g, DD)
+        .replace(/HH/g, HH)
+        .replace(/mm/g, mm)
+        .replace(/ss/g, ss)
+        .replace(/EEE/g, eee);
     },
     newBlob: (content, contentType = 'text/plain', name = 'file') => {
       const buf = Buffer.isBuffer(content) ? content : Buffer.from(content || '');
@@ -728,7 +767,8 @@ module.exports = {
       cockpitPerfil: ctx.cockpitPerfil,
       cockpitRegistrarPeso: ctx.cockpitRegistrarPeso,
       cockpitAulasProgresso: ctx.cockpitAulasProgresso,
-      cockpitAlternarAula: ctx.cockpitAlternarAula
+      cockpitAlternarAula: ctx.cockpitAlternarAula,
+      cockpitChecarSeguranca: ctx.cockpitChecarSeguranca
     };
     if (typeof funcoes[metodo] !== 'function') {
       throw new Error(`Método do Cockpit não suportado: ${metodo}`);
