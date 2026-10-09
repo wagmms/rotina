@@ -28,7 +28,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Alertas críticos para síndrome de realimentação (reposição empírica de Fósforo, Magnésio e Tiamina antes da dieta).
     - Prescrição de nutrição enteral precoce e parenteral total com base nos dias de jejum e risco nutricional (NRS-2002/NUTRIC Score).
 
-17. [ ] **Módulo de Oncologia Básica para Atenção Primária**:
+17. [x] **Módulo de Oncologia Básica para Atenção Primária**:
     - Rastreamento dos cânceres mais prevalentes (Mama, Cólon, Próstata e Pulmão) com diretrizes nacionais do INCA 2026.
     - Condutas em achados de BI-RADS em mamografias e FIT-teste positivo.
     - Gestão de efeitos adversos oncológicos na APS (neutropenia febril, mucosite e dor oncológica basal com escada analgésica da OMS avançada).
@@ -248,12 +248,27 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Passos iniciais de estabilização do RN em sala de parto, indicações de VPP (Ventilação com Pressão Positiva), intubação e massagem cardíaca baseados em APGAR e FC < 100 ou < 60 bpm.
     - Doses de adrenalina (0.01 a 0.03 mg/kg IV) e expansor de volume (SF 0.9% 10 mL/kg) para neonatos em PCR.
 
+63. [ ] **Módulo Avançado de Terapia Imunossupressora e Transplantes (Rejeição Aguda e CMV)**:
+    - Motor determinístico de dosagem e monitoramento de níveis séricos de inibidores de calcineurina (Tacrolimo e Ciclosporina) com detecção de toxicidade.
+    - Protocolo de profilaxia e tratamento preemptivo de infecção por Citomegalovírus (CMV) no pós-transplante com Ganciclovir/Valganciclovir.
+
+64. [ ] **Ginecologia - Rastreio e Manejo de Osteoporose na Pós-Menopausa (FRAX e NAMS)**:
+    - Integração de cálculo FRAX específico para a população feminina.
+    - Regras determinísticas para reposição segura de Bisfosfonatos (Alendronato), Denosumabe e Teriparatida com monitoramento de cálcio e vitamina D basal.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo de Oncologia Básica para Atenção Primária**
+- [ ] **Módulo de Endocrinologia e Diabetes Mellitus Avançado (SBD/ADA)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Módulo de Oncologia Básica para Atenção Primária**:
+   - Rastreamento determinístico INCA 2026 para os cânceres mais prevalentes (Mama, Cólon, Próstata e Pulmão) guiado pelo perfil e risco do paciente.
+   - Algoritmo de condutas beira-leito baseadas na classificação BI-RADS mamográfica/ultrassonográfica.
+   - Motor para manejo de toxicidade e efeitos adversos oncológicos na APS (Neutropenia Febril, Mucosite Oral e Escada Analgésica da OMS para dor oncológica).
+   - Módulo `src/02_oncologia_basica.js` com integração nativa na malha RPC do Cockpit (`cockpitOncologiaBasica`).
+   - Suíte determinística `tests/test_oncologia_basica.cjs` validada com 100% de sucesso.
+
 - [x] (2026-10-09) **Módulo de Suporte Nutricional Enteral e Parenteral (UTI/Enfermaria)**:
    - Calculadora automatizada de necessidade calórico-proteica basal com fórmulas de Harris-Benedict e regra de bolso (25-30 kcal/kg).
    - Motor determinístico de alerta para Síndrome de Realimentação baseado em critérios maiores (IMC < 16, perda de peso extrema, jejum prolongado, distúrbios de K/Mg/P) e menores, com prescrição empírica imediata de Tiamina e avanço lento da dieta.
