@@ -91,8 +91,16 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolo duplo bloqueio (AAS + Inibidor P2Y12) com bloqueios cruzados (ex: Prasugrel em paciente com AVC prévio).
 
 31. [x] **Inteligência Gasométrica e Distúrbios Ácido-Base (Regra dos 5 Passos)**:
-    - Motor determinístico para cálculo de compensação esperada (Fórmula de Winter: pCO2 = 1.5 * HCO3 + 8 ± 2).
-    - Cálculo automático de Anion Gap e Delta Ratio para diagnóstico diferencial de acidoses metabólicas ocultas e triplas.
+    - Motor determinístico beira-leito para interpretação ácido-base em 5 passos clínicos (`src/02_gasometria_acido_base.js`).
+    - Passo 1: Distúrbio primário e estratificação de gravidade clínica (leve a crítica por faixas de pH).
+    - Passo 2: Compensação esperada precisa via Fórmula de Winter (PaCO2 = 1,5 × HCO3 + 8 ± 2) e equações para alcalose metabólica e acidoses/alcaloses respiratórias agudas vs crônicas.
+    - Passo 3: Ânion Gap sérico com correção automática estrita por hipoalbuminemia (AG + 2,5 × [4,0 - Alb]).
+    - Passo 4: Razão Delta (Delta-Delta) para diagnóstico diferencial de acidoses ocultas e estratificação em hiperclorêmica pura (< 0,4), mista (0,4-0,8), AG elevado pura (0,8-2,0) e alcalose metabólica oculta (> 2,0 ou HCO3 >= 24).
+    - Passo 5: Oxigenação com Relação PaO2/FiO2 (Classificação de Berlim 2012 para SDRA) e Gradiente Alvéolo-Arterial (A-a) com PAO2 alveolar ajustada por altitude e limite de normalidade ajustado por idade.
+    - Detecção inteligente de distúrbios triplos (ex: CAD + vômitos + DPOC com acidose respiratória).
+    - Verificação de consistência biológica por Henderson-Hasselbalch para flag de erro de digitação ou amostra venosa.
+    - Alertas críticos beira-leito de hiperlactatemia (> 4 mmol/L) e contraindicação de NaHCO3 antes de correção de hipocalemia severa (K < 3,0 mEq/L).
+    - Integrado via Fastify RPC (`cockpitGasometriaAcidoBase`), comandos Telegram (`/gaso`, `/winter`, `/gasometria`, `/aniongap`) e testes automatizados 100% aprovados.
 
 32. [ ] **Módulo de Suporte Nutricional em Pediatria (Fórmula Infantil / Terapia Nutricional)**:
     - Calculadora determinística para diluição e preparo de fórmulas infantis (padronização 1 medida para 30 mL).
@@ -444,6 +452,21 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Calculadora determinística beira-leito dos escores OESIL e San Francisco Syncope Rule para predição de desfecho adverso em 30 dias.
     - Critérios formais para internação em UTI/Unidade Coronariana vs investigação ambulatorial com Tilt Test / Holter / Looper implantável.
 
+102. [ ] **Hematologia e Medicina Intensiva - Manejo da Anemia Falciforme e Crises Falcêmicas Agudas (Síndrome Torácica Aguda, Crise Vaso-Oclusiva e Sequestro Esplênico)**:
+    - Protocolo escalonado de analgesia de emergência para Crise Vaso-Oclusiva (CVO) com opioides precoces (Morfina IV em até 30 min da admissão) e hidratação parcimoniosa para evitar edema pulmonar.
+    - Reconhecimento determinístico imediato da Síndrome Torácica Aguda (STA: novo infiltrado pulmonar + febre/dor torácica/hipoxemia) com indicação precoce de transfusão simples vs exsanguinotransfusão parcial (alvo Hb ~10 g/dL, HbS < 30%) e antibioticoterapia de amplo espectro (Ceftriaxona + Macrolídeo).
+    - Protocolo de prevenção secundária com Hidroxiureia ponderada (15-35 mg/kg/dia) com monitorização de mielotoxicidade e profilaxia antipneumocócica.
+
+103. [ ] **Neurologia e Terapia Intensiva - Manejo do Traumatismo Cranioencefálico Grave (TCE) e Monitorização de Pressão Intracraniana (Brain Trauma Foundation 4ª Edição)**:
+    - Checklist determinístico de admissão pelo escore da Escala de Coma de Glasgow (ECG <= 8: indicação formal de IOT com proteção de coluna cervical e monitorização de PIC).
+    - Metas estritas de neuroproteção beira-leito: PAM alvo >= 80 mmHg (PPC alvo entre 60 e 70 mmHg), PaO2 >= 80 mmHg (evitar hipóxia), PaCO2 normocápnica entre 35 e 40 mmHg (contraindicação formal de hiperventilação profilática prolongada por risco de isquemia cerebral).
+    - Protocolo em escada para crise de Hipertensão Intracraniana (PIC > 22 mmHg): cabeceira 30°, sedoanalgesia profunda, terapia osmolar em bolus (Salina Hipertônica 3% ou Manitol 20%), bloqueio neuromuscular e craniectomia descompressiva de resgate.
+
+104. [ ] **Endocrinologia e Terapia Intensiva - Manejo da Tempestade Tireotóxica e Crise Mixedematosa (Escore de Burch-Wartofsky e Critérios Popovic)**:
+    - Calculadora determinística beira-leito do escore de Burch-Wartofsky (BWPS: temperatura, efeitos no SNC, disfunção cardiovascular, IC, disfunção hepática; pontuação >= 45 fortemente sugestiva de tempestade tireotóxica).
+    - Protocolo farmacológico sequencial em 4 etapas estritas: 1) Bloqueio adrenérgico (Propranolol 60-80mg VO 4/4h ou Esmolol IV); 2) Bloqueio de síntese (Propiltiouracil 200mg 4/4h preferencial vs Metimazol); 3) Bloqueio de liberação (Iodeto de Potássio / Solução de Lugol iniciado 1 HORA APÓS o antitireoidiano para evitar o efeito Jod-Basedow); 4) Bloqueio de conversão periférica T4->T3 com Hidrocortisona 100mg IV 8/8h.
+    - Manejo emergencial do Coma Mixedematoso: Hidrocortisona empírica prévia (evitar crise adrenal) seguida de Levotiroxina IV/VO e aquecimento passivo.
+
 ## 🔄 Próxima Tarefa em Andamento
 - [ ] **Módulo de Suporte Nutricional em Pediatria (Fórmula Infantil / Terapia Nutricional)**
 
@@ -462,7 +485,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
    - Alertas críticos beira-leito de hiperlactatemia (> 4 mmol/L) e contraindicação de NaHCO3 antes de correção de hipocalemia severa (K < 3,0 mEq/L).
    - Integração total via Fastify RPC (`cockpitGasometriaAcidoBase` e alias `cockpitGasometria`) e comandos Telegram (`/gaso`, `/gasometria`, `/winter`, `/aniongap`) com parser determinístico e tolerância a dados posicionais.
    - Suíte de 13 testes automatizados determinísticos rigorosos em `tests/test_gasometria_acido_base.cjs` aprovados com 100% de sucesso.
-   - Kaizen perpétuo: Backlog abastecido com 3 novas metas clínicas prioritárias (99, 100 e 101).
+   - Kaizen perpétuo: Backlog abastecido com 3 novas metas clínicas prioritárias (102, 103 e 104).
 - [x] (2026-10-09) **Módulo de Cardiologia de Emergência (Dor Torácica, IAM e Duplo Bloqueio DAPT)**:
    - Estratificação robusta pelo Escore HEART (0-10 pts), TIMI SCASST (0-7 pts) e TIMI IAMCSST (0-14 pts).
    - Motor determinístico de DAPT com bloqueio fatal absoluto de Prasugrel em antecedente de AVC/AIT (Ensaio TRITON-TIMI 38).
