@@ -560,11 +560,7 @@ async function buildServer() {
 
     const MODELOS_LIVE_CANDIDATOS = [
       process.env.GEMINI_LIVE_MODEL,
-      'gemini-2.0-flash-exp',
-      'gemini-2.0-flash-realtime-exp',
-      'gemini-2.5-flash-native-audio-preview',
-      'gemini-2.0-flash',
-      'gemini-3.8-live'
+      'gemini-2.0-flash-exp'
     ].filter(Boolean);
 
     const SYSTEM_INSTRUCTION_PRECEPTOR = `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva da FMRP-USP.
@@ -575,7 +571,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
 3. Mantenha cada turno de fala curto (15 a 40 segundos), permitindo que Wagner fale livremente.
 4. Ao ouvir uma conduta, reforce a segurança do paciente, alergias, contraindicações e diretrizes brasileiras (SBC, ILAS, AMIB, SBPT).`;
 
-    // Função de tentativa de conexão com timeout defensivo (evita travamento do SDK)
+    // Função de tentativa de conexão com timeout defensivo rápido (2s)
     async function tentarConectarLive(key, modelo) {
       return new Promise((resolve, reject) => {
         let finalizado = false;
@@ -584,7 +580,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
             finalizado = true;
             reject(new Error(`Timeout na negociação Live com modelo ${modelo}`));
           }
-        }, 4000);
+        }, 2000);
 
         try {
           const ai = new GoogleGenAI({ apiKey: key });
@@ -663,9 +659,9 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
     let liveSession = null;
     let modeloAtivo = null;
 
-    // Tenta conectar modelos Live com rotação de chaves
+    // Tenta conectar modelo Live em até 2 segundos com a chave principal
     for (const mod of MODELOS_LIVE_CANDIDATOS) {
-      for (const k of chaves.slice(0, 3)) {
+      for (const k of chaves.slice(0, 1)) {
         try {
           const resultado = await tentarConectarLive(k, mod);
           liveSession = resultado.session;
