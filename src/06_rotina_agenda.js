@@ -21,23 +21,20 @@ function executarCicloRotina5Min() {
   // A. BRIEFING MATINAL (06:15 até 09:00)
   if (minutos >= 375 && minutos < 540) {
     if (props.getProperty("ultima_data_briefing") !== dataHojeISO) {
-      if (enviarBriefingMatinal(chatId)) {
-        props.setProperty("ultima_data_briefing", dataHojeISO);
-      }
+      props.setProperty("ultima_data_briefing", dataHojeISO);
+      enviarBriefingMatinal(chatId);
     }
   }
 
   // B. CHECK-IN NOTURNO (21:30 até 23:59)
   if (minutos >= 1290) {
     if (props.getProperty("ultima_data_checkin") !== dataHojeISO) {
+      props.setProperty("ultima_data_checkin", dataHojeISO);
       var stPl = detectarPlantaoStatus(agora);
       if (stPl.ehPlantaoHoje) {
         enviarMensagemParaChat(chatId, "🚨 *EM PLANTÃO NOTURNO:*\nCheck-in de hábitos silenciado para manter o foco nos pacientes. Se precisar de condutas, doses de Sala Vermelha (`/dva`, `/sri`) ou gasometria, estou na retaguarda. Bom plantão!");
-        props.setProperty("ultima_data_checkin", dataHojeISO);
       } else {
-        if (enviarCheckinNoturno(chatId)) {
-          props.setProperty("ultima_data_checkin", dataHojeISO);
-        }
+        enviarCheckinNoturno(chatId);
       }
     }
   }
@@ -45,9 +42,8 @@ function executarCicloRotina5Min() {
   // C. RELATÓRIO SEMANAL DE HÁBITOS (DOMINGOS ÀS 20:00)
   if (agora.getDay() === 0 && minutos >= 1200) {
     if (props.getProperty("ultima_data_relatorio") !== dataHojeISO) {
-      if (enviarRelatorioSemanalHabitos(chatId)) {
-        props.setProperty("ultima_data_relatorio", dataHojeISO);
-      }
+      props.setProperty("ultima_data_relatorio", dataHojeISO);
+      enviarRelatorioSemanalHabitos(chatId);
     }
   }
 

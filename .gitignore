@@ -38,3 +38,7 @@ gas_deploy/
 /pwa-192x192.png
 /pwa-512x512.png
 /sw.js
+
+# Logs de auditoria e validação
+*.log
+auditorias/**/*.log

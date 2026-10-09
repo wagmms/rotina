@@ -7,6 +7,11 @@ const { buildServer } = require('../server/index.js');
 const runtime = require('../server/runtime.js');
 
 async function run() {
+  process.env.NODE_ENV = 'test';
+  process.env.TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '1771571035';
+  process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'test_bot_token';
+  runtime.ctx.PropertiesService.getScriptProperties().setProperty('TELEGRAM_CHAT_ID', process.env.TELEGRAM_CHAT_ID);
+  runtime.ctx.PropertiesService.getScriptProperties().setProperty('TELEGRAM_BOT_TOKEN', process.env.TELEGRAM_BOT_TOKEN);
   const app = await buildServer();
 
   // 1. Healthcheck
@@ -72,7 +77,43 @@ async function run() {
   assert(jsonRemume.resultado.itens.length > 200);
   console.log(`✓ Cockpit REMUME OK (${jsonRemume.resultado.itens.length} itens)`);
 
-  // 6. Cache-Control: métodos de leitura recebem cache curto
+  // 6. Cockpit RPC - Cross-Check de Segurança Clínica & Interações (< 20ms)
+  const tCross0 = performance.now();
+  const resCross = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitChecarSeguranca',
+      session: token,
+      args: ['amiodarona 200mg, fluconazol 150mg, enoxaparina 40mg, clcr 28']
+    }
+  });
+  const tCross = performance.now() - tCross0;
+  assert.equal(resCross.statusCode, 200);
+  const jsonCross = resCross.json();
+  assert.equal(jsonCross.ok, true);
+  assert.equal(jsonCross.resultado.ok, true);
+  assert.equal(jsonCross.resultado.temAlertasCriticos, true);
+  assert(jsonCross.resultado.interacoes.length >= 1);
+  assert(jsonCross.resultado.ajustesRenais.length >= 1);
+  assert(tCross < 100, `Tempo de Cross-Check (${tCross}ms) deve ser menor que 100ms`);
+  console.log(`✓ Cockpit Cross-Check de Segurança OK (${tCross.toFixed(2)}ms, ${jsonCross.resultado.interacoes.length} interações, ${jsonCross.resultado.ajustesRenais.length} ajustes renais)`);
+
+  // 7. PWA Manifest & Service Worker
+  const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
+  assert.equal(resManifest.statusCode, 200);
+  const jsonManifest = JSON.parse(resManifest.body);
+  assert.equal(jsonManifest.short_name, 'Cockpit');
+  assert.equal(jsonManifest.display, 'standalone');
+  console.log('✓ PWA Manifest.json OK');
+
+  const resSw = await app.inject({ method: 'GET', url: '/sw.js' });
+  assert.equal(resSw.statusCode, 200);
+  assert(resSw.body.includes('CACHE_NAME'));
+  assert(resSw.body.includes('caches.match'));
+  console.log('✓ PWA Service Worker (sw.js) OK');
+
+  // 8. Cache-Control: métodos de leitura recebem cache curto
   const resConsultar = await app.inject({
     method: 'POST',
     url: '/api/cockpit',
@@ -83,12 +124,12 @@ async function run() {
   assert(ccRead && ccRead.includes('max-age=30'), `Leitura deve ter cache: ${ccRead}`);
   console.log(`✓ Cache-Control leitura OK (${ccRead})`);
 
-  // 7. Cache-Control: métodos de escrita recebem no-store
+  // 9. Cache-Control: métodos de escrita recebem no-store
   const ccWrite = resDva.headers['cache-control'];
   assert(ccWrite && ccWrite.includes('no-store'), `Escrita deve ter no-store: ${ccWrite}`);
   console.log(`✓ Cache-Control escrita OK (${ccWrite})`);
 
-  // 8. Compressão HTTP: respostas grandes são comprimidas com gzip
+  // 10. Compressão HTTP: respostas grandes são comprimidas com gzip
   const resGzip = await app.inject({
     method: 'POST',
     url: '/api/cockpit',

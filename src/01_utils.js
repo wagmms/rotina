@@ -722,3 +722,168 @@ function enviarAudioVozTelegram(chatId, blobAudio, legenda, replyMarkup) {
   }
 }
 
+/**
+ * ==============================================================================
+ * VALIDADOR DE LIMITES FISIOLÓGICOS & SANITIZAÇÃO DE ENTRADA CLÍNICA
+ * ==============================================================================
+ * Protege contra erros de digitação (zeros extras, vírgulas deslocadas, valores
+ * biologicamente implausíveis ou incompatíveis com a vida).
+ * ==============================================================================
+ */
+
+var ValidadorFisiologico = (function() {
+  var FAIXAS = {
+    peso: { min: 0.4, max: 350.0, unidade: "kg", nome: "Peso corporal" },
+    idade: { min: 0, max: 125, unidade: "anos", nome: "Idade" },
+    pas: { min: 30, max: 280, unidade: "mmHg", nome: "Pressão Arterial Sistólica (PAS)" },
+    pad: { min: 15, max: 160, unidade: "mmHg", nome: "Pressão Arterial Diastólica (PAD)" },
+    pam: { min: 20, max: 200, unidade: "mmHg", nome: "Pressão Arterial Média (PAM)" },
+    fc: { min: 20, max: 300, unidade: "bpm", nome: "Frequência Cardíaca (FC)" },
+    fr: { min: 4, max: 80, unidade: "irpm", nome: "Frequência Respiratória (FR)" },
+    spo2: { min: 30, max: 100, unidade: "%", nome: "Saturação de O₂ (SpO₂)" },
+    temperatura: { min: 25.0, max: 44.0, unidade: "°C", nome: "Temperatura Corporal" },
+    glicemia: { min: 10, max: 1500, unidade: "mg/dL", nome: "Glicemia capilar/sérica" },
+    creatinina: { min: 0.1, max: 30.0, unidade: "mg/dL", nome: "Creatinina sérica" },
+    ureia: { min: 5, max: 500, unidade: "mg/dL", nome: "Ureia sérica" },
+    potassio: { min: 1.0, max: 10.0, unidade: "mEq/L", nome: "Potássio sérico (K⁺)" },
+    sodio: { min: 90, max: 180, unidade: "mEq/L", nome: "Sódio sérico (Na⁺)" },
+    ph: { min: 6.70, max: 7.80, unidade: "", nome: "pH sanguíneo" },
+    pco2: { min: 10, max: 150, unidade: "mmHg", nome: "pCO₂ arterial" },
+    po2: { min: 15, max: 600, unidade: "mmHg", nome: "pO₂ arterial" },
+    hco3: { min: 2, max: 60, unidade: "mEq/L", nome: "Bicarbonato (HCO₃⁻)" },
+    lactato: { min: 0.2, max: 30.0, unidade: "mmol/L", nome: "Lactato arterial" }
+  };
+
+  function normalizarNumero(val) {
+    if (val === undefined || val === null) return NaN;
+    if (typeof val === "number") return isFinite(val) ? val : NaN;
+    var s = String(val).trim().replace(",", ".");
+    return Number(s);
+  }
+
+  return {
+    obterFaixas: function() { return FAIXAS; },
+
+    validarParametro: function(parametro, valor) {
+      var p = String(parametro || "").toLowerCase().trim();
+      var config = FAIXAS[p];
+      if (!config) {
+        return { valido: true, valor: normalizarNumero(valor), alerta: null };
+      }
+
+      var num = normalizarNumero(valor);
+      if (isNaN(num)) {
+        return {
+          valido: false,
+          valor: null,
+          alerta: "Valor inválido ou não numérico para " + config.nome + "."
+        };
+      }
+
+      if (num < config.min || num > config.max) {
+        return {
+          valido: false,
+          valor: num,
+          alerta: "⚠️ " + config.nome + " de " + num + (config.unidade ? " " + config.unidade : "") +
+            " está fora da faixa biológica esperada (" + config.min + " a " + config.max + (config.unidade ? " " + config.unidade : "") +
+            "). Confirme se houve erro de digitação antes de utilizar nos cálculos."
+        };
+      }
+
+      return { valido: true, valor: num, alerta: null };
+    },
+
+    sanitizarEntradaCalculo: function(tipo, entrada) {
+      if (!entrada || typeof entrada !== "object") {
+        return { valido: false, erro: "Parâmetros não informados ou formato inválido." };
+      }
+
+      var erros = [];
+
+      // Checagem de Peso Universal
+      if (entrada.peso !== undefined && entrada.peso !== null && entrada.peso !== "") {
+        var vPeso = this.validarParametro("peso", entrada.peso);
+        if (!vPeso.valido) erros.push(vPeso.alerta);
+      }
+
+      // Checagem por tipo de cálculo
+      if (tipo === "crcl") {
+        if (entrada.creatinina !== undefined && entrada.creatinina !== null && entrada.creatinina !== "") {
+          var vCr = this.validarParametro("creatinina", entrada.creatinina);
+          if (!vCr.valido) erros.push(vCr.alerta);
+        }
+        if (entrada.idade !== undefined && entrada.idade !== null && entrada.idade !== "") {
+          var vIdade = this.validarParametro("idade", entrada.idade);
+          if (!vIdade.valido) erros.push(vIdade.alerta);
+        }
+      }
+
+      if (tipo === "gaso") {
+        if (entrada.ph !== undefined && entrada.ph !== null && entrada.ph !== "") {
+          var vPh = this.validarParametro("ph", entrada.ph);
+          if (!vPh.valido) erros.push(vPh.alerta);
+        }
+        if (entrada.pco2 !== undefined && entrada.pco2 !== null && entrada.pco2 !== "") {
+          var vPco2 = this.validarParametro("pco2", entrada.pco2);
+          if (!vPco2.valido) erros.push(vPco2.alerta);
+        }
+        if (entrada.hco3 !== undefined && entrada.hco3 !== null && entrada.hco3 !== "") {
+          var vHco3 = this.validarParametro("hco3", entrada.hco3);
+          if (!vHco3.valido) erros.push(vHco3.alerta);
+        }
+      }
+
+      return {
+        valido: erros.length === 0,
+        erros: erros,
+        erro: erros.join("\n")
+      };
+    },
+
+    escanearAnomaliasEmTexto: function(texto) {
+      if (!texto) return [];
+      var str = String(texto).toLowerCase();
+      var anomalias = [];
+
+      // 1. SpO2 > 100% ou < 30%
+      var mSpo2 = str.match(/\b(?:spo2|sp[oO]₂|sat|saturacao)\s*[:=]?\s*(\d+)\s*%/i);
+      if (mSpo2) {
+        var vSat = parseInt(mSpo2[1], 10);
+        if (vSat > 100 || vSat < 30) {
+          anomalias.push("SpO₂ de " + vSat + "% fora da faixa fisiológica (30 a 100%).");
+        }
+      }
+
+      // 2. PA com PAS > 280 ou < 30, ou PAD > 160
+      var mPa = str.match(/\b(?:pa\s*[:=]?\s*)?(\d{2,3})\s*[x/]\s*(\d{2,3})\b/i);
+      if (mPa) {
+        var pas = parseInt(mPa[1], 10);
+        var pad = parseInt(mPa[2], 10);
+        if (pas > 280 || pas < 30 || pad > 160 || pad < 15 || pas <= pad) {
+          anomalias.push("Pressão Arterial de " + pas + "/" + pad + " mmHg biologicamente implausível.");
+        }
+      }
+
+      // 3. FC > 300 ou < 20
+      var mFc = str.match(/\b(?:fc|frequencia cardiaca)\s*[:=]?\s*(\d+)\s*(?:bpm)?\b/i);
+      if (mFc) {
+        var fc = parseInt(mFc[1], 10);
+        if (fc > 300 || fc < 20) {
+          anomalias.push("Frequência Cardíaca de " + fc + " bpm fora dos limites vitais plausíveis (20 a 300 bpm).");
+        }
+      }
+
+      // 4. Temperatura > 44 ou < 25
+      var mTax = str.match(/\b(?:tax|temp|temperatura)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*°?c\b/i);
+      if (mTax) {
+        var temp = parseFloat(mTax[1].replace(",", "."));
+        if (temp > 44 || temp < 25) {
+          anomalias.push("Temperatura de " + temp + " °C fora da faixa biológica humana (25 a 44 °C).");
+        }
+      }
+
+      return anomalias;
+    }
+  };
+})();
+
