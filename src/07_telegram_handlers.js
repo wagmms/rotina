@@ -176,7 +176,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -188,7 +188,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -735,6 +735,89 @@ function processarMensagemTexto(message) {
   if (comando === "/ef_ped" || comando === "/ef_pedia") return responderComGuiaExameFisico(chatId, "ped");
   if (comando === "/ef_geriatria" || comando === "/geriatria" || comando === "/aga") return responderComGuiaExameFisico(chatId, "geriatria");
   if (comando === "/ef_vascular" || comando === "/vascular" || comando === "/tvp") return responderComGuiaExameFisico(chatId, "vascular");
+  // ───────────────────────────────────────────────────────────────────────────
+  // SAÚDE DO IDOSO E AVALIAÇÃO GERIÁTRICA AMPLA (AGA)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/idoso" || comando === "/aga" || comando === "/beers" || comando === "/cfs" || comando === "/minicog" || comando === "/tug") {
+    var dadosIdoso = texto.replace(/^\/\w+\s*/, "").trim();
+    if (!dadosIdoso) {
+      return enviarMensagemParaChat(chatId, "👴 *MÓDULO DE SAÚDE DO IDOSO & AGA*\n\n" +
+        "Envie os achados para avaliação estruturada:\n" +
+        "• `/cfs 6` *(Triagem de Fragilidade CFS)*\n" +
+        "• `/minicog 1 relogio alterado` *(Teste Cognitivo Mini-Cog)*\n" +
+        "• `/tug 14` *(Timed Up and Go em segundos)*\n" +
+        "• `/beers omeprazol clonazepam amitriptilina metformina aas` *(Polifarmácia)*\n" +
+        "• `/aga cfs 5, minicog 2 e relogio normal, tug 15s, usa zolpidem, ibuprofeno, losartana, aas, atenolol` *(AGA Completa)*");
+    }
+
+    if (typeof SaudeIdosoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo SaudeIdosoService indisponível temporariamente.");
+    }
+
+    var cenario = {};
+
+    // CFS
+    if (comando === "/cfs" || dadosIdoso.match(/cfs\s*(\d)/i)) {
+      var mCfs = dadosIdoso.match(/cfs\s*(\d)/i) || texto.match(/\/cfs\s+(\d)/);
+      if (mCfs) cenario.cfs = { score: parseInt(mCfs[1], 10) };
+    }
+    // Mini-Cog
+    if (comando === "/minicog" || dadosIdoso.match(/minicog|mini-cog/i)) {
+      var mPalavras = dadosIdoso.match(/(\d)\s*palavra/i);
+      var mRelogioNormal = dadosIdoso.match(/relogio\s*normal/i);
+      var mRelogioAlt = dadosIdoso.match(/relogio\s*(alterado|anormal|errado)/i);
+      var palavras = mPalavras ? parseInt(mPalavras[1], 10) : 3;
+      var relogioNormal = true;
+      if (mRelogioAlt) relogioNormal = false;
+      cenario.miniCog = { palavras: palavras, relogioNormal: relogioNormal };
+    }
+    // TUG
+    if (comando === "/tug" || dadosIdoso.match(/tug/i)) {
+      var mTug = dadosIdoso.match(/tug\s*(\d+)/i) || texto.match(/\/tug\s+(\d+)/);
+      if (mTug) cenario.tug = { tempo: parseInt(mTug[1], 10) };
+    }
+    // Beers / Polifarmacia
+    if (comando === "/beers" || dadosIdoso.match(/beers|polifarm/i)) {
+      // Se usar o comando direto, tudo depois é a lista.
+      var pLista = dadosIdoso.replace(/beers|polifarmacia|aga|cfs\s*\d|minicog.*|tug\s*\d+/gi, "").split(/[,;e]/).map(function(s){return s.trim();}).filter(function(s){return s.length > 2;});
+      if (pLista.length > 0) cenario.farmacos = { lista: pLista };
+    }
+
+    // Se nenhum regex extraiu, assume modo completo (fallback) se usar o comando /aga e a extração falhar?
+    if (Object.keys(cenario).length === 0) {
+      if (comando === "/beers") {
+        var bs = dadosIdoso.split(/[,;e]/).map(function(s){return s.trim();}).filter(function(s){return s.length > 2;});
+        if (bs.length > 0) cenario.farmacos = { lista: bs };
+      }
+    }
+
+    if (Object.keys(cenario).length > 0) {
+      var resumoIdoso = SaudeIdosoService.gerarResumoAga(cenario);
+      var arrStr = [];
+      if (resumoIdoso.fragilidade) {
+        arrStr.push("👴 *FRAGILIDADE (CFS):* " + resumoIdoso.fragilidade.escore + " - " + resumoIdoso.fragilidade.classificacao + "\n" + (resumoIdoso.fragilidade.alerta_fragilidade ? "🚨 " : "✅ ") + resumoIdoso.fragilidade.interpretacao);
+      }
+      if (resumoIdoso.cognicao) {
+        arrStr.push("🧠 *COGNITIVO (Mini-Cog):* Escore " + resumoIdoso.cognicao.escore_total + "\n" + (resumoIdoso.cognicao.rastreio_positivo ? "🚨 " : "✅ ") + resumoIdoso.cognicao.interpretacao);
+      }
+      if (resumoIdoso.risco_quedas) {
+        arrStr.push("🚶 *RISCO DE QUEDAS (TUG):* " + resumoIdoso.risco_quedas.tempo_segundos + "s - " + resumoIdoso.risco_quedas.classificacao + "\n" + (resumoIdoso.risco_quedas.risco_alto ? "🚨 " : "✅ ") + resumoIdoso.risco_quedas.conduta);
+      }
+      if (resumoIdoso.farmacologia) {
+        var strFarm = "💊 *POLIFARMÁCIA E BEERS:*\n" +
+                      "Total de fármacos: " + resumoIdoso.farmacologia.quantidade_medicamentos + "\n" +
+                      "Polifarmácia: " + (resumoIdoso.farmacologia.polifarmacia ? "Sim" : "Não");
+        if (resumoIdoso.farmacologia.alertas_beers) {
+          strFarm += "\n🚨 *ALERTA (PIMs)*:\n" + resumoIdoso.farmacologia.medicamentos_inadequados.map(function(m){return "• " + m.medicamento + ": " + m.alerta;}).join("\n");
+        }
+        strFarm += "\nConduta: " + resumoIdoso.farmacologia.conduta;
+        arrStr.push(strFarm);
+      }
+
+      return enviarMensagemParaChat(chatId, "📊 *RESUMO DA AVALIAÇÃO GERIÁTRICA AMPLA (AGA)*\n\n" + arrStr.join("\n\n"));
+    }
+  }
+
 
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();

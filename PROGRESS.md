@@ -9,11 +9,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 ## 📋 Backlog de Melhorias Prioritárias (Foco Clínico: Ginecologia & Obstetrícia Unificados, SOAP e UX Telegram)
 
 
-1. [ ] **Módulo de Saúde do Idoso e Avaliação Geriátrica Ampla (AGA)**:
-   - Triagem rápida de fragilidade clínica ambulatorial (Clinical Frailty Scale - CFS e Escala Edmonton).
-   - Avaliação cognitiva de rastreio em 10 minutos (Mini-Exame do Estado Mental / Mini-Cog e Teste do Relógio).
-   - Prevenção de iatrogenia e polifarmácia: Verificador automatizado de Critérios de Beers (AGS 2023) e critérios STOPP/START para desprescrição segura.
-   - Avaliação de risco de quedas (Timed Up and Go - TUG) e metas individualizadas de controle metabólico/pressórico no idoso frágil.
+
 
 2. [ ] **Auditoria de Toxicidade em Infusões Contínuas de UTI**:
    - Validação e testes determinísticos de limites de taxa de infusão (mcg/kg/min) para aminas vasoativas (Noradrenalina, Vasopressina, Adrenalina, Dobutamina) prevenindo erros por ordem de grandeza e dose letal beira-leito.
@@ -89,14 +85,35 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Condutas em achados de BI-RADS em mamografias e FIT-teste positivo.
     - Gestão de efeitos adversos oncológicos na APS (neutropenia febril, mucosite e dor oncológica basal com escada analgésica da OMS avançada).
 
+18. [ ] **Módulo de Endocrinologia e Diabetes Mellitus Avançado (SBD/ADA)**:
+    - Calculadora determinística de dose de insulina basal e bolus prandial.
+    - Protocolo automatizado de correção de hiperglicemia hospitalar.
+    - Manejo guiado de Cetoacidose Diabética (CAD) e Estado Hiperosmolar Hiperglicêmico (EHH) com reposição hídrica e potássio baseada nos guidelines da ADA e SBD, além de esquema de transição IV para SC seguro.
+
+19. [ ] **Suporte Avançado de Vida Pediátrico (PALS / Reanimação Pediátrica)**:
+    - Motor determinístico de cálculo de medicações de emergência pediátrica (Adrenalina 0,1mg/ml, Amiodarona, Lidocaína) em PCR por peso estimado, idade ou fita de Broselow.
+    - Cálculo de Joules (2 a 4 J/kg) para desfibrilação e cardioversão sincronizada.
+    - Seleção de tubo endotraqueal (TET) com e sem cuff, fixação e lâminas de intubação ajustados por idade/peso.
+
+20. [ ] **Neurologia de Emergência e Manejo de AVC Isquêmico Agudo**:
+    - Checklist inteligente de elegibilidade e contraindicações absolutas/relativas para trombólise IV (Alteplase) dentro da janela terapêutica de 4.5h.
+    - Protocolo restritivo de controle de PA pré e pós-trombólise (Labetalol, Nitroprussiato) evitando conversão hemorrágica.
+    - Cálculo posológico determinístico de Manitol 20% e Salina Hipertônica 3% ou 20% beira-leito para o manejo agudo de Hipertensão Intracraniana (HIC) com tetos osmolares.
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo de Saúde do Idoso e Avaliação Geriátrica Ampla (AGA)**: Triagem rápida de fragilidade (CFS), avaliação cognitiva (Mini-Cog) e prevenção de polifarmácia (Beers/STOPP-START).
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Módulo de Saúde do Idoso e Avaliação Geriátrica Ampla (AGA)**:
+   - **Triagem rápida de fragilidade clínica ambulatorial (Clinical Frailty Scale - CFS)**: Escore preditivo determinístico classificando de Idoso Muito Robusto (1) a Doente Terminal (9).
+   - **Avaliação cognitiva de rastreio em 10 minutos (Mini-Cog e Teste do Relógio)**: Classificação binária sensível para detecção de demência através da retenção de palavras e desenho do relógio.
+   - **Prevenção de iatrogenia e polifarmácia**: Verificador automatizado cruzando Critérios de Beers (AGS 2023) contra o paciente. Alertas críticos implementados para Benzodiazepínicos, AINEs, IBPs crônicos, Anti-histamínicos de 1ª Geração e Sulfonilureias.
+   - **Avaliação de risco de quedas (Timed Up and Go - TUG)**: Classificação temporal com metas de reabilitação.
+   - **Integração completa no Telegram e Cockpit**: Comandos rápidos (`/idoso`, `/aga`, `/cfs`, `/minicog`, `/tug`, `/beers`) exportando sumários rápidos de alto valor preditivo beira-leito. Novo método RPC `cockpitSaudeIdosoAga`.
+   - **Testes Clínicos Automatizados**: Suite rigorosa de `tests/test_saude_idoso.cjs` validando scores (100% aprovados com runner pytest).
 - [x] (2026-10-09) **Painel de Puericultura e Desenvolvimento Infantil (Atenção Primária & SBP)**:
    - **Módulo Clínico Determinístico**: Criação de `src/02_puericultura_pediatria.js` (`PuericulturaPediatriaService`) com diretrizes pediátricas estritas da SBP, MS e OMS.
    - **Suplementação Profilática**: Algoritmo rigoroso de recomendação de Vitamina D (400 UI ou 600 UI) e Ferro Elementar profilático (1 a 4 mg/kg/dia) com base na idade, peso de nascimento e aleitamento materno exclusivo.

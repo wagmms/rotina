@@ -630,3 +630,16 @@ function cockpitPainelPuericultura(initData, params) {
   }
   return PuericulturaPediatriaService.painelCompleto(params);
 }
+
+/**
+ * cockpitSaudeIdosoAga - Avaliação Geriátrica Ampla rápida.
+ */
+function cockpitSaudeIdosoAga(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SaudeIdosoService === 'undefined') {
+    throw new Error('Módulo SaudeIdosoService indisponível.');
+  }
+  return SaudeIdosoService.gerarResumoAga(params);
+}
+
