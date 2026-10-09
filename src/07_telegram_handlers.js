@@ -1711,6 +1711,38 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // CARDIOLOGIA & EMERGÊNCIA: FIBRILAÇÃO ATRIAL E ANTICOAGULAÇÃO
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/fa" || comando === "/fibrilacaoatrial" || comando === "/chascore" || comando === "/hasbled") {
+    var dadosFa = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof CardiologiaFaAnticoagulacaoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo CardiologiaFaAnticoagulacaoService indisponível temporariamente.");
+    }
+
+    if (!dadosFa) {
+      return enviarMensagemParaChat(chatId, "🫀 *CARDIOLOGIA & EMERGÊNCIA — FIBRILAÇÃO ATRIAL*\n\n" +
+        "Envie os dados clínicos do paciente para avaliação de CHA2DS2-VASc, HAS-BLED e conduta:\n" +
+        "• *Idade e Sexo:* `68 anos`, `mulher`\n" +
+        "• *Comorbidades:* `HAS`, `DM`, `IC`, `AVC prévio`, `IAM`\n" +
+        "• *Risco Hemorrágico:* `insuficiência renal`, `cirrose`, `uso de AINE`, `sangramento prévio`\n" +
+        "• *Estabilidade e Duração:* `choque`, `pam < 60`, `< 48h`, `> 48h`\n" +
+        "• *Valvopatia:* `prótese metálica`, `estenose mitral`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/fa 72 anos m has dm ic <48h` *(Acesso rápido conduta <48h)*\n" +
+        "• `/fa 68 anos f has avc prévio pam < 60 prótese metálica` *(Choque e Valvar)*\n" +
+        "• `/fa 55 anos m has insuficiência renal >48h` *(Risco hemorrágico e >48h)*");
+    }
+
+    try {
+      var paramsFa = CardiologiaFaAnticoagulacaoService.extrairParametrosTexto(dadosFa);
+      var analiseFa = CardiologiaFaAnticoagulacaoService.avaliar(paramsFa);
+      return enviarMensagemParaChat(chatId, CardiologiaFaAnticoagulacaoService.formatarTextoTelegram(analiseFa));
+    } catch (eFa) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Fibrilação Atrial: " + eFa.message);
+    }
+  }
+
   if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
     var dadosKaizen = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof AuditoriaKaizenClinicoService === "undefined") {

@@ -200,7 +200,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Bloqueios de segurança clínica: obrigatoriedade do Ácido Folínico (proibição de substituição por ácido fólico comum), monitoramento hematológico bimensal da toxicidade de Pirimetamina e contraindicação de amniocentese antes de 18 semanas.
     - Integração Fastify RPC (`cockpitObstetriciaToxoplasmose` e `cockpitToxoplasmoseGestacional`), comandos Telegram (`/toxo`, `/toxoplasmose`, `/espiramicina`, `/avidez`) e 20 testes unitários + testes de integração do servidor aprovados.
 
-40. [ ] **Cardiologia e Emergência - Fibrilação Atrial Aguda e Anticoagulação (CHA2DS2-VASc / HAS-BLED / Controle de Frequência vs Ritmo)**:
+40. [x] **Cardiologia e Emergência - Fibrilação Atrial Aguda e Anticoagulação (CHA2DS2-VASc / HAS-BLED / Controle de Frequência vs Ritmo)**:
     - Motor determinístico de cálculo do escore CHA2DS2-VASc para indicação de anticoagulação oral (DOACs de 1ª linha: Apixabana, Rivaroxabana, Dabigatrana, Edoxabana vs Varfarina se prótese metálica/estenose mitral).
     - Avaliação balanceada de risco hemorrágico com escore HAS-BLED identificando fatores de sangramento modificáveis.
     - Algoritmo de decisão rápida de estabilidade hemodinâmica: cardioversão elétrica sincronizada imediata no choque/instabilidade vs controle de frequência (Metoprolol IV, Diltiazem, Digoxina) ou cardioversão química com Amiodarona observando a janela de 48h ou ecocardiograma transesofágico.
@@ -1154,3 +1154,17 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Estabilização imediata da membrana miocárdica: Gluconato de Cálcio 10% IV (10 a 20 mL em 3-5 min) ou Cloreto de Cálcio 10% se choque/PCR.
     - Medidas de shift intracelular de ação rápida: Solução Polarizante (Glicose 50% 50 mL + Insulina Regular 10 UI IV em 30 min), Beta-2 agonista inalatório (Salbutamol 10 a 20 mg nebulizado) e Bicarbonato de Sódio 8,4% IV se acidose metabólica grave concomitante.
     - Medidas de eliminação corpórea de potássio: Furosemida IV de alça, resinas de troca / quelantes orais e indicação prioritária de hemodiálise de urgência (mnemônico AEIOU).
+
+135. [ ] **Obstetrícia & Hematologia - Profilaxia de Tromboembolismo Venoso na Gestação e Puerpério (Diretrizes RCOG / ACOG)**:
+    - Motor de estratificação de risco de TEV pré-natal, intraparto e pós-parto com escore validado identificando grupos de baixo, intermediário e alto risco.
+    - Condutas determinísticas para indicação de HBPM profilática (Enoxaparina 40 mg SC/dia ajustada por IMC) desde o 1º trimestre até 6 semanas pós-parto em pacientes de alto risco.
+    - Janelas de segurança rigorosas para suspensão de anticoagulante pré-analgesia do neuroeixo e retomada pós-parto seguro.
+
+136. [ ] **Endocrinologia & Terapia Intensiva - Reconhecimento e Manejo da Tempestade Tireoidiana (Escore de Burch-Wartofsky)**:
+    - Escore clínico determinístico para predição probabilística da tempestade tireoidiana (febre, taquicardia, IC, disfunção gastrointestinal, agitação do SNC).
+    - Protocolo escalonado de 5 frentes: betabloqueio vigoroso (Propranolol VO/IV que inibe conversão periférica T4->T3), bloqueio da síntese (Propiltiouracil > Metimazol), bloqueio da liberação (Iodo inorgânico/Lugol aplicado APÓS PTU), corticoterapia (Hidrocortisona IV) e resfriamento / manejo do fator desencadeante.
+
+137. [ ] **Cardiologia Ambulatorial e Clínica Médica - Otimização de Insuficiência Cardíaca com FE Reduzida (ICFEr / Diretrizes SBC/ESC)**:
+    - Rastreio de critérios maiores e menores de Framingham e estadiamento clínico completo (NYHA e AHA).
+    - Prescrição estruturada beira-leito ou ambulatorial do "Quarteto Fantástico" com titulação progressiva obrigatória (iECA/ARNI/Sacubitril-Valsartana + Betabloqueador Cardiosseletivo + Antagonista Mineralocorticoide / Espironolactona + inibidor SGLT2 / Dapagliflozina ou Empagliflozina).
+    - Bloqueio de segurança e contraindicações com base no ClCr e dosagem de potássio basal para proteção miocárdica/renal cruzada.

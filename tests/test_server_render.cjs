@@ -315,6 +315,23 @@ async function run() {
   assert.equal(toxoTextoBody.resultado.resultado.sorologia.cenario, 'INFECÇÃO PREGRESSA (AVIDEZ ALTA)');
   console.log('✓ Cockpit Toxoplasmose Gestacional via texto livre (alias) OK');
 
+  // 6.10 Cockpit RPC - Fibrilação Atrial e Anticoagulação
+  const resFa = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitFibrilacaoAtrial',
+      session: token,
+      args: ['75 anos mulher has dm ic pam < 60 prótese metálica']
+    }
+  });
+  if(resFa.statusCode !== 200) console.log(resFa.payload);
+  assert.equal(resFa.statusCode, 200, "Erro ao testar cockpitFibrilacaoAtrial");
+  const faBody = JSON.parse(resFa.payload);
+  assert.equal(faBody.resultado.sucesso, true);
+  assert.equal(faBody.resultado.resultado.cha2ds2vasc.escore, 6);
+  console.log('✓ Cockpit Fibrilação Atrial & Anticoagulação (CHA2DS2-VASc/HAS-BLED) OK');
+
   // 6.10 Cockpit RPC - CIG via texto livre (alias cockpitColestaseGestacional)
   const resCigTexto = await app.inject({
     method: 'POST',

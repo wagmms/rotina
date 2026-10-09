@@ -1901,3 +1901,28 @@ function cockpitObstetriciaToxoplasmose(initData, params) {
 function cockpitToxoplasmoseGestacional(initData, params) {
   return cockpitObstetriciaToxoplasmose(initData, params);
 }
+
+function cockpitCardiologiaFaAnticoagulacao(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de FA não fornecidos.');
+  if (typeof CardiologiaFaAnticoagulacaoService === 'undefined') {
+    throw new Error('Serviço CardiologiaFaAnticoagulacaoService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? CardiologiaFaAnticoagulacaoService.extrairParametrosTexto(params)
+    : (params.texto ? CardiologiaFaAnticoagulacaoService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = CardiologiaFaAnticoagulacaoService.avaliar(entrada);
+  var texto = CardiologiaFaAnticoagulacaoService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitFibrilacaoAtrial(initData, params) {
+  return cockpitCardiologiaFaAnticoagulacao(initData, params);
+}
