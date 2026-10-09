@@ -1020,6 +1020,109 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, "```\n" + rel.relatorioFormatado + "\n```");
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // SUPORTE NUTRICIONAL ENTERAL E PARENTERAL (BRASPEN / ESPEN / ASPEN)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/nutricao" || comando === "/dieta" || comando === "/refeeding" || comando === "/npt" || comando === "/nrs") {
+    var dadosNutri = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof SuporteNutricionalService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo SuporteNutricionalService indisponível temporariamente.");
+    }
+
+    if (!dadosNutri) {
+      return enviarMensagemParaChat(chatId, "🥗 *MÓDULO DE SUPORTE NUTRICIONAL CLÍNICO & UTI*\n\n" +
+        "Envie os parâmetros clínicos para cálculo e prescrição estruturada:\n" +
+        "• `/nutricao 70kg, 175cm, 65a, m, sepse, UTI, jejum 4 dias` *(Cálculo e Prescrição)*\n" +
+        "• `/refeeding IMC 15.5, perda 18%, jejum 8 dias, K 3.1, P 1.8, Mg 1.4` *(Risco de Realimentação)*\n" +
+        "• `/npt 60kg, 168cm, 58a, jejum 8 dias, ileo paralitico, alto risco` *(Indicação NPT)*\n" +
+        "• `/dieta 110kg, 165cm, 50a, f, obesa, UTI` *(Manejo em Obesidade Crítica)*");
+    }
+
+    var tLower = dadosNutri.toLowerCase();
+    var paramsNutri = {
+      textoOriginal: dadosNutri
+    };
+
+    // Peso (ex: 70kg, 70 kg, peso 70)
+    var mPeso = dadosNutri.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosNutri.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+    if (mPeso) paramsNutri.peso = parseFloat(mPeso[1].replace(',', '.'));
+
+    // Altura (ex: 175cm, 1.75m, 175 cm)
+    var mAltCm = dadosNutri.match(/(\d{3})\s*cm/i);
+    var mAltM = dadosNutri.match(/([12][.,]\d{2})\s*m/i);
+    if (mAltCm) paramsNutri.alturaCm = parseFloat(mAltCm[1]);
+    else if (mAltM) paramsNutri.alturaCm = parseFloat(mAltM[1].replace(',', '.')) * 100;
+
+    // Idade
+    var mIdade = dadosNutri.match(/(\d{1,3})\s*(?:a|anos|a\b)/i);
+    if (mIdade) paramsNutri.idade = parseInt(mIdade[1], 10);
+
+    // Sexo
+    if (tLower.includes("mulher") || tLower.includes("fem") || /\bf\b/.test(tLower)) paramsNutri.sexo = "f";
+    else if (tLower.includes("homem") || tLower.includes("masc") || /\bm\b/.test(tLower)) paramsNutri.sexo = "m";
+
+    // Dias de Jejum
+    var mJejum = dadosNutri.match(/jejum\s*(?:de\s*)?(\d{1,2})\s*dias?/i) || dadosNutri.match(/(\d{1,2})\s*dias?\s*(?:de\s*)?jejum/i);
+    if (mJejum) paramsNutri.diasJejum = parseInt(mJejum[1], 10);
+
+    // Perda de Peso (%)
+    var mPerda = dadosNutri.match(/perda\s*(?:de\s*)?(\d{1,2}(?:[.,]\d+)?)\s*%/i);
+    if (mPerda) paramsNutri.perdaPesoPct = parseFloat(mPerda[1].replace(',', '.'));
+
+    // Eletrólitos
+    var mP = dadosNutri.match(/\bp\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosNutri.match(/fosforo\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (mP) paramsNutri.p = parseFloat(mP[1].replace(',', '.'));
+
+    var mMg = dadosNutri.match(/mg\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosNutri.match(/magnesio\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (mMg) paramsNutri.mg = parseFloat(mMg[1].replace(',', '.'));
+
+    var mK = dadosNutri.match(/\bk\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosNutri.match(/potassio\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (mK) paramsNutri.k = parseFloat(mK[1].replace(',', '.'));
+
+    // TGI Funcionante vs Inviável
+    if (tLower.includes("ileo") || tLower.includes("obstrucao") || tLower.includes("isquemia") || tLower.includes("tgi nao") || tLower.includes("sem tgi") || comando === "/npt") {
+      paramsNutri.tratoGastrointestinalFuncionante = false;
+    } else {
+      paramsNutri.tratoGastrointestinalFuncionante = true;
+    }
+
+    // Condição Clínica
+    if (tLower.includes("crrt") || tLower.includes("dialise continua")) paramsNutri.condicaoClinica = "crrt";
+    else if (tLower.includes("queimad") || tLower.includes("trauma")) paramsNutri.condicaoClinica = "trauma";
+    else if (tLower.includes("sepse") || tLower.includes("uti") || tLower.includes("critico")) paramsNutri.condicaoClinica = "uti";
+    else if (tLower.includes("fase aguda") || tLower.includes("dia 1")) paramsNutri.condicaoClinica = "fase_aguda";
+    else if (tLower.includes("drc")) paramsNutri.condicaoClinica = "drc_conservador";
+
+    // Fatores de risco adicionais
+    if (tLower.includes("alcool") || tLower.includes("etil")) paramsNutri.etilismo = true;
+    if (tLower.includes("quimio")) paramsNutri.quimioterapia = true;
+    if (tLower.includes("anorex")) paramsNutri.anorexia = true;
+
+    // Se comando for exclusivamente de refeeding
+    if (comando === "/refeeding") {
+      var resRealimentacao = SuporteNutricionalService.avaliarRiscoRealimentacao(paramsNutri);
+      var lRef = [];
+      lRef.push("⚠️ *ESTRATIFICAÇÃO DE RISCO: SÍNDROME DE REALIMENTAÇÃO (REFEEDING)*");
+      lRef.push("════════════════════════════════════════════");
+      lRef.push("• Nível de Risco: *" + resRealimentacao.nivelRisco + "*");
+      if (resRealimentacao.criteriosMaioresDetectados.length > 0) {
+        lRef.push("• Critérios Maiores: " + resRealimentacao.criteriosMaioresDetectados.join("; "));
+      }
+      if (resRealimentacao.criteriosMenoresDetectados.length > 0) {
+        lRef.push("• Critérios Menores: " + resRealimentacao.criteriosMenoresDetectados.join("; "));
+      }
+      lRef.push("");
+      lRef.push("📋 *Condutas e Prescrição de Segurança:*");
+      resRealimentacao.condutasRecomendadas.forEach(function(c) {
+        lRef.push(c);
+      });
+      return enviarMensagemParaChat(chatId, lRef.join("\n"));
+    }
+
+    var resultadoNutri = SuporteNutricionalService.avaliarSuporteNutricionalCompleto(paramsNutri);
+    return enviarMensagemParaChat(chatId, resultadoNutri.resumoFormatado);
+  }
+
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
     if (!dadosPrescricao) return enviarMensagemParaChat(chatId, "💊 Envie o pedido. Ex: `/rx amigdalite 16kg, alergia a penicilina`");
