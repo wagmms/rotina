@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 08:50:03
- * Checksum SHA256: cb303d7c00c1904c
+ * Gerado automaticamente via build_master.py em: 2026-10-09 08:57:16
+ * Checksum SHA256: 38f4db59be56319f
  * ==============================================================================
  */
 
@@ -1029,8 +1029,8 @@ var AnalgesiaPcaService = (function() {
 
     function calcularPca(params) {
         var farmaco = params.farmaco ? params.farmaco.toLowerCase() : '';
-        var idadeNum = parseFloat(idade) || 40;
-        var pesoNum = parseFloat(pesoKg) || 70;
+        var idadeNum = parseFloat(params.idade) || 40;
+        var pesoNum = parseFloat(params.pesoKg) || 70;
         var isIdoso = idadeNum >= 65;
         var isMuitoIdoso = idadeNum >= 90;
         var opioideTolerante = params.opioideTolerante || false;
@@ -4321,6 +4321,7 @@ var CalculadorasClinicas = (function () {
       base.push(textoPreparo);
 
       var avisos = ['Vazões calculadas para a concentração acima. Dupla checagem obrigatória na bomba.'];
+      if (d.peso && gt(peso, 150)) avisos.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo por mcg/kg/min no peso real pode levar a taxas de infusão excessivas. Recomenda-se titular a dose estritamente pela PAM alvo (≥ 65 mmHg) e considerar o Peso Ideal ou Ajustado.');
       if (d.aviso) avisos.unshift(d.aviso);
 
       var taxaFixaVaso = (chave === 'vasopressina' ? 9.0 : null);
@@ -4445,6 +4446,9 @@ var CalculadorasClinicas = (function () {
       }
 
       var recomendacoes = [];
+      if (gt(peso, 150)) {
+        recomendacoes.push('⚠️ PACIENTE COM OBESIDADE GRAVE (> 150 kg): Fentanil, Propofol e Midazolam devem ser dosados pelo Peso Ideal (IBW). Rocurônio pelo Peso Ideal ou Ajustado (máx 150 mg). Succinilcolina pode ser calculada pelo peso real (máx 200 mg).');
+      }
       if (ctxChave === 'choque') {
         recomendacoes.push('🏆 Sedativo: Etomidato ou Quetamina (estabilidade cardiovascular).');
         recomendacoes.push('⚠️ Evite Midazolam e Propofol (risco alto de colapso hemodinâmico e vasodilatação).');

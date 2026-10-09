@@ -32,9 +32,21 @@
     - Blindagem e auto-normalização da rota `/api/cockpit` em `server/index.js` e `server/runtime.js` para `body.args` e `metodo`, garantindo imunidade a crashes por payloads vazios, nulos ou malformados.
     - Criação e aprovação da suíte de teste de segurança automatizada `tests/test_defensivo_telegram_rpc.cjs` e `tests/test_defensivo_telegram_rpc.py` (210 testes de comandos Telegram + 70 testes de métodos RPC do Cockpit) e inclusão de testes de resiliência no `tests/test_server_render.cjs`. Cobertura de testes 100% aprovada (191 testes pytest + npm test).
 
-0D. [ ] **Varredura de Casos Extremos (Edge Cases) em Prescrições e Calculadoras Clínicas**:
-    - Auditar todas as calculadoras e serviços em `src/` para pesos extremos (neonatos < 1kg, obesidade > 150kg), idades avançadas (> 90 anos), valores laboratoriais discrepantes (Cr > 15, K > 8.0, pH < 6.8).
-    - Garantir que todos os bloqueios de segurança e tetos farmacológicos atuem determinísticamente sem NaN, undefined ou divisões por zero.
+0D. [x] **Varredura de Casos Extremos (Edge Cases) em Prescrições e Calculadoras Clínicas**:
+    - Sanitização e blindagem matemática em `src/02_nefrologia_clearance.js`: Cockcroft-Gault clamp de idade (<= 120 anos para evitar numerador negativo), Cr <= 0 com retorno de erro limpo, alertas de peso > 150 kg (necessidade de peso ajustado) e nonagenários >= 90 anos (sarcopenia fisiológica e indicação de Cistatina C).
+    - Blindagem em `src/02_nefrologia_dhe.js`: cálculo de ACT sanitizado, blindagem contra NaAtual >= concentracaoSalina na correção de hiponatremia, e alerta vermelho máximo em hipercalemia para K+ > 8.0 mEq/L (risco de assistolia/FV, conduta imediata de Gluconato de Cálcio 10% e indicação mandatória de hemodiálise de urgência).
+    - Resiliência em `src/02_nefrologia_lra_kdigo.js`: proteção contra divisão por zero com Cr basal <= 0, alertas sentinela para Creatinina extrema (> 15 mg/dL) e gatilhos automatizados de diálise de urgência para acidemia severa (pH < 6.80) e hipercalemia extrema (K+ > 8.0 mEq/L).
+    - Alertas sentinela em `src/02_gasometria_acido_base.js`: detecção de acidemia extrema (pH < 6.80 com risco iminente de colapso cardiovascular e perda de resposta a catecolaminas) e hipercalemia extrema (K+ > 8.0 mEq/L).
+    - Suporte neonatal em `src/02_pals_pediatria.js`: neonatos e prematuros extremos < 1 kg com cálculo determinístico de tubo endotraqueal 2.5 mm sem cuff, profundidade de fixação peso + 6 cm (evitando intubação seletiva), lâmina Miller 00/0, Joules de choque e proteção estrita contra pesos negativos.
+    - Suporte pediátrico em `src/02_suporte_nutricional_pediatrico.js`: alerta neonatal sentinela para recém-nascidos de extremo baixo peso (< 1 kg) em Holliday-Segar.
+    - Bloqueios em `src/02_endocrinologia_diabetes.js`: teto de hidratação na 1ª hora limitado a 2.000 mL em obesidade > 150 kg (prevenindo edema agudo pulmonar); proibição terminante de reposição de potássio para K+ > 8.0 mEq/L com cardioproteção imediata; conduta emergencial mandatória de Bicarbonato de Sódio para acidemia grave (pH < 6.80).
+    - Tetos farmacológicos em `src/02_toxicologia_emergencia.js`: teto estrito de 100 kg no cálculo de N-acetilcisteína (NAC) conforme diretrizes da ACMT/FDA/ABRATOX (máximo 15g no ataque, 5g na etapa 2 e 10g na etapa 3), evitando choque anafilactoide e hipervolemia iatrogênica em pacientes com obesidade severa.
+    - Geriatria de alta complexidade em `src/02_analgesia_pca.js`: contraindicação formal de dose basal contínua em nonagenários (>= 90 anos), bolus de morfina reduzido para 0.5 mg, lockout estendido para 10-15 min e recomendação preferencial de fentanil para prevenir acúmulo de metabólitos neurotóxicos (M6G/M3G).
+    - Hemoterapia em `src/02_transfusao_sanguinea.js`: alerta crítico de TACO com infusão ultralenta de 3-4h e diurético profilático em pacientes >= 90 anos; teto seguro de 10 unidades randômicas para pool de plaquetas em obesidade > 150 kg.
+    - Hematologia em `src/02_hematologia_anemias.js`: sanitização contra NaN no escore de Ganzoni, alerta de superestimação de déficit férrico em obesidade severa (> 150 kg) e contraindicação formal de ferro parenteral em prematuros extremos (< 1 kg).
+    - Cardiologia em `src/02_cardiologia_icc.js`: alerta imediato com suspensão mandatória de espironolactona, IECA/BRA e ARNI para K+ > 8.0 mEq/L.
+    - Calculadoras puras em `src/02_calculadoras_puras.js`: alertas de obesidade severa (> 150 kg) para titulação por PAM alvo em DVAs e recomendação de Peso Ideal (IBW) para sedativos e rocurônio na Sequência Rápida de Intubação.
+    - Suíte de testes automatizados `tests/test_auditoria_edge_cases_clinicos.cjs` com 18 cenários de estresse e casos extremos 100% aprovados, e incorporação permanente no comando `npm test`.
 
 0E. [ ] **Expurgo e Simplificação de Módulos Excessivos para o Médico Generalista**:
     - Remover comandos e referências estranhas ao ambiente médico (ex: radar de voos legados).
@@ -1361,6 +1373,22 @@
     - Monitoramento de carboxihemoglobina (COHb) e reconhecimento de oximetria de pulso convencional falsamente normal (leitura errônea de COHb como oxi-Hb).
     - Protocolo imediato de oxigenoterapia a 100% sob máscara com reservatório não reinalante (redução da meia-vida de CO de 300 para 60-90 minutos) e indicações determinísticas de Oxigenoterapia Hiperbárica (COHb > 25%, gestante com COHb > 15%, síncope ou alteração neurológica persistente).
     - Tratamento empírico concomitante de intoxicação por cianeto em fumaça de incêndio com acidose lática grave inexplicada (> 8-10 mmol/L): antídoto de primeira linha Hidroxocobalamina 5g IV em 15 min.
+
+168. [ ] **Neurologia & Emergência - Manejo do Traumatismo Cranioencefálico (TCE) Grave e Hipertensão Intracraniana (Guidelines Brain Trauma Foundation / SBCN)**:
+    - Escala de Coma de Glasgow com avaliação pupilar (GCS-P) determinística.
+    - Alertas de medidas de neuroproteção de 1ª linha (cabeceira a 30°, sedação/analgesia com alvo de PAM para PPC ≥ 60-70 mmHg, eucapnia PaCO2 35-40 mmHg, normotermia e normoglicemia).
+    - Terapia hiperosmolar escalonada (Salina Hipertônica 3% ou 20% bolus vs Manitol 20%) com monitoramento estrito de osmolaridade sérica (< 320 mOsm/L) e sódio (< 155-160 mEq/L), além de contraindicação formal de hiperventilação profilática prolongada (risco de isquemia cerebral reflexa) e corticoides (CRASH trial).
+
+169. [ ] **Oftalmologia & Clínica Médica - Diagnóstico Diferencial de Olho Vermelho Agudo e Bloqueios de Iatrogenia no Pronto Socorro**:
+    - Algoritmo determinístico discriminando Conjuntivite bacteriana/viral, Ceratite / Úlcera de Córnea, Esclerite, Uveíte Anterior Aguda e Glaucoma Agudo de Ângulo Fechado.
+    - Bloqueio sentinela estrito: PROIBIÇÃO ABSOLUTA de prescrição de colírios corticoides por médico generalista sem avaliação por lâmpada de fenda (risco de perfuração ocular por ceratite herpética dendrítica ou ceratite fúngica e glaucoma induzido).
+    - Alerta de contraindicação de colírios anestésicos para uso domiciliar (risco de ceratopatia tóxica e necrose corneana) e orientações claras de encaminhamento de urgência.
+
+170. [ ] **Ginecologia & Mastologia - Avaliação de Nódulos Mamários, Descarga Papilar Suspeita e Conduta em BI-RADS na Atenção Primária**:
+    - Classificação determinística da descarga papilar (unilateral, espontânea, uniorificial, serossanguínea ou água de rocha = suspeita com indicação de investigação histopatológica/setorectomia vs fisiológica/galactorreia bilateral multi-orificial).
+    - Conduta dirigida por categoria BI-RADS mamográfica/ecográfica (BI-RADS 0 [exames complementares], BI-RADS 1 e 2 [rastreio anual/bienal de rotina], BI-RADS 3 [controle em 6 meses], BI-RADS 4 e 5 [biópsia percutânea urgente Core-biopsy/Mamotomia]).
+    - Rastreio de alto risco genético (câncer de mama < 50 anos em parentes de 1º grau, câncer de mama bilateral ou câncer de ovário na família com indicação de ressonância magnética e rastreio precoce).
+
 
 
 

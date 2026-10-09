@@ -9,8 +9,8 @@ var AnalgesiaPcaService = (function() {
 
     function calcularPca(params) {
         var farmaco = params.farmaco ? params.farmaco.toLowerCase() : '';
-        var idadeNum = parseFloat(idade) || 40;
-        var pesoNum = parseFloat(pesoKg) || 70;
+        var idadeNum = parseFloat(params.idade) || 40;
+        var pesoNum = parseFloat(params.pesoKg) || 70;
         var isIdoso = idadeNum >= 65;
         var isMuitoIdoso = idadeNum >= 90;
         var opioideTolerante = params.opioideTolerante || false;
