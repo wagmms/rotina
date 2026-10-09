@@ -500,7 +500,7 @@
     - **Formalização em Relatório de Auditoria e Testes**:
       * Emissão de parecer clínico detalhado e criação de testes automatizados determinísticos cobrindo todos os cenários auditados.
 
-59. [ ] **Auditoria Médica Integral com Modelo PRO — Emergências Clínicas, Suporte Avançado de Vida (PCR/ACLS) e Drogas Vasoativas**:
+59. [x] **Auditoria Médica Integral com Modelo PRO — Emergências Clínicas, Suporte Avançado de Vida (PCR/ACLS) e Drogas Vasoativas**:
     - **Auditoria de Precisão com Modelo PRO**:
       * Auditoria estrita dos algoritmos de atendimento emergencial em `src/02_cardiologia_icc.js`, `src/02_pals_pediatria.js`, `src/02_pneumologia_crise_asmatica.js` e módulos de Sala Vermelha:
         * Parada Cardiorrespiratória (ACLS/PALS): ritmos chocáveis vs não chocáveis, dosagens e intervalos de Adrenalina e Amiodarona/Lidocaína, sequência de choque e causas reversíveis (5Hs e 5Ts).
@@ -510,7 +510,7 @@
     - **Garantia de Fidelidade às Diretrizes**:
       * Conformidade 100% com diretrizes SBC, AHA e Associação Brasileira de Medicina de Emergência (ABRAMEDE).
 
-60. [ ] **Auditoria Médica Integral com Modelo PRO — Antimicrobianos, REMUME, Farmácia Popular e Ajuste Renal/Hepático**:
+60. [x] **Auditoria Médica Integral com Modelo PRO — Antimicrobianos, REMUME, Farmácia Popular e Ajuste Renal/Hepático**:
     - **Auditoria de Precisão com Modelo PRO**:
       * Auditoria rigorosa de todas as bases de dados de antimicrobianos e interações medicamentosas (`src/data/guia_farmaceutico_hsl.json`, `src/02_nefrologia_clearance.js`, `src/data/interacoes.json`):
         * Esquemas empíricos de 1ª linha para infecções prevalentes no Generalista (Pneumonia Comunitária [PAC], Infecção do Trato Urinário [ITU], Celulite/Erisipela, Faringoamigdalite, Otite, Sinusite).

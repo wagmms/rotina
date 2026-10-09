@@ -1736,7 +1736,7 @@ var CalculadorasClinicas = (function () {
           tomadasDia: opt.tomadasDia || 3,
           intervaloHoras: (opt.tomadasDia === 2) ? 12 : 8,
           diasTratamento: opt.diasTratamento || 10,
-          doseMaximaAdultoMgDia: 1500,
+          doseMaximaAdultoMgDia: opt.doseAlta ? 3000 : 1500,
           volumeFrascoMl: 150,
           indicacao: opt.doseAlta ? 'Otite Média Aguda / Sinusite / PAC (dose alta 90 mg/kg/dia)' : 'Amigdalite / Faringite / Infecções bacterianas leves (50 mg/kg/dia)',
           instrucoes: 'Pode ser administrado com ou sem alimentos. Agitar bem antes de usar.'
@@ -1745,14 +1745,14 @@ var CalculadorasClinicas = (function () {
           nome: 'Amoxicilina + Clavulanato de Potássio',
           apresentacao: 'Amoxicilina 250 mg + Clavulanato 62,5 mg / 5 mL (suspensão oral)',
           concentracaoMgPorMl: 50,
-          doseMgKgDia: opt.doseAlta ? 90 : 50,
+          doseMgKgDia: 50, // Fixado em 50 para apresentação 4:1. Dose alta exigiria apresentação 400/57 (7:1).
           tomadasDia: 3,
           intervaloHoras: 8,
           diasTratamento: opt.diasTratamento || 10,
           doseMaximaAdultoMgDia: 1500,
           volumeFrascoMl: 75,
-          indicacao: opt.doseAlta ? 'Otite complicada / Sinusite refratária (dose alta 90 mg/kg/dia)' : 'Infecções de vias aéreas com suspeita de germes produtores de beta-lactamase (50 mg/kg/dia)',
-          instrucoes: 'Administrar preferencialmente no início da refeição para minimizar risco de intolerância gastrintestinal.'
+          indicacao: 'Infecções de vias aéreas com suspeita de germes produtores de beta-lactamase (50 mg/kg/dia)',
+          instrucoes: 'Administrar preferencialmente no início da refeição. (Atenção: não utilizar esta formulação 4:1 para doses altas >50 mg/kg/dia pelo risco de toxicidade gastrintestinal do clavulanato).'
         },
         azitromicina: {
           nome: 'Azitromicina',
@@ -1761,10 +1761,10 @@ var CalculadorasClinicas = (function () {
           doseMgKgDia: 10,
           tomadasDia: 1,
           intervaloHoras: 24,
-          diasTratamento: opt.diasTratamento || 5,
+          diasTratamento: opt.diasTratamento || 3,
           doseMaximaAdultoMgDia: 500,
           volumeFrascoMl: 15,
-          indicacao: 'Faringite/Amigdalite (opção se alergia a penicilina), PAC atípica (10 mg/kg/dia)',
+          indicacao: 'Faringite/Amigdalite (opção se alergia a penicilina), PAC atípica (10 mg/kg/dia por 3 dias)',
           instrucoes: 'Administrar 1h antes ou 2h após alimentos. Tomada única diária no mesmo horário.'
         },
         cefalexina: {
@@ -1775,9 +1775,9 @@ var CalculadorasClinicas = (function () {
           tomadasDia: 4,
           intervaloHoras: 6,
           diasTratamento: opt.diasTratamento || 7,
-          doseMaximaAdultoMgDia: 2000,
+          doseMaximaAdultoMgDia: 4000,
           volumeFrascoMl: 100,
-          indicacao: 'Piodermites, impetigo, celulite leve, ITU baixa (50 mg/kg/dia)',
+          indicacao: 'Piodermites, impetigo, celulite leve, ITU baixa (50 a 100 mg/kg/dia)',
           instrucoes: 'Tomar a cada 6 horas. Agitar bem antes de usar.'
         },
         dipirona: {
@@ -2278,12 +2278,6 @@ var CalculadorasClinicas = (function () {
       if (!ausente(clcr)) crClVal = num(c, clcr, 'Clearance de Creatinina (mL/min)', 0, 350);
       var hd = false;
       if (!ausente(hemodialise)) hd = bool(c, hemodialise, 'Hemodiálise intermitente');
-      if (pendente(c)) return falhaCtx(ID, NOME, c);
-      if (crClVal === null && !hd && atb !== 'ceftriaxona' && atb !== 'polimixina_b') {
-        c.faltas.push('Informe o Clearance de Creatinina (mL/min) ou declare se está em Hemodiálise');
-        return falhaCtx(ID, NOME, c);
-      }
-
       var atb = null;
       if (/vanco/i.test(dStr)) atb = 'vancomicina';
       else if (/mero/i.test(dStr)) atb = 'meropenem';
@@ -2293,6 +2287,12 @@ var CalculadorasClinicas = (function () {
       else if (/cipro/i.test(dStr)) atb = 'ciprofloxacino';
       else if (/polimixina|polimix/i.test(dStr)) atb = 'polimixina_b';
       else if (/fluconazol/i.test(dStr)) atb = 'fluconazol';
+
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+      if (crClVal === null && !hd && atb !== 'ceftriaxona' && atb !== 'polimixina_b') {
+        c.faltas.push('Informe o Clearance de Creatinina (mL/min) ou declare se está em Hemodiálise');
+        return falhaCtx(ID, NOME, c);
+      }
 
       if (!atb) {
         return {
@@ -2321,12 +2321,10 @@ var CalculadorasClinicas = (function () {
           res.doseAjustada = '15-20 mg/kg EV a cada 8-12h (em infusão lenta de pelo menos 1-2h).';
         } else if (crClVal >= 50) {
           res.doseAjustada = '15-20 mg/kg EV a cada 12h.';
-        } else if (crClVal >= 30) {
+        } else if (crClVal >= 20) {
           res.doseAjustada = '15 mg/kg EV a cada 24h.';
-        } else if (crClVal >= 15) {
-          res.doseAjustada = '15 mg/kg EV a cada 24-48h (guiar por nível sérico).';
         } else {
-          res.doseAjustada = 'Dose de ataque 25 mg/kg; redoses guiadas por nível sérico pré-dose (alvo vale 15-20 mcg/mL).';
+          res.doseAjustada = 'Dose de ataque 25 mg/kg; redoses (a cada 48 a 96h) guiadas por nível sérico pré-dose (alvo vale 15-20 mcg/mL).';
         }
         res.cuidados = 'Infusão lenta (máx 10 mg/min ou 1g em 60 min) para prevenir síndrome do homem vermelho. Hidratação adequada.';
         res.monitorizacao = 'Nível de vale sérico pré-4ª dose (alvo: 15-20 mcg/mL para infecções graves ou AUC/MIC 400-600). Creatinina a cada 48h.';
@@ -2351,12 +2349,12 @@ var CalculadorasClinicas = (function () {
         res.dosePadrao = '4,5g EV a cada 6h (infusão de 3-4h) ou 4,5g a cada 8h (infusão de 4h).';
         if (hd) {
           res.doseAjustada = '2,25g EV a cada 8h + dose de reforço de 0,75g após cada sessão de hemodiálise.';
-        } else if (crClVal > 50) {
+        } else if (crClVal > 40) {
           res.doseAjustada = '4,5g EV a cada 6h (ou 4,5g 8/8h em infusão estendida de 3-4h).';
         } else if (crClVal >= 20) {
-          res.doseAjustada = '3,375g EV a cada 6h.';
+          res.doseAjustada = '2,25g EV a cada 6h (ou 3,375g EV a cada 8h).';
         } else {
-          res.doseAjustada = '2,25g EV a cada 6h.';
+          res.doseAjustada = '2,25g EV a cada 8h.';
         }
         res.cuidados = 'Evitar associação com Vancomicina além de 48-72h se houver alternativa, pelo risco de IRA sinérgica.';
         res.monitorizacao = 'Creatinina sérica diária; eletrólitos (contém 2,79 mEq de Na+ por grama de piperacilina).';
@@ -2365,7 +2363,7 @@ var CalculadorasClinicas = (function () {
         res.dosePadrao = '2g EV a cada 8h (infusão em 30 min ou estendida em 3h).';
         if (hd) {
           res.doseAjustada = '1g EV dose de ataque no D1; depois 500 mg a 1g EV a cada 24h (administrar dose após a hemodiálise nos dias de sessão).';
-        } else if (crClVal > 60) {
+        } else if (crClVal >= 60) {
           res.doseAjustada = '2g EV a cada 8h.';
         } else if (crClVal >= 30) {
           res.doseAjustada = '2g EV a cada 12h.';
@@ -2438,6 +2436,7 @@ var CalculadorasClinicas = (function () {
       };
     });
   }
+
   /**
    * Extrai parâmetros e executa o cálculo determinístico de ajuste renal a partir de texto livre.
    */
