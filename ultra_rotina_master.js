@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-08 13:50:35
- * Checksum SHA256: befc08461b31b049
+ * Gerado automaticamente via build_master.py em: 2026-10-08 23:35:03
+ * Checksum SHA256: 3c68caac2f87ddfd
  * ==============================================================================
  */
 
@@ -3594,7 +3594,7 @@ function obterPlanilha(cachePrefix, idPlanilha, isInteracao, forcarAtualizacao) 
   }
   var conteudo = "";
   try {
-    var ss = SpreadsheetApp.openById(idPlanilha);
+    var ss = SpreadsheetApp.openById(idPlanilha, isInteracao);
     var sheet = ss.getSheets()[0];
     var lastRow = sheet.getLastRow();
     var lastCol = isInteracao ? sheet.getLastColumn() : 1;
@@ -3699,7 +3699,7 @@ function filtrarMedicamentosRelevantes(baseCompleta, pedidoUsuario) {
 
 function checarStatusFonteDrive(idPlanilha, isInteracao) {
   try {
-    var ss = SpreadsheetApp.openById(idPlanilha);
+    var ss = SpreadsheetApp.openById(idPlanilha, isInteracao);
     var sheets = ss.getSheets();
     if (!sheets || sheets.length === 0) return "❌ Sem abas na planilha";
     var sheet = sheets[0];

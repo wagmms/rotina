@@ -96,6 +96,13 @@ for (const k of Object.keys(propsStore)) {
   }
 }
 
+if (!propsStore.SPREADSHEET_ID_REMUME) {
+  propsStore.SPREADSHEET_ID_REMUME = 'mock_remume_sheet_id';
+}
+if (!propsStore.SPREADSHEET_ID_INTERACOES) {
+  propsStore.SPREADSHEET_ID_INTERACOES = 'mock_interacoes_sheet_id';
+}
+
 let persistTimer = null;
 function escreverPropriedades() {
   const temporario = path.join(DATA_DIR, `.properties-${process.pid}.tmp`);
@@ -646,10 +653,11 @@ const ctx = {
   },
 
   SpreadsheetApp: {
-    openById: (id) => {
+    openById: (id, isInteracao) => {
       const idStr = String(id || '').trim();
       const idPropInteracoes = String(propsStore.SPREADSHEET_ID_INTERACOES || '').trim();
-      const isInteracaoId = (idPropInteracoes && idStr === idPropInteracoes) ||
+      const isInteracaoId = isInteracao === true ||
+                            (idPropInteracoes && idStr === idPropInteracoes) ||
                             idStr.toLowerCase().includes('interac');
       const activeRows = isInteracaoId ? interacoesRows : remumeRows;
       const numCols = (activeRows.length > 0 && Array.isArray(activeRows[0])) ? activeRows[0].length : 1;

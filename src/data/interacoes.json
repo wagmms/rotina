@@ -1758,5 +1758,533 @@
     "Moderado",
     "↑ o risco de sangramento.",
     "Se possível, evitar a administração concomitante. Caso não seja, monitorar o tempo de protrombina, e observação do paciente quanto a sinais de hemorragia."
+  ],
+  [
+    "220",
+    "PROPOFOL",
+    "Fentanil",
+    "Moderado",
+    "↑ depressão respiratória e hipotensão por sinergismo farmacodinâmico.",
+    "Monitorar ventilação, SpO2 e PA continuamente. Reduzir dose de propofol em 20-30% quando associado a opioides."
+  ],
+  [
+    "221",
+    "PROPOFOL",
+    "Midazolam",
+    "Moderado",
+    "↑ sedação profunda e depressão respiratória por efeito aditivo sobre GABA-A.",
+    "Titular doses separadamente. Monitorar nível de sedação (RASS/SAS) e capnografia. Risco de hipotensão mais acentuado."
+  ],
+  [
+    "222",
+    "PROPOFOL",
+    "Norepinefrina/ Epinefrina",
+    "Moderado",
+    "Propofol causa vasodilatação e depressão miocárdica; pode aumentar a necessidade de vasopressor.",
+    "Titular vasopressor conforme PAM alvo. Considerar redução de dose de propofol ou troca para dexmedetomidina se instabilidade hemodinâmica persistente."
+  ],
+  [
+    "223",
+    "MIDAZOLAM",
+    "Fentanil",
+    "Grave",
+    "↑ risco de depressão respiratória grave e apneia por sinergismo de depressores do SNC.",
+    "Uso concomitante em UTI requer monitorização ventilatória contínua, via aérea avançada disponível e titulação cautelosa das doses."
+  ],
+  [
+    "224",
+    "MIDAZOLAM",
+    "Fluconazol",
+    "Grave",
+    "Fluconazol inibe CYP3A4, ↑ em 2-4x os níveis plasmáticos de midazolam e prolonga sedação.",
+    "Reduzir dose de midazolam em 50% ou mais. Monitorar sedação prolongada. Considerar troca por propofol ou dexmedetomidina."
+  ],
+  [
+    "225",
+    "MIDAZOLAM",
+    "Claritromicina",
+    "Grave",
+    "Claritromicina inibe CYP3A4, ↑ significativo dos níveis de midazolam.",
+    "Evitar associação quando possível. Se necessário, reduzir dose de midazolam em ≥50% e monitorar sedação."
+  ],
+  [
+    "226",
+    "DEXMEDETOMIDINA",
+    "Amiodarona",
+    "Grave",
+    "↑ risco de bradicardia sinusal grave, bloqueio AV e hipotensão por efeito aditivo sobre nó sinusal.",
+    "Monitorar FC e ritmo cardíaco continuamente. Ter atropina disponível. Considerar reduzir dose de um dos agentes."
+  ],
+  [
+    "227",
+    "DEXMEDETOMIDINA",
+    "Digoxina",
+    "Grave",
+    "↑ risco de bradicardia grave e bloqueio AV por efeito cronotrópico negativo aditivo.",
+    "Monitorar ECG e FC. Ajustar doses. Manter atropina e marca-passo transcutâneo disponíveis."
+  ],
+  [
+    "228",
+    "DEXMEDETOMIDINA",
+    "Fentanil",
+    "Moderado",
+    "↑ sedação e bradicardia por sinergismo. Pode requerer menores doses de opioide.",
+    "Titular opioide separadamente. Monitorar FC, PA e nível de sedação (RASS)."
+  ],
+  [
+    "229",
+    "DEXMEDETOMIDINA",
+    "Metoprolol",
+    "Grave",
+    "↑ risco de bradicardia grave e hipotensão por efeito aditivo sobre nó sinusal e condução AV.",
+    "Evitar uso concomitante quando possível. Monitorar ECG contínuo, FC e PA. Ter atropina disponível."
+  ],
+  [
+    "230",
+    "CETAMINA",
+    "Haloperidol",
+    "Moderado",
+    "Ambos prolongam QTc. Risco aditivo de arritmia ventricular (Torsades de Pointes).",
+    "Monitorar ECG e QTc. Manter Mg²⁺ e K⁺ em faixa adequada. Evitar se QTc basal > 500 ms."
+  ],
+  [
+    "231",
+    "CETAMINA",
+    "Tramadol",
+    "Moderado",
+    "↑ risco de convulsão por redução do limiar convulsivo por ambos os agentes.",
+    "Evitar em pacientes com história de epilepsia. Monitorar sinais de atividade convulsiva."
+  ],
+  [
+    "232",
+    "ROCURÔNIO",
+    "Gentamicina",
+    "Grave",
+    "Aminoglicosídeos potencializam o bloqueio neuromuscular, podendo causar paralisia prolongada e falha de extubação.",
+    "Monitorar bloqueio neuromuscular com TOF (Train-of-Four). Ter sugamadex disponível. Evitar aminoglicosídeo se possível durante BNM."
+  ],
+  [
+    "233",
+    "ROCURÔNIO",
+    "Sulfato de Magnésio",
+    "Grave",
+    "Magnésio potencializa o bloqueio neuromuscular por competição no receptor nicotínico. Risco de paralisia prolongada.",
+    "Reduzir dose de rocurônio em 25-50%. Monitorar TOF obrigatoriamente. Sugamadex pode reverter."
+  ],
+  [
+    "234",
+    "CISATRACÚRIO",
+    "Gentamicina",
+    "Grave",
+    "Aminoglicosídeos prolongam o bloqueio neuromuscular do cisatracúrio.",
+    "Monitorar TOF obrigatoriamente. Reduzir dose e verificar recuperação antes da extubação."
+  ],
+  [
+    "235",
+    "CISATRACÚRIO",
+    "Fenitoína",
+    "Moderado",
+    "Fenitoína pode reduzir a duração do bloqueio neuromuscular por indução enzimática e alteração na placa motora.",
+    "Pode ser necessário ↑ dose de cisatracúrio. Monitorar TOF."
+  ],
+  [
+    "236",
+    "MILRINONA",
+    "Furosemida",
+    "Moderado",
+    "Ambos podem causar hipotensão e hipocalemia aditiva, com risco de arritmia.",
+    "Monitorar K⁺, Mg²⁺, PA e ECG. Repor eletrólitos agressivamente."
+  ],
+  [
+    "237",
+    "MILRINONA",
+    "Digoxina",
+    "Moderado",
+    "Milrinona associada à digoxina ↑ risco de arritmia em contexto de hipocalemia.",
+    "Monitorar K⁺ rigorosamente (manter > 4 mEq/L). ECG contínuo."
+  ],
+  [
+    "238",
+    "VASOPRESSINA",
+    "Norepinefrina/ Epinefrina",
+    "Moderado",
+    "Efeito vasopressor aditivo. Risco de hipertensão grave e isquemia digital/mesentérica.",
+    "Titular doses independentemente. Monitorar PA invasiva e sinais de isquemia periférica."
+  ],
+  [
+    "239",
+    "LEVOSIMENDAN",
+    "Milrinona",
+    "Grave",
+    "Ambos são inodilatadores. Efeito hipotensor aditivo potencialmente grave.",
+    "Não associar rotineiramente. Se necessário, monitorar PA invasiva e débito cardíaco contínuo."
+  ],
+  [
+    "240",
+    "ADENOSINA",
+    "Carbamazepina",
+    "Grave",
+    "↑ grau de bloqueio AV pela adenosina em pacientes usando carbamazepina. Risco de assistolia prolongada.",
+    "Usar com extrema cautela. Reduzir dose de adenosina. Ter marca-passo transcutâneo disponível."
+  ],
+  [
+    "241",
+    "ADENOSINA",
+    "Dipiridamol",
+    "Contraindicado",
+    "Dipiridamol bloqueia a recaptação de adenosina, ↑ em 4-5x sua concentração e efeito. Risco de assistolia.",
+    "Associação contraindicada. Se adenosina for indispensável, reduzir dose para 1/4 da usual e monitorar ECG contínuo."
+  ],
+  [
+    "242",
+    "ATROPINA",
+    "Haloperidol",
+    "Moderado",
+    "Efeitos anticolinérgicos aditivos: confusão, retenção urinária, íleo, hipertermia.",
+    "Monitorar sinais anticolinérgicos, especialmente em idosos. Preferir alternativas com menor carga anticolinérgica."
+  ],
+  [
+    "243",
+    "ATROPINA",
+    "Amitriptilina",
+    "Grave",
+    "Efeitos anticolinérgicos aditivos graves: taquicardia, retenção urinária, íleo paralítico, hipertermia, delirium.",
+    "Evitar associação em idosos. Monitorar sinais anticolinérgicos. Considerar alternativas."
+  ],
+  [
+    "244",
+    "APIXABANA",
+    "Fluconazol",
+    "Moderado",
+    "Fluconazol (inibidor moderado de CYP3A4) pode ↑ níveis de apixabana em 30-40%.",
+    "Monitorar sinais de sangramento. Considerar redução de dose em pacientes com fatores de risco adicionais (IR, idade > 80, peso < 60 kg)."
+  ],
+  [
+    "245",
+    "APIXABANA",
+    "Carbamazepina",
+    "Grave",
+    "Carbamazepina (indutor potente de CYP3A4 e P-gp) pode ↓ níveis de apixabana em > 50%, com perda de eficácia anticoagulante.",
+    "Associação deve ser evitada. Se necessário, considerar troca para anticoagulante com monitorização laboratorial (varfarina/heparina)."
+  ],
+  [
+    "246",
+    "APIXABANA",
+    "Enoxaparina",
+    "Contraindicado",
+    "↑↑ risco de sangramento grave por dupla anticoagulação.",
+    "Não associar. Descontinuar um agente antes de iniciar outro, respeitando washout farmacológico adequado."
+  ],
+  [
+    "247",
+    "DABIGATRANA",
+    "Amiodarona",
+    "Grave",
+    "Amiodarona inibe P-gp, ↑ níveis de dabigatrana em 50-60%. ↑ risco de sangramento.",
+    "Reduzir dose de dabigatrana para 110 mg 12/12h. Monitorar sinais de sangramento. Avaliar anti-Xa ou TT diluído."
+  ],
+  [
+    "248",
+    "DABIGATRANA",
+    "Omeprazol",
+    "Moderado",
+    "IBP pode ↓ absorção de dabigatrana em 20-30%, porém sem impacto clínico significativo confirmado.",
+    "Habitualmente sem necessidade de ajuste de dose. Manter vigilância clínica."
+  ],
+  [
+    "249",
+    "DABIGATRANA",
+    "Enoxaparina",
+    "Contraindicado",
+    "↑↑ risco de sangramento grave por dupla anticoagulação.",
+    "Não associar. Respeitar intervalo de washout antes da troca."
+  ],
+  [
+    "250",
+    "VORICONAZOL",
+    "Midazolam",
+    "Grave",
+    "Voriconazol inibe CYP3A4, ↑ em 3-4x os níveis de midazolam. Sedação profunda prolongada.",
+    "Evitar uso concomitante. Se inevitável, reduzir midazolam em 50-75% e monitorar sedação continuamente."
+  ],
+  [
+    "251",
+    "VORICONAZOL",
+    "Fenitoína",
+    "Contraindicado",
+    "Fenitoína ↓ níveis de voriconazol em >50% (indutor CYP2C19) e voriconazol ↑ níveis de fenitoína (inibidor CYP2C9). Interação bidirecional grave.",
+    "Evitar associação. Se indispensável: ↑ voriconazol para 5 mg/kg IV 12/12h e ↓ fenitoína com monitorização sérica."
+  ],
+  [
+    "252",
+    "VORICONAZOL",
+    "Sinvastatina",
+    "Contraindicado",
+    "Voriconazol inibe CYP3A4, ↑↑ níveis de sinvastatina. Risco alto de rabdomiólise.",
+    "Suspender sinvastatina durante tratamento com voriconazol. Considerar pravastatina (não metabolizada por CYP3A4)."
+  ],
+  [
+    "253",
+    "VORICONAZOL",
+    "Rivaroxabana",
+    "Contraindicado",
+    "Voriconazol inibe CYP3A4, ↑↑ níveis de rivaroxabana com risco grave de sangramento.",
+    "Evitar associação. Se necessário anticoagular, considerar heparina com monitorização de TTPa/anti-Xa."
+  ],
+  [
+    "254",
+    "CASPOFUNGINA",
+    "Carbamazepina",
+    "Grave",
+    "Carbamazepina (indutor enzimático) ↓ níveis de caspofungina em ~30%.",
+    "↑ dose de caspofungina para 70 mg/dia em uso concomitante com carbamazepina. Monitorar resposta antifúngica."
+  ],
+  [
+    "255",
+    "CASPOFUNGINA",
+    "Ciclosporina",
+    "Grave",
+    "Ciclosporina ↑ AUC de caspofungina em ~35%. Relatos de hepatotoxicidade.",
+    "Evitar uso concomitante quando possível. Se necessário, monitorar enzimas hepáticas 2x/semana."
+  ],
+  [
+    "256",
+    "COLISTINA",
+    "Vancomicina",
+    "Grave",
+    "↑↑ risco de nefrotoxicidade aditiva. Ambos são nefrotóxicos independentemente.",
+    "Monitorar creatinina e débito urinário diariamente. Hidratar agressivamente. Considerar alternativas se possível."
+  ],
+  [
+    "257",
+    "COLISTINA",
+    "Cisatracúrio",
+    "Grave",
+    "Colistina possui atividade bloqueadora neuromuscular. ↑ risco de paralisia prolongada com BNM.",
+    "Monitorar TOF se uso concomitante. Ter suporte ventilatório prolongado disponível."
+  ],
+  [
+    "258",
+    "TIGECICLINA",
+    "Varfarina Sódica",
+    "Moderado",
+    "Tigeciclina pode ↑ INR em pacientes usando varfarina por alteração da flora intestinal e competição proteica.",
+    "Monitorar INR a cada 2-3 dias durante uso concomitante. Ajustar dose de varfarina conforme necessário."
+  ],
+  [
+    "259",
+    "DAPTOMICINA",
+    "Sinvastatina",
+    "Grave",
+    "Ambos podem causar miopatia/rabdomiólise. Risco aditivo de lesão muscular.",
+    "Suspender estatina durante tratamento com daptomicina. Monitorar CPK 2x/semana. Suspender daptomicina se CPK > 5-10x LSN com sintomas."
+  ],
+  [
+    "260",
+    "QUETIAPINA",
+    "Fluconazol",
+    "Grave",
+    "Fluconazol inibe CYP3A4, ↑ níveis de quetiapina com risco de sedação excessiva e prolongamento QTc.",
+    "Reduzir dose de quetiapina em 50%. Monitorar QTc e nível de sedação."
+  ],
+  [
+    "261",
+    "QUETIAPINA",
+    "Amiodarona",
+    "Grave",
+    "Ambos prolongam QTc. ↑↑ risco de Torsades de Pointes por efeito aditivo.",
+    "Evitar associação se QTc > 450 ms. Monitorar ECG e QTc a cada 12h. Manter K⁺ > 4 e Mg²⁺ > 2."
+  ],
+  [
+    "262",
+    "OLANZAPINA",
+    "Haloperidol",
+    "Grave",
+    "Efeito aditivo sobre prolongamento QTc e sedação excessiva. Risco de Torsades de Pointes.",
+    "Evitar associação. Se necessário, monitorar QTc e manter eletrólitos em faixa normal."
+  ],
+  [
+    "263",
+    "OLANZAPINA",
+    "Fluoxetina",
+    "Moderado",
+    "Fluoxetina (inibidor CYP2D6) ↑ níveis de olanzapina em 15-20%.",
+    "Monitorar sedação e efeitos metabólicos. Pode ser necessário ajustar dose de olanzapina."
+  ],
+  [
+    "264",
+    "RISPERIDONA",
+    "Carbamazepina",
+    "Grave",
+    "Carbamazepina (indutor CYP3A4) ↓ níveis de risperidona em até 50%.",
+    "↑ dose de risperidona pode ser necessário. Monitorar eficácia e ajustar ao suspender carbamazepina (risco de toxicidade)."
+  ],
+  [
+    "265",
+    "RISPERIDONA",
+    "Fluoxetina",
+    "Moderado",
+    "Fluoxetina (inibidor CYP2D6) ↑ níveis do metabólito ativo de risperidona.",
+    "Monitorar efeitos extrapiramidais e sedação. Considerar redução de dose de risperidona."
+  ],
+  [
+    "266",
+    "CLOZAPINA",
+    "Ciprofloxacino",
+    "Grave",
+    "Ciprofloxacino inibe CYP1A2, ↑ níveis de clozapina em 2-3x. Risco de toxicidade grave (convulsão, miocardite).",
+    "Evitar. Se inevitável, reduzir clozapina em 50% e monitorar níveis séricos."
+  ],
+  [
+    "267",
+    "ÁCIDO VALPROICO",
+    "Meropenem",
+    "Contraindicado",
+    "Meropenem ↓ níveis séricos de ácido valproico em 60-100% por mecanismo multifatorial (↑ glucuronidação, ↓ reabsorção intestinal). Perda de controle de crises.",
+    "Associação contraindicada. Trocar o carbapenêmico ou o anticonvulsivante. Se inevitável, monitorar nível sérico de valproato a cada 12-24h e ter terapia anticonvulsivante de resgate."
+  ],
+  [
+    "268",
+    "ÁCIDO VALPROICO",
+    "Imipenem + Cilastatina/ Meropenem",
+    "Contraindicado",
+    "Todos os carbapenêmicos ↓ drasticamente níveis de ácido valproico. Risco de crises convulsivas de escape.",
+    "Associação contraindicada. Substituir anticonvulsivante (levetiracetam, lacosamida) ou antimicrobiano (cefalosporina, fluoroquinolona)."
+  ],
+  [
+    "269",
+    "ÁCIDO VALPROICO",
+    "Amitriptilina",
+    "Moderado",
+    "↑ níveis de amitriptilina por inibição do metabolismo. ↑ risco de toxicidade tricíclica.",
+    "Monitorar sinais de toxicidade tricíclica (taquicardia, retenção urinária, confusão). Considerar dosagem sérica."
+  ],
+  [
+    "270",
+    "LEVETIRACETAM",
+    "Metadona",
+    "Moderado",
+    "Relatos de ↓ do efeito analgésico da metadona com levetiracetam, possivelmente por indução metabólica.",
+    "Monitorar controle de dor. Pode ser necessário ajuste de dose de metadona."
+  ],
+  [
+    "271",
+    "GABAPENTINA",
+    "Morfina",
+    "Moderado",
+    "↑ depressão respiratória e sedação por sinergismo. Morfina ↑ biodisponibilidade de gabapentina em 44%.",
+    "Titular ambos separadamente. Monitorar FR e nível de sedação. Iniciar gabapentina em dose baixa."
+  ],
+  [
+    "272",
+    "PREGABALINA",
+    "Fentanil",
+    "Moderado",
+    "↑ sedação e depressão respiratória por sinergismo farmacodinâmico com opioides.",
+    "Iniciar pregabalina em dose baixa. Monitorar FR, SpO2 e nível de sedação. FDA alerta para uso concomitante com opioides."
+  ],
+  [
+    "273",
+    "VENLAFAXINA",
+    "Tramadol",
+    "Contraindicado",
+    "↑↑ risco de síndrome serotoninérgica (ambos inibidores de recaptação de serotonina). Pode ser fatal.",
+    "Associação contraindicada. Se analgesia é necessária, usar opioide não-serotoninérgico (morfina, fentanil)."
+  ],
+  [
+    "274",
+    "VENLAFAXINA",
+    "Linezolida",
+    "Contraindicado",
+    "↑↑ risco de síndrome serotoninérgica. Linezolida é inibidor não-seletivo da MAO.",
+    "Suspender venlafaxina ≥ 7 dias antes de iniciar linezolida. Se urgente, monitorar sinais serotoninérgicos intensivamente."
+  ],
+  [
+    "275",
+    "ESCITALOPRAM",
+    "Linezolida",
+    "Contraindicado",
+    "↑↑ risco de síndrome serotoninérgica (linezolida é IMAO não-seletivo).",
+    "Descontinuar escitalopram antes de linezolida (washout de 5 meias-vidas). Se emergência, monitorar ativamente por 2 semanas."
+  ],
+  [
+    "276",
+    "ESCITALOPRAM",
+    "Amiodarona",
+    "Grave",
+    "Ambos prolongam QTc. ↑ risco de Torsades de Pointes.",
+    "Monitorar QTc a cada 12-24h. Manter K⁺ > 4 mEq/L e Mg²⁺ > 2 mg/dL. Suspender se QTc > 500 ms."
+  ],
+  [
+    "277",
+    "SERTRALINA",
+    "Tramadol",
+    "Grave",
+    "↑ risco de síndrome serotoninérgica e ↓ do limiar convulsivo.",
+    "Evitar associação. Se necessário, usar dose baixa de tramadol e monitorar sinais serotoninérgicos (hipertermia, clônus, agitação)."
+  ],
+  [
+    "278",
+    "DULOXETINA",
+    "Tramadol",
+    "Contraindicado",
+    "↑↑ risco de síndrome serotoninérgica e convulsões. Ambos inibem recaptação de serotonina e noradrenalina.",
+    "Associação contraindicada. Substituir tramadol por opioide não-serotoninérgico."
+  ],
+  [
+    "279",
+    "PANTOPRAZOL",
+    "Clopidogrel",
+    "Moderado",
+    "IBPs podem ↓ conversão de clopidogrel ao metabólito ativo por inibição de CYP2C19. Pantoprazol tem menor potencial de interação que omeprazol.",
+    "Pantoprazol é o IBP preferido quando uso concomitante com clopidogrel é necessário. Monitorar eventos trombóticos."
+  ],
+  [
+    "280",
+    "PANTOPRAZOL",
+    "Metotrexato",
+    "Grave",
+    "IBPs ↓ eliminação renal de metotrexato por inibição da secreção tubular. ↑ toxicidade (mielossupressão, mucosite).",
+    "Suspender IBP ≥ 3 dias antes de metotrexato em altas doses. Monitorar hemograma e função renal."
+  ],
+  [
+    "281",
+    "ESOMEPRAZOL",
+    "Clopidogrel",
+    "Grave",
+    "Esomeprazol inibe CYP2C19 mais potentemente. ↓ em até 40% a conversão de clopidogrel ao metabólito ativo.",
+    "Evitar. Trocar IBP por pantoprazol ou ranitidina se proteção gástrica for necessária."
+  ],
+  [
+    "282",
+    "ÁCIDO TRANEXÂMICO",
+    "Heparina",
+    "Moderado",
+    "Efeitos farmacológicos opostos: antifibrinolítico vs anticoagulante. ↑ risco trombótico se antifibrinolítico predominar.",
+    "Avaliar risco-benefício individualizado. Monitorar sinais de trombose. Uso conjunto pode ser necessário em CIVD com sangramento."
+  ],
+  [
+    "283",
+    "ÁCIDO TRANEXÂMICO",
+    "Complexo Protrombínico",
+    "Grave",
+    "↑↑ risco de trombose arterial e venosa por sinergismo pró-coagulante.",
+    "Usar com extrema cautela e por tempo mínimo. Monitorar sinais de TVP, TEP e trombose arterial. Anticoagulação profilática quando possível."
+  ],
+  [
+    "284",
+    "MANITOL",
+    "Furosemida",
+    "Moderado",
+    "Efeito diurético aditivo. ↑ risco de desidratação, hipotensão, desequilíbrio eletrolítico e IRA pré-renal.",
+    "Monitorar Na⁺, K⁺, osmolaridade sérica e débito urinário a cada 4-6h. Gap osmolar alvo < 20 mOsm/kg."
+  ],
+  [
+    "285",
+    "MANITOL",
+    "Lítio",
+    "Grave",
+    "Diurese osmótica ↑ excreção de lítio. Risco de perda de eficácia do lítio, seguida de toxicidade por rebote na reposição.",
+    "Monitorar litemia a cada 12-24h durante uso de manitol. Ajustar dose de lítio conforme necessário."
   ]
 ]

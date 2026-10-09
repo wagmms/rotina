@@ -221,7 +221,7 @@ function obterPlanilha(cachePrefix, idPlanilha, isInteracao, forcarAtualizacao) 
   }
   var conteudo = "";
   try {
-    var ss = SpreadsheetApp.openById(idPlanilha);
+    var ss = SpreadsheetApp.openById(idPlanilha, isInteracao);
     var sheet = ss.getSheets()[0];
     var lastRow = sheet.getLastRow();
     var lastCol = isInteracao ? sheet.getLastColumn() : 1;
@@ -326,7 +326,7 @@ function filtrarMedicamentosRelevantes(baseCompleta, pedidoUsuario) {
 
 function checarStatusFonteDrive(idPlanilha, isInteracao) {
   try {
-    var ss = SpreadsheetApp.openById(idPlanilha);
+    var ss = SpreadsheetApp.openById(idPlanilha, isInteracao);
     var sheets = ss.getSheets();
     if (!sheets || sheets.length === 0) return "❌ Sem abas na planilha";
     var sheet = sheets[0];
