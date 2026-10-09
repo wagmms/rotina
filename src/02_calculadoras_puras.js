@@ -419,6 +419,42 @@ var CalculadorasClinicas = (function () {
     });
   }
 
+  /** Fórmula de Schwartz Pediátrico (atualizada 2009). mL/min/1,73m² para 1 a 17 anos. */
+  function schwartzPediatrico(creatinina, alturaCm) {
+    var ID = 'schwartz', NOME = 'Schwartz Pediátrico (Atualizado)';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var cr = num(c, creatinina, 'Creatinina (mg/dL)', 0.1, 15);
+      var alt = num(c, alturaCm, 'Altura (cm)', 40, 220);
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+
+      var cl = (0.413 * alt) / cr;
+      exigirFinito(cl);
+      if (cl < 0) cl = 0;
+      
+      var estado, acao, avisos = [];
+      if (lt(cl, 30)) { estado = 'ATENCAO'; acao = ['Clearance < 30 mL/min/1.73m²: Insuficiência renal grave. Ajuste mandatório de fármacos.']; }
+      else if (lt(cl, 50)) { estado = 'ATENCAO'; acao = ['Clearance 30–49 mL/min/1.73m²: Insuficiência renal moderada. Conferir bulas.']; }
+      else { estado = 'CALCULO'; acao = ['Clearance normal ou levemente reduzido.']; }
+
+      if (gt(cl, 150)) avisos.push('⚠️ Valor > 150 mL/min/1.73m² sugere hiperfiltração ou erro de dados.');
+
+      var entradas = [
+        'Creatinina: ' + fmt(cr, 2) + ' mg/dL',
+        'Altura: ' + fmt(alt, 1) + ' cm'
+      ];
+      var clNum = Math.round(cl * 10) / 10;
+      return sucesso({
+        id: ID, nome: NOME, estado: estado, rotulo: estado === 'ATENCAO' ? 'REVISÃO DE DOSE NECESSÁRIA' : null,
+        principal: fmt(cl, 0) + ' mL/min/1.73m²',
+        secoes: [['ENTRADAS', entradas], ['AÇÃO', acao]], avisos: avisos,
+        dados: { clearance: clNum, alturaCm: alt, creatinina: cr },
+        legado: { clearance: clNum, alturaCm: alt, creatinina: cr },
+        botoes: botoesPadrao(ID, [btn('💊 Selecionar medicamento', ID, 'medicamento')])
+      });
+    });
+  }
+
   /**
    * CHA2DS2-VA (SBC 2025 / ESC 2024): sem pontuação para sexo feminino.
    * a2 = idade ≥ 75 (+2); a = idade 65–74 (+1).
@@ -2442,6 +2478,7 @@ var CalculadorasClinicas = (function () {
     var API = publico;
     var r;
     r = API.ckdEpi2021(1.0, 60, false); ok(r.ok && Math.abs(r.dados.tfg - 86.2) < 2.0, 'CKD-EPI homem 60a Cr1,0');
+    r = API.schwartzPediatrico(0.8, 120); ok(r.ok && Math.abs(r.dados.clearance - 61.9) < 1.0, 'Schwartz Pediátrico Cr0.8 Alt120');
     r = API.ckdEpi2021(0, 60, false);   ok(!r.ok, 'CKD-EPI Cr=0 deve falhar');
     r = API.cockcroftGault(1.0, 70, 60, false); ok(r.ok && Math.abs(r.dados.clearance - 77.8) < 1.0, 'CG base');
     r = API.cockcroftGault(1.0, 120, 50, false, 170); ok(r.ok && r.dados.tipoPeso.indexOf('ajustado') === 0, 'CG peso ajustado em obeso');
@@ -2704,6 +2741,7 @@ var CalculadorasClinicas = (function () {
     curb65: curb65,
     ckdEpi2021: ckdEpi2021,
     cockcroftGault: cockcroftGault,
+    schwartzPediatrico: schwartzPediatrico,
     cha2ds2va: cha2ds2va,
     cha2ds2vasc: cha2ds2vasc,
     hasbled: hasbled,
