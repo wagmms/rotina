@@ -852,6 +852,9 @@ module.exports = {
         _rpcMap.cockpitCriseAsmatica = ctx.cockpitCriseAsmatica || ctx.cockpitPneumologiaAsma;
         _rpcMap.cockpitObstetriciaRcf = ctx.cockpitObstetriciaRcf;
         _rpcMap.cockpitRestricaoCrescimentoFetal = ctx.cockpitRestricaoCrescimentoFetal || ctx.cockpitObstetriciaRcf;
+        _rpcMap.cockpitHepatologiaColestase = ctx.cockpitHepatologiaColestase;
+        _rpcMap.cockpitColestaseGestacional = ctx.cockpitColestaseGestacional || ctx.cockpitHepatologiaColestase;
+        _rpcMap.cockpitEhagSwansea = ctx.cockpitEhagSwansea;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

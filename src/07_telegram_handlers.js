@@ -1637,6 +1637,47 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // HEPATOLOGIA & EMERGÊNCIA OBSTÉTRICA: COLESTASE GESTACIONAL (CIG) E EHAG
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/colestase" || comando === "/cig" || comando === "/icp" || comando === "/swansea" || comando === "/ehag" || comando === "/aflp") {
+    var dadosCig = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof HepatologiaColestaseGestacionalService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo HepatologiaColestaseGestacionalService indisponível temporariamente.");
+    }
+
+    var paramsCig = dadosCig ? HepatologiaColestaseGestacionalService.extrairParametrosTexto(dadosCig) : {};
+
+    if ((comando === "/swansea" || comando === "/ehag" || comando === "/aflp") && (!dadosCig || Object.keys(paramsCig).length === 0)) {
+      return enviarMensagemParaChat(chatId, "🟡 *ESTEATOSE HEPÁTICA AGUDA DA GESTAÇÃO (EHAG / SWANSEA)*\n\n" +
+        "Envie os achados clínicos e laboratoriais (mínimo 6 critérios para confirmação):\n" +
+        "• *Clínicos:* `vomitos`, `dor abdominal`, `polidipsia/poliuria`, `encefalopatia`\n" +
+        "• *Laboratório:* `hipoglicemia` (<72), `bilirrubina` (>0.8), `acido urico` (>5.7), `leucocitose` (>11k), `tgo/tgp` (>42), `amonia` (>47), `insuficiencia renal` (cr >1.7), `coagulopatia` (TP>14s ou TTPa>34s)\n" +
+        "• *Imagem/Biópsia:* `ascite/usg brilhante`, `esteatose biopsia`\n\n" +
+        "*Exemplo:* `/swansea vomitos dor abdominal hipoglicemia coagulopatia tgo 250 bilirrubina 3.5 creatinina 1.9`");
+    }
+
+    if (!dadosCig || (paramsCig.acidos_biliares === undefined && (!paramsCig.swansea || paramsCig.modo !== 'EHAG'))) {
+      return enviarMensagemParaChat(chatId, "🤰 *HEPATOLOGIA OBSTÉTRICA — COLESTASE (CIG) & EHAG*\n\n" +
+        "Envie a dosagem de *Ácidos Biliares Totais (ABT)*, idade gestacional e peso:\n" +
+        "• *ABT séricos (mcmol/L):* `abt 45` ou `acidos biliares 120`\n" +
+        "• *Idade Gestacional:* `34s`, `36+2` ou `ig 36`\n" +
+        "• *Peso materno:* `68kg` ou `peso 70` (para cálculo exato de UDCA 10-15 mg/kg)\n" +
+        "• *Outros:* `prurido`, `tgo 120`, `tgp 95`, `bilirrubina 1.8`, `gemelar`, `antecedente cig`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/cig abt 25 34s peso 65` *(CIG leve — parto 38-39s)*\n" +
+        "• `/colestase abt 110 ig 35s peso 72` *(CIG grave — risco óbito fetal, parto 36s)*\n" +
+        "• `/swansea vomitos dor hipoglicemia coagulopatia tgo 300 encefalopatia` *(EHAG)*");
+    }
+
+    try {
+      var analiseCig = HepatologiaColestaseGestacionalService.avaliar(paramsCig);
+      return enviarMensagemParaChat(chatId, HepatologiaColestaseGestacionalService.formatarTextoTelegram(analiseCig));
+    } catch (eCig) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Colestase/EHAG: " + eCig.message);
+    }
+  }
+
   if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
     var dadosKaizen = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof AuditoriaKaizenClinicoService === "undefined") {

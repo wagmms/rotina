@@ -259,6 +259,47 @@ async function run() {
   assert.equal(jsonRcfTexto.resultado.resultado.estadiamento.estagio, 1);
   console.log('✓ Cockpit Obstetrícia RCF via texto livre (alias) OK');
 
+  // 6.9 Cockpit RPC - Hepatologia Obstétrica (Colestase Intra-hepática da Gestação / UDCA)
+  const resCig = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitHepatologiaColestase',
+      session: token,
+      args: [{
+        acidos_biliares: 110,
+        peso: 70,
+        ig_semanas: 35
+      }]
+    }
+  });
+  assert.equal(resCig.statusCode, 200, "Erro ao testar cockpitHepatologiaColestase");
+  const jsonCig = JSON.parse(resCig.body);
+  assert(jsonCig.ok, "ok CIG deve ser true");
+  assert.equal(jsonCig.resultado.resultado.classificacao.gravidade, 'GRAVE');
+  assert.equal(jsonCig.resultado.resultado.parto.ig_alvo_semanas, 36);
+  assert.equal(jsonCig.resultado.resultado.parto.corticoide.indicado, true);
+  assert.equal(jsonCig.resultado.resultado.parto.vitamina_k.indicada, true);
+  assert(jsonCig.resultado.textoFormatado.includes('COLESTASE INTRA-HEPÁTICA'));
+  console.log('✓ Cockpit Hepatologia Obstétrica (CIG Grave & UDCA) OK');
+
+  // 6.10 Cockpit RPC - CIG via texto livre (alias cockpitColestaseGestacional)
+  const resCigTexto = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitColestaseGestacional',
+      session: token,
+      args: ['abt 35 peso 60 ig 38s prurido']
+    }
+  });
+  assert.equal(resCigTexto.statusCode, 200, "Erro ao testar cockpitColestaseGestacional via texto");
+  const jsonCigTexto = JSON.parse(resCigTexto.body);
+  assert(jsonCigTexto.ok, "ok CIG texto deve ser true");
+  assert.equal(jsonCigTexto.resultado.resultado.classificacao.gravidade, 'LEVE');
+  assert.equal(jsonCigTexto.resultado.resultado.parto.parto_indicado_agora, true);
+  console.log('✓ Cockpit Colestase Gestacional via texto livre (alias) OK');
+
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);
   const jsonManifest = JSON.parse(resManifest.body);

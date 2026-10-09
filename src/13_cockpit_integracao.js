@@ -1829,3 +1829,50 @@ function cockpitObstetriciaRcf(initData, params) {
 function cockpitRestricaoCrescimentoFetal(initData, params) {
   return cockpitObstetriciaRcf(initData, params);
 }
+
+function cockpitHepatologiaColestase(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Colestase/EHAG não fornecidos.');
+  if (typeof HepatologiaColestaseGestacionalService === 'undefined') {
+    throw new Error('Serviço HepatologiaColestaseGestacionalService indisponível.');
+  }
+
+  // Aceita texto livre ou objeto estruturado
+  var entrada = typeof params === 'string'
+    ? HepatologiaColestaseGestacionalService.extrairParametrosTexto(params)
+    : (params.texto ? HepatologiaColestaseGestacionalService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = HepatologiaColestaseGestacionalService.avaliar(entrada);
+  var texto = HepatologiaColestaseGestacionalService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitColestaseGestacional(initData, params) {
+  return cockpitHepatologiaColestase(initData, params);
+}
+
+function cockpitEhagSwansea(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Swansea/EHAG não fornecidos.');
+  if (typeof HepatologiaColestaseGestacionalService === 'undefined') {
+    throw new Error('Serviço HepatologiaColestaseGestacionalService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? HepatologiaColestaseGestacionalService.extrairParametrosTexto(params)
+    : params;
+
+  var analise = HepatologiaColestaseGestacionalService.avaliarSwansea(entrada);
+  var texto = HepatologiaColestaseGestacionalService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
