@@ -22,9 +22,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 ---
 
 
-15. [ ] **Refatoração do Motor de Permissões e Perfis Clínicos (RBAC)**:
-    - Segmentação granular de acesso a módulos críticos por nível do residente/preceptor.
-
 
 16. [ ] **Módulo de Suporte Nutricional Enteral e Parenteral (UTI/Enfermaria)**:
     - Calculadora automatizada de necessidade calórico-proteica basal (Equação de Harris-Benedict ou regra de bolso de 25-30 kcal/kg/dia).
@@ -227,13 +224,36 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Estratificação de risco de lesão renal aguda e necessidade de terapia renal substitutiva com base no escore McMahon (CPK, fósforo, cálcio, bicarbonato).
     - Protocolo de hidratação venosa vigorosa dirigida por metas (diurese alvo 200 a 300 mL/h) com cristaloides e critérios restritivos para alcalinização urinária com bicarbonato de sódio.
 
+58. [ ] **Hematologia e Emergência - Reversão de Anticoagulantes Orais e Heparinas (Idarucizumabe, Andexanet Alfa, Complexo Protrombínico e Protamina)**:
+    - Diretrizes SBC/ISTH para reversão emergencial de DOACs (Dabigatrana, Rivaroxabana, Apixabana) e Varfarina em sangramento com risco de morte ou cirurgia de urgência.
+    - Cálculo posológico de Complexo Protrombínico (PCC 4 fatores: 25 a 50 UI/kg guiado pelo RNI) associado a Vitamina K1 10 mg IV lento.
+    - Posologia estrita de Protamina (1 mg neutraliza 100 UI de HNF; neutralização parcial de HBPM) prevenindo hipotensão e anafilaxia.
+
+59. [ ] **Infectologia e Controle de Infecção Hospitalar (CCIH) - Stewardship Antimicrobiano e Rastreio de Microrganismos Multirresistentes (MDR / KPC / VRE / MRSA)**:
+    - Motor determinístico de escalonamento/descalonamento antimicrobiano guiado por culturas e antibiograma institucional.
+    - Protocolo de dosagem e monitoramento de Vancomicina (alvo AUC/MIC 400-600 ou vale 15-20 mcg/mL), Polimixina B ponderada sem ajuste renal e Daptomicina em altas doses.
+    - Esquemas de cobertura para enterobactérias produtoras de carbapenemase (KPC/NDM) com Ceftazidima-Avibactam e Aztreonam.
+
+60. [ ] **Cirurgia Geral e Trauma - Manejo Inicial do Politraumatizado (Protocolo ATLS 10ª Edição e Escore eFAST)**:
+    - Algoritmo determinístico beira-leito do ABCDE com identificação imediata de lesões ameaçadoras à vida (Pneumotórax Hipertensivo com descompressão por toracocentese no 4º/5º EIC, Hemotórax Maciço, Tamponamento Cardíaco com Tríade de Beck).
+    - Cálculo de Índice de Choque no trauma (FC/PAS > 0.9 indicativo de hemorragia oculta) e ativação do Protocolo de Transfusão Maciça 1:1:1 (CHAD, PFC, Plaquetas) com Ácido Tranexâmico 1g IV na 1ª hora (CRASH-2).
+
 
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Refatoração do Motor de Permissões e Perfis Clínicos (RBAC)**
+- [ ] **Módulo de Suporte Nutricional Enteral e Parenteral (UTI/Enfermaria)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Refatoração do Motor de Permissões e Perfis Clínicos (RBAC & Supervisão Médica)**:
+   - Implementação do motor determinístico `RbacPerfisClinicosService` com segmentação hierárquica granular (Acadêmico de Medicina, Residente R1, Residente R2, Residente R3/R4, Preceptor e Farmacêutico Clínico) conforme diretrizes CFM, MEC/CNRM e Segurança do Paciente.
+   - Salvaguardas ativas para acadêmicos e residentes juniores: bloqueio de liberação de prescrições ativas e mudança de status de leito sem co-validação preceptorial.
+   - Detecção automatizada e auditoria de Fármacos de Alta Vigilância (Trombolíticos, Bloqueadores Neuromusculares, Aminas Vasoativas, KCl concentrado e Antídotos) exigindo dupla checagem ou chancela de R3+/Preceptor.
+   - Bloqueio fatal e sentinela imediato para Cloreto de Potássio 19,1% infundido puro ou em bolus direto.
+   - Sistema de gestão de pendências e co-assinatura preceptorial com tokens criptográficos rastreáveis e pareceres clínicos registrados em memória.
+   - Protocolo Break-The-Glass (Bypass de Emergência Médica) que permite relaxamento temporário e auditado das travas em situações de PCR/choque extremo, garantindo que o cuidado à vida jamais seja bloqueado por entraves burocráticos.
+   - Integração completa com Fastify RPC (`cockpitRbac`) e suíte de testes determinística validada com 100% de sucesso.
+
 - [x] (2026-10-09) **Módulo de Psiquiatria de Urgência, Agitação Psicomotora e Risco de Suicídio (ABP / CFM / C-SSRS / PHQ-9)**:
    - Motor determinístico de alta fidelidade clínica e farmacológica para o manejo da agitação psicomotora via escalas RASS (-5 a +4) e BARS (1 a 7).
    - Diretrizes estritas de desescalonamento verbal com medidas de segurança ambiental (rota de fuga desobstruída e baixa estimulação sensorial).

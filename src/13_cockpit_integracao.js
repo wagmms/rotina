@@ -1003,6 +1003,58 @@ function cockpitPsiquiatriaUrgencia(initData, params) {
   throw new Error('Ação inválida para Psiquiatria de Urgência.');
 }
 
+function cockpitRbac(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof RbacPerfisClinicosService === 'undefined') {
+    throw new Error('Módulo RbacPerfisClinicosService indisponível.');
+  }
+  var acao = params.acao || 'obterPerfis';
+  if (acao === 'obterPerfis') {
+    return RbacPerfisClinicosService.obterPerfis();
+  }
+  if (acao === 'obterPermissoesPerfil') {
+    return RbacPerfisClinicosService.obterPermissoesPerfil(params.perfilId);
+  }
+  if (acao === 'verificarPermissao') {
+    return RbacPerfisClinicosService.verificarPermissao(params.usuarioContexto, params.recurso, params.operacao);
+  }
+  if (acao === 'validarPrescricaoPorPerfil') {
+    return RbacPerfisClinicosService.validarPrescricaoPorPerfil(params.usuarioContexto, params.dadosPrescricao);
+  }
+  if (acao === 'criarPendenciaCoAssinatura') {
+    return RbacPerfisClinicosService.criarPendenciaCoAssinatura(params.usuarioContexto, params.dadosAcao);
+  }
+  if (acao === 'chancelarCoAssinatura') {
+    return RbacPerfisClinicosService.chancelarCoAssinatura(params.preceptorContexto, params.pendenciaId, params.parecerClinico);
+  }
+  if (acao === 'ativarBypassEmergencia') {
+    return RbacPerfisClinicosService.ativarBypassEmergencia(params.usuarioContexto, params.justificativaClinica, params.duracaoHoras);
+  }
+  if (acao === 'desativarBypassEmergencia') {
+    return RbacPerfisClinicosService.desativarBypassEmergencia(params.usuarioContexto);
+  }
+  if (acao === 'definirPerfilUsuario') {
+    return RbacPerfisClinicosService.definirPerfilUsuario(params.usuarioId, params.perfilId, params.dadosExtras);
+  }
+  if (acao === 'obterPerfilUsuario') {
+    return RbacPerfisClinicosService.obterPerfilUsuario(params.usuarioId);
+  }
+  if (acao === 'listarUsuariosPerfis') {
+    return RbacPerfisClinicosService.listarUsuariosPerfis();
+  }
+  if (acao === 'listarPendenciasCoAssinatura') {
+    return RbacPerfisClinicosService.listarPendenciasCoAssinatura(params.filtroStatus);
+  }
+  if (acao === 'obterPendenciaPorId') {
+    return RbacPerfisClinicosService.obterPendenciaPorId(params.pendenciaId);
+  }
+  if (acao === 'gerarRelatorioSegurancaRbac') {
+    return RbacPerfisClinicosService.gerarRelatorioSegurancaRbac();
+  }
+  throw new Error('Ação inválida para Motor de Permissões e Perfis Clínicos (RBAC).');
+}
+
 
 
 
