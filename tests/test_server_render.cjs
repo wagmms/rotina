@@ -426,6 +426,64 @@ async function run() {
   assert.equal(bronqTextoBody.resultado.resultado.gravidade.internacaoUTI, true);
   console.log('✓ Cockpit Bronquiolite via texto livre (alias) OK');
 
+  // 6.14 Cockpit RPC - Endocrinologia: Hiperprolactinemia
+  const resHiperprolact = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitHiperprolactinemia',
+      session: token,
+      args: [{
+        prolactina: 85,
+        adenomaTamanho: 8,
+        assintomatica: false
+      }]
+    }
+  });
+  assert.equal(resHiperprolact.statusCode, 200, "Erro ao testar cockpitHiperprolactinemia");
+  const hiperprolactBody = JSON.parse(resHiperprolact.payload);
+  assert.equal(hiperprolactBody.resultado.sucesso, true);
+  console.log('✓ Cockpit Hiperprolactinemia & Prolactinomas OK');
+
+  // 6.15 Cockpit RPC - Ginecologia: Endometriose e Dor Pélvica Crônica
+  const resEndo = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitGinecologiaEndometriose',
+      session: token,
+      args: [{
+        dismenorreia: true,
+        dispareunia: true,
+        evaDor: 8,
+        desejoGestacional: false
+      }]
+    }
+  });
+  assert.equal(resEndo.statusCode, 200, "Erro ao testar cockpitGinecologiaEndometriose");
+  const endoBody = JSON.parse(resEndo.payload);
+  assert.equal(endoBody.resultado.sucesso, true);
+  assert.equal(endoBody.resultado.resultado.diagnostico.suspeitaClinica, true);
+  assert.equal(endoBody.resultado.resultado.diagnostico.indicacaoCirurgicaUrgente, false);
+  console.log('✓ Cockpit Ginecologia Endometriose (Dienogeste 1ª Linha) OK');
+
+  // 6.16 Cockpit RPC - Ginecologia: Endometriose via texto livre (alias cockpitEndometriose)
+  const resEndoTexto = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitEndometriose',
+      session: token,
+      args: ['endometriose 35 anos tentando engravidar endometrioma 4cm bilateral amh 0.8 hidronefrose']
+    }
+  });
+  assert.equal(resEndoTexto.statusCode, 200, "Erro ao testar cockpitEndometriose via texto");
+  const endoTextoBody = JSON.parse(resEndoTexto.payload);
+  assert.equal(endoTextoBody.resultado.sucesso, true);
+  assert.equal(endoTextoBody.resultado.resultado.diagnostico.indicacaoCirurgicaUrgente, true);
+  console.log('✓ Cockpit Endometriose via texto livre (alias) OK');
+
+
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);
   const jsonManifest = JSON.parse(resManifest.body);

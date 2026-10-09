@@ -865,6 +865,8 @@ module.exports = {
         _rpcMap.cockpitBronquiolite = ctx.cockpitBronquiolite || ctx.cockpitPediatriaBronquiolite;
         _rpcMap.cockpitEndocrinologiaHiperprolactinemia = ctx.cockpitEndocrinologiaHiperprolactinemia;
         _rpcMap.cockpitHiperprolactinemia = ctx.cockpitHiperprolactinemia || ctx.cockpitEndocrinologiaHiperprolactinemia;
+        _rpcMap.cockpitGinecologiaEndometriose = ctx.cockpitGinecologiaEndometriose;
+        _rpcMap.cockpitEndometriose = ctx.cockpitEndometriose || ctx.cockpitGinecologiaEndometriose;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

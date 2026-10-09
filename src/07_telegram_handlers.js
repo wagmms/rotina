@@ -1789,7 +1789,7 @@ function processarMensagemTexto(message) {
         "• *Outros:* `gestante`, `assintomatica`, `alteracao visual`, `uso de antipsicotico`, `tsh alterado`, `macroprolactina pesquisada`, `macroprolactina positiva`\n\n" +
         "*Exemplos:*\n" +
         "• `/prolactina PRL 85 assintomatica`\n" +
-        "• `/hiperprolactinemia PRL 250 tamanho 15mm alteracao visual хірур`");
+        "• `/hiperprolactinemia PRL 250 tamanho 15mm alteracao visual`");
     }
 
     try {
@@ -1797,6 +1797,36 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, respostaProlactina);
     } catch (eProlactina) {
       return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Hiperprolactinemia: " + eProlactina.message);
+    }
+  }
+
+  // GINECOLOGIA ENDÓCRINA & CIRÚRGICA: ENDOMETRIOSE E DOR PÉLVICA CRÔNICA
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/endometriose" || comando === "/dienogeste" || comando === "/dorpelvica") {
+    var dadosEndo = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof GinecologiaEndometrioseService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo GinecologiaEndometrioseService indisponível temporariamente.");
+    }
+
+    if (!dadosEndo) {
+      return enviarMensagemParaChat(chatId, "🎗️ *GINECOLOGIA — ENDOMETRIOSE E DOR PÉLVICA CRÔNICA*\n\n" +
+        "Envie os dados clínicos para avaliação sindrômica (6 Ds), conduta de 1ª/2ª linha e decisão cirúrgica vs FIV:\n" +
+        "• *Sintomas:* `dismenorreia`, `dispareunia de profundidade`, `disquezia`, `disúria`, `dor pélvica crônica`\n" +
+        "• *Desejo Reprodutivo:* `tentando engravidar`, `infertilidade`, `AMH 0.8`\n" +
+        "• *Imagem / Achados:* `endometrioma 5cm`, `hidronefrose`, `nódulo retal`, `trompas obstruídas`\n" +
+        "• *Outros:* `contraindicação a estrogênio`, `enxaqueca com aura`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/endometriose dismenorreia severa dispareunia EVA 8 sem desejo gestacional` *(1ª linha Dienogeste)*\n" +
+        "• `/endometriose 36 anos tentando engravidar endometrioma 4cm bilateral AMH 0.7` *(Indicação FIV)*\n" +
+        "• `/endometriose nodulo retal hidronefrose ureteral` *(Cirurgia especializada urgente)*");
+    }
+
+    try {
+      var paramsEndo = GinecologiaEndometrioseService.extrairParametrosTexto(dadosEndo);
+      var analiseEndo = GinecologiaEndometrioseService.avaliar(paramsEndo);
+      return enviarMensagemParaChat(chatId, GinecologiaEndometrioseService.formatarTextoTelegram(analiseEndo));
+    } catch (eEndo) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Endometriose: " + eEndo.message);
     }
   }
 

@@ -1995,7 +1995,6 @@ function cockpitEndocrinologiaHiperprolactinemia(initData, params) {
   } else if (params.texto) {
       textoFormatado = EndocrinologiaHiperprolactinemiaService.processarComandoTelegram(params.texto);
   } else {
-      // Just mock string representation if needed or keep it simple.
       textoFormatado = "Processado via API Fastify";
   }
   return {
@@ -2008,3 +2007,34 @@ function cockpitEndocrinologiaHiperprolactinemia(initData, params) {
 function cockpitHiperprolactinemia(initData, params) {
   return cockpitEndocrinologiaHiperprolactinemia(initData, params);
 }
+
+function cockpitGinecologiaEndometriose(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Endometriose não fornecidos.');
+  if (typeof GinecologiaEndometrioseService === 'undefined') {
+    throw new Error('Serviço GinecologiaEndometrioseService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? GinecologiaEndometrioseService.extrairParametrosTexto(params)
+    : (params.texto ? GinecologiaEndometrioseService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = GinecologiaEndometrioseService.avaliar(entrada);
+  var texto = GinecologiaEndometrioseService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitEndometriose(initData, params) {
+  return cockpitGinecologiaEndometriose(initData, params);
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports.cockpitGinecologiaEndometriose = cockpitGinecologiaEndometriose;
+  module.exports.cockpitEndometriose = cockpitEndometriose;
+}
+

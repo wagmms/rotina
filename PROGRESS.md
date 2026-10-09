@@ -221,11 +221,15 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Terapia farmacológica com agonistas dopaminérgicos de 1ª linha (Cabergolina 0.5 mg 1 a 2x/semana com superioridade em eficácia e tolerância gastrointestinal vs Bromocriptina).
     - Manejo de segurança na gestação e rastreio de valvulopatia cardíaca com ecocardiograma em doses cumulativas elevadas.
 
-44. [ ] **Ginecologia Endócrina e Cirúrgica - Manejo Clínico da Endometriose e Dor Pélvica Crônica (Diretrizes ESHRE / FEBRASGO 2024-2026)**:
-    - Diagnóstico clínico e mapeamento por imagem de alta resolução (USG transvaginal com preparo intestinal especializado e RM de pelve para endometriose profunda, endometriomas e acometimento intestinal/ureteral).
-    - Terapia farmacológica de 1ª linha para controle da dor e supressão estrogênica: Progestagênios contínuos (Dienogeste 2 mg/dia como padrão de eficácia e atrofia dos focos; SIU-Levonorgestrel 52 mg; Desogestrel 75 mcg) e AHC combinados em uso contínuo.
-    - Fármacos de 2ª linha: Antagonistas orais de GnRH (Relugolix ou Elagolix com terapia add-back) ou análogos de GnRH (Goserrelina / Leuprorrelina).
-    - Algoritmo de decisão cirúrgica (laparoscopia/robótica) vs reprodução assistida (FIV) em pacientes com infertilidade associada ou obstrução ureteral/intestinal.
+44. [x] **Ginecologia Endócrina e Cirúrgica - Manejo Clínico da Endometriose e Dor Pélvica Crônica (Diretrizes ESHRE / FEBRASGO 2024-2026)**:
+    - Diagnóstico clínico e mapeamento sindrômico estruturado baseado nos "6 Ds" da Endometriose (Dismenorreia progressiva, Dispareunia de profundidade, Dor pélvica crônica acíclica, Disquezia cíclica, Disúria e Dificuldade reprodutiva).
+    - Mapeamento por imagem de alta resolução: USG transvaginal com preparo intestinal prévio e RM de pelve com protocolo específico para endometriose profunda, endometriomas e acometimento compartimental.
+    - Alerta compulsório de segurança: rastreamento obrigatório de hidronefrose ureteral silenciosa em lesões retroperitoneais de ligamentos uterossacros e septo retovaginal.
+    - Terapia farmacológica de 1ª linha empírica sem exigência de laparoscopia prévia: Progestagênios orais contínuos (Dienogeste 2 mg/dia como padrão-ouro de eficácia e atrofia dos implantes; SIU-Levonorgestrel 52 mg; Desogestrel 75 mcg) e AHC combinados em uso contínuo com bloqueio de estrogênios em pacientes contraindicadas.
+    - Terapia de 2ª linha para refratariedade: Antagonistas orais de GnRH (Relugolix 40 mg com add-back fixa ou Elagolix) e Análogos de GnRH injetáveis (Goserrelina / Leuprorrelina) com obrigatoriedade estrita de Add-Back Therapy para prevenção de osteoporose e sintomas vasomotores.
+    - Algoritmo de decisão reprodutiva vs cirúrgica (ESHRE/ASRM): Bloqueio estrito de tratamento hormonal contraceptivo em mulheres tentando engravidar; indicação prioritária de Reprodução Assistida / FIV direta em mulheres com idade ≥ 35 anos, infertilidade prolongada ou AMH diminuído (< 1.1 ng/mL) prevenindo espoliação da reserva folicular ovariana por cistectomias repetidas.
+    - Indicações cirúrgicas mandatórias imediatas: estenose ureteral com hidronefrose, suboclusão intestinal retossigmoideia com acometimento ≥ 50% da luz e dor pélvica intratável.
+    - Integrado via Fastify RPC (`cockpitGinecologiaEndometriose` e `cockpitEndometriose`), comandos Telegram (`/endometriose`, `/dienogeste`, `/dorpelvica`) e 100% de cobertura nos testes unitários e de integração do servidor Render.
 
 45. [ ] **Obstetrícia & Reumatologia - Síndrome do Anticorpo Antifosfolipídio (SAF) e Trombofilias na Gestação (Critérios Sydney / ACR / EULAR 2023)**:
     - Critérios clínicos (abortamentos precoces de repetição >= 3 com < 10 semanas, perda fetal morfologicamente normal >= 10 semanas, parto prematuro < 34 semanas por pré-eclâmpsia grave ou insuficiência placentária) associados a critérios laboratoriais (Anticoagulante Lúpico, Anticardiolipina IgG/IgM e Anti-beta-2-glicoproteína I confirmados com intervalo >= 12 semanas).
@@ -1208,3 +1212,37 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 146. [ ] **Neurologia e Urgência - Abordagem da Síndrome de Guillain-Barré (SGB / Critérios de Brighton)**:
     - Escala MRC para avaliação de força muscular segmentar.
     - Indicações de Imunoglobulina IV (IgIV) vs Plasmaférese, e monitoramento da capacidade vital forçada (CVF) para predição de falência respiratória e intubação precoce.
+
+147. [ ] **Ginecologia & Oncologia Pélvica - Rastreamento e Manejo de Câncer de Endométrio e Espessamento Endometrial na Pós-Menopausa (Diretrizes ESGO / FEBRASGO)**:
+    - Critérios ecográficos de corte para espessamento endometrial (eco endometrial > 4-5 mm sem THM ou > 8 mm com THM, ou sangramento pós-menopausa).
+    - Algoritmo de amostragem endometrial: biópsia com Pipelle de Cornier em consultório vs histeroscopia com biópsia dirigida padrão-ouro em caso de Pipelle insuficiente ou lesão focal/pólipo.
+    - Classificação molecular do câncer de endométrio (POLE ultramutado, MMR deficiente, p53 anormal / cópia alta, sem perfil molecular específico - NSMP) e estadiamento FIGO 2023.
+
+148. [ ] **Infectologia & Terapia Intensiva - Manejo da Meningite Bacteriana Aguda do Adulto e da Criança (Diretrizes IDSA / SBP / Ministério da Saúde)**:
+    - Tríade clássica (febre, rigidez de nuca, alteração do sensório) e indicações de TC de crânio antes da Punção Lombar (déficit focal, convulsão nova, papiledema, imunossupressão, rebaixamento profundo).
+    - Janela de ouro terapêutica: Antibioticoterapia empírica em até 1 hora (Ceftriaxona 2g IV 12/12h + Ampicilina se > 50 anos / gestante / imunossuprimido para *Listeria* + Vancomicina se pneumococo resistente).
+    - Regra mandatória de Dexametasona 10 mg IV (ou 0,15 mg/kg em pediatria) administrada ANTES ou junto com a primeira dose de antibiótico para redução de sequelas auditivas e mortalidade no pneumococo.
+    - Quimioprofilaxia de contatos íntimos para Meningococo e *Haemophilus influenzae* tipo b (Rifampicina vs Ciprofloxacino vs Ceftriaxona).
+
+149. [ ] **Pneumologia & Medicina de Emergência - Manejo da Crise Asmática Aguda na Gestação (Diretrizes GINA / NAEPP)**:
+    - Monitoramento materno-fetal contínuo: saturação de oxigênio alvo materno estrita (SpO2 ≥ 95% para garantir oxigenação fetal e prevenir hipóxia/RCF).
+    - Regra de segurança: A crise asmática descontrolada é MUITO mais perigosa para o feto do que as medicações inalatórias de controle. Bloqueio de omissão ou suspensão de broncodilatadores e corticoides.
+    - Segurança comprovada de Beta-2 agonistas de curta ação (Salbutamol) e corticoides inalatórios (Budesonida) e sistêmicos (Prednisona / Hidrocortisona) na exacerbação.
+    - Alerta crítico: Alcalose respiratória fisiológica na gestante mascara fadiga diafragmática (PaCO2 normal ≥ 35 mmHg ou acidose respiratória em gestante é sinal de fadiga extrema e iminência de parada respiratória).
+
+
+147. [ ] **Ginecologia Oncológica e Patologia Cervical - Manejo de Neoplasia Intraepitelial Cervical (NIC II/III) e Lesões Pré-Malignas (Diretrizes ASCCP / Ministério da Saúde / INCA)**:
+    - Algoritmo de risco e conduta baseado no tripé Citologia, Colposcopia especializada com biópsia dirigida e teste de DNA-HPV de alto risco oncogênico.
+    - Critérios de indicação para tratamento excisional: CAF / EZPEC (Excisão da Zona de Transformação por Cirurgia de Alta Frequência) para ZT tipo 1 e 2 vs Conização a frio para ZT tipo 3 ou suspeita de invasão/adenocarcinoma in situ (AIS).
+    - Avaliação de margens cirúrgicas (endocervical e ectocervical) e protocolo rigoroso de seguimento com co-teste aos 6 e 12 meses prevenindo recidiva invasiva.
+
+148. [ ] **Cardiologia e Medicina de Emergência - Manejo da Crise Hipertensiva: Urgência vs Emergência Hipertensiva (Diretrizes SBC / AHA 2024-2026)**:
+    - Diferenciação determinística entre Urgência Hipertensiva (PA elevada sem lesão aguda de órgão-alvo) e Emergência Hipertensiva (com lesão aguda em curso: encefalopatia hipertensiva, AVE hemorrágico/isquêmico, SCA, dissecção aguda de aorta, EAP hipertensivo, eclâmpsia).
+    - Metas pressóricas precisas de redução gradual (queda de no máximo 20-25% na PAM na 1ª hora para prevenir isquemia cerebral/coronariana iatrogênica; exceto na dissecção aguda de aorta, com meta imediata de PAS < 120 mmHg e FC < 60 bpm em 20 min com betabloqueador IV + vasodilatador).
+    - Titulação de fármacos parenterais de precisão (Nitroprussiato de Sódio, Nitroglicerina, Labetalol, Esmolol) e bloqueio formal de nifedipino de liberação rápida sublingual.
+
+149. [ ] **Pediatria & Alergia/Imunologia - Diagnóstico e Manejo da Alergia à Proteína do Leite de Vaca (APLV) na Infância (Diretrizes SBP / ESPGHAN)**:
+    - Diferenciação clínica entre manifestações IgE-mediadas (urticária aguda, angioedema, anafilaxia imediata) vs Não IgE-mediadas (proctocolite alérgica com fezes com estrias de sangue, enteropatia induzida por proteína alimentar, FPIES com vômitos profusos e choque hipovolêmico).
+    - Protocolo de teste de desencadeamento oral (TDO) e dieta de exclusão materna (se aleitamento materno exclusivo com suplementação de cálcio 1000 mg/dia) vs fórmulas especiais (fórmula extensamente hidrolisada - FeH de 1ª linha vs fórmula de aminoácidos livres em anafilaxia, falha de FeH ou FPIES severo).
+    - Contraindicação formal de fórmulas à base de soja antes dos 6 meses de vida e proibição de leites de outros mamíferos (cabra, ovelha) devido à alta reatividade cruzada (> 90%).
+
