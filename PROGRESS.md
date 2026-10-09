@@ -182,7 +182,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Módulo `src/02_obstetricia_rcf_doppler.js` integrado via Fastify RPC (`cockpitObstetriciaRcf` e `cockpitRestricaoCrescimentoFetal`) e comandos Telegram (`/rcf`, `/ciur`, `/rciu`, `/doppler`, `/crescimentofetal`).
     - 25 testes unitários dedicados em `tests/test_obstetricia_rcf_doppler.cjs` + 2 testes de integração do servidor em `tests/test_server_render.cjs`. 100% de sucesso.
 
-38. [ ] **Hepatologia & Emergência Obstétrica - Colestase Intra-hepática da Gestação (CIG) e Esteatose Hepática Aguda**:
+38. [x] **Hepatologia & Emergência Obstétrica - Colestase Intra-hepática da Gestação (CIG) e Esteatose Hepática Aguda**:
     - Dosagem de ácidos biliares totais séricos como biomarcador patognomônico de estratificação de gravidade (leve 10-39 mcmol/L, moderada 40-99 mcmol/L, grave >= 100 mcmol/L com risco de óbito fetal súbito).
     - Posologia ponderada de Ácido Ursodesoxicólico (UDCA 10 a 15 mg/kg/dia) como fármaco de 1ª linha.
     - Programação do parto: indicação de interrupção entre 36 e 37 semanas na forma grave (ou 38 semanas na leve) evitando óbito fetal sem advertência cardiotocográfica.
@@ -1102,3 +1102,17 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Manejo de DOACs (Rivaroxabana, Apixabana, Dabigatrana): tempo de suspensão guiado pela clearance de creatinina e risco hemorrágico, sem necessidade de ponte; Idarucizumabe (Praxbind) para reversão de urgência da Dabigatrana e Andexanet Alfa para anti-Xa.
     - Timing de reinício pós-operatório com bloqueio de segurança: anti-Xa ou Warfarina não antes de 24-48h em procedimentos de alto risco hemorrágico e 12-24h em baixo risco.
 
+
+
+126. [ ] **Nutrição & Terapia Intensiva - Rastreio de Sarcopenia e Síndrome de Realimentação em Pacientes Críticos (ASPEN/ESPEN 2026)**:
+    - Motor de rastreio de risco alto para síndrome de realimentação (IMC < 16, perda de peso > 15%, jejum > 10 dias).
+    - Protocolo de progressão lenta da dieta (início com 10-15 kcal/kg/dia) com suplementação empírica preemptiva obrigatória de Tiamina 200-300 mg IV antes da nutrição, associado a reposição agressiva de Fósforo e Magnésio.
+
+127. [ ] **Infectologia - Prevenção e Tratamento da Infecção do Trato Urinário (ITU) Complicada e ITU de Repetição**:
+    - Algoritmo de tratamento escalonado beira-leito, diferenciando cistite aguda simples de pielonefrite não complicada e complicada (obstrução, cateter, sepse).
+    - Recomendações de descalonamento baseadas no perfil de sensibilidade (Fosfomicina e Nitrofurantoína como 1ª linha na cistite para poupar quinolonas/cefalosporinas).
+    - Protocolo de rastreio e tratamento de bacteriúria assintomática exclusivamente nas indicações formais (gestantes, antes de procedimento urológico invasivo) alertando o não-tratamento rotineiro em idosos institucionalizados e pacientes sondados.
+
+128. [ ] **Auditoria de Kaizen - Motor de Detecção de Interação Fármaco-Nutriente e Administração por SNG/SNE**:
+    - Motor de verificação contínua que cruza a prescrição médica com a via enteral.
+    - Bloqueios de segurança beira-leito para fármacos que não podem ser triturados (cápsulas gelatinosas, liberação entérica/estendida) ou que quelam o nutriente (ex: Levotiroxina, Fenitoína, Ciprofloxacino), gerando alertas de pausa da dieta ou troca de apresentação farmacêutica.

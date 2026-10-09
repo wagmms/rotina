@@ -1190,6 +1190,15 @@ function cockpitHepatologiaHda(initData, params) {
   return HepatologiaHdaService.avaliarHepatopatia(params.parametros || params);
 }
 
+function cockpitHepatologiaColestaseGestacional(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof HepatologiaColestaseGestacionalService === 'undefined') {
+    throw new Error('HepatologiaColestaseGestacionalService não carregado.');
+  }
+  return HepatologiaColestaseGestacionalService.avaliar(params.parametros || params);
+}
+
 function cockpitAnalgesiaPca(initData, params) {
   cockpitAutorizar_(initData);
   params = params || {};

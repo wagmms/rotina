@@ -176,7 +176,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol"];
+  var clinicos = ["/cig", "/colestase", "/ehag", "/aflp", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -188,7 +188,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma"};
+      var mapaModos={"/cig":"cig","/colestase":"cig","/ehag":"cig","/aflp":"cig","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -1458,6 +1458,38 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, analiseAnemia.textoFormatado);
     } catch (eAnemia) {
       return enviarMensagemParaChat(chatId, "⚠️ Erro ao analisar anemia: " + eAnemia.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // HEPATOLOGIA & EMERGÊNCIA OBSTÉTRICA: CIG E EHAG / AFLP
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/cig" || comando === "/colestase" || comando === "/ehag" || comando === "/aflp") {
+    var dadosHepato = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof HepatologiaColestaseGestacionalService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo HepatologiaColestaseGestacionalService indisponível temporariamente.");
+    }
+
+    if (!dadosHepato) {
+      return enviarMensagemParaChat(chatId, "🟡 *HEPATOLOGIA & EMERGÊNCIA OBSTÉTRICA*\n\n" +
+        "Envie os parâmetros clínicos para avaliação de CIG ou EHAG:\n" +
+        "• *CIG:* `/cig ABT 45 IG 36+2 peso 70kg`\n" +
+        "• *EHAG (Swansea):* `/ehag vomitos, dor HCD, hipoglicemia, bilirrubina elevada, transaminases elevadas, amonia aumentada`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/cig acidos biliares 102 ig 35s antecedente gemelar` *(CIG Grave com indicação de parto)*\n" +
+        "• `/ehag dor epigastrica, vomitos, coagulopatia, transaminases elevadas, hipoglicemia` *(Investigação de AFLP)*");
+    }
+
+    try {
+      var paramsHepato = HepatologiaColestaseGestacionalService.extrairParametrosTexto(texto);
+      if (comando === "/ehag" || comando === "/aflp" || texto.toLowerCase().includes("ehag") || texto.toLowerCase().includes("swansea")) {
+        paramsHepato.modo = "EHAG";
+        if(!paramsHepato.swansea) paramsHepato.swansea = {};
+      }
+      var analiseHepato = HepatologiaColestaseGestacionalService.avaliar(paramsHepato);
+      return enviarMensagemParaChat(chatId, HepatologiaColestaseGestacionalService.formatarTextoTelegram(analiseHepato));
+    } catch (eHepato) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro na avaliação de Hepatologia Obstétrica: " + eHepato.message);
     }
   }
 
