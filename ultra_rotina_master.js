@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 16:54:42
- * Checksum SHA256: b907db6b4e950551
+ * Gerado automaticamente via build_master.py em: 2026-10-09 17:12:13
+ * Checksum SHA256: 69de0bc165de0cd4
  * ==============================================================================
  */
 
@@ -892,9 +892,16 @@ var ValidadorFisiologico = (function() {
     ureia: { min: 5, max: 500, unidade: "mg/dL", nome: "Ureia sérica" },
     potassio: { min: 1.0, max: 10.0, unidade: "mEq/L", nome: "Potássio sérico (K⁺)" },
     sodio: { min: 90, max: 180, unidade: "mEq/L", nome: "Sódio sérico (Na⁺)" },
+    na: { min: 90, max: 180, unidade: "mEq/L", nome: "Sódio sérico (Na⁺)" },
+    cl: { min: 60, max: 160, unidade: "mEq/L", nome: "Cloro sérico (Cl⁻)" },
+    cloro: { min: 60, max: 160, unidade: "mEq/L", nome: "Cloro sérico (Cl⁻)" },
+    alb: { min: 0.5, max: 7.0, unidade: "g/dL", nome: "Albumina sérica" },
+    albumina: { min: 0.5, max: 7.0, unidade: "g/dL", nome: "Albumina sérica" },
     ph: { min: 6.70, max: 7.80, unidade: "", nome: "pH sanguíneo" },
     pco2: { min: 10, max: 150, unidade: "mmHg", nome: "pCO₂ arterial" },
     po2: { min: 15, max: 600, unidade: "mmHg", nome: "pO₂ arterial" },
+    pao2: { min: 15, max: 600, unidade: "mmHg", nome: "PaO₂ arterial" },
+    fio2: { min: 0.21, max: 100, unidade: "%", nome: "FiO₂ (0.21 a 1.0 ou %)" },
     hco3: { min: 2, max: 60, unidade: "mEq/L", nome: "Bicarbonato (HCO₃⁻)" },
     lactato: { min: 0.2, max: 30.0, unidade: "mmol/L", nome: "Lactato arterial" }
   };
@@ -975,6 +982,22 @@ var ValidadorFisiologico = (function() {
         if (entrada.hco3 !== undefined && entrada.hco3 !== null && entrada.hco3 !== "") {
           var vHco3 = this.validarParametro("hco3", entrada.hco3);
           if (!vHco3.valido) erros.push(vHco3.alerta);
+        }
+        if (entrada.na !== undefined && entrada.na !== null && entrada.na !== "") {
+          var vNa = this.validarParametro("sodio", entrada.na);
+          if (!vNa.valido) erros.push(vNa.alerta);
+        }
+        if (entrada.cl !== undefined && entrada.cl !== null && entrada.cl !== "") {
+          var vCl = this.validarParametro("cl", entrada.cl);
+          if (!vCl.valido) erros.push(vCl.alerta);
+        }
+        if (entrada.alb !== undefined && entrada.alb !== null && entrada.alb !== "") {
+          var vAlb = this.validarParametro("alb", entrada.alb);
+          if (!vAlb.valido) erros.push(vAlb.alerta);
+        }
+        if (entrada.pao2 !== undefined && entrada.pao2 !== null && entrada.pao2 !== "") {
+          var vPao2 = this.validarParametro("pao2", entrada.pao2);
+          if (!vPao2.valido) erros.push(vPao2.alerta);
         }
       }
 
@@ -52188,7 +52211,12 @@ function cockpitCalcular(initData, tipo, entrada) {
       var feminino = entrada.sexo === 'f' ? true : entrada.sexo === 'm' ? false : null;
       return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino);
     case 'gaso':
-      return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3);
+      var naGaso = entrada.na !== undefined && entrada.na !== '' ? entrada.na : null;
+      var clGaso = entrada.cl !== undefined && entrada.cl !== '' ? entrada.cl : null;
+      var albGaso = entrada.alb !== undefined && entrada.alb !== '' ? entrada.alb : null;
+      var pao2Gaso = entrada.pao2 !== undefined && entrada.pao2 !== '' ? entrada.pao2 : (entrada.po2 !== undefined && entrada.po2 !== '' ? entrada.po2 : null);
+      var fio2Gaso = entrada.fio2 !== undefined && entrada.fio2 !== '' ? entrada.fio2 : null;
+      return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3, naGaso, clGaso, albGaso, pao2Gaso, fio2Gaso);
     case 'ajuste_atb':
     case 'atb':
       var drogaAtb = entrada.droga || entrada.farmaco || entrada.antimicrobiano || 'meropenem';

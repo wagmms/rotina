@@ -512,6 +512,51 @@ function criarAmbienteSimulacao() {
 
   console.log('  ✓ Motor offline de Distúrbios Hidroeletrolíticos (DHE - Sódio, Potássio e Água Livre) validado com 100% de sucesso.');
 
+  console.log('\n[12] Testando motor offline determinístico de Gasometria Arterial 5 Passos (Winter, Ânion Gap & Berlim)...');
+  // 12.1 Gasometria Normal
+  const resGasoNormal = fnCalcOffline('gaso', { ph: 7.40, pco2: 40, hco3: 24, na: 140, cl: 104, alb: 4.0, pao2: 95, fio2: 21 });
+  assert(resGasoNormal.includes('GASOMETRIA ARTERIAL'), 'Título presente');
+  assert(resGasoNormal.includes('Gasometria Normal') || resGasoNormal.includes('Sem distúrbio'), 'Identificação de gaso normal');
+  assert(resGasoNormal.includes('Ânion Gap Sérico: 12 mEq/L'), 'AG sérico 140 - (104 + 24) = 12');
+  assert(resGasoNormal.includes('Oxigenação Normal'), 'PaO2/FiO2 normal (> 300)');
+
+  // 12.2 Cetoacidose / Acidose Metabólica AG Elevado (CAD)
+  const resGasoCad = fnCalcOffline('gaso', { ph: 7.15, pco2: 20, hco3: 7, na: 135, cl: 98, alb: 4.0 });
+  assert(resGasoCad.includes('Acidose Metabólica'), 'Acidose metabólica primária identificada');
+  assert(resGasoCad.includes('Winter'), 'Fórmula de Winter presente');
+  assert(resGasoCad.includes('Compensação respiratória adequada'), 'Winter 1.5*7+8 = 18.5 +-2 (16.5 a 20.5), medido 20');
+  assert(resGasoCad.includes('ÂNION GAP ELEVADO'), 'Ânion gap elevado (> 12 mEq/L)');
+  assert(resGasoCad.includes('30 mEq/L'), 'AG sérico 135 - (98 + 7) = 30');
+  assert(resGasoCad.includes('Razão delta'), 'Razão delta calculada');
+  assert(resGasoCad.includes('Acidose de Ânion Gap elevado pura'), 'Razão delta (30-12)/(24-7) = 18/17 = 1.06 (0.8-2.0: pura)');
+
+  // 12.3 Distúrbio Misto: Acidose Metabólica + Acidose Respiratória (Winter falho)
+  const resGasoMista = fnCalcOffline('gaso', { ph: 7.10, pco2: 32, hco3: 10 });
+  assert(resGasoMista.includes('ACIDOSE RESPIRATÓRIA ASSOCIADA'), 'Detecção de acidose respiratória associada por Winter');
+
+  // 12.4 DPOC Retentor / Alcalose Metabólica + Acidose Respiratória com pH normal
+  const resGasoDpoc = fnCalcOffline('gaso', { ph: 7.36, pco2: 58, hco3: 33 });
+  assert(resGasoDpoc.includes('pH: 7.36') && resGasoDpoc.includes('pCO2: 58'), 'Valores de DPOC refletidos');
+  assert(resGasoDpoc.includes('Distúrbio Misto com pH normal') || resGasoDpoc.includes('Acidose Respiratória'), 'Classificação correta com pH normal');
+
+  // 12.5 Acidose Respiratória Aguda/Crônica com Acidemia
+  const resGasoResp = fnCalcOffline('gaso', { ph: 7.28, pco2: 60, hco3: 28 });
+  assert(resGasoResp.includes('Acidose Respiratória Primária'), 'Acidose respiratória primária identificada');
+  assert(resGasoResp.includes('Compatível com acidose respiratória pura'), 'Compensação renal adequada identificada');
+
+  // 12.5 SDRA e Oxigenação de Berlim (PaO2/FiO2)
+  const resGasoSdra = fnCalcOffline('gaso', { ph: 7.24, pco2: 28, hco3: 12, pao2: 65, fio2: 50 });
+  assert(resGasoSdra.includes('PaO2/FiO2: 130 mmHg'), 'Relação PaO2/FiO2 65 / 0.5 = 130 mmHg');
+  assert(resGasoSdra.includes('SDRA Moderada (Berlim: 101–200)'), 'Classificação de Berlim correta');
+  assert(resGasoSdra.includes('Critérios de Berlim'), 'Alerta clínico de Berlim presente');
+
+  // 12.6 Acidemia Extrema (pH < 6.80) e Bicarbonato Esgotado (HCO3 <= 5)
+  const resGasoExtrema = fnCalcOffline('gaso', { ph: 6.75, pco2: 18, hco3: 4 });
+  assert(resGasoExtrema.includes('ACIDEMIA EXTREMA (pH < 6.80)'), 'Alerta crítico de acidemia extrema emitido');
+  assert(resGasoExtrema.includes('BICARBONATO EXTREMAMENTE CONSUMIDO'), 'Alerta de reserva tampão consumida emitido');
+
+  console.log('  ✓ Motor offline de Gasometria Arterial 5 Passos (Winter, Ânion Gap & Berlim) validado com 100% de sucesso.');
+
   console.log('\n🚀 TODOS OS TESTES DE CACHE CRIPTOGRAFADO, INDEXEDDB E TELEMETRIA PASSARAM COM SUCESSO!\n');
 })().catch(err => {
   console.error('❌ FALHA NOS TESTES DO COCKPIT OFFLINE:', err);

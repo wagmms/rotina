@@ -218,7 +218,12 @@ function cockpitCalcular(initData, tipo, entrada) {
       var feminino = entrada.sexo === 'f' ? true : entrada.sexo === 'm' ? false : null;
       return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino);
     case 'gaso':
-      return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3);
+      var naGaso = entrada.na !== undefined && entrada.na !== '' ? entrada.na : null;
+      var clGaso = entrada.cl !== undefined && entrada.cl !== '' ? entrada.cl : null;
+      var albGaso = entrada.alb !== undefined && entrada.alb !== '' ? entrada.alb : null;
+      var pao2Gaso = entrada.pao2 !== undefined && entrada.pao2 !== '' ? entrada.pao2 : (entrada.po2 !== undefined && entrada.po2 !== '' ? entrada.po2 : null);
+      var fio2Gaso = entrada.fio2 !== undefined && entrada.fio2 !== '' ? entrada.fio2 : null;
+      return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3, naGaso, clGaso, albGaso, pao2Gaso, fio2Gaso);
     case 'ajuste_atb':
     case 'atb':
       var drogaAtb = entrada.droga || entrada.farmaco || entrada.antimicrobiano || 'meropenem';

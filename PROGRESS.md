@@ -547,6 +547,21 @@
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Integração UI/UX de Gasometria Arterial em 5 Passos (Winter, Ânion Gap Sérico e Corrigido, Razão Delta e Berlim) e Fallback Offline no Cockpit PWA**:
+   - Modernizado painel dedicado `calc-gaso` ("Gasometria Arterial · 5 Passos") na aba de calculadoras (`tab-calculadoras`) do Cockpit PWA com atalhos em 1 toque para cenários comuns do plantão: 🟢 Normal, 🔴 CAD / Cetoacidose, 🟡 DPOC Retentor, 🔴 Choque Séptico / SDRA e 🔵 Vômitos / Alcalose.
+   - Adicionada seção expansível/opcional "🧪 Ânion Gap, Delta-Delta & Oxigenação" com inputs dedicados para Eletrólitos (Na+, Cl-, Albumina) e Oxigenação (PaO2, FiO2).
+   - Implementado motor determinístico de contingência offline (`calcularOfflineLocal` para `gaso`) com execução instantânea (0ms) mesmo sem sinal hospitalar, cobrindo com rigor:
+     * Passo 1: pH (Acidemia, Alcalemia, Normal) e Distúrbio Primário (Acidose/Alcalose Metabólica e Respiratória, Mistos).
+     * Passo 2: Compensação esperada precisa via Fórmula de Winter (`PaCO2 = 1.5 * HCO3 + 8 ± 2`), Alcalose Metabólica (`PaCO2 = 40 + 0.7 * (HCO3 - 24) ± 2`), e Acidose/Alcalose Respiratória Aguda vs Crônica.
+     * Passo 3: Ânion Gap sérico e corrigido por albumina (`AG + 2.5 * [4.0 - Alb]`).
+     * Passo 4: Razão Delta (Delta-Delta) para diagnóstico de acidose hiperclorêmica oculta (< 0.4), mista (0.4-0.8), AG elevado pura (0.8-2.0) e alcalose metabólica oculta (> 2.0).
+     * Passo 5: Oxigenação (Relação PaO2/FiO2 com Classificação de Berlim 2012 para SDRA).
+     * Alertas sentinela de consistência biológica por Henderson-Hasselbalch, acidemia extrema (pH < 6.80) e esgotamento de reserva tampão (HCO3 ≤ 5 mEq/L).
+   - Adicionado chip de ação rápida "Gasometria & Winter" na aba SOAP (`tab-soap`) com redirecionamento em 1 toque e auto-seleção visual do botão correspondente.
+   - Botão de cópia para o prontuário (`btn-copiar-gaso`) e botão de limpeza rápida (`limparGaso`).
+   - Atualizado endpoint RPC `cockpitCalcular` em `src/13_cockpit_integracao.js` e sanitização fisiológica em `src/01_utils.js` para repassar e validar Na, Cl, Albumina e PaO2/FiO2.
+   - Sincronização automatizada para GitHub Pages via `gh_cockpit_deploy/index.html`.
+   - Cobertura expandida com novos testes em `tests/test_cockpit_offline_indexeddb.cjs` e `tests/test_server_render.cjs` com 100% de sucesso no pipeline contínuo (`npm test`).
 - [x] (2026-10-09) **Integração UI/UX de Distúrbios Hidroeletrolíticos (DHE - Sódio, Potássio e Água Livre), Salvaguardas de Mielinólise Pontina e Fallback Offline no Cockpit PWA**:
    - Adicionado painel dedicado `calc-dhe` ("Distúrbios Hidroeletrolíticos") na aba de calculadoras (`tab-calculadoras`) com seletores rápidos e formulários dirigidos para Hiponatremia (Adrogué-Madias), Hipercalemia (Potássio e Cardioproteção) e Hipernatremia (Déficit de Água Livre).
    - Reorganizada a barra de subcalculadoras para grade balanceada (`grid-cols-4 sm:grid-cols-8`) otimizada para toque em telas móveis sem corte de texto.

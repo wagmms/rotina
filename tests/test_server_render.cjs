@@ -169,6 +169,25 @@ async function run() {
   assert(jsonDheK.resultado.texto.includes('Gluconato de Cálcio 10%'));
   console.log(`✓ Cockpit Cálculo DHE (Hiponatremia Adrogué-Madias & Hipercalemia) OK`);
 
+  // 4.6 Cockpit RPC - Cálculo Gasometria Arterial 5 Passos (< 50ms)
+  const resGasoCalc = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitCalcular',
+      session: token,
+      args: ['gaso', { ph: 7.15, pco2: 20, hco3: 7, na: 135, cl: 98, alb: 4.0, pao2: 85, fio2: 21 }]
+    }
+  });
+  assert.equal(resGasoCalc.statusCode, 200);
+  const jsonGasoCalc = resGasoCalc.json();
+  assert.equal(jsonGasoCalc.ok, true);
+  assert.equal(jsonGasoCalc.resultado.ok, true);
+  assert(jsonGasoCalc.resultado.texto.includes('Acidose Metabólica'));
+  assert(jsonGasoCalc.resultado.texto.includes('Winter'));
+  assert(jsonGasoCalc.resultado.texto.includes('AG: 30') || jsonGasoCalc.resultado.texto.includes('30.0'));
+  console.log(`✓ Cockpit Cálculo Gasometria Arterial 5 Passos OK`);
+
   // 5. Cockpit RPC - Consulta REMUME (< 20ms)
   const resRemume = await app.inject({
     method: 'POST',
