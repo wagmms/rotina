@@ -379,10 +379,14 @@
       * Duração da profilaxia secundária: até 21 anos (sem cardite), até 25 anos (cardite curada sem lesão residual) ou até 40 anos/vitalícia (valvulopatia residual crônica persistente ou prótese valvar).
     - Integração Fastify RPC (`cockpitReumatologiaMonoartrite`, `cockpitMonoartrite`, `cockpitReumatologiaFebreReumatica`, `cockpitFebreReumatica`, `cockpitJones`), comandos Telegram (`/monoartrite`, `/artriteseptica`, `/artriteséptica`, `/gota`, `/artrocentese`, `/febrereumatica`, `/fr`, `/jones`, `/aslo`) e suíte de testes dedicados `tests/test_reumatologia_monoartrite_febre_reumatica.cjs` 100% aprovada.
 
-52. [ ] **Cockpit PWA - Cache Local Criptografado com IndexedDB e Fila Offline Resiliente**:
-    - Persistência no cliente de protocolos, cálculos e consultas no IndexedDB para autonomia offline total do PWA em áreas hospitalares sem sinal.
-    - Fila de sincronização automática (Offline Action Queue) que descarrega chamadas pendentes assim que a conexão for restabelecida.
-    - Badge de telemetria visual em tempo real no cabeçalho indicando modo de conexão (Nuvem / Nó Local / Offline Seguro).
+52. [x] **Cockpit PWA - Cache Local Criptografado com IndexedDB e Fila Offline Resiliente**:
+    - Subsistema cliente `CockpitCrypto` com criptografia em repouso AES-256 GCM (via Web Crypto API SubtleCrypto nativa) e fallback simétrico seguro com salt por dispositivo, garantindo proteção total de dados de saúde no dispositivo do médico.
+    - Expansão do banco IndexedDB (`CockpitOfflineDB`) para v2 no Dexie com stores estruturados e criptografados: `snapshots` (dados de leitos e atendimentos), `protocolos` (catálogo REMUME e Sala Vermelha), `calculos` (cache determinístico de cálculos com 0ms de latência), `consultas` (perfil corporal e histórico) e `syncQueue` (mutações gravadas).
+    - Fila Offline Resiliente (Offline Action Queue) criptografada com suporte a Optimistic UI para alteração de status de leito (`cockpitStatusLeito`), pesagem (`cockpitRegistrarPeso`) e progresso de aulas (`cockpitAlternarAula`), permitindo uso clínico ininterrupto em subsolos hospitalares e áreas blindadas sem sinal.
+    - Sincronização automática em segundo plano (auto-sync) ao detectar retorno de sinal de rede (`online`) e por timer periódico de 25 segundos, além de acionamento manual no modal.
+    - Badge de telemetria visual em tempo real no cabeçalho mobile indicando com clareza o modo de conexão ativo (`Nuvem`, `Nó Local`, `Offline Seguro`), com contador numérico de pendências e modal expandido com diagnóstico criptográfico do armazenamento.
+    - Suíte de testes automatizados `tests/test_cockpit_offline_indexeddb.cjs` e `tests/test_cockpit_offline_indexeddb.py` incorporados no pipeline de testes (`npm test` e pytest com 100% de sucesso).
+    - Sincronização de deploy do bundle Cockpit no GitHub Pages (`gh_cockpit_deploy/index.html`).
 
 53. [ ] **Dermatologia e Infectologia - Diagnóstico e Manejo de Lesões Elementares e ISTs Cutâneas (Herpes, Sífilis Secundária, Mpox)**:
     - Algoritmo de diferenciação morfológica (mácula, pápula, vesícula, bolha, crosta).
