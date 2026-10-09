@@ -1926,3 +1926,53 @@ function cockpitCardiologiaFaAnticoagulacao(initData, params) {
 function cockpitFibrilacaoAtrial(initData, params) {
   return cockpitCardiologiaFaAnticoagulacao(initData, params);
 }
+
+function cockpitUrologiaColicaNefretica(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de cólica nefrética não fornecidos.');
+  if (typeof UrologiaColicaNefreticaService === 'undefined') {
+    throw new Error('Serviço UrologiaColicaNefreticaService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? UrologiaColicaNefreticaService.extrairParametrosTexto(params)
+    : (params.texto ? UrologiaColicaNefreticaService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = UrologiaColicaNefreticaService.avaliar(entrada);
+  var texto = UrologiaColicaNefreticaService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitColicaNefretica(initData, params) {
+  return cockpitUrologiaColicaNefretica(initData, params);
+}
+
+function cockpitUrologiaColicaNefretica(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Cólica Nefrética não fornecidos.');
+  if (typeof UrologiaColicaNefreticaService === 'undefined') {
+    throw new Error('Serviço UrologiaColicaNefreticaService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? UrologiaColicaNefreticaService.extrairParametrosTexto(params)
+    : (params.texto ? UrologiaColicaNefreticaService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = UrologiaColicaNefreticaService.avaliar(entrada);
+  var texto = UrologiaColicaNefreticaService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitColicaNefretica(initData, params) {
+  return cockpitUrologiaColicaNefretica(initData, params);
+}

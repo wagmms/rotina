@@ -332,6 +332,39 @@ async function run() {
   assert.equal(faBody.resultado.resultado.cha2ds2vasc.escore, 6);
   console.log('✓ Cockpit Fibrilação Atrial & Anticoagulação (CHA2DS2-VASc/HAS-BLED) OK');
 
+  // 6.11 Cockpit RPC - Urologia & Cólica Nefrética
+  const resColica = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitColicaNefretica',
+      session: token,
+      args: ['paciente monoreno calculo 15mm dor refrataria']
+    }
+  });
+  if(resColica.statusCode !== 200) console.log(resColica.payload);
+  assert.equal(resColica.statusCode, 200, "Erro ao testar cockpitColicaNefretica");
+  const colicaBody = JSON.parse(resColica.payload);
+  assert.equal(colicaBody.resultado.sucesso, true);
+  assert.equal(colicaBody.resultado.resultado.gravidade.urgencia, true);
+  console.log('✓ Cockpit Cólica Nefrética e Litíase (MET / Analgesia) OK');
+
+  // 6.11 Cockpit RPC - Cólica Nefrética via texto livre (alias cockpitColicaNefretica)
+  const resUro = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitColicaNefretica',
+      session: token,
+      args: ['paciente rim unico febre dor refrataria calculo 8mm distal']
+    }
+  });
+  if(resUro.statusCode !== 200) console.log(resUro.payload);
+  assert.equal(resUro.statusCode, 200, "Erro ao testar cockpitColicaNefretica");
+  const uroBody = JSON.parse(resUro.payload);
+  assert.equal(uroBody.resultado.sucesso, true);
+  assert.equal(uroBody.resultado.resultado.gravidade.urgencia, true);
+  console.log('✓ Cockpit Cólica Nefrética (Urologia) via texto livre OK');
   // 6.10 Cockpit RPC - CIG via texto livre (alias cockpitColestaseGestacional)
   const resCigTexto = await app.inject({
     method: 'POST',

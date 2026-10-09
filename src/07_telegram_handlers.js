@@ -1743,6 +1743,65 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // UROLOGIA & NEFROLOGIA: CÓLICA NEFRÉTICA E LITÍASE URINÁRIA
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/colica" || comando === "/litiase" || comando === "/pedranorim" || comando === "/calculorenal") {
+    var dadosColica = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof UrologiaColicaNefreticaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo UrologiaColicaNefreticaService indisponível temporariamente.");
+    }
+
+    if (!dadosColica) {
+      return enviarMensagemParaChat(chatId, "🪨 *UROLOGIA & NEFROLOGIA — CÓLICA NEFRÉTICA*\n\n" +
+        "Envie os dados clínicos para analgesia escalonada, Terapia Expulsiva (MET) e critérios de descompressão cirúrgica:\n" +
+        "• *Cálculo:* `7mm`, `distal`, `proximal`\n" +
+        "• *Gravidade:* `rim único`, `anúria`, `sepse`, `dor refratária`\n" +
+        "• *Paciente:* `clcr 25`, `gestante`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/colica 6mm distal` *(Terapia Expulsiva e Analgesia)*\n" +
+        "• `/colica 12mm anuria rim unico clcr 15` *(Emergência cirúrgica e bloqueio de AINEs)*\n" +
+        "• `/colica gestante dor refrataria` *(Alerta gestante e gravidade)*");
+    }
+
+    try {
+      var paramsColica = UrologiaColicaNefreticaService.extrairParametrosTexto(dadosColica);
+      var analiseColica = UrologiaColicaNefreticaService.avaliar(paramsColica);
+      return enviarMensagemParaChat(chatId, UrologiaColicaNefreticaService.formatarTextoTelegram(analiseColica));
+    } catch (eColica) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Cólica Nefrética: " + eColica.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // UROLOGIA: CÓLICA NEFRÉTICA E LITÍASE URINÁRIA
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/colica" || comando === "/colicanefretica" || comando === "/litiase") {
+    var dadosUro = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof UrologiaColicaNefreticaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo UrologiaColicaNefreticaService indisponível temporariamente.");
+    }
+
+    if (!dadosUro) {
+      return enviarMensagemParaChat(chatId, "🪨 *UROLOGIA & NEFROLOGIA — CÓLICA NEFRÉTICA*\n\n" +
+        "Envie os dados clínicos do paciente para avaliação de analgesia, terapia expulsiva e descompressão de urgência:\n" +
+        "• *Função Renal:* `ClCr 25`, `diálise`, `rim único`\n" +
+        "• *Gravidade:* `febre`, `sepse`, `anúria`, `dor refratária`\n" +
+        "• *Cálculo:* `7 mm`, `12 mm`, `ureter distal`, `pelve`\n" +
+        "• *Gestação:* `gestante`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/colica cálculo 6 mm distal sem febre`\n" +
+        "• `/colica rim único febre cálculo 12mm` *(Descompressão de Urgência)*\n" +
+        "• `/colica gestante com dor refratária`");
+    }
+
+    try {
+      var paramsUro = UrologiaColicaNefreticaService.extrairParametrosTexto(dadosUro);
+      var analiseUro = UrologiaColicaNefreticaService.avaliar(paramsUro);
+      return enviarMensagemParaChat(chatId, UrologiaColicaNefreticaService.formatarTextoTelegram(analiseUro));
+    } catch (eUro) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Cólica Nefrética: " + eUro.message);
+    }
+  }
   if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
     var dadosKaizen = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof AuditoriaKaizenClinicoService === "undefined") {

@@ -859,6 +859,10 @@ module.exports = {
         _rpcMap.cockpitToxoplasmoseGestacional = ctx.cockpitToxoplasmoseGestacional || ctx.cockpitObstetriciaToxoplasmose;
         _rpcMap.cockpitCardiologiaFaAnticoagulacao = ctx.cockpitCardiologiaFaAnticoagulacao;
         _rpcMap.cockpitFibrilacaoAtrial = ctx.cockpitFibrilacaoAtrial || ctx.cockpitCardiologiaFaAnticoagulacao;
+        _rpcMap.cockpitUrologiaColicaNefretica = ctx.cockpitUrologiaColicaNefretica;
+        _rpcMap.cockpitColicaNefretica = ctx.cockpitColicaNefretica || ctx.cockpitUrologiaColicaNefretica;
+                _rpcMap.cockpitUrologiaColicaNefretica = ctx.cockpitUrologiaColicaNefretica;
+        _rpcMap.cockpitColicaNefretica = ctx.cockpitColicaNefretica || ctx.cockpitUrologiaColicaNefretica;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

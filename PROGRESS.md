@@ -205,7 +205,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Avaliação balanceada de risco hemorrágico com escore HAS-BLED identificando fatores de sangramento modificáveis.
     - Algoritmo de decisão rápida de estabilidade hemodinâmica: cardioversão elétrica sincronizada imediata no choque/instabilidade vs controle de frequência (Metoprolol IV, Diltiazem, Digoxina) ou cardioversão química com Amiodarona observando a janela de 48h ou ecocardiograma transesofágico.
 
-41. [ ] **Urologia e Nefrologia - Manejo de Cólica Nefrética Aguda e Litíase Urinária (Diretrizes SBU / EAU)**:
+41. [x] **Urologia e Nefrologia - Manejo de Cólica Nefrética Aguda e Litíase Urinária (Diretrizes SBU / EAU)**:
     - Algoritmo escalonado de analgesia de emergência: AINEs de 1ª linha (Cetoprofeno / Diclofenaco) vs opioides, com bloqueios renais se ClCr < 30 mL/min.
     - Terapia Expulsiva Médica (MET): indicação de Tansulosina 0.4mg para cálculos de ureter distal de 5 a 10 mm.
     - Checklist de gravidade com indicação de descompressão cirúrgica de urgência (duplo J ou nefrostomia percutânea) em rim único, sepse urinária obstrutiva ou anúria.
@@ -1168,3 +1168,15 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Rastreio de critérios maiores e menores de Framingham e estadiamento clínico completo (NYHA e AHA).
     - Prescrição estruturada beira-leito ou ambulatorial do "Quarteto Fantástico" com titulação progressiva obrigatória (iECA/ARNI/Sacubitril-Valsartana + Betabloqueador Cardiosseletivo + Antagonista Mineralocorticoide / Espironolactona + inibidor SGLT2 / Dapagliflozina ou Empagliflozina).
     - Bloqueio de segurança e contraindicações com base no ClCr e dosagem de potássio basal para proteção miocárdica/renal cruzada.
+
+138. [ ] **Nefrologia - Distúrbios do Potássio (Hipocalemia e Reposição Segura)**:
+    - Motor beira-leito para estimativa do déficit de Potássio e regras rígidas de infusão IV.
+    - Bloqueios de segurança: concentração máxima em veia periférica (40 mEq/L) vs acesso central, e velocidade máxima (10-20 mEq/h).
+
+139. [ ] **Ginecologia - Manejo de Sangramento Uterino Anormal (PALM-COEIN)**:
+    - Algoritmo de emergência para SUA agudo severo (Ácido Tranexâmico IV, Estrogênio conjugado IV ou ACO altas doses).
+    - Mapeamento das causas estruturais e não-estruturais (FIGO) no ambiente ambulatorial.
+
+140. [ ] **Reumatologia - Artrite Séptica e Manejo Inicial da Gota Aguda (ACR/EULAR)**:
+    - Interpretação rápida do líquido sinovial (contagem global de células > 50.000, PMN > 90%, glicose baixa).
+    - Protocolo da Gota aguda: Colchicina + AINE ou Corticoide intra-articular/sistêmico, contraindicação formal a início ou ajuste de Alopurinol durante a crise.
