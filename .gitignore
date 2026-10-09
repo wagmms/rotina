@@ -42,3 +42,5 @@ gas_deploy/
 # Logs de auditoria e validação
 *.log
 auditorias/**/*.log
+logs/
+

@@ -16,7 +16,7 @@ const cors = require('@fastify/cors');
 const compress = require('@fastify/compress');
 const runtime = require('./runtime');
 const { createD1Inbox } = require('./d1-inbox');
-const { roundMs, updateKind, measureLegacyHttp, clinicalStages } = require('./telemetry');
+const { roundMs, updateKind, measureLegacyHttp, clinicalStages, registrarInteracaoAoVivo, obterUltimasInteracoes } = require('./telemetry');
 const d1Inbox = createD1Inbox();
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -145,6 +145,15 @@ async function buildServer() {
         reply.header('Cache-Control', 'no-store');
       }
 
+      // Telemetria ao vivo da interação no Cockpit
+      registrarInteracaoAoVivo({
+        origem: 'cockpit_pwa',
+        tipo: 'rpc',
+        resumo: `RPC: ${metodo}${args && args[0] && args[0].acao ? ' (' + args[0].acao + ')' : ''}`,
+        duracao_ms: Number(elapsed),
+        status: 'sucesso'
+      });
+
       return {
         ok: true,
         resultado,
@@ -153,6 +162,16 @@ async function buildServer() {
     } catch (err) {
       const elapsed = (performance.now() - t0).toFixed(2);
       fastify.log.warn(`[Cockpit RPC Error] ${err.message} (${elapsed}ms)`);
+      
+      registrarInteracaoAoVivo({
+        origem: 'cockpit_pwa',
+        tipo: 'rpc',
+        resumo: `RPC: ${request.body?.metodo || 'desconhecido'}`,
+        duracao_ms: Number(elapsed),
+        status: 'erro',
+        detalhes: err.message
+      });
+
       reply.header('Cache-Control', 'no-store');
       reply.status(err.message.includes('autorizado') || err.message.includes('sessão') ? 401 : 400);
       return {
@@ -161,6 +180,18 @@ async function buildServer() {
         benchmark_ms: Number(elapsed)
       };
     }
+  });
+
+  // 5.1. TELEMETRIA AO VIVO: Consulta das últimas interações do Bot e Cockpit
+  fastify.get('/api/telemetria/ao-vivo', async (request, reply) => {
+    const limite = Math.min(100, Math.max(1, parseInt(request.query?.limite || '30', 10)));
+    const interacoes = obterUltimasInteracoes(limite);
+    reply.header('Cache-Control', 'no-store');
+    return {
+      ok: true,
+      total: interacoes.length,
+      interacoes: interacoes
+    };
   });
 
   // 6. WEBHOOK DO TELEGRAM (checkpoint durável antes da resposta + processamento em background)
@@ -234,6 +265,30 @@ async function buildServer() {
       }
     } finally {
       fastify.log.info({ updateId, kind, estado, ateInicioMs: roundMs(ateInicioMs), filaMs: roundMs(filaMs), processamentoMs: roundMs(performance.now() - inicioProcessamento), ...tempos, http, etapasClinicas: clinicalStages(job) }, '[Webhook] Medicao de entrega');
+      
+      // Telemetria ao vivo da interação no Telegram
+      let resumoInteracao = `Update #${updateId} (${kind})`;
+      try {
+        const up = JSON.parse(fakeGasEvent.postData.contents);
+        if (up.callback_query) {
+          resumoInteracao = `Botão Telegram: ${up.callback_query.data || ''}`;
+        } else if (up.message) {
+          if (up.message.text) resumoInteracao = `Texto Telegram: "${up.message.text.slice(0, 80)}"`;
+          else if (up.message.voice) resumoInteracao = `Voz Telegram (${up.message.voice.duration || 0}s)`;
+          else if (up.message.photo) resumoInteracao = 'Imagem Médica Telegram';
+          else if (up.message.document) resumoInteracao = `Documento (${up.message.document.file_name || 'anexo'})`;
+        }
+      } catch (_) {}
+
+      registrarInteracaoAoVivo({
+        origem: 'telegram_bot',
+        tipo: kind,
+        resumo: resumoInteracao,
+        duracao_ms: roundMs(performance.now() - t0),
+        status: estado === 'error' ? 'erro' : 'sucesso',
+        detalhes: { updateId, estado, etapasClinicas: clinicalStages(job) }
+      });
+
       webhookProcessing = false;
       // Processa próximo item da fila no próximo tick, liberando o event loop
       // para healthchecks e outras requisições entre processamentos

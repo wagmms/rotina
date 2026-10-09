@@ -78,4 +78,67 @@ function clinicalStages(job) {
   return stages;
 }
 
-module.exports = { roundMs, updateKind, measureLegacyHttp, clinicalStages };
+const fs = require('fs');
+const path = require('path');
+
+const LOGS_FILE = path.join(__dirname, '..', 'logs', 'interacao_ao_vivo.jsonl');
+const MAX_LOG_BYTES = 5 * 1024 * 1024; // 5 MB
+
+function registrarInteracaoAoVivo(evento) {
+  try {
+    const agora = new Date();
+    const registro = {
+      timestamp: agora.toISOString(),
+      hora: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      origem: evento.origem || 'desconhecido',
+      tipo: evento.tipo || 'geral',
+      resumo: String(evento.resumo || '').slice(0, 250),
+      duracao_ms: roundMs(evento.duracao_ms || 0),
+      status: evento.status || 'sucesso',
+      detalhes: evento.detalhes || null
+    };
+
+    const dir = path.dirname(LOGS_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Rotação leve se exceder tamanho máximo
+    try {
+      if (fs.existsSync(LOGS_FILE) && fs.statSync(LOGS_FILE).size > MAX_LOG_BYTES) {
+        const conteudo = fs.readFileSync(LOGS_FILE, 'utf-8');
+        const linhas = conteudo.trim().split('\n');
+        fs.writeFileSync(LOGS_FILE, linhas.slice(-500).join('\n') + '\n', 'utf-8');
+      }
+    } catch (_) {}
+
+    fs.appendFile(LOGS_FILE, JSON.stringify(registro) + '\n', (err) => {
+      if (err) console.error('[Telemetria] Falha ao registrar interação:', err.message);
+    });
+  } catch (_) {
+    // Falha em telemetria jamais afeta fluxo de atendimento
+  }
+}
+
+function obterUltimasInteracoes(limite = 30) {
+  try {
+    if (!fs.existsSync(LOGS_FILE)) return [];
+    const conteudo = fs.readFileSync(LOGS_FILE, 'utf-8');
+    const linhas = conteudo.trim().split('\n').filter(Boolean);
+    const selecionadas = linhas.slice(-limite);
+    return selecionadas.map(l => {
+      try { return JSON.parse(l); } catch (_) { return null; }
+    }).filter(Boolean);
+  } catch (_) {
+    return [];
+  }
+}
+
+module.exports = {
+  roundMs,
+  updateKind,
+  measureLegacyHttp,
+  clinicalStages,
+  registrarInteracaoAoVivo,
+  obterUltimasInteracoes
+};
