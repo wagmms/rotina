@@ -814,6 +814,7 @@ module.exports = {
         _rpcMap.cockpitClimaterioThm = ctx.cockpitClimaterioThm;
         _rpcMap.cockpitSopOvariosPolicisticos = ctx.cockpitSopOvariosPolicisticos;
         _rpcMap.cockpitDipAbscessoTuboOvariano = ctx.cockpitDipAbscessoTuboOvariano;
+        _rpcMap.cockpitPsiquiatriaUrgencia = ctx.cockpitPsiquiatriaUrgencia;
         _rpcMap.cockpitObterModelosExameFisico = ctx.cockpitObterModelosExameFisico;
         _rpcMap.cockpitSedacaoOpioides = ctx.cockpitSedacaoOpioides;
         _rpcMap.cockpitNefrologiaDhe = ctx.cockpitNefrologiaDhe;

@@ -966,6 +966,44 @@ function cockpitIaLocalFallback(session, params) {
   return typeof cockpitLocalLlm === 'function' ? cockpitLocalLlm(session, params) : { ok: false, erro: 'cockpitLocalLlm indisponível' };
 }
 
+function cockpitPsiquiatriaUrgencia(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PsiquiatriaUrgenciaService === 'undefined') {
+    throw new Error('Módulo PsiquiatriaUrgenciaService indisponível.');
+  }
+  var acao = params.acao || 'avaliarPsiquiatriaCompleto';
+  if (acao === 'avaliarPsiquiatriaCompleto') {
+    return PsiquiatriaUrgenciaService.avaliarPsiquiatriaCompleto(params);
+  }
+  if (acao === 'avaliarAgitacaoPsicomotora') {
+    return PsiquiatriaUrgenciaService.avaliarAgitacaoPsicomotora(params);
+  }
+  if (acao === 'estratificarRiscoSuicidio') {
+    return PsiquiatriaUrgenciaService.estratificarRiscoSuicidio(params);
+  }
+  if (acao === 'avaliarDepressaoPhq9') {
+    return PsiquiatriaUrgenciaService.avaliarDepressaoPhq9(params);
+  }
+  if (acao === 'selecionarAntidepressivo') {
+    return PsiquiatriaUrgenciaService.selecionarAntidepressivo(params);
+  }
+  if (acao === 'avaliarDistoniaAguda') {
+    return PsiquiatriaUrgenciaService.avaliarDistoniaAguda(params);
+  }
+  if (acao === 'avaliarSindromeNeurolepticaMaligna') {
+    return PsiquiatriaUrgenciaService.avaliarSindromeNeurolepticaMaligna(params);
+  }
+  if (acao === 'avaliarSindromeSerotoninergica') {
+    return PsiquiatriaUrgenciaService.avaliarSindromeSerotoninergica(params);
+  }
+  if (acao === 'gerarResumoPsiquiatria') {
+    return PsiquiatriaUrgenciaService.gerarResumoPsiquiatria(params);
+  }
+  throw new Error('Ação inválida para Psiquiatria de Urgência.');
+}
+
+
 
 
 

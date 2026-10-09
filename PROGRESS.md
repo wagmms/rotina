@@ -180,10 +180,10 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Escalonamento de queimaduras químicas oculares (irrigação profusa com ringer lactato IMEDIATA).
 
 
-48. [ ] **Módulo de Psiquiatria - Manejo do Transtorno Depressivo Maior e Risco de Suicídio**:
-    - Escala de Depressão PHQ-9 e inventário de risco de suicídio.
+48. [x] **Módulo de Psiquiatria - Manejo do Transtorno Depressivo Maior, Agitação Psicomotora e Risco de Suicídio (Concluído)**:
+    - Escala de Depressão PHQ-9 e inventário de risco de suicídio (C-SSRS e SAD PERSONS).
     - Algoritmo de escolha de antidepressivos (ISRS, Duais) focado em efeitos colaterais e comorbidades.
-    - Protocolo de contenção química para urgências psiquiátricas.
+    - Protocolo de contenção física (CFM 2.057/2013) e química para urgências psiquiátricas.
 
 49. [ ] **Geriatria Avançada - Profilaxia de Quedas e Osteoporose (FRAX/ACR)**:
     - Calculadora FRAX para risco de fratura maior osteoporótica e fratura de quadril.
@@ -214,13 +214,45 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Escore de suspeição de CIRCI e indicação precisa de Hidrocortisona 200 mg/dia contínua em choque dependente de doses elevadas de vasopressores (> 0,25 mcg/kg/min).
     - Protocolo de titulação de Vasopressina (0,03 U/min fixa) associada e indicação oportuna de Azul de Metileno em vasoplegia refratária pós-operatória.
 
+55. [ ] **Otorrinolaringologia e Urgência - Manejo de Epistaxe Aguda e Vertigem Periférica vs Central (Protocolo HINTS / Bárány Society)**:
+    - Algoritmo de diferenciação de vertigem aguda (HINTS: Head Impulse, Nystagmus, Test of Skew) prevenindo atraso no diagnóstico de AVC cerebelar/tronco encefálico.
+    - Protocolo escalonado de epistaxe anterior e posterior com critérios seguros de tamponamento (anterior vs balão/sonda de Foley) e monitorização de hipóxia.
+
+56. [ ] **Hematologia e Trombose - Manejo da Trombocitopenia Induzida por Heparina (HIT - Escore 4Ts) e CIVD**:
+    - Calculadora determinística beira-leito do escore 4Ts para estimar probabilidade pré-teste de HIT tipo II.
+    - Bloqueio imediato de todas as formas de heparina (HNF e HBPM) e indicação oportuna de anticoagulantes não heparínicos (Fondaparinux / Inibidores Diretos de Trombina) e contraindicação formal de Varfarina na fase aguda.
+    - Escore ISTH para Coagulação Intravascular Disseminada (CIVD) manifesta com metas de suporte hemoterápico.
+
+57. [ ] **Nefrologia & Medicina de Emergência - Rabdomiólise Aguda e Manejo da Nefroproteção (Escore McMahon)**:
+    - Estratificação de risco de lesão renal aguda e necessidade de terapia renal substitutiva com base no escore McMahon (CPK, fósforo, cálcio, bicarbonato).
+    - Protocolo de hidratação venosa vigorosa dirigida por metas (diurese alvo 200 a 300 mL/h) com cristaloides e critérios restritivos para alcalinização urinária com bicarbonato de sódio.
+
 
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo de Psiquiatria de Urgência (Agitação Psicomotora / Risco de Suicídio)**
+- [ ] **Refatoração do Motor de Permissões e Perfis Clínicos (RBAC)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Módulo de Psiquiatria de Urgência, Agitação Psicomotora e Risco de Suicídio (ABP / CFM / C-SSRS / PHQ-9)**:
+   - Motor determinístico de alta fidelidade clínica e farmacológica para o manejo da agitação psicomotora via escalas RASS (-5 a +4) e BARS (1 a 7).
+   - Diretrizes estritas de desescalonamento verbal com medidas de segurança ambiental (rota de fuga desobstruída e baixa estimulação sensorial).
+   - Protocolo oficial de contenção mecânica/física protegida conforme a Resolução CFM nº 2.057/2013 (4 a 5 pontos, decúbito dorsal com cabeceira elevada a 30°, PROIBIÇÃO ABSOLUTA de decúbito ventral para prevenir asfixia postural e PCR súbita, reavaliação médica a cada 60 min e checagem circulatória a cada 15-30 min).
+   - Contenção química personalizada por etiologia suspeita:
+     * Psiquiátrica pura: Haloperidol 5 mg + Prometazina 25-50 mg IM (sinergismo sedativo e prevenção primária mandatória de distonia aguda) ou Haloperidol + Midazolam IM; ou Risperidona/Olanzapina VO se colaborativo.
+     * Alerta crítico: Bloqueio estrito da associação Olanzapina IM + Benzodiazepínico parenteral na mesma janela de tempo pelo risco de PCR/colapso cardiorrespiratório.
+     * Estimulantes (cocaína/crack): Benzodiazepínicos de 1ª linha (Midazolam IM ou Diazepam EV lento); contraindicação formal de antipsicóticos típicos isolados (risco de arritmia QTc, hipertermia e convulsão).
+     * Delirium no idoso: dose baixa geriátrica fracionada de Haloperidol (0.5 a 1.25 mg) ou Quetiapina VO; contraindicação formal de benzodiazepínicos pelo risco de agitação paradoxal e maior mortalidade.
+     * Abstinência alcoólica: Benzodiazepínicos titulados + Regra de Ouro da reposição de Tiamina 100-300 mg antes de qualquer infusão glicosada (prevenção mandatória de Encefalopatia de Wernicke).
+   - Estratificação de risco de suicídio estruturada unindo o protocolo C-SSRS (Columbia) e o escore SAD PERSONS (0 a 10 pontos):
+     * Identificação de bandeiras vermelhas de letalidade extrema (acesso a armas de fogo, estocagem de remédios, preparativos finais/cartas, desespero e método violento prévio).
+     * Salvaguardas clínicas imediatas: vigilância 1:1 ininterrupta (inclusive no banheiro), sala segura desprovida de materiais perfurocortantes/fios, e internação psiquiátrica imediata (voluntária ou involuntária com notificação formal ao Ministério Público em até 72h conforme Art. 8º da Lei Federal nº 10.216/2001).
+   - Rastreio de Depressão Maior via PHQ-9 (0 a 27 pontos) com alerta sentinela automático e bloqueio de liberação quando o Item 9 (pensamentos de morte ou autoflagelação) pontua > 0.
+   - Algoritmo de seleção racional de antidepressivos baseado em comorbidades: Sertralina (escolha de excelência em cardiopatas pós-IAM respaldada pelo estudo SADHART), Mirtazapina (insônia e baixo peso/anorexia por ação antagonista H1 e alfa-2), Duloxetina/Venlafaxina (dor crônica e fibromialgia), Bupropiona (fadiga e queixa sexual com bloqueio absoluto se histórico convulsivo ou bulimia), e contraindicação formal de antidepressivos tricíclicos no idoso (Critérios de Beers).
+   - Manejo determinístico de complicações: reversão de distonia aguda com Biperideno 5 mg IM/EV, protocolo de emergência em UTI para Síndrome Neuroléptica Maligna (Dantrolene/Bromocriptina), e diagnóstico de Síndrome Serotoninérgica pelos Critérios de Hunter com suporte de Ciproheptadina.
+   - Módulo `src/02_psiquiatria_urgencia.js` integrado à malha RPC do `server/runtime.js` (`cockpitPsiquiatriaUrgencia`) e `src/13_cockpit_integracao.js`.
+   - Suíte de 15 testes automatizados (`tests/test_psiquiatria_urgencia.cjs` e runner `tests/test_psiquiatria_urgencia.py`) validada com 100% de sucesso.
+
 - [x] (2026-10-09) **Integração de IA Generativa Local (Llama 3 / Mistral) para Alta Disponibilidade Offline**:
    - Integração completa de nó local de IA generativa (Ollama / LocalAI / vLLM / llama.cpp) com suporte tanto à API OpenAI-compatible (`/v1/chat/completions`) quanto à rota nativa do Ollama (`/api/chat`).
    - Normalização automática de URLs e tolerância a timeouts com fallback sem bloqueio ou crash.
