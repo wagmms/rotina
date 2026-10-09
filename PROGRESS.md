@@ -1,12 +1,26 @@
-### STATUS: EM_EVOLUCAO_CONTINUA
+### STATUS: REVISAO_E_CONSERTO_DE_ERROS
 
-# 🚀 Ultra Rotina — Motor de Evolução Perpétua (Kaizen)
+# 🛠️ Ultra Rotina — Revisão Geral, Auditoria e Conserto de Erros (Prioridade Máxima)
 
-Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se encerra: ao concluir uma tarefa, o sistema audita o código e adiciona novas oportunidades de alto impacto.
+**DIRETIVA ATUAL DO USUÁRIO**: Foco 100% em **REVISÃO, AUDITORIA PROFUNDA E CONSERTO DE ERROS** do programa. Nenhuma nova funcionalidade concorrente deve ser adicionada até que todos os fluxos existentes estejam rigorosamente testados, sem exceções não tratadas, sem testes órfãos e com usabilidade impecável no Telegram e Cockpit.
 
 ---
 
-## 📋 Backlog de Melhorias Prioritárias (Foco Clínico: Ginecologia & Obstetrícia Unificados, SOAP e UX Telegram)
+## 📋 Backlog de Revisão, Auditoria e Correção de Defeitos (Prioridade Máxima)
+
+0A. [ ] **Auditoria e Correção de Erros de Parâmetros e Tipagem no Telegram e Fastify RPC**:
+    - Varredura de todos os handlers de comando em `src/07_telegram_handlers.js` para garantir tratamento de exceção (`try/catch`) defensivo e mensagens de erro amigáveis ao usuário caso parâmetros inválidos sejam digitados.
+    - Testar cada alias e rota RPC em `server/runtime.js` e `src/13_cockpit_integracao.js` com payloads vazios, inválidos ou corrompidos, garantindo que nenhum cause crash do processo.
+
+0B. [ ] **Varredura de Casos Extremos (Edge Cases) em Prescrições e Calculadoras Clínicas**:
+    - Auditar todas as 66 calculadoras e serviços em `src/` para pesos extremos (neonatos < 1kg, obesidade > 150kg), idades avançadas (> 90 anos), valores laboratoriais discrepantes (Cr > 15, K > 8.0, pH < 6.8).
+    - Garantir que todos os bloqueios de segurança e tetos farmacológicos atuem determinísticamente sem NaN, undefined ou divisões por zero.
+
+0C. [ ] **Auditoria de Confiabilidade Offline e Cache do Cockpit PWA (Mini-App)**:
+    - Verificar resiliência do Service Worker (`sw.js`), sincronização 100% idêntica entre `cockpit_movel.html` e `gh_cockpit_deploy/index.html`.
+    - Garantir que falhas de rede no hospital degradem graciosamente para cache local sem travar a interface do médico.
+
+---
 
 
 
@@ -588,7 +602,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Gatilho automático para alerta de Piora Clínica (aumento de 2 pontos no SOFA) exigindo revisão imediata do Stewardship Antimicrobiano e controle do foco.
 
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Hepatologia & Emergência Obstétrica - Colestase Intra-hepática da Gestação (CIG) e Esteatose Hepática Aguda** (Tarefa 38)
+- [ ] **Auditoria Profunda de Código, Varredura de Erros e Estabilização Geral do Sistema** (Tarefa 0A)
 
 ---
 

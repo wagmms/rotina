@@ -1,74 +1,69 @@
 const assert = require('assert');
-const path = require('path');
-const fs = require('fs');
+const NefrologiaLRAService = require('../src/02_nefrologia_lra_kdigo.js');
 
-const scriptPath = path.join(__dirname, '../src/02_nefrologia_lra_kdigo.js');
-const scriptCode = fs.readFileSync(scriptPath, 'utf8');
+function runTests() {
+    console.log("=== Iniciando Testes: Nefrologia LRA KDIGO ===");
 
-const context = {};
-const vm = require('vm');
-vm.createContext(context);
-vm.runInContext(scriptCode, context);
+    // Teste 1: Estágio KDIGO 0
+    const res0 = NefrologiaLRAService.estadiarKDIGO(1.0, 1.1, null, null);
+    assert.strictEqual(res0.estagio, 0);
+    assert.ok(res0.descricao.includes('Sem LRA KDIGO'));
+    console.log("✓ Teste 1: KDIGO 0 passou.");
 
-const NefrologiaLRAService = context.NefrologiaLRAService;
+    // Teste 2: Estágio KDIGO 1 por creatinina
+    const res1 = NefrologiaLRAService.estadiarKDIGO(1.0, 1.6, null, null);
+    assert.strictEqual(res1.estagio, 1);
+    assert.ok(res1.descricao.includes('KDIGO 1'));
+    console.log("✓ Teste 2: KDIGO 1 passou.");
 
-describe('NefrologiaLRAService', function() {
-    it('deve classificar corretamente o estágio KDIGO 0', function() {
-        const resultado = NefrologiaLRAService.estadiarKDIGO(1.0, 1.1, null, null);
-        assert.strictEqual(resultado.estagio, 0);
-        assert.ok(resultado.descricao.includes('Sem LRA KDIGO'));
+    // Teste 3: Estágio KDIGO 2 por creatinina
+    const res2 = NefrologiaLRAService.estadiarKDIGO(1.0, 2.5, null, null);
+    assert.strictEqual(res2.estagio, 2);
+    console.log("✓ Teste 3: KDIGO 2 passou.");
+
+    // Teste 4: Estágio KDIGO 3 por creatinina
+    const res3 = NefrologiaLRAService.estadiarKDIGO(1.0, 4.1, null, null);
+    assert.strictEqual(res3.estagio, 3);
+    console.log("✓ Teste 4: KDIGO 3 passou.");
+
+    // Teste 5: Estágio KDIGO 3 por débito urinário
+    const resDu3 = NefrologiaLRAService.estadiarKDIGO(1.0, 1.0, 0.2, 25);
+    assert.strictEqual(resDu3.estagio, 3);
+    console.log("✓ Teste 5: KDIGO 3 DU passou.");
+
+    // Teste 6: Diálise de urgência para acidose
+    const resDialise1 = NefrologiaLRAService.avaliarDialiseUrgencia({
+        ph: 7.10,
+        acidose_refrataria: true
     });
+    assert.strictEqual(resDialise1.aeiou.acidose, true);
+    assert.strictEqual(resDialise1.indicacoes_presentes, true);
+    assert.ok(resDialise1.lista[0].includes('Acidose'));
+    console.log("✓ Teste 6: Diálise acidose passou.");
 
-    it('deve classificar corretamente o estágio KDIGO 1 por creatinina', function() {
-        const resultado = NefrologiaLRAService.estadiarKDIGO(1.0, 1.6, null, null);
-        assert.strictEqual(resultado.estagio, 1);
-        assert.ok(resultado.descricao.includes('KDIGO 1'));
+    // Teste 7: Diálise de urgência para uremia e hipervolemia
+    const resDialise2 = NefrologiaLRAService.avaliarDialiseUrgencia({
+        ureia: 210,
+        eap_refratario: true,
+        ph: 7.30
     });
+    assert.strictEqual(resDialise2.aeiou.uremia, true);
+    assert.strictEqual(resDialise2.aeiou.overload, true);
+    assert.strictEqual(resDialise2.indicacoes_presentes, true);
+    assert.strictEqual(resDialise2.lista.length, 2);
+    console.log("✓ Teste 7: Diálise uremia/hipervolemia passou.");
 
-    it('deve classificar corretamente o estágio KDIGO 2 por creatinina', function() {
-        const resultado = NefrologiaLRAService.estadiarKDIGO(1.0, 2.5, null, null);
-        assert.strictEqual(resultado.estagio, 2);
+    // Teste 8: Sem critérios de diálise
+    const resDialise3 = NefrologiaLRAService.avaliarDialiseUrgencia({
+        ph: 7.35,
+        potassio: 4.5,
+        ureia: 50
     });
+    assert.strictEqual(resDialise3.indicacoes_presentes, false);
+    assert.strictEqual(resDialise3.lista.length, 0);
+    console.log("✓ Teste 8: Diálise normal passou.");
 
-    it('deve classificar corretamente o estágio KDIGO 3 por creatinina', function() {
-        const resultado = NefrologiaLRAService.estadiarKDIGO(1.0, 4.1, null, null);
-        assert.strictEqual(resultado.estagio, 3);
-    });
+    console.log("🚀 TODOS OS TESTES DE NEFROLOGIA LRA KDIGO PASSARAM COM SUCESSO!");
+}
 
-    it('deve classificar corretamente o estágio KDIGO 3 por débito urinário', function() {
-        const resultado = NefrologiaLRAService.estadiarKDIGO(1.0, 1.0, 0.2, 25);
-        assert.strictEqual(resultado.estagio, 3);
-    });
-
-    it('deve sinalizar indicações de diálise de urgência para acidose', function() {
-        const resultado = NefrologiaLRAService.avaliarDialiseUrgencia({
-            ph: 7.10,
-            acidose_refrataria: true
-        });
-        assert.strictEqual(resultado.aeiou.acidose, true);
-        assert.strictEqual(resultado.indicacoes_presentes, true);
-        assert.ok(resultado.lista[0].includes('Acidose'));
-    });
-
-    it('deve sinalizar indicações de diálise de urgência para uremia e hipervolemia', function() {
-        const resultado = NefrologiaLRAService.avaliarDialiseUrgencia({
-            ureia: 210,
-            eap_refratario: true,
-            ph: 7.30
-        });
-        assert.strictEqual(resultado.aeiou.uremia, true);
-        assert.strictEqual(resultado.aeiou.overload, true);
-        assert.strictEqual(resultado.indicacoes_presentes, true);
-        assert.strictEqual(resultado.lista.length, 2);
-    });
-
-    it('não deve sinalizar indicações se parâmetros estiverem normais', function() {
-        const resultado = NefrologiaLRAService.avaliarDialiseUrgencia({
-            ph: 7.35,
-            potassio: 4.5,
-            ureia: 50
-        });
-        assert.strictEqual(resultado.indicacoes_presentes, false);
-        assert.strictEqual(resultado.lista.length, 0);
-    });
-});
+runTests();
