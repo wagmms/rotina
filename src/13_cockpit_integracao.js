@@ -1201,3 +1201,53 @@ function cockpitAnalgesiaPca(initData, params) {
   }
   throw new Error('Ação inválida para Analgesia PCA.');
 }
+
+function cockpitViaAereaDificil(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ViaAereaDificilService === 'undefined') {
+    throw new Error('ViaAereaDificilService não carregado.');
+  }
+  var p = params.parametros || params;
+  var acao = params.acao || 'completo';
+  if (acao === 'lemon' || acao === 'avaliarLemon') {
+    return ViaAereaDificilService.avaliarLemon(p);
+  }
+  if (acao === 'mascara' || acao === 'avaliarVentilacaoMascara') {
+    return ViaAereaDificilService.avaliarVentilacaoMascara(p);
+  }
+  if (acao === 'rsi' || acao === 'calcularRsi') {
+    return ViaAereaDificilService.calcularRsi(p);
+  }
+  if (acao === 'supraglotico' || acao === 'selecionarDispositivoSupraglotico') {
+    var peso = p.pesoKg || p.peso || p;
+    return ViaAereaDificilService.selecionarDispositivoSupraglotico(peso);
+  }
+  if (acao === 'algoritmo' || acao === 'algoritmoAsa') {
+    return ViaAereaDificilService.algoritmoAsaViaAerea(p);
+  }
+  if (acao === 'formatarResumo') {
+    return ViaAereaDificilService.formatarResumoViaAerea(p);
+  }
+  if (acao === 'completo') {
+    var resLemon = ViaAereaDificilService.avaliarLemon(p);
+    var resMoans = ViaAereaDificilService.avaliarVentilacaoMascara(p);
+    var resRsi = ViaAereaDificilService.calcularRsi(p);
+    var resSupraglotico = ViaAereaDificilService.selecionarDispositivoSupraglotico(p.pesoKg || 70);
+    var resAlgoritmo = ViaAereaDificilService.algoritmoAsaViaAerea(p);
+    return {
+      lemon: resLemon,
+      moans: resMoans,
+      rsi: resRsi,
+      dispositivoSupraglotico: resSupraglotico,
+      algoritmo: resAlgoritmo,
+      resumoFormatado: ViaAereaDificilService.formatarResumoViaAerea({
+        lemon: resLemon,
+        rsi: resRsi,
+        algoritmo: resAlgoritmo
+      })
+    };
+  }
+  throw new Error('Ação inválida para Via Aérea Difícil.');
+}
+

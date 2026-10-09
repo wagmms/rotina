@@ -63,7 +63,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 24. [x] **Módulo Avançado de Analgesia Controlada pelo Paciente (PCA)**:
     - Motor determinístico para cálculos de bolus, dose basal, intervalo de bloqueio (lockout) e limite de 4 horas para Morfina e Fentanil em bombas de PCA.
 
-25. [ ] **Manejo de Via Aérea Difícil (Algoritmo ASA)**:
+25. [x] **Manejo de Via Aérea Difícil (Algoritmo ASA)**:
     - Protocolo guiado passo-a-passo (RSI, videolaringoscopia, máscara laríngea, cricotireoidostomia de emergência) com predição de via aérea difícil (LEMON score).
 
 26. [ ] **Módulo Avançado de Transfusão Sanguínea (Protocolo de Transfusão Maciça e Gatilhos)**:
@@ -328,12 +328,35 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Algoritmo que cruza a prescrição do paciente (ex: Haloperidol, Ondansetrona, Azitromicina, Amiodarona) e calcula o risco de Torsades de Pointes.
     - Fórmula de Bazett integrada com alertas preventivos antes da dispensação da droga quando QTc > 500ms ou risco cumulativo extremo.
 
+79. [ ] **Pneumologia e Emergência - Abordagem do Tromboembolismo Pulmonar Agudo (TEP - Escore Wells / Genebra / PESI / sPESI)**:
+    - Estratificação determinística de probabilidade clínica pré-teste (Wells e Genebra revisado) e indicação racional de D-dímero vs Angiotomografia de Artérias Pulmonares imediata.
+    - Escore de gravidade PESI e PESI simplificado (sPESI) para decisão de tratamento ambulatorial seguro (sPESI = 0) vs internação em enfermaria/UTI.
+    - Algoritmo de TEP de Alto Risco / Maciço com instabilidade hemodinâmica (choque/hipotensão PAS < 90 mmHg): protocolo determinístico de trombólise de emergência com Alteplase 100 mg em 2h (ou 50 mg em PCR/iminência de parada) e suporte de falência de ventrículo direito.
+
+80. [ ] **Medicina Perioperatória - Avaliação de Risco Cardiovascular Pré-Operatório (Escore EMAPO / Lee / RCRI / Metas perioperatórias)**:
+    - Calculadora determinística do Índice de Risco Cardíaco Revisado de Lee (RCRI) e diretrizes da SBC/ACC/AHA para cirurgias não-cardíacas.
+    - Avaliação da capacidade funcional estimada em Equivalentes Metabólicos (METs < 4 indicando alto risco) e estratificação por risco cirúrgico intrínseco.
+    - Manejo perioperatório de fármacos de uso crônico: regras precisas de manutenção ou suspensão de AAS, DOACs, Varfarina, Betabloqueadores, Estatinas, iECA/BRA e iSGLT2 (suspensão 3-4 dias antes para prevenir cetoacidose euglicêmica).
+
+81. [ ] **Pediatria e Urgência - Manejo de Convulsão Febril e Estado de Mal Epiléptico Pediátrico**:
+    - Classificação rápida entre Convulsão Febril Simples vs Complexa (focal, > 15 min ou recorrência em 24h) com orientações para a família e afastamento seguro de punção lombar rotineira se sem sinais meníngeos.
+    - Linha do tempo de parada de convulsão ativa em emergência pediátrica (0-5 min: ABC, glicemia e oxigênio; 5-10 min: 1ª dose de Benzodiazepínico - Midazolam IM/intranasal ou Diazepam retal/IV; 10-15 min: 2ª dose; > 15 min: anticonvulsivante de 2ª linha com Fenitoína 20 mg/kg ou Levetiracetam 60 mg/kg IV).
+    - Alerta crítico para evitar doses excessivas repetidas de benzodiazepínicos que causem depressão respiratória iatrogênica.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Manejo de Via Aérea Difícil (Algoritmo ASA)**
+- [ ] **Módulo Avançado de Transfusão Sanguínea (Protocolo de Transfusão Maciça e Gatilhos)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Manejo de Via Aérea Difícil (Algoritmo ASA / DAS / LEMON / RSI / CICO)**:
+   - Predição determinística de via aérea difícil com escore LEMON (Look, Evaluate 3-3-2, Mallampati, Obstruction, Neck mobility) e escore MOANS para ventilação difícil sob máscara facial.
+   - Motor de cálculo para Sequência Rápida de Intubação (RSI - 7 Ps) com dosagem ponderada de Hipnóticos (Etomidato, Cetamina, Propofol, Midazolam) e Bloqueadores Neuromusculares (Succinilcolina vs Rocurônio).
+   - Bloqueio sentinela absoluto de Succinilcolina em situações de hipercalemia, queimaduras > 24h, esmagamento/rabdomiólise > 24h, denervação crônica e histórico de hipertermia maligna.
+   - Detecção precoce de Choque Peri-intubação (Índice de Choque >= 0.8) com alerta para ressuscitação prévia mandatória (cristaloides e vasopressor push-dose).
+   - Dose de resgate com Sugamadex 16 mg/kg para reversão de emergência de Rocurônio.
+   - Algoritmo escalonado ASA / DAS: Plano A (Laringoscopia otimizada com Videolaringoscopia, Bougie e manobra BURP - máx 3 tentativas), Plano B (Dispositivo Supraglótico de 2ª geração com canal gástrico e dimensionamento por peso), e Plano D / eFONA (Cenário crítico CICO: Cricotireoidostomia Cirúrgica Scalpel-Bougie-Tube com tubo 6.0 mm com cuff).
+   - Integração completa via malha Fastify RPC (`cockpitViaAereaDificil`) e suíte de 13 testes determinísticos validada com 100% de sucesso.
 - [x] (2026-10-09) **Módulo Avançado de Analgesia Controlada pelo Paciente (PCA)**:
    - Motor determinístico para cálculos de bolus, dose basal, intervalo de bloqueio (lockout) e limite de 4 horas para Morfina e Fentanil em bombas de PCA.
    - Algoritmo de segurança para pacientes opioid-naive, bloqueando infusões contínuas basais para evitar depressão respiratória.
