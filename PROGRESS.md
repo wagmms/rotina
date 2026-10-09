@@ -86,7 +86,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Regras alimentares precoces: dieta oral ou enteral (sonda nasojejunal) em 24-48h se tolerável, rejeitando NPO prolongado sem justificativa.
 
 
-30. [ ] **Módulo de Cardiologia de Emergência (Dor Torácica e IAM)**:
+30. [x] **Módulo de Cardiologia de Emergência (Dor Torácica e IAM)**:
     - Escore HEART (History, ECG, Age, Risk factors, Troponin) e TIMI Risk para estratificação de risco de Síndrome Coronariana Aguda.
     - Protocolo duplo bloqueio (AAS + Inibidor P2Y12) com bloqueios cruzados (ex: Prasugrel em paciente com AVC prévio).
 
@@ -404,12 +404,26 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Motor determinístico para cálculo de VET (Valor Energético Total) usando equações de Penn State ou regra de bolso (25-30 kcal/kg).
     - Distribuição automatizada de macronutrientes e alertas para Síndrome da Realimentação.
 
+94. [ ] **Gastroenterologia - Manejo de Ascite e Peritonite Bacteriana Espontânea (PBE) na Cirrose**:
+    - Critérios determinísticos de paracentese diagnóstica (GASA > 1.1 g/dL) e predição de PBE (PMN > 250/mm3).
+    - Protocolo de profilaxia primária e secundária com Norfloxacino e reposição de Albumina para prevenção de Síndrome Hepatorrenal.
+
+95. [ ] **Imunologia Clínica - Manejo Prático da Anafilaxia (WAO)**:
+    - Checklist beira-leito rápido para diagnóstico clínico (Pele + 1 outro sistema).
+    - Dosagem escalonada de Adrenalina IM (0.01 mg/kg) no vasto lateral da coxa com temporizador de repetição a cada 5-15 minutos.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo de Cardiologia de Emergência (Dor Torácica e IAM)**
+- [ ] **Inteligência Gasométrica e Distúrbios Ácido-Base (Regra dos 5 Passos)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Módulo de Cardiologia de Emergência (Dor Torácica e IAM)**:
+   - Estratificação robusta pelo Escore HEART e TIMI Risk.
+   - Algoritmo determinístico do duplo bloqueio antiplaquetário (AAS + P2Y12) com bloqueio estrito de Prasugrel em histórico de AVC, e ajuste de dose por idade/peso.
+   - Integração completa via Fastify RPC (cockpitCardiologiaEmergencia) e bot Telegram (/sca, /iam, /heart).
+   - Suíte de 8 testes automatizados validados com sucesso (`test_cardiologia_emergencia.cjs`).
+   - Evolução perpétua mantida: backlog atualizado.
 - [x] (2026-10-09) **Gastroenterologia - Pancreatite Aguda e Manejo da Hidratação (Critérios de Atlanta / BISAP)**:
    - Calculadora determinística beira-leito dos escores de gravidade (BISAP).
    - Protocolo de ressuscitação volêmica dirigida por metas (Ringer Lactato) com alertas para doença cardiovascular e renal.

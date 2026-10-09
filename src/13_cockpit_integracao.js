@@ -1510,3 +1510,87 @@ function cockpitGastroenterologiaPancreatite(initData, params) {
     textoFormatado: texto
   };
 }
+
+function cockpitCardiologiaEmergencia(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para Cardiologia de Emergência não fornecidos.');
+  
+  if (typeof CardiologiaEmergenciaService === 'undefined') {
+    throw new Error('Serviço CardiologiaEmergenciaService indisponível.');
+  }
+
+  var avaliacao = CardiologiaEmergenciaService.avaliarPaciente(params);
+  var heart = avaliacao.heart;
+  var timiScasst = avaliacao.timiScasst;
+  var dapt = avaliacao.dapt;
+  var adj = avaliacao.adjuvantes;
+
+  var texto = "🫀 *CARDIOLOGIA DE EMERGÊNCIA — DOR TORÁCICA & IAM*\n\n";
+
+  if (avaliacao.alertasGerais.length > 0) {
+    for (var a = 0; a < avaliacao.alertasGerais.length; a++) {
+      texto += avaliacao.alertasGerais[a] + "\n\n";
+    }
+  }
+
+  texto += "📊 *ESTRATIFICAÇÃO DE RISCO:*\n";
+  texto += "• *HEART Score:* " + heart.escore + " pontos (" + heart.risco + ") — MACE 6 semanas: " + heart.taxaMACE + "\n";
+  texto += "  _Conduta:_ " + heart.recomendacao + "\n";
+  texto += "• *TIMI SCASST:* " + timiScasst.escore + "/7 pontos (" + timiScasst.risco + ") — MACE 14 dias: " + timiScasst.taxaMACE14Dias + "\n";
+  texto += "  _Estratégia:_ " + timiScasst.estrategia + "\n";
+
+  if (avaliacao.timiIamcsst) {
+    texto += "• *TIMI IAMCSST:* " + avaliacao.timiIamcsst.escore + "/14 pontos — Mortalidade 30 dias: " + avaliacao.timiIamcsst.mortalidade30Dias + "\n";
+  }
+
+  texto += "\n💊 *DUPLO BLOQUEIO ANTIPLAQUETÁRIO (DAPT):*\n";
+  texto += "• *P2Y12 de Escolha:* " + dapt.p2y12Escolhido + "\n";
+  for (var i = 0; i < dapt.recomendacoes.length; i++) {
+    var rec = dapt.recomendacoes[i];
+    texto += "• *" + rec.farmaco + "*:\n  - Ataque: " + rec.ataque + "\n  - Manutenção: " + rec.manutencao + "\n";
+  }
+
+  if (dapt.bloqueios.length > 0) {
+    texto += "\n🚫 *BLOQUEIOS DE SEGURANÇA DAPT:*\n";
+    for (var b = 0; b < dapt.bloqueios.length; b++) {
+      var bloq = dapt.bloqueios[b];
+      texto += "• *[" + bloq.nivel + "] " + bloq.farmaco + "*: " + bloq.motivo + "\n";
+    }
+  }
+
+  if (dapt.alertas.length > 0) {
+    texto += "\n⚠️ *ALERTAS DAPT & INTERAÇÕES:*\n";
+    for (var d = 0; d < dapt.alertas.length; d++) {
+      texto += "• " + dapt.alertas[d] + "\n";
+    }
+  }
+
+  texto += "\n🩺 *MEDICAÇÃO ADJUVANTE & ANTI-ISQUÊMICA:*\n";
+  for (var m = 0; m < adj.farmacosRecomendados.length; m++) {
+    var med = adj.farmacosRecomendados[m];
+    texto += "• *" + med.farmaco + "*: " + med.posologia + "\n";
+  }
+
+  if (adj.bloqueios.length > 0) {
+    texto += "\n⛔ *CONTRAINDICAÇÕES ADJUVANTES DISPARADAS:*\n";
+    for (var k = 0; k < adj.bloqueios.length; k++) {
+      var blkAdj = adj.bloqueios[k];
+      texto += "• *[" + blkAdj.nivel + "] " + blkAdj.farmaco + "*: " + blkAdj.motivo + "\n";
+    }
+  }
+
+  if (adj.alertas.length > 0) {
+    texto += "\n⚠️ *ALERTAS ADJUVANTES / RENAL:*\n";
+    for (var r = 0; r < adj.alertas.length; r++) {
+      texto += "• " + adj.alertas[r] + "\n";
+    }
+  }
+
+  return {
+    sucesso: true,
+    avaliacao: avaliacao,
+    textoFormatado: texto
+  };
+}
+
+

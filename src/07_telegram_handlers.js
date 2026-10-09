@@ -1401,6 +1401,77 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, resPancreatite.textoFormatado + "\n\n_(Exemplo gerado com parâmetros simulados. Interatividade será adicionada no PWA.)_");
   }
 
+  if (comando === "/sca" || comando === "/iam" || comando === "/heart" || comando === "/dapt") {
+    if (typeof CardiologiaEmergenciaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo CardiologiaEmergenciaService indisponível.");
+    }
+    
+    var dadosCardio = texto.replace(/^\/\w+\s*/, "").trim();
+    if (!dadosCardio) {
+      return enviarMensagemParaChat(chatId, "🫀 *CARDIOLOGIA DE EMERGÊNCIA — DOR TORÁCICA & IAM*\n\n" +
+        "Envie os dados do paciente para cálculo do Escore HEART, TIMI e Bloqueios DAPT:\n\n" +
+        "📌 *Exemplo Alto Risco:* `/iam idade 68, dor tipica, supra, trop+, has, dm, peso 72`\n" +
+        "📌 *Exemplo com AVC prévio:* `/dapt avc previo, idade 65, icp planejada, peso 70`\n" +
+        "📌 *Exemplo IAM Trombólise:* `/iam idade 78, supra, trombolise, pas 110, fc 85`\n" +
+        "📌 *Exemplo Nitrato VD / IPDE-5:* `/iam dor retroesternal, iam vd, sildenafil recente`\n\n" +
+        "Ou execute `/heart padrao` para ver um relatório modelo.");
+    }
+
+    var tLower = dadosCardio.toLowerCase();
+    
+    // Extração de Idade
+    var mIdade = tLower.match(/(?:idade|anos)[:=]?\s*(\d+)/) || tLower.match(/\b(\d{2})\s*anos\b/);
+    var idadeCardio = mIdade ? parseInt(mIdade[1], 10) : 62;
+
+    // Extração de Peso
+    var mPeso = tLower.match(/(?:peso|kg)[:=]?\s*(\d+)/) || tLower.match(/\b(\d{2,3})\s*kg\b/);
+    var pesoCardio = mPeso ? parseInt(mPeso[1], 10) : 70;
+
+    // Extração de Pressão e FC
+    var mPas = tLower.match(/(?:pas|pa)[:=]?\s*(\d{2,3})/);
+    var pasCardio = mPas ? parseInt(mPas[1], 10) : 130;
+    var mFc = tLower.match(/(?:fc|bpm)[:=]?\s*(\d{2,3})/);
+    var fcCardio = mFc ? parseInt(mFc[1], 10) : 78;
+
+    // Flags clínicas
+    var supra = /supra|stemi|iamcsst/i.test(tLower);
+    var tropPos = /trop\+|troponina\s*alta|trop\s*alta|troponina\s*positiva/i.test(tLower);
+    var dorTipica = /tipica|retroesternal|aperto|sudorese|diaforese/i.test(tLower);
+    var avc = /avc|ait/i.test(tLower);
+    var trombolise = /trombol|fibrinol/i.test(tLower);
+    var infartoVd = /vd|ventriculo direito/i.test(tLower);
+    var ipde5 = /sildenafil|tadalafil|viagra|cialis/i.test(tLower);
+    var omeprazol = /omeprazol/i.test(tLower);
+    var icp = /icp|cateterismo|angioplastia/i.test(tLower) || !trombolise;
+    var dm = /dm|diabetes|diabetico/i.test(tLower);
+    var has = /has|hipertensao|hipertenso/i.test(tLower);
+    var tabagismo = /tabag|fumo|fumante/i.test(tLower);
+
+    var reqCardio = {
+      idade: idadeCardio,
+      peso: pesoCardio,
+      pas: pasCardio,
+      fc: fcCardio,
+      historia: dorTipica ? 'altamente_suspeita' : 'moderadamente_suspeita',
+      ecg: supra ? 'isquemia_significativa' : (/infradesnivel|infra/i.test(tLower) ? 'isquemia_significativa' : 'alteracao_inespecifica'),
+      troponina: tropPos ? 'elevada_3x' : 'normal',
+      diabetes: dm,
+      has: has,
+      tabagismo: tabagismo,
+      supraST: supra,
+      iamcsst: supra,
+      avcPrevio: avc,
+      trombolise: trombolise,
+      icpPlanejada: icp,
+      infartoVD: infartoVd,
+      usoSildenafilUltimas24h: ipde5,
+      usoOmeprazol: omeprazol
+    };
+
+    var resSca = cockpitCardiologiaEmergencia('bot', reqCardio);
+    return enviarMensagemParaChat(chatId, resSca.textoFormatado);
+  }
+
 
   if (comando === "/transfusao" || comando === "/hemoterapia" || comando === "/ptm" || comando === "/chad") {
     var dadosTrans = texto.replace(/^\/\w+\s*/, "").trim();
