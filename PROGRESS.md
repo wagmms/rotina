@@ -489,7 +489,7 @@
     - **Suíte de Testes Automatizada Dedicada**:
       * Criado `tests/test_saneamento_escopo_clinico.cjs` validando desvinculação de `/emergencia`, isolamento de `/breaktheglass`, desativação amigável de `/auditar_rbac`, alertas sentinela de UTI em SDRA, Sedação e DVA, e integridade do inventário clínico estruturado. Integrado ao pipeline `npm test` com 100% de sucesso.
 
-58. [ ] **Auditoria Médica Integral com Modelo PRO — Calculadoras Clínicas, Doses Pediátricas e Tetos de Segurança**:
+58. [x] **Auditoria Médica Integral com Modelo PRO — Calculadoras Clínicas, Doses Pediátricas e Tetos de Segurança**:
     - **Auditoria de Precisão com Modelo PRO**:
       * Submeter todas as calculadoras clínicas e algoritmos posológicos (`src/02_calculadoras_puras.js`, `src/data/guia_pediatrico_pedb.json`, `src/02_pals_pediatria.js`, `src/02_secoes_posologicas.js`) à validação profunda do modelo Gemini PRO.
     - **Foco da Auditoria Farmacológica e Pediátrica**:
