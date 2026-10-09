@@ -754,3 +754,25 @@ function cockpitSedacaoOpioides(initData, params) {
   }
   throw new Error('Ação inválida para sedação/opioides. Use rass, camicu, calcularMME ou rotacionar.');
 }
+
+function cockpitNefrologiaDhe(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof NefrologiaDheService === 'undefined') {
+    throw new Error('Módulo NefrologiaDheService indisponível.');
+  }
+  if (params.acao === 'deficitSodio') {
+    return NefrologiaDheService.calcularDeficitSodio(params.naAtual, params.naAlvo, params.peso, params.sexo, params.idade);
+  }
+  if (params.acao === 'planejarCorrecaoHiponatremia') {
+    return NefrologiaDheService.planejarCorrecaoHiponatremia(params.naAtual, params.peso, params.sexo, params.idade, params.salinaSendoUsada);
+  }
+  if (params.acao === 'deficitAguaLivre') {
+    return NefrologiaDheService.calcularDeficitAguaLivre(params.naAtual, params.peso, params.sexo, params.idade);
+  }
+  if (params.acao === 'avaliarHipercalemia') {
+    return NefrologiaDheService.avaliarHipercalemia(params.kAtual, params.ecgAlterado);
+  }
+  throw new Error('Ação inválida para Nefrologia DHE.');
+}
+

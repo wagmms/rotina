@@ -808,6 +808,7 @@ module.exports = {
         _rpcMap.cockpitAuditarInfusaoUti = ctx.cockpitAuditarInfusaoUti;
         _rpcMap.cockpitObterModelosExameFisico = ctx.cockpitObterModelosExameFisico;
         _rpcMap.cockpitSedacaoOpioides = ctx.cockpitSedacaoOpioides;
+        _rpcMap.cockpitNefrologiaDhe = ctx.cockpitNefrologiaDhe;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

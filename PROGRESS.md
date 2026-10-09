@@ -13,10 +13,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 
 
-4. [ ] **Nefrologia Intensiva e Distúrbios Hidroeletrolíticos (DHE)**:
-   - Correção segura de hiponatremia aguda vs crônica com cálculo de déficit de sódio e teto rígido de elevação (máximo 8-10 mEq/L nas primeiras 24h e 18 mEq/L em 48h) prevenindo Síndrome de Desmielinização Osmótica (mielinólise pontina).
-   - Manejo escalonado de hipercalemia com critérios de urgência dialítica (ECG: onda T apiculada, alargamento QRS), estabilização de membrana miocárdica (Gluconato de Cálcio 10% 10-20 ml IV), glicoinsulina (10 UI regular em 100 ml SG 50%), beta-2 agonista e resinas de troca.
-   - Cálculo de déficit de água livre na hipernatremia e reposição criteriosa de potássio, magnésio e fósforo beira-leito.
+
 
 5. [ ] **Mecânica Pulmonar e Ventilação Protetora na SDRA (ARDSNet)**:
    - Calculador beira-leito de peso predito (fórmula ARDSNet baseada na altura e sexo biológico) com ajuste estrito de volume corrente em 4 a 6 mL/kg.
@@ -114,6 +111,14 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 25. [ ] **Manejo de Via Aérea Difícil (Algoritmo ASA)**:
     - Protocolo guiado passo-a-passo (RSI, videolaringoscopia, máscara laríngea, cricotireoidostomia de emergência) com predição de via aérea difícil (LEMON score).
 
+26. [ ] **Módulo Avançado de Transfusão Sanguínea (Protocolo de Transfusão Maciça e Gatilhos)**:
+    - Cálculos beira-leito para reposição de CHAD, Plasma Fresco Congelado, Plaquetas e Crioprecipitado em hemorragias agudas e coagulopatias (ex: CIVD).
+    - Gatilhos transfusionais baseados em níveis de hemoglobina (ex: < 7 g/dL em pacientes estáveis, < 8 g/dL em doença coronariana).
+
+27. [ ] **Integração de Calculadora de Clearance de Creatinina (Cockcroft-Gault) com Auditoria Automática de Prescrições**:
+    - Motor determinístico para estimar o ritmo de filtração glomerular beira-leito.
+    - Bloqueio e alerta automático para antibióticos e anticoagulantes quando TFG < 30 mL/min, exigindo ajuste de dose renal obrigatório no PWA.
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
@@ -121,7 +126,12 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
-- [x] (2026-10-09) **Calculadora de Desmame de Sedação e Rotação de Opioides**:
+- [x] (2026-10-09) **Nefrologia Intensiva e Distúrbios Hidroeletrolíticos (DHE)**:
+   - Módulo determinístico para correção segura de hiponatremia aguda vs crônica com cálculo de déficit de sódio e teto rígido de elevação (8 mEq/L 24h e 18 mEq/L 48h).
+   - Manejo escalonado de hipercalemia com critérios de urgência dialítica, estabilização de membrana, e glicoinsulina.
+   - Cálculo de déficit de água livre na hipernatremia.
+   - Implementação de `src/02_nefrologia_dhe.js` e métodos RPC `cockpitNefrologiaDhe`.
+   - Suíte de testes `tests/test_nefrologia_dhe.cjs` validada com 100% de sucesso.
    - Módulo determinístico de equivalência analgésica e rotação (Morfina, Fentanil, Metadona, Oxicodona) via conversão rigorosa em MME.
    - Escala de desmame de sedação contínua (RASS) e rastreio de Delirium (CAM-ICU).
    - Implementação de `src/02_sedacao_opioides.js` e métodos RPC `cockpitSedacaoOpioides`.
