@@ -1775,6 +1775,36 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // CARDIOLOGIA: INSUFICIÊNCIA CARDÍACA CRÔNICA (SBC/ESC/AHA)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/icc" || comando === "/insuficienciacardiaca" || comando === "/framingham" || comando === "/quarteto") {
+    var dadosIcc = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof CardiologiaIcCronicaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo CardiologiaIcCronicaService indisponível temporariamente.");
+    }
+
+    if (!dadosIcc) {
+      return enviarMensagemParaChat(chatId, "🫀 *CARDIOLOGIA — INSUFICIÊNCIA CARDÍACA CRÔNICA*\n\n" +
+        "Envie os dados clínicos para diagnóstico (Framingham), estratificação (FEVE/NYHA) e prescrição do Quarteto Fantástico:\n" +
+        "• *Critérios Framingham:* `dpn`, `ortopneia`, `tjp`, `estertores`, `b3`, `edema mmii`, `cardiomegalia`\n" +
+        "• *Ecocardiograma:* `feve 35%`, `feve 55%`\n" +
+        "• *Exames e Parâmetros:* `k 4.5`, `clcr 50`, `pas 110`, `fc 72`\n" +
+        "• *Fármacos em uso:* `em uso de enalapril`, `washout 36h`, `angioedema previo`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/icc feve 32% nyha 3 dpn tjp estertores k 4.3 clcr 60 pas 120` *(Quarteto Fantástico completo)*\n" +
+        "• `/icc feve 30% enalapril sem washout k 4.6` *(Bloqueio de ARNI por washout < 36h)*\n" +
+        "• `/icc feve 28% k 5.3 clcr 25` *(Bloqueios de Espironolactona por hipercalemia/renal)*");
+    }
+
+    try {
+      var paramsIcc = CardiologiaIcCronicaService.extrairParametrosTexto(dadosIcc);
+      var analiseIcc = CardiologiaIcCronicaService.avaliar(paramsIcc);
+      return enviarMensagemParaChat(chatId, CardiologiaIcCronicaService.formatarTextoTelegram(analiseIcc));
+    } catch (eIcc) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Insuficiência Cardíaca: " + eIcc.message);
+    }
+  }
+
   // PEDIATRIA: BRONQUIOLITE VIRAL AGUDA
   // ───────────────────────────────────────────────────────────────────────────
   if (comando === "/bronquiolite" || comando === "/bva" || comando === "/bronquioliteviral" || comando === "/cnaf") {
