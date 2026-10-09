@@ -980,3 +980,15 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 116. [ ] **Ferramenta de Auditoria de Custos e Faturamento Hospitalar (DRG)**:
     - Estimativa automatizada de Diagnoses Related Groups baseada nas prescrições inseridas.
     - Identificação de oportunidades de faturamento cruzado ou desperdício de recursos materiais para a coordenação médica.
+
+117. [ ] **Módulo de Endocrinologia - Manejo de Nódulos Tireoidianos e Câncer de Tireoide (ACR TI-RADS e ATA)**:
+    - Algoritmo determinístico de estratificação de risco ultrassonográfico TI-RADS (1 a 5).
+    - Indicação de PAAF (Punção Aspirativa por Agulha Fina) beira-leito baseada no tamanho do nódulo e características suspeitas (microcalcificações, margens irregulares, hipoecogenicidade).
+
+118. [ ] **Gastroenterologia - Manejo de Cirrose Hepática e Complicações (Encefalopatia e Síndrome Hepatorrenal)**:
+    - Protocolos beira-leito para diagnóstico e estadiamento de Encefalopatia Hepática (Critérios de West Haven).
+    - Manejo farmacológico escalonado (Lactulose, Rifaximina) e critérios da ICA (International Club of Ascites) revisados para Lesão Renal Aguda na Cirrose e Síndrome Hepatorrenal (indicação de Terlipressina + Albumina).
+
+119. [ ] **Terapia Intensiva - Predição de Desmame Vasopressor (Vasoactive-Inotropic Score - VIS)**:
+    - Cálculo automatizado e contínuo da carga vasopressora/inotrópica total (Noradrenalina, Adrenalina, Vasopressina, Dobutamina, Milrinona).
+    - Painel visual de tendência de 24h para guiar o desmame seguro e progressivo de DVA em choque distributivo (foco em sobrevida na Sepse).
