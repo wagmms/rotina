@@ -104,3 +104,79 @@ def test_do_get_rotas_cockpit_e_fila():
     out = json.loads(run_node(js))
     assert out["viewPadrao"] == "CockpitApp"
     assert out["viewBio"] == "ComposicaoCorporal"
+
+
+def test_cockpit_leitos_responsividade_e_censo():
+    """Valida a presença de triagem visual, censo hospitalar, busca e chips de status rápido."""
+    html_path = BASE_DIR / "cockpit_movel.html"
+    conteudo = html_path.read_text(encoding="utf-8")
+
+    # Censo hospitalar e indicadores em tempo real
+    assert 'id="censo-leitos-metricas"' in conteudo
+    assert 'id="censo-total-ocupados"' in conteudo
+    assert 'id="censo-total-instavel"' in conteudo
+    assert 'id="censo-total-vigilancia"' in conteudo
+    assert 'id="censo-total-estavel"' in conteudo
+
+    # Busca e filtros por gravidade
+    assert 'id="busca-leitos"' in conteudo
+    assert 'id="btn-limpar-busca-leitos"' in conteudo
+    assert 'id="filtro-leitos-chips"' in conteudo
+    assert "definirFiltroLeito('todos'" in conteudo
+    assert "definirFiltroLeito('instavel'" in conteudo
+    assert "definirFiltroLeito('vigilancia'" in conteudo
+    assert "definirFiltroLeito('estavel'" in conteudo
+    assert "definirFiltroLeito('alta'" in conteudo
+
+    # Funções de gestão de leitos
+    assert "filtrarLeitos" in conteudo
+    assert "alterarStatusLeitoRapido" in conteudo
+    assert "copiarSBARLeitoIndividual" in conteudo
+    assert "prepararPrescricaoParaLeito" in conteudo
+
+
+def test_cockpit_prescricao_rapida_e_kits():
+    """Valida a bandeja de prescrição rápida beira-leito, kits clínicos e categorias farmacológicas."""
+    html_path = BASE_DIR / "cockpit_movel.html"
+    conteudo = html_path.read_text(encoding="utf-8")
+
+    # Bandeja e kits de prescrição rápida
+    assert 'id="card-prescricao-rapida"' in conteudo
+    assert 'id="prescricao-itens-contagem"' in conteudo
+    assert 'id="prescricao-itens-container"' in conteudo
+    assert "copiarPrescricaoRapidaFormatada" in conteudo
+    assert "limparPrescricaoRapida" in conteudo
+
+    # Kits clínicos em 1 toque
+    assert "adicionarKitPrescricao('sintomaticos')" in conteudo
+    assert "adicionarKitPrescricao('profilaxia')" in conteudo
+    assert "adicionarKitPrescricao('hidratacao')" in conteudo
+    assert "adicionarKitPrescricao('analgesia_forte')" in conteudo
+
+    # Categorias farmacológicas do REMUME
+    assert 'id="filtro-remume-categorias"' in conteudo
+    assert "definirCategoriaRemume('todas'" in conteudo
+    assert "definirCategoriaRemume('antimicrobianos'" in conteudo
+    assert "definirCategoriaRemume('analgesia'" in conteudo
+    assert "definirCategoriaRemume('cardio'" in conteudo
+    assert "definirCategoriaRemume('gastro'" in conteudo
+    assert "definirCategoriaRemume('psico'" in conteudo
+    assert "definirCategoriaRemume('diabetes'" in conteudo
+    assert "definirCategoriaRemume('respiratorio'" in conteudo
+    assert "REMUME_CATEGORIAS_KEYWORDS" in conteudo
+
+    # Atalho na aba SOAP
+    assert 'Prescrição Rápida' in conteudo
+
+
+def test_cockpit_sincronizacao_deploy_gh_pages():
+    """Valida que o arquivo de deploy em gh_cockpit_deploy/index.html é idêntico a cockpit_movel.html."""
+    html_source = BASE_DIR / "cockpit_movel.html"
+    html_deploy = BASE_DIR / "gh_cockpit_deploy/index.html"
+
+    assert html_source.exists(), "cockpit_movel.html ausente"
+    assert html_deploy.exists(), "gh_cockpit_deploy/index.html ausente"
+    assert html_source.read_text(encoding="utf-8") == html_deploy.read_text(encoding="utf-8"), (
+        "cockpit_movel.html e gh_cockpit_deploy/index.html devem ter conteúdo exatamente idêntico."
+    )
+
