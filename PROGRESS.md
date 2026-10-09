@@ -210,7 +210,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Terapia Expulsiva Médica (MET): indicação de Tansulosina 0.4mg para cálculos de ureter distal de 5 a 10 mm.
     - Checklist de gravidade com indicação de descompressão cirúrgica de urgência (duplo J ou nefrostomia percutânea) em rim único, sepse urinária obstrutiva ou anúria.
 
-42. [ ] **Pediatria de Emergência - Manejo da Bronquiolite Viral Aguda (Diretrizes SBP / AAP)**:
+42. [x] **Pediatria de Emergência - Manejo da Bronquiolite Viral Aguda (Diretrizes SBP / AAP)**:
     - Estratificação de gravidade clínica e desconforto respiratório (escore de Wood-Downes modificado).
     - Recomendações estritas de NÃO indicação rotineira de broncodilatadores (salbutamol), corticoides sistêmicos ou antibióticos em casos típicos (evitando sobretratamento desnecessário).
     - Critérios objetivos de oxigenoterapia com cânula nasal de alto fluxo (CNAF), hidratação isotônica venosa e internação em UTI pediátrica.
@@ -1180,3 +1180,17 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 140. [ ] **Reumatologia - Artrite Séptica e Manejo Inicial da Gota Aguda (ACR/EULAR)**:
     - Interpretação rápida do líquido sinovial (contagem global de células > 50.000, PMN > 90%, glicose baixa).
     - Protocolo da Gota aguda: Colchicina + AINE ou Corticoide intra-articular/sistêmico, contraindicação formal a início ou ajuste de Alopurinol durante a crise.
+
+141. [ ] **Pediatria - Reanimação Neonatal em Sala de Parto (Diretrizes PRN/SBP 2022-2026)**:
+    - Motor de suporte minuto de ouro (Golden Minute) para avaliação de vitalidade (tônus e respiração).
+    - Protocolo guiado passo-a-passo: VPP (Ventilação com Pressão Positiva), indicações rigorosas de intubação endotraqueal, e reanimação avançada (massagem cardíaca e adrenalina).
+    - Alertas críticos: contraindicação de aspiração de mecônio de rotina em RN vigoroso.
+
+142. [ ] **Ginecologia - Diagnóstico e Manejo da Doença Inflamatória Pélvica (DIP - CDC/Ministério da Saúde)**:
+    - Escore clínico determinístico para critérios maiores (dor em hipogástrio, anexos e mobilização do colo) e menores.
+    - Protocolo ambulatorial (Ceftriaxona IM + Doxiciclina + Metronidazol) vs Internação (Cefoxitina IV + Doxiciclina).
+    - Critérios claros de falha terapêutica e indicação de abordagem cirúrgica para abscesso tubo-ovariano.
+
+143. [ ] **Emergência Clínica - Manejo da Anafilaxia (Diretrizes WAO)**:
+    - Identificação beira-leito do choque anafilático com critérios cutâneos, respiratórios e cardiovasculares.
+    - Administração hiperprecoce de Adrenalina IM (0.01 mg/kg, máx 0.5 mg) no vasto lateral da coxa, sem atrasos por espera de corticoides ou anti-histamínicos (fármacos de 2ª/3ª linha).

@@ -861,8 +861,7 @@ module.exports = {
         _rpcMap.cockpitFibrilacaoAtrial = ctx.cockpitFibrilacaoAtrial || ctx.cockpitCardiologiaFaAnticoagulacao;
         _rpcMap.cockpitUrologiaColicaNefretica = ctx.cockpitUrologiaColicaNefretica;
         _rpcMap.cockpitColicaNefretica = ctx.cockpitColicaNefretica || ctx.cockpitUrologiaColicaNefretica;
-                _rpcMap.cockpitUrologiaColicaNefretica = ctx.cockpitUrologiaColicaNefretica;
-        _rpcMap.cockpitColicaNefretica = ctx.cockpitColicaNefretica || ctx.cockpitUrologiaColicaNefretica;
+        _rpcMap.cockpitPediatriaBronquiolite = ctx.cockpitPediatriaBronquiolite;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

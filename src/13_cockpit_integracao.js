@@ -1976,3 +1976,28 @@ function cockpitUrologiaColicaNefretica(initData, params) {
 function cockpitColicaNefretica(initData, params) {
   return cockpitUrologiaColicaNefretica(initData, params);
 }
+
+function cockpitPediatriaBronquiolite(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Bronquiolite não fornecidos.');
+  if (typeof PediatriaBronquioliteService === 'undefined') {
+    throw new Error('Serviço PediatriaBronquioliteService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? PediatriaBronquioliteService.extrairParametrosTexto(params)
+    : (params.texto ? PediatriaBronquioliteService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = PediatriaBronquioliteService.avaliar(entrada);
+  var texto = PediatriaBronquioliteService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports.cockpitPediatriaBronquiolite = cockpitPediatriaBronquiolite;
+}

@@ -1743,6 +1743,34 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // PEDIATRIA: BRONQUIOLITE VIRAL AGUDA
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/bronquiolite" || comando === "/bva" || comando === "/bronquioliteviral") {
+    var dadosBronq = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof PediatriaBronquioliteService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PediatriaBronquioliteService indisponível temporariamente.");
+    }
+
+    if (!dadosBronq) {
+      return enviarMensagemParaChat(chatId, "👶 *PEDIATRIA — BRONQUIOLITE VIRAL AGUDA*\n\n" +
+        "Envie os dados clínicos para avaliação de gravidade, suporte respiratório e venoso:\n" +
+        "• *Idade e Peso:* `6 meses`, `8 kg`\n" +
+        "• *Sinais Vitais:* `FR 65`, `SpO2 88`\n" +
+        "• *Exame Físico:* `tiragem moderada`, `gemência`, `exaustão`, `sibilos difusos`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/bronquiolite 6 meses 8kg FR 45 SpO2 96 tiragem leve sibilos` *(Leve)*\n" +
+        "• `/bronquiolite 2 meses 5kg FR 70 SpO2 89 exaustao` *(Grave/UTI/NPO)*");
+    }
+
+    try {
+      var paramsBronq = PediatriaBronquioliteService.extrairParametrosTexto(dadosBronq);
+      var analiseBronq = PediatriaBronquioliteService.avaliar(paramsBronq);
+      return enviarMensagemParaChat(chatId, PediatriaBronquioliteService.formatarTextoTelegram(analiseBronq));
+    } catch (eBronq) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Bronquiolite: " + eBronq.message);
+    }
+  }
+
   // UROLOGIA & NEFROLOGIA: CÓLICA NEFRÉTICA E LITÍASE URINÁRIA
   // ───────────────────────────────────────────────────────────────────────────
   if (comando === "/colica" || comando === "/litiase" || comando === "/pedranorim" || comando === "/calculorenal") {
