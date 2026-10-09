@@ -15,16 +15,21 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
 
+  <!-- Preconnect CDNs para acelerar FCP e conexões móveis hospitalares -->
+  <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://telegram.org" crossorigin>
+
   <!-- Telegram WebApp SDK Oficial -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Tailwind CSS via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons via CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Chart.js via CDN para gráficos da aba Corpo -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Dexie.js (IndexedDB moderno) para Modo Plantão sem Sinal -->
-  <script src="https://cdn.jsdelivr.net/npm/dexie@4.0.11/dist/dexie.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/dexie@4.0.11/dist/dexie.min.js"></script>
+  <!-- Chart.js carregado sob demanda (lazy-loading) na aba Perfil para acelerar FCP em 0ms -->
 
   <script>
     tailwind.config = {
@@ -75,10 +80,15 @@
       background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%);
       border: 1px solid rgba(34, 197, 94, 0.28);
     }
-    /* Estilos táteis */
+    /* Estilos táteis e prevenção de zoom indesejado no mobile (iOS/Android) */
     button, .tap-card {
       -webkit-tap-highlight-color: transparent;
       user-select: none;
+    }
+    @media screen and (max-width: 768px) {
+      input, select, textarea {
+        font-size: 16px !important;
+      }
     }
   </style>
 </head>
@@ -96,7 +106,7 @@
             <span class="font-bold text-sm text-white tracking-tight">Cockpit Móvel</span>
             <span class="text-[10px] px-1.5 py-0.2 rounded bg-brand-500/10 text-brand-400 font-mono">v2.5</span>
           </div>
-          <p class="text-[11px] text-slate-400" id="header-subtitle">Corpo & Composição</p>
+          <p class="text-[11px] text-slate-400" id="header-subtitle">SOAP & Copiloto</p>
         </div>
       </div>
 
@@ -301,8 +311,8 @@
           <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-brand-400"></i> Registrar Nova Pesagem
         </h4>
         <div class="flex items-center gap-2">
-          <input type="number" step="0.1" id="input-novo-peso" placeholder="Peso (kg)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 w-full font-mono">
-          <input type="number" step="0.1" id="input-novo-bf" placeholder="BF%" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 w-20 font-mono">
+          <input type="number" step="0.1" id="input-novo-peso" placeholder="Peso (kg)" inputmode="decimal" autocomplete="off" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 w-full font-mono">
+          <input type="number" step="0.1" id="input-novo-bf" placeholder="BF%" inputmode="decimal" autocomplete="off" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-brand-500 w-20 font-mono">
           <button onclick="salvarPesagem()" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shrink-0 transition flex items-center gap-1">
             <i data-lucide="check" class="w-3.5 h-3.5"></i> Salvar
           </button>
@@ -326,23 +336,23 @@
         <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
           <div>
             <label class="text-[9.5px] text-slate-400 block mb-0.5">Peitoral (mm)</label>
-            <input type="number" step="0.5" id="antropo-peitoral" value="5.0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono">
+            <input type="number" step="0.5" id="antropo-peitoral" value="5.0" inputmode="decimal" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono">
           </div>
           <div>
             <label class="text-[9.5px] text-slate-400 block mb-0.5">Abdômen (mm)</label>
-            <input type="number" step="0.5" id="antropo-abdome" value="22.0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono">
+            <input type="number" step="0.5" id="antropo-abdome" value="22.0" inputmode="decimal" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono">
           </div>
           <div>
             <label class="text-[9.5px] text-slate-400 block mb-0.5">Coxa (mm)</label>
-            <input type="number" step="0.5" id="antropo-coxa" value="13.0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono">
+            <input type="number" step="0.5" id="antropo-coxa" value="13.0" inputmode="decimal" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono">
           </div>
           <div>
             <label class="text-[9.5px] text-slate-400 block mb-0.5">Cintura (cm)</label>
-            <input type="number" step="0.5" id="antropo-cintura" value="82.0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono">
+            <input type="number" step="0.5" id="antropo-cintura" value="82.0" inputmode="decimal" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono">
           </div>
           <div>
             <label class="text-[9.5px] text-slate-400 block mb-0.5">Pescoço (cm)</label>
-            <input type="number" step="0.5" id="antropo-pescoco" value="37.0" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono">
+            <input type="number" step="0.5" id="antropo-pescoco" value="37.0" inputmode="decimal" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white font-mono">
           </div>
         </div>
         <div id="antropo-resultado-painel" class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
@@ -784,7 +794,7 @@
             <i data-lucide="scale" class="w-3 h-3 text-brand-400"></i> Peso do Paciente (kg) p/ doses:
           </label>
           <div class="flex items-center gap-1.5">
-            <input type="number" id="usprp-peso" placeholder="Ex: 70" oninput="recalcularDosesProtocoloUsp()" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white font-mono text-center text-xs">
+            <input type="number" step="0.5" id="usprp-peso" placeholder="Ex: 70" inputmode="decimal" autocomplete="off" oninput="recalcularDosesProtocoloUsp()" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-white font-mono text-center text-xs">
             <span class="text-slate-400 text-[11px]">kg</span>
           </div>
         </div>
@@ -839,7 +849,7 @@
         <div class="grid grid-cols-2 gap-2 text-xs">
           <div>
             <label class="block text-slate-300 mb-1">Peso do Paciente (kg):</label>
-            <input type="number" id="dva-peso" placeholder="Informe" oninput="calcularDVA()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+            <input type="number" step="0.5" id="dva-peso" placeholder="Informe" inputmode="decimal" autocomplete="off" oninput="calcularDVA()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
           </div>
           <div>
             <label class="block text-slate-300 mb-1">Droga:</label>
@@ -869,7 +879,7 @@
         <div class="grid grid-cols-2 gap-2 text-xs">
           <div>
             <label class="block text-slate-300 mb-1">Peso (kg):</label>
-            <input type="number" id="sri-peso" placeholder="Informe" oninput="calcularSRI()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+            <input type="number" step="0.5" id="sri-peso" placeholder="Informe" inputmode="decimal" autocomplete="off" oninput="calcularSRI()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
           </div>
           <div>
             <label class="block text-slate-300 mb-1">Cenário Clínico:</label>
@@ -937,15 +947,15 @@
           <div class="grid grid-cols-3 gap-2">
             <div>
               <label class="block text-slate-300 mb-1 font-semibold">SpO₂ (%):</label>
-              <input type="number" id="asma-spo2" value="89" min="40" max="100" oninput="calcularAsmaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
+              <input type="number" id="asma-spo2" value="89" min="40" max="100" inputmode="numeric" autocomplete="off" oninput="calcularAsmaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
             </div>
             <div>
               <label class="block text-slate-300 mb-1 font-semibold">FR (irpm):</label>
-              <input type="number" id="asma-fr" value="32" min="8" max="70" oninput="calcularAsmaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
+              <input type="number" id="asma-fr" value="32" min="8" max="70" inputmode="numeric" autocomplete="off" oninput="calcularAsmaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
             </div>
             <div>
               <label class="block text-slate-300 mb-1 font-semibold">FC (bpm):</label>
-              <input type="number" id="asma-fc" value="122" min="30" max="220" oninput="calcularAsmaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
+              <input type="number" id="asma-fc" value="122" min="30" max="220" inputmode="numeric" autocomplete="off" oninput="calcularAsmaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
             </div>
           </div>
 
@@ -953,11 +963,11 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-slate-300 mb-1 font-semibold">Peso (kg):</label>
-              <input type="number" step="0.5" id="asma-peso" value="70" oninput="calcularAsmaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
+              <input type="number" step="0.5" id="asma-peso" value="70" inputmode="decimal" autocomplete="off" oninput="calcularAsmaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
             </div>
             <div>
               <label class="block text-slate-300 mb-1 font-semibold">Idade (anos):</label>
-              <input type="number" id="asma-idade" value="30" min="1" max="110" oninput="calcularAsmaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
+              <input type="number" id="asma-idade" value="30" min="1" max="110" inputmode="numeric" autocomplete="off" oninput="calcularAsmaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
             </div>
           </div>
 
@@ -1003,15 +1013,15 @@
         <div class="grid grid-cols-3 gap-2 text-xs">
           <div>
             <label class="block text-slate-300 mb-1">Idade:</label>
-            <input type="number" id="cr-idade" placeholder="Informe" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
+            <input type="number" id="cr-idade" placeholder="Informe" inputmode="numeric" autocomplete="off" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
           </div>
           <div>
             <label class="block text-slate-300 mb-1">Peso (kg):</label>
-            <input type="number" id="cr-peso" placeholder="Informe" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
+            <input type="number" step="0.5" id="cr-peso" placeholder="Informe" inputmode="decimal" autocomplete="off" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
           </div>
           <div>
             <label class="block text-slate-300 mb-1">Creatinina (mg/dL):</label>
-            <input type="number" step="0.1" id="cr-val" placeholder="Informe" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
+            <input type="number" step="0.1" id="cr-val" placeholder="Informe" inputmode="decimal" autocomplete="off" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
           </div>
         </div>
         <div class="flex items-center gap-4 text-xs">
@@ -1060,7 +1070,7 @@
           <div>
             <label class="block text-slate-300 mb-1 font-medium">Clearance de Creatinina (mL/min):</label>
             <div class="flex gap-2">
-              <input type="number" id="atb-clcr" placeholder="Ex: 25" oninput="calcularAtbCockpit()" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+              <input type="number" id="atb-clcr" placeholder="Ex: 25" inputmode="decimal" autocomplete="off" oninput="calcularAtbCockpit()" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
               <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-800/80 px-2 rounded-lg border border-slate-700 cursor-pointer">
                 <input type="checkbox" id="atb-hd" onchange="calcularAtbCockpit()"> HD
               </label>
@@ -1112,7 +1122,7 @@
           </div>
           <div>
             <label class="block text-slate-300 mb-1 font-medium">Peso do Paciente (kg):</label>
-            <input type="number" id="dhe-peso" placeholder="Ex: 70" value="70" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+            <input type="number" step="0.5" id="dhe-peso" placeholder="Ex: 70" value="70" inputmode="decimal" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
           </div>
         </div>
 
@@ -1121,7 +1131,7 @@
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div>
               <label class="block text-slate-300 mb-1">Na+ Atual (mEq/L):</label>
-              <input type="number" id="dhe-na-atual" placeholder="Ex: 118" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+              <input type="number" id="dhe-na-atual" placeholder="Ex: 118" inputmode="decimal" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
             </div>
             <div>
               <label class="block text-slate-300 mb-1">Solução:</label>
@@ -1132,7 +1142,7 @@
             </div>
             <div>
               <label class="block text-slate-300 mb-1">Idade (anos):</label>
-              <input type="number" id="dhe-idade" placeholder="Ex: 50" value="50" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+              <input type="number" id="dhe-idade" placeholder="Ex: 50" value="50" inputmode="numeric" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
             </div>
             <div>
               <label class="block text-slate-300 mb-1">Sexo:</label>
@@ -1157,7 +1167,7 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-slate-300 mb-1">K+ Sérico (mEq/L):</label>
-              <input type="number" step="0.1" id="dhe-k-atual" placeholder="Ex: 6.8" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+              <input type="number" step="0.1" id="dhe-k-atual" placeholder="Ex: 6.8" inputmode="decimal" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
             </div>
             <div class="flex items-center pt-5">
               <label class="flex items-center gap-2 text-xs text-rose-300 bg-rose-950/40 px-3 py-1.5 rounded-lg border border-rose-800/60 cursor-pointer">
@@ -1181,11 +1191,11 @@
           <div class="grid grid-cols-3 gap-2">
             <div>
               <label class="block text-slate-300 mb-1">Na+ Atual (mEq/L):</label>
-              <input type="number" id="dhe-na-hiper" placeholder="Ex: 158" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+              <input type="number" id="dhe-na-hiper" placeholder="Ex: 158" inputmode="decimal" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
             </div>
             <div>
               <label class="block text-slate-300 mb-1">Idade (anos):</label>
-              <input type="number" id="dhe-hiper-idade" placeholder="Ex: 60" value="60" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+              <input type="number" id="dhe-hiper-idade" placeholder="Ex: 60" value="60" inputmode="numeric" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
             </div>
             <div>
               <label class="block text-slate-300 mb-1">Sexo:</label>
@@ -1241,15 +1251,15 @@
         <div class="grid grid-cols-3 gap-2 text-xs">
           <div>
             <label class="block text-slate-300 mb-1 font-semibold">pH:</label>
-            <input type="number" step="0.01" id="gaso-ph" placeholder="Ex: 7.24" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
+            <input type="number" step="0.01" id="gaso-ph" placeholder="Ex: 7.24" inputmode="decimal" autocomplete="off" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
           </div>
           <div>
             <label class="block text-slate-300 mb-1 font-semibold">pCO₂ (mmHg):</label>
-            <input type="number" step="0.1" id="gaso-pco2" placeholder="Ex: 28" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
+            <input type="number" step="0.1" id="gaso-pco2" placeholder="Ex: 28" inputmode="decimal" autocomplete="off" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
           </div>
           <div>
             <label class="block text-slate-300 mb-1 font-semibold">HCO₃⁻ (mEq/L):</label>
-            <input type="number" step="0.1" id="gaso-hco3" placeholder="Ex: 12" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
+            <input type="number" step="0.1" id="gaso-hco3" placeholder="Ex: 12" inputmode="decimal" autocomplete="off" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
           </div>
         </div>
 
@@ -1268,15 +1278,15 @@
             <div class="grid grid-cols-3 gap-2 text-xs">
               <div>
                 <label class="block text-slate-300 mb-1 text-[11px]">Na⁺ (mEq/L):</label>
-                <input type="number" step="0.5" id="gaso-na" placeholder="Ex: 138" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
+                <input type="number" step="0.5" id="gaso-na" placeholder="Ex: 138" inputmode="decimal" autocomplete="off" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
               </div>
               <div>
                 <label class="block text-slate-300 mb-1 text-[11px]">Cl⁻ (mEq/L):</label>
-                <input type="number" step="0.5" id="gaso-cl" placeholder="Ex: 102" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
+                <input type="number" step="0.5" id="gaso-cl" placeholder="Ex: 102" inputmode="decimal" autocomplete="off" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
               </div>
               <div>
                 <label class="block text-slate-300 mb-1 text-[11px]">Albumina (g/dL):</label>
-                <input type="number" step="0.1" id="gaso-alb" placeholder="Ex: 4.0" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
+                <input type="number" step="0.1" id="gaso-alb" placeholder="Ex: 4.0" inputmode="decimal" autocomplete="off" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
               </div>
             </div>
 
@@ -1284,11 +1294,11 @@
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <label class="block text-slate-300 mb-1 text-[11px]">PaO₂ (mmHg):</label>
-                <input type="number" step="1" id="gaso-pao2" placeholder="Ex: 75" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
+                <input type="number" step="1" id="gaso-pao2" placeholder="Ex: 75" inputmode="numeric" autocomplete="off" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
               </div>
               <div>
                 <label class="block text-slate-300 mb-1 text-[11px]">FiO₂ (% ou 0.21-1.0):</label>
-                <input type="number" step="1" id="gaso-fio2" placeholder="Ex: 21 ou 50" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
+                <input type="number" step="0.01" id="gaso-fio2" placeholder="Ex: 21 ou 50" inputmode="decimal" autocomplete="off" oninput="calcularGaso()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono text-center">
               </div>
             </div>
           </div>
@@ -1356,7 +1366,7 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-slate-300 mb-1 font-semibold">3. Idade (A):</label>
-              <input type="number" id="heart-idade" value="62" min="18" max="110" oninput="calcularHeartCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
+              <input type="number" id="heart-idade" value="62" min="18" max="110" inputmode="numeric" autocomplete="off" oninput="calcularHeartCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
               <span class="text-[10px] text-slate-400 block mt-0.5">&lt;45 (0), 45-64 (1), &gt;=65 (2)</span>
             </div>
             <div>
@@ -1438,7 +1448,7 @@
         <div class="grid grid-cols-2 gap-2 text-xs">
           <div>
             <label class="block text-slate-300 mb-1">Peso da Criança (kg):</label>
-            <input type="number" step="0.1" id="ped-peso" placeholder="Ex: 12" oninput="calcularPediatriaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+            <input type="number" step="0.1" id="ped-peso" placeholder="Ex: 12" inputmode="decimal" autocomplete="off" oninput="calcularPediatriaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
           </div>
           <div>
             <label class="block text-slate-300 mb-1">Módulo / Protocolo:</label>
@@ -3664,9 +3674,13 @@
       }
       if (tabId === 'tab-soap' || tabId === 'tab-leitos') carregarLeitos();
       if (tabId === 'tab-remume') carregarRemume();
+      if (tabId === 'tab-calculadoras') configurarTecladosCalculadoras();
       if (tabId === 'tab-corpo' || tabId === 'tab-rotina') {
         carregarPerfil();
-        if (tabId === 'tab-corpo') inicializarPlanoNutricional();
+        if (tabId === 'tab-corpo') {
+          inicializarPlanoNutricional();
+          inicializarGraficoCorpo();
+        }
       }
       if (tabId === 'tab-aulas') carregarAulas();
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -11310,10 +11324,47 @@
       }
     }
 
-    // 7. Gráfico da Aba Corpo
-    function inicializarGraficoCorpo() {
-      const ctx = document.getElementById('graficoCorpoEvolucao')?.getContext('2d');
+    // 7. Gráfico da Aba Corpo com Lazy Loading de Chart.js
+    let _promessaChartJs = null;
+    let _instanciaGraficoCorpo = null;
+
+    function carregarChartJsLazy() {
+      if (window.Chart) return Promise.resolve(window.Chart);
+      if (_promessaChartJs) return _promessaChartJs;
+      _promessaChartJs = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.async = true;
+        script.onload = () => resolve(window.Chart);
+        script.onerror = (err) => {
+          _promessaChartJs = null;
+          reject(err);
+        };
+        document.head.appendChild(script);
+      });
+      return _promessaChartJs;
+    }
+
+    async function inicializarGraficoCorpo() {
+      const canvas = document.getElementById('graficoCorpoEvolucao');
+      if (!canvas) return;
+
+      if (!window.Chart) {
+        try {
+          await carregarChartJsLazy();
+        } catch (e) {
+          console.warn('[Cockpit] Falha ao carregar Chart.js lazy:', e);
+          return;
+        }
+      }
+
+      const ctx = canvas.getContext('2d');
       if (!ctx) return;
+
+      if (_instanciaGraficoCorpo) {
+        _instanciaGraficoCorpo.destroy();
+        _instanciaGraficoCorpo = null;
+      }
 
       // Dados reais longitudinais: InBody 270 (Jul, Ago, Set) + Antropometria (Out) + Atual
       const labels = ['22/Jul (InBody)', '21/Ago (InBody)', '24/Set (InBody)', '04/Out (Antropo)', 'Hoje (74kg)'];
@@ -11321,7 +11372,7 @@
       const massasMagra = [38.4, 37.6, 37.4, 37.2, 37.1];
       const massasGordura = [16.4, 13.5, 11.8, 9.8, 9.2];
 
-      new Chart(ctx, {
+      _instanciaGraficoCorpo = new Chart(ctx, {
         type: 'line',
         data: {
           labels: labels,
@@ -12136,7 +12187,29 @@
         });
       }
 
-      if (window.lucide?.createIcons) lucide.createIcons();
+      if (window.lucide?.createIcons) lucide.createIcons({ root: refeicoesContainer });
+    }
+
+    // Ergonomia de Teclados e Foco Móvel nas Calculadoras Clínicas
+    function configurarTecladosCalculadoras() {
+      document.querySelectorAll('.subcalc-pane input[type="number"], .subcalc-pane select').forEach(campo => {
+        if (campo.dataset.tecladoConfigurado) return;
+        campo.dataset.tecladoConfigurado = 'true';
+        campo.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const painel = campo.closest('.subcalc-pane');
+            if (!painel) return;
+            const campos = Array.from(painel.querySelectorAll('input[type="number"], select'));
+            const idx = campos.indexOf(campo);
+            if (idx !== -1 && idx < campos.length - 1) {
+              campos[idx + 1].focus();
+            } else {
+              campo.blur();
+            }
+          }
+        });
+      });
     }
 
     // Inicialização ao carregar
@@ -12145,16 +12218,15 @@
       atualizarIndicadorRede();
       processarFilaSincronizacao(true);
 
-      // Carrega dados clínicos e perfil ao iniciar
+      // Carrega dados clínicos e perfil ao iniciar (abas ocultas carregam sob demanda)
       renderizarPrescricaoItens();
       carregarLeitos();
       carregarPerfil();
-      inicializarPlanoNutricional();
+      configurarTecladosCalculadoras();
       ['dva-resultado','sri-resultado','crcl-resultado','gaso-resultado'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.textContent = 'Informe os parâmetros para calcular.';
       });
-      inicializarGraficoCorpo();
       renderizarProtocoloUsp();
       renderizarPontoCegoPlantao();
       const inputConversa = document.getElementById('input-conversa-texto');
@@ -15397,7 +15469,8 @@
 
     function carregarAulas() {
       inicializarAulas();
-      lucide.createIcons();
+      const tabAulas = document.getElementById('tab-aulas');
+      if (window.lucide?.createIcons && tabAulas) lucide.createIcons({ root: tabAulas });
     }
 
     function atualizarProgressoGeral() {
@@ -15434,7 +15507,6 @@
         }
       });
       renderizarCatalogoAulas();
-      if (window.lucide) lucide.createIcons();
     }
 
     let buscaAulasTimeout = null;
@@ -15598,7 +15670,7 @@
       });
 
       container.innerHTML = htmlModulos;
-      lucide.createIcons();
+      if (window.lucide?.createIcons) lucide.createIcons({ root: container });
     }
 
     function abrirAulaFlash(aulaId) {
@@ -15666,7 +15738,7 @@
 
       // Rola suavemente até o player
       playerContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (window.lucide) lucide.createIcons();
+      if (window.lucide?.createIcons) lucide.createIcons({ root: playerContainer });
     }
 
     function fecharPlayer() {

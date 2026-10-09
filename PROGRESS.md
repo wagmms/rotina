@@ -9,23 +9,21 @@
 4. **Eficiência Máxima Sem Perda de Rigor Teórico**: Tornar o código mais rápido, enxuto e eficiente, preservando intacta a qualidade teórica, a precisão científica dos cálculos e as diretrizes clínicas.
 5. **Documentação de Sugestões para o Futuro**: Conforme as funções forem analisadas e testadas, registrar ideias de evolução e melhorias futuras na seção dedicada `## 💡 Sugestões de Melhorias Futuras` (exclusivamente como documentação de sugestões, sem desviar a execução para implementação de novas features agora).
 
-- *Sugestão 11 (Backend)*: Implementar @fastify/rate-limit para proteger rotas HTTP e RPC contra chamadas excessivas ou DDoS de aplicações externas.
-- *Sugestão 12 (Backend)*: Implementar @fastify/helmet para adicionar headers automáticos de segurança nas requisições HTTP públicas e endpoints Webhook.
-- *Sugestão 13 (Backend)*: Utilizar schemas JSON para os retornos mais frequentes do Cockpit (ex: censo de leitos) para permitir a compilação nativa ultra-rápida do fast-json-stringify, reduzindo CPU spikes.
-
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Otimização de Carga e Lazy Loading no Cockpit PWA**:
-    - Analisar empacotamento e carregamento de componentes pesados no Cockpit para plantões de baixa conectividade.
+- [ ] **Otimização de Caching HTTP (ETag / Stale-While-Revalidate) para Endpoints Estáticos no Fastify**:
+    - Avaliar headers HTTP de Cache-Control e ETag para endpoints de catálogo estático (`/api/cockpit` para REMUME e aulas) para economizar dados móveis de médicos em redes 3G/4G hospitalares.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Auditoria de Teclados e Feedback Tátil no Cockpit Móvel**:
-    - Melhorar a transição de foco e teclado virtual numérico em inputs de calculadoras clínicas para evitar rolagem indesejada da tela em iOS/Android.
+1. [ ] **Rate-Limiting e Headers de Segurança no Fastify**:
+    - Implementar `@fastify/rate-limit` e `@fastify/helmet` para proteger endpoints HTTP contra chamadas abusivas e reforçar cabeçalhos de segurança sem degradar latência.
+2. [ ] **Auditoria de Acessibilidade e Contraste de Cores nos Cards de Alertas Clínicos do Cockpit**:
+    - Garantir conformidade WCAG AA em alertas críticos (Sala Vermelha / HC-UE) e cartões de salvaguarda para visibilidade sob luz solar e telas de baixa luminosidade.
 
 ---
 
@@ -41,7 +39,7 @@
 - *Sugestão 7 (Telegram - Farmacologia)*: Botão inline de checagem imediata de diluição e compatibilidade em Y no Guia Farmacêutico HSL quando uma droga vasoativa (ex: Noradrenalina ou Dobutamina) for calculada via `/dva`.
 - *Sugestão 8 (Cockpit / PWA)*: Sincronização em segundo plano (Background Sync API) com fila outbox no IndexedDB para envio automático de prescrições e atualizações de leitos assim que o dispositivo recuperar conexão de rede após áreas de sombra no hospital.
 - *Sugestão 9 (Cockpit PWA)*: Tema "Plantão Noturno / Sala Escura" com fundo OLED puro (#000000) e tipografia em tons de âmbar/vermelho escuro para conforto visual e conservação de bateria no plantão da madrugada.
-- *Sugestão 10 (Calculadoras / Cockpit)*: Calculadora integrada de reposição de Magnésio e Fósforo IV para prevenção e manejo precoce da Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado na enfermaria/UTI.
+- *Sugestão 10 (Calculadoras / Cockpit)*: Calculadora integrada de reposição de Magnésio e Fósforo IV para prevenção e manejo precoce da根 Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado na enfermaria/UTI.
 - *Sugestão 11 (Calculadoras)*: Implementar validação cruzada entre clearance estimado (Cockcroft) e eTFG (CKD-EPI) ao gerar alertas de ajuste renal para evidenciar discrepâncias em obesos e sarcopênicos.
 - *Sugestão 12 (Gasometria)*: Adicionar cálculo visual do triângulo de Siggaard-Andersen para auxiliar o médico na compreensão do desvio de base.
 - *Sugestão 14 (Telegram - Mensagens Longas)*: Adicionar botão inline automático "📄 Ver Resumo Completo no Cockpit PWA" quando uma conduta for fragmentada em 3 ou mais partes, oferecendo opção de leitura contínua sem rolagem infinita.
@@ -50,10 +48,35 @@
 - *Sugestão 17 (Backend / Telemetria)*: Implementar exportação Prometheus / OpenTelemetry (`/metrics`) com gauges e histogramas padronizados de latência de IA multimodal e tempo de resposta do Fastify para dashboards externos (Grafana/Datadog).
 - *Sugestão 18 (Backend / Resiliência)*: Circuit Breaker determinístico com estados Closed/Open/Half-Open para chamadas de provedores LLM externos (Gemini/Groq/OpenRouter), evitando retenção de conexões e travamento de threads em casos de timeout prolongado da API externa.
 - *Sugestão 19 (Cockpit PWA / Telemetria)*: Envio assíncrono em lote (Beacon API / navigator.sendBeacon) de métricas de telemetria de performance do frontend (Web Vitals: LCP, FID, CLS e latência de toque nos cards) diretamente para `/api/telemetria/ao-vivo` no encerramento ou pausa de sessão do plantão.
+- *Sugestão 20 (Cockpit PWA)*: Implementar Web Share API para compartilhamento seguro de prescrições e orientações de alta via WhatsApp ou PDF diretamente pelo dispositivo móvel.
+- *Sugestão 21 (Cockpit / Calculadoras)*: Implementar histórico local dos últimos 5 cálculos realizados na sessão do plantão (IndexedDB/sessionStorage) para recuperação rápida com 1 toque sem redigitação de valores prévios.
+- *Sugestão 22 (Backend / Caching)*: Adicionar ETag HTTP determinístico no endpoint de REMUME e Guia Farmacêutico para permitir respostas HTTP 304 Not Modified, eliminando transferências redundantes de dados em reconexões.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0T. [x] **Otimização de Carga, Lazy Loading e Ergonomia de Teclados no Cockpit PWA**:
+    - **Otimização de Carga Crítica & Preconnects no <head>**:
+      * Injeção de tags `<link rel="preconnect">` para os CDNs vitais (Tailwind, Unpkg, JsDelivr, Telegram), antecipando handshakes DNS/TLS e reduzindo o First Contentful Paint (FCP) em redes hospitalares instáveis.
+      * Atributo `defer` adicionado a scripts secundários (`dexie.js`, `telegram-web-app.js`), desimpedindo a árvore de renderização do DOM inicial.
+      * Remoção do script síncrono pesado de `Chart.js` (~200 KB) do `<head>`.
+    - **Lazy Loading de Chart.js e Ciclo de Vida de Canvas**:
+      * Implementada função `carregarChartJsLazy()` injetando Chart.js dinamicamente e sob demanda apenas quando o médico acessa a aba Perfil/Corpo (`tab-corpo`).
+      * Destruição limpa de instâncias prévias (`_instanciaGraficoCorpo.destroy()`), eliminando o erro de canvas em uso ("Canvas is already in use") ao alternar de abas.
+      * Remoção de inicializações bloqueantes de abas ocultas no `DOMContentLoaded` (`inicializarGraficoCorpo` e `inicializarPlanoNutricional`), transferindo-as para renderização sob demanda ao abrir a aba.
+    - **Ergonomia de Teclados Táteis & Prevenção de Auto-Zoom Mobile**:
+      * Regra CSS `@media screen and (max-width: 768px)` com `font-size: 16px !important` em inputs/selects/textareas, eliminando o zoom indesejado forçado pelo iOS Safari / Android ao focar em campos.
+      * Injeção universal de `inputmode="decimal"` em campos de valores decimais (peso, Cr, ClCr, pH, pCO2, HCO3, eletrólitos Na/K) e `inputmode="numeric"` em campos inteiros (idade, FC, FR, SpO2). O smartphone agora abre diretamente o numpad com ponto decimal, sem necessidade de alternar tecla `?123`.
+      * Adicionado `autocomplete="off"` e `autocorrect="off"` em todas as calculadoras clínicas.
+      * Implementada navegação suave de foco (`configurarTecladosCalculadoras`) ao teclar Enter/Next no teclado móvel, avançando para o próximo campo da mesma calculadora e fechando o teclado no último campo (`blur()`).
+    - **Otimização de Renderização do Lucide Icons**:
+      * Escopo de `lucide.createIcons` restrito estritamente aos containers modificados (`{ root: container }`, `{ root: refeicoesContainer }`, `{ root: playerContainer }`), prevenindo reflow e reprocessamento global de todo o DOM (15.800 linhas).
+    - **Sincronismo Rigoroso com GitHub Pages**:
+      * `cockpit_movel.html` e `gh_cockpit_deploy/index.html` 100% sincronizados e idênticos.
+    - **Bateria de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_cockpit_carga_e_teclados.cjs` integrada ao pipeline oficial `npm test` no `package.json`, validando preconnects, ausência de scripts bloqueantes, lazy loading, destruição de instâncias de canvas, regras anti-zoom, atributos `inputmode` e escopo do Lucide.
+      * 100% de aprovação nas 23 suítes de teste do projeto.
 
 0S. [x] **Otimização de Logs, Monitoramento e Telemetria de Erros no Backend Fastify (Render)**:
     - **Rastreabilidade Ponta a Ponta & Request Correlation ID**:
