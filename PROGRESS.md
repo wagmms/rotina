@@ -205,6 +205,15 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Fila de sincronização automática (Offline Action Queue) que descarrega chamadas pendentes assim que a conexão for restabelecida.
     - Badge de telemetria visual em tempo real no cabeçalho indicando modo de conexão (Nuvem / Nó Local / Offline Seguro).
 
+53. [ ] **Dermatologia e Infectologia - Diagnóstico e Manejo de Lesões Elementares e ISTs Cutâneas (Herpes, Sífilis Secundária, Mpox)**:
+    - Algoritmo de diferenciação morfológica (mácula, pápula, vesícula, bolha, crosta).
+    - Protocolo posológico de Aciclovir/Valaciclovir para Herpes Zoster e Herpes Simples com ajuste estrito por ClCr.
+    - Abordagem sindrômica de úlceras genitais (Cancro mole, Linfogranuloma venéreo, Donovanose, Sífilis primária) com fluxograma do Ministério da Saúde 2026.
+
+54. [ ] **Módulo de Terapia Intensiva - Choque Séptico Refratário e Manejo de Insuficiência Adrenal Relativa (CIRCI)**:
+    - Escore de suspeição de CIRCI e indicação precisa de Hidrocortisona 200 mg/dia contínua em choque dependente de doses elevadas de vasopressores (> 0,25 mcg/kg/min).
+    - Protocolo de titulação de Vasopressina (0,03 U/min fixa) associada e indicação oportuna de Azul de Metileno em vasoplegia refratária pós-operatória.
+
 
 ## 🔄 Próxima Tarefa em Andamento
 - [ ] **Módulo de Psiquiatria de Urgência (Agitação Psicomotora / Risco de Suicídio)**
