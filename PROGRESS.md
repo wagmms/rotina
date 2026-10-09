@@ -552,7 +552,8 @@
    - Implementação de `interpretarSorologiasLaboratorioPrenatal` em `src/02_obstetricia_prenatal.js`, expondo parecer semafórico escaneável beira-leito para o médico generalista.
    - Expansão da base `BANCO_FARMACOS_GESTACAO` com insulinas, metformina, DOACs, sertralina, paroxetina, levotiroxina, PTU e antiepilépticos.
    - Integração Fastify RPC com o novo método `cockpitInterpretarSorologiasPrenatal` e parser laboratorial no bot Telegram (`/prenatal`).
-   - 100% de aprovação em todos os testes do pipeline contínuo (`npm test`).
+   - Integração UI/UX completa no Cockpit PWA (`cockpit_movel.html` e `gh_cockpit_deploy/index.html`) com a nova aba `🔬 Sorologias & Exames` no modal de Pré-Natal, painel de resultados semafórico (Normal, Atenção, Crítico), botão de cópia com 1 clique para o PEP e motor determinístico offline de contingência (`interpretarSorologiasOfflineLocal`).
+   - Validação automatizada na suíte `tests/test_cockpit_offline_indexeddb.cjs` e 100% de aprovação em todos os testes do pipeline contínuo (`npm test`).
 - [x] (2026-10-09) **Saneamento do Escopo Clínico, Inventário Geral e Expurgo de Funções Terciárias/Administrativas**:
    - Criação do documento canônico `docs/INVENTARIO_CLINICO_GERAL.md` mapeando todos os 256 comandos Telegram tratados, o catálogo canônico de 97 comandos do `/ajuda`, 133 rotas Fastify RPC e 59 submódulos clínicos determinísticos (`src/02_*.js` e `src/03_*.js`).
    - Consolidação dos três pilares fundamentais do médico generalista e interno: Porta de Emergência / Sala Vermelha, Enfermaria Clínica Geral e Atenção Primária / UBS.

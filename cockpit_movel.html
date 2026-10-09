@@ -1971,6 +1971,9 @@
         <button onclick="alternarSecaoPrenatal('sec-pn-farmaco', this)" id="btn-pn-farmaco" class="pn-pill-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">
           💊 Risco Farmacológico
         </button>
+        <button onclick="alternarSecaoPrenatal('sec-pn-soro', this)" id="btn-pn-soro" class="pn-pill-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">
+          🔬 Sorologias & Exames
+        </button>
       </div>
 
       <!-- Conteúdo com Scroll -->
@@ -2143,6 +2146,105 @@
             </div>
             <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-[11px]" id="pn-farmaco-alertas"></div>
             <div class="p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/30 space-y-1 text-[11px]" id="pn-farmaco-alternativas"></div>
+          </div>
+        </div>
+
+        <!-- SEÇÃO 5: INTERPRETAÇÃO DE SOROLOGIAS E EXAMES DE PRÉ-NATAL (MS & FEBRASGO) -->
+        <div id="sec-pn-soro" class="pn-sec-pane hidden space-y-3">
+          <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-pink-400 flex items-center gap-1">
+              <i data-lucide="microscope" class="w-3 h-3"></i> Painel Laboratorial de Rotina (1º, 2º e 3º Trimestres)
+            </span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Glicemia de Jejum (mg/dL):</label>
+                <input type="number" id="pn-soro-gj" placeholder="Ex: 94 (se ≥ 92: DMG no 1º tri)" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Idade Gestacional Atual (semanas):</label>
+                <input type="number" id="pn-soro-sem" placeholder="Ex: 12 (fundamental para avidez e Anti-D)" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Toxoplasmose IgG / IgM:</label>
+                <div class="flex gap-1">
+                  <select id="pn-soro-toxo-igg" class="w-1/2 bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-1.5 text-xs text-white outline-none">
+                    <option value="">IgG: --</option>
+                    <option value="nao_reagente">IgG Não Reagente</option>
+                    <option value="reagente">IgG Reagente</option>
+                  </select>
+                  <select id="pn-soro-toxo-igm" class="w-1/2 bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-1.5 text-xs text-white outline-none">
+                    <option value="">IgM: --</option>
+                    <option value="nao_reagente">IgM Não Reagente</option>
+                    <option value="reagente">IgM Reagente</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Avidez de IgG (se IgG+ e IgM+ até 16s):</label>
+                <input type="number" id="pn-soro-avidez" placeholder="Ex: 65% (≥60% alta / &lt;50% baixa)" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Sífilis / VDRL / Teste Rápido:</label>
+                <input type="text" id="pn-soro-vdrl" placeholder="Ex: Reagente 1:8 ou Não Reagente" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Anti-HIV / Teste Rápido:</label>
+                <select id="pn-soro-hiv" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+                  <option value="">HIV: Selecione</option>
+                  <option value="nao_reagente">Não Reagente</option>
+                  <option value="reagente">Reagente (TARV + Não amamentar)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Hepatite B (HBsAg):</label>
+                <select id="pn-soro-hbsag" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+                  <option value="">HBsAg: Selecione</option>
+                  <option value="nao_reagente">Não Reagente</option>
+                  <option value="reagente">Reagente (HBIG + Vacina RN em 12h)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Urocultura / Urina:</label>
+                <input type="text" id="pn-soro-uro" placeholder="Ex: E. coli &gt; 10^5 UFC/mL ou Negativa" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Hemoglobina (Hb em g/dL):</label>
+                <input type="number" id="pn-soro-hb" placeholder="Ex: 10.4 (se &lt; 11: anemia)" step="0.1" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+              </div>
+              <div>
+                <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Fator Rh &amp; Coombs Indireto:</label>
+                <div class="flex gap-1">
+                  <select id="pn-soro-rh" class="w-1/2 bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-1.5 text-xs text-white outline-none">
+                    <option value="">Rh: --</option>
+                    <option value="positivo">Rh Positivo</option>
+                    <option value="negativo">Rh Negativo</option>
+                  </select>
+                  <select id="pn-soro-coombs" class="w-1/2 bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-1.5 text-xs text-white outline-none">
+                    <option value="">Coombs: --</option>
+                    <option value="nao_reagente">Coombs Negativo</option>
+                    <option value="reagente">Coombs Reagente</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <button onclick="interpretarSorologiasModal()" class="px-3.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-pink-950 transition">
+              <i data-lucide="stethoscope" class="w-3.5 h-3.5"></i>
+              <span>Interpretar Sorologias &amp; Condutas</span>
+            </button>
+          </div>
+
+          <!-- Box de Resultado das Sorologias -->
+          <div id="pn-box-resultado-soro" class="hidden p-3 rounded-xl bg-slate-950 border border-pink-500/30 space-y-2.5">
+            <div id="pn-soro-alertas-criticos" class="space-y-1.5"></div>
+            <div id="pn-soro-lista-avaliados" class="space-y-2"></div>
+            <div class="pt-2 flex justify-end">
+              <button onclick="copiarLaudoSorologiasParaPep()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-pink-300 border border-pink-500/30 font-bold text-[10.5px] flex items-center gap-1 transition">
+                <i data-lucide="copy" class="w-3 h-3"></i> Copiar Laudo para PEP
+              </button>
+            </div>
           </div>
         </div>
 
@@ -4780,6 +4882,9 @@
           } else {
             return `🩸 GASOMETRIA ARTERIAL [OFFLINE]\n• ${dist.join(' / ')}\n• Componente metabólico (HCO3: ${hco3} mEq/L)\n• Componente respiratório (pCO2: ${pco2} mmHg)`;
           }
+        } else if (tipo === 'sorologias_prenatal') {
+          const resSoro = interpretarSorologiasOfflineLocal(entrada);
+          return resSoro && resSoro.textoFormatado ? resSoro.textoFormatado : 'Nenhum exame analisado.';
         }
       } catch (e) {
         return 'Erro ao calcular: ' + e.message;
@@ -6265,6 +6370,341 @@
         return;
       }
       copiarTextoClipboard(cacheResumoPrenatalGerado, 'Resumo de Pré-Natal copiado para o PEP!');
+    }
+
+    let cacheLaudoSorologiasGerado = '';
+
+    function interpretarSorologiasOfflineLocal(dados) {
+      dados = dados || {};
+      const avaliados = [];
+      const alertasCriticos = [];
+
+      function norm(val) {
+        if (!val) return '';
+        return String(val).toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      }
+      function ehReagente(str) {
+        if (!str) return false;
+        const s = norm(str);
+        if (s.indexOf('nao') >= 0 || s.indexOf('neg') >= 0 || s === '-' || s.indexOf('ausente') >= 0) return false;
+        return s.indexOf('rea') >= 0 || s.indexOf('pos') >= 0 || s === '+' || s.indexOf('1:') >= 0;
+      }
+
+      const sem = Number(dados.semanasGestacao) || 0;
+
+      // 1. Glicemia
+      const gj = Number(dados.glicemiaJejum);
+      if (!isNaN(gj) && gj > 0) {
+        const it = { exame: 'Glicemia de Jejum', valor: gj + ' mg/dL' };
+        if (gj < 92) {
+          it.status = 'NORMAL';
+          it.diagnostico = 'Glicemia de jejum dentro dos limites fisiológicos.';
+          it.conduta = 'Realizar TOTG 75g universal entre 24 e 28 semanas de gestação.';
+        } else if (gj >= 92 && gj <= 125) {
+          it.status = 'CRITICO';
+          it.diagnostico = 'DIABETES MELLITUS GESTACIONAL (DMG) CONFIRMADO.';
+          it.conduta = 'Glicemia de jejum entre 92 e 125 mg/dL no 1º trimestre JÁ FIRMA DIAGNÓSTICO DEFINITIVO de DMG (dispensa e contraindica TOTG 75g). Iniciar Terapia Nutricional, MEV e automonitorização glicêmica capilar.';
+          alertasCriticos.push('🩸 DMG CONFIRMADO NO 1º TRI (GJ ' + gj + ' mg/dL): Manejo de DMG imediato; contraindicado TOTG 75g.');
+        } else {
+          it.status = 'CRITICO';
+          it.diagnostico = 'DIABETES MELLITUS PRÉ-GESTACIONAL (OVERT DIABETES).';
+          it.conduta = 'Glicemia de jejum >= 126 mg/dL indica diabetes prévio. Encaminhar urgente ao PNAR e iniciar insulinoterapia.';
+          alertasCriticos.push('🚨 OVERT DIABETES (GJ ' + gj + ' mg/dL): Risco de malformação congênita. PNAR urgente.');
+        }
+        avaliados.push(it);
+      }
+
+      // 2. Toxoplasmose
+      if (dados.toxoIgg || dados.toxoIgm) {
+        const it = { exame: 'Sorologia para Toxoplasmose (IgG e IgM)' };
+        const gPos = ehReagente(dados.toxoIgg);
+        const mPos = ehReagente(dados.toxoIgm);
+        it.valor = 'IgG ' + (gPos ? 'Reagente' : 'Não Reagente') + ' | IgM ' + (mPos ? 'Reagente' : 'Não Reagente');
+        if (!gPos && !mPos) {
+          it.status = 'ATENCAO';
+          it.diagnostico = 'Gestante Suscetível (Sem anticorpos).';
+          it.conduta = 'Profilaxia primária rigorosa (alimentos bem lavados, carnes bem cozidas, sem contato com fezes de gatos). Repetir sorologia a cada trimestre.';
+        } else if (gPos && !mPos) {
+          it.status = 'NORMAL';
+          it.diagnostico = 'Imunidade Pregressa / Infecção Remota.';
+          it.conduta = 'Feto protegido contra toxoplasmose congênita. Não necessita de novas sorologias de rotina.';
+        } else if (!gPos && mPos) {
+          it.status = 'CRITICO';
+          it.diagnostico = 'Infecção Aguda Muito Precoce OU IgM Falso-Positivo.';
+          it.conduta = 'Iniciar IMEDIATAMENTE Espiramicina 1g VO 8/8h e repetir sorologia em 2 a 3 semanas. Encaminhar ao PNAR.';
+          alertasCriticos.push('⚠️ TOXOPLASMOSE IgM+ ISOLADO: Iniciar Espiramicina 1g 8/8h e recoletar em 2-3 semanas.');
+        } else {
+          it.status = 'CRITICO';
+          const avidez = Number(dados.toxoAvidez);
+          if (sem > 0 && sem <= 16 && !isNaN(avidez) && avidez > 0) {
+            if (avidez >= 60) {
+              it.status = 'NORMAL';
+              it.diagnostico = 'Infecção Antiga / Imunidade Pré-Gestacional (Avidez Alta antes de 16s).';
+              it.conduta = 'Avidez ALTA (>= 60%) colhida até 16s confirma infecção prévia à gestação (> 3-4 meses). Risco fetal afastado.';
+            } else if (avidez < 50) {
+              it.diagnostico = 'INFECÇÃO AGUDA GESTACIONAL CONFIRMADA (Avidez Baixa < 50%).';
+              it.conduta = 'Avidez BAIXA (< 50%) até 16s confirma infecção na gestação. Iniciar/manter Espiramicina 1g 8/8h e encaminhar PNAR para amniocentese com PCR a partir de 18s.';
+              alertasCriticos.push('🚨 TOXOPLASMOSE AGUDA CONFIRMADA: Espiramicina 1g 8/8h e PNAR para amniocentese a partir de 18s.');
+            } else {
+              it.diagnostico = 'Avidez Intermediária (50 a 59%).';
+              it.conduta = 'Resultado indeterminado. Tratar preventivamente como infecção aguda com Espiramicina 1g 8/8h e encaminhar ao PNAR.';
+            }
+          } else {
+            it.diagnostico = 'IgG e IgM Reagentes (Aguardando / Sem teste de avidez precoce).';
+            it.conduta = 'Se IG <= 16s, solicitar Teste de Avidez urgente e iniciar Espiramicina 1g 8/8h. Se > 16s, assumir infecção aguda e referenciar ao PNAR.';
+            alertasCriticos.push('⚠️ TOXOPLASMOSE IgG+ IgM+: Iniciar Espiramicina 1g 8/8h e investigar no PNAR.');
+          }
+        }
+        avaliados.push(it);
+      }
+
+      // 3. Sífilis
+      if (dados.vdrl) {
+        const it = { exame: 'Rastreio de Sífilis (VDRL / Teste Rápido)', valor: String(dados.vdrl) };
+        if (ehReagente(dados.vdrl)) {
+          it.status = 'CRITICO';
+          it.diagnostico = 'SÍFILIS NA GESTANTE CONFIRMADA.';
+          it.conduta = 'Penicilina G Benzatina 2.400.000 UI IM por semana por 3 semanas (Dose total: 7.200.000 UI). Intervalo máximo entre doses de 7 a 9 dias (se > 9 dias, reiniciar ciclo). Tratar simultaneamente o parceiro sexual e notificar (SINAN). VDRL mensal.';
+          alertasCriticos.push('🚨 SÍFILIS NA GESTAÇÃO: Penicilina Benzatina imediata e convocação do parceiro!');
+        } else {
+          it.status = 'NORMAL';
+          it.diagnostico = 'Não Reagente.';
+          it.conduta = 'Repetir no 3º trimestre e no momento do parto.';
+        }
+        avaliados.push(it);
+      }
+
+      // 4. HIV
+      if (dados.hiv) {
+        const it = { exame: 'Rastreio de HIV', valor: String(dados.hiv) };
+        if (ehReagente(dados.hiv)) {
+          it.status = 'CRITICO';
+          it.diagnostico = 'INFECÇÃO PELO HIV EM GESTANTE.';
+          it.conduta = 'Iniciar TARV imediatamente (Dolutegravir + Tenofovir + Lamivudina). Solicitar Carga Viral e CD4. Encaminhar ao SAE/PNAR. CONTRAINDICAÇÃO ABSOLUTA DE AMAMENTAÇÃO (prescrever Cabergolina 1mg dose única no pós-parto).';
+          alertasCriticos.push('🚨 GESTANTE HIV+: Iniciar TARV no ato e CONTRAINDICAR AMAMENTAÇÃO.');
+        } else {
+          it.status = 'NORMAL';
+          it.diagnostico = 'Não Reagente.';
+          it.conduta = 'Repetir no 3º trimestre e na admissão do parto.';
+        }
+        avaliados.push(it);
+      }
+
+      // 5. Hepatite B
+      if (dados.hbsag) {
+        const it = { exame: 'Hepatite B (HBsAg)', valor: String(dados.hbsag) };
+        if (ehReagente(dados.hbsag)) {
+          it.status = 'CRITICO';
+          it.diagnostico = 'HBsAg REAGENTE — HEPATITE B CRÔNICA/ATIVA.';
+          it.conduta = 'Encaminhar ao PNAR para HBV-DNA e transaminases. CONDUTA OBRIGATÓRIA NO RECÉM-NASCIDO: Administrar Vacina de Hepatite B + Imunoglobulina Humana Específica (HBIG 0,5 mL IM) nas primeiras 12 horas de vida.';
+          alertasCriticos.push('🚨 HBsAg REAGENTE: Prescrever Vacina + HBIG no RN nas primeiras 12h de vida!');
+        } else {
+          it.status = 'NORMAL';
+          it.diagnostico = 'Não Reagente.';
+          it.conduta = 'Verificar vacinação da gestante (3 doses de vacina hepatite B se suscetível).';
+        }
+        avaliados.push(it);
+      }
+
+      // 6. Urocultura
+      if (dados.urocultura) {
+        const it = { exame: 'Urocultura / Urina', valor: String(dados.urocultura) };
+        const uPos = norm(dados.urocultura).indexOf('pos') >= 0 || norm(dados.urocultura).indexOf('coli') >= 0 || norm(dados.urocultura).indexOf('ufc') >= 0;
+        if (uPos) {
+          it.status = 'CRITICO';
+          it.diagnostico = 'BACTERIÚRIA ASSINTOMÁTICA / ITU NA GESTAÇÃO.';
+          it.conduta = 'Tratamento compulsório na gestante para prevenir pielonefrite e prematuridade. Opções de 1ª linha: Fosfomicina 3g VO dose única OU Cefalexina 500mg VO 6/6h por 7 dias. Colher urocultura de controle de cura 7-14 dias pós-tratamento.';
+          alertasCriticos.push('⚠️ BACTERIÚRIA NA GESTAÇÃO: Tratar com Fosfomicina 3g ou Cefalexina por 7 dias.');
+        } else {
+          it.status = 'NORMAL';
+          it.diagnostico = 'Urocultura Negativa.';
+          it.conduta = 'Repetir no 3º trimestre de rotina.';
+        }
+        avaliados.push(it);
+      }
+
+      // 7. Hemoglobina
+      const hb = Number(dados.hb);
+      if (!isNaN(hb) && hb > 0) {
+        const it = { exame: 'Hemoglobina Materna', valor: hb + ' g/dL' };
+        if (hb >= 11.0) {
+          it.status = 'NORMAL';
+          it.diagnostico = 'Ausência de Anemia.';
+          it.conduta = 'Manter profilaxia com Sulfato Ferroso (40 mg Fe elementar/dia) a partir da 20ª semana.';
+        } else if (hb >= 8.0) {
+          it.status = 'ATENCAO';
+          it.diagnostico = 'ANEMIA GESTACIONAL LEVE A MODERADA (Hb 8,0 a 10,9 g/dL).';
+          it.conduta = 'Iniciar dose terapêutica de Sulfato Ferroso: 120 a 200 mg de ferro elementar/dia. Repetir hemograma em 30 a 60 dias.';
+          alertasCriticos.push('⚠️ ANEMIA GESTACIONAL (Hb ' + hb + ' g/dL): Elevar Sulfato Ferroso para 120-200mg Fe/dia.');
+        } else {
+          it.status = 'CRITICO';
+          it.diagnostico = 'ANEMIA GESTACIONAL GRAVE (Hb < 8,0 g/dL).';
+          it.conduta = 'Encaminhar imediatamente ao PNAR / Serviço Hospitalar para investigação e Ferro Parenteral IV.';
+          alertasCriticos.push('🚨 ANEMIA GRAVE NA GESTANTE (Hb ' + hb + ' g/dL): PNAR / Ferro IV imediato.');
+        }
+        avaliados.push(it);
+      }
+
+      // 8. Rh e Coombs
+      if (dados.rh) {
+        const it = { exame: 'Fator Rh e Coombs Indireto', valor: String(dados.rh) + (dados.coombs ? ' / Coombs: ' + dados.coombs : '') };
+        const rhNeg = norm(dados.rh).indexOf('neg') >= 0 || norm(dados.rh) === '-';
+        if (!rhNeg) {
+          it.status = 'NORMAL';
+          it.diagnostico = 'Mãe Rh Positivo.';
+          it.conduta = 'Sem risco de aloimunização Rh(D). Seguimento habitual.';
+        } else {
+          const coombsPos = ehReagente(dados.coombs);
+          if (!coombsPos) {
+            it.status = 'ATENCAO';
+            it.diagnostico = 'Mãe Rh Negativo com Coombs Indireto Negativo (Não Sensibilizada).';
+            it.conduta = 'Repetir Coombs Indireto mensalmente a partir de 24 semanas. Administrar Imunoglobulina Anti-D 300 mcg IM na 28ª semana e pós-parto se RN Rh+.';
+          } else {
+            it.status = 'CRITICO';
+            it.diagnostico = 'MÃE RH NEGATIVO COM COOMBS POSITIVO (ALOIMUNIZADA).';
+            it.conduta = 'Aloimunização Rh instalada. NÃO aplicar Anti-D. Titular Coombs indireto: se >= 1:16, encaminhar urgente ao PNAR para Doppler de Artéria Cerebral Média (ACM).';
+            alertasCriticos.push('🚨 ALOIMUNIZAÇÃO Rh CONFIRMADA (Coombs+): Encaminhar urgente ao PNAR para Doppler de ACM.');
+          }
+        }
+        avaliados.push(it);
+      }
+
+      const linhas = [
+        '======================================================================',
+        '      PAINEL DE INTERPRETAÇÃO DE SOROLOGIAS E EXAMES DE PRÉ-NATAL     ',
+        '======================================================================',
+        'Diretrizes: Ministério da Saúde (MS) & FEBRASGO [OFFLINE]',
+        'Total de Exames Analisados: ' + avaliados.length
+      ];
+      if (alertasCriticos.length > 0) {
+        linhas.push('----------------------------------------------------------------------');
+        linhas.push('🚨 ALERTAS CRÍTICOS BEIRA-LEITO:');
+        alertasCriticos.forEach(a => linhas.push('• ' + a));
+      }
+      linhas.push('----------------------------------------------------------------------');
+      linhas.push('PARECER DETERMINÍSTICO E CONDUTAS DETALHADAS:');
+      avaliados.forEach(it => {
+        const ico = it.status === 'CRITICO' ? '🔴' : (it.status === 'ATENCAO' ? '🟡' : '🟢');
+        linhas.push(ico + ' [' + it.exame + ']: ' + it.valor);
+        linhas.push('   Diagnóstico: ' + it.diagnostico);
+        linhas.push('   Conduta Imediata: ' + it.conduta);
+        linhas.push('');
+      });
+
+      return {
+        sucesso: true,
+        avaliados: avaliados,
+        alertasCriticos: alertasCriticos,
+        textoFormatado: linhas.join('\n')
+      };
+    }
+
+    async function interpretarSorologiasModal() {
+      hapticFeedback('medium');
+      const gjVal = document.getElementById('pn-soro-gj')?.value?.trim();
+      const semVal = document.getElementById('pn-soro-sem')?.value?.trim();
+      const toxIggVal = document.getElementById('pn-soro-toxo-igg')?.value;
+      const toxIgmVal = document.getElementById('pn-soro-toxo-igm')?.value;
+      const avidezVal = document.getElementById('pn-soro-avidez')?.value?.trim();
+      const vdrlVal = document.getElementById('pn-soro-vdrl')?.value?.trim();
+      const hivVal = document.getElementById('pn-soro-hiv')?.value;
+      const hbsagVal = document.getElementById('pn-soro-hbsag')?.value;
+      const uroVal = document.getElementById('pn-soro-uro')?.value?.trim();
+      const hbVal = document.getElementById('pn-soro-hb')?.value?.trim();
+      const rhVal = document.getElementById('pn-soro-rh')?.value;
+      const coombsVal = document.getElementById('pn-soro-coombs')?.value;
+
+      const params = {};
+      if (gjVal) params.glicemiaJejum = parseFloat(gjVal);
+      if (semVal) params.semanasGestacao = parseInt(semVal, 10);
+      if (toxIggVal) params.toxoIgg = toxIggVal;
+      if (toxIgmVal) params.toxoIgm = toxIgmVal;
+      if (avidezVal) params.toxoAvidez = parseFloat(avidezVal);
+      if (vdrlVal) params.vdrl = vdrlVal;
+      if (hivVal) params.hiv = hivVal;
+      if (hbsagVal) params.hbsag = hbsagVal;
+      if (uroVal) params.urocultura = uroVal;
+      if (hbVal) params.hb = parseFloat(hbVal);
+      if (rhVal) params.rh = rhVal;
+      if (coombsVal) params.coombs = coombsVal;
+
+      if (Object.keys(params).length === 0) {
+        copiarToast('Preencha ao menos um exame para interpretação.');
+        return;
+      }
+
+      const boxRes = document.getElementById('pn-box-resultado-soro');
+      const containerAlertas = document.getElementById('pn-soro-alertas-criticos');
+      const containerAvaliados = document.getElementById('pn-soro-lista-avaliados');
+
+      try {
+        let resp = null;
+        try {
+          resp = await cockpitRpc('cockpitInterpretarSorologiasPrenatal', [params]);
+        } catch (netErr) {
+          resp = interpretarSorologiasOfflineLocal(params);
+        }
+
+        if (resp && resp.sucesso && resp.avaliados) {
+          cacheLaudoSorologiasGerado = resp.textoFormatado;
+          if (boxRes) boxRes.classList.remove('hidden');
+
+          if (containerAlertas) {
+            if (resp.alertasCriticos && resp.alertasCriticos.length > 0) {
+              containerAlertas.innerHTML = resp.alertasCriticos.map(a => `
+                <div class="p-2 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-200 text-[11px] font-semibold flex items-start gap-1.5">
+                  <span class="mt-0.5">⚠️</span>
+                  <span>${a}</span>
+                </div>
+              `).join('');
+            } else {
+              containerAlertas.innerHTML = `
+                <div class="p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold">
+                  ✅ Nenhum alerta crítico detectado no painel analisado.
+                </div>
+              `;
+            }
+          }
+
+          if (containerAvaliados) {
+            containerAvaliados.innerHTML = resp.avaliados.map(it => {
+              const badgeClass = it.status === 'CRITICO'
+                ? 'bg-rose-500/25 text-rose-300 border-rose-500/40'
+                : (it.status === 'ATENCAO'
+                  ? 'bg-amber-500/25 text-amber-300 border-amber-500/40'
+                  : 'bg-emerald-500/25 text-emerald-300 border-emerald-500/40');
+              const badgeText = it.status === 'CRITICO' ? '🔴 Crítico' : (it.status === 'ATENCAO' ? '🟡 Atenção' : '🟢 Normal');
+              return `
+                <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-white text-[11.5px]">${it.exame}</span>
+                    <span class="text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}">${badgeText}</span>
+                  </div>
+                  <div class="text-[10.5px] text-slate-400"><strong class="text-slate-300">Valor informado:</strong> ${it.valor}</div>
+                  <div class="text-[11px] font-semibold text-slate-200"><strong class="text-slate-400">Diagnóstico:</strong> ${it.diagnostico}</div>
+                  <div class="p-2 rounded-lg bg-slate-950/70 border border-slate-800/80 text-[10.5px] text-pink-200/90 leading-relaxed">
+                    <strong class="text-pink-400 block mb-0.5">Conduta Imediata:</strong> ${it.conduta}
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+
+          copiarToast('Laudo de sorologias interpretado!');
+        } else {
+          throw new Error(resp?.erro || 'Falha ao interpretar sorologias.');
+        }
+      } catch (e) {
+        copiarToast('Erro: ' + e.message);
+      }
+    }
+
+    function copiarLaudoSorologiasParaPep() {
+      if (!cacheLaudoSorologiasGerado) {
+        copiarToast('Interprete as sorologias antes de copiar.');
+        return;
+      }
+      copiarTextoClipboard(cacheLaudoSorologiasGerado, 'Laudo de Sorologias copiado para o PEP!');
     }
 
     // =========================================================================

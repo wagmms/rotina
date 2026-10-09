@@ -27,7 +27,11 @@ assert(htmlContent.includes('id="info-protocolos-count"'), 'Contador de protocol
 assert(htmlContent.includes('id="info-calculos-count"'), 'Contador de cálculos presente');
 assert(htmlContent.includes('id="info-storage-status"'), 'Status de armazenamento seguro presente');
 assert(htmlContent.includes('id="lista-fila-offline"'), 'Lista da fila offline presente');
-console.log('  ✓ Elementos de telemetria e UI validados com sucesso no DOM.');
+assert(htmlContent.includes('id="btn-pn-soro"'), 'Botão btn-pn-soro presente no modal de pré-natal');
+assert(htmlContent.includes('id="sec-pn-soro"'), 'Painel sec-pn-soro presente no modal de pré-natal');
+assert(htmlContent.includes('id="pn-soro-gj"'), 'Input de Glicemia de Jejum presente');
+assert(htmlContent.includes('id="pn-box-resultado-soro"'), 'Box de resultado de sorologias presente');
+console.log('  ✓ Elementos de telemetria, UI e Sorologias de Pré-Natal validados com sucesso no DOM.');
 
 // 2. Extrai o bloco de script principal (maior bloco de script inline)
 const scripts = Array.from(htmlContent.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi));
@@ -267,7 +271,30 @@ function criarAmbienteSimulacao() {
   await w.atualizarIndicadorRede();
   const txtRede = sandbox.document.getElementById('texto-status-rede');
   assert(txtRede.textContent.includes('Offline'), 'Texto no header reflete modo Offline Seguro em tempo real');
-  console.log('  ✓ Detecção e renderização dos 3 modos (Nuvem / Nó Local / Offline Seguro) 100% aprovada.');
+  // Testa motor de cálculo offline de sorologias de pré-natal
+  console.log('\n[6] Testando motor offline determinístico de sorologias de pré-natal...');
+  const fnInterpretarSoro = sandbox.interpretarSorologiasOfflineLocal || w.interpretarSorologiasOfflineLocal;
+  assert(typeof fnInterpretarSoro === 'function', 'interpretarSorologiasOfflineLocal disponível');
+  const resSoroOffline = fnInterpretarSoro({
+    glicemiaJejum: 98,
+    semanasGestacao: 12,
+    toxoIgg: 'reagente',
+    toxoIgm: 'nao_reagente',
+    vdrl: 'nao_reagente',
+    hb: 10.2
+  });
+  assert(resSoroOffline && resSoroOffline.sucesso, 'Interpretação offline de sorologias executada com sucesso');
+  assert(resSoroOffline.textoFormatado.includes('DIABETES MELLITUS GESTACIONAL'), 'DMG detectado em glicemia 98 mg/dL');
+  assert(resSoroOffline.textoFormatado.includes('Imunidade Pregressa'), 'Toxoplasmose IgG+ IgM- interpretada como imunidade');
+  assert(resSoroOffline.textoFormatado.includes('ANEMIA GESTACIONAL LEVE A MODERADA'), 'Hemoglobina 10.2 g/dL identificada como anemia gestacional');
+
+  const fnCalcOffline = sandbox.calcularOfflineLocal || w.calcularOfflineLocal;
+  assert(typeof fnCalcOffline === 'function', 'calcularOfflineLocal disponível');
+  const resCalcSoro = fnCalcOffline('sorologias_prenatal', {
+    glicemiaJejum: 94
+  });
+  assert(resCalcSoro.includes('DIABETES MELLITUS GESTACIONAL'), 'calcularOfflineLocal suporta sorologias_prenatal determinísticamente');
+  console.log('  ✓ Motor offline de sorologias e exames de pré-natal validado com 100% de sucesso.');
 
   console.log('\n🚀 TODOS OS TESTES DE CACHE CRIPTOGRAFADO, INDEXEDDB E TELEMETRIA PASSARAM COM SUCESSO!\n');
 })().catch(err => {
