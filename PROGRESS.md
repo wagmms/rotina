@@ -11,8 +11,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 
 
-2. [ ] **Auditoria de Toxicidade em Infusões Contínuas de UTI**:
-   - Validação e testes determinísticos de limites de taxa de infusão (mcg/kg/min) para aminas vasoativas (Noradrenalina, Vasopressina, Adrenalina, Dobutamina) prevenindo erros por ordem de grandeza e dose letal beira-leito.
 
 3. [ ] **Calculadora de Desmame de Sedação e Rotação de Opioides**:
    - Módulo determinístico de equivalência analgésica para rotação de opioides (Morfina IV/VO, Fentanil, Metadona, Oxicodona) e escala de desmame de sedação contínua (RASS/CAM-ICU).
@@ -100,6 +98,17 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolo restritivo de controle de PA pré e pós-trombólise (Labetalol, Nitroprussiato) evitando conversão hemorrágica.
     - Cálculo posológico determinístico de Manitol 20% e Salina Hipertônica 3% ou 20% beira-leito para o manejo agudo de Hipertensão Intracraniana (HIC) com tetos osmolares.
 
+21. [ ] **Painel Inteligente de Intoxicações Exógenas (Toxicologia de Emergência)**:
+    - Protocolos determinísticos para intoxicação aguda por Paracetamol com cálculo do Nomograma de Rumack-Matthew e posologia IV/VO de N-acetilcisteína.
+    - Reversão beira-leito de intoxicações por Antidepressivos Tricíclicos, Beta-bloqueadores, Bloqueadores de Canal de Cálcio e Opioides (Naloxona escalonada).
+
+22. [ ] **Módulo Avançado de Hepatologia Clínica e HDA**:
+    - Cálculo determinístico do escore MELD / MELD-Na e Child-Pugh para hepatopatia crônica, com ajuste posológico para insuficiência hepática severa.
+    - Protocolos ágeis de manejo de Hemorragia Digestiva Alta (HDA) varicosa com indicação de IBP IV contínuo, Terlipressina ou Octreotide, profilaxia antibiótica para PBE e restrição restrita de cristaloides.
+
+23. [ ] **Ferramenta de Auditoria Analítica (Dashboard de Kaizen Clínico)**:
+    - Sistema off-line que sumariza tendências de prescrições rejeitadas por risco clínico ou interações graves, detectando gargalos na segurança do paciente em tempo real.
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
@@ -107,6 +116,9 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Auditoria de Toxicidade em Infusões Contínuas de UTI**:
+   - Validação e testes determinísticos de limites de taxa de infusão (mcg/kg/min) para aminas vasoativas (Noradrenalina, Vasopressina, Adrenalina, Dobutamina) prevenindo erros por ordem de grandeza e dose letal beira-leito.
+   - Implementada a suíte `tests/test_auditoria_infusao_uti.cjs` e validação com runner `pytest`.
 - [x] (2026-10-09) **Módulo de Saúde do Idoso e Avaliação Geriátrica Ampla (AGA)**:
    - **Triagem rápida de fragilidade clínica ambulatorial (Clinical Frailty Scale - CFS)**: Escore preditivo determinístico classificando de Idoso Muito Robusto (1) a Doente Terminal (9).
    - **Avaliação cognitiva de rastreio em 10 minutos (Mini-Cog e Teste do Relógio)**: Classificação binária sensível para detecção de demência através da retenção de palavras e desenho do relógio.
