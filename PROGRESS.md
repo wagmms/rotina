@@ -86,6 +86,16 @@
     - Teclado do Telegram mantido não persistente (`is_persistent: false`), abrindo sob demanda sem ocupar a tela do smartphone.
     - Eliminação de comandos espúrios e não médicos (`/pc tenda`).
 
+0J. [x] **Fase 1 do Plano Diretor — Saneamento de Excessos, UX Beira-Leito e Hubs Interativos**:
+    - **Hubs Interativos com Botões Inline de 1 Toque**:
+      * `/enfermaria`: 7 botões interativos (`➕ Adicionar Leito`, `📤 Dar Alta`, `📋 Passagem SBAR`, `🎙️ Pitch de Round`, `🟢 Iniciar Plantão`, `🔄 Atualizar Censo`, `🗑️ Limpar Todos`).
+      * `/rotina`: 7 botões interativos (`📅 Agenda Hoje`, `📋 Tarefas Notion`, `☀️ Briefing Matinal`, `🌙 Check-in Noturno`, `📊 Relatório Semanal`, `🧠 MedQuest / Dúvidas`, `⏱️ Time-Blocking Hoje`).
+      * `/diabetes`: 4 botões interativos (`🔥 CAD / EHH`, `📊 Mapa Glicêmico`, `💉 Insulina Basal-Bolus`, `💊 Antidiabéticos REMUME`).
+      * `/anemia`: 2 botões interativos (`🔬 Investigação Etiológica`, `💉 Ferro IV (Ganzoni)`).
+    - **Racionalização do Catálogo Canônico de `/ajuda`**: Redução de 97 para exatamente 80 comandos canônicos estruturados (absorvendo comandos secundários de enfermaria, rotina, metabolismo e governança nos hubs, preservando-os como aliases silenciosos).
+    - **Banners de Encaminhamento em Subespecialidades**: Inclusão de banner sentinela (`⚠️ MÓDULO DE REFERÊNCIA AVANÇADA — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.`) nos 7 módulos terciários (`climaterio_thm`, `sop_ovarios_policisticos`, `dip_abscesso_tubo_ovariano`, `centro_obstetrico`, `obstetricia_rcf_doppler`, `obstetricia_saf_trombofilias`, `tev_gestante`).
+    - **Testes Automatizados**: Bateria de testes expandida em `tests/test_simplificacao_e_expurgo_generalista.cjs` e `tests/test_ajuda_comandos_slash.cjs` validando 100% dos hubs, botões, aliases e banners. Bundle recompilado com `python3 build_master.py` e 100% de aprovação na suíte de testes.
+
 ---
 
 
