@@ -489,17 +489,42 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Workflow determinístico temporal (até 72h para Levonorgestrel / até 120h para DIU de cobre).
     - Prescrição imediata de PEP (Tenofovir/Lamivudina + Dolutegravir) e Azitromicina + Ceftriaxona para ISTs.
 
+108. [ ] **Nefrologia Pediátrica e Emergência - Manejo da Síndrome Hemolítico-Urêmica (SHU) e Injúria Renal Aguda Pediátrica (pRIFLE / KDIGO Pediátrico)**:
+    - Tríade clássica determinística: anemia hemolítica microangiopática (esquizócitos, Coombs negativo, LDH elevada), plaquetopenia de consumo e injúria renal aguda oligoanúrica associada a pródromo de diarreia sanguinolenta por *E. coli* produtora de toxina Shiga (STEC).
+    - Bloqueios absolutos beira-leito: contraindicação formal de antibioticoterapia na diarreia enterohemorrágica (evitar liberação maciça de toxina Shiga) e contraindicação de transfusão profilática de plaquetas (risco de microtrombose acelerada).
+    - Critérios para diálise peritoneal de urgência e indicação de Eculizumabe na SHU atípica mediada por complemento.
+
+109. [ ] **Gastroenterologia Pediátrica - Manejo da Doença do Refluxo Gastroesofágico (DRGE) vs Regurgitador Feliz do Lactente (Diretrizes SBP / NASPGHAN / ESPGHAN)**:
+    - Diferenciação determinística entre Refluxo Gastroesofágico Fisiológico ("regurgitador feliz", lactente eutrófico com ganho ponderal adequado, sem dor ou broncoespasmo) e DRGE Patológica (falha de crescimento, esofagite, síndrome de Sandifer, aspirações respiratórias recorrentes).
+    - Medidas não farmacológicas de 1ª linha: decúbito dorsal seguro no berço (contraindicação de posição prona sem monitorização pelo risco de morte súbita), fracionamento de mamadas e espessamento de fórmula.
+    - Uso racional de IBP (Omeprazol/Esomeprazol 1 mg/kg/dia) restrito aos casos comprovados de DRGE erosiva com bloqueio de prescrição empírica para cólicas do lactente.
+
+110. [ ] **Neonatologia e UTI Neonatal - Manejo da Síndrome do Desconforto Respiratório do Recém-Nascido (SDR / Membrana Hialina) e Surfactante Exógeno (Diretrizes SBP / Consenso Europeu)**:
+    - Estratificação determinística de gravidade em pré-termos < 34 semanas pelo Boletim de Silverman-Andersen (BSA: tiragem intercostal, retração xifoide, batimento de asa de nariz, gemido expiratório e dissociação toracoabdominal).
+    - Estratégia não invasiva precoce em sala de parto com CPAP nasal (5-6 cmH2O) desde os primeiros minutos de vida.
+    - Protocolo LISA (Less Invasive Surfactant Administration) ou MIST / INSURE com Surfactante Porcino (200 mg/kg na 1ª dose) se necessidade de FiO2 > 30% em CPAP, evitando ventilação mecânica invasiva e broncodisplasia pulmonar.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo de Hematologia: Manejo e Investigação de Anemias**
+- [ ] **Módulo de Hematologia: Manejo e Investigação de Anemias** (Tarefa 33)
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
-- [ ] **Módulo de Hematologia: Manejo e Investigação de Anemias** (2026-10-09):
-  * Calculadora determinística para diluição e preparo de fórmulas infantis (padronização 1 medida para 30 mL).
-  * Prescrição de volume hídrico e necessidade calórica para lactentes internados, baseada na fórmula de Holliday-Segar.
-  * Integração Fastify RPC (`cockpitNutricaoPediatrica`) e bot Telegram (`/nutriped`).
-  * Testes automatizados implementados e aprovados.
+- [x] (2026-10-09) **Módulo de Suporte Nutricional em Pediatria (Fórmula Infantil / Terapia Nutricional)**:
+   - Motor determinístico beira-leito para hidratação venosa pediátrica e manutenção por Holliday-Segar (`src/02_suporte_nutricional_pediatrico.js`).
+   - Cálculo preciso de volume basal (100-50-20 mL/kg/dia) e vazão horária em bomba de infusão (regra 4-2-1).
+   - Ajustes clínicos por patologia: restrição hídrica para bronquiolite viral aguda (70%), restrição cardiovascular para cardiopatia congênita/IC (60%), restrição severa para SIADH/oligúria (50%), reposição de déficit/desidratação (125%) e compensação de perdas insensíveis por febre (+12% por °C acima de 37.8°C).
+   - Prescrição eletrolítica de manutenção atualizada segundo SBP e AAP (2,5 mEq Na+/100 mL e 2,0 mEq K+/100 mL), com alertas rígidos para soluções isotônicas/balanceadas (prevenção de hiponatremia hospitalar aguda induzida por ADH) e infusão de potássio restrita a diurese confirmada.
+   - Avaliação da Taxa de Infusão de Glicose (TIG) com SG 5% e SG 10% (alvo fisiológico de 4 a 6 mg/kg/min).
+   - Calculadora determinística de fórmulas infantis respeitando a Regra de Ouro Inflexível de 1 medida rasa para cada 30 mL de água potável morna.
+   - Bloqueio de fracionamento de medidas (meia colher) com orientação de preparo de múltiplos de 30 mL e descarte do excesso para evitar hipo ou hiperconcentração osmolar.
+   - Alerta de capacidade gástrica fisiológica do lactente (~30 mL/kg) para prevenção de regurgitação e broncoaspiração.
+   - Cobertura de fórmulas especiais (Partida, Seguimento, Prematuros/PIG, Anti-Regurgitação, Sem Lactose, Hidrolisada Extensa para APLV, Aminoácidos Livres elementares e Soja).
+   - Contraindicação formal de fórmula de soja para menores de 6 meses (fitoestrógenos/alergenicidade).
+   - Diretrizes de preparo seguro da OMS/SBP para prevenção de contaminação por *Cronobacter sakazakii* e *Salmonella* (água a 70°C).
+   - Integração completa via Fastify RPC (`cockpitSuporteNutricionalPediatrico` / `cockpitNutricaoPediatrica`), comandos Telegram (`/nutriped`, `/holliday`, `/formulainfantil`, `/diluicao`) com parser determinístico e tolerância clínica.
+   - Suíte de 8 testes automatizados em `tests/test_suporte_nutricional_pediatrico.cjs` e validação ponta a ponta em `tests/test_server_render.cjs` aprovados com 100% de sucesso.
+   - Kaizen perpétuo: Backlog abastecido com as metas 108, 109 e 110.
 - [x] (2026-10-09) **Inteligência Gasométrica e Distúrbios Ácido-Base (Regra dos 5 Passos)**:
    - Motor determinístico beira-leito para interpretação ácido-base em 5 passos clínicos (`src/02_gasometria_acido_base.js`).
    - Passo 1: Distúrbio primário e estratificação de gravidade clínica (leve a crítica por faixas de pH).
