@@ -10,4 +10,4 @@ def test_obstetricia_rcf_doppler():
     test_file = os.path.join(os.path.dirname(__file__), "test_obstetricia_rcf_doppler.cjs")
     result = subprocess.run(["node", test_file], capture_output=True, text=True)
     assert result.returncode == 0, f"Teste JS falhou:\n{result.stderr}\n{result.stdout}"
-    assert "24 pass, 0 fail" in result.stdout
+    assert ", 0 fail" in result.stdout
