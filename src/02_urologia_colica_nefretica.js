@@ -140,7 +140,16 @@ var UrologiaColicaNefreticaService = (function () {
     txt += "\n";
     
     txt += resultado.analgesia + "\n\n";
-    txt += resultado.met + "\n";
+    txt += resultado.met + "\n\n";
+
+    txt += "🩺 *CONDUTA BEIRA-LEITO / UBS (MÉDICO GENERALISTA):*\n";
+    txt += "• *Hidratação:* NÃO hiper-hidratar na crise aguda. Ingesta hídrica forçada aumenta a pressão intracavitária e agrava a dor.\n";
+    txt += "• *Critérios de Alta com Segurança:* Paciente assintomático após analgesia, sem febre/sepse, tolerando líquidos via oral e sem sinais de IRA.\n";
+    txt += "• *Orientações ao Paciente:* Coar a urina para recuperar o cálculo para análise. Retornar imediatamente se febre (> 37,8°C), calafrios, vômitos ou dor refratária.\n\n";
+
+    txt += "🚨 *CRITÉRIOS DE ENCAMINHAMENTO À UROLOGIA:*\n";
+    txt += "• *Urgente (Pronto-Socorro):* Obstrução com infecção/sepse urinária (febre/piúria), rim único funcionante, anúria/IRA obstrutiva ou dor refratária a opioides.\n";
+    txt += "• *Ambulatorial:* Cálculo > 10 mm, falha de expulsão após 4 semanas de Tansulosina (MET) ou litíase de repetição/coraliforme.\n";
 
     return txt;
   }

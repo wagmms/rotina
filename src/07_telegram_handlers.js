@@ -67,7 +67,6 @@ function processarMensagemTexto(message) {
     if (!tarefaPc || tarefaPc === "ajuda" || tarefaPc === "help") {
       var msgAjudaPc = "🖥️ *PONTE DE EXECUÇÃO LOCAL (PC)*\n\n" +
         "Envie uma ordem para o seu computador executar em segundo plano:\n\n" +
-        "• `/pc tenda` — Cotação quinzenal de compras e suprimentos\n" +
         "• `/pc sync` — Sincronização de agenda e estudos\n" +
         "• `/pc audit` — Auditoria de sobreposições no calendário\n" +
         "• `/pc status` — Verifica se o daemon do PC está ativo\n\n" +

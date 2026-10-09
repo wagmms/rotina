@@ -176,6 +176,10 @@ var SuporteNutricionalService = (function() {
     var aguaMin = Math.round(30 * pesoRefCalorias);
     var aguaMax = Math.round(35 * pesoRefCalorias);
 
+    if (idade >= 90) {
+      orientacaoCondicao += ' | ⚠️ Idoso Longevo (≥ 90 anos): Risco acentuado de sarcopenia e menor reserva cardiovascular/renal; priorizar progressão calórica cautelosa e balanço hídrico rigoroso.';
+    }
+
     return {
       sucesso: true,
       antropometria: antro,
@@ -195,7 +199,8 @@ var SuporteNutricionalService = (function() {
         faixaTexto: metaProtMinTotal + ' a ' + metaProtMaxTotal + ' g de proteína/dia (' + metaProtKgMin + '-' + metaProtKgMax + ' g/kg/dia)'
       },
       necessidadeHidricaEstimada: aguaMin + ' a ' + aguaMax + ' mL/dia (30-35 mL/kg/dia)',
-      orientacaoClinica: orientacaoCondicao
+      orientacaoClinica: orientacaoCondicao,
+      alertaLongevo: idade >= 90 ? '⚠️ Paciente longevo (≥ 90 anos): Alto risco de sarcopenia e hiper-hidratação; monitorar balanço hídrico rigorosamente.' : null
     };
   }
 

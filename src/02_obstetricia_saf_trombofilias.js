@@ -740,6 +740,14 @@ var ObstetriciaSafService = (function () {
       }
     }
 
+    texto += '\n🩺 *CONDUTA BEIRA-LEITO / UBS (MÉDICO GENERALISTA):*\n';
+    texto += '• *Ação Imediata no Teste Positivo:* Em gestante com suspeita de SAF (perdas fetais prévias ou TEV pregresso), iniciar precocemente AAS 100-150 mg/dia VO (preferencialmente antes de 16 semanas para prevenção de pré-eclâmpsia e insuficiência placentária).\n';
+    texto += '• *Desmistificação no Beira-Leito:* Mutação da MTHFR NÃO é trombofilia de risco clínico e NÃO justifica indicação de enoxaparina ou anticoagulação. Prescrever ácido fólico ou metilfolato habitual e tranquilizar a paciente.\n';
+
+    texto += '\n🚨 *CRITÉRIOS DE ENCAMINHAMENTO AO PRÉ-NATAL DE ALTO RISCO (PNAR):*\n';
+    texto += '• Encaminhamento prioritário ao PNAR e Hematologia/Reumatologia para todas as gestantes com critérios diagnósticos de SAF preenchidos, TEV prévio documentado ou trombofilias hereditárias de alto risco.\n';
+    texto += '• Programar Dopplerfluxometria seriada a partir de 24-26 semanas para monitorar vitalidade fetal e rastrear restrição de crescimento fetal (RCF).\n';
+
     texto += '\n📚 *Diretrizes:* ACR/EULAR (2023), Sydney (2006), RCOG 37a, FEBRASGO 2023-2026, SOAP/ASRA.';
 
     return texto;

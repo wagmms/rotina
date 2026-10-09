@@ -335,13 +335,13 @@ var GinecologiaEndometrioseService = (function () {
     // D. Planejamento Cirúrgico e Critérios Multidisciplinares
     // ─────────────────────────────────────────────────────────────────────────
     if (indicacaoCirurgicaUrgente || evaDor >= 8 || falhaDienogeste || (endometrioma && endometriomaCm >= 4.0)) {
-      planoCirurgico.push("Princípio Operatório: Laparoscopia de alta resolução ou Cirurgia Robótica realizada por equipe multidisciplinar ginecológica e especializada.");
-      planoCirurgico.push("Abordagem 'Nerve-Sparing': Preservação dos plexos hipogástricos superior e inferior para evitar disfunções urinárias (bexiga neurogênica), fecais e sexuais no pós-operatório.");
+      planoCirurgico.push("Critérios de Encaminhamento ao Especialista: Indicada avaliação ginecológica cirúrgica especializada devido a " + (indicacaoCirurgicaUrgente ? "SINAIS DE ALARME (Red Flag orgânico/obstrutivo)." : (falhaDienogeste ? "refratariedade à terapia hormonal de 1ª linha." : (evaDor >= 8 ? "dor incapacitante severa (EVA >= 8)." : "endometrioma volumoso >= 4 cm."))));
+      planoCirurgico.push("Abordagem Especializada: Equipe multidisciplinar com foco na preservação funcional/nervosa (nerve-sparing) e prevenção de lesão iatrogênica.");
       if (endometrioma) {
-        planoCirurgico.push("Técnica em Endometrioma: Cistectomia com tração e contra-tração delicada para remoção da cápsula, minimizando a perda de estroma ovariano são e evitando eletrocoagulação bipolar excessiva no leito ovariano.");
+        planoCirurgico.push("Conduta em Endometrioma: Cistectomia conservadora com preservação máxima do parênquima ovariano são e da reserva folicular (evitar eletrocoagulação agressiva do leito).");
       }
       if (acometimentoIntestinal) {
-        planoCirurgico.push("Técnica Intestinal: Preferir técnicas conservadoras (shaving ou ressecção discoide) quando nódulos < 3 cm e estenose < 50%; reservar ressecção segmentar para lesões múltiplas ou obstrutivas.");
+        planoCirurgico.push("Acometimento Intestinal: Avaliação conjunta com Coloproctologia para definir ressecção conservadora (shaving/discoide) ou segmentar.");
       }
     }
 
@@ -581,11 +581,16 @@ var GinecologiaEndometrioseService = (function () {
     }
 
     if (resultado.planoCirurgico && resultado.planoCirurgico.length > 0) {
-      texto += "\n🔪 *PLANEJAMENTO CIRÚRGICO (MULTIDISCIPLINAR):*\n";
+      texto += "\n🚨 *CRITÉRIOS DE ENCAMINHAMENTO CIRÚRGICO / ESPECIALIZADO:*\n";
       for (var s = 0; s < resultado.planoCirurgico.length; s++) {
         texto += "• " + resultado.planoCirurgico[s] + "\n";
       }
     }
+
+    texto += "\n🩺 *CONDUTA BEIRA-LEITO / UBS (MÉDICO GENERALISTA):*\n";
+    texto += "• *Alívio Imediato da Dor:* Analgesia escalonada (Dipirona 1g VO/IV + AINEs em cursos curtos de 3-5 dias nas crises) sem retardar supressão hormonal.\n";
+    texto += "• *Terapia Empírica de 1ª Linha:* Iniciar precocemente Progestagênio contínuo (Dienogeste 2 mg/dia contínuo ou Desogestrel 75 mcg/dia no SUS). Não aguardar confirmação cirúrgica/laparoscópica para tratar a dor.\n";
+    texto += "• *Orientação à Paciente:* Informar que USG pélvico/transvaginal comum normal NÃO exclui endometriose peritoneal. Solicitar USG com preparo intestinal prévio ou RM de pelve com protocolo dedicado.\n";
 
     texto += "\n🌱 *SUPORTE MULTIDISCIPLINAR:*\n";
     for (var m = 0; m < resultado.suporteMultidisciplinar.length; m++) {

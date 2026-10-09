@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 08:57:16
- * Checksum SHA256: 38f4db59be56319f
+ * Gerado automaticamente via build_master.py em: 2026-10-09 09:19:47
+ * Checksum SHA256: 37cd96672d6168a5
  * ==============================================================================
  */
 
@@ -1107,6 +1107,11 @@ var AnalgesiaPcaService = (function() {
         ];
         if (isMuitoIdoso) {
             prescricao.alertasSeguranca.unshift("⚠️ PACIENTE MUITO IDOSO (≥ 90 ANOS): Risco altíssimo de depressão respiratória central e sedação excessiva por depuração renal/hepática reduzida. Na escolha entre opioides, Fentanil é preferível à Morfina para evitar acúmulo de metabólitos neurotóxicos (M6G/M3G). Titulação em doses mínimas com oximetria e FR contínuas.");
+        }
+        if (pesoNum > 150) {
+            prescricao.alertasSeguranca.unshift(`⚠️ OBESIDADE SEVERA/EXTREMA (${pesoNum} kg): Alto risco de apneia obstrutiva do sono e hipoventilação induzida por opioides. O Fentanil (lipofílico) apresenta volume de distribuição ampliado e meia-vida terminal prolongada; doses basais devem ser evitadas e capnografia beira-leito é fortemente recomendada.`);
+        } else if (pesoNum < 40) {
+            prescricao.alertasSeguranca.unshift(`⚠️ BAIXO PESO CORPORAL / CAQUEXIA (${pesoNum} kg): Risco aumentado de superdosagem relativa; preconiza-se iniciar no menor bolus da faixa posológica e estender intervalos de bloqueio (lockout).`);
         }
         if (!opioideTolerante) {
             prescricao.alertasSeguranca.push("Paciente opioid-naïve: O uso de dose basal por infusão contínua aumenta significativamente o risco de depressão respiratória grave sem melhorar substancialmente a analgesia, sendo fortemente desaconselhado.");
@@ -3393,12 +3398,16 @@ var CalculadorasClinicas = (function () {
           ? ['Internar; avaliar leito de UTI.', 'Avaliar sepse, oxigenação e necessidade de suporte.']
           : ['Internar; reavaliar gravidade em curto prazo.', 'Avaliar sepse e oxigenação; considerar UTI se instável.'];
       }
+      var avisosCurb = [(5 - score) + ' critérios negativos conferidos. O escore isolado não autoriza alta nem define UTI.'];
+      if (gte(i, 90)) {
+        avisosCurb.unshift('⚠️ Paciente muito idoso / nonagenário (≥ 90 anos): Apresentação atípica comum (confusão mental aguda, prostração, sem febre/tosse). Limiar baixo para internação hospitalar e vigilância intensiva.');
+      }
       return sucesso({
         id: ID, nome: NOME, estado: estado, rotulo: rotulo,
         principal: score + '/5 · mortalidade 30 d ' + mort + ' (grupo)',
         secoes: [['PONTUARAM', crit.length ? crit : ['Nenhum critério pontuou.']],
                  ['AÇÃO', acoes]],
-        avisos: [(5 - score) + ' critérios negativos conferidos. O escore isolado não autoriza alta nem define UTI.'],
+        avisos: avisosCurb,
         dados: { pontos: score, maximo: 5, criterios: crit },
         legado: {
           pontuacao: score + '/5',
@@ -3804,7 +3813,7 @@ var CalculadorasClinicas = (function () {
       var na = num(c, naAtual, 'Na atual (mEq/L)', 100, 200);
       var alvo = num(c, naAlvo, 'Na de referência (mEq/L)', 120, 160, { opcional: true });
       if (alvo === null || alvo === 0) alvo = 140;
-      var peso = num(c, pesoKg, 'Peso (kg)', 2, 350);
+      var peso = num(c, pesoKg, 'Peso (kg)', 0.3, 350);
       var fator = NaN;
       if (ausente(perfil)) { c.faltas.push('Perfil (homem, mulher, idoso, idosa, criança)'); }
       else if (typeof perfil !== 'string') { c.erros.push('Perfil: texto esperado'); }
@@ -3828,16 +3837,31 @@ var CalculadorasClinicas = (function () {
       var actL = Math.round(act * 10) / 10;
 
       if (lte(na, alvo)) {
+        var avisosSemDef = ['Na atual não é maior que a referência: fórmula de hipernatremia não se aplica.'];
+        if (lt(peso, 2.0)) avisosSemDef.push('⚠️ Neonato / baixo peso (< 2 kg): Monitorar hidratação rigorosa.');
+        if (gt(peso, 150)) avisosSemDef.push('⚠️ Obesidade severa (> 150 kg): Avaliar volemia.');
         return sucesso({
           id: ID, nome: NOME, estado: 'CALCULO', rotulo: 'SEM DÉFICIT PELA FÓRMULA',
           principal: '0,0 L',
           secoes: [['ENTRADAS', ['Na atual: ' + fmt(na, 0) + ' mEq/L', 'Na de referência: ' + fmt(alvo, 0) + ' mEq/L', 'Peso: ' + fmt(peso, 1) + ' kg']]],
-          avisos: ['Na atual não é maior que a referência: fórmula de hipernatremia não se aplica.'],
+          avisos: avisosSemDef,
           dados: { deficitL: 0, actL: actL },
           legado: { deficitLitros: 0, aguaCorporalTotal: actL },
           botoes: [[btn('✏️ Revisar dados', ID, 'editar'), btn('📄 Gerar PDF', ID, 'pdf')]]
         });
       }
+
+      var avisosDal = ['Estimativa: não inclui perdas contínuas nem a água de manutenção.', 'Limite de correção: no máximo 10 mEq/L em 24 h (menor em hipernatremia crônica).'];
+      if (lt(peso, 2.0)) {
+        avisosDal.unshift('⚠️ Neonato / prematuro (< 2 kg): Água corporal proporcionalmente elevada (~75-80%), mas risco crítico de edema cerebral e hemorragia periventricular na correção rápida. Limitar redução de sódio a 0,5 mEq/L/h.');
+      }
+      if (gt(peso, 150)) {
+        avisosDal.push('⚠️ Obesidade severa (> 150 kg): O tecido adiposo possui menor proporção de água. O déficit calculado com peso real pode superestimar a água corporal. Titular hidratação com cautela e monitorar sódio sérico a cada 4–6h.');
+      }
+      if (gt(na, 175)) {
+        avisosDal.unshift('🚨 HIPERNATREMIA EXTREMA (Na > 175 mEq/L): Risco iminente de desidratação neuronal grave, hemorragia subaracnóidea e coma. Correção estritamente lenta (máx 8–10 mEq/L em 24h).');
+      }
+
       return sucesso({
         id: ID, nome: NOME, estado: 'CALCULO', principal: fmt(def, 1) + ' L',
         secoes: [
@@ -3845,7 +3869,7 @@ var CalculadorasClinicas = (function () {
                         'Perfil: ' + semAcento(perfil), 'Água corporal estimada: ' + fmt(act, 1) + ' L (fator ' + fmt(fator, 2) + ')']],
           ['AÇÃO', ['Usar como estimativa inicial de planejamento.', 'Reposição preferencialmente enteral/VO ou SG 5%; checar Na a cada 4–6 h.']]
         ],
-        avisos: ['Estimativa: não inclui perdas contínuas nem a água de manutenção.', 'Limite de correção: no máximo 10 mEq/L em 24 h (menor em hipernatremia crônica).'],
+        avisos: avisosDal,
         dados: { deficitL: defL, actL: actL, fator: fator },
         legado: { deficitLitros: defL, aguaCorporalTotal: actL },
         botoes: botoesPadrao(ID, [btn('💧 Abrir planejamento', ID, 'plano'), btn('✏️ Revisar dados', ID, 'editar')])
@@ -3884,6 +3908,13 @@ var CalculadorasClinicas = (function () {
         conduta = ['Níveis normocalcêmicos fisiológicos após correção de albumina. Manter seguimento habitual.'];
       }
 
+      var avisosCalcio = ['A fórmula de Payne é uma estimativa. Em UTI ou distúrbios críticos, o padrão-ouro é dosar o Cálcio Iônico diretamente.'];
+      if (caCorr >= 14.0) {
+        avisosCalcio.unshift('🚨 CRISE HIPERCALCÊMICA GRAVE (Cálcio corrigido ≥ 14,0 mg/dL): Risco iminente de arritmias cardíacas fatais, desidratação e coma. Hidratação imediata com SF 0,9% (200–300 mL/h), Furosemida e Bisfosfonato IV.');
+      } else if (caCorr < 7.0) {
+        avisosCalcio.unshift('🚨 HIPOCALCEMIA GRAVE (< 7,0 mg/dL): Risco iminente de tetania, laringoespasmo, convulsões e prolongamento de QTc. Gluconato de Cálcio 10% IV sob monitorização cardíaca contínua.');
+      }
+
       return sucesso({
         id: ID, nome: NOME, estado: estado, rotulo: rotulo,
         principal: fmt(caCorr, 1) + ' mg/dL',
@@ -3892,7 +3923,7 @@ var CalculadorasClinicas = (function () {
           ['CLASSIFICAÇÃO', [statusTexto]],
           ['AÇÃO', conduta]
         ],
-        avisos: ['A fórmula de Payne é uma estimativa. Em UTI ou distúrbios críticos, o padrão-ouro é dosar o Cálcio Iônico diretamente.'],
+        avisos: avisosCalcio,
         dados: { calcioMedido: ca, albumina: alb, calcioCorrigido: caCorrFmt },
         legado: { calcioCorrigido: caCorrFmt, status: statusTexto },
         botoes: botoesPadrao(ID, [btn('🧪 Repetir exame', ID, 'repetir'), btn('✏️ Editar dados', ID, 'editar')])
@@ -3939,7 +3970,13 @@ var CalculadorasClinicas = (function () {
           ['VALORES', ['Osmolaridade Medida: ' + fmt(om, 1) + ' mOsm/kg', 'Osmolaridade Calculada: ' + fmt(osmCalc, 1) + ' mOsm/kg', 'Fórmula: 2×Na + Glicose/18 + Ureia/6']],
           ['AÇÃO', conduta]
         ],
-        avisos: ['Um gap normal não exclui totalmente intoxicação em fases muito tardias de metabolização.'],
+        avisos: (function () {
+          var av = ['Um gap normal não exclui totalmente intoxicação em fases muito tardias de metabolização.'];
+          if (gap > 50) {
+            av.unshift('🚨 GAP OSMOLAR EXTREMO (> 50 mOsm/kg): Suspeita crítica de INTOXICAÇÃO MACIÇA por álcoois tóxicos (Metanol ou Etilenoglicol). Indicação IMEDIATA de hemodiálise de urgência e antídoto (Fomepizol ou Etanol).');
+          }
+          return av;
+        })(),
         dados: { osmolaridadeMedida: om, osmolaridadeCalculada: Math.round(osmCalc * 10) / 10, gapOsmolar: gapFmt },
         legado: { gapOsmolar: gapFmt, osmCalculada: Math.round(osmCalc * 10) / 10 },
         botoes: botoesPadrao(ID, [btn('🧪 Investigar intoxicação', ID, 'intoxicacao'), btn('✏️ Editar dados', ID, 'editar')])
@@ -4039,7 +4076,13 @@ var CalculadorasClinicas = (function () {
           ['CRITÉRIOS ATENDIDOS', criterios.length ? criterios : ['Nenhum critério para IRA atingido']],
           ['AÇÃO', conduta]
         ],
-        avisos: ['KDIGO 2024: A classificação por débito urinário e creatinina tem implicações prognósticas diretas.'],
+        avisos: (function () {
+          var av = ['KDIGO 2024: A classificação por débito urinário e creatinina tem implicações prognósticas diretas.'];
+          if (gt(ca, 15)) {
+            av.unshift('🚨 Creatinina extremamente discrepante (> 15 mg/dL: ' + fmt(ca, 1) + ' mg/dL): Falência renal terminal com risco crítico de complicações urêmicas graves e indicação imediata de diálise de urgência (AEIOU).');
+          }
+          return av;
+        })(),
         dados: { estagio: estagioFinal, criterios: criterios },
         legado: { estagioKDIGO: estagioFinal },
         botoes: botoesPadrao(ID, [btn('💊 Ajuste renal', ID, 'ajuste'), btn('💧 Balanço hídrico', ID, 'balanco')])
@@ -4053,7 +4096,7 @@ var CalculadorasClinicas = (function () {
     var ID = 'gaso', NOME = 'Gasometria arterial';
     return seguro(ID, NOME, function () {
       var c = novoCtx();
-      var ph = num(c, phVal, 'pH', 6.5, 8.0);
+      var ph = num(c, phVal, 'pH', 6.0, 8.0);
       var pco2 = num(c, pco2Val, 'PaCO₂ (mmHg)', 5, 200);
       var hco3 = num(c, hco3Val, 'HCO₃⁻ (mEq/L)', 2, 70);
       var na = num(c, naVal, 'Na (mEq/L)', 100, 200, { opcional: true });
@@ -4065,7 +4108,10 @@ var CalculadorasClinicas = (function () {
 
       var avisos = [];
       if (lt(ph, 6.80)) {
-        avisos.push('🚨 ACIDEMIA EXTREMA (pH < 6.80): Limite crítico de viabilidade fisiológica. Risco iminente de PCR por colapso cardiovascular e perda de responsividade a catecolaminas.');
+        avisos.push('🚨 ACIDEMIA EXTREMA (pH < 6.80): Limite crítico de viabilidade fisiológica. Risco iminente de PCR por colapso cardiovascular e perda de responsividade a catecolaminas. Priorizar ventilação agressiva e avaliar suporte dialítico / NaHCO₃ de resgate.');
+      }
+      if (lte(hco3, 5)) {
+        avisos.push('🚨 BICARBONATO EXTREMAMENTE CONSUMIDO (≤ 5 mEq/L): Acidose metabólica severa com esgotamento da capacidade tampão.');
       }
       var phCalc = 6.1 + Math.log(hco3 / (0.0307 * pco2)) / Math.LN10;
       exigirFinito(phCalc);
@@ -4517,7 +4563,7 @@ var CalculadorasClinicas = (function () {
     var ID = 'parkland', NOME = 'Fórmula de Parkland (Ressuscitação em Grandes Queimados)';
     return seguro(ID, NOME, function () {
       var c = novoCtx();
-      var peso = num(c, pesoKg, 'Peso corporal (kg)', 10, 250);
+      var peso = num(c, pesoKg, 'Peso corporal (kg)', 3, 350);
       var scq = num(c, scqPorcentagem, 'Superfície Corpórea Queimada - SCQ (%)', 1, 100);
       if (pendente(c)) return falhaCtx(ID, NOME, c);
 
@@ -4543,6 +4589,15 @@ var CalculadorasClinicas = (function () {
         'Ajustar a taxa horária de Ringer Lactato para cima ou para baixo conforme o débito urinário a cada 1 hora.',
         'Evitar hiper-ressuscitação hídrica ("fluid creep"), que aumenta risco de síndrome compartimental abdominal e edema pulmonar.'
       ];
+      if (lt(peso, 10)) {
+        avisos.unshift('⚠️ QUEIMADURA EM PEDIATRIA / LACTENTE (< 10 kg): Crianças têm menor reserva hepática de glicogênio. Além do volume de Parkland com Ringer Lactato (3–4 mL/kg/% SCQ), DEVE-SE adicionar hidratação venosa de manutenção com SG 5% (Holliday-Segar) para prevenir hipoglicemia severa.');
+      }
+      if (gt(peso, 150)) {
+        avisos.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo pelo peso real gera volumes massivos com risco extremo de "fluid creep", Síndrome Compartimental Abdominal e edema agudo de pulmão. Utilizar o Peso Ideal (IBW) ou diretriz da ABA (2 mL/kg/% SCQ) e titular estritamente pelo débito urinário (0,5 mL/kg/h pelo peso ideal).');
+      }
+      if (gt(scq, 50)) {
+        avisos.unshift('🚨 GRANDE QUEIMADO CRÍTICO (SCQ > 50%): Risco altíssimo de choque distributivo/hipovolêmico precoce e hipotermia. Monitorização em Centro de Queimados e ressuscitação volêmica intensiva.');
+      }
 
       return sucesso({
         id: ID,
@@ -5203,6 +5258,16 @@ var CalculadorasClinicas = (function () {
       }
 
       dadosCalculados.idadeAnos = idade;
+      if (peso !== null && peso > 50 && cfg.tipo !== 'gotas' && cfg.tipo !== 'dose_fixa_idade') {
+        dadosCalculados.orientacoes = '⚠️ PESO ELEVADO / ADOLESCENTE (> 50 kg): Dose calculada limitada pelo teto máximo seguro de adulto (' + cfg.doseMaximaAdultoMgDia + ' mg/dia) para prevenir sobredose. ' + (dadosCalculados.orientacoes || '');
+      }
+      if (chaveAlvo === 'dipirona' && ((peso !== null && peso < 5.0) || (idade !== null && idade < 0.25))) {
+        dadosCalculados.orientacoes = '⚠️ CONTRAINDICAÇÃO: Dipirona é formalmente contraindicada em menores de 3 meses ou < 5 kg (risco de choque anafilactoide e hipotermia grave). ' + (dadosCalculados.orientacoes || '');
+      }
+      if (chaveAlvo === 'ibuprofeno' && ((peso !== null && peso < 5.0) || (idade !== null && idade < 0.5))) {
+        dadosCalculados.orientacoes = '⚠️ CONTRAINDICAÇÃO: Ibuprofeno oral é formalmente contraindicado em menores de 6 meses (risco aumentado de lesão renal aguda e sangramento gastrointestinal). ' + (dadosCalculados.orientacoes || '');
+      }
+
       var linhasResultado = [
         '<b>Fármaco:</b> ' + dadosCalculados.farmaco,
         '<b>Apresentação (REMUME/HSL):</b> ' + dadosCalculados.apresentacao,
@@ -5261,7 +5326,7 @@ var CalculadorasClinicas = (function () {
       var c = novoCtx();
       var dStr = String(droga || '').toLowerCase().trim();
       var crClVal = null;
-      if (!ausente(clcr)) crClVal = num(c, clcr, 'Clearance de Creatinina (mL/min)', 0, 200);
+      if (!ausente(clcr)) crClVal = num(c, clcr, 'Clearance de Creatinina (mL/min)', 0, 350);
       var hd = false;
       if (!ausente(hemodialise)) hd = bool(c, hemodialise, 'Hemodiálise intermitente');
       if (pendente(c)) return falhaCtx(ID, NOME, c);
@@ -5400,6 +5465,10 @@ var CalculadorasClinicas = (function () {
         }
         res.cuidados = 'Potente inibidor de CYP3A4; verificar interações com imunossupressores e anticoagulantes orais.';
         res.monitorizacao = 'Enzimas hepáticas (TGO/TGP) e eletrólitos.';
+      }
+
+      if (crClVal !== null && crClVal > 130) {
+        res.cuidados += ' ⚠️ CLEARANCE AUMENTADO (ARC > 130 mL/min): Risco de subdosagem e falha terapêutica. Considerar infusão estendida/contínua e monitorar resposta clínica.';
       }
 
       var linhas = [
@@ -10605,11 +10674,24 @@ var EndocrinologiaHiperprolactinemiaService = (function () {
         conduta.push("Obrigatório realizar Ecocardiograma basal e anual para rastreio de valvulopatia cardíaca induzida por agonistas dopaminérgicos.");
     }
 
+    var condutaBeiraLeito = [
+      "Investigação Inicial Básica: Dosar Beta-hCG (excluir gestação), TSH (excluir hipotireoidismo primário) e avaliar função renal antes de indicar exames de imagem selar.",
+      "Revisão Farmacológica Minuciosa: Identificar drogas hiperprolactinemiantes (antipsicóticos, metoclopramida, ranitidina, tricíclicos). Se seguro, suspender por 72h e repetir dosagem.",
+      "Exclusão de Macroprolactina: Em pacientes assintomáticas com hiperprolactinemia, solicitar pesquisa de macroprolactina (precipitação com PEG) antes de prosseguir com RM ou tratamento medicamentoso."
+    ];
+
+    var criteriosEncaminhamento = [
+      "Urgente (Endócrino/Neurocirurgia): Macroadenoma hipofisário (>= 10 mm) associado a déficit de campo visual (hemianopsia bitemporal) ou cefaleia compressiva.",
+      "Ambulatorial Prioritário (Endocrinologia): Microadenoma sintomático com queixas reprodutivas (galactorreia incômoda, infertilidade, amenorreia), falha terapêutica ou intolerância a agonistas dopaminérgicos."
+    ];
+
     return {
         resultado: {
             laudo: laudo,
             alertas: alertas,
             conduta: conduta,
+            condutaBeiraLeito: condutaBeiraLeito,
+            criteriosEncaminhamento: criteriosEncaminhamento,
             regrasBase: "Diretrizes Endocrine Society para Hiperprolactinemia e FEBRASGO 2024"
         }
     };
@@ -10667,6 +10749,20 @@ var EndocrinologiaHiperprolactinemiaService = (function () {
     resposta += "\n💡 *Conduta Proposta:*\n";
     for (var k = 0; k < resultado.conduta.length; k++) {
         resposta += "• " + resultado.conduta[k] + "\n";
+    }
+
+    if (resultado.condutaBeiraLeito && resultado.condutaBeiraLeito.length > 0) {
+        resposta += "\n🩺 *Conduta Beira-Leito / UBS (Médico Generalista):*\n";
+        for (var l = 0; l < resultado.condutaBeiraLeito.length; l++) {
+            resposta += "• " + resultado.condutaBeiraLeito[l] + "\n";
+        }
+    }
+
+    if (resultado.criteriosEncaminhamento && resultado.criteriosEncaminhamento.length > 0) {
+        resposta += "\n🚨 *Critérios de Encaminhamento ao Especialista:*\n";
+        for (var m = 0; m < resultado.criteriosEncaminhamento.length; m++) {
+            resposta += "• " + resultado.criteriosEncaminhamento[m] + "\n";
+        }
     }
 
     return resposta;
@@ -11391,7 +11487,7 @@ var GasometriaAcidoBaseService = (function () {
     var p_k     = dados.potassio !== undefined ? dados.potassio : (dados.k !== undefined ? dados.k : dados.K);
 
     // Validação de entradas
-    var ph    = validarNumero(p_ph,   'pH',          6.5,  8.0,  true);
+    var ph    = validarNumero(p_ph,   'pH',          6.0,  8.0,  true);
     var pco2  = validarNumero(p_pco2, 'PaCO₂ (mmHg)', 5,   200,  true);
     var hco3  = validarNumero(p_hco3, 'HCO₃⁻ (mEq/L)', 2,  70,   true);
     var na    = validarNumero(p_na,   'Na⁺ (mEq/L)', 100,  200,  false);
@@ -11401,8 +11497,8 @@ var GasometriaAcidoBaseService = (function () {
     var fio2  = validarNumero(p_fio2, 'FiO₂',        0.21, 100,  false);
     var idade = validarNumero(p_idade, 'Idade (anos)', 0,   130,  false);
     var altitude = validarNumero(p_alt, 'Altitude (m)', 0, 9000, false);
-    var lactato  = validarNumero(p_lac,  'Lactato (mmol/L)', 0, 30, false);
-    var potassio = validarNumero(p_k, 'K⁺ (mEq/L)', 1.0, 10.0, false);
+    var lactato  = validarNumero(p_lac,  'Lactato (mmol/L)', 0, 40, false);
+    var potassio = validarNumero(p_k, 'K⁺ (mEq/L)', 1.0, 12.0, false);
 
     var avisos = [];
 
@@ -11444,6 +11540,9 @@ var GasometriaAcidoBaseService = (function () {
     if (lt(ph, 6.80)) {
       avisos.unshift('🚨 ACIDEMIA EXTREMA (pH < 6.80): Limite crítico de viabilidade fisiológica. Colapso cardiovascular iminente, perda do inotropismo cardíaco e vasoplegia refratária a catecolaminas. Risco iminente de PCR. Priorizar ressuscitação ventilatória agressiva e medidas imediatas de suporte.');
       condutas.unshift('Acidemia extrema (pH < 6.80): Monitorização invasiva contínua em UTI, suporte hemodinâmico avançado e consideração de bicarbonato de sódio IV de resgate.');
+    }
+    if (lte(hco3, 5)) {
+      avisos.push('🚨 BICARBONATO EXTREMAMENTE CONSUMIDO (≤ 5 mEq/L): Acidose metabólica severa com esgotamento da capacidade tampão.');
     }
 
     // Alertas extras com dados complementares
@@ -13152,13 +13251,13 @@ var GinecologiaEndometrioseService = (function () {
     // D. Planejamento Cirúrgico e Critérios Multidisciplinares
     // ─────────────────────────────────────────────────────────────────────────
     if (indicacaoCirurgicaUrgente || evaDor >= 8 || falhaDienogeste || (endometrioma && endometriomaCm >= 4.0)) {
-      planoCirurgico.push("Princípio Operatório: Laparoscopia de alta resolução ou Cirurgia Robótica realizada por equipe multidisciplinar ginecológica e especializada.");
-      planoCirurgico.push("Abordagem 'Nerve-Sparing': Preservação dos plexos hipogástricos superior e inferior para evitar disfunções urinárias (bexiga neurogênica), fecais e sexuais no pós-operatório.");
+      planoCirurgico.push("Critérios de Encaminhamento ao Especialista: Indicada avaliação ginecológica cirúrgica especializada devido a " + (indicacaoCirurgicaUrgente ? "SINAIS DE ALARME (Red Flag orgânico/obstrutivo)." : (falhaDienogeste ? "refratariedade à terapia hormonal de 1ª linha." : (evaDor >= 8 ? "dor incapacitante severa (EVA >= 8)." : "endometrioma volumoso >= 4 cm."))));
+      planoCirurgico.push("Abordagem Especializada: Equipe multidisciplinar com foco na preservação funcional/nervosa (nerve-sparing) e prevenção de lesão iatrogênica.");
       if (endometrioma) {
-        planoCirurgico.push("Técnica em Endometrioma: Cistectomia com tração e contra-tração delicada para remoção da cápsula, minimizando a perda de estroma ovariano são e evitando eletrocoagulação bipolar excessiva no leito ovariano.");
+        planoCirurgico.push("Conduta em Endometrioma: Cistectomia conservadora com preservação máxima do parênquima ovariano são e da reserva folicular (evitar eletrocoagulação agressiva do leito).");
       }
       if (acometimentoIntestinal) {
-        planoCirurgico.push("Técnica Intestinal: Preferir técnicas conservadoras (shaving ou ressecção discoide) quando nódulos < 3 cm e estenose < 50%; reservar ressecção segmentar para lesões múltiplas ou obstrutivas.");
+        planoCirurgico.push("Acometimento Intestinal: Avaliação conjunta com Coloproctologia para definir ressecção conservadora (shaving/discoide) ou segmentar.");
       }
     }
 
@@ -13398,11 +13497,16 @@ var GinecologiaEndometrioseService = (function () {
     }
 
     if (resultado.planoCirurgico && resultado.planoCirurgico.length > 0) {
-      texto += "\n🔪 *PLANEJAMENTO CIRÚRGICO (MULTIDISCIPLINAR):*\n";
+      texto += "\n🚨 *CRITÉRIOS DE ENCAMINHAMENTO CIRÚRGICO / ESPECIALIZADO:*\n";
       for (var s = 0; s < resultado.planoCirurgico.length; s++) {
         texto += "• " + resultado.planoCirurgico[s] + "\n";
       }
     }
+
+    texto += "\n🩺 *CONDUTA BEIRA-LEITO / UBS (MÉDICO GENERALISTA):*\n";
+    texto += "• *Alívio Imediato da Dor:* Analgesia escalonada (Dipirona 1g VO/IV + AINEs em cursos curtos de 3-5 dias nas crises) sem retardar supressão hormonal.\n";
+    texto += "• *Terapia Empírica de 1ª Linha:* Iniciar precocemente Progestagênio contínuo (Dienogeste 2 mg/dia contínuo ou Desogestrel 75 mcg/dia no SUS). Não aguardar confirmação cirúrgica/laparoscópica para tratar a dor.\n";
+    texto += "• *Orientação à Paciente:* Informar que USG pélvico/transvaginal comum normal NÃO exclui endometriose peritoneal. Solicitar USG com preparo intestinal prévio ou RM de pelve com protocolo dedicado.\n";
 
     texto += "\n🌱 *SUPORTE MULTIDISCIPLINAR:*\n";
     for (var m = 0; m < resultado.suporteMultidisciplinar.length; m++) {
@@ -14050,12 +14154,24 @@ var HematologiaAnemiasService = (function () {
       diluicaoRecomendada: maxDoseSessaoMg + ' mg (' + Math.round(maxDoseSessaoMg / 100) + ' ampolas de 5 mL) diluídos em 100 mL a 200 mL de Soro Fisiológico 0.9% (NUNCA usar Soro Glicosado 5% pela instabilidade físico-química da solução coloidal).',
       tempoInfusao: 'Infundir por via intravenosa estrita em no mínimo 30 a 60 minutos, com vazão controlada em bomba de infusão.',
       frequencia: 'Administrar 2 a 3 vezes por semana (em dias alternados, ex: Seg-Qua-Sex) até atingir a dose cumulativa total de ' + deficitTotalGanzoniMg + ' mg.',
-      bloqueiosESeguranca: [
-        'CONTRAINDICAÇÃO FORMAL NO 1º TRIMESTRE DE GESTAÇÃO (seguro no 2º e 3º trimestres).',
-        'SUSPENDER FERRO ORAL durante todo o tratamento com ferro intravenoso (evitar saturação reticuloendotelial desnecessária).',
-        'CUIDADO RIGOROSO COM EXTRAVASAMENTO: o ferro fora da veia causa hiperpigmentação dérmica marrom permanente ("tatuagem") e necrose tecidual inflamatória local. Testar patência do acesso venoso com SF 0.9% antes da infusão.',
-        'MONITORIZAÇÃO DE HIPERSENSIBILIDADE: monitorar sinais vitais nos primeiros 15 minutos de infusão (risco de hipotensão, rubor facial e broncoespasmo).'
-      ]
+      bloqueiosESeguranca: (function () {
+        var b = [
+          'CONTRAINDICAÇÃO FORMAL NO 1º TRIMESTRE DE GESTAÇÃO (seguro no 2º e 3º trimestres).',
+          'SUSPENDER FERRO ORAL durante todo o tratamento com ferro intravenoso (evitar saturação reticuloendotelial desnecessária).',
+          'CUIDADO RIGOROSO COM EXTRAVASAMENTO: o ferro fora da veia causa hiperpigmentação dérmica marrom permanente ("tatuagem") e necrose tecidual inflamatória local. Testar patência do acesso venoso com SF 0.9% antes da infusão.',
+          'MONITORIZAÇÃO DE HIPERSENSIBILIDADE: monitorar sinais vitais nos primeiros 15 minutos de infusão (risco de hipotensão, rubor facial e broncoespasmo).'
+        ];
+        if (pesoKg > 150) {
+          b.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo pelo peso real superestima o volume sanguíneo e o déficit de ferro pela fórmula de Ganzoni. Recomenda-se utilizar o Peso Ideal (IBW) ou Peso Ajustado para evitar sobrecarga tecidual de ferro.');
+        }
+        if (pesoKg < 1.0) {
+          b.unshift('⚠️ RECÉM-NASCIDO PREMATURO EXTREMO (< 1 kg): Sacarato de ferro IV não é rotineiramente recomendado. A suplementação é realizada via enteral com gotas (2 a 4 mg/kg/dia) após tolerância alimentar plena atingida (SBP).');
+        }
+        if (hbAtual <= 4.0) {
+          b.unshift('🚨 HEMOGLOBINA CRÍTICA / EXTREMA (Hb ≤ 4.0 g/dL): Risco iminente de colapso circulatório anóxico e parada cardíaca. A reposição de ferro IV NÃO supre a emergência imediata; acionar Concentrado de Hemácias (CHAD) de urgência com monitorização em UTI.');
+        }
+        return b;
+      })()
     };
 
     return {
@@ -14446,6 +14562,9 @@ var HematologiaAnemiasService = (function () {
     }
     if (peso > 150) {
       bloqueios.push('⚠️ OBESIDADE SEVERA (> 150 kg): A fórmula de Ganzoni calculada pelo peso real superestima o déficit corporal de ferro pelo excesso de adiposidade. Recomenda-se utilizar o Peso Ajustado ou limite teto para prevenir toxicidade.');
+    }
+    if (atual <= 4.0) {
+      bloqueios.push('🚨 HEMOGLOBINA CRÍTICA (Hb ≤ 4.0 g/dL): Anemia extrema com risco iminente de colapso circulatório anóxico. Priorizar transfusão emergencial de Concentrado de Hemácias e monitorização intensiva antes de aguardar resposta do ferro IV.');
     }
     if (p.gestante && (p.trimestre === 1 || p.primeiroTrimestre)) {
       aptoParaFerroEv = false;
@@ -15319,6 +15438,12 @@ var HepatologiaColestaseGestacionalService = (function() {
           t.push('   _' + resultado.parto.vitamina_k.justificativa + '_');
         }
         t.push('');
+
+        t.push('🚨 *CRITÉRIOS DE ENCAMINHAMENTO / MATERNIDADE DE ALTO RISCO:*');
+        t.push(' • *CIG Grave (ABT >= 100 mcmol/L) ou Moderada (ABT >= 40):* Encaminhamento IMEDIATO para Centro Terciário com Medicina Fetal (risco de óbito fetal súbito e resolução entre 36 e 37 semanas).');
+        t.push(' • *CIG com Prurido Intratável ou Piora Bioquímica:* Encaminhar ao Pré-Natal de Alto Risco para ajuste de UDCA e vigilância de bem-estar fetal.');
+        t.push(' • *Suspeita de EHAG / Pré-eclâmpsia (Swansea >= 6):* Vaga zero / UTI obstétrica imediata para estabilização e parto de emergência.');
+        t.push('');
       }
 
     } else if (resultado.diagnostico === 'EHAG_CONFIRMADA' || resultado.diagnostico === 'EHAG_NAO_CONFIRMADA') {
@@ -16023,9 +16148,19 @@ var NefrologiaDheService = (function() {
         var act = calcularACT(peso, sexo, idade);
         var deficitSodio = act * (naAl - naAt);
         
+        var alertas = [];
+        var pNum = parseFloat(peso);
+        if (!isNaN(pNum) && pNum > 150) {
+            alertas.push("⚠️ OBESIDADE SEVERA (> 150 kg): O tecido adiposo tem teor reduzido de água. O cálculo com peso real superestima a Água Corporal Total (ACT). Recomenda-se cautela para evitar sobrecarga volêmica.");
+        }
+        if (!isNaN(pNum) && pNum < 2.0) {
+            alertas.push("⚠️ RECÉM-NASCIDO / LACTENTE (< 2 kg): Água corporal proporcionalmente elevada (~75-80%). Monitoração estrita de sódio a cada 2-4h pelo risco extremo de edema cerebral.");
+        }
+
         return {
             act: Math.round(act * 10) / 10,
-            deficitSodioMEq: Math.round(deficitSodio)
+            deficitSodioMEq: Math.round(deficitSodio),
+            alertas: alertas
         };
     }
 
@@ -16052,13 +16187,23 @@ var NefrologiaDheService = (function() {
         var volumeParaTeto24h = (8 / variacaoNaPorLitro) * 1000; // em mL
         var taxaInfusaoSegura = volumeParaTeto24h / 24; // em mL/h
 
+        var alertas = ["RISCO DE SÍNDROME DE DESMIELINIZAÇÃO OSMÓTICA. Não ultrapassar 8-10 mEq/L nas primeiras 24h."];
+        if (na < 105) {
+            alertas.unshift("🚨 HIPONATREMIA GRAVÍSSIMA (Na < 105 mEq/L): Risco iminente de herniação cerebral, convulsões e coma. Tratamento imediato com Salina 3% (100-150 mL em 10-20 min) sob monitorização contínua em UTI.");
+        }
+        var pNum = parseFloat(peso);
+        if (!isNaN(pNum) && pNum > 150) {
+            alertas.push("⚠️ OBESIDADE SEVERA (> 150 kg): Risco de hipervolemia; titular taxa de infusão com cautela e monitorar ausculta pulmonar.");
+        }
+
         return {
             naAtual: na,
             solucao: "NaCl " + sUsada + "%",
             variacaoNaPorLitro: Math.round(variacaoNaPorLitro * 10) / 10,
             tetoElevacao24h: 8,
             tetoElevacao48h: 18,
-            alerta: "RISCO DE SÍNDROME DE DESMIELINIZAÇÃO OSMÓTICA. Não ultrapassar 8-10 mEq/L nas primeiras 24h.",
+            alerta: alertas[0],
+            alertas: alertas,
             taxaInfusaoMaxima24h_ml_h: Math.round(taxaInfusaoSegura * 10) / 10
         };
     }
@@ -16072,10 +16217,23 @@ var NefrologiaDheService = (function() {
         var act = calcularACT(peso, sexo, idade);
         var deficitAguaLivre = act * ((na / 140) - 1);
 
+        var alertas = ["Metade do déficit deve ser reposto nas primeiras 24h, o restante nas 24h a 48h seguintes. Monitorar Na a cada 4-6h."];
+        if (na > 175) {
+            alertas.unshift("🚨 HIPERNATREMIA EXTREMA (Na > 175 mEq/L): Risco altíssimo de desidratação neuronal grave, hemorragia subaracnóidea e choque. Correção estritamente lenta (máx 8-10 mEq/L em 24h).");
+        }
+        var pNum = parseFloat(peso);
+        if (!isNaN(pNum) && pNum > 150) {
+            alertas.push("⚠️ OBESIDADE SEVERA (> 150 kg): O tecido adiposo tem menor teor de água; o déficit calculado com peso real pode superestimar a água corporal.");
+        }
+        if (!isNaN(pNum) && pNum < 2.0) {
+            alertas.push("⚠️ RECÉM-NASCIDO / LACTENTE (< 2 kg): Risco crítico de edema cerebral se redução rápida; limitar queda de sódio a 0,5 mEq/L/h.");
+        }
+
         return {
             act: Math.round(act * 10) / 10,
             deficitAguaLivreLitros: Math.round(deficitAguaLivre * 100) / 100,
-            alerta: "Metade do déficit deve ser reposto nas primeiras 24h, o restante nas 24h a 48h seguintes. Monitorar Na a cada 4-6h."
+            alerta: alertas[0],
+            alertas: alertas
         };
     }
 
@@ -16466,6 +16624,11 @@ var NeurologiaAvcService = (function() {
       }
     }
 
+    // Alerta de idade extrema (nonagenários >= 90 anos)
+    if (idade >= 90) {
+      alertasClinicos.push("⚠️ Paciente longevo/nonagenário (≥ 90 anos): Idade avançada per se NÃO é contraindicação absoluta para trombólise na janela < 3h (guidelines AHA/ASA), mas associa-se a maior fragilidade microvascular e risco hemorrágico; ponderar status funcional prévio (mRS) e diretivas antecipadas.");
+    }
+
     // 4. Verificação de Janela de Tempo e Elegibilidade
     var elegivel = false;
     var mensagem = "";
@@ -16524,6 +16687,12 @@ var NeurologiaAvcService = (function() {
       }
 
       if (pesoKg && pesoKg > 0) {
+        if (pesoKg > 150) {
+          alertasClinicos.push(`⚠️ Obesidade extrema (${pesoKg} kg): Fármacos trombolíticos possuem teto absoluto (Alteplase máx 90 mg; Tenecteplase máx 25 mg), limitando a dose para o peso de 100 kg para prevenir hemorragia fatal.`);
+        } else if (pesoKg < 40) {
+          alertasClinicos.push(`⚠️ Baixo peso corporal (${pesoKg} kg): Dosagem estritamente ajustada por peso real para evitar sobredose relativa.`);
+        }
+
         // Cálculo Alteplase (Actilyse): 0.9 mg/kg, máx 90 mg
         var maxPesoAlteplase = Math.min(pesoKg, 100);
         var doseTotalAlteplase = (maxPesoAlteplase * 0.9).toFixed(1);
@@ -16597,6 +16766,13 @@ var NeurologiaAvcService = (function() {
     var peso = params.pesoKg !== undefined ? Number(params.pesoKg) : undefined;
     if (!peso || peso <= 0) {
       throw new Error("Peso (kg) obrigatório para cálculos de HIC.");
+    }
+
+    var alertasGeraisHic = [];
+    if (peso > 150) {
+      alertasGeraisHic.push(`⚠️ Obesidade extrema (${peso} kg): O cálculo de osmoterápicos por peso real pode induzir sobrecarga volêmica aguda e edema pulmonar. Considere dosagem baseada no peso predito/ideal e monitore sinais de congestão.`);
+    } else if (peso < 10) {
+      alertasGeraisHic.push(`⚠️ Lactente/Pediatria (${peso} kg): Infusão de soluções hiperosmolares exige bomba de seringa e monitorização em UTI pediátrica com gasometrias frequentes para evitar flutuações osmolares deletérias.`);
     }
 
     var sodio = params.sodio !== undefined ? Number(params.sodio) : undefined;
@@ -16680,7 +16856,8 @@ var NeurologiaAvcService = (function() {
         alerta: "Terapia de resgate para HIC severa (herniação iminente)."
       },
       osmolaridadeCalculada: osmolaridadeCalculada,
-      alertasOsmolares: alertaOsmolaridade,
+      alertasOsmolares: alertaOsmolaridade.concat(alertasGeraisHic),
+      alertasPeso: alertasGeraisHic,
       alertaGeral: "Manter cabeceira elevada a 30 graus, colar cervical frouxo, normocarbia (pCO2 35-40), e evitar hipertermia/hiponatremia.",
       medidasNeuroprotecao: alertasNeuroprotecao
     };
@@ -19564,6 +19741,14 @@ var ObstetriciaSafService = (function () {
       }
     }
 
+    texto += '\n🩺 *CONDUTA BEIRA-LEITO / UBS (MÉDICO GENERALISTA):*\n';
+    texto += '• *Ação Imediata no Teste Positivo:* Em gestante com suspeita de SAF (perdas fetais prévias ou TEV pregresso), iniciar precocemente AAS 100-150 mg/dia VO (preferencialmente antes de 16 semanas para prevenção de pré-eclâmpsia e insuficiência placentária).\n';
+    texto += '• *Desmistificação no Beira-Leito:* Mutação da MTHFR NÃO é trombofilia de risco clínico e NÃO justifica indicação de enoxaparina ou anticoagulação. Prescrever ácido fólico ou metilfolato habitual e tranquilizar a paciente.\n';
+
+    texto += '\n🚨 *CRITÉRIOS DE ENCAMINHAMENTO AO PRÉ-NATAL DE ALTO RISCO (PNAR):*\n';
+    texto += '• Encaminhamento prioritário ao PNAR e Hematologia/Reumatologia para todas as gestantes com critérios diagnósticos de SAF preenchidos, TEV prévio documentado ou trombofilias hereditárias de alto risco.\n';
+    texto += '• Programar Dopplerfluxometria seriada a partir de 24-26 semanas para monitorar vitalidade fetal e rastrear restrição de crescimento fetal (RCF).\n';
+
     texto += '\n📚 *Diretrizes:* ACR/EULAR (2023), Sydney (2006), RCOG 37a, FEBRASGO 2023-2026, SOAP/ASRA.';
 
     return texto;
@@ -20568,6 +20753,8 @@ var OftalmologiaEmergenciaService = (function () {
       for (var p = 0; p < d.prescricaoAdjuvante.length; p++) {
         texto += "• " + d.prescricaoAdjuvante[p] + "\n";
       }
+      texto += "\n🚨 *CRITÉRIOS DE ENCAMINHAMENTO URGENTE AO OFTALMOLOGISTA:*\n";
+      texto += "• Encaminhar com urgência SOMENTE APÓS concluir a irrigação contínua exaustiva (15-30 min) com confirmação de pH neutro (7,0 a 7,2). Jamais atrasar a irrigação para transferir o paciente.\n";
     } else if (tipo === "GLAUCOMA_AGUDO_ANGULO_FECHADO") {
       texto += "🔥 *CRISE AGUDA DE GLAUCOMA DE ÂNGULO FECHADO (GAAF)*\n";
       texto += "• *Pressão Intraocular (PIO):* " + (d.pio > 0 ? d.pio + " mmHg" : "Elevada (> 40 mmHg presumida)") + "\n\n";
@@ -20595,6 +20782,9 @@ var OftalmologiaEmergenciaService = (function () {
           texto += "• " + d.alertas[al] + "\n";
         }
       }
+
+      texto += "\n🚨 *CRITÉRIOS DE ENCAMINHAMENTO URGENTE AO OFTALMOLOGISTA:*\n";
+      texto += "• Encaminhamento IMEDIATO após administração das doses de resgate (Acetazolamida, Manitol e colírios) para realização de iridotomia periférica bilateral a laser.\n";
     } else {
       texto += "🛡️ *TRAUMA OCULAR E TRIAGEM VISUAL*\n";
       if (d.suspeitaGloboAberto) {
@@ -20628,6 +20818,10 @@ var OftalmologiaEmergenciaService = (function () {
       for (var c = 0; c < d.condutas.length; c++) {
         texto += "• " + d.condutas[c] + "\n";
       }
+
+      texto += "\n🚨 *CRITÉRIOS DE ENCAMINHAMENTO URGENTE AO OFTALMOLOGISTA:*\n";
+      texto += "• Suspeita de perfuração / globo aberto (manter proteção mecânica com protetor rígido sem compressão e paciente em jejum/NPO).\n";
+      texto += "• Hifema (sangue em câmara anterior), limitação da motilidade ocular extrínseca / enoftalmo pós-trauma ou queda abrupta da acuidade visual.\n";
     }
 
     texto += "\n📚 *Ultra Rotina 2026 • Urgências Oftalmológicas (CBO / AAO / Wills Eye)*";
@@ -27428,6 +27622,10 @@ var SuporteNutricionalService = (function() {
     var aguaMin = Math.round(30 * pesoRefCalorias);
     var aguaMax = Math.round(35 * pesoRefCalorias);
 
+    if (idade >= 90) {
+      orientacaoCondicao += ' | ⚠️ Idoso Longevo (≥ 90 anos): Risco acentuado de sarcopenia e menor reserva cardiovascular/renal; priorizar progressão calórica cautelosa e balanço hídrico rigoroso.';
+    }
+
     return {
       sucesso: true,
       antropometria: antro,
@@ -27447,7 +27645,8 @@ var SuporteNutricionalService = (function() {
         faixaTexto: metaProtMinTotal + ' a ' + metaProtMaxTotal + ' g de proteína/dia (' + metaProtKgMin + '-' + metaProtKgMax + ' g/kg/dia)'
       },
       necessidadeHidricaEstimada: aguaMin + ' a ' + aguaMax + ' mL/dia (30-35 mL/kg/dia)',
-      orientacaoClinica: orientacaoCondicao
+      orientacaoClinica: orientacaoCondicao,
+      alertaLongevo: idade >= 90 ? '⚠️ Paciente longevo (≥ 90 anos): Alto risco de sarcopenia e hiper-hidratação; monitorar balanço hídrico rigorosamente.' : null
     };
   }
 
@@ -29590,6 +29789,17 @@ var TransfusaoSanguineaService = (function() {
     }
 
     var alertas = [];
+    var pesoInformado = params.peso !== undefined && params.peso !== null ? Number(params.peso) : null;
+    if (pesoInformado !== null && pesoInformado > 0 && pesoInformado < 30) {
+      alertas.unshift('⚠️ ALÍQUOTA PEDIÁTRICA/NEONATAL (< 30 kg): NUNCA prescrever bolsas inteiras de adulto (300 mL). Transfusão pediátrica deve ser prescrita em alíquotas de 10 a 15 mL/kg de CHAD (' + Math.round(pesoInformado * 10) + ' a ' + Math.round(pesoInformado * 15) + ' mL para ' + pesoInformado + ' kg) em bomba de infusão.');
+    }
+    if (pesoInformado !== null && pesoInformado > 150) {
+      alertas.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O volume circulatório relativo é reduzido (~45-50 mL/kg vs 70 mL/kg). O risco de sobrecarga circulatória (TACO) é aumentado se houver cardiopatia associada.');
+    }
+    if (hb !== null && hb <= 4.0) {
+      alertas.unshift('🚨 HEMOGLOBINA CRÍTICA EXTREMA (Hb ≤ 4.0 g/dL): Risco iminente de colapso circulatório anóxico e parada cardíaca. Transfusão de hemácias emergencial imediata e admissão em UTI.');
+    }
+
     if (!indicada && hb !== null && hb >= gatilhoHb) {
       alertas.push('Estratégia restritiva mantida: Transfusão de hemácias NÃO indicada neste momento (Hb atual >= gatilho de ' + gatilhoHb.toFixed(1) + ' g/dL). Evita riscos de aloimunização, sobrecarga volêmica (TACO) e lesão pulmonar aguda (TRALI).');
       alertas.push('Reavaliar clinicamente e investigar a etiologia da anemia (deficiência de ferro, B12, folato ou perda crônica).');
@@ -30460,7 +30670,16 @@ var UrologiaColicaNefreticaService = (function () {
     txt += "\n";
     
     txt += resultado.analgesia + "\n\n";
-    txt += resultado.met + "\n";
+    txt += resultado.met + "\n\n";
+
+    txt += "🩺 *CONDUTA BEIRA-LEITO / UBS (MÉDICO GENERALISTA):*\n";
+    txt += "• *Hidratação:* NÃO hiper-hidratar na crise aguda. Ingesta hídrica forçada aumenta a pressão intracavitária e agrava a dor.\n";
+    txt += "• *Critérios de Alta com Segurança:* Paciente assintomático após analgesia, sem febre/sepse, tolerando líquidos via oral e sem sinais de IRA.\n";
+    txt += "• *Orientações ao Paciente:* Coar a urina para recuperar o cálculo para análise. Retornar imediatamente se febre (> 37,8°C), calafrios, vômitos ou dor refratária.\n\n";
+
+    txt += "🚨 *CRITÉRIOS DE ENCAMINHAMENTO À UROLOGIA:*\n";
+    txt += "• *Urgente (Pronto-Socorro):* Obstrução com infecção/sepse urinária (febre/piúria), rim único funcionante, anúria/IRA obstrutiva ou dor refratária a opioides.\n";
+    txt += "• *Ambulatorial:* Cálculo > 10 mm, falha de expulsão após 4 semanas de Tansulosina (MET) ou litíase de repetição/coraliforme.\n";
 
     return txt;
   }
@@ -37717,7 +37936,6 @@ function processarMensagemTexto(message) {
     if (!tarefaPc || tarefaPc === "ajuda" || tarefaPc === "help") {
       var msgAjudaPc = "🖥️ *PONTE DE EXECUÇÃO LOCAL (PC)*\n\n" +
         "Envie uma ordem para o seu computador executar em segundo plano:\n\n" +
-        "• `/pc tenda` — Cotação quinzenal de compras e suprimentos\n" +
         "• `/pc sync` — Sincronização de agenda e estudos\n" +
         "• `/pc audit` — Auditoria de sobreposições no calendário\n" +
         "• `/pc status` — Verifica se o daemon do PC está ativo\n\n" +

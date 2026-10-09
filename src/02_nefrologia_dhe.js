@@ -33,9 +33,19 @@ var NefrologiaDheService = (function() {
         var act = calcularACT(peso, sexo, idade);
         var deficitSodio = act * (naAl - naAt);
         
+        var alertas = [];
+        var pNum = parseFloat(peso);
+        if (!isNaN(pNum) && pNum > 150) {
+            alertas.push("⚠️ OBESIDADE SEVERA (> 150 kg): O tecido adiposo tem teor reduzido de água. O cálculo com peso real superestima a Água Corporal Total (ACT). Recomenda-se cautela para evitar sobrecarga volêmica.");
+        }
+        if (!isNaN(pNum) && pNum < 2.0) {
+            alertas.push("⚠️ RECÉM-NASCIDO / LACTENTE (< 2 kg): Água corporal proporcionalmente elevada (~75-80%). Monitoração estrita de sódio a cada 2-4h pelo risco extremo de edema cerebral.");
+        }
+
         return {
             act: Math.round(act * 10) / 10,
-            deficitSodioMEq: Math.round(deficitSodio)
+            deficitSodioMEq: Math.round(deficitSodio),
+            alertas: alertas
         };
     }
 
@@ -62,13 +72,23 @@ var NefrologiaDheService = (function() {
         var volumeParaTeto24h = (8 / variacaoNaPorLitro) * 1000; // em mL
         var taxaInfusaoSegura = volumeParaTeto24h / 24; // em mL/h
 
+        var alertas = ["RISCO DE SÍNDROME DE DESMIELINIZAÇÃO OSMÓTICA. Não ultrapassar 8-10 mEq/L nas primeiras 24h."];
+        if (na < 105) {
+            alertas.unshift("🚨 HIPONATREMIA GRAVÍSSIMA (Na < 105 mEq/L): Risco iminente de herniação cerebral, convulsões e coma. Tratamento imediato com Salina 3% (100-150 mL em 10-20 min) sob monitorização contínua em UTI.");
+        }
+        var pNum = parseFloat(peso);
+        if (!isNaN(pNum) && pNum > 150) {
+            alertas.push("⚠️ OBESIDADE SEVERA (> 150 kg): Risco de hipervolemia; titular taxa de infusão com cautela e monitorar ausculta pulmonar.");
+        }
+
         return {
             naAtual: na,
             solucao: "NaCl " + sUsada + "%",
             variacaoNaPorLitro: Math.round(variacaoNaPorLitro * 10) / 10,
             tetoElevacao24h: 8,
             tetoElevacao48h: 18,
-            alerta: "RISCO DE SÍNDROME DE DESMIELINIZAÇÃO OSMÓTICA. Não ultrapassar 8-10 mEq/L nas primeiras 24h.",
+            alerta: alertas[0],
+            alertas: alertas,
             taxaInfusaoMaxima24h_ml_h: Math.round(taxaInfusaoSegura * 10) / 10
         };
     }
@@ -82,10 +102,23 @@ var NefrologiaDheService = (function() {
         var act = calcularACT(peso, sexo, idade);
         var deficitAguaLivre = act * ((na / 140) - 1);
 
+        var alertas = ["Metade do déficit deve ser reposto nas primeiras 24h, o restante nas 24h a 48h seguintes. Monitorar Na a cada 4-6h."];
+        if (na > 175) {
+            alertas.unshift("🚨 HIPERNATREMIA EXTREMA (Na > 175 mEq/L): Risco altíssimo de desidratação neuronal grave, hemorragia subaracnóidea e choque. Correção estritamente lenta (máx 8-10 mEq/L em 24h).");
+        }
+        var pNum = parseFloat(peso);
+        if (!isNaN(pNum) && pNum > 150) {
+            alertas.push("⚠️ OBESIDADE SEVERA (> 150 kg): O tecido adiposo tem menor teor de água; o déficit calculado com peso real pode superestimar a água corporal.");
+        }
+        if (!isNaN(pNum) && pNum < 2.0) {
+            alertas.push("⚠️ RECÉM-NASCIDO / LACTENTE (< 2 kg): Risco crítico de edema cerebral se redução rápida; limitar queda de sódio a 0,5 mEq/L/h.");
+        }
+
         return {
             act: Math.round(act * 10) / 10,
             deficitAguaLivreLitros: Math.round(deficitAguaLivre * 100) / 100,
-            alerta: "Metade do déficit deve ser reposto nas primeiras 24h, o restante nas 24h a 48h seguintes. Monitorar Na a cada 4-6h."
+            alerta: alertas[0],
+            alertas: alertas
         };
     }
 

@@ -732,6 +732,12 @@ var HepatologiaColestaseGestacionalService = (function() {
           t.push('   _' + resultado.parto.vitamina_k.justificativa + '_');
         }
         t.push('');
+
+        t.push('🚨 *CRITÉRIOS DE ENCAMINHAMENTO / MATERNIDADE DE ALTO RISCO:*');
+        t.push(' • *CIG Grave (ABT >= 100 mcmol/L) ou Moderada (ABT >= 40):* Encaminhamento IMEDIATO para Centro Terciário com Medicina Fetal (risco de óbito fetal súbito e resolução entre 36 e 37 semanas).');
+        t.push(' • *CIG com Prurido Intratável ou Piora Bioquímica:* Encaminhar ao Pré-Natal de Alto Risco para ajuste de UDCA e vigilância de bem-estar fetal.');
+        t.push(' • *Suspeita de EHAG / Pré-eclâmpsia (Swansea >= 6):* Vaga zero / UTI obstétrica imediata para estabilização e parto de emergência.');
+        t.push('');
       }
 
     } else if (resultado.diagnostico === 'EHAG_CONFIRMADA' || resultado.diagnostico === 'EHAG_NAO_CONFIRMADA') {

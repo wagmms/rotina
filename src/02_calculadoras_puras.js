@@ -286,12 +286,16 @@ var CalculadorasClinicas = (function () {
           ? ['Internar; avaliar leito de UTI.', 'Avaliar sepse, oxigenação e necessidade de suporte.']
           : ['Internar; reavaliar gravidade em curto prazo.', 'Avaliar sepse e oxigenação; considerar UTI se instável.'];
       }
+      var avisosCurb = [(5 - score) + ' critérios negativos conferidos. O escore isolado não autoriza alta nem define UTI.'];
+      if (gte(i, 90)) {
+        avisosCurb.unshift('⚠️ Paciente muito idoso / nonagenário (≥ 90 anos): Apresentação atípica comum (confusão mental aguda, prostração, sem febre/tosse). Limiar baixo para internação hospitalar e vigilância intensiva.');
+      }
       return sucesso({
         id: ID, nome: NOME, estado: estado, rotulo: rotulo,
         principal: score + '/5 · mortalidade 30 d ' + mort + ' (grupo)',
         secoes: [['PONTUARAM', crit.length ? crit : ['Nenhum critério pontuou.']],
                  ['AÇÃO', acoes]],
-        avisos: [(5 - score) + ' critérios negativos conferidos. O escore isolado não autoriza alta nem define UTI.'],
+        avisos: avisosCurb,
         dados: { pontos: score, maximo: 5, criterios: crit },
         legado: {
           pontuacao: score + '/5',
@@ -697,7 +701,7 @@ var CalculadorasClinicas = (function () {
       var na = num(c, naAtual, 'Na atual (mEq/L)', 100, 200);
       var alvo = num(c, naAlvo, 'Na de referência (mEq/L)', 120, 160, { opcional: true });
       if (alvo === null || alvo === 0) alvo = 140;
-      var peso = num(c, pesoKg, 'Peso (kg)', 2, 350);
+      var peso = num(c, pesoKg, 'Peso (kg)', 0.3, 350);
       var fator = NaN;
       if (ausente(perfil)) { c.faltas.push('Perfil (homem, mulher, idoso, idosa, criança)'); }
       else if (typeof perfil !== 'string') { c.erros.push('Perfil: texto esperado'); }
@@ -721,16 +725,31 @@ var CalculadorasClinicas = (function () {
       var actL = Math.round(act * 10) / 10;
 
       if (lte(na, alvo)) {
+        var avisosSemDef = ['Na atual não é maior que a referência: fórmula de hipernatremia não se aplica.'];
+        if (lt(peso, 2.0)) avisosSemDef.push('⚠️ Neonato / baixo peso (< 2 kg): Monitorar hidratação rigorosa.');
+        if (gt(peso, 150)) avisosSemDef.push('⚠️ Obesidade severa (> 150 kg): Avaliar volemia.');
         return sucesso({
           id: ID, nome: NOME, estado: 'CALCULO', rotulo: 'SEM DÉFICIT PELA FÓRMULA',
           principal: '0,0 L',
           secoes: [['ENTRADAS', ['Na atual: ' + fmt(na, 0) + ' mEq/L', 'Na de referência: ' + fmt(alvo, 0) + ' mEq/L', 'Peso: ' + fmt(peso, 1) + ' kg']]],
-          avisos: ['Na atual não é maior que a referência: fórmula de hipernatremia não se aplica.'],
+          avisos: avisosSemDef,
           dados: { deficitL: 0, actL: actL },
           legado: { deficitLitros: 0, aguaCorporalTotal: actL },
           botoes: [[btn('✏️ Revisar dados', ID, 'editar'), btn('📄 Gerar PDF', ID, 'pdf')]]
         });
       }
+
+      var avisosDal = ['Estimativa: não inclui perdas contínuas nem a água de manutenção.', 'Limite de correção: no máximo 10 mEq/L em 24 h (menor em hipernatremia crônica).'];
+      if (lt(peso, 2.0)) {
+        avisosDal.unshift('⚠️ Neonato / prematuro (< 2 kg): Água corporal proporcionalmente elevada (~75-80%), mas risco crítico de edema cerebral e hemorragia periventricular na correção rápida. Limitar redução de sódio a 0,5 mEq/L/h.');
+      }
+      if (gt(peso, 150)) {
+        avisosDal.push('⚠️ Obesidade severa (> 150 kg): O tecido adiposo possui menor proporção de água. O déficit calculado com peso real pode superestimar a água corporal. Titular hidratação com cautela e monitorar sódio sérico a cada 4–6h.');
+      }
+      if (gt(na, 175)) {
+        avisosDal.unshift('🚨 HIPERNATREMIA EXTREMA (Na > 175 mEq/L): Risco iminente de desidratação neuronal grave, hemorragia subaracnóidea e coma. Correção estritamente lenta (máx 8–10 mEq/L em 24h).');
+      }
+
       return sucesso({
         id: ID, nome: NOME, estado: 'CALCULO', principal: fmt(def, 1) + ' L',
         secoes: [
@@ -738,7 +757,7 @@ var CalculadorasClinicas = (function () {
                         'Perfil: ' + semAcento(perfil), 'Água corporal estimada: ' + fmt(act, 1) + ' L (fator ' + fmt(fator, 2) + ')']],
           ['AÇÃO', ['Usar como estimativa inicial de planejamento.', 'Reposição preferencialmente enteral/VO ou SG 5%; checar Na a cada 4–6 h.']]
         ],
-        avisos: ['Estimativa: não inclui perdas contínuas nem a água de manutenção.', 'Limite de correção: no máximo 10 mEq/L em 24 h (menor em hipernatremia crônica).'],
+        avisos: avisosDal,
         dados: { deficitL: defL, actL: actL, fator: fator },
         legado: { deficitLitros: defL, aguaCorporalTotal: actL },
         botoes: botoesPadrao(ID, [btn('💧 Abrir planejamento', ID, 'plano'), btn('✏️ Revisar dados', ID, 'editar')])
@@ -777,6 +796,13 @@ var CalculadorasClinicas = (function () {
         conduta = ['Níveis normocalcêmicos fisiológicos após correção de albumina. Manter seguimento habitual.'];
       }
 
+      var avisosCalcio = ['A fórmula de Payne é uma estimativa. Em UTI ou distúrbios críticos, o padrão-ouro é dosar o Cálcio Iônico diretamente.'];
+      if (caCorr >= 14.0) {
+        avisosCalcio.unshift('🚨 CRISE HIPERCALCÊMICA GRAVE (Cálcio corrigido ≥ 14,0 mg/dL): Risco iminente de arritmias cardíacas fatais, desidratação e coma. Hidratação imediata com SF 0,9% (200–300 mL/h), Furosemida e Bisfosfonato IV.');
+      } else if (caCorr < 7.0) {
+        avisosCalcio.unshift('🚨 HIPOCALCEMIA GRAVE (< 7,0 mg/dL): Risco iminente de tetania, laringoespasmo, convulsões e prolongamento de QTc. Gluconato de Cálcio 10% IV sob monitorização cardíaca contínua.');
+      }
+
       return sucesso({
         id: ID, nome: NOME, estado: estado, rotulo: rotulo,
         principal: fmt(caCorr, 1) + ' mg/dL',
@@ -785,7 +811,7 @@ var CalculadorasClinicas = (function () {
           ['CLASSIFICAÇÃO', [statusTexto]],
           ['AÇÃO', conduta]
         ],
-        avisos: ['A fórmula de Payne é uma estimativa. Em UTI ou distúrbios críticos, o padrão-ouro é dosar o Cálcio Iônico diretamente.'],
+        avisos: avisosCalcio,
         dados: { calcioMedido: ca, albumina: alb, calcioCorrigido: caCorrFmt },
         legado: { calcioCorrigido: caCorrFmt, status: statusTexto },
         botoes: botoesPadrao(ID, [btn('🧪 Repetir exame', ID, 'repetir'), btn('✏️ Editar dados', ID, 'editar')])
@@ -832,7 +858,13 @@ var CalculadorasClinicas = (function () {
           ['VALORES', ['Osmolaridade Medida: ' + fmt(om, 1) + ' mOsm/kg', 'Osmolaridade Calculada: ' + fmt(osmCalc, 1) + ' mOsm/kg', 'Fórmula: 2×Na + Glicose/18 + Ureia/6']],
           ['AÇÃO', conduta]
         ],
-        avisos: ['Um gap normal não exclui totalmente intoxicação em fases muito tardias de metabolização.'],
+        avisos: (function () {
+          var av = ['Um gap normal não exclui totalmente intoxicação em fases muito tardias de metabolização.'];
+          if (gap > 50) {
+            av.unshift('🚨 GAP OSMOLAR EXTREMO (> 50 mOsm/kg): Suspeita crítica de INTOXICAÇÃO MACIÇA por álcoois tóxicos (Metanol ou Etilenoglicol). Indicação IMEDIATA de hemodiálise de urgência e antídoto (Fomepizol ou Etanol).');
+          }
+          return av;
+        })(),
         dados: { osmolaridadeMedida: om, osmolaridadeCalculada: Math.round(osmCalc * 10) / 10, gapOsmolar: gapFmt },
         legado: { gapOsmolar: gapFmt, osmCalculada: Math.round(osmCalc * 10) / 10 },
         botoes: botoesPadrao(ID, [btn('🧪 Investigar intoxicação', ID, 'intoxicacao'), btn('✏️ Editar dados', ID, 'editar')])
@@ -932,7 +964,13 @@ var CalculadorasClinicas = (function () {
           ['CRITÉRIOS ATENDIDOS', criterios.length ? criterios : ['Nenhum critério para IRA atingido']],
           ['AÇÃO', conduta]
         ],
-        avisos: ['KDIGO 2024: A classificação por débito urinário e creatinina tem implicações prognósticas diretas.'],
+        avisos: (function () {
+          var av = ['KDIGO 2024: A classificação por débito urinário e creatinina tem implicações prognósticas diretas.'];
+          if (gt(ca, 15)) {
+            av.unshift('🚨 Creatinina extremamente discrepante (> 15 mg/dL: ' + fmt(ca, 1) + ' mg/dL): Falência renal terminal com risco crítico de complicações urêmicas graves e indicação imediata de diálise de urgência (AEIOU).');
+          }
+          return av;
+        })(),
         dados: { estagio: estagioFinal, criterios: criterios },
         legado: { estagioKDIGO: estagioFinal },
         botoes: botoesPadrao(ID, [btn('💊 Ajuste renal', ID, 'ajuste'), btn('💧 Balanço hídrico', ID, 'balanco')])
@@ -946,7 +984,7 @@ var CalculadorasClinicas = (function () {
     var ID = 'gaso', NOME = 'Gasometria arterial';
     return seguro(ID, NOME, function () {
       var c = novoCtx();
-      var ph = num(c, phVal, 'pH', 6.5, 8.0);
+      var ph = num(c, phVal, 'pH', 6.0, 8.0);
       var pco2 = num(c, pco2Val, 'PaCO₂ (mmHg)', 5, 200);
       var hco3 = num(c, hco3Val, 'HCO₃⁻ (mEq/L)', 2, 70);
       var na = num(c, naVal, 'Na (mEq/L)', 100, 200, { opcional: true });
@@ -958,7 +996,10 @@ var CalculadorasClinicas = (function () {
 
       var avisos = [];
       if (lt(ph, 6.80)) {
-        avisos.push('🚨 ACIDEMIA EXTREMA (pH < 6.80): Limite crítico de viabilidade fisiológica. Risco iminente de PCR por colapso cardiovascular e perda de responsividade a catecolaminas.');
+        avisos.push('🚨 ACIDEMIA EXTREMA (pH < 6.80): Limite crítico de viabilidade fisiológica. Risco iminente de PCR por colapso cardiovascular e perda de responsividade a catecolaminas. Priorizar ventilação agressiva e avaliar suporte dialítico / NaHCO₃ de resgate.');
+      }
+      if (lte(hco3, 5)) {
+        avisos.push('🚨 BICARBONATO EXTREMAMENTE CONSUMIDO (≤ 5 mEq/L): Acidose metabólica severa com esgotamento da capacidade tampão.');
       }
       var phCalc = 6.1 + Math.log(hco3 / (0.0307 * pco2)) / Math.LN10;
       exigirFinito(phCalc);
@@ -1410,7 +1451,7 @@ var CalculadorasClinicas = (function () {
     var ID = 'parkland', NOME = 'Fórmula de Parkland (Ressuscitação em Grandes Queimados)';
     return seguro(ID, NOME, function () {
       var c = novoCtx();
-      var peso = num(c, pesoKg, 'Peso corporal (kg)', 10, 250);
+      var peso = num(c, pesoKg, 'Peso corporal (kg)', 3, 350);
       var scq = num(c, scqPorcentagem, 'Superfície Corpórea Queimada - SCQ (%)', 1, 100);
       if (pendente(c)) return falhaCtx(ID, NOME, c);
 
@@ -1436,6 +1477,15 @@ var CalculadorasClinicas = (function () {
         'Ajustar a taxa horária de Ringer Lactato para cima ou para baixo conforme o débito urinário a cada 1 hora.',
         'Evitar hiper-ressuscitação hídrica ("fluid creep"), que aumenta risco de síndrome compartimental abdominal e edema pulmonar.'
       ];
+      if (lt(peso, 10)) {
+        avisos.unshift('⚠️ QUEIMADURA EM PEDIATRIA / LACTENTE (< 10 kg): Crianças têm menor reserva hepática de glicogênio. Além do volume de Parkland com Ringer Lactato (3–4 mL/kg/% SCQ), DEVE-SE adicionar hidratação venosa de manutenção com SG 5% (Holliday-Segar) para prevenir hipoglicemia severa.');
+      }
+      if (gt(peso, 150)) {
+        avisos.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo pelo peso real gera volumes massivos com risco extremo de "fluid creep", Síndrome Compartimental Abdominal e edema agudo de pulmão. Utilizar o Peso Ideal (IBW) ou diretriz da ABA (2 mL/kg/% SCQ) e titular estritamente pelo débito urinário (0,5 mL/kg/h pelo peso ideal).');
+      }
+      if (gt(scq, 50)) {
+        avisos.unshift('🚨 GRANDE QUEIMADO CRÍTICO (SCQ > 50%): Risco altíssimo de choque distributivo/hipovolêmico precoce e hipotermia. Monitorização em Centro de Queimados e ressuscitação volêmica intensiva.');
+      }
 
       return sucesso({
         id: ID,
@@ -2096,6 +2146,16 @@ var CalculadorasClinicas = (function () {
       }
 
       dadosCalculados.idadeAnos = idade;
+      if (peso !== null && peso > 50 && cfg.tipo !== 'gotas' && cfg.tipo !== 'dose_fixa_idade') {
+        dadosCalculados.orientacoes = '⚠️ PESO ELEVADO / ADOLESCENTE (> 50 kg): Dose calculada limitada pelo teto máximo seguro de adulto (' + cfg.doseMaximaAdultoMgDia + ' mg/dia) para prevenir sobredose. ' + (dadosCalculados.orientacoes || '');
+      }
+      if (chaveAlvo === 'dipirona' && ((peso !== null && peso < 5.0) || (idade !== null && idade < 0.25))) {
+        dadosCalculados.orientacoes = '⚠️ CONTRAINDICAÇÃO: Dipirona é formalmente contraindicada em menores de 3 meses ou < 5 kg (risco de choque anafilactoide e hipotermia grave). ' + (dadosCalculados.orientacoes || '');
+      }
+      if (chaveAlvo === 'ibuprofeno' && ((peso !== null && peso < 5.0) || (idade !== null && idade < 0.5))) {
+        dadosCalculados.orientacoes = '⚠️ CONTRAINDICAÇÃO: Ibuprofeno oral é formalmente contraindicado em menores de 6 meses (risco aumentado de lesão renal aguda e sangramento gastrointestinal). ' + (dadosCalculados.orientacoes || '');
+      }
+
       var linhasResultado = [
         '<b>Fármaco:</b> ' + dadosCalculados.farmaco,
         '<b>Apresentação (REMUME/HSL):</b> ' + dadosCalculados.apresentacao,
@@ -2154,7 +2214,7 @@ var CalculadorasClinicas = (function () {
       var c = novoCtx();
       var dStr = String(droga || '').toLowerCase().trim();
       var crClVal = null;
-      if (!ausente(clcr)) crClVal = num(c, clcr, 'Clearance de Creatinina (mL/min)', 0, 200);
+      if (!ausente(clcr)) crClVal = num(c, clcr, 'Clearance de Creatinina (mL/min)', 0, 350);
       var hd = false;
       if (!ausente(hemodialise)) hd = bool(c, hemodialise, 'Hemodiálise intermitente');
       if (pendente(c)) return falhaCtx(ID, NOME, c);
@@ -2293,6 +2353,10 @@ var CalculadorasClinicas = (function () {
         }
         res.cuidados = 'Potente inibidor de CYP3A4; verificar interações com imunossupressores e anticoagulantes orais.';
         res.monitorizacao = 'Enzimas hepáticas (TGO/TGP) e eletrólitos.';
+      }
+
+      if (crClVal !== null && crClVal > 130) {
+        res.cuidados += ' ⚠️ CLEARANCE AUMENTADO (ARC > 130 mL/min): Risco de subdosagem e falha terapêutica. Considerar infusão estendida/contínua e monitorar resposta clínica.';
       }
 
       var linhas = [

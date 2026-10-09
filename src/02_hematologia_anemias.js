@@ -611,12 +611,24 @@ var HematologiaAnemiasService = (function () {
       diluicaoRecomendada: maxDoseSessaoMg + ' mg (' + Math.round(maxDoseSessaoMg / 100) + ' ampolas de 5 mL) diluídos em 100 mL a 200 mL de Soro Fisiológico 0.9% (NUNCA usar Soro Glicosado 5% pela instabilidade físico-química da solução coloidal).',
       tempoInfusao: 'Infundir por via intravenosa estrita em no mínimo 30 a 60 minutos, com vazão controlada em bomba de infusão.',
       frequencia: 'Administrar 2 a 3 vezes por semana (em dias alternados, ex: Seg-Qua-Sex) até atingir a dose cumulativa total de ' + deficitTotalGanzoniMg + ' mg.',
-      bloqueiosESeguranca: [
-        'CONTRAINDICAÇÃO FORMAL NO 1º TRIMESTRE DE GESTAÇÃO (seguro no 2º e 3º trimestres).',
-        'SUSPENDER FERRO ORAL durante todo o tratamento com ferro intravenoso (evitar saturação reticuloendotelial desnecessária).',
-        'CUIDADO RIGOROSO COM EXTRAVASAMENTO: o ferro fora da veia causa hiperpigmentação dérmica marrom permanente ("tatuagem") e necrose tecidual inflamatória local. Testar patência do acesso venoso com SF 0.9% antes da infusão.',
-        'MONITORIZAÇÃO DE HIPERSENSIBILIDADE: monitorar sinais vitais nos primeiros 15 minutos de infusão (risco de hipotensão, rubor facial e broncoespasmo).'
-      ]
+      bloqueiosESeguranca: (function () {
+        var b = [
+          'CONTRAINDICAÇÃO FORMAL NO 1º TRIMESTRE DE GESTAÇÃO (seguro no 2º e 3º trimestres).',
+          'SUSPENDER FERRO ORAL durante todo o tratamento com ferro intravenoso (evitar saturação reticuloendotelial desnecessária).',
+          'CUIDADO RIGOROSO COM EXTRAVASAMENTO: o ferro fora da veia causa hiperpigmentação dérmica marrom permanente ("tatuagem") e necrose tecidual inflamatória local. Testar patência do acesso venoso com SF 0.9% antes da infusão.',
+          'MONITORIZAÇÃO DE HIPERSENSIBILIDADE: monitorar sinais vitais nos primeiros 15 minutos de infusão (risco de hipotensão, rubor facial e broncoespasmo).'
+        ];
+        if (pesoKg > 150) {
+          b.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo pelo peso real superestima o volume sanguíneo e o déficit de ferro pela fórmula de Ganzoni. Recomenda-se utilizar o Peso Ideal (IBW) ou Peso Ajustado para evitar sobrecarga tecidual de ferro.');
+        }
+        if (pesoKg < 1.0) {
+          b.unshift('⚠️ RECÉM-NASCIDO PREMATURO EXTREMO (< 1 kg): Sacarato de ferro IV não é rotineiramente recomendado. A suplementação é realizada via enteral com gotas (2 a 4 mg/kg/dia) após tolerância alimentar plena atingida (SBP).');
+        }
+        if (hbAtual <= 4.0) {
+          b.unshift('🚨 HEMOGLOBINA CRÍTICA / EXTREMA (Hb ≤ 4.0 g/dL): Risco iminente de colapso circulatório anóxico e parada cardíaca. A reposição de ferro IV NÃO supre a emergência imediata; acionar Concentrado de Hemácias (CHAD) de urgência com monitorização em UTI.');
+        }
+        return b;
+      })()
     };
 
     return {
@@ -1007,6 +1019,9 @@ var HematologiaAnemiasService = (function () {
     }
     if (peso > 150) {
       bloqueios.push('⚠️ OBESIDADE SEVERA (> 150 kg): A fórmula de Ganzoni calculada pelo peso real superestima o déficit corporal de ferro pelo excesso de adiposidade. Recomenda-se utilizar o Peso Ajustado ou limite teto para prevenir toxicidade.');
+    }
+    if (atual <= 4.0) {
+      bloqueios.push('🚨 HEMOGLOBINA CRÍTICA (Hb ≤ 4.0 g/dL): Anemia extrema com risco iminente de colapso circulatório anóxico. Priorizar transfusão emergencial de Concentrado de Hemácias e monitorização intensiva antes de aguardar resposta do ferro IV.');
     }
     if (p.gestante && (p.trimestre === 1 || p.primeiroTrimestre)) {
       aptoParaFerroEv = false;

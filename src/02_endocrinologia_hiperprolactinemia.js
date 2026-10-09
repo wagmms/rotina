@@ -97,11 +97,24 @@ var EndocrinologiaHiperprolactinemiaService = (function () {
         conduta.push("Obrigatório realizar Ecocardiograma basal e anual para rastreio de valvulopatia cardíaca induzida por agonistas dopaminérgicos.");
     }
 
+    var condutaBeiraLeito = [
+      "Investigação Inicial Básica: Dosar Beta-hCG (excluir gestação), TSH (excluir hipotireoidismo primário) e avaliar função renal antes de indicar exames de imagem selar.",
+      "Revisão Farmacológica Minuciosa: Identificar drogas hiperprolactinemiantes (antipsicóticos, metoclopramida, ranitidina, tricíclicos). Se seguro, suspender por 72h e repetir dosagem.",
+      "Exclusão de Macroprolactina: Em pacientes assintomáticas com hiperprolactinemia, solicitar pesquisa de macroprolactina (precipitação com PEG) antes de prosseguir com RM ou tratamento medicamentoso."
+    ];
+
+    var criteriosEncaminhamento = [
+      "Urgente (Endócrino/Neurocirurgia): Macroadenoma hipofisário (>= 10 mm) associado a déficit de campo visual (hemianopsia bitemporal) ou cefaleia compressiva.",
+      "Ambulatorial Prioritário (Endocrinologia): Microadenoma sintomático com queixas reprodutivas (galactorreia incômoda, infertilidade, amenorreia), falha terapêutica ou intolerância a agonistas dopaminérgicos."
+    ];
+
     return {
         resultado: {
             laudo: laudo,
             alertas: alertas,
             conduta: conduta,
+            condutaBeiraLeito: condutaBeiraLeito,
+            criteriosEncaminhamento: criteriosEncaminhamento,
             regrasBase: "Diretrizes Endocrine Society para Hiperprolactinemia e FEBRASGO 2024"
         }
     };
@@ -159,6 +172,20 @@ var EndocrinologiaHiperprolactinemiaService = (function () {
     resposta += "\n💡 *Conduta Proposta:*\n";
     for (var k = 0; k < resultado.conduta.length; k++) {
         resposta += "• " + resultado.conduta[k] + "\n";
+    }
+
+    if (resultado.condutaBeiraLeito && resultado.condutaBeiraLeito.length > 0) {
+        resposta += "\n🩺 *Conduta Beira-Leito / UBS (Médico Generalista):*\n";
+        for (var l = 0; l < resultado.condutaBeiraLeito.length; l++) {
+            resposta += "• " + resultado.condutaBeiraLeito[l] + "\n";
+        }
+    }
+
+    if (resultado.criteriosEncaminhamento && resultado.criteriosEncaminhamento.length > 0) {
+        resposta += "\n🚨 *Critérios de Encaminhamento ao Especialista:*\n";
+        for (var m = 0; m < resultado.criteriosEncaminhamento.length; m++) {
+            resposta += "• " + resultado.criteriosEncaminhamento[m] + "\n";
+        }
     }
 
     return resposta;

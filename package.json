@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "lint": "node --check server.js && node --check server/index.js && node --check server/runtime.js",
-    "test": "node tests/test_server_render.cjs && node tests/test_auditoria_edge_cases_clinicos.cjs && node tests/test_defensivo_telegram_rpc.cjs",
+    "test": "node tests/test_server_render.cjs && node tests/test_auditoria_edge_cases_clinicos.cjs && node tests/test_defensivo_telegram_rpc.cjs && node tests/test_simplificacao_e_expurgo_generalista.cjs",
     "build": "python3 build_master.py",
     "extrair:hsl": "node scripts/extrair_guia_hsl.js"
   },

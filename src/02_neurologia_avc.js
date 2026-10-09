@@ -115,6 +115,11 @@ var NeurologiaAvcService = (function() {
       }
     }
 
+    // Alerta de idade extrema (nonagenários >= 90 anos)
+    if (idade >= 90) {
+      alertasClinicos.push("⚠️ Paciente longevo/nonagenário (≥ 90 anos): Idade avançada per se NÃO é contraindicação absoluta para trombólise na janela < 3h (guidelines AHA/ASA), mas associa-se a maior fragilidade microvascular e risco hemorrágico; ponderar status funcional prévio (mRS) e diretivas antecipadas.");
+    }
+
     // 4. Verificação de Janela de Tempo e Elegibilidade
     var elegivel = false;
     var mensagem = "";
@@ -173,6 +178,12 @@ var NeurologiaAvcService = (function() {
       }
 
       if (pesoKg && pesoKg > 0) {
+        if (pesoKg > 150) {
+          alertasClinicos.push(`⚠️ Obesidade extrema (${pesoKg} kg): Fármacos trombolíticos possuem teto absoluto (Alteplase máx 90 mg; Tenecteplase máx 25 mg), limitando a dose para o peso de 100 kg para prevenir hemorragia fatal.`);
+        } else if (pesoKg < 40) {
+          alertasClinicos.push(`⚠️ Baixo peso corporal (${pesoKg} kg): Dosagem estritamente ajustada por peso real para evitar sobredose relativa.`);
+        }
+
         // Cálculo Alteplase (Actilyse): 0.9 mg/kg, máx 90 mg
         var maxPesoAlteplase = Math.min(pesoKg, 100);
         var doseTotalAlteplase = (maxPesoAlteplase * 0.9).toFixed(1);
@@ -246,6 +257,13 @@ var NeurologiaAvcService = (function() {
     var peso = params.pesoKg !== undefined ? Number(params.pesoKg) : undefined;
     if (!peso || peso <= 0) {
       throw new Error("Peso (kg) obrigatório para cálculos de HIC.");
+    }
+
+    var alertasGeraisHic = [];
+    if (peso > 150) {
+      alertasGeraisHic.push(`⚠️ Obesidade extrema (${peso} kg): O cálculo de osmoterápicos por peso real pode induzir sobrecarga volêmica aguda e edema pulmonar. Considere dosagem baseada no peso predito/ideal e monitore sinais de congestão.`);
+    } else if (peso < 10) {
+      alertasGeraisHic.push(`⚠️ Lactente/Pediatria (${peso} kg): Infusão de soluções hiperosmolares exige bomba de seringa e monitorização em UTI pediátrica com gasometrias frequentes para evitar flutuações osmolares deletérias.`);
     }
 
     var sodio = params.sodio !== undefined ? Number(params.sodio) : undefined;
@@ -329,7 +347,8 @@ var NeurologiaAvcService = (function() {
         alerta: "Terapia de resgate para HIC severa (herniação iminente)."
       },
       osmolaridadeCalculada: osmolaridadeCalculada,
-      alertasOsmolares: alertaOsmolaridade,
+      alertasOsmolares: alertaOsmolaridade.concat(alertasGeraisHic),
+      alertasPeso: alertasGeraisHic,
       alertaGeral: "Manter cabeceira elevada a 30 graus, colar cervical frouxo, normocarbia (pCO2 35-40), e evitar hipertermia/hiponatremia.",
       medidasNeuroprotecao: alertasNeuroprotecao
     };

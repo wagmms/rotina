@@ -24,6 +24,8 @@ const AnalgesiaPcaService = require('../src/02_analgesia_pca.js');
 const TransfusaoSanguineaService = require('../src/02_transfusao_sanguinea.js');
 const HematologiaAnemiasService = require('../src/02_hematologia_anemias.js');
 const CardiologiaICCService = require('../src/02_cardiologia_icc.js');
+const NeurologiaAvcService = require('../src/02_neurologia_avc.js');
+const SuporteNutricionalService = require('../src/02_suporte_nutricional.js');
 
 function runEdgeCaseTests() {
     console.log("=== INICIANDO BATERIA DE AUDITORIA DE CASOS EXTREMOS (EDGE CASES) ===");
@@ -53,6 +55,27 @@ function runEdgeCaseTests() {
     assert.strictEqual(ganzoniNeonato.pesoKg, 0.8);
     assert.ok(ganzoniNeonato.bloqueiosSeguranca.some(b => b.includes('PREMATURO EXTREMO')), "Deve desaconselhar ferro IV em prematuro < 1 kg");
     console.log("  ✓ Ganzoni 0.8 kg: Alerta de prematuro extremo e bloqueio de ferro IV.");
+
+    // 1.4 Déficit de água livre e DHE em neonato < 2 kg
+    const deficitNeonato = CalculadorasClinicas.deficitAguaLivre(180, 140, 1.5, 'crianca');
+    assert.ok(deficitNeonato.avisos.some(a => a.toLowerCase().includes('neonato')), "Deve alertar sobre neonato em deficit de água livre");
+    assert.ok(deficitNeonato.avisos.some(a => a.includes('HIPERNATREMIA EXTREMA')), "Deve alertar sobre hipernatremia extrema (> 175)");
+    console.log("  ✓ Déficit Água Livre 1.5 kg: Alertas de neonato e hipernatremia extrema emitidos.");
+
+    // 1.5 Parkland em lactente de 8 kg
+    const parklandLactente = CalculadorasClinicas.parkland(8, 20);
+    assert.ok(parklandLactente.avisos.some(a => a.includes('LACTENTE')), "Deve orientar SG 5% para lactente < 10 kg");
+    console.log("  ✓ Parkland 8 kg: Orientação de SG 5% de manutenção para lactente validada.");
+
+    // 1.6 HIC em lactente de 8 kg
+    const hicLactente = NeurologiaAvcService.calcularHic({ pesoKg: 8 });
+    assert.ok(hicLactente.alertasPeso.some(a => a.includes('Lactente/Pediatria')), "Deve alertar sobre infusão de osmolares em lactentes");
+    console.log("  ✓ HIC 8 kg: Alerta pediátrico/lactente para osmoterapia emitido.");
+
+    // 1.7 PCA em baixo peso (< 40 kg)
+    const pcaBaixoPeso = AnalgesiaPcaService.calcularPca({ farmaco: 'morfina', pesoKg: 35 });
+    assert.ok(pcaBaixoPeso.alertasSeguranca.some(a => a.includes('BAIXO PESO CORPORAL')), "Deve alertar sobre risco em baixo peso");
+    console.log("  ✓ PCA 35 kg: Alerta de baixo peso corporal/caquexia emitido.");
 
     // ─────────────────────────────────────────────────────────────────────────
     // 2. PESOS EXTREMOS: OBESIDADE SEVERA > 150 KG
@@ -100,6 +123,34 @@ function runEdgeCaseTests() {
     assert.ok(cgObeso.alertas.some(a => a.includes('OBESIDADE SEVERA')), "Deve alertar sobre peso ajustado na obesidade");
     console.log("  ✓ Clearance 160 kg: Alerta de peso ajustado emitido.");
 
+    // 2.6 Parkland em 160 kg e 60% SCQ
+    const parklandObeso = CalculadorasClinicas.parkland(160, 60);
+    assert.ok(parklandObeso.avisos.some(a => a.includes('OBESIDADE SEVERA')), "Deve alertar sobre fluid creep e peso ideal na obesidade");
+    assert.ok(parklandObeso.avisos.some(a => a.includes('GRANDE QUEIMADO CRÍTICO')), "Deve alertar sobre grande queimado crítico (SCQ > 50%)");
+    console.log("  ✓ Parkland 160 kg & 60% SCQ: Alertas de fluid creep e grande queimado validados.");
+
+    // 2.7 Déficit de água livre em 160 kg
+    const deficitObeso = CalculadorasClinicas.deficitAguaLivre(160, 140, 160, 'homem');
+    assert.ok(deficitObeso.avisos.some(a => a.toLowerCase().includes('obesidade severa')), "Deve alertar sobre sobrestimação em obesidade");
+    console.log("  ✓ Déficit Água Livre 160 kg: Alerta de cálculo por peso real vs ideal emitido.");
+
+    // 2.8 HIC em 165 kg
+    const hicObeso = NeurologiaAvcService.calcularHic({ pesoKg: 165 });
+    assert.ok(hicObeso.alertasPeso.some(a => a.includes('Obesidade extrema')), "Deve alertar sobre sobrecarga osmolar aguda");
+    console.log("  ✓ HIC 165 kg: Alerta de osmoterápicos e risco de edema pulmonar emitido.");
+
+    // 2.9 PCA Fentanil em 160 kg
+    const pcaObeso = AnalgesiaPcaService.calcularPca({ farmaco: 'fentanil', pesoKg: 160 });
+    assert.ok(pcaObeso.alertasSeguranca.some(a => a.includes('OBESIDADE SEVERA/EXTREMA')), "Deve alertar sobre AOS e farmacocinética");
+    console.log("  ✓ PCA 160 kg: Alerta de farmacocinética lipofílica e risco de hipoventilação validado.");
+
+    // 2.10 Trombólise no AVC em 160 kg
+    const avcObeso = NeurologiaAvcService.avaliarTrombolise({ idade: 65, tempoSintomasHoras: 2, pesoKg: 160 });
+    assert.ok(avcObeso.elegibilidade.alertasClinicos.some(a => a.includes('Obesidade extrema')), "Deve alertar sobre teto absoluto de dose");
+    assert.ok(avcObeso.elegibilidade.posologiaAlteplase.includes('90.0 mg'), "Dose deve ser limitada ao teto de 90 mg");
+    assert.ok(avcObeso.elegibilidade.posologiaTenecteplase.includes('25.0 mg'), "Dose deve ser limitada ao teto de 25 mg");
+    console.log("  ✓ Trombólise 160 kg: Tetos farmacológicos absolutos de 90 mg (rtPA) e 25 mg (TNK) respeitados.");
+
     // ─────────────────────────────────────────────────────────────────────────
     // 3. IDADES AVANÇADAS: PACIENTES ≥ 90 ANOS (NONAGENÁRIOS)
     // ─────────────────────────────────────────────────────────────────────────
@@ -133,6 +184,22 @@ function runEdgeCaseTests() {
     const aud95 = NefrologiaClearanceService.auditarPrescricao(crcl95, ["cefepime"], { idade: 95 });
     assert.ok(aud95.alertas.some(a => a.includes('PACIENTE MUITO IDOSO')), "Deve alertar sobre sarcopenia em ≥ 90 anos");
     console.log("  ✓ Clearance 95 anos: Calculado sem erro com alerta de sarcopenia fisiológica.");
+
+    // 3.4 CURB-65 em 93 anos
+    const curb93 = CalculadorasClinicas.curb65(false, 30, 22, 120, 80, 93);
+    assert.ok(curb93.avisos.some(a => a.includes('nonagenário')), "CURB-65 deve alertar sobre fragilidade em ≥ 90 anos");
+    console.log("  ✓ CURB-65 93 anos: Alerta de fragilidade clínica e risco ampliado emitido.");
+
+    // 3.5 Trombólise AVC em 92 anos
+    const avc92 = NeurologiaAvcService.avaliarTrombolise({ idade: 92, tempoSintomasHoras: 2, pesoKg: 70 });
+    assert.ok(avc92.elegibilidade.alertasClinicos.some(a => a.includes('longevo/nonagenário')), "Deve emitir alerta de risco/benefício em nonagenário");
+    console.log("  ✓ Trombólise AVC 92 anos: Alerta de ponderação risco/benefício e mRS basal emitido.");
+
+    // 3.6 Suporte Nutricional em 94 anos
+    const nut94 = SuporteNutricionalService.calcularNecessidadesBasais(60, 160, 94, 'f');
+    assert.ok(nut94.alertaLongevo !== null, "Deve gerar alertaLongevo");
+    assert.ok(nut94.orientacaoClinica.includes('Idoso Longevo'), "Orientação deve citar idoso longevo");
+    console.log("  ✓ Suporte Nutricional 94 anos: Alerta de sarcopenia e restrição hídrica emitido.");
 
     // ─────────────────────────────────────────────────────────────────────────
     // 4. VALORES LABORATORIAIS DISCREPANTES: CR > 15, K > 8.0, PH < 6.80
@@ -192,6 +259,35 @@ function runEdgeCaseTests() {
     assert.strictEqual(dialisePhExtremo.aeiou.acidose, true);
     console.log("  ✓ CAD e Diálise pH 6.70-6.75: Indicação emergencial de Bicarbonato e hemodiálise.");
 
+    // 4.7 Cálcio corrigido: crise hipercalcêmica (15.2 mg/dL) e hipocalcemia grave (6.2 mg/dL)
+    const caHiper = CalculadorasClinicas.calcioCorrigido(15.2, 4.0);
+    assert.ok(caHiper.avisos.some(a => a.includes('CRISE HIPERCALCÊMICA')), "Deve alertar crise hipercalcêmica");
+    const caHipo = CalculadorasClinicas.calcioCorrigido(6.2, 4.0);
+    assert.ok(caHipo.avisos.some(a => a.includes('HIPOCALCEMIA GRAVE')), "Deve alertar hipocalcemia grave");
+    console.log("  ✓ Cálcio Corrigido: Crise hipercalcêmica (15.2 mg/dL) e hipocalcemia grave (6.2 mg/dL) alertadas.");
+
+    // 4.8 Gap Osmolar > 50 mOsm/kg (intoxicação maciça)
+    const gapExtremo = CalculadorasClinicas.gapOsmolar(360, 140, 90, 30, 0);
+    assert.ok(gapExtremo.avisos.some(a => a.toUpperCase().includes('INTOXICAÇÃO MACIÇA')), "Deve alertar intoxicação maciça se gap > 50");
+    console.log("  ✓ Gap Osmolar > 50 mOsm/kg: Alerta de intoxicação exógena severa validado.");
+
+    // 4.9 KDIGO puro com Cr > 15 mg/dL
+    const kdigoPuro = CalculadorasClinicas.estadiamentoKDIGO(16.5, 1.0, 0.2, 12);
+    assert.ok(kdigoPuro.avisos.some(a => a.includes('Creatinina extremamente discrepante')), "Deve alertar sobre falência renal terminal com Cr > 15");
+    console.log("  ✓ KDIGO Cr 16.5 mg/dL: Alerta de uremia terminal emitido.");
+
+    // 4.10 Ajuste Renal Antimicrobiano com ARC (CrCl > 130 mL/min)
+    const atbArc = CalculadorasClinicas.ajusteRenalAntimicrobiano('meropenem', 160);
+    assert.ok(atbArc.dados.cuidados.includes('CLEARANCE AUMENTADO (ARC > 130 mL/min)'), "Deve alertar sobre clearance aumentado");
+    console.log("  ✓ Ajuste ATB CrCl 160 mL/min: Alerta de ARC e subdosagem emitido.");
+
+    // 4.11 Anemia grave crítica Hb ≤ 4.0 g/dL
+    const transExtrema = TransfusaoSanguineaService.avaliarGatilhoTransfusionalChad({ idade: 40, hb: 3.5, peso: 70 });
+    assert.ok(transExtrema.alertas.some(a => a.includes('HEMOGLOBINA CRÍTICA')), "Deve alertar hemoglobina crítica ≤ 4.0 g/dL");
+    const ganzoniHbExtrema = HematologiaAnemiasService.calcularGanzoni(70, 3.5, 12.0);
+    assert.ok(ganzoniHbExtrema.bloqueiosSeguranca.some(b => b.includes('HEMOGLOBINA CRÍTICA')), "Ganzoni deve alertar sobre Hb crítica");
+    console.log("  ✓ Anemia Crítica Hb 3.5 g/dL: Alerta sentinela em Transfusão e Ganzoni validado.");
+
     // ─────────────────────────────────────────────────────────────────────────
     // 5. TESTES DE RESILIÊNCIA CONTRA DIVISÕES POR ZERO E ENTRADAS INVÁLIDAS
     // ─────────────────────────────────────────────────────────────────────────
@@ -219,7 +315,7 @@ function runEdgeCaseTests() {
 
     console.log("  ✓ Blindagem de divisões por zero e valores inválidos 100% aprovada.");
 
-    console.log("\n🚀 TODOS OS 18 TESTES DE CASOS EXTREMOS E BLINDAGEM CLÍNICA PASSARAM COM SUCESSO!");
+    console.log("\n🚀 TODOS OS 38 TESTES DE CASOS EXTREMOS E BLINDAGEM CLÍNICA PASSARAM COM SUCESSO!");
 }
 
 try {

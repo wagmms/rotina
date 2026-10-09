@@ -34,23 +34,33 @@
 
 0D. [x] **Varredura de Casos Extremos (Edge Cases) em Prescrições e Calculadoras Clínicas**:
     - Sanitização e blindagem matemática em `src/02_nefrologia_clearance.js`: Cockcroft-Gault clamp de idade (<= 120 anos para evitar numerador negativo), Cr <= 0 com retorno de erro limpo, alertas de peso > 150 kg (necessidade de peso ajustado) e nonagenários >= 90 anos (sarcopenia fisiológica e indicação de Cistatina C).
-    - Blindagem em `src/02_nefrologia_dhe.js`: cálculo de ACT sanitizado, blindagem contra NaAtual >= concentracaoSalina na correção de hiponatremia, e alerta vermelho máximo em hipercalemia para K+ > 8.0 mEq/L (risco de assistolia/FV, conduta imediata de Gluconato de Cálcio 10% e indicação mandatória de hemodiálise de urgência).
+    - Blindagem em `src/02_nefrologia_dhe.js`: cálculo de ACT sanitizado, blindagem contra NaAtual >= concentracaoSalina na correção de hiponatremia, alertas de obesidade severa (> 150 kg) e neonatos (< 2 kg), além de alerta vermelho máximo em hipercalemia para K+ > 8.0 mEq/L (risco de assistolia/FV, conduta imediata de Gluconato de Cálcio 10% e indicação mandatória de hemodiálise de urgência).
     - Resiliência em `src/02_nefrologia_lra_kdigo.js`: proteção contra divisão por zero com Cr basal <= 0, alertas sentinela para Creatinina extrema (> 15 mg/dL) e gatilhos automatizados de diálise de urgência para acidemia severa (pH < 6.80) e hipercalemia extrema (K+ > 8.0 mEq/L).
-    - Alertas sentinela em `src/02_gasometria_acido_base.js`: detecção de acidemia extrema (pH < 6.80 com risco iminente de colapso cardiovascular e perda de resposta a catecolaminas) e hipercalemia extrema (K+ > 8.0 mEq/L).
+    - Alertas sentinela em `src/02_gasometria_acido_base.js`: detecção de acidemia extrema (pH < 6.80 com risco iminente de colapso cardiovascular e perda de resposta a catecolaminas), bicarbonato severamente depletado (<= 5 mEq/L) e hipercalemia extrema (K+ > 8.0 mEq/L).
     - Suporte neonatal em `src/02_pals_pediatria.js`: neonatos e prematuros extremos < 1 kg com cálculo determinístico de tubo endotraqueal 2.5 mm sem cuff, profundidade de fixação peso + 6 cm (evitando intubação seletiva), lâmina Miller 00/0, Joules de choque e proteção estrita contra pesos negativos.
     - Suporte pediátrico em `src/02_suporte_nutricional_pediatrico.js`: alerta neonatal sentinela para recém-nascidos de extremo baixo peso (< 1 kg) em Holliday-Segar.
     - Bloqueios em `src/02_endocrinologia_diabetes.js`: teto de hidratação na 1ª hora limitado a 2.000 mL em obesidade > 150 kg (prevenindo edema agudo pulmonar); proibição terminante de reposição de potássio para K+ > 8.0 mEq/L com cardioproteção imediata; conduta emergencial mandatória de Bicarbonato de Sódio para acidemia grave (pH < 6.80).
     - Tetos farmacológicos em `src/02_toxicologia_emergencia.js`: teto estrito de 100 kg no cálculo de N-acetilcisteína (NAC) conforme diretrizes da ACMT/FDA/ABRATOX (máximo 15g no ataque, 5g na etapa 2 e 10g na etapa 3), evitando choque anafilactoide e hipervolemia iatrogênica em pacientes com obesidade severa.
-    - Geriatria de alta complexidade em `src/02_analgesia_pca.js`: contraindicação formal de dose basal contínua em nonagenários (>= 90 anos), bolus de morfina reduzido para 0.5 mg, lockout estendido para 10-15 min e recomendação preferencial de fentanil para prevenir acúmulo de metabólitos neurotóxicos (M6G/M3G).
-    - Hemoterapia em `src/02_transfusao_sanguinea.js`: alerta crítico de TACO com infusão ultralenta de 3-4h e diurético profilático em pacientes >= 90 anos; teto seguro de 10 unidades randômicas para pool de plaquetas em obesidade > 150 kg.
-    - Hematologia em `src/02_hematologia_anemias.js`: sanitização contra NaN no escore de Ganzoni, alerta de superestimação de déficit férrico em obesidade severa (> 150 kg) e contraindicação formal de ferro parenteral em prematuros extremos (< 1 kg).
+    - Geriatria e extremos em `src/02_analgesia_pca.js`: contraindicação formal de dose basal contínua em nonagenários (>= 90 anos), bolus de morfina reduzido para 0.5 mg, lockout estendido para 10-15 min e recomendação preferencial de fentanil; alertas específicos para obesidade severa (> 150 kg - risco de apneia obstrutiva do sono e farmacocinética lipofílica alterada) e baixo peso corporal / caquexia (< 40 kg - menor bolus e lockout estendido).
+    - Hemoterapia em `src/02_transfusao_sanguinea.js`: alerta crítico de TACO com infusão ultralenta de 3-4h e diurético profilático em pacientes >= 90 anos; prescrição em alíquota fracionada (10-15 mL/kg) para peso < 30 kg; teto seguro de 10 unidades randômicas para pool de plaquetas em obesidade > 150 kg; alerta de emergência médica absoluta para hemoglobina crítica extrema (Hb <= 4.0 g/dL).
+    - Hematologia em `src/02_hematologia_anemias.js`: sanitização contra NaN no escore de Ganzoni, alerta de superestimação de déficit férrico em obesidade severa (> 150 kg), contraindicação formal de ferro parenteral em prematuros extremos (< 1 kg) e bloqueio sentinela com priorização imediata de transfusão emergencial se Hb <= 4.0 g/dL.
     - Cardiologia em `src/02_cardiologia_icc.js`: alerta imediato com suspensão mandatória de espironolactona, IECA/BRA e ARNI para K+ > 8.0 mEq/L.
-    - Calculadoras puras em `src/02_calculadoras_puras.js`: alertas de obesidade severa (> 150 kg) para titulação por PAM alvo em DVAs e recomendação de Peso Ideal (IBW) para sedativos e rocurônio na Sequência Rápida de Intubação.
-    - Suíte de testes automatizados `tests/test_auditoria_edge_cases_clinicos.cjs` com 18 cenários de estresse e casos extremos 100% aprovados, e incorporação permanente no comando `npm test`.
+    - Neurologia em `src/02_neurologia_avc.js`: alerta de avaliação de funcionalidade prévia (mRS) e risco microvascular em nonagenários (>= 90 anos) na trombólise; tetos absolutos de Alteplase (90 mg) e Tenecteplase (25 mg) blindados em obesidade (> 150 kg); ajuste por peso estrito em baixo peso (< 40 kg); alertas sentinela em HIC para sobrecarga hiperosmolar e congestão pulmonar (> 150 kg) e monitoração em UTI pediátrica com bomba de seringa (< 10 kg).
+    - Suporte nutricional em `src/02_suporte_nutricional.js`: alerta específico para pacientes longevos (>= 90 anos) com aporte proteico conservador ajustado e vigilância hídrica estrita contra descompensação cardiopulmonar.
+    - Calculadoras puras em `src/02_calculadoras_puras.js`: CURB-65 com alerta para nonagenários (>= 90 anos); Déficit de Água Livre sanitizado para peso de 0.3 a 350 kg com alertas de neonato (< 2 kg), obesidade (> 150 kg) e hipernatremia extrema (> 175 mEq/L); Cálcio Corrigido com alertas para crise hipercalcêmica (>= 14.0 mg/dL) e hipocalcemia grave (< 7.0 mg/dL); Gap Osmolar com alerta de intoxicação exógena maciça (> 50 mOsm/kg); KDIGO com alerta de falência renal terminal para Cr > 15 mg/dL; Gasometria com faixa de pH 6.0 a 8.0 e alerta para HCO3 esgotado (<= 5 mEq/L); Parkland com alertas para lactentes (< 10 kg com adição de SG 5%), obesidade (> 150 kg com peso ideal) e grande queimado crítico (> 50% SCQ); Posologia pediátrica com proteção estrita para faixa de 1 a 80 kg e teto adulto em adolescentes (> 50 kg); Ajuste renal com detecção de clearance aumentado (ARC > 130 mL/min).
+    - Suíte de testes automatizados `tests/test_auditoria_edge_cases_clinicos.cjs` expandida para 38 cenários de estresse e casos extremos clínicos 100% aprovados, e incorporada no pipeline contínuo de testes.
 
-0E. [ ] **Expurgo e Simplificação de Módulos Excessivos para o Médico Generalista**:
-    - Remover comandos e referências estranhas ao ambiente médico (ex: radar de voos legados).
-    - Ajustar a linguagem das saídas de módulos especializados para destacar conduta beira-leito prática e critérios de encaminhamento, eliminando jargões desnecessários de subespecialidade.
+0E. [x] **Expurgo e Simplificação de Módulos Excessivos para o Médico Generalista**:
+    - Expurgo do módulo e referências ao Radar de Voos e comandos não médicos: removido comando residual `/pc tenda` em `src/07_telegram_handlers.js` e expurgadas as suítes legadas `tests/test_radar_voos.py` e `tests/test_radar_voos.cjs`.
+    - Atualização do `README.md` focando exclusivamente nos 3 pilares médicos e de produtividade clínica (Backend Clínico & Bot, Google Calendar e Composição Corporal), alinhando a documentação às diretrizes de proibição absoluta de Google Apps Script.
+    - Lapidação da linguagem dos módulos especializados para foco 100% no médico generalista e interno:
+      * **Endocrinologia Hiperprolactinemia**: incorporadas seções explícitas de "Conduta Beira-Leito / UBS (Médico Generalista)" (exclusão de gravidez, TSH, drogas indutoras e macroprolactina) e "Critérios de Encaminhamento ao Especialista" (macroadenoma ≥ 10 mm, queixas visuais/compressivas urgentes ou refratariedade à cabergolina).
+      * **Ginecologia Endometriose**: eliminação de jargões cirúrgicos terciários nos relatórios de planejamento e adição de seções explícitas de "Critérios de Encaminhamento Cirúrgico / Especializado" e "Conduta Beira-Leito / UBS (Médico Generalista)" (analgesia escalonada, progestagênio de 1ª linha empírico sem retardar conduta e USG dedicado).
+      * **Obstetrícia SAF e Trombofilias**: incorporação de "Conduta Beira-Leito / UBS" (início imediato de AAS 100-150 mg/dia no teste positivo e desmistificação da MTHFR) e "Critérios de Encaminhamento ao Pré-Natal de Alto Risco (PNAR)".
+      * **Oftalmologia de Emergência**: adição estruturada de "Critérios de Encaminhamento Urgente ao Oftalmologista" nos 3 ramos de atendimento (após irrigação copiosa em queimadura química, após doses de resgate em glaucoma agudo e curativo de shield rígido sem compressão em suspeita de perfuração/globo aberto).
+      * **Hepatologia Obstétrica (CIG & EHAG)**: inclusão de critérios de encaminhamento imediato para Centro Terciário com Medicina Fetal em CIG Moderada/Grave (ABT ≥ 40 ou ≥ 100 mcmol/L) e vaga zero para UTI obstétrica em suspeita de EHAG.
+      * **Urologia Cólica Nefrética**: destaque de orientações de hidratação parcimoniosa na crise aguda e critérios de encaminhamento ambulatorial vs descompressão urológica urgente.
+    - Criação de suíte de testes automatizados `tests/test_simplificacao_e_expurgo_generalista.cjs` incorporada permanentemente no comando `npm test` (100% de aprovação em todos os testes de servidor, casos extremos, resiliência RPC e simplificação clínica).
 
 ---
 
@@ -1388,6 +1398,42 @@
     - Classificação determinística da descarga papilar (unilateral, espontânea, uniorificial, serossanguínea ou água de rocha = suspeita com indicação de investigação histopatológica/setorectomia vs fisiológica/galactorreia bilateral multi-orificial).
     - Conduta dirigida por categoria BI-RADS mamográfica/ecográfica (BI-RADS 0 [exames complementares], BI-RADS 1 e 2 [rastreio anual/bienal de rotina], BI-RADS 3 [controle em 6 meses], BI-RADS 4 e 5 [biópsia percutânea urgente Core-biopsy/Mamotomia]).
     - Rastreio de alto risco genético (câncer de mama < 50 anos em parentes de 1º grau, câncer de mama bilateral ou câncer de ovário na família com indicação de ressonância magnética e rastreio precoce).
+
+171. [ ] **Infectologia & Emergência - Manejo de Neutropenia Febril de Alto Risco e Choque Séptico em Paciente Oncológico (MASCC Score, Cobertura Antipseudomonas e G-CSF)**:
+    - Estratificação determinística com Escore MASCC (< 21 alto risco [internação obrigatória e ATB venoso] vs ≥ 21 baixo risco).
+    - Monoterapia empírica emergencial precoce (< 1h da admissão) com betalactâmico antipseudomonas (Cefepime 2g IV 8/8h, Piperacilina-Tazobactam 4.5g IV 6/6h ou Meropenem 1g IV 8/8h).
+    - Critérios formais estritos para associação de Vancomicina (instabilidade hemodinâmica/choque séptico, mucosite grave graus III-IV, suspeita de infecção relacionada a cateter venoso central, colonização prévia por MRSA).
+    - Bloqueios de segurança clínica: PROIBIÇÃO ABSOLUTA de toque retal, aferição de temperatura por via retal, enemas ou supositórios pelo alto risco de translocação bacteriana maciça e sepse fulminante.
+
+172. [ ] **Toxicologia & Terapia Intensiva - Manejo da Síndrome Colinérgica Aguda e Intoxicação por Organofosforados e Carbamatos (Atropinização Dirigida e Oximas)**:
+    - Reconhecimento determinístico dos sinais muscarínicos e nicotínicos (SLUDGE / DUMBELS: Salivação, Lacrimejamento, Urina, Diarreia, Gastrintestinal, Emese, Miose/Broncorreia/Bradicardia).
+    - Protocolo de atropinização escalonada agressiva (início com 1 a 2 mg IV dobrando a dose a cada 5 a 10 minutos) e monitoramento de metas clínicas de atropinização (pulmões limpos sem estertores/broncorreia, FC > 80 bpm, PAS > 90 mmHg e pele seca).
+    - Uso de Pralidoxima em organofosforados para reativação da acetilcolinesterase antes do envelhecimento enzimático ("aging").
+    - Bloqueios farmacológicos de iatrogenia: CONTRAINDICAÇÃO FORMAL de Succinilcolina na sequência rápida de intubação (paralisia prolongada por inibição da pseudocolinesterase plasmática) e contraindicação de morfina/aminofilina.
+
+173. [ ] **Trauma & Ortopedia - Manejo da Síndrome Compartimental Aguda de Membros e Queimaduras Circunferenciais (Sinais Precoces, Delta de Pressão e Escarotomia/Fasciotomia)**:
+    - Reconhecimento determinístico dos "6 Ps" (Pain out of proportion, Paresthesia, Pallor, Paralysis, Pulselessness, Poikilothermia), enfatizando a dor desproporcional ao estiramento passivo da musculatura como sinal clínico precoce mais sensível antes da perda de pulsos.
+    - Cálculo de delta de pressão intracompartimental (Delta P = PAD - P_compartimento): valor ≤ 30 mmHg indica hipoperfusão tecidual crítica e indicação cirúrgica imediata de Fasciotomia descompressiva.
+    - Bloqueios de conduta iatrogênica: CONTRAINDICAÇÃO FORMAL de elevação do membro acima do nível cardíaco (reduz a pressão de perfusão capilar arterial e agrava a isquemia muscular profunda), contraindicação de crioterapia/gelo e necessidade de remoção imediata de qualquer gesso, atadura ou curativo circular compressivo.
+
+174. [ ] **Pediatria & Emergência - Manejo de Sepse Pediátrica e Choque Séptico Pediátrico (Diretrizes Surviving Sepsis Campaign Children 2024-2026 / PALS)**:
+    - Reconhecimento determinístico do choque compensado (taquicardia persistente, pulsos periféricos finos, TEC > 2s, oligúria, PA ainda normal) vs hipotensivo.
+    - Ressuscitação volêmica guiada com alíquotas de cristaloides isotônicos (10-20 mL/kg em 10-20 min até 40-60 mL/kg na primeira hora) com monitoramento estrito de hepatomegalia e estertores crepitantes.
+    - Suporte inotrópico e vasoativo precoce (Epinefrina para choque frio vs Norepinefrina para choque quente) administrado por via periférica segura até obtenção de acesso venoso central.
+    - Antibioticoterapia precoce de amplo espectro na 1ª hora (Golden Hour) e hidrocortisona para choque refratário a catecolaminas.
+
+175. [ ] **Clínica Médica & Hematologia - Manejo de Crises Vaso-Oclusivas e Síndrome Torácica Aguda na Doença Falciforme**:
+    - Protocolo determinístico de analgesia escalonada rápida na crise álgica com opioides IV (Morfina 0.1 mg/kg) nos primeiros 30 minutos de admissão, evitando analgesia insuficiente.
+    - Hidratação venosa cuidadosa isotônica ou hipotônica (prevenção de hiperidratação e edema pulmonar agudo) e profilaxia de vaso-oclusão.
+    - Reconhecimento precoce da Síndrome Torácica Aguda (novo infiltrado pulmonar + febre, dor torácica ou taquipneia/dessaturação): indicação de ceftriaxona + macrolídeo, suporte de O2, espirometria de incentivo e transfusão de troca parcial (eritrocitaférese ou simples) para alvo de HbS < 30%.
+    - Alertas de contraindicação formal de heparinização profilática sem indicação e restrição do uso de meperidina (risco de convulsões por acúmulo de normeperidina).
+
+176. [ ] **Infectologia & Emergência - Manejo e Profilaxia da Dengue com Sinais de Alarme e Dengue Grave (Diretrizes Ministério da Saúde 2024-2026)**:
+    - Estratificação determinística por Grupos A, B, C e D conforme estadiamento clínico e hematócrito.
+    - Detecção precoce dos sinais de alarme (dor abdominal intensa/contínua, vômitos persistentes, hipotensão postural, lipotimia, hepatomegalia > 2 cm, sangramento de mucosa, letargia/irritabilidade e elevação progressiva do hematócrito).
+    - Protocolo de hidratação venosa estrita para Grupos C (fase de expansão rápida com SF 0,9% ou RL 10 mL/kg na 1ª hora) e D (20 mL/kg em 20 min, repetindo até 3x se choque refratário), com reavaliação clínica e hematócrito de 2 em 2 horas.
+    - Bloqueios estritos de segurança: PROIBIÇÃO TERMINANTE de AINEs e AAS (risco severo de hemorragia e síndrome de Reye) e contraindicação de injeções intramusculares.
+
 
 
 

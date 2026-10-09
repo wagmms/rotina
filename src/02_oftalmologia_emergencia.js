@@ -474,6 +474,8 @@ var OftalmologiaEmergenciaService = (function () {
       for (var p = 0; p < d.prescricaoAdjuvante.length; p++) {
         texto += "• " + d.prescricaoAdjuvante[p] + "\n";
       }
+      texto += "\n🚨 *CRITÉRIOS DE ENCAMINHAMENTO URGENTE AO OFTALMOLOGISTA:*\n";
+      texto += "• Encaminhar com urgência SOMENTE APÓS concluir a irrigação contínua exaustiva (15-30 min) com confirmação de pH neutro (7,0 a 7,2). Jamais atrasar a irrigação para transferir o paciente.\n";
     } else if (tipo === "GLAUCOMA_AGUDO_ANGULO_FECHADO") {
       texto += "🔥 *CRISE AGUDA DE GLAUCOMA DE ÂNGULO FECHADO (GAAF)*\n";
       texto += "• *Pressão Intraocular (PIO):* " + (d.pio > 0 ? d.pio + " mmHg" : "Elevada (> 40 mmHg presumida)") + "\n\n";
@@ -501,6 +503,9 @@ var OftalmologiaEmergenciaService = (function () {
           texto += "• " + d.alertas[al] + "\n";
         }
       }
+
+      texto += "\n🚨 *CRITÉRIOS DE ENCAMINHAMENTO URGENTE AO OFTALMOLOGISTA:*\n";
+      texto += "• Encaminhamento IMEDIATO após administração das doses de resgate (Acetazolamida, Manitol e colírios) para realização de iridotomia periférica bilateral a laser.\n";
     } else {
       texto += "🛡️ *TRAUMA OCULAR E TRIAGEM VISUAL*\n";
       if (d.suspeitaGloboAberto) {
@@ -534,6 +539,10 @@ var OftalmologiaEmergenciaService = (function () {
       for (var c = 0; c < d.condutas.length; c++) {
         texto += "• " + d.condutas[c] + "\n";
       }
+
+      texto += "\n🚨 *CRITÉRIOS DE ENCAMINHAMENTO URGENTE AO OFTALMOLOGISTA:*\n";
+      texto += "• Suspeita de perfuração / globo aberto (manter proteção mecânica com protetor rígido sem compressão e paciente em jejum/NPO).\n";
+      texto += "• Hifema (sangue em câmara anterior), limitação da motilidade ocular extrínseca / enoftalmo pós-trauma ou queda abrupta da acuidade visual.\n";
     }
 
     texto += "\n📚 *Ultra Rotina 2026 • Urgências Oftalmológicas (CBO / AAO / Wills Eye)*";

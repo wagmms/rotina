@@ -88,6 +88,11 @@ var AnalgesiaPcaService = (function() {
         if (isMuitoIdoso) {
             prescricao.alertasSeguranca.unshift("⚠️ PACIENTE MUITO IDOSO (≥ 90 ANOS): Risco altíssimo de depressão respiratória central e sedação excessiva por depuração renal/hepática reduzida. Na escolha entre opioides, Fentanil é preferível à Morfina para evitar acúmulo de metabólitos neurotóxicos (M6G/M3G). Titulação em doses mínimas com oximetria e FR contínuas.");
         }
+        if (pesoNum > 150) {
+            prescricao.alertasSeguranca.unshift(`⚠️ OBESIDADE SEVERA/EXTREMA (${pesoNum} kg): Alto risco de apneia obstrutiva do sono e hipoventilação induzida por opioides. O Fentanil (lipofílico) apresenta volume de distribuição ampliado e meia-vida terminal prolongada; doses basais devem ser evitadas e capnografia beira-leito é fortemente recomendada.`);
+        } else if (pesoNum < 40) {
+            prescricao.alertasSeguranca.unshift(`⚠️ BAIXO PESO CORPORAL / CAQUEXIA (${pesoNum} kg): Risco aumentado de superdosagem relativa; preconiza-se iniciar no menor bolus da faixa posológica e estender intervalos de bloqueio (lockout).`);
+        }
         if (!opioideTolerante) {
             prescricao.alertasSeguranca.push("Paciente opioid-naïve: O uso de dose basal por infusão contínua aumenta significativamente o risco de depressão respiratória grave sem melhorar substancialmente a analgesia, sendo fortemente desaconselhado.");
         }

@@ -169,6 +169,17 @@ var TransfusaoSanguineaService = (function() {
     }
 
     var alertas = [];
+    var pesoInformado = params.peso !== undefined && params.peso !== null ? Number(params.peso) : null;
+    if (pesoInformado !== null && pesoInformado > 0 && pesoInformado < 30) {
+      alertas.unshift('⚠️ ALÍQUOTA PEDIÁTRICA/NEONATAL (< 30 kg): NUNCA prescrever bolsas inteiras de adulto (300 mL). Transfusão pediátrica deve ser prescrita em alíquotas de 10 a 15 mL/kg de CHAD (' + Math.round(pesoInformado * 10) + ' a ' + Math.round(pesoInformado * 15) + ' mL para ' + pesoInformado + ' kg) em bomba de infusão.');
+    }
+    if (pesoInformado !== null && pesoInformado > 150) {
+      alertas.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O volume circulatório relativo é reduzido (~45-50 mL/kg vs 70 mL/kg). O risco de sobrecarga circulatória (TACO) é aumentado se houver cardiopatia associada.');
+    }
+    if (hb !== null && hb <= 4.0) {
+      alertas.unshift('🚨 HEMOGLOBINA CRÍTICA EXTREMA (Hb ≤ 4.0 g/dL): Risco iminente de colapso circulatório anóxico e parada cardíaca. Transfusão de hemácias emergencial imediata e admissão em UTI.');
+    }
+
     if (!indicada && hb !== null && hb >= gatilhoHb) {
       alertas.push('Estratégia restritiva mantida: Transfusão de hemácias NÃO indicada neste momento (Hb atual >= gatilho de ' + gatilhoHb.toFixed(1) + ' g/dL). Evita riscos de aloimunização, sobrecarga volêmica (TACO) e lesão pulmonar aguda (TRALI).');
       alertas.push('Reavaliar clinicamente e investigar a etiologia da anemia (deficiência de ferro, B12, folato ou perda crônica).');

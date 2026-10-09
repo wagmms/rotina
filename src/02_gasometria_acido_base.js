@@ -702,7 +702,7 @@ var GasometriaAcidoBaseService = (function () {
     var p_k     = dados.potassio !== undefined ? dados.potassio : (dados.k !== undefined ? dados.k : dados.K);
 
     // Validação de entradas
-    var ph    = validarNumero(p_ph,   'pH',          6.5,  8.0,  true);
+    var ph    = validarNumero(p_ph,   'pH',          6.0,  8.0,  true);
     var pco2  = validarNumero(p_pco2, 'PaCO₂ (mmHg)', 5,   200,  true);
     var hco3  = validarNumero(p_hco3, 'HCO₃⁻ (mEq/L)', 2,  70,   true);
     var na    = validarNumero(p_na,   'Na⁺ (mEq/L)', 100,  200,  false);
@@ -712,8 +712,8 @@ var GasometriaAcidoBaseService = (function () {
     var fio2  = validarNumero(p_fio2, 'FiO₂',        0.21, 100,  false);
     var idade = validarNumero(p_idade, 'Idade (anos)', 0,   130,  false);
     var altitude = validarNumero(p_alt, 'Altitude (m)', 0, 9000, false);
-    var lactato  = validarNumero(p_lac,  'Lactato (mmol/L)', 0, 30, false);
-    var potassio = validarNumero(p_k, 'K⁺ (mEq/L)', 1.0, 10.0, false);
+    var lactato  = validarNumero(p_lac,  'Lactato (mmol/L)', 0, 40, false);
+    var potassio = validarNumero(p_k, 'K⁺ (mEq/L)', 1.0, 12.0, false);
 
     var avisos = [];
 
@@ -755,6 +755,9 @@ var GasometriaAcidoBaseService = (function () {
     if (lt(ph, 6.80)) {
       avisos.unshift('🚨 ACIDEMIA EXTREMA (pH < 6.80): Limite crítico de viabilidade fisiológica. Colapso cardiovascular iminente, perda do inotropismo cardíaco e vasoplegia refratária a catecolaminas. Risco iminente de PCR. Priorizar ressuscitação ventilatória agressiva e medidas imediatas de suporte.');
       condutas.unshift('Acidemia extrema (pH < 6.80): Monitorização invasiva contínua em UTI, suporte hemodinâmico avançado e consideração de bicarbonato de sódio IV de resgate.');
+    }
+    if (lte(hco3, 5)) {
+      avisos.push('🚨 BICARBONATO EXTREMAMENTE CONSUMIDO (≤ 5 mEq/L): Acidose metabólica severa com esgotamento da capacidade tampão.');
     }
 
     // Alertas extras com dados complementares
