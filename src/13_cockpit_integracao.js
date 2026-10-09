@@ -294,6 +294,72 @@ function cockpitCalcular(initData, tipo, entrada) {
           (resHS.alertas && resHS.alertas.length ? resHS.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Usar soluções isotônicas ou balanceadas para prevenir hiponatremia hospitalar aguda induzida por ADH.");
         return { ok: true, sucesso: true, id: 'holliday_segar', nome: 'Hidratação Pediátrica Holliday-Segar', texto: txtHS, textoFormatado: txtHS, dados: resHS };
       }
+    case 'dhe':
+    case 'eletrolitos':
+    case 'hidroeletrolitico':
+      if (typeof NefrologiaDheService === 'undefined') throw new Error('Serviço NefrologiaDheService indisponível.');
+      var modoDhe = String(entrada.modo || 'hiponatremia').toLowerCase();
+      var pesoDhe = parseFloat(String(entrada.peso || 70).replace(',', '.'));
+      var idadeDhe = entrada.idade ? parseFloat(String(entrada.idade).replace(',', '.')) : 40;
+      var sexoDhe = entrada.sexo ? String(entrada.sexo).toLowerCase() : 'm';
+
+      if (modoDhe === 'hipercalemia' || entrada.kAtual !== undefined) {
+        var kVal = parseFloat(String(entrada.kAtual || entrada.potassio || 0).replace(',', '.'));
+        var ecgAlt = Boolean(entrada.ecgAlterado || entrada.ecg);
+        var resK = NefrologiaDheService.avaliarHipercalemia(kVal, ecgAlt);
+        if (resK.erro) return { ok: false, erro: resK.erro };
+
+        var txtK = "⚡ MANEJO EMERGENCIAL DE HIPERCALEMIA (SBC / KDIGO)\n\n" +
+          "🔴 ESTRATIFICAÇÃO & GRAVIDADE:\n" +
+          "• Potássio Sérico: " + resK.potassio + " mEq/L\n" +
+          "• Classificação: " + resK.gravidade + "\n\n" +
+          "🟡 CONDUTAS ESCALONADAS:\n" +
+          resK.condutas.map(function(c) { return "• " + c; }).join("\n") + "\n\n" +
+          (resK.alerta ? "⚠️ ALERTA CARDÍACO:\n• " + resK.alerta + "\n\n" : "") +
+          "ℹ️ MONITORIZAÇÃO:\n• Monitorização cardíaca contínua e repetir dosagem de K+ em 2h.";
+        return { ok: true, sucesso: true, id: 'hipercalemia', nome: 'Manejo de Hipercalemia', texto: txtK, textoFormatado: txtK, dados: resK };
+      } else if (modoDhe === 'hipernatremia') {
+        var naHiper = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
+        var resHiper = NefrologiaDheService.calcularDeficitAguaLivre(naHiper, pesoDhe, sexoDhe, idadeDhe);
+        if (resHiper.erro) return { ok: false, erro: resHiper.erro };
+
+        var txtHiper = "🌵 HIPERNATREMIA — DÉFICIT DE ÁGUA LIVRE (ADROGUÉ-MADIAS)\n\n" +
+          "🔴 DÉFICIT CALCULADO:\n" +
+          "• Sódio Atual: " + naHiper + " mEq/L | ACT: " + resHiper.act + " L\n" +
+          "• Déficit Total de Água Livre: " + resHiper.deficitAguaLivreLitros + " Litros\n\n" +
+          "🟡 PROGRAMAÇÃO DA REPOSIÇÃO (48 HORAS):\n" +
+          "• 1ªs 24 horas: Repor 50% do déficit (" + (Math.round(resHiper.deficitAguaLivreLitros * 500)) + " mL de água livre ou SG 5%)\n" +
+          "• 24h a 48h: Repor os 50% restantes + perdas insensíveis\n" +
+          "• Vias: Água potável por SNG/SNE (preferencial se TGI funcionante) ou SG 5% IV\n\n" +
+          "⚠️ ALERTA DE SEGURANÇA & TETOS:\n" +
+          (resHiper.alertas && resHiper.alertas.length ? resHiper.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Queda máxima de Na: 8-10 mEq/L em 24h (risco de edema cerebral).") + "\n\n" +
+          "ℹ️ MONITORIZAÇÃO:\n• Dosar Na sérico a cada 4 a 6 horas durante a correção.";
+        return { ok: true, sucesso: true, id: 'hipernatremia', nome: 'Hipernatremia - Déficit de Água Livre', texto: txtHiper, textoFormatado: txtHiper, dados: resHiper };
+      } else {
+        // Hiponatremia (Adrogué-Madias)
+        var naHipo = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
+        var salinaHipo = parseFloat(String(entrada.salina || 3).replace(',', '.'));
+        var resHipo = NefrologiaDheService.planejarCorrecaoHiponatremia(naHipo, pesoDhe, sexoDhe, idadeDhe, salinaHipo);
+        if (resHipo.erro) return { ok: false, erro: resHipo.erro };
+
+        var solNome = salinaHipo === 3 ? "NaCl 3% (513 mEq/L)" : "NaCl 0,9% (154 mEq/L)";
+        var vol24h = Math.round((8 / resHipo.variacaoNaPorLitro) * 1000);
+        var txtHipo = "💧 CORREÇÃO DE HIPONATREMIA (FÓRMULA DE ADROGUÉ-MADIAS)\n\n" +
+          "🔴 AÇÃO IMEDIATA / INFUSÃO EM BIC:\n" +
+          "• Solução Escolhida: " + solNome + "\n" +
+          "• Variação Esperada de Na+ com 1 L: +" + resHipo.variacaoNaPorLitro + " mEq/L\n" +
+          "• Taxa Segura de Infusão: " + resHipo.taxaInfusaoMaxima24h_ml_h + " mL/h em BIC\n" +
+          "• Volume Total Seguro em 24h (Teto 8 mEq): " + vol24h + " mL\n\n" +
+          "🟡 SINTOMAS GRAVES / RESGATE NEUROLÓGICO (CONVULSÃO / COMA):\n" +
+          "• Bolus de Emergência: 100 a 150 mL de NaCl 3% IV em 10-20 min.\n" +
+          "• Pode repetir até 2 vezes se sintomas neurológicos persistirem (meta: subir 4-6 mEq/L).\n\n" +
+          "⚠️ TETOS RÍGIDOS CONTRA MIELINÓLISE PONTINA (SDO):\n" +
+          "• NÃO ULTRAPASSAR 8 mEq/L nas 1ªs 24h e 18 mEq/L em 48h.\n" +
+          (resHipo.alertas && resHipo.alertas.length ? resHipo.alertas.map(function(a) { return "• " + a; }).join("\n") : "") + "\n\n" +
+          "ℹ️ MONITORIZAÇÃO & RESGATE:\n" +
+          "• Dosar sódio sérico a cada 2 a 4 horas. Se subida > 8 mEq em 24h: suspender salina e infundir SG 5% ou Desmopressina (DDAVP).";
+        return { ok: true, sucesso: true, id: 'hiponatremia', nome: 'Correção de Hiponatremia', texto: txtHipo, textoFormatado: txtHipo, dados: resHipo };
+      }
     case 'interacoes':
     case 'seguranca':
       var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';

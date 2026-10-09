@@ -136,6 +136,39 @@ async function run() {
   assert(jsonAtb.resultado.dados.doseAjustada.includes('1g EV a cada 12h'));
   console.log(`✓ Cockpit Cálculo Ajuste Renal ATB (Meropenem ClCr 30) OK`);
 
+  // 4.5 Cockpit RPC - Cálculo Distúrbios Hidroeletrolíticos (DHE - Hiponatremia e Hipercalemia) (< 50ms)
+  const resDheHipo = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitCalcular',
+      session: token,
+      args: ['dhe', { modo: 'hiponatremia', naAtual: 118, peso: 70, sexo: 'm', idade: 50, salina: 3 }]
+    }
+  });
+  assert.equal(resDheHipo.statusCode, 200);
+  const jsonDheHipo = resDheHipo.json();
+  assert.equal(jsonDheHipo.ok, true);
+  assert.equal(jsonDheHipo.resultado.ok, true);
+  assert(jsonDheHipo.resultado.texto.includes('CORREÇÃO DE HIPONATREMIA'));
+  assert(jsonDheHipo.resultado.texto.includes('MIELINÓLISE PONTINA'));
+
+  const resDheK = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitCalcular',
+      session: token,
+      args: ['dhe', { modo: 'hipercalemia', kAtual: 7.0, ecgAlterado: true }]
+    }
+  });
+  assert.equal(resDheK.statusCode, 200);
+  const jsonDheK = resDheK.json();
+  assert.equal(jsonDheK.ok, true);
+  assert.equal(jsonDheK.resultado.ok, true);
+  assert(jsonDheK.resultado.texto.includes('Gluconato de Cálcio 10%'));
+  console.log(`✓ Cockpit Cálculo DHE (Hiponatremia Adrogué-Madias & Hipercalemia) OK`);
+
   // 5. Cockpit RPC - Consulta REMUME (< 20ms)
   const resRemume = await app.inject({
     method: 'POST',

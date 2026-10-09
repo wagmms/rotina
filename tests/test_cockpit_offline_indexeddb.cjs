@@ -48,7 +48,11 @@ assert(htmlContent.includes("adicionarKitPrescricao('atb_itu')"), 'Kit empírico
 assert(htmlContent.includes("onclick=\"setSoapQueixaRapida('has')\""), 'Atalho de queixa rápida HAS presente no modal de SOAP');
 assert(htmlContent.includes("onclick=\"setAtestadoDias(3)\""), 'Atalho de dias de atestado presente');
 assert(htmlContent.includes("onclick=\"setAtestadoCid("), 'Atalhos de CIDs presentes');
-console.log('  ✓ Elementos de telemetria, UI, Sorologias, Pediatria, Ajuste ATB, SOAP e Atestado CFM validados com sucesso no DOM.');
+assert(htmlContent.includes('id="calc-dhe"'), 'Painel calc-dhe presente');
+assert(htmlContent.includes('id="btn-copiar-dhe"'), 'Botão btn-copiar-dhe presente');
+assert(htmlContent.includes('id="dhe-na-atual"'), 'Input dhe-na-atual presente');
+assert(htmlContent.includes('id="dhe-k-atual"'), 'Input dhe-k-atual presente');
+console.log('  ✓ Elementos de telemetria, UI, Sorologias, Pediatria, Ajuste ATB, DHE, SOAP e Atestado CFM validados com sucesso no DOM.');
 
 // 2. Extrai o bloco de script principal (maior bloco de script inline)
 const scripts = Array.from(htmlContent.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi));
@@ -470,6 +474,43 @@ function criarAmbienteSimulacao() {
   assert(ccYsite.textoFormatado.includes('INCOMPATIBILIDADE FATAL NO Y-SITE'), 'Alerta fatal de Y-site emitido');
 
   console.log('  ✓ Motor offline de Ajuste Renal de Antimicrobianos e Cross-Check Farmacológico validado com 100% de sucesso.');
+
+  console.log('\n[11] Testando motor offline determinístico de Distúrbios Hidroeletrolíticos (DHE - Sódio, Potássio e Água Livre)...');
+  // 11.1 Hiponatremia: Adrogué-Madias com NaCl 3%
+  const resHipo = fnCalcOffline('dhe', { modo: 'hiponatremia', naAtual: 118, peso: 70, sexo: 'm', idade: 50, salina: 3 });
+  assert(resHipo.includes('CORREÇÃO DE HIPONATREMIA'), 'Título de Hiponatremia presente');
+  assert(resHipo.includes('NaCl 3% (513 mEq/L)'), 'Solução NaCl 3% indicada');
+  assert(resHipo.includes('Taxa Segura de Infusão'), 'Taxa segura de infusão calculada');
+  assert(resHipo.includes('Teto 8 mEq'), 'Teto de 8 mEq em 24h indicado');
+  assert(resHipo.includes('MIELINÓLISE PONTINA'), 'Alerta contra mielinólise pontina presente');
+
+  // 11.2 Hiponatremia Gravíssima (< 105 mEq/L)
+  const resHipoGrave = fnCalcOffline('dhe', { modo: 'hiponatremia', naAtual: 102, peso: 70 });
+  assert(resHipoGrave.includes('HIPONATREMIA GRAVÍSSIMA'), 'Alerta de hiponatremia gravíssima acionado');
+  assert(resHipoGrave.includes('Bolus de Emergência'), 'Bolus de emergência de NaCl 3% indicado');
+
+  // 11.3 Hipercalemia Grave (K+ 6.8 com ECG alterado)
+  const resHiperK = fnCalcOffline('dhe', { modo: 'hipercalemia', kAtual: 6.8, ecgAlterado: true });
+  assert(resHiperK.includes('MANEJO EMERGENCIAL DE HIPERCALEMIA'), 'Título de Hipercalemia presente');
+  assert(resHiperK.includes('Gluconato de Cálcio 10%'), 'Gluconato de Cálcio para estabilização de membrana indicado');
+  assert(resHiperK.includes('Glicoinsulina'), 'Solução polarizante/glicoinsulina indicada');
+  assert(resHiperK.includes('Sorcal'), 'Resina de troca/Sorcal indicada');
+  assert(resHiperK.includes('ALERTA CARDÍACO'), 'Alerta cardíaco presente');
+
+  // 11.4 Hipercalemia Extrema (K+ 8.4 com PCR iminente)
+  const resHiperKExtrema = fnCalcOffline('dhe', { modo: 'hipercalemia', kAtual: 8.4 });
+  assert(resHiperKExtrema.includes('ALERTA VERMELHO MÁXIMO'), 'Alerta vermelho máximo emitido para K+ > 8.0');
+  assert(resHiperKExtrema.includes('EMERGÊNCIA ZERO'), 'Emergência zero ativada');
+  assert(resHiperKExtrema.includes('HEMODIÁLISE'), 'Hemodiálise de emergência acionada');
+
+  // 11.5 Hipernatremia: Déficit de Água Livre
+  const resHiperNa = fnCalcOffline('dhe', { modo: 'hipernatremia', naAtual: 160, peso: 70, sexo: 'm', idade: 60 });
+  assert(resHiperNa.includes('DÉFICIT DE ÁGUA LIVRE'), 'Déficit de água livre presente');
+  assert(resHiperNa.includes('Déficit Total de Água Livre'), 'Déficit em litros calculado');
+  assert(resHiperNa.includes('Repor 50% do déficit'), 'Programação de 50% em 24h presente');
+  assert(resHiperNa.includes('edema cerebral'), 'Alerta de edema cerebral presente');
+
+  console.log('  ✓ Motor offline de Distúrbios Hidroeletrolíticos (DHE - Sódio, Potássio e Água Livre) validado com 100% de sucesso.');
 
   console.log('\n🚀 TODOS OS TESTES DE CACHE CRIPTOGRAFADO, INDEXEDDB E TELEMETRIA PASSARAM COM SUCESSO!\n');
 })().catch(err => {

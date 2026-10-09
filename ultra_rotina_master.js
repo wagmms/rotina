@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 16:31:30
- * Checksum SHA256: e604303e3594cceb
+ * Gerado automaticamente via build_master.py em: 2026-10-09 16:54:42
+ * Checksum SHA256: b907db6b4e950551
  * ==============================================================================
  */
 
@@ -50427,8 +50427,20 @@ var PersistenciaBot = (function() {
     }).filter(function(r) {return !!r.valor;}); // removido entre a listagem e a releitura
   }
   function podarPersistenciaAntiga(all) {
-    listar('inbox_', all).filter(function(r) {return r.valor.status === 'done' && Date.now()-r.valor.created > 86400000;})
-      .slice(0,20).forEach(function(r) {remover(r.key);});
+    all = all || snapshot(true);
+    ['outbox_', 'inbox_'].forEach(function(pfx) {
+      var itens = listar(pfx, all).sort(function(a, b) {
+        var tA = a.valor ? (a.valor.created || 0) : 0;
+        var tB = b.valor ? (b.valor.created || 0) : 0;
+        return tA - tB;
+      });
+      // Prioriza remover itens já finalizados ('done')
+      var dones = itens.filter(function(r) { return !r.valor || r.valor.status === 'done'; });
+      dones.slice(0, 100).forEach(function(r) { remover(r.key); });
+      // Remove itens velhos com mais de 1 hora
+      var velhos = itens.filter(function(r) { return r.valor && Date.now() - (r.valor.created || 0) > 3600000; });
+      velhos.slice(0, 50).forEach(function(r) { remover(r.key); });
+    });
   }
   // Partes em uma única chamada quando o serviço oferece escrita em lote (GAS: setProperties).
   function gravarPartes(p, k, m, s) {
@@ -50443,7 +50455,7 @@ var PersistenciaBot = (function() {
     var sBytes = bytesUtf8(s);
     if (sBytes > 25000) throw new Error('Conteúdo muito grande para armazenamento. Divida o pedido.');
     var all = snapshot(), bAtual = totalBytes(all);
-    if (bAtual + sBytes > 350000) {
+    if (bAtual + sBytes > 300000) {
       podarPersistenciaAntiga(all);
       all = snapshot(true);
       bAtual = totalBytes(all);
@@ -50452,7 +50464,20 @@ var PersistenciaBot = (function() {
     var textoAnterior = anterior ? textoDe(all, k) : null;
     var bytesAnteriores = textoAnterior ? bytesUtf8(textoAnterior) : 0;
     if (bAtual + sBytes > 400000 && !(sBytes < bytesAnteriores && bAtual + sBytes < 450000)) {
-      throw new Error('Orçamento global de armazenamento excedido (cota 500 KB do GAS). Contrapressão ativada.');
+      podarPersistenciaAntiga(all);
+      all = snapshot(true);
+      bAtual = totalBytes(all);
+      if (bAtual + sBytes > 420000) {
+        // Purgar todos os outbox_ e inbox_ concluidos
+        ['outbox_', 'inbox_'].forEach(function(pfx) {
+          listar(pfx, all).filter(function(r) { return !r.valor || r.valor.status === 'done'; }).forEach(function(r) { remover(r.key); });
+        });
+        all = snapshot(true);
+        bAtual = totalBytes(all);
+      }
+      if (bAtual + sBytes > 480000) {
+        throw new Error('Orçamento global de armazenamento excedido (cota 500 KB do GAS). Contrapressão ativada.');
+      }
     }
     var m={v:Utilities.getUuid().replace(/-/g,''),n:Math.ceil(s.length/1500)};
     try {
@@ -52238,6 +52263,72 @@ function cockpitCalcular(initData, tipo, entrada) {
           "⚠️ ALERTAS DE SEGURANÇA:\n" +
           (resHS.alertas && resHS.alertas.length ? resHS.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Usar soluções isotônicas ou balanceadas para prevenir hiponatremia hospitalar aguda induzida por ADH.");
         return { ok: true, sucesso: true, id: 'holliday_segar', nome: 'Hidratação Pediátrica Holliday-Segar', texto: txtHS, textoFormatado: txtHS, dados: resHS };
+      }
+    case 'dhe':
+    case 'eletrolitos':
+    case 'hidroeletrolitico':
+      if (typeof NefrologiaDheService === 'undefined') throw new Error('Serviço NefrologiaDheService indisponível.');
+      var modoDhe = String(entrada.modo || 'hiponatremia').toLowerCase();
+      var pesoDhe = parseFloat(String(entrada.peso || 70).replace(',', '.'));
+      var idadeDhe = entrada.idade ? parseFloat(String(entrada.idade).replace(',', '.')) : 40;
+      var sexoDhe = entrada.sexo ? String(entrada.sexo).toLowerCase() : 'm';
+
+      if (modoDhe === 'hipercalemia' || entrada.kAtual !== undefined) {
+        var kVal = parseFloat(String(entrada.kAtual || entrada.potassio || 0).replace(',', '.'));
+        var ecgAlt = Boolean(entrada.ecgAlterado || entrada.ecg);
+        var resK = NefrologiaDheService.avaliarHipercalemia(kVal, ecgAlt);
+        if (resK.erro) return { ok: false, erro: resK.erro };
+
+        var txtK = "⚡ MANEJO EMERGENCIAL DE HIPERCALEMIA (SBC / KDIGO)\n\n" +
+          "🔴 ESTRATIFICAÇÃO & GRAVIDADE:\n" +
+          "• Potássio Sérico: " + resK.potassio + " mEq/L\n" +
+          "• Classificação: " + resK.gravidade + "\n\n" +
+          "🟡 CONDUTAS ESCALONADAS:\n" +
+          resK.condutas.map(function(c) { return "• " + c; }).join("\n") + "\n\n" +
+          (resK.alerta ? "⚠️ ALERTA CARDÍACO:\n• " + resK.alerta + "\n\n" : "") +
+          "ℹ️ MONITORIZAÇÃO:\n• Monitorização cardíaca contínua e repetir dosagem de K+ em 2h.";
+        return { ok: true, sucesso: true, id: 'hipercalemia', nome: 'Manejo de Hipercalemia', texto: txtK, textoFormatado: txtK, dados: resK };
+      } else if (modoDhe === 'hipernatremia') {
+        var naHiper = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
+        var resHiper = NefrologiaDheService.calcularDeficitAguaLivre(naHiper, pesoDhe, sexoDhe, idadeDhe);
+        if (resHiper.erro) return { ok: false, erro: resHiper.erro };
+
+        var txtHiper = "🌵 HIPERNATREMIA — DÉFICIT DE ÁGUA LIVRE (ADROGUÉ-MADIAS)\n\n" +
+          "🔴 DÉFICIT CALCULADO:\n" +
+          "• Sódio Atual: " + naHiper + " mEq/L | ACT: " + resHiper.act + " L\n" +
+          "• Déficit Total de Água Livre: " + resHiper.deficitAguaLivreLitros + " Litros\n\n" +
+          "🟡 PROGRAMAÇÃO DA REPOSIÇÃO (48 HORAS):\n" +
+          "• 1ªs 24 horas: Repor 50% do déficit (" + (Math.round(resHiper.deficitAguaLivreLitros * 500)) + " mL de água livre ou SG 5%)\n" +
+          "• 24h a 48h: Repor os 50% restantes + perdas insensíveis\n" +
+          "• Vias: Água potável por SNG/SNE (preferencial se TGI funcionante) ou SG 5% IV\n\n" +
+          "⚠️ ALERTA DE SEGURANÇA & TETOS:\n" +
+          (resHiper.alertas && resHiper.alertas.length ? resHiper.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Queda máxima de Na: 8-10 mEq/L em 24h (risco de edema cerebral).") + "\n\n" +
+          "ℹ️ MONITORIZAÇÃO:\n• Dosar Na sérico a cada 4 a 6 horas durante a correção.";
+        return { ok: true, sucesso: true, id: 'hipernatremia', nome: 'Hipernatremia - Déficit de Água Livre', texto: txtHiper, textoFormatado: txtHiper, dados: resHiper };
+      } else {
+        // Hiponatremia (Adrogué-Madias)
+        var naHipo = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
+        var salinaHipo = parseFloat(String(entrada.salina || 3).replace(',', '.'));
+        var resHipo = NefrologiaDheService.planejarCorrecaoHiponatremia(naHipo, pesoDhe, sexoDhe, idadeDhe, salinaHipo);
+        if (resHipo.erro) return { ok: false, erro: resHipo.erro };
+
+        var solNome = salinaHipo === 3 ? "NaCl 3% (513 mEq/L)" : "NaCl 0,9% (154 mEq/L)";
+        var vol24h = Math.round((8 / resHipo.variacaoNaPorLitro) * 1000);
+        var txtHipo = "💧 CORREÇÃO DE HIPONATREMIA (FÓRMULA DE ADROGUÉ-MADIAS)\n\n" +
+          "🔴 AÇÃO IMEDIATA / INFUSÃO EM BIC:\n" +
+          "• Solução Escolhida: " + solNome + "\n" +
+          "• Variação Esperada de Na+ com 1 L: +" + resHipo.variacaoNaPorLitro + " mEq/L\n" +
+          "• Taxa Segura de Infusão: " + resHipo.taxaInfusaoMaxima24h_ml_h + " mL/h em BIC\n" +
+          "• Volume Total Seguro em 24h (Teto 8 mEq): " + vol24h + " mL\n\n" +
+          "🟡 SINTOMAS GRAVES / RESGATE NEUROLÓGICO (CONVULSÃO / COMA):\n" +
+          "• Bolus de Emergência: 100 a 150 mL de NaCl 3% IV em 10-20 min.\n" +
+          "• Pode repetir até 2 vezes se sintomas neurológicos persistirem (meta: subir 4-6 mEq/L).\n\n" +
+          "⚠️ TETOS RÍGIDOS CONTRA MIELINÓLISE PONTINA (SDO):\n" +
+          "• NÃO ULTRAPASSAR 8 mEq/L nas 1ªs 24h e 18 mEq/L em 48h.\n" +
+          (resHipo.alertas && resHipo.alertas.length ? resHipo.alertas.map(function(a) { return "• " + a; }).join("\n") : "") + "\n\n" +
+          "ℹ️ MONITORIZAÇÃO & RESGATE:\n" +
+          "• Dosar sódio sérico a cada 2 a 4 horas. Se subida > 8 mEq em 24h: suspender salina e infundir SG 5% ou Desmopressina (DDAVP).";
+        return { ok: true, sucesso: true, id: 'hiponatremia', nome: 'Correção de Hiponatremia', texto: txtHipo, textoFormatado: txtHipo, dados: resHipo };
       }
     case 'interacoes':
     case 'seguranca':

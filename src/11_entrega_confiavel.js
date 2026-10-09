@@ -91,8 +91,20 @@ var PersistenciaBot = (function() {
     }).filter(function(r) {return !!r.valor;}); // removido entre a listagem e a releitura
   }
   function podarPersistenciaAntiga(all) {
-    listar('inbox_', all).filter(function(r) {return r.valor.status === 'done' && Date.now()-r.valor.created > 86400000;})
-      .slice(0,20).forEach(function(r) {remover(r.key);});
+    all = all || snapshot(true);
+    ['outbox_', 'inbox_'].forEach(function(pfx) {
+      var itens = listar(pfx, all).sort(function(a, b) {
+        var tA = a.valor ? (a.valor.created || 0) : 0;
+        var tB = b.valor ? (b.valor.created || 0) : 0;
+        return tA - tB;
+      });
+      // Prioriza remover itens já finalizados ('done')
+      var dones = itens.filter(function(r) { return !r.valor || r.valor.status === 'done'; });
+      dones.slice(0, 100).forEach(function(r) { remover(r.key); });
+      // Remove itens velhos com mais de 1 hora
+      var velhos = itens.filter(function(r) { return r.valor && Date.now() - (r.valor.created || 0) > 3600000; });
+      velhos.slice(0, 50).forEach(function(r) { remover(r.key); });
+    });
   }
   // Partes em uma única chamada quando o serviço oferece escrita em lote (GAS: setProperties).
   function gravarPartes(p, k, m, s) {
@@ -107,7 +119,7 @@ var PersistenciaBot = (function() {
     var sBytes = bytesUtf8(s);
     if (sBytes > 25000) throw new Error('Conteúdo muito grande para armazenamento. Divida o pedido.');
     var all = snapshot(), bAtual = totalBytes(all);
-    if (bAtual + sBytes > 350000) {
+    if (bAtual + sBytes > 300000) {
       podarPersistenciaAntiga(all);
       all = snapshot(true);
       bAtual = totalBytes(all);
@@ -116,7 +128,20 @@ var PersistenciaBot = (function() {
     var textoAnterior = anterior ? textoDe(all, k) : null;
     var bytesAnteriores = textoAnterior ? bytesUtf8(textoAnterior) : 0;
     if (bAtual + sBytes > 400000 && !(sBytes < bytesAnteriores && bAtual + sBytes < 450000)) {
-      throw new Error('Orçamento global de armazenamento excedido (cota 500 KB do GAS). Contrapressão ativada.');
+      podarPersistenciaAntiga(all);
+      all = snapshot(true);
+      bAtual = totalBytes(all);
+      if (bAtual + sBytes > 420000) {
+        // Purgar todos os outbox_ e inbox_ concluidos
+        ['outbox_', 'inbox_'].forEach(function(pfx) {
+          listar(pfx, all).filter(function(r) { return !r.valor || r.valor.status === 'done'; }).forEach(function(r) { remover(r.key); });
+        });
+        all = snapshot(true);
+        bAtual = totalBytes(all);
+      }
+      if (bAtual + sBytes > 480000) {
+        throw new Error('Orçamento global de armazenamento excedido (cota 500 KB do GAS). Contrapressão ativada.');
+      }
     }
     var m={v:Utilities.getUuid().replace(/-/g,''),n:Math.ceil(s.length/1500)};
     try {

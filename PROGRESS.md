@@ -547,6 +547,15 @@
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Integração UI/UX de Distúrbios Hidroeletrolíticos (DHE - Sódio, Potássio e Água Livre), Salvaguardas de Mielinólise Pontina e Fallback Offline no Cockpit PWA**:
+   - Adicionado painel dedicado `calc-dhe` ("Distúrbios Hidroeletrolíticos") na aba de calculadoras (`tab-calculadoras`) com seletores rápidos e formulários dirigidos para Hiponatremia (Adrogué-Madias), Hipercalemia (Potássio e Cardioproteção) e Hipernatremia (Déficit de Água Livre).
+   - Reorganizada a barra de subcalculadoras para grade balanceada (`grid-cols-4 sm:grid-cols-8`) otimizada para toque em telas móveis sem corte de texto.
+   - Adicionados chips de atalhos rápidos de Sódio (110, 118, 125, 130 mEq/L) e Potássio (5.6, 6.5, 7.2, 8.3 mEq/L) com detecção imediata de toxicidade eletrocardiográfica.
+   - Implementado motor determinístico de contingência offline (`calcularOfflineLocal` para `dhe`) com execução imediata (0ms) mesmo sem sinal hospitalar, cobrindo Adrogué-Madias com NaCl 3% e SF 0.9%, teto rígido de elevação (8 mEq/24h) contra Síndrome de Desmielinização Osmótica (SDO / Mielinólise Pontina), dosagens escalonadas de Gluconato de Cálcio 10%, Glicoinsulina, Beta-2 inalatório, Furosemida, Sorcal e acionamento de emergência zero para K+ > 8.0 mEq/L.
+   - Resolução de contrapressão em `src/11_entrega_confiavel.js`: expansão de `podarPersistenciaAntiga` para podar automaticamente registros de `outbox_` concluídos ('done') e purgar acumulações de testes anteriores.
+   - Adicionado chip de ação rápida "DHE & Eletrólitos" na aba SOAP (`tab-soap`) com redirecionamento em 1 toque e botão de cópia limpa para o prontuário (`btn-copiar-dhe`).
+   - Sincronização automatizada para GitHub Pages via `gh_cockpit_deploy/index.html`.
+   - Cobertura expandida em `tests/test_cockpit_offline_indexeddb.cjs` e `tests/test_server_render.cjs` com 100% de sucesso no pipeline contínuo (`npm test`).
 - [x] (2026-10-09) **Integração UI/UX de Antimicrobianos, Ajuste Renal por ClCr e Cross-Check Farmacológico Offline no Cockpit PWA**:
    - Adicionado painel dedicado `calc-atb` ("Ajuste Renal de Antimicrobianos") na aba de calculadoras (`tab-calculadoras`) com seletores rápidos de fármacos de alta relevância hospitalar: Meropenem, Vancomicina, Piperacilina + Tazobactam, Cefepime, Ceftriaxona, Ciprofloxacino, Polimixina B e Fluconazol.
    - Adicionados chips de atalhos rápidos de função renal (ClCr > 50, ClCr 30-50, ClCr 15-29, ClCr < 15 e Hemodiálise), além de botão inteligente "Usar ClCr calculado" que migra instantaneamente o valor de Cockcroft-Gault para o ajuste antimicrobiano.
