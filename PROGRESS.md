@@ -38,7 +38,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolo automatizado de correção de hiperglicemia hospitalar.
     - Manejo guiado de Cetoacidose Diabética (CAD) e Estado Hiperosmolar Hiperglicêmico (EHH) com reposição hídrica e potássio baseada nos guidelines da ADA e SBD, além de esquema de transição IV para SC seguro.
 
-19. [ ] **Suporte Avançado de Vida Pediátrico (PALS / Reanimação Pediátrica)**:
+19. [x] **Suporte Avançado de Vida Pediátrico (PALS / Reanimação Pediátrica)**:
     - Motor determinístico de cálculo de medicações de emergência pediátrica (Adrenalina 0,1mg/ml, Amiodarona, Lidocaína) em PCR por peso estimado, idade ou fita de Broselow.
     - Cálculo de Joules (2 a 4 J/kg) para desfibrilação e cardioversão sincronizada.
     - Seleção de tubo endotraqueal (TET) com e sem cuff, fixação e lâminas de intubação ajustados por idade/peso.
@@ -265,12 +265,27 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Algoritmo de identificação e manejo de HAS resistente (falha com 3 drogas em doses otimizadas incluindo diurético).
     - Rastreio de causas secundárias (hiperaldosteronismo primário, feocromocitoma, estenose de artéria renal).
 
+67. [ ] **Módulo de Suporte Ventilatório Neonatal Avançado**:
+    - Calculadora determinística para parâmetros iniciais de Ventilação Mecânica Convencional e VAFO em prematuros.
+    - Metas de oxigenação (alvos de saturação e PaO2) rigorosas para prevenção de Retinopatia da Prematuridade.
+    - Protocolo de administração e dosagem de Surfactante Pulmonar (MIST/LISA) beira-leito.
+
+68. [ ] **Integração de Notificação Compulsória Inteligente**:
+    - Motor de detecção automática de doenças de notificação compulsória (DNC) baseado em hipóteses diagnósticas (Dengue, Sífilis, Tuberculose).
+    - Mapeamento e alerta das janelas de tempo de notificação (imediata em 24h vs semanal) com links/direcionamento para preenchimento no SINAN.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Suporte Avançado de Vida Pediátrico (PALS / Reanimação Pediátrica)**
+- [ ] **Neurologia de Emergência e Manejo de AVC Isquêmico Agudo**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Suporte Avançado de Vida Pediátrico (PALS)**:
+   - Motor determinístico de cálculo de medicações de emergência pediátrica (Adrenalina, Amiodarona, Lidocaína) em PCR guiado pelo peso, com estimativa linear por idade em caso de peso não informado.
+   - Algoritmo de cálculo de choque (2 a 4 J/kg) para desfibrilação e cardioversão (0.5 a 2 J/kg).
+   - Fórmulas para seleção do calibre de tubo endotraqueal (com e sem cuff), tamanho da lâmina do laringoscópio e profundidade da fixação.
+   - Adicionada suíte de testes determinística 100% aprovada e integração completa via malha RPC (`cockpitPalsPediatria`).
+
 - [x] (2026-10-09) **Módulo de Endocrinologia e Diabetes Mellitus Avançado (SBD/ADA)**:
    - Calculadora determinística de dose de insulina basal e bolus prandial para uso ambulatorial (regras 1800/500).
    - Protocolo automatizado e estruturado de correção de hiperglicemia hospitalar para enfermarias (alvos SBD/ADA).

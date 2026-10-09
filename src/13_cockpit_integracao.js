@@ -1126,3 +1126,16 @@ function cockpitEndocrinologiaDiabetes(initData, params) {
   }
   throw new Error('Ação inválida para Endocrinologia/Diabetes.');
 }
+
+function cockpitPalsPediatria(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PalsPediatriaService === 'undefined') {
+    throw new Error('PalsPediatriaService não carregado.');
+  }
+  if (params.acao === 'avaliar') {
+    return PalsPediatriaService.avaliarPals(params.parametros || params);
+  }
+  throw new Error('Ação inválida para PALS Pediatria.');
+}
+
