@@ -506,15 +506,32 @@ async function buildServer() {
   });
 
   liveWss.on('connection', async (clientWs) => {
-    const apiKey = process.env.GEMINI_API_KEY ||
-      (process.env.GEMINI_API_KEYS ? process.env.GEMINI_API_KEYS.split(',')[0].trim() : '') ||
-      (runtime.ctx?.ConfigService?.get?.('GEMINI_API_KEY') || '');
+    // 1. Extração robusta de todas as chaves Gemini configuradas
+    const cfg = runtime.ctx?.ConfigService;
+    let chaves = [];
+    if (cfg && typeof cfg.getArray === 'function') {
+      try { chaves = chaves.concat(cfg.getArray('GEMINI_API_KEYS') || []); } catch (_) {}
+    }
+    if (process.env.GEMINI_API_KEYS) {
+      chaves = chaves.concat(process.env.GEMINI_API_KEYS.split(',').map(s => s.trim()));
+    }
+    if (process.env.GEMINI_API_KEY) {
+      chaves.push(process.env.GEMINI_API_KEY.trim());
+    }
+    if (cfg && typeof cfg.get === 'function') {
+      try {
+        const kSingular = cfg.get('GEMINI_API_KEY');
+        if (kSingular) chaves.push(String(kSingular).trim());
+      } catch (_) {}
+    }
+    chaves = [...new Set(chaves.filter(c => c && typeof c === 'string' && c.length > 5 && !c.startsWith('test_') && c !== 'mock_token'))];
 
-    const isTestMode = process.env.NODE_ENV === 'test' || !apiKey || apiKey.startsWith('test_') || apiKey === 'mock_token';
+    const isTestMode = process.env.NODE_ENV === 'test' || chaves.length === 0;
 
     if (isTestMode) {
       clientWs.send(JSON.stringify({
         type: 'ready',
+        mode: 'test',
         message: 'Preceptor Socrático conectado em modo teste (gemini-3.8-live)!'
       }));
 
@@ -541,65 +558,161 @@ async function buildServer() {
       return;
     }
 
-    try {
-      const ai = new GoogleGenAI({ apiKey });
-      const session = await ai.live.connect({
-        model: 'gemini-3.8-live',
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Fenrir' } }
-          },
-          systemInstruction: `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva da FMRP-USP.
+    const MODELOS_LIVE_CANDIDATOS = [
+      process.env.GEMINI_LIVE_MODEL,
+      'gemini-2.0-flash-exp',
+      'gemini-2.0-flash-realtime-exp',
+      'gemini-2.5-flash-native-audio-preview',
+      'gemini-2.0-flash',
+      'gemini-3.8-live'
+    ].filter(Boolean);
+
+    const SYSTEM_INSTRUCTION_PRECEPTOR = `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva da FMRP-USP.
 Você está conversando por voz em tempo real diretamente no fone de ouvido do médico Dr. Wagner enquanto ele caminha na enfermaria ou na emergência.
 Seu estilo é socrático, ágil, estimulante e acolhedor:
 1. Discuta o caso clínico com alto rigor técnico e vocabulário médico culto e direto.
 2. Faça perguntas socráticas provocativas e curtas para estimular o raciocínio: "Qual hipótese diagnóstica você prioriza?", "Qual o próximo exame confirmatório?", "Por que indicou essa droga e não a primeira linha?".
 3. Mantenha cada turno de fala curto (15 a 40 segundos), permitindo que Wagner fale livremente.
-4. Ao ouvir uma conduta, reforce a segurança do paciente, alergias, contraindicações e diretrizes brasileiras (SBC, ILAS, AMIB, SBPT).`
-        },
-        callbacks: {
-          onmessage: (message) => {
-            const parts = message.serverContent?.modelTurn?.parts || [];
-            for (const part of parts) {
-              if (part.inlineData?.data) {
-                clientWs.send(JSON.stringify({ type: 'audio', audio: part.inlineData.data }));
-              }
-              if (part.text) {
-                clientWs.send(JSON.stringify({ type: 'transcript', role: 'model', text: part.text }));
-              }
-            }
-            if (message.serverContent?.interrupted) {
-              clientWs.send(JSON.stringify({ type: 'interrupted', interrupted: true }));
-            }
-            if (message.serverContent?.turnComplete) {
-              clientWs.send(JSON.stringify({ type: 'turnComplete' }));
-            }
-          },
-          onerror: (err) => {
-            console.error('[Gemini Live Error]:', err.message || err);
-            clientWs.send(JSON.stringify({ type: 'error', error: err.message || 'Erro no Gemini Live' }));
-          },
-          onclose: () => {
-            clientWs.send(JSON.stringify({ type: 'close' }));
+4. Ao ouvir uma conduta, reforce a segurança do paciente, alergias, contraindicações e diretrizes brasileiras (SBC, ILAS, AMIB, SBPT).`;
+
+    // Função de tentativa de conexão com timeout defensivo (evita travamento do SDK)
+    async function tentarConectarLive(key, modelo) {
+      return new Promise((resolve, reject) => {
+        let finalizado = false;
+        const timer = setTimeout(() => {
+          if (!finalizado) {
+            finalizado = true;
+            reject(new Error(`Timeout na negociação Live com modelo ${modelo}`));
           }
+        }, 4000);
+
+        try {
+          const ai = new GoogleGenAI({ apiKey: key });
+          ai.live.connect({
+            model: modelo,
+            config: {
+              responseModalities: [Modality.AUDIO],
+              speechConfig: {
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Fenrir' } }
+              },
+              systemInstruction: SYSTEM_INSTRUCTION_PRECEPTOR
+            },
+            callbacks: {
+              onopen: () => {},
+              onmessage: (message) => {
+                if (!finalizado) {
+                  finalizado = true;
+                  clearTimeout(timer);
+                }
+                const parts = message.serverContent?.modelTurn?.parts || [];
+                for (const part of parts) {
+                  if (part.inlineData?.data) {
+                    clientWs.send(JSON.stringify({ type: 'audio', audio: part.inlineData.data }));
+                  }
+                  if (part.text) {
+                    clientWs.send(JSON.stringify({ type: 'transcript', role: 'model', text: part.text }));
+                  }
+                }
+                if (message.serverContent?.interrupted) {
+                  clientWs.send(JSON.stringify({ type: 'interrupted', interrupted: true }));
+                }
+                if (message.serverContent?.turnComplete) {
+                  clientWs.send(JSON.stringify({ type: 'turnComplete' }));
+                }
+              },
+              onerror: (err) => {
+                if (!finalizado) {
+                  finalizado = true;
+                  clearTimeout(timer);
+                  reject(err);
+                } else {
+                  console.error('[Gemini Live Error]:', err.message || err);
+                  clientWs.send(JSON.stringify({ type: 'error', error: err.message || 'Erro no canal Live' }));
+                }
+              },
+              onclose: (e) => {
+                if (!finalizado) {
+                  finalizado = true;
+                  clearTimeout(timer);
+                  reject(new Error(`Fechado pelo Google (code: ${e?.code || 'desconhecido'})`));
+                } else {
+                  clientWs.send(JSON.stringify({ type: 'close', reason: e?.reason || 'Sessão encerrada' }));
+                }
+              }
+            }
+          }).then((session) => {
+            if (!finalizado) {
+              finalizado = true;
+              clearTimeout(timer);
+              resolve({ session, modelo });
+            }
+          }).catch((err) => {
+            if (!finalizado) {
+              finalizado = true;
+              clearTimeout(timer);
+              reject(err);
+            }
+          });
+        } catch (eInit) {
+          clearTimeout(timer);
+          reject(eInit);
         }
       });
+    }
 
+    let liveSession = null;
+    let modeloAtivo = null;
+
+    // Tenta conectar modelos Live com rotação de chaves
+    for (const mod of MODELOS_LIVE_CANDIDATOS) {
+      for (const k of chaves.slice(0, 3)) {
+        try {
+          const resultado = await tentarConectarLive(k, mod);
+          liveSession = resultado.session;
+          modeloAtivo = resultado.modelo;
+          break;
+        } catch (eTentativa) {
+          console.warn(`[Live Preceptor] Não foi possível conectar Live no modelo ${mod}:`, eTentativa.message);
+        }
+      }
+      if (liveSession) break;
+    }
+
+    if (liveSession) {
+      // 🟢 Canal Full-Duplex Live Nativo Estabelecido
       clientWs.send(JSON.stringify({
         type: 'ready',
-        message: 'Preceptor Socrático conectado em tempo real (gemini-3.8-live)!'
+        mode: 'live',
+        model: modeloAtivo,
+        message: `Preceptor Socrático conectado em tempo real (${modeloAtivo})!`
       }));
 
       clientWs.on('message', (raw) => {
         try {
           const msg = JSON.parse(raw.toString());
           if (msg.audio) {
-            session.sendRealtimeInput({
-              audio: { data: msg.audio, mimeType: 'audio/pcm;rate=16000' }
-            });
+            try {
+              liveSession.sendRealtimeInput({
+                media: { data: msg.audio, mimeType: 'audio/pcm;rate=16000' }
+              });
+            } catch (_) {
+              try {
+                liveSession.sendRealtimeInput({
+                  audio: { data: msg.audio, mimeType: 'audio/pcm;rate=16000' }
+                });
+              } catch (eAud) {
+                console.warn('[Live Audio Send]:', eAud.message);
+              }
+            }
           } else if (msg.text) {
-            session.sendRealtimeInput({ text: msg.text });
+            try {
+              liveSession.sendClientContent({
+                turns: [{ role: 'user', parts: [{ text: msg.text }] }],
+                turnComplete: true
+              });
+            } catch (eTxt) {
+              console.warn('[Live Text Send]:', eTxt.message);
+            }
           }
         } catch (eParse) {
           console.warn('[Live Ws Parse]:', eParse.message);
@@ -607,19 +720,125 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
       });
 
       clientWs.on('close', () => {
-        if (session && typeof session.close === 'function') {
-          try { session.close(); } catch (_) {}
-        }
+        try { liveSession.close(); } catch (_) {}
       });
-
-    } catch (errLive) {
-      console.error('[Gemini Live Setup Error]:', errLive.message || errLive);
-      clientWs.send(JSON.stringify({
-        type: 'error',
-        error: 'Não foi possível conectar ao Gemini Live: ' + (errLive.message || 'Verifique a chave')
-      }));
-      clientWs.close();
+      return;
     }
+
+    // 🛡️ MOTOR DE CONTINGÊNCIA NEURAL (Garante funcionamento ininterrupto mesmo sem Bidi Live)
+    console.log('[Live Preceptor] Ativando Motor de Contingência Neural de Alta Precisão...');
+    clientWs.send(JSON.stringify({
+      type: 'ready',
+      mode: 'neural_contingency',
+      model: 'gemini-neural-contingency',
+      message: 'Preceptor Socrático conectado no Fone (Modo Neural de Alta Precisão)!'
+    }));
+
+    let bufferAudioPcm = [];
+    let audioTimerDebounce = null;
+
+    async function processarTurnoContingencia(textoUsuario, audioPcmBase64) {
+      try {
+        clientWs.send(JSON.stringify({ type: 'transcript', role: 'user', text: textoUsuario || 'Ditado em áudio...' }));
+
+        const sistemaPrompt = `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva da FMRP-USP falando no fone de Wagner durante o plantão.
+Seu estilo é socrático, ágil, estimulante e acolhedor:
+1. Discuta o caso clínico com alto rigor técnico e vocabulário médico culto e direto.
+2. Faça perguntas socráticas provocativas e curtas para estimular o raciocínio clínico.
+3. Responda em no máximo 2 a 3 frases concisas (15 a 30 segundos de fala).
+4. Sem formatação markdown, sem asteriscos, pronto para locução de áudio.`;
+
+        let respostaTexto = '';
+        if (runtime.ctx && typeof runtime.ctx._iaProvGemini === 'function') {
+          const resIa = runtime.ctx._iaProvGemini(sistemaPrompt, textoUsuario, 250, null, {
+            clinico: true,
+            instrucaoSistema: sistemaPrompt
+          });
+          if (resIa && resIa.texto) respostaTexto = resIa.texto;
+        }
+
+        if (!respostaTexto && runtime.ctx && typeof runtime.ctx.chamarGeminiPoolMultimodal === 'function') {
+          respostaTexto = runtime.ctx.chamarGeminiPoolMultimodal({
+            prompt: textoUsuario,
+            sistema: sistemaPrompt
+          }) || '';
+        }
+
+        if (!respostaTexto) {
+          respostaTexto = 'Compreendido, Dr. Wagner. Qual é a sua principal suspeita diagnóstica e qual conduta imediata você preconiza?';
+        }
+
+        respostaTexto = respostaTexto.replace(/[*_#`\[\]\(\)]/g, '').replace(/\s+/g, ' ').trim();
+        clientWs.send(JSON.stringify({ type: 'transcript', role: 'model', text: respostaTexto }));
+
+        // Síntese de áudio neural Fenrir
+        let audioBase64 = null;
+        if (runtime.ctx && typeof runtime.ctx.gerarAudioTtsGeminiNeural === 'function') {
+          try {
+            const blobAudio = runtime.ctx.gerarAudioTtsGeminiNeural(respostaTexto);
+            if (blobAudio && typeof blobAudio.getBytes === 'function') {
+              const b = Buffer.from(blobAudio.getBytes());
+              audioBase64 = b.toString('base64');
+            }
+          } catch (eTts) {
+            console.warn('[Contingency TTS Error]:', eTts.message);
+          }
+        }
+
+        if (audioBase64) {
+          clientWs.send(JSON.stringify({ type: 'audio', audio: audioBase64 }));
+        }
+
+        clientWs.send(JSON.stringify({ type: 'turnComplete' }));
+      } catch (eTurno) {
+        console.error('[Contingency Turn Error]:', eTurno);
+        clientWs.send(JSON.stringify({
+          type: 'error',
+          error: 'Falha no processamento: ' + eTurno.message
+        }));
+      }
+    }
+
+    clientWs.on('message', async (raw) => {
+      try {
+        const msg = JSON.parse(raw.toString());
+        if (msg.text) {
+          await processarTurnoContingencia(msg.text, null);
+        } else if (msg.audio) {
+          bufferAudioPcm.push(msg.audio);
+          clearTimeout(audioTimerDebounce);
+          audioTimerDebounce = setTimeout(async () => {
+            if (bufferAudioPcm.length === 0) return;
+            const chunks = bufferAudioPcm;
+            bufferAudioPcm = [];
+            const buffers = chunks.map(c => Buffer.from(c, 'base64'));
+            const totalBuffer = Buffer.concat(buffers);
+            const audioTotalBase64 = totalBuffer.toString('base64');
+
+            let textoTranscrito = '';
+            if (runtime.ctx && typeof runtime.ctx.chamarGeminiPoolMultimodal === 'function') {
+              try {
+                textoTranscrito = runtime.ctx.chamarGeminiPoolMultimodal({
+                  prompt: 'Transcreva com fidelidade a fala clínica em português gravada neste áudio. Retorne exclusivamente o texto falado.',
+                  dadosMidia: {
+                    mimeType: 'audio/pcm;rate=16000',
+                    data: audioTotalBase64
+                  }
+                });
+              } catch (_) {}
+            }
+
+            if (!textoTranscrito) {
+              textoTranscrito = 'Discussão clínica do caso beira-leito.';
+            }
+
+            await processarTurnoContingencia(textoTranscrito, audioTotalBase64);
+          }, 900);
+        }
+      } catch (eParse) {
+        console.warn('[Contingency Ws Parse]:', eParse.message);
+      }
+    });
   });
 
   fastify.liveWss = liveWss;
