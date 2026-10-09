@@ -1336,6 +1336,22 @@ function buscarCondutaPediatricaPedB(termo) {
   var termoNorm = normalizarTermoMedicamento(termo);
   var termoLower = termo.trim().toLowerCase();
 
+  // Sinônimos clínicos comuns de emergência pediátrica
+  var sinonimosCondutas = {
+    'laringite': 'LARINGOTRAQUEITE',
+    'crupe viral': 'LARINGOTRAQUEITE',
+    'crupe': 'LARINGOTRAQUEITE',
+    'bva': 'BRONQUIOLITE',
+    'oma': 'OTITE MEDIA AGUDA',
+    'itu': 'INFECCAO DO TRATO URINARIO',
+    'drge': 'REFLUXO GASTROESOFAGICO',
+    'geca': 'GASTROENTERITE'
+  };
+  var chaveSin = termoNorm.toLowerCase();
+  if (sinonimosCondutas[chaveSin]) {
+    termoNorm = sinonimosCondutas[chaveSin];
+  }
+
   for (var i = 0; i < conds.length; i++) {
     var c = conds[i];
     if (c.titulo_normalizado === termoNorm || c.slug === termoLower) {

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-08 23:45:31
- * Checksum SHA256: 3c68caac2f87ddfd
+ * Gerado automaticamente via build_master.py em: 2026-10-08 23:55:08
+ * Checksum SHA256: 166edd6469efd135
  * ==============================================================================
  */
 
@@ -4708,6 +4708,22 @@ function buscarCondutaPediatricaPedB(termo) {
 
   var termoNorm = normalizarTermoMedicamento(termo);
   var termoLower = termo.trim().toLowerCase();
+
+  // Sinônimos clínicos comuns de emergência pediátrica
+  var sinonimosCondutas = {
+    'laringite': 'LARINGOTRAQUEITE',
+    'crupe viral': 'LARINGOTRAQUEITE',
+    'crupe': 'LARINGOTRAQUEITE',
+    'bva': 'BRONQUIOLITE',
+    'oma': 'OTITE MEDIA AGUDA',
+    'itu': 'INFECCAO DO TRATO URINARIO',
+    'drge': 'REFLUXO GASTROESOFAGICO',
+    'geca': 'GASTROENTERITE'
+  };
+  var chaveSin = termoNorm.toLowerCase();
+  if (sinonimosCondutas[chaveSin]) {
+    termoNorm = sinonimosCondutas[chaveSin];
+  }
 
   for (var i = 0; i < conds.length; i++) {
     var c = conds[i];

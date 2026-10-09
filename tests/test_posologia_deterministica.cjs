@@ -157,16 +157,25 @@ test('Caso 8: Cefalexina 18 kg (50 mg/kg/dia de 6/6h)', () => {
 // --------------------------------------------------------------------------
 // 9. EXTRAÇÃO DETERMINÍSTICA A PARTIR DE TEXTO LIVRE
 // --------------------------------------------------------------------------
-test('Caso 9: Extração de texto livre complexo', () => {
-  const calc1 = Calc.calcularPosologiaPorTextoLivre('/rx amigdalite bacteriana crianca 17.5kg alergica a penicilina');
-  assert.ok(calc1, 'Deve extrair caso de alergia');
+test('Caso 9: Extração de texto livre complexo e blindagem contra prescrição cega', () => {
+  // Fármaco explícito com peso decimal é extraído com precisão
+  const calc1 = Calc.calcularPosologiaPorTextoLivre('/rx azitromicina crianca 17.5kg');
+  assert.ok(calc1, 'Deve extrair azitromicina com peso decimal');
   assert.strictEqual(calc1.farmaco, 'Azitromicina');
   assert.strictEqual(calc1.pesoKg, 17.5);
+  assert.strictEqual(calc1.volumePorTomadaMl, 4.4);
 
-  const calc2 = Calc.calcularPosologiaPorTextoLivre('paciente pediatrico com dor e febre, peso 15 quilos');
-  assert.ok(calc2, 'Deve extrair analgésico');
-  assert.ok(calc2.farmaco === 'Dipirona' || calc2.farmaco === 'Paracetamol');
+  // Fármaco explícito em linguagem natural com dor e febre
+  const calc2 = Calc.calcularPosologiaPorTextoLivre('dipirona gotas paciente pediatrico com dor e febre, peso 15 quilos');
+  assert.ok(calc2, 'Deve extrair dipirona explícita com dor e febre');
+  assert.strictEqual(calc2.farmaco, 'Dipirona');
   assert.strictEqual(calc2.pesoKg, 15);
+
+  // Segurança estrita: Alergia, negação ou sintomas isolados sem fármaco NÃO elegem tratamento cego
+  const calcAlergia = Calc.calcularPosologiaPorTextoLivre('/rx amigdalite bacteriana crianca 17.5kg alergica a penicilina');
+  assert.strictEqual(calcAlergia, null, 'Alergia/diagnóstico isolado não deve eleger tratamento cego');
+  const calcSintomas = Calc.calcularPosologiaPorTextoLivre('paciente pediatrico com dor e febre, peso 15 quilos');
+  assert.strictEqual(calcSintomas, null, 'Sintomas isolados sem fármaco não devem prescrever automaticamente');
 });
 
 // --------------------------------------------------------------------------
@@ -189,7 +198,7 @@ test('Caso 10: responderConsultaPosologiaHSL com peso via Telegram', () => {
     assert.ok(mensagemEnviada.includes('CÁLCULO POSOLÓGICO PEDIÁTRICO DETERMINÍSTICO'), 'Deve ter cabeçalho determinístico');
     assert.ok(mensagemEnviada.includes('5,3 mL'), 'Deve conter o volume exato 5,3 mL');
     assert.ok(mensagemEnviada.includes('2 frasco(s)'), 'Deve conter a quantidade exata de frascos');
-    assert.ok(mensagemEnviada.includes('Zero Alucinação'), 'Deve conter menção de segurança');
+    assert.ok(mensagemEnviada.includes('Conferência') || mensagemEnviada.includes('avaliação clínica'), 'Deve conter menção de segurança e conferência clínica');
   } finally {
     runtime.ctx.enviarMensagemComTecladoParaChat = originalEnviar;
   }
