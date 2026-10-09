@@ -547,6 +547,14 @@
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Integração UI/UX de Atenção Primária & UBS no Cockpit PWA (SOAP Ambulatorial Ágil, Atestados CFM e Fallback Offline Determinístico)**:
+   - Adicionados chips de atalhos de preenchimento rápido em 1 toque no modal de SOAP Ambulatorial (`modal-ambulatorio-soap`): HAS Rotina, DM2 Rotina, Tosse / Gripe (IVAS), Lombalgia Mecânica e Dispepsia / DRGE com seleção automática do modelo de exame físico dirigido e sinais vitais.
+   - Adicionados chips rápidos de seleção de dias (1d, 2d, 3d, 5d, 7d, 14d) e CIDs frequentes (IVAS J06.9, GECA A09, Lombalgia M54.5, Dengue A90, Cefaleia G44.2, Gripe B34.2) no modal de Atestado CFM (`modal-atestado-cfm`).
+   - Implementado motor determinístico offline de contingência (`gerarSOAPAmbulatorialOfflineLocal` e `gerarAtestadoOfflineLocal`) garantindo emissão imediata (0ms) de prontuário SOAP completo e Atestado Médico legal mesmo sem sinal hospitalar ou sob falha de rede.
+   - Incorporação de regras clínicas oficiais: classificação pressórica da SBC 2024 / DBH, avaliação glicêmica da SBD 2024-2025, exames dirigidos (monofilamento 10g e pulsos nos pés em DM2, ausculta de carótidas e ausência de B3/B4 em HAS, Lasègue em lombalgia) e conformidade estrita com as Resoluções CFM 1.658/2002 e 1.851/2008 (dias por extenso para blindagem antifraude e respeito ao sigilo do CID-10).
+   - Otimização do seletor `abrirSubCalc` com auto-seleção e destaque visual imediato do botão ativo mesmo em redirecionamentos rápidos por chips da aba SOAP.
+   - Sincronização automatizada para GitHub Pages via `gh_cockpit_deploy/index.html`.
+   - Expansão da suíte de testes `tests/test_cockpit_offline_indexeddb.cjs` com 100% de sucesso no pipeline contínuo (`npm test`).
 - [x] (2026-10-09) **Integração UI/UX de Emergência & Sala Vermelha no Cockpit PWA (DVA Avançada, SRI Neuro e Cópia com 1 Toque para PEP)**:
    - Expansão dos seletores e calculadoras de DVA em `tab-calculadoras` do Cockpit PWA: adição de Adrenalina/Epinefrina (16 mcg/mL - Choque Séptico refratário e Anafilaxia), Nitroglicerina/Tridil (200 mcg/mL - EAP e SCA) e Nitroprussiato de Sódio/Nipride (200 mcg/mL - Emergência Hipertensiva).
    - Expansão da SRI (Sequência Rápida de Intubação): adição do cenário Neurointensivismo / TCE / HIC (Fentanil 3 mcg/kg + Etomidato 0,3 mg/kg + Rocurônio 1,2 mg/kg com metas de PAM e PAS > 100-110 mmHg para garantir PPC = PAM - PIC).

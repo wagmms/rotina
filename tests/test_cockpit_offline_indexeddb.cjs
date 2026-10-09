@@ -38,7 +38,10 @@ assert(htmlContent.includes('id="btn-copiar-dva"'), 'Botão btn-copiar-dva prese
 assert(htmlContent.includes('id="btn-copiar-sri"'), 'Botão btn-copiar-sri presente');
 assert(htmlContent.includes('id="btn-copiar-crcl"'), 'Botão btn-copiar-crcl presente');
 assert(htmlContent.includes('id="btn-copiar-gaso"'), 'Botão btn-copiar-gaso presente');
-console.log('  ✓ Elementos de telemetria, UI, Sorologias, Pediatria e Botões PEP validados com sucesso no DOM.');
+assert(htmlContent.includes("onclick=\"setSoapQueixaRapida('has')\""), 'Atalho de queixa rápida HAS presente no modal de SOAP');
+assert(htmlContent.includes("onclick=\"setAtestadoDias(3)\""), 'Atalho de dias de atestado presente');
+assert(htmlContent.includes("onclick=\"setAtestadoCid("), 'Atalhos de CIDs presentes');
+console.log('  ✓ Elementos de telemetria, UI, Sorologias, Pediatria, SOAP e Atestado CFM validados com sucesso no DOM.');
 
 // 2. Extrai o bloco de script principal (maior bloco de script inline)
 const scripts = Array.from(htmlContent.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi));
@@ -359,6 +362,64 @@ function criarAmbienteSimulacao() {
   assert(resSriNeuro.includes('ROCURÔNIO 84 mg'), 'Rocurônio 1.2 mg/kg para 70kg (84 mg)');
   assert(resSriNeuro.includes('PAS > 100-110 mmHg'), 'Alvo hemodinâmico de neuroproteção presente');
   console.log('  ✓ Motor offline de DVA (Adrenalina, Tridil, Nipride) e SRI (Neuro/TCE) validado com 100% de sucesso.');
+
+  console.log('\n[9] Testando motor offline determinístico de SOAP Ambulatorial e Atestado Médico CFM...');
+  const fnSoapOffline = sandbox.gerarSOAPAmbulatorialOfflineLocal || w.gerarSOAPAmbulatorialOfflineLocal;
+  assert(typeof fnSoapOffline === 'function', 'gerarSOAPAmbulatorialOfflineLocal disponível');
+
+  // 9.1 SOAP Ambulatorial - Hipertensão Arterial
+  const resSoapHas = fnSoapOffline({
+    pacienteNome: 'João Silva',
+    queixaPrincipal: 'Acompanhamento de HAS',
+    modeloExameFisico: 'has_rotina',
+    sinaisVitais: { pa: '145/95', fc: '76', glicemia: '92', peso: '78' }
+  });
+  assert(resSoapHas && resSoapHas.sucesso, 'SOAP offline gerado com sucesso');
+  assert(resSoapHas.soap.textoProntuario.includes('Hipertensão Estágio 1'), 'Classificação SBC da PA correta: 145/95 é Estágio 1');
+  assert(resSoapHas.soap.textoProntuario.includes('Losartana Potássica 50 mg'), 'Prescrição REMUME de 1ª linha presente');
+  assert(resSoapHas.soap.textoProntuario.includes('Dieta DASH'), 'Orientações MEV presentes');
+  assert(resSoapHas.soap.textoProntuario.includes('Sinais de Alarme'), 'Sinais de alarme para PS presentes');
+
+  // 9.2 SOAP Ambulatorial - Diabetes Mellitus com Alerta
+  const resSoapDm = fnSoapOffline({
+    pacienteNome: 'Maria Santos',
+    queixaPrincipal: 'Consulta de rotina DM2',
+    modeloExameFisico: 'dm_rotina',
+    sinaisVitais: { pa: '128/82', fc: '72', glicemia: '210', peso: '68' }
+  });
+  assert(resSoapDm.soap.textoProntuario.includes('Hiperglicemia Acentuada'), 'Detecção SBD de glicemia >= 200 mg/dL');
+  assert(resSoapDm.soap.textoProntuario.includes('Metformina 850 mg'), 'Prescrição de Metformina presente');
+  assert(resSoapDm.soap.textoProntuario.includes('monofilamento 10g'), 'Exame dos pés e sensibilidade presentes');
+
+  // 9.3 Atestado CFM - com inclusão expressa de CID e dias por extenso
+  const fnAtestadoOffline = sandbox.gerarAtestadoOfflineLocal || w.gerarAtestadoOfflineLocal;
+  assert(typeof fnAtestadoOffline === 'function', 'gerarAtestadoOfflineLocal disponível');
+
+  const resAtestadoComCid = fnAtestadoOffline({
+    pacienteNome: 'Carlos Eduardo',
+    pacienteDoc: '12.345.678-9',
+    dias: 3,
+    cid: 'M54.5 - Lombalgia Aguda',
+    incluirCid: true
+  });
+  assert(resAtestadoComCid && resAtestadoComCid.sucesso, 'Atestado gerado com sucesso');
+  assert(resAtestadoComCid.textoAtestado.includes('3 (três) dia(s)'), 'Dias convertidos por extenso: 3 -> três');
+  assert(resAtestadoComCid.textoAtestado.includes('Diagnóstico / CID-10: M54.5'), 'CID-10 incluído quando solicitado');
+  assert(resAtestadoComCid.textoAtestado.includes('Resoluções CFM nº 1.658/2002 e nº 1.851/2008'), 'Conformidade legal CFM explícita');
+
+  // 9.4 Atestado CFM - sem inclusão de CID (sigilo médico preservado)
+  const resAtestadoSemCid = fnAtestadoOffline({
+    pacienteNome: 'Ana Paula',
+    pacienteDoc: '98.765.432-1',
+    dias: 5,
+    cid: 'G44.2 - Cefaleia',
+    incluirCid: false
+  });
+  assert(resAtestadoSemCid.textoAtestado.includes('5 (cinco) dia(s)'), 'Dias convertidos por extenso: 5 -> cinco');
+  assert(resAtestadoSemCid.textoAtestado.includes('Diagnóstico omitido nos termos do sigilo médico'), 'Sigilo médico preservado conforme Art. 5º');
+  assert(!resAtestadoSemCid.textoAtestado.includes('Diagnóstico / CID-10: G44.2'), 'CID não vazou quando desmarcado');
+
+  console.log('  ✓ Motor offline de SOAP Ambulatorial e Atestado Médico CFM validado com 100% de sucesso.');
 
   console.log('\n🚀 TODOS OS TESTES DE CACHE CRIPTOGRAFADO, INDEXEDDB E TELEMETRIA PASSARAM COM SUCESSO!\n');
 })().catch(err => {

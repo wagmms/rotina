@@ -1858,6 +1858,14 @@
         <div>
           <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Queixa Principal & HDA Rápida</label>
           <textarea id="amb-input-queixa" rows="2" placeholder="Ex: Paciente hipertenso há 5 anos para renovação de receita e ajuste pressórico. Assintomático..." class="w-full rounded-lg bg-slate-950 border border-slate-800 p-2 text-slate-100 text-xs focus:border-teal-500 focus:outline-none"></textarea>
+          <div class="flex items-center gap-1 mt-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+            <span class="text-[9px] text-slate-500 font-bold uppercase shrink-0">Atalhos Rápidos:</span>
+            <button type="button" onclick="setSoapQueixaRapida('has')" class="whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700/60">HAS Rotina</button>
+            <button type="button" onclick="setSoapQueixaRapida('dm')" class="whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700/60">DM2 Rotina</button>
+            <button type="button" onclick="setSoapQueixaRapida('ivas')" class="whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700/60">Tosse / Gripe</button>
+            <button type="button" onclick="setSoapQueixaRapida('lombalgia')" class="whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700/60">Lombalgia</button>
+            <button type="button" onclick="setSoapQueixaRapida('dispepsia')" class="whitespace-nowrap px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700/60">Dispepsia / DRGE</button>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1963,10 +1971,28 @@
               <option value="15">15 (quinze) dias</option>
               <option value="30">30 (trinta) dias</option>
             </select>
+            <div class="flex items-center gap-1 mt-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+              <span class="text-[9px] text-slate-500 font-bold uppercase shrink-0">Dias:</span>
+              <button type="button" onclick="setAtestadoDias(1)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700/60">1d</button>
+              <button type="button" onclick="setAtestadoDias(2)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700/60">2d</button>
+              <button type="button" onclick="setAtestadoDias(3)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700/60">3d</button>
+              <button type="button" onclick="setAtestadoDias(5)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700/60">5d</button>
+              <button type="button" onclick="setAtestadoDias(7)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700/60">7d</button>
+              <button type="button" onclick="setAtestadoDias(14)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700/60">14d</button>
+            </div>
           </div>
           <div>
             <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Diagnóstico / CID-10</label>
             <input id="atestado-input-motivo" type="text" placeholder="Ex: M54.5 Lombalgia / J00 Resfriado..." class="w-full rounded-lg bg-slate-950 border border-slate-800 px-2.5 py-1.5 text-slate-100 text-xs focus:border-amber-500 focus:outline-none" />
+            <div class="flex items-center gap-1 mt-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+              <span class="text-[9px] text-slate-500 font-bold uppercase shrink-0">CIDs:</span>
+              <button type="button" onclick="setAtestadoCid('J06.9 - Infecção de Vias Aéreas Superiores')" class="whitespace-nowrap px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9.5px] border border-slate-700/60">IVAS</button>
+              <button type="button" onclick="setAtestadoCid('A09 - Gastroenterite Aguda')" class="whitespace-nowrap px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9.5px] border border-slate-700/60">GECA</button>
+              <button type="button" onclick="setAtestadoCid('M54.5 - Lombalgia Aguda')" class="whitespace-nowrap px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9.5px] border border-slate-700/60">Lombalgia</button>
+              <button type="button" onclick="setAtestadoCid('A90 - Dengue sem Sinais de Alarme')" class="whitespace-nowrap px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9.5px] border border-slate-700/60">Dengue</button>
+              <button type="button" onclick="setAtestadoCid('G44.2 - Cefaleia Tensional')" class="whitespace-nowrap px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9.5px] border border-slate-700/60">Cefaleia</button>
+              <button type="button" onclick="setAtestadoCid('B34.2 - Síndrome Gripal')" class="whitespace-nowrap px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[9.5px] border border-slate-700/60">Gripe</button>
+            </div>
           </div>
         </div>
 
@@ -4750,6 +4776,10 @@
       document.querySelectorAll('.subcalc-pane').forEach(el => el.classList.add('hidden'));
       document.getElementById(paneId)?.classList.remove('hidden');
 
+      if (!botao && paneId) {
+        botao = document.querySelector(`.subcalc-btn[onclick*="'${paneId}'"]`);
+      }
+
       document.querySelectorAll('.subcalc-btn').forEach(b => {
         if (b.dataset.btnType === 'usprp') {
           b.className = "subcalc-btn w-full py-2 px-2.5 rounded-lg bg-slate-800 text-rose-300 border border-slate-700 text-[11px] font-bold flex items-center justify-between transition active:scale-[0.99]";
@@ -6247,10 +6277,308 @@
     }
 
     // =========================================================================
-    // MÓDULO SOAP AMBULATORIAL ÁGIL & ATESTADOS CFM (FRONTEND)
+    // MÓDULO SOAP AMBULATORIAL ÁGIL & ATESTADOS CFM (FRONTEND & OFFLINE DETERMINÍSTICO)
     // =========================================================================
     let cacheSoapAmbulatorialGerado = '';
     let cacheAtestadoCfmGerado = '';
+
+    function setAtestadoDias(dias) {
+      hapticFeedback('light');
+      const sel = document.getElementById('atestado-select-dias');
+      if (sel) {
+        sel.value = String(dias);
+        copiarToast(`${dias} dia(s) selecionado(s)`);
+      }
+    }
+
+    function setAtestadoCid(cidTexto) {
+      hapticFeedback('light');
+      const inp = document.getElementById('atestado-input-motivo');
+      const chk = document.getElementById('atestado-check-cid');
+      if (inp) inp.value = cidTexto;
+      if (chk) chk.checked = true;
+      copiarToast(`CID selecionado: ${cidTexto}`);
+    }
+
+    function setSoapQueixaRapida(tipo) {
+      hapticFeedback('light');
+      const qInput = document.getElementById('amb-input-queixa');
+      const efSelect = document.getElementById('amb-select-modelo-ef');
+      const paInput = document.getElementById('amb-sv-pa');
+      const glicInput = document.getElementById('amb-sv-glicemia');
+      const fcInput = document.getElementById('amb-sv-fc');
+
+      if (tipo === 'has') {
+        if (qInput) qInput.value = 'Paciente hipertenso em acompanhamento ambulatorial para controle pressórico e renovação de receita médica. Nega dor torácica, dispneia ou cefaleia.';
+        if (efSelect) efSelect.value = 'has_rotina';
+        if (paInput && !paInput.value) paInput.value = '130/84';
+        if (fcInput && !fcInput.value) fcInput.value = '72';
+      } else if (tipo === 'dm') {
+        if (qInput) qInput.value = 'Paciente diabético tipo 2 em acompanhamento regular para controle glicêmico e rastreio de complicações crônicas. Nega sintomas poliúricos, polidípsicos ou lesões nos pés.';
+        if (efSelect) efSelect.value = 'dm_rotina';
+        if (paInput && !paInput.value) paInput.value = '124/80';
+        if (glicInput && !glicInput.value) glicInput.value = '118';
+        if (fcInput && !fcInput.value) fcInput.value = '74';
+      } else if (tipo === 'ivas') {
+        if (qInput) qInput.value = 'Paciente com tosse seca, coriza hialina e odinofagia leve há 3 dias. Afebril ao toque, nega dispneia ou dor torácica.';
+        if (efSelect) efSelect.value = 'respiratorio_ivas';
+        if (paInput && !paInput.value) paInput.value = '120/80';
+        if (fcInput && !fcInput.value) fcInput.value = '76';
+      } else if (tipo === 'lombalgia') {
+        if (qInput) qInput.value = 'Paciente com dor em região lombar baixa de caráter mecânico há 5 dias após esforço físico. Nega irradiação para membros inferiores, parestesias ou sintomas esfincterianos.';
+        if (efSelect) efSelect.value = 'lombalgia_postural';
+        if (paInput && !paInput.value) paInput.value = '120/80';
+        if (fcInput && !fcInput.value) fcInput.value = '70';
+      } else if (tipo === 'dispepsia') {
+        if (qInput) qInput.value = 'Paciente com queixa de queimação epigástrica e pirose pós-prandial há 2 semanas. Nega perda ponderal, disfagia, vômitos ou melena.';
+        if (efSelect) efSelect.value = 'dispepsia_gastro';
+        if (paInput && !paInput.value) paInput.value = '120/80';
+        if (fcInput && !fcInput.value) fcInput.value = '72';
+      }
+      copiarToast('Atalho rápido aplicado ao formulário!');
+    }
+
+    function converterNumeroPorExtensoOffline(num) {
+      const n = parseInt(num, 10);
+      const mapa = {
+        1: 'um', 2: 'dois', 3: 'três', 4: 'quatro', 5: 'cinco',
+        6: 'seis', 7: 'sete', 8: 'oito', 9: 'nove', 10: 'dez',
+        11: 'onze', 12: 'doze', 13: 'treze', 14: 'quatorze', 15: 'quinze',
+        16: 'dezesseis', 17: 'dezessete', 18: 'dezoito', 19: 'dezenove', 20: 'vinte',
+        21: 'vinte e um', 22: 'vinte e dois', 23: 'vinte e três', 24: 'vinte e quatro',
+        25: 'vinte e cinco', 26: 'vinte e seis', 27: 'vinte e sete', 28: 'vinte e oito',
+        29: 'vinte e nove', 30: 'trinta', 45: 'quarenta e cinco', 60: 'sessenta', 90: 'noventa'
+      };
+      return mapa[n] || String(n);
+    }
+
+    function gerarAtestadoOfflineLocal(dados) {
+      dados = dados || {};
+      const paciente = dados.pacienteNome || dados.paciente || 'Ao Portador';
+      const doc = dados.pacienteDoc || dados.doc || '[Documento de Identidade/CPF]';
+      const dias = parseInt(dados.dias || 1, 10);
+      const diasExtenso = converterNumeroPorExtensoOffline(dias);
+      const dataStr = dados.data || new Date().toLocaleDateString('pt-BR');
+      const cidade = dados.cidade || 'Ribeirão Preto - SP';
+      const medico = dados.medicoNome || 'Dr. Wagner Moraes';
+      const crm = dados.medicoCrm || 'CRM/SP';
+
+      const linhas = [
+        '======================================================================',
+        '                           ATESTADO MÉDICO                            ',
+        '======================================================================',
+        '',
+        'Atesto para os devidos fins de comprovação que o(a) paciente:',
+        'Nome: ' + paciente,
+        'Documento: ' + doc,
+        '',
+        'Foi atendido(a) sob meus cuidados profissionais nesta data e necessita de',
+        dias + ' (' + diasExtenso + ') dia(s) de repouso e recuperação clínica, necessitando de afastamento de suas atividades laborais e escolares,',
+        'a contar a partir de ' + dataStr + '.',
+        ''
+      ];
+
+      if (dados.incluirCid && dados.cid) {
+        linhas.push('Diagnóstico / CID-10: ' + dados.cid);
+        linhas.push('(Código de diagnóstico incluído a pedido e com autorização expressa do paciente, em conformidade com as Resoluções CFM nº 1.658/2002 e nº 1.851/2008).');
+        linhas.push('');
+      } else {
+        linhas.push('(Diagnóstico omitido nos termos do sigilo médico e do art. 5º da Resolução CFM nº 1.658/2002).');
+        linhas.push('');
+      }
+
+      linhas.push('Local e Data: ' + cidade + ', ' + dataStr + '.');
+      linhas.push('');
+      linhas.push('__________________________________________________________');
+      linhas.push(medico + ' · ' + crm);
+      linhas.push('======================================================================');
+
+      return {
+        sucesso: true,
+        offline: true,
+        textoAtestado: linhas.join('\n')
+      };
+    }
+
+    function gerarSOAPAmbulatorialOfflineLocal(dados) {
+      dados = dados || {};
+      const paciente = dados.pacienteNome || 'Ao Portador';
+      const qp = dados.queixaPrincipal || 'Consulta de rotina / acompanhamento ambulatorial';
+      const dataStr = dados.data || new Date().toLocaleDateString('pt-BR');
+      const sv = dados.sinaisVitais || {};
+      const modeloEf = dados.modeloExameFisico || 'checkup_geral';
+
+      // Bloco S
+      const blocoS = [
+        '• Queixa Principal (QP): ' + qp,
+        '• História da Doença Atual (HDA): Paciente comparece para avaliação clínica ambulatorial em UBS/APS, relatando ' + qp + '.',
+        '• Medicações de Uso Contínuo: Conforme prontuário prévio ou nega uso contínuo.',
+        '• Alergias: Nega alergias medicamentosas conhecidas.',
+        '• Antecedentes Pessoais / Hábitos: Nega tabagismo ativo; sem outras comorbidades relatadas.'
+      ].join('\n');
+
+      // Bloco O
+      const linhasSv = [];
+      if (sv.pa) linhasSv.push('PA: ' + sv.pa + ' mmHg');
+      if (sv.fc) linhasSv.push('FC: ' + sv.fc + ' bpm');
+      if (sv.glicemia) linhasSv.push('Glicemia: ' + sv.glicemia + ' mg/dL');
+      if (sv.peso) linhasSv.push('Peso: ' + sv.peso + ' kg');
+      const textoSv = linhasSv.length ? linhasSv.join(' | ') : 'Sinais vitais normais aferidos na triagem.';
+
+      const modelosTexto = {
+        checkup_geral: 'Ectoscopia: BEG, LOTE, corado, hidratado, anictérico, acianótico, afebril.\nACV: RCR 2T BNF sem sopros.\nAR: MVUA sem ruídos adventícios.\nAbdome: Plano, flácido, indolor, RHA normoativos, sem visceromegalias.\nExtremidades: Sem edema de MMII, pulsos pediosos e tibiais cheios e simétricos.',
+        has_rotina: 'Ectoscopia: BEG, LOTE, corado, hidratado, acianótico, sem desconforto.\nACV: RCR 2T BNF sem sopros em focos cardíacos, B2 normofonética. Ausculta de carótidas limpa bilateralmente.\nAR: MV presente bilateralmente sem estertores crepitantes em bases.\nAbdome: Flácido, indolor, sem sopros abdominais.\nExtremidades: Sem edema de MMII (cacifo negativo), pulsos periféricos amplos e simétricos.',
+        dm_rotina: 'Ectoscopia: BEG, LOTE, corado, hidratado, sem hálito cetônico.\nACV: RCR 2T BNF sem sopros. AR: MV presente sem ruídos adventícios.\nExame dos Pés: Pele hidratada sem fissuras ou calosidades hiperqueratóticas. Sensibilidade tátil protetora com monofilamento 10g preservada em 4 pontos plantares bilaterais. Diapasão 128Hz presente em hálux bilateral. Pulsos pediosos e tibiais posteriores cheios e simétricos.',
+        respiratorio_ivas: 'Ectoscopia: BEG, LOTE, corado, hidratado, eupneico em ar ambiente.\nOroscopia: Mucosa jugal hidratada, úvula centrada, sem placas ou exsudatos amigdalianos.\nOtoscopia: Condutos pérvios, membranas timpânicas íntegras e translúcidas bilateralmente.\nAR: MVUA bilateralmente sem sibilos, roncos ou estertores crepitantes.',
+        dispepsia_gastro: 'Ectoscopia: BEG, LOTE, corado, hidratado, anictérico.\nAbdome: Plano/globoso, flácido, depressível, leve desconforto epigástrico à palpação profunda, sem massas.\nSinais Específicos: Blumberg ausente, Murphy negativo, Giordano negativo bilateralmente.\nVisceromegalias: Fígado e baço impalpáveis. RHA presentes e normoativos.',
+        lombalgia_postural: 'Ectoscopia: Marcha autônoma sem claudicação, ponta dos pés e calcanhares preservados.\nColuna Lombar: Alinhamento preservado. Leve contratura paravertebral lombar bilateral sem dor óssea à palpação.\nManobras: Teste de Lasègue NEGATIVO bilateralmente (elevação da perna estendida até 70° sem dor radicular).\nNeurológico: Força motora grau 5/5 em MMII, reflexos patelares presentes e simétricos.',
+        cefaleia_neuro: 'Ectoscopia: BEG, Glasgow 15, fala fluente.\nPares Cranianos: Pupilas isocóricas e fotorreagentes, motricidade ocular normal, mímica facial simétrica.\nMotor/Reflexos: Força grau 5/5 simétrica nos 4 membros, reflexos vivos 2+/4+, Babinski ausente.\nSinais Meníngeos: Rigidez de nuca ausente, Kernig e Brudzinski negativos.',
+        saude_mental: 'Aparência: Asseado, postura colaborativa. Lúcido e plenamente orientado autopsiquicamente e alopsiquicamente.\nHumor/Afeto: Humor eutímico ou reativo à queixa, afeto modulado, sem embotamento.\nPensamento: Lógico, coerente, sem ideação delirante ou risco de autoextermínio. Sensopercepção íntegra.'
+      };
+
+      const textoEf = modelosTexto[modeloEf] || modelosTexto.checkup_geral;
+      const blocoO = '• Sinais Vitais: ' + textoSv + '\n' + textoEf;
+
+      // Análise de PA (SBC 2024)
+      let analisePa = '';
+      if (sv.pa && String(sv.pa).includes('/')) {
+        const partes = String(sv.pa).split('/');
+        const pas = parseFloat(partes[0]);
+        const pad = parseFloat(partes[1]);
+        if (!isNaN(pas) && !isNaN(pad)) {
+          if (pas >= 180 || pad >= 120) {
+            analisePa = '⚠️ Crise Hipertensiva (PA >= 180x120 mmHg) - Rastrear Lesão Aguda de Órgão-Alvo / Emergência';
+          } else if (pas >= 180 || pad >= 110) {
+            analisePa = 'Hipertensão Estágio 3 (PAS >= 180 ou PAD >= 110 mmHg)';
+          } else if (pas >= 160 || pad >= 100) {
+            analisePa = 'Hipertensão Estágio 2 (PAS 160-179 ou PAD 100-109 mmHg)';
+          } else if (pas >= 140 || pad >= 90) {
+            analisePa = 'Hipertensão Estágio 1 (PAS 140-159 ou PAD 90-99 mmHg)';
+          } else if (pas >= 130 || pad >= 85) {
+            analisePa = 'Pré-Hipertensão (PAS 130-139 ou PAD 85-89 mmHg)';
+          } else if (pas >= 120 || pad >= 80) {
+            analisePa = 'PA Normal (PAS 120-129 ou PAD 80-84 mmHg)';
+          } else {
+            analisePa = 'PA Ótima (< 120/80 mmHg)';
+          }
+        }
+      }
+
+      // Análise de Glicemia (SBD 2024-2025)
+      let analiseGlic = '';
+      if (sv.glicemia) {
+        const g = parseFloat(String(sv.glicemia).replace(',', '.'));
+        if (!isNaN(g) && g > 0) {
+          if (g >= 200) {
+            analiseGlic = '⚠️ Hiperglicemia Acentuada (>= 200 mg/dL) - Avaliar sintomas clássicos e compensação';
+          } else if (g >= 126) {
+            analiseGlic = 'Glicemia de Jejum Elevada (>= 126 mg/dL) - Critério de rastreio para DM';
+          } else if (g >= 100) {
+            analiseGlic = 'Glicemia de Jejum Alterada (100-125 mg/dL) - Pré-Diabetes';
+          } else {
+            analiseGlic = 'Glicemia Normal (< 100 mg/dL)';
+          }
+        }
+      }
+
+      // Bloco A
+      const diagMap = {
+        has_rotina: '1. Hipertensão Arterial Sistêmica Primária (CID-10: I10 / CIAP-2: K86)',
+        dm_rotina: '1. Diabetes Mellitus Tipo 2 sem complicações agudas (CID-10: E11.9 / CIAP-2: T90)',
+        respiratorio_ivas: '1. Infecção Aguda das Vias Aéreas Superiores / IVAS (CID-10: J06.9 / CIAP-2: R74)',
+        dispepsia_gastro: '1. Dispepsia Funcional / Doença do Refluxo Gastroesofágico (CID-10: K30 / CIAP-2: D87)',
+        lombalgia_postural: '1. Dor Lombar Baixa / Lombalgia Aguda Mecânica (CID-10: M54.5 / CIAP-2: L03)',
+        cefaleia_neuro: '1. Cefaleia Tensional / Cefaleia Primária a Esclarecer (CID-10: G44.2 / CIAP-2: N95)',
+        saude_mental: '1. Episódio Depressivo Leve a Moderado / Ansiedade Generalizada (CID-10: F41.1 / CIAP-2: P74)',
+        checkup_geral: '1. Acompanhamento e Avaliação Clínica de Rotina (CID-10: Z00.0 / CIAP-2: A98)'
+      };
+      let blocoA = diagMap[modeloEf] || diagMap.checkup_geral;
+      if (analisePa) blocoA += '\n• Classificação Pressórica (SBC): ' + analisePa;
+      if (analiseGlic) blocoA += '\n• Avaliação Glicêmica (SBD): ' + analiseGlic;
+
+      // Bloco P
+      const planoMap = {
+        has_rotina: [
+          '💊 Prescrição Farmacológica (REMUME):',
+          '  1) Losartana Potássica 50 mg --- 1 comp VO 1x/dia pela manhã.',
+          '  2) Hidroclorotiazida 25 mg --- 1 comp VO 1x/dia pela manhã (se necessário associação).',
+          '\n🥗 MEV: Dieta DASH com restrição de sódio (< 2g/dia), atividade física aeróbica 150 min/semana.',
+          '🔬 Exames: Creatinina, Potássio, Glicemia, Perfil Lipídico, EAS, ECG.',
+          '🚨 Sinais de Alarme: Procurar PS se cefaleia em trovoada, dor torácica, turvação visual ou déficit motor.',
+          '📅 Retorno: Reavaliação clínica e controle em 30 a 60 dias.'
+        ],
+        dm_rotina: [
+          '💊 Prescrição Farmacológica (REMUME):',
+          '  1) Metformina 850 mg --- 1 comp VO após o almoço e jantar (início gradual).',
+          '\n🥗 MEV: Redução de carboidratos simples, cessação de ultraprocessados, cuidados diários com os pés (hidratação, calçado fechado e macio).',
+          '🔬 Exames: Hemoglobina Glicada (HbA1c - meta < 7%), Creatinina, Razão Albuminúria/Creatinúria, Perfil Lipídico.',
+          '🚨 Sinais de Alarme: Procurar PS se glicemia > 300 com náuseas/vômitos ou lesão nova em extremidades.',
+          '📅 Retorno: Retorno em 60 a 90 dias com checagem de HbA1c.'
+        ],
+        respiratorio_ivas: [
+          '💊 Prescrição Sintomática (REMUME):',
+          '  1) Dipirona 500 mg --- 1 a 2 comp VO até de 6/6h se dor ou febre.',
+          '  2) Soro Fisiológico 0.9% --- Lavagem nasal abundante de 4 a 6x ao dia.',
+          '\n🥗 Cuidados: Hidratação oral vigorosa (água, chás), repouso relativo, ambiente ventilado.',
+          '🚨 Sinais de Alarme: Retornar imediatamente se falta de ar, estridor, dor torácica ventilatório-dependente ou febre > 72h.',
+          '📅 Retorno: Retorno em 5 a 7 dias se ausência de melhora clínica.'
+        ],
+        lombalgia_postural: [
+          '💊 Prescrição Sintomática (REMUME):',
+          '  1) Dipirona 500 mg --- 1 comp VO de 6/6h se dor.',
+          '  2) Ciclobenzaprina 5 mg --- 1 comp VO à noite por 3 a 5 dias.',
+          '\n🥗 Orientações: Evitar repouso absoluto no leito, manter movimentação leve, compressas mornas locais por 20 min.',
+          '🚨 Sinais de Alarme: Red flags de síndrome da cauda equina (anestesia em sela, retenção urinária súbita, perda de força rápida em MMII).',
+          '📅 Retorno: Reavaliação em 7 a 14 dias se persistência.'
+        ],
+        dispepsia_gastro: [
+          '💊 Prescrição Farmacológica (REMUME):',
+          '  1) Omeprazol 20 mg --- 1 cápsula VO em jejum 30 minutos antes do café por 4 semanas.',
+          '\n🥗 MEV: Fracionar refeições, evitar deitar até 2h após comer, elevar cabeceira da cama, reduzir café, álcool e frituras.',
+          '🚨 Sinais de Alarme: Sinais de alarme para EDA precoce (disfagia, perda ponderal inexplicada, vômitos persistentes, anemia ou idade > 55 anos).',
+          '📅 Retorno: Retorno em 30 dias para avaliar resposta terapêutica.'
+        ],
+        checkup_geral: [
+          '💊 Conduta Geral / Promoção de Saúde:',
+          '  1) Orientações preventivas e atualização do calendário vacinal do adulto/idoso.',
+          '\n🥗 MEV: Alimentação balanceada, hidratação de 2L/dia, atividade física regular 150 min/sem.',
+          '🔬 Exames de Rastreamento (se elegível por idade/sexo): Perfil lipídico, glicemia de jejum, mamografia / citopatológico.',
+          '📅 Retorno: Reavaliação anual de rotina ou conforme necessidade clínica.'
+        ]
+      };
+
+      const planoLinhas = planoMap[modeloEf] || planoMap.checkup_geral;
+      const blocoP = planoLinhas.join('\n');
+
+      const textoProntuario = [
+        '======================================================================',
+        '                  PRONTUÁRIO CLÍNICO AMBULATORIAL (SOAP)              ',
+        '======================================================================',
+        'Data: ' + dataStr,
+        'Paciente: ' + paciente,
+        '',
+        '[S - SUBJETIVO]',
+        blocoS,
+        '',
+        '[O - OBJETIVO]',
+        blocoO,
+        '',
+        '[A - AVALIAÇÃO]',
+        blocoA,
+        '',
+        '[P - PLANO]',
+        blocoP,
+        '======================================================================'
+      ].join('\n');
+
+      return {
+        sucesso: true,
+        offline: true,
+        soap: {
+          textoProntuario: textoProntuario
+        }
+      };
+    }
 
     function abrirModalAmbulatorioSOAP() {
       hapticFeedback('medium');
@@ -6280,24 +6608,27 @@
       if (preResultado) preResultado.textContent = 'Processando diretrizes clínicas e gerando SOAP estruturado...';
       if (boxResultado) boxResultado.classList.remove('hidden');
 
-      try {
-        const resp = await cockpitRpc('cockpitSoapAmbulatorial', [{
-          pacienteNome: paciente,
-          queixaPrincipal: queixa,
-          modeloExameFisico: modeloEf,
-          sinaisVitais: { pa, glicemia, fc, peso }
-        }]);
+      const params = {
+        pacienteNome: paciente,
+        queixaPrincipal: queixa,
+        modeloExameFisico: modeloEf,
+        sinaisVitais: { pa, glicemia, fc, peso }
+      };
 
-        if (resp && resp.soap && resp.soap.textoProntuario) {
-          cacheSoapAmbulatorialGerado = resp.soap.textoProntuario;
-          if (preResultado) preResultado.textContent = cacheSoapAmbulatorialGerado;
-          copiarToast('SOAP Ambulatorial gerado com sucesso!');
-        } else {
-          throw new Error(resp?.erro || 'Resposta inválida do servidor');
-        }
+      let resp = null;
+      try {
+        resp = await cockpitRpc('cockpitSoapAmbulatorial', [params]);
       } catch (err) {
-        if (preResultado) preResultado.textContent = 'Erro ao gerar SOAP: ' + err.message;
-        copiarToast('Falha ao conectar com o backend.');
+        resp = gerarSOAPAmbulatorialOfflineLocal(params);
+      }
+
+      if (resp && resp.soap && resp.soap.textoProntuario) {
+        cacheSoapAmbulatorialGerado = resp.soap.textoProntuario;
+        if (preResultado) preResultado.textContent = cacheSoapAmbulatorialGerado;
+        copiarToast(resp.offline ? 'SOAP gerado localmente (Offline Seguro)!' : 'SOAP Ambulatorial gerado com sucesso!');
+      } else {
+        if (preResultado) preResultado.textContent = 'Erro ao processar SOAP ambulatorial.';
+        copiarToast('Falha ao gerar SOAP.');
       }
     }
 
@@ -6335,25 +6666,28 @@
       if (preResultado) preResultado.textContent = 'Gerando atestado médico oficial...';
       if (boxResultado) boxResultado.classList.remove('hidden');
 
-      try {
-        const resp = await cockpitRpc('cockpitGerarAtestadoTexto', [{
-          pacienteNome: paciente,
-          pacienteDoc: doc,
-          dias: dias,
-          cid: motivo,
-          incluirCid: incluirCid
-        }]);
+      const params = {
+        pacienteNome: paciente,
+        pacienteDoc: doc,
+        dias: dias,
+        cid: motivo,
+        incluirCid: incluirCid
+      };
 
-        if (resp && resp.textoAtestado) {
-          cacheAtestadoCfmGerado = resp.textoAtestado;
-          if (preResultado) preResultado.textContent = cacheAtestadoCfmGerado;
-          copiarToast('Atestado CFM gerado!');
-        } else {
-          throw new Error(resp?.erro || 'Resposta inválida do servidor');
-        }
+      let resp = null;
+      try {
+        resp = await cockpitRpc('cockpitGerarAtestadoTexto', [params]);
       } catch (err) {
-        if (preResultado) preResultado.textContent = 'Erro ao gerar atestado: ' + err.message;
-        copiarToast('Falha ao conectar com o backend.');
+        resp = gerarAtestadoOfflineLocal(params);
+      }
+
+      if (resp && resp.textoAtestado) {
+        cacheAtestadoCfmGerado = resp.textoAtestado;
+        if (preResultado) preResultado.textContent = cacheAtestadoCfmGerado;
+        copiarToast(resp.offline ? 'Atestado gerado localmente (Offline Seguro)!' : 'Atestado CFM gerado!');
+      } else {
+        if (preResultado) preResultado.textContent = 'Erro ao processar atestado médico.';
+        copiarToast('Falha ao gerar atestado.');
       }
     }
 
