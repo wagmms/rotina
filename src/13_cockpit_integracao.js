@@ -219,6 +219,25 @@ function cockpitCalcular(initData, tipo, entrada) {
       return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino);
     case 'gaso':
       return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3);
+    case 'ajuste_atb':
+    case 'atb':
+      var drogaAtb = entrada.droga || entrada.farmaco || entrada.antimicrobiano || 'meropenem';
+      var clcrAtb = entrada.clcr !== undefined ? entrada.clcr : entrada.crcl;
+      var hdAtb = Boolean(entrada.hemodialise || entrada.hd);
+      if (typeof CalculadorasClinicas !== 'undefined' && typeof CalculadorasClinicas.ajusteRenalAntimicrobiano === 'function') {
+        var resAtb = CalculadorasClinicas.ajusteRenalAntimicrobiano(drogaAtb, clcrAtb, hdAtb);
+        if (resAtb && resAtb.dados) {
+          var txtAtb = "💉 AJUSTE RENAL DE ANTIMICROBIANOS (IDSA / GUIA HSL)\n\n" +
+            "🔴 DOSE AJUSTADA:\n• " + resAtb.dados.nomeExibicao + ": " + resAtb.dados.doseAjustada + "\n\n" +
+            "🟡 DOSE PADRÃO (FUNÇÃO RENAL NORMAL):\n• " + resAtb.dados.dosePadrao + "\n\n" +
+            "⚠️ ORIENTAÇÕES E CUIDADOS:\n• " + resAtb.dados.cuidados + "\n\n" +
+            "ℹ️ MONITORIZAÇÃO:\n• " + resAtb.dados.monitorizacao;
+          resAtb.texto = txtAtb;
+          resAtb.textoFormatado = txtAtb;
+        }
+        return resAtb;
+      }
+      throw new Error('Calculadora de Ajuste Renal de Antimicrobianos indisponível.');
     case 'pediatria':
     case 'pals':
     case 'holliday':

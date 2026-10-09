@@ -547,6 +547,15 @@
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Integração UI/UX de Antimicrobianos, Ajuste Renal por ClCr e Cross-Check Farmacológico Offline no Cockpit PWA**:
+   - Adicionado painel dedicado `calc-atb` ("Ajuste Renal de Antimicrobianos") na aba de calculadoras (`tab-calculadoras`) com seletores rápidos de fármacos de alta relevância hospitalar: Meropenem, Vancomicina, Piperacilina + Tazobactam, Cefepime, Ceftriaxona, Ciprofloxacino, Polimixina B e Fluconazol.
+   - Adicionados chips de atalhos rápidos de função renal (ClCr > 50, ClCr 30-50, ClCr 15-29, ClCr < 15 e Hemodiálise), além de botão inteligente "Usar ClCr calculado" que migra instantaneamente o valor de Cockcroft-Gault para o ajuste antimicrobiano.
+   - Adicionados kits de prescrição empírica em 1 toque por foco clínico do Generalista no card de Prescrição Rápida / REMUME (`tab-remume`): PAC (Amoxicilina + Clavulanato), ITU Baixa (Fosfomicina), Pielonefrite (Ceftriaxona / Ciprofloxacino), Pele / Celulite (Cefalexina / Oxacilina) e Faringoamigdalite (Penicilina G Benzatina).
+   - Implementado motor determinístico de contingência offline (`calcularOfflineLocal` para `ajuste_atb`) com execução imediata (0ms) mesmo sem sinal hospitalar, cobrindo regras clínicas de neurotoxicidade por Cefepime, dose por vale de Vancomicina e manutenção sem necessidade de redução em Ceftriaxona.
+   - Implementado motor offline local `executarCrossCheckOfflineLocal` e integrado como fallback automático no `executarCrossCheckCockpit`, garantindo detecção imediata de interações letais (Amiodarona + Fluconazol QTc, Clopidogrel + Omeprazol CYP2C19, IECA + Espironolactona K+, Ceftriaxona + Cálcio no Y-site) mesmo sem conexão com a nuvem, atualizando a base em RAM para 285 regras de segurança.
+   - Adicionado chip de ação rápida "Ajuste ATB" na aba SOAP (`tab-soap`) com redirecionamento em 1 toque e botão de cópia limpa com 1 clique para o PEP (`btn-copiar-atb`).
+   - Sincronização automatizada para GitHub Pages via `gh_cockpit_deploy/index.html`.
+   - Cobertura expandida em `tests/test_cockpit_offline_indexeddb.cjs` e `tests/test_server_render.cjs` com 100% de sucesso no pipeline contínuo (`npm test`).
 - [x] (2026-10-09) **Integração UI/UX de Atenção Primária & UBS no Cockpit PWA (SOAP Ambulatorial Ágil, Atestados CFM e Fallback Offline Determinístico)**:
    - Adicionados chips de atalhos de preenchimento rápido em 1 toque no modal de SOAP Ambulatorial (`modal-ambulatorio-soap`): HAS Rotina, DM2 Rotina, Tosse / Gripe (IVAS), Lombalgia Mecânica e Dispepsia / DRGE com seleção automática do modelo de exame físico dirigido e sinais vitais.
    - Adicionados chips rápidos de seleção de dias (1d, 2d, 3d, 5d, 7d, 14d) e CIDs frequentes (IVAS J06.9, GECA A09, Lombalgia M54.5, Dengue A90, Cefaleia G44.2, Gripe B34.2) no modal de Atestado CFM (`modal-atestado-cfm`).

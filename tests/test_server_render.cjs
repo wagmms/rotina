@@ -119,6 +119,23 @@ async function run() {
   assert(jsonAdrena.resultado.texto.includes('Adrenalina'));
   console.log(`✓ Cockpit Cálculo DVA Adrenalina OK`);
 
+  // 4.4 Cockpit RPC - Cálculo Ajuste Renal de Antimicrobianos (< 50ms)
+  const resAtb = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitCalcular',
+      session: token,
+      args: ['ajuste_atb', { droga: 'meropenem', clcr: 30 }]
+    }
+  });
+  assert.equal(resAtb.statusCode, 200);
+  const jsonAtb = resAtb.json();
+  assert.equal(jsonAtb.ok, true);
+  assert.equal(jsonAtb.resultado.ok, true);
+  assert(jsonAtb.resultado.dados.doseAjustada.includes('1g EV a cada 12h'));
+  console.log(`✓ Cockpit Cálculo Ajuste Renal ATB (Meropenem ClCr 30) OK`);
+
   // 5. Cockpit RPC - Consulta REMUME (< 20ms)
   const resRemume = await app.inject({
     method: 'POST',

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 15:59:46
- * Checksum SHA256: 96148809fb725bde
+ * Gerado automaticamente via build_master.py em: 2026-10-09 16:31:30
+ * Checksum SHA256: e604303e3594cceb
  * ==============================================================================
  */
 
@@ -52157,13 +52157,32 @@ function cockpitCalcular(initData, tipo, entrada) {
       if (['nora','dobuta','vaso','adrena','adrenalina','nipride','tridil'].indexOf(entrada.droga) < 0) throw new Error('Selecione uma droga válida.');
       return CalculadorasClinicas.drogasVasoativas(entrada.droga, entrada.peso, entrada.solucao || 'padrao');
     case 'sri':
-      if (['padrao','choque','asma'].indexOf(entrada.cenario) < 0) throw new Error('Selecione um cenário válido.');
+      if (['padrao','choque','asma','neuro','tce','hic'].indexOf(entrada.cenario) < 0) throw new Error('Selecione um cenário válido.');
       return CalculadorasClinicas.sequenciaRapidaIntubacao(entrada.peso, entrada.cenario);
     case 'crcl':
       var feminino = entrada.sexo === 'f' ? true : entrada.sexo === 'm' ? false : null;
       return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino);
     case 'gaso':
       return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3);
+    case 'ajuste_atb':
+    case 'atb':
+      var drogaAtb = entrada.droga || entrada.farmaco || entrada.antimicrobiano || 'meropenem';
+      var clcrAtb = entrada.clcr !== undefined ? entrada.clcr : entrada.crcl;
+      var hdAtb = Boolean(entrada.hemodialise || entrada.hd);
+      if (typeof CalculadorasClinicas !== 'undefined' && typeof CalculadorasClinicas.ajusteRenalAntimicrobiano === 'function') {
+        var resAtb = CalculadorasClinicas.ajusteRenalAntimicrobiano(drogaAtb, clcrAtb, hdAtb);
+        if (resAtb && resAtb.dados) {
+          var txtAtb = "💉 AJUSTE RENAL DE ANTIMICROBIANOS (IDSA / GUIA HSL)\n\n" +
+            "🔴 DOSE AJUSTADA:\n• " + resAtb.dados.nomeExibicao + ": " + resAtb.dados.doseAjustada + "\n\n" +
+            "🟡 DOSE PADRÃO (FUNÇÃO RENAL NORMAL):\n• " + resAtb.dados.dosePadrao + "\n\n" +
+            "⚠️ ORIENTAÇÕES E CUIDADOS:\n• " + resAtb.dados.cuidados + "\n\n" +
+            "ℹ️ MONITORIZAÇÃO:\n• " + resAtb.dados.monitorizacao;
+          resAtb.texto = txtAtb;
+          resAtb.textoFormatado = txtAtb;
+        }
+        return resAtb;
+      }
+      throw new Error('Calculadora de Ajuste Renal de Antimicrobianos indisponível.');
     case 'pediatria':
     case 'pals':
     case 'holliday':

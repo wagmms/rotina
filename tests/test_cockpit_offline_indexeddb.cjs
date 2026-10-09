@@ -38,10 +38,17 @@ assert(htmlContent.includes('id="btn-copiar-dva"'), 'Botão btn-copiar-dva prese
 assert(htmlContent.includes('id="btn-copiar-sri"'), 'Botão btn-copiar-sri presente');
 assert(htmlContent.includes('id="btn-copiar-crcl"'), 'Botão btn-copiar-crcl presente');
 assert(htmlContent.includes('id="btn-copiar-gaso"'), 'Botão btn-copiar-gaso presente');
+assert(htmlContent.includes('id="calc-atb"'), 'Painel calc-atb presente');
+assert(htmlContent.includes('id="atb-droga"'), 'Seletor atb-droga presente');
+assert(htmlContent.includes('id="atb-clcr"'), 'Input atb-clcr presente');
+assert(htmlContent.includes('id="btn-copiar-atb"'), 'Botão btn-copiar-atb presente');
+assert(htmlContent.includes('id="btn-migrar-crcl-atb"'), 'Botão de migração ClCr para ATB presente');
+assert(htmlContent.includes("adicionarKitPrescricao('atb_pac')"), 'Kit empírico PAC presente');
+assert(htmlContent.includes("adicionarKitPrescricao('atb_itu')"), 'Kit empírico ITU presente');
 assert(htmlContent.includes("onclick=\"setSoapQueixaRapida('has')\""), 'Atalho de queixa rápida HAS presente no modal de SOAP');
 assert(htmlContent.includes("onclick=\"setAtestadoDias(3)\""), 'Atalho de dias de atestado presente');
 assert(htmlContent.includes("onclick=\"setAtestadoCid("), 'Atalhos de CIDs presentes');
-console.log('  ✓ Elementos de telemetria, UI, Sorologias, Pediatria, SOAP e Atestado CFM validados com sucesso no DOM.');
+console.log('  ✓ Elementos de telemetria, UI, Sorologias, Pediatria, Ajuste ATB, SOAP e Atestado CFM validados com sucesso no DOM.');
 
 // 2. Extrai o bloco de script principal (maior bloco de script inline)
 const scripts = Array.from(htmlContent.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi));
@@ -420,6 +427,49 @@ function criarAmbienteSimulacao() {
   assert(!resAtestadoSemCid.textoAtestado.includes('Diagnóstico / CID-10: G44.2'), 'CID não vazou quando desmarcado');
 
   console.log('  ✓ Motor offline de SOAP Ambulatorial e Atestado Médico CFM validado com 100% de sucesso.');
+
+  console.log('\n[10] Testando motor offline determinístico de Ajuste Renal de Antimicrobianos e Cross-Check Local...');
+  // 10.1 Meropenem ClCr 30
+  const resMero30 = fnCalcOffline('ajuste_atb', { droga: 'meropenem', clcr: 30 });
+  assert(resMero30.includes('Meropenem'), 'Meropenem presente');
+  assert(resMero30.includes('1g EV a cada 12h'), 'Dose de Meropenem para ClCr 30 mL/min (1g 12/12h)');
+
+  // 10.2 Vancomicina em Hemodiálise
+  const resVancoHd = fnCalcOffline('ajuste_atb', { droga: 'vancomicina', hemodialise: true });
+  assert(resVancoHd.includes('Vancomicina'), 'Vancomicina presente');
+  assert(resVancoHd.includes('pós-hemodiálise'), 'Orientação de dose pós-HD presente');
+  assert(resVancoHd.includes('homem vermelho'), 'Alerta de infusão lenta presente');
+
+  // 10.3 Cefepime com Alerta de Neurotoxicidade
+  const resCefepime = fnCalcOffline('ajuste_atb', { droga: 'cefepime', clcr: 20 });
+  assert(resCefepime.includes('Cefepime'), 'Cefepime presente');
+  assert(resCefepime.includes('ENCEFALOPATIA POR CEFEPIME'), 'Alerta crítico de neurotoxicidade/encefalopatia presente');
+
+  // 10.4 Ceftriaxona sem necessidade de redução
+  const resCeftriax = fnCalcOffline('ajuste_atb', { droga: 'ceftriaxona', clcr: 10 });
+  assert(resCeftriax.includes('NÃO REQUER AJUSTE RENAL'), 'Ceftriaxona sem necessidade de ajuste');
+  assert(resCeftriax.includes('Ringer Lactato'), 'Alerta de incompatibilidade com cálcio presente');
+
+  // 10.5 Cross-Check Farmacológico de Contingência Offline
+  const fnCrossCheckOffline = sandbox.executarCrossCheckOfflineLocal || w.executarCrossCheckOfflineLocal;
+  assert(typeof fnCrossCheckOffline === 'function', 'executarCrossCheckOfflineLocal disponível');
+
+  // Teste Amiodarona + Fluconazol (QTc crítico)
+  const ccQtc = fnCrossCheckOffline('amiodarona 200mg e fluconazol 150mg');
+  assert(ccQtc.temAlertasCriticos, 'Detecção de alerta crítico em Amiodarona + Fluconazol');
+  assert(ccQtc.textoFormatado.includes('Torsades de Pointes'), 'Alerta específico de Torsades emitido');
+
+  // Teste Clopidogrel + Omeprazol (CYP2C19)
+  const ccClopi = fnCrossCheckOffline('clopidogrel 75mg e omeprazol 20mg');
+  assert(ccClopi.interacoes.length > 0, 'Detecção de interação moderada/grave Clopidogrel + Omeprazol');
+  assert(ccClopi.textoFormatado.includes('Pantoprazol'), 'Recomendação de Pantoprazol presente');
+
+  // Teste Ceftriaxona + Ringer Lactato (Incompatibilidade Y-Site)
+  const ccYsite = fnCrossCheckOffline('ceftriaxona 1g IV e ringer lactato');
+  assert(ccYsite.temAlertasCriticos, 'Detecção de incompatibilidade fatal Ceftriaxona + Ringer');
+  assert(ccYsite.textoFormatado.includes('INCOMPATIBILIDADE FATAL NO Y-SITE'), 'Alerta fatal de Y-site emitido');
+
+  console.log('  ✓ Motor offline de Ajuste Renal de Antimicrobianos e Cross-Check Farmacológico validado com 100% de sucesso.');
 
   console.log('\n🚀 TODOS OS TESTES DE CACHE CRIPTOGRAFADO, INDEXEDDB E TELEMETRIA PASSARAM COM SUCESSO!\n');
 })().catch(err => {
