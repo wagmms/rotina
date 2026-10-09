@@ -518,7 +518,7 @@
         * Validação estrita de itens disponíveis na REMUME e Farmácia Popular do Brasil, assegurando prescrições viáveis para a realidade do SUS.
         * Auditoria do motor de interações medicamentosas graves, verificando alertas para associações potencialmente letais (ex.: prolongamento de intervalo QT, hipercalemia grave, síndrome serotoninérgica).
 
-61. [ ] **Auditoria Médica Integral com Modelo PRO — Ginecologia, Pré-Natal de Baixo Risco e Segurança na Gestação/Lactação**:
+61. [x] **Auditoria Médica Integral com Modelo PRO — Ginecologia, Pré-Natal de Baixo Risco e Segurança na Gestação/Lactação**:
     - **Auditoria de Precisão com Modelo PRO**:
       * Auditoria detalhada dos módulos de Saúde da Mulher e Pré-Natal (`src/02_obstetricia_prenatal.js`, `src/02_ginecologia_ambulatorial.js`, `src/02_soap_ambulatorial.js`):
         * Cálculo determinístico de Idade Gestacional (IG) e DPP por DUM (Regra de Naegele) e concordância FEBRASGO com USG precoce de 1º trimestre.
