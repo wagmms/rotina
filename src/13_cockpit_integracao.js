@@ -892,5 +892,33 @@ function cockpitClimaterioThm(initData, params) {
   throw new Error('Ação inválida para Climatério e THM.');
 }
 
+function cockpitSopOvariosPolicisticos(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SopOvariosPolicisticosService === 'undefined') {
+    throw new Error('Módulo SopOvariosPolicisticosService indisponível.');
+  }
+  var acao = params.acao || 'avaliarSopCompleto';
+  if (acao === 'avaliarSopCompleto') {
+    return SopOvariosPolicisticosService.avaliarSopCompleto(params);
+  }
+  if (acao === 'avaliarCriteriosRotterda') {
+    return SopOvariosPolicisticosService.avaliarCriteriosRotterda(params);
+  }
+  if (acao === 'auditarDiagnosticosDiferenciais') {
+    return SopOvariosPolicisticosService.auditarDiagnosticosDiferenciais(params);
+  }
+  if (acao === 'estratificarRiscoMetabolico') {
+    return SopOvariosPolicisticosService.estratificarRiscoMetabolico(params);
+  }
+  if (acao === 'determinarCondutaTerapeutica') {
+    return SopOvariosPolicisticosService.determinarCondutaTerapeutica(params);
+  }
+  if (acao === 'gerarResumoSop') {
+    return SopOvariosPolicisticosService.gerarResumoSop(params);
+  }
+  throw new Error('Ação inválida para Síndrome dos Ovários Policísticos.');
+}
+
 
 

@@ -17,11 +17,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 
 
-11. [ ] **Síndrome dos Ovários Policísticos (SOP - Critérios Internacionais de Roterdã & ASRM/ESHRE)**:
-    - Diagnóstico de Alta Acurácia: Preenchimento de pelo menos 2 dos 3 critérios (Hiperandrogenismo clínico e/ou laboratorial; Oligo/Anovulação crônica com irregularidade menstrual; Morfologia policística em USG transvaginal com >= 20 folículos de 2-9mm ou volume ovariano >= 10 cm³).
-    - Fenotipagem e Exclusão Diagnóstica Mandatória: Triagem de diagnósticos diferenciais (TSH para hipotireoidismo, Prolactina para hiperprolactinemia, 17-OH-Progesterona para hiperplasia adrenal congênita não clássica e Cortisol para Síndrome de Cushing).
-    - Estratificação de Risco Metabólico e Conduta Terapêutica Dirigida: Avaliação de resistência à insulina, esteatose hepática e síndrome metabólica. Terapia farmacológica direcionada ao objetivo da paciente: desejo reprodutivo (Letrozol de 1ª linha para indução de ovulação) vs controle de sintomas (anticoncepcionais combinados com progestagênio antiandrogênico como Ciproterona ou Drospirenona, Espironolactona para hirsutismo e Metformina para resistência insulínica).
-
 12. [ ] **Doença Inflamatória Pélvica (DIP) e Abscesso Tubo-Ovariano (PCDT Ministério da Saúde / CDC)**:
     - Critérios Diagnósticos Escalonados: 3 Critérios Maiores (Dor à palpação do hipogástrio/baixo ventre, dor à palpação anexial uni ou bilateral, dor à mobilização do colo uterino) associados a pelo menos 1 Critério Menor (Febre >= 38,3°C, leucocitose, VHS/PCR elevados, corrimento endocervical anormal purulento, isolamento de *Chlamydia trachomatis* ou *Neisseria gonorrhoeae*).
     - Critérios Elaborados de Gravidade: Biópsia com endometrite, USG pélvico evidenciando espessamento tubário/abscesso tubo-ovariano ou laparoscopia com peritonite pélvica.
@@ -164,14 +159,43 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Recomendações estritas de NÃO indicação rotineira de broncodilatadores (salbutamol), corticoides sistêmicos ou antibióticos em casos típicos (evitando sobretratamento desnecessário).
     - Critérios objetivos de oxigenoterapia com cânula nasal de alto fluxo (CNAF), hidratação isotônica venosa e internação em UTI pediátrica.
 
+43. [ ] **Endocrinologia Ginecológica e Reprodução - Manejo de Hiperprolactinemia e Prolactinomas (Diretrizes Endocrine Society / FEBRASGO)**:
+    - Algoritmo escalonado de investigação etiológica (exclusão de macroprolactina, hipotireoidismo primário, drogas indutoras como antipsicóticos e metoclopramida).
+    - Diferenciação de microadenoma (< 10 mm) vs macroadenoma (>= 10 mm) e rastreio de alterações campimétricas/visuais.
+    - Terapia farmacológica com agonistas dopaminérgicos de 1ª linha (Cabergolina 0.5 mg 1 a 2x/semana com superioridade em eficácia e tolerância gastrointestinal vs Bromocriptina).
+    - Manejo de segurança na gestação e rastreio de valvulopatia cardíaca com ecocardiograma em doses cumulativas elevadas.
+
+44. [ ] **Ginecologia Endócrina e Cirúrgica - Manejo Clínico da Endometriose e Dor Pélvica Crônica (Diretrizes ESHRE / FEBRASGO 2024-2026)**:
+    - Diagnóstico clínico e mapeamento por imagem de alta resolução (USG transvaginal com preparo intestinal especializado e RM de pelve para endometriose profunda, endometriomas e acometimento intestinal/ureteral).
+    - Terapia farmacológica de 1ª linha para controle da dor e supressão estrogênica: Progestagênios contínuos (Dienogeste 2 mg/dia como padrão de eficácia e atrofia dos focos; SIU-Levonorgestrel 52 mg; Desogestrel 75 mcg) e AHC combinados em uso contínuo.
+    - Fármacos de 2ª linha: Antagonistas orais de GnRH (Relugolix ou Elagolix com terapia add-back) ou análogos de GnRH (Goserrelina / Leuprorrelina).
+    - Algoritmo de decisão cirúrgica (laparoscopia/robótica) vs reprodução assistida (FIV) em pacientes com infertilidade associada ou obstrução ureteral/intestinal.
+
+45. [ ] **Obstetrícia & Reumatologia - Síndrome do Anticorpo Antifosfolipídio (SAF) e Trombofilias na Gestação (Critérios Sydney / ACR / EULAR 2023)**:
+    - Critérios clínicos (abortamentos precoces de repetição >= 3 com < 10 semanas, perda fetal morfologicamente normal >= 10 semanas, parto prematuro < 34 semanas por pré-eclâmpsia grave ou insuficiência placentária) associados a critérios laboratoriais (Anticoagulante Lúpico, Anticardiolipina IgG/IgM e Anti-beta-2-glicoproteína I confirmados com intervalo >= 12 semanas).
+    - Protocolo antitrombótico gestacional: AAS em baixa dose (100 a 150 mg/dia) iniciado pré-concepção associado a HBPM profilática (Enoxaparina 40 mg SC/dia) desde o teste de gravidez positivo.
+    - Esquema terapêutico em SAF trombótica prévia (HBPM em dose plena/terapêutica durante toda a gestação) e manejo de segurança no periparto com janelas de suspensão para analgesia de parto.
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Síndrome dos Ovários Policísticos (SOP - Critérios Internacionais de Roterdã & ASRM/ESHRE)**
+- [ ] **Doença Inflamatória Pélvica (DIP) e Abscesso Tubo-Ovariano (PCDT Ministério da Saúde / CDC)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Síndrome dos Ovários Policísticos (SOP - Critérios Internacionais de Roterdã & ASRM/ESHRE 2023 / FEBRASGO)**:
+   - Motor determinístico de alta acurácia para avaliação diagnóstica pelos Critérios de Roterdã (mínimo 2 de 3: Hiperandrogenismo clínico/laboratorial, Disfunção Ovulatória com oligo/anovulação, e Morfologia Policística ao USG transvaginal com contagem >= 20 folículos de 2-9 mm ou volume ovariano >= 10 cm³; ou AMH em adultas).
+   - Fenotipagem completa de Roterdã: Fenótipo A (Completo: HA + DO + PCOM), Fenótipo B (Clássico não-policístico: HA + DO), Fenótipo C (Ovulatório: HA + PCOM) e Fenótipo D (Não-hiperandrogênico: DO + PCOM).
+   - Alerta específico para adolescentes (< 3 anos pós-menarca) contra uso isolado de USG e exigindo tanto hiperandrogenismo quanto anovulação persistente por imaturidade fisiológica do eixo neuroendócrino.
+   - Auditoria mandatória de exclusões e diagnósticos diferenciais: TSH para tireoidopatias, Prolactina para hiperprolactinemia, 17-OH-Progesterona matinal (< 2 ng/mL normal, 2-10 ng/mL zona cinzenta com teste de ACTH obrigatório, > 10 ng/mL confirmatória de HAC-NC), Cortisol com supressão de 1mg de dexametasona para Síndrome de Cushing, e alerta vermelho oncológico de tumor produtor de androgênios em virilização rápida / níveis extremos hormonais.
+   - Estratificação de risco cardiometabólico e endometrial: TTGO 75g de 2 horas (padrão-ouro em SOP), HOMA-IR, critérios de Síndrome Metabólica (ATP III / IDF com >= 3 critérios), rastreio de esteatose hepática (MASLD) e alerta de risco de hiperplasia/câncer de endométrio por anovulação com tempo de amenorreia >= 3-6 meses ou espessura endometrial >= 7-12 mm.
+   - Conduta terapêutica dirigida por objetivos:
+     * Com desejo reprodutivo: Letrozol oral de 1ª linha (superior ao Clomifeno), Metformina adjuvante se IMC >= 25, Ácido Fólico pré-concepcional e BLOQUEIO ABSOLUTO de antiandrogênicos teratogênicos.
+     * Sem desejo reprodutivo: Anticoncepcionais combinados antiandrogênicos (Drospirenona, Ciproterona, Dienogeste); bloqueio de estrogênios em contraindicações OMS MEC 4 (enxaqueca com aura, HAS grave, tabagismo >= 35a, TEV) com uso de Progestagênio isolado cíclico protetor (Didrogesterona) ou SIU-LNG; Espironolactona para hirsutismo com contracepção obrigatória; e Metformina para resistência insulínica e prevenção de DM2.
+   - Novo módulo `src/02_sop_ovarios_policisticos.js` (`SopOvariosPolicisticosService`) integrado à malha RPC do `server/runtime.js` e `src/13_cockpit_integracao.js` (`cockpitSopOvariosPolicisticos`).
+   - Suíte de testes determinística `tests/test_sop_ovarios_policisticos.cjs` e runner `tests/test_sop_ovarios_policisticos.py` validada com 100% de sucesso.
+
 - [x] (2026-10-09) **Climatério e Terapia Hormonal da Menopausa (THM - Consenso FEBRASGO/NAMS)**:
    - Motor determinístico de avaliação da Janela de Oportunidade (< 60 anos e < 10 anos pós-menopausa) com relação risco-benefício favorável e bloqueio do início tardio para prevenção de DAC e AVC.
    - Conduta específica mandatória para Insuficiência Ovariana Prematura (IOP / < 40 anos) com recomendação de reposição hormonal até pelo menos 50-52 anos.
