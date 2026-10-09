@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 06:57:39
- * Checksum SHA256: 4645c91ab087a48b
+ * Gerado automaticamente via build_master.py em: 2026-10-09 08:03:16
+ * Checksum SHA256: 57ac9b0673020d00
  * ==============================================================================
  */
 
@@ -6331,6 +6331,229 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_cardiologia_fa_anticoagulacao.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA - MÓDULO DE CARDIOLOGIA & EMERGÊNCIA
+ * ==============================================================================
+ * Manejo de Fibrilação Atrial Aguda e Anticoagulação
+ * Diretrizes SBC 2024, ESC 2020/2024, AHA/ACC/HRS 2023.
+ * 
+ * Escopo:
+ * - Escore determinístico CHA2DS2-VASc
+ * - Avaliação de Risco Hemorrágico com escore HAS-BLED
+ * - Fluxograma de Controle de Frequência vs Ritmo e Anticoagulação
+ * ==============================================================================
+ */
+
+var CardiologiaFaAnticoagulacaoService = (function () {
+  'use strict';
+
+  function calcularCHA2DS2VASc(dados) {
+    var pontos = 0;
+    
+    if (dados.idade >= 75) pontos += 2;
+    else if (dados.idade >= 65) pontos += 1;
+    
+    if (dados.sexo === 'F' || dados.sexo === 'feminino') pontos += 1;
+    if (dados.insuficienciaCardiaca) pontos += 1;
+    if (dados.hipertensao) pontos += 1;
+    if (dados.avcOuAitPrevio) pontos += 2;
+    if (dados.doencaVascular) pontos += 1;
+    if (dados.diabetes) pontos += 1;
+
+    var recomendacao = "";
+    if (pontos === 0 || (pontos === 1 && (dados.sexo === 'F' || dados.sexo === 'feminino'))) {
+        recomendacao = "Baixo risco. Anticoagulação oral (ACO) não é recomendada.";
+    } else if (pontos === 1 && (dados.sexo === 'M' || dados.sexo === 'masculino')) {
+        recomendacao = "Risco intermediário. Considerar ACO individualizada com base no risco/benefício (DOACs preferíveis à Varfarina).";
+    } else {
+        recomendacao = "Alto risco. Anticoagulação oral indicada e recomendada (DOACs são preferíveis à Varfarina na FA não valvar).";
+    }
+
+    return { escore: pontos, recomendacao: recomendacao };
+  }
+
+  function calcularHASBLED(dados) {
+    var pontos = 0;
+    
+    if (dados.hipertensaoNaoControlada) pontos += 1;
+    if (dados.funcaoRenalAnormal) pontos += 1;
+    if (dados.funcaoHepaticaAnormal) pontos += 1;
+    if (dados.avcPrevio) pontos += 1;
+    if (dados.sangramentoPrevioOuPredisposicao) pontos += 1;
+    if (dados.inrLabil) pontos += 1;
+    if (dados.idadeMaior65 || dados.idade > 65) pontos += 1;
+    if (dados.usoDrogas) pontos += 1;
+    if (dados.usoAlcool) pontos += 1;
+
+    var interpretacao = pontos >= 3 ? 
+        "ALTO RISCO DE SANGRAMENTO (≥ 3). NÃO contraindica a anticoagulação, mas exige correção de fatores de risco modificáveis (ex: controle rigoroso da PA, descontinuação de AINEs/álcool) e seguimento clínico mais frequente." : 
+        "RISCO BAIXO a MODERADO de sangramento. Os benefícios da anticoagulação geralmente superam os riscos.";
+
+    return { escore: pontos, interpretacao: interpretacao };
+  }
+
+  function avaliarCondutaAgudaFA(dados) {
+    var relatorio = [];
+    
+    if (dados.instabilidadeHemodinamica) {
+        relatorio.push("🚨 **PACIENTE INSTÁVEL**");
+        relatorio.push("- Critérios de instabilidade: Choque, hipotensão sustentada, isquemia miocárdica em curso, edema agudo de pulmão (EAP) ou rebaixamento do nível de consciência agudo.");
+        relatorio.push("- **CONDUTA IMEDIATA:** Cardioversão Elétrica (CVE) Sincronizada.");
+        relatorio.push("- Realizar sedação e analgesia prévia se tolerável.");
+        relatorio.push("- Iniciar anticoagulação IV/SC pleno o mais rápido possível (preferencialmente pré-choque).");
+    } else {
+        relatorio.push("✅ **PACIENTE ESTÁVEL**");
+        
+        relatorio.push("\n**1. CONTROLE DE FREQUÊNCIA (Alvo: FC < 110 bpm em repouso):**");
+        relatorio.push("- **Beta-bloqueadores IV:** Metoprolol 5mg IV lento, repetível a cada 5-15 min até máximo de 15mg.");
+        relatorio.push("- **BCC Não-Diidropiridínicos:** Diltiazem 0.25 mg/kg IV em 2 min.");
+        relatorio.push("- **Atenção (FE reduzida):** Se insuficiência cardíaca associada com FE < 40%, EVITAR Diltiazem. Preferir Amiodarona IV (300mg em 1h) ou Digoxina (0.5mg IV).");
+        
+        relatorio.push("\n**2. CONTROLE DE RITMO (Cardioversão):**");
+        if (dados.tempoSintomas === '<48h') {
+            relatorio.push("- **Duração < 48 horas:** Cardioversão química (Amiodarona 150mg IV em 10 min seguido de infusão 1mg/min por 6h) ou elétrica eletiva É SEGURA.");
+            relatorio.push("- Iniciar anticoagulação peri-procedimento com HNF, HBPM ou DOAC o mais precocemente possível.");
+        } else {
+            relatorio.push("- **Duração > 48 horas ou desconhecida:** ALTO RISCO TROMBOEMBÓLICO.");
+            relatorio.push("- A cardioversão imediata é **CONTRAINDICADA** sem precaução prévia.");
+            relatorio.push("- **Estratégia A:** Anticoagulação plena por 3 semanas consecutivas ANTES da cardioversão, E por 4 semanas após.");
+            relatorio.push("- **Estratégia B:** Realizar Ecocardiograma Transesofágico (ECO-TE) para excluir trombo em apêndice atrial esquerdo. Se sem trombo, cardioverter sob uso de heparina e manter ACO por pelo menos 4 semanas após.");
+        }
+    }
+
+    if (dados.proteseMetalica || dados.estenoseMitral) {
+        relatorio.push("\n⚠️ **ANTICOAGULAÇÃO (FA VALVAR):**");
+        relatorio.push("- Presença de prótese valvar mecânica ou estenose mitral reumática moderada a grave.");
+        relatorio.push("- **DOACs SÃO CONTRAINDICADOS.** Terapia mandatória com Antagonista da Vitamina K (Varfarina) com alvo de INR apropriado (geralmente 2.0 - 3.0 ou maior em certas próteses).");
+    } else {
+        relatorio.push("\n💊 **ANTICOAGULAÇÃO (FA NÃO VALVAR):**");
+        relatorio.push("- Terapia deve ser guiada pelo escore CHA2DS2-VASc.");
+        relatorio.push("- Quando indicada, **DOACs** (Apixabana, Rivaroxabana, Dabigatrana, Edoxabana) são a 1ª linha recomendada sobre a Varfarina.");
+        relatorio.push("- Lembrete: Avaliar sempre Clearance de Creatinina (ClCr) antes da prescrição de DOACs para ajuste de dose ou contraindicação (ClCr < 15-30 mL/min a depender do agente).");
+    }
+
+    return relatorio.join('\n');
+  }
+
+  function avaliar(parametros) {
+    var idade = typeof parametros.idade === 'number' ? parametros.idade : 60;
+    var sexo = (parametros.sexo || '').toLowerCase() === 'f' || (parametros.sexo || '').toLowerCase() === 'feminino' ? 'F' : 'M';
+    
+    var ic = !!parametros.insuficienciaCardiaca;
+    var has = !!parametros.hipertensao;
+    var avc = !!parametros.avcOuAitPrevio;
+    var dvasc = !!parametros.doencaVascular;
+    var dm = !!parametros.diabetes;
+
+    var has_renal = !!parametros.funcaoRenalAnormal;
+    var has_hepatica = !!parametros.funcaoHepaticaAnormal;
+    var has_sangramento = !!parametros.sangramentoPrevioOuPredisposicao;
+    var has_drogas = !!parametros.usoDrogas;
+    var has_alcool = !!parametros.usoAlcool;
+
+    var instavel = !!parametros.instabilidadeHemodinamica;
+    var tempo = parametros.tempoSintomas === '<48h' ? '<48h' : '>48h';
+    var protese = !!parametros.proteseMetalica;
+    var estenose = !!parametros.estenoseMitral;
+
+    var chascore = calcularCHA2DS2VASc({
+        idade: idade, sexo: sexo, insuficienciaCardiaca: ic, hipertensao: has, avcOuAitPrevio: avc, doencaVascular: dvasc, diabetes: dm
+    });
+
+    var hasbled = calcularHASBLED({
+        hipertensaoNaoControlada: has,
+        funcaoRenalAnormal: has_renal,
+        funcaoHepaticaAnormal: has_hepatica,
+        avcPrevio: avc,
+        sangramentoPrevioOuPredisposicao: has_sangramento,
+        inrLabil: false,
+        idadeMaior65: idade > 65,
+        usoDrogas: has_drogas,
+        usoAlcool: has_alcool
+    });
+
+    var conduta = avaliarCondutaAgudaFA({
+        instabilidadeHemodinamica: instavel, 
+        tempoSintomas: tempo, 
+        proteseMetalica: protese, 
+        estenoseMitral: estenose
+    });
+
+    return {
+      paciente: { idade: idade, sexo: sexo },
+      cha2ds2vasc: chascore,
+      hasbled: hasbled,
+      conduta: conduta
+    };
+  }
+
+  function formatarTextoTelegram(resultado) {
+    var txt = "🫀 *CARDIOLOGIA & EMERGÊNCIA — FIBRILAÇÃO ATRIAL*\n\n";
+    txt += "👤 *Paciente:* " + resultado.paciente.idade + " anos, Sexo " + resultado.paciente.sexo + "\n\n";
+    
+    txt += "🧮 *Escore CHA2DS2-VASc: " + resultado.cha2ds2vasc.escore + " pontos*\n";
+    txt += "🔹 " + resultado.cha2ds2vasc.recomendacao + "\n\n";
+    
+    txt += "🩸 *Escore HAS-BLED: " + resultado.hasbled.escore + " pontos*\n";
+    txt += "🔹 " + resultado.hasbled.interpretacao + "\n\n";
+    
+    txt += "🏥 *CONDUTA CLÍNICA (Algoritmo SBC/ESC)*\n";
+    txt += resultado.conduta + "\n";
+
+    return txt;
+  }
+
+  function extrairParametrosTexto(texto) {
+    var limpo = texto.toLowerCase();
+    
+    var p = {};
+    
+    var idadeMatch = limpo.match(/(\d+)\s*(anos|a\b)/);
+    p.idade = idadeMatch ? parseInt(idadeMatch[1], 10) : 60;
+    
+    var sexoF = /(sexo\s*f|feminino|mulher|paciente fem|paciente f\b|gestante)/i.test(limpo);
+    p.sexo = sexoF ? 'F' : 'M';
+
+    p.insuficienciaCardiaca = /(ic\b|insuficiencia cardiaca|insuficiência cardíaca|fraçao de ejeçao|fracao de ejecao|feve reduzida|dispneia|nyha)/i.test(limpo);
+    p.hipertensao = /(has\b|hipertensao|hipertensão|pressão alta|pressao alta|hipertenso)/i.test(limpo);
+    p.avcOuAitPrevio = /(avc|ait\b|derrame|isquemia cerebral)/i.test(limpo);
+    p.doencaVascular = /(iam\b|infarto|dac\b|doença arterial|dap\b|placa aortica|placa aórtica)/i.test(limpo);
+    p.diabetes = /(dm\b|diabetes|diabetico|diabético)/i.test(limpo);
+
+    p.funcaoRenalAnormal = /(insuficiencia renal|drc\b|creatinina|clcr|dialise|falencia renal)/i.test(limpo);
+    p.funcaoHepaticaAnormal = /(cirrose|insuficiencia hepatica|hepatopatia|tgo|tgp)/i.test(limpo);
+    p.sangramentoPrevioOuPredisposicao = /(sangramento|hemorragia|ulcera sangrante|melena|hematemese)/i.test(limpo);
+    p.usoDrogas = /(aine|ibuprofeno|cetoprofeno|diclofenaco|aas\b|clopidogrel|antiplaquetario|antiplaquetário)/i.test(limpo);
+    p.usoAlcool = /(alcoolismo|etilismo|etilista|alcool\b|álcool\b)/i.test(limpo);
+
+    p.instabilidadeHemodinamica = /(choque|hipotensao|hipotensão|pam<|pam <|pas <|pas<|eap\b|edema agudo|angina|isquemia|rebaixamento|instavel|instável)/i.test(limpo);
+    p.tempoSintomas = /(menos de 48|<48|< 48|aguda\b|agudo|inicio recente|início recente)/i.test(limpo) ? '<48h' : '>48h';
+    p.proteseMetalica = /(protese metalica|prótese metálica|válvula metálica|valvula metalica|valvula mecanica|protese mecanica)/i.test(limpo);
+    p.estenoseMitral = /(estenose mitral|valvopatia mitral)/i.test(limpo);
+
+    return p;
+  }
+
+  return {
+    calcularCHA2DS2VASc: calcularCHA2DS2VASc,
+    calcularHASBLED: calcularHASBLED,
+    avaliarCondutaAgudaFA: avaliarCondutaAgudaFA,
+    avaliar: avaliar,
+    formatarTextoTelegram: formatarTextoTelegram,
+    extrairParametrosTexto: extrairParametrosTexto
+  };
+})();
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+  module.exports = CardiologiaFaAnticoagulacaoService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_cardiologia_intensiva.js
 // ==============================================================================
 
@@ -9925,6 +10148,187 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_endocrinologia_hiperprolactinemia.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA - MÓDULO DE ENDOCRINOLOGIA GINECOLÓGICA E REPRODUÇÃO
+ * ==============================================================================
+ * Manejo de Hiperprolactinemia e Prolactinomas
+ * Diretrizes Endocrine Society / FEBRASGO
+ * 
+ * Escopo:
+ * - Algoritmo escalonado de investigação etiológica
+ * - Diferenciação de micro vs macroadenoma e rastreio campimétrico
+ * - Terapia com agonistas dopaminérgicos (Cabergolina)
+ * - Manejo na gestação e ecocardiograma para valvulopatia
+ * ==============================================================================
+ */
+
+var EndocrinologiaHiperprolactinemiaService = (function () {
+  'use strict';
+
+  function avaliarHiperprolactinemia(parametros) {
+    var prolactina = parseFloat(parametros.prolactina) || 0;
+    var macroprolactinaPesquisada = parametros.macroprolactinaPesquisada === true || parametros.macroprolactinaPesquisada === 'true';
+    var macroprolactinaPositiva = parametros.macroprolactinaPositiva === true || parametros.macroprolactinaPositiva === 'true';
+    var assintomatica = parametros.assintomatica === true || parametros.assintomatica === 'true';
+    var tshAlterado = parametros.tshAlterado === true || parametros.tshAlterado === 'true';
+    var usoDrogasIndutoras = parametros.usoDrogasIndutoras === true || parametros.usoDrogasIndutoras === 'true';
+    var gestante = parametros.gestante === true || parametros.gestante === 'true';
+    var adenomaTamanho = parseFloat(parametros.adenomaTamanho) || 0; // mm
+    var alteracaoVisual = parametros.alteracaoVisual === true || parametros.alteracaoVisual === 'true';
+    var doseCabergolinaSemana = parseFloat(parametros.doseCabergolinaSemana) || 0;
+
+    var laudo = [];
+    var alertas = [];
+    var conduta = [];
+    var indicacaoTratamento = false;
+
+    // 1. Diagnóstico e Investigação
+    if (prolactina > 25) { // Valor de corte genérico ~25 ng/mL para mulheres
+        laudo.push("Hiperprolactinemia detectada (PRL > 25 ng/mL).");
+
+        if (gestante) {
+            alertas.push("Aumento fisiológico da prolactina é esperado na gestação.");
+            conduta.push("Suspender investigação ou tratamento em casos de hiperprolactinemia idiopática ou microadenoma durante a gestação (Endocrine Society).");
+            if (adenomaTamanho >= 10) {
+                conduta.push("Atenção: Para MACROADENOMAS, considerar manter agonista dopaminérgico ou realizar vigilância visual clínica rigorosa durante a gestação.");
+            }
+        } else {
+            // Rastreio de causas secundárias
+            if (tshAlterado) {
+                alertas.push("Hipotireoidismo Primário detectado/suspeito (TSH alterado).");
+                conduta.push("Tratar o hipotireoidismo primeiro com Levotiroxina e reavaliar a prolactina antes de investigar adenoma.");
+            } else if (usoDrogasIndutoras) {
+                alertas.push("Uso de drogas indutoras relatado (Antipsicóticos, Metoclopramida, Tricíclicos, ACO).");
+                conduta.push("Avaliar possibilidade de suspensão ou troca da medicação indutora com o médico prescritor, aguardar 3 dias e repetir prolactina.");
+            } else {
+                // Investigação de Macroprolactina
+                if (assintomatica && !macroprolactinaPesquisada) {
+                    conduta.push("Paciente ASSINTOMÁTICA. Obrigatório solicitar pesquisa de MACROPROLACTINA (fenômeno de precipitação com PEG) para excluir falso-positivo.");
+                } else if (assintomatica && macroprolactinaPositiva) {
+                    laudo.push("Macroprolactinemia confirmada.");
+                    alertas.push("Condição benigna. Não necessita de investigação radiológica ou tratamento.");
+                } else {
+                    conduta.push("Causas secundárias excluídas e/ou paciente sintomática (galactorreia, amenorreia, infertilidade). Indicado RNM de sela túrcica.");
+                    indicacaoTratamento = true;
+                }
+            }
+        }
+    } else {
+        laudo.push("Prolactina dentro dos limites fisiológicos normais (< 25 ng/mL).");
+    }
+
+    // 2. Manejo de Prolactinomas
+    if (indicacaoTratamento && adenomaTamanho > 0) {
+        if (adenomaTamanho < 10) {
+            laudo.push("Diagnóstico radiológico: MICROADENOMA (< 10 mm).");
+            conduta.push("Terapia medicamentosa indicada se houver desejo de gestação, hipogonadismo, perda óssea ou sintomas incômodos (galactorreia severa).");
+        } else {
+            laudo.push("Diagnóstico radiológico: MACROADENOMA (>= 10 mm).");
+            alertas.push("Risco de compressão do quiasma óptico.");
+            conduta.push("Tratamento medicamentoso MANDATÓRIO para redução da massa e controle hormonal.");
+            conduta.push("Obrigatório solicitar Avaliação de Campo Visual (Campimetria).");
+            
+            if (alteracaoVisual) {
+                alertas.push("Atenção Crítica: Comprometimento visual detectado.");
+                conduta.push("Urgência no início do agonista dopaminérgico. Avaliação neurocirúrgica se não houver melhora visual rápida com tratamento clínico.");
+            }
+        }
+    }
+
+    // 3. Posologia e Segurança
+    if (indicacaoTratamento && !gestante) {
+        conduta.push("1ª Linha (Endocrine Society/FEBRASGO): Cabergolina 0.5 mg/semana, dividida em 1 a 2 tomadas (ex: 1/2 comprimido 2x/sem). Preferencial pela maior eficácia e tolerabilidade que a bromocriptina.");
+        conduta.push("2ª Linha: Bromocriptina 1.25 a 2.5 mg/dia, iniciar dose baixa à noite com alimentos.");
+    }
+
+    if (doseCabergolinaSemana >= 2.0) {
+        alertas.push("Uso de altas doses de Cabergolina (>= 2 mg/semana).");
+        conduta.push("Obrigatório realizar Ecocardiograma basal e anual para rastreio de valvulopatia cardíaca induzida por agonistas dopaminérgicos.");
+    }
+
+    return {
+        resultado: {
+            laudo: laudo,
+            alertas: alertas,
+            conduta: conduta,
+            regrasBase: "Diretrizes Endocrine Society para Hiperprolactinemia e FEBRASGO 2024"
+        }
+    };
+  }
+
+  function processarComandoTelegram(texto) {
+    var regexProlactina = /prl\s*[:=]?\s*(\d+[\.,]?\d*)/i;
+    var regexTamanho = /tamanho\s*[:=]?\s*(\d+[\.,]?\d*)/i;
+    var regexDose = /dose\s*[:=]?\s*(\d+[\.,]?\d*)/i;
+
+    var matchPrl = texto.match(regexProlactina);
+    var matchTamanho = texto.match(regexTamanho);
+    var matchDose = texto.match(regexDose);
+
+    var prolactina = matchPrl ? parseFloat(matchPrl[1].replace(',', '.')) : 0;
+    var adenomaTamanho = matchTamanho ? parseFloat(matchTamanho[1].replace(',', '.')) : 0;
+    var doseCabergolinaSemana = matchDose ? parseFloat(matchDose[1].replace(',', '.')) : 0;
+
+    var tshAlterado = /tsh (alterado|alto)/i.test(texto);
+    var usoDrogasIndutoras = /droga|antipsicotico|metoclopramida/i.test(texto);
+    var assintomatica = /assintomatica/i.test(texto);
+    var macroprolactinaPesquisada = /macro(prolactina)? pesquisada/i.test(texto);
+    var macroprolactinaPositiva = /macro(prolactina)? positiva/i.test(texto);
+    var gestante = /gestan/i.test(texto);
+    var alteracaoVisual = /visual|campimetria/i.test(texto);
+
+    var parametros = {
+        prolactina: prolactina,
+        adenomaTamanho: adenomaTamanho,
+        tshAlterado: tshAlterado,
+        usoDrogasIndutoras: usoDrogasIndutoras,
+        assintomatica: assintomatica,
+        macroprolactinaPesquisada: macroprolactinaPesquisada,
+        macroprolactinaPositiva: macroprolactinaPositiva,
+        gestante: gestante,
+        alteracaoVisual: alteracaoVisual,
+        doseCabergolinaSemana: doseCabergolinaSemana
+    };
+
+    var resultado = avaliarHiperprolactinemia(parametros).resultado;
+
+    var resposta = "🧠 *Módulo de Hiperprolactinemia e Prolactinomas (Endocrine Society/FEBRASGO)*\n\n";
+    resposta += "📋 *Avaliação Clínica:*\n";
+    for (var i = 0; i < resultado.laudo.length; i++) {
+        resposta += "• " + resultado.laudo[i] + "\n";
+    }
+
+    if (resultado.alertas.length > 0) {
+        resposta += "\n⚠️ *Alertas Críticos:*\n";
+        for (var j = 0; j < resultado.alertas.length; j++) {
+            resposta += "• " + resultado.alertas[j] + "\n";
+        }
+    }
+
+    resposta += "\n💡 *Conduta Proposta:*\n";
+    for (var k = 0; k < resultado.conduta.length; k++) {
+        resposta += "• " + resultado.conduta[k] + "\n";
+    }
+
+    return resposta;
+  }
+
+  return {
+    avaliarHiperprolactinemia: avaliarHiperprolactinemia,
+    processarComandoTelegram: processarComandoTelegram
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = EndocrinologiaHiperprolactinemiaService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_gasometria_acido_base.js
 // ==============================================================================
 
@@ -12044,6 +12448,628 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_ginecologia_endometriose.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA - MÓDULO DE GINECOLOGIA ENDÓCRINA E CIRÚRGICA
+ * ==============================================================================
+ * Manejo Clínico da Endometriose e Dor Pélvica Crônica
+ * Diretrizes ESHRE (2022/2024), FEBRASGO (2024-2026), AAGL (2021)
+ * 
+ * PILARES CLÍNICOS DETERMINÍSTICOS:
+ * 1. Diagnóstico Clínico e Mapeamento dos Sintomas (Os "6 Ds" da Endometriose):
+ *    - Dismenorreia incapacitante / progressiva
+ *    - Dispareunia de profundidade
+ *    - Disquezia cíclica (dor evacuatória perimenstrual)
+ *    - Disúria cíclica / hematúria
+ *    - Dor pélvica acíclica crônica (≥ 6 meses)
+ *    - Dificuldade reprodutiva / infertilidade
+ * 2. Mapeamento Topográfico por Imagem de Alta Resolução:
+ *    - USG Transvaginal com preparo intestinal prévio dedicado
+ *    - Ressonância Magnética (RM) de pelve com protocolo para endometriose
+ *    - Mapeamento de compartimentos anterior (bexiga, ureteres), médio (miométrio/adenomiose,
+ *      ovários/endometriomas) e posterior (ligamentos úterossacros, toro, recesso de Douglas,
+ *      septo retovaginal e retossigmoide)
+ * 3. Identificação Precoce de Sinais de Alarme Cirúrgico (Red Flags):
+ *    - Acometimento ureteral com hidronefrose silenciosa (risco de perda renal ipsilateral)
+ *    - Acometimento retossigmoídeo estenosante (≥ 50% de diâmetro luminal ou suboclusão)
+ *    - Endometrioma ovariano volumoso (≥ 4-5 cm) ou com suspeita atípica
+ * 4. Terapia Farmacológica Escalonada de Supressão Estrogênica:
+ *    - 1ª Linha: Progestagênios contínuos (Dienogeste 2 mg/dia como padrão de eficácia e
+ *      indução de atrofia dos focos; SIU-Levonorgestrel 52 mg; Desogestrel 75 mcg/dia) e
+ *      Anticoncepcionais Hormonais Combinados (AHC) em regime contínuo
+ *    - 2ª Linha: Antagonistas orais de GnRH (Relugolix 40 mg/dia com add-back therapy ou Elagolix)
+ *      ou Análogos agonistas de GnRH (Goserrelina / Leuprorrelina) com add-back obrigatória
+ * 5. Tomada de Decisão Reprodutiva vs Cirúrgica:
+ *    - Desejo reprodutivo ativo: Bloqueio estrito de fármacos contraceptivos hormonais
+ *    - Avaliação mandatória de reserva ovariana (AMH / CFA)
+ *    - Indicação precoce de Fertilização in Vitro (FIV) em idade materna ≥ 35 anos, infertilidade > 2 anos,
+ *      AMH baixo ou endometriose profunda/tubária, prevenindo cirurgias ovarianas espoliativas
+ *    - Indicações precisas de cirurgia (laparoscopia/robótica) com abordagem multidisciplinar nerve-sparing
+ * ==============================================================================
+ */
+
+var GinecologiaEndometrioseService = (function () {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. CATÁLOGO FARMACOLÓGICO E DIRETRIZES (ESHRE / FEBRASGO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  var CATALOGO_FARMACOLOGICO = {
+    PRIMEIRA_LINHA: {
+      DIENOGESTE: {
+        farmaco: "Dienogeste 2 mg",
+        posologia: "2 mg VO 1x/dia, uso oral contínuo diário no mesmo horário (sem pausas)",
+        classe: "Progestagênio de 4ª geração com potente atividade seletiva antiandrogênica e progestagênica",
+        mecanismo: "Induz decidualização seguida de atrofia progressiva dos implantes ectópicos de endométrio. Reduz a síntese de citocinas pró-inflamatórias (IL-6, IL-8, TNF-alfa), angiogênese e níveis de prostaglandinas locais.",
+        evidencia: "Padrão de excelência de 1ª linha (ESHRE 2022/2024 / FEBRASGO). Eficácia comparável aos agonistas de GnRH no alívio da dor, sem causar hipoestrogenismo severo ou perda óssea acelerada.",
+        efeitosAdversos: "Sangramento de escape ('spotting') nos primeiros 3-6 meses, cefaleia, alterações discretas de humor ou mastalgia."
+      },
+      SIU_LEVONORGESTREL: {
+        farmaco: "Sistema Intrauterino Liberador de Levonorgestrel (SIU-LNG 52 mg - Mirena)",
+        posologia: "Inserção intrauterina estéril em consultório (duração de até 8 anos para contracepção / 5 anos para controle da dor)",
+        classe: "Progestagênio intrauterino de liberação local contínua (20 mcg/dia)",
+        mecanismo: "Promove pronunciada atrofia endometrial local, redução da vascularização e decréscimo drástico do fluxo menstrual e da dismenorreia.",
+        evidencia: "Excelente opção de 1ª linha, particularmente indicada na endometriose associada à ADENOMIOSE e hipermenorreia.",
+        vantagens: "Ação predominantemente local com níveis séricos mínimos, alta adesão terapêutica."
+      },
+      DESOGESTREL: {
+        farmaco: "Desogestrel 75 mcg",
+        posologia: "1 comprimido VO 1x/dia continuamente sem intervalo entre as cartelas",
+        classe: "Progestagênio oral contínuo (pílula isolada)",
+        mecanismo: "Inibe a ovulação em 97% dos ciclos e promove supressão estrogênica moderada e atrofia endometrial.",
+        evidencia: "Opção de baixo custo e ampla disponibilidade no SUS para pacientes com contraindicações a estrogênios."
+      },
+      AHC_CONTINUO: {
+        farmaco: "Anticoncepcionais Hormonais Combinados em Regime Contínuo",
+        posologia: "1 comprimido VO ao dia sem pausa de intervalo (ex: Etinilestradiol 20-30 mcg + Levonorgestrel/Gestodeno/Drospirenona)",
+        classe: "Estroprogestativo oral contínuo",
+        mecanismo: "Bloqueia a menstruação retrógrada pela indução de amenorreia sustentada e inibe a maturação folicular cíclica.",
+        precaucoes: "Avaliar critérios de elegibilidade da OMS (MEC 1/2). Evitar em tabagistas > 35 anos, histórico de TEV, enxaqueca com aura ou hipertensão."
+      }
+    },
+    SEGUNDA_LINHA: {
+      ANTAGONISTAS_GNRH: {
+        RELUGOLIX_COMBINADO: {
+          farmaco: "Relugolix 40 mg + Estradiol 1 mg + Acetato de Noretisterona 0,5 mg (Ryeqo)",
+          posologia: "1 comprimido VO 1x/dia contínuo, iniciado preferencialmente nos primeiros 5 dias da menstruação",
+          classe: "Antagonista oral não peptídico do receptor de GnRH com Terapia Add-Back integrada",
+          mecanismo: "Bloqueio imediato e competitivo dos receptores hipofisários de GnRH, promovendo rápida supressão de FSH e LH sem o fenômeno de 'flare-up'. A terapia add-back incorporada previne perda óssea e sintomas vasomotores.",
+          evidencia: "2ª Linha de alta eficácia aprovada em consensos internacionais recentes para dor pélvica moderada a grave refratária a progestagênios."
+        },
+        ELAGOLIX: {
+          farmaco: "Elagolix",
+          posologia: "150 mg VO 1x/dia por até 24 meses OU 200 mg VO 2x/dia por até 6 meses (adicionar add-back se > 6 meses)",
+          classe: "Antagonista oral de GnRH de dosagem ajustável"
+        }
+      },
+      ANALOGOS_GNRH: {
+        GOSSERRELINA: {
+          farmaco: "Acetato de Gosserrelina (Zoladex 3,6 mg)",
+          posologia: "3,6 mg SC em depósito na parede abdominal a cada 28 dias",
+          classe: "Agonista do receptor de GnRH (GnRHa de depósito)",
+          mecanismo: "Promove estimulação inicial transitória ('flare-up' nos primeiros 10-14 dias) seguida por profunda dessensibilização dos receptores hipofisários de GnRH, induzindo estado de hipoestrogenismo profundo ('menopausa farmacológica').",
+          alertaAddBack: "MANDATÓRIO associar Terapia Add-Back (ex: Noretisterona 2,5 mg/dia ou Estradiol 1 mg + Noretisterona 0,5 mg) se tratamento previsto > 3 a 6 meses, visando prevenir osteopenia severa e sintomas climatéricos incapacitantes.",
+          duracaoMaxima: "Máximo de 6 meses sem add-back; até 12 a 24 meses com add-back e monitoramento de densitometria óssea (DMO)."
+        },
+        LEUPRORRELINA: {
+          farmaco: "Acetato de Leuprorrelina 3,75 mg",
+          posologia: "3,75 mg IM em depósito a cada 28 dias (com add-back se > 3 meses)"
+        }
+      }
+    },
+    ANALGESIA_ADJUVANTE: {
+      AINES: "AINEs (ex: Cetoprofeno 100-150 mg/dia ou Ibuprofeno 600 mg 8/8h) para manejo de exacerbações álgicas pontuais em cursos curtos (3 a 5 dias). Não reduzem os focos de endometriose.",
+      NEUROMODULADORES: "Em dor pélvica crônica com sensibilização central e dor nociplástica/neuropática: Gabapentina 300 a 900 mg/dia, Pregabalina 75 a 150 mg/dia ou Duloxetina 30 a 60 mg/dia."
+    }
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. AVALIAÇÃO DETERMINÍSTICA DO CASO CLÍNICO
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function avaliarEndometriose(dados) {
+    dados = dados || {};
+
+    var idade = parseInt(dados.idade, 10) || 0;
+    var evaDor = parseFloat(dados.evaDor) || 0;
+    var tempoInfertilidadeAnos = parseFloat(dados.tempoInfertilidadeAnos) || 0;
+    var amh = parseFloat(dados.amh) || 0;
+    var cfa = parseInt(dados.cfa, 10) || 0;
+
+    // Sintomas clínicos dos 6 Ds
+    var dismenorreia = Boolean(dados.dismenorreia);
+    var dispareunia = Boolean(dados.dispareunia);
+    var disquezia = Boolean(dados.disquezia);
+    var disuria = Boolean(dados.disuria);
+    var dorPelvicaCronica = Boolean(dados.dorPelvicaCronica);
+    var infertilidade = Boolean(dados.infertilidade) || tempoInfertilidadeAnos > 0;
+    var desejoGestacional = Boolean(dados.desejoGestacional) || Boolean(dados.tentandoEngravidar);
+
+    // Achados de Imagem e Topografia
+    var tipoExame = (dados.tipoExame || '').trim();
+    var imagemRealizada = Boolean(dados.usgComPreparo || dados.rmPelve || /usg|ultrassom|rm|resson/i.test(tipoExame));
+    var superficial = Boolean(dados.superficial);
+    var endometrioma = Boolean(dados.endometrioma) || parseFloat(dados.endometriomaTamanhoCm) > 0 || parseFloat(dados.endometriomaTamanhoMm) > 0;
+    
+    var endometriomaCm = parseFloat(dados.endometriomaTamanhoCm) || 0;
+    if (!endometriomaCm && parseFloat(dados.endometriomaTamanhoMm) > 0) {
+      endometriomaCm = parseFloat(dados.endometriomaTamanhoMm) / 10.0;
+    }
+    var endometriomaBilateral = Boolean(dados.endometriomaBilateral);
+
+    // Endometriose Profunda e Compartimentos
+    var profunda = Boolean(dados.profunda);
+    var acometimentoUreteral = Boolean(dados.acometimentoUreteral || dados.ureter || dados.hidronefrose);
+    var hidronefrose = Boolean(dados.hidronefrose);
+    var acometimentoIntestinal = Boolean(dados.acometimentoIntestinal || dados.reto || dados.sigmoide || dados.retossigmoide);
+    var estenoseIntestinal = parseFloat(dados.estenoseIntestinalPercentual) || 0;
+    var sintomasSuboclusivos = Boolean(dados.sintomasSuboclusivos || dados.suboclusao);
+    var ligamentosUterossacros = Boolean(dados.ligamentosUterossacros || dados.uterossacro);
+    var toroUterino = Boolean(dados.toroUterino);
+    var obliteracaoDouglas = Boolean(dados.obliteracaoDouglas);
+    var septoRetovaginal = Boolean(dados.septoRetovaginal);
+    var bexiga = Boolean(dados.bexiga);
+    var adenomiose = Boolean(dados.adenomiose);
+
+    if (acometimentoUreteral || acometimentoIntestinal || ligamentosUterossacros || septoRetovaginal || bexiga || obliteracaoDouglas) {
+      profunda = true;
+    }
+
+    // Histórico de Tratamentos Prévios
+    var falhaDienogeste = Boolean(dados.falhaDienogeste);
+    var falhaAhc = Boolean(dados.falhaAhc);
+    var falhaSiuLng = Boolean(dados.falhaSiuLng);
+    var usoDienogeste = Boolean(dados.usoDienogeste);
+    var usoAhc = Boolean(dados.usoAhc);
+    var cirurgiaPrevia = Boolean(dados.cirurgiaPrevia);
+    var numCirurgiasPrevias = parseInt(dados.numCirurgiasPrevias, 10) || (cirurgiaPrevia ? 1 : 0);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // A. Contabilização e Estratificação dos Sintomas (Os "6 Ds")
+    // ─────────────────────────────────────────────────────────────────────────
+    var contagem6Ds = 0;
+    var listaSintomasPresentes = [];
+
+    if (dismenorreia) { contagem6Ds++; listaSintomasPresentes.push("Dismenorreia progressiva/incapacitante"); }
+    if (dispareunia) { contagem6Ds++; listaSintomasPresentes.push("Dispareunia de profundidade"); }
+    if (disquezia) { contagem6Ds++; listaSintomasPresentes.push("Disquezia cíclica (perimenstrual)"); }
+    if (disuria) { contagem6Ds++; listaSintomasPresentes.push("Disúria cíclica / desconforto vesical menstrual"); }
+    if (dorPelvicaCronica) { contagem6Ds++; listaSintomasPresentes.push("Dor pélvica crônica acíclica (≥ 6 meses)"); }
+    if (infertilidade) { contagem6Ds++; listaSintomasPresentes.push("Dificuldade para engravidar / Infertilidade conjugal"); }
+
+    var intensidadeDorTexto = "Não informada";
+    if (evaDor >= 7) {
+      intensidadeDorTexto = "DOR GRAVE / INCAPACITANTE (EVA " + evaDor + "/10)";
+    } else if (evaDor >= 4) {
+      intensidadeDorTexto = "DOR MODERADA (EVA " + evaDor + "/10)";
+    } else if (evaDor > 0) {
+      intensidadeDorTexto = "DOR LEVE (EVA " + evaDor + "/10)";
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // B. Auditoria de Red Flags (Critérios de Alarme Cirúrgico / Emergencial)
+    // ─────────────────────────────────────────────────────────────────────────
+    var redFlags = [];
+    var indicacaoCirurgicaUrgente = false;
+
+    if (acometimentoUreteral || hidronefrose) {
+      redFlags.push({
+        orgao: "Trato Urinário (Ureter / Rim)",
+        achado: hidronefrose ? "Hidronefrose / Pielocaliectasia diagnosticada" : "Envolvimento de ureter por endometriose profunda retroperitoneal",
+        risco: "Risco iminente de perda silenciosa e irreversível da função renal ipsilateral.",
+        conduta: "Indicação cirúrgica obrigatória de desobstrução (ureterólise vs reimplante ureterovesical com duplo J) em conjunto com Urologia."
+      });
+      indicacaoCirurgicaUrgente = true;
+    }
+
+    if (acometimentoIntestinal && (estenoseIntestinal >= 50 || sintomasSuboclusivos)) {
+      redFlags.push({
+        orgao: "Trato Gastrointestinal (Retossigmoide)",
+        achado: "Estenose luminal retossigmoídea significativa (≥ 50%) ou sintomas suboclusivos mecânicos",
+        risco: "Risco de obstrução intestinal mecânica completa.",
+        conduta: "Avaliação cirúrgica compartilhada com Coloproctologia (shaving, ressecção discoide ou ressecção segmentar de reto/sigmoide com margens seguras)."
+      });
+      indicacaoCirurgicaUrgente = true;
+    }
+
+    if (endometrioma && endometriomaCm >= 4.0) {
+      redFlags.push({
+        orgao: "Anexo Ovariano",
+        achado: "Endometrioma volumoso (≥ " + endometriomaCm.toFixed(1) + " cm)",
+        risco: "Risco aumentado de torção anexial, rotura espontânea e dano tecidual ovariano.",
+        conduta: "Avaliação cuidadosa. Se cirurgia for indicada, atentar estritamente para o risco de falência ovariana prematura pós-cistectomia."
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // C. Tomada de Decisão: Desejo Reprodutivo vs Cirurgia vs Fármacos
+    // ─────────────────────────────────────────────────────────────────────────
+    var condutaInvestigativa = [];
+    var condutaFarmacologica = [];
+    var planoCirurgico = [];
+    var planoReprodutivo = [];
+    var alertasSeguranca = [];
+
+    // 1. Investigação por Imagem
+    if (!imagemRealizada) {
+      alertasSeguranca.push("Mapeamento incompleto: Exames ginecológicos convencionais sem preparo falham em detectar até 80% das lesões profundas.");
+      condutaInvestigativa.push("Solicitar IMEDIATAMENTE Mapeamento de Alta Resolução por profissionais experientes: USG Transvaginal com preparo intestinal prévio e/ou Ressonância Magnética (RM) de pelve com protocolo específico para endometriose profunda.");
+    }
+
+    // 2. PACIENTE COM DESEJO DE ENGRAVIDAR ATUALMENTE
+    if (desejoGestacional) {
+      alertasSeguranca.push("🚨 BLOQUEIO MANDATÓRIO DE TRATAMENTO HORMONAL: Não prescrever Dienogeste, AHC, SIU-LNG ou análogos de GnRH para pacientes tentando engravidar ativamente. A supressão hormonal impede a gestação e NÃO melhora taxas de gravidez espontânea após a descontinuação (Diretriz ESHRE).");
+
+      var orientarFivPrecoce = false;
+      var motivosFiv = [];
+
+      if (idade >= 35) {
+        orientarFivPrecoce = true;
+        motivosFiv.push("Idade materna avançada (≥ 35 anos) associada a declínio fisiológico da qualidade oocitária");
+      }
+      if (tempoInfertilidadeAnos >= 2) {
+        orientarFivPrecoce = true;
+        motivosFiv.push("Infertilidade prolongada (≥ 2 anos)");
+      }
+      if (amh > 0 && amh < 1.1) {
+        orientarFivPrecoce = true;
+        motivosFiv.push("Reserva ovariana diminuída comprovada por AMH baixo (" + amh.toFixed(2) + " ng/mL < 1.1 ng/mL)");
+      }
+      if (profunda && (obliteracaoDouglas || acometimentoIntestinal || acometimentoUreteral)) {
+        orientarFivPrecoce = true;
+        motivosFiv.push("Endometriose profunda extensa com provável distorção da anatomia pélvica e fator tuboperitoneal severo");
+      }
+      if (numCirurgiasPrevias >= 1 && endometrioma) {
+        orientarFivPrecoce = true;
+        motivosFiv.push("Histórico de cirurgia ovariana prévia: nova cistectomia ovariana impõe altíssimo risco de insuficiência ovariana prematura");
+      }
+
+      planoReprodutivo.push("1. Avaliação Obrigatória da Reserva Ovariana: Solicitar dosagem de AMH (Hormônio Antimülleriano) e Contagem de Folículos Antrais (CFA) por USG transvaginal.");
+      planoReprodutivo.push("2. Avaliação do Fator Masculino: Espermograma completo do parceiro antes de qualquer decisão intervencionista.");
+
+      if (orientarFivPrecoce) {
+        planoReprodutivo.push("3. 🎯 CONDUTA REPRODUTIVA DE 1ª LINHA: Indicação DIRETA de Reprodução Assistida de Alta Complexidade (Fertilização in Vitro - FIV).");
+        planoReprodutivo.push("   Motivos para FIV imediata: " + motivosFiv.join("; ") + ".");
+        planoReprodutivo.push("4. Prevenção de Dano Iatrogênico: Evitar cirurgias ovarianas repetidas, que reduzem dramaticamente o número de oócitos recuperáveis.");
+        if (endometrioma && !indicacaoCirurgicaUrgente) {
+          planoReprodutivo.push("5. Conduta em Endometrioma assintomático ou oligosintomático: Não operar apenas para 'melhorar taxas de FIV'. Proceder à punção folicular com profilaxia antibiótica.");
+        }
+      } else {
+        planoReprodutivo.push("3. Paciente jovem (< 35 anos) com reserva ovariana preservada (AMH > 1.5 ng/mL), espermograma normal e doença leve/moderada:");
+        planoReprodutivo.push("   - Se laparoscopia for realizada para dor: lise de aderências e ressecção completa dos implantes restaura a anatomia e aumenta as taxas de gestação natural nos primeiros 6-12 meses pós-operatórios.");
+        planoReprodutivo.push("   - Tentar concepção espontânea ou indução de ovulação/inseminação intrauterina por no máximo 6 a 12 meses. Se não engravidar, migrar para FIV.");
+      }
+
+      // Se cirurgia ovariana for inevitável em paciente com desejo gestacional
+      if (endometrioma && (indicacaoCirurgicaUrgente || evaDor >= 8)) {
+        planoReprodutivo.push("⚠️ PRESERVAÇÃO DE FERTILIDADE: Recomenda-se fortemente Criopreservação de Oócitos pré-operatória antes de cistectomia ovariana (especialmente em casos bilaterais).");
+      }
+
+    } else {
+      // 3. PACIENTE SEM DESEJO REPRODUTIVO ATUAL (FOCO: ALÍVIO DA DOR E CONTROLE DA DOENÇA)
+      
+      // Avaliação de 1ª vs 2ª Linha Farmacológica
+      var refratariaPrimeiraLinha = falhaDienogeste || (falhaAhc && evaDor >= 7);
+
+      if (indicacaoCirurgicaUrgente) {
+        condutaFarmacologica.push("🚨 CONDUTA CIRÚRGICA PRIORITÁRIA DEVIDO A RED FLAGS: Paciente apresenta complicações anatômicas graves (ureteral/intestinal). O tratamento exclusivamente clínico é insuficiente.");
+      } else if (refratariaPrimeiraLinha) {
+        condutaFarmacologica.push("💊 ESCALONAMENTO PARA 2ª LINHA FARMACOLÓGICA (Falha / Intolerância à 1ª Linha):");
+        condutaFarmacologica.push("Opção A (Antagonista oral de GnRH de última geração): " + CATALOGO_FARMACOLOGICO.SEGUNDA_LINHA.ANTAGONISTAS_GNRH.RELUGOLIX_COMBINADO.farmaco + " - " + CATALOGO_FARMACOLOGICO.SEGUNDA_LINHA.ANTAGONISTAS_GNRH.RELUGOLIX_COMBINADO.posologia + ". Vantagem: Rápido bloqueio hormonal sem efeito flare-up, com Add-Back incorporada.");
+        condutaFarmacologica.push("Opção B (Análogo agonista de GnRH de depósito): " + CATALOGO_FARMACOLOGICO.SEGUNDA_LINHA.ANALOGOS_GNRH.GOSSERRELINA.farmaco + " - " + CATALOGO_FARMACOLOGICO.SEGUNDA_LINHA.ANALOGOS_GNRH.GOSSERRELINA.posologia + ".");
+        condutaFarmacologica.push("⚠️ REGRA DE SEGURANÇA MANDATÓRIA: Add-Back Therapy OBRIGATÓRIA se uso de agonista de GnRH > 3 a 6 meses para prevenir perda de densidade mineral óssea e fogachos severos.");
+        condutaFarmacologica.push("Opção Cirúrgica Eletiva: Laparoscopia / Robótica se dor persistente com prejuízo de qualidade de vida a despeito da 2ª linha.");
+      } else {
+        condutaFarmacologica.push("💊 1ª LINHA FARMACOLÓGICA (Padrão ESHRE / FEBRASGO):");
+        
+        if (adenomiose) {
+          condutaFarmacologica.push("1ª Escolha Preferencial (Endometriose + Adenomiose): " + CATALOGO_FARMACOLOGICO.PRIMEIRA_LINHA.SIU_LEVONORGESTREL.farmaco + " (" + CATALOGO_FARMACOLOGICO.PRIMEIRA_LINHA.SIU_LEVONORGESTREL.posologia + ") OU Dienogeste 2 mg/dia.");
+        } else {
+          condutaFarmacologica.push("1ª Escolha Padrão-Ouro: " + CATALOGO_FARMACOLOGICO.PRIMEIRA_LINHA.DIENOGESTE.farmaco + " — Posologia: " + CATALOGO_FARMACOLOGICO.PRIMEIRA_LINHA.DIENOGESTE.posologia + ".");
+          condutaFarmacologica.push("Mecanismo e Justificativa: " + CATALOGO_FARMACOLOGICO.PRIMEIRA_LINHA.DIENOGESTE.mecanismo);
+          condutaFarmacologica.push("Alternativa: " + CATALOGO_FARMACOLOGICO.PRIMEIRA_LINHA.SIU_LEVONORGESTREL.farmaco + " ou " + CATALOGO_FARMACOLOGICO.PRIMEIRA_LINHA.AHC_CONTINUO.farmaco + ".");
+        }
+
+        condutaFarmacologica.push("Seguimento: Reavaliar sintomatologia clínica em 3 a 6 meses. O tratamento deve ser mantido a longo prazo até a menopausa ou até a paciente desejar engravidar.");
+      }
+
+      // Analgesia de Suporte
+      condutaFarmacologica.push("Analgesia Aguda de Resgate: " + CATALOGO_FARMACOLOGICO.ANALGESIA_ADJUVANTE.AINES);
+      if (dorPelvicaCronica || evaDor >= 7) {
+        condutaFarmacologica.push("Manejo da Sensibilização Central da Dor: " + CATALOGO_FARMACOLOGICO.ANALGESIA_ADJUVANTE.NEUROMODULADORES);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // D. Planejamento Cirúrgico e Critérios Multidisciplinares
+    // ─────────────────────────────────────────────────────────────────────────
+    if (indicacaoCirurgicaUrgente || evaDor >= 8 || falhaDienogeste || (endometrioma && endometriomaCm >= 4.0)) {
+      planoCirurgico.push("Princípio Operatório: Laparoscopia de alta resolução ou Cirurgia Robótica realizada por equipe multidisciplinar ginecológica e especializada.");
+      planoCirurgico.push("Abordagem 'Nerve-Sparing': Preservação dos plexos hipogástricos superior e inferior para evitar disfunções urinárias (bexiga neurogênica), fecais e sexuais no pós-operatório.");
+      if (endometrioma) {
+        planoCirurgico.push("Técnica em Endometrioma: Cistectomia com tração e contra-tração delicada para remoção da cápsula, minimizando a perda de estroma ovariano são e evitando eletrocoagulação bipolar excessiva no leito ovariano.");
+      }
+      if (acometimentoIntestinal) {
+        planoCirurgico.push("Técnica Intestinal: Preferir técnicas conservadoras (shaving ou ressecção discoide) quando nódulos < 3 cm e estenose < 50%; reservar ressecção segmentar para lesões múltiplas ou obstrutivas.");
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // E. Cuidados Não Farmacológicos e Multidisciplinares
+    // ─────────────────────────────────────────────────────────────────────────
+    var suporteMultidisciplinar = [
+      "Fisioterapia Pélvica especializada: Essencial para reabilitação do assoalho pélvico hiperativo, alívio de dor miofascial e melhora da dispareunia.",
+      "Acompanhamento Nutricional: Dieta anti-inflamatória com redução de ultraprocessados, suporte à microbiota intestinal.",
+      "Acompanhamento Psicológico: Suporte cognitivo-comportamental para manejo do impacto crônico da dor e qualidade de vida."
+    ];
+
+    // Resumo Diagnóstico
+    var diagnostico = {
+      suspeitaClinica: contagem6Ds >= 2 || evaDor >= 5,
+      classificacaoSintomas: {
+        total6Ds: contagem6Ds,
+        lista: listaSintomasPresentes,
+        intensidadeDor: intensidadeDorTexto,
+        eva: evaDor
+      },
+      topografia: {
+        imagemRealizada: imagemRealizada,
+        superficial: superficial,
+        endometrioma: endometrioma,
+        endometriomaTamanhoCm: endometriomaCm,
+        endometriomaBilateral: endometriomaBilateral,
+        profunda: profunda,
+        adenomiose: adenomiose,
+        compartimentoAnterior: { bexiga: bexiga, ureter: acometimentoUreteral, hidronefrose: hidronefrose },
+        compartimentoPosterior: { ligamentosUterossacros: ligamentosUterossacros, toroUterino: toroUterino, septoRetovaginal: septoRetovaginal, obliteracaoDouglas: obliteracaoDouglas, retossigmoide: acometimentoIntestinal, estenosePercentual: estenoseIntestinal }
+      },
+      redFlags: redFlags,
+      indicacaoCirurgicaUrgente: indicacaoCirurgicaUrgente
+    };
+
+    return {
+      sucesso: true,
+      diagnostico: diagnostico,
+      alertas: alertasSeguranca,
+      condutaInvestigativa: condutaInvestigativa,
+      condutaFarmacologica: condutaFarmacologica,
+      planoReprodutivo: planoReprodutivo,
+      planoCirurgico: planoCirurgico,
+      suporteMultidisciplinar: suporteMultidisciplinar,
+      diretrizes: "Diretrizes ESHRE (2022/2024), FEBRASGO (2024-2026), Consenso AAGL (2021)"
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. PARSER DE LINGUAGEM NATURAL E COMANDO TELEGRAM
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function extrairParametrosTexto(texto) {
+    texto = (texto || '').toString().toLowerCase();
+
+    // Idade
+    var matchIdade = texto.match(/(?:idade\s*[:=]?\s*|(\d{1,2})\s*anos)/i);
+    var idade = matchIdade ? parseInt(matchIdade[1] || matchIdade[0].replace(/\D/g, ''), 10) : 0;
+
+    // Dor / EVA
+    var matchEva = texto.match(/(?:eva\s*[:=]?\s*|dor\s*[:=]?\s*)(\d{1,2})/i);
+    var evaDor = matchEva ? parseFloat(matchEva[1]) : 0;
+    if (evaDor === 0) {
+      if (/dor (grave|severa|insuportavel|incapacitante)/i.test(texto)) evaDor = 8;
+      else if (/dor (moderada|intensa)/i.test(texto)) evaDor = 6;
+      else if (/dor leve/i.test(texto)) evaDor = 3;
+    }
+
+    // Sintomas dos 6 Ds
+    var dismenorreia = /dismenor|colica/i.test(texto);
+    var dispareunia = /dispareun|dor na relacao|profundidade/i.test(texto);
+    var disquezia = /disquez|dor ao evacuar|dor evacuat/i.test(texto);
+    var disuria = /disur|dor ao urinar/i.test(texto);
+    var dorPelvicaCronica = /cronica|dor pelvica|dpc|aciclica/i.test(texto);
+    var infertilidade = /infertil|esteril|nao engravida|dificuldade para engravidar/i.test(texto);
+    
+    // Desejo reprodutivo
+    var desejoGestacional = /desejo (gestacional|reprodutivo)|tentando engravidar|quer engravidar|engravidar/i.test(texto);
+
+    // Tempo de infertilidade
+    var matchTempoInf = texto.match(/(\d+)\s*anos?\s*(?:de\s*)?infertil/i);
+    var tempoInfertilidadeAnos = matchTempoInf ? parseFloat(matchTempoInf[1]) : (infertilidade ? 1 : 0);
+
+    // AMH e CFA
+    var matchAmh = texto.match(/amh\s*[:=]?\s*(\d+[\.,]?\d*)/i);
+    var amh = matchAmh ? parseFloat(matchAmh[1].replace(',', '.')) : 0;
+
+    var matchCfa = texto.match(/cfa\s*[:=]?\s*(\d+)/i);
+    var cfa = matchCfa ? parseInt(matchCfa[1], 10) : 0;
+
+    // Imagem / Topografia
+    var usgComPreparo = /usg com preparo|ultrassom com preparo|preparo intestinal/i.test(texto);
+    var rmPelve = /rm|ressonancia|rnm/i.test(texto);
+    var tipoExame = usgComPreparo ? "USG Transvaginal com preparo intestinal" : (rmPelve ? "RM de Pelve com protocolo para endometriose" : "");
+
+    var endometrioma = /endometrioma|cisto endometr/i.test(texto);
+    var matchTamanhoEndo = texto.match(/endometrioma[^\d]*(\d+[\.,]?\d*)\s*(cm|mm)?/i) || texto.match(/(\d+[\.,]?\d*)\s*(?:cm|mm)\s*(?:no\s*)?ovario/i);
+    var endometriomaTamanhoCm = 0;
+    if (matchTamanhoEndo) {
+      var val = parseFloat(matchTamanhoEndo[1].replace(',', '.'));
+      var unidade = (matchTamanhoEndo[2] || '').toLowerCase();
+      if (unidade === 'mm' || val > 15) {
+        endometriomaTamanhoCm = val / 10.0;
+      } else {
+        endometriomaTamanhoCm = val;
+      }
+      endometrioma = true;
+    }
+    var endometriomaBilateral = /bilateral|ambos os ovarios/i.test(texto);
+
+    // Compartimentos profundos
+    var acometimentoUreteral = /ureter|ureteral|hidronefrose/i.test(texto);
+    var hidronefrose = /hidronefrose|pielocaliectasia/i.test(texto);
+    var acometimentoIntestinal = /retossigmoide|reto|sigmoide|intestinal/i.test(texto);
+    var matchEstenose = texto.match(/estenose\s*[:=]?\s*(\d+)%?/i);
+    var estenoseIntestinalPercentual = matchEstenose ? parseFloat(matchEstenose[1]) : (/estenose (significativa|severa|grave)/i.test(texto) ? 50 : 0);
+    var sintomasSuboclusivos = /suboclus|oclusao/i.test(texto);
+    var ligamentosUterossacros = /uterossacr|ligamento/i.test(texto);
+    var toroUterino = /toro/i.test(texto);
+    var obliteracaoDouglas = /douglas|obliteracao/i.test(texto);
+    var septoRetovaginal = /septo/i.test(texto);
+    var bexiga = /bexiga|vesical/i.test(texto);
+    var adenomiose = /adenomiose/i.test(texto);
+
+    // Fármacos prévios
+    var falhaDienogeste = /falha (do|de)?\s*dienogeste|refrataria ao dienogeste/i.test(texto);
+    var usoDienogeste = /uso de dienogeste|dienogeste/i.test(texto) && !falhaDienogeste;
+    var falhaAhc = /falha (do|de)?\s*aco|falha (do|de)?\s*ahc/i.test(texto);
+    var cirurgiaPrevia = /cirurgia previa|cistectomia previa|laparoscopia previa/i.test(texto);
+
+    return {
+      idade: idade,
+      evaDor: evaDor,
+      dismenorreia: dismenorreia,
+      dispareunia: dispareunia,
+      disquezia: disquezia,
+      disuria: disuria,
+      dorPelvicaCronica: dorPelvicaCronica,
+      infertilidade: infertilidade,
+      tempoInfertilidadeAnos: tempoInfertilidadeAnos,
+      desejoGestacional: desejoGestacional,
+      amh: amh,
+      cfa: cfa,
+      tipoExame: tipoExame,
+      usgComPreparo: usgComPreparo,
+      rmPelve: rmPelve,
+      endometrioma: endometrioma,
+      endometriomaTamanhoCm: endometriomaTamanhoCm,
+      endometriomaBilateral: endometriomaBilateral,
+      acometimentoUreteral: acometimentoUreteral,
+      hidronefrose: hidronefrose,
+      acometimentoIntestinal: acometimentoIntestinal,
+      estenoseIntestinalPercentual: estenoseIntestinalPercentual,
+      sintomasSuboclusivos: sintomasSuboclusivos,
+      ligamentosUterossacros: ligamentosUterossacros,
+      toroUterino: toroUterino,
+      obliteracaoDouglas: obliteracaoDouglas,
+      septoRetovaginal: septoRetovaginal,
+      bexiga: bexiga,
+      adenomiose: adenomiose,
+      falhaDienogeste: falhaDienogeste,
+      usoDienogeste: usoDienogeste,
+      falhaAhc: falhaAhc,
+      cirurgiaPrevia: cirurgiaPrevia
+    };
+  }
+
+  function formatarTextoTelegram(resultado) {
+    if (!resultado || !resultado.diagnostico) {
+      return "⚠️ Erro ao processar dados de endometriose.";
+    }
+
+    var diag = resultado.diagnostico;
+    var texto = "🌸 *MÓDULO DE ENDOMETRIOSE E DOR PÉLVICA CRÔNICA*\n";
+    texto += "*(Diretrizes ESHRE 2022-2024 / FEBRASGO 2024-2026)*\n\n";
+
+    texto += "📋 *ESTRATIFICAÇÃO CLÍNICA & SINTOMATOLOGIA (6 Ds):*\n";
+    texto += "• *Dor / Intensidade:* " + diag.classificacaoSintomas.intensidadeDor + "\n";
+    texto += "• *Sintomas Cardinais Presentes:* " + diag.classificacaoSintomas.total6Ds + " de 6\n";
+    for (var i = 0; i < diag.classificacaoSintomas.lista.length; i++) {
+      texto += "  - " + diag.classificacaoSintomas.lista[i] + "\n";
+    }
+
+    texto += "\n🗺️ *MAPEAMENTO TOPOGRÁFICO DE IMAGEM:*\n";
+    if (diag.topografia.endometrioma) {
+      texto += "• *Endometrioma:* Sim (" + (diag.topografia.endometriomaTamanhoCm > 0 ? diag.topografia.endometriomaTamanhoCm.toFixed(1) + " cm" : "diâmetro não especificado") + (diag.topografia.endometriomaBilateral ? ", bilateral" : "") + ")\n";
+    }
+    if (diag.topografia.profunda) {
+      texto += "• *Endometriose Profunda:* Presente\n";
+      if (diag.topografia.compartimentoAnterior.ureter || diag.topografia.compartimentoAnterior.hidronefrose) {
+        texto += "  - Ureter/Rim: Envolvimento ureteral (" + (diag.topografia.compartimentoAnterior.hidronefrose ? "COM hidronefrose" : "sem hidronefrose relatada") + ")\n";
+      }
+      if (diag.topografia.compartimentoPosterior.retossigmoide) {
+        texto += "  - Retossigmoide: Acometimento intestinal (" + (diag.topografia.compartimentoPosterior.estenosePercentual > 0 ? diag.topografia.compartimentoPosterior.estenosePercentual + "% estenose" : "infiltração parietal") + ")\n";
+      }
+      if (diag.topografia.compartimentoPosterior.ligamentosUterossacros) {
+        texto += "  - Ligamentos úterossacros envolvidos\n";
+      }
+      if (diag.topografia.compartimentoPosterior.obliteracaoDouglas) {
+        texto += "  - Obliteração de fundo de saco de Douglas\n";
+      }
+    }
+    if (diag.topografia.adenomiose) {
+      texto += "• *Adenomiose Concomitante:* Presente\n";
+    }
+
+    if (resultado.alertas && resultado.alertas.length > 0) {
+      texto += "\n⚠️ *ALERTAS CRÍTICOS & SEGURANÇA:*\n";
+      for (var a = 0; a < resultado.alertas.length; a++) {
+        texto += "• " + resultado.alertas[a] + "\n";
+      }
+    }
+
+    if (diag.redFlags && diag.redFlags.length > 0) {
+      texto += "\n🚨 *RED FLAGS / ALARME CIRÚRGICO:*\n";
+      for (var r = 0; r < diag.redFlags.length; r++) {
+        var rf = diag.redFlags[r];
+        texto += "• *" + rf.orgao + ":* " + rf.achado + "\n";
+        texto += "  ↳ *Risco:* " + rf.risco + "\n";
+        texto += "  ↳ *Conduta:* " + rf.conduta + "\n";
+      }
+    }
+
+    if (resultado.planoReprodutivo && resultado.planoReprodutivo.length > 0) {
+      texto += "\n👶 *CONDUTA REPRODUTIVA & FERTILIDADE:*\n";
+      for (var p = 0; p < resultado.planoReprodutivo.length; p++) {
+        texto += resultado.planoReprodutivo[p] + "\n";
+      }
+    }
+
+    if (resultado.condutaFarmacologica && resultado.condutaFarmacologica.length > 0) {
+      texto += "\n💊 *CONDUTA FARMACOLÓGICA ESCALONADA:*\n";
+      for (var c = 0; c < resultado.condutaFarmacologica.length; c++) {
+        texto += "• " + resultado.condutaFarmacologica[c] + "\n";
+      }
+    }
+
+    if (resultado.planoCirurgico && resultado.planoCirurgico.length > 0) {
+      texto += "\n🔪 *PLANEJAMENTO CIRÚRGICO (MULTIDISCIPLINAR):*\n";
+      for (var s = 0; s < resultado.planoCirurgico.length; s++) {
+        texto += "• " + resultado.planoCirurgico[s] + "\n";
+      }
+    }
+
+    texto += "\n🌱 *SUPORTE MULTIDISCIPLINAR:*\n";
+    for (var m = 0; m < resultado.suporteMultidisciplinar.length; m++) {
+      texto += "• " + resultado.suporteMultidisciplinar[m] + "\n";
+    }
+
+    return texto;
+  }
+
+  function processarComandoTelegram(texto) {
+    var params = extrairParametrosTexto(texto);
+    var resultado = avaliarEndometriose(params);
+    return formatarTextoTelegram(resultado);
+  }
+
+  return {
+    avaliar: avaliarEndometriose,
+    avaliarEndometriose: avaliarEndometriose,
+    extrairParametrosTexto: extrairParametrosTexto,
+    formatarTextoTelegram: formatarTextoTelegram,
+    processarComandoTelegram: processarComandoTelegram,
+    CATALOGO_FARMACOLOGICO: CATALOGO_FARMACOLOGICO
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = GinecologiaEndometrioseService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_hematologia_anemias.js
 // ==============================================================================
 
@@ -13180,6 +14206,843 @@ var HematologiaAnemiasService = (function () {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = HematologiaAnemiasService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_hepatologia_colestase_gestacional.js
+// ==============================================================================
+
+/**
+ * @file 02_hepatologia_colestase_gestacional.js
+ * @description Módulo de Hepatologia & Emergência Obstétrica: Colestase Intra-hepática
+ * da Gestação (CIG) e Esteatose Hepática Aguda da Gestação (EHAG / AFLP).
+ *
+ * Fontes (rastreabilidade clínica):
+ *  - RCOG Green-top Guideline No. 43: Obstetric Cholestasis (2024 revision).
+ *  - SMFM Consult Series #53: Intrahepatic Cholestasis of Pregnancy (2021, atualização 2024).
+ *  - Ovadia C et al. Association of adverse perinatal outcomes of ICP with biochemical markers:
+ *    results of aggregate and individual patient data meta-analyses. Lancet 2019;393:899-909.
+ *  - ACOG Practice Bulletin: Liver Disease in Pregnancy (2022).
+ *  - Ch'ng CL et al. Prospective study of liver dysfunction in pregnancy in Southwest Wales.
+ *    Gut 2002;51:876-880 (Critérios de Swansea para EHAG).
+ *  - Knight M et al. A prospective national study of AFLP in the UK.
+ *    Gut 2008;57:951-956 (validação Swansea).
+ *  - FEBRASGO — Protocolo de Hepatopatias na Gestação (2024).
+ *  - AASLD Position Statement: Liver Disease in Pregnancy (Terrault NA et al., Hepatology 2021).
+ *
+ * Escopo:
+ *  - Estratificação de gravidade da CIG por ácidos biliares totais séricos (ABT).
+ *  - Posologia ponderada de Ácido Ursodesoxicólico (UDCA) como 1ª linha.
+ *  - Programação do momento ideal do parto (delivery timing).
+ *  - Critérios de Swansea para diagnóstico clínico de EHAG/AFLP.
+ *  - Protocolo de estabilização pré-parto na EHAG.
+ *  - Diagnóstico diferencial entre CIG, EHAG, pré-eclâmpsia/HELLP.
+ */
+
+var HepatologiaColestaseGestacionalService = (function() {
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 1. CONSTANTES CLÍNICAS — CIG (Colestase Intra-hepática da Gestação)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Estratificação por ácidos biliares totais séricos (mcmol/L).
+   * - Leve: 10-39 mcmol/L
+   * - Moderada: 40-99 mcmol/L (risco fetal significativo: parto precoce pode ser necessário)
+   * - Grave: >= 100 mcmol/L (risco de óbito fetal súbito — Lancet 2019 meta-análise)
+   *
+   * Ponto de corte diagnóstico: >= 19 mcmol/L em jejum (RCOG) ou >= 10 mcmol/L (SMFM).
+   * Este módulo utiliza >= 10 mcmol/L como limiar diagnóstico para maximizar sensibilidade.
+   */
+  var FAIXAS_ABT = {
+    NORMAL:   { min: 0,   max: 9,   gravidade: 'NORMAL',   risco_fetal: 'Populacionamento basal' },
+    LEVE:     { min: 10,  max: 39,  gravidade: 'LEVE',     risco_fetal: 'Baixo (OR natimorto ~1,0-1,5)' },
+    MODERADA: { min: 40,  max: 99,  gravidade: 'MODERADA', risco_fetal: 'Intermediário (OR natimorto ~1,5-2,5)' },
+    GRAVE:    { min: 100, max: Infinity, gravidade: 'GRAVE', risco_fetal: 'Elevado (OR natimorto ~3,4; risco ~3,44% — Ovadia Lancet 2019)' }
+  };
+
+  /**
+   * Programação do parto conforme gravidade bioquímica (Timing of delivery).
+   * Baseado em SMFM 2021/2024, RCOG 2024, FEBRASGO 2024.
+   */
+  var TIMING_PARTO = {
+    LEVE:     { ig_semanas: 38, ig_texto: '38+0 a 39+0 semanas', justificativa: 'CIG leve (ABT 10-39): risco fetal discretamente elevado, equilibrar prematuridade iatrogênica.' },
+    MODERADA: { ig_semanas: 37, ig_texto: '37+0 a 38+0 semanas', justificativa: 'CIG moderada (ABT 40-99): risco fetal significativo; parto precoce justificado.' },
+    GRAVE:    { ig_semanas: 36, ig_texto: '36+0 a 37+0 semanas', justificativa: 'CIG grave (ABT >= 100): risco de óbito fetal súbito sem aviso cardiotocográfico (Ovadia Lancet 2019). NÃO postergar além de 37 semanas.' }
+  };
+
+  // Dose terapêutica de UDCA: 10-15 mg/kg/dia, dividida em 2-3 tomadas.
+  var UDCA_DOSE_MIN_MG_KG = 10;
+  var UDCA_DOSE_MAX_MG_KG = 15;
+  var UDCA_DOSE_ABS_MAX_MG = 2000; // Dose máxima absoluta por dia
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2. CONSTANTES CLÍNICAS — EHAG (Esteatose Hepática Aguda da Gestação)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Critérios de Swansea (Ch'ng et al., Gut 2002; Knight et al., Gut 2008).
+   * Diagnóstico: >= 6 critérios presentes, na ausência de outra etiologia.
+   */
+  var CRITERIOS_SWANSEA = [
+    { id: 'vomitos',           descricao: 'Vômitos',                         categoria: 'clínico' },
+    { id: 'dor_abdominal',     descricao: 'Dor abdominal (epigástrica ou HCD)', categoria: 'clínico' },
+    { id: 'polidipsia_poliuria', descricao: 'Polidipsia / Poliúria',         categoria: 'clínico' },
+    { id: 'encefalopatia',     descricao: 'Encefalopatia hepática',          categoria: 'clínico' },
+    { id: 'bilirrubina_elevada', descricao: 'Bilirrubina elevada (> 0,8 mg/dL ou > 14 µmol/L)', categoria: 'laboratorial' },
+    { id: 'hipoglicemia',      descricao: 'Hipoglicemia (< 72 mg/dL ou < 4 mmol/L)', categoria: 'laboratorial' },
+    { id: 'acido_urico_elevado', descricao: 'Ácido úrico elevado (> 5,7 mg/dL ou > 340 µmol/L)', categoria: 'laboratorial' },
+    { id: 'leucocitose',       descricao: 'Leucocitose (> 11.000/mm³)',      categoria: 'laboratorial' },
+    { id: 'ascite_usg',        descricao: 'Ascite ou fígado brilhante na USG', categoria: 'imagem' },
+    { id: 'transaminases_elevadas', descricao: 'Transaminases elevadas (AST ou ALT > 42 UI/L)', categoria: 'laboratorial' },
+    { id: 'amonia_elevada',    descricao: 'Amônia elevada (> 47 µmol/L)',    categoria: 'laboratorial' },
+    { id: 'insuf_renal',       descricao: 'Insuficiência renal (creatinina > 1,7 mg/dL ou > 150 µmol/L)', categoria: 'laboratorial' },
+    { id: 'coagulopatia',      descricao: 'Coagulopatia (TP > 14s ou TTPa > 34s)',  categoria: 'laboratorial' },
+    { id: 'esteatose_biopsia', descricao: 'Esteatose microvesicular na biópsia hepática', categoria: 'histológico' }
+  ];
+
+  var SWANSEA_LIMIAR = 6; // >= 6 critérios = diagnóstico de EHAG
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3. REFERÊNCIAS BIBLIOGRÁFICAS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  var REFERENCIAS = [
+    'RCOG Green-top Guideline No. 43: Obstetric Cholestasis (2024).',
+    'SMFM Consult Series #53: ICP (2021, atualização 2024).',
+    'Ovadia C et al. Lancet 2019;393:899-909 (meta-análise ABT e desfecho perinatal).',
+    'ACOG Practice Bulletin: Liver Disease in Pregnancy (2022).',
+    "Ch'ng CL et al. Gut 2002;51:876-880 (Critérios de Swansea para EHAG).",
+    'Knight M et al. Gut 2008;57:951-956 (validação prospectiva dos critérios de Swansea).',
+    'FEBRASGO — Protocolo de Hepatopatias na Gestação (2024).',
+    'Terrault NA et al. Hepatology 2021 (AASLD Position Statement: Liver Disease in Pregnancy).'
+  ];
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 4. FUNÇÕES — CIG
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Classifica a gravidade da CIG com base nos ácidos biliares totais séricos.
+   * @param {number} abt - Ácidos biliares totais séricos (mcmol/L).
+   * @returns {{ gravidade: string, faixa: object, timing_parto: object|null }}
+   */
+  function classificarGravidadeCIG(abt) {
+    if (typeof abt !== 'number' || isNaN(abt) || abt < 0) {
+      throw new Error('Ácidos biliares totais (ABT) devem ser um número >= 0.');
+    }
+
+    if (abt < 10) {
+      return { gravidade: 'NORMAL', faixa: FAIXAS_ABT.NORMAL, timing_parto: null };
+    }
+    if (abt <= 39) {
+      return { gravidade: 'LEVE', faixa: FAIXAS_ABT.LEVE, timing_parto: TIMING_PARTO.LEVE };
+    }
+    if (abt <= 99) {
+      return { gravidade: 'MODERADA', faixa: FAIXAS_ABT.MODERADA, timing_parto: TIMING_PARTO.MODERADA };
+    }
+    return { gravidade: 'GRAVE', faixa: FAIXAS_ABT.GRAVE, timing_parto: TIMING_PARTO.GRAVE };
+  }
+
+  /**
+   * Calcula a posologia ponderada de Ácido Ursodesoxicólico (UDCA).
+   * @param {number} peso - Peso corporal em kg.
+   * @returns {{ dose_min_mg: number, dose_max_mg: number, dose_diaria_texto: string, posologia: string }}
+   */
+  function calcularDoseUDCA(peso) {
+    if (typeof peso !== 'number' || isNaN(peso) || peso <= 0) {
+      throw new Error('Peso deve ser um número positivo em kg.');
+    }
+
+    var doseMin = Math.round(peso * UDCA_DOSE_MIN_MG_KG);
+    var doseMax = Math.round(peso * UDCA_DOSE_MAX_MG_KG);
+
+    // Aplicar teto absoluto
+    if (doseMin > UDCA_DOSE_ABS_MAX_MG) doseMin = UDCA_DOSE_ABS_MAX_MG;
+    if (doseMax > UDCA_DOSE_ABS_MAX_MG) doseMax = UDCA_DOSE_ABS_MAX_MG;
+
+    // Arredondar para múltiplos de 50mg (apresentação comercial: cáps 150mg, 300mg)
+    var doseMinArredondada = Math.round(doseMin / 50) * 50;
+    var doseMaxArredondada = Math.round(doseMax / 50) * 50;
+
+    // Calcular número de tomadas (geralmente 2-3x/dia)
+    // Dose prática: preferência por divisão em 2x se dose <= 900mg, 3x se > 900mg
+    var numTomadas = doseMaxArredondada > 900 ? 3 : 2;
+    var dosePorTomada = Math.round(doseMaxArredondada / numTomadas / 50) * 50;
+
+    return {
+      dose_min_mg: doseMinArredondada,
+      dose_max_mg: doseMaxArredondada,
+      dose_diaria_texto: doseMinArredondada + ' a ' + doseMaxArredondada + ' mg/dia',
+      posologia: dosePorTomada + ' mg VO a cada ' + (numTomadas === 2 ? '12h (2x/dia)' : '8h (3x/dia)'),
+      num_tomadas: numTomadas,
+      dose_por_tomada_mg: dosePorTomada,
+      apresentacao: 'Comprimidos/cápsulas de 150 mg ou 300 mg'
+    };
+  }
+
+  /**
+   * Avaliação completa de CIG — estratificação, tratamento e plano de parto.
+   * @param {object} params - Parâmetros clínicos.
+   * @param {number} params.acidos_biliares - Ácidos biliares totais séricos (mcmol/L).
+   * @param {number} [params.peso] - Peso corporal em kg (para cálculo de UDCA).
+   * @param {number} [params.ig_semanas] - Idade gestacional em semanas completas.
+   * @param {number} [params.ig_dias] - Dias adicionais da IG.
+   * @param {boolean} [params.prurido] - Prurido presente.
+   * @param {number} [params.tgo] - TGO/AST (UI/L).
+   * @param {number} [params.tgp] - TGP/ALT (UI/L).
+   * @param {number} [params.bilirrubina_total] - Bilirrubina total (mg/dL).
+   * @param {boolean} [params.antecedente_cig] - CIG em gestação prévia.
+   * @param {boolean} [params.gestacao_gemelar] - Gestação gemelar.
+   * @returns {object} Análise completa com classificação, tratamento e plano.
+   */
+  function avaliarCIG(params) {
+    if (!params || typeof params.acidos_biliares !== 'number') {
+      throw new Error('O parâmetro "acidos_biliares" (mcmol/L) é obrigatório para avaliação de CIG.');
+    }
+
+    var abt = params.acidos_biliares;
+    var classificacao = classificarGravidadeCIG(abt);
+
+    var ig = null;
+    if (params.ig_semanas != null) {
+      var sem = parseInt(params.ig_semanas, 10);
+      var dias = params.ig_dias ? parseInt(params.ig_dias, 10) : 0;
+      ig = { semanas: sem, dias: dias, texto: sem + 's' + (dias > 0 ? dias + 'd' : '') };
+    }
+
+    var resultado = {
+      diagnostico: 'COLESTASE_INTRAHEPATICA_GESTACIONAL',
+      acidos_biliares_mcmol: abt,
+      classificacao: classificacao,
+      ig: ig,
+      tratamento: null,
+      vigilancia: null,
+      parto: null,
+      alertas: [],
+      bloqueios_seguranca: [],
+      diagnostico_diferencial: [],
+      referencias: REFERENCIAS.slice()
+    };
+
+    // Se ABT < 10, não confirma CIG
+    if (classificacao.gravidade === 'NORMAL') {
+      resultado.diagnostico = 'NAO_CONFIRMADO';
+      resultado.alertas.push('⚠️ ABT < 10 mcmol/L: CIG não confirmada. Considerar diagnósticos diferenciais de prurido gestacional (dermatose gestacional, dermatite alérgica, hepatites virais).');
+      resultado.alertas.push('💡 Repetir dosagem em 1-2 semanas se prurido persistir (sensibilidade dos ABT é tempo-dependente).');
+      return resultado;
+    }
+
+    // ── Tratamento ──
+    var tratamento = {
+      farmacologico: [],
+      nao_farmacologico: []
+    };
+
+    // UDCA
+    if (params.peso) {
+      var doseUDCA = calcularDoseUDCA(params.peso);
+      tratamento.farmacologico.push({
+        farmaco: 'Ácido Ursodesoxicólico (UDCA)',
+        linha: '1ª linha',
+        dose: doseUDCA.dose_diaria_texto,
+        posologia: doseUDCA.posologia,
+        apresentacao: doseUDCA.apresentacao,
+        observacao: 'Iniciar e titular até dose máxima tolerada. Melhora do prurido em 1-2 semanas. Pode não reduzir risco de natimorto (PITCHES trial), mas reduz ABT e melhora sintomas maternos.'
+      });
+    } else {
+      tratamento.farmacologico.push({
+        farmaco: 'Ácido Ursodesoxicólico (UDCA)',
+        linha: '1ª linha',
+        dose: '10-15 mg/kg/dia (informar peso para cálculo exato)',
+        posologia: 'Dividido em 2-3 tomadas diárias',
+        apresentacao: 'Comprimidos/cápsulas de 150 mg ou 300 mg',
+        observacao: 'Iniciar e titular até dose máxima tolerada (máx 2000 mg/dia).'
+      });
+    }
+
+    // Anti-histamínicos para prurido (2ª linha sintomática)
+    tratamento.farmacologico.push({
+      farmaco: 'Hidroxizina',
+      linha: 'Adjuvante (prurido)',
+      dose: '25 mg VO à noite',
+      observacao: 'Uso noturno para alívio do prurido refratário ao UDCA. Evitar no 3º trimestre próximo ao parto (sedação neonatal).'
+    });
+
+    // Medidas não farmacológicas
+    tratamento.nao_farmacologico.push('Hidratante corporal emoliente (sem fragrância) para alívio sintomático do prurido.');
+    tratamento.nao_farmacologico.push('Banhos mornos (evitar quentes, pioram prurido).');
+    tratamento.nao_farmacologico.push('Roupas de algodão folgadas.');
+
+    resultado.tratamento = tratamento;
+
+    // ── Vigilância ──
+    var vigilancia = {
+      laboratorial: 'ABT séricos semanais até o parto (monitorar progressão para faixa grave).',
+      hepatica: 'TGO, TGP, bilirrubinas e coagulograma semanal.',
+      fetal: 'Cardiotocografia (CTG) 2x/semana a partir de 32 semanas.',
+      nota: '⚠️ A CTG NÃO previne óbito fetal súbito na CIG grave. O parto programado é a principal intervenção para reduzir risco.'
+    };
+
+    if (classificacao.gravidade === 'GRAVE') {
+      vigilancia.fetal = 'CTG diária. Internação para monitorização intensiva a partir de 34 semanas.';
+      vigilancia.laboratorial = 'ABT séricos 2x/semana. Coagulograma 2x/semana (risco de coagulopatia por má absorção de vitamina K).';
+    }
+
+    resultado.vigilancia = vigilancia;
+
+    // ── Parto ──
+    if (classificacao.timing_parto) {
+      var parto = {
+        ig_alvo_semanas: classificacao.timing_parto.ig_semanas,
+        ig_alvo_texto: classificacao.timing_parto.ig_texto,
+        justificativa: classificacao.timing_parto.justificativa,
+        via_parto: 'Via obstétrica habitual (indução do trabalho de parto é preferida).',
+        parto_indicado_agora: false
+      };
+
+      // Verificar se IG atual já atingiu o alvo
+      if (ig && ig.semanas >= parto.ig_alvo_semanas) {
+        parto.parto_indicado_agora = true;
+      }
+
+      // Corticoide antenatal
+      parto.corticoide = { indicado: false };
+      if (ig && ig.semanas >= 24 && ig.semanas < 37) {
+        // Se parto previsto em <= 7 dias e < 34+6 semanas
+        if (ig.semanas < 37 && classificacao.timing_parto.ig_semanas - ig.semanas <= 1) {
+          parto.corticoide = {
+            indicado: true,
+            esquema: 'Betametasona 12 mg IM a cada 24h (2 doses) OU Dexametasona 6 mg IM a cada 12h (4 doses).',
+            observacao: 'Maturação pulmonar fetal. Administrar se parto previsto em < 7 dias e IG 24-36+6 semanas (ALPS trial).'
+          };
+        }
+      }
+
+      // Vitamina K
+      if (classificacao.gravidade === 'GRAVE') {
+        parto.vitamina_k = {
+          indicada: true,
+          dose: 'Vitamina K1 (Fitomenadiona) 10 mg IM/IV pré-parto.',
+          justificativa: 'CIG grave causa má absorção de vitamina K por redução de sais biliares no intestino, aumentando risco de coagulopatia materna e hemorragia pós-parto.'
+        };
+      }
+
+      resultado.parto = parto;
+    }
+
+    // ── Alertas ──
+    if (params.antecedente_cig) {
+      resultado.alertas.push('🔄 Antecedente de CIG em gestação prévia: risco de recorrência de 45-90%.');
+    }
+    if (params.gestacao_gemelar) {
+      resultado.alertas.push('👶👶 Gestação gemelar: risco aumentado de CIG (maior carga hormonal placentária).');
+    }
+    if (classificacao.gravidade === 'GRAVE') {
+      resultado.alertas.push('🚨 CIG GRAVE (ABT >= 100 mcmol/L): Risco de natimorto de ~3,44% (Ovadia Lancet 2019). O parto é a principal intervenção de proteção fetal.');
+      resultado.alertas.push('⚠️ CTG NÃO é preditiva de óbito fetal na CIG grave. O evento é frequentemente SÚBITO e sem sinais premonitórios cardiotocográficos.');
+    }
+    if (params.tgo && params.tgo > 200) {
+      resultado.alertas.push('🔬 TGO > 200 UI/L: Excluir hepatites virais agudas (HAV, HBV, HCV, HEV) e EHAG/AFLP.');
+    }
+    if (params.bilirrubina_total && params.bilirrubina_total > 2.0) {
+      resultado.alertas.push('🟡 Bilirrubina > 2,0 mg/dL é incomum na CIG isolada. Investigar EHAG, HELLP ou obstrução biliar.');
+    }
+
+    // ── Diagnóstico diferencial ──
+    resultado.diagnostico_diferencial = [
+      'EHAG / AFLP (Esteatose Hepática Aguda da Gestação) — encefalopatia, hipoglicemia, coagulopatia.',
+      'Síndrome HELLP — plaquetopenia, hemólise (LDH elevada), dor epigástrica.',
+      'Pré-eclâmpsia com sinais de gravidade — hipertensão arterial, proteinúria.',
+      'Hepatite viral aguda (A, B, C, E) — sorologia viral.',
+      'Coledocolitíase — dor em HCD, icterícia colestática, dilatação de vias biliares à USG.',
+      'Dermatose gestacional (PUPPP, penfigoide gestacional) — prurido sem elevação de ABT.'
+    ];
+
+    // ── Bloqueios de segurança ──
+    resultado.bloqueios_seguranca.push('🚫 NÃO utilizar Colestiramina como monoterapia (inferior ao UDCA e interfere na absorção de vitaminas lipossolúveis e medicamentos).');
+    resultado.bloqueios_seguranca.push('🚫 NÃO utilizar Dexametasona para tratamento da CIG (sem evidência de benefício e efeitos adversos materno-fetais).');
+    resultado.bloqueios_seguranca.push('🚫 S-adenosilmetionina (SAMe) NÃO é recomendada como monoterapia (evidência insuficiente).');
+    resultado.bloqueios_seguranca.push('⚠️ Monitorar coagulograma: CIG grave pode causar deficiência de vitamina K por colestase.');
+    resultado.bloqueios_seguranca.push('⚠️ NÃO postergar o parto além do limiar recomendado para a faixa de ABT — o principal risco é o óbito fetal súbito.');
+
+    return resultado;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 5. FUNÇÕES — EHAG / AFLP (Esteatose Hepática Aguda da Gestação)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Avalia os Critérios de Swansea para diagnóstico de EHAG/AFLP.
+   * @param {object} criterios - Objeto com booleans para cada critério.
+   * @returns {{ diagnostico: string, criterios_presentes: string[], total: number,
+   *             limiar: number, confirmado: boolean, protocolo: object }}
+   */
+  function avaliarSwansea(criterios) {
+    if (!criterios || typeof criterios !== 'object') {
+      throw new Error('Critérios de Swansea devem ser informados como objeto.');
+    }
+
+    var presentes = [];
+    var ausentes = [];
+
+    CRITERIOS_SWANSEA.forEach(function(c) {
+      if (criterios[c.id]) {
+        presentes.push(c.descricao);
+      } else {
+        ausentes.push(c.descricao);
+      }
+    });
+
+    var total = presentes.length;
+    var confirmado = total >= SWANSEA_LIMIAR;
+
+    var resultado = {
+      diagnostico: confirmado ? 'EHAG_CONFIRMADA' : 'EHAG_NAO_CONFIRMADA',
+      criterios_presentes: presentes,
+      criterios_ausentes: ausentes,
+      total_presentes: total,
+      total_criterios: CRITERIOS_SWANSEA.length,
+      limiar: SWANSEA_LIMIAR,
+      confirmado: confirmado,
+      protocolo: null,
+      alertas: [],
+      bloqueios_seguranca: [],
+      referencias: REFERENCIAS.slice()
+    };
+
+    if (confirmado) {
+      resultado.protocolo = gerarProtocoloEHAG(criterios);
+      resultado.alertas.push('🚨 EHAG/AFLP CONFIRMADA: EMERGÊNCIA OBSTÉTRICA. O parto é o tratamento DEFINITIVO.');
+      resultado.alertas.push('⚠️ Mortalidade materna: 1,8% (séries recentes). Mortalidade perinatal: 9-23%.');
+      resultado.alertas.push('⚡ A recuperação hepática inicia tipicamente 48-72h após o parto, mas CIVD e insuficiência hepática podem progredir no pós-parto imediato.');
+    } else {
+      resultado.alertas.push('ℹ️ Critérios de Swansea não preenchidos (' + total + '/' + SWANSEA_LIMIAR + '). Reavaliar em 24-48h se quadro clínico-laboratorial progredir.');
+    }
+
+    return resultado;
+  }
+
+  /**
+   * Gera o protocolo de estabilização e manejo da EHAG.
+   * @param {object} criterios - Critérios avaliados.
+   * @returns {object} Protocolo de manejo.
+   */
+  function gerarProtocoloEHAG(criterios) {
+    var protocolo = {
+      prioridade: 'EMERGÊNCIA OBSTÉTRICA',
+      equipe: [
+        'Obstetra sênior',
+        'Hepatologista / Intensivista',
+        'Anestesiologista',
+        'Hematologista (se CIVD)',
+        'Neonatologista'
+      ],
+      estabilizacao_pre_parto: [],
+      parto: {},
+      pos_parto: [],
+      suporte_uti: []
+    };
+
+    // Estabilização pré-parto
+    protocolo.estabilizacao_pre_parto.push('Acesso venoso calibroso (2 acessos periféricos 16-18G ou acesso central).');
+    protocolo.estabilizacao_pre_parto.push('Monitorização hemodinâmica contínua (PA, FC, SpO2, débito urinário).');
+    protocolo.estabilizacao_pre_parto.push('Reserva de hemoderivados: 4U CHAD, 4U PFC, 6U crio, 1 pool de plaquetas.');
+    protocolo.estabilizacao_pre_parto.push('Coleta imediata: hemograma, coagulograma (TP, TTPa, fibrinogênio), TGO, TGP, bilirrubinas, glicemia, creatinina, ácido úrico, lactato, amônia, gasometria arterial.');
+
+    if (criterios.hipoglicemia) {
+      protocolo.estabilizacao_pre_parto.push('💉 HIPOGLICEMIA: Glicose hipertônica 50% — 40 mL IV em bolus + SG 10% em infusão contínua (100-150 mL/h). Monitorar glicemia capilar a cada 1h.');
+    }
+
+    if (criterios.coagulopatia) {
+      protocolo.estabilizacao_pre_parto.push('🩸 COAGULOPATIA/CIVD: Plasma Fresco Congelado (PFC) 15-20 mL/kg IV. Crioprecipitado 10U se fibrinogênio < 150 mg/dL. Plaquetas se < 50.000/mm³ pré-parto.');
+      protocolo.estabilizacao_pre_parto.push('Vitamina K1 (Fitomenadiona) 10 mg IV lento.');
+    }
+
+    if (criterios.encefalopatia) {
+      protocolo.estabilizacao_pre_parto.push('🧠 ENCEFALOPATIA HEPÁTICA: Lactulose 30 mL VO/SNG a cada 6-8h (alvo: 2-3 evacuações pastosas/dia). Evitar sedativos.');
+      protocolo.estabilizacao_pre_parto.push('Considerar N-acetilcisteína (NAC) IV 150 mg/kg em 60 min (protocolo de insuficiência hepática aguda não paracetamol — AASLD).');
+    }
+
+    // Parto
+    protocolo.parto = {
+      urgencia: 'Parto URGENTE após estabilização materna (não postergar > 24-48h do diagnóstico).',
+      via: 'Cesariana é frequentemente necessária, mas indução vaginal pode ser considerada se condição materna estável e colo favorável.',
+      anestesia: 'Avaliação anestésica OBRIGATÓRIA: bloqueio neuroaxial somente se plaquetas > 75.000 e coagulograma adequado; caso contrário, anestesia geral com intubação de sequência rápida.',
+      nota: 'A decisão da via de parto deve ser INDIVIDUALIZADA com base na gravidade da coagulopatia e estabilidade hemodinâmica.'
+    };
+
+    // Pós-parto
+    protocolo.pos_parto.push('Monitoramento em UTI por no mínimo 48-72h após o parto.');
+    protocolo.pos_parto.push('Controle laboratorial seriado a cada 12-24h: TGO, TGP, bilirrubinas, coagulograma, glicemia, creatinina, hemograma, lactato.');
+    protocolo.pos_parto.push('Melhora esperada em 48-72h. Se piora progressiva após 72h → considerar transplante hepático (acionar centro de referência).');
+    protocolo.pos_parto.push('Manter suporte glicêmico e correção de coagulopatia até normalização.');
+
+    // Suporte de UTI
+    protocolo.suporte_uti.push('Fluidoterapia com cristaloides balanceados (evitar sobrecarga).');
+    protocolo.suporte_uti.push('Profilaxia de úlcera de estresse: Pantoprazol 40 mg IV 1x/dia.');
+    protocolo.suporte_uti.push('Se insuficiência renal aguda: considerar diálise precoce (hemodiafiltração venovenosa contínua).');
+    protocolo.suporte_uti.push('Contatar centro de transplante hepático se critérios de King\'s College para insuficiência hepática aguda.');
+
+    return protocolo;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 6. DIAGNÓSTICO DIFERENCIAL UNIFICADO
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Diferencial clínico entre CIG, EHAG e HELLP.
+   * @param {object} dados - Dados clínico-laboratoriais.
+   * @returns {{ diagnosticos_provaveis: string[], tabela: object[] }}
+   */
+  function diagnosticoDiferencial(dados) {
+    if (!dados) dados = {};
+
+    var tabela = [
+      {
+        diagnostico: 'CIG (Colestase Intra-hepática)',
+        prurido: 'Intenso (palmas e plantas)',
+        transaminases: 'Normais a moderadamente elevadas',
+        bilirrubina: 'Normal ou levemente elevada',
+        plaquetas: 'Normais',
+        coagulopatia: 'Rara (apenas em CIG grave por def. vit K)',
+        hipoglicemia: 'Ausente',
+        hipertensao: 'Ausente',
+        encefalopatia: 'Ausente',
+        abt_elevados: 'SIM (> 10 mcmol/L)',
+        pico_incidencia: '3º trimestre (> 28 semanas)'
+      },
+      {
+        diagnostico: 'EHAG / AFLP',
+        prurido: 'Incomum',
+        transaminases: 'Elevadas (geralmente < 500-1000)',
+        bilirrubina: 'Elevada',
+        plaquetas: 'Normais ou reduzidas',
+        coagulopatia: 'Frequente (CIVD)',
+        hipoglicemia: 'Frequente (sinal cardinal)',
+        hipertensao: 'Presente em ~50%',
+        encefalopatia: 'Pode ocorrer (insuf. hepática)',
+        abt_elevados: 'Podem estar elevados',
+        pico_incidencia: '3º trimestre (> 30 semanas)'
+      },
+      {
+        diagnostico: 'Síndrome HELLP',
+        prurido: 'Ausente',
+        transaminases: 'Elevadas',
+        bilirrubina: 'Elevada (hemólise)',
+        plaquetas: 'REDUZIDAS (< 100.000)',
+        coagulopatia: 'Possível (CIVD em formas graves)',
+        hipoglicemia: 'Rara',
+        hipertensao: 'Presente (pré-eclâmpsia)',
+        encefalopatia: 'Rara',
+        abt_elevados: 'Normais',
+        pico_incidencia: '3º trimestre'
+      }
+    ];
+
+    var provaveis = [];
+
+    // Heurística de sugestão diagnóstica
+    if (dados.acidos_biliares && dados.acidos_biliares >= 10) {
+      provaveis.push('CIG');
+    }
+    if (dados.hipoglicemia || dados.encefalopatia || (dados.coagulopatia && dados.transaminases_elevadas)) {
+      provaveis.push('EHAG/AFLP');
+    }
+    if (dados.plaquetas_baixas && dados.hipertensao) {
+      provaveis.push('HELLP');
+    }
+    if (provaveis.length === 0) {
+      provaveis.push('Dados insuficientes para sugestão diagnóstica');
+    }
+
+    return {
+      diagnosticos_provaveis: provaveis,
+      tabela: tabela
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 7. PARSER DE TEXTO LIVRE (Telegram)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Extrai parâmetros clínicos de um texto livre para avaliação de CIG/EHAG.
+   * @param {string} texto - Texto livre do usuário.
+   * @returns {object} Parâmetros extraídos.
+   */
+  function extrairParametrosTexto(texto) {
+    if (!texto || typeof texto !== 'string') return {};
+
+    var t = texto.toLowerCase().replace(/,/g, '.').trim();
+    var params = {};
+
+    // Ácidos biliares totais
+    var mAbt = t.match(/(?:abt|acidos?\s*biliares?|bile\s*acids?|ab)\s*[:=]?\s*(\d+(?:\.\d+)?)/);
+    if (mAbt) params.acidos_biliares = parseFloat(mAbt[1]);
+
+    // Peso
+    var mPeso = t.match(/(?:peso|weight)\s*[:=]?\s*(\d+(?:\.\d+)?)\s*(?:kg)?/);
+    if (mPeso) params.peso = parseFloat(mPeso[1]);
+
+    // IG
+    var mIg = t.match(/(?:ig|idade\s*gestacional)?\s*(\d{1,2})\s*(?:s(?:em(?:anas?)?)?|semanas?)\s*(?:e?\s*(\d)\s*(?:d(?:ias?)?)?)?/);
+    if (!mIg) {
+      mIg = t.match(/(\d{1,2})\s*\+\s*(\d)/);
+    }
+    if (mIg) {
+      params.ig_semanas = parseInt(mIg[1], 10);
+      if (mIg[2]) params.ig_dias = parseInt(mIg[2], 10);
+    }
+
+    // TGO/TGP
+    var mTgo = t.match(/(?:tgo|ast)\s*[:=]?\s*(\d+(?:\.\d+)?)/);
+    if (mTgo) params.tgo = parseFloat(mTgo[1]);
+    var mTgp = t.match(/(?:tgp|alt)\s*[:=]?\s*(\d+(?:\.\d+)?)/);
+    if (mTgp) params.tgp = parseFloat(mTgp[1]);
+
+    // Bilirrubina
+    var mBil = t.match(/(?:bilirrubina|bt|bil)\s*[:=]?\s*(\d+(?:\.\d+)?)/);
+    if (mBil) params.bilirrubina_total = parseFloat(mBil[1]);
+
+    // Booleanos
+    if (/prurido|coceira|pruri/i.test(t)) params.prurido = true;
+    if (/antecedente|previa|anterior|recorrente/i.test(t)) params.antecedente_cig = true;
+    if (/gemelar|gemeo|gemeos|twins/i.test(t)) params.gestacao_gemelar = true;
+
+    // Critérios de Swansea (EHAG)
+    if (/ehag|aflp|esteatose|fatty\s*liver|swansea/i.test(t)) {
+      params.modo = 'EHAG';
+      params.swansea = {};
+      if (/v[oô]mito/i.test(t)) params.swansea.vomitos = true;
+      if (/dor\s*(?:abdominal|epig[aá]strica|hcd)/i.test(t)) params.swansea.dor_abdominal = true;
+      if (/polidipsia|poli[uú]ria/i.test(t)) params.swansea.polidipsia_poliuria = true;
+      if (/encefalopatia|confus[aã]o\s*mental|rebaixamento/i.test(t)) params.swansea.encefalopatia = true;
+      if (/bilirrubina\s*(?:elevada|alta|>)/i.test(t) || (params.bilirrubina_total && params.bilirrubina_total > 0.8)) params.swansea.bilirrubina_elevada = true;
+      if (/hipoglicemia|glicose\s*(?:baixa|<)|glicemia\s*(?:baixa|<)/i.test(t)) params.swansea.hipoglicemia = true;
+      if (/[aá]cido\s*[uú]rico\s*(?:elevado|alto|>)|hiperuricemia/i.test(t)) params.swansea.acido_urico_elevado = true;
+      if (/leucocitose|leuc[oó]citos?\s*(?:elevad|alt|>)|gb\s*>\s*11/i.test(t)) params.swansea.leucocitose = true;
+      if (/ascite|f[ií]gado\s*brilhante/i.test(t)) params.swansea.ascite_usg = true;
+      if (/transaminases?\s*(?:elevad|alt|>)|tgo\s*>\s*42|tgp\s*>\s*42/i.test(t) || (params.tgo && params.tgo > 42) || (params.tgp && params.tgp > 42)) params.swansea.transaminases_elevadas = true;
+      if (/am[oô]nia\s*(?:elevad|alt|>)/i.test(t)) params.swansea.amonia_elevada = true;
+      if (/insuf(?:ici[eê]ncia)?\s*renal|creatinina\s*(?:elevad|alt|>)/i.test(t)) params.swansea.insuf_renal = true;
+      if (/coagulopatia|civd|dic|tp\s*>\s*14|ttpa\s*>\s*34/i.test(t)) params.swansea.coagulopatia = true;
+      if (/bi[oó]psia|esteatose\s*micro/i.test(t)) params.swansea.esteatose_biopsia = true;
+    }
+
+    return params;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 8. AVALIAÇÃO UNIFICADA (entry point principal)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Função principal de avaliação. Despacha para CIG ou EHAG conforme os dados.
+   * @param {object} params - Parâmetros clínicos.
+   * @returns {object} Resultado da avaliação.
+   */
+  function avaliar(params) {
+    if (!params || typeof params !== 'object') {
+      throw new Error('Parâmetros clínicos obrigatórios.');
+    }
+
+    // Modo EHAG
+    if (params.modo === 'EHAG' && params.swansea) {
+      return avaliarSwansea(params.swansea);
+    }
+
+    // Modo CIG (padrão)
+    if (params.acidos_biliares != null) {
+      return avaliarCIG(params);
+    }
+
+    throw new Error('Informe "acidos_biliares" para avaliação de CIG ou "modo: EHAG" com critérios de Swansea.');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 9. FORMATAÇÃO TELEGRAM
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Formata o resultado da avaliação em texto Markdown para Telegram.
+   * @param {object} resultado - Resultado de avaliar() ou avaliarCIG() ou avaliarSwansea().
+   * @returns {string} Texto formatado.
+   */
+  function formatarTextoTelegram(resultado) {
+    if (!resultado) return '';
+    var t = [];
+
+    if (resultado.diagnostico === 'COLESTASE_INTRAHEPATICA_GESTACIONAL' || resultado.diagnostico === 'NAO_CONFIRMADO') {
+      // ── CIG ──
+      t.push('🟡 *COLESTASE INTRA-HEPÁTICA DA GESTAÇÃO (CIG)*');
+      t.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      t.push('');
+
+      t.push('📊 *ÁCIDOS BILIARES TOTAIS:* ' + resultado.acidos_biliares_mcmol + ' mcmol/L');
+      t.push('🏷️ *CLASSIFICAÇÃO:* ' + resultado.classificacao.gravidade);
+      t.push('⚠️ *RISCO FETAL:* ' + resultado.classificacao.faixa.risco_fetal);
+
+      if (resultado.ig) {
+        t.push('📅 *IG:* ' + resultado.ig.texto);
+      }
+      t.push('');
+
+      if (resultado.diagnostico === 'NAO_CONFIRMADO') {
+        t.push('ℹ️ *CIG não confirmada (ABT < 10 mcmol/L).*');
+        t.push('');
+      }
+
+      // Tratamento
+      if (resultado.tratamento) {
+        t.push('💊 *TRATAMENTO:*');
+        resultado.tratamento.farmacologico.forEach(function(f) {
+          t.push(' • *' + f.farmaco + '* (' + f.linha + ')');
+          t.push('   Dose: ' + f.dose);
+          if (f.posologia) t.push('   Posologia: ' + f.posologia);
+          if (f.observacao) t.push('   _' + f.observacao + '_');
+        });
+        if (resultado.tratamento.nao_farmacologico.length > 0) {
+          t.push('');
+          t.push('🧴 *Medidas não farmacológicas:*');
+          resultado.tratamento.nao_farmacologico.forEach(function(m) {
+            t.push(' • ' + m);
+          });
+        }
+        t.push('');
+      }
+
+      // Vigilância
+      if (resultado.vigilancia) {
+        t.push('👁️ *VIGILÂNCIA:*');
+        t.push(' • Lab: ' + resultado.vigilancia.laboratorial);
+        t.push(' • Hepática: ' + resultado.vigilancia.hepatica);
+        t.push(' • Fetal: ' + resultado.vigilancia.fetal);
+        if (resultado.vigilancia.nota) t.push(' • ' + resultado.vigilancia.nota);
+        t.push('');
+      }
+
+      // Parto
+      if (resultado.parto) {
+        t.push('🏥 *PROGRAMAÇÃO DO PARTO:*');
+        t.push(' • IG alvo: *' + resultado.parto.ig_alvo_texto + '*');
+        t.push(' • Via: ' + resultado.parto.via_parto);
+        t.push(' • Justificativa: ' + resultado.parto.justificativa);
+        if (resultado.parto.parto_indicado_agora) {
+          t.push(' • 🚨 *PARTO INDICADO AGORA* (IG >= alvo)');
+        }
+        if (resultado.parto.corticoide && resultado.parto.corticoide.indicado) {
+          t.push('');
+          t.push('💉 *CORTICOIDE ANTENATAL (INDICADO):*');
+          t.push(' • ' + resultado.parto.corticoide.esquema);
+        }
+        if (resultado.parto.vitamina_k && resultado.parto.vitamina_k.indicada) {
+          t.push('');
+          t.push('💊 *VITAMINA K:*');
+          t.push(' • ' + resultado.parto.vitamina_k.dose);
+          t.push('   _' + resultado.parto.vitamina_k.justificativa + '_');
+        }
+        t.push('');
+      }
+
+    } else if (resultado.diagnostico === 'EHAG_CONFIRMADA' || resultado.diagnostico === 'EHAG_NAO_CONFIRMADA') {
+      // ── EHAG ──
+      t.push('🔴 *ESTEATOSE HEPÁTICA AGUDA DA GESTAÇÃO (EHAG / AFLP)*');
+      t.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      t.push('');
+
+      t.push('📊 *CRITÉRIOS DE SWANSEA:* ' + resultado.total_presentes + '/' + resultado.total_criterios + ' (limiar >= ' + resultado.limiar + ')');
+      t.push('🏷️ *STATUS:* ' + (resultado.confirmado ? '✅ CONFIRMADA' : '❌ NÃO CONFIRMADA'));
+      t.push('');
+
+      if (resultado.criterios_presentes.length > 0) {
+        t.push('✅ *Critérios presentes:*');
+        resultado.criterios_presentes.forEach(function(c) {
+          t.push(' • ' + c);
+        });
+        t.push('');
+      }
+
+      // Protocolo
+      if (resultado.protocolo) {
+        var p = resultado.protocolo;
+        t.push('🚨 *PRIORIDADE:* ' + p.prioridade);
+        t.push('');
+
+        t.push('👥 *EQUIPE MULTIDISCIPLINAR:*');
+        p.equipe.forEach(function(e) { t.push(' • ' + e); });
+        t.push('');
+
+        t.push('⚡ *ESTABILIZAÇÃO PRÉ-PARTO:*');
+        p.estabilizacao_pre_parto.forEach(function(e) { t.push(' • ' + e); });
+        t.push('');
+
+        t.push('🏥 *PARTO:*');
+        t.push(' • *Urgência:* ' + p.parto.urgencia);
+        t.push(' • *Via:* ' + p.parto.via);
+        t.push(' • *Anestesia:* ' + p.parto.anestesia);
+        t.push(' • _' + p.parto.nota + '_');
+        t.push('');
+
+        t.push('🔄 *PÓS-PARTO:*');
+        p.pos_parto.forEach(function(e) { t.push(' • ' + e); });
+        t.push('');
+      }
+    }
+
+    // Alertas
+    if (resultado.alertas && resultado.alertas.length > 0) {
+      t.push('⚠️ *ALERTAS:*');
+      resultado.alertas.forEach(function(a) { t.push(' • ' + a); });
+      t.push('');
+    }
+
+    // Diagnóstico diferencial
+    if (resultado.diagnostico_diferencial && resultado.diagnostico_diferencial.length > 0) {
+      t.push('🔍 *DIAGNÓSTICO DIFERENCIAL:*');
+      resultado.diagnostico_diferencial.forEach(function(d) { t.push(' • ' + d); });
+      t.push('');
+    }
+
+    // Bloqueios de segurança
+    if (resultado.bloqueios_seguranca && resultado.bloqueios_seguranca.length > 0) {
+      t.push('🛡️ *BLOQUEIOS DE SEGURANÇA:*');
+      resultado.bloqueios_seguranca.forEach(function(b) { t.push(' • ' + b); });
+      t.push('');
+    }
+
+    // Referências
+    t.push('📚 Fontes: RCOG 2024, SMFM 2024, Ovadia Lancet 2019, ACOG 2022, Swansea (Gut 2002/2008), FEBRASGO 2024, AASLD 2021.');
+    t.push('Decisão final do obstetra e hepatologista assistente.');
+
+    return t.join('\n');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 10. API PÚBLICA
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  return {
+    classificarGravidadeCIG: classificarGravidadeCIG,
+    calcularDoseUDCA: calcularDoseUDCA,
+    avaliarCIG: avaliarCIG,
+    avaliarSwansea: avaliarSwansea,
+    diagnosticoDiferencial: diagnosticoDiferencial,
+    extrairParametrosTexto: extrairParametrosTexto,
+    avaliar: avaliar,
+    formatarTextoTelegram: formatarTextoTelegram,
+    CRITERIOS_SWANSEA: CRITERIOS_SWANSEA,
+    FAIXAS_ABT: FAIXAS_ABT,
+    REFERENCIAS: REFERENCIAS
+  };
+})();
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+  module.exports = HepatologiaColestaseGestacionalService;
 }
 
 
@@ -15749,6 +17612,2006 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_obstetricia_rcf_doppler.js
+// ==============================================================================
+
+/**
+ * @file 02_obstetricia_rcf_doppler.js
+ * @description Módulo de Obstetrícia & Medicina Materno-Fetal: Restrição de Crescimento Fetal
+ * (RCF / CIUR) e interpretação determinística do Doppler obstétrico.
+ *
+ * Fontes (rastreabilidade clínica):
+ *  - Gordijn SJ et al. Consensus definition of fetal growth restriction: a Delphi procedure.
+ *    Ultrasound Obstet Gynecol 2016;48:333-339 (definição de RCF precoce < 32 sem vs tardia >= 32 sem).
+ *  - Lees CC et al. ISUOG Practice Guidelines: diagnosis and management of small-for-gestational-age
+ *    fetus and fetal growth restriction. Ultrasound Obstet Gynecol 2020;56:298-312.
+ *  - Figueras F, Gratacós E. Update on the diagnosis and classification of fetal growth restriction and
+ *    proposal of a stage-based management protocol. Fetal Diagn Ther 2014;36:86-98 (Estágios I-IV de Barcelona).
+ *  - Lees CC et al. (TRUFFLE). Lancet 2015;385:2162-2172 (limiares de VCP da cCTG e onda A do ducto venoso).
+ *  - Pels A et al. (Dutch STRIDER). Lancet Child Adolesc Health 2020;4:22-32 (sildenafila: dano neonatal).
+ *  - FEBRASGO — Protocolo de Restrição de Crescimento Fetal (Comissão Nacional Especializada em Medicina Fetal).
+ *
+ * Escopo: gestação única, sem anomalias estruturais. Percentis devem vir da curva de referência adotada
+ * pelo serviço (laudo do ultrassom). O módulo NÃO estima percentis a partir de valores brutos de IP,
+ * exceto a regra conservadora RCP < 1,0 (sempre anormal no 3º trimestre).
+ */
+
+var ObstetriciaRcfDopplerService = (function() {
+    'use strict';
+
+    var LIMITE_RCF_PRECOCE_SEMANAS = 32;
+    var IG_MINIMA = 20;
+    var IG_MAXIMA = 42;
+
+    /**
+     * Conduta por estágio (Figueras & Gratacós 2014 / ISUOG 2020).
+     * Estágio 0 = PIG constitucional (Doppler normal, sem critérios de RCF).
+     */
+    var PROTOCOLO_ESTAGIOS = {
+        0: {
+            rotulo: 'PIG (Pequeno para a Idade Gestacional) — Doppler normal',
+            fisiopatologia: 'Feto constitucionalmente pequeno, sem evidência de insuficiência placentária.',
+            vigilancia: 'Biometria fetal e Doppler (AU, ACM, RCP) a cada 2 semanas.',
+            ig_alvo_semanas: 39,
+            ig_alvo_texto: '39+0 a 40+0 semanas',
+            via_parto: 'Via obstétrica habitual; indução do trabalho de parto permitida.'
+        },
+        1: {
+            rotulo: 'Estágio I — PIG grave ou insuficiência placentária leve',
+            fisiopatologia: 'Insuficiência placentária leve / redistribuição hemodinâmica inicial (baixo risco de acidose).',
+            vigilancia: 'Doppler semanal (AU, ACM, RCP, uterinas) + biometria a cada 2 semanas + avaliação do líquido amniótico.',
+            ig_alvo_semanas: 37,
+            ig_alvo_texto: '37+0 semanas',
+            via_parto: 'Indução do trabalho de parto permitida, com monitorização fetal contínua (cardiotocografia intraparto).'
+        },
+        2: {
+            rotulo: 'Estágio II — Insuficiência placentária grave',
+            fisiopatologia: 'Diástole zero na artéria umbilical ou fluxo reverso no istmo aórtico: alto risco de deterioração.',
+            vigilancia: 'Doppler (AU, ACM, ducto venoso) e cCTG 2 a 3 vezes por semana; considerar internação.',
+            ig_alvo_semanas: 34,
+            ig_alvo_texto: '34+0 semanas',
+            via_parto: 'Cesariana (baixa reserva fetal para contrações; indução não recomendada).'
+        },
+        3: {
+            rotulo: 'Estágio III — Baixa suspeita de acidose fetal (descompensação em curso)',
+            fisiopatologia: 'Diástole reversa na artéria umbilical ou IP do ducto venoso > p95: descompensação cardiovascular fetal em curso.',
+            vigilancia: 'Internação em centro terciário com UTI neonatal; Doppler (ducto venoso) e cCTG a cada 24 a 48 horas.',
+            ig_alvo_semanas: 30,
+            ig_alvo_texto: '30+0 semanas',
+            via_parto: 'Cesariana.'
+        },
+        4: {
+            rotulo: 'Estágio IV — Alta suspeita de acidose fetal',
+            fisiopatologia: 'Onda A ausente/reversa no ducto venoso, VCP reduzida na cCTG ou desacelerações espontâneas: risco iminente de óbito fetal.',
+            vigilancia: 'Internação em centro terciário; cCTG/vitalidade a cada 12 horas até o parto.',
+            ig_alvo_semanas: 26,
+            ig_alvo_texto: '>= 26+0 semanas (após corticoide, se a vitalidade permitir)',
+            via_parto: 'Cesariana.'
+        }
+    };
+
+    var REFERENCIAS = [
+        'Gordijn SJ et al. Consenso Delphi de definição de RCF. Ultrasound Obstet Gynecol 2016;48:333-9.',
+        'ISUOG Practice Guidelines — SGA e RCF. Ultrasound Obstet Gynecol 2020;56:298-312.',
+        'Figueras F, Gratacós E. Protocolo por estágios (Barcelona). Fetal Diagn Ther 2014;36:86-98.',
+        'TRUFFLE (Lees CC et al.). Lancet 2015;385:2162-72.',
+        'Dutch STRIDER (Pels A et al.). Lancet Child Adolesc Health 2020;4:22-32.',
+        'FEBRASGO — Protocolo de Restrição de Crescimento Fetal.'
+    ];
+
+    // ───────────────────────────── utilitários ─────────────────────────────
+
+    function num(v) {
+        if (v === null || v === undefined || v === '') return NaN;
+        return parseFloat(String(v).replace(',', '.'));
+    }
+
+    function flag(v) {
+        return v === true || v === 1 || v === 'true' || v === 'sim';
+    }
+
+    function percentil(params, chave) {
+        var p = num(params[chave]);
+        if (isNaN(p)) return NaN;
+        if (p < 0 || p > 100) {
+            throw new Error('Percentil inválido em "' + chave + '": ' + params[chave] + ' (esperado entre 0 e 100).');
+        }
+        return p;
+    }
+
+    /** Verdadeiro se o percentil informado atende ao critério, ou se o marcador booleano equivalente veio marcado. */
+    function criterioPercentil(params, chavePercentil, chaveFlag, comparador) {
+        var p = percentil(params, chavePercentil);
+        if (!isNaN(p)) return comparador(p);
+        return flag(params[chaveFlag]);
+    }
+
+    function normalizarDiastoleAU(v) {
+        var s = String(v || '').toLowerCase();
+        if (/revers|revert|invertid|redv/.test(s)) return 'reversa';
+        if (/zero|ausente|aedv/.test(s)) return 'zero';
+        return 'normal';
+    }
+
+    function normalizarOndaA(v) {
+        var s = String(v || '').toLowerCase();
+        if (/revers|revert|negativ|invertid/.test(s)) return 'reversa';
+        if (/ausente|zero/.test(s)) return 'ausente';
+        return 'positiva';
+    }
+
+    function formatarIg(diasTotais) {
+        return Math.floor(diasTotais / 7) + 's' + (diasTotais % 7) + 'd';
+    }
+
+    /**
+     * Normaliza a idade gestacional. Aceita ig_semanas (+ ig_dias), ig decimal ou string "30+4" / "30s4d".
+     */
+    function normalizarIg(params) {
+        var semanas = NaN;
+        var dias = 0;
+        var igStr = params.ig !== undefined && params.ig !== null ? String(params.ig) : '';
+        var mStr = igStr.match(/^\s*(\d{1,2})\s*(?:\+|s|sem)\s*(\d)?\s*d?\s*$/i);
+
+        if (!isNaN(num(params.ig_semanas))) {
+            semanas = num(params.ig_semanas);
+            dias = num(params.ig_dias) || 0;
+        } else if (mStr) {
+            semanas = parseInt(mStr[1], 10);
+            dias = mStr[2] ? parseInt(mStr[2], 10) : 0;
+        } else if (!isNaN(num(params.ig))) {
+            semanas = num(params.ig);
+        }
+
+        if (isNaN(semanas)) {
+            throw new Error('Idade gestacional obrigatória (ex.: ig_semanas: 30, ig_dias: 4).');
+        }
+        if (dias < 0 || dias > 6) {
+            throw new Error('Dias da idade gestacional devem estar entre 0 e 6.');
+        }
+
+        var diasTotais = Math.round(Math.floor(semanas) * 7 + (semanas - Math.floor(semanas)) * 7 + dias);
+        var decimal = diasTotais / 7;
+        if (decimal < IG_MINIMA || decimal >= IG_MAXIMA + 1) {
+            throw new Error('Idade gestacional fora da faixa de aplicação do protocolo (' + IG_MINIMA + ' a ' + IG_MAXIMA + ' semanas).');
+        }
+
+        return {
+            semanas: Math.floor(diasTotais / 7),
+            dias: diasTotais % 7,
+            dias_totais: diasTotais,
+            decimal: Math.round(decimal * 100) / 100,
+            texto: formatarIg(diasTotais)
+        };
+    }
+
+    // ─────────────────────────── interpretação Doppler ───────────────────────────
+
+    /**
+     * Interpreta os achados biométricos e dopplervelocimétricos em marcadores binários auditáveis.
+     */
+    function interpretarDoppler(params, ig) {
+        params = params || {};
+        var achados = [];
+        var notas = [];
+
+        var diastoleAU = normalizarDiastoleAU(params.au_diastole);
+        var ondaA = normalizarOndaA(params.dv_onda_a);
+
+        var pfeMenorP3 = criterioPercentil(params, 'peso_fetal_percentil', 'peso_fetal_menor_p3', function(p) { return p < 3; });
+        var caMenorP3 = criterioPercentil(params, 'ca_percentil', 'ca_menor_p3', function(p) { return p < 3; });
+        var pfeMenorP10 = pfeMenorP3 || criterioPercentil(params, 'peso_fetal_percentil', 'peso_fetal_menor_p10', function(p) { return p < 10; });
+        var caMenorP10 = caMenorP3 || criterioPercentil(params, 'ca_percentil', 'ca_menor_p10', function(p) { return p < 10; });
+
+        var auIpMaiorP95 = criterioPercentil(params, 'au_ip_percentil', 'au_ip_maior_p95', function(p) { return p > 95; }) || diastoleAU !== 'normal';
+        var acmIpMenorP5 = criterioPercentil(params, 'acm_ip_percentil', 'acm_ip_menor_p5', function(p) { return p < 5; });
+        var uterinasIpMaiorP95 = criterioPercentil(params, 'uterinas_ip_percentil', 'uterinas_ip_maior_p95', function(p) { return p > 95; });
+        var dvIpMaiorP95 = criterioPercentil(params, 'dv_ip_percentil', 'dv_ip_maior_p95', function(p) { return p > 95; });
+        var istmoReverso = flag(params.istmo_aortico_reverso);
+        var quedaPercentil = flag(params.queda_percentil);
+
+        // Relação cerebroplacentária (RCP = IP ACM / IP AU)
+        var auIpValor = num(params.au_ip_valor);
+        var acmIpValor = num(params.acm_ip_valor);
+        var rcpValor = num(params.rcp_valor);
+        var rcpFonte = null;
+        if (isNaN(rcpValor) && !isNaN(auIpValor) && !isNaN(acmIpValor) && auIpValor > 0) {
+            rcpValor = Math.round((acmIpValor / auIpValor) * 100) / 100;
+            rcpFonte = 'calculada (IP ACM ' + acmIpValor + ' / IP AU ' + auIpValor + ')';
+        } else if (!isNaN(rcpValor)) {
+            rcpFonte = 'informada';
+        }
+
+        var rcpStatus = 'nao_avaliada';
+        var rcpPct = percentil(params, 'rcp_percentil');
+        if (!isNaN(rcpPct)) {
+            rcpStatus = rcpPct < 5 ? 'alterada' : 'normal';
+            rcpFonte = 'percentil informado (p' + rcpPct + ')';
+        } else if (flag(params.rcp_menor_p5)) {
+            rcpStatus = 'alterada';
+            rcpFonte = rcpFonte || 'marcador informado (RCP < p5)';
+        } else if (!isNaN(rcpValor)) {
+            if (ig.decimal >= 28 && rcpValor < 1.0) {
+                rcpStatus = 'alterada';
+                notas.push('RCP ' + rcpValor + ' < 1,0: inferior ao p5 em todo o 3º trimestre (critério conservador sem curva).');
+            } else {
+                rcpStatus = 'indeterminada';
+                notas.push('RCP bruta ' + rcpValor + ' não exclui RCP < p5 (no 3º trimestre o p5 é superior a 1,0). Confirmar o percentil na curva de referência adotada pelo serviço.');
+            }
+        }
+        var rcpMenorP5 = rcpStatus === 'alterada';
+
+        if (!isNaN(auIpValor) && isNaN(percentil(params, 'au_ip_percentil')) && !flag(params.au_ip_maior_p95) && diastoleAU === 'normal') {
+            notas.push('IP da AU bruto (' + auIpValor + ') sem percentil: informar o percentil do laudo para classificar AU > p95.');
+        }
+
+        // Ducto venoso: onda A com perfusão anormal implica IP elevado
+        if (ondaA !== 'positiva') dvIpMaiorP95 = true;
+
+        // Registro auditável dos achados
+        if (pfeMenorP3) achados.push('Peso fetal estimado < p3');
+        else if (pfeMenorP10) achados.push('Peso fetal estimado < p10');
+        if (caMenorP3) achados.push('Circunferência abdominal < p3');
+        else if (caMenorP10) achados.push('Circunferência abdominal < p10');
+        if (quedaPercentil) achados.push('Queda de percentil de crescimento > 2 quartis');
+        if (diastoleAU === 'reversa') achados.push('Artéria umbilical: DIÁSTOLE REVERSA');
+        else if (diastoleAU === 'zero') achados.push('Artéria umbilical: DIÁSTOLE ZERO (ausente)');
+        else if (auIpMaiorP95) achados.push('Artéria umbilical: IP > p95');
+        if (acmIpMenorP5) achados.push('Artéria cerebral média: IP < p5 (vasodilatação cerebral / centralização)');
+        if (rcpMenorP5) achados.push('Relação cerebroplacentária < p5 (redistribuição hemodinâmica)');
+        if (uterinasIpMaiorP95) achados.push('Artérias uterinas: IP médio > p95');
+        if (istmoReverso) achados.push('Istmo aórtico: fluxo diastólico reverso');
+        if (ondaA === 'reversa') achados.push('Ducto venoso: ONDA A REVERSA');
+        else if (ondaA === 'ausente') achados.push('Ducto venoso: ONDA A AUSENTE');
+        else if (dvIpMaiorP95) achados.push('Ducto venoso: IP > p95');
+
+        return {
+            achados: achados,
+            notas: notas,
+            rcp: { valor: isNaN(rcpValor) ? null : rcpValor, status: rcpStatus, fonte: rcpFonte },
+            marcadores: {
+                peso_fetal_menor_p3: pfeMenorP3,
+                peso_fetal_menor_p10: pfeMenorP10,
+                ca_menor_p3: caMenorP3,
+                ca_menor_p10: caMenorP10,
+                queda_percentil: quedaPercentil,
+                au_diastole: diastoleAU,
+                au_ip_maior_p95: auIpMaiorP95,
+                acm_ip_menor_p5: acmIpMenorP5,
+                rcp_menor_p5: rcpMenorP5,
+                uterinas_ip_maior_p95: uterinasIpMaiorP95,
+                istmo_aortico_reverso: istmoReverso,
+                dv_ip_maior_p95: dvIpMaiorP95,
+                dv_onda_a: ondaA
+            }
+        };
+    }
+
+    // ───────────────────────────── classificação ─────────────────────────────
+
+    /**
+     * Classifica em RCF precoce, RCF tardia, PIG ou sem restrição (Consenso Delphi 2016).
+     */
+    function classificarRcf(m, ig) {
+        var criterios = [];
+        var tipo = 'SEM_RESTRICAO';
+        var pequeno = m.peso_fetal_menor_p10 || m.ca_menor_p10;
+        var gravePlacentario = m.au_diastole !== 'normal' || m.dv_ip_maior_p95 || m.istmo_aortico_reverso;
+
+        if (ig.decimal < LIMITE_RCF_PRECOCE_SEMANAS) {
+            if (m.ca_menor_p3) criterios.push('Critério isolado: CA < p3');
+            if (m.peso_fetal_menor_p3) criterios.push('Critério isolado: PFE < p3');
+            if (m.au_diastole !== 'normal') criterios.push('Critério isolado: diástole zero/reversa na artéria umbilical');
+            if (pequeno && m.uterinas_ip_maior_p95) criterios.push('PFE/CA < p10 + IP médio das uterinas > p95');
+            if (pequeno && m.au_ip_maior_p95 && m.au_diastole === 'normal') criterios.push('PFE/CA < p10 + IP da artéria umbilical > p95');
+            if (criterios.length) tipo = 'RCF_PRECOCE';
+        } else {
+            if (m.ca_menor_p3) criterios.push('Critério isolado: CA < p3');
+            if (m.peso_fetal_menor_p3) criterios.push('Critério isolado: PFE < p3');
+            var contributivos = [];
+            if (pequeno) contributivos.push('PFE/CA < p10');
+            if (m.queda_percentil) contributivos.push('queda de percentil > 2 quartis');
+            if (m.rcp_menor_p5 || m.au_ip_maior_p95) contributivos.push('RCP < p5 ou IP da AU > p95');
+            if (contributivos.length >= 2) criterios.push('2 de 3 critérios contributivos: ' + contributivos.join(' + '));
+            if (criterios.length) tipo = 'RCF_TARDIA';
+        }
+
+        // Insuficiência placentária grave ao Doppler deve ser conduzida como RCF mesmo sem critério biométrico
+        if (tipo === 'SEM_RESTRICAO' && gravePlacentario) {
+            tipo = ig.decimal < LIMITE_RCF_PRECOCE_SEMANAS ? 'RCF_PRECOCE' : 'RCF_TARDIA';
+            criterios.push('Insuficiência placentária grave ao Doppler (AU diástole zero/reversa, DV alterado ou istmo reverso): conduzir como RCF independentemente da biometria');
+        }
+
+        if (tipo === 'SEM_RESTRICAO' && pequeno) {
+            tipo = 'PIG';
+            criterios.push('PFE/CA entre p3 e p10 sem alteração Doppler nem critérios de RCF');
+        }
+
+        var titulos = {
+            RCF_PRECOCE: 'RCF PRECOCE (< 32 semanas) — predomínio placentário, maior risco de hipóxia crônica e prematuridade',
+            RCF_TARDIA: 'RCF TARDIA (>= 32 semanas) — insuficiência placentária leve, risco de deterioração aguda e óbito sem aviso',
+            PIG: 'PIG constitucional (Pequeno para a Idade Gestacional)',
+            SEM_RESTRICAO: 'Sem critérios de RCF ou PIG'
+        };
+
+        return { tipo: tipo, titulo: titulos[tipo], criterios: criterios };
+    }
+
+    /**
+     * Limiar de VCP (variabilidade de curto prazo) da cCTG para Estágio IV.
+     * TRUFFLE: < 2,6 ms até 28+6 semanas; < 3,0 ms a partir de 29+0 semanas (Barcelona: < 3 ms).
+     */
+    function limiarVcp(ig) {
+        return ig.dias_totais < 29 * 7 ? 2.6 : 3.0;
+    }
+
+    /**
+     * Estadiamento de Barcelona (I-IV). Retorna estágio 0 para PIG e null sem restrição.
+     */
+    function estadiar(params, m, classificacao, ig) {
+        params = params || {};
+        if (classificacao.tipo === 'SEM_RESTRICAO') {
+            return { estagio: null, criterios: [] };
+        }
+
+        var vcp = num(params.vcp_ms);
+        var limiar = limiarVcp(ig);
+        var desacel = flag(params.desaceleracoes_espontaneas);
+
+        var c4 = [], c3 = [], c2 = [], c1 = [];
+        if (m.dv_onda_a !== 'positiva') c4.push('Onda A ' + (m.dv_onda_a === 'reversa' ? 'reversa' : 'ausente') + ' no ducto venoso');
+        if (!isNaN(vcp) && vcp < limiar) c4.push('VCP da cCTG ' + vcp + ' ms < ' + String(limiar).replace('.', ',') + ' ms');
+        if (desacel) c4.push('Desacelerações espontâneas (não provocadas) na cardiotocografia');
+
+        if (m.au_diastole === 'reversa') c3.push('Diástole reversa na artéria umbilical');
+        if (m.dv_ip_maior_p95 && m.dv_onda_a === 'positiva') c3.push('IP do ducto venoso > p95');
+
+        if (m.au_diastole === 'zero') c2.push('Diástole zero na artéria umbilical');
+        if (m.istmo_aortico_reverso) c2.push('Fluxo reverso no istmo aórtico');
+
+        if (m.peso_fetal_menor_p3) c1.push('PFE < p3');
+        if (m.ca_menor_p3) c1.push('CA < p3');
+        if (m.au_ip_maior_p95 && m.au_diastole === 'normal') c1.push('IP da artéria umbilical > p95');
+        if (m.acm_ip_menor_p5) c1.push('IP da ACM < p5');
+        if (m.rcp_menor_p5) c1.push('RCP < p5');
+        if (m.uterinas_ip_maior_p95) c1.push('IP médio das uterinas > p95');
+
+        var estagio, criterios;
+        if (c4.length) { estagio = 4; criterios = c4; }
+        else if (c3.length) { estagio = 3; criterios = c3; }
+        else if (c2.length) { estagio = 2; criterios = c2; }
+        else if (c1.length || classificacao.tipo !== 'PIG') {
+            estagio = 1;
+            criterios = c1.length ? c1 : ['RCF tardia definida por crescimento (queda de percentil) com Doppler sem alterações'];
+        } else { estagio = 0; criterios = ['PFE/CA entre p3 e p10 com Doppler normal']; }
+
+        return { estagio: estagio, criterios: criterios, limiar_vcp_ms: limiar };
+    }
+
+    // ───────────────────────────── conduta ─────────────────────────────
+
+    function planejarConduta(estadiamento, ig, params) {
+        if (estadiamento.estagio === null) {
+            return {
+                parto_indicado_agora: false,
+                vigilancia: 'Pré-natal habitual; repetir biometria em 2 a 3 semanas se houver suspeita clínica (altura uterina < p10).',
+                via_parto: 'Via obstétrica habitual.',
+                decisao: 'Sem indicação de antecipação do parto por crescimento fetal.'
+            };
+        }
+
+        var prot = PROTOCOLO_ESTAGIOS[estadiamento.estagio];
+        var alvoDias = prot.ig_alvo_semanas * 7;
+        var partoAgora = ig.dias_totais >= alvoDias;
+        var decisao;
+
+        if (partoAgora) {
+            if (estadiamento.estagio === 4) {
+                decisao = 'INTERROMPER A GESTAÇÃO — idealmente após ciclo de corticoide (48 h) se a vitalidade permitir; NÃO postergar diante de desacelerações espontâneas recorrentes, bradicardia fetal ou cCTG terminal.';
+            } else if (estadiamento.estagio === 0) {
+                decisao = 'Programar o parto a termo (' + prot.ig_alvo_texto + ').';
+            } else {
+                decisao = 'PARTO INDICADO: idade gestacional alvo do ' + prot.rotulo.split(' — ')[0] + ' atingida (' + prot.ig_alvo_texto + ').';
+            }
+        } else {
+            var faltam = alvoDias - ig.dias_totais;
+            decisao = 'Manter vigilância e programar o parto com ' + prot.ig_alvo_texto + ' (faltam ' + Math.floor(faltam / 7) + ' semana(s) e ' + (faltam % 7) + ' dia(s)), antecipando se houver progressão de estágio ou indicação materna.';
+            if (estadiamento.estagio === 4) {
+                decisao = ig.decimal < 24
+                    ? 'PERIVIABILIDADE (< 24 semanas) com sinais de acidose fetal: aconselhamento conjunto Obstetrícia/Neonatologia e decisão compartilhada com a gestante sobre suporte neonatal ativo; prognóstico muito reservado.'
+                    : 'Estágio IV abaixo de 26 semanas: decisão individualizada em limite de viabilidade com aconselhamento conjunto Obstetrícia/Neonatologia; corticoide e neuroproteção se houver opção por intervenção.';
+            }
+        }
+
+        return {
+            parto_indicado_agora: partoAgora,
+            vigilancia: prot.vigilancia,
+            ig_alvo_semanas: prot.ig_alvo_semanas,
+            ig_alvo_texto: prot.ig_alvo_texto,
+            via_parto: prot.via_parto,
+            local_parto: estadiamento.estagio >= 2 ? 'Centro terciário com UTI neonatal' : 'Maternidade com suporte neonatal adequado à IG',
+            decisao: decisao
+        };
+    }
+
+    function planejarCorticoide(estadiamento, conduta, ig) {
+        var estagio = estadiamento.estagio;
+        var esquema = 'Betametasona 12 mg IM a cada 24 h, 2 doses (ciclo único). Alternativa: Dexametasona 6 mg IM a cada 12 h, 4 doses.';
+        if (estagio === null) return { indicado: false, motivo: 'Sem restrição de crescimento.' };
+
+        if (ig.decimal >= 34) {
+            if (conduta.parto_indicado_agora && ig.decimal < 37) {
+                return {
+                    indicado: false,
+                    considerar: true,
+                    esquema: esquema,
+                    motivo: 'Prematuro tardio (34+0 a 36+6): considerar individualmente conforme protocolo institucional; evitar em diabetes pré-gestacional (hipoglicemia neonatal) e se já recebeu ciclo prévio.'
+                };
+            }
+            return { indicado: false, motivo: 'IG >= 34 semanas: corticoide antenatal de rotina não indicado.' };
+        }
+
+        if (ig.decimal < 24) {
+            return {
+                indicado: false,
+                considerar: estagio >= 3,
+                esquema: esquema,
+                motivo: 'Periviabilidade: corticoide apenas após decisão compartilhada por suporte neonatal ativo (a partir de 22-23 semanas conforme política institucional).'
+            };
+        }
+
+        var semanasAteAlvo = conduta.ig_alvo_semanas - ig.decimal;
+        var indicado = conduta.parto_indicado_agora || estagio >= 3 || (estagio === 2 && semanasAteAlvo <= 1);
+        if (indicado) {
+            return {
+                indicado: true,
+                esquema: esquema,
+                motivo: 'Parto previsto antes de 34 semanas (Estágio ' + estagio + ').',
+                observacao: 'Após o corticoide, a VCP da cCTG e os movimentos fetais podem reduzir transitoriamente por 24-72 h (efeito farmacológico) e o Doppler da AU pode melhorar temporariamente: interpretar com cautela, sem mascarar deterioração.'
+            };
+        }
+        return {
+            indicado: false,
+            esquema: esquema,
+            motivo: 'Administrar quando o parto for previsto para os próximos 7 dias ou se houver progressão de estágio.'
+        };
+    }
+
+    function planejarNeuroprotecao(conduta, ig, estadiamento) {
+        if (estadiamento.estagio === null || ig.decimal >= 32) {
+            return { indicado: false, motivo: 'Neuroproteção com sulfato de magnésio restrita a partos com IG < 32 semanas.' };
+        }
+        var esquema = 'Sulfato de magnésio: ataque 4 g IV em 20-30 min (MgSO4 50% 8 mL + 12 mL de AD/SF 0,9%), manutenção 1 g/h (MgSO4 50% 10 mL + SF 0,9% 490 mL a 100 mL/h) até o parto, máximo 24 h; iniciar idealmente >= 4 h antes do parto. Monitorar reflexo patelar, FR (> 12 irpm) e diurese (> 25 mL/h); gluconato de cálcio 10% 10 mL IV disponível.';
+        if (conduta.parto_indicado_agora && ig.decimal >= 24) {
+            return { indicado: true, esquema: esquema, motivo: 'Parto indicado com IG < 32 semanas (prevenção de paralisia cerebral).' };
+        }
+        return { indicado: false, esquema: esquema, motivo: 'Programar no momento da decisão de parto se IG < 32 semanas.' };
+    }
+
+    function investigarEtiologia(classificacao, m, ig, params) {
+        var lista = [];
+        if (classificacao.tipo === 'SEM_RESTRICAO') return lista;
+        lista.push('Confirmar a datação da gestação (CCN do 1º trimestre) antes de firmar o diagnóstico.');
+        lista.push('Ultrassonografia morfológica detalhada para excluir anomalias estruturais.');
+        if (classificacao.tipo === 'PIG') {
+            lista.push('Avaliar fatores constitucionais (estatura/peso maternos, etnia, PIG familiar).');
+            return lista;
+        }
+        lista.push('Rastrear pré-eclâmpsia: PA seriada, relação proteína/creatinina urinária, plaquetas, TGO/TGP, creatinina e LDH; considerar relação sFlt-1/PlGF se disponível.');
+        lista.push('Revisar fatores maternos: tabagismo, hipertensão crônica, nefropatia, LES, uso de drogas e desnutrição.');
+        var precoceGrave = classificacao.tipo === 'RCF_PRECOCE' || m.peso_fetal_menor_p3;
+        if (precoceGrave) {
+            lista.push('Infecções congênitas: CMV (IgG/IgM/avidez; PCR no líquido amniótico se suspeita), toxoplasmose, sífilis (treponêmico + VDRL) e rubéola.');
+            lista.push('Oferecer estudo genético invasivo (amniocentese com microarray/cariótipo) se RCF grave < 24 semanas, anomalias associadas, polidrâmnio ou Doppler das uterinas normal (perfil não placentário).');
+            lista.push('Considerar pesquisa de síndrome antifosfolipídio (anticoagulante lúpico, anticardiolipina, anti-β2-glicoproteína I) se insuficiência placentária grave com parto < 34 semanas.');
+        }
+        return lista;
+    }
+
+    function gerarAlertas(params, m, estadiamento, ig, interpretacao) {
+        var alertas = [];
+        if (flag(params.gemelar)) {
+            alertas.push('⚠️ Gestação gemelar: este protocolo aplica-se a gestação única. Usar critérios específicos de RCF seletiva (classificação de Gratacós I-III em monocoriônicos).');
+        }
+        if (flag(params.anomalias_estruturais)) {
+            alertas.push('⚠️ Anomalia estrutural presente: RCF associada a malformação foge à definição do Consenso Delphi — conduta com Medicina Fetal e estudo genético.');
+        }
+        if (flag(params.pre_eclampsia) || flag(params.hellp)) {
+            alertas.push('🚨 Pré-eclâmpsia/HELLP associada: a indicação MATERNA (sinais de gravidade, HELLP, eclâmpsia, descontrole pressórico) pode antecipar o parto independentemente do estágio fetal.');
+        }
+        var ila = num(params.ila_cm);
+        var maiorBolsao = num(params.maior_bolsao_cm);
+        if (flag(params.oligoamnio) || (!isNaN(ila) && ila < 5) || (!isNaN(maiorBolsao) && maiorBolsao < 2)) {
+            alertas.push('⚠️ Oligoâmnio: sinal de hipoperfusão renal fetal crônica — intensificar a vigilância (não altera isoladamente o estágio de Barcelona).');
+        }
+        if (estadiamento.estagio === null && (m.acm_ip_menor_p5 || m.rcp_menor_p5 || m.au_ip_maior_p95 || m.uterinas_ip_maior_p95)) {
+            alertas.push('⚠️ Doppler alterado em feto com biometria adequada: repetir biometria e Doppler em 1-2 semanas (risco de RCF tardia em evolução); se ACM alterada, avaliar também o pico de velocidade sistólica (anemia fetal).');
+        }
+        if (estadiamento.estagio >= 3 && ig.decimal < 30) {
+            alertas.push('🚨 RCF precoce com descompensação: o momento do parto deve ser guiado pelo ducto venoso e pela VCP da cCTG (TRUFFLE), não pela ACM/RCP isoladas.');
+        }
+        var pfeGramas = num(params.peso_fetal_gramas);
+        if (!isNaN(pfeGramas) && pfeGramas < 500) {
+            alertas.push('⚠️ PFE < 500 g: limite de viabilidade — aconselhamento neonatal obrigatório antes de qualquer intervenção.');
+        }
+        interpretacao.notas.forEach(function(n) { alertas.push('ℹ️ ' + n); });
+        return alertas;
+    }
+
+    function bloqueiosSeguranca(estadiamento) {
+        var b = [
+            '🚫 SILDENAFILA CONTRAINDICADA para tratamento de RCF: o ensaio STRIDER holandês foi interrompido por excesso de hipertensão pulmonar neonatal e tendência a maior mortalidade neonatal.',
+            '🚫 AAS e heparina NÃO tratam RCF estabelecida: AAS em baixa dose é profilaxia de pré-eclâmpsia iniciada antes de 16 semanas em gestantes de risco; heparina apenas se indicação própria (ex.: SAF, TEV).',
+            '🚫 Repouso absoluto, hiperoxigenação materna, suplementos nutricionais e hidratação venosa não melhoram o crescimento nem os desfechos fetais.',
+            '🚫 Não antecipar o parto por biometria isolada em PIG com Doppler normal antes de 37 semanas (prematuridade iatrogênica sem benefício).',
+            '🚫 Na RCF precoce, ACM e RCP isoladas não definem o momento do parto antes de 34 semanas.'
+        ];
+        if (estadiamento.estagio >= 2) {
+            b.push('🚫 Evitar indução do trabalho de parto nos Estágios II a IV: via de parto preferencial é a cesariana.');
+        }
+        return b;
+    }
+
+    // ───────────────────────────── orquestração ─────────────────────────────
+
+    /**
+     * Avaliação completa de RCF / Doppler obstétrico.
+     * @param {Object} params - ver extrairParametrosTexto para chaves aceitas
+     */
+    function avaliarRcf(params) {
+        params = params || {};
+        var ig = normalizarIg(params);
+        var interpretacao = interpretarDoppler(params, ig);
+        var m = interpretacao.marcadores;
+        var classificacao = classificarRcf(m, ig);
+        var estadiamento = estadiar(params, m, classificacao, ig);
+        if (estadiamento.estagio !== null) {
+            var prot = PROTOCOLO_ESTAGIOS[estadiamento.estagio];
+            estadiamento.rotulo = prot.rotulo;
+            estadiamento.fisiopatologia = prot.fisiopatologia;
+        }
+        if (classificacao.tipo === 'PIG' && estadiamento.estagio >= 1) {
+            classificacao.titulo = 'PIG com marcador Doppler de insuficiência placentária (conduzir como Estágio I de Barcelona)';
+        }
+        var conduta = planejarConduta(estadiamento, ig, params);
+
+        return {
+            ig: ig,
+            classificacao: classificacao,
+            doppler: { achados: interpretacao.achados, rcp: interpretacao.rcp, marcadores: m },
+            estadiamento: estadiamento,
+            conduta: conduta,
+            corticoide: planejarCorticoide(estadiamento, conduta, ig),
+            neuroprotecao_magnesio: planejarNeuroprotecao(conduta, ig, estadiamento),
+            investigacao_etiologica: investigarEtiologia(classificacao, m, ig, params),
+            alertas: gerarAlertas(params, m, estadiamento, ig, interpretacao),
+            bloqueios_seguranca: bloqueiosSeguranca(estadiamento),
+            referencias: REFERENCIAS.slice()
+        };
+    }
+
+    /**
+     * Extrai parâmetros de texto livre (Telegram). Ex.:
+     * "ig 30s4d pfe p2 ca p4 au diastole zero acm p3 dv onda a positiva vcp 4.1"
+     */
+    function extrairParametrosTexto(texto) {
+        var t = String(texto || '');
+        var tl = t.toLowerCase();
+        var p = {};
+
+        function n(re) {
+            var mm = t.match(re);
+            return mm ? parseFloat(String(mm[1]).replace(',', '.')) : null;
+        }
+        function pct(rotulo) {
+            return n(new RegExp('\\b(?:' + rotulo + ')\\s*(?:ip\\s*)?[:=]?\\s*<?\\s*p\\s*(\\d+(?:[.,]\\d+)?)', 'i'));
+        }
+
+        // Idade gestacional: "30s4d", "30 semanas e 4 dias", "30+4", "ig 30.5", "30 semanas"
+        var mIg = t.match(/(\d{2})\s*(?:s|sem|semanas)\s*(?:e\s*|\+\s*)?(\d)\s*d(?:ias?)?\b/i) || t.match(/\b(\d{2})\s*\+\s*(\d)\b/);
+        if (mIg) {
+            p.ig_semanas = parseInt(mIg[1], 10);
+            p.ig_dias = parseInt(mIg[2], 10);
+        } else {
+            var igNum = n(/\big\s*[:=]?\s*(\d{2}(?:[.,]\d+)?)/i);
+            if (igNum === null) igNum = n(/\b(\d{2})\s*(?:semanas|sem|s)\b/i);
+            if (igNum !== null) p.ig_semanas = igNum;
+        }
+
+        var v;
+        if ((v = pct('pfe|peso\\s*fetal|efw|peso')) !== null) p.peso_fetal_percentil = v;
+        if ((v = n(/\b(\d{3,4})\s*g(?:ramas)?\b/i)) !== null) p.peso_fetal_gramas = v;
+        if ((v = pct('ca|circ(?:unfer[eê]ncia)?\\s*abd(?:ominal)?|ac')) !== null) p.ca_percentil = v;
+        if ((v = pct('au|umbilical|aumb')) !== null) p.au_ip_percentil = v;
+        if ((v = pct('acm|cerebral\\s*m[eé]dia|mca')) !== null) p.acm_ip_percentil = v;
+        if ((v = pct('rcp|cpr|rcu')) !== null) p.rcp_percentil = v;
+        if ((v = pct('uterinas?|aut|aauu')) !== null) p.uterinas_ip_percentil = v;
+        if ((v = pct('dv|ducto(?:\\s*venoso)?')) !== null) p.dv_ip_percentil = v;
+
+        if ((v = n(/(?:ip\s*(?:da\s*)?au|au\s*ip)\s*[:=]?\s*(\d[.,]\d+)/i)) !== null) p.au_ip_valor = v;
+        if ((v = n(/(?:ip\s*(?:da\s*)?acm|acm\s*ip)\s*[:=]?\s*(\d[.,]\d+)/i)) !== null) p.acm_ip_valor = v;
+        if ((v = n(/\b(?:rcp|cpr)\s*[:=]?\s*(\d[.,]\d+)/i)) !== null) p.rcp_valor = v;
+        if ((v = n(/\b(?:vcp|stv)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i)) !== null) p.vcp_ms = v;
+        if ((v = n(/\bila\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i)) !== null) p.ila_cm = v;
+        if ((v = n(/maior\s*bols[aã]o\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i)) !== null) p.maior_bolsao_cm = v;
+
+        // Ducto venoso (processado antes da AU para não confundir "onda a reversa" com diástole reversa)
+        var tlSemDv = tl;
+        var mOnda = tl.match(/onda\s*a\s*(reversa|revertida|invertida|negativa|ausente|zero|positiva|normal)/);
+        if (mOnda) {
+            p.dv_onda_a = mOnda[1];
+            tlSemDv = tl.replace(mOnda[0], ' ');
+        }
+        if (/\b(?:dv|ducto(?:\s*venoso)?)\s*(?:ip\s*)?(?:alterado|aumentado|elevado|>\s*p95)/.test(tl)) p.dv_ip_maior_p95 = true;
+
+        // Artéria umbilical (sem abreviações ambíguas: falso positivo de diástole reversa indicaria Estágio III)
+        if (/di[aá]stole\s*(?:reversa|revertida|invertida)|\bredv\b|\b(?:au|umbilical)\s*(?:com\s*)?(?:fluxo\s*)?(?:revers|revert)/.test(tlSemDv)) {
+            p.au_diastole = 'reversa';
+        } else if (/di[aá]stole\s*(?:zero|ausente)|\baedv\b|\b(?:au|umbilical)\s*(?:com\s*)?(?:di[aá]stole\s*)?(?:zero|ausente)/.test(tlSemDv)) {
+            p.au_diastole = 'zero';
+        }
+        if (/(?:\bau\b|umbilical)\s*(?:ip\s*)?(?:alterad|aumentad|elevad|>\s*p95)/.test(tlSemDv)) p.au_ip_maior_p95 = true;
+
+        if (/istmo[^,;.]*revers/.test(tlSemDv)) p.istmo_aortico_reverso = true;
+        if (/centraliza|redistribui/.test(tl)) p.rcp_menor_p5 = true;
+        if (/(?:acm|cerebral)\s*(?:ip\s*)?(?:<\s*p5|baixo|vasodilat)/.test(tl)) p.acm_ip_menor_p5 = true;
+        if (/uterinas?\s*(?:ip\s*)?(?:alterad|aumentad|>\s*p95)|incisura\s*bilateral/.test(tl)) p.uterinas_ip_maior_p95 = true;
+        if (/desacelera/.test(tl)) p.desaceleracoes_espontaneas = true;
+        if (/queda\s*(?:de\s*)?percentil|cruz(?:ou|amento)\s*(?:de\s*)?percentis?/.test(tl)) p.queda_percentil = true;
+        if (/oligo[aâ]mnio|oligoidr[aâ]mnio|\boligo\b/.test(tl)) p.oligoamnio = true;
+        if (/pr[eé][\s-]?ecl[aâ]mpsia|\bdheg\b/.test(tl)) p.pre_eclampsia = true;
+        if (/hellp/.test(tl)) p.hellp = true;
+        if (/gemela|gemelar/.test(tl)) p.gemelar = true;
+        if (/malforma|anomalia/.test(tl)) p.anomalias_estruturais = true;
+
+        return p;
+    }
+
+    /**
+     * Formata a avaliação para Telegram (Markdown legado).
+     */
+    function formatarTextoTelegram(a) {
+        var txt = '🤰 *OBSTETRÍCIA & MEDICINA FETAL — RCF / DOPPLER*\n\n';
+        txt += '📅 *IG:* ' + a.ig.texto + '\n';
+        txt += '📊 *Classificação (Delphi):* ' + a.classificacao.titulo + '\n';
+        a.classificacao.criterios.forEach(function(c) { txt += '  • ' + c + '\n'; });
+
+        if (a.doppler.achados.length) {
+            txt += '\n🔬 *ACHADOS BIOMÉTRICOS E DOPPLER:*\n';
+            a.doppler.achados.forEach(function(c) { txt += '  • ' + c + '\n'; });
+        }
+        if (a.doppler.rcp.valor !== null) {
+            txt += '  • RCP: ' + a.doppler.rcp.valor + ' (' + a.doppler.rcp.fonte + ')\n';
+        }
+
+        if (a.estadiamento.estagio !== null) {
+            var icone = a.estadiamento.estagio >= 3 ? '🚨' : (a.estadiamento.estagio === 2 ? '⚠️' : '🟡');
+            txt += '\n' + icone + ' *ESTADIAMENTO (BARCELONA): ' + a.estadiamento.rotulo + '*\n';
+            a.estadiamento.criterios.forEach(function(c) { txt += '  • ' + c + '\n'; });
+            txt += '  ↳ ' + a.estadiamento.fisiopatologia + '\n';
+        }
+
+        txt += '\n👉 *DECISÃO:* ' + a.conduta.decisao + '\n';
+        txt += '• *Vigilância:* ' + a.conduta.vigilancia + '\n';
+        txt += '• *Via de parto:* ' + a.conduta.via_parto + '\n';
+        if (a.conduta.local_parto) txt += '• *Local:* ' + a.conduta.local_parto + '\n';
+
+        if (a.corticoide.indicado) {
+            txt += '\n💉 *CORTICOIDE ANTENATAL (INDICADO):* ' + a.corticoide.esquema + '\n';
+            if (a.corticoide.observacao) txt += '  ↳ ' + a.corticoide.observacao + '\n';
+        } else if (a.corticoide.considerar) {
+            txt += '\n💉 *Corticoide antenatal (considerar):* ' + a.corticoide.motivo + '\n';
+        }
+        if (a.neuroprotecao_magnesio.indicado) {
+            txt += '\n🧠 *NEUROPROTEÇÃO FETAL (INDICADA):* ' + a.neuroprotecao_magnesio.esquema + '\n';
+        } else if (a.neuroprotecao_magnesio.esquema && a.estadiamento.estagio >= 2) {
+            txt += '\n🧠 *Neuroproteção fetal (programar ao decidir o parto < 32 sem):* ' + a.neuroprotecao_magnesio.esquema + '\n';
+        }
+
+        if (a.investigacao_etiologica.length) {
+            txt += '\n🧪 *INVESTIGAÇÃO ETIOLÓGICA:*\n';
+            a.investigacao_etiologica.forEach(function(c) { txt += '  • ' + c + '\n'; });
+        }
+        if (a.alertas.length) {
+            txt += '\n⚠️ *ALERTAS:*\n';
+            a.alertas.forEach(function(c) { txt += '  ' + c + '\n'; });
+        }
+        txt += '\n🛡️ *BLOQUEIOS DE SEGURANÇA:*\n';
+        a.bloqueios_seguranca.forEach(function(c) { txt += '• ' + c + '\n'; });
+
+        txt += '\n📚 Fontes: Consenso Delphi 2016, ISUOG 2020, Barcelona (Figueras & Gratacós 2014), TRUFFLE 2015, STRIDER 2020, FEBRASGO.\n';
+        txt += 'Percentis conforme curva de referência do laudo. Decisão final do obstetra assistente.';
+        return txt;
+    }
+
+    return {
+        normalizarIg: normalizarIg,
+        interpretarDoppler: interpretarDoppler,
+        classificarRcf: classificarRcf,
+        estadiar: estadiar,
+        avaliarRcf: avaliarRcf,
+        extrairParametrosTexto: extrairParametrosTexto,
+        formatarTextoTelegram: formatarTextoTelegram,
+        PROTOCOLO_ESTAGIOS: PROTOCOLO_ESTAGIOS
+    };
+})();
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = ObstetriciaRcfDopplerService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_obstetricia_saf_trombofilias.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA - MÓDULO DE OBSTETRÍCIA & REUMATOLOGIA
+ * ==============================================================================
+ * Manejo Clínico da Síndrome do Anticorpo Antifosfolipídio (SAF) e
+ * Trombofilias na Gestação
+ * Diretrizes: Sydney (Miyakis 2006), ACR/EULAR (2023), RCOG Green-top 37a,
+ * ACOG Practice Bulletin 197/132, ASH (2018/2023) e FEBRASGO (2023-2026).
+ * 
+ * PILARES CLÍNICOS DETERMINÍSTICOS:
+ * 1. Critérios Diagnósticos de SAF (Sydney / ACR-EULAR 2023):
+ *    - Pelo menos 1 Critério Clínico (Obstétrico ou Trombótico) +
+ *    - Pelo menos 1 Critério Laboratorial confirmado em ≥ 2 ocasiões com
+ *      intervalo mínimo de 12 semanas (84 dias):
+ *      * Anticoagulante Lúpico (LAC) positivo (maior risco trombótico/obstétrico)
+ *      * Anticorpo Anticardiolipina (aCL) IgG ou IgM em títulos médios/altos (> 40 GPL/MPL)
+ *      * Anticorpo Anti-beta-2-glicoproteína I (anti-β2GPI) IgG ou IgM (> p99)
+ *      * Tripla Positividade (LAC + aCL + anti-β2GPI): altíssimo risco trombótico e obstétrico.
+ * 2. Estratificação Fenotípica Gestacional:
+ *    - SAF Obstétrica Pura (perdas gestacionais ou prematuridade por PE/insuficiência placentária):
+ *      AAS 100-150 mg/dia pré-concepção + Enoxaparina profilática SC desde teste positivo + 6 semanas puerpério.
+ *    - SAF Trombótica (histórico de TEV arterial/venoso documentado):
+ *      HBPM terapêutica (Enoxaparina 1 mg/kg SC 12/12h) + AAS 100-150 mg/dia + 6 semanas puerpério.
+ *    - SAF Obstétrica Refratária (perdas gestacionais em vigência de AAS + HBPM):
+ *      Escalonamento para dose plena/intermediária + Adição de Hidroxicloroquina (HCQ) 200-400 mg/dia.
+ *    - Portadora Assintomática de aPL / Rastreio Incidental:
+ *      AAS 100 mg/dia para prevenção de pré-eclâmpsia; profilaxia no puerpério se tripla positividade.
+ *    - Trombofilias Hereditárias (Alto Risco: Déficit AT-III, FVL homozigoto, Protrombina homozigoto, Duplo hetero;
+ *      Baixo Risco: FVL hetero, Protrombina hetero, Déficit Proteína C/S).
+ *    - Desmistificação do MTHFR: NÃO é trombofilia com indicação de HBPM nem de anticoagulação.
+ * 3. Protocolo Rígido de Periparto e Intervalos de Anestesia Neuroaxial (SOAP / ASRA):
+ *    - HBPM profilática (40 mg/dia): suspender pelo menos 12 HORAS antes da punção ou parto programado.
+ *    - HBPM terapêutica (1 mg/kg 12/12h): suspender pelo menos 24 HORAS antes da punção ou parto programado.
+ *    - Reinício pós-parto: profilática em 6-12h; terapêutica em ≥ 24h após parto e remoção do cateter.
+ *    - Remoção do cateter peridural: ≥ 12h da última dose profilática; próxima dose após ≥ 4h.
+ * 4. Bloqueios de Segurança Farmacológica:
+ *    - DOACs (rivaroxabana, apixabana, etc.): CONTRAINDICADOS na gestação e lactação.
+ *    - Varfarina: CONTRAINDICADA no 1º trimestre (6 a 12 semanas) por embriopatia teratogênica.
+ *    - AINEs: CONTRAINDICADOS no 3º trimestre (fechamento prematuro do canal arterial).
+ *    - Suplementação de Cálcio e Vitamina D em uso crônico de heparina para prevenção de osteopenia.
+ * ==============================================================================
+ */
+
+var ObstetriciaSafService = (function () {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. DIRETRIZES E REFERÊNCIAS CLÍNICAS
+  // ───────────────────────────────────────────────────────────────────────────
+
+  var REFERENCIAS = [
+    'Miyakis S, et al. International consensus statement on an update of the classification criteria for definite antiphospholipid syndrome (Sydney criteria). J Thromb Haemost 2006;4(2):295-306.',
+    'Barbhaiya M, et al. 2023 ACR/EULAR Antiphospholipid Syndrome Classification Criteria. Arthritis Rheumatol 2023;75(10):1687-1702.',
+    'Royal College of Obstetricians and Gynaecologists (RCOG). Reducing the Risk of Thrombosis and Embolism during Pregnancy and the Puerperium. Green-top Guideline No. 37a, 2015.',
+    'American College of Obstetricians and Gynecologists (ACOG). Practice Bulletin No. 197: Inherited Thrombophilias in Pregnancy (2018, reaff. 2023) and Practice Bulletin No. 132: Antiphospholipid Syndrome (2012, reaff. 2023).',
+    'American Society of Hematology (ASH). 2018 Guidelines for Management of Venous Thromboembolism: Pregnancy. Blood Adv 2018;2(22):3317-3359.',
+    'FEBRASGO. Manual de Trombofilias na Gestação e Puerpério. Série Orientações FEBRASGO 2023-2026.',
+    'Society for Obstetric Anesthesia and Perinatology (SOAP) / American Society of Regional Anesthesia and Pain Medicine (ASRA). Consensus statement on neuraxial anesthesia and anticoagulation.'
+  ];
+
+  var FAIXAS_PESO_ENOXAPARINA = {
+    MUITO_BAIXO: { limiteKg: 50, doseMg: 20, volumeMl: 0.2, descricao: 'Peso < 50 kg: Enoxaparina 20 mg SC 1x/dia' },
+    PADRAO: { limiteMin: 50, limiteMax: 90, doseMg: 40, volumeMl: 0.4, descricao: 'Peso 50 a 90 kg: Enoxaparina 40 mg SC 1x/dia' },
+    ELEVADO: { limiteMin: 91, limiteMax: 130, doseMg: 60, volumeMl: 0.6, descricao: 'Peso 91 a 130 kg: Enoxaparina 60 mg SC 1x/dia' },
+    OBESIDADE_GRAVE: { limiteMin: 131, doseMg: 80, frequencia: '40 mg SC 12/12h', descricao: 'Peso > 130 kg: Enoxaparina 40 mg SC 12/12h (total 80 mg/dia)' }
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. MOTORES DETERMINÍSTICOS DE AVALIAÇÃO
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia os critérios de Sydney e ACR/EULAR para diagnóstico e estadiamento da SAF
+   */
+  function avaliarCriteriosSaf(dados) {
+    dados = dados || {};
+    var abortosPrecoces = Number(dados.abortosPrecoces || dados.abortosMenor10Semanas || dados.abortosPrecocesMenos10Semanas || 0);
+    var perdaFetalTardia = Boolean(dados.perdaFetalTardia || dados.perdaMaior10Semanas || dados.obitoFetalInexplicado || dados.perdasFetaisMais10Semanas || dados.obitosFetais);
+    var partoPrematuroPE = Boolean(dados.partoPrematuroPrecoce || dados.partoMenor34SemanasPE || dados.insuficienciaPlacentariaGrave || dados.partoPrematuroMenos34Semanas);
+    var trombosePrevia = Boolean(dados.trombosePrevia || dados.tev || dados.tvp || dados.tep || dados.tromboseArterial || dados.avc || dados.tipoTrombose);
+
+    var lacPositivo = Boolean(dados.anticoagulanteLupico || dados.lac || dados.drvvtPositivo);
+    var aclPositivo = Boolean(dados.anticardiolipina || dados.anticardiolipinaIgG || dados.anticardiolipinaIgM || dados.aclIgG || dados.aclIgM || (Number(dados.tituloAcl || 0) >= 40));
+    var antiB2gpiPositivo = Boolean(dados.antiBeta2GlicoproteinaI || dados.antiBeta2GpiIgG || dados.antiBeta2GpiIgM || dados.antiB2gpi || dados.antiBeta2);
+    var intervalo12Semanas = dados.intervalo12SemanasConfirmado !== undefined
+      ? Boolean(dados.intervalo12SemanasConfirmado)
+      : Boolean(dados.intervaloMinimo12Semanas || dados.coletasConfirmadas12Sem || dados.duasColetasConfirmadas);
+    var triplaPositividade = (lacPositivo && aclPositivo && antiB2gpiPositivo) || Boolean(dados.triplaPositividade);
+
+    // Critérios Clínicos
+    var criterioClinicoObstetrico = (abortosPrecoces >= 3) || perdaFetalTardia || partoPrematuroPE;
+    var criterioClinicoTrombotico = trombosePrevia;
+    var temCriterioClinico = criterioClinicoObstetrico || criterioClinicoTrombotico;
+
+    // Critérios Laboratoriais
+    var temAnticorpoPresente = lacPositivo || aclPositivo || antiB2gpiPositivo;
+    var criterioLaboratorialConfirmado = temAnticorpoPresente && intervalo12Semanas;
+
+    // Diagnóstico Formal (Sydney / ACR-EULAR)
+    var safConfirmada = temCriterioClinico && criterioLaboratorialConfirmado;
+    var safProvavel = temCriterioClinico && temAnticorpoPresente && !intervalo12Semanas;
+
+    return {
+      criterioClinicoObstetrico: criterioClinicoObstetrico,
+      criterioClinicoTrombotico: criterioClinicoTrombotico,
+      temCriterioClinico: temCriterioClinico,
+      temAnticorpoPresente: temAnticorpoPresente,
+      intervalo12Semanas: intervalo12Semanas,
+      criterioLaboratorialConfirmado: criterioLaboratorialConfirmado,
+      safConfirmada: safConfirmada,
+      safProvavel: safProvavel,
+      triplaPositividade: triplaPositividade,
+      lacPositivo: lacPositivo,
+      aclPositivo: aclPositivo,
+      antiB2gpiPositivo: antiB2gpiPositivo,
+      detalhesClinicos: {
+        abortosPrecoces: abortosPrecoces,
+        perdaFetalTardia: perdaFetalTardia,
+        partoPrematuroPE: partoPrematuroPE,
+        trombosePrevia: trombosePrevia
+      }
+    };
+  }
+
+  /**
+   * Avalia trombofilias hereditárias associadas
+   */
+  function avaliarTrombofiliasHereditarias(dados) {
+    var at3 = Boolean(dados.deficienciaAntitrombinaIII || dados.deficitAt3);
+    var fvlHomo = Boolean(dados.fatorVLeidenHomozigoto || dados.fvlHomo);
+    var protHomo = Boolean(dados.mutacaoProtrombinaHomozigoto || dados.protrombinaHomo);
+    var duploHetero = Boolean(dados.duploHeterozigoto || (dados.fatorVLeidenHeterozigoto && dados.mutacaoProtrombinaHeterozigoto));
+
+    var fvlHetero = Boolean(dados.fatorVLeidenHeterozigoto || dados.fvlHetero) && !fvlHomo && !duploHetero;
+    var protHetero = Boolean(dados.mutacaoProtrombinaHeterozigoto || dados.protrombinaHetero) && !protHomo && !duploHetero;
+    var protC = Boolean(dados.deficienciaProteinaC || dados.deficitProteinaC);
+    var protS = Boolean(dados.deficienciaProteinaS || dados.deficitProteinaS);
+
+    var mthfr = Boolean(dados.mthfr || dados.mutacaoMthfr || dados.c677t || dados.a1298c);
+
+    var altoRisco = at3 || fvlHomo || protHomo || duploHetero;
+    var baixoRisco = fvlHetero || protHetero || protC || protS;
+
+    var tipos = [];
+    if (at3) tipos.push('Deficiência de Antitrombina III (ALTO RISCO - risco de TEV de até 50%)');
+    if (fvlHomo) tipos.push('Fator V de Leiden Homozigoto (ALTO RISCO)');
+    if (protHomo) tipos.push('Mutação G20210A da Protrombina Homozigota (ALTO RISCO)');
+    if (duploHetero) tipos.push('Dupla Heterozigose FVL + Protrombina G20210A (ALTO RISCO)');
+    if (fvlHetero) tipos.push('Fator V de Leiden Heterozigoto (BAIXO RISCO)');
+    if (protHetero) tipos.push('Mutação G20210A da Protrombina Heterozigota (BAIXO RISCO)');
+    if (protC) tipos.push('Deficiência de Proteína C (BAIXO RISCO)');
+    if (protS) tipos.push('Deficiência de Proteína S (BAIXO RISCO)');
+    if (mthfr && !altoRisco && !baixoRisco) tipos.push('Polimorfismo MTHFR (Variante benigna / NÃO indica anticoagulação)');
+
+    return {
+      temTrombofiliaHereditaria: altoRisco || baixoRisco,
+      altoRisco: altoRisco,
+      baixoRisco: baixoRisco,
+      mthfrIsolado: mthfr && !altoRisco && !baixoRisco,
+      tipos: tipos
+    };
+  }
+
+  /**
+   * Determina a dose de Enoxaparina com base no peso e função renal
+   */
+  function calcularDoseEnoxaparina(pesoKg, clCr, regimeTerapeutico) {
+    var peso = Number(pesoKg) || 60;
+    var clearance = clCr !== undefined && clCr !== null ? Number(clCr) : 100;
+    var terapeutico = Boolean(regimeTerapeutico);
+
+    var doseMg = 40;
+    var frequencia = '24/24h (1x ao dia via SC)';
+    var volumeMl = 0.4;
+    var descricao = '';
+    var alertaRenal = null;
+
+    if (terapeutico) {
+      // Regime Pleno: 1 mg/kg SC 12/12h
+      doseMg = Math.round(peso * 1.0);
+      volumeMl = Number((doseMg / 100).toFixed(2));
+      frequencia = '12/12h via SC [Dose Plena / Terapêutica: 1 mg/kg a cada 12h]';
+      descricao = 'Enoxaparina ' + doseMg + ' mg SC de 12/12h (Dose plena calculada para ' + peso + ' kg)';
+    } else {
+      // Regime Profilático Ponderado
+      if (peso < 50) {
+        doseMg = 20;
+        volumeMl = 0.2;
+        descricao = FAIXAS_PESO_ENOXAPARINA.MUITO_BAIXO.descricao;
+      } else if (peso <= 90) {
+        doseMg = 40;
+        volumeMl = 0.4;
+        descricao = FAIXAS_PESO_ENOXAPARINA.PADRAO.descricao;
+      } else if (peso <= 130) {
+        doseMg = 60;
+        volumeMl = 0.6;
+        descricao = FAIXAS_PESO_ENOXAPARINA.ELEVADO.descricao;
+      } else {
+        doseMg = 80;
+        volumeMl = 0.8;
+        frequencia = FAIXAS_PESO_ENOXAPARINA.OBESIDADE_GRAVE.frequencia;
+        descricao = FAIXAS_PESO_ENOXAPARINA.OBESIDADE_GRAVE.descricao;
+      }
+    }
+
+    // Ajuste Renal se ClCr < 30 mL/min
+    if (clearance < 30) {
+      alertaRenal = 'ALERTA RENAL CRÍTICO: Clearance de Creatinina < 30 mL/min (' + clearance + ' mL/min). Reduzir dose de Enoxaparina em 50% ou preferir Heparina Não Fracionada (HNF) com monitoramento estrito de TTPa e nível de Anti-Xa.';
+      if (terapeutico) {
+        frequencia = '24/24h via SC (redução renal de 1 mg/kg 12/12h para 1 mg/kg 1x/dia)';
+      } else {
+        doseMg = 20;
+        volumeMl = 0.2;
+        frequencia = '24/24h via SC (dose profilática fixa de 20 mg/dia)';
+      }
+    }
+
+    return {
+      doseMg: doseMg,
+      volumeMl: volumeMl,
+      frequencia: frequencia,
+      descricao: descricao,
+      alertaRenal: alertaRenal
+    };
+  }
+
+  /**
+   * Avaliação Clínica Global e Prescrição Antitrombótica
+   */
+  function avaliarSaf(params) {
+    var dados = params || {};
+    var peso = Number(dados.peso || dados.pesoKg || 65);
+    var idadeGestacional = Number(dados.idadeGestacional || dados.ig || dados.semanas || 12);
+    var clCr = dados.clCr !== undefined ? Number(dados.clCr) : (dados.clearanceCreatinina !== undefined ? Number(dados.clearanceCreatinina) : 100);
+
+    var refrataria = Boolean(dados.refrataria || dados.safRefrataria || dados.falhaTerapeutica || dados.perdaEmUsoDeAasEEnoxaparina);
+    var capsSuspeita = Boolean(dados.caps || dados.suspeitaCaps || dados.safCatastrofica || (dados.orgaosAcometidos && Number(dados.orgaosAcometidos) >= 3));
+
+    var analiseSaf = avaliarCriteriosSaf(dados);
+    var analiseTrombofilias = avaliarTrombofiliasHereditarias(dados);
+
+    // Classificação Fenotípica
+    var fenotipo = 'INDETERMINADO';
+    var prioridade = 'MODERADA';
+    var requerHBPM = false;
+    var hbpmTerapeutica = false;
+    var requerAAS = false;
+    var requerHCQ = false;
+    var requerPuerperio6Semanas = false;
+
+    var alertas = [];
+    var bloqueios = [];
+    var prescricoes = [];
+    var vigilarMaternoFetal = [];
+    var regrasPeriparto = [];
+
+    // Checagem prévia de HIT
+    if (dados.hitPrevia || dados.trombocitopeniaInduzidaPorHeparina) {
+      bloqueios.push('CONTRAINDICAÇÃO ABSOLUTA A ENOXAPARINA E HNF (HISTÓRICO DE HIT): Proibido uso de qualquer heparina.');
+    }
+    if (dados.usoVarfarinaPrevio || dados.emUsoVarfarina) {
+      alertas.push('ALERTA EMBRIOPATIA VARFARÍNICA: A Varfarina é teratogênica entre a 6ª e 12ª semanas gestacionais. Suspender imediatamente e transicionar para HBPM plena.');
+    }
+
+    // 1. ANÁLISE DE FENÓTIPOS
+    if (capsSuspeita) {
+      fenotipo = 'SÍNDROME ANTIFOSFOLIPÍDIO CATASTRÓFICA (CAPS / ASHERSON)';
+      prioridade = 'EMERGÊNCIA_MÉDICA_CRÍTICA';
+      requerHBPM = true;
+      hbpmTerapeutica = true;
+      alertas.push('🚨 ALERTA VERMELHO: SUSPEITA DE SÍNDROME ANTIFOSFOLIPÍDIO CATASTRÓFICA (CAPS). Mortalidade materna de 30-50%.');
+      alertas.push('Internação imediata em Centro de Terapia Intensiva (CTI) com suporte multidisciplinar obstétrico e reumatológico.');
+      alertas.push('Iniciar TRÍPLICE TERAPIA: Heparina plena IV + Pulsoterapia de Metilprednisolona (1g/dia por 3 dias) + Plasmaférese ou Imunoglobulina Humana Endovenosa (IVIG 2g/kg).');
+      prescricoes.push({
+        medicamento: 'Heparina Não Fracionada (HNF) IV contínua ou Enoxaparina Plena',
+        posologia: 'Anticoagulação plena imediata monitorada com TTPa ou anti-Xa',
+        indicacao: 'Anticoagulação de emergência em CAPS'
+      });
+      prescricoes.push({
+        medicamento: 'Pulsoterapia com Metilprednisolona 1.000 mg IV/dia por 3 dias',
+        posologia: '1.000 mg IV 1x/dia diluído em SG 5% infundido em 2 a 3 horas',
+        indicacao: 'Pulsoterapia anti-inflamatória profunda'
+      });
+      prescricoes.push({
+        medicamento: 'Plasmaférese diária e/ou Imunoglobulina Humana IV (IgIV)',
+        posologia: 'Plasmaférese por 3 a 5 dias com reposição de plasma fresco + IgIV 0,4 g/kg/dia por 5 dias',
+        indicacao: 'Depuração de anticorpos aPL e mediadores endoteliais tóxicos'
+      });
+    } else if (analiseSaf.safConfirmada && analiseSaf.criterioClinicoTrombotico) {
+      fenotipo = analiseSaf.criterioClinicoObstetrico ? 'SAF MISTA (TROMBÓTICA E OBSTÉTRICA)' : 'SAF TROMBÓTICA CONFIRMADA';
+      prioridade = 'MÁXIMA';
+      requerHBPM = true;
+      hbpmTerapeutica = true;
+      requerAAS = true;
+      requerPuerperio6Semanas = true;
+    } else if (analiseSaf.safConfirmada && analiseSaf.criterioClinicoObstetrico) {
+      if (refrataria) {
+        fenotipo = 'SAF OBSTÉTRICA REFRATÁRIA';
+        prioridade = 'MÁXIMA';
+        requerHBPM = true;
+        hbpmTerapeutica = true; // ou dose intermediária
+        requerAAS = true;
+        requerHCQ = true;
+        requerPuerperio6Semanas = true;
+        alertas.push('⚡ SAF OBSTÉTRICA REFRATÁRIA: Histórico de perda gestacional a despeito da terapia padrão com AAS + HBPM profilática.');
+        alertas.push('Indicação formal de escalonamento para Enoxaparina em dose intermediária/terapêutica e adição de Hidroxicloroquina 200 a 400 mg/dia (EULAR/ACR 2023).');
+      } else {
+        fenotipo = 'SAF OBSTÉTRICA TÍPICA CONFIRMADA';
+        prioridade = 'ALTA';
+        requerHBPM = true;
+        hbpmTerapeutica = false;
+        requerAAS = true;
+        requerPuerperio6Semanas = true;
+      }
+    } else if (analiseSaf.safProvavel) {
+      fenotipo = 'SAF PROVÁVEL (CRITÉRIO CLÍNICO PRESENTE COM DOSAGEM INICIAL DE aPL POSITIVA)';
+      prioridade = 'ALTA';
+      requerHBPM = !analiseSaf.criterioClinicoTrombotico ? true : true;
+      hbpmTerapeutica = analiseSaf.criterioClinicoTrombotico;
+      requerAAS = true;
+      requerPuerperio6Semanas = true;
+      alertas.push('⚠️ APL PENDENTE DE CONFIRMAÇÃO: Recomenda-se recoleta dos anticorpos antifosfolipídios (LAC, aCL e anti-β2GPI) com intervalo MÍNIMO DE 12 SEMANAS da primeira amostra para diagnóstico definitivo de Sydney.');
+      alertas.push('Devido ao alto risco clínico prévio, manter a terapêutica durante a gestação enquanto aguarda a recoleta confirmatória.');
+    } else if (analiseSaf.temAnticorpoPresente && !analiseSaf.temCriterioClinico) {
+      fenotipo = 'PORTADORA ASSINTOMÁTICA DE ANTICORPOS ANTIFOSFOLIPÍDIOS (aPL POSITIVO)';
+      prioridade = 'MODERADA';
+      requerAAS = true; // Profilaxia de pré-eclâmpsia
+      requerHBPM = analiseSaf.triplaPositividade; // HBPM profilática recomendada se tripla positividade
+      requerPuerperio6Semanas = analiseSaf.triplaPositividade || analiseSaf.lacPositivo;
+      alertas.push('ℹ️ aPL POSITIVO SEM CRITÉRIOS CLÍNICOS: Rastreio positivo incidental sem eventos prévios.');
+      if (analiseSaf.triplaPositividade) {
+        alertas.push('🔴 TRIPLA POSITIVIDADE IDENTIFICADA: Confere altíssimo risco trombótico. Indicada tromboprofilaxia estrita antenatal e puerperal com Enoxaparina.');
+      } else {
+        alertas.push('Indicação de AAS em baixa dose (100 mg/dia) a partir do 1º trimestre para prevenção primária de pré-eclâmpsia e vigilância ativa.');
+      }
+    } else if (analiseTrombofilias.altoRisco) {
+      fenotipo = 'TROMBOFILIA HEREDITÁRIA DE ALTO RISCO';
+      prioridade = 'ALTA';
+      requerHBPM = true;
+      hbpmTerapeutica = dados.trombosePrevia ? true : false;
+      requerPuerperio6Semanas = true;
+      alertas.push('🧬 Trombofilia hereditária de alto risco identificada (' + analiseTrombofilias.tipos.join('; ') + '). Indicação formal de tromboprofilaxia antenatal e por 6 semanas no puerpério.');
+    } else if (analiseTrombofilias.baixoRisco) {
+      fenotipo = 'TROMBOFILIA HEREDITÁRIA DE BAIXO RISCO';
+      prioridade = 'MODERADA';
+      var fatoresAdicionais = Boolean(dados.historiaFamiliarTEV || dados.idadeAvancada || dados.obesidade || dados.cirurgia);
+      requerHBPM = fatoresAdicionais;
+      requerPuerperio6Semanas = true; // Sempre recomendada profilaxia puerperal de 6 semanas
+      alertas.push('🧬 Trombofilia hereditária de baixo risco identificada (' + analiseTrombofilias.tipos.join('; ') + ').');
+      if (fatoresAdicionais) {
+        alertas.push('Presença de fatores de risco adicionais: Tromboprofilaxia antenatal indicada com Enoxaparina.');
+      } else {
+        alertas.push('Vigilância clínica antenatal. Indicação mandatória de Enoxaparina profilática por 6 semanas no puerpério.');
+      }
+    } else if (analiseTrombofilias.mthfrIsolado) {
+      fenotipo = 'POLIMORFISMO MTHFR ISOLADO (VARIANTE BENIGNA)';
+      prioridade = 'BAIXA';
+      requerHBPM = false;
+      requerAAS = false;
+      bloqueios.push('⛔ NÃO INDICADA ANTICOAGULAÇÃO / HEPARINA: O polimorfismo de MTHFR (C677T ou A1298C) e a hiper-homocisteinemia isolada NÃO são trombofilias causadoras de aborto de repetição ou TEV na gestação (Consensos ACOG/ASH/FEBRASGO). Evitar iatrogenia.');
+    } else {
+      fenotipo = 'CRITÉRIOS INSUFICIENTES PARA SAF OU TROMBOFILIA';
+      prioridade = 'BAIXA';
+      alertas.push('A paciente não preenche critérios clínicos ou laboratoriais formais de SAF segundo as diretrizes de Sydney e ACR/EULAR 2023.');
+    }
+
+    // 2. CÁLCULO DA DOSE DE ENOXAPARINA
+    var dadosEnoxaparina = calcularDoseEnoxaparina(peso, clCr, hbpmTerapeutica);
+    if (dadosEnoxaparina.alertaRenal) {
+      alertas.push(dadosEnoxaparina.alertaRenal);
+    }
+
+    // 3. ESTRUTURAÇÃO DE PRESCRIÇÕES
+    if (requerAAS) {
+      prescricoes.push({
+        medicamento: 'Ácido Acetilsalicílico (AAS Infantil)',
+        posologia: '100 a 150 mg VO 1x ao dia, preferencialmente à noite (após o jantar)',
+        indicacao: 'Inibição seletiva de COX-1 e agregação plaquetária; prevenção de microtrombose trofoblástica e pré-eclâmpsia.',
+        momentoInicio: 'Idealmente pré-concepção ou imediatamente com o teste de gravidez positivo.',
+        momentoSuspensao: 'Suspender com 36 semanas completas de gestação (36+0) para prevenir sangramentos menores periparto, ou manter até o parto se alto risco cardiovascular.'
+      });
+    }
+
+    if (requerHBPM) {
+      prescricoes.push({
+        medicamento: 'Enoxaparina Sódica (HBPM)',
+        posologia: dadosEnoxaparina.descricao + ' | ' + dadosEnoxaparina.frequencia,
+        indicacao: hbpmTerapeutica
+          ? 'Anticoagulação plena terapêutica (SAF trombótica prévia ou SAF refratária).'
+          : 'Tromboprofilaxia primária gestacional antenatal e puerperal ponderada pelo peso.',
+        momentoInicio: 'Assim que confirmada gestação intrauterina viável (USG obstétrica inicial ou teste positivo).',
+        momentoSuspensao: hbpmTerapeutica
+          ? 'SUSPENDER OBRIGATORIAMENTE 24 HORAS ANTES de parto planejado ou anestesia neuroaxial.'
+          : 'SUSPENDER OBRIGATORIAMENTE 12 HORAS ANTES de parto planejado ou anestesia neuroaxial.'
+      });
+
+      // Suplementação preventiva em uso prolongado de heparina
+      prescricoes.push({
+        medicamento: 'Carbonato de Cálcio + Colecalciferol (Vitamina D3)',
+        posologia: 'Cálcio 1.000 a 1.250 mg/dia VO + Vitamina D3 1.000 a 2.000 UI/dia VO',
+        indicacao: 'Profilaxia obrigatória contra osteopenia/osteoporose induzida pelo uso prolongado de heparina durante a gestação.',
+        duracao: 'Durante todo o tempo de uso da Enoxaparina.'
+      });
+    }
+
+    if (requerHCQ) {
+      prescricoes.push({
+        medicamento: 'Hidroxicloroquina (HCQ)',
+        posologia: '200 a 400 mg VO 1x ao dia (dose usual: 400 mg/dia no 1º trimestre, podendo reduzir para 200 mg/dia)',
+        indicacao: 'Terapia adjuvante de resgate na SAF Obstétrica Refratária (EULAR 2023 / ACR). Restaura a expressão de anexina A5 trofoblástica e reduz ligação de anticorpos aPL.',
+        monitoramento: 'Exame oftalmológico com mapeamento de retina basal.'
+      });
+      prescricoes.push({
+        medicamento: 'Considerar Prednisona (10-20 mg/dia no 1º trimestre) ou Imunoglobulina Humana IV (IgIV)',
+        posologia: 'Prednisona 10-20 mg/dia até 12-14 semanas OU IgIV 1 a 2 g/kg/mês em centro especializado',
+        indicacao: 'Terapia imunomoduladora adjuvante em casos refratários graves com perda fetal sob HBPM'
+      });
+    }
+
+    if (analiseTrombofilias.tipos.some(function(t) { return t.includes('Antitrombina'); })) {
+      alertas.push('Deficiência de Antitrombina III: Planejar suplementação com Concentrado de Antitrombina III no periparto para manter atividade > 80% e prevenir resistência à heparina.');
+    }
+
+    // 4. REGRAS E INTERVALOS DE SEGURANÇA PARA ANESTESIA NEUROAXIAL E PERIPARTO (SOAP/ASRA)
+    if (requerHBPM) {
+      if (hbpmTerapeutica) {
+        regrasPeriparto.push('⚠️ REGRA CRÍTICA DE SUSPENSÃO (HBPM TERAPÊUTICA): Suspender a Enoxaparina pelo menos 24 HORAS antes da indução do parto, cesárea eletiva ou punção neuroaxial (raqui/peridural).');
+      } else {
+        regrasPeriparto.push('⚠️ REGRA CRÍTICA DE SUSPENSÃO (HBPM PROFILÁTICA): Suspender a Enoxaparina pelo menos 12 HORAS antes da indução do parto, cesárea eletiva ou punção neuroaxial (raqui/peridural).');
+      }
+      regrasPeriparto.push('🚫 PROIBIDO BLOQUEIO NEUROAXIAL ANTECIPADO: Se a gestante entrar em trabalho de parto espontâneo antes do intervalo seguro, a anestesia neuroaxial é CONTRAINDICADA devido ao risco de hematoma espinhal/epidural compressivo irreversível. Optar por analgesia sistêmica ou anestesia geral se cesárea de emergência.');
+      regrasPeriparto.push('💉 RETOMADA PÓS-PARTO: Enoxaparina profilática pode ser reiniciada 6 a 12 horas pós-parto normal ou cesárea (e após pelo menos 4 horas da retirada do cateter peridural). Se dose terapêutica, aguardar no mínimo 24 horas pós-parto e após remoção do cateter.');
+      regrasPeriparto.push('⏱️ MANEJO DO CATETER PERIDURAL: Retirar o cateter pelo menos 12 horas após a última dose profilática de HBPM. Não administrar nova dose de heparina nas 4 horas subsequentes à retirada.');
+    }
+
+    if (requerPuerperio6Semanas) {
+      regrasPeriparto.push('🛡️ PUERPÉRIO SEGURO: Manter Enoxaparina profilática (40 mg SC/dia) por SEIS SEMANAS COMPLETAS (42 dias) no pós-parto. O puerpério concentra mais de 60% dos eventos tromboembólicos graves maternos.');
+    }
+
+    // 5. BLOQUEIOS DE SEGURANÇA FARMACOLÓGICA E CONTRAINDICAÇÕES FORMAIS
+    bloqueios.push('🚫 CONTRAINDICAÇÃO ABSOLUTA DE DOACs: Rivaroxabana (Xarelto), Apixabana (Eliquis) e Dabigatrana (Pradaxa) atravessam a placenta, causam toxicidade embrionária e NÃO possuem segurança comprovada na gestação/lactação. Estudo TRAPS demonstrou maior taxa de eventos trombóticos em SAF de alto risco tratada com rivaroxabana.');
+    bloqueios.push('🚫 CONTRAINDICAÇÃO DE VARFARINA NO 1º TRIMESTRE: A Varfarina ultrapassa a barreira placentária e causa Embriopatia Varfarínica teratogênica (hipoplasia nasal, condrodisplasia puntacta, anomalias de SNC) entre a 6ª e 12ª semanas. Pacientes em uso prévio de Varfarina devem transicionar imediatamente para HBPM assim que confirmado atraso menstrual.');
+    bloqueios.push('🚫 CONTRAINDICAÇÃO DE AINEs NO 3º TRIMESTRE: AINEs convencionais são contraindicados a partir de 28 semanas pelo risco de fechamento prematuro do canal arterial fetal e insuficiência renal neonatal com oligoâmnio.');
+
+    // 6. VIGILÂNCIA MATERNO-FETAL
+    vigilarMaternoFetal.push('• Rastreio Precoce de Pré-Eclâmpsia: Doppler de artérias uterinas morfológico no 1º trimestre (11-14 semanas).');
+    vigilarMaternoFetal.push('• Morfológico de 2º Trimestre (20-24 semanas): Reavaliação de artérias uterinas com busca ativa de persistência de incisura protodiastólica bilateral ou IP médio > percentil 95.');
+    vigilarMaternoFetal.push('• Rastreio de Restrição de Crescimento Fetal (RCF): Ultrassonografia obstétrica seriada com Doppler (Artéria Umbilical, Artéria Cerebral Média e Relação Cerebroplacentária) a cada 3 a 4 semanas a partir de 24-28 semanas.');
+    vigilarMaternoFetal.push('• Monitoramento Hematológico: Contagem de plaquetas basal e após 7 a 14 dias de início da heparina para rastreio de Trombocitopenia Induzida por Heparina (TIH), embora rara com HBPM (< 0,1%).');
+    vigilarMaternoFetal.push('• Programação do Parto: Na SAF bem controlada sem intercorrências, indicar parto entre 38+0 e 39+0 semanas. Não ultrapassar 39+6 semanas. Se houver RCF ou pré-eclâmpsia sobreposta, seguir conduta guiada por vitalidade fetal.');
+
+    var prescricoesFormatadas = prescricoes.map(function(p) {
+      return {
+        farmaco: p.medicamento,
+        posologia: p.posologia,
+        objetivo: p.indicacao || p.momentoInicio || '',
+        antiXa: p.monitoramento || ''
+      };
+    });
+
+    var classificacaoDiagnostica = fenotipo;
+    if (fenotipo.includes('OBSTÉTRICA TÍPICA')) {
+      classificacaoDiagnostica = 'SAF OBSTÉTRICA PURA';
+    } else if (fenotipo.includes('TROMBÓTICA')) {
+      classificacaoDiagnostica = 'SAF TROMBÓTICA';
+    }
+
+    var riscoSorologicoTexto = analiseSaf.triplaPositividade
+      ? 'ALTO RISCO SOROLÓGICO: TRIPLA POSITIVIDADE (LAC + aCL + anti-β2GPI)'
+      : (analiseSaf.lacPositivo
+        ? 'ALTO RISCO SOROLÓGICO: ANTICOAGULANTE LÚPICO POSITIVO'
+        : (analiseSaf.temAnticorpoPresente ? 'MÉDIO/BAIXO RISCO SOROLÓGICO' : 'NEGATIVO'));
+
+    return {
+      sucesso: true,
+      fenotipo: fenotipo,
+      prioridade: prioridade,
+      dadosEntrada: {
+        pesoKg: peso,
+        idadeGestacionalSemanas: idadeGestacional,
+        clCr: clCr
+      },
+      diagnosticoSaf: analiseSaf,
+      diagnosticoTrombofilias: analiseTrombofilias,
+      doseEnoxaparinaCalculada: dadosEnoxaparina,
+      prescricoes: prescricoes,
+      regrasPeriparto: regrasPeriparto,
+      alertas: alertas,
+      bloqueios: bloqueios,
+      vigilanciaMaternoFetal: vigilarMaternoFetal,
+      referencias: REFERENCIAS,
+
+      // Aliases para máxima compatibilidade:
+      diagnostico: {
+        safConfirmada: analiseSaf.safConfirmada || capsSuspeita,
+        classificacao: classificacaoDiagnostica,
+        triplaPositividade: analiseSaf.triplaPositividade,
+        riscoSorologico: riscoSorologicoTexto,
+        trombofiliaHereditariaAltoRisco: analiseTrombofilias.altoRisco,
+        criteriosObstetricos: analiseSaf.criterioClinicoObstetrico ? ['Critério obstétrico presente'] : [],
+        criteriosTromboticos: analiseSaf.criterioClinicoTrombotico ? ['Critério trombótico presente'] : [],
+        criteriosLaboratoriais: analiseSaf.temAnticorpoPresente ? ['Anticorpos aPL presentes'] : []
+      },
+      posologiaEnoxaparina: {
+        pesoKg: peso,
+        doseMg: dadosEnoxaparina.doseMg,
+        volumeMl: dadosEnoxaparina.volumeMl,
+        frequencia: dadosEnoxaparina.frequencia,
+        regime: hbpmTerapeutica ? (refrataria ? 'INTERMEDIARIO' : 'TERAPEUTICO') : 'PROFILATICO',
+        descricao: dadosEnoxaparina.descricao,
+        alertaRenal: dadosEnoxaparina.alertaRenal
+      },
+      prescricaoFarmacologica: prescricoesFormatadas,
+      protocoloPeriparto: {
+        janelaSuspensaoHbpm: hbpmTerapeutica ? '24 HORAS antes da anestesia neuroaxial' : '12 HORAS antes da anestesia neuroaxial',
+        janelaSuspensaoAas: 'Suspender com 36 semanas de gestação',
+        regrasDeOuro: regrasPeriparto
+      },
+      alertasCriticosSeguranca: alertas.concat(bloqueios),
+      condutaGeral: regrasPeriparto.concat(alertas),
+      planoVigilancia: vigilarMaternoFetal
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. PARSER ROBUSTO DE TEXTO LIVRE
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function extrairParametrosTexto(texto) {
+    var raw = String(texto || '').toLowerCase();
+
+    var params = {
+      peso: null,
+      idadeGestacional: null,
+      clCr: null,
+      abortosPrecoces: 0,
+      perdaFetalTardia: false,
+      partoPrematuroPrecoce: false,
+      trombosePrevia: false,
+      anticoagulanteLupico: false,
+      anticardiolipina: false,
+      antiBeta2GlicoproteinaI: false,
+      intervaloMinimo12Semanas: false,
+      triplaPositividade: false,
+      refrataria: false,
+      caps: false,
+      fatorVLeidenHomozigoto: false,
+      fatorVLeidenHeterozigoto: false,
+      mutacaoProtrombinaHomozigoto: false,
+      mutacaoProtrombinaHeterozigoto: false,
+      deficienciaAntitrombinaIII: false,
+      deficienciaProteinaC: false,
+      deficienciaProteinaS: false,
+      mthfr: false
+    };
+
+    // Extração de peso: "peso 65kg", "70 kg", "peso: 80"
+    var matchPeso = raw.match(/(?:peso[:\s]*|)(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/) ||
+                    raw.match(/peso[:\s]*(\d{2,3}(?:[.,]\d+)?)/);
+    if (matchPeso) {
+      params.peso = parseFloat(matchPeso[1].replace(',', '.'));
+    }
+
+    // Extração de idade gestacional: "12 semanas", "ig 24s", "28s"
+    var matchIg = raw.match(/(?:ig|idade gestacional)[:\s]*(\d{1,2}(?:\+\d)?)\s*(?:semanas|sem|s\b)?/) ||
+                  raw.match(/(\d{1,2})\s*(?:semanas|sem)\b/);
+    if (matchIg) {
+      params.idadeGestacional = parseInt(matchIg[1], 10);
+    }
+
+    // Extração de Clearance de Creatinina: "clcr 25", "clearance 30"
+    var matchClCr = raw.match(/(?:clcr|clearance)[:\s]*(\d{1,3})/);
+    if (matchClCr) {
+      params.clCr = parseInt(matchClCr[1], 10);
+    }
+
+    // Abortos precoces: "3 abortos", "4 abortamentos", "aborto de repeticao"
+    var matchAbortos = raw.match(/(\d+)\s*(?:abortos|abortamentos|perdas precoces)/);
+    if (matchAbortos) {
+      params.abortosPrecoces = parseInt(matchAbortos[1], 10);
+    } else if (raw.includes('aborto de repeti') || raw.includes('abortamento habitual') || raw.includes('abortos recorrentes')) {
+      params.abortosPrecoces = 3;
+    }
+
+    // Perda fetal tardia (> 10 sem): "perda fetal 16 semanas", "obito fetal 20s", "perda com 12 sem", "feto morto"
+    if (raw.includes('perda fetal') || raw.includes('óbito fetal') || raw.includes('obito fetal') ||
+        raw.includes('perda tardia') || raw.match(/perda.*?(\d{2})\s*(?:sem|semanas)/)) {
+      params.perdaFetalTardia = true;
+    }
+
+    // Parto prematuro < 34 semanas por pré-eclâmpsia / insuficiência placentária
+    if ((raw.includes('pre-eclampsia') || raw.includes('pré-eclâmpsia') || raw.includes('eclamp') || raw.includes('insuficiencia placentaria')) &&
+        (raw.includes('prematuro') || raw.includes('parto prematuro') || raw.includes('< 34') || raw.includes('32 sem') || raw.includes('30 sem') || raw.includes('28 sem'))) {
+      params.partoPrematuroPrecoce = true;
+    }
+
+    // Trombose prévia (TVP, TEP, AVC, arterial)
+    if (raw.includes('trombose') || raw.includes('tvp') || raw.includes('tep') || raw.includes('avc') ||
+        raw.includes('embolia pulmonar') || raw.includes('trombose venosa') || raw.includes('evento trombotico')) {
+      params.trombosePrevia = true;
+    }
+
+    // Anticorpos Antifosfolipídios
+    if (raw.includes('lac') || raw.includes('lupico') || raw.includes('lúpico') || raw.includes('anticoagulante lupico') || raw.includes('drvvt')) {
+      params.anticoagulanteLupico = true;
+    }
+    if (raw.includes('anticardiolipina') || raw.includes('acl') || raw.includes('cardiolipina')) {
+      params.anticardiolipina = true;
+    }
+    if (raw.includes('anti-beta') || raw.includes('anti-b2gpi') || raw.includes('b2gpi') || raw.includes('beta-2-glicoproteina') || raw.includes('beta 2 glicoproteina')) {
+      params.antiBeta2GlicoproteinaI = true;
+    }
+    if (raw.includes('tripla positividade') || raw.includes('triplo positivo') || (params.anticoagulanteLupico && params.anticardiolipina && params.antiBeta2GlicoproteinaI)) {
+      params.triplaPositividade = true;
+    }
+
+    // Confirmação com intervalo mínimo de 12 semanas
+    if (raw.includes('12 semanas') || raw.includes('intervalo') || raw.includes('duas coletas') || raw.includes('confirmado') || raw.includes('confirmada')) {
+      params.intervaloMinimo12Semanas = true;
+    }
+
+    // Refratariedade / falha
+    if (raw.includes('refratari') || raw.includes('falha') || raw.includes('em uso de aas') || raw.includes('em uso de heparina') || raw.includes('mesmo com enoxaparina')) {
+      params.refrataria = true;
+    }
+
+    // CAPS / Síndrome Catastrófica
+    if (raw.includes('caps') || raw.includes('catastrofica') || raw.includes('asherson') || raw.includes('multiplos orgaos')) {
+      params.caps = true;
+    }
+
+    // Trombofilias hereditárias
+    if (raw.includes('antitrombina')) params.deficienciaAntitrombinaIII = true;
+    if (raw.includes('fator v') || raw.includes('leiden')) {
+      if (raw.includes('homozigoto') || raw.includes('homo')) params.fatorVLeidenHomozigoto = true;
+      else params.fatorVLeidenHeterozigoto = true;
+    }
+    if (raw.includes('protrombina') || raw.includes('g20210a')) {
+      if (raw.includes('homozigoto') || raw.includes('homo')) params.mutacaoProtrombinaHomozigoto = true;
+      else params.mutacaoProtrombinaHeterozigoto = true;
+    }
+    if (raw.includes('proteina c') || raw.includes('proteína c')) params.deficienciaProteinaC = true;
+    if (raw.includes('proteina s') || raw.includes('proteína s')) params.deficienciaProteinaS = true;
+    if (raw.includes('mthfr') || raw.includes('c677t') || raw.includes('a1298c')) params.mthfr = true;
+
+    // Idade da paciente
+    var matchIdade = raw.match(/(?:idade[:\s]*|)(\d{1,2})\s*anos/) || raw.match(/idade[:\s]*(\d{1,2})/);
+    if (matchIdade) {
+      params.idade = parseInt(matchIdade[1], 10);
+    }
+
+    // Uso prévio de Varfarina
+    if (raw.includes('varfarina') || raw.includes('marevan') || raw.includes('coumadin')) {
+      params.usoVarfarinaPrevio = true;
+    }
+
+    // Aliases ergonômicos
+    params.pesoKg = params.peso;
+    params.abortosPrecocesMenos10Semanas = params.abortosPrecoces;
+
+    return params;
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. FORMATADOR DE TEXTO PARA TELEGRAM E COCKPIT
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function formatarTextoTelegram(resultado) {
+    if (!resultado || !resultado.sucesso) {
+      return '⚠️ Falha ao processar avaliação de SAF / Trombofilias.';
+    }
+
+    var texto = '🩸 *OBSTETRÍCIA & REUMATOLOGIA — MANEJO DE SAF E TROMBOFILIAS*\n';
+    texto += '═══════════════════════════════════════════\n';
+    texto += '🏷️ *Fenótipo Clínico:* `' + resultado.fenotipo + '`\n';
+    texto += '🎯 *Prioridade Terapêutica:* `' + resultado.prioridade + '`\n';
+    texto += '⚖️ *Dados Maternos:* Peso ' + resultado.dadosEntrada.pesoKg + ' kg | IG ' + resultado.dadosEntrada.idadeGestacionalSemanas + ' sem\n\n';
+
+    // Diagnóstico e Critérios
+    texto += '📋 *CRITÉRIOS DIAGNÓSTICOS (SYDNEY / ACR-EULAR 2023):*\n';
+    var dSaf = resultado.diagnosticoSaf;
+    texto += '• Critério Clínico Obstétrico: ' + (dSaf.criterioClinicoObstetrico ? '✅ Presente' : '❌ Ausente') + '\n';
+    texto += '• Critério Clínico Trombótico: ' + (dSaf.criterioClinicoTrombotico ? '✅ Presente (Histórico de TEV/Arterial)' : '❌ Ausente') + '\n';
+    texto += '• aPL Detectado: ' + (dSaf.temAnticorpoPresente ? '✅ Sim (' + (dSaf.lacPositivo ? 'LAC+ ' : '') + (dSaf.aclPositivo ? 'aCL+ ' : '') + (dSaf.antiB2gpiPositivo ? 'anti-β2GPI+' : '') + ')' : '❌ Não') + '\n';
+    texto += '• Intervalo ≥ 12 Semanas (Confirmação): ' + (dSaf.intervalo12Semanas ? '✅ Confirmado' : '⚠️ Pendente recoleta') + '\n';
+    if (dSaf.triplaPositividade) {
+      texto += '• 🔴 *Tripla Positividade:* SIM (Altíssimo risco trombótico e obstétrico)\n';
+    }
+
+    if (resultado.diagnosticoTrombofilias.temTrombofiliaHereditaria) {
+      texto += '\n🧬 *TROMBOFILIA HEREDITÁRIA ASSOCIADA:*\n';
+      for (var t = 0; t < resultado.diagnosticoTrombofilias.tipos.length; t++) {
+        texto += '• ' + resultado.diagnosticoTrombofilias.tipos[t] + '\n';
+      }
+    }
+
+    // Prescrições Farmacológicas
+    if (resultado.prescricoes && resultado.prescricoes.length > 0) {
+      texto += '\n💊 *PRESCRIÇÃO ANTITROMBÓTICA ESTRUTURADA:*\n';
+      for (var p = 0; p < resultado.prescricoes.length; p++) {
+        var presc = resultado.prescricoes[p];
+        texto += '*' + (p + 1) + '. ' + presc.medicamento + '*\n';
+        texto += '   ↳ Posologia: `' + presc.posologia + '`\n';
+        texto += '   ↳ Início: ' + presc.momentoInicio + '\n';
+        if (presc.momentoSuspensao) {
+          texto += '   ↳ Suspensão: ' + presc.momentoSuspensao + '\n';
+        }
+      }
+    }
+
+    // Regras de Periparto e Anestesia
+    if (resultado.regrasPeriparto && resultado.regrasPeriparto.length > 0) {
+      texto += '\n🛑 *REGRAS DE PERIPARTO & ANESTESIA NEUROAXIAL (SOAP/ASRA):*\n';
+      for (var r = 0; r < resultado.regrasPeriparto.length; r++) {
+        texto += resultado.regrasPeriparto[r] + '\n';
+      }
+    }
+
+    // Alertas Críticos
+    if (resultado.alertas && resultado.alertas.length > 0) {
+      texto += '\n⚠️ *ALERTAS CLÍNICOS CRÍTICOS:*\n';
+      for (var a = 0; a < resultado.alertas.length; a++) {
+        texto += '• ' + resultado.alertas[a] + '\n';
+      }
+    }
+
+    // Bloqueios de Segurança Farmacológica
+    if (resultado.bloqueios && resultado.bloqueios.length > 0) {
+      texto += '\n🚫 *BLOQUEIOS DE SEGURANÇA FARMACOLÓGICA:*\n';
+      for (var b = 0; b < resultado.bloqueios.length; b++) {
+        texto += resultado.bloqueios[b] + '\n';
+      }
+    }
+
+    // Vigilância Materno-Fetal
+    if (resultado.vigilanciaMaternoFetal && resultado.vigilanciaMaternoFetal.length > 0) {
+      texto += '\n👶 *VIGILÂNCIA MATERNO-FETAL ESTREITA:*\n';
+      for (var v = 0; v < resultado.vigilanciaMaternoFetal.length; v++) {
+        texto += resultado.vigilanciaMaternoFetal[v] + '\n';
+      }
+    }
+
+    texto += '\n📚 *Diretrizes:* ACR/EULAR (2023), Sydney (2006), RCOG 37a, FEBRASGO 2023-2026, SOAP/ASRA.';
+
+    return texto;
+  }
+
+  function processarComandoTelegram(texto) {
+    var params = extrairParametrosTexto(texto);
+    var resultado = avaliarSaf(params);
+    return formatarTextoTelegram(resultado);
+  }
+
+  return {
+    avaliar: avaliarSaf,
+    avaliarSaf: avaliarSaf,
+    avaliarCriteriosSaf: avaliarCriteriosSaf,
+    avaliarTrombofiliasHereditarias: avaliarTrombofiliasHereditarias,
+    calcularDoseEnoxaparina: calcularDoseEnoxaparina,
+    extrairParametrosTexto: extrairParametrosTexto,
+    formatarTextoTelegram: formatarTextoTelegram,
+    processarComandoTelegram: processarComandoTelegram,
+    FAIXAS_PESO_ENOXAPARINA: FAIXAS_PESO_ENOXAPARINA,
+    REFERENCIAS: REFERENCIAS
+  };
+})();
+
+var ObstetriciaSafTrombofiliasService = ObstetriciaSafService;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = ObstetriciaSafService;
+  module.exports.ObstetriciaSafService = ObstetriciaSafService;
+  module.exports.ObstetriciaSafTrombofiliasService = ObstetriciaSafTrombofiliasService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_obstetricia_toxoplasmose.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA - MÓDULO DE INFECTOLOGIA & OBSTETRÍCIA
+ * ==============================================================================
+ * Rastreamento e Manejo de Toxoplasmose Aguda na Gestação
+ * Diretrizes Ministério da Saúde (MS 2022/2024), FEBRASGO (2023), ACOG e CDC.
+ * 
+ * Escopo:
+ * - Interpretação sorológica (IgG, IgM e Teste de Avidez de IgG no 1º trimestre)
+ * - Início precoce de Espiramicina 1g VO 8/8h para prevenção de transmissão vertical
+ * - Diagnóstico de infecção fetal por PCR no líquido amniótico (amniocentese >= 18 semanas)
+ * - Tratamento fetal intraútero com Esquema Tríplice (Sulfadiazina + Pirimetamina + Ácido Folínico)
+ * - Manejo seguro próximo ao termo (>= 37 semanas) para prevenção de Kernicterus
+ * - Esquema alternativo para pacientes alérgicas a Sulfonamidas (Clindamicina)
+ * ==============================================================================
+ */
+
+var ObstetriciaToxoplasmoseService = (function () {
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 1. CONSTANTES CLÍNICAS E REFERÊNCIAS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  var REFERENCIAS = [
+    'Ministério da Saúde (Brasil). Protocolo de Notificação e Investigação: Toxoplasmose Gestacional e Congênita (2022).',
+    'FEBRASGO. Toxoplasmose na Gestação — Protocolo Oficial da Comissão Nacional Especializada em Infectologia Pediátrica e Obstétrica (2023).',
+    'ACOG Practice Bulletin No. 151: Cytomegalovirus, Parvovirus B19, Varicella Zoster, and Toxoplasmosis in Pregnancy (2015, reaff. 2023).',
+    'Montoya JG, Remington JS. Management of Toxoplasma gondii infection during pregnancy. Clin Infect Dis 2008;47(4):554-566.',
+    'Robert-Gangneux F, Dardé ML. Epidemiology of and diagnostic strategies for toxoplasmosis. Clin Microbiol Rev 2012;25(2):264-296.'
+  ];
+
+  var ESQUEMAS_MEDICAMENTOSOS = {
+    ESPIRAMICINA: {
+      fase: 'Prevenção de Transmissão Vertical (Profilaxia Fetal)',
+      indicacao: 'Infecção aguda materna suspeita ou confirmada sem evidência de infecção fetal (PCR LA negativo ou amniocentese pendente).',
+      medicamentos: [
+        {
+          farmaco: 'Espiramicina',
+          apresentacao: 'Comprimidos de 500 mg (1.500.000 UI)',
+          dose: '1 g (3.000.000 UI - 2 comprimidos)',
+          via: 'VO',
+          frequencia: 'A cada 8 horas (total: 3g/dia)',
+          duracao: 'Até o final da gestação (ou até substituição pelo esquema tríplice se PCR fetal positivo)',
+          observacao: 'Concentra-se na placenta prevenindo a passagem do parasita, mas tem baixa passagem transplacentária para o feto; NÃO trata infecção fetal já estabelecida.'
+        }
+      ]
+    },
+    TRIPLICE_CLASSICO: {
+      fase: 'Tratamento de Infecção Fetal Intraútero (Esquema Tríplice)',
+      indicacao: 'PCR do Líquido Amniótico POSITIVO, alterações ultrassonográficas fetais típicas ou infecção materna confirmada no 3º trimestre tardio.',
+      medicamentos: [
+        {
+          farmaco: 'Sulfadiazina',
+          apresentacao: 'Comprimidos de 500 mg',
+          dose: '1.500 mg (3 comprimidos)',
+          via: 'VO',
+          frequencia: 'A cada 12 horas (total: 3g/dia)',
+          duracao: 'Até 37 semanas (ou até o termo, com substituição por espiramicina antes do parto para evitar kernicterus).'
+        },
+        {
+          farmaco: 'Pirimetamina',
+          apresentacao: 'Comprimidos de 25 mg',
+          dose: '50 mg (2 comprimidos)',
+          via: 'VO',
+          frequencia: 'A cada 24 horas (dose de ataque de 100 mg no 1º dia é opcional)',
+          duracao: 'Até o final da gestação (sob monitorização hematológica).'
+        },
+        {
+          farmaco: 'Ácido Folínico (Leucovorina)',
+          apresentacao: 'Comprimidos de 15 mg',
+          dose: '15 mg (1 comprimido)',
+          via: 'VO',
+          frequencia: 'A cada 24 horas',
+          duracao: 'Durante todo o uso de Pirimetamina e até 1 semana após sua suspensão.',
+          observacao: 'Obrigatório para proteger a medula óssea materna contra a inibição da di-hidrofolato redutase pela pirimetamina. O ÁCIDO FÓLICO COMUM NÃO SUBSTITUI O ÁCIDO FOLÍNICO.'
+        }
+      ],
+      alertas: [
+        '⚠️ Ingestão hídrica abundante materna (> 2 a 3 L/dia) é obrigatória para prevenir cristalúria e nefrolitíase por Sulfadiazina.',
+        '⚠️ Hemograma materno a cada 15-30 dias pelo risco de neutropenia e plaquetopenia induzidas por Pirimetamina.',
+        '⚠️ Substituir Sulfadiazina por Espiramicina a partir de 37 semanas de gestação para prevenir Kernicterus neonatal (deslocamento da bilirrubina da albumina sérica).'
+      ]
+    },
+    TRIPLICE_ALERGIA_SULFA: {
+      fase: 'Tratamento de Infecção Fetal em Paciente Alérgica a Sulfas',
+      indicacao: 'Infecção fetal confirmada em gestante com histórico de anafilaxia ou rash grave por sulfonamidas.',
+      medicamentos: [
+        {
+          farmaco: 'Clindamicina',
+          apresentacao: 'Cápsulas de 300 mg',
+          dose: '600 mg (2 cápsulas)',
+          via: 'VO',
+          frequencia: 'A cada 6 horas (total: 2.400 mg/dia)',
+          duracao: 'Substitui a Sulfadiazina até o parto.'
+        },
+        {
+          farmaco: 'Pirimetamina',
+          apresentacao: 'Comprimidos de 25 mg',
+          dose: '50 mg / dia',
+          via: 'VO',
+          frequencia: 'A cada 24 horas',
+          duracao: 'Até o final da gestação.'
+        },
+        {
+          farmaco: 'Ácido Folínico (Leucovorina)',
+          apresentacao: 'Comprimidos de 15 mg',
+          dose: '15 mg / dia',
+          via: 'VO',
+          frequencia: 'A cada 24 horas',
+          duracao: 'Até 1 semana após suspensão da pirimetamina.'
+        }
+      ]
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2. REGRAS DE INTERPRETAÇÃO SOROLÓGICA (MS / FEBRASGO)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Normaliza a classificação do Teste de Avidez de IgG
+   * @param {string|number} avidez - Valor numérico (ex: 65, 30) ou textual ('ALTA', 'BAIXA', 'INTERMEDIARIA')
+   * @returns {string} 'ALTA', 'BAIXA', 'INTERMEDIARIA' ou 'PENDENTE'
+   */
+  function normalizarAvidez(avidez) {
+    if (avidez == null) return 'PENDENTE';
+    if (typeof avidez === 'number') {
+      if (avidez >= 60) return 'ALTA';
+      if (avidez < 50) return 'BAIXA';
+      return 'INTERMEDIARIA';
+    }
+    var str = String(avidez).trim().toUpperCase();
+    var matchNum = str.match(/(\d+(?:\.\d+)?)/);
+    if (matchNum) {
+      var num = parseFloat(matchNum[1]);
+      if (num >= 60) return 'ALTA';
+      if (num < 50) return 'BAIXA';
+      return 'INTERMEDIARIA';
+    }
+    if (str.includes('ALT') || str.includes('FORT')) return 'ALTA';
+    if (str.includes('BAIX') || str.includes('FRAC')) return 'BAIXA';
+    if (str.includes('INTER') || str.includes('MODERAD') || str.includes('CINZA')) return 'INTERMEDIARIA';
+    return 'PENDENTE';
+  }
+
+  function avaliarSorologia(ig, igg, igm, avidez_igg, ig_exame) {
+    var resultado = {
+      cenario: '',
+      interpretacao: '',
+      conduta_imediata: '',
+      investigacao_fetal: null,
+      tratamento: null,
+      orientacoes: []
+    };
+
+    var _igg = igg ? igg.toUpperCase() : '';
+    var _igm = igm ? igm.toUpperCase() : '';
+    var _avidez = normalizarAvidez(avidez_igg);
+
+    // 1. Suscetível: IgG- / IgM-
+    if ((_igg === 'NEGATIVO' || _igg === 'NAO_REAGENTE') && (_igm === 'NEGATIVO' || _igm === 'NAO_REAGENTE')) {
+      resultado.cenario = 'SUSCETÍVEL';
+      resultado.interpretacao = 'Paciente suscetível (ausência de anticorpos protetores). Risco de primoinfecção durante a gestação com repercussões fetais graves.';
+      resultado.conduta_imediata = 'Repetir sorologia trimestralmente (idealmente a cada 4-8 semanas). Orientar rigorosamente medidas de prevenção primária.';
+      resultado.orientacoes.push('Não ingerir carnes cruas ou malpassadas (cozinhar a mais de 67°C ou congelar a -12°C por pelo menos 3 dias).');
+      resultado.orientacoes.push('Lavar rigorosamente frutas, verduras e legumes com água potável e solução clorada antes do consumo.');
+      resultado.orientacoes.push('Evitar contato direto com solo e terra de jardinagem (utilizar luvas descartáveis e higienizar mãos em seguida).');
+      resultado.orientacoes.push('Evitar manipular caixas de areia de gatos. Se inevitável, usar luvas, máscara e trocar a areia diariamente com água fervente.');
+      resultado.orientacoes.push('Não ingerir água não tratada ou leite cru não pasteurizado.');
+      return resultado;
+    }
+
+    // 2. Imunidade Pregressa: IgG+ / IgM-
+    if ((_igg === 'POSITIVO' || _igg === 'REAGENTE') && (_igm === 'NEGATIVO' || _igm === 'NAO_REAGENTE')) {
+      resultado.cenario = 'IMUNIDADE PREGRESSA';
+      resultado.interpretacao = 'Infecção prévia adquirida antes da gestação atual. Feto protegido por imunidade materna humoral duradoura.';
+      resultado.conduta_imediata = 'Tranquilizar a gestante. Não há risco de transmissão vertical para o feto e não há indicação de nova sorologia, exceto em imunossupressão grave (ex: HIV com CD4 baixo).';
+      return resultado;
+    }
+
+    // 3. Infecção Aguda Muito Recente ou Falso Positivo: IgG- / IgM+
+    if ((_igg === 'NEGATIVO' || _igg === 'NAO_REAGENTE') && (_igm === 'POSITIVO' || _igm === 'REAGENTE')) {
+      resultado.cenario = 'INFECÇÃO AGUDA RECENTE OU IgM FALSO-POSITIVO';
+      resultado.interpretacao = 'Padrão compatível com infecção aguda em fase muito inicial (janela imunológica antes da viragem do IgG) OU IgM natural/falso-positivo.';
+      resultado.conduta_imediata = 'Iniciar Espiramicina 1g VO 8/8h IMEDIATAMENTE. Repetir sorologia (IgG e IgM) em 2 a 3 semanas para confirmar ou afastar soroconversão. Encaminhar amostra para laboratório de referência.';
+      resultado.tratamento = ESQUEMAS_MEDICAMENTOSOS.ESPIRAMICINA;
+      return resultado;
+    }
+
+    // 4. IgG+ e IgM+
+    if ((_igg === 'POSITIVO' || _igg === 'REAGENTE') && (_igm === 'POSITIVO' || _igm === 'REAGENTE')) {
+      var idadeColeta = (ig_exame != null && ig_exame > 0) ? ig_exame : ig;
+
+      if (idadeColeta <= 16) {
+        // Coleta precoce no 1º trimestre (<= 16 semanas)
+        if (_avidez === 'PENDENTE') {
+          resultado.cenario = 'INFECÇÃO AGUDA SUSPEITA (AVIDEZ PENDENTE)';
+          resultado.interpretacao = 'IgG e IgM reagentes no primeiro trimestre. O IgM pode persistir residual por meses a anos; o Teste de Avidez de IgG é indispensável para datação.';
+          resultado.conduta_imediata = 'Iniciar Espiramicina 1g VO 8/8h IMEDIATAMENTE (não aguardar resultado da avidez para iniciar). Solicitar Teste de Avidez de IgG urgente na mesma amostra sorológica.';
+          resultado.tratamento = ESQUEMAS_MEDICAMENTOSOS.ESPIRAMICINA;
+        } else if (_avidez === 'ALTA') {
+          resultado.cenario = 'INFECÇÃO PREGRESSA (AVIDEZ ALTA)';
+          resultado.interpretacao = 'Teste de Avidez de IgG ALTA (>= 60%) realizado com <= 16 semanas: afasta com segurança infecção adquirida nos últimos 3 a 4 meses, confirmando que a infecção ocorreu ANTES da concepção.';
+          resultado.conduta_imediata = 'Suspender Espiramicina (se havia sido iniciada preventivamente). Tranquilizar a paciente. Seguir pré-natal habitual de baixo risco.';
+        } else {
+          // Baixa ou intermediária
+          resultado.cenario = 'INFECÇÃO AGUDA MATERNA CONFIRMADA';
+          resultado.interpretacao = 'Teste de Avidez de IgG BAIXA (< 50%) ou intermediária no 1º trimestre: confirma infecção aguda recente adquirida durante a gestação ou período periconcepcional imediato.';
+          resultado.conduta_imediata = 'Manter Espiramicina 1g VO 8/8h ininterruptamente para profilaxia placentária. Programar investigação de infecção fetal por amniocentese (PCR) a partir de 18 semanas.';
+          resultado.tratamento = ESQUEMAS_MEDICAMENTOSOS.ESPIRAMICINA;
+          resultado.investigacao_fetal = obterProtocoloInvestigacaoFetal();
+        }
+      } else {
+        // Coleta tardia (> 16 semanas)
+        resultado.cenario = 'INFECÇÃO AGUDA MATERNA PROVÁVEL (COLETA TARDIA)';
+        resultado.interpretacao = 'Sorologia coletada com mais de 16 semanas de gestação. O Teste de Avidez de IgG PERDE O VALOR preditivo nesta fase (avidez alta não exclui infecção no 1º trimestre). Deve-se considerar infecção aguda gestacional por segurança.';
+        resultado.conduta_imediata = 'Iniciar Espiramicina 1g VO 8/8h IMEDIATAMENTE e manter. Programar investigação invasiva de infecção fetal por amniocentese (PCR) a partir de 18 semanas.';
+        resultado.tratamento = ESQUEMAS_MEDICAMENTOSOS.ESPIRAMICINA;
+        resultado.investigacao_fetal = obterProtocoloInvestigacaoFetal();
+      }
+      return resultado;
+    }
+
+    resultado.cenario = 'SOROLOGIA INDETERMINADA';
+    resultado.interpretacao = 'Padrão sorológico atípico ou inconclusivo. Necessário confirmar os laudos e repetir a sorologia.';
+    resultado.conduta_imediata = 'Repetir IgG e IgM em laboratório de referência em 2 semanas. Se alta suspeita clínica, iniciar Espiramicina preventivamente.';
+    return resultado;
+  }
+
+  function obterProtocoloInvestigacaoFetal() {
+    return {
+      exame: 'PCR para Toxoplasma gondii no Líquido Amniótico (via Amniocentese)',
+      timing: 'Realizar A PARTIR de 18 semanas de gestação E com intervalo mínimo de 4 semanas após a infecção aguda materna estimada.',
+      justificativa_timing: 'Amniocentese realizada antes de 18 semanas ou com menos de 4 semanas da infecção apresenta alto índice de resultado falso-negativo (tempo necessário para o taquizoíto colonizar a placenta e ser eliminado pelos rins fetais no líquido amniótico).',
+      ultrassom_seriado: 'USG Morfológico fetal a cada 3 a 4 semanas para rastreio de sinais de infecção congênita: dilatação ventricular/hidrocefalia, calcificações cerebrais periventriculares/difusas, microcefalia, espessamento placentário, ascite fetal, hidropsia e hepatoesplenomegalia.'
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3. MOTOR DETERMINÍSTICO PRINCIPAL: avaliar()
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Avalia caso completo de toxoplasmose na gestação
+   * @param {object} params - Parâmetros da paciente
+   * @param {number} params.ig - Idade gestacional atual em semanas
+   * @param {string} params.igg - 'POSITIVO' / 'NEGATIVO'
+   * @param {string} params.igm - 'POSITIVO' / 'NEGATIVO'
+   * @param {string|number} [params.avidez_igg] - Valor da avidez (ex: 'ALTA', 'BAIXA', 65, 30)
+   * @param {number} [params.ig_exame] - IG no momento da coleta do exame
+   * @param {string} [params.pcr_amniotico] - 'POSITIVO' / 'NEGATIVO'
+   * @param {boolean} [params.usg_alterado] - Presença de sinais ultrassonográficos
+   * @param {boolean} [params.alergia_sulfa] - Se a gestante é alérgica a sulfas
+   * @returns {object} Conduta estruturada completa
+   */
+  function avaliar(params) {
+    if (!params || typeof params.ig !== 'number' || params.ig < 4 || params.ig > 43) {
+      throw new Error('Informe a idade gestacional atual (ig) válida em semanas (4 a 43).');
+    }
+
+    var ig = params.ig;
+    var sorologia = avaliarSorologia(ig, params.igg, params.igm, params.avidez_igg, params.ig_exame);
+    var pcr = params.pcr_amniotico ? params.pcr_amniotico.toUpperCase() : null;
+    var usgAlterado = !!params.usg_alterado;
+    var alergiaSulfa = !!params.alergia_sulfa;
+
+    var resultado = {
+      ig: ig,
+      sorologia: sorologia,
+      pcr_amniotico: pcr,
+      usg_alterado: usgAlterado,
+      alergia_sulfa: alergiaSulfa,
+      tratamento_fetal: null,
+      alertas: [],
+      bloqueios_seguranca: [],
+      referencias: REFERENCIAS.slice()
+    };
+
+    // Avaliação de Transmissão Fetal / Tratamento Fetal
+    var infeccaoFetalConfirmada = (pcr === 'POSITIVO' || usgAlterado);
+
+    // Infecção no 3º trimestre tardio (> 32-34 sem): risco de transmissão é altíssimo (> 70-80%)
+    var terceiroTrimestreTardio = (ig >= 32 && sorologia.cenario.includes('AGUDA'));
+
+    if (infeccaoFetalConfirmada || terceiroTrimestreTardio) {
+      var esquema = alergiaSulfa ? ESQUEMAS_MEDICAMENTOSOS.TRIPLICE_ALERGIA_SULFA : ESQUEMAS_MEDICAMENTOSOS.TRIPLICE_CLASSICO;
+      resultado.tratamento_fetal = JSON.parse(JSON.stringify(esquema));
+      resultado.sorologia.tratamento = null; // Substitui profilaxia por tratamento fetal
+
+      if (infeccaoFetalConfirmada) {
+        resultado.sorologia.conduta_imediata = '🚨 INFECÇÃO FETAL CONFIRMADA/ALTAMENTE SUSPEITA (PCR positivo no LA ou USG com anomalias). Suspender Espiramicina e iniciar Esquema Tríplice para tratamento fetal intraútero imediatamente.';
+      } else {
+        resultado.sorologia.conduta_imediata = '🚨 INFECÇÃO AGUDA MATERNA EM FASE AVANÇADA (>= 32 semanas). Devido à altíssima taxa de transmissão vertical fetal (> 70-80%), iniciar Esquema Tríplice para tratamento fetal intraútero.';
+      }
+
+      // Alerta de termo e risco de Kernicterus
+      if (ig >= 37 && !alergiaSulfa) {
+        resultado.alertas.push('⚠️ GESTAÇÃO A TERMO (>= 37 semanas): Risco de Kernicterus neonatal! A Sulfadiazina desloca a bilirrubina dos sítios de ligação da albumina sérica. Suspender Sulfadiazina e substituir por Espiramicina 1g VO 8/8h até o parto.');
+      }
+    } else if (pcr === 'NEGATIVO') {
+      resultado.sorologia.conduta_imediata += ' ✅ PCR NEGATIVO no líquido amniótico: Infecção fetal não detectada. Manter Espiramicina 1g VO 8/8h até o parto e manter vigilância com USG mensal.';
+    }
+
+    // Bloqueios de segurança clínicos
+    if (resultado.tratamento_fetal) {
+      resultado.bloqueios_seguranca.push('🛑 O ÁCIDO FOLÍNICO (Leucovorina 15 mg/dia) é MANDATÓRIO durante o uso de Pirimetamina. O Ácido fólico convencional do pré-natal NÃO reverte a mielotoxicidade da pirimetamina.');
+      resultado.bloqueios_seguranca.push('🩸 Monitorar HEMOGRAMA COMPLETO com plaquetas a cada 15 a 30 dias durante o tratamento tríplice materna pelo risco de pancitopenia e neutropenia grave.');
+    }
+
+    if (sorologia.cenario.includes('AGUDA') && ig < 18) {
+      resultado.bloqueios_seguranca.push('🛑 NÃO realizar amniocentese antes de 18 semanas de gestação nem com menos de 4 semanas da infecção presumida (risco crítico de resultado falso-negativo).');
+    }
+
+    if (sorologia.cenario === 'SUSCETÍVEL') {
+      resultado.bloqueios_seguranca.push('🛡️ NÃO deixar de repetir sorologia trimestralmente na gestante suscetível (identificação precoce de soroconversão salva o prognóstico neurológico fetal).');
+    }
+
+    return resultado;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 4. PARSER DE TEXTO LIVRE (TELEGRAM)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function extrairParametrosTexto(texto) {
+    if (!texto || typeof texto !== 'string') return {};
+    var txt = texto.toLowerCase().replace(/,/g, '.');
+    var params = { ig: 16, igg: null, igm: null, avidez_igg: null, ig_exame: null, pcr_amniotico: null, usg_alterado: false, alergia_sulfa: false };
+
+    // IG
+    var matchIG = txt.match(/(?:ig|idade\s*gestacional)?\s*(\d{1,2})\s*(?:s|sem|semanas?)\b/);
+    if (!matchIG) matchIG = txt.match(/\b(\d{1,2})\s*\+\s*\d/);
+    if (matchIG) params.ig = parseInt(matchIG[1], 10);
+
+    // IgG
+    var matchIgG = txt.match(/igg\s*[:=]?\s*(positivo|negativo|reagente|nao\s*reagente|não\s*reagente|\+|\-)/);
+    if (matchIgG) {
+      var valG = matchIgG[1];
+      params.igg = (valG.includes('pos') || valG.includes('+') || (valG.includes('reag') && !valG.includes('nao') && !valG.includes('não'))) ? 'POSITIVO' : 'NEGATIVO';
+    }
+
+    // IgM
+    var matchIgM = txt.match(/igm\s*[:=]?\s*(positivo|negativo|reagente|nao\s*reagente|não\s*reagente|\+|\-)/);
+    if (matchIgM) {
+      var valM = matchIgM[1];
+      params.igm = (valM.includes('pos') || valM.includes('+') || (valM.includes('reag') && !valM.includes('nao') && !valM.includes('não'))) ? 'POSITIVO' : 'NEGATIVO';
+    }
+
+    // Avidez
+    var matchAvidezNum = txt.match(/avidez\s*[:=]?\s*(\d+(?:\.\d+)?)\s*%?/);
+    if (matchAvidezNum) {
+      params.avidez_igg = parseFloat(matchAvidezNum[1]);
+    } else {
+      var matchAvidezTxt = txt.match(/avidez\s*[:=]?\s*(alta|baixa|fraca|forte|intermediaria|pendente)/);
+      if (matchAvidezTxt) {
+        var av = matchAvidezTxt[1];
+        if (av === 'alta' || av === 'forte') params.avidez_igg = 'ALTA';
+        else if (av === 'baixa' || av === 'fraca') params.avidez_igg = 'BAIXA';
+        else if (av.includes('inter')) params.avidez_igg = 'INTERMEDIARIA';
+        else params.avidez_igg = 'PENDENTE';
+      } else if (txt.includes('sem avidez') || txt.includes('avidez pendente')) {
+        params.avidez_igg = 'PENDENTE';
+      }
+    }
+
+    // IG na coleta
+    var matchIgExame = txt.match(/coleta\s*[:=]?\s*(\d{1,2})\s*s/);
+    if (matchIgExame) params.ig_exame = parseInt(matchIgExame[1], 10);
+
+    // PCR no líquido amniótico
+    if (txt.includes('pcr positivo') || txt.includes('pcr la positivo') || txt.includes('amniocentese positiva')) params.pcr_amniotico = 'POSITIVO';
+    if (txt.includes('pcr negativo') || txt.includes('pcr la negativo') || txt.includes('amniocentese negativa')) params.pcr_amniotico = 'NEGATIVO';
+
+    // USG
+    if (txt.includes('usg alterado') || txt.includes('hidrocefalia') || txt.includes('calcificacoes') || txt.includes('calcificações') || txt.includes('ventriculomegalia')) {
+      params.usg_alterado = true;
+    }
+
+    // Alergia a sulfa
+    if (txt.includes('alergia a sulfa') || txt.includes('alergica a sulfa') || txt.includes('alergica a sulfadiazina')) {
+      params.alergia_sulfa = true;
+    }
+
+    return params;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 5. FORMATAÇÃO TELEGRAM
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function formatarTextoTelegram(resultado) {
+    if (!resultado) return '';
+    var t = [];
+
+    t.push('🦠 *TOXOPLASMOSE NA GESTAÇÃO (DIRETRIZ MS / FEBRASGO)*');
+    t.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    t.push('');
+
+    t.push('📅 *Idade Gestacional Atual:* ' + resultado.ig + ' semanas');
+    t.push('🏷️ *CENÁRIO CLÍNICO:* *' + resultado.sorologia.cenario + '*');
+    t.push('');
+
+    t.push('📝 *INTERPRETAÇÃO CLÍNICA:*');
+    t.push(resultado.sorologia.interpretacao);
+    t.push('');
+    
+    t.push('⚡ *CONDUTA IMEDIATA:*');
+    t.push(' • ' + resultado.sorologia.conduta_imediata);
+    t.push('');
+
+    if (resultado.sorologia.tratamento && !resultado.tratamento_fetal) {
+      t.push('💊 *TRATAMENTO MATERNO (Profilaxia de Transmissão Vertical):*');
+      resultado.sorologia.tratamento.medicamentos.forEach(function(m) {
+        t.push(' • *' + m.farmaco + '*: ' + m.dose + ' ' + m.via + ' ' + m.frequencia);
+        if (m.observacao) t.push('   _' + m.observacao + '_');
+      });
+      t.push('');
+    }
+
+    if (resultado.sorologia.investigacao_fetal) {
+      t.push('🔬 *INVESTIGAÇÃO FETAL (Amniocentese / PCR):*');
+      t.push(' • *Exame:* ' + resultado.sorologia.investigacao_fetal.exame);
+      t.push(' • *Timing ideal:* ' + resultado.sorologia.investigacao_fetal.timing);
+      t.push(' • _' + resultado.sorologia.investigacao_fetal.justificativa_timing + '_');
+      t.push('');
+    }
+
+    if (resultado.tratamento_fetal) {
+      t.push('🚨 *TRATAMENTO FETAL INTRAÚTERO (' + resultado.tratamento_fetal.fase.toUpperCase() + '):*');
+      t.push(' • _Indicação:_ ' + resultado.tratamento_fetal.indicacao);
+      resultado.tratamento_fetal.medicamentos.forEach(function(m) {
+        t.push(' • *' + m.farmaco + '*: ' + m.dose + ' ' + m.via + ' ' + m.frequencia);
+        if (m.observacao) t.push('   _' + m.observacao + '_');
+      });
+      t.push('');
+      if (resultado.tratamento_fetal.alertas && resultado.tratamento_fetal.alertas.length > 0) {
+        resultado.tratamento_fetal.alertas.forEach(function(a) { t.push(a); });
+        t.push('');
+      }
+    }
+
+    if (resultado.alertas && resultado.alertas.length > 0) {
+      t.push('⚠️ *ALERTAS CLÍNICOS CRÍTICOS:*');
+      resultado.alertas.forEach(function(a) { t.push(' • ' + a); });
+      t.push('');
+    }
+
+    if (resultado.sorologia.orientacoes && resultado.sorologia.orientacoes.length > 0) {
+      t.push('🛡️ *MEDIDAS DE PREVENÇÃO PRIMÁRIA:*');
+      resultado.sorologia.orientacoes.forEach(function(o) { t.push(' • ' + o); });
+      t.push('');
+    }
+
+    if (resultado.bloqueios_seguranca && resultado.bloqueios_seguranca.length > 0) {
+      t.push('🛑 *BLOQUEIOS DE SEGURANÇA MANDATÓRIOS:*');
+      resultado.bloqueios_seguranca.forEach(function(b) { t.push(' • ' + b); });
+      t.push('');
+    }
+
+    t.push('📚 Fontes: Protocolo MS 2022, FEBRASGO 2023, ACOG PB 151, Montoya & Remington (CID).');
+    t.push('Decisão final conjunta de Obstetrícia de Alto Risco e Infectologia.');
+    return t.join('\n');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 6. API PÚBLICA
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  return {
+    avaliarSorologia: avaliarSorologia,
+    obterProtocoloInvestigacaoFetal: obterProtocoloInvestigacaoFetal,
+    avaliar: avaliar,
+    extrairParametrosTexto: extrairParametrosTexto,
+    formatarTextoTelegram: formatarTextoTelegram,
+    normalizarAvidez: normalizarAvidez,
+    ESQUEMAS_MEDICAMENTOSOS: ESQUEMAS_MEDICAMENTOSOS,
+    REFERENCIAS: REFERENCIAS
+  };
+})();
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+  module.exports = ObstetriciaToxoplasmoseService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_oncologia_basica.js
 // ==============================================================================
 
@@ -16417,6 +20280,674 @@ var PcrGestanteService = (function() {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { PcrGestanteService: PcrGestanteService };
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_pediatria_bronquiolite.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA - MÓDULO DE PEDIATRIA DE EMERGÊNCIA
+ * ==============================================================================
+ * Manejo da Bronquiolite Viral Aguda (BVA)
+ * Diretrizes Oficiais: SBP (Sociedade Brasileira de Pediatria) & AAP (American Academy of Pediatrics)
+ * 
+ * Escopo Clínico:
+ * 1. Estratificação determinística de gravidade (Escore de Wood-Downes Modificado / Ferrés)
+ * 2. Rastreamento determinístico de fatores de risco de evolução desfavorável
+ * 3. Recomendações estritas de "NÃO FAZER" (Choosing Wisely: contraindicações de salbutamol, corticoides e ATB)
+ * 4. Oxigenoterapia e Cânula Nasal de Alto Fluxo (CNAF / HFNC) com titulação por peso
+ * 5. Manejo hídrico e nutricional: bloqueio de broncoaspiração e prevenção de SIADH (Holliday-Segar 70% isotônico)
+ * 6. Critérios objetivos de internação em enfermaria pediátrica vs UTI Pediátrica
+ * 7. Elegibilidade para imunoprofilaxia passiva contra VSR (Palivizumabe / Nirsevimabe)
+ * ==============================================================================
+ */
+
+var PediatriaBronquioliteService = (function () {
+  'use strict';
+
+  /**
+   * Calcula o Escore de Wood-Downes Modificado por Ferrés (0 a 14 pontos).
+   * @param {Object} p - Parâmetros clínicos
+   * @returns {Object} Detalhamento dos sub-escores e soma total
+   */
+  function calcularWoodDownes(p) {
+    p = p || {};
+    var idadeMeses = typeof p.idadeMeses === 'number' ? p.idadeMeses : 6;
+    var fr = typeof p.fr === 'number' ? p.fr : 40;
+    var fc = typeof p.fc === 'number' ? p.fc : 130;
+    var spo2 = typeof p.spo2 === 'number' ? p.spo2 : 96;
+
+    // 1. SIBILÂNCIA (0 a 3 pontos)
+    var sibilosPts = 0;
+    if (typeof p.sibilos === 'number') {
+      sibilosPts = Math.min(3, Math.max(0, p.sibilos));
+    } else {
+      var sibTexto = (p.sibilosTexto || '').toLowerCase();
+      if (sibTexto.includes('silencioso') || sibTexto.includes('inaudivel') || sibTexto.includes('grave')) {
+        sibilosPts = 3;
+      } else if (sibTexto.includes('difuso') || sibTexto.includes('ambos tempos') || sibTexto.includes('inspiratorio')) {
+        sibilosPts = 3;
+      } else if (sibTexto.includes('moderado') || sibTexto.includes('toda expiracao') || sibTexto.includes('expiracao completa')) {
+        sibilosPts = 2;
+      } else if (sibTexto.includes('leve') || sibTexto.includes('final') || sibTexto.includes('discreto') || sibTexto.includes('sibilo')) {
+        sibilosPts = 1;
+      }
+    }
+
+    // 2. TIRAGEM / USO DE MUSCULATURA ACESSÓRIA (0 a 3 pontos)
+    var tiragemPts = 0;
+    if (typeof p.tiragem === 'number') {
+      tiragemPts = Math.min(3, Math.max(0, p.tiragem));
+    } else {
+      var tirTexto = (p.tiragemTexto || '').toLowerCase();
+      if (tirTexto.includes('universal') || tirTexto.includes('furcula') || tirTexto.includes('supraclavicular') || tirTexto.includes('paradoxal') || tirTexto.includes('balanco')) {
+        tiragemPts = 3;
+      } else if (tirTexto.includes('moderada') || tirTexto.includes('intercostal') || tirTexto.includes('ban') || tirTexto.includes('asa de nariz')) {
+        tiragemPts = 2;
+      } else if (tirTexto.includes('leve') || tirTexto.includes('subcostal') || tirTexto.includes('discreta') || tirTexto.includes('esforco')) {
+        tiragemPts = 1;
+      }
+    }
+
+    // 3. FREQUÊNCIA RESPIRATÓRIA (0 a 3 pontos) estratificada por idade
+    var frPts = 0;
+    if (typeof p.frScore === 'number') {
+      frPts = Math.min(3, Math.max(0, p.frScore));
+    } else {
+      if (idadeMeses < 2) {
+        if (fr > 80 || (fr < 30 && !!p.exaustao)) frPts = 3;
+        else if (fr >= 71) frPts = 2;
+        else if (fr >= 61) frPts = 1;
+        else frPts = 0;
+      } else if (idadeMeses <= 11) {
+        if (fr > 70 || (fr < 30 && !!p.exaustao)) frPts = 3;
+        else if (fr >= 61) frPts = 2;
+        else if (fr >= 51) frPts = 1;
+        else frPts = 0;
+      } else {
+        // 12 a 24 meses
+        if (fr > 60 || (fr < 25 && !!p.exaustao)) frPts = 3;
+        else if (fr >= 51) frPts = 2;
+        else if (fr >= 41) frPts = 1;
+        else frPts = 0;
+      }
+    }
+
+    // 4. FREQUÊNCIA CARDÍACA (0 a 2 pontos)
+    var fcPts = 0;
+    if (typeof p.fcScore === 'number') {
+      fcPts = Math.min(2, Math.max(0, p.fcScore));
+    } else {
+      if (fc > 160 || (fc < 80 && !!p.exaustao)) fcPts = 2;
+      else if (fc >= 140) fcPts = 1;
+      else fcPts = 0;
+    }
+
+    // 5. ENTRADA DE AR / MURMÚRIO VESICULAR (0 a 3 pontos)
+    var entradaArPts = 0;
+    if (typeof p.entradaArScore === 'number') {
+      entradaArPts = Math.min(3, Math.max(0, p.entradaArScore));
+    } else {
+      var arTexto = (p.entradaArTexto || '').toLowerCase();
+      if (p.toraxSilencioso || arTexto.includes('silencioso') || arTexto.includes('quase nulo') || arTexto.includes('inaudivel')) {
+        entradaArPts = 3;
+      } else if (arTexto.includes('acentuadamente') || arTexto.includes('muito diminuido')) {
+        entradaArPts = 2;
+      } else if (arTexto.includes('levemente') || arTexto.includes('discretamente') || arTexto.includes('diminuido')) {
+        entradaArPts = 1;
+      }
+    }
+
+    // 6. CIANOSE / SATURAÇÃO DE O2 EM AR AMBIENTE (0 a 3 pontos)
+    var cianosePts = 0;
+    if (typeof p.cianoseScore === 'number') {
+      cianosePts = Math.min(3, Math.max(0, p.cianoseScore));
+    } else {
+      if (p.cianoseCentral || spo2 < 88) cianosePts = 3;
+      else if (spo2 <= 91) cianosePts = 2;
+      else if (spo2 <= 94) cianosePts = 1;
+      else cianosePts = 0;
+    }
+
+    var scoreTotal = sibilosPts + tiragemPts + frPts + fcPts + entradaArPts + cianosePts;
+
+    return {
+      scoreTotal: scoreTotal,
+      subscores: {
+        sibilos: sibilosPts,
+        tiragem: tiragemPts,
+        frequenciaRespiratoria: frPts,
+        frequenciaCardiaca: fcPts,
+        entradaAr: entradaArPts,
+        cianoseESatO2: cianosePts
+      }
+    };
+  }
+
+  /**
+   * Estratifica a gravidade clínica com base no Wood-Downes e sinais de alarme.
+   */
+  function avaliarGravidade(parametros) {
+    var wood = calcularWoodDownes(parametros);
+    var score = wood.scoreTotal;
+    var spo2 = typeof parametros.spo2 === 'number' ? parametros.spo2 : 96;
+    var fr = typeof parametros.fr === 'number' ? parametros.fr : 40;
+    var idadeMeses = typeof parametros.idadeMeses === 'number' ? parametros.idadeMeses : 6;
+
+    var exaustao = !!parametros.exaustao;
+    var apneia = !!parametros.apneia || !!parametros.apneiaRecorrente;
+    var toraxSilencioso = !!parametros.toraxSilencioso || wood.subscores.entradaAr === 3;
+    var bradicardia = (!isNaN(parametros.fc) && parametros.fc < 80) || !!parametros.bradicardia;
+    var letargia = !!parametros.letargia || !!parametros.sonolenciaGrave;
+
+    // Critérios de ameaça à vida / parada iminente
+    var ameacaVida = exaustao || apneia || toraxSilencioso || bradicardia || letargia || score >= 12;
+
+    var classificacao = 'Leve';
+    if (ameacaVida) {
+      classificacao = 'Crítica / Ameaça à Vida';
+    } else if (score >= 8 || spo2 < 90) {
+      classificacao = 'Grave';
+    } else if (score >= 4 || spo2 <= 92) {
+      classificacao = 'Moderada';
+    } else {
+      classificacao = 'Leve';
+    }
+
+    var internacaoUTI = (classificacao === 'Crítica / Ameaça à Vida' || classificacao === 'Grave' || apneia || exaustao);
+    var internacaoHospitalar = (internacaoUTI || classificacao === 'Moderada' || spo2 < 92 || idadeMeses < 2);
+
+    // Risco de broncoaspiração: taquipneia importante ou esforço grave
+    var riscoBroncoaspiracao = (fr > 60 || exaustao || classificacao === 'Grave' || classificacao === 'Crítica / Ameaça à Vida');
+
+    return {
+      score: score,
+      subscores: wood.subscores,
+      classificacao: classificacao,
+      ameacaVida: ameacaVida,
+      internacaoHospitalar: internacaoHospitalar,
+      internacaoUTI: internacaoUTI,
+      riscoBroncoaspiracao: riscoBroncoaspiracao,
+      indicacaoCNAF: (classificacao === 'Grave' || classificacao === 'Crítica / Ameaça à Vida' || (classificacao === 'Moderada' && spo2 < 92))
+    };
+  }
+
+  /**
+   * Avalia fatores de risco de evolução desfavorável / gravidade.
+   */
+  function avaliarFatoresDeRisco(p) {
+    var fatores = [];
+    var idadeMeses = typeof p.idadeMeses === 'number' ? p.idadeMeses : 6;
+    var prematuro = !!p.prematuro || (typeof p.idadeGestacionalSemanas === 'number' && p.idadeGestacionalSemanas < 37);
+
+    if (idadeMeses < 1.5) {
+      fatores.push("Idade < 6 semanas (risco crítico de apneia central e colapso respiratório súbito)");
+    } else if (idadeMeses < 3) {
+      fatores.push("Idade < 12 semanas (menor calibre de vias aéreas e imaturidade imunitária)");
+    }
+
+    if (prematuro) {
+      var semanasStr = p.idadeGestacionalSemanas ? " (nascido com " + p.idadeGestacionalSemanas + " semanas)" : "";
+      fatores.push("Prematuridade" + semanasStr + " (redução de calibre bronquiolar e surfactante)");
+    }
+
+    if (p.cardiopatiaCongenita) {
+      fatores.push("Cardiopatia Congênita com repercussão hemodinâmica (alto risco de edema pulmonar cardiogênico associado)");
+    }
+
+    if (p.doencaPulmonarCronica || p.displasiaBroncopulmonar) {
+      fatores.push("Doença Pulmonar Crônica da Prematuridade / Displasia Broncopulmonar (reserva funcional pulmonar limítrofe)");
+    }
+
+    if (p.imunodeficiencia) {
+      fatores.push("Imunodeficiência primária ou adquirida (risco de replicação viral prolongada e sepse)");
+    }
+
+    if (p.doencaNeuromuscular) {
+      fatores.push("Doença Neuromuscular / hipotonia (fraqueza da musculatura ventilatória e tosse ineficaz)");
+    }
+
+    if (p.vulnerabilidadeSocial) {
+      fatores.push("Vulnerabilidade socioeconômica / distância geográfica de serviço terciário");
+    }
+
+    return {
+      presentes: fatores.length > 0,
+      lista: fatores
+    };
+  }
+
+  /**
+   * Gera as recomendações rígidas de "NÃO FAZER" da SBP e AAP (Choosing Wisely).
+   */
+  function avaliarNaoFazer(p) {
+    var bloqueios = [];
+
+    bloqueios.push({
+      item: "Broncodilatadores Inalatórios (Salbutamol / Fenoterol)",
+      status: "NÃO RECOMENDADO DE ROTINA",
+      motivo: "Ensaios clínicos randomizados demonstram que NÃO reduzem internação, necessidade de oxigênio ou tempo de doença na BVA típica. A obstrução é por necrose celular e rolhas de muco, não broncoespasmo liso.",
+      ressalva: "Apenas se > 6 meses com atopia prévia importante ou história familiar de 1º grau de asma, admite-se no máximo UM teste terapêutico monitorado. Se sem melhora objetiva documentada em 30 min, suspender imediatamente."
+    });
+
+    bloqueios.push({
+      item: "Corticosteroides Sistêmicos ou Inalatórios (Prednisolona / Dexametasona / Budesonida)",
+      status: "CONTRAINDICADO DE ROTINA",
+      motivo: "Não alteram o desfecho clínico nem o tempo de internação. Podem aumentar o tempo de excreção viral e causar imunossupressão/efeitos metabólicos desnecessários.",
+      ressalva: "Sem indicação mesmo se história de sibilância, salvo confirmação diagnóstica de asma estabelecida em crianças maiores."
+    });
+
+    bloqueios.push({
+      item: "Antibioticoterapia Empírica (Amoxicilina / Ceftriaxona / Azitromicina)",
+      status: "NÃO INDICADO",
+      motivo: "Etiologia estritamente viral (VSR em > 70-80% dos casos). Risco de coinfecção bacteriana grave é inferior a 1-2%.",
+      ressalva: "Reservar exclusivamente para pacientes com foco bacteriano concomitante comprovado (ex: Otite Média Aguda supurativa evidente ou pneumonia condensativa lobar documentada)."
+    });
+
+    bloqueios.push({
+      item: "Solução Salina Hipertônica 3% no Pronto Atendimento",
+      status: "NÃO INDICADO NA EMERGÊNCIA",
+      motivo: "Diretrizes AAP e SBP não recomendam o uso rotineiro na sala de emergência (não reduz taxa de admissão hospitalar).",
+      ressalva: "Pode ser avaliada somente em pacientes já hospitalizados por mais de 24 horas para facilitar depuração mucociliar se secreção espessa abundante."
+    });
+
+    bloqueios.push({
+      item: "Fisioterapia Respiratória na Fase Aguda",
+      status: "CONTRAINDICADA NA FASE AGUDA",
+      motivo: "Manobras aumentam o desconforto e o estresse respiratório do lactente, podendo induzir broncoespasmo paradoxal e atelectasias por fadiga.",
+      ressalva: "Apenas higiene e aspiração suave de vias aéreas superiores se excesso obstrutivo na nasofaringe."
+    });
+
+    bloqueios.push({
+      item: "Radiografia de Tórax e Gasometria Arterial de Rotina",
+      status: "NÃO RECOMENDADOS DE ROTINA",
+      motivo: "RX mostra alterações inespecíficas (hiperinsuflação e atelectasias) frequentemente confundidas com pneumonia, induzindo prescrição inadequada de antibióticos.",
+      ressalva: "Indicar RX apenas se suspeita de pneumotórax, piora súbita inexplicada ou evolução atípica."
+    });
+
+    return bloqueios;
+  }
+
+  /**
+   * Avalia suporte respiratório e parâmetros da Cânula Nasal de Alto Fluxo (CNAF).
+   */
+  function avaliarOxigenoterapiaECnaf(p, gravidade) {
+    var peso = typeof p.pesoKg === 'number' ? p.pesoKg : 8;
+    var spo2 = typeof p.spo2 === 'number' ? p.spo2 : 96;
+
+    var orientacoes = [];
+    var cnaf = null;
+
+    if (gravidade.classificacao === 'Crítica / Ameaça à Vida') {
+      orientacoes.push("🚨 **EMERGÊNCIA VENTILATÓRIA IMEDIATA:**");
+      orientacoes.push("- Iniciar O2 sob alto fluxo imediato ou ventilação com pressão positiva (VPP/CPAP).");
+      orientacoes.push("- **Preparar Sequência Rápida de Intubação (SRI):** se apneias repetidas, exaustão diafragmática ou acidose hipercápnica descompensada.");
+      orientacoes.push("- Usar Tubo Endotraqueal COM CUFF (pressão de balonete < 20 cmH2O) para vedação adequada contra vazamento na expiração.");
+    }
+
+    if (gravidade.indicacaoCNAF) {
+      // Parâmetros de CNAF recomendados pela SBP / AAP:
+      // Fluxo inicial: 1 a 2 L/kg/min (em geral 2 L/kg/min para os primeiros 10 kg, até 20-30 L/min máximo)
+      var fluxoSugerido = Math.min(25, Math.max(4, Math.round(peso * 2)));
+      var fluxoMin = Math.round(peso * 1.5);
+      var fluxoMax = Math.min(30, Math.round(peso * 2.5));
+
+      cnaf = {
+        indicada: true,
+        fluxoInicialLmin: fluxoSugerido,
+        faixaFluxoLmin: fluxoMin + " a " + fluxoMax + " L/min (1.5 a 2.0 L/kg/min)",
+        fio2Inicial: "40% a 50%, titulada rapidamente para manter SpO2 entre 92% e 96%",
+        temperaturaUmidificador: "37°C com 100% de umidade relativa (umidificação ativa aquecida obrigatória)",
+        mecanismoBeneficio: "Gera PEEP dinâmico (~2 a 4 cmH2O), reduz espaço morto nasofaríngeo, diminui trabalho respiratório em ~50% e evita IOT em até 80% dos casos de falência com O2 convencional."
+      };
+
+      orientacoes.push("🫁 **SUPORTE COM CÂNULA NASAL DE ALTO FLUXO (CNAF / HFNC):**");
+      orientacoes.push("- **Fluxo Inicial Ponderado:** `" + cnaf.fluxoInicialLmin + " L/min` (" + cnaf.faixaFluxoLmin + ").");
+      orientacoes.push("- **FiO2:** " + cnaf.fio2Inicial + ".");
+      orientacoes.push("- **Temperatura:** " + cnaf.temperaturaUmidificador + ".");
+      orientacoes.push("- **Mecanismo:** " + cnaf.mecanismoBeneficio);
+    } else if (gravidade.classificacao === 'Moderada' || spo2 <= 92) {
+      orientacoes.push("🫁 **OXIGENOTERAPIA CONVENCIONAL:**");
+      orientacoes.push("- **Dispositivo:** Cateter nasal convencional de O2 umidificado a `0.5 a 2 L/min`.");
+      orientacoes.push("- **Alvo de SpO2:** Manter saturação entre 90% e 92% em vigília e >= 92% no sono.");
+      orientacoes.push("- Se SpO2 persistir < 90% apesar de 2 L/min ou piora do esforço, **escalonar para CNAF**.");
+    } else {
+      orientacoes.push("🫁 **OXIGENOTERAPIA:**");
+      orientacoes.push("- Em ar ambiente. Sem necessidade de O2 suplementar no momento (SpO2 " + spo2 + "%).");
+    }
+
+    return {
+      cnaf: cnaf,
+      orientacoes: orientacoes
+    };
+  }
+
+  /**
+   * Avalia suporte nutricional, risco de broncoaspiração e hidratação com restrição para SIADH.
+   */
+  function avaliarHidratacaoENutricao(p, gravidade) {
+    var peso = typeof p.pesoKg === 'number' ? p.pesoKg : 8;
+    var fr = typeof p.fr === 'number' ? p.fr : 40;
+
+    var orientacoes = [];
+
+    // Cálculo de Holliday-Segar basal diário
+    var volBasalDia = 0;
+    if (peso <= 10) {
+      volBasalDia = peso * 100;
+    } else if (peso <= 20) {
+      volBasalDia = 1000 + ((peso - 10) * 50);
+    } else {
+      volBasalDia = 1500 + ((peso - 20) * 20);
+    }
+
+    // Restrição hídrica para proteção contra SIADH transitória (70% a 80%)
+    var volRestrito70 = Math.round(volBasalDia * 0.70);
+    var vazaoHoraria70 = (volRestrito70 / 24).toFixed(1);
+    var volRestrito80 = Math.round(volBasalDia * 0.80);
+    var vazaoHoraria80 = (volRestrito80 / 24).toFixed(1);
+
+    if (gravidade.riscoBroncoaspiracao) {
+      orientacoes.push("🍼 **DIETA / NUTRIÇÃO — BLOQUEIO DE VIA ORAL:**");
+      orientacoes.push("⚠️ **SUSPENDER DIETA VIA ORAL (NPO):** FR > 60 irpm ou desconforto moderado a grave impõe risco altíssimo de broncoaspiração pulmonar!");
+      orientacoes.push("- Se paciente estabilizado sem exaustão: alimentação por gavagem contínua via SNG em volumes mínimos.");
+      orientacoes.push("- Se em insuficiência respiratória iminente ou em CNAF com alto fluxo: jejum absoluto com hidratação parenteral.");
+      
+      orientacoes.push("\n💧 **HIDRATAÇÃO VENOSA COM RESTRIÇÃO HÍDRICA (ALERTA SIADH):**");
+      orientacoes.push("- **Alerta Fisiopatológico:** O estresse da BVA causa secreção não-osmótica aumentada de ADH (SIADH transitória), predispondo à hiponatremia grave e convulsões se administrada hidratação excessiva ou hipotônica.");
+      orientacoes.push("- **Solução Isotônica Obrigatória:** Usar SG 5% + SF 0.9% (proporção 1:1, concentração de Na+ ~77 mEq/L) OU solução isotônica balanceada (SF 0.9% com Glicose a 5%). **PROIBIDO usar soluções hipotônicas puras.**");
+      orientacoes.push("- **Volume com Restrição a 70% (Holliday-Segar):** `" + volRestrito70 + " mL/dia` (Vazão: `" + vazaoHoraria70 + " mL/h` em bomba de infusão contínua).");
+      orientacoes.push("- **Volume com Restrição a 80%:** `" + volRestrito80 + " mL/dia` (Vazão: `" + vazaoHoraria80 + " mL/h`).");
+    } else if (gravidade.classificacao === 'Moderada') {
+      orientacoes.push("🍼 **DIETA / NUTRIÇÃO:**");
+      orientacoes.push("- Manter dieta oral fracionada (pequenos volumes frequentes para evitar sobrecarga gástrica e fadiga).");
+      orientacoes.push("- Se aceitação < 50% das necessidades diárias, passar SNG para gavagem suave fracionada.");
+    } else {
+      orientacoes.push("🍼 **DIETA / NUTRIÇÃO:**");
+      orientacoes.push("- Aleitamento materno ou fórmula infantil em livre demanda fracionada.");
+      orientacoes.push("- Lavagem nasal com SF 0.9% estrita 10 a 15 minutos ANTES de cada mamada para facilitar sucção.");
+    }
+
+    return {
+      hollidayBasalDia: volBasalDia,
+      holliday70Dia: volRestrito70,
+      vazao70MlHora: parseFloat(vazaoHoraria70),
+      holliday80Dia: volRestrito80,
+      vazao80MlHora: parseFloat(vazaoHoraria80),
+      orientacoes: orientacoes
+    };
+  }
+
+  /**
+   * Avalia e resume critérios de admissão hospitalar e UTI Pediátrica.
+   */
+  function avaliarCriteriosInternacao(p, gravidade, fatoresRisco) {
+    var criteriosEnfermaria = [];
+    var criteriosUTI = [];
+
+    if (gravidade.classificacao === 'Moderada' || gravidade.classificacao === 'Grave' || gravidade.classificacao === 'Crítica / Ameaça à Vida') {
+      criteriosEnfermaria.push("Escore de Wood-Downes >= 4 (" + gravidade.classificacao + ")");
+    }
+    if (p.spo2 && p.spo2 < 92) {
+      criteriosEnfermaria.push("Necessidade de oxigenoterapia suplementar (SpO2 < 92% em ar ambiente)");
+    }
+    if (p.idadeMeses && p.idadeMeses < 2) {
+      criteriosEnfermaria.push("Idade < 2 meses (alto risco de deterioração rápida)");
+    }
+    if (p.recusaAlimentar || gravidade.riscoBroncoaspiracao) {
+      criteriosEnfermaria.push("Incapacidade de manter hidratação oral adequada (< 50% da necessidade)");
+    }
+    if (fatoresRisco.presentes) {
+      criteriosEnfermaria.push("Comorbidades de alto risco identificadas");
+    }
+
+    if (gravidade.classificacao === 'Crítica / Ameaça à Vida' || gravidade.score >= 12) {
+      criteriosUTI.push("Escore de Wood-Downes crítico (>= 12 pontos ou colapso respiratório iminente)");
+    } else if (gravidade.score >= 8) {
+      criteriosUTI.push("Escore de Wood-Downes grave (>= 8 pontos)");
+    }
+    if (p.apneia || p.apneiaRecorrente) {
+      criteriosUTI.push("Episódios de apneia documentada ou pausas respiratórias com bradicardia");
+    }
+    if (p.exaustao) {
+      criteriosUTI.push("Exaustão muscular respiratória / respiração paradoxal");
+    }
+    if (gravidade.indicacaoCNAF && (gravidade.classificacao === 'Grave' || p.falhaCNAF)) {
+      criteriosUTI.push("Necessidade de suporte respiratório não-invasivo de alto fluxo (CNAF com FiO2 elevada ou CPAP) ou ventilação mecânica");
+    }
+    if (p.letargia) {
+      criteriosUTI.push("Rebaixamento do nível de consciência / letargia profunda por hipercapnia grave");
+    }
+
+    return {
+      indicadoEnfermaria: criteriosEnfermaria.length > 0 || gravidade.internacaoHospitalar,
+      criteriosEnfermaria: criteriosEnfermaria,
+      indicadoUTI: criteriosUTI.length > 0 || gravidade.internacaoUTI,
+      criteriosUTI: criteriosUTI
+    };
+  }
+
+  /**
+   * Avalia elegibilidade para Palivizumabe / Nirsevimabe.
+   */
+  function avaliarImunoprofilaxiaVsr(p) {
+    var elegivel = false;
+    var motivo = "";
+
+    var ig = typeof p.idadeGestacionalSemanas === 'number' ? p.idadeGestacionalSemanas : null;
+    var idadeMeses = typeof p.idadeMeses === 'number' ? p.idadeMeses : null;
+
+    if (ig && ig < 29 && idadeMeses !== null && idadeMeses <= 12) {
+      elegivel = true;
+      motivo = "Prematuro extremo com IG < 29 semanas e idade < 1 ano no início do período sazonal do VSR (Protocolo MS/SBP).";
+    } else if (p.cardiopatiaCongenita && idadeMeses !== null && idadeMeses <= 24) {
+      elegivel = true;
+      motivo = "Cardiopatia congênita com repercussão hemodinâmica em menores de 2 anos de idade.";
+    } else if ((p.doencaPulmonarCronica || p.displasiaBroncopulmonar) && idadeMeses !== null && idadeMeses <= 24) {
+      elegivel = true;
+      motivo = "Doença pulmonar crônica da prematuridade com necessidade de suporte de O2 ou medicação nos últimos 6 meses.";
+    }
+
+    return {
+      elegivel: elegivel,
+      motivo: motivo,
+      esquema: "Palivizumabe: 15 mg/kg IM, mensalmente (até 5 doses durante o período sazonal local de circulação do VSR)."
+    };
+  }
+
+  /**
+   * Função executiva principal que avalia o paciente por completo.
+   */
+  function avaliar(parametros) {
+    parametros = parametros || {};
+
+    var gravidade = avaliarGravidade(parametros);
+    var fatoresRisco = avaliarFatoresDeRisco(parametros);
+    var naoFazer = avaliarNaoFazer(parametros);
+    var oxigenio = avaliarOxigenoterapiaECnaf(parametros, gravidade);
+    var hidratacao = avaliarHidratacaoENutricao(parametros, gravidade);
+    var internacao = avaliarCriteriosInternacao(parametros, gravidade, fatoresRisco);
+    var profilaxiaVsr = avaliarImunoprofilaxiaVsr(parametros);
+
+    return {
+      parametros: parametros,
+      gravidade: gravidade,
+      fatoresRisco: fatoresRisco,
+      naoFazer: naoFazer,
+      oxigenoterapia: oxigenio,
+      hidratacao: hidratacao,
+      internacao: internacao,
+      profilaxiaVsr: profilaxiaVsr
+    };
+  }
+
+  /**
+   * Formata relatório completo para o Telegram ou Cockpit.
+   */
+  function formatarTextoTelegram(res) {
+    var g = res.gravidade;
+    var p = res.parametros;
+    var txt = "👶 *PEDIATRIA — MANEJO DA BRONQUIOLITE VIRAL AGUDA (SBP / AAP)*\n\n";
+
+    // Gravidade
+    var iconeGravidade = "🟢";
+    if (g.classificacao.includes('Crítica') || g.classificacao.includes('Vida')) iconeGravidade = "🚨";
+    else if (g.classificacao === 'Grave') iconeGravidade = "🔴";
+    else if (g.classificacao === 'Moderada') iconeGravidade = "🟡";
+
+    txt += iconeGravidade + " *Estratificação:* *" + g.classificacao.toUpperCase() + "*\n";
+    txt += "📊 *Escore de Wood-Downes Modificado:* `" + g.score + " / 14 pontos`\n";
+    txt += "• Sibilos: " + g.subscores.sibilos + "/3 | Tiragem: " + g.subscores.tiragem + "/3\n";
+    txt += "• FR: " + g.subscores.frequenciaRespiratoria + "/3 | FC: " + g.subscores.frequenciaCardiaca + "/2\n";
+    txt += "• Entrada de Ar: " + g.subscores.entradaAr + "/3 | Cianose/SpO2: " + g.subscores.cianoseESatO2 + "/3\n\n";
+
+    // Destino / Internação
+    txt += "🏥 *DESTINO E VIGILÂNCIA:*\n";
+    if (res.internacao.indicadoUTI) {
+      txt += "🚨 **INDICAÇÃO DE INTERNAÇÃO EM UTI PEDIÁTRICA:**\n";
+      for (var i = 0; i < res.internacao.criteriosUTI.length; i++) {
+        txt += "  - " + res.internacao.criteriosUTI[i] + "\n";
+      }
+    } else if (res.internacao.indicadoEnfermaria) {
+      txt += "🟡 **INDICAÇÃO DE INTERNAÇÃO EM ENFERMARIA PEDIÁTRICA:**\n";
+      for (var j = 0; j < res.internacao.criteriosEnfermaria.length; j++) {
+        txt += "  - " + res.internacao.criteriosEnfermaria[j] + "\n";
+      }
+    } else {
+      txt += "✅ **CONDUTA AMBULATORIAL SEGURA:** Manejo domiciliar com lavagem nasal frequente, oferta de líquidos e retorno imediato se sinais de esforço respiratório ou recusa alimentar.\n";
+    }
+    txt += "\n";
+
+    // Fatores de risco
+    if (res.fatoresRisco.presentes) {
+      txt += "⚠️ *Fatores de Risco de Gravidade Identificados:*\n";
+      for (var k = 0; k < res.fatoresRisco.lista.length; k++) {
+        txt += "• " + res.fatoresRisco.lista[k] + "\n";
+      }
+      txt += "\n";
+    }
+
+    // Suporte Respiratório
+    for (var l = 0; l < res.oxigenoterapia.orientacoes.length; l++) {
+      txt += res.oxigenoterapia.orientacoes[l] + "\n";
+    }
+    txt += "\n";
+
+    // Nutrição e Hidratação Venosa
+    for (var m = 0; m < res.hidratacao.orientacoes.length; m++) {
+      txt += res.hidratacao.orientacoes[m] + "\n";
+    }
+    txt += "\n";
+
+    // O QUE NÃO FAZER (Choosing Wisely)
+    txt += "🚫 *RECOMENDAÇÕES ESTRITAS DE NÃO FAZER (SBP / AAP):*\n";
+    txt += "• *NÃO prescrever Salbutamol/Broncodilatadores:* Ausência de benefício clínico em BVA típica.\n";
+    txt += "• *NÃO prescrever Corticosteroides (VO/IV/Inalatório):* Ineficazes contra lesão viral e atrasam clareamento.\n";
+    txt += "• *NÃO prescrever Antibióticos empiricamente:* Etiologia é estritamente viral (VSR > 80%).\n";
+    txt += "• *NÃO realizar Salina 3% na emergência nem Fisioterapia Respiratória motora na fase aguda.*\n";
+
+    if (res.profilaxiaVsr.elegivel) {
+      txt += "\n💉 *PROFILAXIA VSR (PALIVIZUMABE):*\n";
+      txt += "• Paciente elegível: " + res.profilaxiaVsr.motivo + "\n";
+      txt += "• Esquema: " + res.profilaxiaVsr.esquema + "\n";
+    }
+
+    return txt;
+  }
+
+  /**
+   * Extrai parâmetros clínicos de texto livre no Telegram ou Cockpit.
+   */
+  function extrairParametrosTexto(texto) {
+    var limpo = (texto || '').toLowerCase();
+    var p = {};
+
+    // Idade
+    var mesesMatch = limpo.match(/(\d+)\s*(mes|meses|m)/);
+    var diasMatch = limpo.match(/(\d+)\s*(dia|dias|d)/);
+    var anosMatch = limpo.match(/(\d+)\s*(ano|anos|a)/);
+    if (mesesMatch) p.idadeMeses = parseInt(mesesMatch[1], 10);
+    else if (diasMatch) p.idadeMeses = parseFloat((parseInt(diasMatch[1], 10) / 30).toFixed(1));
+    else if (anosMatch) p.idadeMeses = parseInt(anosMatch[1], 10) * 12;
+    else p.idadeMeses = 6;
+
+    // Idade Gestacional (se informada)
+    var igMatch = limpo.match(/(\d+)\s*(sem|semanas|sem\b)/);
+    if (igMatch) {
+      var valSem = parseInt(igMatch[1], 10);
+      if (valSem >= 24 && valSem <= 42) p.idadeGestacionalSemanas = valSem;
+    }
+
+    // Peso
+    var pesoMatch = limpo.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilos|quilos)/);
+    if (pesoMatch) p.pesoKg = parseFloat(pesoMatch[1].replace(',', '.'));
+    else p.pesoKg = 8;
+
+    // FR
+    var frMatch = limpo.match(/fr\s*[:=]?\s*(\d+)/) || limpo.match(/(\d+)\s*(irpm|rpm|ipm)/);
+    if (frMatch) p.fr = parseInt(frMatch[1], 10);
+    else p.fr = 40;
+
+    // FC
+    var fcMatch = limpo.match(/fc\s*[:=]?\s*(\d+)/) || limpo.match(/(\d+)\s*(bpm|batimentos)/);
+    if (fcMatch) p.fc = parseInt(fcMatch[1], 10);
+    else p.fc = 130;
+
+    // SpO2
+    var spo2Match = limpo.match(/spo2\s*[:=]?\s*(\d+)/) || limpo.match(/sat[^\d]*(\d+)/) || limpo.match(/(\d+)%/);
+    if (spo2Match) p.spo2 = parseInt(spo2Match[1], 10);
+    else p.spo2 = 96;
+
+    // Sinais e sintomas
+    p.exaustao = /(exaustao|exaustão|fadiga|balanço|balanco|paradoxal)/.test(limpo);
+    p.apneia = /(apneia|apnéia|pausa respiratoria|pausa respiratória)/.test(limpo);
+    p.letargia = /(letargia|letárgico|letargico|rebaixado|sonolento|hipoativo|dificuldade para acordar)/.test(limpo);
+    p.toraxSilencioso = /(torax silencioso|tórax silencioso|sem murmúrio|sem murmurio|mv inaudivel|inaudível)/.test(limpo);
+    p.cianoseCentral = /(cianose central|cianose generalizada|labios roxos|lábios roxos)/.test(limpo);
+
+    // Tiragem
+    if (/(tiragem universal|furcula|fúrcula|supraclavicular|paradoxal)/.test(limpo)) p.tiragem = 3;
+    else if (/(tiragem moderada|intercostal|ban\b|batimento asa de nariz)/.test(limpo)) p.tiragem = 2;
+    else if (/(tiragem leve|subcostal|esforço leve|esforco leve|tiragem)/.test(limpo)) p.tiragem = 1;
+    else p.tiragem = 0;
+
+    // Sibilos
+    if (/(silencioso|grave|audivel a distancia|audível a distância)/.test(limpo)) p.sibilos = 3;
+    else if (/(sibilo difuso|ambos tempos|inspiratorio e expiratorio|inspiratório e expiratório)/.test(limpo)) p.sibilos = 3;
+    else if (/(toda a expiracao|toda a expiração|expiracao completa|sibilos moderados)/.test(limpo)) p.sibilos = 2;
+    else if (/(sibilo|sibilancia|sibilância|subcrep|estertor)/.test(limpo)) p.sibilos = 1;
+    else p.sibilos = 0;
+
+    // Fatores de risco
+    p.prematuro = /(prematuro|prematuridade|pre termo|pré-termo)/.test(limpo) || (p.idadeGestacionalSemanas && p.idadeGestacionalSemanas < 37);
+    p.cardiopatiaCongenita = /(cardiopatia|cardiopata|sopro cardiaco|sopro cardíaco)/.test(limpo);
+    p.doencaPulmonarCronica = /(displasia|broncodisplasia|pulmonar cronica|pulmonar crônica)/.test(limpo);
+    p.imunodeficiencia = /(imunodeficiencia|imunodeficiência|imunodeprimido)/.test(limpo);
+    p.doencaNeuromuscular = /(neuromuscular|hipotonia|paralisia cerebral)/.test(limpo);
+
+    return p;
+  }
+
+  return {
+    calcularWoodDownes: calcularWoodDownes,
+    avaliarGravidade: avaliarGravidade,
+    avaliarFatoresDeRisco: avaliarFatoresDeRisco,
+    avaliarNaoFazer: avaliarNaoFazer,
+    avaliarOxigenoterapiaECnaf: avaliarOxigenoterapiaECnaf,
+    avaliarHidratacaoENutricao: avaliarHidratacaoENutricao,
+    avaliarCriteriosInternacao: avaliarCriteriosInternacao,
+    avaliarImunoprofilaxiaVsr: avaliarImunoprofilaxiaVsr,
+    avaliar: avaliar,
+    formatarTextoTelegram: formatarTextoTelegram,
+    extrairParametrosTexto: extrairParametrosTexto
+  };
+})();
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+  module.exports = PediatriaBronquioliteService;
 }
 
 
@@ -24693,6 +29224,211 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_urologia_colica_nefretica.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA - MÓDULO DE UROLOGIA & NEFROLOGIA
+ * ==============================================================================
+ * Manejo de Cólica Nefrética Aguda e Litíase Urinária
+ * Diretrizes SBU / EAU
+ * 
+ * Escopo:
+ * - Algoritmo escalonado de analgesia de emergência
+ * - Terapia Expulsiva Médica (MET)
+ * - Checklist de gravidade e indicação cirúrgica urgente
+ * ==============================================================================
+ */
+
+var UrologiaColicaNefreticaService = (function () {
+  'use strict';
+
+  function avaliarGravidade(dados) {
+    var gravidade = false;
+    var motivos = [];
+    
+    if (dados.rimUnico) { gravidade = true; motivos.push("Rim Único"); }
+    if (dados.sepseOuInfeccao) { gravidade = true; motivos.push("Sepse / Infecção urinária associada à obstrução"); }
+    if (dados.anuriaOuOliguria) { gravidade = true; motivos.push("Anúria ou oligúria severa (IRA pós-renal bilateral ou em rim único)"); }
+    if (dados.dorRefrataria) { gravidade = true; motivos.push("Dor refratária persistente a analgesia opioide e AINE otimizada"); }
+    if (dados.gestanteComComplicacao) { gravidade = true; motivos.push("Gestante com cólica refratária ou ameaça de trabalho de parto prematuro"); }
+
+    var conduta_cirurgica = "";
+    if (gravidade) {
+        conduta_cirurgica = "🚨 **EMERGÊNCIA UROLÓGICA (DESCOMPRESSÃO IMEDIATA):** Indicação absoluta de descompressão urgente da via excretora com Cateter Duplo J ou Nefrostomia Percutânea. Acionar Urologia IMEDIATAMENTE.";
+    } else {
+        conduta_cirurgica = "✅ **SEM CRITÉRIOS DE URGÊNCIA CIRÚRGICA:** Manejo clínico inicial. Alta após analgesia com seguimento ambulatorial pela Urologia.";
+    }
+
+    return { 
+        urgencia: gravidade, 
+        motivos: motivos, 
+        conduta: conduta_cirurgica 
+    };
+  }
+
+  function avaliarAnalgesia(dados) {
+    var relatorio = [];
+    relatorio.push("💊 **ANALGESIA DE EMERGÊNCIA (Escalonada):**");
+    
+    if (dados.clcr < 30) {
+        relatorio.push("⚠️ **ALERTA DE SEGURANÇA:** ClCr < 30 mL/min ou DRC dialítica. **AINEs SÃO CONTRAINDICADOS.**");
+        relatorio.push("- **1ª Linha:** Dipirona 1g IV + Opioides de resgate imediato.");
+        relatorio.push("- **Opioides:** Tramadol 50-100mg IV (infusão lenta em 100mL SF em 20 min) OU Morfina 2 a 5mg IV lento.");
+        relatorio.push("- Evitar hidratação intravenosa vigorosa se anúria/oligúria ou risco de EAP.");
+    } else if (dados.gestante) {
+        relatorio.push("⚠️ **ALERTA GESTANTE:**");
+        relatorio.push("- **AINEs são contraindicados** no 3º trimestre (fechamento precoce do ducto arterioso e oligoâmnio). Seu uso no 1º e 2º trimestre é discutível (evitar se possível).");
+        relatorio.push("- **Escolha Segura:** Dipirona 1g IV e Tramadol/Morfina IV em doses baixas para controle da dor aguda.");
+    } else {
+        relatorio.push("- **1ª Linha (AINEs):** Padrão-ouro (SBU/EAU). Promovem analgesia ao reduzir a síntese de prostaglandinas, diminuindo o fluxo plasmático renal, a pressão intratubular e o edema ureteral local.");
+        relatorio.push("  - **Cetoprofeno:** 100mg IV (diluído em 100mL SF 0.9%, correr em 20 min).");
+        relatorio.push("  - **Ou Diclofenaco:** 75mg IM profundo (NÃO fazer IV pelo risco de flebite e choque).");
+        relatorio.push("  - **Ou Tenoxicam:** 40mg IV lento.");
+        relatorio.push("- **Adjuvante Base:** Dipirona 1g IV lento.");
+        relatorio.push("- **2ª Linha (Resgate para Dor Refratária):** Tramadol 50-100mg IV ou Morfina 2 a 5mg IV.");
+    }
+    
+    relatorio.push("- **Antiespasmódicos (ex: Escopolamina/Buscopan):** Uso isolado não tem superioridade aos AINEs na cólica nefrética verdadeira, e pode piorar taquicardia ou boca seca, porém pode ser associado para conforto visceral se espasmo intenso.");
+    relatorio.push("- **Hidratação:** **NÃO faça hidratação vigorosa beira-leito.** Hiper-hidratação agrava a distensão da cápsula renal e piora a dor, não " + "''empurra''" + " a pedra.");
+
+    return relatorio.join('\n');
+  }
+
+  function avaliarTerapiaExpulsiva(dados) {
+    var relatorio = [];
+    relatorio.push("🩺 **TERAPIA EXPULSIVA MÉDICA (MET):**");
+    
+    var t = dados.tamanhoCalculo;
+    var loc = (dados.localizacao || '').toLowerCase();
+    var distais_valida = loc.includes('distal') || loc.includes('juv') || loc === ''; // se vazio, assume chance
+
+    if (t === 0 || isNaN(t)) {
+        relatorio.push("- Indicação padronizada para cálculos de **ureter distal entre 5 e 10 mm**.");
+        relatorio.push("- **Droga de Escolha:** Tansulosina 0.4mg VO, 1x/dia, por até 4 semanas.");
+        relatorio.push("- *Atenção:* Risco de hipotensão postural. Pode ser associado a corticoide oral por 5-7 dias (ex: Deflazacorte 30mg) para potencializar o efeito anti-inflamatório local.");
+    } else if (t >= 5 && t <= 10 && distais_valida) {
+        relatorio.push("- **Indicação Confirmada:** Cálculo ureteral de " + t + " mm.");
+        relatorio.push("- **Prescrição:** Tansulosina 0.4mg VO, 1x ao dia (preferencialmente após uma refeição). Duração de até 4 semanas.");
+        relatorio.push("- Corticoterapia adjuvante curta (ex: Deflazacorte 30mg VO/dia por 5 a 7 dias) pode reduzir o edema pericalculoso e facilitar a expulsão.");
+    } else if (t > 10) {
+        relatorio.push("- **CONTRAINDICADA:** Cálculo > 10 mm (" + t + " mm). A probabilidade de eliminação espontânea é ínfima.");
+        relatorio.push("- Indicado tratamento urológico ativo (Ureterolitotripsia Endoscópica a Laser ou LECO).");
+    } else if (t < 5) {
+        relatorio.push("- **USO OPCIONAL/DISCUTÍVEL:** Cálculos < 5 mm (" + t + " mm) têm alta taxa de eliminação espontânea (> 80-90%).");
+        relatorio.push("- A Tansulosina tem benefício marginal neste grupo, mas pode ser prescrita para alívio de sintomas miccionais irritativos.");
+    } else {
+        relatorio.push("- A Tansulosina 0.4mg é mais eficaz em cálculos de ureter distal (5 a 10 mm). Localizações altas (ureter proximal/pelve) têm menor taxa de sucesso com MET.");
+    }
+    
+    return relatorio.join('\n');
+  }
+
+  function avaliar(parametros) {
+    var clcr = typeof parametros.clcr === 'number' ? parametros.clcr : 100;
+    var tamanho = typeof parametros.tamanhoCalculo === 'number' ? parametros.tamanhoCalculo : 0;
+    var loc = parametros.localizacao || '';
+    
+    var gravidade = avaliarGravidade({
+        rimUnico: !!parametros.rimUnico,
+        sepseOuInfeccao: !!parametros.sepseOuInfeccao,
+        anuriaOuOliguria: !!parametros.anuriaOuOliguria,
+        dorRefrataria: !!parametros.dorRefrataria,
+        gestanteComComplicacao: !!parametros.gestante && !!parametros.dorRefrataria
+    });
+
+    var analgesia = avaliarAnalgesia({
+        clcr: clcr,
+        gestante: !!parametros.gestante
+    });
+
+    var met = avaliarTerapiaExpulsiva({
+        tamanhoCalculo: tamanho,
+        localizacao: loc
+    });
+
+    return {
+        parametros: parametros,
+        gravidade: gravidade,
+        analgesia: analgesia,
+        met: met
+    };
+  }
+
+  function formatarTextoTelegram(resultado) {
+    var txt = "🪨 *UROLOGIA & NEFROLOGIA — CÓLICA NEFRÉTICA E LITÍASE*\n\n";
+    
+    txt += resultado.gravidade.conduta + "\n";
+    if (resultado.gravidade.motivos.length > 0) {
+        txt += "📌 *Critérios de Gravidade Identificados:*\n";
+        for (var i = 0; i < resultado.gravidade.motivos.length; i++) {
+            txt += "- " + resultado.gravidade.motivos[i] + "\n";
+        }
+    }
+    txt += "\n";
+    
+    txt += resultado.analgesia + "\n\n";
+    txt += resultado.met + "\n";
+
+    return txt;
+  }
+
+  function extrairParametrosTexto(texto) {
+    var limpo = texto.toLowerCase();
+    var p = {};
+    
+    // Extrair tamanho do calculo em mm
+    var mmMatch = limpo.match(/(\d+(?:[.,]\d+)?)\s*(mm|milimetros|milímetros)/);
+    if (mmMatch) {
+        p.tamanhoCalculo = parseFloat(mmMatch[1].replace(',', '.'));
+    }
+
+    // Extrair clearance
+    var clcrMatch = limpo.match(/clcr[\s:=]*(\d+)/) || limpo.match(/clearance[\s:=]*(\d+)/);
+    if (clcrMatch) {
+        p.clcr = parseInt(clcrMatch[1], 10);
+    } else if (/(dialise|diálise|drc v|drc 5|falencia renal)/.test(limpo)) {
+        p.clcr = 10;
+    } else {
+        p.clcr = 100;
+    }
+
+    // Localizacao
+    if (/(distal|juv|juncao ureterovesical|junção)/.test(limpo)) {
+        p.localizacao = 'distal';
+    } else if (/(proximal|pelve|medio|médio)/.test(limpo)) {
+        p.localizacao = 'proximal';
+    } else {
+        p.localizacao = '';
+    }
+
+    // Gravidade
+    p.rimUnico = /(rim unico|rim único|monoreno|nefrectomizado)/.test(limpo);
+    p.sepseOuInfeccao = /(sepse|infeccao|infecção|itu|febre|piuria|calafrio)/.test(limpo);
+    p.anuriaOuOliguria = /(anuria|anúria|oliguria|oligúria|sem urinar|urina escassa)/.test(limpo);
+    p.dorRefrataria = /(dor refrataria|refratário|refratario|nao melhora com morfina|opioide)/.test(limpo);
+    p.gestante = /(gestante|gravida|grávida|prenhez)/.test(limpo);
+
+    return p;
+  }
+
+  return {
+    avaliarGravidade: avaliarGravidade,
+    avaliarAnalgesia: avaliarAnalgesia,
+    avaliarTerapiaExpulsiva: avaliarTerapiaExpulsiva,
+    avaliar: avaliar,
+    formatarTextoTelegram: formatarTextoTelegram,
+    extrairParametrosTexto: extrairParametrosTexto
+  };
+})();
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+  module.exports = UrologiaColicaNefreticaService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_via_aerea_dificil.js
 // ==============================================================================
 
@@ -31958,7 +36694,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol"];
+  var clinicos = ["/cig", "/colestase", "/ehag", "/aflp", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -31970,7 +36706,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma"};
+      var mapaModos={"/cig":"cig","/colestase":"cig","/ehag":"cig","/aflp":"cig","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -33244,6 +37980,38 @@ function processarMensagemTexto(message) {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
+  // HEPATOLOGIA & EMERGÊNCIA OBSTÉTRICA: CIG E EHAG / AFLP
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/cig" || comando === "/colestase" || comando === "/ehag" || comando === "/aflp") {
+    var dadosHepato = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof HepatologiaColestaseGestacionalService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo HepatologiaColestaseGestacionalService indisponível temporariamente.");
+    }
+
+    if (!dadosHepato) {
+      return enviarMensagemParaChat(chatId, "🟡 *HEPATOLOGIA & EMERGÊNCIA OBSTÉTRICA*\n\n" +
+        "Envie os parâmetros clínicos para avaliação de CIG ou EHAG:\n" +
+        "• *CIG:* `/cig ABT 45 IG 36+2 peso 70kg`\n" +
+        "• *EHAG (Swansea):* `/ehag vomitos, dor HCD, hipoglicemia, bilirrubina elevada, transaminases elevadas, amonia aumentada`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/cig acidos biliares 102 ig 35s antecedente gemelar` *(CIG Grave com indicação de parto)*\n" +
+        "• `/ehag dor epigastrica, vomitos, coagulopatia, transaminases elevadas, hipoglicemia` *(Investigação de AFLP)*");
+    }
+
+    try {
+      var paramsHepato = HepatologiaColestaseGestacionalService.extrairParametrosTexto(texto);
+      if (comando === "/ehag" || comando === "/aflp" || texto.toLowerCase().includes("ehag") || texto.toLowerCase().includes("swansea")) {
+        paramsHepato.modo = "EHAG";
+        if(!paramsHepato.swansea) paramsHepato.swansea = {};
+      }
+      var analiseHepato = HepatologiaColestaseGestacionalService.avaliar(paramsHepato);
+      return enviarMensagemParaChat(chatId, HepatologiaColestaseGestacionalService.formatarTextoTelegram(analiseHepato));
+    } catch (eHepato) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro na avaliação de Hepatologia Obstétrica: " + eHepato.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
   // PNEUMOLOGIA & EMERGÊNCIA: MANEJO DA CRISE ASMÁTICA E ESTADO DE MAL ASMÁTICO
   // ───────────────────────────────────────────────────────────────────────────
   if (comando === "/asma" || comando === "/criseasma" || comando === "/broncoespasmo" || comando === "/salbutamol") {
@@ -33354,6 +38122,325 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // OBSTETRÍCIA & MEDICINA FETAL: RESTRIÇÃO DE CRESCIMENTO FETAL (RCF) E DOPPLER
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/rcf" || comando === "/ciur" || comando === "/rciu" || comando === "/doppler" || comando === "/crescimentofetal") {
+    var dadosRcf = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ObstetriciaRcfDopplerService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaRcfDopplerService indisponível temporariamente.");
+    }
+
+    var paramsRcf = dadosRcf ? ObstetriciaRcfDopplerService.extrairParametrosTexto(dadosRcf) : {};
+    if (!dadosRcf || paramsRcf.ig_semanas === undefined) {
+      return enviarMensagemParaChat(chatId, "🤰 *OBSTETRÍCIA & MEDICINA FETAL — RCF / DOPPLER*\n\n" +
+        "Envie a *idade gestacional* (obrigatória) e os percentis do laudo:\n" +
+        "• *IG:* `30s4d`, `30+4` ou `ig 30`\n" +
+        "• *Biometria:* `pfe p2` (peso fetal), `ca p4` (circunferência abdominal), `1450g`, `queda de percentil`\n" +
+        "• *Artéria umbilical:* `au p97`, `diastole zero`, `diastole reversa`\n" +
+        "• *ACM / RCP / Uterinas:* `acm p3`, `rcp p2` (ou `ip au 1.3 ip acm 1.1`), `uterinas p97`\n" +
+        "• *Ducto venoso:* `dv p97`, `onda a reversa` / `onda a ausente`; *Istmo:* `istmo reverso`\n" +
+        "• *cCTG:* `vcp 2.8`, `desaceleracoes`; *Outros:* `ila 4`, `pre-eclampsia`, `gemelar`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/rcf 35+2 pfe p6 rcp p3` *(RCF tardia — Estágio I)*\n" +
+        "• `/rcf 31s pfe p2 diastole zero` *(Estágio II)*\n" +
+        "• `/doppler 27s3d pfe p1 diastole reversa onda a reversa vcp 2.4` *(Estágio IV)*");
+    }
+
+    try {
+      var analiseRcf = ObstetriciaRcfDopplerService.avaliarRcf(paramsRcf);
+      return enviarMensagemParaChat(chatId, ObstetriciaRcfDopplerService.formatarTextoTelegram(analiseRcf));
+    } catch (eRcf) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar RCF/Doppler: " + eRcf.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // HEPATOLOGIA & EMERGÊNCIA OBSTÉTRICA: COLESTASE GESTACIONAL (CIG) E EHAG
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/colestase" || comando === "/cig" || comando === "/icp" || comando === "/swansea" || comando === "/ehag" || comando === "/aflp") {
+    var dadosCig = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof HepatologiaColestaseGestacionalService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo HepatologiaColestaseGestacionalService indisponível temporariamente.");
+    }
+
+    var paramsCig = dadosCig ? HepatologiaColestaseGestacionalService.extrairParametrosTexto(dadosCig) : {};
+
+    if ((comando === "/swansea" || comando === "/ehag" || comando === "/aflp") && (!dadosCig || Object.keys(paramsCig).length === 0)) {
+      return enviarMensagemParaChat(chatId, "🟡 *ESTEATOSE HEPÁTICA AGUDA DA GESTAÇÃO (EHAG / SWANSEA)*\n\n" +
+        "Envie os achados clínicos e laboratoriais (mínimo 6 critérios para confirmação):\n" +
+        "• *Clínicos:* `vomitos`, `dor abdominal`, `polidipsia/poliuria`, `encefalopatia`\n" +
+        "• *Laboratório:* `hipoglicemia` (<72), `bilirrubina` (>0.8), `acido urico` (>5.7), `leucocitose` (>11k), `tgo/tgp` (>42), `amonia` (>47), `insuficiencia renal` (cr >1.7), `coagulopatia` (TP>14s ou TTPa>34s)\n" +
+        "• *Imagem/Biópsia:* `ascite/usg brilhante`, `esteatose biopsia`\n\n" +
+        "*Exemplo:* `/swansea vomitos dor abdominal hipoglicemia coagulopatia tgo 250 bilirrubina 3.5 creatinina 1.9`");
+    }
+
+    if (!dadosCig || (paramsCig.acidos_biliares === undefined && (!paramsCig.swansea || paramsCig.modo !== 'EHAG'))) {
+      return enviarMensagemParaChat(chatId, "🤰 *HEPATOLOGIA OBSTÉTRICA — COLESTASE (CIG) & EHAG*\n\n" +
+        "Envie a dosagem de *Ácidos Biliares Totais (ABT)*, idade gestacional e peso:\n" +
+        "• *ABT séricos (mcmol/L):* `abt 45` ou `acidos biliares 120`\n" +
+        "• *Idade Gestacional:* `34s`, `36+2` ou `ig 36`\n" +
+        "• *Peso materno:* `68kg` ou `peso 70` (para cálculo exato de UDCA 10-15 mg/kg)\n" +
+        "• *Outros:* `prurido`, `tgo 120`, `tgp 95`, `bilirrubina 1.8`, `gemelar`, `antecedente cig`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/cig abt 25 34s peso 65` *(CIG leve — parto 38-39s)*\n" +
+        "• `/colestase abt 110 ig 35s peso 72` *(CIG grave — risco óbito fetal, parto 36s)*\n" +
+        "• `/swansea vomitos dor hipoglicemia coagulopatia tgo 300 encefalopatia` *(EHAG)*");
+    }
+
+    try {
+      var analiseCig = HepatologiaColestaseGestacionalService.avaliar(paramsCig);
+      return enviarMensagemParaChat(chatId, HepatologiaColestaseGestacionalService.formatarTextoTelegram(analiseCig));
+    } catch (eCig) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Colestase/EHAG: " + eCig.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // INFECTOLOGIA OBSTÉTRICA: TOXOPLASMOSE GESTACIONAL (MS/FEBRASGO)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/toxo" || comando === "/toxoplasmose" || comando === "/avidez") {
+    var dadosToxo = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ObstetriciaToxoplasmoseService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaToxoplasmoseService indisponível temporariamente.");
+    }
+
+    var paramsToxo = dadosToxo ? ObstetriciaToxoplasmoseService.extrairParametrosTexto(dadosToxo) : {};
+    
+    if (!dadosToxo || (paramsToxo.igg === null && paramsToxo.igm === null && paramsToxo.pcr_amniotico === null)) {
+      return enviarMensagemParaChat(chatId, "🦠 *INFECTOLOGIA OBSTÉTRICA — TOXOPLASMOSE*\n\n" +
+        "Envie os resultados da sorologia e a idade gestacional atual:\n" +
+        "• *Sorologia:* `igg positivo`, `igm positivo`\n" +
+        "• *Teste de Avidez:* `avidez alta`, `avidez baixa`, `avidez pendente`\n" +
+        "• *IG Atual:* `12s`, `ig 12`\n" +
+        "• *IG da Coleta:* `coleta 8s` (importante se diferir da atual)\n" +
+        "• *Diagnóstico Fetal:* `pcr positivo`, `usg alterado`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/toxo igg positivo igm positivo avidez alta coleta 10s` *(Infecção prévia)*\n" +
+        "• `/toxo 16s igg positivo igm positivo avidez baixa` *(Infecção aguda, baixa avidez)*\n" +
+        "• `/toxo 20s igg positivo igm positivo pcr la positivo` *(Infecção fetal confirmada)*");
+    }
+
+    try {
+      var analiseToxo = ObstetriciaToxoplasmoseService.avaliar(paramsToxo);
+      return enviarMensagemParaChat(chatId, ObstetriciaToxoplasmoseService.formatarTextoTelegram(analiseToxo));
+    } catch (eToxo) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Toxoplasmose: " + eToxo.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // CARDIOLOGIA & EMERGÊNCIA: FIBRILAÇÃO ATRIAL E ANTICOAGULAÇÃO
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/fa" || comando === "/fibrilacaoatrial" || comando === "/chascore" || comando === "/hasbled") {
+    var dadosFa = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof CardiologiaFaAnticoagulacaoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo CardiologiaFaAnticoagulacaoService indisponível temporariamente.");
+    }
+
+    if (!dadosFa) {
+      return enviarMensagemParaChat(chatId, "🫀 *CARDIOLOGIA & EMERGÊNCIA — FIBRILAÇÃO ATRIAL*\n\n" +
+        "Envie os dados clínicos do paciente para avaliação de CHA2DS2-VASc, HAS-BLED e conduta:\n" +
+        "• *Idade e Sexo:* `68 anos`, `mulher`\n" +
+        "• *Comorbidades:* `HAS`, `DM`, `IC`, `AVC prévio`, `IAM`\n" +
+        "• *Risco Hemorrágico:* `insuficiência renal`, `cirrose`, `uso de AINE`, `sangramento prévio`\n" +
+        "• *Estabilidade e Duração:* `choque`, `pam < 60`, `< 48h`, `> 48h`\n" +
+        "• *Valvopatia:* `prótese metálica`, `estenose mitral`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/fa 72 anos m has dm ic <48h` *(Acesso rápido conduta <48h)*\n" +
+        "• `/fa 68 anos f has avc prévio pam < 60 prótese metálica` *(Choque e Valvar)*\n" +
+        "• `/fa 55 anos m has insuficiência renal >48h` *(Risco hemorrágico e >48h)*");
+    }
+
+    try {
+      var paramsFa = CardiologiaFaAnticoagulacaoService.extrairParametrosTexto(dadosFa);
+      var analiseFa = CardiologiaFaAnticoagulacaoService.avaliar(paramsFa);
+      return enviarMensagemParaChat(chatId, CardiologiaFaAnticoagulacaoService.formatarTextoTelegram(analiseFa));
+    } catch (eFa) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Fibrilação Atrial: " + eFa.message);
+    }
+  }
+
+  // PEDIATRIA: BRONQUIOLITE VIRAL AGUDA
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/bronquiolite" || comando === "/bva" || comando === "/bronquioliteviral" || comando === "/cnaf") {
+    var dadosBronq = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof PediatriaBronquioliteService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PediatriaBronquioliteService indisponível temporariamente.");
+    }
+
+    if (!dadosBronq) {
+      return enviarMensagemParaChat(chatId, "👶 *PEDIATRIA — BRONQUIOLITE VIRAL AGUDA*\n\n" +
+        "Envie os dados clínicos para avaliação de gravidade, suporte respiratório e venoso:\n" +
+        "• *Idade e Peso:* `6 meses`, `8 kg`\n" +
+        "• *Sinais Vitais:* `FR 65`, `SpO2 88`\n" +
+        "• *Exame Físico:* `tiragem moderada`, `gemência`, `exaustão`, `sibilos difusos`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/bronquiolite 6 meses 8kg FR 45 SpO2 96 tiragem leve sibilos` *(Leve)*\n" +
+        "• `/bronquiolite 2 meses 5kg FR 70 SpO2 89 exaustao` *(Grave/UTI/NPO)*");
+    }
+
+    try {
+      var paramsBronq = PediatriaBronquioliteService.extrairParametrosTexto(dadosBronq);
+      var analiseBronq = PediatriaBronquioliteService.avaliar(paramsBronq);
+      return enviarMensagemParaChat(chatId, PediatriaBronquioliteService.formatarTextoTelegram(analiseBronq));
+    } catch (eBronq) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Bronquiolite: " + eBronq.message);
+    }
+  }
+
+  
+  // ENDOCRINOLOGIA: HIPERPROLACTINEMIA
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/hiperprolactinemia" || comando === "/prolactina" || comando === "/cabergolina") {
+    var dadosProlactina = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof EndocrinologiaHiperprolactinemiaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo EndocrinologiaHiperprolactinemiaService indisponível temporariamente.");
+    }
+
+    if (!dadosProlactina) {
+      return enviarMensagemParaChat(chatId, "🧠 *ENDOCRINOLOGIA — HIPERPROLACTINEMIA*\n\n" +
+        "Envie os dados para investigação e manejo de prolactinomas:\n" +
+        "• *PRL:* `PRL 150` ou `prolactina 85`\n" +
+        "• *Tamanho (RM):* `tamanho 12` ou `adenoma 8mm`\n" +
+        "• *Dose:* `dose 2.5` (Cabergolina mg/sem)\n" +
+        "• *Outros:* `gestante`, `assintomatica`, `alteracao visual`, `uso de antipsicotico`, `tsh alterado`, `macroprolactina pesquisada`, `macroprolactina positiva`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/prolactina PRL 85 assintomatica`\n" +
+        "• `/hiperprolactinemia PRL 250 tamanho 15mm alteracao visual`");
+    }
+
+    try {
+      var respostaProlactina = EndocrinologiaHiperprolactinemiaService.processarComandoTelegram(texto);
+      return enviarMensagemParaChat(chatId, respostaProlactina);
+    } catch (eProlactina) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Hiperprolactinemia: " + eProlactina.message);
+    }
+  }
+
+  // GINECOLOGIA ENDÓCRINA & CIRÚRGICA: ENDOMETRIOSE E DOR PÉLVICA CRÔNICA
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/endometriose" || comando === "/dienogeste" || comando === "/dorpelvica") {
+    var dadosEndo = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof GinecologiaEndometrioseService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo GinecologiaEndometrioseService indisponível temporariamente.");
+    }
+
+    if (!dadosEndo) {
+      return enviarMensagemParaChat(chatId, "🎗️ *GINECOLOGIA — ENDOMETRIOSE E DOR PÉLVICA CRÔNICA*\n\n" +
+        "Envie os dados clínicos para avaliação sindrômica (6 Ds), conduta de 1ª/2ª linha e decisão cirúrgica vs FIV:\n" +
+        "• *Sintomas:* `dismenorreia`, `dispareunia de profundidade`, `disquezia`, `disúria`, `dor pélvica crônica`\n" +
+        "• *Desejo Reprodutivo:* `tentando engravidar`, `infertilidade`, `AMH 0.8`\n" +
+        "• *Imagem / Achados:* `endometrioma 5cm`, `hidronefrose`, `nódulo retal`, `trompas obstruídas`\n" +
+        "• *Outros:* `contraindicação a estrogênio`, `enxaqueca com aura`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/endometriose dismenorreia severa dispareunia EVA 8 sem desejo gestacional` *(1ª linha Dienogeste)*\n" +
+        "• `/endometriose 36 anos tentando engravidar endometrioma 4cm bilateral AMH 0.7` *(Indicação FIV)*\n" +
+        "• `/endometriose nodulo retal hidronefrose ureteral` *(Cirurgia especializada urgente)*");
+    }
+
+    try {
+      var paramsEndo = GinecologiaEndometrioseService.extrairParametrosTexto(dadosEndo);
+      var analiseEndo = GinecologiaEndometrioseService.avaliar(paramsEndo);
+      return enviarMensagemParaChat(chatId, GinecologiaEndometrioseService.formatarTextoTelegram(analiseEndo));
+    } catch (eEndo) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Endometriose: " + eEndo.message);
+    }
+  }
+
+  // OBSTETRÍCIA & REUMATOLOGIA: SAF E TROMBOFILIAS NA GESTAÇÃO
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/saf" || comando === "/antifosfolipidio" || comando === "/safgestante" || comando === "/trombofiliagestante" || comando === "/trombofilia" || comando === "/enoxaparina") {
+    var dadosSaf = texto.replace(/^\/\w+\s*/, "").trim();
+    var serviceSaf = typeof ObstetriciaSafTrombofiliasService !== "undefined"
+      ? ObstetriciaSafTrombofiliasService
+      : (typeof ObstetriciaSafService !== "undefined" ? ObstetriciaSafService : null);
+    if (!serviceSaf) {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaSafTrombofiliasService indisponível temporariamente.");
+    }
+
+    if (!dadosSaf) {
+      return enviarMensagemParaChat(chatId, "🩸 *OBSTETRÍCIA & REUMATOLOGIA — SAF & TROMBOFILIAS NA GESTAÇÃO*\n\n" +
+        "Envie os dados clínicos para avaliação de critérios de Sydney/ACR-EULAR 2023, protocolo de Enoxaparina + AAS e janelas periparto:\n" +
+        "• *Histórico Obstétrico:* `3 abortos precoces`, `obito fetal 24 semanas`, `prematuro 31 semanas pre-eclampsia`\n" +
+        "• *Histórico Trombótico:* `TVP previa`, `TEP`, `AVC isquemico`\n" +
+        "• *Anticorpos aPL:* `anticoagulante lupico positivo`, `anticardiolipina IgG`, `anti-beta-2-glicoproteina`\n" +
+        "• *Trombofilias:* `deficiencia de antitrombina III`, `fator V Leiden homozigoto`, `protrombina`\n" +
+        "• *Dados Maternos:* `peso 70kg`, `uso de varfarina`, `refrataria`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/saf 3 abortos precoces anticoagulante lupico positivo peso 65kg` *(SAF Obstétrica Pura)*\n" +
+        "• `/saf TVP previa anticardiolipina e anticoagulante lupico peso 80kg` *(SAF Trombótica - Dose Terapêutica)*\n" +
+        "• `/saf perda gestacional em uso de AAS e enoxaparina profilatica` *(SAF Refratária + HCQ)*");
+    }
+
+    try {
+      var paramsSaf = serviceSaf.extrairParametrosTexto(dadosSaf);
+      var analiseSaf = serviceSaf.avaliar(paramsSaf);
+      return enviarMensagemParaChat(chatId, serviceSaf.formatarTextoTelegram(analiseSaf));
+    } catch (eSaf) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar SAF e Trombofilias: " + eSaf.message);
+    }
+  }
+
+  // UROLOGIA & NEFROLOGIA: CÓLICA NEFRÉTICA E LITÍASE URINÁRIA
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/colica" || comando === "/litiase" || comando === "/pedranorim" || comando === "/calculorenal") {
+    var dadosColica = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof UrologiaColicaNefreticaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo UrologiaColicaNefreticaService indisponível temporariamente.");
+    }
+
+    if (!dadosColica) {
+      return enviarMensagemParaChat(chatId, "🪨 *UROLOGIA & NEFROLOGIA — CÓLICA NEFRÉTICA*\n\n" +
+        "Envie os dados clínicos para analgesia escalonada, Terapia Expulsiva (MET) e critérios de descompressão cirúrgica:\n" +
+        "• *Cálculo:* `7mm`, `distal`, `proximal`\n" +
+        "• *Gravidade:* `rim único`, `anúria`, `sepse`, `dor refratária`\n" +
+        "• *Paciente:* `clcr 25`, `gestante`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/colica 6mm distal` *(Terapia Expulsiva e Analgesia)*\n" +
+        "• `/colica 12mm anuria rim unico clcr 15` *(Emergência cirúrgica e bloqueio de AINEs)*\n" +
+        "• `/colica gestante dor refrataria` *(Alerta gestante e gravidade)*");
+    }
+
+    try {
+      var paramsColica = UrologiaColicaNefreticaService.extrairParametrosTexto(dadosColica);
+      var analiseColica = UrologiaColicaNefreticaService.avaliar(paramsColica);
+      return enviarMensagemParaChat(chatId, UrologiaColicaNefreticaService.formatarTextoTelegram(analiseColica));
+    } catch (eColica) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Cólica Nefrética: " + eColica.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // UROLOGIA: CÓLICA NEFRÉTICA E LITÍASE URINÁRIA
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/colica" || comando === "/colicanefretica" || comando === "/litiase") {
+    var dadosUro = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof UrologiaColicaNefreticaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo UrologiaColicaNefreticaService indisponível temporariamente.");
+    }
+
+    if (!dadosUro) {
+      return enviarMensagemParaChat(chatId, "🪨 *UROLOGIA & NEFROLOGIA — CÓLICA NEFRÉTICA*\n\n" +
+        "Envie os dados clínicos do paciente para avaliação de analgesia, terapia expulsiva e descompressão de urgência:\n" +
+        "• *Função Renal:* `ClCr 25`, `diálise`, `rim único`\n" +
+        "• *Gravidade:* `febre`, `sepse`, `anúria`, `dor refratária`\n" +
+        "• *Cálculo:* `7 mm`, `12 mm`, `ureter distal`, `pelve`\n" +
+        "• *Gestação:* `gestante`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/colica cálculo 6 mm distal sem febre`\n" +
+        "• `/colica rim único febre cálculo 12mm` *(Descompressão de Urgência)*\n" +
+        "• `/colica gestante com dor refratária`");
+    }
+
+    try {
+      var paramsUro = UrologiaColicaNefreticaService.extrairParametrosTexto(dadosUro);
+      var analiseUro = UrologiaColicaNefreticaService.avaliar(paramsUro);
+      return enviarMensagemParaChat(chatId, UrologiaColicaNefreticaService.formatarTextoTelegram(analiseUro));
+    } catch (eUro) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Cólica Nefrética: " + eUro.message);
+    }
+  }
   if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
     var dadosKaizen = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof AuditoriaKaizenClinicoService === "undefined") {
@@ -41100,6 +46187,15 @@ function cockpitHepatologiaHda(initData, params) {
   return HepatologiaHdaService.avaliarHepatopatia(params.parametros || params);
 }
 
+function cockpitHepatologiaColestaseGestacional(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof HepatologiaColestaseGestacionalService === 'undefined') {
+    throw new Error('HepatologiaColestaseGestacionalService não carregado.');
+  }
+  return HepatologiaColestaseGestacionalService.avaliar(params.parametros || params);
+}
+
 function cockpitAnalgesiaPca(initData, params) {
   cockpitAutorizar_(initData);
   params = params || {};
@@ -41702,4 +46798,274 @@ function cockpitPneumologiaAsma(initData, params) {
 
 function cockpitCriseAsmatica(initData, params) {
   return cockpitPneumologiaAsma(initData, params);
+}
+
+
+function cockpitObstetriciaRcf(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de RCF/Doppler não fornecidos.');
+  if (typeof ObstetriciaRcfDopplerService === 'undefined') {
+    throw new Error('Serviço ObstetriciaRcfDopplerService indisponível.');
+  }
+
+  // Aceita texto livre (laudo colado) ou objeto estruturado
+  var entrada = typeof params === 'string'
+    ? ObstetriciaRcfDopplerService.extrairParametrosTexto(params)
+    : (params.texto ? ObstetriciaRcfDopplerService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = ObstetriciaRcfDopplerService.avaliarRcf(entrada);
+  var texto = ObstetriciaRcfDopplerService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitRestricaoCrescimentoFetal(initData, params) {
+  return cockpitObstetriciaRcf(initData, params);
+}
+
+function cockpitHepatologiaColestase(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Colestase/EHAG não fornecidos.');
+  if (typeof HepatologiaColestaseGestacionalService === 'undefined') {
+    throw new Error('Serviço HepatologiaColestaseGestacionalService indisponível.');
+  }
+
+  // Aceita texto livre ou objeto estruturado
+  var entrada = typeof params === 'string'
+    ? HepatologiaColestaseGestacionalService.extrairParametrosTexto(params)
+    : (params.texto ? HepatologiaColestaseGestacionalService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = HepatologiaColestaseGestacionalService.avaliar(entrada);
+  var texto = HepatologiaColestaseGestacionalService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitColestaseGestacional(initData, params) {
+  return cockpitHepatologiaColestase(initData, params);
+}
+
+function cockpitEhagSwansea(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Swansea/EHAG não fornecidos.');
+  if (typeof HepatologiaColestaseGestacionalService === 'undefined') {
+    throw new Error('Serviço HepatologiaColestaseGestacionalService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? HepatologiaColestaseGestacionalService.extrairParametrosTexto(params)
+    : params;
+
+  var analise = HepatologiaColestaseGestacionalService.avaliarSwansea(entrada);
+  var texto = HepatologiaColestaseGestacionalService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitObstetriciaToxoplasmose(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Toxoplasmose não fornecidos.');
+  if (typeof ObstetriciaToxoplasmoseService === 'undefined') {
+    throw new Error('Serviço ObstetriciaToxoplasmoseService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? ObstetriciaToxoplasmoseService.extrairParametrosTexto(params)
+    : (params.texto ? ObstetriciaToxoplasmoseService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = ObstetriciaToxoplasmoseService.avaliar(entrada);
+  var texto = ObstetriciaToxoplasmoseService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitToxoplasmoseGestacional(initData, params) {
+  return cockpitObstetriciaToxoplasmose(initData, params);
+}
+
+function cockpitCardiologiaFaAnticoagulacao(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de FA não fornecidos.');
+  if (typeof CardiologiaFaAnticoagulacaoService === 'undefined') {
+    throw new Error('Serviço CardiologiaFaAnticoagulacaoService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? CardiologiaFaAnticoagulacaoService.extrairParametrosTexto(params)
+    : (params.texto ? CardiologiaFaAnticoagulacaoService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = CardiologiaFaAnticoagulacaoService.avaliar(entrada);
+  var texto = CardiologiaFaAnticoagulacaoService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitFibrilacaoAtrial(initData, params) {
+  return cockpitCardiologiaFaAnticoagulacao(initData, params);
+}
+
+function cockpitUrologiaColicaNefretica(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de cólica nefrética não fornecidos.');
+  if (typeof UrologiaColicaNefreticaService === 'undefined') {
+    throw new Error('Serviço UrologiaColicaNefreticaService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? UrologiaColicaNefreticaService.extrairParametrosTexto(params)
+    : (params.texto ? UrologiaColicaNefreticaService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = UrologiaColicaNefreticaService.avaliar(entrada);
+  var texto = UrologiaColicaNefreticaService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitColicaNefretica(initData, params) {
+  return cockpitUrologiaColicaNefretica(initData, params);
+}
+
+function cockpitPediatriaBronquiolite(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Bronquiolite não fornecidos.');
+  if (typeof PediatriaBronquioliteService === 'undefined') {
+    throw new Error('Serviço PediatriaBronquioliteService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? PediatriaBronquioliteService.extrairParametrosTexto(params)
+    : (params.texto ? PediatriaBronquioliteService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = PediatriaBronquioliteService.avaliar(entrada);
+  var texto = PediatriaBronquioliteService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitBronquiolite(initData, params) {
+  return cockpitPediatriaBronquiolite(initData, params);
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports.cockpitPediatriaBronquiolite = cockpitPediatriaBronquiolite;
+  module.exports.cockpitBronquiolite = cockpitBronquiolite;
+  module.exports.cockpitEndocrinologiaHiperprolactinemia = cockpitEndocrinologiaHiperprolactinemia;
+  module.exports.cockpitHiperprolactinemia = cockpitHiperprolactinemia;
+}
+
+function cockpitEndocrinologiaHiperprolactinemia(initData, params) {
+  if (typeof EndocrinologiaHiperprolactinemiaService === 'undefined') {
+    throw new Error('Serviço EndocrinologiaHiperprolactinemiaService indisponível.');
+  }
+  var analise = EndocrinologiaHiperprolactinemiaService.avaliarHiperprolactinemia(params);
+  var textoFormatado = "";
+  if (typeof params === 'string') {
+      textoFormatado = EndocrinologiaHiperprolactinemiaService.processarComandoTelegram(params);
+  } else if (params.texto) {
+      textoFormatado = EndocrinologiaHiperprolactinemiaService.processarComandoTelegram(params.texto);
+  } else {
+      textoFormatado = "Processado via API Fastify";
+  }
+  return {
+    sucesso: true,
+    resultado: analise.resultado,
+    textoFormatado: textoFormatado
+  };
+}
+
+function cockpitHiperprolactinemia(initData, params) {
+  return cockpitEndocrinologiaHiperprolactinemia(initData, params);
+}
+
+function cockpitGinecologiaEndometriose(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Endometriose não fornecidos.');
+  if (typeof GinecologiaEndometrioseService === 'undefined') {
+    throw new Error('Serviço GinecologiaEndometrioseService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? GinecologiaEndometrioseService.extrairParametrosTexto(params)
+    : (params.texto ? GinecologiaEndometrioseService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = GinecologiaEndometrioseService.avaliar(entrada);
+  var texto = GinecologiaEndometrioseService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitEndometriose(initData, params) {
+  return cockpitGinecologiaEndometriose(initData, params);
+}
+
+function cockpitObstetriciaSaf(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de SAF/Trombofilias não fornecidos.');
+  var service = typeof ObstetriciaSafTrombofiliasService !== 'undefined'
+    ? ObstetriciaSafTrombofiliasService
+    : (typeof ObstetriciaSafService !== 'undefined' ? ObstetriciaSafService : null);
+  if (!service) {
+    throw new Error('Serviço ObstetriciaSafTrombofiliasService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? service.extrairParametrosTexto(params)
+    : (params.texto ? service.extrairParametrosTexto(params.texto) : params);
+
+  var analise = service.avaliar(entrada);
+  var texto = service.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitSafTrombofilias(initData, params) {
+  return cockpitObstetriciaSaf(initData, params);
+}
+
+function cockpitSafGestacional(initData, params) {
+  return cockpitObstetriciaSaf(initData, params);
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports.cockpitGinecologiaEndometriose = cockpitGinecologiaEndometriose;
+  module.exports.cockpitEndometriose = cockpitEndometriose;
+  module.exports.cockpitObstetriciaSaf = cockpitObstetriciaSaf;
+  module.exports.cockpitSafTrombofilias = cockpitSafTrombofilias;
+  module.exports.cockpitSafGestacional = cockpitSafGestacional;
 }

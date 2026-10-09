@@ -1830,6 +1830,40 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // OBSTETRÍCIA & REUMATOLOGIA: SAF E TROMBOFILIAS NA GESTAÇÃO
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/saf" || comando === "/antifosfolipidio" || comando === "/safgestante" || comando === "/trombofiliagestante" || comando === "/trombofilia" || comando === "/enoxaparina") {
+    var dadosSaf = texto.replace(/^\/\w+\s*/, "").trim();
+    var serviceSaf = typeof ObstetriciaSafTrombofiliasService !== "undefined"
+      ? ObstetriciaSafTrombofiliasService
+      : (typeof ObstetriciaSafService !== "undefined" ? ObstetriciaSafService : null);
+    if (!serviceSaf) {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaSafTrombofiliasService indisponível temporariamente.");
+    }
+
+    if (!dadosSaf) {
+      return enviarMensagemParaChat(chatId, "🩸 *OBSTETRÍCIA & REUMATOLOGIA — SAF & TROMBOFILIAS NA GESTAÇÃO*\n\n" +
+        "Envie os dados clínicos para avaliação de critérios de Sydney/ACR-EULAR 2023, protocolo de Enoxaparina + AAS e janelas periparto:\n" +
+        "• *Histórico Obstétrico:* `3 abortos precoces`, `obito fetal 24 semanas`, `prematuro 31 semanas pre-eclampsia`\n" +
+        "• *Histórico Trombótico:* `TVP previa`, `TEP`, `AVC isquemico`\n" +
+        "• *Anticorpos aPL:* `anticoagulante lupico positivo`, `anticardiolipina IgG`, `anti-beta-2-glicoproteina`\n" +
+        "• *Trombofilias:* `deficiencia de antitrombina III`, `fator V Leiden homozigoto`, `protrombina`\n" +
+        "• *Dados Maternos:* `peso 70kg`, `uso de varfarina`, `refrataria`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/saf 3 abortos precoces anticoagulante lupico positivo peso 65kg` *(SAF Obstétrica Pura)*\n" +
+        "• `/saf TVP previa anticardiolipina e anticoagulante lupico peso 80kg` *(SAF Trombótica - Dose Terapêutica)*\n" +
+        "• `/saf perda gestacional em uso de AAS e enoxaparina profilatica` *(SAF Refratária + HCQ)*");
+    }
+
+    try {
+      var paramsSaf = serviceSaf.extrairParametrosTexto(dadosSaf);
+      var analiseSaf = serviceSaf.avaliar(paramsSaf);
+      return enviarMensagemParaChat(chatId, serviceSaf.formatarTextoTelegram(analiseSaf));
+    } catch (eSaf) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar SAF e Trombofilias: " + eSaf.message);
+    }
+  }
+
   // UROLOGIA & NEFROLOGIA: CÓLICA NEFRÉTICA E LITÍASE URINÁRIA
   // ───────────────────────────────────────────────────────────────────────────
   if (comando === "/colica" || comando === "/litiase" || comando === "/pedranorim" || comando === "/calculorenal") {

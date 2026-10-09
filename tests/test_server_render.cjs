@@ -483,6 +483,44 @@ async function run() {
   assert.equal(endoTextoBody.resultado.resultado.diagnostico.indicacaoCirurgicaUrgente, true);
   console.log('✓ Cockpit Endometriose via texto livre (alias) OK');
 
+  // 6.17 Cockpit RPC - Obstetrícia & Reumatologia: SAF e Trombofilias na Gestação
+  const resSaf = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitObstetriciaSaf',
+      session: token,
+      args: [{
+        abortosPrecoces: 3,
+        anticoagulanteLupico: true,
+        intervaloMinimo12Semanas: true,
+        peso: 65,
+        idadeGestacional: 10
+      }]
+    }
+  });
+  assert.equal(resSaf.statusCode, 200, "Erro ao testar cockpitObstetriciaSaf");
+  const safBody = JSON.parse(resSaf.payload);
+  assert.equal(safBody.resultado.sucesso, true);
+  assert.equal(safBody.resultado.resultado.fenotipo, 'SAF OBSTÉTRICA TÍPICA CONFIRMADA');
+  assert.ok(safBody.resultado.textoFormatado.includes('SAF E TROMBOFILIAS'));
+  console.log('✓ Cockpit Obstetrícia SAF (Sydney / Enoxaparina + AAS) OK');
+
+  // 6.18 Cockpit RPC - SAF Gestacional via texto livre (alias cockpitSafTrombofilias)
+  const resSafTexto = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitSafTrombofilias',
+      session: token,
+      args: ['saf gestante peso 70kg tvp previa anticardiolipina positiva confirmado 12 semanas']
+    }
+  });
+  assert.equal(resSafTexto.statusCode, 200, "Erro ao testar cockpitSafTrombofilias via texto");
+  const safTextoBody = JSON.parse(resSafTexto.payload);
+  assert.equal(safTextoBody.resultado.sucesso, true);
+  assert.equal(safTextoBody.resultado.resultado.fenotipo, 'SAF TROMBÓTICA CONFIRMADA');
+  console.log('✓ Cockpit SAF e Trombofilias via texto livre (alias) OK');
 
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);

@@ -2033,8 +2033,43 @@ function cockpitEndometriose(initData, params) {
   return cockpitGinecologiaEndometriose(initData, params);
 }
 
+function cockpitObstetriciaSaf(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de SAF/Trombofilias não fornecidos.');
+  var service = typeof ObstetriciaSafTrombofiliasService !== 'undefined'
+    ? ObstetriciaSafTrombofiliasService
+    : (typeof ObstetriciaSafService !== 'undefined' ? ObstetriciaSafService : null);
+  if (!service) {
+    throw new Error('Serviço ObstetriciaSafTrombofiliasService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? service.extrairParametrosTexto(params)
+    : (params.texto ? service.extrairParametrosTexto(params.texto) : params);
+
+  var analise = service.avaliar(entrada);
+  var texto = service.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitSafTrombofilias(initData, params) {
+  return cockpitObstetriciaSaf(initData, params);
+}
+
+function cockpitSafGestacional(initData, params) {
+  return cockpitObstetriciaSaf(initData, params);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitGinecologiaEndometriose = cockpitGinecologiaEndometriose;
   module.exports.cockpitEndometriose = cockpitEndometriose;
+  module.exports.cockpitObstetriciaSaf = cockpitObstetriciaSaf;
+  module.exports.cockpitSafTrombofilias = cockpitSafTrombofilias;
+  module.exports.cockpitSafGestacional = cockpitSafGestacional;
 }
 

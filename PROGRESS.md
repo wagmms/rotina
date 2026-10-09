@@ -231,10 +231,15 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Indicações cirúrgicas mandatórias imediatas: estenose ureteral com hidronefrose, suboclusão intestinal retossigmoideia com acometimento ≥ 50% da luz e dor pélvica intratável.
     - Integrado via Fastify RPC (`cockpitGinecologiaEndometriose` e `cockpitEndometriose`), comandos Telegram (`/endometriose`, `/dienogeste`, `/dorpelvica`) e 100% de cobertura nos testes unitários e de integração do servidor Render.
 
-45. [ ] **Obstetrícia & Reumatologia - Síndrome do Anticorpo Antifosfolipídio (SAF) e Trombofilias na Gestação (Critérios Sydney / ACR / EULAR 2023)**:
-    - Critérios clínicos (abortamentos precoces de repetição >= 3 com < 10 semanas, perda fetal morfologicamente normal >= 10 semanas, parto prematuro < 34 semanas por pré-eclâmpsia grave ou insuficiência placentária) associados a critérios laboratoriais (Anticoagulante Lúpico, Anticardiolipina IgG/IgM e Anti-beta-2-glicoproteína I confirmados com intervalo >= 12 semanas).
-    - Protocolo antitrombótico gestacional: AAS em baixa dose (100 a 150 mg/dia) iniciado pré-concepção associado a HBPM profilática (Enoxaparina 40 mg SC/dia) desde o teste de gravidez positivo.
-    - Esquema terapêutico em SAF trombótica prévia (HBPM em dose plena/terapêutica durante toda a gestação) e manejo de segurança no periparto com janelas de suspensão para analgesia de parto.
+45. [x] **Obstetrícia & Reumatologia - Síndrome do Anticorpo Antifosfolipídio (SAF) e Trombofilias na Gestação (Critérios Sydney / ACR / EULAR 2023)**:
+    - Motor determinístico de diagnóstico e classificação formal baseado nos Critérios de Sydney (2006) e novos Critérios ACR/EULAR (2023).
+    - Mapeamento de critérios obstétricos (abortamentos precoces de repetição ≥ 3 com < 10 semanas, perda fetal morfologicamente normal ≥ 10 semanas, parto prematuro < 34 semanas por pré-eclâmpsia grave ou insuficiência placentária) e critérios trombóticos (TVP, TEP, AVC, trombose arterial/venosa).
+    - Validação estrita de critérios laboratoriais com intervalo mínimo obrigatório de 12 semanas (Anticoagulante Lúpico, Anticardiolipina IgG/IgM e Anti-beta-2-glicoproteína I) e identificação de Tripla Positividade com altíssimo risco.
+    - Estratificação fenotípica: SAF Obstétrica Típica (AAS 100-150 mg/dia + Enoxaparina profilática por faixas de peso), SAF Trombótica (Enoxaparina plena terapêutica 1 mg/kg 12/12h + AAS), SAF Refratária (escalonamento e adição de Hidroxicloroquina 200 a 400 mg/dia), Portadora Assintomática e CAPS.
+    - Manejo de trombofilias hereditárias (Alto Risco: Déficit Antitrombina III, FVL homozigoto, Protrombina homozigoto, Duplo hetero; Baixo Risco: FVL hetero, Protrombina hetero, Déficit Proteína C/S) e desmistificação com bloqueio formal de heparina/anticoagulação por polimorfismo isolado de MTHFR.
+    - Protocolo estrito de suspensão periparto para anestesia neuroaxial (SOAP/ASRA): 12 horas para HBPM profilática e 24 horas para HBPM terapêutica, além de regras de puerpério seguro mantendo Enoxaparina por 6 semanas completas.
+    - Bloqueios de segurança clínica: contraindicação formal de DOACs, contraindicação de Varfarina no 1º trimestre, contraindicação de AINEs no 3º trimestre e suplementação obrigatória de Cálcio e Vitamina D para prevenção de perda óssea por heparina.
+    - Integrado via Fastify RPC (`cockpitObstetriciaSaf`, `cockpitSafTrombofilias`, `cockpitSafGestacional`), comandos Telegram (`/saf`, `/antifosfolipidio`, `/safgestante`, `/trombofiliagestante`, `/trombofilia`, `/enoxaparina`) e 100% de cobertura nos testes unitários e de integração do servidor Render.
 
 ---
 
@@ -1244,5 +1249,21 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Regra de segurança: A crise asmática descontrolada é MUITO mais perigosa para o feto do que as medicações inalatórias de controle. Bloqueio de omissão ou suspensão de broncodilatadores e corticoides.
     - Segurança comprovada de Beta-2 agonistas de curta ação (Salbutamol) e corticoides inalatórios (Budesonida) e sistêmicos (Prednisona / Hidrocortisona) na exacerbação.
     - Alerta crítico: Alcalose respiratória fisiológica na gestante mascara fadiga diafragmática (PaCO2 normal ≥ 35 mmHg ou acidose respiratória em gestante é sinal de fadiga extrema e iminência de parada respiratória).
+
+153. [ ] **Hematologia & Terapia Intensiva - Manejo da Trombocitopenia Induzida por Heparina (TIH / HIT Tipo II - Escore dos 4 Ts / ASH / CHEST)**:
+    - Motor determinístico beira-leito para cálculo do Escore dos 4 Ts (Thrombocytopenia, Timing, Thrombosis, oTher causes of thrombocytopenia) estratificado em baixo risco (≤ 3), intermediário (4-5) e alto risco (6-8).
+    - Ação emergencial de bloqueio de segurança: SUSPENSÃO IMEDIATA de TODAS as heparinas (HBPM e HNF), inclusive flushes e cateteres heparinizados.
+    - Contraindicação formal de transfusão plaquetária profilática (risco paradoxal de trombose fulminante) e contraindicação de início precoce de Varfarina na fase aguda (risco de necrose cutânea por queda de proteína C).
+    - Terapia com anticoagulantes não heparínicos de ação direta parenteral (Fondaparinux ou Argatroban ou Bivalirudina) em dose terapêutica mesmo sem trombose manifesta.
+
+154. [ ] **Obstetrícia & Infectologia - Manejo de HIV na Gestação e Prevenção da Transmissão Vertical (Diretrizes Ministério da Saúde / CDC / ACOG)**:
+    - Início imediato de TARV tripla potente (Dolutegravir 50mg + Tenofovir 300mg + Lamivudina 300mg) independentemente de contagem de linfócitos T-CD4+ ou carga viral.
+    - Algoritmo determinístico de via de parto segundo a Carga Viral (CV) com 34-36 semanas: CV < 50 cópias/mL (indicação obstétrica sem AZT venoso obrigatório se suprimida sustentada); CV 50 a 999 cópias/mL (indicação obstétrica com Zidovudina IV contínua); CV ≥ 1000 cópias/mL (Cesariana eletiva mandatória com 38 semanas + AZT IV contínuo).
+    - Cuidados de parto e puerpério: clampeamento imediato sem ordenha do cordão umbilical, profilaxia neonatal oportuna e INIBIÇÃO DA LACTAÇÃO materna (Cabergolina 1 mg dose única oral + contraindicação formal absoluta de aleitamento ao seio materno).
+
+155. [ ] **Reumatologia & Obstetrícia - Manejo do Lúpus Eritematoso Sistêmico (LES) na Gestação e Bloqueio Atrioventricular Congênito por Anti-Ro/SSA e Anti-La/SSB**:
+    - Avaliação pré-concepcional e critérios de remissão clínica (idealmente ≥ 6 meses de inatividade de doença).
+    - Manutenção de fármacos seguros (Hidroxicloroquina durante toda a gestação reduz risco de flares maternos e de BAV fetal; Azatioprina, Prednisona em baixa dose) e contraindicação absoluta de teratogênicos (Metotrexato, Micofenolato de Mofetila e Ciclofosfamida).
+    - Protocolo de vigilância fetal em gestantes anti-Ro/SSA e anti-La/SSB positivas: ecocardiograma fetal seriado semanal ou quinzenal entre a 16ª e 26ª semana de gestação para detecção de BAV de 1º e 2º graus reversíveis e miocardite fetal, com uso oportuno de Dexametasona fluorada 4 mg/dia.
 
 
