@@ -52,7 +52,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolos determinísticos para intoxicação aguda por Paracetamol com cálculo do Nomograma de Rumack-Matthew e posologia IV/VO de N-acetilcisteína.
     - Reversão beira-leito de intoxicações por Antidepressivos Tricíclicos, Beta-bloqueadores, Bloqueadores de Canal de Cálcio e Opioides (Naloxona escalonada).
 
-22. [ ] **Módulo Avançado de Hepatologia Clínica e HDA**:
+22. [x] **Módulo Avançado de Hepatologia Clínica e HDA**:
     - Cálculo determinístico do escore MELD / MELD-Na e Child-Pugh para hepatopatia crônica, com ajuste posológico para insuficiência hepática severa.
     - Protocolos ágeis de manejo de Hemorragia Digestiva Alta (HDA) varicosa com indicação de IBP IV contínuo, Terlipressina ou Octreotide, profilaxia antibiótica para PBE e restrição restrita de cristaloides.
 
@@ -303,12 +303,29 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Cálculo determinístico de hidratação vigorosa oral (Grupo B) e venosa (Grupos C e D) em mL/kg/h.
     - Painel visual para acompanhamento da curva do hematócrito vs plaquetas.
 
+73. [ ] **Módulo de Psiquiatria de Ligação - Delirium Hospitalar e Manejo Não-Farmacológico**:
+    - Motor de rastreio beira-leito com método CAM-ICU (Confusion Assessment Method) e critérios do DSM-5-TR.
+    - Protocolo restritivo para indicação de contenção farmacológica em Delirium Hiperativo, com resgate por Dexmedetomidina ou baixas doses de Haloperidol IV, e alerta de contraindicação formal de Benzodiazepínicos.
+    
+74. [ ] **Ferramenta Determinística de Profilaxia de Úlcera de Estresse (SUP) em UTI**:
+    - Checklist inteligente dos fatores maiores (VM > 48h, coagulopatia, TCE grave, queimadura extensa) e menores.
+    - Suspensão programada (des-prescrição automática) assim que o paciente for extubado ou passar a receber dieta enteral plena, reduzindo infecções hospitalares (Pneumonia Associada à Ventilação e Clostridium difficile).
+
+75. [ ] **Cardiologia Clínica - Manejo Guiado da Hipercalemia Aguda**:
+    - Motor estruturado em 4 etapas: estabilização miocárdica (Gluconato de Cálcio obrigatório se ECG alterado), redistribuição (Glicoinsulina IV e Salbutamol NBZ), eliminação corporal (Furosemida, Resina de Troca) e reversão de causa base.
+    - Teste de segurança para evitar erro fatal: bloqueio de bolus de insulina sem glicose associada, e limite de uso de gluconato em toxicidade por digitálico.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo Avançado de Hepatologia Clínica e HDA**
+- [ ] **Módulo Avançado de Analgesia Controlada pelo Paciente (PCA)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Módulo Avançado de Hepatologia Clínica e HDA**:
+   - Implementação de motor determinístico beira-leito para o escore de Child-Pugh, estratificando risco cirúrgico e predizendo sobrevida em 1 e 2 anos com rigor nas classes A, B e C, alertando proativamente a necessidade de ajuste posológico.
+   - Cálculo automático do MELD original (UNOS) e da nova fórmula MELD-Na otimizada, identificando limites mínimos (1.0) rigorosos para Bilirrubina e INR.
+   - Algoritmo ágil de emergência para HDA Varicosa instável: indicação mandatória imediata de Droga Vasoativa (Terlipressina 2mg 4/4h, ajustável por peso, ou Octreotide se contraindicado), supressão ácida (IBP bolus e contínuo) e antibiótico profilático salvador de vidas para PBE (Ceftriaxona).
+   - Testes rigorosos em `test_hepatologia_hda.cjs` e runner python validando 100% de sucesso nas equações matemáticas logarítmicas e condicionais da diretriz AASLD/EASL.
 - [x] (2026-10-09) **Painel Inteligente de Intoxicações Exógenas (Toxicologia de Emergência)**:
    - Protocolos determinísticos para intoxicação aguda por Paracetamol com cálculo do Nomograma de Rumack-Matthew e prescrição detalhada de N-acetilcisteína IV/VO.
    - Manejo guiado beira-leito para intoxicações por Antidepressivos Tricíclicos (TCA) com avaliação de risco (QRS) e Bicarbonato de Sódio.
