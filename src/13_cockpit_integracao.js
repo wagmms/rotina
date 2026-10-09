@@ -1479,3 +1479,34 @@ function cockpitInfectologiaNeutropenia(initData, params) {
     textoFormatado: texto
   };
 }
+
+function cockpitGastroenterologiaPancreatite(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para pancreatite não fornecidos.');
+  
+  var avaliacao = GastroenterologiaPancreatiteService.avaliarPaciente(params);
+  var bisap = avaliacao.bisap;
+  var hidra = avaliacao.protocoloHidratacao;
+  var nutri = avaliacao.protocoloNutricao;
+  
+  var texto = "🩸 *PANCREATITE AGUDA E MANEJO DE HIDRATAÇÃO*\n\n";
+  texto += "*Escore BISAP:* " + bisap.escore + " pontos\n";
+  texto += "*Risco de Gravidade:* " + bisap.riscoGravidade + "\n";
+  texto += "*Mortalidade Esperada:* " + bisap.mortalidadeEsperada + "\n\n";
+  
+  texto += "💧 *PROTOCOLO DE HIDRATAÇÃO:*\n";
+  for (var i = 0; i < hidra.length; i++) {
+    texto += "• " + hidra[i] + "\n";
+  }
+  
+  texto += "\n🍽️ *PROTOCOLO DE NUTRIÇÃO:*\n";
+  for (var j = 0; j < nutri.length; j++) {
+    texto += "• " + nutri[j] + "\n";
+  }
+  
+  return {
+    sucesso: true,
+    avaliacao: avaliacao,
+    textoFormatado: texto
+  };
+}

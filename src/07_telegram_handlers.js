@@ -1389,6 +1389,19 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, resNeutro.textoFormatado + "\n\n_(Exemplo gerado com parâmetros de baixo risco. No futuro, interatividade será adicionada.)_");
   }
 
+  if (comando === "/pancreatite" || comando === "/bisap") {
+    if (typeof GastroenterologiaPancreatiteService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo GastroenterologiaPancreatiteService indisponível.");
+    }
+    var resPancreatite = cockpitGastroenterologiaPancreatite('bot', {
+        bisap: { bunMaior25: true, mentalAlterado: false, sirs: true, idadeMaior60: false, derramePleural: true },
+        hidratacao: { doencaCardiovascularOuRenal: false, hematocritoElevado: true, bunElevado: true },
+        nutricao: { dorAbdominalControlada: false, nauseaVomitoAusentes: true, tempoNPO: 24 }
+    });
+    return enviarMensagemParaChat(chatId, resPancreatite.textoFormatado + "\n\n_(Exemplo gerado com parâmetros simulados. Interatividade será adicionada no PWA.)_");
+  }
+
+
   if (comando === "/transfusao" || comando === "/hemoterapia" || comando === "/ptm" || comando === "/chad") {
     var dadosTrans = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof TransfusaoSanguineaService === "undefined") {

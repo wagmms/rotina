@@ -80,7 +80,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolo de antibioticoterapia empírica em até 1 hora da triagem (Cefepime vs Piperacilina-Tazobactam) e indicação de Vancomicina baseada em instabilidade, cateter central ou MRSA.
     - Alerta para indicação oportuna de terapia antifúngica (Echinocandinas) em casos refratários de febre persistente por > 4-7 dias.
 
-29. [ ] **Gastroenterologia - Pancreatite Aguda e Manejo da Hidratação (Critérios de Atlanta / BISAP)**:
+29. [x] **Gastroenterologia - Pancreatite Aguda e Manejo da Hidratação (Critérios de Atlanta / BISAP)**:
     - Calculadora determinística beira-leito dos escores de gravidade (BISAP, Ranson, Marshall) para predição de mortalidade e falência orgânica.
     - Protocolo de ressuscitação volêmica dirigida por metas (Lactato Ringer precoce e agressivo nas primeiras 12-24h, com monitorização de ureia e hematócrito para prevenir sobrecarga hídrica e SDRA secundária).
     - Regras alimentares precoces: dieta oral ou enteral (sonda nasojejunal) em 24-48h se tolerável, rejeitando NPO prolongado sem justificativa.
@@ -395,12 +395,27 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Diferenciação entre reinfecção e recidiva bacteriana.
     - Algoritmo de profilaxia contínua vs pós-coito (Nitrofurantoína, Fosfomicina, Cefalexina) com alertas de segurança prolongados (ex: neuropatia por Nitrofurantoína e função renal).
 
+
+92. [ ] **Ginecologia - Avaliação e Manejo de Sangramento Uterino Anormal (PALM-COEIN)**:
+    - Ferramenta diagnóstica estruturada usando classificação FIGO.
+    - Algoritmo de manejo agudo com altas doses de Ácido Tranexâmico, AINEs ou Terapia Hormonal (Estrogênio IV ou Progestágenos) para sangramento abundante na urgência.
+
+93. [ ] **Nutrologia - Terapia Nutricional Parenteral Individualizada na UTI**:
+    - Motor determinístico para cálculo de VET (Valor Energético Total) usando equações de Penn State ou regra de bolso (25-30 kcal/kg).
+    - Distribuição automatizada de macronutrientes e alertas para Síndrome da Realimentação.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Gastroenterologia - Pancreatite Aguda e Manejo da Hidratação (Critérios de Atlanta / BISAP)**
+- [ ] **Módulo de Cardiologia de Emergência (Dor Torácica e IAM)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Gastroenterologia - Pancreatite Aguda e Manejo da Hidratação (Critérios de Atlanta / BISAP)**:
+   - Calculadora determinística beira-leito dos escores de gravidade (BISAP).
+   - Protocolo de ressuscitação volêmica dirigida por metas (Ringer Lactato) com alertas para doença cardiovascular e renal.
+   - Algoritmo de rejeição de NPO prolongado com incentivo a dieta oral precoce ou sonda nasojejunal.
+   - Integração completa via Fastify RPC e bot Telegram (/pancreatite, /bisap).
+   - Cobertura de testes automatizados validados com sucesso.
 - [x] (2026-10-09) **Infectologia - Manejo de Neutropenia Febril Oncológica (Escore MASCC)**:
    - Motor determinístico de estratificação de risco (MASCC).
    - Protocolo de antibioticoterapia IV (Cefepime / Tazocin) com indicações precisas de Vancomicina (instabilidade, cateter, MRSA) e antifúngicos em febre refratária.
