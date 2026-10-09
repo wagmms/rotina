@@ -101,19 +101,12 @@ function cockpitConsultar(initData) {
   var casosDoDia = PersistenciaBot.ler('casos_hoje_' + chat + '_' + hojeIso);
   if (!Array.isArray(casosDoDia)) casosDoDia = [];
 
-  var soapTexto = '';
-  if (resultado && resultado.texto) {
-    soapTexto = resultado.texto;
-  } else if (estado && estado.data && typeof estado.data === 'string' && estado.data.length > 15) {
-    soapTexto = estado.data;
-  } else if (casosDoDia.length > 0 && casosDoDia[0].soap) {
-    soapTexto = casosDoDia[0].soap;
-  }
+  var soapTexto = (estado && resultado && resultado.revision === estado.revision) ? resultado.texto : '';
 
   return {
-    revision: estado ? estado.revision : (resultado ? resultado.revision : null),
+    revision: estado ? estado.revision : null,
     soap: soapTexto,
-    casoAtivo: !!(estado && estado.data) || !!soapTexto,
+    casoAtivo: !!(estado && estado.data),
     leitos: Object.keys(leitos).sort().map(function(k){return leitos[k];}),
     casosDoDia: casosDoDia
   };

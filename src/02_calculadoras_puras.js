@@ -1381,7 +1381,9 @@ var CalculadorasClinicas = (function () {
 
       var recomendacoes = [];
       if (gt(peso, 150)) {
-        recomendacoes.push('⚠️ PACIENTE COM OBESIDADE GRAVE (> 150 kg): Fentanil, Propofol e Midazolam devem ser dosados pelo Peso Ideal (IBW). Rocurônio pelo Peso Ideal ou Ajustado (máx 150 mg). Succinilcolina pode ser calculada pelo peso real (máx 200 mg).');
+        recomendacoes.push('⚠️ PACIENTE COM OBESIDADE GRAVE (> 150 kg): Fentanil, Propofol e Midazolam devem ser dosados pelo Peso Ideal (IBW). Rocurônio pelo Peso Ideal ou Ajustado (máx 150 mg). Succinilcolina pode ser calculada pelo peso real (máx 200 mg), prevenindo colapso hemodinâmico e bloqueio neuromuscular prolongado.');
+      } else if (gt(peso, 100)) {
+        recomendacoes.push('⚠️ PACIENTE COM OBESIDADE (≥ 100 kg): Atenção estrita à farmacocinética! Fentanil, Propofol, Etomidato e Midazolam devem ser dosados pelo Peso Ideal (IBW). Rocurônio pelo Peso Ideal ou Ajustado (máx 150 mg). Apenas Succinilcolina deve ser dosada pelo Peso Real (teto máximo de 200 mg).');
       }
       if (ctxChave === 'choque') {
         recomendacoes.push('🏆 Sedativo: Etomidato ou Quetamina (estabilidade cardiovascular).');

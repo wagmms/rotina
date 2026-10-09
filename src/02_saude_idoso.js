@@ -199,7 +199,8 @@ var SaudeIdosoService = class SaudeIdosoService {
    */
   static calcularFraxBrasil(dados) {
     dados = dados || {};
-    let idade = typeof dados.idade === 'number' ? dados.idade : 65;
+    let idadeInformada = typeof dados.idade === 'number' ? dados.idade : 65;
+    let idade = idadeInformada;
     let alertas = [];
 
     // Blindagem de idade (modelo oficial FRAX 40-90 anos)
@@ -209,6 +210,11 @@ var SaudeIdosoService = class SaudeIdosoService {
     } else if (idade > 90) {
       alertas.push("Idade > 90 anos: Paciente nonagenário. O modelo FRAX limita estimativas a 90 anos; risco de fratura e fragilidade clínica é extremo.");
       idade = 90;
+    }
+
+    if (typeof dados.peso === 'number') {
+      if (dados.peso < 40) alertas.push("Baixo peso corporal (< 40 kg): Fator de risco crítico para perda óssea acelerada.");
+      else if (dados.peso > 150) alertas.push("Obesidade severa (> 150 kg): Fraturas periféricas e de membros aumentam.");
     }
 
     const sexoStr = String(dados.sexo || 'F').trim().toUpperCase();
@@ -278,12 +284,12 @@ var SaudeIdosoService = class SaudeIdosoService {
       riscoHip *= 1.65;
       fatores.push("Tabagismo ativo (HR ~1.6)");
     }
-    if (dados.glicocorticoide) {
+    if (dados.glicocorticoide || dados.corticoide) {
       riscoMof *= 1.85;
       riscoHip *= 2.15;
       fatores.push("Glicocorticoide oral crônico >= 5mg/dia prednisona (HR ~2.1)");
     }
-    if (dados.artriteReumatoide) {
+    if (dados.artriteReumatoide || dados.ar) {
       riscoMof *= 1.35;
       riscoHip *= 1.45;
       fatores.push("Artrite Reumatoide (HR ~1.4)");
@@ -296,7 +302,7 @@ var SaudeIdosoService = class SaudeIdosoService {
       }
       fatores.push("Osteoporose secundária");
     }
-    if (dados.alcool) {
+    if (dados.alcool || dados.etilismo) {
       riscoMof *= 1.35;
       riscoHip *= 1.50;
       fatores.push("Ingestão de álcool >= 3 doses/dia");
@@ -308,6 +314,18 @@ var SaudeIdosoService = class SaudeIdosoService {
     if (typeof dados.dmoColoFemurTScore === 'number') {
       tScore = dados.dmoColoFemurTScore;
       dmoDisponivel = true;
+    } else if (typeof dados.tScoreColoFemur === 'number') {
+      tScore = dados.tScoreColoFemur;
+      dmoDisponivel = true;
+    } else if (typeof dados.tScore === 'number') {
+      tScore = dados.tScore;
+      dmoDisponivel = true;
+    }
+
+    if (dmoDisponivel) {
+      if (tScore < -4.0) {
+        alertas.push("T-score extremamente reduzido (< -4.0): Risco crítico de fratura iminente.");
+      }
       // Gradiente de risco por desvio padrão abaixo do adulto jovem
       // Cada -1 SD aumenta MOF em ~1.5x e Quadril em ~2.2x
       const gradMof = Math.pow(1.50, -tScore);
@@ -370,7 +388,9 @@ var SaudeIdosoService = class SaudeIdosoService {
     }
 
     return {
-      idade,
+      idade: idade,
+      idade_informada: idadeInformada,
+      idade_utilizada: idade,
       sexo: ehMasculino ? "Masculino" : "Feminino",
       imc: parseFloat(imc.toFixed(1)),
       t_score: tScore,
@@ -850,7 +870,9 @@ var SaudeIdosoService = class SaudeIdosoService {
       cenario.farmacos.lista = mFarm[1].split(/[,;e]/).map(s => s.trim()).filter(s => s.length > 2);
     }
 
-    return this.gerarResumoAga(cenario);
+    const resultado = this.gerarResumoAga(cenario);
+    resultado._cenario = cenario;
+    return resultado;
   }
 
   // ===========================================================================
@@ -870,6 +892,15 @@ var SaudeIdosoService = class SaudeIdosoService {
       risco_fratura_maior_pct: raw.risco_fratura_maior_10a_pct,
       risco_fratura_quadril_pct: raw.risco_fratura_quadril_10a_pct,
       necessidade_dmo: raw.indicacao_solicitar_dmo,
+      fatores_risco: {
+        fratura_previa: Boolean(params.fraturaPrevia),
+        pais_fratura_quadril: Boolean(params.paisFraturaQuadril),
+        tabagismo: Boolean(params.tabagismo),
+        corticoide_cronico: Boolean(params.glicocorticoide || params.corticoide),
+        artrite_reumatoide: Boolean(params.artriteReumatoide || params.ar),
+        osteoporose_secundaria: Boolean(params.osteoporoseSecundaria),
+        etilismo: Boolean(params.alcool || params.etilismo)
+      },
       conduta: raw.justificativa_conduta,
       conduta_beira_leito: [
         "Incentivar ingestão adequada de cálcio (meta 1.000 a 1.200 mg/dia, preferencialmente pela dieta).",
@@ -888,8 +919,8 @@ var SaudeIdosoService = class SaudeIdosoService {
   }
 
   static interpretarTextoLivreFrax(texto) {
-    var cenario = this.interpretarTextoLivre(texto);
-    var paramFrax = cenario.frax || {};
+    var res = this.interpretarTextoLivre(texto);
+    var paramFrax = (res._cenario && res._cenario.frax) ? res._cenario.frax : (res.frax || {});
     if (!paramFrax.idade) {
       var mId = texto.match(/(\d{2})\s*(?:anos|a\b)/i);
       paramFrax.idade = mId ? parseInt(mId[1], 10) : 65;
@@ -899,21 +930,35 @@ var SaudeIdosoService = class SaudeIdosoService {
 
   static avaliarOsteoporose(params) {
     params = params || {};
-    var raw = this.avaliarManejoOsteoporose(params);
     var tScore = typeof params.tScore === 'number' ? params.tScore : (typeof params.dmoColoFemurTScore === 'number' ? params.dmoColoFemurTScore : null);
+    if (tScore !== null && tScore <= -2.5) {
+      params.altoRisco = true;
+    }
+    if (params.fraturaPrevia) {
+      params.altoRisco = true;
+    }
+    var raw = this.avaliarManejoOsteoporose(params);
     var classDiag = "Normal (T-score >= -1.0)";
     if (params.fraturaPrevia) {
-      classDiag = "Osteoporose Clínica (Fratura por Fragilidade Prévia)";
+      classDiag = (tScore !== null && tScore <= -2.5) ? "Osteoporose Grave (Estabelecida)" : "Osteoporose Clínica (Fratura por Fragilidade Prévia)";
     } else if (tScore !== null) {
-      if (tScore <= -2.5) classDiag = "Osteoporose Densitométrica (T-score <= -2.5)";
-      else if (tScore < -1.0) classDiag = "Osteopenia Densitométrica (-1.0 > T-score > -2.5)";
+      if (tScore <= -2.5) classDiag = "Osteoporose";
+      else if (tScore < -1.0) classDiag = "Osteopenia";
     }
 
     var esquema = "Medidas não farmacológicas e suporte nutricional de cálcio e vitamina D.";
-    if (raw.bisfosfonato && raw.bisfosfonato.medicamento) {
+    if (raw.bloqueios_seguranca && raw.bloqueios_seguranca.length > 0) {
+      if (typeof params.clcr === 'number' && params.clcr < 35) {
+        esquema = "DENOSUMABE 60 mg SC semestral (Droga de escolha em ClCr < 35 mL/min — não depurado pelos rins).";
+      } else if (typeof params.calcioSerico === 'number' && params.calcioSerico < 8.5) {
+        esquema = "AGUARDAR: Corrigir hipocalcemia sérica antes do início de qualquer antirreabsortivo.";
+      } else if (params.doencaEsofagica || params.incapazManterOrtostase) {
+        esquema = "ÁCIDO ZOLEDRÔNICO 5 mg IV anual em infusão lenta (ou Denosumabe SC).";
+      } else {
+        esquema = "⚠️ Terapia antirreabsortiva oral bloqueada por critérios de segurança clínica.";
+      }
+    } else if (raw.bisfosfonato && raw.bisfosfonato.medicamento) {
       esquema = raw.bisfosfonato.medicamento + " - " + raw.bisfosfonato.posologia;
-    } else if (raw.bloqueios_seguranca && raw.bloqueios_seguranca.length > 0) {
-      esquema = "⚠️ Terapia antirreabsortiva oral bloqueada por critérios de segurança clínica.";
     }
 
     var protoCalcio = [];
@@ -968,8 +1013,9 @@ var SaudeIdosoService = class SaudeIdosoService {
   }
 
   static interpretarTextoLivreOsteoporose(texto) {
-    var cenario = this.interpretarTextoLivre(texto);
-    var param = cenario.osteoporose || {};
+    var res = this.interpretarTextoLivre(texto);
+    var cenario = res._cenario || {};
+    var param = Object.assign({}, cenario.osteoporose || {});
     if (cenario.frax && cenario.frax.dmoColoFemurTScore !== undefined) {
       param.tScore = cenario.frax.dmoColoFemurTScore;
     }
@@ -978,6 +1024,9 @@ var SaudeIdosoService = class SaudeIdosoService {
       param.altoRisco = true;
     }
     if (param.tScore !== undefined && param.tScore <= -2.5) {
+      param.altoRisco = true;
+    }
+    if (res.frax_brasil && res.frax_brasil.classificacao_risco === 'Alto Risco') {
       param.altoRisco = true;
     }
     return this.avaliarOsteoporose(param);

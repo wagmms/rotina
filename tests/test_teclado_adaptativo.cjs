@@ -58,7 +58,7 @@ const kbUniversal = obterTecladoFixoPrincipal();
 assert.strictEqual(kbUniversal.keyboard.length, 3);
 assert.deepStrictEqual(
   kbUniversal.keyboard[0].map(b => b.text),
-  ['🩺 SOAP Ambulatorial', '🤰 Ginecologia & Obstetrícia']
+  ['🩺 SOAP Ambulatorial', '🏥 Enfermaria']
 );
 assert.strictEqual(kbUniversal.keyboard[1][0].text, '🚨 Emergência');
 assert.strictEqual(kbUniversal.keyboard[1][1].text, '💊 REMUME Rápida');

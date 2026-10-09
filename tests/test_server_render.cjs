@@ -576,6 +576,49 @@ async function run() {
   assert.equal(oftalmoTextoBody.resultado.resultado.tipoCaso, 'QUEIMADURA_QUIMICA');
   console.log('✓ Cockpit Oftalmologia via texto livre (alias) OK');
 
+  // 6.20 Cockpit RPC - Geriatria Avançada & FRAX Brasil
+  const resFrax = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitGeriatriaFrax',
+      session: token,
+      args: [{
+        idade: 68,
+        sexo: 'F',
+        peso: 56,
+        altura: 154,
+        fraturaPrevia: true
+      }]
+    }
+  });
+  assert.equal(resFrax.statusCode, 200, "Erro ao testar cockpitGeriatriaFrax");
+  const fraxBody = JSON.parse(resFrax.payload);
+  assert.equal(fraxBody.ok, true);
+  assert.equal(fraxBody.resultado.indicacao_tratamento_farmacologico, true);
+  assert.equal(fraxBody.resultado.classificacao_risco, 'Alto Risco');
+  console.log('✓ Cockpit Geriatria FRAX Brasil (ABRASSO / SBGG) OK');
+
+  // 6.21 Cockpit RPC - Geriatria Osteoporose & Bloqueio Renal
+  const resOsteo = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitGeriatriaOsteoporose',
+      session: token,
+      args: [{
+        altoRisco: true,
+        clcr: 25,
+        calcioDietaMg: 450
+      }]
+    }
+  });
+  assert.equal(resOsteo.statusCode, 200, "Erro ao testar cockpitGeriatriaOsteoporose");
+  const osteoBody = JSON.parse(resOsteo.payload);
+  assert.equal(osteoBody.ok, true);
+  assert.ok(osteoBody.resultado.bloqueios_seguranca.some(b => b.includes('ClCr 25')));
+  console.log('✓ Cockpit Geriatria Osteoporose (Bloqueio ClCr < 35) OK');
+
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);
   const jsonManifest = JSON.parse(resManifest.body);

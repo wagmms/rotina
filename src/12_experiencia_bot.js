@@ -338,7 +338,8 @@ function enviarHubPrincipal(chat, messageId) {
   var botoes = [
     [['🩺 Ambulatório (SOAP)', 'ux:hub:soap'], ['🏥 Enfermaria', 'ux:hub:enf']],
     [['🚨 Emergência', 'ux:hub:sala'], ['💊 Prescrever', 'ux:hub:rx']],
-    [['📐 Calculadoras', 'ux:hub:calc'], { text: '📱 Cockpit Móvel', web_app: { url: urlApp } }]
+    [['📐 Calculadoras', 'ux:hub:calc'], ['📋 Passagem SBAR', 'ux:hub:sbar']],
+    [['📅 Rotina & Estudo', 'ux:hub:rotina'], { text: '📱 Cockpit Móvel', web_app: { url: urlApp } }]
   ];
 
   return enviarTelaBot(chat, texto, botoesBot(botoes), messageId);

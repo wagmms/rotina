@@ -62,7 +62,18 @@ console.log('  ✓ CFS, Mini-Cog, TUG e Beers 100% validados.');
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('\n[2] Testando Calculadora FRAX (Brasil)...');
 
-// 2.1 Mulher 65 anos, IMC 25, sem fatores de risco e sem DMO
+// 2.1 Mulher 50 anos (baixo risco) e 65 anos (risco intermediário sem DMO)
+const fraxJovemFem = SaudeIdosoService.calcularFrax({
+  idade: 50,
+  sexo: 'F',
+  peso: 60,
+  altura: 155
+});
+assert(fraxJovemFem.risco_fratura_maior_pct > 0);
+assert(fraxJovemFem.risco_fratura_quadril_pct > 0);
+assert.equal(fraxJovemFem.categoria_risco, 'BAIXO RISCO');
+assert.equal(fraxJovemFem.indicacao_tratamento_farmacologico, false);
+
 const fraxBasico = SaudeIdosoService.calcularFrax({
   idade: 65,
   sexo: 'F',
@@ -71,7 +82,8 @@ const fraxBasico = SaudeIdosoService.calcularFrax({
 });
 assert(fraxBasico.risco_fratura_maior_pct > 0);
 assert(fraxBasico.risco_fratura_quadril_pct > 0);
-assert.equal(fraxBasico.categoria_risco, 'BAIXO RISCO');
+assert.equal(fraxBasico.categoria_risco, 'RISCO INTERMEDIÁRIO');
+assert.equal(fraxBasico.necessidade_dmo, true);
 assert.equal(fraxBasico.indicacao_tratamento_farmacologico, false);
 
 // 2.2 Mulher 68 anos, alto risco clínico e DMO T-score -2.6

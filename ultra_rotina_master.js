@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 09:52:58
- * Checksum SHA256: c3bc7afdb30bd96d
+ * Gerado automaticamente via build_master.py em: 2026-10-09 10:03:01
+ * Checksum SHA256: 135c335b12d89f9e
  * ==============================================================================
  */
 
@@ -4493,7 +4493,9 @@ var CalculadorasClinicas = (function () {
 
       var recomendacoes = [];
       if (gt(peso, 150)) {
-        recomendacoes.push('⚠️ PACIENTE COM OBESIDADE GRAVE (> 150 kg): Fentanil, Propofol e Midazolam devem ser dosados pelo Peso Ideal (IBW). Rocurônio pelo Peso Ideal ou Ajustado (máx 150 mg). Succinilcolina pode ser calculada pelo peso real (máx 200 mg).');
+        recomendacoes.push('⚠️ PACIENTE COM OBESIDADE GRAVE (> 150 kg): Fentanil, Propofol e Midazolam devem ser dosados pelo Peso Ideal (IBW). Rocurônio pelo Peso Ideal ou Ajustado (máx 150 mg). Succinilcolina pode ser calculada pelo peso real (máx 200 mg), prevenindo colapso hemodinâmico e bloqueio neuromuscular prolongado.');
+      } else if (gt(peso, 100)) {
+        recomendacoes.push('⚠️ PACIENTE COM OBESIDADE (≥ 100 kg): Atenção estrita à farmacocinética! Fentanil, Propofol, Etomidato e Midazolam devem ser dosados pelo Peso Ideal (IBW). Rocurônio pelo Peso Ideal ou Ajustado (máx 150 mg). Apenas Succinilcolina deve ser dosada pelo Peso Real (teto máximo de 200 mg).');
       }
       if (ctxChave === 'choque') {
         recomendacoes.push('🏆 Sedativo: Etomidato ou Quetamina (estabilidade cardiovascular).');
@@ -46737,7 +46739,8 @@ function enviarHubPrincipal(chat, messageId) {
   var botoes = [
     [['🩺 Ambulatório (SOAP)', 'ux:hub:soap'], ['🏥 Enfermaria', 'ux:hub:enf']],
     [['🚨 Emergência', 'ux:hub:sala'], ['💊 Prescrever', 'ux:hub:rx']],
-    [['📐 Calculadoras', 'ux:hub:calc'], { text: '📱 Cockpit Móvel', web_app: { url: urlApp } }]
+    [['📐 Calculadoras', 'ux:hub:calc'], ['📋 Passagem SBAR', 'ux:hub:sbar']],
+    [['📅 Rotina & Estudo', 'ux:hub:rotina'], { text: '📱 Cockpit Móvel', web_app: { url: urlApp } }]
   ];
 
   return enviarTelaBot(chat, texto, botoesBot(botoes), messageId);
