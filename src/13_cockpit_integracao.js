@@ -1180,3 +1180,12 @@ function cockpitToxicologiaEmergencia(initData, params) {
   }
   throw new Error('Ação inválida para Toxicologia de Emergência.');
 }
+
+function cockpitHepatologiaHda(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof HepatologiaHdaService === 'undefined') {
+    throw new Error('HepatologiaHdaService não carregado.');
+  }
+  return HepatologiaHdaService.avaliarHepatopatia(params.parametros || params);
+}
