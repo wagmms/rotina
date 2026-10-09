@@ -261,12 +261,12 @@ function enviarMenuGinecologiaObstetricia(chat, messageId) {
 /* ========== Cenário 1: 🚨 Emergência & Sala Vermelha ========== */
 
 function enviarMenuSalaVermelha(chat, messageId) {
-  return enviarTelaBot(chat, '🚨 *EMERGÊNCIA & SALA VERMELHA*\nCondutas imediatas e suporte intensivo:', botoesBot([
+  return enviarTelaBot(chat, '🚨 *EMERGÊNCIA & SALA VERMELHA*\n\nCondutas imediatas e suporte intensivo:', botoesBot([
     [['🫀 PCR (ACLS)', 'ux:conduta:pcr'], ['🫁 SRI / IOT', 'ux:srimenu']],
     [['💉 Noradrenalina', 'ux:droga:nora'], ['💉 Dobutamina', 'ux:droga:dobuta']],
-    [['💉 Outras DVA', 'ux:dvamenu'], ['🩸 Gasometria', 'ux:iniciar:gaso']],
-    [['⚡ Choque & Hipotensão', 'ux:emerg:choque'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
-    [['⚡ Outras Emergências', 'ux:condutamenu']],
+    [['💉 Vasopressina', 'ux:fixa:vaso'], ['💉 Outras DVA', 'ux:dvamenu']],
+    [['🩸 Gasometria', 'ux:iniciar:gaso'], ['⚡ Choque & Hipotensão', 'ux:emerg:choque']],
+    [['🧠 Escala de Glasgow', 'ux:emerg:glasgow'], ['⚡ Outras Emergências', 'ux:condutamenu']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
@@ -332,12 +332,13 @@ function enviarMenuEnfermaria(chat, messageId) {
   var texto = '🛏️ *ENFERMARIA & PRESCRIÇÃO RÁPIDA*\n\n' +
     'Gestão diária de pacientes internados, função renal e prescrições:\n\n' +
     '• *Leitos:* Painel de bordo e status clínico (verde/amarelo/vermelho)\n' +
-    '• *Função Renal:* Clearance de Creatinina e ajuste posológico\n' +
-    '• *Suporte:* Hidratação venosa (Holliday-Segar) e kits de sintomáticos';
+    '• *Função Renal:* Clearance de Creatinina e ajuste posológico de antimicrobianos\n' +
+    '• *Suporte:* Hidratação venosa (Holliday-Segar) e kits de sintomáticos hospitalares';
   var botoes = botoesBot([
-    [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:hub:sbar']],
+    [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:enf:sbar']],
     [['🧪 Clearance (Cockcroft)', 'ux:enf:clcr'], ['💊 Ajuste Renal ATB', 'ux:enf:ajuste']],
     [['💧 Hidratação / Holliday', 'ux:enf:hidratacao'], ['📋 Prescrição Hospitalar', 'ux:enf:rxh']],
+    [['💊 Sintomáticos / SOS', 'ux:enf:sintomaticos']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -541,24 +542,40 @@ function tratarEntradaUX(message) {
   }
 
   // Atalhos Rápidos do Teclado Principal (1-Toque)
-  if (text === '🩺 SOAP Ambulatorial') {
-    processarMensagemTexto({ chat: { id: chat }, text: '/ambulatorio' });
+  if (text === '🚨 Sala Vermelha' || text === '🚨 Emergência') {
+    if (typeof enviarMenuSalaVermelha === "function") {
+      enviarMenuSalaVermelha(chat);
+    }
+    return true;
+  }
+  if (text === '🛏️ Enfermaria' || text === '🏥 Enfermaria') {
+    if (typeof enviarMenuEnfermaria === "function") {
+      enviarMenuEnfermaria(chat);
+    }
+    return true;
+  }
+  if (text === '🩺 Ambulatório' || text === '🩺 SOAP Ambulatorial') {
+    if (typeof enviarMenuAmbulatorio === "function") {
+      enviarMenuAmbulatorio(chat);
+    }
+    return true;
+  }
+  if (text === '💊 Consultas de Bolso' || text === '💊 REMUME Rápida' || text === '💊 Prescrever') {
+    if (typeof enviarMenuConsultasBolso === "function") {
+      enviarMenuConsultasBolso(chat);
+    }
+    return true;
+  }
+  if (text === '⚙️ Central / Menu' || text === '⚙️ Menu / Ajuda') {
+    if (typeof enviarHubPrincipal === "function") {
+      enviarHubPrincipal(chat);
+    }
     return true;
   }
   if (text === '🤰 Ginecologia & Obstetrícia') {
     if (typeof enviarMenuGinecologiaObstetricia === "function") {
       enviarMenuGinecologiaObstetricia(chat);
     }
-    return true;
-  }
-  if (text === '🚨 Emergência') {
-    if (typeof enviarMenuSalaVermelha === "function") {
-      enviarMenuSalaVermelha(chat);
-    }
-    return true;
-  }
-  if (text === '💊 REMUME Rápida') {
-    iniciarModoBot(chat, 'rx', false);
     return true;
   }
 
@@ -734,7 +751,11 @@ function tratarCallbackUX(cb) {
       if (v === 'sala') {
         enviarMenuSalaVermelha(chat, msgId);
       } else if (v === 'enf') {
-        enviarPainelEnfermaria(chat, 0, msgId);
+        enviarMenuEnfermaria(chat, msgId);
+      } else if (v === 'amb') {
+        enviarMenuAmbulatorio(chat, msgId);
+      } else if (v === 'bolso') {
+        enviarMenuConsultasBolso(chat, msgId);
       } else if (v === 'rx') {
         iniciarModoBot(chat, 'rx', false, msgId);
       } else if (v === 'calc') {
@@ -748,6 +769,39 @@ function tratarCallbackUX(cb) {
       } else if (v === 'manual') {
         texto('/manual');
       }
+    } else if (op === 'enf') {
+      if (v === 'clcr') texto('/crcl');
+      else if (v === 'ajuste') texto('/ajuste');
+      else if (v === 'hidratacao') texto('/holliday');
+      else if (v === 'rxh') texto('/rxh');
+      else if (v === 'sbar') texto('/passagem');
+      else if (v === 'sintomaticos') texto('/rx sintomaticos dor febre nausea');
+      else enviarMenuEnfermaria(chat, msgId);
+    } else if (op === 'amb') {
+      if (v === 'soap') iniciarModoBot(chat, 'soap', true, msgId);
+      else if (v === 'remume') texto('/rx');
+      else if (v === 'cid') texto('/cid');
+      else if (v === 'atestado') texto('/atestado');
+      else enviarMenuAmbulatorio(chat, msgId);
+    } else if (op === 'bolso') {
+      if (v === 'atb') texto('/atb');
+      else if (v === 'ped') texto('/ped');
+      else if (v === 'gestacao') texto('/prenatal');
+      else if (v === 'interacao') texto('/interacao');
+      else if (v === 'hsl') {
+        var msgHsl = "💉 *DILUIÇÃO & PREPARO RÁPIDO (GUIA HSL)*\n\n" +
+          "Para consultar a diluição, tempo de infusão, via e estabilidade de qualquer fármaco injetável:\n\n" +
+          "💡 *Envie por texto:* `como diluir ceftriaxona` ou `preparo noradrenalina` ou `/dose ceftriaxona`";
+        if (typeof enviarMensagemComTecladoParaChat === "function" && typeof obterBotoesNavegacaoPadrao === "function") {
+          enviarMensagemComTecladoParaChat(chat, msgHsl, obterBotoesNavegacaoPadrao());
+        } else {
+          enviarMensagemParaChat(chat, msgHsl);
+        }
+      } else enviarMenuConsultasBolso(chat, msgId);
+    } else if (op === 'emerg') {
+      if (v === 'choque') texto('/choque');
+      else if (v === 'glasgow') texto('/glasgow');
+      else enviarMenuSalaVermelha(chat, msgId);
     } else if (op === 'novo') {
       iniciarModoBot(chat, v, true, msgId);
     } else if (op === 'iniciar') {
@@ -946,7 +1000,11 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarPainelEnfermaria: enviarPainelEnfermaria,
     confirmarAltaBot: confirmarAltaBot,
     uxTextoProntuario: uxTextoProntuario,
-    uxLinhaCopiar: uxLinhaCopiar,
+    enviarHubPrincipal: enviarHubPrincipal,
+    enviarMenuAmbulatorio: enviarMenuAmbulatorio,
+    enviarMenuConsultasBolso: enviarMenuConsultasBolso,
+    enviarMenuEnfermaria: enviarMenuEnfermaria,
+    enviarMenuGinecologiaObstetricia: enviarMenuGinecologiaObstetricia,
     tratarEntradaUX: tratarEntradaUX,
     tratarCallbackUX: tratarCallbackUX
   };

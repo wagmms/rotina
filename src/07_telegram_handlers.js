@@ -4,6 +4,259 @@
  * ==============================================================================
  */
 
+/**
+ * Roteamento Inteligente de Entrada Rápida, Termos Coloquiais do Plantão e Siglas Clínicas.
+ * Permite que o interno e médico generalista acessem decisões clínicas imediatas sem barra (/).
+ */
+function tentarRoteamentoColoquialPlantao(texto, chatId) {
+  var tLimpo = (texto || "").trim();
+  var tLow = tLimpo.toLowerCase();
+  if (!tLow) return false;
+
+  var kbNav = typeof obterBotoesNavegacaoPadrao === "function" ? obterBotoesNavegacaoPadrao() : null;
+
+  // 1. Termos Farmacológicos Coloquiais Beira-Leito
+
+  // A. Amoxicilina / Amoxi (com ou sem peso/criança)
+  if (/^amoxi(?:cilina)?(?:\s+.*)?$/i.test(tLow)) {
+    var matchPesoAmoxi = tLow.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i) || tLow.match(/crian[çc]a\s+(\d+(?:[.,]\d+)?)/i);
+    if (matchPesoAmoxi) {
+      var pesoAmoxi = parseFloat(matchPesoAmoxi[1].replace(",", "."));
+      var dose50 = Math.round(pesoAmoxi * 50);
+      var dose90 = Math.round(pesoAmoxi * 90);
+      var doseToma50 = Math.round(dose50 / 3);
+      var mlToma50 = (doseToma50 / 50).toFixed(1); // suspensão 250mg/5mL = 50mg/mL
+      var txtAmoxiPed = "💊 *AMOXICILINA PEDIÁTRICA (" + pesoAmoxi + " kg)*\n\n" +
+        "🔴 *Dose Padrão (50 mg/kg/dia):* " + dose50 + " mg/dia dividido 8/8h\n" +
+        "• *Por tomada:* ~" + doseToma50 + " mg (ou *" + mlToma50 + " mL* da suspensão 250mg/5mL 8/8h por 7 a 10 dias)\n\n" +
+        "🟡 *Dose OMA Alto Risco / PAC (90 mg/kg/dia):* " + dose90 + " mg/dia dividido 12/12h\n" +
+        "• *Por tomada:* ~" + Math.round(dose90 / 2) + " mg (ou *" + ((dose90 / 2) / 80).toFixed(1) + " mL* da suspensão 400mg/5mL 12/12h)\n\n" +
+        "⚠️ *Segurança:* Teto pediátrico máximo: 1.500 mg a 2.000 mg/dia. Alergia prévia a beta-lactâmicos contraindica.";
+      if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+        enviarMensagemComTecladoParaChat(chatId, txtAmoxiPed, kbNav);
+      } else {
+        enviarMensagemParaChat(chatId, txtAmoxiPed);
+      }
+      return true;
+    } else {
+      var txtAmoxi = "💊 *AMOXICILINA (REMUME / GUIA RÁPIDO)*\n\n" +
+        "🔴 *Adulto (Faringite / Sinusite / ITU em gestante):*\n" +
+        "• *Posologia 1ª Linha:* 500 mg VO de 8/8h por 7 a 10 dias\n" +
+        "• *Esquema Alternativo:* 875 mg VO de 12/12h por 7 a 10 dias\n\n" +
+        "🟡 *Pediatria:* 50 mg/kg/dia divididos de 8/8h (ou 90 mg/kg/dia em OMA/pneumonia grave).\n" +
+        "💡 *Exemplo com cálculo:* `amoxi 15kg` ou `amoxi crianca 20kg`\n\n" +
+        "⚠️ *Ajuste Renal:* ClCr 10-30 mL/min: estender para 12/12h; ClCr < 10: 24/24h.";
+      if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+        enviarMensagemComTecladoParaChat(chatId, txtAmoxi, kbNav);
+      } else {
+        enviarMensagemParaChat(chatId, txtAmoxi);
+      }
+      return true;
+    }
+  }
+
+  // B. Noradrenalina / Nora
+  if (/^(?:noradrena(?:lina)?|nora)(?:\s+.*)?$/i.test(tLow)) {
+    var matchPesoNora = tLow.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*(?:kg)?\b/i);
+    if (!matchPesoNora || !matchPesoNora[1] || isNaN(parseFloat(matchPesoNora[1].replace(",", "."))) || parseFloat(matchPesoNora[1].replace(",", ".")) < 10) {
+      if (typeof enviarTelaPesoDva === "function") {
+        enviarTelaPesoDva(chatId, "nora");
+        return true;
+      }
+      enviarMensagemParaChat(chatId, "💉 *NORADRENALINA*\n\nInforme o peso do paciente para cálculo imediato de vazão:\n💡 *Exemplo:* `nora 70` ou `/dva nora 70`");
+      return true;
+    }
+    var pesoNora = parseFloat(matchPesoNora[1].replace(",", "."));
+    var solNora = /concentrad[ao]|dobrad[ao]|2x/i.test(tLow) ? "concentrada" : "padrao";
+    try {
+      var resNora = CalculadorasClinicas.drogasVasoativas("noradrenalina", pesoNora, solNora);
+      if (resNora && resNora.textoFormatado) {
+        var kbNora = resNora.botoes ? (resNora.botoes.inline_keyboard ? resNora.botoes : { inline_keyboard: resNora.botoes }) : kbNav;
+        if (kbNora && typeof enviarMensagemComTecladoParaChat === "function") {
+          enviarMensagemComTecladoParaChat(chatId, resNora.textoFormatado, kbNora);
+        } else {
+          enviarMensagemParaChat(chatId, resNora.textoFormatado);
+        }
+        return true;
+      }
+    } catch (eNora) {}
+  }
+
+  // C. Dobutamina / Dobuta
+  if (/^(?:dobuta(?:mina)?)(?:\s+.*)?$/i.test(tLow)) {
+    var matchPesoDobuta = tLow.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*(?:kg)?\b/i);
+    if (!matchPesoDobuta || !matchPesoDobuta[1] || isNaN(parseFloat(matchPesoDobuta[1].replace(",", "."))) || parseFloat(matchPesoDobuta[1].replace(",", ".")) < 10) {
+      if (typeof enviarTelaPesoDva === "function") {
+        enviarTelaPesoDva(chatId, "dobuta");
+        return true;
+      }
+      enviarMensagemParaChat(chatId, "💉 *DOBUTAMINA*\n\nInforme o peso para o cálculo de vazão:\n💡 *Exemplo:* `dobuta 70` ou `/dva dobuta 70`");
+      return true;
+    }
+    var pesoDobuta = parseFloat(matchPesoDobuta[1].replace(",", "."));
+    try {
+      var resDobuta = CalculadorasClinicas.drogasVasoativas("dobutamina", pesoDobuta, "padrao");
+      if (resDobuta && resDobuta.textoFormatado) {
+        var kbDobuta = resDobuta.botoes ? (resDobuta.botoes.inline_keyboard ? resDobuta.botoes : { inline_keyboard: resDobuta.botoes }) : kbNav;
+        if (kbDobuta && typeof enviarMensagemComTecladoParaChat === "function") {
+          enviarMensagemComTecladoParaChat(chatId, resDobuta.textoFormatado, kbDobuta);
+        } else {
+          enviarMensagemParaChat(chatId, resDobuta.textoFormatado);
+        }
+        return true;
+      }
+    } catch (eDob) {}
+  }
+
+  // D. Vasopressina / Vaso
+  if (/^(?:vasopressina|vaso)$/i.test(tLow)) {
+    try {
+      var resVaso = CalculadorasClinicas.drogasVasoativas("vasopressina", null, "padrao");
+      if (resVaso && resVaso.textoFormatado) {
+        if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+          enviarMensagemComTecladoParaChat(chatId, resVaso.textoFormatado, kbNav);
+        } else {
+          enviarMensagemParaChat(chatId, resVaso.textoFormatado);
+        }
+        return true;
+      }
+    } catch (eVaso) {}
+  }
+
+  // E. Dipirona (peso, gotas ou adulto)
+  if (/^dipirona(?:\s+.*)?$/i.test(tLow)) {
+    var matchPesoDip = tLow.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*(?:kg)?\b/i);
+    if (matchPesoDip && matchPesoDip[1]) {
+      var pesoDip = parseFloat(matchPesoDip[1].replace(",", "."));
+      var gotasDip = Math.min(40, Math.round(pesoDip * 1));
+      var mgDip = Math.min(1000, Math.round(pesoDip * 20));
+      var txtDipPed = "💊 *DIPIRONA PEDIÁTRICA (" + pesoDip + " kg)*\n\n" +
+        "🔴 *Dose por tomada (20-25 mg/kg/dose):* ~" + mgDip + " mg até 6/6h (se febre/dor)\n" +
+        "• *Gotas (500 mg/mL):* *" + gotasDip + " gotas* VO até 6/6h (1 gota/kg, máx 40 gotas)\n" +
+        "• *Solução Oral (50 mg/mL):* *" + (mgDip / 50).toFixed(1) + " mL* VO até 6/6h\n\n" +
+        "⚠️ *Segurança:* Intervalo mínimo de 6 horas. Teto máximo por tomada: 1.000 mg (40 gotas).";
+      if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+        enviarMensagemComTecladoParaChat(chatId, txtDipPed, kbNav);
+      } else {
+        enviarMensagemParaChat(chatId, txtDipPed);
+      }
+      return true;
+    } else {
+      var txtDip = "💊 *DIPIRONA SÓDICA (REMUME)*\n\n" +
+        "🔴 *Adulto:* 500 mg a 1.000 mg (1g) VO ou IV lento até 6/6h se dor ou febre (teto 4g/dia)\n" +
+        "🟡 *Pediatria:* 20 a 25 mg/kg/dose até 6/6h (Gotas 500 mg/mL: 1 gota por kg de peso, máximo 40 gotas)\n\n" +
+        "💡 *Cálculo por peso:* Envie `dipirona 16kg` ou `dipirona peso 12`";
+      if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+        enviarMensagemComTecladoParaChat(chatId, txtDip, kbNav);
+      } else {
+        enviarMensagemParaChat(chatId, txtDip);
+      }
+      return true;
+    }
+  }
+
+  // 2. Siglas e Escores Clínicos
+
+  // F. Clearance de Creatinina / ClCr / CrCl
+  if (/^(?:clcr|crcl|clearance)(?:\s+.*)?$/i.test(tLow)) {
+    var paramsCrCl = tLimpo.replace(/^(?:clcr|crcl|clearance)\s*/i, "").trim();
+    if (paramsCrCl && /\d+/.test(paramsCrCl)) {
+      return processarMensagemTexto({ chat: { id: chatId }, text: "/crcl " + paramsCrCl });
+    }
+    var msgGuiaCrCl = "🧪 *CLEARANCE DE CREATININA (COCKCROFT-GAULT)*\n\n" +
+      "Envie os parâmetros para cálculo determinístico imediato:\n\n" +
+      "💡 *Formato:* `clcr <idade> <pesoKg> <creatinina> [fem]`\n" +
+      "• *Exemplo Masculino:* `clcr 68 72 1.4`\n" +
+      "• *Exemplo Feminino:* `clcr 74 62 1.8 fem`";
+    if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+      enviarMensagemComTecladoParaChat(chatId, msgGuiaCrCl, kbNav);
+    } else {
+      enviarMensagemParaChat(chatId, msgGuiaCrCl);
+    }
+    return true;
+  }
+
+  // G. SOFA & qSOFA (Triagem e Bundle de Sepse)
+  if (/^(?:sofa|qsofa|sepse\s+triagem)$/i.test(tLow)) {
+    var txtSofa = "⚡ *ESTRATIFICAÇÃO DE SEPSE: qSOFA & SOFA*\n\n" +
+      "🔴 *qSOFA (Beira-Leito — ≥ 2 pontos = Alto Risco de Mortalidade):*\n" +
+      "• Frequência Respiratória ≥ 22 irpm (1 ponto)\n" +
+      "• Pressão Arterial Sistólica ≤ 100 mmHg (1 ponto)\n" +
+      "• Alteração do Nível de Consciência / Glasgow < 15 (1 ponto)\n\n" +
+      "⏱️ *BUNDLE DE 1 HORA DA SEPSE (SURVIVING SEPSIS 2026):*\n" +
+      "1. Coletar Lactato sérico (repetir se > 2 mmol/L)\n" +
+      "2. Hemoculturas antes do antimicrobiano (não atrasar > 45 min)\n" +
+      "3. Iniciar Antibiótico de amplo espectro na 1ª hora\n" +
+      "4. Ressuscitação com Cristaloide 30 mL/kg se hipotenso ou lactato ≥ 4\n" +
+      "5. Noradrenalina precoce se PAM < 65 mmHg pós-expansão inicial";
+    if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+      enviarMensagemComTecladoParaChat(chatId, txtSofa, kbNav);
+    } else {
+      enviarMensagemParaChat(chatId, txtSofa);
+    }
+    return true;
+  }
+
+  // H. HAS Descompensada / Crise Hipertensiva
+  if (/^(?:has\s+descompensada|crise\s+hipertensiva|urgencia\s+hipertensiva|emergencia\s+hipertensiva)$/i.test(tLow)) {
+    var txtHas = "🚨 *MANEJO BEIRA-LEITO: CRISE HIPERTENSIVA (PA ≥ 180×120 mmHg)*\n\n" +
+      "🟡 *1. Urgência Hipertensiva (SEM Lesão Aguda de Órgão-Alvo):*\n" +
+      "• *Alvo:* Redução lenta e gradual em 24 a 48h. NÃO baixar abruptamente!\n" +
+      "• *Conduta:* Repouso 30 min + Captopril 25 mg VO (ou Clonidina 0.100 mg VO).\n" +
+      "• *Destino:* Observação ambulatorial, alta com ajuste de anti-hipertensivos orais.\n\n" +
+      "🔴 *2. Emergência Hipertensiva (COM Lesão Aguda de Órgão-Alvo):*\n" +
+      "• *Alvo:* Reduzir PA em 20-25% na 1ª hora na Sala Vermelha / UTI.\n" +
+      "• *Conduta Parenteral Contínua:* Nitroprussiato de Sódio ou Nitroglicerina IV em bomba.\n" +
+      "• *Exceções Críticas:* Dissecção de Aorta (PAS < 120 e FC < 60 em 20 min com Esmolol/Nitroprussiato); AVC Isquêmico (só tratar se PA > 220x120 ou > 185x110 para trombólise).";
+    if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+      enviarMensagemComTecladoParaChat(chatId, txtHas, kbNav);
+    } else {
+      enviarMensagemParaChat(chatId, txtHas);
+    }
+    return true;
+  }
+
+  // I. DPP / DUM
+  if (/^(?:dpp|dum)(?:\s+.*)?$/i.test(tLow)) {
+    var matchData = tLimpo.match(/\b(\d{1,2}[\/\.]\d{1,2}(?:[\/\.]\d{2,4})?)\b/);
+    if (matchData && matchData[1]) {
+      return processarMensagemTexto({ chat: { id: chatId }, text: "/prenatal DUM " + matchData[1] });
+    }
+    var msgGuiaDpp = "🤰 *DATA PROVÁVEL DO PARTO (DPP) & IDADE GESTACIONAL*\n\n" +
+      "Envie a Data da Última Menstruação (DUM):\n\n" +
+      "💡 *Exemplo:* `dpp 15/05/2026` ou `dum 10/02/2026` ou `/prenatal DUM 15/05/2026`";
+    if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+      enviarMensagemComTecladoParaChat(chatId, msgGuiaDpp, kbNav);
+    } else {
+      enviarMensagemParaChat(chatId, msgGuiaDpp);
+    }
+    return true;
+  }
+
+  // J. Escala de Coma de Glasgow
+  if (/^glasgow(?:\s+.*)?$/i.test(tLow)) {
+    var matchNumGcs = tLow.match(/\b([3-9]|1[0-5])\b/);
+    if (matchNumGcs) {
+      var scoreGcs = parseInt(matchNumGcs[1], 10);
+      var estrGcs = scoreGcs <= 8 ? "🔴 *TCE GRAVE (Glasgow ≤ 8):* Perda de reflexos protetores de via aérea. Indicação formal de Sequência Rápida de Intubação (SRI / IOT) imediata!" : (scoreGcs <= 12 ? "🟡 *TCE Moderado (Glasgow 9-12):* Vigilância neurológica estrita e TC de crânio." : "🟢 *TCE Leve (Glasgow 13-15):* Observação clínica.");
+      var txtGcsNum = "🧠 *ESCALA DE GLASGOW: " + scoreGcs + " PONTOS*\n\n" + estrGcs;
+      if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+        enviarMensagemComTecladoParaChat(chatId, txtGcsNum, kbNav);
+      } else {
+        enviarMensagemParaChat(chatId, txtGcsNum);
+      }
+      return true;
+    }
+  }
+
+  // K. PCR / ACLS
+  if (/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)$/i.test(tLow)) {
+    return processarMensagemTexto({ chat: { id: chatId }, text: "/conduta PCR" });
+  }
+
+  return false;
+}
+
 function processarMensagemTexto(message) {
   if (typeof tratarEntradaUX!=="undefined" && tratarEntradaUX(message)) return;
   var texto = message.text ? message.text.trim() : "";
@@ -12,26 +265,69 @@ function processarMensagemTexto(message) {
   if (!texto) return;
 
   try {
-    var comando = textoLow.split(/\s/)[0];
-  var contextoCache = CacheService.getScriptCache();
-  var contextoKey = "ctx_" + chatId;
+    // 0A. Roteamento Inteligente de Termos Coloquiais e Siglas do Plantão
+    if (tentarRoteamentoColoquialPlantao(texto, chatId)) return;
 
-  // Gerenciamento de Memória (Contexto Clínico)
-  if (comando === "/cancelar" || comando === "/novo" || texto === "🩺 Novo SOAP" || texto === "🧹 Novo Paciente" || texto === "🧹 Novo") {
-    if (typeof limparEstadoBot === "function") {
-      try { limparEstadoBot(chatId); } catch (eLimp) {}
-    } else {
-      contextoCache.remove(contextoKey);
-      contextoCache.remove("modo_" + chatId);
-      contextoCache.remove("leito_" + chatId);
-      contextoCache.remove("dvaw_" + chatId);
-      contextoCache.remove("pending_" + chatId);
+    // 0B. Dicionário de Correção de Erros de Digitação Comuns (Typos)
+    var mapaTypos = {
+      "clearence": "/crcl", "clerance": "/crcl", "clerence": "/crcl",
+      "gasometria": "/gaso", "gasoarterial": "/gaso",
+      "intubacao": "/sri", "intubação": "/sri", "entubacao": "/sri", "entubação": "/sri",
+      "amoxilina": "amoxi", "amoxil": "amoxi",
+      "receita": "/rx", "prescricao": "/rx", "prescrição": "/rx",
+      "adrenalina": "/dva", "noradrenalina": "/dva nora", "dobutamina": "/dva dobuta",
+      "eap": "/conduta EAP hipertensivo", "parada": "/conduta PCR"
+    };
+    var primPalavra = textoLow.split(/\s+/)[0].replace(/^\//, "");
+    if (mapaTypos[primPalavra]) {
+      var cmdCorrigido = mapaTypos[primPalavra];
+      if (cmdCorrigido.charAt(0) === "/") {
+        var restoTxt = texto.split(/\s+/).slice(1).join(" ");
+        return processarMensagemTexto({ chat: message.chat, text: cmdCorrigido + (restoTxt ? " " + restoTxt : "") });
+      }
     }
-    if (typeof cancelarAcoesPendentes === "function") {
-      try { cancelarAcoesPendentes(chatId); } catch (eCanc) {}
+
+    // 0C. Normalização de Comandos Canônicos digitados sem barra (/)
+    if (texto.charAt(0) !== "/") {
+      if (/(?:choque\s+s[eé]ptico(?:\s+refrat[aá]rio)?|\bcirci\b)/i.test(texto)) {
+        return processarMensagemTexto({ chat: message.chat, text: "/choqueseptico " + texto });
+      }
+      var comandosSemBarra = [
+        "menu", "ajuda", "help", "manual", "start", "novo", "cancelar", "cockpit", "app",
+        "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot",
+        "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
+        "prenatal", "parto", "ginecologia", "oftalmo", "vertigem", "epistaxe", "colica",
+        "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
+        "swansea", "colestase", "monoartrite", "febrereumatica", "pancreatite", "neutropenia",
+        "diabetes", "nutricao", "anemia", "transfusao", "intox", "pca", "sca",
+        "avc", "hic", "kdigo", "dhe", "acidobase", "interacao", "cid", "atestado", "hub"
+      ];
+      if (comandosSemBarra.indexOf(primPalavra) !== -1) {
+        texto = "/" + texto;
+        textoLow = texto.toLowerCase();
+      }
     }
-    return enviarMensagemComTecladoFixo(chatId, "🧹 *Memória limpa.* Pronto para o próximo paciente!");
-  }
+
+    var comando = textoLow.split(/\s/)[0];
+    var contextoCache = CacheService.getScriptCache();
+    var contextoKey = "ctx_" + chatId;
+
+    // Gerenciamento de Memória (Contexto Clínico)
+    if (comando === "/cancelar" || comando === "/novo" || texto === "🩺 Novo SOAP" || texto === "🧹 Novo Paciente" || texto === "🧹 Novo" || texto === "🧹 Limpar Paciente" || texto === "🧹 Limpar Memória") {
+      if (typeof limparEstadoBot === "function") {
+        try { limparEstadoBot(chatId); } catch (eLimp) {}
+      } else {
+        contextoCache.remove(contextoKey);
+        contextoCache.remove("modo_" + chatId);
+        contextoCache.remove("leito_" + chatId);
+        contextoCache.remove("dvaw_" + chatId);
+        contextoCache.remove("pending_" + chatId);
+      }
+      if (typeof cancelarAcoesPendentes === "function") {
+        try { cancelarAcoesPendentes(chatId); } catch (eCanc) {}
+      }
+      return enviarMensagemComTecladoFixo(chatId, "🧹 *Memória limpa.* Pronto para o próximo paciente!");
+    }
 
   if (comando === "/manual") {
     var filtroManual = texto.replace(/^\/manual\s*/i, "").trim();
@@ -87,7 +383,10 @@ function processarMensagemTexto(message) {
     }
   }
 
-  if (texto === "🚨 Sala Vermelha") {
+  if (texto === "🚨 Sala Vermelha" || texto === "🚨 Emergência" || comando === "/sala" || comando === "/emergencia") {
+    if (typeof enviarMenuSalaVermelha === "function") {
+      return enviarMenuSalaVermelha(chatId);
+    }
     var txtSR = "🚨 *SALA VERMELHA & CTI (EMERGÊNCIAS CLÍNICAS)*\n\n" +
       "Escolha uma ação imediata ou digite o comando:\n\n" +
       "💉 *Drogas Vasoativas (DVA):*\n" +
@@ -103,11 +402,10 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, txtSR);
   }
 
-  if (texto === "💊 Prescrever") {
-    return enviarMensagemParaChat(chatId, "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME)*\n\nEnvie o pedido ou diagnóstico:\n💡 *Ex:* `/rx amigdalite bacteriana criança 18kg, alérgica a penicilina` ou apenas descreva o caso.");
-  }
-
-  if (texto === "🏥 Enfermaria") {
+  if (texto === "🛏️ Enfermaria" || texto === "🏥 Enfermaria" || comando === "/enfermaria") {
+    if (typeof enviarMenuEnfermaria === "function") {
+      return enviarMenuEnfermaria(chatId);
+    }
     var urlPainelEnf = obterUrlCockpit(chatId);
     var kbEnf = {
       "inline_keyboard": [
@@ -121,6 +419,20 @@ function processarMensagemTexto(message) {
       ]
     };
     return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), kbEnf);
+  }
+
+  if (texto === "🩺 Ambulatório" || texto === "🩺 SOAP Ambulatorial") {
+    if (typeof enviarMenuAmbulatorio === "function") {
+      return enviarMenuAmbulatorio(chatId);
+    }
+    return processarMensagemTexto({ chat: { id: chatId }, text: "/ambulatorio" });
+  }
+
+  if (texto === "💊 Consultas de Bolso" || texto === "💊 Prescrever" || texto === "💊 REMUME Rápida") {
+    if (typeof enviarMenuConsultasBolso === "function") {
+      return enviarMenuConsultasBolso(chatId);
+    }
+    return enviarMensagemParaChat(chatId, "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME)*\n\nEnvie o pedido ou diagnóstico:\n💡 *Ex:* `/rx amigdalite bacteriana criança 18kg, alérgica a penicilina` ou apenas descreva o caso.");
   }
 
   if (texto === "📅 Agenda") {
@@ -148,7 +460,7 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, "🧠 *DÚVIDA MÉDICA (MEDQUEST)*\n\nDigite sua dúvida para arquivar no bloco de estudo noturno:\n💡 *Ex:* `/duvida Indicações de drenagem torácica no empiema`");
   }
 
-  if (texto === "⚙️ Menu / Ajuda" || comando === "/teclado" || comando === "/menu") {
+  if (texto === "⚙️ Central / Menu" || texto === "⚙️ Menu / Ajuda" || comando === "/teclado" || comando === "/menu" || comando === "/hub") {
     if (typeof registrarComandosNativosTelegram === "function") {
       try { registrarComandosNativosTelegram(); } catch (eCmd) {}
     }
@@ -2576,19 +2888,29 @@ function processarMensagemTexto(message) {
         "▶️ `/clearance 45a, 80kg, cr 3.5, mulher, enoxaparina e metformina`");
     }
 
-    var mIdade = dadosCrcl.match(/(\d+)\s*(a|anos?|ano)/i) || dadosCrcl.match(/idade\s*(\d+)/i) || dadosCrcl.match(/^(\d+)[,\s]/);
-    var mPeso = dadosCrcl.match(/(\d+(?:\.\d+)?)\s*(kg|kilos?)/i) || dadosCrcl.match(/peso\s*(\d+(?:\.\d+)?)/i);
+    var mIdade = dadosCrcl.match(/(\d+)\s*(?:a|anos?|ano)\b/i) || dadosCrcl.match(/idade\s*[:=]?\s*(\d+)/i) || dadosCrcl.match(/^(\d+)[,\s]/);
+    var mPeso = dadosCrcl.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|kilos?)\b/i) || dadosCrcl.match(/peso\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
     var mCr = dadosCrcl.match(/cr(?:eatinina)?\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
     var mSexo = dadosCrcl.match(/\b(masculino|feminino|mulher|homem|masc|fem|m|f)\b/i);
 
-    if (!mIdade || !mPeso || !mCr || !mSexo) {
-      return enviarMensagemParaChat(chatId, "❌ Falta informação! Preciso de *Idade*, *Peso*, *Creatinina* e *Sexo*.\nEx: `/crcl 60 anos, 70 kg, cr 1.2, M`");
+    var idadeCrcl = mIdade ? parseInt(mIdade[1], 10) : null;
+    var pesoCrcl = mPeso ? parseFloat(mPeso[1].replace(',', '.')) : null;
+    var cr = mCr ? parseFloat(mCr[1].replace(',', '.')) : null;
+    var sexoCrcl = (mSexo && (mSexo[1].toLowerCase().startsWith('f') || mSexo[1].toLowerCase() === 'mulher')) ? 'F' : 'M';
+
+    // Suporte posicional rápido: ex: 68 70 1.4 ou 68 70 1.4 fem
+    if (idadeCrcl === null || pesoCrcl === null || cr === null) {
+      var numsCrcl = dadosCrcl.match(/\d+(?:[.,]\d+)?/g);
+      if (numsCrcl && numsCrcl.length >= 3) {
+        idadeCrcl = parseInt(numsCrcl[0], 10);
+        pesoCrcl = parseFloat(numsCrcl[1].replace(',', '.'));
+        cr = parseFloat(numsCrcl[2].replace(',', '.'));
+      }
     }
 
-    var idadeCrcl = parseInt(mIdade[1], 10);
-    var pesoCrcl = parseFloat(mPeso[1]);
-    var cr = parseFloat(mCr[1].replace(',', '.'));
-    var sexoCrcl = (mSexo[1].toLowerCase().startsWith('f') || mSexo[1].toLowerCase() === 'mulher') ? 'F' : 'M';
+    if (idadeCrcl === null || pesoCrcl === null || cr === null) {
+      return enviarMensagemParaChat(chatId, "❌ Falta informação! Preciso de *Idade*, *Peso* e *Creatinina*.\nEx: `/crcl 68 70 1.4` ou `/crcl 60 anos, 70 kg, cr 1.2, M`");
+    }
     
     // Extrai medicamentos se houver "medicações:" ou "medicamentos:" ou "meds:"
     var medText = dadosCrcl.split(/(?:medicamentos|medicações|meds|rx|prescrição)[:=]?\s*/i);

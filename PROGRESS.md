@@ -425,19 +425,33 @@
 > 2. **Verificar todas as funções disponíveis e retirar todas aquelas que não fazem sentido para um aluno de internato ou médico generalista**.
 > 3. **Fazer auditoria de todo o conteúdo médico existente (com o modelo PRO)**.
 
-55. [ ] **UI/UX & Acessibilidade do Bot — Redesenho Ergonômico de Menus, Teclados e Navegação Beira-Leito no Telegram**:
+55. [x] **UI/UX & Acessibilidade do Bot — Redesenho Ergonômico de Menus, Teclados e Navegação Beira-Leito no Telegram**:
     - **Reestruturação da Arquitetura de Informação**:
-      * Reorganizar o fluxo principal (`/start`, `/menu`, `/ajuda`) e inline keyboards em 4 cenários clínicos imediatos com acesso em no máximo 1 ou 2 toques:
-        1. 🚨 **Emergência & Sala Vermelha**: PCR, DVA (Noradrenalina, Dobutamina, Vasopressina), Intubação em Sequência Rápida (SRI), Choque e Glasgow.
-        2. 🛏️ **Enfermaria & Prescrição Rápida**: Clearance de Creatinina (Cockcroft-Gault), Ajuste Renal, Hidratação Venosa, Passagem de Plantão SBAR e Kits de Sintomáticos.
+      * Reorganização do fluxo principal (`/start`, `/menu`, `/ajuda`) e inline keyboards em 4 cenários clínicos imediatos com acesso em no máximo 1 ou 2 toques:
+        1. 🚨 **Emergência & Sala Vermelha**: PCR (ACLS), DVA (Noradrenalina, Dobutamina, Vasopressina), Intubação em Sequência Rápida (SRI), Choque e Glasgow.
+        2. 🛏️ **Enfermaria & Prescrição Rápida**: Leitos, Clearance de Creatinina (Cockcroft-Gault), Ajuste Renal, Hidratação Venosa (Holliday-Segar), Passagem de Plantão SBAR e Kits de Sintomáticos.
         3. 🩺 **Ambulatório & Atenção Primária (UBS)**: Gerador SOAP Ágil, CID-10/CIAP-2, Prescrição REMUME em texto limpo e Atestado Médico CFM.
         4. 💊 **Consultas Rápidas de Bolso**: Antibióticos empíricos de 1ª linha por foco, Doses Pediátricas por kg (com tetos seguros) e Validador de Drogas na Gestação/Lactação.
+      * Implementação completa dos callbacks UX no motor `tratarCallbackUX` para navegação fluida em todos os submenus e opções clínicas dos 4 cenários (`ux:hub:*`, `ux:emerg:*`, `ux:enf:*`, `ux:amb:*`, `ux:bolso:*`).
     - **Teclado Adaptativo e Usabilidade Mobile**:
-      * Teclado inline e reply keyboard limpo, configurado com `is_persistent: false` para não ocupar a área de digitação da tela em smartphones (iOS e Android).
-      * Botões de retorno padronizados ("🔙 Voltar ao Menu", "🏠 Início") em todas as respostas de comandos secundários para evitar que o médico fique preso em submenus.
+      * Teclado inline e reply keyboard limpo (`obterTecladoFixoPrincipal`), configurado com `is_persistent: false` e `resize_keyboard: true` para não ocupar a área de digitação da tela em smartphones (iOS e Android).
+      * Botões de retorno padronizados ("🔙 Voltar ao Menu", "🏠 Início") criados via helper `obterBotoesNavegacaoPadrao()` em respostas e submenus para evitar que o médico fique preso.
     - **Inteligência de Entrada e Tolerância a Linguagem Natural Rápida**:
-      * Compreensão de termos coloquiais do plantão e siglas comuns sem necessidade estrita de barra `/` ou comandos longos (ex.: "amoxi", "noradrena", "dipirona peso", "clcr", "sofa", "has descompensada", "dpp").
-      * Tratamento gracioso de erros de digitação e mensagens de ajuda contextuais que sugerem o comando correto imediatamente.
+      * Implementado motor determinístico `tentarRoteamentoColoquialPlantao` com compreensão imediata de termos coloquiais do plantão e siglas sem barra:
+        - `amoxi` / `amoxicilina`: dose pediátrica por kg (50 e 90 mg/kg/dia) com tetos seguros ou posologia de adulto.
+        - `nora` / `noradrena`: cálculo de vazão em mL/h por peso ou seletor rápido.
+        - `dobuta` / `dobutamina`: cálculo por peso determinístico em mL/h.
+        - `vaso` / `vasopressina`: vazão fixa de 12 mL/h.
+        - `dipirona`: cálculo pediátrico em gotas (1 gota/kg, máx 40 gotas) e posologia adulto.
+        - `clcr` / `crcl` / `clearance`: cálculo de Cockcroft-Gault direto por peso/idade/creat ou guia explicativo com botões.
+        - `sofa` / `qsofa`: critérios rápidos e Bundle de 1 hora da Sepse.
+        - `has descompensada` / `crise hipertensiva`: conduta de urgência vs emergência hipertensiva beira-leito.
+        - `dpp` / `dum`: cálculo Naegele com data ou guia.
+        - `glasgow`: estratificação de TCE e alerta de IOT/SRI se Glasgow ≤ 8.
+        - `pcr` / `acls`: algoritmo de reanimação cardiopulmonar imediato.
+      * Normalização transparente de comandos canônicos digitados sem barra (`sri 70 choque`, `gaso ...`, `menu`, etc.).
+      * Tratamento gracioso de erros de digitação (typos comuns como `clearence`, `gasometria`, `intubacao`, `amoxilina`, `receita`).
+      * Criação da suíte dedicada `tests/test_ui_ux_acessibilidade_telegram.cjs` e integração no pipeline `npm test` com 100% de aprovação.
 
 56. [ ] **UI/UX & Formatação Visual de Respostas — Respostas Escaneáveis em 3 Segundos e Cópia com 1 Toque para PEP**:
     - **Hierarquia Visual Escaneável Beira-Leito**:

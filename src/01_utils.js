@@ -389,26 +389,42 @@ function obterUrlCockpit(chatId) {
 /**
  * Retorna a estrutura do teclado fixo principal (ReplyKeyboardMarkup)
  * Projetado para navegação rápida de 1 toque no celular em ambiente hospitalar e rotina.
+ * Configurado com is_persistent: false para ergonomia mobile perfeita.
  */
 function obterTecladoFixoPrincipal(chatId) {
   var urlApp = obterUrlCockpit(chatId);
   return {
     keyboard: [
       [
-        { text: '🩺 SOAP Ambulatorial' },
-        { text: '🏥 Enfermaria' }
+        { text: '🚨 Sala Vermelha' },
+        { text: '🛏️ Enfermaria' }
       ],
       [
-        { text: '🚨 Emergência' },
-        { text: '💊 REMUME Rápida' }
+        { text: '🩺 Ambulatório' },
+        { text: '💊 Consultas de Bolso' }
       ],
       [
         { text: '📱 Cockpit Mini App', web_app: { url: urlApp } },
-        { text: '🧹 Limpar Paciente' }
+        { text: '⚙️ Central / Menu' }
       ]
     ],
     resize_keyboard: true,
     is_persistent: false
+  };
+}
+
+/**
+ * Retorna botões inline de navegação padronizados ("Voltar ao Menu" e "Início")
+ * para evitar que o médico fique preso em telas secundárias.
+ */
+function obterBotoesNavegacaoPadrao() {
+  return {
+    inline_keyboard: [
+      [
+        { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]
+    ]
   };
 }
 
