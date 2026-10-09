@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 14:44:20
- * Checksum SHA256: 2113a69ced776b68
+ * Gerado automaticamente via build_master.py em: 2026-10-09 14:58:55
+ * Checksum SHA256: 56b57cb522e0fdc8
  * ==============================================================================
  */
 
@@ -1304,7 +1304,8 @@ var AuditoriaInfusaoUtiService = (function () {
         'Alvo primário: PAM ≥ 65 mmHg (ou 65-70 mmHg no choque séptico).',
         'Dose > 0,25 mcg/kg/min: Iniciar Vasopressina 0,03 UI/min imediatamente e avaliar Hidrocortisona 200 mg/dia (SSC 2021 / ILAS).',
         'Dose > 1,00 mcg/kg/min: Isquemia periférica grave, necrose de extremidades e hipoperfusão esplâncnica.',
-        'Dose > 2,00 mcg/kg/min: Risco de dose letal ou erro de ordem de grandeza (10x).'
+        'Dose > 2,00 mcg/kg/min: Risco de dose letal ou erro de ordem de grandeza (10x).',
+        '⚠️ CONDUTA EXCLUSIVA DE UTI TERCIÁRIA: Choque refratário a vasopressores em dose elevada exige leito de CTI imediato. Protocolos experimentais ou de resgate terciário (Azul de Metileno, ECMO venoarterial) são exclusivos de centros terciários intensivos e não devem ser manejados fora de CTI.'
       ]
     },
 
@@ -17073,10 +17074,10 @@ var MecanicaPulmonarSdraService = (function() {
         }
 
         if (relacaoPF < 150 && peep >= 10) { 
-            condutas.push("INDICAÇÃO OPORTUNA: Posição Prona precoce (16h/dia) para P/F < 150 com PEEP >= 10.");
-            condutas.push("INDICAÇÃO OPORTUNA: Bloqueio Neuromuscular (ex: Cisatracúrio) nas primeiras 48h.");
+            condutas.push("CONDUTA BEIRA-LEITO (PS / ENFERMARIA): Manter ventilação protetora (Vt 4-6 mL/kg PBW, Pplat <= 30, ΔP <= 15) e solicitar IMEDIATAMENTE VAGA ZERO / TRANSFERÊNCIA URGENTE PARA CTI/UTI.");
+            condutas.push("⚠️ CONDUTA EXCLUSIVA DE UTI TERCIÁRIA: Posição Prona precoce (16h/dia) e Bloqueio Neuromuscular Contínuo (ex: Cisatracúrio) exigem ambiente de CTI com equipe treinada e monitorização intensiva contínua. Contraindicado em enfermaria clínica geral.");
         } else if (relacaoPF < 150 && peep < 10 && peep >= 5) {
-            condutas.push("CONSIDERAR: Aumentar PEEP e avaliar indicação de Prona se P/F mantiver < 150.");
+            condutas.push("CONSIDERAR: Titular PEEP para >= 10 cmH2O, manter ventilação protetora e acionar leito de CTI se mantiver P/F < 150.");
         }
 
         return {
@@ -28528,7 +28529,12 @@ var SedacaoOpioidesService = (function() {
         else if (score <= -3) meta = "Sedação profunda (indicação: bloqueador neuromuscular, hipertensão intracraniana ou estado de mal epiléptico)";
         else if (score > 0) meta = "Agitação (necessita analgesia, sedação de resgate ou contenção)";
 
-        return { score: score, nivel: nivel, meta: meta };
+        var alertaUti = null;
+        if (score <= -3) {
+            alertaUti = "⚠️ CONDUTA EXCLUSIVA DE UTI TERCIÁRIA: Sedação profunda (RASS <= -3) associada a bloqueio neuromuscular contínuo ou controle de HIC é restrita a ambiente de CTI/UTI. Contraindicada a manutenção em enfermaria geral. Acionar leito intensivo imediatamente.";
+        }
+
+        return { score: score, nivel: nivel, meta: meta, alertaUti: alertaUti };
     }
 
     // --- CAM-ICU (Avaliação de Delirium) ---
@@ -41505,7 +41511,7 @@ function processarMensagemTexto(message) {
         "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
         "swansea", "colestase", "monoartrite", "febrereumatica", "pancreatite", "neutropenia",
         "diabetes", "nutricao", "anemia", "transfusao", "intox", "pca", "sca",
-        "avc", "hic", "kdigo", "dhe", "acidobase", "interacao", "cid", "atestado", "hub"
+        "avc", "hic", "kdigo", "dhe", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia"
       ];
       if (comandosSemBarra.indexOf(primPalavra) !== -1) {
         texto = "/" + texto;
@@ -41588,7 +41594,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  if (texto === "🚨 Sala Vermelha" || texto === "🚨 Emergência" || comando === "/sala" || comando === "/emergencia") {
+  if (texto === "🚨 Sala Vermelha" || texto === "🚨 Emergência" || comando === "/sala" || comando === "/emergencia" || comando === "/salavermelha" || comando === "/urgencia") {
     if (typeof enviarMenuSalaVermelha === "function") {
       return enviarMenuSalaVermelha(chatId);
     }
@@ -42652,7 +42658,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  if (comando === "/emergencia" || comando === "/breaktheglass") {
+  if (comando === "/breaktheglass") {
     var justificativa = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof RbacPerfisClinicosService === "undefined") {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
@@ -42661,9 +42667,9 @@ function processarMensagemTexto(message) {
     if (!justificativa) {
       return enviarMensagemParaChat(chatId, "🚨 *PROTOCOLO BREAK-THE-GLASS (BYPASS DE EMERGÊNCIA)*\n\n" +
         "Permite relaxar temporariamente travas hierárquicas em emergências clínicas graves (ex: PCR, choque refratário, intubação rápida).\n\n" +
-        "• Para ATIVAR: `/emergencia <motivo clínico detalhado>`\n" +
-        "  Ex: `/emergencia Paciente em PCR no leito 4, necessidade imediata de adrenalina e suporte invasivo`\n\n" +
-        "• Para DESATIVAR: `/emergencia off`");
+        "• Para ATIVAR: `/breaktheglass <motivo clínico detalhado>`\n" +
+        "  Ex: `/breaktheglass Paciente em PCR no leito 4, necessidade imediata de adrenalina e suporte invasivo`\n\n" +
+        "• Para DESATIVAR: `/breaktheglass off`");
     }
 
     if (justificativa.toLowerCase() === "off" || justificativa.toLowerCase() === "desativar") {
@@ -42678,7 +42684,7 @@ function processarMensagemTexto(message) {
         "• **Motivo Registrado:** " + resAtiv.justificativa + "\n" +
         "• **Duração do Bypass:** " + resAtiv.duracaoHoras + " hora(s)\n\n" +
         resAtiv.avisoSeguranca + "\n\n" +
-        "Ao finalizar a assistência de emergência, desative enviando: `/emergencia off`";
+        "Ao finalizar a assistência de emergência, desative enviando: `/breaktheglass off`";
       return enviarMensagemParaChat(chatId, msgEmerg);
     } catch (eEmerg) {
       return enviarMensagemParaChat(chatId, "⚠️ *ERRO AO ATIVAR BREAK-THE-GLASS:*\n" + eEmerg.message);
@@ -42686,11 +42692,7 @@ function processarMensagemTexto(message) {
   }
 
   if (comando === "/auditar_rbac" || comando === "/relatorio_rbac") {
-    if (typeof RbacPerfisClinicosService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
-    }
-    var rel = RbacPerfisClinicosService.gerarRelatorioSegurancaRbac();
-    return enviarMensagemParaChat(chatId, "```\n" + rel.relatorioFormatado + "\n```");
+    return enviarMensagemParaChat(chatId, "ℹ️ *FUNÇÃO ADMINISTRATIVA DESATIVADA*\n\nEste relatório burocrático de governança hospitalar foi desativado no perfil assistencial do interno e médico generalista.\n\nPara consultar seu perfil ativo e permissões clínicas beira-leito, use `/perfil`.");
   }
 
   // ───────────────────────────────────────────────────────────────────────────

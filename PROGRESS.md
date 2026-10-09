@@ -470,18 +470,24 @@
       * "⚠️ Ver Interações" (`ux:interacao:caso:`): análise farmacológica instantânea de interações e segurança clínica do caso/prescrição em cache.
       * Criação da suíte dedicada `tests/test_ui_ux_formatacao_respostas_pep.cjs` e integração no pipeline `npm test` com 100% de sucesso.
 
-57. [ ] **Saneamento do Escopo Clínico — Inventário Completo e Expurgo de Funções Fora do Perfil de Internato e Generalista**:
+57. [x] **Saneamento do Escopo Clínico — Inventário Completo e Expurgo de Funções Fora do Perfil de Internato e Generalista**:
     - **Inventário Exaustivo de Funções Instaladas**:
-      * Mapeamento de todos os 238 comandos Telegram e rotas Fastify RPC presentes em `src/07_telegram_handlers.js`, `src/13_cockpit_integracao.js` e submódulos `src/02_*.js`.
+      * Mapeamento completo e documentado em `docs/INVENTARIO_CLINICO_GERAL.md` de todos os 256 comandos Telegram tratados, catálogo canônico de 97 comandos do `/ajuda`, 133 rotas Fastify RPC em `src/13_cockpit_integracao.js` e 59 submódulos clínicos determinísticos (`src/02_*.js` e `src/03_*.js`).
     - **Critérios Rigorosos de Expurgo (Filtro Interno & Médico Generalista)**:
-      * ❌ **Expurgar/Desativar Ferramentas Cirúrgicas Terciárias**: Procedimentos invasivos de alta complexidade ou pós-operatórios que pertencem exclusivamente a especialistas cirúrgicos (ex.: manejo pós-operatório avançado de transplantes com dosagem fina de imunossupressores específicos, reconstruções pós-bariátricas complexas).
-      * ❌ **Expurgar Ferramentas Administrativas ou de Gestão Terciária**: Ferramentas como auditoria de faturamento hospitalar/DRG, codificação de custos ou rotinas burocráticas que não agregam valor ao médico assistencial na ponta.
-      * ❌ **Expurgar Condutas Exclusivas de UTI Terciária**: Drogas experimentais ou condutas de terapia intensiva avançada que um médico generalista ou interno em enfermaria/PS não deve conduzir isoladamente (ex.: vasoplegia refratária com protocolos terciários, ECMO, sedação profunda prolongada com bloqueio neuromuscular contínuo sem via aérea cirúrgica).
-      * ❌ **Eliminar Redundâncias e Comandos Conflitantes**: Consolidar comandos duplicados e unificar aliases que geram poluição ou atraso na busca do bot.
-    - **Reforço e Consolidação dos Pilares Essenciais**:
-      * Porta de Emergência / Sala Vermelha (estabilização inicial e condutas das primeiras horas).
-      * Enfermaria Clínica Geral (evoluções diárias, hidratação, controle de comorbidades e antibióticos hospitalares básicos).
-      * Atenção Primária / UBS (consultas ambulatoriais, puericultura, rastreio de pré-natal de baixo risco, HAS/DM e prescrição REMUME).
+      * ❌ **Desativação de Ferramentas Administrativas ou Burocráticas**:
+        - Desativados comandos burocráticos de governança hospitalar `/auditar_rbac` e `/relatorio_rbac` com resposta limpa e amigável orientando o uso de `/perfil`.
+        - Desvinculação do comando `/emergencia` do bypass administrativo de RBAC, restaurando-o como Central de Sala Vermelha & Emergências com botões imediatos de DVA, SRI, PCR/ACLS, EAP, Choque Séptico e Gasometria; o bypass de permissões permanece isolado exclusivamente em `/breaktheglass`.
+        - Expurgadas rotinas burocráticas de auditoria de prontuário em lote do `/kaizen`, mantendo o foco estrito em segurança de prescrição farmacológica (ISMP).
+      * ❌ **Salvaguardas e Alertas Sentinela de Condutas Exclusivas de UTI Terciária**:
+        - `src/02_mecanica_pulmonar_sdra.js`: em SDRA moderada a grave (P/F < 150), inserido alerta explícito de conduta beira-leito (ventilação mecânica protetora Vt 4-6 mL/kg PBW, Pplat ≤ 30, ΔP ≤ 15) com solicitação imediata de Vaga Zero / Transferência Urgente para UTI/CTI, alertando expressamente que Posição Prona prolongada e Bloqueio Neuromuscular Contínuo (Cisatracúrio) são condutas exclusivas de UTI Terciária contraindicadas em enfermaria geral.
+        - `src/02_sedacao_opioides.js`: em sedação profunda (RASS ≤ -3 / -4), inserido alerta sentinela de conduta exclusiva de UTI/CTI com TOT e contraindicação em enfermaria geral.
+        - `src/02_auditoria_infusao_uti.js`: inserido alerta sentinela de conduta exclusiva de UTI terciária para choque vasoplégico refratário a altas doses de catecolaminas, advertindo que terapias de resgate terciário (Azul de Metileno, ECMO venoarterial) pertencem estritamente a centros terciários de CTI.
+    - **Reforço e Consolidação dos Três Pilares Essenciais**:
+      * Porta de Emergência / Sala Vermelha (estabilização inicial, choque séptico/CIRCI, DVA, SRI, PCR, IAM/SCA, AVC, HIC, gasometria e PALS).
+      * Enfermaria Clínica Geral (evoluções SBAR, censo de leitos, passagem de plantão, hidratação de manutenção, antimicrobianos, ajuste renal por ClCr, distúrbios hidroeletrolíticos e geriatria AGA).
+      * Atenção Primária / UBS (consultas ambulatoriais SOAP, pré-natal de baixo risco, puericultura, rastreio preventivo INCA, HAS/DM e prescrição REMUME).
+    - **Suíte de Testes Automatizada Dedicada**:
+      * Criado `tests/test_saneamento_escopo_clinico.cjs` validando desvinculação de `/emergencia`, isolamento de `/breaktheglass`, desativação amigável de `/auditar_rbac`, alertas sentinela de UTI em SDRA, Sedação e DVA, e integridade do inventário clínico estruturado. Integrado ao pipeline `npm test` com 100% de sucesso.
 
 58. [ ] **Auditoria Médica Integral com Modelo PRO — Calculadoras Clínicas, Doses Pediátricas e Tetos de Segurança**:
     - **Auditoria de Precisão com Modelo PRO**:
@@ -523,6 +529,18 @@
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Saneamento do Escopo Clínico, Inventário Geral e Expurgo de Funções Terciárias/Administrativas**:
+   - Criação do documento canônico `docs/INVENTARIO_CLINICO_GERAL.md` mapeando todos os 256 comandos Telegram tratados, o catálogo canônico de 97 comandos do `/ajuda`, 133 rotas Fastify RPC e 59 submódulos clínicos determinísticos (`src/02_*.js` e `src/03_*.js`).
+   - Consolidação dos três pilares fundamentais do médico generalista e interno: Porta de Emergência / Sala Vermelha, Enfermaria Clínica Geral e Atenção Primária / UBS.
+   - Desativação dos comandos burocráticos `/auditar_rbac` e `/relatorio_rbac` com resposta amigável orientando o uso de `/perfil`.
+   - Desvinculação definitiva do comando `/emergencia` do protocolo break-the-glass do RBAC, restaurando-o como Central de Sala Vermelha com atalhos e botões rápidos para DVA, SRI, PCR, EAP, Choque Séptico e Gasometria; o bypass administrativo permanece isolado em `/breaktheglass`.
+   - Expurgo de rotinas de auditoria em lote do `/kaizen`, mantendo o foco exclusivo em segurança de prescrição farmacológica (ISMP).
+   - Inserção de salvaguardas e alertas sentinela de condutas exclusivas de UTI Terciária com solicitação obrigatória de Vaga Zero / CTI:
+     * SDRA moderada a grave (P/F < 150): ventilação mecânica protetora beira-leito (Vt 4-6 mL/kg PBW, Pplat ≤ 30, ΔP ≤ 15) e alerta formal de que Pronação prolongada e Bloqueio Neuromuscular Contínuo (Cisatracúrio) são condutas exclusivas de UTI Terciária contraindicadas em enfermaria geral.
+     * Sedação Profunda (RASS ≤ -3 / -4): alerta sentinela de que sedação profunda com bloqueador neuromuscular é restrita a ambiente de UTI/CTI com via aérea protegida.
+     * DVA / Infusões: alerta de vasoplegia refratária para choque refratário a altas doses, esclarecendo que terapias de resgate terciário (Azul de Metileno, ECMO venoarterial) pertencem estritamente a centros terciários de terapia intensiva.
+   - Criação da suíte dedicada `tests/test_saneamento_escopo_clinico.cjs` integrada ao pipeline `npm test` com 100% de sucesso.
+
 - [x] (2026-10-09) **Saneamento e Redução Estrita de Comandos Slash para Médico Generalista**:
    - Expurgo de 37 comandos redundantes, terciários ou de especialista, reduzindo o catálogo de 134 para 97 comandos canônicos essenciais:
      * **Cat 1 (Núcleo)**: Removidos `/start` e `/cockpit` (redundantes com botões do teclado) e `/fila` e `/pedido` (sem utilidade para a prática clínica).

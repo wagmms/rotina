@@ -300,7 +300,7 @@ function processarMensagemTexto(message) {
         "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
         "swansea", "colestase", "monoartrite", "febrereumatica", "pancreatite", "neutropenia",
         "diabetes", "nutricao", "anemia", "transfusao", "intox", "pca", "sca",
-        "avc", "hic", "kdigo", "dhe", "acidobase", "interacao", "cid", "atestado", "hub"
+        "avc", "hic", "kdigo", "dhe", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia"
       ];
       if (comandosSemBarra.indexOf(primPalavra) !== -1) {
         texto = "/" + texto;
@@ -383,7 +383,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  if (texto === "🚨 Sala Vermelha" || texto === "🚨 Emergência" || comando === "/sala" || comando === "/emergencia") {
+  if (texto === "🚨 Sala Vermelha" || texto === "🚨 Emergência" || comando === "/sala" || comando === "/emergencia" || comando === "/salavermelha" || comando === "/urgencia") {
     if (typeof enviarMenuSalaVermelha === "function") {
       return enviarMenuSalaVermelha(chatId);
     }
@@ -1447,7 +1447,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  if (comando === "/emergencia" || comando === "/breaktheglass") {
+  if (comando === "/breaktheglass") {
     var justificativa = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof RbacPerfisClinicosService === "undefined") {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
@@ -1456,9 +1456,9 @@ function processarMensagemTexto(message) {
     if (!justificativa) {
       return enviarMensagemParaChat(chatId, "🚨 *PROTOCOLO BREAK-THE-GLASS (BYPASS DE EMERGÊNCIA)*\n\n" +
         "Permite relaxar temporariamente travas hierárquicas em emergências clínicas graves (ex: PCR, choque refratário, intubação rápida).\n\n" +
-        "• Para ATIVAR: `/emergencia <motivo clínico detalhado>`\n" +
-        "  Ex: `/emergencia Paciente em PCR no leito 4, necessidade imediata de adrenalina e suporte invasivo`\n\n" +
-        "• Para DESATIVAR: `/emergencia off`");
+        "• Para ATIVAR: `/breaktheglass <motivo clínico detalhado>`\n" +
+        "  Ex: `/breaktheglass Paciente em PCR no leito 4, necessidade imediata de adrenalina e suporte invasivo`\n\n" +
+        "• Para DESATIVAR: `/breaktheglass off`");
     }
 
     if (justificativa.toLowerCase() === "off" || justificativa.toLowerCase() === "desativar") {
@@ -1473,7 +1473,7 @@ function processarMensagemTexto(message) {
         "• **Motivo Registrado:** " + resAtiv.justificativa + "\n" +
         "• **Duração do Bypass:** " + resAtiv.duracaoHoras + " hora(s)\n\n" +
         resAtiv.avisoSeguranca + "\n\n" +
-        "Ao finalizar a assistência de emergência, desative enviando: `/emergencia off`";
+        "Ao finalizar a assistência de emergência, desative enviando: `/breaktheglass off`";
       return enviarMensagemParaChat(chatId, msgEmerg);
     } catch (eEmerg) {
       return enviarMensagemParaChat(chatId, "⚠️ *ERRO AO ATIVAR BREAK-THE-GLASS:*\n" + eEmerg.message);
@@ -1481,11 +1481,7 @@ function processarMensagemTexto(message) {
   }
 
   if (comando === "/auditar_rbac" || comando === "/relatorio_rbac") {
-    if (typeof RbacPerfisClinicosService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
-    }
-    var rel = RbacPerfisClinicosService.gerarRelatorioSegurancaRbac();
-    return enviarMensagemParaChat(chatId, "```\n" + rel.relatorioFormatado + "\n```");
+    return enviarMensagemParaChat(chatId, "ℹ️ *FUNÇÃO ADMINISTRATIVA DESATIVADA*\n\nEste relatório burocrático de governança hospitalar foi desativado no perfil assistencial do interno e médico generalista.\n\nPara consultar seu perfil ativo e permissões clínicas beira-leito, use `/perfil`.");
   }
 
   // ───────────────────────────────────────────────────────────────────────────

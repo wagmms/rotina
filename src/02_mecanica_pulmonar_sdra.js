@@ -67,10 +67,10 @@ var MecanicaPulmonarSdraService = (function() {
         }
 
         if (relacaoPF < 150 && peep >= 10) { 
-            condutas.push("INDICAÇÃO OPORTUNA: Posição Prona precoce (16h/dia) para P/F < 150 com PEEP >= 10.");
-            condutas.push("INDICAÇÃO OPORTUNA: Bloqueio Neuromuscular (ex: Cisatracúrio) nas primeiras 48h.");
+            condutas.push("CONDUTA BEIRA-LEITO (PS / ENFERMARIA): Manter ventilação protetora (Vt 4-6 mL/kg PBW, Pplat <= 30, ΔP <= 15) e solicitar IMEDIATAMENTE VAGA ZERO / TRANSFERÊNCIA URGENTE PARA CTI/UTI.");
+            condutas.push("⚠️ CONDUTA EXCLUSIVA DE UTI TERCIÁRIA: Posição Prona precoce (16h/dia) e Bloqueio Neuromuscular Contínuo (ex: Cisatracúrio) exigem ambiente de CTI com equipe treinada e monitorização intensiva contínua. Contraindicado em enfermaria clínica geral.");
         } else if (relacaoPF < 150 && peep < 10 && peep >= 5) {
-            condutas.push("CONSIDERAR: Aumentar PEEP e avaliar indicação de Prona se P/F mantiver < 150.");
+            condutas.push("CONSIDERAR: Titular PEEP para >= 10 cmH2O, manter ventilação protetora e acionar leito de CTI se mantiver P/F < 150.");
         }
 
         return {

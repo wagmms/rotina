@@ -75,7 +75,8 @@ var AuditoriaInfusaoUtiService = (function () {
         'Alvo primário: PAM ≥ 65 mmHg (ou 65-70 mmHg no choque séptico).',
         'Dose > 0,25 mcg/kg/min: Iniciar Vasopressina 0,03 UI/min imediatamente e avaliar Hidrocortisona 200 mg/dia (SSC 2021 / ILAS).',
         'Dose > 1,00 mcg/kg/min: Isquemia periférica grave, necrose de extremidades e hipoperfusão esplâncnica.',
-        'Dose > 2,00 mcg/kg/min: Risco de dose letal ou erro de ordem de grandeza (10x).'
+        'Dose > 2,00 mcg/kg/min: Risco de dose letal ou erro de ordem de grandeza (10x).',
+        '⚠️ CONDUTA EXCLUSIVA DE UTI TERCIÁRIA: Choque refratário a vasopressores em dose elevada exige leito de CTI imediato. Protocolos experimentais ou de resgate terciário (Azul de Metileno, ECMO venoarterial) são exclusivos de centros terciários intensivos e não devem ser manejados fora de CTI.'
       ]
     },
 

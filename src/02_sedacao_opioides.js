@@ -31,7 +31,12 @@ var SedacaoOpioidesService = (function() {
         else if (score <= -3) meta = "Sedação profunda (indicação: bloqueador neuromuscular, hipertensão intracraniana ou estado de mal epiléptico)";
         else if (score > 0) meta = "Agitação (necessita analgesia, sedação de resgate ou contenção)";
 
-        return { score: score, nivel: nivel, meta: meta };
+        var alertaUti = null;
+        if (score <= -3) {
+            alertaUti = "⚠️ CONDUTA EXCLUSIVA DE UTI TERCIÁRIA: Sedação profunda (RASS <= -3) associada a bloqueio neuromuscular contínuo ou controle de HIC é restrita a ambiente de CTI/UTI. Contraindicada a manutenção em enfermaria geral. Acionar leito intensivo imediatamente.";
+        }
+
+        return { score: score, nivel: nivel, meta: meta, alertaUti: alertaUti };
     }
 
     // --- CAM-ICU (Avaliação de Delirium) ---
