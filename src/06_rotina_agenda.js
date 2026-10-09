@@ -4,6 +4,35 @@
  * ==============================================================================
  */
 
+var _dataUltimoBriefingProcessado = null;
+var _dataUltimoCheckinProcessado = null;
+var _dataUltimoRelatorioProcessado = null;
+
+function jaEnviouBriefingHoje(dataHojeISO) {
+  if (_dataUltimoBriefingProcessado === dataHojeISO) return true;
+  try {
+    var cache = CacheService.getScriptCache();
+    if (cache && cache.get("briefing_enviado_" + dataHojeISO) === "true") return true;
+  } catch (_) {}
+  try {
+    var props = PropertiesService.getScriptProperties();
+    if (props && props.getProperty("ultima_data_briefing") === dataHojeISO) return true;
+  } catch (_) {}
+  return false;
+}
+
+function marcarBriefingEnviadoHoje(dataHojeISO) {
+  _dataUltimoBriefingProcessado = dataHojeISO;
+  try {
+    var cache = CacheService.getScriptCache();
+    if (cache) cache.put("briefing_enviado_" + dataHojeISO, "true", 86400);
+  } catch (_) {}
+  try {
+    var props = PropertiesService.getScriptProperties();
+    if (props) props.setProperty("ultima_data_briefing", dataHojeISO);
+  } catch (_) {}
+}
+
 function executarCicloRotina5Min() {
   var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
   var chatId = ConfigService.get("TELEGRAM_CHAT_ID");
@@ -20,15 +49,17 @@ function executarCicloRotina5Min() {
 
   // A. BRIEFING MATINAL (06:15 até 09:00)
   if (minutos >= 375 && minutos < 540) {
-    if (props.getProperty("ultima_data_briefing") !== dataHojeISO) {
-      props.setProperty("ultima_data_briefing", dataHojeISO);
-      enviarBriefingMatinal(chatId);
+    if (!jaEnviouBriefingHoje(dataHojeISO)) {
+      marcarBriefingEnviadoHoje(dataHojeISO);
+      enviarBriefingMatinal(chatId, false);
     }
   }
 
   // B. CHECK-IN NOTURNO (21:30 até 23:59)
   if (minutos >= 1290) {
-    if (props.getProperty("ultima_data_checkin") !== dataHojeISO) {
+    var jaCheckin = (_dataUltimoCheckinProcessado === dataHojeISO) || (props.getProperty("ultima_data_checkin") === dataHojeISO);
+    if (!jaCheckin) {
+      _dataUltimoCheckinProcessado = dataHojeISO;
       props.setProperty("ultima_data_checkin", dataHojeISO);
       var stPl = detectarPlantaoStatus(agora);
       if (stPl.ehPlantaoHoje) {
@@ -41,7 +72,9 @@ function executarCicloRotina5Min() {
 
   // C. RELATÓRIO SEMANAL DE HÁBITOS (DOMINGOS ÀS 20:00)
   if (agora.getDay() === 0 && minutos >= 1200) {
-    if (props.getProperty("ultima_data_relatorio") !== dataHojeISO) {
+    var jaRelatorio = (_dataUltimoRelatorioProcessado === dataHojeISO) || (props.getProperty("ultima_data_relatorio") === dataHojeISO);
+    if (!jaRelatorio) {
+      _dataUltimoRelatorioProcessado = dataHojeISO;
       props.setProperty("ultima_data_relatorio", dataHojeISO);
       enviarRelatorioSemanalHabitos(chatId);
     }
@@ -777,10 +810,18 @@ var RotinaService = {
   }
 };
 
-function enviarBriefingMatinal(chatIdDestino) {
+function enviarBriefingMatinal(chatIdDestino, forcar) {
   var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
+  var dataHojeISO = Utilities.formatDate(hoje, tz, "yyyy-MM-dd");
+
+  if (!forcar && jaEnviouBriefingHoje(dataHojeISO)) {
+    Logger.log("[Briefing] Raio-X matinal já enviado hoje (" + dataHojeISO + "). Bloqueio idempotente ativo.");
+    return false;
+  }
+
+  marcarBriefingEnviadoHoje(dataHojeISO);
   var dataFormatada = Utilities.formatDate(hoje, tz, "dd/MM/yyyy");
   var diaSemana = obterDiaSemanaExtenso(hoje);
 

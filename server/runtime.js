@@ -346,7 +346,8 @@ const ctx = {
       setProperty: (k, v) => {
         propsStore[k] = String(v);
         if (ctx.ConfigService && typeof ctx.ConfigService.invalidar === 'function') ctx.ConfigService.invalidar();
-        persistirPropriedades();
+        const imediato = k.startsWith('ultima_') || k.startsWith('inbox_') || k.startsWith('LEITO_') || k.startsWith('atendimento_');
+        persistirPropriedades(imediato);
       },
       deleteProperty: (k) => {
         delete propsStore[k];

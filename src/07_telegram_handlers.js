@@ -66,10 +66,9 @@ function processarMensagemTexto(message) {
     if (!tarefaPc || tarefaPc === "ajuda" || tarefaPc === "help") {
       var msgAjudaPc = "🖥️ *PONTE DE EXECUÇÃO LOCAL (PC)*\n\n" +
         "Envie uma ordem para o seu computador executar em segundo plano:\n\n" +
-        "• `/pc tenda` — Cotação quinzenal de carnes e compras no Tenda\n" +
-        "• `/pc sync` — Sincronização avançada de agenda e MedQuest\n" +
+        "• `/pc tenda` — Cotação quinzenal de compras e suprimentos\n" +
+        "• `/pc sync` — Sincronização de agenda e estudos\n" +
         "• `/pc audit` — Auditoria de sobreposições no calendário\n" +
-        "• `/pc voos` — Varredura do radar de passagens aéreas\n" +
         "• `/pc status` — Verifica se o daemon do PC está ativo\n\n" +
         "💡 *Funcionamento:* A ordem é enfileirada na nuvem. Se o seu PC estiver ligado, ele executa e devolve o relatório aqui. Se estiver desligado, roda assim que o PC for ligado!";
       return enviarMensagemParaChat(chatId, msgAjudaPc);
@@ -3097,7 +3096,7 @@ function processarMensagemTexto(message) {
 
   if (comando === "/semana" || comando === "/relatorio") return enviarRelatorioSemanalHabitos(chatId);
   if (comando === "/checkin") return enviarCheckinNoturno(chatId);
-  if (comando === "/briefing") return enviarBriefingMatinal(chatId);
+  if (comando === "/briefing") return enviarBriefingMatinal(chatId, true);
   if (comando === "/rotina") {
     var argRotina = texto.replace(/^\/rotina\s*/i, "").trim();
     return tratarComandoRotina(chatId, argRotina);

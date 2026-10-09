@@ -1,24 +1,33 @@
-### STATUS: EM_EVOLUCAO_CONTINUA
+### STATUS: REVISAO_E_ESTABILIZACAO_EXCLUSIVA
 
-# 🛠️ Ultra Rotina — Revisão Geral, Auditoria e Conserto de Erros (Prioridade Máxima)
+# 🛠️ Ultra Rotina — Revisão, Otimização e Estabilização para Interno/Médico Generalista
 
-**DIRETIVA ATUAL DO USUÁRIO**: Foco 100% em **REVISÃO, AUDITORIA PROFUNDA E CONSERTO DE ERROS** do programa. Nenhuma nova funcionalidade concorrente deve ser adicionada até que todos os fluxos existentes estejam rigorosamente testados, sem exceções não tratadas, sem testes órfãos e com usabilidade impecável no Telegram e Cockpit.
+**DIRETIVA ABSOLUTA DO USUÁRIO**:
+1. **Foco 100% em conserto de erros, otimizações, velocidade de resposta e organização da usabilidade.**
+2. **Qualidade médica do conteúdo já instalado**: lapidação, precisão beira-leito, dosagens exatas, segurança do paciente e bloqueios de iatrogenia.
+3. **Revisão e exclusão de funções excessivas**: remover do escopo tudo o que é excesso acadêmico/cirúrgico terciário ou desnecessário para a prática de um interno e médico generalista no plantão (PS/Enfermaria) ou na UBS.
+4. **PROIBIDO adicionar novas funcionalidades** até que todos os itens existentes estejam 100% auditados, sem erros, rápidos e fluidos.
 
 ---
 
-## 📋 Backlog de Revisão, Auditoria e Correção de Defeitos (Prioridade Máxima)
+## 📋 Backlog de Auditoria, Correção de Defeitos e Otimização (Prioridade Máxima)
 
-0A. [ ] **Auditoria e Correção de Erros de Parâmetros e Tipagem no Telegram e Fastify RPC**:
-    - Varredura de todos os handlers de comando em `src/07_telegram_handlers.js` para garantir tratamento de exceção (`try/catch`) defensivo e mensagens de erro amigáveis ao usuário caso parâmetros inválidos sejam digitados.
-    - Testar cada alias e rota RPC em `server/runtime.js` e `src/13_cockpit_integracao.js` com payloads vazios, inválidos ou corrompidos, garantindo que nenhum cause crash do processo.
+0A. [x] **Conserto Imediato do Raio-X Matinal Repetido**:
+    - Removido disparo automático cego de 15s no boot do servidor em `server/index.js` (causa-raiz das repetições em deploys e reinicializações).
+    - Implementadas travas de idempotência multi-camadas (memória de processo `_dataUltimoBriefingProcessado`, `CacheService` com TTL de 24h e gravação síncrona imediata em `PropertiesService`).
+    - Guardrail no corpo de `enviarBriefingMatinal()` impedindo qualquer reenvio automático na mesma data ISO.
 
-0B. [ ] **Varredura de Casos Extremos (Edge Cases) em Prescrições e Calculadoras Clínicas**:
-    - Auditar todas as 66 calculadoras e serviços em `src/` para pesos extremos (neonatos < 1kg, obesidade > 150kg), idades avançadas (> 90 anos), valores laboratoriais discrepantes (Cr > 15, K > 8.0, pH < 6.8).
+0B. [ ] **Auditoria Defensiva e Tratamento de Exceções no Telegram e Fastify RPC**:
+    - Varredura de todos os handlers de comando em `src/07_telegram_handlers.js` para garantir `try/catch` defensivo com mensagens amigáveis caso parâmetros inválidos sejam digitados.
+    - Testar cada rota RPC com payloads vazios, inválidos ou corrompidos, garantindo que nenhum cause crash do processo.
+
+0C. [ ] **Varredura de Casos Extremos (Edge Cases) em Prescrições e Calculadoras Clínicas**:
+    - Auditar todas as calculadoras e serviços em `src/` para pesos extremos (neonatos < 1kg, obesidade > 150kg), idades avançadas (> 90 anos), valores laboratoriais discrepantes (Cr > 15, K > 8.0, pH < 6.8).
     - Garantir que todos os bloqueios de segurança e tetos farmacológicos atuem determinísticamente sem NaN, undefined ou divisões por zero.
 
-0C. [ ] **Auditoria de Confiabilidade Offline e Cache do Cockpit PWA (Mini-App)**:
-    - Verificar resiliência do Service Worker (`sw.js`), sincronização 100% idêntica entre `cockpit_movel.html` e `gh_cockpit_deploy/index.html`.
-    - Garantir que falhas de rede no hospital degradem graciosamente para cache local sem travar a interface do médico.
+0D. [ ] **Expurgo e Simplificação de Módulos Excessivos para o Médico Generalista**:
+    - Remover comandos e referências estranhas ao ambiente médico (ex: radar de voos legados).
+    - Ajustar a linguagem das saídas de módulos especializados para destacar conduta beira-leito prática e critérios de encaminhamento, eliminando jargões desnecessários de subespecialidade.
 
 ---
 
@@ -604,7 +613,7 @@
     - Gatilho automático para alerta de Piora Clínica (aumento de 2 pontos no SOFA) exigindo revisão imediata do Stewardship Antimicrobiano e controle do foco.
 
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Auditoria Profunda de Código, Varredura de Erros e Estabilização Geral do Sistema** (Tarefa 0A)
+- [ ] **Auditoria Defensiva e Tratamento de Exceções no Telegram e Fastify RPC** (Tarefa 0B)
 
 ---
 
