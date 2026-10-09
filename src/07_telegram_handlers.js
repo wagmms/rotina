@@ -11,7 +11,8 @@ function processarMensagemTexto(message) {
   var chatId = (message.chat && message.chat.id) ? message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
   if (!texto) return;
 
-  var comando = textoLow.split(/\s/)[0];
+  try {
+    var comando = textoLow.split(/\s/)[0];
   var contextoCache = CacheService.getScriptCache();
   var contextoKey = "ctx_" + chatId;
 
@@ -226,38 +227,6 @@ function processarMensagemTexto(message) {
   }
 
   // 3. COMANDOS CLÍNICOS E SALA VERMELHA
-    if (comando === "/icc" || comando === "/insuficienciacardiaca") {
-    var argsIcc = payload.replace(comando, "").trim();
-    var fe = parseFloat(argsIcc);
-    if (isNaN(fe)) {
-      return enviarMensagem_(chatId, "⚠️ *Comando Inválido*\n\nUso correto:\n\n`/icc [fração de ejeção]`\n\nExemplo: `/icc 35` para FE = 35%", null);
-    }
-    var resIcc = typeof CardiologiaICCService !== 'undefined' ? CardiologiaICCService.gerarRelatorioCompleto(fe) : { erro: "Serviço não carregado." };
-    if (resIcc.erro) return enviarMensagem_(chatId, "Erro: " + resIcc.erro, null);
-
-    var txt = "🫀 *Insuficiência Cardíaca Crônica (ICC)*\n";
-    txt += "📊 *Classificação:* " + resIcc.classificacao + "\n";
-    txt += "💡 *Base:* " + resIcc.terapia_base + "\n";
-    txt += "🧭 *Orientação:* " + resIcc.orientacao + "\n\n";
-    
-    txt += "💊 *Quarteto Fantástico:*\n";
-    for(var i=0; i<resIcc.quarteto_fantastico.length; i++) {
-        var cls = resIcc.quarteto_fantastico[i];
-        txt += "🔹 *" + cls.classe + "*:\n";
-        for(var j=0; j<cls.drogas.length; j++) {
-            txt += "  - " + cls.drogas[j].nome + " (Alvo: " + cls.drogas[j].dose_alvo + ")\n";
-        }
-    }
-    
-    txt += "\n⚠️ *Bloqueios Médicos:*\n";
-    for(var k=0; k<resIcc.bloqueios.drogas.length; k++) {
-        var bl = resIcc.bloqueios.drogas[k];
-        txt += "🛑 *" + bl.classe + "*: " + bl.recomendacao + "\n";
-    }
-
-    return enviarMensagem_(chatId, txt, null);
-  }
-
   if (comando === "/dva") {
     var dadosDva = texto.replace(/^\/dva\s*/i, "").trim();
     if (!dadosDva) {
@@ -1279,24 +1248,28 @@ function processarMensagemTexto(message) {
       else paramsPals.corBroselow = dadosPals.trim();
     }
 
-    var resPals = PalsPediatriaService.avaliarPals(paramsPals);
-    var msgPals = "👶 *PALS — REANIMAÇÃO PEDIÁTRICA DETERMINÍSTICA (AHA)*\n" +
-      "════════════════════════════════════════════\n" +
-      "• Peso Considerado: *" + resPals.pesoConsideradoKg + " kg*" + (resPals.idadeConsideradaAnos ? (" (" + resPals.idadeConsideradaAnos + " anos)") : "") + "\n\n" +
-      "⚡ *ELETRICIDADE & DESFIBRILAÇÃO:*\n" +
-      "• 1º Choque (2 J/kg): *" + resPals.eletricidade.desfibrilacaoPrimeiroChoque + "*\n" +
-      "• 2º Choque em diante (4 J/kg): *" + resPals.eletricidade.desfibrilacaoChoquesSubsequentes + "*\n" +
-      "• Cardioversão Sincronizada: *" + resPals.eletricidade.cardioversaoSincronizadaInicial + "* (Inicial: 0.5-1 J/kg)\n\n" +
-      "💉 *MEDICAÇÕES DE PCR:*\n" +
-      resPals.medicacoes.map(function(m) {
-        return "• *" + m.farmaco + ":* " + m.doseMg + " (" + m.volumeMl + ") — _" + m.via + "_";
-      }).join("\n") + "\n\n" +
-      "🫁 *VIA AÉREA & INTUBAÇÃO:*\n" +
-      "• Tubo com Cuff: *" + resPals.viaAerea.tuboComCuff + "* | Sem Cuff: *" + resPals.viaAerea.tuboSemCuff + "*\n" +
-      "• Lâmina: *" + resPals.viaAerea.laminaLaringoscopio + "* | Fixação: *" + resPals.viaAerea.fixacao + "*\n\n" +
-      "💡 _" + resPals.alertas.join("\n_💡 _") + "_";
+    try {
+      var resPals = PalsPediatriaService.avaliarPals(paramsPals);
+      var msgPals = "👶 *PALS — REANIMAÇÃO PEDIÁTRICA DETERMINÍSTICA (AHA)*\n" +
+        "════════════════════════════════════════════\n" +
+        "• Peso Considerado: *" + resPals.pesoConsideradoKg + " kg*" + (resPals.idadeConsideradaAnos ? (" (" + resPals.idadeConsideradaAnos + " anos)") : "") + "\n\n" +
+        "⚡ *ELETRICIDADE & DESFIBRILAÇÃO:*\n" +
+        "• 1º Choque (2 J/kg): *" + resPals.eletricidade.desfibrilacaoPrimeiroChoque + "*\n" +
+        "• 2º Choque em diante (4 J/kg): *" + resPals.eletricidade.desfibrilacaoChoquesSubsequentes + "*\n" +
+        "• Cardioversão Sincronizada: *" + resPals.eletricidade.cardioversaoSincronizadaInicial + "* (Inicial: 0.5-1 J/kg)\n\n" +
+        "💉 *MEDICAÇÕES DE PCR:*\n" +
+        resPals.medicacoes.map(function(m) {
+          return "• *" + m.farmaco + ":* " + m.doseMg + " (" + m.volumeMl + ") — _" + m.via + "_";
+        }).join("\n") + "\n\n" +
+        "🫁 *VIA AÉREA & INTUBAÇÃO:*\n" +
+        "• Tubo com Cuff: *" + resPals.viaAerea.tuboComCuff + "* | Sem Cuff: *" + resPals.viaAerea.tuboSemCuff + "*\n" +
+        "• Lâmina: *" + resPals.viaAerea.laminaLaringoscopio + "* | Fixação: *" + resPals.viaAerea.fixacao + "*\n\n" +
+        "💡 _" + resPals.alertas.join("\n_💡 _") + "_";
 
-    return enviarMensagemParaChat(chatId, msgPals);
+      return enviarMensagemParaChat(chatId, msgPals);
+    } catch (ePals) {
+      return enviarMensagemParaChat(chatId, "⚠️ " + ePals.message + "\n\n💡 *Uso correto:* Envie o peso (ex: `/pals 14kg`), idade (ex: `/pals 3 anos`) ou cor Broselow (ex: `/pals rosa`).");
+    }
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -3078,8 +3051,7 @@ function processarMensagemTexto(message) {
     if (!tarefaTexto) return enviarMensagemParaChat(chatId, "📋 Digite a tarefa a salvar no Inbox do Notion. Ex: `/task Revisar hemograma do leito 14`");
     var okTask = criarTarefaNotion(tarefaTexto, "Personal", "2 · Important", "Captura rápida via Telegram");
     if (okTask) return enviarMensagemParaChat(chatId, "✅ *Tarefa salva no Inbox do Notion Tasks!*");
-    enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila.");
-    throw new Error("FALHA_NOTION_CRIAR_TAREFA");
+    return enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique o token.");
   }
 
   if (comando === "/tasks") {
@@ -3315,8 +3287,7 @@ function processarMensagemTexto(message) {
   if (decisao.intencao === "NOTION_TASK") {
     var okNovaTask = criarTarefaNotion(texto, "Personal", "2 · Important", "Captura autônoma via Telegram");
     if (okNovaTask) return enviarMensagemParaChat(chatId, "✅ *Tarefa salva no Inbox do Notion Tasks!*");
-    enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila.");
-    throw new Error("FALHA_NOTION_CRIAR_TAREFA");
+    return enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique a configuração.");
   }
 
   if (decisao.intencao === "NOTION_DUVIDA") {
@@ -3373,8 +3344,19 @@ function processarMensagemTexto(message) {
     return enviarMensagemComTecladoParaChat(chatId, respostaConversa, botoesConversa);
   }
 
-  // Fallback conversacional
-  enviarMensagemComTecladoFixo(chatId, "Como posso ajudar? Envie um caso clínico por texto ou áudio, ou use /menu.");
+    // Fallback conversacional
+    enviarMensagemComTecladoFixo(chatId, "Como posso ajudar? Envie um caso clínico por texto ou áudio, ou use /menu.");
+  } catch (errGlobal) {
+    if (typeof console !== "undefined" && console.error) {
+      console.error("[Telegram Handler Error]", errGlobal);
+    }
+    try {
+      var erroMsg = (errGlobal && errGlobal.message) ? errGlobal.message : "Erro interno não especificado.";
+      enviarMensagemParaChat(chatId, "⚠️ *Desculpe, ocorreu um erro ao processar seu comando.*\n\n" +
+        "• *Detalhe:* `" + erroMsg + "`\n\n" +
+        "💡 _Dica: Digite /menu ou verifique a sintaxe dos parâmetros informados._");
+    } catch (eEnvio) {}
+  }
 }
 
 /**
