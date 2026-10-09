@@ -412,18 +412,39 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Checklist beira-leito rápido para diagnóstico clínico (Pele + 1 outro sistema).
     - Dosagem escalonada de Adrenalina IM (0.01 mg/kg) no vasto lateral da coxa com temporizador de repetição a cada 5-15 minutos.
 
+96. [ ] **Cardiologia e Emergência - Manejo de Parada Cardiorrespiratória e Ritmos Chocáveis vs Não-Chocáveis (ACLS / AHA 2020-2025)**:
+    - Motor determinístico de cronometragem de ciclos de RCP (2 min por ciclo, compressões 100-120/min, profundidade 5-6 cm).
+    - Algoritmo de ritmos chocáveis (FV/TV sem pulso): Desfibrilação bifásica 200J -> Epinefrina 1mg IV 3-5 min -> Amiodarona 300mg / 150mg (ou Lidocaína).
+    - Algoritmo de ritmos não-chocáveis (AESP / Assistolia): Epinefrina precoce imediata + Checklist mnemônico beira-leito dos 5Hs e 5Ts.
+    - Protocolo pós-RCE: Controle direcionado de temperatura (TTM 32-36°C), PAM alvo >= 65 mmHg e ECG imediato de 12 derivações.
+
+97. [ ] **Nefrologia e Terapia Intensiva - Manejo de Distúrbios do Sódio: Hiponatremia Aguda vs Crônica e Hipernatremia (Diretrizes Europeias / US)**:
+    - Diferenciação determinística entre hiponatremia aguda sintomática (crise convulsiva, coma) vs crônica (> 48h).
+    - Protocolo de salina hipertônica 3% (bolus de 100-150 mL em 10-20 min, meta de elevação rápida de 4-6 mEq/L para cessar sintomas).
+    - Regra de ouro da taxa máxima de correção: bloqueio sentinela estrito impedindo correção > 8-10 mEq/L em 24h para prevenir Mielinólise Pontina Central.
+    - Cálculo do Déficit de Água Livre na hipernatremia pela Fórmula de Androgué-Madias para SG 5% ou SF 0.45%.
+
+98. [ ] **Gastroenterologia e Emergência - Escore de Glasgow-Blatchford e Rockall para Hemorragia Digestiva Alta (HDA)**:
+    - Calculadora determinística beira-leito do escore de Glasgow-Blatchford (GBS 0-23 pts) para estratificação pré-endoscópica (baixo risco score 0-1 para alta precoce).
+    - Escore de Rockall completo (pré e pós-endoscópico) para predição de ressangramento e mortalidade.
+    - Alertas automáticos para infusão de IBP IV contínuo, Terlipressina precoce em hipertensão portal e profilaxia de PBE com Ceftriaxona.
+
 ## 🔄 Próxima Tarefa em Andamento
 - [ ] **Inteligência Gasométrica e Distúrbios Ácido-Base (Regra dos 5 Passos)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
-- [x] (2026-10-09) **Módulo de Cardiologia de Emergência (Dor Torácica e IAM)**:
-   - Estratificação robusta pelo Escore HEART e TIMI Risk.
-   - Algoritmo determinístico do duplo bloqueio antiplaquetário (AAS + P2Y12) com bloqueio estrito de Prasugrel em histórico de AVC, e ajuste de dose por idade/peso.
-   - Integração completa via Fastify RPC (cockpitCardiologiaEmergencia) e bot Telegram (/sca, /iam, /heart).
-   - Suíte de 8 testes automatizados validados com sucesso (`test_cardiologia_emergencia.cjs`).
-   - Evolução perpétua mantida: backlog atualizado.
+- [x] (2026-10-09) **Módulo de Cardiologia de Emergência (Dor Torácica, IAM e Duplo Bloqueio DAPT)**:
+   - Estratificação robusta pelo Escore HEART (0-10 pts), TIMI SCASST (0-7 pts) e TIMI IAMCSST (0-14 pts).
+   - Motor determinístico de DAPT com bloqueio fatal absoluto de Prasugrel em antecedente de AVC/AIT (Ensaio TRITON-TIMI 38).
+   - Protocolo de reperfusão química por Trombólise com Clopidogrel mandatório e omissão obrigatória da dose de ataque em pacientes > 75 anos.
+   - Detecção em tempo real de interação farmacocinética grave CYP2C19 entre Clopidogrel e Omeprazol, com recomendação de substituição por Pantoprazol.
+   - Bloqueio fatal de nitratos em Infarto de Ventrículo Direito (IAM-VD) e uso recente de IPDE-5 (Sildenafil 24h / Tadalafil 48h).
+   - Contraindicação formal de betabloqueadores em choque cardiogênico e congestão pulmonar aguda (Killip >= II), e ajuste renal de Enoxaparina em ClCr < 30 mL/min.
+   - Integração completa via Fastify RPC (`cockpitCardiologiaEmergencia`) e bot Telegram (`/sca`, `/iam`, `/heart`, `/dapt`) com parser clínico determinístico.
+   - Suíte de 12 testes determinísticos rigorosos aprovados com 100% de sucesso (`test_cardiologia_emergencia.cjs`).
+   - Kaizen perpétuo: Backlog abastecido com 3 novas metas clínicas prioritárias (96, 97 e 98).
 - [x] (2026-10-09) **Gastroenterologia - Pancreatite Aguda e Manejo da Hidratação (Critérios de Atlanta / BISAP)**:
    - Calculadora determinística beira-leito dos escores de gravidade (BISAP).
    - Protocolo de ressuscitação volêmica dirigida por metas (Ringer Lactato) com alertas para doença cardiovascular e renal.
