@@ -32,6 +32,11 @@ function runTests() {
   assert.strictEqual(res4.viaAerea.tuboSemCuff, "3.5");
   assert.strictEqual(res4.viaAerea.tuboComCuff, "3.0");
 
+  // Teste 5: Broselow
+  let res5 = PalsPediatriaService.avaliarPals({ corBroselow: 'Rosa' });
+  assert.strictEqual(res5.pesoConsideradoKg, 6.5, "Cor rosa na fita de Broselow deve estimar 6.5kg");
+  assert.strictEqual(res5.eletricidade.desfibrilacaoPrimeiroChoque, '13 J (2 J/kg)');
+
   console.log("=== TODOS OS TESTES PALS PEDIATRIA PASSARAM COM SUCESSO ===");
 }
 

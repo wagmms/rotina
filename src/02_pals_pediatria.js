@@ -26,14 +26,34 @@ var PalsPediatriaService = (function() {
     return 50; // Max default
   }
 
+  function estimarPesoPorBroselow(cor) {
+    const broselow = {
+      'cinza': 4,
+      'rosa': 6.5,
+      'vermelho': 8.5,
+      'roxo': 10.5,
+      'amarelo': 13,
+      'branco': 16.5,
+      'azul': 21,
+      'laranja': 26.5,
+      'verde': 33
+    };
+    return cor ? broselow[cor.toLowerCase()] || null : null;
+  }
+
   function avaliarPals(params) {
     let pesoKg = params.pesoKg;
     let idadeAnos = params.idadeAnos || 0;
+    let corBroselow = params.corBroselow || null;
+    
+    if (!pesoKg && corBroselow) {
+      pesoKg = estimarPesoPorBroselow(corBroselow);
+    }
     
     if (!pesoKg && idadeAnos > 0) {
       pesoKg = estimarPesoPorIdade(idadeAnos);
     } else if (!pesoKg) {
-      throw new Error("Peso (kg) ou Idade (anos) obrigatórios para cálculo PALS.");
+      throw new Error("Peso (kg), Idade (anos) ou Cor Broselow obrigatórios para cálculo PALS.");
     }
 
     // Limitar peso máximo a 50kg para evitar superdosagem pediátrica na fórmula linear.
@@ -156,7 +176,8 @@ var PalsPediatriaService = (function() {
 
   return {
     avaliarPals: avaliarPals,
-    estimarPesoPorIdade: estimarPesoPorIdade
+    estimarPesoPorIdade: estimarPesoPorIdade,
+    estimarPesoPorBroselow: estimarPesoPorBroselow
   };
 
 })();
