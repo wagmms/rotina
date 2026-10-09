@@ -383,6 +383,10 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Alerta de descalonamento guiado por cultura (CCIH) e notificação de toxicidade acumulada (ex: vancomicina + piperacilina-tazobactam com risco de LRA).
     - Revisão automática do tempo de tratamento (DOT - Days of Therapy) para evitar uso prolongado desnecessário (ex: 7 dias para PAV vs 14 dias para bacteremia por S. aureus).
 
+90. [ ] **Módulo de Geriatria - Rastreio de Sarcopenia e Síndrome da Fragilidade (Escore SARC-F e FRAIL)**:
+    - Diagnóstico rápido beira-leito para predição de eventos adversos, quedas e mortalidade intra-hospitalar.
+    - Plano automatizado de reabilitação fisioterápica (exercícios resistidos) e prescrição de suplementação proteica ajustada à função renal e HMB (Beta-hidroxi-beta-metilbutirato).
+
 ## 🔄 Próxima Tarefa em Andamento
 - [ ] **Infectologia - Manejo de Neutropenia Febril Oncológica (Escore MASCC/CISNE)**
 
