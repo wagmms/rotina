@@ -1061,14 +1061,21 @@ function cockpitSuporteNutricional(initData, params) {
   if (typeof SuporteNutricionalService === 'undefined') {
     throw new Error('Módulo SuporteNutricionalService indisponível.');
   }
-  if (params.acao === 'calcularNecessidadesBasais') {
-    return SuporteNutricionalService.calcularNecessidadesBasais(params.peso, params.alturaCm, params.idade, params.sexo, params.fatorEstresse);
+  var acao = params.acao || 'avaliarSuporteNutricionalCompleto';
+  if (acao === 'calcularNecessidadesBasais') {
+    return SuporteNutricionalService.calcularNecessidadesBasais(params.peso, params.alturaCm, params.idade, params.sexo, params.fatorEstresse, params.condicaoClinica);
   }
-  if (params.acao === 'avaliarRiscoRealimentacao') {
-    return SuporteNutricionalService.avaliarRiscoRealimentacao(params.imc, params.perdaPesoMeses, params.jejumDias, params.k, params.mg, params.p);
+  if (acao === 'avaliarRiscoRealimentacao') {
+    return SuporteNutricionalService.avaliarRiscoRealimentacao(params);
   }
-  if (params.acao === 'prescreverTerapiaNutricional') {
-    return SuporteNutricionalService.prescreverTerapiaNutricional(params.jejumDias, params.tratoGastrointestinalFuncionante, params.nrs2002, params.nutricScore);
+  if (acao === 'calcularNrs2002') {
+    return SuporteNutricionalService.calcularNrs2002(params);
+  }
+  if (acao === 'prescreverTerapiaNutricional') {
+    return SuporteNutricionalService.prescreverTerapiaNutricional(params);
+  }
+  if (acao === 'avaliarSuporteNutricionalCompleto') {
+    return SuporteNutricionalService.avaliarSuporteNutricionalCompleto(params);
   }
   throw new Error('Ação inválida para Suporte Nutricional.');
 }
@@ -1078,3 +1085,22 @@ function cockpitSuporteNutricional(initData, params) {
 
 
 
+
+function cockpitOncologiaBasica(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof OncologiaBasicaService === 'undefined') {
+    throw new Error('OncologiaBasicaService não carregado.');
+  }
+  
+  if (params.acao === 'avaliarRastreamento') {
+    return OncologiaBasicaService.avaliarRastreamento(params.perfil || {});
+  }
+  if (params.acao === 'condutaBiRads') {
+    return OncologiaBasicaService.condutaBiRads(params.birads);
+  }
+  if (params.acao === 'manejoEfeitoAdverso') {
+    return OncologiaBasicaService.manejoEfeitoAdverso(params.efeito, params.parametros || {});
+  }
+  throw new Error('Ação inválida para Oncologia Básica.');
+}
