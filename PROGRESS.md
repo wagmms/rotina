@@ -48,7 +48,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolo restritivo de controle de PA pré e pós-trombólise (Labetalol, Nitroprussiato) evitando conversão hemorrágica.
     - Cálculo posológico determinístico de Manitol 20% e Salina Hipertônica 3% ou 20% beira-leito para o manejo agudo de Hipertensão Intracraniana (HIC) com tetos osmolares.
 
-21. [ ] **Painel Inteligente de Intoxicações Exógenas (Toxicologia de Emergência)**:
+21. [x] **Painel Inteligente de Intoxicações Exógenas (Toxicologia de Emergência)**:
     - Protocolos determinísticos para intoxicação aguda por Paracetamol com cálculo do Nomograma de Rumack-Matthew e posologia IV/VO de N-acetilcisteína.
     - Reversão beira-leito de intoxicações por Antidepressivos Tricíclicos, Beta-bloqueadores, Bloqueadores de Canal de Cálcio e Opioides (Naloxona escalonada).
 
@@ -288,12 +288,35 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Posologia guiada de Colchicina com limites baseados na função renal (ClCr).
     - Seleção segura de AINEs vs Corticoides sistêmicos/intra-articulares baseados em comorbidades.
 
+70. [ ] **Ferramenta de Simulação e Treinamento de RCP Avançado (Cockpit-Sim)**:
+    - Motor interativo para criar simulações de casos clínicos (Mega Code) para treinamento de residentes.
+    - Avaliação do tempo de resposta (ex: tempo porta-agulha, tempo de reconhecimento de ritmos chocáveis).
+    - Feedback imediato de diretrizes violadas no Mega Code (ex: interrupção de massagem > 10s).
+
+71. [ ] **Módulo de Terapia Intensiva - Desmame Ventilatório e Extubação**:
+    - Calculadora determinística do Índice de Respiração Rápida e Superficial (Tobin).
+    - Protocolo de Teste de Respiração Espontânea (TRE) com tubo T ou PSV e critérios de falha.
+    - Estratificação de risco para falha de extubação e profilaxia com VNI ou CNAF (Cânula Nasal de Alto Fluxo).
+
+72. [ ] **Infectologia - Rastreio e Manejo de Arboviroses (Dengue, Zika, Chikungunya)**:
+    - Estadiamento de Dengue (Grupos A, B, C e D) com base no Ministério da Saúde.
+    - Cálculo determinístico de hidratação vigorosa oral (Grupo B) e venosa (Grupos C e D) em mL/kg/h.
+    - Painel visual para acompanhamento da curva do hematócrito vs plaquetas.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Painel Inteligente de Intoxicações Exógenas (Toxicologia de Emergência)**
+- [ ] **Módulo Avançado de Hepatologia Clínica e HDA**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Painel Inteligente de Intoxicações Exógenas (Toxicologia de Emergência)**:
+   - Protocolos determinísticos para intoxicação aguda por Paracetamol com cálculo do Nomograma de Rumack-Matthew e prescrição detalhada de N-acetilcisteína IV/VO.
+   - Manejo guiado beira-leito para intoxicações por Antidepressivos Tricíclicos (TCA) com avaliação de risco (QRS) e Bicarbonato de Sódio.
+   - Reversão de Cardiotóxicos (Beta-bloqueadores e Bloqueadores de Canal de Cálcio) com Cálcio, Glucagon e Terapia HIET para choque refratário.
+   - Protocolo escalonado de Naloxona para Opioides baseado em status ventilatório.
+   - Integração completa via malha Fastify RPC (`cockpitToxicologiaEmergencia`) e bot do Telegram (`/intox`).
+   - Suíte determinística em `test_toxicologia_emergencia.cjs` e runner python aprovada com 100% de sucesso.
+
 - [x] (2026-10-09) **Neurologia de Emergência e Manejo de AVC Isquêmico Agudo**:
    - Checklist inteligente de elegibilidade e contraindicações para trombólise IV na janela 4.5h, com exclusões ECASS III.
    - Protocolo restritivo de controle de PA pré e pós-trombólise (Labetalol, Nitroprussiato).

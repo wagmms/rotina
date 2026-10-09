@@ -1215,6 +1215,344 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, EndocrinologiaDiabetesService.formatarResumoDiabetes(resAmb));
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // PALS - SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (AHA)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/pals" || comando === "/pediatria_pcr") {
+    var dadosPals = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof PalsPediatriaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PalsPediatriaService indisponível temporariamente.");
+    }
+
+    if (!dadosPals) {
+      return enviarMensagemParaChat(chatId, "👶 *PALS — SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (AHA)*\n\n" +
+        "Envie o peso, idade ou cor da fita de Broselow:\n" +
+        "• `/pals 14kg` *(Doses de Adrenalina, Amiodarona, Choque e Tubo)*\n" +
+        "• `/pals 3 anos` *(Peso estimado por fórmula APLS)*\n" +
+        "• `/pals rosa` *(Estimativa por fita de Broselow)*");
+    }
+
+    var paramsPals = {};
+    var mPesoPals = dadosPals.match(/(\d{1,2}(?:[.,]\d+)?)\s*(?:kg|quilos)/i);
+    if (mPesoPals) paramsPals.pesoKg = parseFloat(mPesoPals[1].replace(',', '.'));
+
+    var mIdadePals = dadosPals.match(/(\d{1,2})\s*(?:anos|a\b)/i);
+    if (mIdadePals) paramsPals.idadeAnos = parseInt(mIdadePals[1], 10);
+
+    var mBroselow = dadosPals.match(/\b(cinza|rosa|vermelho|roxo|amarelo|branco|azul|laranja|verde)\b/i);
+    if (mBroselow) paramsPals.corBroselow = mBroselow[1];
+
+    if (!paramsPals.pesoKg && !paramsPals.idadeAnos && !paramsPals.corBroselow) {
+      var mNumP = dadosPals.match(/(\d{1,2})/);
+      if (mNumP) paramsPals.pesoKg = parseInt(mNumP[1], 10);
+      else paramsPals.corBroselow = dadosPals.trim();
+    }
+
+    var resPals = PalsPediatriaService.avaliarPals(paramsPals);
+    var msgPals = "👶 *PALS — REANIMAÇÃO PEDIÁTRICA DETERMINÍSTICA (AHA)*\n" +
+      "════════════════════════════════════════════\n" +
+      "• Peso Considerado: *" + resPals.pesoConsideradoKg + " kg*" + (resPals.idadeConsideradaAnos ? (" (" + resPals.idadeConsideradaAnos + " anos)") : "") + "\n\n" +
+      "⚡ *ELETRICIDADE & DESFIBRILAÇÃO:*\n" +
+      "• 1º Choque (2 J/kg): *" + resPals.eletricidade.desfibrilacaoPrimeiroChoque + "*\n" +
+      "• 2º Choque em diante (4 J/kg): *" + resPals.eletricidade.desfibrilacaoChoquesSubsequentes + "*\n" +
+      "• Cardioversão Sincronizada: *" + resPals.eletricidade.cardioversaoSincronizadaInicial + "* (Inicial: 0.5-1 J/kg)\n\n" +
+      "💉 *MEDICAÇÕES DE PCR:*\n" +
+      resPals.medicacoes.map(function(m) {
+        return "• *" + m.farmaco + ":* " + m.doseMg + " (" + m.volumeMl + ") — _" + m.via + "_";
+      }).join("\n") + "\n\n" +
+      "🫁 *VIA AÉREA & INTUBAÇÃO:*\n" +
+      "• Tubo com Cuff: *" + resPals.viaAerea.tuboComCuff + "* | Sem Cuff: *" + resPals.viaAerea.tuboSemCuff + "*\n" +
+      "• Lâmina: *" + resPals.viaAerea.laminaLaringoscopio + "* | Fixação: *" + resPals.viaAerea.fixacao + "*\n\n" +
+      "💡 _" + resPals.alertas.join("\n_💡 _") + "_";
+
+    return enviarMensagemParaChat(chatId, msgPals);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // TOXICOLOGIA DE EMERGÊNCIA (Paracetamol, Tricíclicos, BB/BCC, Opioides)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/intox" || comando === "/toxicologia") {
+    var dadosTox = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ToxicologiaEmergenciaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ToxicologiaEmergenciaService indisponível temporariamente.");
+    }
+
+    if (!dadosTox) {
+      return enviarMensagemParaChat(chatId, "☣️ *PAINEL INTELIGENTE DE TOXICOLOGIA DE EMERGÊNCIA*\n\n" +
+        "Escolha o tipo de intoxicação ou envie os dados diretamente:\n\n" +
+        "💊 *Paracetamol:* `/intox paracetamol, 70kg, 10g ingeridos, tempo 6h, nivel 180`\n" +
+        "⚡ *Tricíclicos (TCA):* `/intox triciclico, 60kg, qrs 120, hipotensao`\n" +
+        "🫀 *Cardiotóxicos (BB/BCC):* `/intox bcc, 80kg, choque`\n" +
+        "💉 *Opioides:* `/intox opioide, apneia` (ou depressao/normal)");
+    }
+
+    var tLower = dadosTox.toLowerCase();
+    var msgOut = "";
+
+    // 1. Paracetamol
+    if (tLower.includes("paracetamol") || tLower.includes("acetaminofeno") || tLower.includes("tylenol")) {
+      var paramsPara = {};
+      var mPeso = dadosTox.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosTox.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+      paramsPara.pesoKg = mPeso ? parseFloat(mPeso[1].replace(',', '.')) : undefined;
+
+      var mDoseMg = dadosTox.match(/(\d+)\s*(?:mg)/i);
+      var mDoseG = dadosTox.match(/(\d+(?:[.,]\d+)?)\s*(?:g|gramas)/i);
+      if (mDoseMg) paramsPara.doseIngeridaMg = parseInt(mDoseMg[1], 10);
+      else if (mDoseG) paramsPara.doseIngeridaMg = parseFloat(mDoseG[1].replace(',', '.')) * 1000;
+
+      var mTempo = dadosTox.match(/(\d+(?:[.,]\d+)?)\s*(?:h|horas|hr)\b/i) || dadosTox.match(/tempo\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+      if (mTempo) paramsPara.tempoIngestaoHoras = parseFloat(mTempo[1].replace(',', '.'));
+
+      var mNivel = dadosTox.match(/nivel\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosTox.match(/(\d+(?:[.,]\d+)?)\s*mcg/i);
+      if (mNivel) paramsPara.nivelSericoMcgMl = parseFloat(mNivel[1].replace(',', '.'));
+
+      if (tLower.includes(" vo") || tLower.includes(" via oral")) paramsPara.viaPreferencia = 'VO';
+
+      var resPara = ToxicologiaEmergenciaService.avaliarParacetamol(paramsPara);
+      if (resPara.erro) return enviarMensagemParaChat(chatId, "❌ Erro: " + resPara.erro);
+
+      msgOut += "💊 *Intoxicação por Paracetamol*\n\n";
+      msgOut += "⚠️ *Dose Tóxica:* " + (resPara.provavelDoseToxica ? "SIM" : "NÃO / INDETERMINADO") + "\n";
+      if (resPara.linhaTratamentoNomograma) msgOut += "📉 *Limiar no Nomograma:* " + resPara.linhaTratamentoNomograma + " mcg/mL\n";
+      msgOut += "✅ *Indicação de NAC:* " + (resPara.indicacaoNac ? "SIM" : "NÃO") + "\n\n";
+      msgOut += "📝 *Motivos:*\n- " + resPara.motivos.join("\n- ") + "\n\n";
+
+      if (resPara.prescricaoNac) {
+        msgOut += "💉 *Prescrição de NAC (" + resPara.prescricaoNac.esquema + "):*\n";
+        if (resPara.prescricaoNac.doseAtaque) {
+          msgOut += "• *Ataque:* " + resPara.prescricaoNac.doseAtaque.descricao + " (" + resPara.prescricaoNac.doseAtaque.doseMg + " mg)\n";
+          msgOut += "• *Manutenção:* " + resPara.prescricaoNac.doseManutencao.descricao + " (" + resPara.prescricaoNac.doseManutencao.doseMg + " mg/dose)\n";
+        } else {
+          msgOut += "• *Etapa 1:* " + resPara.prescricaoNac.etapa1.descricao + " (" + resPara.prescricaoNac.etapa1.doseMg + " mg). " + resPara.prescricaoNac.etapa1.diluicao + ". " + resPara.prescricaoNac.etapa1.alerta + "\n";
+          msgOut += "• *Etapa 2:* " + resPara.prescricaoNac.etapa2.descricao + " (" + resPara.prescricaoNac.etapa2.doseMg + " mg). " + resPara.prescricaoNac.etapa2.diluicao + "\n";
+          msgOut += "• *Etapa 3:* " + resPara.prescricaoNac.etapa3.descricao + " (" + resPara.prescricaoNac.etapa3.doseMg + " mg). " + resPara.prescricaoNac.etapa3.diluicao + "\n";
+          msgOut += "\n🏁 *Fim:* " + resPara.prescricaoNac.criteriosFim + "\n";
+        }
+      }
+      return enviarMensagemParaChat(chatId, msgOut);
+    }
+
+    // 2. Triciclicos
+    if (tLower.includes("triciclico") || tLower.includes("amitriptilina") || tLower.includes("nortriptilina") || tLower.includes("imipramina")) {
+      var paramsTca = {};
+      var mPesoT = dadosTox.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosTox.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+      if (mPesoT) paramsTca.pesoKg = parseFloat(mPesoT[1].replace(',', '.'));
+
+      var mQrs = dadosTox.match(/qrs\s*[:=]?\s*(\d+)/i);
+      if (mQrs) paramsTca.qrsMs = parseInt(mQrs[1], 10);
+
+      if (tLower.includes("convulsa") || tLower.includes("crise")) paramsTca.convulsao = true;
+      if (tLower.includes("hipoten") || tLower.includes("choque")) paramsTca.hipotensao = true;
+      if (tLower.includes("arritm") || tLower.includes("tv")) paramsTca.arritmia = true;
+
+      var resTca = ToxicologiaEmergenciaService.avaliarTriciclicos(paramsTca);
+      msgOut += "⚡ *Intoxicação por Antidepressivos Tricíclicos (TCA)*\n\n";
+      msgOut += "⚠️ *Risco de Convulsão (QRS >= 100ms):* " + (resTca.riscoConvulsao ? "ALTO" : "BAIXO") + "\n";
+      msgOut += "⚠️ *Risco de Arritmia (QRS >= 160ms):* " + (resTca.riscoArritmiaVentricular ? "ALTO" : "BAIXO") + "\n";
+      msgOut += "✅ *Indicação de Bicarbonato:* " + (resTca.indicacaoBicarbonato ? "SIM" : "NÃO") + "\n\n";
+      
+      if (resTca.prescricaoBicarbonato) {
+        msgOut += "🧪 *Prescrição Bicarbonato de Sódio 8,4%: *\n";
+        if (resTca.prescricaoBicarbonato.volumeBolus) {
+          msgOut += "• *Bolus:* " + resTca.prescricaoBicarbonato.descricaoBolus + "\n";
+          msgOut += "• *Alvo:* " + resTca.prescricaoBicarbonato.alvoDose + "\n";
+        } else {
+          msgOut += "• *Alvo:* " + resTca.prescricaoBicarbonato.alvoDose + "\n";
+        }
+        msgOut += "• *Manutenção:* " + resTca.prescricaoBicarbonato.manutencao + "\n";
+        if (resTca.prescricaoBicarbonato.repetirBolus) msgOut += "• *Reavaliação:* " + resTca.prescricaoBicarbonato.repetirBolus + "\n";
+        msgOut += "\n";
+      }
+
+      msgOut += "📝 *Condutas Gerais:*\n- " + resTca.condutasGerais.join("\n- ") + "\n";
+      return enviarMensagemParaChat(chatId, msgOut);
+    }
+
+    // 3. Cardiotoxicos (BB/BCC)
+    if (tLower.includes("bcc") || tLower.includes("bloqueador de canal") || tLower.includes("anlodipino") || tLower.includes("verapamil") || tLower.includes("diltiazem") || 
+        tLower.includes("bb") || tLower.includes("betabloqueador") || tLower.includes("propranolol") || tLower.includes("atenolol") || tLower.includes("metoprolol")) {
+      
+      var paramsCardio = {};
+      var mPesoC = dadosTox.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosTox.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+      if (mPesoC) paramsCardio.pesoKg = parseFloat(mPesoC[1].replace(',', '.'));
+
+      if (tLower.includes("bcc") || tLower.includes("anlodipino") || tLower.includes("verapamil") || tLower.includes("diltiazem")) paramsCardio.toxina = 'BCC';
+      else if (tLower.includes("mista")) paramsCardio.toxina = 'MISTA';
+      else paramsCardio.toxina = 'BB';
+
+      if (tLower.includes("choque") || tLower.includes("refratari") || tLower.includes("hipoten")) paramsCardio.estadoChoque = true;
+
+      var resCardio = ToxicologiaEmergenciaService.avaliarCardiotoxicos(paramsCardio);
+      if (resCardio.erro) return enviarMensagemParaChat(chatId, "❌ Erro: " + resCardio.erro);
+
+      msgOut += "🫀 *Intoxicação Cardiotóxica (" + resCardio.toxina + ")*\n\n";
+      msgOut += "📝 *Condutas Iniciais:*\n- " + resCardio.condutasGerais.join("\n- ") + "\n\n";
+      
+      msgOut += "💊 *Farmacoterapia:*\n";
+      if (resCardio.farmacoterapia.calcio) {
+        msgOut += "🦴 *Cálcio:* " + resCardio.farmacoterapia.calcio.descricao + " " + resCardio.farmacoterapia.calcio.manutencao + "\n";
+      }
+      if (resCardio.farmacoterapia.glucagon) {
+        msgOut += "🔋 *Glucagon:* " + resCardio.farmacoterapia.glucagon.descricao + " " + resCardio.farmacoterapia.glucagon.observacao + "\n";
+      }
+      if (resCardio.farmacoterapia.hiet) {
+        msgOut += "🩸 *Terapia HIET:*\n  • Bolus: " + resCardio.farmacoterapia.hiet.bolus + "\n  • Infusão: " + resCardio.farmacoterapia.hiet.infusao + "\n  • Monitorização: " + resCardio.farmacoterapia.hiet.monitorizacao + "\n";
+      }
+      return enviarMensagemParaChat(chatId, msgOut);
+    }
+
+    // 4. Opioides
+    if (tLower.includes("opioide") || tLower.includes("morfina") || tLower.includes("fentanil") || tLower.includes("tramadol") || tLower.includes("metadona")) {
+      var paramsOp = {};
+      if (tLower.includes("apneia") || tLower.includes("parada respi")) paramsOp.ventilacao = 'APNEIA';
+      else if (tLower.includes("normal") || tLower.includes("eupneico")) paramsOp.ventilacao = 'NORMAL';
+      else paramsOp.ventilacao = 'DEPRIMIDA';
+
+      var resOp = ToxicologiaEmergenciaService.avaliarOpioides(paramsOp);
+      
+      msgOut += "💉 *Intoxicação por Opioides*\n\n";
+      msgOut += "🌬️ *Status Ventilatório:* " + resOp.condicaoVentilatoria + "\n";
+      msgOut += "✅ *Indicação de Naloxona:* " + (resOp.indicacaoNaloxona ? "SIM" : "NÃO") + "\n\n";
+
+      if (resOp.prescricaoNaloxona) {
+        msgOut += "🧪 *Prescrição Naloxona:*\n";
+        msgOut += "• *Dose:* " + resOp.prescricaoNaloxona.doseInicial + "\n";
+        msgOut += "• *Preparo:* " + resOp.prescricaoNaloxona.preparo + "\n";
+        msgOut += "• *Titulação:* " + resOp.prescricaoNaloxona.titulacao + "\n\n";
+      }
+
+      msgOut += "📝 *Condutas:*\n- " + resOp.condutasGerais.join("\n- ") + "\n";
+      return enviarMensagemParaChat(chatId, msgOut);
+    }
+
+    return enviarMensagemParaChat(chatId, "⚠️ Toxina não reconhecida. Tente '/intox paracetamol', '/intox triciclico', '/intox bb', '/intox bcc', ou '/intox opioide'.");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // NEUROLOGIA DE EMERGÊNCIA E MANEJO DE AVC ISQUÊMICO (AHA / SBDCV)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/avc" || comando === "/trombolise" || comando === "/hic") {
+    var dadosAvc = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof NeurologiaAvcService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo NeurologiaAvcService indisponível temporariamente.");
+    }
+
+    if (!dadosAvc && (comando === "/avc" || comando === "/trombolise")) {
+      return enviarMensagemParaChat(chatId, "🧠 *MÓDULO DE NEUROLOGIA DE EMERGÊNCIA & AVC ISQUÊMICO (AHA / SBDCV)*\n\n" +
+        "Envie os parâmetros para avaliação de trombólise ou hipertensão intracraniana:\n" +
+        "• `/avc 65 anos, 2h de sintomas, 75kg, pa 170x100, gli 130` *(Checklist de Trombólise e Dose Alteplase/TNK)*\n" +
+        "• `/avc 82 anos, 4h, nihss 18, sem anticoagulante` *(Janela Estendida 3 a 4.5h ECASS III)*\n" +
+        "• `/hic 70kg, sodio 145, gli 180, ureia 50` *(Osmoterapia: Manitol 20%, Salina 3%/20% e Tetos Osmolares)*\n" +
+        "• `/trombolise 55a, 1.5h, 80kg, pa 200x110` *(Alerta Pressórico e Protocolo Restritivo)*");
+    }
+
+    if (!dadosAvc && comando === "/hic") {
+      return enviarMensagemParaChat(chatId, "💧 *MANEJO DE HIPERTENSÃO INTRACRANIANA (HIC)*\n\n" +
+        "Envie o peso e exames laboratoriais do paciente:\n" +
+        "👉 `/hic 70kg, sodio 145, gli 180, ureia 50`\n" +
+        "👉 `/hic 80kg` *(Cálculos determinísticos de Manitol 20% e Salina Hipertônica 3% e 20%)*");
+    }
+
+    var tLowerAvc = dadosAvc.toLowerCase();
+
+    // Rota 1: Comando específico /hic ou foco estrito em HIC
+    if (comando === "/hic" || (tLowerAvc.includes("hic") && !tLowerAvc.includes("trombo") && !tLowerAvc.includes("avc"))) {
+      var paramsHic = {};
+      var mPesoHic = dadosAvc.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosAvc.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+      paramsHic.pesoKg = mPesoHic ? parseFloat(mPesoHic[1].replace(',', '.')) : 70;
+
+      var mNaHic = dadosAvc.match(/s[oó]dio\s*[:=]?\s*(\d{2,3})/i) || dadosAvc.match(/na\+?\s*[:=]?\s*(\d{2,3})/i);
+      if (mNaHic) paramsHic.sodio = parseInt(mNaHic[1], 10);
+
+      var mGliHic = dadosAvc.match(/gli(?:cemia)?\s*[:=]?\s*(\d{2,4})/i);
+      if (mGliHic) paramsHic.glicemia = parseInt(mGliHic[1], 10);
+
+      var mUrHic = dadosAvc.match(/ur(?:eia)?\s*[:=]?\s*(\d{1,3})/i);
+      if (mUrHic) paramsHic.ureia = parseInt(mUrHic[1], 10);
+
+      var resHic = NeurologiaAvcService.calcularHic(paramsHic);
+      return enviarMensagemParaChat(chatId, NeurologiaAvcService.formatarResumoAvc(resHic));
+    }
+
+    // Rota 2: Avaliação de AVC / Trombólise
+    var paramsAvc = {};
+    var mIdadeAvc = dadosAvc.match(/(\d{1,3})\s*(?:anos|a\b)/i) || dadosAvc.match(/idade\s*[:=]?\s*(\d{1,3})/i);
+    paramsAvc.idade = mIdadeAvc ? parseInt(mIdadeAvc[1], 10) : 65;
+
+    // Tempo de sintomas
+    var mTempoHoras = dadosAvc.match(/(\d+(?:[.,]\d+)?)\s*(?:h|horas|hr)\b/i) || dadosAvc.match(/tempo\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mTempoMin = dadosAvc.match(/(\d+)\s*(?:min|minutos)\b/i);
+    if (mTempoHoras) {
+      paramsAvc.tempoSintomasHoras = parseFloat(mTempoHoras[1].replace(',', '.'));
+    } else if (mTempoMin) {
+      paramsAvc.tempoSintomasHoras = parseFloat((parseInt(mTempoMin[1], 10) / 60).toFixed(2));
+    } else {
+      paramsAvc.tempoSintomasHoras = 2.0; // Padrão se não informado
+    }
+
+    var mPesoAvc = dadosAvc.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosAvc.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+    if (mPesoAvc) paramsAvc.pesoKg = parseFloat(mPesoAvc[1].replace(',', '.'));
+
+    // Pressão Arterial
+    var mPaAvc = dadosAvc.match(/pa\s*[:=]?\s*(\d{2,3})\s*(?:[xX/])\s*(\d{2,3})/i) || dadosAvc.match(/(\d{2,3})\s*(?:[xX/])\s*(\d{2,3})\s*(?:mmhg)?/i);
+    if (mPaAvc) {
+      paramsAvc.pas = parseInt(mPaAvc[1], 10);
+      paramsAvc.pad = parseInt(mPaAvc[2], 10);
+      if (paramsAvc.pas < 30) paramsAvc.pas *= 10;
+      if (paramsAvc.pad < 30) paramsAvc.pad *= 10;
+    }
+
+    // Glicemia
+    var mGliAvc = dadosAvc.match(/gli(?:cemia)?\s*[:=]?\s*(\d{2,4})/i);
+    if (mGliAvc) paramsAvc.glicemia = parseInt(mGliAvc[1], 10);
+
+    // NIHSS
+    var mNihss = dadosAvc.match(/nihss\s*[:=]?\s*(\d{1,2})/i);
+    if (mNihss) paramsAvc.nihss = parseInt(mNihss[1], 10);
+
+    // Plaquetas
+    var mPlaq = dadosAvc.match(/plaq(?:uetas)?\s*[:=]?\s*(\d+)/i);
+    if (mPlaq) paramsAvc.plaquetas = parseInt(mPlaq[1], 10);
+
+    // INR / RNI
+    var mInr = dadosAvc.match(/(?:inr|rni)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (mInr) paramsAvc.inr = parseFloat(mInr[1].replace(',', '.'));
+
+    // DOAC / Anticoagulante
+    if (tLowerAvc.includes("doac") || tLowerAvc.includes("eliquis") || tLowerAvc.includes("xarelto") || tLowerAvc.includes("pradaxa") || tLowerAvc.includes("rivaroxabana") || tLowerAvc.includes("apixabana") || tLowerAvc.includes("dabigatrana")) {
+      paramsAvc.usoDoacUltimas48h = true;
+    }
+    if (tLowerAvc.includes("anticoagulante") || tLowerAvc.includes("varfarina") || tLowerAvc.includes("marevan")) {
+      paramsAvc.usoAnticoagulanteOral = true;
+    }
+
+    // Contraindicações Clínicas no Texto
+    if (tLowerAvc.includes("hemorragia") || tLowerAvc.includes("hic previa") || tLowerAvc.includes("sangramento snc")) paramsAvc.hemorragiaIntracranianaPrevia = true;
+    if (tLowerAvc.includes("avc recente") || tLowerAvc.includes("avc 3 meses") || tLowerAvc.includes("avc previo")) paramsAvc.avcIsquemicoUltimos3Meses = true;
+    if (tLowerAvc.includes("tce") || tLowerAvc.includes("cirurgia snc") || tLowerAvc.includes("trauma cranio")) paramsAvc.tceGraveUltimos3Meses = true;
+    if (tLowerAvc.includes("sangramento ativo") || tLowerAvc.includes("hda") || tLowerAvc.includes("melena")) paramsAvc.sangramentoAtivo = true;
+    if (tLowerAvc.includes("disseccao") || tLowerAvc.includes("dissecção")) paramsAvc.suspeitaDisseccaoAorta = true;
+    if (tLowerAvc.includes("endocardite")) paramsAvc.endocarditeInfecciosa = true;
+    if (tLowerAvc.includes("gestante") || tLowerAvc.includes("gravida")) paramsAvc.gestante = true;
+    if (tLowerAvc.includes("diabetes") && (tLowerAvc.includes("avc previo") || tLowerAvc.includes("historico avc"))) paramsAvc.historicoAvcEDiabetes = true;
+
+    var resTrombo = NeurologiaAvcService.avaliarTrombolise(paramsAvc);
+    var resultadoFinal = Object.assign({}, resTrombo);
+
+    if (paramsAvc.pesoKg) {
+      var resHicComp = NeurologiaAvcService.calcularHic({
+        pesoKg: paramsAvc.pesoKg,
+        glicemia: paramsAvc.glicemia
+      });
+      resultadoFinal.manitol20 = resHicComp.manitol20;
+      resultadoFinal.salinaHipertonica3 = resHicComp.salinaHipertonica3;
+      resultadoFinal.salinaHipertonica20 = resHicComp.salinaHipertonica20;
+      resultadoFinal.alertaGeral = resHicComp.alertaGeral;
+    }
+
+    return enviarMensagemParaChat(chatId, NeurologiaAvcService.formatarResumoAvc(resultadoFinal));
+  }
+
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
     if (!dadosPrescricao) return enviarMensagemParaChat(chatId, "💊 Envie o pedido. Ex: `/rx amigdalite 16kg, alergia a penicilina`");

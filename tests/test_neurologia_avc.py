@@ -11,3 +11,8 @@ def test_neurologia_avc_suite():
         
     assert result.returncode == 0, "A suíte de testes Neurologia AVC falhou."
     assert "TODOS OS TESTES NEUROLOGIA AVC PASSARAM COM SUCESSO" in result.stdout
+
+if __name__ == "__main__":
+    test_neurologia_avc_suite()
+    print("✓ test_neurologia_avc.py executado com sucesso.")
+

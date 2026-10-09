@@ -1146,11 +1146,37 @@ function cockpitNeurologiaAvc(initData, params) {
   if (typeof NeurologiaAvcService === 'undefined') {
     throw new Error('NeurologiaAvcService não carregado.');
   }
-  if (params.acao === 'trombolise') {
+  if (params.acao === 'trombolise' || params.acao === 'avaliar') {
     return NeurologiaAvcService.avaliarTrombolise(params.parametros || params);
   }
   if (params.acao === 'hic') {
     return NeurologiaAvcService.calcularHic(params.parametros || params);
   }
+  if (params.acao === 'formatarResumoAvc') {
+    return NeurologiaAvcService.formatarResumoAvc(params.parametros || params);
+  }
   throw new Error('Ação inválida para Neurologia AVC.');
+}
+
+
+function cockpitToxicologiaEmergencia(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ToxicologiaEmergenciaService === 'undefined') {
+    throw new Error('ToxicologiaEmergenciaService não carregado.');
+  }
+  var p = params.parametros || params;
+  if (params.acao === 'avaliarParacetamol') {
+    return ToxicologiaEmergenciaService.avaliarParacetamol(p);
+  }
+  if (params.acao === 'avaliarTriciclicos') {
+    return ToxicologiaEmergenciaService.avaliarTriciclicos(p);
+  }
+  if (params.acao === 'avaliarCardiotoxicos') {
+    return ToxicologiaEmergenciaService.avaliarCardiotoxicos(p);
+  }
+  if (params.acao === 'avaliarOpioides') {
+    return ToxicologiaEmergenciaService.avaliarOpioides(p);
+  }
+  throw new Error('Ação inválida para Toxicologia de Emergência.');
 }
