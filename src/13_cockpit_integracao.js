@@ -1452,8 +1452,14 @@ function cockpitInfectologiaNeutropenia(initData, params) {
   
   var texto = "🦠 *NEUTROPENIA FEBRIL ONCOLÓGICA*\n\n";
   texto += "*Escore MASCC:* " + mascc.escore + " pontos\n";
-  texto += "*Classificação:* " + mascc.risco + "\n";
+  texto += "*Classificação (MASCC):* " + mascc.risco + "\n";
   texto += "*Conduta Geral:* " + mascc.conduta + "\n\n";
+  
+  if (avaliacao.cisne) {
+    texto += "*Escore CISNE:* " + avaliacao.cisne.escore + " pontos\n";
+    texto += "*Risco (CISNE):* " + avaliacao.cisne.risco + "\n";
+    texto += "*Taxa de Complicações:* " + avaliacao.cisne.complicacoes + "\n\n";
+  }
   
   texto += "💊 *ESQUEMA ANTIMICROBIANO SUGERIDO:*\n";
   for (var i = 0; i < atb.recomendacoes.length; i++) {

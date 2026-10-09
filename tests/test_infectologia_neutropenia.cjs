@@ -48,6 +48,28 @@ function runTests() {
     assert(atb2.recomendacoes.some(r => r.includes("antifúngica")), "Faltou alerta de antifungico para febre >4 dias");
     console.log("✓ Teste 4: Protocolo ATB MRSA e Fungo passou.");
 
+    
+    // Teste 5: CISNE Baixo Risco
+    const cisne1 = InfectologiaNeutropeniaService.calcularCISNE({
+        ecogMaiorIgual2: false, dpoc: false, doencaCardiovascular: false, mucosite: false, monocitosMenor200: false, hiperglicemiaEstresse: false
+    });
+    assert(cisne1.escore === 0, "Escore CISNE falhou");
+    assert(cisne1.risco.includes('Baixo Risco'), "Risco CISNE falhou");
+
+    // Teste 6: CISNE Alto Risco
+    const cisne2 = InfectologiaNeutropeniaService.calcularCISNE({
+        ecogMaiorIgual2: true, // 2
+        dpoc: true, // 1
+        doencaCardiovascular: false,
+        mucosite: false,
+        monocitosMenor200: false,
+        hiperglicemiaEstresse: false
+    });
+    assert(cisne2.escore === 3, "Escore CISNE falhou");
+    assert(cisne2.risco.includes('Alto Risco'), "Risco CISNE falhou");
+    
+    console.log("✓ Testes CISNE passaram.");
+
     console.log("=== TODOS OS TESTES PASSARAM ===");
 }
 
