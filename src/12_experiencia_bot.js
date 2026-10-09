@@ -681,6 +681,28 @@ function tratarEntradaUX(message) {
     return true;
   }
 
+  var recalcPendente = cache.get('recalc_ck_' + chat);
+  if (recalcPendente) {
+    var pRecalc = sanitizarEValidarPesoKg(text);
+    if (pRecalc !== null) {
+      cache.remove('recalc_ck_' + chat);
+      var casoOrigLivre = cache.get(recalcPendente) || obterContextoClinicoBot(chat);
+      if (!casoOrigLivre) {
+        enviarMensagemParaChat(chat, '⚠️ Caso original expirado do cache. Envie novamente os dados com o novo peso.');
+        return true;
+      }
+      var textoComNovoPesoLivre;
+      if (/\b\d+(?:[.,]\d+)?\s*kg\b/i.test(casoOrigLivre)) {
+        textoComNovoPesoLivre = casoOrigLivre.replace(/\b\d+(?:[.,]\d+)?\s*kg\b/i, pRecalc + ' kg');
+      } else {
+        textoComNovoPesoLivre = 'Paciente ' + pRecalc + ' kg. ' + casoOrigLivre;
+      }
+      enviarMensagemParaChat(chat, '🔄 *Recalculando conduta e doses para paciente de ' + pRecalc + ' kg...*');
+      processarMensagemTexto({ chat: { id: chat }, text: textoComNovoPesoLivre });
+      return true;
+    }
+  }
+
   var drogaAguardando = cache.get('dvaw_' + chat);
   if (drogaAguardando && UX_DROGAS[drogaAguardando]) {
     var p = sanitizarEValidarPesoKg(text);
@@ -965,6 +987,55 @@ function tratarCallbackUX(cb) {
       var result = EnfermariaService.desocuparLeito(a.id, a.version);
       cache.remove('alta_' + v);
       enviarMensagemParaChat(chat, result.mensagem);
+    } else if (op === 'recalc') {
+      var partesRecalc = v.split(':');
+      var tipoRecalc = partesRecalc[0];
+      var chaveCasoRecalc = partesRecalc.slice(1).join(':');
+      if (tipoRecalc === 'peso') {
+        safePutCache(cache, 'recalc_ck_' + chat, chaveCasoRecalc, 600);
+        var txtRecalc = '⚖️ *RECALCULAR POR PESO DO PACIENTE*\n\n' +
+          'Selecione um peso de referência rápida ou envie o peso exato em kg (ex: `68` ou `73,5`):\n\n' +
+          '_O cálculo posológico e as diluições serão atualizados imediatamente._';
+        var rPesos = [
+          [['50 kg', 'ux:recalc_val:50:' + chaveCasoRecalc], ['60 kg', 'ux:recalc_val:60:' + chaveCasoRecalc]],
+          [['70 kg', 'ux:recalc_val:70:' + chaveCasoRecalc], ['80 kg', 'ux:recalc_val:80:' + chaveCasoRecalc]],
+          [['90 kg', 'ux:recalc_val:90:' + chaveCasoRecalc], ['100 kg', 'ux:recalc_val:100:' + chaveCasoRecalc]],
+          [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+        ];
+        return enviarTelaBot(chat, txtRecalc, botoesBot(rPesos), msgId);
+      }
+    } else if (op === 'recalc_val') {
+      var partesVal = v.split(':');
+      var novoPesoStr = partesVal[0];
+      var chaveOrig = partesVal.slice(1).join(':');
+      var nPeso = sanitizarEValidarPesoKg(novoPesoStr);
+      if (nPeso === null) {
+        enviarMensagemParaChat(chat, 'Peso inválido para recálculo.');
+        return true;
+      }
+      cache.remove('recalc_ck_' + chat);
+      var casoOrig = cache.get(chaveOrig) || obterContextoClinicoBot(chat);
+      if (!casoOrig) {
+        enviarMensagemParaChat(chat, '⚠️ Caso original expirado do cache. Envie novamente os dados do paciente com o novo peso.');
+        return true;
+      }
+      var textoComNovoPeso;
+      if (/\b\d+(?:[.,]\d+)?\s*kg\b/i.test(casoOrig)) {
+        textoComNovoPeso = casoOrig.replace(/\b\d+(?:[.,]\d+)?\s*kg\b/i, nPeso + ' kg');
+      } else {
+        textoComNovoPeso = 'Paciente ' + nPeso + ' kg. ' + casoOrig;
+      }
+      enviarMensagemParaChat(chat, '🔄 *Recalculando conduta e doses para paciente de ' + nPeso + ' kg...*');
+      return processarMensagemTexto({ chat: { id: chat }, text: textoComNovoPeso });
+    } else if (op === 'interacao') {
+      var chaveInteracao = v.replace(/^caso:/, '');
+      var textoInteracao = cache.get(chaveInteracao) || obterContextoClinicoBot(chat);
+      if (!textoInteracao) {
+        enviarMensagemParaChat(chat, '⚠️ Caso não encontrado ou expirado para checagem de interações.');
+        return true;
+      }
+      enviarMensagemParaChat(chat, '⚠️ *Analisando potenciais interações farmacológicas e segurança clínica...*');
+      return processarMensagemTexto({ chat: { id: chat }, text: '/interacao ' + textoInteracao });
     } else if (op === 'detalhes' || op === 'copiar' || op === 'pdf') {
       var raw = cache.get(v);
       if (!raw) { enviarMensagemParaChat(chat, 'Resultado expirado. Gere novamente com os dados do caso.'); return true; }

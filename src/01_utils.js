@@ -906,3 +906,76 @@ var ValidadorFisiologico = (function() {
   };
 })();
 
+/**
+ * ==============================================================================
+ * PADRONIZAÇÃO VISUAL ESCANEÁVEL BEIRA-LEITO (RESPOSTA EM 3 SEGUNDOS)
+ * ==============================================================================
+ * 🔴 Ação Imediata / Conduta / Dose de Ataque (Sempre no topo em negrito)
+ * 🟡 Diluição, Velocidade de Infusão e Manutenção (mL/h ou gotas/min)
+ * ⚠️ Alertas de Segurança & Bloqueios (Tetos máximos, contraindicações)
+ * ℹ️ Justificativa Clínica e Referências (Seção compacta ao final)
+ * ==============================================================================
+ */
+
+function formatarHierarquiaEscaneavel(config) {
+  if (!config || typeof config !== "object") return "";
+  var blocos = [];
+
+  if (config.titulo) {
+    blocos.push(String(config.titulo).trim());
+  }
+
+  function formatarItens(itens) {
+    if (!itens) return "";
+    if (Array.isArray(itens)) {
+      return itens.filter(Boolean).map(function(item) {
+        var str = String(item).trim();
+        return str.startsWith("• ") || str.startsWith("- ") ? str : "• " + str;
+      }).join("\n");
+    }
+    return String(itens).trim();
+  }
+
+  // 1. 🔴 Ação Imediata / Conduta / Dose de Ataque
+  if (config.acaoImediata) {
+    var txtAcao = formatarItens(config.acaoImediata);
+    if (txtAcao) {
+      blocos.push("🔴 *AÇÃO IMEDIATA / CONDUTA / DOSE DE ATAQUE:*\n" + txtAcao);
+    }
+  }
+
+  // 2. 🟡 Diluição, Velocidade de Infusão e Manutenção
+  if (config.manutencaoDiluicao) {
+    var txtManut = formatarItens(config.manutencaoDiluicao);
+    if (txtManut) {
+      blocos.push("🟡 *DILUIÇÃO, VELOCIDADE DE INFUSÃO E MANUTENÇÃO:*\n" + txtManut);
+    }
+  }
+
+  // 3. ⚠️ Alertas de Segurança & Bloqueios
+  if (config.alertasSeguranca) {
+    var txtAlertas = formatarItens(config.alertasSeguranca);
+    if (txtAlertas) {
+      blocos.push("⚠️ *ALERTAS DE SEGURANÇA E BLOQUEIOS:*\n" + txtAlertas);
+    }
+  }
+
+  // 4. ℹ️ Justificativa Clínica e Referências
+  if (config.justificativa) {
+    var txtJust = formatarItens(config.justificativa);
+    if (txtJust) {
+      blocos.push("ℹ️ *JUSTIFICATIVA CLÍNICA E REFERÊNCIAS:*\n" + txtJust);
+    }
+  }
+
+  if (config.rodape) {
+    blocos.push(String(config.rodape).trim());
+  }
+
+  return blocos.join("\n\n");
+}
+
+function padronizarHierarquiaVisual(texto) {
+  if (!texto) return "";
+  return String(texto);
+}

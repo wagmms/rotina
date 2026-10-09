@@ -720,7 +720,26 @@ function processarMensagemTexto(message) {
         })
       : "Atestado médico indisponível.";
 
-    return enviarMensagemParaChat(chatId, "📜 *ATESTADO MÉDICO PRONTO PARA O PRONTUÁRIO / PEP:*\n\n```\n" + textoAtestado + "\n```\n\n_Toque no texto acima para copiar direto para o prontuário eletrônico._");
+    var cacheKeyAt = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(CacheService.getScriptCache(), cacheKeyAt, textoAtestado, 21600);
+    var limpoAt = typeof uxTextoProntuario === "function" ? uxTextoProntuario(textoAtestado) : textoAtestado.trim();
+    var btnCopiarAt;
+    if (limpoAt.length >= 1 && limpoAt.length <= 256) {
+      btnCopiarAt = { "text": "📋 Copiar para Prontuário", "copy_text": { "text": limpoAt } };
+    } else {
+      btnCopiarAt = { "text": "📋 Copiar para Prontuário", "callback_data": "ux:copiar:" + cacheKeyAt };
+    }
+    var tecladoAtestado = {
+      inline_keyboard: [
+        [btnCopiarAt],
+        [
+          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    };
+    var msgAtestado = "📜 *ATESTADO MÉDICO PRONTO PARA O PRONTUÁRIO / PEP:*\n\n```\n" + textoAtestado + "\n```\n\n_Toque no botão abaixo para copiar direto para o prontuário eletrônico (PEP)._";
+    return enviarMensagemComTecladoParaChat(chatId, msgAtestado, tecladoAtestado);
   }
 
   if (comando === "/prenatal" || comando === "/dpp") {
@@ -4933,12 +4952,12 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
     var botoes = [];
     var limpo = typeof uxTextoProntuario === "function" ? uxTextoProntuario(strResultado) : strResultado.trim();
 
-    // Destaque absoluto: Copiar PEP em linha exclusiva de largura total
+    // Destaque absoluto: Copiar para Prontuário em linha exclusiva de largura total
     var btnCopiar;
     if (limpo.length >= 1 && limpo.length <= 256) {
-      btnCopiar = { "text": "📋 Copiar PEP", "copy_text": { "text": limpo } };
+      btnCopiar = { "text": "📋 Copiar para Prontuário", "copy_text": { "text": limpo } };
     } else {
-      btnCopiar = { "text": "📋 Copiar PEP", "callback_data": "ux:copiar:" + cacheKey };
+      btnCopiar = { "text": "📋 Copiar para Prontuário", "callback_data": "ux:copiar:" + cacheKey };
     }
     var linhaPrimaria = [btnCopiar];
 
@@ -4949,8 +4968,15 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
 
     var ehSoapFechado = (tipoCache === "soap") && /🧠\s*\*A\s*-/i.test(strResultado);
 
+    // Botões inline de ajuste dinâmico beira-leito
+    var linhaAjustesDinamicos = [
+      { "text": "🔄 Recalcular por Peso", "callback_data": "ux:recalc:peso:" + cacheKey },
+      { "text": "⚠️ Ver Interações", "callback_data": "ux:interacao:caso:" + cacheKey }
+    ];
+
     if (tipoCache === "soap" && !ehErro) {
       botoes.push(linhaPrimaria);
+      botoes.push(linhaAjustesDinamicos);
       if (!ehSoapFechado) {
         // FASE 1: Rascunho com Anamnese e Exame Físico
         botoes.push([
@@ -4979,6 +5005,9 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
       }
     } else {
       botoes.push(linhaPrimaria);
+      if ((tipoCache === "rx" || tipoCache === "rxh" || tipoCache === "conduta") && !ehErro) {
+        botoes.push(linhaAjustesDinamicos);
+      }
       var linhaSecundaria = [];
       if (elegivelPdfRx) {
         linhaSecundaria.push({ "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + cacheKey });

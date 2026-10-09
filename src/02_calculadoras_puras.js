@@ -1259,10 +1259,29 @@ var CalculadorasClinicas = (function () {
       if (d.aviso) avisos.unshift(d.aviso);
 
       var taxaFixaVaso = (chave === 'vasopressina' ? 9.0 : null);
+      var doseInicialTxt = d.unidade === 'UI/min' 
+        ? ('Dose fixa recomendada: ' + fmt(d.doses[0], 2) + ' UI/min (' + (taxaFixaVaso || 9) + ' mL/h na bomba)')
+        : ('Dose inicial recomendada: ' + fmt(d.doses[0], d.doses[0] < 0.1 ? 2 : 1) + ' ' + d.unidade + ' (' + (tabelaLegada[0] ? tabelaLegada[0].mlH : '0') + ' mL/h na bomba)');
+
+      var secoes = [
+        ['🔴 AÇÃO IMEDIATA / DOSE DE ATAQUE', [
+          doseInicialTxt,
+          'Alvo imediato: PAM ≥ 65 mmHg (titulação seriada a cada 2 a 5 minutos)',
+          (d.peso ? 'Peso considerado: ' + fmt(peso, 0) + ' kg (' + fmt(peso, 1) + ' kg)' : 'Dose fixa independente de peso')
+        ]],
+        ['🟡 DILUIÇÃO, VELOCIDADE DE INFUSÃO E MANUTENÇÃO', [
+          textoPreparo,
+          'Concentração da solução: ' + fmt(conc, d.unidade === 'UI/min' ? 1 : 0) + ' ' + d.conc,
+          'Tabela de Vazão em Bomba de Infusão Contínua (BIC):'
+        ].concat(linhas)],
+        ['⚠️ ALERTAS DE SEGURANÇA E BLOQUEIOS', avisos],
+        ['ℹ️ JUSTIFICATIVA CLÍNICA E REFERÊNCIAS', ['Droga vasoativa de 1ª linha / suporte hemodinâmico'].concat(d.acoes)]
+      ];
+
       return sucesso({
         id: ID, nome: d.nome, estado: 'CALCULO', rotulo: 'CÁLCULO DE INFUSÃO · CONFERIR PREPARO',
         principal: fmt(conc, d.unidade === 'UI/min' ? 1 : 0) + ' ' + d.conc,
-        secoes: [['BASE DO CÁLCULO', base], ['DOSE → VAZÃO', linhas], ['AÇÃO', ['Alvo inicial: PAM ≥ 65 mmHg.'].concat(d.acoes)]],
+        secoes: secoes,
         avisos: avisos,
         dados: { droga: chave, concentracao: conc, unidadeConcentracao: d.conc, solucao: tipoSol, tabela: tabelaLegada },
         legado: {
@@ -1407,9 +1426,13 @@ var CalculadorasClinicas = (function () {
       ];
 
       var secoes = [
-        ['BASE DO CÁLCULO', ['Peso do Paciente: ' + fmt(peso, 1) + ' kg', 'Contexto: ' + ctxTxt]],
-        ['CONDUTA RECOMENDADA', recomendacoes],
-        ['CARTÃO DE DOSES CALCULADAS (BEIRA-LEITO)', linhasDoses]
+        ['🔴 AÇÃO IMEDIATA / CONDUTA / DOSE DE ATAQUE', linhasDoses],
+        ['🟡 DILUIÇÃO, VELOCIDADE DE INFUSÃO E MANUTENÇÃO', [
+          'Peso base: ' + fmt(peso, 1) + ' kg · Cenário clínico: ' + ctxTxt,
+          'Ordem cronológica: Pré-oxigenação ➔ Fentanil (lento 2 min) ➔ Indutor em bolus IV ➔ Bloqueador em bolus IV rápido ➔ Laringoscopia aos 45-60s'
+        ]],
+        ['⚠️ ALERTAS DE SEGURANÇA E BLOQUEIOS', avisos.concat(recomendacoes.filter(function(r) { return r.indexOf('⚠️') !== -1; }))],
+        ['ℹ️ JUSTIFICATIVA CLÍNICA E REFERÊNCIAS', recomendacoes.filter(function(r) { return r.indexOf('⚠️') === -1; })]
       ];
 
       return sucesso({

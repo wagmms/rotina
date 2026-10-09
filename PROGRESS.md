@@ -453,16 +453,22 @@
       * Tratamento gracioso de erros de digitação (typos comuns como `clearence`, `gasometria`, `intubacao`, `amoxilina`, `receita`).
       * Criação da suíte dedicada `tests/test_ui_ux_acessibilidade_telegram.cjs` e integração no pipeline `npm test` com 100% de aprovação.
 
-56. [ ] **UI/UX & Formatação Visual de Respostas — Respostas Escaneáveis em 3 Segundos e Cópia com 1 Toque para PEP**:
+56. [x] **UI/UX & Formatação Visual de Respostas — Respostas Escaneáveis em 3 Segundos e Cópia com 1 Toque para PEP**:
     - **Hierarquia Visual Escaneável Beira-Leito**:
-      * Padronização visual estrita em todas as respostas do bot para leitura em situações de estresse ou correria:
+      * Padronização visual estrita em todas as respostas do bot para leitura em situações de estresse ou correria com 4 marcadores semafóricos:
         - 🔴 **Ação Imediata / Conduta / Dose de Ataque**: Sempre no topo em negrito, com valores destacados para decisão em 3 segundos.
         - 🟡 **Diluição, Velocidade de Infusão e Manutenção**: Posologia discriminada de forma prática (ex: mL/h na bomba ou gotas/min).
         - ⚠️ **Alertas de Segurança & Bloqueios**: Tetos máximos, contraindicações absolutas e monitorização clínica indispensável.
-        - ℹ️ **Justificativa Clínica e Referências**: Seção compacta ou recolhida ao final, sem poluir a tomada de decisão rápida.
+        - ℹ️ **Justificativa Clínica e Referências**: Seção compacta e recolhida ao final, sem poluir a tomada de decisão rápida.
+      * Criação das funções utilitárias `formatarHierarquiaEscaneavel(config)` e `padronizarHierarquiaVisual(texto)` em `src/01_utils.js`.
+      * Atualização de `drogasVasoativas` e `sequenciaRapidaIntubacao` em `src/02_calculadoras_puras.js` e do contrato visual `IA_VISUAL` e motor de emergência em `src/04_motores_ia.js` para seguir rigorosamente essa arquitetura escaneável.
     - **Exportação Limpa com 1 Toque**:
-      * Botão inline dedicado "📋 Copiar para Prontuário" nas respostas de prescrição, SOAP e atestados, gerando texto puro pronto para colar diretamente em qualquer Prontuário Eletrônico do Paciente (PEP/MV/Tasy/e-SUS).
-      * Botões inline de ajuste dinâmico: "🔄 Recalcular por Peso" e "⚠️ Ver Interações".
+      * Botão inline dedicado "📋 Copiar para Prontuário" padronizado nas respostas de prescrição (`rx`, `rxh`), SOAP e atestados médicos (`/atestado`), gerando texto limpo (`uxTextoProntuario` sem markdown, emojis ou hashes) pronto para colar no PEP (Tasy, MV, e-SUS).
+      * Suporte a `copy_text` nativo para textos <= 256 caracteres e fallback via callback `ux:copiar:` para textos extensos.
+    - **Botões Inline de Ajuste Dinâmico Beira-Leito**:
+      * "🔄 Recalcular por Peso" (`ux:recalc:peso:`): seletor instantâneo com botões de peso rápido (50, 60, 70, 80, 90, 100 kg) e captura de peso livre por texto com recálculo automático da posologia.
+      * "⚠️ Ver Interações" (`ux:interacao:caso:`): análise farmacológica instantânea de interações e segurança clínica do caso/prescrição em cache.
+      * Criação da suíte dedicada `tests/test_ui_ux_formatacao_respostas_pep.cjs` e integração no pipeline `npm test` com 100% de sucesso.
 
 57. [ ] **Saneamento do Escopo Clínico — Inventário Completo e Expurgo de Funções Fora do Perfil de Internato e Generalista**:
     - **Inventário Exaustivo de Funções Instaladas**:
