@@ -71,6 +71,71 @@ var SoapAmbulatorialService = (function() {
         'Extremidades: Sem edema de membros inferiores, pulsos pediosos e tibiais posteriores cheios e simétricos, boa perfusão periférica (< 2s).'
       ].join('\n')
     },
+    padrao_completo: {
+      titulo: 'Adulto Geral Completo (Segmentar Padrão Ouro)',
+      texto: [
+        '[Exame Físico Geral e Segmentar Completo sem Alterações]:',
+        '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+        '• Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | Tax: 36,5°C.',
+        '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
+        '• Aparelho Cardiovascular (ACV): Ritmo cardíaco regular em 2 tempos (RCR 2T), bulhas normofonéticas (BNF), sem sopros ou extrassístoles. Pulsos periféricos presentes, amplos, cheios e simétricos bilateralmente.',
+        '• Aparelho Respiratório (AR): Murmúrio vesicular universalmente audível (MVUA), sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
+        '• Abdome: Plano, flácido, depressível, indolor à palpação superficial e profunda. Ruídos hidroaéreos (RHA) normoativos. Fígado e baço impalpáveis. Descompressão brusca negativa (Blumberg ausente). Sem massas palpáveis.',
+        '• Extremidades / Vascular: Sem edema de membros inferiores (ausência de sinal do cacifo). Panturrilhas livres sem empastamento (sinal de Homans negativo). Tempo de enchimento capilar (TEC) < 2 segundos. Pulsos pediosos cheios.',
+        '• Neurológico Sumário: Glasgow 15, pupilas isocóricas e fotorreagentes direta e consensualmente. Força motora grau 5/5 simétrica. Sem déficits focais. Rigidez de nuca ausente, Kernig e Brudzinski negativos.'
+      ].join('\n')
+    },
+    pediatrico_completo: {
+      titulo: 'Pediátrico Completo (Lactente / Criança)',
+      texto: [
+        '[Exame Físico Pediátrico Normal]:',
+        '• Ectoscopia: Bom estado geral, ativo e reativo, corado, hidratado, anictérico, acianótico, afebril. Choro forte e consolável.',
+        '• Crânio e Face: Fontanela anterior plana e normotensa, perímetro cefálico adequado para a idade.',
+        '• Oroscopia / Otoscopia: Oroscopia sem hiperemia ou placas; otoscopia bilateral com membranas timpânicas íntegras e translúcidas.',
+        '• Aparelho Respiratório: Eupneico em ar ambiente, sem tiragem subcostal, batimento de asa de nariz ou gemência. MV presente bilateralmente sem ruídos adventícios.',
+        '• Aparelho Cardiovascular: RCR 2T, bulhas normofonéticas sem sopros. Pulsos femorais e radiais palpáveis, cheios e simétricos. TEC < 2s.',
+        '• Abdome: Semigloboso, flácido, indolor, RHA normoativos, sem visceromegalias patológicas ou hérnias redutíveis dolorosas.',
+        '• Membros e Quadris: Tônus adequado. Manobras de Ortolani e Barlow negativas bilateralmente. Boa movimentação ativa.'
+      ].join('\n')
+    },
+    geriatrico_aga: {
+      titulo: 'Geriátrico / Avaliação Geriátrica Ampla (AGA)',
+      texto: [
+        '[Avaliação Geriátrica Ampla / Exame Físico do Idoso]:',
+        '• Ectoscopia: BEG, lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril.',
+        '• Sinais Vitais: PA sentado: 124/78 mmHg | PA ortostase: 120/76 mmHg (hipotensão ortostática ausente). FC: 68 bpm.',
+        '• Cognição e Humor: MEEM preservado para escolaridade; rastreio de sintomas depressivos (GDS-15) negativo.',
+        '• Funcionalidade: Independente para ABVDs (Katz 6/6) e autônomo para AIVDs (Lawton 27/27).',
+        '• Marcha e Equilíbrio: Teste Timed Up and Go (TUG) < 10 segundos (baixo risco de quedas). Romberg negativo.',
+        '• Cardiopulmonar: ACV: RCR 2T BNF sem sopros. Sem turgência jugular. AR: MV limpo bilateralmente sem estertores.',
+        '• Nutrição e Sarcopenia: Circunferência de panturrilha > 31 cm (trofismo muscular preservado), força de preensão preservada.',
+        '• Pele e Extremidades: Pele íntegra sem lesões por pressão. Pulsos periféricos amplos. Sem edema de MMII.'
+      ].join('\n')
+    },
+    obstetrico_prenatal: {
+      titulo: 'Obstétrico / Consulta de Pré-Natal',
+      texto: [
+        '[Exame Físico Obstétrico / Pré-Natal]:',
+        '• Ectoscopia: BEG, LOTE, corada, hidratada, anictérica, acianótica, afebril, eupnéica em ar ambiente. PA: 110/70 mmHg.',
+        '• Mamas: Simétricas, mamilos protusos, sem nódulos ou áreas inflamatórias, colostro fisiológico à expressão.',
+        '• Altura Uterina (AU): Compatível com a idade gestacional (entre p10 e p90 da curva de CLAP).',
+        '• Manobras de Leopold: Situação longitudinal, dorso à esquerda, apresentação cefálica.',
+        '• Ausculta Cardiofetal: Batimentos cardiofetais (BCF) presentes, rítmicos, 140 bpm, sem desacelerações.',
+        '• Dinâmica Uterina (DU): Tônus uterino normal, ausência de contrações uterinas dolorosas.',
+        '• Extremidades: Sem edema de membros inferiores ou edema maleolar leve fisiológico vespertino. Pulsos pediosos cheios.'
+      ].join('\n')
+    },
+    vascular_periferico: {
+      titulo: 'Vascular Periférico & Pulsos',
+      texto: [
+        '[Exame Vascular Periférico]:',
+        '• Ectoscopia MMII: Pele com trofismo preservado bilateralmente, sem lesões tróficas ou úlceras. Sem cordões varicosos tensos.',
+        '• Pulsos: Femorais, poplíteos, tibiais posteriores e pediosos presentes, amplos (2+/2+) e simétricos bilateralmente.',
+        '• Perfusão: Extremidades aquecidas sem gradiente térmico. Tempo de enchimento capilar (TEC) < 2 segundos.',
+        '• Sistema Venoso: Sem edema de membros inferiores (cacifo negativo). Panturrilhas livres e simétricas sem empastamento.',
+        '• Manobras: Sinais de Homans e Bancroft negativos bilateralmente.'
+      ].join('\n')
+    },
     has_rotina: {
       titulo: 'Hipertensão Arterial Sistêmica (HAS)',
       texto: [

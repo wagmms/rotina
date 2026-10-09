@@ -281,4 +281,47 @@ def test_cockpit_ginecologia_ambulatorial():
     assert "copiarCondutaGinecoParaPep" in conteudo
 
 
+def test_cockpit_exame_fisico_normal_estruturado():
+    """Valida o botão restaurado e enriquecido de Exame Físico Normal e seus modelos."""
+    html_path = BASE_DIR / "cockpit_movel.html"
+    conteudo = html_path.read_text(encoding="utf-8")
+
+    # Botões na barra de ação e acima do campo de digitação
+    assert "abrirModalExameFisicoNormal()" in conteudo
+    assert "inserirEfNormalRapidoDireto()" in conteudo
+
+    # Modal e controles estruturados
+    assert 'id="modal-exame-fisico-normal"' in conteudo
+    assert 'id="ef-select-modelo"' in conteudo
+    assert 'id="ef-normal-editor-texto"' in conteudo
+    assert 'id="ef-badge-sistema"' in conteudo
+
+    # Funções de inserção, cópia e envio
+    assert "MODELOS_EF_COMPLETOS" in conteudo
+    assert "fecharModalExameFisicoNormal" in conteudo
+    assert "selecionarModeloEfModal" in conteudo
+    assert "inserirEfNormalNoInput" in conteudo
+    assert "copiarEfNormalClipboard" in conteudo
+    assert "enviarEfNormalDiretoSOAP" in conteudo
+
+    # Validação do runtime e modelos do SoapAmbulatorialService
+    js = """
+    var m = SoapAmbulatorialService.MODELOS_EXAME_FISICO;
+    console.log(JSON.stringify({
+        hasPadraoCompleto: !!m.padrao_completo,
+        hasPediatrico: !!m.pediatrico_completo,
+        hasGeriatrico: !!m.geriatrico_aga,
+        hasObstetrico: !!m.obstetrico_prenatal,
+        hasVascular: !!m.vascular_periferico
+    }));
+    """
+    out = json.loads(run_node(js))
+    assert out["hasPadraoCompleto"] is True
+    assert out["hasPediatrico"] is True
+    assert out["hasGeriatrico"] is True
+    assert out["hasObstetrico"] is True
+    assert out["hasVascular"] is True
+
+
+
 

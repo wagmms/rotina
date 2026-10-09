@@ -805,6 +805,8 @@ module.exports = {
         _rpcMap.cockpitResumoGinecologia = ctx.cockpitResumoGinecologia;
         _rpcMap.cockpitPainelPuericultura = ctx.cockpitPainelPuericultura;
         _rpcMap.cockpitSaudeIdosoAga = ctx.cockpitSaudeIdosoAga;
+        _rpcMap.cockpitAuditarInfusaoUti = ctx.cockpitAuditarInfusaoUti;
+        _rpcMap.cockpitObterModelosExameFisico = ctx.cockpitObterModelosExameFisico;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

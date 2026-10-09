@@ -151,8 +151,8 @@ function cockpitCalcular(initData, tipo, entrada) {
 
   switch (tipo) {
     case 'dva':
-      if (['nora','dobuta','vaso'].indexOf(entrada.droga) < 0) throw new Error('Selecione uma droga válida.');
-      return CalculadorasClinicas.drogasVasoativas(entrada.droga, entrada.peso, 'padrao');
+      if (['nora','dobuta','vaso','adrena','adrenalina','nipride','tridil'].indexOf(entrada.droga) < 0) throw new Error('Selecione uma droga válida.');
+      return CalculadorasClinicas.drogasVasoativas(entrada.droga, entrada.peso, entrada.solucao || 'padrao');
     case 'sri':
       if (['padrao','choque','asma'].indexOf(entrada.cenario) < 0) throw new Error('Selecione um cenário válido.');
       return CalculadorasClinicas.sequenciaRapidaIntubacao(entrada.peso, entrada.cenario);
@@ -201,12 +201,26 @@ function cockpitConversar(initData, params) {
     }
 
     if (acao === 'ef_normal') {
-      if (!dadosAtuais.trim()) throw new Error('Nenhum caso ativo. Envie dados clínicos antes de registrar o exame físico.');
-      var novoTextoEf = dadosAtuais + '\n[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.';
+      var textoEfCustom = (params.textoEf || params.texto || '').trim();
+      var exameAInserir = textoEfCustom || [
+        '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
+        '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+        '• Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | Tax: 36,5°C.',
+        '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
+        '• Aparelho Cardiovascular (ACV): Ritmo cardíaco regular em 2 tempos (RCR 2T), bulhas normofonéticas (BNF), sem sopros ou extrassístoles. Pulsos periféricos presentes, amplos, cheios e simétricos bilateralmente.',
+        '• Aparelho Respiratório (AR): Murmúrio vesicular universalmente audível (MVUA), sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
+        '• Abdome: Plano, flácido, depressível, indolor à palpação superficial e profunda. Ruídos hidroaéreos (RHA) normoativos. Fígado e baço impalpáveis. Descompressão brusca negativa (Blumberg ausente). Sem massas palpáveis.',
+        '• Extremidades / Vascular: Sem edema de membros inferiores (ausência de sinal do cacifo). Panturrilhas livres sem empastamento (sinal de Homans negativo). Tempo de enchimento capilar (TEC) < 2 segundos. Pulsos pediosos cheios.',
+        '• Neurológico Sumário: Glasgow 15, pupilas isocóricas e fotorreagentes direta e consensualmente. Força motora grau 5/5 simétrica. Sem déficits focais. Rigidez de nuca ausente, Kernig e Brudzinski negativos.'
+      ].join('\n');
+
+      var novoTextoEf = dadosAtuais.trim()
+        ? dadosAtuais + '\n' + exameAInserir
+        : 'Paciente em atendimento clínico de rotina.\n' + exameAInserir;
       var estadoAtualizadoEf = definirModoBot(chat, 'soap', novoTextoEf);
       var soapEf = gerarSOAPComIA(novoTextoEf);
       salvarSoapCockpit_(chat, estadoAtualizadoEf, String(soapEf));
-      return { sucesso: true, acao: 'ef_normal', resposta: String(soapEf), soap: String(soapEf), revision: estadoAtualizadoEf.revision };
+      return { sucesso: true, acao: 'ef_normal', resposta: String(soapEf), soap: String(soapEf), revision: estadoAtualizadoEf.revision, textoEf: exameAInserir };
     }
 
     if (acao === 'plano') {
@@ -681,4 +695,41 @@ function cockpitSaudeIdosoAga(initData, params) {
   }
   return SaudeIdosoService.gerarResumoAga(params);
 }
+
+/**
+ * cockpitAuditarInfusaoUti - Auditoria de toxicidade e limites de taxa de infusão beira-leito.
+ */
+function cockpitAuditarInfusaoUti(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof AuditoriaInfusaoUtiService === 'undefined') {
+    throw new Error('Módulo AuditoriaInfusaoUtiService indisponível.');
+  }
+  if (params.vazaoMlH !== undefined) {
+    return AuditoriaInfusaoUtiService.auditarVazaoBomba(params);
+  }
+  if (params.doseAlvo !== undefined) {
+    return AuditoriaInfusaoUtiService.calcularVazaoSegura(params);
+  }
+  if (params.infusoes && Array.isArray(params.infusoes)) {
+    return AuditoriaInfusaoUtiService.auditarPrescricaoMultipla(params);
+  }
+  if (params.tabelaTitulacao) {
+    return AuditoriaInfusaoUtiService.gerarTabelaTitulacao(params.droga, params.pesoKg, params.solucao);
+  }
+  throw new Error('Informe vazaoMlH, doseAlvo, infusoes ou tabelaTitulacao para auditoria de UTI.');
+}
+
+/**
+ * cockpitObterModelosExameFisico — retorna catálogo de modelos de exame físico estruturado.
+ */
+function cockpitObterModelosExameFisico(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO) {
+    return { sucesso: true, modelos: SoapAmbulatorialService.MODELOS_EXAME_FISICO };
+  }
+  return { sucesso: true, modelos: {} };
+}
+
 

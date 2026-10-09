@@ -1132,11 +1132,22 @@ var CalculadorasClinicas = (function () {
       doses: [0.01, 0.02, 0.03, 0.04],
       acoes: ['Dose fixa: 0,03 UI/min (SSC 2021) = 9 mL/h; não titular.', 'Iniciar quando noradrenalina estiver em 0,25–0,5 mcg/kg/min.'],
       aviso: 'Não titular como catecolamina. Dose contínua fixa.'
+    },
+    adrenalina: {
+      nome: 'Adrenalina', unidade: 'mcg/kg/min', peso: true, conc: 'mcg/mL',
+      preparos: {
+        padrao: { mg: 4, vol: 250, conc: 16, ref: 'Ampola: 1 mg/1 mL; padrão: 4 ampolas (4 mg) em 246 mL SG5% (16 mcg/mL).' },
+        concentrada: { mg: 8, vol: 250, conc: 32, ref: 'Ampola: 1 mg/1 mL; concentrada: 8 ampolas (8 mg) em 242 mL SG5% (32 mcg/mL).' }
+      },
+      doses: [0.02, 0.05, 0.1, 0.2, 0.5, 1.0],
+      acoes: ['Início habitual: 0,02–0,05 mcg/kg/min (inotrópico) a 0,1–0,5 mcg/kg/min (vasopressor).', 'Monitorar ECG contínuo por arritmias ventriculares e lactato sérico.'],
+      aviso: 'Doses > 1,0 mcg/kg/min têm alto risco de arritmias ventriculares graves e isquemia.'
     }
   };
 
   var DVA_ALIAS = {
     noradrenalina: 'noradrenalina', norepinefrina: 'noradrenalina', nora: 'noradrenalina',
+    adrenalina: 'adrenalina', adrena: 'adrenalina', epinefrina: 'adrenalina', epi: 'adrenalina',
     dobutamina: 'dobutamina', dobuta: 'dobutamina',
     vasopressina: 'vasopressina', vaso: 'vasopressina', pitressin: 'vasopressina',
     nitroprussiato: 'nitroprussiato', nipride: 'nitroprussiato',
@@ -1149,7 +1160,7 @@ var CalculadorasClinicas = (function () {
       var c = novoCtx();
       var chave = ausente(droga) ? 'noradrenalina' : DVA_ALIAS[semAcento(droga)];
       if (!chave) {
-        c.erros.push('Droga não reconhecida (noradrenalina, dobutamina, vasopressina, nitroprussiato, nitroglicerina)');
+        c.erros.push('Droga não reconhecida (noradrenalina, adrenalina, dobutamina, vasopressina, nitroprussiato, nitroglicerina)');
         return falhaCtx(ID, NOME, c);
       }
       var d = DVA[chave];
@@ -2603,6 +2614,22 @@ var CalculadorasClinicas = (function () {
     parkland: parkland,
     calcularParklandPorTextoLivre: calcularParklandPorTextoLivre,
     drogasVasoativas: drogasVasoativas,
+    auditarInfusaoUti: function (p) {
+      if (typeof AuditoriaInfusaoUtiService !== 'undefined') return AuditoriaInfusaoUtiService.auditarVazaoBomba(p);
+      throw new Error('Serviço de Auditoria de Infusão não carregado.');
+    },
+    calcularVazaoSeguraUti: function (p) {
+      if (typeof AuditoriaInfusaoUtiService !== 'undefined') return AuditoriaInfusaoUtiService.calcularVazaoSegura(p);
+      throw new Error('Serviço de Auditoria de Infusão não carregado.');
+    },
+    auditarPrescricaoMultiplaUti: function (p) {
+      if (typeof AuditoriaInfusaoUtiService !== 'undefined') return AuditoriaInfusaoUtiService.auditarPrescricaoMultipla(p);
+      throw new Error('Serviço de Auditoria de Infusão não carregado.');
+    },
+    gerarTabelaTitulacaoUti: function (d, p, s) {
+      if (typeof AuditoriaInfusaoUtiService !== 'undefined') return AuditoriaInfusaoUtiService.gerarTabelaTitulacao(d, p, s);
+      throw new Error('Serviço de Auditoria de Infusão não carregado.');
+    },
     sequenciaRapidaIntubacao: sequenciaRapidaIntubacao,
     posologiaPediatrica: posologiaPediatrica,
     calcularPosologiaPorTextoLivre: calcularPosologiaPorTextoLivre,

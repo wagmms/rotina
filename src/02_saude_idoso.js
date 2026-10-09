@@ -4,7 +4,7 @@
  * risco de quedas (TUG) e prevenção de polifarmácia/iatrogenia (Critérios de Beers AGS 2023).
  */
 
-class SaudeIdosoService {
+var SaudeIdosoService = class SaudeIdosoService {
   /**
    * Avalia a fragilidade clínica pela Clinical Frailty Scale (CFS) - Rockwood
    * @param {number} score 1 a 9
