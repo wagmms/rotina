@@ -40,7 +40,8 @@ async function testDefensivo() {
     '/dva', '/sri', '/gaso', '/winter',
     '/pals', '/avc', '/hic', '/kdigo',
     '/monoartrite', '/gota', '/febrereumatica',
-    '/dermato', '/herpes', '/zoster', '/ulceragenital', '/sifilis', '/mpox'
+    '/dermato', '/herpes', '/zoster', '/ulceragenital', '/sifilis', '/mpox',
+    '/vertigem', '/hints', '/tontura', '/vppb', '/epistaxe', '/sangramentonasal', '/tamponamento'
   ];
 
   const variacoesTexto = [
@@ -93,7 +94,10 @@ async function testDefensivo() {
     'cockpitDermatologiaHerpes',
     'cockpitDermatologiaUlcerasGenitais',
     'cockpitDermatologiaSifilis',
-    'cockpitDermatologiaMpox'
+    'cockpitDermatologiaMpox',
+    'cockpitOtorrinoVertigemHints',
+    'cockpitOtorrinoEpistaxe',
+    'cockpitOtorrinoResumo'
   ];
 
   const payloadsRpc = [
