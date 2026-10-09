@@ -1213,24 +1213,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Escala MRC para avaliação de força muscular segmentar.
     - Indicações de Imunoglobulina IV (IgIV) vs Plasmaférese, e monitoramento da capacidade vital forçada (CVF) para predição de falência respiratória e intubação precoce.
 
-147. [ ] **Ginecologia & Oncologia Pélvica - Rastreamento e Manejo de Câncer de Endométrio e Espessamento Endometrial na Pós-Menopausa (Diretrizes ESGO / FEBRASGO)**:
-    - Critérios ecográficos de corte para espessamento endometrial (eco endometrial > 4-5 mm sem THM ou > 8 mm com THM, ou sangramento pós-menopausa).
-    - Algoritmo de amostragem endometrial: biópsia com Pipelle de Cornier em consultório vs histeroscopia com biópsia dirigida padrão-ouro em caso de Pipelle insuficiente ou lesão focal/pólipo.
-    - Classificação molecular do câncer de endométrio (POLE ultramutado, MMR deficiente, p53 anormal / cópia alta, sem perfil molecular específico - NSMP) e estadiamento FIGO 2023.
-
-148. [ ] **Infectologia & Terapia Intensiva - Manejo da Meningite Bacteriana Aguda do Adulto e da Criança (Diretrizes IDSA / SBP / Ministério da Saúde)**:
-    - Tríade clássica (febre, rigidez de nuca, alteração do sensório) e indicações de TC de crânio antes da Punção Lombar (déficit focal, convulsão nova, papiledema, imunossupressão, rebaixamento profundo).
-    - Janela de ouro terapêutica: Antibioticoterapia empírica em até 1 hora (Ceftriaxona 2g IV 12/12h + Ampicilina se > 50 anos / gestante / imunossuprimido para *Listeria* + Vancomicina se pneumococo resistente).
-    - Regra mandatória de Dexametasona 10 mg IV (ou 0,15 mg/kg em pediatria) administrada ANTES ou junto com a primeira dose de antibiótico para redução de sequelas auditivas e mortalidade no pneumococo.
-    - Quimioprofilaxia de contatos íntimos para Meningococo e *Haemophilus influenzae* tipo b (Rifampicina vs Ciprofloxacino vs Ceftriaxona).
-
-149. [ ] **Pneumologia & Medicina de Emergência - Manejo da Crise Asmática Aguda na Gestação (Diretrizes GINA / NAEPP)**:
-    - Monitoramento materno-fetal contínuo: saturação de oxigênio alvo materno estrita (SpO2 ≥ 95% para garantir oxigenação fetal e prevenir hipóxia/RCF).
-    - Regra de segurança: A crise asmática descontrolada é MUITO mais perigosa para o feto do que as medicações inalatórias de controle. Bloqueio de omissão ou suspensão de broncodilatadores e corticoides.
-    - Segurança comprovada de Beta-2 agonistas de curta ação (Salbutamol) e corticoides inalatórios (Budesonida) e sistêmicos (Prednisona / Hidrocortisona) na exacerbação.
-    - Alerta crítico: Alcalose respiratória fisiológica na gestante mascara fadiga diafragmática (PaCO2 normal ≥ 35 mmHg ou acidose respiratória em gestante é sinal de fadiga extrema e iminência de parada respiratória).
-
-
 147. [ ] **Ginecologia Oncológica e Patologia Cervical - Manejo de Neoplasia Intraepitelial Cervical (NIC II/III) e Lesões Pré-Malignas (Diretrizes ASCCP / Ministério da Saúde / INCA)**:
     - Algoritmo de risco e conduta baseado no tripé Citologia, Colposcopia especializada com biópsia dirigida e teste de DNA-HPV de alto risco oncogênico.
     - Critérios de indicação para tratamento excisional: CAF / EZPEC (Excisão da Zona de Transformação por Cirurgia de Alta Frequência) para ZT tipo 1 e 2 vs Conização a frio para ZT tipo 3 ou suspeita de invasão/adenocarcinoma in situ (AIS).
@@ -1245,4 +1227,22 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Diferenciação clínica entre manifestações IgE-mediadas (urticária aguda, angioedema, anafilaxia imediata) vs Não IgE-mediadas (proctocolite alérgica com fezes com estrias de sangue, enteropatia induzida por proteína alimentar, FPIES com vômitos profusos e choque hipovolêmico).
     - Protocolo de teste de desencadeamento oral (TDO) e dieta de exclusão materna (se aleitamento materno exclusivo com suplementação de cálcio 1000 mg/dia) vs fórmulas especiais (fórmula extensamente hidrolisada - FeH de 1ª linha vs fórmula de aminoácidos livres em anafilaxia, falha de FeH ou FPIES severo).
     - Contraindicação formal de fórmulas à base de soja antes dos 6 meses de vida e proibição de leites de outros mamíferos (cabra, ovelha) devido à alta reatividade cruzada (> 90%).
+
+150. [ ] **Ginecologia & Oncologia Pélvica - Rastreamento e Manejo de Câncer de Endométrio e Espessamento Endometrial na Pós-Menopausa (Diretrizes ESGO / FEBRASGO)**:
+    - Critérios ecográficos de corte para espessamento endometrial (eco endometrial > 4-5 mm sem THM ou > 8 mm com THM, ou sangramento pós-menopausa).
+    - Algoritmo de amostragem endometrial: biópsia com Pipelle de Cornier em consultório vs histeroscopia com biópsia dirigida padrão-ouro em caso de Pipelle insuficiente ou lesão focal/pólipo.
+    - Classificação molecular do câncer de endométrio (POLE ultramutado, MMR deficiente, p53 anormal / cópia alta, sem perfil molecular específico - NSMP) e estadiamento FIGO 2023.
+
+151. [ ] **Infectologia & Terapia Intensiva - Manejo da Meningite Bacteriana Aguda do Adulto e da Criança (Diretrizes IDSA / SBP / Ministério da Saúde)**:
+    - Tríade clássica (febre, rigidez de nuca, alteração do sensório) e indicações de TC de crânio antes da Punção Lombar (déficit focal, convulsão nova, papiledema, imunossupressão, rebaixamento profundo).
+    - Janela de ouro terapêutica: Antibioticoterapia empírica em até 1 hora (Ceftriaxona 2g IV 12/12h + Ampicilina se > 50 anos / gestante / imunossuprimido para *Listeria* + Vancomicina se pneumococo resistente).
+    - Regra mandatória de Dexametasona 10 mg IV (ou 0,15 mg/kg em pediatria) administrada ANTES ou junto com a primeira dose de antibiótico para redução de sequelas auditivas e mortalidade no pneumococo.
+    - Quimioprofilaxia de contatos íntimos para Meningococo e *Haemophilus influenzae* tipo b (Rifampicina vs Ciprofloxacino vs Ceftriaxona).
+
+152. [ ] **Pneumologia & Medicina de Emergência - Manejo da Crise Asmática Aguda na Gestação (Diretrizes GINA / NAEPP)**:
+    - Monitoramento materno-fetal contínuo: saturação de oxigênio alvo materno estrita (SpO2 ≥ 95% para garantir oxigenação fetal e prevenir hipóxia/RCF).
+    - Regra de segurança: A crise asmática descontrolada é MUITO mais perigosa para o feto do que as medicações inalatórias de controle. Bloqueio de omissão ou suspensão de broncodilatadores e corticoides.
+    - Segurança comprovada de Beta-2 agonistas de curta ação (Salbutamol) e corticoides inalatórios (Budesonida) e sistêmicos (Prednisona / Hidrocortisona) na exacerbação.
+    - Alerta crítico: Alcalose respiratória fisiológica na gestante mascara fadiga diafragmática (PaCO2 normal ≥ 35 mmHg ou acidose respiratória em gestante é sinal de fadiga extrema e iminência de parada respiratória).
+
 
