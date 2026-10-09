@@ -70,7 +70,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Cálculos beira-leito para reposição de CHAD, Plasma Fresco Congelado, Plaquetas e Crioprecipitado em hemorragias agudas e coagulopatias (ex: CIVD).
     - Gatilhos transfusionais baseados em níveis de hemoglobina (ex: < 7 g/dL em pacientes estáveis, < 8 g/dL em doença coronariana).
 
-27. [ ] **Integração de Calculadora de Clearance de Creatinina (Cockcroft-Gault) com Auditoria Automática de Prescrições**:
+27. [x] **Integração de Calculadora de Clearance de Creatinina (Cockcroft-Gault) com Auditoria Automática de Prescrições**:
     - Motor determinístico para estimar o ritmo de filtração glomerular beira-leito.
     - Bloqueio e alerta automático para antibióticos e anticoagulantes quando TFG < 30 mL/min, exigindo ajuste de dose renal obrigatório no PWA.
 
@@ -375,12 +375,26 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolo posológico de Echinocandinas de 1ª linha (Anidulafungina 200mg ataque + 100mg/dia ou Caspofungina 70mg + 50mg/dia) com cobertura estrita para espécies não-albicans (C. glabrata, C. krusei).
     - Rastreio obrigatório de fundoscopia ocular (descarte de endoftalmite) e ecocardiograma (descarte de endocardite fúngica) e retirada mandatória de cateter venoso central.
 
+88. [ ] **Módulo de Neonatologia - Manejo da Icterícia Neonatal (AAP 2022)**:
+    - Motor determinístico para indicação de fototerapia e exsanguinotransfusão baseado no nomograma de Bhutani e diretrizes da AAP 2022 (zonas de risco, IG e fatores de risco neurotóxico).
+    - Integração de cálculo de Bilirrubina Total e Frações (direta/indireta) com rastreio de hemólise (incompatibilidade Rh/ABO, reticulócitos, Coombs).
+
+89. [ ] **Ferramenta de Auditoria de Antimicrobianos em UTI (Stewardship)**:
+    - Alerta de descalonamento guiado por cultura (CCIH) e notificação de toxicidade acumulada (ex: vancomicina + piperacilina-tazobactam com risco de LRA).
+    - Revisão automática do tempo de tratamento (DOT - Days of Therapy) para evitar uso prolongado desnecessário (ex: 7 dias para PAV vs 14 dias para bacteremia por S. aureus).
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Integração de Calculadora de Clearance de Creatinina (Cockcroft-Gault) com Auditoria Automática de Prescrições**
+- [ ] **Infectologia - Manejo de Neutropenia Febril Oncológica (Escore MASCC/CISNE)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Integração de Calculadora de Clearance de Creatinina (Cockcroft-Gault) com Auditoria Automática de Prescrições**:
+   - Motor determinístico robusto (`NefrologiaClearanceService`) para estimativa de TFG beira-leito.
+   - Algoritmo de auditoria automática que intercepta drogas contraindicadas (nitrofurantoína, espironolactona, metformina) e exige ajuste de dose obrigatório para drogas críticas (vancomicina, enoxaparina, meropenem) quando TFG < 30 mL/min.
+   - Classificação instantânea do estágio renal (G1 a G5).
+   - Integração Fastify RPC completa via `cockpitNefrologiaClearance` e bot Telegram (comandos `/crcl` e `/clearance`).
+   - Cobertura de testes (`test_nefrologia_clearance.cjs`) validando os cálculos para homens e mulheres, bem como os bloqueios de segurança.
 - [x] (2026-10-09) **Módulo Avançado de Transfusão Sanguínea (Protocolo de Transfusão Maciça e Gatilhos)**:
    - Motor determinístico de alta performance beira-leito (`TransfusaoSanguineaService`) alinhado às diretrizes do Ministério da Saúde (Portaria de Consolidação 5/2017), ABHH, AABB 2023, e aos trials seminais TRICC, TRISS, FOCUS, REALITY, PROPPR, CRASH-2 e WOMAN.
    - Gatilhos transfusionais de Concentrado de Hemácias (CHAD): Estratégia restritiva rigorosa para pacientes clínicos e sépticos estáveis (gatilho Hb < 7,0 g/dL, alvo 7,0-9,0 g/dL) e estratégia liberal modificada para Síndrome Coronariana Aguda/IAM e neurocríticos (gatilho Hb < 8,0 g/dL, alvo 8,0-10,0 g/dL). Bloqueio e alerta de transfusão desnecessária com Hb >= 7,0 g/dL.

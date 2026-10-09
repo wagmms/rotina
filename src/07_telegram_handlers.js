@@ -1328,6 +1328,54 @@ function processarMensagemTexto(message) {
   // ───────────────────────────────────────────────────────────────────────────
   // PROTOCOLO DE TRANSFUSÃO SANGUÍNEA & PROTOCOLO DE TRANSFUSÃO MACIÇA (PTM)
   // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/crcl" || comando === "/clearance") {
+    var dadosCrcl = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof NefrologiaClearanceService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo NefrologiaClearanceService indisponível temporariamente.");
+    }
+
+    if (!dadosCrcl) {
+      return enviarMensagemParaChat(chatId, "🧪 *CALCULADORA DE CLEARANCE E AUDITORIA RENAL*\n\n" +
+        "Envie a idade, peso, creatinina, sexo e medicamentos para auditar.\n\n" +
+        "Exemplos:\n" +
+        "▶️ `/crcl 65 anos, 70kg, cr 1.8, masculino`\n" +
+        "▶️ `/crcl 80 anos, 55kg, cr 2.1, fem, medicações: vancomicina, cefepime`\n" +
+        "▶️ `/clearance 45a, 80kg, cr 3.5, mulher, enoxaparina e metformina`");
+    }
+
+    var mIdade = dadosCrcl.match(/(\d+)\s*(a|anos?|ano)/i) || dadosCrcl.match(/idade\s*(\d+)/i) || dadosCrcl.match(/^(\d+)[,\s]/);
+    var mPeso = dadosCrcl.match(/(\d+(?:\.\d+)?)\s*(kg|kilos?)/i) || dadosCrcl.match(/peso\s*(\d+(?:\.\d+)?)/i);
+    var mCr = dadosCrcl.match(/cr(?:eatinina)?\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mSexo = dadosCrcl.match(/\b(masculino|feminino|mulher|homem|masc|fem|m|f)\b/i);
+
+    if (!mIdade || !mPeso || !mCr || !mSexo) {
+      return enviarMensagemParaChat(chatId, "❌ Falta informação! Preciso de *Idade*, *Peso*, *Creatinina* e *Sexo*.\nEx: `/crcl 60 anos, 70 kg, cr 1.2, M`");
+    }
+
+    var idadeCrcl = parseInt(mIdade[1], 10);
+    var pesoCrcl = parseFloat(mPeso[1]);
+    var cr = parseFloat(mCr[1].replace(',', '.'));
+    var sexoCrcl = (mSexo[1].toLowerCase().startsWith('f') || mSexo[1].toLowerCase() === 'mulher') ? 'F' : 'M';
+    
+    // Extrai medicamentos se houver "medicações:" ou "medicamentos:" ou "meds:"
+    var medText = dadosCrcl.split(/(?:medicamentos|medicações|meds|rx|prescrição)[:=]?\s*/i);
+    var medsArray = [];
+    if (medText.length > 1) {
+      medsArray = medText[1].split(/[,e+;]/).map(function(s) { return s.trim(); }).filter(Boolean);
+    }
+
+    var reqCrcl = {
+      idade: idadeCrcl,
+      peso: pesoCrcl,
+      creatinina: cr,
+      sexo: sexoCrcl,
+      medicamentos: medsArray
+    };
+
+    var resCrcl = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrcl });
+    return enviarMensagemParaChat(chatId, resCrcl.textoFormatado);
+  }
+
   if (comando === "/transfusao" || comando === "/hemoterapia" || comando === "/ptm" || comando === "/chad") {
     var dadosTrans = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof TransfusaoSanguineaService === "undefined") {

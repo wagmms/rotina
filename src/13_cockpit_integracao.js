@@ -1395,3 +1395,49 @@ function cockpitTransfusaoSanguinea(initData, params) {
 }
 
 
+
+
+function cockpitNefrologiaClearance(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para cálculo de clearance não fornecidos.');
+  var acao = params.acao || 'completo';
+  var p = params.paciente || params;
+
+  if (acao === 'calcular') {
+    var crcl = NefrologiaClearanceService.calcularCockcroftGault(p.idade, p.peso, p.creatinina, p.sexo);
+    var estagio = crcl.erro ? crcl.erro : NefrologiaClearanceService.classificarEstagio(crcl);
+    return { sucesso: !crcl.erro, crcl: crcl, estagio: estagio };
+  }
+
+  if (acao === 'auditar') {
+    var crcl = NefrologiaClearanceService.calcularCockcroftGault(p.idade, p.peso, p.creatinina, p.sexo);
+    if (crcl.erro) return { sucesso: false, erro: crcl.erro };
+    var auditoria = NefrologiaClearanceService.auditarPrescricao(crcl, p.medicamentos);
+    return { sucesso: true, auditoria: auditoria };
+  }
+
+  if (acao === 'completo') {
+    var crcl = NefrologiaClearanceService.calcularCockcroftGault(p.idade, p.peso, p.creatinina, p.sexo);
+    if (crcl.erro) return { sucesso: false, erro: crcl.erro };
+    var auditoria = NefrologiaClearanceService.auditarPrescricao(crcl, p.medicamentos);
+    var texto = "*Clearance Estimado:* " + crcl + " mL/min (" + auditoria.estagio + ")\n\n";
+    if (auditoria.bloqueios.length > 0) {
+      texto += "🛑 *BLOQUEIOS / CONTRAINDICAÇÕES:*\n- " + auditoria.bloqueios.join("\n- ") + "\n\n";
+    }
+    if (auditoria.alertas.length > 0) {
+      texto += "⚠️ *ALERTAS DE AJUSTE DE DOSE:*\n- " + auditoria.alertas.join("\n- ") + "\n\n";
+    }
+    if (auditoria.orientacoes.length > 0) {
+      texto += "✅ *ORIENTAÇÕES:*\n- " + auditoria.orientacoes.join("\n- ") + "\n";
+    }
+
+    return {
+      sucesso: true,
+      crcl: crcl,
+      auditoria: auditoria,
+      textoFormatado: texto
+    };
+  }
+
+  throw new Error('Ação inválida para Nefrologia Clearance.');
+}

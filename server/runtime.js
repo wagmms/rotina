@@ -834,6 +834,7 @@ module.exports = {
         _rpcMap.cockpitViaAereaDificil = ctx.cockpitViaAereaDificil;
         _rpcMap.cockpitAuditoriaKaizen = ctx.cockpitAuditoriaKaizen;
         _rpcMap.cockpitTransfusaoSanguinea = ctx.cockpitTransfusaoSanguinea;
+        _rpcMap.cockpitNefrologiaClearance = ctx.cockpitNefrologiaClearance;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];
