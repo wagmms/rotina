@@ -176,7 +176,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -188,7 +188,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -378,6 +378,84 @@ function processarMensagemTexto(message) {
       : "Atestado médico indisponível.";
 
     return enviarMensagemParaChat(chatId, "📜 *ATESTADO MÉDICO PRONTO PARA O PRONTUÁRIO / PEP:*\n\n```\n" + textoAtestado + "\n```\n\n_Toque no texto acima para copiar direto para o prontuário eletrônico._");
+  }
+
+  if (comando === "/prenatal" || comando === "/dpp") {
+    var dadosPn = texto.replace(/^\/(prenatal|dpp)\s*/i, "").trim();
+    if (!dadosPn) {
+      var msgAjudaPn = "🤰 *CALCULADORA E PAINEL DE PRÉ-NATAL (OBSTETRÍCIA AMBULATORIAL)*\n\n" +
+        "Envie dados de DUM, 1º Ultrassom, medidas maternas ou medicações em uso:\n\n" +
+        "💡 *Exemplos de Uso:*\n" +
+        "• `/dpp 15/05/2026` *(cálculo direto Naegele e DPP)*\n" +
+        "• `/prenatal DUM 10/02/2026 peso 65 alt 1.62` *(IG, DPP e ganho de peso IOM)*\n" +
+        "• `/prenatal DUM 15/01/2026 USG 10/03/2026 8s2d` *(concordância FEBRASGO/ACOG)*\n" +
+        "• `/prenatal med Enalapril, Sinvastatina, Paracetamol` *(validador farmacológico)*\n\n" +
+        "_Todas as condutas e rastreios seguem rigorosamente as diretrizes FEBRASGO e MS._";
+      return enviarMensagemParaChat(chatId, msgAjudaPn);
+    }
+
+    if (typeof ObstetriciaPrenatalService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaPrenatalService indisponível temporariamente.");
+    }
+
+    // Se for consulta de med/farmaco
+    var mMed = dadosPn.match(/(?:med|farmaco|medicamentos?)\s*[:=]?\s*(.+)/i);
+    if (mMed) {
+      var audit = ObstetriciaPrenatalService.auditarPrescricaoGestante(mMed[1]);
+      if (audit && audit.sucesso) {
+        var textoAudit = "💊 *AUDITORIA DE SEGURANÇA FARMACOLÓGICA NA GESTAÇÃO*\n" +
+          "*Parecer Geral:* `" + audit.parecerGeral + "`\n\n";
+        if (audit.contraindicados.length > 0) {
+          textoAudit += "⛔ *CONTRAINDICADOS NA GESTAÇÃO:*\n";
+          audit.contraindicados.forEach(function(c) {
+            textoAudit += "• *" + c.medicamento + "* (" + c.classe + " · Cat. " + c.categoriaFda + ")\n  ⚠️ " + c.alertas[0] + "\n  🔄 Alternativas: _" + c.alternativasRecomendadas.join("; ") + "_\n\n";
+          });
+        }
+        if (audit.cautela.length > 0) {
+          textoAudit += "⚠️ *USO SOB CAUTELA CLÍNICA:*\n";
+          audit.cautela.forEach(function(ct) {
+            textoAudit += "• *" + ct.medicamento + "*: " + ct.alertas[0] + "\n\n";
+          });
+        }
+        if (audit.seguros.length > 0) {
+          textoAudit += "✅ *Opções Seguras Avaliadas:* " + audit.seguros.map(function(s){ return s.medicamento; }).join(", ") + "\n";
+        }
+        return enviarMensagemParaChat(chatId, textoAudit);
+      }
+    }
+
+    // Parse de dados obstétricos
+    var paramsPn = {};
+    var mDum = dadosPn.match(/(?:dum\s*[:=]?\s*)?(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{4})/i);
+    if (mDum) paramsPn.dum = mDum[1];
+
+    var mUsg = dadosPn.match(/usg\s*[:=]?\s*(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{4})/i);
+    if (mUsg) paramsPn.dataUsg = mUsg[1];
+
+    var mIgUsg = dadosPn.match(/(\d{1,2})\s*s(?:emanas?)?(?:\s*(?:e\s*)?(\d{1,2})\s*d(?:ias?)?)?/i);
+    if (mIgUsg && paramsPn.dataUsg) {
+      paramsPn.semanasUsg = parseInt(mIgUsg[1], 10);
+      paramsPn.diasUsg = mIgUsg[2] ? parseInt(mIgUsg[2], 10) : 0;
+    }
+
+    var mCcn = dadosPn.match(/(\d{1,2})\s*mm/i);
+    if (mCcn) paramsPn.ccnMm = parseFloat(mCcn[1]);
+
+    var mPeso = dadosPn.match(/peso\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i);
+    if (mPeso) paramsPn.pesoPreGestacional = parseFloat(mPeso[1].replace(',', '.'));
+
+    var mAlt = dadosPn.match(/alt(?:ura)?\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i);
+    if (mAlt) paramsPn.altura = parseFloat(mAlt[1].replace(',', '.'));
+
+    var mPesoAtual = dadosPn.match(/peso\s*atual\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i);
+    if (mPesoAtual) paramsPn.pesoAtual = parseFloat(mPesoAtual[1].replace(',', '.'));
+
+    var resumo = ObstetriciaPrenatalService.gerarResumoConsultaPrenatal(paramsPn);
+    if (!resumo.sucesso) {
+      return enviarMensagemParaChat(chatId, "⚠️ " + (resumo.erro || "Não foi possível calcular o pré-natal com os dados informados."));
+    }
+
+    return enviarMensagemParaChat(chatId, "🤰 *AVALIAÇÃO DE PRÉ-NATAL E CRONOLOGIA OBSTÉTRICA:*\n\n```\n" + resumo.textoFormatado + "\n```");
   }
 
   if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais") {

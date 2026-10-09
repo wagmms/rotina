@@ -422,3 +422,55 @@ function cockpitBuscarCid(initData, termo) {
   var resultados = SoapAmbulatorialService.buscarDiagnostico(termo);
   return { sucesso: true, termo: termo, resultados: resultados };
 }
+
+/**
+ * cockpitCalcularPrenatal — calcula IG, DPP (Naegele/USG FEBRASGO), ganho de peso e resumo de consulta.
+ */
+function cockpitCalcularPrenatal(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ObstetriciaPrenatalService === 'undefined') {
+    throw new Error('Módulo ObstetriciaPrenatalService indisponível.');
+  }
+  var resultado = ObstetriciaPrenatalService.gerarResumoConsultaPrenatal(params);
+  return resultado;
+}
+
+/**
+ * cockpitRastreioTrimestre — obtém diretrizes completas de exames, vacinas e condutas por trimestre.
+ */
+function cockpitRastreioTrimestre(initData, trimestre) {
+  cockpitAutorizar_(initData);
+  if (typeof ObstetriciaPrenatalService === 'undefined') {
+    throw new Error('Módulo ObstetriciaPrenatalService indisponível.');
+  }
+  var diretrizes = ObstetriciaPrenatalService.obterDiretrizesTrimestre(trimestre);
+  return { sucesso: true, trimestre: trimestre, diretrizes: diretrizes };
+}
+
+/**
+ * cockpitValidarFarmacoGestacao — valida segurança e alternativas de um medicamento na gestação/lactação.
+ */
+function cockpitValidarFarmacoGestacao(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ObstetriciaPrenatalService === 'undefined') {
+    throw new Error('Módulo ObstetriciaPrenatalService indisponível.');
+  }
+  var resultado = ObstetriciaPrenatalService.validarMedicamentoGestacao(params.medicamento, params.trimestre);
+  return resultado;
+}
+
+/**
+ * cockpitAuditarPrescricaoGestante — audita lista de fármacos quanto a riscos teratogênicos e toxicidade.
+ */
+function cockpitAuditarPrescricaoGestante(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ObstetriciaPrenatalService === 'undefined') {
+    throw new Error('Módulo ObstetriciaPrenatalService indisponível.');
+  }
+  var resultado = ObstetriciaPrenatalService.auditarPrescricaoGestante(params.medicamentos, params.trimestre);
+  return resultado;
+}
+

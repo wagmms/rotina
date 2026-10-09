@@ -8,18 +8,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 ## 📋 Backlog de Melhorias Prioritárias (Foco Clínico: Obstetrícia, Ginecologia, UTI & APS)
 
-1. [ ] **Calculadora e Painel de Pré-Natal (Obstetrícia Ambulatorial)**:
-   - Cálculo automático instantâneo de Idade Gestacional (IG) e Data Provável do Parto (DPP):
-     * Por DUM (Regra de Naegele: dia + 7, mês - 3 ou + 9).
-     * Por 1º Ultrassom (CCN precoce ou DBP/CC/fêmur), com regra de concordância da FEBRASGO para fixar a data definitiva.
-     * Cálculo de ganho de peso ideal baseado no IMC pré-gestacional (critérios IOM/Ministério da Saúde).
-   - Rastreio de Pré-Natal por Cronologia e IG:
-     * 1º Trimestre: Bateria de sorologias (HIV, VDRL, Toxoplasmose, HBsAg), tipagem e Rh com Coombs indireto, urina 1 e urocultura, glicemia de jejum.
-     * 2º Trimestre: TOTG 75g (24-28s com pontos de corte 92/180/153), rastreio de pré-eclâmpsia com indicação de AAS 100-150mg + Cálcio se alto risco, vacinação dTpa a partir de 20s.
-     * 3º Trimestre: Repetição de sorologias, swab de Streptococcus agalactiae (GBS) na 35-37 semanas.
-   - Validador Farmacológico na Gestação & Lactação: Classificação de risco em gravidez com alertas imediatos para drogas proibidas (IECA, BRA, Estatinas, Tetraciclinas, AINEs no 3º tri) e alternativas seguras (Metildopa, Nifedipino, Hidralazina, Paracetamol, Cefalexina).
-
-2. [ ] **Protocolos de Emergência e Centro Obstétrico (Pré-Parto & Sala de Parto)**:
+1. [ ] **Protocolos de Emergência e Centro Obstétrico (Pré-Parto & Sala de Parto)**:
    - Diagnóstico e Monitoramento de Trabalho de Parto: critérios de fase ativa (>=4 cm e 2-3 contrações regulares em 10 min), plano de De Lee e evolução dinâmica.
    - Manejo de Pré-Eclâmpsia com Sinais de Gravidade e Eclâmpsia:
      * Esquema de Sulfato de Magnésio (Zuspan: Ataque 4g IV lento em 20 min + Manutenção 1g/h IV contínua em bomba; ou Pritchard: 4g IV + 10g IM profundo).
@@ -30,7 +19,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
    - Profilaxia para Sepse Neonatal por GBS Intraparto: indicações formais e esquemas (Penicilina Cristalina 5M UI ataque + 2,5M UI a cada 4h até o parto, ou Ampicilina 2g ataque + 1g a cada 4h).
    - Prematuridade e RPMO: Corticoterapia para maturação pulmonar (Betametasona 12mg IM 2 doses a cada 24h) e neuroproteção fetal com Sulfato de Magnésio se <32 semanas.
 
-3. [ ] **Integração Ágil e Fluida com o Telegram (UX Móvel de 1 Toque, Ditado Clínico e Teclado Fixo)**:
+2. [ ] **Integração Ágil e Fluida com o Telegram (UX Móvel de 1 Toque, Ditado Clínico e Teclado Fixo)**:
    - **Teclado Fixo Persistente (`ReplyKeyboardMarkup`) Otimizado**:
      * Botões de 1 toque no rodapé desenhados para o médico em atendimento rápido:
        `[🩺 SOAP Ambulatorial]` `[🤰 Pré-Natal & DPP]`
@@ -51,37 +40,62 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
    - **Integração Nativa Telegram Mini App (WebApp)**:
      * Acesso em tela cheia ao Cockpit PWA via botão WebApp nativo dentro do Telegram (`web_app: { url: ... }`), permitindo alternar fluidamente entre ditado por voz e interface visual com cards táteis.
 
-4. [ ] **Ginecologia Ambulatorial de Consultório**:
+3. [ ] **Ginecologia Ambulatorial de Consultório**:
    - Rastreio de Câncer de Colo Uterino: Condutas baseadas nas Diretrizes Brasileiras para rastreamento (INCA/MS) por laudo citopatológico (ASC-US, LSIL, ASC-H, HSIL, AGC) e faixa etária.
    - Sangramento Uterino Anormal (SUA): Algoritmo de investigação e mnemônico PALM-COEIN com condutas hormonais de urgência (anticoncepcionais orais combinados, progestagênios, ácido tranexâmico).
    - Critérios de Elegibilidade de Anticoncepção da OMS (Categorias 1 a 4): Filtro rápido por comorbidades (enxaqueca com aura, trombose prévia, HAS não controlada, tabagismo >35a, amamentação pós-parto).
 
-5. [ ] **Painel de Puericultura e Desenvolvimento Infantil (Atenção Primária & SBP)**:
+4. [ ] **Painel de Puericultura e Desenvolvimento Infantil (Atenção Primária & SBP)**:
    - Avaliação antropométrica com curvas de crescimento da OMS (Z-scores de Peso/Idade, Estatura/Idade, IMC/Idade e Perímetro Cefálico).
    - Vigilância de marcos do desenvolvimento neuropsicomotor (DNPM) por faixa etária (motor grosseiro, motor fino/adaptativo, linguagem, social/cognitivo).
    - Calendário vacinal atualizado do PNI (2026) com alertas de doses em atraso e esquemas de resgate.
    - Suplementação profilática padronizada: Ferro elementar (a partir de 3m ou 6m conforme aleitamento/peso ao nascer) e Vitamina D (400 UI/dia no 1º ano, 600 UI/dia no 2º ano).
 
-6. [ ] **Módulo de Saúde do Idoso e Avaliação Geriátrica Ampla (AGA)**:
+5. [ ] **Módulo de Saúde do Idoso e Avaliação Geriátrica Ampla (AGA)**:
    - Triagem rápida de fragilidade clínica ambulatorial (Clinical Frailty Scale - CFS e Escala Edmonton).
    - Avaliação cognitiva de rastreio em 10 minutos (Mini-Exame do Estado Mental / Mini-Cog e Teste do Relógio).
    - Prevenção de iatrogenia e polifarmácia: Verificador automatizado de Critérios de Beers (AGS 2023) e critérios STOPP/START para desprescrição segura.
    - Avaliação de risco de quedas (Timed Up and Go - TUG) e metas individualizadas de controle metabólico/pressórico no idoso frágil.
 
-7. [ ] **Auditoria de Toxicidade em Infusões Contínuas de UTI**:
+6. [ ] **Auditoria de Toxicidade em Infusões Contínuas de UTI**:
    - Validação e testes determinísticos de limites de taxa de infusão (mcg/kg/min) para aminas vasoativas (Noradrenalina, Vasopressina, Adrenalina, Dobutamina) prevenindo erros por ordem de grandeza e dose letal beira-leito.
 
-8. [ ] **Calculadora de Desmame de Sedação e Rotação de Opioides**:
+7. [ ] **Calculadora de Desmame de Sedação e Rotação de Opioides**:
    - Módulo determinístico de equivalência analgésica para rotação de opioides (Morfina IV/VO, Fentanil, Metadona, Oxicodona) e escala de desmame de sedação contínua (RASS/CAM-ICU).
+
+8. [ ] **Nefrologia Intensiva e Distúrbios Hidroeletrolíticos (DHE)**:
+   - Correção segura de hiponatremia aguda vs crônica com cálculo de déficit de sódio e teto rígido de elevação (máximo 8-10 mEq/L nas primeiras 24h e 18 mEq/L em 48h) prevenindo Síndrome de Desmielinização Osmótica (mielinólise pontina).
+   - Manejo escalonado de hipercalemia com critérios de urgência dialítica (ECG: onda T apiculada, alargamento QRS), estabilização de membrana miocárdica (Gluconato de Cálcio 10% 10-20 ml IV), glicoinsulina (10 UI regular em 100 ml SG 50%), beta-2 agonista e resinas de troca.
+   - Cálculo de déficit de água livre na hipernatremia e reposição criteriosa de potássio, magnésio e fósforo beira-leito.
+
+9. [ ] **Mecânica Pulmonar e Ventilação Protetora na SDRA (ARDSNet)**:
+   - Calculador beira-leito de peso predito (fórmula ARDSNet baseada na altura e sexo biológico) com ajuste estrito de volume corrente em 4 a 6 mL/kg.
+   - Titulação e monitoramento de pressão de platô (Pplat <= 30 cmH2O) e cálculo automático da Driving Pressure (Delta P = Pplat - PEEP, meta <= 14-15 cmH2O).
+   - Gasometria arterial integrada com cálculo da relação PaO2/FiO2 (critérios de Berlim para SDRA leve, moderada, grave) e indicação oportuna de posição prona precoce (PaO2/FiO2 < 150 com PEEP >= 10 por 16h) e bloqueio neuromuscular (Cisatracúrio nas primeiras 48h).
+
+10. [ ] **Auditoria Farmacêutica Hospitalar: Compatibilidade Físico-Química em Y-Site (Linha Venosa)**:
+    - Matriz determinística em RAM de incompatibilidades de precipitados e inativação de fármacos comuns em acesso venoso único/duplo de emergência (ex: Ceftriaxona + Ringer Lactato / soluções com Cálcio causando cristais mortais; Fenitoína em infusão com qualquer solução glicosada causando precipitação imediata; Bicarbonato de Sódio + Catecolaminas causando inativação por pH alcalino; Furosemida + Midazolam).
 
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Calculadora e Painel de Pré-Natal (Obstetrícia Ambulatorial)**: Implementar cálculo de IG/DPP (Naegele e USG precoce FEBRASGO), painel de rastreio de exames por trimestre e validador farmacológico gestacional.
+- [ ] **Protocolos de Emergência e Centro Obstétrico (Pré-Parto & Sala de Parto)**: Implementar motor determinístico para condução de trabalho de parto, sulfato de magnésio (Zuspan/Pritchard), manejo da crise hipertensiva obstétrica, protocolo dos 4 Ts da HPP e profilaxia intraparto para sepse neonatal por GBS.
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] **Calculadora e Painel de Pré-Natal (Obstetrícia Ambulatorial)** (2026-10-09):
+  * **Cálculo Determinístico de IG e DPP**: Implementação de `src/02_obstetricia_prenatal.js` (`ObstetriciaPrenatalService`) com Regra de Naegele rigorosa com tratamento de anos bissextos e viradas de mês/ano, cálculo de dias decorridos e dias restantes até a DPP.
+  * **Regra de Concordância FEBRASGO / ACOG**: Comparação precisa entre DUM e biometria ultrassonográfica de 1º trimestre (CCN precoce até 13s6d ou CCN em mm), fixando se a DUM é mantida por concordância ou se a gestação é formalmente redatada pelo ultrassom precoce.
+  * **Ganho de Peso Gestacional (IOM 2009 / Ministério da Saúde)**: Cálculo do IMC pré-gestacional com classificação (Baixo Peso, Eutrofia, Sobrepeso, Obesidade), cálculo do ganho ponderal total recomendado e ganho semanal no 2º e 3º trimestres, e auditoria do ganho atual com status (GANHO_ADEQUADO, GANHO_INSUFICIENTE, GANHO_EXCESSIVO).
+  * **Painel Cronológico de Rastreio por Trimestre**:
+    - 1º Trimestre: Tipagem/Rh, Coombs indireto, Glicemia de jejum (pontos de corte: <92 normal, 92-125 DMG, >=126 DM prévio), VDRL, HIV, HBsAg, Toxoplasmose IgM/IgG com interpretação e teste de avidez, EAS e urocultura com antibiograma, TSH e USG morfológico de 1º tri com translucência nucal. Suplementação de Ácido Fólico (0,4mg ou 4-5mg se alto risco).
+    - 2º Trimestre: USG morfológico de 2º tri (20-24s), TOTG 75g (24-28s com cortes 92/180/153 mg/dL), Coombs mensal e Imunoglobulina anti-D na 28ª semana se Rh-, rastreio de Pré-Eclâmpsia com profilaxia de AAS 100-150mg + Cálcio se alto risco, e vacinação materna (dTpa após 20s, Hepatite B, Influenza).
+    - 3º Trimestre: Repetição sorológica completa, swab anovaginal para Streptococcus agalactiae (GBS) na 35-37 semanas com indicação e esquema de profilaxia intraparto com Penicilina Cristalina ou Ampicilina, e monitoramento de vitalidade fetal (AU, BCF 110-160 bpm, mobilograma fetal).
+  * **Validador Farmacológico na Gestação & Lactação**: Base de dados de segurança com classificação FDA, bloqueio imediato com alertas severos de fetopatia/teratogênese para classes perigosas (IECA/BRA, Estatinas, Tetraciclinas, AINEs no 3º trimestre, Varfarina, Metotrexato, Isotretinoína, Ácido Valproico) e indicação de alternativas seguras de 1ª linha (Metildopa, Nifedipino retard, Hidralazina, Paracetamol, Amoxicilina, Cefalexina, Fosfomicina).
+  * **Integração no Cockpit PWA**: Adição do botão "Pré-Natal & DPP" na aba SOAP (`tab-soap`), modal interativo `modal-prenatal` com 4 abas funcionais (IG/DPP, Ganho de Peso, Rastreio e Farmacologia) e sincronização com GitHub Pages (`gh_cockpit_deploy/index.html`).
+  * **Integração RPC e Bot Telegram**: Novos métodos no Fastify RPC (`cockpitCalcularPrenatal`, `cockpitRastreioTrimestre`, `cockpitValidarFarmacoGestacao`, `cockpitAuditarPrescricaoGestante`) e comandos Telegram `/prenatal` e `/dpp`.
+  * **Suíte de Testes Automatizados**: Implementação de `tests/test_obstetricia_prenatal.cjs` (22 casos clínicos rigorosos) e runner pytest `tests/test_obstetricia_prenatal.py`. Total da suíte global subiu para 155 testes, 100% aprovados.
 - [x] **Módulo SOAP Ambulatorial Ágil (Clínica e Atenção Primária)** (2026-10-09):
   * **Estruturação Semiologicamente Rigorosa do SOAP Ambulatorial**: Criação do módulo dedicado `src/02_soap_ambulatorial.js` (`SoapAmbulatorialService`), separando cirurgicamente S (Queixa Principal, HDA cronológica, medicações de uso contínuo, alergias e antecedentes), O (sinais vitais com parâmetros de referência e exames segmentares direcionados), A (hipóteses com CID-10, CIAP-2 e estratificação de risco) e P (prescrição farmacológica REMUME com horários práticos, MEV, sinais claros de alarme para procura de PS e prazo de retorno).
   * **Modelos Dirigidos de Exame Físico com Atalhos Rápidos**: 8 modelos padronizados para consultas rápidas: Check-up Geral, Hipertensão Arterial Sistêmica (com ausculta carotídea e busca de B3/B4), Diabetes Mellitus (com exame completo dos pés, monofilamento 10g e pulsos pedioso e tibial posterior), Queixa Respiratória/IVAS (com oroscopia e otoscopia), Gastrointestinal/Dispepsia (com sinais de Murphy e Blumberg), Musculoesquelético/Lombalgia (com manobra de Lasègue e reflexos osteotendíneos), Neurológico/Cefaleia (com pares cranianos e sinais meníngeos) e Saúde Mental/Exame Psíquico.
