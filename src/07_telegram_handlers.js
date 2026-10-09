@@ -6777,236 +6777,236 @@ function obterCatalogoComandosSlash() {
       id: "nucleo",
       titulo: "🧭 NÚCLEO, SESSÃO, NAVEGAÇÃO & COCKPIT",
       comandos: [
-        { cmd: "/start", aliases: ["/start"], sintaxe: "/start", desc: "Inicializa o bot, exibe a saudação ao médico e abre o Hub Principal de navegação." },
-        { cmd: "/menu", aliases: ["/menu"], sintaxe: "/menu", desc: "Abre a Central de Comandos e reativa o teclado rápido beira-leito." },
-        { cmd: "/ajuda", aliases: ["/ajuda"], sintaxe: "/ajuda [categoria|comando]", desc: "Manual completo de todos os comandos slash disponíveis e a função de cada um." },
-        { cmd: "/cockpit", aliases: ["/cockpit"], sintaxe: "/cockpit", desc: "Abre o Cockpit Móvel unificado em tela cheia (Mini App do Telegram com 6 abas)." },
-        { cmd: "/novo", aliases: ["/novo"], sintaxe: "/novo", desc: "Limpa a memória de curto prazo do atendimento atual e reseta o contexto clínico." },
-        { cmd: "/fila", aliases: ["/fila"], sintaxe: "/fila", desc: "Consulta a fila de processamento assíncrono de pedidos, áudios e tarefas pendentes." },
-        { cmd: "/status", aliases: ["/status"], sintaxe: "/status", desc: "Verifica o status operacional dos servidores (Render 24/7), REMUME RP, interações e APIs." },
-        { cmd: "/pc", aliases: ["/pc"], sintaxe: "/pc [sync|audit|status]", desc: "Ponte de comando para o daemon do computador local (sincronização de agenda, auditoria e status)." },
-        { cmd: "/pedido", aliases: ["/pedido"], sintaxe: "/pedido <id>", desc: "Inspeciona o conteúdo original preservado de uma tarefa ou mensagem arquivada na fila." }
+        { cmd: "/start", aliases: ["/start"], sintaxe: "/start", desc: "Inicia o bot e abre o Hub Principal de navegação." },
+        { cmd: "/menu", aliases: ["/menu"], sintaxe: "/menu", desc: "Central de Comandos e teclado rápido beira-leito." },
+        { cmd: "/ajuda", aliases: ["/ajuda"], sintaxe: "/ajuda [filtro]", desc: "Manual resumido de comandos com busca por especialidade." },
+        { cmd: "/cockpit", aliases: ["/cockpit"], sintaxe: "/cockpit", desc: "Abre o Cockpit Móvel unificado (Mini App em tela cheia)." },
+        { cmd: "/novo", aliases: ["/novo"], sintaxe: "/novo", desc: "Limpa a memória do caso e reseta o contexto clínico." },
+        { cmd: "/fila", aliases: ["/fila"], sintaxe: "/fila", desc: "Consulta fila de processamento assíncrono de tarefas." },
+        { cmd: "/status", aliases: ["/status"], sintaxe: "/status", desc: "Status operacional dos servidores, REMUME e APIs." },
+        { cmd: "/pc", aliases: ["/pc"], sintaxe: "/pc [sync|audit|status]", desc: "Envia ordens para o runner local do computador." },
+        { cmd: "/pedido", aliases: ["/pedido"], sintaxe: "/pedido <id>", desc: "Inspeciona o conteúdo de uma tarefa na fila." }
       ]
     },
     {
       id: "ambulatorio",
       titulo: "🩺 AMBULATÓRIO, PRONTUÁRIO & PRESCRIÇÃO",
       comandos: [
-        { cmd: "/soap", aliases: ["/soap"], sintaxe: "/soap <caso clínico>", desc: "Conduz raciocínio clínico completo gerando nota estruturada SOAP com condutas beira-leito." },
-        { cmd: "/ambulatorio", aliases: ["/ambulatorio"], sintaxe: "/ambulatorio <caso clínico>", desc: "Conduz atendimento ambulatorial focado na Atenção Primária à Saúde (APS) e Medicina de Família." },
-        { cmd: "/atestado", aliases: ["/atestado"], sintaxe: "/atestado <dias> [motivo/CID]", desc: "Gera atestado médico estruturado com período de repouso, dias de afastamento e fundamentação legal." },
-        { cmd: "/rx", aliases: ["/rx"], sintaxe: "/rx <caso ou remédio>", desc: "Emite receita médica inteligente checada na REMUME de Ribeirão Preto com posologia oficial e PDF pronto." },
-        { cmd: "/rxh", aliases: ["/rxh"], sintaxe: "/rxh <caso do internado>", desc: "Estrutura prescrição hospitalar completa de internação com 10 itens padronizados (dieta, hidratação, medicamentos, analgesia, profilaxias TEV/úlcera)." }
+        { cmd: "/soap", aliases: ["/soap"], sintaxe: "/soap <caso>", desc: "Raciocínio clínico completo e nota estruturada SOAP." },
+        { cmd: "/ambulatorio", aliases: ["/ambulatorio"], sintaxe: "/ambulatorio <caso>", desc: "Atendimento ambulatorial focado na APS e MFC." },
+        { cmd: "/atestado", aliases: ["/atestado"], sintaxe: "/atestado <dias> [CID]", desc: "Emite atestado médico estruturado com dias e CID." },
+        { cmd: "/rx", aliases: ["/rx"], sintaxe: "/rx <caso/droga>", desc: "Receita ambulatorial inteligente checada na REMUME RP." },
+        { cmd: "/rxh", aliases: ["/rxh"], sintaxe: "/rxh <caso>", desc: "Prescrição hospitalar de internação em 10 itens padronizados." }
       ]
     },
     {
       id: "emergencia",
       titulo: "🚨 SALA VERMELHA & CTI (EMERGÊNCIAS)",
       comandos: [
-        { cmd: "/choqueseptico", aliases: ["/choqueseptico"], sintaxe: "/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>", desc: "Manejo de Choque Séptico refratário e CIRCI no PS (Hidrocortisona + Vasopressina fixa)." },
-        { cmd: "/dva", aliases: ["/dva"], sintaxe: "/dva <droga> <pesoKg> [solução]", desc: "Calculadora de Drogas Vasoativas (Noradrenalina, Dobutamina, Vasopressina, Nipride, Tridil) em mL/h e mcg/kg/min." },
-        { cmd: "/sri", aliases: ["/sri"], sintaxe: "/sri <pesoKg> [choque|asma|neuro]", desc: "Sequência Rápida de Intubação com doses em mg e mL de sedativos (Etomidato/Quetamina) e bloqueadores (Succinilcolina/Rocurônio)." },
-        { cmd: "/conduta", aliases: ["/conduta"], sintaxe: "/conduta <patologia>", desc: "Condutas imediatas de emergência e doses de ataque beira-leito (PCR, EAP, anafilaxia, hipercalemia)." },
-        { cmd: "/gaso", aliases: ["/gaso"], sintaxe: "/gaso <pH> <pCO2> <HCO3> [Na] [Cl]", desc: "Interpretação da gasometria arterial pela regra dos 5 passos, compensação esperada, anion gap e gap delta." },
-        { cmd: "/winter", aliases: ["/winter"], sintaxe: "/winter <HCO3>", desc: "Fórmula de Winter para cálculo da pCO₂ esperada na acidose metabólica pura vs distúrbio misto." },
-        { cmd: "/choque", aliases: ["/choque"], sintaxe: "/choque <PAS> <PAD> <FC> [perfusão]", desc: "Classificação hemodinâmica do choque e perfis de Forrester/Stevenson com direcionamento inotrópico, volêmico e vasodilatador." },
-        { cmd: "/sca", aliases: ["/sca"], sintaxe: "/sca <dados dor/ECG/troponina>", desc: "Síndrome Coronariana Aguda, estratificação pelo escore HEART, Dupla Antiagregação Plaquetária (DAPT) e anticoagulação." },
-        { cmd: "/avc", aliases: ["/avc"], sintaxe: "/avc <tempo/sintomas/PA>", desc: "Protocolo de AVC isquêmico agudo, critérios de trombólise, metas pressóricas e doses de rtPA (Alteplase) e Tenecteplase (TNK)." },
-        { cmd: "/hic", aliases: ["/hic"], sintaxe: "/hic <pesoKg> [dados]", desc: "Manejo da Hipertensão Intracraniana aguda: doses de osmoterapia (Salina Hipertônica 3% e Manitol 20%), alvos de PAM e PPC." },
-        { cmd: "/transfusao", aliases: ["/transfusao"], sintaxe: "/transfusao <Hb/plaquetas/clínica>", desc: "Gatilhos transfusionais para Hemácias, Plaquetas, Plasma e protocolo de Transfusão Maciça (PTM)." },
-        { cmd: "/intox", aliases: ["/intox"], sintaxe: "/intox <agente/droga>", desc: "Toxicologia de emergência, identificação de toxíndromes e antídotos específicos (NAC para paracetamol, naloxona, atropina, flumazenil)." },
-        { cmd: "/pancreatite", aliases: ["/pancreatite"], sintaxe: "/pancreatite <BUN> <GCS> <SIRS> <idade> <derrame>", desc: "Escore BISAP para estratificação de gravidade na pancreatite aguda e metas de hidratação volêmica." },
-        { cmd: "/neutropenia", aliases: ["/neutropenia"], sintaxe: "/neutropenia <dados/pontos MASCC>", desc: "Estratificação de risco na neutropenia febril pós-QT pelo escore MASCC (baixo vs alto risco) e cobertura antimicrobiana." },
-        { cmd: "/colica", aliases: ["/colica"], sintaxe: "/colica <tamanho cálculo/dor>", desc: "Manejo da cólica nefrética aguda, protocolo de analgesia multimodal e Terapia Expulsiva Medicamentosa (MET com Tansulosina)." }
+        { cmd: "/choqueseptico", aliases: ["/choqueseptico"], sintaxe: "/choqueseptico <peso> <nora>", desc: "Manejo de choque séptico refratário e CIRCI (Hidrocortisona + Vaso)." },
+        { cmd: "/dva", aliases: ["/dva"], sintaxe: "/dva <droga> <peso>", desc: "Calculadora de Noradrenalina, Dobutamina e Vasopressina (mL/h)." },
+        { cmd: "/sri", aliases: ["/sri"], sintaxe: "/sri <peso> [perfil]", desc: "Sequência Rápida de Intubação: doses exatas em mg e mL." },
+        { cmd: "/conduta", aliases: ["/conduta"], sintaxe: "/conduta <patologia>", desc: "Condutas imediatas e doses de ataque beira-leito (PCR, EAP, etc)." },
+        { cmd: "/gaso", aliases: ["/gaso"], sintaxe: "/gaso <pH> <pCO2> <HCO3>", desc: "Gasometria arterial em 5 passos, compensação e anion gap." },
+        { cmd: "/winter", aliases: ["/winter"], sintaxe: "/winter <HCO3>", desc: "Fórmula de Winter para pCO₂ esperada na acidose metabólica." },
+        { cmd: "/choque", aliases: ["/choque"], sintaxe: "/choque <PAS> <PAD> <FC>", desc: "Classificação hemodinâmica e perfis de Forrester/Stevenson." },
+        { cmd: "/sca", aliases: ["/sca"], sintaxe: "/sca <caso/ECG>", desc: "Síndrome Coronariana Aguda: escore HEART, DAPT e anticoagulação." },
+        { cmd: "/avc", aliases: ["/avc"], sintaxe: "/avc <tempo/PA>", desc: "Protocolo de AVC isquêmico, critérios de trombólise e rtPA/TNK." },
+        { cmd: "/hic", aliases: ["/hic"], sintaxe: "/hic <peso>", desc: "Manejo de HIC aguda: Salina Hipertônica 3% e Manitol 20%." },
+        { cmd: "/transfusao", aliases: ["/transfusao"], sintaxe: "/transfusao <Hb/clínica>", desc: "Gatilhos transfusionais (CH, Plaquetas, PFC) e protocolo PTM." },
+        { cmd: "/intox", aliases: ["/intox"], sintaxe: "/intox <agente>", desc: "Toxicologia de emergência, toxíndromes e antídotos específicos." },
+        { cmd: "/pancreatite", aliases: ["/pancreatite"], sintaxe: "/pancreatite <dados>", desc: "Escore BISAP para pancreatite aguda e metas de hidratação." },
+        { cmd: "/neutropenia", aliases: ["/neutropenia"], sintaxe: "/neutropenia <dados>", desc: "Escore MASCC para neutropenia febril e antimicrobianos." },
+        { cmd: "/colica", aliases: ["/colica"], sintaxe: "/colica <dor/tamanho>", desc: "Manejo de cólica nefrética: analgesia multimodal e tansulosina." }
       ]
     },
     {
       id: "farmaco",
       titulo: "💊 FARMACOLOGIA, DOSES & ANTIMICROBIANOS",
       comandos: [
-        { cmd: "/dose", aliases: ["/dose"], sintaxe: "/dose <medicamento>", desc: "Consulta posológica oficial no Guia Farmacêutico do Hospital Sírio-Libanês e PedBook com vias e diluições." },
-        { cmd: "/atb", aliases: ["/atb"], sintaxe: "/atb <droga> <ClCr mL/min>", desc: "Ajuste renal de antibióticos e antifúngicos baseado nas diretrizes HSL/IDSA para disfunção renal e hemodiálise." },
-        { cmd: "/crcl", aliases: ["/crcl"], sintaxe: "/crcl <idade> <peso> <Cr> [f/m]", desc: "Cálculo do Clearance de Creatinina (Cockcroft-Gault) e estadiamento da disfunção renal pelo KDIGO." },
-        { cmd: "/interacao", aliases: ["/interacao"], sintaxe: "/interacao <droga 1> + <droga 2>", desc: "Checagem de interações medicamentosas graves, bloqueios farmacológicos, prolongamento de QT e risco de toxicidade cumulativa." }
+        { cmd: "/dose", aliases: ["/dose"], sintaxe: "/dose <droga>", desc: "Consulta posológica no Guia Sírio-Libanês e PedBook." },
+        { cmd: "/atb", aliases: ["/atb"], sintaxe: "/atb <droga> <ClCr>", desc: "Ajuste renal de antimicrobianos por ClCr e hemodiálise." },
+        { cmd: "/crcl", aliases: ["/crcl"], sintaxe: "/crcl <idade> <peso> <Cr>", desc: "Clearance de Creatinina (Cockcroft-Gault) e estadiamento KDIGO." },
+        { cmd: "/interacao", aliases: ["/interacao"], sintaxe: "/interacao <droga1> + <droga2>", desc: "Checagem de interações graves, toxicidade e risco de QT longo." }
       ]
     },
     {
       id: "pediatria",
       titulo: "👶 PEDIATRIA & SUPORTE VITAL",
       comandos: [
-        { cmd: "/ped", aliases: ["/ped"], sintaxe: "/ped <droga> <pesoKg>", desc: "Posologia pediátrica por peso (mg/kg/dia), frasconetes e gotas/mL baseado no PedBook (pedb.com.br)." },
-        { cmd: "/conduta_ped", aliases: ["/conduta_ped"], sintaxe: "/conduta_ped <patologia>", desc: "Protocolos clínicos pediátricos completos do PedBook com condutas, exames e critérios de internação." },
-        { cmd: "/pals", aliases: ["/pals"], sintaxe: "/pals <pesoKg>", desc: "Suporte Avançado Pediátrico: doses de Adrenalina, Amiodarona, tamanho do TET c/s cuff, fixação labial e Joules de desfibrilação." },
-        { cmd: "/bronquiolite", aliases: ["/bronquiolite"], sintaxe: "/bronquiolite <idade> <SatO2> <sintomas>", desc: "Manejo da Bronquiolite Viral Aguda, escore clínico de gravidade, critérios de oxigenoterapia e parâmetros de CNAF." },
-        { cmd: "/nutriped", aliases: ["/nutriped"], sintaxe: "/nutriped <pesoKg>", desc: "Cálculo hidroeletrolítico de manutenção pela regra de Holliday-Segar (volumes de SG 5%, NaCl 20% e KCl 10%)." },
-        { cmd: "/diluicao", aliases: ["/diluicao"], sintaxe: "/diluicao <fórmula ou idade>", desc: "Cálculo de diluições, reconstituição de fórmulas lácteas infantis e transição alimentar pediátrica." }
+        { cmd: "/ped", aliases: ["/ped"], sintaxe: "/ped <droga> <peso>", desc: "Posologia pediátrica por peso (mg/kg/dia) via PedBook." },
+        { cmd: "/conduta_ped", aliases: ["/conduta_ped"], sintaxe: "/conduta_ped <patologia>", desc: "Protocolos clínicos pediátricos completos do PedBook." },
+        { cmd: "/pals", aliases: ["/pals"], sintaxe: "/pals <peso>", desc: "Suporte Avançado Pediátrico: drogas de PCR, tubo e Joules." },
+        { cmd: "/bronquiolite", aliases: ["/bronquiolite"], sintaxe: "/bronquiolite <idade> <SatO2>", desc: "Manejo de bronquiolite viral aguda, gravidade e suporte CNAF." },
+        { cmd: "/nutriped", aliases: ["/nutriped"], sintaxe: "/nutriped <peso>", desc: "Hidratação de manutenção venosa pela regra de Holliday-Segar." },
+        { cmd: "/diluicao", aliases: ["/diluicao"], sintaxe: "/diluicao <fórmula/idade>", desc: "Diluição e reconstituição de fórmulas lácteas infantis." }
       ]
     },
     {
       id: "obstetricia",
       titulo: "🤰 OBSTETRÍCIA & MEDICINA FETAL",
       comandos: [
-        { cmd: "/prenatal", aliases: ["/prenatal"], sintaxe: "/prenatal <DUM ou USG>", desc: "Cálculo da Idade Gestacional atual, Data Provável do Parto (Naegele) e cronograma trimestral de exames." },
-        { cmd: "/parto", aliases: ["/parto"], sintaxe: "/parto <dilatação> <altura De Lee> <dinâmica>", desc: "Condução do trabalho de parto no CO, análise de partograma, fases clínicas e conduta nas distócias." },
-        { cmd: "/hpp", aliases: ["/hpp"], sintaxe: "/hpp <perda ml/clínica>", desc: "Protocolo de Hemorragia Pós-Parto (regra dos 4 Ts), índice de choque obstétrico, uterotônicos sequenciais e balão de Bakri." },
-        { cmd: "/mgso4", aliases: ["/mgso4"], sintaxe: "/mgso4 [zuspan|pritchard]", desc: "Protocolo de Sulfato de Magnésio para pré-eclâmpsia grave/eclâmpsia, controle de reflexos e diurese, e anti-hipertensivos rápidos." },
-        { cmd: "/gbs", aliases: ["/gbs"], sintaxe: "/gbs <cultura/fatores de risco>", desc: "Indicações de profilaxia intraparto para Estreptococo do Grupo B (S. agalactiae) com Penicilina Cristalina/Ampicilina." },
-        { cmd: "/prematuridade", aliases: ["/prematuridade"], sintaxe: "/prematuridade <IG> [sintomas]", desc: "Manejo da ameaça de parto prematuro, tocolíticos de 1ª linha, ciclo de Betametasona e Sulfato de Mg para neuroproteção." },
-        { cmd: "/colestase", aliases: ["/colestase"], sintaxe: "/colestase <ácidos biliares> [TGO/TGP]", desc: "Colestase Intra-hepática da Gestação: estratificação de risco fetal, dose de Ácido Ursodesoxicólico e timing do parto." },
-        { cmd: "/swansea", aliases: ["/swansea"], sintaxe: "/swansea <critérios clínicos/laboratoriais>", desc: "Critérios de Swansea para Esteatose Hepática Aguda da Gestação (EHAG) e conduta de emergência obstétrica." },
-        { cmd: "/toxo", aliases: ["/toxo"], sintaxe: "/toxo <IgG> <IgM> [avidez] [IG]", desc: "Diagnóstico de toxoplasmose gestacional, interpretação de avidez de IgG e esquema com Espiramicina ou Tríplice clássica." },
-        { cmd: "/rcf", aliases: ["/rcf"], sintaxe: "/rcf <pFE> [ACM] [AU] [DV]", desc: "Restrição de Crescimento Fetal: classificação por Doppler (artéria umbilical, cerebral média e ducto venoso) e timing do parto." },
-        { cmd: "/saf", aliases: ["/saf"], sintaxe: "/saf <histórico/anticorpos>", desc: "Síndrome Antifosfolipídio e trombofilias na gestação: esquemas profiláticos e terapêuticos com Enoxaparina e AAS." }
+        { cmd: "/prenatal", aliases: ["/prenatal"], sintaxe: "/prenatal <DUM/USG>", desc: "Cálculo de IG, DPP (Naegele) e rotina de exames do pré-natal." },
+        { cmd: "/parto", aliases: ["/parto"], sintaxe: "/parto <dilatação> <altura>", desc: "Condução do trabalho de parto, partograma e distócias no CO." },
+        { cmd: "/hpp", aliases: ["/hpp"], sintaxe: "/hpp <perda/clínica>", desc: "Hemorragia pós-parto (4 Ts), índice de choque e uterotônicos." },
+        { cmd: "/mgso4", aliases: ["/mgso4"], sintaxe: "/mgso4 [esquema]", desc: "Sulfato de Magnésio (Zuspan/Pritchard) na pré-eclâmpsia/eclâmpsia." },
+        { cmd: "/gbs", aliases: ["/gbs"], sintaxe: "/gbs <swab/fatores>", desc: "Profilaxia intraparto para Estreptococo do Grupo B." },
+        { cmd: "/prematuridade", aliases: ["/prematuridade"], sintaxe: "/prematuridade <IG>", desc: "Manejo de parto prematuro, tocolíticos e maturação pulmonar." },
+        { cmd: "/colestase", aliases: ["/colestase"], sintaxe: "/colestase <ácidos biliares>", desc: "Colestase intra-hepática gestacional e ácido ursodesoxicólico." },
+        { cmd: "/swansea", aliases: ["/swansea"], sintaxe: "/swansea <critérios>", desc: "Critérios de Swansea para esteatose hepática aguda da gestação." },
+        { cmd: "/toxo", aliases: ["/toxo"], sintaxe: "/toxo <IgG> <IgM> [avidez]", desc: "Toxoplasmose gestacional: avidez de IgG e esquema terapêutico." },
+        { cmd: "/rcf", aliases: ["/rcf"], sintaxe: "/rcf <pFE> [Doppler]", desc: "Restrição de crescimento fetal e classificação por Doppler fetal." },
+        { cmd: "/saf", aliases: ["/saf"], sintaxe: "/saf <histórico/anticorpos>", desc: "Síndrome antifosfolipídio na gestação: enoxaparina e AAS." }
       ]
     },
     {
       id: "ginecologia",
       titulo: "🌸 GINECOLOGIA & SAÚDE DA MULHER",
       comandos: [
-        { cmd: "/ginecologia", aliases: ["/ginecologia"], sintaxe: "/ginecologia <caso>", desc: "Central de condutas e raciocínio clínico para queixas ginecológicas frequentes de consultório e urgência." },
-        { cmd: "/preventivo", aliases: ["/preventivo"], sintaxe: "/preventivo <laudo: ASC-US, LSIL...>", desc: "Conduta oficial de seguimento citopatológico de colo de útero (diretrizes brasileiras INCA/Ministério da Saúde)." },
-        { cmd: "/sua", aliases: ["/sua"], sintaxe: "/sua <idade> <padrão sangramento>", desc: "Investigação do Sangramento Uterino Anormal (sistema PALM-COEIN) e conduta terapêutica hormonal aguda e ambulatorial." },
-        { cmd: "/anticoncepcao", aliases: ["/anticoncepcao"], sintaxe: "/anticoncepcao <comorbidades/desejo>", desc: "Critérios Médicos de Elegibilidade da OMS para escolha e troca segura de contraceptivos (orais, injetáveis, DIU e implante)." },
-        { cmd: "/corrimento", aliases: ["/corrimento"], sintaxe: "/corrimento <aspecto/pH/odor>", desc: "Diagnóstico diferencial e tratamento de vaginoses e cervicites (Candidíase, Vaginose Bacteriana, Tricomoníase)." },
-        { cmd: "/endometriose", aliases: ["/endometriose"], sintaxe: "/endometriose <sintomas/exames>", desc: "Manejo da dor pélvica crônica e endometriose, uso de dienogeste e critérios para propedêutica armada." },
-        { cmd: "/hiperprolactinemia", aliases: ["/hiperprolactinemia"], sintaxe: "/hiperprolactinemia <prolactina ng/mL>", desc: "Investigação diagnóstica de prolactinoma e hiperprolactinemia medicamentosa e titulação de cabergolina." }
+        { cmd: "/ginecologia", aliases: ["/ginecologia"], sintaxe: "/ginecologia <caso>", desc: "Central de condutas e raciocínio para queixas ginecológicas." },
+        { cmd: "/preventivo", aliases: ["/preventivo"], sintaxe: "/preventivo <laudo>", desc: "Conduta citopatológica de colo de útero (diretrizes INCA/MS)." },
+        { cmd: "/sua", aliases: ["/sua"], sintaxe: "/sua <idade/sangramento>", desc: "Sangramento uterino anormal (PALM-COEIN) e conduta hormonal." },
+        { cmd: "/anticoncepcao", aliases: ["/anticoncepcao"], sintaxe: "/anticoncepcao <perfil>", desc: "Critérios de elegibilidade da OMS para contracepção." },
+        { cmd: "/corrimento", aliases: ["/corrimento"], sintaxe: "/corrimento <aspecto/odor>", desc: "Vaginoses e cervicites (candidíase, VB e tricomoníase)." },
+        { cmd: "/endometriose", aliases: ["/endometriose"], sintaxe: "/endometriose <sintomas>", desc: "Manejo da dor pélvica crônica, endometriose e dienogeste." },
+        { cmd: "/hiperprolactinemia", aliases: ["/hiperprolactinemia"], sintaxe: "/hiperprolactinemia <valor>", desc: "Investigação de prolactinomas e titulação de cabergolina." }
       ]
     },
     {
       id: "geriatria",
       titulo: "👴 GERIATRIA & SAÚDE DO IDOSO (AGA)",
       comandos: [
-        { cmd: "/idoso", aliases: ["/idoso"], sintaxe: "/idoso <caso do idoso>", desc: "Avaliação Geriátrica Ampla (AGA) abrangendo funcionalidade, cognição, humor, nutrição, mobilidade e polifarmácia." },
-        { cmd: "/cfs", aliases: ["/cfs"], sintaxe: "/cfs <escore 1-9>", desc: "Classificação da Clinical Frailty Scale (escala clínica de fragilidade do idoso de Rockwood) com implicações prognósticas." },
-        { cmd: "/minicog", aliases: ["/minicog"], sintaxe: "/minicog <palavras> <desenho relógio>", desc: "Rastreio cognitivo rápido beira-leito através do teste Mini-Cog (evocação de 3 palavras + teste do relógio)." },
-        { cmd: "/tug", aliases: ["/tug"], sintaxe: "/tug <segundos>", desc: "Teste Timed Up and Go para predição de risco de quedas, fragilidade e velocidade de marcha." },
-        { cmd: "/beers", aliases: ["/beers"], sintaxe: "/beers <lista de medicamentos>", desc: "Critérios de Beers e STOPP/START para rastreamento de medicamentos potencialmente inapropriados em idosos." },
-        { cmd: "/frax", aliases: ["/frax"], sintaxe: "/frax <idade> <sexo> [fraturas/DMO]", desc: "Calculadora FRAX Brasil calibrada para probabilidade em 10 anos de fratura osteoporótica maior e fratura de fêmur." },
-        { cmd: "/osteoporose", aliases: ["/osteoporose"], sintaxe: "/osteoporose <T-score> [ClCr/cálcio]", desc: "Protocolo de osteoporose: bisfosfonatos (alendronato/zoledronato), denosumabe, suplementação de cálcio e vitamina D." },
-        { cmd: "/quedas", aliases: ["/quedas"], sintaxe: "/quedas <histórico quedas/drogas>", desc: "Avaliação de risco multifatorial de quedas no paciente idoso e plano de prevenção personalizada beira-leito." },
-        { cmd: "/polifarmacia", aliases: ["/polifarmacia"], sintaxe: "/polifarmacia <lista de receitas>", desc: "Revisão e desprescrição segura de polifarmácia no idoso com identificação de FRIDs (Fall-Risk Increasing Drugs)." }
+        { cmd: "/idoso", aliases: ["/idoso"], sintaxe: "/idoso <caso>", desc: "Avaliação Geriátrica Ampla (AGA): função, humor e cognição." },
+        { cmd: "/cfs", aliases: ["/cfs"], sintaxe: "/cfs <escore 1-9>", desc: "Escala clínica de fragilidade de Rockwood (CFS)." },
+        { cmd: "/minicog", aliases: ["/minicog"], sintaxe: "/minicog <palavras/relógio>", desc: "Rastreio cognitivo rápido: 3 palavras + teste do relógio." },
+        { cmd: "/tug", aliases: ["/tug"], sintaxe: "/tug <segundos>", desc: "Teste Timed Up and Go para marcha e risco de quedas." },
+        { cmd: "/beers", aliases: ["/beers"], sintaxe: "/beers <drogas>", desc: "Critérios de Beers e STOPP/START para desprescrição no idoso." },
+        { cmd: "/frax", aliases: ["/frax"], sintaxe: "/frax <idade> <sexo>", desc: "Calculadora FRAX Brasil para risco de fratura osteoporótica." },
+        { cmd: "/osteoporose", aliases: ["/osteoporose"], sintaxe: "/osteoporose <T-score>", desc: "Manejo de osteoporose: bisfosfonatos, cálcio e vitamina D." },
+        { cmd: "/quedas", aliases: ["/quedas"], sintaxe: "/quedas <histórico>", desc: "Avaliação multifatorial de risco de quedas no paciente idoso." },
+        { cmd: "/polifarmacia", aliases: ["/polifarmacia"], sintaxe: "/polifarmacia <receitas>", desc: "Revisão de polifarmácia e identificação de FRIDs no idoso." }
       ]
     },
     {
       id: "cardiopneumo",
       titulo: "🫀 CARDIOLOGIA & PNEUMOLOGIA CLÍNICA",
       comandos: [
-        { cmd: "/fa", aliases: ["/fa"], sintaxe: "/fa <idade> [comorbidades/sangramentos]", desc: "Manejo da Fibrilação Atrial: controle de frequência vs ritmo, indicação de anticoagulação pelo CHA₂DS₂-VASc e risco pelo HAS-BLED." },
-        { cmd: "/icc", aliases: ["/icc"], sintaxe: "/icc <FEVE %> [sintomas NYHA]", desc: "Tratamento da IC com Fração de Ejeção Reduzida e otimização dos 4 pilares (Quarteto Fantástico: ARNI/IECA + BB + ARM + iSGLT2)." },
-        { cmd: "/asma", aliases: ["/asma"], sintaxe: "/asma <SatO2/sintomas/PFE>", desc: "Estadiamento da crise asmática aguda, ciclos de broncodilatadores (SABA + SAMA), corticoterapia sistêmica e Sulfato de Mg IV." },
-        { cmd: "/dpoc", aliases: ["/dpoc"], sintaxe: "/dpoc <gaso/dispneia/escarro>", desc: "Manejo da DPOC exacerbada: critérios de Anthonisen para antibióticos, corticoterapia oral e indicação/parâmetros de VNI (BiPAP)." }
+        { cmd: "/fa", aliases: ["/fa"], sintaxe: "/fa <dados>", desc: "Fibrilação atrial: anticoagulação (CHA₂DS₂-VASc) e frequência." },
+        { cmd: "/icc", aliases: ["/icc"], sintaxe: "/icc <FEVE %>", desc: "IC com FE reduzida: titulação dos 4 pilares farmacológicos." },
+        { cmd: "/asma", aliases: ["/asma"], sintaxe: "/asma <gravidade>", desc: "Crise asmática aguda: broncodilatadores, corticoide e MgSO4." },
+        { cmd: "/dpoc", aliases: ["/dpoc"], sintaxe: "/dpoc <gaso/sintomas>", desc: "DPOC exacerbada: critérios de Anthonisen, corticoide e VNI." }
       ]
     },
     {
       id: "metabolismo",
       titulo: "🩸 HEMATOLOGIA, METABOLOGIA & NUTRIÇÃO",
       comandos: [
-        { cmd: "/anemia", aliases: ["/anemia"], sintaxe: "/anemia <Hb> <VCM> <HCM> [RDW/ferritina]", desc: "Diagnóstico etiológico de anemias: microcíticas, normocíticas e macrocíticas, cinética de ferro e reticulócitos." },
-        { cmd: "/ganzoni", aliases: ["/ganzoni"], sintaxe: "/ganzoni <pesoKg> <HbAtual> [HbAlvo]", desc: "Fórmula de Ganzoni para cálculo da dose total de reposição de ferro elementar endovenoso (Noripurum / Carboximaltose)." },
-        { cmd: "/mentzer", aliases: ["/mentzer"], sintaxe: "/mentzer <VCM> <Hemácias em milhões>", desc: "Índice de Mentzer (VCM / Hemácias) para diferenciação rápida beira-leito (< 13: Talassemia; > 13: Ferropriva)." },
-        { cmd: "/diabetes", aliases: ["/diabetes"], sintaxe: "/diabetes <glicemia/HbA1c/peso>", desc: "Manejo ambulatorial e hospitalar do Diabetes Mellitus, metas de glicemia e titulação de esquema basal-bolus de insulina." },
-        { cmd: "/cad", aliases: ["/cad"], sintaxe: "/cad <pesoKg> <glicemia> <gaso> <K+>", desc: "Protocolo de Cetoacidose Diabética: hidratação guiada por sódio corrigido, bomba de insulina regular, reposição de K+ e resolução." },
-        { cmd: "/ehh", aliases: ["/ehh"], sintaxe: "/ehh <pesoKg> <glicemia> <Na>", desc: "Protocolo do Estado Hiperosmolar Hiperglicêmico: cálculo de osmolaridade sérica efetiva e expansão volêmica cautelosa." },
-        { cmd: "/glicemia", aliases: ["/glicemia"], sintaxe: "/glicemia <valor em mg/dL>", desc: "Mapa prático de prescrição e correção rápida de hiperglicemia hospitalar com insulina ultrarrápida/regular beira-leito." },
-        { cmd: "/nutricao", aliases: ["/nutricao"], sintaxe: "/nutricao <pesoKg> <alturaCm> [clínica]", desc: "Estimativa de metas calórico-proteicas basais (kcal/kg/dia) e orientação para escolha de terapia nutricional oral ou enteral." },
-        { cmd: "/refeeding", aliases: ["/refeeding"], sintaxe: "/refeeding <tempo de jejum/eletrólitos>", desc: "Protocolo de prevenção e correção da Síndrome de Realimentação, reposição de Tiamina e controle de Fósforo, Magnésio e Potássio." },
-        { cmd: "/npt", aliases: ["/npt"], sintaxe: "/npt <pesoKg> [necessidades]", desc: "Prescrição, balanço hidroeletrolítico e monitorização laboratorial da Nutrição Parenteral Total." },
-        { cmd: "/nrs", aliases: ["/nrs"], sintaxe: "/nrs <pontuação>", desc: "Triagem de Risco Nutricional NRS-2002 para indicação precoce de suporte nutricional hospitalar." }
+        { cmd: "/anemia", aliases: ["/anemia"], sintaxe: "/anemia <Hb/VCM/ferro>", desc: "Diagnóstico etiológico de anemias e cinética de ferro." },
+        { cmd: "/ganzoni", aliases: ["/ganzoni"], sintaxe: "/ganzoni <peso> <Hb>", desc: "Fórmula de Ganzoni para reposição de ferro elementar IV." },
+        { cmd: "/mentzer", aliases: ["/mentzer"], sintaxe: "/mentzer <VCM> <Hemácias>", desc: "Índice de Mentzer para diferenciar talassemia de ferropriva." },
+        { cmd: "/diabetes", aliases: ["/diabetes"], sintaxe: "/diabetes <glicemia/HbA1c>", desc: "Manejo do DM e titulação de esquema basal-bolus de insulina." },
+        { cmd: "/cad", aliases: ["/cad"], sintaxe: "/cad <peso> <glicemia>", desc: "Protocolo de Cetoacidose Diabética: hidratação, insulina e K+." },
+        { cmd: "/ehh", aliases: ["/ehh"], sintaxe: "/ehh <peso> <glicemia>", desc: "Estado Hiperosmolar Hiperglicêmico: osmolaridade e hidratação." },
+        { cmd: "/glicemia", aliases: ["/glicemia"], sintaxe: "/glicemia <mg/dL>", desc: "Mapa de correção rápida de hiperglicemia hospitalar." },
+        { cmd: "/nutricao", aliases: ["/nutricao"], sintaxe: "/nutricao <peso> <altura>", desc: "Metas calórico-proteicas e via de suporte nutricional." },
+        { cmd: "/refeeding", aliases: ["/refeeding"], sintaxe: "/refeeding <jejum/íons>", desc: "Prevenção da síndrome de realimentação e reposição de íons." },
+        { cmd: "/npt", aliases: ["/npt"], sintaxe: "/npt <peso>", desc: "Prescrição, balanço e monitoramento de Nutrição Parenteral." },
+        { cmd: "/nrs", aliases: ["/nrs"], sintaxe: "/nrs <pontos>", desc: "Triagem de Risco Nutricional NRS-2002 no paciente internado." }
       ]
     },
     {
       id: "especialidades",
       titulo: "🦴 REUMATO, ORTO, URO, OFTALMO & OTORRINO",
       comandos: [
-        { cmd: "/monoartrite", aliases: ["/monoartrite"], sintaxe: "/monoartrite <leucócitos líquido/cristais>", desc: "Diagnóstico diferencial de monoartrite aguda (Artrite Séptica vs Gota/Pseudogota) e interpretação de artrocentese." },
-        { cmd: "/febrereumatica", aliases: ["/febrereumatica"], sintaxe: "/febrereumatica <critérios Jones/ASLO>", desc: "Critérios de Jones revisados pela AHA para Febre Reumática Aguda, tratamento anti-inflamatório e profilaxia secundária com Penicilina Benzatina." },
-        { cmd: "/oftalmo", aliases: ["/oftalmo"], sintaxe: "/oftalmo <queixa ocular/trauma>", desc: "Emergências oftalmológicas no Pronto-Socorro: queimadura química ocular, glaucoma agudo de ângulo fechado e corpo estranho." },
-        { cmd: "/vertigem", aliases: ["/vertigem"], sintaxe: "/vertigem <achados/head impulse/nistagmo/skew>", desc: "Protocolo HINTS para diferenciação de Síndrome Vestibular Aguda (AVC de fossa posterior vs Neurite Vestibular) e VPPB." },
-        { cmd: "/epistaxe", aliases: ["/epistaxe"], sintaxe: "/epistaxe <anterior|posterior|PA|anticoagulante>", desc: "Protocolo escalonado de sangramento nasal: compressão, vasoconstritor, cauterização com nitrato de prata e sonda de Foley com água destilada." }
+        { cmd: "/monoartrite", aliases: ["/monoartrite"], sintaxe: "/monoartrite <líquido>", desc: "Artrite séptica vs microcristalina e artrocentese." },
+        { cmd: "/febrereumatica", aliases: ["/febrereumatica"], sintaxe: "/febrereumatica <dados>", desc: "Critérios de Jones para febre reumática e profilaxia secundária." },
+        { cmd: "/oftalmo", aliases: ["/oftalmo"], sintaxe: "/oftalmo <queixa>", desc: "Emergências oftalmológicas: trauma, queimadura e glaucoma agudo." },
+        { cmd: "/vertigem", aliases: ["/vertigem"], sintaxe: "/vertigem <achados>", desc: "Protocolo HINTS para síndrome vestibular aguda vs VPPB." },
+        { cmd: "/epistaxe", aliases: ["/epistaxe"], sintaxe: "/epistaxe <tipo>", desc: "Manejo escalonado de sangramento nasal e tamponamento." }
       ]
     },
     {
       id: "dermato",
       titulo: "🧴 DERMATOLOGIA & ISTs CUTÂNEAS",
       comandos: [
-        { cmd: "/dermato", aliases: ["/dermato"], sintaxe: "/dermato <descrição da lesão>", desc: "Diferenciação de lesões elementares da pele (mácula, pápula, placa, vesícula, bolha, crosta, púrpura, úlcera) e sinais de alerta." },
-        { cmd: "/herpes", aliases: ["/herpes"], sintaxe: "/herpes [zoster|simples] [clcr] [peso]", desc: "Protocolo antiviral para Herpes Zoster e Herpes Simples com posologia ajustada por clearance de creatinina e hemodiálise." },
-        { cmd: "/ulceragenital", aliases: ["/ulceragenital"], sintaxe: "/ulceragenital <tempo/dor/fundo>", desc: "Abordagem sindrômica de úlceras genitais (PCDT MS 2026: cancro duro, cancro mole, herpes, linfogranuloma e donovanose)." },
-        { cmd: "/sifilis", aliases: ["/sifilis"], sintaxe: "/sifilis <estágio/achados/VDRL>", desc: "Manejo e estadiamento da sífilis (primária, secundária, latente e terciária), doses de Penicilina Benzatina e conduta na gestante." },
-        { cmd: "/mpox", aliases: ["/mpox"], sintaxe: "/mpox <lesões/sintomas/proctite>", desc: "Manejo clínico e diagnóstico de Mpox (lesões vesicopustulosas umbilicadas, adenomegalia dolorosa, proctite e biossegurança)." }
+        { cmd: "/dermato", aliases: ["/dermato"], sintaxe: "/dermato <lesão>", desc: "Diferenciação de lesões elementares da pele e sinais de alerta." },
+        { cmd: "/herpes", aliases: ["/herpes"], sintaxe: "/herpes [zoster|simples]", desc: "Antivirais para Herpes Zoster e Simples com ajuste por ClCr." },
+        { cmd: "/ulceragenital", aliases: ["/ulceragenital"], sintaxe: "/ulceragenital <lesão>", desc: "Abordagem sindrômica de úlceras genitais (PCDT MS)." },
+        { cmd: "/sifilis", aliases: ["/sifilis"], sintaxe: "/sifilis <estágio/VDRL>", desc: "Estadiamento e tratamento da sífilis com Penicilina Benzatina." },
+        { cmd: "/mpox", aliases: ["/mpox"], sintaxe: "/mpox <sintomas>", desc: "Diagnóstico, isolamento e conduta clínica para Mpox." }
       ]
     },
     {
       id: "psiquiatria",
       titulo: "🧠 PSIQUIATRIA DE URGÊNCIA & SAÚDE MENTAL",
       comandos: [
-        { cmd: "/psiq", aliases: ["/psiq"], sintaxe: "/psiq <caso psiquiátrico>", desc: "Condutas imediatas e raciocínio diagnóstico nas principais emergências psiquiátricas do plantão." },
-        { cmd: "/agitacao", aliases: ["/agitacao"], sintaxe: "/agitacao [leve|moderada|grave]", desc: "Manejo farmacológico rápido e escalonado da agitação psicomotora (Haloperidol, Midazolam, Prometazina) e contenção protetiva." },
-        { cmd: "/suicidio", aliases: ["/suicidio"], sintaxe: "/suicidio <caso/fatores risco>", desc: "Estratificação do risco de suicídio (baixo, moderado e alto), intervenção em crise e medidas de segurança beira-leito." },
-        { cmd: "/phq9", aliases: ["/phq9"], sintaxe: "/phq9 <respostas/pontuação 0-27>", desc: "Aplicação do questionário PHQ-9 para depressão com estratificação da severidade e diretrizes terapêuticas." }
+        { cmd: "/psiq", aliases: ["/psiq"], sintaxe: "/psiq <caso>", desc: "Condutas imediatas nas principais emergências psiquiátricas." },
+        { cmd: "/agitacao", aliases: ["/agitacao"], sintaxe: "/agitacao [gravidade]", desc: "Manejo farmacológico rápido da agitação psicomotora." },
+        { cmd: "/suicidio", aliases: ["/suicidio"], sintaxe: "/suicidio <caso>", desc: "Estratificação do risco de suicídio e intervenção em crise." },
+        { cmd: "/phq9", aliases: ["/phq9"], sintaxe: "/phq9 <respostas/pontos>", desc: "Rastreio e gravidade de depressão pelo escore PHQ-9." }
       ]
     },
     {
       id: "exame_fisico",
       titulo: "🩺 EXAME FÍSICO & SEMIOLOGIA ESPECIALIZADA",
       comandos: [
-        { cmd: "/ef", aliases: ["/ef"], sintaxe: "/ef", desc: "Menu central com todos os roteiros práticos de exame físico especializado beira-leito." },
-        { cmd: "/ef_neuro", aliases: ["/ef_neuro"], sintaxe: "/ef_neuro", desc: "Roteiro semiológico do exame neurológico detalhado: pares cranianos, força motora, reflexos, sensibilidade e cerebelo." },
-        { cmd: "/ef_pqu", aliases: ["/ef_pqu"], sintaxe: "/ef_pqu", desc: "Roteiro semiológico do exame psíquico (psicopatologia): consciência, atenção, memória, pensamento e humor." },
-        { cmd: "/ef_oftalmo", aliases: ["/ef_oftalmo"], sintaxe: "/ef_oftalmo", desc: "Exame oftalmológico no pronto atendimento: acuidade, reflexos pupilares e fluoresceína." },
-        { cmd: "/ef_ortopo", aliases: ["/ef_ortopo"], sintaxe: "/ef_ortopo", desc: "Manobras semiológicas ortopédicas de ombro (Neer, Hawkins), joelho (Lachman, gaveta), coluna (Lasègue) e quadril." },
-        { cmd: "/ef_orl", aliases: ["/ef_orl"], sintaxe: "/ef_orl", desc: "Semiologia de otorrinolaringologia: otoscopia, rinoscopia, orofaringe e linfonodos cervicais." },
-        { cmd: "/ef_dermato", aliases: ["/ef_dermato"], sintaxe: "/ef_dermato", desc: "Semiologia dermatológica e identificação morfológica de lesões elementares primárias e secundárias." },
-        { cmd: "/ef_gineco", aliases: ["/ef_gineco"], sintaxe: "/ef_gineco", desc: "Exame ginecológico passo a passo: ectoscopia genital, exame especular e toque vaginal bimanual." },
-        { cmd: "/ef_procto", aliases: ["/ef_procto"], sintaxe: "/ef_procto", desc: "Exame proctológico: inspeção estática e dinâmica, palpação perianal e toque retal sistemático." },
-        { cmd: "/ef_ped", aliases: ["/ef_ped"], sintaxe: "/ef_ped", desc: "Exame físico pediátrico sistematizado por faixas etárias, fontanelas, abdome e marcos do neurodesenvolvimento." },
-        { cmd: "/ef_geriatria", aliases: ["/ef_geriatria"], sintaxe: "/ef_geriatria", desc: "Semiologia geriátrica com foco em sinais de fragilidade, sarcopenia, hipotensão ortostática e úlceras de pressão." },
-        { cmd: "/ef_vascular", aliases: ["/ef_vascular"], sintaxe: "/ef_vascular", desc: "Exame vascular periférico: palpação simétrica de pulsos arteriais, tempo de enchimento capilar e estigmas venosos." }
+        { cmd: "/ef", aliases: ["/ef"], sintaxe: "/ef", desc: "Menu central de roteiros de exame físico beira-leito." },
+        { cmd: "/ef_neuro", aliases: ["/ef_neuro"], sintaxe: "/ef_neuro", desc: "Exame neurológico: pares cranianos, força, reflexos e cerebelo." },
+        { cmd: "/ef_pqu", aliases: ["/ef_pqu"], sintaxe: "/ef_pqu", desc: "Exame psíquico sistemático (psicopatologia beira-leito)." },
+        { cmd: "/ef_oftalmo", aliases: ["/ef_oftalmo"], sintaxe: "/ef_oftalmo", desc: "Exame oftalmológico: acuidade, pupilas e fluoresceína." },
+        { cmd: "/ef_ortopo", aliases: ["/ef_ortopo"], sintaxe: "/ef_ortopo", desc: "Manobras ortopédicas de ombro, joelho, coluna e quadril." },
+        { cmd: "/ef_orl", aliases: ["/ef_orl"], sintaxe: "/ef_orl", desc: "Semiologia ORL: otoscopia, rinoscopia e orofaringe." },
+        { cmd: "/ef_dermato", aliases: ["/ef_dermato"], sintaxe: "/ef_dermato", desc: "Identificação morfológica de lesões dermatológicas." },
+        { cmd: "/ef_gineco", aliases: ["/ef_gineco"], sintaxe: "/ef_gineco", desc: "Exame ginecológico: ectoscopia, espéculo e toque bimanual." },
+        { cmd: "/ef_procto", aliases: ["/ef_procto"], sintaxe: "/ef_procto", desc: "Exame proctológico: inspeção perianal e toque retal." },
+        { cmd: "/ef_ped", aliases: ["/ef_ped"], sintaxe: "/ef_ped", desc: "Exame físico pediátrico sistematizado por faixas etárias." },
+        { cmd: "/ef_geriatria", aliases: ["/ef_geriatria"], sintaxe: "/ef_geriatria", desc: "Semiologia geriátrica: fragilidade, sarcopenia e ortostase." },
+        { cmd: "/ef_vascular", aliases: ["/ef_vascular"], sintaxe: "/ef_vascular", desc: "Exame vascular periférico: pulsos periféricos e perfusão." }
       ]
     },
     {
       id: "enfermaria",
       titulo: "🏥 ENFERMARIA, LEITOS & PLANTÃO",
       comandos: [
-        { cmd: "/enfermaria", aliases: ["/enfermaria"], sintaxe: "/enfermaria", desc: "Painel geral e interativo com censo dos leitos cadastrados, gravidade e pendências dos pacientes internados." },
-        { cmd: "/leito", aliases: ["/leito"], sintaxe: "/leito <número> [dados do paciente]", desc: "Cadastro, consulta ou evolução clínica de um leito individual da enfermaria." },
-        { cmd: "/alta", aliases: ["/alta"], sintaxe: "/alta <número do leito>", desc: "Registra a alta hospitalar e desocupa o leito especificado no painel da enfermaria." },
-        { cmd: "/limpar_enfermaria", aliases: ["/limpar_enfermaria"], sintaxe: "/limpar_enfermaria", desc: "Comando administrativo com confirmação para desocupar e resetar todos os leitos da enfermaria." },
-        { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Gera o relatório estruturado completo e consolidado de passagem de plantão de todos os leitos ativos." },
-        { cmd: "/plantao", aliases: ["/plantao"], sintaxe: "/plantao <dados do caso>", desc: "Registra ou evolui um caso utilizando a metodologia padronizada de comunicação SBAR (Situação, Breve Histórico, Avaliação e Recomendação)." },
-        { cmd: "/plantao_fim", aliases: ["/plantao_fim"], sintaxe: "/plantao_fim", desc: "Checklist final de encerramento de plantão com revisão de pendências laboratoriais e condutas críticas." },
-        { cmd: "/round", aliases: ["/round"], sintaxe: "/round <dados do caso>", desc: "Estrutura apresentação em pitch clínico conciso e de alto impacto para a discussão multidisciplinar de round." }
+        { cmd: "/enfermaria", aliases: ["/enfermaria"], sintaxe: "/enfermaria", desc: "Censo dos leitos internados, gravidade e pendências." },
+        { cmd: "/leito", aliases: ["/leito"], sintaxe: "/leito <nº> [dados]", desc: "Cadastro, consulta ou evolução de leito da enfermaria." },
+        { cmd: "/alta", aliases: ["/alta"], sintaxe: "/alta <nº>", desc: "Registra alta médica e desocupa o leito especificado." },
+        { cmd: "/limpar_enfermaria", aliases: ["/limpar_enfermaria"], sintaxe: "/limpar_enfermaria", desc: "Comando administrativo para desocupar todos os leitos." },
+        { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Relatório consolidado de passagem de plantão da enfermaria." },
+        { cmd: "/plantao", aliases: ["/plantao"], sintaxe: "/plantao <caso>", desc: "Registro e evolução de caso pela metodologia SBAR." },
+        { cmd: "/plantao_fim", aliases: ["/plantao_fim"], sintaxe: "/plantao_fim", desc: "Checklist de fim de plantão com revisão de pendências." },
+        { cmd: "/round", aliases: ["/round"], sintaxe: "/round <caso>", desc: "Pitch clínico conciso para discussão de round beira-leito." }
       ]
     },
     {
       id: "ensino_rotina",
       titulo: "🎧 PRECEPTOR, ROTINA & PRODUTIVIDADE",
       comandos: [
-        { cmd: "/voz", aliases: ["/voz"], sintaxe: "/voz [caso ou tema]", desc: "Inicia ou retoma a sabatina preceptorial socrática via áudio ou texto para treinamento de raciocínio clínico beira-leito." },
-        { cmd: "/duvida", aliases: ["/duvida"], sintaxe: "/duvida <pergunta ou tema médico>", desc: "Arquiva uma dúvida médica diretamente no Notion para revisão na sessão noturna de estudos do MedQuest." },
-        { cmd: "/rotina", aliases: ["/rotina"], sintaxe: "/rotina [hoje|amanhã|semana|reset]", desc: "Exibe ou ajusta a grade de blocos de tempo adaptativos do dia para conciliar hospital, estudos e treinos." },
-        { cmd: "/agenda", aliases: ["/agenda"], sintaxe: "/agenda [hoje|amanhã|data]", desc: "Consulta compromissos, cirurgias e escalas médicas integradas com o Google Calendar." },
-        { cmd: "/task", aliases: ["/task"], sintaxe: "/task <descrição da tarefa>", desc: "Captura rápida e cadastro imediato de uma tarefa no Inbox do Notion Tasks." },
-        { cmd: "/tasks", aliases: ["/tasks"], sintaxe: "/tasks", desc: "Lista as principais tarefas do dia sincronizadas com o banco de dados do Notion." },
-        { cmd: "/briefing", aliases: ["/briefing"], sintaxe: "/briefing", desc: "Emite o briefing matinal consolidado com previsão do tempo, compromissos prioritários e bloco cirúrgico." },
-        { cmd: "/checkin", aliases: ["/checkin"], sintaxe: "/checkin", desc: "Dispara o check-in noturno interativo de encerramento de atividades, hábitos e recuperação." },
-        { cmd: "/semana", aliases: ["/semana"], sintaxe: "/semana", desc: "Gera o relatório analítico semanal de hábitos, adesão à rotina e produtividade clínica." },
-        { cmd: "/bio", aliases: ["/bio"], sintaxe: "/bio", desc: "Abre o atalho para monitoramento de peso corporal, percentual de gordura (BF%) e protocolo de cutting no Cockpit." }
+        { cmd: "/voz", aliases: ["/voz"], sintaxe: "/voz [caso/tema]", desc: "Sabatina preceptorial socrática por áudio ou texto." },
+        { cmd: "/duvida", aliases: ["/duvida"], sintaxe: "/duvida <tema>", desc: "Arquiva dúvida clínica no Notion para o MedQuest noturno." },
+        { cmd: "/rotina", aliases: ["/rotina"], sintaxe: "/rotina [hoje/reset]", desc: "Grade de blocos de tempo adaptativos do dia." },
+        { cmd: "/agenda", aliases: ["/agenda"], sintaxe: "/agenda [data]", desc: "Consulta compromissos e escalas no Google Calendar." },
+        { cmd: "/task", aliases: ["/task"], sintaxe: "/task <tarefa>", desc: "Captura rápida de tarefa para o Inbox do Notion." },
+        { cmd: "/tasks", aliases: ["/tasks"], sintaxe: "/tasks", desc: "Lista as tarefas prioritárias do dia no Notion." },
+        { cmd: "/briefing", aliases: ["/briefing"], sintaxe: "/briefing", desc: "Briefing matinal com agenda, previsão e prioridades." },
+        { cmd: "/checkin", aliases: ["/checkin"], sintaxe: "/checkin", desc: "Check-in noturno de hábitos, sono e encerramento." },
+        { cmd: "/semana", aliases: ["/semana"], sintaxe: "/semana", desc: "Relatório semanal analítico de rotina e hábitos." },
+        { cmd: "/bio", aliases: ["/bio"], sintaxe: "/bio", desc: "Atalho para peso corporal e composição corporal no Cockpit." }
       ]
     },
     {
       id: "governanca",
       titulo: "🛡️ EVIDÊNCIAS, PROTOCOLOS & GOVERNANÇA",
       comandos: [
-        { cmd: "/evidencia", aliases: ["/evidencia"], sintaxe: "/evidencia <termo de busca>", desc: "Busca em tempo real de artigos científicos, ensaios clínicos e diretrizes médicas no PubMed / Europe PMC." },
-        { cmd: "/protocolo", aliases: ["/protocolo"], sintaxe: "/protocolo <sepse|iam|eap|cad|tep|dpoc>", desc: "Compara lado a lado as diretrizes clínicas brasileiras vs internacionais com pontos de divergência e condutas." },
-        { cmd: "/calc", aliases: ["/calc"], sintaxe: "/calc", desc: "Abre o catálogo central com atalhos para todas as calculadoras médicas integradas." },
-        { cmd: "/perfil", aliases: ["/perfil"], sintaxe: "/perfil [usuário]", desc: "Consulta os níveis de permissão clínica e papéis RBAC ativos (Preceptor, Médico Assistente, Residente, Interno)." },
-        { cmd: "/pendencias", aliases: ["/pendencias"], sintaxe: "/pendencias", desc: "Lista ações e prescrições emitidas por médicos em formação que aguardam chancela preceptorial." },
-        { cmd: "/chancelar", aliases: ["/chancelar"], sintaxe: "/chancelar <id>", desc: "Aprova e chancela formalmente a conduta supervisionada de um interno ou residente." },
-        { cmd: "/emergencia", aliases: ["/emergencia"], sintaxe: "/emergencia <justificativa>", desc: "Protocolo Break-The-Glass para bypass imediato de restrições de permissão durante emergências extremas com auditoria." },
-        { cmd: "/auditar_rbac", aliases: ["/auditar_rbac"], sintaxe: "/auditar_rbac", desc: "Emite relatório de auditoria e conformidade dos acessos e quebras de barreira registradas." },
-        { cmd: "/kaizen", aliases: ["/kaizen"], sintaxe: "/kaizen", desc: "Painel de métricas de qualidade, feedbacks e melhoria contínua (Kaizen) das decisões clínicas." }
+        { cmd: "/evidencia", aliases: ["/evidencia"], sintaxe: "/evidencia <termo>", desc: "Busca de evidências científicas no PubMed / Europe PMC." },
+        { cmd: "/protocolo", aliases: ["/protocolo"], sintaxe: "/protocolo <tema>", desc: "Comparativo de diretrizes clínicas nacionais vs internacionais." },
+        { cmd: "/calc", aliases: ["/calc"], sintaxe: "/calc", desc: "Catálogo central de calculadoras médicas integradas." },
+        { cmd: "/perfil", aliases: ["/perfil"], sintaxe: "/perfil [user]", desc: "Consulta níveis de permissão e papéis RBAC ativos." },
+        { cmd: "/pendencias", aliases: ["/pendencias"], sintaxe: "/pendencias", desc: "Lista condutas supervisionadas aguardando chancela." },
+        { cmd: "/chancelar", aliases: ["/chancelar"], sintaxe: "/chancelar <id>", desc: "Aprova e chancela formalmente conduta supervisionada." },
+        { cmd: "/emergencia", aliases: ["/emergencia"], sintaxe: "/emergencia <motivo>", desc: "Protocolo Break-The-Glass para bypass com auditoria." },
+        { cmd: "/auditar_rbac", aliases: ["/auditar_rbac"], sintaxe: "/auditar_rbac", desc: "Relatório de conformidade e auditoria de acessos." },
+        { cmd: "/kaizen", aliases: ["/kaizen"], sintaxe: "/kaizen", desc: "Painel de métricas de qualidade e melhoria contínua (Kaizen)." }
       ]
     }
   ];
@@ -7111,9 +7111,9 @@ function enviarManualCompletoComandos(chatId, filtro) {
             "Confira os comandos disponíveis nesta especialidade (1 comando por função clínica):\n\n";
           for (var j = 0; j < cat.comandos.length; j++) {
             var c = cat.comandos[j];
-            msgCat += "• `" + c.sintaxe + "`\n  ↳ " + c.desc + "\n\n";
+            msgCat += "• `" + c.sintaxe + "` — " + c.desc + "\n";
           }
-          msgCat += "💡 *Dica:* Você também pode enviar qualquer caso ou dúvida em *linguagem natural* sem usar barra (/). Envie `/ajuda` para ver todas as categorias.";
+          msgCat += "\n💡 *Dica:* Você também pode enviar qualquer caso ou dúvida em *linguagem natural* sem usar barra (/). Envie `/ajuda` para ver todas as categorias.";
           if (typeof enviarMensagemComTecladoParaChat === "function") {
             return enviarMensagemComTecladoParaChat(chatId, msgCat, kb);
           }
@@ -7196,7 +7196,7 @@ function enviarManualCompletoComandos(chatId, filtro) {
 
     for (var cmdIdx = 0; cmdIdx < categoria.comandos.length; cmdIdx++) {
       var item = categoria.comandos[cmdIdx];
-      manualCompleto += "• `" + item.sintaxe + "`\n  ↳ " + item.desc + "\n";
+      manualCompleto += "• `" + item.sintaxe + "` — " + item.desc + "\n";
     }
     manualCompleto += "\n";
   }
