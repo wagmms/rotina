@@ -583,3 +583,5 @@ var CardiologiaEmergenciaService = (function() {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = CardiologiaEmergenciaService;
 }
+
+    
