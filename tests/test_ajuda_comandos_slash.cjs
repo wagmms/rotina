@@ -1,5 +1,6 @@
 /**
- * Testes Automatizados para o Manual Completo de Comandos Slash (/ajuda, /help, /manual)
+ * Testes Automatizados para o Manual Canônico de Comandos Slash (/ajuda, /help, /manual)
+ * Valida a regra: 1 comando canônico com barra (/) por função clínica + roteamento em linguagem natural
  */
 const assert = require('assert');
 const runtime = require('../server/runtime.js');
@@ -27,16 +28,15 @@ async function runAjudaTests() {
     return true;
   };
 
-  // 1. Validar Catálogo Completo
-  console.log('[1] Testando estrutura do catálogo de comandos...');
+  // 1. Validar Catálogo Completo (132 funções clínicas, 1 comando por função)
+  console.log('[1] Testando estrutura do catálogo de comandos (1 comando slash por função)...');
   assert.strictEqual(typeof ctx.obterCatalogoComandosSlash, 'function', 'obterCatalogoComandosSlash deve existir');
   const catalogo = ctx.obterCatalogoComandosSlash();
   assert.ok(Array.isArray(catalogo), 'Catálogo deve ser um array');
   assert.strictEqual(catalogo.length, 17, 'Devem existir 17 categorias temáticas');
 
   let totalCmds = 0;
-  let totalAliases = 0;
-  const aliasesSet = new Set();
+  const slashCmdsSet = new Set();
   catalogo.forEach(cat => {
     assert.ok(cat.id, 'Categoria deve ter id');
     assert.ok(cat.titulo, 'Categoria deve ter título');
@@ -46,45 +46,45 @@ async function runAjudaTests() {
       assert.ok(cmd.cmd.startsWith('/'), `Comando ${cmd.cmd} deve iniciar com /`);
       assert.ok(cmd.sintaxe, `Comando ${cmd.cmd} deve ter sintaxe`);
       assert.ok(cmd.desc, `Comando ${cmd.cmd} deve ter descrição`);
-      cmd.aliases.forEach(a => {
-        totalAliases++;
-        aliasesSet.add(a);
-      });
+      assert.strictEqual(cmd.aliases.length, 1, `Comando ${cmd.cmd} deve ter estritamente 1 alias canônico`);
+      assert.strictEqual(cmd.aliases[0], cmd.cmd, `Alias deve ser idêntico ao comando canônico`);
+      slashCmdsSet.add(cmd.cmd);
     });
   });
 
-  assert.strictEqual(totalCmds, 132, 'Devem existir 131 comandos funcionais principais');
-  assert.strictEqual(aliasesSet.size, 268, 'Devem existir 264 aliases/atalhos cobertos');
-  console.log(`  ✓ 17 categorias, 132 comandos clínicos e 266 atalhos validados com sucesso.`);
+  assert.strictEqual(totalCmds, 134, 'Devem existir exatamente 134 comandos funcionais canônicos');
+  assert.strictEqual(slashCmdsSet.size, 134, 'Cada função clínica deve ter seu único comando slash sem redundâncias');
+  console.log(`  ✓ 17 categorias, 134 funções clínicas e exatamente 134 comandos slash padronizados.`);
 
   // 2. Testar /ajuda completo
   console.log('[2] Testando comando /ajuda completo...');
   mensagensEnviadas = [];
   ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ajuda todas' });
   assert.ok(mensagensEnviadas.length > 0, 'Deve enviar mensagem');
-  const msgAjuda = mensagensEnviadas[0].texto; console.log("msgAjuda start:", msgAjuda.substring(0,100));
-  assert.ok(msgAjuda.includes('MANUAL COMPLETO DE COMANDOS SLASH'), 'Deve conter cabeçalho do manual');
-  assert.ok(msgAjuda.includes('268 comandos'), 'Deve referenciar todos os comandos');
+  const msgAjuda = mensagensEnviadas[0].texto;
+  assert.ok(msgAjuda.includes('MANUAL DE COMANDOS CANÔNICOS'), 'Deve conter cabeçalho canônico');
+  assert.ok(msgAjuda.includes('134 comandos padronizados'), 'Deve referenciar os 134 comandos padronizados');
   assert.ok(msgAjuda.includes('NÚCLEO, SESSÃO, NAVEGAÇÃO & COCKPIT'), 'Deve conter categoria núcleo');
   assert.ok(msgAjuda.includes('SALA VERMELHA & CTI'), 'Deve conter categoria emergência');
   assert.ok(msgAjuda.includes('PEDIATRIA & SUPORTE VITAL'), 'Deve conter categoria pediatria');
   assert.ok(msgAjuda.includes('OBSTETRÍCIA & MEDICINA FETAL'), 'Deve conter categoria obstetrícia');
   assert.ok(msgAjuda.includes('DERMATOLOGIA & ISTs CUTÂNEAS'), 'Deve conter categoria dermatologia');
+  assert.ok(!msgAjuda.includes('_(atalhos:'), 'Não deve exibir poluição de atalhos redundantes');
   assert.ok(mensagensEnviadas[0].kb, 'Deve incluir teclado inline de categorias');
-  console.log('  ✓ /ajuda envia manual completo com categorias e inline keyboard.');
+  console.log('  ✓ /ajuda envia manual completo com formato limpo e inline keyboard.');
 
   // 3. Testar aliases /help e /manual
   console.log('[3] Testando aliases /help e /manual...');
   mensagensEnviadas = [];
   ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/help todas' });
   assert.ok(mensagensEnviadas.length > 0);
-  assert.ok(mensagensEnviadas[0].texto.includes('MANUAL COMPLETO DE COMANDOS SLASH'));
+  assert.ok(mensagensEnviadas[0].texto.includes('MANUAL DE COMANDOS CANÔNICOS'));
 
   mensagensEnviadas = [];
   ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/manual' });
   assert.ok(mensagensEnviadas.length > 0);
-  assert.ok(mensagensEnviadas[0].texto.includes('MANUAL COMPLETO DE COMANDOS SLASH'));
-  console.log('  ✓ /help e /manual disparam o manual completo com consistência.');
+  assert.ok(mensagensEnviadas[0].texto.includes('MANUAL DE COMANDOS CANÔNICOS'));
+  console.log('  ✓ /help e /manual disparam o manual canônico com consistência.');
 
   // 4. Testar filtro por categoria (/ajuda emergencia, /ajuda dermato, /ajuda obstetricia)
   console.log('[4] Testando filtragem por especialidade (/ajuda <categoria>)...');
@@ -112,8 +112,8 @@ async function runAjudaTests() {
   assert.ok(mensagensEnviadas[0].texto.includes('/parto'));
   console.log('  ✓ Filtragem por especialidade isola perfeitamente os comandos da categoria solicitada.');
 
-  // 5. Testar busca por comando direto (/ajuda dva, /ajuda /soap, /ajuda sifilis)
-  console.log('[5] Testando busca por comando específico (/ajuda dva, /ajuda /soap, /ajuda sifilis)...');
+  // 5. Testar busca por comando direto e sinônimos (/ajuda dva, /ajuda /soap, /ajuda sifilis, /ajuda receita)
+  console.log('[5] Testando busca por comando canônico e sinônimos...');
   mensagensEnviadas = [];
   ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ajuda dva' });
   assert.ok(mensagensEnviadas.length > 0);
@@ -131,7 +131,12 @@ async function runAjudaTests() {
   assert.ok(mensagensEnviadas.length > 0);
   assert.ok(mensagensEnviadas[0].texto.includes('DETALHES DO COMANDO /sifilis'));
   assert.ok(mensagensEnviadas[0].texto.includes('Penicilina Benzatina'));
-  console.log('  ✓ Busca de comando direto retorna sintaxe, aliases e função clínica detalhada.');
+
+  mensagensEnviadas = [];
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ajuda receita' });
+  assert.ok(mensagensEnviadas.length > 0);
+  assert.ok(mensagensEnviadas[0].texto.includes('DETALHES DO COMANDO /rx'), 'Sinônimo receita deve apontar para /rx');
+  console.log('  ✓ Busca de comando e sinônimos direciona para o comando canônico correto.');
 
   // 6. Testar callbacks inline (ajuda_cat_geriatria, ajuda_cat_dermato, ajuda_todas)
   console.log('[6] Testando callbacks de botões inline...');
@@ -166,10 +171,29 @@ async function runAjudaTests() {
     data: 'ajuda_todas'
   });
   const msgTodas = mensagensEnviadas.find(m => m.tipo === 'teclado' || m.tipo === 'texto');
-  assert.ok(msgTodas && msgTodas.texto.includes('MANUAL COMPLETO DE COMANDOS SLASH'));
-  console.log('  ✓ Callbacks inline respondem e entregam categorias ou manual completo.');
+  assert.ok(msgTodas && msgTodas.texto.includes('MANUAL DE COMANDOS CANÔNICOS'));
+  console.log('  ✓ Callbacks inline respondem e entregam categorias ou manual canônico.');
 
-  console.log('\n🎉 TODOS OS TESTES DO MANUAL DE COMANDOS SLASH PASSARAM COM SUCESSO!\n');
+  // 7. Testar roteamento em Linguagem Natural sem barra (/)
+  console.log('[7] Testando chamadas das funções em linguagem natural (sem /)...');
+  mensagensEnviadas = [];
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: 'trabalho de parto dilatação 7 altura de lee -1' });
+  assert.ok(mensagensEnviadas.length > 0);
+  assert.ok(mensagensEnviadas[0].texto.includes('PARTO') || mensagensEnviadas[0].texto.includes('Parto') || mensagensEnviadas[0].texto.includes('Dilatação'));
+
+  mensagensEnviadas = [];
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: 'herpes zoster em torax dor em queimação' });
+  assert.ok(mensagensEnviadas.length > 0);
+  assert.ok(mensagensEnviadas[0].texto.includes('Aciclovir') || mensagensEnviadas[0].texto.includes('HERPES'));
+
+  mensagensEnviadas = [];
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: 'choque séptico refratário 70 0.3' });
+  assert.ok(mensagensEnviadas.length > 0);
+  assert.ok(mensagensEnviadas[0].texto.includes('CHOQUE SÉPTICO') || mensagensEnviadas[0].texto.includes('CIRCI'));
+
+  console.log('  ✓ Roteador de linguagem natural aciona perfeitamente as funções clínicas sem barra (/).\n');
+
+  console.log('🎉 TODOS OS TESTES DO MANUAL DE COMANDOS SLASH PASSARAM COM 100% DE SUCESSO!\n');
 }
 
 runAjudaTests().catch(err => {

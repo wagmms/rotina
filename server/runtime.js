@@ -901,6 +901,13 @@ module.exports = {
         _rpcMap.cockpitSifilis = ctx.cockpitSifilis || ctx.cockpitDermatologiaSifilis;
         _rpcMap.cockpitDermatologiaMpox = ctx.cockpitDermatologiaMpox;
         _rpcMap.cockpitMpox = ctx.cockpitMpox || ctx.cockpitDermatologiaMpox;
+        _rpcMap.cockpitOtorrinoVertigemHints = ctx.cockpitOtorrinoVertigemHints;
+        _rpcMap.cockpitVertigem = ctx.cockpitVertigem || ctx.cockpitOtorrinoVertigemHints;
+        _rpcMap.cockpitHints = ctx.cockpitHints || ctx.cockpitOtorrinoVertigemHints;
+        _rpcMap.cockpitOtorrinoEpistaxe = ctx.cockpitOtorrinoEpistaxe;
+        _rpcMap.cockpitEpistaxe = ctx.cockpitEpistaxe || ctx.cockpitOtorrinoEpistaxe;
+        _rpcMap.cockpitTamponamento = ctx.cockpitTamponamento || ctx.cockpitOtorrinoEpistaxe;
+        _rpcMap.cockpitOtorrinoResumo = ctx.cockpitOtorrinoResumo;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

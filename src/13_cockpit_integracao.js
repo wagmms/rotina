@@ -2451,3 +2451,62 @@ function cockpitMpox(initData, params) {
   return cockpitDermatologiaMpox(initData, params);
 }
 
+function cockpitOtorrinoVertigemHints(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof OtorrinoEpistaxeVertigemService === 'undefined') {
+    throw new Error('Serviço OtorrinoEpistaxeVertigemService indisponível.');
+  }
+  var analise = OtorrinoEpistaxeVertigemService.avaliarVertigemHints(params);
+  var texto = OtorrinoEpistaxeVertigemService.formatarVertigemHintsTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitVertigem(initData, params) {
+  return cockpitOtorrinoVertigemHints(initData, params);
+}
+
+function cockpitHints(initData, params) {
+  return cockpitOtorrinoVertigemHints(initData, params);
+}
+
+function cockpitOtorrinoEpistaxe(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof OtorrinoEpistaxeVertigemService === 'undefined') {
+    throw new Error('Serviço OtorrinoEpistaxeVertigemService indisponível.');
+  }
+  var analise = OtorrinoEpistaxeVertigemService.avaliarEpistaxe(params);
+  var texto = OtorrinoEpistaxeVertigemService.formatarEpistaxeTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitEpistaxe(initData, params) {
+  return cockpitOtorrinoEpistaxe(initData, params);
+}
+
+function cockpitTamponamento(initData, params) {
+  return cockpitOtorrinoEpistaxe(initData, params);
+}
+
+function cockpitOtorrinoResumo(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  var vertigem = cockpitOtorrinoVertigemHints(initData, params.vertigem || params);
+  var epistaxe = cockpitOtorrinoEpistaxe(initData, params.epistaxe || params);
+  return {
+    sucesso: true,
+    vertigem: vertigem,
+    epistaxe: epistaxe
+  };
+}
+
+

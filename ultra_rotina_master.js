@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 11:11:58
- * Checksum SHA256: ab45d07217433380
+ * Gerado automaticamente via build_master.py em: 2026-10-09 11:34:32
+ * Checksum SHA256: 895901f5a5339812
  * ==============================================================================
  */
 
@@ -502,7 +502,11 @@ function obterUrlCockpit(chatId) {
   var id = chatId ? String(chatId) : ((typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_CHAT_ID") : "");
   var sessao = "";
   if (id && typeof criarSessaoCockpit_ === "function") {
-    sessao = criarSessaoCockpit_(id);
+    try {
+      sessao = criarSessaoCockpit_(id);
+    } catch (eSessao) {
+      sessao = "";
+    }
   }
   var v = (typeof ConfigService !== "undefined" && ConfigService.get && ConfigService.get("COCKPIT_VERSION")) ? ConfigService.get("COCKPIT_VERSION") : "2.5";
   return sessao ? base + "?session=" + sessao + "&v=" + v : base + "?v=" + v;
@@ -11085,6 +11089,74 @@ var DipAbscessoTuboOvarianoService = (function() {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { DipAbscessoTuboOvarianoService: DipAbscessoTuboOvarianoService };
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_emergencia_choque_septico_circi.js
+// ==============================================================================
+
+// 02_emergencia_choque_septico_circi.js
+// Módulo de Emergência - Choque Séptico Refratário e CIRCI
+// Foco 100% Generalista/PS: Hidrocortisona e Vasopressina. Expurgo de Azul de Metileno (Terciário).
+
+var EmergenciaChoqueSepticoService = {
+  avaliarCirciEVasopressina: function(pesoKg, doseNoraMcgKgMin) {
+    var alertas = [];
+    var condutas = [];
+    
+    // Validação de entrada
+    if (!pesoKg || pesoKg < 30 || pesoKg > 350) {
+      return { erro: "Peso inválido. Informe um peso entre 30 e 350 kg." };
+    }
+    if (!doseNoraMcgKgMin || doseNoraMcgKgMin <= 0) {
+      return { erro: "Dose de Noradrenalina inválida. Informe em mcg/kg/min." };
+    }
+
+    // Critério de Refratariedade (Surviving Sepsis Campaign)
+    var choqueRefratario = doseNoraMcgKgMin >= 0.25;
+
+    if (choqueRefratario) {
+      alertas.push("🚨 ALERTA CRÍTICO: Choque Séptico Refratário detectado (Noradrenalina >= 0.25 mcg/kg/min).");
+      
+      condutas.push("1. HIDROCORTISONA (CIRCI - Insuficiência Corticosteroide Relacionada à Doença Crítica):");
+      condutas.push("   - Indicação: Choque dependente de vasopressor em doses crescentes.");
+      condutas.push("   - Dose: Hidrocortisona 200 mg/dia IV.");
+      condutas.push("   - Posologia preferencial: 50 mg IV de 6/6h (ou infusão contínua).");
+      condutas.push("   - Não aguardar teste de estímulo com ACTH no PS.");
+      
+      condutas.push("");
+      condutas.push("2. VASOPRESSINA (2º Vasopressor):");
+      condutas.push("   - Indicação: Poupar Noradrenalina e melhorar PAM.");
+      condutas.push("   - Dose FIXA: 0.03 UI/min IV em bomba de infusão contínua.");
+      condutas.push("   - Regra de Ouro: NÃO titular a Vasopressina. Dose teto é 0.03 a 0.04 UI/min para evitar isquemia esplâncnica/coronariana.");
+      
+      condutas.push("");
+      condutas.push("🛑 EXPURGO TERCIÁRIO: O uso de Azul de Metileno para vasoplegia foi classificado como conduta exclusiva de UTI/Pós-operatório de Cirurgia Cardíaca e removido das diretrizes do PS.");
+    } else {
+      alertas.push("ℹ️ Choque Séptico em fase inicial/responsiva (Noradrenalina < 0.25 mcg/kg/min).");
+      condutas.push("1. Otimizar Noradrenalina alvo PAM >= 65 mmHg.");
+      condutas.push("2. Garantir ressuscitação volêmica adequada (Cristaloides 30 mL/kg nas primeiras 3h se não houver congestão).");
+      condutas.push("3. Antibioticoterapia de amplo espectro na 1ª hora.");
+      condutas.push("4. Controle do foco infeccioso.");
+      condutas.push("Nota: Hidrocortisona e Vasopressina não estão indicados neste momento.");
+    }
+
+    var textoSOAP = "AVALIAÇÃO DE CHOQUE SÉPTICO\n";
+    textoSOAP += "Peso: " + pesoKg + " kg | Noradrenalina atual: " + doseNoraMcgKgMin + " mcg/kg/min\n\n";
+    if (alertas.length > 0) textoSOAP += alertas.join("\n") + "\n\n";
+    textoSOAP += "CONDUTA BEIRA-LEITO (PS):\n" + condutas.join("\n");
+
+    return {
+      sucesso: true,
+      choqueRefratario: choqueRefratario,
+      textoSOAP: textoSOAP
+    };
+  }
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { EmergenciaChoqueSepticoService };
 }
 
 
@@ -22027,6 +22099,497 @@ class OncologiaBasicaService {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { OncologiaBasicaService };
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_otorrino_epistaxe_vertigem_hints.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA - MÓDULO DE OTORRINOLARINGOLOGIA E URGÊNCIAS BEIRA-LEITO
+ * ==============================================================================
+ * Diagnóstico e Manejo da Síndrome Vestibular Aguda (Protocolo HINTS / HINTS-Plus),
+ * Vertigem Posicional Paroxística Benigna (VPPB) e Epistaxe Aguda Escalonada
+ * (Anterior vs Posterior com Sonda de Foley e Bloqueios de Iatrogenia).
+ * 
+ * Diretrizes: Bárány Society, American Academy of Otolaryngology - Head and Neck
+ * Surgery (AAO-HNS), American Heart Association / Stroke Council e ABORL-CCF.
+ * ==============================================================================
+ */
+
+var OtorrinoEpistaxeVertigemService = (function () {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. SÍNDROME VESTIBULAR AGUDA (SVA) E PROTOCOLO HINTS / HINTS-PLUS
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia a vertigem no pronto-socorro aplicando o protocolo HINTS (Head Impulse, Nystagmus, Test of Skew)
+   * e diferenciação entre AVC de Fossa Posterior (PICA/AICA/Tronco) vs Neurite Vestibular vs VPPB.
+   * 
+   * @param {Object} p Parâmetros clínicos estruturados ou texto livre
+   * @returns {Object} Estratificação, achados HINTS, hipótese diagnóstica e condutas imediatas
+   */
+  function avaliarVertigemHints(p) {
+    p = p || {};
+    var texto = (String(p.texto || "") + " " + String(p.descricao || "") + " " + String(p.achados || "")).toLowerCase();
+
+    // 1. Definição do tipo de síndrome vestibular
+    var ehEpisodica = p.episodica === true || /(?:epis[oó]dica|segundos|parox[ií]stica|ao virar na cama|posicional|mudan[cç]a de posi[cç][aã]o|vppb)/i.test(texto);
+    var ehContinua = p.continua === true || /(?:cont[ií]nua|constante|horas|dias|sva|aguda cont[ií]nua|ininterrupta)/i.test(texto);
+    if (!ehEpisodica && !ehContinua) {
+      ehContinua = true; // Por padrão no PS, paciente vertiginoso admitido em crise aguda
+    }
+
+    // 2. Componente H: Head Impulse Test (Impulso Cefálico / Halmagyi)
+    // NORMAL = Perigo ("Normal is dangerous" -> reflexo vestíbulo-ocular intacto, lesão central)
+    // ANORMAL = Sacada corretiva presente (falha do RVO periférico -> neurite vestibular)
+    var headImpulse = p.headImpulse || p.hit || "";
+    if (!headImpulse) {
+      if (/(?:impulso normal|hit normal|sem sacada|sem sacadas|halmagyi normal)/i.test(texto)) {
+        headImpulse = "normal";
+      } else if (/(?:impulso anormal|impulso alterado|sacada presente|com sacada|sacadas corretivas|halmagyi alterado|halmagyi anormal)/i.test(texto)) {
+        headImpulse = "anormal";
+      } else {
+        headImpulse = "nao_testado";
+      }
+    }
+
+    // 3. Componente N: Nystagmus (Nistagmo)
+    // UNIDIRECIONAL = Periférico (fase rápida bate sempre para o mesmo lado, inibido por fixação visual)
+    // BIDIRECIONAL / VERTICAL / ROTATÓRIO = Central (muda com direção do olhar gaze-evoked, downbeat, upbeat)
+    var nistagmo = p.nistagmo || p.nystagmus || "";
+    if (!nistagmo) {
+      if (/(?:bidirecional|muda de dire[cç][aã]o|gaze-evoked|troca de dire[cç][aã]o|vertical|downbeat|upbeat|rotat[oó]rio puro|torsional puro)/i.test(texto)) {
+        nistagmo = "bidirecional_ou_vertical";
+      } else if (/(?:unidirecional|horizontal puro|bate para|fase r[aá]pida [aà] (?:direita|esquerda)|mesmo lado)/i.test(texto)) {
+        nistagmo = "unidirecional_horizontal";
+      } else if (/(?:sem nistagmo|nistagmo ausente|aus[eê]ncia de nistagmo)/i.test(texto)) {
+        nistagmo = "ausente";
+      } else {
+        nistagmo = "nao_especificado";
+      }
+    }
+
+    // 4. Componente TS: Test of Skew (Teste de Desalinhamento Ocular Vertical / Skew Deviation)
+    // NORMAL = Sem desvio vertical
+    // ALTERADO = Skew deviation presente (um olho sobe e outro desce ao desocluir no cross-cover test)
+    var testOfSkew = p.testOfSkew || p.skew || "";
+    if (!testOfSkew) {
+      if (/(?:skew presente|skew positivo|desvio vertical|desalinhamento vertical|olho sobe|skew alterado)/i.test(texto)) {
+        testOfSkew = "alterado";
+      } else if (/(?:sem skew|skew negativo|sem desvio vertical|alinhamento ocular normal)/i.test(texto)) {
+        testOfSkew = "normal";
+      } else {
+        testOfSkew = "nao_testado";
+      }
+    }
+
+    // 5. Componente "Plus": Perda Auditiva Súbita Aguda (Novo déficit unilateral)
+    // Perda auditiva associada a vertigem sugere AVC de artéria cerebelar ântero-inferior (AICA)
+    var perdaAuditivaAguda = !!(p.perdaAuditivaAguda || p.hearingLoss || /(?:surdez s[uú]bita|perda auditiva aguda|perda da audi[cç][aã]o unilateral|hipoacusia s[uú]bita)/i.test(texto));
+
+    // 6. Outros sinais neurológicos focais (Dismetria, ataxia grave, disartria, disfagia, diplopia)
+    var sinaisTroncoCerebelo = !!(p.sinaisTroncoCerebelo || /(?:dismetria|ataxia|disartria|disfagia|diplopia|queda da rima|fraqueza|hemiparesia|s[ií]ndrome de horner)/i.test(texto));
+
+    // Avaliação VPPB (Dix-Hallpike)
+    var dixHallpikePositivo = !!(p.dixHallpikePositivo || /(?:dix-hallpike positivo|nistagmo posicional|nistagmo torcional geotrópico|lat[eê]ncia de 2 a 5|fatig[aá]vel)/i.test(texto));
+
+    // Determinação do Padrão
+    var achadosCentrais = [];
+    var achadosPerifericos = [];
+
+    if (headImpulse === "normal") {
+      achadosCentrais.push("Impulso Cefálico Normal ('Normal is dangerous' - reflexo vestíbulo-ocular preservado com lesão em SNC)");
+    } else if (headImpulse === "anormal") {
+      achadosPerifericos.push("Impulso Cefálico com Sacada Corretiva (disfunção do RVO periférico do VIII par)");
+    }
+
+    if (nistagmo === "bidirecional_ou_vertical") {
+      achadosCentrais.push("Nistagmo Bidirecional (troca de direção com o olhar / gaze-evoked) ou Vertical/Rotatório puro");
+    } else if (nistagmo === "unidirecional_horizontal") {
+      achadosPerifericos.push("Nistagmo Unidirecional Horizontal-Torcional (bate para o mesmo lado, inibido por fixação)");
+    }
+
+    if (testOfSkew === "alterado") {
+      achadosCentrais.push("Skew Deviation Positivo (desalinhamento vertical no teste de oclusão alternada / cover test)");
+    } else if (testOfSkew === "normal") {
+      achadosPerifericos.push("Alinhamento Vertical Preservado (ausência de Skew Deviation)");
+    }
+
+    if (perdaAuditivaAguda) {
+      achadosCentrais.push("HINTS-Plus Positivo: Perda auditiva súbita nova (alerta crítico para AVC de AICA / infarto labiríntico-troncular)");
+    }
+
+    if (sinaisTroncoCerebelo) {
+      achadosCentrais.push("Déficits neurológicos de tronco ou cerebelo associados (ataxia severa, dismetria, disartria ou diplopia)");
+    }
+
+    var classificacaoFinal = "";
+    var diagnosticoPrincipal = "";
+    var riscoAvc = "Baixo";
+    var condutas = [];
+    var redFlags = [];
+    var bloqueiosIatrogenia = [];
+
+    if (ehEpisodica && (dixHallpikePositivo || /(?:vppb|posicional|segundos)/i.test(texto))) {
+      classificacaoFinal = "VPPB (Vertigem Posicional Paroxística Benigna)";
+      diagnosticoPrincipal = "Litíase Canalicular (Canal semicircular posterior em 85-90% dos casos)";
+      riscoAvc = "Muito Baixo";
+
+      condutas.push("1. CONFIRMAÇÃO DIAGNÓSTICA COM MANOBRA DE DIX-HALLPIKE:");
+      condutas.push("   - Observar latência (2 a 5 segundos), nistagmo torcional/geotrópico durando < 60 segundos e fatigabilidade.");
+      condutas.push("");
+      condutas.push("2. TRATAMENTO BEIRA-LEITO: MANOBRA DE REPOSICIONAMENTO DE EPLEY:");
+      condutas.push("   - Eficácia de cura de 80 a 90% na primeira sessão no próprio consultório/PS.");
+      condutas.push("   - Rotação sequencial da cabeça em 4 posições (45° ipsilateral -> 45° contralateral -> decúbito lateral 90° -> sentar). Manter 30 a 60 segundos em cada estágio.");
+      condutas.push("");
+      condutas.push("3. ORIENTAÇÕES PÓS-MANOBRA:");
+      condutas.push("   - Evitar deitar completamente reto ou movimentos bruscos de cabeça nas primeiras 24 horas.");
+
+      bloqueiosIatrogenia.push("🛑 BLOQUEIO FORMAL: NÃO prescrever labirintolíticos contínuos (Dimenidrinato, Cinarizina, Flunarizina) para VPPB! Fármacos não reposicionam otólitos e causam sonolência e risco de quedas.");
+    } else if (achadosCentrais.length > 0) {
+      classificacaoFinal = "SÍNDROME VESTIBULAR AGUDA CENTRAL - ALTO RISCO DE AVC";
+      diagnosticoPrincipal = "Acidente Vascular Cerebral Isquêmico de Fossa Posterior (Infarto de PICA, AICA ou Tronco Cerebral)";
+      riscoAvc = "Crítico / Elevado (HINTS INFARCT Positivo)";
+
+      redFlags.push("🚨 ALERTA CRÍTICO: Suspeita máxima de AVC de Fossa Posterior! Qualquer critério central no HINTS (Impulso normal, Nistagmo alternante/vertical, Skew positivo ou Surdez aguda) tem sensibilidade > 99% para AVC.");
+      redFlags.push("⚠️ ALERTA DE NEUROIMAGEM: A Tomografia de Crânio (TC) normal NÃO descarta AVC de fossa posterior (sensibilidade de apenas 16 a 26% nas primeiras 48h!). O HINTS é MAIS sensível que a Ressonância nas primeiras 24h.");
+
+      condutas.push("1. ADMISSÃO IMEDIATA EM SALA VERMELHA / UNIDADE DE AVC:");
+      condutas.push("   - Monitorização contínua de sinais vitais, Glasgow e oximetria.");
+      condutas.push("   - Acesso venoso calibroso, jejum (risco iminente de broncoaspiração por vômitos e disfagia).");
+      condutas.push("");
+      condutas.push("2. NEUROIMAGEM DE URGÊNCIA:");
+      condutas.push("   - Ressonância Magnética (RM) de encéfalo com protocolo de difusão (DWI) e Angio-RM arterial de vasos intracranianos e cervicais.");
+      condutas.push("   - Se RM indisponível: TC crânio + Angio-TC para afastar hemorragia ou oclusão de artéria basilar/vertebral.");
+      condutas.push("");
+      condutas.push("3. VIGILÂNCIA DE EDEMA CEREBELAR:");
+      condutas.push("   - Risco de deterioração aguda no 2º ao 4º dia por efeito de massa em fossa posterior, compressão de 4º ventrículo com hidrocefalia obstrutiva aguda e herniação amigdaliana (risco cirúrgico de craniectomia descompressiva).");
+      condutas.push("");
+      condutas.push("4. MANEJO CLÍNICO INICIAL:");
+      condutas.push("   - Antieméticos parenterais (Ondansetrona 8 mg IV de 8/8h).");
+      condutas.push("   - Controle pressórico permissivo (reduzir somente se PAS > 220 ou PAD > 120 mmHg, salvo indicação de trombólise).");
+      condutas.push("   - Avaliação imediata de elegibilidade para trombólise venosa ou trombectomia mecânica se dentro da janela terapêutica.");
+
+      bloqueiosIatrogenia.push("🛑 NUNCA liberar o paciente para casa com diagnóstico de 'labirintite' baseado em TC de crânio sem contraste normal quando o HINTS apresentar achados centrais!");
+    } else if (achadosPerifericos.length >= 2) {
+      classificacaoFinal = "SÍNDROME VESTIBULAR AGUDA PERIFÉRICA - BAIXO RISCO DE AVC";
+      diagnosticoPrincipal = "Neurite Vestibular Aguda (Vestibulopatia Periférica Inflamatória Aguda)";
+      riscoAvc = "Baixo (Padrão HINTS 100% Periférico)";
+
+      condutas.push("1. REPOUSO E SUPORTE NA FASE AGUDA (PRIMEIRAS 24 A 48 HORAS):");
+      condutas.push("   - Tranquilização do paciente e acomodação em ambiente com baixa luminosidade.");
+      condutas.push("   - Hidratação venosa isotônica se êmese incoercível.");
+      condutas.push("");
+      condutas.push("2. SINTOMÁTICOS E SEDATIVOS VESTIBULARES (USO CURTO RESTRITO):");
+      condutas.push("   - Dimenidrinato 50 mg IV ou VO de 6/6h a 8/8h (ou Prometazina 25 mg IM/VO).");
+      condutas.push("   - Ondansetrona 8 mg IV ou VO de 8/8h para náuseas intensas.");
+      condutas.push("");
+      condutas.push("3. CORTICOTERAPIA PRECOCE (OPCIONAL / FASE INICIAL < 72H):");
+      condutas.push("   - Prednisona 1 mg/kg/dia VO (máximo 60 mg/dia) por 5 dias, seguido de desmame rápido (reduzir 10-20 mg a cada 2 dias).");
+      condutas.push("   - Acelera a recuperação do reflexo vestíbulo-ocular em pacientes sem contraindicações formais (DM descompensado, úlcera péptica ativa).");
+      condutas.push("");
+      condutas.push("4. DEAMBULAÇÃO E REABILITAÇÃO VESTIBULAR PRECOCE:");
+      condutas.push("   - Estimular movimentos oculares e cefálicos suaves e marcha assistida assim que a êmese cessar (estimula a neuroplasticidade compensatória do tronco cerebral).");
+
+      bloqueiosIatrogenia.push("🛑 REGRA DE OURO / BLOQUEIO DE IATROGENIA: PROIBIDO manter sedativos vestibulares (Dimenidrinato, Cinarizina, Flunarizina, Diazepam) por mais de 3 a 5 dias consecutivos!");
+      bloqueiosIatrogenia.push("   - O uso crônico de labirintolíticos BLOQUEIA a compensação vestibular central fisiológica, cronificando a instabilidade e prolongando a tontura por meses!");
+    } else {
+      classificacaoFinal = "SÍNDROME VESTIBULAR AGUDA INDETERMINADA / INCOMPLETA";
+      diagnosticoPrincipal = "Necessidade de Exame HINTS Completo Beira-Leito";
+      riscoAvc = "Indeterminado - Manter vigilância neurológica";
+
+      condutas.push("1. Realizar os 3 passos do exame HINTS à beira do leito:");
+      condutas.push("   - Head Impulse (procurar sacada corretiva de refixação)");
+      condutas.push("   - Nystagmus (observar se unidirecional ou se troca de lado com o olhar)");
+      condutas.push("   - Test of Skew (desoclusão alternada para afastar desalinhamento vertical)");
+      condutas.push("2. Avaliar simetria auditiva ao sussurro/esfregar de dedos (HINTS-Plus).");
+      condutas.push("3. Na dúvida ou se paciente com fatores de risco cardiovascular múltiplos: priorizar investigação para AVC.");
+    }
+
+    return {
+      sucesso: true,
+      tipo_sindrome: ehEpisodica ? "Episódica (Sugere VPPB)" : "Aguda Contínua (SVA - Neurite vs AVC)",
+      classificacao_final: classificacaoFinal,
+      diagnostico_provavel: diagnosticoPrincipal,
+      risco_avc: riscoAvc,
+      componentes_hints: {
+        head_impulse: headImpulse,
+        nistagmo: nistagmo,
+        test_of_skew: testOfSkew,
+        perda_auditiva_plus: perdaAuditivaAguda
+      },
+      achados_centrais: achadosCentrais,
+      achadosCentrais: achadosCentrais,
+      achados_perifericos: achadosPerifericos,
+      achadosPerifericos: achadosPerifericos,
+      condutas_beira_leito: condutas,
+      condutas: condutas,
+      red_flags: redFlags,
+      redFlags: redFlags,
+      bloqueios_iatrogenia: bloqueiosIatrogenia,
+      bloqueiosIatrogenia: bloqueiosIatrogenia
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. EPISTAXE AGUDA NO PRONTO-SOCORRO (ALGORITMO ESCALONADO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia a epistaxe aguda e determina o protocolo escalonado beira-leito:
+   * Anterior (Plexo de Kiesselbach) vs Posterior (Plexo de Woodruff / Artéria Esfenopalatina)
+   * Cauterização com nitrato de prata, tamponamento anterior e sonda de Foley com água destilada.
+   * 
+   * @param {Object} p Parâmetros clínicos de sangramento nasal
+   * @returns {Object} Classificação anatômica, passos imediatos, técnica de tamponamento e bloqueios
+   */
+  function avaliarEpistaxe(p) {
+    p = p || {};
+    var texto = (String(p.texto || "") + " " + String(p.descricao || "") + " " + String(p.condicoes || "")).toLowerCase();
+
+    var localizacao = p.localizacao || "";
+    if (!localizacao) {
+      if (/(?:posterior|orofaringe|escorre pela garganta|engolindo sangue|coanas|woodruff|sangramento profuso posterior)/i.test(texto)) {
+        localizacao = "posterior";
+      } else if (/(?:anterior|kiesselbach|narina|septo anterior|área de little|area de little)/i.test(texto)) {
+        localizacao = "anterior";
+      } else {
+        localizacao = "indeterminada"; // 90% são anteriores
+      }
+    }
+
+    var paSistolica = parseFloat(p.paSistolica || p.pas || 0);
+    var paDiastolica = parseFloat(p.paDiastolica || p.pad || 0);
+    var usoAnticoagulante = String(p.anticoagulante || p.anticoagulacao || "").toLowerCase();
+    if (!usoAnticoagulante) {
+      if (/(?:varfarina|marevan|coumadin)/i.test(texto)) usoAnticoagulante = "varfarina";
+      else if (/(?:rivaroxabana|xarelto|apixabana|eliquis|dabigatrana|pradaxa|edoxabana|lixiana|doac)/i.test(texto)) usoAnticoagulante = "doac";
+      else if (/(?:aas|aspirina|clopidogrel|plavix|ticagrelor|brilinta)/i.test(texto)) usoAnticoagulante = "antiagregante";
+    }
+
+    var rni = parseFloat(p.rni || 0);
+    var choque = !!(p.choque || /(?:choque|hipotens[aã]o|sudorese fria|rebaixamento|pas < 90|taquicardia severa)/i.test(texto));
+    var tempoMinutos = parseInt(p.tempoMinutos || 0, 10);
+    var falhaCompressao = !!(p.falhaCompressao || /(?:falha de compress[aã]o|n[aã]o para com compress[aã]o|persistente ap[oó]s 15 min)/i.test(texto));
+    var falhaTamponamentoAnterior = !!(p.falhaTamponamentoAnterior || /(?:falha do tamponamento anterior|sangrando mesmo com merocel|sangramento posterior ativo com tamp[aã]o anterior)/i.test(texto));
+
+    if (falhaTamponamentoAnterior) {
+      localizacao = "posterior";
+    }
+
+    var classificacaoAnatomica = localizacao === "posterior" ? "Epistaxe Posterior (5 a 10% dos casos)" : "Epistaxe Anterior (90 a 95% dos casos)";
+    var topografiaProvavel = localizacao === "posterior" ? "Plexo de Woodruff / Ramos da Artéria Esfenopalatina" : "Plexo de Kiesselbach (Área de Little no septo anterior)";
+
+    var condutas = [];
+    var tecnicaTamponamento = [];
+    var alertasSeguranca = [];
+    var bloqueiosIatrogenia = [];
+
+    // Passo 0: Estabilização Hemodinâmica
+    if (choque || (paSistolica > 0 && paSistolica < 90)) {
+      alertasSeguranca.push("🚨 ALERTA CRÍTICO: Paciente em choque hipovolêmico ou instabilidade hemodinâmica por sangramento profuso!");
+      condutas.push("0. RESSUSCITAÇÃO HEMODINÂMICA IMEDIATA:");
+      condutas.push("   - 2 acessos venosos periféricos calibrosos (14G ou 16G).");
+      condutas.push("   - Expansão rápida com Ringer Lactato ou SF 0,9% aquecido.");
+      condutas.push("   - Tipagem sanguínea, hemograma completo, coagulograma (TP/TTPa/RNI e plaquetas).");
+      condutas.push("   - Acionar reserva de concentrado de hemácias se sangramento incoercível.");
+    }
+
+    // Passo 1: Posição Correta do Paciente
+    condutas.push("1. POSICIONAMENTO IMEDIATO E LIMPEZA:");
+    condutas.push("   - Sentar o paciente com a cabeça e tronco LEVEMENTE INCLINADOS PARA A FRENTE.");
+    condutas.push("   - Instruir a respirar pela boca e cuspir qualquer sangue na cuba rim.");
+    condutas.push("   - Solicitar que assoe o nariz SUAVEMENTE uma única vez para expelir coágulos volumosos que mantêm fibrinólise local.");
+
+    bloqueiosIatrogenia.push("🛑 REGRA DE OURO MANDATÓRIA: NUNCA reclinar a cabeça do paciente para trás ou deitá-lo em decúbito dorsal! A inclinação posterior desvia o fluxo para a faringe, causando deglutição maciça de sangue (náuseas/êmese hematêmese) e risco crítico de broncoaspiração!");
+
+    // Passo 2: Compressão Bidigital
+    condutas.push("");
+    condutas.push("2. COMPRESSÃO BIDIGITAL DIRETA:");
+    condutas.push("   - Comprimir firmemente as ASAS NASAIS (porção cartilaginosa flexível e anterior, NÃO sobre o osso nasal rígido).");
+    condutas.push("   - Manter compressão contínua por 10 a 15 MINUTOS ININTERRUPTOS cronometrados no relógio (sem soltar antes para checar).");
+    condutas.push("   - Colocar compressa fria ou gelo sobre a fronte e dorso do nariz (vasoconstrição reflexa).");
+
+    // Passo 3: Vasoconstritor Tópico
+    condutas.push("");
+    condutas.push("3. VASOCONSTRITOR E ANESTÉSICO TÓPICO:");
+    condutas.push("   - Se o sangramento persistir após 15 minutos de compressão:");
+    condutas.push("   - Introduzir mecha de algodão embebida em Oximetazolina 0,05% ou Adrenalina 1:1000 diluída (1 mL de adrenalina + 9 mL de SF 0,9% ou Lidocaína 2% sem vaso).");
+    condutas.push("   - Comprimir novamente por mais 5 a 10 minutos.");
+
+    // Passo 4: Cauterização Química Anterior
+    if (localizacao === "anterior" || localizacao === "indeterminada") {
+      condutas.push("");
+      condutas.push("4. CAUTERIZAÇÃO QUÍMICA ANTERIOR COM NITRATO DE PRATA 75%:");
+      condutas.push("   - Indicada se vaso sangrante puntiforme anterior for claramente visualizado após aspiração/limpeza da mecha.");
+      condutas.push("   - Aplicar bastonete de Nitrato de Prata por 3 a 5 segundos em círculos concêntricos de fora para o centro do ponto sangrante.");
+      condutas.push("   - Limpar excesso de resíduo químico imediatamente para evitar escorrimento.");
+
+      bloqueiosIatrogenia.push("🛑 BLOQUEIO DE SEGURANÇA MÁXIMO: NUNCA cauterizar os dois lados do septo nasal na mesma sessão! A cauterização septal bilateral provoca isquemia da cartilagem quadrangular e necrose com PERFURAÇÃO PERMANENTE DO SEPTO NASAL!");
+    }
+
+    // Passo 5: Tamponamento Anterior
+    if (localizacao === "anterior" || falhaCompressao || localizacao === "indeterminada") {
+      condutas.push("");
+      condutas.push("5. TAMPONAMENTO NASAL ANTERIOR (SE FALHA DE CAUTERIZAÇÃO):");
+      condutas.push("   - Esponja expansível de álcool polivinílico (Merocel / PVA) lubrificada com pomada antibiótica e hidratada com 5 a 10 mL de SF 0,9% ou Ácido Tranexâmico; OU");
+      condutas.push("   - Gaze vaselinada embebida em pomada antibiótica inserida em acordeão (pregueamento de baixo para cima ao longo do assoalho da fossa nasal).");
+      condutas.push("   - Tempo de permanência: 24 a 48 horas (máximo 72h).");
+      condutas.push("   - Antibioticoprofilaxia (Cefalexina 500 mg 6/6h ou Amoxicilina-Clavulanato 875/125 mg 12/12h VO) recomendada se tamponamento mantido > 48h para prevenção de Síndrome do Choque Tóxico (Staphylococcus aureus) e rinossinusite bacteriana.");
+    }
+
+    // Passo 6: Epistaxe Posterior e Sonda de Foley
+    if (localizacao === "posterior" || falhaTamponamentoAnterior) {
+      alertasSeguranca.push("⚠️ EPISTAXE POSTERIOR DETECTADA: Sangramento volumoso escorrendo profusamente pela orofaringe posterior mesmo com narinas comprimidas. Indicação mandatória de Tamponamento Posterior.");
+
+      condutas.push("");
+      condutas.push("6. TAMPONAMENTO POSTERIOR COM SONDA DE FOLEY (BEIRA-LEITO):");
+      tecnicaTamponamento.push("• ESCOLHA DA SONDA: Sonda vesical de Foley de 12 Fr a 16 Fr com balonete de 30 mL.");
+      tecnicaTamponamento.push("• TESTE PRÉVIO: Testar o balonete antes da introdução.");
+      tecnicaTamponamento.push("• INTRODUÇÃO: Lubrificar generosamente com gel de lidocaína 2% ou vaselina. Introduzir a sonda rente ao assoalho nasal até a ponta ser visível no palato mole/orofaringe.");
+      tecnicaTamponamento.push("• INSUFLAÇÃO: Insuflar o balonete com 5 a 10 mL de ÁGUA DESTILADA ESTÉRIL.");
+      tecnicaTamponamento.push("• TRACIONAMENTO E ANCORAGEM: Tracionar suavemente a sonda para a frente até o balão travar firmemente na coana posterior.");
+      tecnicaTamponamento.push("• COMPLEMENTAÇÃO ANTERIOR OBRIGATÓRIA: Realizar SEMPRE tamponamento anterior ipsilateral para fechar o espaço e fixar a ancoragem.");
+      tecnicaTamponamento.push("• FIXAÇÃO EXTERNA: Fixar a sonda na abertura da narina com gaze acolchoada e presilha umbilical/clamp SEM comprimir a asa nasal ou a columela.");
+
+      bloqueiosIatrogenia.push("🛑 REGRA TÉCNICA CRÍTICA DA SONDA DE FOLEY: Insuflar o balonete EXCLUSIVAMENTE com ÁGUA DESTILADA estéril! NUNCA usar Soro Fisiológico (o cloreto de sódio cristaliza e trava a válvula impedindo a desinsuflação) e NUNCA usar Ar (o balão perde volume prematuramente e escorrega para a orofaringe com risco de asfixia!).");
+      bloqueiosIatrogenia.push("🛑 PREVENÇÃO DE NECROSE ALAR: NUNCA prender a presilha diretamente contra a cartilagem da asa ou columela nasal! A compressão isquêmica prolongada causa necrose avascular desfigurante e irreversível da narina.");
+      bloqueiosIatrogenia.push("⚠️ ALERTA DO REFLEXO NASOPULMONAR: O tamponamento posterior estimula mecanicamente o nervo trigêmeo, podendo deflagrar bradiarritmias severas, broncoespasmo e hipóxia profunda! INTERNAÇÃO HOSPITALAR MANDATÓRIA com oximetria contínua e avaliação urgente da Otorrinolaringologia.");
+    }
+
+    // Manejo de Hipertensão Concomitante
+    if (paSistolica >= 180 || paDiastolica >= 110) {
+      alertasSeguranca.push("ℹ️ Hipertensão Arterial Severa associada (PA " + paSistolica + "x" + paDiastolica + " mmHg): Muito frequente por dor, ansiedade e estresse agudo.");
+      bloqueiosIatrogenia.push("🛑 BLOQUEIO CLÍNICO: NUNCA baixar a pressão arterial abruptamente no PS com doses maciças de anti-hipertensivos! Quedas rápidas da PA em idosos hipertensos precipitam infarto do miocárdio e AVC isquêmico por hipoperfusão cerebral! Tratar primeiro o sangramento e a dor. Se PAS persistir > 180-200 mmHg após controle da dor e sangramento, titular medicação oral suave (Captopril 25 mg VO ou Clonidina 0,100 mg VO).");
+    }
+
+    // Manejo de Anticoagulantes e Antiagregantes
+    if (usoAnticoagulante === "varfarina") {
+      alertasSeguranca.push("💊 Paciente em uso de Varfarina:");
+      if (rni > 3.5 || falhaTamponamentoAnterior || choque) {
+        condutas.push("• CONDUTA HEMOSTÁTICA EM VARFARINA:");
+        condutas.push("  - Suspender Varfarina.");
+        condutas.push("  - Administrar Fitomenadiona (Vitamina K1) 10 mg IV lenta diluída em 100 mL de SF 0,9% em 30 min.");
+        condutas.push("  - Se sangramento com risco à vida ou RNI muito elevado: Complexo Protrombínico (PCC 4 fatores) 25 a 50 UI/kg IV.");
+      } else {
+        condutas.push("• Varfarina com sangramento leve/controlado: Checar RNI atual, ajustar dose e evitar suspensões desnecessárias sem avaliação do risco trombótico.");
+      }
+    } else if (usoAnticoagulante === "doac") {
+      alertasSeguranca.push("💊 Paciente em uso de DOAC (Anticoagulante Oral Direto):");
+      condutas.push("• Suspender a próxima dose do anticoagulante.");
+      condutas.push("• Priorizar hemostasia mecânica imediata (tamponamento anterior/posterior).");
+      condutas.push("• Considerar Ácido Tranexâmico (Transamin) 1g IV em 10 minutos (ou tópico na mecha de algodão).");
+    } else if (usoAnticoagulante === "antiagregante") {
+      alertasSeguranca.push("💊 Paciente em uso de Antiagregante Plaquetário (AAS / Clopidogrel):");
+      condutas.push("• Manter o antiagregante se paciente com stent coronariano recente (< 6-12 meses), salvo sangramento com choque ou risco de morte.");
+      condutas.push("• Foco no controle mecânico local rigoroso (tamponamento e ácido tranexâmico tópico).");
+    }
+
+    return {
+      sucesso: true,
+      classificacao_anatomica: classificacaoAnatomica,
+      topografia_provavel: topografiaProvavel,
+      conduta_urgencia: localizacao === "posterior" ? "Tamponamento Posterior + Internação" : "Compressão / Cauterização / Tamponamento Anterior",
+      passos_escalonados: condutas,
+      passosEscalonados: condutas,
+      tecnica_tamponamento_posterior: tecnicaTamponamento,
+      tecnicaTamponamentoPosterior: tecnicaTamponamento,
+      alertas_seguranca: alertasSeguranca,
+      alertasSeguranca: alertasSeguranca,
+      bloqueios_iatrogenia: bloqueiosIatrogenia,
+      bloqueiosIatrogenia: bloqueiosIatrogenia,
+      dados_paciente: {
+        localizacao: localizacao,
+        pa_sistolica: paSistolica,
+        pa_diastolica: paDiastolica,
+        anticoagulante: usoAnticoagulante,
+        rni: rni,
+        choque: choque
+      }
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. FORMATADORES TELEGRAM
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function formatarVertigemHintsTelegram(r) {
+    var t = "🌀 *AVALIAÇÃO DE VERTIGEM & PROTOCOLO HINTS (BÁRÁNY/AHA)*\n";
+    t += "───────────────────────────────\n";
+    t += "📌 *Classificação:* *" + r.classificacao_final + "*\n";
+    t += "🔍 *Diagnóstico Mais Provável:* " + r.diagnostico_provavel + "\n";
+    t += "⚡ *Risco de AVC de Fossa Posterior:* *" + r.risco_avc + "*\n\n";
+
+    t += "📋 *Achados do Exame HINTS:*\n";
+    t += "• Head Impulse: " + (r.componentes_hints.head_impulse === "normal" ? "⚠️ NORMAL ('Normal is dangerous' -> SNC)" : r.componentes_hints.head_impulse === "anormal" ? "✅ Anormal (sacada corretiva -> Periférico)" : "Não informado") + "\n";
+    t += "• Nistagmo: " + (r.componentes_hints.nistagmo === "bidirecional_ou_vertical" ? "⚠️ Bidirecional/Vertical/Rotatório (SNC)" : r.componentes_hints.nistagmo === "unidirecional_horizontal" ? "✅ Unidirecional horizontal (Periférico)" : "Não informado") + "\n";
+    t += "• Test of Skew: " + (r.componentes_hints.test_of_skew === "alterado" ? "⚠️ Desvio Vertical presente (SNC)" : r.componentes_hints.test_of_skew === "normal" ? "✅ Sem desvio vertical" : "Não informado") + "\n";
+    t += "• Audição Súbita (HINTS-Plus): " + (r.componentes_hints.perda_auditiva_plus ? "🚨 PERDA AUDITIVA SÚBITA NOVA (AICA)" : "Preservada / Sem queixas") + "\n\n";
+
+    if (r.red_flags && r.red_flags.length > 0) {
+      t += "🚨 *Alertas Críticos & Neuroimagem:*\n";
+      r.red_flags.forEach(function (rf) { t += rf + "\n"; });
+      t += "\n";
+    }
+
+    t += "🩺 *Conduta Beira-Leito (PS / UBS):*\n";
+    r.condutas_beira_leito.forEach(function (c) { t += c + "\n"; });
+    t += "\n";
+
+    if (r.bloqueios_iatrogenia && r.bloqueios_iatrogenia.length > 0) {
+      t += "🛑 *Bloqueios de Iatrogenia:*\n";
+      r.bloqueios_iatrogenia.forEach(function (b) { t += b + "\n"; });
+    }
+
+    return t.trim();
+  }
+
+  function formatarEpistaxeTelegram(r) {
+    var t = "🩸 *MANEJO ESCALONADO DE EPISTAXE AGUDA NO PS*\n";
+    t += "───────────────────────────────\n";
+    t += "📌 *Classificação:* *" + r.classificacao_anatomica + "*\n";
+    t += "📍 *Topografia:* " + r.topografia_provavel + "\n";
+    t += "🎯 *Conduta de Urgência:* *" + r.conduta_urgencia + "*\n\n";
+
+    t += "🪜 *Passos Escalonados Beira-Leito:*\n";
+    r.passos_escalonados.forEach(function (p) { t += p + "\n"; });
+    t += "\n";
+
+    if (r.tecnica_tamponamento_posterior && r.tecnica_tamponamento_posterior.length > 0) {
+      t += "🎈 *Técnica da Sonda de Foley (Epistaxe Posterior):*\n";
+      r.tecnica_tamponamento_posterior.forEach(function (tp) { t += tp + "\n"; });
+      t += "\n";
+    }
+
+    if (r.alertas_seguranca && r.alertas_seguranca.length > 0) {
+      t += "⚠️ *Alertas Clínicos & Comorbidades:*\n";
+      r.alertas_seguranca.forEach(function (a) { t += a + "\n"; });
+      t += "\n";
+    }
+
+    if (r.bloqueios_iatrogenia && r.bloqueios_iatrogenia.length > 0) {
+      t += "🛑 *Bloqueios de Iatrogenia & Regras de Ouro:*\n";
+      r.bloqueios_iatrogenia.forEach(function (b) { t += b + "\n"; });
+    }
+
+    return t.trim();
+  }
+
+  return {
+    avaliarVertigemHints: avaliarVertigemHints,
+    avaliarEpistaxe: avaliarEpistaxe,
+    formatarVertigemHintsTelegram: formatarVertigemHintsTelegram,
+    formatarEpistaxeTelegram: formatarEpistaxeTelegram
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = OtorrinoEpistaxeVertigemService;
 }
 
 
@@ -40758,6 +41321,34 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, msgStatus);
   }
 
+  if (comando === "/choqueseptico" || comando === "/septico" || comando === "/circi" || comando === "/vasopressina") {
+    var dadosChoque = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof EmergenciaChoqueSepticoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo EmergenciaChoqueSepticoService indisponível temporariamente.");
+    }
+    var nums = dadosChoque.match(/\d+(?:[.,]\d+)?/g);
+    if (!nums || nums.length < 2) {
+      return enviarMensagemParaChat(chatId, "🩸 *EMERGÊNCIA — CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" +
+        "Uso: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`\n\n" +
+        "💡 *Exemplo:* `/choqueseptico 70 0.3` (Detecta refratariedade >= 0.25 mcg/kg/min, prescreve Hidrocortisona e Vasopressina).\n" +
+        "Nota: Azul de Metileno expurgado (conduta terciária/UTI).");
+    }
+    var val1 = parseFloat(nums[0].replace(",", "."));
+    var val2 = parseFloat(nums[1].replace(",", "."));
+    var pesoChoque = (val1 >= 20 && val2 < 20) ? val1 : ((val2 >= 20 && val1 < 20) ? val2 : val1);
+    var doseNora = (pesoChoque === val1) ? val2 : val1;
+    pesoChoque = sanitizarEValidarPesoKg(pesoChoque);
+    
+    if (pesoChoque === null || isNaN(doseNora)) {
+      return enviarMensagemParaChat(chatId, "⚠️ Parâmetros inválidos. Use: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`");
+    }
+    var resChoque = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoChoque, doseNora);
+    if (resChoque.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resChoque.erro);
+    
+    return enviarMensagemParaChat(chatId, "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + resChoque.textoSOAP);
+  }
+
+
   // 3. COMANDOS CLÍNICOS E SALA VERMELHA
   if (comando === "/dva") {
     var dadosDva = texto.replace(/^\/dva\s*/i, "").trim();
@@ -42801,6 +43392,76 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // OTORRINOLARINGOLOGIA DE EMERGÊNCIA: VERTIGEM (PROTOCOLO HINTS) E EPISTAXE
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/vertigem" || comando === "/hints" || comando === "/tontura" || comando === "/vppb") {
+    var dadosVertigem = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof OtorrinoEpistaxeVertigemService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo OtorrinoEpistaxeVertigemService indisponível temporariamente.");
+    }
+
+    if (!dadosVertigem) {
+      return enviarMensagemParaChat(chatId, "🌀 *OTORRINOLARINGOLOGIA — VERTIGEM & PROTOCOLO HINTS*\n\n" +
+        "Envie os achados clínicos para avaliação de Síndrome Vestibular Aguda (AVC vs Neurite) ou VPPB:\n" +
+        "• *Head Impulse (Halmagyi):* `impulso normal`, `impulso anormal`, `sacada presente`\n" +
+        "• *Nistagmo:* `unidirecional horizontal`, `bidirecional`, `vertical downbeat`, `gaze-evoked`\n" +
+        "• *Test of Skew:* `skew presente`, `desvio vertical`, `sem skew`\n" +
+        "• *Audição (HINTS-Plus):* `surdez subita`, `perda auditiva aguda unilateral`\n" +
+        "• *Posicional:* `dix-hallpike positivo`, `duracao 30 segundos`, `ao virar na cama`\n\n" +
+        "*Exemplos beira-leito:*\n" +
+        "• `/vertigem vertigem continua impulso normal nistagmo bidirecional` *(Alto risco de AVC de Fossa Posterior)*\n" +
+        "• `/vertigem vertigem continua impulso anormal com sacada nistagmo horizontal unidirecional sem skew` *(Neurite Vestibular Benigna)*\n" +
+        "• `/vertigem tontura episodica dura segundos ao virar na cama dix-hallpike positivo` *(VPPB / Manobra de Epley)*");
+    }
+
+    try {
+      var analiseVertigem = OtorrinoEpistaxeVertigemService.avaliarVertigemHints({ texto: dadosVertigem });
+      return enviarMensagemParaChat(chatId, OtorrinoEpistaxeVertigemService.formatarVertigemHintsTelegram(analiseVertigem));
+    } catch (eVert) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Vertigem: " + eVert.message);
+    }
+  }
+
+  if (comando === "/epistaxe" || comando === "/sangramentonasal" || comando === "/tamponamento") {
+    var dadosEpistaxe = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof OtorrinoEpistaxeVertigemService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo OtorrinoEpistaxeVertigemService indisponível temporariamente.");
+    }
+
+    if (!dadosEpistaxe) {
+      return enviarMensagemParaChat(chatId, "🩸 *OTORRINOLARINGOLOGIA — MANEJO ESCALONADO DE EPISTAXE*\n\n" +
+        "Envie os dados clínicos para protocolo escalonado beira-leito:\n" +
+        "• *Localização:* `anterior`, `posterior`, `escorre na garganta`\n" +
+        "• *Gravidade:* `sangramento profuso`, `choque`, `falha de compressao`, `falha do tampao anterior`\n" +
+        "• *Pressão Arterial:* `PA 190x100`, `PAS 200`\n" +
+        "• *Medicações:* `varfarina RNI 4.2`, `rivaroxabana`, `aas`, `clopidogrel`\n\n" +
+        "*Exemplos beira-leito:*\n" +
+        "• `/epistaxe sangramento septo anterior PA 140x80` *(Compressão + Vasoconstritor + Cauterização unilateral)*\n" +
+        "• `/epistaxe posterior volumoso escorre pela garganta falha de tamponamento anterior` *(Tamponamento posterior com Sonda de Foley + Água Destilada)*\n" +
+        "• `/epistaxe anterior varfarina RNI 4.8 PA 180x100` *(Conduta hemostática, vitamina K1 e analgesia)*");
+    }
+
+    try {
+      var pasMatch = dadosEpistaxe.match(/(?:pa|pas)\s*[:=]?\s*(\d{2,3})(?:\s*[xX/]\s*(\d{2,3}))?/i);
+      var pasVal = pasMatch ? parseFloat(pasMatch[1]) : 0;
+      var padVal = pasMatch && pasMatch[2] ? parseFloat(pasMatch[2]) : 0;
+      var rniMatch = dadosEpistaxe.match(/rni\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i);
+      var rniVal = rniMatch ? parseFloat(rniMatch[1].replace(",", ".")) : 0;
+
+      var paramsEpistaxe = {
+        texto: dadosEpistaxe,
+        paSistolica: pasVal,
+        paDiastolica: padVal,
+        rni: rniVal
+      };
+
+      var analiseEpistaxe = OtorrinoEpistaxeVertigemService.avaliarEpistaxe(paramsEpistaxe);
+      return enviarMensagemParaChat(chatId, OtorrinoEpistaxeVertigemService.formatarEpistaxeTelegram(analiseEpistaxe));
+    } catch (eEpist) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Epistaxe: " + eEpist.message);
+    }
+  }
+
   // PEDIATRIA: BRONQUIOLITE VIRAL AGUDA
   // ───────────────────────────────────────────────────────────────────────────
   if (comando === "/bronquiolite" || comando === "/bva" || comando === "/bronquioliteviral" || comando === "/cnaf") {
@@ -44014,10 +44675,53 @@ function processarMensagemTexto(message) {
   
   // Roteamento Clínico Inteligente sem comando '/'
   if (!comando.startsWith("/")) {
+    // Obstetrícia
     if (/(?:DUM|DPP)\s*\d{1,2}[\/\.]\d{1,2}|G\d+P\d+A\d+|semanas\s+de\s+gesta[çc][ãa]o/i.test(textoTrim)) {
       message.text = "/prenatal " + textoTrim;
       return processarMensagemTexto(message);
     }
+    if (/(?:trabalho\s+de\s+parto|partograma|dilata[çc][ãa]o\s+\d+|altura\s+de\s+lee)/i.test(textoTrim)) {
+      message.text = "/parto " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:hemorragia\s+p[oó]s[- ]parto|\bhpp\b|atonia\s+uterina|[ií]ndice\s+de\s+choque\s+obst[eé]trico|bal[ãa]o\s+de\s+bakri)/i.test(textoTrim)) {
+      message.text = "/hpp " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:sulfato\s+de\s+magn[eé]sio|\bmgso4\b|pr[eé][- ]ecl[aâ]mpsia\s+grave|esquema\s+(?:zuspan|pritchard))/i.test(textoTrim)) {
+      message.text = "/mgso4 " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:profilaxia\s+gbs|\bgbs\b\s+(?:parto|gestante|swab)|swab\s+vaginal\s+positivo|estreptococo\s+do\s+grupo\s+b)/i.test(textoTrim)) {
+      message.text = "/gbs " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:amea[çc]a\s+de\s+parto\s+prematuro|parto\s+prematuro|tocolise|corticoide\s+para\s+matura[çc][ãa]o)/i.test(textoTrim)) {
+      message.text = "/prematuridade " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:colestase\s+intra[- ]hep[aá]tica|\bcig\b\s+gesta[çc][ãa]o|[aá]cidos\s+biliares\s+gestante|[aá]cido\s+ursodesoxic[oó]lico)/i.test(textoTrim)) {
+      message.text = "/colestase " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:esteatose\s+hep[aá]tica\s+aguda\s+da\s+gesta[çc][ãa]o|\behag\b|crit[eé]rios\s+de\s+swansea)/i.test(textoTrim)) {
+      message.text = "/swansea " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:toxoplasmose\s+gesta[çc][ãa]o|toxoplasmose\s+gestante|avidez\s+de\s+igg\s+toxo|espiramicina\s+toxo)/i.test(textoTrim)) {
+      message.text = "/toxo " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:restri[çc][ãa]o\s+de\s+crescimento\s+fetal|\brcf\b|\bciur\b|doppler\s+art[eé]ria\s+umbilical)/i.test(textoTrim)) {
+      message.text = "/rcf " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:s[ií]ndrome\s+antifosfolip[ií]dio\s+gestante|\bsaf\b\s+gestante|trombofilia\s+na\s+gesta[çc][ãa]o|enoxaparina\s+gestante)/i.test(textoTrim)) {
+      message.text = "/saf " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+
+    // Ginecologia
     if (/(?:citologia|preventivo|papanicolau).*?(?:ASC-US|LSIL|HSIL|AGC)/i.test(textoTrim) || /^preventivo/i.test(textoTrim)) {
       message.text = "/preventivo " + textoTrim;
       return processarMensagemTexto(message);
@@ -44030,6 +44734,196 @@ function processarMensagemTexto(message) {
       message.text = "/anticoncepcao " + textoTrim;
       return processarMensagemTexto(message);
     }
+    if (/(?:corrimento\s+vaginal|vaginose\s+bacteriana|candid[ií]ase\s+vaginal|tricomon[ií]ase|\bleucorreia\b|cervicite)/i.test(textoTrim)) {
+      message.text = "/corrimento " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:endometriose|dor\s+p[eé]lvica\s+cr[oô]nica|dienogeste)/i.test(textoTrim)) {
+      message.text = "/endometriose " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:hiperprolactinemia|prolactina\s+alta|galactorreia|cabergolina)/i.test(textoTrim)) {
+      message.text = "/hiperprolactinemia " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+
+    // Geriatria
+    if (/(?:clinical\s+frailty\s+scale|escala\s+de\s+fragilidade\s+cfs|\bcfs\b\s+\d)/i.test(textoTrim)) {
+      message.text = "/cfs " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:mini[- ]cog|teste\s+do\s+rel[oó]gio\s+e\s+3\s+palavras)/i.test(textoTrim)) {
+      message.text = "/minicog " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:timed\s+up\s+and\s+go|teste\s+tug\b)/i.test(textoTrim)) {
+      message.text = "/tug " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:crit[eé]rios\s+de\s+beers|stopp\s+start|medicamentos\s+inapropriados\s+para\s+idosos)/i.test(textoTrim)) {
+      message.text = "/beers " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:calculadora\s+frax|frax\s+brasil|risco\s+de\s+fratura\s+osteopor[oó]tica)/i.test(textoTrim)) {
+      message.text = "/frax " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:osteoporose\s+tratamento|alendronato|zoledronato|t[- ]score\s+osteoporose)/i.test(textoTrim)) {
+      message.text = "/osteoporose " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:quedas\s+no\s+idoso|risco\s+de\s+quedas\s+geriatria)/i.test(textoTrim)) {
+      message.text = "/quedas " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:desprescri[çc][ãa]o|polifarm[aá]cia|\bfrids\b)/i.test(textoTrim)) {
+      message.text = "/polifarmacia " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+
+    // Cardiopneumo
+    if (/(?:fibrila[çc][ãa]o\s+atrial|\bfa\b\s+(?:aguda|de\s+alta\s+resposta)|chascore|hasbled)/i.test(textoTrim)) {
+      message.text = "/fa " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:ic\s+descompensada|insufici[êe]ncia\s+card[íi]aca\s+fra[çc][ãa]o\s+reduzida|quarteto\s+fant[aá]stico)/i.test(textoTrim)) {
+      message.text = "/icc " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:crise\s+asm[aá]tica|asma\s+grave|broncoespasmo\s+grave)/i.test(textoTrim)) {
+      message.text = "/asma " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:dpoc\s+exacerbada|dpoc\s+descompensad[ao]|vni\s+no\s+dpoc|crit[eé]rios\s+de\s+anthonisen)/i.test(textoTrim)) {
+      message.text = "/dpoc " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+
+    // Metabologia, Sangue & Nutrição
+    if (/(?:[ií]ndice\s+de\s+mentzer|mentzer\s+vcm)/i.test(textoTrim)) {
+      message.text = "/mentzer " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:f[oó]rmula\s+de\s+ganzoni|ganzoni\s+ferro|noripurum\s+dose)/i.test(textoTrim)) {
+      message.text = "/ganzoni " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:cetoacidose\s+diab[eé]tica|protocolo\s+cad)/i.test(textoTrim)) {
+      message.text = "/cad " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:estado\s+hiperosmolar\s+hiperglic[eé]mico|protocolo\s+ehh)/i.test(textoTrim)) {
+      message.text = "/ehh " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:s[ií]ndrome\s+de\s+realimenta[çc][ãa]o|refeeding\s+syndrome)/i.test(textoTrim)) {
+      message.text = "/refeeding " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:nutri[çc][ãa]o\s+parenteral\s+total|prescri[çc][ãa]o\s+npt)/i.test(textoTrim)) {
+      message.text = "/npt " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:triagem\s+nrs[- ]?2002|escore\s+nrs)/i.test(textoTrim)) {
+      message.text = "/nrs " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+
+    // Especialidades & Dermato
+    if (/(?:monoartrite|artrite\s+s[eé]ptica|artrocentese|cristais\s+de\s+urato|pseudogota)/i.test(textoTrim)) {
+      message.text = "/monoartrite " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:febre\s+reum[aá]tica|crit[eé]rios\s+de\s+jones|cardite\s+reum[aá]tica|cor[eé]ia\s+de\s+sydenham)/i.test(textoTrim)) {
+      message.text = "/febrereumatica " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:queimadura\s+(?:qu[íi]mica\s+)?ocular|glaucoma\s+agudo|corpo\s+estranho\s+ocular)/i.test(textoTrim)) {
+      message.text = "/oftalmo " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:herpes\s+zoster|zoster|herpes\s+simples|aciclovir\s+zoster|valaciclovir\s+zoster)/i.test(textoTrim)) {
+      message.text = "/herpes " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:[uú]lcera\s+genital|[uú]lceras\s+genitais|cancro\s+duro|cancro\s+mole|donovanose|linfogranuloma\s+ven[eé]reo)/i.test(textoTrim)) {
+      message.text = "/ulceragenital " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:s[ií]filis|colarete\s+de\s+biett|ros[eé]ola\s+sifil[ií]tica|penicilina\s+benzatina\s+s[ií]filis)/i.test(textoTrim)) {
+      message.text = "/sifilis " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:mpox|monkeypox|var[ií]ola\s+dos\s+macacos)/i.test(textoTrim)) {
+      message.text = "/mpox " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:les[aã]o\s+elementar|les[oõ]es\s+elementares|m[aá]cula\s+p[aá]pula|sinal\s+de\s+nikolsky|sinal\s+de\s+hutchinson)/i.test(textoTrim)) {
+      message.text = "/dermato " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:protocolo\s+hints|s[ií]ndrome\s+vestibular|neurite\s+vestibular|vertigem\s+rotat[oó]ria|vppb|manobra\s+de\s+epley|dix-hallpike)/i.test(textoTrim)) {
+      message.text = "/vertigem " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:epistaxe|sangramento\s+nasal|tamponamento\s+nasal|tamponamento\s+posterior|plexo\s+de\s+kiesselbach|sonda\s+de\s+foley\s+nasal)/i.test(textoTrim)) {
+      message.text = "/epistaxe " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+
+    // Emergências
+    if (/(?:choque\s+s[eé]ptico(?:\s+refrat[aá]rio)?|\bcirci\b|vasopressina\s+no\s+choque|hidrocortisona\s+no\s+choque)/i.test(textoTrim)) {
+      message.text = "/choqueseptico " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:s[ií]ndrome\s+coronariana\s+aguda|escore\s+heart|dapt\s+no\s+iam|dupla\s+antiagrega[çc][ãa]o)/i.test(textoTrim)) {
+      message.text = "/sca " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:avc\s+isqu[eê]mico\s+agudo|tromb[oó]lise\s+avc|alteplase\s+dose|tenecteplase\s+avc)/i.test(textoTrim)) {
+      message.text = "/avc " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:hipertens[ãa]o\s+intracraniana|salina\s+hipert[oô]nica\s+3%|manitol\s+hic)/i.test(textoTrim)) {
+      message.text = "/hic " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:transfus[ãa]o\s+maci[çc]a|gatilho\s+transfusional|ptm\s+protocolo|\bchad\b\s+gatilho)/i.test(textoTrim)) {
+      message.text = "/transfusao " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:intoxica[çc][ãa]o\s+ex[oó]gena|ant[ií]doto\s+para|tox[íi]ndrome|flumazenil|naloxona|atropiniza[çc][ãa]o)/i.test(textoTrim)) {
+      message.text = "/intox " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:pancreatite\s+aguda\s+bisap|escore\s+bisap)/i.test(textoTrim)) {
+      message.text = "/pancreatite " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:neutropenia\s+febril|escore\s+mascc)/i.test(textoTrim)) {
+      message.text = "/neutropenia " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:c[oó]lica\s+nefr[eé]tica|c[aá]lculo\s+ureteral|terapia\s+expulsiva\s+tansulosina)/i.test(textoTrim)) {
+      message.text = "/colica " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+
+    // Pediatria
+    if (/(?:bronquiolite\s+viral\s+aguda|\bbva\b\s+lactente|cnaf\s+bronquiolite)/i.test(textoTrim)) {
+      message.text = "/bronquiolite " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:pals\s+pediatria|ressuscita[çc][ãa]o\s+pedi[aá]trica|pcr\s+pedi[aá]trico)/i.test(textoTrim)) {
+      message.text = "/pals " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:holliday[- ]segar|hidrata[çc][ãa]o\s+venosa\s+pediatria)/i.test(textoTrim)) {
+      message.text = "/nutriped " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+
+    // Prescrição ambulatorial / receita
     if (/(?:prescri[çc][ãa]o|receita|prescrever)\s+(?:de\s+)?(?:amoxicilina|azitromicina|cefalexina|dipirona|paracetamol|ibuprofeno)/i.test(textoTrim) || /^quero\s+uma\s+receita\s+de/i.test(textoTrim)) {
       message.text = "/rx " + textoTrim;
       return processarMensagemTexto(message);
@@ -46967,7 +47861,7 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
 }
 
 /**
- * Retorna o catálogo estruturado com todos os 247 comandos e atalhos slash do Ultra Rotina
+ * Retorna o catálogo estruturado com 1 comando slash canônico por função clínica (sem redundâncias)
  */
 function obterCatalogoComandosSlash() {
   return [
@@ -46976,12 +47870,12 @@ function obterCatalogoComandosSlash() {
       titulo: "🧭 NÚCLEO, SESSÃO, NAVEGAÇÃO & COCKPIT",
       comandos: [
         { cmd: "/start", aliases: ["/start"], sintaxe: "/start", desc: "Inicializa o bot, exibe a saudação ao médico e abre o Hub Principal de navegação." },
-        { cmd: "/menu", aliases: ["/menu", "/teclado"], sintaxe: "/menu", desc: "Abre a Central de Comandos e reativa o teclado rápido beira-leito." },
-        { cmd: "/ajuda", aliases: ["/ajuda", "/help", "/manual"], sintaxe: "/ajuda [categoria|comando]", desc: "Manual completo de todos os comandos slash disponíveis e a função de cada um." },
-        { cmd: "/cockpit", aliases: ["/cockpit", "/app"], sintaxe: "/cockpit", desc: "Abre o Cockpit Móvel unificado em tela cheia (Mini App do Telegram com 6 abas)." },
-        { cmd: "/novo", aliases: ["/novo", "/cancelar"], sintaxe: "/novo", desc: "Limpa a memória de curto prazo do atendimento atual e reseta o contexto clínico." },
+        { cmd: "/menu", aliases: ["/menu"], sintaxe: "/menu", desc: "Abre a Central de Comandos e reativa o teclado rápido beira-leito." },
+        { cmd: "/ajuda", aliases: ["/ajuda"], sintaxe: "/ajuda [categoria|comando]", desc: "Manual completo de todos os comandos slash disponíveis e a função de cada um." },
+        { cmd: "/cockpit", aliases: ["/cockpit"], sintaxe: "/cockpit", desc: "Abre o Cockpit Móvel unificado em tela cheia (Mini App do Telegram com 6 abas)." },
+        { cmd: "/novo", aliases: ["/novo"], sintaxe: "/novo", desc: "Limpa a memória de curto prazo do atendimento atual e reseta o contexto clínico." },
         { cmd: "/fila", aliases: ["/fila"], sintaxe: "/fila", desc: "Consulta a fila de processamento assíncrono de pedidos, áudios e tarefas pendentes." },
-        { cmd: "/status", aliases: ["/status", "/fontes"], sintaxe: "/status", desc: "Verifica o status operacional dos servidores (Render 24/7), REMUME RP, interações e APIs." },
+        { cmd: "/status", aliases: ["/status"], sintaxe: "/status", desc: "Verifica o status operacional dos servidores (Render 24/7), REMUME RP, interações e APIs." },
         { cmd: "/pc", aliases: ["/pc"], sintaxe: "/pc [sync|audit|status]", desc: "Ponte de comando para o daemon do computador local (sincronização de agenda, auditoria e status)." },
         { cmd: "/pedido", aliases: ["/pedido"], sintaxe: "/pedido <id>", desc: "Inspeciona o conteúdo original preservado de uma tarefa ou mensagem arquivada na fila." }
       ]
@@ -46991,69 +47885,70 @@ function obterCatalogoComandosSlash() {
       titulo: "🩺 AMBULATÓRIO, PRONTUÁRIO & PRESCRIÇÃO",
       comandos: [
         { cmd: "/soap", aliases: ["/soap"], sintaxe: "/soap <caso clínico>", desc: "Conduz raciocínio clínico completo gerando nota estruturada SOAP com condutas beira-leito." },
-        { cmd: "/ambulatorio", aliases: ["/ambulatorio", "/soap_ambulatorial", "/soap_aps"], sintaxe: "/ambulatorio <caso clínico>", desc: "Conduz atendimento ambulatorial focado na Atenção Primária à Saúde (APS) e Medicina de Família." },
+        { cmd: "/ambulatorio", aliases: ["/ambulatorio"], sintaxe: "/ambulatorio <caso clínico>", desc: "Conduz atendimento ambulatorial focado na Atenção Primária à Saúde (APS) e Medicina de Família." },
         { cmd: "/atestado", aliases: ["/atestado"], sintaxe: "/atestado <dias> [motivo/CID]", desc: "Gera atestado médico estruturado com período de repouso, dias de afastamento e fundamentação legal." },
-        { cmd: "/rx", aliases: ["/rx", "/receita"], sintaxe: "/rx <caso ou remédio>", desc: "Emite receita médica inteligente checada na REMUME de Ribeirão Preto com posologia oficial e PDF pronto." },
-        { cmd: "/rxh", aliases: ["/rxh", "/prescricao_hospitalar"], sintaxe: "/rxh <caso do internado>", desc: "Estrutura prescrição hospitalar completa de internação com 10 itens padronizados (dieta, hidratação, medicamentos, analgesia, profilaxias TEV/úlcera)." }
+        { cmd: "/rx", aliases: ["/rx"], sintaxe: "/rx <caso ou remédio>", desc: "Emite receita médica inteligente checada na REMUME de Ribeirão Preto com posologia oficial e PDF pronto." },
+        { cmd: "/rxh", aliases: ["/rxh"], sintaxe: "/rxh <caso do internado>", desc: "Estrutura prescrição hospitalar completa de internação com 10 itens padronizados (dieta, hidratação, medicamentos, analgesia, profilaxias TEV/úlcera)." }
       ]
     },
     {
       id: "emergencia",
       titulo: "🚨 SALA VERMELHA & CTI (EMERGÊNCIAS)",
       comandos: [
+        { cmd: "/choqueseptico", aliases: ["/choqueseptico"], sintaxe: "/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>", desc: "Manejo de Choque Séptico refratário e CIRCI no PS (Hidrocortisona + Vasopressina fixa)." },
         { cmd: "/dva", aliases: ["/dva"], sintaxe: "/dva <droga> <pesoKg> [solução]", desc: "Calculadora de Drogas Vasoativas (Noradrenalina, Dobutamina, Vasopressina, Nipride, Tridil) em mL/h e mcg/kg/min." },
-        { cmd: "/sri", aliases: ["/sri", "/iot"], sintaxe: "/sri <pesoKg> [choque|asma|neuro]", desc: "Sequência Rápida de Intubação com doses em mg e mL de sedativos (Etomidato/Quetamina) e bloqueadores (Succinilcolina/Rocurônio)." },
-        { cmd: "/conduta", aliases: ["/conduta", "/sos"], sintaxe: "/conduta <patologia>", desc: "Condutas imediatas de emergência e doses de ataque beira-leito (PCR, EAP, anafilaxia, hipercalemia)." },
-        { cmd: "/gaso", aliases: ["/gaso", "/gasometria", "/aniongap"], sintaxe: "/gaso <pH> <pCO2> <HCO3> [Na] [Cl]", desc: "Interpretação da gasometria arterial pela regra dos 5 passos, compensação esperada, anion gap e gap delta." },
+        { cmd: "/sri", aliases: ["/sri"], sintaxe: "/sri <pesoKg> [choque|asma|neuro]", desc: "Sequência Rápida de Intubação com doses em mg e mL de sedativos (Etomidato/Quetamina) e bloqueadores (Succinilcolina/Rocurônio)." },
+        { cmd: "/conduta", aliases: ["/conduta"], sintaxe: "/conduta <patologia>", desc: "Condutas imediatas de emergência e doses de ataque beira-leito (PCR, EAP, anafilaxia, hipercalemia)." },
+        { cmd: "/gaso", aliases: ["/gaso"], sintaxe: "/gaso <pH> <pCO2> <HCO3> [Na] [Cl]", desc: "Interpretação da gasometria arterial pela regra dos 5 passos, compensação esperada, anion gap e gap delta." },
         { cmd: "/winter", aliases: ["/winter"], sintaxe: "/winter <HCO3>", desc: "Fórmula de Winter para cálculo da pCO₂ esperada na acidose metabólica pura vs distúrbio misto." },
-        { cmd: "/choque", aliases: ["/choque", "/forrester", "/ic"], sintaxe: "/choque <PAS> <PAD> <FC> [perfusão]", desc: "Classificação hemodinâmica do choque e perfis de Forrester/Stevenson com direcionamento inotrópico, volêmico e vasodilatador." },
-        { cmd: "/sca", aliases: ["/sca", "/iam", "/heart", "/dapt"], sintaxe: "/sca <dados dor/ECG/troponina>", desc: "Síndrome Coronariana Aguda, estratificação pelo escore HEART, Dupla Antiagregação Plaquetária (DAPT) e anticoagulação." },
-        { cmd: "/avc", aliases: ["/avc", "/trombolise"], sintaxe: "/avc <tempo/sintomas/PA>", desc: "Protocolo de AVC isquêmico agudo, critérios de trombólise, metas pressóricas e doses de rtPA (Alteplase) e Tenecteplase (TNK)." },
+        { cmd: "/choque", aliases: ["/choque"], sintaxe: "/choque <PAS> <PAD> <FC> [perfusão]", desc: "Classificação hemodinâmica do choque e perfis de Forrester/Stevenson com direcionamento inotrópico, volêmico e vasodilatador." },
+        { cmd: "/sca", aliases: ["/sca"], sintaxe: "/sca <dados dor/ECG/troponina>", desc: "Síndrome Coronariana Aguda, estratificação pelo escore HEART, Dupla Antiagregação Plaquetária (DAPT) e anticoagulação." },
+        { cmd: "/avc", aliases: ["/avc"], sintaxe: "/avc <tempo/sintomas/PA>", desc: "Protocolo de AVC isquêmico agudo, critérios de trombólise, metas pressóricas e doses de rtPA (Alteplase) e Tenecteplase (TNK)." },
         { cmd: "/hic", aliases: ["/hic"], sintaxe: "/hic <pesoKg> [dados]", desc: "Manejo da Hipertensão Intracraniana aguda: doses de osmoterapia (Salina Hipertônica 3% e Manitol 20%), alvos de PAM e PPC." },
-        { cmd: "/transfusao", aliases: ["/transfusao", "/hemoterapia", "/ptm", "/chad"], sintaxe: "/transfusao <Hb/plaquetas/clínica>", desc: "Gatilhos transfusionais para Hemácias, Plaquetas, Plasma e protocolo de Transfusão Maciça (PTM)." },
-        { cmd: "/intox", aliases: ["/intox", "/toxicologia"], sintaxe: "/intox <agente/droga>", desc: "Toxicologia de emergência, identificação de toxíndromes e antídotos específicos (NAC para paracetamol, naloxona, atropina, flumazenil)." },
-        { cmd: "/pancreatite", aliases: ["/pancreatite", "/bisap"], sintaxe: "/pancreatite <BUN> <GCS> <SIRS> <idade> <derrame>", desc: "Escore BISAP para estratificação de gravidade na pancreatite aguda e metas de hidratação volêmica." },
-        { cmd: "/neutropenia", aliases: ["/neutropenia", "/mascc"], sintaxe: "/neutropenia <dados/pontos MASCC>", desc: "Estratificação de risco na neutropenia febril pós-QT pelo escore MASCC (baixo vs alto risco) e cobertura antimicrobiana." },
-        { cmd: "/colica", aliases: ["/colica", "/colicanefretica", "/litiase", "/pedranorim", "/calculorenal"], sintaxe: "/colica <tamanho cálculo/dor>", desc: "Manejo da cólica nefrética aguda, protocolo de analgesia multimodal e Terapia Expulsiva Medicamentosa (MET com Tansulosina)." }
+        { cmd: "/transfusao", aliases: ["/transfusao"], sintaxe: "/transfusao <Hb/plaquetas/clínica>", desc: "Gatilhos transfusionais para Hemácias, Plaquetas, Plasma e protocolo de Transfusão Maciça (PTM)." },
+        { cmd: "/intox", aliases: ["/intox"], sintaxe: "/intox <agente/droga>", desc: "Toxicologia de emergência, identificação de toxíndromes e antídotos específicos (NAC para paracetamol, naloxona, atropina, flumazenil)." },
+        { cmd: "/pancreatite", aliases: ["/pancreatite"], sintaxe: "/pancreatite <BUN> <GCS> <SIRS> <idade> <derrame>", desc: "Escore BISAP para estratificação de gravidade na pancreatite aguda e metas de hidratação volêmica." },
+        { cmd: "/neutropenia", aliases: ["/neutropenia"], sintaxe: "/neutropenia <dados/pontos MASCC>", desc: "Estratificação de risco na neutropenia febril pós-QT pelo escore MASCC (baixo vs alto risco) e cobertura antimicrobiana." },
+        { cmd: "/colica", aliases: ["/colica"], sintaxe: "/colica <tamanho cálculo/dor>", desc: "Manejo da cólica nefrética aguda, protocolo de analgesia multimodal e Terapia Expulsiva Medicamentosa (MET com Tansulosina)." }
       ]
     },
     {
       id: "farmaco",
       titulo: "💊 FARMACOLOGIA, DOSES & ANTIMICROBIANOS",
       comandos: [
-        { cmd: "/dose", aliases: ["/dose", "/posologia", "/hsl"], sintaxe: "/dose <medicamento>", desc: "Consulta posológica oficial no Guia Farmacêutico do Hospital Sírio-Libanês e PedBook com vias e diluições." },
-        { cmd: "/atb", aliases: ["/atb", "/ajuste", "/ajuste_renal"], sintaxe: "/atb <droga> <ClCr mL/min>", desc: "Ajuste renal de antibióticos e antifúngicos baseado nas diretrizes HSL/IDSA para disfunção renal e hemodiálise." },
-        { cmd: "/crcl", aliases: ["/crcl", "/clearance"], sintaxe: "/crcl <idade> <peso> <Cr> [f/m]", desc: "Cálculo do Clearance de Creatinina (Cockcroft-Gault) e estadiamento da disfunção renal pelo KDIGO." },
-        { cmd: "/interacao", aliases: ["/interacao", "/seguranca", "/crosscheck"], sintaxe: "/interacao <droga 1> + <droga 2>", desc: "Checagem de interações medicamentosas graves, bloqueios farmacológicos, prolongamento de QT e risco de toxicidade cumulativa." }
+        { cmd: "/dose", aliases: ["/dose"], sintaxe: "/dose <medicamento>", desc: "Consulta posológica oficial no Guia Farmacêutico do Hospital Sírio-Libanês e PedBook com vias e diluições." },
+        { cmd: "/atb", aliases: ["/atb"], sintaxe: "/atb <droga> <ClCr mL/min>", desc: "Ajuste renal de antibióticos e antifúngicos baseado nas diretrizes HSL/IDSA para disfunção renal e hemodiálise." },
+        { cmd: "/crcl", aliases: ["/crcl"], sintaxe: "/crcl <idade> <peso> <Cr> [f/m]", desc: "Cálculo do Clearance de Creatinina (Cockcroft-Gault) e estadiamento da disfunção renal pelo KDIGO." },
+        { cmd: "/interacao", aliases: ["/interacao"], sintaxe: "/interacao <droga 1> + <droga 2>", desc: "Checagem de interações medicamentosas graves, bloqueios farmacológicos, prolongamento de QT e risco de toxicidade cumulativa." }
       ]
     },
     {
       id: "pediatria",
       titulo: "👶 PEDIATRIA & SUPORTE VITAL",
       comandos: [
-        { cmd: "/ped", aliases: ["/ped", "/dose_ped", "/pediatria"], sintaxe: "/ped <droga> <pesoKg>", desc: "Posologia pediátrica por peso (mg/kg/dia), frasconetes e gotas/mL baseado no PedBook (pedb.com.br)." },
+        { cmd: "/ped", aliases: ["/ped"], sintaxe: "/ped <droga> <pesoKg>", desc: "Posologia pediátrica por peso (mg/kg/dia), frasconetes e gotas/mL baseado no PedBook (pedb.com.br)." },
         { cmd: "/conduta_ped", aliases: ["/conduta_ped"], sintaxe: "/conduta_ped <patologia>", desc: "Protocolos clínicos pediátricos completos do PedBook com condutas, exames e critérios de internação." },
-        { cmd: "/pals", aliases: ["/pals", "/pediatria_pcr"], sintaxe: "/pals <pesoKg>", desc: "Suporte Avançado Pediátrico: doses de Adrenalina, Amiodarona, tamanho do TET c/s cuff, fixação labial e Joules de desfibrilação." },
-        { cmd: "/bronquiolite", aliases: ["/bronquiolite", "/bva", "/bronquioliteviral", "/cnaf"], sintaxe: "/bronquiolite <idade> <SatO2> <sintomas>", desc: "Manejo da Bronquiolite Viral Aguda, escore clínico de gravidade, critérios de oxigenoterapia e parâmetros de CNAF." },
-        { cmd: "/nutriped", aliases: ["/nutriped", "/holliday"], sintaxe: "/nutriped <pesoKg>", desc: "Cálculo hidroeletrolítico de manutenção pela regra de Holliday-Segar (volumes de SG 5%, NaCl 20% e KCl 10%)." },
-        { cmd: "/diluicao", aliases: ["/diluicao", "/formulainfantil"], sintaxe: "/diluicao <fórmula ou idade>", desc: "Cálculo de diluições, reconstituição de fórmulas lácteas infantis e transição alimentar pediátrica." }
+        { cmd: "/pals", aliases: ["/pals"], sintaxe: "/pals <pesoKg>", desc: "Suporte Avançado Pediátrico: doses de Adrenalina, Amiodarona, tamanho do TET c/s cuff, fixação labial e Joules de desfibrilação." },
+        { cmd: "/bronquiolite", aliases: ["/bronquiolite"], sintaxe: "/bronquiolite <idade> <SatO2> <sintomas>", desc: "Manejo da Bronquiolite Viral Aguda, escore clínico de gravidade, critérios de oxigenoterapia e parâmetros de CNAF." },
+        { cmd: "/nutriped", aliases: ["/nutriped"], sintaxe: "/nutriped <pesoKg>", desc: "Cálculo hidroeletrolítico de manutenção pela regra de Holliday-Segar (volumes de SG 5%, NaCl 20% e KCl 10%)." },
+        { cmd: "/diluicao", aliases: ["/diluicao"], sintaxe: "/diluicao <fórmula ou idade>", desc: "Cálculo de diluições, reconstituição de fórmulas lácteas infantis e transição alimentar pediátrica." }
       ]
     },
     {
       id: "obstetricia",
       titulo: "🤰 OBSTETRÍCIA & MEDICINA FETAL",
       comandos: [
-        { cmd: "/prenatal", aliases: ["/prenatal", "/dpp"], sintaxe: "/prenatal <DUM ou USG>", desc: "Cálculo da Idade Gestacional atual, Data Provável do Parto (Naegele) e cronograma trimestral de exames." },
-        { cmd: "/parto", aliases: ["/parto", "/co"], sintaxe: "/parto <dilatação> <altura De Lee> <dinâmica>", desc: "Condução do trabalho de parto no CO, análise de partograma, fases clínicas e conduta nas distócias." },
+        { cmd: "/prenatal", aliases: ["/prenatal"], sintaxe: "/prenatal <DUM ou USG>", desc: "Cálculo da Idade Gestacional atual, Data Provável do Parto (Naegele) e cronograma trimestral de exames." },
+        { cmd: "/parto", aliases: ["/parto"], sintaxe: "/parto <dilatação> <altura De Lee> <dinâmica>", desc: "Condução do trabalho de parto no CO, análise de partograma, fases clínicas e conduta nas distócias." },
         { cmd: "/hpp", aliases: ["/hpp"], sintaxe: "/hpp <perda ml/clínica>", desc: "Protocolo de Hemorragia Pós-Parto (regra dos 4 Ts), índice de choque obstétrico, uterotônicos sequenciais e balão de Bakri." },
-        { cmd: "/mgso4", aliases: ["/mgso4", "/preeclampsia"], sintaxe: "/mgso4 [zuspan|pritchard]", desc: "Protocolo de Sulfato de Magnésio para pré-eclâmpsia grave/eclâmpsia, controle de reflexos e diurese, e anti-hipertensivos rápidos." },
+        { cmd: "/mgso4", aliases: ["/mgso4"], sintaxe: "/mgso4 [zuspan|pritchard]", desc: "Protocolo de Sulfato de Magnésio para pré-eclâmpsia grave/eclâmpsia, controle de reflexos e diurese, e anti-hipertensivos rápidos." },
         { cmd: "/gbs", aliases: ["/gbs"], sintaxe: "/gbs <cultura/fatores de risco>", desc: "Indicações de profilaxia intraparto para Estreptococo do Grupo B (S. agalactiae) com Penicilina Cristalina/Ampicilina." },
         { cmd: "/prematuridade", aliases: ["/prematuridade"], sintaxe: "/prematuridade <IG> [sintomas]", desc: "Manejo da ameaça de parto prematuro, tocolíticos de 1ª linha, ciclo de Betametasona e Sulfato de Mg para neuroproteção." },
-        { cmd: "/colestase", aliases: ["/colestase", "/cig", "/icp"], sintaxe: "/colestase <ácidos biliares> [TGO/TGP]", desc: "Colestase Intra-hepática da Gestação: estratificação de risco fetal, dose de Ácido Ursodesoxicólico e timing do parto." },
-        { cmd: "/swansea", aliases: ["/swansea", "/ehag", "/aflp"], sintaxe: "/swansea <critérios clínicos/laboratoriais>", desc: "Critérios de Swansea para Esteatose Hepática Aguda da Gestação (EHAG) e conduta de emergência obstétrica." },
-        { cmd: "/toxo", aliases: ["/toxo", "/toxoplasmose", "/avidez"], sintaxe: "/toxo <IgG> <IgM> [avidez] [IG]", desc: "Diagnóstico de toxoplasmose gestacional, interpretação de avidez de IgG e esquema com Espiramicina ou Tríplice clássica." },
-        { cmd: "/rcf", aliases: ["/rcf", "/ciur", "/rciu", "/doppler", "/crescimentofetal"], sintaxe: "/rcf <pFE> [ACM] [AU] [DV]", desc: "Restrição de Crescimento Fetal: classificação por Doppler (artéria umbilical, cerebral média e ducto venoso) e timing do parto." },
-        { cmd: "/saf", aliases: ["/saf", "/antifosfolipidio", "/safgestante", "/trombofiliagestante", "/trombofilia", "/enoxaparina"], sintaxe: "/saf <histórico/anticorpos>", desc: "Síndrome Antifosfolipídio e trombofilias na gestação: esquemas profiláticos e terapêuticos com Enoxaparina e AAS." }
+        { cmd: "/colestase", aliases: ["/colestase"], sintaxe: "/colestase <ácidos biliares> [TGO/TGP]", desc: "Colestase Intra-hepática da Gestação: estratificação de risco fetal, dose de Ácido Ursodesoxicólico e timing do parto." },
+        { cmd: "/swansea", aliases: ["/swansea"], sintaxe: "/swansea <critérios clínicos/laboratoriais>", desc: "Critérios de Swansea para Esteatose Hepática Aguda da Gestação (EHAG) e conduta de emergência obstétrica." },
+        { cmd: "/toxo", aliases: ["/toxo"], sintaxe: "/toxo <IgG> <IgM> [avidez] [IG]", desc: "Diagnóstico de toxoplasmose gestacional, interpretação de avidez de IgG e esquema com Espiramicina ou Tríplice clássica." },
+        { cmd: "/rcf", aliases: ["/rcf"], sintaxe: "/rcf <pFE> [ACM] [AU] [DV]", desc: "Restrição de Crescimento Fetal: classificação por Doppler (artéria umbilical, cerebral média e ducto venoso) e timing do parto." },
+        { cmd: "/saf", aliases: ["/saf"], sintaxe: "/saf <histórico/anticorpos>", desc: "Síndrome Antifosfolipídio e trombofilias na gestação: esquemas profiláticos e terapêuticos com Enoxaparina e AAS." }
       ]
     },
     {
@@ -47064,16 +47959,16 @@ function obterCatalogoComandosSlash() {
         { cmd: "/preventivo", aliases: ["/preventivo"], sintaxe: "/preventivo <laudo: ASC-US, LSIL...>", desc: "Conduta oficial de seguimento citopatológico de colo de útero (diretrizes brasileiras INCA/Ministério da Saúde)." },
         { cmd: "/sua", aliases: ["/sua"], sintaxe: "/sua <idade> <padrão sangramento>", desc: "Investigação do Sangramento Uterino Anormal (sistema PALM-COEIN) e conduta terapêutica hormonal aguda e ambulatorial." },
         { cmd: "/anticoncepcao", aliases: ["/anticoncepcao"], sintaxe: "/anticoncepcao <comorbidades/desejo>", desc: "Critérios Médicos de Elegibilidade da OMS para escolha e troca segura de contraceptivos (orais, injetáveis, DIU e implante)." },
-        { cmd: "/corrimento", aliases: ["/corrimento", "/leucorreia"], sintaxe: "/corrimento <aspecto/pH/odor>", desc: "Diagnóstico diferencial e tratamento de vaginoses e cervicites (Candidíase, Vaginose Bacteriana, Tricomoníase)." },
-        { cmd: "/endometriose", aliases: ["/endometriose", "/dienogeste", "/dorpelvica"], sintaxe: "/endometriose <sintomas/exames>", desc: "Manejo da dor pélvica crônica e endometriose, uso de dienogeste e critérios para propedêutica armada." },
-        { cmd: "/hiperprolactinemia", aliases: ["/hiperprolactinemia", "/prolactina", "/cabergolina"], sintaxe: "/hiperprolactinemia <prolactina ng/mL>", desc: "Investigação diagnóstica de prolactinoma e hiperprolactinemia medicamentosa e titulação de cabergolina." }
+        { cmd: "/corrimento", aliases: ["/corrimento"], sintaxe: "/corrimento <aspecto/pH/odor>", desc: "Diagnóstico diferencial e tratamento de vaginoses e cervicites (Candidíase, Vaginose Bacteriana, Tricomoníase)." },
+        { cmd: "/endometriose", aliases: ["/endometriose"], sintaxe: "/endometriose <sintomas/exames>", desc: "Manejo da dor pélvica crônica e endometriose, uso de dienogeste e critérios para propedêutica armada." },
+        { cmd: "/hiperprolactinemia", aliases: ["/hiperprolactinemia"], sintaxe: "/hiperprolactinemia <prolactina ng/mL>", desc: "Investigação diagnóstica de prolactinoma e hiperprolactinemia medicamentosa e titulação de cabergolina." }
       ]
     },
     {
       id: "geriatria",
       titulo: "👴 GERIATRIA & SAÚDE DO IDOSO (AGA)",
       comandos: [
-        { cmd: "/idoso", aliases: ["/idoso", "/aga"], sintaxe: "/idoso <caso do idoso>", desc: "Avaliação Geriátrica Ampla (AGA) abrangendo funcionalidade, cognição, humor, nutrição, mobilidade e polifarmácia." },
+        { cmd: "/idoso", aliases: ["/idoso"], sintaxe: "/idoso <caso do idoso>", desc: "Avaliação Geriátrica Ampla (AGA) abrangendo funcionalidade, cognição, humor, nutrição, mobilidade e polifarmácia." },
         { cmd: "/cfs", aliases: ["/cfs"], sintaxe: "/cfs <escore 1-9>", desc: "Classificação da Clinical Frailty Scale (escala clínica de fragilidade do idoso de Rockwood) com implicações prognósticas." },
         { cmd: "/minicog", aliases: ["/minicog"], sintaxe: "/minicog <palavras> <desenho relógio>", desc: "Rastreio cognitivo rápido beira-leito através do teste Mini-Cog (evocação de 3 palavras + teste do relógio)." },
         { cmd: "/tug", aliases: ["/tug"], sintaxe: "/tug <segundos>", desc: "Teste Timed Up and Go para predição de risco de quedas, fragilidade e velocidade de marcha." },
@@ -47081,31 +47976,31 @@ function obterCatalogoComandosSlash() {
         { cmd: "/frax", aliases: ["/frax"], sintaxe: "/frax <idade> <sexo> [fraturas/DMO]", desc: "Calculadora FRAX Brasil calibrada para probabilidade em 10 anos de fratura osteoporótica maior e fratura de fêmur." },
         { cmd: "/osteoporose", aliases: ["/osteoporose"], sintaxe: "/osteoporose <T-score> [ClCr/cálcio]", desc: "Protocolo de osteoporose: bisfosfonatos (alendronato/zoledronato), denosumabe, suplementação de cálcio e vitamina D." },
         { cmd: "/quedas", aliases: ["/quedas"], sintaxe: "/quedas <histórico quedas/drogas>", desc: "Avaliação de risco multifatorial de quedas no paciente idoso e plano de prevenção personalizada beira-leito." },
-        { cmd: "/polifarmacia", aliases: ["/polifarmacia", "/frids"], sintaxe: "/polifarmacia <lista de receitas>", desc: "Revisão e desprescrição segura de polifarmácia no idoso com identificação de FRIDs (Fall-Risk Increasing Drugs)." }
+        { cmd: "/polifarmacia", aliases: ["/polifarmacia"], sintaxe: "/polifarmacia <lista de receitas>", desc: "Revisão e desprescrição segura de polifarmácia no idoso com identificação de FRIDs (Fall-Risk Increasing Drugs)." }
       ]
     },
     {
       id: "cardiopneumo",
       titulo: "🫀 CARDIOLOGIA & PNEUMOLOGIA CLÍNICA",
       comandos: [
-        { cmd: "/fa", aliases: ["/fa", "/fibrilacaoatrial", "/chascore", "/hasbled"], sintaxe: "/fa <idade> [comorbidades/sangramentos]", desc: "Manejo da Fibrilação Atrial: controle de frequência vs ritmo, indicação de anticoagulação pelo CHA₂DS₂-VASc e risco pelo HAS-BLED." },
-        { cmd: "/icc", aliases: ["/icc", "/insuficienciacardiaca", "/framingham", "/quarteto"], sintaxe: "/icc <FEVE %> [sintomas NYHA]", desc: "Tratamento da IC com Fração de Ejeção Reduzida e otimização dos 4 pilares (Quarteto Fantástico: ARNI/IECA + BB + ARM + iSGLT2)." },
-        { cmd: "/asma", aliases: ["/asma", "/criseasma", "/broncoespasmo", "/salbutamol"], sintaxe: "/asma <SatO2/sintomas/PFE>", desc: "Estadiamento da crise asmática aguda, ciclos de broncodilatadores (SABA + SAMA), corticoterapia sistêmica e Sulfato de Mg IV." },
-        { cmd: "/dpoc", aliases: ["/dpoc", "/vni", "/bipap", "/hipercapnia"], sintaxe: "/dpoc <gaso/dispneia/escarro>", desc: "Manejo da DPOC exacerbada: critérios de Anthonisen para antibióticos, corticoterapia oral e indicação/parâmetros de VNI (BiPAP)." }
+        { cmd: "/fa", aliases: ["/fa"], sintaxe: "/fa <idade> [comorbidades/sangramentos]", desc: "Manejo da Fibrilação Atrial: controle de frequência vs ritmo, indicação de anticoagulação pelo CHA₂DS₂-VASc e risco pelo HAS-BLED." },
+        { cmd: "/icc", aliases: ["/icc"], sintaxe: "/icc <FEVE %> [sintomas NYHA]", desc: "Tratamento da IC com Fração de Ejeção Reduzida e otimização dos 4 pilares (Quarteto Fantástico: ARNI/IECA + BB + ARM + iSGLT2)." },
+        { cmd: "/asma", aliases: ["/asma"], sintaxe: "/asma <SatO2/sintomas/PFE>", desc: "Estadiamento da crise asmática aguda, ciclos de broncodilatadores (SABA + SAMA), corticoterapia sistêmica e Sulfato de Mg IV." },
+        { cmd: "/dpoc", aliases: ["/dpoc"], sintaxe: "/dpoc <gaso/dispneia/escarro>", desc: "Manejo da DPOC exacerbada: critérios de Anthonisen para antibióticos, corticoterapia oral e indicação/parâmetros de VNI (BiPAP)." }
       ]
     },
     {
       id: "metabolismo",
       titulo: "🩸 HEMATOLOGIA, METABOLOGIA & NUTRIÇÃO",
       comandos: [
-        { cmd: "/anemia", aliases: ["/anemia", "/hemograma"], sintaxe: "/anemia <Hb> <VCM> <HCM> [RDW/ferritina]", desc: "Diagnóstico etiológico de anemias: microcíticas, normocíticas e macrocíticas, cinética de ferro e reticulócitos." },
-        { cmd: "/ganzoni", aliases: ["/ganzoni", "/noripurum", "/ferro"], sintaxe: "/ganzoni <pesoKg> <HbAtual> [HbAlvo]", desc: "Fórmula de Ganzoni para cálculo da dose total de reposição de ferro elementar endovenoso (Noripurum / Carboximaltose)." },
+        { cmd: "/anemia", aliases: ["/anemia"], sintaxe: "/anemia <Hb> <VCM> <HCM> [RDW/ferritina]", desc: "Diagnóstico etiológico de anemias: microcíticas, normocíticas e macrocíticas, cinética de ferro e reticulócitos." },
+        { cmd: "/ganzoni", aliases: ["/ganzoni"], sintaxe: "/ganzoni <pesoKg> <HbAtual> [HbAlvo]", desc: "Fórmula de Ganzoni para cálculo da dose total de reposição de ferro elementar endovenoso (Noripurum / Carboximaltose)." },
         { cmd: "/mentzer", aliases: ["/mentzer"], sintaxe: "/mentzer <VCM> <Hemácias em milhões>", desc: "Índice de Mentzer (VCM / Hemácias) para diferenciação rápida beira-leito (< 13: Talassemia; > 13: Ferropriva)." },
-        { cmd: "/diabetes", aliases: ["/diabetes", "/insulina"], sintaxe: "/diabetes <glicemia/HbA1c/peso>", desc: "Manejo ambulatorial e hospitalar do Diabetes Mellitus, metas de glicemia e titulação de esquema basal-bolus de insulina." },
+        { cmd: "/diabetes", aliases: ["/diabetes"], sintaxe: "/diabetes <glicemia/HbA1c/peso>", desc: "Manejo ambulatorial e hospitalar do Diabetes Mellitus, metas de glicemia e titulação de esquema basal-bolus de insulina." },
         { cmd: "/cad", aliases: ["/cad"], sintaxe: "/cad <pesoKg> <glicemia> <gaso> <K+>", desc: "Protocolo de Cetoacidose Diabética: hidratação guiada por sódio corrigido, bomba de insulina regular, reposição de K+ e resolução." },
         { cmd: "/ehh", aliases: ["/ehh"], sintaxe: "/ehh <pesoKg> <glicemia> <Na>", desc: "Protocolo do Estado Hiperosmolar Hiperglicêmico: cálculo de osmolaridade sérica efetiva e expansão volêmica cautelosa." },
         { cmd: "/glicemia", aliases: ["/glicemia"], sintaxe: "/glicemia <valor em mg/dL>", desc: "Mapa prático de prescrição e correção rápida de hiperglicemia hospitalar com insulina ultrarrápida/regular beira-leito." },
-        { cmd: "/nutricao", aliases: ["/nutricao", "/dieta"], sintaxe: "/nutricao <pesoKg> <alturaCm> [clínica]", desc: "Estimativa de metas calórico-proteicas basais (kcal/kg/dia) e orientação para escolha de terapia nutricional oral ou enteral." },
+        { cmd: "/nutricao", aliases: ["/nutricao"], sintaxe: "/nutricao <pesoKg> <alturaCm> [clínica]", desc: "Estimativa de metas calórico-proteicas basais (kcal/kg/dia) e orientação para escolha de terapia nutricional oral ou enteral." },
         { cmd: "/refeeding", aliases: ["/refeeding"], sintaxe: "/refeeding <tempo de jejum/eletrólitos>", desc: "Protocolo de prevenção e correção da Síndrome de Realimentação, reposição de Tiamina e controle de Fósforo, Magnésio e Potássio." },
         { cmd: "/npt", aliases: ["/npt"], sintaxe: "/npt <pesoKg> [necessidades]", desc: "Prescrição, balanço hidroeletrolítico e monitorização laboratorial da Nutrição Parenteral Total." },
         { cmd: "/nrs", aliases: ["/nrs"], sintaxe: "/nrs <pontuação>", desc: "Triagem de Risco Nutricional NRS-2002 para indicação precoce de suporte nutricional hospitalar." }
@@ -47113,11 +48008,24 @@ function obterCatalogoComandosSlash() {
     },
     {
       id: "especialidades",
-      titulo: "🦴 REUMATO, ORTO, URO & OFTALMO",
+      titulo: "🦴 REUMATO, ORTO, URO, OFTALMO & OTORRINO",
       comandos: [
-        { cmd: "/monoartrite", aliases: ["/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese"], sintaxe: "/monoartrite <leucócitos líquido/cristais>", desc: "Diagnóstico diferencial de monoartrite aguda (Artrite Séptica vs Gota/Pseudogota) e interpretação de artrocentese." },
-        { cmd: "/febrereumatica", aliases: ["/febrereumatica", "/fr", "/jones", "/aslo"], sintaxe: "/febrereumatica <critérios Jones/ASLO>", desc: "Critérios de Jones revisados pela AHA para Febre Reumática Aguda, tratamento anti-inflamatório e profilaxia secundária com Penicilina Benzatina." },
-        { cmd: "/oftalmo", aliases: ["/oftalmo", "/glaucoma", "/queimaduraocular", "/traumaocular"], sintaxe: "/oftalmo <queixa ocular/trauma>", desc: "Emergências oftalmológicas no Pronto-Socorro: queimadura química ocular, glaucoma agudo de ângulo fechado e corpo estranho." }
+        { cmd: "/monoartrite", aliases: ["/monoartrite"], sintaxe: "/monoartrite <leucócitos líquido/cristais>", desc: "Diagnóstico diferencial de monoartrite aguda (Artrite Séptica vs Gota/Pseudogota) e interpretação de artrocentese." },
+        { cmd: "/febrereumatica", aliases: ["/febrereumatica"], sintaxe: "/febrereumatica <critérios Jones/ASLO>", desc: "Critérios de Jones revisados pela AHA para Febre Reumática Aguda, tratamento anti-inflamatório e profilaxia secundária com Penicilina Benzatina." },
+        { cmd: "/oftalmo", aliases: ["/oftalmo"], sintaxe: "/oftalmo <queixa ocular/trauma>", desc: "Emergências oftalmológicas no Pronto-Socorro: queimadura química ocular, glaucoma agudo de ângulo fechado e corpo estranho." },
+        { cmd: "/vertigem", aliases: ["/vertigem"], sintaxe: "/vertigem <achados/head impulse/nistagmo/skew>", desc: "Protocolo HINTS para diferenciação de Síndrome Vestibular Aguda (AVC de fossa posterior vs Neurite Vestibular) e VPPB." },
+        { cmd: "/epistaxe", aliases: ["/epistaxe"], sintaxe: "/epistaxe <anterior|posterior|PA|anticoagulante>", desc: "Protocolo escalonado de sangramento nasal: compressão, vasoconstritor, cauterização com nitrato de prata e sonda de Foley com água destilada." }
+      ]
+    },
+    {
+      id: "dermato",
+      titulo: "🧴 DERMATOLOGIA & ISTs CUTÂNEAS",
+      comandos: [
+        { cmd: "/dermato", aliases: ["/dermato"], sintaxe: "/dermato <descrição da lesão>", desc: "Diferenciação de lesões elementares da pele (mácula, pápula, placa, vesícula, bolha, crosta, púrpura, úlcera) e sinais de alerta." },
+        { cmd: "/herpes", aliases: ["/herpes"], sintaxe: "/herpes [zoster|simples] [clcr] [peso]", desc: "Protocolo antiviral para Herpes Zoster e Herpes Simples com posologia ajustada por clearance de creatinina e hemodiálise." },
+        { cmd: "/ulceragenital", aliases: ["/ulceragenital"], sintaxe: "/ulceragenital <tempo/dor/fundo>", desc: "Abordagem sindrômica de úlceras genitais (PCDT MS 2026: cancro duro, cancro mole, herpes, linfogranuloma e donovanose)." },
+        { cmd: "/sifilis", aliases: ["/sifilis"], sintaxe: "/sifilis <estágio/achados/VDRL>", desc: "Manejo e estadiamento da sífilis (primária, secundária, latente e terciária), doses de Penicilina Benzatina e conduta na gestante." },
+        { cmd: "/mpox", aliases: ["/mpox"], sintaxe: "/mpox <lesões/sintomas/proctite>", desc: "Manejo clínico e diagnóstico de Mpox (lesões vesicopustulosas umbilicadas, adenomegalia dolorosa, proctite e biossegurança)." }
       ]
     },
     {
@@ -47134,16 +48042,16 @@ function obterCatalogoComandosSlash() {
       id: "exame_fisico",
       titulo: "🩺 EXAME FÍSICO & SEMIOLOGIA ESPECIALIZADA",
       comandos: [
-        { cmd: "/ef", aliases: ["/ef", "/exames", "/exames_especiais"], sintaxe: "/ef", desc: "Menu central com todos os roteiros práticos de exame físico especializado beira-leito." },
-        { cmd: "/ef_neuro", aliases: ["/ef_neuro", "/neuro"], sintaxe: "/ef_neuro", desc: "Roteiro semiológico do exame neurológico detalhado: pares cranianos, força motora, reflexos, sensibilidade e cerebelo." },
-        { cmd: "/ef_pqu", aliases: ["/ef_pqu", "/pqu"], sintaxe: "/ef_pqu", desc: "Roteiro semiológico do exame psíquico (psicopatologia): consciência, atenção, memória, pensamento e humor." },
+        { cmd: "/ef", aliases: ["/ef"], sintaxe: "/ef", desc: "Menu central com todos os roteiros práticos de exame físico especializado beira-leito." },
+        { cmd: "/ef_neuro", aliases: ["/ef_neuro"], sintaxe: "/ef_neuro", desc: "Roteiro semiológico do exame neurológico detalhado: pares cranianos, força motora, reflexos, sensibilidade e cerebelo." },
+        { cmd: "/ef_pqu", aliases: ["/ef_pqu"], sintaxe: "/ef_pqu", desc: "Roteiro semiológico do exame psíquico (psicopatologia): consciência, atenção, memória, pensamento e humor." },
         { cmd: "/ef_oftalmo", aliases: ["/ef_oftalmo"], sintaxe: "/ef_oftalmo", desc: "Exame oftalmológico no pronto atendimento: acuidade, reflexos pupilares e fluoresceína." },
-        { cmd: "/ef_ortopo", aliases: ["/ef_ortopo", "/ortopo", "/reumato"], sintaxe: "/ef_ortopo", desc: "Manobras semiológicas ortopédicas de ombro (Neer, Hawkins), joelho (Lachman, gaveta), coluna (Lasègue) e quadril." },
-        { cmd: "/ef_orl", aliases: ["/ef_orl", "/orl"], sintaxe: "/ef_orl", desc: "Semiologia de otorrinolaringologia: otoscopia, rinoscopia, orofaringe e linfonodos cervicais." },
+        { cmd: "/ef_ortopo", aliases: ["/ef_ortopo"], sintaxe: "/ef_ortopo", desc: "Manobras semiológicas ortopédicas de ombro (Neer, Hawkins), joelho (Lachman, gaveta), coluna (Lasègue) e quadril." },
+        { cmd: "/ef_orl", aliases: ["/ef_orl"], sintaxe: "/ef_orl", desc: "Semiologia de otorrinolaringologia: otoscopia, rinoscopia, orofaringe e linfonodos cervicais." },
         { cmd: "/ef_dermato", aliases: ["/ef_dermato"], sintaxe: "/ef_dermato", desc: "Semiologia dermatológica e identificação morfológica de lesões elementares primárias e secundárias." },
         { cmd: "/ef_gineco", aliases: ["/ef_gineco"], sintaxe: "/ef_gineco", desc: "Exame ginecológico passo a passo: ectoscopia genital, exame especular e toque vaginal bimanual." },
         { cmd: "/ef_procto", aliases: ["/ef_procto"], sintaxe: "/ef_procto", desc: "Exame proctológico: inspeção estática e dinâmica, palpação perianal e toque retal sistemático." },
-        { cmd: "/ef_ped", aliases: ["/ef_ped", "/ef_pedia"], sintaxe: "/ef_ped", desc: "Exame físico pediátrico sistematizado por faixas etárias, fontanelas, abdome e marcos do neurodesenvolvimento." },
+        { cmd: "/ef_ped", aliases: ["/ef_ped"], sintaxe: "/ef_ped", desc: "Exame físico pediátrico sistematizado por faixas etárias, fontanelas, abdome e marcos do neurodesenvolvimento." },
         { cmd: "/ef_geriatria", aliases: ["/ef_geriatria"], sintaxe: "/ef_geriatria", desc: "Semiologia geriátrica com foco em sinais de fragilidade, sarcopenia, hipotensão ortostática e úlceras de pressão." },
         { cmd: "/ef_vascular", aliases: ["/ef_vascular"], sintaxe: "/ef_vascular", desc: "Exame vascular periférico: palpação simétrica de pulsos arteriais, tempo de enchimento capilar e estigmas venosos." }
       ]
@@ -47157,40 +48065,40 @@ function obterCatalogoComandosSlash() {
         { cmd: "/alta", aliases: ["/alta"], sintaxe: "/alta <número do leito>", desc: "Registra a alta hospitalar e desocupa o leito especificado no painel da enfermaria." },
         { cmd: "/limpar_enfermaria", aliases: ["/limpar_enfermaria"], sintaxe: "/limpar_enfermaria", desc: "Comando administrativo com confirmação para desocupar e resetar todos os leitos da enfermaria." },
         { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Gera o relatório estruturado completo e consolidado de passagem de plantão de todos os leitos ativos." },
-        { cmd: "/plantao", aliases: ["/plantao", "/sbar"], sintaxe: "/plantao <dados do caso>", desc: "Registra ou evolui um caso utilizando a metodologia padronizada de comunicação SBAR (Situação, Breve Histórico, Avaliação e Recomendação)." },
+        { cmd: "/plantao", aliases: ["/plantao"], sintaxe: "/plantao <dados do caso>", desc: "Registra ou evolui um caso utilizando a metodologia padronizada de comunicação SBAR (Situação, Breve Histórico, Avaliação e Recomendação)." },
         { cmd: "/plantao_fim", aliases: ["/plantao_fim"], sintaxe: "/plantao_fim", desc: "Checklist final de encerramento de plantão com revisão de pendências laboratoriais e condutas críticas." },
-        { cmd: "/round", aliases: ["/round", "/pitch"], sintaxe: "/round <dados do caso>", desc: "Estrutura apresentação em pitch clínico conciso e de alto impacto para a discussão multidisciplinar de round." }
+        { cmd: "/round", aliases: ["/round"], sintaxe: "/round <dados do caso>", desc: "Estrutura apresentação em pitch clínico conciso e de alto impacto para a discussão multidisciplinar de round." }
       ]
     },
     {
       id: "ensino_rotina",
       titulo: "🎧 PRECEPTOR, ROTINA & PRODUTIVIDADE",
       comandos: [
-        { cmd: "/voz", aliases: ["/voz", "/sabatina", "/v", "/audio", "/a"], sintaxe: "/voz [caso ou tema]", desc: "Inicia ou retoma a sabatina preceptorial socrática via áudio ou texto para treinamento de raciocínio clínico beira-leito." },
+        { cmd: "/voz", aliases: ["/voz"], sintaxe: "/voz [caso ou tema]", desc: "Inicia ou retoma a sabatina preceptorial socrática via áudio ou texto para treinamento de raciocínio clínico beira-leito." },
         { cmd: "/duvida", aliases: ["/duvida"], sintaxe: "/duvida <pergunta ou tema médico>", desc: "Arquiva uma dúvida médica diretamente no Notion para revisão na sessão noturna de estudos do MedQuest." },
         { cmd: "/rotina", aliases: ["/rotina"], sintaxe: "/rotina [hoje|amanhã|semana|reset]", desc: "Exibe ou ajusta a grade de blocos de tempo adaptativos do dia para conciliar hospital, estudos e treinos." },
         { cmd: "/agenda", aliases: ["/agenda"], sintaxe: "/agenda [hoje|amanhã|data]", desc: "Consulta compromissos, cirurgias e escalas médicas integradas com o Google Calendar." },
-        { cmd: "/task", aliases: ["/task", "/tarefa"], sintaxe: "/task <descrição da tarefa>", desc: "Captura rápida e cadastro imediato de uma tarefa no Inbox do Notion Tasks." },
+        { cmd: "/task", aliases: ["/task"], sintaxe: "/task <descrição da tarefa>", desc: "Captura rápida e cadastro imediato de uma tarefa no Inbox do Notion Tasks." },
         { cmd: "/tasks", aliases: ["/tasks"], sintaxe: "/tasks", desc: "Lista as principais tarefas do dia sincronizadas com o banco de dados do Notion." },
         { cmd: "/briefing", aliases: ["/briefing"], sintaxe: "/briefing", desc: "Emite o briefing matinal consolidado com previsão do tempo, compromissos prioritários e bloco cirúrgico." },
         { cmd: "/checkin", aliases: ["/checkin"], sintaxe: "/checkin", desc: "Dispara o check-in noturno interativo de encerramento de atividades, hábitos e recuperação." },
-        { cmd: "/semana", aliases: ["/semana", "/relatorio"], sintaxe: "/semana", desc: "Gera o relatório analítico semanal de hábitos, adesão à rotina e produtividade clínica." },
-        { cmd: "/bio", aliases: ["/bio", "/mounjaro", "/composicao"], sintaxe: "/bio", desc: "Abre o atalho para monitoramento de peso corporal, percentual de gordura (BF%) e protocolo de cutting no Cockpit." }
+        { cmd: "/semana", aliases: ["/semana"], sintaxe: "/semana", desc: "Gera o relatório analítico semanal de hábitos, adesão à rotina e produtividade clínica." },
+        { cmd: "/bio", aliases: ["/bio"], sintaxe: "/bio", desc: "Abre o atalho para monitoramento de peso corporal, percentual de gordura (BF%) e protocolo de cutting no Cockpit." }
       ]
     },
     {
       id: "governanca",
       titulo: "🛡️ EVIDÊNCIAS, PROTOCOLOS & GOVERNANÇA",
       comandos: [
-        { cmd: "/evidencia", aliases: ["/evidencia", "/pubmed"], sintaxe: "/evidencia <termo de busca>", desc: "Busca em tempo real de artigos científicos, ensaios clínicos e diretrizes médicas no PubMed / Europe PMC." },
+        { cmd: "/evidencia", aliases: ["/evidencia"], sintaxe: "/evidencia <termo de busca>", desc: "Busca em tempo real de artigos científicos, ensaios clínicos e diretrizes médicas no PubMed / Europe PMC." },
         { cmd: "/protocolo", aliases: ["/protocolo"], sintaxe: "/protocolo <sepse|iam|eap|cad|tep|dpoc>", desc: "Compara lado a lado as diretrizes clínicas brasileiras vs internacionais com pontos de divergência e condutas." },
         { cmd: "/calc", aliases: ["/calc"], sintaxe: "/calc", desc: "Abre o catálogo central com atalhos para todas as calculadoras médicas integradas." },
-        { cmd: "/perfil", aliases: ["/perfil", "/rbac"], sintaxe: "/perfil [usuário]", desc: "Consulta os níveis de permissão clínica e papéis RBAC ativos (Preceptor, Médico Assistente, Residente, Interno)." },
+        { cmd: "/perfil", aliases: ["/perfil"], sintaxe: "/perfil [usuário]", desc: "Consulta os níveis de permissão clínica e papéis RBAC ativos (Preceptor, Médico Assistente, Residente, Interno)." },
         { cmd: "/pendencias", aliases: ["/pendencias"], sintaxe: "/pendencias", desc: "Lista ações e prescrições emitidas por médicos em formação que aguardam chancela preceptorial." },
         { cmd: "/chancelar", aliases: ["/chancelar"], sintaxe: "/chancelar <id>", desc: "Aprova e chancela formalmente a conduta supervisionada de um interno ou residente." },
-        { cmd: "/emergencia", aliases: ["/emergencia", "/breaktheglass"], sintaxe: "/emergencia <justificativa>", desc: "Protocolo Break-The-Glass para bypass imediato de restrições de permissão durante emergências extremas com auditoria." },
-        { cmd: "/auditar_rbac", aliases: ["/auditar_rbac", "/relatorio_rbac"], sintaxe: "/auditar_rbac", desc: "Emite relatório de auditoria e conformidade dos acessos e quebras de barreira registradas." },
-        { cmd: "/kaizen", aliases: ["/kaizen", "/auditkaizen", "/auditoria"], sintaxe: "/kaizen", desc: "Painel de métricas de qualidade, feedbacks e melhoria contínua (Kaizen) das decisões clínicas." }
+        { cmd: "/emergencia", aliases: ["/emergencia"], sintaxe: "/emergencia <justificativa>", desc: "Protocolo Break-The-Glass para bypass imediato de restrições de permissão durante emergências extremas com auditoria." },
+        { cmd: "/auditar_rbac", aliases: ["/auditar_rbac"], sintaxe: "/auditar_rbac", desc: "Emite relatório de auditoria e conformidade dos acessos e quebras de barreira registradas." },
+        { cmd: "/kaizen", aliases: ["/kaizen"], sintaxe: "/kaizen", desc: "Painel de métricas de qualidade, feedbacks e melhoria contínua (Kaizen) das decisões clínicas." }
       ]
     }
   ];
@@ -47224,14 +48132,17 @@ function construirTecladoCategoriasAjuda() {
       ],
       [
         { text: "🦴 Reumato & Especialidades", callback_data: "ajuda_cat_especialidades" },
-        { text: "🧠 Psiquiatria", callback_data: "ajuda_cat_psiquiatria" }
+        { text: "🧴 Dermato & ISTs", callback_data: "ajuda_cat_dermato" }
       ],
       [
-        { text: "🩺 Exame Físico", callback_data: "ajuda_cat_exame_fisico" },
-        { text: "🏥 Enfermaria & Plantão", callback_data: "ajuda_cat_enfermaria" }
+        { text: "🧠 Psiquiatria", callback_data: "ajuda_cat_psiquiatria" },
+        { text: "🩺 Exame Físico", callback_data: "ajuda_cat_exame_fisico" }
       ],
       [
-        { text: "🎧 Preceptor & Rotina", callback_data: "ajuda_cat_ensino_rotina" },
+        { text: "🏥 Enfermaria & Plantão", callback_data: "ajuda_cat_enfermaria" },
+        { text: "🎧 Preceptor & Rotina", callback_data: "ajuda_cat_ensino_rotina" }
+      ],
+      [
         { text: "🛡️ Governança & Diretrizes", callback_data: "ajuda_cat_governanca" }
       ],
       [
@@ -47273,7 +48184,8 @@ function enviarManualCompletoComandos(chatId, filtro) {
       "geriatria": "geriatria", "idoso": "geriatria", "aga": "geriatria", "geronto": "geriatria",
       "cardiopneumo": "cardiopneumo", "cardio": "cardiopneumo", "pneumo": "cardiopneumo", "coracao": "cardiopneumo", "pulmao": "cardiopneumo",
       "metabolismo": "metabolismo", "endocrino": "metabolismo", "nutricao": "metabolismo", "sangue": "metabolismo", "hematologia": "metabolismo",
-      "especialidades": "especialidades", "reumato": "especialidades", "orto": "especialidades", "oftalmo": "especialidades", "olho": "especialidades",
+      "especialidades": "especialidades", "reumato": "especialidades", "orto": "especialidades", "oftalmo": "especialidades", "olho": "especialidades", "otorrino": "especialidades", "orl": "especialidades", "vertigem": "especialidades", "hints": "especialidades", "epistaxe": "especialidades",
+      "dermato": "dermato", "pele": "dermato", "lesao": "dermato", "lesoes": "dermato", "ists": "dermato", "ist": "dermato",
       "psiquiatria": "psiquiatria", "psiq": "psiquiatria", "mental": "psiquiatria",
       "exame_fisico": "exame_fisico", "exame": "exame_fisico", "semiologia": "exame_fisico",
       "enfermaria": "enfermaria", "plantao": "enfermaria", "leitos": "enfermaria",
@@ -47288,13 +48200,12 @@ function enviarManualCompletoComandos(chatId, filtro) {
         if (catalogo[i].id === catAlvoId) {
           var cat = catalogo[i];
           var msgCat = "📖 *" + cat.titulo + "*\n\n" +
-            "Confira os comandos disponíveis nesta especialidade:\n\n";
+            "Confira os comandos disponíveis nesta especialidade (1 comando por função clínica):\n\n";
           for (var j = 0; j < cat.comandos.length; j++) {
             var c = cat.comandos[j];
-            var aliasesStr = (c.aliases && c.aliases.length > 1) ? " _(atalhos: " + c.aliases.join(", ") + ")_" : "";
-            msgCat += "• `" + c.sintaxe + "`" + aliasesStr + "\n  ↳ " + c.desc + "\n\n";
+            msgCat += "• `" + c.sintaxe + "`\n  ↳ " + c.desc + "\n\n";
           }
-          msgCat += "💡 *Dica:* Envie `/ajuda` para ver o manual completo de todos os comandos.";
+          msgCat += "💡 *Dica:* Você também pode enviar qualquer caso ou dúvida em *linguagem natural* sem usar barra (/). Envie `/ajuda` para ver todas as categorias.";
           if (typeof enviarMensagemComTecladoParaChat === "function") {
             return enviarMensagemComTecladoParaChat(chatId, msgCat, kb);
           }
@@ -47304,6 +48215,40 @@ function enviarManualCompletoComandos(chatId, filtro) {
     }
 
     var cmdBusca = filtroNorm.replace(/^\//, "");
+    var sinonimosBusca = {
+      "help": "ajuda", "manual": "ajuda", "teclado": "menu", "app": "cockpit", "cancelar": "novo",
+      "receita": "rx", "prescricao_hospitalar": "rxh", "soap_ambulatorial": "ambulatorio", "soap_aps": "ambulatorio",
+      "septico": "choqueseptico", "circi": "choqueseptico", "vasopressina": "choqueseptico",
+      "iot": "sri", "sos": "conduta", "gasometria": "gaso", "aniongap": "gaso", "forrester": "choque",
+      "iam": "sca", "heart": "sca", "dapt": "sca", "trombolise": "avc", "hemoterapia": "transfusao",
+      "ptm": "transfusao", "chad": "transfusao", "toxicologia": "intox", "bisap": "pancreatite",
+      "mascc": "neutropenia", "colicanefretica": "colica", "litiase": "colica", "posologia": "dose",
+      "hsl": "dose", "ajuste": "atb", "ajuste_renal": "atb", "clearance": "crcl", "seguranca": "interacao",
+      "dose_ped": "ped", "pediatria": "ped", "pediatria_pcr": "pals", "bva": "bronquiolite",
+      "cnaf": "bronquiolite", "holliday": "nutriped", "formulainfantil": "diluicao", "dpp": "prenatal",
+      "co": "parto", "preeclampsia": "mgso4", "cig": "colestase", "icp": "colestase",
+      "ehag": "swansea", "aflp": "swansea", "toxoplasmose": "toxo", "avidez": "toxo", "ciur": "rcf",
+      "rciu": "rcf", "doppler": "rcf", "antifosfolipidio": "saf", "safgestante": "saf", "trombofilia": "saf",
+      "leucorreia": "corrimento", "dienogeste": "endometriose", "prolactina": "hiperprolactinemia",
+      "cabergolina": "hiperprolactinemia", "aga": "idoso", "frids": "polifarmacia",
+      "fibrilacaoatrial": "fa", "chascore": "fa", "hasbled": "fa", "insuficienciacardiaca": "icc",
+      "quarteto": "icc", "criseasma": "asma", "broncoespasmo": "asma", "vni": "dpoc", "bipap": "dpoc",
+      "hemograma": "anemia", "noripurum": "ganzoni", "ferro": "ganzoni", "insulina": "diabetes",
+      "dieta": "nutricao", "artriteseptica": "monoartrite", "gota": "monoartrite", "artrocentese": "monoartrite",
+      "jones": "febrereumatica", "aslo": "febrereumatica", "glaucoma": "oftalmo", "queimaduraocular": "oftalmo",
+      "vertigem": "vertigem", "hints": "vertigem", "vppb": "vertigem", "tontura": "vertigem",
+      "epistaxe": "epistaxe", "sangramentonasal": "epistaxe", "tamponamento": "epistaxe",
+      "lesao": "dermato", "lesoes": "dermato", "pele": "dermato", "zoster": "herpes", "aciclovir": "herpes",
+      "cancro": "ulceragenital", "donovanose": "ulceragenital", "lgv": "ulceragenital", "biett": "sifilis",
+      "roseola": "sifilis", "monkeypox": "mpox", "neuro": "ef_neuro", "pqu": "ef_pqu", "ortopo": "ef_ortopo",
+      "reumato": "ef_ortopo", "orl": "ef_orl", "sbar": "plantao", "pitch": "round", "sabatina": "voz",
+      "tarefa": "task", "relatorio": "semana", "mounjaro": "bio", "pubmed": "evidencia", "rbac": "perfil",
+      "breaktheglass": "emergencia", "auditoria": "kaizen"
+    };
+    if (sinonimosBusca[cmdBusca]) {
+      cmdBusca = sinonimosBusca[cmdBusca];
+    }
+
     for (var k = 0; k < catalogo.length; k++) {
       var catItem = catalogo[k];
       for (var m = 0; m < catItem.comandos.length; m++) {
@@ -47319,11 +48264,10 @@ function enviarManualCompletoComandos(chatId, filtro) {
         }
         if (matchesCmd) {
           var msgCmd = "🔎 *DETALHES DO COMANDO " + cmdObj.cmd + "*\n\n" +
-            "• *Sintaxe:* `" + cmdObj.sintaxe + "`\n" +
-            "• *Aliases / Atalhos:* " + (cmdObj.aliases ? cmdObj.aliases.join(", ") : cmdObj.cmd) + "\n" +
+            "• *Comando Único:* `" + cmdObj.sintaxe + "`\n" +
             "• *Função beira-leito:* " + cmdObj.desc + "\n" +
             "• *Especialidade:* " + catItem.titulo + "\n\n" +
-            "💡 Envie `/ajuda` para consultar todos os comandos disponíveis.";
+            "💡 *Dica:* Você também pode acionar esta função enviando dúvidas ou casos em *linguagem natural*, sem precisar da barra (/).";
           if (typeof enviarMensagemComTecladoParaChat === "function") {
             return enviarMensagemComTecladoParaChat(chatId, msgCmd, kb);
           }
@@ -47333,8 +48277,8 @@ function enviarManualCompletoComandos(chatId, filtro) {
     }
   }
 
-  var manualCompleto = "📖 *MANUAL COMPLETO DE COMANDOS SLASH (COPILOTO CLÍNICO 4.0)*\n\n" +
-    "Abaixo estão *todos os 247 comandos e atalhos* disponíveis no Ultra Rotina, organizados por especialidade e função beira-leito:\n\n";
+  var manualCompleto = "📖 *MANUAL DE COMANDOS CANÔNICOS (COPILOTO CLÍNICO 4.0)*\n\n" +
+    "Abaixo estão os *134 comandos padronizados* disponíveis no Ultra Rotina (estritamente 1 comando com barra por função clínica para facilitar a memorização):\n\n";
 
   for (var cIdx = 0; cIdx < catalogo.length; cIdx++) {
     var categoria = catalogo[cIdx];
@@ -47344,13 +48288,13 @@ function enviarManualCompletoComandos(chatId, filtro) {
 
     for (var cmdIdx = 0; cmdIdx < categoria.comandos.length; cmdIdx++) {
       var item = categoria.comandos[cmdIdx];
-      var atalhos = (item.aliases && item.aliases.length > 1) ? " _(atalhos: " + item.aliases.join(", ") + ")_" : "";
-      manualCompleto += "• `" + item.sintaxe + "`" + atalhos + "\n  ↳ " + item.desc + "\n";
+      manualCompleto += "• `" + item.sintaxe + "`\n  ↳ " + item.desc + "\n";
     }
     manualCompleto += "\n";
   }
 
-  manualCompleto += "💡 *Dica:* Para consultar apenas uma especialidade, digite `/ajuda <especialidade>` (ex: `/ajuda emergencia`, `/ajuda obstetricia`) ou toque nos botões abaixo:";
+  manualCompleto += "💡 *Dica de Ouro:* Você não precisa memorizar barras! Qualquer função pode ser chamada diretamente em *linguagem natural* (ex: _'herpes zoster'_, _'parto dilatação 7'_, _'drogas vasoativas 70kg'_, _'prenatal dum 10/05'_).\n\n" +
+    "Para filtrar por especialidade, digite `/ajuda <especialidade>` ou toque nos botões:";
 
   if (typeof enviarMensagemComTecladoParaChat === "function") {
     return enviarMensagemComTecladoParaChat(chatId, manualCompleto, kb);
@@ -52037,6 +52981,12 @@ function cockpitOftalmologia(initData, params) {
   return cockpitOftalmologiaEmergencia(initData, params);
 }
 
+
+function cockpitChoqueSeptico(pesoKg, doseNora) {
+  if (typeof EmergenciaChoqueSepticoService === "undefined") return { erro: "Módulo offline." };
+  return EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoKg, doseNora);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitGinecologiaEndometriose = cockpitGinecologiaEndometriose;
   module.exports.cockpitEndometriose = cockpitEndometriose;
@@ -52232,4 +53182,62 @@ function cockpitDermatologiaMpox(initData, params) {
 
 function cockpitMpox(initData, params) {
   return cockpitDermatologiaMpox(initData, params);
+}
+
+function cockpitOtorrinoVertigemHints(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof OtorrinoEpistaxeVertigemService === 'undefined') {
+    throw new Error('Serviço OtorrinoEpistaxeVertigemService indisponível.');
+  }
+  var analise = OtorrinoEpistaxeVertigemService.avaliarVertigemHints(params);
+  var texto = OtorrinoEpistaxeVertigemService.formatarVertigemHintsTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitVertigem(initData, params) {
+  return cockpitOtorrinoVertigemHints(initData, params);
+}
+
+function cockpitHints(initData, params) {
+  return cockpitOtorrinoVertigemHints(initData, params);
+}
+
+function cockpitOtorrinoEpistaxe(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof OtorrinoEpistaxeVertigemService === 'undefined') {
+    throw new Error('Serviço OtorrinoEpistaxeVertigemService indisponível.');
+  }
+  var analise = OtorrinoEpistaxeVertigemService.avaliarEpistaxe(params);
+  var texto = OtorrinoEpistaxeVertigemService.formatarEpistaxeTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitEpistaxe(initData, params) {
+  return cockpitOtorrinoEpistaxe(initData, params);
+}
+
+function cockpitTamponamento(initData, params) {
+  return cockpitOtorrinoEpistaxe(initData, params);
+}
+
+function cockpitOtorrinoResumo(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  var vertigem = cockpitOtorrinoVertigemHints(initData, params.vertigem || params);
+  var epistaxe = cockpitOtorrinoEpistaxe(initData, params.epistaxe || params);
+  return {
+    sucesso: true,
+    vertigem: vertigem,
+    epistaxe: epistaxe
+  };
 }
