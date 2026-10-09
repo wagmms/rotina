@@ -205,3 +205,49 @@ def test_cockpit_soap_ambulatorial_e_atestados_cfm():
     assert "copiarAtestadoGerado" in conteudo
     assert "copiarReceitaLimpaPEP" in conteudo
 
+
+def test_cockpit_prenatal_e_obstetricia():
+    """Valida botões, modais e funções da Calculadora de Pré-Natal e DPP no Cockpit."""
+    html_path = BASE_DIR / "cockpit_movel.html"
+    conteudo = html_path.read_text(encoding="utf-8")
+
+    # Botão e Modal
+    assert "abrirModalPrenatal()" in conteudo
+    assert 'id="modal-prenatal"' in conteudo
+    assert 'id="pn-input-dum"' in conteudo
+    assert 'id="pn-input-usg-data"' in conteudo
+    assert 'id="pn-box-resultado-ig"' in conteudo
+    assert 'id="pn-box-resultado-farmaco"' in conteudo
+
+    # Funções JavaScript no client
+    assert "calcularCronologiaPrenatalModal" in conteudo
+    assert "calcularGanhoPesoModal" in conteudo
+    assert "carregarTrimestrePainel" in conteudo
+    assert "auditarFarmacoModal" in conteudo
+    assert "copiarResumoPrenatalParaPep" in conteudo
+
+
+def test_cockpit_centro_obstetrico_e_sala_de_parto():
+    """Valida botões, modais e funções do Centro Obstétrico e Sala de Parto no Cockpit."""
+    html_path = BASE_DIR / "cockpit_movel.html"
+    conteudo = html_path.read_text(encoding="utf-8")
+
+    # Botão e Modal
+    assert "abrirModalCentroObstetrico()" in conteudo
+    assert 'id="modal-centro-obstetrico"' in conteudo
+    assert 'id="co-input-dilatacao"' in conteudo
+    assert 'id="co-input-de-lee"' in conteudo
+    assert 'id="co-input-bcf"' in conteudo
+    assert 'id="co-input-esquema-mg"' in conteudo
+    assert 'id="co-input-perda-ml"' in conteudo
+    assert 'id="co-input-gbs-cultura"' in conteudo
+
+    # Funções JavaScript no client
+    assert "abrirModalCentroObstetrico" in conteudo
+    assert "avaliarTrabalhoPartoModal" in conteudo
+    assert "calcularPreeclampsiaMgso4Modal" in conteudo
+    assert "avaliarHppModal" in conteudo
+    assert "avaliarGbsPrematuridadeModal" in conteudo
+    assert "copiarCondutaCoParaPep" in conteudo
+
+

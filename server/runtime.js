@@ -748,6 +748,13 @@ module.exports = {
         _rpcMap.cockpitRastreioTrimestre = ctx.cockpitRastreioTrimestre;
         _rpcMap.cockpitValidarFarmacoGestacao = ctx.cockpitValidarFarmacoGestacao;
         _rpcMap.cockpitAuditarPrescricaoGestante = ctx.cockpitAuditarPrescricaoGestante;
+        _rpcMap.cockpitTrabalhoParto = ctx.cockpitTrabalhoParto;
+        _rpcMap.cockpitSulfatoMagnesio = ctx.cockpitSulfatoMagnesio;
+        _rpcMap.cockpitCriseHipertensivaObstetrica = ctx.cockpitCriseHipertensivaObstetrica;
+        _rpcMap.cockpitHemorragiaPosParto = ctx.cockpitHemorragiaPosParto;
+        _rpcMap.cockpitProfilaxiaGbs = ctx.cockpitProfilaxiaGbs;
+        _rpcMap.cockpitPrematuridadeRpmo = ctx.cockpitPrematuridadeRpmo;
+        _rpcMap.cockpitResumoCentroObstetrico = ctx.cockpitResumoCentroObstetrico;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

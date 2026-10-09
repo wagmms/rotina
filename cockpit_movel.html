@@ -761,6 +761,9 @@
             <button onclick="abrirModalPrenatal()" class="px-2.5 py-1.5 rounded-lg bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[11px] font-semibold hover:bg-pink-500/30 flex items-center gap-1 transition">
               <i data-lucide="baby" class="w-3 h-3"></i> Pré-Natal & DPP
             </button>
+            <button onclick="abrirModalCentroObstetrico()" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-semibold hover:bg-rose-500/30 flex items-center gap-1 transition">
+              <i data-lucide="activity" class="w-3 h-3"></i> Sala de Parto & HPP
+            </button>
             <button onclick="copiarReceitaLimpaPEP()" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold hover:bg-emerald-500/30 flex items-center gap-1 transition">
               <i data-lucide="receipt" class="w-3 h-3"></i> Receita PEP
             </button>
@@ -1586,6 +1589,316 @@
           <span>Copiar Resumo para PEP</span>
         </button>
         <button onclick="fecharModalPrenatal()" class="px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-[11px] font-semibold text-slate-300 transition">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- MODAL: CENTRO OBSTÉTRICO & SALA DE PARTO (EMERGÊNCIAS OBSTÉTRICAS)-->
+  <!-- ================================================================= -->
+  <div id="modal-centro-obstetrico" class="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm hidden animate-in fade-in duration-200">
+    <div class="relative w-full max-w-2xl max-h-[92vh] flex flex-col rounded-2xl border border-rose-500/40 bg-slate-900 shadow-2xl overflow-hidden">
+      <!-- Header do Modal -->
+      <div class="flex items-center justify-between border-b border-slate-800 p-3.5 bg-slate-950/70">
+        <div class="flex items-center gap-2.5">
+          <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/30">
+            <i data-lucide="activity" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[9.5px] font-extrabold uppercase tracking-wider text-rose-400">Emergências & Sala de Parto</span>
+              <span class="text-[9px] bg-rose-500/20 text-rose-300 px-1.5 py-0.2 rounded font-bold font-mono">FEBRASGO / ACOG</span>
+            </div>
+            <h4 class="text-xs sm:text-sm font-bold text-white">
+              Centro Obstétrico & Protocolos Críticos
+            </h4>
+          </div>
+        </div>
+
+        <button onclick="fecharModalCentroObstetrico()" class="p-1.5 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Navegação Interna por Abas (Segmented Control) -->
+      <div class="flex items-center gap-1.5 px-3.5 py-2 border-b border-slate-800/80 bg-slate-950/40 overflow-x-auto no-scrollbar text-xs">
+        <button id="co-tab-parto" onclick="alternarSecaoCentroObstetrico('co-sec-parto', this)" class="co-pill-btn px-2.5 py-1 rounded-lg bg-rose-500/25 text-rose-200 border border-rose-500/40 shadow-sm transition">
+          <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> Parto & Bishop
+        </button>
+        <button id="co-tab-preeclampsia" onclick="alternarSecaoCentroObstetrico('co-sec-preeclampsia', this)" class="co-pill-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">
+          <i data-lucide="alert-triangle" class="w-3 h-3 inline mr-1"></i> PE & MgSO4
+        </button>
+        <button id="co-tab-hpp" onclick="alternarSecaoCentroObstetrico('co-sec-hpp', this)" class="co-pill-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">
+          <i data-lucide="droplet" class="w-3 h-3 inline mr-1"></i> HPP (4 Ts)
+        </button>
+        <button id="co-tab-gbs-prem" onclick="alternarSecaoCentroObstetrico('co-sec-gbs-prem', this)" class="co-pill-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition">
+          <i data-lucide="shield-alert" class="w-3 h-3 inline mr-1"></i> GBS & Prematuro
+        </button>
+      </div>
+
+      <!-- Conteúdo do Modal (Scrollável) -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        <!-- 1. ABA: TRABALHO DE PARTO & BISHOP -->
+        <div id="co-sec-parto" class="co-sec-pane space-y-3">
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Dilatação (cm)</label>
+              <input type="number" id="co-input-dilatacao" min="0" max="10" step="1" placeholder="Ex: 5" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Contrações / 10 min</label>
+              <input type="number" id="co-input-contracoes" min="0" max="10" step="1" placeholder="Ex: 3" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Duração Contração (s)</label>
+              <input type="number" id="co-input-duracao" min="0" max="120" step="5" placeholder="Ex: 40" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Plano de De Lee (-5 a +5)</label>
+              <select id="co-input-de-lee" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+                <option value="-3">-3 (Móvel / Alto)</option>
+                <option value="-2">-2</option>
+                <option value="-1">-1</option>
+                <option value="0" selected>0 (Insinuado / Espinhas Isquiáticas)</option>
+                <option value="1">+1 (Descida)</option>
+                <option value="2">+2</option>
+                <option value="3">+3 (Assoalho Pélvico)</option>
+                <option value="4">+4 (Desprendimento)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">BCF (bpm)</label>
+              <input type="number" id="co-input-bcf" min="60" max="220" placeholder="Ex: 140" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Bolsa e Líquido</label>
+              <select id="co-input-bolsa" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+                <option value="integra_claro">Bolsa Íntegra</option>
+                <option value="rota_claro">Rota - Líquido Claro</option>
+                <option value="rota_meconio">Rota - Mecônio Fluido</option>
+                <option value="rota_meconio_espesso">Rota - Mecônio Espesso</option>
+                <option value="rota_fetido">Rota - Fétido (Corioamnionite)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Parâmetros de Bishop Adicionais -->
+          <div class="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 space-y-1.5">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Parâmetros do Índice de Bishop:</span>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[9.5px] text-slate-500">Apagamento (%)</label>
+                <select id="co-input-apagamento" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-white text-[11px]">
+                  <option value="20">0-30% (0 pts)</option>
+                  <option value="50">40-50% (1 pt)</option>
+                  <option value="70">60-70% (2 pts)</option>
+                  <option value="80">>80% (3 pts)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[9.5px] text-slate-500">Consistência</label>
+                <select id="co-input-consistencia" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-white text-[11px]">
+                  <option value="rigido">Rígido (0 pts)</option>
+                  <option value="medio">Médio (1 pt)</option>
+                  <option value="amolecido">Amolecido (2 pts)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[9.5px] text-slate-500">Posição do Colo</label>
+                <select id="co-input-posicao" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-1.5 text-white text-[11px]">
+                  <option value="posterior">Posterior (0 pts)</option>
+                  <option value="medio">Intermediário (1 pt)</option>
+                  <option value="anterior">Anterior (2 pts)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="avaliarTrabalhoPartoModal()" class="w-full py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-rose-950 transition">
+            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Avaliar Dinâmica de Parto & Bishop
+          </button>
+
+          <!-- Resultados do Parto -->
+          <div id="co-box-resultado-parto" class="hidden p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+            <div class="flex items-center justify-between">
+              <span id="co-parto-fase-badge" class="text-xs px-2.5 py-0.5 rounded-full font-bold"></span>
+              <span id="co-parto-delee-badge" class="text-[10px] text-slate-300 font-mono"></span>
+            </div>
+            <p id="co-parto-delee-desc" class="text-[11px] text-slate-300"></p>
+            <div id="co-parto-bcf-alerta" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-[11px]"></div>
+            <div id="co-parto-bishop-res" class="p-2 rounded-lg bg-indigo-950/40 border border-indigo-500/30 text-[11px] space-y-1"></div>
+            <div id="co-parto-condutas" class="p-2 rounded-lg bg-slate-900 text-[11px] space-y-0.5"></div>
+          </div>
+        </div>
+
+        <!-- 2. ABA: PRÉ-ECLÂMPSIA & MGSO4 -->
+        <div id="co-sec-preeclampsia" class="co-sec-pane hidden space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Pressão Sistólica (PAS mmHg)</label>
+              <input type="number" id="co-input-pas" placeholder="Ex: 170" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Pressão Diastólica (PAD mmHg)</label>
+              <input type="number" id="co-input-pad" placeholder="Ex: 115" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Esquema Sulfato de Magnésio</label>
+              <select id="co-input-esquema-mg" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+                <option value="Zuspan">Zuspan (Padrão Ouro — IV em Bomba)</option>
+                <option value="Pritchard">Pritchard (IV + IM Glúteo / Transporte)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Reflexo Patelar</label>
+              <select id="co-input-reflexo" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+                <option value="presente">Presente (Normal)</option>
+                <option value="abolido">Abolido / Ausente (🚨 Toxicidade)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Freq. Respiratória (rpm)</label>
+              <input type="number" id="co-input-fr" placeholder="Ex: 16" value="16" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Diurese (mL/hora)</label>
+              <input type="number" id="co-input-diurese" placeholder="Ex: 35" value="35" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+          </div>
+
+          <button onclick="calcularPreeclampsiaMgso4Modal()" class="w-full py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-950 transition">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i> Manejar Crise Hipertensiva & Prescrever MgSO4
+          </button>
+
+          <!-- Resultados PE & MgSO4 -->
+          <div id="co-box-resultado-pe" class="hidden p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <div id="co-pe-alerta-intoxicacao" class="hidden p-2.5 rounded-lg bg-rose-950/80 border border-rose-500 text-rose-200 text-[11px] space-y-1"></div>
+            <div id="co-pe-crise-pa" class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] space-y-1.5"></div>
+            <div id="co-pe-mgso4-prescricao" class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] space-y-1.5"></div>
+            <div class="p-2 rounded-lg bg-rose-950/30 border border-rose-500/30 text-[10.5px] text-rose-300">
+              <strong>Antídoto pronto beira-leito:</strong> Gluconato de Cálcio 10% 10 mL IV lento se intoxicação por magnésio. Bloqueio estrito de IECAs e BRAs na gravidez.
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. ABA: HEMORRAGIA PÓS-PARTO (HPP - 4 Ts) -->
+        <div id="co-sec-hpp" class="co-sec-pane hidden space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Perda Estimada (mL)</label>
+              <input type="number" id="co-input-perda-ml" placeholder="Ex: 800" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Tipo de Parto</label>
+              <select id="co-input-tipo-parto" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+                <option value="vaginal">Vaginal (Corte >= 500 mL)</option>
+                <option value="cesariana">Cesariana (Corte >= 1000 mL)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">FC Materna (bpm)</label>
+              <input type="number" id="co-input-fc" placeholder="Ex: 110" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">PAS (mmHg)</label>
+              <input type="number" id="co-input-pas-hpp" placeholder="Ex: 90" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Histórico de Hipertensão / PE?</label>
+              <select id="co-input-tem-has" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+                <option value="nao">Não (Normotensa)</option>
+                <option value="sim">Sim (Hipertensa / Pré-Eclâmpsia)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Tempo Desde o Parto (min)</label>
+              <input type="number" id="co-input-tempo-parto" placeholder="Ex: 30" value="30" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+          </div>
+
+          <button onclick="avaliarHppModal()" class="w-full py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-red-950 transition">
+            <i data-lucide="droplet" class="w-3.5 h-3.5"></i> Protocolo de Hemorragia Pós-Parto (4 Ts)
+          </button>
+
+          <!-- Resultados HPP -->
+          <div id="co-box-resultado-hpp" class="hidden p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <div id="co-hpp-choque-badge" class="p-2.5 rounded-lg text-[11px] font-bold"></div>
+            <div id="co-hpp-uterotonicos" class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] space-y-2"></div>
+            <div class="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-[10.5px] space-y-1">
+              <span class="font-bold text-slate-300 block">Etiologia (Regra dos 4 Ts):</span>
+              <p class="text-slate-400"><strong>Tônus (70%):</strong> Massagem uterina bimanual de Hamilton.</p>
+              <p class="text-slate-400"><strong>Trauma (20%):</strong> Revisão de colo e canal de parto sob valvas.</p>
+              <p class="text-slate-400"><strong>Tecido (10%):</strong> Revisão de restos placentários e AMIU.</p>
+              <p class="text-slate-400"><strong>Trombina (1%):</strong> Coagulopatia, CIVD e plasma/crioprecipitado.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. ABA: SEPSE GBS & PREMATURIDADE/RPMO -->
+        <div id="co-sec-gbs-prem" class="co-sec-pane hidden space-y-3">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Cultura de Rastreio GBS</label>
+              <select id="co-input-gbs-cultura" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+                <option value="desconhecida">Desconhecida / Não realizada</option>
+                <option value="positiva">Positiva (35-37 semanas)</option>
+                <option value="negativa">Negativa</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Alergia à Penicilina</label>
+              <select id="co-input-gbs-alergia" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+                <option value="nao">Não alérgica</option>
+                <option value="leve">Leve (Exantema sem anafilaxia)</option>
+                <option value="anafilaxia">Grave / Anafilaxia / Angioedema</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Idade Gestacional (Semanas)</label>
+              <input type="number" id="co-input-prem-sem" placeholder="Ex: 30" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Bolsa Rota (Horas)</label>
+              <input type="number" id="co-input-gbs-rota-h" placeholder="Ex: 19" value="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Ameaça de Parto Iminente?</label>
+              <select id="co-input-prem-ameaca" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+                <option value="sim">Sim (Trabalho de parto prematuro)</option>
+                <option value="nao">Não</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Sinais de Corioamnionite?</label>
+              <select id="co-input-prem-corio" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+                <option value="nao">Não</option>
+                <option value="sim">Sim (Febre / Líquido fétido / Taqui fetal)</option>
+              </select>
+            </div>
+          </div>
+
+          <button onclick="avaliarGbsPrematuridadeModal()" class="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-purple-950 transition">
+            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Protocolo de Sepse GBS & Prematuridade
+          </button>
+
+          <!-- Resultados GBS & Prematuridade -->
+          <div id="co-box-resultado-gbs" class="hidden p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <div id="co-res-gbs" class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] space-y-1"></div>
+            <div id="co-res-prematuridade" class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px] space-y-1"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Rodapé do Modal -->
+      <div class="border-t border-slate-800 p-3 bg-slate-950/70 flex items-center justify-between gap-2">
+        <button onclick="copiarCondutaCoParaPep()" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md shadow-rose-950 transition">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          <span>Copiar Conduta CO para PEP</span>
+        </button>
+        <button onclick="fecharModalCentroObstetrico()" class="px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-[11px] font-semibold text-slate-300 transition">
           Fechar
         </button>
       </div>
@@ -4153,6 +4466,434 @@
         return;
       }
       copiarTextoClipboard(cacheResumoPrenatalGerado, 'Resumo de Pré-Natal copiado para o PEP!');
+    }
+
+    // =========================================================================
+    // 4.10 MODAL E PROTOCOLOS DE CENTRO OBSTÉTRICO & SALA DE PARTO
+    // =========================================================================
+    let cacheResumoCoGerado = '';
+
+    function abrirModalCentroObstetrico() {
+      hapticFeedback('medium');
+      const modal = document.getElementById('modal-centro-obstetrico');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function fecharModalCentroObstetrico() {
+      hapticFeedback('light');
+      const modal = document.getElementById('modal-centro-obstetrico');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function alternarSecaoCentroObstetrico(idSec, btnEl) {
+      hapticFeedback('light');
+      document.querySelectorAll('.co-sec-pane').forEach(el => el.classList.add('hidden'));
+      const sec = document.getElementById(idSec);
+      if (sec) sec.classList.remove('hidden');
+
+      document.querySelectorAll('.co-pill-btn').forEach(btn => {
+        btn.className = 'co-pill-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition';
+      });
+      if (btnEl) {
+        btnEl.className = 'co-pill-btn px-2.5 py-1 rounded-lg bg-rose-500/25 text-rose-200 border border-rose-500/40 shadow-sm transition';
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function avaliarTrabalhoPartoModal() {
+      hapticFeedback('medium');
+      const dilatacao = parseInt(document.getElementById('co-input-dilatacao')?.value || '0', 10);
+      const contracoes = parseInt(document.getElementById('co-input-contracoes')?.value || '0', 10);
+      const duracao = parseInt(document.getElementById('co-input-duracao')?.value || '0', 10);
+      const deLee = parseInt(document.getElementById('co-input-de-lee')?.value || '0', 10);
+      const bcf = parseInt(document.getElementById('co-input-bcf')?.value || '0', 10);
+      const bolsaSelect = document.getElementById('co-input-bolsa')?.value || 'integra_claro';
+      const apagamento = parseInt(document.getElementById('co-input-apagamento')?.value || '50', 10);
+      const consistencia = document.getElementById('co-input-consistencia')?.value || 'medio';
+      const posicao = document.getElementById('co-input-posicao')?.value || 'medio';
+
+      const partsBolsa = bolsaSelect.split('_');
+      const bolsa = partsBolsa[0];
+      const liquido = partsBolsa.slice(1).join('_');
+
+      const boxRes = document.getElementById('co-box-resultado-parto');
+      const badgeFase = document.getElementById('co-parto-fase-badge');
+      const badgeDeLee = document.getElementById('co-parto-delee-badge');
+      const descDeLee = document.getElementById('co-parto-delee-desc');
+      const boxBcf = document.getElementById('co-parto-bcf-alerta');
+      const boxBishop = document.getElementById('co-parto-bishop-res');
+      const boxCondutas = document.getElementById('co-parto-condutas');
+
+      try {
+        const resp = await chamarApiCockpitRpc('cockpitTrabalhoParto', [{
+          dilatacaoCm: dilatacao,
+          contracoes10min: contracoes,
+          duracaoContracaoSeg: duracao,
+          planoDeLee: deLee,
+          bcf: bcf,
+          bolsa: bolsa,
+          liquidoAmniotico: liquido,
+          apagamentoPct: apagamento,
+          consistenciaColo: consistencia,
+          posicaoColo: posicao
+        }]);
+
+        if (resp) {
+          if (boxRes) boxRes.classList.remove('hidden');
+
+          if (badgeFase) {
+            if (resp.fase === 'PERIODO_EXPULSIVO') {
+              badgeFase.className = 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40';
+            } else if (resp.fase === 'FASE_ATIVA') {
+              badgeFase.className = 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+            } else {
+              badgeFase.className = 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-slate-800 text-slate-300 border border-slate-700';
+            }
+            badgeFase.textContent = resp.faseDescricao;
+          }
+
+          if (badgeDeLee) {
+            badgeDeLee.textContent = resp.insinuado ? '✅ Feto Insinuado' : '⏳ Apresentação Alta';
+          }
+          if (descDeLee) {
+            descDeLee.textContent = resp.deLeeInfo;
+          }
+
+          if (boxBcf) {
+            if (resp.bcfAlerta) {
+              boxBcf.className = 'p-2 rounded-lg bg-rose-950/60 border border-rose-500/60 text-[11px] text-rose-200 font-bold';
+              boxBcf.textContent = resp.bcfAlerta;
+            } else if (resp.bcf) {
+              boxBcf.className = 'p-2 rounded-lg bg-slate-900 border border-slate-800 text-[11px] text-emerald-300';
+              boxBcf.textContent = `BCF: ${resp.bcf} bpm (Frequência Cardíaca Fetal Fisiológica)`;
+            } else {
+              boxBcf.className = 'hidden';
+            }
+          }
+
+          if (boxBishop && resp.bishop) {
+            boxBishop.innerHTML = `
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-white">Índice de Bishop: ${resp.bishop.pontos} pontos</span>
+                <span class="text-[10px] px-2 py-0.2 rounded-full font-bold ${resp.bishop.favoravel ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}">
+                  ${resp.bishop.favoravel ? 'Favorável (>=9)' : 'Desfavorável (<=5)'}
+                </span>
+              </div>
+              <p class="text-[10.5px] text-slate-300 mt-1">${resp.bishop.interpretacao}</p>
+              <p class="text-[10.5px] text-indigo-300 font-semibold mt-0.5"><strong>Conduta:</strong> ${resp.bishop.condutaInducao}</p>
+            `;
+          }
+
+          if (boxCondutas && resp.condutaFase) {
+            boxCondutas.innerHTML = '<span class="font-bold text-slate-300 block mb-1">Recomendações Clínicas:</span>' +
+              resp.condutaFase.map(c => `<p class="text-slate-400">• ${c}</p>`).join('');
+          }
+
+          copiarToast('Avaliação de parto concluída!');
+        }
+      } catch (err) {
+        copiarToast('Erro: ' + err.message);
+      }
+    }
+
+    async function calcularPreeclampsiaMgso4Modal() {
+      hapticFeedback('medium');
+      const pas = parseInt(document.getElementById('co-input-pas')?.value || '0', 10);
+      const pad = parseInt(document.getElementById('co-input-pad')?.value || '0', 10);
+      const esquema = document.getElementById('co-input-esquema-mg')?.value || 'Zuspan';
+      const reflexo = document.getElementById('co-input-reflexo')?.value === 'presente';
+      const fr = parseInt(document.getElementById('co-input-fr')?.value || '16', 10);
+      const diurese = parseInt(document.getElementById('co-input-diurese')?.value || '35', 10);
+
+      const boxRes = document.getElementById('co-box-resultado-pe');
+      const boxAlertaIntox = document.getElementById('co-pe-alerta-intoxicacao');
+      const boxCrisePa = document.getElementById('co-pe-crise-pa');
+      const boxMgPrescricao = document.getElementById('co-pe-mgso4-prescricao');
+
+      try {
+        const [resPa, resMg] = await Promise.all([
+          chamarApiCockpitRpc('cockpitCriseHipertensivaObstetrica', [{ pas: pas, pad: pad }]),
+          chamarApiCockpitRpc('cockpitSulfatoMagnesio', [{
+            esquema: esquema,
+            reflexoPatelar: reflexo,
+            frequenciaRespiratoria: fr,
+            diureseMlHora: diurese
+          }])
+        ]);
+
+        if (boxRes) boxRes.classList.remove('hidden');
+
+        // Intoxicação por MgSO4
+        if (resMg && resMg.intoxicacaoDetectada) {
+          if (boxAlertaIntox) {
+            boxAlertaIntox.classList.remove('hidden');
+            boxAlertaIntox.innerHTML = `
+              <div class="font-bold text-rose-300 uppercase tracking-wide">🚨 TOXICIDADE POR SULFATO DE MAGNÉSIO DETECTADA!</div>
+              ${resMg.alertasIntoxicacao.map(a => `<p>${a}</p>`).join('')}
+              <div class="mt-1.5 p-2 rounded bg-rose-950 border border-rose-500/80 font-bold text-white">
+                ANTÍDOTO: ${resMg.condutaIntoxicacao.antidoto}
+              </div>
+            `;
+          }
+        } else if (boxAlertaIntox) {
+          boxAlertaIntox.classList.add('hidden');
+        }
+
+        // Crise Hipertensiva
+        if (boxCrisePa && resPa) {
+          let htmlPa = `
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-white">PA: ${resPa.pas}x${resPa.pad} mmHg</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${resPa.ehCrise ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-300'}">
+                ${resPa.classificacao}
+              </span>
+            </div>
+          `;
+          if (resPa.ehCrise) {
+            htmlPa += '<div class="space-y-1 pt-1"><span class="font-bold text-rose-400 block">Fármacos de Resgate:</span>';
+            resPa.medicacoes.forEach(m => {
+              htmlPa += `
+                <div class="p-1.5 rounded bg-slate-950 border border-slate-800">
+                  <span class="font-bold text-white">${m.farmaco}</span>
+                  <p class="text-[10.5px] text-slate-300">${m.posologia}</p>
+                </div>
+              `;
+            });
+            htmlPa += '</div>';
+          }
+          boxCrisePa.innerHTML = htmlPa;
+        }
+
+        // Prescrição de MgSO4
+        if (boxMgPrescricao && resMg && resMg.prescricao) {
+          const p = resMg.prescricao;
+          boxMgPrescricao.innerHTML = `
+            <span class="font-bold text-amber-300 block">${p.nome}</span>
+            <div class="space-y-1 pt-0.5">
+              <div class="p-1.5 rounded bg-slate-950 border border-slate-800">
+                <strong class="text-white">Ataque:</strong>
+                <p class="text-slate-300">${p.ataque.join('<br>')}</p>
+              </div>
+              <div class="p-1.5 rounded bg-slate-950 border border-slate-800">
+                <strong class="text-white">Manutenção:</strong>
+                <p class="text-slate-300">${p.manutencao.join('<br>')}</p>
+              </div>
+            </div>
+          `;
+        }
+
+        copiarToast('Protocolo PE & MgSO4 calculado!');
+      } catch (err) {
+        copiarToast('Erro: ' + err.message);
+      }
+    }
+
+    async function avaliarHppModal() {
+      hapticFeedback('medium');
+      const perda = parseInt(document.getElementById('co-input-perda-ml')?.value || '500', 10);
+      const tipoParto = document.getElementById('co-input-tipo-parto')?.value || 'vaginal';
+      const fc = parseInt(document.getElementById('co-input-fc')?.value || '100', 10);
+      const pas = parseInt(document.getElementById('co-input-pas-hpp')?.value || '90', 10);
+      const temHas = document.getElementById('co-input-tem-has')?.value === 'sim';
+      const tempoParto = parseInt(document.getElementById('co-input-tempo-parto')?.value || '30', 10);
+
+      const boxRes = document.getElementById('co-box-resultado-hpp');
+      const badgeChoque = document.getElementById('co-hpp-choque-badge');
+      const boxUterotonicos = document.getElementById('co-hpp-uterotonicos');
+
+      try {
+        const resp = await chamarApiCockpitRpc('cockpitHemorragiaPosParto', [{
+          perdaEstimadaMl: perda,
+          tipoParto: tipoParto,
+          fc: fc,
+          pas: pas,
+          temHipertensao: temHas,
+          tempoDesdePartoMin: tempoParto
+        }]);
+
+        if (resp) {
+          if (boxRes) boxRes.classList.remove('hidden');
+
+          if (badgeChoque) {
+            if (resp.gravidadeChoque === 'CHOQUE_GRAVE') {
+              badgeChoque.className = 'p-2.5 rounded-lg bg-rose-950 border border-rose-500 text-rose-200 text-[11px] font-bold space-y-0.5';
+              badgeChoque.innerHTML = `<div>⛔ ÍNDICE DE CHOQUE: ${resp.indiceChoque} (CHOQUE GRAVE)</div><p class="text-[10px] text-rose-300 font-normal">${resp.alertaChoque}</p>`;
+            } else if (resp.gravidadeChoque === 'CHOQUE_MODERADO') {
+              badgeChoque.className = 'p-2.5 rounded-lg bg-amber-950 border border-amber-500 text-amber-200 text-[11px] font-bold space-y-0.5';
+              badgeChoque.innerHTML = `<div>⚠️ ÍNDICE DE CHOQUE: ${resp.indiceChoque} (ALERTA HEMORRÁGICO)</div><p class="text-[10px] text-amber-300 font-normal">${resp.alertaChoque}</p>`;
+            } else {
+              badgeChoque.className = 'p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold';
+              badgeChoque.textContent = `Índice de Choque: ${resp.indiceChoque || 'Normal'} (Estável)`;
+            }
+          }
+
+          if (boxUterotonicos && resp.sequenciaUterotonica) {
+            let htmlUt = '<span class="font-bold text-white block mb-1">Sequenciamento Uterotônico Escalonado:</span>';
+            resp.sequenciaUterotonica.forEach(u => {
+              if (u.bloqueado) {
+                htmlUt += `
+                  <div class="p-2 rounded-lg bg-rose-950/70 border border-rose-500/60">
+                    <span class="font-bold text-rose-300 block">${u.farmaco}</span>
+                    <p class="text-[10px] text-rose-200">${u.motivoBloqueio}</p>
+                  </div>
+                `;
+              } else {
+                htmlUt += `
+                  <div class="p-2 rounded-lg bg-slate-950 border border-slate-800">
+                    <span class="font-bold text-emerald-400 block">Etapa ${u.etapa}: ${u.farmaco}</span>
+                    <p class="text-[10.5px] text-slate-300"><strong>Dose:</strong> ${u.dose}</p>
+                    ${u.nota ? `<p class="text-[10px] text-slate-400 mt-0.5">${u.nota}</p>` : ''}
+                  </div>
+                `;
+              }
+            });
+            boxUterotonicos.innerHTML = htmlUt;
+          }
+
+          copiarToast('Protocolo de HPP gerado!');
+        }
+      } catch (err) {
+        copiarToast('Erro: ' + err.message);
+      }
+    }
+
+    async function avaliarGbsPrematuridadeModal() {
+      hapticFeedback('medium');
+      const cultura = document.getElementById('co-input-gbs-cultura')?.value || 'desconhecida';
+      const alergia = document.getElementById('co-input-gbs-alergia')?.value || 'nao';
+      const sem = parseInt(document.getElementById('co-input-prem-sem')?.value || '30', 10);
+      const rotaH = parseInt(document.getElementById('co-input-gbs-rota-h')?.value || '0', 10);
+      const ameaca = document.getElementById('co-input-prem-ameaca')?.value === 'sim';
+      const corio = document.getElementById('co-input-prem-corio')?.value === 'sim';
+
+      const boxRes = document.getElementById('co-box-resultado-gbs');
+      const boxGbs = document.getElementById('co-res-gbs');
+      const boxPrem = document.getElementById('co-res-prematuridade');
+
+      try {
+        const [resGbs, resPrem] = await Promise.all([
+          chamarApiCockpitRpc('cockpitProfilaxiaGbs', [{
+            culturaGbs: cultura,
+            alergiaPenicilina: alergia !== 'nao',
+            tipoAlergiaPenicilina: alergia,
+            igSemanas: sem,
+            bolsaRotaHoras: rotaH
+          }]),
+          chamarApiCockpitRpc('cockpitPrematuridadeRpmo', [{
+            igSemanas: sem,
+            ameacaPartoIminente: ameaca,
+            rpmConfirmada: rotaH > 0,
+            sinaisCorioamnionite: corio
+          }])
+        ]);
+
+        if (boxRes) boxRes.classList.remove('hidden');
+
+        // GBS
+        if (boxGbs && resGbs) {
+          if (resGbs.indicada) {
+            const op = resGbs.esquemaRecomendado?.opcaoPrincipal;
+            boxGbs.innerHTML = `
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-purple-300">Profilaxia GBS INDICADA</span>
+                <span class="text-[10px] px-2 py-0.2 rounded-full font-bold bg-purple-500/20 text-purple-300">Ativa</span>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-0.5">• ${resGbs.motivosIndicacao?.join('; ')}</p>
+              ${op ? `
+                <div class="mt-1.5 p-2 rounded bg-slate-950 border border-slate-800">
+                  <span class="font-bold text-white">${op.farmaco}</span>
+                  <p class="text-[10.5px] text-slate-300">Ataque: ${op.doseAtaque} | Manutenção: ${op.doseManutencao}</p>
+                </div>
+              ` : ''}
+            `;
+          } else {
+            boxGbs.innerHTML = `<span class="text-slate-400 block">${resGbs.motivo}</span>`;
+          }
+        }
+
+        // Prematuridade
+        if (boxPrem && resPrem) {
+          if (resPrem.corioamnioniteDetectada) {
+            boxPrem.innerHTML = `
+              <div class="p-2 rounded bg-rose-950 border border-rose-500 font-bold text-rose-200">
+                ${resPrem.alertaCritico}
+              </div>
+            `;
+          } else {
+            let htmlPrem = `<span class="font-bold text-white block mb-1">Condutas na Prematuridade (IG ${resPrem.igSemanas} sem):</span>`;
+            if (resPrem.corticoterapia?.indicada) {
+              htmlPrem += `
+                <div class="p-1.5 rounded bg-slate-950 border border-slate-800">
+                  <strong class="text-teal-300">Corticoterapia Pulmonar:</strong>
+                  <p class="text-slate-300">${resPrem.corticoterapia.esquemaPrimeiraLinha.farmaco} — ${resPrem.corticoterapia.esquemaPrimeiraLinha.dose}</p>
+                </div>
+              `;
+            }
+            if (resPrem.neuroprotecao?.indicada) {
+              htmlPrem += `
+                <div class="p-1.5 rounded bg-slate-950 border border-slate-800 mt-1">
+                  <strong class="text-indigo-300">Neuroproteção Fetal com MgSO4:</strong>
+                  <p class="text-slate-300">Indicada formalmente para fetos &lt; 32 semanas e parto iminente nas próximas 24h.</p>
+                </div>
+              `;
+            }
+            if (resPrem.tocolise?.indicada) {
+              htmlPrem += `
+                <div class="p-1.5 rounded bg-slate-950 border border-slate-800 mt-1">
+                  <strong class="text-amber-300">Tocólise por até 48h:</strong>
+                  <p class="text-slate-300">${resPrem.tocolise.primeiraEscolha.farmaco} (${resPrem.tocolise.primeiraEscolha.ataque})</p>
+                </div>
+              `;
+            }
+            if (resPrem.latenciaRpmo?.indicada) {
+              htmlPrem += `
+                <div class="p-1.5 rounded bg-slate-950 border border-slate-800 mt-1">
+                  <strong class="text-sky-300">Latência RPMO:</strong>
+                  <p class="text-slate-300">${resPrem.latenciaRpmo.fase1_primeiras48h.join(' + ')}</p>
+                </div>
+              `;
+            }
+            boxPrem.innerHTML = htmlPrem;
+          }
+        }
+
+        copiarToast('Protocolo GBS e Prematuridade concluído!');
+      } catch (err) {
+        copiarToast('Erro: ' + err.message);
+      }
+    }
+
+    async function copiarCondutaCoParaPep() {
+      hapticFeedback('medium');
+      const dilatacao = parseInt(document.getElementById('co-input-dilatacao')?.value || '5', 10);
+      const contracoes = parseInt(document.getElementById('co-input-contracoes')?.value || '3', 10);
+      const deLee = parseInt(document.getElementById('co-input-de-lee')?.value || '0', 10);
+      const bcf = parseInt(document.getElementById('co-input-bcf')?.value || '140', 10);
+      const pas = parseInt(document.getElementById('co-input-pas')?.value || '120', 10);
+      const pad = parseInt(document.getElementById('co-input-pad')?.value || '80', 10);
+      const perda = parseInt(document.getElementById('co-input-perda-ml')?.value || '500', 10);
+      const fc = parseInt(document.getElementById('co-input-fc')?.value || '85', 10);
+      const cultura = document.getElementById('co-input-gbs-cultura')?.value || 'desconhecida';
+      const sem = parseInt(document.getElementById('co-input-prem-sem')?.value || '38', 10);
+
+      try {
+        const resp = await chamarApiCockpitRpc('cockpitResumoCentroObstetrico', [{
+          parto: { dilatacaoCm: dilatacao, contracoes10min: contracoes, duracaoContracaoSeg: 40, planoDeLee: deLee, bcf: bcf },
+          has: pas >= 140 ? { pas: pas, pad: pad, prescreverMgso4: pas >= 160 } : null,
+          hpp: perda >= 500 ? { perdaEstimadaMl: perda, fc: fc, pas: pas, temHipertensao: pas >= 140 } : null,
+          gbs: { culturaGbs: cultura, igSemanas: sem },
+          prematuridade: sem < 37 ? { igSemanas: sem, ameacaPartoIminente: true } : null
+        }]);
+
+        if (resp && resp.sucesso && resp.textoFormatado) {
+          copiarTextoClipboard(resp.textoFormatado, 'Conduta de Centro Obstétrico copiada para o PEP!');
+        } else {
+          copiarToast('Falha ao gerar relatório CO.');
+        }
+      } catch (err) {
+        copiarToast('Erro: ' + err.message);
+      }
     }
 
     // =========================================================================

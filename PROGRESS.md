@@ -6,28 +6,27 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 ---
 
-## 📋 Backlog de Melhorias Prioritárias (Foco Clínico: Obstetrícia, Ginecologia, UTI & APS)
+## 📋 Backlog de Melhorias Prioritárias (Foco Clínico: Ginecologia & Obstetrícia Unificados, SOAP e UX Telegram)
 
-1. [ ] **Protocolos de Emergência e Centro Obstétrico (Pré-Parto & Sala de Parto)**:
-   - Diagnóstico e Monitoramento de Trabalho de Parto: critérios de fase ativa (>=4 cm e 2-3 contrações regulares em 10 min), plano de De Lee e evolução dinâmica.
-   - Manejo de Pré-Eclâmpsia com Sinais de Gravidade e Eclâmpsia:
-     * Esquema de Sulfato de Magnésio (Zuspan: Ataque 4g IV lento em 20 min + Manutenção 1g/h IV contínua em bomba; ou Pritchard: 4g IV + 10g IM profundo).
-     * Vigilância estrita de intoxicação: reflexo patelar presente, FR > 12 rpm e diurese > 25 ml/h. Antídoto pronto: Gluconato de Cálcio 10% 10 ml IV lento.
-     * Controle pressórico de resgate para crise hipertensiva (PAS >= 160 ou PAD >= 110): Hidralazina 5mg IV a cada 20 min ou Nifedipino 10-20mg VO.
-   - Protocolo de Hemorragia Pós-Parto (HPP - Regra dos 4 Ts):
-     * Sequenciamento rápido de uterotônicos: Ocitocina (20-40 UI em 500ml SF a 250ml/h) -> Metilergometrina 0,2mg IM (contraindicado se HAS!) -> Misoprostol 800mcg retal/sublingual -> Ácido Tranexâmico 1g IV precoce em até 3h do parto.
-   - Profilaxia para Sepse Neonatal por GBS Intraparto: indicações formais e esquemas (Penicilina Cristalina 5M UI ataque + 2,5M UI a cada 4h até o parto, ou Ampicilina 2g ataque + 1g a cada 4h).
-   - Prematuridade e RPMO: Corticoterapia para maturação pulmonar (Betametasona 12mg IM 2 doses a cada 24h) e neuroproteção fetal com Sulfato de Magnésio se <32 semanas.
+1. [ ] **Ginecologia Ambulatorial de Consultório (Completando o Módulo Unificado de GO)**:
+   - Rastreio de Câncer de Colo Uterino: Condutas baseadas nas Diretrizes Brasileiras para rastreamento (INCA/MS) por laudo citopatológico (ASC-US, LSIL, ASC-H, HSIL, AGC) e faixa etária.
+   - Sangramento Uterino Anormal (SUA): Algoritmo de investigação e mnemônico PALM-COEIN com condutas hormonais de urgência (anticoncepcionais orais combinados, progestagênios, ácido tranexâmico).
+   - Critérios de Elegibilidade de Anticoncepção da OMS (Categorias 1 a 4): Filtro rápido por comorbidades (enxaqueca com aura, trombose prévia, HAS não controlada, tabagismo >35a, amamentação pós-parto).
+   - Síndromes Infecciosas Vulvovaginais (Leucorreias): Manejo sindrômico e etiológico de Candidíase, Vaginose Bacteriana e Tricomoníase com esquemas REMUME.
 
-2. [ ] **Integração Ágil e Fluida com o Telegram (UX Móvel de 1 Toque, Ditado Clínico e Teclado Fixo)**:
+2. [ ] **Integração Ágil e Fluida com o Telegram (Hub Unificado de GO, SOAP e UX Móvel de 1 Toque)**:
    - **Teclado Fixo Persistente (`ReplyKeyboardMarkup`) Otimizado**:
      * Botões de 1 toque no rodapé desenhados para o médico em atendimento rápido:
-       `[🩺 SOAP Ambulatorial]` `[🤰 Pré-Natal & DPP]`
-       `[🚨 Pré-Parto & HPP]` `[💊 REMUME Rápida]`
+       `[🩺 SOAP Ambulatorial]` `[🤰 Ginecologia & Obstetrícia]`
+       `[🚨 Emergência]` `[💊 REMUME Rápida]`
        `[📱 Cockpit Mini App]` `[🧹 Limpar Paciente]`
+   - **Hub Unificado de Ginecologia & Obstetrícia (GO)**:
+     * Ao tocar em `[🤰 Ginecologia & Obstetrícia]`, exibe submenus rápidos de 1 toque:
+       - `🤰 Pré-Natal (DUM, DPP, IG, Rastreios)`
+       - `🚨 Pré-Parto & Sala de Parto (Trabalho de Parto, Zuspan, HPP/4Ts)`
+       - `🌸 Ginecologia (Preventivo/INCA, SUA, Anticoncepção/OMS, Leucorreias)`
    - **Roteamento Inteligente em Linguagem Natural sem Comandos (`/`)**:
-     * Detecção automática de termos obstétricos (ex: "DUM 14/05/2024", "G3P2A0 28 semanas") acionando Naegele, DPP, IG e conduta de trimestre sem precisar de `/calc` ou `/dpp`.
-     * Reconhecimento direto de trabalho de parto (contrações regulares, dilatação, dinâmica) e queixas clínicas agudas.
+     * Detecção automática de termos obstétricos (ex: "DUM 14/05/2024", "G3P2A0 28 semanas") e ginecológicos (ex: "citologia ASC-US", "SUA aguda", "quer trocar anticoncepcional") acionando condutas instantaneamente sem exigir barras (`/`).
      * Prescrição em texto livre validada contra REMUME, interações e alergias sem exigir `/rx`.
    - **Botões Inline de Ação Rápida Pós-Áudio & Ditado Clínico**:
      * Ao enviar áudio corrido nos corredores ou consultório, o bot transcreve e anexa botões de 1 clique:
@@ -40,50 +39,96 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
    - **Integração Nativa Telegram Mini App (WebApp)**:
      * Acesso em tela cheia ao Cockpit PWA via botão WebApp nativo dentro do Telegram (`web_app: { url: ... }`), permitindo alternar fluidamente entre ditado por voz e interface visual com cards táteis.
 
-3. [ ] **Ginecologia Ambulatorial de Consultório**:
-   - Rastreio de Câncer de Colo Uterino: Condutas baseadas nas Diretrizes Brasileiras para rastreamento (INCA/MS) por laudo citopatológico (ASC-US, LSIL, ASC-H, HSIL, AGC) e faixa etária.
-   - Sangramento Uterino Anormal (SUA): Algoritmo de investigação e mnemônico PALM-COEIN com condutas hormonais de urgência (anticoncepcionais orais combinados, progestagênios, ácido tranexâmico).
-   - Critérios de Elegibilidade de Anticoncepção da OMS (Categorias 1 a 4): Filtro rápido por comorbidades (enxaqueca com aura, trombose prévia, HAS não controlada, tabagismo >35a, amamentação pós-parto).
-
-4. [ ] **Painel de Puericultura e Desenvolvimento Infantil (Atenção Primária & SBP)**:
+3. [ ] **Painel de Puericultura e Desenvolvimento Infantil (Atenção Primária & SBP)**:
    - Avaliação antropométrica com curvas de crescimento da OMS (Z-scores de Peso/Idade, Estatura/Idade, IMC/Idade e Perímetro Cefálico).
    - Vigilância de marcos do desenvolvimento neuropsicomotor (DNPM) por faixa etária (motor grosseiro, motor fino/adaptativo, linguagem, social/cognitivo).
    - Calendário vacinal atualizado do PNI (2026) com alertas de doses em atraso e esquemas de resgate.
    - Suplementação profilática padronizada: Ferro elementar (a partir de 3m ou 6m conforme aleitamento/peso ao nascer) e Vitamina D (400 UI/dia no 1º ano, 600 UI/dia no 2º ano).
 
-5. [ ] **Módulo de Saúde do Idoso e Avaliação Geriátrica Ampla (AGA)**:
+4. [ ] **Módulo de Saúde do Idoso e Avaliação Geriátrica Ampla (AGA)**:
    - Triagem rápida de fragilidade clínica ambulatorial (Clinical Frailty Scale - CFS e Escala Edmonton).
    - Avaliação cognitiva de rastreio em 10 minutos (Mini-Exame do Estado Mental / Mini-Cog e Teste do Relógio).
    - Prevenção de iatrogenia e polifarmácia: Verificador automatizado de Critérios de Beers (AGS 2023) e critérios STOPP/START para desprescrição segura.
    - Avaliação de risco de quedas (Timed Up and Go - TUG) e metas individualizadas de controle metabólico/pressórico no idoso frágil.
 
-6. [ ] **Auditoria de Toxicidade em Infusões Contínuas de UTI**:
+5. [ ] **Auditoria de Toxicidade em Infusões Contínuas de UTI**:
    - Validação e testes determinísticos de limites de taxa de infusão (mcg/kg/min) para aminas vasoativas (Noradrenalina, Vasopressina, Adrenalina, Dobutamina) prevenindo erros por ordem de grandeza e dose letal beira-leito.
 
-7. [ ] **Calculadora de Desmame de Sedação e Rotação de Opioides**:
+6. [ ] **Calculadora de Desmame de Sedação e Rotação de Opioides**:
    - Módulo determinístico de equivalência analgésica para rotação de opioides (Morfina IV/VO, Fentanil, Metadona, Oxicodona) e escala de desmame de sedação contínua (RASS/CAM-ICU).
 
-8. [ ] **Nefrologia Intensiva e Distúrbios Hidroeletrolíticos (DHE)**:
+7. [ ] **Nefrologia Intensiva e Distúrbios Hidroeletrolíticos (DHE)**:
    - Correção segura de hiponatremia aguda vs crônica com cálculo de déficit de sódio e teto rígido de elevação (máximo 8-10 mEq/L nas primeiras 24h e 18 mEq/L em 48h) prevenindo Síndrome de Desmielinização Osmótica (mielinólise pontina).
    - Manejo escalonado de hipercalemia com critérios de urgência dialítica (ECG: onda T apiculada, alargamento QRS), estabilização de membrana miocárdica (Gluconato de Cálcio 10% 10-20 ml IV), glicoinsulina (10 UI regular em 100 ml SG 50%), beta-2 agonista e resinas de troca.
    - Cálculo de déficit de água livre na hipernatremia e reposição criteriosa de potássio, magnésio e fósforo beira-leito.
 
-9. [ ] **Mecânica Pulmonar e Ventilação Protetora na SDRA (ARDSNet)**:
+8. [ ] **Mecânica Pulmonar e Ventilação Protetora na SDRA (ARDSNet)**:
    - Calculador beira-leito de peso predito (fórmula ARDSNet baseada na altura e sexo biológico) com ajuste estrito de volume corrente em 4 a 6 mL/kg.
    - Titulação e monitoramento de pressão de platô (Pplat <= 30 cmH2O) e cálculo automático da Driving Pressure (Delta P = Pplat - PEEP, meta <= 14-15 cmH2O).
    - Gasometria arterial integrada com cálculo da relação PaO2/FiO2 (critérios de Berlim para SDRA leve, moderada, grave) e indicação oportuna de posição prona precoce (PaO2/FiO2 < 150 com PEEP >= 10 por 16h) e bloqueio neuromuscular (Cisatracúrio nas primeiras 48h).
 
-10. [ ] **Auditoria Farmacêutica Hospitalar: Compatibilidade Físico-Química em Y-Site (Linha Venosa)**:
-    - Matriz determinística em RAM de incompatibilidades de precipitados e inativação de fármacos comuns em acesso venoso único/duplo de emergência (ex: Ceftriaxona + Ringer Lactato / soluções com Cálcio causando cristais mortais; Fenitoína em infusão com qualquer solução glicosada causando precipitação imediata; Bicarbonato de Sódio + Catecolaminas causando inativação por pH alcalino; Furosemida + Midazolam).
+9. [ ] **Auditoria Farmacêutica Hospitalar: Compatibilidade Físico-Química em Y-Site (Linha Venosa)**:
+   - Matriz determinística em RAM de incompatibilidades de precipitados e inativação de fármacos comuns em acesso venoso único/duplo de emergência (ex: Ceftriaxona + Ringer Lactato / soluções com Cálcio causando cristais mortais; Fenitoína em infusão com qualquer solução glicosada causando precipitação imediata; Bicarbonato de Sódio + Catecolaminas causando inativação por pH alcalino; Furosemida + Midazolam).
+
+10. [ ] **Manejo Avançado de Sepse e Choque Séptico Puerperal / Materno (Critérios Sepsis-in-Obstetrics / SOS Score e Bundles de 1 Hora)**:
+    - Adaptação fisiológica da gestante mascarando sepse (leucocitose e taquicardia fisiológicas).
+    - Escore SOS (Obstetric Sepsis Score) e qSOFA obstétrico para detecção precoce de infecção pélvica/corioamnionite/endometrite puerperal.
+    - Bundle de 1 hora: coleta de lactato sérico, hemoculturas antes do antibiótico, ressuscitação volêmica criteriosa com cristaloides (30 mL/kg guiada por resposta para evitar EAP), antibioticoterapia de amplo espectro (ex: Ampicilina + Gentamicina + Clindamicina ou Ceftriaxona + Metronidazol) e início precoce de Noradrenalina se PAM < 65 mmHg refratária.
+
+11. [ ] **Algoritmo de Ressuscitação Cardiopulmonar na Gestante (PCR Materna / ACLS Materno e Cesariana Perimortem)**:
+    - Manobra de deslocamento manual contínuo do útero para a esquerda (DULE) para descompressão da veia cava inferior e restauração do retorno venoso durante as compressões.
+    - Acesso venoso preferencial acima do diafragma para rápida circulação central.
+    - Regra dos 4 Minutos / Cesariana de Ressuscitação (Cesariana Perimortem) aos 4-5 minutos de PCR em gestante >= 20 semanas para salvar a mãe e o feto.
+
+12. [ ] **Tromboembolismo Venoso (TEV) na Gestação e Puerpério (Escore de Risco RCOG/FEBRASGO & Profilaxia com HBPM)**:
+    - Estratificação determinística de risco trombótico antenatal e pós-parto com pontuação cumulativa (cesariana de urgência, IMC > 30, pré-eclâmpsia, tabagismo, imobilidade, idade > 35a).
+    - Indicação temporal e doses profiláticas ponderadas de Enoxaparina (40 mg a 80 mg SC/dia) e bloqueio de Varfarina no 1º trimestre (embriopatia varfarínica).
+    - Intervalo de segurança estrito entre a última dose de Enoxaparina e analgesia de parto/bloqueio neuroaxial (mínimo de 12h para dose profilática e 24h para dose terapêutica prevenindo hematoma epidural).
 
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Protocolos de Emergência e Centro Obstétrico (Pré-Parto & Sala de Parto)**: Implementar motor determinístico para condução de trabalho de parto, sulfato de magnésio (Zuspan/Pritchard), manejo da crise hipertensiva obstétrica, protocolo dos 4 Ts da HPP e profilaxia intraparto para sepse neonatal por GBS.
+- [ ] **Ginecologia Ambulatorial de Consultório (Completando o Módulo Unificado de GO)**: Rastreio de Câncer de Colo Uterino (Diretrizes INCA/MS), Sangramento Uterino Anormal (mnemônico PALM-COEIN com condutas hormonais de urgência), Critérios de Elegibilidade de Anticoncepção da OMS (Categorias 1 a 4) e Síndromes Infecciosas Vulvovaginais (Candidíase, Vaginose Bacteriana e Tricomoníase).
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] **Protocolos de Emergência e Centro Obstétrico (Pré-Parto & Sala de Parto)** (2026-10-09):
+  * **Motor Determinístico de Alta Fidelidade**: Criação de `src/02_centro_obstetrico.js` (`CentroObstetricoService`) com regras clínicas e farmacológicas alinhadas à FEBRASGO, ACOG, Ministério da Saúde e OMS.
+  * **Diagnóstico e Monitoramento de Trabalho de Parto**:
+    - Fases Clínicas: Fase Latente (colo em esvaecimento / dilatação < 4cm), Fase Ativa (dilatação >= 4cm com >= 2 contrações regulares de >= 30s em 10 min) e Período Expulsivo (dilatação 10cm, puxos espontâneos, clampeamento oportuno de cordão e contato pele a pele).
+    - Planos de De Lee: Altura de apresentação fetal de -5 a +5 com detecção exata de insinuação (plano 0 De Lee, espinhas isquiáticas) e descida ao assoalho pélvico.
+    - Ausculta de BCF: Interpretação de frequência cardíaca fetal com alertas automáticos para Bradicardia Fetal Severa (< 110 bpm, ressuscitação intrauterina imediata) e Taquicardia Fetal (> 160 bpm, investigação de febre/corioamnionite).
+    - Índice de Bishop Completo: Avaliação dos 5 parâmetros (dilatação, esvaecimento, altura de De Lee, consistência e posição), categorizando em Colo Favorável (>= 9 pts, indução com Ocitocina IV em bomba) vs Desfavorável/Imaturo (<= 5 pts, preparo cervical com Misoprostol 25 mcg vaginal ou Cateter de Foley intracervical se cicatriz uterina).
+  * **Manejo de Pré-Eclâmpsia com Sinais de Gravidade e Eclâmpsia**:
+    - Protocolo de Sulfato de Magnésio (MgSO4): Prescrição detalhada do Esquema Zuspan (ataque 4g IV lento em 20 min + manutenção contínua de 1g/h em bomba) e Esquema Pritchard (ataque 4g IV + 10g IM profundo em nádegas com lidocaína + manutenção 5g IM 4/4h).
+    - Vigilância Estrita de Intoxicação: Checagem contínua de reflexo patelar (presente), frequência respiratória (>= 12 rpm) e diurese horária (>= 25 mL/h). Detecção imediata de toxicidade com ordem de suspensão e prescrição beira-leito do antídoto **Gluconato de Cálcio 10% (10 mL = 1g IV lento)**.
+    - Emergência Hipertensiva Obstétrica (PAS >= 160 ou PAD >= 110 mmHg): Protocolo rápido de resgate com Hidralazina 5mg IV a cada 20 min (dose máxima 20-30mg) e Nifedipino 10-20mg VO. Bloqueio absoluto com alertas críticos para IECAs/BRAs (fetopatia e óbito fetal) e Nifedipino sublingual (queda abrupta e sofrimento fetal).
+  * **Protocolo de Hemorragia Pós-Parto (HPP - Regra dos 4 Ts)**:
+    - Diagnóstico de sangramento excessivo (> 500 mL em parto vaginal ou > 1000 mL em cesariana).
+    - Índice de Choque (Shock Index = FC / PAS): Identificação automática de choque compensado / moderado (>= 0.9) e choque grave (>= 1.4, ativação imediata de protocolo de transfusão maciça 1:1:1 e suporte cirúrgico).
+    - Etiologia dos 4 Ts: Tônus (Atonia Uterina 70%), Trauma (Lacerações 20%), Tecido (Restos Placentários 10%) e Trombina (Coagulopatia/CIVD 1%).
+    - Sequenciamento Uterotônico Escalonado: 1ª Linha Ocitocina IV contínua (20-40 UI em 500 mL SF a 250 mL/h) -> 2ª Linha Metilergometrina 0,2mg IM (com BLOQUEIO ABSOLUTO E ALERTA VERMELHO se hipertensa/PE) -> 3ª Linha Misoprostol 800mcg retal/sublingual -> 4ª Linha Ácido Tranexâmico 1g IV precoce em até 3h do parto (conforme evidência do estudo WOMAN / Lancet). Medidas de tamponamento (Hamilton, Balão de Bakri, TANP e B-Lynch).
+  * **Profilaxia Intraparto para Sepse Neonatal por GBS (Streptococcus agalactiae)**:
+    - Critérios formais de indicação (swab positivo a 35-37s, bacteriúria por GBS, filho anterior com sepse por GBS, prematuridade < 37s, bolsa rota >= 18h ou febre materna >= 38ºC) e dispensa em cesariana eletiva fora de trabalho de parto com bolsa íntegra.
+    - Esquemas antibióticos: Penicilina G Cristalina (5M UI ataque + 2,5M UI 4/4h), Ampicilina (2g ataque + 1g 4/4h), Cefazolina (2g + 1g 8/8h para alergia leve) e Vancomicina (20 mg/kg 8/8h para anafilaxia com resistência ou perfil desconhecido).
+  * **Prematuridade e RPMO**:
+    - Corticoterapia Antenatal para Maturação Pulmonar: Betametasona 12mg IM a cada 24h (2 doses) entre 24s0d e 34-37s.
+    - Neuroproteção Fetal com MgSO4: Indicada para fetos < 32 semanas com parto prematuro iminente nas próximas 24h.
+    - Tocólise Aguda por até 48h: Nifedipino 20mg VO de ataque para permitir transferência e término do ciclo de corticoide; contraindicação absoluta e interrupção imediata do parto se Corioamnionite.
+    - Regime de Latência na RPMO < 34 semanas: Ampicilina 2g IV 6/6h + Azitromicina 1g VO dose única nas primeiras 48h, seguido de Amoxicilina 500mg VO 8/8h por 5 dias. Bloqueio de Amoxicilina + Clavulanato pelo risco de enterocolite necrosante.
+  * **Integração no Cockpit PWA**:
+    - Novo botão de 1 toque "Sala de Parto & HPP" na aba SOAP (`tab-soap`).
+    - Modal interativo completo `modal-centro-obstetrico` com 4 abas segmentadas (Parto & Bishop, PE & MgSO4, HPP/4Ts, GBS & Prematuro) e botão de exportação rápida para o PEP com 1 toque.
+    - Sincronização 100% idêntica entre `cockpit_movel.html` e `gh_cockpit_deploy/index.html`.
+  * **Integração Fastify RPC e Bot Telegram**:
+    - 7 novos métodos RPC: `cockpitTrabalhoParto`, `cockpitSulfatoMagnesio`, `cockpitCriseHipertensivaObstetrica`, `cockpitHemorragiaPosParto`, `cockpitProfilaxiaGbs`, `cockpitPrematuridadeRpmo`, `cockpitResumoCentroObstetrico`.
+    - Comandos Telegram dedicados com parsing inteligente: `/parto`, `/co`, `/hpp`, `/mgso4`, `/preeclampsia`, `/gbs`, `/prematuridade`.
+  * **Suíte de Testes Automatizados**:
+    - 24 casos clínicos rigorosos em `tests/test_centro_obstetrico.cjs`.
+    - Runner pytest em `tests/test_centro_obstetrico.py`.
+    - Ampliação de `tests/test_cockpit_mini_app.py` com validação de interface e RPC.
+    - Total da suíte: 158/158 testes aprovados com 100% de sucesso.
 - [x] **Calculadora e Painel de Pré-Natal (Obstetrícia Ambulatorial)** (2026-10-09):
   * **Cálculo Determinístico de IG e DPP**: Implementação de `src/02_obstetricia_prenatal.js` (`ObstetriciaPrenatalService`) com Regra de Naegele rigorosa com tratamento de anos bissextos e viradas de mês/ano, cálculo de dias decorridos e dias restantes até a DPP.
   * **Regra de Concordância FEBRASGO / ACOG**: Comparação precisa entre DUM e biometria ultrassonográfica de 1º trimestre (CCN precoce até 13s6d ou CCN em mm), fixando se a DUM é mantida por concordância ou se a gestação é formalmente redatada pelo ultrassom precoce.

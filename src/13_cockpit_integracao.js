@@ -474,3 +474,87 @@ function cockpitAuditarPrescricaoGestante(initData, params) {
   return resultado;
 }
 
+/**
+ * cockpitTrabalhoParto — avalia fase de parto, plano de De Lee e Bishop.
+ */
+function cockpitTrabalhoParto(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined') {
+    throw new Error('Módulo CentroObstetricoService indisponível.');
+  }
+  return CentroObstetricoService.avaliarTrabalhoParto(params);
+}
+
+/**
+ * cockpitSulfatoMagnesio — prescrição Zuspan/Pritchard e alerta de intoxicação.
+ */
+function cockpitSulfatoMagnesio(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined') {
+    throw new Error('Módulo CentroObstetricoService indisponível.');
+  }
+  return CentroObstetricoService.prescreverSulfatoMagnesio(params);
+}
+
+/**
+ * cockpitCriseHipertensivaObstetrica — protocolo de Hidralazina IV e Nifedipino VO.
+ */
+function cockpitCriseHipertensivaObstetrica(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined') {
+    throw new Error('Módulo CentroObstetricoService indisponível.');
+  }
+  return CentroObstetricoService.manejarCriseHipertensiva(params);
+}
+
+/**
+ * cockpitHemorragiaPosParto — protocolo dos 4 Ts, Índice de Choque e uterotônicos.
+ */
+function cockpitHemorragiaPosParto(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined') {
+    throw new Error('Módulo CentroObstetricoService indisponível.');
+  }
+  return CentroObstetricoService.gerenciarHemorragiaPosParto(params);
+}
+
+/**
+ * cockpitProfilaxiaGbs — profilaxia de sepse neonatal precoce por GBS intraparto.
+ */
+function cockpitProfilaxiaGbs(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined') {
+    throw new Error('Módulo CentroObstetricoService indisponível.');
+  }
+  return CentroObstetricoService.avaliarProfilaxiaGbs(params);
+}
+
+/**
+ * cockpitPrematuridadeRpmo — corticoterapia, neuroproteção <32s, tocólise e latência.
+ */
+function cockpitPrematuridadeRpmo(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined') {
+    throw new Error('Módulo CentroObstetricoService indisponível.');
+  }
+  return CentroObstetricoService.protocoloPrematuridadeRpmo(params);
+}
+
+/**
+ * cockpitResumoCentroObstetrico — relatório clínico estruturado unificado.
+ */
+function cockpitResumoCentroObstetrico(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined') {
+    throw new Error('Módulo CentroObstetricoService indisponível.');
+  }
+  return CentroObstetricoService.gerarResumoCentroObstetrico(params);
+}
+

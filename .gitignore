@@ -28,3 +28,13 @@ gh_cockpit_deploy/
 archive/
 scratch/
 gas_deploy/
+
+# Arquivos de exportação PWA soltos na raiz (deploy oficial em gh_cockpit_deploy/)
+/apple-touch-icon.png
+/bun.lock
+/index.html
+/manifest.json
+/metadata.json
+/pwa-192x192.png
+/pwa-512x512.png
+/sw.js

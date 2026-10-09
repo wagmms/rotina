@@ -176,7 +176,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -188,7 +188,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -456,6 +456,140 @@ function processarMensagemTexto(message) {
     }
 
     return enviarMensagemParaChat(chatId, "🤰 *AVALIAÇÃO DE PRÉ-NATAL E CRONOLOGIA OBSTÉTRICA:*\n\n```\n" + resumo.textoFormatado + "\n```");
+  }
+
+  // Comandos de Centro Obstétrico e Emergências (Pré-parto & Sala de Parto)
+  if (comando === "/parto" || comando === "/co" || comando === "/hpp" || comando === "/mgso4" || comando === "/preeclampsia" || comando === "/gbs" || comando === "/prematuridade") {
+    var dadosCo = texto.replace(/^\/(parto|co|hpp|mgso4|preeclampsia|gbs|prematuridade)\s*/i, "").trim();
+
+    if (!dadosCo) {
+      var msgAjudaCo = "🏥 *CENTRO OBSTÉTRICO & SALA DE PARTO (PROTOCOLOS DE EMERGÊNCIA)*\n\n" +
+        "Envie os achados clínicos ou parâmetros do caso:\n\n" +
+        "💡 *Exemplos Práticos:*\n" +
+        "• `/parto dil 5cm 3/10 40s lee 0 bcf 140 bolsa integra` *(fase ativa, De Lee, BCF)*\n" +
+        "• `/hpp perda 1000ml fc 120 pas 80 has` *(regra dos 4 Ts, Índice de Choque, uterotônicos)*\n" +
+        "• `/mgso4 zuspan pa 170x110 cefaleia fr 14 diurese 30` *(Zuspan, hidralazina e vigilância)*\n" +
+        "• `/gbs ig 35s bolsa rota 20h sem cultura` *(profilaxia para Streptococcus agalactiae)*\n" +
+        "• `/prematuridade ig 29s ameaca parto rpm` *(betametasona, neuroproteção <32s, tocólise e latência)*\n\n" +
+        "_Algoritmos estritamente alinhados às diretrizes da FEBRASGO, Ministério da Saúde e ACOG._";
+      return enviarMensagemParaChat(chatId, msgAjudaCo);
+    }
+
+    if (typeof CentroObstetricoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo CentroObstetricoService indisponível temporariamente.");
+    }
+
+    var cenario = {};
+
+    // 1. Parser para Trabalho de Parto (/parto)
+    if (comando === "/parto" || comando === "/co" || dadosCo.match(/dil|lee|contrac|bcf/i)) {
+      var p = {};
+      var mDil = dadosCo.match(/dil(?:atacao)?\s*[:=]?\s*(\d+)/i);
+      if (mDil) p.dilatacaoCm = parseInt(mDil[1], 10);
+
+      var mContr = dadosCo.match(/(\d+)\s*\/\s*10/i);
+      if (mContr) p.contracoes10min = parseInt(mContr[1], 10);
+
+      var mDur = dadosCo.match(/(\d+)\s*(?:s|seg|segundos)/i);
+      if (mDur) p.duracaoContracaoSeg = parseInt(mDur[1], 10);
+
+      var mLee = dadosCo.match(/lee\s*[:=]?\s*([+-]?\d+)/i);
+      if (mLee) p.planoDeLee = parseInt(mLee[1], 10);
+
+      var mBcf = dadosCo.match(/bcf\s*[:=]?\s*(\d+)/i);
+      if (mBcf) p.bcf = parseInt(mBcf[1], 10);
+
+      if (dadosCo.match(/bolsa\s*rota/i)) p.bolsa = 'rota';
+      if (dadosCo.match(/mecon/i)) p.liquidoAmniotico = 'meconio_fluido';
+
+      cenario.parto = p;
+    }
+
+    // 2. Parser para HPP (/hpp)
+    if (comando === "/hpp" || dadosCo.match(/hpp|hemorrag|perda|sangra/i)) {
+      var h = {};
+      var mPerda = dadosCo.match(/perda\s*[:=]?\s*(\d+)/i) || dadosCo.match(/(\d+)\s*ml/i);
+      if (mPerda) h.perdaEstimadaMl = parseInt(mPerda[1], 10);
+      else h.perdaEstimadaMl = 800;
+
+      var mFc = dadosCo.match(/fc\s*[:=]?\s*(\d+)/i);
+      if (mFc) h.fc = parseInt(mFc[1], 10);
+
+      var mPas = dadosCo.match(/pas?\s*[:=]?\s*(\d+)/i);
+      if (mPas) h.pas = parseInt(mPas[1], 10);
+
+      if (dadosCo.match(/has|hipert|preeclamp|pre-eclamp/i)) h.temHipertensao = true;
+      if (dadosCo.match(/cesar/i)) h.tipoParto = 'cesariana';
+
+      cenario.hpp = h;
+    }
+
+    // 3. Parser para Hipertensão & MgSO4 (/mgso4 ou /preeclampsia)
+    if (comando === "/mgso4" || comando === "/preeclampsia" || dadosCo.match(/pa\s*\d+|zuspan|pritchard|eclamp/i)) {
+      var has = {};
+      var mPa = dadosCo.match(/pa\s*[:=]?\s*(\d+)\s*[xX\/]\s*(\d+)/i);
+      if (mPa) {
+        has.pas = parseInt(mPa[1], 10);
+        has.pad = parseInt(mPa[2], 10);
+      } else {
+        has.pas = 160;
+        has.pad = 110;
+      }
+
+      var mgParams = {};
+      if (dadosCo.match(/pritchard/i)) mgParams.esquema = 'Pritchard';
+      else mgParams.esquema = 'Zuspan';
+
+      var mFr = dadosCo.match(/fr\s*[:=]?\s*(\d+)/i);
+      if (mFr) mgParams.frequenciaRespiratoria = parseInt(mFr[1], 10);
+
+      var mDiur = dadosCo.match(/diur(?:ese)?\s*[:=]?\s*(\d+)/i);
+      if (mDiur) mgParams.diureseMlHora = parseInt(mDiur[1], 10);
+
+      if (dadosCo.match(/reflexo\s*ausente|sem\s*reflexo|arreflex/i)) mgParams.reflexoPatelar = false;
+      else mgParams.reflexoPatelar = true;
+
+      has.prescreverMgso4 = true;
+      has.mgso4Params = mgParams;
+      cenario.has = has;
+    }
+
+    // 4. Parser para GBS (/gbs)
+    if (comando === "/gbs" || dadosCo.match(/gbs|strepto/i)) {
+      var g = {};
+      if (dadosCo.match(/positi/i)) g.culturaGbs = 'positiva';
+      else if (dadosCo.match(/negati/i)) g.culturaGbs = 'negativa';
+      else g.culturaGbs = 'desconhecida';
+
+      var mIg = dadosCo.match(/(\d{1,2})\s*s(?:em(?:anas)?)?/i);
+      if (mIg) g.igSemanas = parseInt(mIg[1], 10);
+
+      var mRota = dadosCo.match(/bolsa\s*rota\s*(\d+)\s*h/i) || dadosCo.match(/(\d+)\s*h\s*rota/i);
+      if (mRota) g.bolsaRotaHoras = parseInt(mRota[1], 10);
+
+      if (dadosCo.match(/alerg(?:ia)?\s*penicil/i)) {
+        g.alergiaPenicilina = true;
+        if (dadosCo.match(/grave|anafil/i)) g.tipoAlergiaPenicilina = 'anafilaxia';
+      }
+      cenario.gbs = g;
+    }
+
+    // 5. Parser para Prematuridade (/prematuridade)
+    if (comando === "/prematuridade" || dadosCo.match(/prematur|rpm|cortico|neuroprot/i)) {
+      var prem = {};
+      var mIgP = dadosCo.match(/(\d{1,2})\s*s(?:em(?:anas)?)?/i);
+      if (mIgP) prem.igSemanas = parseInt(mIgP[1], 10);
+      else prem.igSemanas = 30;
+
+      prem.ameacaPartoIminente = true;
+      if (dadosCo.match(/rpm/i)) prem.rpmConfirmada = true;
+      if (dadosCo.match(/corio|febre|infecc/i)) prem.sinaisCorioamnionite = true;
+
+      cenario.prematuridade = prem;
+    }
+
+    var resumo = CentroObstetricoService.gerarResumoCentroObstetrico(cenario);
+    return enviarMensagemParaChat(chatId, "🏥 *CONDUTA DE CENTRO OBSTÉTRICO (PRE-PARTO & SALA DE PARTO):*\n\n```\n" + resumo.textoFormatado + "\n```");
   }
 
   if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais") {
