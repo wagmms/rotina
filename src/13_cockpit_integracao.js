@@ -1104,3 +1104,25 @@ function cockpitOncologiaBasica(initData, params) {
   }
   throw new Error('Ação inválida para Oncologia Básica.');
 }
+
+function cockpitEndocrinologiaDiabetes(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof EndocrinologiaDiabetesService === 'undefined') {
+    throw new Error('EndocrinologiaDiabetesService não carregado.');
+  }
+  var p = params.parametros || params;
+  if (params.acao === 'calcularInsulinaAmbulatorial') {
+    return EndocrinologiaDiabetesService.calcularInsulinaAmbulatorial(p);
+  }
+  if (params.acao === 'protocoloCorrecaoHospitalar') {
+    return EndocrinologiaDiabetesService.protocoloCorrecaoHospitalar(p);
+  }
+  if (params.acao === 'manejoCriseHiperglicemica') {
+    return EndocrinologiaDiabetesService.manejoCriseHiperglicemica(p);
+  }
+  if (params.acao === 'formatarResumoDiabetes') {
+    return EndocrinologiaDiabetesService.formatarResumoDiabetes(p);
+  }
+  throw new Error('Ação inválida para Endocrinologia/Diabetes.');
+}

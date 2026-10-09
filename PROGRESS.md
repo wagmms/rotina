@@ -33,7 +33,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Condutas em achados de BI-RADS em mamografias e FIT-teste positivo.
     - Gestão de efeitos adversos oncológicos na APS (neutropenia febril, mucosite e dor oncológica basal com escada analgésica da OMS avançada).
 
-18. [ ] **Módulo de Endocrinologia e Diabetes Mellitus Avançado (SBD/ADA)**:
+18. [x] **Módulo de Endocrinologia e Diabetes Mellitus Avançado (SBD/ADA)**:
     - Calculadora determinística de dose de insulina basal e bolus prandial.
     - Protocolo automatizado de correção de hiperglicemia hospitalar.
     - Manejo guiado de Cetoacidose Diabética (CAD) e Estado Hiperosmolar Hiperglicêmico (EHH) com reposição hídrica e potássio baseada nos guidelines da ADA e SBD, além de esquema de transição IV para SC seguro.
@@ -256,12 +256,27 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Integração de cálculo FRAX específico para a população feminina.
     - Regras determinísticas para reposição segura de Bisfosfonatos (Alendronato), Denosumabe e Teriparatida com monitoramento de cálcio e vitamina D basal.
 
+65. [ ] **Módulo de Nefrologia: Manejo Conservador da Doença Renal Crônica (DRC)**:
+    - Estadiamento determinístico KDIGO e acompanhamento de albuminúria.
+    - Metas pressóricas e indicação de iECA/BRA para nefroproteção.
+    - Alerta estruturado para restrição proteica e evitar AINEs.
+
+66. [ ] **Cardiologia: Manejo de Hipertensão Arterial Resistente e Secundária**:
+    - Algoritmo de identificação e manejo de HAS resistente (falha com 3 drogas em doses otimizadas incluindo diurético).
+    - Rastreio de causas secundárias (hiperaldosteronismo primário, feocromocitoma, estenose de artéria renal).
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo de Endocrinologia e Diabetes Mellitus Avançado (SBD/ADA)**
+- [ ] **Suporte Avançado de Vida Pediátrico (PALS / Reanimação Pediátrica)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Módulo de Endocrinologia e Diabetes Mellitus Avançado (SBD/ADA)**:
+   - Calculadora determinística de dose de insulina basal e bolus prandial para uso ambulatorial (regras 1800/500).
+   - Protocolo automatizado e estruturado de correção de hiperglicemia hospitalar para enfermarias (alvos SBD/ADA).
+   - Manejo guiado de Cetoacidose Diabética (CAD) e Estado Hiperosmolar Hiperglicêmico (EHH) com reposição de fluidos, potássio, insulina IV e bicarbonato restritivo.
+   - Integração completa via malha Fastify RPC (`cockpitEndocrinologiaDiabetes`) para uso fluído.
+   - Suíte determinística em `test_endocrinologia_diabetes.cjs` aprovada com 100% de sucesso.
 - [x] (2026-10-09) **Módulo de Oncologia Básica para Atenção Primária**:
    - Rastreamento determinístico INCA 2026 para os cânceres mais prevalentes (Mama, Cólon, Próstata e Pulmão) guiado pelo perfil e risco do paciente.
    - Algoritmo de condutas beira-leito baseadas na classificação BI-RADS mamográfica/ultrassonográfica.

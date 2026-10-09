@@ -1123,6 +1123,98 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, resultadoNutri.resumoFormatado);
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // ENDOCRINOLOGIA E DIABETES MELLITUS AVANÇADO (SBD / ADA)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/diabetes" || comando === "/insulina" || comando === "/cad" || comando === "/ehh" || comando === "/glicemia") {
+    var dadosDm = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof EndocrinologiaDiabetesService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo EndocrinologiaDiabetesService indisponível temporariamente.");
+    }
+
+    if (!dadosDm && (comando === "/diabetes" || comando === "/insulina")) {
+      return enviarMensagemParaChat(chatId, "🩸 *MÓDULO DE ENDOCRINOLOGIA E DIABETES (SBD / ADA)*\n\n" +
+        "Envie os parâmetros para manejo ambulatorial ou hospitalar:\n" +
+        "• `/insulina 70kg, dm1` *(Cálculo Basal-Bolus, ICR e Fator de Sensibilidade)*\n" +
+        "• `/insulina 85kg, dm2, descompensado, clcr 35` *(Basalização e Ajuste Renal)*\n" +
+        "• `/cad 65kg, glicemia 420, k 3.1, ph 7.12, hco3 10` *(Cetoacidose com Alerta de K+)*\n" +
+        "• `/ehh 78kg, glicemia 750, k 4.6, na 142` *(Estado Hiperosmolar Hiperglicêmico)*\n" +
+        "• `/glicemia 240 padrao` *(Escala Hospitalar de Correção SC)*");
+    }
+
+    var tLowerDm = dadosDm.toLowerCase();
+
+    // 1. Rota de Emergência: CAD ou EHH
+    if (comando === "/cad" || comando === "/ehh" || tLowerDm.includes("cetoacidose") || tLowerDm.includes("hiperosmolar") || tLowerDm.includes("cad") || tLowerDm.includes("ehh")) {
+      var paramsCad = {
+        tipo: (comando === "/ehh" || tLowerDm.includes("ehh") || tLowerDm.includes("hiperosmolar")) ? "EHH" : "CAD"
+      };
+
+      var mPesoCad = dadosDm.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosDm.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+      paramsCad.peso = mPesoCad ? parseFloat(mPesoCad[1].replace(',', '.')) : 70;
+
+      var mGliCad = dadosDm.match(/glicemia\s*[:=]?\s*(\d{2,4})/i) || dadosDm.match(/(\d{3,4})\s*(?:mg\/dl)?/i);
+      if (mGliCad) paramsCad.glicemia = parseInt(mGliCad[1], 10);
+
+      var mKCad = dadosDm.match(/\bk\+?\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosDm.match(/potassio\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+      if (mKCad) paramsCad.potassio = parseFloat(mKCad[1].replace(',', '.'));
+
+      var mNaCad = dadosDm.match(/na\+?\s*[:=]?\s*(\d{2,3})/i) || dadosDm.match(/sodio\s*[:=]?\s*(\d{2,3})/i);
+      if (mNaCad) paramsCad.sodio = parseInt(mNaCad[1], 10);
+
+      var mPhCad = dadosDm.match(/ph\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+      if (mPhCad) paramsCad.ph = parseFloat(mPhCad[1].replace(',', '.'));
+
+      var mBicCad = dadosDm.match(/(?:hco3|bic|bicarbonato)\s*[:=]?\s*(\d{1,2}(?:[.,]\d+)?)/i);
+      if (mBicCad) paramsCad.bicarbonato = parseFloat(mBicCad[1].replace(',', '.'));
+
+      var mClCad = dadosDm.match(/cl\s*[:=]?\s*(\d{2,3})/i) || dadosDm.match(/cloreto\s*[:=]?\s*(\d{2,3})/i);
+      if (mClCad) paramsCad.cloreto = parseInt(mClCad[1], 10);
+
+      var resCrise = EndocrinologiaDiabetesService.manejoCriseHiperglicemica(paramsCad);
+      return enviarMensagemParaChat(chatId, EndocrinologiaDiabetesService.formatarResumoDiabetes(resCrise));
+    }
+
+    // 2. Rota de Correção de Glicemia Hospitalar
+    if (comando === "/glicemia" || tLowerDm.includes("correcao") || tLowerDm.includes("hospital")) {
+      var mGlic = dadosDm.match(/(\d{2,4})\s*(?:mg\/dl)?/i);
+      var glicVal = mGlic ? parseInt(mGlic[1], 10) : 200;
+      var perfilSens = "padrao";
+      if (tLowerDm.includes("sensivel") || tLowerDm.includes("idoso") || tLowerDm.includes("renal")) perfilSens = "sensivel";
+      else if (tLowerDm.includes("resisten") || tLowerDm.includes("obeso") || tLowerDm.includes("cortico")) perfilSens = "resistente";
+
+      var resCorrecao = EndocrinologiaDiabetesService.protocoloCorrecaoHospitalar({ glicemia: glicVal, perfil: perfilSens });
+      var msgCorr = "💉 *CORREÇÃO DE HIPERGLICEMIA HOSPITALAR (SBD / ADA)*\n" +
+        "════════════════════════════════════════════\n" +
+        "• Glicemia Aferida: *" + resCorrecao.glicemiaMedida + " mg/dL*\n" +
+        "• Perfil de Sensibilidade: *" + resCorrecao.perfilSensibilidade.toUpperCase() + "*\n" +
+        "• Alvo Hospitalar Recomendado: 140 a 180 mg/dL\n\n" +
+        "📋 *CONDUTA IMEDIATA:*\n" +
+        "👉 *" + resCorrecao.condutaPrescricao + "*\n\n" +
+        (resCorrecao.alertaCritico ? (resCorrecao.alertaCritico + "\n\n") : "") +
+        "💡 _" + resCorrecao.advertenciaSlidingScale + "_";
+      return enviarMensagemParaChat(chatId, msgCorr);
+    }
+
+    // 3. Rota Ambulatorial: Basal-Bolus e Titulação
+    var paramsAmb = {};
+    var mPesoAmb = dadosDm.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosDm.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+    paramsAmb.peso = mPesoAmb ? parseFloat(mPesoAmb[1].replace(',', '.')) : 70;
+
+    if (tLowerDm.includes("dm1") || tLowerDm.includes("tipo 1") || tLowerDm.includes("tipo1")) paramsAmb.tipoDm = 1;
+    else paramsAmb.tipoDm = 2;
+
+    if (tLowerDm.includes("descompensad") || tLowerDm.includes("hba1c alta") || tLowerDm.includes("catabol")) paramsAmb.descompensado = true;
+    if (tLowerDm.includes("isglt2") || tLowerDm.includes("dapa") || tLowerDm.includes("empa")) paramsAmb.emUsoIsglt2 = true;
+    if (tLowerDm.includes("idoso") || tLowerDm.includes("idosa")) paramsAmb.ehIdoso = true;
+
+    var mTfg = dadosDm.match(/(?:tfg|clcr)\s*[:=]?\s*(\d{1,3})/i);
+    if (mTfg) paramsAmb.tfg = parseInt(mTfg[1], 10);
+
+    var resAmb = EndocrinologiaDiabetesService.calcularInsulinaAmbulatorial(paramsAmb);
+    return enviarMensagemParaChat(chatId, EndocrinologiaDiabetesService.formatarResumoDiabetes(resAmb));
+  }
+
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
     if (!dadosPrescricao) return enviarMensagemParaChat(chatId, "💊 Envie o pedido. Ex: `/rx amigdalite 16kg, alergia a penicilina`");
