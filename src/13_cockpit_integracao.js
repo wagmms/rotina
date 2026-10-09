@@ -1139,3 +1139,18 @@ function cockpitPalsPediatria(initData, params) {
   throw new Error('Ação inválida para PALS Pediatria.');
 }
 
+
+function cockpitNeurologiaAvc(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof NeurologiaAvcService === 'undefined') {
+    throw new Error('NeurologiaAvcService não carregado.');
+  }
+  if (params.acao === 'trombolise') {
+    return NeurologiaAvcService.avaliarTrombolise(params.parametros || params);
+  }
+  if (params.acao === 'hic') {
+    return NeurologiaAvcService.calcularHic(params.parametros || params);
+  }
+  throw new Error('Ação inválida para Neurologia AVC.');
+}

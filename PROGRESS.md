@@ -43,7 +43,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Cálculo de Joules (2 a 4 J/kg) para desfibrilação e cardioversão sincronizada.
     - Seleção de tubo endotraqueal (TET) com e sem cuff, fixação e lâminas de intubação ajustados por idade/peso.
 
-20. [ ] **Neurologia de Emergência e Manejo de AVC Isquêmico Agudo**:
+20. [x] **Neurologia de Emergência e Manejo de AVC Isquêmico Agudo**:
     - Checklist inteligente de elegibilidade e contraindicações absolutas/relativas para trombólise IV (Alteplase) dentro da janela terapêutica de 4.5h.
     - Protocolo restritivo de controle de PA pré e pós-trombólise (Labetalol, Nitroprussiato) evitando conversão hemorrágica.
     - Cálculo posológico determinístico de Manitol 20% e Salina Hipertônica 3% ou 20% beira-leito para o manejo agudo de Hipertensão Intracraniana (HIC) com tetos osmolares.
@@ -274,12 +274,33 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Motor de detecção automática de doenças de notificação compulsória (DNC) baseado em hipóteses diagnósticas (Dengue, Sífilis, Tuberculose).
     - Mapeamento e alerta das janelas de tempo de notificação (imediata em 24h vs semanal) com links/direcionamento para preenchimento no SINAN.
 
+
+67. [ ] **Endocrinologia - Manejo de Tempestade Tireoidiana e Coma Mixedematoso (ATA / ETA)**:
+    - Escores diagnósticos determinísticos (escore de Burch-Wartofsky).
+    - Protocolos de bloqueio tireoidiano (PTU vs Metimazol, Lugol, Hidrocortisona).
+    - Reposição guiada de levotiroxina IV no coma mixedematoso com ajuste para risco cardiovascular.
+
+68. [ ] **Gastroenterologia - Doença Inflamatória Intestinal (DII - Crohn e RCUI) na Urgência**:
+    - Estratificação de gravidade (Critérios de Truelove-Witts) e indicações de internação.
+    - Manejo do Megacólon Tóxico e esquema corticoterápico IV para ataques agudos graves.
+
+69. [ ] **Reumatologia - Manejo Agudo da Crise de Gota e Artrite Microcristalina (ACR)**:
+    - Posologia guiada de Colchicina com limites baseados na função renal (ClCr).
+    - Seleção segura de AINEs vs Corticoides sistêmicos/intra-articulares baseados em comorbidades.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Neurologia de Emergência e Manejo de AVC Isquêmico Agudo**
+- [ ] **Painel Inteligente de Intoxicações Exógenas (Toxicologia de Emergência)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Neurologia de Emergência e Manejo de AVC Isquêmico Agudo**:
+   - Checklist inteligente de elegibilidade e contraindicações para trombólise IV na janela 4.5h, com exclusões ECASS III.
+   - Protocolo restritivo de controle de PA pré e pós-trombólise (Labetalol, Nitroprussiato).
+   - Cálculo posológico de Manitol 20% e Salina Hipertônica 3%/20% para HIC com tetos osmolares.
+   - Integração completa via malha Fastify RPC (`cockpitNeurologiaAvc`).
+   - Suíte de testes determinística validada com 100% de sucesso.
+
 - [x] (2026-10-09) **Suporte Avançado de Vida Pediátrico (PALS)**:
    - Motor determinístico de cálculo de medicações de emergência pediátrica (Adrenalina, Amiodarona, Lidocaína) em PCR guiado pelo peso, com estimativa linear por idade em caso de peso não informado.
    - Algoritmo de cálculo de choque (2 a 4 J/kg) para desfibrilação e cardioversão (0.5 a 2 J/kg).
