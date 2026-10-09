@@ -929,6 +929,8 @@ var SopOvariosPolicisticosService = (function() {
     var r = paramsOuResultado.rotterdam ? paramsOuResultado : avaliarSopCompleto(paramsOuResultado);
 
     var l = [];
+    l.push('⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.');
+    l.push('');
     l.push('════════════════════════════════════════════════════════════════');
     l.push('🔬 PAINEL CLÍNICO: SÍNDROME DOS OVÁRIOS POLICÍSTICOS (SOP)');
     l.push('Referência: Consenso de Roterdã & Diretrizes ESHRE/ASRM 2023 / FEBRASGO');

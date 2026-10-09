@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 17:34:52
- * Checksum SHA256: 06c835b6bf850a9f
+ * Gerado automaticamente via build_master.py em: 2026-10-09 18:32:16
+ * Checksum SHA256: abc00eed6e356bf1
  * ==============================================================================
  */
 
@@ -8123,6 +8123,8 @@ var CentroObstetricoService = (function() {
   function gerarResumoCentroObstetrico(cenario) {
     cenario = cenario || {};
     var linhas = [];
+    linhas.push('⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.');
+    linhas.push('');
     linhas.push('======================================================================');
     linhas.push('🏥 CONDUTA DE CENTRO OBSTÉTRICO & SALA DE PARTO · ULTRA ROTINA');
     linhas.push('======================================================================');
@@ -9142,6 +9144,8 @@ var ClimaterioThmService = (function() {
     var resultado = avaliarThmCompleto(params);
     var linhas = [];
 
+    linhas.push('⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.');
+    linhas.push('');
     linhas.push('════════════════════════════════════════════════════════════════');
     linhas.push('🩺 PARECER DETERMINÍSTICO: CLIMATÉRIO E TERAPIA HORMONAL (THM)');
     linhas.push('   Consenso FEBRASGO & The Menopause Society (NAMS 2022-2023)');
@@ -11150,6 +11154,8 @@ var DipAbscessoTuboOvarianoService = (function() {
     var r = avaliacao;
     var l = [];
 
+    l.push('⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.');
+    l.push('');
     l.push('════════════════════════════════════════════════════════════════');
     l.push('   PARECER CLÍNICO: DOENÇA INFLAMATÓRIA PÉLVICA (DIP) / ATO');
     l.push('   Diretrizes: PCDT Ministério da Saúde / CDC STI Guidelines');
@@ -20663,7 +20669,8 @@ var ObstetriciaRcfDopplerService = (function() {
      * Formata a avaliação para Telegram (Markdown legado).
      */
     function formatarTextoTelegram(a) {
-        var txt = '🤰 *OBSTETRÍCIA & MEDICINA FETAL — RCF / DOPPLER*\n\n';
+        var txt = '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.\n\n';
+        txt += '🤰 *OBSTETRÍCIA & MEDICINA FETAL — RCF / DOPPLER*\n\n';
         txt += '📅 *IG:* ' + a.ig.texto + '\n';
         txt += '📊 *Classificação (Delphi):* ' + a.classificacao.titulo + '\n';
         a.classificacao.criterios.forEach(function(c) { txt += '  • ' + c + '\n'; });
@@ -21409,7 +21416,8 @@ var ObstetriciaSafService = (function () {
       return '⚠️ Falha ao processar avaliação de SAF / Trombofilias.';
     }
 
-    var texto = '🩸 *OBSTETRÍCIA & REUMATOLOGIA — MANEJO DE SAF E TROMBOFILIAS*\n';
+    var texto = '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.\n\n';
+    texto += '🩸 *OBSTETRÍCIA & REUMATOLOGIA — MANEJO DE SAF E TROMBOFILIAS*\n';
     texto += '═══════════════════════════════════════════\n';
     texto += '🏷️ *Fenótipo Clínico:* `' + resultado.fenotipo + '`\n';
     texto += '🎯 *Prioridade Terapêutica:* `' + resultado.prioridade + '`\n';
@@ -31229,6 +31237,8 @@ var SopOvariosPolicisticosService = (function() {
     var r = paramsOuResultado.rotterdam ? paramsOuResultado : avaliarSopCompleto(paramsOuResultado);
 
     var l = [];
+    l.push('⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.');
+    l.push('');
     l.push('════════════════════════════════════════════════════════════════');
     l.push('🔬 PAINEL CLÍNICO: SÍNDROME DOS OVÁRIOS POLICÍSTICOS (SOP)');
     l.push('Referência: Consenso de Roterdã & Diretrizes ESHRE/ASRM 2023 / FEBRASGO');
@@ -32985,7 +32995,9 @@ var TevGestanteService = (function() {
       fatoresIdentificados: fatores,
       posologiaEnoxaparina: posologia,
       alertasFarmacologicos: checagemAnticoagulantes.alertas,
-      protocoloNeuroaxial: protocoloNeuroaxial
+      protocoloNeuroaxial: protocoloNeuroaxial,
+      avisoReferencia: '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.',
+      banner: '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.'
     };
   }
 
@@ -33162,7 +33174,9 @@ var TevGestanteService = (function() {
       fatoresIdentificados: fatores,
       posologiaEnoxaparina: posologia,
       alertasFarmacologicos: checagemAnticoagulantes.alertas,
-      protocoloNeuroaxial: protocoloNeuroaxial
+      protocoloNeuroaxial: protocoloNeuroaxial,
+      avisoReferencia: '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.',
+      banner: '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.'
     };
   }
 
@@ -33179,10 +33193,17 @@ var TevGestanteService = (function() {
   function avaliarTevCompleto(params) {
     params = params || {};
     var periodo = String(params.periodo || 'antenatal').toLowerCase().trim();
+    var res;
     if (periodo === 'pos_parto' || periodo === 'puerperio' || params.posParto || params.tipoParto) {
-      return avaliarRiscoPosParto(params);
+      res = avaliarRiscoPosParto(params);
+    } else {
+      res = avaliarRiscoAntenatal(params);
     }
-    return avaliarRiscoAntenatal(params);
+    if (res && typeof res === 'object') {
+      res.avisoReferencia = '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.';
+      res.banner = '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.';
+    }
+    return res;
   }
 
   return {
@@ -42061,6 +42082,76 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
   return false;
 }
 
+function construirTecladoHubEnfermaria() {
+  return {
+    "inline_keyboard": [
+      [
+        {"text": "➕ Adicionar Leito", "callback_data": "enfermaria_add"},
+        {"text": "📤 Dar Alta", "callback_data": "enfermaria_alta"}
+      ],
+      [
+        {"text": "📋 Passagem SBAR", "callback_data": "enfermaria_passagem"},
+        {"text": "🎙️ Pitch de Round", "callback_data": "enfermaria_round"}
+      ],
+      [
+        {"text": "🟢 Iniciar Plantão", "callback_data": "enfermaria_plantao_iniciar"},
+        {"text": "🔄 Atualizar Censo", "callback_data": "enfermaria_atualizar"}
+      ],
+      [
+        {"text": "🗑️ Limpar Todos", "callback_data": "enfermaria_limpar_confirma"}
+      ]
+    ]
+  };
+}
+
+function construirTecladoHubRotina() {
+  return {
+    "inline_keyboard": [
+      [
+        {"text": "📅 Agenda Hoje", "callback_data": "rotina_agenda"},
+        {"text": "📋 Tarefas Notion", "callback_data": "rotina_tasks"}
+      ],
+      [
+        {"text": "☀️ Briefing Matinal", "callback_data": "rotina_briefing"},
+        {"text": "🌙 Check-in Noturno", "callback_data": "rotina_checkin"}
+      ],
+      [
+        {"text": "📊 Relatório Semanal", "callback_data": "rotina_semana"},
+        {"text": "🧠 MedQuest / Dúvidas", "callback_data": "rotina_duvida"}
+      ],
+      [
+        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"}
+      ]
+    ]
+  };
+}
+
+function construirTecladoHubDiabetes() {
+  return {
+    "inline_keyboard": [
+      [
+        {"text": "🔥 CAD / EHH", "callback_data": "dm_cad_ehh"},
+        {"text": "📊 Mapa Glicêmico", "callback_data": "dm_glicemia"}
+      ],
+      [
+        {"text": "💉 Insulina Basal-Bolus", "callback_data": "dm_insulina"},
+        {"text": "💊 Antidiabéticos REMUME", "callback_data": "dm_remume"}
+      ]
+    ]
+  };
+}
+
+function construirTecladoHubAnemia() {
+  return {
+    "inline_keyboard": [
+      [
+        {"text": "🔬 Investigação Etiológica", "callback_data": "anemia_etiologia"},
+        {"text": "💉 Ferro IV (Ganzoni)", "callback_data": "anemia_ganzoni"}
+      ]
+    ]
+  };
+}
+
 function processarMensagemTexto(message) {
   if (typeof tratarEntradaUX!=="undefined" && tratarEntradaUX(message)) return;
   var texto = message.text ? message.text.trim() : "";
@@ -42206,23 +42297,15 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, txtSR);
   }
 
-  if (texto === "🛏️ Enfermaria" || texto === "🏥 Enfermaria" || comando === "/enfermaria") {
+  if (texto === "🛏️ Enfermaria" || texto === "🏥 Enfermaria") {
     if (typeof enviarMenuEnfermaria === "function") {
       return enviarMenuEnfermaria(chatId);
     }
-    var urlPainelEnf = obterUrlCockpit(chatId);
-    var kbEnf = {
-      "inline_keyboard": [
-        [
-          {"text": "📱 Abrir Painel Visual", "web_app": {"url": urlPainelEnf}},
-          {"text": "📋 Gerar Passagem SBAR", "callback_data": "enfermaria_passagem"}
-        ],
-        [
-          {"text": "🔄 Atualizar", "callback_data": "enfermaria_atualizar"}
-        ]
-      ]
-    };
-    return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), kbEnf);
+    return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+  }
+
+  if (comando === "/enfermaria") {
+    return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
   }
 
   if (texto === "🩺 Ambulatório" || texto === "🩺 SOAP Ambulatorial") {
@@ -43448,12 +43531,12 @@ function processarMensagemTexto(message) {
     }
 
     if (!dadosDm && (comando === "/diabetes" || comando === "/insulina")) {
-      return enviarMensagemParaChat(chatId, "🩸 *MÓDULO DE ENDOCRINOLOGIA E DIABETES (SBD / ADA)*\n\n" +
-        "Envie os parâmetros para manejo ambulatorial ou hospitalar:\n" +
+      return enviarMensagemComTecladoParaChat(chatId, "🩸 *MÓDULO DE ENDOCRINOLOGIA E DIABETES (SBD / ADA)*\n\n" +
+        "Selecione uma opção ou envie os parâmetros clínicos:\n" +
         "• `/insulina 70kg, dm1` *(Cálculo Basal-Bolus, ICR e Fator de Sensibilidade)*\n" +
         "• `/insulina 85kg, dm2, descompensado, clcr 35` *(Basalização e Ajuste Renal)*\n" +
         "• `/ehh 78kg, glicemia 750, k 4.6, na 142` *(Estado Hiperosmolar Hiperglicêmico)*\n" +
-        "• `/glicemia 240 padrao` *(Escala Hospitalar de Correção SC)*");
+        "• `/glicemia 240 padrao` *(Escala Hospitalar de Correção SC)*", construirTecladoHubDiabetes());
     }
 
     var tLowerDm = dadosDm.toLowerCase();
@@ -43681,17 +43764,17 @@ function processarMensagemTexto(message) {
     }
 
     if (!dadosAnemia) {
-      return enviarMensagemParaChat(chatId, "🩸 *HEMATOLOGIA CLÍNICA — MANEJO E INVESTIGAÇÃO DE ANEMIAS*\n\n" +
-        "Envie os parâmetros do hemograma e cinética de ferro:\n" +
+      return enviarMensagemComTecladoParaChat(chatId, "🩸 *HEMATOLOGIA CLÍNICA — MANEJO E INVESTIGAÇÃO DE ANEMIAS*\n\n" +
+        "Selecione uma opção ou envie os parâmetros do hemograma e cinética de ferro:\n" +
         "• *Hb*, *Ht*, *VCM*, *HCM*, *RDW*, *Hemácias* (milhões)\n" +
         "• *Reticulócitos* (%) e *Hematócrito* (para IPR)\n" +
         "• *Ferritina*, *Ferro sérico*, *TIBC*, *IST* (%)\n" +
         "• *Peso* (kg) e perfil (`gestante`, `homem`, `mulher`, `criança`)\n\n" +
         "💡 *Exemplos beira-leito:*\n" +
-        "• `/anemia hb 8.5 vcm 68 rdw 18 ferritina 12 peso 60kg` *(Anemia Ferropriva clássica)*\n" +
+        "• `/anemia hb 8.5 vcm 68 rdw 18 ferritina 12 peso 60kg` *(Anemia Ferropriva)*\n" +
         "• `/ganzoni 65kg hb 8.0` *(Cálculo de déficit de ferro e ampolas de Noripurum EV)*\n" +
-        "• `/ferro 50kg gestante 2 trimestre hb 9.2` *(Prescrição oral vs parenteral na gestação)*\n" +
-        "• `/hemograma hb 7.0 vcm 112 b12 140` *(Anemia Macrocítica Megaloblástica)*");
+        "• `/ferro 50kg gestante 2 trimestre hb 9.2` *(Prescrição de ferro na gestação)*\n" +
+        "• `/hemograma hb 7.0 vcm 112 b12 140` *(Anemia Megaloblástica)*", construirTecladoHubAnemia());
     }
 
     function extrairNumAnemia(re) {
@@ -45411,15 +45494,7 @@ function processarMensagemTexto(message) {
 
   // ENFERMARIA VIRTUAL MULTI-LEITOS
   if (comando === "/enfermaria") {
-    var kbEnfPainel = {
-      "inline_keyboard": [
-        [
-          {"text": "📋 Gerar Passagem SBAR", "callback_data": "enfermaria_passagem"},
-          {"text": "🔄 Atualizar", "callback_data": "enfermaria_atualizar"}
-        ]
-      ]
-    };
-    return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), kbEnfPainel);
+    return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
   }
 
   if (comando === "/leito") {
@@ -47251,15 +47326,101 @@ function processarCallbackBotao(cb) {
   }
   else if (data === "enfermaria_atualizar") {
     responderCallbackTelegram(cb.id, "Quadro atualizado.");
-    var kbAtualizar = {
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+  }
+  else if (data === "enfermaria_add") {
+    responderCallbackTelegram(cb.id, "Adicionar leito");
+    return enviarMensagemParaChat(cb.message.chat.id, "➕ *ADICIONAR OU EVOLUIR LEITO*\n\nDigite: `/leito <número> <dados do paciente>`\n💡 *Exemplo:* `/leito 4 72a, PAC grave, Ceftriaxona D3, aguarda vaga CTI`\n\n• Para consultar apenas o leito: `/leito 4`");
+  }
+  else if (data === "enfermaria_alta") {
+    responderCallbackTelegram(cb.id, "Dar alta a leito");
+    return enviarMensagemParaChat(cb.message.chat.id, "📤 *DAR ALTA A LEITO*\n\nDigite: `/alta <número do leito>`\n💡 *Exemplo:* `/alta 4`\n\nO leito será desocupado e o censo atualizado.");
+  }
+  else if (data === "enfermaria_round") {
+    responderCallbackTelegram(cb.id, "Pitch de Round");
+    return enviarMensagemParaChat(cb.message.chat.id, "🎙️ *PITCH DE ROUND BEIRA-LEITO*\n\nDigite: `/round <dados do paciente>`\n💡 *Exemplo:* `/round Leito 4: 72a, DPOC exacerbado, em VNI, melhorando acidose, aguarda gaso de controle`");
+  }
+  else if (data === "enfermaria_plantao_iniciar") {
+    responderCallbackTelegram(cb.id, "Iniciando plantão");
+    return enviarMensagemParaChat(cb.message.chat.id, "🟢 *INÍCIO DE PLANTÃO NA ENFERMARIA*\n\n• Para evoluir/adicionar leito: `/leito <nº> <caso>`\n• Para registrar passagem SBAR: `/plantao <caso>`\n• Para censo completo: `/enfermaria`\n• Para checklist de encerramento: `/plantao_fim`");
+  }
+  else if (data === "enfermaria_limpar_confirma") {
+    responderCallbackTelegram(cb.id, "Confirmação de limpeza");
+    var kbConfirmaLimpar = {
       "inline_keyboard": [
         [
-          {"text": "📋 Gerar Passagem SBAR", "callback_data": "enfermaria_passagem"},
-          {"text": "🔄 Atualizar", "callback_data": "enfermaria_atualizar"}
+          {"text": "⚠️ Sim, desocupar todos", "callback_data": "enfermaria_limpar_executa"},
+          {"text": "❌ Cancelar", "callback_data": "enfermaria_atualizar"}
         ]
       ]
     };
-    return enviarPainelEnfermaria(cb.message.chat.id,0,cb.message.message_id);
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "⚠️ *CONFIRMAÇÃO DE LIMPEZA DA ENFERMARIA*\n\nTem certeza de que deseja remover e desocupar *todos os leitos* cadastrados?", kbConfirmaLimpar);
+  }
+  else if (data === "enfermaria_limpar_executa") {
+    responderCallbackTelegram(cb.id, "Leitos desocupados.");
+    var resLimpeza = EnfermariaService.limparTudo();
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, resLimpeza.mensagem + "\n\n" + EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+  }
+  // ROTINA & PRODUTIVIDADE
+  else if (data === "rotina_agenda") {
+    responderCallbackTelegram(cb.id, "Consultando agenda...");
+    return consultarEventosAgenda("", cb.message.chat.id);
+  }
+  else if (data === "rotina_tasks") {
+    responderCallbackTelegram(cb.id, "Carregando tarefas...");
+    return listarTarefasHojeNotion(cb.message.chat.id);
+  }
+  else if (data === "rotina_briefing") {
+    responderCallbackTelegram(cb.id, "Gerando briefing matinal...");
+    return enviarBriefingMatinal(cb.message.chat.id, true);
+  }
+  else if (data === "rotina_checkin") {
+    responderCallbackTelegram(cb.id, "Iniciando check-in...");
+    return enviarCheckinNoturno(cb.message.chat.id);
+  }
+  else if (data === "rotina_semana") {
+    responderCallbackTelegram(cb.id, "Gerando relatório semanal...");
+    return enviarRelatorioSemanalHabitos(cb.message.chat.id);
+  }
+  else if (data === "rotina_duvida") {
+    responderCallbackTelegram(cb.id, "MedQuest / Dúvidas");
+    return enviarMensagemParaChat(cb.message.chat.id, "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\nEnvie sua dúvida médica digitando:\n`/duvida <sua dúvida>`\n💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\nSua dúvida será salva no Notion para o bloco noturno de estudo ativo.");
+  }
+  else if (data === "rotina_timeline") {
+    responderCallbackTelegram(cb.id, "Time-blocking de hoje...");
+    return tratarComandoRotina(cb.message.chat.id, "hoje");
+  }
+  // DIABETES & METABOLISMO
+  else if (data === "dm_cad_ehh") {
+    responderCallbackTelegram(cb.id, "CAD / EHH");
+    return enviarMensagemParaChat(cb.message.chat.id, "🔥 *MANEJO DE CAD & EHH (SBD/ADA)*\n\nEnvie os parâmetros do paciente:\n💡 *Exemplo:* `/ehh 78kg, glicemia 750, k 4.6, na 142`\nou `/cad 70kg, glicemia 420, ph 7.18, hco3 11, k 4.8`\n\nO sistema calcula reposição volêmica, insulina em BIC, reposição de K+ e bicarbonato.");
+  }
+  else if (data === "dm_glicemia") {
+    responderCallbackTelegram(cb.id, "Mapa glicêmico");
+    return enviarMensagemParaChat(cb.message.chat.id, "📊 *MAPA GLICÊMICO & ESCALA HOSPITALAR*\n\nEnvie a glicemia atual e o perfil do paciente:\n💡 *Exemplo:* `/glicemia 240 padrao`\n• `/glicemia 310 sensivel` (idoso, DRC ou baixo peso)\n• `/glicemia 280 resistente` (obeso ou corticoterapia)");
+  }
+  else if (data === "dm_insulina") {
+    responderCallbackTelegram(cb.id, "Insulina Basal-Bolus");
+    return enviarMensagemParaChat(cb.message.chat.id, "💉 *PRESCRIÇÃO DE INSULINOTERAPIA BASAL-BOLUS*\n\nEnvie peso e parâmetros clínicos:\n💡 *Exemplo:* `/insulina 70kg dm1`\n• `/insulina 85kg dm2 descompensado clcr 35`\n\nCalcula dose diária total, divisão Basal (NPH/Glargina) e Bolus (Regular/Lispro) com Fator de Sensibilidade.");
+  }
+  else if (data === "dm_remume") {
+    responderCallbackTelegram(cb.id, "Antidiabéticos REMUME");
+    return enviarMensagemParaChat(cb.message.chat.id, "💊 *ANTIDIABÉTICOS DISPONÍVEIS NA REMUME / SUS*\n\n" +
+      "• *Metformina 500mg / 850mg:* 1ª linha DM2 (ajustar dose se ClCr < 45, suspender se ClCr < 30 mL/min)\n" +
+      "• *Gliclazida MR 30mg / 60mg:* Sulfonilureia preferencial (menor risco de hipoglicemia)\n" +
+      "• *Glibenclamida 5mg:* Alternativa clássica (evitar em idosos/DRC)\n" +
+      "• *Insulina NPH 100 UI/mL:* Basal do SUS (frascos e canetas para DM1/DM2)\n" +
+      "• *Insulina Regular 100 UI/mL:* Prandial e correção rápida do SUS\n\n" +
+      "💡 *Para consultar interações:* `/interacao metformina <droga>`");
+  }
+  // ANEMIA & GANZONI
+  else if (data === "anemia_etiologia") {
+    responderCallbackTelegram(cb.id, "Investigação de Anemias");
+    return enviarMensagemParaChat(cb.message.chat.id, "🔬 *INVESTIGAÇÃO ETIOLÓGICA DE ANEMIAS*\n\nEnvie os índices hematimétricos:\n💡 *Exemplo:* `/anemia hb 8.5 vcm 68 rdw 18 ferritina 12 peso 60kg`\n\n• *Microcíticas:* Ferropriva vs Traço Talassêmico (Mentzer) vs Doença Crônica\n• *Macrocíticas:* Megaloblástica (B12 / Folato) vs Hemolítica vs Hepatopatia");
+  }
+  else if (data === "anemia_ganzoni") {
+    responderCallbackTelegram(cb.id, "Fórmula de Ganzoni");
+    return enviarMensagemParaChat(cb.message.chat.id, "💉 *CÁLCULO DE DÉFICIT DE FERRO (GANZONI)*\n\nEnvie o peso e a hemoglobina do paciente:\n💡 *Exemplo:* `/ganzoni 65kg hb 8.0`\nou `/ganzoni 70kg hb 7.2 alvo 12`\n\nCalcula o déficit de ferro elementar em mg e o total de ampolas de Noripurum EV.");
   }
   // I. GUIAS DE EXAMES FÍSICOS ESPECIAIS
   else if (data.startsWith("ef_")) {
@@ -49073,9 +49234,7 @@ function obterCatalogoComandosSlash() {
       comandos: [
         { cmd: "/anemia", aliases: ["/anemia"], sintaxe: "/anemia <Hb/VCM/ferro>", desc: "Diagnóstico etiológico de anemias e cinética de ferro." },
         { cmd: "/ganzoni", aliases: ["/ganzoni"], sintaxe: "/ganzoni <peso> <Hb>", desc: "Fórmula de Ganzoni para reposição de ferro elementar IV." },
-        { cmd: "/diabetes", aliases: ["/diabetes"], sintaxe: "/diabetes <glicemia/HbA1c>", desc: "Manejo do DM e titulação de esquema basal-bolus de insulina." },
-        { cmd: "/ehh", aliases: ["/ehh"], sintaxe: "/ehh <peso> <glicemia>", desc: "Estado Hiperosmolar Hiperglicêmico: osmolaridade e hidratação." },
-        { cmd: "/glicemia", aliases: ["/glicemia"], sintaxe: "/glicemia <mg/dL>", desc: "Mapa de correção rápida de hiperglicemia hospitalar." }
+        { cmd: "/diabetes", aliases: ["/diabetes"], sintaxe: "/diabetes <glicemia/HbA1c>", desc: "Manejo do DM e titulação de esquema basal-bolus de insulina." }
       ]
     },
     {
@@ -49120,13 +49279,7 @@ function obterCatalogoComandosSlash() {
       titulo: "🏥 ENFERMARIA, LEITOS & PLANTÃO",
       comandos: [
         { cmd: "/enfermaria", aliases: ["/enfermaria"], sintaxe: "/enfermaria", desc: "Censo dos leitos internados, gravidade e pendências." },
-        { cmd: "/leito", aliases: ["/leito"], sintaxe: "/leito <nº> [dados]", desc: "Cadastro, consulta ou evolução de leito da enfermaria." },
-        { cmd: "/alta", aliases: ["/alta"], sintaxe: "/alta <nº>", desc: "Registra alta médica e desocupa o leito especificado." },
-        { cmd: "/limpar_enfermaria", aliases: ["/limpar_enfermaria"], sintaxe: "/limpar_enfermaria", desc: "Comando administrativo para desocupar todos os leitos." },
-        { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Relatório consolidado de passagem de plantão da enfermaria." },
-        { cmd: "/plantao", aliases: ["/plantao"], sintaxe: "/plantao <caso>", desc: "Registro e evolução de caso pela metodologia SBAR." },
-        { cmd: "/plantao_fim", aliases: ["/plantao_fim"], sintaxe: "/plantao_fim", desc: "Checklist de fim de plantão com revisão de pendências." },
-        { cmd: "/round", aliases: ["/round"], sintaxe: "/round <caso>", desc: "Pitch clínico conciso para discussão de round beira-leito." }
+        { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Relatório consolidado de passagem de plantão da enfermaria." }
       ]
     },
     {
@@ -49134,14 +49287,7 @@ function obterCatalogoComandosSlash() {
       titulo: "🎧 PRECEPTOR, ROTINA & PRODUTIVIDADE",
       comandos: [
         { cmd: "/voz", aliases: ["/voz"], sintaxe: "/voz [caso/tema]", desc: "Sabatina preceptorial socrática por áudio ou texto." },
-        { cmd: "/duvida", aliases: ["/duvida"], sintaxe: "/duvida <tema>", desc: "Arquiva dúvida clínica no Notion para o MedQuest noturno." },
-        { cmd: "/rotina", aliases: ["/rotina"], sintaxe: "/rotina [hoje/reset]", desc: "Grade de blocos de tempo adaptativos do dia." },
-        { cmd: "/agenda", aliases: ["/agenda"], sintaxe: "/agenda [data]", desc: "Consulta compromissos e escalas no Google Calendar." },
-        { cmd: "/task", aliases: ["/task"], sintaxe: "/task <tarefa>", desc: "Captura rápida de tarefa para o Inbox do Notion." },
-        { cmd: "/tasks", aliases: ["/tasks"], sintaxe: "/tasks", desc: "Lista as tarefas prioritárias do dia no Notion." },
-        { cmd: "/briefing", aliases: ["/briefing"], sintaxe: "/briefing", desc: "Briefing matinal com agenda, previsão e prioridades." },
-        { cmd: "/checkin", aliases: ["/checkin"], sintaxe: "/checkin", desc: "Check-in noturno de hábitos, sono e encerramento." },
-        { cmd: "/semana", aliases: ["/semana"], sintaxe: "/semana", desc: "Relatório semanal analítico de rotina e hábitos." }
+        { cmd: "/rotina", aliases: ["/rotina"], sintaxe: "/rotina [hoje/reset]", desc: "Grade de blocos de tempo adaptativos do dia." }
       ]
     },
     {
@@ -49150,8 +49296,6 @@ function obterCatalogoComandosSlash() {
       comandos: [
         { cmd: "/protocolo", aliases: ["/protocolo"], sintaxe: "/protocolo <tema>", desc: "Comparativo de diretrizes clínicas nacionais vs internacionais." },
         { cmd: "/calc", aliases: ["/calc"], sintaxe: "/calc", desc: "Catálogo central de calculadoras médicas integradas." },
-        { cmd: "/pendencias", aliases: ["/pendencias"], sintaxe: "/pendencias", desc: "Lista condutas supervisionadas aguardando chancela." },
-        { cmd: "/chancelar", aliases: ["/chancelar"], sintaxe: "/chancelar <id>", desc: "Aprova e chancela formalmente conduta supervisionada." },
         { cmd: "/kaizen", aliases: ["/kaizen"], sintaxe: "/kaizen", desc: "Painel de métricas de qualidade e melhoria contínua (Kaizen)." }
       ]
     }
@@ -49373,7 +49517,13 @@ function tratarComandoRotina(chatId, argRotina) {
   var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
   var arg = (argRotina || "").trim().toLowerCase();
 
-  if (!arg || arg === "hoje") {
+  if (!arg) {
+    var txtHubRotina = "🧭 *HUB DE ROTINA & PRODUTIVIDADE*\n\n" +
+      "Selecione uma das opções abaixo para gerenciar seu dia, agenda e estudos, ou use comandos diretos:";
+    return enviarMensagemComTecladoParaChat(chatId, txtHubRotina, construirTecladoHubRotina());
+  }
+
+  if (arg === "hoje") {
     var blocosHoje = RotinaService.obterBlocosDoDia(hoje);
     var txtHoje = "☀️ *ROTINA DO DIA (TIME-BLOCKING ADAPTATIVO)*\n\n" +
       RotinaService.formatarTimelineMarkdown(blocosHoje, hoje) +
@@ -51558,7 +51708,14 @@ function tratarEntradaUX(message) {
     }
     return false;
   }
-  if (text === '🏥 Enfermaria' || text === '/enfermaria') { enviarPainelEnfermaria(chat, 0); return true; }
+  if (text === '🏥 Enfermaria' || text === '/enfermaria') {
+    if (typeof construirTecladoHubEnfermaria === 'function') {
+      enviarMensagemComTecladoParaChat(chat, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+      return true;
+    }
+    enviarPainelEnfermaria(chat, 0);
+    return true;
+  }
   if (text === '/limpar_enfermaria') {
     enviarMensagemParaChat(chat, 'Para preservar os dados, confirme a alta de cada leito no painel /enfermaria.');
     return true;
@@ -52411,6 +52568,69 @@ function cockpitCalcular(initData, tipo, entrada) {
         texto: txtCardio,
         textoFormatado: txtCardio,
         dados: resCardio
+      };
+    case 'asma':
+    case 'broncoespasmo':
+    case 'crise_asmatica':
+      if (typeof PneumologiaCriseAsmaticaService === 'undefined') throw new Error('Serviço PneumologiaCriseAsmaticaService indisponível.');
+      var paramsAsma = Object.assign({}, entrada);
+      if (paramsAsma.refratario !== undefined && paramsAsma.refratario_1h === undefined) {
+        paramsAsma.refratario_1h = Boolean(paramsAsma.refratario);
+      }
+      if (paramsAsma.peso !== undefined && paramsAsma.pesoKg === undefined) {
+        paramsAsma.pesoKg = Number(paramsAsma.peso);
+      }
+      if (paramsAsma.gasometriaNormocapnia || paramsAsma.normocapnia) {
+        paramsAsma.gasometria = { paco2: 43, ph: 7.31 };
+      }
+      var resAsma = PneumologiaCriseAsmaticaService.avaliarCriseAsmatica(paramsAsma);
+      var gAsma = resAsma.gravidade;
+      var pAsma = resAsma.plano;
+
+      var txtAsma = "🫁 MANEJO DA CRISE ASMÁTICA & BRONCOESPASMO (GINA / SBPT)\n\n" +
+        "🔴 CLASSIFICAÇÃO & CONDUTA IMEDIATA:\n" +
+        "• Gravidade: " + gAsma.titulo.toUpperCase() + "\n" +
+        (gAsma.pfe_porcentagem !== null ? "• Pico de Fluxo (PFE): " + gAsma.pfe_porcentagem + "% do previsto\n" : "") +
+        "• Conduta: " + gAsma.recomendacao_imediata + "\n\n" +
+        "🟡 BRONCODILATAÇÃO DA 1ª HORA (SABA + SAMA):\n" +
+        "• Oxigenoterapia: Alvo SpO2 " + pAsma.oxigenoterapia.alvo_spo2 + " (" + pAsma.oxigenoterapia.dispositivo + ")\n" +
+        "• Salbutamol (SABA): " + pAsma.broncodilatacao_saba.opcao_preferencial + "\n" +
+        "• Nebulização Alternativa: " + pAsma.broncodilatacao_saba.opcao_alternativa_nebulizacao + "\n" +
+        (pAsma.anticolinergico_ipratropio && pAsma.anticolinergico_ipratropio.indicado ? "• Ipratrópio (SAMA): " + pAsma.anticolinergico_ipratropio.posologia + "\n" : "") + "\n" +
+        "💉 CORTICOTERAPIA SISTÊMICA PRECOCE (1ª HORA):\n" +
+        "• Via Oral: " + pAsma.corticoide_sistemico.oral + "\n" +
+        "• Via Intravenosa: " + pAsma.corticoide_sistemico.intravenoso + "\n";
+
+      if (pAsma.sulfato_magnesio && pAsma.sulfato_magnesio.indicado) {
+        txtAsma += "\n⚡ SULFATO DE MAGNÉSIO 2G IV (INDICAÇÃO MANDATÓRIA):\n" +
+          "• Dose: " + pAsma.sulfato_magnesio.dose + "\n" +
+          "• Diluição: " + pAsma.sulfato_magnesio.diluicao + "\n" +
+          "• Tempo de Infusão: " + pAsma.sulfato_magnesio.tempo_infusao + "\n";
+      }
+
+      if (gAsma.nivel === 'PARADA_IMINENTE' || gAsma.nivel === 'GRAVE') {
+        txtAsma += "\n🫁 MANEJO VENTILATÓRIO & IOT PROTETORA:\n" +
+          "• Indução: " + pAsma.manejo_ventilatorio.sequencia_rapida_intubacao.inducao_escolha + "\n" +
+          "• Parâmetros do Respirador: Vt 5-6 mL/kg PBW, FR 10-12 rpm, Relação I:E 1:3 a 1:4, PEEP 0-5, Hipercapnia permissiva (pH >= 7.20)\n" +
+          "• Alerta pós-IOT: " + pAsma.manejo_ventilatorio.parametros_ventilador_protetor.conduta_colapso_pos_iot + "\n";
+      }
+
+      if (pAsma.bloqueios_seguranca && pAsma.bloqueios_seguranca.length > 0) {
+        txtAsma += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n" +
+          pAsma.bloqueios_seguranca.map(function(b) { return "• " + b; }).join("\n") + "\n";
+      }
+
+      txtAsma += "\nℹ️ CRITÉRIOS DE ALTA & PRESCRIÇÃO AMBULATORIAL:\n" +
+        "• " + pAsma.criterios_destino.alta_emergencia.prescricao_alta.slice(0, 3).join("\n• ");
+
+      return {
+        ok: true,
+        sucesso: true,
+        id: 'crise_asmatica',
+        nome: 'Manejo de Crise Asmática',
+        texto: txtAsma,
+        textoFormatado: txtAsma,
+        dados: resAsma
       };
     case 'interacoes':
     case 'seguranca':

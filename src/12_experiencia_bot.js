@@ -653,7 +653,14 @@ function tratarEntradaUX(message) {
     }
     return false;
   }
-  if (text === '🏥 Enfermaria' || text === '/enfermaria') { enviarPainelEnfermaria(chat, 0); return true; }
+  if (text === '🏥 Enfermaria' || text === '/enfermaria') {
+    if (typeof construirTecladoHubEnfermaria === 'function') {
+      enviarMensagemComTecladoParaChat(chat, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+      return true;
+    }
+    enviarPainelEnfermaria(chat, 0);
+    return true;
+  }
   if (text === '/limpar_enfermaria') {
     enviarMensagemParaChat(chat, 'Para preservar os dados, confirme a alta de cada leito no painel /enfermaria.');
     return true;

@@ -458,7 +458,9 @@ var TevGestanteService = (function() {
       fatoresIdentificados: fatores,
       posologiaEnoxaparina: posologia,
       alertasFarmacologicos: checagemAnticoagulantes.alertas,
-      protocoloNeuroaxial: protocoloNeuroaxial
+      protocoloNeuroaxial: protocoloNeuroaxial,
+      avisoReferencia: '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.',
+      banner: '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.'
     };
   }
 
@@ -635,7 +637,9 @@ var TevGestanteService = (function() {
       fatoresIdentificados: fatores,
       posologiaEnoxaparina: posologia,
       alertasFarmacologicos: checagemAnticoagulantes.alertas,
-      protocoloNeuroaxial: protocoloNeuroaxial
+      protocoloNeuroaxial: protocoloNeuroaxial,
+      avisoReferencia: '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.',
+      banner: '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.'
     };
   }
 
@@ -652,10 +656,17 @@ var TevGestanteService = (function() {
   function avaliarTevCompleto(params) {
     params = params || {};
     var periodo = String(params.periodo || 'antenatal').toLowerCase().trim();
+    var res;
     if (periodo === 'pos_parto' || periodo === 'puerperio' || params.posParto || params.tipoParto) {
-      return avaliarRiscoPosParto(params);
+      res = avaliarRiscoPosParto(params);
+    } else {
+      res = avaliarRiscoAntenatal(params);
     }
-    return avaliarRiscoAntenatal(params);
+    if (res && typeof res === 'object') {
+      res.avisoReferencia = '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.';
+      res.banner = '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.';
+    }
+    return res;
   }
 
   return {

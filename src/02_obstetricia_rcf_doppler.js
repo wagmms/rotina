@@ -654,7 +654,8 @@ var ObstetriciaRcfDopplerService = (function() {
      * Formata a avaliação para Telegram (Markdown legado).
      */
     function formatarTextoTelegram(a) {
-        var txt = '🤰 *OBSTETRÍCIA & MEDICINA FETAL — RCF / DOPPLER*\n\n';
+        var txt = '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.\n\n';
+        txt += '🤰 *OBSTETRÍCIA & MEDICINA FETAL — RCF / DOPPLER*\n\n';
         txt += '📅 *IG:* ' + a.ig.texto + '\n';
         txt += '📊 *Classificação (Delphi):* ' + a.classificacao.titulo + '\n';
         a.classificacao.criterios.forEach(function(c) { txt += '  • ' + c + '\n'; });

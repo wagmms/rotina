@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🗺️ Mapa Mental & Fluxograma Visual · Ultra Rotina 2.5</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .mermaid {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 16px 0;
+      overflow-x: auto;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+    .card-analise {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8 max-w-6xl mx-auto">
+
+  <!-- Cabeçalho -->
+  <header class="mb-8 pb-6 border-b border-slate-700">
+    <div class="flex items-center justify-between flex-wrap gap-4">
+      <div>
+        <h1 class="text-3xl font-extrabold text-sky-400 flex items-center gap-3">
+          <span>🗺️</span> Mapa Mental & Arquitetura Visual
+        </h1>
+        <p class="text-slate-400 mt-1">Ultra Rotina 2.5 · Assistente Clínico Beira-Leito (Internato e Generalista)</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="window.print()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-semibold transition">
+          🖨️ Imprimir / Salvar PDF
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Seção 1: Fluxograma de Entrada & Roteamento -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+      <span class="text-sky-400">1.</span> Fluxo de Entrada e Roteamento de Comandos
+    </h2>
+    <p class="text-slate-400 mb-4 text-sm">Como as solicitações do médico navegam pelos 97 comandos canônicos e 133 rotas em RAM:</p>
+    
+    <div class="mermaid">
+flowchart TD
+    subgraph ENTRADA["🚪 Portas de Entrada do Médico"]
+        TG["📱 Telegram Bot (@wagner_rotina_bot)"]
+        PWA["💻 Cockpit PWA (Web / Celular)"]
+    end
+
+    subgraph ROTEAMENTO["🧠 Camada de Roteamento & UX"]
+        CMD["Comandos Slash (/ajuda - 97 canônicos)"]
+        TECLADO["Teclados Fixos & Hubs (/menu, /ef)"]
+        NATURAL["Linguagem Natural Beira-Leito (Sem /)"]
+        RPC["Fastify RPC (133 rotas em RAM)"]
+    end
+
+    subgraph PILARES["🏥 Três Pilares Clínicos Beira-Leito"]
+        P1["🚨 Pilar 1: Sala Vermelha & Emergência"]
+        P2["🛏️ Pilar 2: Enfermaria Clínica Geral"]
+        P3["🩺 Pilar 3: Atenção Primária & UBS"]
+    end
+
+    subgraph TRANSVERSAIS["⚙️ Módulos de Apoio Transversal"]
+        M_FARMACO["💊 Farmacologia, REMUME & HSL"]
+        M_CALC["📐 Calculadoras & Fórmulas"]
+        M_EF["🩺 Exame Físico Especializado"]
+        M_ROTINA["📅 Rotina, Preceptor & Produtividade"]
+    end
+
+    TG --> CMD
+    TG --> TECLADO
+    TG --> NATURAL
+    PWA --> RPC
+
+    CMD --> PILARES
+    CMD --> TRANSVERSAIS
+    TECLADO --> PILARES
+    NATURAL --> PILARES
+    NATURAL --> TRANSVERSAIS
+    RPC --> PILARES
+    RPC --> TRANSVERSAIS
+    </div>
+  </section>
+
+  <!-- Seção 2: Mapa Mental Clínico Completo -->
+  <section class="mb-12">
+    <h2 class="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+      <span class="text-sky-400">2.</span> Mapa Mental da Estrutura Clínica Completa
+    </h2>
+    <p class="text-slate-400 mb-4 text-sm">Organização funcional de todas as especialidades e módulos beira-leito:</p>
+
+    <div class="mermaid">
+graph LR
+    UR["Ultra Rotina 2.5"]
+
+    %% PILAR 1: EMERGÊNCIA
+    UR --> EM["🚨 Emergência & Sala Vermelha (14 cmds)"]
+    EM --> EM_DVA["DVA: Nora, Dobuta, Vaso (/dva)"]
+    EM --> EM_SRI["SRI: Etomidato, Quetamina, Rocurônio (/sri)"]
+    EM --> EM_PCR["PCR / ACLS Materno e Adulto (/conduta)"]
+    EM --> EM_SEPSE["Choque Séptico & CIRCI (/choqueseptico)"]
+    EM --> EM_GASO["Gasometria 5 Passos & Winter (/gaso, /winter)"]
+    EM --> EM_CARDIO["SCA, DAPT, AVC, HIC (/sca, /avc, /hic)"]
+    EM --> EM_TOX["Intoxicações & Antídotos (/intox)"]
+    EM --> EM_DOR["Dor Abdominal Aguda: Pancreatite & Cólica (/pancreatite, /colica)"]
+
+    %% PILAR 2: ENFERMARIA
+    UR --> ENF["🛏️ Enfermaria & Internação (8 cmds)"]
+    ENF --> ENF_CENSO["Censo & Gestão de Leitos (/enfermaria, /leito, /alta)"]
+    ENF --> ENF_PASS["Passagem de Plantão SBAR (/passagem, /plantao, /plantao_fim)"]
+    ENF --> ENF_ROUND["Pitch de Round & Preceptor (/round)"]
+    ENF --> ENF_CLIN["Clínica Geral: DHE, KDIGO, DPOC, Asma, Anemia (/crcl, /anemia, /ganzoni)"]
+
+    %% PILAR 3: AMBULATÓRIO & APS
+    UR --> AMB["🩺 Atenção Primária & UBS (18 cmds)"]
+    AMB --> AMB_SOAP["SOAP Ágil, CID-10, Atestado CFM (/soap, /ambulatorio, /atestado)"]
+    AMB --> AMB_RX["Prescrição REMUME Ambulatorial & Hospitalar (/rx, /rxh)"]
+    AMB --> AMB_PRE["Pré-Natal Baixo Risco & Sorologias (/prenatal, /toxo)"]
+    AMB --> AMB_GIN["Ginecologia, Preventivo, SUA, Contracepção (/ginecologia, /preventivo, /sua, /anticoncepcao, /corrimento)"]
+    AMB --> AMB_PED["Puericultura & Pediatria Básica (/ped, /conduta_ped, /bronquiolite)"]
+    AMB --> AMB_CRON["Doenças Crônicas: DM, HAS, FRAX, Beers (/diabetes, /idoso, /cfs, /beers)"]
+
+    %% MÓDULOS DE SUPORTE
+    UR --> SUP["⚙️ Suporte & Ferramental (57 cmds)"]
+    SUP --> SUP_FARMACO["Farmacologia: Doses, Ajuste Renal ATB, Interações (/dose, /atb, /interacao)"]
+    SUP --> SUP_EF["Exame Físico Unificado (/ef - 11 botões)"]
+    SUP --> SUP_PROD["Produtividade, Notion & Agenda (/agenda, /task, /tasks, /briefing, /semana)"]
+    SUP --> SUP_GOV["Governança, Calculadoras & Protocolos (/calc, /protocolo, /kaizen)"]
+    </div>
+  </section>
+
+  <!-- Seção 3: Diagnóstico de Excessos vs Faltas -->
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+    
+    <!-- Coluna de Excessos -->
+    <div class="card-analise border-amber-500/40">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">⚠️</span>
+        <h3 class="text-xl font-bold text-amber-400">Onde tem EXCESSO (Gordura)</h3>
+      </div>
+      <p class="text-slate-300 text-sm mb-4">Comandos redundantes ou dispersos que geram sobrecarga cognitiva:</p>
+      
+      <div class="space-y-3 text-sm">
+        <div class="p-3 bg-slate-800/80 rounded-lg border border-slate-700">
+          <strong class="text-amber-300">📅 Rotina & Produtividade (9 comandos):</strong>
+          <p class="text-slate-400 mt-1"><code>/task</code>, <code>/tasks</code>, <code>/agenda</code>, <code>/rotina</code>, <code>/checkin</code>, <code>/semana</code>, <code>/briefing</code>. Deve ser unificado em 1 comando com botões.</p>
+        </div>
+        <div class="p-3 bg-slate-800/80 rounded-lg border border-slate-700">
+          <strong class="text-amber-300">🛏️ Comandos de Plantão (8 comandos):</strong>
+          <p class="text-slate-400 mt-1"><code>/plantao</code>, <code>/plantao_fim</code>, <code>/leito</code>, <code>/alta</code>. Devem virar botões dentro do censo da <code>/enfermaria</code>.</p>
+        </div>
+        <div class="p-3 bg-slate-800/80 rounded-lg border border-slate-700">
+          <strong class="text-amber-300">🩸 Fragmentação Diabética (5 comandos):</strong>
+          <p class="text-slate-400 mt-1"><code>/glicemia</code> e <code>/ehh</code> devem ser integrados no painel de <code>/diabetes</code>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coluna de Faltas -->
+    <div class="card-analise border-rose-500/40">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">🚨</span>
+        <h3 class="text-xl font-bold text-rose-400">Onde tem FALTA (Lacunas Clínicas)</h3>
+      </div>
+      <p class="text-slate-300 text-sm mb-4">Condutas epidemiologicamente vitais no Brasil para o médico generalista:</p>
+      
+      <div class="space-y-3 text-sm">
+        <div class="p-3 bg-slate-800/80 rounded-lg border border-slate-700">
+          <strong class="text-rose-300">🦟 Dengue / Arboviroses (Crítico):</strong>
+          <p class="text-slate-400 mt-1">Falta classificação A, B, C, D e cálculo automático de hidratação oral vs venosa por peso.</p>
+        </div>
+        <div class="p-3 bg-slate-800/80 rounded-lg border border-slate-700">
+          <strong class="text-rose-300">🫁 Infecções Comunitárias de Porta (PAC & ITU):</strong>
+          <p class="text-slate-400 mt-1">Escore <code>CURB-65</code> direto e antibioticoterapia empírica para cistite vs pielonefrite.</p>
+        </div>
+        <div class="p-3 bg-slate-800/80 rounded-lg border border-slate-700">
+          <strong class="text-rose-300">❤️ Crise Hipertensiva vs Pseudocrise:</strong>
+          <p class="text-slate-400 mt-1">Algoritmo beira-leito para evitar uso iatrogênico de anti-hipertensivo IV na pseudocrise.</p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Rodapé -->
+  <footer class="pt-6 border-t border-slate-800 text-center text-xs text-slate-500">
+    Ultra Rotina 2.5 · Gerado automaticamente para auditoria arquitetural e usabilidade clínica.
+  </footer>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#1e293b',
+        primaryColor: '#0284c7',
+        primaryTextColor: '#f8fafc',
+        primaryBorderColor: '#0369a1',
+        lineColor: '#64748b',
+        secondaryColor: '#334155',
+        tertiaryColor: '#0f172a'
+      }
+    });
+  </script>
+</body>
+</html>

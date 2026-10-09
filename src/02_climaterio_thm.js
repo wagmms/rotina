@@ -864,6 +864,8 @@ var ClimaterioThmService = (function() {
     var resultado = avaliarThmCompleto(params);
     var linhas = [];
 
+    linhas.push('⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.');
+    linhas.push('');
     linhas.push('════════════════════════════════════════════════════════════════');
     linhas.push('🩺 PARECER DETERMINÍSTICO: CLIMATÉRIO E TERAPIA HORMONAL (THM)');
     linhas.push('   Consenso FEBRASGO & The Menopause Society (NAMS 2022-2023)');

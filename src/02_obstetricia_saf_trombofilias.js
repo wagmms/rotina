@@ -670,7 +670,8 @@ var ObstetriciaSafService = (function () {
       return '⚠️ Falha ao processar avaliação de SAF / Trombofilias.';
     }
 
-    var texto = '🩸 *OBSTETRÍCIA & REUMATOLOGIA — MANEJO DE SAF E TROMBOFILIAS*\n';
+    var texto = '⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.\n\n';
+    texto += '🩸 *OBSTETRÍCIA & REUMATOLOGIA — MANEJO DE SAF E TROMBOFILIAS*\n';
     texto += '═══════════════════════════════════════════\n';
     texto += '🏷️ *Fenótipo Clínico:* `' + resultado.fenotipo + '`\n';
     texto += '🎯 *Prioridade Terapêutica:* `' + resultado.prioridade + '`\n';

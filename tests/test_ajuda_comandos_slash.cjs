@@ -52,9 +52,9 @@ async function runAjudaTests() {
     });
   });
 
-  assert.strictEqual(totalCmds, 97, 'Devem existir exatamente 97 comandos funcionais canônicos');
-  assert.strictEqual(slashCmdsSet.size, 97, 'Cada função clínica deve ter seu único comando slash sem redundâncias');
-  console.log(`  ✓ 17 categorias, 97 funções clínicas e exatamente 97 comandos slash padronizados.`);
+  assert.strictEqual(totalCmds, 80, 'Devem existir exatamente 80 comandos funcionais canônicos');
+  assert.strictEqual(slashCmdsSet.size, 80, 'Cada função clínica deve ter seu único comando slash sem redundâncias');
+  console.log(`  ✓ 17 categorias, 80 funções clínicas e exatamente 80 comandos slash padronizados.`);
 
   // 1.1 Validar que Categoria Exame Físico possui estritamente /ef com botões interativos
   const catEf = catalogo.find(c => c.id === 'exame_fisico');
@@ -69,7 +69,7 @@ async function runAjudaTests() {
   assert.ok(mensagensEnviadas.length > 0, 'Deve enviar mensagem');
   assert.ok(!mensagensEnviadas[0].texto.includes('/cancelar · Sair do modo atual'), 'Não pode retornar a mensagem legada de 4 comandos');
   assert.ok(mensagensEnviadas[0].texto.includes('MANUAL DE COMANDOS CANÔNICOS'), 'Deve conter cabeçalho canônico');
-  assert.ok(mensagensEnviadas[0].texto.includes('97 comandos padronizados'), 'Deve referenciar os 97 comandos padronizados');
+  assert.ok(mensagensEnviadas[0].texto.includes('80 comandos padronizados'), 'Deve referenciar os 80 comandos padronizados');
   assert.ok(mensagensEnviadas[0].kb, 'Deve incluir teclado inline de categorias');
 
   mensagensEnviadas = [];
@@ -77,7 +77,7 @@ async function runAjudaTests() {
   assert.ok(mensagensEnviadas.length > 0, 'Deve enviar mensagem');
   const msgAjuda = mensagensEnviadas[0].texto;
   assert.ok(msgAjuda.includes('MANUAL DE COMANDOS CANÔNICOS'), 'Deve conter cabeçalho canônico');
-  assert.ok(msgAjuda.includes('97 comandos padronizados'), 'Deve referenciar os 97 comandos padronizados');
+  assert.ok(msgAjuda.includes('80 comandos padronizados'), 'Deve referenciar os 80 comandos padronizados');
   assert.ok(msgAjuda.includes('NÚCLEO, SESSÃO, NAVEGAÇÃO & COCKPIT'), 'Deve conter categoria núcleo');
   assert.ok(msgAjuda.includes('SALA VERMELHA & CTI'), 'Deve conter categoria emergência');
   assert.ok(msgAjuda.includes('PEDIATRIA & SUPORTE VITAL'), 'Deve conter categoria pediatria');

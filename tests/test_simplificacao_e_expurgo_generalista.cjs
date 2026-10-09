@@ -93,4 +93,97 @@ const txtColica = ColicaService.formatarTextoTelegram(resColica);
 assert.ok(txtColica.includes('CONDUTA BEIRA-LEITO / UBS (MÉDICO GENERALISTA)'), 'Texto de cólica deve conter conduta beira-leito');
 assert.ok(txtColica.includes('CRITÉRIOS DE ENCAMINHAMENTO À UROLOGIA'), 'Texto de cólica deve conter encaminhamento à urologia');
 
+// 9. Validação dos Banners de Módulo de Referência Avançada (Fase 1)
+const BANNER_ESPECIALISTA = 'MÓDULO DE REFERÊNCIA AVANÇADA';
+
+const ClimaterioModule = require('../src/02_climaterio_thm.js');
+const txtThm = ClimaterioModule.ClimaterioThmService.gerarResumoThm({ idade: 52, fogachosIntensos: true });
+assert.ok(txtThm.includes(BANNER_ESPECIALISTA), 'Climatério deve conter banner de referência avançada');
+
+const SopModule = require('../src/02_sop_ovarios_policisticos.js');
+const txtSop = SopModule.SopOvariosPolicisticosService.gerarResumoSop({ oligoAnovulacao: true, hiperandrogenismoClinico: true });
+assert.ok(txtSop.includes(BANNER_ESPECIALISTA), 'SOP deve conter banner de referência avançada');
+
+const DipModule = require('../src/02_dip_abscesso_tubo_ovariano.js');
+const resDip = DipModule.DipAbscessoTuboOvarianoService.avaliarDipCompleto({ dorPalpacaoUterina: true, febreAferida: true });
+const txtDip = DipModule.DipAbscessoTuboOvarianoService.gerarResumoDip(resDip);
+assert.ok(txtDip.includes(BANNER_ESPECIALISTA), 'DIP deve conter banner de referência avançada');
+
+const CentroObsService = require('../src/02_centro_obstetrico.js');
+const resCo = CentroObsService.gerarResumoCentroObstetrico({ parto: { dilatacaoCm: 6, contrações10min: 3, duracaoContracaoSeg: 40 } });
+assert.ok(resCo.textoFormatado.includes(BANNER_ESPECIALISTA), 'Centro Obstétrico deve conter banner de referência avançada');
+
+const RcfService = require('../src/02_obstetricia_rcf_doppler.js');
+const resRcf = RcfService.avaliarRcf({ ig_semanas: 32, peso_fetal_percentil: 2 });
+const txtRcf = RcfService.formatarTextoTelegram(resRcf);
+assert.ok(txtRcf.includes(BANNER_ESPECIALISTA), 'RCF Doppler deve conter banner de referência avançada');
+
+const resSafBanner = SafService.avaliarSaf({ peso: 65, idadeGestacionalSemanas: 10, abortosPrecoces: 3, lacPositivo: true });
+const txtSafBanner = SafService.formatarTextoTelegram(resSafBanner);
+assert.ok(txtSafBanner.includes(BANNER_ESPECIALISTA), 'SAF deve conter banner de referência avançada');
+
+const TevModule = require('../src/02_tev_gestante.js');
+const resTev = TevModule.TevGestanteService.avaliarTevCompleto({ periodo: 'antenatal', tevPrevio: true });
+assert.ok(resTev.banner && resTev.banner.includes(BANNER_ESPECIALISTA), 'TEV Gestante deve conter banner de referência avançada');
+
+// 10. Validação dos Hubs Interativos com Botões Inline (Fase 1)
+const runtime = require('../server/runtime.js');
+const ctx = runtime.ctx;
+
+assert.strictEqual(typeof ctx.construirTecladoHubEnfermaria, 'function', 'construirTecladoHubEnfermaria deve existir');
+assert.strictEqual(typeof ctx.construirTecladoHubRotina, 'function', 'construirTecladoHubRotina deve existir');
+assert.strictEqual(typeof ctx.construirTecladoHubDiabetes, 'function', 'construirTecladoHubDiabetes deve existir');
+assert.strictEqual(typeof ctx.construirTecladoHubAnemia, 'function', 'construirTecladoHubAnemia deve existir');
+
+const kbEnf = ctx.construirTecladoHubEnfermaria();
+assert.strictEqual(kbEnf.inline_keyboard.flat().length, 7, 'Hub Enfermaria deve ter 7 botões interativos');
+
+const kbRot = ctx.construirTecladoHubRotina();
+assert.strictEqual(kbRot.inline_keyboard.flat().length, 7, 'Hub Rotina deve ter 7 botões interativos');
+
+const kbDm = ctx.construirTecladoHubDiabetes();
+assert.strictEqual(kbDm.inline_keyboard.flat().length, 4, 'Hub Diabetes deve ter 4 botões interativos');
+
+const kbAne = ctx.construirTecladoHubAnemia();
+assert.strictEqual(kbAne.inline_keyboard.flat().length, 2, 'Hub Anemia deve ter 2 botões interativos');
+
+let msgEnviadasF1 = [];
+ctx.enviarMensagemComTecladoParaChat = (id, texto, kb) => {
+  msgEnviadasF1.push({ texto, kb });
+  return true;
+};
+ctx.enviarMensagemParaChat = (id, texto) => {
+  msgEnviadasF1.push({ texto });
+  return true;
+};
+
+msgEnviadasF1 = [];
+ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/enfermaria' });
+assert.ok(msgEnviadasF1.length > 0 && msgEnviadasF1[0].kb, '/enfermaria deve retornar teclado inline');
+assert.strictEqual(msgEnviadasF1[0].kb.inline_keyboard.flat().length, 7);
+
+msgEnviadasF1 = [];
+ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/rotina' });
+assert.ok(msgEnviadasF1.length > 0 && msgEnviadasF1[0].kb, '/rotina deve retornar teclado inline');
+assert.strictEqual(msgEnviadasF1[0].kb.inline_keyboard.flat().length, 7);
+
+msgEnviadasF1 = [];
+ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/diabetes' });
+assert.ok(msgEnviadasF1.length > 0 && msgEnviadasF1[0].kb, '/diabetes deve retornar teclado inline');
+assert.strictEqual(msgEnviadasF1[0].kb.inline_keyboard.flat().length, 4);
+
+msgEnviadasF1 = [];
+ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/anemia' });
+assert.ok(msgEnviadasF1.length > 0 && msgEnviadasF1[0].kb, '/anemia deve retornar teclado inline');
+assert.strictEqual(msgEnviadasF1[0].kb.inline_keyboard.flat().length, 2);
+
+// Validação dos aliases antigos continuando ativos
+msgEnviadasF1 = [];
+ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/alta' });
+assert.ok(msgEnviadasF1.length > 0, '/alta deve responder como alias');
+
+msgEnviadasF1 = [];
+ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/tasks' });
+assert.ok(msgEnviadasF1.length > 0, '/tasks deve responder como alias');
+
 console.log('🎉 TODOS OS TESTES DE SIMPLIFICAÇÃO, EXPURGO E CONDUTA BEIRA-LEITO PASSARAM COM 100% DE SUCESSO!');

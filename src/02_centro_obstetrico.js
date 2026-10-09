@@ -817,6 +817,8 @@ var CentroObstetricoService = (function() {
   function gerarResumoCentroObstetrico(cenario) {
     cenario = cenario || {};
     var linhas = [];
+    linhas.push('⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.');
+    linhas.push('');
     linhas.push('======================================================================');
     linhas.push('🏥 CONDUTA DE CENTRO OBSTÉTRICO & SALA DE PARTO · ULTRA ROTINA');
     linhas.push('======================================================================');

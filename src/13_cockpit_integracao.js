@@ -419,6 +419,69 @@ function cockpitCalcular(initData, tipo, entrada) {
         textoFormatado: txtCardio,
         dados: resCardio
       };
+    case 'asma':
+    case 'broncoespasmo':
+    case 'crise_asmatica':
+      if (typeof PneumologiaCriseAsmaticaService === 'undefined') throw new Error('Serviço PneumologiaCriseAsmaticaService indisponível.');
+      var paramsAsma = Object.assign({}, entrada);
+      if (paramsAsma.refratario !== undefined && paramsAsma.refratario_1h === undefined) {
+        paramsAsma.refratario_1h = Boolean(paramsAsma.refratario);
+      }
+      if (paramsAsma.peso !== undefined && paramsAsma.pesoKg === undefined) {
+        paramsAsma.pesoKg = Number(paramsAsma.peso);
+      }
+      if (paramsAsma.gasometriaNormocapnia || paramsAsma.normocapnia) {
+        paramsAsma.gasometria = { paco2: 43, ph: 7.31 };
+      }
+      var resAsma = PneumologiaCriseAsmaticaService.avaliarCriseAsmatica(paramsAsma);
+      var gAsma = resAsma.gravidade;
+      var pAsma = resAsma.plano;
+
+      var txtAsma = "🫁 MANEJO DA CRISE ASMÁTICA & BRONCOESPASMO (GINA / SBPT)\n\n" +
+        "🔴 CLASSIFICAÇÃO & CONDUTA IMEDIATA:\n" +
+        "• Gravidade: " + gAsma.titulo.toUpperCase() + "\n" +
+        (gAsma.pfe_porcentagem !== null ? "• Pico de Fluxo (PFE): " + gAsma.pfe_porcentagem + "% do previsto\n" : "") +
+        "• Conduta: " + gAsma.recomendacao_imediata + "\n\n" +
+        "🟡 BRONCODILATAÇÃO DA 1ª HORA (SABA + SAMA):\n" +
+        "• Oxigenoterapia: Alvo SpO2 " + pAsma.oxigenoterapia.alvo_spo2 + " (" + pAsma.oxigenoterapia.dispositivo + ")\n" +
+        "• Salbutamol (SABA): " + pAsma.broncodilatacao_saba.opcao_preferencial + "\n" +
+        "• Nebulização Alternativa: " + pAsma.broncodilatacao_saba.opcao_alternativa_nebulizacao + "\n" +
+        (pAsma.anticolinergico_ipratropio && pAsma.anticolinergico_ipratropio.indicado ? "• Ipratrópio (SAMA): " + pAsma.anticolinergico_ipratropio.posologia + "\n" : "") + "\n" +
+        "💉 CORTICOTERAPIA SISTÊMICA PRECOCE (1ª HORA):\n" +
+        "• Via Oral: " + pAsma.corticoide_sistemico.oral + "\n" +
+        "• Via Intravenosa: " + pAsma.corticoide_sistemico.intravenoso + "\n";
+
+      if (pAsma.sulfato_magnesio && pAsma.sulfato_magnesio.indicado) {
+        txtAsma += "\n⚡ SULFATO DE MAGNÉSIO 2G IV (INDICAÇÃO MANDATÓRIA):\n" +
+          "• Dose: " + pAsma.sulfato_magnesio.dose + "\n" +
+          "• Diluição: " + pAsma.sulfato_magnesio.diluicao + "\n" +
+          "• Tempo de Infusão: " + pAsma.sulfato_magnesio.tempo_infusao + "\n";
+      }
+
+      if (gAsma.nivel === 'PARADA_IMINENTE' || gAsma.nivel === 'GRAVE') {
+        txtAsma += "\n🫁 MANEJO VENTILATÓRIO & IOT PROTETORA:\n" +
+          "• Indução: " + pAsma.manejo_ventilatorio.sequencia_rapida_intubacao.inducao_escolha + "\n" +
+          "• Parâmetros do Respirador: Vt 5-6 mL/kg PBW, FR 10-12 rpm, Relação I:E 1:3 a 1:4, PEEP 0-5, Hipercapnia permissiva (pH >= 7.20)\n" +
+          "• Alerta pós-IOT: " + pAsma.manejo_ventilatorio.parametros_ventilador_protetor.conduta_colapso_pos_iot + "\n";
+      }
+
+      if (pAsma.bloqueios_seguranca && pAsma.bloqueios_seguranca.length > 0) {
+        txtAsma += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n" +
+          pAsma.bloqueios_seguranca.map(function(b) { return "• " + b; }).join("\n") + "\n";
+      }
+
+      txtAsma += "\nℹ️ CRITÉRIOS DE ALTA & PRESCRIÇÃO AMBULATORIAL:\n" +
+        "• " + pAsma.criterios_destino.alta_emergencia.prescricao_alta.slice(0, 3).join("\n• ");
+
+      return {
+        ok: true,
+        sucesso: true,
+        id: 'crise_asmatica',
+        nome: 'Manejo de Crise Asmática',
+        texto: txtAsma,
+        textoFormatado: txtAsma,
+        dados: resAsma
+      };
     case 'interacoes':
     case 'seguranca':
       var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';

@@ -913,6 +913,8 @@ var DipAbscessoTuboOvarianoService = (function() {
     var r = avaliacao;
     var l = [];
 
+    l.push('⚠️ *MÓDULO DE REFERÊNCIA AVANÇADA* — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.');
+    l.push('');
     l.push('════════════════════════════════════════════════════════════════');
     l.push('   PARECER CLÍNICO: DOENÇA INFLAMATÓRIA PÉLVICA (DIP) / ATO');
     l.push('   Diretrizes: PCDT Ministério da Saúde / CDC STI Guidelines');
