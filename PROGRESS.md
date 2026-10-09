@@ -60,7 +60,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Sistema off-line que sumariza tendências de prescrições rejeitadas por risco clínico ou interações graves, detectando gargalos na segurança do paciente em tempo real.
 
 
-24. [ ] **Módulo Avançado de Analgesia Controlada pelo Paciente (PCA)**:
+24. [x] **Módulo Avançado de Analgesia Controlada pelo Paciente (PCA)**:
     - Motor determinístico para cálculos de bolus, dose basal, intervalo de bloqueio (lockout) e limite de 4 horas para Morfina e Fentanil em bombas de PCA.
 
 25. [ ] **Manejo de Via Aérea Difícil (Algoritmo ASA)**:
@@ -315,12 +315,31 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Motor estruturado em 4 etapas: estabilização miocárdica (Gluconato de Cálcio obrigatório se ECG alterado), redistribuição (Glicoinsulina IV e Salbutamol NBZ), eliminação corporal (Furosemida, Resina de Troca) e reversão de causa base.
     - Teste de segurança para evitar erro fatal: bloqueio de bolus de insulina sem glicose associada, e limite de uso de gluconato em toxicidade por digitálico.
 
+76. [ ] **Neurologia e UTI - Protocolo de Morte Encefálica (Resolução CFM 2.173/2017)**:
+    - Checklist inteligente para pré-requisitos absolutos: exclusão de distúrbios hidro-eletrolíticos severos, hipotermia (< 35°C) e efeito de drogas sedativas/bloqueadores neuromusculares.
+    - Guia passo-a-passo para os 2 exames clínicos (com intervalo conforme idade) e o teste de apneia com validação gasométrica estrita (PaCO2 > 55 mmHg).
+    - Alertas de segurança exigindo pelo menos um médico com capacitação comprovada ou especialista (Neurologia, Medicina Intensiva, Emergência).
+
+77. [ ] **Obstetrícia - Manejo Avançado da Hemorragia Pós-Parto (HPP) e Índice de Choque**:
+    - Motor de cálculo de Índice de Choque Obstétrico (FC / PAS), onde >= 0.9 aciona código amarelo e > 1.1 aciona código vermelho de transfusão maciça.
+    - Protocolo escalonado (4 Ts: Tônus, Trauma, Tecido, Trombina) com posologia encadeada de Ocitocina, Metilergometrina (bloqueio se HAS/Pré-eclâmpsia), Misoprostol e Ácido Tranexâmico.
+
+78. [ ] **Farmacologia - Identificador Inteligente de Prolongamento de Intervalo QTc**:
+    - Algoritmo que cruza a prescrição do paciente (ex: Haloperidol, Ondansetrona, Azitromicina, Amiodarona) e calcula o risco de Torsades de Pointes.
+    - Fórmula de Bazett integrada com alertas preventivos antes da dispensação da droga quando QTc > 500ms ou risco cumulativo extremo.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo Avançado de Analgesia Controlada pelo Paciente (PCA)**
+- [ ] **Manejo de Via Aérea Difícil (Algoritmo ASA)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Módulo Avançado de Analgesia Controlada pelo Paciente (PCA)**:
+   - Motor determinístico para cálculos de bolus, dose basal, intervalo de bloqueio (lockout) e limite de 4 horas para Morfina e Fentanil em bombas de PCA.
+   - Algoritmo de segurança para pacientes opioid-naive, bloqueando infusões contínuas basais para evitar depressão respiratória.
+   - Ajustes e limiares estritos para pacientes idosos (>= 65 anos) com menores doses de resgate e maiores intervalos de bloqueio.
+   - Integração completa via malha Fastify RPC (`cockpitAnalgesiaPca`).
+   - Suíte de testes determinística `tests/test_analgesia_pca.cjs` com 100% de sucesso.
 - [x] (2026-10-09) **Módulo Avançado de Hepatologia Clínica e HDA**:
    - Implementação de motor determinístico beira-leito para o escore de Child-Pugh, estratificando risco cirúrgico e predizendo sobrevida em 1 e 2 anos com rigor nas classes A, B e C, alertando proativamente a necessidade de ajuste posológico.
    - Cálculo automático do MELD original (UNOS) e da nova fórmula MELD-Na otimizada, identificando limites mínimos (1.0) rigorosos para Bilirrubina e INR.

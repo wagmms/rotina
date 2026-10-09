@@ -1189,3 +1189,15 @@ function cockpitHepatologiaHda(initData, params) {
   }
   return HepatologiaHdaService.avaliarHepatopatia(params.parametros || params);
 }
+
+function cockpitAnalgesiaPca(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof AnalgesiaPcaService === 'undefined') {
+    throw new Error('AnalgesiaPcaService não carregado.');
+  }
+  if (params.acao === 'calcular') {
+    return AnalgesiaPcaService.calcularPca(params.parametros || params);
+  }
+  throw new Error('Ação inválida para Analgesia PCA.');
+}

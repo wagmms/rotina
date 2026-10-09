@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 04:24:33
- * Checksum SHA256: b8ff2d73a03c12fc
+ * Gerado automaticamente via build_master.py em: 2026-10-09 05:12:46
+ * Checksum SHA256: b91e63801384807b
  * ==============================================================================
  */
 
@@ -7714,6 +7714,435 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_endocrinologia_diabetes.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: ENDOCRINOLOGIA E DIABETES MELLITUS AVANÇADO (SBD / ADA)
+ * ==============================================================================
+ * Diretrizes Clínicas Oficiais:
+ *  - Sociedade Brasileira de Diabetes (Diretrizes SBD 2024-2026)
+ *  - American Diabetes Association (ADA Standards of Care in Diabetes 2024-2026)
+ *  - Consenso Brasileiro de Emergências Hiperglicêmicas (CAD e EHH)
+ *
+ * PILARES CLÍNICOS DETERMINÍSTICOS:
+ *  1. Calculadora Ambulatorial Basal-Bolus (DM1 e DM2):
+ *     - DM1: 0.4 a 1.0 U/kg/dia com partição 50% Basal / 50% Prandial.
+ *     - Fator de Sensibilidade à Insulina (FSI - Regra 1800 para análogos e 1500 para regular).
+ *     - Relação Insulina:Carboidrato (ICR - Regra 500 para análogos).
+ *     - DM2: Basalização inicial (10 UI ou 0.1 a 0.2 U/kg) e algoritmo de titulação 2-2-2.
+ *     - Alertas de segurança farmacológica (suspensão de iSGLT2 perioperatório/grave contra CAD euglicêmica;
+ *       ajuste de Metformina por TFG; bloqueio de sulfonilureias em idosos/renais).
+ *  2. Protocolo de Hiperglicemia Hospitalar (Enfermaria e UTI):
+ *     - Alvo hospitalar estruturado: 140 a 180 mg/dL (evitando < 110 mg/dL via ensaio NICE-SUGAR).
+ *     - Condenação formal da "Sliding Scale" isolada sem basal.
+ *     - Escala de correção rápida estratificada por sensibilidade (Sensível, Padrão, Resistente).
+ *  3. Emergências Hiperglicêmicas: Cetoacidose Diabética (CAD) e Estado Hiperosmolar (EHH):
+ *     - Estratificação diagnóstica e gravidade (CAD Leve, Moderada, Grave e EHH com Osmolaridade Efetiva).
+ *     - Expansão volêmica inicial (15-20 mL/kg/h) e cálculo do Sódio Corrigido (Katz).
+ *     - REGRA DE OURO DO POTÁSSIO: Bloqueio absoluto de Insulina IV se K < 3.3 mEq/L contra PCR por arritmia.
+ *     - Titulação de Insulina Regular IV contínua (0.1 U/kg/h) com alvo de queda de 50-75 mg/dL/h.
+ *     - Transição hídrica com SG 5% + SF 0.45% quando glicemia < 200 (CAD) ou < 250 (EHH).
+ *     - Critérios restritivos de Bicarbonato de Sódio (apenas se pH < 6.90).
+ *     - Critérios formais de resolução e Regra de Transição para SC (basal SC 1-2h antes de desligar a bomba).
+ * ==============================================================================
+ */
+
+var EndocrinologiaDiabetesService = (function() {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. CALCULADORA BASAL-BOLUS AMBULATORIAL (DM1 & DM2)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function calcularInsulinaAmbulatorial(dados) {
+    dados = dados || {};
+    var peso = Number(dados.peso || 70);
+    var tipoDm = Number(dados.tipoDm || 2);
+    var descompensado = !!dados.descompensado;
+    var tfg = dados.tfg !== undefined ? Number(dados.tfg) : 90;
+    var ehIdoso = !!(dados.ehIdoso || (dados.idade && dados.idade >= 65));
+    var emUsoIsglt2 = !!dados.emUsoIsglt2;
+
+    if (peso <= 0) throw new Error('Peso inválido para cálculo de insulinoterapia.');
+
+    var alertasFarmacologicos = [];
+
+    // Alertas de Antidiabéticos Orais e Segurança
+    if (emUsoIsglt2) {
+      alertasFarmacologicos.push('⚠️ ALERTA iSGLT2: Suspender Dapagliflozina/Empagliflozina 3 a 4 dias antes de cirurgias eletivas ou imediatamente em casos de infecção/doença aguda (risco de Cetoacidose Diabética Euglicêmica com glicemia normal/pouco elevada).');
+    }
+    if (tfg < 30) {
+      alertasFarmacologicos.push('⛔ CONTRAINDICAÇÃO METFORMINA: TFG < 30 mL/min contraindica formalmente a metformina devido ao risco de acidose lática grave. Suspender e ajustar para insulinoterapia.');
+    } else if (tfg < 45) {
+      alertasFarmacologicos.push('⚠️ AJUSTE METFORMINA: TFG entre 30 e 44 mL/min exige redução da dose máxima de metformina para 1.000 mg/dia com monitoramento renal semestral.');
+    }
+    if (ehIdoso) {
+      alertasFarmacologicos.push('⚠️ CRITÉRIOS DE BEERS: Evitar sulfonilureias de longa ação (Glibenclamida) em idosos pelo risco severo de hipoglicemia prolongada e quedas. Preferir Gliclazida MR ou Insulina em esquema simplificado.');
+    }
+
+    if (tipoDm === 1) {
+      // DM1: 0.5 U/kg/dia padrão (0.4 a 0.6 em fase inicial; até 0.8-1.0 em estresse/puberdade)
+      var fatorDose = descompensado ? 0.6 : 0.5;
+      var doseTotalDia = Math.round(peso * fatorDose);
+      var basal = Math.round(doseTotalDia * 0.5);
+      var bolusTotal = doseTotalDia - basal;
+      var bolusPorRefeicao = Math.round(bolusTotal / 3);
+
+      // Regra 1800 para Fator de Sensibilidade (análogos rápidos)
+      var fsi = Math.round(1800 / doseTotalDia);
+      // Regra 500 para Relação Insulina:Carboidrato (ICR)
+      var icr = Math.round(500 / doseTotalDia);
+
+      return {
+        sucesso: true,
+        tipoDm: 'DM1',
+        peso: peso,
+        doseTotalDia: doseTotalDia,
+        esquemaRecomendado: 'Basal-Bolus Intensivo (Múltiplas Doses Diárias)',
+        basal: {
+          dose: basal,
+          tipo: 'Insulina Basal (Glargina U100/U300, Degludeca ou Detemir; ou NPH 2x/dia)',
+          posologia: 'Administrar ' + basal + ' UI SC 1x ao dia (mesmo horário) ou NPH 2/3 pela manhã e 1/3 ao deitar.'
+        },
+        bolusPrandial: {
+          doseTotalBolus: bolusTotal,
+          dosePorRefeicaoFixa: bolusPorRefeicao,
+          posologiaFixa: 'Administrar ' + bolusPorRefeicao + ' UI SC antes do café, almoço e jantar (análogo ultrarrápido 0-15 min antes da refeição).',
+          contagemCarboidratos: {
+            icr: icr,
+            regraIcr: '1 UI de insulina para cada ' + icr + ' gramas de carboidrato consumidos.',
+            fsi: fsi,
+            regraFsi: 'Fator de Sensibilidade: 1 UI reduz aproximadamente ' + fsi + ' mg/dL de glicose.',
+            metaGlicemicaPrandial: 'Alvo pré-prandial: 80 a 130 mg/dL; pós-prandial < 180 mg/dL.'
+          }
+        },
+        alertasSeguranca: alertasFarmacologicos,
+        orientacoes: 'Prescrever glicagão nasal ou injetável de resgate para hipoglicemia severa. Educação em contagem de carboidratos e automonitoramento capilar/sensor contínuo.'
+      };
+    } else if (tipoDm === 2) {
+      // DM2: Início com Basalização oportuna (10 UI ou 0.1 a 0.2 U/kg)
+      var doseBasalInicial = descompensado ? Math.max(10, Math.round(peso * 0.2)) : Math.max(10, Math.round(peso * 0.1));
+
+      return {
+        sucesso: true,
+        tipoDm: 'DM2',
+        peso: peso,
+        esquemaRecomendado: 'Basalização Inicial (Insulina Noturna ou Matinal)',
+        basal: {
+          doseInicial: doseBasalInicial,
+          tipo: 'Insulina Basal (Glargina, Degludeca ou NPH ao deitar)',
+          posologia: 'Iniciar ' + doseBasalInicial + ' UI SC 1x ao dia (à noite ao deitar se NPH, ou horário fixo se análogo longo).'
+        },
+        algoritmoTitulacao: {
+          regra: 'Titulação 2-2-2 / Treat-to-Target (SBD/ADA)',
+          instrucao: 'Verificar glicemia de jejum por 3 dias consecutivos. Se média de jejum > 130 mg/dL, aumentar 2 UI da basal a cada 3 dias. Se média entre 80-130 mg/dL, manter dose. Se glicemia < 70 mg/dL, reduzir dose em 10-20% imediatamente.',
+          adicaoBolusPrandial: 'Se basal titulada com jejum no alvo, mas HbA1c persistir elevada por glicemia pós-prandial > 180 mg/dL: progredir para esquema Basal-Plus adicionando 4 UI de insulina rápida antes da maior refeição do dia.'
+        },
+        alertasSeguranca: alertasFarmacologicos,
+        orientacoes: 'Manter Metformina associada se tolerada e TFG >= 30 mL/min para reduzir demanda de insulina e ganho ponderal.'
+      };
+    }
+
+    throw new Error('Tipo de DM inválido. Utilize 1 ou 2.');
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. PROTOCOLO HOSPITALAR DE CORREÇÃO E ALVO GLICÊMICO (ENFERMARIA & UTI)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function protocoloCorrecaoHospitalar(dados) {
+    dados = dados || {};
+    var glicemia = Number(dados.glicemia || 0);
+    var perfil = String(dados.perfil || 'padrao').toLowerCase(); // 'sensivel', 'padrao', 'resistente'
+
+    if (glicemia <= 0) throw new Error('Glicemia capilar inválida.');
+
+    // Alvo Hospitalar Recomendado pela ADA/SBD: 140 a 180 mg/dL
+    var doseCorrecao = 0;
+    var conduta = '';
+    var alertaCritico = '';
+
+    if (glicemia < 70) {
+      doseCorrecao = 0;
+      conduta = 'HIPOGLICEMIA (Glicemia < 70 mg/dL): NÃO aplicar insulina. Administrar 15g de carboidrato rápido VO (150 mL de suco ou água com 1 colher de sopa de açúcar) se consciente; se inconsciente/NPO, infundir 40 a 50 mL de Glicose 50% EV em bolus. Reavaliar glicemia em 15 minutos (Regra dos 15).';
+      alertaCritico = '🚨 HIPOGLICEMIA HOSPITALAR DETECTADA. Notificar enfermagem e equipe médica imediatamente.';
+    } else if (glicemia < 140) {
+      doseCorrecao = 0;
+      conduta = 'Glicemia dentro da faixa segura / sem necessidade de correção imediata. Alvo hospitalar padrão: 140 a 180 mg/dL.';
+    } else if (glicemia <= 180) {
+      // Faixa Alvo da ADA/SBD (140-180 mg/dL): nenhuma insulina de correção em enfermaria
+      doseCorrecao = perfil === 'resistente' ? 2 : 0;
+      conduta = doseCorrecao > 0
+        ? 'Glicemia no limite superior do alvo (' + glicemia + ' mg/dL). Aplicar ' + doseCorrecao + ' UI SC de Insulina Rápida apenas por perfil resistente.'
+        : 'Glicemia no alvo terapêutico hospitalar (140 a 180 mg/dL). Nenhuma correção suplementar necessária.';
+    } else if (glicemia <= 220) {
+      if (perfil === 'sensivel') doseCorrecao = 2;
+      else if (perfil === 'resistente') doseCorrecao = 6;
+      else doseCorrecao = 4;
+      conduta = 'Aplicar ' + doseCorrecao + ' UI de Insulina Rápida/Ultrarrápida SC.';
+    } else if (glicemia <= 260) {
+      if (perfil === 'sensivel') doseCorrecao = 4;
+      else if (perfil === 'resistente') doseCorrecao = 8;
+      else doseCorrecao = 6;
+      conduta = 'Aplicar ' + doseCorrecao + ' UI de Insulina Rápida/Ultrarrápida SC.';
+    } else if (glicemia <= 300) {
+      if (perfil === 'sensivel') doseCorrecao = 6;
+      else if (perfil === 'resistente') doseCorrecao = 10;
+      else doseCorrecao = 8;
+      conduta = 'Aplicar ' + doseCorrecao + ' UI de Insulina Rápida/Ultrarrápida SC.';
+    } else {
+      // Glicemia > 300 mg/dL
+      if (perfil === 'sensivel') doseCorrecao = 8;
+      else if (perfil === 'resistente') doseCorrecao = 14;
+      else doseCorrecao = 10;
+      conduta = 'Aplicar ' + doseCorrecao + ' UI de Insulina Rápida/Ultrarrápida SC.';
+      alertaCritico = '⚠️ HIPERGLICEMIA GRAVE (> 300 mg/dL): Avaliar hidratação, cetonemia/cetonúria, gasometria e excluir emergência hiperglicêmica (CAD / EHH).';
+    }
+
+    return {
+      sucesso: true,
+      glicemiaMedida: glicemia,
+      perfilSensibilidade: perfil,
+      doseCorrecaoSc: doseCorrecao,
+      alvoRecomendadoAdaSbd: '140 a 180 mg/dL (NICE-SUGAR trial)',
+      condutaPrescricao: conduta,
+      alertaCritico: alertaCritico,
+      advertenciaSlidingScale: 'IMPORTANTE: A diretriz SBD/ADA condena o uso isolado de escala móvel ("Sliding Scale pura") sem insulina basal. Pacientes internados devem receber esquema Basal-Bolus planejado com esta escala servindo apenas como resgate complementar.'
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. MANEJO DE CRISES HIPERGLICÊMICAS: CAD E EHH (SBD / ADA)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function manejoCriseHiperglicemica(dados) {
+    dados = dados || {};
+    var peso = Number(dados.peso || 70);
+    var tipoCrise = String(dados.tipo || 'CAD').toUpperCase(); // 'CAD' ou 'EHH'
+    var glicemia = Number(dados.glicemia || 350);
+    var potassio = Number(dados.potassio !== undefined ? dados.potassio : 4.2);
+    var sodioMedido = Number(dados.sodio || 135);
+    var phArterial = dados.ph !== undefined ? Number(dados.ph) : 7.15;
+    var bicarbonato = dados.bicarbonato !== undefined ? Number(dados.bicarbonato) : 12;
+    var cloreto = Number(dados.cloreto || 100);
+
+    if (peso <= 0) throw new Error('Peso inválido para protocolo de cetoacidose/estado hiperosmolar.');
+
+    // Cálculo do Sódio Corrigido (Fórmula de Katz / Hillier)
+    // Na Corrigido = Na_medido + 0.016 * (Glicose - 100)
+    var deltaGlicose = Math.max(0, glicemia - 100);
+    var fatorCorrecaoNa = glicemia > 400 ? 0.020 : 0.016;
+    var sodioCorrigido = Math.round((sodioMedido + (fatorCorrecaoNa * deltaGlicose)) * 10) / 10;
+
+    // Cálculo do Anion Gap: Na - (Cl + HCO3)
+    var anionGap = Math.round(sodioMedido - (cloreto + bicarbonato));
+
+    // Cálculo da Osmolaridade Plasmática Efetiva: 2*Na + Glicose/18
+    var osmolaridadeEfetiva = Math.round((2 * sodioMedido) + (glicemia / 18));
+
+    // Estratificação de Gravidade da CAD
+    var gravidadeCad = 'N/A';
+    if (tipoCrise === 'CAD') {
+      if (phArterial < 7.00 || bicarbonato < 10) gravidadeCad = 'GRAVE (UTI Obrigatória, gasometria seriada)';
+      else if (phArterial <= 7.24 || bicarbonato < 15) gravidadeCad = 'MODERADA (Semi-intensiva ou UTI)';
+      else gravidadeCad = 'LEVE';
+    }
+
+    var condutaPotassio = '';
+    var condutaInsulina = '';
+    var bloqueioInsulinaAtivo = false;
+    var condutaHidratacao = '';
+    var condutaBicarbonato = '';
+    var alertasSentinela = [];
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // REGRA DE OURO 1: POTÁSSIO & LIBERAÇÃO DA INSULINA
+    // ─────────────────────────────────────────────────────────────────────────
+    if (potassio < 3.3) {
+      bloqueioInsulinaAtivo = true;
+      alertasSentinela.push('🚨 BLOQUEIO FATAL DE INSULINA: K+ < 3.3 mEq/L (' + potassio + ' mEq/L). Iniciar insulina com hipocalemia causa influxo celular agudo maciço de potássio, levando a arritmias ventriculares malignas e PCR súbita.');
+      condutaPotassio = 'K+ < 3.3 mEq/L: PARAR/NÃO INICIAR insulina. Repor 20 a 40 mEq/h de KCl IV diluído em infusão contínua com monitorização cardíaca contínua até K+ atingir >= 3.3 mEq/L.';
+      condutaInsulina = '⛔ INSULINOTERAPIA BLOQUEADA. Aguardar reposição vigorosa de potássio e documentação de K+ >= 3.3 mEq/L antes de iniciar qualquer dose de insulina.';
+    } else if (potassio <= 5.2) {
+      condutaPotassio = 'K+ entre 3.3 e 5.2 mEq/L (' + potassio + ' mEq/L): Adicionar 20 a 30 mEq de KCl em cada litro de fluido de manutenção para manter K+ entre 4.0 e 5.0 mEq/L durante toda a insulinoterapia.';
+      var doseBolusOpcional = Math.round(peso * 0.1 * 10) / 10;
+      var vazaoBombaInsulina = Math.round(peso * 0.1 * 10) / 10;
+      condutaInsulina = 'Iniciar Insulina Regular IV contínua: ' + vazaoBombaInsulina + ' UI/h (0.1 UI/kg/h) em bomba de infusão (opcional bolus inicial de ' + doseBolusOpcional + ' UI EV). Alvo de redução: 50 a 75 mg/dL por hora.';
+    } else {
+      // K > 5.2 mEq/L
+      condutaPotassio = 'K+ > 5.2 mEq/L (' + potassio + ' mEq/L): NÃO repor potássio neste momento. Checar eletrólitos a cada 2 horas (o potássio cairá rapidamente com a infusão de insulina e hidratação). Iniciar reposição assim que K < 5.3.';
+      var vazaoInsKAlto = Math.round(peso * 0.1 * 10) / 10;
+      condutaInsulina = 'Iniciar Insulina Regular IV contínua: ' + vazaoInsKAlto + ' UI/h (0.1 UI/kg/h). Monitorar K+ sérico a cada 2 horas.';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // REGRA DE OURO 2: EXPANSÃO VOLÊMICA E TRANSIÇÃO COM GLICOSE
+    // ─────────────────────────────────────────────────────────────────────────
+    var volPrimeiraHoraMin = Math.round(peso * 15);
+    var volPrimeiraHoraMax = Math.round(peso * 20);
+
+    var fluidoManutencao = sodioCorrigido >= 135
+      ? 'NaCl 0.45% a 250-500 mL/h (devido ao Sódio Corrigido normal/alto: ' + sodioCorrigido + ' mEq/L).'
+      : 'SF 0.9% a 250-500 mL/h (devido ao Sódio Corrigido baixo: ' + sodioCorrigido + ' mEq/L).';
+
+    var gatilhoGlicose = tipoCrise === 'CAD' ? 200 : 250;
+    condutaHidratacao = '1. Primeira Hora: Infundir SF 0.9% 15 a 20 mL/kg/h (' + volPrimeiraHoraMin + ' a ' + volPrimeiraHoraMax + ' mL na 1ª hora).\n' +
+      '2. Horas Subsequentes: Infundir ' + fluidoManutencao + '\n' +
+      '3. Ponto de Corte de Salvaguarda: Assim que glicemia atingir < ' + gatilhoGlicose + ' mg/dL, associar Soro Glicosado a 5% com NaCl 0.45% (SG 5% + SF 0.45%) a 150-250 mL/h para manter glicemia entre ' + (tipoCrise === 'CAD' ? '150-200' : '200-300') + ' mg/dL enquanto a insulina IV continua até resolução completa da acidose e do Anion Gap.';
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // REGRA DE OURO 3: BICARBONATO DE SÓDIO (CRITÉRIOS ESTREITOS)
+    // ─────────────────────────────────────────────────────────────────────────
+    if (tipoCrise === 'CAD') {
+      if (phArterial < 6.90) {
+        condutaBicarbonato = 'pH < 6.90 (' + phArterial + '): Indicação formal de Bicarbonato de Sódio. Administrar 100 mmol de Bicarbonato de Sódio 8.4% diluídos em 400 mL de água destilada com 20 mEq de KCl em infusão lenta de 2 horas. Repetir dosagem gasométrica após o término.';
+      } else {
+        condutaBicarbonato = 'pH >= 6.90 (' + phArterial + '): Bicarbonato de Sódio é FORMALMENTE CONTRAINDICADO. Consensos ADA/SBD demonstram aumento do risco de hipocalemia severa, edema cerebral e acidose paradoxal intracelular do SNC.';
+      }
+    } else {
+      condutaBicarbonato = 'EHH: Bicarbonato de Sódio não indicado (ausência de cetoacidose primária).';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // REGRA DE TRANSIÇÃO PARA SUBCUTÂNEA (SC)
+    // ─────────────────────────────────────────────────────────────────────────
+    var criteriosResolucao = tipoCrise === 'CAD'
+      ? 'Critérios de Resolução da CAD: Glicemia < 200 mg/dL associada a Bicarbonato sérico >= 15 mEq/L, pH venoso > 7.30, Anion Gap normal (<= 12) e tolerância à via oral.'
+      : 'Critérios de Resolução do EHH: Glicemia < 250 mg/dL, Osmolaridade efetiva < 315 mOsm/kg, recuperação da consciência e tolerância oral.';
+
+    var protocoloTransicaoSc = 'REGRA DE OURO DA TRANSIÇÃO SC: A primeira dose de Insulina Subcutânea (Basal: Glargina/NPH + Bolus de refeição) DEVE ser aplicada 1 a 2 horas ANTES de desligar a bomba de infusão IV contínua. Desligar a bomba sem insulina SC prévia causa hiperglicemia e cetoacidose rebote imediata.';
+
+    return {
+      sucesso: true,
+      tipoCrise: tipoCrise,
+      gravidadeCad: gravidadeCad,
+      peso: peso,
+      glicemiaInicial: glicemia,
+      potassioInicial: potassio,
+      sodioMedido: sodioMedido,
+      sodioCorrigidoKatz: sodioCorrigido,
+      anionGap: anionGap,
+      osmolaridadeEfetiva: osmolaridadeEfetiva,
+      bloqueioInsulinaAtivo: bloqueioInsulinaAtivo,
+      alertasSentinela: alertasSentinela,
+      hidratacaoVenosa: condutaHidratacao,
+      potassioConduta: condutaPotassio,
+      insulinoterapiaConduta: condutaInsulina,
+      bicarbonatoConduta: condutaBicarbonato,
+      criteriosResolucao: criteriosResolucao,
+      protocoloTransicaoSc: protocoloTransicaoSc
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. AVALIAÇÃO INTEGRADA E FORMATAÇÃO UI (TELEGRAM & COCKPIT)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function formatarResumoDiabetes(resultado) {
+    if (!resultado) return 'Erro ao gerar resumo endocrinológico.';
+    var l = [];
+
+    if (resultado.tipoCrise) {
+      // Formatação de Emergência (CAD / EHH)
+      l.push('🚨 *PROTOCOLO DE EMERGÊNCIA HIPERGLICÊMICA (' + resultado.tipoCrise + ')*');
+      l.push('════════════════════════════════════════════');
+      l.push('⚖️ *Dados do Paciente:* ' + resultado.peso + ' kg | Glicemia: ' + resultado.glicemiaInicial + ' mg/dL');
+      l.push('🧪 *Biomarcadores:* K+ ' + resultado.potassioInicial + ' mEq/L | Na+ Corrigido ' + resultado.sodioCorrigidoKatz + ' mEq/L | Anion Gap ' + resultado.anionGap + ' | Osmolaridade ' + resultado.osmolaridadeEfetiva + ' mOsm/kg');
+      if (resultado.gravidadeCad !== 'N/A') {
+        l.push('📊 *Gravidade CAD:* ' + resultado.gravidadeCad);
+      }
+      l.push('');
+
+      if (resultado.alertasSentinela && resultado.alertasSentinela.length > 0) {
+        resultado.alertasSentinela.forEach(function(a) {
+          l.push(a);
+        });
+        l.push('');
+      }
+
+      l.push('💉 *1. INSULINOTERAPIA:*');
+      l.push(resultado.insulinoterapiaConduta);
+      l.push('');
+
+      l.push('🍌 *2. CONDUTA DE POTÁSSIO:*');
+      l.push(resultado.potassioConduta);
+      l.push('');
+
+      l.push('💧 *3. EXPANSÃO VOLÊMICA:*');
+      l.push(resultado.hidratacaoVenosa);
+      l.push('');
+
+      l.push('🧪 *4. BICARBONATO DE SÓDIO:*');
+      l.push(resultado.bicarbonatoConduta);
+      l.push('');
+
+      l.push('🎯 *5. CRITÉRIOS DE RESOLUÇÃO & TRANSIÇÃO:*');
+      l.push(resultado.criteriosResolucao);
+      l.push('💡 _' + resultado.protocoloTransicaoSc + '_');
+    } else if (resultado.tipoDm) {
+      // Formatação Ambulatorial Basal-Bolus
+      l.push('🩺 *PRESCRIÇÃO DE INSULINOTERAPIA AMBULATORIAL (' + resultado.tipoDm + ')*');
+      l.push('════════════════════════════════════════════');
+      l.push('⚖️ Peso: ' + resultado.peso + ' kg | Estratégia: ' + resultado.esquemaRecomendado);
+      if (resultado.doseTotalDia) {
+        l.push('📊 Dose Total Diária Estimada: ' + resultado.doseTotalDia + ' UI/dia');
+      }
+      l.push('');
+      l.push('💉 *Insulina Basal:*');
+      l.push('• ' + (resultado.basal.posologia || resultado.basal.tipo));
+      l.push('');
+
+      if (resultado.bolusPrandial) {
+        l.push('🍽️ *Insulina Prandial (Bolus):*');
+        l.push('• ' + resultado.bolusPrandial.posologiaFixa);
+        if (resultado.bolusPrandial.contagemCarboidratos) {
+          l.push('• ' + resultado.bolusPrandial.contagemCarboidratos.regraIcr);
+          l.push('• ' + resultado.bolusPrandial.contagemCarboidratos.regraFsi);
+        }
+        l.push('');
+      }
+
+      if (resultado.algoritmoTitulacao) {
+        l.push('📈 *Algoritmo de Titulação:*');
+        l.push('• ' + resultado.algoritmoTitulacao.instrucao);
+        l.push('');
+      }
+
+      if (resultado.alertasSeguranca && resultado.alertasSeguranca.length > 0) {
+        l.push('⚠️ *Alertas de Segurança Farmacológica:*');
+        resultado.alertasSeguranca.forEach(function(al) {
+          l.push('  ' + al);
+        });
+        l.push('');
+      }
+
+      l.push('📋 *Recomendações:* ' + resultado.orientacoes);
+    }
+
+    return l.join('\n');
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // EXPORTAÇÃO PÚBLICA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  return {
+    calcularInsulinaAmbulatorial: calcularInsulinaAmbulatorial,
+    protocoloCorrecaoHospitalar: protocoloCorrecaoHospitalar,
+    manejoCriseHiperglicemica: manejoCriseHiperglicemica,
+    formatarResumoDiabetes: formatarResumoDiabetes
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = EndocrinologiaDiabetesService;
+  module.exports.EndocrinologiaDiabetesService = EndocrinologiaDiabetesService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_ginecologia_ambulatorial.js
 // ==============================================================================
 
@@ -8828,6 +9257,188 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_hepatologia_hda.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: HEPATOLOGIA CLÍNICA E HEMORRAGIA DIGESTIVA ALTA (HDA)
+ * ==============================================================================
+ * Diretrizes Clínicas Oficiais:
+ *  - AASLD / EASL Guidelines for Management of Portal Hypertension and Variceal Bleeding
+ *  - Sociedade Brasileira de Hepatologia (SBH)
+ *
+ * PILARES CLÍNICOS DETERMINÍSTICOS:
+ *  1. Escore MELD / MELD-Na (Model for End-Stage Liver Disease) e Child-Pugh:
+ *     - Classificação de gravidade e ajuste posológico.
+ *  2. Protocolo Ágil de Manejo de HDA Varicosa:
+ *     - IBP IV Contínuo (Esomeprazol ou Pantoprazol: 80 mg bolus seguido de 8 mg/h contínuo).
+ *     - Fármacos vasoativos: Terlipressina (2 mg IV bolus 4/4h inicial) ou Octreotide (50 mcg bolus + 50 mcg/h).
+ *     - Profilaxia de PBE: Ceftriaxona 1g IV 1x/dia por 7 dias (máx).
+ *     - Restrição volêmica (alvo PAS 90-100 mmHg; HR < 100).
+ *     - Gatilhos transfusionais (alvo Hb 7-8 g/dL).
+ */
+
+const HepatologiaHdaService = (function() {
+
+  function calcularChildPugh(bilirrubina, albumina, inr, ascite, encefalopatia) {
+    let pontos = 0;
+    
+    // Bilirrubina (mg/dL)
+    if (bilirrubina < 2.0) pontos += 1;
+    else if (bilirrubina <= 3.0) pontos += 2;
+    else pontos += 3;
+
+    // Albumina (g/dL)
+    if (albumina > 3.5) pontos += 1;
+    else if (albumina >= 2.8) pontos += 2;
+    else pontos += 3;
+
+    // INR
+    if (inr < 1.7) pontos += 1;
+    else if (inr <= 2.2) pontos += 2;
+    else pontos += 3;
+
+    // Ascite (0=ausente, 1=leve/controlada, 2=moderada/tensa)
+    if (ascite === 0) pontos += 1;
+    else if (ascite === 1) pontos += 2;
+    else pontos += 3;
+
+    // Encefalopatia (0=ausente, 1=grau 1-2, 2=grau 3-4)
+    if (encefalopatia === 0) pontos += 1;
+    else if (encefalopatia === 1) pontos += 2;
+    else pontos += 3;
+
+    let classe = '';
+    let sobrevida1ano = '';
+    let sobrevida2anos = '';
+    if (pontos <= 6) { classe = 'A'; sobrevida1ano = '100%'; sobrevida2anos = '85%'; }
+    else if (pontos <= 9) { classe = 'B'; sobrevida1ano = '80%'; sobrevida2anos = '60%'; }
+    else { classe = 'C'; sobrevida1ano = '45%'; sobrevida2anos = '35%'; }
+
+    return { pontos, classe, sobrevida1ano, sobrevida2anos };
+  }
+
+  function calcularMeldNa(bilirrubina, inr, creatinina, sodio, dialise) {
+    // Limits
+    let cr = Math.max(1.0, creatinina);
+    if (cr > 4.0 || dialise) cr = 4.0;
+    
+    let bil = Math.max(1.0, bilirrubina);
+    let myInr = Math.max(1.0, inr);
+    
+    // Original MELD (UNOS formula)
+    let meldOriginal = (3.78 * Math.log(bil)) + (11.2 * Math.log(myInr)) + (9.57 * Math.log(cr)) + 6.43;
+    meldOriginal = Math.round(meldOriginal);
+    
+    if (meldOriginal < 11) {
+        return { meldOriginal: meldOriginal, meldNa: meldOriginal };
+    }
+
+    let na = sodio;
+    if (na < 125) na = 125;
+    if (na > 137) na = 137;
+
+    // MELD-Na formula
+    let meldNa = meldOriginal - na - (0.025 * meldOriginal * (140 - na)) + 140;
+    meldNa = Math.round(meldNa);
+
+    return { meldOriginal, meldNa };
+  }
+
+  function manejarHdaVaricosa(peso, estabilidadeHemodinamica, contraindicacaoTerlipressina) {
+    let t = [];
+    
+    t.push("💊 *Protocolo de HDA Varicosa (Hemorragia Digestiva Alta)*");
+    t.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    
+    // Ressuscitação e Metas
+    t.push("💧 *1. Ressuscitação e Metas Hemodinâmicas:*");
+    if (estabilidadeHemodinamica === false) {
+       t.push(" • Acesso venoso duplo e calibroso. Iniciar ressuscitação volêmica cuidadosa.");
+    }
+    t.push(" • **Restrição de Cristaloides:** Evitar sobrecarga (risco de rebote de hipertensão portal). Alvo de PAS 90-100 mmHg.");
+    t.push(" • **Transfusão Restritiva:** Transfundir CHAD apenas se Hb < 7 g/dL (alvo Hb 7 a 8 g/dL).");
+    t.push("");
+
+    // Fármaco Vasoativo
+    t.push("🩸 *2. Droga Vasoativa (Iniciar IMEDIATAMENTE, antes da EDA):*");
+    if (!contraindicacaoTerlipressina) {
+       let doseTerli = (peso && peso < 50) ? "1 mg" : "2 mg";
+       t.push(` • **Terlipressina:** ${doseTerli} IV em bolus a cada 4 horas (primeiras 24-48h).`);
+       t.push("   ↳ _Alerta:_ Monitorar isquemia miocárdica/periférica e hiponatremia.");
+    } else {
+       t.push(" • **Octreotide:** 50 mcg IV em bolus, seguido de infusão contínua de 50 mcg/h.");
+       t.push("   ↳ _(Indicado devido à contraindicação ou indisponibilidade de Terlipressina)_");
+    }
+    t.push("");
+
+    // Profilaxia Infecciosa
+    t.push("🦠 *3. Profilaxia para PBE (Peritonite Bacteriana Espontânea):*");
+    t.push(" • **Ceftriaxona:** 1g IV a cada 24 horas (máx 7 dias).");
+    t.push("   ↳ _Obrigatório em todo cirrótico com sangramento TGI, reduz mortalidade e ressangramento._");
+    t.push("");
+
+    // IBP
+    t.push("💊 *4. Supressão Ácida (IBP):*");
+    t.push(" • **Pantoprazol ou Esomeprazol:** 80 mg IV em bolus (2 ampolas).");
+    t.push(" • Seguida de infusão contínua de 8 mg/h por 72h (ou 40 mg IV de 12/12h se infusão não disponível).");
+    t.push("");
+
+    // EDA
+    t.push("🔬 *5. Endoscopia Digestiva Alta (EDA):*");
+    t.push(" • Deve ser realizada em **< 12 horas** da admissão.");
+    t.push(" • Considerar Eritromicina 250mg IV 30-120 min antes para esvaziamento gástrico (se disponível).");
+
+    return t.join("\n");
+  }
+
+  function avaliarHepatopatia(params) {
+    let p = params || {};
+    let t = [];
+    
+    if (p.bilirrubina !== undefined && p.albumina !== undefined && p.inr !== undefined && p.ascite !== undefined && p.encefalopatia !== undefined) {
+      const child = calcularChildPugh(p.bilirrubina, p.albumina, p.inr, p.ascite, p.encefalopatia);
+      t.push(`📊 *Escore de Child-Pugh:* ${child.pontos} pontos (Classe ${child.classe})`);
+      t.push(` • Sobrevida estimada: ${child.sobrevida1ano} (1 ano) / ${child.sobrevida2anos} (2 anos).`);
+      
+      if (child.classe === 'C') {
+         t.push(" ⚠️ *Atenção:* Insuficiência hepática grave. Ajustar rigorosamente doses de medicações de metabolismo hepático.");
+      }
+      t.push("");
+    }
+
+    if (p.bilirrubina !== undefined && p.inr !== undefined && p.creatinina !== undefined && p.sodio !== undefined) {
+      const meld = calcularMeldNa(p.bilirrubina, p.inr, p.creatinina, p.sodio, p.dialise || false);
+      t.push(`📈 *Escore MELD-Na:* ${meld.meldNa}`);
+      t.push(` • MELD Original: ${meld.meldOriginal}`);
+      t.push(` • Reflete a mortalidade em 3 meses e indica prioridade para transplante hepático.`);
+      t.push("");
+    }
+
+    if (p.hda) {
+      t.push(manejarHdaVaricosa(p.peso || 70, p.estabilidadeHemodinamica, p.contraindicacaoTerlipressina));
+    }
+
+    return t.join("\n").trim();
+  }
+
+  return {
+    calcularChildPugh: calcularChildPugh,
+    calcularMeldNa: calcularMeldNa,
+    manejarHdaVaricosa: manejarHdaVaricosa,
+    avaliarHepatopatia: avaliarHepatopatia
+  };
+
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = HepatologiaHdaService;
+  module.exports.HepatologiaHdaService = HepatologiaHdaService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_mecanica_pulmonar_sdra.js
 // ==============================================================================
 
@@ -9062,6 +9673,459 @@ var NefrologiaDheService = (function() {
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = NefrologiaDheService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_neurologia_avc.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: NEUROLOGIA DE EMERGÊNCIA E MANEJO DE AVC ISQUÊMICO AGUDO
+ * ==============================================================================
+ * Diretrizes Clínicas Oficiais:
+ *  - AHA/ASA Guidelines for the Early Management of Patients With Acute Ischemic Stroke (2019/2023 Update)
+ *  - Diretrizes Brasileiras para Tratamento da Fase Aguda do AVC Isquêmico (SBDCV / ABN / Ministério da Saúde)
+ *  - Protocolo Clínico de Trombólise e Trombectomia Mecânica (CONITEC)
+ *  - Neurocritical Care Society Guidelines for the Management of Cerebral Edema & Elevated ICP
+ *
+ * PILARES CLÍNICOS DETERMINÍSTICOS:
+ *  1. Checklist Inteligente de Elegibilidade e Contraindicações para Trombólise IV:
+ *     - Janela terapêutica estrita até 4.5 horas (critérios NINDS < 3h e critérios estendidos ECASS III 3-4.5h).
+ *     - Exclusão obrigatória de mímicos: Glicemia capilar imediata (bloqueio se < 50 mg/dL).
+ *     - Contraindicações absolutas: Hemorragia intracraniana prévia, TCE grave ou cirurgia de SNC < 3 meses,
+ *       AVC prévio < 3 meses, sangramento ativo, neoplasia intra-axial, coagulopatia (plaquetas < 100k, INR > 1.7,
+ *       TTPa alargado, DOACs < 48h) e PA refratária >= 185/110 mmHg.
+ *     - Cálculo determinístico de Alteplase (0.9 mg/kg, máx 90 mg; 10% bolus em 1 min, 90% infusão em 60 min).
+ *     - Cálculo alternativo de Tenecteplase (0.25 mg/kg bolus único IV, máx 25 mg).
+ *  2. Protocolo Restritivo de Controle Pressórico (Pré e Pós-trombólise):
+ *     - Pré-trombólise: Alvo PAS < 185 mmHg e PAD < 110 mmHg antes de iniciar infusão.
+ *     - Pós-trombólise (primeiras 24h): Alvo PAS < 180 mmHg e PAD < 105 mmHg com monitorização intensiva
+ *       (a cada 15 min nas primeiras 2h; 30 min das 2-8h; 60 min das 8-24h).
+ *     - Linhas terapêuticas: Labetalol, Nitroprussiato de Sódio, Metoprolol, Hidralazina.
+ *     - Pacientes não trombolisados: Hipertensão permissiva (manter PA até 220/120 mmHg; redução máx de 15% em 24h).
+ *  3. Hipertensão Intracraniana (HIC) e Edema Cerebral Maligno:
+ *     - Osmoterapia determinística: Manitol 20% (0.5 a 1.0 g/kg = 2.5 a 5.0 mL/kg) com teto osmolar < 320 mOsm/L.
+ *     - Salina Hipertônica 3% (bolus 250 a 500 mL ou 2 a 5 mL/kg; contínua 0.5-1.5 mL/kg/h) com teto Na < 155-160 mEq/L.
+ *     - Salina Hipertônica 20% (bolus de resgate 50 a 100 mL ou ~1 mL/kg em herniação iminente).
+ *     - Fórmula prática de preparo da Salina 3% beira-leito.
+ *     - Cálculo de osmolaridade sérica calculada quando fornecidos Na+, Glicemia e Ureia.
+ *     - Neuroproteção intensiva: cabeceira 30º, normotermia, normoglicemia, contraindicação formal de SG 5% e
+ *       gatilho de Craniectomia Descompressiva precoce (< 48h) em infarto maligno de ACM.
+ * ==============================================================================
+ */
+
+var NeurologiaAvcService = (function() {
+  'use strict';
+
+  /**
+   * Avalia a elegibilidade para trombólise intravenosa e estratifica riscos.
+   * @param {Object} params
+   */
+  function avaliarTrombolise(params) {
+    params = params || {};
+    var idade = params.idade;
+    var tempoSintomasHoras = params.tempoSintomasHoras !== undefined ? Number(params.tempoSintomasHoras) : undefined;
+    var pesoKg = params.pesoKg !== undefined ? Number(params.pesoKg) : undefined;
+    var pas = params.pas !== undefined ? Number(params.pas) : undefined;
+    var pad = params.pad !== undefined ? Number(params.pad) : undefined;
+    var glicemia = params.glicemia !== undefined ? Number(params.glicemia) : undefined;
+    var plaquetas = params.plaquetas !== undefined ? Number(params.plaquetas) : undefined;
+    var inr = params.inr !== undefined ? Number(params.inr) : undefined;
+    var ttpa = params.ttpa !== undefined ? Number(params.ttpa) : undefined;
+    var nihss = params.nihss !== undefined ? Number(params.nihss) : undefined;
+
+    if (idade === undefined || tempoSintomasHoras === undefined) {
+      throw new Error("Idade e tempo de início dos sintomas (horas) são obrigatórios.");
+    }
+
+    var contraAbsolutas = Array.isArray(params.contraAbsolutas) ? params.contraAbsolutas.slice() : [];
+    var contraRelativas = Array.isArray(params.contraRelativas) ? params.contraRelativas.slice() : [];
+    var alertasClinicos = [];
+
+    // 1. Verificação de Glicemia (Mímico de AVC)
+    if (glicemia !== undefined) {
+      if (glicemia < 50) {
+        contraAbsolutas.push("Hipoglicemia (< 50 mg/dL): mímico frequente de déficit neurológico focal (Stroke Mimic). Administrar 40 mL de Glicose 50% IV imediata e reavaliar persistência do déficit.");
+      } else if (glicemia > 400) {
+        contraRelativas.push("Hiperglicemia acentuada (> 400 mg/dL): risco aumentado de lesão de reperfusão; iniciar controle glicêmico com insulina venosa.");
+      }
+    }
+
+    // 2. Verificação de Coagulograma e Laboratório
+    if (plaquetas !== undefined && plaquetas < 100000) {
+      contraAbsolutas.push("Plaquetopenia grave (< 100.000/mm³)");
+    }
+    if (inr !== undefined && inr > 1.7) {
+      contraAbsolutas.push("Coagulopatia com INR > 1.7");
+    }
+    if (ttpa !== undefined && ttpa > 40) {
+      contraAbsolutas.push("TTPa alargado (> 40s) / uso recente de heparina");
+    }
+    if (params.usoDoacUltimas48h || params.usoAnticoagulanteOral) {
+      contraAbsolutas.push("Uso recente de Anticoagulante Oral de Ação Direta (DOAC) nas últimas 48h (exceto se Dabigatrana com reversão prévia por Idarucizumabe)");
+    }
+    if (params.hemorragiaIntracranianaPrevia) {
+      contraAbsolutas.push("Histórico prévio de hemorragia intracraniana (qualquer época)");
+    }
+    if (params.avcIsquemicoUltimos3Meses) {
+      contraAbsolutas.push("AVC isquêmico recente nos últimos 3 meses");
+    }
+    if (params.tceGraveUltimos3Meses) {
+      contraAbsolutas.push("Traumatismo cranioencefálico grave ou cirurgia de SNC nos últimos 3 meses");
+    }
+    if (params.sangramentoAtivo) {
+      contraAbsolutas.push("Hemorragia interna ativa ou sangramento gastrointestinal recente (< 21 dias)");
+    }
+    if (params.neoplasiaIntracranianaOuMav) {
+      contraAbsolutas.push("Neoplasia intracraniana intra-axial, MAV ou aneurisma não tratado");
+    }
+    if (params.suspeitaDisseccaoAorta) {
+      contraAbsolutas.push("Suspeita clínica ou diagnóstica de Dissecção Aguda de Aorta");
+    }
+    if (params.endocarditeInfecciosa) {
+      contraAbsolutas.push("Endocardite infecciosa ativa");
+    }
+
+    // 3. Verificação de Pressão Arterial
+    var paDescontrolada = false;
+    if (pas !== undefined && pad !== undefined) {
+      if (pas >= 185 || pad >= 110) {
+        paDescontrolada = true;
+        alertasClinicos.push(`⚠️ Pressão arterial elevada (${pas}/${pad} mmHg): Obrigatório controle rigoroso para PAS < 185 e PAD < 110 mmHg ANTES de iniciar o trombolítico.`);
+      }
+    }
+
+    // 4. Verificação de Janela de Tempo e Elegibilidade
+    var elegivel = false;
+    var mensagem = "";
+    var posologiaAlteplase = null;
+    var posologiaTenecteplase = null;
+    var janela = "";
+
+    if (tempoSintomasHoras > 4.5) {
+      janela = "fora_da_janela";
+      mensagem = "Trombólise IV contraindicada (Janela terapêutica > 4.5 horas). Avaliar Trombectomia Mecânica se oclusão de grande vaso e janela até 24h (DAWN/DEFUSE-3).";
+      if (tempoSintomasHoras <= 9.0 || params.wakeUpStroke) {
+        alertasClinicos.push("💡 Janela Estendida / Wake-up Stroke (4.5 a 9h): Considerar trombólise orientada por neuroimagem avançada (mismatch DWI-FLAIR na RM ou perfusão por TC/RM conforme trials WAKE-UP e EXTEND).");
+      }
+    } else if (contraAbsolutas.length > 0) {
+      janela = tempoSintomasHoras <= 3.0 ? "0_a_3h" : "3_a_4.5h";
+      mensagem = "Trombólise IV contraindicada devido a contraindicações absolutas: " + contraAbsolutas.join(", ");
+    } else {
+      if (tempoSintomasHoras > 3.0 && tempoSintomasHoras <= 4.5) {
+        janela = "3_a_4.5h";
+        // Critérios adicionais para 3 a 4.5h (ECASS III)
+        var criteriosExclusao45 = [];
+        if (idade > 80) criteriosExclusao45.push("Idade > 80 anos");
+        if (params.usoAnticoagulanteOral) criteriosExclusao45.push("Uso de anticoagulante oral (qualquer RNI)");
+        if (nihss !== undefined && nihss > 25) criteriosExclusao45.push("AVC grave (NIHSS > 25)");
+        if (params.historicoAvcEDiabetes) criteriosExclusao45.push("Histórico prévio de AVC e Diabetes");
+
+        if (criteriosExclusao45.length > 0) {
+          mensagem = "Trombólise IV contraindicada na janela de 3-4.5h devido a: " + criteriosExclusao45.join(", ");
+        } else {
+          elegivel = true;
+        }
+      } else {
+        janela = "0_a_3h";
+        elegivel = true;
+      }
+    }
+
+    // Contraindicações relativas adicionais
+    if (params.cirurgiaGrandePorteUltimos14Dias) {
+      contraRelativas.push("Cirurgia de grande porte ou trauma grave nos últimos 14 dias");
+    }
+    if (params.puncaoArterialNaoCompressivelUltimos7Dias) {
+      contraRelativas.push("Punção arterial em sítio não compressível nos últimos 7 dias");
+    }
+    if (params.criseConvulsivaNoIctus) {
+      contraRelativas.push("Crise convulsiva no ictus (avaliar paralisia pós-ictal de Todd)");
+    }
+    if (params.gestante) {
+      contraRelativas.push("Gestação em curso (avaliar risco materno-fetal individualizado)");
+    }
+
+    if (elegivel) {
+      mensagem = "Paciente ELEGÍVEL para Trombólise IV (Alteplase) na janela de até 4.5h.";
+      if (contraRelativas.length > 0) {
+        mensagem += " ATENÇÃO: Avaliar risco/benefício devido a contraindicações relativas: " + contraRelativas.join(", ");
+      }
+
+      if (pesoKg && pesoKg > 0) {
+        // Cálculo Alteplase (Actilyse): 0.9 mg/kg, máx 90 mg
+        var maxPesoAlteplase = Math.min(pesoKg, 100);
+        var doseTotalAlteplase = (maxPesoAlteplase * 0.9).toFixed(1);
+        var bolusAlteplase = (doseTotalAlteplase * 0.1).toFixed(1);
+        var infusaoAlteplase = (doseTotalAlteplase * 0.9).toFixed(1);
+        posologiaAlteplase = `Alteplase (0,9 mg/kg, máx 90 mg). Dose Total: ${doseTotalAlteplase} mg. Bolus IV (10%): ${bolusAlteplase} mg em 1 minuto. Infusão IV (90%): ${infusaoAlteplase} mg em 60 minutos.`;
+
+        // Cálculo Tenecteplase (Metalyse / TNK): 0.25 mg/kg em bolus único, máx 25 mg
+        var maxPesoTnk = Math.min(pesoKg, 100);
+        var doseTotalTnk = Math.min(maxPesoTnk * 0.25, 25.0).toFixed(1);
+        posologiaTenecteplase = `Tenecteplase (0,25 mg/kg, máx 25 mg). Dose Única: ${doseTotalTnk} mg em bolus IV direto durante 5 a 10 segundos.`;
+      }
+    }
+
+    // Protocolo de Controle Pressórico Específico
+    var pa = {
+      alvoPreTrombolise: "PA < 185/110 mmHg antes de iniciar Alteplase.",
+      alvoPosTrombolise: "PA < 180/105 mmHg nas primeiras 24 horas pós-trombólise.",
+      manejo: "Se PA elevada, usar Labetalol 10-20 mg IV (1 a 2 min), repetido 1x se necessário. Como alternativa ou se refratário: Nitroprussiato de Sódio IV (0.5 a 10 mcg/kg/min). Evitar nifedipina sublingual.",
+      semTrombolise: "Se NÃO for trombolisar, tolerar PA até 220/120 mmHg nas primeiras 24-48h (hipertensão permissiva). Reduzir apenas 15% nas primeiras 24h.",
+      monitorizacaoPosTrombolise: [
+        "A cada 15 minutos nas primeiras 2 horas;",
+        "A cada 30 minutos das 2h às 8h;",
+        "A cada 60 minutos das 8h às 24h pós-trombólise."
+      ],
+      drogasAntiHipertensivas: [
+        {
+          medicamento: "Labetalol",
+          posologia: "10 a 20 mg IV em 1-2 minutos; pode repetir 1x em 10-20 minutos (dose máx cumulativa 300 mg) ou iniciar infusão 2-8 mg/min."
+        },
+        {
+          medicamento: "Nitroprussiato de Sódio (Nipride)",
+          posologia: "0,5 a 10 mcg/kg/min IV contínuo em bomba de infusão, titulado a cada 5 minutos com monitorização invasiva de PA (PAM)."
+        },
+        {
+          medicamento: "Metoprolol",
+          posologia: "5 mg IV em 2 minutos, pode repetir a cada 5-10 minutos até 15-20 mg se FC > 60 bpm (alternativa frequente no Brasil se Labetalol indisponível)."
+        },
+        {
+          medicamento: "Hidralazina",
+          posologia: "10 a 20 mg IV lenta a cada 4 a 6 horas (se contraindicação a betabloqueadores e nitroprussiato)."
+        }
+      ],
+      alertaConversaoHemorragica: "⛔ Se surgirem cefaleia súbita grave, náuseas/vômitos, hipertensão aguda refratária ou piora neurológica (aumento >= 4 pontos no NIHSS): SUSPENDER IMEDIATAMENTE a infusão de trombolítico, solicitar TC de crânio urgente e colher coagulograma."
+    };
+
+    return {
+      elegibilidade: {
+        elegivel: elegivel,
+        janela: janela,
+        tempoSintomasHoras: tempoSintomasHoras,
+        mensagem: mensagem,
+        posologiaAlteplase: posologiaAlteplase,
+        posologiaTenecteplase: posologiaTenecteplase,
+        contraindicacoesAbsolutas: contraAbsolutas,
+        contraindicacoesRelativas: contraRelativas,
+        paDescontrolada: paDescontrolada,
+        alertasClinicos: alertasClinicos
+      },
+      controlePressao: pa
+    };
+  }
+
+  /**
+   * Calcula parâmetros e posologias determinísticas para Hipertensão Intracraniana (HIC)
+   * e edema cerebral maligno no AVC isquêmico agudo.
+   * @param {Object} params
+   */
+  function calcularHic(params) {
+    params = params || {};
+    var peso = params.pesoKg !== undefined ? Number(params.pesoKg) : undefined;
+    if (!peso || peso <= 0) {
+      throw new Error("Peso (kg) obrigatório para cálculos de HIC.");
+    }
+
+    var sodio = params.sodio !== undefined ? Number(params.sodio) : undefined;
+    var glicemia = params.glicemia !== undefined ? Number(params.glicemia) : undefined;
+    var ureia = params.ureia !== undefined ? Number(params.ureia) : undefined;
+    var osmolaridadeMedida = params.osmolaridadeMedida !== undefined ? Number(params.osmolaridadeMedida) : undefined;
+
+    // 1. Manitol 20% - 0.5 a 1.0 g/kg (Solução a 20% = 0.2 g/mL)
+    var doseManitolG = (peso * 0.5).toFixed(1) + " a " + (peso * 1.0).toFixed(1);
+    var volumeManitolMl = (peso * (0.5 / 0.2)).toFixed(0) + " a " + (peso * (1.0 / 0.2)).toFixed(0);
+
+    // Manutenção Manitol: 0.25 a 0.5 g/kg a cada 4 a 6 horas
+    var volManutencaoManitol = (peso * (0.25 / 0.2)).toFixed(0) + " a " + (peso * (0.5 / 0.2)).toFixed(0);
+
+    // 2. Salina Hipertônica 3% (3 a 5 mL/kg em bolus ou infusão 0.5-1.5 mL/kg/h)
+    var doseSalina3Ml = (peso * 3).toFixed(0);
+    var faixaSalina3Ml = (peso * 2).toFixed(0) + " a " + (peso * 5).toFixed(0) + " mL";
+    var infusaoContinuaSalina3 = (peso * 0.5).toFixed(1) + " a " + (peso * 1.5).toFixed(1) + " mL/h";
+
+    // 3. Salina Hipertônica 20% (1 mL/kg bolus em emergência extrema/herniação iminente)
+    var doseSalina20Ml = peso.toFixed(0);
+
+    // 4. Osmolaridade Sérica Estimada
+    var osmolaridadeCalculada = null;
+    var alertaOsmolaridade = [];
+    if (sodio !== undefined) {
+      var termoGli = glicemia !== undefined ? (glicemia / 18) : 5.5; // ~100 mg/dL basal
+      var termoUr = ureia !== undefined ? (ureia / 6) : 6.6; // ~40 mg/dL basal
+      osmolaridadeCalculada = Number((2 * sodio + termoGli + termoUr).toFixed(1));
+
+      if (osmolaridadeCalculada >= 320) {
+        alertaOsmolaridade.push(`⛔ TETO OSMOLAR ATINGIDO: Osmolaridade calculada (${osmolaridadeCalculada} mOsm/L) >= 320 mOsm/L. Suspender Manitol para evitar lesão renal aguda e efeito rebote; preferir Salina Hipertônica se sódio permitir.`);
+      }
+      if (sodio >= 155) {
+        alertaOsmolaridade.push(`⛔ TETO DE SÓDIO ATINGIDO: Sódio sérico (${sodio} mEq/L) >= 155 mEq/L. Suspender ou reduzir infusão de Salina Hipertônica.`);
+      }
+    }
+
+    if (osmolaridadeMedida && osmolaridadeCalculada) {
+      var osmGap = Number((osmolaridadeMedida - osmolaridadeCalculada).toFixed(1));
+      if (osmGap > 20) {
+        alertaOsmolaridade.push(`⚠️ Osmolar Gap elevado (${osmGap} mOsm/kg): acúmulo osmolar significativo de manitol; pausar doses.`);
+      }
+    }
+
+    // 5. Receita de Preparo Beira-Leito de Salina 3%
+    var receitaPreparoSalina3 = {
+      frasco500: "Para preparar 500 mL de Salina 3%: Misturar 445 mL de SF 0,9% + 55 mL de NaCl 20%.",
+      frasco1000: "Para preparar 1000 mL de Salina 3%: Misturar 890 mL de SF 0,9% + 110 mL de NaCl 20%."
+    };
+
+    var alertasNeuroprotecao = [
+      "Manter cabeceira elevada a 30 graus e cabeça alinhada em posição neutra para otimizar drenagem venosa jugular.",
+      "Evitar compressão de veias jugulares (colar cervical frouxo, evitar rotação do pescoço).",
+      "CONTRAINDICAÇÃO FORMAL de soluções hipotônicas (ex: Soro Glicosado 5% ou Salina 0,45%), pois agravam criticamente o edema cerebral citotóxico e vasogênico.",
+      "Controle térmico estrito: manter normotermia (< 37,5°C) com antipiréticos e medidas físicas; cada aumento de 1°C eleva o metabolismo e consumo cerebral de O2.",
+      "Alvo glicêmico: 140 a 180 mg/dL. Evitar hipoglicemia e hiperglicemia acentuada.",
+      "Ventilação protetora: alvo de PaCO2 entre 35 e 40 mmHg (normocarbia). Hiperventilação temporária (PaCO2 30-35 mmHg) permitida apenas como medida de ponte de resgate imediato em sinais de herniação uncal iminente.",
+      "Alerta de Craniectomia Descompressiva: Em AVC isquêmico maligno de artéria cerebral média (> 50% do território com deterioração neurológica em < 48h, especialmente idade < 60 anos), acionar Neurocirurgia precocemente."
+    ];
+
+    return {
+      pesoKg: peso,
+      manitol20: {
+        doseGramas: doseManitolG + " g",
+        volumeMl: volumeManitolMl + " mL",
+        posologia: `Ataque: ${volumeManitolMl} mL IV em 20 a 30 minutos. Manutenção: ${volManutencaoManitol} mL IV 4/4h a 6/6h.`,
+        alerta: "Infundir em 20-30 min. Contraindicado em instabilidade hemodinâmica, edema pulmonar ou anúria. Monitorar osmolaridade sérica (alvo < 320 mOsm/L)."
+      },
+      salinaHipertonica3: {
+        volumeMl: doseSalina3Ml + " mL",
+        faixaBolus: faixaSalina3Ml,
+        infusaoContinua: infusaoContinuaSalina3,
+        posologia: "IV em 20-30 min",
+        preparo: receitaPreparoSalina3,
+        alerta: "Indicado para pacientes com HIC, preferível ao manitol se choque associado. Monitorar Na+ sérico de 6/6h (teto de segurança <= 155-160 mEq/L)."
+      },
+      salinaHipertonica20: {
+        volumeMl: doseSalina20Ml + " mL",
+        posologia: "IV em bolus (central preferencial)",
+        alerta: "Terapia de resgate para HIC severa (herniação iminente)."
+      },
+      osmolaridadeCalculada: osmolaridadeCalculada,
+      alertasOsmolares: alertaOsmolaridade,
+      alertaGeral: "Manter cabeceira elevada a 30 graus, colar cervical frouxo, normocarbia (pCO2 35-40), e evitar hipertermia/hiponatremia.",
+      medidasNeuroprotecao: alertasNeuroprotecao
+    };
+  }
+
+  /**
+   * Gera laudo / resumo formatado em Markdown para Telegram e Cockpit.
+   * @param {Object} resultado
+   */
+  function formatarResumoAvc(resultado) {
+    if (!resultado) return "⚠️ Sem dados para exibição do protocolo de AVC.";
+    var t = [];
+
+    if (resultado.elegibilidade) {
+      var e = resultado.elegibilidade;
+      t.push("🧠 *MANEJO DE AVC ISQUÊMICO AGUDO & TROMBÓLISE*");
+      t.push("════════════════════════════════════════════");
+      t.push(`• Status: *${e.elegivel ? "✅ ELEGÍVEL PARA TROMBÓLISE" : "⛔ CONTRAINDICADO PARA TROMBÓLISE IV"}*`);
+      t.push(`• Janela Informada: *${e.tempoSintomasHoras}h* (Janela: ${e.janela})`);
+      t.push(`• Conclusão: ${e.mensagem}`);
+      t.push("");
+
+      if (e.posologiaAlteplase) {
+        t.push("💉 *POSOLOGIA DE ALTEPLASE (rtPA):*");
+        t.push(`👉 ${e.posologiaAlteplase}`);
+        t.push("");
+      }
+
+      if (e.posologiaTenecteplase) {
+        t.push("💉 *ALTERNATIVA: TENECTEPLASE (TNK):*");
+        t.push(`👉 ${e.posologiaTenecteplase}`);
+        t.push("");
+      }
+
+      if (e.contraindicacoesAbsolutas && e.contraindicacoesAbsolutas.length > 0) {
+        t.push("🚫 *Contraindicações Absolutas:*");
+        e.contraindicacoesAbsolutas.forEach(function(c) {
+          t.push(` • ${c}`);
+        });
+        t.push("");
+      }
+
+      if (e.contraindicacoesRelativas && e.contraindicacoesRelativas.length > 0) {
+        t.push("⚠️ *Contraindicações Relativas / Cautelas:*");
+        e.contraindicacoesRelativas.forEach(function(c) {
+          t.push(` • ${c}`);
+        });
+        t.push("");
+      }
+    }
+
+    if (resultado.controlePressao) {
+      var cp = resultado.controlePressao;
+      t.push("🩸 *CONTROLE DA PRESSÃO ARTERIAL:*");
+      t.push(`• *Pré-trombólise:* ${cp.alvoPreTrombolise}`);
+      t.push(`• *Pós-trombólise (24h):* ${cp.alvoPosTrombolise}`);
+      t.push(`• *Não-trombolisados:* ${cp.semTrombolise}`);
+      t.push(`• *Conduta Farmacológica:* ${cp.manejo}`);
+      t.push("");
+      t.push("⏱️ *Monitorização Intensiva de PA Pós-trombólise:*");
+      cp.monitorizacaoPosTrombolise.forEach(function(m) {
+        t.push(` • ${m}`);
+      });
+      t.push("");
+      t.push(`💡 _${cp.alertaConversaoHemorragica}_`);
+      t.push("");
+    }
+
+    if (resultado.manitol20 && resultado.salinaHipertonica3) {
+      t.push("💧 *MANEJO DE HIPERTENSÃO INTRACRANIANA (HIC):*");
+      t.push("════════════════════════════════════════════");
+      t.push(`• *Manitol 20%:* ${resultado.manitol20.volumeMl} (${resultado.manitol20.doseGramas}) em 20-30 min`);
+      t.push(`  ↳ _${resultado.manitol20.alerta}_`);
+      t.push(`• *Salina 3%:* Bolus de ${resultado.salinaHipertonica3.volumeMl} (faixa: ${resultado.salinaHipertonica3.faixaBolus}) ou contínua ${resultado.salinaHipertonica3.infusaoContinua}`);
+      t.push(`  ↳ _${resultado.salinaHipertonica3.alerta}_`);
+      t.push(`• *Salina 20% (Resgate de Herniação):* ${resultado.salinaHipertonica20.volumeMl} em bolus rápido IV`);
+      t.push("");
+
+      if (resultado.salinaHipertonica3.preparo) {
+        t.push("🧪 *Preparo de Salina 3% Beira-Leito:*");
+        t.push(` • ${resultado.salinaHipertonica3.preparo.frasco500}`);
+        t.push(` • ${resultado.salinaHipertonica3.preparo.frasco1000}`);
+        t.push("");
+      }
+
+      if (resultado.osmolaridadeCalculada) {
+        t.push(`🔬 *Osmolaridade Sérica Estimada:* ${resultado.osmolaridadeCalculada} mOsm/L (alvo seguro < 320 mOsm/L)`);
+      }
+
+      if (resultado.alertasOsmolares && resultado.alertasOsmolares.length > 0) {
+        resultado.alertasOsmolares.forEach(function(a) {
+          t.push(` ${a}`);
+        });
+        t.push("");
+      }
+
+      t.push("🛡️ *Neuroproteção Sistêmica:*");
+      t.push(` • ${resultado.alertaGeral}`);
+    }
+
+    return t.join("\n");
+  }
+
+  return {
+    avaliarTrombolise: avaliarTrombolise,
+    calcularHic: calcularHic,
+    formatarResumoAvc: formatarResumoAvc
+  };
+
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = NeurologiaAvcService;
+  module.exports.NeurologiaAvcService = NeurologiaAvcService;
 }
 
 
@@ -10356,6 +11420,421 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_oncologia_basica.js
+// ==============================================================================
+
+class OncologiaBasicaService {
+  /**
+   * Avalia as indicações de rastreamento oncológico (INCA 2026) baseadas no perfil do paciente.
+   * @param {Object} perfil 
+   * @param {number} perfil.idade
+   * @param {string} perfil.sexo - 'F' ou 'M'
+   * @param {number} [perfil.carga_tabagica=0] - anos-maço
+   * @param {number} [perfil.anos_abstinecia_fumo=0]
+   * @param {boolean} [perfil.alto_risco_mama=false]
+   * @param {boolean} [perfil.alto_risco_colon=false]
+   * @param {boolean} [perfil.raca_negra=false]
+   * @param {boolean} [perfil.alto_risco_prostata=false]
+   * @returns {Object} Recomendações de rastreio
+   */
+  static avaliarRastreamento(perfil) {
+    const recomendacoes = {};
+
+    // 1. Câncer de Mama (Apenas para sexo feminino)
+    if (perfil.sexo === 'F') {
+      if (perfil.alto_risco_mama) {
+        recomendacoes.mama = {
+          indicado: true,
+          conduta: "Mamografia anual recomendada a partir dos 35-40 anos devido ao alto risco (ex: parente de 1º grau com CA de mama < 50 anos).",
+          aviso: "Considerar avaliação genética (BRCA1/2) e RM de mamas."
+        };
+      } else if (perfil.idade >= 50 && perfil.idade <= 69) {
+        recomendacoes.mama = {
+          indicado: true,
+          conduta: "Mamografia de rastreamento a cada 2 anos (INCA).",
+          aviso: "Exame Clínico das Mamas (ECM) anual é recomendado."
+        };
+      } else {
+        recomendacoes.mama = {
+          indicado: false,
+          conduta: "Rastreamento mamográfico sistemático não indicado nesta faixa etária para risco habitual.",
+          aviso: "Orientar autoconhecimento das mamas e buscar UBS se notar alterações."
+        };
+      }
+    }
+
+    // 2. Câncer de Cólon e Reto
+    if (perfil.alto_risco_colon) {
+      const inicio = Math.max(40, perfil.idade); // simplificacao, o ideal seria 10a antes do familiar
+      recomendacoes.colon = {
+        indicado: true,
+        conduta: "Colonoscopia recomendada a partir dos 40 anos ou 10 anos antes do familiar mais jovem com CA colorretal.",
+        aviso: "Repetir conforme achados (a cada 3-5 anos se pólipos, ou 5-10 anos se normal)."
+      };
+    } else if (perfil.idade >= 50 && perfil.idade <= 75) {
+      recomendacoes.colon = {
+        indicado: true,
+        conduta: "Pesquisa de Sangue Oculto nas Fezes (FIT) anual OU Colonoscopia a cada 10 anos.",
+        aviso: "Se FIT positivo, a colonoscopia é obrigatória para investigação."
+      };
+    } else {
+      recomendacoes.colon = {
+        indicado: false,
+        conduta: "Rastreamento não indicado de rotina para esta faixa etária em risco habitual.",
+        aviso: ""
+      };
+    }
+
+    // 3. Câncer de Próstata (Apenas para sexo masculino)
+    if (perfil.sexo === 'M') {
+      if (perfil.idade >= 50 || (perfil.idade >= 45 && (perfil.raca_negra || perfil.alto_risco_prostata))) {
+        recomendacoes.prostata = {
+          indicado: true,
+          conduta: "Decisão compartilhada: O INCA não recomenda rastreio populacional, mas a SBU recomenda discutir os riscos/benefícios do toque retal + PSA a partir dos 50 anos (45a se negro ou HF positiva).",
+          aviso: "Alertar paciente sobre riscos de sobrediagnóstico e falsos-positivos."
+        };
+      } else {
+        recomendacoes.prostata = {
+          indicado: false,
+          conduta: "Não há indicação de rastreio para esta idade.",
+          aviso: ""
+        };
+      }
+    }
+
+    // 4. Câncer de Pulmão
+    const tabagista_ativo = perfil.carga_tabagica > 0 && perfil.anos_abstinecia_fumo === 0;
+    const ex_tabagista_recente = perfil.carga_tabagica > 0 && perfil.anos_abstinecia_fumo > 0 && perfil.anos_abstinecia_fumo <= 15;
+    
+    if (perfil.idade >= 50 && perfil.idade <= 80 && perfil.carga_tabagica >= 20 && (tabagista_ativo || ex_tabagista_recente)) {
+      recomendacoes.pulmao = {
+        indicado: true,
+        conduta: "Tomografia Computadorizada de Tórax de Baixa Dose (LDCT) anual.",
+        aviso: "Estimular fortemente a cessação do tabagismo como medida principal de prevenção."
+      };
+    } else {
+      recomendacoes.pulmao = {
+        indicado: false,
+        conduta: "Critérios para rastreamento com LDCT não preenchidos.",
+        aviso: "Prevenção primária: não fumar."
+      };
+    }
+
+    return recomendacoes;
+  }
+
+  /**
+   * Fornece conduta baseada na classificação BI-RADS mamográfica ou ultrassonográfica.
+   * @param {string|number} birads - Classe BI-RADS (0 a 6)
+   * @returns {Object} Conduta recomendada
+   */
+  static condutaBiRads(birads) {
+    const classificacoes = {
+      "0": {
+        categoria: "Incompleta",
+        risco_malignidade: "N/A",
+        conduta: "Exames de imagem adicionais necessários (ex: incidências extras, compressão focal, magnificação, ou ultrassonografia) e/ou comparação com exames anteriores."
+      },
+      "1": {
+        categoria: "Negativa",
+        risco_malignidade: "0%",
+        conduta: "Rotina de rastreamento conforme faixa etária e risco."
+      },
+      "2": {
+        categoria: "Achados benignos",
+        risco_malignidade: "0%",
+        conduta: "Rotina de rastreamento conforme faixa etária e risco. (Ex: cistos simples, linfonodos intramamários, calcificações vasculares/grosseiras)."
+      },
+      "3": {
+        categoria: "Provavelmente benigna",
+        risco_malignidade: "< 2%",
+        conduta: "Controle em intervalo curto (geralmente em 6 meses, depois a cada ano por 2 a 3 anos). Se estabilidade, reclassificar para BI-RADS 2."
+      },
+      "4": {
+        categoria: "Suspeita de malignidade (A/B/C)",
+        risco_malignidade: "2% a 95%",
+        conduta: "Biópsia tecidual recomendada (Core biopsy ou Mamotomia). Avaliação com Mastologista indicada."
+      },
+      "5": {
+        categoria: "Altamente suspeita de malignidade",
+        risco_malignidade: ">= 95%",
+        conduta: "Biópsia tecidual imediata mandatória e encaminhamento urgente para Mastologia/Oncologia."
+      },
+      "6": {
+        categoria: "Malignidade comprovada (Biópsia prévia)",
+        risco_malignidade: "100%",
+        conduta: "Tratamento cirúrgico e/ou oncológico apropriado (Quimioterapia neoadjuvante, cirurgia, radioterapia)."
+      }
+    };
+
+    // Extrair o número principal caso seja 4A, 4B, etc.
+    const grau = String(birads).toUpperCase().replace(/[^0-6]/g, '')[0];
+    
+    if (!grau || !classificacoes[grau]) {
+      throw new Error("Classificação BI-RADS inválida. Informe um valor de 0 a 6.");
+    }
+
+    return classificacoes[grau];
+  }
+
+  /**
+   * Fornece recomendações para manejo de efeitos adversos oncológicos na Atenção Primária.
+   * @param {string} efeito - 'neutropenia_febril', 'mucosite', 'dor_oncologica'
+   * @param {Object} [parametros]
+   * @returns {Object}
+   */
+  static manejoEfeitoAdverso(efeito, parametros = {}) {
+    if (efeito === 'neutropenia_febril') {
+      const mascc = parametros.mascc !== undefined ? parametros.mascc : null;
+      return {
+        condicao: "Neutropenia Febril",
+        definicao: "Temperatura >= 38.3°C ou >= 38.0°C por 1h COM neutrófilos < 500/mm³ (ou expectativa de queda).",
+        conduta_aps: "Emergência oncológica. Na APS, a prioridade é o reconhecimento e referenciamento rápido.",
+        detalhes: mascc >= 21 
+          ? "Risco BAIXO (MASCC >= 21): Considerar ATB oral ambulatorial (Amoxicilina-Clavulanato + Ciprofloxacino) e observação estrita 24h SE paciente estável, sem foco aparente e com acesso rápido a hospital. Na dúvida, transferir ao PS."
+          : "Risco ALTO (MASCC < 21 ou desconhecido): Transferência IMEDIATA para Pronto-Socorro para início precoce de Cefepime/Tazocin IV e estabilização.",
+        alerta: "Não postergar a primeira dose de antibiótico. Se transporte demorado, aplicar Ceftriaxona IV/IM na UBS (conforme protocolo local) antes da transferência."
+      };
+    }
+    
+    if (efeito === 'mucosite') {
+      return {
+        condicao: "Mucosite Oral",
+        conduta_aps: "Suporte sintomático e prevenção de infecção secundária.",
+        degraus: [
+          "Grau 1-2 (Eritema/Úlceras com capacidade de comer): Higiene oral rigorosa, escova macia, bochechos com Clorexidina 0.12% s/ álcool ou solução salina/bicarbonato.",
+          "Analgesia local: Bochecho com Lidocaína viscosa 2% antes das refeições (cuidado com risco de aspiração).",
+          "Laserterapia (LLLT) preventiva ou curativa, se disponível.",
+          "Candidíase secundária frequente: Se placas esbranquiçadas, Nistatina bochecho 100.000 UI 4x/dia ou Fluconazol VO.",
+          "Grau 3-4 (Incapacidade de comer/beber líquidos): Internação para suporte nutricional e analgesia sistêmica (opioides endovenosos)."
+        ]
+      };
+    }
+
+    if (efeito === 'dor_oncologica') {
+      const eva = parametros.eva !== undefined ? parametros.eva : 0;
+      let conduta = "";
+      
+      if (eva >= 1 && eva <= 3) {
+        conduta = "Degrau 1 (Dor Leve - EVA 1-3): Analgésicos não opioides (Dipirona 1g 6/6h ou Paracetamol 750mg 6/6h) ± AINEs (curto prazo, evitar se plaquetopenia ou alteração renal) ± Adjuvantes.";
+      } else if (eva >= 4 && eva <= 6) {
+        conduta = "Degrau 2 (Dor Moderada - EVA 4-6): Opioides fracos (Tramadol 50-100mg 6/6h ou Codeína 30-60mg 6/6h) + Analgésicos não opioides do Degrau 1 ± Adjuvantes.";
+      } else if (eva >= 7) {
+        conduta = "Degrau 3 (Dor Intensa - EVA 7-10): Opioides fortes (Morfina rápida 5-10mg VO 4/4h para resgate, Metadona, Oxicodona, Fentanil TD) + Analgésicos não opioides ± Adjuvantes. Evitar opioides fracos neste degrau.";
+      } else {
+        conduta = "Avaliar dor (EVA 0-10) e aplicar Escada Analgésica da OMS.";
+      }
+
+      return {
+        condicao: "Dor Oncológica (Escada da OMS)",
+        conduta_aps: conduta,
+        adjuvantes: "Considerar adjuvantes em qualquer degrau: Dexametasona (compressão nervosa/óssea), Gabapentina/Pregabalina ou Amitriptilina (dor neuropática), Bisfosfonatos (dor óssea)."
+      };
+    }
+
+    throw new Error("Efeito adverso não reconhecido. Use 'neutropenia_febril', 'mucosite' ou 'dor_oncologica'.");
+  }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { OncologiaBasicaService };
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_pals_pediatria.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (PALS / REANIMAÇÃO PEDIÁTRICA)
+ * ==============================================================================
+ * Motor determinístico de cálculo de medicações de emergência pediátrica, 
+ * cardioversão/desfibrilação e via aérea.
+ *
+ * REFERÊNCIAS:
+ * - AHA Guidelines for CPR and ECC: Pediatric Advanced Life Support (PALS).
+ * ==============================================================================
+ */
+
+var PalsPediatriaService = (function() {
+  'use strict';
+
+  /**
+   * Estima o peso da criança com base na idade se o peso não for fornecido.
+   * Fórmula (APLS): 
+   * 1-5 anos: (idade * 2) + 8
+   * 6-12 anos: (idade * 3) + 7
+   */
+  function estimarPesoPorIdade(idadeAnos) {
+    if (idadeAnos < 1) return 5; // Valor aproximado para lactentes
+    if (idadeAnos <= 5) return (idadeAnos * 2) + 8;
+    if (idadeAnos <= 12) return (idadeAnos * 3) + 7;
+    return 50; // Max default
+  }
+
+  function estimarPesoPorBroselow(cor) {
+    const broselow = {
+      'cinza': 4,
+      'rosa': 6.5,
+      'vermelho': 8.5,
+      'roxo': 10.5,
+      'amarelo': 13,
+      'branco': 16.5,
+      'azul': 21,
+      'laranja': 26.5,
+      'verde': 33
+    };
+    return cor ? broselow[cor.toLowerCase()] || null : null;
+  }
+
+  function avaliarPals(params) {
+    let pesoKg = params.pesoKg;
+    let idadeAnos = params.idadeAnos || 0;
+    let corBroselow = params.corBroselow || null;
+    
+    if (!pesoKg && corBroselow) {
+      pesoKg = estimarPesoPorBroselow(corBroselow);
+    }
+    
+    if (!pesoKg && idadeAnos > 0) {
+      pesoKg = estimarPesoPorIdade(idadeAnos);
+    } else if (!pesoKg) {
+      throw new Error("Peso (kg), Idade (anos) ou Cor Broselow obrigatórios para cálculo PALS.");
+    }
+
+    // Limitar peso máximo a 50kg para evitar superdosagem pediátrica na fórmula linear.
+    const pesoCalc = Math.min(pesoKg, 50);
+
+    let alertas = [];
+    let medicacoes = [];
+    let viaAerea = {};
+    let eletricidade = {};
+
+    // 1. Choque (Desfibrilação / Cardioversão)
+    eletricidade.desfibrilacaoPrimeiroChoque = `${pesoCalc * 2} J (2 J/kg)`;
+    eletricidade.desfibrilacaoSegundoChoque = `${pesoCalc * 4} J (4 J/kg)`;
+    eletricidade.desfibrilacaoMaximo = `Até 10 J/kg ou dose máxima de adulto (ex: 200 J bifásico)`;
+    eletricidade.cardioversaoPrimeiroChoque = `${(pesoCalc * 0.5).toFixed(1)} a ${pesoCalc * 1} J (0.5 a 1 J/kg)`;
+    eletricidade.cardioversaoSegundoChoque = `${pesoCalc * 2} J (2 J/kg)`;
+
+    // 2. Medicações em PCR
+    // Adrenalina 0,1 mg/mL (1:10.000) - Dose: 0,01 mg/kg (0,1 mL/kg)
+    let doseAdrenalinaMg = (pesoCalc * 0.01).toFixed(2);
+    let doseAdrenalinaMl = (pesoCalc * 0.1).toFixed(1);
+    
+    // Teto de 1 mg (10 mL) - dose de adulto
+    if (parseFloat(doseAdrenalinaMg) > 1) {
+        doseAdrenalinaMg = "1.00";
+        doseAdrenalinaMl = "10.0";
+    }
+
+    medicacoes.push({
+      farmaco: "Adrenalina 0,1 mg/mL (1:10.000)",
+      doseMg: doseAdrenalinaMg + " mg",
+      volumeMl: doseAdrenalinaMl + " mL",
+      via: "IV/IO a cada 3 a 5 minutos",
+      alerta: "Lavar com 5 mL de SF 0,9% após administração."
+    });
+
+    // Amiodarona (5 mg/kg, máx 300 mg)
+    let doseAmiodaronaMg = pesoCalc * 5;
+    if (doseAmiodaronaMg > 300) doseAmiodaronaMg = 300;
+    medicacoes.push({
+      farmaco: "Amiodarona (50 mg/mL)",
+      doseMg: doseAmiodaronaMg + " mg",
+      volumeMl: (doseAmiodaronaMg / 50).toFixed(1) + " mL",
+      via: "IV/IO em bolus (PCR com FV/TV sem pulso)",
+      alerta: "Pode repetir até 2 vezes em PCR refratária."
+    });
+
+    // Lidocaína 2% (20 mg/mL) - Dose 1 mg/kg
+    let doseLidoMg = pesoCalc * 1;
+    if (doseLidoMg > 100) doseLidoMg = 100;
+    medicacoes.push({
+      farmaco: "Lidocaína 2% sem vasoconstritor (20 mg/mL)",
+      doseMg: doseLidoMg + " mg",
+      volumeMl: (doseLidoMg / 20).toFixed(1) + " mL",
+      via: "IV/IO em bolus",
+      alerta: "Alternativa à Amiodarona em FV/TV sem pulso."
+    });
+
+    // Sulfato de Magnésio (Torsades de Pointes) - 25 a 50 mg/kg (máx 2g)
+    let doseMagMg = pesoCalc * 50;
+    if (doseMagMg > 2000) doseMagMg = 2000;
+    medicacoes.push({
+      farmaco: "Sulfato de Magnésio 10%",
+      doseMg: doseMagMg + " mg",
+      volumeMl: (doseMagMg / 100).toFixed(1) + " mL",
+      via: "IV/IO (Indicado em Torsades de Pointes)",
+      alerta: "Administrar em bolus lento ou infusão curta."
+    });
+
+    // 3. Via Aérea (Tubo Endotraqueal)
+    // Fórmula sem cuff: (idade / 4) + 4
+    // Fórmula com cuff: (idade / 4) + 3.5
+    // Para < 1 ano: 3.0 ou 3.5
+    let tuboSemCuff = "";
+    let tuboComCuff = "";
+    let lamina = "";
+    let fixacao = "";
+
+    if (idadeAnos < 1) {
+       tuboSemCuff = "3.5";
+       tuboComCuff = "3.0";
+       lamina = pesoCalc < 3 ? "Reta 0" : "Reta 1";
+       fixacao = "Profundidade: 9 a 10 cm no lábio";
+    } else {
+       let calcSem = (idadeAnos / 4) + 4;
+       let calcCom = (idadeAnos / 4) + 3.5;
+       tuboSemCuff = calcSem.toFixed(1);
+       tuboComCuff = calcCom.toFixed(1);
+       lamina = idadeAnos <= 3 ? "Reta 1 ou 2" : "Curva 2 ou 3";
+       
+       let tamCalc = parseFloat(tuboComCuff);
+       if(isNaN(tamCalc) || tamCalc < 3) tamCalc = 3.5;
+       fixacao = "Profundidade: ~" + (tamCalc * 3).toFixed(1) + " cm no lábio (TET x 3)";
+    }
+
+    viaAerea = {
+      tuboComCuff: tuboComCuff,
+      tuboSemCuff: tuboSemCuff,
+      laminaLaringoscopio: lamina,
+      fixacao: fixacao
+    };
+
+    if (pesoCalc >= 30) {
+      alertas.push("Paciente com peso elevado (>= 30 kg): considerar transição cautelosa para doses de adulto (ex: máx de 1 mg adrenalina, 300 mg amiodarona) limitadas ao teto terapêutico.");
+    }
+    
+    // Alertas universais PALS
+    alertas.push("Na PCR pediátrica, focar em compressões torácicas de alta qualidade (profundidade de 1/3 do AP do tórax, cerca de 4 cm lactentes / 5 cm crianças) e ventilação adequada (relação 15:2 com dois socorristas).");
+    alertas.push("Em PCR com ritmo assistolia/AESP, priorizar Adrenalina assim que o acesso IV/IO for estabelecido.");
+
+    return {
+      pesoConsideradoKg: pesoCalc,
+      idadeConsideradaAnos: idadeAnos,
+      eletricidade: eletricidade,
+      medicacoes: medicacoes,
+      viaAerea: viaAerea,
+      alertas: alertas
+    };
+  }
+
+  return {
+    avaliarPals: avaliarPals,
+    estimarPesoPorIdade: estimarPesoPorIdade,
+    estimarPesoPorBroselow: estimarPesoPorBroselow
+  };
+
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PalsPediatriaService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_pcr_gestante.js
 // ==============================================================================
 
@@ -10613,6 +12092,1086 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_psiquiatria_urgencia.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: PSIQUIATRIA DE URGÊNCIA & SAÚDE MENTAL CLÍNICA (ABP / MS / APA / NICE)
+ * ==============================================================================
+ * Motor determinístico de alta fidelidade clínica e farmacológica para o manejo de:
+ *  1. Agitação Psicomotora e Protocolos de Contenção Química/Mecânica na Emergência.
+ *  2. Avaliação Estratificada de Risco de Suicídio (Protocolo C-SSRS / SAD PERSONS).
+ *  3. Rastreamento e Manejo do Transtorno Depressivo Maior (TDM) via Escala PHQ-9.
+ *  4. Algoritmo Personalizado de Seleção e Titulação de Antidepressivos.
+ *  5. Reversão de Distonia Aguda Extrapiramidal.
+ *  6. Síndrome Neuroléptica Maligna (SNM) e Síndrome Serotoninérgica (Critérios de Hunter).
+ *
+ * FUNDAMENTAÇÃO TEÓRICA E DIRETRIZES OFICIAIS:
+ *  - Associação Brasileira de Psiquiatria (ABP) - Diretrizes para o Manejo de Emergências
+ *    Psiquiátricas e Agitação Psicomotora (2022/2024).
+ *  - Ministério da Saúde do Brasil - Linha de Cuidado em Saúde Mental e Prevenção do Suicídio
+ *    (Cadernos de Atenção Básica nº 34 e Portarias de Consolidação).
+ *  - American Psychiatric Association (APA) - Practice Guideline for the Treatment of Patients
+ *    With Major Depressive Disorder (MDD) & The Assessment of Suicidal Behavior.
+ *  - Project BETA (Best Practices in the Evaluation and Treatment of Agitation) - Emergency Psychiatry.
+ *  - NICE Guidelines (CG113) - Rapid tranquillisation & psychosis and schizophrenia management.
+ *  - Hunter Serotonin Toxicity Criteria (Dunkley et al., QJM 2003).
+ *  - Resolução CFM nº 2.057/2013 e Lei Federal nº 10.216/2001 (Critérios ético-legais de internação).
+ * ==============================================================================
+ */
+
+var PsiquiatriaUrgenciaService = (function() {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. CATÁLOGO FARMACOLÓGICO DETERMINÍSTICO DE PSIQUIATRIA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  var CATALOGO_FARMACOLOGICO = {
+    ANTIPSICOTICOS_TIPICOS: {
+      haloperidol: {
+        medicamento: 'Haloperidol',
+        classe: 'Antipsicótico Típico de Alta Potência (Butirofenona)',
+        vias: {
+          im: {
+            doseApresentacao: 'Ampola 5 mg/mL (1 mL)',
+            dosePadraoAdulto: '5 mg IM profundo',
+            doseIdosoDebilitado: '0.5 a 1 mg IM profundo',
+            tempoRepeticaoMin: 30,
+            doseMaximaDiariaAdulto: '15 a 20 mg/dia',
+            doseMaximaDiariaIdoso: '5 mg/dia'
+          },
+          vo: {
+            apresentacoes: 'Comprimidos de 1 mg e 5 mg; Gotas 2 mg/mL (1 gota = 0.1 mg)',
+            doseInicialAdulto: '2.5 a 5 mg VO',
+            doseInicialIdoso: '0.5 a 1 mg VO'
+          }
+        },
+        indicacoes: 'Agitação psicomotora aguda, delírios, alucinações, mania, psicose esquizofrênica',
+        efeitosAdversosCriticos: ['Distonia aguda', 'Parkinsonismo medicamentoso', 'Acatisia', 'Prolongamento do intervalo QTc', 'Redução do limiar convulsivo'],
+        alertas: [
+          'Evitar uso isolado na Síndrome de Abstinência Alcoólica (abaixa limiar para crises convulsivas).',
+          'Risco aumentado de prolongamento de QTc e arritmias ventriculares (Torsades de Pointes). Se QTc > 500 ms, contraindicado.',
+          'Em idosos com demência/delirium, utilizar doses fracionadas mínimas (0.5 a 1 mg).'
+        ]
+      },
+      clorpromazina: {
+        medicamento: 'Clorpromazina',
+        classe: 'Antipsicótico Típico de Baixa Potência (Fenotiazina)',
+        vias: {
+          im: {
+            doseApresentacao: 'Ampola 25 mg/5 mL (5 mg/mL) ou 25 mg/2 mL',
+            dosePadrao: '25 a 50 mg IM profundo',
+            doseMaximaDiaria: '100 a 200 mg/dia'
+          },
+          vo: {
+            apresentacoes: 'Comprimidos de 25 mg e 100 mg; Gotas 40 mg/mL (1 gota = 1 mg)',
+            doseInicial: '25 a 50 mg VO'
+          }
+        },
+        alertas: [
+          'Potente bloqueio alfa-1 adrenérgico: risco acentuado de HIPOTENSÃO ORTOSTÁTICA e taquicardia reflexa.',
+          'Sedação profunda e efeito anticolinérgico marcante (boca seca, retenção urinária, constipação).'
+        ]
+      }
+    },
+
+    ANTIHISTAMINICOS_ANTICOLINERGICOS: {
+      prometazina: {
+        medicamento: 'Prometazina',
+        classe: 'Anti-histamínico H1 com Efeito Sedativo e Anticolinérgico',
+        vias: {
+          im: {
+            doseApresentacao: 'Ampola 50 mg/2 mL (25 mg/mL)',
+            dosePadrao: '25 a 50 mg IM profundo',
+            tempoRepeticaoMin: 60,
+            doseMaximaDiaria: '100 mg/dia'
+          },
+          vo: {
+            apresentacoes: 'Comprimidos de 25 mg',
+            dosePadrao: '25 a 50 mg VO'
+          }
+        },
+        indicacoes: 'Sedação coadjuvante na agitação grave e profilaxia/tratamento precoce de distonia aguda induzida por antipsicóticos típicos',
+        sinergiaHaloperidol: 'Padrão ouro de segurança no Brasil (Haloperidol 5mg IM + Prometazina 50mg IM na mesma seringa ou em seringas separadas). A Prometazina acelera a indução sedativa e previne impregnação extrapiramidal.',
+        alertas: ['Pode causar sedação residual prolongada, hipotensão leve e efeitos anticolinérgicos.']
+      },
+      biperideno: {
+        medicamento: 'Biperideno',
+        classe: 'Anticolinérgico Central (Antagonista Muscarínico)',
+        vias: {
+          im_iv: {
+            doseApresentacao: 'Ampola 5 mg/mL (1 mL)',
+            doseAtaque: '5 mg IM ou IV lento (em 2 a 3 minutos)',
+            repeticao: 'Pode repetir 5 mg após 30 minutos se sintomas refratários',
+            doseMaximaDiaria: '20 mg/dia'
+          },
+          vo: {
+            apresentacoes: 'Comprimidos de 2 mg e 4 mg (liberação prolongada)',
+            doseManutencao: '2 mg VO a cada 8 ou 12 horas por 48 a 72 horas para prevenir recorrência da distonia'
+          }
+        },
+        indicacoes: 'ANTÍDOTO DE ESCOLHA PARA DISTONIA AGUDA EXTRAPIRAMIDAL (espasmo cervical, crise oculógira, trismo, opistótono) e parkinsonismo medicamentoso.',
+        alertas: ['Contraindicado em glaucoma de ângulo fechado agudo e estenose mecânica gastrointestinal.']
+      }
+    },
+
+    BENZODIAZEPINICOS_EMERGENCIA: {
+      midazolam: {
+        medicamento: 'Midazolam',
+        classe: 'Benzodiazepínico de Ação Curta / Início Rápido',
+        vias: {
+          im: {
+            doseApresentacao: 'Ampola 15 mg/3 mL (5 mg/mL) ou 5 mg/5 mL (1 mg/mL)',
+            dosePadrao: '5 a 10 mg IM',
+            doseIdoso: '2.5 a 5 mg IM',
+            inicioAcaoMin: '5 a 15 minutos'
+          },
+          iv: {
+            dosePadrao: '2.5 a 5 mg IV lento titulado',
+            inicioAcaoMin: '1 a 3 minutos'
+          }
+        },
+        indicacoes: 'Agitação psicomotora intensa associada a pânico/ansiedade, intoxicação por estimulantes (cocaína, crack, anfetaminas) e alternativa parenteral de absorção rápida e confiável.',
+        vantagemIM: 'Absorção intramuscular rápida, completa e previsível (muito superior ao Diazepam IM).',
+        alertas: [
+          'Risco de depressão respiratória: monitorização obrigatória com oximetria de pulso e frequência respiratória.',
+          'Ter flumazenil disponível em caso de depressão respiratória grave.'
+        ]
+      },
+      diazepam: {
+        medicamento: 'Diazepam',
+        classe: 'Benzodiazepínico de Ação Longa',
+        vias: {
+          vo: {
+            apresentacoes: 'Comprimidos de 5 mg e 10 mg',
+            dosePadrao: '5 a 10 mg VO'
+          },
+          iv: {
+            doseApresentacao: 'Ampola 10 mg/2 mL (5 mg/mL)',
+            dosePadrao: '5 a 10 mg IV puro LENTO (velocidade máxima 2 mg/min, injetar em pelo menos 2 a 5 minutos)',
+            indicacaoPreferencia: 'Síndrome de Abstinência Alcoólica (SAA), Delirium Tremens, crises convulsivas'
+          }
+        },
+        alertaCriticoIM: 'VIA INTRAMUSCULAR CONTRAINDICADA / DESACONSELHADA: Absorção intramuscular errática, lenta, imprevisível e dolorosa devido à lipossolubilidade e precipitação tecidual. Sempre preferir VO, IV lento ou Midazolam IM.',
+        alertas: ['Contraindicado em miastenia gravis e insuficiência respiratória descompensada.']
+      },
+      lorazepam: {
+        medicamento: 'Lorazepam',
+        classe: 'Benzodiazepínico de Ação Intermediária (Sem Metabólitos Ativos)',
+        vias: {
+          vo: {
+            apresentacoes: 'Comprimidos de 1 mg e 2 mg',
+            dosePadrao: '1 a 2 mg VO'
+          },
+          im_iv: {
+            dosePadrao: '1 a 2 mg IM ou IV lento'
+          }
+        },
+        indicacoes: 'Droga de escolha em idosos e pacientes com insuficiência hepática (metabolismo direto por glicuronidação, sem sobrecarga citocromo P450).'
+      }
+    },
+
+    ANTIPSICOTICOS_ATIPICOS_SEGUNDA_GERACAO: {
+      olanzapina: {
+        medicamento: 'Olanzapina',
+        classe: 'Antipsicótico Atípico (Antagonista 5-HT2A / D2)',
+        vias: {
+          vo: {
+            apresentacoes: 'Comprimidos comuns e orodispersíveis (Zydis) de 2.5 mg, 5 mg e 10 mg',
+            dosePadrao: '5 a 10 mg VO'
+          },
+          im: {
+            doseApresentacao: 'Frasco-ampola 10 mg pó liofilizado para reconstituição IM',
+            dosePadrao: '10 mg IM (5 mg em idosos)',
+            doseMaximaDiaria: '20 mg/dia IM (máx 30 mg/dia combinado)'
+          }
+        },
+        indicacoes: 'Agitação psicomotora em esquizofrenia, mania bipolar e quadros psicóticos colaborativos ou agressivos.',
+        contraindicacaoAbsolutaInteracao: 'PROIBIÇÃO DE COADMINISTRAÇÃO PARENTERAL: NUNCA associar Olanzapina IM com Benzodiazepínico IM ou IV na janela de 2 a 4 horas pelo risco documentado de hipotensão severa, bradicardia acentuada, colapso cardiorrespiratório e morte súbita.'
+      },
+      risperidona: {
+        medicamento: 'Risperidona',
+        classe: 'Antipsicótico Atípico',
+        vias: {
+          vo: {
+            apresentacoes: 'Comprimidos de 1 mg, 2 mg e 3 mg; Solução oral 1 mg/mL',
+            dosePadrao: '1 a 2 mg VO (0.25 a 0.5 mg em idosos)',
+            doseMaximaDiaria: '6 mg/dia'
+          }
+        },
+        indicacoes: 'Agitação leve a moderada em paciente colaborativo para via oral; delírios e alucinações agudas; demência com sintomas comportamentais refratários.'
+      },
+      quetiapina: {
+        medicamento: 'Quetiapina',
+        classe: 'Antipsicótico Atípico com Baixo Risco Extrapiramidal',
+        vias: {
+          vo: {
+            apresentacoes: 'Comprimidos de 25 mg, 100 mg e 200 mg',
+            dosePadrao: '25 a 100 mg VO',
+            doseIdosoParkinson: '12.5 a 25 mg VO'
+          }
+        },
+        indicacoes: 'Agitação em pacientes idosos, pacientes com Doença de Parkinson ou Demência por Corpos de Lewy (onde outros antipsicóticos são absolutamente contraindicados pelo risco de catalepsia grave e morte).'
+      }
+    },
+
+    ANTIDEPRESSIVOS_ESSENCIAIS: {
+      sertralina: {
+        medicamento: 'Sertralina',
+        classe: 'ISRS (Inibidor Seletivo da Recaptação de Serotonina)',
+        doseInicial: '25 a 50 mg/dia VO (tomar pela manhã ou após refeição)',
+        faixaTerapeutica: '50 a 200 mg/dia VO',
+        indicacoesPreferencias: [
+          'Primeira escolha em pacientes cardiopatas, coronariopatas ou com histórico de infarto agudo do miocárdio (estudo SADHART comprovou segurança cardiovascular superior).',
+          'Primeira escolha na gestação e lactação (menor taxa de excreção no leite materno entre os ISRS).',
+          'Depressão unipolar com ou sem transtorno de pânico/ansiedade generalizada associada.'
+        ],
+        perfilInteracoes: 'Baixo potencial inibitório em enzimas do citocromo P450 em comparação a outros ISRS.'
+      },
+      escitalopram: {
+        medicamento: 'Escitalopram',
+        classe: 'ISRS de Mais Alta Seletividade Serotoninérgica',
+        doseInicial: '5 a 10 mg/dia VO',
+        faixaTerapeutica: '10 a 20 mg/dia VO',
+        indicacoesPreferencias: [
+          'Excelente tolerabilidade e rápida titulação.',
+          'Mínimo impacto em receptores histamínicos, colinérgicos e adrenérgicos.',
+          'Ótima opção para polifarmácia devido a raras interações medicamentosas.'
+        ],
+        alertaDose: 'Doses superiores a 20 mg/dia (ou > 10 mg/dia em idosos > 65 anos) não são recomendadas pelo risco de prolongamento do intervalo QTc.'
+      },
+      fluoxetina: {
+        medicamento: 'Fluoxetina',
+        classe: 'ISRS Ativador com Meia-Vida Longa',
+        doseInicial: '20 mg/dia VO pela manhã',
+        faixaTerapeutica: '20 a 60 mg/dia VO',
+        indicacoesPreferencias: [
+          'Depressão com lentificação psicomotora, apatia e hipersonia.',
+          'Excelente adesão em pacientes com histórico de esquecimento frequente de doses (meia-vida prolongada de 4 a 6 dias de seu metabólito norfluoxetina protege contra síndrome de descontinuação abrupta).'
+        ],
+        alertas: ['Potente inibidor de CYP2D6 (interage com tamoxifeno, betabloqueadores e antiarrítmicos).']
+      },
+      duloxetina: {
+        medicamento: 'Duloxetina',
+        classe: 'IRSN (Inibidor da Recaptação de Serotonina e Noradrenalina - Dual)',
+        doseInicial: '30 mg/dia VO por 7 dias, progredindo para 60 mg/dia',
+        faixaTerapeutica: '60 a 120 mg/dia VO',
+        indicacoesPreferencias: [
+          'Primeira linha absoluta em Depressão associada a Dor Crônica, Fibromialgia, Lombalgia crônica ou Neuropatia Diabética Periférica dolorosa.',
+          'Incontinência urinária de esforço concomitante.'
+        ],
+        alertas: ['Aferir função hepática; evitar em hepatopatia avançada e consumo pesado de álcool.']
+      },
+      venlafaxina: {
+        medicamento: 'Venlafaxina (formulações de liberação prolongada XR)',
+        classe: 'IRSN Dual',
+        doseInicial: '37.5 a 75 mg/dia VO com alimentos',
+        faixaTerapeutica: '75 a 225 mg/dia VO (máx 375 mg/dia em ambiente hospitalar)',
+        indicacoesPreferencias: [
+          'Depressão refratária a ISRS, depressão grave melancólica e transtornos de ansiedade refratários.'
+        ],
+        alertas: [
+          'Efeito noradrenérgico dependente de dose: em doses > 150 mg/dia, monitorar pressão arterial e frequência cardíaca.',
+          'Síndrome de descontinuação intensa se interrupção abrupta (exige desmame lento gradual).'
+        ]
+      },
+      mirtazapina: {
+        medicamento: 'Mirtazapina',
+        classe: 'NaSSA (Antidepressivo Noradrenérgico e Específico Serotoninérgico)',
+        doseInicial: '15 mg VO ao deitar',
+        faixaTerapeutica: '15 a 45 mg/dia VO ao deitar',
+        indicacoesPreferencias: [
+          'Primeira escolha em Depressão acompanhada de INSÔNIA SEVERA e PERDA PONDERAL ACENTUADA / HIPOREXIA (idosos debilitados, caquexia ou depressão ansiosa).',
+          'Nenhum efeito colateral de disfunção sexual (poupa receptores 5-HT2).'
+        ],
+        alertas: ['Causa sonolência marcante no início e aumento substancial do apetite/ganho de peso.']
+      },
+      bupropiona: {
+        medicamento: 'Bupropiona (formulações XL ou SR)',
+        classe: 'IRND (Inibidor da Recaptação de Noradrenalina e Dopamina)',
+        doseInicial: '150 mg/dia VO pela manhã',
+        faixaTerapeutica: '150 a 300 mg/dia VO (máx 450 mg/dia)',
+        indicacoesPreferencias: [
+          'Depressão com anedonia marcante, fadiga crônica, lentificação e hipoatividade.',
+          'Desejo concomitante de CESSAÇÃO DO TABAGISMO.',
+          'Prevenção ou reversão de disfunção sexual induzida por ISRS (não afeta serotonina).',
+          'Pacientes preocupados com ganho de peso (fármaco neutro ou redutor de peso).'
+        ],
+        contraindicacoesAbsolutas: [
+          'HISTÓRICO DE EPILEPSIA OU CRISES CONVULSIVAS PRÉVIAS (diminui significativamente o limiar convulsivo).',
+          'DIAGNÓSTICO ATUAL OU PRÉVIO DE BULIMIA NERVOSA OU ANOREXIA NERVOSA (risco catastrófico de convulsões por distúrbios hidroeletrolíticos associados).',
+          'Descontinuação abrupta de álcool ou benzodiazepínicos.'
+        ]
+      }
+    }
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. AVALIAÇÃO DE AGITAÇÃO PSICOMOTORA & CONTENÇÃO QUÍMICA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function avaliarAgitacaoPsicomotora(params) {
+    params = params || {};
+
+    var gravidade = (params.gravidade || params.nivelAgitacao || '').toString().toLowerCase().trim();
+    var bars = Number(params.escalaBars || params.bars || 0);
+    var rass = Number(params.escalaRass || params.rass || 0);
+    var aceitaViaOral = params.aceitaViaOral === true || params.aceitaVo === true;
+    var viaPreferencial = (params.viaPreferencial || '').toLowerCase();
+    var etiologia = (params.etiologia || params.etiologiaSuspeita || 'psicose').toLowerCase();
+    var idade = Number(params.idade || 35);
+    var ehIdoso = idade >= 65 || params.idoso === true;
+    var ehGestante = params.gestante === true || params.gravida === true;
+    var comorbidades = Array.isArray(params.comorbidades) ? params.comorbidades.map(function(c) { return String(c).toLowerCase(); }) : [];
+    if (params.cardiopata || params.cardiopatia) comorbidades.push('cardiopatia');
+    if (params.qtcLongo || params.qtc_longo) comorbidades.push('qtc_longo');
+    if (params.parkinson) comorbidades.push('parkinson');
+    if (params.epilepsia) comorbidades.push('epilepsia');
+
+    // Normalização da gravidade clínica
+    var nivelEstratificado = 'MODERADA';
+    if (bars >= 6 || rass >= 3 || gravidade.includes('extrema') || gravidade.includes('violenta') || gravidade.includes('agress')) {
+      nivelEstratificado = 'GRAVE_EXTREMA';
+    } else if (bars === 5 || rass === 2 || gravidade.includes('grave')) {
+      nivelEstratificado = 'GRAVE';
+    } else if (bars === 4 || rass === 1 || gravidade.includes('moderada')) {
+      nivelEstratificado = 'MODERADA';
+    } else if (bars <= 3 || rass <= 0 || gravidade.includes('leve')) {
+      nivelEstratificado = 'LEVE';
+    }
+
+    var decisaoVia = 'ORAL';
+    if (!aceitaViaOral || viaPreferencial === 'im' || viaPreferencial === 'parenteral' || nivelEstratificado === 'GRAVE_EXTREMA') {
+      decisaoVia = 'INTRAMUSCULAR';
+    }
+
+    var escalonamento = [
+      '1. Desescalonamento Verbal e Manejo Ambiental: Espaço privativo e seguro, manter distância de segurança (mínimo 2 passos), postura corporal aberta, voz calma e modulada, chamar pelo nome, ouvir atentamente, evitar confrontações ou discussões lógicas, oferecer água/alimento e pactuar alívio voluntário do sofrimento.',
+      '2. Contenção Farmacológica Rápida: Administrar farmacoterapia dirigida conforme colaboração do paciente e perfil de segurança individual.',
+      '3. Contenção Mecânica no Leito: MEDIDA DE EXCEÇÃO E ÚLTIMO RECURSO, reservada unicamente para falha de desescalonamento com risco iminente de autoagressão, heteroagressão física ou destruição grave do ambiente hospitalar.'
+    ];
+
+    var prescricoes = [];
+    var alternativas = [];
+    var alertasSeguranca = [];
+
+    // Checagem de Alertas Críticos de Comorbidades
+    var temParkinson = comorbidades.some(function(c) { return c.includes('parkinson') || c.includes('lewy'); });
+    var temQtcLongo = comorbidades.some(function(c) { return c.includes('qtc') || c.includes('arritm'); });
+
+    if (temParkinson) {
+      alertasSeguranca.push('ALERTA PARKINSON / CORPOS DE LEWY: CONTRAINDICAÇÃO FORMAL DE HALOPERIDOL E ANTIPSICÓTICOS TÍPICOS. Risco de parkinsonismo irreversível, rigidez catastrófica e colapso autonômico. Utilizar exclusivamente Quetiapina 12.5-25 mg VO.');
+    }
+    if (temQtcLongo) {
+      alertasSeguranca.push('ALERTA PROLONGAMENTO DE QTc: Haloperidol e Ziprasidona possuem risco aumentado de arritmias ventriculares potencialmente letais (Torsades de Pointes). Se QTc > 500ms, contraindicados. Preferir Benzodiazepínico (Midazolam/Lorazepam) ou Olanzapina com monitorização cardíaca.');
+    }
+    if (ehGestante) {
+      alertasSeguranca.push('ALERTA GESTAÇÃO: Evitar benzodiazepínicos especialmente no 1º trimestre e próximo ao parto (risco de síndrome do bebê hipotônico/floppy infant syndrome e apneia). Se antipsicótico indispensável, Haloperidol em menor dose eficaz é a opção com maior tempo de segurança registrado na literatura obstétrica.');
+    }
+
+    // Regras Específicas por Etiologia e Via
+    if (etiologia.includes('abstin') || etiologia.includes('alcool') || etiologia.includes('delirium_tremens')) {
+      // Síndrome de Abstinência Alcoólica
+      alertasSeguranca.push('SÍNDROME DE ABSTINÊNCIA ALCOÓLICA: A primeira linha é estritamente com BENZODIAZEPÍNICOS. Antipsicóticos típicos isolados (Haloperidol) reduzem o limiar convulsivo e NÃO tratam o mecanismo GABAérgico da abstinência. Administrar TIAMINA 300 mg IV/IM antes de qualquer infusão de glicose para prevenir Encefalopatia de Wernicke.');
+      if (decisaoVia === 'ORAL') {
+        prescricoes.push('Diazepam 10 a 20 mg VO agora (pode repetir a cada 1-2h conforme escala CIWA-Ar)');
+        prescricoes.push('Tiamina 300 mg VO ou IM uma vez ao dia');
+        alternativas.push('Lorazepam 1 a 2 mg VO se hepatopatia avançada/icterícia');
+      } else {
+        prescricoes.push('Diazepam 10 mg IV puro LENTO (velocidade de 2 mg/min, injetar em 5 minutos) sob oximetria contínua OU Midazolam 5 mg IM/IV lento');
+        prescricoes.push('Tiamina 300 mg IV diluída em SF 0.9% 100 mL correr em 30 minutos');
+        alternativas.push('Midazolam 5 a 10 mg IM se acesso venoso inacessível no momento da agitação');
+      }
+    } else if (etiologia.includes('estimulante') || etiologia.includes('cocaina') || etiologia.includes('crack') || etiologia.includes('anfetam')) {
+      // Intoxicação por Estimulantes
+      alertasSeguranca.push('INTOXICAÇÃO POR ESTIMULANTES (COCAÍNA/CRACK/K9): Hiperestimulação simpática severa. Benzodiazepínicos são a 1ª escolha para controle autonômico e prevenção de IAM e convulsões. EVITAR betabloqueadores isolados pelo risco de vasoconstrição coronariana alfa desoposta paradoxal.');
+      if (decisaoVia === 'ORAL') {
+        prescricoes.push('Diazepam 10 mg VO agora');
+      } else {
+        prescricoes.push('Midazolam 5 a 10 mg IM ou 2.5 a 5 mg IV lento');
+        alternativas.push('Diazepam 5 a 10 mg IV lento');
+      }
+    } else if (ehIdoso || etiologia.includes('demencia') || etiologia.includes('delirium')) {
+      // Idoso / Delirium em Idoso
+      alertasSeguranca.push('IDOSO / DELIRIUM: Evitar benzodiazepínicos na ausência de abstinência etílica (alto risco de efeito paradoxal, desinibição motora, piora cognitiva e quedas). Utilizar doses reduzidas (1/3 a 1/2 da dose habitual do adulto).');
+      if (decisaoVia === 'ORAL') {
+        if (temParkinson) {
+          prescricoes.push('Quetiapina 12.5 a 25 mg VO agora');
+        } else {
+          prescricoes.push('Haloperidol 0.5 a 1 mg VO (5 a 10 gotas de 2 mg/mL) OU Risperidona 0.25 a 0.5 mg VO');
+          alternativas.push('Quetiapina 25 mg VO');
+        }
+      } else {
+        if (temParkinson) {
+          prescricoes.push('Acalmar ambiente; se estritamente necessário, Quetiapina 25 mg por sonda ou via oral assistida. Parenteral deve ser evitado.');
+        } else {
+          prescricoes.push('Haloperidol 0.5 a 1 mg IM profundo');
+          alternativas.push('Olanzapina 2.5 a 5 mg IM (sem benzodiazepínico concomitante)');
+        }
+      }
+    } else if (temParkinson) {
+      // Paciente com Doença de Parkinson ou Demência por Corpos de Lewy (independente da idade)
+      if (decisaoVia === 'ORAL') {
+        prescricoes.push('Quetiapina 12.5 a 25 mg VO agora (fármaco de escolha estrita no Parkinson por poupar receptores D2 estriatais)');
+        alternativas.push('Clozapina 12.5 mg VO se paciente já em uso prévio');
+      } else {
+        prescricoes.push('Ambiente calmo e desescalonamento. Antipsicóticos típicos parenterais são formalmente contraindicados. Se sedação imperativa: Midazolam 2.5 a 5 mg IM/IV lento com suporte respiratório.');
+      }
+    } else {
+      // Adulto Clínico / Psiquiátrico Geral (Psicose, Mania Bipolar, Transtorno de Personalidade)
+      if (decisaoVia === 'ORAL') {
+        prescricoes.push('Risperidona 1 a 2 mg VO OU Olanzapina 5 a 10 mg VO (comprimido orodispersível de ação rápida)');
+        prescricoes.push('Pode associar Diazepam 5 a 10 mg VO ou Clonazepam 1 a 2 mg VO se componente importante de ansiedade e pânico');
+        alternativas.push('Haloperidol 2.5 a 5 mg VO associado a Prometazina 25 mg VO');
+        alternativas.push('Quetiapina 50 a 100 mg VO');
+      } else {
+        // Via Intramuscular Adulto
+        prescricoes.push('Haloperidol 5 mg IM (1 ampola) + Prometazina 50 mg IM (1 ampola) aplicados em injeção intramuscular profunda (mesma seringa ou separadas)');
+        alternativas.push('Midazolam 5 a 10 mg IM se componente intenso de pânico ou intoxicação simpática');
+        alternativas.push('Olanzapina 10 mg IM pó reconstituído (ATENÇÃO: NUNCA associar com Benzodiazepínico IM/IV)');
+        alertasSeguranca.push('PROIBIÇÃO FORMAL: NUNCA aplicar Olanzapina IM conjuntamente com Benzodiazepínico parenteral (Midazolam/Diazepam) nas primeiras 2 a 4 horas. Risco documentado de colapso respiratório e parada cardiorrespiratória.');
+        alertasSeguranca.push('EVITAR DIAZEPAM IM: Absorção intramuscular errática e cristalização. Se for utilizar Benzodiazepínico IM, o fármaco de escolha é o MIDAZOLAM 5 a 10 mg.');
+      }
+    }
+
+    // Protocolo de Contenção Mecânica
+    var orientacoesEticasCfm = [
+      'A contenção mecânica é ato médico emergencial de exceção. Jamais deve ser aplicada como punição, castigo ou por carência de equipe.',
+      'Mínimo de 4 a 5 profissionais treinados para abordagem coordenada, evitando trauma físico.',
+      'Imobilização obrigatória em 4 ou 5 pontos (ambos os punhos, ambos os tornozelos e tórax/cintura com faixas largas acolchoadas de algodão ou couro; NUNCA amarras improvisadas, ataduras de gaze fina ou algemas metálicas).',
+      'PROIBIÇÃO ABSOLUTA de decúbito ventral (risco de asfixia postural e PCR súbita). Manter paciente em decúbito dorsal com cabeceira elevada a 30 graus para prevenir broncoaspiração de vômitos.',
+      'Prescrição médica obrigatória com motivo detalhado, horário de início e término previsto.',
+      'Checagem da enfermagem e médico a cada 15 a 30 minutos: oximetria de pulso, frequência respiratória, perfusão periférica das extremidades, pulsos e integridade cutânea.',
+      'Tempo máximo recomendado de contenção contínua: 2 a 4 horas. Desescalonar e retirar as faixas progressivamente assim que a medicação fizer efeito sedativo.'
+    ];
+
+    var protocoloContencaoMecanica = {
+      indicado: nivelEstratificado === 'GRAVE_EXTREMA' || nivelEstratificado === 'GRAVE' || !aceitaViaOral,
+      indicada: nivelEstratificado === 'GRAVE_EXTREMA' || nivelEstratificado === 'GRAVE' || !aceitaViaOral,
+      orientacoesEticas: orientacoesEticasCfm,
+      regrasSegurancaCFM: orientacoesEticasCfm
+    };
+
+    // Protocolo de Reversão de Distonia Aguda
+    var protocoloDistoniaAguda = {
+      definicao: 'Contração espasmódica involuntária e dolorosa de grupos musculares (torcicolo espasmódico, crise oculógira com desvio superior dos olhos, trismo mandibular, protusão de língua ou opistótono) ocorrendo tipicamente horas ou poucos dias após uso de antipsicóticos típicos.',
+      farmacoPrimeiraLinha: 'Biperideno 5 mg (1 ampola) IM ou IV lento (injetar em 2 a 3 minutos). Melhora dramática dos sintomas ocorre tipicamente em 5 a 15 minutos.',
+      repeticao: 'Se alívio incompleto após 30 minutos, pode repetir Biperideno 5 mg IM ou IV lento (máximo 20 mg/dia).',
+      alternativa: 'Prometazina 25 a 50 mg IM profundo (caso Biperideno não esteja disponível no setor).',
+      manutencaoPreventiva: 'Após a reversão da crise aguda, prescrever Biperideno 2 mg VO de 12/12h por 48 a 72 horas para prevenir recorrência do espasmo.'
+    };
+
+    // Alerta de Síndrome Neuroléptica Maligna
+    var alertaSindromeNeurolepticaMaligna = {
+      tetradeClinica: ['Hipertermia severa (> 38°C a 40°C)', 'Rigidez muscular generalizada em tubo de chumbo', 'Instabilidade autonômica (taquicardia, PA lábil, diaforese profusa)', 'Alteração do nível de consciência (confusão, torpor, coma)'],
+      laboratorioMarcador: 'Elevação expressiva de Creatinofosfoquinase (CPK > 1000 a 10.000 U/L), leucocitose neutrofílica e mioglobinúria.',
+      condutaEmergencia: 'SUSPENSÃO IMEDIATA de todos os antipsicóticos; transferência urgente para UTI; resfriamento físico corporal ativo; hidratação volêmica agressiva para prevenir necrose tubular aguda e insuficiência renal por rabdomiólise; antídotos específicos em UTI (Dantroleno 1 a 2.5 mg/kg IV e/ou Bromocriptina 2.5 a 5 mg VO/SNG 8/8h).'
+    };
+
+    var nivelGravidade = (nivelEstratificado === 'GRAVE_EXTREMA' ? 'GRAVE' : nivelEstratificado);
+
+    return {
+      sucesso: true,
+      nivelGravidade: nivelGravidade,
+      nivelEstratificado: nivelEstratificado,
+      bars: bars,
+      rass: rass,
+      decisaoVia: decisaoVia,
+      etiologia: etiologia,
+      ehIdoso: ehIdoso,
+      ehGestante: ehGestante,
+      escalonamento: escalonamento,
+      prescricoes: prescricoes,
+      alternativas: alternativas,
+      alertasSeguranca: alertasSeguranca,
+      protocoloContencaoMecanica: protocoloContencaoMecanica,
+      protocoloDistoniaAguda: protocoloDistoniaAguda,
+      alertaSindromeNeurolepticaMaligna: alertaSindromeNeurolepticaMaligna,
+      contencaoQuimica: {
+        viaRecomendada: decisaoVia === 'INTRAMUSCULAR' ? 'IM' : 'VO',
+        medicamentosRecomendados: prescricoes.map(function(p) {
+          var farmaco = p.includes('Haloperidol') && p.includes('Prometazina') ? 'Haloperidol + Prometazina IM' :
+                        (p.includes('Midazolam') ? 'Midazolam' :
+                        (p.includes('Diazepam') ? 'Diazepam' :
+                        (p.includes('Tiamina') ? 'Tiamina (Vitamina B1)' :
+                        (p.includes('Risperidona') ? 'Risperidona + Clonazepam' :
+                        (p.includes('Haloperidol') ? 'Haloperidol' : p.split(' ')[0])))));
+          return { farmaco: farmaco, posologia: p, dose: p };
+        }),
+        alertasCriticos: alertasSeguranca
+      }
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. AVALIAÇÃO DETERMINÍSTICA DE RISCO DE SUICÍDIO (C-SSRS / SAD PERSONS)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function avaliarRiscoSuicidio(params) {
+    params = params || {};
+
+    var ideacaoPassiva = params.ideacaoPassiva === true || params.desejoMorte === true;
+    var ideacaoAtiva = params.ideacaoAtiva === true || params.ideacaoSuicidaAtiva === true;
+    var planoEstruturado = params.planoEstruturado === true || params.planejamento === true;
+    var intencaoSuicida = params.intencaoSuicida === true || params.intencao === true;
+    var acessoMeiosLetais = params.acessoMeiosLetais === true || params.meiosLetais === true;
+    var tentativaPrevia = params.tentativaPrevia === true || params.historicoTentativa === true;
+    var tentativaRecente = params.tentativaRecente === true || params.tentativaAtual === true;
+    var desesperanca = params.desesperanca === true;
+    var psicoseOuDelirio = params.psicoseOuDelirio === true || params.alucinacaoComando === true;
+    var abusoSubstancias = params.abusoSubstancias === true || params.usoDrogasAlcool === true;
+    var semSuporteSocial = params.semSuporteSocial === true || params.isolamento === true;
+    var sexoMasculino = params.sexoMasculino === true || (params.sexo && String(params.sexo).toLowerCase().startsWith('m'));
+    var fatoresProtecao = Array.isArray(params.fatoresProtecao) ? params.fatoresProtecao : [];
+
+    // Cálculo do Escore de Gravidade e Classificação
+    var pontuacaoRisco = 0;
+    if (ideacaoPassiva) pontuacaoRisco += 1;
+    if (ideacaoAtiva) pontuacaoRisco += 2;
+    if (planoEstruturado) pontuacaoRisco += 3;
+    if (intencaoSuicida) pontuacaoRisco += 4;
+    if (acessoMeiosLetais) pontuacaoRisco += 3;
+    if (tentativaPrevia) pontuacaoRisco += 3;
+    if (tentativaRecente) pontuacaoRisco += 5;
+    if (desesperanca) pontuacaoRisco += 2;
+    if (psicoseOuDelirio) pontuacaoRisco += 4;
+    if (abusoSubstancias) pontuacaoRisco += 2;
+    if (semSuporteSocial) pontuacaoRisco += 2;
+    if (sexoMasculino) pontuacaoRisco += 1;
+
+    // Atenuação por fatores de proteção
+    if (fatoresProtecao.length > 0) {
+      pontuacaoRisco = Math.max(0, pontuacaoRisco - Math.min(3, fatoresProtecao.length));
+    }
+
+    var nivelRisco = 'BAIXO';
+    var indicacaoInternacao = 'DESNECESSARIA';
+    var condutaImediata = [];
+    var acoesSeguranca = [];
+
+    if (tentativaRecente || (ideacaoAtiva && planoEstruturado && intencaoSuicida) || psicoseOuDelirio || (planoEstruturado && acessoMeiosLetais)) {
+      nivelRisco = 'IMINENTE';
+      indicacaoInternacao = 'INTERNACAO_HOSPITALAR_OBRIGATORIA';
+      condutaImediata.push('VIGILÂNCIA 1:1 CONTÍNUA E ININTERRUPTA BEIRA-LEITO: O paciente JAMAIS pode ser deixado desacompanhado nem por um único segundo (inclusive para ir ao banheiro ou higiene pessoal).');
+      condutaImediata.push('REVISTA DE PERTENCES IMEDIATA: Remoção completa de cadarços de tênis, cintos, gravatas, sacolas plásticas, fios, vidros, talheres, medicamentos e qualquer objeto perfurocortante.');
+      condutaImediata.push('INTERNAÇÃO HOSPITALAR MANDATÓRIA EM LEITO SEGURO: Avaliar internação psiquiátrica voluntária; se houver recusa com risco iminente de autoagressão, está indicada legalmente a INTERNAÇÃO INVOLUNTÁRIA (com comunicação obrigatória ao Ministério Público em até 72 horas úteis, conforme Lei Federal 10.216/2001).');
+      condutaImediata.push('CONTENÇÃO E SEDAÇÃO SE AGITAÇÃO: Se o paciente tentar ativamente evasão ou lesão, prescrever medicação sedativa rápida e considerar contenção física protetora.');
+    } else if (ideacaoAtiva && (planoEstruturado || tentativaPrevia || desesperanca)) {
+      nivelRisco = 'ALTO';
+      indicacaoInternacao = 'AVALIACAO_INTERNACAO_PSIQ_OU_CAPS_III';
+      condutaImediata.push('Manter o paciente em observação rigorosa no Pronto Atendimento com acompanhante de confiança presente em tempo integral.');
+      condutaImediata.push('Revista e retenção de pertences perigosos ou medicamentos estocados.');
+      condutaImediata.push('Avaliação psiquiátrica de urgência nas próximas horas para definição de internação hospitalar ou acolhimento noturno em CAPS III.');
+      condutaImediata.push('NÃO liberar o paciente para domicílio sem rede de apoio estruturada e pactuação médica.');
+    } else if (ideacaoAtiva || (ideacaoPassiva && tentativaPrevia)) {
+      nivelRisco = 'MODERADO';
+      indicacaoInternacao = 'AMBULATORIAL_INTENSIVO_CAPS_OU_CONSULTA_RAPIDA';
+      condutaImediata.push('Avaliação com médico psiquiatra ou equipe de Saúde Mental em até 24 a 48 horas.');
+      condutaImediata.push('Supervisão familiar ininterrupta 24 horas no domicílio; entrega e administração de qualquer medicamento estritamente supervisionada por familiar de confiança.');
+      condutaImediata.push('Remoção completa de armas de fogo, venenos agrícolas e estoque de comprimidos da residência.');
+      condutaImediata.push('Pactuação formal do Plano de Segurança de 5 passos e entrega do contato do Centro de Valorização da Vida (CVV - 188) e SAMU (192).');
+    } else {
+      nivelRisco = 'BAIXO';
+      indicacaoInternacao = 'AMBULATORIAL_APS_UBS';
+      condutaImediata.push('Encaminhamento para acompanhamento longitudinal na Atenção Primária à Saúde (UBS/ESF) ou CAPS em até 7 dias.');
+      condutaImediata.push('Psicoeducação ao paciente e familiares sobre sinais de alerta de descompensação emocional.');
+      condutaImediata.push('Prescrição de tratamento para transtorno de base (ex: depressão/ansiedade) com entrega fracionada semanal das medicações pelo familiar para evitar estocagem de doses tóxicas.');
+      condutaImediata.push('Fornecer canal de apoio de emergência (CVV 188 e SAMU 192).');
+    }
+
+    var planoSeguranca5Passos = [
+      'Passo 1: Reconhecer os sinais de alerta precoces que precedem a crise (pensamentos negativos intrusivos, isolamento súbito, insônia, aperto no peito).',
+      'Passo 2: Praticar estratégias internas de enfrentamento que aliviem a tensão sem precisar falar com ninguém (técnicas de respiração diafragmática 4-7-8, caminhada, banho morno, ouvir música calma).',
+      'Passo 3: Fazer contato com pessoas e ambientes que proporcionem distração e acolhimento saudável (amigos, familiares de confiança, grupos comunitários).',
+      'Passo 4: Pedir ajuda explicitamente a familiares ou amigos de suporte ("Estou tendo pensamentos difíceis e preciso de companhia agora").',
+      'Passo 5: Acionar profissionais e canais de emergência: Ligar 188 (CVV - 24 horas, gratuito), 192 (SAMU) ou procurar a UPA/Pronto-Socorro ou CAPS mais próximo.'
+    ];
+
+    return {
+      sucesso: true,
+      nivelRisco: nivelRisco,
+      pontuacaoRisco: pontuacaoRisco,
+      indicacaoInternacao: indicacaoInternacao,
+      condutaImediata: condutaImediata,
+      acoesSeguranca: acoesSeguranca,
+      planoSeguranca5Passos: planoSeguranca5Passos,
+      telefonesEmergencia: {
+        cvv: '188 (Centro de Valorização da Vida - Ligação Gratuita Nacional 24h)',
+        samu: '192 (SAMU - Urgência e Emergência)',
+        bombeiros: '193 (Resgate)'
+      }
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. PROTOCOLO DE DEPRESSÃO MAIOR & ESCALA PHQ-9 COM CONDUTA DIRIGIDA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function avaliarDepressaoPhq9(params) {
+    params = params || {};
+
+    var respostas = [];
+    if (Array.isArray(params.respostas)) {
+      respostas = params.respostas.map(function(r) { return Math.max(0, Math.min(3, Number(r) || 0)); });
+    } else if (params.q1 !== undefined || params.p1 !== undefined) {
+      for (var i = 1; i <= 9; i++) {
+        var val = params['q' + i] !== undefined ? params['q' + i] : params['p' + i];
+        respostas.push(Math.max(0, Math.min(3, Number(val) || 0)));
+      }
+    } else {
+      var respostaQ9 = Number(params.pergunta9 || params.q9 || 0);
+      respostas = [0, 0, 0, 0, 0, 0, 0, 0, Math.min(3, Math.max(0, respostaQ9))];
+    }
+
+    while (respostas.length < 9) {
+      respostas.push(0);
+    }
+
+    var pontuacaoTotal = respostas.reduce(function(acc, cur) { return acc + cur; }, 0);
+    if (params.pontuacaoTotal && Number(params.pontuacaoTotal) > pontuacaoTotal) {
+      pontuacaoTotal = Number(params.pontuacaoTotal);
+    }
+
+    var valorQ9 = respostas[8];
+    var alertaIdeacaoSuicida = valorQ9 > 0 || params.alertaSuicidio === true;
+
+    // Estratificação de Gravidade do PHQ-9
+    var gravidade = 'MINIMA';
+    var descricaoGravidade = 'Sintomas Mínimos ou Ausência de Depressão';
+    var recomendacaoGeral = '';
+
+    if (pontuacaoTotal >= 20) {
+      gravidade = 'GRAVE';
+      descricaoGravidade = 'Depressão Maior Grave (Escore 20 a 27)';
+      recomendacaoGeral = 'Tratamento farmacológico imediato obrigatório associado a encaminhamento psiquiátrico de urgência e psicoterapia intensiva. Rastrear risco de suicídio rigorosamente.';
+    } else if (pontuacaoTotal >= 15) {
+      gravidade = 'MODERADAMENTE_GRAVE';
+      descricaoGravidade = 'Depressão Maior Moderadamente Grave (Escore 15 a 19)';
+      recomendacaoGeral = 'Tratamento farmacológico imediato combinado com psicoterapia estruturada (Terapia Cognitivo-Comportamental). Avaliação de fatores psicossociais e rede de apoio.';
+    } else if (pontuacaoTotal >= 10) {
+      gravidade = 'MODERADA';
+      descricaoGravidade = 'Depressão Maior Moderada (Escore 10 a 14)';
+      recomendacaoGeral = 'Plano de tratamento ativo: farmacoterapia (ISRS de 1ª linha) ou psicoterapia estruturada baseada em evidências, ou combinação de ambas.';
+    } else if (pontuacaoTotal >= 5) {
+      gravidade = 'LEVE';
+      descricaoGravidade = 'Sintomas Depressivos Leves (Escore 5 a 9)';
+      recomendacaoGeral = 'Conduta expectante vigilante e suporte: psicoeducação sobre higiene do sono e atividade física regular, suporte psicológico breve. Reavaliar pontuação em 4 a 6 semanas.';
+    } else {
+      gravidade = 'MINIMA';
+      descricaoGravidade = 'Sintomas Mínimos / Ausência de Depressão (Escore 0 a 4)';
+      recomendacaoGeral = 'Não necessita de intervenção farmacológica específica. Orientar hábitos saudáveis e reavaliar se novos estressores.';
+    }
+
+    // Seleção de Antidepressivo por Comorbidades
+    var selecaoAntidepressivo = selecionarAntidepressivo(params);
+
+    var orientacoesSegurancaAdesao = [
+      'Janela de Latência Terapêutica: O efeito antidepressivo pleno requer entre 2 a 4 semanas de uso diário ininterrupto para se manifestar. Orientar enfaticamente o paciente para não interromper precocemente.',
+      'Efeitos Transitórios Iniciais: Nas primeiras 1 a 2 semanas, podem ocorrer náuseas leves, cefaleia e discreta piora transitória de ansiedade, que costumam remitir espontaneamente.',
+      'Black Box Warning (< 25 anos): Monitorar com visitas frequentes nas primeiras 2 a 4 semanas pacientes com menos de 25 anos pelo risco paradoxal inicial de exacerbação transitória de ideação suicida.',
+      'Duração Mínima do Tratamento: Manter a farmacoterapia por pelo menos 6 a 12 meses após a remissão clínica completa do 1º episódio para prevenir recaída.',
+      'Descontinuação Gradual: NUNCA suspender abruptamente o medicamento; o desmame deve ser lento e gradual ao longo de várias semanas para evitar a Síndrome de Descontinuação de Antidepressivos.'
+    ];
+
+    return {
+      sucesso: true,
+      pontuacaoTotal: pontuacaoTotal,
+      valorPergunta9: valorQ9,
+      alertaIdeacaoSuicida: alertaIdeacaoSuicida,
+      gravidade: gravidade,
+      descricaoGravidade: descricaoGravidade,
+      recomendacaoGeral: recomendacaoGeral,
+      antidepressivoRecomendado: selecaoAntidepressivo.antidepressivoRecomendado,
+      justificativaFarmacologica: selecaoAntidepressivo.justificativaFarmacologica,
+      posologiaRecomendada: selecaoAntidepressivo.posologiaRecomendada,
+      alternativas: selecaoAntidepressivo.alternativas,
+      contraindicacoes: selecaoAntidepressivo.contraindicacoes,
+      orientacoesSegurancaAdesao: orientacoesSegurancaAdesao
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. SELEÇÃO PERSONALIZADA DE ANTIDEPRESSIVO (ALGORITMO CLÍNICO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function selecionarAntidepressivo(params) {
+    params = params || {};
+
+    var comorbidades = Array.isArray(params.comorbidades) ? params.comorbidades.map(function(c) { return String(c).toLowerCase(); }) : [];
+    if (params.cardiopatia || params.posIam) comorbidades.push('cardiopatia');
+    if (params.dorCronica || params.fibromialgia) comorbidades.push('dor_cronica');
+    if (params.insonia || params.perdaPeso) comorbidades.push('insonia_perda_peso');
+    if (params.tabagismo || params.cessacaoTabagismo) comorbidades.push('tabagismo');
+    if (params.disfuncaoSexual) comorbidades.push('disfuncao_sexual');
+    if (params.ansiedade || params.panico) comorbidades.push('ansiedade_panico');
+    if (params.epilepsia || params.convulsao) comorbidades.push('epilepsia');
+    if (params.transtornoAlimentar || params.bulimia || params.anorexia) comorbidades.push('transtorno_alimentar');
+    if (params.gestante) comorbidades.push('gestante');
+    if (params.idoso || Number(params.idade) >= 65) comorbidades.push('idoso');
+
+    var antidepressivoRecomendado = null;
+    var justificativaFarmacologica = '';
+    var posologiaRecomendada = '';
+    var alternativas = [];
+    var contraindicacoes = [];
+
+    // Checagem de Contraindicações Absolutas
+    var temEpilepsia = comorbidades.some(function(c) { return c.includes('epilep') || c.includes('convuls'); });
+    var temTranstornoAlimentar = comorbidades.some(function(c) { return c.includes('bulimia') || c.includes('anorex') || c.includes('alimentar'); });
+    var ehCardiopata = comorbidades.some(function(c) { return c.includes('cardio') || c.includes('coronar') || c.includes('iam'); });
+    var temDorCronica = comorbidades.some(function(c) { return c.includes('dor') || c.includes('fibromialgia') || c.includes('neuropat'); });
+    var temInsoniaGravePerdaPeso = comorbidades.some(function(c) { return c.includes('insonia') || c.includes('peso') || c.includes('caquex'); });
+    var temTabagismoOuDisfuncao = comorbidades.some(function(c) { return c.includes('tabag') || c.includes('sexual') || c.includes('ganho_peso'); });
+    var ehGestante = comorbidades.some(function(c) { return c.includes('gestan') || c.includes('gravid'); });
+    var ehIdoso = comorbidades.some(function(c) { return c.includes('idoso'); });
+
+    if (temEpilepsia || temTranstornoAlimentar) {
+      contraindicacoes.push('CONTRAINDICAÇÃO ABSOLUTA DE BUPROPIONA: Pacientes com histórico de crises convulsivas, epilepsia, bulimia ou anorexia nervosa possuem risco altíssimo de convulsões epileptiformes induzidas pela Bupropiona por queda abrupta do limiar convulsivo.');
+    }
+    if (ehGestante) {
+      contraindicacoes.push('CONTRAINDICAÇÃO DE PAROXETINA: A Paroxetina é associada a risco aumentado de malformações congênitas cardiovasculares (defeitos de septo ventricular/atrial) no 1º trimestre (Categoria D do FDA).');
+    }
+    if (ehCardiopata) {
+      contraindicacoes.push('EVITAR ANTIDEPRESSIVOS TRICÍCLICOS (Amitriptilina, Nortriptilina) em cardiopatas: Risco de arritmias ventriculares, bloqueios de condução atrioventricular (efeito quinidina-like) e hipotensão ortostática.');
+    }
+
+    // Algoritmo de Decisão Farmacológica
+    if (ehCardiopata) {
+      antidepressivoRecomendado = CATALOGO_FARMACOLOGICO.ANTIDEPRESSIVOS_ESSENCIAIS.sertralina;
+      justificativaFarmacologica = 'Sertralina é o padrão ouro indiscutível em pacientes cardiopatas ou pós-IAM, respaldado pelo ensaio clínico randomizado SADHART (demonstrou ausência de eventos adversos na fração de ejeção, condução cardíaca ou arritmias ventriculares).';
+      posologiaRecomendada = 'Sertralina 25 a 50 mg/dia VO pela manhã; titular para 50 a 100 mg/dia após 1 a 2 semanas se boa tolerância.';
+      alternativas.push('Escitalopram 10 mg/dia (dose máxima restrita a 10-20 mg para não prolongar QTc)');
+    } else if (temDorCronica) {
+      antidepressivoRecomendado = CATALOGO_FARMACOLOGICO.ANTIDEPRESSIVOS_ESSENCIAIS.duloxetina;
+      justificativaFarmacologica = 'Duloxetina (IRSN Dual) é a primeira linha para pacientes com comorbidade de dor crônica, fibromialgia ou neuropatia diabética, agindo sobre as vias descendentes inibitórias da dor na medula espinhal via noradrenalina.';
+      posologiaRecomendada = 'Duloxetina 30 mg/dia VO por 7 dias; progredir para 60 mg/dia VO pela manhã.';
+      alternativas.push('Venlafaxina XR 75 a 150 mg/dia VO');
+    } else if (temInsoniaGravePerdaPeso) {
+      antidepressivoRecomendado = CATALOGO_FARMACOLOGICO.ANTIDEPRESSIVOS_ESSENCIAIS.mirtazapina;
+      justificativaFarmacologica = 'Mirtazapina (NaSSA) possui potente bloqueio anti-histamínico H1 e modulação serotoninérgica 5-HT2/5-HT3, gerando alívio imediato da insônia, aumento do apetite e recuperação de peso sem induzir disfunção sexual.';
+      posologiaRecomendada = 'Mirtazapina 15 mg VO ao deitar; pode ser titulada até 30 a 45 mg VO se persistência dos sintomas depressivos.';
+      alternativas.push('Trazodona 50 a 100 mg VO ao deitar em associação com ISRS');
+    } else if (temTabagismoOuDisfuncao && !temEpilepsia && !temTranstornoAlimentar) {
+      antidepressivoRecomendado = CATALOGO_FARMACOLOGICO.ANTIDEPRESSIVOS_ESSENCIAIS.bupropiona;
+      justificativaFarmacologica = 'Bupropiona (IRND) atua exclusivamente na recaptação de dopamina e noradrenalina, tratando os sintomas de fadiga e anedonia, auxiliando na cessação tabágica e com ausência total de ganho ponderal ou disfunção erétil/anorgasmia.';
+      posologiaRecomendada = 'Bupropiona XL 150 mg VO pela manhã por 7 a 14 dias; pode aumentar para 300 mg VO pela manhã.';
+      alternativas.push('Vortioxetina ou Escitalopram');
+    } else if (ehGestante) {
+      antidepressivoRecomendado = CATALOGO_FARMACOLOGICO.ANTIDEPRESSIVOS_ESSENCIAIS.sertralina;
+      justificativaFarmacologica = 'Sertralina possui perfil de segurança superior comprovado na gravidez e baixíssima passagem para o leite materno durante a lactação.';
+      posologiaRecomendada = 'Sertralina 25 a 50 mg/dia VO; titular conforme evolução clínica.';
+      alternativas.push('Fluoxetina 20 mg/dia VO');
+    } else if (ehIdoso) {
+      antidepressivoRecomendado = CATALOGO_FARMACOLOGICO.ANTIDEPRESSIVOS_ESSENCIAIS.escitalopram;
+      justificativaFarmacologica = 'Escitalopram oferece máxima seletividade serotoninérgica, ausência de efeitos anticolinérgicos e baixíssimo risco de interações no citocromo P450 em idosos polimedicados.';
+      posologiaRecomendada = 'Escitalopram 5 mg/dia VO por 7 dias; progredir para 10 mg/dia VO pela manhã (teto seguro em idosos).';
+      alternativas.push('Sertralina 25 a 50 mg/dia VO');
+    } else {
+      antidepressivoRecomendado = CATALOGO_FARMACOLOGICO.ANTIDEPRESSIVOS_ESSENCIAIS.escitalopram;
+      justificativaFarmacologica = 'Escitalopram ou Sertralina são as opções de 1ª linha com maior eficácia e melhor índice de aceitação e adesão no tratamento inicial do Transtorno Depressivo Maior.';
+      posologiaRecomendada = 'Escitalopram 10 mg/dia VO pela manhã (ou Sertralina 50 mg/dia VO após refeição).';
+      alternativas.push('Sertralina 50 mg/dia VO');
+      alternativas.push('Fluoxetina 20 mg/dia VO');
+    }
+
+    return {
+      sucesso: true,
+      antidepressivoRecomendado: antidepressivoRecomendado,
+      justificativaFarmacologica: justificativaFarmacologica,
+      posologiaRecomendada: posologiaRecomendada,
+      alternativas: alternativas,
+      contraindicacoes: contraindicacoes
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. MANEJO DE INTERCORRÊNCIAS: DISTONIA, SNM E SÍNDROME SEROTONINÉRGICA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function manejarDistoniaAguda(params) {
+    params = params || {};
+    var viaDisponivel = (params.via || 'im').toLowerCase();
+    var biperidenoDisponivel = params.biperidenoDisponivel !== false;
+
+    var conduta = {
+      diagnostico: 'Distonia Aguda Induzida por Antipsicótico (Reação Extrapiramidal Aguda)',
+      farmacoPrincipal: '',
+      posologia: '',
+      tempoResposta: '5 a 15 minutos para alívio clínico expressivo',
+      segundaDose: 'Repetir a mesma dose em 30 minutos se espasmo persistente',
+      manutencaoVO: 'Biperideno 2 mg VO de 12/12h ou 8/8h por 48 a 72 horas para prevenir rebote',
+      orientacoes: [
+        'Acalmar o paciente e acompanhantes: o quadro é extremamente angustiante mas prontamente reversível com o antídoto anticolinérgico.',
+        'Revisar a dose do antipsicótico e considerar redução de dose ou troca por antipsicótico atípico (segunda geração).'
+      ]
+    };
+
+    if (biperidenoDisponivel) {
+      conduta.farmacoPrincipal = 'Biperideno 5 mg (1 ampola)';
+      conduta.posologia = viaDisponivel === 'iv'
+        ? '5 mg IV LENTO (injetar diluído ou puro em 2 a 3 minutos)'
+        : '5 mg IM profundo';
+    } else {
+      conduta.farmacoPrincipal = 'Prometazina 25 a 50 mg (1 ampola de 50 mg)';
+      conduta.posologia = '25 a 50 mg IM profundo';
+    }
+
+    return {
+      sucesso: true,
+      conduta: conduta
+    };
+  }
+
+  function avaliarSindromeNeurolepticaMaligna(params) {
+    params = params || {};
+    var febreAlta = params.febreAlta === true || Number(params.temperatura || 0) >= 38.0;
+    var rigidezTuboChumbo = params.rigidezMuscular === true || params.rigidezTuboChumbo === true;
+    var instabilidadeAutonomica = params.instabilidadeAutonomica === true || params.taquicardia === true || params.hipertensaoLabil === true;
+    var alteracaoConsciencia = params.alteracaoConsciencia === true || params.confusao === true || params.torpor === true;
+    var cpkElevado = params.cpkElevado === true || Number(params.cpk || 0) > 1000;
+
+    var criteriosPresentes = 0;
+    if (febreAlta) criteriosPresentes++;
+    if (rigidezTuboChumbo) criteriosPresentes++;
+    if (instabilidadeAutonomica) criteriosPresentes++;
+    if (alteracaoConsciencia) criteriosPresentes++;
+    if (cpkElevado) criteriosPresentes++;
+
+    var suspeitaClinica = criteriosPresentes >= 3;
+    var condutaUrgente = [];
+
+    if (suspeitaClinica) {
+      condutaUrgente.push('SUSPENDER IMEDIATAMENTE TODOS OS ANTIPSICÓTICOS E FÁRMACOS DOPAMINÉRGICOS.');
+      condutaUrgente.push('TRANSFERÊNCIA IMEDIATA PARA LEITO DE TERAPIA INTENSIVA (UTI).');
+      condutaUrgente.push('Resfriamento corporal ativo: compressas frias, cobertores térmicos, infusão de cristaloides resfriados se hipertermia extrema.');
+      condutaUrgente.push('Hidratação venosa vigorosa (SF 0.9% ou Ringer Lactato 2.5 a 3 L/24h) com monitorização de diurese (alvo >= 1.5 a 2 mL/kg/h) para prevenir necrose tubular aguda e falência renal por mioglobinúria/rabdomiólise.');
+      condutaUrgente.push('Antídotos específicos em UTI: Dantroleno 1 a 2.5 mg/kg IV em bolus a cada 6h (relaxante muscular periférico) e/ou Bromocriptina 2.5 a 5 mg VO/SNG 8/8h (agonista dopaminérgico central).');
+    }
+
+    return {
+      sucesso: true,
+      suspeitaClinicaSNM: suspeitaClinica,
+      criteriosPresentes: criteriosPresentes,
+      criteriosAvaliacao: {
+        febreAlta: febreAlta,
+        rigidezTuboChumbo: rigidezTuboChumbo,
+        instabilidadeAutonomica: instabilidadeAutonomica,
+        alteracaoConsciencia: alteracaoConsciencia,
+        cpkElevado: cpkElevado
+      },
+      condutaUrgente: condutaUrgente
+    };
+  }
+
+  function avaliarSindromeSerotoninergica(params) {
+    params = params || {};
+
+    var usaSerotoninergico = params.usaSerotoninergico !== false; // Se avaliando suspeita, assume exposição
+    var clonusEspontaneo = params.clonusEspontaneo === true;
+    var clonusInduzivel = params.clonusInduzivel === true;
+    var clonusOcular = params.clonusOcular === true;
+    var agitacao = params.agitacao === true || params.diaforese === true;
+    var tremor = params.tremor === true;
+    var hiperreflexia = params.hiperreflexia === true;
+    var hipertonia = params.hipertonia === true || params.rigidez === true;
+    var temperaturaElevada = params.hipertermia === true || Number(params.temperatura || 0) >= 38.0;
+
+    // Critérios de Hunter (Dunkley et al., 2003):
+    // Na presença de agente serotoninérgico, 1 das 5 regras:
+    var atendeRegra1 = clonusEspontaneo;
+    var atendeRegra2 = clonusInduzivel && agitacao;
+    var atendeRegra3 = clonusOcular && agitacao;
+    var atendeRegra4 = tremor && hiperreflexia;
+    var atendeRegra5 = hipertonia && temperaturaElevada && (clonusOcular || clonusInduzivel);
+
+    var atendeCriteriosHunter = usaSerotoninergico && (atendeRegra1 || atendeRegra2 || atendeRegra3 || atendeRegra4 || atendeRegra5);
+
+    var gravidade = 'NAO_CARACTERIZADA';
+    if (atendeCriteriosHunter) {
+      if (temperaturaElevada || hipertonia || clonusEspontaneo) {
+        gravidade = 'GRAVE_RISCO_VIDA';
+      } else if (clonusInduzivel || tremor || hiperreflexia) {
+        gravidade = 'MODERADA';
+      } else {
+        gravidade = 'LEVE';
+      }
+    }
+
+    var conduta = [];
+    if (atendeCriteriosHunter) {
+      conduta.push('SUSPENDER IMEDIATAMENTE TODOS OS FÁRMACOS SEROTONINÉRGICOS (ISRS, IRSN, Tramadol, Linazolida, Triptanos, IMAO, Lítio).');
+      conduta.push('SEDAÇÃO PRECOCE COM BENZODIAZEPÍNICOS: Diazepam 10 mg IV lento ou Midazolam 5 mg IV/IM para controle da agitação motora, redução da hiperatividade muscular e supressão adrenérgica.');
+      conduta.push('RESFRIAMENTO CORPORAL ATIVO: Compressas frias e hidratação venosa se temperatura > 38.5°C.');
+      conduta.push('ANTÍDOTO ESPECÍFICO (Antagonista 5-HT2A): Ciproeptadina 12 mg VO dose inicial de ataque, seguida de 2 mg a cada 2 horas se persistência dos sintomas (ou 8 mg a cada 6 horas).');
+      if (gravidade === 'GRAVE_RISCO_VIDA') {
+        conduta.push('TRANSFERÊNCIA IMEDIATA PARA UTI: Se hipertermia > 39-40°C ou hipertonia acentuada, indicar intubação orotraqueal e bloqueio neuromuscular (com Vecurônio/Rocurônio; NUNCA Succinilcolina por risco de hipercalemia e rabdomiólise).');
+      }
+    }
+
+    var diferenciacaoSNM = [
+      'Síndrome Serotoninérgica: Instalação rápida (horas), CLÔNUS espontâneo ou induzível (achado patognomônico), HIPERREFLEXIA, diarreia, pupila midriática.',
+      'Síndrome Neuroléptica Maligna: Instalação insidiosa (dias), RIGIDEZ muscular em tubo de chumbo, HIPORREFLEXIA, CPK extremamente elevado (> 1000 a 10.000 U/L).'
+    ];
+
+    return {
+      sucesso: true,
+      atendeCriteriosHunter: atendeCriteriosHunter,
+      gravidade: gravidade,
+      regrasHunter: {
+        regra1_clonusEspontaneo: atendeRegra1,
+        regra2_clonusInduzivelAgitacao: atendeRegra2,
+        regra3_clonusOcularAgitacao: atendeRegra3,
+        regra4_tremorHiperreflexia: atendeRegra4,
+        regra5_hipertoniaHipertermiaClonus: atendeRegra5
+      },
+      condutaEmergencia: conduta,
+      diferenciacaoSNM: diferenciacaoSNM
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 7. AVALIAÇÃO INTEGRADA & GERADOR DE RESUMO FORMATADO (PEP / TELEGRAM / COCKPIT)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function avaliarPsiquiatriaCompleta(params) {
+    params = params || {};
+
+    var resAgitacao = params.avaliarAgitacao !== false ? avaliarAgitacaoPsicomotora(params) : null;
+    var resSuicidio = params.avaliarSuicidio !== false ? avaliarRiscoSuicidio(params) : null;
+    var resPhq9 = params.avaliarPhq9 !== false ? avaliarDepressaoPhq9(params) : null;
+    var resSnm = params.avaliarSnm === true ? avaliarSindromeNeurolepticaMaligna(params) : null;
+    var resSerotonina = params.avaliarSerotonina === true ? avaliarSindromeSerotoninergica(params) : null;
+
+    var resumoTexto = gerarResumoPsiquiatria({
+      agitacao: resAgitacao,
+      suicidio: resSuicidio,
+      phq9: resPhq9,
+      snm: resSnm,
+      serotonina: resSerotonina,
+      paciente: params.paciente || {}
+    });
+
+    return {
+      sucesso: true,
+      timestamp: new Date().toISOString(),
+      agitacao: resAgitacao,
+      suicidio: resSuicidio,
+      phq9: resPhq9,
+      snm: resSnm,
+      serotonina: resSerotonina,
+      resumoFormatado: resumoTexto
+    };
+  }
+
+  function gerarResumoPsiquiatria(dados) {
+    dados = dados || {};
+    var l = [];
+
+    l.push('════════════════════════════════════════════════════════════════');
+    l.push('🧠 ULTRA ROTINA · CONDUTA INTEGRADA EM PSIQUIATRIA & SAÚDE MENTAL');
+    l.push('════════════════════════════════════════════════════════════════');
+    l.push('');
+
+    // Seção de Agitação Psicomotora
+    if (dados.agitacao && dados.agitacao.sucesso) {
+      var ag = dados.agitacao;
+      l.push('► AGITAÇÃO PSICOMOTORA & CONTENÇÃO FARMACOLÓGICA:');
+      l.push('  • Gravidade Estratificada: ' + ag.nivelEstratificado + ' (Via Indicada: ' + ag.decisaoVia + ')');
+      l.push('  • Etiologia Base: ' + ag.etiologia.toUpperCase());
+      l.push('  • Prescrição Imediata Recomendada:');
+      for (var p = 0; p < ag.prescricoes.length; p++) {
+        l.push('    💊 ' + ag.prescricoes[p]);
+      }
+      if (ag.alternativas.length > 0) {
+        l.push('  • Alternativas de 2ª Linha:');
+        for (var a = 0; a < ag.alternativas.length; a++) {
+          l.push('    ↳ ' + ag.alternativas[a]);
+        }
+      }
+      if (ag.alertasSeguranca.length > 0) {
+        l.push('');
+        l.push('  ⚠️ ALERTAS DE SEGURANÇA FARMACOLÓGICA:');
+        for (var al = 0; al < ag.alertasSeguranca.length; al++) {
+          l.push('    ! ' + ag.alertasSeguranca[al]);
+        }
+      }
+      l.push('');
+    }
+
+    // Seção de Risco de Suicídio
+    if (dados.suicidio && dados.suicidio.sucesso) {
+      var sc = dados.suicidio;
+      l.push('► AVALIAÇÃO DE RISCO DE SUICÍDIO (C-SSRS / SAD PERSONS):');
+      l.push('  • Estratificação de Risco: ' + sc.nivelRisco + ' (Score: ' + sc.pontuacaoRisco + ' pts)');
+      l.push('  • Indicação de Internação: ' + sc.indicacaoInternacao);
+      l.push('  • Conduta Imediata de Proteção:');
+      for (var c = 0; c < sc.condutaImediata.length; c++) {
+        l.push('    🛡️ ' + sc.condutaImediata[c]);
+      }
+      l.push('');
+    }
+
+    // Seção de Depressão e PHQ-9
+    if (dados.phq9 && dados.phq9.sucesso) {
+      var pq = dados.phq9;
+      l.push('► RASTREAMENTO DE DEPRESSÃO (ESCALA PHQ-9):');
+      l.push('  • Escore Total: ' + pq.pontuacaoTotal + ' / 27 pontos (' + pq.descricaoGravidade + ')');
+      if (pq.alertaIdeacaoSuicida) {
+        l.push('  🚨 ALERTA CRÍTICO: Pergunta 9 positiva (' + pq.valorPergunta9 + ' pts) - Ideação de morte presente!');
+      }
+      if (pq.antidepressivoRecomendado) {
+        l.push('  • Fármaco Recomendado: ' + pq.antidepressivoRecomendado.medicamento + ' (' + pq.antidepressivoRecomendado.classe + ')');
+        l.push('  • Posologia e Titulação: ' + pq.posologiaRecomendada);
+        l.push('  • Racional Clínico: ' + pq.justificativaFarmacologica);
+      }
+      if (pq.contraindicacoes && pq.contraindicacoes.length > 0) {
+        l.push('');
+        l.push('  🚫 CONTRAINDICAÇÕES FARMACOLÓGICAS IDENTIFICADAS:');
+        for (var ct = 0; ct < pq.contraindicacoes.length; ct++) {
+          l.push('    ✕ ' + pq.contraindicacoes[ct]);
+        }
+      }
+      l.push('');
+    }
+
+    // Suporte Telefônico e Rede de Apoio
+    l.push('► REDE DE APOIO & TELEFONES DE URGÊNCIA:');
+    l.push('  • CVV (Centro de Valorização da Vida): 188 (Ligação gratuita, 24 horas)');
+    l.push('  • SAMU: 192 | Bombeiros / Resgate: 193');
+    l.push('════════════════════════════════════════════════════════════════');
+
+    return l.join('\n');
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // EXPORTAÇÃO PÚBLICA & ALIASES RPC
+  // ───────────────────────────────────────────────────────────────────────────
+
+  return {
+    CATALOGO_FARMACOLOGICO: CATALOGO_FARMACOLOGICO,
+    avaliarAgitacaoPsicomotora: avaliarAgitacaoPsicomotora,
+    avaliarRiscoSuicidio: avaliarRiscoSuicidio,
+    estratificarRiscoSuicidio: avaliarRiscoSuicidio, // Alias
+    avaliarDepressaoPhq9: avaliarDepressaoPhq9,
+    selecionarAntidepressivo: selecionarAntidepressivo,
+    manejarDistoniaAguda: manejarDistoniaAguda,
+    avaliarDistoniaAguda: manejarDistoniaAguda, // Alias
+    avaliarSindromeNeurolepticaMaligna: avaliarSindromeNeurolepticaMaligna,
+    avaliarSindromeSerotoninergica: avaliarSindromeSerotoninergica,
+    avaliarPsiquiatriaCompleta: avaliarPsiquiatriaCompleta,
+    avaliarPsiquiatriaCompleto: avaliarPsiquiatriaCompleta, // Alias
+    gerarResumoPsiquiatria: gerarResumoPsiquiatria
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { PsiquiatriaUrgenciaService: PsiquiatriaUrgenciaService };
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_puericultura_pediatria.js
 // ==============================================================================
 
@@ -10843,6 +13402,942 @@ var PuericulturaPediatriaService = (function() {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = PuericulturaPediatriaService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_rbac_perfis_clinicos.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: MOTOR DE PERMISSÕES E PERFIS CLÍNICOS (CLINICAL RBAC & SUPERVISÃO)
+ * ==============================================================================
+ * Fornece controle de acesso baseado em papéis (Role-Based Access Control - RBAC)
+ * desenhado sob medida para hospitais universitários, programas de residência médica
+ * e atenção à saúde (Resoluções CFM, CNRM/MEC e Diretrizes de Segurança do Paciente).
+ *
+ * HIERARQUIA CLÍNICA DETERMINÍSTICA:
+ *  1. ACADEMICO (Estudante de Medicina / Interno):
+ *     - Foco educacional: consulta irrestrita a protocolos, calculadoras, guias e bulários.
+ *     - Elaboração de rascunhos de SOAP e simulação de receitas para estudo.
+ *     - BLOQUEIO ESTRITO: Não pode liberar prescrição hospitalar ativa, não pode dar alta/transferir
+ *       leito e não pode prescrever fármacos de alta vigilância sem co-validação preceptorial.
+ *  2. RESIDENTE_R1 (Residente Júnior de 1º Ano):
+ *     - Autonomia ambulatorial plena supervisionada; prescrições hospitalares rotineiras.
+ *     - ALERTA / SUPERVISÃO OBRIGATÓRIA: Fármacos de alta vigilância (trombolíticos, bloqueadores
+ *       neuromusculares, sedação profunda, quimioterápicos) exigem dupla checagem com R3+ ou Preceptor.
+ *  3. RESIDENTE_R2 (Residente Pleno de 2º Ano):
+ *     - Autonomia em leitos de enfermaria, sala amarela e procedimentos clínicos frequentes.
+ *     - Capacidade de co-assinar e orientar acadêmicos em enfermarias.
+ *  4. RESIDENTE_R3_R4 (Residente Sênior / Fellow / Chefe de Residentes):
+ *     - Autonomia em sala vermelha, UTI, regulação de leitos e procedimentos invasivos críticos.
+ *     - Pode validar prescrições de alta vigilância de R1 e acadêmicos.
+ *  5. PRECEPTOR (Médico Assistente / Preceptor / Docente / Staff):
+ *     - Autoridade clínica máxima e irrestrita (CRM ativo).
+ *     - Aprovação final de altas hospitalares complexas, chancelas formais de condutas,
+ *       parametrização de protocolos institucionais e feedback socrático.
+ *  6. FARMACEUTICO_CLINICO (Farmacêutico Hospitalar / Segurança do Paciente):
+ *     - Auditoria farmacêutica avançada (Y-Site, ClCr, dose-teto de DVA, interações graves).
+ *     - Poder de veto técnico/sinalização de bloqueio por risco iatrogênico beira-leito.
+ *
+ * SALVAGUARDA VITAL:
+ *  - MODO BREAK-THE-GLASS (Bypass de Emergência Médica):
+ *    Em PCR, choque anafilático ou risco iminente de óbito, o médico/residente pode quebrar
+ *    as travas com registro explícito da justificativa, garantindo que o cuidado ao paciente
+ *    JAMAIS seja interrompido por burocracia do sistema.
+ * ==============================================================================
+ */
+
+var RbacPerfisClinicosService = (function() {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. CATÁLOGO DE PERFIS E PERMISSÕES (ROLES & CAPABILITIES)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  var PERFIS = {
+    ACADEMICO: {
+      id: 'ACADEMICO',
+      titulo: 'Acadêmico de Medicina (Internato)',
+      descricao: 'Estudante de medicina em estágio curricular sob supervisão docente contínua.',
+      nivelHierarquico: 1,
+      exigeCrm: false,
+      podePrescreverOficialmente: false,
+      permissoes: [
+        'consultar_protocolos',
+        'consultar_guias_farmaceuticos',
+        'executar_calculadoras_clinicas',
+        'redigir_soap_rascunho',
+        'simular_receita_estudo',
+        'visualizar_leitos_enfermaria',
+        'acessar_aulas_e_conteudo_educacional',
+        'solicitar_feedback_socratico_preceptor'
+      ],
+      restricoes: [
+        'liberar_prescricao_hospitalar_ativa',
+        'assinar_receita_definitiva',
+        'alterar_status_leito_alta',
+        'alterar_status_leito_instavel',
+        'prescrever_farmacos_alta_vigilancia',
+        'indicar_internacao_involuntaria_psiquiatrica',
+        'configurar_parametros_sistema'
+      ]
+    },
+
+    RESIDENTE_R1: {
+      id: 'RESIDENTE_R1',
+      titulo: 'Médico Residente R1 (Júnior)',
+      descricao: 'Médico com CRM ativo em primeiro ano do programa de residência médica.',
+      nivelHierarquico: 2,
+      exigeCrm: true,
+      podePrescreverOficialmente: true,
+      permissoes: [
+        'consultar_protocolos',
+        'consultar_guias_farmaceuticos',
+        'executar_calculadoras_clinicas',
+        'redigir_soap_rascunho',
+        'redigir_soap_definitivo',
+        'gerar_receita_ambulatorial',
+        'gerar_atestado_medico',
+        'prescrever_enfermaria_basica',
+        'atualizar_status_leito_rotina',
+        'realizar_passagem_plantao_sbar',
+        'acionar_feedback_preceptor'
+      ],
+      restricoes: [
+        'prescrever_tromboliticos_sem_coassinatura',
+        'prescrever_bloqueadores_neuromusculares_sem_coassinatura',
+        'alta_hospitalar_uti',
+        'indicar_interrupcao_gestacao_prematura',
+        'configurar_parametros_sistema'
+      ]
+    },
+
+    RESIDENTE_R2: {
+      id: 'RESIDENTE_R2',
+      titulo: 'Médico Residente R2 (Pleno)',
+      descricao: 'Médico residente de segundo ano com experiência intermediária e plantões de enfermaria.',
+      nivelHierarquico: 3,
+      exigeCrm: true,
+      podePrescreverOficialmente: true,
+      permissoes: [
+        'consultar_protocolos',
+        'consultar_guias_farmaceuticos',
+        'executar_calculadoras_clinicas',
+        'redigir_soap_definitivo',
+        'gerar_receita_ambulatorial',
+        'gerar_atestado_medico',
+        'prescrever_enfermaria_basica',
+        'prescrever_enfermaria_avancada',
+        'atualizar_status_leito_rotina',
+        'conceder_alta_enfermaria',
+        'validar_prescricao_academico',
+        'realizar_passagem_plantao_sbar'
+      ],
+      restricoes: [
+        'prescrever_tromboliticos_sem_coassinatura',
+        'alta_hospitalar_uti',
+        'configurar_parametros_sistema'
+      ]
+    },
+
+    RESIDENTE_R3_R4: {
+      id: 'RESIDENTE_R3_R4',
+      titulo: 'Médico Residente Sênior / Fellow (R3/R4)',
+      descricao: 'Residente sênior ou fellow de especialidade com autonomia em terapia intensiva e emergências graves.',
+      nivelHierarquico: 4,
+      exigeCrm: true,
+      podePrescreverOficialmente: true,
+      permissoes: [
+        'consultar_protocolos',
+        'consultar_guias_farmaceuticos',
+        'executar_calculadoras_clinicas',
+        'redigir_soap_definitivo',
+        'gerar_receita_ambulatorial',
+        'gerar_atestado_medico',
+        'prescrever_enfermaria_avancada',
+        'prescrever_uti_sala_vermelha',
+        'prescrever_farmacos_alta_vigilancia',
+        'atualizar_status_leito_todos',
+        'conceder_alta_enfermaria',
+        'conceder_alta_uti_stepdown',
+        'validar_prescricao_academico',
+        'validar_prescricao_r1',
+        'coassinar_farmacos_alta_vigilancia',
+        'indicar_internacao_involuntaria_psiquiatrica',
+        'ativar_bypass_emergencia'
+      ],
+      restricoes: [
+        'configurar_parametros_sistema'
+      ]
+    },
+
+    PRECEPTOR: {
+      id: 'PRECEPTOR',
+      titulo: 'Médico Preceptor / Assistente (Staff Docente)',
+      descricao: 'Médico preceptor responsável técnico pela equipe, auditoria e ensino em serviço.',
+      nivelHierarquico: 5,
+      exigeCrm: true,
+      podePrescreverOficialmente: true,
+      permissoes: [
+        'consultar_protocolos',
+        'consultar_guias_farmaceuticos',
+        'executar_calculadoras_clinicas',
+        'redigir_soap_definitivo',
+        'gerar_receita_ambulatorial',
+        'gerar_atestado_medico',
+        'prescrever_enfermaria_avancada',
+        'prescrever_uti_sala_vermelha',
+        'prescrever_farmacos_alta_vigilancia',
+        'atualizar_status_leito_todos',
+        'conceder_alta_enfermaria',
+        'conceder_alta_uti_stepdown',
+        'conceder_alta_complexa_definitiva',
+        'validar_prescricao_academico',
+        'validar_prescricao_r1',
+        'coassinar_farmacos_alta_vigilancia',
+        'indicar_internacao_involuntaria_psiquiatrica',
+        'emitir_parecer_socratico',
+        'auditar_kaizen_seguranca',
+        'configurar_parametros_sistema',
+        'ativar_bypass_emergencia',
+        'supervisao_plena_irrestrita'
+      ],
+      restricoes: []
+    },
+
+    FARMACEUTICO_CLINICO: {
+      id: 'FARMACEUTICO_CLINICO',
+      titulo: 'Farmacêutico Clínico / Especialista em Segurança',
+      descricao: 'Farmacêutico hospitalar dedicado à farmacovigilância e reconciliação medicamentosa.',
+      nivelHierarquico: 3,
+      exigeCrm: false,
+      podePrescreverOficialmente: false,
+      permissoes: [
+        'consultar_protocolos',
+        'consultar_guias_farmaceuticos',
+        'executar_calculadoras_clinicas',
+        'auditar_prescricoes_hospitalares',
+        'auditar_compatibilidade_y_site',
+        'auditar_ajuste_renal_hepatica',
+        'bloquear_dispensacao_farmaceutica_insegura',
+        'sinalizar_interacoes_graves',
+        'sugerir_conciliacao_medicamentosa'
+      ],
+      restricoes: [
+        'prescrever_medicamentos_diretamente',
+        'conceder_alta_hospitalar',
+        'alterar_diagnostico_medico',
+        'indicar_procedimentos_cirurgicos'
+      ]
+    }
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. FÁRMACOS E MÓDULOS DE ALTA VIGILÂNCIA (HIGH-ALERT MEDICATIONS)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  var FARMACOS_ALTA_VIGILANCIA = [
+    { termo: 'alteplase', categoria: 'Trombolítico', nivelMinimoExigido: 'RESIDENTE_R3_R4', exigeCoAssinaturaR1: true },
+    { termo: 'tenecteplase', categoria: 'Trombolítico', nivelMinimoExigido: 'RESIDENTE_R3_R4', exigeCoAssinaturaR1: true },
+    { termo: 'rocuronio', categoria: 'Bloqueador Neuromuscular', nivelMinimoExigido: 'RESIDENTE_R2', exigeCoAssinaturaR1: true },
+    { termo: 'vecuronio', categoria: 'Bloqueador Neuromuscular', nivelMinimoExigido: 'RESIDENTE_R2', exigeCoAssinaturaR1: true },
+    { termo: 'succinilcolina', categoria: 'Bloqueador Neuromuscular', nivelMinimoExigido: 'RESIDENTE_R2', exigeCoAssinaturaR1: true },
+    { termo: 'cisatracurio', categoria: 'Bloqueador Neuromuscular', nivelMinimoExigido: 'RESIDENTE_R2', exigeCoAssinaturaR1: true },
+    { termo: 'noradrenalina', categoria: 'Amina Vasoativa Alta Vigilância', nivelMinimoExigido: 'RESIDENTE_R1', exigeAlertaSupervisao: true },
+    { termo: 'adrenalina', categoria: 'Amina Vasoativa Alta Vigilância', nivelMinimoExigido: 'RESIDENTE_R1', exigeAlertaSupervisao: true },
+    { termo: 'vasopressina', categoria: 'Vasopressor de Resgate', nivelMinimoExigido: 'RESIDENTE_R2', exigeCoAssinaturaR1: true },
+    { termo: 'nitroprussiato', categoria: 'Vasodilatador Potente', nivelMinimoExigido: 'RESIDENTE_R1', exigeAlertaSupervisao: true },
+    { termo: 'cloreto de potassio 19,1%', categoria: 'Eletrólito Concentrado Letal IV Direto', nivelMinimoExigido: 'RESIDENTE_R2', bloqueioInfusaoDireta: true },
+    { termo: 'dantroleno', categoria: 'Antídoto Hipertermia/SNM', nivelMinimoExigido: 'RESIDENTE_R2', exigeNotificacaoPreceptor: true },
+    { termo: 'metotrexato', categoria: 'Quimioterápico / Imunossupressor', nivelMinimoExigido: 'RESIDENTE_R3_R4', exigeCoAssinaturaR1: true }
+  ];
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. ARMAZENAMENTO VOLÁTIL DE PENDÊNCIAS E AUDITORIA (EM MEMÓRIA DA INSTÂNCIA)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  var pendenciasStore = new Map();
+  var logAuditoriaRbac = [];
+  var bypassAtivos = new Map(); // chatId/usuarioId -> { ativoAte, motivo, usuario }
+  var usuariosPerfisStore = new Map(); // usuarioId -> { usuarioId, perfilId, nome, crm, atualizadoEm }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. MÉTODOS DE AVALIAÇÃO DE PERMISSÃO E AUDITORIA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function normalizarPerfilId(input) {
+    if (!input) return 'ACADEMICO';
+    var s = String(input).toUpperCase().trim();
+    if (s === 'R1' || s === 'RESIDENTE_R1' || s === 'RESIDENTER1' || s === 'JUNIOR') return 'RESIDENTE_R1';
+    if (s === 'R2' || s === 'RESIDENTE_R2' || s === 'RESIDENTER2' || s === 'PLENO') return 'RESIDENTE_R2';
+    if (s === 'R3' || s === 'R4' || s === 'RESIDENTE_R3' || s === 'RESIDENTE_R4' || s === 'RESIDENTE_R3_R4' || s === 'SENIOR' || s === 'FELLOW') return 'RESIDENTE_R3_R4';
+    if (s === 'PRECEPTOR' || s === 'STAFF' || s === 'DOCENTE' || s === 'CHEFE' || s === 'ASSISTENTE') return 'PRECEPTOR';
+    if (s === 'FARMACEUTICO' || s === 'FARMACIA' || s === 'FARMACEUTICO_CLINICO') return 'FARMACEUTICO_CLINICO';
+    if (s === 'ACADEMICO' || s === 'INTERNO' || s === 'ESTUDANTE' || s === 'ALUNO') return 'ACADEMICO';
+    if (PERFIS[s]) return s;
+    return 'ACADEMICO';
+  }
+
+  function definirPerfilUsuario(usuarioId, perfilId, dadosExtras) {
+    var uId = String(usuarioId || 'anonimo').trim();
+    var pId = normalizarPerfilId(perfilId);
+    dadosExtras = dadosExtras || {};
+    var registro = {
+      usuarioId: uId,
+      perfilId: pId,
+      nome: dadosExtras.nome || ('Usuário ' + uId),
+      crm: dadosExtras.crm ? String(dadosExtras.crm).trim() : null,
+      atualizadoEm: new Date().toISOString()
+    };
+    usuariosPerfisStore.set(uId, registro);
+    registrarLogAuditoria({
+      usuario: registro.nome,
+      perfil: pId,
+      acao: 'definir_perfil_usuario',
+      usuarioId: uId,
+      motivo: 'Atribuição de papel clínico'
+    });
+    return {
+      sucesso: true,
+      usuarioId: uId,
+      perfil: PERFIS[pId],
+      crm: registro.crm,
+      nome: registro.nome,
+      mensagem: 'Perfil do usuário ' + uId + ' definido como ' + PERFIS[pId].titulo + '.'
+    };
+  }
+
+  function obterPerfilUsuario(usuarioId) {
+    var uId = String(usuarioId || 'anonimo').trim();
+    var reg = usuariosPerfisStore.get(uId);
+    if (reg) {
+      return {
+        usuarioId: uId,
+        perfilId: reg.perfilId,
+        perfil: PERFIS[reg.perfilId],
+        nome: reg.nome,
+        crm: reg.crm,
+        atualizadoEm: reg.atualizadoEm
+      };
+    }
+    return {
+      usuarioId: uId,
+      perfilId: 'ACADEMICO',
+      perfil: PERFIS.ACADEMICO,
+      nome: 'Profissional de Saúde',
+      crm: null,
+      atualizadoEm: null
+    };
+  }
+
+  function listarUsuariosPerfis() {
+    return Array.from(usuariosPerfisStore.values());
+  }
+
+  function obterPerfis() {
+    return Object.keys(PERFIS).map(function(k) {
+      var p = PERFIS[k];
+      return {
+        id: p.id,
+        titulo: p.titulo,
+        descricao: p.descricao,
+        nivelHierarquico: p.nivelHierarquico,
+        exigeCrm: p.exigeCrm,
+        podePrescreverOficialmente: p.podePrescreverOficialmente,
+        totalPermissoes: p.permissoes.length
+      };
+    });
+  }
+
+  function obterPermissoesPerfil(perfilId) {
+    var pidNorm = normalizarPerfilId(perfilId);
+    var p = PERFIS[pidNorm];
+    if (!p) throw new Error('Perfil clínico não reconhecido: ' + perfilId);
+    return {
+      perfil: p.id,
+      titulo: p.titulo,
+      permissoes: p.permissoes.slice(),
+      restricoes: p.restricoes.slice(),
+      nivelHierarquico: p.nivelHierarquico
+    };
+  }
+
+  function normalizarUsuarioContexto(ctx) {
+    ctx = ctx || {};
+    var uId = String(ctx.usuarioId || ctx.id || ctx.chatId || 'anonimo');
+    var salvo = usuariosPerfisStore.get(uId);
+
+    var perfilBruto = ctx.perfil || ctx.role || (salvo ? salvo.perfilId : 'ACADEMICO');
+    var perfilId = normalizarPerfilId(perfilBruto);
+
+    var nome = ctx.nome || ctx.usuario || (salvo ? salvo.nome : 'Profissional de Saúde');
+    var crm = ctx.crm || (salvo ? salvo.crm : null);
+
+    return {
+      usuarioId: uId,
+      nome: String(nome),
+      crm: crm ? String(crm).trim() : null,
+      perfilId: perfilId,
+      perfil: PERFIS[perfilId],
+      ehPreceptor: perfilId === 'PRECEPTOR',
+      ehAcademico: perfilId === 'ACADEMICO'
+    };
+  }
+
+  function verificarPermissao(usuarioContexto, recurso, acao) {
+    var user = normalizarUsuarioContexto(usuarioContexto);
+    var perfil = user.perfil;
+    var acaoStr = String(acao || recurso || '').toLowerCase().trim();
+
+    // 1. Verificação de Bypass de Emergência ("Break-the-Glass")
+    var bypass = bypassAtivos.get(user.usuarioId);
+    if (bypass && bypass.ativoAte > Date.now()) {
+      registrarLogAuditoria({
+        usuario: user.nome,
+        perfil: user.perfilId,
+        acao: acaoStr,
+        autorizado: true,
+        motivo: 'AUTORIZADO VIA BYPASS DE EMERGÊNCIA (Break-The-Glass)',
+        bypassAtivo: true,
+        justificativaBypass: bypass.motivo
+      });
+      return {
+        autorizado: true,
+        motivo: 'Ação autorizada excepcionalmente sob Protocolo de Emergência Médica ativa.',
+        bypassEmergenciaAtivo: true,
+        justificativaBypass: bypass.motivo,
+        expiraEmMinutos: Math.ceil((bypass.ativoAte - Date.now()) / 60000)
+      };
+    }
+
+    // 2. Preceptores possuem autorização irrestrita
+    if (perfil.id === 'PRECEPTOR') {
+      return {
+        autorizado: true,
+        motivo: 'Autoridade máxima preceptorial concedida.',
+        exigeSupervisao: false,
+        coAssinaturaNecessaria: false
+      };
+    }
+
+    // 3. Checagem contra lista explícita de restrições do perfil
+    var temRestricao = perfil.restricoes.some(function(r) {
+      return acaoStr.includes(r) || r.includes(acaoStr);
+    });
+
+    if (temRestricao) {
+      var motivoRecusa = 'Ação (' + acaoStr + ') não permitida para o perfil ' + perfil.titulo + '.';
+      var permiteCoAssinatura = user.perfil.nivelHierarquico < 5;
+
+      registrarLogAuditoria({
+        usuario: user.nome,
+        perfil: user.perfilId,
+        acao: acaoStr,
+        autorizado: false,
+        motivo: motivoRecusa,
+        permiteCoAssinatura: permiteCoAssinatura
+      });
+
+      return {
+        autorizado: false,
+        motivo: motivoRecusa,
+        exigeSupervisao: true,
+        permiteCoAssinaturaPreceptorial: permiteCoAssinatura,
+        orientacao: user.ehAcademico
+          ? 'Para acadêmicos de medicina, esta conduta deve ser validada e assinada conjuntamente por um médico residente ou preceptor responsável.'
+          : 'Esta conduta de alta complexidade requer co-validação por preceptor ou residente sênior (R3/R4).'
+      };
+    }
+
+    // 4. Checagem de permissões positivas
+    var temPermissao = perfil.permissoes.some(function(p) {
+      return acaoStr.includes(p) || p.includes(acaoStr);
+    });
+
+    if (temPermissao) {
+      return {
+        autorizado: true,
+        motivo: 'Ação autorizada conforme matriz de competências do perfil ' + perfil.titulo + '.',
+        exigeSupervisao: false
+      };
+    }
+
+    // Default conservador para ações não catalogadas: permite para R2+ e restringe para Acadêmico
+    if (user.perfil.nivelHierarquico >= 3) {
+      return {
+        autorizado: true,
+        motivo: 'Autorizado por competência geral médica nível ' + perfil.id + '.',
+        exigeSupervisao: false
+      };
+    }
+
+    return {
+      autorizado: false,
+      motivo: 'Ação restrita. Usuário nível ' + perfil.titulo + ' requer supervisão ativa.',
+      exigeSupervisao: true,
+      permiteCoAssinaturaPreceptorial: true
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. AUDITORIA DE PRESCRIÇÃO HOSPITALAR E FÁRMACOS DE ALTA VIGILÂNCIA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function validarPrescricaoPorPerfil(usuarioContexto, dadosPrescricao) {
+    var user = normalizarUsuarioContexto(usuarioContexto);
+    dadosPrescricao = dadosPrescricao || {};
+
+    var itens = Array.isArray(dadosPrescricao.itens) ? dadosPrescricao.itens : [];
+    if (typeof dadosPrescricao.textoPrescricao === 'string') {
+      itens = itens.concat(dadosPrescricao.textoPrescricao.split('\n'));
+    }
+
+    var farmacosDetectados = [];
+    var bloqueiosCriticos = [];
+    var alertasSupervisao = [];
+    var exigeCoAssinatura = false;
+
+    // Se usuário for acadêmico, NENHUMA prescrição hospitalar pode ser liberada sem preceptor
+    if (user.ehAcademico) {
+      exigeCoAssinatura = true;
+      bloqueiosCriticos.push({
+        tipo: 'PERFIL_ACADEMICO',
+        mensagem: 'Acadêmicos de medicina não possuem prerrogativa legal (CRM) para liberar prescrição hospitalar definitiva sem co-assinatura médica de preceptor ou residente.'
+      });
+    }
+
+    // Varredura de medicamentos de alta vigilância
+    for (var i = 0; i < itens.length; i++) {
+      var itemStr = String(itens[i] || '').toLowerCase();
+      if (!itemStr.trim()) continue;
+
+      for (var f = 0; f < FARMACOS_ALTA_VIGILANCIA.length; f++) {
+        var regra = FARMACOS_ALTA_VIGILANCIA[f];
+        if (itemStr.includes(regra.termo)) {
+          farmacosDetectados.push({
+            medicamento: regra.termo,
+            categoria: regra.categoria,
+            nivelExigido: regra.nivelMinimoExigido
+          });
+
+          // Bloqueio de infusão direta letal de KCl 19.1%
+          if (regra.bloqueioInfusaoDireta && (itemStr.includes('bolus') || itemStr.includes('direto') || itemStr.includes('puro'))) {
+            bloqueiosCriticos.push({
+              tipo: 'EVENTO_SENTINELA_LETAL',
+              medicamento: regra.termo,
+              mensagem: 'BLOQUEIO FATAL: Cloreto de Potássio 19,1% NUNCA pode ser infundido puro ou em bolus direto (risco imediato de PCR por assistolia). Deve ser obrigatoriamente diluído com velocidade máxima controlada.'
+            });
+          }
+
+          // Checagem de nível hierárquico mínimo
+          var nivelReq = PERFIS[regra.nivelMinimoExigido] ? PERFIS[regra.nivelMinimoExigido].nivelHierarquico : 4;
+          if (user.perfil.nivelHierarquico < nivelReq) {
+            exigeCoAssinatura = true;
+            alertasSupervisao.push({
+              medicamento: regra.termo,
+              categoria: regra.categoria,
+              motivo: 'O medicamento de alta vigilância (' + regra.categoria + ') requer co-validação presencial por médico nível ' + regra.nivelMinimoExigido + ' ou Preceptor.'
+            });
+          }
+        }
+      }
+    }
+
+    var liberacaoAutorizada = bloqueiosCriticos.length === 0 && (!exigeCoAssinatura || user.ehPreceptor);
+
+    return {
+      sucesso: true,
+      liberacaoAutorizada: liberacaoAutorizada,
+      exigeCoAssinatura: exigeCoAssinatura,
+      usuario: {
+        nome: user.nome,
+        perfil: user.perfilId,
+        nivel: user.perfil.nivelHierarquico
+      },
+      farmacosAltaVigilanciaDetectados: farmacosDetectados,
+      bloqueiosCriticos: bloqueiosCriticos,
+      alertasSupervisao: alertasSupervisao,
+      instrucaoPreceptor: exigeCoAssinatura
+        ? 'Prescrição retida em modo Rascunho Supervisionado. Para liberação à enfermagem/farmácia, acione um preceptor ou residente sênior para co-chancela.'
+        : 'Prescrição validada conforme competências do prescritor.'
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. GESTÃO DE PENDÊNCIAS E CO-ASSINATURA DE PRECEPTOR
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function criarPendenciaCoAssinatura(usuarioContexto, dadosAcao) {
+    var user = normalizarUsuarioContexto(usuarioContexto);
+    dadosAcao = dadosAcao || {};
+
+    var pendenciaId = 'pend_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    var registro = {
+      id: pendenciaId,
+      criadoEm: new Date().toISOString(),
+      solicitante: {
+        id: user.usuarioId,
+        nome: user.nome,
+        perfil: user.perfilId
+      },
+      tipoAcao: dadosAcao.tipo || 'liberacao_prescricao_hospitalar',
+      paciente: dadosAcao.paciente || 'Não identificado',
+      leito: dadosAcao.leito || 'N/A',
+      dadosAcao: dadosAcao,
+      status: 'PENDENTE',
+      chanceladoPor: null,
+      chanceladoEm: null,
+      parecerPreceptor: null
+    };
+
+    pendenciasStore.set(pendenciaId, registro);
+
+    registrarLogAuditoria({
+      usuario: user.nome,
+      perfil: user.perfilId,
+      acao: 'criacao_pendencia_supervisao',
+      pendenciaId: pendenciaId,
+      motivo: 'Submissão para co-assinatura preceptorial'
+    });
+
+    return {
+      sucesso: true,
+      pendenciaId: pendenciaId,
+      status: 'PENDENTE',
+      mensagem: 'Pendência de supervisão registrada com sucesso. Aguardando validação do preceptor.'
+    };
+  }
+
+  function chancelarCoAssinatura(preceptorContexto, pendenciaId, parecerClinico) {
+    var preceptor = normalizarUsuarioContexto(preceptorContexto);
+    var pId = String(pendenciaId || '').trim();
+    var pendencia = pendenciasStore.get(pId);
+
+    if (!pendencia) {
+      throw new Error('Pendência não encontrada ou já expirada: ' + pId);
+    }
+
+    if (preceptor.perfil.nivelHierarquico < 4) {
+      throw new Error('Apenas Médicos Residentes Seniores (R3/R4) ou Preceptores podem co-assinar e chancelar pendências clínicas.');
+    }
+
+    pendencia.status = 'CHANCELADO_E_LIBERADO';
+    pendencia.chanceladoPor = {
+      id: preceptor.usuarioId,
+      nome: preceptor.nome,
+      crm: preceptor.crm,
+      perfil: preceptor.perfilId
+    };
+    pendencia.chanceladoEm = new Date().toISOString();
+    pendencia.parecerPreceptor = parecerClinico || 'Conduta aprovada sem ressalvas pelo preceptor responsável.';
+
+    registrarLogAuditoria({
+      usuario: preceptor.nome,
+      perfil: preceptor.perfilId,
+      acao: 'chancela_preceptorial_aprovada',
+      pendenciaId: pId,
+      solicitanteOriginal: pendencia.solicitante.nome
+    });
+
+    return {
+      sucesso: true,
+      pendenciaId: pId,
+      status: 'CHANCELADO_E_LIBERADO',
+      chanceladoPor: pendencia.chanceladoPor,
+      chanceladoEm: pendencia.chanceladoEm,
+      mensagem: 'Ação clínica validada e liberada com sucesso com chancela preceptorial.'
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 7. MODO BREAK-THE-GLASS (BYPASS DE EMERGÊNCIA MÉDICA)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function ativarBypassEmergencia(usuarioContexto, justificativaClinica, duracaoHoras) {
+    var user = normalizarUsuarioContexto(usuarioContexto);
+    var justificativa = String(justificativaClinica || '').trim();
+
+    if (justificativa.length < 10) {
+      throw new Error('O acionamento de Bypass de Emergência exige justificativa clínica circunstanciada (ex: PCR em andamento, choque grave, intubação de emergência).');
+    }
+
+    var duracaoMs = Math.min(4, Math.max(0.5, Number(duracaoHoras || 2))) * 3600000;
+    var expiraEm = Date.now() + duracaoMs;
+
+    bypassAtivos.set(user.usuarioId, {
+      ativoAte: expiraEm,
+      motivo: justificativa,
+      usuario: user.nome,
+      perfil: user.perfilId,
+      criadoEm: new Date().toISOString()
+    });
+
+    registrarLogAuditoria({
+      usuario: user.nome,
+      perfil: user.perfilId,
+      acao: 'BYPASS_EMERGENCIA_ACIONADO',
+      motivo: justificativa,
+      expiraEm: new Date(expiraEm).toISOString(),
+      alertaCritico: 'BREAK-THE-GLASS ATIVADO. Todas as travas foram relaxadas temporariamente para preservação da vida.'
+    });
+
+    return {
+      sucesso: true,
+      bypassAtivo: true,
+      usuario: user.nome,
+      perfil: user.perfilId,
+      justificativa: justificativa,
+      expiraEm: new Date(expiraEm).toISOString(),
+      duracaoHoras: duracaoMs / 3600000,
+      avisoSeguranca: '🚨 MODO DE EMERGÊNCIA ATIVADO: Travas de perfis relaxadas temporariamente. Toda ação executada será auditada formalmente.'
+    };
+  }
+
+  function desativarBypassEmergencia(usuarioContexto) {
+    var user = normalizarUsuarioContexto(usuarioContexto);
+    var existia = bypassAtivos.delete(user.usuarioId);
+
+    if (existia) {
+      registrarLogAuditoria({
+        usuario: user.nome,
+        perfil: user.perfilId,
+        acao: 'BYPASS_EMERGENCIA_ENCERRADO',
+        motivo: 'Desativação manual pelo usuário ou término de intervenção de urgência'
+      });
+    }
+
+    return {
+      sucesso: true,
+      bypassAtivo: false,
+      mensagem: 'Bypass de emergência desativado com sucesso. Permissões normais restabelecidas.'
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 8. LOG DE AUDITORIA & RELATÓRIOS KAIZEN
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function registrarLogAuditoria(dados) {
+    dados = dados || {};
+    dados.timestamp = new Date().toISOString();
+    logAuditoriaRbac.push(dados);
+    if (logAuditoriaRbac.length > 500) {
+      logAuditoriaRbac.shift(); // Mantém ring buffer de 500 registros em RAM
+    }
+  }
+
+  function obterLogsAuditoria(limite) {
+    var lim = Math.min(100, Number(limite || 20));
+    return logAuditoriaRbac.slice(-lim).reverse();
+  }
+
+  function gerarRelatorioSegurancaRbac() {
+    var totalLogs = logAuditoriaRbac.length;
+    var negados = logAuditoriaRbac.filter(function(l) { return l.autorizado === false; });
+    var bypasses = logAuditoriaRbac.filter(function(l) { return l.acao && l.acao.includes('BYPASS'); });
+
+    var l = [];
+    l.push('════════════════════════════════════════════════════════════════');
+    l.push('🛡️ ULTRA ROTINA · RELATÓRIO DE AUDITORIA DE PERMISSÕES & SEGURANÇA');
+    l.push('════════════════════════════════════════════════════════════════');
+    l.push('');
+    l.push('► MÉTRICAS GERAIS:');
+    l.push('  • Total de Ações Auditadas: ' + totalLogs);
+    l.push('  • Bloqueios Preventivos por Nível de Perfil: ' + negados.length);
+    l.push('  • Acionamentos de Bypass de Emergência: ' + bypasses.length);
+    l.push('  • Pendências de Co-Assinatura em Aberto: ' + Array.from(pendenciasStore.values()).filter(function(p){return p.status === 'PENDENTE';}).length);
+    l.push('');
+    l.push('► PERFIS CLÍNICOS ATIVOS:');
+    Object.keys(PERFIS).forEach(function(k) {
+      var p = PERFIS[k];
+      l.push('  • ' + p.titulo + ' (Nível ' + p.nivelHierarquico + '): ' + p.permissoes.length + ' permissões / ' + p.restricoes.length + ' restrições');
+    });
+    l.push('');
+    l.push('════════════════════════════════════════════════════════════════');
+
+    return {
+      sucesso: true,
+      totalLogs: totalLogs,
+      totalBloqueios: negados.length,
+      totalBypasses: bypasses.length,
+      relatorioFormatado: l.join('\n')
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 9. FUNÇÕES DE SUPORTE, CONSULTA E FORMATAÇÃO UI
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function listarPendenciasCoAssinatura(filtroStatus) {
+    var lista = Array.from(pendenciasStore.values());
+    if (filtroStatus) {
+      var f = String(filtroStatus).toUpperCase().trim();
+      lista = lista.filter(function(p) { return p.status === f; });
+    }
+    return lista.reverse();
+  }
+
+  function obterPendenciaPorId(pendenciaId) {
+    var pId = String(pendenciaId || '').trim();
+    return pendenciasStore.get(pId) || null;
+  }
+
+  function formatarPainelPerfil(usuarioId) {
+    var uId = String(usuarioId || 'anonimo').trim();
+    var user = normalizarUsuarioContexto({ usuarioId: uId });
+    var bypass = bypassAtivos.get(uId);
+    var bypassAtivo = bypass && bypass.ativoAte > Date.now();
+
+    var pendenciasAbertas = Array.from(pendenciasStore.values()).filter(function(p) {
+      return p.status === 'PENDENTE';
+    });
+
+    var l = [];
+    l.push('🛡️ *CONTROLE DE ACESSO E PERFIS CLÍNICOS (RBAC)*');
+    l.push('════════════════════════════════════════════');
+    l.push('👤 *Identificação:* ' + user.nome);
+    l.push('🏷️ *Papel Atual:* ' + user.perfil.titulo);
+    l.push('📊 *Nível Hierárquico:* Nível ' + user.perfil.nivelHierarquico + ' de 5');
+    if (user.crm) l.push('🆔 *CRM:* ' + user.crm);
+    l.push('📋 *Prerrogativa Legal de Prescrição:* ' + (user.perfil.podePrescreverOficialmente ? 'Sim (Autonomia supervisionada)' : 'Não (Apenas rascunho / estudo)'));
+    l.push('🚨 *Bypass de Emergência (Break-The-Glass):* ' + (bypassAtivo ? ('⚠️ ATIVO (Expira em ' + Math.ceil((bypass.ativoAte - Date.now()) / 60000) + ' min)') : 'Inativo'));
+    l.push('');
+    l.push('🔑 *Principais Permissões:*');
+    user.perfil.permissoes.slice(0, 5).forEach(function(p) {
+      l.push('  ✓ ' + p.replace(/_/g, ' '));
+    });
+    if (user.perfil.restricoes.length > 0) {
+      l.push('');
+      l.push('⚠️ *Restrições Operacionais:*');
+      user.perfil.restricoes.slice(0, 4).forEach(function(r) {
+        l.push('  ⛔ ' + r.replace(/_/g, ' '));
+      });
+    }
+    l.push('');
+    l.push('📌 *Pendências em Aberto no Plantão:* ' + pendenciasAbertas.length);
+    l.push('════════════════════════════════════════════');
+    l.push('💡 *Comandos do Sistema:*');
+    l.push('• `/perfil [R1|R2|R3|preceptor|academico]` para alterar papel');
+    l.push('• `/pendencias` para listar prescrições aguardando chancela');
+    l.push('• `/chancelar <id> [parecer]` para chancelar conduta (Preceptor/R3)');
+    l.push('• `/emergencia <motivo>` para ativar Break-The-Glass');
+    l.push('• `/emergencia off` para encerrar modo emergência');
+
+    return l.join('\n');
+  }
+
+  function formatarListaPerfis() {
+    var l = [];
+    l.push('📋 *CATÁLOGO DE PERFIS CLÍNICOS E COMPETÊNCIAS (RBAC)*');
+    l.push('════════════════════════════════════════════');
+    Object.keys(PERFIS).forEach(function(k) {
+      var p = PERFIS[k];
+      l.push('🔹 *' + p.titulo + '* (Nível ' + p.nivelHierarquico + ')');
+      l.push('  • ' + p.descricao);
+      l.push('  • CRM Obrigatório: ' + (p.exigeCrm ? 'Sim' : 'Não'));
+      l.push('  • Prescrição Hospitalar: ' + (p.podePrescreverOficialmente ? 'Autorizada' : 'Bloqueada (requer co-assinatura)'));
+      l.push('');
+    });
+    l.push('Para selecionar seu perfil, envie: `/perfil <papel>` (ex: `/perfil R1`, `/perfil preceptor`)');
+    return l.join('\n');
+  }
+
+  function formatarListaPendencias(usuarioId) {
+    var pendentes = Array.from(pendenciasStore.values()).filter(function(p) {
+      return p.status === 'PENDENTE';
+    });
+
+    if (pendentes.length === 0) {
+      return '✅ *NENHUMA PENDÊNCIA CLÍNICA NO MOMENTO*\n\nTodas as prescrições e condutas do plantão estão regularizadas e chanceladas.';
+    }
+
+    var l = [];
+    l.push('⏳ *PENDÊNCIAS AGUARDANDO CO-ASSINATURA PRECEPTORIAL* (' + pendentes.length + ')');
+    l.push('════════════════════════════════════════════');
+    pendentes.forEach(function(p, idx) {
+      l.push((idx + 1) + '. *ID:* `' + p.id + '`');
+      l.push('   • Solicitante: ' + p.solicitante.nome + ' (' + p.solicitante.perfil + ')');
+      l.push('   • Paciente: ' + p.paciente + ' | Leito: ' + p.leito);
+      l.push('   • Ação: ' + p.tipoAcao);
+      l.push('   • Criado em: ' + new Date(p.criadoEm).toLocaleTimeString('pt-BR'));
+      l.push('');
+    });
+    l.push('════════════════════════════════════════════');
+    l.push('Para chancelar uma conduta, envie:\n`/chancelar <id> [parecer clínico]` (ex: `/chancelar ' + pendentes[0].id + ' Aprovado sem ressalvas`)');
+    return l.join('\n');
+  }
+
+  function formatarResultadoValidacaoPrescricao(res) {
+    if (!res) return 'Erro ao validar prescrição.';
+    var l = [];
+    l.push('🩺 *AUDITORIA DE SEGURANÇA E NÍVEL DE PRESCRIÇÃO*');
+    l.push('════════════════════════════════════════════');
+    l.push('👤 *Prescritor:* ' + res.usuario.nome + ' (' + res.usuario.perfil + ' - Nível ' + res.usuario.nivel + ')');
+    l.push('Status: ' + (res.liberacaoAutorizada ? '✅ LIBERAÇÃO IMEDIATA AUTORIZADA' : (res.exigeCoAssinatura ? '⚠️ RETIDA PARA CO-ASSINATURA' : '⛔ BLOQUEADA')));
+    l.push('');
+
+    if (res.bloqueiosCriticos && res.bloqueiosCriticos.length > 0) {
+      l.push('🚨 *BLOQUEIOS CRÍTICOS:*');
+      res.bloqueiosCriticos.forEach(function(b) {
+        l.push('  ⛔ ' + b.mensagem);
+      });
+      l.push('');
+    }
+
+    if (res.farmacosAltaVigilanciaDetectados && res.farmacosAltaVigilanciaDetectados.length > 0) {
+      l.push('💊 *Fármacos de Alta Vigilância Detectados:*');
+      res.farmacosAltaVigilanciaDetectados.forEach(function(f) {
+        l.push('  • ' + f.medicamento.toUpperCase() + ' (' + f.categoria + ') — Exige ' + f.nivelExigido);
+      });
+      l.push('');
+    }
+
+    if (res.alertasSupervisao && res.alertasSupervisao.length > 0) {
+      l.push('⚠️ *Alertas de Supervisão:*');
+      res.alertasSupervisao.forEach(function(a) {
+        l.push('  • ' + a.motivo);
+      });
+      l.push('');
+    }
+
+    l.push('📋 *Orientação:* ' + res.instrucaoPreceptor);
+    return l.join('\n');
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // EXPORTAÇÃO PÚBLICA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  return {
+    PERFIS: PERFIS,
+    FARMACOS_ALTA_VIGILANCIA: FARMACOS_ALTA_VIGILANCIA,
+    obterPerfis: obterPerfis,
+    obterPermissoesPerfil: obterPermissoesPerfil,
+    normalizarPerfilId: normalizarPerfilId,
+    definirPerfilUsuario: definirPerfilUsuario,
+    obterPerfilUsuario: obterPerfilUsuario,
+    listarUsuariosPerfis: listarUsuariosPerfis,
+    verificarPermissao: verificarPermissao,
+    validarPrescricaoPorPerfil: validarPrescricaoPorPerfil,
+    criarPendenciaCoAssinatura: criarPendenciaCoAssinatura,
+    chancelarCoAssinatura: chancelarCoAssinatura,
+    listarPendenciasCoAssinatura: listarPendenciasCoAssinatura,
+    obterPendenciaPorId: obterPendenciaPorId,
+    ativarBypassEmergencia: ativarBypassEmergencia,
+    desativarBypassEmergencia: desativarBypassEmergencia,
+    obterLogsAuditoria: obterLogsAuditoria,
+    gerarRelatorioSegurancaRbac: gerarRelatorioSegurancaRbac,
+    formatarPainelPerfil: formatarPainelPerfil,
+    formatarListaPerfis: formatarListaPerfis,
+    formatarListaPendencias: formatarListaPendencias,
+    formatarResultadoValidacaoPrescricao: formatarResultadoValidacaoPrescricao
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { RbacPerfisClinicosService: RbacPerfisClinicosService };
 }
 
 
@@ -13343,6 +16838,513 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_suporte_nutricional.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: SUPORTE NUTRICIONAL ENTERAL E PARENTERAL (UTI & ENFERMARIA)
+ * ==============================================================================
+ * Diretrizes Clínicas Baseadas em Evidências:
+ *  - BRASPEN (Sociedade Brasileira de Nutrição Parenteral e Enteral) 2023-2026
+ *  - ESPEN (European Society for Clinical Nutrition and Metabolism) 2023-2026
+ *  - ASPEN (American Society for Parenteral and Enteral Nutrition) 2024-2026
+ *  - AMIB (Associação de Medicina Intensiva Brasileira)
+ *
+ * PILARES CLÍNICOS DETERMINÍSTICOS:
+ *  1. Cálculo de Necessidades Energéticas e Proteicas:
+ *     - Gasto Energético Basal (Equação de Harris-Benedict) e Regra de Bolso (25-30 kcal/kg/dia).
+ *     - Ajuste de peso em obesidade (Peso Ideal de Devine/Lorentz e Peso Corrigido).
+ *     - Metas proteicas estratificadas: enfermaria (1.0-1.2 g/kg), UTI/sepse (1.3-2.0 g/kg),
+ *       trauma/queimados (1.5-2.5 g/kg), DRC conservadora (0.8-1.0 g/kg) vs CRRT contínua (1.5-2.5 g/kg).
+ *  2. Síndrome de Realimentação (Refeeding Syndrome - Critérios NICE / ASPEN):
+ *     - Rastreio de fatores de risco maiores e menores (IMC < 16, perda ponderal, jejum prolongado, eletrólitos basais).
+ *     - Protocolo obrigatório de reposição empírica de Tiamina 200-300 mg EV ANTES da glicose.
+ *     - Reposição proativa de Fósforo, Magnésio e Potássio antes da progressão.
+ *     - Escalonamento restritivo: início com 10-15 kcal/kg/dia (25-50% da meta) nos primeiros 2-3 dias.
+ *  3. Triagem de Risco Nutricional (NRS-2002 & NUTRIC Score):
+ *     - Estratificação para intervenção precoce em 24-48 horas.
+ *  4. Seleção de Via e Prescrição Prática:
+ *     - Nutrição Enteral (NE) como 1ª linha absoluta se trato gastrointestinal funcionante.
+ *     - Nutrição Parenteral Total (NPT/NPP): indicações estritas, timing (precoce em alto risco vs
+ *       aguardar 5-7 dias em baixo risco), osmolaridade de acesso periférico (< 850-900 mOsm/L) vs central.
+ *     - Vazão em bomba de infusão (mL/h) para dietas 1.0, 1.2 e 1.5 kcal/mL.
+ *     - Monitoramento seguro do Volume Residual Gástrico (VRG) e procinéticos.
+ * ==============================================================================
+ */
+
+var SuporteNutricionalService = (function() {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. CÁLCULO DE PESO IDEAL, AJUSTADO E CLASSIFICAÇÃO ANTROPOMÉTRICA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function calcularAntropometria(pesoAtual, alturaCm, sexo) {
+    pesoAtual = Number(pesoAtual || 70);
+    alturaCm = Number(alturaCm || 170);
+    var s = String(sexo || 'm').toLowerCase().charAt(0);
+    var ehHomem = s === 'm' || s === 'h';
+
+    var alturaMetros = alturaCm / 100;
+    var imc = pesoAtual / (alturaMetros * alturaMetros);
+
+    // Peso Ideal (Fórmula de Devine)
+    var alturaPolegadas = alturaCm / 2.54;
+    var polegadasAcima60 = Math.max(0, alturaPolegadas - 60);
+    var pesoIdeal = ehHomem
+      ? 50 + (2.3 * polegadasAcima60)
+      : 45.5 + (2.3 * polegadasAcima60);
+
+    // Peso Ajustado para Obesidade (IMC >= 30 kg/m²)
+    // Peso Ajustado = Peso Ideal + 0.25 * (Peso Atual - Peso Ideal) ou 0.40 conforme BRASPEN/ESPEN
+    var pesoAjustado = pesoAtual;
+    var ehObeso = imc >= 30;
+    if (ehObeso) {
+      pesoAjustado = pesoIdeal + (0.25 * (pesoAtual - pesoIdeal));
+    }
+
+    var classificacaoImc = '';
+    if (imc < 16.0) classificacaoImc = 'Magreza Grave (Desnutrição Grau III)';
+    else if (imc < 17.0) classificacaoImc = 'Magreza Moderada (Desnutrição Grau II)';
+    else if (imc < 18.5) classificacaoImc = 'Magreza Leve (Desnutrição Grau I)';
+    else if (imc < 25.0) classificacaoImc = 'Eutrofia';
+    else if (imc < 30.0) classificacaoImc = 'Sobrepeso';
+    else if (imc < 35.0) classificacaoImc = 'Obesidade Grau I';
+    else if (imc < 40.0) classificacaoImc = 'Obesidade Grau II';
+    else classificacaoImc = 'Obesidade Grau III (Mórbida)';
+
+    return {
+      pesoAtual: Math.round(pesoAtual * 10) / 10,
+      alturaCm: Math.round(alturaCm),
+      alturaMetros: Math.round(alturaMetros * 100) / 100,
+      imc: Math.round(imc * 10) / 10,
+      classificacaoImc: classificacaoImc,
+      pesoIdeal: Math.round(pesoIdeal * 10) / 10,
+      pesoAjustado: Math.round(pesoAjustado * 10) / 10,
+      ehObeso: ehObeso,
+      sexo: ehHomem ? 'Masculino' : 'Feminino'
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. GASTO ENERGÉTICO BASAL E METAS CALÓRICO-PROTEICAS
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function calcularNecessidadesBasais(peso, alturaCm, idade, sexo, fatorEstresse, condicaoClinica) {
+    peso = Number(peso || 70);
+    alturaCm = Number(alturaCm || 170);
+    idade = Number(idade || 50);
+    var s = String(sexo || 'm').toLowerCase().charAt(0);
+    var ehHomem = s === 'm' || s === 'h';
+
+    var antro = calcularAntropometria(peso, alturaCm, sexo);
+    var pesoRefCalorias = antro.ehObeso ? antro.pesoAjustado : antro.pesoAtual;
+    var pesoRefProteinas = antro.ehObeso ? antro.pesoIdeal : antro.pesoAtual;
+
+    // Equação de Harris-Benedict (Gasto Energético Basal - GEB)
+    var geb = 0;
+    if (ehHomem) {
+      geb = 66.47 + (13.75 * pesoRefCalorias) + (5.003 * alturaCm) - (6.755 * idade);
+    } else {
+      geb = 655.1 + (9.563 * pesoRefCalorias) + (1.850 * alturaCm) - (4.676 * idade);
+    }
+
+    var fator = Number(fatorEstresse || 1.2);
+    var gastoEnergeticoTotal = Math.round(geb * fator);
+
+    // Regra de Bolso por Fase e Condição (BRASPEN / ESPEN / ASPEN)
+    var cond = String(condicaoClinica || 'enfermaria').toLowerCase();
+    var metaKcalKgMin = 25;
+    var metaKcalKgMax = 30;
+    var metaProtKgMin = 1.0;
+    var metaProtKgMax = 1.2;
+    var orientacaoCondicao = 'Paciente estável em enfermaria. Metas conservadoras padrão.';
+
+    if (antro.ehObeso) {
+      // Obesidade Crítica (ASPEN/ESPEN): Dieta Hipocalórica Hiperproteica
+      if (antro.imc < 50) {
+        metaKcalKgMin = 11;
+        metaKcalKgMax = 14; // sobre peso atual
+        metaProtKgMin = 2.0;
+        metaProtKgMax = 2.5; // sobre peso ideal
+        pesoRefCalorias = antro.pesoAtual;
+        orientacaoCondicao = 'Obesidade (IMC 30-49.9): Estratégia hipocalórica hiperproteica (11-14 kcal/kg peso atual; 2.0 g/kg peso ideal) para promover lipólise e evitar sobrecarga metabólica.';
+      } else {
+        metaKcalKgMin = 22;
+        metaKcalKgMax = 25; // sobre peso ideal
+        metaProtKgMin = 2.5;
+        metaProtKgMax = 2.5;
+        pesoRefCalorias = antro.pesoIdeal;
+        orientacaoCondicao = 'Superobesidade (IMC >= 50): Alvo calórico de 22-25 kcal/kg peso ideal e proteína 2.5 g/kg peso ideal.';
+      }
+    } else if (cond.includes('fase_aguda') || cond.includes('aguda_precoce') || cond.includes('choque_estabilizado')) {
+      metaKcalKgMin = 20;
+      metaKcalKgMax = 24;
+      metaProtKgMin = 1.2;
+      metaProtKgMax = 1.5;
+      orientacaoCondicao = 'Fase aguda inicial de UTI (dias 1 a 2): Alvo hipocalórico trófico (20-24 kcal/kg/dia) prevenindo hiperglicemia, esteatose e superalimentação.';
+    } else if (cond.includes('uti') || cond.includes('critico') || cond.includes('sepse')) {
+      metaKcalKgMin = 25;
+      metaKcalKgMax = 30;
+      metaProtKgMin = 1.3;
+      metaProtKgMax = 2.0;
+      orientacaoCondicao = 'Paciente crítico em UTI / Sepse (fase pós-aguda): Catabolismo acentuado, demanda proteica elevada (1.3 a 2.0 g/kg/dia) com 25 a 30 kcal/kg/dia.';
+    } else if (cond.includes('trauma') || cond.includes('queimad')) {
+      metaKcalKgMin = 30;
+      metaKcalKgMax = 35;
+      metaProtKgMin = 1.5;
+      metaProtKgMax = 2.5;
+      orientacaoCondicao = 'Grande trauma ou queimaduras extensas: Hipermetabolismo severo. Requer aporte proteico de até 2.0 a 2.5 g/kg/dia.';
+    } else if (cond.includes('crrt') || cond.includes('dialise_continua')) {
+      metaKcalKgMin = 25;
+      metaKcalKgMax = 30;
+      metaProtKgMin = 1.7;
+      metaProtKgMax = 2.5;
+      orientacaoCondicao = 'Insuficiência Renal Aguda em Hemodiálise Contínua (CRRT): A depuração contínua remove aminoácidos pelo efluente (10-15g/dia). Meta proteica de 1.7 a 2.5 g/kg/dia mandatória.';
+    } else if (cond.includes('drc_conservador') || cond.includes('sem_dialise')) {
+      metaKcalKgMin = 25;
+      metaKcalKgMax = 30;
+      metaProtKgMin = 0.8;
+      metaProtKgMax = 1.0;
+      orientacaoCondicao = 'DRC não-dialítica avançada: Restrição proteica relativa (0.8 a 1.0 g/kg/dia) para controle de toxinas urêmicas se estabilidade catabólica.';
+    }
+
+    var metaKcalMinTotal = Math.round(metaKcalKgMin * pesoRefCalorias);
+    var metaKcalMaxTotal = Math.round(metaKcalKgMax * pesoRefCalorias);
+    var metaProtMinTotal = Math.round(metaProtKgMin * pesoRefProteinas);
+    var metaProtMaxTotal = Math.round(metaProtKgMax * pesoRefProteinas);
+
+    // Necessidade Hídrica Basal (30 a 35 mL/kg/dia)
+    var aguaMin = Math.round(30 * pesoRefCalorias);
+    var aguaMax = Math.round(35 * pesoRefCalorias);
+
+    return {
+      sucesso: true,
+      antropometria: antro,
+      pesoReferenciaCalorias: pesoRefCalorias,
+      pesoReferenciaProteinas: pesoRefProteinas,
+      gebHarrisBenedict: Math.round(geb),
+      getComFatorEstresse: gastoEnergeticoTotal,
+      fatorEstresseUtilizado: fator,
+      alvoCaloricoDia: {
+        minKcal: metaKcalMinTotal,
+        maxKcal: metaKcalMaxTotal,
+        faixaTexto: metaKcalMinTotal + ' a ' + metaKcalMaxTotal + ' kcal/dia (' + metaKcalKgMin + '-' + metaKcalKgMax + ' kcal/kg/dia)'
+      },
+      alvoProteicoDia: {
+        minGramas: metaProtMinTotal,
+        maxGramas: metaProtMaxTotal,
+        faixaTexto: metaProtMinTotal + ' a ' + metaProtMaxTotal + ' g de proteína/dia (' + metaProtKgMin + '-' + metaProtKgMax + ' g/kg/dia)'
+      },
+      necessidadeHidricaEstimada: aguaMin + ' a ' + aguaMax + ' mL/dia (30-35 mL/kg/dia)',
+      orientacaoClinica: orientacaoCondicao
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. SÍNDROME DE REALIMENTAÇÃO (REFEEDING SYNDROME - CRITÉRIOS NICE / ASPEN)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function avaliarRiscoRealimentacao(dados) {
+    dados = dados || {};
+    var imc = Number(dados.imc || 22);
+    var perdaPesoPct = Number(dados.perdaPesoPct || dados.perdaPesoMeses || 0);
+    var diasJejum = Number(dados.diasJejum || dados.jejumDias || 0);
+    var k = dados.k !== undefined ? Number(dados.k) : 4.0;
+    var mg = dados.mg !== undefined ? Number(dados.mg) : 2.0;
+    var p = dados.p !== undefined ? Number(dados.p) : 3.0; // Fósforo sérico mg/dL
+    var etilismoOuQuimio = !!(dados.etilismo || dados.quimioterapia || dados.anorexia);
+
+    var criteriosMaiores = [];
+    var criteriosMenores = [];
+
+    // Critérios Maiores (NICE Guidance)
+    if (imc < 16.0) criteriosMaiores.push('IMC extremamente baixo (< 16 kg/m²)');
+    if (perdaPesoPct > 15.0) criteriosMaiores.push('Perda ponderal involuntária > 15% nos últimos 3 a 6 meses');
+    if (diasJejum > 10) criteriosMaiores.push('Pouco ou nenhum aporte nutricional por mais de 10 dias consecutivos');
+    if (p < 2.0) criteriosMaiores.push('Hipofosfatemia basal documentada (P = ' + p + ' mg/dL; valor crítico < 2.0)');
+    if (mg < 1.5) criteriosMaiores.push('Hipomagnesemia basal documentada (Mg = ' + mg + ' mg/dL; valor crítico < 1.5)');
+    if (k < 3.5) criteriosMaiores.push('Hipocalemia basal documentada (K = ' + k + ' mEq/L; valor crítico < 3.5)');
+
+    // Critérios Menores
+    if (imc >= 16.0 && imc < 18.5) criteriosMenores.push('IMC reduzido (16.0 a 18.4 kg/m²)');
+    if (perdaPesoPct >= 10.0 && perdaPesoPct <= 15.0) criteriosMenores.push('Perda ponderal involuntária de 10% a 15% em 3 a 6 meses');
+    if (diasJejum >= 5 && diasJejum <= 10) criteriosMenores.push('Jejum ou ingestão ínfima por 5 a 10 dias consecutivos');
+    if (etilismoOuQuimio) criteriosMenores.push('Histórico de uso crônico de álcool, drogas, quimioterapia recente ou caquexia');
+
+    var altoRisco = criteriosMaiores.length >= 1 || criteriosMenores.length >= 2;
+    var riscoExtremo = criteriosMaiores.length >= 2 || (imc < 14.0 && diasJejum > 15);
+
+    var nivelRisco = 'BAIXO';
+    if (riscoExtremo) nivelRisco = 'EXTREMO';
+    else if (altoRisco) nivelRisco = 'ALTO';
+    else if (criteriosMenores.length === 1) nivelRisco = 'MODERADO';
+
+    var condutas = [];
+    var alertasCriticos = [];
+
+    if (altoRisco || riscoExtremo) {
+      alertasCriticos.push('🚨 ALERTA CRÍTICO: PACIENTE COM ALTO RISCO DE SÍNDROME DE REALIMENTAÇÃO (REFEEDING SYNDROME).');
+      alertasCriticos.push('A reintrodução abrupta de carboidratos desencadeia pico de insulina com influxo intracelular maciço de Fósforo, Magnésio e Potássio, gerando arritmias letais, fraqueza diafragmática, falência cardíaca e encefalopatia.');
+
+      condutas.push('1. REPOSIÇÃO MANDATÓRIA DE TIAMINA PRÉ-DIETA: Prescrever Tiamina 200 a 300 mg EV diluída em SF 0,9% administrada pelo menos 30 minutos ANTES de qualquer infusão calórica (glicosada ou dieta), mantendo 100-200 mg/dia por 3 a 5 dias. Previne Encefalopatia de Wernicke e acidose lática.');
+      condutas.push('2. CORREÇÃO PROATIVA DE ELETRÓLITOS:');
+      condutas.push('   • Fósforo: Se P < 2.0 mg/dL, repor Fosfato de Potássio ou Fosfato de Sódio (0.3 a 0.6 mmol/kg EV em 4 a 6h). Meta sérica > 2.5 mg/dL.');
+      condutas.push('   • Magnésio: Se Mg < 1.5 mg/dL, repor Sulfato de Magnésio 10% ou 50% (2 a 4g EV em infusão lenta de 2 a 4h). Meta sérica > 2.0 mg/dL.');
+      condutas.push('   • Potássio: Manter K sérico > 4.0 mEq/L (repor KCl IV diluído, NUNCA puro/bolus direto).');
+      condutas.push('3. INTRODUÇÃO CALÓRICA LENTA E RESTRITA:');
+      condutas.push('   • Iniciar com apenas 10 a 15 kcal/kg/dia (ou 25% a 50% da meta calórica plena) nas primeiras 48 a 72 horas.');
+      condutas.push('   • Evolução gradual: Aumentar 25% a 33% do aporte a cada 24-48 horas se eletrólitos permanecerem estáveis.');
+      condutas.push('   • Atingir meta plena apenas entre o 4º e o 7º dia de terapia.');
+      condutas.push('4. VIGILÂNCIA LABORATORIAL INTENSIVA:');
+      condutas.push('   • Dosagem sérica de Fósforo, Magnésio, Potássio, Cálcio e Glicemia a cada 12 a 24 horas nos primeiros 3 a 5 dias.');
+    } else {
+      condutas.push('1. Risco baixo a moderado. Iniciar nutrição com 50% a 70% da meta calórica no 1º dia, evoluindo para 100% da meta em 48 a 72 horas.');
+      condutas.push('2. Monitorar eletrólitos basais (K, Mg, P) nas primeiras 48 horas.');
+    }
+
+    return {
+      sucesso: true,
+      nivelRisco: nivelRisco,
+      altoRisco: altoRisco,
+      riscoExtremo: riscoExtremo,
+      criteriosMaioresDetectados: criteriosMaiores,
+      criteriosMenoresDetectados: criteriosMenores,
+      alertasCriticos: alertasCriticos,
+      condutasRecomendadas: condutas
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. TRIAGEM DE RISCO NUTRICIONAL (NRS-2002 & NUTRIC SCORE)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function calcularNrs2002(dados) {
+    dados = dados || {};
+    var escoreEstadoNutricional = Number(dados.escoreNutricional || 0); // 0 a 3
+    var escoreGravidadeDoenca = Number(dados.escoreDoenca || 0); // 0 a 3
+    var idade = Number(dados.idade || 50);
+
+    // Ajuste por idade >= 70 anos (+1 ponto)
+    var pontoIdade = idade >= 70 ? 1 : 0;
+    var totalEscore = escoreEstadoNutricional + escoreGravidadeDoenca + pontoIdade;
+
+    var altoRisco = totalEscore >= 3;
+
+    return {
+      escoreTotal: totalEscore,
+      escoreEstadoNutricional: escoreEstadoNutricional,
+      escoreGravidadeDoenca: escoreGravidadeDoenca,
+      ajusteIdadeIdoso: pontoIdade,
+      altoRiscoNutricional: altoRisco,
+      classificacao: altoRisco ? 'Alto Risco Nutricional (Escore >= 3)' : 'Sem Risco Nutricional Imediato (Escore < 3)',
+      conduta: altoRisco
+        ? 'Indicação formal de início de Terapia Nutricional especializada precoce em até 24 a 48 horas de internação.'
+        : 'Reavaliação semanal da triagem nutricional ou se houver alteração clínica desfavorável.'
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. PRESCRIÇÃO ESTRUTURADA DE TERAPIA NUTRICIONAL (ENTERAL VS PARENTERAL)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function prescreverTerapiaNutricional(dados) {
+    dados = dados || {};
+    var peso = Number(dados.peso || 70);
+    var alturaCm = Number(dados.alturaCm || 170);
+    var diasJejum = Number(dados.diasJejum || dados.jejumDias || 0);
+    var tgiFuncionante = dados.tratoGastrointestinalFuncionante !== undefined ? !!dados.tratoGastrointestinalFuncionante : true;
+    var nrs2002 = Number(dados.nrs2002 || 0);
+    var nutricScore = Number(dados.nutricScore || 0);
+    var densidadeDietaKcalMl = Number(dados.densidadeKcalMl || 1.2); // 1.0, 1.2 ou 1.5 kcal/mL
+    var horasInfusaoDia = Number(dados.horasInfusao || 24);
+
+    var necessidades = calcularNecessidadesBasais(peso, alturaCm, dados.idade || 50, dados.sexo || 'm', dados.fatorEstresse || 1.2, dados.condicaoClinica);
+    var altoRisco = (nrs2002 >= 3 || nutricScore >= 5 || dados.altoRiscoNutricional);
+
+    var viaEscolhida = '';
+    var tipoAcesso = '';
+    var indicacoes = [];
+    var contraindicacoesAvisos = [];
+    var metas = necessidades.alvoCaloricoDia;
+    var metaKcalAlvo = Math.round((metas.minKcal + metas.maxKcal) / 2);
+
+    if (tgiFuncionante) {
+      viaEscolhida = 'NUTRIÇÃO ENTERAL PRECOCE (NE)';
+      tipoAcesso = 'Sonda Nasoenteral (SNE pós-pilórica ou gástrica) ou Ostomia (GTT/JTT)';
+
+      indicacoes.push('Regra de Ouro: O trato gastrointestinal está funcionante, logo a via enteral é mandatória para manter trofismo de enterócitos, microbiota e barreira imunológica.');
+      if (diasJejum >= 2) {
+        indicacoes.push('Iniciar NE nas primeiras 24 a 48 horas da admissão na UTI/enfermaria após estabilização hemodinâmica.');
+      } else {
+        indicacoes.push('Iniciar precocemente em taxa trófica (20 a 30 mL/h) e progredir gradualmente para a meta em 48 a 72 horas.');
+      }
+    } else {
+      viaEscolhida = 'NUTRIÇÃO PARENTERAL (NPT / NPP)';
+      tipoAcesso = 'Cateter Venoso Central (CVC - subclávia/jugular) exclusivo para NPT (ou PICC)';
+
+      contraindicacoesAvisos.push('Trato gastrointestinal não funcionante ou contraindicado (ex: obstrução mecânica, íleo paralítico grave, fístula de alto débito, isquemia mesentérica).');
+
+      if (altoRisco) {
+        indicacoes.push('Paciente em ALTO RISCO nutricional com TGI inviável: Iniciar Nutrição Parenteral Total precoce nas primeiras 24 a 48 horas de internação.');
+      } else {
+        if (diasJejum < 7) {
+          indicacoes.push('Paciente com bom estado prévio / baixo risco: Aguardar até 5 a 7 dias de jejum antes de iniciar NPT exclusiva. Evita riscos de infecção de corrente sanguínea e hiperglicemia na fase aguda inicial.');
+        } else {
+          indicacoes.push('Jejum prolongado (> 7 dias) com impossibilidade de NE: Iniciar NPT total de manutenção com formulação balanceada.');
+        }
+      }
+    }
+
+    // Cálculo da Vazão em Bomba de Infusão (mL/h)
+    var volumeTotalMl = Math.round(metaKcalAlvo / densidadeDietaKcalMl);
+    var vazaoMlHora = Math.round(volumeTotalMl / horasInfusaoDia);
+
+    // Protocolo de Resíduo Gástrico e Monitoramento (ESPEN/BRASPEN)
+    var protocoloMonitoramento = [
+      'Glicemia capilar a cada 6 horas (alvo hospitalar: 140 a 180 mg/dL).',
+      'Cabeceira elevada a 30°-45° durante toda a infusão enteral para prevenir pneumonia aspirativa.',
+      'Volume Residual Gástrico (VRG): NÃO suspender NE por resíduos inferiores a 500 mL/6h na ausência de vômitos, distensão abdominal dolorosa ou refluxo.',
+      'Se VRG > 500 mL persistente: associar procinético (Metoclopramida 10mg IV 8/8h ou Eritromicina) e considerar posicionamento pós-pilórico da sonda.'
+    ];
+
+    if (!tgiFuncionante) {
+      protocoloMonitoramento.push('Para Parenteral: Soluções com osmolaridade > 850-900 mOsm/L exigem Cateter Venoso Central exclusivo com curativo estéril com clorexidina.');
+      protocoloMonitoramento.push('Monitorar perfil de triglicerídeos séricos (se > 400 mg/dL, reduzir infusão de emulsão lipídica IV).');
+    }
+
+    return {
+      sucesso: true,
+      viaEscolhida: viaEscolhida,
+      tipoAcessoRecomendado: tipoAcesso,
+      altoRiscoNutricional: altoRisco,
+      metaCaloricaAlvoKcal: metaKcalAlvo,
+      densidadeDietaKcalMl: densidadeDietaKcalMl,
+      volumeTotalDiarioMl: volumeTotalMl,
+      vazaoBombaInfusao: vazaoMlHora + ' mL/hora (' + horasInfusaoDia + ' horas/dia)',
+      indicacoesClinicas: indicacoes,
+      contraindicacoesAvisos: contraindicacoesAvisos,
+      necessidadesEstimadas: necessidades,
+      protocoloMonitoramento: protocoloMonitoramento
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. AVALIAÇÃO INTEGRADA E FORMATAÇÃO UI (TELEGRAM & COCKPIT)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function avaliarSuporteNutricionalCompleto(params) {
+    params = params || {};
+    var peso = Number(params.peso || 70);
+    var alturaCm = Number(params.alturaCm || 170);
+    var idade = Number(params.idade || 50);
+    var sexo = params.sexo || 'm';
+
+    var necessidades = calcularNecessidadesBasais(peso, alturaCm, idade, sexo, params.fatorEstresse, params.condicaoClinica);
+    var realimentacao = avaliarRiscoRealimentacao({
+      imc: necessidades.antropometria.imc,
+      perdaPesoPct: params.perdaPesoPct,
+      diasJejum: params.diasJejum,
+      k: params.k,
+      mg: params.mg,
+      p: params.p,
+      etilismo: params.etilismo,
+      quimioterapia: params.quimioterapia
+    });
+
+    var nrs = calcularNrs2002({
+      escoreNutricional: params.escoreNutricional,
+      escoreDoenca: params.escoreDoenca,
+      idade: idade
+    });
+
+    var prescricao = prescreverTerapiaNutricional({
+      peso: peso,
+      alturaCm: alturaCm,
+      idade: idade,
+      sexo: sexo,
+      diasJejum: params.diasJejum,
+      tratoGastrointestinalFuncionante: params.tratoGastrointestinalFuncionante,
+      nrs2002: nrs.escoreTotal,
+      densidadeKcalMl: params.densidadeKcalMl || 1.2,
+      condicaoClinica: params.condicaoClinica
+    });
+
+    var l = [];
+    l.push('🥗 *PROTOCOLO DE SUPORTE NUTRICIONAL CLÍNICO & UTI*');
+    l.push('════════════════════════════════════════════');
+    l.push('👤 *Antropometria:* ' + necessidades.antropometria.sexo + ', ' + idade + ' anos');
+    l.push('• Peso Atual: ' + peso + ' kg | Altura: ' + alturaCm + ' cm | IMC: ' + necessidades.antropometria.imc + ' kg/m² (' + necessidades.antropometria.classificacaoImc + ')');
+    if (necessidades.antropometria.ehObeso) {
+      l.push('• Peso Ideal (Devine): ' + necessidades.antropometria.pesoIdeal + ' kg | Peso Ajustado: ' + necessidades.antropometria.pesoAjustado + ' kg');
+    }
+    l.push('');
+    l.push('📊 *METAS CALÓRICAS & PROTEICAS (BRASPEN/ESPEN):*');
+    l.push('• Gasto Basal (Harris-Benedict): ' + necessidades.gebHarrisBenedict + ' kcal/dia');
+    l.push('• Alvo Calórico: ' + necessidades.alvoCaloricoDia.faixaTexto);
+    l.push('• Alvo Proteico: ' + necessidades.alvoProteicoDia.faixaTexto);
+    l.push('• Hidratação Basal: ' + necessidades.necessidadeHidricaEstimada);
+    l.push('💡 _' + necessidades.orientacaoClinica + '_');
+    l.push('');
+
+    // Seção de Síndrome de Realimentação
+    l.push('⚠️ *SÍNDROME DE REALIMENTAÇÃO (REFEEDING SYNDROME):*');
+    l.push('• Nível de Risco: *' + realimentacao.nivelRisco + '*');
+    if (realimentacao.altoRisco) {
+      l.push('🚨 *ATENÇÃO MÁXIMA*: Risco iminente de colapso por hipofosfatemia/hipomagnesemia.');
+      l.push('• Condutas Preventivas Obrigatórias:');
+      realimentacao.condutasRecomendadas.forEach(function(c) {
+        l.push('  ' + c);
+      });
+    } else {
+      l.push('• Risco controlado. Progressão habitual da dieta.');
+    }
+    l.push('');
+
+    // Seção de Prescrição da Dieta
+    l.push('🩺 *PRESCRIÇÃO DA TERAPIA NUTRICIONAL:*');
+    l.push('• Via de Acesso: *' + prescricao.viaEscolhida + '*');
+    l.push('• Dispositivo: ' + prescricao.tipoAcessoRecomendado);
+    l.push('• Vazão Sugerida: *' + prescricao.vazaoBombaInfusao + '* (dieta ' + prescricao.densidadeDietaKcalMl + ' kcal/mL)');
+    l.push('• Volume Diário: ' + prescricao.volumeTotalDiarioMl + ' mL/dia');
+    l.push('');
+    l.push('📋 *Vigilância e Segurança Beira-Leito:*');
+    prescricao.protocoloMonitoramento.slice(0, 3).forEach(function(m) {
+      l.push('  ✓ ' + m);
+    });
+
+    return {
+      sucesso: true,
+      necessidades: necessidades,
+      realimentacao: realimentacao,
+      triagemNrs2002: nrs,
+      prescricao: prescricao,
+      resumoFormatado: l.join('\n')
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // EXPORTAÇÃO PÚBLICA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  return {
+    calcularAntropometria: calcularAntropometria,
+    calcularNecessidadesBasais: calcularNecessidadesBasais,
+    avaliarRiscoRealimentacao: avaliarRiscoRealimentacao,
+    calcularNrs2002: calcularNrs2002,
+    prescreverTerapiaNutricional: prescreverTerapiaNutricional,
+    avaliarSuporteNutricionalCompleto: avaliarSuporteNutricionalCompleto
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = SuporteNutricionalService;
+  module.exports.SuporteNutricionalService = SuporteNutricionalService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_tev_gestante.js
 // ==============================================================================
 
@@ -14018,6 +18020,348 @@ var TevGestanteService = (function() {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { TevGestanteService: TevGestanteService };
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_toxicologia_emergencia.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: TOXICOLOGIA DE EMERGÊNCIA E INTOXICAÇÕES EXÓGENAS
+ * ==============================================================================
+ * Diretrizes Clínicas Oficiais:
+ *  - American College of Medical Toxicology (ACMT) Guidelines
+ *  - Diretrizes Brasileiras de Toxicologia Clínica (ABRATOX)
+ *  - Protocolos de Suporte Avançado de Vida em Toxicologia
+ *
+ * PILARES CLÍNICOS DETERMINÍSTICOS:
+ *  1. Intoxicação por Paracetamol (Acetaminofeno):
+ *     - Avaliação de risco baseada na dose ingerida (> 150 mg/kg ou > 7.5g no adulto).
+ *     - Nomograma de Rumack-Matthew para estratificação de risco hepatotóxico (a partir de 4h).
+ *     - Protocolos posológicos de N-acetilcisteína (NAC) IV (Esquema de 21h) e VO (Esquema de 72h).
+ *  2. Intoxicação por Antidepressivos Tricíclicos (TCA):
+ *     - Critério eletrocardiográfico (QRS > 100ms prediz convulsão, QRS > 160ms prediz arritmia ventricular).
+ *     - Protocolo de alcalinização sistêmica com Bicarbonato de Sódio 8,4% 1 a 2 mEq/kg.
+ *  3. Intoxicação por Beta-bloqueadores e Bloqueadores de Canal de Cálcio:
+ *     - Glucagon em bolus e infusão contínua.
+ *     - Gluconato/Cloreto de Cálcio para inotropismo e vasopressão.
+ *     - Terapia Hiperinsulinêmica Euglicêmica (HIET) para choque refratário.
+ *  4. Intoxicação por Opioides:
+ *     - Protocolo escalonado de Naloxona guiado por status ventilatório (apneia vs depressão respiratória).
+ * ==============================================================================
+ */
+
+var ToxicologiaEmergenciaService = (function() {
+  'use strict';
+
+  /**
+   * Avalia intoxicação por Paracetamol e indica tratamento com N-acetilcisteína (NAC)
+   * @param {Object} params
+   *  - pesoKg (Number): peso do paciente
+   *  - doseIngeridaMg (Number): dose total de paracetamol ingerida em mg
+   *  - tempoIngestaoHoras (Number): tempo decorrido desde a ingestão aguda (horas)
+   *  - nivelSericoMcgMl (Number): nível de paracetamol sérico medido (mcg/mL)
+   *  - viaPreferencia (String): 'IV' ou 'VO' (padrão IV)
+   */
+  function avaliarParacetamol(params) {
+    params = params || {};
+    var pesoKg = params.pesoKg !== undefined ? Number(params.pesoKg) : undefined;
+    var doseIngeridaMg = params.doseIngeridaMg !== undefined ? Number(params.doseIngeridaMg) : undefined;
+    var tempoIngestaoHoras = params.tempoIngestaoHoras !== undefined ? Number(params.tempoIngestaoHoras) : undefined;
+    var nivelSericoMcgMl = params.nivelSericoMcgMl !== undefined ? Number(params.nivelSericoMcgMl) : undefined;
+    var via = (params.viaPreferencia || 'IV').toUpperCase();
+
+    if (!pesoKg || pesoKg <= 0) {
+      return { erro: 'O peso do paciente é obrigatório para avaliação toxicológica.' };
+    }
+
+    var limiarDoseToxicaAdulto = 7500; // mg (7.5g)
+    var limiarDoseToxicaPeso = 150; // mg/kg
+    var dosePorKg = doseIngeridaMg ? (doseIngeridaMg / pesoKg) : undefined;
+    
+    var provavelToxica = false;
+    if (dosePorKg >= limiarDoseToxicaPeso || (doseIngeridaMg >= limiarDoseToxicaAdulto)) {
+      provavelToxica = true;
+    }
+
+    var indicacaoNac = false;
+    var motivoIndicacao = [];
+    var linhaTratamentoRumack = undefined;
+
+    // Se o nível sérico estiver disponível, aplicar Nomograma de Rumack-Matthew
+    if (nivelSericoMcgMl !== undefined && tempoIngestaoHoras !== undefined) {
+      if (tempoIngestaoHoras < 4) {
+        motivoIndicacao.push('Nível sérico medido antes de 4h pós-ingestão aguda não é interpretável no nomograma. Aguarde 4h para coletar novo nível ou inicie NAC empiricamente se dose altamente suspeita.');
+        if (provavelToxica) {
+          indicacaoNac = true;
+          motivoIndicacao.push('Início empírico de NAC indicado devido à dose possivelmente tóxica reportada (aguardando nível das 4h).');
+        }
+      } else if (tempoIngestaoHoras > 24) {
+        motivoIndicacao.push('Apresentação tardia (>24h). O nomograma não é válido. Indicar NAC se Paracetamol sérico detectável ou transaminases elevadas.');
+        if (nivelSericoMcgMl > 0) {
+          indicacaoNac = true;
+          motivoIndicacao.push('NAC indicado: nível sérico ainda detectável após 24h.');
+        }
+      } else {
+        // Linha de tratamento: Y = 150 * (0.5)^((t-4)/4)
+        linhaTratamentoRumack = 150 * Math.pow(0.5, (tempoIngestaoHoras - 4) / 4);
+        
+        if (nivelSericoMcgMl >= linhaTratamentoRumack) {
+          indicacaoNac = true;
+          motivoIndicacao.push('Nível sérico de ' + nivelSericoMcgMl + ' mcg/mL às ' + tempoIngestaoHoras + 'h está ACIMA da linha de tratamento do Nomograma de Rumack-Matthew (' + linhaTratamentoRumack.toFixed(1) + ' mcg/mL).');
+        } else {
+          motivoIndicacao.push('Nível sérico de ' + nivelSericoMcgMl + ' mcg/mL às ' + tempoIngestaoHoras + 'h está ABAIXO da linha de tratamento do Nomograma de Rumack-Matthew (' + linhaTratamentoRumack.toFixed(1) + ' mcg/mL). Sem indicação de NAC no momento (se aguda única).');
+        }
+      }
+    } else {
+      // Sem nível sérico
+      if (provavelToxica) {
+        indicacaoNac = true;
+        motivoIndicacao.push('Nível sérico indisponível, mas dose reportada (' + (dosePorKg ? dosePorKg.toFixed(1) + ' mg/kg' : doseIngeridaMg + ' mg') + ') é tóxica. Iniciar NAC empiricamente.');
+      } else if (doseIngeridaMg !== undefined) {
+        motivoIndicacao.push('Nível sérico indisponível e dose reportada não atinge limiar tóxico clássico, mas a observação clínica e coleta de nível às 4h é recomendada.');
+      } else {
+        motivoIndicacao.push('Dados insuficientes para decisão baseada em dose ou nomograma. Na dúvida, inicie NAC ou colete nível.');
+      }
+    }
+
+    var prescricaoNac = null;
+    if (indicacaoNac) {
+      if (via === 'VO') {
+        prescricaoNac = {
+          esquema: 'Esquema de 72 horas (VO)',
+          doseAtaque: {
+            descricao: '140 mg/kg VO/SNE dose única',
+            doseMg: Math.round(pesoKg * 140)
+          },
+          doseManutencao: {
+            descricao: '70 mg/kg VO/SNE a cada 4 horas por 17 doses (iniciar 4h após ataque)',
+            doseMg: Math.round(pesoKg * 70),
+            repeticoes: 17
+          },
+          observacao: 'A via VO é frequentemente associada a vômitos. Antiéticos (ex: Ondansetrona) podem ser necessários. Em caso de êmese em < 1h da dose, repetir a administração.'
+        };
+      } else {
+        // IV - Protocolo de 21 horas
+        prescricaoNac = {
+          esquema: 'Protocolo Padrão de 21 horas (IV)',
+          etapa1: {
+            descricao: '150 mg/kg IV em 1 hora',
+            doseMg: Math.round(pesoKg * 150),
+            diluicao: pesoKg > 40 ? 'Diluir em 200 mL de SG 5%' : 'Diluir em 3 mL/kg de SG 5%',
+            alerta: 'Infusão rápida pode causar reação anafilactoide. Se ocorrer rash/rubor, pausar, administrar anti-histamínico e reiniciar mais lento.'
+          },
+          etapa2: {
+            descricao: '50 mg/kg IV em 4 horas',
+            doseMg: Math.round(pesoKg * 50),
+            diluicao: pesoKg > 40 ? 'Diluir em 500 mL de SG 5%' : 'Diluir em 7 mL/kg de SG 5%'
+          },
+          etapa3: {
+            descricao: '100 mg/kg IV em 16 horas',
+            doseMg: Math.round(pesoKg * 100),
+            diluicao: pesoKg > 40 ? 'Diluir em 1000 mL de SG 5%' : 'Diluir em 14 mL/kg de SG 5%'
+          },
+          criteriosFim: 'Ao final de 21h, dosar transaminases e Paracetamol sérico. Se Paracetamol detectável ou TGP muito elevada, manter infusão da Etapa 3.'
+        };
+      }
+    }
+
+    return {
+      sucesso: true,
+      provavelDoseToxica: provavelToxica,
+      linhaTratamentoNomograma: linhaTratamentoRumack !== undefined ? Number(linhaTratamentoRumack.toFixed(1)) : null,
+      indicacaoNac: indicacaoNac,
+      motivos: motivoIndicacao,
+      prescricaoNac: prescricaoNac
+    };
+  }
+
+  /**
+   * Avalia intoxicação por Antidepressivos Tricíclicos (TCA)
+   * @param {Object} params
+   *  - pesoKg (Number)
+   *  - qrsMs (Number): Duração do complexo QRS em milissegundos
+   *  - convulsao (Boolean): Apresentou convulsão
+   *  - hipotensao (Boolean): Apresentou hipotensão
+   *  - arritmia (Boolean): Arritmias ventriculares
+   */
+  function avaliarTriciclicos(params) {
+    params = params || {};
+    var pesoKg = params.pesoKg !== undefined ? Number(params.pesoKg) : undefined;
+    var qrsMs = params.qrsMs !== undefined ? Number(params.qrsMs) : undefined;
+    var convulsao = params.convulsao === true;
+    var hipotensao = params.hipotensao === true;
+    var arritmia = params.arritmia === true;
+
+    var riscoConvulsao = qrsMs >= 100;
+    var riscoArritmia = qrsMs >= 160;
+    
+    var indicacaoBicarbonato = (qrsMs !== undefined && qrsMs >= 100) || arritmia || hipotensao;
+    var prescricaoBicarbonato = null;
+
+    var condutas = [
+      'Monitorização eletrocardiográfica contínua obrigatória.',
+      'Contraindicação absoluta à Fisostigmina (risco de assistolia).',
+      'Contraindicação a bloqueadores de canal de sódio (ex: Amiodarona) para tratar arritmias de TCA.'
+    ];
+
+    if (convulsao) {
+      condutas.push('Para convulsões: uso de Benzodiazepínicos de 1ª linha (Diazepam ou Midazolam). Evitar Fenitoína.');
+    }
+
+    if (indicacaoBicarbonato) {
+      condutas.push('Alcalinização sistêmica com Bicarbonato de Sódio indicada pelo alargamento do QRS ou instabilidade hemodinâmica/arrítmica.');
+      if (pesoKg && pesoKg > 0) {
+        var doseBolusMin = Math.round(pesoKg * 1); // 1 mEq/kg
+        var doseBolusMax = Math.round(pesoKg * 2); // 2 mEq/kg
+        prescricaoBicarbonato = {
+          descricaoBolus: 'Bicarbonato de Sódio 8,4% IV em bolus lento (' + doseBolusMin + ' a ' + doseBolusMax + ' mEq)',
+          alvoDose: '1 a 2 mEq/kg (1 mL de Bicarbonato 8,4% = 1 mEq)',
+          volumeBolus: doseBolusMin + ' a ' + doseBolusMax + ' mL',
+          manutencao: 'Se QRS estreitar: infusão contínua de BIC 8,4% 150 mL em 1000 mL de SG 5% a 200 mL/h. Alvo: pH arterial 7.45 - 7.55.',
+          repetirBolus: 'Pode-se repetir bolus a cada 3 a 5 min se arritmia ou QRS refratário, respeitando pH máximo de 7.55.'
+        };
+      } else {
+        prescricaoBicarbonato = {
+          alvoDose: '1 a 2 mEq/kg IV em bolus (1 mL de Bicarbonato 8,4% = 1 mEq)',
+          manutencao: 'Alvo de pH gasométrico 7.45 - 7.55. Repetir bolus e manter infusão contínua para sustentar alcalinização até melhora clínica e ECG.'
+        };
+      }
+    }
+
+    if (hipotensao) {
+      condutas.push('Para hipotensão: Reposição volêmica inicial com cristaloides. Se refratário, vasopressor de escolha: Noradrenalina.');
+    }
+
+    return {
+      sucesso: true,
+      riscoConvulsao: riscoConvulsao,
+      riscoArritmiaVentricular: riscoArritmia,
+      indicacaoBicarbonato: indicacaoBicarbonato,
+      prescricaoBicarbonato: prescricaoBicarbonato,
+      condutasGerais: condutas
+    };
+  }
+
+  /**
+   * Avalia intoxicação por Beta-bloqueadores (BB) ou Bloqueadores de Canal de Cálcio (BCC)
+   * @param {Object} params
+   *  - toxina (String): 'BB', 'BCC' ou 'MISTA'
+   *  - pesoKg (Number)
+   *  - estadoChoque (Boolean): Choque cardiogênico / vasoplégico refratário a fluidos
+   */
+  function avaliarCardiotoxicos(params) {
+    params = params || {};
+    var toxina = (params.toxina || '').toUpperCase();
+    var pesoKg = params.pesoKg !== undefined ? Number(params.pesoKg) : undefined;
+    var estadoChoque = params.estadoChoque === true;
+
+    if (!toxina || (toxina !== 'BB' && toxina !== 'BCC' && toxina !== 'MISTA')) {
+      return { erro: 'O tipo de toxina ("BB", "BCC" ou "MISTA") deve ser especificado.' };
+    }
+
+    var condutas = [];
+    var farmacoterapia = {};
+
+    condutas.push('Garantir acesso vascular periférico calibroso e cristaloides isotônicos IV para hipotensão inicial (cautela com edema pulmonar).');
+    
+    // Cálcio
+    if (toxina === 'BCC' || toxina === 'MISTA') {
+      condutas.push('Administração de Cálcio é prioritária para reverter inotropismo negativo e hipotensão em BCC.');
+      farmacoterapia.calcio = {
+        descricao: 'Gluconato de Cálcio 10% (30-60 mL) OU Cloreto de Cálcio 10% (10-20 mL - preferir acesso central) em bolus IV lento (5-10 min).',
+        manutencao: 'Se resposta favorável, considerar infusão de Gluconato 10% 0,2 a 0,5 mL/kg/h.'
+      };
+    }
+
+    // Glucagon
+    if (toxina === 'BB' || toxina === 'MISTA' || (toxina === 'BCC' && estadoChoque)) {
+      condutas.push('Glucagon é altamente eficaz para bradicardia e hipotensão induzida por BB (bypass dos receptores beta estimulando AMPc).');
+      farmacoterapia.glucagon = {
+        descricao: 'Glucagon 3 a 5 mg IV em bolus lento (1-2 min).',
+        observacao: 'Se efeito positivo, iniciar infusão contínua de 1 a 5 mg/h (geralmente igual à dose do bolus eficaz). Pode causar náusea e vômito (pré-medicar com antiemético). O Glucagon esgota o estoque hospitalar rapidamente, providenciar reposição.'
+      };
+    }
+
+    // HIET
+    if (estadoChoque) {
+      condutas.push('Em choque refratário: Iniciar Terapia Hiperinsulinêmica Euglicêmica (HIET). A insulina tem forte efeito inotrópico positivo em miocárdio deprimido por estas toxinas.');
+      var doseAtaqueHiet = pesoKg ? Math.round(pesoKg * 1) : '1';
+      farmacoterapia.hiet = {
+        descricao: 'Terapia Hiperinsulinêmica Euglicêmica (HIET)',
+        bolus: 'Insulina Regular ' + doseAtaqueHiet + ' U/kg IV bolus + Glicose 50% 1 mL/kg (se dextro < 200).',
+        infusao: 'Insulina Regular 0.5 a 1 U/kg/h contínua.',
+        monitorizacao: 'Glicemia capilar a cada 15-30 min inicialmente (infundir SG 10% para manter euglicemia) e Potássio horário (repor se < 3.0 mEq/L).'
+      };
+      
+      condutas.push('Considerar Vasopressores (Noradrenalina, Adrenalina) se choque persistente, e Emulsão Lipídica (Intralipid 20%) se a droga for altamente lipofílica (ex: Propranolol, Verapamil).');
+    }
+
+    return {
+      sucesso: true,
+      toxina: toxina,
+      farmacoterapia: farmacoterapia,
+      condutasGerais: condutas
+    };
+  }
+
+  /**
+   * Avalia intoxicação por Opioides e prescreve Naloxona
+   * @param {Object} params
+   *  - ventilacao (String): 'APNEIA', 'DEPRIMIDA' ou 'NORMAL'
+   */
+  function avaliarOpioides(params) {
+    params = params || {};
+    var ventilacao = (params.ventilacao || 'DEPRIMIDA').toUpperCase();
+
+    var condutas = [];
+    var prescricaoNaloxona = null;
+
+    condutas.push('O principal objetivo é restaurar a ventilação espontânea adequada, e NÃO necessariamente o despertar completo do paciente (risco de síndrome de abstinência aguda e agitação).');
+
+    if (ventilacao === 'APNEIA') {
+      condutas.push('Paciente em apneia: Necessidade imediata de ventilação com bolsa-válvula-máscara (Ambu) e altas doses de Naloxona.');
+      prescricaoNaloxona = {
+        doseInicial: '0.4 mg a 2.0 mg IV/IM ou Intranasal.',
+        titulacao: 'Repetir a cada 2-3 minutos se não houver resposta, até máximo de 10 mg (considerar outro diagnóstico se não reverter).',
+        preparo: 'Dose direta de ampolas padrão (0.4 mg/mL).'
+      };
+    } else if (ventilacao === 'DEPRIMIDA') {
+      condutas.push('Paciente com depressão respiratória, mas respirando: Escalonamento cauteloso de Naloxona para evitar abstinência aguda.');
+      prescricaoNaloxona = {
+        doseInicial: '0.04 mg a 0.08 mg IV.',
+        titulacao: 'Repetir e aumentar a dose gradualmente a cada 2 minutos (ex: 0.04 -> 0.08 -> 0.16 -> 0.4 mg) até FR > 12 ipm.',
+        preparo: 'Diluir 1 ampola (0.4 mg / 1 mL) em 9 mL de SF 0,9%. Solução resultante = 0.04 mg/mL. Administrar 1 a 2 mL (0.04 a 0.08 mg) em bolus lento.'
+      };
+    } else {
+      condutas.push('Paciente com ventilação normal: Não requer administração de Naloxona no momento, manter monitorização.');
+    }
+
+    condutas.push('Atenção: A meia-vida da Naloxona (30-60 min) é geralmente menor que a maioria dos opioides. Risco de re-narcotização. Pacientes revertidos devem ser observados por pelo menos 4 a 6 horas.');
+
+    return {
+      sucesso: true,
+      condicaoVentilatoria: ventilacao,
+      indicacaoNaloxona: ventilacao === 'APNEIA' || ventilacao === 'DEPRIMIDA',
+      prescricaoNaloxona: prescricaoNaloxona,
+      condutasGerais: condutas
+    };
+  }
+
+  // API Pública do Módulo
+  return {
+    avaliarParacetamol: avaliarParacetamol,
+    avaliarTriciclicos: avaliarTriciclicos,
+    avaliarCardiotoxicos: avaliarCardiotoxicos,
+    avaliarOpioides: avaliarOpioides
+  };
+
+})();
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+  module.exports = ToxicologiaEmergenciaService;
 }
 
 
@@ -20530,7 +24874,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -20542,7 +24886,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -21172,6 +25516,740 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // PSIQUIATRIA DE URGÊNCIA & SAÚDE MENTAL (ABP / MS / APA / NICE)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/psiq" || comando === "/agitacao" || comando === "/suicidio" || comando === "/phq9") {
+    var dadosPsiq = texto.replace(/^\/\w+\s*/, "").trim();
+    if (!dadosPsiq) {
+      return enviarMensagemParaChat(chatId, "🧠 *MÓDULO DE PSIQUIATRIA DE URGÊNCIA & SAÚDE MENTAL*\n\n" +
+        "Envie os achados para avaliação clínica estruturada:\n" +
+        "• `/agitacao grave, agressivo, recusa VO, psicose` *(Contenção Farmacológica)*\n" +
+        "• `/suicidio ideacao ativa, plano estruturado, tentativa previa` *(Estratificação C-SSRS)*\n" +
+        "• `/phq9 3,3,2,3,2,3,2,2,2 cardiopata` *(Rastreio Depressão e Fármaco Dirigido)*\n" +
+        "• `/psiq idoso 78a, delirium, agitado, dor cronica` *(Avaliação Integrada)*");
+    }
+
+    if (typeof PsiquiatriaUrgenciaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PsiquiatriaUrgenciaService indisponível temporariamente.");
+    }
+
+    var cenarioPsiq = {
+      textoOriginal: dadosPsiq
+    };
+
+    var tLower = dadosPsiq.toLowerCase();
+
+    // Extração de parâmetros
+    if (tLower.includes("grave") || tLower.includes("extrema") || tLower.includes("agress")) cenarioPsiq.gravidade = "grave";
+    else if (tLower.includes("modera")) cenarioPsiq.gravidade = "moderada";
+    else if (tLower.includes("leve")) cenarioPsiq.gravidade = "leve";
+
+    if (tLower.includes("recusa vo") || tLower.includes("recusa oral") || tLower.includes("nao aceita vo") || tLower.includes("im")) {
+      cenarioPsiq.aceitaViaOral = false;
+      cenarioPsiq.viaPreferencial = "im";
+    } else if (tLower.includes("aceita vo") || tLower.includes("via oral")) {
+      cenarioPsiq.aceitaViaOral = true;
+      cenarioPsiq.viaPreferencial = "oral";
+    }
+
+    if (tLower.includes("abstin") || tLower.includes("alcool") || tLower.includes("etil")) cenarioPsiq.etiologia = "abstinencia_alcoolica";
+    else if (tLower.includes("estimulante") || tLower.includes("cocaina") || tLower.includes("crack")) cenarioPsiq.etiologia = "intoxicacao_estimulantes";
+    else if (tLower.includes("delirium")) cenarioPsiq.etiologia = "delirium_organico";
+    else if (tLower.includes("demencia") || tLower.includes("alzheimer")) cenarioPsiq.etiologia = "demencia_idoso";
+    else if (tLower.includes("mania") || tLower.includes("bipolar")) cenarioPsiq.etiologia = "mania_bipolar";
+    else if (tLower.includes("psicose") || tLower.includes("esquizof")) cenarioPsiq.etiologia = "psicose";
+
+    // Idade
+    var mIdade = tLower.match(/(\d{1,3})\s*a(?:nos)?/);
+    if (mIdade) cenarioPsiq.idade = parseInt(mIdade[1], 10);
+    if (tLower.includes("idoso") || tLower.includes("idosa")) cenarioPsiq.idoso = true;
+    if (tLower.includes("gestan") || tLower.includes("gravid")) cenarioPsiq.gestante = true;
+
+    // Comorbidades
+    var comorbs = [];
+    if (tLower.includes("parkinson") || tLower.includes("lewy")) comorbs.push("parkinson");
+    if (tLower.includes("qtc") || tLower.includes("arritm")) comorbs.push("qtc_longo");
+    if (tLower.includes("cardio") || tLower.includes("iam") || tLower.includes("coronar")) comorbs.push("cardiopatia");
+    if (tLower.includes("dor") || tLower.includes("fibromialg")) comorbs.push("dor_cronica");
+    if (tLower.includes("insonia") || tLower.includes("peso") || tLower.includes("caquex")) comorbs.push("insonia_perda_peso");
+    if (tLower.includes("tabag")) comorbs.push("tabagismo");
+    if (tLower.includes("epilep") || tLower.includes("convuls")) comorbs.push("epilepsia");
+    if (tLower.includes("bulimia") || tLower.includes("anorex")) comorbs.push("transtorno_alimentar");
+    cenarioPsiq.comorbidades = comorbs;
+
+    // Risco de Suicídio
+    if (comando === "/suicidio" || tLower.includes("suicid") || tLower.includes("morte")) {
+      if (tLower.includes("plano") || tLower.includes("estruturad")) cenarioPsiq.planoEstruturado = true;
+      if (tLower.includes("intencao")) cenarioPsiq.intencaoSuicida = true;
+      if (tLower.includes("meios") || tLower.includes("arma") || tLower.includes("veneno")) cenarioPsiq.acessoMeiosLetais = true;
+      if (tLower.includes("tentativa previa") || tLower.includes("tentativa anterior")) cenarioPsiq.tentativaPrevia = true;
+      if (tLower.includes("tentativa recente") || tLower.includes("tentou hoje") || tLower.includes("tentativa atual")) cenarioPsiq.tentativaRecente = true;
+      if (tLower.includes("desesperanc")) cenarioPsiq.desesperanca = true;
+      cenarioPsiq.ideacaoAtiva = true;
+    }
+
+    // PHQ-9
+    if (comando === "/phq9" || tLower.includes("phq")) {
+      var nums = dadosPsiq.match(/\b([0-3])\b/g);
+      if (nums && nums.length >= 5) {
+        cenarioPsiq.respostas = nums.slice(0, 9).map(function(n) { return parseInt(n, 10); });
+      }
+    }
+
+    var resultadoPsiq = PsiquiatriaUrgenciaService.avaliarPsiquiatriaCompleto(cenarioPsiq);
+    return enviarMensagemParaChat(chatId, resultadoPsiq.resumoFormatado);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // PERFIS CLÍNICOS & RBAC (CFM / RESIDÊNCIA / SEGURANÇA DO PACIENTE)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/perfil" || comando === "/rbac") {
+    var argsPerfil = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof RbacPerfisClinicosService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
+    }
+
+    if (!argsPerfil) {
+      return enviarMensagemParaChat(chatId, RbacPerfisClinicosService.formatarPainelPerfil(chatId));
+    }
+
+    var argLower = argsPerfil.toLowerCase();
+    if (argLower === "listar" || argLower === "catalogo" || argLower === "ajuda") {
+      return enviarMensagemParaChat(chatId, RbacPerfisClinicosService.formatarListaPerfis());
+    }
+
+    // Extrai possível CRM e nome do perfil
+    var mCrm = argsPerfil.match(/(?:crm\s*[:=]?\s*)([0-9]{3,8}(?:\s*[-/]\s*[a-zA-Z]{2})?)/i);
+    var crmEncontrado = mCrm ? mCrm[1] : null;
+    var papelAlvo = argsPerfil.replace(/(?:crm\s*[:=]?\s*)([0-9]{3,8}(?:\s*[-/]\s*[a-zA-Z]{2})?)/i, "").trim();
+
+    var resDefinir = RbacPerfisClinicosService.definirPerfilUsuario(chatId, papelAlvo, {
+      crm: crmEncontrado,
+      nome: message.from ? ((message.from.first_name || "") + " " + (message.from.last_name || "")).trim() : null
+    });
+
+    var msgResp = "✅ *PAPEL CLÍNICO ATUALIZADO COM SUCESSO!*\n\n" +
+      "• **Papel Ativo:** " + resDefinir.perfil.titulo + "\n" +
+      "• **Nível Hierárquico:** Nível " + resDefinir.perfil.nivelHierarquico + " de 5\n" +
+      (resDefinir.crm ? ("• **CRM Registrado:** " + resDefinir.crm + "\n") : "") +
+      "• **Prescrição Hospitalar:** " + (resDefinir.perfil.podePrescreverOficialmente ? "Autorizada (supervisão de alta vigilância)" : "Restrita a rascunho de estudo") + "\n\n" +
+      "Envie `/perfil` a qualquer momento para auditar suas competências e pendências ativas.";
+
+    return enviarMensagemParaChat(chatId, msgResp);
+  }
+
+  if (comando === "/pendencias") {
+    if (typeof RbacPerfisClinicosService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
+    }
+    return enviarMensagemParaChat(chatId, RbacPerfisClinicosService.formatarListaPendencias(chatId));
+  }
+
+  if (comando === "/chancelar") {
+    var dadosChancela = texto.replace(/^\/chancelar\s*/, "").trim();
+    if (typeof RbacPerfisClinicosService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
+    }
+
+    if (!dadosChancela) {
+      return enviarMensagemParaChat(chatId, "✍️ *CHANCELA PRECEPTORIAL DE CONDUTA*\n\n" +
+        "Uso: `/chancelar <id_pendencia> [parecer clínico]`\n" +
+        "💡 *Exemplo:* `/chancelar pend_123456 Conduta e dosagem aprovadas para enfermaria.`\n\n" +
+        "Para ver as pendências aguardando chancela, envie `/pendencias`.");
+    }
+
+    var partes = dadosChancela.split(/\s+/);
+    var pId = partes[0];
+    var parecer = partes.slice(1).join(" ") || "Conduta aprovada sem ressalvas pelo preceptor responsável.";
+
+    try {
+      var resChancela = RbacPerfisClinicosService.chancelarCoAssinatura({ chatId: chatId }, pId, parecer);
+      var msgOk = "✅ *CHANCELA PRECEPTORIAL REGISTRADA!*\n\n" +
+        "• **Pendência ID:** `" + resChancela.pendenciaId + "`\n" +
+        "• **Status:** " + resChancela.status + "\n" +
+        "• **Chancelado Por:** " + resChancela.chanceladoPor.nome + " (" + resChancela.chanceladoPor.perfil + ")\n" +
+        "• **Parecer:** _" + parecer + "_\n\n" +
+        "Prescrição e conduta liberadas para execução pela equipe hospitalar.";
+      return enviarMensagemParaChat(chatId, msgOk);
+    } catch (eChancela) {
+      return enviarMensagemParaChat(chatId, "⛔ *NÃO FOI POSSÍVEL CHANCELAR:*\n" + eChancela.message);
+    }
+  }
+
+  if (comando === "/emergencia" || comando === "/breaktheglass") {
+    var justificativa = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof RbacPerfisClinicosService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
+    }
+
+    if (!justificativa) {
+      return enviarMensagemParaChat(chatId, "🚨 *PROTOCOLO BREAK-THE-GLASS (BYPASS DE EMERGÊNCIA)*\n\n" +
+        "Permite relaxar temporariamente travas hierárquicas em emergências clínicas graves (ex: PCR, choque refratário, intubação rápida).\n\n" +
+        "• Para ATIVAR: `/emergencia <motivo clínico detalhado>`\n" +
+        "  Ex: `/emergencia Paciente em PCR no leito 4, necessidade imediata de adrenalina e suporte invasivo`\n\n" +
+        "• Para DESATIVAR: `/emergencia off`");
+    }
+
+    if (justificativa.toLowerCase() === "off" || justificativa.toLowerCase() === "desativar") {
+      var resDesat = RbacPerfisClinicosService.desativarBypassEmergencia({ chatId: chatId });
+      return enviarMensagemParaChat(chatId, "🛡️ *MODO DE EMERGÊNCIA DESATIVADO*\n\n" + resDesat.mensagem);
+    }
+
+    try {
+      var resAtiv = RbacPerfisClinicosService.ativarBypassEmergencia({ chatId: chatId }, justificativa, 2);
+      var msgEmerg = "🚨 *BREAK-THE-GLASS ATIVADO COM SUCESSO!*\n\n" +
+        "• **Profissional:** " + resAtiv.usuario + " (" + resAtiv.perfil + ")\n" +
+        "• **Motivo Registrado:** " + resAtiv.justificativa + "\n" +
+        "• **Duração do Bypass:** " + resAtiv.duracaoHoras + " hora(s)\n\n" +
+        resAtiv.avisoSeguranca + "\n\n" +
+        "Ao finalizar a assistência de emergência, desative enviando: `/emergencia off`";
+      return enviarMensagemParaChat(chatId, msgEmerg);
+    } catch (eEmerg) {
+      return enviarMensagemParaChat(chatId, "⚠️ *ERRO AO ATIVAR BREAK-THE-GLASS:*\n" + eEmerg.message);
+    }
+  }
+
+  if (comando === "/auditar_rbac" || comando === "/relatorio_rbac") {
+    if (typeof RbacPerfisClinicosService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
+    }
+    var rel = RbacPerfisClinicosService.gerarRelatorioSegurancaRbac();
+    return enviarMensagemParaChat(chatId, "```\n" + rel.relatorioFormatado + "\n```");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // SUPORTE NUTRICIONAL ENTERAL E PARENTERAL (BRASPEN / ESPEN / ASPEN)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/nutricao" || comando === "/dieta" || comando === "/refeeding" || comando === "/npt" || comando === "/nrs") {
+    var dadosNutri = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof SuporteNutricionalService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo SuporteNutricionalService indisponível temporariamente.");
+    }
+
+    if (!dadosNutri) {
+      return enviarMensagemParaChat(chatId, "🥗 *MÓDULO DE SUPORTE NUTRICIONAL CLÍNICO & UTI*\n\n" +
+        "Envie os parâmetros clínicos para cálculo e prescrição estruturada:\n" +
+        "• `/nutricao 70kg, 175cm, 65a, m, sepse, UTI, jejum 4 dias` *(Cálculo e Prescrição)*\n" +
+        "• `/refeeding IMC 15.5, perda 18%, jejum 8 dias, K 3.1, P 1.8, Mg 1.4` *(Risco de Realimentação)*\n" +
+        "• `/npt 60kg, 168cm, 58a, jejum 8 dias, ileo paralitico, alto risco` *(Indicação NPT)*\n" +
+        "• `/dieta 110kg, 165cm, 50a, f, obesa, UTI` *(Manejo em Obesidade Crítica)*");
+    }
+
+    var tLower = dadosNutri.toLowerCase();
+    var paramsNutri = {
+      textoOriginal: dadosNutri
+    };
+
+    // Peso (ex: 70kg, 70 kg, peso 70)
+    var mPeso = dadosNutri.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosNutri.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+    if (mPeso) paramsNutri.peso = parseFloat(mPeso[1].replace(',', '.'));
+
+    // Altura (ex: 175cm, 1.75m, 175 cm)
+    var mAltCm = dadosNutri.match(/(\d{3})\s*cm/i);
+    var mAltM = dadosNutri.match(/([12][.,]\d{2})\s*m/i);
+    if (mAltCm) paramsNutri.alturaCm = parseFloat(mAltCm[1]);
+    else if (mAltM) paramsNutri.alturaCm = parseFloat(mAltM[1].replace(',', '.')) * 100;
+
+    // Idade
+    var mIdade = dadosNutri.match(/(\d{1,3})\s*(?:a|anos|a\b)/i);
+    if (mIdade) paramsNutri.idade = parseInt(mIdade[1], 10);
+
+    // Sexo
+    if (tLower.includes("mulher") || tLower.includes("fem") || /\bf\b/.test(tLower)) paramsNutri.sexo = "f";
+    else if (tLower.includes("homem") || tLower.includes("masc") || /\bm\b/.test(tLower)) paramsNutri.sexo = "m";
+
+    // Dias de Jejum
+    var mJejum = dadosNutri.match(/jejum\s*(?:de\s*)?(\d{1,2})\s*dias?/i) || dadosNutri.match(/(\d{1,2})\s*dias?\s*(?:de\s*)?jejum/i);
+    if (mJejum) paramsNutri.diasJejum = parseInt(mJejum[1], 10);
+
+    // Perda de Peso (%)
+    var mPerda = dadosNutri.match(/perda\s*(?:de\s*)?(\d{1,2}(?:[.,]\d+)?)\s*%/i);
+    if (mPerda) paramsNutri.perdaPesoPct = parseFloat(mPerda[1].replace(',', '.'));
+
+    // Eletrólitos
+    var mP = dadosNutri.match(/\bp\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosNutri.match(/fosforo\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (mP) paramsNutri.p = parseFloat(mP[1].replace(',', '.'));
+
+    var mMg = dadosNutri.match(/mg\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosNutri.match(/magnesio\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (mMg) paramsNutri.mg = parseFloat(mMg[1].replace(',', '.'));
+
+    var mK = dadosNutri.match(/\bk\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosNutri.match(/potassio\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (mK) paramsNutri.k = parseFloat(mK[1].replace(',', '.'));
+
+    // TGI Funcionante vs Inviável
+    if (tLower.includes("ileo") || tLower.includes("obstrucao") || tLower.includes("isquemia") || tLower.includes("tgi nao") || tLower.includes("sem tgi") || comando === "/npt") {
+      paramsNutri.tratoGastrointestinalFuncionante = false;
+    } else {
+      paramsNutri.tratoGastrointestinalFuncionante = true;
+    }
+
+    // Condição Clínica
+    if (tLower.includes("crrt") || tLower.includes("dialise continua")) paramsNutri.condicaoClinica = "crrt";
+    else if (tLower.includes("queimad") || tLower.includes("trauma")) paramsNutri.condicaoClinica = "trauma";
+    else if (tLower.includes("sepse") || tLower.includes("uti") || tLower.includes("critico")) paramsNutri.condicaoClinica = "uti";
+    else if (tLower.includes("fase aguda") || tLower.includes("dia 1")) paramsNutri.condicaoClinica = "fase_aguda";
+    else if (tLower.includes("drc")) paramsNutri.condicaoClinica = "drc_conservador";
+
+    // Fatores de risco adicionais
+    if (tLower.includes("alcool") || tLower.includes("etil")) paramsNutri.etilismo = true;
+    if (tLower.includes("quimio")) paramsNutri.quimioterapia = true;
+    if (tLower.includes("anorex")) paramsNutri.anorexia = true;
+
+    // Se comando for exclusivamente de refeeding
+    if (comando === "/refeeding") {
+      var resRealimentacao = SuporteNutricionalService.avaliarRiscoRealimentacao(paramsNutri);
+      var lRef = [];
+      lRef.push("⚠️ *ESTRATIFICAÇÃO DE RISCO: SÍNDROME DE REALIMENTAÇÃO (REFEEDING)*");
+      lRef.push("════════════════════════════════════════════");
+      lRef.push("• Nível de Risco: *" + resRealimentacao.nivelRisco + "*");
+      if (resRealimentacao.criteriosMaioresDetectados.length > 0) {
+        lRef.push("• Critérios Maiores: " + resRealimentacao.criteriosMaioresDetectados.join("; "));
+      }
+      if (resRealimentacao.criteriosMenoresDetectados.length > 0) {
+        lRef.push("• Critérios Menores: " + resRealimentacao.criteriosMenoresDetectados.join("; "));
+      }
+      lRef.push("");
+      lRef.push("📋 *Condutas e Prescrição de Segurança:*");
+      resRealimentacao.condutasRecomendadas.forEach(function(c) {
+        lRef.push(c);
+      });
+      return enviarMensagemParaChat(chatId, lRef.join("\n"));
+    }
+
+    var resultadoNutri = SuporteNutricionalService.avaliarSuporteNutricionalCompleto(paramsNutri);
+    return enviarMensagemParaChat(chatId, resultadoNutri.resumoFormatado);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // ENDOCRINOLOGIA E DIABETES MELLITUS AVANÇADO (SBD / ADA)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/diabetes" || comando === "/insulina" || comando === "/cad" || comando === "/ehh" || comando === "/glicemia") {
+    var dadosDm = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof EndocrinologiaDiabetesService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo EndocrinologiaDiabetesService indisponível temporariamente.");
+    }
+
+    if (!dadosDm && (comando === "/diabetes" || comando === "/insulina")) {
+      return enviarMensagemParaChat(chatId, "🩸 *MÓDULO DE ENDOCRINOLOGIA E DIABETES (SBD / ADA)*\n\n" +
+        "Envie os parâmetros para manejo ambulatorial ou hospitalar:\n" +
+        "• `/insulina 70kg, dm1` *(Cálculo Basal-Bolus, ICR e Fator de Sensibilidade)*\n" +
+        "• `/insulina 85kg, dm2, descompensado, clcr 35` *(Basalização e Ajuste Renal)*\n" +
+        "• `/cad 65kg, glicemia 420, k 3.1, ph 7.12, hco3 10` *(Cetoacidose com Alerta de K+)*\n" +
+        "• `/ehh 78kg, glicemia 750, k 4.6, na 142` *(Estado Hiperosmolar Hiperglicêmico)*\n" +
+        "• `/glicemia 240 padrao` *(Escala Hospitalar de Correção SC)*");
+    }
+
+    var tLowerDm = dadosDm.toLowerCase();
+
+    // 1. Rota de Emergência: CAD ou EHH
+    if (comando === "/cad" || comando === "/ehh" || tLowerDm.includes("cetoacidose") || tLowerDm.includes("hiperosmolar") || tLowerDm.includes("cad") || tLowerDm.includes("ehh")) {
+      var paramsCad = {
+        tipo: (comando === "/ehh" || tLowerDm.includes("ehh") || tLowerDm.includes("hiperosmolar")) ? "EHH" : "CAD"
+      };
+
+      var mPesoCad = dadosDm.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosDm.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+      paramsCad.peso = mPesoCad ? parseFloat(mPesoCad[1].replace(',', '.')) : 70;
+
+      var mGliCad = dadosDm.match(/glicemia\s*[:=]?\s*(\d{2,4})/i) || dadosDm.match(/(\d{3,4})\s*(?:mg\/dl)?/i);
+      if (mGliCad) paramsCad.glicemia = parseInt(mGliCad[1], 10);
+
+      var mKCad = dadosDm.match(/\bk\+?\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosDm.match(/potassio\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+      if (mKCad) paramsCad.potassio = parseFloat(mKCad[1].replace(',', '.'));
+
+      var mNaCad = dadosDm.match(/na\+?\s*[:=]?\s*(\d{2,3})/i) || dadosDm.match(/sodio\s*[:=]?\s*(\d{2,3})/i);
+      if (mNaCad) paramsCad.sodio = parseInt(mNaCad[1], 10);
+
+      var mPhCad = dadosDm.match(/ph\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+      if (mPhCad) paramsCad.ph = parseFloat(mPhCad[1].replace(',', '.'));
+
+      var mBicCad = dadosDm.match(/(?:hco3|bic|bicarbonato)\s*[:=]?\s*(\d{1,2}(?:[.,]\d+)?)/i);
+      if (mBicCad) paramsCad.bicarbonato = parseFloat(mBicCad[1].replace(',', '.'));
+
+      var mClCad = dadosDm.match(/cl\s*[:=]?\s*(\d{2,3})/i) || dadosDm.match(/cloreto\s*[:=]?\s*(\d{2,3})/i);
+      if (mClCad) paramsCad.cloreto = parseInt(mClCad[1], 10);
+
+      var resCrise = EndocrinologiaDiabetesService.manejoCriseHiperglicemica(paramsCad);
+      return enviarMensagemParaChat(chatId, EndocrinologiaDiabetesService.formatarResumoDiabetes(resCrise));
+    }
+
+    // 2. Rota de Correção de Glicemia Hospitalar
+    if (comando === "/glicemia" || tLowerDm.includes("correcao") || tLowerDm.includes("hospital")) {
+      var mGlic = dadosDm.match(/(\d{2,4})\s*(?:mg\/dl)?/i);
+      var glicVal = mGlic ? parseInt(mGlic[1], 10) : 200;
+      var perfilSens = "padrao";
+      if (tLowerDm.includes("sensivel") || tLowerDm.includes("idoso") || tLowerDm.includes("renal")) perfilSens = "sensivel";
+      else if (tLowerDm.includes("resisten") || tLowerDm.includes("obeso") || tLowerDm.includes("cortico")) perfilSens = "resistente";
+
+      var resCorrecao = EndocrinologiaDiabetesService.protocoloCorrecaoHospitalar({ glicemia: glicVal, perfil: perfilSens });
+      var msgCorr = "💉 *CORREÇÃO DE HIPERGLICEMIA HOSPITALAR (SBD / ADA)*\n" +
+        "════════════════════════════════════════════\n" +
+        "• Glicemia Aferida: *" + resCorrecao.glicemiaMedida + " mg/dL*\n" +
+        "• Perfil de Sensibilidade: *" + resCorrecao.perfilSensibilidade.toUpperCase() + "*\n" +
+        "• Alvo Hospitalar Recomendado: 140 a 180 mg/dL\n\n" +
+        "📋 *CONDUTA IMEDIATA:*\n" +
+        "👉 *" + resCorrecao.condutaPrescricao + "*\n\n" +
+        (resCorrecao.alertaCritico ? (resCorrecao.alertaCritico + "\n\n") : "") +
+        "💡 _" + resCorrecao.advertenciaSlidingScale + "_";
+      return enviarMensagemParaChat(chatId, msgCorr);
+    }
+
+    // 3. Rota Ambulatorial: Basal-Bolus e Titulação
+    var paramsAmb = {};
+    var mPesoAmb = dadosDm.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosDm.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+    paramsAmb.peso = mPesoAmb ? parseFloat(mPesoAmb[1].replace(',', '.')) : 70;
+
+    if (tLowerDm.includes("dm1") || tLowerDm.includes("tipo 1") || tLowerDm.includes("tipo1")) paramsAmb.tipoDm = 1;
+    else paramsAmb.tipoDm = 2;
+
+    if (tLowerDm.includes("descompensad") || tLowerDm.includes("hba1c alta") || tLowerDm.includes("catabol")) paramsAmb.descompensado = true;
+    if (tLowerDm.includes("isglt2") || tLowerDm.includes("dapa") || tLowerDm.includes("empa")) paramsAmb.emUsoIsglt2 = true;
+    if (tLowerDm.includes("idoso") || tLowerDm.includes("idosa")) paramsAmb.ehIdoso = true;
+
+    var mTfg = dadosDm.match(/(?:tfg|clcr)\s*[:=]?\s*(\d{1,3})/i);
+    if (mTfg) paramsAmb.tfg = parseInt(mTfg[1], 10);
+
+    var resAmb = EndocrinologiaDiabetesService.calcularInsulinaAmbulatorial(paramsAmb);
+    return enviarMensagemParaChat(chatId, EndocrinologiaDiabetesService.formatarResumoDiabetes(resAmb));
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // PALS - SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (AHA)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/pals" || comando === "/pediatria_pcr") {
+    var dadosPals = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof PalsPediatriaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PalsPediatriaService indisponível temporariamente.");
+    }
+
+    if (!dadosPals) {
+      return enviarMensagemParaChat(chatId, "👶 *PALS — SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (AHA)*\n\n" +
+        "Envie o peso, idade ou cor da fita de Broselow:\n" +
+        "• `/pals 14kg` *(Doses de Adrenalina, Amiodarona, Choque e Tubo)*\n" +
+        "• `/pals 3 anos` *(Peso estimado por fórmula APLS)*\n" +
+        "• `/pals rosa` *(Estimativa por fita de Broselow)*");
+    }
+
+    var paramsPals = {};
+    var mPesoPals = dadosPals.match(/(\d{1,2}(?:[.,]\d+)?)\s*(?:kg|quilos)/i);
+    if (mPesoPals) paramsPals.pesoKg = parseFloat(mPesoPals[1].replace(',', '.'));
+
+    var mIdadePals = dadosPals.match(/(\d{1,2})\s*(?:anos|a\b)/i);
+    if (mIdadePals) paramsPals.idadeAnos = parseInt(mIdadePals[1], 10);
+
+    var mBroselow = dadosPals.match(/\b(cinza|rosa|vermelho|roxo|amarelo|branco|azul|laranja|verde)\b/i);
+    if (mBroselow) paramsPals.corBroselow = mBroselow[1];
+
+    if (!paramsPals.pesoKg && !paramsPals.idadeAnos && !paramsPals.corBroselow) {
+      var mNumP = dadosPals.match(/(\d{1,2})/);
+      if (mNumP) paramsPals.pesoKg = parseInt(mNumP[1], 10);
+      else paramsPals.corBroselow = dadosPals.trim();
+    }
+
+    var resPals = PalsPediatriaService.avaliarPals(paramsPals);
+    var msgPals = "👶 *PALS — REANIMAÇÃO PEDIÁTRICA DETERMINÍSTICA (AHA)*\n" +
+      "════════════════════════════════════════════\n" +
+      "• Peso Considerado: *" + resPals.pesoConsideradoKg + " kg*" + (resPals.idadeConsideradaAnos ? (" (" + resPals.idadeConsideradaAnos + " anos)") : "") + "\n\n" +
+      "⚡ *ELETRICIDADE & DESFIBRILAÇÃO:*\n" +
+      "• 1º Choque (2 J/kg): *" + resPals.eletricidade.desfibrilacaoPrimeiroChoque + "*\n" +
+      "• 2º Choque em diante (4 J/kg): *" + resPals.eletricidade.desfibrilacaoChoquesSubsequentes + "*\n" +
+      "• Cardioversão Sincronizada: *" + resPals.eletricidade.cardioversaoSincronizadaInicial + "* (Inicial: 0.5-1 J/kg)\n\n" +
+      "💉 *MEDICAÇÕES DE PCR:*\n" +
+      resPals.medicacoes.map(function(m) {
+        return "• *" + m.farmaco + ":* " + m.doseMg + " (" + m.volumeMl + ") — _" + m.via + "_";
+      }).join("\n") + "\n\n" +
+      "🫁 *VIA AÉREA & INTUBAÇÃO:*\n" +
+      "• Tubo com Cuff: *" + resPals.viaAerea.tuboComCuff + "* | Sem Cuff: *" + resPals.viaAerea.tuboSemCuff + "*\n" +
+      "• Lâmina: *" + resPals.viaAerea.laminaLaringoscopio + "* | Fixação: *" + resPals.viaAerea.fixacao + "*\n\n" +
+      "💡 _" + resPals.alertas.join("\n_💡 _") + "_";
+
+    return enviarMensagemParaChat(chatId, msgPals);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // TOXICOLOGIA DE EMERGÊNCIA (Paracetamol, Tricíclicos, BB/BCC, Opioides)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/intox" || comando === "/toxicologia") {
+    var dadosTox = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ToxicologiaEmergenciaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ToxicologiaEmergenciaService indisponível temporariamente.");
+    }
+
+    if (!dadosTox) {
+      return enviarMensagemParaChat(chatId, "☣️ *PAINEL INTELIGENTE DE TOXICOLOGIA DE EMERGÊNCIA*\n\n" +
+        "Escolha o tipo de intoxicação ou envie os dados diretamente:\n\n" +
+        "💊 *Paracetamol:* `/intox paracetamol, 70kg, 10g ingeridos, tempo 6h, nivel 180`\n" +
+        "⚡ *Tricíclicos (TCA):* `/intox triciclico, 60kg, qrs 120, hipotensao`\n" +
+        "🫀 *Cardiotóxicos (BB/BCC):* `/intox bcc, 80kg, choque`\n" +
+        "💉 *Opioides:* `/intox opioide, apneia` (ou depressao/normal)");
+    }
+
+    var tLower = dadosTox.toLowerCase();
+    var msgOut = "";
+
+    // 1. Paracetamol
+    if (tLower.includes("paracetamol") || tLower.includes("acetaminofeno") || tLower.includes("tylenol")) {
+      var paramsPara = {};
+      var mPeso = dadosTox.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosTox.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+      paramsPara.pesoKg = mPeso ? parseFloat(mPeso[1].replace(',', '.')) : undefined;
+
+      var mDoseMg = dadosTox.match(/(\d+)\s*(?:mg)/i);
+      var mDoseG = dadosTox.match(/(\d+(?:[.,]\d+)?)\s*(?:g|gramas)/i);
+      if (mDoseMg) paramsPara.doseIngeridaMg = parseInt(mDoseMg[1], 10);
+      else if (mDoseG) paramsPara.doseIngeridaMg = parseFloat(mDoseG[1].replace(',', '.')) * 1000;
+
+      var mTempo = dadosTox.match(/(\d+(?:[.,]\d+)?)\s*(?:h|horas|hr)\b/i) || dadosTox.match(/tempo\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+      if (mTempo) paramsPara.tempoIngestaoHoras = parseFloat(mTempo[1].replace(',', '.'));
+
+      var mNivel = dadosTox.match(/nivel\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosTox.match(/(\d+(?:[.,]\d+)?)\s*mcg/i);
+      if (mNivel) paramsPara.nivelSericoMcgMl = parseFloat(mNivel[1].replace(',', '.'));
+
+      if (tLower.includes(" vo") || tLower.includes(" via oral")) paramsPara.viaPreferencia = 'VO';
+
+      var resPara = ToxicologiaEmergenciaService.avaliarParacetamol(paramsPara);
+      if (resPara.erro) return enviarMensagemParaChat(chatId, "❌ Erro: " + resPara.erro);
+
+      msgOut += "💊 *Intoxicação por Paracetamol*\n\n";
+      msgOut += "⚠️ *Dose Tóxica:* " + (resPara.provavelDoseToxica ? "SIM" : "NÃO / INDETERMINADO") + "\n";
+      if (resPara.linhaTratamentoNomograma) msgOut += "📉 *Limiar no Nomograma:* " + resPara.linhaTratamentoNomograma + " mcg/mL\n";
+      msgOut += "✅ *Indicação de NAC:* " + (resPara.indicacaoNac ? "SIM" : "NÃO") + "\n\n";
+      msgOut += "📝 *Motivos:*\n- " + resPara.motivos.join("\n- ") + "\n\n";
+
+      if (resPara.prescricaoNac) {
+        msgOut += "💉 *Prescrição de NAC (" + resPara.prescricaoNac.esquema + "):*\n";
+        if (resPara.prescricaoNac.doseAtaque) {
+          msgOut += "• *Ataque:* " + resPara.prescricaoNac.doseAtaque.descricao + " (" + resPara.prescricaoNac.doseAtaque.doseMg + " mg)\n";
+          msgOut += "• *Manutenção:* " + resPara.prescricaoNac.doseManutencao.descricao + " (" + resPara.prescricaoNac.doseManutencao.doseMg + " mg/dose)\n";
+        } else {
+          msgOut += "• *Etapa 1:* " + resPara.prescricaoNac.etapa1.descricao + " (" + resPara.prescricaoNac.etapa1.doseMg + " mg). " + resPara.prescricaoNac.etapa1.diluicao + ". " + resPara.prescricaoNac.etapa1.alerta + "\n";
+          msgOut += "• *Etapa 2:* " + resPara.prescricaoNac.etapa2.descricao + " (" + resPara.prescricaoNac.etapa2.doseMg + " mg). " + resPara.prescricaoNac.etapa2.diluicao + "\n";
+          msgOut += "• *Etapa 3:* " + resPara.prescricaoNac.etapa3.descricao + " (" + resPara.prescricaoNac.etapa3.doseMg + " mg). " + resPara.prescricaoNac.etapa3.diluicao + "\n";
+          msgOut += "\n🏁 *Fim:* " + resPara.prescricaoNac.criteriosFim + "\n";
+        }
+      }
+      return enviarMensagemParaChat(chatId, msgOut);
+    }
+
+    // 2. Triciclicos
+    if (tLower.includes("triciclico") || tLower.includes("amitriptilina") || tLower.includes("nortriptilina") || tLower.includes("imipramina")) {
+      var paramsTca = {};
+      var mPesoT = dadosTox.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosTox.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+      if (mPesoT) paramsTca.pesoKg = parseFloat(mPesoT[1].replace(',', '.'));
+
+      var mQrs = dadosTox.match(/qrs\s*[:=]?\s*(\d+)/i);
+      if (mQrs) paramsTca.qrsMs = parseInt(mQrs[1], 10);
+
+      if (tLower.includes("convulsa") || tLower.includes("crise")) paramsTca.convulsao = true;
+      if (tLower.includes("hipoten") || tLower.includes("choque")) paramsTca.hipotensao = true;
+      if (tLower.includes("arritm") || tLower.includes("tv")) paramsTca.arritmia = true;
+
+      var resTca = ToxicologiaEmergenciaService.avaliarTriciclicos(paramsTca);
+      msgOut += "⚡ *Intoxicação por Antidepressivos Tricíclicos (TCA)*\n\n";
+      msgOut += "⚠️ *Risco de Convulsão (QRS >= 100ms):* " + (resTca.riscoConvulsao ? "ALTO" : "BAIXO") + "\n";
+      msgOut += "⚠️ *Risco de Arritmia (QRS >= 160ms):* " + (resTca.riscoArritmiaVentricular ? "ALTO" : "BAIXO") + "\n";
+      msgOut += "✅ *Indicação de Bicarbonato:* " + (resTca.indicacaoBicarbonato ? "SIM" : "NÃO") + "\n\n";
+      
+      if (resTca.prescricaoBicarbonato) {
+        msgOut += "🧪 *Prescrição Bicarbonato de Sódio 8,4%: *\n";
+        if (resTca.prescricaoBicarbonato.volumeBolus) {
+          msgOut += "• *Bolus:* " + resTca.prescricaoBicarbonato.descricaoBolus + "\n";
+          msgOut += "• *Alvo:* " + resTca.prescricaoBicarbonato.alvoDose + "\n";
+        } else {
+          msgOut += "• *Alvo:* " + resTca.prescricaoBicarbonato.alvoDose + "\n";
+        }
+        msgOut += "• *Manutenção:* " + resTca.prescricaoBicarbonato.manutencao + "\n";
+        if (resTca.prescricaoBicarbonato.repetirBolus) msgOut += "• *Reavaliação:* " + resTca.prescricaoBicarbonato.repetirBolus + "\n";
+        msgOut += "\n";
+      }
+
+      msgOut += "📝 *Condutas Gerais:*\n- " + resTca.condutasGerais.join("\n- ") + "\n";
+      return enviarMensagemParaChat(chatId, msgOut);
+    }
+
+    // 3. Cardiotoxicos (BB/BCC)
+    if (tLower.includes("bcc") || tLower.includes("bloqueador de canal") || tLower.includes("anlodipino") || tLower.includes("verapamil") || tLower.includes("diltiazem") || 
+        tLower.includes("bb") || tLower.includes("betabloqueador") || tLower.includes("propranolol") || tLower.includes("atenolol") || tLower.includes("metoprolol")) {
+      
+      var paramsCardio = {};
+      var mPesoC = dadosTox.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosTox.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+      if (mPesoC) paramsCardio.pesoKg = parseFloat(mPesoC[1].replace(',', '.'));
+
+      if (tLower.includes("bcc") || tLower.includes("anlodipino") || tLower.includes("verapamil") || tLower.includes("diltiazem")) paramsCardio.toxina = 'BCC';
+      else if (tLower.includes("mista")) paramsCardio.toxina = 'MISTA';
+      else paramsCardio.toxina = 'BB';
+
+      if (tLower.includes("choque") || tLower.includes("refratari") || tLower.includes("hipoten")) paramsCardio.estadoChoque = true;
+
+      var resCardio = ToxicologiaEmergenciaService.avaliarCardiotoxicos(paramsCardio);
+      if (resCardio.erro) return enviarMensagemParaChat(chatId, "❌ Erro: " + resCardio.erro);
+
+      msgOut += "🫀 *Intoxicação Cardiotóxica (" + resCardio.toxina + ")*\n\n";
+      msgOut += "📝 *Condutas Iniciais:*\n- " + resCardio.condutasGerais.join("\n- ") + "\n\n";
+      
+      msgOut += "💊 *Farmacoterapia:*\n";
+      if (resCardio.farmacoterapia.calcio) {
+        msgOut += "🦴 *Cálcio:* " + resCardio.farmacoterapia.calcio.descricao + " " + resCardio.farmacoterapia.calcio.manutencao + "\n";
+      }
+      if (resCardio.farmacoterapia.glucagon) {
+        msgOut += "🔋 *Glucagon:* " + resCardio.farmacoterapia.glucagon.descricao + " " + resCardio.farmacoterapia.glucagon.observacao + "\n";
+      }
+      if (resCardio.farmacoterapia.hiet) {
+        msgOut += "🩸 *Terapia HIET:*\n  • Bolus: " + resCardio.farmacoterapia.hiet.bolus + "\n  • Infusão: " + resCardio.farmacoterapia.hiet.infusao + "\n  • Monitorização: " + resCardio.farmacoterapia.hiet.monitorizacao + "\n";
+      }
+      return enviarMensagemParaChat(chatId, msgOut);
+    }
+
+    // 4. Opioides
+    if (tLower.includes("opioide") || tLower.includes("morfina") || tLower.includes("fentanil") || tLower.includes("tramadol") || tLower.includes("metadona")) {
+      var paramsOp = {};
+      if (tLower.includes("apneia") || tLower.includes("parada respi")) paramsOp.ventilacao = 'APNEIA';
+      else if (tLower.includes("normal") || tLower.includes("eupneico")) paramsOp.ventilacao = 'NORMAL';
+      else paramsOp.ventilacao = 'DEPRIMIDA';
+
+      var resOp = ToxicologiaEmergenciaService.avaliarOpioides(paramsOp);
+      
+      msgOut += "💉 *Intoxicação por Opioides*\n\n";
+      msgOut += "🌬️ *Status Ventilatório:* " + resOp.condicaoVentilatoria + "\n";
+      msgOut += "✅ *Indicação de Naloxona:* " + (resOp.indicacaoNaloxona ? "SIM" : "NÃO") + "\n\n";
+
+      if (resOp.prescricaoNaloxona) {
+        msgOut += "🧪 *Prescrição Naloxona:*\n";
+        msgOut += "• *Dose:* " + resOp.prescricaoNaloxona.doseInicial + "\n";
+        msgOut += "• *Preparo:* " + resOp.prescricaoNaloxona.preparo + "\n";
+        msgOut += "• *Titulação:* " + resOp.prescricaoNaloxona.titulacao + "\n\n";
+      }
+
+      msgOut += "📝 *Condutas:*\n- " + resOp.condutasGerais.join("\n- ") + "\n";
+      return enviarMensagemParaChat(chatId, msgOut);
+    }
+
+    return enviarMensagemParaChat(chatId, "⚠️ Toxina não reconhecida. Tente '/intox paracetamol', '/intox triciclico', '/intox bb', '/intox bcc', ou '/intox opioide'.");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // NEUROLOGIA DE EMERGÊNCIA E MANEJO DE AVC ISQUÊMICO (AHA / SBDCV)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/avc" || comando === "/trombolise" || comando === "/hic") {
+    var dadosAvc = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof NeurologiaAvcService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo NeurologiaAvcService indisponível temporariamente.");
+    }
+
+    if (!dadosAvc && (comando === "/avc" || comando === "/trombolise")) {
+      return enviarMensagemParaChat(chatId, "🧠 *MÓDULO DE NEUROLOGIA DE EMERGÊNCIA & AVC ISQUÊMICO (AHA / SBDCV)*\n\n" +
+        "Envie os parâmetros para avaliação de trombólise ou hipertensão intracraniana:\n" +
+        "• `/avc 65 anos, 2h de sintomas, 75kg, pa 170x100, gli 130` *(Checklist de Trombólise e Dose Alteplase/TNK)*\n" +
+        "• `/avc 82 anos, 4h, nihss 18, sem anticoagulante` *(Janela Estendida 3 a 4.5h ECASS III)*\n" +
+        "• `/hic 70kg, sodio 145, gli 180, ureia 50` *(Osmoterapia: Manitol 20%, Salina 3%/20% e Tetos Osmolares)*\n" +
+        "• `/trombolise 55a, 1.5h, 80kg, pa 200x110` *(Alerta Pressórico e Protocolo Restritivo)*");
+    }
+
+    if (!dadosAvc && comando === "/hic") {
+      return enviarMensagemParaChat(chatId, "💧 *MANEJO DE HIPERTENSÃO INTRACRANIANA (HIC)*\n\n" +
+        "Envie o peso e exames laboratoriais do paciente:\n" +
+        "👉 `/hic 70kg, sodio 145, gli 180, ureia 50`\n" +
+        "👉 `/hic 80kg` *(Cálculos determinísticos de Manitol 20% e Salina Hipertônica 3% e 20%)*");
+    }
+
+    var tLowerAvc = dadosAvc.toLowerCase();
+
+    // Rota 1: Comando específico /hic ou foco estrito em HIC
+    if (comando === "/hic" || (tLowerAvc.includes("hic") && !tLowerAvc.includes("trombo") && !tLowerAvc.includes("avc"))) {
+      var paramsHic = {};
+      var mPesoHic = dadosAvc.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosAvc.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+      paramsHic.pesoKg = mPesoHic ? parseFloat(mPesoHic[1].replace(',', '.')) : 70;
+
+      var mNaHic = dadosAvc.match(/s[oó]dio\s*[:=]?\s*(\d{2,3})/i) || dadosAvc.match(/na\+?\s*[:=]?\s*(\d{2,3})/i);
+      if (mNaHic) paramsHic.sodio = parseInt(mNaHic[1], 10);
+
+      var mGliHic = dadosAvc.match(/gli(?:cemia)?\s*[:=]?\s*(\d{2,4})/i);
+      if (mGliHic) paramsHic.glicemia = parseInt(mGliHic[1], 10);
+
+      var mUrHic = dadosAvc.match(/ur(?:eia)?\s*[:=]?\s*(\d{1,3})/i);
+      if (mUrHic) paramsHic.ureia = parseInt(mUrHic[1], 10);
+
+      var resHic = NeurologiaAvcService.calcularHic(paramsHic);
+      return enviarMensagemParaChat(chatId, NeurologiaAvcService.formatarResumoAvc(resHic));
+    }
+
+    // Rota 2: Avaliação de AVC / Trombólise
+    var paramsAvc = {};
+    var mIdadeAvc = dadosAvc.match(/(\d{1,3})\s*(?:anos|a\b)/i) || dadosAvc.match(/idade\s*[:=]?\s*(\d{1,3})/i);
+    paramsAvc.idade = mIdadeAvc ? parseInt(mIdadeAvc[1], 10) : 65;
+
+    // Tempo de sintomas
+    var mTempoHoras = dadosAvc.match(/(\d+(?:[.,]\d+)?)\s*(?:h|horas|hr)\b/i) || dadosAvc.match(/tempo\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mTempoMin = dadosAvc.match(/(\d+)\s*(?:min|minutos)\b/i);
+    if (mTempoHoras) {
+      paramsAvc.tempoSintomasHoras = parseFloat(mTempoHoras[1].replace(',', '.'));
+    } else if (mTempoMin) {
+      paramsAvc.tempoSintomasHoras = parseFloat((parseInt(mTempoMin[1], 10) / 60).toFixed(2));
+    } else {
+      paramsAvc.tempoSintomasHoras = 2.0; // Padrão se não informado
+    }
+
+    var mPesoAvc = dadosAvc.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosAvc.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
+    if (mPesoAvc) paramsAvc.pesoKg = parseFloat(mPesoAvc[1].replace(',', '.'));
+
+    // Pressão Arterial
+    var mPaAvc = dadosAvc.match(/pa\s*[:=]?\s*(\d{2,3})\s*(?:[xX/])\s*(\d{2,3})/i) || dadosAvc.match(/(\d{2,3})\s*(?:[xX/])\s*(\d{2,3})\s*(?:mmhg)?/i);
+    if (mPaAvc) {
+      paramsAvc.pas = parseInt(mPaAvc[1], 10);
+      paramsAvc.pad = parseInt(mPaAvc[2], 10);
+      if (paramsAvc.pas < 30) paramsAvc.pas *= 10;
+      if (paramsAvc.pad < 30) paramsAvc.pad *= 10;
+    }
+
+    // Glicemia
+    var mGliAvc = dadosAvc.match(/gli(?:cemia)?\s*[:=]?\s*(\d{2,4})/i);
+    if (mGliAvc) paramsAvc.glicemia = parseInt(mGliAvc[1], 10);
+
+    // NIHSS
+    var mNihss = dadosAvc.match(/nihss\s*[:=]?\s*(\d{1,2})/i);
+    if (mNihss) paramsAvc.nihss = parseInt(mNihss[1], 10);
+
+    // Plaquetas
+    var mPlaq = dadosAvc.match(/plaq(?:uetas)?\s*[:=]?\s*(\d+)/i);
+    if (mPlaq) paramsAvc.plaquetas = parseInt(mPlaq[1], 10);
+
+    // INR / RNI
+    var mInr = dadosAvc.match(/(?:inr|rni)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (mInr) paramsAvc.inr = parseFloat(mInr[1].replace(',', '.'));
+
+    // DOAC / Anticoagulante
+    if (tLowerAvc.includes("doac") || tLowerAvc.includes("eliquis") || tLowerAvc.includes("xarelto") || tLowerAvc.includes("pradaxa") || tLowerAvc.includes("rivaroxabana") || tLowerAvc.includes("apixabana") || tLowerAvc.includes("dabigatrana")) {
+      paramsAvc.usoDoacUltimas48h = true;
+    }
+    if (tLowerAvc.includes("anticoagulante") || tLowerAvc.includes("varfarina") || tLowerAvc.includes("marevan")) {
+      paramsAvc.usoAnticoagulanteOral = true;
+    }
+
+    // Contraindicações Clínicas no Texto
+    if (tLowerAvc.includes("hemorragia") || tLowerAvc.includes("hic previa") || tLowerAvc.includes("sangramento snc")) paramsAvc.hemorragiaIntracranianaPrevia = true;
+    if (tLowerAvc.includes("avc recente") || tLowerAvc.includes("avc 3 meses") || tLowerAvc.includes("avc previo")) paramsAvc.avcIsquemicoUltimos3Meses = true;
+    if (tLowerAvc.includes("tce") || tLowerAvc.includes("cirurgia snc") || tLowerAvc.includes("trauma cranio")) paramsAvc.tceGraveUltimos3Meses = true;
+    if (tLowerAvc.includes("sangramento ativo") || tLowerAvc.includes("hda") || tLowerAvc.includes("melena")) paramsAvc.sangramentoAtivo = true;
+    if (tLowerAvc.includes("disseccao") || tLowerAvc.includes("dissecção")) paramsAvc.suspeitaDisseccaoAorta = true;
+    if (tLowerAvc.includes("endocardite")) paramsAvc.endocarditeInfecciosa = true;
+    if (tLowerAvc.includes("gestante") || tLowerAvc.includes("gravida")) paramsAvc.gestante = true;
+    if (tLowerAvc.includes("diabetes") && (tLowerAvc.includes("avc previo") || tLowerAvc.includes("historico avc"))) paramsAvc.historicoAvcEDiabetes = true;
+
+    var resTrombo = NeurologiaAvcService.avaliarTrombolise(paramsAvc);
+    var resultadoFinal = Object.assign({}, resTrombo);
+
+    if (paramsAvc.pesoKg) {
+      var resHicComp = NeurologiaAvcService.calcularHic({
+        pesoKg: paramsAvc.pesoKg,
+        glicemia: paramsAvc.glicemia
+      });
+      resultadoFinal.manitol20 = resHicComp.manitol20;
+      resultadoFinal.salinaHipertonica3 = resHicComp.salinaHipertonica3;
+      resultadoFinal.salinaHipertonica20 = resHicComp.salinaHipertonica20;
+      resultadoFinal.alertaGeral = resHicComp.alertaGeral;
+    }
+
+    return enviarMensagemParaChat(chatId, NeurologiaAvcService.formatarResumoAvc(resultadoFinal));
+  }
 
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
@@ -27902,4 +32980,228 @@ function cockpitIaLocalFallback(session, params) {
   params = params || {};
   params.acao = 'fallback_offline';
   return typeof cockpitLocalLlm === 'function' ? cockpitLocalLlm(session, params) : { ok: false, erro: 'cockpitLocalLlm indisponível' };
+}
+
+function cockpitPsiquiatriaUrgencia(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PsiquiatriaUrgenciaService === 'undefined') {
+    throw new Error('Módulo PsiquiatriaUrgenciaService indisponível.');
+  }
+  var acao = params.acao || 'avaliarPsiquiatriaCompleto';
+  if (acao === 'avaliarPsiquiatriaCompleto') {
+    return PsiquiatriaUrgenciaService.avaliarPsiquiatriaCompleto(params);
+  }
+  if (acao === 'avaliarAgitacaoPsicomotora') {
+    return PsiquiatriaUrgenciaService.avaliarAgitacaoPsicomotora(params);
+  }
+  if (acao === 'estratificarRiscoSuicidio') {
+    return PsiquiatriaUrgenciaService.estratificarRiscoSuicidio(params);
+  }
+  if (acao === 'avaliarDepressaoPhq9') {
+    return PsiquiatriaUrgenciaService.avaliarDepressaoPhq9(params);
+  }
+  if (acao === 'selecionarAntidepressivo') {
+    return PsiquiatriaUrgenciaService.selecionarAntidepressivo(params);
+  }
+  if (acao === 'avaliarDistoniaAguda') {
+    return PsiquiatriaUrgenciaService.avaliarDistoniaAguda(params);
+  }
+  if (acao === 'avaliarSindromeNeurolepticaMaligna') {
+    return PsiquiatriaUrgenciaService.avaliarSindromeNeurolepticaMaligna(params);
+  }
+  if (acao === 'avaliarSindromeSerotoninergica') {
+    return PsiquiatriaUrgenciaService.avaliarSindromeSerotoninergica(params);
+  }
+  if (acao === 'gerarResumoPsiquiatria') {
+    return PsiquiatriaUrgenciaService.gerarResumoPsiquiatria(params);
+  }
+  throw new Error('Ação inválida para Psiquiatria de Urgência.');
+}
+
+function cockpitRbac(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof RbacPerfisClinicosService === 'undefined') {
+    throw new Error('Módulo RbacPerfisClinicosService indisponível.');
+  }
+  var acao = params.acao || 'obterPerfis';
+  if (acao === 'obterPerfis') {
+    return RbacPerfisClinicosService.obterPerfis();
+  }
+  if (acao === 'obterPermissoesPerfil') {
+    return RbacPerfisClinicosService.obterPermissoesPerfil(params.perfilId);
+  }
+  if (acao === 'verificarPermissao') {
+    return RbacPerfisClinicosService.verificarPermissao(params.usuarioContexto, params.recurso, params.operacao);
+  }
+  if (acao === 'validarPrescricaoPorPerfil') {
+    return RbacPerfisClinicosService.validarPrescricaoPorPerfil(params.usuarioContexto, params.dadosPrescricao);
+  }
+  if (acao === 'criarPendenciaCoAssinatura') {
+    return RbacPerfisClinicosService.criarPendenciaCoAssinatura(params.usuarioContexto, params.dadosAcao);
+  }
+  if (acao === 'chancelarCoAssinatura') {
+    return RbacPerfisClinicosService.chancelarCoAssinatura(params.preceptorContexto, params.pendenciaId, params.parecerClinico);
+  }
+  if (acao === 'ativarBypassEmergencia') {
+    return RbacPerfisClinicosService.ativarBypassEmergencia(params.usuarioContexto, params.justificativaClinica, params.duracaoHoras);
+  }
+  if (acao === 'desativarBypassEmergencia') {
+    return RbacPerfisClinicosService.desativarBypassEmergencia(params.usuarioContexto);
+  }
+  if (acao === 'definirPerfilUsuario') {
+    return RbacPerfisClinicosService.definirPerfilUsuario(params.usuarioId, params.perfilId, params.dadosExtras);
+  }
+  if (acao === 'obterPerfilUsuario') {
+    return RbacPerfisClinicosService.obterPerfilUsuario(params.usuarioId);
+  }
+  if (acao === 'listarUsuariosPerfis') {
+    return RbacPerfisClinicosService.listarUsuariosPerfis();
+  }
+  if (acao === 'listarPendenciasCoAssinatura') {
+    return RbacPerfisClinicosService.listarPendenciasCoAssinatura(params.filtroStatus);
+  }
+  if (acao === 'obterPendenciaPorId') {
+    return RbacPerfisClinicosService.obterPendenciaPorId(params.pendenciaId);
+  }
+  if (acao === 'gerarRelatorioSegurancaRbac') {
+    return RbacPerfisClinicosService.gerarRelatorioSegurancaRbac();
+  }
+  throw new Error('Ação inválida para Motor de Permissões e Perfis Clínicos (RBAC).');
+}
+
+function cockpitSuporteNutricional(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SuporteNutricionalService === 'undefined') {
+    throw new Error('Módulo SuporteNutricionalService indisponível.');
+  }
+  var acao = params.acao || 'avaliarSuporteNutricionalCompleto';
+  if (acao === 'calcularNecessidadesBasais') {
+    return SuporteNutricionalService.calcularNecessidadesBasais(params.peso, params.alturaCm, params.idade, params.sexo, params.fatorEstresse, params.condicaoClinica);
+  }
+  if (acao === 'avaliarRiscoRealimentacao') {
+    return SuporteNutricionalService.avaliarRiscoRealimentacao(params);
+  }
+  if (acao === 'calcularNrs2002') {
+    return SuporteNutricionalService.calcularNrs2002(params);
+  }
+  if (acao === 'prescreverTerapiaNutricional') {
+    return SuporteNutricionalService.prescreverTerapiaNutricional(params);
+  }
+  if (acao === 'avaliarSuporteNutricionalCompleto') {
+    return SuporteNutricionalService.avaliarSuporteNutricionalCompleto(params);
+  }
+  throw new Error('Ação inválida para Suporte Nutricional.');
+}
+
+
+
+
+
+
+
+function cockpitOncologiaBasica(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof OncologiaBasicaService === 'undefined') {
+    throw new Error('OncologiaBasicaService não carregado.');
+  }
+  
+  if (params.acao === 'avaliarRastreamento') {
+    return OncologiaBasicaService.avaliarRastreamento(params.perfil || {});
+  }
+  if (params.acao === 'condutaBiRads') {
+    return OncologiaBasicaService.condutaBiRads(params.birads);
+  }
+  if (params.acao === 'manejoEfeitoAdverso') {
+    return OncologiaBasicaService.manejoEfeitoAdverso(params.efeito, params.parametros || {});
+  }
+  throw new Error('Ação inválida para Oncologia Básica.');
+}
+
+function cockpitEndocrinologiaDiabetes(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof EndocrinologiaDiabetesService === 'undefined') {
+    throw new Error('EndocrinologiaDiabetesService não carregado.');
+  }
+  var p = params.parametros || params;
+  if (params.acao === 'calcularInsulinaAmbulatorial') {
+    return EndocrinologiaDiabetesService.calcularInsulinaAmbulatorial(p);
+  }
+  if (params.acao === 'protocoloCorrecaoHospitalar') {
+    return EndocrinologiaDiabetesService.protocoloCorrecaoHospitalar(p);
+  }
+  if (params.acao === 'manejoCriseHiperglicemica') {
+    return EndocrinologiaDiabetesService.manejoCriseHiperglicemica(p);
+  }
+  if (params.acao === 'formatarResumoDiabetes') {
+    return EndocrinologiaDiabetesService.formatarResumoDiabetes(p);
+  }
+  throw new Error('Ação inválida para Endocrinologia/Diabetes.');
+}
+
+function cockpitPalsPediatria(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PalsPediatriaService === 'undefined') {
+    throw new Error('PalsPediatriaService não carregado.');
+  }
+  if (params.acao === 'avaliar') {
+    return PalsPediatriaService.avaliarPals(params.parametros || params);
+  }
+  throw new Error('Ação inválida para PALS Pediatria.');
+}
+
+
+function cockpitNeurologiaAvc(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof NeurologiaAvcService === 'undefined') {
+    throw new Error('NeurologiaAvcService não carregado.');
+  }
+  if (params.acao === 'trombolise' || params.acao === 'avaliar') {
+    return NeurologiaAvcService.avaliarTrombolise(params.parametros || params);
+  }
+  if (params.acao === 'hic') {
+    return NeurologiaAvcService.calcularHic(params.parametros || params);
+  }
+  if (params.acao === 'formatarResumoAvc') {
+    return NeurologiaAvcService.formatarResumoAvc(params.parametros || params);
+  }
+  throw new Error('Ação inválida para Neurologia AVC.');
+}
+
+
+function cockpitToxicologiaEmergencia(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ToxicologiaEmergenciaService === 'undefined') {
+    throw new Error('ToxicologiaEmergenciaService não carregado.');
+  }
+  var p = params.parametros || params;
+  if (params.acao === 'avaliarParacetamol') {
+    return ToxicologiaEmergenciaService.avaliarParacetamol(p);
+  }
+  if (params.acao === 'avaliarTriciclicos') {
+    return ToxicologiaEmergenciaService.avaliarTriciclicos(p);
+  }
+  if (params.acao === 'avaliarCardiotoxicos') {
+    return ToxicologiaEmergenciaService.avaliarCardiotoxicos(p);
+  }
+  if (params.acao === 'avaliarOpioides') {
+    return ToxicologiaEmergenciaService.avaliarOpioides(p);
+  }
+  throw new Error('Ação inválida para Toxicologia de Emergência.');
+}
+
+function cockpitHepatologiaHda(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof HepatologiaHdaService === 'undefined') {
+    throw new Error('HepatologiaHdaService não carregado.');
+  }
+  return HepatologiaHdaService.avaliarHepatopatia(params.parametros || params);
 }
