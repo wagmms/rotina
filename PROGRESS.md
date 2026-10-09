@@ -186,6 +186,17 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Escalonamento de queimaduras químicas oculares (irrigação profusa com ringer lactato IMEDIATA).
 
 
+48. [ ] **Módulo de Psiquiatria - Manejo do Transtorno Depressivo Maior e Risco de Suicídio**:
+    - Escala de Depressão PHQ-9 e inventário de risco de suicídio.
+    - Algoritmo de escolha de antidepressivos (ISRS, Duais) focado em efeitos colaterais e comorbidades.
+    - Protocolo de contenção química para urgências psiquiátricas.
+
+49. [ ] **Geriatria Avançada - Profilaxia de Quedas e Osteoporose (FRAX/ACR)**:
+    - Calculadora FRAX para risco de fratura maior osteoporótica e fratura de quadril.
+    - Protocolo de reposição de Vitamina D e Cálcio e indicação de bisfosfonatos.
+    - Revisão de polifarmácia com identificação de drogas que prolongam QT ou causam hipotensão ortostática.
+
+
 ## 🔄 Próxima Tarefa em Andamento
 - [ ] **Integração de IA Generativa Local (Llama 3 / Mistral) para Alta Disponibilidade Offline**
 
