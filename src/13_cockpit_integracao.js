@@ -1593,4 +1593,30 @@ function cockpitCardiologiaEmergencia(initData, params) {
   };
 }
 
+/**
+ * Análise Inteligente de Gasometria Arterial e Distúrbios Ácido-Base (Regra dos 5 Passos)
+ * @param {string} initData Sessão / autenticação
+ * @param {Object} params Parâmetros gasométricos e laboratoriais
+ */
+function cockpitGasometriaAcidoBase(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para Análise Gasométrica não fornecidos.');
+  
+  if (typeof GasometriaAcidoBaseService === 'undefined') {
+    throw new Error('Serviço GasometriaAcidoBaseService indisponível.');
+  }
+
+  var analise = GasometriaAcidoBaseService.analisarGasometria(params);
+  var texto = GasometriaAcidoBaseService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+var cockpitGasometria = cockpitGasometriaAcidoBase;
+
+
 

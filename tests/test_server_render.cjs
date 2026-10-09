@@ -99,6 +99,24 @@ async function run() {
   assert(tCross < 100, `Tempo de Cross-Check (${tCross}ms) deve ser menor que 100ms`);
   console.log(`✓ Cockpit Cross-Check de Segurança OK (${tCross.toFixed(2)}ms, ${jsonCross.resultado.interacoes.length} interações, ${jsonCross.resultado.ajustesRenais.length} ajustes renais)`);
 
+  // 6.1 Cockpit RPC - Gasometria Arterial (Regra dos 5 Passos & Winter)
+  const resGaso = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitGasometriaAcidoBase',
+      session: token,
+      args: [{ ph: 7.20, pco2: 23, hco3: 10, na: 140, cl: 105, albumina: 4.0 }]
+    }
+  });
+  assert.equal(resGaso.statusCode, 200);
+  const jsonGaso = resGaso.json();
+  assert.equal(jsonGaso.ok, true);
+  assert.equal(jsonGaso.resultado.sucesso, true);
+  assert.equal(jsonGaso.resultado.resultado.disturbio, 'Acidose Metabólica');
+  assert(jsonGaso.resultado.textoFormatado.includes('GASOMETRIA ARTERIAL'));
+  console.log('✓ Cockpit Gasometria Arterial (5 Passos & Winter) OK');
+
   // 7. PWA Manifest & Service Worker
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);

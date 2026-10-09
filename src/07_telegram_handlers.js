@@ -176,7 +176,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -2063,17 +2063,88 @@ function processarMensagemTexto(message) {
   }
 
 
-  if (comando === "/gaso") {
-    var dadosGaso = texto.replace(/^\/gaso\s*/i, "").trim();
-    if (!dadosGaso) {
-      return enviarMensagemParaChat(chatId, "🩸 *ANÁLISE DE GASOMETRIA ARTERIAL*\n\n" +
-        "Envie os parâmetros gasométricos e eletrólitos:\n" +
-        "• *pH*, *pCO2*, *HCO3* (obrigatórios)\n" +
-        "• *Na*, *Cl*, *Albumina* (para Ânion Gap corrigido e Delta-Delta)\n" +
-        "• *PaO2*, *FiO2* (para relação P/F)\n\n" +
-        "💡 *Exemplo de envio:*\n" +
-        "`/gaso pH 7.22, pCO2 28, HCO3 11, Na 140, Cl 102, Alb 3.0, PaO2 85, FiO2 21%`");
+  if (comando === "/winter") {
+    var paramWinter = texto.replace(/^\/winter\s*/i, "").trim();
+    var mBic = paramWinter.match(/(\d+[.,]?\d*)/);
+    if (!mBic) {
+      return enviarMensagemParaChat(chatId, "📐 *FÓRMULA DE WINTER (ACIDOSE METABÓLICA)*\n\n" +
+        "Calcula a compensação respiratória esperada (PaCO₂ = 1,5 × HCO₃⁻ + 8 ± 2).\n\n" +
+        "💡 *Como usar:* `/winter 12` ou `/winter hco3 10`");
     }
+    var hco3Val = parseFloat(mBic[1].replace(",", "."));
+    if (typeof GasometriaAcidoBaseService !== "undefined") {
+      try {
+        var w = GasometriaAcidoBaseService.calcularWinter(hco3Val);
+        return enviarMensagemParaChat(chatId, "📐 *FÓRMULA DE WINTER — ACIDOSE METABÓLICA*\n\n" +
+          "• *HCO₃⁻ informado:* " + hco3Val + " mEq/L\n" +
+          "• *PaCO₂ esperada:* " + w.pco2Esperada + " mmHg\n" +
+          "• *Faixa de compensação esperada:* " + w.minimo + " a " + w.maximo + " mmHg\n\n" +
+          "📌 *Interpretação Beira-Leito:*\n" +
+          "• PaCO₂ medida > " + w.maximo + " mmHg → *Acidose Respiratória associada* (fadiga ventilatória, hipoventilação alveolar).\n" +
+          "• PaCO₂ medida < " + w.minimo + " mmHg → *Alcalose Respiratória associada* (hiperventilação excessiva, sepse precoce, dor, febre).\n" +
+          "• PaCO₂ dentro da faixa (" + w.minimo + "–" + w.maximo + " mmHg) → *Compensação respiratória adequada*.");
+      } catch (errWinter) {
+        return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular Winter: " + errWinter.message);
+      }
+    }
+  }
+
+  if (comando === "/gaso" || comando === "/gasometria" || comando === "/aniongap") {
+    var dadosGaso = texto.replace(/^\/(?:gaso|gasometria|aniongap)\s*/i, "").trim();
+    if (!dadosGaso) {
+      return enviarMensagemParaChat(chatId, "🩸 *GASOMETRIA ARTERIAL — REGRA DOS 5 PASSOS*\n\n" +
+        "Envie os parâmetros gasométricos e laboratoriais beira-leito:\n" +
+        "• *pH*, *pCO2*, *HCO3* (obrigatórios)\n" +
+        "• *Na*, *Cl*, *Albumina* (para Ânion Gap corrigido e Razão Delta)\n" +
+        "• *PaO2*, *FiO2*, *Idade* (para Relação P/F e Gradiente Alvéolo-Arterial)\n" +
+        "• *Lactato*, *K* (para alertas de choque e segurança eletrolítica)\n\n" +
+        "💡 *Exemplos de envio:*\n" +
+        "• *Cetoacidose com Winter:* `/gaso pH 7.20, pCO2 23, HCO3 10, Na 140, Cl 105, Alb 4.0`\n" +
+        "• *Hipoalbuminemia:* `/gaso pH 7.28, pCO2 30, HCO3 14, Na 140, Cl 102, Alb 2.0`\n" +
+        "• *Hipoxemia / SDRA:* `/gaso pH 7.35, pCO2 40, HCO3 24, PaO2 75, FiO2 50%`\n" +
+        "• *Fórmula de Winter isolada:* `/winter 12`");
+    }
+
+    if (typeof GasometriaAcidoBaseService !== "undefined" && typeof cockpitGasometriaAcidoBase === "function") {
+      try {
+        function numGaso(re) {
+          var m = dadosGaso.match(re);
+          return m ? parseFloat(String(m[1]).replace(",", ".")) : null;
+        }
+        var g_ph = numGaso(/\bph\s*[:=]?\s*([67][.,]?\d+)/i);
+        var g_pco2 = numGaso(/\bp?a?co2\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_hco3 = numGaso(/\bhco3\s*[:=]?\s*(\d+[.,]?\d*)/i) || numGaso(/bicarb[^\d]*(\d+[.,]?\d*)/i) || numGaso(/\bbic\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_na = numGaso(/\bna\b\s*[:=]?\s*(\d+[.,]?\d*)/i) || numGaso(/s[oó]dio\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_cl = numGaso(/\bcl\b\s*[:=]?\s*(\d+[.,]?\d*)/i) || numGaso(/cloro\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_alb = numGaso(/\balb(?:umina)?\b\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_pao2 = numGaso(/\bpao2\s*[:=]?\s*(\d+[.,]?\d*)/i) || numGaso(/\bpo2\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_fio2 = numGaso(/\bfio2\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_lac = numGaso(/\blact(?:ato)?\b\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_k = numGaso(/\bpot[aá]ssio\s*[:=]?\s*(\d+[.,]?\d*)/i) || numGaso(/\bk\b\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_idade = numGaso(/(?:idade|anos)[:=]?\s*(\d+)/i);
+
+        if (g_ph !== null && g_pco2 !== null && g_hco3 !== null) {
+          var reqGaso = {
+            ph: g_ph,
+            pco2: g_pco2,
+            hco3: g_hco3,
+            na: g_na,
+            cl: g_cl,
+            albumina: g_alb,
+            pao2: g_pao2,
+            fio2: g_fio2,
+            lactato: g_lac,
+            potassio: g_k,
+            idade: g_idade
+          };
+          var resGaso = cockpitGasometriaAcidoBase('bot', reqGaso);
+          return enviarMensagemParaChat(chatId, resGaso.textoFormatado);
+        }
+      } catch (eGasoDet) {
+        // Fallback gracioso para processamento com IA caso parâmetros específicos falhem
+      }
+    }
+
     return processarEEntregarIA(chatId, gerarAnaliseGasometriaComIA, dadosGaso, "gaso");
   }
 

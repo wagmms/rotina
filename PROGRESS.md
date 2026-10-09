@@ -90,7 +90,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Escore HEART (History, ECG, Age, Risk factors, Troponin) e TIMI Risk para estratificação de risco de Síndrome Coronariana Aguda.
     - Protocolo duplo bloqueio (AAS + Inibidor P2Y12) com bloqueios cruzados (ex: Prasugrel em paciente com AVC prévio).
 
-31. [ ] **Inteligência Gasométrica e Distúrbios Ácido-Base (Regra dos 5 Passos)**:
+31. [x] **Inteligência Gasométrica e Distúrbios Ácido-Base (Regra dos 5 Passos)**:
     - Motor determinístico para cálculo de compensação esperada (Fórmula de Winter: pCO2 = 1.5 * HCO3 + 8 ± 2).
     - Cálculo automático de Anion Gap e Delta Ratio para diagnóstico diferencial de acidoses metabólicas ocultas e triplas.
 
@@ -429,12 +429,40 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Escore de Rockall completo (pré e pós-endoscópico) para predição de ressangramento e mortalidade.
     - Alertas automáticos para infusão de IBP IV contínuo, Terlipressina precoce em hipertensão portal e profilaxia de PBE com Ceftriaxona.
 
+99. [ ] **Infectologia e Medicina Intensiva - Manejo da Pneumonia Adquirida na Comunidade Grave (PAC) e Escore SMART-COP / CURB-65 Avançado**:
+    - Motor determinístico de estratificação de gravidade (CURB-65 e SMART-COP para predição precoce de necessidade de ventilação mecânica ou vasopressores em até 24h).
+    - Algoritmo de escolha antibiótica empírica de 1ª linha (Betalactâmico IV + Macrolídeo vs Quinolona Respiratória) com descalonamento guiado por teste rápido de antígeno urinário (Pneumococo e Legionella).
+    - Bloqueio de fluoroquinolonas em suspeita de tuberculose ou QT longo (> 480ms) e protocolo de corticoterapia adjuvante precoce na PAC grave com choque séptico (Hidrocortisona 200 mg/dia).
+
+100. [ ] **Terapia Intensiva e Farmacologia Clínica - Manejo de Sedação, Analgesia e Delirium em UTI (Protocolo PADIS 2026 / Escala CAM-ICU & RASS)**:
+    - Algoritmo de titulação guiada por metas da Escala RASS (-1 a 0 para sedação leve / cooperativa) e CPOT para dor em paciente não comunicativo.
+    - Estratégia de analgesia em primeiro lugar (Analgo-sedação) priorizando Fentanil/Remifentanil e poupando Benzodiazepínicos (Midazolam restrito).
+    - Triagem diária e sistemática de Delirium com escore CAM-ICU (flutuação aguda, desatenção, pensamento desorganizado, alteração de nível de consciência) e protocolo de manejo não farmacológico + uso racional de Dexmedetomidina vs Quetiapina.
+
+101. [ ] **Cardiologia e Emergência - Abordagem Diagnóstica e Terapêutica da Síncope (Diretrizes ESC / SBC 2024-2026 e Escore de OESIL / San Francisco)**:
+    - Estratificação de alto risco imediato (alterações no ECG, cardiopatia estrutural prévia, síncope ao esforço ou em decúbito dorsal, ausência de pródromos autonômicos).
+    - Calculadora determinística beira-leito dos escores OESIL e San Francisco Syncope Rule para predição de desfecho adverso em 30 dias.
+    - Critérios formais para internação em UTI/Unidade Coronariana vs investigação ambulatorial com Tilt Test / Holter / Looper implantável.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Inteligência Gasométrica e Distúrbios Ácido-Base (Regra dos 5 Passos)**
+- [ ] **Módulo de Suporte Nutricional em Pediatria (Fórmula Infantil / Terapia Nutricional)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Inteligência Gasométrica e Distúrbios Ácido-Base (Regra dos 5 Passos)**:
+   - Motor determinístico beira-leito para interpretação ácido-base em 5 passos clínicos (`src/02_gasometria_acido_base.js`).
+   - Passo 1: Distúrbio primário e estratificação de gravidade clínica (leve a crítica por faixas de pH).
+   - Passo 2: Compensação esperada precisa via Fórmula de Winter (PaCO2 = 1,5 × HCO3 + 8 ± 2) e equações para alcalose metabólica e acidoses/alcaloses respiratórias agudas vs crônicas.
+   - Passo 3: Ânion Gap sérico com correção automática estrita por hipoalbuminemia (AG + 2,5 × [4,0 - Alb]).
+   - Passo 4: Razão Delta (Delta-Delta) para diagnóstico diferencial de acidoses ocultas e estratificação em hiperclorêmica pura (< 0,4), mista (0,4-0,8), AG elevado pura (0,8-2,0) e alcalose metabólica oculta (> 2,0 ou HCO3 >= 24).
+   - Passo 5: Oxigenação com Relação PaO2/FiO2 (Classificação de Berlim 2012 para SDRA) e Gradiente Alvéolo-Arterial (A-a) com PAO2 alveolar ajustada por altitude e limite de normalidade ajustado por idade.
+   - Detecção inteligente de distúrbios triplos (ex: CAD + vômitos + DPOC com acidose respiratória).
+   - Verificação de consistência biológica por Henderson-Hasselbalch para flag de erro de digitação ou amostra venosa.
+   - Alertas críticos beira-leito de hiperlactatemia (> 4 mmol/L) e contraindicação de NaHCO3 antes de correção de hipocalemia severa (K < 3,0 mEq/L).
+   - Integração total via Fastify RPC (`cockpitGasometriaAcidoBase` e alias `cockpitGasometria`) e comandos Telegram (`/gaso`, `/gasometria`, `/winter`, `/aniongap`) com parser determinístico e tolerância a dados posicionais.
+   - Suíte de 13 testes automatizados determinísticos rigorosos em `tests/test_gasometria_acido_base.cjs` aprovados com 100% de sucesso.
+   - Kaizen perpétuo: Backlog abastecido com 3 novas metas clínicas prioritárias (99, 100 e 101).
 - [x] (2026-10-09) **Módulo de Cardiologia de Emergência (Dor Torácica, IAM e Duplo Bloqueio DAPT)**:
    - Estratificação robusta pelo Escore HEART (0-10 pts), TIMI SCASST (0-7 pts) e TIMI IAMCSST (0-14 pts).
    - Motor determinístico de DAPT com bloqueio fatal absoluto de Prasugrel em antecedente de AVC/AIT (Ensaio TRITON-TIMI 38).
