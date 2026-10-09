@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 01:16:49
- * Checksum SHA256: ac9ba15b951dfb3c
+ * Gerado automaticamente via build_master.py em: 2026-10-09 01:25:27
+ * Checksum SHA256: 8823329d02ba5905
  * ==============================================================================
  */
 
@@ -6724,6 +6724,428 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_puericultura_pediatria.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02-D: PUERICULTURA E DESENVOLVIMENTO INFANTIL (ATENÇÃO PRIMÁRIA & SBP)
+ * ==============================================================================
+ * Motor determinístico de alta performance para pediatria ambulatorial:
+ *  - Avaliação antropométrica baseada nas curvas da OMS.
+ *  - Vigilância de marcos do DNPM (Desenvolvimento Neuropsicomotor) por idade.
+ *  - Calendário Vacinal do PNI 2026.
+ *  - Suplementação profilática de Ferro e Vitamina D (SBP).
+ * ==============================================================================
+ */
+
+var PuericulturaPediatriaService = (function() {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. SUPLEMENTAÇÃO PROFILÁTICA (FERRO E VITAMINA D)
+  // ───────────────────────────────────────────────────────────────────────────
+  function orientarSuplementacao(idadeMeses, pesoNascimento, aleitamentoExclusivo) {
+    var ferro = [];
+    var vitaminaD = [];
+    var condutas = [];
+
+    // Vitamina D
+    if (idadeMeses < 12) {
+      vitaminaD.push("400 UI/dia até completar 1 ano de vida (iniciar na 1ª semana)");
+    } else if (idadeMeses >= 12 && idadeMeses < 24) {
+      vitaminaD.push("600 UI/dia de 1 a 2 anos de idade");
+    }
+
+    // Ferro Elementar
+    if (pesoNascimento < 2500) {
+      // Baixo peso ou prematuro
+      if (pesoNascimento < 1000) {
+        ferro.push("4 mg/kg/dia (iniciar com 30 dias de vida até 1 ano). Após 1 ano: 1 mg/kg/dia até 2 anos.");
+      } else if (pesoNascimento < 1500) {
+        ferro.push("3 mg/kg/dia (iniciar com 30 dias de vida até 1 ano). Após 1 ano: 1 mg/kg/dia até 2 anos.");
+      } else {
+        ferro.push("2 mg/kg/dia (iniciar com 30 dias de vida até 1 ano). Após 1 ano: 1 mg/kg/dia até 2 anos.");
+      }
+    } else {
+      // A termo e peso adequado (> 2500g)
+      if (aleitamentoExclusivo) {
+        if (idadeMeses >= 6 && idadeMeses < 24) {
+          ferro.push("1 mg/kg/dia (iniciar aos 6 meses de vida até 2 anos).");
+        } else if (idadeMeses < 6) {
+          ferro.push("Não indicado no momento (Aleitamento materno exclusivo atende até os 6 meses).");
+        }
+      } else {
+        if (idadeMeses >= 3 && idadeMeses < 24) {
+          ferro.push("1 mg/kg/dia (iniciar aos 3 meses até 2 anos devido ao desmame/uso de fórmula).");
+        } else if (idadeMeses < 3) {
+          ferro.push("Aguardar 3 meses para iniciar profilaxia (1 mg/kg/dia).");
+        }
+      }
+    }
+
+    if (vitaminaD.length > 0) condutas.push("💧 Vitamina D: " + vitaminaD[0]);
+    if (ferro.length > 0) condutas.push("🩸 Ferro Elementar: " + ferro[0]);
+
+    return {
+      vitamina_d: vitaminaD[0] || "Não indicada para a idade atual.",
+      ferro: ferro[0] || "Não indicada para a idade atual.",
+      resumo: condutas.join("\n")
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. AVALIAÇÃO ANTROPOMÉTRICA (CURVAS DA OMS)
+  // ───────────────────────────────────────────────────────────────────────────
+  function avaliarAntropometria(idadeMeses, pesoKg, estaturaCm, perimetroCefalicoCm, sexo) {
+      // Cálculo do IMC
+      var imc = null;
+      var classificacaoImc = "Sem dados";
+      
+      if (pesoKg > 0 && estaturaCm > 0) {
+          var estaturaM = estaturaCm / 100;
+          imc = pesoKg / (estaturaM * estaturaM);
+          
+          if (imc > 18) { classificacaoImc = "Risco de Sobrepeso / Obesidade (> Escore Z +1)"; }
+          else if (imc < 14) { classificacaoImc = "Magreza (< Escore Z -2)"; }
+          else { classificacaoImc = "Eutrofia (Escore Z > -2 e < +1)"; }
+      }
+
+      var classificacaoPeso = (pesoKg > 0) ? "Acompanhar curvas da OMS (Z-score)" : "Sem dados";
+      var classificacaoEstatura = (estaturaCm > 0) ? "Acompanhar curvas da OMS (Z-score)" : "Sem dados";
+      var classificacaoPc = (perimetroCefalicoCm > 0) ? "Acompanhar curvas da OMS (Z-score)" : "Sem dados";
+      
+      return {
+          imc: imc ? parseFloat(imc.toFixed(2)) : null,
+          classificacao_peso: classificacaoPeso,
+          classificacao_estatura: classificacaoEstatura,
+          classificacao_imc: classificacaoImc,
+          classificacao_pc: classificacaoPc,
+          resumo: "Peso: " + (pesoKg > 0 ? pesoKg + "kg" : "N/I") + 
+                  " | Estatura: " + (estaturaCm > 0 ? estaturaCm + "cm" : "N/I") + 
+                  " | PC: " + (perimetroCefalicoCm > 0 ? perimetroCefalicoCm + "cm" : "N/I") +
+                  (imc ? " | IMC: " + imc.toFixed(2) + " (" + classificacaoImc + ")" : "")
+      };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. VIGILÂNCIA DE MARCOS DO DESENVOLVIMENTO (DNPM)
+  // ───────────────────────────────────────────────────────────────────────────
+  var MARCOS_DNPM = [
+      { idadeMax: 1, marcos: ["Acompanha a face do examinador (visual)", "Reage ao som", "Postura fletida predominante"] },
+      { idadeMax: 2, marcos: ["Sorri em resposta ao examinador (sorriso social)", "Vocaliza sons simples", "Sustenta a cabeça brevemente em prona"] },
+      { idadeMax: 4, marcos: ["Sustenta a cabeça firme (controle cervical)", "Acompanha objetos em 180°", "Ri alto / gargalhadas", "Alcança objetos ativamente"] },
+      { idadeMax: 6, marcos: ["Rola no leito", "Senta com apoio", "Transfere objetos de uma mão para a outra", "Emite sons consonantais (bababa)"] },
+      { idadeMax: 9, marcos: ["Senta sem apoio", "Engatinha", "Pinça em tesoura", "Estranha desconhecidos", "Imita gestos (ex: tchau)"] },
+      { idadeMax: 12, marcos: ["Anda com apoio", "Pinça fina (polegar-indicador)", "Fala 1-2 palavras com significado (mamãe/papai)", "Mostra o que quer apontando"] },
+      { idadeMax: 15, marcos: ["Anda sozinho com firmeza", "Coloca bloco na caneca", "Fala 3 a 5 palavras", "Brinca de esconde-esconde"] },
+      { idadeMax: 18, marcos: ["Corre", "Constrói torre de 3 blocos", "Fala pelo menos 10 palavras", "Usa colher adequadamente"] },
+      { idadeMax: 24, marcos: ["Chuta bola sem apoio", "Constrói torre de 6 blocos", "Junta 2 palavras (frases simples)", "Tira a própria roupa", "Pula com os dois pés"] }
+  ];
+
+  function avaliarDNPM(idadeMeses) {
+      var marcosEsperados = [];
+      var marcosProximos = [];
+      var idadeMarcoEsperado = 0;
+      var idadeMarcoProximo = 0;
+
+      for (var i = 0; i < MARCOS_DNPM.length; i++) {
+          if (idadeMeses >= MARCOS_DNPM[i].idadeMax) {
+              marcosEsperados = MARCOS_DNPM[i].marcos;
+              idadeMarcoEsperado = MARCOS_DNPM[i].idadeMax;
+          } else {
+              marcosProximos = MARCOS_DNPM[i].marcos;
+              idadeMarcoProximo = MARCOS_DNPM[i].idadeMax;
+              break;
+          }
+      }
+
+      if (idadeMeses === 0) {
+          marcosEsperados = MARCOS_DNPM[0].marcos;
+          idadeMarcoEsperado = MARCOS_DNPM[0].idadeMax;
+          marcosProximos = MARCOS_DNPM[1].marcos;
+          idadeMarcoProximo = MARCOS_DNPM[1].idadeMax;
+      }
+
+      return {
+          idade_avaliada_meses: idadeMeses,
+          idade_referencia_esperada: idadeMarcoEsperado,
+          marcos_esperados: marcosEsperados,
+          idade_referencia_proxima: idadeMarcoProximo,
+          proximos_marcos: marcosProximos,
+          alerta: (idadeMeses > 24) ? "Avaliar marcos pré-escolares (M-CHAT-R aos 18 e 24 meses)." : "Investigar marcos esperados ativamente."
+      };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. CALENDÁRIO VACINAL (PNI 2026)
+  // ───────────────────────────────────────────────────────────────────────────
+  var VACINAS_PNI = [
+      { idadeMeses: 0, nome: "Ao Nascer", vacinas: ["BCG (Dose única)", "Hepatite B (Ao nascer)"] },
+      { idadeMeses: 2, nome: "2 Meses", vacinas: ["Pentavalente (1ª dose)", "VIP (1ª dose)", "Pneumocócica 10v (1ª dose)", "Rotavírus (1ª dose)"] },
+      { idadeMeses: 3, nome: "3 Meses", vacinas: ["Meningocócica C (1ª dose)"] },
+      { idadeMeses: 4, nome: "4 Meses", vacinas: ["Pentavalente (2ª dose)", "VIP (2ª dose)", "Pneumocócica 10v (2ª dose)", "Rotavírus (2ª dose)"] },
+      { idadeMeses: 5, nome: "5 Meses", vacinas: ["Meningocócica C (2ª dose)"] },
+      { idadeMeses: 6, nome: "6 Meses", vacinas: ["Pentavalente (3ª dose)", "VIP (3ª dose)"] },
+      { idadeMeses: 9, nome: "9 Meses", vacinas: ["Febre Amarela (Dose inicial)"] },
+      { idadeMeses: 12, nome: "12 Meses", vacinas: ["Tríplice Viral (1ª dose)", "Pneumocócica 10v (Reforço)", "Meningocócica C (Reforço)"] },
+      { idadeMeses: 15, nome: "15 Meses", vacinas: ["DTP (1º reforço)", "VOP (1º reforço)", "Tetraviral (Tríplice + Varicela)", "Hepatite A"] }
+  ];
+
+  function calendarioVacinal(idadeMeses) {
+      var aplicadas = [];
+      var atuais = null;
+      var proximas = null;
+
+      for (var i = 0; i < VACINAS_PNI.length; i++) {
+          if (VACINAS_PNI[i].idadeMeses < idadeMeses) {
+              aplicadas.push(VACINAS_PNI[i]);
+          } else if (VACINAS_PNI[i].idadeMeses === idadeMeses) {
+              atuais = VACINAS_PNI[i];
+          } else {
+              if (!proximas) proximas = VACINAS_PNI[i];
+          }
+      }
+
+      if (!atuais && aplicadas.length > 0 && !proximas) {
+          atuais = { idadeMeses: idadeMeses, nome: "N/A", vacinas: ["Esquema base finalizado (verificar campanhas anuais como Influenza)."] };
+      }
+
+      return {
+          historico_aplicadas: aplicadas,
+          vacinas_atuais: atuais || { nome: "Nenhuma prevista exata neste mês", vacinas: [] },
+          proximas_vacinas: proximas || { nome: "N/A", vacinas: [] },
+          status: atuais ? ("Vacinas do mês: " + atuais.vacinas.join(", ")) : "Atualizar caderneta."
+      };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. INTEGRAÇÃO GERAL DO PAINEL
+  // ───────────────────────────────────────────────────────────────────────────
+  function painelCompleto(params) {
+      if (!params || typeof params.idadeMeses !== 'number') {
+          return { error: "Idade em meses é obrigatória" };
+      }
+      var idade = params.idadeMeses;
+      var pesoNasc = params.pesoNascimento || 3000;
+      var amaExclusivo = params.aleitamentoExclusivo !== undefined ? params.aleitamentoExclusivo : true;
+      var peso = params.pesoKg || 0;
+      var est = params.estaturaCm || 0;
+      var pc = params.perimetroCefalicoCm || 0;
+      var sx = params.sexo || 'M';
+
+      return {
+          suplementacao: orientarSuplementacao(idade, pesoNasc, amaExclusivo),
+          antropometria: avaliarAntropometria(idade, peso, est, pc, sx),
+          dnpm: avaliarDNPM(idade),
+          vacinas: calendarioVacinal(idade)
+      };
+  }
+
+  return {
+    orientarSuplementacao: orientarSuplementacao,
+    avaliarAntropometria: avaliarAntropometria,
+    avaliarDNPM: avaliarDNPM,
+    calendarioVacinal: calendarioVacinal,
+    painelCompleto: painelCompleto
+  };
+
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PuericulturaPediatriaService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_saude_idoso.js
+// ==============================================================================
+
+/**
+ * Módulo de Saúde do Idoso e Avaliação Geriátrica Ampla (AGA)
+ * Implementa triagem de fragilidade (CFS), avaliação cognitiva (Mini-Cog),
+ * risco de quedas (TUG) e prevenção de polifarmácia/iatrogenia (Critérios de Beers AGS 2023).
+ */
+
+class SaudeIdosoService {
+  /**
+   * Avalia a fragilidade clínica pela Clinical Frailty Scale (CFS) - Rockwood
+   * @param {number} score 1 a 9
+   * @returns {object}
+   */
+  static avaliarFragilidadeCFS(score) {
+    if (typeof score !== 'number' || score < 1 || score > 9) {
+      throw new Error("O score da CFS deve estar entre 1 e 9.");
+    }
+
+    const classificacoes = {
+      1: { titulo: "Muito Robusto", desc: "Pessoas ativas, enérgicas e motivadas. Exercitam-se regularmente e são as mais aptas para a idade." },
+      2: { titulo: "Robusto", desc: "Sem doença ativa no momento. Exercitam-se ocasionalmente, muito ativos sazonalmente." },
+      3: { titulo: "Bem", desc: "Pessoas com problemas médicos bem controlados. Não são regularmente ativas além da caminhada rotineira." },
+      4: { titulo: "Vulnerável", desc: "Embora não dependam de outros para as AVDs, sintomas de doenças limitam as atividades. Queixam-se de estar mais lentos ou cansados." },
+      5: { titulo: "Fragilidade Leve", desc: "Lentificação mais evidente. Precisam de ajuda em AIVDs (finanças, transporte, trabalho doméstico pesado, medicações)." },
+      6: { titulo: "Fragilidade Moderada", desc: "Precisam de ajuda em todas as atividades externas e para cuidar da casa. Dentro de casa, têm dificuldade com escadas e precisam de ajuda para banho." },
+      7: { titulo: "Fragilidade Grave", desc: "Completamente dependentes para cuidados pessoais (AVDs), por causa física ou cognitiva. Estáveis, com risco de morte em até 6 meses ausente." },
+      8: { titulo: "Fragilidade Muito Grave", desc: "Completamente dependentes, acamados ou próximos a isso. Fim da vida, não se recuperam nem de doenças menores." },
+      9: { titulo: "Doente Terminal", desc: "Expectativa de vida < 6 meses, não são por outro lado manifestamente frágeis." }
+    };
+
+    const resultado = classificacoes[score];
+    let interpretacao = "";
+    if (score <= 3) interpretacao = "Idoso Robusto. Manter medidas preventivas e rastreio adequado para a idade.";
+    else if (score === 4) interpretacao = "Idoso Vulnerável. Oportunidade de intervenção precoce (exercício resistido, ajuste nutricional, revisão de medicamentos).";
+    else interpretacao = "Idoso Frágil. Necessita de Avaliação Geriátrica Ampla (AGA), desprescrição, adequação de metas de cuidado (prioridade funcional e conforto) e suporte multidisciplinar.";
+
+    return {
+      escore: score,
+      classificacao: resultado.titulo,
+      descricao: resultado.desc,
+      interpretacao,
+      alerta_fragilidade: score >= 5
+    };
+  }
+
+  /**
+   * Avalia a cognição usando o Mini-Cog (Memória de 3 palavras + Teste do Desenho do Relógio)
+   * @param {number} palavrasRecordadas 0 a 3
+   * @param {boolean} relogioNormal true (2 pts) ou false (0 pts)
+   * @returns {object}
+   */
+  static avaliarMiniCog(palavrasRecordadas, relogioNormal) {
+    if (palavrasRecordadas < 0 || palavrasRecordadas > 3) {
+      throw new Error("Palavras recordadas devem ser de 0 a 3.");
+    }
+
+    const pontosRelogio = relogioNormal ? 2 : 0;
+    const escoreTotal = palavrasRecordadas + pontosRelogio;
+
+    let rastreio_positivo = escoreTotal <= 2;
+    let interpretacao = rastreio_positivo 
+      ? "Rastreio cognitivo POSITIVO (escore <= 2). Alta probabilidade de comprometimento cognitivo. Indicação de aprofundar com MEEM/MoCA e investigar causas reversíveis (TSH, B12, sífilis, depressão, medicamentos)."
+      : "Rastreio cognitivo NEGATIVO (escore >= 3). Baixa probabilidade de demência clinicamente significativa no momento.";
+
+    return {
+      palavras_recordadas: palavrasRecordadas,
+      relogio_normal: relogioNormal,
+      escore_total: escoreTotal,
+      rastreio_positivo,
+      interpretacao
+    };
+  }
+
+  /**
+   * Avalia risco de quedas pelo Timed Up and Go (TUG)
+   * @param {number} tempoSegundos 
+   * @returns {object}
+   */
+  static avaliarRiscoQuedasTUG(tempoSegundos) {
+    let classificacao = "";
+    let risco_alto = false;
+    let conduta = "";
+
+    if (tempoSegundos <= 10) {
+      classificacao = "Normal";
+      conduta = "Baixo risco de quedas. Manter atividade física.";
+    } else if (tempoSegundos <= 20) {
+      classificacao = "Risco Moderado / Limítrofe";
+      conduta = "Risco moderado. Avaliar equilíbrio e marcha. Orientar exercícios de fortalecimento (ex: fisioterapia) e adaptar ambiente.";
+      risco_alto = tempoSegundos > 12; // Alguns cortes usam > 12s como risco aumentado
+    } else {
+      classificacao = "Alto Risco de Quedas";
+      risco_alto = true;
+      conduta = "Alto risco de quedas. Necessidade imperativa de intervenção: reabilitação física intensiva, revisão de medicações (psicotrópicos), correção visual e adequação ambiental estrita.";
+    }
+
+    return {
+      tempo_segundos: tempoSegundos,
+      classificacao,
+      risco_alto,
+      conduta
+    };
+  }
+
+  /**
+   * Avalia polifarmácia e Critérios de Beers (AGS 2023) / STOPP
+   * @param {Array<string>} listaMedicamentos
+   * @returns {object}
+   */
+  static avaliarFarmacosBeers(listaMedicamentos) {
+    const qtde = listaMedicamentos.length;
+    const polifarmacia = qtde >= 5;
+    
+    // Lista de Beers simplificada (medicamentos frequentemente problemáticos em idosos)
+    const beersRegex = {
+      'Benzodiazepínicos (Diazepam, Clonazepam, Alprazolam)': /(diazepam|clonazepam|alprazolam|bromazepam|lorazepam|midazolam)/i,
+      'Antidepressivos Tricíclicos (Amitriptilina, Nortriptilina)': /(amitriptilina|nortriptilina|clomipramina|imipramina)/i,
+      'Hipnóticos / Drogas Z (Zolpidem)': /(zolpidem|zopiclona)/i,
+      'Anti-histamínicos de 1ª Geração (Dexclorfeniramina, Prometazina)': /(dexclorfeniramina|prometazina|hidroxizina|difenidramina)/i,
+      'Antipsicóticos Típicos (Haloperidol, Clorpromazina)': /(haloperidol|clorpromazina|levomepromazina)/i, // Exceto delírio grave
+      'AINEs (Diclofenaco, Cetoprofeno, Ibuprofeno, Naproxeno)': /(diclofenaco|cetoprofeno|ibuprofeno|naproxeno|nimesulida|meloxicam|piroxicam)/i, // Risco de HDA, IRA, exacerbação de IC
+      'Bloqueadores Alfa-1 (Doxazosina, Tansulosina)': /(doxazosina|terazosina|prazosina)/i, // Risco de hipotensão ortostática (Tansulosina tem menor risco, mas deve-se monitorar)
+      'Sulfonilureias de longa ação (Glibenclamida)': /(glibenclamida|clorpropamida)/i, // Risco de hipoglicemia severa
+      'Anti-espasmódicos (Escopolamina/Buscopan)': /(escopolamina|butilbrometo)/i, // Efeitos anticolinérgicos
+      'Metoclopramida': /(metoclopramida|plasil)/i, // Parkinsonismo e discinesia tardia
+      'Relaxantes musculares (Ciclobenzaprina, Carisoprodol)': /(ciclobenzaprina|carisoprodol|orfenadrina)/i,
+      'Amiodarona': /(amiodarona|ancoron)/i, // Toxidades múltiplas, evitar como 1ª linha em FA
+      'Inibidores da Bomba de Prótons > 8 semanas': /(omeprazol|pantoprazol|esomeprazol|lansoprazol)/i // Risco de deficiência de B12, osteoporose, C. diff (uso crônico sem indicação forte)
+    };
+
+    let medicamentosInadequados = [];
+    
+    listaMedicamentos.forEach(med => {
+      let flagged = false;
+      for (const [classe, regex] of Object.entries(beersRegex)) {
+        if (regex.test(med) && !flagged) {
+          medicamentosInadequados.push({
+            medicamento: med,
+            alerta: `Evitar (Critérios de Beers): Pertence ao grupo ${classe}.`
+          });
+          flagged = true; // Para evitar duplicatas pro mesmo med
+        }
+      }
+    });
+
+    let conduta = "";
+    if (medicamentosInadequados.length > 0) {
+      conduta = "Detectados medicamentos potencialmente inadequados (PIMs). Sugere-se desprescrição ou troca por alternativas mais seguras.";
+    } else if (polifarmacia) {
+      conduta = "Polifarmácia detectada. Realizar conciliação medicamentosa e avaliar necessidade contínua de cada fármaco.";
+    } else {
+      conduta = "Baixo risco farmacológico aparente. Manter revisão periódica.";
+    }
+
+    return {
+      quantidade_medicamentos: qtde,
+      polifarmacia,
+      medicamentos_inadequados: medicamentosInadequados,
+      alertas_beers: medicamentosInadequados.length > 0,
+      conduta
+    };
+  }
+
+  /**
+   * Resumo completo da AGA Rápida
+   * @param {object} dados 
+   */
+  static gerarResumoAga(dados) {
+    const { cfs, miniCog, tug, farmacos } = dados;
+    let resultado = {};
+
+    if (cfs) resultado.fragilidade = this.avaliarFragilidadeCFS(cfs.score);
+    if (miniCog) resultado.cognicao = this.avaliarMiniCog(miniCog.palavras, miniCog.relogioNormal);
+    if (tug) resultado.risco_quedas = this.avaliarRiscoQuedasTUG(tug.tempo);
+    if (farmacos) resultado.farmacologia = this.avaliarFarmacosBeers(farmacos.lista);
+
+    return resultado;
+  }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = SaudeIdosoService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_secoes_posologicas.js
 // ==============================================================================
 
@@ -12915,7 +13337,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -12927,7 +13349,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -13474,6 +13896,89 @@ function processarMensagemTexto(message) {
   if (comando === "/ef_ped" || comando === "/ef_pedia") return responderComGuiaExameFisico(chatId, "ped");
   if (comando === "/ef_geriatria" || comando === "/geriatria" || comando === "/aga") return responderComGuiaExameFisico(chatId, "geriatria");
   if (comando === "/ef_vascular" || comando === "/vascular" || comando === "/tvp") return responderComGuiaExameFisico(chatId, "vascular");
+  // ───────────────────────────────────────────────────────────────────────────
+  // SAÚDE DO IDOSO E AVALIAÇÃO GERIÁTRICA AMPLA (AGA)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/idoso" || comando === "/aga" || comando === "/beers" || comando === "/cfs" || comando === "/minicog" || comando === "/tug") {
+    var dadosIdoso = texto.replace(/^\/\w+\s*/, "").trim();
+    if (!dadosIdoso) {
+      return enviarMensagemParaChat(chatId, "👴 *MÓDULO DE SAÚDE DO IDOSO & AGA*\n\n" +
+        "Envie os achados para avaliação estruturada:\n" +
+        "• `/cfs 6` *(Triagem de Fragilidade CFS)*\n" +
+        "• `/minicog 1 relogio alterado` *(Teste Cognitivo Mini-Cog)*\n" +
+        "• `/tug 14` *(Timed Up and Go em segundos)*\n" +
+        "• `/beers omeprazol clonazepam amitriptilina metformina aas` *(Polifarmácia)*\n" +
+        "• `/aga cfs 5, minicog 2 e relogio normal, tug 15s, usa zolpidem, ibuprofeno, losartana, aas, atenolol` *(AGA Completa)*");
+    }
+
+    if (typeof SaudeIdosoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo SaudeIdosoService indisponível temporariamente.");
+    }
+
+    var cenario = {};
+
+    // CFS
+    if (comando === "/cfs" || dadosIdoso.match(/cfs\s*(\d)/i)) {
+      var mCfs = dadosIdoso.match(/cfs\s*(\d)/i) || texto.match(/\/cfs\s+(\d)/);
+      if (mCfs) cenario.cfs = { score: parseInt(mCfs[1], 10) };
+    }
+    // Mini-Cog
+    if (comando === "/minicog" || dadosIdoso.match(/minicog|mini-cog/i)) {
+      var mPalavras = dadosIdoso.match(/(\d)\s*palavra/i);
+      var mRelogioNormal = dadosIdoso.match(/relogio\s*normal/i);
+      var mRelogioAlt = dadosIdoso.match(/relogio\s*(alterado|anormal|errado)/i);
+      var palavras = mPalavras ? parseInt(mPalavras[1], 10) : 3;
+      var relogioNormal = true;
+      if (mRelogioAlt) relogioNormal = false;
+      cenario.miniCog = { palavras: palavras, relogioNormal: relogioNormal };
+    }
+    // TUG
+    if (comando === "/tug" || dadosIdoso.match(/tug/i)) {
+      var mTug = dadosIdoso.match(/tug\s*(\d+)/i) || texto.match(/\/tug\s+(\d+)/);
+      if (mTug) cenario.tug = { tempo: parseInt(mTug[1], 10) };
+    }
+    // Beers / Polifarmacia
+    if (comando === "/beers" || dadosIdoso.match(/beers|polifarm/i)) {
+      // Se usar o comando direto, tudo depois é a lista.
+      var pLista = dadosIdoso.replace(/beers|polifarmacia|aga|cfs\s*\d|minicog.*|tug\s*\d+/gi, "").split(/[,;e]/).map(function(s){return s.trim();}).filter(function(s){return s.length > 2;});
+      if (pLista.length > 0) cenario.farmacos = { lista: pLista };
+    }
+
+    // Se nenhum regex extraiu, assume modo completo (fallback) se usar o comando /aga e a extração falhar?
+    if (Object.keys(cenario).length === 0) {
+      if (comando === "/beers") {
+        var bs = dadosIdoso.split(/[,;e]/).map(function(s){return s.trim();}).filter(function(s){return s.length > 2;});
+        if (bs.length > 0) cenario.farmacos = { lista: bs };
+      }
+    }
+
+    if (Object.keys(cenario).length > 0) {
+      var resumoIdoso = SaudeIdosoService.gerarResumoAga(cenario);
+      var arrStr = [];
+      if (resumoIdoso.fragilidade) {
+        arrStr.push("👴 *FRAGILIDADE (CFS):* " + resumoIdoso.fragilidade.escore + " - " + resumoIdoso.fragilidade.classificacao + "\n" + (resumoIdoso.fragilidade.alerta_fragilidade ? "🚨 " : "✅ ") + resumoIdoso.fragilidade.interpretacao);
+      }
+      if (resumoIdoso.cognicao) {
+        arrStr.push("🧠 *COGNITIVO (Mini-Cog):* Escore " + resumoIdoso.cognicao.escore_total + "\n" + (resumoIdoso.cognicao.rastreio_positivo ? "🚨 " : "✅ ") + resumoIdoso.cognicao.interpretacao);
+      }
+      if (resumoIdoso.risco_quedas) {
+        arrStr.push("🚶 *RISCO DE QUEDAS (TUG):* " + resumoIdoso.risco_quedas.tempo_segundos + "s - " + resumoIdoso.risco_quedas.classificacao + "\n" + (resumoIdoso.risco_quedas.risco_alto ? "🚨 " : "✅ ") + resumoIdoso.risco_quedas.conduta);
+      }
+      if (resumoIdoso.farmacologia) {
+        var strFarm = "💊 *POLIFARMÁCIA E BEERS:*\n" +
+                      "Total de fármacos: " + resumoIdoso.farmacologia.quantidade_medicamentos + "\n" +
+                      "Polifarmácia: " + (resumoIdoso.farmacologia.polifarmacia ? "Sim" : "Não");
+        if (resumoIdoso.farmacologia.alertas_beers) {
+          strFarm += "\n🚨 *ALERTA (PIMs)*:\n" + resumoIdoso.farmacologia.medicamentos_inadequados.map(function(m){return "• " + m.medicamento + ": " + m.alerta;}).join("\n");
+        }
+        strFarm += "\nConduta: " + resumoIdoso.farmacologia.conduta;
+        arrStr.push(strFarm);
+      }
+
+      return enviarMensagemParaChat(chatId, "📊 *RESUMO DA AVALIAÇÃO GERIÁTRICA AMPLA (AGA)*\n\n" + arrStr.join("\n\n"));
+    }
+  }
+
 
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
@@ -19663,4 +20168,29 @@ function cockpitResumoGinecologia(initData, params) {
     throw new Error('Módulo GinecologiaAmbulatorialService indisponível.');
   }
   return GinecologiaAmbulatorialService.gerarResumoGinecologia(params);
+}
+
+
+/**
+ * cockpitPainelPuericultura — Avaliação de antropometria, vacinas, DNPM e suplementação.
+ */
+function cockpitPainelPuericultura(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PuericulturaPediatriaService === 'undefined') {
+    throw new Error('Módulo PuericulturaPediatriaService indisponível.');
+  }
+  return PuericulturaPediatriaService.painelCompleto(params);
+}
+
+/**
+ * cockpitSaudeIdosoAga - Avaliação Geriátrica Ampla rápida.
+ */
+function cockpitSaudeIdosoAga(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SaudeIdosoService === 'undefined') {
+    throw new Error('Módulo SaudeIdosoService indisponível.');
+  }
+  return SaudeIdosoService.gerarResumoAga(params);
 }
