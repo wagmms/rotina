@@ -156,6 +156,21 @@ async function run() {
   console.log('✓ Cockpit Hematologia & Investigação de Anemias (Ganzoni & Mentzer) OK');
 
   // 7. PWA Manifest & Service Worker
+  const resIC = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitCardiologiaIntensiva',
+      session: token,
+      args: [{ congestao: true, baixa_perfusao: true, pas: 80, uso_betabloqueador: true }]
+    }
+  });
+  if (resIC.statusCode !== 200) console.error("BODY:", resIC.body); assert.equal(resIC.statusCode, 200, "Erro ao testar cockpitCardiologiaIntensiva");
+  const jsonIC = JSON.parse(resIC.body);
+  if (!jsonIC.ok) console.error(jsonIC); assert(jsonIC.ok, "Sucesso IC deve ser true");
+  assert.equal(jsonIC.resultado.avaliacao.perfil_clinico.perfil, 'C');
+  assert(jsonIC.resultado.textoFormatado.includes('CONTRAINDICAÇÃO ABSOLUTA'));
+  console.log('✓ Cockpit Cardiologia Intensiva (Forrester) OK');
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);
   const jsonManifest = JSON.parse(resManifest.body);

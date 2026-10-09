@@ -120,7 +120,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Motor analítico do hemograma: interpretação de VCM, HCM, RDW e contagem de reticulócitos para classificação etiológica (microcítica/hipocrômica, normocítica, macrocítica).
     - Cálculo de dose de reposição de Ferro elementar (VO) com teto seguro para evitar intolerância gastrointestinal, e critérios para indicação de Ferro Endovenoso (Noripurum).
 
-34. [ ] **Cardiologia Intensiva - Choque Cardiogênico e SCA com IC Descompensada (Classificação de Forrester & Stevenson)**:
+34. [x] **Cardiologia Intensiva - Choque Cardiogênico e SCA com IC Descompensada (Classificação de Forrester 34. [ ] **Cardiologia Intensiva - Choque Cardiogênico e SCA com IC Descompensada (Classificação de Forrester & Stevenson)** Stevenson)**:
     - Estratificação determinística hemodinâmica beira-leito (Perfil A: quente/seco, Perfil B: quente/úmido, Perfil C: frio/úmido, Perfil L: frio/seco).
     - Algoritmo de titulação combinada de Inotrópico (Dobutamina/Milrinona) e Vasopressor (Noradrenalina) vs Vasodilatador (Nitroprussiato de Sódio).
     - Bloqueios de segurança: contraindicação formal de betabloqueadores na fase aguda descompensada e otimização de diuréticos de alça (Furosemida bolus vs contínua).
@@ -518,12 +518,27 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Ressuscitação volêmica ponderada em alíquotas de 10-20 mL/kg de cristaloides balanceados com vigilância estrita de estertores e hepatomegalia (prevenção de sobrecarga hídrica).
     - Titulação de inotrópicos e vasopressores de 1ª linha: Adrenalina para choque frio e Noradrenalina para choque quente, com início precoce via acesso periférico seguro enquanto se obtém acesso central.
 
+110. [ ] **Módulo de Sedoanalgesia e Delirium em UTI (RASS, CAM-ICU e BPS)**:
+    - Escala RASS determinística para meta de sedação (ex: -2 a -3 para IOT).
+    - Algoritmo de desmame diário de sedação (Wake Up Test).
+    - Indicação de Dexmedetomidina (Precedex) vs Propofol vs Midazolam, com alertas de síndrome de infusão do propofol e acúmulo de midazolam na disfunção renal.
+
+111. [ ] **Integração do Escore SOFA e qSOFA (Sepsis-3) com Alertas Pró-ativos**:
+    - Cálculo contínuo da disfunção orgânica na UTI (Respiratório, Coagulação, Hepático, Cardiovascular, SNC e Renal).
+    - Gatilho automático para alerta de Piora Clínica (aumento de 2 pontos no SOFA) exigindo revisão imediata do Stewardship Antimicrobiano e controle do foco.
+
 ## 🔄 Próxima Tarefa em Andamento
 - [ ] **Cardiologia Intensiva - Choque Cardiogênico e SCA com IC Descompensada (Classificação de Forrester & Stevenson)** (Tarefa 34)
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] **Módulo de Cardiologia Intensiva (Choque Cardiogênico e IC Descompensada)** (2026-10-09):
+  * Estratificação Hemodinâmica beira-leito pela classificação de Forrester & Stevenson.
+  * Algoritmo determinístico de manejo farmacológico combinado de inotrópicos, vasopressores, diuréticos e vasodilatadores.
+  * Bloqueios de segurança críticos: suspensão de betabloqueadores e otimização de diuréticos.
+  * Comandos de ativação no Telegram via `/choque`, `/forrester` ou `/ic`.
+
 - [x] (2026-10-09) **Módulo de Hematologia: Manejo e Investigação de Anemias**:
    - Motor determinístico beira-leito para análise completa do hemograma (`src/02_hematologia_anemias.js`).
    - Classificação morfológica precisa por VCM (< 80 microcítica, 80-100 normocítica, > 100 macrocítica), HCM/CHCM (hipocrômica, normocrômica, hipercrômica) e RDW (homogênea vs heterogênea/anisocitose).

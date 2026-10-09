@@ -754,7 +754,7 @@ for (const file of srcFiles) {
     throw err;
   }
 }
-console.log('[Runtime] ✅ Núcleo clínico do Ultra Rotina compilado e inicializado com sucesso.');
+console.log('Chaves no ctx:', Object.keys(ctx).filter(k => k.includes('Cardiologia'))); console.log('[Runtime] ✅ Núcleo clínico do Ultra Rotina compilado e inicializado com sucesso.');
 
 module.exports = {
   ctx,
@@ -838,6 +838,8 @@ module.exports = {
         _rpcMap.cockpitInfectologiaNeutropenia = ctx.cockpitInfectologiaNeutropenia;
         _rpcMap.cockpitGastroenterologiaPancreatite = ctx.cockpitGastroenterologiaPancreatite;
         _rpcMap.cockpitCardiologiaEmergencia = ctx.cockpitCardiologiaEmergencia;
+        _rpcMap.cockpitCardiologiaIntensiva = ctx.cockpitCardiologiaIntensiva;
+        _rpcMap.cockpitICDescompensada = ctx.cockpitICDescompensada;
         _rpcMap.cockpitGasometriaAcidoBase = ctx.cockpitGasometriaAcidoBase;
         _rpcMap.cockpitGasometria = ctx.cockpitGasometria || ctx.cockpitGasometriaAcidoBase;
         _rpcMap.cockpitSuporteNutricionalPediatrico = ctx.cockpitSuporteNutricionalPediatrico;

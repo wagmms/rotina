@@ -2340,6 +2340,44 @@ function processarMensagemTexto(message) {
     }
   }
 
+  if (comando === "/choque" || comando === "/forrester" || comando === "/ic") {
+    var dadosIC = texto.replace(/^\/(?:choque|forrester|ic)\s*/i, "").trim();
+    if (!dadosIC) {
+      return enviarMensagemParaChat(chatId, "🫀 *IC DESCOMPENSADA / CHOQUE (FORRESTER & STEVENSON)*\n\n" +
+        "Envie os sinais clínicos de congestão e perfusão.\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/ic congestao sim, perfusao baixa, pas 80` (Perfil C, choque franco)\n" +
+        "• `/ic estertores, sem hipoperfusao, pas 120` (Perfil B)\n" +
+        "• `/ic sem congestao, perfusao ruim, pas 90` (Perfil L)");
+    }
+    
+    // Parse básico via regex
+    var paramsIC = {
+      congestao: /congest(?:ão|ao)|estertore?s?|tjp|edema|ortopneia/i.test(dadosIC) && !/(?:sem|nao|não) congest(?:ão|ao)/i.test(dadosIC),
+      baixa_perfusao: /perfus(?:ão|ao) (?:ruim|baixa)|hipoperfus(?:ão|ao)|choque|oliguria|fria/i.test(dadosIC) && !/(?:sem|nao|não) (?:hipoperfus(?:ão|ao)|perfus(?:ão|ao) (?:ruim|baixa))/i.test(dadosIC),
+      pas: 100, // default
+      pam: 75,
+      uso_betabloqueador: /beta.?bloq/i.test(dadosIC) || /carvedilol|metoprolol|bisoprolol/i.test(dadosIC)
+    };
+    
+    var pasMatch = dadosIC.match(/pas\s*[:=]?\s*(\d+)/i);
+    if (pasMatch) paramsIC.pas = parseInt(pasMatch[1], 10);
+    
+    var pamMatch = dadosIC.match(/pam\s*[:=]?\s*(\d+)/i);
+    if (pamMatch) paramsIC.pam = parseInt(pamMatch[1], 10);
+    
+    if (pasMatch && !pamMatch) paramsIC.pam = (paramsIC.pas * 2 + 60) / 3; // Estimativa chula, geralmente PAD = PAS-40
+
+    if (typeof cockpitCardiologiaIntensiva === "function") {
+      try {
+        var respIC = cockpitCardiologiaIntensiva({}, paramsIC);
+        return enviarMensagemParaChat(chatId, respIC.textoFormatado);
+      } catch (err) {
+        return enviarMensagemParaChat(chatId, "⚠️ Erro: " + err.message);
+      }
+    }
+  }
+
   if (comando === "/gaso" || comando === "/gasometria" || comando === "/aniongap") {
     var dadosGaso = texto.replace(/^\/(?:gaso|gasometria|aniongap)\s*/i, "").trim();
     if (!dadosGaso) {

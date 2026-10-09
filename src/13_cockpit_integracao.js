@@ -1666,3 +1666,94 @@ function cockpitHematologiaAnemias(initData, params) {
 
 var cockpitManejoAnemias = cockpitHematologiaAnemias;
 var cockpitAnemia = cockpitHematologiaAnemias;
+
+/**
+ * Análise de IC Descompensada / Choque Cardiogênico (Forrester & Stevenson)
+ * @param {string} initData Sessão / autenticação
+ * @param {Object} params Parâmetros clínicos (congestao, ma_perfusao, pas, uso_betabloqueador, fase_aguda_descompensada)
+ */
+function cockpitICDescompensada(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para IC Descompensada não fornecidos.');
+  
+  if (typeof CardiologiaICDescompensadaService === 'undefined') {
+    throw new Error('Serviço CardiologiaICDescompensadaService indisponível.');
+  }
+
+  var analise = CardiologiaICDescompensadaService.analisarICDescompensada(params);
+  var texto = CardiologiaICDescompensadaService.formatarTextoTelegram(analise, params);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitCardiologiaIntensiva(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para IC Descompensada não fornecidos.');
+  
+  if (typeof CardiologiaIntensivaService === 'undefined') {
+    throw new Error('Serviço CardiologiaIntensivaService indisponível.');
+  }
+
+  var avaliacao = CardiologiaIntensivaService.avaliarPacienteICDescompensada(params);
+  
+  var texto = "🫀 *CARDIOLOGIA INTENSIVA — CHOQUE CARDIOGÊNICO E IC DESCOMPENSADA*\n\n";
+  
+  var perf = avaliacao.perfil_clinico;
+  texto += "*Classificação de Forrester & Stevenson:* Perfil " + perf.perfil + "\n";
+  texto += "*Descrição:* " + perf.descricao + "\n";
+  texto += "*Hemodinâmica:* " + perf.diagnostico_hemodinamico + " / " + perf.perfusao + "\n\n";
+  
+  texto += "*Conduta Geral:* " + perf.conduta_geral + "\n\n";
+  
+  var farmaco = avaliacao.plano_farmacologico;
+  
+  if (farmaco.bloqueios_seguranca.length > 0) {
+    texto += "⚠️ *BLOQUEIOS DE SEGURANÇA:*\n";
+    for (var i = 0; i < farmaco.bloqueios_seguranca.length; i++) {
+      texto += "• " + farmaco.bloqueios_seguranca[i] + "\n";
+    }
+    texto += "\n";
+  }
+
+  if (farmaco.diuretico.length > 0) {
+    texto += "💧 *DIURÉTICO (ALÇA):*\n";
+    for (var i = 0; i < farmaco.diuretico.length; i++) {
+      texto += "• " + farmaco.diuretico[i] + "\n";
+    }
+    texto += "\n";
+  }
+
+  if (farmaco.vasodilatador.length > 0) {
+    texto += "🌬️ *VASODILATADOR:*\n";
+    for (var i = 0; i < farmaco.vasodilatador.length; i++) {
+      texto += "• " + farmaco.vasodilatador[i] + "\n";
+    }
+    texto += "\n";
+  }
+
+  if (farmaco.inotropico.length > 0) {
+    texto += "⚡ *INOTRÓPICO:*\n";
+    for (var i = 0; i < farmaco.inotropico.length; i++) {
+      texto += "• " + farmaco.inotropico[i] + "\n";
+    }
+    texto += "\n";
+  }
+
+  if (farmaco.vasopressor.length > 0) {
+    texto += "🩸 *VASOPRESSOR:*\n";
+    for (var i = 0; i < farmaco.vasopressor.length; i++) {
+      texto += "• " + farmaco.vasopressor[i] + "\n";
+    }
+    texto += "\n";
+  }
+
+  return {
+    sucesso: true,
+    avaliacao: avaliacao,
+    textoFormatado: texto
+  };
+}
