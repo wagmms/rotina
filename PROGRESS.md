@@ -60,7 +60,22 @@
       * **Oftalmologia de Emergência**: adição estruturada de "Critérios de Encaminhamento Urgente ao Oftalmologista" nos 3 ramos de atendimento (após irrigação copiosa em queimadura química, após doses de resgate em glaucoma agudo e curativo de shield rígido sem compressão em suspeita de perfuração/globo aberto).
       * **Hepatologia Obstétrica (CIG & EHAG)**: inclusão de critérios de encaminhamento imediato para Centro Terciário com Medicina Fetal em CIG Moderada/Grave (ABT ≥ 40 ou ≥ 100 mcmol/L) e vaga zero para UTI obstétrica em suspeita de EHAG.
       * **Urologia Cólica Nefrética**: destaque de orientações de hidratação parcimoniosa na crise aguda e critérios de encaminhamento ambulatorial vs descompressão urológica urgente.
-    - Criação de suíte de testes automatizados `tests/test_simplificacao_e_expurgo_generalista.cjs` incorporada permanentemente no comando `npm test` (100% de aprovação em todos os testes de servidor, casos extremos, resiliência RPC e simplificação clínica).
+0F. [x] **Conserto Imediato do Cockpit: Eliminação de Casos Mock/Falsos de IAM e Histórico Real de Atendimentos**:
+    - Removida a injeção estática e mock de 3 casos fictícios ("IAM com supra de VD", "IC Descompensada", "Sepse") que faziam o Cockpit parecer travado em IAM mesmo sem atendimentos.
+    - Substituídos os textos estáticos do HTML de IAM por estados neutros reais do plantão ("Aguardando atendimentos do plantão de hoje").
+    - Implementada persistência diária de atendimentos (`casosDoDia`) no backend (`src/13_cockpit_integracao.js` e `salvarSoapCockpit_`), enviando ao Cockpit os casos reais gerados pelo usuário no Telegram com timestamp, título diagnóstico e texto SOAP.
+    - Criado Empty State limpo, profissional e honesto no Cockpit quando nenhum caso ou leito está registrado.
+    - Sincronizado deploy do Cockpit Móvel no GitHub Pages (`gh_cockpit_deploy/`).
+
+0G. [ ] **Auditoria de Usabilidade e Telas do Cockpit PWA Beira-Leito**:
+    - Garantir que cada aba (SOAP, Leitos, Calculadoras, REMUME, Preceptor) tenha zero travamentos, carregamento instantâneo offline e navegação fluida de 1 toque no celular.
+    - Eliminar funções escondidas ou modais confusos; tornar os atalhos clínicos visíveis e diretos.
+
+0H. [ ] **Revisão e Lapidação de Conteúdo Clínico das Calculadoras do Cockpit**:
+    - Revisar cada calculadora clínica exposta no Cockpit (DVA, Gasometria, Drogas de Emergência, Clearance, Preeclâmpsia, etc.) para garantir doses exatas, alertas de segurança e bloqueios de erro médico para médico generalista/interno.
+
+0I. [ ] **Auditoria de Menus e Comandos do Telegram**:
+    - Revisar `/menu` e `/ajuda` para apresentar apenas os fluxos essenciais ao interno e médico generalista (Emergência, Enfermaria, Ambulatório/SOAP, Prescrição/REMUME), sem poluição visual.
 
 ---
 

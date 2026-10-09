@@ -97,10 +97,26 @@ function cockpitComCaso_(initData, revision, executar) {
 function cockpitConsultar(initData) {
   var chat = cockpitAutorizar_(initData), estado = modoBot(chat), resultado = PersistenciaBot.ler('soapview_'+chat);
   var leitos = EnfermariaService.obterTodos();
-  return {revision:estado ? estado.revision : null,
-    soap:estado && resultado && resultado.revision === estado.revision ? resultado.texto : '',
-    casoAtivo:!!(estado && estado.data),
-    leitos:Object.keys(leitos).sort().map(function(k){return leitos[k];})};
+  var hojeIso = new Date().toISOString().slice(0, 10);
+  var casosDoDia = PersistenciaBot.ler('casos_hoje_' + chat + '_' + hojeIso);
+  if (!Array.isArray(casosDoDia)) casosDoDia = [];
+
+  var soapTexto = '';
+  if (resultado && resultado.texto) {
+    soapTexto = resultado.texto;
+  } else if (estado && estado.data && typeof estado.data === 'string' && estado.data.length > 15) {
+    soapTexto = estado.data;
+  } else if (casosDoDia.length > 0 && casosDoDia[0].soap) {
+    soapTexto = casosDoDia[0].soap;
+  }
+
+  return {
+    revision: estado ? estado.revision : (resultado ? resultado.revision : null),
+    soap: soapTexto,
+    casoAtivo: !!(estado && estado.data) || !!soapTexto,
+    leitos: Object.keys(leitos).sort().map(function(k){return leitos[k];}),
+    casosDoDia: casosDoDia
+  };
 }
 
 function cockpitPreceptor(initData, revision) {
@@ -134,11 +150,56 @@ function cockpitPassagem(initData) {
 }
 
 function salvarSoapCockpit_(chat, origem, texto) {
-  if(!origem) return;
+  if (!chat || !texto) return;
   try {
-    var atual=modoBot(chat);
-    if(atual && atual.revision===origem.revision) PersistenciaBot.salvar('soapview_'+chat,{revision:origem.revision,texto:texto});
-  } catch(e) {Logger.log('Cockpit: não foi possível preservar a cópia do SOAP. A entrega clínica continua.');}
+    var strTexto = String(texto).trim();
+    if (strTexto.length < 10) return;
+    var rev = (origem && origem.revision) ? origem.revision : Utilities.getUuid().replace(/-/g, '');
+    
+    // 1. Salva o SOAP mais recente para visualização direta no Cockpit
+    PersistenciaBot.salvar('soapview_' + chat, {
+      revision: rev,
+      texto: strTexto,
+      updatedAt: Date.now()
+    });
+
+    // 2. Extrai diagnóstico preliminar para titular o atendimento no histórico do plantão
+    var diag = 'Atendimento Clínico';
+    var mDiag = strTexto.match(/(?:🧠\s*\*A\s*-\s*Avalia[çc][ãa]o\*|A\s*\((?:Avalia[çc][ãa]o|Assessment)\):?|Diagn[oó]stic[oa]:?)\s*[:\n\-•*]*\s*([^\n\r]+)/i);
+    if (mDiag && mDiag[1]) {
+      diag = mDiag[1].replace(/[*_#]/g, '').trim().substring(0, 60);
+    } else {
+      var mQp = strTexto.match(/(?:Queixa\s+Principal|QP|S\s*\((?:Subjetivo|Subjective)\):?)\s*[:\n\-•*]*\s*([^\n\r]+)/i);
+      if (mQp && mQp[1]) diag = mQp[1].replace(/[*_#]/g, '').trim().substring(0, 60);
+    }
+
+    // 3. Persiste no histórico dos casos conduzidos hoje (data ISO)
+    var hojeIso = new Date().toISOString().slice(0, 10);
+    var chaveHist = 'casos_hoje_' + chat + '_' + hojeIso;
+    var listaCasos = PersistenciaBot.ler(chaveHist);
+    if (!Array.isArray(listaCasos)) listaCasos = [];
+
+    var novoCaso = {
+      id: 'caso_' + Date.now(),
+      titulo: diag,
+      status: /inst[aá]vel|choque|grave|emerg[eê]ncia|pcr|sala\s+vermelha/i.test(strTexto) ? 'instavel' : 'vigilancia',
+      soap: strTexto,
+      origem: 'Telegram · SOAP',
+      criadoEm: new Date().toISOString()
+    };
+
+    var jaExiste = listaCasos.some(function(c) {
+      return c.soap === strTexto;
+    });
+
+    if (!jaExiste) {
+      listaCasos.unshift(novoCaso);
+      if (listaCasos.length > 20) listaCasos = listaCasos.slice(0, 20);
+      PersistenciaBot.salvar(chaveHist, listaCasos);
+    }
+  } catch(e) {
+    Logger.log('Cockpit: não foi possível salvar cópia do SOAP: ' + e.message);
+  }
 }
 
 function cockpitCalcular(initData, tipo, entrada) {
@@ -698,6 +759,79 @@ function cockpitSaudeIdosoAga(initData, params) {
     throw new Error('Módulo SaudeIdosoService indisponível.');
   }
   return SaudeIdosoService.gerarResumoAga(params);
+}
+
+/**
+ * cockpitGeriatriaFrax - Calculadora FRAX (risco de fratura em 10 anos calibrado para o Brasil).
+ */
+function cockpitGeriatriaFrax(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SaudeIdosoService === 'undefined') {
+    throw new Error('Módulo SaudeIdosoService indisponível.');
+  }
+  if (typeof params === 'string') {
+    return SaudeIdosoService.interpretarTextoLivreFrax(params);
+  }
+  return SaudeIdosoService.calcularFrax(params);
+}
+var cockpitFrax = cockpitGeriatriaFrax;
+
+/**
+ * cockpitGeriatriaOsteoporose - Protocolo clínico de osteoporose, bisfosfonatos e cálcio/vit D.
+ */
+function cockpitGeriatriaOsteoporose(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SaudeIdosoService === 'undefined') {
+    throw new Error('Módulo SaudeIdosoService indisponível.');
+  }
+  if (typeof params === 'string') {
+    return SaudeIdosoService.interpretarTextoLivreOsteoporose(params);
+  }
+  return SaudeIdosoService.avaliarOsteoporose(params);
+}
+var cockpitOsteoporose = cockpitGeriatriaOsteoporose;
+
+/**
+ * cockpitGeriatriaQuedas - Protocolo integrado de profilaxia de quedas e mobilidade.
+ */
+function cockpitGeriatriaQuedas(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SaudeIdosoService === 'undefined') {
+    throw new Error('Módulo SaudeIdosoService indisponível.');
+  }
+  if (typeof params === 'string') {
+    return SaudeIdosoService.interpretarTextoLivreQuedas(params);
+  }
+  return SaudeIdosoService.protocoloProfilaxiaQuedas(params);
+}
+var cockpitQuedas = cockpitGeriatriaQuedas;
+
+/**
+ * cockpitGeriatriaPolifarmacia - Revisão de polifarmácia com identificação de FRIDs.
+ */
+function cockpitGeriatriaPolifarmacia(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SaudeIdosoService === 'undefined') {
+    throw new Error('Módulo SaudeIdosoService indisponível.');
+  }
+  var lista = Array.isArray(params) ? params : (Array.isArray(params.lista) ? params.lista : (typeof params === 'string' ? params.split(/[,;e\n]/).map(function(s){return s.trim();}).filter(function(s){return s.length > 2;}) : []));
+  return SaudeIdosoService.revisarPolifarmaciaQuedas(lista);
+}
+
+/**
+ * cockpitGeriatriaAvancada - Avaliação unificada de Geriatria Avançada.
+ */
+function cockpitGeriatriaAvancada(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SaudeIdosoService === 'undefined') {
+    throw new Error('Módulo SaudeIdosoService indisponível.');
+  }
+  return SaudeIdosoService.avaliarGeriatriaAvancada(params);
 }
 
 /**

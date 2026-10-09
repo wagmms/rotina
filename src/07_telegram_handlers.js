@@ -175,7 +175,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/cig", "/colestase", "/ehag", "/aflp", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol"];
+  var clinicos = ["/cig", "/colestase", "/ehag", "/aflp", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -187,7 +187,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/cig":"cig","/colestase":"cig","/ehag":"cig","/aflp":"cig","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma"};
+      var mapaModos={"/cig":"cig","/colestase":"cig","/ehag":"cig","/aflp":"cig","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -746,6 +746,9 @@ function processarMensagemTexto(message) {
         "• `/minicog 1 relogio alterado` *(Teste Cognitivo Mini-Cog)*\n" +
         "• `/tug 14` *(Timed Up and Go em segundos)*\n" +
         "• `/beers omeprazol clonazepam amitriptilina metformina aas` *(Polifarmácia)*\n" +
+        "• `/frax mulher 68 anos, 58kg, 155cm, fratura previa, corticoide, tscore -2.6` *(Calculadora FRAX)*\n" +
+        "• `/osteoporose 72 anos, tscore -2.8, clcr 28, sem fratura` *(Manejo de Osteoporose)*\n" +
+        "• `/quedas 82 anos, 3 quedas, tug 18s, usa clonazepam, doxazosina` *(Profilaxia de Quedas)*\n" +
         "• `/aga cfs 5, minicog 2 e relogio normal, tug 15s, usa zolpidem, ibuprofeno, losartana, aas, atenolol` *(AGA Completa)*");
     }
 
@@ -777,12 +780,11 @@ function processarMensagemTexto(message) {
     }
     // Beers / Polifarmacia
     if (comando === "/beers" || dadosIdoso.match(/beers|polifarm/i)) {
-      // Se usar o comando direto, tudo depois é a lista.
       var pLista = dadosIdoso.replace(/beers|polifarmacia|aga|cfs\s*\d|minicog.*|tug\s*\d+/gi, "").split(/[,;e]/).map(function(s){return s.trim();}).filter(function(s){return s.length > 2;});
       if (pLista.length > 0) cenario.farmacos = { lista: pLista };
     }
 
-    // Se nenhum regex extraiu, assume modo completo (fallback) se usar o comando /aga e a extração falhar?
+    // Se nenhum regex extraiu, assume modo completo (fallback)
     if (Object.keys(cenario).length === 0) {
       if (comando === "/beers") {
         var bs = dadosIdoso.split(/[,;e]/).map(function(s){return s.trim();}).filter(function(s){return s.length > 2;});
@@ -815,6 +817,123 @@ function processarMensagemTexto(message) {
 
       return enviarMensagemParaChat(chatId, "📊 *RESUMO DA AVALIAÇÃO GERIÁTRICA AMPLA (AGA)*\n\n" + arrStr.join("\n\n"));
     }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // CALCULADORA FRAX (BRASIL / ABRASSO / NOGG)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/frax") {
+    var dadosFrax = texto.replace(/^\/\w+\s*/, "").trim();
+    if (!dadosFrax) {
+      return enviarMensagemParaChat(chatId, "🦴 *CALCULADORA FRAX (BRASIL / ABRASSO / NOGG)*\n\n" +
+        "Estima a probabilidade de fratura por fragilidade em 10 anos.\n\n" +
+        "Envie os achados clínicos:\n" +
+        "• `/frax mulher 68 anos, 58kg, 155cm, fratura previa, corticoide, t-score -2.6`\n" +
+        "• `/frax homem 75 anos, 70kg, 172cm, tabagismo, sem fratura`\n" +
+        "• `/frax mulher 62 anos, 52kg, 160cm, pais com fratura de quadril, etilismo`");
+    }
+    if (typeof SaudeIdosoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo SaudeIdosoService indisponível temporariamente.");
+    }
+    var resFrax = SaudeIdosoService.interpretarTextoLivreFrax(dadosFrax);
+    var emojiRisco = resFrax.categoria_risco.includes("MUITO ALTO") ? "🚨" : (resFrax.categoria_risco.includes("ALTO") ? "⚠️" : (resFrax.categoria_risco.includes("INTERMEDIÁRIO") ? "🟡" : "✅"));
+    var msgFrax = "🦴 *CALCULADORA FRAX (BRASIL / ABRASSO)*\n\n" +
+      "👤 *Perfil:* " + resFrax.sexo + ", " + resFrax.idade + " anos | IMC: " + resFrax.imc + " kg/m²" + (resFrax.tem_dmo ? " | T-Score Colo: " + resFrax.t_score_colo_femur : " | Sem DMO") + "\n\n" +
+      "📊 *PROBABILIDADE DE FRATURA EM 10 ANOS:*\n" +
+      "• *Fratura Osteoporótica Maior (MOF):* " + resFrax.risco_fratura_maior_pct + "%\n" +
+      "• *Fratura de Quadril:* " + resFrax.risco_fratura_quadril_pct + "%\n" +
+      "• *Estratificação:* " + emojiRisco + " *" + resFrax.categoria_risco + "*\n\n" +
+      "💊 *Conduta Farmacológica:* " + (resFrax.indicacao_tratamento_farmacologico ? "INDICADA" : (resFrax.necessidade_dmo ? "Solicitar DMO para reclassificação" : "Não indicada no momento")) + "\n" +
+      "• " + resFrax.conduta;
+    if (resFrax.alertas && resFrax.alertas.length > 0) {
+      msgFrax += "\n\n⚠️ *Alertas:*\n" + resFrax.alertas.join("\n");
+    }
+    msgFrax += "\n\n🏥 *CONDUTA BEIRA-LEITO / UBS:*\n" + resFrax.conduta_beira_leito.map(function(c){return "• " + c;}).join("\n");
+    msgFrax += "\n\n📋 *CRITÉRIOS DE ENCAMINHAMENTO AO ESPECIALISTA:*\n" + resFrax.criterios_encaminhamento_especialista.map(function(c){return "• " + c;}).join("\n");
+    return enviarMensagemParaChat(chatId, msgFrax);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // MANEJO DE OSTEOPOROSE & ANTIRREABSORTIVOS
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/osteoporose") {
+    var dadosOsteo = texto.replace(/^\/\w+\s*/, "").trim();
+    if (!dadosOsteo) {
+      return enviarMensagemParaChat(chatId, "🦴 *PROTOCOLO DE OSTEOPOROSE & ANTIRREABSORTIVOS*\n\n" +
+        "Envie os achados clínicos e laboratoriais:\n" +
+        "• `/osteoporose 72 anos, tscore -2.8, clcr 28, sem fratura`\n" +
+        "• `/osteoporose 68 anos, tscore -3.1, calcio 7.8, vit D 14`\n" +
+        "• `/osteoporose 75 anos, fratura de fragilidade, esofagite grave`\n" +
+        "• `/osteoporose 80 anos, tscore -2.7, 5 anos de alendronato`");
+    }
+    if (typeof SaudeIdosoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo SaudeIdosoService indisponível temporariamente.");
+    }
+    var resOsteo = SaudeIdosoService.interpretarTextoLivreOsteoporose(dadosOsteo);
+    var msgO = "🦴 *MANEJO DE OSTEOPOROSE & ANTIRREABSORTIVOS*\n\n" +
+      "📋 *Diagnóstico Densitométrico:* *" + resOsteo.classificacao_diagnostica + "*\n" +
+      "💊 *Tratamento Farmacológico:* " + (resOsteo.indicacao_tratamento ? "INDICADO" : "NÃO INDICADO") + "\n\n" +
+      "🎯 *Esquema Recomendado:*\n" + resOsteo.esquema_recomendado;
+    if (resOsteo.alternativas && resOsteo.alternativas.length > 0) {
+      msgO += "\n\n🔄 *Alternativas / Detalhes:*\n" + resOsteo.alternativas.map(function(a){return "• " + a;}).join("\n");
+    }
+    if (resOsteo.bloqueios_seguranca && resOsteo.bloqueios_seguranca.length > 0) {
+      msgO += "\n\n🚨 *BLOQUEIOS DE SEGURANÇA MANDATÓRIOS:*\n" + resOsteo.bloqueios_seguranca.join("\n\n");
+    }
+    if (resOsteo.alertas && resOsteo.alertas.length > 0) {
+      msgO += "\n\n⚠️ *Alertas Clínicos:*\n" + resOsteo.alertas.join("\n");
+    }
+    msgO += "\n\n🥛 *Cálcio e Vitamina D:*\n" +
+      "• " + resOsteo.protocolo_vitamina_d + "\n" +
+      resOsteo.protocolo_calcio.map(function(c){return "• " + c;}).join("\n");
+    msgO += "\n\n📝 *Orientações de Tomada do Alendronato:*\n" + resOsteo.orientacoes_ingestao_alendronato.map(function(o){return "• " + o;}).join("\n");
+    msgO += "\n\n📋 *Critérios de Encaminhamento ao Especialista:*\n" + resOsteo.criterios_encaminhamento_especialista.map(function(e){return "• " + e;}).join("\n");
+    return enviarMensagemParaChat(chatId, msgO);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // PROFILAXIA DE QUEDAS & REVISÃO DE POLIFARMÁCIA (FRIDs)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/quedas" || comando === "/polifarmacia" || comando === "/frids") {
+    var dadosQuedas = texto.replace(/^\/\w+\s*/, "").trim();
+    if (!dadosQuedas) {
+      return enviarMensagemParaChat(chatId, "🚶 *PROFILAXIA DE QUEDAS & REVISÃO DE POLIFARMÁCIA (FRIDs)*\n\n" +
+        "Envie os achados para avaliação de risco:\n" +
+        "• `/quedas 82 anos, 3 quedas, tug 18s, usa clonazepam, doxazosina, furosemida, citalopram`\n" +
+        "• `/polifarmacia zolpidem, amitriptilina, losartana, hidroclorotiazida, omeprazol`\n" +
+        "• `/quedas 76 anos, cfs 5, tontura ao levantar, usa pregabalina, quetiapina`");
+    }
+    if (typeof SaudeIdosoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo SaudeIdosoService indisponível temporariamente.");
+    }
+    if (comando === "/polifarmacia" || comando === "/frids") {
+      var listaMeds = dadosQuedas.split(/[,;e\n]/).map(function(s){return s.trim();}).filter(function(s){return s.length > 2;});
+      var resPolifarm = SaudeIdosoService.revisarPolifarmaciaQuedas(listaMeds);
+      var msgP = "💊 *REVISÃO DE POLIFARMÁCIA & DROGAS DE RISCO DE QUEDAS (FRIDs)*\n\n" +
+        "Total analisado: " + resPolifarm.total_medicamentos_analisados + " fármacos\n" +
+        "Carga de Risco: " + (resPolifarm.alerta_critico ? "🚨 " : "⚠️ ") + "*" + resPolifarm.carga_risco_quedas + "*\n\n";
+      if (resPolifarm.drogas_hipotensao_ortostatica.length > 0) {
+        msgP += "📉 *Drogas com Risco de Hipotensão Ortostática:*\n" + resPolifarm.drogas_hipotensao_ortostatica.map(function(d){return "• " + d.medicamento + " (" + d.classe + ")";}).join("\n") + "\n\n";
+      }
+      if (resPolifarm.drogas_prolongamento_qt.length > 0) {
+        msgP += "⚡ *Drogas com Risco de Prolongamento de QT:*\n" + resPolifarm.drogas_prolongamento_qt.map(function(d){return "• " + d.medicamento + " (" + d.classe + ")";}).join("\n") + "\n\n";
+      }
+      if (resPolifarm.drogas_sedativas_ataxia.length > 0) {
+        msgP += "💤 *Sedativos, Relaxantes Musculares e Depressores do SNC:*\n" + resPolifarm.drogas_sedativas_ataxia.map(function(d){return "• " + d.medicamento + " (" + d.classe + ")";}).join("\n") + "\n\n";
+      }
+      msgP += "💡 *Recomendações Práticas de Desprescrição:*\n" + resPolifarm.recomendacoes_desprescricao.map(function(r){return "• " + r;}).join("\n");
+      return enviarMensagemParaChat(chatId, msgP);
+    }
+
+    var resQuedas = SaudeIdosoService.interpretarTextoLivreQuedas(dadosQuedas);
+    var emojiQ = resQuedas.nivel_risco.includes("ALTO") ? "🚨" : (resQuedas.nivel_risco.includes("Moderado") ? "⚠️" : "✅");
+    var msgQ = "🚶 *PROFILAXIA DE QUEDAS & AVALIAÇÃO DE MOBILIDADE*\n\n" +
+      "Estratificação: " + emojiQ + " *" + resQuedas.nivel_risco + "*\n" +
+      (resQuedas.justificativas.length > 0 ? "Fatores: " + resQuedas.justificativas.join("; ") + "\n\n" : "\n") +
+      "💊 *Auditoria Farmacológica (FRIDs):* " + resQuedas.analise_medicamentosa.carga_risco_quedas + " (" + resQuedas.analise_medicamentosa.total_frids_detectados + " drogas detectadas)\n\n" +
+      "🏥 *AÇÕES BEIRA-LEITO / UBS:*\n" + resQuedas.acoes_beira_leito.map(function(a){return "• " + a;}).join("\n") + "\n\n" +
+      "📋 *CRITÉRIOS DE ENCAMINHAMENTO AO ESPECIALISTA:*\n" + resQuedas.criterios_encaminhamento_especialista.map(function(e){return "• " + e;}).join("\n");
+    return enviarMensagemParaChat(chatId, msgQ);
   }
 
   // ───────────────────────────────────────────────────────────────────────────
