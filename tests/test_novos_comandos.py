@@ -64,7 +64,7 @@ def test_teclado_fixo_principal_estrutura():
     out = run_js_handlers(js_test)
     data = json.loads(out)
     assert data["resize_keyboard"] is True
-    assert data["is_persistent"] is True
+    assert data.get("is_persistent") is False
     linhas = [[btn["text"] for btn in linha] for linha in data["keyboard"]]
     assert len(linhas) == 3
     assert "🩺 SOAP Ambulatorial" in linhas[0]

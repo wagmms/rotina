@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 08:21:34
- * Checksum SHA256: 6896d86f3925d765
+ * Gerado automaticamente via build_master.py em: 2026-10-09 08:25:13
+ * Checksum SHA256: b9e3b3e416157045
  * ==============================================================================
  */
 
@@ -530,7 +530,7 @@ function obterTecladoFixoPrincipal(chatId) {
       ]
     ],
     resize_keyboard: true,
-    is_persistent: true
+    is_persistent: false
   };
 }
 

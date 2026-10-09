@@ -5,10 +5,29 @@
 var CardiologiaICCService = (function() {
     'use strict';
 
-    function classificarFracaoEjecao(fe) {
-        if (fe == null || isNaN(fe)) return { erro: "Fração de ejeção inválida." };
+    function sanitizarFE(val) {
+        if (val == null) return null;
+        if (typeof val === 'number') return isNaN(val) ? null : val;
+        if (typeof val === 'string') {
+            var m = val.match(/(\d+(?:[.,]\d+)?)/);
+            if (m) {
+                var num = parseFloat(m[1].replace(',', '.'));
+                return isNaN(num) ? null : num;
+            }
+        }
+        if (typeof val === 'object') {
+            if (val.fe !== undefined) return sanitizarFE(val.fe);
+            if (val.feve !== undefined) return sanitizarFE(val.feve);
+        }
+        return null;
+    }
+
+    function classificarFracaoEjecao(feRaw) {
+        var fe = sanitizarFE(feRaw);
+        if (fe == null) return { erro: "Fração de ejeção inválida ou não informada." };
         if (fe <= 40) {
             return {
+                fe: fe,
                 classificacao: "ICFEr (Fração de Ejeção Reduzida)",
                 sigla: "ICFEr",
                 terapia_base: "Quarteto Fantástico MANDATÓRIO (benefício em mortalidade).",
@@ -16,6 +35,7 @@ var CardiologiaICCService = (function() {
             };
         } else if (fe > 40 && fe <= 49) {
             return {
+                fe: fe,
                 classificacao: "ICFEi (Fração de Ejeção Levemente Reduzida/Intermediária)",
                 sigla: "ICFEi",
                 terapia_base: "iSGLT2 recomendado. iECA/BRA, BB, ARM e ARNI podem ser considerados (evidência menor, foco no fenótipo ICFEr).",
@@ -23,6 +43,7 @@ var CardiologiaICCService = (function() {
             };
         } else {
             return {
+                fe: fe,
                 classificacao: "ICFEp (Fração de Ejeção Preservada)",
                 sigla: "ICFEp",
                 terapia_base: "iSGLT2 (Dapagliflozina/Empagliflozina) é a única classe com benefício robusto de sobrevida livre de eventos. Diuréticos para congestão.",
@@ -101,6 +122,152 @@ var CardiologiaICCService = (function() {
         };
     }
 
+    function extrairParametrosTexto(texto) {
+        if (!texto || typeof texto !== 'string') return {};
+        var t = texto.toLowerCase();
+        var p = {};
+
+        var mFe = t.match(/(?:feve|fe|fracao)\s*[:=]?\s*(\d{1,2}(?:[.,]\d+)?)\s*%?/i) ||
+                  t.match(/\b(\d{1,2})\s*%/i);
+        if (mFe) p.fe = parseFloat(mFe[1].replace(',', '.'));
+
+        var mNyha = t.match(/nyha\s*[:=]?\s*([1-4]|i{1,3}|iv)\b/i) || t.match(/classe\s*([1-4]|i{1,3}|iv)\b/i);
+        if (mNyha) {
+            var r = mNyha[1];
+            p.nyha = (r === 'i' || r === '1') ? 1 : (r === 'ii' || r === '2') ? 2 : (r === 'iii' || r === '3') ? 3 : 4;
+        }
+
+        var mK = t.match(/\bk\+?\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || t.match(/potassio\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+        if (mK) p.k = parseFloat(mK[1].replace(',', '.'));
+
+        var mClcr = t.match(/\b(?:clcr|tfg|clearance)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+        if (mClcr) p.clcr = parseFloat(mClcr[1].replace(',', '.'));
+
+        var mPas = t.match(/\b(?:pas|pa)\s*[:=]?\s*(\d{2,3})/i);
+        if (mPas) p.pas = parseInt(mPas[1], 10);
+
+        var mFc = t.match(/\bfc\s*[:=]?\s*(\d{2,3})/i);
+        if (mFc) p.fc = parseInt(mFc[1], 10);
+
+        p.dpn = /dpn|dispneia paroxistica noturna/i.test(t);
+        p.ortopneia = /ortopneia/i.test(t);
+        p.tjp = /tjp|turgencia jugular/i.test(t);
+        p.estertores = /estertor/i.test(t);
+        p.b3 = /\bb3\b|terceira bulha/i.test(t);
+        p.edema = /edema/i.test(t);
+        p.cardiomegalia = /cardiomegalia/i.test(t);
+
+        p.enalapril = /enalapril/i.test(t);
+        p.ieca = /ieca|enalapril|captopril|ramipril/i.test(t);
+        p.bra = /bra|losartana|valsartana|candesartana/i.test(t);
+        p.semWashout = /sem washout|washout\s*<\s*36/i.test(t);
+        p.washout36h = /washout 36|washout\s*>=?\s*36/i.test(t);
+        p.angioedema = /angioedema/i.test(t);
+
+        return p;
+    }
+
+    function avaliar(params) {
+        params = params || {};
+        if (typeof params === 'string') params = extrairParametrosTexto(params);
+        else if (typeof params === 'number') params = { fe: params };
+
+        var fe = sanitizarFE(params.fe !== undefined ? params.fe : params.feve);
+        var rel = classificarFracaoEjecao(fe !== null ? fe : 50);
+        rel.parametros = params;
+        rel.quarteto_fantastico = obterQuartetoFantastico();
+        rel.bloqueios = bloqueiosMedicais();
+
+        // Alertas individualizados baseados em biomarcadores
+        rel.alertas_clinicos = [];
+        if (params.k !== undefined && params.k > 5.0) {
+            rel.alertas_clinicos.push("🛑 Hipercalemia (K+ = " + params.k + " mEq/L): Contraindicação a início/titulação de Espironolactona (ARM) e cautela com ARNI/iECA/BRA.");
+        }
+        if (params.clcr !== undefined && params.clcr < 30) {
+            rel.alertas_clinicos.push("⚠️ Disfunção Renal Grave (ClCr/TFG = " + params.clcr + " mL/min): Espironolactona não recomendada se TFG < 30. Ajustar doses de iECA/BRA.");
+        }
+        if (params.semWashout || (params.ieca && !params.washout36h && params.substituicaoArni)) {
+            rel.alertas_clinicos.push("🛑 BLOQUEIO CRÍTICO DE ARNI: Necessário intervalo de washout mínimo de 36 horas após última dose de iECA antes de iniciar Sacubitril/Valsartana para prevenir ANGIOEDEMA GRAVE potencialmente fatal.");
+        }
+        if (params.angioedema) {
+            rel.alertas_clinicos.push("🛑 HISTÓRICO DE ANGIOEDEMA: Contraindicação absoluta a iECA e ARNI.");
+        }
+        if (params.pas !== undefined && params.pas < 90) {
+            rel.alertas_clinicos.push("⚠️ Hipotensão (PAS = " + params.pas + " mmHg): Evitar aumentos de dose de vasodilatadores e avaliar estabilidade hemodinâmica.");
+        }
+        if (params.fc !== undefined && params.fc < 55) {
+            rel.alertas_clinicos.push("⚠️ Bradicardia (FC = " + params.fc + " bpm): Não titular dose de Beta-bloqueador no momento.");
+        }
+
+        // Critérios de Framingham
+        var maiores = 0;
+        if (params.dpn) maiores++;
+        if (params.tjp) maiores++;
+        if (params.estertores) maiores++;
+        if (params.cardiomegalia) maiores++;
+        if (params.b3) maiores++;
+
+        var menores = 0;
+        if (params.edema) menores++;
+        if (params.ortopneia) menores++;
+
+        rel.framingham = {
+            criteriosMaiores: maiores,
+            criteriosMenores: menores,
+            diagnosticoClinico: (maiores >= 2 || (maiores >= 1 && menores >= 2)) ? "IC Clínica Altamente Provável (Critérios de Framingham preenchidos)" : "Critérios de Framingham incompletos ou dados insuficientes"
+        };
+
+        return rel;
+    }
+
+    function formatarTextoTelegram(rel) {
+        if (!rel) return "⚠️ Relatório de ICC indisponível.";
+        var txt = "🫀 *INSUFICIÊNCIA CARDÍACA CRÔNICA (SBC/ESC/AHA)*\n";
+        txt += "════════════════════════════════════════════\n";
+        if (rel.fe !== undefined) {
+            txt += "📊 *FEVE:* " + rel.fe + "% — *" + rel.classificacao + "*\n";
+        } else if (rel.classificacao) {
+            txt += "📊 *Classificação:* " + rel.classificacao + "\n";
+        }
+        if (rel.terapia_base) txt += "💡 *Base Terapêutica:* " + rel.terapia_base + "\n";
+        if (rel.orientacao) txt += "🧭 *Diretriz:* " + rel.orientacao + "\n\n";
+
+        if (rel.framingham && rel.framingham.criteriosMaiores > 0) {
+            txt += "📋 *Framingham:* " + rel.framingham.diagnosticoClinico + " (" + rel.framingham.criteriosMaiores + " maiores, " + rel.framingham.criteriosMenores + " menores)\n\n";
+        }
+
+        if (rel.alertas_clinicos && rel.alertas_clinicos.length > 0) {
+            txt += "⚠️ *ALERTAS CLÍNICOS CRÍTICOS:*\n";
+            for (var a = 0; a < rel.alertas_clinicos.length; a++) {
+                txt += "• " + rel.alertas_clinicos[a] + "\n";
+            }
+            txt += "\n";
+        }
+
+        if (rel.quarteto_fantastico && rel.quarteto_fantastico.length > 0) {
+            txt += "💊 *QUARTETO FANTÁSTICO (ICFER):*\n";
+            for (var i = 0; i < rel.quarteto_fantastico.length; i++) {
+                var cls = rel.quarteto_fantastico[i];
+                txt += "🔹 *" + cls.classe + "*:\n";
+                for (var j = 0; j < cls.drogas.length; j++) {
+                    var d = cls.drogas[j];
+                    txt += "  • " + d.nome + " (Alvo: " + d.dose_alvo + (d.dose_inicial ? " | Início: " + d.dose_inicial : "") + ")\n";
+                }
+            }
+            txt += "\n";
+        }
+
+        if (rel.bloqueios && rel.bloqueios.drogas) {
+            txt += "🛑 *BLOQUEIOS MÉDICOS OBRIGATÓRIOS:*\n";
+            for (var k = 0; k < rel.bloqueios.drogas.length; k++) {
+                var bl = rel.bloqueios.drogas[k];
+                txt += "• *" + bl.classe + "*: " + bl.recomendacao + "\n";
+            }
+        }
+
+        return txt;
+    }
+
     function gerarRelatorioCompleto(fe) {
         var relatorio = classificarFracaoEjecao(fe);
         relatorio.quarteto_fantastico = obterQuartetoFantastico();
@@ -112,10 +279,17 @@ var CardiologiaICCService = (function() {
         classificarFracaoEjecao: classificarFracaoEjecao,
         obterQuartetoFantastico: obterQuartetoFantastico,
         bloqueiosMedicais: bloqueiosMedicais,
+        extrairParametrosTexto: extrairParametrosTexto,
+        avaliar: avaliar,
+        formatarTextoTelegram: formatarTextoTelegram,
         gerarRelatorioCompleto: gerarRelatorioCompleto
     };
 })();
 
+var CardiologiaIcCronicaService = CardiologiaICCService;
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = CardiologiaICCService;
+    module.exports.CardiologiaICCService = CardiologiaICCService;
+    module.exports.CardiologiaIcCronicaService = CardiologiaIcCronicaService;
 }

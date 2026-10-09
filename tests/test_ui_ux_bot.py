@@ -59,7 +59,7 @@ def test_teclado_ergonomico_sala_vermelha():
     assert "🚨 Emergência" in linhas[1]
     assert "📱 Cockpit Mini App" in linhas[2]
     assert out.get("resize_keyboard") is True
-    assert out.get("is_persistent") is True
+    assert out.get("is_persistent") is False
 
 def test_receita_medica_sobria_e_uniforme():
     js = """

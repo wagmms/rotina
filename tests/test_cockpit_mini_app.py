@@ -55,14 +55,14 @@ def test_cockpit_movel_html_integridade():
 
 
 def test_teclado_fixo_abre_sessao_nova_do_cockpit():
-    """O teclado persistente abre diretamente o Cockpit Móvel em tela cheia via web_app."""
+    """O teclado abre diretamente o Cockpit Móvel em tela cheia via web_app."""
     js = """
     var kb = obterTecladoFixoPrincipal();
     console.log(JSON.stringify(kb));
     """
     out = json.loads(run_node(js))
     assert out["resize_keyboard"] is True
-    assert out["is_persistent"] is True
+    assert out.get("is_persistent") is False
 
     # Localiza o botão do Cockpit
     todos_botoes = [btn for linha in out["keyboard"] for btn in linha]

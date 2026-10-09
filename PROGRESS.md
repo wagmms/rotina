@@ -17,7 +17,11 @@
     - Implementadas travas de idempotência multi-camadas (memória de processo `_dataUltimoBriefingProcessado`, `CacheService` com TTL de 24h e gravação síncrona imediata em `PropertiesService`).
     - Guardrail no corpo de `enviarBriefingMatinal()` impedindo qualquer reenvio automático na mesma data ISO.
 
-0B. [ ] **Auditoria Defensiva e Tratamento de Exceções no Telegram e Fastify RPC**:
+0B. [x] **Conserto de Usabilidade do Teclado do Telegram**:
+    - Removido `is_persistent: true` em `src/01_utils.js` (configurado como `is_persistent: false`).
+    - Restaurado comportamento padrão ergonômico do Telegram: botões recolhidos em ícone discreto na caixa de texto, abrindo apenas sob demanda e liberando a tela do smartphone.
+
+0C. [ ] **Auditoria Defensiva e Tratamento de Exceções no Telegram e Fastify RPC**:
     - Varredura de todos os handlers de comando em `src/07_telegram_handlers.js` para garantir `try/catch` defensivo com mensagens amigáveis caso parâmetros inválidos sejam digitados.
     - Testar cada rota RPC com payloads vazios, inválidos ou corrompidos, garantindo que nenhum cause crash do processo.
 
