@@ -175,8 +175,60 @@ function limparMarkdownTelegram(texto) {
     }
   }
 
+  // 5. Balanceamento de blocos triplos de código (```)
+  var countTriple = (str.match(/```/g) || []).length;
+  if (countTriple % 2 !== 0) {
+    str += "\n```";
+  }
+
+  // 6. Balanceamento de crases simples (`)
+  var strSemTriplos = str.replace(/```[\s\S]*?```/g, "");
+  var countBacktick = (strSemTriplos.match(/`/g) || []).length;
+  if (countBacktick % 2 !== 0) {
+    var lastIdxB = str.lastIndexOf("`");
+    if (lastIdxB !== -1) {
+      str = str.substring(0, lastIdxB) + str.substring(lastIdxB + 1);
+    }
+  }
+
+  // 7. Balanceamento de colchetes soltos [ que causam parse error no Markdown v1
+  var countOpenBracket = (str.match(/(?:^|[^\\])\[/g) || []).length;
+  var countCloseBracket = (str.match(/(?:^|[^\\])\]/g) || []).length;
+  if (countOpenBracket > countCloseBracket) {
+    str = str.replace(/\[(?=[^\]]*$)/g, "\\[");
+  }
+
   return str;
   });
+}
+
+/**
+ * Sanitiza texto HTML para a API do Telegram preservando tags suportadas
+ * e escapando caracteres reservados (<, >, &) isolados para evitar erro HTTP 400.
+ */
+function sanitizarHtmlTelegram(texto) {
+  if (!texto) return "";
+  var str = String(texto);
+  var tagsValidas = [];
+  var tagRegex = /<\/?(?:b|strong|i|em|u|ins|s|strike|del|code|pre|blockquote|tg-spoiler)(?:\s+[^<>]*)?>|<a\s+href="[^"]*">(?:[\s\S]*?)<\/a>/gi;
+  var prefixo = "HTMLTAGPRESERVADAX";
+  while (str.indexOf(prefixo) >= 0) prefixo += "Y";
+
+  var protegido = str.replace(tagRegex, function(match) {
+    var marcador = prefixo + tagsValidas.length + "FIM";
+    tagsValidas.push(match);
+    return marcador;
+  });
+
+  protegido = protegido.replace(/&/g, "&amp;")
+                       .replace(/</g, "&lt;")
+                       .replace(/>/g, "&gt;");
+
+  tagsValidas.forEach(function(tag, i) {
+    protegido = protegido.split(prefixo + i + "FIM").join(tag);
+  });
+
+  return protegido;
 }
 
 /**
@@ -255,18 +307,35 @@ function enviarMensagemComTecladoParaChat(chatId, texto, teclado) {
 }
 var enviarMensagemComBotoes = enviarMensagemComTecladoParaChat;
 
-function enviarMensagemSegmentada(chatId, texto, teclado) {
+function enviarMensagemSegmentada(chatId, texto, teclado, messageIdParaEditar) {
   if (!texto) return false;
   var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
   if (!token) return false;
 
-  var partes = fragmentarTexto(texto, 3800);
+  var partes = fragmentarTexto(texto, 3700);
   var sucessoGeral = true;
+  var totalPartes = partes.length;
 
-  for (var i = 0; i < partes.length; i++) {
-    var ehUltima = (i === partes.length - 1);
-    var contemHtml = /<\/?(?:b|i|u|s|code|pre|a)\b/i.test(partes[i]);
-    var textoEnvio = contemHtml ? partes[i] : limparMarkdownTelegram(partes[i]);
+  for (var i = 0; i < totalPartes; i++) {
+    var ehPrimeira = (i === 0);
+    var ehUltima = (i === totalPartes - 1);
+    var parteConteudo = partes[i];
+
+    // Se houver múltiplas partes, adiciona sinalização visual de continuidade para evitar perda de conduta beira-leito
+    if (totalPartes > 1) {
+      var cabecalhoParte = !ehPrimeira ? "📄 _[Parte " + (i + 1) + "/" + totalPartes + " · Continuação]_\n\n" : "";
+      var rodapeParte = !ehUltima ? "\n\n📄 _[Parte " + (i + 1) + "/" + totalPartes + " · Continua abaixo ⬇️]_" : "";
+      parteConteudo = cabecalhoParte + parteConteudo + rodapeParte;
+    }
+
+    var contemHtml = /<\/?(?:b|i|u|s|code|pre|a)\b/i.test(parteConteudo);
+    var textoEnvio;
+    if (contemHtml) {
+      textoEnvio = typeof sanitizarHtmlTelegram === "function" ? sanitizarHtmlTelegram(parteConteudo) : parteConteudo;
+    } else {
+      textoEnvio = limparMarkdownTelegram(parteConteudo);
+    }
+
     var payload = {
       "chat_id": chatId,
       "text": textoEnvio,
@@ -276,11 +345,52 @@ function enviarMensagemSegmentada(chatId, texto, teclado) {
       payload.reply_markup = teclado;
     }
 
-    var enviado = executarPostTelegram("https://api.telegram.org/bot" + token + "/sendMessage", payload);
-    if (!enviado) sucessoGeral = false;
+    var enviado = false;
 
-    if (partes.length > 1 && !ehUltima) {
-      Utilities.sleep(500);
+    // Se for a primeira parte e houver messageIdParaEditar (Fast-Ack), tenta editar in-place a mensagem temporária
+    if (ehPrimeira && messageIdParaEditar) {
+      var urlEdit = "https://api.telegram.org/bot" + token + "/editMessageText";
+      var payloadEdit = {
+        "chat_id": String(chatId),
+        "message_id": Number(messageIdParaEditar),
+        "text": textoEnvio,
+        "parse_mode": payload.parse_mode
+      };
+      if (ehUltima && teclado) {
+        payloadEdit.reply_markup = teclado;
+      }
+      try {
+        enviado = executarPostTelegram(urlEdit, payloadEdit);
+      } catch (eEdit) {
+        enviado = false;
+      }
+    }
+
+    // Se não editou in-place (ou não era a 1ª parte ou a edição falhou), envia via sendMessage
+    if (!enviado) {
+      enviado = executarPostTelegram("https://api.telegram.org/bot" + token + "/sendMessage", payload);
+    }
+
+    // Se falhou o envio formatado, tenta fallback em texto plano limpo
+    if (!enviado) {
+      var textoPuro = parteConteudo.replace(/<[^>]+>/g, "").replace(/[*_`#]/g, "");
+      var payloadFallback = {
+        "chat_id": chatId,
+        "text": textoPuro
+      };
+      if (ehUltima && teclado) {
+        payloadFallback.reply_markup = teclado;
+      }
+      enviado = executarPostTelegram("https://api.telegram.org/bot" + token + "/sendMessage", payloadFallback);
+      if (!enviado) {
+        sucessoGeral = false;
+      }
+    }
+
+    if (totalPartes > 1 && !ehUltima) {
+      if (typeof Utilities !== "undefined" && Utilities.sleep) {
+        Utilities.sleep(400);
+      }
     }
   }
   return sucessoGeral;
@@ -353,11 +463,14 @@ function executarPostTelegram(url, payload) {
       return false;
     }
 
-    // Se houve erro de parse no Markdown do Telegram (HTTP 400 de formatação/entidade), tenta reenviar texto plano
-    if (code === 400 && payload.parse_mode) {
+    // Se houve erro de parse no Markdown/HTML do Telegram (HTTP 400), tenta reenviar texto plano
+    if (code === 400 && (payload.parse_mode || /can't parse|entities|unsupported/i.test(res.getContentText ? res.getContentText() : ""))) {
       var corpo400 = res.getContentText ? res.getContentText() : "";
-      if (corpo400.indexOf("can't parse") !== -1 || corpo400.indexOf("entity") !== -1 || !corpo400) {
+      if (corpo400.indexOf("can't parse") !== -1 || corpo400.indexOf("entity") !== -1 || corpo400.indexOf("unsupported") !== -1 || !corpo400) {
         delete payload.parse_mode;
+        if (payload.text) {
+          payload.text = payload.text.replace(/<[^>]+>/g, "").replace(/[*_`#]/g, "");
+        }
         options.payload = JSON.stringify(payload);
         var retryRes = UrlFetchApp.fetch(url, options);
         return retryRes.getResponseCode() === 200;
@@ -366,6 +479,16 @@ function executarPostTelegram(url, payload) {
     return false;
   } catch (e) {
     Logger.log("Exceção ao postar no Telegram: " + e.message);
+    // Em caso de exceção de rede transitória (timeout/socket), tenta 1 retentativa rápida com backoff
+    try {
+      if (typeof Utilities !== "undefined" && Utilities.sleep) {
+        Utilities.sleep(300);
+      }
+      var resRetryNet = UrlFetchApp.fetch(url, options);
+      if (resRetryNet && resRetryNet.getResponseCode() === 200) return true;
+    } catch (eRetry) {
+      Logger.log("Falha persistente na retentativa de rede: " + eRetry.message);
+    }
     return false;
   }
 }

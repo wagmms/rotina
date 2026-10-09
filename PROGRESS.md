@@ -17,16 +17,15 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria de Acessibilidade, Ergonomia e Atalhos Rápidos no Bot do Telegram**:
-    - Revisar fluxos de navegação, tamanho de teclados e limites de caracteres para conexões instáveis de plantão.
-    - Implementar fallbacks em mensagens longas preservando a integridade das condutas beira-leito.
+- [ ] **Otimização de Logs, Monitoramento e Telemetria de Erros**:
+    - Melhorar a rastreabilidade dos logs em produção (Render) mantendo a performance do Fastify.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-3. [ ] **Otimização de Logs, Monitoramento e Telemetria de Erros**:
-    - Melhorar a rastreabilidade dos logs em produção (Render) mantendo a performance do Fastify.
+1. [ ] **Otimização de Carga e Lazy Loading no Cockpit PWA**:
+    - Analisar empacotamento e carregamento de componentes pesados no Cockpit para plantões de baixa conectividade.
 
 ---
 
@@ -45,10 +44,24 @@
 - *Sugestão 10 (Calculadoras / Cockpit)*: Calculadora integrada de reposição de Magnésio e Fósforo IV para prevenção e manejo precoce da Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado na enfermaria/UTI.
 - *Sugestão 11 (Calculadoras)*: Implementar validação cruzada entre clearance estimado (Cockcroft) e eTFG (CKD-EPI) ao gerar alertas de ajuste renal para evidenciar discrepâncias em obesos e sarcopênicos.
 - *Sugestão 12 (Gasometria)*: Adicionar cálculo visual do triângulo de Siggaard-Andersen para auxiliar o médico na compreensão do desvio de base.
+- *Sugestão 14 (Telegram - Mensagens Longas)*: Adicionar botão inline automático "📄 Ver Resumo Completo no Cockpit PWA" quando uma conduta for fragmentada em 3 ou mais partes, oferecendo opção de leitura contínua sem rolagem infinita.
+- *Sugestão 15 (Telegram / Sala Vermelha)*: Teclado inline com botões para pontuação direta da Escala de Glasgow por componentes (Abertura Ocular: 1 a 4, Resposta Verbal: 1 a 5, Resposta Motora: 1 a 6) com soma automática e cálculo de reatividade pupilar (GCS-P) para traumatismo cranioencefálico.
+- *Sugestão 16 (Telegram - Conexões Instáveis)*: Mecanismo de handshake leve com heartbeat de 10s via chatAction para avaliar latência da rede hospitalar antes de disparar payloads pesados com fallbacks adaptativos.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0R. [x] **Auditoria de Acessibilidade, Ergonomia e Atalhos Rápidos no Bot do Telegram**:
+    - **Fragmentação Inteligente e Continuidade Beira-Leito**: Mensagens longas (> 3700 caracteres) agora recebem sinalizadores explícitos de partes (`📄 [Parte X/Y · Continuação]` e `📄 [Parte X/Y · Continua abaixo ⬇️]`), garantindo que o médico saiba que a conduta é contínua e prevenindo omissão de prescrições em redes oscilantes.
+    - **Reutilização do Fast-Ack In-Place (Eliminação de Mensagens Órfãs)**: A primeira parte do texto gerado agora reaproveita e edita in-place a mensagem temporária "⚡ Analisando caso clínico...", eliminando mensagens fantasmas na tela do plantão.
+    - **Sanitização Universal de Markdown & HTML**: Implementada `sanitizarHtmlTelegram` protegendo tags válidas e convertendo comparações clínicas soltas (`< 50 kg`, `> 150 kg`, `pH < 7.20`) em entidades `&lt;` e `&gt;`, prevenindo erros HTTP 400. `limparMarkdownTelegram` reforçado para balancear crases simples (`) e blocos triplos (```).
+    - **Fallback Resiliente de Entrega e Retentativa de Rede**: Retentativa automática de rede (backoff 300ms) em exceções transitórias e fallback gracioso em texto plano caso a API rejeite formatação.
+    - **Ergonomia Mobile e Roteamento Rápido sem Barra**:
+      * Rótulos dos botões inline encurtados para caber sem elipses (`...`) em smartphones pequenos de plantão (`🚨 Sala Vermelha`, `🛏️ Enfermaria`, `🩺 Ambulatório`, `💊 Consultas Bolso`, `🤰 Hub G&O`).
+      * Navegação in-place direta para o Hub de G&O.
+      * Roteador coloquial expandido para atender termos imediatos sem barra: `glasgow` isolado (guia rápido com estratificação e alerta sentinela de IOT para Glasgow ≤ 8), `choque` (protocolo geral) diferenciado de `choque séptico` (CIRCI), e `crisehas` / `has`.
+    - **Bateria de Testes Automatizada**: Suíte `tests/test_ui_ux_acessibilidade_telegram.cjs` expandida com seções de fragmentação, roteamento e sanitização, e 100% aprovada em todo o pipeline `npm test`.
 
 0Q. [x] **Auditoria de Eficiência e Testes de Borda nas Calculadoras Clínicas**:
     - **Proteção Contra Valores Extremos**: Evitada divisão por zero e resultados `Infinity` na calculadora de insulina ambulatorial quando pesos muito baixos são informados (reforço de Math.max).

@@ -246,10 +246,41 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
         enviarMensagemParaChat(chatId, txtGcsNum);
       }
       return true;
+    } else {
+      var txtGuiaGcs = "🧠 *ESCALA DE COMA DE GLASGOW (GUIA RÁPIDO)*\n\n" +
+        "👁️ *Abertura Ocular (1 a 4):*\n" +
+        "• 4: Espontânea | 3: Ao som | 2: À pressão | 1: Ausente\n\n" +
+        "🗣️ *Resposta Verbal (1 a 5):*\n" +
+        "• 5: Orientada | 4: Confusa | 3: Palavras | 2: Sons | 1: Ausente\n\n" +
+        "💪 *Resposta Motora (1 a 6):*\n" +
+        "• 6: À ordem | 5: Localiza | 4: Flexão normal | 3: Decorticação | 2: Descerebração | 1: Ausente\n\n" +
+        "💡 *Avaliação rápida com pontuação:* Envie `glasgow 7` ou `glasgow 14`\n\n" +
+        "🚨 *Alerta Sentinela:* Glasgow ≤ 8 = Proteção de via aérea obrigatória (IOT / SRI imediata).";
+      if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+        enviarMensagemComTecladoParaChat(chatId, txtGuiaGcs, kbNav);
+      } else {
+        enviarMensagemParaChat(chatId, txtGuiaGcs);
+      }
+      return true;
     }
   }
 
-  // K. PCR / ACLS
+  // K. Choque & Hipotensão
+  if (/^choque(?:\s+.*)?$/i.test(tLow)) {
+    if (/(?:choque\s+s[eé]ptico(?:\s+refrat[aá]rio)?|\bcirci\b)/i.test(tLow)) {
+      var restoSeptico = tLimpo.replace(/^choque\s+s[eé]ptico(?:\s+refrat[aá]rio)?\s*/i, "").trim();
+      return processarMensagemTexto({ chat: { id: chatId }, text: "/choqueseptico" + (restoSeptico ? " " + restoSeptico : "") });
+    }
+    var restoChoque = tLimpo.replace(/^choque\s*/i, "").trim();
+    return processarMensagemTexto({ chat: { id: chatId }, text: "/choque" + (restoChoque ? " " + restoChoque : "") });
+  }
+
+  // L. Crise Hipertensiva / HAS Descompensada
+  if (/^(?:crisehas|crise\s*has)$/i.test(tLow)) {
+    return processarMensagemTexto({ chat: { id: chatId }, text: "/crisehipertensiva" });
+  }
+
+  // M. PCR / ACLS
   if (/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)(?:\s+.*)?$/i.test(tLow)) {
     var dadosPcrAtalho = tLow.replace(/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)\s*/i, "").trim();
     if (typeof tratarComandoPcr === "function") {
@@ -403,8 +434,9 @@ function processarMensagemTexto(message) {
         "diabetes", "anemia", "intox", "sca",
         "avc", "hic", "kdigo", "dhe", "eletrolitos", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia",
         "dengue", "arbovirose", "chikungunya", "zika", "pac", "pneumonia", "itu", "cistite", "pielonefrite",
-        "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "cefaleia", "dorcabeca",
-        "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan"
+        "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "crisehas", "has", "cefaleia", "dorcabeca",
+        "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan",
+        "glasgow", "choque", "eap", "anafilaxia", "convulsao", "hipercalemia", "hipoglicemia"
       ];
       if (comandosSemBarra.indexOf(primPalavra) !== -1) {
         texto = "/" + texto;
@@ -4958,7 +4990,7 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
     if (textoFinal.length <= 3900) {
       return enviarMensagemComTecladoParaChat(chatId, textoFinal, tecladoSalvar);
     } else {
-      return enviarMensagemSegmentada(chatId, textoFinal, tecladoSalvar);
+      return enviarMensagemSegmentada(chatId, textoFinal, tecladoSalvar, messageIdParaEditar);
     }
   } else {
     enviarMensagemParaChat(chatId, "⚠️ Erro ao processar a resposta com a IA.");

@@ -247,6 +247,84 @@ async function testUiUxAcessibilidadeTelegram() {
   assert(mensagensEnviadas[0].texto.includes('Etomidato') || mensagensEnviadas[0].texto.includes('Rocurônio'));
   console.log('  ✓ Typo "intubacao" corrigido graciosamente para /sri.');
 
+  // =========================================================================
+  // 6. Roteamento Imediato de Plantão (Glasgow isolado, Choque, CriseHAS)
+  // =========================================================================
+  console.log('\n[6] Testando Roteamento Imediato de Plantão (Termos Clínicos sem Barra)...');
+  mensagensEnviadas = [];
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: 'glasgow' });
+  assert(mensagensEnviadas.length > 0);
+  assert(mensagensEnviadas[0].texto.includes('ESCALA DE COMA DE GLASGOW (GUIA RÁPIDO)'));
+  assert(mensagensEnviadas[0].texto.includes('Abertura Ocular') && mensagensEnviadas[0].texto.includes('Glasgow ≤ 8'));
+  console.log('  ✓ "glasgow" isolado entrega guia rápido da escala com pontuação e alerta sentinela.');
+
+  mensagensEnviadas = [];
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: 'choque' });
+  assert(mensagensEnviadas.length > 0);
+  assert(mensagensEnviadas[0].texto.toUpperCase().includes('CHOQUE'));
+  console.log('  ✓ "choque" sem barra roteia diretamente para o protocolo de choque.');
+
+  mensagensEnviadas = [];
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: 'crisehas' });
+  assert(mensagensEnviadas.length > 0);
+  assert(mensagensEnviadas[0].texto.toUpperCase().includes('CRISE HIPERTENSIVA') || mensagensEnviadas[0].texto.toUpperCase().includes('URGÊNCIA'));
+  console.log('  ✓ "crisehas" sem barra roteia para o protocolo de crise hipertensiva.');
+
+  // =========================================================================
+  // 7. Sanitização Universal de Entidades e Markdown/HTML
+  // =========================================================================
+  console.log('\n[7] Testando Sanitização Universal de Markdown e HTML...');
+  const mdComCrasesImpares = 'Conduta: `dose 10 mg/kg em bólus com monitorização';
+  const mdLimpo = ctx.limparMarkdownTelegram(mdComCrasesImpares);
+  const countB = (mdLimpo.match(/`/g) || []).length;
+  assert.strictEqual(countB % 2, 0, 'Crases ímpares devem ser balanceadas');
+  console.log('  ✓ limparMarkdownTelegram balanceia crases ímpares sem quebrar o parse do Telegram.');
+
+  const mdBlocoTriplo = '```\nPrescrição Hospitalar';
+  const mdBlocoLimpo = ctx.limparMarkdownTelegram(mdBlocoTriplo);
+  assert(mdBlocoLimpo.endsWith('```'), 'Bloco triplo de código deve ser fechado');
+  console.log('  ✓ limparMarkdownTelegram fecha blocos triplos de código abertos.');
+
+  const htmlComSinaisMedicos = '<b>CONDUTA:</b> Se peso < 10 kg e K+ > 5.5 mEq/L, suspender reposição.';
+  const htmlSanitizado = ctx.sanitizarHtmlTelegram(htmlComSinaisMedicos);
+  assert(htmlSanitizado.includes('<b>CONDUTA:</b>'), 'Tags HTML válidas devem ser preservadas');
+  assert(htmlSanitizado.includes('&lt; 10 kg') && htmlSanitizado.includes('&gt; 5.5'), 'Sinais médicos de comparação soltos devem ser escapados para &lt; e &gt;');
+  console.log('  ✓ sanitizarHtmlTelegram preserva tags válidas e escapa comparações clínicas soltas.');
+
+  // =========================================================================
+  // 8. Fragmentação com Indicador Visual de Partes e Fast-Ack In-Place
+  // =========================================================================
+  console.log('\n[8] Testando Fragmentação com Continuidade e Reutilização de Fast-Ack...');
+  const textoLongo = 'LINHA DE CONDUTA CLÍNICA '.repeat(200); // ~5000 chars
+  assert(textoLongo.length > 4000, 'Texto deve exceder o limite de 4000 caracteres');
+
+  let chamadasPost = [];
+  const originalExec = ctx.executarPostTelegram;
+  ctx.executarPostTelegram = (url, payload) => {
+    chamadasPost.push({ url, payload });
+    return true;
+  };
+
+  const okSegmentado = ctx.enviarMensagemSegmentada(chatId, textoLongo, null, 999888);
+  ctx.executarPostTelegram = originalExec;
+
+  assert.strictEqual(okSegmentado, true, 'Envio segmentado deve retornar true');
+  assert(chamadasPost.length >= 2, 'Deve gerar pelo menos 2 partes para mensagem de 5000 chars');
+
+  // Verifica se a primeira parte tentou in-place edit em messageIdParaEditar
+  const primeiraChamada = chamadasPost[0];
+  assert(primeiraChamada.url.includes('editMessageText'), 'Primeira parte deve tentar editMessageText no Fast-Ack');
+  assert.strictEqual(primeiraChamada.payload.message_id, 999888, 'Deve reutilizar message_id do Fast-Ack');
+  assert(primeiraChamada.payload.text.includes('[Parte 1/'), 'Primeira parte deve conter cabeçalho/rodapé de partes');
+  assert(primeiraChamada.payload.text.includes('Continua abaixo ⬇️'), 'Primeira parte deve indicar continuidade abaixo');
+
+  // Verifica segunda chamada
+  const segundaChamada = chamadasPost[1];
+  assert(segundaChamada.url.includes('sendMessage'), 'Segunda parte deve usar sendMessage');
+  assert(segundaChamada.payload.text.includes('[Parte 2/'), 'Segunda parte deve conter identificador de parte 2');
+  assert(segundaChamada.payload.text.includes('Continuação'), 'Segunda parte deve indicar continuação');
+  console.log('  ✓ Fragmentação inclui cabeçalhos/rodapés visuais (Parte X/Y) e reutiliza Fast-Ack sem mensagem órfã.');
+
   console.log('\n🎉 TODOS OS TESTES DE UI/UX, MENUS, ERGONOMIA E ENTRADA RÁPIDA PASSARAM COM SUCESSO!\n');
 }
 

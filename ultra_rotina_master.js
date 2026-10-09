@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 20:08:24
- * Checksum SHA256: 30e3281280b21696
+ * Gerado automaticamente via build_master.py em: 2026-10-09 20:28:59
+ * Checksum SHA256: d50efafc7dd02c57
  * ==============================================================================
  */
 
@@ -301,8 +301,60 @@ function limparMarkdownTelegram(texto) {
     }
   }
 
+  // 5. Balanceamento de blocos triplos de código (```)
+  var countTriple = (str.match(/```/g) || []).length;
+  if (countTriple % 2 !== 0) {
+    str += "\n```";
+  }
+
+  // 6. Balanceamento de crases simples (`)
+  var strSemTriplos = str.replace(/```[\s\S]*?```/g, "");
+  var countBacktick = (strSemTriplos.match(/`/g) || []).length;
+  if (countBacktick % 2 !== 0) {
+    var lastIdxB = str.lastIndexOf("`");
+    if (lastIdxB !== -1) {
+      str = str.substring(0, lastIdxB) + str.substring(lastIdxB + 1);
+    }
+  }
+
+  // 7. Balanceamento de colchetes soltos [ que causam parse error no Markdown v1
+  var countOpenBracket = (str.match(/(?:^|[^\\])\[/g) || []).length;
+  var countCloseBracket = (str.match(/(?:^|[^\\])\]/g) || []).length;
+  if (countOpenBracket > countCloseBracket) {
+    str = str.replace(/\[(?=[^\]]*$)/g, "\\[");
+  }
+
   return str;
   });
+}
+
+/**
+ * Sanitiza texto HTML para a API do Telegram preservando tags suportadas
+ * e escapando caracteres reservados (<, >, &) isolados para evitar erro HTTP 400.
+ */
+function sanitizarHtmlTelegram(texto) {
+  if (!texto) return "";
+  var str = String(texto);
+  var tagsValidas = [];
+  var tagRegex = /<\/?(?:b|strong|i|em|u|ins|s|strike|del|code|pre|blockquote|tg-spoiler)(?:\s+[^<>]*)?>|<a\s+href="[^"]*">(?:[\s\S]*?)<\/a>/gi;
+  var prefixo = "HTMLTAGPRESERVADAX";
+  while (str.indexOf(prefixo) >= 0) prefixo += "Y";
+
+  var protegido = str.replace(tagRegex, function(match) {
+    var marcador = prefixo + tagsValidas.length + "FIM";
+    tagsValidas.push(match);
+    return marcador;
+  });
+
+  protegido = protegido.replace(/&/g, "&amp;")
+                       .replace(/</g, "&lt;")
+                       .replace(/>/g, "&gt;");
+
+  tagsValidas.forEach(function(tag, i) {
+    protegido = protegido.split(prefixo + i + "FIM").join(tag);
+  });
+
+  return protegido;
 }
 
 /**
@@ -381,18 +433,35 @@ function enviarMensagemComTecladoParaChat(chatId, texto, teclado) {
 }
 var enviarMensagemComBotoes = enviarMensagemComTecladoParaChat;
 
-function enviarMensagemSegmentada(chatId, texto, teclado) {
+function enviarMensagemSegmentada(chatId, texto, teclado, messageIdParaEditar) {
   if (!texto) return false;
   var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
   if (!token) return false;
 
-  var partes = fragmentarTexto(texto, 3800);
+  var partes = fragmentarTexto(texto, 3700);
   var sucessoGeral = true;
+  var totalPartes = partes.length;
 
-  for (var i = 0; i < partes.length; i++) {
-    var ehUltima = (i === partes.length - 1);
-    var contemHtml = /<\/?(?:b|i|u|s|code|pre|a)\b/i.test(partes[i]);
-    var textoEnvio = contemHtml ? partes[i] : limparMarkdownTelegram(partes[i]);
+  for (var i = 0; i < totalPartes; i++) {
+    var ehPrimeira = (i === 0);
+    var ehUltima = (i === totalPartes - 1);
+    var parteConteudo = partes[i];
+
+    // Se houver múltiplas partes, adiciona sinalização visual de continuidade para evitar perda de conduta beira-leito
+    if (totalPartes > 1) {
+      var cabecalhoParte = !ehPrimeira ? "📄 _[Parte " + (i + 1) + "/" + totalPartes + " · Continuação]_\n\n" : "";
+      var rodapeParte = !ehUltima ? "\n\n📄 _[Parte " + (i + 1) + "/" + totalPartes + " · Continua abaixo ⬇️]_" : "";
+      parteConteudo = cabecalhoParte + parteConteudo + rodapeParte;
+    }
+
+    var contemHtml = /<\/?(?:b|i|u|s|code|pre|a)\b/i.test(parteConteudo);
+    var textoEnvio;
+    if (contemHtml) {
+      textoEnvio = typeof sanitizarHtmlTelegram === "function" ? sanitizarHtmlTelegram(parteConteudo) : parteConteudo;
+    } else {
+      textoEnvio = limparMarkdownTelegram(parteConteudo);
+    }
+
     var payload = {
       "chat_id": chatId,
       "text": textoEnvio,
@@ -402,11 +471,52 @@ function enviarMensagemSegmentada(chatId, texto, teclado) {
       payload.reply_markup = teclado;
     }
 
-    var enviado = executarPostTelegram("https://api.telegram.org/bot" + token + "/sendMessage", payload);
-    if (!enviado) sucessoGeral = false;
+    var enviado = false;
 
-    if (partes.length > 1 && !ehUltima) {
-      Utilities.sleep(500);
+    // Se for a primeira parte e houver messageIdParaEditar (Fast-Ack), tenta editar in-place a mensagem temporária
+    if (ehPrimeira && messageIdParaEditar) {
+      var urlEdit = "https://api.telegram.org/bot" + token + "/editMessageText";
+      var payloadEdit = {
+        "chat_id": String(chatId),
+        "message_id": Number(messageIdParaEditar),
+        "text": textoEnvio,
+        "parse_mode": payload.parse_mode
+      };
+      if (ehUltima && teclado) {
+        payloadEdit.reply_markup = teclado;
+      }
+      try {
+        enviado = executarPostTelegram(urlEdit, payloadEdit);
+      } catch (eEdit) {
+        enviado = false;
+      }
+    }
+
+    // Se não editou in-place (ou não era a 1ª parte ou a edição falhou), envia via sendMessage
+    if (!enviado) {
+      enviado = executarPostTelegram("https://api.telegram.org/bot" + token + "/sendMessage", payload);
+    }
+
+    // Se falhou o envio formatado, tenta fallback em texto plano limpo
+    if (!enviado) {
+      var textoPuro = parteConteudo.replace(/<[^>]+>/g, "").replace(/[*_`#]/g, "");
+      var payloadFallback = {
+        "chat_id": chatId,
+        "text": textoPuro
+      };
+      if (ehUltima && teclado) {
+        payloadFallback.reply_markup = teclado;
+      }
+      enviado = executarPostTelegram("https://api.telegram.org/bot" + token + "/sendMessage", payloadFallback);
+      if (!enviado) {
+        sucessoGeral = false;
+      }
+    }
+
+    if (totalPartes > 1 && !ehUltima) {
+      if (typeof Utilities !== "undefined" && Utilities.sleep) {
+        Utilities.sleep(400);
+      }
     }
   }
   return sucessoGeral;
@@ -479,11 +589,14 @@ function executarPostTelegram(url, payload) {
       return false;
     }
 
-    // Se houve erro de parse no Markdown do Telegram (HTTP 400 de formatação/entidade), tenta reenviar texto plano
-    if (code === 400 && payload.parse_mode) {
+    // Se houve erro de parse no Markdown/HTML do Telegram (HTTP 400), tenta reenviar texto plano
+    if (code === 400 && (payload.parse_mode || /can't parse|entities|unsupported/i.test(res.getContentText ? res.getContentText() : ""))) {
       var corpo400 = res.getContentText ? res.getContentText() : "";
-      if (corpo400.indexOf("can't parse") !== -1 || corpo400.indexOf("entity") !== -1 || !corpo400) {
+      if (corpo400.indexOf("can't parse") !== -1 || corpo400.indexOf("entity") !== -1 || corpo400.indexOf("unsupported") !== -1 || !corpo400) {
         delete payload.parse_mode;
+        if (payload.text) {
+          payload.text = payload.text.replace(/<[^>]+>/g, "").replace(/[*_`#]/g, "");
+        }
         options.payload = JSON.stringify(payload);
         var retryRes = UrlFetchApp.fetch(url, options);
         return retryRes.getResponseCode() === 200;
@@ -492,6 +605,16 @@ function executarPostTelegram(url, payload) {
     return false;
   } catch (e) {
     Logger.log("Exceção ao postar no Telegram: " + e.message);
+    // Em caso de exceção de rede transitória (timeout/socket), tenta 1 retentativa rápida com backoff
+    try {
+      if (typeof Utilities !== "undefined" && Utilities.sleep) {
+        Utilities.sleep(300);
+      }
+      var resRetryNet = UrlFetchApp.fetch(url, options);
+      if (resRetryNet && resRetryNet.getResponseCode() === 200) return true;
+    } catch (eRetry) {
+      Logger.log("Falha persistente na retentativa de rede: " + eRetry.message);
+    }
     return false;
   }
 }
@@ -9732,7 +9855,7 @@ var EndocrinologiaDiabetesService = (function() {
     if (tipoDm === 1) {
       // DM1: 0.5 U/kg/dia padrão (0.4 a 0.6 em fase inicial; até 0.8-1.0 em estresse/puberdade)
       var fatorDose = descompensado ? 0.6 : 0.5;
-      var doseTotalDia = Math.round(peso * fatorDose);
+      var doseTotalDia = Math.max(1, Math.round(peso * fatorDose));
       var basal = Math.round(doseTotalDia * 0.5);
       var bolusTotal = doseTotalDia - basal;
       var bolusPorRefeicao = Math.round(bolusTotal / 3);
@@ -38500,10 +38623,41 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
         enviarMensagemParaChat(chatId, txtGcsNum);
       }
       return true;
+    } else {
+      var txtGuiaGcs = "🧠 *ESCALA DE COMA DE GLASGOW (GUIA RÁPIDO)*\n\n" +
+        "👁️ *Abertura Ocular (1 a 4):*\n" +
+        "• 4: Espontânea | 3: Ao som | 2: À pressão | 1: Ausente\n\n" +
+        "🗣️ *Resposta Verbal (1 a 5):*\n" +
+        "• 5: Orientada | 4: Confusa | 3: Palavras | 2: Sons | 1: Ausente\n\n" +
+        "💪 *Resposta Motora (1 a 6):*\n" +
+        "• 6: À ordem | 5: Localiza | 4: Flexão normal | 3: Decorticação | 2: Descerebração | 1: Ausente\n\n" +
+        "💡 *Avaliação rápida com pontuação:* Envie `glasgow 7` ou `glasgow 14`\n\n" +
+        "🚨 *Alerta Sentinela:* Glasgow ≤ 8 = Proteção de via aérea obrigatória (IOT / SRI imediata).";
+      if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
+        enviarMensagemComTecladoParaChat(chatId, txtGuiaGcs, kbNav);
+      } else {
+        enviarMensagemParaChat(chatId, txtGuiaGcs);
+      }
+      return true;
     }
   }
 
-  // K. PCR / ACLS
+  // K. Choque & Hipotensão
+  if (/^choque(?:\s+.*)?$/i.test(tLow)) {
+    if (/(?:choque\s+s[eé]ptico(?:\s+refrat[aá]rio)?|\bcirci\b)/i.test(tLow)) {
+      var restoSeptico = tLimpo.replace(/^choque\s+s[eé]ptico(?:\s+refrat[aá]rio)?\s*/i, "").trim();
+      return processarMensagemTexto({ chat: { id: chatId }, text: "/choqueseptico" + (restoSeptico ? " " + restoSeptico : "") });
+    }
+    var restoChoque = tLimpo.replace(/^choque\s*/i, "").trim();
+    return processarMensagemTexto({ chat: { id: chatId }, text: "/choque" + (restoChoque ? " " + restoChoque : "") });
+  }
+
+  // L. Crise Hipertensiva / HAS Descompensada
+  if (/^(?:crisehas|crise\s*has)$/i.test(tLow)) {
+    return processarMensagemTexto({ chat: { id: chatId }, text: "/crisehipertensiva" });
+  }
+
+  // M. PCR / ACLS
   if (/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)(?:\s+.*)?$/i.test(tLow)) {
     var dadosPcrAtalho = tLow.replace(/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)\s*/i, "").trim();
     if (typeof tratarComandoPcr === "function") {
@@ -38657,8 +38811,9 @@ function processarMensagemTexto(message) {
         "diabetes", "anemia", "intox", "sca",
         "avc", "hic", "kdigo", "dhe", "eletrolitos", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia",
         "dengue", "arbovirose", "chikungunya", "zika", "pac", "pneumonia", "itu", "cistite", "pielonefrite",
-        "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "cefaleia", "dorcabeca",
-        "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan"
+        "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "crisehas", "has", "cefaleia", "dorcabeca",
+        "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan",
+        "glasgow", "choque", "eap", "anafilaxia", "convulsao", "hipercalemia", "hipoglicemia"
       ];
       if (comandosSemBarra.indexOf(primPalavra) !== -1) {
         texto = "/" + texto;
@@ -43212,7 +43367,7 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
     if (textoFinal.length <= 3900) {
       return enviarMensagemComTecladoParaChat(chatId, textoFinal, tecladoSalvar);
     } else {
-      return enviarMensagemSegmentada(chatId, textoFinal, tecladoSalvar);
+      return enviarMensagemSegmentada(chatId, textoFinal, tecladoSalvar, messageIdParaEditar);
     }
   } else {
     enviarMensagemParaChat(chatId, "⚠️ Erro ao processar a resposta com a IA.");
@@ -47978,8 +48133,8 @@ function enviarMenuAmbulatorio(chat, messageId) {
     '• *Documentos:* Códigos CID-10/CIAP-2 e atestado médico CFM';
   var botoes = botoesBot([
     [['📝 Gerador SOAP Ágil', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
-    [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado Médico CFM', 'ux:amb:atestado']],
-    [['🤰 Hub G&O (Estágio até 29/11)', 'ux:rotina:go'], ['🌸 Preventivo & Citopatológico', 'ux:rotina:preventivo']],
+    [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado CFM', 'ux:amb:atestado']],
+    [['🤰 Hub G&O', 'ux:rotina:go'], ['🌸 Preventivo', 'ux:rotina:preventivo']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -48014,8 +48169,8 @@ function enviarHubPrincipal(chat, messageId) {
 
   var urlApp = obterUrlCockpit(chat);
   var botoes = [
-    [['🚨 Emergência & Sala Vermelha', 'ux:hub:sala'], ['🛏️ Enfermaria & Prescrição', 'ux:hub:enf']],
-    [['🩺 Ambulatório & UBS', 'ux:hub:amb'], ['💊 Consultas de Bolso', 'ux:hub:bolso']],
+    [['🚨 Sala Vermelha', 'ux:hub:sala'], ['🛏️ Enfermaria', 'ux:hub:enf']],
+    [['🩺 Ambulatório', 'ux:hub:amb'], ['💊 Consultas Bolso', 'ux:hub:bolso']],
     [['📐 Calculadoras', 'ux:hub:calc'], ['📅 Rotina & Estudo', 'ux:hub:rotina']],
     [{ text: '📱 Cockpit Mini App', web_app: { url: urlApp } }, ['🧹 Novo Paciente', 'ux:novo:soap']]
   ];
@@ -48561,9 +48716,17 @@ function tratarCallbackUX(cb) {
       safePutCache(cache, 'ctx_' + chat, novoCasoImg, UX_TTL_SEG);
       return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, novoCasoImg, "soap");
     } else if (op === 'rotina') {
-      if (v === 'duvida') enviarMensagemParaChat(chat, '🧠 *Dúvida MedQuest*\n\nEnvie: `/duvida seu tema`');
-      else if (v === 'agenda_amanha') texto('/agenda amanha');
-      else texto('/' + v);
+      if (v === 'go') {
+        enviarMenuGinecologiaObstetricia(chat, msgId);
+      } else if (v === 'preventivo') {
+        texto('/preventivo');
+      } else if (v === 'duvida') {
+        enviarMensagemParaChat(chat, '🧠 *Dúvida MedQuest*\n\nEnvie: `/duvida seu tema`');
+      } else if (v === 'agenda_amanha') {
+        texto('/agenda amanha');
+      } else {
+        texto('/' + v);
+      }
     } else if (op === 'sala') {
       enviarMenuSalaVermelha(chat, msgId);
     } else if (op === 'dvamenu') {

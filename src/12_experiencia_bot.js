@@ -357,8 +357,8 @@ function enviarMenuAmbulatorio(chat, messageId) {
     '• *Documentos:* Códigos CID-10/CIAP-2 e atestado médico CFM';
   var botoes = botoesBot([
     [['📝 Gerador SOAP Ágil', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
-    [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado Médico CFM', 'ux:amb:atestado']],
-    [['🤰 Hub G&O (Estágio até 29/11)', 'ux:rotina:go'], ['🌸 Preventivo & Citopatológico', 'ux:rotina:preventivo']],
+    [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado CFM', 'ux:amb:atestado']],
+    [['🤰 Hub G&O', 'ux:rotina:go'], ['🌸 Preventivo', 'ux:rotina:preventivo']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -393,8 +393,8 @@ function enviarHubPrincipal(chat, messageId) {
 
   var urlApp = obterUrlCockpit(chat);
   var botoes = [
-    [['🚨 Emergência & Sala Vermelha', 'ux:hub:sala'], ['🛏️ Enfermaria & Prescrição', 'ux:hub:enf']],
-    [['🩺 Ambulatório & UBS', 'ux:hub:amb'], ['💊 Consultas de Bolso', 'ux:hub:bolso']],
+    [['🚨 Sala Vermelha', 'ux:hub:sala'], ['🛏️ Enfermaria', 'ux:hub:enf']],
+    [['🩺 Ambulatório', 'ux:hub:amb'], ['💊 Consultas Bolso', 'ux:hub:bolso']],
     [['📐 Calculadoras', 'ux:hub:calc'], ['📅 Rotina & Estudo', 'ux:hub:rotina']],
     [{ text: '📱 Cockpit Mini App', web_app: { url: urlApp } }, ['🧹 Novo Paciente', 'ux:novo:soap']]
   ];
@@ -940,9 +940,17 @@ function tratarCallbackUX(cb) {
       safePutCache(cache, 'ctx_' + chat, novoCasoImg, UX_TTL_SEG);
       return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, novoCasoImg, "soap");
     } else if (op === 'rotina') {
-      if (v === 'duvida') enviarMensagemParaChat(chat, '🧠 *Dúvida MedQuest*\n\nEnvie: `/duvida seu tema`');
-      else if (v === 'agenda_amanha') texto('/agenda amanha');
-      else texto('/' + v);
+      if (v === 'go') {
+        enviarMenuGinecologiaObstetricia(chat, msgId);
+      } else if (v === 'preventivo') {
+        texto('/preventivo');
+      } else if (v === 'duvida') {
+        enviarMensagemParaChat(chat, '🧠 *Dúvida MedQuest*\n\nEnvie: `/duvida seu tema`');
+      } else if (v === 'agenda_amanha') {
+        texto('/agenda amanha');
+      } else {
+        texto('/' + v);
+      }
     } else if (op === 'sala') {
       enviarMenuSalaVermelha(chat, msgId);
     } else if (op === 'dvamenu') {
