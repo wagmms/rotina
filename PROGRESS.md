@@ -16,11 +16,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 
 
-9. [ ] **Tromboembolismo Venoso (TEV) na Gestação e Puerpério (Escore de Risco RCOG/FEBRASGO & Profilaxia com HBPM)**:
-    - Estratificação determinística de risco trombótico antenatal e pós-parto com pontuação cumulativa (cesariana de urgência, IMC > 30, pré-eclâmpsia, tabagismo, imobilidade, idade > 35a).
-    - Indicação temporal e doses profiláticas ponderadas de Enoxaparina (40 mg a 80 mg SC/dia) e bloqueio de Varfarina no 1º trimestre (embriopatia varfarínica).
-    - Intervalo de segurança estrito entre a última dose de Enoxaparina e analgesia de parto/bloqueio neuroaxial (mínimo de 12h para dose profilática e 24h para dose terapêutica prevenindo hematoma epidural).
-
 10. [ ] **Climatério e Terapia Hormonal da Menopausa (THM - Consenso FEBRASGO/NAMS)**:
     - Janela de Oportunidade: Avaliação criteriosa da relação risco-benefício (< 60 anos ou < 10 anos de pós-menopausa).
     - Prescrição Personalizada com Proteção Endometrial: Regra de ouro da preservação uterina (mulheres com útero intacto exigem obrigatoriamente estrogênio + progestagênio para prevenir hiperplasia/adenocarcinoma endometrial; histerectomizadas usam estrogênio isolado).
@@ -144,13 +139,37 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolo escalonado de broncodilatação (Salbutamol em espaçador ou nebulização a cada 20 min na 1ª hora + Brometo de Ipratrópio 0.5mg).
     - Corticoterapia sistêmica precoce e indicação oportuna de Sulfato de Magnésio 2g IV em 20 min na crise refratária.
 
+37. [ ] **Obstetrícia & Medicina Materno-Fetal - Manejo de Restrição de Crescimento Fetal (RCF / CIUR) e Doppler Obstétrico (Critérios de Barcelona / ISUOG)**:
+    - Diferenciação precoce (< 32 semanas) vs tardia (>= 32 semanas) de RCF e PIG (Pequeno para a Idade Gestacional constitucional).
+    - Interpretação determinística do Doppler: Artéria Umbilical (diástole zero ou reversa), Artéria Cerebral Média (redistribuição com vasodilatação / ACM < p5) e Ducto Venoso (onda A reversa como gatilho estrito de interrupção imediata por risco de acidemia/óbito fetal).
+    - Protocolo de vigilância e momento ideal de parto baseado no estadiamento I, II, III e IV de Barcelona.
+
+38. [ ] **Hepatologia & Emergência Obstétrica - Colestase Intra-hepática da Gestação (CIG) e Esteatose Hepática Aguda**:
+    - Dosagem de ácidos biliares totais séricos como biomarcador patognomônico de estratificação de gravidade (leve 10-39 mcmol/L, moderada 40-99 mcmol/L, grave >= 100 mcmol/L com risco de óbito fetal súbito).
+    - Posologia ponderada de Ácido Ursodesoxicólico (UDCA 10 a 15 mg/kg/dia) como fármaco de 1ª linha.
+    - Programação do parto: indicação de interrupção entre 36 e 37 semanas na forma grave (ou 38 semanas na leve) evitando óbito fetal sem advertência cardiotocográfica.
+
+39. [ ] **Infectologia & Obstetrícia - Rastreamento e Manejo de Toxoplasmose Aguda na Gestação (Diretrizes Ministério da Saúde)**:
+    - Interpretação sorológica (IgG, IgM e Teste de Avidez de IgG no 1º trimestre) para confirmação de infecção aguda materna.
+    - Início precoce de Espiramicina 1g VO 8/8h para prevenir a transmissão vertical placentária.
+    - Diagnóstico de infecção fetal por PCR no líquido amniótico (amniocentese após 18 semanas) e substituição imediata pelo esquema tríplice (Sulfadiazina + Pirimetamina + Ácido Folínico) para tratamento fetal intraútero.
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
+- [ ] **Climatério e Terapia Hormonal da Menopausa (THM - Consenso FEBRASGO/NAMS)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Tromboembolismo Venoso (TEV) na Gestação e Puerpério (Escore de Risco RCOG/FEBRASGO & Profilaxia com HBPM)**:
+   - Motor determinístico de estratificação de risco trombótico antenatal e pós-parto com pontuação cumulativa RCOG/FEBRASGO (cesariana de urgência, IMC > 30, pré-eclâmpsia, tabagismo, imobilidade, idade > 35a).
+   - Tabela ponderada de doses profiláticas de Enoxaparina por faixas de peso (20 mg a 80 mg SC/dia) e ajuste estrito para insuficiência renal (ClCr < 30 mL/min).
+   - Bloqueios críticos para Varfarina (1º trimestre por embriopatia varfarínica e 3º trimestre por hemorragia fetal) e DOACs (gravidez/lactação), além de validação segura de Varfarina na lactação.
+   - Verificador determinístico de intervalos de segurança neuroaxial (mínimo de 12h para dose profilática e 24h para dose terapêutica prevenindo hematoma epidural compressivo e paraplegia).
+   - Novo módulo `src/02_tev_gestante.js` (`TevGestanteService`) integrado à malha RPC do `server/runtime.js` (`cockpitTevGestante`).
+   - Suíte determinística `tests/test_tev_gestante.cjs` e `test_tev_gestante.py` aprovada com 100% de sucesso.
+
 - [x] (2026-10-09) **Algoritmo de Ressuscitação Cardiopulmonar na Gestante (PCR Materna / ACLS Materno e Cesariana Perimortem)**:
    - Motor determinístico de ACLS materno com protocolo de compressão aortocaval e manobra DULE contínua mandatória em gestante >= 20 semanas com alerta estrito contra inclinação de 30 graus.
    - Acesso vascular com prioridade absoluta acima do diafragma para circulação central desobstruída.

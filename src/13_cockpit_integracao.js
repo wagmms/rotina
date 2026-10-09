@@ -827,3 +827,32 @@ function cockpitPcrGestante(initData, params) {
   throw new Error('Ação inválida para PCR na Gestante.');
 }
 
+function cockpitTevGestante(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof TevGestanteService === 'undefined') {
+    throw new Error('Módulo TevGestanteService indisponível.');
+  }
+  var acao = params.acao || 'avaliarTevCompleto';
+  if (acao === 'avaliarTevCompleto') {
+    return TevGestanteService.avaliarTevCompleto(params);
+  }
+  if (acao === 'avaliarRiscoAntenatal') {
+    return TevGestanteService.avaliarRiscoAntenatal(params);
+  }
+  if (acao === 'avaliarRiscoPosParto') {
+    return TevGestanteService.avaliarRiscoPosParto(params);
+  }
+  if (acao === 'calcularDoseEnoxaparina') {
+    return TevGestanteService.calcularDoseEnoxaparina(params.pesoKg, params.clearanceCreatinina, params.regime);
+  }
+  if (acao === 'verificarSegurancaNeuroaxial') {
+    return TevGestanteService.verificarSegurancaNeuroaxial(params.ultimaDoseHorasAtras, params.tipoDose);
+  }
+  if (acao === 'verificarAlertasAnticoagulantes') {
+    return TevGestanteService.verificarAlertasAnticoagulantes(params);
+  }
+  throw new Error('Ação inválida para TEV na Gestação/Puerpério.');
+}
+
+
