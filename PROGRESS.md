@@ -12,8 +12,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 
 
-3. [ ] **Calculadora de Desmame de Sedação e Rotação de Opioides**:
-   - Módulo determinístico de equivalência analgésica para rotação de opioides (Morfina IV/VO, Fentanil, Metadona, Oxicodona) e escala de desmame de sedação contínua (RASS/CAM-ICU).
 
 4. [ ] **Nefrologia Intensiva e Distúrbios Hidroeletrolíticos (DHE)**:
    - Correção segura de hiponatremia aguda vs crônica com cálculo de déficit de sódio e teto rígido de elevação (máximo 8-10 mEq/L nas primeiras 24h e 18 mEq/L em 48h) prevenindo Síndrome de Desmielinização Osmótica (mielinólise pontina).
@@ -109,6 +107,13 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 23. [ ] **Ferramenta de Auditoria Analítica (Dashboard de Kaizen Clínico)**:
     - Sistema off-line que sumariza tendências de prescrições rejeitadas por risco clínico ou interações graves, detectando gargalos na segurança do paciente em tempo real.
 
+
+24. [ ] **Módulo Avançado de Analgesia Controlada pelo Paciente (PCA)**:
+    - Motor determinístico para cálculos de bolus, dose basal, intervalo de bloqueio (lockout) e limite de 4 horas para Morfina e Fentanil em bombas de PCA.
+
+25. [ ] **Manejo de Via Aérea Difícil (Algoritmo ASA)**:
+    - Protocolo guiado passo-a-passo (RSI, videolaringoscopia, máscara laríngea, cricotireoidostomia de emergência) com predição de via aérea difícil (LEMON score).
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
@@ -116,6 +121,12 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Calculadora de Desmame de Sedação e Rotação de Opioides**:
+   - Módulo determinístico de equivalência analgésica e rotação (Morfina, Fentanil, Metadona, Oxicodona) via conversão rigorosa em MME.
+   - Escala de desmame de sedação contínua (RASS) e rastreio de Delirium (CAM-ICU).
+   - Implementação de `src/02_sedacao_opioides.js` e métodos RPC `cockpitSedacaoOpioides`.
+   - Suíte `tests/test_sedacao_opioides.cjs` com validações exatas de MME e tolerância cruzada aprovados 100%.
+
 - [x] (2026-10-09) **Auditoria de Toxicidade em Infusões Contínuas de UTI**:
    - Validação e testes determinísticos de limites de taxa de infusão (mcg/kg/min) para aminas vasoativas (Noradrenalina, Vasopressina, Adrenalina, Dobutamina) prevenindo erros por ordem de grandeza e dose letal beira-leito.
    - Implementada a suíte `tests/test_auditoria_infusao_uti.cjs` e validação com runner `pytest`.

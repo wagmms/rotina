@@ -733,3 +733,24 @@ function cockpitObterModelosExameFisico(initData, params) {
 }
 
 
+
+function cockpitSedacaoOpioides(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SedacaoOpioidesService === 'undefined') {
+    throw new Error('Módulo SedacaoOpioidesService indisponível.');
+  }
+  if (params.acao === 'rass') {
+    return SedacaoOpioidesService.avaliarRASS(params.score);
+  }
+  if (params.acao === 'camicu') {
+    return SedacaoOpioidesService.avaliarCAMICU(params);
+  }
+  if (params.acao === 'calcularMME') {
+    return SedacaoOpioidesService.calcularMME(params.farmaco, params.via, params.doseMgDia);
+  }
+  if (params.acao === 'rotacionar') {
+    return SedacaoOpioidesService.rotacionarOpioide(params.mmeTotal, params.alvoFarmaco, params.alvoVia, params.reducaoCruzada);
+  }
+  throw new Error('Ação inválida para sedação/opioides. Use rass, camicu, calcularMME ou rotacionar.');
+}
