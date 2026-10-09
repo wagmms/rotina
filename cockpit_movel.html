@@ -5780,7 +5780,98 @@
 
         copiarToast('Protocolo PE & MgSO4 calculado!');
       } catch (err) {
-        copiarToast('Erro: ' + err.message);
+        // FALLBACK OFFLINE CONTINGÊNCIA
+        let alertasIntoxicacao = [];
+        let intoxicacaoDetectada = false;
+
+        if (!reflexo) {
+          intoxicacaoDetectada = true;
+          alertasIntoxicacao.push('🚨 REFLEXO PATELAR ABOLIDO: Primeiro sinal clínico de hipermagnesemia tóxica (níveis séricos aproximados de 8 a 10 mEq/L).');
+        }
+
+        if (fr > 0 && fr < 12) {
+          intoxicacaoDetectada = true;
+          alertasIntoxicacao.push('🚨 DEPRESSÃO RESPIRATÓRIA (FR < 12 rpm): Risco iminente de parada respiratória por bloqueio neuromuscular!');
+        }
+
+        if (diurese >= 0 && diurese < 25) {
+          intoxicacaoDetectada = true;
+          alertasIntoxicacao.push('🚨 OLIGÚRIA SEVERA (Diurese < 25 mL/h ou < 100 mL em 4h): Excreção de magnésio é estritamente renal. Risco crítico de acúmulo e intoxicação letal!');
+        }
+
+        if (boxRes) boxRes.classList.remove('hidden');
+
+        if (intoxicacaoDetectada && boxAlertaIntox) {
+          boxAlertaIntox.classList.remove('hidden');
+          boxAlertaIntox.innerHTML = `
+            <div class="font-bold text-rose-300 uppercase tracking-wide">🚨 TOXICIDADE POR SULFATO DE MAGNÉSIO DETECTADA! (OFFLINE)</div>
+            ${alertasIntoxicacao.map(a => `<p>${a}</p>`).join('')}
+            <div class="mt-1.5 p-2 rounded bg-rose-950 border border-rose-500/80 font-bold text-white">
+              ANTÍDOTO: GLUCONATO DE CÁLCIO 10%: Administrar 1 ampola (10 mL = 1g) IV em bolus lento de 3 a 5 minutos.
+            </div>
+          `;
+        } else if (boxAlertaIntox) {
+          boxAlertaIntox.classList.add('hidden');
+        }
+
+        if (boxCrisePa) {
+          let ehCrise = (pas >= 160 || pad >= 110);
+          let classif = ehCrise ? 'CRISE HIPERTENSIVA OBSTÉTRICA GRAVE' : (pas >= 140 || pad >= 90) ? 'Hipertensão' : 'Normal';
+          let htmlPa = `
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-white">PA: ${pas}x${pad} mmHg</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${ehCrise ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-slate-800 text-slate-300'}">
+                ${classif} [OFFLINE]
+              </span>
+            </div>
+          `;
+          if (ehCrise) {
+             htmlPa += '<div class="space-y-1 pt-1"><span class="font-bold text-rose-400 block">Fármacos de Resgate:</span>';
+             htmlPa += `
+                <div class="p-1.5 rounded bg-slate-950 border border-slate-800">
+                  <span class="font-bold text-white">Hidralazina (Nepresol) IV</span>
+                  <p class="text-[10.5px] text-slate-300">Ataque de 5 mg (1 mL) IV lento (1-2 min). Repetir 5-10 mg a cada 20-30 min se PAM mantiver alta. Máximo: 20-30 mg.</p>
+                </div>
+                <div class="p-1.5 rounded bg-slate-950 border border-slate-800">
+                  <span class="font-bold text-white">Nifedipino (Ação Rápida) VO</span>
+                  <p class="text-[10.5px] text-slate-300">10 mg VO a cada 30 minutos (máx: 30 mg). NÃO FAZER SUBLINGUAL!</p>
+                </div>
+             `;
+             htmlPa += '</div>';
+          }
+          boxCrisePa.innerHTML = htmlPa;
+        }
+
+        if (boxMgPrescricao) {
+            let n = 'Esquema de Zuspan (Padrão Ouro — Infusão Contínua em Bomba)';
+            let a = ['MgSO4 50% 8 mL (4g) + SG 5% ou SF 0,9% 12 mL = 20 mL IV em bomba de infusão lenta em 15 a 20 minutos.'];
+            let m = ['MgSO4 50% 20 mL (10g) + SF 0,9% ou SG 5% 480 mL = 500 mL IV em Bomba de Infusão Contínua a 50 mL/h (fornece 1g de MgSO4 por hora).',
+          'Ajuste se Creatinina >= 1.2 mg/dL: Reduzir velocidade para 25 mL/h (0,5g/hora)',
+          'Manter por 24 horas pós-parto ou 24 horas após a última crise.'];
+            
+            if (esquema === 'Pritchard') {
+                n = 'Esquema de Pritchard (Alternativa sem Bomba de Infusão ou em Transporte)';
+                a = ['MgSO4 50% 8 mL (4g) + SG 5% ou AD 12 mL = 20 mL IV administrados em bolus lento em 15 a 20 minutos.',
+          'ASSOCIADO A: MgSO4 50% 20 mL (10g) via IM profundo — aplicar 5g (10 mL) em cada glúteo profundamente, com 1 mL de lidocaína a 2% sem vasoconstritor em cada nádega para analgesia local.'];
+                m = ['MgSO4 50% 10 mL (5g) via IM profundo a cada 4 horas no glúteo contralateral alternado.',
+          'SÓ APLICAR A DOSE SE: reflexo patelar presente, FR >= 12 rpm e diurese >= 25 mL/h nas últimas 4 horas.',
+          'Manter por 24 horas após o parto ou após a última crise convulsiva.'];
+            }
+          boxMgPrescricao.innerHTML = `
+            <span class="font-bold text-amber-300 block">${n} [OFFLINE]</span>
+            <div class="space-y-1 pt-0.5">
+              <div class="p-1.5 rounded bg-slate-950 border border-slate-800">
+                <strong class="text-white">Ataque:</strong>
+                <p class="text-slate-300">${a.join('<br>')}</p>
+              </div>
+              <div class="p-1.5 rounded bg-slate-950 border border-slate-800">
+                <strong class="text-white">Manutenção:</strong>
+                <p class="text-slate-300">${m.join('<br>')}</p>
+              </div>
+            </div>
+          `;
+        }
+        copiarToast('Modo Offline: Protocolo PE & MgSO4 calculado via motor local!');
       }
     }
 
