@@ -214,6 +214,51 @@ async function run() {
   assert.equal(jsonAsma.resultado.resultado.plano.sulfato_magnesio.indicado, true);
   assert(jsonAsma.resultado.textoFormatado.includes('PNEUMOLOGIA & EMERGÊNCIA'));
   console.log('✓ Cockpit Pneumologia & Crise Asmática (GINA & MgSO4) OK');
+
+  // 6.7 Cockpit RPC - Obstetrícia & Medicina Fetal (RCF / Doppler — Barcelona)
+  const resRcf = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitObstetriciaRcf',
+      session: token,
+      args: [{
+        ig_semanas: 30,
+        ig_dias: 1,
+        peso_fetal_percentil: 2,
+        dv_ip_percentil: 97
+      }]
+    }
+  });
+  assert.equal(resRcf.statusCode, 200, "Erro ao testar cockpitObstetriciaRcf");
+  const jsonRcf = JSON.parse(resRcf.body);
+  assert(jsonRcf.ok, "ok RCF deve ser true");
+  assert.equal(jsonRcf.resultado.resultado.classificacao.tipo, 'RCF_PRECOCE');
+  assert.equal(jsonRcf.resultado.resultado.estadiamento.estagio, 3);
+  assert.equal(jsonRcf.resultado.resultado.conduta.parto_indicado_agora, true);
+  assert.equal(jsonRcf.resultado.resultado.corticoide.indicado, true);
+  assert.equal(jsonRcf.resultado.resultado.neuroprotecao_magnesio.indicado, true);
+  assert(jsonRcf.resultado.textoFormatado.includes('RCF / DOPPLER'));
+  assert(jsonRcf.resultado.textoFormatado.includes('ESTADIAMENTO (BARCELONA)'));
+  console.log('✓ Cockpit Obstetrícia & Medicina Fetal (RCF / Doppler — Barcelona) OK');
+
+  // 6.8 Cockpit RPC - Obstetrícia RCF via texto livre (alias cockpitRestricaoCrescimentoFetal)
+  const resRcfTexto = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitRestricaoCrescimentoFetal',
+      session: token,
+      args: ['35+2 pfe p6 rcp p3']
+    }
+  });
+  assert.equal(resRcfTexto.statusCode, 200, "Erro ao testar cockpitRestricaoCrescimentoFetal via texto");
+  const jsonRcfTexto = JSON.parse(resRcfTexto.body);
+  assert(jsonRcfTexto.ok, "ok RCF texto deve ser true");
+  assert.equal(jsonRcfTexto.resultado.resultado.classificacao.tipo, 'RCF_TARDIA');
+  assert.equal(jsonRcfTexto.resultado.resultado.estadiamento.estagio, 1);
+  console.log('✓ Cockpit Obstetrícia RCF via texto livre (alias) OK');
+
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);
   const jsonManifest = JSON.parse(resManifest.body);

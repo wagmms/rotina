@@ -1794,3 +1794,29 @@ function cockpitCriseAsmatica(initData, params) {
   return cockpitPneumologiaAsma(initData, params);
 }
 
+
+function cockpitObstetriciaRcf(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de RCF/Doppler não fornecidos.');
+  if (typeof ObstetriciaRcfDopplerService === 'undefined') {
+    throw new Error('Serviço ObstetriciaRcfDopplerService indisponível.');
+  }
+
+  // Aceita texto livre (laudo colado) ou objeto estruturado
+  var entrada = typeof params === 'string'
+    ? ObstetriciaRcfDopplerService.extrairParametrosTexto(params)
+    : (params.texto ? ObstetriciaRcfDopplerService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = ObstetriciaRcfDopplerService.avaliarRcf(entrada);
+  var texto = ObstetriciaRcfDopplerService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitRestricaoCrescimentoFetal(initData, params) {
+  return cockpitObstetriciaRcf(initData, params);
+}

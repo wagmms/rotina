@@ -1572,6 +1572,39 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // OBSTETRÍCIA & MEDICINA FETAL: RESTRIÇÃO DE CRESCIMENTO FETAL (RCF) E DOPPLER
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/rcf" || comando === "/ciur" || comando === "/rciu" || comando === "/doppler" || comando === "/crescimentofetal") {
+    var dadosRcf = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ObstetriciaRcfDopplerService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaRcfDopplerService indisponível temporariamente.");
+    }
+
+    var paramsRcf = dadosRcf ? ObstetriciaRcfDopplerService.extrairParametrosTexto(dadosRcf) : {};
+    if (!dadosRcf || paramsRcf.ig_semanas === undefined) {
+      return enviarMensagemParaChat(chatId, "🤰 *OBSTETRÍCIA & MEDICINA FETAL — RCF / DOPPLER*\n\n" +
+        "Envie a *idade gestacional* (obrigatória) e os percentis do laudo:\n" +
+        "• *IG:* `30s4d`, `30+4` ou `ig 30`\n" +
+        "• *Biometria:* `pfe p2` (peso fetal), `ca p4` (circunferência abdominal), `1450g`, `queda de percentil`\n" +
+        "• *Artéria umbilical:* `au p97`, `diastole zero`, `diastole reversa`\n" +
+        "• *ACM / RCP / Uterinas:* `acm p3`, `rcp p2` (ou `ip au 1.3 ip acm 1.1`), `uterinas p97`\n" +
+        "• *Ducto venoso:* `dv p97`, `onda a reversa` / `onda a ausente`; *Istmo:* `istmo reverso`\n" +
+        "• *cCTG:* `vcp 2.8`, `desaceleracoes`; *Outros:* `ila 4`, `pre-eclampsia`, `gemelar`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/rcf 35+2 pfe p6 rcp p3` *(RCF tardia — Estágio I)*\n" +
+        "• `/rcf 31s pfe p2 diastole zero` *(Estágio II)*\n" +
+        "• `/doppler 27s3d pfe p1 diastole reversa onda a reversa vcp 2.4` *(Estágio IV)*");
+    }
+
+    try {
+      var analiseRcf = ObstetriciaRcfDopplerService.avaliarRcf(paramsRcf);
+      return enviarMensagemParaChat(chatId, ObstetriciaRcfDopplerService.formatarTextoTelegram(analiseRcf));
+    } catch (eRcf) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar RCF/Doppler: " + eRcf.message);
+    }
+  }
+
   if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
     var dadosKaizen = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof AuditoriaKaizenClinicoService === "undefined") {
