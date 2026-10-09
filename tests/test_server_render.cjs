@@ -190,6 +190,22 @@ async function run() {
   assert(jsonIC.resultado.textoFormatado.includes('CONTRAINDICAÇÃO ABSOLUTA'));
   console.log('✓ Cockpit Cardiologia Intensiva (Forrester) OK');
 
+  // TESTE CARDIOLOGIA ICC
+  const resIcc = await app.inject({
+      method: 'POST',
+      url: '/api/cockpit',
+      payload: {
+          session: token,
+          metodo: 'cockpitCardiologiaIcc',
+          args: [{ fe: 35 }]
+      }
+  });
+  if (resIcc.statusCode !== 200) console.error("BODY:", resIcc.body);
+  assert.equal(resIcc.statusCode, 200, "Erro ao testar cockpitCardiologiaIcc");
+  const dataIcc = JSON.parse(resIcc.body); console.log("DATA_ICC:", dataIcc);
+  assert.equal(dataIcc.resultado.sigla, 'ICFEr', "Classificação de ICC falhou");
+  console.log('✓ Cockpit Cardiologia Insuficiência Cardíaca Crônica (SBC/ESC) OK');
+
   // 6.6 Cockpit RPC - Pneumologia & Emergência (Crise Asmática Grave & Estado de Mal Asmático)
   const resAsma = await app.inject({
     method: 'POST',

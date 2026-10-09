@@ -2065,11 +2065,52 @@ function cockpitSafGestacional(initData, params) {
   return cockpitObstetriciaSaf(initData, params);
 }
 
+function cockpitCardiologiaIcCronica(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Insuficiência Cardíaca não fornecidos.');
+  if (typeof CardiologiaIcCronicaService === 'undefined') {
+    throw new Error('Serviço CardiologiaIcCronicaService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? CardiologiaIcCronicaService.extrairParametrosTexto(params)
+    : (params.texto ? CardiologiaIcCronicaService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = CardiologiaIcCronicaService.avaliar(entrada);
+  var texto = CardiologiaIcCronicaService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitIcCronica(initData, params) {
+  return cockpitCardiologiaIcCronica(initData, params);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitGinecologiaEndometriose = cockpitGinecologiaEndometriose;
   module.exports.cockpitEndometriose = cockpitEndometriose;
   module.exports.cockpitObstetriciaSaf = cockpitObstetriciaSaf;
   module.exports.cockpitSafTrombofilias = cockpitSafTrombofilias;
   module.exports.cockpitSafGestacional = cockpitSafGestacional;
+  module.exports.cockpitCardiologiaIcCronica = cockpitCardiologiaIcCronica;
+  module.exports.cockpitIcCronica = cockpitIcCronica;
 }
 
+
+// --------------------------------------------------------------------------------------------
+// CARDIOLOGIA: ICC
+// --------------------------------------------------------------------------------------------
+function cockpitCardiologiaIcc(initData, params) {
+  cockpitAutorizar_(initData);
+  if (typeof CardiologiaICCService === 'undefined') return { erro: "Módulo Cardiologia ICC não carregado no backend." };
+  var result = CardiologiaICCService.gerarRelatorioCompleto(params.fe);
+  return result;
+}
+
+function cockpitICC(initData, params) {
+    return cockpitCardiologiaIcc(initData, params);
+}

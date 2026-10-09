@@ -258,7 +258,7 @@
 ---
 
 
-46. [ ] **Cardiologia - Rastreio e Manejo de Insuficiência Cardíaca Crônica (Diretrizes SBC/ESC)**:
+46. [x] **Cardiologia - Rastreio e Manejo de Insuficiência Cardíaca Crônica (Diretrizes SBC/ESC)**:
     - Motor determinístico para diagnóstico (Critérios de Framingham).
     - Classificação funcional da NYHA e estadiamento ACC/AHA (A a D).
     - Prescrição sequencial escalonada do Quarteto Fantástico (iSGLT2, ARNI/IECA, Beta-bloqueador e ARM) com checagem rigorosa de contraindicações (ex: bloqueio de espironolactona e sacubitril/valsartana em hipercalemia ou piora de ClCr).
@@ -1281,3 +1281,17 @@
     - Protocolo de vigilância fetal em gestantes anti-Ro/SSA e anti-La/SSB positivas: ecocardiograma fetal seriado semanal ou quinzenal entre a 16ª e 26ª semana de gestação para detecção de BAV de 1º e 2º graus reversíveis e miocardite fetal, com uso oportuno de Dexametasona fluorada 4 mg/dia.
 
 
+156. [ ] **Cardiologia - Rastreio e Manejo da Síndrome Coronariana Aguda (SCA) sem Supra de ST (Diretrizes SBC/ESC)**:
+    - Estratificação de risco TIMI e GRACE para definir timing de cateterismo (imediato, precoce ou seletivo).
+    - Prescrição guiada de terapia antiplaquetária dupla (AAS + Clopidogrel/Ticagrelor/Prasugrel) baseada em risco de sangramento e anatomia.
+    - Otimização de terapia antitrombótica (Enoxaparina vs HNF vs Fondaparinux).
+
+157. [ ] **Neurologia - Diagnóstico e Manejo da Crise Epiléptica e Estado de Mal Epileptico (Guidelines ILAE/Neurocritical Care)**:
+    - Algoritmo de tratamento do estado de mal epiléptico (Benzodiazepínicos de 1ª linha, Fentoína/Fenobarbital de 2ª linha, e Midazolam/Propofol de 3ª linha).
+    - Regras de dosagem e monitoramento de níveis séricos e efeitos colaterais de anticonvulsivantes.
+    - Cuidados intensivos e suporte hemodinâmico durante sedação profunda para controle de estado de mal refratário.
+
+158. [ ] **Urologia - Rastreio e Manejo de Hiperplasia Prostática Benigna (HPB) e Retenção Urinária Aguda (Diretrizes AUA/EAU)**:
+    - Classificação de sintomas pelo escore IPSS e indicações para terapia farmacológica combinada (Alfa-bloqueadores + Inibidores da 5-alfa redutase).
+    - Alerta sobre hipotensão postural associada a alfa-bloqueadores e contraindicações de antimuscarínicos em retenção.
+    - Protocolo de tentativa de micção sem sonda após evento de retenção aguda de urina (desmame de sonda).

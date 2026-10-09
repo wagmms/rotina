@@ -227,6 +227,38 @@ function processarMensagemTexto(message) {
   }
 
   // 3. COMANDOS CLÍNICOS E SALA VERMELHA
+    if (comando === "/icc" || comando === "/insuficienciacardiaca") {
+    var argsIcc = payload.replace(comando, "").trim();
+    var fe = parseFloat(argsIcc);
+    if (isNaN(fe)) {
+      return enviarMensagem_(chatId, "⚠️ *Comando Inválido*\n\nUso correto:\n\n`/icc [fração de ejeção]`\n\nExemplo: `/icc 35` para FE = 35%", null);
+    }
+    var resIcc = typeof CardiologiaICCService !== 'undefined' ? CardiologiaICCService.gerarRelatorioCompleto(fe) : { erro: "Serviço não carregado." };
+    if (resIcc.erro) return enviarMensagem_(chatId, "Erro: " + resIcc.erro, null);
+
+    var txt = "🫀 *Insuficiência Cardíaca Crônica (ICC)*\n";
+    txt += "📊 *Classificação:* " + resIcc.classificacao + "\n";
+    txt += "💡 *Base:* " + resIcc.terapia_base + "\n";
+    txt += "🧭 *Orientação:* " + resIcc.orientacao + "\n\n";
+    
+    txt += "💊 *Quarteto Fantástico:*\n";
+    for(var i=0; i<resIcc.quarteto_fantastico.length; i++) {
+        var cls = resIcc.quarteto_fantastico[i];
+        txt += "🔹 *" + cls.classe + "*:\n";
+        for(var j=0; j<cls.drogas.length; j++) {
+            txt += "  - " + cls.drogas[j].nome + " (Alvo: " + cls.drogas[j].dose_alvo + ")\n";
+        }
+    }
+    
+    txt += "\n⚠️ *Bloqueios Médicos:*\n";
+    for(var k=0; k<resIcc.bloqueios.drogas.length; k++) {
+        var bl = resIcc.bloqueios.drogas[k];
+        txt += "🛑 *" + bl.classe + "*: " + bl.recomendacao + "\n";
+    }
+
+    return enviarMensagem_(chatId, txt, null);
+  }
+
   if (comando === "/dva") {
     var dadosDva = texto.replace(/^\/dva\s*/i, "").trim();
     if (!dadosDva) {

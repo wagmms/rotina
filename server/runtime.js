@@ -839,6 +839,7 @@ module.exports = {
         _rpcMap.cockpitGastroenterologiaPancreatite = ctx.cockpitGastroenterologiaPancreatite;
         _rpcMap.cockpitCardiologiaEmergencia = ctx.cockpitCardiologiaEmergencia;
         _rpcMap.cockpitCardiologiaIntensiva = ctx.cockpitCardiologiaIntensiva;
+        _rpcMap.cockpitCardiologiaIcc = ctx.cockpitCardiologiaIcc;
         _rpcMap.cockpitICDescompensada = ctx.cockpitICDescompensada;
         _rpcMap.cockpitGasometriaAcidoBase = ctx.cockpitGasometriaAcidoBase;
         _rpcMap.cockpitGasometria = ctx.cockpitGasometria || ctx.cockpitGasometriaAcidoBase;
@@ -870,6 +871,8 @@ module.exports = {
         _rpcMap.cockpitObstetriciaSaf = ctx.cockpitObstetriciaSaf;
         _rpcMap.cockpitSafTrombofilias = ctx.cockpitSafTrombofilias || ctx.cockpitObstetriciaSaf;
         _rpcMap.cockpitSafGestacional = ctx.cockpitSafGestacional || ctx.cockpitObstetriciaSaf;
+        _rpcMap.cockpitCardiologiaIcCronica = ctx.cockpitCardiologiaIcCronica;
+        _rpcMap.cockpitIcCronica = ctx.cockpitIcCronica || ctx.cockpitCardiologiaIcCronica;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];
