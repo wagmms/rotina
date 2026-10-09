@@ -20,12 +20,11 @@ const PalsPediatriaService = require('../src/02_pals_pediatria.js');
 const SuporteNutricionalPediatricoService = require('../src/02_suporte_nutricional_pediatrico.js');
 const EndocrinologiaDiabetesService = require('../src/02_endocrinologia_diabetes.js');
 const ToxicologiaEmergenciaService = require('../src/02_toxicologia_emergencia.js');
-const AnalgesiaPcaService = require('../src/02_analgesia_pca.js');
-const TransfusaoSanguineaService = require('../src/02_transfusao_sanguinea.js');
+const CentroObstetricoService = require('../src/02_centro_obstetrico.js');
+const SaudeIdosoService = require('../src/02_saude_idoso.js');
 const HematologiaAnemiasService = require('../src/02_hematologia_anemias.js');
 const CardiologiaICCService = require('../src/02_cardiologia_icc.js');
 const NeurologiaAvcService = require('../src/02_neurologia_avc.js');
-const SuporteNutricionalService = require('../src/02_suporte_nutricional.js');
 
 function runEdgeCaseTests() {
     console.log("=== INICIANDO BATERIA DE AUDITORIA DE CASOS EXTREMOS (EDGE CASES) ===");
@@ -72,10 +71,16 @@ function runEdgeCaseTests() {
     assert.ok(hicLactente.alertasPeso.some(a => a.includes('Lactente/Pediatria')), "Deve alertar sobre infusão de osmolares em lactentes");
     console.log("  ✓ HIC 8 kg: Alerta pediátrico/lactente para osmoterapia emitido.");
 
-    // 1.7 PCA em baixo peso (< 40 kg)
-    const pcaBaixoPeso = AnalgesiaPcaService.calcularPca({ farmaco: 'morfina', pesoKg: 35 });
-    assert.ok(pcaBaixoPeso.alertasSeguranca.some(a => a.includes('BAIXO PESO CORPORAL')), "Deve alertar sobre risco em baixo peso");
-    console.log("  ✓ PCA 35 kg: Alerta de baixo peso corporal/caquexia emitido.");
+    // 1.7 Gestante com Pré-Eclâmpsia e Toxicidade por Magnésio (Reflexo Abolido & Oligúria)
+    const zuspanToxicidade = CentroObstetricoService.prescreverSulfatoMagnesio({
+        esquema: 'Zuspan',
+        reflexoPatelar: false,
+        frequenciaRespiratoria: 10,
+        diureseMlHora: 15
+    });
+    assert.ok(zuspanToxicidade.condutaIntoxicacao, "Deve detectar intoxicação por MgSO4");
+    assert.ok(zuspanToxicidade.condutaIntoxicacao.antidoto.includes('GLUCONATO DE CÁLCIO'), "Deve orientar Gluconato de Cálcio");
+    console.log("  ✓ MgSO4 / Zuspan: Alerta sentinela de arreflexia, bradipneia e indicação de Gluconato de Cálcio.");
 
     // ─────────────────────────────────────────────────────────────────────────
     // 2. PESOS EXTREMOS: OBESIDADE SEVERA > 150 KG
@@ -109,14 +114,12 @@ function runEdgeCaseTests() {
     assert.ok(sriObeso.texto.includes('OBESIDADE GRAVE'), "SRI deve alertar sobre peso ideal para sedativos e rocurônio");
     console.log("  ✓ SRI 170 kg: Alerta de peso ideal (IBW) para bloqueadores e sedativos.");
 
-    // 2.4 Transfusão de plaquetas em 180 kg (Teto de 10 unidades)
-    const plaquetasObeso = TransfusaoSanguineaService.calcularReposicaoPlaquetas({
-        peso: 180,
-        plaquetasAtual: 8000
-    });
-    assert.strictEqual(plaquetasObeso.unidadesRandomicasCalculadas, 10, "Plaquetas randômicas devem ser limitadas ao teto seguro de 10 UI");
-    assert.ok(plaquetasObeso.alertas.some(a => a.includes('OBESIDADE SEVERA')), "Deve alertar sobre obesidade severa no pool plaquetário");
-    console.log("  ✓ Hemoterapia 180 kg: Teto seguro de 10 unidades randômicas aplicado.");
+    // 2.4 Crise Hipertensiva na Gestação (Emergência Hipertensiva Obstétrica)
+    const criseObstetrica = CentroObstetricoService.manejarCriseHipertensiva({ pas: 180, pad: 120 });
+    assert.strictEqual(criseObstetrica.ehCrise, true);
+    assert.ok(criseObstetrica.medicacoes.some(m => m.farmaco.includes('Hidralazina')), "Deve incluir Hidralazina IV de 1ª linha");
+    assert.ok(criseObstetrica.contraindicacoesAbsolutas.some(c => c.includes('IECAs') && c.includes('BRAs')), "Deve proibir expressamente IECA e BRA na gestação");
+    console.log("  ✓ Emergência Hipertensiva Obstétrica (180x120): Hidralazina e bloqueio absoluto de IECA/BRA validados.");
 
     // 2.5 Cockcroft-Gault em 160 kg
     const cgObeso = NefrologiaClearanceService.auditarPrescricao(45, ["vancomicina"], { peso: 160 });
@@ -139,10 +142,19 @@ function runEdgeCaseTests() {
     assert.ok(hicObeso.alertasPeso.some(a => a.includes('Obesidade extrema')), "Deve alertar sobre sobrecarga osmolar aguda");
     console.log("  ✓ HIC 165 kg: Alerta de osmoterápicos e risco de edema pulmonar emitido.");
 
-    // 2.9 PCA Fentanil em 160 kg
-    const pcaObeso = AnalgesiaPcaService.calcularPca({ farmaco: 'fentanil', pesoKg: 160 });
-    assert.ok(pcaObeso.alertasSeguranca.some(a => a.includes('OBESIDADE SEVERA/EXTREMA')), "Deve alertar sobre AOS e farmacocinética");
-    console.log("  ✓ PCA 160 kg: Alerta de farmacocinética lipofílica e risco de hipoventilação validado.");
+    // 2.9 Hemorragia Pós-Parto (HPP) com choque e bloqueio de Metilergometrina se HAS/Pré-eclâmpsia
+    const hppHas = CentroObstetricoService.gerenciarHemorragiaPosParto({
+        perdaEstimadaMl: 1200,
+        tipoParto: 'vaginal',
+        fc: 130,
+        pas: 85,
+        temHipertensao: true
+    });
+    assert.strictEqual(hppHas.ehHpp, true);
+    assert.strictEqual(hppHas.gravidadeChoque, 'CHOQUE_GRAVE');
+    const ergotrate = hppHas.sequenciaUterotonica.find(s => s.farmaco.includes('Metilergometrina'));
+    assert.ok(ergotrate && ergotrate.bloqueado, "Ergotrate deve ser expressamente bloqueado na presença de hipertensão");
+    console.log("  ✓ HPP Choque Grave (IC 1.5): Detecção de choque e bloqueio sentinela de Ergotrate na hipertensão.");
 
     // 2.10 Trombólise no AVC em 160 kg
     const avcObeso = NeurologiaAvcService.avaliarTrombolise({ idade: 65, tempoSintomasHoras: 2, pesoKg: 160 });
@@ -156,27 +168,22 @@ function runEdgeCaseTests() {
     // ─────────────────────────────────────────────────────────────────────────
     console.log("\n[3] Testando Idades Avançadas ≥ 90 anos...");
 
-    // 3.1 PCA em paciente de 94 anos
-    const pcaIdosoMorfina = AnalgesiaPcaService.calcularPca({
-        farmaco: 'morfina',
-        idade: 94,
-        pesoKg: 55
-    });
-    assert.ok(pcaIdosoMorfina.doseBasalSugerida.includes('CONTRAINDICADA'), "Dose basal deve ser contraindicada em ≥ 90 anos");
-    assert.strictEqual(pcaIdosoMorfina.bolusSugerido, '0.5 a 0.5 mg');
-    assert.strictEqual(pcaIdosoMorfina.lockoutSugerido, '10 a 15 minutos');
-    assert.ok(pcaIdosoMorfina.alertasSeguranca.some(a => a.includes('PACIENTE MUITO IDOSO')), "Alerta de paciente muito idoso presente");
-    console.log("  ✓ PCA Morfina 94 anos: Basal bloqueada, bolus reduzido a 0.5mg e lockout 10-15min.");
+    // 3.1 Idoso de 94 anos com fármacos potencialmente inapropriados (Critérios de Beers)
+    const beers94 = SaudeIdosoService.avaliarFarmacosBeers(['diazepam', 'amitriptilina']);
+    assert.ok(beers94.medicamentos_inadequados.length >= 2, "Deve identificar benzodiazepínico e antidepressivo tricíclico");
+    assert.ok(beers94.conduta.includes('desprescrição'), "Deve sugerir desprescrição em idoso frágil");
+    console.log("  ✓ Beers 94 anos: Alerta sentinela de psicotrópicos inapropriados e desprescrição emitido.");
 
-    // 3.2 Transfusão de hemácias com TACO em 92 anos
-    const tacoIdoso = TransfusaoSanguineaService.avaliarGatilhoTransfusionalChad({
+    // 3.2 FRAX Brasil em nonagenária de 92 anos (Idade Extrema & Fragilidade)
+    const frax92 = SaudeIdosoService.calcularFraxBrasil({
         idade: 92,
-        hb: 6.2,
-        peso: 60
+        sexo: 'F',
+        peso: 50,
+        fraturaPrevia: true
     });
-    assert.ok(tacoIdoso.alertaTaco.includes('NONAGENÁRIO'), "Deve alertar especificamente sobre TACO em nonagenários");
-    assert.ok(tacoIdoso.recomendacaoVelocidade.includes('3 a 4 horas'), "Velocidade deve ser ultralenta");
-    console.log("  ✓ Transfusão 92 anos: Alerta sentinela de TACO e infusão ultralenta de 3-4h.");
+    assert.ok(frax92.alertas.some(a => a.includes('nonagenário')), "FRAX deve emitir alerta sentinela para nonagenário");
+    assert.ok(frax92.indicacao_tratamento_farmacologico, "Deve indicar tratamento farmacológico para nonagenária com fratura prévia");
+    console.log("  ✓ FRAX Brasil 92 anos: Alerta de paciente nonagenário e indicação mandatória de tratamento.");
 
     // 3.3 Cockcroft-Gault em 95 anos
     const crcl95 = NefrologiaClearanceService.calcularCockcroftGault(95, 60, 0.9, 'F');
@@ -195,11 +202,11 @@ function runEdgeCaseTests() {
     assert.ok(avc92.elegibilidade.alertasClinicos.some(a => a.includes('longevo/nonagenário')), "Deve emitir alerta de risco/benefício em nonagenário");
     console.log("  ✓ Trombólise AVC 92 anos: Alerta de ponderação risco/benefício e mRS basal emitido.");
 
-    // 3.6 Suporte Nutricional em 94 anos
-    const nut94 = SuporteNutricionalService.calcularNecessidadesBasais(60, 160, 94, 'f');
-    assert.ok(nut94.alertaLongevo !== null, "Deve gerar alertaLongevo");
-    assert.ok(nut94.orientacaoClinica.includes('Idoso Longevo'), "Orientação deve citar idoso longevo");
-    console.log("  ✓ Suporte Nutricional 94 anos: Alerta de sarcopenia e restrição hídrica emitido.");
+    // 3.6 Fragilidade Clínica (Clinical Frailty Scale - CFS) em nonagenário de 94 anos
+    const cfs94 = SaudeIdosoService.avaliarFragilidadeCFS(7);
+    assert.strictEqual(cfs94.classificacao, 'Fragilidade Grave');
+    assert.ok(cfs94.descricao.includes('Completamente dependentes'), "CFS 7 deve classificar dependência e fragilidade grave");
+    console.log("  ✓ CFS 94 anos: Classificação de fragilidade grave (CFS 7) e dependência validada.");
 
     // ─────────────────────────────────────────────────────────────────────────
     // 4. VALORES LABORATORIAIS DISCREPANTES: CR > 15, K > 8.0, PH < 6.80
@@ -282,11 +289,9 @@ function runEdgeCaseTests() {
     console.log("  ✓ Ajuste ATB CrCl 160 mL/min: Alerta de ARC e subdosagem emitido.");
 
     // 4.11 Anemia grave crítica Hb ≤ 4.0 g/dL
-    const transExtrema = TransfusaoSanguineaService.avaliarGatilhoTransfusionalChad({ idade: 40, hb: 3.5, peso: 70 });
-    assert.ok(transExtrema.alertas.some(a => a.includes('HEMOGLOBINA CRÍTICA')), "Deve alertar hemoglobina crítica ≤ 4.0 g/dL");
     const ganzoniHbExtrema = HematologiaAnemiasService.calcularGanzoni(70, 3.5, 12.0);
     assert.ok(ganzoniHbExtrema.bloqueiosSeguranca.some(b => b.includes('HEMOGLOBINA CRÍTICA')), "Ganzoni deve alertar sobre Hb crítica");
-    console.log("  ✓ Anemia Crítica Hb 3.5 g/dL: Alerta sentinela em Transfusão e Ganzoni validado.");
+    console.log("  ✓ Anemia Crítica Hb 3.5 g/dL: Alerta sentinela de hemoglobina crítica em Ganzoni validado.");
 
     // ─────────────────────────────────────────────────────────────────────────
     // 5. TESTES DE RESILIÊNCIA CONTRA DIVISÕES POR ZERO E ENTRADAS INVÁLIDAS

@@ -605,8 +605,8 @@ async function run() {
   });
   assert.equal(resHiperprolact.statusCode, 200, "Erro ao testar cockpitHiperprolactinemia");
   const hiperprolactBody = JSON.parse(resHiperprolact.payload);
-  assert.equal(hiperprolactBody.resultado.sucesso, true);
-  console.log('✓ Cockpit Hiperprolactinemia & Prolactinomas OK');
+  assert.equal(hiperprolactBody.resultado.desativado, true);
+  console.log('✓ Cockpit Hiperprolactinemia desativado graciosamente para foco no internato OK');
 
   // 6.15 Cockpit RPC - Ginecologia: Endometriose e Dor Pélvica Crônica
   const resEndo = await app.inject({

@@ -327,6 +327,33 @@ function construirTecladoHubAnemia() {
   };
 }
 
+function construirTecladoHubGO() {
+  return {
+    "inline_keyboard": [
+      [
+        {"text": "🤰 Pré-Natal & DPP", "callback_data": "go_prenatal"},
+        {"text": "🏥 Parto & Partograma", "callback_data": "go_parto"}
+      ],
+      [
+        {"text": "🩸 HPP (4 Ts)", "callback_data": "go_hpp"},
+        {"text": "⚡ Pré-Eclâmpsia & MgSO4", "callback_data": "go_mgso4"}
+      ],
+      [
+        {"text": "👶 Prematuridade & RPMO", "callback_data": "go_prematuridade"},
+        {"text": "🔬 Toxo & Sorologias", "callback_data": "go_toxo"}
+      ],
+      [
+        {"text": "🌸 Corrimento / Vulvovaginites", "callback_data": "go_corrimento"},
+        {"text": "🩺 Preventivo / Citopatológico", "callback_data": "go_preventivo"}
+      ],
+      [
+        {"text": "💊 Anticoncepção OMS", "callback_data": "go_anticoncepcao"},
+        {"text": "🩹 DIP & Infecção Pélvica", "callback_data": "go_dip"}
+      ]
+    ]
+  };
+}
+
 function processarMensagemTexto(message) {
   if (typeof tratarEntradaUX!=="undefined" && tratarEntradaUX(message)) return;
   var texto = message.text ? message.text.trim() : "";
@@ -366,10 +393,10 @@ function processarMensagemTexto(message) {
         "menu", "ajuda", "help", "manual", "start", "novo", "cancelar", "cockpit", "app",
         "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot",
         "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
-        "prenatal", "parto", "ginecologia", "oftalmo", "vertigem", "epistaxe", "colica",
+        "prenatal", "parto", "ginecologia", "go", "obstetricia", "oftalmo", "vertigem", "epistaxe", "colica",
         "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
-        "swansea", "colestase", "monoartrite", "febrereumatica", "pancreatite", "neutropenia",
-        "diabetes", "nutricao", "anemia", "transfusao", "intox", "pca", "sca",
+        "swansea", "colestase", "monoartrite", "febrereumatica", "pancreatite",
+        "diabetes", "anemia", "intox", "sca",
         "avc", "hic", "kdigo", "dhe", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia"
       ];
       if (comandosSemBarra.indexOf(primPalavra) !== -1) {
@@ -550,7 +577,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -562,7 +589,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -584,12 +611,6 @@ function processarMensagemTexto(message) {
   if (comando === "/ajuda" || comando === "/help") {
     var filtroAjuda = texto.replace(/^\/(ajuda|help)\s*/i, "").trim();
     return enviarManualCompletoComandos(chatId, filtroAjuda);
-  }
-
-  if (comando === "/bio" || comando === "/mounjaro" || comando === "/composicao") {
-    var urlCockpit = obterUrlCockpit(chatId);
-    var kb = { inline_keyboard: [[{ text: "📱 Abrir Cockpit (Aba Perfil)", web_app: { url: urlCockpit } }]] };
-    return enviarMensagemComBotoes(chatId, "📊 *Composição Corporal & Cutting Natural*\n\nAbra o Cockpit Móvel e navegue até a aba *Perfil* para ver e registrar seus dados.", kb);
   }
 
   if (comando === "/status" || comando === "/fontes") {
@@ -1066,17 +1087,23 @@ function processarMensagemTexto(message) {
   // ───────────────────────────────────────────────────────────────────────────
   // GINECOLOGIA AMBULATORIAL DE CONSULTÓRIO (INCA/MS, FIGO, OMS, PCDT ISTs)
   // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/ginecologia" || comando === "/preventivo" || comando === "/sua" || comando === "/anticoncepcao" || comando === "/leucorreia" || comando === "/corrimento") {
+  if (comando === "/go" || comando === "/obstetricia" || comando === "/ginecologia" || comando === "/preventivo" || comando === "/sua" || comando === "/anticoncepcao" || comando === "/leucorreia" || comando === "/corrimento") {
     var dadosGin = texto.replace(/^\/\w+\s*/, "").trim();
-    if (!dadosGin) {
-      var msgAjudaGin = "🌸 *MÓDULO DE GINECOLOGIA AMBULATORIAL (CONSULTÓRIO & APS)*\n\n" +
-        "Envie os achados clínicos por texto ou use os atalhos direcionados:\n" +
-        "• `/preventivo 28a asc-us` ou `/preventivo 35a hsil` *(Diretrizes INCA/MS por citopatologia e idade)*\n" +
-        "• `/sua 38a sangramento intenso acido tranexamico mioma` *(FIGO PALM-COEIN e hemostasia de urgência)*\n" +
-        "• `/anticoncepcao 32a enxaqueca com aura has grave` *(Critérios de Elegibilidade OMS 1 a 4)*\n" +
-        "• `/leucorreia prurido grumos leite coalhado gestante` *(Candidíase, Vaginose e Tricomoníase REMUME)*\n\n" +
-        "_Diretrizes oficiais brasileiras: INCA/MS, OMS, FEBRASGO e PCDT ISTs._";
-      return enviarMensagemParaChat(chatId, msgAjudaGin);
+    if (!dadosGin || comando === "/go" || (comando === "/obstetricia" && !dadosGin)) {
+      var msgAjudaGin = "🌸🤰 *HUB DE GINECOLOGIA & OBSTETRÍCIA (INTERNATO)*\n" +
+        "📅 *Estágio Ativo até 29/11* — Guia Rápido Beira-Leito\n\n" +
+        "Selecione uma conduta imediata nos botões abaixo ou envie o caso:\n\n" +
+        "• 🤰 *Pré-Natal & DPP:* `/prenatal 12/03/2026` (IG, DUM e exames)\n" +
+        "• 🏥 *Parto & Centro Obstétrico:* `/parto 6cm, plano 0, cefalico`\n" +
+        "• 🩸 *HPP (4 Ts):* `/hpp perda 1200ml atonia`\n" +
+        "• ⚡ *Pré-Eclâmpsia & MgSO4:* `/mgso4 zuspan`\n" +
+        "• 👶 *Prematuridade & RPMO:* `/prematuridade 30 semanas`\n" +
+        "• 🔬 *Toxoplasmose:* `/toxo igg reagente igm reagente avidez alta`\n" +
+        "• 🌸 *Corrimento / Vulvovaginites:* `/corrimento branco grumoso prurido`\n" +
+        "• 🩺 *Preventivo / Citopatológico:* `/preventivo lsil 28 anos`\n" +
+        "• 💊 *Anticoncepção OMS:* `/anticoncepcao 35 anos enxaqueca com aura`\n" +
+        "• 🩹 *DIP & Infecção Pélvica:* `/dip febre dor anexial corrimento purulento`";
+      return enviarMensagemComTecladoParaChat(chatId, msgAjudaGin, construirTecladoHubGO());
     }
 
     if (typeof GinecologiaAmbulatorialService === "undefined") {
@@ -1478,222 +1505,6 @@ function processarMensagemTexto(message) {
 
     var resultadoPsiq = PsiquiatriaUrgenciaService.avaliarPsiquiatriaCompleto(cenarioPsiq);
     return enviarMensagemParaChat(chatId, resultadoPsiq.resumoFormatado);
-  }
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // PERFIS CLÍNICOS & RBAC (CFM / RESIDÊNCIA / SEGURANÇA DO PACIENTE)
-  // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/perfil" || comando === "/rbac") {
-    var argsPerfil = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof RbacPerfisClinicosService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
-    }
-
-    if (!argsPerfil) {
-      return enviarMensagemParaChat(chatId, RbacPerfisClinicosService.formatarPainelPerfil(chatId));
-    }
-
-    var argLower = argsPerfil.toLowerCase();
-    if (argLower === "listar" || argLower === "catalogo" || argLower === "ajuda") {
-      return enviarMensagemParaChat(chatId, RbacPerfisClinicosService.formatarListaPerfis());
-    }
-
-    // Extrai possível CRM e nome do perfil
-    var mCrm = argsPerfil.match(/(?:crm\s*[:=]?\s*)([0-9]{3,8}(?:\s*[-/]\s*[a-zA-Z]{2})?)/i);
-    var crmEncontrado = mCrm ? mCrm[1] : null;
-    var papelAlvo = argsPerfil.replace(/(?:crm\s*[:=]?\s*)([0-9]{3,8}(?:\s*[-/]\s*[a-zA-Z]{2})?)/i, "").trim();
-
-    var resDefinir = RbacPerfisClinicosService.definirPerfilUsuario(chatId, papelAlvo, {
-      crm: crmEncontrado,
-      nome: message.from ? ((message.from.first_name || "") + " " + (message.from.last_name || "")).trim() : null
-    });
-
-    var msgResp = "✅ *PAPEL CLÍNICO ATUALIZADO COM SUCESSO!*\n\n" +
-      "• **Papel Ativo:** " + resDefinir.perfil.titulo + "\n" +
-      "• **Nível Hierárquico:** Nível " + resDefinir.perfil.nivelHierarquico + " de 5\n" +
-      (resDefinir.crm ? ("• **CRM Registrado:** " + resDefinir.crm + "\n") : "") +
-      "• **Prescrição Hospitalar:** " + (resDefinir.perfil.podePrescreverOficialmente ? "Autorizada (supervisão de alta vigilância)" : "Restrita a rascunho de estudo") + "\n\n" +
-      "Envie `/perfil` a qualquer momento para auditar suas competências e pendências ativas.";
-
-    return enviarMensagemParaChat(chatId, msgResp);
-  }
-
-  if (comando === "/pendencias") {
-    if (typeof RbacPerfisClinicosService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
-    }
-    return enviarMensagemParaChat(chatId, RbacPerfisClinicosService.formatarListaPendencias(chatId));
-  }
-
-  if (comando === "/chancelar") {
-    var dadosChancela = texto.replace(/^\/chancelar\s*/, "").trim();
-    if (typeof RbacPerfisClinicosService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
-    }
-
-    if (!dadosChancela) {
-      return enviarMensagemParaChat(chatId, "✍️ *CHANCELA PRECEPTORIAL DE CONDUTA*\n\n" +
-        "Uso: `/chancelar <id_pendencia> [parecer clínico]`\n" +
-        "💡 *Exemplo:* `/chancelar pend_123456 Conduta e dosagem aprovadas para enfermaria.`\n\n" +
-        "Para ver as pendências aguardando chancela, envie `/pendencias`.");
-    }
-
-    var partes = dadosChancela.split(/\s+/);
-    var pId = partes[0];
-    var parecer = partes.slice(1).join(" ") || "Conduta aprovada sem ressalvas pelo preceptor responsável.";
-
-    try {
-      var resChancela = RbacPerfisClinicosService.chancelarCoAssinatura({ chatId: chatId }, pId, parecer);
-      var msgOk = "✅ *CHANCELA PRECEPTORIAL REGISTRADA!*\n\n" +
-        "• **Pendência ID:** `" + resChancela.pendenciaId + "`\n" +
-        "• **Status:** " + resChancela.status + "\n" +
-        "• **Chancelado Por:** " + resChancela.chanceladoPor.nome + " (" + resChancela.chanceladoPor.perfil + ")\n" +
-        "• **Parecer:** _" + parecer + "_\n\n" +
-        "Prescrição e conduta liberadas para execução pela equipe hospitalar.";
-      return enviarMensagemParaChat(chatId, msgOk);
-    } catch (eChancela) {
-      return enviarMensagemParaChat(chatId, "⛔ *NÃO FOI POSSÍVEL CHANCELAR:*\n" + eChancela.message);
-    }
-  }
-
-  if (comando === "/breaktheglass") {
-    var justificativa = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof RbacPerfisClinicosService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
-    }
-
-    if (!justificativa) {
-      return enviarMensagemParaChat(chatId, "🚨 *PROTOCOLO BREAK-THE-GLASS (BYPASS DE EMERGÊNCIA)*\n\n" +
-        "Permite relaxar temporariamente travas hierárquicas em emergências clínicas graves (ex: PCR, choque refratário, intubação rápida).\n\n" +
-        "• Para ATIVAR: `/breaktheglass <motivo clínico detalhado>`\n" +
-        "  Ex: `/breaktheglass Paciente em PCR no leito 4, necessidade imediata de adrenalina e suporte invasivo`\n\n" +
-        "• Para DESATIVAR: `/breaktheglass off`");
-    }
-
-    if (justificativa.toLowerCase() === "off" || justificativa.toLowerCase() === "desativar") {
-      var resDesat = RbacPerfisClinicosService.desativarBypassEmergencia({ chatId: chatId });
-      return enviarMensagemParaChat(chatId, "🛡️ *MODO DE EMERGÊNCIA DESATIVADO*\n\n" + resDesat.mensagem);
-    }
-
-    try {
-      var resAtiv = RbacPerfisClinicosService.ativarBypassEmergencia({ chatId: chatId }, justificativa, 2);
-      var msgEmerg = "🚨 *BREAK-THE-GLASS ATIVADO COM SUCESSO!*\n\n" +
-        "• **Profissional:** " + resAtiv.usuario + " (" + resAtiv.perfil + ")\n" +
-        "• **Motivo Registrado:** " + resAtiv.justificativa + "\n" +
-        "• **Duração do Bypass:** " + resAtiv.duracaoHoras + " hora(s)\n\n" +
-        resAtiv.avisoSeguranca + "\n\n" +
-        "Ao finalizar a assistência de emergência, desative enviando: `/breaktheglass off`";
-      return enviarMensagemParaChat(chatId, msgEmerg);
-    } catch (eEmerg) {
-      return enviarMensagemParaChat(chatId, "⚠️ *ERRO AO ATIVAR BREAK-THE-GLASS:*\n" + eEmerg.message);
-    }
-  }
-
-  if (comando === "/auditar_rbac" || comando === "/relatorio_rbac") {
-    return enviarMensagemParaChat(chatId, "ℹ️ *FUNÇÃO ADMINISTRATIVA DESATIVADA*\n\nEste relatório burocrático de governança hospitalar foi desativado no perfil assistencial do interno e médico generalista.\n\nPara consultar seu perfil ativo e permissões clínicas beira-leito, use `/perfil`.");
-  }
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // SUPORTE NUTRICIONAL ENTERAL E PARENTERAL (BRASPEN / ESPEN / ASPEN)
-  // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/nutricao" || comando === "/dieta" || comando === "/refeeding" || comando === "/npt" || comando === "/nrs") {
-    var dadosNutri = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof SuporteNutricionalService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo SuporteNutricionalService indisponível temporariamente.");
-    }
-
-    if (!dadosNutri) {
-      return enviarMensagemParaChat(chatId, "🥗 *MÓDULO DE SUPORTE NUTRICIONAL CLÍNICO & UTI*\n\n" +
-        "Envie os parâmetros clínicos para cálculo e prescrição estruturada:\n" +
-        "• `/nutricao 70kg, 175cm, 65a, m, sepse, UTI, jejum 4 dias` *(Cálculo e Prescrição)*\n" +
-        "• `/refeeding IMC 15.5, perda 18%, jejum 8 dias, K 3.1, P 1.8, Mg 1.4` *(Risco de Realimentação)*\n" +
-        "• `/npt 60kg, 168cm, 58a, jejum 8 dias, ileo paralitico, alto risco` *(Indicação NPT)*\n" +
-        "• `/dieta 110kg, 165cm, 50a, f, obesa, UTI` *(Manejo em Obesidade Crítica)*");
-    }
-
-    var tLower = dadosNutri.toLowerCase();
-    var paramsNutri = {
-      textoOriginal: dadosNutri
-    };
-
-    // Peso (ex: 70kg, 70 kg, peso 70)
-    var mPeso = dadosNutri.match(/(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || dadosNutri.match(/peso\s*[:=]?\s*(\d{2,3}(?:[.,]\d+)?)/i);
-    if (mPeso) paramsNutri.peso = parseFloat(mPeso[1].replace(',', '.'));
-
-    // Altura (ex: 175cm, 1.75m, 175 cm)
-    var mAltCm = dadosNutri.match(/(\d{3})\s*cm/i);
-    var mAltM = dadosNutri.match(/([12][.,]\d{2})\s*m/i);
-    if (mAltCm) paramsNutri.alturaCm = parseFloat(mAltCm[1]);
-    else if (mAltM) paramsNutri.alturaCm = parseFloat(mAltM[1].replace(',', '.')) * 100;
-
-    // Idade
-    var mIdade = dadosNutri.match(/(\d{1,3})\s*(?:a|anos|a\b)/i);
-    if (mIdade) paramsNutri.idade = parseInt(mIdade[1], 10);
-
-    // Sexo
-    if (tLower.includes("mulher") || tLower.includes("fem") || /\bf\b/.test(tLower)) paramsNutri.sexo = "f";
-    else if (tLower.includes("homem") || tLower.includes("masc") || /\bm\b/.test(tLower)) paramsNutri.sexo = "m";
-
-    // Dias de Jejum
-    var mJejum = dadosNutri.match(/jejum\s*(?:de\s*)?(\d{1,2})\s*dias?/i) || dadosNutri.match(/(\d{1,2})\s*dias?\s*(?:de\s*)?jejum/i);
-    if (mJejum) paramsNutri.diasJejum = parseInt(mJejum[1], 10);
-
-    // Perda de Peso (%)
-    var mPerda = dadosNutri.match(/perda\s*(?:de\s*)?(\d{1,2}(?:[.,]\d+)?)\s*%/i);
-    if (mPerda) paramsNutri.perdaPesoPct = parseFloat(mPerda[1].replace(',', '.'));
-
-    // Eletrólitos
-    var mP = dadosNutri.match(/\bp\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosNutri.match(/fosforo\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
-    if (mP) paramsNutri.p = parseFloat(mP[1].replace(',', '.'));
-
-    var mMg = dadosNutri.match(/mg\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosNutri.match(/magnesio\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
-    if (mMg) paramsNutri.mg = parseFloat(mMg[1].replace(',', '.'));
-
-    var mK = dadosNutri.match(/\bk\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosNutri.match(/potassio\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
-    if (mK) paramsNutri.k = parseFloat(mK[1].replace(',', '.'));
-
-    // TGI Funcionante vs Inviável
-    if (tLower.includes("ileo") || tLower.includes("obstrucao") || tLower.includes("isquemia") || tLower.includes("tgi nao") || tLower.includes("sem tgi") || comando === "/npt") {
-      paramsNutri.tratoGastrointestinalFuncionante = false;
-    } else {
-      paramsNutri.tratoGastrointestinalFuncionante = true;
-    }
-
-    // Condição Clínica
-    if (tLower.includes("crrt") || tLower.includes("dialise continua")) paramsNutri.condicaoClinica = "crrt";
-    else if (tLower.includes("queimad") || tLower.includes("trauma")) paramsNutri.condicaoClinica = "trauma";
-    else if (tLower.includes("sepse") || tLower.includes("uti") || tLower.includes("critico")) paramsNutri.condicaoClinica = "uti";
-    else if (tLower.includes("fase aguda") || tLower.includes("dia 1")) paramsNutri.condicaoClinica = "fase_aguda";
-    else if (tLower.includes("drc")) paramsNutri.condicaoClinica = "drc_conservador";
-
-    // Fatores de risco adicionais
-    if (tLower.includes("alcool") || tLower.includes("etil")) paramsNutri.etilismo = true;
-    if (tLower.includes("quimio")) paramsNutri.quimioterapia = true;
-    if (tLower.includes("anorex")) paramsNutri.anorexia = true;
-
-    // Se comando for exclusivamente de refeeding
-    if (comando === "/refeeding") {
-      var resRealimentacao = SuporteNutricionalService.avaliarRiscoRealimentacao(paramsNutri);
-      var lRef = [];
-      lRef.push("⚠️ *ESTRATIFICAÇÃO DE RISCO: SÍNDROME DE REALIMENTAÇÃO (REFEEDING)*");
-      lRef.push("════════════════════════════════════════════");
-      lRef.push("• Nível de Risco: *" + resRealimentacao.nivelRisco + "*");
-      if (resRealimentacao.criteriosMaioresDetectados.length > 0) {
-        lRef.push("• Critérios Maiores: " + resRealimentacao.criteriosMaioresDetectados.join("; "));
-      }
-      if (resRealimentacao.criteriosMenoresDetectados.length > 0) {
-        lRef.push("• Critérios Menores: " + resRealimentacao.criteriosMenoresDetectados.join("; "));
-      }
-      lRef.push("");
-      lRef.push("📋 *Condutas e Prescrição de Segurança:*");
-      resRealimentacao.condutasRecomendadas.forEach(function(c) {
-        lRef.push(c);
-      });
-      return enviarMensagemParaChat(chatId, lRef.join("\n"));
-    }
-
-    var resultadoNutri = SuporteNutricionalService.avaliarSuporteNutricionalCompleto(paramsNutri);
-    return enviarMensagemParaChat(chatId, resultadoNutri.resumoFormatado);
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -2820,34 +2631,6 @@ function processarMensagemTexto(message) {
   }
 
   
-  // ENDOCRINOLOGIA: HIPERPROLACTINEMIA
-  // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/hiperprolactinemia" || comando === "/prolactina" || comando === "/cabergolina") {
-    var dadosProlactina = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof EndocrinologiaHiperprolactinemiaService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo EndocrinologiaHiperprolactinemiaService indisponível temporariamente.");
-    }
-
-    if (!dadosProlactina) {
-      return enviarMensagemParaChat(chatId, "🧠 *ENDOCRINOLOGIA — HIPERPROLACTINEMIA*\n\n" +
-        "Envie os dados para investigação e manejo de prolactinomas:\n" +
-        "• *PRL:* `PRL 150` ou `prolactina 85`\n" +
-        "• *Tamanho (RM):* `tamanho 12` ou `adenoma 8mm`\n" +
-        "• *Dose:* `dose 2.5` (Cabergolina mg/sem)\n" +
-        "• *Outros:* `gestante`, `assintomatica`, `alteracao visual`, `uso de antipsicotico`, `tsh alterado`, `macroprolactina pesquisada`, `macroprolactina positiva`\n\n" +
-        "*Exemplos:*\n" +
-        "• `/prolactina PRL 85 assintomatica`\n" +
-        "• `/hiperprolactinemia PRL 250 tamanho 15mm alteracao visual`");
-    }
-
-    try {
-      var respostaProlactina = EndocrinologiaHiperprolactinemiaService.processarComandoTelegram(texto);
-      return enviarMensagemParaChat(chatId, respostaProlactina);
-    } catch (eProlactina) {
-      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Hiperprolactinemia: " + eProlactina.message);
-    }
-  }
-
   // GINECOLOGIA ENDÓCRINA & CIRÚRGICA: ENDOMETRIOSE E DOR PÉLVICA CRÔNICA
   // ───────────────────────────────────────────────────────────────────────────
   if (comando === "/endometriose" || comando === "/dienogeste" || comando === "/dorpelvica") {
@@ -2940,62 +2723,8 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Cólica Nefrética: " + eColica.message);
     }
   }
-  if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
-    var dadosKaizen = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof AuditoriaKaizenClinicoService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo AuditoriaKaizenClinicoService indisponível temporariamente.");
-    }
-
-    if (!dadosKaizen || dadosKaizen.toLowerCase() === "resumo" || dadosKaizen.toLowerCase() === "dashboard") {
-      var dash = AuditoriaKaizenClinicoService.gerarDashboardKaizen();
-      var msgDash = AuditoriaKaizenClinicoService.formatarDashboardEmTexto(dash);
-      return enviarMensagemParaChat(chatId, msgDash);
-    }
-
-    if (dadosKaizen.toLowerCase() === "limpar") {
-      AuditoriaKaizenClinicoService.limparHistorico();
-      return enviarMensagemParaChat(chatId, "🧹 *Histórico do Dashboard de Kaizen Clínico reinicializado com sucesso em memória.*");
-    }
-
-    var argLower = dadosKaizen.toLowerCase();
-    if (argLower === "uti" || argLower === "emergencia" || argLower === "enfermaria" || argLower === "ambulatorio") {
-      var dashSetor = AuditoriaKaizenClinicoService.gerarDashboardKaizen({ setor: argLower });
-      var msgSetor = AuditoriaKaizenClinicoService.formatarDashboardEmTexto(dashSetor);
-      return enviarMensagemParaChat(chatId, msgSetor);
-    }
-
-    // Se o usuário enviou uma prescrição para auditoria direta
-    var evAuditado = AuditoriaKaizenClinicoService.auditarPrescricao({
-      textoPrescricao: dadosKaizen,
-      paciente: "Auditoria Telegram",
-      setor: "EMERGENCIA",
-      prescritorNome: "Médico Plantonista",
-      perfilPrescritor: "ASSISTENTE"
-    });
-
-    var msgAudit = "🛡️ *PARECER DE AUDITORIA DE PRESCRIÇÃO (KAIZEN)*\n" +
-      "════════════════════════════════════════════\n" +
-      "• Status: " + evAuditado.icone + " *" + evAuditado.desfechoRotulo + "*\n" +
-      "• Prescrição Rejeitada/Retida: *" + (evAuditado.rejeitada ? "SIM 🛑" : "NÃO ✅") + "*\n" +
-      "• Escore de Risco: *" + evAuditado.escoreRisco + "/100*\n" +
-      "• Fármacos Identificados: " + (evAuditado.farmacos.length > 0 ? evAuditado.farmacos.map(function(f){return "`" + f.toUpperCase() + "`";}).join(", ") : "Nenhum") + "\n\n";
-
-    if (evAuditado.gargalosDetectados.length > 0) {
-      msgAudit += "⚠️ *Gargalos de Segurança Detectados:*\n" +
-        evAuditado.gargalosDetectados.map(function(g){ return "• " + g; }).join("\n") + "\n\n";
-    }
-
-    if (evAuditado.intervencoesRecomendadas.length > 0) {
-      msgAudit += "💡 *Recomendações e Intervenções Farmacêuticas:*\n" +
-        evAuditado.intervencoesRecomendadas.map(function(rec){ return "• " + rec; }).join("\n") + "\n\n";
-    }
-
-    msgAudit += "⏱️ _Auditoria registrada no dashboard analítico hospitalar (" + evAuditado.tempoAnaliseMs + "ms). Digite /kaizen para ver o painel consolidado._";
-    return enviarMensagemParaChat(chatId, msgAudit);
-  }
-
   // ───────────────────────────────────────────────────────────────────────────
-  // PROTOCOLO DE TRANSFUSÃO SANGUÍNEA & PROTOCOLO DE TRANSFUSÃO MACIÇA (PTM)
+  // NEFROLOGIA: CLEARANCE DE CREATININA (COCKCROFT-GAULT)
   // ───────────────────────────────────────────────────────────────────────────
   if (comando === "/crcl" || comando === "/clearance") {
     var dadosCrcl = texto.replace(/^\/\w+\s*/, "").trim();
@@ -3053,19 +2782,6 @@ function processarMensagemTexto(message) {
 
     var resCrcl = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrcl });
     return enviarMensagemParaChat(chatId, resCrcl.textoFormatado);
-  }
-
-  if (comando === "/neutropenia" || comando === "/mascc") {
-    if (typeof InfectologiaNeutropeniaService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo InfectologiaNeutropeniaService indisponível.");
-    }
-    
-    // Simplificacao para demonstrar no bot (usa parametros padrão se texto for vazio)
-    var masccMock = { cargaSintomas: 'leve', semHipotensao: true, semDpoc: true, tumorSolidoOuHematoSemFungo: true, semDesidratacao: true, ambulatorial: true, idadeMenor60: true };
-    var clinicaMock = { instabilidade: false, suspeitaCateter: false, mrsa: false, alergiaPenicilina: 'nao', diasFebre: 1 };
-    
-    var resNeutro = cockpitInfectologiaNeutropenia('bot', { mascc: masccMock, clinica: clinicaMock });
-    return enviarMensagemParaChat(chatId, resNeutro.textoFormatado + "\n\n_(Exemplo gerado com parâmetros de baixo risco. No futuro, interatividade será adicionada.)_");
   }
 
   if (comando === "/pancreatite" || comando === "/bisap") {
@@ -3151,140 +2867,6 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, resSca.textoFormatado);
   }
 
-
-  if (comando === "/transfusao" || comando === "/hemoterapia" || comando === "/ptm" || comando === "/chad") {
-    var dadosTrans = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof TransfusaoSanguineaService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo TransfusaoSanguineaService indisponível temporariamente.");
-    }
-
-    if (!dadosTrans) {
-      return enviarMensagemParaChat(chatId, "🩸 *PROTOCOLO AVANÇADO DE TRANSFUSÃO SANGUÍNEA & PTM*\n\n" +
-        "Envie os dados clínicos ou laboratoriais para cálculo beira-leito:\n\n" +
-        "🔴 *Gatilho CHAD:* `/transfusao hb 6.5, 70kg, estavel`\n" +
-        "🫀 *Coronariopata:* `/transfusao hb 7.6, 75kg, sca` (ou iam/coronariopata)\n" +
-        "🚨 *Transfusão Maciça (PTM):* `/ptm fc 130, pas 80, penetrante, fast+, mulher 28 anos`\n" +
-        "🩹 *Plaquetas:* `/transfusao plaquetas 15000, 70kg, sangramento` (ou `tce`, `puncao`)\n" +
-        "🧪 *Plasma (PFC):* `/transfusao pfc, rni 2.3, 70kg, sangramento`\n" +
-        "💉 *Crioprecipitado:* `/transfusao crio, fibrinogenio 90, 70kg, hpp`\n" +
-        "⚡ *CIVD:* `/transfusao civd, plaquetas 40000, ddimero alto, tp 7s, fibrinogenio 80`");
-    }
-
-    var tTransLower = dadosTrans.toLowerCase();
-
-    // 1. Transfusão Maciça (PTM)
-    if (comando === "/ptm" || tTransLower.includes("ptm") || tTransLower.includes("macica") || tTransLower.includes("exsanguin")) {
-      var paramsPtm = {};
-      var mFcP = dadosTrans.match(/fc\s*[:=]?\s*(\d{2,3})/i);
-      if (mFcP) paramsPtm.fc = parseInt(mFcP[1], 10);
-      var mPasP = dadosTrans.match(/pas\s*[:=]?\s*(\d{2,3})/i) || dadosTrans.match(/pa\s*[:=]?\s*(\d{2,3})/i);
-      if (mPasP) paramsPtm.pas = parseInt(mPasP[1], 10);
-      var mPesoPtm = dadosTrans.match(/(\d{2,3}(?:[.,]\d+)?)\s*kg/i);
-      if (mPesoPtm) paramsPtm.peso = parseFloat(mPesoPtm[1].replace(',', '.'));
-      var mIdadeP = dadosTrans.match(/(\d{1,3})\s*anos/i);
-      if (mIdadeP) paramsPtm.idade = parseInt(mIdadeP[1], 10);
-
-      if (tTransLower.includes("mulher") || tTransLower.includes("feminino")) paramsPtm.sexo = "F";
-      if (tTransLower.includes("homem") || tTransLower.includes("masculino")) paramsPtm.sexo = "M";
-      if (tTransLower.includes("penetrante") || tTransLower.includes("paf") || tTransLower.includes("fab")) paramsPtm.traumaPenetrante = true;
-      if (tTransLower.includes("fast+") || tTransLower.includes("fast positivo") || tTransLower.includes("liquido livre")) paramsPtm.fastPositivo = true;
-
-      var resPtm = TransfusaoSanguineaService.calcularProtocoloTransfusaoMaciça(paramsPtm);
-      var msgPtm = TransfusaoSanguineaService.formatarResumoTransfusional({ ptm: resPtm });
-      return enviarMensagemParaChat(chatId, msgPtm);
-    }
-
-    // 2. Plaquetas
-    if (tTransLower.includes("plaquet")) {
-      var paramsPlaq = {};
-      var mPlaq = dadosTrans.match(/plaquet\w*\s*[:=]?\s*(\d+)/i) || dadosTrans.match(/(\d{1,3}(?:\.\d{3})*|\d+)\s*(?:plaq|\/mcl)/i);
-      if (mPlaq) paramsPlaq.plaquetasAtual = parseInt(mPlaq[1].replace(/\./g, ''), 10);
-      var mPesoPl = dadosTrans.match(/(\d{2,3}(?:[.,]\d+)?)\s*kg/i);
-      if (mPesoPl) paramsPlaq.peso = parseFloat(mPesoPl[1].replace(',', '.'));
-      if (tTransLower.includes("sangra")) paramsPlaq.sangramentoAtivo = true;
-      if (tTransLower.includes("tce") || tTransLower.includes("neuro")) paramsPlaq.tceOuNeurotrauma = true;
-      if (tTransLower.includes("puncao")) paramsPlaq.procedimento = "PUNCAO_LOMBAR";
-      if (tTransLower.includes("biopsia")) paramsPlaq.procedimento = "BIOPSIA_HEPATICA";
-      if (tTransLower.includes("ptt") || tTransLower.includes("hit")) paramsPlaq.suspeitaPttOuHit = true;
-
-      var resPlaq = TransfusaoSanguineaService.calcularReposicaoPlaquetas(paramsPlaq);
-      var msgPlaq = TransfusaoSanguineaService.formatarResumoTransfusional({ plaquetas: resPlaq });
-      return enviarMensagemParaChat(chatId, msgPlaq);
-    }
-
-    // 3. Plasma Fresco Congelado (PFC)
-    if (tTransLower.includes("pfc") || tTransLower.includes("plasma") || tTransLower.includes("rni")) {
-      var paramsPfc = {};
-      var mRni = dadosTrans.match(/rni\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosTrans.match(/inr\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
-      if (mRni) paramsPfc.rni = parseFloat(mRni[1].replace(',', '.'));
-      var mPesoPfc = dadosTrans.match(/(\d{2,3}(?:[.,]\d+)?)\s*kg/i);
-      if (mPesoPfc) paramsPfc.peso = parseFloat(mPesoPfc[1].replace(',', '.'));
-      if (tTransLower.includes("sangra")) paramsPfc.sangramentoAtivo = true;
-      if (tTransLower.includes("procedimento") || tTransLower.includes("cirurgia")) paramsPfc.procedimentoInvasivo = true;
-
-      var resPfc = TransfusaoSanguineaService.calcularReposicaoPfc(paramsPfc);
-      var msgPfc = TransfusaoSanguineaService.formatarResumoTransfusional({ pfc: resPfc });
-      return enviarMensagemParaChat(chatId, msgPfc);
-    }
-
-    // 4. Crioprecipitado
-    if (tTransLower.includes("crio") || tTransLower.includes("fibrinogen")) {
-      var paramsCrio = {};
-      var mFib = dadosTrans.match(/fibrinogen\w*\s*[:=]?\s*(\d+)/i);
-      if (mFib) paramsCrio.fibrinogenioAtual = parseInt(mFib[1], 10);
-      var mPesoCr = dadosTrans.match(/(\d{2,3}(?:[.,]\d+)?)\s*kg/i);
-      if (mPesoCr) paramsCrio.peso = parseFloat(mPesoCr[1].replace(',', '.'));
-      if (tTransLower.includes("hpp") || tTransLower.includes("parto")) paramsCrio.cenario = "HPP";
-      if (tTransLower.includes("trauma")) paramsCrio.cenario = "TRAUMA";
-      if (tTransLower.includes("sangra")) paramsCrio.sangramentoAtivo = true;
-
-      var resCrio = TransfusaoSanguineaService.calcularReposicaoCrioprecipitado(paramsCrio);
-      var msgCrio = TransfusaoSanguineaService.formatarResumoTransfusional({ crioprecipitado: resCrio });
-      return enviarMensagemParaChat(chatId, msgCrio);
-    }
-
-    // 5. CIVD
-    if (tTransLower.includes("civd")) {
-      var paramsCivd = {};
-      var mPlaqCivd = dadosTrans.match(/plaquet\w*\s*[:=]?\s*(\d+)/i);
-      if (mPlaqCivd) paramsCivd.plaquetas = parseInt(mPlaqCivd[1], 10);
-      var mTpC = dadosTrans.match(/tp\s*[:=]?\s*(\d+)/i);
-      if (mTpC) paramsCivd.tpAlargadoSegundos = parseInt(mTpC[1], 10);
-      var mFibC = dadosTrans.match(/fibrinogen\w*\s*[:=]?\s*(\d+)/i);
-      if (mFibC) paramsCivd.fibrinogenio = parseInt(mFibC[1], 10);
-      if (tTransLower.includes("ddimero alto") || tTransLower.includes("d-dimero alto") || tTransLower.includes("acentuado")) paramsCivd.dDimeroAumento = "ACENTUADO";
-      else if (tTransLower.includes("ddimero") || tTransLower.includes("moderado")) paramsCivd.dDimeroAumento = "MODERADO";
-      if (tTransLower.includes("sangra")) paramsCivd.sangramentoAtivo = true;
-
-      var resCivd = TransfusaoSanguineaService.avaliarCivd(paramsCivd);
-      var msgCivd = "⚡ *AVALIAÇÃO DE COAGULAÇÃO INTRAVASCULAR DISSEMINADA (CIVD)*\n\n" +
-        "• Classificação: *" + resCivd.classificacao + "* (" + resCivd.pontosTotais + "/8 pontos ISTH)\n" +
-        "• Diagnóstico: *" + (resCivd.civdManifesta ? "CIVD MANIFESTA (Overt DIC) 🚨" : "NÃO MANIFESTA") + "*\n\n" +
-        "📋 *Achados:*\n- " + resCivd.achados.map(function(a){ return a.criterio + " (+" + a.pontos + " pts)"; }).join("\n- ") + "\n\n" +
-        "💡 *Plano de Ação:*\n- " + resCivd.planoAcao.join("\n- ");
-      return enviarMensagemParaChat(chatId, msgCivd);
-    }
-
-    // 6. Padrão: Avaliação de CHAD / Gatilho Transfusional Geral
-    var paramsChad = {};
-    var mHb = dadosTrans.match(/hb\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosTrans.match(/(\d+(?:[.,]\d+)?)\s*g\/?dl/i);
-    if (mHb) paramsChad.hb = parseFloat(mHb[1].replace(',', '.'));
-    var mPesoCh = dadosTrans.match(/(\d{2,3}(?:[.,]\d+)?)\s*kg/i);
-    if (mPesoCh) paramsChad.peso = parseFloat(mPesoCh[1].replace(',', '.'));
-
-    if (tTransLower.includes("sca") || tTransLower.includes("iam") || tTransLower.includes("coronario")) paramsChad.cenarioClinico = "SCA";
-    else if (tTransLower.includes("sepse") || tTransLower.includes("septico")) paramsChad.cenarioClinico = "CHOQUE_SEPTICO";
-    else if (tTransLower.includes("tce") || tTransLower.includes("neuro")) paramsChad.cenarioClinico = "NEUROCRITICO";
-    else if (tTransLower.includes("hemorrag") || tTransLower.includes("sangramento ativo")) paramsChad.cenarioClinico = "HEMORRAGIA_AGUDA";
-    else paramsChad.cenarioClinico = "ESTAVEL_GERAL";
-
-    if (tTransLower.includes("sintoma") || tTransLower.includes("dispneia") || tTransLower.includes("angina")) paramsChad.sintomasAnemia = true;
-    if (tTransLower.includes("icc") || tTransLower.includes("drc") || tTransLower.includes("idoso")) paramsChad.riscoTaco = true;
-
-    var resChad = TransfusaoSanguineaService.avaliarGatilhoTransfusionalChad(paramsChad);
-    var msgChad = TransfusaoSanguineaService.formatarResumoTransfusional({ chad: resChad });
-    return enviarMensagemParaChat(chatId, msgChad);
-  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // TOXICOLOGIA DE EMERGÊNCIA (Paracetamol, Tricíclicos, BB/BCC, Opioides)
@@ -3972,17 +3554,6 @@ function processarMensagemTexto(message) {
     return tratarComandoRotina(chatId, argRotina);
   }
 
-  // 4.1. COMANDOS DE EVIDÊNCIA CIENTÍFICA E PROTOCOLOS BRASILEIROS
-  if (comando === "/evidencia" || comando === "/pubmed") {
-    var termoEvidencia = texto.replace(/^\/(evidencia|pubmed)\s*/i, "").trim();
-    if (!termoEvidencia) {
-      return enviarMensagemParaChat(chatId, "🔬 *BUSCA DE EVIDÊNCIA CIENTÍFICA (PUBMED / EUROPE PMC)*\n\nUso: `/evidencia <tema ou pergunta clínica>`\n💡 *Exemplo:*\n• `/evidencia corticoide choque septico`\n• `/evidencia vni insuficiencia respiratoria`\n• `/evidencia empagliflozina insuficiencia cardiaca`");
-    }
-    enviarChatAction(chatId, "typing");
-    var resEv = buscarEvidenciaMedica(termoEvidencia);
-    return enviarMensagemParaChat(chatId, resEv);
-  }
-
   if (comando === "/protocolo") {
     var termoProto = texto.replace(/^\/protocolo\s*/i, "").trim();
     if (!termoProto) {
@@ -4071,10 +3642,6 @@ function processarMensagemTexto(message) {
     }
     if (/(?:endometriose|dor\s+p[eé]lvica\s+cr[oô]nica|dienogeste)/i.test(textoTrim)) {
       message.text = "/endometriose " + textoTrim;
-      return processarMensagemTexto(message);
-    }
-    if (/(?:hiperprolactinemia|prolactina\s+alta|galactorreia|cabergolina)/i.test(textoTrim)) {
-      message.text = "/hiperprolactinemia " + textoTrim;
       return processarMensagemTexto(message);
     }
 
@@ -4219,20 +3786,12 @@ function processarMensagemTexto(message) {
       message.text = "/hic " + textoTrim;
       return processarMensagemTexto(message);
     }
-    if (/(?:transfus[ãa]o\s+maci[çc]a|gatilho\s+transfusional|ptm\s+protocolo|\bchad\b\s+gatilho)/i.test(textoTrim)) {
-      message.text = "/transfusao " + textoTrim;
-      return processarMensagemTexto(message);
-    }
     if (/(?:intoxica[çc][ãa]o\s+ex[oó]gena|ant[ií]doto\s+para|tox[íi]ndrome|flumazenil|naloxona|atropiniza[çc][ãa]o)/i.test(textoTrim)) {
       message.text = "/intox " + textoTrim;
       return processarMensagemTexto(message);
     }
     if (/(?:pancreatite\s+aguda\s+bisap|escore\s+bisap)/i.test(textoTrim)) {
       message.text = "/pancreatite " + textoTrim;
-      return processarMensagemTexto(message);
-    }
-    if (/(?:neutropenia\s+febril|escore\s+mascc)/i.test(textoTrim)) {
-      message.text = "/neutropenia " + textoTrim;
       return processarMensagemTexto(message);
     }
     if (/(?:c[oó]lica\s+nefr[eé]tica|c[aá]lculo\s+ureteral|terapia\s+expulsiva\s+tansulosina)/i.test(textoTrim)) {
@@ -5596,6 +5155,47 @@ function processarCallbackBotao(cb) {
   else if (data === "anemia_ganzoni") {
     responderCallbackTelegram(cb.id, "Fórmula de Ganzoni");
     return enviarMensagemParaChat(cb.message.chat.id, "💉 *CÁLCULO DE DÉFICIT DE FERRO (GANZONI)*\n\nEnvie o peso e a hemoglobina do paciente:\n💡 *Exemplo:* `/ganzoni 65kg hb 8.0`\nou `/ganzoni 70kg hb 7.2 alvo 12`\n\nCalcula o déficit de ferro elementar em mg e o total de ampolas de Noripurum EV.");
+  }
+  // HUB GINECOLOGIA & OBSTETRÍCIA (ESTÁGIO ATIVO ATÉ 29/11)
+  else if (data === "go_prenatal") {
+    responderCallbackTelegram(cb.id, "Pré-Natal & DPP");
+    return enviarMensagemParaChat(cb.message.chat.id, "🤰 *CÁLCULO DE IG & ROTINA DE PRÉ-NATAL (MS)*\n\nEnvie a DUM ou dados de USG precoce:\n💡 *Exemplo:* `/prenatal DUM 15/02/2026`\nou `/prenatal USG 01/03/2026 8s3d`\n\nCalcula IG atual, DPP pela regra de Naegele e exames do trimestre.");
+  }
+  else if (data === "go_parto") {
+    responderCallbackTelegram(cb.id, "Parto & Centro Obstétrico");
+    return enviarMensagemParaChat(cb.message.chat.id, "🏥 *CONDUÇÃO DO TRABALHO DE PARTO & BISHOP*\n\nEnvie os dados do exame obstétrico:\n💡 *Exemplo:* `/parto 6cm apagamento 80% plano 0 feto cefalico`\nou `/co bishop dilatacao 3cm apagamento 50% consistencia media posicao intermediaria altura -2`\n\nCalcula índice de Bishop, fase do parto e orienta analgesia/indução.");
+  }
+  else if (data === "go_hpp") {
+    responderCallbackTelegram(cb.id, "Hemorragia Pós-Parto (4 Ts)");
+    return enviarMensagemParaChat(cb.message.chat.id, "🩸 *HEMORRAGIA PÓS-PARTO (HPP) — PROTOCOLO 4 Ts*\n\nEnvie os parâmetros clínicos e perda estimada:\n💡 *Exemplo:* `/hpp perda 1200ml atonia uterina pas 85 fc 125`\n\nCalcula Índice de Choque (FC/PAS), orienta Ocitocina (5 UI IV lento + 20 UI em 500 mL), Metilergonovina, Misoprostol (800 mcg retal) e Ácido Tranexâmico (1g IV em 10 min até 3h do parto).");
+  }
+  else if (data === "go_mgso4") {
+    responderCallbackTelegram(cb.id, "Pré-Eclâmpsia & MgSO4");
+    return enviarMensagemParaChat(cb.message.chat.id, "⚡ *PRÉ-ECLÂMPSIA GRAVE & ESQUEMA DE ZUSPAN*\n\nEnvie o comando para orientações imediatas:\n💡 *Exemplo:* `/mgso4 zuspan`\n\n• *Ataque:* Sulfato de Magnésio 50% 4g (8 mL de MgSO4 50% + 12 mL de AD) IV em 20 min.\n• *Manutenção:* 1 a 2 g/h em BIC contínua.\n• *Vigilância:* Reflexo patelar presente, FR > 16 irpm, Diurese > 25 mL/h.\n• *Antídoto imediato:* Gluconato de Cálcio 10% 10 mL IV em 3-5 min.");
+  }
+  else if (data === "go_prematuridade") {
+    responderCallbackTelegram(cb.id, "Prematuridade & RPMO");
+    return enviarMensagemParaChat(cb.message.chat.id, "👶 *TRABALHO DE PARTO PREMATURO & RPMO*\n\nEnvie a idade gestacional:\n💡 *Exemplo:* `/prematuridade 30 semanas dinamica uterina presente bolsa integra`\n\n• *Maturação Pulmonar (24 a 34 sem):* Betametasona 12 mg IM q24h (2 doses).\n• *Neuroproteção (< 32 sem):* MgSO4 4g ataque + 1g/h até o parto.\n• *Tocólise (24 a 34 sem):* Nifedipino ou Atosibana.");
+  }
+  else if (data === "go_toxo") {
+    responderCallbackTelegram(cb.id, "Toxoplasmose Gestacional");
+    return enviarMensagemParaChat(cb.message.chat.id, "🔬 *TOXOPLASMOSE GESTACIONAL & AVIDEZ*\n\nEnvie sorologias e idade gestacional:\n💡 *Exemplo:* `/toxo igg 250 igm 3.2 avidez alta 10 semanas`\nou `/toxo igg positivo igm positivo 18 semanas sem avidez`\n\nInterpreta soroconversão, orienta Espiramicina 1g 8/8h e esquema tríplice se infecção fetal confirmada.");
+  }
+  else if (data === "go_corrimento") {
+    responderCallbackTelegram(cb.id, "Vulvovaginites");
+    return enviarMensagemParaChat(cb.message.chat.id, "🌸 *VULVOVAGINITES & CORRIMENTOS (REMUME/MS)*\n\nEnvie os achados clínicos:\n💡 *Exemplo:* `/corrimento branco grumoso prurido intenso`\n• `/corrimento bolhoso amarelo esverdeado odor fetido colo em framboesa`\n• `/corrimento acinzentado odor peixe podre whiff positivo`\n\nOrienta conduta de Candidíase (Fluconazol/Miconazol), Vaginose (Metronidazol) e Tricomoníase (Metronidazol + tratar parceiro).");
+  }
+  else if (data === "go_preventivo") {
+    responderCallbackTelegram(cb.id, "Preventivo / Citopatológico");
+    return enviarMensagemParaChat(cb.message.chat.id, "🩺 *CONDUTA CITOPATOLÓGICA DE COLO DE ÚTERO (INCA)*\n\nEnvie o laudo e idade da paciente:\n💡 *Exemplo:* `/preventivo 28 anos asc-us`\n• `/preventivo 35 anos lsil`\n• `/preventivo 42 anos hsil`\n• `/preventivo 30 anos agc`\n\nOrienta repetição em 6 ou 12 meses vs encaminhamento imediato para Colposcopia.");
+  }
+  else if (data === "go_anticoncepcao") {
+    responderCallbackTelegram(cb.id, "Anticoncepção OMS");
+    return enviarMensagemParaChat(cb.message.chat.id, "💊 *CRITÉRIOS DE ELEGIBILIDADE DA CONTRACEPÇÃO (OMS MEC 1 a 4)*\n\nEnvie idade e comorbidades da paciente:\n💡 *Exemplo:* `/anticoncepcao 32 anos enxaqueca com aura`\n• `/anticoncepcao 38 anos tabagista 15 cigarros/dia`\n• `/anticoncepcao puerpera 3 semanas em aleitamento materno exclusivo`\n\nClassifica métodos seguros (MEC 1 e 2) vs contraindicados (MEC 3 e 4).");
+  }
+  else if (data === "go_dip") {
+    responderCallbackTelegram(cb.id, "DIP & ATO");
+    return enviarMensagemParaChat(cb.message.chat.id, "🩹 *DOENÇA INFLAMATÓRIA PÉLVICA (DIP) & ATO*\n\nEnvie o quadro clínico:\n💡 *Exemplo:* `/dip dor hipogastrica descompressao brusca positiva dor mobilizacao colo febre 38.5`\n\n• *Critérios Diagnósticos (MS/CDC):* Maiores, Menores e Elaborados.\n• *Ambulatorial (Monif I):* Ceftriaxona 500 mg IM dose única + Doxiciclina 100 mg 12/12h VO 14d + Metronidazol 500 mg 12/12h VO 14d.\n• *Hospitalar (Monif II-IV):* Ceftriaxona 1g IV + Doxiciclina ou Clindamicina + Gentamicina.");
   }
   // I. GUIAS DE EXAMES FÍSICOS ESPECIAIS
   else if (data.startsWith("ef_")) {
@@ -7372,6 +6972,7 @@ function obterCatalogoComandosSlash() {
       id: "ginecologia",
       titulo: "🌸 GINECOLOGIA & SAÚDE DA MULHER",
       comandos: [
+        { cmd: "/go", aliases: ["/go"], sintaxe: "/go", desc: "Hub beira-leito de Ginecologia & Obstetrícia (estágio ativo até 29/11)." },
         { cmd: "/ginecologia", aliases: ["/ginecologia"], sintaxe: "/ginecologia <caso>", desc: "Central de condutas e raciocínio para queixas ginecológicas." },
         { cmd: "/preventivo", aliases: ["/preventivo"], sintaxe: "/preventivo <laudo>", desc: "Conduta citopatológica de colo de útero (diretrizes INCA/MS)." },
         { cmd: "/sua", aliases: ["/sua"], sintaxe: "/sua <idade/sangramento>", desc: "Sangramento uterino anormal (PALM-COEIN) e conduta hormonal." },
@@ -7467,11 +7068,10 @@ function obterCatalogoComandosSlash() {
     },
     {
       id: "governanca",
-      titulo: "🛡️ EVIDÊNCIAS, PROTOCOLOS & GOVERNANÇA",
+      titulo: "🛡️ EVIDÊNCIAS, PROTOCOLOS & DIRETRIZES",
       comandos: [
         { cmd: "/protocolo", aliases: ["/protocolo"], sintaxe: "/protocolo <tema>", desc: "Comparativo de diretrizes clínicas nacionais vs internacionais." },
-        { cmd: "/calc", aliases: ["/calc"], sintaxe: "/calc", desc: "Catálogo central de calculadoras médicas integradas." },
-        { cmd: "/kaizen", aliases: ["/kaizen"], sintaxe: "/kaizen", desc: "Painel de métricas de qualidade e melhoria contínua (Kaizen)." }
+        { cmd: "/calc", aliases: ["/calc"], sintaxe: "/calc", desc: "Catálogo central de calculadoras médicas integradas." }
       ]
     }
   ];
@@ -7593,21 +7193,21 @@ function enviarManualCompletoComandos(chatId, filtro) {
       "receita": "rx", "prescricao_hospitalar": "rxh", "soap_ambulatorial": "ambulatorio", "soap_aps": "ambulatorio",
       "septico": "choqueseptico", "circi": "choqueseptico", "vasopressina": "choqueseptico",
       "iot": "sri", "sos": "conduta", "gasometria": "gaso", "aniongap": "gaso", "forrester": "choque",
-      "iam": "sca", "heart": "sca", "dapt": "sca", "trombolise": "avc", "hemoterapia": "transfusao",
-      "ptm": "transfusao", "chad": "transfusao", "toxicologia": "intox", "bisap": "pancreatite",
-      "mascc": "neutropenia", "colicanefretica": "colica", "litiase": "colica", "posologia": "dose",
+      "iam": "sca", "heart": "sca", "dapt": "sca", "trombolise": "avc",
+      "toxicologia": "intox", "bisap": "pancreatite",
+      "colicanefretica": "colica", "litiase": "colica", "posologia": "dose",
       "hsl": "dose", "ajuste": "atb", "ajuste_renal": "atb", "clearance": "crcl", "seguranca": "interacao",
       "dose_ped": "ped", "pediatria": "ped", "pediatria_pcr": "pals", "bva": "bronquiolite",
       "cnaf": "bronquiolite", "holliday": "nutriped", "formulainfantil": "diluicao", "dpp": "prenatal",
       "co": "parto", "preeclampsia": "mgso4", "cig": "colestase", "icp": "colestase",
       "ehag": "swansea", "aflp": "swansea", "toxoplasmose": "toxo", "avidez": "toxo", "ciur": "rcf",
       "rciu": "rcf", "doppler": "rcf", "antifosfolipidio": "saf", "safgestante": "saf", "trombofilia": "saf",
-      "leucorreia": "corrimento", "dienogeste": "endometriose", "prolactina": "hiperprolactinemia",
-      "cabergolina": "hiperprolactinemia", "aga": "idoso", "frids": "polifarmacia",
+      "leucorreia": "corrimento", "dienogeste": "endometriose",
+      "aga": "idoso", "frids": "polifarmacia",
       "fibrilacaoatrial": "fa", "chascore": "fa", "hasbled": "fa", "insuficienciacardiaca": "icc",
       "quarteto": "icc", "criseasma": "asma", "broncoespasmo": "asma", "vni": "dpoc", "bipap": "dpoc",
       "hemograma": "anemia", "noripurum": "ganzoni", "ferro": "ganzoni", "insulina": "diabetes",
-      "dieta": "nutricao", "artriteseptica": "monoartrite", "gota": "monoartrite", "artrocentese": "monoartrite",
+      "artriteseptica": "monoartrite", "gota": "monoartrite", "artrocentese": "monoartrite",
       "jones": "febrereumatica", "aslo": "febrereumatica", "glaucoma": "oftalmo", "queimaduraocular": "oftalmo",
       "vertigem": "vertigem", "hints": "vertigem", "vppb": "vertigem", "tontura": "vertigem",
       "epistaxe": "epistaxe", "sangramentonasal": "epistaxe", "tamponamento": "epistaxe",
@@ -7616,7 +7216,8 @@ function enviarManualCompletoComandos(chatId, filtro) {
       "monkeypox": "mpox", "neuro": "ef", "pqu": "ef", "ortopo": "ef",
       "reumato": "ef", "orl": "ef", "exame": "ef", "exames": "ef", "semiologia": "ef",
       "sbar": "plantao", "pitch": "round", "sabatina": "voz",
-      "tarefa": "task", "relatorio": "semana", "auditoria": "kaizen"
+      "tarefa": "task", "relatorio": "semana",
+      "obstetricia": "go", "gineco": "go"
     };
     if (sinonimosBusca[cmdBusca]) {
       cmdBusca = sinonimosBusca[cmdBusca];

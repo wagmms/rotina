@@ -96,6 +96,36 @@
     - **Banners de Encaminhamento em Subespecialidades**: Inclusão de banner sentinela (`⚠️ MÓDULO DE REFERÊNCIA AVANÇADA — A conduta definitiva requer especialista. O generalista deve reconhecer, estabilizar e encaminhar.`) nos 7 módulos terciários (`climaterio_thm`, `sop_ovarios_policisticos`, `dip_abscesso_tubo_ovariano`, `centro_obstetrico`, `obstetricia_rcf_doppler`, `obstetricia_saf_trombofilias`, `tev_gestante`).
     - **Testes Automatizados**: Bateria de testes expandida em `tests/test_simplificacao_e_expurgo_generalista.cjs` e `tests/test_ajuda_comandos_slash.cjs` validando 100% dos hubs, botões, aliases e banners. Bundle recompilado com `python3 build_master.py` e 100% de aprovação na suíte de testes.
 
+0K. [x] **Purga Completa de Módulos Terciários Especializados e Ativação do Hub de G&O para o Internato (Vigência até 29/11)**:
+    - **Diretiva de Limpeza Radical do Usuário Executada**: Eliminados por completo os 10 módulos estritamente terciários/burocráticos:
+      1. `src/02_auditoria_infusao_uti.js`
+      2. `src/02_auditoria_kaizen_clinico.js`
+      3. `src/02_rbac_perfis_clinicos.js`
+      4. `src/02_infectologia_neutropenia.js`
+      5. `src/02_suporte_nutricional.js` (mantido estritamente `src/02_suporte_nutricional_pediatrico.js` / Holliday-Segar)
+      6. `src/02_transfusao_sanguinea.js`
+      7. `src/02_analgesia_pca.js`
+      8. `src/02_auditoria_y_site.js`
+      9. `src/02_mecanica_pulmonar_sdra.js`
+      10. `src/02_endocrinologia_hiperprolactinemia.js`
+    - **Purga de Testes Órfãos**: Removidos os 9 arquivos `.cjs` dedicados aos módulos excluídos.
+    - **Purga de Handlers e Roteamento Telegram**: Removidos comandos burocráticos e terciários em `src/07_telegram_handlers.js` (`/bio`, `/perfil`, `/rbac`, `/pendencias`, `/chancelar`, `/breaktheglass`, `/auditar_rbac`, `/relatorio_rbac`, `/nutricao`, `/dieta`, `/refeeding`, `/npt`, `/nrs`, `/hiperprolactinemia`, `/prolactina`, `/cabergolina`, `/kaizen`, `/auditkaizen`, `/auditoria`, `/neutropenia`, `/mascc`, `/transfusao`, `/hemoterapia`, `/ptm`, `/chad`, `/evidencia`, `/pubmed`) e seus gatilhos de NLP.
+    - **Proteção e Expansão de Ginecologia & Obstetrícia (Estágio até 29/11)**:
+      * Criado o **Hub Interativo de G&O** beira-leito (`/go`, `/obstetricia`), com 10 botões de ação rápida de 1 toque:
+        - `🤰 Pré-Natal & DPP`
+        - `🏥 Parto & Partograma`
+        - `🩸 HPP (4 Ts)`
+        - `⚡ Pré-Eclâmpsia & MgSO4`
+        - `👶 Prematuridade & RPMO`
+        - `🔬 Toxo & Sorologias`
+        - `🌸 Corrimento / Vulvovaginites`
+        - `🩺 Preventivo / Citopatológico`
+        - `💊 Anticoncepção OMS`
+        - `🩹 DIP & Infecção Pélvica`
+      * Preservados e validados todos os 14 módulos clínicos de G&O no núcleo do sistema.
+    - **Fastify RPC Stubs**: Stubs graciosos padronizados com `{ sucesso: false, desativado: true }` em `src/13_cockpit_integracao.js`.
+    - **Suíte de Testes 100% Verde**: Recompilação atômica via `build_master.py` (62 módulos empacotados) e 16 suítes de teste de integração e segurança passando com 100% de sucesso (`npm test`).
+
 ---
 
 

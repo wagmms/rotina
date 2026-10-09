@@ -22,18 +22,20 @@ const readmeContent = fs.readFileSync(path.join(rootDir, 'README.md'), 'utf8');
 assert.strictEqual(readmeContent.includes('Radar de Voos'), false, 'README.md não deve conter módulo de Radar de Voos');
 assert.strictEqual(readmeContent.includes('radar_voos/'), false, 'README.md não deve conter referências a radar_voos/');
 
-// 3. Endocrinologia Hiperprolactinemia
-const EndoHiper = require('../src/02_endocrinologia_hiperprolactinemia.js');
-const resEndo = EndoHiper.avaliarHiperprolactinemia({
-  prolactina: 80,
-  adenomaTamanho: 12,
-  alteracaoVisual: true
+// 3. Ginecologia e Obstetrícia (Internato Ativo até 29/11)
+const PrenatalService = require('../src/02_obstetricia_prenatal.js');
+const resDpp = PrenatalService.calcularDppNaegele('2024-01-01');
+assert.ok(resDpp, 'Deve calcular DPP pela regra de Naegele');
+const CentroObstetrico = require('../src/02_centro_obstetrico.js');
+const resParto = CentroObstetrico.avaliarTrabalhoParto({
+  dilatacaoCm: 6,
+  contracoes10min: 3,
+  duracaoContracaoSeg: 40,
+  planoDeLee: 0
 });
-assert.ok(resEndo.resultado.condutaBeiraLeito.length >= 2, 'Deve conter orientações beira-leito');
-assert.ok(resEndo.resultado.criteriosEncaminhamento.length >= 2, 'Deve conter critérios de encaminhamento');
-const txtEndo = EndoHiper.processarComandoTelegram('prl 80 tamanho 12 visual');
-assert.ok(txtEndo.includes('Conduta Beira-Leito / UBS'), 'Texto deve conter seção beira-leito');
-assert.ok(txtEndo.includes('Critérios de Encaminhamento ao Especialista'), 'Texto deve conter critérios de encaminhamento');
+assert.ok(resParto.faseDescricao.includes('Fase Ativa'), 'Deve diagnosticar Fase Ativa de Trabalho de Parto');
+assert.strictEqual(resParto.insinuado, true, 'Plano 0 de De Lee deve ser considerado insinuado');
+assert.ok(resParto.bishop.pontos >= 6, 'Índice de Bishop deve ser favorável');
 
 // 4. Ginecologia Endometriose
 const EndoGin = require('../src/02_ginecologia_endometriose.js');

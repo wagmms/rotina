@@ -34,7 +34,7 @@ async function testDefensivo() {
     '/asma', '/criseasma', '/broncoespasmo',
     '/colica', '/colicanefretica', '/litiase',
     '/bronquiolite', '/cnaf',
-    '/hiperprolactinemia', '/prolactina',
+    '/go', '/obstetricia',
     '/endometriose', '/dienogeste',
     '/saf', '/trombofilia',
     '/dva', '/sri', '/gaso', '/winter',

@@ -61,47 +61,62 @@ async function testSaneamentoEscopo() {
   assert.ok(mensagensEnviadas.length > 0 && mensagensEnviadas[0].texto.includes('EMERGÊNCIA & SALA VERMELHA'));
 
   // ───────────────────────────────────────────────────────────────────────────
-  // [2] Validação de /breaktheglass (Bypass do RBAC mantido isolado)
+  // [2] Validação do Hub de Ginecologia & Obstetrícia Beira-Leito (/go)
   // ───────────────────────────────────────────────────────────────────────────
-  console.log('[2] Testando /breaktheglass para bypass administrativo do RBAC...');
+  console.log('[2] Testando roteamento beira-leito do Hub de G&O (/go e /obstetricia)...');
   mensagensEnviadas = [];
-  ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/breaktheglass' });
-  assert.ok(mensagensEnviadas.length > 0, 'Deve responder a /breaktheglass');
-  assert.ok(mensagensEnviadas[0].texto.includes('PROTOCOLO BREAK-THE-GLASS'), 'Deve orientar ativação do bypass');
-  console.log('  ✓ /breaktheglass opera isolado sem conflitar com emergência médica.');
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/go' });
+  assert.ok(mensagensEnviadas.length > 0, 'Deve responder ao comando /go');
+  const msgGo = mensagensEnviadas[0].texto;
+  assert.ok(msgGo.includes('HUB DE GINECOLOGIA & OBSTETRÍCIA'), 'Deve abrir o Hub de G&O');
+  assert.ok(msgGo.includes('29/11'), 'Deve destacar vigência do estágio até 29/11');
+  assert.ok(mensagensEnviadas[0].kb, 'Deve incluir teclado inline com 10 botões clínicos');
+  const btnsGo = JSON.stringify(mensagensEnviadas[0].kb);
+  assert.ok(btnsGo.includes('go_prenatal'), 'Deve conter botão de Pré-Natal');
+  assert.ok(btnsGo.includes('go_parto'), 'Deve conter botão de Parto');
+  assert.ok(btnsGo.includes('go_hpp'), 'Deve conter botão de HPP');
+  assert.ok(btnsGo.includes('go_mgso4'), 'Deve conter botão de MgSO4');
+  console.log('  ✓ /go abre imediatamente o Hub de G&O com os 10 botões de rotação.');
+
+  // Testar alias /obstetricia sem argumentos chamando o Hub
+  mensagensEnviadas = [];
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/obstetricia' });
+  assert.ok(mensagensEnviadas.length > 0 && mensagensEnviadas[0].texto.includes('HUB DE GINECOLOGIA & OBSTETRÍCIA'));
+  console.log('  ✓ /obstetricia sem parâmetros redireciona diretamente ao Hub.');
 
   // ───────────────────────────────────────────────────────────────────────────
-  // [3] Validação de Desativação de Relatórios Burocráticos (/auditar_rbac)
+  // [3] Validação de Callbacks Beira-Leito do Hub G&O
   // ───────────────────────────────────────────────────────────────────────────
-  console.log('[3] Testando desativação de relatórios burocráticos (/auditar_rbac)...');
+  console.log('[3] Testando callbacks rápidos do Hub G&O (Zuspan & HPP 4 Ts)...');
   mensagensEnviadas = [];
-  ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/auditar_rbac' });
-  assert.ok(mensagensEnviadas.length > 0, 'Deve responder');
-  assert.ok(mensagensEnviadas[0].texto.includes('FUNÇÃO ADMINISTRATIVA DESATIVADA'), 'Deve informar desativação');
-  assert.ok(mensagensEnviadas[0].texto.includes('/perfil'), 'Deve redirecionar para /perfil');
+  ctx.processarCallbackBotao({ id: 'cb1', data: 'go_mgso4', message: { chat: { id: chatId } } });
+  assert.ok(mensagensEnviadas.length > 0, 'Deve responder ao callback go_mgso4');
+  assert.ok(mensagensEnviadas[0].texto.includes('ZUSPAN'), 'Deve conter esquema de Zuspan');
+  assert.ok(mensagensEnviadas[0].texto.includes('Gluconato de Cálcio'), 'Deve orientar antídoto Gluconato de Cálcio');
 
   mensagensEnviadas = [];
-  ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/relatorio_rbac' });
-  assert.ok(mensagensEnviadas.length > 0, 'Deve responder');
-  assert.ok(mensagensEnviadas[0].texto.includes('FUNÇÃO ADMINISTRATIVA DESATIVADA'));
-  console.log('  ✓ Comandos administrativos e burocráticos respondem com desativação amigável.');
+  ctx.processarCallbackBotao({ id: 'cb2', data: 'go_hpp', message: { chat: { id: chatId } } });
+  assert.ok(mensagensEnviadas.length > 0, 'Deve responder ao callback go_hpp');
+  assert.ok(mensagensEnviadas[0].texto.includes('4 Ts'), 'Deve orientar a regra dos 4 Ts');
+  assert.ok(mensagensEnviadas[0].texto.includes('Ocitocina'), 'Deve orientar Ocitocina de 1ª linha');
+  console.log('  ✓ Callbacks do Hub G&O respondem instantaneamente com condutas e diluições.');
 
   // ───────────────────────────────────────────────────────────────────────────
-  // [4] Validação de Salvaguardas de UTI Terciária em SDRA
+  // [4] Validação de Salvaguardas de UTI Terciária em SDRA (Definição de Berlim)
   // ───────────────────────────────────────────────────────────────────────────
-  console.log('[4] Testando salvaguardas de UTI Terciária em Mecânica Pulmonar / SDRA...');
-  const MecanicaSdra = require('../src/02_mecanica_pulmonar_sdra.js');
-  const resSdraGrave = MecanicaSdra.avaliarSdra(65, 50, 10); // PaO2 65, FiO2 50% -> P/F = 130
-  assert.strictEqual(resSdraGrave.classificacao, 'SDRA Moderada (Critérios de Berlim)');
-  assert.ok(resSdraGrave.condutas.some(c => c.includes('CONDUTA BEIRA-LEITO (PS / ENFERMARIA)') && c.includes('VAGA ZERO')), 'Deve indicar conduta do generalista e solicitação de vaga');
-  assert.ok(resSdraGrave.condutas.some(c => c.includes('CONDUTA EXCLUSIVA DE UTI TERCIÁRIA') && c.includes('Posição Prona')), 'Deve alertar que Prona e Cisatracúrio são exclusivos de UTI');
-  console.log('  ✓ SDRA emite alerta sentinela de conduta exclusiva de UTI e solicitação imediata de Vaga Zero.');
+  console.log('[4] Testando salvaguardas de SDRA/Berlim no módulo geral de Gasometria...');
+  const GasoService = ctx.GasometriaAcidoBaseService || require('../src/02_gasometria_acido_base.js');
+  const resSdraGrave = GasoService.avaliarOxigenacao(65, 50, 40); // PaO2 65, FiO2 50% -> P/F = 130
+  assert.strictEqual(resSdraGrave.pfRatio, 130);
+  assert.strictEqual(resSdraGrave.classificacaoPF, 'SDRA Moderada (Berlim: P/F 101–200)');
+  assert.ok(resSdraGrave.avisos.some(a => a.includes('SDRA (Berlim 2012)')), 'Deve conter critérios de Berlim 2012');
+  console.log('  ✓ SDRA classificada com precisão em Berlim no módulo geral de Gasometria.');
 
   // ───────────────────────────────────────────────────────────────────────────
   // [5] Validação de Salvaguardas em Sedação Profunda (RASS)
   // ───────────────────────────────────────────────────────────────────────────
   console.log('[5] Testando salvaguarda de UTI Terciária em Sedação Profunda (RASS)...');
-  const Sedacao = require('../src/02_sedacao_opioides.js');
+  const Sedacao = ctx.SedacaoOpioidesService || require('../src/02_sedacao_opioides.js');
   const rassM4 = Sedacao.avaliarRASS(-4);
   assert.ok(rassM4.alertaUti, 'Deve possuir alertaUti para RASS -4');
   assert.ok(rassM4.alertaUti.includes('CONDUTA EXCLUSIVA DE UTI TERCIÁRIA'), 'Deve alertar sobre escopo de CTI');
@@ -112,13 +127,15 @@ async function testSaneamentoEscopo() {
   console.log('  ✓ Sedação Profunda (RASS <= -3) emite alerta sentinela de leito intensivo obrigatório.');
 
   // ───────────────────────────────────────────────────────────────────────────
-  // [6] Validação de Alertas em Infusão Contínua / DVA
+  // [6] Validação de Drogas Vasoativas Beira-Leito (DVA) no Módulo Geral
   // ───────────────────────────────────────────────────────────────────────────
-  console.log('[6] Testando alerta de vasoplegia refratária e escopo terciário em DVA...');
-  const InfusaoUti = require('../src/02_auditoria_infusao_uti.js');
-  const limitesNora = InfusaoUti.DROGAS.noradrenalina;
-  assert.ok(limitesNora.alertas_clinicos.some(a => a.includes('CONDUTA EXCLUSIVA DE UTI TERCIÁRIA') && a.includes('Azul de Metileno')), 'Deve conter alerta de vasoplegia terciária');
-  console.log('  ✓ Alerta de vasoplegia refratária e terapias experimentais validado na base de infusão.');
+  console.log('[6] Testando cálculo de DVA / Noradrenalina beira-leito...');
+  const CalcClinicas = ctx.CalculadorasClinicas || require('../src/02_calculadoras_puras.js');
+  const resNora = CalcClinicas.drogasVasoativas('noradrenalina', 70, 'padrao');
+  assert.strictEqual(resNora.ok, true, 'DVA deve calcular com sucesso');
+  assert.ok(resNora.texto.includes('Noradrenalina'), 'Deve identificar noradrenalina');
+  assert.ok(resNora.texto.includes('Bomba de Infusão') || resNora.texto.includes('mcg/kg/min'), 'Deve conter orientações beira-leito de infusão');
+  console.log('  ✓ Cálculo de DVA (Noradrenalina) validado com sucesso no módulo geral.');
 
   // ───────────────────────────────────────────────────────────────────────────
   // [7] Validação da Existência do Inventário Clínico Estruturado

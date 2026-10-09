@@ -1103,27 +1103,15 @@ function cockpitGeriatriaAvancada(initData, params) {
 }
 
 /**
- * cockpitAuditarInfusaoUti - Auditoria de toxicidade e limites de taxa de infusão beira-leito.
+ * cockpitAuditarInfusaoUti - Auditoria de UTI terciária desativada (escopo generalista).
  */
 function cockpitAuditarInfusaoUti(initData, params) {
   cockpitAutorizar_(initData);
-  params = params || {};
-  if (typeof AuditoriaInfusaoUtiService === 'undefined') {
-    throw new Error('Módulo AuditoriaInfusaoUtiService indisponível.');
-  }
-  if (params.vazaoMlH !== undefined) {
-    return AuditoriaInfusaoUtiService.auditarVazaoBomba(params);
-  }
-  if (params.doseAlvo !== undefined) {
-    return AuditoriaInfusaoUtiService.calcularVazaoSegura(params);
-  }
-  if (params.infusoes && Array.isArray(params.infusoes)) {
-    return AuditoriaInfusaoUtiService.auditarPrescricaoMultipla(params);
-  }
-  if (params.tabelaTitulacao) {
-    return AuditoriaInfusaoUtiService.gerarTabelaTitulacao(params.droga, params.pesoKg, params.solucao);
-  }
-  throw new Error('Informe vazaoMlH, doseAlvo, infusoes ou tabelaTitulacao para auditoria de UTI.');
+  return {
+    sucesso: false,
+    desativado: true,
+    mensagem: "Módulo especializado de infusão em UTI desativado para foco no internato/generalista."
+  };
 }
 
 /**
@@ -1143,15 +1131,11 @@ function cockpitObterModelosExameFisico(initData, params) {
 
 function cockpitAuditarYSite(initData, params) {
   cockpitAutorizar_(initData);
-  params = params || {};
-  if (typeof AuditoriaYSiteService === 'undefined') {
-    throw new Error('Módulo AuditoriaYSiteService indisponível.');
-  }
-
-  var lista = params.listaFarmacos || [];
-  var resultado = AuditoriaYSiteService.verificarCompatibilidadeLista(lista);
-  
-  return { sucesso: true, resultado: resultado };
+  return {
+    sucesso: false,
+    desativado: true,
+    mensagem: "Módulo especializado de incompatibilidade Y-site desativado para foco no internato/generalista."
+  };
 }
 
 function cockpitSedacaoOpioides(initData, params) {
@@ -1199,14 +1183,11 @@ function cockpitNefrologiaDhe(initData, params) {
 
 function cockpitSdraMecanica(initData, params) {
   cockpitAutorizar_(initData);
-  params = params || {};
-  if (typeof MecanicaPulmonarSdraService === 'undefined') {
-    throw new Error('Módulo MecanicaPulmonarSdraService indisponível.');
-  }
-  if (params.acao === 'processarMecanica') {
-    return MecanicaPulmonarSdraService.processarMecanica(params);
-  }
-  throw new Error('Ação inválida para SDRA / Mecânica Pulmonar.');
+  return {
+    sucesso: false,
+    desativado: true,
+    mensagem: "Módulo especializado de mecânica pulmonar / SDRA desativado para foco no internato/generalista."
+  };
 }
 
 function cockpitSepsePuerperal(initData, params) {
@@ -1411,79 +1392,20 @@ function cockpitPsiquiatriaUrgencia(initData, params) {
 
 function cockpitRbac(initData, params) {
   cockpitAutorizar_(initData);
-  params = params || {};
-  if (typeof RbacPerfisClinicosService === 'undefined') {
-    throw new Error('Módulo RbacPerfisClinicosService indisponível.');
-  }
-  var acao = params.acao || 'obterPerfis';
-  if (acao === 'obterPerfis') {
-    return RbacPerfisClinicosService.obterPerfis();
-  }
-  if (acao === 'obterPermissoesPerfil') {
-    return RbacPerfisClinicosService.obterPermissoesPerfil(params.perfilId);
-  }
-  if (acao === 'verificarPermissao') {
-    return RbacPerfisClinicosService.verificarPermissao(params.usuarioContexto, params.recurso, params.operacao);
-  }
-  if (acao === 'validarPrescricaoPorPerfil') {
-    return RbacPerfisClinicosService.validarPrescricaoPorPerfil(params.usuarioContexto, params.dadosPrescricao);
-  }
-  if (acao === 'criarPendenciaCoAssinatura') {
-    return RbacPerfisClinicosService.criarPendenciaCoAssinatura(params.usuarioContexto, params.dadosAcao);
-  }
-  if (acao === 'chancelarCoAssinatura') {
-    return RbacPerfisClinicosService.chancelarCoAssinatura(params.preceptorContexto, params.pendenciaId, params.parecerClinico);
-  }
-  if (acao === 'ativarBypassEmergencia') {
-    return RbacPerfisClinicosService.ativarBypassEmergencia(params.usuarioContexto, params.justificativaClinica, params.duracaoHoras);
-  }
-  if (acao === 'desativarBypassEmergencia') {
-    return RbacPerfisClinicosService.desativarBypassEmergencia(params.usuarioContexto);
-  }
-  if (acao === 'definirPerfilUsuario') {
-    return RbacPerfisClinicosService.definirPerfilUsuario(params.usuarioId, params.perfilId, params.dadosExtras);
-  }
-  if (acao === 'obterPerfilUsuario') {
-    return RbacPerfisClinicosService.obterPerfilUsuario(params.usuarioId);
-  }
-  if (acao === 'listarUsuariosPerfis') {
-    return RbacPerfisClinicosService.listarUsuariosPerfis();
-  }
-  if (acao === 'listarPendenciasCoAssinatura') {
-    return RbacPerfisClinicosService.listarPendenciasCoAssinatura(params.filtroStatus);
-  }
-  if (acao === 'obterPendenciaPorId') {
-    return RbacPerfisClinicosService.obterPendenciaPorId(params.pendenciaId);
-  }
-  if (acao === 'gerarRelatorioSegurancaRbac') {
-    return RbacPerfisClinicosService.gerarRelatorioSegurancaRbac();
-  }
-  throw new Error('Ação inválida para Motor de Permissões e Perfis Clínicos (RBAC).');
+  return {
+    sucesso: false,
+    desativado: true,
+    mensagem: "Módulo especializado de RBAC e auditoria burocrática desativado para foco no internato/generalista."
+  };
 }
 
 function cockpitSuporteNutricional(initData, params) {
   cockpitAutorizar_(initData);
-  params = params || {};
-  if (typeof SuporteNutricionalService === 'undefined') {
-    throw new Error('Módulo SuporteNutricionalService indisponível.');
-  }
-  var acao = params.acao || 'avaliarSuporteNutricionalCompleto';
-  if (acao === 'calcularNecessidadesBasais') {
-    return SuporteNutricionalService.calcularNecessidadesBasais(params.peso, params.alturaCm, params.idade, params.sexo, params.fatorEstresse, params.condicaoClinica);
-  }
-  if (acao === 'avaliarRiscoRealimentacao') {
-    return SuporteNutricionalService.avaliarRiscoRealimentacao(params);
-  }
-  if (acao === 'calcularNrs2002') {
-    return SuporteNutricionalService.calcularNrs2002(params);
-  }
-  if (acao === 'prescreverTerapiaNutricional') {
-    return SuporteNutricionalService.prescreverTerapiaNutricional(params);
-  }
-  if (acao === 'avaliarSuporteNutricionalCompleto') {
-    return SuporteNutricionalService.avaliarSuporteNutricionalCompleto(params);
-  }
-  throw new Error('Ação inválida para Suporte Nutricional.');
+  return {
+    sucesso: false,
+    desativado: true,
+    mensagem: "Módulo especializado de suporte nutricional hospitalar/UTI desativado para foco no internato/generalista."
+  };
 }
 
 
@@ -1607,14 +1529,11 @@ function cockpitHepatologiaColestaseGestacional(initData, params) {
 
 function cockpitAnalgesiaPca(initData, params) {
   cockpitAutorizar_(initData);
-  params = params || {};
-  if (typeof AnalgesiaPcaService === 'undefined') {
-    throw new Error('AnalgesiaPcaService não carregado.');
-  }
-  if (params.acao === 'calcular') {
-    return AnalgesiaPcaService.calcularPca(params.parametros || params);
-  }
-  throw new Error('Ação inválida para Analgesia PCA.');
+  return {
+    sucesso: false,
+    desativado: true,
+    mensagem: "Módulo especializado de analgesia por PCA desativado para foco no internato/generalista."
+  };
 }
 
 function cockpitViaAereaDificil(initData, params) {
@@ -1668,145 +1587,22 @@ function cockpitViaAereaDificil(initData, params) {
 
 function cockpitAuditoriaKaizen(initData, params) {
   cockpitAutorizar_(initData);
-  params = params || {};
-  if (typeof AuditoriaKaizenClinicoService === 'undefined') {
-    throw new Error('AuditoriaKaizenClinicoService não carregado.');
-  }
-  var p = params.parametros || params;
-  var acao = params.acao || 'dashboard';
-
-  if (acao === 'auditar') {
-    var ev = AuditoriaKaizenClinicoService.auditarPrescricao(p);
-    return {
-      sucesso: true,
-      evento: ev
-    };
-  }
-  if (acao === 'lote') {
-    var lote = Array.isArray(p) ? p : (p.lote || p.prescricoes || []);
-    return AuditoriaKaizenClinicoService.processarLotePrescricoes(lote);
-  }
-  if (acao === 'dashboard') {
-    var dash = AuditoriaKaizenClinicoService.gerarDashboardKaizen(p);
-    return {
-      sucesso: true,
-      dashboard: dash,
-      textoFormatado: AuditoriaKaizenClinicoService.formatarDashboardEmTexto(dash)
-    };
-  }
-  if (acao === 'formatarTexto') {
-    var dashAlvo = p.dashboard || AuditoriaKaizenClinicoService.gerarDashboardKaizen(p);
-    return {
-      sucesso: true,
-      textoFormatado: AuditoriaKaizenClinicoService.formatarDashboardEmTexto(dashAlvo)
-    };
-  }
-  if (acao === 'ultimos' || acao === 'historico') {
-    return {
-      sucesso: true,
-      eventos: AuditoriaKaizenClinicoService.obterHistorico(p.limite, p.apenasRejeitadas)
-    };
-  }
-  if (acao === 'limpar') {
-    return AuditoriaKaizenClinicoService.limparHistorico();
-  }
-  if (acao === 'exportar') {
-    return AuditoriaKaizenClinicoService.exportarDataset();
-  }
-  if (acao === 'importar') {
-    return AuditoriaKaizenClinicoService.importarDataset(p.dataset || p);
-  }
-  if (acao === 'completo') {
-    var evComp = p.prescricao ? AuditoriaKaizenClinicoService.auditarPrescricao(p.prescricao) : null;
-    var dashComp = AuditoriaKaizenClinicoService.gerarDashboardKaizen(p);
-    return {
-      sucesso: true,
-      evento: evComp,
-      dashboard: dashComp,
-      textoFormatado: AuditoriaKaizenClinicoService.formatarDashboardEmTexto(dashComp)
-    };
-  }
-  throw new Error('Ação inválida para Auditoria de Kaizen Clínico.');
+  return {
+    sucesso: false,
+    desativado: true,
+    mensagem: "Módulo especializado de Kaizen e auditoria prescritiva desativado para foco no internato/generalista.",
+    textoFormatado: "⚠️ Módulo especializado de Kaizen desativado para foco no internato/generalista."
+  };
 }
 
 function cockpitTransfusaoSanguinea(initData, params) {
   cockpitAutorizar_(initData);
-  params = params || {};
-  if (typeof TransfusaoSanguineaService === 'undefined') {
-    throw new Error('TransfusaoSanguineaService não carregado.');
-  }
-  var p = params.parametros || params;
-  var acao = params.acao || 'completo';
-
-  if (acao === 'gatilhoChad') {
-    return {
-      sucesso: true,
-      resultado: TransfusaoSanguineaService.avaliarGatilhoTransfusionalChad(p)
-    };
-  }
-  if (acao === 'ptm' || acao === 'transfusaoMacica') {
-    return {
-      sucesso: true,
-      resultado: TransfusaoSanguineaService.calcularProtocoloTransfusaoMaciça(p)
-    };
-  }
-  if (acao === 'pfc' || acao === 'plasma') {
-    return {
-      sucesso: true,
-      resultado: TransfusaoSanguineaService.calcularReposicaoPfc(p)
-    };
-  }
-  if (acao === 'plaquetas') {
-    return {
-      sucesso: true,
-      resultado: TransfusaoSanguineaService.calcularReposicaoPlaquetas(p)
-    };
-  }
-  if (acao === 'crioprecipitado') {
-    return {
-      sucesso: true,
-      resultado: TransfusaoSanguineaService.calcularReposicaoCrioprecipitado(p)
-    };
-  }
-  if (acao === 'civd') {
-    return {
-      sucesso: true,
-      resultado: TransfusaoSanguineaService.avaliarCivd(p)
-    };
-  }
-  if (acao === 'reacaoTransfusional' || acao === 'reacao') {
-    return {
-      sucesso: true,
-      resultado: TransfusaoSanguineaService.avaliarReacaoTransfusional(p)
-    };
-  }
-  if (acao === 'prescricao') {
-    return {
-      sucesso: true,
-      resultado: TransfusaoSanguineaService.gerarPrescricaoTransfusionalCompleta(p)
-    };
-  }
-  if (acao === 'completo' || acao === 'resumo') {
-    var chad = TransfusaoSanguineaService.avaliarGatilhoTransfusionalChad(p);
-    var ptm = (p.fc || p.pas || p.traumaPenetrante || p.fastPositivo) ? TransfusaoSanguineaService.calcularProtocoloTransfusaoMaciça(p) : null;
-    var plaq = p.plaquetasAtual !== undefined ? TransfusaoSanguineaService.calcularReposicaoPlaquetas(p) : null;
-    var pfc = (p.rni !== undefined || p.ttpaRatio !== undefined) ? TransfusaoSanguineaService.calcularReposicaoPfc(p) : null;
-    var crio = p.fibrinogenioAtual !== undefined ? TransfusaoSanguineaService.calcularReposicaoCrioprecipitado(p) : null;
-
-    var dadosResumo = { chad: chad, ptm: ptm, plaquetas: plaq, pfc: pfc, crioprecipitado: crio };
-    var texto = TransfusaoSanguineaService.formatarResumoTransfusional(dadosResumo);
-
-    return {
-      sucesso: true,
-      chad: chad,
-      ptm: ptm,
-      plaquetas: plaq,
-      pfc: pfc,
-      crioprecipitado: crio,
-      textoFormatado: texto
-    };
-  }
-  throw new Error('Ação inválida para Módulo de Transfusão Sanguínea.');
+  return {
+    sucesso: false,
+    desativado: true,
+    mensagem: "Módulo especializado de hemoterapia/PTM desativado para foco no internato/generalista.",
+    textoFormatado: "⚠️ Módulo especializado de hemoterapia/PTM desativado para foco no internato/generalista."
+  };
 }
 
 
@@ -1859,39 +1655,11 @@ function cockpitNefrologiaClearance(initData, params) {
 
 function cockpitInfectologiaNeutropenia(initData, params) {
   cockpitAutorizar_(initData);
-  if (!params) throw new Error('Parâmetros obrigatórios para neutropenia não fornecidos.');
-  
-  var avaliacao = InfectologiaNeutropeniaService.avaliarPaciente(params);
-  var mascc = avaliacao.mascc;
-  var atb = avaliacao.antibioticoterapia;
-  
-  var texto = "🦠 *NEUTROPENIA FEBRIL ONCOLÓGICA*\n\n";
-  texto += "*Escore MASCC:* " + mascc.escore + " pontos\n";
-  texto += "*Classificação (MASCC):* " + mascc.risco + "\n";
-  texto += "*Conduta Geral:* " + mascc.conduta + "\n\n";
-  
-  if (avaliacao.cisne) {
-    texto += "*Escore CISNE:* " + avaliacao.cisne.escore + " pontos\n";
-    texto += "*Risco (CISNE):* " + avaliacao.cisne.risco + "\n";
-    texto += "*Taxa de Complicações:* " + avaliacao.cisne.complicacoes + "\n\n";
-  }
-  
-  texto += "💊 *ESQUEMA ANTIMICROBIANO SUGERIDO:*\n";
-  for (var i = 0; i < atb.recomendacoes.length; i++) {
-    texto += "• " + atb.recomendacoes[i] + "\n";
-  }
-  
-  if (avaliacao.alertas.length > 0) {
-    texto += "\n⚠️ *ALERTAS CLÍNICOS:*\n";
-    for (var j = 0; j < avaliacao.alertas.length; j++) {
-      texto += "• " + avaliacao.alertas[j] + "\n";
-    }
-  }
-  
   return {
-    sucesso: true,
-    avaliacao: avaliacao,
-    textoFormatado: texto
+    sucesso: false,
+    desativado: true,
+    mensagem: "Módulo especializado de neutropenia febril oncológica desativado para foco no internato/generalista.",
+    textoFormatado: "⚠️ Módulo especializado de neutropenia desativado para foco no internato/generalista."
   };
 }
 
@@ -2392,23 +2160,11 @@ if (typeof module !== 'undefined' && module.exports) {
 
 function cockpitEndocrinologiaHiperprolactinemia(initData, params) {
   cockpitAutorizar_(initData);
-  if (!params) throw new Error('Parâmetros de Hiperprolactinemia não fornecidos.');
-  if (typeof EndocrinologiaHiperprolactinemiaService === 'undefined') {
-    throw new Error('Serviço EndocrinologiaHiperprolactinemiaService indisponível.');
-  }
-  var analise = EndocrinologiaHiperprolactinemiaService.avaliarHiperprolactinemia(params);
-  var textoFormatado = "";
-  if (typeof params === 'string') {
-      textoFormatado = EndocrinologiaHiperprolactinemiaService.processarComandoTelegram(params);
-  } else if (params && params.texto) {
-      textoFormatado = EndocrinologiaHiperprolactinemiaService.processarComandoTelegram(params.texto);
-  } else {
-      textoFormatado = "Processado via API Fastify";
-  }
   return {
-    sucesso: true,
-    resultado: analise ? analise.resultado : null,
-    textoFormatado: textoFormatado
+    sucesso: false,
+    desativado: true,
+    mensagem: "Módulo especializado de endocrinologia/hiperprolactinemia desativado para foco no internato/generalista.",
+    textoFormatado: "⚠️ Módulo especializado de hiperprolactinemia desativado para foco no internato/generalista."
   };
 }
 
