@@ -55,13 +55,13 @@ console.log('Iniciando testes da Máquina de Estados do Teclado Adaptativo...');
 // 1. Teclado Fixo Universal 2x2 com SOAP prioritário
 carregarAmbiente();
 const kbUniversal = obterTecladoFixoPrincipal();
-assert.strictEqual(kbUniversal.keyboard.length, 2);
+assert.strictEqual(kbUniversal.keyboard.length, 3);
 assert.deepStrictEqual(
   kbUniversal.keyboard[0].map(b => b.text),
-  ['🩺 Novo SOAP', '🏥 Enfermaria']
+  ['🩺 SOAP Ambulatorial', '🤰 Ginecologia & Obstetrícia']
 );
 assert.strictEqual(kbUniversal.keyboard[1][0].text, '🚨 Emergência');
-assert.strictEqual(kbUniversal.keyboard[1][1].text, '📱 Cockpit');
+assert.strictEqual(kbUniversal.keyboard[1][1].text, '💊 REMUME Rápida');
 console.log('✓ Teclado Fixo Universal 2x2 com SOAP prioritário verificado');
 
 // 2. Despachante Contextual retorna sempre o Teclado Universal estável

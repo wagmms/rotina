@@ -8,7 +8,90 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 ## 📋 Backlog de Melhorias Prioritárias (Foco Clínico: Ginecologia & Obstetrícia Unificados, SOAP e UX Telegram)
 
-1. [ ] **Integração Ágil e Fluida com o Telegram (Hub Unificado de GO, SOAP e UX Móvel de 1 Toque)**:
+1. [ ] **Painel de Puericultura e Desenvolvimento Infantil (Atenção Primária & SBP)**:
+   - Avaliação antropométrica com curvas de crescimento da OMS (Z-scores de Peso/Idade, Estatura/Idade, IMC/Idade e Perímetro Cefálico).
+   - Vigilância de marcos do desenvolvimento neuropsicomotor (DNPM) por faixa etária (motor grosseiro, motor fino/adaptativo, linguagem, social/cognitivo).
+   - Calendário vacinal atualizado do PNI (2026) com alertas de doses em atraso e esquemas de resgate.
+   - Suplementação profilática padronizada: Ferro elementar (a partir de 3m ou 6m conforme aleitamento/peso ao nascer) e Vitamina D (400 UI/dia no 1º ano, 600 UI/dia no 2º ano).
+
+2. [ ] **Módulo de Saúde do Idoso e Avaliação Geriátrica Ampla (AGA)**:
+   - Triagem rápida de fragilidade clínica ambulatorial (Clinical Frailty Scale - CFS e Escala Edmonton).
+   - Avaliação cognitiva de rastreio em 10 minutos (Mini-Exame do Estado Mental / Mini-Cog e Teste do Relógio).
+   - Prevenção de iatrogenia e polifarmácia: Verificador automatizado de Critérios de Beers (AGS 2023) e critérios STOPP/START para desprescrição segura.
+   - Avaliação de risco de quedas (Timed Up and Go - TUG) e metas individualizadas de controle metabólico/pressórico no idoso frágil.
+
+3. [ ] **Auditoria de Toxicidade em Infusões Contínuas de UTI**:
+   - Validação e testes determinísticos de limites de taxa de infusão (mcg/kg/min) para aminas vasoativas (Noradrenalina, Vasopressina, Adrenalina, Dobutamina) prevenindo erros por ordem de grandeza e dose letal beira-leito.
+
+4. [ ] **Calculadora de Desmame de Sedação e Rotação de Opioides**:
+   - Módulo determinístico de equivalência analgésica para rotação de opioides (Morfina IV/VO, Fentanil, Metadona, Oxicodona) e escala de desmame de sedação contínua (RASS/CAM-ICU).
+
+5. [ ] **Nefrologia Intensiva e Distúrbios Hidroeletrolíticos (DHE)**:
+   - Correção segura de hiponatremia aguda vs crônica com cálculo de déficit de sódio e teto rígido de elevação (máximo 8-10 mEq/L nas primeiras 24h e 18 mEq/L em 48h) prevenindo Síndrome de Desmielinização Osmótica (mielinólise pontina).
+   - Manejo escalonado de hipercalemia com critérios de urgência dialítica (ECG: onda T apiculada, alargamento QRS), estabilização de membrana miocárdica (Gluconato de Cálcio 10% 10-20 ml IV), glicoinsulina (10 UI regular em 100 ml SG 50%), beta-2 agonista e resinas de troca.
+   - Cálculo de déficit de água livre na hipernatremia e reposição criteriosa de potássio, magnésio e fósforo beira-leito.
+
+6. [ ] **Mecânica Pulmonar e Ventilação Protetora na SDRA (ARDSNet)**:
+   - Calculador beira-leito de peso predito (fórmula ARDSNet baseada na altura e sexo biológico) com ajuste estrito de volume corrente em 4 a 6 mL/kg.
+   - Titulação e monitoramento de pressão de platô (Pplat <= 30 cmH2O) e cálculo automático da Driving Pressure (Delta P = Pplat - PEEP, meta <= 14-15 cmH2O).
+   - Gasometria arterial integrada com cálculo da relação PaO2/FiO2 (critérios de Berlim para SDRA leve, moderada, grave) e indicação oportuna de posição prona precoce (PaO2/FiO2 < 150 com PEEP >= 10 por 16h) e bloqueio neuromuscular (Cisatracúrio nas primeiras 48h).
+
+7. [ ] **Auditoria Farmacêutica Hospitalar: Compatibilidade Físico-Química em Y-Site (Linha Venosa)**:
+   - Matriz determinística em RAM de incompatibilidades de precipitados e inativação de fármacos comuns em acesso venoso único/duplo de emergência (ex: Ceftriaxona + Ringer Lactato / soluções com Cálcio causando cristais mortais; Fenitoína em infusão com qualquer solução glicosada causando precipitação imediata; Bicarbonato de Sódio + Catecolaminas causando inativação por pH alcalino; Furosemida + Midazolam).
+
+8. [ ] **Manejo Avançado de Sepse e Choque Séptico Puerperal / Materno (Critérios Sepsis-in-Obstetrics / SOS Score e Bundles de 1 Hora)**:
+   - Adaptação fisiológica da gestante mascarando sepse (leucocitose e taquicardia fisiológicas).
+   - Escore SOS (Obstetric Sepsis Score) e qSOFA obstétrico para detecção precoce de infecção pélvica/corioamnionite/endometrite puerperal.
+   - Bundle de 1 hora: coleta de lactato sérico, hemoculturas antes do antibiótico, ressuscitação volêmica criteriosa com cristaloides (30 mL/kg guiada por resposta para evitar EAP), antibioticoterapia de amplo espectro (ex: Ampicilina + Gentamicina + Clindamicina ou Ceftriaxona + Metronidazol) e início precoce de Noradrenalina se PAM < 65 mmHg refratária.
+
+9. [ ] **Algoritmo de Ressuscitação Cardiopulmonar na Gestante (PCR Materna / ACLS Materno e Cesariana Perimortem)**:
+    - Manobra de deslocamento manual contínuo do útero para a esquerda (DULE) para descompressão da veia cava inferior e restauração do retorno venoso durante as compressões.
+    - Acesso venoso preferencial acima do diafragma para rápida circulação central.
+    - Regra dos 4 Minutos / Cesariana de Ressuscitação (Cesariana Perimortem) aos 4-5 minutos de PCR em gestante >= 20 semanas para salvar a mãe e o feto.
+
+10. [ ] **Tromboembolismo Venoso (TEV) na Gestação e Puerpério (Escore de Risco RCOG/FEBRASGO & Profilaxia com HBPM)**:
+    - Estratificação determinística de risco trombótico antenatal e pós-parto com pontuação cumulativa (cesariana de urgência, IMC > 30, pré-eclâmpsia, tabagismo, imobilidade, idade > 35a).
+    - Indicação temporal e doses profiláticas ponderadas de Enoxaparina (40 mg a 80 mg SC/dia) e bloqueio de Varfarina no 1º trimestre (embriopatia varfarínica).
+    - Intervalo de segurança estrito entre a última dose de Enoxaparina e analgesia de parto/bloqueio neuroaxial (mínimo de 12h para dose profilática e 24h para dose terapêutica prevenindo hematoma epidural).
+
+11. [ ] **Climatério e Terapia Hormonal da Menopausa (THM - Consenso FEBRASGO/NAMS)**:
+    - Janela de Oportunidade: Avaliação criteriosa da relação risco-benefício (< 60 anos ou < 10 anos de pós-menopausa).
+    - Prescrição Personalizada com Proteção Endometrial: Regra de ouro da preservação uterina (mulheres com útero intacto exigem obrigatoriamente estrogênio + progestagênio para prevenir hiperplasia/adenocarcinoma endometrial; histerectomizadas usam estrogênio isolado).
+    - Vias de Administração Ponderadas: Preferência por via transdérmica (gel ou adesivo de Estradiol) em mulheres com fatores de risco cardiovascular, HAS, hipertrigliceridemia ou IMC > 30 (evitando a passagem hepática de 1ª passagem e risco pró-trombótico).
+    - Contraindicações Absolutas e Relativas: Câncer de mama ou endométrio prévio/atual, sangramento vaginal de causa não esclarecida, doença coronariana/AVC prévio, TEV agudo ou trombofilias conhecidas, porfiria e doença hepática ativa descompensada.
+
+12. [ ] **Síndrome dos Ovários Policísticos (SOP - Critérios Internacionais de Roterdã & ASRM/ESHRE)**:
+    - Diagnóstico de Alta Acurácia: Preenchimento de pelo menos 2 dos 3 critérios (Hiperandrogenismo clínico e/ou laboratorial; Oligo/Anovulação crônica com irregularidade menstrual; Morfologia policística em USG transvaginal com >= 20 folículos de 2-9mm ou volume ovariano >= 10 cm³).
+    - Fenotipagem e Exclusão Diagnóstica Mandatória: Triagem de diagnósticos diferenciais (TSH para hipotireoidismo, Prolactina para hiperprolactinemia, 17-OH-Progesterona para hiperplasia adrenal congênita não clássica e Cortisol para Síndrome de Cushing).
+    - Estratificação de Risco Metabólico e Conduta Terapêutica Dirigida: Avaliação de resistência à insulina, esteatose hepática e síndrome metabólica. Terapia farmacológica direcionada ao objetivo da paciente: desejo reprodutivo (Letrozol de 1ª linha para indução de ovulação) vs controle de sintomas (anticoncepcionais combinados com progestagênio antiandrogênico como Ciproterona ou Drospirenona, Espironolactona para hirsutismo e Metformina para resistência insulínica).
+
+13. [ ] **Doença Inflamatória Pélvica (DIP) e Abscesso Tubo-Ovariano (PCDT Ministério da Saúde / CDC)**:
+    - Critérios Diagnósticos Escalonados: 3 Critérios Maiores (Dor à palpação do hipogástrio/baixo ventre, dor à palpação anexial uni ou bilateral, dor à mobilização do colo uterino) associados a pelo menos 1 Critério Menor (Febre >= 38,3°C, leucocitose, VHS/PCR elevados, corrimento endocervical anormal purulento, isolamento de *Chlamydia trachomatis* ou *Neisseria gonorrhoeae*).
+    - Critérios Elaborados de Gravidade: Biópsia com endometrite, USG pélvico evidenciando espessamento tubário/abscesso tubo-ovariano ou laparoscopia com peritonite pélvica.
+    - Manejo Ambulatorial vs Hospitalar: Critérios formais de internação imediata (gestação, ausência de resposta oral após 72h, intolerância oral, abscesso tubo-ovariano, peritonite difusa ou impossibilidade de excluir emergência cirúrgica como apendicite).
+    - Esquemas Antimicrobianos Oficiais REMUME/MS: Tratamento ambulatorial (Ceftriaxona 500mg IM dose única + Doxiciclina 100mg VO 12/12h por 14 dias + Metronidazol 500mg VO 12/12h por 14 dias) e tratamento hospitalar IV (Ceftriaxona 1g IV + Doxiciclina 100mg VO + Metronidazol 400mg IV ou Clindamicina + Gentamicina). Tratamento e testagem mandatórios de todos os parceiros sexuais dos últimos 60 dias.
+
+---
+
+
+14. [ ] **Integração de IA Generativa Local (Llama 3 / Mistral) para Alta Disponibilidade Offline**:
+    - Motor de fallback rodando em dispositivo seguro local para quando a nuvem falhar.
+    
+15. [ ] **Módulo de Psiquiatria de Urgência (Agitação Psicomotora / Risco de Suicídio)**:
+    - Protocolo escalonado de contenção química e estratificação de risco de autoextermínio.
+
+16. [ ] **Refatoração do Motor de Permissões e Perfis Clínicos (RBAC)**:
+    - Segmentação granular de acesso a módulos críticos por nível do residente/preceptor.
+
+---
+
+## 🔄 Próxima Tarefa em Andamento
+- [ ] **Painel de Puericultura e Desenvolvimento Infantil (Atenção Primária & SBP)**: Avaliação antropométrica, vigilância de DNPM, calendário vacinal e suplementação profilática.
+
+---
+
+## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Integração Ágil e Fluida com o Telegram (Hub Unificado de GO, SOAP e UX Móvel de 1 Toque)**:
    - **Teclado Fixo Persistente (`ReplyKeyboardMarkup`) Otimizado**:
      * Botões de 1 toque no rodapé desenhados para o médico em atendimento rápido:
        `[🩺 SOAP Ambulatorial]` `[🤰 Ginecologia & Obstetrícia]`
@@ -33,77 +116,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
    - **Integração Nativa Telegram Mini App (WebApp)**:
      * Acesso em tela cheia ao Cockpit PWA via botão WebApp nativo dentro do Telegram (`web_app: { url: ... }`), permitindo alternar fluidamente entre ditado por voz e interface visual com cards táteis.
 
-2. [ ] **Painel de Puericultura e Desenvolvimento Infantil (Atenção Primária & SBP)**:
-   - Avaliação antropométrica com curvas de crescimento da OMS (Z-scores de Peso/Idade, Estatura/Idade, IMC/Idade e Perímetro Cefálico).
-   - Vigilância de marcos do desenvolvimento neuropsicomotor (DNPM) por faixa etária (motor grosseiro, motor fino/adaptativo, linguagem, social/cognitivo).
-   - Calendário vacinal atualizado do PNI (2026) com alertas de doses em atraso e esquemas de resgate.
-   - Suplementação profilática padronizada: Ferro elementar (a partir de 3m ou 6m conforme aleitamento/peso ao nascer) e Vitamina D (400 UI/dia no 1º ano, 600 UI/dia no 2º ano).
-
-3. [ ] **Módulo de Saúde do Idoso e Avaliação Geriátrica Ampla (AGA)**:
-   - Triagem rápida de fragilidade clínica ambulatorial (Clinical Frailty Scale - CFS e Escala Edmonton).
-   - Avaliação cognitiva de rastreio em 10 minutos (Mini-Exame do Estado Mental / Mini-Cog e Teste do Relógio).
-   - Prevenção de iatrogenia e polifarmácia: Verificador automatizado de Critérios de Beers (AGS 2023) e critérios STOPP/START para desprescrição segura.
-   - Avaliação de risco de quedas (Timed Up and Go - TUG) e metas individualizadas de controle metabólico/pressórico no idoso frágil.
-
-4. [ ] **Auditoria de Toxicidade em Infusões Contínuas de UTI**:
-   - Validação e testes determinísticos de limites de taxa de infusão (mcg/kg/min) para aminas vasoativas (Noradrenalina, Vasopressina, Adrenalina, Dobutamina) prevenindo erros por ordem de grandeza e dose letal beira-leito.
-
-5. [ ] **Calculadora de Desmame de Sedação e Rotação de Opioides**:
-   - Módulo determinístico de equivalência analgésica para rotação de opioides (Morfina IV/VO, Fentanil, Metadona, Oxicodona) e escala de desmame de sedação contínua (RASS/CAM-ICU).
-
-6. [ ] **Nefrologia Intensiva e Distúrbios Hidroeletrolíticos (DHE)**:
-   - Correção segura de hiponatremia aguda vs crônica com cálculo de déficit de sódio e teto rígido de elevação (máximo 8-10 mEq/L nas primeiras 24h e 18 mEq/L em 48h) prevenindo Síndrome de Desmielinização Osmótica (mielinólise pontina).
-   - Manejo escalonado de hipercalemia com critérios de urgência dialítica (ECG: onda T apiculada, alargamento QRS), estabilização de membrana miocárdica (Gluconato de Cálcio 10% 10-20 ml IV), glicoinsulina (10 UI regular em 100 ml SG 50%), beta-2 agonista e resinas de troca.
-   - Cálculo de déficit de água livre na hipernatremia e reposição criteriosa de potássio, magnésio e fósforo beira-leito.
-
-7. [ ] **Mecânica Pulmonar e Ventilação Protetora na SDRA (ARDSNet)**:
-   - Calculador beira-leito de peso predito (fórmula ARDSNet baseada na altura e sexo biológico) com ajuste estrito de volume corrente em 4 a 6 mL/kg.
-   - Titulação e monitoramento de pressão de platô (Pplat <= 30 cmH2O) e cálculo automático da Driving Pressure (Delta P = Pplat - PEEP, meta <= 14-15 cmH2O).
-   - Gasometria arterial integrada com cálculo da relação PaO2/FiO2 (critérios de Berlim para SDRA leve, moderada, grave) e indicação oportuna de posição prona precoce (PaO2/FiO2 < 150 com PEEP >= 10 por 16h) e bloqueio neuromuscular (Cisatracúrio nas primeiras 48h).
-
-8. [ ] **Auditoria Farmacêutica Hospitalar: Compatibilidade Físico-Química em Y-Site (Linha Venosa)**:
-   - Matriz determinística em RAM de incompatibilidades de precipitados e inativação de fármacos comuns em acesso venoso único/duplo de emergência (ex: Ceftriaxona + Ringer Lactato / soluções com Cálcio causando cristais mortais; Fenitoína em infusão com qualquer solução glicosada causando precipitação imediata; Bicarbonato de Sódio + Catecolaminas causando inativação por pH alcalino; Furosemida + Midazolam).
-
-9. [ ] **Manejo Avançado de Sepse e Choque Séptico Puerperal / Materno (Critérios Sepsis-in-Obstetrics / SOS Score e Bundles de 1 Hora)**:
-   - Adaptação fisiológica da gestante mascarando sepse (leucocitose e taquicardia fisiológicas).
-   - Escore SOS (Obstetric Sepsis Score) e qSOFA obstétrico para detecção precoce de infecção pélvica/corioamnionite/endometrite puerperal.
-   - Bundle de 1 hora: coleta de lactato sérico, hemoculturas antes do antibiótico, ressuscitação volêmica criteriosa com cristaloides (30 mL/kg guiada por resposta para evitar EAP), antibioticoterapia de amplo espectro (ex: Ampicilina + Gentamicina + Clindamicina ou Ceftriaxona + Metronidazol) e início precoce de Noradrenalina se PAM < 65 mmHg refratária.
-
-10. [ ] **Algoritmo de Ressuscitação Cardiopulmonar na Gestante (PCR Materna / ACLS Materno e Cesariana Perimortem)**:
-    - Manobra de deslocamento manual contínuo do útero para a esquerda (DULE) para descompressão da veia cava inferior e restauração do retorno venoso durante as compressões.
-    - Acesso venoso preferencial acima do diafragma para rápida circulação central.
-    - Regra dos 4 Minutos / Cesariana de Ressuscitação (Cesariana Perimortem) aos 4-5 minutos de PCR em gestante >= 20 semanas para salvar a mãe e o feto.
-
-11. [ ] **Tromboembolismo Venoso (TEV) na Gestação e Puerpério (Escore de Risco RCOG/FEBRASGO & Profilaxia com HBPM)**:
-    - Estratificação determinística de risco trombótico antenatal e pós-parto com pontuação cumulativa (cesariana de urgência, IMC > 30, pré-eclâmpsia, tabagismo, imobilidade, idade > 35a).
-    - Indicação temporal e doses profiláticas ponderadas de Enoxaparina (40 mg a 80 mg SC/dia) e bloqueio de Varfarina no 1º trimestre (embriopatia varfarínica).
-    - Intervalo de segurança estrito entre a última dose de Enoxaparina e analgesia de parto/bloqueio neuroaxial (mínimo de 12h para dose profilática e 24h para dose terapêutica prevenindo hematoma epidural).
-
-12. [ ] **Climatério e Terapia Hormonal da Menopausa (THM - Consenso FEBRASGO/NAMS)**:
-    - Janela de Oportunidade: Avaliação criteriosa da relação risco-benefício (< 60 anos ou < 10 anos de pós-menopausa).
-    - Prescrição Personalizada com Proteção Endometrial: Regra de ouro da preservação uterina (mulheres com útero intacto exigem obrigatoriamente estrogênio + progestagênio para prevenir hiperplasia/adenocarcinoma endometrial; histerectomizadas usam estrogênio isolado).
-    - Vias de Administração Ponderadas: Preferência por via transdérmica (gel ou adesivo de Estradiol) em mulheres com fatores de risco cardiovascular, HAS, hipertrigliceridemia ou IMC > 30 (evitando a passagem hepática de 1ª passagem e risco pró-trombótico).
-    - Contraindicações Absolutas e Relativas: Câncer de mama ou endométrio prévio/atual, sangramento vaginal de causa não esclarecida, doença coronariana/AVC prévio, TEV agudo ou trombofilias conhecidas, porfiria e doença hepática ativa descompensada.
-
-13. [ ] **Síndrome dos Ovários Policísticos (SOP - Critérios Internacionais de Roterdã & ASRM/ESHRE)**:
-    - Diagnóstico de Alta Acurácia: Preenchimento de pelo menos 2 dos 3 critérios (Hiperandrogenismo clínico e/ou laboratorial; Oligo/Anovulação crônica com irregularidade menstrual; Morfologia policística em USG transvaginal com >= 20 folículos de 2-9mm ou volume ovariano >= 10 cm³).
-    - Fenotipagem e Exclusão Diagnóstica Mandatória: Triagem de diagnósticos diferenciais (TSH para hipotireoidismo, Prolactina para hiperprolactinemia, 17-OH-Progesterona para hiperplasia adrenal congênita não clássica e Cortisol para Síndrome de Cushing).
-    - Estratificação de Risco Metabólico e Conduta Terapêutica Dirigida: Avaliação de resistência à insulina, esteatose hepática e síndrome metabólica. Terapia farmacológica direcionada ao objetivo da paciente: desejo reprodutivo (Letrozol de 1ª linha para indução de ovulação) vs controle de sintomas (anticoncepcionais combinados com progestagênio antiandrogênico como Ciproterona ou Drospirenona, Espironolactona para hirsutismo e Metformina para resistência insulínica).
-
-14. [ ] **Doença Inflamatória Pélvica (DIP) e Abscesso Tubo-Ovariano (PCDT Ministério da Saúde / CDC)**:
-    - Critérios Diagnósticos Escalonados: 3 Critérios Maiores (Dor à palpação do hipogástrio/baixo ventre, dor à palpação anexial uni ou bilateral, dor à mobilização do colo uterino) associados a pelo menos 1 Critério Menor (Febre >= 38,3°C, leucocitose, VHS/PCR elevados, corrimento endocervical anormal purulento, isolamento de *Chlamydia trachomatis* ou *Neisseria gonorrhoeae*).
-    - Critérios Elaborados de Gravidade: Biópsia com endometrite, USG pélvico evidenciando espessamento tubário/abscesso tubo-ovariano ou laparoscopia com peritonite pélvica.
-    - Manejo Ambulatorial vs Hospitalar: Critérios formais de internação imediata (gestação, ausência de resposta oral após 72h, intolerância oral, abscesso tubo-ovariano, peritonite difusa ou impossibilidade de excluir emergência cirúrgica como apendicite).
-    - Esquemas Antimicrobianos Oficiais REMUME/MS: Tratamento ambulatorial (Ceftriaxona 500mg IM dose única + Doxiciclina 100mg VO 12/12h por 14 dias + Metronidazol 500mg VO 12/12h por 14 dias) e tratamento hospitalar IV (Ceftriaxona 1g IV + Doxiciclina 100mg VO + Metronidazol 400mg IV ou Clindamicina + Gentamicina). Tratamento e testagem mandatórios de todos os parceiros sexuais dos últimos 60 dias.
-
----
-
-## 🔄 Próxima Tarefa em Andamento
-- [ ] **Integração Ágil e Fluida com o Telegram (Hub Unificado de GO, SOAP e UX Móvel de 1 Toque)**: Teclado fixo persistente (`ReplyKeyboardMarkup`) otimizado, hub unificado de GO (Pré-Natal, Sala de Parto, Ginecologia), roteamento inteligente sem comandos (`/`), botões inline pós-áudio para cópia limpa no PEP e integração WebApp.
-
----
-
-## ✅ Histórico de Melhorias Concluídas
 - [x] **Ginecologia Ambulatorial de Consultório (Completando o Módulo Unificado de GO)** (2026-10-09):
   * **Motor Determinístico de Alta Fidelidade**: Criação de `src/02_ginecologia_ambulatorial.js` (`GinecologiaAmbulatorialService`) com regras clínicas e farmacológicas alinhadas ao INCA/MS, FIGO, OMS, FEBRASGO e PCDT ISTs.
   * **Rastreamento do Câncer de Colo Uterino (Diretrizes INCA/MS 2016+)**:

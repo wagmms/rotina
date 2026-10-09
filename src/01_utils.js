@@ -391,12 +391,16 @@ function obterTecladoFixoPrincipal(chatId) {
   return {
     keyboard: [
       [
-        { text: '🩺 Novo SOAP' },
-        { text: '🏥 Enfermaria' }
+        { text: '🩺 SOAP Ambulatorial' },
+        { text: '🤰 Ginecologia & Obstetrícia' }
       ],
       [
         { text: '🚨 Emergência' },
-        { text: '📱 Cockpit', web_app: { url: urlApp } }
+        { text: '💊 REMUME Rápida' }
+      ],
+      [
+        { text: '📱 Cockpit Mini App', web_app: { url: urlApp } },
+        { text: '🧹 Limpar Paciente' }
       ]
     ],
     resize_keyboard: true,

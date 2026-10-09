@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 01:07:21
- * Checksum SHA256: 71bcf5a82dc81407
+ * Gerado automaticamente via build_master.py em: 2026-10-09 01:16:49
+ * Checksum SHA256: ac9ba15b951dfb3c
  * ==============================================================================
  */
 
@@ -503,12 +503,16 @@ function obterTecladoFixoPrincipal(chatId) {
   return {
     keyboard: [
       [
-        { text: '🩺 Novo SOAP' },
-        { text: '🏥 Enfermaria' }
+        { text: '🩺 SOAP Ambulatorial' },
+        { text: '🤰 Ginecologia & Obstetrícia' }
       ],
       [
         { text: '🚨 Emergência' },
-        { text: '📱 Cockpit', web_app: { url: urlApp } }
+        { text: '💊 REMUME Rápida' }
+      ],
+      [
+        { text: '📱 Cockpit Mini App', web_app: { url: urlApp } },
+        { text: '🧹 Limpar Paciente' }
       ]
     ],
     resize_keyboard: true,
@@ -13789,6 +13793,31 @@ function processarMensagemTexto(message) {
   // 5. ROTEADOR DE INTENÇÃO AUTÔNOMO (SEM NECESSIDADE DE COMANDO COM BARRA /)
   // Roteamento de Rotina em Linguagem Natural
   var textoTrim = texto.trim();
+  
+  // Roteamento Clínico Inteligente sem comando '/'
+  if (!comando.startsWith("/")) {
+    if (/(?:DUM|DPP)\s*\d{1,2}[\/\.]\d{1,2}|G\d+P\d+A\d+|semanas\s+de\s+gesta[çc][ãa]o/i.test(textoTrim)) {
+      message.text = "/prenatal " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:citologia|preventivo|papanicolau).*?(?:ASC-US|LSIL|HSIL|AGC)/i.test(textoTrim) || /^preventivo/i.test(textoTrim)) {
+      message.text = "/preventivo " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:SUA\s+aguda|sangramento\s+uterino|menstrua[çc][ãa]o\s+intensa)/i.test(textoTrim)) {
+      message.text = "/sua " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:trocar\s+anticoncepcional|iniciar\s+anticoncepcional|p[íi]lula\s+anticoncepcional|DIU\s+de\s+(?:cobre|prata|hormonal))/i.test(textoTrim)) {
+      message.text = "/anticoncepcao " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:prescri[çc][ãa]o|receita|prescrever)\s+(?:de\s+)?(?:amoxicilina|azitromicina|cefalexina|dipirona|paracetamol|ibuprofeno)/i.test(textoTrim) || /^quero\s+uma\s+receita\s+de/i.test(textoTrim)) {
+      message.text = "/rx " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+  }
+
   var ehAjusteRotina = /(?:n[aã]o\s+vou|sem|cancel(?:ar?|e|ado)?|tirar?|pular?)\s+(?:trein(?:ar?|o)|academia|muscula[çc][aã]o|estud(?:ar?|o)|medquest|cochil(?:ar?|o))/i.test(textoTrim) ||
     /(?:treino|academia|muscula[çc][aã]o)[^0-9]*?(?:[aà]s?|para\s+[aà]s?|das?)\s*\d{1,2}/i.test(textoTrim) ||
     /(?:estudo|medquest|anki)[^0-9]*?(?:[aà]s?|para\s+[aà]s?|das?)\s*\d{1,2}/i.test(textoTrim) ||
@@ -14456,6 +14485,27 @@ function responderConsultaCondutaPedB(chatId, termo) {
 
 function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageIdParaEditar) {
   enviarChatAction(chatId, "typing", true);
+  
+  // Fast-Ack & Feedback Visual Instantâneo (< 500ms)
+  if (!messageIdParaEditar && typeof UrlFetchApp !== "undefined") {
+    try {
+      var tokenBot = ConfigService.get("TELEGRAM_BOT_TOKEN");
+      if (tokenBot) {
+        var payloadTemp = { chat_id: String(chatId), text: "⚡ Analisando caso clínico...", parse_mode: "Markdown" };
+        var optionsTemp = { method: "post", contentType: "application/json", payload: JSON.stringify(payloadTemp), muteHttpExceptions: true };
+        var resTemp = UrlFetchApp.fetch("https://api.telegram.org/bot" + tokenBot + "/sendMessage", optionsTemp);
+        if (resTemp.getResponseCode() === 200) {
+          var jsonTemp = JSON.parse(resTemp.getContentText());
+          if (jsonTemp && jsonTemp.result && jsonTemp.result.message_id) {
+            messageIdParaEditar = jsonTemp.result.message_id;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Erro no Fast-Ack: " + e.message);
+    }
+  }
+
   var origemSoap = tipoCache === "soap" ? modoBot(chatId) : null;
   var resultado = medirEtapaBot('geracao_clinica', function() { return funcaoGeradora(dados); });
   if (typeof renovarChatActionSeNecessario === "function") {
@@ -14501,11 +14551,16 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
       } else {
         // FASE 2: SOAP Consolidado completo
         botoes.push([
-          { "text": "💊 Prescrever", "callback_data": "ux:hub:rx" },
-          { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey }
+          { "text": "💊 Extrair Receita", "callback_data": "ux:hub:rx" },
+          { "text": "🔄 Refinar Conduta", "callback_data": "ux:soap:atualizar" }
         ]);
+        var linhaNotion = [{ "text": "📁 Salvar Caso", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey }];
+        if (/IG:|DUM:|DPP:|obstetrícia/i.test(strResultado)) {
+          linhaNotion.unshift({ "text": "🤰 Cartão Gestante", "callback_data": "salvarNotion_prenatal_" + cacheKey });
+        }
+        botoes.push(linhaNotion);
         botoes.push([
-          { "text": "🔄 Atualizar", "callback_data": "ux:soap:atualizar" },
+          { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey },
           { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
         ]);
       }
@@ -18329,6 +18384,15 @@ function iniciarModoBot(chat, mode, novo, messageId) {
     botoesBot([[['Encerrar', 'ux:cancelar']]]), messageId);
 }
 
+function enviarMenuGinecologiaObstetricia(chat, messageId) {
+  return enviarTelaBot(chat, '🤰 *Hub Unificado de Ginecologia & Obstetrícia*\n\nEscolha o módulo de atendimento rápido:', botoesBot([
+    [['🤰 Pré-Natal (DUM, DPP, Rastreios)', 'ux:rotina:prenatal']],
+    [['🚨 Pré-Parto & Sala de Parto (Zuspan, HPP)', 'ux:rotina:parto']],
+    [['🌸 Ginecologia (Preventivo, SUA, Leucorreias)', 'ux:rotina:ginecologia']],
+    [['← Voltar ao Início', 'ux:menu']]
+  ]), messageId);
+}
+
 /* ========== Sala Vermelha, DVA, SRI e condutas ========== */
 
 function enviarMenuSalaVermelha(chat, messageId) {
@@ -18551,7 +18615,7 @@ function tratarEntradaUX(message) {
 
   // ── Botões dos Teclados Adaptativos Contextuais ───────────────────────────
   // Conclusão e Saída Limpa (1 toque)
-  if (text === '🧹 Novo Paciente' || text === '🧹 Novo' || text === '❌ Concluir Caso' || text === '❌ Concluir / Próximo' || text === '❌ Concluir / Próximo Caso' || text === '/novo' || text === '/cancelar') {
+  if (text === '🧹 Novo Paciente' || text === '🧹 Novo' || text === '🧹 Limpar Paciente' || text === '❌ Concluir Caso' || text === '❌ Concluir / Próximo' || text === '❌ Concluir / Próximo Caso' || text === '/novo' || text === '/cancelar') {
     limparEstadoBot(chat);
     enviarMensagemComTecladoFixo(chat, '🧹 *Memória limpa.* Pronto para o próximo paciente!');
     return true;
@@ -18564,6 +18628,28 @@ function tratarEntradaUX(message) {
   if (text === '❌ Sair da Sala Vermelha') {
     limparEstadoBot(chat);
     enviarMensagemComTecladoFixo(chat, '🚨 *Sala Vermelha finalizada.* Teclado de espera restaurado.');
+    return true;
+  }
+
+  // Atalhos Rápidos do Teclado Principal (1-Toque)
+  if (text === '🩺 SOAP Ambulatorial') {
+    processarMensagemTexto({ chat: { id: chat }, text: '/ambulatorio' });
+    return true;
+  }
+  if (text === '🤰 Ginecologia & Obstetrícia') {
+    if (typeof enviarMenuGinecologiaObstetricia === "function") {
+      enviarMenuGinecologiaObstetricia(chat);
+    }
+    return true;
+  }
+  if (text === '🚨 Emergência') {
+    if (typeof enviarMenuSalaVermelha === "function") {
+      enviarMenuSalaVermelha(chat);
+    }
+    return true;
+  }
+  if (text === '💊 REMUME Rápida') {
+    iniciarModoBot(chat, 'rx', false);
     return true;
   }
 

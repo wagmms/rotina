@@ -54,11 +54,10 @@ def test_teclado_ergonomico_sala_vermelha():
     """
     out = json.loads(run_js(js))
     linhas = [[b["text"] for b in linha] for linha in out["keyboard"]]
-    assert len(linhas) == 2, "O teclado ergonômico universal possui grade 2x2"
-    assert "🩺 Novo SOAP" in linhas[0]
-    assert "🏥 Enfermaria" in linhas[0]
+    assert len(linhas) == 3, "O teclado ergonômico universal possui grade 2x2"
+    assert "🩺 SOAP Ambulatorial" in linhas[0]
     assert "🚨 Emergência" in linhas[1]
-    assert "📱 Cockpit" in linhas[1]
+    assert "📱 Cockpit Mini App" in linhas[2]
     assert out.get("resize_keyboard") is True
     assert out.get("is_persistent") is True
 

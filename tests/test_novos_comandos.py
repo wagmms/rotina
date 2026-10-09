@@ -66,11 +66,10 @@ def test_teclado_fixo_principal_estrutura():
     assert data["resize_keyboard"] is True
     assert data["is_persistent"] is True
     linhas = [[btn["text"] for btn in linha] for linha in data["keyboard"]]
-    assert len(linhas) == 2
-    assert "🩺 Novo SOAP" in linhas[0]
-    assert "🏥 Enfermaria" in linhas[0]
+    assert len(linhas) == 3
+    assert "🩺 SOAP Ambulatorial" in linhas[0]
     assert "🚨 Emergência" in linhas[1]
-    assert "📱 Cockpit" in linhas[1]
+    assert "📱 Cockpit Mini App" in linhas[2]
 
 def test_classificador_intencao_heuristica():
     js_test = """

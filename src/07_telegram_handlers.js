@@ -1054,6 +1054,31 @@ function processarMensagemTexto(message) {
   // 5. ROTEADOR DE INTENÇÃO AUTÔNOMO (SEM NECESSIDADE DE COMANDO COM BARRA /)
   // Roteamento de Rotina em Linguagem Natural
   var textoTrim = texto.trim();
+  
+  // Roteamento Clínico Inteligente sem comando '/'
+  if (!comando.startsWith("/")) {
+    if (/(?:DUM|DPP)\s*\d{1,2}[\/\.]\d{1,2}|G\d+P\d+A\d+|semanas\s+de\s+gesta[çc][ãa]o/i.test(textoTrim)) {
+      message.text = "/prenatal " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:citologia|preventivo|papanicolau).*?(?:ASC-US|LSIL|HSIL|AGC)/i.test(textoTrim) || /^preventivo/i.test(textoTrim)) {
+      message.text = "/preventivo " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:SUA\s+aguda|sangramento\s+uterino|menstrua[çc][ãa]o\s+intensa)/i.test(textoTrim)) {
+      message.text = "/sua " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:trocar\s+anticoncepcional|iniciar\s+anticoncepcional|p[íi]lula\s+anticoncepcional|DIU\s+de\s+(?:cobre|prata|hormonal))/i.test(textoTrim)) {
+      message.text = "/anticoncepcao " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/(?:prescri[çc][ãa]o|receita|prescrever)\s+(?:de\s+)?(?:amoxicilina|azitromicina|cefalexina|dipirona|paracetamol|ibuprofeno)/i.test(textoTrim) || /^quero\s+uma\s+receita\s+de/i.test(textoTrim)) {
+      message.text = "/rx " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+  }
+
   var ehAjusteRotina = /(?:n[aã]o\s+vou|sem|cancel(?:ar?|e|ado)?|tirar?|pular?)\s+(?:trein(?:ar?|o)|academia|muscula[çc][aã]o|estud(?:ar?|o)|medquest|cochil(?:ar?|o))/i.test(textoTrim) ||
     /(?:treino|academia|muscula[çc][aã]o)[^0-9]*?(?:[aà]s?|para\s+[aà]s?|das?)\s*\d{1,2}/i.test(textoTrim) ||
     /(?:estudo|medquest|anki)[^0-9]*?(?:[aà]s?|para\s+[aà]s?|das?)\s*\d{1,2}/i.test(textoTrim) ||
@@ -1721,6 +1746,27 @@ function responderConsultaCondutaPedB(chatId, termo) {
 
 function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageIdParaEditar) {
   enviarChatAction(chatId, "typing", true);
+  
+  // Fast-Ack & Feedback Visual Instantâneo (< 500ms)
+  if (!messageIdParaEditar && typeof UrlFetchApp !== "undefined") {
+    try {
+      var tokenBot = ConfigService.get("TELEGRAM_BOT_TOKEN");
+      if (tokenBot) {
+        var payloadTemp = { chat_id: String(chatId), text: "⚡ Analisando caso clínico...", parse_mode: "Markdown" };
+        var optionsTemp = { method: "post", contentType: "application/json", payload: JSON.stringify(payloadTemp), muteHttpExceptions: true };
+        var resTemp = UrlFetchApp.fetch("https://api.telegram.org/bot" + tokenBot + "/sendMessage", optionsTemp);
+        if (resTemp.getResponseCode() === 200) {
+          var jsonTemp = JSON.parse(resTemp.getContentText());
+          if (jsonTemp && jsonTemp.result && jsonTemp.result.message_id) {
+            messageIdParaEditar = jsonTemp.result.message_id;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Erro no Fast-Ack: " + e.message);
+    }
+  }
+
   var origemSoap = tipoCache === "soap" ? modoBot(chatId) : null;
   var resultado = medirEtapaBot('geracao_clinica', function() { return funcaoGeradora(dados); });
   if (typeof renovarChatActionSeNecessario === "function") {
@@ -1766,11 +1812,16 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
       } else {
         // FASE 2: SOAP Consolidado completo
         botoes.push([
-          { "text": "💊 Prescrever", "callback_data": "ux:hub:rx" },
-          { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey }
+          { "text": "💊 Extrair Receita", "callback_data": "ux:hub:rx" },
+          { "text": "🔄 Refinar Conduta", "callback_data": "ux:soap:atualizar" }
         ]);
+        var linhaNotion = [{ "text": "📁 Salvar Caso", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey }];
+        if (/IG:|DUM:|DPP:|obstetrícia/i.test(strResultado)) {
+          linhaNotion.unshift({ "text": "🤰 Cartão Gestante", "callback_data": "salvarNotion_prenatal_" + cacheKey });
+        }
+        botoes.push(linhaNotion);
         botoes.push([
-          { "text": "🔄 Atualizar", "callback_data": "ux:soap:atualizar" },
+          { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey },
           { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
         ]);
       }

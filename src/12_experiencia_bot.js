@@ -249,6 +249,15 @@ function iniciarModoBot(chat, mode, novo, messageId) {
     botoesBot([[['Encerrar', 'ux:cancelar']]]), messageId);
 }
 
+function enviarMenuGinecologiaObstetricia(chat, messageId) {
+  return enviarTelaBot(chat, '🤰 *Hub Unificado de Ginecologia & Obstetrícia*\n\nEscolha o módulo de atendimento rápido:', botoesBot([
+    [['🤰 Pré-Natal (DUM, DPP, Rastreios)', 'ux:rotina:prenatal']],
+    [['🚨 Pré-Parto & Sala de Parto (Zuspan, HPP)', 'ux:rotina:parto']],
+    [['🌸 Ginecologia (Preventivo, SUA, Leucorreias)', 'ux:rotina:ginecologia']],
+    [['← Voltar ao Início', 'ux:menu']]
+  ]), messageId);
+}
+
 /* ========== Sala Vermelha, DVA, SRI e condutas ========== */
 
 function enviarMenuSalaVermelha(chat, messageId) {
@@ -471,7 +480,7 @@ function tratarEntradaUX(message) {
 
   // ── Botões dos Teclados Adaptativos Contextuais ───────────────────────────
   // Conclusão e Saída Limpa (1 toque)
-  if (text === '🧹 Novo Paciente' || text === '🧹 Novo' || text === '❌ Concluir Caso' || text === '❌ Concluir / Próximo' || text === '❌ Concluir / Próximo Caso' || text === '/novo' || text === '/cancelar') {
+  if (text === '🧹 Novo Paciente' || text === '🧹 Novo' || text === '🧹 Limpar Paciente' || text === '❌ Concluir Caso' || text === '❌ Concluir / Próximo' || text === '❌ Concluir / Próximo Caso' || text === '/novo' || text === '/cancelar') {
     limparEstadoBot(chat);
     enviarMensagemComTecladoFixo(chat, '🧹 *Memória limpa.* Pronto para o próximo paciente!');
     return true;
@@ -484,6 +493,28 @@ function tratarEntradaUX(message) {
   if (text === '❌ Sair da Sala Vermelha') {
     limparEstadoBot(chat);
     enviarMensagemComTecladoFixo(chat, '🚨 *Sala Vermelha finalizada.* Teclado de espera restaurado.');
+    return true;
+  }
+
+  // Atalhos Rápidos do Teclado Principal (1-Toque)
+  if (text === '🩺 SOAP Ambulatorial') {
+    processarMensagemTexto({ chat: { id: chat }, text: '/ambulatorio' });
+    return true;
+  }
+  if (text === '🤰 Ginecologia & Obstetrícia') {
+    if (typeof enviarMenuGinecologiaObstetricia === "function") {
+      enviarMenuGinecologiaObstetricia(chat);
+    }
+    return true;
+  }
+  if (text === '🚨 Emergência') {
+    if (typeof enviarMenuSalaVermelha === "function") {
+      enviarMenuSalaVermelha(chat);
+    }
+    return true;
+  }
+  if (text === '💊 REMUME Rápida') {
+    iniciarModoBot(chat, 'rx', false);
     return true;
   }
 
