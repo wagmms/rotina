@@ -84,6 +84,115 @@ const path = require('path');
 const LOGS_FILE = path.join(__dirname, '..', 'logs', 'interacao_ao_vivo.jsonl');
 const MAX_LOG_BYTES = 5 * 1024 * 1024; // 5 MB
 
+// Estruturas leves em memória (O(1)) para telemetria em tempo real
+const latenciasRecentes = [];
+const ultimosErros = [];
+const contadoresHttp = {
+  total: 0,
+  status2xx: 0,
+  status3xx: 0,
+  status4xx: 0,
+  status5xx: 0,
+  rotas: {},
+  inicioEm: new Date().toISOString()
+};
+
+function registrarErroSistema(origem, mensagem, detalhes = null) {
+  try {
+    const agora = new Date();
+    const item = {
+      timestamp: agora.toISOString(),
+      origem: String(origem || 'sistema'),
+      mensagem: String(mensagem || '').slice(0, 300),
+      detalhes: detalhes || null
+    };
+    ultimosErros.unshift(item);
+    if (ultimosErros.length > 20) {
+      ultimosErros.pop();
+    }
+  } catch (_) {}
+}
+
+function obterUltimosErros(limite = 10) {
+  return ultimosErros.slice(0, Math.max(1, Math.min(50, limite)));
+}
+
+function registrarMetricaHttp(metodo, rota, status, duracaoMs) {
+  try {
+    const duracao = roundMs(duracaoMs);
+    contadoresHttp.total++;
+    const code = Number(status) || 0;
+    if (code >= 200 && code < 300) contadoresHttp.status2xx++;
+    else if (code >= 300 && code < 400) contadoresHttp.status3xx++;
+    else if (code >= 400 && code < 500) contadoresHttp.status4xx++;
+    else if (code >= 500) {
+      contadoresHttp.status5xx++;
+      registrarErroSistema('http_5xx', `HTTP ${code} em ${metodo} ${rota}`, { duracao_ms: duracao });
+    }
+
+    const rotaKey = `${metodo} ${rota || '/'}`;
+    contadoresHttp.rotas[rotaKey] = (contadoresHttp.rotas[rotaKey] || 0) + 1;
+
+    latenciasRecentes.push(duracao);
+    if (latenciasRecentes.length > 100) {
+      latenciasRecentes.shift();
+    }
+  } catch (_) {}
+}
+
+function calcularEstatisticasLatencia() {
+  if (latenciasRecentes.length === 0) {
+    return { media_ms: 0, p95_ms: 0, max_ms: 0, amostras: 0 };
+  }
+  const soma = latenciasRecentes.reduce((acc, v) => acc + v, 0);
+  const media = roundMs(soma / latenciasRecentes.length);
+  const ordenados = [...latenciasRecentes].sort((a, b) => a - b);
+  const idxP95 = Math.min(ordenados.length - 1, Math.floor(0.95 * ordenados.length));
+  const p95 = roundMs(ordenados[idxP95]);
+  const max = roundMs(ordenados[ordenados.length - 1]);
+  return { media_ms: media, p95_ms: p95, max_ms: max, amostras: latenciasRecentes.length };
+}
+
+function obterMetricasAgregadas() {
+  const mem = process.memoryUsage();
+  const totalReq = contadoresHttp.total;
+  const totalErros = contadoresHttp.status4xx + contadoresHttp.status5xx;
+  const taxaErroPct = totalReq > 0 ? roundMs((totalErros / totalReq) * 100) : 0;
+  
+  return {
+    uptime_segundos: Math.floor(process.uptime()),
+    inicio_timestamp: contadoresHttp.inicioEm,
+    memoria_mb: {
+      rss: Math.round(mem.rss / 1048576),
+      heap_total: Math.round(mem.heapTotal / 1048576),
+      heap_used: Math.round(mem.heapUsed / 1048576),
+      external: Math.round(mem.external / 1048576)
+    },
+    requisicoes: {
+      total: contadoresHttp.total,
+      sucesso_2xx: contadoresHttp.status2xx,
+      redirecionamento_3xx: contadoresHttp.status3xx,
+      erro_cliente_4xx: contadoresHttp.status4xx,
+      erro_servidor_5xx: contadoresHttp.status5xx,
+      taxa_erro_pct: taxaErroPct
+    },
+    latencia: calcularEstatisticasLatencia(),
+    rotas_mais_acessadas: contadoresHttp.rotas,
+    ultimos_erros: obterUltimosErros(10)
+  };
+}
+
+function limparMetricasTeste() {
+  latenciasRecentes.length = 0;
+  ultimosErros.length = 0;
+  contadoresHttp.total = 0;
+  contadoresHttp.status2xx = 0;
+  contadoresHttp.status3xx = 0;
+  contadoresHttp.status4xx = 0;
+  contadoresHttp.status5xx = 0;
+  contadoresHttp.rotas = {};
+}
+
 function registrarInteracaoAoVivo(evento) {
   try {
     const agora = new Date();
@@ -140,5 +249,11 @@ module.exports = {
   measureLegacyHttp,
   clinicalStages,
   registrarInteracaoAoVivo,
-  obterUltimasInteracoes
+  obterUltimasInteracoes,
+  registrarMetricaHttp,
+  obterMetricasAgregadas,
+  registrarErroSistema,
+  obterUltimosErros,
+  limparMetricasTeste
 };
+

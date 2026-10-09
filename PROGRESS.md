@@ -17,15 +17,15 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Otimização de Logs, Monitoramento e Telemetria de Erros**:
-    - Melhorar a rastreabilidade dos logs em produção (Render) mantendo a performance do Fastify.
+- [ ] **Otimização de Carga e Lazy Loading no Cockpit PWA**:
+    - Analisar empacotamento e carregamento de componentes pesados no Cockpit para plantões de baixa conectividade.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Otimização de Carga e Lazy Loading no Cockpit PWA**:
-    - Analisar empacotamento e carregamento de componentes pesados no Cockpit para plantões de baixa conectividade.
+1. [ ] **Auditoria de Teclados e Feedback Tátil no Cockpit Móvel**:
+    - Melhorar a transição de foco e teclado virtual numérico em inputs de calculadoras clínicas para evitar rolagem indesejada da tela em iOS/Android.
 
 ---
 
@@ -47,10 +47,34 @@
 - *Sugestão 14 (Telegram - Mensagens Longas)*: Adicionar botão inline automático "📄 Ver Resumo Completo no Cockpit PWA" quando uma conduta for fragmentada em 3 ou mais partes, oferecendo opção de leitura contínua sem rolagem infinita.
 - *Sugestão 15 (Telegram / Sala Vermelha)*: Teclado inline com botões para pontuação direta da Escala de Glasgow por componentes (Abertura Ocular: 1 a 4, Resposta Verbal: 1 a 5, Resposta Motora: 1 a 6) com soma automática e cálculo de reatividade pupilar (GCS-P) para traumatismo cranioencefálico.
 - *Sugestão 16 (Telegram - Conexões Instáveis)*: Mecanismo de handshake leve com heartbeat de 10s via chatAction para avaliar latência da rede hospitalar antes de disparar payloads pesados com fallbacks adaptativos.
+- *Sugestão 17 (Backend / Telemetria)*: Implementar exportação Prometheus / OpenTelemetry (`/metrics`) com gauges e histogramas padronizados de latência de IA multimodal e tempo de resposta do Fastify para dashboards externos (Grafana/Datadog).
+- *Sugestão 18 (Backend / Resiliência)*: Circuit Breaker determinístico com estados Closed/Open/Half-Open para chamadas de provedores LLM externos (Gemini/Groq/OpenRouter), evitando retenção de conexões e travamento de threads em casos de timeout prolongado da API externa.
+- *Sugestão 19 (Cockpit PWA / Telemetria)*: Envio assíncrono em lote (Beacon API / navigator.sendBeacon) de métricas de telemetria de performance do frontend (Web Vitals: LCP, FID, CLS e latência de toque nos cards) diretamente para `/api/telemetria/ao-vivo` no encerramento ou pausa de sessão do plantão.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0S. [x] **Otimização de Logs, Monitoramento e Telemetria de Erros no Backend Fastify (Render)**:
+    - **Rastreabilidade Ponta a Ponta & Request Correlation ID**:
+      * Injeção e propagação universal de `x-request-id` em 100% das requisições HTTP, integrando traces de proxy (Render/Cloudflare) ou gerando IDs determinísticos (`req_...`).
+      * Injeção de header `x-response-time` em milissegundos para monitoramento de latência direto pelo browser e Cockpit PWA.
+      * Respostas globais de erro (404 e 500) agora carregam o `requestId` correspondente no payload JSON para correlação imediata de incidentes.
+    - **Sanitização de Segurança e Compliance (Pino Redact)**:
+      * Logger configurado com `redact` estrito para cabeçalhos e payloads sensíveis (`x-telegram-bot-api-secret-token`, `authorization`, `cookie`, tokens de sessão, credenciais de API), prevenindo qualquer vazamento em logs no painel do Render.
+      * Serializers leves de request e response limitados a campos essenciais de auditoria (`id`, `method`, `url`, `remoteAddress`, `userAgent`, `statusCode`).
+    - **Monitoramento de Latência e Alertas em Tempo Real**:
+      * Hooks nativos do Fastify (`onRequest`, `onSend`, `onResponse`, `onError`) para medição precisa de latência por endpoint sem overhead de runtime.
+      * Alerta automático de latência em nível `warn` quando qualquer rota ultrapassa 1000ms.
+    - **Buffer Circular O(1) de Erros e Endpoint de Métricas**:
+      * Implementado buffer circular com retenção dos últimos 20 erros do sistema em memória, sem vazamento de RAM.
+      * Criado endpoint `/api/telemetria/metricas` com dados consolidados de saúde: uptime, memória (RSS, Heap), contagem de requisições por faixa de status (2xx, 3xx, 4xx, 5xx), taxa de erro (%), percentis de latência (média, P95, máximo) e mapa de rotas mais acessadas.
+      * Criado endpoint `/api/telemetria/erros` para inspeção ágil de incidentes operacionais.
+    - **Proteção Global do Processo Node**:
+      * Escutas globais para `uncaughtException` e `unhandledRejection` integradas ao buffer de erros e logger do processo.
+    - **Suíte de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_logs_telemetria_render.cjs` cobrindo correlation IDs, geração automática de trace, preservação de headers, erro 404 com ID, métricas agregadas e rotação do buffer de erros.
+      * Integrada ao script oficial `npm test` no `package.json`, com 100% de aprovação nas 22 suítes do projeto.
 
 0R. [x] **Auditoria de Acessibilidade, Ergonomia e Atalhos Rápidos no Bot do Telegram**:
     - **Fragmentação Inteligente e Continuidade Beira-Leito**: Mensagens longas (> 3700 caracteres) agora recebem sinalizadores explícitos de partes (`📄 [Parte X/Y · Continuação]` e `📄 [Parte X/Y · Continua abaixo ⬇️]`), garantindo que o médico saiba que a conduta é contínua e prevenindo omissão de prescrições em redes oscilantes.

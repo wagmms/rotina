@@ -7,22 +7,149 @@
  * ==============================================================================
  */
 
-const fastify = require('fastify')({
-  logger: process.env.NODE_ENV === 'test' ? false : true,
-  bodyLimit: 15 * 1024 * 1024 // 15MB para suportar áudio base64 do Cockpit
-});
-
 const cors = require('@fastify/cors');
 const compress = require('@fastify/compress');
 const runtime = require('./runtime');
 const { createD1Inbox } = require('./d1-inbox');
-const { roundMs, updateKind, measureLegacyHttp, clinicalStages, registrarInteracaoAoVivo, obterUltimasInteracoes } = require('./telemetry');
+const {
+  roundMs,
+  updateKind,
+  measureLegacyHttp,
+  clinicalStages,
+  registrarInteracaoAoVivo,
+  obterUltimasInteracoes,
+  registrarMetricaHttp,
+  obterMetricasAgregadas,
+  registrarErroSistema,
+  obterUltimosErros
+} = require('./telemetry');
 const d1Inbox = createD1Inbox();
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 
+// Handlers globais de resiliência e telemetria de processo
+if (!process._ultraRotinaHandlersRegistrados) {
+  process._ultraRotinaHandlersRegistrados = true;
+  process.on('unhandledRejection', (reason) => {
+    const msg = reason instanceof Error ? reason.message : String(reason);
+    const stack = reason instanceof Error ? reason.stack : null;
+    console.error('[Processo][UnhandledRejection]:', msg);
+    registrarErroSistema('unhandledRejection', msg, { stack: stack ? stack.slice(0, 300) : null });
+  });
+  process.on('uncaughtException', (err) => {
+    console.error('[Processo][UncaughtException]:', err.message);
+    registrarErroSistema('uncaughtException', err.message, { stack: err.stack ? err.stack.slice(0, 300) : null });
+  });
+}
+
+function obterConfiguracaoLogger() {
+  const isTest = process.env.NODE_ENV === 'test';
+  if (isTest && !process.env.FORCE_LOG) {
+    return false;
+  }
+  const level = process.env.LOG_LEVEL || 'info';
+  return {
+    level,
+    redact: {
+      paths: [
+        'req.headers["x-telegram-bot-api-secret-token"]',
+        'req.headers.authorization',
+        'req.headers.cookie',
+        'body.session',
+        'body.token',
+        'body.args[0].token',
+        'body.args[0].session',
+        '*.session',
+        '*.token',
+        '*.secret',
+        '*.apiKey'
+      ],
+      censor: '[REDACTED]'
+    },
+    serializers: {
+      req(req) {
+        return {
+          id: req.id,
+          method: req.method,
+          url: req.url,
+          remoteAddress: req.ip,
+          userAgent: req.headers['user-agent']
+        };
+      },
+      res(res) {
+        return {
+          statusCode: res.statusCode
+        };
+      }
+    }
+  };
+}
+
+function criarInstanciaFastify() {
+  return require('fastify')({
+    logger: obterConfiguracaoLogger(),
+    requestIdHeader: 'x-request-id',
+    genReqId: (req) => {
+      const incoming = req.headers['x-request-id'];
+      if (incoming && typeof incoming === 'string' && incoming.length < 128) {
+        return incoming;
+      }
+      return `req_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
+    },
+    bodyLimit: 15 * 1024 * 1024 // 15MB para suportar áudio base64 do Cockpit
+  });
+}
+
 async function buildServer() {
+  const fastify = criarInstanciaFastify();
+
+  // Hooks globais de rastreabilidade, latência e telemetria HTTP
+  fastify.addHook('onRequest', async (request, reply) => {
+    request.t0 = performance.now();
+  });
+
+  fastify.addHook('onSend', async (request, reply, payload) => {
+    const t0 = request.t0 || performance.now();
+    const duracao = Math.max(0, performance.now() - t0);
+    reply.header('x-request-id', request.id);
+    reply.header('x-response-time', `${duracao.toFixed(2)}ms`);
+    return payload;
+  });
+
+  fastify.addHook('onResponse', async (request, reply) => {
+    const t0 = request.t0 || performance.now();
+    const duracao = roundMs(performance.now() - t0);
+    const rota = request.routerPath || request.raw.url?.split('?')[0] || 'desconhecida';
+    registrarMetricaHttp(request.method, rota, reply.statusCode, duracao);
+
+    if (reply.statusCode >= 500) {
+      fastify.log.error({
+        reqId: request.id,
+        method: request.method,
+        url: request.raw.url,
+        statusCode: reply.statusCode,
+        duracao_ms: duracao
+      }, '[Fastify HTTP] Falha 5xx no endpoint');
+    } else if (duracao > 1000 && rota !== '/webhook') {
+      fastify.log.warn({
+        reqId: request.id,
+        method: request.method,
+        url: request.raw.url,
+        statusCode: reply.statusCode,
+        duracao_ms: duracao
+      }, '[Fastify Alerta Latência] Requisição excedeu 1000ms');
+    }
+  });
+
+  fastify.addHook('onError', async (request, reply, error) => {
+    registrarErroSistema('http_error_hook', error.message, {
+      reqId: request.id,
+      url: request.raw.url,
+      method: request.method
+    });
+  });
+
   // 1. CORS para permitir chamadas do Cockpit PWA (GitHub Pages e local)
   await fastify.register(cors, {
     origin: true,
@@ -39,20 +166,24 @@ async function buildServer() {
     encodings: ['gzip', 'deflate', 'br']
   });
 
-  // 1.2. Tratamento Global de Erros Fastify (Resiliência)
+  // 1.2. Tratamento Global de Erros Fastify (Resiliência e Rastreabilidade)
   fastify.setErrorHandler((error, request, reply) => {
-    fastify.log.error(`[Fastify Global Error] ${error.message} - Rota: ${request.raw.url}`);
+    const reqId = request.id || 'unknown';
+    fastify.log.error(`[Fastify Global Error][${reqId}] ${error.message} - Rota: ${request.raw.url}`);
+    registrarErroSistema('fastify_global_error', error.message, { reqId, url: request.raw.url, statusCode: error.statusCode || 500 });
     reply.status(error.statusCode || 500).send({
       ok: false,
       erro: 'Falha interna no servidor.',
-      detalhes: error.message
+      detalhes: error.message,
+      requestId: reqId
     });
   });
 
   fastify.setNotFoundHandler((request, reply) => {
     reply.status(404).send({
       ok: false,
-      erro: 'Rota não encontrada no backend Ultra Rotina.'
+      erro: 'Rota não encontrada no backend Ultra Rotina.',
+      requestId: request.id
     });
   });
 
@@ -216,6 +347,28 @@ async function buildServer() {
       ok: true,
       total: interacoes.length,
       interacoes: interacoes
+    };
+  });
+
+  // 5.2. TELEMETRIA & MÉTRICAS AGREGADAS (Render Performance, Memória, Latência e Status HTTP)
+  fastify.get('/api/telemetria/metricas', async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return {
+      ok: true,
+      servico: 'Ultra Rotina Telemetria & Monitoramento',
+      timestamp: new Date().toISOString(),
+      ...obterMetricasAgregadas()
+    };
+  });
+
+  // 5.3. TELEMETRIA: Últimos erros capturados em buffer circular de memória
+  fastify.get('/api/telemetria/erros', async (request, reply) => {
+    const limite = Math.min(50, Math.max(1, parseInt(request.query?.limite || '10', 10)));
+    reply.header('Cache-Control', 'no-store');
+    return {
+      ok: true,
+      total: obterUltimosErros(limite).length,
+      erros: obterUltimosErros(limite)
     };
   });
 
