@@ -176,7 +176,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -188,7 +188,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -1458,6 +1458,117 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, analiseAnemia.textoFormatado);
     } catch (eAnemia) {
       return enviarMensagemParaChat(chatId, "⚠️ Erro ao analisar anemia: " + eAnemia.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // PNEUMOLOGIA & EMERGÊNCIA: MANEJO DA CRISE ASMÁTICA E ESTADO DE MAL ASMÁTICO
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/asma" || comando === "/criseasma" || comando === "/broncoespasmo" || comando === "/salbutamol") {
+    var dadosAsma = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof PneumologiaCriseAsmaticaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PneumologiaCriseAsmaticaService indisponível temporariamente.");
+    }
+
+    if (!dadosAsma) {
+      return enviarMensagemParaChat(chatId, "🫁 *PNEUMOLOGIA & EMERGÊNCIA — MANEJO DA CRISE ASMÁTICA*\n\n" +
+        "Envie os parâmetros do paciente para estratificação GINA/SBPT e conduta:\n" +
+        "• *SpO2*, *FC*, *FR*, *Pico de Fluxo Expiratório (PFE)*\n" +
+        "• *Fala* (`frases`, `palavras`, `incapaz`), *Posição* (`tripé`, `sentado`)\n" +
+        "• *Musculatura acessória* (`tiragem`, `acentuada`), *Ausculta* (`sibilos`, `tórax silencioso`)\n" +
+        "• *Gasometria* (`pH`, `pCO2`), *Sensório* (`sonolento`, `agitado`, `confuso`)\n" +
+        "• *Perfil / Peso:* `peso 70kg`, `pediatria 18kg`, `gestante`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/asma spo2 88 fc 130 fr 34 tripe palavras acessoria acentuada` *(Crise Grave)*\n" +
+        "• `/asma torax silencioso sonolento paco2 48 ph 7.22` *(Parada Iminente / Estado de Mal)*\n" +
+        "• `/asma pfe 45% spo2 91 refratario 1h` *(Crise refratária com indicação de Sulfato de Magnésio)*\n" +
+        "• `/salbutamol 4a 16kg pediatria spo2 92 tiragem` *(Crise pediátrica com MDI e espaçador)*");
+    }
+
+    function extrairNumAsma(re) {
+      var m = dadosAsma.match(re);
+      return m ? parseFloat(String(m[1]).replace(",", ".")) : null;
+    }
+
+    var paramsAsma = {};
+    paramsAsma.spo2 = extrairNumAsma(/(?:spo2|sat(?:uracao|ura[çc][aã]o)?)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.fc = extrairNumAsma(/\bfc\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.fr = extrairNumAsma(/\bfr\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.pfe = extrairNumAsma(/(?:pfe|peak\s*flow)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.pfe_previsto = extrairNumAsma(/(?:pfe_?previsto|pfe_?prev)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.pfe_porcentagem = extrairNumAsma(/(\d{1,3})\s*%\s*(?:do\s*pfe|pfe)?/i) || extrairNumAsma(/(?:pfe|peak\s*flow)\s*[:=]?\s*(\d{1,3})\s*%/i);
+    paramsAsma.pesoKg = extrairNumAsma(/(\d{1,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || extrairNumAsma(/peso\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.idade = extrairNumAsma(/(\d{1,2})\s*(?:anos|a\b)/i) || extrairNumAsma(/idade\s*[:=]?\s*(\d+[.,]?\d*)/i);
+
+    var dLowerAsma = dadosAsma.toLowerCase();
+
+    // Ausculta
+    if (dLowerAsma.includes("silencio") || dLowerAsma.includes("silêncio") || dLowerAsma.includes("silencioso")) {
+      paramsAsma.ausculta = "torax_silencioso";
+    } else if (dLowerAsma.includes("sibilos difusos") || dLowerAsma.includes("sibilos graves")) {
+      paramsAsma.ausculta = "sibilos_difusos";
+    } else if (dLowerAsma.includes("sibilo")) {
+      paramsAsma.ausculta = "sibilos_expiratorios";
+    }
+
+    // Sensório / Estado Mental
+    if (dLowerAsma.includes("sonolent") || dLowerAsma.includes("confus") || dLowerAsma.includes("coma") || dLowerAsma.includes("rebaixad") || dLowerAsma.includes("letarg")) {
+      paramsAsma.estado_mental = "sonolento";
+    } else if (dLowerAsma.includes("agitad") || dLowerAsma.includes("ansios")) {
+      paramsAsma.estado_mental = "agitado";
+    }
+
+    // Posição
+    if (dLowerAsma.includes("tripe") || dLowerAsma.includes("tripé") || dLowerAsma.includes("inclinad")) {
+      paramsAsma.posicao = "tripe";
+    }
+
+    // Fala
+    if (dLowerAsma.includes("incapaz de falar") || dLowerAsma.includes("sem falar") || dLowerAsma.includes("afasico")) {
+      paramsAsma.fala = "incapaz";
+    } else if (dLowerAsma.includes("palavras") || dLowerAsma.includes("monossilab")) {
+      paramsAsma.fala = "palavras_isoladas";
+    } else if (dLowerAsma.includes("frases curtas")) {
+      paramsAsma.fala = "frases_curtas";
+    }
+
+    // Musculatura acessória
+    if (dLowerAsma.includes("acentuada") || dLowerAsma.includes("tiragem") || dLowerAsma.includes("furcula") || dLowerAsma.includes("fúrcula") || dLowerAsma.includes("asa de nariz")) {
+      paramsAsma.musculatura_acessoria = "acentuada";
+    }
+
+    // Respiração paradoxal
+    if (dLowerAsma.includes("paradoxal") || dLowerAsma.includes("fadiga")) {
+      paramsAsma.respiracao_paradoxal = true;
+    }
+
+    // Refratariedade pós 1 hora
+    if (dLowerAsma.includes("refratari") || dLowerAsma.includes("refratári") || dLowerAsma.includes("pos 1h") || dLowerAsma.includes("pós 1h") || dLowerAsma.includes("1 hora")) {
+      paramsAsma.refratario_1h = true;
+    }
+
+    // Perfil
+    if (dLowerAsma.includes("gestant") || dLowerAsma.includes("gravid") || dLowerAsma.includes("grávid")) {
+      paramsAsma.gestante = true;
+    }
+    if (dLowerAsma.includes("pediat") || dLowerAsma.includes("crian") || dLowerAsma.includes("lactent") || (paramsAsma.idade && paramsAsma.idade < 12)) {
+      paramsAsma.faixa_etaria = "pediatrico";
+    }
+
+    // Gasometria
+    var phGaso = extrairNumAsma(/\bph\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    var paco2Gaso = extrairNumAsma(/(?:paco2|pco2)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    var pao2Gaso = extrairNumAsma(/(?:pao2|po2)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    if (phGaso !== null || paco2Gaso !== null) {
+      paramsAsma.gasometria = { ph: phGaso, paco2: paco2Gaso, pao2: pao2Gaso };
+    }
+
+    try {
+      var analiseAsma = PneumologiaCriseAsmaticaService.avaliarCriseAsmatica(paramsAsma);
+      var msgAsma = PneumologiaCriseAsmaticaService.formatarTextoTelegram(analiseAsma);
+      return enviarMensagemParaChat(chatId, msgAsma);
+    } catch (eAsma) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar crise asmática: " + eAsma.message);
     }
   }
 

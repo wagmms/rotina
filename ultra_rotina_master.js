@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 05:44:49
- * Checksum SHA256: 716f96a63fcf7735
+ * Gerado automaticamente via build_master.py em: 2026-10-09 06:57:39
+ * Checksum SHA256: 4645c91ab087a48b
  * ==============================================================================
  */
 
@@ -5740,6 +5740,755 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_cardiologia_emergencia.js
+// ==============================================================================
+
+/**
+ * Módulo de Cardiologia de Emergência: Dor Torácica, Síndromes Coronarianas Agudas (SCA) e IAM
+ * Motor determinístico baseado nas diretrizes SBC (2021/2024), AHA/ACC e ESC (2023).
+ * Inclui: Escore HEART, TIMI SCASST, TIMI IAMCSST, Protocolo DAPT e Bloqueios Cruzados Críticos.
+ */
+
+var CardiologiaEmergenciaService = (function() {
+    'use strict';
+
+    /**
+     * Escore HEART (History, ECG, Age, Risk factors, Troponin) para dor torácica na emergência
+     * @param {Object} dados
+     */
+    function calcularHEART(dados) {
+        dados = dados || {};
+        var score = 0;
+        var justificativas = [];
+
+        // 1. History (História Clínica)
+        var hist = dados.historia;
+        if (hist === 2 || hist === 'altamente_suspeita') {
+            score += 2;
+            justificativas.push("História altamente suspeita (+2): dor retroesternal em aperto, irradiação para mandíbula/MMSS, sudorese/diaforese ou piora ao esforço.");
+        } else if (hist === 1 || hist === 'moderadamente_suspeita') {
+            score += 1;
+            justificativas.push("História moderadamente suspeita (+1): elementos anginosos mistos ou equivalentes.");
+        } else {
+            justificativas.push("História pouco ou não suspeita (+0): dor incaracterística, atípica, pontual ou reprodutível à palpação.");
+        }
+
+        // 2. ECG (Eletrocardiograma)
+        var ecg = dados.ecg;
+        if (ecg === 2 || ecg === 'infradesnivel_st' || ecg === 'isquemia_significativa') {
+            score += 2;
+            justificativas.push("ECG com desvio significativo de ST ou inversão de onda T simétrica/profunda (+2). Se Supra de ST persistente -> Protocolo IAMCSST de Reperfusão Imediata!");
+        } else if (ecg === 1 || ecg === 'alteracao_inespecifica' || ecg === 'bloqueio_ramo_previo' || ecg === 'sve') {
+            score += 1;
+            justificativas.push("ECG com alterações inespecíficas de repolarização, LBBB prévio ou SVE (+1).");
+        } else {
+            justificativas.push("ECG normal (+0).");
+        }
+
+        // 3. Age (Idade)
+        var idade = Number(dados.idade) || 0;
+        if (idade >= 65) {
+            score += 2;
+            justificativas.push("Idade >= 65 anos (+2).");
+        } else if (idade >= 45) {
+            score += 1;
+            justificativas.push("Idade entre 45 e 64 anos (+1).");
+        } else {
+            justificativas.push("Idade < 45 anos (+0).");
+        }
+
+        // 4. Risk Factors (Fatores de Risco para DAC)
+        // FR: HAS, DM, dislipidemia, tabagismo ativo/recente, obesidade IMC>30, HF prematura DAC, aterosclerose documentada
+        var frCount = 0;
+        if (dados.has) frCount++;
+        if (dados.diabetes) frCount++;
+        if (dados.dislipidemia) frCount++;
+        if (dados.tabagismo) frCount++;
+        if (dados.obesidade) frCount++;
+        if (dados.historicoFamiliarPrecoce) frCount++;
+        if (dados.fatoresRiscoContagem !== undefined) {
+            frCount = Math.max(frCount, Number(dados.fatoresRiscoContagem) || 0);
+        }
+
+        var dacPrevia = Boolean(dados.dacPrevia || dados.doencaAteroscleroticaConfirmada || dados.iamPrevio || dados.avcPrevio || dados.dapPrevia);
+
+        if (dacPrevia || frCount >= 3) {
+            score += 2;
+            justificativas.push("Fatores de risco cardiovasculares >= 3 OU aterosclerose arterial documentada (+2).");
+        } else if (frCount >= 1) {
+            score += 1;
+            justificativas.push("1 ou 2 fatores de risco cardiovasculares conhecidos (+1).");
+        } else {
+            justificativas.push("Sem fatores de risco conhecidos (+0).");
+        }
+
+        // 5. Troponin (Troponina)
+        var trop = dados.troponina;
+        if (trop === 2 || trop === 'elevada_3x' || trop === 'positiva_alta') {
+            score += 2;
+            justificativas.push("Troponina > 3x o limite superior de referência (ULN) (+2). Necrose miocárdica confirmada.");
+        } else if (trop === 1 || trop === 'elevada_1a3x' || trop === 'positiva_leve') {
+            score += 1;
+            justificativas.push("Troponina entre 1 e 3x o limite superior de referência (+1). Curva em andamento.");
+        } else {
+            justificativas.push("Troponina abaixo do limite superior de referência (normal) (+0).");
+        }
+
+        // Estratificação e Conduta
+        var risco = "";
+        var taxaMACE = "";
+        var recomendacao = "";
+
+        if (score <= 3) {
+            risco = "Baixo Risco";
+            taxaMACE = "0.9% a 1.7% de MACE em 6 semanas";
+            recomendacao = "Candidato a protocolo de alta precoce e investigação ambulatorial rápida, se troponina ultrassensível seriada for negativa e delta estável.";
+        } else if (score <= 6) {
+            risco = "Risco Intermediário";
+            taxaMACE = "12% a 16.6% de MACE em 6 semanas";
+            recomendacao = "Internação hospitalar recomendada (unidade de observação/enfermaria) para monitorização, dosagem seriada de troponina e estratificação não-invasiva (Angio-TC de coronárias ou teste funcional).";
+        } else {
+            risco = "Alto Risco";
+            taxaMACE = "50% a 65% de MACE em 6 semanas";
+            recomendacao = "Internação IMEDIATA em Unidade Coronariana (UCO/UTI) e indicação de Estratégia Invasiva Precoce (Cateterismo cardíaco em < 24 horas). Monitorização eletrocardiográfica contínua.";
+        }
+
+        return {
+            escore: score,
+            risco: risco,
+            taxaMACE: taxaMACE,
+            recomendacao: recomendacao,
+            justificativas: justificativas
+        };
+    }
+
+    /**
+     * Escore TIMI para Angina Instável / IAM Sem Supra de ST (SCASST)
+     * @param {Object} dados
+     */
+    function calcularTIMISCASS(dados) {
+        dados = dados || {};
+        var score = 0;
+        var criterios = [];
+
+        if (Number(dados.idade) >= 65) {
+            score++;
+            criterios.push("Idade >= 65 anos (+1)");
+        }
+        
+        var frCount = 0;
+        if (dados.has) frCount++;
+        if (dados.diabetes) frCount++;
+        if (dados.dislipidemia) frCount++;
+        if (dados.tabagismo) frCount++;
+        if (dados.historicoFamiliarPrecoce) frCount++;
+        if (dados.fatoresRiscoContagem !== undefined) frCount = Math.max(frCount, Number(dados.fatoresRiscoContagem) || 0);
+
+        if (frCount >= 3) {
+            score++;
+            criterios.push(">= 3 Fatores de risco para DAC (+1)");
+        }
+        if (dados.estenoseCoronariaPrevia50 || dados.dacConhecida) {
+            score++;
+            criterios.push("Estenose coronariana prévia >= 50% (+1)");
+        }
+        if (dados.desvioST || dados.infradesnivelST) {
+            score++;
+            criterios.push("Desvio de segmento ST na admissão >= 0.5 mm (+1)");
+        }
+        if (dados.anginaRecente24h || dados.anginaGrave2Episodios) {
+            score++;
+            criterios.push(">= 2 episódios anginosos nas últimas 24h (+1)");
+        }
+        if (dados.usoAASUltimos7Dias) {
+            score++;
+            criterios.push("Uso prévio de AAS nos últimos 7 dias (+1)");
+        }
+        if (dados.troponinaElevada || dados.ckmbElevada) {
+            score++;
+            criterios.push("Marcadores de necrose miocárdica (Troponina/CK-MB) elevados (+1)");
+        }
+
+        var risco = "";
+        var taxaMACE14Dias = "";
+        var estrategia = "";
+
+        if (score <= 2) {
+            risco = "Baixo Risco";
+            taxaMACE14Dias = "4.7% a 8.3%";
+            estrategia = "Estratégia conservadora guiada por isquemia ou investigação não-invasiva.";
+        } else if (score <= 4) {
+            risco = "Risco Intermediário";
+            taxaMACE14Dias = "13.2% a 19.9%";
+            estrategia = "Estratégia invasiva precoce (< 24-72h) com cineangiocoronariografia.";
+        } else {
+            risco = "Alto Risco";
+            taxaMACE14Dias = "26.2% a 41.0%";
+            estrategia = "Estratégia invasiva urgente/precoce (< 24h) com monitorização intensiva em UCO.";
+        }
+
+        return {
+            escore: score,
+            risco: risco,
+            taxaMACE14Dias: taxaMACE14Dias,
+            estrategia: estrategia,
+            criterios: criterios
+        };
+    }
+
+    /**
+     * Escore TIMI para IAM Com Supra de ST (IAMCSST)
+     * @param {Object} dados
+     */
+    function calcularTIMIIAMCSST(dados) {
+        dados = dados || {};
+        var score = 0;
+        var criterios = [];
+
+        var idade = Number(dados.idade) || 0;
+        if (idade >= 75) {
+            score += 3;
+            criterios.push("Idade >= 75 anos (+3)");
+        } else if (idade >= 65) {
+            score += 2;
+            criterios.push("Idade entre 65 e 74 anos (+2)");
+        }
+
+        if (dados.diabetes || dados.has || dados.anginaPrevia) {
+            score += 1;
+            criterios.push("Histórico de DM, HAS ou Angina prévia (+1)");
+        }
+
+        var pas = Number(dados.pas);
+        if (pas > 0 && pas < 100) {
+            score += 3;
+            criterios.push("PAS < 100 mmHg na admissão (+3)");
+        }
+
+        var fc = Number(dados.fc);
+        if (fc > 100) {
+            score += 2;
+            criterios.push("Frequência cardíaca > 100 bpm (+2)");
+        }
+
+        var killip = Number(dados.killip) || (dados.killip === 'II' ? 2 : (dados.killip === 'III' ? 3 : (dados.killip === 'IV' ? 4 : 1)));
+        if (killip >= 2 && killip <= 4) {
+            score += 2;
+            criterios.push("Classificação de Killip II a IV (congestão/choque) (+2)");
+        }
+
+        var peso = Number(dados.peso);
+        if (peso > 0 && peso < 67) {
+            score += 1;
+            criterios.push("Peso corporal < 67 kg (+1)");
+        }
+
+        if (dados.supraParedeAnterior || dados.breNovo) {
+            score += 1;
+            criterios.push("Elevação de ST em parede anterior ou BRE presumivelmente novo (+1)");
+        }
+
+        if (dados.tempoDorMaior4h || dados.tempoPortaBalancoMaior4h) {
+            score += 1;
+            criterios.push("Tempo até tratamento/reperfusão > 4 horas (+1)");
+        }
+
+        // Mortalidade estimada em 30 dias
+        var tabelaMortalidade = {
+            0: "0.8%", 1: "1.6%", 2: "2.2%", 3: "4.4%",
+            4: "7.3%", 5: "12.4%", 6: "16.1%", 7: "23.4%", 8: "26.8%"
+        };
+        var mort = score > 8 ? "35.9%" : (tabelaMortalidade[score] || "Varíavel");
+
+        return {
+            escore: score,
+            mortalidade30Dias: mort,
+            criterios: criterios
+        };
+    }
+
+    /**
+     * Avaliação Determinística de Terapia Antiplaquetária Dupla (DAPT) e Bloqueios Cruzados
+     * @param {Object} dados
+     */
+    function avaliarDAPT(dados) {
+        dados = dados || {};
+        var recomendacoes = [];
+        var bloqueios = [];
+        var alertas = [];
+
+        var avcOuAitPrevio = Boolean(dados.avcPrevio || dados.aitPrevio || dados.historicoAvc || dados.historicoAit);
+        var sangramentoAtivo = Boolean(dados.sangramentoAtivo);
+        var hicPrevia = Boolean(dados.hicPrevia || dados.hemorragiaIntracranianaPrevia);
+        var trombolise = Boolean(dados.trombolise || dados.fibrinólise || dados.usoTrombolitico);
+        var idade = Number(dados.idade) || 0;
+        var peso = Number(dados.peso) || 0;
+        var anticoagulacaoConcomitante = Boolean(dados.anticoagulacaoOral || dados.anticoagulacaoPlena || dados.fibrilacaoAtrial);
+        var icpPlanejada = Boolean(dados.icpPlanejada || dados.cateterismoPlanejado || dados.angioplastiaPlanejada);
+        var alergiaAAS = Boolean(dados.alergiaAAS);
+        var usoOmeprazol = Boolean(dados.usoOmeprazol);
+        var doencaHepaticaGrave = Boolean(dados.doencaHepaticaGrave);
+
+        // 1. AAS
+        if (alergiaAAS) {
+            bloqueios.push({
+                farmaco: "AAS (Ácido Acetilsalicílico)",
+                nivel: "CONTRAINDICACAO_ABSOLUTA",
+                motivo: "Alergia formal relatada ao AAS. Indicação de dessensibilização rápida de emergência se ICP imediata, ou monoterapia alternativa."
+            });
+        } else {
+            recomendacoes.push({
+                farmaco: "AAS (Ácido Acetilsalicílico)",
+                ataque: "162 a 300 mg VO (mastigar 2 a 3 comprimidos de 100 mg infantis)",
+                manutencao: "81 a 100 mg VO 1x ao dia contínuo",
+                indicacao: "Antiagregação plaquetária via COX-1 precoce na suspeita de SCA."
+            });
+        }
+
+        // 2. Análise dos Inibidores P2Y12
+        var p2y12Escolhido = null;
+
+        // Análise PRASUGREL
+        var prasugrelContraindicado = false;
+        var motivoPrasugrel = [];
+        if (avcOuAitPrevio) {
+            prasugrelContraindicado = true;
+            motivoPrasugrel.push("BLOQUEIO SENTINELA: Antecedente de AVC ou AIT prévio (Aumento proibitivo de hemorragia intracraniana fatal - Ensaio TRITON-TIMI 38).");
+        }
+        if (hicPrevia) {
+            prasugrelContraindicado = true;
+            motivoPrasugrel.push("Histórico de hemorragia intracraniana prévia.");
+        }
+        if (sangramentoAtivo) {
+            prasugrelContraindicado = true;
+            motivoPrasugrel.push("Sangramento patológico ativo.");
+        }
+        if (trombolise) {
+            prasugrelContraindicado = true;
+            motivoPrasugrel.push("Não aprovado nem estudado em pacientes submetidos a fibrinólise/trombólise química.");
+        }
+        if (anticoagulacaoConcomitante) {
+            prasugrelContraindicado = true;
+            motivoPrasugrel.push("Terapia tripla com Prasugrel + DOAC é fortemente contraindicada por risco hemorrágico fatal.");
+        }
+        if (dados.scasst && !icpPlanejada && !dados.anatomiaCoronariaConhecida) {
+            prasugrelContraindicado = true;
+            motivoPrasugrel.push("Em SCASST, não administrar Prasugrel antes de conhecer a anatomia coronariana (Estudo ACCOAST).");
+        }
+
+        if (prasugrelContraindicado) {
+            bloqueios.push({
+                farmaco: "Prasugrel",
+                nivel: "CONTRAINDICACAO_FORMAL",
+                motivo: motivoPrasugrel.join(" ")
+            });
+        }
+
+        // Análise TICAGRELOR
+        var ticagrelorContraindicado = false;
+        var motivoTicagrelor = [];
+        if (hicPrevia) {
+            ticagrelorContraindicado = true;
+            motivoTicagrelor.push("Contraindicação formal: Antecedente de Hemorragia Intracraniana (HIC).");
+        }
+        if (sangramentoAtivo) {
+            ticagrelorContraindicado = true;
+            motivoTicagrelor.push("Sangramento patológico ativo.");
+        }
+        if (doencaHepaticaGrave) {
+            ticagrelorContraindicado = true;
+            motivoTicagrelor.push("Insuficiência hepática moderada a grave (metabolismo hepático via CYP3A4).");
+        }
+        if (trombolise) {
+            ticagrelorContraindicado = true;
+            motivoTicagrelor.push("Ticagrelor não é aprovado na vigência de fibrinólise/trombólise química no IAMCSST.");
+        }
+        if (anticoagulacaoConcomitante) {
+            ticagrelorContraindicado = true;
+            motivoTicagrelor.push("Uso concomitante com anticoagulante oral eleva excessivamente sangramentos maiores; preferir Clopidogrel.");
+        }
+
+        if (ticagrelorContraindicado) {
+            bloqueios.push({
+                farmaco: "Ticagrelor",
+                nivel: "CONTRAINDICACAO_FORMAL",
+                motivo: motivoTicagrelor.join(" ")
+            });
+        }
+
+        // Escolha Estratégica do P2Y12:
+        if (trombolise) {
+            // Em trombólise o fármaco obrigatório é o CLOPIDOGREL
+            p2y12Escolhido = "Clopidogrel";
+            var ataqueClopi = "300 mg VO dose única";
+            if (idade > 75) {
+                ataqueClopi = "SEM DOSE DE ATAQUE em > 75 anos submetidos a trombólise! Apenas 75 mg VO inicial.";
+                alertas.push("REGRA DE SEGURANÇA EM TROMBÓLISE: Idade > 75 anos requer OMISSÃO da dose de ataque de Clopidogrel (fazer apenas 75 mg VO).");
+            }
+            recomendacoes.push({
+                farmaco: "Clopidogrel (Fármaco de escolha em Fibrinólise/Trombólise)",
+                ataque: ataqueClopi,
+                manutencao: "75 mg VO 1x ao dia",
+                indicacao: "Inibidor P2Y12 padrão validado em estudos de trombólise (CLARITY-TIMI 28)."
+            });
+        } else if (anticoagulacaoConcomitante) {
+            // Com anticoagulante oral, CLOPIDOGREL é a escolha padrão de segurança
+            p2y12Escolhido = "Clopidogrel";
+            recomendacoes.push({
+                farmaco: "Clopidogrel (Fármaco de escolha em Associação com Anticoagulante)",
+                ataque: "300 a 600 mg VO (600 mg se ICP imediata)",
+                manutencao: "75 mg VO 1x ao dia",
+                indicacao: "Menor taxa de sangramento quando associado a DOAC/Varfarina (Estudos PIONEER-AF, RE-DUAL, AUGUSTUS)."
+            });
+        } else if (!ticagrelorContraindicado) {
+            // Ticagrelor é 1ª linha na maioria das diretrizes
+            p2y12Escolhido = "Ticagrelor";
+            recomendacoes.push({
+                farmaco: "Ticagrelor (1ª Linha em SCA sem contraindicações)",
+                ataque: "180 mg VO dose única",
+                manutencao: "90 mg VO de 12/12 horas",
+                indicacao: "Redução de mortalidade cardiovascular e trombose de stent sem necessidade de bioativação prévia (Estudo PLATO)."
+            });
+            alertas.push("Monitorar dispneia reflexa (mediada por adenosina, geralmente benigna e autolimitada) e risco de bradiarritmia.");
+        } else if (!prasugrelContraindicado && icpPlanejada) {
+            p2y12Escolhido = "Prasugrel";
+            var doseManutPrasugrel = "10 mg VO 1x ao dia";
+            if ((idade >= 75 && idade > 0) || (peso < 60 && peso > 0)) {
+                doseManutPrasugrel = "5 mg VO 1x ao dia (redução ponderal por baixo peso < 60 kg ou idade >= 75 anos)";
+                alertas.push("Dose reduzida de manutenção de Prasugrel (5 mg/dia) recomendada por idade >= 75 anos ou peso < 60 kg.");
+            }
+            recomendacoes.push({
+                farmaco: "Prasugrel (Indicado pós-estudo coronariano com ICP planejada)",
+                ataque: "60 mg VO dose única",
+                manutencao: doseManutPrasugrel,
+                indicacao: "Inibição plaquetária rápida e potente em ICP (Estudo TRITON-TIMI 38)."
+            });
+        } else {
+            p2y12Escolhido = "Clopidogrel";
+            var doseAtaqueClopi = icpPlanejada ? "600 mg VO dose única (se ICP urgente)" : "300 mg VO dose única";
+            recomendacoes.push({
+                farmaco: "Clopidogrel (Alternativa segura após contraindicação aos agentes potentes)",
+                ataque: doseAtaqueClopi,
+                manutencao: "75 mg VO 1x ao dia",
+                indicacao: "Inibição de agregação plaquetária via metabólito ativo."
+            });
+        }
+
+        // Alerta de interação com Omeprazol
+        if (p2y12Escolhido === "Clopidogrel" && usoOmeprazol) {
+            alertas.push("⚠️ INTERAÇÃO GRAVE (CYP2C19): O Omeprazol inibe a enzima CYP2C19, reduzindo significativamente o nível sérico do metabólito ativo do Clopidogrel e aumentando o risco de trombose de stent. CONDUTA: Substituir imediatamente por Pantoprazol.");
+        }
+
+        return {
+            p2y12Escolhido: p2y12Escolhido,
+            recomendacoes: recomendacoes,
+            bloqueios: bloqueios,
+            alertas: alertas
+        };
+    }
+
+    /**
+     * Avaliação de Medicação Adjuvante e Anti-isquêmica
+     * @param {Object} dados
+     */
+    function avaliarMedicamentosAdjuvantes(dados) {
+        dados = dados || {};
+        var farmacos = [];
+        var bloqueios = [];
+        var alertas = [];
+
+        var pas = Number(dados.pas) || 120;
+        var fc = Number(dados.fc) || 80;
+        var infartoVD = Boolean(dados.infartoVD || dados.paredeInferiorComV3RV4RAlterado || dados.iamVd);
+        var usoIpde5 = Boolean(dados.usoSildenafilUltimas24h || dados.usoTadalafilUltimas48h || dados.usoIpde5);
+        var choqueCardiogenico = Boolean(dados.choqueCardiogenico || pas < 90);
+        var congestaoPulmonar = Boolean(dados.congestaoPulmonar || dados.killip >= 2 || dados.edemaAgudoPulmao);
+        var bavAvancado = Boolean(dados.bav2grau || dados.bav3grau || dados.bloqueioAvAvancado || dados.intervaloPRMaior024);
+        var broncoespasmoAtivo = Boolean(dados.broncoespasmoGrave || dados.asmaGraveDescompensada);
+        var clearanceCr = Number(dados.clearanceCr) || 60;
+        var peso = Number(dados.peso) || 70;
+
+        // 1. Nitratos
+        if (infartoVD) {
+            bloqueios.push({
+                farmaco: "Nitratos (Nitroglicerina / Isossorbida)",
+                nivel: "BLOQUEIO_FATAL",
+                motivo: "CONTRAINDICAÇÃO ABSOLUTA em Infarto de Ventrículo Direito (IAM-VD). Nitratos provocam venodilatação brusca, reduzem a pré-carga de VD e induzem choque cardiogênico hemodinamicamente devastador."
+            });
+        } else if (usoIpde5) {
+            bloqueios.push({
+                farmaco: "Nitratos (Nitroglicerina / Isossorbida)",
+                nivel: "BLOQUEIO_FATAL",
+                motivo: "CONTRAINDICAÇÃO ABSOLUTA devido ao uso recente de Inibidor de PDE-5 (Sildenafil nas últimas 24h ou Tadalafil nas últimas 48h). Risco de hipotensão severa refratária e colapso circulatório."
+            });
+        } else if (pas < 90) {
+            bloqueios.push({
+                farmaco: "Nitratos",
+                nivel: "CONTRAINDICACAO_TEMPORARIA",
+                motivo: "PAS < 90 mmHg. Aguardar estabilização pressórica antes de considerar vasodilatador venoso."
+            });
+        } else {
+            farmacos.push({
+                farmaco: "Dinitrato de Isossorbida 5 mg SL ou Nitroglicerina IV contínua",
+                posologia: "Isossorbida 5 mg SL a cada 5 min (máx 3 doses) OU Nitroglicerina IV 5 a 10 mcg/min titulada",
+                indicacao: "Alívio da dor isquêmica e controle da congestão pulmonar se PAS preservada."
+            });
+        }
+
+        // 2. Betabloqueadores (Metoprolol)
+        if (choqueCardiogenico || congestaoPulmonar || fc < 60 || pas < 100 || bavAvancado || broncoespasmoAtivo) {
+            var motivosBb = [];
+            if (choqueCardiogenico || pas < 100) motivosBb.push("Instabilidade hemodinâmica / Choque cardiogênico (PAS < 100 mmHg)");
+            if (congestaoPulmonar) motivosBb.push("Insuficiência cardíaca descompensada / Congestão pulmonar (Killip >= II)");
+            if (fc < 60) motivosBb.push("Bradicardia (FC < 60 bpm)");
+            if (bavAvancado) motivosBb.push("Distúrbio de condução atrioventricular (BAV 2º/3º grau ou PR > 0.24s)");
+            if (broncoespasmoAtivo) motivosBb.push("Broncoespasmo ativo / Asma descompensada");
+
+            bloqueios.push({
+                farmaco: "Betabloqueador (Tartarato de Metoprolol)",
+                nivel: "CONTRAINDICACAO_FORMAL",
+                motivo: motivosBb.join("; ")
+            });
+        } else {
+            farmacos.push({
+                farmaco: "Metoprolol (Tartarato)",
+                posologia: "25 a 50 mg VO a cada 6 a 12 horas (iniciar oral nas primeiras 24h se paciente estável)",
+                indicacao: "Redução do consumo miocárdico de oxigênio e prevenção de arritmias ventriculares."
+            });
+        }
+
+        // 3. Estatina de Alta Intensidade
+        farmacos.push({
+            farmaco: "Atorvastatina 80 mg OU Rosuvastatina 40 mg VO dose única diária",
+            posologia: "Atorvastatina 80 mg 1x ao dia à noite",
+            indicacao: "Estatina de alta intensidade precoce com efeito pleiotrópico anti-inflamatório e estabilização endotelial de placa."
+        });
+
+        // 4. Anticoagulação Plena
+        if (clearanceCr < 30) {
+            farmacos.push({
+                farmaco: "Enoxaparina (Ajuste Renal ClCr < 30 mL/min) OU Heparina Não Fracionada (HNF)",
+                posologia: "Enoxaparina 1 mg/kg SC a cada 24 horas (ajuste obrigatório por falência renal) OU HNF com bolus 60 UI/kg (máx 4000 UI) + 12 UI/kg/h (máx 1000 UI/h) ajustada por TTPA",
+                indicacao: "Anticoagulação plena obrigatória com bloqueio de sobredose renal."
+            });
+            alertas.push("AJUSTE RENAL: Clearance de creatinina < 30 mL/min exige ajuste de Enoxaparina para 1x ao dia (24/24h) ou migração para HNF com monitorização de TTPA.");
+        } else {
+            var doseEnoxa = (dados.idade >= 75 && dados.iamcsst) ? "0.75 mg/kg SC de 12/12h sem bolus IV (idade >= 75 anos)" : "1 mg/kg SC de 12/12h (com bolus IV de 30 mg se IAMCSST < 75 anos)";
+            farmacos.push({
+                farmaco: "Enoxaparina Sódica",
+                posologia: doseEnoxa,
+                indicacao: "Anticoagulação parenteral padrão para inibição do fator Xa e trombina."
+            });
+        }
+
+        return {
+            farmacosRecomendados: farmacos,
+            bloqueios: bloqueios,
+            alertas: alertas
+        };
+    }
+
+    /**
+     * Avaliação Completa do Paciente com Dor Torácica / SCA
+     * @param {Object} params
+     */
+    function avaliarPaciente(params) {
+        params = params || {};
+        var heart = calcularHEART(params.heart || params);
+        var timiScasst = calcularTIMISCASS(params.timi || params);
+        var timiIamcsst = params.iamcsst ? calcularTIMIIAMCSST(params.timiIamcsst || params) : null;
+        var dapt = avaliarDAPT(params.dapt || params);
+        var adjuvantes = avaliarMedicamentosAdjuvantes(params.clinica || params);
+
+        var alertasGerais = [];
+        if (params.supraST || params.iamcsst) {
+            alertasGerais.push("🚨 ALERTA VERMELHO - IAMCSST CONFIRMADO: Tempo porta-balão alvo < 90 min (se ICP primária) ou porta-agulha < 30 min (se trombólise química com Alteplase/Tenecteplase).");
+        }
+
+        return {
+            heart: heart,
+            timiScasst: timiScasst,
+            timiIamcsst: timiIamcsst,
+            dapt: dapt,
+            adjuvantes: adjuvantes,
+            alertasGerais: alertasGerais
+        };
+    }
+
+    return {
+        calcularHEART: calcularHEART,
+        calcularTIMISCASS: calcularTIMISCASS,
+        calcularTIMIIAMCSST: calcularTIMIIAMCSST,
+        avaliarDAPT: avaliarDAPT,
+        avaliarMedicamentosAdjuvantes: avaliarMedicamentosAdjuvantes,
+        avaliarPaciente: avaliarPaciente
+    };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = CardiologiaEmergenciaService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_cardiologia_intensiva.js
+// ==============================================================================
+
+/**
+ * Módulo de Cardiologia Intensiva: Choque Cardiogênico e IC Descompensada
+ * Classificação Hemodinâmica Clínico-Beira-Leito de Forrester & Stevenson
+ */
+
+var CardiologiaIntensivaService = (function() {
+    'use strict';
+
+    /**
+     * Estratificação Hemodinâmica (Forrester & Stevenson)
+     * @param {Object} dados - { congestao: boolean, baixa_perfusao: boolean }
+     */
+    function estratificarForresterStevenson(dados) {
+        dados = dados || {};
+        var congestao = dados.congestao || false; // Estertores, TJP, ascite, edema, ortopneia, B3
+        var baixa_perfusao = dados.baixa_perfusao || false; // Extremidades frias, TEC alargado, oligúria, rebaixamento de sensório, pressao de pulso convergente, lactato elevado
+
+        var perfil = "";
+        var descricao = "";
+        var conduta_geral = "";
+        
+        if (!congestao && !baixa_perfusao) {
+            perfil = "A";
+            descricao = "Quente e Seco (Compensado)";
+            conduta_geral = "Avaliar outras causas para os sintomas. Ajustar terapia oral modificadora de doença (iECA/BRA, Beta-bloqueador, ARM, iSGLT2).";
+        } else if (congestao && !baixa_perfusao) {
+            perfil = "B";
+            descricao = "Quente e Úmido (Congestão Pulmonar/Sistêmica isolada)";
+            conduta_geral = "Otimizar diuréticos de alça (Furosemida IV). Considerar vasodilatadores (Nitroglicerina/Nitroprussiato) se PA adequada/elevada. Contraindicado expansão volêmica.";
+        } else if (congestao && baixa_perfusao) {
+            perfil = "C";
+            descricao = "Frio e Úmido (Choque Cardiogênico Clássico)";
+            conduta_geral = "Suporte inotrópico (Dobutamina/Milrinona) associado a diurético (quando estabilizado/perfusão melhorar) ou terapia de substituição renal. Uso de vasopressores (Noradrenalina) se choque franco (PAS < 90mmHg ou PAM < 65mmHg). Vasodilatador geralmente não tolerado inicialmente.";
+        } else if (!congestao && baixa_perfusao) {
+            perfil = "L";
+            descricao = "Frio e Seco (Baixo Débito / Hipovolemia)";
+            conduta_geral = "Prova de volume cautelosa (desafio hídrico com alíquotas de 250ml) avaliando responsividade. Se refratário ou piora da congestão sem melhora da perfusão, avaliar inotrópicos.";
+        }
+
+        return {
+            perfil: perfil,
+            descricao: descricao,
+            diagnostico_hemodinamico: congestao ? "Presença de Congestão (Elevada Pressão Capilar Pulmonar)" : "Ausência de Congestão",
+            perfusao: baixa_perfusao ? "Baixa Perfusão Tecidual (Baixo Débito Cardíaco)" : "Perfusão Tecidual Adequada",
+            conduta_geral: conduta_geral
+        };
+    }
+
+    /**
+     * Manejo Específico da Terapia (Inotrópicos, Vasopressores, Vasodilatadores, Diuréticos)
+     * @param {Object} paciente - { perfil: 'A'|'B'|'C'|'L', pas: number, pam: number, uso_betabloqueador: boolean, dose_furosemida_previa: number }
+     */
+    function gerarManejoFarmacologico(paciente) {
+        var manejo = {
+            diuretico: [],
+            vasodilatador: [],
+            inotropico: [],
+            vasopressor: [],
+            bloqueios_seguranca: []
+        };
+
+        var pas = paciente.pas || 100;
+        var pam = paciente.pam || 75;
+        var choque_franco = (pas < 90 || pam < 65);
+        var perfil = paciente.perfil || 'B';
+
+        // Bloqueio de Betabloqueador na Descompensação
+        if (paciente.uso_betabloqueador && (perfil === 'C' || perfil === 'L' || choque_franco)) {
+            manejo.bloqueios_seguranca.push("CONTRAINDICAÇÃO ABSOLUTA: Suspender imediatamente Betabloqueador na fase aguda de choque cardiogênico (Perfis C e L ou hipoperfusão severa).");
+        } else if (paciente.uso_betabloqueador && perfil === 'B') {
+            manejo.bloqueios_seguranca.push("ALERTA: Betabloqueador pode ser mantido ou ter dose reduzida em Perfil B, a menos que congestão seja severa/EAP refratário.");
+        }
+
+        // Diurético (Foco em Furosemida)
+        if (perfil === 'B' || perfil === 'C') {
+            var dose = paciente.dose_furosemida_previa ? (paciente.dose_furosemida_previa * 1) + " a " + (paciente.dose_furosemida_previa * 2.5) + " mg IV (pelo menos igual à dose oral 24h ou até 2,5x maior, em bolus ou BIC contínua)" : "Furosemida 20 a 40 mg IV (bolus inicial)";
+            
+            if (perfil === 'B') {
+                manejo.diuretico.push("Indicação: Congestão pulmonar/sistêmica.");
+                manejo.diuretico.push("Dose Inicial: " + dose);
+                manejo.diuretico.push("Meta: Diurese satisfatória (> 100-150 ml/h). Se falha, dobrar a dose ou iniciar infusão contínua, podendo associar tiazídico (bloqueio sequencial do néfron).");
+            } else if (perfil === 'C') {
+                manejo.diuretico.push("Furosemida: Utilizar com cautela APÓS garantia de perfusão adequada (vasopressor/inotrópico ativos) ou usar com doses mais baixas iniciais. Em choque profundo associado a IRA oligúrica, diurético não fará efeito antes de otimizar débito cardíaco (possível necessidade de Hemodiálise/UF).");
+            }
+        }
+
+        // Vasodilatador
+        if (perfil === 'B' && pas >= 110) {
+            manejo.vasodilatador.push("Indicação: Redução de pré e pós-carga, alívio rápido de congestão (EAP).");
+            manejo.vasodilatador.push("Fármaco 1ª linha: Nitroglicerina (Tridil) se predomínio de congestão venosa/EAP; ou Nitroprussiato (Nipride) se hipertensão severa predominante e aumento brutal de pós-carga.");
+            manejo.vasodilatador.push("Titulação: Iniciar Tridil 5 a 10 mcg/min e titular para alívio de dispneia mantendo PAS > 90-100 mmHg.");
+        } else if ((perfil === 'C' || perfil === 'B') && pas < 90) {
+            manejo.vasodilatador.push("CONTRAINDICADO: Vasodilatadores clássicos estão contraindicados devido a hipotensão franca (PAS < 90).");
+        }
+
+        // Inotrópico
+        if (perfil === 'C') {
+            manejo.inotropico.push("Indicação: Aumento do débito cardíaco por falência de bomba.");
+            manejo.inotropico.push("Dobutamina: 1ª escolha se paciente com PAS tolerável ou já em uso de noradrenalina. Iniciar a 2,5 a 5 mcg/kg/min e titular.");
+            manejo.inotropico.push("Milrinona: Inibidor da Fosfodiesterase III (Inodilatador). Excelente se IC direita/hipertensão pulmonar associada, ou uso prévio crônico de betabloqueador (dribla receptor beta). Evitar se hipotensão franca prévia devido ao seu forte efeito vasodilatador, a menos que amparada por Noradrenalina.");
+        }
+
+        // Vasopressor
+        if (choque_franco) {
+            manejo.vasopressor.push("Indicação: Choque cardiogênico franco (hipotensão profunda).");
+            manejo.vasopressor.push("Noradrenalina: Vasopressor de eleição para choque cardiogênico com PAS < 85-90 ou PAM < 65. Iniciar 0,05 a 0,1 mcg/kg/min para garantir pressão de perfusão coronariana antes do inotrópico (Dobutamina/Milrinona).");
+            manejo.vasopressor.push("Dopamina: NÃO recomendada de rotina (estudo SOAP II: maior mortalidade e arritmias vs noradrenalina).");
+        } else if (perfil === 'C' && pas >= 90) {
+            manejo.vasopressor.push("Noradrenalina: Pode não ser necessária inicialmente se a pressão for limítrofe, tentar Dobutamina isolada sob vigilância estrita, mas ter Noradrenalina à mão caso ocorra vasodilatação induzida pela Dobutamina.");
+        }
+        
+        // Perfil L
+        if (perfil === 'L') {
+            manejo.diuretico.push("CONTRAINDICADO: Furosemida (piorará a perfusão).");
+            manejo.vasodilatador.push("CONTRAINDICADO: Risco de piora do choque por hipovolemia.");
+            manejo.inotropico.push("Avaliar apenas se refratário a prova de volume (250ml SF/RL). Falência de bomba direita ou ventrículo duro (restritivo).");
+        }
+
+        return manejo;
+    }
+
+    /**
+     * API Principal: Avaliação Completa
+     */
+    function avaliarPacienteICDescompensada(dadosPaciente) {
+        var estratificacao = estratificarForresterStevenson(dadosPaciente);
+        var pacienteManejo = {
+            perfil: estratificacao.perfil,
+            pas: dadosPaciente.pas,
+            pam: dadosPaciente.pam,
+            uso_betabloqueador: dadosPaciente.uso_betabloqueador,
+            dose_furosemida_previa: dadosPaciente.dose_furosemida_previa
+        };
+        var farmacologia = gerarManejoFarmacologico(pacienteManejo);
+
+        return {
+            perfil_clinico: estratificacao,
+            plano_farmacologico: farmacologia
+        };
+    }
+
+    return {
+        estratificarForresterStevenson: estratificarForresterStevenson,
+        gerarManejoFarmacologico: gerarManejoFarmacologico,
+        avaliarPacienteICDescompensada: avaliarPacienteICDescompensada
+    };
+
+})();
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = CardiologiaIntensivaService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_centro_obstetrico.js
 // ==============================================================================
 
@@ -9176,6 +9925,1011 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_gasometria_acido_base.js
+// ==============================================================================
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * Módulo de Inteligência Gasométrica e Distúrbios Ácido-Base
+ * REGRA DOS 5 PASSOS — Motor Determinístico Beira-Leito
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Baseado em:
+ *  - Adrogué HJ, Madias NE. "Management of life-threatening acid–base disorders"
+ *    (NEJM 1998 / update 2018)
+ *  - Haber RJ. "A Practical Approach to Acid-Base Disorders" (West J Med 1991)
+ *  - Fórmula de Winter: pCO₂ = 1.5 × HCO₃⁻ + 8 (±2) — NEJM 1967
+ *  - Narins RG, Emmett M. "Simple and mixed acid-base disorders: a practical approach"
+ *    (Medicine 1980)
+ *  - SDRA: Definição de Berlim 2012 (JAMA)
+ *  - Gradiente A-a: Guyton & Hall, Textbook of Medical Physiology, 14th ed.
+ *
+ * Passos implementados:
+ *  1. Identificação do distúrbio primário (pH, PaCO₂, HCO₃⁻)
+ *  2. Avaliação da compensação esperada (Winter, fórmulas metabólicas/respiratórias)
+ *  3. Cálculo do Ânion Gap (AG) e AG corrigido por albumina
+ *  4. Cálculo da Razão Delta (Delta-Delta) para distúrbios ocultos
+ *  5. Avaliação da oxigenação: P/F Ratio, Gradiente A-a, SatO₂ esperada
+ *
+ * @author Ultra Rotina — Motor de Evolução Perpétua
+ */
+
+var GasometriaAcidoBaseService = (function () {
+  'use strict';
+
+  // ═══════════════════════════ CONSTANTES ════════════════════════════════════
+
+  var EPS = 1e-9;
+  var AG_NORMAL = 12;        // Ânion Gap de referência (mEq/L)
+  var ALB_NORMAL = 4.0;      // Albumina sérica normal (g/dL)
+  var HCO3_NORMAL = 24;      // HCO₃⁻ normal (mEq/L)
+  var PCO2_NORMAL = 40;       // PaCO₂ normal (mmHg)
+  var PH_NORMAL_LOW = 7.35;
+  var PH_NORMAL_HIGH = 7.45;
+  var HCO3_LOW = 22;
+  var HCO3_HIGH = 26;
+  var PCO2_LOW = 35;
+  var PCO2_HIGH = 45;
+
+  // ════════════════════════ HELPERS NUMÉRICOS ════════════════════════════════
+
+  function lt(a, b)  { return a < b - EPS; }
+  function lte(a, b) { return a <= b + EPS; }
+  function gt(a, b)  { return a > b + EPS; }
+  function gte(a, b) { return a >= b - EPS; }
+  function entre(v, min, max) { return gte(v, min) && lte(v, max); }
+
+  function arred(x, casas) {
+    if (!Number.isFinite(x)) return x;
+    var f = Math.pow(10, casas || 0);
+    return Math.round((x + EPS) * f) / f;
+  }
+  function fmt(x, casas) {
+    if (x === null || x === undefined) return '—';
+    return arred(x, casas).toFixed(casas).replace('.', ',');
+  }
+
+  function validarNumero(val, nome, min, max, obrigatorio) {
+    if (val === null || val === undefined || val === '') {
+      if (obrigatorio) throw new Error('Parâmetro obrigatório ausente: ' + nome);
+      return null;
+    }
+    var n = Number(val);
+    if (!Number.isFinite(n)) throw new Error(nome + ': valor não numérico (' + val + ')');
+    if (n < min || n > max) throw new Error(nome + ': valor ' + n + ' fora da faixa [' + min + '–' + max + ']');
+    return n;
+  }
+
+  // ═══════════════ PASSO 1: DISTÚRBIO PRIMÁRIO ══════════════════════════════
+
+  function identificarDisturbio(ph, pco2, hco3) {
+    var pHbaixo = lt(ph, PH_NORMAL_LOW);
+    var pHalto  = gt(ph, PH_NORMAL_HIGH);
+    var acMet   = lt(hco3, HCO3_LOW);
+    var alMet   = gt(hco3, HCO3_HIGH);
+    var acResp  = gt(pco2, PCO2_HIGH);
+    var alResp  = lt(pco2, PCO2_LOW);
+
+    var tipo, subtipo, gravidade;
+
+    if (pHbaixo) {
+      if (acMet && acResp) {
+        tipo = 'Acidose Mista (Metabólica + Respiratória)';
+        subtipo = 'mista';
+      } else if (acMet) {
+        tipo = 'Acidose Metabólica';
+        subtipo = 'acidose_metabolica';
+      } else if (acResp) {
+        tipo = 'Acidose Respiratória';
+        subtipo = 'acidose_respiratoria';
+      } else {
+        tipo = 'Acidemia sem alteração evidente de PaCO₂/HCO₃⁻';
+        subtipo = 'acidemia_indefinida';
+      }
+    } else if (pHalto) {
+      if (alMet && alResp) {
+        tipo = 'Alcalose Mista (Metabólica + Respiratória)';
+        subtipo = 'mista';
+      } else if (alMet) {
+        tipo = 'Alcalose Metabólica';
+        subtipo = 'alcalose_metabolica';
+      } else if (alResp) {
+        tipo = 'Alcalose Respiratória';
+        subtipo = 'alcalose_respiratoria';
+      } else {
+        tipo = 'Alcalemia sem alteração evidente de PaCO₂/HCO₃⁻';
+        subtipo = 'alcalemia_indefinida';
+      }
+    } else {
+      if (acMet && alResp) {
+        tipo = 'Distúrbio Misto com pH normal (Acidose Metabólica + Alcalose Respiratória)';
+        subtipo = 'misto_ph_normal';
+      } else if (alMet && acResp) {
+        tipo = 'Distúrbio Misto com pH normal (Alcalose Metabólica + Acidose Respiratória)';
+        subtipo = 'misto_ph_normal';
+      } else if (acMet || alMet || acResp || alResp) {
+        tipo = 'pH normal compensado ou distúrbio misto';
+        subtipo = 'compensado';
+      } else {
+        tipo = 'Gasometria Normal — sem distúrbio ácido-base evidente';
+        subtipo = 'normal';
+      }
+    }
+
+    // Gravidade baseada no pH
+    if (lt(ph, 7.10))      gravidade = 'CRITICA';
+    else if (lt(ph, 7.20)) gravidade = 'GRAVE';
+    else if (lt(ph, 7.30)) gravidade = 'MODERADA';
+    else if (gt(ph, 7.60)) gravidade = 'CRITICA';
+    else if (gt(ph, 7.55)) gravidade = 'GRAVE';
+    else                   gravidade = 'LEVE_OU_NORMAL';
+
+    return {
+      descricao: tipo,
+      subtipo: subtipo,
+      gravidade: gravidade,
+      flags: {
+        pHbaixo: pHbaixo, pHalto: pHalto,
+        acMet: acMet, alMet: alMet,
+        acResp: acResp, alResp: alResp
+      }
+    };
+  }
+
+  // ═══════════════ PASSO 2: COMPENSAÇÃO ESPERADA ════════════════════════════
+
+  function avaliarCompensacao(ph, pco2, hco3, flags) {
+    var resultado = {
+      formulaUsada: null,
+      esperadoMin: null,
+      esperadoMax: null,
+      valorReal: null,
+      parametroAvaliado: null,
+      avaliacao: null,
+      disturbioAssociado: null
+    };
+
+    // ─── Acidose Metabólica: Fórmula de Winter ──────────────────────
+    if (flags.acMet && !flags.pHalto) {
+      var base = 1.5 * hco3 + 8;
+      resultado.formulaUsada = 'Winter: PaCO₂ = 1,5 × HCO₃⁻ + 8 (±2)';
+      resultado.esperadoMin = arred(base - 2, 1);
+      resultado.esperadoMax = arred(base + 2, 1);
+      resultado.valorReal = pco2;
+      resultado.parametroAvaliado = 'PaCO₂';
+
+      if (gt(pco2, resultado.esperadoMax)) {
+        resultado.avaliacao = 'PaCO₂ acima do esperado: Acidose Respiratória associada';
+        resultado.disturbioAssociado = 'acidose_respiratoria';
+      } else if (lt(pco2, resultado.esperadoMin)) {
+        resultado.avaliacao = 'PaCO₂ abaixo do esperado: Alcalose Respiratória associada';
+        resultado.disturbioAssociado = 'alcalose_respiratoria';
+      } else {
+        resultado.avaliacao = 'Resposta compensatória adequada';
+        resultado.disturbioAssociado = null;
+      }
+    }
+
+    // ─── Alcalose Metabólica ────────────────────────────────────────
+    else if (flags.alMet && !flags.pHbaixo) {
+      var base2 = PCO2_NORMAL + 0.7 * (hco3 - HCO3_NORMAL);
+      resultado.formulaUsada = 'PaCO₂ = 40 + 0,7 × (HCO₃⁻ − 24) (±2)';
+      resultado.esperadoMin = arred(base2 - 2, 1);
+      resultado.esperadoMax = arred(base2 + 2, 1);
+      resultado.valorReal = pco2;
+      resultado.parametroAvaliado = 'PaCO₂';
+
+      if (gt(pco2, resultado.esperadoMax)) {
+        resultado.avaliacao = 'PaCO₂ acima do esperado: Acidose Respiratória associada';
+        resultado.disturbioAssociado = 'acidose_respiratoria';
+      } else if (lt(pco2, resultado.esperadoMin)) {
+        resultado.avaliacao = 'PaCO₂ abaixo do esperado: Alcalose Respiratória associada';
+        resultado.disturbioAssociado = 'alcalose_respiratoria';
+      } else {
+        resultado.avaliacao = 'Resposta compensatória adequada';
+        resultado.disturbioAssociado = null;
+      }
+    }
+
+    // ─── Acidose Respiratória (aguda vs crônica) ────────────────────
+    else if (flags.acResp && !flags.acMet && flags.pHbaixo) {
+      var aguda  = HCO3_NORMAL + 0.1 * (pco2 - PCO2_NORMAL);
+      var cronica = HCO3_NORMAL + 0.35 * (pco2 - PCO2_NORMAL);
+      resultado.formulaUsada = 'HCO₃⁻ agudo: +0,1 × Δ PaCO₂ | crônico: +0,35 × Δ PaCO₂';
+      resultado.esperadoMin = arred(aguda - 2, 1);
+      resultado.esperadoMax = arred(cronica + 2, 1);
+      resultado.valorReal = hco3;
+      resultado.parametroAvaliado = 'HCO₃⁻';
+
+      if (lt(hco3, resultado.esperadoMin)) {
+        resultado.avaliacao = 'HCO₃⁻ abaixo do esperado: Acidose Metabólica associada';
+        resultado.disturbioAssociado = 'acidose_metabolica';
+      } else if (gt(hco3, resultado.esperadoMax)) {
+        resultado.avaliacao = 'HCO₃⁻ acima do esperado: Alcalose Metabólica associada';
+        resultado.disturbioAssociado = 'alcalose_metabolica';
+      } else {
+        resultado.avaliacao = 'Compatível com acidose respiratória pura (aguda a crônica)';
+        resultado.disturbioAssociado = null;
+      }
+    }
+
+    // ─── Alcalose Respiratória (aguda vs crônica) ───────────────────
+    else if (flags.alResp && !flags.alMet && flags.pHalto) {
+      var aguda2  = HCO3_NORMAL - 0.2 * (PCO2_NORMAL - pco2);
+      var cronica2 = HCO3_NORMAL - 0.5 * (PCO2_NORMAL - pco2);
+      resultado.formulaUsada = 'HCO₃⁻ agudo: −0,2 × Δ PaCO₂ | crônico: −0,5 × Δ PaCO₂';
+      resultado.esperadoMin = arred(cronica2 - 2, 1);
+      resultado.esperadoMax = arred(aguda2 + 2, 1);
+      resultado.valorReal = hco3;
+      resultado.parametroAvaliado = 'HCO₃⁻';
+
+      if (gt(hco3, resultado.esperadoMax)) {
+        resultado.avaliacao = 'HCO₃⁻ acima do esperado: Alcalose Metabólica associada';
+        resultado.disturbioAssociado = 'alcalose_metabolica';
+      } else if (lt(hco3, resultado.esperadoMin)) {
+        resultado.avaliacao = 'HCO₃⁻ abaixo do esperado: Acidose Metabólica associada';
+        resultado.disturbioAssociado = 'acidose_metabolica';
+      } else {
+        resultado.avaliacao = 'Compatível com alcalose respiratória pura (aguda a crônica)';
+        resultado.disturbioAssociado = null;
+      }
+    }
+
+    return resultado;
+  }
+
+  // ═══════════════ PASSO 3: ÂNION GAP ═══════════════════════════════════════
+
+  function calcularAnionGap(na, cl, hco3, albumina) {
+    if (na === null || cl === null) {
+      return { calculado: false, motivo: 'Na e/ou Cl ausentes' };
+    }
+
+    var ag = na - (cl + hco3);
+    var agCorr = null;
+    if (albumina !== null) {
+      agCorr = ag + 2.5 * (ALB_NORMAL - albumina);
+    }
+
+    var agRef = agCorr !== null ? agCorr : ag;
+    var elevado = gt(agRef, AG_NORMAL);
+    var interpretacao;
+    if (elevado) {
+      interpretacao = 'Ânion Gap ELEVADO (> 12 mEq/L)';
+    } else {
+      interpretacao = 'Ânion Gap NORMAL (≤ 12 mEq/L)';
+    }
+
+    return {
+      calculado: true,
+      anionGap: arred(ag, 1),
+      anionGapCorrigido: agCorr !== null ? arred(agCorr, 1) : null,
+      agReferencia: arred(agRef, 1),
+      elevado: elevado,
+      interpretacao: interpretacao,
+      albuminaUsada: albumina
+    };
+  }
+
+  // ═══════════════ PASSO 4: RAZÃO DELTA (DELTA-DELTA) ═══════════════════════
+
+  /**
+   * Delta Ratio = (AG - 12) / (24 - HCO₃⁻)
+   *
+   * Interpretação:
+   *  < 0.4  → Acidose hiperclorêmica pura (AG normal)
+   *  0.4–0.8 → Acidose mista (AG elevado + hiperclorêmica)
+   *  0.8–2.0 → Acidose de AG elevado pura
+   *  > 2.0  → Alcalose metabólica associada (HCO₃⁻ "falsamente preservado")
+   *
+   * Referências:
+   *  - Narins RG & Emmett M, Medicine 1980
+   *  - Emmett M, Narins RG. Medicine (Baltimore) 1977;56:38-54
+   */
+  function calcularDeltaRatio(ag, hco3) {
+    var resultado = {
+      calculado: false,
+      deltaAG: null,
+      deltaHCO3: null,
+      razaoDelta: null,
+      interpretacao: null,
+      diagnosticosDiferenciais: []
+    };
+
+    if (ag === null || !gt(ag, AG_NORMAL)) {
+      resultado.motivo = 'AG não elevado — Delta Ratio não aplicável';
+      return resultado;
+    }
+
+    var deltaAG   = ag - AG_NORMAL;
+    var deltaHCO3 = HCO3_NORMAL - hco3;
+
+    if (lte(deltaHCO3, 0)) {
+      // HCO₃⁻ ≥ 24 com AG elevado → fortemente sugestivo de alcalose metabólica concomitante
+      resultado.calculado = true;
+      resultado.deltaAG = arred(deltaAG, 1);
+      resultado.deltaHCO3 = arred(deltaHCO3, 1);
+      resultado.razaoDelta = null; // Divisão por zero/negativo
+      resultado.interpretacao = 'HCO₃⁻ ≥ 24 com AG elevado: Alcalose Metabólica concomitante fortemente sugestiva';
+      resultado.diagnosticosDiferenciais = [
+        'Vômitos persistentes com cetoacidose',
+        'Uso de diuréticos de alça com acidose lática',
+        'Aspiração nasogástrica + sepse'
+      ];
+      return resultado;
+    }
+
+    var ratio = deltaAG / deltaHCO3;
+    resultado.calculado = true;
+    resultado.deltaAG = arred(deltaAG, 1);
+    resultado.deltaHCO3 = arred(deltaHCO3, 1);
+    resultado.razaoDelta = arred(ratio, 2);
+
+    if (lt(ratio, 0.4)) {
+      resultado.interpretacao = 'Razão delta < 0,4: Acidose hiperclorêmica pura predominante (sem AG elevado significativo)';
+      resultado.diagnosticosDiferenciais = [
+        'Diarreia grave (perda intestinal de HCO₃⁻)',
+        'Acidose tubular renal (ATR tipo I, II ou IV)',
+        'Infusão excessiva de SF 0,9% (acidose dilucional)',
+        'Uso de Acetazolamida',
+        'Fístula biliar/pancreática',
+        'Derivação ureterossigmoide'
+      ];
+    } else if (lt(ratio, 0.8)) {
+      resultado.interpretacao = 'Razão delta 0,4–0,8: Acidose mista (AG elevado + componente hiperclorêmico)';
+      resultado.diagnosticosDiferenciais = [
+        'Cetoacidose diabética em resolução + SF 0,9% em excesso',
+        'Sepse com acidose lática + ressuscitação com cristaloides',
+        'Acidose urêmica + ATR associada'
+      ];
+    } else if (lte(ratio, 2.0)) {
+      resultado.interpretacao = 'Razão delta 0,8–2,0: Acidose de AG elevado pura';
+      resultado.diagnosticosDiferenciais = [
+        'Cetoacidose diabética (CAD)',
+        'Acidose lática (tipo A: hipóxia/choque; tipo B: fármacos/metformina)',
+        'Uremia (TFG < 15 mL/min)',
+        'Intoxicação por metanol, etilenoglicol ou salicilatos (MUDPILES)',
+        'Rabdomiólise severa'
+      ];
+    } else {
+      resultado.interpretacao = 'Razão delta > 2,0: Alcalose Metabólica associada oculta';
+      resultado.diagnosticosDiferenciais = [
+        'Vômitos + cetoacidose diabética',
+        'Uso de diuréticos tiazídicos/alça com insuficiência renal',
+        'Hipovolemia com contração de volume + acidose lática'
+      ];
+    }
+
+    return resultado;
+  }
+
+  // ═══════════════ PASSO 5: OXIGENAÇÃO ══════════════════════════════════════
+
+  /**
+   * Gradiente Alvéolo-Arterial (A-a):
+   *   PAO₂ = FiO₂ × (Patm - PH₂O) - PaCO₂ / QR
+   *   A-a  = PAO₂ - PaO₂
+   *
+   * Normal: A-a = 2,5 + (0,21 × idade)  — com margem de ±5
+   * Elevado sugere: shunt, V/Q mismatch, difusão prejudicada
+   *
+   * PaO₂/FiO₂ (P/F Ratio) — Classificação de Berlim 2012:
+   *   > 300: normal | 200–300: SDRA Leve | 100–200: SDRA Moderada | ≤ 100: SDRA Grave
+   */
+  function avaliarOxigenacao(pao2, fio2Raw, pco2, idade, altitudeMetros) {
+    var resultado = {
+      pfRatio: null,
+      classificacaoPF: null,
+      gradienteAa: null,
+      gradienteAaEsperado: null,
+      gradienteAaElevado: null,
+      pao2Alveolar: null,
+      diagnosticosShunt: [],
+      avisos: []
+    };
+
+    if (pao2 === null || fio2Raw === null) return resultado;
+
+    var fio2 = fio2Raw > 1 ? fio2Raw / 100 : fio2Raw;
+    if (fio2 < 0.21 - EPS || fio2 > 1 + EPS) {
+      throw new Error('FiO₂ inválida: ' + fio2Raw + '. Informar entre 21-100% ou 0,21-1,0');
+    }
+
+    // P/F Ratio
+    var pf = pao2 / fio2;
+    resultado.pfRatio = Math.round(pf);
+    if (gt(pf, 300))      resultado.classificacaoPF = 'Oxigenação Normal (P/F > 300)';
+    else if (gt(pf, 200)) resultado.classificacaoPF = 'SDRA Leve (Berlim: P/F 201–300)';
+    else if (gt(pf, 100)) resultado.classificacaoPF = 'SDRA Moderada (Berlim: P/F 101–200)';
+    else                  resultado.classificacaoPF = 'SDRA Grave (Berlim: P/F ≤ 100)';
+
+    if (lte(pf, 300)) {
+      resultado.avisos.push('SDRA (Berlim 2012): exige opacidades bilaterais agudas, PEEP ≥ 5 cmH₂O e exclusão de causa cardiogênica pura.');
+    }
+
+    // Gradiente A-a (requer PaCO₂)
+    if (pco2 !== null) {
+      var patm = 760; // mmHg ao nível do mar
+      if (altitudeMetros && altitudeMetros > 0) {
+        patm = 760 * Math.pow(1 - 0.0000225577 * altitudeMetros, 5.25588);
+      }
+      var ph2o = 47; // pressão de vapor d'água a 37°C
+      var qr = 0.8;  // quociente respiratório
+
+      var pao2Alveolar = fio2 * (patm - ph2o) - pco2 / qr;
+      resultado.pao2Alveolar = arred(pao2Alveolar, 1);
+
+      var gradAa = pao2Alveolar - pao2;
+      resultado.gradienteAa = arred(gradAa, 1);
+
+      // A-a esperado para idade (se informada)
+      if (idade !== null && idade !== undefined) {
+        var aaNormal = 2.5 + 0.21 * idade;
+        resultado.gradienteAaEsperado = arred(aaNormal, 1);
+        resultado.gradienteAaElevado = gt(gradAa, aaNormal + 5);
+      } else {
+        // Sem idade: considerar elevado se > 15 (corte prático em adultos jovens)
+        resultado.gradienteAaElevado = gt(gradAa, 15);
+      }
+
+      if (resultado.gradienteAaElevado) {
+        resultado.diagnosticosShunt = [
+          'Shunt intrapulmonar (SDRA, atelectasia, PNM extensa)',
+          'Alteração ventilação-perfusão (V/Q mismatch): TEP, DPOC, asma grave',
+          'Déficit de difusão (fibrose pulmonar, pneumocistose, edema intersticial)',
+          'Shunt intracardíaco (CIA, CIV, Foramen oval patente)'
+        ];
+      }
+    }
+
+    return resultado;
+  }
+
+  // ══════════════════ DETECÇÃO DE DISTÚRBIOS TRIPLOS ════════════════════════
+
+  /**
+   * Um distúrbio triplo ocorre quando:
+   *  1. Há acidose de AG elevado (distúrbio base)
+   *  2. A Delta Ratio revela um SEGUNDO distúrbio oculto (< 0.8 → hiperclorêmica; > 2.0 → alcalose met)
+   *  3. A compensação respiratória está inadequada (→ acid. resp. ou alc. resp. como TERCEIRO componente)
+   *
+   * Exemplo clássico: paciente com CAD (AG elevado) + vômitos (alcalose metabólica) + DPOC (acidose respiratória)
+   */
+  function detectarDisturbioTriplo(disturbio, compensacao, deltaRatio) {
+    var triplo = {
+      detectado: false,
+      componentes: [],
+      descricao: null
+    };
+
+    // Distúrbio triplo requer acidose metabólica de AG elevado como base
+    if (disturbio.subtipo !== 'acidose_metabolica' && disturbio.subtipo !== 'mista') return triplo;
+    if (!deltaRatio.calculado) return triplo;
+
+    var segundoDisturbio = null;
+    if (deltaRatio.razaoDelta !== null) {
+      if (lt(deltaRatio.razaoDelta, 0.8)) {
+        segundoDisturbio = 'Acidose Hiperclorêmica (AG normal)';
+      } else if (gt(deltaRatio.razaoDelta, 2.0)) {
+        segundoDisturbio = 'Alcalose Metabólica oculta';
+      }
+    } else if (deltaRatio.interpretacao && deltaRatio.interpretacao.indexOf('Alcalose Metabólica') !== -1) {
+      segundoDisturbio = 'Alcalose Metabólica oculta';
+    }
+
+    var terceiroDisturbio = null;
+    if (compensacao.disturbioAssociado === 'acidose_respiratoria') {
+      terceiroDisturbio = 'Acidose Respiratória (compensação inadequada)';
+    } else if (compensacao.disturbioAssociado === 'alcalose_respiratoria') {
+      terceiroDisturbio = 'Alcalose Respiratória (hiperventilação excessiva)';
+    }
+
+    if (segundoDisturbio && terceiroDisturbio) {
+      triplo.detectado = true;
+      triplo.componentes = [
+        'Acidose Metabólica de AG elevado',
+        segundoDisturbio,
+        terceiroDisturbio
+      ];
+      triplo.descricao = '⚠️ DISTÚRBIO ÁCIDO-BASE TRIPLO detectado: ' + triplo.componentes.join(' + ');
+    }
+
+    return triplo;
+  }
+
+  // ═══════════════ CONSISTÊNCIA INTERNA (HENDERSON-HASSELBALCH) ═════════════
+
+  function verificarConsistencia(ph, pco2, hco3) {
+    var phCalc = 6.1 + Math.log(hco3 / (0.0307 * pco2)) / Math.LN10;
+    var diff = Math.abs(phCalc - ph);
+    return {
+      phCalculado: arred(phCalc, 3),
+      diferenca: arred(diff, 3),
+      consistente: lte(diff, 0.1),
+      aviso: gt(diff, 0.1)
+        ? 'Inconsistência interna (pH calculado ≈ ' + fmt(phCalc, 2) + '): conferir se a amostra é arterial e se os valores foram digitados corretamente.'
+        : null
+    };
+  }
+
+  // ═══════════════ DIAGNÓSTICOS DIFERENCIAIS POR TIPO ═══════════════════════
+
+  function gerarDiferenciais(disturbio, agResult, deltaResult) {
+    var diferenciais = [];
+
+    if (disturbio.flags.acMet) {
+      if (agResult.calculado && agResult.elevado) {
+        diferenciais.push({
+          categoria: 'Acidose Metabólica com AG Elevado (MUDPILES)',
+          causas: [
+            'M — Metanol (intoxicação)',
+            'U — Uremia (IRA/DRC estágio 5, TFG < 15)',
+            'D — Cetoacidose Diabética (CAD)',
+            'P — Propilenoglicol (infusão IV prolongada)',
+            'I — Isoniazida / Ferro (intoxicação)',
+            'L — Acidose Lática (tipo A: choque/hipóxia; tipo B: metformina, linezolida)',
+            'E — Etilenoglicol (intoxicação)',
+            'S — Salicilatos (AAS em dose tóxica)'
+          ]
+        });
+      } else if (agResult.calculado && !agResult.elevado) {
+        diferenciais.push({
+          categoria: 'Acidose Metabólica Hiperclorêmica (AG Normal)',
+          causas: [
+            'Diarreia grave (perda intestinal de HCO₃⁻)',
+            'Acidose Tubular Renal tipo I (distal), II (proximal) ou IV (hipercalêmica)',
+            'Infusão excessiva de SF 0,9% (acidose dilucional)',
+            'Acetazolamida (inibidor da anidrase carbônica)',
+            'Fístula biliar, pancreática ou entérica',
+            'Derivação ureterossigmoide',
+            'Fase de resolução de CAD (perda renal de cetoânions)'
+          ]
+        });
+      }
+    }
+
+    if (disturbio.flags.alMet) {
+      diferenciais.push({
+        categoria: 'Alcalose Metabólica',
+        causas: [
+          'Responsiva a Cloro (Cl urinário < 20): vômitos, SNG em aspiração, uso de diuréticos (pós)',
+          'Resistente a Cloro (Cl urinário > 20): hiperaldosteronismo, Cushing, estenose de artéria renal',
+          'Contração de volume (alcalose de contração)',
+          'Hipocalemia grave (shift transcelular de H⁺)',
+          'Síndrome de Bartter / Gitelman',
+          'Ingestão excessiva de bases (síndrome leite-álcali)'
+        ]
+      });
+    }
+
+    if (disturbio.flags.acResp) {
+      diferenciais.push({
+        categoria: 'Acidose Respiratória (hipoventilação)',
+        causas: [
+          'DPOC exacerbado',
+          'Asma grave / Status asthmaticus',
+          'Obesidade + síndrome de hipoventilação (Pickwick)',
+          'Fraqueza muscular respiratória (miastenia, Guillain-Barré, ELA)',
+          'Depressão do SNC (opioides, benzodiazepínicos, AVC de tronco)',
+          'Pneumotórax hipertensivo',
+          'Derrame pleural volumoso bilateral',
+          'Obstrução de via aérea superior'
+        ]
+      });
+    }
+
+    if (disturbio.flags.alResp) {
+      diferenciais.push({
+        categoria: 'Alcalose Respiratória (hiperventilação)',
+        causas: [
+          'Dor / ansiedade / pânico (causa mais comum)',
+          'Sepse precoce (fase hiperdinâmica)',
+          'Insuficiência hepática aguda (estímulo central)',
+          'TEP agudo',
+          'Gravidez (progesterona ↑ drive ventilatório)',
+          'Intoxicação por salicilatos (fase inicial → alcalose resp mista)',
+          'Ventilação mecânica excessiva (iatrogênica)',
+          'Altitude elevada'
+        ]
+      });
+    }
+
+    return diferenciais;
+  }
+
+  // ═══════════════ SUGESTÕES DE CONDUTA BEIRA-LEITO ═════════════════════════
+
+  function sugerirCondutas(disturbio, agResult, oxigenacao) {
+    var condutas = [];
+
+    if (disturbio.gravidade === 'CRITICA' || disturbio.gravidade === 'GRAVE') {
+      condutas.push('⚠️ PRIORIDADE MÁXIMA: pH crítico — considerar UTI, monitorização contínua e gasometria seriada a cada 1-2h.');
+    }
+
+    if (disturbio.flags.acMet && agResult.calculado && agResult.elevado) {
+      condutas.push('Solicitar: Lactato, Glicemia capilar/plasmática, Cetonemia/cetonúria, Função renal (Ureia/Cr), Gap osmolar (se intoxicação).');
+      condutas.push('Se lactato ↑: investigar choque, hipóxia tecidual, uso de metformina, sepse.');
+      condutas.push('NaHCO₃ IV considerar APENAS se pH < 7,1 com instabilidade hemodinâmica (dose parcial: 1-2 mEq/kg, reavaliar).');
+    }
+
+    if (disturbio.flags.acMet && agResult.calculado && !agResult.elevado) {
+      condutas.push('Solicitar: Eletrólitos urinários (Na, K, Cl), AG urinário (Na+K-Cl), pH urinário.');
+      condutas.push('AG urinário positivo → sugere ATR (defeito de acidificação renal).');
+      condutas.push('AG urinário negativo → sugere perda GI de HCO₃⁻ (diarreia).');
+    }
+
+    if (disturbio.flags.alMet) {
+      condutas.push('Solicitar: Cl⁻ urinário para classificar em responsiva (< 20 mEq/L) vs resistente a Cloro.');
+      condutas.push('Se Cl⁻ urinário < 20: expansão com SF 0,9% + reposição de KCl.');
+      condutas.push('Se Cl⁻ urinário > 20: investigar hiperaldosteronismo, Cushing.');
+    }
+
+    if (disturbio.flags.acResp) {
+      condutas.push('Avaliar necessidade de VNI (BiPAP) ou IOT se sinais de falência ventilatória (rebaixamento, FR > 35, fadiga).');
+      condutas.push('Reverter causas tratáveis: Naloxona (opioides), Flumazenil (BZD com cautela).');
+    }
+
+    if (oxigenacao.pfRatio !== null && lte(oxigenacao.pfRatio, 200)) {
+      condutas.push('P/F ≤ 200: ventilação protetora com VT 6 mL/kg (peso predito), Pplatô ≤ 30 cmH₂O, PEEP tabela ARDSnet.');
+      condutas.push('Se P/F ≤ 150: considerar posição prona por ≥ 16h e bloqueio neuromuscular precoce (cisatracúrio).');
+    }
+
+    return condutas;
+  }
+
+  // ═══════════════════════ FUNÇÃO PRINCIPAL ══════════════════════════════════
+
+  /**
+   * Análise gasométrica completa — Regra dos 5 Passos
+   *
+   * @param {Object} dados Objeto com os parâmetros do paciente
+   * @param {number} dados.ph         pH arterial (obrigatório, 6.5–8.0)
+   * @param {number} dados.pco2       PaCO₂ em mmHg (obrigatório, 5–200)
+   * @param {number} dados.hco3       HCO₃⁻ em mEq/L (obrigatório, 2–70)
+   * @param {number} [dados.na]       Na⁺ sérico em mEq/L (opcional, 100–200)
+   * @param {number} [dados.cl]       Cl⁻ sérico em mEq/L (opcional, 60–160)
+   * @param {number} [dados.albumina] Albumina sérica em g/dL (opcional, 0.5–7.0)
+   * @param {number} [dados.pao2]     PaO₂ em mmHg (opcional, 10–700)
+   * @param {number} [dados.fio2]     FiO₂ em % (21–100) ou decimal (0.21–1.0)
+   * @param {number} [dados.idade]    Idade em anos (opcional, para A-a gradient)
+   * @param {number} [dados.altitude] Altitude em metros (opcional, default: nível do mar)
+   * @param {number} [dados.lactato]  Lactato arterial em mmol/L (opcional)
+   * @param {number} [dados.potassio] Potássio sérico em mEq/L (opcional)
+   * @returns {Object} Resultado completo da análise gasométrica
+   */
+  /**
+   * Cálculo determinístico isolado da Fórmula de Winter (Acidose Metabólica)
+   * PaCO₂ esperada = 1,5 × HCO₃⁻ + 8 (±2)
+   */
+  function calcularWinter(hco3) {
+    var h = validarNumero(hco3, 'HCO₃⁻', 2, 70, true);
+    var base = 1.5 * h + 8;
+    return {
+      pco2Esperada: arred(base, 1),
+      minimo: arred(base - 2, 1),
+      maximo: arred(base + 2, 1),
+      formula: 'Winter: PaCO₂ = 1,5 × HCO₃⁻ + 8 (±2)'
+    };
+  }
+
+  function analisarGasometria(dados) {
+    if (!dados || typeof dados !== 'object') {
+      throw new Error('Parâmetros obrigatórios não fornecidos para análise gasométrica.');
+    }
+
+    // Normalização flexível de chaves (suporte a camelCase, maiúsculas e abreviações)
+    var p_ph   = dados.ph !== undefined ? dados.ph : dados.pH;
+    var p_pco2 = dados.pco2 !== undefined ? dados.pco2 : (dados.paCO2 !== undefined ? dados.paCO2 : dados.pCO2);
+    var p_hco3 = dados.hco3 !== undefined ? dados.hco3 : (dados.HCO3 !== undefined ? dados.HCO3 : dados.bicarbonato);
+    var p_na   = dados.na !== undefined ? dados.na : (dados.Na !== undefined ? dados.Na : dados.sodio);
+    var p_cl   = dados.cl !== undefined ? dados.cl : (dados.Cl !== undefined ? dados.Cl : dados.cloro);
+    var p_alb  = dados.albumina !== undefined ? dados.albumina : dados.alb;
+    var p_pao2 = dados.pao2 !== undefined ? dados.pao2 : (dados.paO2 !== undefined ? dados.paO2 : dados.po2);
+    var p_fio2 = dados.fio2 !== undefined ? dados.fio2 : dados.FiO2;
+    var p_idade = dados.idade !== undefined ? dados.idade : dados.age;
+    var p_alt   = dados.altitude;
+    var p_lac   = dados.lactato !== undefined ? dados.lactato : dados.lac;
+    var p_k     = dados.potassio !== undefined ? dados.potassio : (dados.k !== undefined ? dados.k : dados.K);
+
+    // Validação de entradas
+    var ph    = validarNumero(p_ph,   'pH',          6.5,  8.0,  true);
+    var pco2  = validarNumero(p_pco2, 'PaCO₂ (mmHg)', 5,   200,  true);
+    var hco3  = validarNumero(p_hco3, 'HCO₃⁻ (mEq/L)', 2,  70,   true);
+    var na    = validarNumero(p_na,   'Na⁺ (mEq/L)', 100,  200,  false);
+    var cl    = validarNumero(p_cl,   'Cl⁻ (mEq/L)', 60,   160,  false);
+    var alb   = validarNumero(p_alb, 'Albumina (g/dL)', 0.5, 7.0, false);
+    var pao2  = validarNumero(p_pao2, 'PaO₂ (mmHg)', 10,   700,  false);
+    var fio2  = validarNumero(p_fio2, 'FiO₂',        0.21, 100,  false);
+    var idade = validarNumero(p_idade, 'Idade (anos)', 0,   130,  false);
+    var altitude = validarNumero(p_alt, 'Altitude (m)', 0, 9000, false);
+    var lactato  = validarNumero(p_lac,  'Lactato (mmol/L)', 0, 30, false);
+    var potassio = validarNumero(p_k, 'K⁺ (mEq/L)', 1.0, 10.0, false);
+
+    var avisos = [];
+
+    // Passo 0: Consistência Henderson-Hasselbalch
+    var consistencia = verificarConsistencia(ph, pco2, hco3);
+    if (consistencia.aviso) avisos.push(consistencia.aviso);
+
+    // Passo 1: Identificar distúrbio primário
+    var disturbio = identificarDisturbio(ph, pco2, hco3);
+
+    // Passo 2: Avaliar compensação
+    var compensacao = avaliarCompensacao(ph, pco2, hco3, disturbio.flags);
+
+    // Passo 3: Calcular Ânion Gap
+    var agResult = calcularAnionGap(na, cl, hco3, alb);
+    if (!agResult.calculado && (na !== null || cl !== null)) {
+      avisos.push('Ânion Gap não calculado: informar Na e Cl juntos.');
+    }
+
+    // Passo 4: Razão Delta
+    var agRef = agResult.calculado ? agResult.agReferencia : null;
+    var deltaResult = calcularDeltaRatio(agRef, hco3);
+
+    // Passo 5: Oxigenação
+    var oxigenacao = avaliarOxigenacao(pao2, fio2, pco2, idade, altitude);
+    avisos = avisos.concat(oxigenacao.avisos);
+
+    // Detecção de distúrbio triplo
+    var triplo = detectarDisturbioTriplo(disturbio, compensacao, deltaResult);
+    if (triplo.detectado) avisos.unshift(triplo.descricao);
+
+    // Diagnósticos diferenciais
+    var diferenciais = gerarDiferenciais(disturbio, agResult, deltaResult);
+
+    // Condutas sugeridas
+    var condutas = sugerirCondutas(disturbio, agResult, oxigenacao);
+
+    // Alertas extras com dados complementares
+    if (lactato !== null) {
+      if (gt(lactato, 4.0)) {
+        avisos.push('🔴 Lactato > 4 mmol/L: hiperlactatemia grave — excluir choque, hipóxia tecidual, sepse.');
+        condutas.push('Lactato > 4: ressuscitação volêmica guiada + vasopressor se hipotensão refratária. Medir lactato seriado a cada 2-4h.');
+      } else if (gt(lactato, 2.0)) {
+        avisos.push('🟡 Lactato 2–4 mmol/L: hiperlactatemia leve a moderada.');
+      }
+    }
+
+    if (potassio !== null) {
+      if (lt(potassio, 3.0)) {
+        avisos.push('⚠️ Hipocalemia (K⁺ < 3,0): corrigir ANTES de administrar NaHCO₃ (risco de arritmia fatal por shift intracelular).');
+      } else if (gt(potassio, 6.0)) {
+        avisos.push('⚠️ Hipercalemia grave (K⁺ > 6,0): ECG urgente, Gluconato de Ca²⁺ IV, insulina+glicose, nebulização com salbutamol.');
+      }
+    }
+
+    // Estado de prioridade
+    var critico = lt(ph, 7.20) || gt(ph, 7.60) ||
+                  (oxigenacao.pfRatio !== null && lte(oxigenacao.pfRatio, 100));
+    var alterado = disturbio.subtipo !== 'normal';
+    var estado = critico ? 'PRIORITARIO' : (alterado ? 'ATENCAO' : 'NORMAL');
+
+    return {
+      sucesso: true,
+      estado: estado,
+
+      // Passo 1
+      disturbio: disturbio.descricao,
+      subtipo: disturbio.subtipo,
+      gravidade: disturbio.gravidade,
+
+      // Passo 2
+      compensacao: {
+        formulaUsada: compensacao.formulaUsada,
+        esperadoMin: compensacao.esperadoMin,
+        esperadoMax: compensacao.esperadoMax,
+        valorReal: compensacao.valorReal,
+        parametroAvaliado: compensacao.parametroAvaliado,
+        avaliacao: compensacao.avaliacao,
+        disturbioAssociado: compensacao.disturbioAssociado
+      },
+
+      // Passo 3
+      anionGap: agResult.calculado ? {
+        calculado: true,
+        ag: agResult.anionGap,
+        anionGap: agResult.anionGap,
+        agCorrigido: agResult.anionGapCorrigido,
+        anionGapCorrigido: agResult.anionGapCorrigido,
+        elevado: agResult.elevado,
+        interpretacao: agResult.interpretacao
+      } : null,
+
+      // Passo 4
+      deltaRatio: deltaResult.calculado ? {
+        calculado: true,
+        deltaAG: deltaResult.deltaAG,
+        deltaHCO3: deltaResult.deltaHCO3,
+        razao: deltaResult.razaoDelta,
+        razaoDelta: deltaResult.razaoDelta,
+        interpretacao: deltaResult.interpretacao,
+        diagnosticosDiferenciais: deltaResult.diagnosticosDiferenciais
+      } : null,
+
+      // Passo 5
+      oxigenacao: {
+        pfRatio: oxigenacao.pfRatio,
+        classificacaoPF: oxigenacao.classificacaoPF,
+        gradienteAa: oxigenacao.gradienteAa,
+        gradienteAaEsperado: oxigenacao.gradienteAaEsperado,
+        gradienteAaElevado: oxigenacao.gradienteAaElevado,
+        pao2Alveolar: oxigenacao.pao2Alveolar
+      },
+
+      // Distúrbio triplo
+      disturbioTriplo: triplo.detectado ? triplo : null,
+
+      // Henderson-Hasselbalch
+      consistencia: consistencia,
+
+      // Diagnósticos e condutas
+      diferenciais: diferenciais,
+      condutas: condutas,
+      avisos: avisos,
+
+      // Valores de entrada (para rastreabilidade)
+      valoresEntrada: {
+        ph: ph, pco2: pco2, hco3: hco3, na: na, cl: cl,
+        albumina: alb, pao2: pao2, fio2: fio2, idade: idade,
+        lactato: lactato, potassio: potassio
+      }
+    };
+  }
+
+  // ════════════════════════ FORMATAÇÃO TELEGRAM ══════════════════════════════
+
+  function formatarTextoTelegram(resultado) {
+    var linhas = [];
+
+    // Cabeçalho
+    linhas.push('🧪 <b>GASOMETRIA ARTERIAL — ANÁLISE DE 5 PASSOS</b>');
+    linhas.push('');
+
+    // Valores de entrada
+    var v = resultado.valoresEntrada;
+    linhas.push('📋 <b>DADOS:</b> pH ' + fmt(v.ph, 2) + ' | PaCO₂ ' + fmt(v.pco2, 0) +
+      ' mmHg | HCO₃⁻ ' + fmt(v.hco3, 0) + ' mEq/L');
+    if (v.na !== null) linhas.push('   Na⁺ ' + fmt(v.na, 0) + ' | Cl⁻ ' + fmt(v.cl, 0) +
+      (v.albumina !== null ? ' | Alb ' + fmt(v.albumina, 1) + ' g/dL' : ''));
+    if (v.pao2 !== null) linhas.push('   PaO₂ ' + fmt(v.pao2, 0) + ' mmHg | FiO₂ ' +
+      fmt(v.fio2 > 1 ? v.fio2 : v.fio2 * 100, 0) + '%');
+    if (v.lactato !== null) linhas.push('   Lactato ' + fmt(v.lactato, 1) + ' mmol/L');
+    linhas.push('');
+
+    // Passo 1: Distúrbio
+    var emoji = resultado.estado === 'PRIORITARIO' ? '🔴' :
+                resultado.estado === 'ATENCAO' ? '🟡' : '🟢';
+    linhas.push(emoji + ' <b>PASSO 1 — DISTÚRBIO PRIMÁRIO:</b>');
+    linhas.push('   ' + resultado.disturbio);
+    if (resultado.gravidade !== 'LEVE_OU_NORMAL') {
+      linhas.push('   Gravidade: <b>' + resultado.gravidade + '</b>');
+    }
+    linhas.push('');
+
+    // Passo 2: Compensação
+    var comp = resultado.compensacao;
+    if (comp.formulaUsada) {
+      linhas.push('📐 <b>PASSO 2 — COMPENSAÇÃO:</b>');
+      linhas.push('   Fórmula: ' + comp.formulaUsada);
+      linhas.push('   ' + comp.parametroAvaliado + ' esperado: ' +
+        fmt(comp.esperadoMin, 1) + '–' + fmt(comp.esperadoMax, 1) + ' | Real: ' +
+        fmt(comp.valorReal, 1));
+      linhas.push('   → ' + comp.avaliacao);
+      linhas.push('');
+    }
+
+    // Passo 3: Ânion Gap
+    var ag = resultado.anionGap;
+    if (ag) {
+      linhas.push('🔬 <b>PASSO 3 — ÂNION GAP:</b>');
+      linhas.push('   AG: ' + fmt(ag.ag, 1) + ' mEq/L' +
+        (ag.agCorrigido !== null ? ' | AG corrigido: ' + fmt(ag.agCorrigido, 1) + ' mEq/L' : ''));
+      linhas.push('   → ' + ag.interpretacao);
+      linhas.push('');
+    }
+
+    // Passo 4: Delta Ratio
+    var dr = resultado.deltaRatio;
+    if (dr) {
+      linhas.push('📊 <b>PASSO 4 — RAZÃO DELTA (Δ/Δ):</b>');
+      if (dr.razao !== null) {
+        linhas.push('   ΔAG: ' + fmt(dr.deltaAG, 1) + ' | ΔHCO₃⁻: ' + fmt(dr.deltaHCO3, 1) +
+          ' | Razão: ' + fmt(dr.razao, 2));
+      }
+      linhas.push('   → ' + dr.interpretacao);
+      if (dr.diagnosticosDiferenciais && dr.diagnosticosDiferenciais.length > 0) {
+        linhas.push('   <i>Pensar em:</i>');
+        for (var d = 0; d < dr.diagnosticosDiferenciais.length; d++) {
+          linhas.push('     • ' + dr.diagnosticosDiferenciais[d]);
+        }
+      }
+      linhas.push('');
+    }
+
+    // Passo 5: Oxigenação
+    var ox = resultado.oxigenacao;
+    if (ox.pfRatio !== null) {
+      linhas.push('🫁 <b>PASSO 5 — OXIGENAÇÃO:</b>');
+      linhas.push('   P/F: ' + ox.pfRatio + ' → ' + ox.classificacaoPF);
+      if (ox.gradienteAa !== null) {
+        linhas.push('   Gradiente A-a: ' + fmt(ox.gradienteAa, 1) + ' mmHg' +
+          (ox.gradienteAaEsperado !== null ? ' (esperado ≤ ' + fmt(ox.gradienteAaEsperado, 1) + ')' : ''));
+        linhas.push('   → Gradiente A-a ' + (ox.gradienteAaElevado ? 'ELEVADO' : 'Normal'));
+      }
+      linhas.push('');
+    }
+
+    // Distúrbio triplo
+    if (resultado.disturbioTriplo) {
+      linhas.push('⚠️ <b>DISTÚRBIO TRIPLO DETECTADO:</b>');
+      for (var t = 0; t < resultado.disturbioTriplo.componentes.length; t++) {
+        linhas.push('   ' + (t + 1) + '. ' + resultado.disturbioTriplo.componentes[t]);
+      }
+      linhas.push('');
+    }
+
+    // Diferenciais
+    if (resultado.diferenciais.length > 0) {
+      linhas.push('🔍 <b>DIAGNÓSTICOS DIFERENCIAIS:</b>');
+      for (var i = 0; i < resultado.diferenciais.length; i++) {
+        var cat = resultado.diferenciais[i];
+        linhas.push('   <b>' + cat.categoria + '</b>');
+        for (var j = 0; j < cat.causas.length; j++) {
+          linhas.push('     • ' + cat.causas[j]);
+        }
+      }
+      linhas.push('');
+    }
+
+    // Condutas
+    if (resultado.condutas.length > 0) {
+      linhas.push('💊 <b>CONDUTAS SUGERIDAS:</b>');
+      for (var c = 0; c < resultado.condutas.length; c++) {
+        linhas.push('   • ' + resultado.condutas[c]);
+      }
+      linhas.push('');
+    }
+
+    // Avisos
+    if (resultado.avisos.length > 0) {
+      linhas.push('📌 <b>AVISOS:</b>');
+      for (var a = 0; a < resultado.avisos.length; a++) {
+        linhas.push('   • ' + resultado.avisos[a]);
+      }
+    }
+
+    return linhas.join('\n');
+  }
+
+  // ════════════════════════ API PÚBLICA ══════════════════════════════════════
+
+  var publico = {
+    analisarGasometria: analisarGasometria,
+    formatarTextoTelegram: formatarTextoTelegram,
+
+    // Funções individuais expostas para testes unitários
+    calcularWinter: calcularWinter,
+    identificarDisturbio: identificarDisturbio,
+    avaliarCompensacao: avaliarCompensacao,
+    calcularAnionGap: calcularAnionGap,
+    calcularDeltaRatio: calcularDeltaRatio,
+    avaliarOxigenacao: avaliarOxigenacao,
+    detectarDisturbioTriplo: detectarDisturbioTriplo,
+    verificarConsistencia: verificarConsistencia,
+    gerarDiferenciais: gerarDiferenciais,
+    sugerirCondutas: sugerirCondutas
+  };
+
+  return publico;
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = GasometriaAcidoBaseService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_ginecologia_ambulatorial.js
 // ==============================================================================
 
@@ -10290,6 +12044,1146 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_hematologia_anemias.js
+// ==============================================================================
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * MÓDULO 02: HEMATOLOGIA CLÍNICA — MANEJO E INVESTIGAÇÃO DE ANEMIAS
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * Motor Determinístico Beira-Leito para Diagnóstico e Manejo de Anemias:
+ *  1. Análise Automatizada do Hemograma (Critérios OMS / MS / ABHH)
+ *  2. Classificação Morfológica por Índices Hematimétricos (VCM, HCM, CHCM, RDW)
+ *  3. Diagnóstico Diferencial de Microcitose (Índice de Mentzer e Green & King)
+ *  4. Avaliação Cinética e Resposta Medular (Índice de Produção Reticulocitária - IPR)
+ *  5. Integração com Marcadores Bioquímicos (Ferritina, SatTransferrina, B12, Folato, Hemólise)
+ *  6. Calculadora de Reposição de Ferro Oral (VO) com Tetos Seguros de Hepcidina e Tolerância
+ *  7. Critérios Formais e Fórmula de Ganzoni para Ferro Endovenoso (Noripurum IV / Venofer)
+ *  8. Gatilhos Transfusionais Restritivos Beira-Leito e Bloqueios de Segurança
+ *
+ * REFERÊNCIAS CLÍNICAS OFICIAIS:
+ *  - Organização Mundial da Saúde (OMS) - Haemoglobin concentrations for the diagnosis of anaemia (2024-2026)
+ *  - Associação Brasileira de Hematologia, Hemoterapia e Terapia Celular (ABHH) - Diretrizes de Anemia Ferropriva
+ *  - Sociedade Brasileira de Pediatria (SBP) - Departamento de Hematologia e Nutrologia (2021-2026)
+ *  - Ministério da Saúde do Brasil - PCDT da Anemia por Deficiência de Ferro
+ *  - American Society of Hematology (ASH) / British Society of Gastroenterology (BSG) Iron Deficiency Guidelines
+ *  - Ganzoni AM. "Intravenous iron-dextran: therapeutic and experimental aspects." (Schweiz Med Wochenschr 1970)
+ * ═══════════════════════════════════════════════════════════════════════════════
+ */
+
+var HematologiaAnemiasService = (function () {
+  'use strict';
+
+  var EPS = 1e-9;
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. LIMITES DE HEMOGLOBINA E CONSTANTES (OMS / MS / ABHH)
+  // ───────────────────────────────────────────────────────────────────────────
+  var LIMITES_HB = {
+    ADULTO_MASCULINO: 13.0,
+    ADULTO_FEMININO: 12.0,
+    GESTANTE_GERAL: 11.0,
+    GESTANTE_2TRI: 10.5,
+    PEDIATRICO_6M_59M: 11.0,
+    PEDIATRICO_5A_11A: 11.5,
+    PEDIATRICO_12A_14A: 12.0,
+    LACTENTE_2M_6M: 9.5
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. FUNÇÕES AUXILIARES DE DETERMINAÇÃO DE PERFIL
+  // ───────────────────────────────────────────────────────────────────────────
+  function inferirLimiteHb(params) {
+    params = params || {};
+    var idadeAnos = typeof params.idadeAnos === 'number' ? params.idadeAnos : null;
+    var idadeMeses = typeof params.idadeMeses === 'number' ? params.idadeMeses : null;
+    if (idadeAnos === null && idadeMeses !== null) {
+      idadeAnos = idadeMeses / 12;
+    }
+
+    var sexo = String(params.sexo || '').toUpperCase();
+    var ehGestante = Boolean(params.gestante || params.gestacao || params.ehGestante);
+    var trimestre = parseInt(params.trimestre || params.trimestreGestacional, 10);
+
+    // Gestante
+    if (ehGestante) {
+      if (trimestre === 2) {
+        return { perfil: 'Gestante (2º Trimestre)', limiteMinimoHb: LIMITES_HB.GESTANTE_2TRI, alvoHbGanzoni: 14.0 };
+      }
+      return { perfil: 'Gestante (1º ou 3º Trimestre)', limiteMinimoHb: LIMITES_HB.GESTANTE_GERAL, alvoHbGanzoni: 14.0 };
+    }
+
+    // Pediátrico por idade
+    if (idadeAnos !== null) {
+      if (idadeAnos < 0.5) {
+        return { perfil: 'Lactente jovem (2 a 6 meses)', limiteMinimoHb: LIMITES_HB.LACTENTE_2M_6M, alvoHbGanzoni: 12.0 };
+      }
+      if (idadeAnos >= 0.5 && idadeAnos < 5) {
+        return { perfil: 'Criança (6 meses a 4 anos e 11 meses)', limiteMinimoHb: LIMITES_HB.PEDIATRICO_6M_59M, alvoHbGanzoni: 12.0 };
+      }
+      if (idadeAnos >= 5 && idadeAnos < 12) {
+        return { perfil: 'Criança (5 a 11 anos)', limiteMinimoHb: LIMITES_HB.PEDIATRICO_5A_11A, alvoHbGanzoni: 13.0 };
+      }
+      if (idadeAnos >= 12 && idadeAnos < 15) {
+        return { perfil: 'Adolescente (12 a 14 anos)', limiteMinimoHb: LIMITES_HB.PEDIATRICO_12A_14A, alvoHbGanzoni: 13.5 };
+      }
+    }
+
+    // Adulto por sexo
+    if (sexo === 'F' || sexo === 'FEM' || sexo === 'FEMININO' || sexo === 'MULHER') {
+      return { perfil: 'Mulher Adulta não-gestante', limiteMinimoHb: LIMITES_HB.ADULTO_FEMININO, alvoHbGanzoni: 14.0 };
+    }
+
+    // Padrão masculino / adulto geral
+    return { perfil: 'Homem Adulto', limiteMinimoHb: LIMITES_HB.ADULTO_MASCULINO, alvoHbGanzoni: 15.0 };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. ANÁLISE MORFOLÓGICA E CINÉTICA DO HEMOGRAMA
+  // ───────────────────────────────────────────────────────────────────────────
+  function interpretarHemogramaAnemia(params) {
+    params = params || {};
+    var hb = parseFloat(params.hb || params.hemoglobina);
+    if (isNaN(hb) || hb <= 0) {
+      throw new Error('Hemoglobina (Hb) válida é obrigatória para interpretação.');
+    }
+
+    var ht = parseFloat(params.ht || params.hematocrito);
+    var htEstimado = false;
+    if (isNaN(ht) || ht <= 0) {
+      ht = Math.round(hb * 3 * 10) / 10;
+      htEstimado = true;
+    }
+
+    var vcm = parseFloat(params.vcm);
+    var hcm = parseFloat(params.hcm);
+    var chcm = parseFloat(params.chcm);
+    var rdw = parseFloat(params.rdw);
+    var hemacias = parseFloat(params.hemacias || params.rbc || params.eritrocitos); // em milhões/mcL
+    var reticulocitosPct = parseFloat(params.reticulocitos || params.reticulocitosPct);
+
+    var infoPerfil = inferirLimiteHb(params);
+    var limiteMinimoHb = infoPerfil.limiteMinimoHb;
+    var temAnemia = hb < limiteMinimoHb;
+
+    // Severidade da Anemia
+    var severidade = 'NORMAL';
+    var descricaoSeveridade = 'Hemoglobina dentro dos parâmetros de normalidade para a faixa etária/perfil.';
+    if (temAnemia) {
+      if (hb <= 6.5) {
+        severidade = 'CRITICA';
+        descricaoSeveridade = 'Anemia Crítica / Severa Acentuada com risco de hipóxia tecidual e descompensação hemodinâmica.';
+      } else if (hb < 8.0) {
+        severidade = 'GRAVE';
+        descricaoSeveridade = 'Anemia Grave (Hb < 8.0 g/dL). Avaliar estabilidade hemodinâmica e gatilhos transfusionais.';
+      } else if (hb < 10.0) {
+        severidade = 'MODERADA';
+        descricaoSeveridade = 'Anemia Moderada (Hb entre 8.0 e 9.9 g/dL). Necessita investigação etiológica e tratamento imediato.';
+      } else {
+        severidade = 'LEVE';
+        descricaoSeveridade = 'Anemia Leve (Hb entre 10.0 g/dL e o limite inferior do perfil).';
+      }
+    }
+
+    // Classificação Morfológica (VCM)
+    var classificacaoVcm = 'INDEFINIDA';
+    var descVcm = 'VCM não informado.';
+    if (!isNaN(vcm)) {
+      if (vcm < 80) {
+        classificacaoVcm = 'MICROCITICA';
+        descVcm = 'Microcitose (VCM < 80 fL): redução no volume dos eritrócitos.';
+      } else if (vcm > 100) {
+        classificacaoVcm = 'MACROCITICA';
+        descVcm = 'Macrocitose (VCM > 100 fL): hemácias aumentadas de tamanho.';
+      } else {
+        classificacaoVcm = 'NORMOCITICA';
+        descVcm = 'Normocitose (VCM entre 80 e 100 fL): volume eritrocitário preservado.';
+      }
+    }
+
+    // Classificação de Cromia (HCM / CHCM)
+    var classificacaoCromia = 'INDEFINIDA';
+    var descCromia = 'Índices de cromia (HCM/CHCM) não informados.';
+    if (!isNaN(hcm) || !isNaN(chcm)) {
+      var ehHipo = (!isNaN(hcm) && hcm < 27) || (!isNaN(chcm) && chcm < 32);
+      var ehHiper = (!isNaN(chcm) && chcm > 36) || (!isNaN(hcm) && hcm > 33);
+      if (ehHipo) {
+        classificacaoCromia = 'HIPOCROMICA';
+        descCromia = 'Hipocromia (HCM < 27 pg ou CHCM < 32 g/dL): eritrócitos com menor conteúdo hemoglobínico.';
+      } else if (ehHiper) {
+        classificacaoCromia = 'HIPERCROMICA';
+        descCromia = 'Hipercromia (CHCM > 36 g/dL): sugere esferocitose hereditária ou presença de crioaglutininas.';
+      } else {
+        classificacaoCromia = 'NORMOCROMICA';
+        descCromia = 'Normocromia (HCM 27-33 pg e CHCM 32-36 g/dL): coloração eritrocitária fisiológica.';
+      }
+    }
+
+    // Análise de Anisocitose (RDW)
+    var classificacaoRdw = 'INDEFINIDA';
+    var descRdw = 'RDW não informado.';
+    if (!isNaN(rdw)) {
+      if (rdw > 14.5) {
+        classificacaoRdw = 'HETEROGENEA';
+        descRdw = 'Anisocitose acentuada (RDW > 14.5%): alta variabilidade no tamanho das hemácias (típico de carência nutricional ou resposta medular).';
+      } else {
+        classificacaoRdw = 'HOMOGENEA';
+        descRdw = 'População eritrocitária homogênea (RDW <= 14.5%): tamanho uniforme das hemácias.';
+      }
+    }
+
+    // Índices de Diagnóstico Diferencial na Microcitose (Mentzer e Green & King)
+    var mentzer = null;
+    var interpretacaoMentzer = null;
+    if (!isNaN(vcm) && !isNaN(hemacias) && hemacias > 0) {
+      var valMentzer = Math.round((vcm / hemacias) * 10) / 10;
+      mentzer = valMentzer;
+      if (valMentzer < 13) {
+        interpretacaoMentzer = {
+          indice: valMentzer,
+          padrao: 'SUGESTAO_TALASSEMIA_MENOR',
+          texto: 'Índice de Mentzer < 13 (' + valMentzer + '): Sugere fortemente Traço Talassêmico (Talassemia Menor). Produção de muitas hemácias pequenas com contagem elevada para o grau de anemia.'
+        };
+      } else {
+        interpretacaoMentzer = {
+          indice: valMentzer,
+          padrao: 'SUGESTAO_ANEMIA_FERROPRIVA',
+          texto: 'Índice de Mentzer >= 13 (' + valMentzer + '): Sugere fortemente Anemia Ferropriva. A deficiência de substrato limita a contagem de hemácias proporcionalmente ao seu tamanho.'
+        };
+      }
+    }
+
+    var greenKing = null;
+    var interpretacaoGreenKing = null;
+    if (!isNaN(vcm) && !isNaN(rdw) && !isNaN(hb) && hb > 0) {
+      var valGk = Math.round(((vcm * vcm * rdw) / (100 * hb)) * 10) / 10;
+      greenKing = valGk;
+      if (valGk < 65) {
+        interpretacaoGreenKing = {
+          indice: valGk,
+          padrao: 'SUGESTAO_TALASSEMIA_MENOR',
+          texto: 'Índice de Green & King < 65 (' + valGk + '): Favorece Traço Talassêmico.'
+        };
+      } else if (valGk > 72) {
+        interpretacaoGreenKing = {
+          indice: valGk,
+          padrao: 'SUGESTAO_ANEMIA_FERROPRIVA',
+          texto: 'Índice de Green & King > 72 (' + valGk + '): Favorece Anemia Ferropriva.'
+        };
+      } else {
+        interpretacaoGreenKing = {
+          indice: valGk,
+          padrao: 'INDETERMINADO',
+          texto: 'Índice de Green & King na faixa intermediária 65-72 (' + valGk + '): Zona cinzenta, correlacionar com ferritina e cinética de ferro.'
+        };
+      }
+    }
+
+    // Cinética Medular: Reticulócitos e IPR (Índice de Produção Reticulocitária)
+    var analiseReticulocitaria = null;
+    if (!isNaN(reticulocitosPct)) {
+      var htNormal = 45;
+      var reticCorrigidos = Math.round((reticulocitosPct * (ht / htNormal)) * 100) / 100;
+      var shiftFactor = 1.0;
+      if (ht < 15) shiftFactor = 2.5;
+      else if (ht < 25) shiftFactor = 2.0;
+      else if (ht < 35) shiftFactor = 1.5;
+
+      var ipr = Math.round((reticCorrigidos / shiftFactor) * 100) / 100;
+      var ehRegenerativa = ipr > 2.0;
+
+      analiseReticulocitaria = {
+        reticulocitosPct: reticulocitosPct,
+        reticulocitosCorrigidosPct: reticCorrigidos,
+        shiftFactor: shiftFactor,
+        ipr: ipr,
+        tipoResposta: ehRegenerativa ? 'REGENERATIVA_HIPERPROLIFERATIVA' : 'HIPOPROLIFERATIVA_ARREGENERATIVA',
+        conclusao: ehRegenerativa
+          ? 'Anemia Regenerativa / Hiperproliferativa (IPR > 2.0 = ' + ipr + '). Medula óssea íntegra com resposta eritropoietica acelerada: investigar Sangramento Agudo Recente ou Hemólise.'
+          : 'Anemia Hipoproliferativa / Arregenerativa (IPR <= 2.0 = ' + ipr + '). Resposta medular inadequada ou deficiência de substratos: sugere carência de Ferro/B12/Folato, Anemia de Doença Crônica, Insuficiência Renal ou falência medular.'
+      };
+    }
+
+    // Hipóteses Diagnósticas Principais e Raciocínio Clínico Integrado
+    var hipoteses = [];
+    var investigacaoRecomendada = [];
+    var alertasClinicos = [];
+
+    if (!temAnemia) {
+      hipoteses.push({
+        diagnostico: 'Hemograma sem anemia evidente',
+        probabilidade: 'Alta',
+        detalhe: 'Hb (' + hb + ' g/dL) acima do corte do perfil (' + limiteMinimoHb + ' g/dL).'
+      });
+      if (classificacaoVcm === 'MICROCITICA') {
+        hipoteses.push({
+          diagnostico: 'Microcitose isolada sem anemia',
+          probabilidade: 'Moderada',
+          detalhe: 'Possível depleção inicial de ferro (estágio pré-anêmico) ou traço talassêmico assintomático.'
+        });
+        investigacaoRecomendada.push('Dosar Ferritina Sérica para descartar ferropenia latente.');
+      }
+    } else {
+      // Cenários de Anemia
+      if (classificacaoVcm === 'MICROCITICA') {
+        if (classificacaoRdw === 'HETEROGENEA' || (mentzer && mentzer >= 13)) {
+          hipoteses.push({
+            diagnostico: 'Anemia Ferropriva (Deficiência de Ferro)',
+            probabilidade: 'Alta',
+            detalhe: 'Microcítica e hipocrômica com anisocitose/Mentzer >= 13. Causa mais prevalente no mundo.'
+          });
+        }
+        if (classificacaoRdw === 'HOMOGENEA' || (mentzer && mentzer < 13)) {
+          hipoteses.push({
+            diagnostico: 'Talassemia Menor (Traço Talassêmico Alfa ou Beta)',
+            probabilidade: 'Alta',
+            detalhe: 'Microcitose com RDW homogêneo e Mentzer < 13. Investigar com Eletroforese de Hemoglobina.'
+          });
+        }
+        hipoteses.push({
+          diagnostico: 'Anemia de Doença Crônica / Inflamatória (fase avançada)',
+          probabilidade: 'Moderada',
+          detalhe: 'Pode se apresentar microcítica e hipocrômica por bloqueio da ferroportina via hepcidina elevada.'
+        });
+        investigacaoRecomendada.push('Cinética de Ferro completa: Ferritina sérica, Ferro sérico, Saturação de Transferrina e TIBC.');
+        investigacaoRecomendada.push('Eletroforese de Hemoglobina em pH alcalino (quantificação de HbA2 e HbF).');
+      } else if (classificacaoVcm === 'MACROCITICA') {
+        hipoteses.push({
+          diagnostico: 'Anemia Megaloblástica (Deficiência de Vitamina B12 ou Folato)',
+          probabilidade: 'Alta',
+          detalhe: 'Macrocitose acentuada. Avaliar neutrófilos hipersegmentados, gastrite atrófica, metformina, IBP ou etilismo.'
+        });
+        hipoteses.push({
+          diagnostico: 'Anemia Não-Megaloblástica (Hepatopatia crônica, Etilismo, Hipotireoidismo, Mielodisplasia)',
+          probabilidade: 'Moderada',
+          detalhe: 'VCM aumentado secundário à alteração de membrana eritrocitária ou mielotoxicidade.'
+        });
+        if (analiseReticulocitaria && analiseReticulocitaria.tipoResposta === 'REGENERATIVA_HIPERPROLIFERATIVA') {
+          hipoteses.push({
+            diagnostico: 'Reticulocitose Marcada (pseudo-macrocitose)',
+            probabilidade: 'Alta',
+            detalhe: 'Reticulócitos jovens são maiores que hemácias maduras e elevam o VCM mensurado.'
+          });
+        }
+        investigacaoRecomendada.push('Dosagem sérica de Vitamina B12 e Ácido Fólico.');
+        investigacaoRecomendada.push('Avaliação de função tireoidiana (TSH, T4 livre) e função hepática (TGO, TGP, Gama-GT).');
+        investigacaoRecomendada.push('Hematoscopia de sangue periférico para busca de neutrófilos hipersegmentados.');
+      } else {
+        // NORMOCÍTICA
+        hipoteses.push({
+          diagnostico: 'Anemia de Doença Crônica / Inflamação Sistêmica',
+          probabilidade: 'Alta',
+          detalhe: 'Padrão clássico normocítico/normocrômico associado a infecções, neoplasias ou doenças autoimunes.'
+        });
+        hipoteses.push({
+          diagnostico: 'Anemia da Doença Renal Crônica (Déficit de Eritropoietina)',
+          probabilidade: 'Moderada',
+          detalhe: 'Avaliar Creatinina, Taxa de Filtração Glomerular (ClCr) e clearance renal.'
+        });
+        hipoteses.push({
+          diagnostico: 'Hemorragia Aguda Recente (Perda Sanguínea Oculta ou Digestiva)',
+          probabilidade: 'Moderada',
+          detalhe: 'Normocítica e normocrômica com reticulocitose compensatória nas primeiras 48-72h.'
+        });
+        hipoteses.push({
+          diagnostico: 'Anemia Hemolítica (Autoimune ou Microangiopática)',
+          probabilidade: analiseReticulocitaria && analiseReticulocitaria.tipoResposta === 'REGENERATIVA_HIPERPROLIFERATIVA' ? 'Alta' : 'Moderada',
+          detalhe: 'Acompanhada de elevação de LDH, bilirrubina indireta e queda de haptoglobina.'
+        });
+        hipoteses.push({
+          diagnostico: 'Anemia Mista (Carência combinada de Ferro e B12/Folato)',
+          probabilidade: 'Moderada',
+          detalhe: 'A microcitose do ferro e a macrocitose da B12 se anulam no VCM médio, gerando RDW muito aumentado.'
+        });
+        investigacaoRecomendada.push('Proteína C Reativa (PCR), VHS, Creatinina e Ureia.');
+        investigacaoRecomendada.push('Painel de Hemólise: Bilirrubinas total e frações, DHL/LDH, Haptoglobina e Teste de Coombs Direto.');
+      }
+    }
+
+    // Integração com Exames Bioquímicos caso fornecidos
+    var achadosBioquimicos = [];
+    var ferritina = parseFloat(params.ferritina);
+    var satTransf = parseFloat(params.saturacaoTransferrina || params.satTransferrina);
+    var vitB12 = parseFloat(params.vitaminaB12 || params.b12);
+    var folato = parseFloat(params.acidoFolico || params.folato);
+
+    if (!isNaN(ferritina)) {
+      if (ferritina < 30) {
+        achadosBioquimicos.push('Ferritina Baixa (< 30 ng/mL = ' + ferritina + ' ng/mL): Confirma depleção absoluta de reservas corporais de ferro (Anemia Ferropriva).');
+      } else if (ferritina >= 30 && ferritina < 100) {
+        achadosBioquimicos.push('Ferritina limítrofe (' + ferritina + ' ng/mL): Em estados inflamatórios, valores até 100 ng/mL ainda podem representar deficiência real de ferro.');
+      } else {
+        achadosBioquimicos.push('Ferritina elevada (> 100 ng/mL = ' + ferritina + ' ng/mL): Reservas de ferro aparentemente preservadas ou proteína de fase aguda elevada por inflamação sistêmica.');
+      }
+    }
+
+    if (!isNaN(satTransf)) {
+      if (satTransf < 20) {
+        achadosBioquimicos.push('Saturação de Transferrina Baixa (< 20% = ' + satTransf + '%): Indica aporte insuficiente de ferro circulante para a eritropoiese.');
+      } else {
+        achadosBioquimicos.push('Saturação de Transferrina Adequada (>= 20% = ' + satTransf + '%).');
+      }
+    }
+
+    if (!isNaN(vitB12)) {
+      if (vitB12 < 200) {
+        achadosBioquimicos.push('Vitamina B12 Baixa (< 200 pg/mL = ' + vitB12 + ' pg/mL): Confirma deficiência grave de cobalamina. Risco de dano neurológico irreversível.');
+      } else if (vitB12 >= 200 && vitB12 <= 350) {
+        achadosBioquimicos.push('Vitamina B12 Limítrofe (200-350 pg/mL = ' + vitB12 + ' pg/mL): Sugere-se dosagem de Ácido Metilmalônico e Homocisteína séricos.');
+      }
+    }
+
+    if (!isNaN(folato) && folato < 4.0) {
+      achadosBioquimicos.push('Ácido Fólico Baixo (< 4.0 ng/mL = ' + folato + ' ng/mL): Deficiência de folato confirmada.');
+    }
+
+    // Gatilhos Transfusionais
+    var gatilhoTransfusional = {
+      indicado: false,
+      alvoHb: '7.0 a 9.0 g/dL',
+      orientacao: 'Paciente clinicamente estável: manter estratégia transfusional restritiva. Tratar causa de base.'
+    };
+
+    if (hb < 7.0) {
+      gatilhoTransfusional.indicado = true;
+      gatilhoTransfusional.orientacao = 'GATILHO ATINGIDO (Hb < 7.0 g/dL): Indicação de Concentrado de Hemácias (CHAD) para a maioria dos pacientes hospitalizados estáveis em enfermaria ou UTI (Estratégia Restritiva Padrão-Ouro). 1 bolsa de CHAD eleva Hb em ~1 g/dL e Ht em ~3%.';
+      alertasClinicos.push('Hb < 7.0 g/dL: Gatilho para transfusão de concentrado de hemácias ativado.');
+    } else if (hb < 8.0 && (params.cardiopatiaIsquemica || params.sca || params.infarto || params.posOperatorioCardiovascular)) {
+      gatilhoTransfusional.indicado = true;
+      gatilhoTransfusional.alvoHb = '8.0 a 10.0 g/dL';
+      gatilhoTransfusional.orientacao = 'GATILHO ATINGIDO PARA CARDIOPATA (Hb < 8.0 g/dL): Paciente com Síndrome Coronariana Aguda ou pós-operatório cardiovascular tem alvo restritivo estendido para manter Hb >= 8.0 g/dL para prevenir isquemia miocárdica.';
+      alertasClinicos.push('Paciente com cardiopatia isquêmica e Hb < 8.0 g/dL: Indicação de CHAD.');
+    }
+
+    if (hb < 6.0) {
+      alertasClinicos.push('ALERTA VERMELHO: Hb crítica (< 6.0 g/dL). Risco iminente de isquemia de órgãos nobres, acidose lática e colapso circulatório. Transfusão prioritária e monitorização contínua.');
+    }
+
+    return {
+      sucesso: true,
+      perfil: infoPerfil.perfil,
+      limiteMinimoHb: limiteMinimoHb,
+      hb: hb,
+      ht: ht,
+      htEstimado: htEstimado,
+      temAnemia: temAnemia,
+      severidade: severidade,
+      descricaoSeveridade: descricaoSeveridade,
+      morfologia: {
+        vcm: vcm,
+        classificacaoVcm: classificacaoVcm,
+        descVcm: descVcm,
+        hcm: hcm,
+        chcm: chcm,
+        classificacaoCromia: classificacaoCromia,
+        descCromia: descCromia,
+        rdw: rdw,
+        classificacaoRdw: classificacaoRdw,
+        descRdw: descRdw
+      },
+      indicesEspeciais: {
+        mentzer: mentzer,
+        interpretacaoMentzer: interpretacaoMentzer,
+        greenKing: greenKing,
+        interpretacaoGreenKing: interpretacaoGreenKing
+      },
+      cineticaReticulocitaria: analiseReticulocitaria,
+      achadosBioquimicos: achadosBioquimicos,
+      hipotesesDiagnosticas: hipoteses,
+      investigacaoRecomendada: investigacaoRecomendada,
+      gatilhoTransfusional: gatilhoTransfusional,
+      alertasClinicos: alertasClinicos
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. CALCULADORA DE REPOSIÇÃO DE FERRO ORAL E INTRAVENOSO (FÓRMULA DE GANZONI)
+  // ───────────────────────────────────────────────────────────────────────────
+  function calcularReposicaoFerro(params) {
+    params = params || {};
+    var pesoKg = parseFloat(params.pesoKg || params.peso);
+    if (isNaN(pesoKg) || pesoKg <= 0) {
+      throw new Error('Peso corporal (kg) é obrigatório para cálculo posológico de ferro.');
+    }
+
+    var hbAtual = parseFloat(params.hbAtual || params.hb || params.hemoglobina);
+    if (isNaN(hbAtual) || hbAtual <= 0) {
+      throw new Error('Hemoglobina atual (g/dL) é obrigatória.');
+    }
+
+    var infoPerfil = inferirLimiteHb(params);
+    var hbAlvo = parseFloat(params.hbAlvo);
+    if (isNaN(hbAlvo) || hbAlvo <= 0) {
+      hbAlvo = infoPerfil.alvoHbGanzoni;
+    }
+
+    var idadeAnos = typeof params.idadeAnos === 'number' ? params.idadeAnos : null;
+    var ehPediatrico = (idadeAnos !== null && idadeAnos < 12) || pesoKg < 35;
+    var ehGestante = Boolean(params.gestante || params.gestacao || params.ehGestante);
+
+    // ─────────────────────────────────────────────────────────
+    // 4.1. CÁLCULO DA FÓRMULA DE GANZONI (FERRO ENDOVENOSO)
+    // ─────────────────────────────────────────────────────────
+    // Déficit Total (mg) = [Peso (kg) × (Hb Alvo - Hb Atual) × 2.4] + Reserva de Ferro (mg)
+    var deltaHb = Math.max(0, hbAlvo - hbAtual);
+    var reservaFerroMg = 500; // Padrão adulto >= 35 kg
+    if (pesoKg < 35 || ehPediatrico) {
+      reservaFerroMg = Math.round(15 * pesoKg); // 15 mg/kg em crianças e < 35 kg
+    }
+
+    // Fator 2.4 = 0.08 (vol sangue L/kg) * 0.34 (ferro na Hb %) * 100 (conversão de unidades)
+    var deficitHbMg = Math.round(pesoKg * deltaHb * 2.4);
+    var deficitTotalGanzoniMg = deficitHbMg + reservaFerroMg;
+
+    // Noripurum IV / Sacarato de Hidróxido de Ferro III: 100 mg por ampola de 5 mL (20 mg/mL)
+    var ampolas100mgTotal = Math.ceil(deficitTotalGanzoniMg / 100);
+    // Dose máxima por aplicação: 200 mg (2 ampolas) infundidas em SF 0.9% 100-200 mL em 30-60 min
+    var maxDoseSessaoMg = 200;
+    if (pesoKg < 35) {
+      maxDoseSessaoMg = Math.min(200, Math.round(7 * pesoKg)); // máx ~7 mg/kg por infusão em pediatria
+    }
+    var sessoesNecessarias = Math.ceil(deficitTotalGanzoniMg / maxDoseSessaoMg);
+
+    // ─────────────────────────────────────────────────────────
+    // 4.2. CRITÉRIOS DE INDICAÇÃO PARA FERRO INTRAVENOSO (IV)
+    // ─────────────────────────────────────────────────────────
+    var criteriosIv = [];
+    var indicacaoIvForte = false;
+
+    var motivoIv = String(params.motivoIv || '').toLowerCase();
+    var comorbidades = Array.isArray(params.comorbidades) ? params.comorbidades.map(function(c){ return String(c).toLowerCase(); }) : [];
+
+    if (motivoIv.includes('intoleran') || comorbidades.includes('intolerancia_vo')) {
+      criteriosIv.push('Intolerância gastrointestinal grave ou refratária ao ferro oral (náuseas, vômitos incoercíveis, dor epigástrica incapacitante).');
+      indicacaoIvForte = true;
+    }
+    if (motivoIv.includes('bariat') || comorbidades.includes('bariatrica') || comorbidades.includes('pos_bariatrica')) {
+      criteriosIv.push('Pós-operatório de Cirurgia Bariátrica disabsortiva (bypass gástrico em Y-de-Roux ou duodenal switch com perda de duodeno/jejuno proximal para absorção).');
+      indicacaoIvForte = true;
+    }
+    if (motivoIv.includes('dii') || motivoIv.includes('crohn') || motivoIv.includes('retocolite') || comorbidades.includes('dii')) {
+      criteriosIv.push('Doença Inflamatória Intestinal ativa (DII - Doença de Crohn ou RCUI) onde ferro oral causa toxicidade mucosa e tem absorção bloqueada.');
+      indicacaoIvForte = true;
+    }
+    if (motivoIv.includes('celiac') || comorbidades.includes('doenca_celiaca')) {
+      criteriosIv.push('Doença Celíaca com atrofia vilosa duodenal severa e má absorção comprovada.');
+      indicacaoIvForte = true;
+    }
+    if (ehGestante && (hbAtual < 9.0 || params.trimestreGestacional >= 2 || motivoIv.includes('gestan'))) {
+      criteriosIv.push('Gestante no 2º ou 3º trimestre com anemia moderada a severa (necessidade de rápida repleção antes do parto com janela de tempo curta).');
+      indicacaoIvForte = true;
+    }
+    if (comorbidades.includes('drc') || comorbidades.includes('hemodialise') || motivoIv.includes('renal')) {
+      criteriosIv.push('Doença Renal Crônica em estágio IV-V ou em Hemodiálise com uso de Agentes Estimuladores da Eritropoiese (EPO).');
+      indicacaoIvForte = true;
+    }
+    if (comorbidades.includes('icc') || comorbidades.includes('icfer') || motivoIv.includes('insuficiencia_cardiaca')) {
+      criteriosIv.push('Insuficiência Cardíaca com Fração de Ejeção Reduzida (ICFEr / NYHA II-IV) e deficiência de ferro (estudos FAIR-HF / CONFIRM-HF demonstrando melhora de sobrevida e capacidade funcional).');
+      indicacaoIvForte = true;
+    }
+    if (motivoIv.includes('sangramento_ativo') || motivoIv.includes('perda_cronica')) {
+      criteriosIv.push('Sangramento contínuo que excede a capacidade de absorção fisiológica da mucosa intestinal (ex: angiodisplasia, Rendu-Osler-Weber).');
+      indicacaoIvForte = true;
+    }
+
+    if (criteriosIv.length === 0) {
+      criteriosIv.push('Sem contraindicação expressa ao ferro oral; tentar 1ª linha com via oral antes da indicação venosa, salvo piora sintomática ou má absorção documentada.');
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 4.3. POSOLOGIA DO FERRO ORAL (VO)
+    // ─────────────────────────────────────────────────────────
+    var esquemaVo = {};
+    if (ehPediatrico) {
+      // 3 a 5 mg/kg/dia de ferro elementar
+      var dosePediatricaMgDia = Math.round(3 * pesoKg);
+      var dosePediatricaSeveraMgDia = Math.round(5 * pesoKg);
+      // Teto máximo pediátrico: 60 mg/dia
+      var doseFinalPediatrica = Math.min(60, dosePediatricaMgDia);
+      var doseFinalSevera = Math.min(60, dosePediatricaSeveraMgDia);
+
+      // Sulfato ferroso gotas (25 mg Fe/mL ~ 20 gotas = ~1.25 mg Fe/gota)
+      var gotasSulfato = Math.round(doseFinalPediatrica / 1.25);
+      // Noripurum gotas (50 mg Fe/mL ~ 20 gotas = 2.5 mg Fe/gota)
+      var gotasNoripurum = Math.round(doseFinalPediatrica / 2.5);
+
+      esquemaVo = {
+        populacao: 'Pediátrica (SBP / MS)',
+        doseRecomendadaMgKgDia: '3 a 5 mg/kg/dia de Ferro Elementar',
+        doseCalculadaMgDia: doseFinalPediatrica,
+        doseSeveraMgDia: doseFinalSevera,
+        tetoSegurancaMgDia: 60,
+        fracionamento: '1 a 2 vezes ao dia, preferencialmente 1h antes das refeições ou com suco de fruta cítrica (vitamina C).',
+        opcoesPrescricao: [
+          'Sulfato Ferroso gotas (25 mg Fe/mL): prescrever ' + gotasSulfato + ' gotas via oral 1 vez ao dia (ou fracionado em 2 tomadas).',
+          'Ferropolimaltose / Noripurum gotas (50 mg Fe/mL): prescrever ' + gotasNoripurum + ' gotas via oral 1 vez ao dia (pode ser administrado junto ou após as refeições).'
+        ],
+        duracaoTratamento: 'Manter por 3 a 6 meses após a normalização da hemoglobina para reconstituir os estoques de ferritina.'
+      };
+    } else {
+      // Adulto / Gestante: Evidência moderna preconiza 60 a 100 mg de Fe elementar/dia ou em dias alternados
+      esquemaVo = {
+        populacao: ehGestante ? 'Gestante' : 'Adulto Geral',
+        doseRecomendadaMgDia: '60 a 100 mg de Ferro Elementar ao dia (ou 100 a 200 mg em dias alternados)',
+        tetoSegurancaMgDia: 200,
+        racionalCientifico: 'Doses elevadas (> 200 mg/dia) causam pico imediato de Hepcidina sérica que bloqueia a ferroportina e anula a absorção intestinal nas 24-48h seguintes, além de maximizar eventos gastrointestinais (dor epigástrica, náuseas, constipação). A administração em dose única matinal ou em dias alternados maximiza a absorção fracionada com excelente tolerabilidade.',
+        opcoesPrescricao: [
+          'Sulfato Ferroso 300 mg drágeas (~60 mg de Fe elementar): Tomar 1 drágea ao dia pela manhã em jejum com água ou suco de laranja/limão.',
+          'Sulfato Ferroso 200 mg comprimidos (~40 mg de Fe elementar): Tomar 1 a 2 comprimidos ao dia pela manhã.',
+          'Ferropolimaltose (Noripurum VO) 100 mg comprimidos mastigáveis: Tomar 1 comprimido ao dia durante a refeição principal (excelente tolerância gastrointestinal).'
+        ],
+        orientacoesPaciente: [
+          'Tomar com água ou suco cítrico rico em vitamina C (aumenta absorção intestinal).',
+          'NÃO ingerir junto com leite, queijo, iogurte, antiácidos, cálcio, café ou chá preto (quelam o ferro e impedem absorção). Manter intervalo mínimo de 2 horas.',
+          'Alerte o paciente de que as fezes ficarão escurecidas (efeito inócuo esperado do ferro não absorvido).'
+        ],
+        duracaoTratamento: 'Continuar o tratamento por no mínimo 3 a 6 meses após a normalização da Hb, até atingir Ferritina sérica > 50-100 ng/mL.'
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 4.4. PRESCRIÇÃO E PROTOCOLO DO FERRO INTRAVENOSO (NORIPURUM IV)
+    // ─────────────────────────────────────────────────────────
+    var esquemaIv = {
+      droga: 'Sacarato de Óxido de Ferro III (Noripurum IV / Venofer)',
+      apresentacao: 'Ampola de 5 mL contendo 100 mg de Ferro Elementar (20 mg/mL)',
+      deficitTotalGanzoniMg: deficitTotalGanzoniMg,
+      reservaEstoqueMg: reservaFerroMg,
+      deficitPorHbMg: deficitHbMg,
+      deltaHb: Math.round(deltaHb * 10) / 10,
+      hbAlvoGanzoni: hbAlvo,
+      hbAtual: hbAtual,
+      totalAmpolasNecessarias: ampolas100mgTotal,
+      dosePorSessaoMg: maxDoseSessaoMg,
+      ampolasPorSessao: Math.round(maxDoseSessaoMg / 100),
+      totalSessoes: sessoesNecessarias,
+      diluicaoRecomendada: maxDoseSessaoMg + ' mg (' + Math.round(maxDoseSessaoMg / 100) + ' ampolas de 5 mL) diluídos em 100 mL a 200 mL de Soro Fisiológico 0.9% (NUNCA usar Soro Glicosado 5% pela instabilidade físico-química da solução coloidal).',
+      tempoInfusao: 'Infundir por via intravenosa estrita em no mínimo 30 a 60 minutos, com vazão controlada em bomba de infusão.',
+      frequencia: 'Administrar 2 a 3 vezes por semana (em dias alternados, ex: Seg-Qua-Sex) até atingir a dose cumulativa total de ' + deficitTotalGanzoniMg + ' mg.',
+      bloqueiosESeguranca: [
+        'CONTRAINDICAÇÃO FORMAL NO 1º TRIMESTRE DE GESTAÇÃO (seguro no 2º e 3º trimestres).',
+        'SUSPENDER FERRO ORAL durante todo o tratamento com ferro intravenoso (evitar saturação reticuloendotelial desnecessária).',
+        'CUIDADO RIGOROSO COM EXTRAVASAMENTO: o ferro fora da veia causa hiperpigmentação dérmica marrom permanente ("tatuagem") e necrose tecidual inflamatória local. Testar patência do acesso venoso com SF 0.9% antes da infusão.',
+        'MONITORIZAÇÃO DE HIPERSENSIBILIDADE: monitorar sinais vitais nos primeiros 15 minutos de infusão (risco de hipotensão, rubor facial e broncoespasmo).'
+      ]
+    };
+
+    return {
+      sucesso: true,
+      pesoKg: pesoKg,
+      hbAtual: hbAtual,
+      hbAlvo: hbAlvo,
+      indicacaoIvForte: indicacaoIvForte,
+      criteriosIv: criteriosIv,
+      esquemaVo: esquemaVo,
+      esquemaIv: esquemaIv
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. RESUMO CLÍNICO UNIFICADO (BEIRA-LEITO & TELEGRAM)
+  // ───────────────────────────────────────────────────────────────────────────
+  function gerarRelatorioCompleto(params) {
+    params = params || {};
+    var analiseHemograma = interpretarHemogramaAnemia(params);
+    var reposicao = null;
+
+    if (params.pesoKg || params.peso) {
+      try {
+        reposicao = calcularReposicaoFerro(params);
+      } catch (e) {
+        reposicao = null;
+      }
+    }
+
+    var linhas = [];
+    linhas.push('🩸 *MÓDULO DE HEMATOLOGIA: INVESTIGAÇÃO & MANEJO DE ANEMIAS*');
+    linhas.push('────────────────────────────────────────');
+    linhas.push('👤 *Perfil:* ' + analiseHemograma.perfil);
+    linhas.push('🔬 *Hemoglobina (Hb):* ' + analiseHemograma.hb + ' g/dL | *Hematócrito (Ht):* ' + analiseHemograma.ht + '%' + (analiseHemograma.htEstimado ? ' _(estimado)_' : ''));
+    linhas.push('📊 *Status:* *' + (analiseHemograma.temAnemia ? 'ANEMIA DETECTADA (' + analiseHemograma.severidade + ')' : 'SEM ANEMIA') + '*');
+    linhas.push('ℹ️ _' + analiseHemograma.descricaoSeveridade + '_');
+    linhas.push('');
+
+    // Morfologia
+    linhas.push('📐 *ÍNDICES ERITROCITÁRIOS & MORFOLOGIA:*');
+    linhas.push('• *VCM:* ' + (isNaN(analiseHemograma.morfologia.vcm) ? 'Não informado' : analiseHemograma.morfologia.vcm + ' fL (' + analiseHemograma.morfologia.classificacaoVcm + ')'));
+    if (!isNaN(analiseHemograma.morfologia.hcm)) {
+      linhas.push('• *HCM:* ' + analiseHemograma.morfologia.hcm + ' pg | *CHCM:* ' + (isNaN(analiseHemograma.morfologia.chcm) ? '-' : analiseHemograma.morfologia.chcm + ' g/dL') + ' (' + analiseHemograma.morfologia.classificacaoCromia + ')');
+    }
+    if (!isNaN(analiseHemograma.morfologia.rdw)) {
+      linhas.push('• *RDW:* ' + analiseHemograma.morfologia.rdw + '% (' + analiseHemograma.morfologia.classificacaoRdw + ')');
+    }
+
+    // Mentzer e Green-King
+    if (analiseHemograma.indicesEspeciais.interpretacaoMentzer) {
+      linhas.push('• *Índice de Mentzer:* ' + analiseHemograma.indicesEspeciais.mentzer + ' → _' + analiseHemograma.indicesEspeciais.interpretacaoMentzer.texto + '_');
+    }
+    if (analiseHemograma.indicesEspeciais.interpretacaoGreenKing) {
+      linhas.push('• *Índice Green & King:* ' + analiseHemograma.indicesEspeciais.greenKing + ' → _' + analiseHemograma.indicesEspeciais.interpretacaoGreenKing.texto + '_');
+    }
+    linhas.push('');
+
+    // Cinética Reticulocitária
+    if (analiseHemograma.cineticaReticulocitaria) {
+      linhas.push('⚡ *CINÉTICA & RESPOSTA MEDULAR (RETICULÓCITOS):*');
+      linhas.push('• *Reticulócitos:* ' + analiseHemograma.cineticaReticulocitaria.reticulocitosPct + '% | *Retic. Corrigidos:* ' + analiseHemograma.cineticaReticulocitaria.reticulocitosCorrigidosPct + '%');
+      linhas.push('• *IPR (Índice Produção Reticulocitária):* ' + analiseHemograma.cineticaReticulocitaria.ipr + ' (*' + analiseHemograma.cineticaReticulocitaria.tipoResposta + '*)');
+      linhas.push('• _' + analiseHemograma.cineticaReticulocitaria.conclusao + '_');
+      linhas.push('');
+    }
+
+    // Hipóteses Diagnósticas
+    linhas.push('🎯 *HIPÓTESES DIAGNÓSTICAS PRINCIPAIS:*');
+    for (var i = 0; i < analiseHemograma.hipotesesDiagnosticas.length; i++) {
+      var h = analiseHemograma.hipotesesDiagnosticas[i];
+      linhas.push('• *' + h.diagnostico + '* (' + h.probabilidade + '): ' + h.detalhe);
+    }
+    linhas.push('');
+
+    // Gatilho Transfusional
+    if (analiseHemograma.gatilhoTransfusional.indicado) {
+      linhas.push('🚨 *GATILHO TRANSFUSIONAL (CHAD):*');
+      linhas.push('⚠️ ' + analiseHemograma.gatilhoTransfusional.orientacao);
+      linhas.push('');
+    }
+
+    // Reposição de Ferro se calculada
+    if (reposicao && reposicao.sucesso) {
+      linhas.push('💊 *TERAPIA COM FERRO & FÓRMULA DE GANZONI:*');
+      linhas.push('• *Peso:* ' + reposicao.pesoKg + ' kg | *Hb Alvo:* ' + reposicao.hbAlvo + ' g/dL');
+      linhas.push('• *Déficit Total de Ferro (Ganzoni):* *' + reposicao.esquemaIv.deficitTotalGanzoniMg + ' mg* (Hb: ' + reposicao.esquemaIv.deficitPorHbMg + ' mg + Estoque: ' + reposicao.esquemaIv.reservaEstoqueMg + ' mg)');
+      linhas.push('• *Total de Ampolas Noripurum IV (100mg/5mL):* *' + reposicao.esquemaIv.totalAmpolasNecessarias + ' ampolas*');
+      linhas.push('• *Cronograma IV:* ' + reposicao.esquemaIv.totalSessoes + ' sessões de ' + reposicao.esquemaIv.dosePorSessaoMg + ' mg (' + reposicao.esquemaIv.ampolasPorSessao + ' ampolas) em 100-200 mL SF 0.9% 2-3x/semana.');
+      linhas.push('');
+      linhas.push('🌿 *Esquema Oral de 1ª Linha:* ' + reposicao.esquemaVo.opcoesPrescricao[0]);
+      linhas.push('🛡️ _Teto seguro diário de Fe elementar: ' + reposicao.esquemaVo.tetoSegurancaMgDia + ' mg/dia (prevenção de bloqueio por hepcidina e intolerância gastrointestinal)._');
+      linhas.push('');
+    }
+
+    // Alertas
+    if (analiseHemograma.alertasClinicos.length > 0) {
+      linhas.push('⚠️ *ALERTAS DE SEGURANÇA BEIRA-LEITO:*');
+      for (var a = 0; a < analiseHemograma.alertasClinicos.length; a++) {
+        linhas.push('• ' + analiseHemograma.alertasClinicos[a]);
+      }
+    }
+
+    var textoFormatado = linhas.join('\n');
+
+    return {
+      sucesso: true,
+      analiseHemograma: analiseHemograma,
+      reposicaoFerro: reposicao,
+      textoFormatado: textoFormatado
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. FORMATADOR PARA TELEGRAM
+  // ───────────────────────────────────────────────────────────────────────────
+  function formatarTextoTelegram(resultado) {
+    if (!resultado || !resultado.sucesso) {
+      return '❌ Erro ao processar avaliação de anemia.';
+    }
+    return resultado.textoFormatado;
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 7. MÉTODOS UTILITÁRIOS DETERMINÍSTICOS BEIRA-LEITO
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function classificarGravidadeAnemia(hb, perfilOpcoes) {
+    var opts = perfilOpcoes || {};
+    var info = inferirLimiteHb(opts);
+    var limiteMinimo = info.limiteMinimoHb;
+    var valorHb = parseFloat(hb);
+    var temAnemia = valorHb < limiteMinimo;
+    var gravidade = 'Sem Anemia';
+    var riscoCritico = false;
+
+    if (temAnemia) {
+      if (valorHb < 6.0) {
+        gravidade = 'Muito Grave / Crítica';
+        riscoCritico = true;
+      } else if (valorHb < 8.0) {
+        gravidade = 'Grave / Severa';
+        riscoCritico = true;
+      } else if (valorHb < 10.0) {
+        gravidade = 'Moderada';
+      } else {
+        gravidade = 'Leve';
+      }
+    }
+
+    return {
+      temAnemia: temAnemia,
+      hb: valorHb,
+      limiarNormal: limiteMinimo,
+      deficitHb: temAnemia ? Math.round((limiteMinimo - valorHb) * 10) / 10 : 0,
+      grupoDescricao: info.perfil,
+      gravidade: gravidade,
+      riscoCritico: riscoCritico
+    };
+  }
+
+  function classificarMorfologia(vcm, hcm, chcm, rdw) {
+    var v = parseFloat(vcm);
+    var h = parseFloat(hcm);
+    var c = parseFloat(chcm);
+    var r = parseFloat(rdw);
+
+    var tamanho = 'Normocítica';
+    if (!isNaN(v)) {
+      if (v < 80) tamanho = 'Microcítica';
+      else if (v > 100) tamanho = 'Macrocítica';
+    }
+
+    var cor = 'Normocrômica';
+    if ((!isNaN(h) && h < 27) || (!isNaN(c) && c < 32)) {
+      cor = 'Hipocrômica';
+    } else if (!isNaN(c) && c > 36) {
+      cor = 'Hipercrômica';
+    }
+
+    var anisocitose = (!isNaN(r) && r > 14.5);
+    var classificacaoCombinada = tamanho + ' ' + cor + (anisocitose ? ' com anisocitose (RDW elevado)' : ' homogênea (RDW normal)');
+
+    var achados = [];
+    if (!isNaN(v) && v > 115) {
+      achados.push('Macrocitose acentuada (VCM > 115 fL): forte correlação com causa megaloblástica (B12/Folato) ou Síndrome Mielodisplásica.');
+    }
+    if (anisocitose) {
+      achados.push('Anisocitose acentuada (RDW > 14.5%): alta variabilidade no volume eritrocitário.');
+    }
+
+    return {
+      tamanho: tamanho,
+      cor: cor,
+      anisocitose: anisocitose,
+      classificacaoCombinada: classificacaoCombinada,
+      achados: achados
+    };
+  }
+
+  function calcularIndiceMentzer(vcm, hemacias) {
+    var v = parseFloat(vcm);
+    var he = parseFloat(hemacias);
+    if (isNaN(v) || isNaN(he) || he <= 0) return null;
+    var valor = Math.round((v / he) * 10) / 10;
+    var ehTalassemia = valor < 13;
+    return {
+      valor: valor,
+      sugestao: ehTalassemia ? 'Traço Talassêmico (Talassemia Minor)' : 'Anemia Ferropriva',
+      probabilidade: 'Elevada',
+      explicacao: ehTalassemia
+        ? 'Índice de Mentzer < 13 reflete microcitose com alta contagem eritrocitária ("muitas hemácias pequenas"), característico de traço talassêmico. Solicitar Eletroforese de Hemoglobina.'
+        : 'Índice de Mentzer >= 13 reflete carência de substrato (ferro) que limita tanto o tamanho quanto o número de hemácias. Solicitar Ferritina e Cinética de Ferro.'
+    };
+  }
+
+  function calcularGreenKing(vcm, rdw, hb) {
+    var v = parseFloat(vcm);
+    var r = parseFloat(rdw);
+    var h = parseFloat(hb);
+    if (isNaN(v) || isNaN(r) || isNaN(h) || h <= 0) return null;
+    var valor = Math.round(((v * v * r) / (100 * h)) * 10) / 10;
+    var padrao = valor < 72 ? 'Talassemia Minor' : 'Anemia Ferropriva';
+    return {
+      valor: valor,
+      sugestao: padrao,
+      explicacao: valor < 72
+        ? 'Índice Green & King < 72 favorece fortemente Traço Talassêmico.'
+        : 'Índice Green & King >= 72 favorece fortemente Anemia Ferropriva.'
+    };
+  }
+
+  function calcularIPR(reticulocitosPct, ht) {
+    var retic = parseFloat(reticulocitosPct);
+    var htc = parseFloat(ht);
+    if (isNaN(retic) || isNaN(htc) || htc <= 0) return null;
+    var reticCorr = Math.round((retic * (htc / 45)) * 100) / 100;
+    var factor = 1.0;
+    if (htc < 15) factor = 2.5;
+    else if (htc < 25) factor = 2.0;
+    else if (htc < 35) factor = 1.5;
+    var ipr = Math.round((reticCorr / factor) * 100) / 100;
+    var regenerativa = ipr >= 2.0;
+    return {
+      reticulocitosPerc: retic,
+      reticulocitosPct: retic,
+      reticulocitosCorrigidos: reticCorr,
+      fatorShift: factor,
+      shiftFactor: factor,
+      ipr: ipr,
+      tipo: regenerativa ? 'REGENERATIVA' : 'HIPOPROLIFERATIVA',
+      regenerativa: regenerativa,
+      classificacao: regenerativa ? 'Hiperproliferativa / Regenerativa (IPR ≥ 2,0)' : 'Hipoproliferativa / Arregenerativa (IPR < 2,0)',
+      conclusao: regenerativa
+        ? 'IPR >= 2.0: Resposta medular hiperproliferativa / regenerativa adequada (Hemólise ou Sangramento Agudo recente).'
+        : 'IPR < 2.0: Resposta medular hipoproliferativa / arregenerativa inadequada (Carência de Ferro/B12/Folato, Anemia de Doença Crônica ou Insuficiência Renal).'
+    };
+  }
+  var calcularIpr = calcularIPR;
+
+  function avaliarCineticaFerro(ferritina, ferroSerico, tibc, istInformado, contextoInflamatorio) {
+    var ferr = parseFloat(ferritina);
+    var fe = parseFloat(ferroSerico);
+    var cap = parseFloat(tibc);
+    var ist = !isNaN(parseFloat(istInformado)) ? parseFloat(istInformado) : (!isNaN(fe) && !isNaN(cap) && cap > 0 ? Math.round((fe / cap) * 1000) / 10 : null);
+
+    var padrao = 'Indeterminado';
+    var detalhes = [];
+
+    if (!isNaN(ferr)) {
+      if (ferr < 30) {
+        padrao = 'Deficiência Absoluta de Ferro (Ferropenia Estrita)';
+        detalhes.push('Ferritina < 30 ng/mL confirma depleção de estoques.');
+      } else if (ferr > 500 || (ist !== null && ist > 50)) {
+        padrao = 'Sobrecarga de Ferro / Hiperferritinemia';
+        detalhes.push('Sobrecarga de ferro ou síndrome de ativação macrofágica.');
+      } else if (contextoInflamatorio || ferr > 100) {
+        padrao = 'Anemia de Doença Crônica / Inflamatória';
+        detalhes.push('Ferritina preservada ou elevada com bloqueio reticuloendotelial.');
+      }
+    }
+
+    return {
+      padrao: padrao,
+      ferritina: !isNaN(ferr) ? ferr : null,
+      ferroSerico: !isNaN(fe) ? fe : null,
+      tibc: !isNaN(cap) ? cap : null,
+      ist: ist,
+      detalhes: detalhes
+    };
+  }
+
+  function calcularDoseFerroOral(params) {
+    var p = params || {};
+    var pesoKg = parseFloat(p.pesoKg || 70);
+    var perfil = String(p.perfil || 'adulto').toLowerCase();
+    var ehPediatrico = perfil === 'pediatria' || (p.idadeMeses !== undefined && p.idadeMeses < 144) || pesoKg < 35;
+
+    if (ehPediatrico) {
+      var doseCalc = Math.round(4 * pesoKg);
+      var doseFinal = Math.min(60, doseCalc);
+      return {
+        doseFeElementarMgDia: doseFinal,
+        gotasSulfatoPediátrico: doseFinal,
+        esquemaPosologico: doseFinal + ' mg/dia de ferro elementar (' + doseFinal + ' gotas de Sulfato Ferroso)',
+        orientacoes: ['Tomar 1h antes das refeições ou com suco rico em vitamina C.'],
+        alertasToxicos: ['⚠️ SEGURANÇA DOMÉSTICA: Manter fora do alcance de crianças pelo risco de intoxicação acidental aguda fatal por ferro.']
+      };
+    }
+
+    return {
+      doseFeElementarMgDia: 80,
+      esquemaPosologico: '60 a 100 mg de Ferro Elementar em DIAS ALTERNADOS (ou 60 a 120 mg/dia diário).',
+      orientacoes: ['Tomar pela manhã em jejum com água ou suco rico em vitamina C.'],
+      alertasToxicos: ['TETO DE TOLERÂNCIA ORAL: Doses diárias > 200 mg/dia não aumentam a absorção e geram bloqueio por hepcidina e intolerância gastrointestinal.']
+    };
+  }
+
+  function calcularProfilaxiaPediatricaSBP(pesoNascimentoGramas, idadeMeses, emUsoFormulaInfantil) {
+    var pesoNasc = Number(pesoNascimentoGramas);
+    var idade = Number(idadeMeses || 6);
+
+    var dose = 1.0;
+    var faixa = '';
+    var inicio = '';
+
+    if (pesoNasc < 1000) {
+      faixa = 'Extremo Baixo Peso (< 1.000g)';
+      dose = idade < 12 ? 4.0 : 1.0;
+      inicio = 'Aos 30 dias de vida';
+    } else if (pesoNasc < 1500) {
+      faixa = 'Muito Baixo Peso (1.000g a 1.499g)';
+      dose = idade < 12 ? 3.0 : 1.0;
+      inicio = 'Aos 30 dias de vida';
+    } else if (pesoNasc < 2500) {
+      faixa = 'Baixo Peso ao Nascer (1.500g a 2.499g)';
+      dose = idade < 12 ? 2.0 : 1.0;
+      inicio = 'Aos 30 dias de vida';
+    } else {
+      faixa = 'A Termo e Peso Adequado (≥ 2.500g)';
+      dose = 1.0;
+      inicio = 'Aos 6 meses de vida';
+    }
+
+    return {
+      pesoNascimentoGramas: pesoNasc,
+      idadeMeses: idade,
+      doseRecomendadaMgKgDia: dose,
+      faixaNascimento: faixa,
+      momentoInicio: inicio,
+      duracao: 'Até os 2 anos de idade',
+      orientacao: dose + ' mg/kg/dia até ' + (idade < 12 ? '1 ano e depois 1 mg/kg/dia até 2 anos' : '2 anos.')
+    };
+  }
+
+  function calcularGanzoni(pesoKgOrParams, hbAtual, hbAlvo, depositoMg) {
+    var p = typeof pesoKgOrParams === 'object' && pesoKgOrParams !== null ? pesoKgOrParams : {
+      pesoKg: pesoKgOrParams,
+      hbAtual: hbAtual,
+      hbAlvo: hbAlvo,
+      depositoMg: depositoMg
+    };
+
+    var peso = parseFloat(p.pesoKg || p.peso);
+    var atual = parseFloat(p.hbAtual || p.hb);
+    var alvo = parseFloat(p.hbAlvo);
+    if (isNaN(alvo) || alvo <= 0) alvo = (p.gestante || p.sexo === 'F') ? 14.0 : 15.0;
+
+    var deltaHb = Math.max(0, alvo - atual);
+    var dep = typeof p.depositoMg === 'number' ? p.depositoMg : (peso < 35 ? Math.round(15 * peso) : 500);
+    var deficitHbMg = Math.round(peso * deltaHb * 2.4);
+    var deficitTotal = deficitHbMg + dep;
+
+    var ampolasNoripurum = Math.ceil(deficitTotal / 100);
+    var maxDoseNoripurum = 200;
+    var sessoesNoripurum = Math.ceil(deficitTotal / maxDoseNoripurum);
+
+    var frascosFerinject = Math.ceil(deficitTotal / 500);
+    var sessoesFerinject = Math.ceil(deficitTotal / 1000);
+
+    var aptoParaFerroEv = true;
+    var bloqueios = [];
+
+    if (p.gestante && (p.trimestre === 1 || p.primeiroTrimestre)) {
+      aptoParaFerroEv = false;
+      bloqueios.push('Primeiro trimestre de gestação: contraindicação formal a ferro IV.');
+    }
+    if (p.infeccaoAtiva || p.bacteriemia) {
+      aptoParaFerroEv = false;
+      bloqueios.push('Infecção bacteriana sistêmica ativa: suspender ferro IV até controle infeccioso.');
+    }
+    if (p.sobrecargaFerro) {
+      aptoParaFerroEv = false;
+      bloqueios.push('Sobrecarga de ferro sérica ou tecidual: contraindicação absoluta.');
+    }
+
+    return {
+      pesoKg: peso,
+      hbAtual: atual,
+      hbAlvo: alvo,
+      depositoMg: dep,
+      deficitTotalFerroMg: deficitTotal,
+      formulaGanzoniTexto: '[' + peso + ' kg × (' + alvo + ' - ' + atual + ') × 2.4] + ' + dep + ' mg',
+      noripurum: {
+        ampolasTotal: ampolasNoripurum,
+        dosePorSessaoMg: maxDoseNoripurum,
+        sessoesNecessarias: sessoesNoripurum
+      },
+      ferinject: {
+        frascosTotal: frascosFerinject,
+        dosePorSessaoMg: Math.min(deficitTotal, 1000),
+        sessoesNecessarias: sessoesFerinject
+      },
+      aptoParaFerroEv: aptoParaFerroEv,
+      bloqueiosSeguranca: bloqueios
+    };
+  }
+
+  function analisarCasoCompleto(params) {
+    var p = params || {};
+    var hb = parseFloat(p.hb || p.hemoglobina);
+    var vcm = parseFloat(p.vcm);
+    var hcm = parseFloat(p.hcm);
+    var chcm = parseFloat(p.chcm);
+    var rdw = parseFloat(p.rdw);
+    var hemacias = parseFloat(p.hemacias || p.he);
+    var ht = parseFloat(p.ht || (hb ? Math.round(hb * 3 * 10) / 10 : 0));
+    var retic = parseFloat(p.reticulocitos || p.retic);
+
+    var est = classificarGravidadeAnemia(hb, p);
+    var mor = classificarMorfologia(vcm, hcm, chcm, rdw);
+    var ment = calcularIndiceMentzer(vcm, hemacias);
+    var gk = calcularGreenKing(vcm, rdw, hb);
+    var ipr = calcularIPR(retic, ht);
+    var cin = avaliarCineticaFerro(p.ferritina, p.ferroSerico, p.tibc, p.ist, p.inflamacao);
+    var oral = calcularDoseFerroOral(p);
+    var ganz = calcularGanzoni(p);
+
+    var hemolise = {
+      alertaEmergencia: Boolean(p.esquizocitos),
+      diagnostico: Boolean(p.esquizocitos) ? 'Microangiopatia Trombótica (MAT / PTT / SHU)' : (p.coombsDireto ? 'Anemia Hemolítica Autoimune (AHAI)' : 'Sem hemólise evidente'),
+      achados: []
+    };
+
+    var hipotesePrincipal = 'Anemia a esclarecer';
+    if (!est.temAnemia) {
+      hipotesePrincipal = 'Sem anemia';
+    } else if (p.esquizocitos) {
+      hipotesePrincipal = 'Microangiopatia Trombótica (MAT / PTT / SHU)';
+    } else if (vcm && vcm < 80) {
+      if (ment && ment.valor < 13 && (!rdw || rdw <= 14.5)) {
+        hipotesePrincipal = 'Traço Talassêmico (Talassemia Menor)';
+      } else {
+        hipotesePrincipal = 'Anemia Ferropriva';
+      }
+    } else if (vcm && vcm > 100) {
+      hipotesePrincipal = 'Anemia Megaloblástica vs Macrocítica';
+    } else {
+      hipotesePrincipal = 'Anemia Normocítica e Normocrômica';
+    }
+
+    var baseRelatorio = gerarRelatorioCompleto(p);
+
+    return {
+      sucesso: true,
+      hb: hb,
+      vcm: vcm,
+      hcm: hcm,
+      chcm: chcm,
+      rdw: rdw,
+      hemacias: hemacias,
+      ht: ht,
+      estratificacao: est,
+      morfologia: mor,
+      mentzer: ment,
+      greenKing: gk,
+      ipr: ipr,
+      cinetica: cin,
+      hemolise: hemolise,
+      doseOral: oral,
+      ganzoni: ganz,
+      hipotesePrincipal: hipotesePrincipal,
+      textoFormatado: baseRelatorio.textoFormatado,
+      analiseHemograma: baseRelatorio.analiseHemograma,
+      reposicaoFerro: baseRelatorio.reposicaoFerro
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // EXPORTAÇÃO PÚBLICA
+  // ───────────────────────────────────────────────────────────────────────────
+  return {
+    LIMITES_HB: LIMITES_HB,
+    inferirLimiteHb: inferirLimiteHb,
+    interpretarHemogramaAnemia: interpretarHemogramaAnemia,
+    calcularReposicaoFerro: calcularReposicaoFerro,
+    gerarRelatorioCompleto: gerarRelatorioCompleto,
+    analisarCasoCompleto: analisarCasoCompleto,
+    classificarGravidadeAnemia: classificarGravidadeAnemia,
+    classificarMorfologia: classificarMorfologia,
+    calcularIndiceMentzer: calcularIndiceMentzer,
+    calcularGreenKing: calcularGreenKing,
+    calcularIPR: calcularIPR,
+    calcularIpr: calcularIpr,
+    avaliarCineticaFerro: avaliarCineticaFerro,
+    calcularDoseFerroOral: calcularDoseFerroOral,
+    calcularProfilaxiaPediatricaSBP: calcularProfilaxiaPediatricaSBP,
+    calcularGanzoni: calcularGanzoni,
+    formatarTextoTelegram: formatarTextoTelegram
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = HematologiaAnemiasService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_hepatologia_hda.js
 // ==============================================================================
 
@@ -10472,6 +13366,137 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_infectologia_neutropenia.js
+// ==============================================================================
+
+/**
+ * Módulo de Infectologia: Manejo de Neutropenia Febril Oncológica
+ * Motor determinístico baseado nas diretrizes MASCC, CISNE e IDSA.
+ */
+
+var InfectologiaNeutropeniaService = (function() {
+    'use strict';
+
+    function calcularMASCC(fatores) {
+        // fatores: { cargaSintomas: 'leve'|'moderada'|'grave', semHipotensao: bool, semDpoc: bool, tumorSolidoOuHematoSemFungo: bool, semDesidratacao: bool, ambulatorial: bool, idadeMenor60: bool }
+        var score = 0;
+        
+        if (fatores.cargaSintomas === 'leve' || fatores.cargaSintomas === 'assintomatico') score += 5;
+        else if (fatores.cargaSintomas === 'moderada') score += 3;
+        
+        if (fatores.semHipotensao) score += 5;
+        if (fatores.semDpoc) score += 4;
+        if (fatores.tumorSolidoOuHematoSemFungo) score += 4;
+        if (fatores.semDesidratacao) score += 3;
+        if (fatores.ambulatorial) score += 3; // Início da febre em ambiente ambulatorial
+        if (fatores.idadeMenor60) score += 2;
+        
+        var risco = score >= 21 ? 'Baixo Risco' : 'Alto Risco';
+        var conduta = score >= 21 ? 'Elegível para tratamento ambulatorial seguro (Ciprofloxacino + Amoxicilina/Clavulanato) se reavaliação garantida.' : 'Internação hospitalar IMEDIATA requerida (Antibioticoterapia IV empírica).';
+        
+        return {
+            escore: score,
+            risco: risco,
+            conduta: conduta
+        };
+    }
+
+    
+    function calcularCISNE(fatores) {
+        // fatores: { ecogMaiorIgual2: bool, dpoc: bool, doencaCardiovascular: bool, mucosite: bool, monocitosMenor200: bool, hiperglicemiaEstresse: bool }
+        var score = 0;
+        
+        if (fatores.ecogMaiorIgual2) score += 2;
+        if (fatores.dpoc) score += 1;
+        if (fatores.doencaCardiovascular) score += 1;
+        if (fatores.mucosite) score += 1; // NCI CTCAE >= grade 2
+        if (fatores.monocitosMenor200) score += 1;
+        if (fatores.hiperglicemiaEstresse) score += 2;
+        
+        var risco = "";
+        var complicacoes = "";
+        
+        if (score === 0) {
+            risco = "Baixo Risco (CISNE)";
+            complicacoes = "~1.1%";
+        } else if (score >= 1 && score <= 2) {
+            risco = "Risco Intermediário (CISNE)";
+            complicacoes = "~6.2%";
+        } else {
+            risco = "Alto Risco (CISNE)";
+            complicacoes = "~36%";
+        }
+        
+        return {
+            escore: score,
+            risco: risco,
+            complicacoes: complicacoes
+        };
+    }
+
+    function protocoloAntibiotico(fatores) {
+        // fatores: { instabilidade: bool, suspeitaCateter: bool, mrsa: bool, alergiaPenicilina: 'nao'|'leve'|'grave', diasFebre: number }
+        var recomendacao = [];
+        var bloqueios = [];
+        var atbBase = "";
+
+        if (fatores.alergiaPenicilina === 'grave') {
+            atbBase = "Aztreonam 2g IV 8/8h + Vancomicina";
+        } else {
+            atbBase = "Cefepime 2g IV 8/8h OU Piperacilina-Tazobactam 4.5g IV 6/6h (terapia anti-pseudomonas)";
+        }
+        
+        recomendacao.push("1ª Linha: " + atbBase);
+        
+        if (fatores.instabilidade || fatores.suspeitaCateter || fatores.mrsa) {
+            recomendacao.push("Adicionar COBERTURA GRAM-POSITIVA (MRSA): Vancomicina 15-20 mg/kg IV 12/12h.");
+            if (fatores.instabilidade) {
+                recomendacao.push("ALERTA DE CHOQUE: Iniciar antibioticoterapia na 1ª hora (Golden Hour) + Ressuscitação Volêmica.");
+            }
+        }
+        
+        if (fatores.diasFebre >= 4 && fatores.diasFebre <= 7) {
+            recomendacao.push("FEBRE REFRATÁRIA (> 4-7 dias): Forte indicação de terapia antifúngica empírica com Echinocandina (ex: Anidulafungina ou Caspofungina) ou Anfotericina B Lipossomal.");
+        }
+        
+        return {
+            recomendacoes: recomendacao,
+            bloqueios: bloqueios
+        };
+    }
+
+    function avaliarPaciente(params) {
+        var mascc = calcularMASCC(params.mascc || {});
+        var cisne = params.cisne ? calcularCISNE(params.cisne) : null;
+        var atb = protocoloAntibiotico(params.clinica || {});
+        
+        var alertas = [];
+        if (mascc.risco === 'Alto Risco') {
+            alertas.push("ISOLAMENTO PROTETOR: Manter paciente em quarto privativo, higiene rigorosa das mãos.");
+        }
+        
+        return {
+            mascc: mascc,
+            cisne: cisne,
+            antibioticoterapia: atb,
+            alertas: alertas
+        };
+    }
+
+    return {
+        calcularMASCC: calcularMASCC,
+        calcularCISNE: calcularCISNE,
+        protocoloAntibiotico: protocoloAntibiotico,
+        avaliarPaciente: avaliarPaciente
+    };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = InfectologiaNeutropeniaService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_mecanica_pulmonar_sdra.js
 // ==============================================================================
 
@@ -10592,6 +13617,100 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_nefrologia_clearance.js
+// ==============================================================================
+
+/**
+ * Módulo de Nefrologia: Clearance de Creatinina e Auditoria Renal
+ * Motor determinístico para cálculo de Cockcroft-Gault e auditoria de prescrições.
+ */
+
+var NefrologiaClearanceService = (function() {
+    'use strict';
+
+    function calcularCockcroftGault(idade, peso, creatinina, sexo) {
+        if (!idade || !peso || !creatinina || !sexo) {
+            return { erro: "Parâmetros incompletos. Necessário idade, peso, creatinina e sexo (M/F)." };
+        }
+        var fator = (sexo.toLowerCase() === 'f' || sexo.toLowerCase() === 'feminino') ? 0.85 : 1.0;
+        var crcl = (((140 - idade) * peso) / (72 * creatinina)) * fator;
+        return Math.round(crcl * 10) / 10;
+    }
+
+    function classificarEstagio(crcl) {
+        if (crcl >= 90) return "Estágio 1 (Normal ou Alto - G1)";
+        if (crcl >= 60) return "Estágio 2 (Levemente diminuído - G2)";
+        if (crcl >= 45) return "Estágio 3a (Leve a moderadamente diminuído - G3a)";
+        if (crcl >= 30) return "Estágio 3b (Moderada a severamente diminuído - G3b)";
+        if (crcl >= 15) return "Estágio 4 (Severamente diminuído - G4)";
+        return "Estágio 5 (Falência renal / G5)";
+    }
+
+    function auditarPrescricao(crcl, medicamentos) {
+        var auditoria = {
+            crcl_estimado: crcl,
+            estagio: classificarEstagio(crcl),
+            bloqueios: [],
+            alertas: [],
+            orientacoes: []
+        };
+
+        var drogasAjusteObrigatorio = [
+            "vancomicina", "meropenem", "piperacilina", "tazobactam", "cefepime", 
+            "fluconazol", "enoxaparina", "rivaroxabana", "dabigatrana", "aciclovir", 
+            "amicacina", "gentamicina", "polimixina", "colistina", "levofloxacino"
+        ];
+
+        var drogasContraindicadasSevera = [
+            "nitrofurantoina", "espironolactona", "metformina"
+        ];
+
+        if (crcl < 30) {
+            auditoria.alertas.push("ALERTA CRÍTICO: Ritmo de Filtração Glomerular < 30 mL/min. Risco elevado de toxicidade e acúmulo de fármacos.");
+        }
+
+        if (medicamentos && Array.isArray(medicamentos)) {
+            medicamentos.forEach(function(med) {
+                var nome = typeof med === 'string' ? med.toLowerCase() : med.nome.toLowerCase();
+                
+                // Checa contraindicação
+                var contraindicado = drogasContraindicadasSevera.some(function(d) { return nome.indexOf(d) !== -1; });
+                if (contraindicado && crcl < 30) {
+                    auditoria.bloqueios.push("CONTRAINDICAÇÃO ABSOLUTA: " + nome.toUpperCase() + " deve ser evitada em TFG < 30 mL/min.");
+                }
+
+                // Checa necessidade de ajuste
+                var precisaAjuste = drogasAjusteObrigatorio.some(function(d) { return nome.indexOf(d) !== -1; });
+                if (precisaAjuste) {
+                    if (crcl < 30) {
+                        auditoria.bloqueios.push("AJUSTE RENAL OBRIGATÓRIO: " + nome.toUpperCase() + " requer ajuste imediato de dose para TFG < 30 mL/min.");
+                    } else if (crcl < 50) {
+                        auditoria.alertas.push("ATENÇÃO: " + nome.toUpperCase() + " requer avaliação de ajuste de dose (TFG < 50 mL/min).");
+                    }
+                }
+            });
+        }
+
+        if (auditoria.bloqueios.length === 0 && auditoria.alertas.length === 0 && medicamentos && medicamentos.length > 0) {
+             auditoria.orientacoes.push("Nenhuma restrição maior detectada para os medicamentos fornecidos com base neste clearance.");
+        }
+
+        return auditoria;
+    }
+
+    return {
+        calcularCockcroftGault: calcularCockcroftGault,
+        classificarEstagio: classificarEstagio,
+        auditarPrescricao: auditarPrescricao
+    };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = NefrologiaClearanceService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_nefrologia_dhe.js
 // ==============================================================================
 
@@ -10706,6 +13825,183 @@ var NefrologiaDheService = (function() {
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = NefrologiaDheService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_nefrologia_lra_kdigo.js
+// ==============================================================================
+
+/**
+ * @file 02_nefrologia_lra_kdigo.js
+ * @description Módulo de Nefrologia Intensiva: Estadiamento KDIGO para Lesão Renal Aguda (LRA/IRA)
+ * e avaliação de indicações clássicas para Diálise de Urgência (AEIOU).
+ */
+
+var NefrologiaLRAService = (function() {
+    'use strict';
+
+    /**
+     * Calcula o estágio KDIGO com base na creatinina e débito urinário.
+     * @param {number} cr_basal - Creatinina basal prévia (mg/dL)
+     * @param {number} cr_atual - Creatinina atual ou pico (mg/dL)
+     * @param {number} debito_urinario - Débito urinário em mL/kg/h
+     * @param {number} horas_oliguria - Horas em que o paciente está com débito urinário < 0.5 mL/kg/h ou anúrico
+     * @returns {Object} Dados do estadiamento KDIGO
+     */
+    function estadiarKDIGO(cr_basal, cr_atual, debito_urinario, horas_oliguria) {
+        var aumento_cr = cr_atual / cr_basal;
+        var estagio_cr = 0;
+        var estagio_du = 0;
+
+        // Estadiamento por Creatinina
+        if (cr_atual >= 4.0 || aumento_cr >= 3.0 || (cr_atual - cr_basal >= 0.3 && cr_atual >= 4.0)) {
+            estagio_cr = 3;
+        } else if (aumento_cr >= 2.0) {
+            estagio_cr = 2;
+        } else if (aumento_cr >= 1.5 || (cr_atual - cr_basal >= 0.3)) {
+            estagio_cr = 1;
+        }
+
+        // Estadiamento por Débito Urinário (DU)
+        if (debito_urinario !== null && horas_oliguria !== null) {
+            if (debito_urinario < 0.3 && horas_oliguria >= 24 || horas_oliguria >= 12 && debito_urinario === 0) {
+                estagio_du = 3; // Anúria > 12h ou DU < 0.3 por 24h
+            } else if (debito_urinario < 0.5 && horas_oliguria >= 12) {
+                estagio_du = 2;
+            } else if (debito_urinario < 0.5 && horas_oliguria >= 6) {
+                estagio_du = 1;
+            }
+        }
+
+        var estagio_final = Math.max(estagio_cr, estagio_du);
+        
+        var descricao = "Sem LRA KDIGO (Função Renal Estável)";
+        if (estagio_final === 1) descricao = "KDIGO 1 (Risco)";
+        else if (estagio_final === 2) descricao = "KDIGO 2 (Lesão)";
+        else if (estagio_final === 3) descricao = "KDIGO 3 (Falência)";
+
+        return {
+            estagio: estagio_final,
+            descricao: descricao,
+            estagio_cr: estagio_cr,
+            estagio_du: estagio_du
+        };
+    }
+
+    /**
+     * Avalia as indicações clássicas de diálise de urgência (Mnemônico AEIOU)
+     * @param {Object} dados - Dados clínicos do paciente
+     */
+    function avaliarDialiseUrgencia(dados) {
+        var indicacoes = [];
+        var aeiou = {
+            acidose: false,
+            eletrolitos: false,
+            intoxicacao: false,
+            overload: false,
+            uremia: false
+        };
+
+        if (dados.ph < 7.15 && dados.acidose_refrataria) {
+            indicacoes.push("🅰️ Acidose Metabólica grave refratária ao tratamento clínico (pH < 7.15).");
+            aeiou.acidose = true;
+        }
+
+        if (dados.potassio > 6.5 || (dados.potassio > 6.0 && dados.ecg_alterado)) {
+            indicacoes.push("🇪 Eletrólitos: Hipercalemia grave refratária (K > 6.5) ou sintomática com alterações no ECG.");
+            aeiou.eletrolitos = true;
+        }
+
+        if (dados.intoxicacao_dialisavel) {
+            indicacoes.push("🇮 Intoxicação por substâncias dialisáveis (ex: Lítio, Salicilatos, Metanol, Etilenoglicol).");
+            aeiou.intoxicacao = true;
+        }
+
+        if (dados.eap_refratario) {
+            indicacoes.push("🅾️ Overload (Sobrecarga Hídrica): Edema Agudo de Pulmão refratário a diuréticos / oligúria severa.");
+            aeiou.overload = true;
+        }
+
+        if (dados.ureia > 200 || dados.sindrome_uremica) {
+            indicacoes.push("🇺 Uremia Clínica: Pericardite urêmica, encefalopatia urêmica ou sangramento inexplicável.");
+            aeiou.uremia = true;
+        }
+
+        return {
+            indicacoes_presentes: indicacoes.length > 0,
+            lista: indicacoes,
+            aeiou: aeiou
+        };
+    }
+
+    /**
+     * Avaliação principal de LRA
+     * @param {Object} params
+     */
+    function avaliarLRA(params) {
+        var cr_basal = parseFloat(params.cr_basal);
+        var cr_atual = parseFloat(params.cr_atual);
+        var du = params.debito_urinario !== undefined ? parseFloat(params.debito_urinario) : null;
+        var horas = params.horas_oliguria !== undefined ? parseFloat(params.horas_oliguria) : null;
+
+        if (isNaN(cr_basal) || isNaN(cr_atual)) {
+            throw new Error("Valores de creatinina basal e atual são obrigatórios para avaliar LRA.");
+        }
+
+        var kdigo = estadiarKDIGO(cr_basal, cr_atual, du, horas);
+        var dialise = avaliarDialiseUrgencia(params);
+
+        return {
+            kdigo: kdigo,
+            dialise: dialise,
+            params_recebidos: params
+        };
+    }
+
+    /**
+     * Formata texto para Telegram
+     */
+    function formatarTextoTelegram(analise) {
+        var k = analise.kdigo;
+        var d = analise.dialise;
+
+        var txt = "🫘 *NEFROLOGIA INTENSIVA — INJÚRIA RENAL AGUDA (KDIGO)*\n\n";
+        
+        txt += "📊 *ESTADIAMENTO KDIGO:*\n";
+        txt += "• Classificação Final: *" + k.descricao + "*\n";
+        
+        if (k.estagio > 0) {
+            txt += "• *Conduta Geral LRA:* Otimizar volemia, suspender nefrotóxicos (AINEs, contraste, iECA/BRA temporariamente), ajustar doses de antimicrobianos pelo ClCr, monitorar eletrólitos (K+, Mg++) e débito urinário diário.\n";
+        }
+
+        txt += "\n🚨 *INDICAÇÕES DE DIÁLISE DE URGÊNCIA (AEIOU):*\n";
+        if (d.indicacoes_presentes) {
+            txt += "⚠️ *CRÍTICO: Paciente possui critérios para Terapia Renal Substitutiva IMEDIATA!*\n";
+            d.lista.forEach(function(item) {
+                txt += item + "\n";
+            });
+            txt += "\n👉 *Ação:* Acionar equipe de Nefrologia de plantão e providenciar acesso venoso central de duplo lúmen (Shilley) preferencialmente em Veia Jugular Interna Direita.";
+        } else {
+            txt += "✅ Sem critérios clássicos para diálise de urgência no momento.\n";
+            txt += "_(Checagem Mnemônica: Acidose, Eletrólitos, Intoxicação, Overload de volume, Uremia)_\n";
+        }
+
+        txt += "\n_Referência: Protocolos KDIGO (Kidney Disease: Improving Global Outcomes)_";
+
+        return txt;
+    }
+
+    return {
+        estadiarKDIGO: estadiarKDIGO,
+        avaliarDialiseUrgencia: avaliarDialiseUrgencia,
+        avaliarLRA: avaliarLRA,
+        formatarTextoTelegram: formatarTextoTelegram
+    };
+})();
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = NefrologiaLRAService;
 }
 
 
@@ -13121,6 +16417,482 @@ var PcrGestanteService = (function() {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { PcrGestanteService: PcrGestanteService };
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_pneumologia_crise_asmatica.js
+// ==============================================================================
+
+/**
+ * @file 02_pneumologia_crise_asmatica.js
+ * @description Módulo de Pneumologia e Medicina de Emergência: Manejo da Crise Asmática Grave
+ * e Estado de Mal Asmático baseado nas diretrizes GINA (Global Initiative for Asthma),
+ * SBPT (Sociedade Brasileira de Pneumologia e Tisiologia) e Consensos de Terapia Intensiva.
+ */
+
+var PneumologiaCriseAsmaticaService = (function() {
+    'use strict';
+
+    /**
+     * Classifica a gravidade da crise asmática beira-leito.
+     * @param {Object} params - Sinais vitais, exame físico e gasometria
+     * @returns {Object} Estratificação detalhada de gravidade
+     */
+    function classificarGravidade(params) {
+        params = params || {};
+
+        var fala = (params.fala || '').toLowerCase(); // 'frases_completas', 'frases_curtas', 'palavras_isoladas', 'incapaz'
+        var posicao = (params.posicao || '').toLowerCase(); // 'deitado', 'sentado', 'tripe'
+        var estado_mental = (params.estado_mental || '').toLowerCase(); // 'calmo', 'agitado', 'sonolento', 'confuso', 'coma'
+        var musculatura_acessoria = (params.musculatura_acessoria || '').toLowerCase(); // 'ausente', 'moderada', 'acentuada'
+        var ausculta = (params.ausculta || '').toLowerCase(); // 'normal', 'sibilos_expiratorios', 'sibilos_difusos', 'torax_silencioso'
+        
+        var fc = parseFloat(params.fc);
+        var fr = parseFloat(params.fr);
+        var spo2 = parseFloat(params.spo2);
+        var pfe = parseFloat(params.pfe);
+        var pfe_previsto = parseFloat(params.pfe_previsto);
+        var pfe_pct = parseFloat(params.pfe_porcentagem);
+
+        // Se fornecido PFE medido e PFE previsto, calcula porcentagem
+        if (!isNaN(pfe) && !isNaN(pfe_previsto) && pfe_previsto > 0 && isNaN(pfe_pct)) {
+            pfe_pct = Math.round((pfe / pfe_previsto) * 100);
+        }
+
+        var respiracao_paradoxal = !!params.respiracao_paradoxal;
+        var bradicardia = !!params.bradicardia || (!isNaN(fc) && fc < 55);
+        var gasometria = params.gasometria || null;
+
+        var criterios_ameaca_vida = [];
+        var criterios_grave = [];
+        var criterios_leve_moderada = [];
+
+        // 1. CHECAGEM DE CRITÉRIOS DE AMEAÇA À VIDA / PARADA IMINENTE / ESTADO DE MAL ASMÁTICO
+        if (ausculta === 'torax_silencioso' || params.torax_silencioso) {
+            criterios_ameaca_vida.push("Tórax Silencioso (ausência de murmúrio vesicular por broncoespasmo crítico e fluxo aéreo quase nulo)");
+        }
+        if (['sonolento', 'confuso', 'coma', 'rebaixado', 'letargico'].indexOf(estado_mental) !== -1) {
+            criterios_ameaca_vida.push("Alteração de sensório / sonolência / confusão mental (exaustão hipercápnica e hipóxia encefálica)");
+        }
+        if (respiracao_paradoxal) {
+            criterios_ameaca_vida.push("Respiração paradoxal toracoabdominal (fadiga diafragmática franca)");
+        }
+        if (bradicardia) {
+            criterios_ameaca_vida.push("Bradicardia / colapso hemodinâmico iminente");
+        }
+        if (fala === 'incapaz' || fala === 'incapaz_de_falar') {
+            criterios_ameaca_vida.push("Incapacidade total de articular palavras por exaustão respiratória");
+        }
+        if (gasometria) {
+            var ph = parseFloat(gasometria.ph);
+            var paco2 = parseFloat(gasometria.paco2 || gasometria.pco2);
+            if (!isNaN(paco2) && paco2 >= 42) {
+                criterios_ameaca_vida.push("PaCO2 normal ou elevada (" + paco2 + " mmHg) em crise asmática: falência muscular aguda (deveria estar hipocápnico < 35 mmHg por hiperventilação)");
+            }
+            if (!isNaN(ph) && ph < 7.30) {
+                criterios_ameaca_vida.push("Acidose respiratória ou mista severa (pH " + ph + ")");
+            }
+        }
+
+        // 2. CHECAGEM DE CRITÉRIOS DE GRAVIDADE
+        if (fala === 'palavras_isoladas' || fala === 'palavras') {
+            criterios_grave.push("Fala apenas palavras isoladas (incapaz de formar frases completas)");
+        }
+        if (posicao === 'tripe' || posicao === 'inclinado_frente') {
+            criterios_grave.push("Posição de tripé (sentado inclinando-se para a frente)");
+        }
+        if (estado_mental === 'agitado') {
+            criterios_grave.push("Agitação psicomotora e ansiedade extrema");
+        }
+        if (musculatura_acessoria === 'acentuada' || musculatura_acessoria === 'grave') {
+            criterios_grave.push("Uso acentuado de musculatura acessória (tiragem supraclavicular, fúrcula e batimento de asa de nariz)");
+        }
+        if (!isNaN(fc) && fc > 120) {
+            criterios_grave.push("Taquicardia severa (FC " + fc + " bpm)");
+        }
+        if (!isNaN(fr) && fr > 30) {
+            criterios_grave.push("Taquipneia acentuada (FR " + fr + " irpm)");
+        }
+        if (!isNaN(spo2) && spo2 < 90) {
+            criterios_grave.push("Dessaturação grave em ar ambiente (SpO2 " + spo2 + "% < 90%)");
+        }
+        if (!isNaN(pfe_pct) && pfe_pct <= 50) {
+            criterios_grave.push("Pico de Fluxo Expiratório (PFE) <= 50% do previsto (" + pfe_pct + "%)");
+        }
+        if (ausculta === 'sibilos_difusos' || ausculta === 'inspiratorios_e_expiratorios') {
+            criterios_grave.push("Sibilos difusos e inspiratórios/expiratórios com tempo expiratório acentuadamente prolongado");
+        }
+
+        // 3. CLASSIFICAÇÃO FINAL
+        var nivel = "LEVE_MODERADA";
+        var titulo = "Crise Asmática Leve a Moderada";
+        var cor = "AMARELO";
+        var recomendacao_imediata = "Iniciar SABA 4-10 jatos com espaçador a cada 20 min na 1ª hora + Corticoide sistêmico oral precoce.";
+
+        if (criterios_ameaca_vida.length > 0) {
+            nivel = "PARADA_IMINENTE";
+            titulo = "AMEAÇA À VIDA / PARADA IMINENTE (Estado de Mal Asmático)";
+            cor = "VERMELHO_PULSANTE";
+            recomendacao_imediata = "EMERGÊNCIA MÉDICA IMEDIATA: Mover para Sala Vermelha. Oxigenioterapia de alto fluxo, SABA + Ipratrópio contínuo/frequente, Corticoide IV imediato, Sulfato de Magnésio 2g IV em 20 min. Preparar sequência rápida de intubação com Ketamina se exaustão, com ventilação protetora.";
+        } else if (criterios_grave.length >= 2 || (criterios_grave.length >= 1 && (!isNaN(spo2) && spo2 < 92))) {
+            nivel = "GRAVE";
+            titulo = "Crise Asmática Grave";
+            cor = "LARANJA";
+            recomendacao_imediata = "Atendimento prioritário em leito monitorizado. SABA + Brometo de Ipratrópio a cada 20 min na 1ª hora, Corticoide sistêmico oral ou IV imediato, Oxigênio com alvo de SpO2 93-95%. Preparar Sulfato de Magnésio 2g IV se refratário após 1ª hora.";
+        } else {
+            criterios_leve_moderada.push("Fala frases completas ou pequenos períodos");
+            criterios_leve_moderada.push("Sem uso extremo de musculatura acessória");
+            if (!isNaN(spo2) && spo2 >= 90) criterios_leve_moderada.push("SpO2 mantida >= 90-95%");
+            if (!isNaN(pfe_pct) && pfe_pct > 50) criterios_leve_moderada.push("PFE > 50% do previsto (" + pfe_pct + "%)");
+        }
+
+        return {
+            nivel: nivel,
+            titulo: titulo,
+            cor: cor,
+            pfe_porcentagem: !isNaN(pfe_pct) ? pfe_pct : null,
+            criterios_ameaca_vida: criterios_ameaca_vida,
+            criterios_grave: criterios_grave,
+            criterios_leve_moderada: criterios_leve_moderada,
+            recomendacao_imediata: recomendacao_imediata
+        };
+    }
+
+    /**
+     * Calcula o plano escalonado de broncodilatação e medicações.
+     * @param {Object} params - Dados clínicos do paciente e gravidade
+     * @param {string} nivelGravidade - 'LEVE_MODERADA', 'GRAVE' ou 'PARADA_IMINENTE'
+     * @returns {Object} Prescrições detalhadas com doses, vias e horários
+     */
+    function calcularPlanoTratamento(params, nivelGravidade) {
+        params = params || {};
+        var idade = parseFloat(params.idade) || 30;
+        var pesoKg = parseFloat(params.pesoKg) || 70;
+        var ehPediatrico = (idade < 12) || (params.faixa_etaria === 'pediatrico');
+        var refratario1h = !!params.refratario_1h;
+        var toleranciaOral = params.tolerancia_oral !== false;
+        var gestante = !!params.gestante;
+
+        var plano = {
+            oxigenoterapia: null,
+            broncodilatacao_saba: null,
+            anticolinergico_ipratropio: null,
+            corticoide_sistemico: null,
+            sulfato_magnesio: null,
+            resgate_adjuvante: null,
+            manejo_ventilatorio: null,
+            bloqueios_seguranca: [],
+            criterios_destino: null
+        };
+
+        // 1. OXIGENOTERAPIA CONTROLADA
+        var alvoSpo2 = (gestante || ehPediatrico) ? "94% a 98%" : "93% a 95%";
+        plano.oxigenoterapia = {
+            alvo_spo2: alvoSpo2,
+            dispositivo: nivelGravidade === 'PARADA_IMINENTE' ? 
+                "Máscara com reservatório não reinalante 10-15 L/min com monitorização contínua" : 
+                "Cânula nasal de O2 1 a 3 L/min ou Máscara de Venturi titulada",
+            orientacao: "Administrar oxigênio suplementar para manter SpO2 entre " + alvoSpo2 + ". Evitar hiperóxia não controlada (SpO2 100%), pois pode agravar hipercapnia por aumento do espaço morto fisiológico (efeito Haldane)."
+        };
+
+        // 2. SABA - SALBUTAMOL (BETA-2 AGONISTA DE CURTA AÇÃO)
+        if (ehPediatrico) {
+            var jatosPed = idade < 6 ? "4 a 6 jatos" : "6 a 10 jatos";
+            var doseGtsSalb = Math.min(20, Math.max(5, Math.round(pesoKg * 0.75))); // 0.15 mg/kg = ~0.6 a 0.8 gts/kg
+            plano.broncodilatacao_saba = {
+                farmaco: "Salbutamol 100 mcg/jato (Spray/MDI) com espaçador valvulado",
+                opcao_preferencial: "Spray MDI com espaçador e máscara facial: " + jatosPed + " (1 jato por vez com 4-6 ciclos respiratórios) a cada 20 minutos na 1ª hora (ciclos aos 0, 20 e 40 minutos).",
+                opcao_alternativa_nebulizacao: "Nebulização: Salbutamol gotas (5 mg/mL) " + doseGtsSalb + " gotas (" + (doseGtsSalb * 0.25).toFixed(2) + " mg) diluídas em 3 mL de SF 0.9% sob fluxo de O2 a 6-8 L/min a cada 20 minutos na 1ª hora.",
+                nota: "O uso de espaçador valvulado é tão ou mais eficaz que nebulização, com menor taquicardia e menor aerolização viral."
+            };
+        } else {
+            plano.broncodilatacao_saba = {
+                farmaco: "Salbutamol 100 mcg/jato (Spray/MDI) com espaçador",
+                opcao_preferencial: "Spray MDI com espaçador: 4 a 10 jatos (1 jato por vez; aguardar 30-60 segundos entre jatos com apneia de 10s ou 4 respirações lentas) a cada 20 minutos na 1ª hora (3 ciclos: aos 0, 20 e 40 minutos).",
+                opcao_alternativa_nebulizacao: "Nebulização intermitente: Salbutamol gotas (5 mg/mL) 10 a 20 gotas (2.5 a 5.0 mg = 0.5 a 1.0 mL) diluídos em 3 a 4 mL de SF 0.9% a cada 20 minutos na 1ª hora (fluxo de O2 a 6-8 L/min).",
+                opcao_nebulizacao_continua: nivelGravidade === 'PARADA_IMINENTE' ? "Em estado de mal asmático refratário: Nebulização contínua a 10-15 mg/hora (2 a 3 mL da solução a 5 mg/mL por hora em nebulizador de alto fluxo)." : null,
+                nota: "Se boa resposta inicial com alívio dos sintomas, espaçar para cada 2 a 4 horas conforme necessidade."
+            };
+        }
+
+        // 3. SAMA - BROMETO DE IPRATRÓPIO (ANTICOLINÉRGICO)
+        var indicarIpratropio = (nivelGravidade === 'GRAVE' || nivelGravidade === 'PARADA_IMINENTE' || refratario1h);
+        if (indicarIpratropio) {
+            if (ehPediatrico) {
+                var doseGtsIpra = pesoKg < 20 ? 20 : 40; // 0.25mg vs 0.5mg
+                plano.anticolinergico_ipratropio = {
+                    indicado: true,
+                    farmaco: "Brometo de Ipratrópio 0.25 mg/mL (Atrovent)",
+                    posologia: "Nebulização: " + doseGtsIpra + " gotas (" + (doseGtsIpra === 20 ? "0.25 mg" : "0.50 mg") + ") diluídas junto com o Salbutamol a cada 20 minutos nas primeiras 3 doses (1ª hora).",
+                    spray_alternativo: "Spray MDI com espaçador: 4 a 8 jatos (20 mcg/jato) a cada 20 minutos na 1ª hora.",
+                    justificativa: "Associação sinérgica na crise grave que reduz significativamente as taxas de hospitalização e melhora função pulmonar."
+                };
+            } else {
+                plano.anticolinergico_ipratropio = {
+                    indicado: true,
+                    farmaco: "Brometo de Ipratrópio 0.25 mg/mL (Atrovent) ou Spray 20 mcg/jato",
+                    posologia: "Nebulização: 40 gotas (0.5 mg = 2.0 mL) adicionadas ao mesmo copo do Salbutamol a cada 20 minutos nas primeiras 3 doses (1ª hora).",
+                    spray_alternativo: "Spray MDI com espaçador: 4 a 8 jatos (20 mcg/jato) a cada 20 minutos na 1ª hora associado ao SABA.",
+                    justificativa: "Recomendação GINA/SBPT classe I na crise moderada/grave: bloqueia tônus colinérgico vagal e reduz necessidade de intubação."
+                };
+            }
+        } else {
+            plano.anticolinergico_ipratropio = {
+                indicado: false,
+                motivo: "Não indicado de rotina na crise leve que responde bem ao primeiro ciclo de SABA isolado. Reservar se resposta incompleta."
+            };
+        }
+
+        // 4. CORTICOTERAPIA SISTÊMICA PRECOCE (MANDATÓRIA NA 1ª HORA)
+        var usarIv = (!toleranciaOral || nivelGravidade === 'PARADA_IMINENTE' || nivelGravidade === 'GRAVE');
+        if (ehPediatrico) {
+            var dosePrednisolonaPed = Math.min(50, Math.max(10, Math.round(pesoKg * 1.5))); // 1 a 2 mg/kg/dia
+            plano.corticoide_sistemico = {
+                momento: "Administrar na PRIMEIRA HORA do atendimento (efeito genômico anti-inflamatório inicia em 4-6 horas).",
+                via_preferencial: usarIv ? "INTRAVENOSA" : "ORAL",
+                oral: "Prednisolona solução oral (3 mg/mL): " + dosePrednisolonaPed + " mg (" + (dosePrednisolonaPed / 3).toFixed(1) + " mL) VO uma vez ao dia pela manhã por 3 a 5 dias.",
+                intravenoso: "Hidrocortisona: 4 a 5 mg/kg IV a cada 6 horas (dose máx: 200 mg/dose); OU Metilprednisolona 1 mg/kg IV a cada 12 horas.",
+                duracao: "Tratamento curto de 3 a 5 dias. Não necessita de desmame gradual."
+            };
+        } else {
+            plano.corticoide_sistemico = {
+                momento: "Administrar IMEDIATAMENTE na PRIMEIRA HORA da chegada ao PS.",
+                via_preferencial: usarIv ? "INTRAVENOSA (pela gravidade/risco de broncoaspiração)" : "ORAL (tão eficaz e rápida absorção quanto IV se tolerar VO)",
+                oral: "Prednisona ou Prednisolona 40 a 50 mg VO em dose única diária pela manhã por 5 a 7 dias.",
+                intravenoso: "Hidrocortisona 200 mg IV em bolus imediato, seguido de 100 mg IV a cada 6 horas; OU Metilprednisolona 40 a 60 mg IV a cada 6 a 12 horas.",
+                duracao: "Manter por 5 a 7 dias em adultos. Não necessita de redução progressiva/desmame se usado por até 7-10 dias."
+            };
+        }
+
+        // 5. SULFATO DE MAGNÉSIO 2G IV (INDICAÇÃO OPORTUNA NA CRISE REFRATÁRIA OU PARADA IMINENTE)
+        var indicarSulfatoMg = (nivelGravidade === 'PARADA_IMINENTE' || nivelGravidade === 'GRAVE' || refratario1h);
+        if (indicarSulfatoMg) {
+            if (ehPediatrico) {
+                var doseMgPed = Math.min(2000, Math.round(pesoKg * 50)); // 40-50 mg/kg, máx 2g
+                var mlMg50Ped = (doseMgPed / 500).toFixed(1); // 50% = 500mg/mL
+                plano.sulfato_magnesio = {
+                    indicado: true,
+                    farmaco: "Sulfato de Magnésio 50% IV",
+                    dose: doseMgPed + " mg (" + mlMg50Ped + " mL da solução a 50%)",
+                    diluicao: "Diluir em 100 mL de Solução Fisiológica 0.9% ou SG 5%",
+                    tempo_infusao: "Infundir por via intravenosa em 20 a 30 minutos em bomba de infusão contínua",
+                    monitoramento: "Monitorar pressão arterial (risco de vasodilatação e hipotensão), frequência respiratória e reflexo patelar.",
+                    mecanismo: "Potente relaxamento da musculatura lisa brônquica por bloqueio dos canais de cálcio dependentes de voltagem e inibição da liberação de acetilcolina pré-sináptica."
+                };
+            } else {
+                plano.sulfato_magnesio = {
+                    indicado: true,
+                    farmaco: "Sulfato de Magnésio IV",
+                    dose: "2,0 g (Sulfato de Magnésio 50%: 4 mL; OU Sulfato de Magnésio 10%: 20 mL)",
+                    diluicao: "Diluir em 100 mL de Solução Fisiológica 0.9% ou Soro Glicosado 5%",
+                    tempo_infusao: "Infundir IV em 20 minutos (evitar bolus rápido para não deflagrar hipotensão e rubor facial)",
+                    monitoramento: "Monitorar PA, FC, FR e reflexos tendinosos profundos (patelar) durante a infusão.",
+                    justificativa: "Recomendado pelas diretrizes GINA/SBPT em crises que persistem com PFE < 50% ou SpO2 < 92% após a 1ª hora, ou em qualquer paciente com sinais de ameaça à vida na apresentação inicial."
+                };
+            }
+        } else {
+            plano.sulfato_magnesio = {
+                indicado: false,
+                criterio: "Indicar Sulfato de Magnésio 2g IV em 20 min caso o paciente mantenha PFE < 50% ou SpO2 < 92% após a 1ª hora de broncodilatação intensiva."
+            };
+        }
+
+        // 6. RESGATE ADJUVANTE PARENTERAL (ESTADO DE MAL ASMÁTICO / TÓRAX SILENCIOSO)
+        if (nivelGravidade === 'PARADA_IMINENTE') {
+            var doseAdrenalina = ehPediatrico ? (Math.min(0.5, Math.round(pesoKg * 0.01 * 100) / 100) + " mg (0.01 mg/kg)") : "0.3 a 0.5 mg (0.3 a 0.5 mL da solução 1:1000)";
+            plano.resgate_adjuvante = {
+                farmaco: "Adrenalina (Epinefrina) 1:1000 (1 mg/mL) por via INTRAMUSCULAR",
+                dose: doseAdrenalina + " IM no vasto lateral da coxa",
+                repeticao: "Pode ser repetida a cada 10 a 15 minutos até 3 doses se persistência de broncoespasmo intratável.",
+                indicacao_precisa: "Indicado se suspeita de anafilaxia associada OU crise asmática extrema com fluxo aéreo tão crítico (tórax silencioso) que impede a penetração alveolar do aerossol inalatório."
+            };
+        }
+
+        // 7. MANEJO VENTILATÓRIO E PRECAUÇÕES DE INTUBAÇÃO
+        plano.manejo_ventilatorio = {
+            aviso_vital: "EVITAR A INTUBAÇÃO OROTRAQUEAL (IOT) AO MÁXIMO! A IOT na crise de asma apresenta altíssimo índice de complicações letais (hiperinsuflação dinâmica, auto-PEEP extrema, pneumotórax hipertensivo e colapso hemodinâmico por perda de retorno venoso).",
+            indicacoes_absolutas_iot: [
+                "Parada cardiorrespiratória ou respiração agônica iminente",
+                "Coma ou rebaixamento severo de consciência (Glasgow < 8) por narcose hipercápnica",
+                "Exaustão motora extrema e colapso muscular ventilatório",
+                "Acidose respiratória refratária severa e progressiva (pH < 7.15 a 7.20)"
+            ],
+            sequencia_rapida_intubacao: {
+                pre_oxigenacao: "Pré-oxigenação com máscara com reservatório e baixo esforço; evitar ventilação excessiva com ambú para não distender estômago e pulmão.",
+                inducao_escolha: "KETAMINA 1.5 a 2.0 mg/kg IV (fármaco de indução padrão-ouro na asma: potente broncodilatador simpaticomimético direto).",
+                bloqueador_neuromuscular: "SUCCINILCOLINA 1.5 mg/kg IV ou ROCURÔNIO 1.2 mg/kg IV.",
+                contraindicados_inducao: "Evitar Fentanil em bolus rápido e Morfina (liberação de histamina e broncoespasmo reflexo)."
+            },
+            parametros_ventilador_protetor: {
+                modo: "VCV (Volume Controlado) ou PCV",
+                volume_corrente: "5 a 6 mL/kg de peso predito (PBW) para evitar hiperdistensão alveolar",
+                frequencia_respiratoria: "10 a 12 irpm (BAIXA, permitindo tempo expiratório longo)",
+                tempo_expiratorio_ie: "Relação I:E de 1:3 a 1:5 (fluxo inspiratório alto 60-80 L/min com onda quadrada)",
+                peep: "PEEP BAIXA: 0 a 5 cmH2O (para não somar ao auto-PEEP intrínseco)",
+                alvo_mecanica: "Pressão de Platô (Pplat) < 30 cmH2O e Driving Pressure < 15 cmH2O",
+                estrategia_gasometrica: "HIPERCAPNIA PERMISSIVA: tolerar PaCO2 de 50 a 70 mmHg desde que pH >= 7.20.",
+                conduta_colapso_pos_iot: "ALERTA SENTINELA: Se ocorrer hipotensão súbita ou assistolia imediatamente após a intubação: DESCONECTAR O PACIENTE DO VENTILADOR IMEDIATAMENTE e comprimir o tórax manualmente para esvaziar o ar aprisionado (alívio imediato de auto-PEEP extrema e tamponamento gasoso torácico), e afastar pneumotórax hipertensivo!"
+            }
+        };
+
+        // 8. BLOQUEIOS DE SEGURANÇA E CONTRAINDICAÇÕES CRÍTICAS
+        plano.bloqueios_seguranca.push("🚫 CONTRAINDICAÇÃO FORMAL: NUNCA prescrever sedativos, ansiolíticos (Benzodiazepínicos como Diazepam/Midazolam) ou opioides na crise asmática em paciente sem via aérea definitiva intubada! Causa depressão respiratória aguda e parada cardiorrespiratória por abolição do drive ventilatório de exaustão.");
+        plano.bloqueios_seguranca.push("🚫 CONTRAINDICAÇÃO DE ANTIBIÓTICOS ROTINEIROS: Não indicar antimicrobianos empiricamente para exacerbação de asma. Mais de 80% das crises são deflagradas por infecções virais respiratórias ou alérgenos. Reservar apenas se pneumonia bacteriana confirmada radiologicamente ou febre alta mantida com expectoração francamente purulenta.");
+        plano.bloqueios_seguranca.push("🚫 CONTRAINDICAÇÃO DE MUCOLÍTICOS: Fluidificantes e mucolíticos (ex: Acetilcisteína inalatória) são formalmente contraindicados na fase aguda de broncoespasmo (pioram tosse, irritação e broncoconstrição reflexa).");
+
+        // 9. CRITÉRIOS DE DESTINO E PRESCRIÇÃO DE ALTA
+        plano.criterios_destino = {
+            alta_emergencia: {
+                criterios: [
+                    "Sintomas resolvidos e fala fluida sem dispneia",
+                    "Ausência de uso de musculatura acessória e ausculta limpa ou com sibilos mínimos",
+                    "SpO2 > 94% em ar ambiente mantida por pelo menos 1 a 2 horas após a última dose de SABA",
+                    "Pico de Fluxo Expiratório (PFE) > 70% do previsto ou do melhor pessoal"
+                ],
+                prescricao_alta: [
+                    "1. Corticoide Oral: Prednisona 40 a 50 mg/dia VO pela manhã por 5 a 7 dias (adultos) ou Prednisolona 1-2 mg/kg/dia por 3 a 5 dias (crianças).",
+                    "2. Corticoide Inalatório de Manutenção: Iniciar ou otimizar CI (ex: Budesonida 200 a 400 mcg 12/12h OU Budesonida + Formoterol) para prevenir exacerbações precoces.",
+                    "3. Broncodilatador de Resgate: Salbutamol Spray 100 mcg (2 a 4 jatos com espaçador se sintomas de falta de ar).",
+                    "4. Orientação Técnica: Revisar minuciosamente a técnica de uso do inalador dosimetrado com espaçador antes da alta hospitalar.",
+                    "5. Retorno: Consulta médica ambulatorial de retorno agendada em 2 a 7 dias com plano de ação escrito."
+                ]
+            },
+            internacao_enfermaria: {
+                criterios: [
+                    "Resposta intermediária ao tratamento inicial",
+                    "PFE entre 50% e 70% após 1ª a 2ª hora de broncodilatação",
+                    "Necessidade persistente de SABA a cada 2 a 3 horas para controle sintomático",
+                    "Fatores de risco psicossocial, falta de suporte familiar ou exacerbações graves recentes"
+                ]
+            },
+            internacao_uti: {
+                criterios: [
+                    "Apresentação inicial com tórax silencioso, acidose ou alteração neurológica",
+                    "PFE < 50% persistente após 1ª hora de broncodilatação intensiva",
+                    "Necessidade de infusão de Sulfato de Magnésio IV",
+                    "Hipercapnia (PaCO2 normal ou em ascensão) com fadiga muscular",
+                    "Necessidade de intubação traqueal e ventilação mecânica invasiva"
+                ]
+            }
+        };
+
+        return plano;
+    }
+
+    /**
+     * Orquestrador principal da avaliação de crise asmática.
+     * @param {Object} params
+     * @returns {Object} Avaliação completa com classificação e prescrições
+     */
+    function avaliarCriseAsmatica(params) {
+        params = params || {};
+        var gravidade = classificarGravidade(params);
+        var plano = calcularPlanoTratamento(params, gravidade.nivel);
+
+        return {
+            gravidade: gravidade,
+            plano: plano,
+            params_recebidos: params
+        };
+    }
+
+    /**
+     * Formata os resultados para o Telegram com sintaxe Markdown rica.
+     * @param {Object} analise - Resultado retornado por avaliarCriseAsmatica
+     * @returns {string} Mensagem clínica estruturada
+     */
+    function formatarTextoTelegram(analise) {
+        var g = analise.gravidade;
+        var p = analise.plano;
+
+        var txt = "🫁 *PNEUMOLOGIA & EMERGÊNCIA — MANEJO DA CRISE ASMÁTICA*\n\n";
+        
+        txt += "📊 *ESTRATIFICAÇÃO DE GRAVIDADE:*\n";
+        txt += "• Classificação: *" + g.titulo + "*\n";
+        if (g.pfe_porcentagem !== null) {
+            txt += "• Pico de Fluxo Expiratório (PFE): *" + g.pfe_porcentagem + "% do previsto*\n";
+        }
+
+        if (g.criterios_ameaca_vida.length > 0) {
+            txt += "🚨 *SINAIS DE AMEAÇA À VIDA / PARADA IMINENTE DETECTADOS:*\n";
+            g.criterios_ameaca_vida.forEach(function(c) {
+                txt += "  ⚠️ " + c + "\n";
+            });
+        } else if (g.criterios_grave.length > 0) {
+            txt += "⚠️ *Critérios de Gravidade Presentes:*\n";
+            g.criterios_grave.forEach(function(c) {
+                txt += "  • " + c + "\n";
+            });
+        } else {
+            txt += "✅ Padrão clínico compatível com crise leve a moderada.\n";
+        }
+
+        txt += "\n👉 *CONDUTA IMEDIATA:* " + g.recomendacao_imediata + "\n";
+
+        txt += "\n💊 *PROTOCOLO ESCALONADO DE MEDICAÇÕES:*\n";
+        
+        // Oxigênio
+        txt += "1️⃣ *Oxigenoterapia:* Alvo SpO2 *" + p.oxigenoterapia.alvo_spo2 + "* via " + p.oxigenoterapia.dispositivo + ".\n";
+        
+        // SABA
+        txt += "2️⃣ *SABA (Salbutamol):* " + p.broncodilatacao_saba.opcao_preferencial + "\n";
+        if (p.broncodilatacao_saba.opcao_nebulizacao_continua) {
+            txt += "   ↳ _" + p.broncodilatacao_saba.opcao_nebulizacao_continua + "_\n";
+        }
+
+        // Ipratrópio
+        if (p.anticolinergico_ipratropio && p.anticolinergico_ipratropio.indicado) {
+            txt += "3️⃣ *Anticolinérgico (Brometo de Ipratrópio):* " + p.anticolinergico_ipratropio.posologia + "\n";
+        }
+
+        // Corticoide
+        txt += "4️⃣ *Corticoide Sistêmico (Administrar na 1ª hora):*\n";
+        txt += "   • Via Oral: " + p.corticoide_sistemico.oral + "\n";
+        txt += "   • Via IV: " + p.corticoide_sistemico.intravenoso + "\n";
+
+        // Sulfato de Magnésio
+        if (p.sulfato_magnesio && p.sulfato_magnesio.indicado) {
+            txt += "\n⚡ *SULFATO DE MAGNÉSIO 2G IV (INDICAÇÃO MANDATÓRIA):*\n";
+            txt += "   • *Dose:* " + p.sulfato_magnesio.dose + "\n";
+            txt += "   • *Diluição:* " + p.sulfato_magnesio.diluicao + "\n";
+            txt += "   • *Infusão:* " + p.sulfato_magnesio.tempo_infusao + "\n";
+        }
+
+        // Resgate Adrenalina
+        if (p.resgate_adjuvante) {
+            txt += "\n💉 *ADRENALINA IM DE RESGATE:* " + p.resgate_adjuvante.dose + " (" + p.resgate_adjuvante.indicacao_precisa + ").\n";
+        }
+
+        // Ventilação
+        if (g.nivel === 'PARADA_IMINENTE' || g.nivel === 'GRAVE') {
+            txt += "\n🫁 *ESTRATÉGIA VENTILATÓRIA & IOT PROTETORA:*\n";
+            txt += "• *Indução de Escolha:* " + p.manejo_ventilatorio.sequencia_rapida_intubacao.inducao_escolha + "\n";
+            txt += "• *Parâmetros do Respirador:* Vt 5-6 mL/kg predito, FR 10-12 rpm, Relação I:E 1:3 a 1:4, PEEP baixa (0-5), Hipercapnia permissiva (pH >= 7.20).\n";
+            txt += "• ⚠️ *" + p.manejo_ventilatorio.parametros_ventilador_protetor.conduta_colapso_pos_iot + "*\n";
+        }
+
+        // Bloqueios
+        txt += "\n🛡️ *BLOQUEIOS DE SEGURANÇA:*\n";
+        p.bloqueios_seguranca.forEach(function(b) {
+            txt += "• " + b + "\n";
+        });
+
+        txt += "\n_Referência: Diretrizes GINA 2024-2026 / SBPT (Sociedade Brasileira de Pneumologia e Tisiologia)_";
+
+        return txt;
+    }
+
+    return {
+        classificarGravidade: classificarGravidade,
+        calcularPlanoTratamento: calcularPlanoTratamento,
+        avaliarCriseAsmatica: avaliarCriseAsmatica,
+        formatarTextoTelegram: formatarTextoTelegram
+    };
+})();
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = PneumologiaCriseAsmaticaService;
 }
 
 
@@ -18378,6 +22150,635 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_suporte_nutricional_pediatrico.js
+// ==============================================================================
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * MÓDULO 02: SUPORTE NUTRICIONAL EM PEDIATRIA E TERAPIA NUTRICIONAL
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * Motor Determinístico Beira-Leito para Cálculos Nutricionais Pediátricos:
+ *  1. Fórmula de Holliday-Segar (Manutenção Hídrica, Vazão Horária 4-2-1 e Ajustes Clínicos)
+ *  2. Prescrição Eletrolítica de Manutenção (SBP / AAP - Prevenção de Hiponatremia Hospitalar)
+ *  3. Taxa de Infusão de Glicose (TIG) Basal e Suporte Calórico
+ *  4. Diluição e Preparo Seguro de Fórmulas Infantis (Padronização 1 medida para 30 mL)
+ *  5. Seleção Racional de Fórmulas Especiais (APLV, Prematuros, AR, Sem Lactose, AAF)
+ *  6. Alertas Beira-Leito: Hipodiluição, Hiperconcentração, Cronobacter sakazakii e Bloqueios
+ *
+ * REFERÊNCIAS CLÍNICAS OFICIAIS:
+ *  - Holliday MA, Segar WE. "The maintenance need for water in parenteral fluid therapy" (Pediatrics 1957)
+ *  - Sociedade Brasileira de Pediatria (SBP) - Departamento de Nutrologia e Terapia Nutricional (2023-2026)
+ *  - American Academy of Pediatrics (AAP) - Clinical Practice Guideline: Maintenance Intravenous Fluids in Children (2018/reafirmado)
+ *  - ESPGHAN Committee on Nutrition - Pediatric Enteral and Parenteral Guidelines (2022-2026)
+ *  - Ministério da Saúde do Brasil - Guia Alimentar para Crianças Brasileiras Menores de 2 Anos
+ *  - OMS / FAO - Safe preparation, storage and handling of powdered infant formula guidelines
+ * ═══════════════════════════════════════════════════════════════════════════════
+ */
+
+var SuporteNutricionalPediatricoService = (function () {
+  'use strict';
+
+  var EPS = 1e-9;
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // CONSTANTES & PADRÕES CLÍNICOS
+  // ───────────────────────────────────────────────────────────────────────────
+  var DILUICAO_PADRAO_ML_POR_MEDIDA = 30; // 1 scoop raso para cada 30 mL de água fervida morna
+  var DENSIDADE_PADRAO_KCAL_ML = 0.67;    // ~67 kcal/100 mL para fórmulas padrão de lactentes
+  var DENSIDADE_PREMATURO_KCAL_ML = 0.80; // ~80 kcal/100 mL para fórmulas de pré-termo
+  var DENSIDADE_HIPERCALORICA_KCAL_ML = 1.0; // 1.0 kcal/mL
+
+  var TIPOS_FORMULA = {
+    'partida': {
+      nome: 'Fórmula Infantil de Partida (Fase 1)',
+      faixaEtaria: '0 a 6 meses',
+      medidaMl: 30,
+      densidadeKcalMl: 0.67,
+      descricao: 'Predomínio de proteínas do soro (60/40), lactose como carboidrato primário, DHA/ARA.'
+    },
+    'seguimento': {
+      nome: 'Fórmula Infantil de Seguimento (Fase 2)',
+      faixaEtaria: '6 a 12 meses',
+      medidaMl: 30,
+      densidadeKcalMl: 0.67,
+      descricao: 'Maior teor de ferro, cálcio e caseína para complementar a introdução alimentar sólida.'
+    },
+    'prematuro': {
+      nome: 'Fórmula para Prematuros / PIG',
+      faixaEtaria: 'Recém-nascidos pré-termo até 40-52 sem IG corrigida',
+      medidaMl: 30,
+      densidadeKcalMl: 0.80,
+      descricao: 'Hipercalórica (~80 kcal/100mL), TCM (lipídios de fácil absorção), alto teor proteico e mineral.'
+    },
+    'anti_regurgitacao': {
+      nome: 'Fórmula Anti-Regurgitação (AR)',
+      faixaEtaria: '0 a 12 meses',
+      medidaMl: 30,
+      densidadeKcalMl: 0.67,
+      descricao: 'Espessada com amido de milho pré-gelatinizado ou goma jataí. Indicada para RGE sintomático com regurgitações volumosas.'
+    },
+    'sem_lactose': {
+      nome: 'Fórmula Sem Lactose (SL)',
+      faixaEtaria: '0 a 12 meses',
+      medidaMl: 30,
+      densidadeKcalMl: 0.67,
+      descricao: 'Carboidratos à base de maltodextrina. Indicada na diarreia persistente com intolerância secundária à lactose. NÃO indicada para APLV.'
+    },
+    'hidrolisada_extensa': {
+      nome: 'Fórmula Extensamente Hidrolisada (eHF)',
+      faixaEtaria: '0 a 12 meses',
+      medidaMl: 30,
+      densidadeKcalMl: 0.67,
+      descricao: '1ª linha para Alergia à Proteína do Leite de Vaca (APLV) leve a moderada. Peptídeos com peso < 1.500 Da.'
+    },
+    'aminoacidos': {
+      nome: 'Fórmula de Aminoácidos Livres (AAF)',
+      faixaEtaria: '0 a 12 meses',
+      medidaMl: 30,
+      densidadeKcalMl: 0.68,
+      descricao: '100% aminoácidos livres elementares. Indicada para APLV com anafilaxia, proctocolite grave, falência de crescimento ou falha de eHF.'
+    },
+    'soja': {
+      nome: 'Fórmula à Base de Proteína Isolada de Soja',
+      faixaEtaria: 'Somente a partir de 6 meses',
+      medidaMl: 30,
+      densidadeKcalMl: 0.67,
+      descricao: 'Alternativa em galactosemia ou vegetarianismo estrito após os 6 meses. CONTRAINDICADA em < 6 meses pelo risco de fitoestrógenos.'
+    }
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // HELPERS MATEMÁTICOS E DE FORMATAÇÃO
+  // ───────────────────────────────────────────────────────────────────────────
+  function arred(val, casas) {
+    if (!Number.isFinite(val)) return 0;
+    var f = Math.pow(10, casas || 0);
+    return Math.round((val + EPS) * f) / f;
+  }
+
+  function fmt(val, casas) {
+    if (val === null || val === undefined || !Number.isFinite(val)) return '—';
+    return arred(val, casas).toFixed(casas).replace('.', ',');
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. CÁLCULO DE HOLLIDAY-SEGAR (MANUTENÇÃO HÍDRICA PEDIÁTRICA)
+  // ───────────────────────────────────────────────────────────────────────────
+  /**
+   * Calcula o volume de manutenção hídrica diário e taxa horária pela Fórmula de Holliday-Segar.
+   * @param {number} pesoKg Peso da criança em kg
+   * @param {Object} opcoes Opções clínicas (condicaoClinica, temperaturaC, percentualAjuste)
+   * @returns {Object} Dados do cálculo hídrico
+   */
+  function calcularHollidaySegar(pesoKg, opcoes) {
+    opcoes = opcoes || {};
+    var p = Number(pesoKg);
+    if (!p || p <= 0 || isNaN(p)) {
+      throw new Error('Peso em kg inválido ou não fornecido para cálculo de Holliday-Segar.');
+    }
+
+    // 1. Volume Basal Holliday-Segar (mL/24h)
+    var volBasal = 0;
+    if (p <= 10) {
+      volBasal = p * 100;
+    } else if (p <= 20) {
+      volBasal = 1000 + (p - 10) * 50;
+    } else {
+      volBasal = 1500 + (p - 20) * 20;
+    }
+
+    // Alerta se peso exceder teto habitual de enfermaria pediátrica / adulto
+    var tetoMaximoRecomendado = 2500;
+    var alertaTetoAdulto = false;
+    if (volBasal > tetoMaximoRecomendado) {
+      alertaTetoAdulto = true;
+    }
+
+    // 2. Regra 4-2-1 para Vazão Horária Basal (mL/h)
+    var vazaoBasal421 = 0;
+    if (p <= 10) {
+      vazaoBasal421 = p * 4;
+    } else if (p <= 20) {
+      vazaoBasal421 = (10 * 4) + ((p - 10) * 2);
+    } else {
+      vazaoBasal421 = (10 * 4) + (10 * 2) + ((p - 20) * 1);
+    }
+
+    // 3. Fatores de Ajuste Clínico
+    var condicao = String(opcoes.condicaoClinica || 'manutencao_padrao').toLowerCase();
+    var percentual = 100;
+    var justificativaAjuste = 'Manutenção basal habitual (100% de Holliday-Segar).';
+
+    if (opcoes.percentualAjuste && Number(opcoes.percentualAjuste) > 0) {
+      percentual = Number(opcoes.percentualAjuste);
+      justificativaAjuste = 'Ajuste percentual customizado para ' + percentual + '%.';
+    } else if (condicao === 'restricao_bronquiolite' || condicao === 'bronquiolite') {
+      percentual = 70;
+      justificativaAjuste = 'Restrição hídrica (70%): recomendada na Bronquiolite Viral Aguda moderada/grave para prevenir sobrecarga hídrica pulmonar (estímulo não-osmótico de ADH).';
+    } else if (condicao === 'restricao_ic' || condicao === 'cardiopatia' || condicao === 'edema') {
+      percentual = 60;
+      justificativaAjuste = 'Restrição hídrica rigorosa (60%): indicada em Cardiopatias congênitas descompensadas, ICC ou Síndrome Nefrótica.';
+    } else if (condicao === 'siadh' || condicao === 'oliguria') {
+      percentual = 50;
+      justificativaAjuste = 'Restrição hídrica severa (50%): indicada em SIADH, insuficiência renal oligúrica ou pós-parada.';
+    } else if (condicao === 'desidratacao_leve' || condicao === 'reposicao_perdas') {
+      percentual = 125;
+      justificativaAjuste = 'Acréscimo hídrico (125%): manutenção acrescida de cota para reposição de déficit leve ou perdas digestivas em curso.';
+    } else if (condicao === 'catch_up' || condicao === 'desnutricao') {
+      percentual = 120;
+      justificativaAjuste = 'Acréscimo metabólico (120%): terapia nutricional de recuperação ponderal (catch-up growth).';
+    } else if (condicao === 'febre') {
+      var temp = Number(opcoes.temperaturaC || 38.5);
+      if (temp > 37.8) {
+        var grausAcima = temp - 37.8;
+        var incremento = Math.min(36, Math.round(grausAcima * 12)); // 12% por grau acima de 37.8
+        percentual = 100 + incremento;
+        justificativaAjuste = 'Acréscimo por febre (' + fmt(temp, 1) + '°C): +' + incremento + '% para compensar perdas insensíveis aumentadas.';
+      }
+    }
+
+    var volAjustado = arred((volBasal * percentual) / 100, 1);
+    var vazaoAjustadaMlH = arred(volAjustado / 24, 1);
+
+    // 4. Prescrição Eletrolítica de Manutenção (Diretrizes SBP e AAP)
+    // Sódio: 2 a 3 mEq / 100 mL de solução (solução balanceada ou isotônica)
+    var sodioTotalMeq = arred((volAjustado / 100) * 2.5, 1);
+    var sodioMeqKgDia = arred(sodioTotalMeq / p, 2);
+
+    // Potássio: 2 mEq / 100 mL de solução (adicionar APENAS após diurese presente)
+    var potassioTotalMeq = arred((volAjustado / 100) * 2.0, 1);
+    var potassioMeqKgDia = arred(potassioTotalMeq / p, 2);
+
+    // 5. Cálculo da TIG (Taxa de Infusão de Glicose) em SG 5%
+    // TIG (mg/kg/min) = (% Glicose * Vazão mL/h * 10) / (pesoKg * 60) = (% * Vazão) / (p * 6)
+    var tigSg5 = arred((5 * vazaoAjustadaMlH) / (p * 6), 2);
+    var tigSg10 = arred((10 * vazaoAjustadaMlH) / (p * 6), 2);
+
+    var alertas = [];
+    if (alertaTetoAdulto) {
+      alertas.push('⚠️ ATENÇÃO AO TETO HÍDRICO: O volume calculado (' + volBasal + ' mL) ultrapassa o limite adulto padrão (2.500 mL/dia). Avaliar prescrição de manutenção baseada em adulto.');
+    }
+    alertas.push('🚨 SEGURANÇA ELETROLÍTICA (SBP/AAP): Prescrever preferencialmente fluidos isotônicos (ex: NaCl 0.9% ou NaCl 0.45%) para evitar HIPONATREMIA HOSPITALAR AGUDA grave induzida por secreção não osmótica de ADH.');
+    alertas.push('⚠️ REGRA DO POTÁSSIO: O cloreto de potássio (KCl) DEVE ser adicionado à solução SOMENTE após confirmação de micção espontânea/diurese efetiva preservada (risco de hipercalemia fatal na anúria).');
+
+    return {
+      pesoKg: p,
+      volumeBasal24h: arred(volBasal, 1),
+      volumeBasalMlKgDia: arred(volBasal / p, 1),
+      volumeAjustado24h: volAjustado,
+      volumeAjustadoMlKgDia: arred(volAjustado / p, 1),
+      vazaoHorariaMlH: vazaoAjustadaMlH,
+      vazaoBasal421MlH: arred(vazaoBasal421, 1),
+      percentualAplicado: percentual,
+      condicaoClinica: condicao,
+      justificativaAjuste: justificativaAjuste,
+      eletrolitos: {
+        sodioTotalMeqDia: sodioTotalMeq,
+        sodioMeqKgDia: sodioMeqKgDia,
+        potassioTotalMeqDia: potassioTotalMeq,
+        potassioMeqKgDia: potassioMeqKgDia,
+        orientacaoSodio: '2,5 mEq de Na+ para cada 100 mL de solução (recomenda-se evitar SG 5% puro ou soluções excessivamente hipotônicas).',
+        orientacaoPotassio: '2,0 mEq de K+ para cada 100 mL de solução (iniciar somente com diurese confirmada).'
+      },
+      glicoseTig: {
+        tigComSg5: tigSg5,
+        tigComSg10: tigSg10,
+        faixaRecomendadaLactente: '4,0 a 6,0 mg/kg/min',
+        avaliacao: (tigSg5 >= 4.0 && tigSg5 <= 6.5)
+          ? 'TIG adequada com SG 5% para prevenir hipoglicemia e cetose.'
+          : (tigSg5 < 4.0 ? 'TIG baixa com SG 5% (< 4 mg/kg/min). Considerar SG 7.5% ou SG 10% para suprir demanda metabólica.' : 'TIG elevada com SG 5%.')
+      },
+      alertas: alertas
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. METAS NUTRICIONAIS E CALÓRICAS PEDIÁTRICAS
+  // ───────────────────────────────────────────────────────────────────────────
+  /**
+   * Fornece metas calóricas, proteicas e hídricas por faixa etária segundo SBP/ESPGHAN.
+   * @param {number} pesoKg Peso em kg
+   * @param {number} idadeMeses Idade em meses
+   * @param {string} condicao Condição clínica ('padrao', 'catch_up', 'prematuro', 'critico')
+   * @returns {Object} Metas nutricionais estimadas
+   */
+  function calcularMetasNutricionais(pesoKg, idadeMeses, condicao) {
+    var p = Number(pesoKg || 5);
+    var idade = Number(idadeMeses !== undefined && idadeMeses !== null ? idadeMeses : 3);
+    condicao = String(condicao || 'padrao').toLowerCase();
+
+    var metaKcalKgMin = 100;
+    var metaKcalKgMax = 115;
+    var metaProtKgMin = 1.5;
+    var metaProtKgMax = 2.0;
+    var descricaoFaixa = '';
+
+    if (condicao === 'prematuro' || idade < 0) {
+      descricaoFaixa = 'Recém-Nascido Pré-termo / PIG';
+      metaKcalKgMin = 110;
+      metaKcalKgMax = 135;
+      metaProtKgMin = 3.0;
+      metaProtKgMax = 4.0;
+    } else if (idade < 6) {
+      descricaoFaixa = 'Lactente jovem (0 a 6 meses)';
+      metaKcalKgMin = 100;
+      metaKcalKgMax = 115;
+      metaProtKgMin = 1.5;
+      metaProtKgMax = 2.0;
+    } else if (idade < 12) {
+      descricaoFaixa = 'Lactente (6 a 12 meses)';
+      metaKcalKgMin = 85;
+      metaKcalKgMax = 100;
+      metaProtKgMin = 1.2;
+      metaProtKgMax = 1.5;
+    } else if (idade < 36) {
+      descricaoFaixa = 'Primeira infância (1 a 3 anos)';
+      metaKcalKgMin = 75;
+      metaKcalKgMax = 90;
+      metaProtKgMin = 1.0;
+      metaProtKgMax = 1.2;
+    } else if (idade < 84) {
+      descricaoFaixa = 'Pré-escolar (3 a 7 anos)';
+      metaKcalKgMin = 65;
+      metaKcalKgMax = 75;
+      metaProtKgMin = 0.9;
+      metaProtKgMax = 1.1;
+    } else {
+      descricaoFaixa = 'Escolar e Adolescente (> 7 anos)';
+      metaKcalKgMin = 45;
+      metaKcalKgMax = 65;
+      metaProtKgMin = 0.9;
+      metaProtKgMax = 1.0;
+    }
+
+    if (condicao === 'catch_up') {
+      metaKcalKgMin = arred(metaKcalKgMin * 1.25, 0);
+      metaKcalKgMax = arred(metaKcalKgMax * 1.30, 0);
+      metaProtKgMin = arred(metaProtKgMin * 1.2, 1);
+      metaProtKgMax = arred(metaProtKgMax * 1.25, 1);
+      descricaoFaixa += ' [Recuperação Nutricional / Catch-Up]';
+    } else if (condicao === 'critico') {
+      metaKcalKgMin = arred(metaKcalKgMin * 0.8, 0);
+      metaKcalKgMax = arred(metaKcalKgMax * 0.85, 0);
+      descricaoFaixa += ' [Fase Aguda Crítica / UTI]';
+    }
+
+    var kcalDiaMin = arred(p * metaKcalKgMin, 0);
+    var kcalDiaMax = arred(p * metaKcalKgMax, 0);
+    var protDiaMin = arred(p * metaProtKgMin, 1);
+    var protDiaMax = arred(p * metaProtKgMax, 1);
+
+    return {
+      faixaEtaria: descricaoFaixa,
+      pesoKg: p,
+      idadeMeses: idade,
+      metaCaloricaKcalKg: { min: metaKcalKgMin, max: metaKcalKgMax },
+      metaCaloricaTotalDiaKcal: { min: kcalDiaMin, max: kcalDiaMax },
+      metaProteicaGKg: { min: metaProtKgMin, max: metaProtKgMax },
+      metaProteicaTotalDiaG: { min: protDiaMin, max: protDiaMax }
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. CALCULADORA DETERMINÍSTICA DE DILUIÇÃO E PREPARO DE FÓRMULAS INFANTIS
+  // ───────────────────────────────────────────────────────────────────────────
+  /**
+   * Calcula a diluição de fórmula infantil com respeito inflexível à padronização 1 medida para 30 mL.
+   * @param {Object} params Parâmetros de cálculo
+   * @returns {Object} Prescrição completa com instruções de preparo
+   */
+  function calcularDiluicaoFormula(params) {
+    params = params || {};
+    var pesoKg = params.pesoKg ? Number(params.pesoKg) : null;
+    var idadeMeses = params.idadeMeses !== undefined && params.idadeMeses !== null ? Number(params.idadeMeses) : null;
+    var tipoChave = String(params.tipoFormula || 'partida').toLowerCase();
+    var configTipo = TIPOS_FORMULA[tipoChave] || TIPOS_FORMULA['partida'];
+
+    var densidadeKcalMl = params.densidadeKcalMl ? Number(params.densidadeKcalMl) : configTipo.densidadeKcalMl;
+
+    // 1. Definição do fracionamento habitual por idade se não fornecido
+    var mamadasSugeridas = 8;
+    var volumeMamadaSugerido = 60;
+
+    if (idadeMeses !== null) {
+      if (idadeMeses < 1) {
+        mamadasSugeridas = 8;
+        volumeMamadaSugerido = 60; // 2 medidas (60 mL)
+      } else if (idadeMeses < 2) {
+        mamadasSugeridas = 7;
+        volumeMamadaSugerido = 90; // 3 medidas (90 mL)
+      } else if (idadeMeses < 4) {
+        mamadasSugeridas = 6;
+        volumeMamadaSugerido = 120; // 4 medidas (120 mL)
+      } else if (idadeMeses < 6) {
+        mamadasSugeridas = 5;
+        volumeMamadaSugerido = 150; // 5 medidas (150 mL)
+      } else if (idadeMeses < 9) {
+        mamadasSugeridas = 4;
+        volumeMamadaSugerido = 180; // 6 medidas (180 mL)
+      } else {
+        mamadasSugeridas = 3;
+        volumeMamadaSugerido = 210; // 7 medidas (210 mL)
+      }
+    } else if (pesoKg) {
+      // Estima volume baseado em ~120-150 mL/kg/dia dividido em 6-8 mamadas
+      var volEstimadoDia = pesoKg * 135;
+      mamadasSugeridas = pesoKg < 4 ? 8 : (pesoKg < 7 ? 6 : 5);
+      var volPorMamadaCalculado = volEstimadoDia / mamadasSugeridas;
+      // Arredonda para o múltiplo de 30 mais próximo
+      volumeMamadaSugerido = Math.max(30, Math.round(volPorMamadaCalculado / 30) * 30);
+    }
+
+    var numMamadas = params.numeroMamadasDia ? Number(params.numeroMamadasDia) : mamadasSugeridas;
+    var volumeDesejado = params.volumeMamadaMl ? Number(params.volumeMamadaMl) : volumeMamadaSugerido;
+
+    // 2. Análise da Diluição e Múltiplo de 30 mL
+    var resto30 = volumeDesejado % DILUICAO_PADRAO_ML_POR_MEDIDA;
+    var ehMultiploExato = resto30 === 0;
+
+    var medidasExatas = Math.floor(volumeDesejado / DILUICAO_PADRAO_ML_POR_MEDIDA);
+    var volumeAguaExatoMl = volumeDesejado;
+    var avisoFracionamento = null;
+
+    if (!ehMultiploExato) {
+      var multiploInferior = Math.max(30, Math.floor(volumeDesejado / 30) * 30);
+      var multiploSuperior = multiploInferior + 30;
+      var medInf = multiploInferior / 30;
+      var medSup = multiploSuperior / 30;
+
+      // Escolhe o mais próximo para o cálculo da mamada
+      if (volumeDesejado - multiploInferior <= multiploSuperior - volumeDesejado) {
+        medidasExatas = medInf;
+        volumeAguaExatoMl = multiploInferior;
+      } else {
+        medidasExatas = medSup;
+        volumeAguaExatoMl = multiploSuperior;
+      }
+
+      avisoFracionamento = '⚠️ VOLUME NÃO MÚLTIPLO DE 30 mL (' + volumeDesejado + ' mL): NUNCA divida medidas ao meio (ex: meia colher medidora), pois gera erro grave de osmolaridade! ' +
+        'Recomendação: Para ofertar ' + volumeDesejado + ' mL, prepare ' + multiploSuperior + ' mL (' + medSup + ' medidas em ' + multiploSuperior + ' mL de água) e descarte o excedente após pronto; ou prepare ' + multiploInferior + ' mL (' + medInf + ' medidas em ' + multiploInferior + ' mL de água).';
+    }
+
+    // Volume final reconstituído (o pó desloca aproximadamente 0.7-0.8 mL por grama de pó = ~3 mL por medida)
+    var volumeFinalAproximadoMl = volumeAguaExatoMl + (medidasExatas * 3);
+
+    // Cálculos Energéticos e Volumétricos
+    var kcalPorMamada = arred(volumeAguaExatoMl * densidadeKcalMl, 1);
+    var volumeTotalDiaMl = volumeAguaExatoMl * numMamadas;
+    var kcalTotalDia = arred(volumeTotalDiaMl * densidadeKcalMl, 1);
+
+    var volumeMlKgDia = pesoKg ? arred(volumeTotalDiaMl / pesoKg, 1) : null;
+    var kcalKgDia = pesoKg ? arred(kcalTotalDia / pesoKg, 1) : null;
+
+    // Avaliação da Capacidade Gástrica Fisiológica
+    var alertaCapacidadeGastrica = null;
+    if (pesoKg) {
+      var capacidadeMaxEstimada = arred(pesoKg * 30, 0); // ~30 mL/kg
+      if (volumeAguaExatoMl > pesoKg * 35) {
+        alertaCapacidadeGastrica = '🚨 SOBRECARGA GÁSTRICA POTENCIAL: O volume ofertado por mamada (' + volumeAguaExatoMl + ' mL) excede o limite gástrico fisiológico seguro (~30 mL/kg = ' + capacidadeMaxEstimada + ' mL para ' + pesoKg + ' kg). Risco aumentado de regurgitações, vômitos e broncoaspiração.';
+      }
+    }
+
+    // Alertas de Segurança Clínica Beira-Leito
+    var alertasSeguranca = [];
+    if (avisoFracionamento) {
+      alertasSeguranca.push(avisoFracionamento);
+    }
+    if (alertaCapacidadeGastrica) {
+      alertasSeguranca.push(alertaCapacidadeGastrica);
+    }
+
+    // Regras Especiais por Idade e Tipo
+    if (tipoChave === 'soja' && idadeMeses !== null && idadeMeses < 6) {
+      alertasSeguranca.push('🚨 CONTRAINDICAÇÃO FORMAL (SBP/ESPGHAN): Fórmula de soja é CONTRAINDICADA em lactentes menores de 6 meses devido à alta concentração de isoflavonas/fitoestrógenos com atividade estrogênica e potencial de alergenicidade cruzada com a proteína do leite.');
+    }
+
+    if (tipoChave === 'sem_lactose') {
+      alertasSeguranca.push('💡 INDICAÇÃO CLÍNICA: Fórmulas sem lactose (SL) são destinadas exclusivamente à intolerância secundária a carboidratos pós-gastroenterite. NÃO protegem nem tratam APLV.');
+    }
+
+    if (tipoChave === 'anti_regurgitacao') {
+      alertasSeguranca.push('💡 FÓRMULA AR: Utilizar bicos com furo maior (para líquidos espessados). Contraindicada em prematuros pelo risco de bezoar e enterocolite.');
+    }
+
+    // Alerta de Hipodiluição e Hiperconcentração
+    alertasSeguranca.push('⚠️ ALERTA CONTRA HIPODILUIÇÃO: Colocar mais água do que 30 mL por medida causa desnutrição calórico-proteica grave e hiponatremia dilucional aguda com risco de convulsões!');
+    alertasSeguranca.push('⚠️ ALERTA CONTRA HIPERCONCENTRAÇÃO: Pressionar o pó na colher ou usar menos água causa sobrecarga renal de solutos, desidratação hipernatrêmica e constipação grave.');
+
+    // 3. Guia de Preparo Seguro (OMS / FAO / SBP)
+    var passosPreparo = [
+      '1. Higienizar rigorosamente as mãos com água e sabão antes do manuseio.',
+      '2. Esterilizar a mamadeira, o bico e a tampa (fervura por 5 a 10 minutos).',
+      '3. Ferver água potável filtrada por 5 minutos e deixar amornar até aproximadamente 70°C (esta temperatura é mandatória para inativar patógenos como Cronobacter sakazakii e Salmonella enterica sem degradar vitaminas).',
+      '4. Colocar PRIMEIRO o volume exato de água morna na mamadeira (' + volumeAguaExatoMl + ' mL).',
+      '5. Adicionar ' + medidasExatas + ' medida(s) RASA(S) da fórmula infantil em pó. Nivele com as costas de uma faca limpa ou no nivelador da lata, SEM compactar ou pressionar o pó.',
+      '6. Tampar e agitar vigorosamente até completa dissolução do pó.',
+      '7. Resfriar rapidamente sob água corrente e testar a temperatura no dorso do pulso antes de ofertar (~37°C / morna ao toque).',
+      '8. TEMPO E DESCARTE: Oferecer imediatamente. Consumir em no máximo 1 a 2 horas em temperatura ambiente. Sobras da mamada devem ser DESCARTADAS (risco de proliferação bacteriana após contato com a saliva). Se preparada com antecedência, conservar em geladeira (< 4°C) por no máximo 24 horas.'
+    ];
+
+    return {
+      tipoFormula: configTipo.nome,
+      chaveFormula: tipoChave,
+      descricaoFormula: configTipo.descricao,
+      pesoKg: pesoKg,
+      idadeMeses: idadeMeses,
+      prescricaoMamada: {
+        volumeAguaMl: volumeAguaExatoMl,
+        medidasRasas: medidasExatas,
+        regraPadrao: '1 medida rasa para cada 30 mL de água',
+        volumeFinalProntoAproxMl: volumeFinalAproximadoMl,
+        caloriasPorMamadaKcal: kcalPorMamada
+      },
+      esquemaDiario: {
+        numeroMamadasPorDia: numMamadas,
+        intervaloHoras: arred(24 / numMamadas, 1),
+        volumeTotalAguaDiaMl: volumeTotalDiaMl,
+        caloriasTotalDiaKcal: kcalTotalDia,
+        volumeMlKgDia: volumeMlKgDia,
+        caloriasKcalKgDia: kcalKgDia
+      },
+      alertas: alertasSeguranca,
+      passosPreparoSeguro: passosPreparo
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. AVALIAÇÃO INTEGRADA COMPLETA BEIRA-LEITO
+  // ───────────────────────────────────────────────────────────────────────────
+  /**
+   * Avaliação nutricional pediátrica abrangente combinando Holliday-Segar, metas e fórmulas.
+   * @param {Object} params Parâmetros completos do paciente
+   * @returns {Object} Relatório clínico detalhado e texto formatado
+   */
+  function avaliarSuporteNutricionalPediatricoCompleto(params) {
+    params = params || {};
+    var pesoKg = Number(params.pesoKg || 0);
+    var idadeMeses = params.idadeMeses !== undefined && params.idadeMeses !== null ? Number(params.idadeMeses) : null;
+
+    if (!pesoKg || pesoKg <= 0) {
+      if (idadeMeses !== null) {
+        // Estima peso por idade caso não fornecido (fórmulas práticas OMS/APLS)
+        if (idadeMeses <= 3) pesoKg = 3.5 + (idadeMeses * 0.8);
+        else if (idadeMeses <= 12) pesoKg = 3.5 + (idadeMeses * 0.6);
+        else pesoKg = (idadeMeses / 12) * 2 + 8;
+        pesoKg = arred(pesoKg, 1);
+      } else {
+        throw new Error('Peso em kg ou Idade em meses obrigatórios para avaliação de suporte nutricional pediátrico.');
+      }
+    }
+
+    var condicaoClinica = params.condicaoClinica || 'manutencao_padrao';
+    var temperaturaC = params.temperaturaC ? Number(params.temperaturaC) : null;
+    var tipoFormula = params.tipoFormula || (idadeMeses !== null && idadeMeses >= 6 ? 'seguimento' : 'partida');
+
+    // 1. Holliday-Segar
+    var hs = calcularHollidaySegar(pesoKg, {
+      condicaoClinica: condicaoClinica,
+      temperaturaC: temperaturaC,
+      percentualAjuste: params.percentualAjuste
+    });
+
+    // 2. Metas Nutricionais
+    var metas = calcularMetasNutricionais(pesoKg, idadeMeses, condicaoClinica);
+
+    // 3. Fórmula Infantil
+    var formula = calcularDiluicaoFormula({
+      pesoKg: pesoKg,
+      idadeMeses: idadeMeses,
+      tipoFormula: tipoFormula,
+      volumeMamadaMl: params.volumeMamadaMl,
+      numeroMamadasDia: params.numeroMamadasDia
+    });
+
+    // 4. Montagem do Resumo Clínico Estruturado
+    var linhas = [];
+    linhas.push('👶 <b>SUPORTE NUTRICIONAL EM PEDIATRIA & TERAPIA NUTRICIONAL</b>');
+    linhas.push('──────────────────────────────────────');
+    linhas.push('📋 <b>DADOS DO PACIENTE:</b>');
+    linhas.push('• Peso: <b>' + fmt(pesoKg, 1) + ' kg</b>' + (params.pesoKg ? '' : ' <i>(estimado por idade)</i>'));
+    if (idadeMeses !== null) {
+      linhas.push('• Idade: <b>' + idadeMeses + ' meses</b> (' + metas.faixaEtaria + ')');
+    }
+    linhas.push('• Condição Clínica: <b>' + condicaoClinica + '</b>');
+    linhas.push('');
+
+    linhas.push('💧 <b>HIDRATAÇÃO VENOSA / MANUTENÇÃO (HOLLIDAY-SEGAR):</b>');
+    linhas.push('• Volume Basal (100%): <b>' + hs.volumeBasal24h + ' mL/dia</b> (' + fmt(hs.volumeBasalMlKgDia, 1) + ' mL/kg/dia)');
+    linhas.push('• Volume Ajustado (' + hs.percentualAplicado + '%): <b>' + hs.volumeAjustado24h + ' mL/dia</b> (' + fmt(hs.volumeAjustadoMlKgDia, 1) + ' mL/kg/dia)');
+    linhas.push('• Vazão em Bomba de Infusão: <b>' + fmt(hs.vazaoHorariaMlH, 1) + ' mL/h</b>');
+    linhas.push('• Regra 4-2-1 Basal: ' + fmt(hs.vazaoBasal421MlH, 1) + ' mL/h');
+    linhas.push('• Justificativa: <i>' + hs.justificativaAjuste + '</i>');
+    linhas.push('');
+
+    linhas.push('⚡ <b>ELETRÓLITOS & APORTE DE GLICOSE (SBP / AAP):</b>');
+    linhas.push('• Sódio (Na+): <b>' + fmt(hs.eletrolitos.sodioTotalMeqDia, 1) + ' mEq/dia</b> (' + fmt(hs.eletrolitos.sodioMeqKgDia, 2) + ' mEq/kg/dia)');
+    linhas.push('  └ <i>' + hs.eletrolitos.orientacaoSodio + '</i>');
+    linhas.push('• Potássio (K+): <b>' + fmt(hs.eletrolitos.potassioTotalMeqDia, 1) + ' mEq/dia</b> (' + fmt(hs.eletrolitos.potassioMeqKgDia, 2) + ' mEq/kg/dia)');
+    linhas.push('  └ <i>' + hs.eletrolitos.orientacaoPotassio + '</i>');
+    linhas.push('• TIG com SG 5%: <b>' + fmt(hs.glicoseTig.tigComSg5, 2) + ' mg/kg/min</b> (alvo: ' + hs.glicoseTig.faixaRecomendadaLactente + ')');
+    linhas.push('');
+
+    linhas.push('🍼 <b>PRESCRIÇÃO DE FÓRMULA INFANTIL:</b>');
+    linhas.push('• Tipo: <b>' + formula.tipoFormula + '</b>');
+    linhas.push('• Diluição Exata: <b>' + formula.prescricaoMamada.medidasRasas + ' medida(s) rasa(s)</b> em <b>' + formula.prescricaoMamada.volumeAguaMl + ' mL de água</b>');
+    linhas.push('• Regra Beira-Leito: <i>' + formula.prescricaoMamada.regraPadrao + '</i>');
+    linhas.push('• Volume por Mamada: ~' + formula.prescricaoMamada.volumeFinalProntoAproxMl + ' mL prontos (' + fmt(formula.prescricaoMamada.caloriasPorMamadaKcal, 0) + ' kcal)');
+    linhas.push('• Fracionamento: <b>' + formula.esquemaDiario.numeroMamadasPorDia + ' mamadas/dia</b> (a cada ' + fmt(formula.esquemaDiario.intervaloHoras, 1) + 'h)');
+    linhas.push('• Aporte Total Diário: <b>' + formula.esquemaDiario.volumeTotalAguaDiaMl + ' mL/dia</b> (' + fmt(formula.esquemaDiario.volumeMlKgDia, 1) + ' mL/kg/dia) | <b>' + fmt(formula.esquemaDiario.caloriasTotalDiaKcal, 0) + ' kcal/dia</b> (' + fmt(formula.esquemaDiario.caloriasKcalKgDia, 1) + ' kcal/kg/dia)');
+    linhas.push('');
+
+    linhas.push('🛡️ <b>ALERTAS DE SEGURANÇA & BOAS PRÁTICAS:</b>');
+    for (var a = 0; a < formula.alertas.length; a++) {
+      linhas.push('• ' + formula.alertas[a]);
+    }
+    for (var h = 0; h < hs.alertas.length; h++) {
+      linhas.push('• ' + hs.alertas[h]);
+    }
+
+    var textoFormatado = linhas.join('\n');
+
+    return {
+      sucesso: true,
+      pesoKg: pesoKg,
+      idadeMeses: idadeMeses,
+      hollidaySegar: hs,
+      metasNutricionais: metas,
+      formulaInfantil: formula,
+      textoFormatado: textoFormatado
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. FORMATADOR PARA TELEGRAM
+  // ───────────────────────────────────────────────────────────────────────────
+  function formatarTextoTelegram(resultado) {
+    if (!resultado || !resultado.sucesso) {
+      return '❌ Erro ao processar cálculo nutricional pediátrico.';
+    }
+    return resultado.textoFormatado;
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // EXPORTAÇÃO PÚBLICA
+  // ───────────────────────────────────────────────────────────────────────────
+  return {
+    calcularHollidaySegar: calcularHollidaySegar,
+    calcularMetasNutricionais: calcularMetasNutricionais,
+    calcularDiluicaoFormula: calcularDiluicaoFormula,
+    avaliarSuporteNutricionalPediatricoCompleto: avaliarSuporteNutricionalPediatricoCompleto,
+    formatarTextoTelegram: formatarTextoTelegram,
+    TIPOS_FORMULA: TIPOS_FORMULA,
+    DILUICAO_PADRAO_ML_POR_MEDIDA: DILUICAO_PADRAO_ML_POR_MEDIDA
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = SuporteNutricionalPediatricoService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_tev_gestante.js
 // ==============================================================================
 
@@ -22674,6 +27075,98 @@ function formatarDiluicaoPreparoHSL(med) {
   }
   linhas.push("\n📚 *Fonte:* Guia Farmacêutico Hospital Sírio-Libanês (https://guiafarmaceutico.hsl.org.br)");
   return linhas.join("\n");
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 03_gastroenterologia_pancreatite.js
+// ==============================================================================
+
+/**
+ * Módulo de Gastroenterologia: Pancreatite Aguda e Manejo da Hidratação
+ * Motor determinístico baseado nos Critérios de Atlanta, BISAP, Ranson e Marshall.
+ */
+
+var GastroenterologiaPancreatiteService = (function() {
+    'use strict';
+
+    function calcularBISAP(fatores) {
+        // fatores: { bunMaior25: bool, mentalAlterado: bool, sirs: bool, idadeMaior60: bool, derramePleural: bool }
+        var score = 0;
+        if (fatores.bunMaior25) score += 1;
+        if (fatores.mentalAlterado) score += 1;
+        if (fatores.sirs) score += 1;
+        if (fatores.idadeMaior60) score += 1;
+        if (fatores.derramePleural) score += 1;
+        
+        var mortalidade = "";
+        if (score === 0) mortalidade = "< 1%";
+        else if (score === 1) mortalidade = "~ 1%";
+        else if (score === 2) mortalidade = "~ 2%";
+        else if (score === 3) mortalidade = "~ 5%";
+        else if (score === 4) mortalidade = "~ 15%";
+        else if (score >= 5) mortalidade = "> 20%";
+
+        return {
+            escore: score,
+            mortalidadeEsperada: mortalidade,
+            riscoGravidade: score >= 3 ? "Alto Risco" : "Baixo Risco"
+        };
+    }
+
+    function protocoloHidratacao(fatores) {
+        // fatores: { doencaCardiovascularOuRenal: bool, hematocritoElevado: bool, bunElevado: bool }
+        var recomendacao = [];
+        var cristaloides = "Ringer Lactato 5-10 mL/kg/h nas primeiras 12-24h";
+        
+        if (fatores.doencaCardiovascularOuRenal) {
+            cristaloides = "Ringer Lactato (com cautela, titulação guiada para evitar sobrecarga e SDRA)";
+            recomendacao.push("ALERTA: Paciente com risco de sobrecarga de volume (doença cardíaca/renal). Monitorar atentamente os sinais clínicos.");
+        } else if (fatores.hematocritoElevado || fatores.bunElevado) {
+            cristaloides = "Ringer Lactato bolus agressivo (20 mL/kg em 30 min) seguido de 3 mL/kg/h";
+            recomendacao.push("Alvo Terapêutico: Redução do hematócrito e ureia (BUN) nas primeiras 24h.");
+        }
+        
+        recomendacao.unshift("Hidratação Dirigida por Metas: " + cristaloides);
+        return recomendacao;
+    }
+
+    function protocoloNutricao(fatores) {
+        // fatores: { dorAbdominalControlada: bool, nauseaVomitoAusentes: bool, tempoNPO: number }
+        var recomendacao = [];
+        
+        if (fatores.dorAbdominalControlada && fatores.nauseaVomitoAusentes) {
+            recomendacao.push("Nutrição Oral Precoce: Iniciar dieta sólida pobre em gorduras ou líquida clara, conforme tolerância.");
+            recomendacao.push("Justificativa: NPO prolongado aumenta o risco de translocação bacteriana e infecção de necrose.");
+        } else {
+            recomendacao.push("Rejeição de NPO prolongado sem justificativa: Se intolerância oral persistir > 48h, iniciar Nutrição Enteral (sonda nasojejunal ou nasogástrica).");
+        }
+        
+        return recomendacao;
+    }
+
+    function avaliarPaciente(params) {
+        var bisap = calcularBISAP(params.bisap || {});
+        var hidratacao = protocoloHidratacao(params.hidratacao || {});
+        var nutricao = protocoloNutricao(params.nutricao || {});
+        
+        return {
+            bisap: bisap,
+            protocoloHidratacao: hidratacao,
+            protocoloNutricao: nutricao
+        };
+    }
+
+    return {
+        calcularBISAP: calcularBISAP,
+        protocoloHidratacao: protocoloHidratacao,
+        protocoloNutricao: protocoloNutricao,
+        avaliarPaciente: avaliarPaciente
+    };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = GastroenterologiaPancreatiteService;
 }
 
 
@@ -27465,7 +31958,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -27477,7 +31970,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -28558,8 +33051,309 @@ function processarMensagemTexto(message) {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // DASHBOARD DE KAIZEN CLÍNICO E AUDITORIA ANALÍTICA DE PRESCRIÇÕES
+  // SUPORTE NUTRICIONAL EM PEDIATRIA (HOLLIDAY-SEGAR & FÓRMULAS INFANTIS)
   // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/nutriped" || comando === "/holliday" || comando === "/formulainfantil" || comando === "/diluicao") {
+    var dadosNutriPed = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof SuporteNutricionalPediatricoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo SuporteNutricionalPediatricoService indisponível temporariamente.");
+    }
+
+    if (!dadosNutriPed) {
+      return enviarMensagemParaChat(chatId, "👶 *SUPORTE NUTRICIONAL & HIDRATAÇÃO PEDIÁTRICA*\n\n" +
+        "Envie os parâmetros clínicos do lactente/criança:\n" +
+        "• *Peso* (ex: `7.5kg`, `12kg`)\n" +
+        "• *Idade* (ex: `3 meses`, `8m`, `2 anos`)\n" +
+        "• *Condição clínica* (`bronquiolite`, `febre 39C`, `cardiopatia`, `catch-up`)\n" +
+        "• *Fórmula* (`partida`, `seguimento`, `prematuro`, `ar`, `sl`, `ehf`, `aminoacidos`)\n" +
+        "• *Volume da mamada* (ex: `90ml`, `120ml`)\n\n" +
+        "💡 *Exemplos rápidos beira-leito:*\n" +
+        "• `/holliday 8kg` *(Volume de manutenção, vazão em bomba, eletrólitos SBP e TIG)*\n" +
+        "• `/holliday 11kg bronquiolite` *(Restrição a 70% para prevenção de sobrecarga pulmonar)*\n" +
+        "• `/diluicao 90ml partida` *(Padronização 1 medida para 30 mL e normas OMS de preparo)*\n" +
+        "• `/formulainfantil 100ml` *(Alerta contra medidas fracionadas e conduta correta)*\n" +
+        "• `/nutriped 6kg 3 meses partida` *(Avaliação nutricional e hidratação completas)*");
+    }
+
+    var paramsNP = {};
+    var mPesoNP = dadosNutriPed.match(/(\d{1,2}(?:[.,]\d+)?)\s*(?:kg|quilos)/i);
+    if (mPesoNP) paramsNP.pesoKg = parseFloat(mPesoNP[1].replace(',', '.'));
+
+    var mIdadeMesesNP = dadosNutriPed.match(/(\d{1,2})\s*(?:meses|m\b)/i);
+    if (mIdadeMesesNP) {
+      paramsNP.idadeMeses = parseInt(mIdadeMesesNP[1], 10);
+    } else {
+      var mIdadeAnosNP = dadosNutriPed.match(/(\d{1,2})\s*(?:anos|a\b)/i);
+      if (mIdadeAnosNP) paramsNP.idadeMeses = parseInt(mIdadeAnosNP[1], 10) * 12;
+    }
+
+    var mVolMamadaNP = dadosNutriPed.match(/(\d{2,3})\s*(?:ml|mls)/i);
+    if (mVolMamadaNP) paramsNP.volumeMamadaMl = parseInt(mVolMamadaNP[1], 10);
+
+    var dLower = dadosNutriPed.toLowerCase();
+    if (dLower.includes("bronquio") || dLower.includes("bva")) paramsNP.condicaoClinica = "restricao_bronquiolite";
+    else if (dLower.includes("cardio") || dLower.includes("edema") || dLower.includes("ic")) paramsNP.condicaoClinica = "restricao_ic";
+    else if (dLower.includes("siadh") || dLower.includes("oligur")) paramsNP.condicaoClinica = "siadh";
+    else if (dLower.includes("desnutri") || dLower.includes("catch")) paramsNP.condicaoClinica = "catch_up";
+    else if (dLower.includes("desidrat")) paramsNP.condicaoClinica = "desidratacao_leve";
+    else if (dLower.includes("febre")) paramsNP.condicaoClinica = "febre";
+
+    var mTempNP = dadosNutriPed.match(/(\d{2}(?:[.,]\d+)?)\s*°?c/i);
+    if (mTempNP) {
+      paramsNP.temperaturaC = parseFloat(mTempNP[1].replace(',', '.'));
+      paramsNP.condicaoClinica = "febre";
+    }
+
+    if (dLower.includes("prematur") || dLower.includes("pre-nan") || dLower.includes("pig")) paramsNP.tipoFormula = "prematuro";
+    else if (dLower.includes("seguimento") || dLower.includes("fase 2")) paramsNP.tipoFormula = "seguimento";
+    else if (dLower.includes(" anti") || dLower.includes("regurgit") || dLower.includes(" ar ") || dLower.endsWith(" ar")) paramsNP.tipoFormula = "anti_regurgitacao";
+    else if (dLower.includes("sem lactose") || dLower.includes(" sl ") || dLower.endsWith(" sl")) paramsNP.tipoFormula = "sem_lactose";
+    else if (dLower.includes("ehf") || dLower.includes("hidrolis") || dLower.includes("pepti") || dLower.includes("pregomin")) paramsNP.tipoFormula = "hidrolisada_extensa";
+    else if (dLower.includes("aaf") || dLower.includes("aminoacid") || dLower.includes("neocate") || dLower.includes("alfamino")) paramsNP.tipoFormula = "aminoacidos";
+    else if (dLower.includes("soja")) paramsNP.tipoFormula = "soja";
+    else if (dLower.includes("partida") || dLower.includes("fase 1")) paramsNP.tipoFormula = "partida";
+
+    // Se o usuário digitou número isolado inicial e ainda não tem peso ou volume
+    if (!paramsNP.pesoKg && !paramsNP.volumeMamadaMl) {
+      var mNumSolto = dadosNutriPed.match(/^(\d{1,2}(?:[.,]\d+)?)/);
+      if (mNumSolto) {
+        var valNum = parseFloat(mNumSolto[1].replace(',', '.'));
+        if (comando === "/diluicao" || comando === "/formulainfantil") {
+          if (valNum >= 30) paramsNP.volumeMamadaMl = valNum;
+          else paramsNP.pesoKg = valNum;
+        } else {
+          paramsNP.pesoKg = valNum;
+        }
+      }
+    }
+
+    try {
+      var avaliacaoNutri = SuporteNutricionalPediatricoService.avaliarSuporteNutricionalPediatricoCompleto(paramsNP);
+      return enviarMensagemParaChat(chatId, avaliacaoNutri.textoFormatado);
+    } catch (eNutriPed) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular suporte nutricional pediátrico: " + eNutriPed.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // HEMATOLOGIA CLÍNICA & MANEJO DE ANEMIAS (HEMOGRAMA / GANZONI / MENTZER)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/anemia" || comando === "/hemograma" || comando === "/ganzoni" || comando === "/noripurum" || comando === "/mentzer" || comando === "/ferro") {
+    var dadosAnemia = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof HematologiaAnemiasService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo HematologiaAnemiasService indisponível temporariamente.");
+    }
+
+    if (!dadosAnemia) {
+      return enviarMensagemParaChat(chatId, "🩸 *HEMATOLOGIA CLÍNICA — MANEJO E INVESTIGAÇÃO DE ANEMIAS*\n\n" +
+        "Envie os parâmetros do hemograma e cinética de ferro:\n" +
+        "• *Hb*, *Ht*, *VCM*, *HCM*, *RDW*, *Hemácias* (milhões)\n" +
+        "• *Reticulócitos* (%) e *Hematócrito* (para IPR)\n" +
+        "• *Ferritina*, *Ferro sérico*, *TIBC*, *IST* (%)\n" +
+        "• *Peso* (kg) e perfil (`gestante`, `homem`, `mulher`, `criança`)\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/anemia hb 8.5 vcm 68 rdw 18 ferritina 12 peso 60kg` *(Anemia Ferropriva clássica)*\n" +
+        "• `/mentzer vcm 65 he 5.8` *(Diferencial Ferropenia vs Talassemia Minor)*\n" +
+        "• `/ganzoni 65kg hb 8.0` *(Cálculo de déficit de ferro e ampolas de Noripurum EV)*\n" +
+        "• `/ferro 50kg gestante 2 trimestre hb 9.2` *(Prescrição oral vs parenteral na gestação)*\n" +
+        "• `/hemograma hb 7.0 vcm 112 b12 140` *(Anemia Macrocítica Megaloblástica)*");
+    }
+
+    function extrairNumAnemia(re) {
+      var m = dadosAnemia.match(re);
+      return m ? parseFloat(String(m[1]).replace(",", ".")) : null;
+    }
+
+    var paramsAnemia = {};
+    paramsAnemia.hb = extrairNumAnemia(/(?:hb|hemoglobina)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.vcm = extrairNumAnemia(/\bvcm\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.hcm = extrairNumAnemia(/\bhcm\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.chcm = extrairNumAnemia(/\bchcm\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.rdw = extrairNumAnemia(/\brdw\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.hemacias = extrairNumAnemia(/(?:hem[aá]cias?|he|hem)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.reticulocitos = extrairNumAnemia(/(?:retic\w*|ret)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.ht = extrairNumAnemia(/(?:ht|hemat[oó]crito)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.ferritina = extrairNumAnemia(/ferritina\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.ferroSerico = extrairNumAnemia(/ferro(?:\s*s[eé]rico)?\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.tibc = extrairNumAnemia(/tibc\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.ist = extrairNumAnemia(/ist\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.pesoKg = extrairNumAnemia(/(\d{1,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || extrairNumAnemia(/peso\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.vitaminaB12 = extrairNumAnemia(/(?:b12|vit\w*\s*b12)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.acidoFolico = extrairNumAnemia(/(?:folato|[aá]cido\s*f[oó]lico)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+
+    var dLowerAnemia = dadosAnemia.toLowerCase();
+    if (dLowerAnemia.includes("gestant") || dLowerAnemia.includes("gravid") || dLowerAnemia.includes("grávid")) {
+      paramsAnemia.gestante = true;
+      paramsAnemia.perfil = "gestante";
+      if (dLowerAnemia.includes("1") && dLowerAnemia.includes("trimest")) paramsAnemia.trimestre = 1;
+      else if (dLowerAnemia.includes("2") && dLowerAnemia.includes("trimest")) paramsAnemia.trimestre = 2;
+      else if (dLowerAnemia.includes("3") && dLowerAnemia.includes("trimest")) paramsAnemia.trimestre = 3;
+    } else if (dLowerAnemia.includes("pediat") || dLowerAnemia.includes("crian") || dLowerAnemia.includes("lactent")) {
+      paramsAnemia.perfil = "pediatria";
+    } else if (dLowerAnemia.includes("homem") || dLowerAnemia.includes("masc")) {
+      paramsAnemia.sexo = "M";
+      paramsAnemia.perfil = "adulto_homem";
+    } else if (dLowerAnemia.includes("mulher") || dLowerAnemia.includes("fem")) {
+      paramsAnemia.sexo = "F";
+      paramsAnemia.perfil = "adulto_mulher";
+    }
+
+    if (dLowerAnemia.includes("esquizocit") || dLowerAnemia.includes("esquizócit")) paramsAnemia.esquizocitos = true;
+    if (dLowerAnemia.includes("coombs") && (dLowerAnemia.includes("pos") || dLowerAnemia.includes("reag"))) paramsAnemia.coombsDireto = true;
+    if (dLowerAnemia.includes("inflam") || dLowerAnemia.includes("pcr") || dLowerAnemia.includes("infecc")) paramsAnemia.inflamacao = true;
+    if (dLowerAnemia.includes("celiaca") || dLowerAnemia.includes("celíaca") || dLowerAnemia.includes("dii") || dLowerAnemia.includes("bariat") || dLowerAnemia.includes("bariát")) paramsAnemia.maAbsorcao = true;
+    if (dLowerAnemia.includes("intoler") || dLowerAnemia.includes("falha")) paramsAnemia.intoleranciaOral = true;
+    if (dLowerAnemia.includes("drc") || dLowerAnemia.includes("renal") || dLowerAnemia.includes("uremi")) paramsAnemia.drc = true;
+    if (dLowerAnemia.includes("icfer") || dLowerAnemia.includes("insuficiencia cardiaca") || dLowerAnemia.includes("cardiopatia")) paramsAnemia.insuficienciaCardiaca = true;
+
+    if (comando === "/mentzer" && !paramsAnemia.hb) {
+      var numsMentzer = dadosAnemia.match(/(\d{1,3}(?:[.,]\d+)?)/g);
+      if (numsMentzer && numsMentzer.length >= 2) {
+        var vcmM = parseFloat(numsMentzer[0].replace(",", "."));
+        var heM = parseFloat(numsMentzer[1].replace(",", "."));
+        var resM = HematologiaAnemiasService.calcularIndiceMentzer(vcmM, heM);
+        if (resM) {
+          var msgMentzer = "🔬 *ÍNDICE DE MENTZER (DIAGNÓSTICO DIFERENCIAL BEIRA-LEITO)*\n\n" +
+            "• VCM: *" + vcmM + " fL* | Hemácias: *" + heM + " milhões/mcL*\n" +
+            "• Índice de Mentzer: *" + resM.valor + "*\n" +
+            "• Sugestão: *" + resM.sugestao + "*\n" +
+            "• Probabilidade: *" + resM.probabilidade + "*\n\n" +
+            "💡 *Interpretação e Conduta:*\n" + resM.explicacao;
+          return enviarMensagemParaChat(chatId, msgMentzer);
+        }
+      }
+    }
+
+    if (!paramsAnemia.hb) {
+      var mNumSoltoHb = dadosAnemia.match(/^(\d{1,2}(?:[.,]\d+)?)/);
+      if (mNumSoltoHb) {
+        paramsAnemia.hb = parseFloat(mNumSoltoHb[1].replace(",", "."));
+      }
+    }
+
+    if (!paramsAnemia.hb) {
+      return enviarMensagemParaChat(chatId, "⚠️ *Parâmetro obrigatório ausente:* Informe pelo menos o valor da Hemoglobina (ex: `/anemia hb 8.5` ou `/ganzoni 70kg hb 8.0`).");
+    }
+
+    try {
+      var analiseAnemia = HematologiaAnemiasService.analisarCasoCompleto(paramsAnemia);
+      return enviarMensagemParaChat(chatId, analiseAnemia.textoFormatado);
+    } catch (eAnemia) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao analisar anemia: " + eAnemia.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // PNEUMOLOGIA & EMERGÊNCIA: MANEJO DA CRISE ASMÁTICA E ESTADO DE MAL ASMÁTICO
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/asma" || comando === "/criseasma" || comando === "/broncoespasmo" || comando === "/salbutamol") {
+    var dadosAsma = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof PneumologiaCriseAsmaticaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PneumologiaCriseAsmaticaService indisponível temporariamente.");
+    }
+
+    if (!dadosAsma) {
+      return enviarMensagemParaChat(chatId, "🫁 *PNEUMOLOGIA & EMERGÊNCIA — MANEJO DA CRISE ASMÁTICA*\n\n" +
+        "Envie os parâmetros do paciente para estratificação GINA/SBPT e conduta:\n" +
+        "• *SpO2*, *FC*, *FR*, *Pico de Fluxo Expiratório (PFE)*\n" +
+        "• *Fala* (`frases`, `palavras`, `incapaz`), *Posição* (`tripé`, `sentado`)\n" +
+        "• *Musculatura acessória* (`tiragem`, `acentuada`), *Ausculta* (`sibilos`, `tórax silencioso`)\n" +
+        "• *Gasometria* (`pH`, `pCO2`), *Sensório* (`sonolento`, `agitado`, `confuso`)\n" +
+        "• *Perfil / Peso:* `peso 70kg`, `pediatria 18kg`, `gestante`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/asma spo2 88 fc 130 fr 34 tripe palavras acessoria acentuada` *(Crise Grave)*\n" +
+        "• `/asma torax silencioso sonolento paco2 48 ph 7.22` *(Parada Iminente / Estado de Mal)*\n" +
+        "• `/asma pfe 45% spo2 91 refratario 1h` *(Crise refratária com indicação de Sulfato de Magnésio)*\n" +
+        "• `/salbutamol 4a 16kg pediatria spo2 92 tiragem` *(Crise pediátrica com MDI e espaçador)*");
+    }
+
+    function extrairNumAsma(re) {
+      var m = dadosAsma.match(re);
+      return m ? parseFloat(String(m[1]).replace(",", ".")) : null;
+    }
+
+    var paramsAsma = {};
+    paramsAsma.spo2 = extrairNumAsma(/(?:spo2|sat(?:uracao|ura[çc][aã]o)?)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.fc = extrairNumAsma(/\bfc\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.fr = extrairNumAsma(/\bfr\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.pfe = extrairNumAsma(/(?:pfe|peak\s*flow)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.pfe_previsto = extrairNumAsma(/(?:pfe_?previsto|pfe_?prev)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.pfe_porcentagem = extrairNumAsma(/(\d{1,3})\s*%\s*(?:do\s*pfe|pfe)?/i) || extrairNumAsma(/(?:pfe|peak\s*flow)\s*[:=]?\s*(\d{1,3})\s*%/i);
+    paramsAsma.pesoKg = extrairNumAsma(/(\d{1,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || extrairNumAsma(/peso\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAsma.idade = extrairNumAsma(/(\d{1,2})\s*(?:anos|a\b)/i) || extrairNumAsma(/idade\s*[:=]?\s*(\d+[.,]?\d*)/i);
+
+    var dLowerAsma = dadosAsma.toLowerCase();
+
+    // Ausculta
+    if (dLowerAsma.includes("silencio") || dLowerAsma.includes("silêncio") || dLowerAsma.includes("silencioso")) {
+      paramsAsma.ausculta = "torax_silencioso";
+    } else if (dLowerAsma.includes("sibilos difusos") || dLowerAsma.includes("sibilos graves")) {
+      paramsAsma.ausculta = "sibilos_difusos";
+    } else if (dLowerAsma.includes("sibilo")) {
+      paramsAsma.ausculta = "sibilos_expiratorios";
+    }
+
+    // Sensório / Estado Mental
+    if (dLowerAsma.includes("sonolent") || dLowerAsma.includes("confus") || dLowerAsma.includes("coma") || dLowerAsma.includes("rebaixad") || dLowerAsma.includes("letarg")) {
+      paramsAsma.estado_mental = "sonolento";
+    } else if (dLowerAsma.includes("agitad") || dLowerAsma.includes("ansios")) {
+      paramsAsma.estado_mental = "agitado";
+    }
+
+    // Posição
+    if (dLowerAsma.includes("tripe") || dLowerAsma.includes("tripé") || dLowerAsma.includes("inclinad")) {
+      paramsAsma.posicao = "tripe";
+    }
+
+    // Fala
+    if (dLowerAsma.includes("incapaz de falar") || dLowerAsma.includes("sem falar") || dLowerAsma.includes("afasico")) {
+      paramsAsma.fala = "incapaz";
+    } else if (dLowerAsma.includes("palavras") || dLowerAsma.includes("monossilab")) {
+      paramsAsma.fala = "palavras_isoladas";
+    } else if (dLowerAsma.includes("frases curtas")) {
+      paramsAsma.fala = "frases_curtas";
+    }
+
+    // Musculatura acessória
+    if (dLowerAsma.includes("acentuada") || dLowerAsma.includes("tiragem") || dLowerAsma.includes("furcula") || dLowerAsma.includes("fúrcula") || dLowerAsma.includes("asa de nariz")) {
+      paramsAsma.musculatura_acessoria = "acentuada";
+    }
+
+    // Respiração paradoxal
+    if (dLowerAsma.includes("paradoxal") || dLowerAsma.includes("fadiga")) {
+      paramsAsma.respiracao_paradoxal = true;
+    }
+
+    // Refratariedade pós 1 hora
+    if (dLowerAsma.includes("refratari") || dLowerAsma.includes("refratári") || dLowerAsma.includes("pos 1h") || dLowerAsma.includes("pós 1h") || dLowerAsma.includes("1 hora")) {
+      paramsAsma.refratario_1h = true;
+    }
+
+    // Perfil
+    if (dLowerAsma.includes("gestant") || dLowerAsma.includes("gravid") || dLowerAsma.includes("grávid")) {
+      paramsAsma.gestante = true;
+    }
+    if (dLowerAsma.includes("pediat") || dLowerAsma.includes("crian") || dLowerAsma.includes("lactent") || (paramsAsma.idade && paramsAsma.idade < 12)) {
+      paramsAsma.faixa_etaria = "pediatrico";
+    }
+
+    // Gasometria
+    var phGaso = extrairNumAsma(/\bph\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    var paco2Gaso = extrairNumAsma(/(?:paco2|pco2)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    var pao2Gaso = extrairNumAsma(/(?:pao2|po2)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    if (phGaso !== null || paco2Gaso !== null) {
+      paramsAsma.gasometria = { ph: phGaso, paco2: paco2Gaso, pao2: pao2Gaso };
+    }
+
+    try {
+      var analiseAsma = PneumologiaCriseAsmaticaService.avaliarCriseAsmatica(paramsAsma);
+      var msgAsma = PneumologiaCriseAsmaticaService.formatarTextoTelegram(analiseAsma);
+      return enviarMensagemParaChat(chatId, msgAsma);
+    } catch (eAsma) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar crise asmática: " + eAsma.message);
+    }
+  }
+
   if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
     var dadosKaizen = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof AuditoriaKaizenClinicoService === "undefined") {
@@ -28617,6 +33411,151 @@ function processarMensagemTexto(message) {
   // ───────────────────────────────────────────────────────────────────────────
   // PROTOCOLO DE TRANSFUSÃO SANGUÍNEA & PROTOCOLO DE TRANSFUSÃO MACIÇA (PTM)
   // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/crcl" || comando === "/clearance") {
+    var dadosCrcl = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof NefrologiaClearanceService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo NefrologiaClearanceService indisponível temporariamente.");
+    }
+
+    if (!dadosCrcl) {
+      return enviarMensagemParaChat(chatId, "🧪 *CALCULADORA DE CLEARANCE E AUDITORIA RENAL*\n\n" +
+        "Envie a idade, peso, creatinina, sexo e medicamentos para auditar.\n\n" +
+        "Exemplos:\n" +
+        "▶️ `/crcl 65 anos, 70kg, cr 1.8, masculino`\n" +
+        "▶️ `/crcl 80 anos, 55kg, cr 2.1, fem, medicações: vancomicina, cefepime`\n" +
+        "▶️ `/clearance 45a, 80kg, cr 3.5, mulher, enoxaparina e metformina`");
+    }
+
+    var mIdade = dadosCrcl.match(/(\d+)\s*(a|anos?|ano)/i) || dadosCrcl.match(/idade\s*(\d+)/i) || dadosCrcl.match(/^(\d+)[,\s]/);
+    var mPeso = dadosCrcl.match(/(\d+(?:\.\d+)?)\s*(kg|kilos?)/i) || dadosCrcl.match(/peso\s*(\d+(?:\.\d+)?)/i);
+    var mCr = dadosCrcl.match(/cr(?:eatinina)?\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    var mSexo = dadosCrcl.match(/\b(masculino|feminino|mulher|homem|masc|fem|m|f)\b/i);
+
+    if (!mIdade || !mPeso || !mCr || !mSexo) {
+      return enviarMensagemParaChat(chatId, "❌ Falta informação! Preciso de *Idade*, *Peso*, *Creatinina* e *Sexo*.\nEx: `/crcl 60 anos, 70 kg, cr 1.2, M`");
+    }
+
+    var idadeCrcl = parseInt(mIdade[1], 10);
+    var pesoCrcl = parseFloat(mPeso[1]);
+    var cr = parseFloat(mCr[1].replace(',', '.'));
+    var sexoCrcl = (mSexo[1].toLowerCase().startsWith('f') || mSexo[1].toLowerCase() === 'mulher') ? 'F' : 'M';
+    
+    // Extrai medicamentos se houver "medicações:" ou "medicamentos:" ou "meds:"
+    var medText = dadosCrcl.split(/(?:medicamentos|medicações|meds|rx|prescrição)[:=]?\s*/i);
+    var medsArray = [];
+    if (medText.length > 1) {
+      medsArray = medText[1].split(/[,e+;]/).map(function(s) { return s.trim(); }).filter(Boolean);
+    }
+
+    var reqCrcl = {
+      idade: idadeCrcl,
+      peso: pesoCrcl,
+      creatinina: cr,
+      sexo: sexoCrcl,
+      medicamentos: medsArray
+    };
+
+    var resCrcl = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrcl });
+    return enviarMensagemParaChat(chatId, resCrcl.textoFormatado);
+  }
+
+  if (comando === "/neutropenia" || comando === "/mascc") {
+    if (typeof InfectologiaNeutropeniaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo InfectologiaNeutropeniaService indisponível.");
+    }
+    
+    // Simplificacao para demonstrar no bot (usa parametros padrão se texto for vazio)
+    var masccMock = { cargaSintomas: 'leve', semHipotensao: true, semDpoc: true, tumorSolidoOuHematoSemFungo: true, semDesidratacao: true, ambulatorial: true, idadeMenor60: true };
+    var clinicaMock = { instabilidade: false, suspeitaCateter: false, mrsa: false, alergiaPenicilina: 'nao', diasFebre: 1 };
+    
+    var resNeutro = cockpitInfectologiaNeutropenia('bot', { mascc: masccMock, clinica: clinicaMock });
+    return enviarMensagemParaChat(chatId, resNeutro.textoFormatado + "\n\n_(Exemplo gerado com parâmetros de baixo risco. No futuro, interatividade será adicionada.)_");
+  }
+
+  if (comando === "/pancreatite" || comando === "/bisap") {
+    if (typeof GastroenterologiaPancreatiteService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo GastroenterologiaPancreatiteService indisponível.");
+    }
+    var resPancreatite = cockpitGastroenterologiaPancreatite('bot', {
+        bisap: { bunMaior25: true, mentalAlterado: false, sirs: true, idadeMaior60: false, derramePleural: true },
+        hidratacao: { doencaCardiovascularOuRenal: false, hematocritoElevado: true, bunElevado: true },
+        nutricao: { dorAbdominalControlada: false, nauseaVomitoAusentes: true, tempoNPO: 24 }
+    });
+    return enviarMensagemParaChat(chatId, resPancreatite.textoFormatado + "\n\n_(Exemplo gerado com parâmetros simulados. Interatividade será adicionada no PWA.)_");
+  }
+
+  if (comando === "/sca" || comando === "/iam" || comando === "/heart" || comando === "/dapt") {
+    if (typeof CardiologiaEmergenciaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo CardiologiaEmergenciaService indisponível.");
+    }
+    
+    var dadosCardio = texto.replace(/^\/\w+\s*/, "").trim();
+    if (!dadosCardio) {
+      return enviarMensagemParaChat(chatId, "🫀 *CARDIOLOGIA DE EMERGÊNCIA — DOR TORÁCICA & IAM*\n\n" +
+        "Envie os dados do paciente para cálculo do Escore HEART, TIMI e Bloqueios DAPT:\n\n" +
+        "📌 *Exemplo Alto Risco:* `/iam idade 68, dor tipica, supra, trop+, has, dm, peso 72`\n" +
+        "📌 *Exemplo com AVC prévio:* `/dapt avc previo, idade 65, icp planejada, peso 70`\n" +
+        "📌 *Exemplo IAM Trombólise:* `/iam idade 78, supra, trombolise, pas 110, fc 85`\n" +
+        "📌 *Exemplo Nitrato VD / IPDE-5:* `/iam dor retroesternal, iam vd, sildenafil recente`\n\n" +
+        "Ou execute `/heart padrao` para ver um relatório modelo.");
+    }
+
+    var tLower = dadosCardio.toLowerCase();
+    
+    // Extração de Idade
+    var mIdade = tLower.match(/(?:idade|anos)[:=]?\s*(\d+)/) || tLower.match(/\b(\d{2})\s*anos\b/);
+    var idadeCardio = mIdade ? parseInt(mIdade[1], 10) : 62;
+
+    // Extração de Peso
+    var mPeso = tLower.match(/(?:peso|kg)[:=]?\s*(\d+)/) || tLower.match(/\b(\d{2,3})\s*kg\b/);
+    var pesoCardio = mPeso ? parseInt(mPeso[1], 10) : 70;
+
+    // Extração de Pressão e FC
+    var mPas = tLower.match(/(?:pas|pa)[:=]?\s*(\d{2,3})/);
+    var pasCardio = mPas ? parseInt(mPas[1], 10) : 130;
+    var mFc = tLower.match(/(?:fc|bpm)[:=]?\s*(\d{2,3})/);
+    var fcCardio = mFc ? parseInt(mFc[1], 10) : 78;
+
+    // Flags clínicas
+    var supra = /supra|stemi|iamcsst/i.test(tLower);
+    var tropPos = /trop\+|troponina\s*alta|trop\s*alta|troponina\s*positiva/i.test(tLower);
+    var dorTipica = /tipica|retroesternal|aperto|sudorese|diaforese/i.test(tLower);
+    var avc = /avc|ait/i.test(tLower);
+    var trombolise = /trombol|fibrinol/i.test(tLower);
+    var infartoVd = /vd|ventriculo direito/i.test(tLower);
+    var ipde5 = /sildenafil|tadalafil|viagra|cialis/i.test(tLower);
+    var omeprazol = /omeprazol/i.test(tLower);
+    var icp = /icp|cateterismo|angioplastia/i.test(tLower) || !trombolise;
+    var dm = /dm|diabetes|diabetico/i.test(tLower);
+    var has = /has|hipertensao|hipertenso/i.test(tLower);
+    var tabagismo = /tabag|fumo|fumante/i.test(tLower);
+
+    var reqCardio = {
+      idade: idadeCardio,
+      peso: pesoCardio,
+      pas: pasCardio,
+      fc: fcCardio,
+      historia: dorTipica ? 'altamente_suspeita' : 'moderadamente_suspeita',
+      ecg: supra ? 'isquemia_significativa' : (/infradesnivel|infra/i.test(tLower) ? 'isquemia_significativa' : 'alteracao_inespecifica'),
+      troponina: tropPos ? 'elevada_3x' : 'normal',
+      diabetes: dm,
+      has: has,
+      tabagismo: tabagismo,
+      supraST: supra,
+      iamcsst: supra,
+      avcPrevio: avc,
+      trombolise: trombolise,
+      icpPlanejada: icp,
+      infartoVD: infartoVd,
+      usoSildenafilUltimas24h: ipde5,
+      usoOmeprazol: omeprazol
+    };
+
+    var resSca = cockpitCardiologiaEmergencia('bot', reqCardio);
+    return enviarMensagemParaChat(chatId, resSca.textoFormatado);
+  }
+
+
   if (comando === "/transfusao" || comando === "/hemoterapia" || comando === "/ptm" || comando === "/chad") {
     var dadosTrans = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof TransfusaoSanguineaService === "undefined") {
@@ -29207,17 +34146,187 @@ function processarMensagemTexto(message) {
   }
 
 
-  if (comando === "/gaso") {
-    var dadosGaso = texto.replace(/^\/gaso\s*/i, "").trim();
-    if (!dadosGaso) {
-      return enviarMensagemParaChat(chatId, "🩸 *ANÁLISE DE GASOMETRIA ARTERIAL*\n\n" +
-        "Envie os parâmetros gasométricos e eletrólitos:\n" +
-        "• *pH*, *pCO2*, *HCO3* (obrigatórios)\n" +
-        "• *Na*, *Cl*, *Albumina* (para Ânion Gap corrigido e Delta-Delta)\n" +
-        "• *PaO2*, *FiO2* (para relação P/F)\n\n" +
-        "💡 *Exemplo de envio:*\n" +
-        "`/gaso pH 7.22, pCO2 28, HCO3 11, Na 140, Cl 102, Alb 3.0, PaO2 85, FiO2 21%`");
+  if (comando === "/winter") {
+    var paramWinter = texto.replace(/^\/winter\s*/i, "").trim();
+    var mBic = paramWinter.match(/(\d+[.,]?\d*)/);
+    if (!mBic) {
+      return enviarMensagemParaChat(chatId, "📐 *FÓRMULA DE WINTER (ACIDOSE METABÓLICA)*\n\n" +
+        "Calcula a compensação respiratória esperada (PaCO₂ = 1,5 × HCO₃⁻ + 8 ± 2).\n\n" +
+        "💡 *Como usar:* `/winter 12` ou `/winter hco3 10`");
     }
+    var hco3Val = parseFloat(mBic[1].replace(",", "."));
+    if (typeof GasometriaAcidoBaseService !== "undefined") {
+      try {
+        var w = GasometriaAcidoBaseService.calcularWinter(hco3Val);
+        return enviarMensagemParaChat(chatId, "📐 *FÓRMULA DE WINTER — ACIDOSE METABÓLICA*\n\n" +
+          "• *HCO₃⁻ informado:* " + hco3Val + " mEq/L\n" +
+          "• *PaCO₂ esperada:* " + w.pco2Esperada + " mmHg\n" +
+          "• *Faixa de compensação esperada:* " + w.minimo + " a " + w.maximo + " mmHg\n\n" +
+          "📌 *Interpretação Beira-Leito:*\n" +
+          "• PaCO₂ medida > " + w.maximo + " mmHg → *Acidose Respiratória associada* (fadiga ventilatória, hipoventilação alveolar).\n" +
+          "• PaCO₂ medida < " + w.minimo + " mmHg → *Alcalose Respiratória associada* (hiperventilação excessiva, sepse precoce, dor, febre).\n" +
+          "• PaCO₂ dentro da faixa (" + w.minimo + "–" + w.maximo + " mmHg) → *Compensação respiratória adequada*.");
+      } catch (errWinter) {
+        return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular Winter: " + errWinter.message);
+      }
+    }
+  }
+
+  
+  if (comando === "/nutriped") {
+    var dadosNutriped = texto.replace(/^\/nutriped\s*/i, "").trim();
+    if (!dadosNutriped) {
+      return enviarMensagemParaChat(chatId, "🍼 *SUPORTE NUTRICIONAL EM PEDIATRIA*\n\n" +
+        "Envie os parâmetros clínicos (peso, idade, etc.):\n\n" +
+        "💡 *Exemplos de envio:*\n" +
+        "• `/nutriped peso: 5.5` (calcula Holliday-Segar basal)\n" +
+        "• `/nutriped idade: 4, mamada: 120` (calcula preparo de fórmula)\n" +
+        "• `/nutriped peso: 8, tipo: ar` (fórmula Anti-Regurgitação)\n" +
+        "• `/nutriped peso: 3.2, idade: 2, mamada: 90`\n\n" +
+        "O sistema calculará:\n" +
+        "✅ Volume basal (Holliday-Segar)\n" +
+        "✅ Diluição segura da fórmula (1 medida/30 mL)\n" +
+        "✅ Alertas beira-leito.");
+    }
+
+    if (typeof cockpitNutricaoPediatrica === "function") {
+      try {
+        function numNutri(re) {
+          var m = dadosNutriped.match(re);
+          return m ? parseFloat(String(m[1]).replace(",", ".")) : null;
+        }
+        var n_peso = numNutri(/\bpeso\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bp\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var n_idade = numNutri(/\bidade\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bi\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bmeses\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var n_mamada = numNutri(/\bmamada\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bvol\w*\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bml\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var n_num = numNutri(/\bvezes\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        
+        var n_tipo = null;
+        if (/partida/i.test(dadosNutriped)) n_tipo = 'partida';
+        else if (/seguimento/i.test(dadosNutriped)) n_tipo = 'seguimento';
+        else if (/prematuro/i.test(dadosNutriped)) n_tipo = 'prematuro';
+        else if (/\bar\b|anti-?regurgita/i.test(dadosNutriped)) n_tipo = 'anti_regurgitacao';
+        else if (/sem\s*lactose|\bsl\b/i.test(dadosNutriped)) n_tipo = 'sem_lactose';
+        else if (/hidrolisada|ehf/i.test(dadosNutriped)) n_tipo = 'hidrolisada_extensa';
+        else if (/amino|aaf/i.test(dadosNutriped)) n_tipo = 'aminoacidos';
+        else if (/soja/i.test(dadosNutriped)) n_tipo = 'soja';
+
+        var params = {};
+        if (n_peso !== null) params.pesoKg = n_peso;
+        if (n_idade !== null) params.idadeMeses = n_idade;
+        if (n_mamada !== null) params.volumeMamadaMl = n_mamada;
+        if (n_num !== null) params.numeroMamadasDia = n_num;
+        if (n_tipo !== null) params.tipoFormula = n_tipo;
+        
+        if (!params.pesoKg && !params.idadeMeses) {
+             return enviarMensagemParaChat(chatId, "⚠️ *Erro:* Forneça pelo menos o peso ou a idade em meses.");
+        }
+
+        var resposta = cockpitNutricaoPediatrica(contexto.auth, params);
+        if (resposta.sucesso) {
+          return enviarMensagemParaChat(chatId, resposta.textoFormatado);
+        } else {
+          return enviarMensagemParaChat(chatId, "⚠️ " + (resposta.erro || "Erro desconhecido."));
+        }
+      } catch (errNutri) {
+        return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular nutrição: " + errNutri.message);
+      }
+    }
+  }
+
+  if (comando === "/choque" || comando === "/forrester" || comando === "/ic") {
+    var dadosIC = texto.replace(/^\/(?:choque|forrester|ic)\s*/i, "").trim();
+    if (!dadosIC) {
+      return enviarMensagemParaChat(chatId, "🫀 *IC DESCOMPENSADA / CHOQUE (FORRESTER & STEVENSON)*\n\n" +
+        "Envie os sinais clínicos de congestão e perfusão.\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/ic congestao sim, perfusao baixa, pas 80` (Perfil C, choque franco)\n" +
+        "• `/ic estertores, sem hipoperfusao, pas 120` (Perfil B)\n" +
+        "• `/ic sem congestao, perfusao ruim, pas 90` (Perfil L)");
+    }
+    
+    // Parse básico via regex
+    var paramsIC = {
+      congestao: /congest(?:ão|ao)|estertore?s?|tjp|edema|ortopneia/i.test(dadosIC) && !/(?:sem|nao|não) congest(?:ão|ao)/i.test(dadosIC),
+      baixa_perfusao: /perfus(?:ão|ao) (?:ruim|baixa)|hipoperfus(?:ão|ao)|choque|oliguria|fria/i.test(dadosIC) && !/(?:sem|nao|não) (?:hipoperfus(?:ão|ao)|perfus(?:ão|ao) (?:ruim|baixa))/i.test(dadosIC),
+      pas: 100, // default
+      pam: 75,
+      uso_betabloqueador: /beta.?bloq/i.test(dadosIC) || /carvedilol|metoprolol|bisoprolol/i.test(dadosIC)
+    };
+    
+    var pasMatch = dadosIC.match(/pas\s*[:=]?\s*(\d+)/i);
+    if (pasMatch) paramsIC.pas = parseInt(pasMatch[1], 10);
+    
+    var pamMatch = dadosIC.match(/pam\s*[:=]?\s*(\d+)/i);
+    if (pamMatch) paramsIC.pam = parseInt(pamMatch[1], 10);
+    
+    if (pasMatch && !pamMatch) paramsIC.pam = (paramsIC.pas * 2 + 60) / 3; // Estimativa chula, geralmente PAD = PAS-40
+
+    if (typeof cockpitCardiologiaIntensiva === "function") {
+      try {
+        var respIC = cockpitCardiologiaIntensiva({}, paramsIC);
+        return enviarMensagemParaChat(chatId, respIC.textoFormatado);
+      } catch (err) {
+        return enviarMensagemParaChat(chatId, "⚠️ Erro: " + err.message);
+      }
+    }
+  }
+
+  if (comando === "/gaso" || comando === "/gasometria" || comando === "/aniongap") {
+    var dadosGaso = texto.replace(/^\/(?:gaso|gasometria|aniongap)\s*/i, "").trim();
+    if (!dadosGaso) {
+      return enviarMensagemParaChat(chatId, "🩸 *GASOMETRIA ARTERIAL — REGRA DOS 5 PASSOS*\n\n" +
+        "Envie os parâmetros gasométricos e laboratoriais beira-leito:\n" +
+        "• *pH*, *pCO2*, *HCO3* (obrigatórios)\n" +
+        "• *Na*, *Cl*, *Albumina* (para Ânion Gap corrigido e Razão Delta)\n" +
+        "• *PaO2*, *FiO2*, *Idade* (para Relação P/F e Gradiente Alvéolo-Arterial)\n" +
+        "• *Lactato*, *K* (para alertas de choque e segurança eletrolítica)\n\n" +
+        "💡 *Exemplos de envio:*\n" +
+        "• *Cetoacidose com Winter:* `/gaso pH 7.20, pCO2 23, HCO3 10, Na 140, Cl 105, Alb 4.0`\n" +
+        "• *Hipoalbuminemia:* `/gaso pH 7.28, pCO2 30, HCO3 14, Na 140, Cl 102, Alb 2.0`\n" +
+        "• *Hipoxemia / SDRA:* `/gaso pH 7.35, pCO2 40, HCO3 24, PaO2 75, FiO2 50%`\n" +
+        "• *Fórmula de Winter isolada:* `/winter 12`");
+    }
+
+    if (typeof GasometriaAcidoBaseService !== "undefined" && typeof cockpitGasometriaAcidoBase === "function") {
+      try {
+        function numGaso(re) {
+          var m = dadosGaso.match(re);
+          return m ? parseFloat(String(m[1]).replace(",", ".")) : null;
+        }
+        var g_ph = numGaso(/\bph\s*[:=]?\s*([67][.,]?\d+)/i);
+        var g_pco2 = numGaso(/\bp?a?co2\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_hco3 = numGaso(/\bhco3\s*[:=]?\s*(\d+[.,]?\d*)/i) || numGaso(/bicarb[^\d]*(\d+[.,]?\d*)/i) || numGaso(/\bbic\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_na = numGaso(/\bna\b\s*[:=]?\s*(\d+[.,]?\d*)/i) || numGaso(/s[oó]dio\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_cl = numGaso(/\bcl\b\s*[:=]?\s*(\d+[.,]?\d*)/i) || numGaso(/cloro\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_alb = numGaso(/\balb(?:umina)?\b\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_pao2 = numGaso(/\bpao2\s*[:=]?\s*(\d+[.,]?\d*)/i) || numGaso(/\bpo2\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_fio2 = numGaso(/\bfio2\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_lac = numGaso(/\blact(?:ato)?\b\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_k = numGaso(/\bpot[aá]ssio\s*[:=]?\s*(\d+[.,]?\d*)/i) || numGaso(/\bk\b\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var g_idade = numGaso(/(?:idade|anos)[:=]?\s*(\d+)/i);
+
+        if (g_ph !== null && g_pco2 !== null && g_hco3 !== null) {
+          var reqGaso = {
+            ph: g_ph,
+            pco2: g_pco2,
+            hco3: g_hco3,
+            na: g_na,
+            cl: g_cl,
+            albumina: g_alb,
+            pao2: g_pao2,
+            fio2: g_fio2,
+            lactato: g_lac,
+            potassio: g_k,
+            idade: g_idade
+          };
+          var resGaso = cockpitGasometriaAcidoBase('bot', reqGaso);
+          return enviarMensagemParaChat(chatId, resGaso.textoFormatado);
+        }
+      } catch (eGasoDet) {
+        // Fallback gracioso para processamento com IA caso parâmetros específicos falhem
+      }
+    }
+
     return processarEEntregarIA(chatId, gerarAnaliseGasometriaComIA, dadosGaso, "gaso");
   }
 
@@ -36193,4 +41302,404 @@ function cockpitTransfusaoSanguinea(initData, params) {
     };
   }
   throw new Error('Ação inválida para Módulo de Transfusão Sanguínea.');
+}
+
+
+
+
+function cockpitNefrologiaClearance(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para cálculo de clearance não fornecidos.');
+  var acao = params.acao || 'completo';
+  var p = params.paciente || params;
+
+  if (acao === 'calcular') {
+    var crcl = NefrologiaClearanceService.calcularCockcroftGault(p.idade, p.peso, p.creatinina, p.sexo);
+    var estagio = crcl.erro ? crcl.erro : NefrologiaClearanceService.classificarEstagio(crcl);
+    return { sucesso: !crcl.erro, crcl: crcl, estagio: estagio };
+  }
+
+  if (acao === 'auditar') {
+    var crcl = NefrologiaClearanceService.calcularCockcroftGault(p.idade, p.peso, p.creatinina, p.sexo);
+    if (crcl.erro) return { sucesso: false, erro: crcl.erro };
+    var auditoria = NefrologiaClearanceService.auditarPrescricao(crcl, p.medicamentos);
+    return { sucesso: true, auditoria: auditoria };
+  }
+
+  if (acao === 'completo') {
+    var crcl = NefrologiaClearanceService.calcularCockcroftGault(p.idade, p.peso, p.creatinina, p.sexo);
+    if (crcl.erro) return { sucesso: false, erro: crcl.erro };
+    var auditoria = NefrologiaClearanceService.auditarPrescricao(crcl, p.medicamentos);
+    var texto = "*Clearance Estimado:* " + crcl + " mL/min (" + auditoria.estagio + ")\n\n";
+    if (auditoria.bloqueios.length > 0) {
+      texto += "🛑 *BLOQUEIOS / CONTRAINDICAÇÕES:*\n- " + auditoria.bloqueios.join("\n- ") + "\n\n";
+    }
+    if (auditoria.alertas.length > 0) {
+      texto += "⚠️ *ALERTAS DE AJUSTE DE DOSE:*\n- " + auditoria.alertas.join("\n- ") + "\n\n";
+    }
+    if (auditoria.orientacoes.length > 0) {
+      texto += "✅ *ORIENTAÇÕES:*\n- " + auditoria.orientacoes.join("\n- ") + "\n";
+    }
+
+    return {
+      sucesso: true,
+      crcl: crcl,
+      auditoria: auditoria,
+      textoFormatado: texto
+    };
+  }
+
+  throw new Error('Ação inválida para Nefrologia Clearance.');
+}
+
+function cockpitInfectologiaNeutropenia(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para neutropenia não fornecidos.');
+  
+  var avaliacao = InfectologiaNeutropeniaService.avaliarPaciente(params);
+  var mascc = avaliacao.mascc;
+  var atb = avaliacao.antibioticoterapia;
+  
+  var texto = "🦠 *NEUTROPENIA FEBRIL ONCOLÓGICA*\n\n";
+  texto += "*Escore MASCC:* " + mascc.escore + " pontos\n";
+  texto += "*Classificação (MASCC):* " + mascc.risco + "\n";
+  texto += "*Conduta Geral:* " + mascc.conduta + "\n\n";
+  
+  if (avaliacao.cisne) {
+    texto += "*Escore CISNE:* " + avaliacao.cisne.escore + " pontos\n";
+    texto += "*Risco (CISNE):* " + avaliacao.cisne.risco + "\n";
+    texto += "*Taxa de Complicações:* " + avaliacao.cisne.complicacoes + "\n\n";
+  }
+  
+  texto += "💊 *ESQUEMA ANTIMICROBIANO SUGERIDO:*\n";
+  for (var i = 0; i < atb.recomendacoes.length; i++) {
+    texto += "• " + atb.recomendacoes[i] + "\n";
+  }
+  
+  if (avaliacao.alertas.length > 0) {
+    texto += "\n⚠️ *ALERTAS CLÍNICOS:*\n";
+    for (var j = 0; j < avaliacao.alertas.length; j++) {
+      texto += "• " + avaliacao.alertas[j] + "\n";
+    }
+  }
+  
+  return {
+    sucesso: true,
+    avaliacao: avaliacao,
+    textoFormatado: texto
+  };
+}
+
+function cockpitGastroenterologiaPancreatite(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para pancreatite não fornecidos.');
+  
+  var avaliacao = GastroenterologiaPancreatiteService.avaliarPaciente(params);
+  var bisap = avaliacao.bisap;
+  var hidra = avaliacao.protocoloHidratacao;
+  var nutri = avaliacao.protocoloNutricao;
+  
+  var texto = "🩸 *PANCREATITE AGUDA E MANEJO DE HIDRATAÇÃO*\n\n";
+  texto += "*Escore BISAP:* " + bisap.escore + " pontos\n";
+  texto += "*Risco de Gravidade:* " + bisap.riscoGravidade + "\n";
+  texto += "*Mortalidade Esperada:* " + bisap.mortalidadeEsperada + "\n\n";
+  
+  texto += "💧 *PROTOCOLO DE HIDRATAÇÃO:*\n";
+  for (var i = 0; i < hidra.length; i++) {
+    texto += "• " + hidra[i] + "\n";
+  }
+  
+  texto += "\n🍽️ *PROTOCOLO DE NUTRIÇÃO:*\n";
+  for (var j = 0; j < nutri.length; j++) {
+    texto += "• " + nutri[j] + "\n";
+  }
+  
+  return {
+    sucesso: true,
+    avaliacao: avaliacao,
+    textoFormatado: texto
+  };
+}
+
+function cockpitCardiologiaEmergencia(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para Cardiologia de Emergência não fornecidos.');
+  
+  if (typeof CardiologiaEmergenciaService === 'undefined') {
+    throw new Error('Serviço CardiologiaEmergenciaService indisponível.');
+  }
+
+  var avaliacao = CardiologiaEmergenciaService.avaliarPaciente(params);
+  var heart = avaliacao.heart;
+  var timiScasst = avaliacao.timiScasst;
+  var dapt = avaliacao.dapt;
+  var adj = avaliacao.adjuvantes;
+
+  var texto = "🫀 *CARDIOLOGIA DE EMERGÊNCIA — DOR TORÁCICA & IAM*\n\n";
+
+  if (avaliacao.alertasGerais.length > 0) {
+    for (var a = 0; a < avaliacao.alertasGerais.length; a++) {
+      texto += avaliacao.alertasGerais[a] + "\n\n";
+    }
+  }
+
+  texto += "📊 *ESTRATIFICAÇÃO DE RISCO:*\n";
+  texto += "• *HEART Score:* " + heart.escore + " pontos (" + heart.risco + ") — MACE 6 semanas: " + heart.taxaMACE + "\n";
+  texto += "  _Conduta:_ " + heart.recomendacao + "\n";
+  texto += "• *TIMI SCASST:* " + timiScasst.escore + "/7 pontos (" + timiScasst.risco + ") — MACE 14 dias: " + timiScasst.taxaMACE14Dias + "\n";
+  texto += "  _Estratégia:_ " + timiScasst.estrategia + "\n";
+
+  if (avaliacao.timiIamcsst) {
+    texto += "• *TIMI IAMCSST:* " + avaliacao.timiIamcsst.escore + "/14 pontos — Mortalidade 30 dias: " + avaliacao.timiIamcsst.mortalidade30Dias + "\n";
+  }
+
+  texto += "\n💊 *DUPLO BLOQUEIO ANTIPLAQUETÁRIO (DAPT):*\n";
+  texto += "• *P2Y12 de Escolha:* " + dapt.p2y12Escolhido + "\n";
+  for (var i = 0; i < dapt.recomendacoes.length; i++) {
+    var rec = dapt.recomendacoes[i];
+    texto += "• *" + rec.farmaco + "*:\n  - Ataque: " + rec.ataque + "\n  - Manutenção: " + rec.manutencao + "\n";
+  }
+
+  if (dapt.bloqueios.length > 0) {
+    texto += "\n🚫 *BLOQUEIOS DE SEGURANÇA DAPT:*\n";
+    for (var b = 0; b < dapt.bloqueios.length; b++) {
+      var bloq = dapt.bloqueios[b];
+      texto += "• *[" + bloq.nivel + "] " + bloq.farmaco + "*: " + bloq.motivo + "\n";
+    }
+  }
+
+  if (dapt.alertas.length > 0) {
+    texto += "\n⚠️ *ALERTAS DAPT & INTERAÇÕES:*\n";
+    for (var d = 0; d < dapt.alertas.length; d++) {
+      texto += "• " + dapt.alertas[d] + "\n";
+    }
+  }
+
+  texto += "\n🩺 *MEDICAÇÃO ADJUVANTE & ANTI-ISQUÊMICA:*\n";
+  for (var m = 0; m < adj.farmacosRecomendados.length; m++) {
+    var med = adj.farmacosRecomendados[m];
+    texto += "• *" + med.farmaco + "*: " + med.posologia + "\n";
+  }
+
+  if (adj.bloqueios.length > 0) {
+    texto += "\n⛔ *CONTRAINDICAÇÕES ADJUVANTES DISPARADAS:*\n";
+    for (var k = 0; k < adj.bloqueios.length; k++) {
+      var blkAdj = adj.bloqueios[k];
+      texto += "• *[" + blkAdj.nivel + "] " + blkAdj.farmaco + "*: " + blkAdj.motivo + "\n";
+    }
+  }
+
+  if (adj.alertas.length > 0) {
+    texto += "\n⚠️ *ALERTAS ADJUVANTES / RENAL:*\n";
+    for (var r = 0; r < adj.alertas.length; r++) {
+      texto += "• " + adj.alertas[r] + "\n";
+    }
+  }
+
+  return {
+    sucesso: true,
+    avaliacao: avaliacao,
+    textoFormatado: texto
+  };
+}
+
+/**
+ * Análise Inteligente de Gasometria Arterial e Distúrbios Ácido-Base (Regra dos 5 Passos)
+ * @param {string} initData Sessão / autenticação
+ * @param {Object} params Parâmetros gasométricos e laboratoriais
+ */
+function cockpitGasometriaAcidoBase(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para Análise Gasométrica não fornecidos.');
+  
+  if (typeof GasometriaAcidoBaseService === 'undefined') {
+    throw new Error('Serviço GasometriaAcidoBaseService indisponível.');
+  }
+
+  var analise = GasometriaAcidoBaseService.analisarGasometria(params);
+  var texto = GasometriaAcidoBaseService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+var cockpitGasometria = cockpitGasometriaAcidoBase;
+
+/**
+ * Módulo de Suporte Nutricional em Pediatria (Fórmula Infantil / Holliday-Segar)
+ * @param {string} initData Sessão / autenticação
+ * @param {Object} params Parâmetros clínicos (pesoKg, idadeMeses, condicaoClinica, tipoFormula, volumeMamadaMl, etc.)
+ */
+function cockpitSuporteNutricionalPediatrico(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para Suporte Nutricional Pediátrico não fornecidos.');
+
+  if (typeof SuporteNutricionalPediatricoService === 'undefined') {
+    throw new Error('Serviço SuporteNutricionalPediatricoService indisponível.');
+  }
+
+  var analise = SuporteNutricionalPediatricoService.avaliarSuporteNutricionalPediatricoCompleto(params);
+  var texto = SuporteNutricionalPediatricoService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+var cockpitNutricaoPediatrica = cockpitSuporteNutricionalPediatrico;
+
+/**
+ * Módulo de Hematologia: Investigação e Manejo de Anemias
+ * @param {string} initData Sessão / autenticação
+ * @param {Object} params Parâmetros clínicos (hb, vcm, hcm, chcm, rdw, hemacias, reticulocitos, ht, ferritina, ferroSerico, tibc, ist, pesoKg, gestante, etc.)
+ */
+function cockpitHematologiaAnemias(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para Análise de Anemia e Hemograma não fornecidos.');
+
+  if (typeof HematologiaAnemiasService === 'undefined') {
+    throw new Error('Serviço HematologiaAnemiasService indisponível.');
+  }
+
+  var analise = HematologiaAnemiasService.analisarCasoCompleto(params);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: analise.textoFormatado
+  };
+}
+
+var cockpitManejoAnemias = cockpitHematologiaAnemias;
+var cockpitAnemia = cockpitHematologiaAnemias;
+
+/**
+ * Análise de IC Descompensada / Choque Cardiogênico (Forrester & Stevenson)
+ * @param {string} initData Sessão / autenticação
+ * @param {Object} params Parâmetros clínicos (congestao, ma_perfusao, pas, uso_betabloqueador, fase_aguda_descompensada)
+ */
+function cockpitICDescompensada(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para IC Descompensada não fornecidos.');
+  
+  if (typeof CardiologiaICDescompensadaService === 'undefined') {
+    throw new Error('Serviço CardiologiaICDescompensadaService indisponível.');
+  }
+
+  var analise = CardiologiaICDescompensadaService.analisarICDescompensada(params);
+  var texto = CardiologiaICDescompensadaService.formatarTextoTelegram(analise, params);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitCardiologiaIntensiva(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para IC Descompensada não fornecidos.');
+  
+  if (typeof CardiologiaIntensivaService === 'undefined') {
+    throw new Error('Serviço CardiologiaIntensivaService indisponível.');
+  }
+
+  var avaliacao = CardiologiaIntensivaService.avaliarPacienteICDescompensada(params);
+  
+  var texto = "🫀 *CARDIOLOGIA INTENSIVA — CHOQUE CARDIOGÊNICO E IC DESCOMPENSADA*\n\n";
+  
+  var perf = avaliacao.perfil_clinico;
+  texto += "*Classificação de Forrester & Stevenson:* Perfil " + perf.perfil + "\n";
+  texto += "*Descrição:* " + perf.descricao + "\n";
+  texto += "*Hemodinâmica:* " + perf.diagnostico_hemodinamico + " / " + perf.perfusao + "\n\n";
+  
+  texto += "*Conduta Geral:* " + perf.conduta_geral + "\n\n";
+  
+  var farmaco = avaliacao.plano_farmacologico;
+  
+  if (farmaco.bloqueios_seguranca.length > 0) {
+    texto += "⚠️ *BLOQUEIOS DE SEGURANÇA:*\n";
+    for (var i = 0; i < farmaco.bloqueios_seguranca.length; i++) {
+      texto += "• " + farmaco.bloqueios_seguranca[i] + "\n";
+    }
+    texto += "\n";
+  }
+
+  if (farmaco.diuretico.length > 0) {
+    texto += "💧 *DIURÉTICO (ALÇA):*\n";
+    for (var i = 0; i < farmaco.diuretico.length; i++) {
+      texto += "• " + farmaco.diuretico[i] + "\n";
+    }
+    texto += "\n";
+  }
+
+  if (farmaco.vasodilatador.length > 0) {
+    texto += "🌬️ *VASODILATADOR:*\n";
+    for (var i = 0; i < farmaco.vasodilatador.length; i++) {
+      texto += "• " + farmaco.vasodilatador[i] + "\n";
+    }
+    texto += "\n";
+  }
+
+  if (farmaco.inotropico.length > 0) {
+    texto += "⚡ *INOTRÓPICO:*\n";
+    for (var i = 0; i < farmaco.inotropico.length; i++) {
+      texto += "• " + farmaco.inotropico[i] + "\n";
+    }
+    texto += "\n";
+  }
+
+  if (farmaco.vasopressor.length > 0) {
+    texto += "🩸 *VASOPRESSOR:*\n";
+    for (var i = 0; i < farmaco.vasopressor.length; i++) {
+      texto += "• " + farmaco.vasopressor[i] + "\n";
+    }
+    texto += "\n";
+  }
+
+  return {
+    sucesso: true,
+    avaliacao: avaliacao,
+    textoFormatado: texto
+  };
+}
+
+function cockpitNefrologiaKdigo(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para LRA não fornecidos.');
+  if (typeof NefrologiaLRAService === 'undefined') throw new Error('Serviço NefrologiaLRAService indisponível.');
+  
+  var analise = NefrologiaLRAService.avaliarLRA(params);
+  var texto = NefrologiaLRAService.formatarTextoTelegram(analise);
+  
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitPneumologiaAsma(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros da crise asmática não fornecidos.');
+  if (typeof PneumologiaCriseAsmaticaService === 'undefined') {
+    throw new Error('Serviço PneumologiaCriseAsmaticaService indisponível.');
+  }
+
+  var analise = PneumologiaCriseAsmaticaService.avaliarCriseAsmatica(params);
+  var texto = PneumologiaCriseAsmaticaService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitCriseAsmatica(initData, params) {
+  return cockpitPneumologiaAsma(initData, params);
 }

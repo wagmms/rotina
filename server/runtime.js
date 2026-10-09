@@ -848,6 +848,8 @@ module.exports = {
         _rpcMap.cockpitManejoAnemias = ctx.cockpitManejoAnemias || ctx.cockpitHematologiaAnemias;
         _rpcMap.cockpitAnemia = ctx.cockpitAnemia || ctx.cockpitHematologiaAnemias;
         _rpcMap.cockpitNefrologiaKdigo = ctx.cockpitNefrologiaKdigo;
+        _rpcMap.cockpitPneumologiaAsma = ctx.cockpitPneumologiaAsma;
+        _rpcMap.cockpitCriseAsmatica = ctx.cockpitCriseAsmatica || ctx.cockpitPneumologiaAsma;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

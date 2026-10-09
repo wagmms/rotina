@@ -129,10 +129,13 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Estadiamento determinístico KDIGO 1, 2 e 3 por creatinina sérica basal vs pico e débito urinário horário (mL/kg/h).
     - Checklist beira-leito das indicações clássicas de diálise de urgência (mnemônico AEIOU: Acidose refratária pH < 7.15, Eletrólitos/Hipercalemia > 6.5 com ECG alterado, Intoxicações dialisáveis, Overload/Hipervolemia com EAP, Uremia sintomática com pericardite/encefalopatia).
 
-36. [ ] **Pneumologia e Emergência - Manejo da Crise Asmática Grave e Estado de Mal Asmático**:
-    - Classificação rápida de gravidade (leve/moderada vs grave vs iminência de parada com silêncio respiratório).
-    - Protocolo escalonado de broncodilatação (Salbutamol em espaçador ou nebulização a cada 20 min na 1ª hora + Brometo de Ipratrópio 0.5mg).
-    - Corticoterapia sistêmica precoce e indicação oportuna de Sulfato de Magnésio 2g IV em 20 min na crise refratária.
+36. [x] **Pneumologia e Emergência - Manejo da Crise Asmática Grave e Estado de Mal Asmático**:
+    - Classificação rápida de gravidade (leve/moderada vs grave vs iminência de parada com silêncio respiratório/tórax silencioso e normocapnia em acidose).
+    - Protocolo escalonado de broncodilatação (Salbutamol 4-10 jatos com espaçador ou nebulização a cada 20 min na 1ª hora + Brometo de Ipratrópio 0.5mg/40 gotas).
+    - Corticoterapia sistêmica precoce (VO ou IV na 1ª hora) e indicação oportuna de Sulfato de Magnésio 2g IV em 20 min na crise refratária ou ameaça à vida.
+    - Estratégia protetora de intubação (indução padrão com Ketamina) e ventilação mecânica na asma (Vt baixo, FR baixa, I:E 1:3-1:4, PEEP baixa, hipercapnia permissiva e alívio de auto-PEEP).
+    - Bloqueios de segurança: contraindicação formal de sedativos/ansiolíticos sem IOT, contraindicação de antibióticos empíricos de rotina e mucolíticos.
+    - Integração Fastify RPC (cockpitPneumologiaAsma), comandos Telegram (/asma, /criseasma, /broncoespasmo, /salbutamol) e testes 100% aprovados.
 
 37. [ ] **Obstetrícia & Medicina Materno-Fetal - Manejo de Restrição de Crescimento Fetal (RCF / CIUR) e Doppler Obstétrico (Critérios de Barcelona / ISUOG)**:
     - Diferenciação precoce (< 32 semanas) vs tardia (>= 32 semanas) de RCF e PIG (Pequeno para a Idade Gestacional constitucional).
@@ -969,6 +972,33 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 - [x] **Otimização de Latência do Cockpit RPC** (2026-10-08): Compressão gzip, cache singleton do dispatch map, Cache-Control headers inteligentes. 145/145 testes passando.
 - [x] **Correção da Suíte de Testes do Servidor Render** (2026-10-08): Correção e estabilização de `tests/test_server_render.cjs`.
 
+- [x] **Pneumologia e Emergência - Manejo da Crise Asmática Grave e Estado de Mal Asmático** (2026-10-09):
+  * **Estratificação Rápida de Gravidade (Diretrizes GINA / SBPT)**:
+    - Motor determinístico beira-leito para classificação imediata em Leve/Moderada, Grave e Ameaça à Vida / Parada Iminente (Estado de Mal Asmático / Asma Quase Fatal).
+    - Rastreio de sinais de exaustão respiratória: fala truncada/incapaz, posição de tripé, uso acentuado de musculatura acessória, respiração paradoxal toracoabdominal e tórax silencioso.
+    - Alerta sentinela de falência muscular aguda em gasometria arterial: PaCO2 normal ou elevada (>= 42-45 mmHg) associada a acidose em paciente asmático (em crise aguda, a hiperventilação esperada deveria induzir hipocapnia < 35 mmHg; a normocapnia é um sinal cardinal pré-parada!).
+  * **Protocolo Escalonado de Broncodilatação e Oxigenoterapia**:
+    - Oxigenoterapia controlada com metas guiadas: SpO2 93-95% em adultos e 94-98% em gestantes e pediatria (evitando hiperóxia não controlada com efeito Haldane e retenção de CO2).
+    - SABA (Salbutamol): Spray MDI com espaçador valvulado (4 a 10 jatos) a cada 20 min na 1ª hora (ciclos aos 0, 20 e 40 minutos) ou nebulização intermitente 2.5-5.0 mg; suporte para nebulização contínua (10-15 mg/h) na crise refratária extrema.
+    - SAMA (Brometo de Ipratrópio): Indicação mandatória na crise grave associado ao SABA nas primeiras 3 doses da 1ª hora (40 gotas = 0.5 mg ou spray 4-8 jatos).
+    - Ajustes posológicos ponderados precisos para pediatria por peso corporal e idade.
+  * **Corticoterapia Sistêmica Precoce**:
+    - Administração mandatória na 1ª hora da admissão (efeito genômico inicia em 4-6h).
+    - Via oral preferencial: Prednisona/Prednisolona 40 a 50 mg/dia dose única por 5 a 7 dias em adultos (sem necessidade de desmame se <= 7-10 dias) e 1-2 mg/kg/dia por 3 a 5 dias em crianças.
+    - Via intravenosa: Hidrocortisona 200 mg ataque + 100 mg 6/6h ou Metilprednisolona 40-60 mg 6-12h se vômitos ou risco de vida.
+  * **Indicação Oportuna de Sulfato de Magnésio 2g IV**:
+    - Indicação estrita para crise que persiste refratária com PFE < 50% ou SpO2 < 92% após a 1ª hora, ou com apresentação inicial de parada iminente.
+    - Posologia precisa: 2,0 g IV (solução 50%: 4 mL; ou 10%: 20 mL) diluídos em 100 mL de SF 0.9% infundidos em 20 minutos (40-50 mg/kg em pediatria), com monitoramento de PA e reflexo patelar.
+  * **Manejo Ventilatório Protetor & Bloqueios Críticos**:
+    - Alerta para evitar IOT prematura (risco elevado de hiperinsuflação dinâmica, auto-PEEP extrema, pneumotórax e choque por perda de retorno venoso).
+    - Se IOT mandatória: sequência rápida com Ketamina 1.5-2.0 mg/kg (broncodilatador simpaticomimético de escolha) e ventilação protetora (Vt 5-6 mL/kg predito, FR 10-12 rpm, relação I:E 1:3-1:4, PEEP baixa 0-5 cmH2O e hipercapnia permissiva). Conduta emergencial de desconexão e desinsuflação manual torácica se choque pós-IOT.
+    - Bloqueios de segurança: contraindicação absoluta de benzodiazepínicos e opioides sem via aérea avançada, rejeição de antibióticos de rotina e contraindicação de mucolíticos.
+  * **Critérios de Destino e Prescrição de Alta Estruturada**:
+    - Critérios claros de alta de emergência (PFE > 70%, SpO2 > 94% mantida por 1-2h pós-SABA) com prescrição de 5 itens (corticoide oral, corticoide inalatório de manutenção, SABA de resgate com espaçador, revisão de técnica inalatória e retorno em 2-7 dias).
+  * **Integração e Testes Automatizados**:
+    - Módulo `src/02_pneumologia_crise_asmatica.js` integrado via Fastify RPC (`cockpitPneumologiaAsma` e `cockpitCriseAsmatica`) e comandos Telegram (`/asma`, `/criseasma`, `/broncoespasmo`, `/salbutamol`).
+    - 9 testes unitários dedicados em `tests/test_pneumologia_crise_asmatica.cjs`, runner pytest em `tests/test_pneumologia_crise_asmatica.py` e integração no `tests/test_server_render.cjs`. 100% de sucesso.
+
 114. [ ] **Módulo de Nefrologia Avançada - Distúrbios Hidroeletrolíticos: Hipocalcemia e Hipercalcemia**:
     - Cálculos de cálcio corrigido pela albumina sérica.
     - Algoritmo de manejo agudo com reposição de Gluconato de Cálcio IV em hipocalcemia sintomática ou hipercalcemia severa (crise hipercalcêmica) com hidratação vigorosa e bifosfonatos.
@@ -992,3 +1022,18 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 119. [ ] **Terapia Intensiva - Predição de Desmame Vasopressor (Vasoactive-Inotropic Score - VIS)**:
     - Cálculo automatizado e contínuo da carga vasopressora/inotrópica total (Noradrenalina, Adrenalina, Vasopressina, Dobutamina, Milrinona).
     - Painel visual de tendência de 24h para guiar o desmame seguro e progressivo de DVA em choque distributivo (foco em sobrevida na Sepse).
+
+120. [ ] **Pneumologia & Emergência - Manejo da Exacerbação Aguda da Asma com Critérios de Ventilação Não Invasiva (VNI) e Desmame de Broncodilatador**:
+    - Algoritmo de desmame e transição da nebulização frequente para MDI com espaçador a cada 4-6h conforme estabilização clínica.
+    - Critérios de indicação e contraindicações relativas para VNI (BiPAP/CPAP) na exacerbação de asma com retenção hipercápnica e falência iminente.
+    - Checklist estruturado de alta com Plano de Ação Escrito para Asma (PEAP/GINA) com zonas verde, amarela e vermelha para prevenção de novas crises.
+
+121. [ ] **Toxicologia Clínica - Síndrome Anticolinérgica vs Colinérgica (Toxíndromes de Emergência)**:
+    - Motor determinístico para reconhecimento rápido beira-leito dos toxíndromes anticolinérgico (rubor, midríase, pele seca, retenção urinária, delírio) e colinérgico (mnemônico DUMBELS: diarreia, urina, miose, broncorreia/bradicardia, emese, lacrimejamento, salivação).
+    - Protocolo de antídotos específicos (Fisostigmina na anticolinérgica sob monitorização cardíaca vs Atropina e Pralidoxima na intoxicação por organofosforados/carbamatos).
+
+122. [ ] **Terapia Intensiva e Cardiologia - Choque Distributivo e Manejo da Sepse / Choque Séptico (Surviving Sepsis Campaign 2026)**:
+    - Rastreio com escore SOFA e qSOFA.
+    - Pacote de 1 hora da Sepse: coleta de culturas antes de antimicrobiano, dosagem seriada de lactato sérico, antibiótico de amplo espectro na 1ª hora e ressuscitação volêmica guiada por cristaloides balanceados (30 mL/kg nas primeiras 3h se hipotensão ou lactato >= 4 mmol/L).
+    - Titulação de Noradrenalina de 1ª linha com alvo de PAM >= 65 mmHg e Vasopressina associada como poupador de catecolamina.
+

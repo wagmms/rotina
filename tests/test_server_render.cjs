@@ -189,6 +189,31 @@ async function run() {
   assert.equal(jsonIC.resultado.avaliacao.perfil_clinico.perfil, 'C');
   assert(jsonIC.resultado.textoFormatado.includes('CONTRAINDICAÇÃO ABSOLUTA'));
   console.log('✓ Cockpit Cardiologia Intensiva (Forrester) OK');
+
+  // 6.6 Cockpit RPC - Pneumologia & Emergência (Crise Asmática Grave & Estado de Mal Asmático)
+  const resAsma = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitPneumologiaAsma',
+      session: token,
+      args: [{
+        ausculta: 'torax_silencioso',
+        estado_mental: 'sonolento',
+        respiracao_paradoxal: true,
+        fc: 52,
+        fr: 10,
+        spo2: 82
+      }]
+    }
+  });
+  assert.equal(resAsma.statusCode, 200, "Erro ao testar cockpitPneumologiaAsma");
+  const jsonAsma = JSON.parse(resAsma.body);
+  assert(jsonAsma.ok, "ok Asma deve ser true");
+  assert.equal(jsonAsma.resultado.resultado.gravidade.nivel, 'PARADA_IMINENTE');
+  assert.equal(jsonAsma.resultado.resultado.plano.sulfato_magnesio.indicado, true);
+  assert(jsonAsma.resultado.textoFormatado.includes('PNEUMOLOGIA & EMERGÊNCIA'));
+  console.log('✓ Cockpit Pneumologia & Crise Asmática (GINA & MgSO4) OK');
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);
   const jsonManifest = JSON.parse(resManifest.body);

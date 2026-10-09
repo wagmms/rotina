@@ -1772,3 +1772,25 @@ function cockpitNefrologiaKdigo(initData, params) {
     textoFormatado: texto
   };
 }
+
+function cockpitPneumologiaAsma(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros da crise asmática não fornecidos.');
+  if (typeof PneumologiaCriseAsmaticaService === 'undefined') {
+    throw new Error('Serviço PneumologiaCriseAsmaticaService indisponível.');
+  }
+
+  var analise = PneumologiaCriseAsmaticaService.avaliarCriseAsmatica(params);
+  var texto = PneumologiaCriseAsmaticaService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitCriseAsmatica(initData, params) {
+  return cockpitPneumologiaAsma(initData, params);
+}
+
