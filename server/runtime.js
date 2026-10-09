@@ -760,6 +760,7 @@ module.exports = {
         _rpcMap.cockpitElegibilidadeAnticoncepcao = ctx.cockpitElegibilidadeAnticoncepcao;
         _rpcMap.cockpitInfeccaoVulvovaginal = ctx.cockpitInfeccaoVulvovaginal;
         _rpcMap.cockpitResumoGinecologia = ctx.cockpitResumoGinecologia;
+        _rpcMap.cockpitPainelPuericultura = ctx.cockpitPainelPuericultura;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

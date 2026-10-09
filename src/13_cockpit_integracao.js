@@ -618,3 +618,15 @@ function cockpitResumoGinecologia(initData, params) {
   return GinecologiaAmbulatorialService.gerarResumoGinecologia(params);
 }
 
+
+/**
+ * cockpitPainelPuericultura — Avaliação de antropometria, vacinas, DNPM e suplementação.
+ */
+function cockpitPainelPuericultura(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PuericulturaPediatriaService === 'undefined') {
+    throw new Error('Módulo PuericulturaPediatriaService indisponível.');
+  }
+  return PuericulturaPediatriaService.painelCompleto(params);
+}
