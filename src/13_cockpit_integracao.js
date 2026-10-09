@@ -802,3 +802,15 @@ function cockpitSdraMecanica(initData, params) {
   }
   throw new Error('Ação inválida para SDRA / Mecânica Pulmonar.');
 }
+
+function cockpitSepsePuerperal(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SepsePuerperalService === 'undefined') {
+    throw new Error('Módulo SepsePuerperalService indisponível.');
+  }
+  if (params.acao === 'avaliarRiscoSepsis') {
+    return SepsePuerperalService.avaliarRiscoSepsis(params);
+  }
+  throw new Error('Ação inválida para Sepse Puerperal.');
+}

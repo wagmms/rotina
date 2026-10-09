@@ -15,11 +15,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 
 
-7. [ ] **Manejo Avançado de Sepse e Choque Séptico Puerperal / Materno (Critérios Sepsis-in-Obstetrics / SOS Score e Bundles de 1 Hora)**:
-   - Adaptação fisiológica da gestante mascarando sepse (leucocitose e taquicardia fisiológicas).
-   - Escore SOS (Obstetric Sepsis Score) e qSOFA obstétrico para detecção precoce de infecção pélvica/corioamnionite/endometrite puerperal.
-   - Bundle de 1 hora: coleta de lactato sérico, hemoculturas antes do antibiótico, ressuscitação volêmica criteriosa com cristaloides (30 mL/kg guiada por resposta para evitar EAP), antibioticoterapia de amplo espectro (ex: Ampicilina + Gentamicina + Clindamicina ou Ceftriaxona + Metronidazol) e início precoce de Noradrenalina se PAM < 65 mmHg refratária.
-
 8. [ ] **Algoritmo de Ressuscitação Cardiopulmonar na Gestante (PCR Materna / ACLS Materno e Cesariana Perimortem)**:
     - Manobra de deslocamento manual contínuo do útero para a esquerda (DULE) para descompressão da veia cava inferior e restauração do retorno venoso durante as compressões.
     - Acesso venoso preferencial acima do diafragma para rápida circulação central.
@@ -131,6 +126,14 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Motor determinístico para cálculo de compensação esperada (Fórmula de Winter: pCO2 = 1.5 * HCO3 + 8 ± 2).
     - Cálculo automático de Anion Gap e Delta Ratio para diagnóstico diferencial de acidoses metabólicas ocultas e triplas.
 
+32. [ ] **Módulo de Suporte Nutricional em Pediatria (Fórmula Infantil / Terapia Nutricional)**:
+    - Calculadora determinística para diluição e preparo de fórmulas infantis (padronização 1 medida para 30 mL).
+    - Prescrição de volume hídrico e necessidade calórica para lactentes internados, baseada na fórmula de Holliday-Segar.
+
+33. [ ] **Módulo de Hematologia: Manejo e Investigação de Anemias**:
+    - Motor analítico do hemograma: interpretação de VCM, HCM, RDW e contagem de reticulócitos para classificação etiológica (microcítica/hipocrômica, normocítica, macrocítica).
+    - Cálculo de dose de reposição de Ferro elementar (VO) com teto seguro para evitar intolerância gastrointestinal, e critérios para indicação de Ferro Endovenoso (Noripurum).
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
@@ -138,6 +141,12 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Manejo Avançado de Sepse e Choque Séptico Puerperal / Materno (Critérios SOS Score / Bundle de 1 Hora)**:
+   - Motor determinístico de cálculo do Obstetric Sepsis Score (SOS) com adaptação fisiológica e qSOFA obstétrico.
+   - Integração da conduta de ressuscitação (Bundle de 1 hora) baseada em parâmetros como lactato e choque séptico.
+   - Novo módulo `src/02_sepse_puerperal.js` integrado à malha RPC do `server/runtime.js` (`cockpitSepsePuerperal`).
+   - Suíte determinística `tests/test_sepse_puerperal.cjs` e `test_sepse_puerperal.py` validada com sucesso.
+
 - [x] (2026-10-09) **Auditoria Farmacêutica Hospitalar: Compatibilidade Físico-Química em Y-Site (Linha Venosa)**:
    - Motor determinístico de verificação cruzada (matriz combinatória) de incompatibilidades intravenosas no Y-Site.
    - Bloqueios críticos rigorosos implementados para cristalização (Ceftriaxona + Cálcio/Ringer), precipitação (Fenitoína com Glicose, Furosemida + Midazolam) e inativação de aminas (Bicarbonato + Catecolaminas).
