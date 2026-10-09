@@ -66,7 +66,7 @@ var EndocrinologiaDiabetesService = (function() {
     if (tipoDm === 1) {
       // DM1: 0.5 U/kg/dia padrão (0.4 a 0.6 em fase inicial; até 0.8-1.0 em estresse/puberdade)
       var fatorDose = descompensado ? 0.6 : 0.5;
-      var doseTotalDia = Math.round(peso * fatorDose);
+      var doseTotalDia = Math.max(1, Math.round(peso * fatorDose));
       var basal = Math.round(doseTotalDia * 0.5);
       var bolusTotal = doseTotalDia - basal;
       var bolusPorRefeicao = Math.round(bolusTotal / 3);

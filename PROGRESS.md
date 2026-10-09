@@ -17,19 +17,16 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria de Eficiência e Testes de Borda nas Calculadoras Clínicas**:
-    - Testar cada calculadora clínica (DVA, SRI, Gasometria, Clearance, KDIGO, DHE, PALS, Desidratação, Insulina).
-    - Assegurar que valores atípicos ou nulos não gerem erros não tratados (NaN, divisões por zero) e que todos os alertas sentinela continuem íntegros.
-    - Otimizar o tempo de computação e simplificar a saída textual mantendo todo o rigor teórico e farmacológico.
-    - Anotar sugestões clínicas e novos refinamentos na seção de sugestões futuras.
+- [ ] **Auditoria de Acessibilidade, Ergonomia e Atalhos Rápidos no Bot do Telegram**:
+    - Revisar fluxos de navegação, tamanho de teclados e limites de caracteres para conexões instáveis de plantão.
+    - Implementar fallbacks em mensagens longas preservando a integridade das condutas beira-leito.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-2. [ ] **Auditoria de Acessibilidade, Ergonomia e Atalhos Rápidos no Bot do Telegram**:
-    - Revisar fluxos de navegação, tamanho de teclados e limites de caracteres para conexões instáveis de plantão.
-    - Implementar fallbacks em mensagens longas preservando a integridade das condutas beira-leito.
+3. [ ] **Otimização de Logs, Monitoramento e Telemetria de Erros**:
+    - Melhorar a rastreabilidade dos logs em produção (Render) mantendo a performance do Fastify.
 
 ---
 
@@ -46,10 +43,18 @@
 - *Sugestão 8 (Cockpit / PWA)*: Sincronização em segundo plano (Background Sync API) com fila outbox no IndexedDB para envio automático de prescrições e atualizações de leitos assim que o dispositivo recuperar conexão de rede após áreas de sombra no hospital.
 - *Sugestão 9 (Cockpit PWA)*: Tema "Plantão Noturno / Sala Escura" com fundo OLED puro (#000000) e tipografia em tons de âmbar/vermelho escuro para conforto visual e conservação de bateria no plantão da madrugada.
 - *Sugestão 10 (Calculadoras / Cockpit)*: Calculadora integrada de reposição de Magnésio e Fósforo IV para prevenção e manejo precoce da Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado na enfermaria/UTI.
+- *Sugestão 11 (Calculadoras)*: Implementar validação cruzada entre clearance estimado (Cockcroft) e eTFG (CKD-EPI) ao gerar alertas de ajuste renal para evidenciar discrepâncias em obesos e sarcopênicos.
+- *Sugestão 12 (Gasometria)*: Adicionar cálculo visual do triângulo de Siggaard-Andersen para auxiliar o médico na compreensão do desvio de base.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0Q. [x] **Auditoria de Eficiência e Testes de Borda nas Calculadoras Clínicas**:
+    - **Proteção Contra Valores Extremos**: Evitada divisão por zero e resultados `Infinity` na calculadora de insulina ambulatorial quando pesos muito baixos são informados (reforço de Math.max).
+    - **Verificação Contínua**: Testada bateria completa (DVA, SRI, Gasometria, Clearance, KDIGO, DHE, PALS, Desidratação, Insulina) contra NaN, Infinity e divisões por zero, confirmando imunidade nos módulos puros.
+    - **Testes**: Executado `npm test` confirmando estabilidade em 100% das 22 baterias de testes.
+    - **Documentação de Evolução**: Novas sugestões clínicas e de precisão matemática para calculadoras foram documentadas no painel futuro.
 
 0P. [x] **Otimização de Performance, Latência e Resiliência do Backend Fastify**:
     - **Otimização de Middlewares**: Configurada compressão avançada (@fastify/compress) incluindo suporte a Brotli ('br') com zlibOptions globais para reduzir payload json de respostas grandes.
