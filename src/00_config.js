@@ -30,11 +30,20 @@ var ConfigService = (function() {
     IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
     IA_MODELOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
     IA_MODELOS_TTS_GEMINI: "gemini-2.5-flash-preview-tts,gemini-3.8-flash-tts",
+    IA_MODELOS_LOCAL: "llama3.1:latest,llama3.2:latest,mistral:latest,llama3:8b,mistral:7b",
+    LOCAL_LLM_URL: "http://127.0.0.1:11434/v1/chat/completions",
+    LOCAL_LLM_API_KEY: "ollama",
+    LOCAL_LLM_TIMEOUT_MS: "30000",
+    LOCAL_LLM_ATIVO: "auto",
     IA_VOZ_PRECEPTOR: "Fenrir",
     TIMEZONE: "America/Sao_Paulo",
     SPREADSHEET_ID_REMUME: "",
     SPREADSHEET_ID_INTERACOES: "",
-    WEB_APP_URL: ""
+    WEB_APP_URL: "",
+    IA_LOCAL_ENDPOINT: "http://127.0.0.1:11434/v1/chat/completions",
+    IA_MODELOS_LOCAL: "llama3.1:latest,llama3:8b,mistral:latest,llama3:latest,mistral:7b",
+    IA_LOCAL_TIMEOUT_MS: "12000",
+    IA_FALLBACK_OFFLINE_HABILITADO: "true"
   };
 
   return {
@@ -84,7 +93,12 @@ var GROQ_API_KEY = ConfigService.get("GROQ_API_KEY");
 var OPENROUTER_API_KEY = ConfigService.get("OPENROUTER_API_KEY");
 var ZAI_API_KEY = ConfigService.get("ZAI_API_KEY");
 var GEMINI_API_KEYS = ConfigService.getArray("GEMINI_API_KEYS");
+var LOCAL_LLM_URL = ConfigService.get("LOCAL_LLM_URL", "http://127.0.0.1:11434/v1/chat/completions");
+var LOCAL_LLM_API_KEY = ConfigService.get("LOCAL_LLM_API_KEY", "ollama");
+var IA_MODELOS_LOCAL = ConfigService.getArray("IA_MODELOS_LOCAL");
 var TIMEZONE = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 var SPREADSHEET_ID_REMUME = ConfigService.get("SPREADSHEET_ID_REMUME");
 var SPREADSHEET_ID_INTERACOES = ConfigService.get("SPREADSHEET_ID_INTERACOES");
 var WEB_APP_URL = ConfigService.get("WEB_APP_URL");
+var IA_LOCAL_ENDPOINT = ConfigService.get("IA_LOCAL_ENDPOINT");
+var IA_MODELOS_LOCAL = ConfigService.get("IA_MODELOS_LOCAL");

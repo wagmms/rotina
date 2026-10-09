@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 02:45:43
- * Checksum SHA256: b83db76383edeff5
+ * Gerado automaticamente via build_master.py em: 2026-10-09 04:24:33
+ * Checksum SHA256: b8ff2d73a03c12fc
  * ==============================================================================
  */
 
@@ -46,11 +46,20 @@ var ConfigService = (function() {
     IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
     IA_MODELOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
     IA_MODELOS_TTS_GEMINI: "gemini-2.5-flash-preview-tts,gemini-3.8-flash-tts",
+    IA_MODELOS_LOCAL: "llama3.1:latest,llama3.2:latest,mistral:latest,llama3:8b,mistral:7b",
+    LOCAL_LLM_URL: "http://127.0.0.1:11434/v1/chat/completions",
+    LOCAL_LLM_API_KEY: "ollama",
+    LOCAL_LLM_TIMEOUT_MS: "30000",
+    LOCAL_LLM_ATIVO: "auto",
     IA_VOZ_PRECEPTOR: "Fenrir",
     TIMEZONE: "America/Sao_Paulo",
     SPREADSHEET_ID_REMUME: "",
     SPREADSHEET_ID_INTERACOES: "",
-    WEB_APP_URL: ""
+    WEB_APP_URL: "",
+    IA_LOCAL_ENDPOINT: "http://127.0.0.1:11434/v1/chat/completions",
+    IA_MODELOS_LOCAL: "llama3.1:latest,llama3:8b,mistral:latest,llama3:latest,mistral:7b",
+    IA_LOCAL_TIMEOUT_MS: "12000",
+    IA_FALLBACK_OFFLINE_HABILITADO: "true"
   };
 
   return {
@@ -100,10 +109,15 @@ var GROQ_API_KEY = ConfigService.get("GROQ_API_KEY");
 var OPENROUTER_API_KEY = ConfigService.get("OPENROUTER_API_KEY");
 var ZAI_API_KEY = ConfigService.get("ZAI_API_KEY");
 var GEMINI_API_KEYS = ConfigService.getArray("GEMINI_API_KEYS");
+var LOCAL_LLM_URL = ConfigService.get("LOCAL_LLM_URL", "http://127.0.0.1:11434/v1/chat/completions");
+var LOCAL_LLM_API_KEY = ConfigService.get("LOCAL_LLM_API_KEY", "ollama");
+var IA_MODELOS_LOCAL = ConfigService.getArray("IA_MODELOS_LOCAL");
 var TIMEZONE = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 var SPREADSHEET_ID_REMUME = ConfigService.get("SPREADSHEET_ID_REMUME");
 var SPREADSHEET_ID_INTERACOES = ConfigService.get("SPREADSHEET_ID_INTERACOES");
 var WEB_APP_URL = ConfigService.get("WEB_APP_URL");
+var IA_LOCAL_ENDPOINT = ConfigService.get("IA_LOCAL_ENDPOINT");
+var IA_MODELOS_LOCAL = ConfigService.get("IA_MODELOS_LOCAL");
 
 
 // ==============================================================================
@@ -5665,6 +5679,2041 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_climaterio_thm.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: CLIMATÉRIO E TERAPIA HORMONAL DA MENOPAUSA (THM)
+ * ==============================================================================
+ * Motor determinístico de alta precisão clínica e farmacológica para o manejo do
+ * climatério, transição menopáusica e pós-menopausa, fundamentado nas diretrizes
+ * da FEBRASGO (Federação Brasileira das Associações de Ginecologia e Obstetrícia),
+ * NAMS / The Menopause Society (2022-2023) e Consenso Brasileiro de Climatério.
+ *
+ * PILARES CLÍNICOS DETERMINÍSTICOS:
+ * 1. Janela de Oportunidade (< 60 anos e/ou < 10 anos de pós-menopausa):
+ *    - Relação risco-benefício amplamente favorável em mulheres jovens/recém-menopausadas.
+ *    - Bloqueio ou contraindicação de início tardio (>= 60 anos ou >= 10 anos pós-menopausa)
+ *      devido ao aumento do risco cardiovascular, AVC e demência.
+ *    - Manejo específico de Insuficiência Ovariana Prematura (IOP / menopausa precoce < 40a),
+ *      com reposição estrogênica obrigatória até pelo menos 50-52 anos.
+ * 2. Regra de Ouro da Proteção Endometrial (Status Uterino):
+ *    - Mulheres com ÚTERO INTACTO: ESTROGÊNIO ISOLADO É TERMINANTEMENTE PROIBIDO!
+ *      Associação obrigatória com progestagênio (Progesterona micronizada ou Didrogesterona)
+ *      ou SIU-Levonorgestrel para neutralizar o risco de hiperplasia e adenocarcinoma endometrial.
+ *    - Mulheres HISTERECTOMIZADAS: Estrogênio isolado (ET). Progestagênio desnecessário,
+ *      salvo histórico de endometriose moderada a severa (prevenção de recidiva em focos residuais).
+ *    - Regimes terapêuticos: Contínuo Combinado (pós-menopausa tardia, amenorreia planejada)
+ *      vs Cíclico/Sequencial (perimenopausa/transição com sangramento mensal previsível).
+ * 3. Seleção Ponderada da Via de Administração (Transdérmica vs Oral):
+ *    - Via Transdérmica de Escolha Obrigatória: Evita 1ª passagem hepática em mulheres com
+ *      HAS, Diabetes, Obesidade (IMC >= 30), Hipertrigliceridemia (> 150 mg/dL), Esteatose hepática,
+ *      Colelitíase, Tabagismo ou Risco Tromboembólico/Cardiovascular intermediário.
+ *    - Via Oral restrita a mulheres hígidas, peso normal e perfil lipídico normal.
+ * 4. Rastreamento e Checklist de Segurança Oncológica e Cardiovascular:
+ *    - Contraindicações Absolutas: Câncer de mama ou endométrio prévio/atual, sangramento
+ *      genital não esclarecido, TEV agudo/prévio, trombofilias, DAC/IAM, AVC/AIT, hepatopatia ativa.
+ *    - Mamografia bilateral mandatória (< 1 ano com BI-RADS 1 ou 2) e USG transvaginal se SUA.
+ * 5. Síndrome Geniturinária da Menopausa (SGM) Isolada:
+ *    - Estrogênio tópico de baixa dose (Estriol / Promestrieno / Estradiol vaginal)
+ *      sem necessidade de progestagênio sistêmico, mesmo em útero íntegro.
+ * 6. Alternativas Não Hormonais em Pacientes Contraindicadas:
+ *    - Desvenlafaxina, Venlafaxina, Gabapentina e alerta crítico contra Paroxetina em uso de Tamoxifeno.
+ * ==============================================================================
+ */
+
+var ClimaterioThmService = (function() {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. CONSTANTES E PADRÕES FARMACOLÓGICOS (FEBRASGO / NAMS)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  var VIAS_ESTROGENIO = {
+    TRANSDERMICA_GEL: {
+      nome: 'Estradiol Gel 0,06% (17-beta-estradiol transdérmico)',
+      apresentacao: 'Frasco com bomba dosadora (0,75 mg de estradiol por acionamento/medida)',
+      dosePadrao: '1 a 2 acionamentos (0,75 mg a 1,5 mg) ao dia pela manhã',
+      instrucoes: 'Aplicar em pele limpa e seca dos braços, ombros ou face interna das coxas. NUNCA aplicar nas mamas ou genitais.',
+      vantagemClinica: 'Sem 1ª passagem hepática. Neutro em triglicerídeos, PCR e fatores de coagulação.'
+    },
+    TRANSDERMICA_ADESIVO: {
+      nome: 'Estradiol Adesivo Transdérmico',
+      apresentacao: 'Adesivo transdérmico liberando 25 mcg, 50 mcg ou 100 mcg a cada 24 horas',
+      dosePadrao: '50 mcg/dia (trocado 1 a 2 vezes por semana conforme fabricante)',
+      instrucoes: 'Aplicar no abdome inferior ou nádegas. Alternar o local de aplicação semanalmente.',
+      vantagemClinica: 'Liberação plasmática contínua e estável. Sem sobrecarga hepática.'
+    },
+    ORAL_ESTRADIOL: {
+      nome: '17-beta-estradiol micronizado ou Valerato de Estradiol (Oral)',
+      apresentacao: 'Comprimidos de 1 mg ou 2 mg',
+      dosePadrao: '1 mg a 2 mg VO uma vez ao dia pela manhã',
+      instrucoes: 'Tomar diariamente com água, preferencialmente no mesmo horário.',
+      vantagemClinica: 'Boa aceitação, melhora do perfil de colesterol (aumenta HDL e reduz LDL), mas eleva triglicerídeos e fatores pró-trombóticos hepáticos.'
+    }
+  };
+
+  var PROGESTAGENIOS = {
+    MICRONIZADA: {
+      nome: 'Progesterona Natural Micronizada',
+      apresentacao: 'Cápsulas gelatinosas de 100 mg ou 200 mg (Utrogestan / similar)',
+      doseContinuo: '100 mg VO diariamente ao deitar (esquema contínuo combinado)',
+      doseCiclico: '200 mg VO ao deitar por 12 a 14 noites por mês (esquema sequencial)',
+      perfilClinico: 'Molécula idêntica à ovariana. Menor risco mamário e tromboembólico. Ação alostérica sedativa/hipnótica benéfica em receptores GABA-A (alívio da insônia do climatério).'
+    },
+    DIDROGESTERONA: {
+      nome: 'Didrogesterona',
+      apresentacao: 'Comprimidos de 10 mg (Duphaston / similar)',
+      doseContinuo: '5 mg a 10 mg VO diariamente (esquema contínuo)',
+      doseCiclico: '10 mg VO diariamente por 14 dias por mês (esquema sequencial)',
+      perfilClinico: 'Retroprogesterona com alta seletividade para receptores de progesterona. Neutra em lipídios e risco cardiovascular.'
+    },
+    SIU_LNG: {
+      nome: 'Sistema Intrauterino Liberador de Levonorgestrel 52 mg (Mirena)',
+      apresentacao: 'Dispositivo intrauterino com taxa de liberação inicial de 20 mcg/dia',
+      dosePadrao: 'Inserção intrauterina para proteção endometrial por até 5 a 8 anos',
+      perfilClinico: 'Padrão-ouro em eficácia de atrofia endometrial local com absorção sistêmica mínima (< 0,1%). Excelente controle de sangramento e amenorreia.'
+    },
+    MEDROXIPROGESTERONA: {
+      nome: 'Acetato de Medroxiprogesterona (AMP)',
+      apresentacao: 'Comprimidos de 2,5 mg, 5 mg ou 10 mg',
+      doseContinuo: '2,5 mg VO diariamente',
+      doseCiclico: '5 mg a 10 mg VO diariamente por 12 a 14 dias por mês',
+      perfilClinico: 'Progestagênio sintético convencional. Eficácia endometrial comprovada, porém associado a discreto aumento de risco mamário e metabólico em relação à progesterona micronizada.'
+    }
+  };
+
+  var TERAPIA_VAGINAL_SGM = {
+    ESTRIOL: {
+      nome: 'Estriol Creme Vaginal 1 mg/g',
+      posologiaAtaque: '1 aplicador cheio (1 g = 1 mg) via vaginal ao deitar por 14 a 21 noites consecutivas',
+      posologiaManutencao: '1 aplicador cheio 2 vezes por semana (ex: terças e sextas) ao deitar',
+      seguranca: 'Ação seletiva no epitélio vaginal com baixa afinidade por receptores endometriais e meia-vida ultra-curta. NÃO exige progestagênio de oposição.'
+    },
+    PROMESTRIENO: {
+      nome: 'Promestrieno Creme Vaginal 10 mg/g ou Cápsulas Vaginais 10 mg',
+      posologiaAtaque: '1 aplicação vaginal ou 1 cápsula ao deitar por 20 dias consecutivos',
+      posologiaManutencao: '1 aplicação vaginal 2 a 3 vezes por semana',
+      seguranca: 'Éter dietílico do estradiol com absorção sistêmica virtualmente nula (< 1%). Ausência de estímulo endometrial ou mamário.'
+    },
+    ESTRADIOL_VAGINAL_BAIXA_DOSE: {
+      nome: '17-beta-estradiol Comprimidos Vaginais 10 mcg',
+      posologiaAtaque: '1 comprimido vaginal ao deitar por 14 dias',
+      posologiaManutencao: '1 comprimido vaginal 2 vezes por semana',
+      seguranca: 'Ultra-baixa dose local. Alta eficácia para atrofia e disúria.'
+    }
+  };
+
+  var ALTERNATIVAS_NAO_HORMONAIS = {
+    DESVENLAFAXINA: {
+      farmaco: 'Succinato de Desvenlafaxina',
+      dose: '50 mg VO uma vez ao dia pela manhã',
+      classe: 'Inibidor Seletivo da Recaptação de Serotonina e Noradrenalina (ISRN)',
+      indicacao: '1ª Linha não hormonal para sintomas vasomotores moderados a graves. Redução de 60-70% nos fogachos e melhora de sintomas depressivos/ansiosos.',
+      alertaTamoxifeno: 'Seguro em pacientes em uso de Tamoxifeno (inibição mínima ou ausente do CYP2D6).'
+    },
+    VENLAFAXINA: {
+      farmaco: 'Cloridrato de Venlafaxina (Liberação Prolongada)',
+      dose: '37,5 mg a 75 mg VO uma vez ao dia pela manhã',
+      classe: 'ISRN',
+      indicacao: 'Excelente eficácia em fogachos. Titular dose a cada 1-2 semanas se necessário.',
+      alertaTamoxifeno: 'Fraca inibição do CYP2D6; geralmente segura com Tamoxifeno, mas Desvenlafaxina é preferível.'
+    },
+    GABAPENTINA: {
+      farmaco: 'Gabapentina',
+      dose: '300 mg VO ao deitar (pode ser titulada até 300 mg 2 a 3 vezes ao dia)',
+      classe: 'Modulador de Canais de Cálcio Pré-sinápticos',
+      indicacao: 'Especialmente útil quando os fogachos são predominantemente noturnos e associados a insônia importante.',
+      alertaTamoxifeno: 'Seguro com Tamoxifeno.'
+    },
+    CLONIDINA: {
+      farmaco: 'Cloridrato de Clonidina',
+      dose: '0,05 mg a 0,1 mg VO de 12/12 horas',
+      classe: 'Agonista Alfa-2 Adrenérgico Central',
+      indicacao: 'Opção de 2ª linha para sintomas vasomotores em pacientes hipertensas.',
+      alertaTamoxifeno: 'Monitorar hipotensão postural, tontura e boca seca.'
+    },
+    PAROXETINA_ALERTA: {
+      farmaco: 'Cloridrato de Paroxetina',
+      dose: '7,5 mg a 10 mg (ou 20 mg) VO ao dia',
+      classe: 'ISRS',
+      indicacao: 'Aprovado pelo FDA para fogachos (dose 7,5 mg).',
+      alertaTamoxifeno: '⚠️ CONTRAINDICAÇÃO ABSOLUTA COM TAMOXIFENO: Inibidor potente irreversível da isoenzima hepática CYP2D6, impedindo a conversão do pró-fármaco Tamoxifeno em seu metabólito ativo antitumoral (Endoxifeno), elevando o risco de recidiva do câncer de mama!'
+    }
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. AVALIAÇÃO DA JANELA DE OPORTUNIDADE (FEBRASGO / NAMS)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia determinísticamente a Janela de Oportunidade para início da THM.
+   *
+   * @param {Object} params
+   * @param {number} params.idade - Idade atual da paciente em anos
+   * @param {number} [params.tempoMenopausaAnos] - Tempo desde a última menstruação (em anos)
+   * @param {number} [params.idadeMenopausa] - Idade no momento da menopausa
+   * @param {boolean} [params.insuficienciaOvarianaPrematura=false] - Menopausa antes dos 40 anos
+   * @param {boolean} [params.emTransicaoMenopausica=false] - Perimenopausa / irregularidade menstrual
+   * @returns {Object} Estratificação da janela de oportunidade
+   */
+  function avaliarJanelaOportunidade(params) {
+    params = params || {};
+    var idade = Number(params.idade) || 50;
+    var tempoMenopausa = params.tempoMenopausaAnos !== undefined && params.tempoMenopausaAnos !== null
+      ? Number(params.tempoMenopausaAnos)
+      : (params.idadeMenopausa ? Math.max(0, idade - Number(params.idadeMenopausa)) : 1);
+    
+    var iop = Boolean(params.insuficienciaOvarianaPrematura || params.menopausaPrecoce || (params.idadeMenopausa && Number(params.idadeMenopausa) < 40));
+    var transicao = Boolean(params.emTransicaoMenopausica || params.perimenopausa);
+
+    var resultado = {
+      status: 'DENTRO_DA_JANELA',
+      elegivelInicio: true,
+      classificacao: 'Janela de Oportunidade Favorável',
+      relacaoRiscoBeneficio: 'AMPLAMENTE_FAVORAVEL',
+      justificativa: '',
+      alertas: [],
+      recomendacoes: []
+    };
+
+    if (iop) {
+      resultado.status = 'INSUFICIENCIA_OVARIANA_PREMATURA';
+      resultado.elegivelInicio = true;
+      resultado.classificacao = 'Insuficiência Ovariana Prematura (IOP) / Menopausa Precoce (< 40 anos)';
+      resultado.relacaoRiscoBeneficio = 'INDICACAO_MANDATORIA';
+      resultado.justificativa = 'Em mulheres com falência ovariana prematura (< 40 anos), a THM não é opcional, mas terapêutica de reposição fisiológica estrita. Deve ser mantida até pelo menos a idade média da menopausa natural (~50-52 anos) para prevenir aterosclerose precoce, perda grave de massa óssea e demência.';
+      resultado.recomendacoes.push('Doses de estrogênio habitualmente mais elevadas (ex: Estradiol transdérmico 1,5 a 2 g de gel ou 50-100 mcg adesivo, ou 2 mg oral) para mimetizar a concentração estrogênica da mulher em idade fértil.');
+      resultado.recomendacoes.push('Manter proteção endometrial obrigatória se útero presente.');
+      resultado.recomendacoes.push('Rastreamento de DMO (Densitometria Óssea) e perfil cardiovascular de base.');
+      return resultado;
+    }
+
+    if (transicao) {
+      resultado.status = 'TRANSICAO_MENOPAUSICA';
+      resultado.elegivelInicio = true;
+      resultado.classificacao = 'Transição Menopáusica / Perimenopausa';
+      resultado.relacaoRiscoBeneficio = 'FAVORAVEL_COM_REGIME_SEQUENCIAL';
+      resultado.justificativa = 'Paciente em transição menopáusica com irregularidade de ciclos e sintomas vasomotores. Elegível para início de THM. Devido à presença de sangramentos esporádicos e atividade folicular residual, o esquema preferencial para útero intacto é o Cíclico/Sequencial (ou SIU-LNG) para manter previsibilidade do sangramento e evitar sangramento de escape frequente do esquema contínuo.';
+      resultado.recomendacoes.push('Esquema Cíclico/Sequencial: Estrogênio contínuo associado a Progesterona micronizada 200 mg/dia por 12-14 dias no mês.');
+      resultado.recomendacoes.push('Alternativa excelente: Inserção de SIU-Levonorgestrel 52 mg (promove contracepção altamente eficaz na perimenopausa + proteção endometrial total + controle de sangramento).');
+      return resultado;
+    }
+
+    // Regra clássica de Janela de Oportunidade FEBRASGO / NAMS:
+    // Idade < 60 anos E/OU Menopausa < 10 anos
+    var idadeMenor60 = idade < 60;
+    var menopausaMenor10 = tempoMenopausa < 10;
+
+    if (idadeMenor60 && menopausaMenor10) {
+      resultado.status = 'DENTRO_DA_JANELA';
+      resultado.elegivelInicio = true;
+      resultado.classificacao = 'Janela de Oportunidade Aberta (< 60 anos e < 10 anos de pós-menopausa)';
+      resultado.relacaoRiscoBeneficio = 'AMPLAMENTE_FAVORAVEL';
+      resultado.justificativa = 'Paciente dentro da Janela de Oportunidade estrita. Os ensaios clínicos e consensos FEBRASGO/NAMS demonstram máximo benefício sintomático (fogachos, sono, humor, atrofia urogenital), prevenção primária de perda óssea/fraturas e perfil de segurança cardiovascular favorável, sem acréscimo de eventos coronarianos.';
+      resultado.recomendacoes.push('Iniciar com a menor dose eficaz e reavaliar anualmente.');
+      resultado.recomendacoes.push('Avaliar fatores de risco cardiovascular e metabólicos para definição da melhor via de administração (transdérmica vs oral).');
+    } else if (idadeMenor60 || menopausaMenor10) {
+      resultado.status = 'JANELA_PARCIAL_MODERADA';
+      resultado.elegivelInicio = true;
+      resultado.classificacao = 'Janela Limítrofe (preenche 1 dos critérios: idade < 60a ou tempo de menopausa < 10a)';
+      resultado.relacaoRiscoBeneficio = 'FAVORAVEL_COM_PONDERACAO';
+      resultado.justificativa = 'Paciente em faixa de transição da janela (' + (idadeMenor60 ? 'idade < 60 anos, porém menopausa há ' + tempoMenopausa + ' anos' : 'idade ' + idade + ' anos, porém menopausa recente há ' + tempoMenopausa + ' anos') + '). Início possível para sintomas moderados a graves com indicação clínica clara, priorizando estritamente via transdérmica e doses baixas.';
+      resultado.recomendacoes.push('Preferência mandatória por via transdérmica para minimizar impacto trombótico e inflamatório.');
+      resultado.recomendacoes.push('Estratificação cardiovascular detalhada prévia (PA, perfil lipídico, escore de risco cardiovascular).');
+    } else {
+      // Idade >= 60 anos E tempoMenopausa >= 10 anos
+      resultado.status = 'FORA_DA_JANELA';
+      resultado.elegivelInicio = false;
+      resultado.classificacao = 'Janela de Oportunidade Ultrapassada (>= 60 anos E >= 10 anos de menopausa)';
+      resultado.relacaoRiscoBeneficio = 'DESFAVORAVEL_PARA_INICIO';
+      resultado.justificativa = '⚠️ A paciente ultrapassou a Janela de Oportunidade (idade ' + idade + ' anos e pós-menopausa há ' + tempoMenopausa + ' anos). Grandes ensaios clínicos (WHI, KEEPS, ELITE) comprovaram que o INÍCIO tardio de THM sistêmica eleva o risco relativo de eventos coronarianos (DAC), AVC isquêmico, TEV e declínio cognitivo/demência por instabilização de placas ateroscleróticas pré-existentes.';
+      resultado.alertas.push('NÃO RECOMENDADO O INÍCIO DE THM SISTÊMICA DE ROTINA NESTA FAIXA ETÁRIA / TEMPO DE PÓS-MENOPAUSA.');
+      resultado.alertas.push('Se a paciente apresentar sintomas vasomotores refratários e incapacitantes, discutir riscos abertamente, utilizar ultra-baixa dose transdérmica ou optar prioritariamente por TERAPIA NÃO HORMONAL (Desvenlafaxina / Venlafaxina / Gabapentina).');
+      resultado.recomendacoes.push('Priorizar terapias não hormonais de 1ª linha para controle de fogachos.');
+      resultado.recomendacoes.push('Se queixa puramente urogenital (atrofia/dispareunia), o estrogênio TÓPICO vaginal de baixa dose é seguro e liberado.');
+    }
+
+    return resultado;
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. AUDITORIA DE CONTRAINDICAÇÕES ABSOLUTAS E RELATIVAS (FEBRASGO / NAMS)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Audita determinísticamente contraindicações absolutas e relativas para THM.
+   *
+   * @param {Object} params
+   * @returns {Object} Laudo de elegibilidade de segurança
+   */
+  function auditarContraindicacoesThm(params) {
+    params = params || {};
+    var contraindicacoesAbsolutas = [];
+    var contraindicacoesRelativas = [];
+    var alertasCriticos = [];
+
+    // 1. Câncer de Mama
+    if (params.cancerMama || params.historicoCancerMama || params.suspeitaCancerMama) {
+      contraindicacoesAbsolutas.push({
+        fator: 'Câncer de Mama Prévio, Atual ou Suspeita',
+        motivo: 'O estrogênio e progestagênios promovem estímulo proliferativo direto sobre células epiteliais mamárias e receptores de estrogênio (ER+). Contraindicação formal e absoluta em todas as diretrizes oncológicas e ginecológicas.',
+        conduta: 'Bloqueio total de THM sistêmica. Optar por terapias não hormonais (Desvenlafaxina 50mg/dia, Venlafaxina ou Gabapentina).'
+      });
+      alertasCriticos.push('🚨 CONTRAINDICAÇÃO ABSOLUTA: Câncer de mama prévio ou ativo contraindica formalmente THM sistêmica.');
+    }
+
+    // 2. Câncer de Endométrio ou Neoplasias Hormônio-Dependentes
+    if (params.cancerEndometrio || params.historicoCancerEndometrio || params.hiperplasiaEndometrialAtipica || params.neoplasiaEstrogenoDependente) {
+      contraindicacoesAbsolutas.push({
+        fator: 'Câncer de Endométrio Prévio/Atual ou Hiperplasia Endometrial com Atipia',
+        motivo: 'Neoplasia fortemente estrogênio-dependente com alto risco de recorrência ou progressão tumoral.',
+        conduta: 'Bloqueio total de THM estrogênica sistêmica.'
+      });
+      alertasCriticos.push('🚨 CONTRAINDICAÇÃO ABSOLUTA: Histórico de câncer endometrial ou lesão precursora atípica.');
+    }
+
+    // 3. Sangramento Vaginal Não Esclarecido
+    if (params.sangramentoVaginalNaoEsclarecido || params.suaNaoInvestigado || params.sangramentoPosMenopausaSemInvestigacao) {
+      contraindicacoesAbsolutas.push({
+        fator: 'Sangramento Vaginal Anormal de Causa Não Esclarecida',
+        motivo: 'Sangramento na pós-menopausa é sinal de alerta mandatória para adenocarcinoma de endométrio (10-15% dos casos) ou hiperplasia atípica. Não se pode prescrever terapia hormonal sem afastar neoplasia.',
+        conduta: 'Interromper/não iniciar THM. Realizar obrigatoriamente Ultrassonografia Transvaginal (medir espessura endometrial) e Histeroscopia com biópsia endometrial antes de qualquer conduta hormonal.'
+      });
+      alertasCriticos.push('🛑 BLOQUEIO MANDATÓRIO: Sangramento pós-menopausa não investigado exige exclusão histológica de adenocarcinoma endometrial prévia.');
+    }
+
+    // 4. Tromboembolismo Venoso Agudo ou Prévio / Trombofilias
+    if (params.tevPrevioOuAgudo || params.tvpPrevia || params.tepPrevio || params.trombofiliaAltoRisco || params.saf || params.sindromeAntifosfolipide) {
+      contraindicacoesAbsolutas.push({
+        fator: 'Tromboembolismo Venoso Prévio/Agudo (TVP/TEP) ou Trombofilia Conhecida de Alto Risco',
+        motivo: 'Estrogênio sistêmico aumenta síntese de fatores II, VII, VIII, X e reduz proteína S, elevando expressivamente o risco de retrombose venosa potencialmente fatal.',
+        conduta: 'Contraindicação absoluta à THM sistêmica (tanto oral quanto transdérmica em vigência de evento prévio confirmado ou SAF). Indicar terapias não hormonais para fogachos.'
+      });
+      alertasCriticos.push('🚨 CONTRAINDICAÇÃO ABSOLUTA: Histórico de TEV/Trombofilia de alto risco contraindica THM sistêmica.');
+    }
+
+    // 5. Doença Arterial Coronariana / Cerebrovascular Aterosclerótica
+    if (params.doencaCoronariana || params.iamPrevio || params.anginaInstavel || params.avcPrevio || params.aitPrevio || params.doencaArterialOclusiva) {
+      contraindicacoesAbsolutas.push({
+        fator: 'Doença Arterial Aterosclerótica Prévia (IAM, Angina Instável, AVC Isquêmico/Hemorrágico ou AIT)',
+        motivo: 'O uso de hormônios em leito arterial previamente aterosclerótico com placa instável promove instabilização endotelial, metaloproteinases de matriz e trombose arterial aguda.',
+        conduta: 'Bloqueio absoluto de THM sistêmica. Manejo com modificações de estilo de vida e terapias não hormonais (ISRN).'
+      });
+      alertasCriticos.push('🚨 CONTRAINDICAÇÃO ABSOLUTA: Histórico de evento coronariano ou AVC contraindica THM sistêmica.');
+    }
+
+    // 6. Doença Hepática Aguda Ativa ou Descompensada
+    if (params.doencaHepaticaAtiva || params.hepatiteAguda || params.insuficienciaHepatica || params.cirroseDescompensada) {
+      contraindicacoesAbsolutas.push({
+        fator: 'Doença Hepática Ativa Aguda ou Insuficiência Hepática Descompensada',
+        motivo: 'Incapacidade metabólica hepática de conjugar e depurar esteroides sexuais exógenos, além de sobrecarga funcional hepática grave.',
+        conduta: 'Contraindicação absoluta até resolução completa da hepatopatia aguda e normalização enzimática/funcional.'
+      });
+      alertasCriticos.push('🚨 CONTRAINDICAÇÃO ABSOLUTA: Hepatopatia aguda ativa descompensada.');
+    }
+
+    // 7. Porfiria Cutânea Tardia
+    if (params.porfiria || params.porfiriaCutaneaTardia) {
+      contraindicacoesAbsolutas.push({
+        fator: 'Porfiria Cutânea Tardia',
+        motivo: 'Estrogênios induzem a síntese da sintetase do ácido delta-aminolevulínico (ALA-S), desencadeando crises agudas graves de porfiria.',
+        conduta: 'Contraindicação absoluta a estrogênios.'
+      });
+      alertasCriticos.push('🚨 CONTRAINDICAÇÃO ABSOLUTA: Porfiria cutânea tardia.');
+    }
+
+    // 8. Meningioma (específico para progestagênios)
+    if (params.meningioma || params.historicoMeningioma) {
+      contraindicacoesAbsolutas.push({
+        fator: 'Meningioma Prévio ou Atual',
+        motivo: 'Meningiomas expressam densa quantidade de receptores de progesterona; progestagênios (especialmente acetato de ciproterona e outros sintéticos) estimulam o crescimento tumoral.',
+        conduta: 'Contraindicação formal ao uso de progestagênios exógenos.'
+      });
+      alertasCriticos.push('🚨 CONTRAINDICAÇÃO: Meningioma contraindica uso de progestagênios.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CONTRAINDICAÇÕES RELATIVAS / CONDICIONANTES
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Hipertensão Arterial Sistêmica Não Controlada
+    if (params.hasDescompensada || params.paNaoControlada) {
+      contraindicacoesRelativas.push({
+        fator: 'Hipertensão Arterial Sistêmica Descompensada (PA >= 140/90 mmHg)',
+        motivo: 'Risco cardiovascular e cerebrovascular aumentado.',
+        conduta: 'Estabilizar e controlar os níveis pressóricos previamente com anti-hipertensivos. Uma vez controlada a PA, se THM indicada, optar OBRIGATORIAMENTE por via transdérmica.'
+      });
+    }
+
+    // Hipertrigliceridemia Severa
+    var tg = Number(params.triglicerideos || 0);
+    if (tg >= 400 || params.hipertrigliceridemiaSevera) {
+      contraindicacoesRelativas.push({
+        fator: 'Hipertrigliceridemia Severa (TG >= 400 mg/dL)',
+        motivo: 'Estrogênio oral estimula síntese hepática de VLDL e triglicerídeos, podendo induzir pancreatite aguda hipertrigliceridêmica.',
+        conduta: 'VIA ORAL FORMALMENTE CONTRAINDICADA. Se houver extrema indicação para sintomas graves, usar estritamente VIA TRANSDÉRMICA em baixa dose e associar fibrato/estratégia lipídica.'
+      });
+    }
+
+    // Doença Biliar Litiásica / Colelitíase Sintomática
+    if (params.colelitiase || params.doencaBiliar) {
+      contraindicacoesRelativas.push({
+        fator: 'Colelitíase Sintomática / Doença Biliar Litiásica',
+        motivo: 'Estrogênio oral aumenta a saturação biliar de colesterol e diminui a motilidade da vesícula biliar.',
+        conduta: 'Evitar via oral. Optar estritamente por VIA TRANSDÉRMICA.'
+      });
+    }
+
+    // Endometriose Prévia (relevante para indicação de progestagênio em histerectomizada)
+    if (params.historicoEndometriose || params.endometriose) {
+      contraindicacoesRelativas.push({
+        fator: 'Histórico de Endometriose Prévia',
+        motivo: 'Estrogênio isolado pode reativar implantes endometrióticos peritoneais residuais e há risco de transformação neoplásica em tecido residual não ressecado.',
+        conduta: 'Mesmo se a paciente for histerectomizada, DEVE-SE associar progestagênio de oposição (terapia combinada obrigatória) para proteger focos residuais.'
+      });
+    }
+
+    // Leiomioma Uterino Sintomático
+    if (params.leiomiomaSintomatico || params.miomatoseVolumosa) {
+      contraindicacoesRelativas.push({
+        fator: 'Leiomiomatose Uterina Sintomática ou Volumosa',
+        motivo: 'Estrogênio e progesterona podem induzir aumento volumétrico dos miomas e recidiva de sangramento.',
+        conduta: 'Utilizar doses mínimas eficazes de estrogênio, preferencialmente transdérmico, associado a SIU-Levonorgestrel (que promove redução do sangramento dos miomas) ou progesterona contínua.'
+      });
+    }
+
+    // Enxaqueca com Aura
+    if (params.enxaquecaComAura) {
+      contraindicacoesRelativas.push({
+        fator: 'Enxaqueca com Aura',
+        motivo: 'Risco aumentado de AVC isquêmico com flutuações hormonais ou via oral.',
+        conduta: 'Evitar via oral. Se THM necessária, usar via transdérmica contínua de baixa dose para garantir níveis plasmáticos estáveis sem pico ou vale, ou preferir terapias não hormonais.'
+      });
+    }
+
+    // Tabagismo Ativo
+    if (params.tabagismo || params.fumante) {
+      contraindicacoesRelativas.push({
+        fator: 'Tabagismo Ativo',
+        motivo: 'O tabaco acelera o catabolismo hepático do estrogênio oral (reduzindo sua eficácia) e potencializa o risco tromboembólico venoso e arterial.',
+        conduta: 'Incentivar cessação tabágica imediata. Se prescrita THM, indicar OBRIGATORIAMENTE VIA TRANSDÉRMICA.'
+      });
+    }
+
+    var elegivel = contraindicacoesAbsolutas.length === 0;
+
+    return {
+      elegivelThmSistemica: elegivel,
+      contraindicacoesAbsolutas: contraindicacoesAbsolutas,
+      contraindicacoesRelativas: contraindicacoesRelativas,
+      alertasCriticos: alertasCriticos,
+      grauSeguranca: elegivel ? (contraindicacoesRelativas.length > 0 ? 'CONDICIONADA_A_CUIDADOS' : 'SEGURO') : 'CONTRAINDICADO_ABSOLUTO'
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. REGRA DE OURO DA PROTEÇÃO ENDOMETRIAL (STATUS UTERINO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Determina determinísticamente a necessidade e tipo de oposição progestagênica
+   * com base no status uterino e antecedentes clínicos.
+   *
+   * @param {Object} params
+   * @param {boolean} [params.uteroPresente=true] - Presença de útero intacto
+   * @param {boolean} [params.histerectomizada=false] - Histórico de histerectomia
+   * @param {boolean} [params.historicoEndometriose=false] - Endometriose prévia
+   * @param {string} [params.padraoMenstrual='pos_menopausa'] - 'pos_menopausa' (> 12 meses amenorreia) ou 'perimenopausa'
+   * @returns {Object} Diretriz de proteção endometrial
+   */
+  function determinarProtecaoEndometrial(params) {
+    params = params || {};
+    var histerectomizada = Boolean(params.histerectomizada || (params.uteroPresente === false));
+    var uteroPresente = !histerectomizada;
+    var endometriose = Boolean(params.historicoEndometriose || params.endometriose);
+    var padrao = String(params.padraoMenstrual || 'pos_menopausa').toLowerCase().trim();
+    var isTransicao = padrao === 'perimenopausa' || padrao === 'transicao' || Boolean(params.emTransicaoMenopausica);
+
+    if (uteroPresente) {
+      var esquemaRecomendado = isTransicao ? 'SEQUENCIAL_CICLICO' : 'CONTINUO_COMBINADO';
+      var progestOpcoes = [
+        PROGESTAGENIOS.MICRONIZADA,
+        PROGESTAGENIOS.DIDROGESTERONA,
+        PROGESTAGENIOS.SIU_LNG
+      ];
+
+      return {
+        uteroPresente: true,
+        necessitaProgestagenio: true,
+        regraDeOuro: 'OBRIGATÓRIA_ASSOCIACAO_PROGESTAGENIO',
+        alertaSeguranca: '⚠️ REGRA DE OURO DA PRESERVAÇÃO UTERINA: Mulheres com útero intacto exigem obrigatoriamente a associação de progestagênio ao estrogênio sistêmico. O uso de estrogênio isolado (não oposto) estimula hiperplasia endometrial contínua e multiplica em até 8 a 10 vezes o risco de adenocarcinoma de endométrio!',
+        esquemaRecomendado: esquemaRecomendado,
+        descricaoEsquema: isTransicao
+          ? 'Esquema Cíclico / Sequencial: Estrogênio contínuo diário associado a Progesterona nos últimos 12 a 14 dias do mês. Indicado na perimenopausa para manter sangramento de privação previsível e evitar escapes inesperados.'
+          : 'Esquema Contínuo Combinado: Estrogênio contínuo diário associado a Progesterona diária ininterrupta. Indicado na pós-menopausa tardia (> 1 ano de amenorreia) para atingir amenorreia completa e atrofia endometrial estável.',
+        progestagenioPrimeiraEscolha: {
+          nome: 'Progesterona Micronizada Natural (100 mg contínuo ou 200 mg cíclico ao deitar)',
+          justificativa: 'Molécula idêntica à endógena, neutra no risco tromboembólico, menor proliferação mamária no estudo E3N e melhora a qualidade do sono pelo efeito modulador em receptores GABA.'
+        },
+        alternativaModerna: {
+          nome: 'SIU-Levonorgestrel 52 mg (Mirena) + Estrogênio Transdérmico',
+          justificativa: 'Padrão-ouro em proteção endometrial local sem elevação de risco trombótico sistêmico, com alta taxa de amenorreia e controle de fluxo.'
+        },
+        posologiasDisponiveis: progestOpcoes
+      };
+    }
+
+    // Mulher Histerectomizada
+    if (endometriose) {
+      return {
+        uteroPresente: false,
+        necessitaProgestagenio: true,
+        regraDeOuro: 'EXCECAO_ENDOMETRIOSE_EXIGE_PROGESTAGENIO',
+        alertaSeguranca: '⚠️ EXCEÇÃO CLÍNICA FUNDAMENTAL: Paciente histerectomizada com histórico de endometriose moderada a grave. Embora não tenha endométrio uterino, o estrogênio isolado pode reativar implantes ectópicos residuais no peritônio, bexiga ou intestino, além de haver risco relatado de malignização de focos endometrióticos. A associação de progestagênio (terapia combinada) é mandatória.',
+        esquemaRecomendado: 'CONTINUO_COMBINADO',
+        descricaoEsquema: 'Estrogênio sistêmico associado a Progesterona micronizada ou Didrogesterona contínua para supressão de focos endometrióticos remanescentes.',
+        progestagenioPrimeiraEscolha: PROGESTAGENIOS.DIDROGESTERONA,
+        posologiasDisponiveis: [PROGESTAGENIOS.DIDROGESTERONA, PROGESTAGENIOS.MICRONIZADA]
+      };
+    }
+
+    return {
+      uteroPresente: false,
+      necessitaProgestagenio: false,
+      regraDeOuro: 'ESTROGENIO_ISOLADO_RECOMENDADO',
+      alertaSeguranca: '✅ Paciente histerectomizada sem histórico de endometriose: Terapia Estrogênica Isolada (ET). A adição de progestagênio é totalmente desnecessária e NÃO recomendada, pois o acréscimo de risco mamário discreto evidenciado no WHI esteve restrito ao uso de progestagênios associados.',
+      esquemaRecomendado: 'ESTROGENIO_ISOLADO_CONTINUO',
+      descricaoEsquema: 'Estrogênio diário ininterrupto sem progestagênio. Máxima eficácia vasomotora e óssea com o melhor perfil de segurança mamária.',
+      progestagenioPrimeiraEscolha: null,
+      posologiasDisponiveis: []
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. SELEÇÃO PONDERADA DA VIA DE ADMINISTRAÇÃO (ORAL VS TRANSDÉRMICA)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia comorbidades clínicas e fatores metabólicos para eleger a via ideal.
+   *
+   * @param {Object} params
+   * @returns {Object} Via selecionada com fundamentação farmacológica detalhada
+   */
+  function selecionarViaAdministracao(params) {
+    params = params || {};
+    var motivosTransdermica = [];
+
+    // Fatores de Indicação Obrigatória ou Preferencial por Via Transdérmica
+    var imc = Number(params.imc || 0);
+    if (imc >= 30) {
+      motivosTransdermica.push('Obesidade (IMC ' + imc.toFixed(1) + ' kg/m² >= 30): risco trombótico basal elevado e maior conversão periférica');
+    } else if (imc >= 25) {
+      motivosTransdermica.push('Sobrepeso (IMC ' + imc.toFixed(1) + ' kg/m²): preferência transdérmica para neutralidade metabólica');
+    }
+
+    if (params.has || params.hipertensao) {
+      motivosTransdermica.push('Hipertensão Arterial Sistêmica (HAS): via transdérmica não ativa o sistema renina-angiotensina-aldosterona hepático');
+    }
+
+    var tg = Number(params.triglicerideos || 0);
+    if (tg > 150) {
+      motivosTransdermica.push('Hipertrigliceridemia (' + tg + ' mg/dL > 150): via transdérmica não estimula síntese hepática de VLDL/triglicerídeos');
+    }
+
+    if (params.diabetes || params.sindromeMetabolica || params.resistenciaInsulinica) {
+      motivosTransdermica.push('Diabetes Mellitus / Síndrome Metabólica: via transdérmica preserva sensibilidade à insulina e perfil lipídico');
+    }
+
+    if (params.esteatoseHepatica || params.hepatopatiaCronicaEstavel) {
+      motivosTransdermica.push('Esteatose Hepática (MASLD) / Hepatopatia Estável: avoids first-pass hepatic metabolism');
+    }
+
+    if (params.colelitiase || params.doencaBiliar) {
+      motivosTransdermica.push('Colelitíase / Risco Biliar: via oral aumenta saturação biliar de colesterol (litogênica)');
+    }
+
+    if (params.tabagismo || params.fumante) {
+      motivosTransdermica.push('Tabagismo ativo: via oral sofre indução hepática acentuada e potencializa trombose');
+    }
+
+    if (params.enxaquecaComAura || params.enxaqueca) {
+      motivosTransdermica.push('Histórico de Enxaqueca: via transdérmica oferece estabilidade plasmática sem oscilações bruscas');
+    }
+
+    var viaIndicada = 'TRANSDERMICA';
+    var justificativa = '';
+    var opcoesFarmaco = [];
+
+    if (motivosTransdermica.length > 0) {
+      viaIndicada = 'TRANSDERMICA_PREFERENCIAL_MANDATORIA';
+      justificativa = 'VIA TRANSDÉRMICA É A ESCOLHA PREFERENCIAL / MANDATÓRIA devido à presença de fatores de risco cardiovascular, metabólico ou hepático: ' + motivosTransdermica.join('; ') + '. Ao evitar a primeira passagem hepática, o estradiol transdérmico não estimula a síntese de fibrinogênio, fatores de coagulação (VII, X), PCR ultrassensível nem SHBG, mantendo risco de TEV praticamente neutro.';
+      opcoesFarmaco = [VIAS_ESTROGENIO.TRANSDERMICA_GEL, VIAS_ESTROGENIO.TRANSDERMICA_ADESIVO];
+    } else {
+      viaIndicada = 'ORAL_OU_TRANSDERMICA';
+      justificativa = 'Paciente jovem, sem comorbidades cardiovasculares, metabólicas ou hepáticas, com IMC normal e triglicerídeos normais. Tanto a via oral quanto a transdérmica são elegíveis. A via transdérmica ainda oferece a menor probabilidade teórica de eventos tromboembólicos, enquanto a via oral oferece facilidade posológica e ligeira elevação do HDL.';
+      opcoesFarmaco = [VIAS_ESTROGENIO.TRANSDERMICA_GEL, VIAS_ESTROGENIO.ORAL_ESTRADIOL, VIAS_ESTROGENIO.TRANSDERMICA_ADESIVO];
+    }
+
+    return {
+      viaIndicada: viaIndicada,
+      preferenciaTransdermica: motivosTransdermica.length > 0,
+      fatoresRiscoIdentificados: motivosTransdermica,
+      justificativaFarmacologica: justificativa,
+      medicamentosSugeridos: opcoesFarmaco
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. SÍNDROME GENITURINÁRIA DA MENOPAUSA (SGM) / ATROFIA UROGENITAL
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia queixas urogenitais exclusivas ou associadas.
+   *
+   * @param {Object} params
+   * @returns {Object} Conduta de SGM
+   */
+  function avaliarSintomasGeniturinarios(params) {
+    params = params || {};
+    var temSgm = Boolean(
+      params.ressecamentoVaginal ||
+      params.dispareunia ||
+      params.disuria ||
+      params.urgenciaMiccional ||
+      params.pruridoVulvar ||
+      params.sgm ||
+      params.atrofiaVulvovaginal
+    );
+
+    var temFogachos = Boolean(
+      params.fogachos ||
+      params.ondasCalor ||
+      params.sudoreseNoturna ||
+      params.sintomasVasomotoresModeradosOuGraves
+    );
+
+    if (!temSgm) {
+      return {
+        presente: false,
+        terapiaTopicaIndicada: false,
+        detalhes: 'Sem queixas clínicas de atrofia urogenital no momento.'
+      };
+    }
+
+    var conduta = {
+      presente: true,
+      terapiaTopicaIndicada: true,
+      apenasUrogenital: !temFogachos,
+      recomendacaoPrincipal: '',
+      segurancaEndometrial: 'Estrogênios vaginais em doses baixas têm absorção sistêmica desprezível (< 10-15 pg/mL) e NÃO induzem proliferação endometrial. Portanto, NÃO há necessidade de associação com progestagênio para proteção endometrial em mulheres com útero intacto.',
+      opcoesPrescricao: [
+        TERAPIA_VAGINAL_SGM.ESTRIOL,
+        TERAPIA_VAGINAL_SGM.PROMESTRIENO,
+        TERAPIA_VAGINAL_SGM.ESTRADIOL_VAGINAL_BAIXA_DOSE
+      ],
+      coadjuvantes: [
+        'Hidratantes vaginais à base de ácido hialurônico de uso contínuo (2 a 3x/semana)',
+        'Lubrificantes não hormonais à base de água ou silicone durante a relação sexual',
+        'Manutenção de atividade sexual ativa (melhora trofismo e vascularização vaginal)'
+      ]
+    };
+
+    if (!temFogachos) {
+      conduta.recomendacaoPrincipal = 'QUEIXA EXCLUSIVAMENTE UROGENITAL: NÃO indicar THM sistêmica! A conduta padrão-ouro é o Estrogênio Vaginal Tópico de baixa dose isolado. É altamente eficaz para restaurar o índice de maturação vaginal, pH ácido e flora lactobacilar, além de reduzir ITU de repetição, sem os riscos da via sistêmica.';
+    } else {
+      conduta.recomendacaoPrincipal = 'SGM ASSOCIADA A SINTOMAS VASOMOTORES: Se for iniciada THM sistêmica, esta costuma melhorar a atrofia vaginal após algumas semanas. Caso persista dispareunia ou atrofia residual moderada/grave, a associação de estrogênio vaginal tópico em baixa dose pode ser mantida com segurança total.';
+    }
+
+    return conduta;
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 7. ALTERNATIVAS NÃO HORMONAIS (QUANDO THM FOR CONTRAINDICADA)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Sugere opções não hormonais de primeira e segunda linha.
+   *
+   * @param {Object} params
+   * @returns {Object} Alternativas farmacológicas não hormonais
+   */
+  function sugerirAlternativasNaoHormonais(params) {
+    params = params || {};
+    var usoTamoxifeno = Boolean(params.usoTamoxifeno || params.emUsoTamoxifeno);
+
+    var lista = [];
+
+    // 1ª Linha: Desvenlafaxina
+    lista.push(ALTERNATIVAS_NAO_HORMONAIS.DESVENLAFAXINA);
+
+    // Se NÃO usar tamoxifeno, Paroxetina é opção; se USAR, emitir bloqueio estrito
+    if (usoTamoxifeno) {
+      lista.push({
+        farmaco: 'Cloridrato de Paroxetina ou Fluoxetina',
+        alertaCritico: '🚨 BLOQUEIO FARMACOLÓGICO FORMAL: Proibido uso concomitante de Paroxetina ou Fluoxetina com Tamoxifeno! Ambas inibem potentemente a CYP2D6, impedindo a formação de Endoxifeno e anulando a proteção oncológica.',
+        contraindicado: true
+      });
+      lista.push(ALTERNATIVAS_NAO_HORMONAIS.GABAPENTINA);
+      lista.push(ALTERNATIVAS_NAO_HORMONAIS.CLONIDINA);
+    } else {
+      lista.push(ALTERNATIVAS_NAO_HORMONAIS.VENLAFAXINA);
+      lista.push(ALTERNATIVAS_NAO_HORMONAIS.GABAPENTINA);
+      lista.push(ALTERNATIVAS_NAO_HORMONAIS.CLONIDINA);
+    }
+
+    return {
+      indicadoPara: 'Mulheres com contraindicação absoluta à THM (câncer de mama, TEV, DAC, etc.) ou que optam por não utilizar terapia hormonal.',
+      usoTamoxifeno: usoTamoxifeno,
+      opcoesFarmacologicas: lista,
+      medidasNaoFarmacologicas: [
+        'Ambiente fresco, roupas em camadas e ingestão de líquidos frios',
+        'Cessação do tabagismo e controle rigoroso do peso corporal',
+        'Prática regular de exercícios aeróbicos e musculação',
+        'Técnicas de relaxamento, respiração diafragmática e mindfulness',
+        'Redução do consumo de álcool, café, cafeína e alimentos condimentados'
+      ]
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 8. CHECKLIST PRÉ-PRESCRIÇÃO E RASTREAMENTO ONCOLÓGICO/METABÓLICO
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Checa exames obrigatórios prévios à introdução de THM.
+   *
+   * @param {Object} params
+   * @returns {Object} Checklist com pendências e liberações
+   */
+  function verificarChecklistPreThm(params) {
+    params = params || {};
+    var pendencias = [];
+    var examesObrigatorios = [];
+    var liberadoPrescricao = true;
+
+    // Mamografia
+    var mmgAtualizada = Boolean(params.mamografiaAtualizada || params.mamografiaRecente);
+    var birads = params.mamografiaBirads !== undefined && params.mamografiaBirads !== null
+      ? String(params.mamografiaBirads).trim().toUpperCase()
+      : null;
+
+    if (!mmgAtualizada) {
+      pendencias.push('Mamografia Bilateral ausente ou desatualizada (> 1 ano). Obrigatória antes de iniciar THM.');
+      liberadoPrescricao = false;
+    } else if (birads) {
+      if (birads.indexOf('4') >= 0 || birads.indexOf('5') >= 0) {
+        pendencias.push('Mamografia com achado suspeito BI-RADS ' + birads + '. THM suspensa até investigação histopatológica/biópsia.');
+        liberadoPrescricao = false;
+      } else if (birads.indexOf('3') >= 0) {
+        pendencias.push('Mamografia BI-RADS 3 (provavelmente benigno): controle em 6 meses recomendado antes de iniciar THM.');
+      }
+    }
+    examesObrigatorios.push({
+      exame: 'Mamografia Bilateral',
+      status: mmgAtualizada ? (birads ? 'Realizada (BI-RADS ' + birads + ')' : 'Realizada no último ano') : 'PENDENTE',
+      obrigatorio: true
+    });
+
+    // Preventivo do Colo Uterino
+    var papanicolau = Boolean(params.preventivoColoAtualizado || params.citologiaAtualizada);
+    if (!papanicolau) {
+      pendencias.push('Citopatologia Oncótica do Colo Uterino desatualizada (> 1-3 anos). Solicitar exame de rastreamento.');
+    }
+    examesObrigatorios.push({
+      exame: 'Citopatologia Oncótica (Papanicolau)',
+      status: papanicolau ? 'Em dia' : 'SOLICITAR RASTREIO',
+      obrigatorio: true
+    });
+
+    // USG Transvaginal (se sangramento ou útero presente com queixa)
+    var ecoMm = params.ecoEndometrialMm !== undefined && params.ecoEndometrialMm !== null ? Number(params.ecoEndometrialMm) : null;
+    if (ecoMm !== null) {
+      if (ecoMm > 5 && (params.emMenopausa || !params.emTransicaoMenopausica)) {
+        pendencias.push('Espessura endometrial aumentada (' + ecoMm + ' mm > 5 mm na pós-menopausa sem THM). Investigar com histeroscopia/biópsia.');
+        liberadoPrescricao = false;
+      }
+    }
+    examesObrigatorios.push({
+      exame: 'Ultrassonografia Pélvica / Transvaginal',
+      status: ecoMm !== null ? 'Realizada (Eco: ' + ecoMm + ' mm)' : 'Indicada se sangramento pós-menopausa ou suspeita anatômica',
+      obrigatorio: false
+    });
+
+    // Perfil Metabólico
+    examesObrigatorios.push({
+      exame: 'Perfil Lipídico (Triglicerídeos, HDL, LDL) e Glicemia de Jejum',
+      status: params.triglicerideos ? 'Avaliados (TG: ' + params.triglicerideos + ' mg/dL)' : 'Solicitar avaliação metabólica',
+      obrigatorio: true
+    });
+
+    return {
+      liberadoPrescricao: liberadoPrescricao,
+      pendenciasCriticas: pendencias,
+      examesObrigatorios: examesObrigatorios
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 9. AVALIAÇÃO INTEGRADA COMPLETA DA THM (ORQUESTRADOR CLÍNICO DETERMINÍSTICO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Executa a avaliação clínica integrada completa de climatério e THM.
+   *
+   * @param {Object} params - Dados clínicos completos da paciente
+   * @returns {Object} Parecer médico estruturado
+   */
+  function avaliarThmCompleto(params) {
+    params = params || {};
+
+    // 1. Janela de Oportunidade
+    var janela = avaliarJanelaOportunidade(params);
+
+    // 2. Auditoria de Contraindicações
+    var seguranca = auditarContraindicacoesThm(params);
+
+    // 3. Proteção Endometrial
+    var protecao = determinarProtecaoEndometrial(params);
+
+    // 4. Seleção de Via
+    var via = selecionarViaAdministracao(params);
+
+    // 5. Sintomas Geniturinários (SGM)
+    var sgm = avaliarSintomasGeniturinarios(params);
+
+    // 6. Checklist Pré-THM
+    var checklist = verificarChecklistPreThm(params);
+
+    // Decisão Clínica Final
+    var podePrescreverThmSistemica = seguranca.elegivelThmSistemica && janela.elegivelInicio && checklist.liberadoPrescricao;
+
+    var planoPrescricao = null;
+    var alternativasNaoHormonais = null;
+
+    if (podePrescreverThmSistemica) {
+      // Montagem da prescrição personalizada de primeira linha
+      var estrogenioEscolhido = via.medicamentosSugeridos[0];
+      var progestEscolhido = protecao.necessitaProgestagenio ? protecao.progestagenioPrimeiraEscolha : null;
+
+      planoPrescricao = {
+        elegivel: true,
+        tipoRegime: protecao.esquemaRecomendado,
+        descricaoRegime: protecao.descricaoEsquema,
+        estrogenio: {
+          nome: estrogenioEscolhido.nome,
+          apresentacao: estrogenioEscolhido.apresentacao,
+          posologia: estrogenioEscolhido.dosePadrao,
+          orientacoes: estrogenioEscolhido.instrucoes
+        },
+        progestagenio: progestEscolhido ? {
+          nome: progestEscolhido.nome || progestEscolhido.farmaco,
+          posologia: protecao.esquemaRecomendado === 'SEQUENCIAL_CICLICO' ? progestEscolhido.doseCiclico : progestEscolhido.doseContinuo,
+          justificativa: progestEscolhido.perfilClinico
+        } : null,
+        sgmAdicional: sgm.presente ? sgm.opcoesPrescricao[0] : null,
+        revisao: 'Reavaliação clínica obrigatória em 3 meses (eficácia sintomática, controle de sangramento e aferição de PA), e a cada 6 a 12 meses subsequentemente.'
+      };
+    } else {
+      // Prescrição de alternativas não hormonais
+      alternativasNaoHormonais = sugerirAlternativasNaoHormonais(params);
+    }
+
+    return {
+      statusFinal: podePrescreverThmSistemica ? 'THM_SISTEMICA_INDICADA_E_SEGURA' : 'THM_SISTEMICA_NAO_INDICADA_OU_CONTRAINDICADA',
+      podePrescreverThmSistemica: podePrescreverThmSistemica,
+      janelaOportunidade: janela,
+      segurancaContraindicacoes: seguranca,
+      protecaoEndometrial: protecao,
+      viaAdministracao: via,
+      sintomasGeniturinarios: sgm,
+      checklistPreThm: checklist,
+      planoPrescricao: planoPrescricao,
+      alternativasNaoHormonais: alternativasNaoHormonais
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 10. FORMATADOR TEXTUAL PARA PRONTUÁRIO / TELEGRAM / COCKPIT
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Gera um resumo médico formatado em texto para inserção em prontuário ou Cockpit.
+   *
+   * @param {Object} params
+   * @returns {string} Relatório textual estruturado
+   */
+  function gerarResumoThm(params) {
+    var resultado = avaliarThmCompleto(params);
+    var linhas = [];
+
+    linhas.push('════════════════════════════════════════════════════════════════');
+    linhas.push('🩺 PARECER DETERMINÍSTICO: CLIMATÉRIO E TERAPIA HORMONAL (THM)');
+    linhas.push('   Consenso FEBRASGO & The Menopause Society (NAMS 2022-2023)');
+    linhas.push('════════════════════════════════════════════════════════════════');
+    linhas.push('');
+
+    // 1. Janela de Oportunidade
+    linhas.push('⏳ [1. JANELA DE OPORTUNIDADE]');
+    linhas.push('• Classificação: ' + resultado.janelaOportunidade.classificacao);
+    linhas.push('• Relação Risco-Benefício: ' + resultado.janelaOportunidade.relacaoRiscoBeneficio);
+    linhas.push('• Justificativa Clínica: ' + resultado.janelaOportunidade.justificativa);
+    if (resultado.janelaOportunidade.alertas.length > 0) {
+      for (var ja = 0; ja < resultado.janelaOportunidade.alertas.length; ja++) {
+        linhas.push('  ' + resultado.janelaOportunidade.alertas[ja]);
+      }
+    }
+    linhas.push('');
+
+    // 2. Segurança e Contraindicações
+    linhas.push('🛡️ [2. SEGURANÇA ONCOLÓGICA E CARDIOVASCULAR]');
+    linhas.push('• Grau de Segurança: ' + resultado.segurancaContraindicacoes.grauSeguranca);
+    if (resultado.segurancaContraindicacoes.contraindicacoesAbsolutas.length > 0) {
+      linhas.push('• 🚨 Contraindicações Absolutas Identificadas:');
+      for (var ca = 0; ca < resultado.segurancaContraindicacoes.contraindicacoesAbsolutas.length; ca++) {
+        var cAbs = resultado.segurancaContraindicacoes.contraindicacoesAbsolutas[ca];
+        linhas.push('  - ' + cAbs.fator + ': ' + cAbs.motivo);
+      }
+    } else {
+      linhas.push('• Ausência de contraindicações absolutas documentadas.');
+    }
+
+    if (resultado.segurancaContraindicacoes.contraindicacoesRelativas.length > 0) {
+      linhas.push('• ⚠️ Condicionantes / Precauções:');
+      for (var cr = 0; cr < resultado.segurancaContraindicacoes.contraindicacoesRelativas.length; cr++) {
+        var cRel = resultado.segurancaContraindicacoes.contraindicacoesRelativas[cr];
+        linhas.push('  - ' + cRel.fator + ' -> ' + cRel.conduta);
+      }
+    }
+    linhas.push('');
+
+    // 3. Proteção Endometrial
+    linhas.push('🎗️ [3. REGRA DE OURO DA PROTEÇÃO ENDOMETRIAL]');
+    linhas.push('• Status Uterino: ' + (resultado.protecaoEndometrial.uteroPresente ? 'ÚTERO PRESENTE (INTACTO)' : 'HISTERECTOMIZADA'));
+    linhas.push('• Necessidade de Progestagênio: ' + (resultado.protecaoEndometrial.necessitaProgestagenio ? 'SIM (OBRIGATÓRIO)' : 'NÃO (ESTROGÊNIO ISOLADO)'));
+    linhas.push('• Alerta Clínico: ' + resultado.protecaoEndometrial.alertaSeguranca);
+    linhas.push('• Regime Indicado: ' + resultado.protecaoEndometrial.descricaoEsquema);
+    linhas.push('');
+
+    // 4. Via de Administração
+    linhas.push('💉 [4. VIA DE ADMINISTRAÇÃO SELECIONADA]');
+    linhas.push('• Via de Escolha: ' + resultado.viaAdministracao.viaIndicada);
+    linhas.push('• Justificativa: ' + resultado.viaAdministracao.justificativaFarmacologica);
+    linhas.push('');
+
+    // 5. Conduta Terapêutica Personalizada
+    if (resultado.podePrescreverThmSistemica && resultado.planoPrescricao) {
+      linhas.push('💊 [5. PRESCRIÇÃO FARMACOLÓGICA DE 1ª LINHA RECOMENDADA]');
+      linhas.push('• Estrogênio Sistêmico:');
+      linhas.push('  - ' + resultado.planoPrescricao.estrogenio.nome);
+      linhas.push('    Posologia: ' + resultado.planoPrescricao.estrogenio.posologia);
+      linhas.push('    Aplicação: ' + resultado.planoPrescricao.estrogenio.orientacoes);
+
+      if (resultado.planoPrescricao.progestagenio) {
+        linhas.push('• Progestagênio de Oposição Endometrial:');
+        linhas.push('  - ' + resultado.planoPrescricao.progestagenio.nome);
+        linhas.push('    Posologia: ' + resultado.planoPrescricao.progestagenio.posologia);
+      }
+
+      if (resultado.planoPrescricao.sgmAdicional) {
+        linhas.push('• Terapia Vaginal Local Adicional (SGM):');
+        linhas.push('  - ' + resultado.planoPrescricao.sgmAdicional.nome);
+        linhas.push('    Ataque: ' + resultado.planoPrescricao.sgmAdicional.posologiaAtaque);
+        linhas.push('    Manutenção: ' + resultado.planoPrescricao.sgmAdicional.posologiaManutencao);
+      }
+      linhas.push('• Seguimento: ' + resultado.planoPrescricao.revisao);
+    } else {
+      linhas.push('🚫 [5. CONDUTA TERAPÊUTICA: ALTERNATIVAS NÃO HORMONAIS]');
+      linhas.push('• THM sistêmica não autorizada devido a contraindicação ou pendência de exames.');
+      if (resultado.alternativasNaoHormonais) {
+        linhas.push('• Alternativas Farmacológicas para Sintomas Vasomotores:');
+        for (var alt = 0; alt < resultado.alternativasNaoHormonais.opcoesFarmacologicas.length; alt++) {
+          var oF = resultado.alternativasNaoHormonais.opcoesFarmacologicas[alt];
+          if (oF.contraindicado) {
+            linhas.push('  ' + oF.alertaCritico);
+          } else {
+            linhas.push('  💊 ' + oF.farmaco + ' (' + oF.dose + ') - ' + (oF.indicacao || ''));
+          }
+        }
+      }
+    }
+
+    // 6. Checklist de Exames
+    if (resultado.checklistPreThm.pendenciasCriticas.length > 0) {
+      linhas.push('');
+      linhas.push('📋 [6. PENDÊNCIAS OBRIGATÓRIAS ANTES DO INÍCIO]');
+      for (var pend = 0; pend < resultado.checklistPreThm.pendenciasCriticas.length; pend++) {
+        linhas.push('  ⚠️ ' + resultado.checklistPreThm.pendenciasCriticas[pend]);
+      }
+    }
+
+    linhas.push('');
+    linhas.push('════════════════════════════════════════════════════════════════');
+    linhas.push('Diretrizes de Referência: FEBRASGO, NAMS 2022/2023 & Consenso BR');
+    linhas.push('════════════════════════════════════════════════════════════════');
+
+    return linhas.join('\n');
+  }
+
+  // Exportação Pública
+  return {
+    VIAS_ESTROGENIO: VIAS_ESTROGENIO,
+    PROGESTAGENIOS: PROGESTAGENIOS,
+    TERAPIA_VAGINAL_SGM: TERAPIA_VAGINAL_SGM,
+    ALTERNATIVAS_NAO_HORMONAIS: ALTERNATIVAS_NAO_HORMONAIS,
+    avaliarJanelaOportunidade: avaliarJanelaOportunidade,
+    auditarContraindicacoesThm: auditarContraindicacoesThm,
+    determinarProtecaoEndometrial: determinarProtecaoEndometrial,
+    selecionarViaAdministracao: selecionarViaAdministracao,
+    avaliarSintomasGeniturinarios: avaliarSintomasGeniturinarios,
+    sugerirAlternativasNaoHormonais: sugerirAlternativasNaoHormonais,
+    verificarChecklistPreThm: verificarChecklistPreThm,
+    avaliarThmCompleto: avaliarThmCompleto,
+    gerarResumoThm: gerarResumoThm
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { ClimaterioThmService: ClimaterioThmService };
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_dip_abscesso_tubo_ovariano.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: DOENÇA INFLAMATÓRIA PÉLVICA (DIP) E ABSCESSO TUBO-OVARIANO (ATO)
+ * ==============================================================================
+ * Motor determinístico de alta fidelidade clínica e farmacológica para o manejo da
+ * Doença Inflamatória Pélvica (DIP / Pelvic Inflammatory Disease - PID) e Abscesso
+ * Tubo-Ovariano (ATO / Tubo-Ovarian Abscess - TOA), fundamentado nas diretrizes:
+ *  - PCDT de Infecções Sexualmente Transmissíveis (Ministério da Saúde do Brasil, 2022/2024).
+ *  - CDC Sexually Transmitted Infections Treatment Guidelines (CDC STI Guidelines 2021/2024).
+ *  - FEBRASGO: Manual de Urgências Ginecológicas e Tratado de Ginecologia.
+ *  - RCOG Green-top Guideline No. 44: Management of Pelvic Inflammatory Disease.
+ *
+ * PILARES CLÍNICOS DETERMINÍSTICOS:
+ * 1. Critérios Diagnósticos Escalonados (Hager Modificados / PCDT MS / CDC):
+ *    - 3 Critérios Maiores (Clínicos): Dor no hipogástrio/baixo ventre, dor à palpação anexial
+ *      uni ou bilateral, e dor à mobilização do colo uterino (Sinal de Frenkel).
+ *      (O CDC orienta iniciar tratamento empírico em mulher jovem com dor no baixo ventre +
+ *      dor anexial OU mobilização cervical, sem outra etiologia confirmada).
+ *    - Critérios Menores (Sistêmicos/Laboratoriais): Febre axilar >= 37.5°C ou oral/timpânica >= 38.3°C,
+ *      corrimento endocervical anormal mucopurulento/friabilidade, leucocitose sanguínea,
+ *      provas inflamatórias elevadas (PCR/VHS), comprovação microbiológica (N. gonorrhoeae,
+ *      C. trachomatis ou M. genitalium) ou > 10 leucócitos/campo no exame a fresco.
+ *    - Critérios Elaborados (Definitivos/Alta Gravidade): Biópsia endometrial com endometrite,
+ *      USG pélvica/transvaginal ou RM mostrando espessamento tubário/piossalpinge/ATO/líquido livre,
+ *      ou achados laparoscópicos de salpingite/peritonite pélvica/Fitz-Hugh-Curtis.
+ * 2. Estadiamento Clínico de Monif (Gravidade da DIP):
+ *    - Estágio I: DIP não complicada, restrita ao trato genital superior, sem peritonite. (Ambulatorial).
+ *    - Estágio II: Salpingite aguda com peritonite pélvica. (Hospitalar IV).
+ *    - Estágio III: Salpingite aguda com complexo ou abscesso tubo-ovariano (ATO) íntegro. (Hospitalar IV).
+ *    - Estágio IV: Abscesso tubo-ovariano roto, choque séptico ou peritonite difusa. (Cirurgia Urgente).
+ * 3. Critérios Formais de Internação Imediata:
+ *    - Gestação (risco materno-fetal crítico, necessidade de exclusão de ectópica e ajuste farmacológico).
+ *    - Ausência de resposta ou piora após 48 a 72 horas de tratamento ambulatorial.
+ *    - Intolerância oral, vômitos incoercíveis.
+ *    - Presença de Abscesso Tubo-Ovariano (ATO).
+ *    - Quadro clínico grave, febre alta persistente, toxemia, peritonite ou suspeita de sepse.
+ *    - Impossibilidade de excluir emergência cirúrgica (apendicite aguda, torção anexial, prenhez ectópica).
+ *    - Risco de não adesão ao esquema oral ou acompanhamento ambulatorial inviável em 72h.
+ *    - Paciente imunossuprimida (HIV com imunodeficiência avançada).
+ * 4. Farmacologia Determinística de Alta Precisão (PCDT MS / CDC / REMUME):
+ *    - Esquema Ambulatorial de 1ª Linha: Ceftriaxona 500 mg IM dose única (1 g se peso >= 150 kg) +
+ *      Doxiciclina 100 mg VO 12/12h por 14 dias + Metronidazol 500 mg VO 12/12h por 14 dias.
+ *    - Esquema Hospitalar A (1ª Linha IV): Ceftriaxona 1 g IV a cada 24h + Doxiciclina 100 mg VO/IV 12/12h +
+ *      Metronidazol 500 mg IV/VO 12/12h até completar 14 dias (com transição para VO após 24-48h afebril).
+ *    - Esquema Hospitalar B (Preferencial em ATO): Clindamicina 900 mg IV 8/8h + Gentamicina (ataque 2 mg/kg
+ *      seguido de 1,5 mg/kg 8/8h ou dose única diária 3-5 mg/kg/dia ajustada por ClCr).
+ *    - Manejo do ATO: Cobertura anti-anaeróbia mandatória por 14 dias; coleções >= 8-10 cm ou refratárias
+ *      a 48-72h de ATB indicam drenagem percutânea/transvaginal guiada ou cirurgia conservadora.
+ * 5. Manejo de DIU e Concomitâncias:
+ *    - Não remover DIU de rotina no primeiro atendimento de DIP leve/moderada; iniciar ATB e reavaliar em 48-72h;
+ *      considerar remoção se ausência de melhora ou em DIP grave (Monif III/IV).
+ *    - Tratamento e rastreio obrigatório de todos os parceiros sexuais dos últimos 60 dias (Ceftriaxona + Azitromicina).
+ *    - Alerta de Síndrome de Fitz-Hugh-Curtis (peri-hepatite) e abstinência alcoólica com Metronidazol.
+ * ==============================================================================
+ */
+
+var DipAbscessoTuboOvarianoService = (function() {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. CATÁLOGO FARMACOLÓGICO DETERMINÍSTICO (PCDT MS / CDC STI 2021)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  var CATALOGO_FARMACOLOGICO = {
+    AMBULATORIAL_PRIMEIRA_LINHA: {
+      ceftriaxona: {
+        medicamento: 'Ceftriaxona',
+        dosePadrao: '500 mg',
+        doseAjustadaObesidade: '1 g',
+        criterioAjusteObesidade: 'Peso corporal >= 150 kg',
+        via: 'Intramuscular (IM)',
+        frequencia: 'Dose única',
+        duracao: 'Dose única no dia do atendimento (D1)',
+        indicacao: 'Cobertura empírica de Neisseria gonorrhoeae (incluindo cepas com sensibilidade reduzida)',
+        alertaCritico: 'Administrar imediatamente no primeiro contato assistencial. Não postergar.'
+      },
+      doxiciclina: {
+        medicamento: 'Doxiciclina',
+        dose: '100 mg',
+        via: 'Oral (VO)',
+        frequencia: '12 em 12 horas',
+        duracao: '14 dias consecutivos',
+        indicacao: 'Cobertura de Chlamydia trachomatis e Mycoplasma genitalium',
+        orientacaoPaciente: 'Ingerir com 1 copo cheio de água (200-250 mL) e PERMANECER EM PÉ OU SENTADO por pelo menos 30 a 60 minutos após a tomada para prevenir esofagite medicamentosa severa e ulceração esofágica.',
+        contraindicacaoAbsoluta: 'Gestação (categoria D - risco de pigmentação dentária permanente, hipoplasia de esmalte e alteração do crescimento ósseo) e lactação.'
+      },
+      metronidazol: {
+        medicamento: 'Metronidazol',
+        dose: '500 mg',
+        via: 'Oral (VO)',
+        frequencia: '12 em 12 horas',
+        duracao: '14 dias consecutivos',
+        indicacao: 'Cobertura estrita de anaeróbios pélvicos (Bacteroides fragilis, Peptostreptococcus) e tratamento concomitante de Trichomonas vaginalis e Vaginose Bacteriana',
+        orientacaoPaciente: 'ABSTINÊNCIA ALCOÓLICA OBRIGATÓRIA durante todo o tratamento e por pelo menos 48 horas após a última dose devido ao risco de Efeito Dissulfiram-like (rubor, taquicardia, náuseas, vômitos e colapso circulatório).'
+      }
+    },
+
+    AMBULATORIAL_ALTERNATIVAS: {
+      cefoxitinaProbenecida: {
+        nome: 'Esquema Alternativo com Cefoxitina',
+        medicamentos: [
+          'Cefoxitina 2 g IM dose única',
+          'Probenecida 1 g VO dose única (administrada simultaneamente)',
+          'Doxiciclina 100 mg VO 12/12h por 14 dias',
+          'Metronidazol 500 mg VO 12/12h por 14 dias'
+        ],
+        indicacao: 'Alternativa quando ceftriaxona indisponível e paciente com boa tolerância a cefalosporinas de 2ª geração.'
+      },
+      quinolonaComMetronidazol: {
+        nome: 'Regime Alternativo para Alergia Severa a Cefalosporinas (Com Restrições)',
+        medicamentos: [
+          'Levofloxacino 500 mg VO 1x/dia por 14 dias (OU Ofloxacino 400 mg VO 12/12h por 14 dias)',
+          'Metronidazol 500 mg VO 12/12h por 14 dias'
+        ],
+        alertaCritico: 'ATENÇÃO: As taxas de resistência de N. gonorrhoeae a fluoroquinolonas no Brasil superam 40-50%. Utilizar APENAS se alergia severa comprovada a beta-lactâmicos (anafilaxia) e se perfil de sensibilidade conhecido ou hospitalização inviável.'
+      }
+    },
+
+    HOSPITALAR_PRIMEIRA_LINHA_A: {
+      nome: 'Regime Parenteral A (PCDT MS / CDC - 1ª Linha Hospitalar)',
+      medicamentos: [
+        {
+          medicamento: 'Ceftriaxona',
+          dose: '1 g',
+          via: 'Intravenosa (IV)',
+          frequencia: 'A cada 24 horas',
+          duracao: 'Parenteral até 24-48h afebril e com melhora clínica objetiva'
+        },
+        {
+          medicamento: 'Doxiciclina',
+          dose: '100 mg',
+          via: 'Oral (VO) ou Intravenosa (IV)',
+          frequencia: 'A cada 12 horas',
+          duracao: '14 dias totais',
+          notaVia: 'A via oral é preferencial por ter biodisponibilidade de quase 100% e evitar dor e flebite química severa da infusão venosa de doxiciclina.'
+        },
+        {
+          medicamento: 'Metronidazol',
+          dose: '500 mg (ou 400 mg)',
+          via: 'Intravenosa (IV) ou Oral (VO)',
+          frequencia: 'A cada 12 horas (ou 8/8h conforme formulação IV)',
+          duracao: '14 dias totais'
+        }
+      ],
+      transicaoOral: 'Após melhora clínica documentada e 24 a 48 horas afebril: transicionar para Doxiciclina 100 mg VO 12/12h + Metronidazol 500 mg VO 12/12h até completar o total de 14 dias de tratamento.'
+    },
+
+    HOSPITALAR_PRIMEIRA_LINHA_B: {
+      nome: 'Regime Parenteral B (Preferencial em Abscesso Tubo-Ovariano e Manipulação Cirúrgica)',
+      medicamentos: [
+        {
+          medicamento: 'Clindamicina',
+          dose: '900 mg',
+          via: 'Intravenosa (IV)',
+          frequencia: 'A cada 8 horas',
+          duracao: 'Até melhora clínica e 24-48h afebril',
+          indicacao: 'Excelente penetração tecidual e cobertura anti-anaeróbia superior em abscessos'
+        },
+        {
+          medicamento: 'Gentamicina',
+          doseAtaque: '2 mg/kg',
+          doseManutencao: '1,5 mg/kg',
+          frequencia: 'A cada 8 horas IV/IM (ou esquema de dose única diária 3 a 5 mg/kg/dia IV em infusão de 60 min)',
+          ajusteRenalObrigatorio: 'Exige dosagem de Creatinina e ajuste estrito de intervalo se ClCr < 50 mL/min devido a nefrotoxicidade e ototoxicidade.',
+          indicacao: 'Cobertura de bacilos Gram-negativos entéricos facultativos'
+        }
+      ],
+      transicaoOral: 'Após melhora clínica evidente e paciente afebril há 24-48h: transicionar para Doxiciclina 100 mg VO 12/12h + Metronidazol 500 mg VO 12/12h OU Clindamicina 450 mg VO 6/6h até completar 14 dias totais.'
+    },
+
+    HOSPITALAR_ALTERNATIVO_AMPICILINA_SULBACTAM: {
+      nome: 'Regime Parenteral Alternativo com Ampicilina-Sulbactam',
+      medicamentos: [
+        {
+          medicamento: 'Ampicilina-Sulbactam',
+          dose: '3 g',
+          via: 'Intravenosa (IV)',
+          frequencia: 'A cada 6 horas',
+          duracao: 'Até melhora clínica e afebril por 24-48h'
+        },
+        {
+          medicamento: 'Doxiciclina',
+          dose: '100 mg',
+          via: 'Oral (VO) ou Intravenosa (IV)',
+          frequencia: 'A cada 12 horas',
+          duracao: '14 dias totais'
+        }
+      ]
+    },
+
+    GESTACAO_REGIME_ESPECIAL: {
+      nome: 'Regime Hospitalar Especial para Gestante (Bloqueio Absoluto de Tetraciclinas e Quinolonas)',
+      medicamentos: [
+        {
+          medicamento: 'Ceftriaxona',
+          dose: '1 g',
+          via: 'Intravenosa (IV)',
+          frequencia: 'A cada 24 horas'
+        },
+        {
+          medicamento: 'Azitromicina',
+          dose: '1 g VO no D1, seguido de 500 mg VO 1x/dia por 7 dias (ou 1 g VO nos dias 1 e 7)',
+          via: 'Oral (VO) ou Intravenosa (IV)',
+          indicacao: 'Substituta segura da doxiciclina na gestação para cobertura de Chlamydia trachomatis'
+        },
+        {
+          medicamento: 'Metronidazol',
+          dose: '500 mg (ou 400 mg)',
+          via: 'Intravenosa (IV) ou Oral (VO)',
+          frequencia: 'A cada 12 horas por 14 dias',
+          seguranca: 'Uso autorizado na gestação quando indicado para DIP/infecções anaeróbias graves.'
+        }
+      ],
+      alertaCritico: 'Gestante com DIP tem indicação de INTERNAÇÃO HOSPITALAR OBRIGATÓRIA. Risco aumentado de abortamento, parto prematuro, corioamnionite e abscesso. Doxiciclina É ESTRITAMENTE CONTRAINDICADA.'
+    },
+
+    PARCEIROS_SEXUAIS: {
+      nome: 'Protocolo de Tratamento Empírico de Parceiros Sexuais (Últimos 60 dias)',
+      medicamentos: [
+        {
+          medicamento: 'Ceftriaxona',
+          dose: '500 mg',
+          via: 'Intramuscular (IM)',
+          frequencia: 'Dose única',
+          indicacao: 'Cobertura de N. gonorrhoeae'
+        },
+        {
+          medicamento: 'Azitromicina',
+          dose: '1 g',
+          via: 'Oral (VO)',
+          frequencia: 'Dose única (OU Doxiciclina 100 mg VO 12/12h por 7 dias)',
+          indicacao: 'Cobertura de C. trachomatis'
+        }
+      ],
+      orientacoesGerais: [
+        'Tratar OBRIGATORIAMENTE todos os parceiros sexuais dos últimos 60 dias anteriores aos sintomas.',
+        'Se o último contato sexual ocorreu há mais de 60 dias, tratar o último parceiro sexual.',
+        'Abstinência sexual total até que a paciente e todos os parceiros tenham completado o tratamento e estejam assintomáticos.',
+        'Oferecer rastreio sorológico completo para ISTs: HIV, Sífilis (VDRL/teste rápido) e Hepatites B e C.'
+      ]
+    }
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. AVALIAÇÃO DETERMINÍSTICA DE CRITÉRIOS DIAGNÓSTICOS (HAGER / PCDT MS / CDC)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia os critérios diagnósticos escalonados para Doença Inflamatória Pélvica.
+   *
+   * @param {Object} params
+   * @param {boolean} params.dorHipogastrio - Dor espontânea ou à palpação no hipogástrio/baixo ventre
+   * @param {boolean} params.dorAnexial - Dor à palpação anexial unilateral ou bilateral
+   * @param {boolean} params.dorMobilizacaoColo - Dor à mobilização do colo uterino (Sinal de Frenkel)
+   * @param {boolean} [params.febre] - Febre axilar >= 37.5°C ou oral/timpânica >= 38.3°C
+   * @param {number} [params.temperaturaCelsius] - Temperatura corporal aferida
+   * @param {boolean} [params.corrimentoEndocervicalAnormal] - Corrimento endocervical purulento/mucopurulento ou friabilidade
+   * @param {boolean} [params.leucocitose] - Leucocitose no hemograma (> 10.000 a 10.500/mm³ ou desvio à esquerda)
+   * @param {number} [params.leucocitosValor] - Contagem de leucócitos no hemograma
+   * @param {boolean} [params.vhsPcrElevados] - VHS ou Proteína C-Reativa sérica elevada
+   * @param {number} [params.pcrValor] - Valor da PCR sérica em mg/L (normal < 5-6 mg/L)
+   * @param {boolean} [params.testeIstPositivo] - PCR/NAAT positivo para C. trachomatis, N. gonorrhoeae ou M. genitalium
+   * @param {boolean} [params.leucocitosExameFresco] - > 10 leucócitos por campo no exame a fresco vaginal
+   * @param {boolean} [params.biopsiaEndometrite] - Biópsia de endométrio com evidência histológica de endometrite (Critério Elaborado)
+   * @param {boolean} [params.imagemCompativel] - Imagem (USG/TC/RM) com espessamento tubário, hidrossalpinge/piossalpinge, líquido livre ou ATO (Critério Elaborado)
+   * @param {boolean} [params.laparoscopiaCompativel] - Laparoscopia com achados visuais de salpingite aguda ou peritonite (Critério Elaborado)
+   * @param {boolean} [params.sintomaFitzHughCurtis] - Dor em hipocôndrio direito tipo pleurítica (Peri-hepatite)
+   * @returns {Object} Avaliação detalhada de critérios e probabilidade diagnóstica
+   */
+  function avaliarCriteriosDiagnosticos(params) {
+    params = params || {};
+
+    // 1. Critérios Maiores (Clínicos)
+    var dorHipogastrio = Boolean(params.dorHipogastrio);
+    var dorAnexial = Boolean(params.dorAnexial);
+    var dorMobilizacaoColo = Boolean(params.dorMobilizacaoColo);
+
+    var contagemMaiores = 0;
+    if (dorHipogastrio) contagemMaiores++;
+    if (dorAnexial) contagemMaiores++;
+    if (dorMobilizacaoColo) contagemMaiores++;
+
+    var criteriosMaiores = {
+      dorHipogastrio: dorHipogastrio,
+      dorAnexial: dorAnexial,
+      dorMobilizacaoColo: dorMobilizacaoColo,
+      totalPresentes: contagemMaiores,
+      todosPresentes: contagemMaiores === 3
+    };
+
+    // 2. Critérios Menores (Sistêmicos / Laboratoriais)
+    var febre = Boolean(params.febre);
+    if (typeof params.temperaturaCelsius === 'number' && params.temperaturaCelsius >= 37.5) {
+      febre = true;
+    }
+
+    var corrimento = Boolean(params.corrimentoEndocervicalAnormal);
+    
+    var leucocitose = Boolean(params.leucocitose);
+    if (typeof params.leucocitosValor === 'number' && params.leucocitosValor > 10000) {
+      leucocitose = true;
+    }
+
+    var vhsPcrElevados = Boolean(params.vhsPcrElevados);
+    if (typeof params.pcrValor === 'number' && params.pcrValor > 6) {
+      vhsPcrElevados = true;
+    }
+
+    var testeIstPositivo = Boolean(params.testeIstPositivo);
+    var leucocitosExameFresco = Boolean(params.leucocitosExameFresco);
+
+    var menoresDetalhados = [];
+    if (febre) menoresDetalhados.push('Febre (>= 37.5°C axilar ou >= 38.3°C oral)');
+    if (corrimento) menoresDetalhados.push('Corrimento endocervical anormal mucopurulento ou friabilidade cervical');
+    if (leucocitose) menoresDetalhados.push('Leucocitose periférica (> 10.000/mm³ ou desvio à esquerda)');
+    if (vhsPcrElevados) menoresDetalhados.push('Marcadores inflamatórios séricos elevados (PCR ou VHS)');
+    if (testeIstPositivo) menoresDetalhados.push('Comprovação laboratorial de infecção por C. trachomatis, N. gonorrhoeae ou M. genitalium');
+    if (leucocitosExameFresco) menoresDetalhados.push('Mais de 10 leucócitos por campo de grande aumento no exame a fresco da secreção vaginal');
+
+    var contagemMenores = menoresDetalhados.length;
+
+    var criteriosMenores = {
+      febre: febre,
+      corrimentoEndocervicalAnormal: corrimento,
+      leucocitose: leucocitose,
+      vhsPcrElevados: vhsPcrElevados,
+      testeIstPositivo: testeIstPositivo,
+      leucocitosExameFresco: leucocitosExameFresco,
+      totalPresentes: contagemMenores,
+      lista: menoresDetalhados
+    };
+
+    // 3. Critérios Elaborados (Definitivos / Alta Gravidade)
+    var biopsia = Boolean(params.biopsiaEndometrite);
+    var imagem = Boolean(params.imagemCompativel);
+    var laparoscopia = Boolean(params.laparoscopiaCompativel);
+
+    var elaboradosDetalhados = [];
+    if (biopsia) elaboradosDetalhados.push('Biópsia endometrial evidenciando endometrite histopatológica');
+    if (imagem) elaboradosDetalhados.push('Imagem (USG pélvica/TC/RM) com espessamento tubário (>5mm), piossalpinge, líquido livre ou abscesso tubo-ovariano (ATO)');
+    if (laparoscopia) elaboradosDetalhados.push('Laparoscopia confirmatória com hiperemia tubária, exsudato purulento ou peritonite pélvica');
+
+    var contagemElaborados = elaboradosDetalhados.length;
+
+    var criteriosElaborados = {
+      biopsiaEndometrite: biopsia,
+      imagemCompativel: imagem,
+      laparoscopiaCompativel: laparoscopia,
+      totalPresentes: contagemElaborados,
+      lista: elaboradosDetalhados
+    };
+
+    // 4. Determinação Diagnóstica
+    var diagnosticoClassicoHager = (contagemMaiores === 3 && contagemMenores >= 1);
+    var diagnosticoPorElaborado = (contagemElaborados >= 1);
+    
+    // Regra CDC de limiar baixo: dor pélvica/baixo ventre + dor à mobilização colo OU dor anexial em mulher sexualmente ativa
+    var suspeitaClinicaCdc = (dorHipogastrio && (dorMobilizacaoColo || dorAnexial));
+
+    var statusDiagnostico = 'IMPROVAVEL';
+    var confiancaDiagnostica = 'BAIXA';
+    var justificativa = '';
+
+    if (diagnosticoPorElaborado) {
+      statusDiagnostico = 'CONFIRMADO_CRITERIO_ELABORADO';
+      confiancaDiagnostica = 'DEFINITIVA';
+      justificativa = 'Presença de pelo menos 1 critério elaborado definitivo (imagem, biópsia ou laparoscopia). Diagnóstico de DIP confirmado com alta especificidade.';
+    } else if (diagnosticoClassicoHager) {
+      statusDiagnostico = 'CONFIRMADO_CRITERIOS_HAGER_PCDT';
+      confiancaDiagnostica = 'ALTA';
+      justificativa = 'Presença dos 3 critérios maiores clássicos associados a ' + contagemMenores + ' critério(s) menor(es), atendendo integralmente ao PCDT MS e Consenso de Hager.';
+    } else if (suspeitaClinicaCdc) {
+      statusDiagnostico = 'SUSPEITA_CLINICA_CDC_INDICADA_TERAPIA';
+      confiancaDiagnostica = 'MODERADA';
+      justificativa = 'Atende aos critérios práticos do CDC STI Guidelines: dor em baixo ventre associada a dor à mobilização cervical ou dor anexial. O CDC orienta iniciar tratamento empírico para evitar sequelas tubárias graves (infertilidade, dor crônica e prenhez ectópica).';
+    } else if (contagemMaiores >= 1 || contagemMenores >= 2) {
+      statusDiagnostico = 'SUSPEITA_INICIAL';
+      confiancaDiagnostica = 'BAIXA_A_MODERADA';
+      justificativa = 'Achados parciais insuficientes para diagnóstico formal imediato de DIP. Investigar diagnósticos diferenciais (ITU, apendicite, endometriose, cisto hemorrágico, torção ovariana).';
+    } else {
+      statusDiagnostico = 'NAO_SUGESTIVO';
+      confiancaDiagnostica = 'MUITO_BAIXA';
+      justificativa = 'Quadro clínico atual não preenche critérios maiores nem elaborados para DIP.';
+    }
+
+    var periHepatite = Boolean(params.sintomaFitzHughCurtis);
+
+    return {
+      statusDiagnostico: statusDiagnostico,
+      confiancaDiagnostica: confiancaDiagnostica,
+      justificativa: justificativa,
+      indicacaoTratamentoEmpirico: (statusDiagnostico === 'CONFIRMADO_CRITERIO_ELABORADO' || statusDiagnostico === 'CONFIRMADO_CRITERIOS_HAGER_PCDT' || statusDiagnostico === 'SUSPEITA_CLINICA_CDC_INDICADA_TERAPIA'),
+      criteriosMaiores: criteriosMaiores,
+      criteriosMenores: criteriosMenores,
+      criteriosElaborados: criteriosElaborados,
+      sindromeFitzHughCurtisPresente: periHepatite,
+      alertaFitzHughCurtis: periHepatite ? 'ALERTA SÍNDROME DE FITZ-HUGH-CURTIS: Dor pleurítica em hipocôndrio direito decorrente de peri-hepatite gonocócica ou clamidiana com aderências em corda de violino na cápsula hepática. Excluir colecistite aguda e manter cobertura antimicrobiana plena da DIP.' : null
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. ESTADIAMENTO CLÍNICO DE MONIF E GRAVIDADE
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Estadia a Doença Inflamatória Pélvica pela Classificação de Monif.
+   *
+   * @param {Object} params
+   * @param {boolean} [params.peritonitePelvica] - Presença de sinais de irritação peritoneal pélvica (DB dolorosa no hipogástrio)
+   * @param {boolean} [params.peritoniteDifusa] - Sinais de peritonite difusa (abdome em tábua, descompressão em múltiplos quadrantes)
+   * @param {boolean} [params.presencaAto] - Presença de Abscesso Tubo-Ovariano diagnosticado
+   * @param {boolean} [params.atoRoto] - Evidência ou suspeita clínica de ruptura do abscesso tubo-ovariano
+   * @param {boolean} [params.choqueSeptico] - Choque séptico ou instabilidade hemodinâmica grave
+   * @param {number} [params.tamanhoAtoCm] - Diâmetro maior do abscesso em cm (se presente)
+   * @returns {Object} Estádio de Monif, gravidade e plano de local de cuidado
+   */
+  function estadiarMonif(params) {
+    params = params || {};
+
+    var peritonitePelvica = Boolean(params.peritonitePelvica);
+    var peritoniteDifusa = Boolean(params.peritoniteDifusa);
+    var presencaAto = Boolean(params.presencaAto);
+    var atoRoto = Boolean(params.atoRoto);
+    var choqueSeptico = Boolean(params.choqueSeptico);
+    var tamanhoAto = typeof params.tamanhoAtoCm === 'number' ? params.tamanhoAtoCm : null;
+
+    var estagio = 'ESTAGIO_I';
+    var nomeEstagio = 'Estágio I de Monif';
+    var descricao = 'Endometrite / Salpingite aguda não complicada, sem peritonite pélvica.';
+    var localCuidado = 'AMBULATORIAL';
+    var necessidadeCirurgica = 'NAO_INDICADA';
+    var alertaCritico = null;
+
+    if (atoRoto || choqueSeptico || peritoniteDifusa) {
+      estagio = 'ESTAGIO_IV';
+      nomeEstagio = 'Estágio IV de Monif (Abscesso Tubo-Ovariano Roto / Choque Séptico)';
+      descricao = 'Abscesso tubo-ovariano com rotura, peritonite difusa ou sepse grave/choque séptico.';
+      localCuidado = 'HOSPITALAR_CENTRO_CIRURGICO_UTI';
+      necessidadeCirurgica = 'EMERGENCIA_CIRURGICA_IMEDIATA';
+      alertaCritico = 'EMERGÊNCIA CIRÚRGICA ABSOLUTA: Ruptura de ATO tem mortalidade elevada (até 8-10% se tardio). Indicação formal de laparotomia/laparoscopia exploradora de emergência para drenagem ampla, lavagem exaustiva e controle de foco infeccioso.';
+    } else if (presencaAto) {
+      estagio = 'ESTAGIO_III';
+      nomeEstagio = 'Estágio III de Monif (Abscesso Tubo-Ovariano Íntegro)';
+      descricao = 'Salpingite aguda com oclusão tubária e formação de complexo ou abscesso tubo-ovariano (ATO) íntegro.';
+      localCuidado = 'HOSPITALAR_ENFERMARIA_ALTO_RISCO';
+      necessidadeCirurgica = (tamanhoAto && tamanhoAto >= 8) ? 'AVALIAR_DRENAGEM_PRECOCE_SE_MAIOR_8CM' : 'OBSERVACAO_COM_ATB_IV_REAVALIAR_48_72H';
+      
+      if (tamanhoAto && tamanhoAto >= 8) {
+        alertaCritico = 'ATO volumoso (>= ' + tamanhoAto + ' cm): Baixa resposta a tratamento exclusivamente farmacológico (falha > 40-50%). Considerar drenagem percutânea ou transvaginal precoce guiada por USG/TC em adição ao esquema IV.';
+      } else {
+        alertaCritico = 'Internação hospitalar obrigatória com antibioticoterapia intravenosa com cobertura anti-anaeróbia estrita por pelo menos 48-72h. Se refratariedade ou piora, indicar drenagem ou cirurgia.';
+      }
+    } else if (peritonitePelvica) {
+      estagio = 'ESTAGIO_II';
+      nomeEstagio = 'Estágio II de Monif (Salpingite com Peritonite Pélvica)';
+      descricao = 'Salpingite aguda complicada com peritonite pélvica localizada.';
+      localCuidado = 'HOSPITALAR_ENFERMARIA';
+      necessidadeCirurgica = 'NAO_INDICADA_TRATAR_COM_ATB_IV';
+      alertaCritico = 'Internação hospitalar e antibioticoterapia parenteral (IV). Reavaliação rigorosa da evolução da dor e curva térmica.';
+    }
+
+    return {
+      estagio: estagio,
+      nomeEstagio: nomeEstagio,
+      descricao: descricao,
+      localCuidado: localCuidado,
+      necessidadeCirurgica: necessidadeCirurgica,
+      tamanhoAtoCm: tamanhoAto,
+      alertaCritico: alertaCritico
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. AVALIAÇÃO DE CRITÉRIOS FORMAIS DE INTERNAÇÃO HOSPITALAR
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia os critérios formais para indicação mandatória de hospitalização.
+   *
+   * @param {Object} params
+   * @param {boolean} [params.gestante] - Paciente gestante
+   * @param {boolean} [params.refrataria72h] - Falha terapêutica ou piora clínica após 48-72h de tratamento ambulatorial oral
+   * @param {boolean} [params.intoleranciaOral] - Náuseas, vômitos incoercíveis ou impossibilidade de ingerir medicação oral
+   * @param {boolean} [params.presencaAto] - Abscesso tubo-ovariano diagnosticado ou suspeito
+   * @param {boolean} [params.peritoniteOuSepse] - Peritonite, toxemia, febre persistente alta (>38.5°C) ou instabilidade hemodinâmica
+   * @param {boolean} [params.impossibilidadeExcluirEmergencia] - Incerteza diagnóstica onde emergência cirúrgica (apendicite, torção anexial, prenhez ectópica) não pode ser excluída
+   * @param {boolean} [params.riscoNaoAdesao] - Vulnerabilidade psicossocial, falta de suporte ou impossibilidade de retorno ambulatorial em 72h
+   * @param {boolean} [params.imunodeprimida] - Paciente vivendo com HIV com imunodeficiência severa (CD4 < 200) ou em imunossupressão ativa
+   * @param {boolean} [params.adolescente] - Adolescente com adesão duvidosa (critério relativo/prudencial)
+   * @returns {Object} Decisão e motivos formais de hospitalização
+   */
+  function avaliarCriteriosInternacao(params) {
+    params = params || {};
+
+    var motivos = [];
+
+    if (params.gestante) {
+      motivos.push({
+        criterio: 'Gestação',
+        gravidade: 'ABSOLUTA',
+        detalhe: 'Risco materno-fetal elevado (perda gestacional, sepse grave), necessidade de excluir prenhez ectópica e impossibilidade de usar o esquema ambulatorial padrão com doxiciclina.'
+      });
+    }
+
+    if (params.refrataria72h) {
+      motivos.push({
+        criterio: 'Ausência de Resposta Clínica após 48-72h de Tratamento Oral',
+        gravidade: 'ABSOLUTA',
+        detalhe: 'Persistência de febre, piora da dor ou aumento de marcadores inflamatórios ambulatoriais exige internação, investigação de ATO por imagem e início de esquema parenteral (IV).'
+      });
+    }
+
+    if (params.intoleranciaOral) {
+      motivos.push({
+        criterio: 'Intolerância Gastrointestinal / Vômitos Incoercíveis',
+        gravidade: 'ABSOLUTA',
+        detalhe: 'Impossibilidade de absorção gastrointestinal da terapia antimicrobiana oral prescrita.'
+      });
+    }
+
+    if (params.presencaAto) {
+      motivos.push({
+        criterio: 'Presença de Abscesso Tubo-Ovariano (ATO)',
+        gravidade: 'ABSOLUTA',
+        detalhe: 'Necessidade de antibioticoterapia intravenosa de alta penetração tecidual e monitorização estrita contra ruptura e necessidade de drenagem cirúrgica.'
+      });
+    }
+
+    if (params.peritoniteOuSepse) {
+      motivos.push({
+        criterio: 'Quadro Clínico Grave / Peritonite / Suspeita de Sepse',
+        gravidade: 'ABSOLUTA',
+        detalhe: 'Sinais de irritação peritoneal, toxemia, febre persistente alta ou disfunção orgânica requerem ressuscitação hospitalar imediata.'
+      });
+    }
+
+    if (params.impossibilidadeExcluirEmergencia) {
+      motivos.push({
+        criterio: 'Impossibilidade de Excluir Emergência Cirúrgica Aguda',
+        gravidade: 'ABSOLUTA',
+        detalhe: 'Diagnóstico diferencial indistinguível de apendicite aguda, gravidez ectópica rota ou torção anexial.'
+      });
+    }
+
+    if (params.imunodeprimida) {
+      motivos.push({
+        criterio: 'Imunodepressão Grave (HIV avançado / Imunossupressores)',
+        gravidade: 'RELATIVA_FORTE',
+        detalhe: 'Risco substancial de progressão atípica fulminante e sepse oportunista.'
+      });
+    }
+
+    if (params.riscoNaoAdesao) {
+      motivos.push({
+        criterio: 'Vulnerabilidade Social ou Inviabilidade de Seguimento Ambulatorial em 72h',
+        gravidade: 'RELATIVA_FORTE',
+        detalhe: 'Impossibilidade de garantir adesão medicamentosa ou retorno para reavaliação obrigatória no 2º-3º dia de tratamento.'
+      });
+    }
+
+    if (params.adolescente && !params.gestante && !params.presencaAto) {
+      motivos.push({
+        criterio: 'Adolescente com Suporte Familiar Incerto',
+        gravidade: 'PRUDENCIAL',
+        detalhe: 'Consideração de internação breve para início supervisionado da terapia ou garantia de acompanhamento rigoroso.'
+      });
+    }
+
+    var indicacaoInternacao = motivos.some(function(m) {
+      return m.gravidade === 'ABSOLUTA' || m.gravidade === 'RELATIVA_FORTE';
+    });
+
+    return {
+      indicacaoInternacao: indicacaoInternacao,
+      quantidadeCriterios: motivos.length,
+      criteriosPresentes: motivos,
+      recomendacaoLocal: indicacaoInternacao ? 'INTERNACAO_HOSPITALAR_IMEDIATA' : 'TRATAMENTO_AMBULATORIAL_COM_REAVALIACAO_72H'
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. AUDITORIA E MANEJO DE DISPOSITIVO INTRAUTERINO (DIU)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia a conduta com relação à presença de Dispositivo Intrauterino (DIU).
+   *
+   * @param {Object} params
+   * @param {boolean} params.diuPresente - Presença de DIU (Cobre ou Levonorgestrel)
+   * @param {string} [params.estagioMonif] - Estágio de Monif (I, II, III ou IV)
+   * @param {boolean} [params.refrataria72h] - Ausência de melhora após 48-72h de ATB
+   * @param {boolean} [params.suspeitaActinomyces] - Suspeita ou isolamento de Actinomyces israelensis
+   * @returns {Object} Conduta recomendada e alertas de segurança
+   */
+  function avaliarCondutaDiu(params) {
+    params = params || {};
+    if (!params.diuPresente) {
+      return {
+        diuPresente: false,
+        recomendacao: 'NÃO_APLICÁVEL',
+        detalhe: 'Paciente não utiliza Dispositivo Intrauterino.'
+      };
+    }
+
+    var estagioGrave = (params.estagioMonif === 'ESTAGIO_III' || params.estagioMonif === 'ESTAGIO_IV');
+    var falhaTerapeutica = Boolean(params.refrataria72h);
+    var actinomyces = Boolean(params.suspeitaActinomyces);
+
+    var removerImediatamente = false;
+    var removerAposFalha = false;
+    var conduta = '';
+    var detalhes = [];
+
+    if (estagioGrave || actinomyces) {
+      removerImediatamente = true;
+      conduta = 'REMOVER_DIU_SOB_COBERTURA_ANTIBIOTICA';
+      detalhes.push('Em DIP grave com formação de abscesso tubo-ovariano (Monif III/IV) ou infecção por Actinomyces, recomenda-se a remoção do DIU.');
+      detalhes.push('IMPORTANTE: A remoção NUNCA deve ser feita a seco sem antibiótico; deve ser realizada APÓS pelo menos a primeira dose de antibiótico intravenoso devidamente administrada para evitar bacteremia transitória.');
+    } else if (falhaTerapeutica) {
+      removerAposFalha = true;
+      conduta = 'REMOVER_DIU_DEVIDO_A_FALHA_CLINICA_EM_72H';
+      detalhes.push('Paciente com ausência de melhora após 48 a 72 horas de antibioticoterapia adequada. A remoção do DIU está indicada neste momento.');
+    } else {
+      conduta = 'MANTER_DIU_INICIALMENTE_E_REAVALIAR_EM_72H';
+      detalhes.push('REGRA DO PCDT MS E CDC: NÃO é obrigatória a retirada imediata do DIU ao diagnóstico inicial de DIP leve/moderada (Monif I).');
+      detalhes.push('Estudos clínicos randomizados demonstraram que a retenção do DIU não retarda a cura clínica quando a antibioticoterapia adequada é prontamente instituída.');
+      detalhes.push('Iniciar os antibióticos imediatamente. Se houver falha de melhora clínica em 48-72 horas, o DIU deve ser removido.');
+    }
+
+    return {
+      diuPresente: true,
+      condutaRecomendada: conduta,
+      removerImediatamente: removerImediatamente,
+      removerAposFalha: removerAposFalha,
+      orientacoesClinicas: detalhes
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. PROTOCOLO DE PARCEIROS SEXUAIS E RASTREIO DE ISTS
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Gera o protocolo obrigatório para convocação, testagem e tratamento de parceiros sexuais.
+   *
+   * @param {Object} [params]
+   * @param {number} [params.diasUltimoContato] - Dias decorridos desde o último contato sexual
+   * @returns {Object} Protocolo e prescrição para parceiros
+   */
+  function gerarProtocoloParceiros(params) {
+    params = params || {};
+    var dias = typeof params.diasUltimoContato === 'number' ? params.diasUltimoContato : 30;
+
+    var janelaAplicada = 'Últimos 60 dias';
+    var avisoJanela = 'Tratar todos os parceiros sexuais com quem a paciente manteve relações sexuais nos últimos 60 dias que antecederam o início dos sintomas.';
+    if (dias > 60) {
+      avisoJanela = 'Como a última relação sexual ocorreu há mais de 60 dias (' + dias + ' dias), o último parceiro sexual DEVE ser tratado empiricamente.';
+    }
+
+    return {
+      obrigatorio: true,
+      janelaTemporal: janelaAplicada,
+      orientacaoJanela: avisoJanela,
+      esquemaTratamentoParceiro: CATALOGO_FARMACOLOGICO.PARCEIROS_SEXUAIS,
+      rastreioSorologicoMandatorio: [
+        'Teste rápido ou sorologia para HIV',
+        'VDRL ou teste rápido para Sífilis',
+        'HBsAg (Hepatite B) e vacinação se suscetível',
+        'Anti-HCV (Hepatite C)'
+      ],
+      abstinenciaSexualRecomendada: 'Abstinência sexual estrita até que ambos os parceiros tenham completado seus esquemas antimicrobianos e estejam sem sintomas.'
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 7. DETERMINAÇÃO DA CONDUTA TERAPÊUTICA INTEGRADA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Determina a prescrição completa, plano assistencial e conduta terapêutica.
+   *
+   * @param {Object} params
+   * @param {Object} params.criterios - Objeto retornado por avaliarCriteriosDiagnosticos
+   * @param {Object} params.estagio - Objeto retornado por estadiarMonif
+   * @param {Object} params.internacao - Objeto retornado por avaliarCriteriosInternacao
+   * @param {number} [params.pesoKg] - Peso corporal da paciente em kg
+   * @param {boolean} [params.gestante] - Se a paciente está gestante
+   * @param {boolean} [params.alergiaCefalosporinas] - Se possui alergia a cefalosporinas/penicilinas
+   * @param {boolean} [params.anafilaxiaBetaLactamicos] - Se a reação alérgica foi severa/anafilática
+   * @param {number} [params.clcr] - Clearance de creatinina estimado (mL/min)
+   * @returns {Object} Plano terapêutico detalhado
+   */
+  function determinarCondutaTerapeutica(params) {
+    params = params || {};
+    var criterios = params.criterios || {};
+    var estagio = params.estagio || {};
+    var internacao = params.internacao || {};
+
+    var gestante = Boolean(params.gestante);
+    var peso = typeof params.pesoKg === 'number' ? params.pesoKg : 60;
+    var alergiaCefalo = Boolean(params.alergiaCefalosporinas);
+    var anafilaxia = Boolean(params.anafilaxiaBetaLactamicos);
+    var clcr = typeof params.clcr === 'number' ? params.clcr : 90;
+
+    var localTratamento = internacao.indicacaoInternacao ? 'HOSPITALAR' : 'AMBULATORIAL';
+    var planoFarmacologico = null;
+    var prescricoes = [];
+    var alertasSeguranca = [];
+
+    // Cenário 1: Gestante (Internação obrigatória e exclusão de doxiciclina)
+    if (gestante) {
+      localTratamento = 'HOSPITALAR';
+      planoFarmacologico = CATALOGO_FARMACOLOGICO.GESTACAO_REGIME_ESPECIAL;
+      prescricoes.push('1. Ceftriaxona 1 g IV a cada 24 horas');
+      prescricoes.push('2. Azitromicina 1 g VO no D1, seguido de 500 mg VO 1x/dia por 7 dias');
+      prescricoes.push('3. Metronidazol 500 mg IV a cada 12 horas por 14 dias');
+      alertasSeguranca.push('PACIENTE GESTANTE: Bloqueio estrito de Doxiciclina (tetraciclinas) e Fluoroquinolonas.');
+      alertasSeguranca.push('Internação imediata, monitorização fetal se viável e ecografia obstétrica para excluir gravidez ectópica coexistente.');
+    }
+    // Cenário 2: Hospitalar (Regime Parenteral)
+    else if (localTratamento === 'HOSPITALAR') {
+      var presencaAto = (estagio.estagio === 'ESTAGIO_III' || estagio.estagio === 'ESTAGIO_IV');
+
+      if (presencaAto && !alergiaCefalo) {
+        // Regime B (Clindamicina + Gentamicina) preferencial em ATO
+        planoFarmacologico = CATALOGO_FARMACOLOGICO.HOSPITALAR_PRIMEIRA_LINHA_B;
+        var doseAtaqueGenta = Math.round(peso * 2);
+        var doseManutencaoGenta = Math.round(peso * 1.5);
+
+        prescricoes.push('1. Clindamicina 900 mg IV a cada 8 horas');
+        prescricoes.push('2. Gentamicina: Dose de ataque de ' + doseAtaqueGenta + ' mg IV em infusão de 60 min, seguida de ' + doseManutencaoGenta + ' mg IV a cada 8 horas (ou dose única de 3-5 mg/kg/dia IV)');
+        prescricoes.push('3. Hidratação venosa e analgesia multimodal');
+
+        if (clcr < 50) {
+          alertasSeguranca.push('ALERTA DE NEFROTOXICIDADE: Paciente com ClCr < 50 mL/min (' + clcr + ' mL/min). A gentamicina requer ajuste obrigatório de intervalo conforme nível sérico de creatinina.');
+        }
+        alertasSeguranca.push('Regime parenteral de escolha para Abscesso Tubo-Ovariano devido à excelente penetração tecidual e cobertura anti-anaeróbia da Clindamicina.');
+      } else if (!alergiaCefalo) {
+        // Regime A (Ceftriaxona + Doxiciclina + Metronidazol)
+        planoFarmacologico = CATALOGO_FARMACOLOGICO.HOSPITALAR_PRIMEIRA_LINHA_A;
+        prescricoes.push('1. Ceftriaxona 1 g IV a cada 24 horas');
+        prescricoes.push('2. Doxiciclina 100 mg VO a cada 12 horas (preferir VO pela biodisponibilidade excelente e menor risco de flebite que IV)');
+        prescricoes.push('3. Metronidazol 500 mg IV ou VO a cada 12 horas');
+        alertasSeguranca.push('Após melhora clínica documentada e 24 a 48 horas afebril: transição para via oral (Doxiciclina 100mg VO 12/12h + Metronidazol 500mg VO 12/12h até completar 14 dias totais).');
+      } else if (anafilaxia) {
+        // Alergia severa a beta-lactâmicos em hospital: Clindamicina + Gentamicina ou Quinolona
+        planoFarmacologico = CATALOGO_FARMACOLOGICO.HOSPITALAR_PRIMEIRA_LINHA_B;
+        prescricoes.push('1. Clindamicina 900 mg IV a cada 8 horas');
+        prescricoes.push('2. Gentamicina 2 mg/kg ataque IV + 1,5 mg/kg 8/8h IV (ajustado ao peso: ' + Math.round(peso * 2) + ' mg ataque)');
+        alertasSeguranca.push('Paciente com anafilaxia a beta-lactâmicos. Regime de Clindamicina + Gentamicina oferece segurança contra reações alérgicas cruzadas.');
+      }
+    }
+    // Cenário 3: Ambulatorial (Regime Oral / IM)
+    else {
+      if (!alergiaCefalo) {
+        planoFarmacologico = CATALOGO_FARMACOLOGICO.AMBULATORIAL_PRIMEIRA_LINHA;
+        var doseCeftriaxona = (peso >= 150) ? '1 g IM dose única' : '500 mg IM dose única';
+        
+        prescricoes.push('1. Ceftriaxona ' + doseCeftriaxona + ' (aplicar hoje no serviço de saúde)');
+        prescricoes.push('2. Doxiciclina 100 mg VO de 12 em 12 horas por 14 dias consecutivos');
+        prescricoes.push('3. Metronidazol 500 mg VO de 12 em 12 horas por 14 dias consecutivos');
+
+        if (peso >= 150) {
+          alertasSeguranca.push('AJUSTE POR PESO CORPORAL: Paciente com peso >= 150 kg (' + peso + ' kg). A dose de Ceftriaxona foi ajustada para 1 g IM dose única conforme diretrizes de concentração tecidual do CDC.');
+        }
+
+        alertasSeguranca.push('ORIENTAÇÃO DOXICICLINA: Tomar com 1 copo cheio de água (200 mL) e NÃO DEITAR por 30-60 minutos após a tomada para prevenir esofagite medicamentosa severa.');
+        alertasSeguranca.push('ORIENTAÇÃO METRONIDAZOL: Abstinência total de bebidas alcoólicas durante os 14 dias e até 48 horas após a última dose (risco de efeito dissulfiram grave).');
+      } else if (anafilaxia) {
+        planoFarmacologico = CATALOGO_FARMACOLOGICO.AMBULATORIAL_ALTERNATIVAS.quinolonaComMetronidazol;
+        prescricoes.push('1. Levofloxacino 500 mg VO 1x/dia por 14 dias (OU Ofloxacino 400 mg VO 12/12h)');
+        prescricoes.push('2. Metronidazol 500 mg VO de 12 em 12 horas por 14 dias');
+        alertasSeguranca.push('ALERTA DE RESISTÊNCIA BACTERIANA: Alta taxa de resistência do gonococo a fluoroquinolonas no Brasil. Solicitar cultura e antibiograma se possível e acompanhar rigorosamente em 48-72h.');
+      } else {
+        planoFarmacologico = CATALOGO_FARMACOLOGICO.AMBULATORIAL_ALTERNATIVAS.cefoxitinaProbenecida;
+        prescricoes.push('1. Cefoxitina 2 g IM dose única associada a Probenecida 1 g VO dose única');
+        prescricoes.push('2. Doxiciclina 100 mg VO 12/12h por 14 dias');
+        prescricoes.push('3. Metronidazol 500 mg VO 12/12h por 14 dias');
+      }
+    }
+
+    // Plano de Seguimento Ambulatorial Mandatório
+    var planoSeguimento = {
+      reavaliacaoObrigatoriaHoras: 72,
+      orientacoesRetorno: [
+        'Retorno presencial OBRIGATÓRIO em 48 a 72 horas para reavaliação médica.',
+        'Sinais de Alerta para Procura Imediata do Pronto-Socorro: Febre persistente ou em ascensão (> 38°C), piora progressiva da dor pélvica/abdominal, vômitos incoercíveis, tontura ou desmaios.',
+        'Se após 72h houver ausência de melhora substancial: INTERNAÇÃO HOSPITALAR IMEDIATA para ultrassonografia transvaginal e início de antibioticoterapia intravenosa.'
+      ]
+    };
+
+    return {
+      localTratamento: localTratamento,
+      planoFarmacologico: planoFarmacologico,
+      prescricoes: prescricoes,
+      alertasSeguranca: alertasSeguranca,
+      planoSeguimento: planoSeguimento
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 8. MOTOR PRINCIPAL UNIFICADO: AVALIAR DIP COMPLETO
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Executa a avaliação completa, estadiamento, critérios de internação,
+   * manejo de DIU, parceiros e prescrição determinística para DIP e ATO.
+   *
+   * @param {Object} dados - Dados clínicos completos da paciente
+   * @returns {Object} Parecer clínico determinístico consolidado
+   */
+  function avaliarDipCompleto(dados) {
+    dados = dados || {};
+
+    // 1. Critérios Diagnósticos
+    var criterios = avaliarCriteriosDiagnosticos({
+      dorHipogastrio: dados.dorHipogastrio,
+      dorAnexial: dados.dorAnexial,
+      dorMobilizacaoColo: dados.dorMobilizacaoColo,
+      febre: dados.febre,
+      temperaturaCelsius: dados.temperaturaCelsius,
+      corrimentoEndocervicalAnormal: dados.corrimentoEndocervicalAnormal,
+      leucocitose: dados.leucocitose,
+      leucocitosValor: dados.leucocitosValor,
+      vhsPcrElevados: dados.vhsPcrElevados,
+      pcrValor: dados.pcrValor,
+      testeIstPositivo: dados.testeIstPositivo,
+      leucocitosExameFresco: dados.leucocitosExameFresco,
+      biopsiaEndometrite: dados.biopsiaEndometrite,
+      imagemCompativel: dados.imagemCompativel,
+      laparoscopiaCompativel: dados.laparoscopiaCompativel,
+      sintomaFitzHughCurtis: dados.sintomaFitzHughCurtis
+    });
+
+    // 2. Estadiamento de Monif
+    var presencaAto = Boolean(dados.presencaAto || (dados.imagemCompativel && dados.temColecaoAto));
+    var tamanhoAto = typeof dados.tamanhoAtoCm === 'number' ? dados.tamanhoAtoCm : null;
+
+    var estagio = estadiarMonif({
+      peritonitePelvica: dados.peritonitePelvica,
+      peritoniteDifusa: dados.peritoniteDifusa,
+      presencaAto: presencaAto,
+      atoRoto: dados.atoRoto,
+      choqueSeptico: dados.choqueSeptico,
+      tamanhoAtoCm: tamanhoAto
+    });
+
+    // 3. Critérios Formais de Internação
+    var internacao = avaliarCriteriosInternacao({
+      gestante: dados.gestante,
+      refrataria72h: dados.refrataria72h,
+      intoleranciaOral: dados.intoleranciaOral,
+      presencaAto: presencaAto,
+      peritoniteOuSepse: Boolean(dados.peritonitePelvica || dados.peritoniteDifusa || dados.choqueSeptico || (dados.temperaturaCelsius && dados.temperaturaCelsius >= 38.5)),
+      impossibilidadeExcluirEmergencia: dados.impossibilidadeExcluirEmergencia,
+      riscoNaoAdesao: dados.riscoNaoAdesao,
+      imunodeprimida: dados.imunodeprimida,
+      adolescente: dados.adolescente
+    });
+
+    // 4. Manejo de DIU
+    var diu = avaliarCondutaDiu({
+      diuPresente: dados.diuPresente,
+      estagioMonif: estagio.estagio,
+      refrataria72h: dados.refrataria72h,
+      suspeitaActinomyces: dados.suspeitaActinomyces
+    });
+
+    // 5. Manejo de Parceiros
+    var parceiros = gerarProtocoloParceiros({
+      diasUltimoContato: dados.diasUltimoContato
+    });
+
+    // 6. Conduta Terapêutica Integrada
+    var conduta = determinarCondutaTerapeutica({
+      criterios: criterios,
+      estagio: estagio,
+      internacao: internacao,
+      pesoKg: dados.pesoKg,
+      gestante: dados.gestante,
+      alergiaCefalosporinas: dados.alergiaCefalosporinas,
+      anafilaxiaBetaLactamicos: dados.anafilaxiaBetaLactamicos,
+      clcr: dados.clcr
+    });
+
+    return {
+      sucesso: true,
+      timestamp: new Date().toISOString(),
+      criteriosDiagnosticos: criterios,
+      estadiamentoMonif: estagio,
+      criteriosInternacao: internacao,
+      manejoDiu: diu,
+      protocoloParceiros: parceiros,
+      condutaTerapeutica: conduta
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 9. GERADOR DE RESUMO CLÍNICO ESTRUTURADO PARA COCKPIT / TELEGRAM
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Constrói relatório textual humanizado para exibição no Cockpit ou prontuário.
+   *
+   * @param {Object} avaliacao - Resultado de avaliarDipCompleto
+   * @returns {string} Relatório formatado em texto
+   */
+  function gerarResumoDip(avaliacao) {
+    if (!avaliacao || !avaliacao.criteriosDiagnosticos) {
+      return 'Erro: Dados insuficientes para gerar resumo de DIP.';
+    }
+
+    var r = avaliacao;
+    var l = [];
+
+    l.push('════════════════════════════════════════════════════════════════');
+    l.push('   PARECER CLÍNICO: DOENÇA INFLAMATÓRIA PÉLVICA (DIP) / ATO');
+    l.push('   Diretrizes: PCDT Ministério da Saúde / CDC STI Guidelines');
+    l.push('════════════════════════════════════════════════════════════════');
+    l.push('');
+
+    // Diagnóstico
+    l.push('► STATUS DIAGNÓSTICO: ' + r.criteriosDiagnosticos.statusDiagnostico);
+    l.push('  Confiança: ' + r.criteriosDiagnosticos.confiancaDiagnostica);
+    l.push('  Parecer: ' + r.criteriosDiagnosticos.justificativa);
+    l.push('');
+
+    // Critérios
+    l.push('► CRITÉRIOS AVALIADOS:');
+    l.push('  • Maiores (Clínicos): ' + r.criteriosDiagnosticos.criteriosMaiores.totalPresentes + '/3 presentes');
+    l.push('    - Dor hipogástrio: ' + (r.criteriosDiagnosticos.criteriosMaiores.dorHipogastrio ? 'SIM' : 'NÃO'));
+    l.push('    - Dor à palpação anexial: ' + (r.criteriosDiagnosticos.criteriosMaiores.dorAnexial ? 'SIM' : 'NÃO'));
+    l.push('    - Dor mobilização do colo (Frenkel): ' + (r.criteriosDiagnosticos.criteriosMaiores.dorMobilizacaoColo ? 'SIM' : 'NÃO'));
+    l.push('  • Menores (Laboratoriais/Sistêmicos): ' + r.criteriosDiagnosticos.criteriosMenores.totalPresentes + ' presentes');
+    for (var m = 0; m < r.criteriosDiagnosticos.criteriosMenores.lista.length; m++) {
+      l.push('    - ' + r.criteriosDiagnosticos.criteriosMenores.lista[m]);
+    }
+    if (r.criteriosDiagnosticos.criteriosElaborados.totalPresentes > 0) {
+      l.push('  • Elaborados (Definitivos): ' + r.criteriosDiagnosticos.criteriosElaborados.totalPresentes + ' presentes');
+      for (var e = 0; e < r.criteriosDiagnosticos.criteriosElaborados.lista.length; e++) {
+        l.push('    - ' + r.criteriosDiagnosticos.criteriosElaborados.lista[e]);
+      }
+    }
+    if (r.criteriosDiagnosticos.alertaFitzHughCurtis) {
+      l.push('');
+      l.push('  ' + r.criteriosDiagnosticos.alertaFitzHughCurtis);
+    }
+    l.push('');
+
+    // Estadiamento
+    l.push('► ESTADIAMENTO (CLASSIFICAÇÃO DE MONIF):');
+    l.push('  Estádio: ' + r.estadiamentoMonif.nomeEstagio);
+    l.push('  Descrição: ' + r.estadiamentoMonif.descricao);
+    l.push('  Local Recomendado: ' + r.estadiamentoMonif.localCuidado);
+    if (r.estadiamentoMonif.alertaCritico) {
+      l.push('  ' + r.estadiamentoMonif.alertaCritico);
+    }
+    l.push('');
+
+    // Internação
+    l.push('► DECISÃO DE INTERNAÇÃO HOSPITALAR:');
+    l.push('  Recomendação: ' + r.criteriosInternacao.recomendacaoLocal);
+    if (r.criteriosInternacao.criteriosPresentes.length > 0) {
+      l.push('  Critérios Identificados (' + r.criteriosInternacao.quantidadeCriterios + '):');
+      for (var ci = 0; ci < r.criteriosInternacao.criteriosPresentes.length; ci++) {
+        var itemCrit = r.criteriosInternacao.criteriosPresentes[ci];
+        l.push('    - [' + itemCrit.gravidade + '] ' + itemCrit.criterio + ': ' + itemCrit.detalhe);
+      }
+    } else {
+      l.push('  Nenhum critério absoluto de internação detectado. Elegível para manejo ambulatorial seguro.');
+    }
+    l.push('');
+
+    // DIU
+    if (r.manejoDiu && r.manejoDiu.diuPresente) {
+      l.push('► MANEJO DO DISPOSITIVO INTRAUTERINO (DIU):');
+      l.push('  Conduta: ' + r.manejoDiu.condutaRecomendada);
+      for (var od = 0; od < r.manejoDiu.orientacoesClinicas.length; od++) {
+        l.push('  • ' + r.manejoDiu.orientacoesClinicas[od]);
+      }
+      l.push('');
+    }
+
+    // Conduta Terapêutica
+    l.push('► PLANO TERAPÊUTICO FARMACOLÓGICO (' + r.condutaTerapeutica.localTratamento + '):');
+    l.push('  Esquema: ' + (r.condutaTerapeutica.planoFarmacologico.nome || 'Esquema Padronizado PCDT/CDC'));
+    l.push('  Prescrição Dirigida:');
+    for (var p = 0; p < r.condutaTerapeutica.prescricoes.length; p++) {
+      l.push('    ' + r.condutaTerapeutica.prescricoes[p]);
+    }
+    if (r.condutaTerapeutica.alertasSeguranca.length > 0) {
+      l.push('');
+      l.push('  Alertas Críticos de Segurança Farmacológica:');
+      for (var as = 0; as < r.condutaTerapeutica.alertasSeguranca.length; as++) {
+        l.push('    ⚠️ ' + r.condutaTerapeutica.alertasSeguranca[as]);
+      }
+    }
+    l.push('');
+
+    // Seguimento e Parceiros
+    l.push('► REAVALIAÇÃO E PARCEIROS SEXUAIS:');
+    l.push('  • Retorno Obrigatório: em 48 a 72 horas para checagem clínica.');
+    l.push('  • Parceiros Sexuais: Tratar todos dos últimos 60 dias com Ceftriaxona 500mg IM + Azitromicina 1g VO dose única.');
+    l.push('  • Abstinência sexual até término mútuo da antibioticoterapia e resolução de sintomas.');
+    l.push('  • Rastreio obrigatório: HIV, VDRL, HBsAg e Anti-HCV.');
+    l.push('');
+    l.push('════════════════════════════════════════════════════════════════');
+
+    return l.join('\n');
+  }
+
+  // Exportação Pública
+  return {
+    CATALOGO_FARMACOLOGICO: CATALOGO_FARMACOLOGICO,
+    avaliarCriteriosDiagnosticos: avaliarCriteriosDiagnosticos,
+    estadiarMonif: estadiarMonif,
+    avaliarCriteriosInternacao: avaliarCriteriosInternacao,
+    avaliarCondutaDiu: avaliarCondutaDiu,
+    gerarProtocoloParceiros: gerarProtocoloParceiros,
+    determinarCondutaTerapeutica: determinarCondutaTerapeutica,
+    avaliarDipCompleto: avaliarDipCompleto,
+    gerarResumoDip: gerarResumoDip
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { DipAbscessoTuboOvarianoService: DipAbscessoTuboOvarianoService };
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_ginecologia_ambulatorial.js
 // ==============================================================================
 
@@ -10214,6 +12263,1765 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_sop_ovarios_policisticos.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: SÍNDROME DOS OVÁRIOS POLICÍSTICOS (SOP)
+ * ==============================================================================
+ * Motor determinístico de alta fidelidade clínica e farmacológica para o manejo da
+ * Síndrome dos Ovários Policísticos (SOP / PCOS), fundamentado nas seguintes diretrizes:
+ *  - Critérios de Consenso Internacional de Roterdã (Rotterdam 2003 / ESHRE / ASRM).
+ *  - International Evidence-based Guideline for the Assessment and Management of
+ *    Polycystic Ovary Syndrome (ESHRE / ASRM / Monash 2023 & 2018).
+ *  - FEBRASGO: Tratado de Ginecologia e Manuais de Endocrinologia Ginecológica.
+ *  - Diretrizes da Sociedade Brasileira de Diabetes (SBD) e IDF para Risco Metabólico.
+ *
+ * PILARES CLÍNICOS DETERMINÍSTICOS:
+ * 1. Diagnóstico de Alta Acurácia pelos Critérios de Roterdã (mínimo 2 de 3):
+ *    - Hiperandrogenismo (Clínico: Ferriman-Gallwey >= 8, alopecia, acne grave;
+ *      e/ou Bioquímico: Testosterona total, Testosterona livre, FAI, DHEA-S).
+ *    - Disfunção Ovulatória: Oligomenorreia (> 35 dias ou < 8 ciclos/ano), amenorreia (> 90 dias)
+ *      ou anovulação crônica comprovada. Consideração estrita para adolescentes (< 3 anos pós-menarca).
+ *    - Morfologia Ovariana Policística (PCOM): USG transvaginal com contagem folicular >= 20 folículos
+ *      de 2-9 mm por ovário e/ou volume ovariano aumentado >= 10 cm³; ou AMH elevado em adultas.
+ * 2. Fenotipagem Completa de Roterdã (Fenótipos A, B, C e D):
+ *    - Fenótipo A (Completo: HA + DO + PCOM) - maior morbidade metabólica.
+ *    - Fenótipo B (Clássico anovulatório: HA + DO).
+ *    - Fenótipo C (Ovulatório: HA + PCOM).
+ *    - Fenótipo D (Não-hiperandrogênico: DO + PCOM) - menor impacto metabólico.
+ * 3. Auditoria Mandatória de Exclusões e Diagnósticos Diferenciais:
+ *    - Tireoidopatia (TSH).
+ *    - Hiperprolactinemia (Prolactina).
+ *    - Hiperplasia Adrenal Congênita Não Clássica (17-OH-Progesterona matinal < 2 ng/mL normal,
+ *      2-10 ng/mL zona cinzenta com ACTH obrigatório, > 10 ng/mL diagnóstico confirmado).
+ *    - Síndrome de Cushing (estigmas clínicos com rastreio de cortisol).
+ *    - Tumores secretores de androgênios (virilização rápida, testo > 150-200 ng/dL ou DHEA-S > 700 mcg/dL).
+ *    - Gestação (Beta-hCG).
+ * 4. Estratificação de Risco Metabólico, Cardiovascular e Endometrial:
+ *    - TTGO 75g com 2 horas (padrão-ouro em SOP), Glicemia de jejum, HOMA-IR e HbA1c.
+ *    - Síndrome Metabólica pelos critérios ATP III / IDF (>= 3 critérios).
+ *    - Rastreio de Esteatose Hepática (MASLD) e dislipidemia aterogênica.
+ *    - Risco de hiperplasia e câncer endometrial por anovulação e exposição estrogênica desprovida de oposição.
+ * 5. Conduta Terapêutica Dirigida e Farmacologia Personalizada:
+ *    - Estilo de Vida (não farmacológico): meta de 5-10% de perda de peso, exercício >= 150 min/sem.
+ *    - Paciente com Desejo Reprodutivo: Letrozol de 1ª linha (superior ao Clomifeno), Metformina
+ *      adjuvante se IMC >= 25, Ácido Fólico pré-concepcional e BLOQUEIO ABSOLUTO de antiandrogênicos teratogênicos.
+ *    - Paciente sem Desejo Reprodutivo: Anticoncepcionais combinados antiandrogênicos (Drospirenona,
+ *      Ciproterona, Dienogeste); se contraindicação a estrogênios (OMS MEC 3/4), uso de Progestagênio
+ *      cíclico protetor (Didrogesterona) ou SIU-LNG; Espironolactona para hirsutismo resistente
+ *      com contracepção obrigatória; e Metformina para resistência insulínica e prevenção de DM2.
+ * ==============================================================================
+ */
+
+var SopOvariosPolicisticosService = (function() {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. CONSTANTES E CATÁLOGO FARMACOLÓGICO (ESHRE / ASRM / FEBRASGO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  var CATALOGO_FARMACOLOGICO = {
+    // Indutores de Ovulação (Desejo Reprodutivo)
+    INDUCAO_OVULACAO: {
+      LETROZOL: {
+        farmaco: 'Letrozol (Inibidor da Aromatase de 3ª Geração)',
+        posologiaPadrao: '2,5 mg VO 1x/dia por 5 dias consecutivos (iniciar do 3º ao 7º dia do ciclo espontâneo ou induzido)',
+        titulacao: 'Se anovulação persistente em ultrassonografia seriada ou dosagem de progesterona, titular para 5,0 mg/dia e até 7,5 mg/dia em ciclos subsequentes.',
+        linhaGuia: '1ª Linha Internacional Mandatória (ESHRE/ASRM 2023)',
+        mecanismo: 'Inibe a conversão de androgênios em estrogênios no SNC e ovário, liberando o eixo hipotálamo-hipofisário para secreção pulsátil de FSH sem bloquear receptores de estrogênio periféricos.',
+        vantagensClinicas: 'Superior ao Citrato de Clomifeno em taxas de ovulação cumulativa, gestação única e nascidos vivos, com menor afinidade endometrial e taxa significativamente menor de gestação múltipla.'
+      },
+      CLOMIFENO: {
+        farmaco: 'Citrato de Clomifeno (SERM)',
+        posologiaPadrao: '50 mg VO 1x/dia por 5 dias (do 3º ao 7º ou 5º ao 9º dia do ciclo)',
+        titulacao: 'Pode ser titulado para 100 mg a 150 mg/dia se falha ovulatória na dose inicial.',
+        linhaGuia: '2ª Linha (Alternativa se indisponibilidade ou falha de Letrozol)',
+        mecanismo: 'Antagonista competitivo de receptores de estrogênio hipotalâmicos, estimulando liberação de GnRH e FSH.',
+        desvantagens: 'Efeito antiestrogênico no endométrio (afinamento endometrial) e no muco cervical; maior risco de gestação múltipla (5-8%).'
+      }
+    },
+
+    // Anticoncepcionais Hormonais Combinados (Sem Desejo Reprodutivo - Proteção Endometrial)
+    AHC_COMBINADOS: {
+      DROSPIRENONA_EE: {
+        nome: 'Etinilestradiol (20 a 30 mcg) + Drospirenona (3 mg)',
+        perfil: 'Excelente perfil metabólico, efeito antimineralocorticoide e antiandrogênico',
+        indicacao: '1ª Escolha em pacientes com SOP, retenção hídrica, acne leve a moderada e sobrepeso.',
+        posologia: '1 comprimido VO ao dia por 21 ou 24 dias, com intervalo de 7 ou 4 dias.'
+      },
+      CIPROTERONA_EE: {
+        nome: 'Etinilestradiol (35 mcg) + Acetato de Ciproterona (2 mg)',
+        perfil: 'Potente ação antiandrogênica periférica (antagonista competitivo de receptor de androgênio)',
+        indicacao: 'Hirsutismo moderado a grave e acne vulgar nódulo-cística persistente.',
+        alertaSeguranca: 'Maior risco de TEV relativo que outras formulações. Usar pelo menor tempo necessário e trocar para Drospirenona após controle dos sintomas androgênicos cutâneos.',
+        posologia: '1 comprimido VO ao dia por 21 dias seguido de 7 dias de intervalo.'
+      },
+      DIENOGESTE_EE: {
+        nome: 'Etinilestradiol (30 mcg) + Dienogeste (2 mg)',
+        perfil: 'Progestagênio derivado da 19-nortestosterona com potente atividade antiandrogênica e excelente tolerância endometrial',
+        indicacao: 'SOP com irregularidade menstrual e manifestações androgênicas cutâneas.',
+        posologia: '1 comprimido VO ao dia por 21 dias seguido de 7 dias de intervalo.'
+      }
+    },
+
+    // Proteção Endometrial Alternativa (Contraindicação a Estrogênios - MEC 3/4 OMS)
+    PROTECAO_PROGESTAGENIO_ISOLADO: {
+      DIDROGESTERONA_CICLICA: {
+        farmaco: 'Didrogesterona 10 mg',
+        posologia: '10 mg a 20 mg VO 1x/dia por 12 a 14 dias por mês (ex: dias 14 a 27 do ciclo menstrual induzido)',
+        objetivo: 'Induzir descamação secretora endometrial regular, prevenir hiperplasia e adenocarcinoma endometrial sem suprimir ovulação ou alterar metabolismo glicídico.'
+      },
+      PROGESTERONA_MICRONIZADA: {
+        farmaco: 'Progesterona Micronizada 200 mg',
+        posologia: '200 mg VO ao deitar por 12 a 14 dias a cada mês.',
+        objetivo: 'Proteção endometrial natural neutra metabolicamente.'
+      },
+      SIU_LEVONORGESTREL: {
+        farmaco: 'Sistema Intrauterino Liberador de Levonorgestrel 52 mg (Mirena)',
+        posologia: 'Inserção intrauterina ambulatorial com duração de até 8 anos para contracepção e proteção endometrial.',
+        objetivo: 'Potente atrofia endometrial local com absorção sistêmica mínima, prevenindo com máxima eficácia a hiperplasia endometrial em pacientes anovulatórias.'
+      }
+    },
+
+    // Antiandrogênicos Periféricos (Hirsutismo e Alopecia)
+    ANTIANDROGENICOS: {
+      ESPIRONOLACTONA: {
+        farmaco: 'Espironolactona',
+        doseInicial: '50 mg VO 1x/dia (titular para 100 mg a 200 mg/dia divididos em 1 a 2 tomadas)',
+        mecanismo: 'Bloqueador competitivo do receptor de androgênio e inibidor discreto da 5-alfa-redutase e síntese ovariana/adrenal de androgênios.',
+        alertaCritico: '⚠️ CONTRAINDICAÇÃO ABSOLUTA NA GRAVIDEZ / TENTATIVA DE CONCEPÇÃO: Risco de teratogenicidade e feminização de feto do sexo masculino. EXIGE CONTRACEPÇÃO EFICAZ CONCOMITANTE. Monitorar potássio sérico (risco de hipercalemia se associado a IECA/BRA ou disfunção renal).'
+      },
+      FINASTERIDA: {
+        farmaco: 'Finasterida',
+        doseInicial: '2,5 mg a 5,0 mg VO 1x/dia',
+        mecanismo: 'Inibidor seletivo da enzima 5-alfa-redutase tipo 2, bloqueando a conversão de testosterona em di-hidrotestosterona (DHT).',
+        alertaCritico: '⚠️ RISCO TERATOGÊNICO GRAVE: Contraindicada sem contracepção estrita. Reservada para casos refratários à Espironolactona.'
+      }
+    },
+
+    // Manejo Metabólico / Resistência à Insulina
+    METABOLICO: {
+      METFORMINA: {
+        farmaco: 'Cloridrato de Metformina (preferencialmente formulação XR - Liberação Prolongada)',
+        posologiaInicial: '500 mg VO ao dia imediatamente após o jantar por 7 a 14 dias',
+        titulacao: 'Aumentar semanalmente 500 mg até atingir a dose alvo de 1.500 mg a 2.000 mg/dia (ex: 1.000 mg 12/12h ou 2.000 mg no jantar na forma XR) para minimizar efeitos adversos gastrointestinais.',
+        indicacoesSop: 'IMC >= 25 kg/m², pré-diabetes (glicemia jejum 100-125 ou TTGO 2h 140-199 mg/dL), resistência insulínica documentada (HOMA-IR > 2.5), síndrome metabólica, ou adjuvante na indução ovulatória.',
+        mecanismo: 'Ativa AMPK hepática, inibe gliconeogênese, melhora captação periférica de glicose, reduz hiperinsulinemia compensatória, atenuando a produção de androgênios pelas células da teca e aumentando SHBG circulante.'
+      }
+    }
+  };
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. AVALIAÇÃO DOS CRITÉRIOS DE ROTERDÃ (2003 / ESHRE 2023 / ASRM)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia os 3 critérios de Roterdã e determina o fenótipo da paciente.
+   *
+   * @param {Object} dados
+   * @param {number} [dados.escoreFerrimanGallwey] (escore mFG, normal < 8)
+   * @param {boolean} [dados.hirsutismoClinico]
+   * @param {boolean} [dados.alopeciaAndrogenica]
+   * @param {boolean} [dados.acneGravePersistente]
+   * @param {number} [dados.testosteronaTotal] (ng/dL, ref normal < 50-60 ng/dL)
+   * @param {number} [dados.testosteronaLivre] (pg/mL)
+   * @param {number} [dados.shbg] (nmol/L)
+   * @param {number} [dados.indiceAndrogeniosLivres] (FAI / FTI em %)
+   * @param {number} [dados.dheaS] (mcg/dL, ref normal < 350-400 mcg/dL)
+   * @param {number} [dados.androstenediona] (ng/mL)
+   * @param {boolean} [dados.hiperandrogenismoLaboratorial]
+   * @param {number} [dados.intervaloCicloDias] (dias médios entre menstruações, > 35 indica oligomenorreia)
+   * @param {number} [dados.ciclosPorAno] (< 8 indica oligomenorreia)
+   * @param {boolean} [dados.amenorreia] (ausência de ciclos por > 90 dias)
+   * @param {boolean} [dados.oligomenorreia]
+   * @param {boolean} [dados.anovulacaoDocumentada] (progesterona de fase lútea < 3 ng/mL)
+   * @param {number} [dados.anosPosMenarca] (anos desde a menarca, relevante para adolescentes)
+   * @param {number} [dados.idade]
+   * @param {number} [dados.contagemFolículosPorOvario] (FNPO, >= 20 folículos de 2-9mm)
+   * @param {number} [dados.volumeOvarianoMaximo] (cm³ ou mL, >= 10 cm³)
+   * @param {boolean} [dados.morfologiaPolicisticaUsg]
+   * @param {number} [dados.amh] (Hormônio Antimülleriano em ng/mL ou pmol/L, alternativa em adultas)
+   * @returns {Object} Avaliação detalhada de Roterdã com fenótipo e pontuação
+   */
+  function avaliarCriteriosRotterda(dados) {
+    dados = dados || {};
+    var idade = Number(dados.idade || 25);
+    var anosPosMenarca = dados.anosPosMenarca !== undefined ? Number(dados.anosPosMenarca) : null;
+    var eAdolescente = (idade < 20) || (anosPosMenarca !== null && anosPosMenarca < 3);
+
+    // CRITÉRIO 1: HIPERANDROGENISMO (HA - Clínico ou Laboratorial)
+    var achadosHaClinico = [];
+    var achadosHaLaboratorial = [];
+
+    // Avaliação Clínica
+    var mfg = Number(dados.escoreFerrimanGallwey);
+    if (!isNaN(mfg)) {
+      if (mfg >= 8) {
+        achadosHaClinico.push('Hirsutismo clínico significativo (Escore Ferriman-Gallwey modificado = ' + mfg + ' >= 8)');
+      }
+    } else if (dados.hirsutismoClinico) {
+      achadosHaClinico.push('Hirsutismo clínico evidente em áreas androgênio-dependentes');
+    }
+
+    if (dados.alopeciaAndrogenica) {
+      achadosHaClinico.push('Alopecia de padrão androgenético feminino (rarefação fronto-parietal)');
+    }
+
+    if (dados.acneGravePersistente) {
+      achadosHaClinico.push('Acne vulgar moderada a grave persistente ou resistente a tratamentos tópicos');
+    }
+
+    // Avaliação Laboratorial / Bioquímica
+    var testoTotal = Number(dados.testosteronaTotal);
+    if (!isNaN(testoTotal) && testoTotal > 50) {
+      achadosHaLaboratorial.push('Testosterona total elevada (' + testoTotal + ' ng/dL > 50 ng/dL)');
+    }
+
+    var shbg = Number(dados.shbg);
+    var fai = Number(dados.indiceAndrogeniosLivres);
+    if (isNaN(fai) && !isNaN(testoTotal) && !isNaN(shbg) && shbg > 0) {
+      // FAI = [Testosterona Total (nmol/L) / SHBG (nmol/L)] * 100
+      // Conversão ng/dL de testosterona para nmol/L: multiplicar por 0.03467
+      fai = ((testoTotal * 0.03467) / shbg) * 100;
+    }
+    if (!isNaN(fai) && fai > 4.5) {
+      achadosHaLaboratorial.push('Índice de Androgênios Livres (FAI) elevado (' + fai.toFixed(1) + '% > 4.5%)');
+    }
+
+    var dheaS = Number(dados.dheaS);
+    if (!isNaN(dheaS) && dheaS > 350) {
+      achadosHaLaboratorial.push('DHEA-S sérico elevado (' + dheaS + ' mcg/dL > 350 mcg/dL)');
+    }
+
+    var androst = Number(dados.androstenediona);
+    if (!isNaN(androst) && androst > 2.5) {
+      achadosHaLaboratorial.push('Androstenediona sérica elevada (' + androst + ' ng/mL > 2.5 ng/mL)');
+    }
+
+    if (dados.hiperandrogenismoLaboratorial && achadosHaLaboratorial.length === 0) {
+      achadosHaLaboratorial.push('Hiperandrogenismo laboratorial confirmado em dosagens hormonais prévias');
+    }
+
+    var temHaClinico = achadosHaClinico.length > 0;
+    var temHaLaboratorial = achadosHaLaboratorial.length > 0;
+    var temHiperandrogenismo = temHaClinico || temHaLaboratorial;
+
+    // CRITÉRIO 2: DISFUNÇÃO OVULATÓRIA (DO - Oligo/Anovulação)
+    var achadosDo = [];
+    var intervaloDias = Number(dados.intervaloCicloDias);
+    var ciclosAno = Number(dados.ciclosPorAno);
+
+    if (dados.amenorreia) {
+      achadosDo.push('Amenorreia secundária (ausência de ciclos menstruais por > 90 dias seguidos)');
+    } else if (!isNaN(intervaloDias) && intervaloDias > 35) {
+      achadosDo.push('Oligomenorreia com ciclos infrequentes (intervalo de ' + intervaloDias + ' dias > 35 dias)');
+    } else if (!isNaN(intervaloDias) && intervaloDias < 21) {
+      achadosDo.push('Ciclos polimenorreicos curtos e frequentemente anovulatórios (' + intervaloDias + ' dias < 21 dias)');
+    }
+
+    if (!isNaN(ciclosAno) && ciclosAno < 8) {
+      achadosDo.push('Menos de 8 ciclos menstruais por ano (' + ciclosAno + ' ciclos/ano)');
+    }
+
+    if (dados.oligomenorreia && achadosDo.length === 0) {
+      achadosDo.push('Irregularidade menstrual com padrão de oligomenorreia documentado');
+    }
+
+    if (dados.anovulacaoDocumentada) {
+      achadosDo.push('Anovulação confirmada laboratorialmente por progesterona de fase lútea reduzida');
+    }
+
+    var temDisfuncaoOvulatoria = achadosDo.length > 0;
+
+    // Alerta de Ciclos Irregulares Fisiológicos em Adolescentes
+    var alertaAdolescente = null;
+    if (eAdolescente) {
+      alertaAdolescente = '⚠️ PACIENTE ADOLESCENTE (< 3 anos pós-menarca): Ciclos irregulares e anovulatórios são frequentes e fisiológicos pela imaturidade do eixo hipotálamo-hipófise-ovariano. As diretrizes ESHRE/ASRM 2023 determinam que o diagnóstico de SOP em adolescentes exige OBRIGATORIAMENTE tanto Hiperandrogenismo quanto Disfunção Ovulatória persistente por > 1-2 anos, NÃO devendo o critério ultrassonográfico ser utilizado de forma isolada.';
+    }
+
+    // CRITÉRIO 3: MORFOLOGIA OVARIANA POLICÍSTICA (PCOM)
+    var achadosPcom = [];
+    var foliculos = Number(dados.contagemFolículosPorOvario);
+    var volumeOvario = Number(dados.volumeOvarianoMaximo);
+    var amh = Number(dados.amh);
+
+    if (!isNaN(foliculos) && foliculos >= 20) {
+      achadosPcom.push('Contagem de folículos antrais por ovário (FNPO) >= 20 folículos de 2-9 mm (' + foliculos + ' folículos)');
+    }
+
+    if (!isNaN(volumeOvario) && volumeOvario >= 10) {
+      achadosPcom.push('Volume ovariano aumentado >= 10 cm³ / mL (' + volumeOvario.toFixed(1) + ' cm³)');
+    }
+
+    if (dados.morfologiaPolicisticaUsg && achadosPcom.length === 0) {
+      achadosPcom.push('Morfologia ovariana policística identificada em ultrassonografia pélvica/transvaginal');
+    }
+
+    // Alternativa Bioquímica: AMH elevado em adultas (ESHRE 2023)
+    if (!isNaN(amh) && amh >= 4.5 && !eAdolescente) {
+      achadosPcom.push('Hormônio Antimülleriano (AMH) elevado (' + amh + ' ng/mL >= 4.5 ng/mL - substituto ultrassonográfico em adultas)');
+    }
+
+    var temPcom = achadosPcom.length > 0;
+
+    // Em adolescentes, PCOM isolado não é critério diagnóstico confiável
+    if (eAdolescente && temPcom && !temHaLaboratorial && !temHaClinico) {
+      achadosPcom.push('(Nota: achado de ovários multifoliculares é fisiológico na adolescência e tem valor limitado)');
+    }
+
+    // SOMA DOS CRITÉRIOS ATENDIDOS
+    var contagemCriterios = 0;
+    if (temHiperandrogenismo) contagemCriterios++;
+    if (temDisfuncaoOvulatoria) contagemCriterios++;
+    if (temPcom) contagemCriterios++;
+
+    var criteriosAtendidos = contagemCriterios >= 2;
+    var fenotipo = 'NENHUM';
+    var nomeFenotipo = '';
+    var descricaoFenotipo = '';
+
+    if (temHiperandrogenismo && temDisfuncaoOvulatoria && temPcom) {
+      fenotipo = 'FENOTIPO_A';
+      nomeFenotipo = 'Fenótipo A (Clássico Completo)';
+      descricaoFenotipo = 'Presença de Hiperandrogenismo (clínico/laboratorial) + Disfunção Ovulatória + Morfologia Ovariana Policística ao USG. Apresenta o maior risco metabólico, hiperinsulinemia e esteatose hepática.';
+    } else if (temHiperandrogenismo && temDisfuncaoOvulatoria && !temPcom) {
+      fenotipo = 'FENOTIPO_B';
+      nomeFenotipo = 'Fenótipo B (Clássico Anovulatório Não-Policístico)';
+      descricaoFenotipo = 'Presença de Hiperandrogenismo + Disfunção Ovulatória, sem critérios ultrassonográficos de ovários policísticos. Risco metabólico substancial equivalente ao Fenótipo A.';
+    } else if (temHiperandrogenismo && !temDisfuncaoOvulatoria && temPcom) {
+      fenotipo = 'FENOTIPO_C';
+      nomeFenotipo = 'Fenótipo C (Ovulatório)';
+      descricaoFenotipo = 'Presença de Hiperandrogenismo + Morfologia Ovariana Policística, porém com ciclos menstruais regulares. Perfil metabólico intermediário e fertilidade preservada.';
+    } else if (!temHiperandrogenismo && temDisfuncaoOvulatoria && temPcom) {
+      fenotipo = 'FENOTIPO_D';
+      nomeFenotipo = 'Fenótipo D (Não-Hiperandrogênico)';
+      descricaoFenotipo = 'Presença de Disfunção Ovulatória + Morfologia Ovariana Policística, sem hiperandrogenismo clínico ou laboratorial. Representa o fenótipo mais leve, com menor disfunção metabólica.';
+    } else {
+      fenotipo = 'CRITERIOS_INSUFICIENTES';
+      nomeFenotipo = 'Critérios de Roterdã Insuficientes';
+      descricaoFenotipo = 'Preenchido apenas ' + contagemCriterios + ' de 3 critérios de Roterdã. O diagnóstico formal de SOP exige no mínimo 2 critérios atendidos após exclusão estrita de outras patologias.';
+    }
+
+    return {
+      criteriosAtendidos: criteriosAtendidos,
+      contagemCriterios: contagemCriterios,
+      totalCriteriosAvaliados: 3,
+      fenotipo: fenotipo,
+      nomeFenotipo: nomeFenotipo,
+      descricaoFenotipo: descricaoFenotipo,
+      criteriosDetalhados: {
+        hiperandrogenismo: {
+          presente: temHiperandrogenismo,
+          clinico: temHaClinico,
+          laboratorial: temHaLaboratorial,
+          achadosClinicos: achadosHaClinico,
+          achadosLaboratoriais: achadosHaLaboratorial
+        },
+        disfuncaoOvulatoria: {
+          presente: temDisfuncaoOvulatoria,
+          achados: achadosDo,
+          eAdolescente: eAdolescente,
+          alertaAdolescente: alertaAdolescente
+        },
+        morfologiaPolicistica: {
+          presente: temPcom,
+          achados: achadosPcom
+        }
+      }
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. AUDITORIA MANDATÓRIA DE EXCLUSÕES E DIAGNÓSTICOS DIFERENCIAIS
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia a exclusão sistemática de endocrinopatias que mimetizam a SOP.
+   *
+   * @param {Object} dados
+   * @param {number} [dados.tsh] (mIU/L, ref 0.4 a 4.5)
+   * @param {number} [dados.prolactina] (ng/mL, ref < 25)
+   * @param {number} [dados.progesterona17Oh] (17-OHP em ng/mL ou ng/dL)
+   * @param {string} [dados.unidade17Oh] ('ng/ml' ou 'ng/dl', default 'ng/ml')
+   * @param {boolean} [dados.estigmasCushing] (obesidade centrípeta, estrias largas violáceas, fácies cushingoide)
+   * @param {number} [dados.cortisolPosDexametasona] (mcg/dL no teste de 1mg overnight)
+   * @param {boolean} [dados.virilizacaoRapida] (início súbito de alopecia androgênica severa, clitoromegalia, voz grossa)
+   * @param {number} [dados.testosteronaTotal] (ng/dL)
+   * @param {number} [dados.dheaS] (mcg/dL)
+   * @param {boolean} [dados.betaHcgNegativo]
+   * @param {boolean} [dados.possibilidadeGestacao]
+   * @returns {Object} Auditoria de diagnósticos diferenciais
+   */
+  function auditarDiagnosticosDiferenciais(dados) {
+    dados = dados || {};
+    var exclusoesAuditadas = [];
+    var alertasCriticos = [];
+    var pendenciasObrigatorias = [];
+    var diagnosticoAlternativoProvavel = null;
+
+    // 1. TSH (Tireoidopatias)
+    var tsh = Number(dados.tsh);
+    if (!isNaN(tsh)) {
+      if (tsh > 4.5) {
+        alertasCriticos.push('TSH ELEVADO (' + tsh.toFixed(2) + ' mIU/L > 4.5): Suspeita de Hipotireoidismo primário. O hipotireoidismo pode causar oligomenorreia/amenorreia e hiperprolactinemia reativa por aumento de TRH. Tratar disfunção tireoidiana antes de firmar SOP.');
+        diagnosticoAlternativoProvavel = diagnosticoAlternativoProvavel || 'HIPOTIREOIDISMO';
+      } else if (tsh < 0.4) {
+        alertasCriticos.push('TSH SUPRIMIDO (' + tsh.toFixed(2) + ' mIU/L < 0.4): Suspeita de Hipertireoidismo. Investigar T4 livre e anticorpos anti-TSH (TRAB).');
+        diagnosticoAlternativoProvavel = diagnosticoAlternativoProvavel || 'HIPERTIREOIDISMO';
+      } else {
+        exclusoesAuditadas.push('Tireoidopatia excluída com sucesso (TSH normal: ' + tsh.toFixed(2) + ' mIU/L)');
+      }
+    } else {
+      pendenciasObrigatorias.push('TSH não informado: Exame mandatório para descartar disfunção tireoidiana.');
+    }
+
+    // 2. Prolactina (Hiperprolactinemia)
+    var prolactina = Number(dados.prolactina);
+    if (!isNaN(prolactina)) {
+      if (prolactina > 25) {
+        alertasCriticos.push('PROLACTINA ELEVADA (' + prolactina.toFixed(1) + ' ng/mL > 25): Suspeita de Hiperprolactinemia. Excluir uso de fármacos dopaminérgicos (antipsicóticos, metoclopramida), hipotireoidismo associado ou micro/macroadenoma hipofisário (solicitar RM de sela túrcica se persistente).');
+        diagnosticoAlternativoProvavel = diagnosticoAlternativoProvavel || 'HIPERPROLACTINEMIA';
+      } else {
+        exclusoesAuditadas.push('Hiperprolactinemia descartada (Prolactina normal: ' + prolactina.toFixed(1) + ' ng/mL)');
+      }
+    } else {
+      pendenciasObrigatorias.push('Prolactina não informada: Exame mandatório para descartar hiperprolactinemia.');
+    }
+
+    // 3. 17-OH-Progesterona (Hiperplasia Adrenal Congênita Não Clássica - HAC-NC)
+    var oh17 = Number(dados.progesterona17Oh);
+    var unidadeOh = String(dados.unidade17Oh || 'ng/ml').toLowerCase();
+    if (!isNaN(oh17)) {
+      // Normalização para ng/mL: se for ng/dL, dividir por 100
+      var oh17NgMl = unidadeOh.includes('dl') ? (oh17 / 100) : oh17;
+
+      if (oh17NgMl < 2.0) {
+        exclusoesAuditadas.push('HAC Não Clássica (deficiência de 21-hidroxilase) descartada (17-OH-Progesterona = ' + oh17NgMl.toFixed(2) + ' ng/mL < 2.0 ng/mL)');
+      } else if (oh17NgMl >= 2.0 && oh17NgMl <= 10.0) {
+        alertasCriticos.push('17-OH-PROGESTERONA EM ZONA CINZENTA (' + oh17NgMl.toFixed(2) + ' ng/mL entre 2.0 e 10.0 ng/mL): Resultado inconclusivo. Indicação MANDATÓRIA de Teste de Estímulo com ACTH sintético (Cosintropina 250 mcg) para confirmação ou exclusão de HAC não clássica.');
+      } else if (oh17NgMl > 10.0) {
+        alertasCriticos.push('17-OH-PROGESTERONA DIAGNÓSTICA PARA HAC NÃO CLÁSSICA (' + oh17NgMl.toFixed(2) + ' ng/mL > 10.0 ng/mL): Confirma o diagnóstico de Hiperplasia Adrenal Congênita Não Clássica por deficiência de 21-hidroxilase. SOP EXCLUÍDA como causa primária. Encaminhar para acompanhamento endocrinológico.');
+        diagnosticoAlternativoProvavel = 'HIPERPLASIA_ADRENAL_CONGENITA_NAO_CLASSICA';
+      }
+    } else {
+      pendenciasObrigatorias.push('17-OH-Progesterona matinal não informada: Obrigatória para descartar HAC não clássica por deficiência de 21-hidroxilase.');
+    }
+
+    // 4. Síndrome de Cushing (Hipercortisolismo)
+    var cortisolDexa = Number(dados.cortisolPosDexametasona);
+    if (dados.estigmasCushing) {
+      if (!isNaN(cortisolDexa)) {
+        if (cortisolDexa >= 1.8) {
+          alertasCriticos.push('CORTISOL NÃO SUPRIMIDO APÓS DEXAMETASONA 1MG (' + cortisolDexa.toFixed(1) + ' mcg/dL >= 1.8): Suspeita de Síndrome de Cushing associada aos estigmas clínicos. Prosseguir com cortisol livre urinário de 24h e cortisol salivar noturno.');
+          diagnosticoAlternativoProvavel = diagnosticoAlternativoProvavel || 'SINDROME_DE_CUSHING';
+        } else {
+          exclusoesAuditadas.push('Síndrome de Cushing descartada pelo teste de supressão com 1mg de dexametasona (Cortisol ' + cortisolDexa.toFixed(1) + ' mcg/dL < 1.8)');
+        }
+      } else {
+        pendenciasObrigatorias.push('Estigmas cushingoides presentes sem teste de supressão com dexametasona: Realizar triagem com 1mg de dexametasona overnight.');
+      }
+    }
+
+    // 5. Neoplasias / Tumores Produtores de Androgênios (Adrenal / Ovariano)
+    var testo = Number(dados.testosteronaTotal);
+    var dhea = Number(dados.dheaS);
+    if (dados.virilizacaoRapida || (!isNaN(testo) && testo > 150) || (!isNaN(dhea) && dhea > 700)) {
+      alertasCriticos.push('⚠️ ALERTA VERMELHO ONCOLÓGICO: Sinais de virilização rápida ou níveis extremos de androgênios (Testosterona > 150 ng/dL ou DHEA-S > 700 mcg/dL). É MANDATÓRIO excluir neoplasia produtora de androgênio (tumor de células de Sertoli-Leydig ovariano ou carcinoma/adenoma adrenal). Solicitar USG pélvico com Doppler e TC/RM de adrenais com urgência!');
+      diagnosticoAlternativoProvavel = 'TUMOR_PRODUTOR_DE_ANDROGENIOS';
+    }
+
+    // 6. Exclusão de Gestação
+    if (dados.possibilidadeGestacao && !dados.betaHcgNegativo) {
+      alertasCriticos.push('Amenorreia / Atraso menstrual sem exclusão formal de gestação: Realizar Beta-hCG urinário ou sérico imediatamente antes de qualquer prescrição hormonal.');
+    }
+
+    var diagnosticoDiferencialDescartado = (alertasCriticos.length === 0) && (pendenciasObrigatorias.length === 0);
+
+    return {
+      diagnosticoDiferencialDescartado: diagnosticoDiferencialDescartado,
+      exclusoesAuditadas: exclusoesAuditadas,
+      alertasCriticos: alertasCriticos,
+      pendenciasObrigatorias: pendenciasObrigatorias,
+      diagnosticoAlternativoProvavel: diagnosticoAlternativoProvavel
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. ESTRATIFICAÇÃO DE RISCO METABÓLICO, CARDIOVASCULAR E ENDOMETRIAL
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia fatores cardiometabólicos e risco de hiperplasia/câncer de endométrio.
+   *
+   * @param {Object} dados
+   * @param {number} [dados.pesoKg]
+   * @param {number} [dados.alturaCm]
+   * @param {number} [dados.imc]
+   * @param {number} [dados.circunferenciaAbdominalCm] (risco se >= 80 cm na América Latina)
+   * @param {number} [dados.glicemiaJejum] (mg/dL)
+   * @param {number} [dados.glicemia2hTtgo] (mg/dL no TTGO 75g de 2 horas)
+   * @param {number} [dados.insulinaJejum] (mcU/mL)
+   * @param {number} [dados.hba1c] (%)
+   * @param {number} [dados.triglicerideos] (mg/dL)
+   * @param {number} [dados.hdl] (mg/dL)
+   * @param {number} [dados.pas] (Pressão Sistólica mmHg)
+   * @param {number} [dados.pad] (Pressão Diastólica mmHg)
+   * @param {boolean} [dados.hipertensaoTratada]
+   * @param {boolean} [dados.acanthosisNigricans]
+   * @param {boolean} [dados.esteatoseHepatica] (MASLD no USG)
+   * @param {number} [dados.tempoAmenorreiaMeses] (meses sem sangramento e sem progestagênio)
+   * @param {number} [dados.espessuraEndometrialMm] (espessura ao USG)
+   * @returns {Object} Estratificação cardiometabólica e endometrial detalhada
+   */
+  function estratificarRiscoMetabolico(dados) {
+    dados = dados || {};
+
+    // 1. IMC e Perfil Antropométrico
+    var imc = Number(dados.imc);
+    var peso = Number(dados.pesoKg);
+    var altura = Number(dados.alturaCm);
+    if (isNaN(imc) && !isNaN(peso) && !isNaN(altura) && altura > 0) {
+      var altM = altura / 100;
+      imc = peso / (altM * altM);
+    }
+
+    var classificacaoImc = 'NÃO_INFORMADO';
+    if (!isNaN(imc)) {
+      if (imc < 18.5) classificacaoImc = 'BAIXO_PESO';
+      else if (imc < 25) classificacaoImc = 'EUTRÓFICA';
+      else if (imc < 30) classificacaoImc = 'SOBREPESO';
+      else if (imc < 35) classificacaoImc = 'OBESIDADE_GRAU_I';
+      else if (imc < 40) classificacaoImc = 'OBESIDADE_GRAU_II';
+      else classificacaoImc = 'OBESIDADE_GRAU_III_MÓRBIDA';
+    }
+
+    var ca = Number(dados.circunferenciaAbdominalCm);
+    var caAumentada = !isNaN(ca) && ca >= 80;
+
+    // 2. Avaliação Glicêmica e TTGO 75g
+    var glicemiaJejum = Number(dados.glicemiaJejum);
+    var glicemia2h = Number(dados.glicemia2hTtgo);
+    var hba1c = Number(dados.hba1c);
+    var insulinaJejum = Number(dados.insulinaJejum);
+
+    var statusGlicemico = 'NORMAL';
+    var detalhesGlicemia = [];
+
+    if (!isNaN(glicemia2h)) {
+      if (glicemia2h >= 200) {
+        statusGlicemico = 'DIABETES_MELLITUS';
+        detalhesGlicemia.push('TTGO 75g 2h >= 200 mg/dL (' + glicemia2h + ' mg/dL): Critério confirmatório de Diabetes Mellitus');
+      } else if (glicemia2h >= 140) {
+        statusGlicemico = 'INTOLERANCIA_A_GLICOSE_PRE_DM';
+        detalhesGlicemia.push('TTGO 75g 2h entre 140-199 mg/dL (' + glicemia2h + ' mg/dL): Intolerância à Glicose / Pré-Diabetes');
+      } else {
+        detalhesGlicemia.push('TTGO 75g 2h normal (' + glicemia2h + ' mg/dL < 140)');
+      }
+    } else {
+      detalhesGlicemia.push('⚠️ TTGO 75g (2 horas) não realizado: O TTGO é o exame padrão-ouro recomendado pela ESHRE em mulheres com SOP devido à alta taxa de intolerância à glicose com glicemia de jejum falsamente normal.');
+    }
+
+    if (!isNaN(glicemiaJejum)) {
+      if (glicemiaJejum >= 126) {
+        statusGlicemico = 'DIABETES_MELLITUS';
+        detalhesGlicemia.push('Glicemia de jejum >= 126 mg/dL (' + glicemiaJejum + ' mg/dL)');
+      } else if (glicemiaJejum >= 100) {
+        detalhesGlicemia.push('Glicemia de jejum alterada (' + glicemiaJejum + ' mg/dL: 100-125 mg/dL)');
+        if (statusGlicemico === 'NORMAL') {
+          statusGlicemico = 'GLICEMIA_JEJUM_ALTERADA_PRE_DM';
+        }
+      }
+    }
+
+    if (!isNaN(hba1c)) {
+      if (hba1c >= 6.5) {
+        statusGlicemico = 'DIABETES_MELLITUS';
+        detalhesGlicemia.push('HbA1c >= 6.5% (' + hba1c.toFixed(1) + '%)');
+      } else if (hba1c >= 5.7 && statusGlicemico === 'NORMAL') {
+        statusGlicemico = 'PRE_DIABETES';
+        detalhesGlicemia.push('HbA1c na faixa de pré-diabetes (' + hba1c.toFixed(1) + '%)');
+      }
+    }
+
+    // Resistência à Insulina (HOMA-IR)
+    var homaIr = null;
+    var resistenciaInsulinica = Boolean(dados.acanthosisNigricans);
+    if (!isNaN(glicemiaJejum) && !isNaN(insulinaJejum) && glicemiaJejum > 0 && insulinaJejum > 0) {
+      homaIr = (glicemiaJejum * insulinaJejum) / 405;
+      if (homaIr > 2.5) {
+        resistenciaInsulinica = true;
+      }
+    }
+
+    // 3. Critérios de Síndrome Metabólica (ATP III / IDF)
+    var criteriosSmAtendidos = 0;
+    var listaCriteriosSm = [];
+
+    // 1. Obesidade Abdominal (CA >= 80cm em mulheres)
+    if (caAumentada) {
+      criteriosSmAtendidos++;
+      listaCriteriosSm.push('Circunferência abdominal aumentada (>= 80 cm: ' + ca + ' cm)');
+    }
+
+    // 2. Triglicerídeos (>= 150 mg/dL)
+    var tg = Number(dados.triglicerideos);
+    if (!isNaN(tg) && tg >= 150) {
+      criteriosSmAtendidos++;
+      listaCriteriosSm.push('Hipertrigliceridemia (>= 150 mg/dL: ' + tg + ' mg/dL)');
+    }
+
+    // 3. HDL Baixo (< 50 mg/dL em mulheres)
+    var hdl = Number(dados.hdl);
+    if (!isNaN(hdl) && hdl < 50) {
+      criteriosSmAtendidos++;
+      listaCriteriosSm.push('HDL-colesterol baixo (< 50 mg/dL: ' + hdl + ' mg/dL)');
+    }
+
+    // 4. Pressão Arterial (PAS >= 130 ou PAD >= 85 ou anti-hipertensivo)
+    var pas = Number(dados.pas);
+    var pad = Number(dados.pad);
+    var paElevada = (!isNaN(pas) && pas >= 130) || (!isNaN(pad) && pad >= 85) || Boolean(dados.hipertensaoTratada);
+    if (paElevada) {
+      criteriosSmAtendidos++;
+      listaCriteriosSm.push('Pressão arterial limítrofe/elevada (>= 130/85 mmHg ou em tratamento)');
+    }
+
+    // 5. Glicemia Alterada (Jejum >= 100 mg/dL ou DM diagnosticado)
+    if ((!isNaN(glicemiaJejum) && glicemiaJejum >= 100) || statusGlicemico === 'DIABETES_MELLITUS') {
+      criteriosSmAtendidos++;
+      listaCriteriosSm.push('Glicemia de jejum >= 100 mg/dL ou Diabetes diagnosticado');
+    }
+
+    var temSindromeMetabolica = criteriosSmAtendidos >= 3;
+
+    // 4. Risco de Hiperplasia e Adenocarcinoma de Endométrio
+    var amenorreiaMeses = Number(dados.tempoAmenorreiaMeses || 0);
+    var espessuraEndometrio = Number(dados.espessuraEndometrialMm || 0);
+    var riscoEndometrial = 'BAIXO';
+    var alertaEndometrial = null;
+
+    if (amenorreiaMeses >= 3 || espessuraEndometrio >= 7) {
+      if (amenorreiaMeses >= 6 || espessuraEndometrio >= 12) {
+        riscoEndometrial = 'ELEVADO';
+        alertaEndometrial = '⚠️ RISCO ELEVADO DE HIPERPLASIA ENDOMETRIAL: Tempo prolongado de amenorreia (' + amenorreiaMeses + ' meses) e/ou espessamento endometrial acentuado (' + espessuraEndometrialMmComPonto(espessuraEndometrio) + ' mm). A exposição estrogênica contínua sem oposição progestacional quadruplica o risco de adenocarcinoma de endométrio. Conduta: Indução imediata de sangramento de privação com progestagênio (Didrogesterona ou Medroxiprogesterona) seguida de reavaliação ultrassonográfica; se persistir espessamento > 7-10 mm ou sangramento atípico, proceder a biópsia endometrial ambulatorial (Pipelle).';
+      } else {
+        riscoEndometrial = 'MODERADO';
+        alertaEndometrial = 'Atenção ao risco endometrial por anovulação crônica. Recomenda-se garantir ao menos 4 sangramentos de privação ao ano através de terapia com progestagênios cíclicos ou anticoncepcionais combinados.';
+      }
+    }
+
+    // Classificação Geral de Risco Cardiometabólico
+    var nivelRiscoMetabolico = 'BAIXO';
+    if (statusGlicemico === 'DIABETES_MELLITUS' || temSindromeMetabolica || (!isNaN(imc) && imc >= 35)) {
+      nivelRiscoMetabolico = 'MUITO_ELEVADO';
+    } else if (statusGlicemico.includes('PRE_DM') || (!isNaN(imc) && imc >= 30) || caAumentada || dados.esteatoseHepatica) {
+      nivelRiscoMetabolico = 'ELEVADO';
+    } else if ((!isNaN(imc) && imc >= 25) || resistenciaInsulinica) {
+      nivelRiscoMetabolico = 'INTERMEDIARIO';
+    }
+
+    return {
+      nivelRiscoMetabolico: nivelRiscoMetabolico,
+      imc: !isNaN(imc) ? Number(imc.toFixed(1)) : null,
+      classificacaoImc: classificacaoImc,
+      circunferenciaAbdominalCm: !isNaN(ca) ? ca : null,
+      circunferenciaAbdominalAumentada: caAumentada,
+      statusGlicemico: statusGlicemico,
+      detalhesGlicemia: detalhesGlicemia,
+      homaIr: homaIr !== null ? Number(homaIr.toFixed(2)) : null,
+      resistenciaInsulinicaDocumentada: resistenciaInsulinica,
+      sindromeMetabolica: {
+        presente: temSindromeMetabolica,
+        criteriosPreenchidos: criteriosSmAtendidos,
+        detalhesCriterios: listaCriteriosSm
+      },
+      esteatoseHepaticaPresente: Boolean(dados.esteatoseHepatica),
+      riscoEndometrial: {
+        nivel: riscoEndometrial,
+        alerta: alertaEndometrial,
+        tempoAmenorreiaMeses: amenorreiaMeses,
+        espessuraEndometrialMm: espessuraEndometrio > 0 ? espessuraEndometrio : null
+      }
+    };
+  }
+
+  function espessuraEndometrialMmComPonto(val) {
+    return Number(val).toFixed(1);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. DETERMINAÇÃO DA CONDUTA TERAPÊUTICA E PRESCRIÇÃO FARMACOLÓGICA
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Constrói plano terapêutico individualizado baseado no objetivo da paciente
+   * (desejo reprodutivo vs controle de sintomas) e perfil de risco/contraindicações.
+   *
+   * @param {Object} dados
+   * @param {boolean} dados.desejoReprodutivo
+   * @param {Object} [dados.resultadoRotterda]
+   * @param {Object} [dados.resultadoMetabolico]
+   * @param {Object} [dados.resultadoExclusoes]
+   * @param {boolean} [dados.enxaquecaComAura] (MEC 4 OMS para estrogênio)
+   * @param {boolean} [dados.tabagismoAcima35Anos] (MEC 4 OMS)
+   * @param {boolean} [dados.historicoTev] (MEC 4 OMS)
+   * @param {boolean} [dados.hipertensaoGrave] (MEC 4 OMS)
+   * @param {boolean} [dados.hirsutismoModeradoGrave]
+   * @param {boolean} [dados.acneResistente]
+   * @param {number} [dados.imc]
+   * @returns {Object} Plano terapêutico farmacológico e não-farmacológico estruturado
+   */
+  function determinarCondutaTerapeutica(dados) {
+    dados = dados || {};
+    var desejoReprodutivo = Boolean(dados.desejoReprodutivo);
+    var imc = Number(dados.imc || (dados.resultadoMetabolico && dados.resultadoMetabolico.imc) || 24);
+
+    // 1. Pilares Não Farmacológicos (Universais)
+    var condutaEstiloVida = {
+      titulo: 'Intervenção no Estilo de Vida e Comportamental (1ª Linha Universal)',
+      recomendacoes: [
+        'Perda Ponderal Alvo: Redução de 5% a 10% do peso corporal para pacientes com sobrepeso ou obesidade. A redução de gordura visceral restaura ovulação espontânea em até 50% das pacientes e reduz androgênios séricos.',
+        'Exercício Físico Estruturado: Mínimo de 150 a 250 minutos semanais de atividade física de intensidade moderada (ou 75 min vigorosos), integrando exercícios aeróbicos e treinamento resistido (musculação), otimizando a captação de glicose independente de insulina.',
+        'Padrão Dietético: Dieta com baixo índice glicêmico e redução de carboidratos refinados e gorduras saturadas, individualizada por nutricionista.',
+        'Saúde Mental e Sono: Rastreio ativo de ansiedade, sintomas depressivos e rastreio de Síndrome da Apneia Obstrutiva do Sono (SAOS) em mulheres obesas.'
+      ]
+    };
+
+    var planoFarmacologico = {
+      objetivoPrincipal: desejoReprodutivo ? 'INDUÇÃO_DE_OVULAÇÃO_E_FERTILIDADE' : 'CONTROLE_DE_SINTOMAS_E_PROTEÇÃO_ENDOMETRIAL',
+      prescricaoPrincipal: [],
+      prescricoesAdjuvantes: [],
+      alertasContraindicacao: [],
+      proximosPassosMonitoramento: []
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CENÁRIO A: DESEJO REPRODUTIVO (Infertilidade Anovulatória)
+    // ─────────────────────────────────────────────────────────────────────────
+    if (desejoReprodutivo) {
+      // 1ª Linha Internacional: Letrozol
+      planoFarmacologico.prescricaoPrincipal.push({
+        categoria: 'Indução de Ovulação (1ª Linha ESHRE/ASRM 2023)',
+        medicamento: CATALOGO_FARMACOLOGICO.INDUCAO_OVULACAO.LETROZOL.farmaco,
+        posologia: CATALOGO_FARMACOLOGICO.INDUCAO_OVULACAO.LETROZOL.posologiaPadrao,
+        titulacao: CATALOGO_FARMACOLOGICO.INDUCAO_OVULACAO.LETROZOL.titulacao,
+        evidencia: CATALOGO_FARMACOLOGICO.INDUCAO_OVULACAO.LETROZOL.vantagensClinicas
+      });
+
+      // Alternativa de 2ª linha
+      planoFarmacologico.prescricaoPrincipal.push({
+        categoria: 'Indução de Ovulação (2ª Linha se falha ou indisponibilidade de Letrozol)',
+        medicamento: CATALOGO_FARMACOLOGICO.INDUCAO_OVULACAO.CLOMIFENO.farmaco,
+        posologia: CATALOGO_FARMACOLOGICO.INDUCAO_OVULACAO.CLOMIFENO.posologiaPadrao,
+        observacao: 'Associar monitoramento ultrassonográfico transvaginal seriada a partir do 10º dia do ciclo para confirmar folículo pré-ovulatório e espessura endometrial.'
+      });
+
+      // Suplementação Pré-concepcional
+      planoFarmacologico.prescricoesAdjuvantes.push({
+        categoria: 'Suplementação Pré-concepcional Obrigatória',
+        medicamento: 'Ácido Fólico',
+        posologia: (imc >= 30 || (dados.resultadoMetabolico && dados.resultadoMetabolico.statusGlicemico === 'DIABETES_MELLITUS'))
+          ? '5 mg VO 1x/dia (dose alta por obesidade/risco metabólico)'
+          : '0,4 mg a 1,0 mg VO 1x/dia',
+        instrucao: 'Iniciar pelo menos 30 a 90 dias antes das tentativas de concepção para prevenção de defeitos do tubo neural (DTN).'
+      });
+
+      // Metformina coadjuvante na reprodução se IMC >= 25 ou resistência insulínica
+      var temIndicacaoMetformina = imc >= 25 || (dados.resultadoMetabolico && (dados.resultadoMetabolico.resistenciaInsulinicaDocumentada || dados.resultadoMetabolico.statusGlicemico.includes('PRE_DM')));
+      if (temIndicacaoMetformina) {
+        planoFarmacologico.prescricoesAdjuvantes.push({
+          categoria: 'Otimização Metabólica Coadjuvante à Indução',
+          medicamento: CATALOGO_FARMACOLOGICO.METABOLICO.METFORMINA.farmaco,
+          posologia: CATALOGO_FARMACOLOGICO.METABOLICO.METFORMINA.posologiaInicial,
+          titulacao: CATALOGO_FARMACOLOGICO.METABOLICO.METFORMINA.titulacao,
+          justificativa: 'Melhora taxas de ovulação cumulativa quando associada ao indutor em pacientes com sobrepeso ou resistência insulínica.'
+        });
+      }
+
+      // ALERTA DE SEGURANÇA MANDATÓRIO: Bloqueio estrito de antiandrogênicos
+      planoFarmacologico.alertasContraindicacao.push(
+        '⛔ BLOQUEIO ABSOLUTO DE ANTIANDROGÊNICOS: Espironolactona, Acetato de Ciproterona, Finasterida e Dutasterida são TERMINANTEMENTE CONTRAINDICADOS em pacientes tentando engravidar ou com potencial de gestação. Risco de malformação congênita e feminização de feto masculino. Suspender imediatamente qualquer antiandrogênico antes do início dos indutores de ovulação.'
+      );
+
+      planoFarmacologico.proximosPassosMonitoramento.push('Monitoramento folicular por USG transvaginal no 10º-12º dia do ciclo.');
+      planoFarmacologico.proximosPassosMonitoramento.push('Dosagem de progesterona sérica no 21º-23º dia do ciclo para confirmação documental de ovulação (> 3 ng/mL).');
+      planoFarmacologico.proximosPassosMonitoramento.push('Avaliação de fator masculino (Espermograma) e patência tubária (Histerossalpingografia) antes de múltiplos ciclos de indução.');
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // CENÁRIO B: SEM DESEJO REPRODUTIVO (Controle de Sintomas e Proteção)
+    // ─────────────────────────────────────────────────────────────────────────
+    else {
+      // Checagem de Contraindicações Absolutas a Estrogênios Combinados (OMS MEC 4)
+      var contraindicacaoEstrogenio = Boolean(
+        dados.enxaquecaComAura ||
+        dados.tabagismoAcima35Anos ||
+        dados.historicoTev ||
+        dados.hipertensaoGrave ||
+        (imc >= 35 && dados.resultadoMetabolico && dados.resultadoMetabolico.nivelRiscoMetabolico === 'MUITO_ELEVADO')
+      );
+
+      if (contraindicacaoEstrogenio) {
+        planoFarmacologico.alertasContraindicacao.push(
+          '⚠️ CONTRAINDICAÇÃO A ESTROGÊNIOS (Critérios MEC 4 da OMS): Paciente apresenta fator de alto risco vascular/trombótico (ex: enxaqueca com aura, tabagismo >= 35a, histórico de trombose ou HAS grave). ANTICONCEPCIONAIS COMBINADOS COM ESTROGÊNIO SÃO PROIBIDOS.'
+        );
+
+        // Opção 1: Progestagênio Cíclico para Proteção Endometrial
+        planoFarmacologico.prescricaoPrincipal.push({
+          categoria: 'Proteção Endometrial Oral Cíclica (Livre de Estrogênio)',
+          medicamento: CATALOGO_FARMACOLOGICO.PROTECAO_PROGESTAGENIO_ISOLADO.DIDROGESTERONA_CICLICA.farmaco,
+          posologia: CATALOGO_FARMACOLOGICO.PROTECAO_PROGESTAGENIO_ISOLADO.DIDROGESTERONA_CICLICA.posologia,
+          justificativa: CATALOGO_FARMACOLOGICO.PROTECAO_PROGESTAGENIO_ISOLADO.DIDROGESTERONA_CICLICA.objetivo
+        });
+
+        // Opção 2: SIU de Levonorgestrel
+        planoFarmacologico.prescricaoPrincipal.push({
+          categoria: 'Alternativa de Longa Duração (LARC)',
+          medicamento: CATALOGO_FARMACOLOGICO.PROTECAO_PROGESTAGENIO_ISOLADO.SIU_LEVONORGESTREL.farmaco,
+          posologia: CATALOGO_FARMACOLOGICO.PROTECAO_PROGESTAGENIO_ISOLADO.SIU_LEVONORGESTREL.posologia,
+          justificativa: CATALOGO_FARMACOLOGICO.PROTECAO_PROGESTAGENIO_ISOLADO.SIU_LEVONORGESTREL.objetivo
+        });
+      } else {
+        // Anticoncepcionais Combinados de 1ª Escolha
+        if (dados.hirsutismoModeradoGrave || dados.acneResistente) {
+          planoFarmacologico.prescricaoPrincipal.push({
+            categoria: 'AHC Combinado Antiandrogênico Potente (1ª Linha em Hirsutismo/Acne Grave)',
+            medicamento: CATALOGO_FARMACOLOGICO.AHC_COMBINADOS.CIPROTERONA_EE.nome,
+            posologia: CATALOGO_FARMACOLOGICO.AHC_COMBINADOS.CIPROTERONA_EE.posologia,
+            alerta: CATALOGO_FARMACOLOGICO.AHC_COMBINADOS.CIPROTERONA_EE.alertaSeguranca
+          });
+          planoFarmacologico.prescricaoPrincipal.push({
+            categoria: 'AHC Combinado Alternativo de Menor Risco Trombótico',
+            medicamento: CATALOGO_FARMACOLOGICO.AHC_COMBINADOS.DROSPIRENONA_EE.nome,
+            posologia: CATALOGO_FARMACOLOGICO.AHC_COMBINADOS.DROSPIRENONA_EE.posologia,
+            justificativa: CATALOGO_FARMACOLOGICO.AHC_COMBINADOS.DROSPIRENONA_EE.indicacao
+          });
+        } else {
+          planoFarmacologico.prescricaoPrincipal.push({
+            categoria: 'AHC Combinado de 1ª Escolha (Perfil Metabólico Favorável)',
+            medicamento: CATALOGO_FARMACOLOGICO.AHC_COMBINADOS.DROSPIRENONA_EE.nome,
+            posologia: CATALOGO_FARMACOLOGICO.AHC_COMBINADOS.DROSPIRENONA_EE.posologia,
+            justificativa: CATALOGO_FARMACOLOGICO.AHC_COMBINADOS.DROSPIRENONA_EE.indicacao
+          });
+        }
+      }
+
+      // Adição de Antiandrogênico Periférico se Hirsutismo Significativo
+      if (dados.hirsutismoModeradoGrave || (dados.resultadoRotterda && dados.resultadoRotterda.criteriosDetalhados.hiperandrogenismo.achadosClinicos.length > 0)) {
+        planoFarmacologico.prescricoesAdjuvantes.push({
+          categoria: 'Antiandrogênico Periférico (Hirsutismo Persistente ou Grave)',
+          medicamento: CATALOGO_FARMACOLOGICO.ANTIANDROGENICOS.ESPIRONOLACTONA.farmaco,
+          posologia: CATALOGO_FARMACOLOGICO.ANTIANDROGENICOS.ESPIRONOLACTONA.doseInicial,
+          mecanismo: CATALOGO_FARMACOLOGICO.ANTIANDROGENICOS.ESPIRONOLACTONA.mecanismo,
+          alertaCritico: CATALOGO_FARMACOLOGICO.ANTIANDROGENICOS.ESPIRONOLACTONA.alertaCritico
+        });
+      }
+
+      // Metformina para Resistência Insulínica / DM / Obesidade
+      var indicarMetforminaSintomas = imc >= 25 || (dados.resultadoMetabolico && (dados.resultadoMetabolico.resistenciaInsulinicaDocumentada || dados.resultadoMetabolico.statusGlicemico.includes('PRE_DM') || dados.resultadoMetabolico.statusGlicemico === 'DIABETES_MELLITUS'));
+      if (indicarMetforminaSintomas) {
+        planoFarmacologico.prescricoesAdjuvantes.push({
+          categoria: 'Sensibilizador de Insulina / Manejo Metabólico',
+          medicamento: CATALOGO_FARMACOLOGICO.METABOLICO.METFORMINA.farmaco,
+          posologia: CATALOGO_FARMACOLOGICO.METABOLICO.METFORMINA.posologiaInicial,
+          titulacao: CATALOGO_FARMACOLOGICO.METABOLICO.METFORMINA.titulacao,
+          indicacao: CATALOGO_FARMACOLOGICO.METABOLICO.METFORMINA.indicacoesSop
+        });
+      }
+
+      planoFarmacologico.proximosPassosMonitoramento.push('Reavaliação clínica do hirsutismo e acne em 6 meses (tempo necessário para renovação do ciclo piloso folicular).');
+      planoFarmacologico.proximosPassosMonitoramento.push('Rastreio cardiometabólico periódico: Glicemia/TTGO e Perfil lipídico a cada 1 a 2 anos.');
+      planoFarmacologico.proximosPassosMonitoramento.push('Medição da pressão arterial em todas as consultas de rotina.');
+    }
+
+    return {
+      desejoReprodutivo: desejoReprodutivo,
+      intervencaoEstiloVida: condutaEstiloVida,
+      planoFarmacologico: planoFarmacologico
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. AVALIAÇÃO COMPLETA INTEGRADA DE SOP
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Executa a auditoria diagnóstica, metabólica e terapêutica de ponta a ponta.
+   *
+   * @param {Object} params
+   * @returns {Object} Resultado completo
+   */
+  function avaliarSopCompleto(params) {
+    params = params || {};
+
+    var rotterdam = avaliarCriteriosRotterda(params);
+    var exclusoes = auditarDiagnosticosDiferenciais(params);
+    var metabolico = estratificarRiscoMetabolico(params);
+
+    var dadosConduta = Object.assign({}, params, {
+      resultadoRotterda: rotterdam,
+      resultadoExclusoes: exclusoes,
+      resultadoMetabolico: metabolico
+    });
+
+    var conduta = determinarCondutaTerapeutica(dadosConduta);
+
+    var diagnosticoConfirmado = rotterdam.criteriosAtendidos && exclusoes.diagnosticoDiferencialDescartado;
+
+    return {
+      sucesso: true,
+      timestamp: new Date().toISOString(),
+      diagnosticoConfirmado: diagnosticoConfirmado,
+      statusDiagnostico: diagnosticoConfirmado ? 'SOP_CONFIRMADA' : (rotterdam.criteriosAtendidos ? 'SOP_PROVAVEL_PENDENTE_EXCLUSOES' : 'CRITERIOS_INSUFICIENTES'),
+      rotterdam: rotterdam,
+      exclusoes: exclusoes,
+      metabolico: metabolico,
+      conduta: conduta
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 7. GERADOR DE RESUMO FORMATADO PARA PRONTUÁRIO / SOAP / COCKPIT
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Gera relatório clínico textual formatado de alta qualidade para inserção
+   * no prontuário eletrônico ou cockpit.
+   *
+   * @param {Object} paramsOuResultado
+   * @returns {string} Relatório textual
+   */
+  function gerarResumoSop(paramsOuResultado) {
+    paramsOuResultado = paramsOuResultado || {};
+    var r = paramsOuResultado.rotterdam ? paramsOuResultado : avaliarSopCompleto(paramsOuResultado);
+
+    var l = [];
+    l.push('════════════════════════════════════════════════════════════════');
+    l.push('🔬 PAINEL CLÍNICO: SÍNDROME DOS OVÁRIOS POLICÍSTICOS (SOP)');
+    l.push('Referência: Consenso de Roterdã & Diretrizes ESHRE/ASRM 2023 / FEBRASGO');
+    l.push('════════════════════════════════════════════════════════════════');
+    l.push('');
+
+    // 1. Diagnóstico e Fenótipo
+    l.push('📌 [1. DIAGNÓSTICO E FENÓTIPO DE ROTERDÃ]');
+    l.push('  • Status: ' + (r.diagnosticoConfirmado ? '✅ SOP CONFIRMADA (Critérios atendidos + exclusões concluídas)' : (r.rotterdam.criteriosAtendidos ? '⚠️ SOP PROVÁVEL (Critérios atendidos, pendente de exclusões estritas)' : '❌ CRITÉRIOS INSUFICIENTES (< 2 critérios de Roterdã)')));
+    l.push('  • Critérios Atendidos: ' + r.rotterdam.contagemCriterios + ' de 3 critérios');
+    l.push('  • Classificação Fenotípica: ' + r.rotterdam.nomeFenotipo);
+    l.push('  • Detalhe Fenotípico: ' + r.rotterdam.descricaoFenotipo);
+    l.push('');
+
+    // 2. Critérios de Roterdã Detalhados
+    l.push('📋 [2. CRITÉRIOS DE ROTERDÃ AUDITADOS]');
+    l.push('  [A] Hiperandrogenismo: ' + (r.rotterdam.criteriosDetalhados.hiperandrogenismo.presente ? 'PRESENTE' : 'AUSENTE'));
+    if (r.rotterdam.criteriosDetalhados.hiperandrogenismo.achadosClinicos.length > 0) {
+      for (var c = 0; c < r.rotterdam.criteriosDetalhados.hiperandrogenismo.achadosClinicos.length; c++) {
+        l.push('      - ' + r.rotterdam.criteriosDetalhados.hiperandrogenismo.achadosClinicos[c]);
+      }
+    }
+    if (r.rotterdam.criteriosDetalhados.hiperandrogenismo.achadosLaboratoriais.length > 0) {
+      for (var b = 0; b < r.rotterdam.criteriosDetalhados.hiperandrogenismo.achadosLaboratoriais.length; b++) {
+        l.push('      - ' + r.rotterdam.criteriosDetalhados.hiperandrogenismo.achadosLaboratoriais[b]);
+      }
+    }
+
+    l.push('  [B] Disfunção Ovulatória: ' + (r.rotterdam.criteriosDetalhados.disfuncaoOvulatoria.presente ? 'PRESENTE' : 'AUSENTE'));
+    if (r.rotterdam.criteriosDetalhados.disfuncaoOvulatoria.achados.length > 0) {
+      for (var d = 0; d < r.rotterdam.criteriosDetalhados.disfuncaoOvulatoria.achados.length; d++) {
+        l.push('      - ' + r.rotterdam.criteriosDetalhados.disfuncaoOvulatoria.achados[d]);
+      }
+    }
+    if (r.rotterdam.criteriosDetalhados.disfuncaoOvulatoria.alertaAdolescente) {
+      l.push('      ' + r.rotterdam.criteriosDetalhados.disfuncaoOvulatoria.alertaAdolescente);
+    }
+
+    l.push('  [C] Morfologia Ovariana Policística (PCOM): ' + (r.rotterdam.criteriosDetalhados.morfologiaPolicistica.presente ? 'PRESENTE' : 'AUSENTE'));
+    if (r.rotterdam.criteriosDetalhados.morfologiaPolicistica.achados.length > 0) {
+      for (var p = 0; p < r.rotterdam.criteriosDetalhados.morfologiaPolicistica.achados.length; p++) {
+        l.push('      - ' + r.rotterdam.criteriosDetalhados.morfologiaPolicistica.achados[p]);
+      }
+    }
+    l.push('');
+
+    // 3. Auditoria de Diagnósticos Diferenciais
+    l.push('🛡️ [3. AUDITORIA DE EXCLUSÕES OBRIGATÓRIAS]');
+    if (r.exclusoes.alertasCriticos.length > 0) {
+      for (var al = 0; al < r.exclusoes.alertasCriticos.length; al++) {
+        l.push('  ' + r.exclusoes.alertasCriticos[al]);
+      }
+    }
+    if (r.exclusoes.exclusoesAuditadas.length > 0) {
+      for (var ex = 0; ex < r.exclusoes.exclusoesAuditadas.length; ex++) {
+        l.push('  ✅ ' + r.exclusoes.exclusoesAuditadas[ex]);
+      }
+    }
+    if (r.exclusoes.pendenciasObrigatorias.length > 0) {
+      for (var pd = 0; pd < r.exclusoes.pendenciasObrigatorias.length; pd++) {
+        l.push('  ⚠️ ' + r.exclusoes.pendenciasObrigatorias[pd]);
+      }
+    }
+    l.push('');
+
+    // 4. Perfil Cardiometabólico e Risco Endometrial
+    l.push('📊 [4. PERFIL METABÓLICO E RISCO ENDOMETRIAL]');
+    l.push('  • Risco Metabólico Global: ' + r.metabolico.nivelRiscoMetabolico);
+    if (r.metabolico.imc) {
+      l.push('  • IMC: ' + r.metabolico.imc + ' kg/m² (' + r.metabolico.classificacaoImc + ')');
+    }
+    if (r.metabolico.circunferenciaAbdominalCm) {
+      l.push('  • Circunferência Abdominal: ' + r.metabolico.circunferenciaAbdominalCm + ' cm ' + (r.metabolico.circunferenciaAbdominalAumentada ? '(Aumentada >= 80cm)' : '(Normal)'));
+    }
+    l.push('  • Status Glicêmico: ' + r.metabolico.statusGlicemico);
+    for (var dg = 0; dg < r.metabolico.detalhesGlicemia.length; dg++) {
+      l.push('    - ' + r.metabolico.detalhesGlicemia[dg]);
+    }
+    if (r.metabolico.homaIr !== null) {
+      l.push('  • HOMA-IR: ' + r.metabolico.homaIr + (r.metabolico.resistenciaInsulinicaDocumentada ? ' (> 2.5: Resistência à Insulina)' : ' (Normal)'));
+    }
+    l.push('  • Síndrome Metabólica: ' + (r.metabolico.sindromeMetabolica.presente ? 'PRESENTE (' + r.metabolico.sindromeMetabolica.criteriosPreenchidos + '/5 critérios)' : 'NÃO CARACTERIZADA (' + r.metabolico.sindromeMetabolica.criteriosPreenchidos + '/5 critérios)'));
+    if (r.metabolico.riscoEndometrial.alerta) {
+      l.push('  • Alerta Endometrial: ' + r.metabolico.riscoEndometrial.alerta);
+    }
+    l.push('');
+
+    // 5. Plano Terapêutico Dirigido
+    l.push('💊 [5. PLANO TERAPÊUTICO DIRIGIDO]');
+    l.push('  🎯 Objetivo: ' + (r.conduta.desejoReprodutivo ? 'Desejo Reprodutivo / Indução de Ovulação' : 'Controle de Sintomas / Proteção Endometrial'));
+    l.push('');
+    l.push('  🌿 ' + r.conduta.intervencaoEstiloVida.titulo + ':');
+    for (var ev = 0; ev < r.conduta.intervencaoEstiloVida.recomendacoes.length; ev++) {
+      l.push('    - ' + r.conduta.intervencaoEstiloVida.recomendacoes[ev]);
+    }
+    l.push('');
+    l.push('  Prescrições Principais:');
+    for (var pp = 0; pp < r.conduta.planoFarmacologico.prescricaoPrincipal.length; pp++) {
+      var itemP = r.conduta.planoFarmacologico.prescricaoPrincipal[pp];
+      l.push('    💊 [' + itemP.categoria + '] ' + itemP.medicamento);
+      l.push('       Dose: ' + itemP.posologia);
+      if (itemP.alerta) l.push('       ' + itemP.alerta);
+      if (itemP.justificativa) l.push('       Nota: ' + itemP.justificativa);
+    }
+
+    if (r.conduta.planoFarmacologico.prescricoesAdjuvantes.length > 0) {
+      l.push('  Prescrições Adjuvantes / Metabólicas:');
+      for (var pa = 0; pa < r.conduta.planoFarmacologico.prescricoesAdjuvantes.length; pa++) {
+        var itemA = r.conduta.planoFarmacologico.prescricoesAdjuvantes[pa];
+        l.push('    💊 [' + itemA.categoria + '] ' + itemA.medicamento);
+        l.push('       Dose: ' + itemA.posologia);
+        if (itemA.alertaCritico) l.push('       ' + itemA.alertaCritico);
+      }
+    }
+
+    if (r.conduta.planoFarmacologico.alertasContraindicacao.length > 0) {
+      l.push('');
+      l.push('  Alertas Críticos de Segurança Farmacológica:');
+      for (var ac = 0; ac < r.conduta.planoFarmacologico.alertasContraindicacao.length; ac++) {
+        l.push('    ' + r.conduta.planoFarmacologico.alertasContraindicacao[ac]);
+      }
+    }
+
+    l.push('');
+    l.push('════════════════════════════════════════════════════════════════');
+    return l.join('\n');
+  }
+
+  // Exportação Pública do Serviço
+  return {
+    CATALOGO_FARMACOLOGICO: CATALOGO_FARMACOLOGICO,
+    avaliarCriteriosRotterda: avaliarCriteriosRotterda,
+    auditarDiagnosticosDiferenciais: auditarDiagnosticosDiferenciais,
+    estratificarRiscoMetabolico: estratificarRiscoMetabolico,
+    determinarCondutaTerapeutica: determinarCondutaTerapeutica,
+    avaliarSopCompleto: avaliarSopCompleto,
+    gerarResumoSop: gerarResumoSop
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { SopOvariosPolicisticosService: SopOvariosPolicisticosService };
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_tev_gestante.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: TROMBOEMBOLISMO VENOSO (TEV) NA GESTAÇÃO E PUERPÉRIO
+ * ==============================================================================
+ * Motor determinístico de estratificação de risco trombótico, tromboprofilaxia
+ * com HBPM (Enoxaparina) ponderada pelo peso corporal, alertas farmacológicos
+ * críticos (embriopatia varfarínica e DOACs) e intervalos de segurança estritos
+ * para analgesia de parto e anestesia neuroaxial (raqui / peridural).
+ *
+ * REFERÊNCIAS:
+ * - RCOG Green-top Guideline No. 37a: Reducing the Risk of Thrombosis and Embolism
+ *   during Pregnancy and the Puerperium (Royal College of Obstetricians and Gynaecologists).
+ * - FEBRASGO: Manual de Tromboembolismo Venoso na Gravidez e Puerpério.
+ * - Consenso Brasileiro de Hematologia e Obstetrícia no Manejo de Trombofilias.
+ * - SOAP / ASA Guidelines on Neuraxial Anesthesia and Anticoagulation.
+ * ==============================================================================
+ */
+
+var TevGestanteService = (function() {
+  'use strict';
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. CÁLCULO DA DOSE PONDERADA DE ENOXAPARINA (HBPM)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Calcula determinísticamente a posologia profilática de Enoxaparina ajustada
+   * por peso materno (tabela ponderada RCOG/FEBRASGO) e função renal.
+   *
+   * @param {number} pesoKg - Peso da gestante/puérpera em kg
+   * @param {number} [clearanceCreatinina=100] - Clearance de creatinina estimado (mL/min)
+   * @param {string} [regime="PROFILATICO"] - "PROFILATICO" ou "TERAPEUTICO"
+   * @returns {Object} Detalhes da dose, volume e orientações
+   */
+  function calcularDoseEnoxaparina(pesoKg, clearanceCreatinina, regime) {
+    var peso = Number(pesoKg) || 60;
+    var clCr = clearanceCreatinina !== undefined && clearanceCreatinina !== null ? Number(clearanceCreatinina) : 100;
+    var modo = String(regime || 'PROFILATICO').toUpperCase().trim();
+
+    var doseMg = 40;
+    var frequencia = '24/24h (1x ao dia via Subcutânea - SC)';
+    var faixaPeso = '50 a 90 kg (Dose Padrão)';
+    var volumeMl = 0.4;
+    var seringaApresentacao = 'Enoxaparina 40 mg / 0,4 mL seringa preenchida';
+    var monitorarAntiXa = false;
+    var alertaRenal = null;
+
+    if (modo === 'TERAPEUTICO') {
+      // Regime Terapêutico para TEV Agudo Confirmado: 1 mg/kg SC 12/12h ou 1.5 mg/kg SC 1x/dia
+      doseMg = Math.round(peso * 1.0);
+      volumeMl = Number((doseMg / 100).toFixed(2));
+      frequencia = '12/12h via Subcutânea (SC) [Dose Plena / Terapêutica: 1 mg/kg 12/12h]';
+      faixaPeso = 'Ajustada por peso real (1 mg/kg a cada 12 horas)';
+      seringaApresentacao = 'Enoxaparina ' + doseMg + ' mg SC 12/12h';
+      monitorarAntiXa = true;
+    } else {
+      // Regime Profilático Ponderado por Faixas de Peso RCOG / FEBRASGO
+      if (peso < 50) {
+        doseMg = 20;
+        volumeMl = 0.2;
+        faixaPeso = '< 50 kg (Baixo Peso)';
+        seringaApresentacao = 'Enoxaparina 20 mg / 0,2 mL seringa preenchida';
+      } else if (peso <= 90) {
+        doseMg = 40;
+        volumeMl = 0.4;
+        faixaPeso = '50 a 90 kg (Peso Habitual)';
+        seringaApresentacao = 'Enoxaparina 40 mg / 0,4 mL seringa preenchida';
+      } else if (peso <= 130) {
+        doseMg = 60;
+        volumeMl = 0.6;
+        faixaPeso = '91 a 130 kg (Sobrepeso / Obesidade Moderada)';
+        seringaApresentacao = 'Enoxaparina 60 mg / 0,6 mL seringa preenchida';
+      } else if (peso <= 170) {
+        doseMg = 80;
+        volumeMl = 0.8;
+        faixaPeso = '131 a 170 kg (Obesidade Grave)';
+        seringaApresentacao = 'Enoxaparina 80 mg / 0,8 mL seringa preenchida (ou 40 mg SC 12/12h)';
+      } else {
+        // Peso > 170 kg
+        doseMg = Math.round(peso * 0.6);
+        volumeMl = Number((doseMg / 100).toFixed(2));
+        faixaPeso = '> 170 kg (Superobesidade: cálculo de 0,6 mg/kg/dia dividido)';
+        seringaApresentacao = 'Enoxaparina ' + doseMg + ' mg/dia SC dividida em 2 doses';
+        monitorarAntiXa = true;
+      }
+    }
+
+    // Checagem de Insuficiência Renal (ClCr < 30 mL/min)
+    var ajusteRenalAplicado = false;
+    if (clCr < 30) {
+      ajusteRenalAplicado = true;
+      if (modo === 'PROFILATICO') {
+        doseMg = 20;
+        volumeMl = 0.2;
+        seringaApresentacao = 'Enoxaparina 20 mg / 0,2 mL SC 1x/dia (dose ajustada para ClCr < 30 mL/min)';
+      }
+      alertaRenal = '⚠️ INSUFICIÊNCIA RENAL SEVERA (ClCr ' + clCr + ' mL/min < 30 mL/min): A Enoxaparina tem depuração renal e sofre acúmulo com risco hemorrágico severo. Reduzir dose para 20 mg SC 1x/dia OU considerar transição para Heparina Não Fracionada (HNF 5.000 UI SC 12/12h a 8/8h), que possui depuração reticuloendotelial e monitoramento seguro pelo TTPA.';
+      monitorarAntiXa = true;
+    }
+
+    var orientacoes = [
+      'Administração exclusivamente por via Subcutânea (SC) na face anterolateral ou posterolateral do abdome ou na face anterolateral da coxa.',
+      'NÃO massagear nem esfregar o local da injeção após a aplicação para prevenir hematomas locais.',
+      'Alternar os sítios de injeção a cada dose diária.',
+      'HBPM não requer monitorização de TTPA de rotina.'
+    ];
+
+    if (monitorarAntiXa) {
+      orientacoes.push('Monitorização de atividade Anti-fator Xa indicada (alvo profilático: 0,2 a 0,4 UI/mL; alvo terapêutico: 0,6 a 1,0 UI/mL medidos 4 horas após a dose SC).');
+    }
+
+    return {
+      pesoKg: peso,
+      clearanceCreatinina: clCr,
+      regime: modo,
+      doseMg: doseMg,
+      volumeMl: volumeMl,
+      frequencia: frequencia,
+      faixaPeso: faixaPeso,
+      seringaApresentacao: seringaApresentacao,
+      ajusteRenalAplicado: ajusteRenalAplicado,
+      alertaRenal: alertaRenal,
+      monitorarAntiXa: monitorarAntiXa,
+      orientacoesAdministracao: orientacoes
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. ALERTAS DE SEGURANÇA FARMACOLÓGICA (VARFARINA E DOACs)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia a prescrição de anticoagulantes orais na gestação e puerpério.
+   *
+   * @param {Object} params
+   * @param {number} [params.trimestre=1] - Trimestre gestacional (1, 2 ou 3)
+   * @param {boolean} [params.amamentando=false] - Se paciente está no puerpério amamentando
+   * @param {boolean} [params.emUsoVarfarina=false] - Se paciente usa Varfarina
+   * @param {boolean} [params.emUsoDoac=false] - Se paciente usa DOACs (Rivaroxabana, Apixabana, etc.)
+   * @returns {Object} Alertas de contraindicação e orientações de substituição
+   */
+  function verificarAlertasAnticoagulantes(params) {
+    params = params || {};
+    var tri = Number(params.trimestre) || 1;
+    var lactacao = Boolean(params.amamentando);
+    var varfarina = Boolean(params.emUsoVarfarina);
+    var doac = Boolean(params.emUsoDoac);
+
+    var alertas = [];
+
+    // Verificação de Varfarina
+    if (varfarina) {
+      if (!lactacao) {
+        // Gestante
+        if (tri === 1) {
+          alertas.push({
+            farmaco: 'Varfarina',
+            nivel: 'BLOQUEIO_CRITICO',
+            categoriaFda: 'X',
+            titulo: '⛔ CONTRAINDICAÇÃO ABSOLUTA NO 1º TRIMESTRE: EMBRIOPATIA VARFARÍNICA',
+            descricao: 'A Varfarina atravessa livremente a barreira placentária. A exposição entre a 6ª e a 12ª semanas gestacionais causa a Síndrome Varfarínica Fetal (hipoplasia nasal com depressão da ponte nasal, condrodisplasia pontilhada/epífises pontilhadas, encurtamento das falanges, microcefalia, atrofia óptica e retardo de desenvolvimento neuropsicomotor) em até 30% dos fetos expostos, além de risco de abortamento espontâneo.',
+            condutaImediata: 'SUSPENDER A VARFARINA IMEDIATAMENTE e substituir por Heparina de Baixo Peso Molecular (Enoxaparina) em dose profilática ou terapêutica ponderada. (Única exceção de diretriz restrita: pacientes portadoras de prótese valvar mecânica de alto risco sob protocolo estrito de cardiologia especializada).'
+          });
+        } else if (tri === 3) {
+          alertas.push({
+            farmaco: 'Varfarina',
+            nivel: 'BLOQUEIO_CRITICO',
+            categoriaFda: 'D/X',
+            titulo: '⛔ CONTRAINDICAÇÃO NO 3º TRIMESTRE E TERMO: RISCO DE HEMORRAGIA FETAL',
+            descricao: 'O feto possui fígado imaturo com síntese deficiente de fatores dependentes de vitamina K. O uso de varfarina próximo ao parto causa grave coagulopatia fetal e risco extremo de hemorragia intracraniana neonatal e hematoma retroplacentário maciço durante o trabalho de parto.',
+            condutaImediata: 'Suspender a Varfarina e transicionar para HBPM (Enoxaparina) ou HNF antes de 36 semanas ou no início do 3º trimestre.'
+          });
+        } else {
+          // 2º trimestre
+          alertas.push({
+            farmaco: 'Varfarina',
+            nivel: 'ALERTA_GRAVE',
+            categoriaFda: 'D',
+            titulo: '⚠️ RISCO FETAL NO 2º TRIMESTRE (ANOMALIAS DO SNC E SANGRAMENTO)',
+            descricao: 'Embora fora da janela de condrodisplasia, o uso no 2º trimestre mantém risco de anomalias oculares, hidrocefalia, microcefalia e sangramento fetal oculto.',
+            condutaImediata: 'Recomenda-se manter HBPM (Enoxaparina) durante toda a gestação.'
+          });
+        }
+      } else {
+        // Puérpera / Amamentando
+        alertas.push({
+          farmaco: 'Varfarina',
+          nivel: 'PERMITIDO_COM_MONITORAMENTO',
+          categoriaFda: 'Lactação Segura',
+          titulo: '✅ VARFARINA COMPATÍVEL COM AMAMENTAÇÃO NO PUERPÉRIO',
+          descricao: 'A Varfarina liga-se fortemente a proteínas plasmáticas maternas (>99%) e é minimamente excretada no leite humano, não induzindo coagulopatia no lactente.',
+          condutaImediata: 'Permitido iniciar Varfarina no puerpério com ponte de HBPM até obtenção de INR na faixa terapêutica (2.0 a 3.0) em dois dias consecutivos. Monitorar INR materno rigorosamente.'
+        });
+      }
+    }
+
+    // Verificação de DOACs (Rivaroxabana, Apixabana, Dabigatrana, Edoxabana)
+    if (doac) {
+      if (!lactacao) {
+        alertas.push({
+          farmaco: 'DOACs (Rivaroxabana / Apixabana / Dabigatrana / Edoxabana)',
+          nivel: 'BLOQUEIO_CRITICO',
+          categoriaFda: 'Contraindicado',
+          titulo: '⛔ DOACs CONTRAINDICADOS FORMALMENTE NA GESTAÇÃO',
+          descricao: 'Os inibidores diretos do Fator Xa e da Trombina atravessam ativamente a placenta humana. Há evidências de toxicidade embriofetal, risco de abortamento e ausência de dados clínicos de segurança.',
+          condutaImediata: 'INTERROMPER DOAC IMEDIATAMENTE e converter para Enoxaparina em dose ajustada ao peso.'
+        });
+      } else {
+        alertas.push({
+          farmaco: 'DOACs (Rivaroxabana / Apixabana / Dabigatrana / Edoxabana)',
+          nivel: 'BLOQUEIO_CRITICO',
+          categoriaFda: 'Contraindicado na Lactação',
+          titulo: '⛔ DOACs CONTRAINDICADOS DURANTE A LACTAÇÃO / AMAMENTAÇÃO',
+          descricao: 'Os DOACs são excretados no leite materno humano com risco potencial de sangramento e coagulopatia no recém-nascido.',
+          condutaImediata: 'Não utilizar DOACs durante o aleitamento materno. Utilizar Enoxaparina ou Varfarina (com controle de INR).'
+        });
+      }
+    }
+
+    return {
+      alertas: alertas,
+      possuiBloqueioCritico: alertas.some(function(a) { return a.nivel === 'BLOQUEIO_CRITICO'; })
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. INTERVALO DE SEGURANÇA PARA ANALGESIA DE PARTO E BLOQUEIO NEUROAXIAL
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia determinísticamente o intervalo de segurança entre a última dose de
+   * Enoxaparina e a execução de punção neuroaxial (raquianestesia / peridural)
+   * ou retirada do cateter peridural, prevenindo hematoma epidural compressivo.
+   *
+   * @param {number} ultimaDoseHorasAtras - Tempo decorrido em horas desde a última dose de HBPM
+   * @param {string} [tipoDose="PROFILATICA"] - "PROFILATICA" (<=40mg/dia) ou "TERAPEUTICA" (>40mg/dia ou 1mg/kg 12/12h)
+   * @returns {Object} Parecer de segurança anestésica
+   */
+  function verificarSegurancaNeuroaxial(ultimaDoseHorasAtras, tipoDose) {
+    var horas = Number(ultimaDoseHorasAtras);
+    if (isNaN(horas) || horas < 0) horas = 0;
+    var doseTipo = String(tipoDose || 'PROFILATICA').toUpperCase().trim();
+    var eTerapeutica = doseTipo === 'TERAPEUTICA' || doseTipo === 'ALTA' || doseTipo === 'INTERMEDIARIA';
+
+    var janelaMinimaHoras = eTerapeutica ? 24 : 12;
+    var liberado = horas >= janelaMinimaHoras;
+    var horasRestantes = liberado ? 0 : Number((janelaMinimaHoras - horas).toFixed(1));
+
+    var status = liberado ? 'LIBERADO' : 'BLOQUEADO_JANELA_INSUFICIENTE';
+    var parecer = liberado
+      ? '✅ BLOQUEIO NEUROAXIAL LIBERADO: Já decorreram ' + horas + ' horas da última dose (janela mínima de ' + janelaMinimaHoras + ' horas atingida).'
+      : '⛔ BLOQUEIO NEUROAXIAL CONTRAINDICADO NESTE MOMENTO: Decorreram apenas ' + horas + ' horas da última dose de Enoxaparina. Faltam ' + horasRestantes + ' horas para completar o intervalo mínimo de segurança de ' + janelaMinimaHoras + ' horas.';
+
+    var alertaHematoma = 'ALERTA CRÍTICO: A realização de punção raquidiana ou peridural antes do intervalo mínimo de segurança acarreta alto risco de HEMATOMA EPIDURAL / ESPINHAL com compressão medular rápida e sequela neurológica irreversível (paraplegia).';
+
+    var condutas = [
+      'Janela mínima obrigatória para dose profilática (ex: 20 a 40 mg/dia): 12 HORAS.',
+      'Janela mínima obrigatória para dose terapêutica ou intermediária (> 40 mg/dia): 24 HORAS.',
+      'Retirada do cateter peridural: deve seguir a mesma janela de segurança (mínimo de 12h após profilática ou 24h após terapêutica).',
+      'Reinício da Enoxaparina após a punção ou retirada do cateter: AGUARDAR NO MÍNIMO 4 HORAS após o procedimento e garantir hemostasia adequada.',
+      'Se cesariana de urgência imediata sem cumprimento da janela de segurança: NÃO realizar raqui ou peridural. Optar por ANESTESIA GERAL com IOT em sequência rápida (RSI).'
+    ];
+
+    return {
+      liberado: liberado,
+      status: status,
+      horasDecorridas: horas,
+      janelaMinimaHoras: janelaMinimaHoras,
+      horasRestantes: horasRestantes,
+      tipoDoseAvaliada: doseTipo,
+      parecer: parecer,
+      alertaHematomaEpidural: alertaHematoma,
+      recomendacoesConduta: condutas
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. ESTRATIFICAÇÃO DE RISCO ANTENATAL (DURANTE A GESTAÇÃO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia o risco trombótico antenatal com pontuação cumulativa RCOG/FEBRASGO
+   * e indica o momento exato de introdução da tromboprofilaxia.
+   *
+   * @param {Object} params - Fatores clínicos da gestante
+   * @returns {Object} Classificação, escore, posologia e recomendações
+   */
+  function avaliarRiscoAntenatal(params) {
+    params = params || {};
+    var escore = 0;
+    var fatores = [];
+
+    // 1. Fatores Pré-existentes de Alto Risco
+    var tevPrevio = Boolean(params.tevPrevio);
+    var tevPrevioTipo = String(params.tevPrevioTipo || 'nao_provocado').toLowerCase();
+    if (tevPrevio) {
+      if (tevPrevioTipo === 'provocado_cirurgia_maior') {
+        escore += 3;
+        fatores.push({ fator: 'TEV prévio provocado por cirurgia de grande porte', pontos: 3 });
+      } else {
+        // Não provocado ou associado a estrogênio/gravidez
+        escore += 4;
+        fatores.push({ fator: 'TEV prévio não provocado ou associado a estrogênio/gestação', pontos: 4 });
+      }
+    }
+
+    var trombofilia = String(params.trombofilia || 'nenhuma').toLowerCase();
+    if (trombofilia === 'alto_risco') {
+      escore += 3;
+      fatores.push({ fator: 'Trombofilia de alto risco (Deficiência de Antitrombina, SAF, FVL homozigoto ou Protrombina homozigoto)', pontos: 3 });
+    } else if (trombofilia === 'baixo_risco') {
+      escore += 1;
+      fatores.push({ fator: 'Trombofilia de baixo risco (FVL heterozigoto ou Protrombina heterozigoto sem TEV prévio)', pontos: 1 });
+    }
+
+    if (params.comorbidades) {
+      escore += 3;
+      fatores.push({ fator: 'Comorbidade médica de alto risco (Câncer ativo, LES, Nefropatia com proteinúria > 0,5g/dia, Insuficiência Cardíaca, DM1 com nefropatia)', pontos: 3 });
+    }
+
+    if (params.cirurgiaGravidez) {
+      escore += 3;
+      fatores.push({ fator: 'Cirurgia de grande porte na gestação atual (ex: laparotomia, cerclagem)', pontos: 3 });
+    }
+
+    if (params.sindromeHiperestimulacao) {
+      escore += 4;
+      fatores.push({ fator: 'Síndrome de Hiperestimulação Ovariana (OHSS) no 1º trimestre', pontos: 4 });
+    }
+
+    // 2. Fatores Obstétricos e Transitórios
+    if (params.historiaFamiliarTev) {
+      escore += 1;
+      fatores.push({ fator: 'História familiar de TEV em parente de 1º grau (< 50 anos ou não provocado)', pontos: 1 });
+    }
+
+    var idade = Number(params.idade) || 0;
+    if (idade > 35) {
+      escore += 1;
+      fatores.push({ fator: 'Idade materna > 35 anos', pontos: 1 });
+    }
+
+    // IMC
+    var imc = Number(params.imc) || 0;
+    if (params.pesoKg && params.alturaMetros && !params.imc) {
+      imc = Number(params.pesoKg) / (Number(params.alturaMetros) * Number(params.alturaMetros));
+    }
+    if (imc >= 40) {
+      escore += 2;
+      fatores.push({ fator: 'Obesidade Grau III / Gravíssima (IMC >= 40 kg/m²)', pontos: 2 });
+    } else if (imc >= 30) {
+      escore += 1;
+      fatores.push({ fator: 'Obesidade (IMC 30 a 39,9 kg/m²)', pontos: 1 });
+    }
+
+    var paridade = Number(params.paridade) || 0;
+    if (paridade >= 3) {
+      escore += 1;
+      fatores.push({ fator: 'Multiparidade (paridade >= 3)', pontos: 1 });
+    }
+
+    if (params.tabagismo) {
+      escore += 1;
+      fatores.push({ fator: 'Tabagismo ativo', pontos: 1 });
+    }
+
+    if (params.varizesGrossas) {
+      escore += 1;
+      fatores.push({ fator: 'Varizes volumosas ou sintomáticas', pontos: 1 });
+    }
+
+    if (params.preEclampsia) {
+      escore += 1;
+      fatores.push({ fator: 'Pré-eclâmpsia na gestação atual', pontos: 1 });
+    }
+
+    if (params.gestacaoMultipla) {
+      escore += 1;
+      fatores.push({ fator: 'Gestação múltipla (gemelar ou trigelar)', pontos: 1 });
+    }
+
+    if (params.reproducaoAssistida) {
+      escore += 1;
+      fatores.push({ fator: 'Gravidez por Reprodução Assistida / FIV', pontos: 1 });
+    }
+
+    if (params.hiperemeseDesidratacao) {
+      escore += 1;
+      fatores.push({ fator: 'Hiperêmese gravídica com desidratação', pontos: 1 });
+    }
+
+    if (params.infeccaoSistemica) {
+      escore += 1;
+      fatores.push({ fator: 'Infecção sistêmica aguda atual', pontos: 1 });
+    }
+
+    if (params.imobilidade) {
+      escore += 1;
+      fatores.push({ fator: 'Imobilidade ou repouso no leito > 3 dias', pontos: 1 });
+    }
+
+    // 3. Classificação e Momento de Início
+    var classificacaoRisco = 'BAIXO';
+    var indicada = false;
+    var momentoInicio = 'Não indicada profilaxia farmacológica de rotina ambulatorial.';
+    var duracao = 'Não aplicável.';
+    var justificativa = '';
+
+    if (escore >= 4) {
+      classificacaoRisco = 'ALTO';
+      indicada = true;
+      momentoInicio = 'DESDE O 1º TRIMESTRE (ou assim que identificado o escore >= 4)';
+      duracao = 'Durante toda a gestação até o trabalho de parto + 6 semanas no puerpério';
+      justificativa = 'Pontuação cumulativa antenatal >= 4 indica risco trombótico muito elevado. A tromboprofilaxia farmacológica deve ser iniciada imediatamente no primeiro trimestre.';
+    } else if (escore === 3) {
+      classificacaoRisco = 'INTERMEDIARIO';
+      indicada = true;
+      momentoInicio = 'A PARTIR DE 28 SEMANAS DE GESTAÇÃO';
+      duracao = 'De 28 semanas até o parto + pelo menos 10 dias a 6 semanas no puerpério';
+      justificativa = 'Pontuação cumulativa antenatal = 3 indica benefício de tromboprofilaxia a partir do 3º trimestre (28 semanas), quando o risco fisiológico pró-trombótico aumenta substancialmente.';
+    } else {
+      classificacaoRisco = 'BAIXO';
+      indicada = Boolean(params.internada);
+      if (params.internada) {
+        momentoInicio = 'Durante a internação hospitalar';
+        duracao = 'Enquanto durar a hospitalização / restrição ao leito';
+        justificativa = 'Gestantes internadas por intercorrências clínicas com restrição ao leito têm benefício de tromboprofilaxia farmacológica hospitalar profilática.';
+      } else {
+        justificativa = 'Escore < 3 pontos no ambulatório: baixo risco. Estimular hidratação oral e deambulação frequente. Prescrição de Enoxaparina de rotina não indicada.';
+      }
+    }
+
+    // 4. Cálculo da Dose Ponderada
+    var posologia = calcularDoseEnoxaparina(params.pesoKg, params.clearanceCreatinina, 'PROFILATICO');
+
+    // 5. Alertas de Varfarina e DOACs
+    var checagemAnticoagulantes = verificarAlertasAnticoagulantes({
+      trimestre: params.idadeGestacionalSemanas ? (params.idadeGestacionalSemanas < 14 ? 1 : (params.idadeGestacionalSemanas < 28 ? 2 : 3)) : 1,
+      amamentando: false,
+      emUsoVarfarina: Boolean(params.emUsoVarfarina),
+      emUsoDoac: Boolean(params.emUsoDoac)
+    });
+
+    // 6. Janela Neuroaxial
+    var protocoloNeuroaxial = verificarSegurancaNeuroaxial(
+      params.ultimaDoseHbpmHorasAtras !== undefined ? params.ultimaDoseHbpmHorasAtras : 99,
+      'PROFILATICA'
+    );
+
+    return {
+      periodo: 'ANTENATAL',
+      escoreTotal: escore,
+      classificacaoRisco: classificacaoRisco,
+      tromboprofilaxiaIndicada: indicada,
+      momentoInicio: momentoInicio,
+      duracaoRecomendada: duracao,
+      justificativaClinica: justificativa,
+      fatoresIdentificados: fatores,
+      posologiaEnoxaparina: posologia,
+      alertasFarmacologicos: checagemAnticoagulantes.alertas,
+      protocoloNeuroaxial: protocoloNeuroaxial
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. ESTRATIFICAÇÃO DE RISCO PÓS-PARTO (PUERPÉRIO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia o risco trombótico puerperal (pós-parto) com pontuação cumulativa
+   * RCOG/FEBRASGO e determina a duração ideal da profilaxia com Enoxaparina.
+   *
+   * @param {Object} params - Fatores clínicos no puerpério
+   * @returns {Object} Classificação, escore, duração de HBPM e posologia
+   */
+  function avaliarRiscoPosParto(params) {
+    params = params || {};
+    var escore = 0;
+    var fatores = [];
+
+    // Fatores de Muito Alto Risco (4 pontos)
+    if (params.tevPrevio) {
+      escore += 4;
+      fatores.push({ fator: 'Histórico pessoal de TEV prévio', pontos: 4 });
+    }
+
+    // Trombofilias
+    var trombofilia = String(params.trombofilia || 'nenhuma').toLowerCase();
+    if (trombofilia === 'alto_risco') {
+      escore += 3;
+      fatores.push({ fator: 'Trombofilia de alto risco (Deficiência de Antitrombina, SAF, etc.)', pontos: 3 });
+    } else if (trombofilia === 'baixo_risco') {
+      escore += 1;
+      fatores.push({ fator: 'Trombofilia de baixo risco (FVL heterozigoto ou Protrombina heterozigoto)', pontos: 1 });
+    }
+
+    if (params.comorbidades) {
+      escore += 3;
+      fatores.push({ fator: 'Comorbidade médica prévia (LES, Nefropatia, Cardiopatia, etc.)', pontos: 3 });
+    }
+
+    // Tipo de Parto
+    var tipoParto = String(params.tipoParto || 'vaginal').toLowerCase();
+    if (tipoParto === 'cesariana_urgencia' || params.cesarianaUrgencia) {
+      escore += 2;
+      fatores.push({ fator: 'Cesariana de urgência / emergência durante o trabalho de parto', pontos: 2 });
+    } else if (tipoParto === 'cesariana_eletiva' || params.cesarianaEletiva) {
+      escore += 1;
+      fatores.push({ fator: 'Cesariana eletiva', pontos: 1 });
+    }
+
+    // Intercorrências Periparto
+    if (params.hppGrave) {
+      escore += 1;
+      fatores.push({ fator: 'Hemorragia pós-parto (HPP > 1000 mL ou hemotransfusão)', pontos: 1 });
+    }
+
+    if (params.infeccaoPuerperal) {
+      escore += 1;
+      fatores.push({ fator: 'Infecção puerperal sistêmica / endometrite', pontos: 1 });
+    }
+
+    if (params.preEclampsia) {
+      escore += 1;
+      fatores.push({ fator: 'Pré-eclâmpsia / Síndrome Hipertensiva na gestação', pontos: 1 });
+    }
+
+    if (params.partoPreTermo) {
+      escore += 1;
+      fatores.push({ fator: 'Parto pré-termo (< 37 semanas)', pontos: 1 });
+    }
+
+    if (params.trabalhoPartoProlongado) {
+      escore += 1;
+      fatores.push({ fator: 'Trabalho de parto prolongado (> 24 horas) ou parto vaginal instrumental', pontos: 1 });
+    }
+
+    if (params.morteFetal) {
+      escore += 1;
+      fatores.push({ fator: 'Morte fetal intrauterina', pontos: 1 });
+    }
+
+    // Fatores Gerais
+    var idade = Number(params.idade) || 0;
+    if (idade > 35) {
+      escore += 1;
+      fatores.push({ fator: 'Idade materna > 35 anos', pontos: 1 });
+    }
+
+    var imc = Number(params.imc) || 0;
+    if (params.pesoKg && params.alturaMetros && !params.imc) {
+      imc = Number(params.pesoKg) / (Number(params.alturaMetros) * Number(params.alturaMetros));
+    }
+    if (imc >= 40) {
+      escore += 2;
+      fatores.push({ fator: 'Obesidade Grau III (IMC >= 40 kg/m²)', pontos: 2 });
+    } else if (imc >= 30) {
+      escore += 1;
+      fatores.push({ fator: 'Obesidade (IMC 30 a 39,9 kg/m²)', pontos: 1 });
+    }
+
+    if (params.tabagismo) {
+      escore += 1;
+      fatores.push({ fator: 'Tabagismo ativo', pontos: 1 });
+    }
+
+    var paridade = Number(params.paridade) || 0;
+    if (paridade >= 3) {
+      escore += 1;
+      fatores.push({ fator: 'Multiparidade (>= 3 partos)', pontos: 1 });
+    }
+
+    if (params.imobilidade) {
+      escore += 1;
+      fatores.push({ fator: 'Imobilidade pós-parto / repouso prolongado', pontos: 1 });
+    }
+
+    if (params.historiaFamiliarTev) {
+      escore += 1;
+      fatores.push({ fator: 'História familiar de TEV em 1º grau', pontos: 1 });
+    }
+
+    // Classificação Pós-parto e Duração
+    var classificacaoRisco = 'BAIXO';
+    var indicada = false;
+    var duracao = 'Sem indicação ambulatorial.';
+    var conduta = '';
+
+    if (params.tevPrevio || trombofilia === 'alto_risco') {
+      classificacaoRisco = 'MUITO_ALTO';
+      indicada = true;
+      duracao = '6 SEMANAS PÓS-PARTO';
+      conduta = 'Profilaxia com HBPM mandatória por 6 semanas completas pós-parto devido ao risco extremo de trombose puerperal tardia.';
+    } else if (escore >= 3) {
+      classificacaoRisco = 'ALTO';
+      indicada = true;
+      duracao = 'PELO MENOS 10 DIAS PÓS-PARTO (estender até 6 semanas se fatores persistentes)';
+      conduta = 'Escore pós-parto >= 3: Prescrever Enoxaparina profilática por pelo menos 10 dias. Se houver persistência de múltiplos fatores ou imobilidade, considerar estender por até 6 semanas.';
+    } else if (escore === 2) {
+      classificacaoRisco = 'MODERADO';
+      indicada = true;
+      duracao = 'PELO MENOS 10 DIAS PÓS-PARTO';
+      conduta = 'Escore pós-parto = 2: Prescrever Enoxaparina profilática por pelo menos 10 dias (especialmente em cesarianas com fatores adicionais).';
+    } else {
+      classificacaoRisco = 'BAIXO';
+      indicada = false;
+      duracao = 'Apenas durante a internação hospitalar (se cesariana) ou mobilização precoce';
+      conduta = 'Escore pós-parto <= 1: Baixo risco trombótico. Deambulação precoce e hidratação. HBPM ambulatorial não indicada de rotina.';
+    }
+
+    // Cálculo da dose
+    var posologia = calcularDoseEnoxaparina(params.pesoKg, params.clearanceCreatinina, 'PROFILATICO');
+
+    // Alertas de anticoagulantes no puerpério / lactação
+    var checagemAnticoagulantes = verificarAlertasAnticoagulantes({
+      trimestre: 3,
+      amamentando: true,
+      emUsoVarfarina: Boolean(params.emUsoVarfarina),
+      emUsoDoac: Boolean(params.emUsoDoac)
+    });
+
+    // Janela neuroaxial se informada hora da dose
+    var protocoloNeuroaxial = verificarSegurancaNeuroaxial(
+      params.ultimaDoseHbpmHorasAtras !== undefined ? params.ultimaDoseHbpmHorasAtras : 99,
+      'PROFILATICA'
+    );
+
+    return {
+      periodo: 'POS_PARTO',
+      escoreTotal: escore,
+      classificacaoRisco: classificacaoRisco,
+      tromboprofilaxiaIndicada: indicada,
+      duracaoRecomendada: duracao,
+      condutaClinica: conduta,
+      fatoresIdentificados: fatores,
+      posologiaEnoxaparina: posologia,
+      alertasFarmacologicos: checagemAnticoagulantes.alertas,
+      protocoloNeuroaxial: protocoloNeuroaxial
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. MOTOR UNIFICADO E FORMATADOR DE PARECER MÉDICO
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avaliação unificada de TEV na gestação e puerpério.
+   *
+   * @param {Object} params
+   * @returns {Object} Parecer médico completo
+   */
+  function avaliarTevCompleto(params) {
+    params = params || {};
+    var periodo = String(params.periodo || 'antenatal').toLowerCase().trim();
+    if (periodo === 'pos_parto' || periodo === 'puerperio' || params.posParto || params.tipoParto) {
+      return avaliarRiscoPosParto(params);
+    }
+    return avaliarRiscoAntenatal(params);
+  }
+
+  return {
+    calcularDoseEnoxaparina: calcularDoseEnoxaparina,
+    verificarAlertasAnticoagulantes: verificarAlertasAnticoagulantes,
+    verificarSegurancaNeuroaxial: verificarSegurancaNeuroaxial,
+    avaliarRiscoAntenatal: avaliarRiscoAntenatal,
+    avaliarRiscoPosParto: avaliarRiscoPosParto,
+    avaliarTevCompleto: avaliarTevCompleto
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { TevGestanteService: TevGestanteService };
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 03_bases_locais.js
 // ==============================================================================
 
@@ -11935,6 +15743,562 @@ function formatarDiluicaoPreparoHSL(med) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 04_ia_local_fallback.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * src/04_ia_local_fallback.js - MOTOR DE IA GENERATIVA LOCAL E FALLBACK OFFLINE
+ * ==============================================================================
+ * Provedor de alta disponibilidade para execução de IA generativa em nós locais
+ * (Llama 3 / Mistral via OpenAI-compatível: Ollama, LocalAI, vLLM, llama.cpp)
+ * com salvaguarda mandatória de Fallback Clínico Determinístico quando as redes
+ * em nuvem e os servidores locais estiverem inacessíveis.
+ *
+ * Em conformidade estrita com o AGENTS.md:
+ * - Prioridade absoluta para a qualidade e segurança do conteúdo clínico beira-leito.
+ * - O paciente e o médico assistente NUNCA ficam desassistidos em situações críticas.
+ * - Doses, vias, contraindicações absolutas e prazos de reavaliação preservados.
+ * ==============================================================================
+ */
+
+var IaLocalFallbackService = (function () {
+  'use strict';
+
+  var MODELOS_HOMOLOGADOS_LOCAL = [
+    'llama3.1:latest',
+    'llama3:8b',
+    'mistral:latest',
+    'llama3:latest',
+    'mistral:7b',
+    'qwen2.5:latest'
+  ];
+
+  /**
+   * Catálogo de protocolos determinísticos de contingência para emergências clínicas
+   * e cenários de alta gravidade baseados nas diretrizes SBC, AMIB, FEBRASGO, SBD, PCDT/MS.
+   */
+  var PROTOCOLOS_OFFLINE = {
+    PCR_ADULTO: {
+      titulo: 'PARADA CARDIORRESPIRATÓRIA (PCR ADULTO - DIRETRIZES ACLS/SBC)',
+      palavrasChave: ['pcr', 'parada', 'cardiorrespiratoria', 'fv', 'tv sem pulso', 'assistolia', 'aesp', 'desfibrilacao', 'massagem cardiaca'],
+      gerarConduta: function (dados) {
+        return [
+          '🚨 *CONDUTA IMEDIATA EM PARADA CARDIORRESPIRATÓRIA (ACLS)*',
+          '',
+          '1. *RECONHECIMENTO E SUPORTE BÁSICO:*',
+          '• Iniciar imediatamente RCP de alta qualidade (100 a 120 compressões/minuto, profundidade de 5 a 6 cm, permitir retorno total do tórax).',
+          '• Minimizar interrupções nas compressões (< 10 segundos).',
+          '• Relação 30:2 sem via aérea avançada; ventilação a cada 6 segundos contínua se tubo orotraqueal/supraglótico posicionado.',
+          '• Conectar monitor/desfibrilador e checar ritmo a cada 2 minutos.',
+          '',
+          '2. *DIFERENCIAÇÃO DE RITMO:*',
+          '• *RITMOS CHOCÁVEIS (FV / TV sem pulso):*',
+          '  - 1º Choque: Desfibrilação bifásica imediata (200 J) -> reiniciar RCP imediatamente por 2 minutos.',
+          '  - 2º Choque: Novo choque (200 J) + *Adrenalina 1 mg IV/IO* (repetir a cada 3 a 5 minutos) em bólus com flush de 20 mL de SF.',
+          '  - 3º Choque: Novo choque (200 J) + *Amiodarona 300 mg IV/IO* (1º bólus rápido diluído em SG 5%).',
+          '  - 5º Choque: Se refratário, aplicar segundo bólus de *Amiodarona 150 mg IV/IO*.',
+          '• *RITMOS NÃO CHOCÁVEIS (Assistolia / AESP):*',
+          '  - NÃO chocar!',
+          '  - *Adrenalina 1 mg IV/IO* imediata, repetindo a cada 3 a 5 minutos.',
+          '  - RCP de alta qualidade ininterrupta em ciclos de 2 minutos.',
+          '  - Investigação ativa imediata das causas reversíveis (*5Hs e 5Ts*): Hipovolemia, Hipóxia, Hidrogênio (acidose), Hipo/Hipercalemia, Hipotermia | Tensão no tórax (pneumotórax hipertensivo), Tamponamento cardíaco, Toxinas, Trombose pulmonar (TEP), Trombose coronária (IAM).',
+          '',
+          '3. *CUIDADOS PÓS-PCR (SE RCE):*',
+          '• Alvo de SatO2: 92% a 98% (evitar hiperóxia deletéria); Alvo de PaCO2: 35 a 45 mmHg.',
+          '• Alvo hemodinâmico: PAS >= 90 mmHg e PAM >= 65 mmHg (iniciar Noradrenalina se hipotensão).',
+          '• ECG de 12 derivações imediato para triagem de IAM com supra de ST (indicação de hemodinâmica de emergência).'
+        ].join('\n');
+      }
+    },
+
+    PCR_GESTANTE: {
+      titulo: 'PARADA CARDIORRESPIRATÓRIA NA GESTANTE (ACLS MATERNO / PERIMORTEM)',
+      palavrasChave: ['pcr gestante', 'parada gestante', 'perimortem', 'dule', 'gestacao parada', 'acls materno'],
+      gerarConduta: function (dados) {
+        return [
+          '🤰 *CONDUTA CRÍTICA EM PCR MATERNA (DIRETRIZES FEBRASGO / AHA)*',
+          '',
+          '1. *MANOBRA OBRIGATÓRIA (DULE):*',
+          '• Em toda gestante com IG >= 20 semanas ou fundo uterino na cicatriz umbilical, realizar imediatamente a *Deslocamento Uterino para a Esquerda (DULE)* com técnica bimanual contínua.',
+          '• ⚠️ *ALERTA CRÍTICO:* NUNCA inclinar a prancha ou o leito a 30 graus (reduz a eficácia da massagem cardíaca). Mantenha a paciente em decúbito dorsal horizontal estrito com DULE manual.',
+          '',
+          '2. *ACESSO E DROGAS:*',
+          '• Acesso venoso ou intraósseo OBRIGATORIAMENTE *acima do diafragma* (jugular, subclávia, membros superiores) para vencer o bloqueio da veia cava inferior.',
+          '• Doses de desfibrilação e medicações seguem o protocolo ACLS padrão (Adrenalina 1 mg a cada 3-5min; Amiodarona 300mg / 150mg se FV/TV).',
+          '',
+          '3. *REGRA DOS 4 A 5 MINUTOS (CESARIANA PERIMORTEM):*',
+          '• Se a gestante estiver com IG >= 20 semanas e não obtiver retorno da circulação espontânea (RCE) em *4 minutos* de manobras de RCP eficazes:',
+          '• Iniciar imediatamente a *CESARIANA PERIMORTEM / RESSUSCITADORA* no próprio leito de parada (NÃO transportar ao centro cirúrgico).',
+          '• Objetivo: Extração fetal no 5º minuto para descompressão aortocaval imediata e viabilização da sobrevida materna e fetal.'
+        ].join('\n');
+      }
+    },
+
+    CHOQUE_SEPTICO: {
+      titulo: 'CHOQUE SÉPTICO E SEPSE GRAVE (SURVIVING SEPSIS CAMPAIGN / ILAS)',
+      palavrasChave: ['choque septico', 'sepse', 'noradrenalina', 'pam < 65', 'lactato', 'bundle', 'infeccao grave'],
+      gerarConduta: function (dados) {
+        return [
+          '⚡ *BUNDLE DE 1 HORA DE SEPSE E CHOQUE SÉPTICO (ILAS / SSC)*',
+          '',
+          '1. *MEDIDAS DE RESGATE EM ATÉ 60 MINUTOS:*',
+          '• Dosagem imediata de *Lactato sérico* arterial ou venoso (repetir em 2 a 4h se alterado).',
+          '• Coleta de *2 pares de hemoculturas* (de sítios anatômicos diferentes) antes do início do antimicrobiano.',
+          '• Início precoce de *Antibioticoterapia de amplo espectro* na 1ª hora (não atrasar a infusão se houver demora na coleta de culturas).',
+          '',
+          '2. *RESSUSCITAÇÃO VOLÊMICA:*',
+          '• Em caso de hipotensão (PAS < 90 ou PAM < 65 mmHg) ou Lactato >= 4 mmol/L (36 mg/dL):',
+          '  - Administrar cristaloide isotônico balanceado (*Ringer Lactato*) na dose de *30 mL/kg* em até 3 horas.',
+          '',
+          '3. *VASOPRESSORES (DROGA VASOATIVA):*',
+          '• *Noradrenalina de 1ª Linha:* Iniciar em bomba de infusão se PAM < 65 mmHg após ou durante a expansão volêmica.',
+          '  - Concentração padrão: 4 ampolas (16 mg) em 234 mL de SG 5% (64 mcg/mL).',
+          '  - Taxa inicial: 0,05 a 0,2 mcg/kg/min, titulando a cada 5 a 10 min com meta de *PAM >= 65 mmHg*.',
+          '• Se PAM refratária com doses crescentes de Noradrenalina (> 0,25 mcg/kg/min): associar *Vasopressina* 0,03 U/min em dose fixa contínua (não titular).',
+          '• Hidrocortisona 200 mg/dia IV contínua ou 50 mg 6/6h se choque refratário a vasopressores.'
+        ].join('\n');
+      }
+    },
+
+    CHOQUE_ANAFILATICO: {
+      titulo: 'CHOQUE ANAFILÁTICO E REAÇÃO ANAFILÁTICA GRAVE (WAO / ASBAI)',
+      palavrasChave: ['anafilaxia', 'choque anafilatico', 'estridor', 'edema de glote', 'urticaria', 'broncoespasmo anafilaxia'],
+      gerarConduta: function (dados) {
+        return [
+          '🚨 *CONDUTA IMEDIATA EM ANAFILAXIA GRAVE (WAO / ASBAI)*',
+          '',
+          '1. *MEDICAÇÃO DE 1ª LINHA - ADRENALINA IMEDIATA:*',
+          '• *ADRENALINA (1:1.000 / 1 mg/mL) INTRAMUSCULAR* no terço anterolateral do vasto lateral da coxa:',
+          '  - Adultos e crianças > 30 kg: *0,5 mg (0,5 mL)* IM.',
+          '  - Crianças 15 a 30 kg: *0,3 mg (0,3 mL)* IM.',
+          '  - Crianças < 15 kg: *0,15 mg (0,15 mL)* IM.',
+          '• ⚠️ Repetir a mesma dose a cada 5 a 15 minutos caso não haja melhora clínica.',
+          '',
+          '2. *SUPORTE CIRCULATÓRIO E RESPIRATÓRIO:*',
+          '• Colocar em decúbito dorsal e elevar membros inferiores (exceto se vômitos ou desconforto respiratório severo).',
+          '• Oxigênio sob máscara com reservatório (alvo SatO2 >= 94%).',
+          '• Dois acessos calibrosos: expansão rápida com Ringer Lactato ou SF 0,9% (1.000 a 2.000 mL no adulto; 20 mL/kg na criança).',
+          '',
+          '3. *FÁRMACOS DE 2ª LINHA (APÓS A ADRENALINA):*',
+          '• Anti-histamínico H1: Difenidramina 25 a 50 mg IV ou Prometazina 25 mg IM (não atrasar a adrenalina).',
+          '• Corticoterapia: Hidrocortisona 200 a 500 mg IV ou Metilprednisolona 1 a 2 mg/kg IV para prevenção de resposta bifásica tardia.',
+          '• Salbutamol inalatório se broncoespasmo refratário.'
+        ].join('\n');
+      }
+    },
+
+    SCA_IAM: {
+      titulo: 'SÍNDROME CORONARIANA AGUDA / INFARTO AGUDO DO MIOCÁRDIO (SBC / ESC)',
+      palavrasChave: ['infarto', 'iam', 'sca', 'dor toracica', 'supra de st', 'angina', 'troponina'],
+      gerarConduta: function (dados) {
+        return [
+          '❤️ *CONDUTA EM SÍNDROME CORONARIANA AGUDA (SCA / IAM - DIRETRIZES SBC)*',
+          '',
+          '1. *ABORDAGEM EM ATÉ 10 MINUTOS (PORTA-ECG):*',
+          '• ECG de 12 derivações realizado e laudado em menos de 10 minutos da chegada.',
+          '• Monitorização contínua (MOV: Monitor, O2 se SatO2 < 90%, Veia calibrosa).',
+          '',
+          '2. *DUPLO BLOQUEIO PLAQUETÁRIO IMEDIATO:*',
+          '• *AAS:* 200 a 300 mg via oral (mastigar e engolir). Manutenção: 100 mg/dia.',
+          '• *Inibidor P2Y12:*',
+          '  - *Ticagrelor:* 180 mg VO (2 cp de 90 mg) de ataque (preferencial), seguido de 90 mg 12/12h; OU',
+          '  - *Clopidogrel:* 300 mg VO (se > 75 anos ou com indicação de fibrinólise) ou 600 mg VO (se angioplastia primária programada).',
+          '',
+          '3. *ANALGESIA E VASODILATAÇÃO:*',
+          '• *Nitrato:* Dinitrato de Isossorbida 5 mg SL a cada 5 min (máximo 3 doses) para controle da dor anginosa.',
+          '  - ⛔ *CONTRAINDICAÇÕES ABSOLUTAS DO NITRATO:* PAS < 90 mmHg, suspeita de infarto de ventrículo direito (derivações V3R e V4R), ou uso de inibidor de PDE-5 (Sildenafila nas últimas 24h ou Tadalafila nas últimas 48h).',
+          '• *Morfina:* 2 a 4 mg IV apenas se dor refratária persistente após nitrato.',
+          '',
+          '4. *ANTICOAGULAÇÃO:*',
+          '• *Enoxaparina:* 1 mg/kg SC 12/12h (ajustar para 1 mg/kg 1x/dia se ClCr < 30 mL/min; em > 75 anos com supra: 0,75 mg/kg sem bólus IV).',
+          '',
+          '5. *TERAPIA DE REPERFUSÃO (SE IAM COM SUPRA DE ST):*',
+          '• *Angioplastia Primária:* Padrão-ouro se tempo porta-balão puder ser realizado em até 120 minutos.',
+          '• *Fibrinólise (Alteplase ou Tenecteplase):* Indicada se tempo até angioplastia for > 120 minutos (tempo porta-agulha alvo < 30 min).'
+        ].join('\n');
+      }
+    },
+
+    AVC_ISQUEMICO: {
+      titulo: 'AVC ISQUÊMICO AGUDO E PROTOCOLO DE TROMBÓLISE (SBN / ESO / AHA)',
+      palavrasChave: ['avc', 'avci', 'derrame', 'trombolise', 'alteplase', 'fraqueza subita', 'afasia'],
+      gerarConduta: function (dados) {
+        return [
+          '🧠 *PROTOCOLO DE AVC ISQUÊMICO AGUDO E TROMBÓLISE (SBN / AHA)*',
+          '',
+          '1. *CRONOGRAMA E TRIAGEM RÁPIDA (JANELA DE 4,5 HORAS):*',
+          '• Determinar o horário exato de início dos sintomas (ou última vez visto assintomático / "wake-up stroke").',
+          '• Glicemia capilar imediata (descartar hipoglicemia como mimicker do AVC).',
+          '• TC de crânio sem contraste de urgência: descartar sangramento intracraniano e calcular escore ASPECTS.',
+          '',
+          '2. *CONTROLE RIGOROSO DA PRESSÃO ARTERIAL:*',
+          '• Se elegível para trombólise: a PA deve estar rigorosamente *PAS < 185 mmHg e PAD < 110 mmHg* antes de iniciar a infusão.',
+          '  - Droga de escolha: Nitroprussiato de Sódio IV contínuo em bomba ou Labetalol.',
+          '• Se NÃO elegível para trombólise: tolerar níveis pressóricos mais elevados para perfusão colateral; tratar apenas se PAS > 220 mmHg ou PAD > 120 mmHg.',
+          '',
+          '3. *TROMBÓLISE ENDOVENOSA (ALTEPLASE / RT-PA):*',
+          '• Dose total: *0,9 mg/kg* (dose máxima 90 mg).',
+          '  - 10% da dose administrada em bólus IV rápido em 1 minuto.',
+          '  - 90% restantes administrados em bomba de infusão contínua em 60 minutos.',
+          '• Manter PA < 180x105 mmHg durante e nas primeiras 24h após a trombólise.',
+          '• Monitorização neurológica seriada a cada 15 min nas primeiras 2 horas.',
+          '• NÃO administrar antiplaquetários ou anticoagulantes nas primeiras 24 horas pós-trombólise.'
+        ].join('\n');
+      }
+    },
+
+    CETOACIDOSE_DIABETICA: {
+      titulo: 'CETOACIDOSE DIABÉTICA E ESTADO HIPEROSMOLAR (SBD / ADA)',
+      palavrasChave: ['cetoacidose', 'cad', 'diabetes descompensado', 'hiperglicemia cetonica', 'kussmaul', 'hgt alto'],
+      gerarConduta: function (dados) {
+        return [
+          '🩸 *PROTOCOLO DE CETOACIDOSE DIABÉTICA (CAD - DIRETRIZES SBD / ADA)*',
+          '',
+          '1. *CRITÉRIOS DIAGNÓSTICOS:*',
+          '• Glicemia > 250 mg/dL + pH < 7,30 + Bicarbonato < 18 mEq/L + Cetonúria/Cetonemia positiva + Anion Gap elevado (> 10-12).',
+          '',
+          '2. *ETAPA 1: HIDRATAÇÃO VENOSA VIGOROSA:*',
+          '• Iniciar imediatamente com *Soro Fisiológico 0,9%*: 1.000 mL/hora nas primeiras 1 a 2 horas.',
+          '• Ajustar para 250 a 500 mL/h conforme status volêmico e nível de sódio corrigido.',
+          '',
+          '3. *ETAPA 2: REGRA DE OURO DO POTÁSSIO SÉRICO:*',
+          '• ⛔ *ATENÇÃO MÁXIMA:* NUNCA iniciar insulina se K+ sérico < 3,3 mEq/L!',
+          '  - Se K+ < 3,3 mEq/L: Adiar a insulina! Repor KCl (20 a 40 mEq/h) até K+ atingir >= 3,3 mEq/L.',
+          '  - Se K+ entre 3,3 e 5,3 mEq/L: Repor 20 a 30 mEq de KCl por litro de solução para manter K+ entre 4 e 5 mEq/L.',
+          '  - Se K+ > 5,3 mEq/L: Não repor potássio; dosar a cada 2 horas.',
+          '',
+          '4. *ETAPA 3: INSULINOTERAPIA REGULAR INTRAVENOSA:*',
+          '• *Insulina Regular IV:* Bólus de 0,1 U/kg seguido de infusão contínua em bomba de *0,1 U/kg/hora*.',
+          '• Meta glicêmica: queda de 50 a 70 mg/dL por hora.',
+          '• Quando a glicemia atingir 200 a 250 mg/dL: iniciar *Soro Glicosado 5%* associado para evitar hipoglicemia mantendo a bomba de insulina até fechamento completo do Anion Gap (HCO3 >= 18 e pH > 7,30).'
+        ].join('\n');
+      }
+    },
+
+    CRISE_ASMATICA_GRAVE: {
+      titulo: 'CRISE ASMÁTICA GRAVE E ESTADO DE MAL ASMÁTICO (GINA / SBPT)',
+      palavrasChave: ['asma grave', 'broncoespasmo', 'crise asmatica', 'sibilancia intensa', 'falta de ar asma'],
+      gerarConduta: function (dados) {
+        return [
+          '🫁 *CONDUTA NA CRISE ASMÁTICA AGUDA GRAVE (GINA / SBPT)*',
+          '',
+          '1. *OXIGENOTERAPIA:*',
+          '• Titular oxigênio para manter SatO2 entre 93% e 95% (evitar hiperóxia com retenção de CO2).',
+          '',
+          '2. *BRONCODILATAÇÃO SEQUENCIAL (1ª HORA):*',
+          '• *Salbutamol Spray:* 4 a 8 jatos com espaçador a cada 20 minutos durante a 1ª hora (ou nebulização com 10 a 20 gotas = 2,5 a 5 mg);',
+          '• *Brometo de Ipratrópio:* 4 a 8 jatos com espaçador (ou 20 a 40 gotas = 0,25 a 0,5 mg em nebulização) associado ao Salbutamol a cada 20 minutos na 1ª hora.',
+          '',
+          '3. *CORTICOTERAPIA SISTÊMICA PRECOCE:*',
+          '• Prednisona 40 a 60 mg VO em dose única inicial; OU',
+          '• Hidrocortisona 200 mg IV ou Metilprednisolona 60 a 125 mg IV se paciente impossibilitado de ingerir via oral.',
+          '',
+          '4. *RESGATE EM CRISE REFRATÁRIA:*',
+          '• *Sulfato de Magnésio 50%:* 2 g (4 mL de MgSO4 50% diluídos em 100 mL de SF 0,9%) administrados em infusão intravenosa lenta em 20 minutos.',
+          '• Sinais de fadiga respiratória (silêncio auscultatório, torpor, bradicardia): preparar para Sequência Rápida de Intubação com tubo de diâmetro amplo.'
+        ].join('\n');
+      }
+    },
+
+    PRE_ECLAMPSIA_ECLAMPSIA: {
+      titulo: 'PRÉ-ECLÂMPSIA GRAVE E ECLÂMPSIA (FEBRASGO / ACOG / MS)',
+      palavrasChave: ['pre eclampsia', 'eclampcia', 'zuspan', 'sulfato de magnesio', 'gestante pressao alta'],
+      gerarConduta: function (dados) {
+        return [
+          '🤰 *CONDUTA EM PRÉ-ECLÂMPSIA GRAVE E ECLÂMPSIA (FEBRASGO / MS)*',
+          '',
+          '1. *NEUROPROTEÇÃO / PREVENÇÃO DE CONVULSÕES (SULFATO DE MAGNÉSIO):*',
+          '• *Esquema Zuspan (Padrão Intravenoso):*',
+          '  - Dose de Ataque: *4 g IV lento em 20 minutos* (8 mL de MgSO4 50% + 92 mL de SF 0,9% ou SG 5%).',
+          '  - Dose de Manutenção: *1 g/hora IV em bomba de infusão contínua* (10 mL de MgSO4 50% em 490 mL de SF 0,9% a 100 mL/h).',
+          '• *Monitorização Rigorosa da Intoxicação:*',
+          '  - Reflexo patelar (deve estar presente);',
+          '  - Frequência respiratória (deve ser >= 12 a 16 rpm);',
+          '  - Diurese horária (deve ser >= 25 mL/hora).',
+          '• ⛔ *ANTÍDOTO EM SOBREDOSE/TOXICIDADE:* Gluconato de Cálcio 10% 1 ampola (10 mL = 1 g) IV lento em 3 a 5 minutos.',
+          '',
+          '2. *CONTROLE DA CRISE HIPERTENSIVA (PAS >= 160 ou PAD >= 110 mmHg):*',
+          '• *Hidralazina:* 5 mg IV lento. Se PA persistir grave após 20 minutos, repetir 5 a 10 mg IV (dose máxima 20 mg); OU',
+          '• *Nifedipino cápsula/comprimido:* 10 a 20 mg VO (engolir com água; NUNCA usar via sublingual).',
+          '• ⛔ *CONTRAINDICAÇÕES FORMAIS NA GESTAÇÃO:* Nitroprussiato de Sódio (salvo risco iminente de morte materna), IECAs e BRAs (toxicidade fetal grave).'
+        ].join('\n');
+      }
+    },
+
+    DIP_ATO: {
+      titulo: 'DOENÇA INFLAMATÓRIA PÉLVICA E ABSCESSO TUBO-OVARIANO (PCDT/MS / CDC)',
+      palavrasChave: ['dip', 'doenca inflamatoria pelvica', 'abscesso tubo ovariano', 'monif', 'hager'],
+      gerarConduta: function (dados) {
+        return [
+          '🌸 *CONDUTA EM DOENÇA INFLAMATÓRIA PÉLVICA (DIP / PCDT MS)*',
+          '',
+          '1. *CRITÉRIOS DIAGNÓSTICOS DE HAGER:*',
+          '• 3 Critérios Maiores: Dor no hipogástrio + Dor à palpação anexial + Dor à mobilização do colo uterino.',
+          '• Associados a pelo menos 1 Critério Menor: Febre >= 38,3°C, leucocitose, VHS/PCR elevado, corrimento purulento cervical.',
+          '',
+          '2. *ESTADIAMENTO DE MONIF E LOCAL DE TRATAMENTO:*',
+          '• *Monif I (Ambulatorial):* Salpingite aguda sem peritonite.',
+          '  - *Ceftriaxona 500 mg IM dose única* (ajustar para 1 g se peso >= 150 kg) +',
+          '  - *Doxiciclina 100 mg VO 12/12h por 14 dias* +',
+          '  - *Metronidazol 500 mg VO 12/12h por 14 dias*.',
+          '  - Reavaliação obrigatória em 72 horas!',
+          '• *Monif II a IV (Internação Hospitalar Mandatória):*',
+          '  - Monif II: Salpingite com peritonite pélvica.',
+          '  - Monif III: Abscesso tubo-ovariano íntegro.',
+          '  - Monif IV: Abscesso roto com peritonite difusa (emergência cirúrgica).',
+          '  - Esquema Hospitalar: *Ceftriaxona 1 g IV 12/12h* + *Metronidazol 500 mg IV 8/8h* + *Doxiciclina 100 mg VO 12/12h* (ou Clindamicina 900 mg IV 8/8h + Gentamicina 5 mg/kg/dia IV ajustada pelo ClCr).',
+          '',
+          '3. *MANEJO DO DIU E PARCEIROS:*',
+          '• DIU: NÃO remover de imediato; remover apenas sob antibioticoterapia prévia em caso de falha clínica após 48-72h ou abscesso.',
+          '• Parceiros sexuais dos últimos 60 dias: convocação, abstinência e tratamento empírico obrigatório para gonococo e clamídia.'
+        ].join('\n');
+      }
+    }
+  };
+
+  /**
+   * Identifica o protocolo clínico determinístico mais aderente ao caso fornecido.
+   */
+  function identificarProtocoloClinico(texto) {
+    if (!texto) return null;
+    var t = String(texto).toLowerCase();
+
+    // Verificações específicas com alta acurácia
+    if (t.indexOf('gestant') !== -1 && (t.indexOf('pcr') !== -1 || t.indexOf('parada') !== -1 || t.indexOf('dule') !== -1)) {
+      return PROTOCOLOS_OFFLINE.PCR_GESTANTE;
+    }
+    if (t.indexOf('pcr') !== -1 || t.indexOf('parada cardiorrespirat') !== -1 || (t.indexOf('fv') !== -1 && t.indexOf('choque') !== -1) || t.indexOf('assistolia') !== -1) {
+      return PROTOCOLOS_OFFLINE.PCR_ADULTO;
+    }
+    if (t.indexOf('anafilax') !== -1 || t.indexOf('anafilat') !== -1 || (t.indexOf('urticaria') !== -1 && t.indexOf('edema de glote') !== -1)) {
+      return PROTOCOLOS_OFFLINE.CHOQUE_ANAFILATICO;
+    }
+    if (t.indexOf('pre eclamps') !== -1 || t.indexOf('pré-eclâmps') !== -1 || t.indexOf('eclamps') !== -1 || t.indexOf('zuspan') !== -1) {
+      return PROTOCOLOS_OFFLINE.PRE_ECLAMPSIA_ECLAMPSIA;
+    }
+    if (t.indexOf('cetoacidose') !== -1 || t.indexOf(' cad ') !== -1 || (t.indexOf('glicemia') !== -1 && t.indexOf('anion gap') !== -1 && t.indexOf('insulina') !== -1)) {
+      return PROTOCOLOS_OFFLINE.CETOACIDOSE_DIABETICA;
+    }
+    if (t.indexOf('avc') !== -1 || t.indexOf('isquemic') !== -1 || t.indexOf('alteplase') !== -1 || t.indexOf('deficit motor') !== -1) {
+      return PROTOCOLOS_OFFLINE.AVC_ISQUEMICO;
+    }
+    if (t.indexOf('infarto') !== -1 || t.indexOf('iam') !== -1 || t.indexOf('supra') !== -1 || t.indexOf('coronari') !== -1 || (t.indexOf('dor toracica') !== -1 && t.indexOf('troponina') !== -1)) {
+      return PROTOCOLOS_OFFLINE.SCA_IAM;
+    }
+    if (t.indexOf('choque septico') !== -1 || (t.indexOf('sepse') !== -1 && t.indexOf('lactato') !== -1) || (t.indexOf('noradrenalina') !== -1 && t.indexOf('pam') !== -1)) {
+      return PROTOCOLOS_OFFLINE.CHOQUE_SEPTICO;
+    }
+    if (t.indexOf('asma') !== -1 || t.indexOf('broncoespasmo') !== -1 || (t.indexOf('sibil') !== -1 && t.indexOf('falta de ar') !== -1)) {
+      return PROTOCOLOS_OFFLINE.CRISE_ASMATICA_GRAVE;
+    }
+    if (t.indexOf('dip') !== -1 || t.indexOf('doenca inflamatoria pelvica') !== -1 || t.indexOf('tubo-ovariano') !== -1 || t.indexOf('monif') !== -1) {
+      return PROTOCOLOS_OFFLINE.DIP_ATO;
+    }
+
+    // Busca por contagem ponderada de palavras-chave
+    var melhorMatch = null;
+    var maxHits = 0;
+
+    for (var chave in PROTOCOLOS_OFFLINE) {
+      var proto = PROTOCOLOS_OFFLINE[chave];
+      var hits = 0;
+      for (var k = 0; k < proto.palavrasChave.length; k++) {
+        if (t.indexOf(proto.palavrasChave[k]) !== -1) {
+          hits++;
+        }
+      }
+      if (hits > maxHits) {
+        maxHits = hits;
+        melhorMatch = proto;
+      }
+    }
+
+    return maxHits >= 2 ? melhorMatch : null;
+  }
+
+  /**
+   * Gera conduta médica de urgência geral pelo mnemônico sistemático ABCDE / MOV
+   * para pacientes com intercorrências que não se encaixam estritamente nos protocolos isolados.
+   */
+  function gerarCondutaGeralEmergencia(dados) {
+    return [
+      '🚨 *SISTEMATIZAÇÃO DETERMINÍSTICA DE EMERGÊNCIA (MÉTODO ABCDE / MOV)*',
+      '',
+      '1. *ABORDAGEM PRIMÁRIA DIRIGIDA:*',
+      '• *A (Vias Aéreas e Coluna Cervical):* Avaliar perviedade, presença de secreções ou estridor; proteger via aérea se rebaixamento (ECG <= 8).',
+      '• *B (Respiração e Oxigenação):* Ausculta bilateral, oximetria contínua; ofertar oxigênio suplementar apenas se SatO2 < 90 a 92%.',
+      '• *C (Circulação e Perfusão):* Avaliar tempo de enchimento capilar (< 2s), pulsos, frequência cardíaca e PA; obter dois acessos calibrosos (jelco 16 ou 18); colher exames imediatos.',
+      '• *D (Neurológico):* Avaliar Escala de Coma de Glasgow, pupilas (simetria e fotorreatividade) e glicemia capilar imediata.',
+      '• *E (Exposição e Temperatura):* Exposição completa do paciente com controle térmico ativo prevenindo hipotermia.',
+      '',
+      '2. *MONITORIZAÇÃO MULTIPARAMÉTRICA (MOV):*',
+      '• Monitor cardíaco com ECG contínuo, Oximetria de pulso e Pressão arterial não invasiva seriada a cada 5 a 15 minutos.',
+      '',
+      '3. *ORIENTAÇÃO DE SEGURANÇA E CONDUTA:*',
+      '• Manter paciente em leito de monitorização / sala vermelha até estabilização.',
+      '• Reavaliação clínica a cada intervenção terapêutica antes da liberação para enfermaria ou transferência.'
+    ].join('\n');
+  }
+
+  /**
+   * Motor Principal de Fallback Offline:
+   * Gera a resposta clínica estruturada com garantia de alta fidelidade e advertências explícitas.
+   */
+  function gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes) {
+    opcoes = opcoes || {};
+    var textoCompleto = (sistema || '') + '\n' + (promptUsuario || '');
+    var proto = identificarProtocoloClinico(textoCompleto);
+
+    var corpoResposta = '';
+    if (proto) {
+      corpoResposta = proto.gerarConduta(promptUsuario);
+    } else {
+      corpoResposta = gerarCondutaGeralEmergencia(promptUsuario);
+    }
+
+    var cabecalhoContingencia = [
+      '⚡ *MODO OFFLINE DE CONTINGÊNCIA (ALTA DISPONIBILIDADE CLÍNICA)*',
+      '⚠️ *Aviso do Sistema:* Redes em nuvem e daemon de IA indisponíveis no momento. O atendimento prossegue com o protocolo determinístico oficial de segurança do Ultra Rotina:',
+      ''
+    ].join('\n');
+
+    var rodapeSeguranca = [
+      '',
+      '---',
+      '📌 *Conduta baseada em diretrizes clínicas oficiais (SBC, AMIB, FEBRASGO, PCDT/MS). Reavalie os parâmetros do paciente continuamente.*'
+    ].join('\n');
+
+    return cabecalhoContingencia + corpoResposta + rodapeSeguranca;
+  }
+
+  /**
+   * Heurística determinística de extração JSON para requisições de classificação de intenção
+   * quando nenhum provedor de IA estiver disponível na nuvem ou localmente.
+   */
+  function estruturarJsonOffline(sistema, promptUsuario) {
+    var t = String(promptUsuario || '').toLowerCase();
+    var intencao = 'CONVERSA';
+    var confianca = 0.85;
+
+    if (t.indexOf('pcr') !== -1 || t.indexOf('parada') !== -1 || t.indexOf('choque') !== -1 || t.indexOf('infarto') !== -1 || t.indexOf('dor no peito') !== -1 || t.indexOf('emergencia') !== -1 || t.indexOf('urgente') !== -1) {
+      intencao = 'CLINICO_EMERGENCIA';
+    } else if (t.indexOf('gasometria') !== -1 || t.indexOf('ph ') !== -1 || t.indexOf('pco2') !== -1 || t.indexOf('bicarbonato') !== -1) {
+      intencao = 'CLINICO_GASO';
+    } else if (t.indexOf('receita') !== -1 || t.indexOf('prescrever') !== -1 || t.indexOf('posologia') !== -1 || t.indexOf('remedio') !== -1 || t.indexOf('dose') !== -1) {
+      intencao = 'CLINICO_RX';
+    } else if (t.indexOf('soap') !== -1 || t.indexOf('anamnese') !== -1 || t.indexOf('evolucao') !== -1 || t.indexOf('historia clinica') !== -1) {
+      intencao = 'CLINICO_SOAP';
+    } else if (t.indexOf('enfermaria') !== -1 || t.indexOf('passagem de plantao') !== -1 || t.indexOf('leito') !== -1) {
+      intencao = 'ENFERMARIA';
+    } else if (t.indexOf('plantao') !== -1 || t.indexOf('agenda') !== -1 || t.indexOf('consulta') !== -1 || t.indexOf('marcar') !== -1) {
+      intencao = 'CALENDAR_CRIAR';
+    } else if (t.indexOf('tarefa') !== -1 || t.indexOf('notion') !== -1 || t.indexOf('lembrete') !== -1) {
+      intencao = 'NOTION_TASK';
+    } else if (t.indexOf('duvida') !== -1 || t.indexOf('estudo') !== -1 || t.indexOf('medquest') !== -1) {
+      intencao = 'NOTION_DUVIDA';
+    }
+
+    return JSON.stringify({
+      intencao: intencao,
+      confianca: confianca,
+      modoOffline: true,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  /**
+   * Verifica o status de saúde e disponibilidade do nó local de IA (ex: Ollama, LocalAI, vLLM).
+   */
+  function verificarStatus(opcoes) {
+    opcoes = opcoes || {};
+    var endpoint = opcoes.endpoint || (typeof ConfigService !== 'undefined' ? ConfigService.get('IA_LOCAL_ENDPOINT') : 'http://127.0.0.1:11434/v1/chat/completions');
+    var timeoutMs = Number(opcoes.timeoutMs || (typeof ConfigService !== 'undefined' ? ConfigService.get('IA_LOCAL_TIMEOUT_MS') : 3000));
+    var modelosPadrao = typeof ConfigService !== 'undefined' ? ConfigService.getArray('IA_MODELOS_LOCAL') : MODELOS_HOMOLOGADOS_LOCAL;
+
+    var inicio = Date.now();
+    var online = false;
+    var erroMsg = null;
+    var modelosDetectados = [];
+    var latenciaMs = 0;
+
+    // Normaliza URL para consulta de tags/modelos
+    var urlBase = endpoint.replace(/\/chat\/completions\/?$/, '').replace(/\/v1\/?$/, '');
+    var urlTags = urlBase + '/api/tags';
+    var urlV1Models = urlBase + '/v1/models';
+
+    if (typeof UrlFetchApp !== 'undefined') {
+      try {
+        var res = UrlFetchApp.fetch(urlV1Models, {
+          method: 'GET',
+          timeoutMs: timeoutMs,
+          muteHttpExceptions: true
+        });
+        latenciaMs = Date.now() - inicio;
+        if (res.getResponseCode() === 200) {
+          online = true;
+          try {
+            var dados = JSON.parse(res.getContentText());
+            if (dados && Array.isArray(dados.data)) {
+              modelosDetectados = dados.data.map(function (m) { return m.id || m.name; });
+            }
+          } catch (eJson) {}
+        }
+      } catch (err1) {
+        // Tenta endpoint nativo do Ollama se o /v1/models falhou
+        try {
+          var res2 = UrlFetchApp.fetch(urlTags, {
+            method: 'GET',
+            timeoutMs: timeoutMs,
+            muteHttpExceptions: true
+          });
+          latenciaMs = Date.now() - inicio;
+          if (res2.getResponseCode() === 200) {
+            online = true;
+            try {
+              var dados2 = JSON.parse(res2.getContentText());
+              if (dados2 && Array.isArray(dados2.models)) {
+                modelosDetectados = dados2.models.map(function (m) { return m.name || m.model; });
+              }
+            } catch (eJson2) {}
+          }
+        } catch (err2) {
+          online = false;
+          erroMsg = err2.message;
+          latenciaMs = Date.now() - inicio;
+        }
+      }
+    }
+
+    return {
+      online: online,
+      endpoint: endpoint,
+      modelosDisponiveis: modelosDetectados.length ? modelosDetectados : modelosPadrao,
+      modeloAtivo: (modelosDetectados.length ? modelosDetectados[0] : modelosPadrao[0]) || 'llama3.1:latest',
+      latenciaMs: latenciaMs,
+      fallbackOfflinePronto: true,
+      erro: erroMsg,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  return {
+    MODELOS_HOMOLOGADOS_LOCAL: MODELOS_HOMOLOGADOS_LOCAL,
+    PROTOCOLOS_OFFLINE: PROTOCOLOS_OFFLINE,
+    identificarProtocoloClinico: identificarProtocoloClinico,
+    gerarRespostaOfflineClinica: gerarRespostaOfflineClinica,
+    gerarCondutaGeralEmergencia: gerarCondutaGeralEmergencia,
+    estruturarJsonOffline: estruturarJsonOffline,
+    verificarStatus: verificarStatus
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { IaLocalFallbackService: IaLocalFallbackService };
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 04_motores_ia.js
 // ==============================================================================
 
@@ -11967,7 +16331,8 @@ var IA_PADROES = {
   OPENROUTER: ["openrouter/free"],
   ZAI: ["glm-4.7-flash", "glm-4.5-flash"],
   GEMINI: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"],
-  GEMINI_GROUNDING: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"]
+  GEMINI_GROUNDING: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"],
+  LOCAL: ["llama3.1:latest", "llama3.2:latest", "mistral:latest", "llama3:8b", "mistral:7b"]
 };
 
 var IA_INTENCOES_VALIDAS = [
@@ -12281,6 +16646,124 @@ function _iaProvZai(sistema, prompt, tokens, ctx) {
   }, sistema, prompt, tokens, ctx);
 }
 
+function _iaNormalizarUrlLocal(urlBruta) {
+  var url = String(urlBruta || "").trim();
+  if (!url) return "http://127.0.0.1:11434/v1/chat/completions";
+  url = url.replace(/\/+$/, "");
+  if (url.indexOf("/v1/chat/completions") !== -1 || url.indexOf("/api/chat") !== -1) {
+    return url;
+  }
+  if (/\/v1$/i.test(url)) {
+    return url + "/chat/completions";
+  }
+  return url + "/v1/chat/completions";
+}
+
+function _iaProvLocal(sistema, prompt, tokens, ctx, opcoes) {
+  opcoes = opcoes || {};
+  var urlBase = _iaCfg("LOCAL_LLM_URL", "http://127.0.0.1:11434/v1/chat/completions");
+  var url = _iaNormalizarUrlLocal(urlBase);
+  var apiKey = _iaCfg("LOCAL_LLM_API_KEY", "ollama");
+  var timeoutMs = Number(_iaCfg("LOCAL_LLM_TIMEOUT_MS", 30000)) || 30000;
+
+  var modelos = opcoes.modelos;
+  if (!modelos || !modelos.length) {
+    if (opcoes.modeloForcado) {
+      modelos = [opcoes.modeloForcado];
+    } else {
+      modelos = _iaLista("IA_MODELOS_LOCAL", IA_PADROES.LOCAL);
+    }
+  }
+
+  var ehOllamaNativo = url.indexOf("/api/chat") !== -1;
+
+  for (var i = 0; i < modelos.length; i++) {
+    if (_iaOrcamentoEsgotado(ctx)) { _iaLog(ctx, "LOCAL: orçamento de tempo esgotado"); return null; }
+    var modelo = modelos[i];
+    if (_iaBloqueado("LOCAL_" + modelo)) continue;
+
+    var headers = { "Content-Type": "application/json" };
+    if (apiKey && apiKey !== "none" && apiKey !== "sem_chave" && apiKey !== "sem-chave") {
+      headers["Authorization"] = "Bearer " + apiKey;
+    }
+
+    var payload;
+    if (ehOllamaNativo) {
+      payload = {
+        model: modelo,
+        messages: [
+          { role: "system", content: sistema + IA_DIRETIVA_SEM_LATEX },
+          { role: "user", content: prompt }
+        ],
+        stream: false,
+        options: {
+          temperature: 0.2,
+          num_predict: _iaTokensEfetivos(tokens)
+        }
+      };
+    } else {
+      payload = {
+        model: modelo,
+        messages: [
+          { role: "system", content: sistema + IA_DIRETIVA_SEM_LATEX },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.2,
+        max_tokens: _iaTokensEfetivos(tokens)
+      };
+    }
+
+    try {
+      var res = UrlFetchApp.fetch(url, {
+        method: "post",
+        headers: headers,
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true,
+        timeoutMs: timeoutMs
+      });
+      var code = res.getResponseCode();
+
+      if (code === 200) {
+        var json = JSON.parse(res.getContentText());
+        var texto = "";
+        var truncado = false;
+
+        if (ehOllamaNativo) {
+          texto = (json.message && json.message.content) ? json.message.content : (json.response || "");
+          truncado = !!(json.done === false || json.done_reason === "length");
+        } else {
+          var escolha = json.choices && json.choices[0];
+          texto = escolha && escolha.message ? _iaTextoDeConteudo(escolha.message.content) : "";
+          truncado = !!(escolha && escolha.finish_reason === "length");
+        }
+
+        if (texto && String(texto).trim()) {
+          return {
+            texto: String(texto),
+            truncado: truncado,
+            modelo: "local/" + modelo,
+            offline_disponivel: true
+          };
+        }
+        if (truncado) return { texto: "", truncado: true, modelo: "local/" + modelo };
+        _iaLog(ctx, "LOCAL " + modelo + ": resposta vazia");
+      } else if (code === 404) {
+        _iaBloquear("LOCAL_" + modelo, 600);
+        _iaLog(ctx, "LOCAL " + modelo + ": 404 (modelo não encontrado localmente)");
+      } else if (code === 503 || code === 502 || code === 504) {
+        _iaBloquear("LOCAL_" + modelo, 60);
+        _iaLog(ctx, "LOCAL " + modelo + ": HTTP " + code + " (servidor local indisponível)");
+      } else {
+        _iaLog(ctx, "LOCAL " + modelo + ": HTTP " + code);
+      }
+    } catch (e) {
+      _iaBloquear("LOCAL_" + modelo, 60);
+      _iaLog(ctx, "LOCAL " + modelo + " falha de conexão: " + e.message);
+    }
+  }
+  return null;
+}
+
 var IA_DIRETIVA_SEM_LATEX = "\n\nCRÍTICO: NUNCA use formatação matemática LaTeX (como $...$ ou $$...$$). Escreva números, dosagens e unidades (ex: 200 mg, 90 mmHg) como texto limpo e simples.";
 
 function _iaHashChave(k) {
@@ -12470,7 +16953,11 @@ function _iaResolverTruncamento(chamar, tokens, r, ctx, json) {
 
 function _iaOrdemProvedores() {
   var padrao = String(_iaCfg("PROVEDOR_TEXTO_PADRAO", "GEMINI")).toUpperCase();
-  var canonica = ["GEMINI", "GROQ", "OPENROUTER", "ZAI"];
+  var canonica = ["GEMINI", "GROQ", "OPENROUTER", "ZAI", "LOCAL"];
+  var ativoLocal = String(_iaCfg("LOCAL_LLM_ATIVO", "auto")).toLowerCase();
+  if (ativoLocal === "false") {
+    canonica = ["GEMINI", "GROQ", "OPENROUTER", "ZAI"];
+  }
   var ordem = canonica.indexOf(padrao) >= 0 ? [padrao] : [];
   canonica.forEach(function (p) { if (ordem.indexOf(p) < 0) ordem.push(p); });
   return ordem;
@@ -12481,6 +16968,7 @@ function _iaChamarProvedor(nome, sistema, prompt, tokens, ctx, opcoes) {
   if (nome === "OPENROUTER") return _iaProvOpenRouter(sistema, prompt, tokens, ctx);
   if (nome === "ZAI") return _iaProvZai(sistema, prompt, tokens, ctx);
   if (nome === "GEMINI") return _iaProvGemini(sistema, prompt, tokens, ctx, opcoes);
+  if (nome === "LOCAL" || nome === "OLLAMA") return _iaProvLocal(sistema, prompt, tokens, ctx, opcoes);
   return null;
 }
 
@@ -12512,6 +17000,14 @@ function _iaExecutar(sistema, promptUsuario, maxTokens, opcoes) {
     }
   }
   _iaLog(ctx, "TODOS OS PROVEDORES FALHARAM");
+  if (typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService) {
+    if (opcoes.json) {
+      _iaLog(ctx, "Acionando fallback determinístico offline estruturado (JSON)");
+      return IaLocalFallbackService.estruturarJsonOffline(sistema, promptUsuario);
+    }
+    _iaLog(ctx, "Acionando fallback determinístico offline clínico");
+    return IaLocalFallbackService.gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
+  }
   return null;
 }
 
@@ -12589,6 +17085,148 @@ function chamarZaiAPI(sistema, promptUsuario, maxTokens) {
 
 function chamarGeminiPool(sistema, promptUsuario, maxTokens) {
   return _iaPublico(function (t, ctx) { return _iaProvGemini(sistema, promptUsuario, t, ctx); }, 2000, maxTokens);
+}
+
+function chamarLocalLlmAPI(sistema, promptUsuario, maxTokens, modelo) {
+  return _iaPublico(function (t, ctx) {
+    return _iaProvLocal(sistema, promptUsuario, t, ctx, { modeloForcado: modelo });
+  }, 2000, maxTokens);
+}
+
+function verificarSaudeLocalLlm() {
+  var urlBase = _iaCfg("LOCAL_LLM_URL", "http://127.0.0.1:11434/v1/chat/completions");
+  var apiKey = _iaCfg("LOCAL_LLM_API_KEY", "ollama");
+  var modelosConfigurados = _iaLista("IA_MODELOS_LOCAL", IA_PADROES.LOCAL);
+  var t0 = new Date().getTime();
+
+  var urlChecagem = urlBase;
+  if (urlChecagem.indexOf("/v1/chat/completions") !== -1) {
+    urlChecagem = urlChecagem.replace("/v1/chat/completions", "/v1/models");
+  } else if (urlChecagem.indexOf("/api/chat") !== -1) {
+    urlChecagem = urlChecagem.replace("/api/chat", "/api/tags");
+  } else {
+    urlChecagem = urlChecagem.replace(/\/+$/, "") + "/v1/models";
+  }
+
+  var headers = {};
+  if (apiKey && apiKey !== "none" && apiKey !== "sem_chave" && apiKey !== "sem-chave") {
+    headers["Authorization"] = "Bearer " + apiKey;
+  }
+
+  try {
+    var res = UrlFetchApp.fetch(urlChecagem, {
+      method: "get",
+      headers: headers,
+      muteHttpExceptions: true,
+      timeoutMs: 5000
+    });
+    var code = res.getResponseCode();
+    var latencia = new Date().getTime() - t0;
+
+    if (code === 200) {
+      var json = JSON.parse(res.getContentText());
+      var modelosDisponiveis = [];
+      if (Array.isArray(json.data)) {
+        modelosDisponiveis = json.data.map(function(m) { return m.id || m.name; }).filter(Boolean);
+      } else if (Array.isArray(json.models)) {
+        modelosDisponiveis = json.models.map(function(m) { return m.name || m.model; }).filter(Boolean);
+      }
+
+      return {
+        ok: true,
+        status: "ONLINE",
+        url: urlBase,
+        urlChecagem: urlChecagem,
+        latenciaMs: latencia,
+        modelosConfigurados: modelosConfigurados,
+        modelosDisponiveis: modelosDisponiveis,
+        mensagem: "Servidor de IA local online e pronto para contingência offline."
+      };
+    }
+
+    return {
+      ok: false,
+      status: "ERRO_HTTP_" + code,
+      url: urlBase,
+      urlChecagem: urlChecagem,
+      latenciaMs: latencia,
+      modelosConfigurados: modelosConfigurados,
+      modelosDisponiveis: [],
+      mensagem: "Endpoint retornou status HTTP " + code
+    };
+  } catch (e) {
+    var latenciaFalha = new Date().getTime() - t0;
+    return {
+      ok: false,
+      status: "OFFLINE",
+      url: urlBase,
+      urlChecagem: urlChecagem,
+      latenciaMs: latenciaFalha,
+      modelosConfigurados: modelosConfigurados,
+      modelosDisponiveis: [],
+      erro: e.message,
+      mensagem: "Não foi possível conectar ao motor local (servidor desligado ou porta inacessível)."
+    };
+  }
+}
+
+function cockpitLocalLlm(session, opcoes) {
+  opcoes = opcoes || {};
+  var acao = String(opcoes.acao || "status").toLowerCase();
+
+  if (acao === "status") {
+    var saude = verificarSaudeLocalLlm();
+    saude.fallbackOfflinePronto = true;
+    saude.protocolosOffline = (typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService.PROTOCOLOS_OFFLINE)
+      ? Object.keys(IaLocalFallbackService.PROTOCOLOS_OFFLINE)
+      : [];
+    return saude;
+  }
+
+  if (acao === "fallback_offline" || acao === "contingencia") {
+    var caso = opcoes.prompt || opcoes.caso || "Parada cardiorrespiratória em paciente adulto";
+    var sistema = opcoes.sistema || (IA_PERSONA + "\n\n" + IA_SEGURANCA_MEDICAMENTOSA);
+    var t0 = new Date().getTime();
+    var respostaOffline = (typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService.gerarRespostaOfflineClinica)
+      ? IaLocalFallbackService.gerarRespostaOfflineClinica(sistema, caso, opcoes)
+      : "Fallback determinístico offline indisponível.";
+    return {
+      sucesso: true,
+      acao: "fallback_offline",
+      resposta: respostaOffline,
+      tempoRespostaMs: new Date().getTime() - t0,
+      modoOffline: true
+    };
+  }
+
+  if (acao === "inferencia" || acao === "testar") {
+    var promptTeste = opcoes.prompt || "Apresente sucintamente a conduta de emergência na anafilaxia grave.";
+    var sistema = opcoes.sistema || (IA_PERSONA + "\n\n" + IA_SEGURANCA_MEDICAMENTOSA);
+    var modelo = opcoes.modelo || null;
+    var t0 = new Date().getTime();
+    var resposta = chamarLocalLlmAPI(sistema, promptTeste, opcoes.maxTokens || 600, modelo);
+    var elapsed = new Date().getTime() - t0;
+
+    return {
+      sucesso: !!(resposta && String(resposta).trim()),
+      acao: "inferencia",
+      resposta: resposta,
+      tempoRespostaMs: elapsed,
+      modeloUsado: modelo || "padrao_local"
+    };
+  }
+
+  if (acao === "config") {
+    return {
+      ativo: _iaCfg("LOCAL_LLM_ATIVO", "auto"),
+      url: _iaCfg("LOCAL_LLM_URL", "http://127.0.0.1:11434/v1/chat/completions"),
+      provedorPadrao: _iaCfg("PROVEDOR_TEXTO_PADRAO", "GEMINI"),
+      modelosConfigurados: _iaLista("IA_MODELOS_LOCAL", IA_PADROES.LOCAL),
+      timeoutMs: Number(_iaCfg("LOCAL_LLM_TIMEOUT_MS", 30000))
+    };
+  }
+
+  return { erro: "Ação não reconhecida: " + acao };
 }
 
 /**
@@ -14364,7 +19002,10 @@ if (typeof module !== "undefined" && module.exports) {
     gerarAudioPreceptorDireto: gerarAudioPreceptorDireto,
     gerarGuiaExameFisicoEspecial: gerarGuiaExameFisicoEspecial,
     processarAudioClinicoMultimodal: processarAudioClinicoMultimodal,
-    analisarImagemMedicaComIA: analisarImagemMedicaComIA
+    analisarImagemMedicaComIA: analisarImagemMedicaComIA,
+    chamarLocalLlmAPI: chamarLocalLlmAPI,
+    verificarSaudeLocalLlm: verificarSaudeLocalLlm,
+    cockpitLocalLlm: cockpitLocalLlm
   };
 }
 
@@ -23122,4 +27763,143 @@ function cockpitPcrGestante(initData, params) {
     return PcrGestanteService.avaliarPcrGestante(params);
   }
   throw new Error('Ação inválida para PCR na Gestante.');
+}
+
+function cockpitTevGestante(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof TevGestanteService === 'undefined') {
+    throw new Error('Módulo TevGestanteService indisponível.');
+  }
+  var acao = params.acao || 'avaliarTevCompleto';
+  if (acao === 'avaliarTevCompleto') {
+    return TevGestanteService.avaliarTevCompleto(params);
+  }
+  if (acao === 'avaliarRiscoAntenatal') {
+    return TevGestanteService.avaliarRiscoAntenatal(params);
+  }
+  if (acao === 'avaliarRiscoPosParto') {
+    return TevGestanteService.avaliarRiscoPosParto(params);
+  }
+  if (acao === 'calcularDoseEnoxaparina') {
+    return TevGestanteService.calcularDoseEnoxaparina(params.pesoKg, params.clearanceCreatinina, params.regime);
+  }
+  if (acao === 'verificarSegurancaNeuroaxial') {
+    return TevGestanteService.verificarSegurancaNeuroaxial(params.ultimaDoseHorasAtras, params.tipoDose);
+  }
+  if (acao === 'verificarAlertasAnticoagulantes') {
+    return TevGestanteService.verificarAlertasAnticoagulantes(params);
+  }
+  throw new Error('Ação inválida para TEV na Gestação/Puerpério.');
+}
+
+function cockpitClimaterioThm(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ClimaterioThmService === 'undefined') {
+    throw new Error('Módulo ClimaterioThmService indisponível.');
+  }
+  var acao = params.acao || 'avaliarThmCompleto';
+  if (acao === 'avaliarThmCompleto') {
+    return ClimaterioThmService.avaliarThmCompleto(params);
+  }
+  if (acao === 'avaliarJanelaOportunidade') {
+    return ClimaterioThmService.avaliarJanelaOportunidade(params);
+  }
+  if (acao === 'auditarContraindicacoesThm') {
+    return ClimaterioThmService.auditarContraindicacoesThm(params);
+  }
+  if (acao === 'determinarProtecaoEndometrial') {
+    return ClimaterioThmService.determinarProtecaoEndometrial(params);
+  }
+  if (acao === 'selecionarViaAdministracao') {
+    return ClimaterioThmService.selecionarViaAdministracao(params);
+  }
+  if (acao === 'avaliarSintomasGeniturinarios') {
+    return ClimaterioThmService.avaliarSintomasGeniturinarios(params);
+  }
+  if (acao === 'sugerirAlternativasNaoHormonais') {
+    return ClimaterioThmService.sugerirAlternativasNaoHormonais(params);
+  }
+  if (acao === 'verificarChecklistPreThm') {
+    return ClimaterioThmService.verificarChecklistPreThm(params);
+  }
+  if (acao === 'gerarResumoThm') {
+    return ClimaterioThmService.gerarResumoThm(params);
+  }
+  throw new Error('Ação inválida para Climatério e THM.');
+}
+
+function cockpitSopOvariosPolicisticos(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SopOvariosPolicisticosService === 'undefined') {
+    throw new Error('Módulo SopOvariosPolicisticosService indisponível.');
+  }
+  var acao = params.acao || 'avaliarSopCompleto';
+  if (acao === 'avaliarSopCompleto') {
+    return SopOvariosPolicisticosService.avaliarSopCompleto(params);
+  }
+  if (acao === 'avaliarCriteriosRotterda') {
+    return SopOvariosPolicisticosService.avaliarCriteriosRotterda(params);
+  }
+  if (acao === 'auditarDiagnosticosDiferenciais') {
+    return SopOvariosPolicisticosService.auditarDiagnosticosDiferenciais(params);
+  }
+  if (acao === 'estratificarRiscoMetabolico') {
+    return SopOvariosPolicisticosService.estratificarRiscoMetabolico(params);
+  }
+  if (acao === 'determinarCondutaTerapeutica') {
+    return SopOvariosPolicisticosService.determinarCondutaTerapeutica(params);
+  }
+  if (acao === 'gerarResumoSop') {
+    return SopOvariosPolicisticosService.gerarResumoSop(params);
+  }
+  throw new Error('Ação inválida para Síndrome dos Ovários Policísticos.');
+}
+
+function cockpitDipAbscessoTuboOvariano(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof DipAbscessoTuboOvarianoService === 'undefined') {
+    throw new Error('Módulo DipAbscessoTuboOvarianoService indisponível.');
+  }
+  var acao = params.acao || 'avaliarDipCompleto';
+  if (acao === 'avaliarDipCompleto') {
+    return DipAbscessoTuboOvarianoService.avaliarDipCompleto(params);
+  }
+  if (acao === 'avaliarCriteriosDiagnosticos') {
+    return DipAbscessoTuboOvarianoService.avaliarCriteriosDiagnosticos(params);
+  }
+  if (acao === 'estadiarMonif') {
+    return DipAbscessoTuboOvarianoService.estadiarMonif(params);
+  }
+  if (acao === 'avaliarCriteriosInternacao') {
+    return DipAbscessoTuboOvarianoService.avaliarCriteriosInternacao(params);
+  }
+  if (acao === 'avaliarCondutaDiu') {
+    return DipAbscessoTuboOvarianoService.avaliarCondutaDiu(params);
+  }
+  if (acao === 'gerarProtocoloParceiros') {
+    return DipAbscessoTuboOvarianoService.gerarProtocoloParceiros(params);
+  }
+  if (acao === 'determinarCondutaTerapeutica') {
+    return DipAbscessoTuboOvarianoService.determinarCondutaTerapeutica(params);
+  }
+  if (acao === 'gerarResumoDip') {
+    return DipAbscessoTuboOvarianoService.gerarResumoDip(params);
+  }
+  throw new Error('Ação inválida para Doença Inflamatória Pélvica / ATO.');
+}
+
+function cockpitIaLocalStatus(session, params) {
+  params = params || {};
+  params.acao = 'status';
+  return typeof cockpitLocalLlm === 'function' ? cockpitLocalLlm(session, params) : { ok: false, erro: 'cockpitLocalLlm indisponível' };
+}
+
+function cockpitIaLocalFallback(session, params) {
+  params = params || {};
+  params.acao = 'fallback_offline';
+  return typeof cockpitLocalLlm === 'function' ? cockpitLocalLlm(session, params) : { ok: false, erro: 'cockpitLocalLlm indisponível' };
 }

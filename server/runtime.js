@@ -71,6 +71,7 @@ const ENV_BLOCKLIST = new Set([
 
 const BOT_ENV_PREFIXES = [
   'BOT_', 'TELEGRAM_', 'GEMINI_', 'NOTION_', 'GROQ_', 'OPENROUTER_', 'ZAI_',
+  'LOCAL_LLM_', 'OLLAMA_', 'LOCAL_',
   'SPREADSHEET_', 'WEBHOOK_', 'WEB_APP_', 'IA_', 'TIMEZONE', 'PORT', 'HOST',
   'D1_', 'CF_', 'RENDER_', 'NODE_ENV'
 ];
@@ -817,6 +818,9 @@ module.exports = {
         _rpcMap.cockpitSedacaoOpioides = ctx.cockpitSedacaoOpioides;
         _rpcMap.cockpitNefrologiaDhe = ctx.cockpitNefrologiaDhe;
         _rpcMap.cockpitSdraMecanica = ctx.cockpitSdraMecanica;
+        _rpcMap.cockpitLocalLlm = ctx.cockpitLocalLlm;
+        _rpcMap.cockpitIaLocalStatus = ctx.cockpitIaLocalStatus;
+        _rpcMap.cockpitIaLocalFallback = ctx.cockpitIaLocalFallback;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

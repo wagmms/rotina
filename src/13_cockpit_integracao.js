@@ -954,6 +954,18 @@ function cockpitDipAbscessoTuboOvariano(initData, params) {
   throw new Error('Ação inválida para Doença Inflamatória Pélvica / ATO.');
 }
 
+function cockpitIaLocalStatus(session, params) {
+  params = params || {};
+  params.acao = 'status';
+  return typeof cockpitLocalLlm === 'function' ? cockpitLocalLlm(session, params) : { ok: false, erro: 'cockpitLocalLlm indisponível' };
+}
+
+function cockpitIaLocalFallback(session, params) {
+  params = params || {};
+  params.acao = 'fallback_offline';
+  return typeof cockpitLocalLlm === 'function' ? cockpitLocalLlm(session, params) : { ok: false, erro: 'cockpitLocalLlm indisponível' };
+}
+
 
 
 

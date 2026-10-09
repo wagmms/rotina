@@ -27,7 +27,8 @@ var IA_PADROES = {
   OPENROUTER: ["openrouter/free"],
   ZAI: ["glm-4.7-flash", "glm-4.5-flash"],
   GEMINI: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"],
-  GEMINI_GROUNDING: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"]
+  GEMINI_GROUNDING: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"],
+  LOCAL: ["llama3.1:latest", "llama3.2:latest", "mistral:latest", "llama3:8b", "mistral:7b"]
 };
 
 var IA_INTENCOES_VALIDAS = [
@@ -341,6 +342,124 @@ function _iaProvZai(sistema, prompt, tokens, ctx) {
   }, sistema, prompt, tokens, ctx);
 }
 
+function _iaNormalizarUrlLocal(urlBruta) {
+  var url = String(urlBruta || "").trim();
+  if (!url) return "http://127.0.0.1:11434/v1/chat/completions";
+  url = url.replace(/\/+$/, "");
+  if (url.indexOf("/v1/chat/completions") !== -1 || url.indexOf("/api/chat") !== -1) {
+    return url;
+  }
+  if (/\/v1$/i.test(url)) {
+    return url + "/chat/completions";
+  }
+  return url + "/v1/chat/completions";
+}
+
+function _iaProvLocal(sistema, prompt, tokens, ctx, opcoes) {
+  opcoes = opcoes || {};
+  var urlBase = _iaCfg("LOCAL_LLM_URL", "http://127.0.0.1:11434/v1/chat/completions");
+  var url = _iaNormalizarUrlLocal(urlBase);
+  var apiKey = _iaCfg("LOCAL_LLM_API_KEY", "ollama");
+  var timeoutMs = Number(_iaCfg("LOCAL_LLM_TIMEOUT_MS", 30000)) || 30000;
+
+  var modelos = opcoes.modelos;
+  if (!modelos || !modelos.length) {
+    if (opcoes.modeloForcado) {
+      modelos = [opcoes.modeloForcado];
+    } else {
+      modelos = _iaLista("IA_MODELOS_LOCAL", IA_PADROES.LOCAL);
+    }
+  }
+
+  var ehOllamaNativo = url.indexOf("/api/chat") !== -1;
+
+  for (var i = 0; i < modelos.length; i++) {
+    if (_iaOrcamentoEsgotado(ctx)) { _iaLog(ctx, "LOCAL: orçamento de tempo esgotado"); return null; }
+    var modelo = modelos[i];
+    if (_iaBloqueado("LOCAL_" + modelo)) continue;
+
+    var headers = { "Content-Type": "application/json" };
+    if (apiKey && apiKey !== "none" && apiKey !== "sem_chave" && apiKey !== "sem-chave") {
+      headers["Authorization"] = "Bearer " + apiKey;
+    }
+
+    var payload;
+    if (ehOllamaNativo) {
+      payload = {
+        model: modelo,
+        messages: [
+          { role: "system", content: sistema + IA_DIRETIVA_SEM_LATEX },
+          { role: "user", content: prompt }
+        ],
+        stream: false,
+        options: {
+          temperature: 0.2,
+          num_predict: _iaTokensEfetivos(tokens)
+        }
+      };
+    } else {
+      payload = {
+        model: modelo,
+        messages: [
+          { role: "system", content: sistema + IA_DIRETIVA_SEM_LATEX },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.2,
+        max_tokens: _iaTokensEfetivos(tokens)
+      };
+    }
+
+    try {
+      var res = UrlFetchApp.fetch(url, {
+        method: "post",
+        headers: headers,
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true,
+        timeoutMs: timeoutMs
+      });
+      var code = res.getResponseCode();
+
+      if (code === 200) {
+        var json = JSON.parse(res.getContentText());
+        var texto = "";
+        var truncado = false;
+
+        if (ehOllamaNativo) {
+          texto = (json.message && json.message.content) ? json.message.content : (json.response || "");
+          truncado = !!(json.done === false || json.done_reason === "length");
+        } else {
+          var escolha = json.choices && json.choices[0];
+          texto = escolha && escolha.message ? _iaTextoDeConteudo(escolha.message.content) : "";
+          truncado = !!(escolha && escolha.finish_reason === "length");
+        }
+
+        if (texto && String(texto).trim()) {
+          return {
+            texto: String(texto),
+            truncado: truncado,
+            modelo: "local/" + modelo,
+            offline_disponivel: true
+          };
+        }
+        if (truncado) return { texto: "", truncado: true, modelo: "local/" + modelo };
+        _iaLog(ctx, "LOCAL " + modelo + ": resposta vazia");
+      } else if (code === 404) {
+        _iaBloquear("LOCAL_" + modelo, 600);
+        _iaLog(ctx, "LOCAL " + modelo + ": 404 (modelo não encontrado localmente)");
+      } else if (code === 503 || code === 502 || code === 504) {
+        _iaBloquear("LOCAL_" + modelo, 60);
+        _iaLog(ctx, "LOCAL " + modelo + ": HTTP " + code + " (servidor local indisponível)");
+      } else {
+        _iaLog(ctx, "LOCAL " + modelo + ": HTTP " + code);
+      }
+    } catch (e) {
+      _iaBloquear("LOCAL_" + modelo, 60);
+      _iaLog(ctx, "LOCAL " + modelo + " falha de conexão: " + e.message);
+    }
+  }
+  return null;
+}
+
 var IA_DIRETIVA_SEM_LATEX = "\n\nCRÍTICO: NUNCA use formatação matemática LaTeX (como $...$ ou $$...$$). Escreva números, dosagens e unidades (ex: 200 mg, 90 mmHg) como texto limpo e simples.";
 
 function _iaHashChave(k) {
@@ -530,7 +649,11 @@ function _iaResolverTruncamento(chamar, tokens, r, ctx, json) {
 
 function _iaOrdemProvedores() {
   var padrao = String(_iaCfg("PROVEDOR_TEXTO_PADRAO", "GEMINI")).toUpperCase();
-  var canonica = ["GEMINI", "GROQ", "OPENROUTER", "ZAI"];
+  var canonica = ["GEMINI", "GROQ", "OPENROUTER", "ZAI", "LOCAL"];
+  var ativoLocal = String(_iaCfg("LOCAL_LLM_ATIVO", "auto")).toLowerCase();
+  if (ativoLocal === "false") {
+    canonica = ["GEMINI", "GROQ", "OPENROUTER", "ZAI"];
+  }
   var ordem = canonica.indexOf(padrao) >= 0 ? [padrao] : [];
   canonica.forEach(function (p) { if (ordem.indexOf(p) < 0) ordem.push(p); });
   return ordem;
@@ -541,6 +664,7 @@ function _iaChamarProvedor(nome, sistema, prompt, tokens, ctx, opcoes) {
   if (nome === "OPENROUTER") return _iaProvOpenRouter(sistema, prompt, tokens, ctx);
   if (nome === "ZAI") return _iaProvZai(sistema, prompt, tokens, ctx);
   if (nome === "GEMINI") return _iaProvGemini(sistema, prompt, tokens, ctx, opcoes);
+  if (nome === "LOCAL" || nome === "OLLAMA") return _iaProvLocal(sistema, prompt, tokens, ctx, opcoes);
   return null;
 }
 
@@ -572,6 +696,14 @@ function _iaExecutar(sistema, promptUsuario, maxTokens, opcoes) {
     }
   }
   _iaLog(ctx, "TODOS OS PROVEDORES FALHARAM");
+  if (typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService) {
+    if (opcoes.json) {
+      _iaLog(ctx, "Acionando fallback determinístico offline estruturado (JSON)");
+      return IaLocalFallbackService.estruturarJsonOffline(sistema, promptUsuario);
+    }
+    _iaLog(ctx, "Acionando fallback determinístico offline clínico");
+    return IaLocalFallbackService.gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
+  }
   return null;
 }
 
@@ -649,6 +781,148 @@ function chamarZaiAPI(sistema, promptUsuario, maxTokens) {
 
 function chamarGeminiPool(sistema, promptUsuario, maxTokens) {
   return _iaPublico(function (t, ctx) { return _iaProvGemini(sistema, promptUsuario, t, ctx); }, 2000, maxTokens);
+}
+
+function chamarLocalLlmAPI(sistema, promptUsuario, maxTokens, modelo) {
+  return _iaPublico(function (t, ctx) {
+    return _iaProvLocal(sistema, promptUsuario, t, ctx, { modeloForcado: modelo });
+  }, 2000, maxTokens);
+}
+
+function verificarSaudeLocalLlm() {
+  var urlBase = _iaCfg("LOCAL_LLM_URL", "http://127.0.0.1:11434/v1/chat/completions");
+  var apiKey = _iaCfg("LOCAL_LLM_API_KEY", "ollama");
+  var modelosConfigurados = _iaLista("IA_MODELOS_LOCAL", IA_PADROES.LOCAL);
+  var t0 = new Date().getTime();
+
+  var urlChecagem = urlBase;
+  if (urlChecagem.indexOf("/v1/chat/completions") !== -1) {
+    urlChecagem = urlChecagem.replace("/v1/chat/completions", "/v1/models");
+  } else if (urlChecagem.indexOf("/api/chat") !== -1) {
+    urlChecagem = urlChecagem.replace("/api/chat", "/api/tags");
+  } else {
+    urlChecagem = urlChecagem.replace(/\/+$/, "") + "/v1/models";
+  }
+
+  var headers = {};
+  if (apiKey && apiKey !== "none" && apiKey !== "sem_chave" && apiKey !== "sem-chave") {
+    headers["Authorization"] = "Bearer " + apiKey;
+  }
+
+  try {
+    var res = UrlFetchApp.fetch(urlChecagem, {
+      method: "get",
+      headers: headers,
+      muteHttpExceptions: true,
+      timeoutMs: 5000
+    });
+    var code = res.getResponseCode();
+    var latencia = new Date().getTime() - t0;
+
+    if (code === 200) {
+      var json = JSON.parse(res.getContentText());
+      var modelosDisponiveis = [];
+      if (Array.isArray(json.data)) {
+        modelosDisponiveis = json.data.map(function(m) { return m.id || m.name; }).filter(Boolean);
+      } else if (Array.isArray(json.models)) {
+        modelosDisponiveis = json.models.map(function(m) { return m.name || m.model; }).filter(Boolean);
+      }
+
+      return {
+        ok: true,
+        status: "ONLINE",
+        url: urlBase,
+        urlChecagem: urlChecagem,
+        latenciaMs: latencia,
+        modelosConfigurados: modelosConfigurados,
+        modelosDisponiveis: modelosDisponiveis,
+        mensagem: "Servidor de IA local online e pronto para contingência offline."
+      };
+    }
+
+    return {
+      ok: false,
+      status: "ERRO_HTTP_" + code,
+      url: urlBase,
+      urlChecagem: urlChecagem,
+      latenciaMs: latencia,
+      modelosConfigurados: modelosConfigurados,
+      modelosDisponiveis: [],
+      mensagem: "Endpoint retornou status HTTP " + code
+    };
+  } catch (e) {
+    var latenciaFalha = new Date().getTime() - t0;
+    return {
+      ok: false,
+      status: "OFFLINE",
+      url: urlBase,
+      urlChecagem: urlChecagem,
+      latenciaMs: latenciaFalha,
+      modelosConfigurados: modelosConfigurados,
+      modelosDisponiveis: [],
+      erro: e.message,
+      mensagem: "Não foi possível conectar ao motor local (servidor desligado ou porta inacessível)."
+    };
+  }
+}
+
+function cockpitLocalLlm(session, opcoes) {
+  opcoes = opcoes || {};
+  var acao = String(opcoes.acao || "status").toLowerCase();
+
+  if (acao === "status") {
+    var saude = verificarSaudeLocalLlm();
+    saude.fallbackOfflinePronto = true;
+    saude.protocolosOffline = (typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService.PROTOCOLOS_OFFLINE)
+      ? Object.keys(IaLocalFallbackService.PROTOCOLOS_OFFLINE)
+      : [];
+    return saude;
+  }
+
+  if (acao === "fallback_offline" || acao === "contingencia") {
+    var caso = opcoes.prompt || opcoes.caso || "Parada cardiorrespiratória em paciente adulto";
+    var sistema = opcoes.sistema || (IA_PERSONA + "\n\n" + IA_SEGURANCA_MEDICAMENTOSA);
+    var t0 = new Date().getTime();
+    var respostaOffline = (typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService.gerarRespostaOfflineClinica)
+      ? IaLocalFallbackService.gerarRespostaOfflineClinica(sistema, caso, opcoes)
+      : "Fallback determinístico offline indisponível.";
+    return {
+      sucesso: true,
+      acao: "fallback_offline",
+      resposta: respostaOffline,
+      tempoRespostaMs: new Date().getTime() - t0,
+      modoOffline: true
+    };
+  }
+
+  if (acao === "inferencia" || acao === "testar") {
+    var promptTeste = opcoes.prompt || "Apresente sucintamente a conduta de emergência na anafilaxia grave.";
+    var sistema = opcoes.sistema || (IA_PERSONA + "\n\n" + IA_SEGURANCA_MEDICAMENTOSA);
+    var modelo = opcoes.modelo || null;
+    var t0 = new Date().getTime();
+    var resposta = chamarLocalLlmAPI(sistema, promptTeste, opcoes.maxTokens || 600, modelo);
+    var elapsed = new Date().getTime() - t0;
+
+    return {
+      sucesso: !!(resposta && String(resposta).trim()),
+      acao: "inferencia",
+      resposta: resposta,
+      tempoRespostaMs: elapsed,
+      modeloUsado: modelo || "padrao_local"
+    };
+  }
+
+  if (acao === "config") {
+    return {
+      ativo: _iaCfg("LOCAL_LLM_ATIVO", "auto"),
+      url: _iaCfg("LOCAL_LLM_URL", "http://127.0.0.1:11434/v1/chat/completions"),
+      provedorPadrao: _iaCfg("PROVEDOR_TEXTO_PADRAO", "GEMINI"),
+      modelosConfigurados: _iaLista("IA_MODELOS_LOCAL", IA_PADROES.LOCAL),
+      timeoutMs: Number(_iaCfg("LOCAL_LLM_TIMEOUT_MS", 30000))
+    };
+  }
+
+  return { erro: "Ação não reconhecida: " + acao };
 }
 
 /**
@@ -2424,6 +2698,9 @@ if (typeof module !== "undefined" && module.exports) {
     gerarAudioPreceptorDireto: gerarAudioPreceptorDireto,
     gerarGuiaExameFisicoEspecial: gerarGuiaExameFisicoEspecial,
     processarAudioClinicoMultimodal: processarAudioClinicoMultimodal,
-    analisarImagemMedicaComIA: analisarImagemMedicaComIA
+    analisarImagemMedicaComIA: analisarImagemMedicaComIA,
+    chamarLocalLlmAPI: chamarLocalLlmAPI,
+    verificarSaudeLocalLlm: verificarSaudeLocalLlm,
+    cockpitLocalLlm: cockpitLocalLlm
   };
 }

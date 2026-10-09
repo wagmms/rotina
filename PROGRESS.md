@@ -22,12 +22,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 ---
 
 
-13. [ ] **Integração de IA Generativa Local (Llama 3 / Mistral) para Alta Disponibilidade Offline**:
-    - Motor de fallback rodando em dispositivo seguro local para quando a nuvem falhar.
-    
-14. [ ] **Módulo de Psiquiatria de Urgência (Agitação Psicomotora / Risco de Suicídio)**:
-    - Protocolo escalonado de contenção química e estratificação de risco de autoextermínio.
-
 15. [ ] **Refatoração do Motor de Permissões e Perfis Clínicos (RBAC)**:
     - Segmentação granular de acesso a módulos críticos por nível do residente/preceptor.
 
@@ -196,13 +190,37 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolo de reposição de Vitamina D e Cálcio e indicação de bisfosfonatos.
     - Revisão de polifarmácia com identificação de drogas que prolongam QT ou causam hipotensão ortostática.
 
+50. [ ] **Pneumologia e Terapia Intensiva - Manejo da Crise Hipercapnica na DPOC e Ventilação Não Invasiva (GOLD 2026 / SBPT)**:
+    - Critérios determinísticos de indicação e contraindicações formais para VNI (BiPAP/CPAP) na exacerbação aguda da DPOC.
+    - Titulação beira-leito de IPAP e EPAP com alvos gasométricos (pH >= 7,35 e alívio do trabalho muscular).
+    - Parâmetros objetivos de falha de VNI e gatilhos para intubação orotraqueal e ventilação mecânica protetora precoce.
+
+51. [ ] **Reumatologia e Urgência - Monoartrite Aguda e Febre Reumática (Critérios de Jones / ACR)**:
+    - Algoritmo de diagnóstico diferencial de monoartrite aguda (análise sinovial com celularidade, bacterioscopia e pesquisa de microcristais) distinguindo artrite séptica de gota.
+    - Esquema antimicrobiano empírico intravenoso inicial escalonado por faixa etária e perfil microbiológico.
+    - Critérios de Jones revisados pela AHA para rastreio e profilaxia secundária de Febre Reumática com Penicilina Benzatina.
+
+52. [ ] **Cockpit PWA - Cache Local Criptografado com IndexedDB e Fila Offline Resiliente**:
+    - Persistência no cliente de protocolos, cálculos e consultas no IndexedDB para autonomia offline total do PWA em áreas hospitalares sem sinal.
+    - Fila de sincronização automática (Offline Action Queue) que descarrega chamadas pendentes assim que a conexão for restabelecida.
+    - Badge de telemetria visual em tempo real no cabeçalho indicando modo de conexão (Nuvem / Nó Local / Offline Seguro).
+
 
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Integração de IA Generativa Local (Llama 3 / Mistral) para Alta Disponibilidade Offline**
+- [ ] **Módulo de Psiquiatria de Urgência (Agitação Psicomotora / Risco de Suicídio)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Integração de IA Generativa Local (Llama 3 / Mistral) para Alta Disponibilidade Offline**:
+   - Integração completa de nó local de IA generativa (Ollama / LocalAI / vLLM / llama.cpp) com suporte tanto à API OpenAI-compatible (`/v1/chat/completions`) quanto à rota nativa do Ollama (`/api/chat`).
+   - Normalização automática de URLs e tolerância a timeouts com fallback sem bloqueio ou crash.
+   - Suporte homologado aos modelos Llama 3 (`llama3.1:latest`, `llama3:8b`, `llama3.2`) e Mistral (`mistral:latest`, `mistral:7b`, `mistral-nemo`).
+   - Orquestração transparente em cascata: quando provedores na nuvem (Gemini, Groq, OpenRouter, ZAI) sofrem saturação (429), indisponibilidade de rede ou ausência de chaves, o motor local assume automaticamente a inferência clínica com zero atrito.
+   - Sistema de contingência em dupla camada: caso tanto a nuvem quanto o daemon local de LLM estejam inacessíveis (blackout total), o motor aciona o `IaLocalFallbackService` determinístico baseado nas diretrizes oficiais brasileiras e internacionais (PCR ACLS, DULE/perimortem na gestante, Choque Séptico, Choque Anafilático, SCA/IAM, AVC isquêmico, CAD, Crise Asmática, Pré-eclâmpsia Zuspan, DIP/ATO Hager/Monif).
+   - Diagnóstico beira-leito com método `verificarSaudeLocalLlm` e rota RPC `cockpitLocalLlm` integrada ao Fastify para auditoria de status, inferência de teste e parametrização.
+   - Bateria de testes automatizados (`tests/test_ia_local_offline.cjs`, `tests/test_ia_local_offline.py`, `tests/test_ia_local_fallback.cjs`, `tests/test_ia_local_fallback.py`) validada com 100% de sucesso.
+
 - [x] (2026-10-09) **Doença Inflamatória Pélvica (DIP) e Abscesso Tubo-Ovariano (PCDT MS / CDC)**:
    - Implementação de motor determinístico com estadiamento clínico de Monif (Estágios I a IV) e critérios diagnósticos de Hager/PCDT (3 maiores + 1 menor).
    - Auditoria de critérios absolutos de internação (gestação, falha ambulatorial em 72h, abscesso >= 8cm, peritonite difusa).
