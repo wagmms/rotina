@@ -1055,6 +1055,25 @@ function cockpitRbac(initData, params) {
   throw new Error('Ação inválida para Motor de Permissões e Perfis Clínicos (RBAC).');
 }
 
+function cockpitSuporteNutricional(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SuporteNutricionalService === 'undefined') {
+    throw new Error('Módulo SuporteNutricionalService indisponível.');
+  }
+  if (params.acao === 'calcularNecessidadesBasais') {
+    return SuporteNutricionalService.calcularNecessidadesBasais(params.peso, params.alturaCm, params.idade, params.sexo, params.fatorEstresse);
+  }
+  if (params.acao === 'avaliarRiscoRealimentacao') {
+    return SuporteNutricionalService.avaliarRiscoRealimentacao(params.imc, params.perdaPesoMeses, params.jejumDias, params.k, params.mg, params.p);
+  }
+  if (params.acao === 'prescreverTerapiaNutricional') {
+    return SuporteNutricionalService.prescreverTerapiaNutricional(params.jejumDias, params.tratoGastrointestinalFuncionante, params.nrs2002, params.nutricScore);
+  }
+  throw new Error('Ação inválida para Suporte Nutricional.');
+}
+
+
 
 
 

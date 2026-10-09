@@ -823,6 +823,7 @@ module.exports = {
         _rpcMap.cockpitIaLocalStatus = ctx.cockpitIaLocalStatus;
         _rpcMap.cockpitIaLocalFallback = ctx.cockpitIaLocalFallback;
         _rpcMap.cockpitRbac = ctx.cockpitRbac;
+        _rpcMap.cockpitSuporteNutricional = ctx.cockpitSuporteNutricional;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

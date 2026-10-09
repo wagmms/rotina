@@ -23,7 +23,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 
 
-16. [ ] **Módulo de Suporte Nutricional Enteral e Parenteral (UTI/Enfermaria)**:
+16. [x] **Módulo de Suporte Nutricional Enteral e Parenteral (UTI/Enfermaria)**:
     - Calculadora automatizada de necessidade calórico-proteica basal (Equação de Harris-Benedict ou regra de bolso de 25-30 kcal/kg/dia).
     - Alertas críticos para síndrome de realimentação (reposição empírica de Fósforo, Magnésio e Tiamina antes da dieta).
     - Prescrição de nutrição enteral precoce e parenteral total com base nos dias de jejum e risco nutricional (NRS-2002/NUTRIC Score).
@@ -239,12 +239,28 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Cálculo de Índice de Choque no trauma (FC/PAS > 0.9 indicativo de hemorragia oculta) e ativação do Protocolo de Transfusão Maciça 1:1:1 (CHAD, PFC, Plaquetas) com Ácido Tranexâmico 1g IV na 1ª hora (CRASH-2).
 
 
+
+61. [ ] **Nutrologia - Reposição de Micronutrientes em Cirurgia Bariátrica (Pós-Operatório)**:
+    - Motor determinístico para cálculo e prescrição de vitaminas do complexo B (especialmente B12), Vitamina D, Cálcio (Citrato vs Carbonato), Ferro e Zinco conforme o tipo de técnica cirúrgica (restritiva vs disabsortiva/Bypass/Duodenal Switch).
+    - Alertas de monitoramento laboratorial de rotina para deficiências ocultas de micronutrientes.
+
+62. [ ] **Módulo de Reanimação Neonatal (PRN/SBP 2026)**:
+    - Passos iniciais de estabilização do RN em sala de parto, indicações de VPP (Ventilação com Pressão Positiva), intubação e massagem cardíaca baseados em APGAR e FC < 100 ou < 60 bpm.
+    - Doses de adrenalina (0.01 a 0.03 mg/kg IV) e expansor de volume (SF 0.9% 10 mL/kg) para neonatos em PCR.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo de Suporte Nutricional Enteral e Parenteral (UTI/Enfermaria)**
+- [ ] **Módulo de Oncologia Básica para Atenção Primária**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Módulo de Suporte Nutricional Enteral e Parenteral (UTI/Enfermaria)**:
+   - Calculadora automatizada de necessidade calórico-proteica basal com fórmulas de Harris-Benedict e regra de bolso (25-30 kcal/kg).
+   - Motor determinístico de alerta para Síndrome de Realimentação baseado em critérios maiores (IMC < 16, perda de peso extrema, jejum prolongado, distúrbios de K/Mg/P) e menores, com prescrição empírica imediata de Tiamina e avanço lento da dieta.
+   - Algoritmo de decisão de via de Terapia Nutricional (NRS-2002/NUTRIC), indicando Nutrição Enteral precoce vs Parenteral com base na viabilidade do trato gastrointestinal e dias de jejum.
+   - Módulo independente e blindado `src/02_suporte_nutricional.js` integrado via RPC `cockpitSuporteNutricional`.
+   - Suíte de testes automatizados `test_suporte_nutricional.cjs` validada com 100% de sucesso.
+
 - [x] (2026-10-09) **Refatoração do Motor de Permissões e Perfis Clínicos (RBAC & Supervisão Médica)**:
    - Implementação do motor determinístico `RbacPerfisClinicosService` com segmentação hierárquica granular (Acadêmico de Medicina, Residente R1, Residente R2, Residente R3/R4, Preceptor e Farmacêutico Clínico) conforme diretrizes CFM, MEC/CNRM e Segurança do Paciente.
    - Salvaguardas ativas para acadêmicos e residentes juniores: bloqueio de liberação de prescrições ativas e mudança de status de leito sem co-validação preceptorial.
