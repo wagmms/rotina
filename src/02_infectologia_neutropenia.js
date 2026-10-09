@@ -30,6 +30,39 @@ var InfectologiaNeutropeniaService = (function() {
         };
     }
 
+    
+    function calcularCISNE(fatores) {
+        // fatores: { ecogMaiorIgual2: bool, dpoc: bool, doencaCardiovascular: bool, mucosite: bool, monocitosMenor200: bool, hiperglicemiaEstresse: bool }
+        var score = 0;
+        
+        if (fatores.ecogMaiorIgual2) score += 2;
+        if (fatores.dpoc) score += 1;
+        if (fatores.doencaCardiovascular) score += 1;
+        if (fatores.mucosite) score += 1; // NCI CTCAE >= grade 2
+        if (fatores.monocitosMenor200) score += 1;
+        if (fatores.hiperglicemiaEstresse) score += 2;
+        
+        var risco = "";
+        var complicacoes = "";
+        
+        if (score === 0) {
+            risco = "Baixo Risco (CISNE)";
+            complicacoes = "~1.1%";
+        } else if (score >= 1 && score <= 2) {
+            risco = "Risco Intermediário (CISNE)";
+            complicacoes = "~6.2%";
+        } else {
+            risco = "Alto Risco (CISNE)";
+            complicacoes = "~36%";
+        }
+        
+        return {
+            escore: score,
+            risco: risco,
+            complicacoes: complicacoes
+        };
+    }
+
     function protocoloAntibiotico(fatores) {
         // fatores: { instabilidade: bool, suspeitaCateter: bool, mrsa: bool, alergiaPenicilina: 'nao'|'leve'|'grave', diasFebre: number }
         var recomendacao = [];
@@ -63,6 +96,7 @@ var InfectologiaNeutropeniaService = (function() {
 
     function avaliarPaciente(params) {
         var mascc = calcularMASCC(params.mascc || {});
+        var cisne = params.cisne ? calcularCISNE(params.cisne) : null;
         var atb = protocoloAntibiotico(params.clinica || {});
         
         var alertas = [];
@@ -72,6 +106,7 @@ var InfectologiaNeutropeniaService = (function() {
         
         return {
             mascc: mascc,
+            cisne: cisne,
             antibioticoterapia: atb,
             alertas: alertas
         };
@@ -79,6 +114,7 @@ var InfectologiaNeutropeniaService = (function() {
 
     return {
         calcularMASCC: calcularMASCC,
+        calcularCISNE: calcularCISNE,
         protocoloAntibiotico: protocoloAntibiotico,
         avaliarPaciente: avaliarPaciente
     };
