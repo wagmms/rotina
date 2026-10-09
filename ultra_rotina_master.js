@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 19:51:30
- * Checksum SHA256: ba16a0ff45f3f232
+ * Gerado automaticamente via build_master.py em: 2026-10-09 20:08:24
+ * Checksum SHA256: 30e3281280b21696
  * ==============================================================================
  */
 
@@ -502,11 +502,7 @@ function obterUrlCockpit(chatId) {
   var id = chatId ? String(chatId) : ((typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_CHAT_ID") : "");
   var sessao = "";
   if (id && typeof criarSessaoCockpit_ === "function") {
-    try {
-      sessao = criarSessaoCockpit_(id);
-    } catch (eSessao) {
-      sessao = "";
-    }
+    sessao = criarSessaoCockpit_(id);
   }
   var v = (typeof ConfigService !== "undefined" && ConfigService.get && ConfigService.get("COCKPIT_VERSION")) ? ConfigService.get("COCKPIT_VERSION") : "2.5";
   return sessao ? base + "?session=" + sessao + "&v=" + v : base + "?v=" + v;
@@ -50597,19 +50593,7 @@ var cockpitAnemia = cockpitHematologiaAnemias;
 function cockpitICDescompensada(initData, params) {
   cockpitAutorizar_(initData);
   if (!params) throw new Error('Parâmetros obrigatórios para IC Descompensada não fornecidos.');
-  
-  if (typeof CardiologiaICDescompensadaService === 'undefined') {
-    throw new Error('Serviço CardiologiaICDescompensadaService indisponível.');
-  }
-
-  var analise = CardiologiaICDescompensadaService.analisarICDescompensada(params);
-  var texto = CardiologiaICDescompensadaService.formatarTextoTelegram(analise, params);
-
-  return {
-    sucesso: true,
-    resultado: analise,
-    textoFormatado: texto
-  };
+  return cockpitCardiologiaIntensiva(initData, params);
 }
 
 function cockpitCardiologiaIntensiva(initData, params) {
@@ -51019,9 +51003,21 @@ function cockpitOftalmologia(initData, params) {
 }
 
 
-function cockpitChoqueSeptico(pesoKg, doseNora) {
+function cockpitChoqueSeptico(initData, pesoKg, doseNora) {
+  var peso = pesoKg;
+  var dose = doseNora;
+  if (typeof initData === 'number') {
+    dose = pesoKg;
+    peso = initData;
+  } else if (typeof pesoKg === 'object' && pesoKg !== null) {
+    peso = pesoKg.pesoKg || pesoKg.peso;
+    dose = pesoKg.doseNora || pesoKg.dose;
+  } else if (typeof initData === 'object' && initData !== null) {
+    peso = initData.pesoKg || initData.peso;
+    dose = initData.doseNora || initData.dose;
+  }
   if (typeof EmergenciaChoqueSepticoService === "undefined") return { erro: "Módulo offline." };
-  return EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoKg, doseNora);
+  return EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(peso, dose);
 }
 
 if (typeof module !== 'undefined' && module.exports) {

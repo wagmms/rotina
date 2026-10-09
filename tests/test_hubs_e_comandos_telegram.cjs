@@ -18,7 +18,7 @@ const runtime = require('../server/runtime.js');
 async function executarTestesHubsEComandosTelegram() {
   console.log('=== INICIANDO BATERIA DE TESTES: HUBS & COMANDOS DO TELEGRAM ===\n');
   const ctx = runtime.ctx;
-  const chatId = '123456789';
+  const chatId = ctx.ConfigService.get('TELEGRAM_CHAT_ID') || '123456789';
 
   let mensagensEnviadas = [];
   let callbacksRespondidos = [];

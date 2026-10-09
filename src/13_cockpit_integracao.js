@@ -1871,19 +1871,7 @@ var cockpitAnemia = cockpitHematologiaAnemias;
 function cockpitICDescompensada(initData, params) {
   cockpitAutorizar_(initData);
   if (!params) throw new Error('Parâmetros obrigatórios para IC Descompensada não fornecidos.');
-  
-  if (typeof CardiologiaICDescompensadaService === 'undefined') {
-    throw new Error('Serviço CardiologiaICDescompensadaService indisponível.');
-  }
-
-  var analise = CardiologiaICDescompensadaService.analisarICDescompensada(params);
-  var texto = CardiologiaICDescompensadaService.formatarTextoTelegram(analise, params);
-
-  return {
-    sucesso: true,
-    resultado: analise,
-    textoFormatado: texto
-  };
+  return cockpitCardiologiaIntensiva(initData, params);
 }
 
 function cockpitCardiologiaIntensiva(initData, params) {
@@ -2293,9 +2281,21 @@ function cockpitOftalmologia(initData, params) {
 }
 
 
-function cockpitChoqueSeptico(pesoKg, doseNora) {
+function cockpitChoqueSeptico(initData, pesoKg, doseNora) {
+  var peso = pesoKg;
+  var dose = doseNora;
+  if (typeof initData === 'number') {
+    dose = pesoKg;
+    peso = initData;
+  } else if (typeof pesoKg === 'object' && pesoKg !== null) {
+    peso = pesoKg.pesoKg || pesoKg.peso;
+    dose = pesoKg.doseNora || pesoKg.dose;
+  } else if (typeof initData === 'object' && initData !== null) {
+    peso = initData.pesoKg || initData.peso;
+    dose = initData.doseNora || initData.dose;
+  }
   if (typeof EmergenciaChoqueSepticoService === "undefined") return { erro: "Módulo offline." };
-  return EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoKg, doseNora);
+  return EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(peso, dose);
 }
 
 if (typeof module !== 'undefined' && module.exports) {

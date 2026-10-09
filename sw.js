@@ -2,10 +2,13 @@
  * Service Worker: Ultra Rotina Cockpit PWA
  * Cache em Camadas (Layered Caching) para abertura em 0ms mesmo offline (elevador / UTI)
  */
-const CACHE_NAME = 'ultra-rotina-cockpit-v3.0';
+const CACHE_NAME = 'ultra-rotina-cockpit-v3.1';
 
 // Camada 1: App Shell Essencial & Assets Estáticos
 const PRECACHE_ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
   '/',
   '/cockpit',
   '/index.html',
@@ -117,7 +120,7 @@ self.addEventListener('fetch', (event) => {
       }).catch(async () => {
         const cached = await caches.match(event.request);
         if (cached) return cached;
-        const fallbackCockpit = await caches.match('/cockpit') || await caches.match('/') || await caches.match('/index.html');
+        const fallbackCockpit = await caches.match('./index.html') || await caches.match('./') || await caches.match('index.html') || await caches.match('/cockpit') || await caches.match('/') || await caches.match('/index.html');
         return fallbackCockpit;
       })
     );

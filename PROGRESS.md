@@ -13,26 +13,24 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Testes de Integração, Resiliência e Otimização do Cockpit PWA Beira-Leito**:
-    - Testar todas as rotas e métodos RPC consumidos pelo Cockpit (`server/runtime.js` e `src/13_cockpit_integracao.js`).
-    - Validar o comportamento offline determinístico do Cockpit móvel (`calcularOfflineLocal` em `cockpit_movel.html`) e cache do Service Worker.
-    - Otimizar renderização dos cards de leitos, formulários rápidos e tempo de carga da interface no smartphone.
-    - Levantar sugestões futuras para o Cockpit (apenas registrar na seção de sugestões).
-
----
-
-## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
-
-1. [ ] **Auditoria de Eficiência e Testes de Borda nas Calculadoras Clínicas**:
+- [ ] **Auditoria de Eficiência e Testes de Borda nas Calculadoras Clínicas**:
     - Testar cada calculadora clínica (DVA, SRI, Gasometria, Clearance, KDIGO, DHE, PALS, Desidratação, Insulina).
     - Assegurar que valores atípicos ou nulos não gerem erros não tratados (NaN, divisões por zero) e que todos os alertas sentinela continuem íntegros.
     - Otimizar o tempo de computação e simplificar a saída textual mantendo todo o rigor teórico e farmacológico.
     - Anotar sugestões clínicas e novos refinamentos na seção de sugestões futuras.
 
-2. [ ] **Otimização de Performance e Latência do Backend Fastify**:
+---
+
+## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
+
+1. [ ] **Otimização de Performance e Latência do Backend Fastify**:
     - Testar todas as rotas HTTP e endpoints do servidor (`server/index.js`).
     - Avaliar consumo de memória e tempo de resposta das rotas RPC em alta frequência.
     - Otimizar middlewares, serialização JSON e tratamento global de erros para garantir máxima resiliência.
+
+2. [ ] **Auditoria de Acessibilidade, Ergonomia e Atalhos Rápidos no Bot do Telegram**:
+    - Revisar fluxos de navegação, tamanho de teclados e limites de caracteres para conexões instáveis de plantão.
+    - Implementar fallbacks em mensagens longas preservando a integridade das condutas beira-leito.
 
 ---
 
@@ -46,10 +44,35 @@
 - *Sugestão 5 (Telegram / Sala Vermelha)*: Cronômetro interativo com alerta sonoro/notificação no Telegram para ciclos de 2 minutos de RCP no ACLS (`/pcr`), alertando a troca de socorrista, checagem de ritmo e tempo da próxima dose de adrenalina (a cada 3-5 min).
 - *Sugestão 6 (Calculadoras / Cockpit)*: Calculadora integrada de Reposição de Potássio IV (KCl 19,1%) calculando concentração máxima em acesso periférico (40-60 mEq/L) vs acesso venoso central e velocidade de infusão máxima (máx 10-20 mEq/h com monitoração cardíaca) acoplada diretamente ao alerta de hipocalemia.
 - *Sugestão 7 (Telegram - Farmacologia)*: Botão inline de checagem imediata de diluição e compatibilidade em Y no Guia Farmacêutico HSL quando uma droga vasoativa (ex: Noradrenalina ou Dobutamina) for calculada via `/dva`.
+- *Sugestão 8 (Cockpit / PWA)*: Sincronização em segundo plano (Background Sync API) com fila outbox no IndexedDB para envio automático de prescrições e atualizações de leitos assim que o dispositivo recuperar conexão de rede após áreas de sombra no hospital.
+- *Sugestão 9 (Cockpit PWA)*: Tema "Plantão Noturno / Sala Escura" com fundo OLED puro (#000000) e tipografia em tons de âmbar/vermelho escuro para conforto visual e conservação de bateria no plantão da madrugada.
+- *Sugestão 10 (Calculadoras / Cockpit)*: Calculadora integrada de reposição de Magnésio e Fósforo IV para prevenção e manejo precoce da Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado na enfermaria/UTI.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0P. [x] **Testes de Integração, Resiliência e Otimização do Cockpit PWA Beira-Leito**:
+    - **Varredura e Mapeamento de 100% das Rotas RPC no Fastify Runtime**:
+      * Mapeados métodos que estavam ausentes no `_rpcMap` de `server/runtime.js`: `cockpitHepatologiaColestaseGestacional`, `cockpitChoqueSeptico` e `cockpitICC`.
+      * Tornada `cockpitChoqueSeptico` em `src/13_cockpit_integracao.js` polimórfica (aceitando sessão e argumentos posicionais ou objetos).
+      * Conectada `cockpitICDescompensada` diretamente ao `cockpitCardiologiaIntensiva` (`CardiologiaIntensivaService`), eliminando erro de módulo indisponível.
+    - **Blindagem do Service Worker para GitHub Pages e Domínio Raiz (Render)**:
+      * Atualizado Service Worker para versão `ultra-rotina-cockpit-v3.1` com suporte universal a caminhos relativos em `PRECACHE_ASSETS` (`./`, `./index.html`, `./manifest.json`).
+      * Corrigido o registro do Service Worker em `cockpit_movel.html` e `gh_cockpit_deploy/index.html` de `/sw.js` para `./sw.js`, eliminando erro 404 ao carregar o PWA em subdiretórios de repositório no GitHub Pages.
+      * Arquivo `sw.js` sincronizado e disponibilizado diretamente na raiz de deploy estático em `gh_cockpit_deploy/sw.js`.
+    - **Otimização de Renderização Mobile dos Cards de Leitos**:
+      * Implementado Empty State limpo, tátil e informativo quando não há leitos ativos (`Censo Vazio / Sem Leitos Ativos`).
+      * Restrita a varredura do Lucide Icons em `renderizarLeitos` apenas ao elemento container (`lucide.createIcons({ root: container })`), evitando reflow e reprocessamento desnecessário do DOM inteiro do PWA (880 KB) a cada toque no smartphone.
+    - **Expansão do Motor Determinístico Offline (`calcularOfflineLocal`)**:
+      * Implementados cálculos locais determinísticos de contingência (0ms sem internet):
+        - `kdigo` / `lra`: estadiamento KDIGO 1, 2 e 3 por variação e razão de creatinina, com alertas para extremos (> 15 mg/dL).
+        - `curb65` / `pac`: pontuação 0 a 5 com estratificação SBPT/ATS para ambulatório, enfermaria e UTI.
+        - `dengue`: cálculo determinístico de hidratação por peso corporal para grupos A, B, C e D (MS 2024).
+        - `crise_has`: diferenciação de Pseudocrise, Urgência e Emergência Hipertensiva com metas pressóricas e bloqueio de Nifedipino sublingual.
+    - **Bateria de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_cockpit_resiliencia_e_offline.cjs` testando RPCs, motor offline, Service Worker e integridade do HTML, integrada ao script `npm test` no `package.json`.
+      * 100% de aprovação em todos os 20 scripts de teste de integração do projeto.
 
 
 0A. [x] **Conserto Imediato do Raio-X Matinal Repetido**:
