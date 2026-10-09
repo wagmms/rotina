@@ -734,6 +734,20 @@ function cockpitObterModelosExameFisico(initData, params) {
 
 
 
+
+function cockpitAuditarYSite(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof AuditoriaYSiteService === 'undefined') {
+    throw new Error('Módulo AuditoriaYSiteService indisponível.');
+  }
+
+  var lista = params.listaFarmacos || [];
+  var resultado = AuditoriaYSiteService.verificarCompatibilidadeLista(lista);
+  
+  return { sucesso: true, resultado: resultado };
+}
+
 function cockpitSedacaoOpioides(initData, params) {
   cockpitAutorizar_(initData);
   params = params || {};

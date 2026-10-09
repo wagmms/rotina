@@ -15,9 +15,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 
 
-6. [ ] **Auditoria Farmacêutica Hospitalar: Compatibilidade Físico-Química em Y-Site (Linha Venosa)**:
-   - Matriz determinística em RAM de incompatibilidades de precipitados e inativação de fármacos comuns em acesso venoso único/duplo de emergência (ex: Ceftriaxona + Ringer Lactato / soluções com Cálcio causando cristais mortais; Fenitoína em infusão com qualquer solução glicosada causando precipitação imediata; Bicarbonato de Sódio + Catecolaminas causando inativação por pH alcalino; Furosemida + Midazolam).
-
 7. [ ] **Manejo Avançado de Sepse e Choque Séptico Puerperal / Materno (Critérios Sepsis-in-Obstetrics / SOS Score e Bundles de 1 Hora)**:
    - Adaptação fisiológica da gestante mascarando sepse (leucocitose e taquicardia fisiológicas).
    - Escore SOS (Obstetric Sepsis Score) e qSOFA obstétrico para detecção precoce de infecção pélvica/corioamnionite/endometrite puerperal.
@@ -125,6 +122,15 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolo de ressuscitação volêmica dirigida por metas (Lactato Ringer precoce e agressivo nas primeiras 12-24h, com monitorização de ureia e hematócrito para prevenir sobrecarga hídrica e SDRA secundária).
     - Regras alimentares precoces: dieta oral ou enteral (sonda nasojejunal) em 24-48h se tolerável, rejeitando NPO prolongado sem justificativa.
 
+
+30. [ ] **Módulo de Cardiologia de Emergência (Dor Torácica e IAM)**:
+    - Escore HEART (History, ECG, Age, Risk factors, Troponin) e TIMI Risk para estratificação de risco de Síndrome Coronariana Aguda.
+    - Protocolo duplo bloqueio (AAS + Inibidor P2Y12) com bloqueios cruzados (ex: Prasugrel em paciente com AVC prévio).
+
+31. [ ] **Inteligência Gasométrica e Distúrbios Ácido-Base (Regra dos 5 Passos)**:
+    - Motor determinístico para cálculo de compensação esperada (Fórmula de Winter: pCO2 = 1.5 * HCO3 + 8 ± 2).
+    - Cálculo automático de Anion Gap e Delta Ratio para diagnóstico diferencial de acidoses metabólicas ocultas e triplas.
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
@@ -132,6 +138,12 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Auditoria Farmacêutica Hospitalar: Compatibilidade Físico-Química em Y-Site (Linha Venosa)**:
+   - Motor determinístico de verificação cruzada (matriz combinatória) de incompatibilidades intravenosas no Y-Site.
+   - Bloqueios críticos rigorosos implementados para cristalização (Ceftriaxona + Cálcio/Ringer), precipitação (Fenitoína com Glicose, Furosemida + Midazolam) e inativação de aminas (Bicarbonato + Catecolaminas).
+   - Módulo independente `src/02_auditoria_y_site.js` integrado à malha RPC do `server/runtime.js` (`cockpitAuditarYSite`).
+   - Suíte determinística `tests/test_auditoria_y_site.cjs` validada no pytest com 100% de sucesso.
+
 - [x] (2026-10-09) **Mecânica Pulmonar e Ventilação Protetora na SDRA (ARDSNet)**:
    - Calculador beira-leito de peso predito (fórmula ARDSNet baseada na altura e sexo biológico) com ajuste estrito de volume corrente em 4 a 6 mL/kg.
    - Titulação e monitoramento de pressão de platô (Pplat <= 30 cmH2O) e cálculo automático da Driving Pressure (Delta P = Pplat - PEEP, meta <= 14-15 cmH2O).
