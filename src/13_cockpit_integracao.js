@@ -2350,3 +2350,98 @@ function cockpitJones(initData, params) {
   return cockpitReumatologiaFebreReumatica(initData, params);
 }
 
+function cockpitDermatologiaLesao(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de lesão elementar não fornecidos.');
+  if (typeof DermatologiaLesoesIstsService === 'undefined') {
+    throw new Error('Serviço DermatologiaLesoesIstsService indisponível.');
+  }
+  var analise = DermatologiaLesoesIstsService.diferenciarLesaoElementar(params);
+  var texto = DermatologiaLesoesIstsService.formatarDermatologiaTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitDermatologiaHerpes(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Herpes não fornecidos.');
+  if (typeof DermatologiaLesoesIstsService === 'undefined') {
+    throw new Error('Serviço DermatologiaLesoesIstsService indisponível.');
+  }
+  var analise = DermatologiaLesoesIstsService.calcularPosologiaAntiviralHerpes(params);
+  var texto = DermatologiaLesoesIstsService.formatarHerpesAntiviralTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitHerpes(initData, params) {
+  return cockpitDermatologiaHerpes(initData, params);
+}
+
+function cockpitZoster(initData, params) {
+  return cockpitDermatologiaHerpes(initData, params);
+}
+
+function cockpitDermatologiaUlcerasGenitais(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de úlcera genital não fornecidos.');
+  if (typeof DermatologiaLesoesIstsService === 'undefined') {
+    throw new Error('Serviço DermatologiaLesoesIstsService indisponível.');
+  }
+  var analise = DermatologiaLesoesIstsService.avaliarUlceraGenitalIst(params);
+  var texto = DermatologiaLesoesIstsService.formatarUlcerasGenitaisTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitUlceraGenital(initData, params) {
+  return cockpitDermatologiaUlcerasGenitais(initData, params);
+}
+
+function cockpitDermatologiaSifilis(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Sífilis não fornecidos.');
+  if (typeof DermatologiaLesoesIstsService === 'undefined') {
+    throw new Error('Serviço DermatologiaLesoesIstsService indisponível.');
+  }
+  var analise = DermatologiaLesoesIstsService.avaliarSifilisManejo(params);
+  var texto = DermatologiaLesoesIstsService.formatarSifilisTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitSifilis(initData, params) {
+  return cockpitDermatologiaSifilis(initData, params);
+}
+
+function cockpitDermatologiaMpox(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Mpox não fornecidos.');
+  if (typeof DermatologiaLesoesIstsService === 'undefined') {
+    throw new Error('Serviço DermatologiaLesoesIstsService indisponível.');
+  }
+  var analise = DermatologiaLesoesIstsService.avaliarMpox(params);
+  var texto = DermatologiaLesoesIstsService.formatarMpoxTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitMpox(initData, params) {
+  return cockpitDermatologiaMpox(initData, params);
+}
+

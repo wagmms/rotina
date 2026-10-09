@@ -388,10 +388,30 @@
     - Suíte de testes automatizados `tests/test_cockpit_offline_indexeddb.cjs` e `tests/test_cockpit_offline_indexeddb.py` incorporados no pipeline de testes (`npm test` e pytest com 100% de sucesso).
     - Sincronização de deploy do bundle Cockpit no GitHub Pages (`gh_cockpit_deploy/index.html`).
 
-53. [ ] **Dermatologia e Infectologia - Diagnóstico e Manejo de Lesões Elementares e ISTs Cutâneas (Herpes, Sífilis Secundária, Mpox)**:
-    - Algoritmo de diferenciação morfológica (mácula, pápula, vesícula, bolha, crosta).
-    - Protocolo posológico de Aciclovir/Valaciclovir para Herpes Zoster e Herpes Simples com ajuste estrito por ClCr.
-    - Abordagem sindrômica de úlceras genitais (Cancro mole, Linfogranuloma venéreo, Donovanose, Sífilis primária) com fluxograma do Ministério da Saúde 2026.
+53. [x] **Dermatologia e Infectologia - Diagnóstico e Manejo de Lesões Elementares e ISTs Cutâneas (Herpes, Sífilis Secundária, Mpox)**:
+    - Motor determinístico beira-leito para análise dermatológica e ISTs (`src/02_dermatologia_lesoes_ists.js`):
+      * **Algoritmo de Diferenciação Morfológica de Lesões Elementares**:
+        - Classificação por categorias: alterações de cor (máculas, manchas e púrpuras), elevações sólidas (pápulas, placas, nódulos), conteúdo líquido (vesículas, bolhas, pústulas) e perdas/secundárias (erosões, úlceras, crostas).
+        - Red flags imediatos: Sinal de Hutchinson (vesículas na ponta/asa do nariz - comprometimento do ramo nasociliar de V1 com risco iminente de ceratite herpética e amaurose, urgência oftalmológica mandatória); Sinal de Nikolsky positivo com descolamento epidérmico e acometimento mucoso (alerta crítico para SSJ/NET com suspensão imediata de fármacos suspeitos); Púrpura/petéquias que não desaparecem à digitopressão associadas a febre (alerta de sepse/meningococcemia/CIVD com indicação imediata de Ceftriaxona 2g IV); Pápulas descamativas palmo-plantares com colarete periférico de Biett (patognomônico de Sífilis Secundária).
+      * **Protocolo Posológico de Antivirais (Herpes Zoster & Herpes Simples) com Ajuste por ClCr**:
+        - Herpes Zoster Oral: Aciclovir 800 mg 5x/dia por 7 dias (ajustado para 8/8h se ClCr 10-25 mL/min; 12/12h se ClCr < 10 mL/min; dose pós-diálise em hemodiálise) e Valaciclovir 1.000 mg 8/8h por 7 dias (ajustado para 12/12h se ClCr 30-49 mL/min; 24/24h se ClCr 10-29 mL/min; 500 mg 24/24h se ClCr < 10 mL/min ou hemodiálise).
+        - Herpes Zoster Intravenoso (casos graves/imunossuprimidos): Aciclovir 10 mg/kg IV de 8/8h com ajuste por ClCr, regra estrita de infusão lenta em pelo menos 1 hora e hidratação venosa vigorosa profilática contra cristalúria tubular renal.
+        - Herpes Simples Genital: Primoinfecção (Aciclovir 400 mg 8/8h 7-10d ou Valaciclovir 1.000 mg 12/12h); Recorrência (Aciclovir 400 mg 8/8h 5d ou Valaciclovir 500 mg 12/12h 3d); Terapia Supressiva Crônica (Aciclovir 400 mg 12/12h contínuo ou Valaciclovir 500 mg/dia); Alerta de cesariana mandatória se lesões ativas em trabalho de parto para prevenção de encefalite neonatal.
+        - Analgesia e Prevenção de Neuralgia Pós-Herpética: introdução precoce de Gabapentina (300 a 1.800 mg/dia) ou Pregabalina (75 a 150 mg 12/12h) e analgesia escalonada.
+      * **Abordagem Sindrômica de Úlceras Genitais (PCDT Ministério da Saúde 2024-2026)**:
+        - Ramo Herpético: vesículas agrupadas presentes -> tratar Herpes Genital com Aciclovir/Valaciclovir.
+        - Ramo Agudo (< 4 semanas sem vesículas): tratamento empírico duplo mandatório para Sífilis Primária (Penicilina G Benzatina 2.400.000 UI IM dose única) + Cancro Mole (Azitromicina 1.000 mg VO dose única); Bloqueio absoluto de Doxiciclina na gestante com indicação de dessensibilização hospitalar com penicilina.
+        - Ramo Crônico (>= 4 semanas): tratamento estendido para Donovanose (*Klebsiella granulomatis*) com Azitromicina 1g/sem ou 500mg/dia por >= 3 semanas até cicatrização completa; Doxiciclina 100mg 12/12h por 21 dias para Linfogranuloma Venéreo (*Chlamydia trachomatis* L1-L3); Alerta de biópsia incisional de borda de lesão para afastar Carcinoma Espinocelular.
+        - Notificação compulsória (SINAN) e tratamento de parcerias sexuais dos últimos 90 dias.
+      * **Manejo da Sífilis e Reação de Jarisch-Herxheimer**:
+        - Estadiamento preciso: Primária/Secundária/Latente Recente (Penicilina G Benzatina 2.400.000 UI IM dose única fracionada em 1,2M UI por glúteo) vs Latente Tardia/Ignorada (Penicilina G Benzatina 2.400.000 UI IM semanal por 3 semanas consecutivas - total 7.200.000 UI) vs Neurossífilis (Penicilina Cristalina IV 18-24M UI/dia por 10-14 dias em internação com punção lombar).
+        - Alerta educativo sobre Reação de Jarisch-Herxheimer nas primeiras 24 horas: liberação aguda de endotoxinas, autolimitada, tranquilização do paciente, sintomáticos e monitoramento de vitalidade fetal em gestantes.
+        - Critérios de cura sorológica com VDRL: queda de 2 titulações (ou 4 vezes) em 6 meses (sífilis recente) e 12 meses (sífilis tardia); desmistificação da cicatriz sorológica.
+      * **Mpox (Monkeypox / Orthopoxvirus) e Biossegurança**:
+        - Tríade clássica: febre + linfadenomegalia dolorosa acentuada + vesículas/pústulas umbilicadas com acometimento anogenital e mucosas.
+        - Biossegurança: isolamento domiciliar estrito até a queda de todas as crostas e reepitelização completa; EPI profissional com máscara PFF2/N95, óculos e capote.
+        - Manejo de proctite intensa: banho de assento morno, anestésico tópico e analgesia escalonada.
+    - Integração Fastify RPC (`cockpitDermatologiaLesao`, `cockpitDermatologiaHerpes`, `cockpitHerpes`, `cockpitZoster`, `cockpitDermatologiaUlcerasGenitais`, `cockpitUlceraGenital`, `cockpitDermatologiaSifilis`, `cockpitSifilis`, `cockpitDermatologiaMpox`, `cockpitMpox`), comandos Telegram (`/dermato`, `/lesao`, `/lesoes`, `/pele`, `/herpes`, `/zoster`, `/aciclovir`, `/valaciclovir`, `/ulceragenital`, `/cancro`, `/donovanose`, `/lgv`, `/sifilis`, `/biett`, `/roseola`, `/mpox`, `/monkeypox`), manual de ajuda expandido e suíte de testes dedicados `tests/test_dermatologia_lesoes_ists.cjs` 100% aprovada.
 
 54. [ ] **Módulo de Terapia Intensiva - Choque Séptico Refratário e Manejo de Insuficiência Adrenal Relativa (CIRCI)**:
     - Escore de suspeição de CIRCI e indicação precisa de Hidrocortisona 200 mg/dia contínua em choque dependente de doses elevadas de vasopressores (> 0,25 mcg/kg/min).

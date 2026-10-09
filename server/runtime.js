@@ -891,6 +891,16 @@ module.exports = {
         _rpcMap.cockpitReumatologiaFebreReumatica = ctx.cockpitReumatologiaFebreReumatica;
         _rpcMap.cockpitFebreReumatica = ctx.cockpitFebreReumatica || ctx.cockpitReumatologiaFebreReumatica;
         _rpcMap.cockpitJones = ctx.cockpitJones || ctx.cockpitReumatologiaFebreReumatica;
+        _rpcMap.cockpitDermatologiaLesao = ctx.cockpitDermatologiaLesao;
+        _rpcMap.cockpitDermatologiaHerpes = ctx.cockpitDermatologiaHerpes;
+        _rpcMap.cockpitHerpes = ctx.cockpitHerpes || ctx.cockpitDermatologiaHerpes;
+        _rpcMap.cockpitZoster = ctx.cockpitZoster || ctx.cockpitDermatologiaHerpes;
+        _rpcMap.cockpitDermatologiaUlcerasGenitais = ctx.cockpitDermatologiaUlcerasGenitais;
+        _rpcMap.cockpitUlceraGenital = ctx.cockpitUlceraGenital || ctx.cockpitDermatologiaUlcerasGenitais;
+        _rpcMap.cockpitDermatologiaSifilis = ctx.cockpitDermatologiaSifilis;
+        _rpcMap.cockpitSifilis = ctx.cockpitSifilis || ctx.cockpitDermatologiaSifilis;
+        _rpcMap.cockpitDermatologiaMpox = ctx.cockpitDermatologiaMpox;
+        _rpcMap.cockpitMpox = ctx.cockpitMpox || ctx.cockpitDermatologiaMpox;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

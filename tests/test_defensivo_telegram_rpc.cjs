@@ -38,7 +38,9 @@ async function testDefensivo() {
     '/endometriose', '/dienogeste',
     '/saf', '/trombofilia',
     '/dva', '/sri', '/gaso', '/winter',
-    '/pals', '/avc', '/hic', '/kdigo'
+    '/pals', '/avc', '/hic', '/kdigo',
+    '/monoartrite', '/gota', '/febrereumatica',
+    '/dermato', '/herpes', '/zoster', '/ulceragenital', '/sifilis', '/mpox'
   ];
 
   const variacoesTexto = [
@@ -84,7 +86,14 @@ async function testDefensivo() {
     'cockpitGasometriaAcidoBase',
     'cockpitSuporteNutricionalPediatrico',
     'cockpitCardiologiaIntensiva',
-    'cockpitNefrologiaKdigo'
+    'cockpitNefrologiaKdigo',
+    'cockpitReumatologiaMonoartrite',
+    'cockpitReumatologiaFebreReumatica',
+    'cockpitDermatologiaLesao',
+    'cockpitDermatologiaHerpes',
+    'cockpitDermatologiaUlcerasGenitais',
+    'cockpitDermatologiaSifilis',
+    'cockpitDermatologiaMpox'
   ];
 
   const payloadsRpc = [

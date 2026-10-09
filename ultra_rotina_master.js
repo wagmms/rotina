@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 10:53:13
- * Checksum SHA256: b04ee3e9f298e0d5
+ * Gerado automaticamente via build_master.py em: 2026-10-09 11:11:58
+ * Checksum SHA256: ab45d07217433380
  * ==============================================================================
  */
 
@@ -9093,6 +9093,964 @@ var ClimaterioThmService = (function() {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { ClimaterioThmService: ClimaterioThmService };
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_dermatologia_lesoes_ists.js
+// ==============================================================================
+
+/**
+ * @file 02_dermatologia_lesoes_ists.js
+ * @description Módulo de Dermatologia e Infectologia: Diagnóstico e Manejo de Lesões Elementares,
+ * ISTs Cutâneas (Herpes Simples, Herpes Zoster com ajuste por ClCr, Sífilis Secundária com colarete de Biett,
+ * Mpox com critérios de isolamento) e Abordagem Sindrômica de Úlceras Genitais (Ministério da Saúde PCDT 2024-2026).
+ */
+
+var DermatologiaLesoesIstsService = (function() {
+    'use strict';
+
+    /**
+     * 1. Algoritmo de Diferenciação Morfológica de Lesões Elementares da Pele
+     * @param {Object} p Parâmetros morfológicos e clínicos
+     * @returns {Object} Classificação elementar, hipóteses diagnósticas e red flags
+     */
+    function diferenciarLesaoElementar(p) {
+        p = p || {};
+        var textoEntrada = (String(p.texto || "") + " " + String(p.descricao || "") + " " + String(p.morfologia || "") + " " + String(p.localizacao || "") + " " + String(p.distribuicao || "") + " " + String(p.cor || "") + " " + String(p.sintomas || "")).toLowerCase().trim();
+        var morfologia = String(p.morfologia || textoEntrada).toLowerCase().trim();
+        var localizacao = String(p.localizacao || p.distribuicao || textoEntrada).toLowerCase().trim();
+        var cor = String(p.cor || textoEntrada).toLowerCase().trim();
+        var sintomas = String(p.sintomas || textoEntrada).toLowerCase().trim();
+
+        var digitopressao = p.digitopressao !== undefined ? String(p.digitopressao).toLowerCase() : "";
+        if (!digitopressao) {
+            if (textoEntrada.indexOf("nao some") !== -1 || textoEntrada.indexOf("não some") !== -1 || textoEntrada.indexOf("nao desaparece") !== -1 || textoEntrada.indexOf("não desaparece") !== -1) {
+                digitopressao = "nao_some";
+            } else if (textoEntrada.indexOf("some") !== -1 || textoEntrada.indexOf("desaparece") !== -1) {
+                digitopressao = "some";
+            }
+        }
+
+        var hutchinson = !!(p.hutchinson || /(?:hutchinson|asa do nariz|ponta do nariz)/i.test(textoEntrada));
+        var nikolsky = !!(p.nikolsky || /(?:nikolsky|descolamento epidermico|descolamento epidérmico)/i.test(textoEntrada));
+        var mucosas = !!(p.mucosas || /(?:mucosa|oral|ocular|conjuntiv|labio|genital)/i.test(textoEntrada));
+        var febre = !!(p.febre || /(?:febre|febril|tax)/i.test(textoEntrada));
+
+        var res = {
+            morfologia_identificada: "Indeterminada",
+            categoria_elementar: "",
+            definicao: "",
+            hipoteses_diagnosticas: [],
+            red_flags: [],
+            conduta_beira_leito: [],
+            alertas_seguranca: []
+        };
+
+        // Identificação morfológica
+        var ehMacula = /m[aá]cula|mancha/i.test(morfologia);
+        var ehPapula = /p[aá]pula/i.test(morfologia);
+        var ehPlaca = /placa/i.test(morfologia);
+        var ehNodulo = /n[oó]dulo|nodosidade/i.test(morfologia);
+        var ehVesicula = /ves[ií]cula/i.test(morfologia);
+        var ehBolha = /bolha|flictena/i.test(morfologia);
+        var ehPustula = /p[uú]stula/i.test(morfologia);
+        var ehCrosta = /crosta/i.test(morfologia);
+        var ehUlcera = /[uú]lcera|ferida|perda de subst/i.test(morfologia);
+        var ehErosao = /eros[aã]o|exulcera[cç]/i.test(morfologia);
+        var ehPurpura = /p[uú]rpura|pet[eé]quia|equimose/i.test(morfologia);
+        var ehUrtica = /[uú]rtica|verg[aã]o|edema fugaz/i.test(morfologia);
+
+        if (ehPurpura || digitopressao === "nao_some") {
+            res.morfologia_identificada = "Púrpura / Petéquias";
+            res.categoria_elementar = "Alteração de Cor por Extravasamento Sanguíneo (Mancha Hemorrágica)";
+            res.definicao = "Extravasamento hemorrágico dérmico que NÃO desaparece à digitopressão / vitropressão.";
+            res.hipoteses_diagnosticas.push("Púrpura Trombocitopênica (Plaquetopenia severa)");
+            res.hipoteses_diagnosticas.push("Vasculite Leucocitoclástica / IgA (Henoch-Schönlein)");
+            res.hipoteses_diagnosticas.push("Meningococcemia / Sepse Grave com CIVD (Púrpura Fulminans)");
+            res.hipoteses_diagnosticas.push("Endocardite Infecciosa (Lesões de Janeway / Manchas de Roth)");
+            res.hipoteses_diagnosticas.push("Farmacodermia purpúrica");
+
+            res.red_flags.push("🔴 ALERTA VERMELHO: Lesões purpúricas/petéquias que NÃO somem à digitopressão indicam extravasamento de hemácias.");
+            if (febre) {
+                res.red_flags.push("🚨 EMERGÊNCIA MÉDICA: Febre + Púrpura/Petéquias em rápida progressão impõe afastar MENINGOCOCCEMIA e Sepse com CIVD. Coletar hemoculturas e iniciar Ceftriaxona 2g IV imediatamente sem atraso!");
+            }
+            res.conduta_beira_leito.push("Solicitar Hemograma completo urgente com contagem de plaquetas, Coagulograma (TP/TTPa/Fibrinogênio/D-dímero) e função renal.");
+        } else if (ehVesicula) {
+            res.morfologia_identificada = "Vesícula (< 1,0 cm)";
+            res.categoria_elementar = "Lesão de Conteúdo Líquido Claro";
+            res.definicao = "Elevação circunscrita da pele com diâmetro menor que 1,0 cm contendo líquido claro/seroso.";
+
+            var dermatomica = /(?:derm[aá]tomo|zoster|faixa|unilateral|tor[aá]cico)/i.test(localizacao);
+            var genital = /(?:genital|penis|pênis|vulva|vagina|perineo|períneo)/i.test(localizacao);
+            var labial = /(?:l[aá]bio|perioral|boca|face)/i.test(localizacao);
+            var umbilicada = /(?:umbilicad|centro deprimido|mpox|monkeypox)/i.test(textoEntrada);
+
+            if (dermatomica) {
+                res.hipoteses_diagnosticas.push("Herpes Zoster (Reativação do VZV)");
+            }
+            if (genital) {
+                res.hipoteses_diagnosticas.push("Herpes Simples Genital (HSV-2 / HSV-1)");
+            }
+            if (labial) {
+                res.hipoteses_diagnosticas.push("Herpes Simples Labial (HSV-1)");
+            }
+            if (umbilicada) {
+                res.hipoteses_diagnosticas.push("Mpox (Monkeypox - Orthopoxvirus) ou Molusco Contagioso");
+            }
+            res.hipoteses_diagnosticas.push("Varicela (Catapora - polimorfismo regional típico)");
+            res.hipoteses_diagnosticas.push("Eczema Herpético (Erupção Variceliforme de Kaposi em dermatite atópica)");
+            res.hipoteses_diagnosticas.push("Dermatite de Contato Aguda / Fitofotodermatose");
+
+            if (hutchinson) {
+                res.red_flags.push("👁️ SINAL DE HUTCHINSON POSITIVO: Vesículas na ponta ou asa do nariz indicam acometimento do ramo nasociliar do nervo oftálmico (V1). Risco iminente de CERATITE HERPÉTICA, uveíte e perda visual permanente!");
+                res.red_flags.push("Mandatória AVALIAÇÃO OFTALMOLÓGICA URGENTE em lâmpada de fenda e início imediato de Antiviral sistêmico em dose plena.");
+            }
+            res.conduta_beira_leito.push("Evitar romper as vesículas; manter área limpa com soro fisiológico ou permanganato diluído 1:40.000.");
+            res.conduta_beira_leito.push("Avaliar indicação precoce de Aciclovir ou Valaciclovir nas primeiras 72 horas para prevenir complicações e neuralgia pós-herpética.");
+        } else if (ehBolha) {
+            res.morfologia_identificada = "Bolha / Flictena (> 1,0 cm)";
+            res.categoria_elementar = "Lesão de Conteúdo Líquido Amplo";
+            res.definicao = "Elevação circunscrita contendo líquido seroso, turvo ou hemorrágico com diâmetro superior a 1,0 cm.";
+            res.hipoteses_diagnosticas.push("Farmacodermia Severa: Síndrome de Stevens-Johnson (SSJ) / NET");
+            res.hipoteses_diagnosticas.push("Queimadura térmica ou química de 2º grau");
+            res.hipoteses_diagnosticas.push("Doença Bolhosa Autoimune: Penfigoide Bolhoso (subepidérmica, tensa) vs Pênfigo Vulgar (intraepidérmica, flácida)");
+            res.hipoteses_diagnosticas.push("Erisipela Bolhosa / Fasciíte Necrosante");
+            res.hipoteses_diagnosticas.push("Síndrome da Pele Escaldada Estafilocócica (SSSS)");
+
+            if (nikolsky || (mucosas && febre)) {
+                res.red_flags.push("🚨 SINAL DE NIKOLSKY POSITIVO / DESCOLAMENTO EPIDÉRMICO: Forte suspeita de SSJ / NET (Síndrome de Stevens-Johnson / Necrólise Epidérmica Tóxica).");
+                res.red_flags.push("Suspender IMEDIATAMENTE todas as medicações suspeitas recentes (anticonvulsivantes, alopurinol, sulfas, AINEs).");
+                res.red_flags.push("Indicação de internação em UTI ou Unidade de Queimados, hidratação volêmica cuidadosa e suporte dermatológico avançado.");
+            }
+        } else if (ehPustula) {
+            res.morfologia_identificada = "Pústula (< 1,0 cm com conteúdo purulento)";
+            res.categoria_elementar = "Lesão de Conteúdo Purulento Circunscrito";
+            res.definicao = "Elevação circunscrita da epiderme preenchida por exsudato purulento estéril ou séptico.";
+            res.hipoteses_diagnosticas.push("Foliculite bacteriana (Staphylococcus aureus)");
+            res.hipoteses_diagnosticas.push("Acne vulgar inflamatória");
+            res.hipoteses_diagnosticas.push("Rosácea pápulo-pustulosa");
+            res.hipoteses_diagnosticas.push("Mpox na fase pustulosa umbilicada");
+            res.hipoteses_diagnosticas.push("Psoríase Pustulosa generalizada (Von Zumbusch) ou Farmacodermia (PEGA - Pustulose Exantemática Generalizada Aguda)");
+            res.conduta_beira_leito.push("Higiene local com sabonete antisséptico; avaliar antibioticoterapia tópica ou oral se celulite adjacente.");
+        } else if (ehCrosta) {
+            res.morfologia_identificada = "Crosta";
+            res.categoria_elementar = "Lesão Elementar Secundária por Ressecamento";
+            res.definicao = "Concreção amarelada, esverdeada ou hemorrágica resultante do ressecamento de serosidade, pus ou sangue.";
+            if (textoEntrada.indexOf("melicerica") !== -1 || textoEntrada.indexOf("melicérica") !== -1 || textoEntrada.indexOf("amarela mel") !== -1) {
+                res.hipoteses_diagnosticas.push("Impetigo Crostoso (Staphylococcus aureus e Streptococcus pyogenes) - Altamente contagioso");
+            }
+            res.hipoteses_diagnosticas.push("Fase de cicatrização de Herpes Zoster, Herpes Simples ou Varicela");
+            res.hipoteses_diagnosticas.push("Mpox na fase de crosta (desprendimento das crostas marca o fim da transmissibilidade)");
+            res.hipoteses_diagnosticas.push("Dermatite Seborreica crostosa");
+            res.conduta_beira_leito.push("Remoção delicada com compressas úmidas mornas de soro fisiológico; não forçar arrancamento precoce.");
+            if (textoEntrada.indexOf("melicerica") !== -1 || textoEntrada.indexOf("melicérica") !== -1) {
+                res.conduta_beira_leito.push("Tratar Impetigo com Mupirocina tópica 2% 3x/dia por 5-7 dias (se localizado) ou Cefalexina 500mg VO 6/6h (se disseminado).");
+            }
+        } else if (ehUlcera || ehErosao) {
+            res.morfologia_identificada = ehUlcera ? "Úlcera" : "Erosão / Exulceração";
+            res.categoria_elementar = "Solução de Continuidade / Perda Tecidual";
+            res.definicao = ehUlcera ? "Perda tecidual profunda (epiderme e derme/hipoderme), que cura com cicatriz." : "Perda superficial confinada à epiderme, curando sem deixar cicatriz.";
+            if (/(?:genital|penis|pênis|vulva|vagina|glande|prepucio|virilha)/i.test(localizacao)) {
+                res.hipoteses_diagnosticas.push("Úlcera Genital por IST: Sífilis primária, Cancro Mole, Herpes Genital, Donovanose, LGV");
+                res.conduta_beira_leito.push("Aplicar Fluxograma de Abordagem Sindrômica de Úlceras Genitais do Ministério da Saúde.");
+            } else {
+                res.hipoteses_diagnosticas.push("Úlcera Venosa crônica de estase / Úlcera Arterial isquêmica");
+                res.hipoteses_diagnosticas.push("Úlcera de Pressão (Lesão por Pressão / LPP)");
+                res.hipoteses_diagnosticas.push("Leishmaniose Tegumentar Americana (úlcera indolor em moldura de quadro)");
+                res.hipoteses_diagnosticas.push("Carcinoma Espinocelular / Basocelular ulcerado");
+            }
+        } else if (ehPapula || ehPlaca) {
+            res.morfologia_identificada = ehPapula ? "Pápula (< 1,0 cm)" : "Placa (> 1,0 cm)";
+            res.categoria_elementar = "Lesão Sólida Circunscrita";
+            res.definicao = "Elevação sólida da pele decorrente de hiperplasia, infiltrado celular ou depósito dérmico.";
+
+            var palmoplantar = /(?:palma|planta|palmoplantar|palmar|plantar)/i.test(localizacao);
+            var colarete = /(?:biett|colarete|descamativo|descamacao perif)/i.test(textoEntrada);
+
+            if (palmoplantar || colarete) {
+                res.hipoteses_diagnosticas.push("SÍFILIS SECUNDÁRIA (Sifílides papulosas com colarete descamativo de Biett e acometimento palmo-plantar)");
+                res.red_flags.push("🔍 Pápulas descamativas em palmas e plantas com colarete periférico (Colarete de Biett) são ALTAMENTE PATOGNOMÔNICAS de Sífilis Secundária. Mandatório solicitar Teste Rápido / VDRL!");
+            }
+            res.hipoteses_diagnosticas.push("Psoríase vulgar (placas eritemato-descamativas em cotovelos, joelhos e couro cabeludo)");
+            res.hipoteses_diagnosticas.push("Líquen Plano (pápulas poligonais violáceas pruriginosas com estrias de Wickham)");
+            res.hipoteses_diagnosticas.push("Molusco contagioso (pápulas cupuliformes umbilicadas)");
+            res.hipoteses_diagnosticas.push("Verruga vulgar / HPV");
+            res.hipoteses_diagnosticas.push("Farmacodermia maculopapular");
+        } else if (ehNodulo) {
+            res.morfologia_identificada = "Nódulo / Nodosidade (> 1,0 a 3,0 cm)";
+            res.categoria_elementar = "Lesão Sólida Profunda Palpável";
+            res.definicao = "Infiltração ou neoformação sólida profunda na derme ou hipoderme, mais palpável que visível.";
+            res.hipoteses_diagnosticas.push("Eritema Nodoso (nódulos subcutâneos eritematosos e dolorosos pré-tibiais)");
+            res.hipoteses_diagnosticas.push("Cisto epidérmico inflamado / Lipoma");
+            res.hipoteses_diagnosticas.push("Esporotricose gomosa / Micose profunda");
+            res.hipoteses_diagnosticas.push("Metástase cutânea / Neoplasia mesenquimal");
+        } else if (ehMacula) {
+            res.morfologia_identificada = "Mácula / Mancha";
+            res.categoria_elementar = "Modificação de Cor da Pele sem Relevo";
+            res.definicao = "Alteração circunscrita na cor da pele sem espessamento, elevação ou depressão anatômica palpável.";
+
+            if (cor.indexOf("vermelh") !== -1 || cor.indexOf("eritem") !== -1 || digitopressao === "some") {
+                res.hipoteses_diagnosticas.push("Exantema Viral agudo (Sarampo, Rubéola, Dengue, Arboviroses)");
+                res.hipoteses_diagnosticas.push("Roséola Sifilítica (Sífilis Secundária precoce em tronco)");
+                res.hipoteses_diagnosticas.push("Farmacodermia exantemática leve");
+            } else if (cor.indexOf("branc") !== -1 || cor.indexOf("hipo") !== -1 || cor.indexOf("acrom") !== -1) {
+                res.hipoteses_diagnosticas.push("Pitiríase Versicolor (Malassezia furfur)");
+                res.hipoteses_diagnosticas.push("Hanseníase indeterminada ou tuberculoide (pesquisar alteração de sensibilidade térmica/tátil/dolorosa)");
+                res.hipoteses_diagnosticas.push("Vitiligo (acromia completa)");
+                res.hipoteses_diagnosticas.push("Pitiríase Alba (atópica)");
+            } else {
+                res.hipoteses_diagnosticas.push("Melasma / Efélides / Manchas pós-inflamatórias");
+            }
+        } else {
+            res.morfologia_identificada = "Avaliação Clínica Geral";
+            res.categoria_elementar = "Não especificada estritamente";
+            res.definicao = "Caracterize se a lesão é plana (mácula), sólida elevada (pápula/placa/nódulo), líquida (vesícula/bolha/pústula) ou solução de continuidade (úlcera/erosão).";
+            res.hipoteses_diagnosticas.push("Dermatite / Eczema");
+            res.hipoteses_diagnosticas.push("Infecção fúngica superficial (Tinea)");
+            res.hipoteses_diagnosticas.push("Farmacodermia");
+        }
+
+        return res;
+    }
+
+    /**
+     * 2. Cálculo Posológico de Antivirais para Herpes Simples e Zoster com Ajuste Estrito por ClCr
+     * @param {Object} p Parâmetros clínicos, laboratoriais e de posologia
+     * @returns {Object} Prescrição detalhada, posologia de Aciclovir e Valaciclovir ajustados por ClCr
+     */
+    function calcularPosologiaAntiviralHerpes(p) {
+        p = p || {};
+        var tipo = String(p.tipo || "zoster").toLowerCase().trim();
+        var clcr = parseFloat(p.clcr);
+        var peso = parseFloat(p.peso) || 70;
+        var idade = parseInt(p.idade, 10);
+        var hutchinson = !!(p.hutchinson || p.zoster_oftalmico);
+        var imunossuprimido = !!(p.imunossuprimido || p.hiv || p.transplante || p.quimioterapia);
+        var gestante = !!p.gestante;
+        var dialise = !!(p.hemodialise || p.dialise || (clcr < 10 && p.dialitico));
+
+        // Clamps sanitizadores
+        if (isNaN(clcr) || clcr < 0) {
+            clcr = 100; // Normal padrão quando não informado
+        }
+        if (peso < 10) peso = 10;
+        if (peso > 200) peso = 200;
+
+        var res = {
+            patologia: "",
+            droga_primeira_escolha: "Valaciclovir ou Aciclovir",
+            aciclovir_oral: null,
+            valaciclovir_oral: null,
+            aciclovir_intravenoso: null,
+            ajuste_renal_aplicado: false,
+            faixa_clcr: "",
+            duracao_tratamento: "7 dias",
+            tempo_inicio_ideal: "Até 72 horas do início das vesículas (ou a qualquer momento se novas lesões ativas, idosos ou imunossuprimidos)",
+            alertas_seguranca: [],
+            bloqueios_iatrogenia: [],
+            manejo_dor_e_adjuvantes: []
+        };
+
+        // Identificação da faixa renal
+        if (dialise) {
+            res.faixa_clcr = "Hemodiálise / DRC Terminal";
+            res.ajuste_renal_aplicado = true;
+        } else if (clcr >= 50) {
+            res.faixa_clcr = "Função Renal Normal ou Levemente Reduzida (ClCr >= 50 mL/min)";
+        } else if (clcr >= 30) {
+            res.faixa_clcr = "Disfunção Renal Moderada (ClCr 30 a 49 mL/min)";
+            res.ajuste_renal_aplicado = true;
+        } else if (clcr >= 10) {
+            res.faixa_clcr = "Disfunção Renal Grave (ClCr 10 a 29 mL/min)";
+            res.ajuste_renal_aplicado = true;
+        } else {
+            res.faixa_clcr = "Insuficiência Renal Terminal (ClCr < 10 mL/min)";
+            res.ajuste_renal_aplicado = true;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // RAMIFICAÇÃO A: HERPES ZOSTER (VZV)
+        // ─────────────────────────────────────────────────────────────────────
+        if (tipo.indexOf("zoster") !== -1) {
+            res.patologia = "Herpes Zoster (Reativação do Vírus Varicela-Zóster - VZV)";
+            res.duracao_tratamento = "7 dias (estender para 10 a 14 dias se imunodeprimido ou resposta lenta)";
+
+            // 1. Aciclovir Oral (Base: 800 mg 5x/dia)
+            var aciclovirDose = "800 mg";
+            var aciclovirFreq = "5 vezes ao dia (a cada 4 horas enquanto acordado: 06h, 10h, 14h, 18h, 22h)";
+            if (dialise) {
+                aciclovirFreq = "800 mg a cada 12 horas + dose suplementar de 800 mg imediatamente APÓS a hemodiálise";
+            } else if (clcr < 10) {
+                aciclovirFreq = "800 mg a cada 12 horas (12/12h)";
+            } else if (clcr <= 25) {
+                aciclovirFreq = "800 mg a cada 8 horas (8/8h)";
+            }
+
+            res.aciclovir_oral = {
+                medicamento: "Aciclovir 800 mg comprimidos",
+                posologia: aciclovirDose + " VO, " + aciclovirFreq + " por 7 dias.",
+                ajuste_clcr: "Base 800mg 5x/d: ClCr >25 mL/min (5x/dia); ClCr 10-25 mL/min (8/8h); ClCr <10 mL/min (12/12h); Diálise (12/12h + pós-sessão)."
+            };
+
+            // 2. Valaciclovir Oral (Base: 1.000 mg 8/8h - padrão ouro em conveniência e absorção)
+            var valaciclovirDose = "1.000 mg";
+            var valaciclovirFreq = "a cada 8 horas (3 vezes ao dia)";
+            if (dialise) {
+                valaciclovirDose = "500 mg";
+                valaciclovirFreq = "a cada 24 horas (tomar logo após a hemodiálise nos dias de sessão)";
+            } else if (clcr < 10) {
+                valaciclovirDose = "500 mg";
+                valaciclovirFreq = "a cada 24 horas (1 vez ao dia)";
+            } else if (clcr < 30) {
+                valaciclovirDose = "1.000 mg";
+                valaciclovirFreq = "a cada 24 horas (1 vez ao dia)";
+            } else if (clcr < 50) {
+                valaciclovirDose = "1.000 mg";
+                valaciclovirFreq = "a cada 12 horas (2 vezes ao dia)";
+            }
+
+            res.valaciclovir_oral = {
+                medicamento: "Valaciclovir 500 mg comprimidos",
+                posologia: valaciclovirDose + " VO, " + valaciclovirFreq + " por 7 dias.",
+                ajuste_clcr: "Base 1.000mg 8/8h: ClCr >=50 (8/8h); ClCr 30-49 (12/12h); ClCr 10-29 (24/24h); ClCr <10 ou diálise (500mg 24/24h)."
+            };
+
+            // 3. Aciclovir IV para casos graves / imunossuprimidos / zoster oftálmico extenso
+            var doseMgKg = 10;
+            var doseIvMg = Math.round(peso * doseMgKg);
+            var freqIv = "a cada 8 horas (8/8h)";
+            if (dialise) {
+                freqIv = "2.5 a 5 mg/kg a cada 24h + dose de reforço pós-hemodiálise";
+            } else if (clcr < 10) {
+                freqIv = "5 mg/kg a cada 24 horas";
+            } else if (clcr <= 25) {
+                freqIv = "10 mg/kg a cada 24 horas";
+            } else if (clcr <= 50) {
+                freqIv = "10 mg/kg a cada 12 horas";
+            }
+
+            res.aciclovir_intravenoso = {
+                medicamento: "Aciclovir 250 mg pó liofilizado para solução injetável",
+                posologia_calculada: doseIvMg + " mg IV (calculado a 10 mg/kg para " + peso + " kg), " + freqIv + " por 7 a 10 dias.",
+                regra_infusao: "INFUSÃO LENTA EM PELO MENOS 1 HORA. Concentração máxima de 5 mg/mL (diluir em SF 0,9% ou SG 5%). NUNCA FAZER EM BOLUS!",
+                risco_nefropatia: "CRISTALÚRIA TUBULAR AGUDA: Manter hidratação venosa vigorosa (500 a 1000 mL de cristaloides) antes e durante a infusão para prevenir nefrotoxicidade."
+            };
+
+            // Alerta Oftálmico
+            if (hutchinson) {
+                res.alertas_seguranca.push("👁️ ZOSTER OFTÁLMICO / SINAL DE HUTCHINSON: Comprometimento do ramo nasociliar do trigêmeo (V1). Risco de ceratite neurotrófica, necrose retiniana e amaurose. Encaminhamento IMEDIATO ao Oftalmologista e preferência por Valaciclovir em dose plena ou Aciclovir IV se paciente idoso/grave.");
+            }
+
+            // Manejo de analgesia e prevenção da neuralgia pós-herpética
+            res.manejo_dor_e_adjuvantes.push("Dor Aguda Leve: Dipirona 1g VO 6/6h ou Paracetamol 750mg 6/6h.");
+            res.manejo_dor_e_adjuvantes.push("Dor Aguda Moderada/Severa: Associar Tramadol 50 mg VO 8/8h ou Codeína 30 mg 6/6h.");
+            res.manejo_dor_e_adjuvantes.push("Prevenção da Neuralgia Pós-Herpética (NPH): Início precoce de Gabapentina 300 mg VO à noite (titulando até 900-1800 mg/dia) ou Pregabalina 75 mg VO 12/12h.");
+            res.manejo_dor_e_adjuvantes.push("Cuidados Locais: Compressas com SF 0,9% gelado ou Permanganato de Potássio 1:40.000. Manter lesões secas. Proibido pomadas com corticoides.");
+
+        // ─────────────────────────────────────────────────────────────────────
+        // RAMIFICAÇÃO B: HERPES SIMPLES GENITAL / LABIAL (HSV-1 / HSV-2)
+        // ─────────────────────────────────────────────────────────────────────
+        } else {
+            var ehPrimoinfeccao = tipo.indexOf("prim") !== -1 || tipo.indexOf("inicial") !== -1;
+            var ehSupressao = tipo.indexOf("supres") !== -1 || tipo.indexOf("cron") !== -1;
+            var ehLabial = tipo.indexOf("labial") !== -1;
+
+            if (ehSupressao) {
+                res.patologia = "Herpes Genital - Terapia Supressiva Crônica (indicada se >= 6 recidivas/ano)";
+                res.duracao_tratamento = "Contínuo por 6 a 12 meses (reavaliar periodicamente a frequência de crises)";
+
+                res.aciclovir_oral = {
+                    medicamento: "Aciclovir 400 mg comprimidos",
+                    posologia: (clcr < 10 ? "200 mg 1x/dia" : "400 mg VO de 12/12 horas contínuo."),
+                    ajuste_clcr: "ClCr >= 10: 400 mg 12/12h; ClCr < 10 mL/min: 200 mg 1x/dia."
+                };
+                res.valaciclovir_oral = {
+                    medicamento: "Valaciclovir 500 mg comprimidos",
+                    posologia: (clcr < 10 ? "500 mg a cada 48 horas" : "500 mg VO 1 vez ao dia (ou 1.000 mg/dia se >= 10 surtos/ano)."),
+                    ajuste_clcr: "ClCr >= 30: 500 mg/dia; ClCr 10-29: 500 mg a cada 48h; ClCr < 10: 500 mg a cada 48h."
+                };
+            } else if (ehPrimoinfeccao) {
+                res.patologia = "Herpes Simples Genital - 1º Episódio / Primoinfecção (PCDT IST 2024-2026)";
+                res.duracao_tratamento = "7 a 10 dias (iniciar o mais precoce possível)";
+
+                var aciclovirFreqPr = "400 mg VO a cada 8 horas (3 vezes ao dia) por 7 a 10 dias";
+                if (clcr < 10) aciclovirFreqPr = "200 mg VO a cada 12 horas por 7 a 10 dias";
+
+                res.aciclovir_oral = {
+                    medicamento: "Aciclovir 400 mg comprimidos (ou 200 mg)",
+                    posologia: aciclovirFreqPr,
+                    alternativa: "Aciclovir 200 mg VO 5 vezes ao dia (a cada 4h) por 7 a 10 dias."
+                };
+                res.valaciclovir_oral = {
+                    medicamento: "Valaciclovir 500 mg comprimidos",
+                    posologia: (clcr < 10 ? "500 mg VO 1 vez ao dia por 7 a 10 dias" : "1.000 mg (ou 500 mg) VO a cada 12 horas por 7 a 10 dias.")
+                };
+            } else if (ehLabial) {
+                res.patologia = "Herpes Simples Labial Recorrente";
+                res.duracao_tratamento = "1 a 5 dias";
+                res.aciclovir_oral = {
+                    medicamento: "Aciclovir 400 mg comprimidos",
+                    posologia: "400 mg VO a cada 8 horas (3x/dia) por 5 dias."
+                };
+                res.valaciclovir_oral = {
+                    medicamento: "Valaciclovir 500 mg comprimidos",
+                    posologia: "2.000 mg (2g) VO de 12/12h por 1 único dia (iniciar nos pródromos)."
+                };
+            } else {
+                // Recorrência Genital
+                res.patologia = "Herpes Simples Genital - Episódio Recorrente";
+                res.duracao_tratamento = "3 a 5 dias (iniciar no pródromo ou nas primeiras 24 horas)";
+
+                res.aciclovir_oral = {
+                    medicamento: "Aciclovir 400 mg comprimidos",
+                    posologia: "400 mg VO a cada 8 horas por 5 dias (ou 800 mg VO 12/12h por 5 dias)."
+                };
+                res.valaciclovir_oral = {
+                    medicamento: "Valaciclovir 500 mg comprimidos",
+                    posologia: "500 mg VO a cada 12 horas por 3 dias (ou 1.000 mg VO 1x/dia por 5 dias)."
+                };
+            }
+
+            if (gestante) {
+                res.alertas_seguranca.push("🤰 GESTANTE COM HERPES GENITAL: O Aciclovir é considerado seguro na gestação (categoria B). Se lesões herpéticas ativas ou pródromos no momento do trabalho de parto, há indicação formal de CESARIANA para prevenção de infecção neonatal grave e encefalite herpética.");
+            }
+        }
+
+        if (res.ajuste_renal_aplicado) {
+            res.alertas_seguranca.push("⚠️ AJUSTE RENAL OBRIGATÓRIO: Clearance estimado em " + clcr.toFixed(0) + " mL/min (" + res.faixa_clcr + "). Dosagens de Aciclovir/Valaciclovir foram reduzidas para prevenir neurotoxicidade (alucinações, confusão mental, tremores, coma) e cristalúria renal.");
+        }
+
+        return res;
+    }
+
+    /**
+     * 3. Abordagem Sindrômica de Úlceras Genitais (Ministério da Saúde PCDT IST 2024-2026)
+     * @param {Object} p Parâmetros clínicos e laboratoriais da úlcera
+     * @returns {Object} Diagnóstico sindrômico/etiológico, esquema terapêutico imediato e alertas
+     */
+    function avaliarUlceraGenitalIst(p) {
+        p = p || {};
+        var textoEntrada = (String(p.texto || "") + " " + String(p.descricao || "") + " " + String(p.dor || "") + " " + String(p.lesoes || "") + " " + String(p.linfonodo || "")).toLowerCase().trim();
+        var vesiculas = !!(p.vesiculas || p.vesiculas_presentes || /(?:ves[ií]cula|pequenas bolhas|polic[ií]clica)/i.test(textoEntrada));
+        var tempoSemanas = parseFloat(p.tempo_semanas);
+        var tempoDias = parseFloat(p.tempo_dias);
+
+        if (isNaN(tempoSemanas)) {
+            if (!isNaN(tempoDias)) {
+                tempoSemanas = tempoDias / 7;
+            } else {
+                var matchSem = textoEntrada.match(/(\d+)\s*semana/i);
+                var matchDias = textoEntrada.match(/(\d+)\s*dia/i);
+                var matchMes = textoEntrada.match(/(\d+)\s*m[eê]s/i);
+                if (matchSem) tempoSemanas = parseFloat(matchSem[1]);
+                else if (matchDias) tempoSemanas = parseFloat(matchDias[1]) / 7;
+                else if (matchMes) tempoSemanas = parseFloat(matchMes[1]) * 4;
+                else tempoSemanas = 1; // Padrão agudo se não informado
+            }
+        }
+
+        var dor = String(p.dor || textoEntrada).toLowerCase();
+        var ehIndolor = dor.indexOf("indolor") !== -1 || dor.indexOf("nao doe") !== -1 || dor.indexOf("não dói") !== -1;
+        var ehDolorosa = dor.indexOf("dolor") !== -1 || dor.indexOf("muito dor") !== -1;
+        var ehGestante = !!p.gestante;
+        var alergiaPenicilina = !!(p.alergia_penicilina || /(?:alergia a penicilina|al[eé]rgico a penicilina|anafilaxia)/i.test(textoEntrada));
+
+        var res = {
+            classificacao_sindromica: "",
+            tempo_evolucao_semanas: tempoSemanas,
+            fluxograma_ms: "",
+            hipoteses_etiologicas: [],
+            tratamento_imediato: [],
+            testes_obrigatorios: [],
+            conduta_parcerias: [],
+            alertas_seguranca: [],
+            bloqueios_iatrogenia: []
+        };
+
+        res.testes_obrigatorios.push("Realizar TESTE RÁPIDO para Sífilis e coletar VDRL quantitativo basal.");
+        res.testes_obrigatorios.push("Realizar TESTE RÁPIDO para HIV, Hepatite B (HBsAg) e Hepatite C (Anti-HCV).");
+        res.conduta_parcerias.push("Tratar todas as parcerias sexuais dos últimos 90 dias, mesmo assintomáticas.");
+        res.conduta_parcerias.push("Recomendar abstinência sexual até resolução completa das lesões e término do tratamento.");
+        res.conduta_parcerias.push("Notificação compulsória no SINAN.");
+
+        // 1. RAMO HERPÉTICO: Presença de Vesículas Agrupadas
+        if (vesiculas) {
+            res.classificacao_sindromica = "Úlcera Genital de Provável Etiologia Herpética (HSV-2 / HSV-1)";
+            res.fluxograma_ms = "Presença de vesículas agrupadas sobre base eritematosa -> Tratar Herpes Genital";
+            res.hipoteses_etiologicas.push("Herpes Simples Genital (Vírus Herpes Simplex tipo 2 ou tipo 1)");
+
+            res.tratamento_imediato.push({
+                medicamento: "Aciclovir 400 mg comprimidos",
+                posologia: "400 mg VO a cada 8 horas (3x/dia) por 7 dias (ou 200 mg 5x/dia por 7 dias).",
+                linha: "1ª Linha (REMUME / SUS)"
+            });
+            res.tratamento_imediato.push({
+                medicamento: "Valaciclovir 500 mg comprimidos (ou 1000 mg)",
+                posologia: "1.000 mg (ou 500 mg) VO a cada 12 horas por 7 dias.",
+                linha: "Alternativa de maior comodidade posológica"
+            });
+            res.alertas_seguranca.push("Oriente higiene local com água e sabão ou soro fisiológico. Não utilizar pomadas com corticoides.");
+            return res;
+        }
+
+        // 2. RAMO SEM VESÍCULAS: Estratificação por Tempo de Evolução (< 4 semanas vs >= 4 semanas)
+        if (tempoSemanas < 4) {
+            res.classificacao_sindromica = "Úlcera Genital Aguda (< 4 semanas de evolução)";
+            res.fluxograma_ms = "Lesão sem vesículas com menos de 4 semanas de evolução -> TRATAR SÍFILIS PRIMÁRIA + CANCRO MOLE CONJUNTAMENTE";
+            res.hipoteses_etiologicas.push("Sífilis Primária (Cancro Duro - Treponema pallidum)");
+            res.hipoteses_etiologicas.push("Cancro Mole (Haemophilus ducreyi - múltiplas úlceras dolorosas com fundo purulento e bubão)");
+            res.hipoteses_etiologicas.push("Herpes genital ulcerado em fase tardia pós-vesicular");
+
+            // A. Tratamento para Sífilis
+            if (alergiaPenicilina) {
+                if (ehGestante) {
+                    res.bloqueios_iatrogenia.push("🛑 BLOQUEIO CRÍTICO: GESTANTE COM ALERGIA À PENICILINA. A Doxiciclina é TERMINANTEMENTE CONTRAINDICADA na gravidez (risco de anomalias esqueléticas e manchas dentárias fetais). Encaminhar IMEDIATAMENTE para DESSENSIBILIZAÇÃO HOSPITALAR à Penicilina. A Penicilina é o ÚNICO antimicrobiano capaz de tratar o feto e prevenir a Sífilis Congênita!");
+                } else {
+                    res.tratamento_imediato.push({
+                        medicamento: "Doxiciclina 100 mg comprimidos",
+                        posologia: "100 mg VO a cada 12 horas por 15 dias.",
+                        indicacao: "Tratamento de Sífilis recente em ALÉRGICOS NÃO-GESTANTES à Penicilina"
+                    });
+                }
+            } else {
+                res.tratamento_imediato.push({
+                    medicamento: "Penicilina G Benzatina 2.400.000 UI injetável",
+                    posologia: "2.400.000 UI IM em dose única (aplicar 1.200.000 UI profunda em cada glúteo).",
+                    indicacao: "Tratamento de Sífilis Primária (Cancro Duro)",
+                    linha: "1ª Linha Absoluta (PCDT MS)"
+                });
+            }
+
+            // B. Tratamento para Cancro Mole
+            res.tratamento_imediato.push({
+                medicamento: "Azitromicina 500 mg comprimidos",
+                posologia: "1.000 mg (2 comprimidos de 500 mg) VO em dose única.",
+                indicacao: "Tratamento de Cancro Mole (Haemophilus ducreyi)",
+                linha: "1ª Linha (PCDT MS)"
+            });
+            res.tratamento_imediato.push({
+                medicamento: "Ceftriaxona 500 mg injetável (Alternativa ao Cancro Mole)",
+                posologia: "500 mg IM em dose única.",
+                indicacao: "Alternativa parenteral para Cancro Mole",
+                linha: "Alternativa"
+            });
+
+            res.alertas_seguranca.push("Se teste rápido para sífilis for reagente: confirma o diagnóstico e mantém o seguimento sorológico (VDRL trimestral).");
+            res.alertas_seguranca.push("Se teste rápido for não reagente: MANTER O TRATAMENTO (janela imunológica do cancro duro) e repetir o teste após 30 dias.");
+            res.alertas_seguranca.push("Reavaliar em 7 dias: se não houver cicatrização ou melhora franca, investigar patógenos resistentes, Linfogranuloma Venéreo ou Donovanose.");
+
+        } else {
+            // >= 4 semanas de evolução (Úlcera Crônica)
+            res.classificacao_sindromica = "Úlcera Genital Crônica (>= 4 semanas de evolução)";
+            res.fluxograma_ms = "Lesão persistente >= 4 semanas -> Tratar Sífilis + Cancro Mole + INVESTIGAR/TRATAR DONOVANOSE E LINFOGRANULOMA VENÉREO (LGV) + BIÓPSIA SE SUSPEITA DE NEOPLASIA";
+            res.hipoteses_etiologicas.push("Donovanose (Klebsiella granulomatis - úlcera vegetante, granulosa, indolor, vermelho-viva, que sangra fácil e pseudobubão)");
+            res.hipoteses_etiologicas.push("Linfogranuloma Venéreo (Chlamydia trachomatis L1-L3 - bubão inguinal volumoso unilateral com fistulização em 'bico de regador')");
+            res.hipoteses_etiologicas.push("Sífilis Primária ou Terciária ulcerada");
+            res.hipoteses_etiologicas.push("Carcinoma Espinocelular (CEC de pênis ou vulva) - Mandatória biópsia se bordas evertidas/induradas");
+
+            // Cobertura ampla
+            if (!alergiaPenicilina) {
+                res.tratamento_imediato.push({
+                    medicamento: "Penicilina G Benzatina 2.400.000 UI IM",
+                    posologia: "2.400.000 UI IM dose única (1,2M UI cada glúteo).",
+                    indicacao: "Cobertura de Sífilis"
+                });
+            }
+
+            res.tratamento_imediato.push({
+                medicamento: "Azitromicina 500 mg comprimidos (Tratamento para Donovanose)",
+                posologia: "1.000 mg (1g) VO no 1º dia, seguido de 500 mg VO 1x/dia (ou 1g VO 1x/semana) por pelo menos 3 semanas OU até a cicatrização completa das lesões.",
+                indicacao: "Donovanose (Klebsiella granulomatis)"
+            });
+
+            if (!ehGestante) {
+                res.tratamento_imediato.push({
+                    medicamento: "Doxiciclina 100 mg comprimidos (Tratamento para Linfogranuloma Venéreo - LGV)",
+                    posologia: "100 mg VO a cada 12 horas por 21 dias.",
+                    indicacao: "Linfogranuloma Venéreo (Chlamydia trachomatis L1-L3)"
+                });
+            }
+
+            res.alertas_seguranca.push("⚠️ BIÓPSIA DE BORDA DE LESÃO: Se a úlcera não apresentar regressão após tratamento adequado ou se houver bordas endurecidas/evertidas e base friável, realizar biópsia incisional da borda para descartar Carcinoma Espinocelular (Neoplasia Maligna).");
+        }
+
+        return res;
+    }
+
+    /**
+     * 4. Manejo e Estadiamento da Sífilis (Primária, Secundária, Latente e Terciária)
+     * @param {Object} p Parâmetros clínicos, estadiamento e titulação sorológica
+     * @returns {Object} Diagnóstico estadiado, dose precisa de Penicilina Benzatina, manejo de alergia e reação de Jarisch-Herxheimer
+     */
+    function avaliarSifilisManejo(p) {
+        p = p || {};
+        var textoEntrada = (String(p.texto || "") + " " + String(p.descricao || "") + " " + String(p.estagio || "") + " " + String(p.achados_clinicos || "") + " " + String(p.vdrl || "") + " " + String(p.vdrl_titulo || "")).toLowerCase().trim();
+        var estagio = String(p.estagio || "").toLowerCase();
+        var vdrl = String(p.vdrl || p.vdrl_titulo || textoEntrada).toLowerCase();
+        var gestante = !!p.gestante;
+        var alergiaPenicilina = !!(p.alergia_penicilina || /(?:alergia a penicilina|anafilaxia)/i.test(textoEntrada));
+
+        // Detecção de manifestações de Sífilis Secundária
+        var temBiett = /(?:biett|colarete|descamativo|palmoplantar|palmas e plantas)/i.test(textoEntrada);
+        var temRoseola = /(?:roseola|roséola|exantema macular|tronco)/i.test(textoEntrada);
+        var temCondilomaPlano = /(?:condiloma lata|condiloma plano|placa mucosa)/i.test(textoEntrada);
+        var temAlopecia = /(?:alopecia|clareira|ro[ií]do de tra[cç]a)/i.test(textoEntrada);
+
+        if (!estagio) {
+            if (temBiett || temRoseola || temCondilomaPlano || temAlopecia || textoEntrada.indexOf("secundaria") !== -1 || textoEntrada.indexOf("secundária") !== -1) {
+                estagio = "secundaria";
+            } else if (textoEntrada.indexOf("primaria") !== -1 || textoEntrada.indexOf("primária") !== -1 || textoEntrada.indexOf("cancro duro") !== -1) {
+                estagio = "primaria";
+            } else if (textoEntrada.indexOf("tardia") !== -1 || textoEntrada.indexOf("indeterminada") !== -1 || textoEntrada.indexOf("latente tardia") !== -1) {
+                estagio = "latente_tardia";
+            } else if (textoEntrada.indexOf("recente") !== -1 || textoEntrada.indexOf("latente recente") !== -1) {
+                estagio = "latente_recente";
+            } else if (textoEntrada.indexOf("terciaria") !== -1 || textoEntrada.indexOf("terciária") !== -1) {
+                estagio = "terciaria";
+            } else if (textoEntrada.indexOf("neuro") !== -1) {
+                estagio = "neurossifilis";
+            } else {
+                estagio = "latente_tardia"; // Por precaução do Ministério da Saúde: tempo ignorado = tratar como tardia
+            }
+        }
+
+        var res = {
+            estagio_clinico: "",
+            classificacao_temporal: "",
+            esquema_penicilina_benzatina: null,
+            dose_total_penicilina: "",
+            intervalo_doses: "",
+            conduta_alergia_penicilina: null,
+            alerta_jarisch_herxheimer: [],
+            criterios_cura_seguimento: [],
+            alertas_gestante: [],
+            bloqueios_iatrogenia: []
+        };
+
+        if (estagio === "primaria") {
+            res.estagio_clinico = "Sífilis Primária (Cancro Duro - Úlcera única, indolor, bordas cartilagíneas)";
+            res.classificacao_temporal = "Sífilis Recente (< 1 ano de infecção)";
+        } else if (estagio === "secundaria") {
+            res.estagio_clinico = "Sífilis Secundária (Disseminação treponêmica: Roséola, Sifílides papulosas com colarete de Biett, acometimento palmo-plantar, condiloma plano e alopecia em clareira)";
+            res.classificacao_temporal = "Sífilis Recente (< 1 ano de infecção)";
+        } else if (estagio === "latente_recente") {
+            res.estagio_clinico = "Sífilis Latente Recente (Assintomática, com infecção comprovada há menos de 1 ano)";
+            res.classificacao_temporal = "Sífilis Recente (< 1 ano de infecção)";
+        } else if (estagio === "neurossifilis") {
+            res.estagio_clinico = "Neurossífilis / Sífilis Ocular / Otossífilis (Acometimento de SNC/ocular/auditivo)";
+            res.classificacao_temporal = "Independente do tempo de evolução - Emergência Infectológica";
+        } else if (estagio === "terciaria") {
+            res.estagio_clinico = "Sífilis Terciária (Gomas sifilíticas, aneurisma de aorta ascendente, tabes dorsalis)";
+            res.classificacao_temporal = "Sífilis Tardia (> 1 ano de evolução)";
+        } else {
+            res.estagio_clinico = "Sífilis Latente Tardia ou de Duração Ignorada (Assintomática, sem documentação temporal nos últimos 12 meses)";
+            res.classificacao_temporal = "Sífilis Tardia (ou duração indeterminada - PCDT MS orienta tratar como tardia)";
+        }
+
+        // ESQUEMAS POSOLÓGICOS (PCDT Ministério da Saúde 2024-2026)
+        if (estagio === "neurossifilis") {
+            res.dose_total_penicilina = "18 a 24 milhões UI/dia por 10 a 14 dias";
+            res.esquema_penicilina_benzatina = {
+                medicamento: "Penicilina G Cristalina / Potássica IV (Internação Hospitalar Obrigatória)",
+                posologia: "3 a 4 milhões UI IV a cada 4 horas (ou infusão contínua de 18-24M UI/dia) por 10 a 14 dias.",
+                orientacao: "Punção lombar para análise de LCR mandatória. A Penicilina Benzatina NÃO atinge níveis terapêuticos no SNC."
+            };
+        } else if (estagio === "primaria" || estagio === "secundaria" || estagio === "latente_recente") {
+            // Sífilis Recente
+            res.dose_total_penicilina = "2.400.000 UI IM em dose única";
+            res.intervalo_doses = "Dose única";
+            res.esquema_penicilina_benzatina = {
+                medicamento: "Penicilina G Benzatina 1.200.000 UI frasco-ampola",
+                posologia: "2.400.000 UI IM em dose única (aplicar 1.200.000 UI por via intramuscular profunda em cada glúteo no mesmo momento).",
+                linha: "Padrão-Ouro Absoluto (PCDT MS)"
+            };
+        } else {
+            // Sífilis Tardia ou Ignorada
+            res.dose_total_penicilina = "7.200.000 UI IM no total (3 doses semanais de 2.400.000 UI)";
+            res.intervalo_doses = "1 aplicação a cada 7 dias por 3 semanas consecutivas";
+            res.esquema_penicilina_benzatina = {
+                medicamento: "Penicilina G Benzatina 1.200.000 UI frasco-ampola",
+                posologia: "2.400.000 UI IM (1.200.000 UI em cada glúteo) uma vez por semana, durante 3 semanas consecutivas.",
+                alerta_intervalo: "O intervalo ideal é de 7 dias. Tolerância máxima de 9 dias entre as doses. Se o intervalo ultrapassar 14 dias em gestantes, o esquema deve ser REINICIADO DO ZERO!"
+            };
+        }
+
+        // MANEJO DE ALERGIA À PENICILINA
+        if (alergiaPenicilina) {
+            if (gestante) {
+                res.bloqueios_iatrogenia.push("🛑 CONTRAINDICAÇÃO ABSOLUTA: A Doxiciclina é contraindicada na gestação. Ceftriaxona ou Azitromicina NÃO são consideradas tratamento adequado para a prevenção da Sífilis Congênita segundo o Ministério da Saúde!");
+                res.conduta_alergia_penicilina = {
+                    droga: "DESSENSIBILIZAÇÃO HOSPITALAR À PENICILINA",
+                    conduta: "Internar em leito com suporte de reanimação e realizar protocolo de dessensibilização oral/venosa à Penicilina. A Penicilina é a ÚNICA medicação capaz de atravessar a barreira placentária em concentrações treponemicidas e curar o feto."
+                };
+            } else {
+                var duracaoDoxi = (estagio === "primaria" || estagio === "secundaria" || estagio === "latente_recente") ? "15 dias" : "30 dias";
+                res.conduta_alergia_penicilina = {
+                    droga: "Doxiciclina 100 mg comprimidos (Não-gestantes)",
+                    posologia: "100 mg VO de 12/12 horas por " + duracaoDoxi + ".",
+                    alternativa: "Ceftriaxona 1g IV ou IM 1x/dia por 10 a 14 dias."
+                };
+            }
+        }
+
+        // REAÇÃO DE JARISCH-HERXHEIMER
+        res.alerta_jarisch_herxheimer.push("🔥 REAÇÃO DE JARISCH-HERXHEIMER (Alerta Educativo Beira-Leito):");
+        res.alerta_jarisch_herxheimer.push("• Ocorre em até 50-70% dos casos de Sífilis Primária/Secundária nas primeiras 24 horas após a 1ª dose de Penicilina.");
+        res.alerta_jarisch_herxheimer.push("• Fisiopatologia: Liberação massiva de endotoxinas e citocinas inflamatórias após a lise aguda de milhões de treponemas.");
+        res.alerta_jarisch_herxheimer.push("• Sintomas: Febre súbita, calafrios, cefaleia, mialgia, sudorese e exacerbação temporária das lesões cutâneas.");
+        res.alerta_jarisch_herxheimer.push("• CONDUTA: Autolimitada (dura 12 a 24 horas). NÃO É ALERGIA À PENICILINA! Não suspender o tratamento. Prescrever Dipirona 1g VO ou Paracetamol 750mg.");
+        if (gestante) {
+            res.alerta_jarisch_herxheimer.push("• Em gestantes, pode desencadear contrações uterinas transitórias ou sofrimento fetal agudo transitório; monitorar movimentos fetais.");
+        }
+
+        // SEGUIMENTO E CRITÉRIOS DE CURA
+        res.criterios_cura_seguimento.push("Seguimento sorológico com teste não treponêmico (VDRL quantitativo) no mesmo laboratório / mesma metodologia.");
+        res.criterios_cura_seguimento.push("Periodicidade: Trimestral até 12 meses na população geral; Mensal durante o pré-natal em gestantes.");
+        res.criterios_cura_seguimento.push("Critério de Resposta Terapêutica Adequada (Cura): Queda do título em pelo menos 2 titulações (ou 4 vezes) em até 6 meses para sífilis recente e em até 12 meses para sífilis tardia (ex: queda de 1:32 para 1:8 ou menor).");
+        res.criterios_cura_seguimento.push("Cicatriz Sorológica: Títulos baixos e estáveis (ex: 1:1, 1:2 ou 1:4) que persistem indefinidamente sem sintomas não caracterizam falha terapêutica nem reinfecção.");
+
+        return res;
+    }
+
+    /**
+     * 5. Avaliação e Manejo de Mpox (Monkeypox / Orthopoxvirus)
+     * @param {Object} p Parâmetros clínicos, tempo de evolução e achados físicos
+     * @returns {Object} Estratificação diagnóstica, medidas de isolamento respiratório/contato e suporte clínico
+     */
+    function avaliarMpox(p) {
+        p = p || {};
+        var textoEntrada = String(p.texto || p.descricao || "").toLowerCase();
+        var febre = !!(p.febre || /(?:febre|febril|astenia|prostracao)/i.test(textoEntrada));
+        var linfonodomegalia = !!(p.linfonodomegalia || /(?:linfonodo|adenomegalia|ganglio|inguinal|cervical|axilar)/i.test(textoEntrada));
+        var lesoesUmbilicadas = !!(p.vesiculas_umbilicadas || /(?:umbilicad|centro deprimido|pustula|crosta)/i.test(textoEntrada));
+        var anorretal = !!(p.proctite || /(?:proctite|retal|anus|[aâ]nus|dor ao evacuar|perianal)/i.test(textoEntrada));
+        var imunodeprimido = !!(p.imunossuprimido || p.hiv || /(?:hiv|cd4|imunossup)/i.test(textoEntrada));
+
+        var res = {
+            diagnostico_suspeito: "Mpox (Monkeypox / Vírus Mpox - Orthopoxvirus)",
+            probabilidade_clinica: "Moderada a Alta",
+            caracteristica_chave: "Linfadenopatia proeminente e dolorosa + Erupção com vesículas/pústulas umbilicadas e sincrônicas",
+            medidas_isolamento: [],
+            paramentacao_profissionais: [],
+            suporte_clinico_dor: [],
+            criterios_alta_isolamento: "",
+            notificacao_compulsoria: "NOTIFICAÇÃO COMPULSÓRIA IMEDIATA (em até 24 horas no SINAN / CIEVS)",
+            red_flags: []
+        };
+
+        if (linfonodomegalia && lesoesUmbilicadas) {
+            res.probabilidade_clinica = "Muito Alta (Tríade clássica: Febre + Linfadenomegalia marcada + Lesões umbilicadas sincrônicas)";
+        }
+
+        res.medidas_isolamento.push("Isolamento domiciliar estrito (ou em quarto individual privativo em unidade de saúde).");
+        res.medidas_isolamento.push("Proibição de compartilhamento de roupas de cama, toalhas, lençóis, copos, pratos e talheres.");
+        res.medidas_isolamento.push("O paciente deve usar máscara cirúrgica bem ajustada quando houver presença de outras pessoas no ambiente.");
+        res.medidas_isolamento.push("Cobrir as lesões cutâneas com roupas compridas ou curativos estéreis para minimizar a transmissão por contato direto.");
+
+        res.paramentacao_profissionais.push("Máscara de proteção respiratória tipo PFF2 / N95 para os profissionais de saúde.");
+        res.paramentacao_profissionais.push("Avental / Capote de mangas longas e luvas de procedimento.");
+        res.paramentacao_profissionais.push("Proteção ocular (óculos de proteção ou protetor facial tipo face shield).");
+
+        res.criterios_alta_isolamento = "O isolamento deve ser mantido até a QUEDA DE TODAS AS CROSTAS com formação de nova camada de pele intacta por baixo (reepitelização completa). Geralmente dura entre 2 a 4 semanas.";
+
+        res.suporte_clinico_dor.push("Manejo da Dor Geral: Dipirona 1g VO 6/6h + Paracetamol 750mg ou AINEs se função renal normal.");
+        if (anorretal) {
+            res.suporte_clinico_dor.push("Proctite por Mpox (Dor anorretal intensa): Banho de assento morno 3 a 4 vezes ao dia; Anestésico tópico (pomada de lidocaína 2% a 5%); Laxantes emolientes (Lactulose ou Macrogol) para evitar fezes endurecidas; Considerar Tramadol ou opioides se dor intratável.");
+        }
+        res.suporte_clinico_dor.push("Prevenção de infecção bacteriana secundária: Higienizar com água e sabão neutro. Se sinais de celulite perilesional (calor, rubor extenso, pus bacteriano), iniciar Cefalexina 500 mg VO 6/6h ou Amoxicilina-Clavulanato.");
+
+        if (imunodeprimido) {
+            res.red_flags.push("⚠️ PACIENTE IMUNODEPRIMIDO / HIV COM CD4 < 200: Risco elevado de Mpox grave fulminante (lesões confluentes necrosantes extensas, envolvimento pulmonar/sepse e óbito). Indicação de avaliação para antiviral específico (Tecovirimat) via protocolo do Ministério da Saúde.");
+        }
+
+        return res;
+    }
+
+    /**
+     * 6. Formatadores de Mensagens para o Telegram
+     */
+    function formatarDermatologiaTelegram(r) {
+        var t = "🔬 *DERMATOLOGIA: ANÁLISE DE LESÃO ELEMENTAR*\n";
+        t += "───────────────────────────────\n";
+        t += "📌 *Morfologia:* *" + r.morfologia_identificada + "*\n";
+        t += "🏷️ *Categoria:* " + r.categoria_elementar + "\n";
+        t += "📖 *Definição:* _" + r.definicao + "_\n\n";
+
+        t += "💡 *Principais Hipóteses Diagnósticas:*\n";
+        if (r.hipoteses_diagnosticas && r.hipoteses_diagnosticas.length > 0) {
+            r.hipoteses_diagnosticas.forEach(function(h) { t += "  • " + h + "\n"; });
+        }
+
+        if (r.red_flags && r.red_flags.length > 0) {
+            t += "\n🚨 *Alertas Críticos / Red Flags:*\n";
+            r.red_flags.forEach(function(rf) { t += "  " + rf + "\n"; });
+        }
+
+        if (r.conduta_beira_leito && r.conduta_beira_leito.length > 0) {
+            t += "\n🩺 *Conduta Beira-Leito:*\n";
+            r.conduta_beira_leito.forEach(function(c) { t += "  • " + c + "\n"; });
+        }
+
+        return t.trim();
+    }
+
+    function formatarHerpesAntiviralTelegram(r) {
+        var t = "🛡️ *PROTOCOLO ANTIVIRAL: HERPES ZOSTER & SIMPLES*\n";
+        t += "───────────────────────────────\n";
+        t += "📌 *Diagnóstico:* *" + r.patologia + "*\n";
+        t += "⏱️ *Duração Recomendada:* *" + r.duracao_tratamento + "*\n";
+        t += "🩸 *Status Renal:* " + r.faixa_clcr + (r.ajuste_renal_aplicado ? " ⚠️ *[DOSE AJUSTADA]*" : " ✅") + "\n\n";
+
+        if (r.valaciclovir_oral) {
+            t += "💊 *Valaciclovir Oral (1ª Linha Comodidade):*\n";
+            t += "• " + r.valaciclovir_oral.posologia + "\n";
+            t += "  _" + r.valaciclovir_oral.ajuste_clcr + "_\n\n";
+        }
+
+        if (r.aciclovir_oral) {
+            t += "💊 *Aciclovir Oral (Padrão SUS / REMUME):*\n";
+            t += "• " + r.aciclovir_oral.posologia + "\n";
+            if (r.aciclovir_oral.ajuste_clcr) {
+                t += "  _" + r.aciclovir_oral.ajuste_clcr + "_\n";
+            }
+            t += "\n";
+        }
+
+        if (r.aciclovir_intravenoso) {
+            t += "💉 *Aciclovir Intravenoso (Casos Graves / Imunodeprimidos):*\n";
+            t += "• " + r.aciclovir_intravenoso.posologia_calculada + "\n";
+            t += "  ⚠️ " + r.aciclovir_intravenoso.regra_infusao + "\n";
+            t += "  💧 " + r.aciclovir_intravenoso.risco_nefropatia + "\n\n";
+        }
+
+        if (r.manejo_dor_e_adjuvantes && r.manejo_dor_e_adjuvantes.length > 0) {
+            t += "⚡ *Manejo da Dor & Prevenção de Neuralgia:*\n";
+            r.manejo_dor_e_adjuvantes.forEach(function(m) { t += "  • " + m + "\n"; });
+            t += "\n";
+        }
+
+        if (r.alertas_seguranca && r.alertas_seguranca.length > 0) {
+            t += "📢 *Alertas de Segurança:*\n";
+            r.alertas_seguranca.forEach(function(a) { t += "  " + a + "\n"; });
+        }
+
+        return t.trim();
+    }
+
+    function formatarUlcerasGenitaisTelegram(r) {
+        var t = "🩹 *ABORDAGEM SINDRÔMICA DE ÚLCERAS GENITAIS (MS 2026)*\n";
+        t += "───────────────────────────────\n";
+        t += "📌 *Classificação:* *" + r.classificacao_sindromica + "*\n";
+        t += "⏳ *Evolução:* " + r.tempo_evolucao_semanas.toFixed(1) + " semanas\n";
+        t += "🎯 *Diretriz MS:* _" + r.fluxograma_ms + "_\n\n";
+
+        t += "🔬 *Hipóteses Etiológicas Cobertas:*\n";
+        r.hipoteses_etiologicas.forEach(function(h) { t += "  • " + h + "\n"; });
+        t += "\n";
+
+        t += "💊 *Prescrição Imediata Beira-Leito:*\n";
+        r.tratamento_imediato.forEach(function(ti) {
+            t += "• *" + ti.medicamento + "*\n";
+            t += "  Posologia: " + ti.posologia + "\n";
+            if (ti.indicacao) t += "  Indicação: _" + ti.indicacao + "_\n";
+        });
+        t += "\n";
+
+        if (r.bloqueios_iatrogenia && r.bloqueios_iatrogenia.length > 0) {
+            t += "🛑 *Bloqueios Críticos:*\n";
+            r.bloqueios_iatrogenia.forEach(function(b) { t += "  " + b + "\n"; });
+            t += "\n";
+        }
+
+        t += "🧪 *Condutas e Testagem Obrigatórias:*\n";
+        r.testes_obrigatorios.forEach(function(to) { t += "  • " + to + "\n"; });
+        r.conduta_parcerias.forEach(function(cp) { t += "  • " + cp + "\n"; });
+
+        return t.trim();
+    }
+
+    function formatarSifilisTelegram(r) {
+        var t = "🩸 *MANEJO DA SÍFILIS & CONDUTA CLÍNICA (PCDT MS)*\n";
+        t += "───────────────────────────────\n";
+        t += "📌 *Estágio:* *" + r.estagio_clinico + "*\n";
+        t += "⏱️ *Classificação:* " + r.classificacao_temporal + "\n";
+        t += "💉 *Dose Total Acumulada:* *" + r.dose_total_penicilina + "*\n\n";
+
+        if (r.esquema_penicilina_benzatina) {
+            t += "🏛️ *Esquema Oficial (Penicilina G Benzatina):*\n";
+            t += "• *" + r.esquema_penicilina_benzatina.medicamento + "*\n";
+            t += "  " + r.esquema_penicilina_benzatina.posologia + "\n";
+            if (r.esquema_penicilina_benzatina.alerta_intervalo) {
+                t += "  ⚠️ _" + r.esquema_penicilina_benzatina.alerta_intervalo + "_\n";
+            }
+            t += "\n";
+        }
+
+        if (r.conduta_alergia_penicilina) {
+            t += "⚠️ *Manejo em Alérgicos à Penicilina:*\n";
+            t += "• *" + r.conduta_alergia_penicilina.droga + "*\n";
+            t += "  " + (r.conduta_alergia_penicilina.posologia || r.conduta_alergia_penicilina.conduta) + "\n\n";
+        }
+
+        if (r.alerta_jarisch_herxheimer && r.alerta_jarisch_herxheimer.length > 0) {
+            t += r.alerta_jarisch_herxheimer.join("\n") + "\n\n";
+        }
+
+        t += "📈 *Critérios de Cura e Seguimento:* \n";
+        r.criterios_cura_seguimento.forEach(function(cs) { t += "  • " + cs + "\n"; });
+
+        return t.trim();
+    }
+
+    function formatarMpoxTelegram(r) {
+        var t = "🐵 *MANEJO CLÍNICO E BIOSSEGURANÇA: MPOX*\n";
+        t += "───────────────────────────────\n";
+        t += "📌 *Hipótese:* *" + r.diagnostico_suspeito + "*\n";
+        t += "📊 *Probabilidade:* " + r.probabilidade_clinica + "\n";
+        t += "🔍 *Apresentação:* " + r.caracteristica_chave + "\n\n";
+
+        t += "🛡️ *Medidas de Isolamento Obrigatórias:*\n";
+        r.medidas_isolamento.forEach(function(mi) { t += "  • " + mi + "\n"; });
+        t += "\n";
+
+        t += "🥽 *Paramentação do Profissional (EPI):*\n";
+        r.paramentacao_profissionais.forEach(function(pp) { t += "  • " + pp + "\n"; });
+        t += "\n";
+
+        t += "⏳ *Critério de Alta do Isolamento:*\n";
+        t += "• *" + r.criterios_alta_isolamento + "*\n\n";
+
+        t += "💊 *Controle de Sintomas & Proctite:*\n";
+        r.suporte_clinico_dor.forEach(function(sc) { t += "  • " + sc + "\n"; });
+        t += "\n";
+
+        t += "📢 *" + r.notificacao_compulsoria + "*\n";
+
+        if (r.red_flags && r.red_flags.length > 0) {
+            t += "\n🚨 *Alertas Especiais:*\n";
+            r.red_flags.forEach(function(rf) { t += "  " + rf + "\n"; });
+        }
+
+        return t.trim();
+    }
+
+    return {
+        diferenciarLesaoElementar: diferenciarLesaoElementar,
+        calcularPosologiaAntiviralHerpes: calcularPosologiaAntiviralHerpes,
+        avaliarUlceraGenitalIst: avaliarUlceraGenitalIst,
+        avaliarSifilisManejo: avaliarSifilisManejo,
+        avaliarMpox: avaliarMpox,
+        formatarDermatologiaTelegram: formatarDermatologiaTelegram,
+        formatarHerpesAntiviralTelegram: formatarHerpesAntiviralTelegram,
+        formatarUlcerasGenitaisTelegram: formatarUlcerasGenitaisTelegram,
+        formatarSifilisTelegram: formatarSifilisTelegram,
+        formatarMpoxTelegram: formatarMpoxTelegram
+    };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = DermatologiaLesoesIstsService;
 }
 
 
@@ -39605,7 +40563,8 @@ function processarMensagemTexto(message) {
   }
 
   if (comando === "/manual") {
-    return enviarManual(chatId);
+    var filtroManual = texto.replace(/^\/manual\s*/i, "").trim();
+    return enviarManualCompletoComandos(chatId, filtroManual);
   }
 
   // 1. ATALHOS DO TECLADO FIXO PERSISTENTE (1-TOQUE NO SMARTPHONE)
@@ -39746,7 +40705,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/cig", "/colestase", "/ehag", "/aflp", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo"];
+  var clinicos = ["/cig", "/colestase", "/ehag", "/aflp", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/herpes", "/zoster", "/aciclovir", "/valaciclovir", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/sifilis", "/biett", "/roseola", "/mpox", "/monkeypox"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -39758,7 +40717,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/cig":"cig","/colestase":"cig","/ehag":"cig","/aflp":"cig","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica"};
+      var mapaModos={"/cig":"cig","/colestase":"cig","/ehag":"cig","/aflp":"cig","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/herpes":"herpes","/zoster":"herpes","/aciclovir":"herpes","/valaciclovir":"herpes","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/sifilis":"sifilis","/biett":"sifilis","/roseola":"sifilis","/mpox":"mpox","/monkeypox":"mpox"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -39769,14 +40728,17 @@ function processarMensagemTexto(message) {
   }
 
   // 2. AJUDA E START
-  if (comando === "/start" || comando === "/ajuda" || comando === "/help") {
+  if (comando === "/start") {
     if (typeof enviarHubPrincipal === "function") {
-      if (comando === "/start") {
-        enviarMensagemComTecladoFixo(chatId, "👋 *Olá, Dr. Wagner!* Use os botões ou envie seu caso por texto/áudio.");
-      }
+      enviarMensagemComTecladoFixo(chatId, "👋 *Olá, Dr. Wagner!* Use os botões ou envie seu caso por texto/áudio.");
       return enviarHubPrincipal(chatId);
     }
     return enviarMensagemComTecladoFixo(chatId, "Use /menu para a Central de Comandos.");
+  }
+
+  if (comando === "/ajuda" || comando === "/help") {
+    var filtroAjuda = texto.replace(/^\/(ajuda|help)\s*/i, "").trim();
+    return enviarManualCompletoComandos(chatId, filtroAjuda);
   }
 
   if (comando === "/bio" || comando === "/mounjaro" || comando === "/composicao") {
@@ -41447,6 +42409,203 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, "❌ Erro ao avaliar febre reumática: " + eFr.message);
     }
   }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // DERMATOLOGIA & INFECTOLOGIA: LESÕES ELEMENTARES & ISTs CUTÂNEAS
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/dermato" || comando === "/lesao" || comando === "/lesoes" || comando === "/pele") {
+    var dadosDerm = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof DermatologiaLesoesIstsService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo DermatologiaLesoesIstsService indisponível temporariamente.");
+    }
+    if (!dadosDerm) {
+      return enviarMensagemParaChat(chatId,
+        "🔬 *Dermatologia Clínica — Lesões Elementares da Pele*\n\n" +
+        "Descreva os achados dermatológicos da lesão.\n\n" +
+        "📌 *Parâmetros aceitos:*\n" +
+        "• Morfologia: `macula`, `papula`, `placa`, `nodulo`, `vesicula`, `bolha`, `pustula`, `crosta`, `purpura`, `ulcera`\n" +
+        "• Localização: `palmas e plantas`, `dermátomo / torax`, `face`, `genital`, `tronco`\n" +
+        "• Sinais Críticos: `sinal de hutchinson` (nariz), `nikolsky positivo`, `nao some a digitopressao`\n" +
+        "• Clínica: `febre`, `dor em queimação`, `prurido`, `idade 65`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/dermato vesiculas em dermatomo toracico dor em queimação idade 68`\n" +
+        "• `/dermato papulas descamativas em palmas e plantas colarete de biett`\n" +
+        "• `/lesao purpura petequias nao some a digitopressao febre 38.5`\n" +
+        "• `/dermato vesiculas na ponta do nariz sinal de hutchinson`");
+    }
+    try {
+      var analiseDerm = DermatologiaLesoesIstsService.diferenciarLesaoElementar({ texto: dadosDerm });
+      var textDerm = DermatologiaLesoesIstsService.formatarDermatologiaTelegram(analiseDerm);
+      return enviarMensagemParaChat(chatId, textDerm);
+    } catch (eDerm) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao analisar lesão dermatológica: " + eDerm.message);
+    }
+  }
+
+  if (comando === "/herpes" || comando === "/zoster" || comando === "/aciclovir" || comando === "/valaciclovir") {
+    var dadosHerpes = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof DermatologiaLesoesIstsService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo DermatologiaLesoesIstsService indisponível temporariamente.");
+    }
+    if (!dadosHerpes) {
+      return enviarMensagemParaChat(chatId,
+        "🛡️ *Protocolo Antiviral: Herpes Zoster & Herpes Simples*\n\n" +
+        "Digite os dados clínicos do paciente para prescrição com ajuste renal.\n\n" +
+        "📌 *Parâmetros aceitos:*\n" +
+        "• Tipo: `zoster`, `zoster oftálmico`, `simples genital`, `primoinfecção`, `recorrência`, `supressão`\n" +
+        "• Função Renal: `clcr 35`, `clcr 18`, `clcr 8`, `hemodiálise`\n" +
+        "• Dados: `peso 75`, `idade 70`, `imunossuprimido`, `gestante`, `hutchinson`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/zoster clcr 38 peso 70 idade 68`\n" +
+        "• `/zoster hutchinson oftálmico clcr 85`\n" +
+        "• `/herpes simples genital primoinfeccao clcr 80`\n" +
+        "• `/aciclovir zoster hemodialise peso 65`");
+    }
+
+    function extrairHerpes(re) {
+      var m = dadosHerpes.match(re);
+      return m ? parseFloat(m[1].replace(",", ".")) : NaN;
+    }
+
+    var paramsHerpes = {
+      tipo: dadosHerpes,
+      clcr: extrairHerpes(/(?:clcr|clearance|tfg)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i),
+      peso: extrairHerpes(/(?:peso|kg)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i),
+      idade: extrairHerpes(/(?:idade|anos)\s*[:=]?\s*(\d+)/i),
+      hemodialise: /(?:hemodialise|hemodiálise|dialise|diálise|drc terminal)/i.test(dadosHerpes),
+      hutchinson: /(?:hutchinson|oftalm|nariz)/i.test(dadosHerpes),
+      imunossuprimido: /(?:imunossup|hiv|transplante|quimio)/i.test(dadosHerpes),
+      gestante: /(?:gestante|gravida|grávida|gestacao)/i.test(dadosHerpes)
+    };
+
+    try {
+      var analiseHerpes = DermatologiaLesoesIstsService.calcularPosologiaAntiviralHerpes(paramsHerpes);
+      var textHerpes = DermatologiaLesoesIstsService.formatarHerpesAntiviralTelegram(analiseHerpes);
+      return enviarMensagemParaChat(chatId, textHerpes);
+    } catch (eHerpes) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao calcular posologia antiviral: " + eHerpes.message);
+    }
+  }
+
+  if (comando === "/ulceragenital" || comando === "/cancro" || comando === "/donovanose" || comando === "/lgv") {
+    var dadosUlc = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof DermatologiaLesoesIstsService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo DermatologiaLesoesIstsService indisponível temporariamente.");
+    }
+    if (!dadosUlc) {
+      return enviarMensagemParaChat(chatId,
+        "🩹 *Abordagem Sindrômica de Úlceras Genitais (PCDT MS 2026)*\n\n" +
+        "Digite os achados clínicos da úlcera genital.\n\n" +
+        "📌 *Parâmetros aceitos:*\n" +
+        "• Tempo: `tempo 2 semanas`, `tempo 10 dias`, `tempo 5 semanas`\n" +
+        "• Lesões: `vesiculas`, `ulcera unica`, `multiplas ulceras`, `fundo limpo`, `fundo purulento`\n" +
+        "• Sintomas: `indolor`, `muito dolorosa`, `bubao inguinal`, `fistula`\n" +
+        "• Especiais: `gestante`, `alergia a penicilina`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/ulceragenital tempo 10 dias ulcera unica indolor bordas endurecidas`\n" +
+        "• `/ulceragenital vesiculas agrupadas dolorosas tempo 3 dias`\n" +
+        "• `/ulceragenital tempo 5 semanas ulcera vegetante indolor sangra facil`\n" +
+        "• `/cancro tempo 2 semanas dolorosa fundo purulento gestante`");
+    }
+
+    function extrairUlc(re) {
+      var m = dadosUlc.match(re);
+      return m ? parseFloat(m[1].replace(",", ".")) : NaN;
+    }
+
+    var paramsUlc = {
+      texto: dadosUlc,
+      tempo_semanas: extrairUlc(/(?:tempo|duracao|evolucao)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)\s*sem/i),
+      tempo_dias: extrairUlc(/(?:tempo|duracao|evolucao)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)\s*dia/i),
+      vesiculas: /(?:ves[ií]cula|pequenas bolhas)/i.test(dadosUlc),
+      dor: dadosUlc,
+      gestante: /(?:gestante|gravida|grávida)/i.test(dadosUlc),
+      alergia_penicilina: /(?:alergia a penicilina|al[eé]rgico|anafilaxia)/i.test(dadosUlc)
+    };
+
+    try {
+      var analiseUlc = DermatologiaLesoesIstsService.avaliarUlceraGenitalIst(paramsUlc);
+      var textUlc = DermatologiaLesoesIstsService.formatarUlcerasGenitaisTelegram(analiseUlc);
+      return enviarMensagemParaChat(chatId, textUlc);
+    } catch (eUlc) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao avaliar úlcera genital: " + eUlc.message);
+    }
+  }
+
+  if (comando === "/sifilis" || comando === "/biett" || comando === "/roseola") {
+    var dadosSif = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof DermatologiaLesoesIstsService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo DermatologiaLesoesIstsService indisponível temporariamente.");
+    }
+    if (!dadosSif) {
+      return enviarMensagemParaChat(chatId,
+        "🩸 *Manejo e Estadiamento da Sífilis (PCDT MS 2026)*\n\n" +
+        "Informe o estágio ou achados clínicos e sorológicos.\n\n" +
+        "📌 *Parâmetros aceitos:*\n" +
+        "• Estágio: `primaria`, `secundaria`, `latente recente`, `latente tardia`, `indeterminada`, `terciaria`\n" +
+        "• Achados: `roseola`, `biett`, `palmo-plantar`, `condiloma lata`, `cancro duro`\n" +
+        "• Sorologia: `vdrl 1:32`, `vdrl 1:8`, `teste rapido reagente`\n" +
+        "• Especiais: `gestante`, `alergia a penicilina`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/sifilis secundaria lesoes palmoplantares colarete de biett vdrl 1:64`\n" +
+        "• `/sifilis primaria cancro duro vdrl 1:16`\n" +
+        "• `/sifilis latente tardia sem sintomas vdrl 1:8 gestante`\n" +
+        "• `/sifilis secundaria alergia a penicilina`");
+    }
+
+    var paramsSif = {
+      texto: dadosSif,
+      estagio: dadosSif,
+      vdrl: dadosSif,
+      gestante: /(?:gestante|gravida|grávida)/i.test(dadosSif),
+      alergia_penicilina: /(?:alergia a penicilina|al[eé]rgico|anafilaxia)/i.test(dadosSif)
+    };
+
+    try {
+      var analiseSif = DermatologiaLesoesIstsService.avaliarSifilisManejo(paramsSif);
+      var textSif = DermatologiaLesoesIstsService.formatarSifilisTelegram(analiseSif);
+      return enviarMensagemParaChat(chatId, textSif);
+    } catch (eSif) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao avaliar sífilis: " + eSif.message);
+    }
+  }
+
+  if (comando === "/mpox" || comando === "/monkeypox") {
+    var dadosMpox = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof DermatologiaLesoesIstsService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo DermatologiaLesoesIstsService indisponível temporariamente.");
+    }
+    if (!dadosMpox) {
+      return enviarMensagemParaChat(chatId,
+        "🐵 *Mpox (Monkeypox) — Manejo Clínico & Biossegurança*\n\n" +
+        "Descreva a suspeita clínica de Mpox.\n\n" +
+        "📌 *Achados avaliados:*\n" +
+        "• Lesões: `vesiculas umbilicadas`, `pustulas`, `crostas`, `genital`, `face`, `perianal`\n" +
+        "• Sintomas: `febre`, `linfonodomegalia dolorosa`, `proctite / dor ao evacuar`\n" +
+        "• Modificadores: `hiv / imunossuprimido`, `dias de evolucao`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/mpox febre linfonodomegalia dolorosa vesiculas umbilicadas perianal`\n" +
+        "• `/mpox proctite intensa dor retal pustulas umbilicadas hiv`");
+    }
+
+    var paramsMpox = {
+      texto: dadosMpox,
+      febre: /(?:febre|febril)/i.test(dadosMpox),
+      linfonodomegalia: /(?:linfonodo|adenomegalia|ganglio|inguinal|cervical)/i.test(dadosMpox),
+      vesiculas_umbilicadas: /(?:umbilicad|centro deprimido|pustula)/i.test(dadosMpox),
+      proctite: /(?:proctite|retal|anus|[aâ]nus|dor ao evacuar)/i.test(dadosMpox),
+      imunossuprimido: /(?:imunossup|hiv|cd4)/i.test(dadosMpox)
+    };
+
+    try {
+      var analiseMpox = DermatologiaLesoesIstsService.avaliarMpox(paramsMpox);
+      var textMpox = DermatologiaLesoesIstsService.formatarMpoxTelegram(analiseMpox);
+      return enviarMensagemParaChat(chatId, textMpox);
+    } catch (eMpox) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao avaliar Mpox: " + eMpox.message);
+    }
+  }
+
   if (comando === "/rcf" || comando === "/ciur" || comando === "/rciu" || comando === "/doppler" || comando === "/crescimentofetal") {
     var dadosRcf = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof ObstetriciaRcfDopplerService === "undefined") {
@@ -43863,6 +45022,14 @@ function processarCallbackBotao(cb) {
   else if (data.startsWith("rotina:")) {
     return tratarCallbackRotina(cb);
   }
+  // A3. AJUDA E MANUAL DE COMANDOS SLASH
+  else if (data.startsWith("ajuda_cat_") || data === "ajuda_todas") {
+    var catAlvo = data.replace(/^ajuda_cat_/, "");
+    if (data === "ajuda_todas") catAlvo = "todas";
+    responderCallbackTelegram(cb.id, "Carregando comandos...");
+    var chatAjuda = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+    return enviarManualCompletoComandos(chatAjuda, catAlvo);
+  }
   // B. GERAR ROUND DIRETO DO PLANTÃO SBAR
   else if (data.startsWith("gerarRound_")) {
     var cacheKeyRound = data.replace("gerarRound_", "");
@@ -45799,33 +46966,400 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
   }
 }
 
-function enviarManual(chatId) {
-  var manual =
-    "📖 *GUIA DO COPILOTO CLÍNICO 4.0*\n\n" +
-    "Seu assistente médico para o dia a dia (PS, Enfermaria e UBS). Navegue usando a ⚙️ Central de Comandos (`/menu`) ou o Teclado no Rodapé.\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🚨 *1. EMERGÊNCIA (SALA VERMELHA)*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• `/dva <droga> <peso>`: DVA em mL/h e mcg/kg/min (ex: `/dva nora 70`).\n" +
-    "• `/sri <peso>`: Doses e volumes (mL) para Sequência Rápida de Intubação.\n" +
-    "• `/gaso <dados>`: Interpretação de Gasometria e distúrbios mistos.\n" +
-    "• `/conduta`: Doses de ataque para PCR, EAP, hipercalemia, anafilaxia.\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🏥 *2. ENFERMARIA & LEITOS*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• `/enfermaria`: Quadro geral de leitos e censo de gravidade.\n" +
-    "• `/leito <num> <caso>`: Evolui ou cadastra o leito (ex: `/leito 4 PAC grave`).\n" +
-    "• `/passagem`: Gera a passagem de plantão completa (SBAR).\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "💊 *3. PRESCRIÇÃO E AMBULATÓRIO (SOAP)*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• `/soap <caso>`: Avalia caso clínico gerando síntese estruturada e conduta.\n" +
-    "• `/rx <caso>`: Emite receita da REMUME com posologia pronta em PDF.\n" +
-    "• `/rxh <caso>`: Estrutura a prescrição hospitalar de internação.\n" +
-    "• `/atb <droga> <clcr>`: Ajuste renal imediato de antibióticos.\n\n" +
-    "💡 *Dica:* Use `/novo` sempre que trocar de paciente para limpar a memória do bot.";
+/**
+ * Retorna o catálogo estruturado com todos os 247 comandos e atalhos slash do Ultra Rotina
+ */
+function obterCatalogoComandosSlash() {
+  return [
+    {
+      id: "nucleo",
+      titulo: "🧭 NÚCLEO, SESSÃO, NAVEGAÇÃO & COCKPIT",
+      comandos: [
+        { cmd: "/start", aliases: ["/start"], sintaxe: "/start", desc: "Inicializa o bot, exibe a saudação ao médico e abre o Hub Principal de navegação." },
+        { cmd: "/menu", aliases: ["/menu", "/teclado"], sintaxe: "/menu", desc: "Abre a Central de Comandos e reativa o teclado rápido beira-leito." },
+        { cmd: "/ajuda", aliases: ["/ajuda", "/help", "/manual"], sintaxe: "/ajuda [categoria|comando]", desc: "Manual completo de todos os comandos slash disponíveis e a função de cada um." },
+        { cmd: "/cockpit", aliases: ["/cockpit", "/app"], sintaxe: "/cockpit", desc: "Abre o Cockpit Móvel unificado em tela cheia (Mini App do Telegram com 6 abas)." },
+        { cmd: "/novo", aliases: ["/novo", "/cancelar"], sintaxe: "/novo", desc: "Limpa a memória de curto prazo do atendimento atual e reseta o contexto clínico." },
+        { cmd: "/fila", aliases: ["/fila"], sintaxe: "/fila", desc: "Consulta a fila de processamento assíncrono de pedidos, áudios e tarefas pendentes." },
+        { cmd: "/status", aliases: ["/status", "/fontes"], sintaxe: "/status", desc: "Verifica o status operacional dos servidores (Render 24/7), REMUME RP, interações e APIs." },
+        { cmd: "/pc", aliases: ["/pc"], sintaxe: "/pc [sync|audit|status]", desc: "Ponte de comando para o daemon do computador local (sincronização de agenda, auditoria e status)." },
+        { cmd: "/pedido", aliases: ["/pedido"], sintaxe: "/pedido <id>", desc: "Inspeciona o conteúdo original preservado de uma tarefa ou mensagem arquivada na fila." }
+      ]
+    },
+    {
+      id: "ambulatorio",
+      titulo: "🩺 AMBULATÓRIO, PRONTUÁRIO & PRESCRIÇÃO",
+      comandos: [
+        { cmd: "/soap", aliases: ["/soap"], sintaxe: "/soap <caso clínico>", desc: "Conduz raciocínio clínico completo gerando nota estruturada SOAP com condutas beira-leito." },
+        { cmd: "/ambulatorio", aliases: ["/ambulatorio", "/soap_ambulatorial", "/soap_aps"], sintaxe: "/ambulatorio <caso clínico>", desc: "Conduz atendimento ambulatorial focado na Atenção Primária à Saúde (APS) e Medicina de Família." },
+        { cmd: "/atestado", aliases: ["/atestado"], sintaxe: "/atestado <dias> [motivo/CID]", desc: "Gera atestado médico estruturado com período de repouso, dias de afastamento e fundamentação legal." },
+        { cmd: "/rx", aliases: ["/rx", "/receita"], sintaxe: "/rx <caso ou remédio>", desc: "Emite receita médica inteligente checada na REMUME de Ribeirão Preto com posologia oficial e PDF pronto." },
+        { cmd: "/rxh", aliases: ["/rxh", "/prescricao_hospitalar"], sintaxe: "/rxh <caso do internado>", desc: "Estrutura prescrição hospitalar completa de internação com 10 itens padronizados (dieta, hidratação, medicamentos, analgesia, profilaxias TEV/úlcera)." }
+      ]
+    },
+    {
+      id: "emergencia",
+      titulo: "🚨 SALA VERMELHA & CTI (EMERGÊNCIAS)",
+      comandos: [
+        { cmd: "/dva", aliases: ["/dva"], sintaxe: "/dva <droga> <pesoKg> [solução]", desc: "Calculadora de Drogas Vasoativas (Noradrenalina, Dobutamina, Vasopressina, Nipride, Tridil) em mL/h e mcg/kg/min." },
+        { cmd: "/sri", aliases: ["/sri", "/iot"], sintaxe: "/sri <pesoKg> [choque|asma|neuro]", desc: "Sequência Rápida de Intubação com doses em mg e mL de sedativos (Etomidato/Quetamina) e bloqueadores (Succinilcolina/Rocurônio)." },
+        { cmd: "/conduta", aliases: ["/conduta", "/sos"], sintaxe: "/conduta <patologia>", desc: "Condutas imediatas de emergência e doses de ataque beira-leito (PCR, EAP, anafilaxia, hipercalemia)." },
+        { cmd: "/gaso", aliases: ["/gaso", "/gasometria", "/aniongap"], sintaxe: "/gaso <pH> <pCO2> <HCO3> [Na] [Cl]", desc: "Interpretação da gasometria arterial pela regra dos 5 passos, compensação esperada, anion gap e gap delta." },
+        { cmd: "/winter", aliases: ["/winter"], sintaxe: "/winter <HCO3>", desc: "Fórmula de Winter para cálculo da pCO₂ esperada na acidose metabólica pura vs distúrbio misto." },
+        { cmd: "/choque", aliases: ["/choque", "/forrester", "/ic"], sintaxe: "/choque <PAS> <PAD> <FC> [perfusão]", desc: "Classificação hemodinâmica do choque e perfis de Forrester/Stevenson com direcionamento inotrópico, volêmico e vasodilatador." },
+        { cmd: "/sca", aliases: ["/sca", "/iam", "/heart", "/dapt"], sintaxe: "/sca <dados dor/ECG/troponina>", desc: "Síndrome Coronariana Aguda, estratificação pelo escore HEART, Dupla Antiagregação Plaquetária (DAPT) e anticoagulação." },
+        { cmd: "/avc", aliases: ["/avc", "/trombolise"], sintaxe: "/avc <tempo/sintomas/PA>", desc: "Protocolo de AVC isquêmico agudo, critérios de trombólise, metas pressóricas e doses de rtPA (Alteplase) e Tenecteplase (TNK)." },
+        { cmd: "/hic", aliases: ["/hic"], sintaxe: "/hic <pesoKg> [dados]", desc: "Manejo da Hipertensão Intracraniana aguda: doses de osmoterapia (Salina Hipertônica 3% e Manitol 20%), alvos de PAM e PPC." },
+        { cmd: "/transfusao", aliases: ["/transfusao", "/hemoterapia", "/ptm", "/chad"], sintaxe: "/transfusao <Hb/plaquetas/clínica>", desc: "Gatilhos transfusionais para Hemácias, Plaquetas, Plasma e protocolo de Transfusão Maciça (PTM)." },
+        { cmd: "/intox", aliases: ["/intox", "/toxicologia"], sintaxe: "/intox <agente/droga>", desc: "Toxicologia de emergência, identificação de toxíndromes e antídotos específicos (NAC para paracetamol, naloxona, atropina, flumazenil)." },
+        { cmd: "/pancreatite", aliases: ["/pancreatite", "/bisap"], sintaxe: "/pancreatite <BUN> <GCS> <SIRS> <idade> <derrame>", desc: "Escore BISAP para estratificação de gravidade na pancreatite aguda e metas de hidratação volêmica." },
+        { cmd: "/neutropenia", aliases: ["/neutropenia", "/mascc"], sintaxe: "/neutropenia <dados/pontos MASCC>", desc: "Estratificação de risco na neutropenia febril pós-QT pelo escore MASCC (baixo vs alto risco) e cobertura antimicrobiana." },
+        { cmd: "/colica", aliases: ["/colica", "/colicanefretica", "/litiase", "/pedranorim", "/calculorenal"], sintaxe: "/colica <tamanho cálculo/dor>", desc: "Manejo da cólica nefrética aguda, protocolo de analgesia multimodal e Terapia Expulsiva Medicamentosa (MET com Tansulosina)." }
+      ]
+    },
+    {
+      id: "farmaco",
+      titulo: "💊 FARMACOLOGIA, DOSES & ANTIMICROBIANOS",
+      comandos: [
+        { cmd: "/dose", aliases: ["/dose", "/posologia", "/hsl"], sintaxe: "/dose <medicamento>", desc: "Consulta posológica oficial no Guia Farmacêutico do Hospital Sírio-Libanês e PedBook com vias e diluições." },
+        { cmd: "/atb", aliases: ["/atb", "/ajuste", "/ajuste_renal"], sintaxe: "/atb <droga> <ClCr mL/min>", desc: "Ajuste renal de antibióticos e antifúngicos baseado nas diretrizes HSL/IDSA para disfunção renal e hemodiálise." },
+        { cmd: "/crcl", aliases: ["/crcl", "/clearance"], sintaxe: "/crcl <idade> <peso> <Cr> [f/m]", desc: "Cálculo do Clearance de Creatinina (Cockcroft-Gault) e estadiamento da disfunção renal pelo KDIGO." },
+        { cmd: "/interacao", aliases: ["/interacao", "/seguranca", "/crosscheck"], sintaxe: "/interacao <droga 1> + <droga 2>", desc: "Checagem de interações medicamentosas graves, bloqueios farmacológicos, prolongamento de QT e risco de toxicidade cumulativa." }
+      ]
+    },
+    {
+      id: "pediatria",
+      titulo: "👶 PEDIATRIA & SUPORTE VITAL",
+      comandos: [
+        { cmd: "/ped", aliases: ["/ped", "/dose_ped", "/pediatria"], sintaxe: "/ped <droga> <pesoKg>", desc: "Posologia pediátrica por peso (mg/kg/dia), frasconetes e gotas/mL baseado no PedBook (pedb.com.br)." },
+        { cmd: "/conduta_ped", aliases: ["/conduta_ped"], sintaxe: "/conduta_ped <patologia>", desc: "Protocolos clínicos pediátricos completos do PedBook com condutas, exames e critérios de internação." },
+        { cmd: "/pals", aliases: ["/pals", "/pediatria_pcr"], sintaxe: "/pals <pesoKg>", desc: "Suporte Avançado Pediátrico: doses de Adrenalina, Amiodarona, tamanho do TET c/s cuff, fixação labial e Joules de desfibrilação." },
+        { cmd: "/bronquiolite", aliases: ["/bronquiolite", "/bva", "/bronquioliteviral", "/cnaf"], sintaxe: "/bronquiolite <idade> <SatO2> <sintomas>", desc: "Manejo da Bronquiolite Viral Aguda, escore clínico de gravidade, critérios de oxigenoterapia e parâmetros de CNAF." },
+        { cmd: "/nutriped", aliases: ["/nutriped", "/holliday"], sintaxe: "/nutriped <pesoKg>", desc: "Cálculo hidroeletrolítico de manutenção pela regra de Holliday-Segar (volumes de SG 5%, NaCl 20% e KCl 10%)." },
+        { cmd: "/diluicao", aliases: ["/diluicao", "/formulainfantil"], sintaxe: "/diluicao <fórmula ou idade>", desc: "Cálculo de diluições, reconstituição de fórmulas lácteas infantis e transição alimentar pediátrica." }
+      ]
+    },
+    {
+      id: "obstetricia",
+      titulo: "🤰 OBSTETRÍCIA & MEDICINA FETAL",
+      comandos: [
+        { cmd: "/prenatal", aliases: ["/prenatal", "/dpp"], sintaxe: "/prenatal <DUM ou USG>", desc: "Cálculo da Idade Gestacional atual, Data Provável do Parto (Naegele) e cronograma trimestral de exames." },
+        { cmd: "/parto", aliases: ["/parto", "/co"], sintaxe: "/parto <dilatação> <altura De Lee> <dinâmica>", desc: "Condução do trabalho de parto no CO, análise de partograma, fases clínicas e conduta nas distócias." },
+        { cmd: "/hpp", aliases: ["/hpp"], sintaxe: "/hpp <perda ml/clínica>", desc: "Protocolo de Hemorragia Pós-Parto (regra dos 4 Ts), índice de choque obstétrico, uterotônicos sequenciais e balão de Bakri." },
+        { cmd: "/mgso4", aliases: ["/mgso4", "/preeclampsia"], sintaxe: "/mgso4 [zuspan|pritchard]", desc: "Protocolo de Sulfato de Magnésio para pré-eclâmpsia grave/eclâmpsia, controle de reflexos e diurese, e anti-hipertensivos rápidos." },
+        { cmd: "/gbs", aliases: ["/gbs"], sintaxe: "/gbs <cultura/fatores de risco>", desc: "Indicações de profilaxia intraparto para Estreptococo do Grupo B (S. agalactiae) com Penicilina Cristalina/Ampicilina." },
+        { cmd: "/prematuridade", aliases: ["/prematuridade"], sintaxe: "/prematuridade <IG> [sintomas]", desc: "Manejo da ameaça de parto prematuro, tocolíticos de 1ª linha, ciclo de Betametasona e Sulfato de Mg para neuroproteção." },
+        { cmd: "/colestase", aliases: ["/colestase", "/cig", "/icp"], sintaxe: "/colestase <ácidos biliares> [TGO/TGP]", desc: "Colestase Intra-hepática da Gestação: estratificação de risco fetal, dose de Ácido Ursodesoxicólico e timing do parto." },
+        { cmd: "/swansea", aliases: ["/swansea", "/ehag", "/aflp"], sintaxe: "/swansea <critérios clínicos/laboratoriais>", desc: "Critérios de Swansea para Esteatose Hepática Aguda da Gestação (EHAG) e conduta de emergência obstétrica." },
+        { cmd: "/toxo", aliases: ["/toxo", "/toxoplasmose", "/avidez"], sintaxe: "/toxo <IgG> <IgM> [avidez] [IG]", desc: "Diagnóstico de toxoplasmose gestacional, interpretação de avidez de IgG e esquema com Espiramicina ou Tríplice clássica." },
+        { cmd: "/rcf", aliases: ["/rcf", "/ciur", "/rciu", "/doppler", "/crescimentofetal"], sintaxe: "/rcf <pFE> [ACM] [AU] [DV]", desc: "Restrição de Crescimento Fetal: classificação por Doppler (artéria umbilical, cerebral média e ducto venoso) e timing do parto." },
+        { cmd: "/saf", aliases: ["/saf", "/antifosfolipidio", "/safgestante", "/trombofiliagestante", "/trombofilia", "/enoxaparina"], sintaxe: "/saf <histórico/anticorpos>", desc: "Síndrome Antifosfolipídio e trombofilias na gestação: esquemas profiláticos e terapêuticos com Enoxaparina e AAS." }
+      ]
+    },
+    {
+      id: "ginecologia",
+      titulo: "🌸 GINECOLOGIA & SAÚDE DA MULHER",
+      comandos: [
+        { cmd: "/ginecologia", aliases: ["/ginecologia"], sintaxe: "/ginecologia <caso>", desc: "Central de condutas e raciocínio clínico para queixas ginecológicas frequentes de consultório e urgência." },
+        { cmd: "/preventivo", aliases: ["/preventivo"], sintaxe: "/preventivo <laudo: ASC-US, LSIL...>", desc: "Conduta oficial de seguimento citopatológico de colo de útero (diretrizes brasileiras INCA/Ministério da Saúde)." },
+        { cmd: "/sua", aliases: ["/sua"], sintaxe: "/sua <idade> <padrão sangramento>", desc: "Investigação do Sangramento Uterino Anormal (sistema PALM-COEIN) e conduta terapêutica hormonal aguda e ambulatorial." },
+        { cmd: "/anticoncepcao", aliases: ["/anticoncepcao"], sintaxe: "/anticoncepcao <comorbidades/desejo>", desc: "Critérios Médicos de Elegibilidade da OMS para escolha e troca segura de contraceptivos (orais, injetáveis, DIU e implante)." },
+        { cmd: "/corrimento", aliases: ["/corrimento", "/leucorreia"], sintaxe: "/corrimento <aspecto/pH/odor>", desc: "Diagnóstico diferencial e tratamento de vaginoses e cervicites (Candidíase, Vaginose Bacteriana, Tricomoníase)." },
+        { cmd: "/endometriose", aliases: ["/endometriose", "/dienogeste", "/dorpelvica"], sintaxe: "/endometriose <sintomas/exames>", desc: "Manejo da dor pélvica crônica e endometriose, uso de dienogeste e critérios para propedêutica armada." },
+        { cmd: "/hiperprolactinemia", aliases: ["/hiperprolactinemia", "/prolactina", "/cabergolina"], sintaxe: "/hiperprolactinemia <prolactina ng/mL>", desc: "Investigação diagnóstica de prolactinoma e hiperprolactinemia medicamentosa e titulação de cabergolina." }
+      ]
+    },
+    {
+      id: "geriatria",
+      titulo: "👴 GERIATRIA & SAÚDE DO IDOSO (AGA)",
+      comandos: [
+        { cmd: "/idoso", aliases: ["/idoso", "/aga"], sintaxe: "/idoso <caso do idoso>", desc: "Avaliação Geriátrica Ampla (AGA) abrangendo funcionalidade, cognição, humor, nutrição, mobilidade e polifarmácia." },
+        { cmd: "/cfs", aliases: ["/cfs"], sintaxe: "/cfs <escore 1-9>", desc: "Classificação da Clinical Frailty Scale (escala clínica de fragilidade do idoso de Rockwood) com implicações prognósticas." },
+        { cmd: "/minicog", aliases: ["/minicog"], sintaxe: "/minicog <palavras> <desenho relógio>", desc: "Rastreio cognitivo rápido beira-leito através do teste Mini-Cog (evocação de 3 palavras + teste do relógio)." },
+        { cmd: "/tug", aliases: ["/tug"], sintaxe: "/tug <segundos>", desc: "Teste Timed Up and Go para predição de risco de quedas, fragilidade e velocidade de marcha." },
+        { cmd: "/beers", aliases: ["/beers"], sintaxe: "/beers <lista de medicamentos>", desc: "Critérios de Beers e STOPP/START para rastreamento de medicamentos potencialmente inapropriados em idosos." },
+        { cmd: "/frax", aliases: ["/frax"], sintaxe: "/frax <idade> <sexo> [fraturas/DMO]", desc: "Calculadora FRAX Brasil calibrada para probabilidade em 10 anos de fratura osteoporótica maior e fratura de fêmur." },
+        { cmd: "/osteoporose", aliases: ["/osteoporose"], sintaxe: "/osteoporose <T-score> [ClCr/cálcio]", desc: "Protocolo de osteoporose: bisfosfonatos (alendronato/zoledronato), denosumabe, suplementação de cálcio e vitamina D." },
+        { cmd: "/quedas", aliases: ["/quedas"], sintaxe: "/quedas <histórico quedas/drogas>", desc: "Avaliação de risco multifatorial de quedas no paciente idoso e plano de prevenção personalizada beira-leito." },
+        { cmd: "/polifarmacia", aliases: ["/polifarmacia", "/frids"], sintaxe: "/polifarmacia <lista de receitas>", desc: "Revisão e desprescrição segura de polifarmácia no idoso com identificação de FRIDs (Fall-Risk Increasing Drugs)." }
+      ]
+    },
+    {
+      id: "cardiopneumo",
+      titulo: "🫀 CARDIOLOGIA & PNEUMOLOGIA CLÍNICA",
+      comandos: [
+        { cmd: "/fa", aliases: ["/fa", "/fibrilacaoatrial", "/chascore", "/hasbled"], sintaxe: "/fa <idade> [comorbidades/sangramentos]", desc: "Manejo da Fibrilação Atrial: controle de frequência vs ritmo, indicação de anticoagulação pelo CHA₂DS₂-VASc e risco pelo HAS-BLED." },
+        { cmd: "/icc", aliases: ["/icc", "/insuficienciacardiaca", "/framingham", "/quarteto"], sintaxe: "/icc <FEVE %> [sintomas NYHA]", desc: "Tratamento da IC com Fração de Ejeção Reduzida e otimização dos 4 pilares (Quarteto Fantástico: ARNI/IECA + BB + ARM + iSGLT2)." },
+        { cmd: "/asma", aliases: ["/asma", "/criseasma", "/broncoespasmo", "/salbutamol"], sintaxe: "/asma <SatO2/sintomas/PFE>", desc: "Estadiamento da crise asmática aguda, ciclos de broncodilatadores (SABA + SAMA), corticoterapia sistêmica e Sulfato de Mg IV." },
+        { cmd: "/dpoc", aliases: ["/dpoc", "/vni", "/bipap", "/hipercapnia"], sintaxe: "/dpoc <gaso/dispneia/escarro>", desc: "Manejo da DPOC exacerbada: critérios de Anthonisen para antibióticos, corticoterapia oral e indicação/parâmetros de VNI (BiPAP)." }
+      ]
+    },
+    {
+      id: "metabolismo",
+      titulo: "🩸 HEMATOLOGIA, METABOLOGIA & NUTRIÇÃO",
+      comandos: [
+        { cmd: "/anemia", aliases: ["/anemia", "/hemograma"], sintaxe: "/anemia <Hb> <VCM> <HCM> [RDW/ferritina]", desc: "Diagnóstico etiológico de anemias: microcíticas, normocíticas e macrocíticas, cinética de ferro e reticulócitos." },
+        { cmd: "/ganzoni", aliases: ["/ganzoni", "/noripurum", "/ferro"], sintaxe: "/ganzoni <pesoKg> <HbAtual> [HbAlvo]", desc: "Fórmula de Ganzoni para cálculo da dose total de reposição de ferro elementar endovenoso (Noripurum / Carboximaltose)." },
+        { cmd: "/mentzer", aliases: ["/mentzer"], sintaxe: "/mentzer <VCM> <Hemácias em milhões>", desc: "Índice de Mentzer (VCM / Hemácias) para diferenciação rápida beira-leito (< 13: Talassemia; > 13: Ferropriva)." },
+        { cmd: "/diabetes", aliases: ["/diabetes", "/insulina"], sintaxe: "/diabetes <glicemia/HbA1c/peso>", desc: "Manejo ambulatorial e hospitalar do Diabetes Mellitus, metas de glicemia e titulação de esquema basal-bolus de insulina." },
+        { cmd: "/cad", aliases: ["/cad"], sintaxe: "/cad <pesoKg> <glicemia> <gaso> <K+>", desc: "Protocolo de Cetoacidose Diabética: hidratação guiada por sódio corrigido, bomba de insulina regular, reposição de K+ e resolução." },
+        { cmd: "/ehh", aliases: ["/ehh"], sintaxe: "/ehh <pesoKg> <glicemia> <Na>", desc: "Protocolo do Estado Hiperosmolar Hiperglicêmico: cálculo de osmolaridade sérica efetiva e expansão volêmica cautelosa." },
+        { cmd: "/glicemia", aliases: ["/glicemia"], sintaxe: "/glicemia <valor em mg/dL>", desc: "Mapa prático de prescrição e correção rápida de hiperglicemia hospitalar com insulina ultrarrápida/regular beira-leito." },
+        { cmd: "/nutricao", aliases: ["/nutricao", "/dieta"], sintaxe: "/nutricao <pesoKg> <alturaCm> [clínica]", desc: "Estimativa de metas calórico-proteicas basais (kcal/kg/dia) e orientação para escolha de terapia nutricional oral ou enteral." },
+        { cmd: "/refeeding", aliases: ["/refeeding"], sintaxe: "/refeeding <tempo de jejum/eletrólitos>", desc: "Protocolo de prevenção e correção da Síndrome de Realimentação, reposição de Tiamina e controle de Fósforo, Magnésio e Potássio." },
+        { cmd: "/npt", aliases: ["/npt"], sintaxe: "/npt <pesoKg> [necessidades]", desc: "Prescrição, balanço hidroeletrolítico e monitorização laboratorial da Nutrição Parenteral Total." },
+        { cmd: "/nrs", aliases: ["/nrs"], sintaxe: "/nrs <pontuação>", desc: "Triagem de Risco Nutricional NRS-2002 para indicação precoce de suporte nutricional hospitalar." }
+      ]
+    },
+    {
+      id: "especialidades",
+      titulo: "🦴 REUMATO, ORTO, URO & OFTALMO",
+      comandos: [
+        { cmd: "/monoartrite", aliases: ["/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese"], sintaxe: "/monoartrite <leucócitos líquido/cristais>", desc: "Diagnóstico diferencial de monoartrite aguda (Artrite Séptica vs Gota/Pseudogota) e interpretação de artrocentese." },
+        { cmd: "/febrereumatica", aliases: ["/febrereumatica", "/fr", "/jones", "/aslo"], sintaxe: "/febrereumatica <critérios Jones/ASLO>", desc: "Critérios de Jones revisados pela AHA para Febre Reumática Aguda, tratamento anti-inflamatório e profilaxia secundária com Penicilina Benzatina." },
+        { cmd: "/oftalmo", aliases: ["/oftalmo", "/glaucoma", "/queimaduraocular", "/traumaocular"], sintaxe: "/oftalmo <queixa ocular/trauma>", desc: "Emergências oftalmológicas no Pronto-Socorro: queimadura química ocular, glaucoma agudo de ângulo fechado e corpo estranho." }
+      ]
+    },
+    {
+      id: "psiquiatria",
+      titulo: "🧠 PSIQUIATRIA DE URGÊNCIA & SAÚDE MENTAL",
+      comandos: [
+        { cmd: "/psiq", aliases: ["/psiq"], sintaxe: "/psiq <caso psiquiátrico>", desc: "Condutas imediatas e raciocínio diagnóstico nas principais emergências psiquiátricas do plantão." },
+        { cmd: "/agitacao", aliases: ["/agitacao"], sintaxe: "/agitacao [leve|moderada|grave]", desc: "Manejo farmacológico rápido e escalonado da agitação psicomotora (Haloperidol, Midazolam, Prometazina) e contenção protetiva." },
+        { cmd: "/suicidio", aliases: ["/suicidio"], sintaxe: "/suicidio <caso/fatores risco>", desc: "Estratificação do risco de suicídio (baixo, moderado e alto), intervenção em crise e medidas de segurança beira-leito." },
+        { cmd: "/phq9", aliases: ["/phq9"], sintaxe: "/phq9 <respostas/pontuação 0-27>", desc: "Aplicação do questionário PHQ-9 para depressão com estratificação da severidade e diretrizes terapêuticas." }
+      ]
+    },
+    {
+      id: "exame_fisico",
+      titulo: "🩺 EXAME FÍSICO & SEMIOLOGIA ESPECIALIZADA",
+      comandos: [
+        { cmd: "/ef", aliases: ["/ef", "/exames", "/exames_especiais"], sintaxe: "/ef", desc: "Menu central com todos os roteiros práticos de exame físico especializado beira-leito." },
+        { cmd: "/ef_neuro", aliases: ["/ef_neuro", "/neuro"], sintaxe: "/ef_neuro", desc: "Roteiro semiológico do exame neurológico detalhado: pares cranianos, força motora, reflexos, sensibilidade e cerebelo." },
+        { cmd: "/ef_pqu", aliases: ["/ef_pqu", "/pqu"], sintaxe: "/ef_pqu", desc: "Roteiro semiológico do exame psíquico (psicopatologia): consciência, atenção, memória, pensamento e humor." },
+        { cmd: "/ef_oftalmo", aliases: ["/ef_oftalmo"], sintaxe: "/ef_oftalmo", desc: "Exame oftalmológico no pronto atendimento: acuidade, reflexos pupilares e fluoresceína." },
+        { cmd: "/ef_ortopo", aliases: ["/ef_ortopo", "/ortopo", "/reumato"], sintaxe: "/ef_ortopo", desc: "Manobras semiológicas ortopédicas de ombro (Neer, Hawkins), joelho (Lachman, gaveta), coluna (Lasègue) e quadril." },
+        { cmd: "/ef_orl", aliases: ["/ef_orl", "/orl"], sintaxe: "/ef_orl", desc: "Semiologia de otorrinolaringologia: otoscopia, rinoscopia, orofaringe e linfonodos cervicais." },
+        { cmd: "/ef_dermato", aliases: ["/ef_dermato"], sintaxe: "/ef_dermato", desc: "Semiologia dermatológica e identificação morfológica de lesões elementares primárias e secundárias." },
+        { cmd: "/ef_gineco", aliases: ["/ef_gineco"], sintaxe: "/ef_gineco", desc: "Exame ginecológico passo a passo: ectoscopia genital, exame especular e toque vaginal bimanual." },
+        { cmd: "/ef_procto", aliases: ["/ef_procto"], sintaxe: "/ef_procto", desc: "Exame proctológico: inspeção estática e dinâmica, palpação perianal e toque retal sistemático." },
+        { cmd: "/ef_ped", aliases: ["/ef_ped", "/ef_pedia"], sintaxe: "/ef_ped", desc: "Exame físico pediátrico sistematizado por faixas etárias, fontanelas, abdome e marcos do neurodesenvolvimento." },
+        { cmd: "/ef_geriatria", aliases: ["/ef_geriatria"], sintaxe: "/ef_geriatria", desc: "Semiologia geriátrica com foco em sinais de fragilidade, sarcopenia, hipotensão ortostática e úlceras de pressão." },
+        { cmd: "/ef_vascular", aliases: ["/ef_vascular"], sintaxe: "/ef_vascular", desc: "Exame vascular periférico: palpação simétrica de pulsos arteriais, tempo de enchimento capilar e estigmas venosos." }
+      ]
+    },
+    {
+      id: "enfermaria",
+      titulo: "🏥 ENFERMARIA, LEITOS & PLANTÃO",
+      comandos: [
+        { cmd: "/enfermaria", aliases: ["/enfermaria"], sintaxe: "/enfermaria", desc: "Painel geral e interativo com censo dos leitos cadastrados, gravidade e pendências dos pacientes internados." },
+        { cmd: "/leito", aliases: ["/leito"], sintaxe: "/leito <número> [dados do paciente]", desc: "Cadastro, consulta ou evolução clínica de um leito individual da enfermaria." },
+        { cmd: "/alta", aliases: ["/alta"], sintaxe: "/alta <número do leito>", desc: "Registra a alta hospitalar e desocupa o leito especificado no painel da enfermaria." },
+        { cmd: "/limpar_enfermaria", aliases: ["/limpar_enfermaria"], sintaxe: "/limpar_enfermaria", desc: "Comando administrativo com confirmação para desocupar e resetar todos os leitos da enfermaria." },
+        { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Gera o relatório estruturado completo e consolidado de passagem de plantão de todos os leitos ativos." },
+        { cmd: "/plantao", aliases: ["/plantao", "/sbar"], sintaxe: "/plantao <dados do caso>", desc: "Registra ou evolui um caso utilizando a metodologia padronizada de comunicação SBAR (Situação, Breve Histórico, Avaliação e Recomendação)." },
+        { cmd: "/plantao_fim", aliases: ["/plantao_fim"], sintaxe: "/plantao_fim", desc: "Checklist final de encerramento de plantão com revisão de pendências laboratoriais e condutas críticas." },
+        { cmd: "/round", aliases: ["/round", "/pitch"], sintaxe: "/round <dados do caso>", desc: "Estrutura apresentação em pitch clínico conciso e de alto impacto para a discussão multidisciplinar de round." }
+      ]
+    },
+    {
+      id: "ensino_rotina",
+      titulo: "🎧 PRECEPTOR, ROTINA & PRODUTIVIDADE",
+      comandos: [
+        { cmd: "/voz", aliases: ["/voz", "/sabatina", "/v", "/audio", "/a"], sintaxe: "/voz [caso ou tema]", desc: "Inicia ou retoma a sabatina preceptorial socrática via áudio ou texto para treinamento de raciocínio clínico beira-leito." },
+        { cmd: "/duvida", aliases: ["/duvida"], sintaxe: "/duvida <pergunta ou tema médico>", desc: "Arquiva uma dúvida médica diretamente no Notion para revisão na sessão noturna de estudos do MedQuest." },
+        { cmd: "/rotina", aliases: ["/rotina"], sintaxe: "/rotina [hoje|amanhã|semana|reset]", desc: "Exibe ou ajusta a grade de blocos de tempo adaptativos do dia para conciliar hospital, estudos e treinos." },
+        { cmd: "/agenda", aliases: ["/agenda"], sintaxe: "/agenda [hoje|amanhã|data]", desc: "Consulta compromissos, cirurgias e escalas médicas integradas com o Google Calendar." },
+        { cmd: "/task", aliases: ["/task", "/tarefa"], sintaxe: "/task <descrição da tarefa>", desc: "Captura rápida e cadastro imediato de uma tarefa no Inbox do Notion Tasks." },
+        { cmd: "/tasks", aliases: ["/tasks"], sintaxe: "/tasks", desc: "Lista as principais tarefas do dia sincronizadas com o banco de dados do Notion." },
+        { cmd: "/briefing", aliases: ["/briefing"], sintaxe: "/briefing", desc: "Emite o briefing matinal consolidado com previsão do tempo, compromissos prioritários e bloco cirúrgico." },
+        { cmd: "/checkin", aliases: ["/checkin"], sintaxe: "/checkin", desc: "Dispara o check-in noturno interativo de encerramento de atividades, hábitos e recuperação." },
+        { cmd: "/semana", aliases: ["/semana", "/relatorio"], sintaxe: "/semana", desc: "Gera o relatório analítico semanal de hábitos, adesão à rotina e produtividade clínica." },
+        { cmd: "/bio", aliases: ["/bio", "/mounjaro", "/composicao"], sintaxe: "/bio", desc: "Abre o atalho para monitoramento de peso corporal, percentual de gordura (BF%) e protocolo de cutting no Cockpit." }
+      ]
+    },
+    {
+      id: "governanca",
+      titulo: "🛡️ EVIDÊNCIAS, PROTOCOLOS & GOVERNANÇA",
+      comandos: [
+        { cmd: "/evidencia", aliases: ["/evidencia", "/pubmed"], sintaxe: "/evidencia <termo de busca>", desc: "Busca em tempo real de artigos científicos, ensaios clínicos e diretrizes médicas no PubMed / Europe PMC." },
+        { cmd: "/protocolo", aliases: ["/protocolo"], sintaxe: "/protocolo <sepse|iam|eap|cad|tep|dpoc>", desc: "Compara lado a lado as diretrizes clínicas brasileiras vs internacionais com pontos de divergência e condutas." },
+        { cmd: "/calc", aliases: ["/calc"], sintaxe: "/calc", desc: "Abre o catálogo central com atalhos para todas as calculadoras médicas integradas." },
+        { cmd: "/perfil", aliases: ["/perfil", "/rbac"], sintaxe: "/perfil [usuário]", desc: "Consulta os níveis de permissão clínica e papéis RBAC ativos (Preceptor, Médico Assistente, Residente, Interno)." },
+        { cmd: "/pendencias", aliases: ["/pendencias"], sintaxe: "/pendencias", desc: "Lista ações e prescrições emitidas por médicos em formação que aguardam chancela preceptorial." },
+        { cmd: "/chancelar", aliases: ["/chancelar"], sintaxe: "/chancelar <id>", desc: "Aprova e chancela formalmente a conduta supervisionada de um interno ou residente." },
+        { cmd: "/emergencia", aliases: ["/emergencia", "/breaktheglass"], sintaxe: "/emergencia <justificativa>", desc: "Protocolo Break-The-Glass para bypass imediato de restrições de permissão durante emergências extremas com auditoria." },
+        { cmd: "/auditar_rbac", aliases: ["/auditar_rbac", "/relatorio_rbac"], sintaxe: "/auditar_rbac", desc: "Emite relatório de auditoria e conformidade dos acessos e quebras de barreira registradas." },
+        { cmd: "/kaizen", aliases: ["/kaizen", "/auditkaizen", "/auditoria"], sintaxe: "/kaizen", desc: "Painel de métricas de qualidade, feedbacks e melhoria contínua (Kaizen) das decisões clínicas." }
+      ]
+    }
+  ];
+}
 
-  enviarMensagemParaChat(chatId, manual);
+/**
+ * Constrói o teclado inline com todas as categorias do manual de ajuda
+ */
+function construirTecladoCategoriasAjuda() {
+  return {
+    inline_keyboard: [
+      [
+        { text: "🧭 Início / Cockpit", callback_data: "ajuda_cat_nucleo" },
+        { text: "🩺 Ambulatório / SOAP", callback_data: "ajuda_cat_ambulatorio" }
+      ],
+      [
+        { text: "🚨 Sala Vermelha / CTI", callback_data: "ajuda_cat_emergencia" },
+        { text: "💊 Farmaco / ATB / CrCl", callback_data: "ajuda_cat_farmaco" }
+      ],
+      [
+        { text: "👶 Pediatria / PALS", callback_data: "ajuda_cat_pediatria" },
+        { text: "🤰 Obstetrícia / Parto", callback_data: "ajuda_cat_obstetricia" }
+      ],
+      [
+        { text: "🌸 Ginecologia", callback_data: "ajuda_cat_ginecologia" },
+        { text: "👴 Geriatria (AGA)", callback_data: "ajuda_cat_geriatria" }
+      ],
+      [
+        { text: "🫀 Cardio & Pneumo", callback_data: "ajuda_cat_cardiopneumo" },
+        { text: "🩸 Metabologia & Sangue", callback_data: "ajuda_cat_metabolismo" }
+      ],
+      [
+        { text: "🦴 Reumato & Especialidades", callback_data: "ajuda_cat_especialidades" },
+        { text: "🧠 Psiquiatria", callback_data: "ajuda_cat_psiquiatria" }
+      ],
+      [
+        { text: "🩺 Exame Físico", callback_data: "ajuda_cat_exame_fisico" },
+        { text: "🏥 Enfermaria & Plantão", callback_data: "ajuda_cat_enfermaria" }
+      ],
+      [
+        { text: "🎧 Preceptor & Rotina", callback_data: "ajuda_cat_ensino_rotina" },
+        { text: "🛡️ Governança & Diretrizes", callback_data: "ajuda_cat_governanca" }
+      ],
+      [
+        { text: "📖 Ver Todos os Comandos (Manual Completo)", callback_data: "ajuda_todas" }
+      ]
+    ]
+  };
+}
+
+/**
+ * Normaliza termos de busca para o manual de ajuda
+ */
+function normalizarTextoBuscaAjuda(t) {
+  if (!t) return "";
+  return String(t)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+/**
+ * Envia o manual completo ou filtrado por categoria/comando
+ */
+function enviarManualCompletoComandos(chatId, filtro) {
+  var catalogo = obterCatalogoComandosSlash();
+  var filtroNorm = normalizarTextoBuscaAjuda(filtro);
+  var kb = construirTecladoCategoriasAjuda();
+
+  if (filtroNorm && filtroNorm !== "todas" && filtroNorm !== "tudo" && filtroNorm !== "full" && filtroNorm !== "manual") {
+    var mapaCategorias = {
+      "nucleo": "nucleo", "inicio": "nucleo", "cockpit": "nucleo", "app": "nucleo", "sessao": "nucleo",
+      "ambulatorio": "ambulatorio", "aps": "ambulatorio", "mfc": "ambulatorio",
+      "emergencia": "emergencia", "sala": "emergencia", "vermelha": "emergencia", "urgencia": "emergencia", "cti": "emergencia", "uti": "emergencia",
+      "farmaco": "farmaco", "remedio": "farmaco", "medicamento": "farmaco", "remedios": "farmaco", "medicamentos": "farmaco", "drogas": "farmaco",
+      "pediatria": "pediatria", "ped": "pediatria", "crianca": "pediatria", "lactente": "pediatria",
+      "obstetricia": "obstetricia", "parto": "obstetricia", "gestante": "obstetricia", "gestacao": "obstetricia",
+      "ginecologia": "ginecologia", "gineco": "ginecologia", "mulher": "ginecologia",
+      "geriatria": "geriatria", "idoso": "geriatria", "aga": "geriatria", "geronto": "geriatria",
+      "cardiopneumo": "cardiopneumo", "cardio": "cardiopneumo", "pneumo": "cardiopneumo", "coracao": "cardiopneumo", "pulmao": "cardiopneumo",
+      "metabolismo": "metabolismo", "endocrino": "metabolismo", "nutricao": "metabolismo", "sangue": "metabolismo", "hematologia": "metabolismo",
+      "especialidades": "especialidades", "reumato": "especialidades", "orto": "especialidades", "oftalmo": "especialidades", "olho": "especialidades",
+      "psiquiatria": "psiquiatria", "psiq": "psiquiatria", "mental": "psiquiatria",
+      "exame_fisico": "exame_fisico", "exame": "exame_fisico", "semiologia": "exame_fisico",
+      "enfermaria": "enfermaria", "plantao": "enfermaria", "leitos": "enfermaria",
+      "ensino_rotina": "ensino_rotina", "preceptor": "ensino_rotina", "ensino": "ensino_rotina", "rotina": "ensino_rotina", "agenda": "ensino_rotina", "habitos": "ensino_rotina",
+      "governanca": "governanca", "diretrizes": "governanca", "diretriz": "governanca", "protocolos": "governanca", "auditoria": "governanca", "seguranca": "governanca"
+    };
+
+    var catAlvoId = mapaCategorias[filtroNorm];
+
+    if (catAlvoId) {
+      for (var i = 0; i < catalogo.length; i++) {
+        if (catalogo[i].id === catAlvoId) {
+          var cat = catalogo[i];
+          var msgCat = "📖 *" + cat.titulo + "*\n\n" +
+            "Confira os comandos disponíveis nesta especialidade:\n\n";
+          for (var j = 0; j < cat.comandos.length; j++) {
+            var c = cat.comandos[j];
+            var aliasesStr = (c.aliases && c.aliases.length > 1) ? " _(atalhos: " + c.aliases.join(", ") + ")_" : "";
+            msgCat += "• `" + c.sintaxe + "`" + aliasesStr + "\n  ↳ " + c.desc + "\n\n";
+          }
+          msgCat += "💡 *Dica:* Envie `/ajuda` para ver o manual completo de todos os comandos.";
+          if (typeof enviarMensagemComTecladoParaChat === "function") {
+            return enviarMensagemComTecladoParaChat(chatId, msgCat, kb);
+          }
+          return enviarMensagemParaChat(chatId, msgCat);
+        }
+      }
+    }
+
+    var cmdBusca = filtroNorm.replace(/^\//, "");
+    for (var k = 0; k < catalogo.length; k++) {
+      var catItem = catalogo[k];
+      for (var m = 0; m < catItem.comandos.length; m++) {
+        var cmdObj = catItem.comandos[m];
+        var matchesCmd = cmdObj.cmd.replace(/^\//, "") === cmdBusca;
+        if (!matchesCmd && cmdObj.aliases) {
+          for (var a = 0; a < cmdObj.aliases.length; a++) {
+            if (cmdObj.aliases[a].replace(/^\//, "") === cmdBusca) {
+              matchesCmd = true;
+              break;
+            }
+          }
+        }
+        if (matchesCmd) {
+          var msgCmd = "🔎 *DETALHES DO COMANDO " + cmdObj.cmd + "*\n\n" +
+            "• *Sintaxe:* `" + cmdObj.sintaxe + "`\n" +
+            "• *Aliases / Atalhos:* " + (cmdObj.aliases ? cmdObj.aliases.join(", ") : cmdObj.cmd) + "\n" +
+            "• *Função beira-leito:* " + cmdObj.desc + "\n" +
+            "• *Especialidade:* " + catItem.titulo + "\n\n" +
+            "💡 Envie `/ajuda` para consultar todos os comandos disponíveis.";
+          if (typeof enviarMensagemComTecladoParaChat === "function") {
+            return enviarMensagemComTecladoParaChat(chatId, msgCmd, kb);
+          }
+          return enviarMensagemParaChat(chatId, msgCmd);
+        }
+      }
+    }
+  }
+
+  var manualCompleto = "📖 *MANUAL COMPLETO DE COMANDOS SLASH (COPILOTO CLÍNICO 4.0)*\n\n" +
+    "Abaixo estão *todos os 247 comandos e atalhos* disponíveis no Ultra Rotina, organizados por especialidade e função beira-leito:\n\n";
+
+  for (var cIdx = 0; cIdx < catalogo.length; cIdx++) {
+    var categoria = catalogo[cIdx];
+    manualCompleto += "━━━━━━━━━━━━━━━━━━━━\n" +
+      "*" + categoria.titulo + "*\n" +
+      "━━━━━━━━━━━━━━━━━━━━\n";
+
+    for (var cmdIdx = 0; cmdIdx < categoria.comandos.length; cmdIdx++) {
+      var item = categoria.comandos[cmdIdx];
+      var atalhos = (item.aliases && item.aliases.length > 1) ? " _(atalhos: " + item.aliases.join(", ") + ")_" : "";
+      manualCompleto += "• `" + item.sintaxe + "`" + atalhos + "\n  ↳ " + item.desc + "\n";
+    }
+    manualCompleto += "\n";
+  }
+
+  manualCompleto += "💡 *Dica:* Para consultar apenas uma especialidade, digite `/ajuda <especialidade>` (ex: `/ajuda emergencia`, `/ajuda obstetricia`) ou toque nos botões abaixo:";
+
+  if (typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, manualCompleto, kb);
+  }
+  return enviarMensagemParaChat(chatId, manualCompleto);
+}
+
+function enviarManual(chatId) {
+  return enviarManualCompletoComandos(chatId, "");
 }
 
 /**
@@ -50603,4 +52137,99 @@ function cockpitFebreReumatica(initData, params) {
 
 function cockpitJones(initData, params) {
   return cockpitReumatologiaFebreReumatica(initData, params);
+}
+
+function cockpitDermatologiaLesao(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de lesão elementar não fornecidos.');
+  if (typeof DermatologiaLesoesIstsService === 'undefined') {
+    throw new Error('Serviço DermatologiaLesoesIstsService indisponível.');
+  }
+  var analise = DermatologiaLesoesIstsService.diferenciarLesaoElementar(params);
+  var texto = DermatologiaLesoesIstsService.formatarDermatologiaTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitDermatologiaHerpes(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Herpes não fornecidos.');
+  if (typeof DermatologiaLesoesIstsService === 'undefined') {
+    throw new Error('Serviço DermatologiaLesoesIstsService indisponível.');
+  }
+  var analise = DermatologiaLesoesIstsService.calcularPosologiaAntiviralHerpes(params);
+  var texto = DermatologiaLesoesIstsService.formatarHerpesAntiviralTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitHerpes(initData, params) {
+  return cockpitDermatologiaHerpes(initData, params);
+}
+
+function cockpitZoster(initData, params) {
+  return cockpitDermatologiaHerpes(initData, params);
+}
+
+function cockpitDermatologiaUlcerasGenitais(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de úlcera genital não fornecidos.');
+  if (typeof DermatologiaLesoesIstsService === 'undefined') {
+    throw new Error('Serviço DermatologiaLesoesIstsService indisponível.');
+  }
+  var analise = DermatologiaLesoesIstsService.avaliarUlceraGenitalIst(params);
+  var texto = DermatologiaLesoesIstsService.formatarUlcerasGenitaisTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitUlceraGenital(initData, params) {
+  return cockpitDermatologiaUlcerasGenitais(initData, params);
+}
+
+function cockpitDermatologiaSifilis(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Sífilis não fornecidos.');
+  if (typeof DermatologiaLesoesIstsService === 'undefined') {
+    throw new Error('Serviço DermatologiaLesoesIstsService indisponível.');
+  }
+  var analise = DermatologiaLesoesIstsService.avaliarSifilisManejo(params);
+  var texto = DermatologiaLesoesIstsService.formatarSifilisTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitSifilis(initData, params) {
+  return cockpitDermatologiaSifilis(initData, params);
+}
+
+function cockpitDermatologiaMpox(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Mpox não fornecidos.');
+  if (typeof DermatologiaLesoesIstsService === 'undefined') {
+    throw new Error('Serviço DermatologiaLesoesIstsService indisponível.');
+  }
+  var analise = DermatologiaLesoesIstsService.avaliarMpox(params);
+  var texto = DermatologiaLesoesIstsService.formatarMpoxTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitMpox(initData, params) {
+  return cockpitDermatologiaMpox(initData, params);
 }
