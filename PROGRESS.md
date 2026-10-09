@@ -137,10 +137,50 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Bloqueios de segurança: contraindicação formal de sedativos/ansiolíticos sem IOT, contraindicação de antibióticos empíricos de rotina e mucolíticos.
     - Integração Fastify RPC (cockpitPneumologiaAsma), comandos Telegram (/asma, /criseasma, /broncoespasmo, /salbutamol) e testes 100% aprovados.
 
-37. [ ] **Obstetrícia & Medicina Materno-Fetal - Manejo de Restrição de Crescimento Fetal (RCF / CIUR) e Doppler Obstétrico (Critérios de Barcelona / ISUOG)**:
-    - Diferenciação precoce (< 32 semanas) vs tardia (>= 32 semanas) de RCF e PIG (Pequeno para a Idade Gestacional constitucional).
-    - Interpretação determinística do Doppler: Artéria Umbilical (diástole zero ou reversa), Artéria Cerebral Média (redistribuição com vasodilatação / ACM < p5) e Ducto Venoso (onda A reversa como gatilho estrito de interrupção imediata por risco de acidemia/óbito fetal).
-    - Protocolo de vigilância e momento ideal de parto baseado no estadiamento I, II, III e IV de Barcelona.
+37. [x] **Obstetrícia & Medicina Materno-Fetal - Manejo de Restrição de Crescimento Fetal (RCF / CIUR) e Doppler Obstétrico (Critérios de Barcelona / ISUOG)**:
+    - Motor determinístico beira-leito completo para classificação, estadiamento e conduta em RCF (`src/02_obstetricia_rcf_doppler.js`).
+  * **Classificação Delphi (Gordijn 2016 / ISUOG 2020)**:
+    - Diferenciação precisa entre RCF Precoce (< 32 semanas, predomínio placentário), RCF Tardia (≥ 32 semanas, risco de deterioração aguda), PIG constitucional (Doppler normal) e sem restrição.
+    - RCF Precoce: critérios isolados (CA < p3, PFE < p3, diástole zero/reversa) ou combinados (PFE/CA < p10 + uterinas > p95 ou IP AU > p95).
+    - RCF Tardia: critérios isolados (CA/PFE < p3) ou 2 de 3 contributivos (PFE/CA < p10, queda > 2 quartis, RCP < p5 ou IP AU > p95).
+    - Insuficiência placentária grave ao Doppler é conduzida como RCF independentemente da biometria.
+  * **Interpretação Dopplervelocimétrica Completa**:
+    - Artéria Umbilical: IP > p95, diástole zero (AEDV) e diástole reversa (REDV).
+    - Artéria Cerebral Média: IP < p5 (vasodilatação cerebral / centralização).
+    - Relação Cerebroplacentária (RCP): cálculo automático (IP ACM / IP AU), classificação por percentil ou regra conservadora RCP < 1,0 no 3º trimestre.
+    - Artérias Uterinas: IP médio > p95.
+    - Istmo Aórtico: fluxo diastólico reverso.
+    - Ducto Venoso: IP > p95, onda A ausente e onda A reversa (gatilho de interrupção).
+  * **Estadiamento de Barcelona (Figueras & Gratacós 2014)**:
+    - Estágio 0 (PIG): Doppler normal, parto 39+0 a 40+0 sem, via obstétrica habitual.
+    - Estágio I: PFE < p3 ou IP AU > p95 ou ACM/RCP alterados, parto 37+0 sem, indução com CTG contínua.
+    - Estágio II: diástole zero na AU ou istmo reverso, parto 34+0 sem, cesariana obrigatória.
+    - Estágio III: diástole reversa na AU ou IP DV > p95, parto 30+0 sem, cesariana em centro terciário.
+    - Estágio IV: onda A ausente/reversa no DV, VCP < limiar TRUFFLE ou desacelerações espontâneas, interrupção ≥ 26+0 sem após corticoide se vitalidade permitir.
+  * **Limiares TRUFFLE para VCP da cCTG**:
+    - < 29 semanas: VCP < 2,6 ms → Estágio IV.
+    - ≥ 29 semanas: VCP < 3,0 ms → Estágio IV.
+  * **Protocolo de Conduta por Estágio**:
+    - IG-alvo de parto, via de parto preferencial, nível de vigilância e local de parto (centro terciário a partir do Estágio II).
+    - Decisão de periviabilidade (< 24 sem) e limite de viabilidade (< 26 sem) com aconselhamento conjunto Obstetrícia/Neonatologia.
+  * **Corticoide Antenatal e Neuroproteção Fetal**:
+    - Betametasona 12 mg IM 2 doses ou Dexametasona 6 mg IM 4 doses, indicado quando parto < 34 semanas ou Estágio ≥ III.
+    - Sulfato de magnésio para neuroproteção (4 g IV ataque + 1 g/h manutenção) quando parto < 32 semanas.
+    - Alerta de interpretação cautelosa de VCP e Doppler pós-corticoide (efeito farmacológico transitório 24-72h).
+  * **Investigação Etiológica Escalonada**:
+    - Datação, morfológica, rastreio de pré-eclâmpsia (sFlt-1/PlGF), fatores maternos.
+    - Infecções congênitas (CMV, toxo, sífilis, rubéola) em RCF precoce/grave.
+    - Estudo genético invasivo e SAF em RCF grave < 24 semanas.
+  * **Bloqueios de Segurança Clínica**:
+    - SILDENAFILA CONTRAINDICADA (STRIDER: hipertensão pulmonar neonatal e mortalidade).
+    - AAS/heparina não tratam RCF estabelecida; repouso/hiperoxigenação sem evidência.
+    - Não antecipar parto por biometria isolada em PIG com Doppler normal antes de 37 semanas.
+  * **Parser de Texto Livre (Telegram)**:
+    - Extração robusta de IG, percentis, Doppler, oligoâmnio, pré-eclâmpsia e gemelaridade.
+    - Proteção contra falso positivo: "onda a reversa" não contamina "diástole reversa" da AU.
+  * **Integração e Testes Automatizados**:
+    - Módulo `src/02_obstetricia_rcf_doppler.js` integrado via Fastify RPC (`cockpitObstetriciaRcf` e `cockpitRestricaoCrescimentoFetal`) e comandos Telegram (`/rcf`, `/ciur`, `/rciu`, `/doppler`, `/crescimentofetal`).
+    - 25 testes unitários dedicados em `tests/test_obstetricia_rcf_doppler.cjs` + 2 testes de integração do servidor em `tests/test_server_render.cjs`. 100% de sucesso.
 
 38. [ ] **Hepatologia & Emergência Obstétrica - Colestase Intra-hepática da Gestação (CIG) e Esteatose Hepática Aguda**:
     - Dosagem de ácidos biliares totais séricos como biomarcador patognomônico de estratificação de gravidade (leve 10-39 mcmol/L, moderada 40-99 mcmol/L, grave >= 100 mcmol/L com risco de óbito fetal súbito).
@@ -531,11 +571,18 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Gatilho automático para alerta de Piora Clínica (aumento de 2 pontos no SOFA) exigindo revisão imediata do Stewardship Antimicrobiano e controle do foco.
 
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Cardiologia Intensiva - Choque Cardiogênico e SCA com IC Descompensada (Classificação de Forrester & Stevenson)** (Tarefa 34)
+- [ ] **Hepatologia & Emergência Obstétrica - Colestase Intra-hepática da Gestação (CIG) e Esteatose Hepática Aguda** (Tarefa 38)
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Módulo de Obstetrícia & Medicina Fetal: RCF / CIUR e Doppler Obstétrico (Barcelona/ISUOG)**:
+   - Motor determinístico beira-leito completo para classificação Delphi (RCF precoce/tardia/PIG), interpretação dopplervelocimétrica (AU, ACM, RCP, uterinas, istmo, DV), estadiamento Barcelona (I-IV) com limiares TRUFFLE, conduta por estágio com IG-alvo de parto, corticoide/neuroproteção e investigação etiológica.
+   - Bloqueios de segurança: sildenafila contraindicada (STRIDER), AAS/heparina sem evidência para RCF, proteção contra falso positivo no parser de texto livre.
+   - Integrado via Fastify RPC (`cockpitObstetriciaRcf`) e Telegram (`/rcf`, `/ciur`, `/doppler`, `/crescimentofetal`).
+   - 25 testes unitários + 2 testes de integração do servidor — 100% aprovados.
+   - Kaizen perpétuo: Backlog abastecido com as novas metas 123, 124 e 125.
+
 - [x] **Módulo de Cardiologia Intensiva (Choque Cardiogênico e IC Descompensada)** (2026-10-09):
   * Estratificação Hemodinâmica beira-leito pela classificação de Forrester & Stevenson.
   * Algoritmo determinístico de manejo farmacológico combinado de inotrópicos, vasopressores, diuréticos e vasodilatadores.
@@ -1036,4 +1083,22 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Rastreio com escore SOFA e qSOFA.
     - Pacote de 1 hora da Sepse: coleta de culturas antes de antimicrobiano, dosagem seriada de lactato sérico, antibiótico de amplo espectro na 1ª hora e ressuscitação volêmica guiada por cristaloides balanceados (30 mL/kg nas primeiras 3h se hipotensão ou lactato >= 4 mmol/L).
     - Titulação de Noradrenalina de 1ª linha com alvo de PAM >= 65 mmHg e Vasopressina associada como poupador de catecolamina.
+
+123. [ ] **Obstetrícia & Medicina Fetal - Interpretação Inteligente de Cardiotocografia (CTG / NST) e Classificação FIGO/NICHD**:
+    - Motor determinístico beira-leito para classificação da cardiotocografia fetal em 3 categorias (Normal / Suspeita / Patológica) segundo FIGO 2015 e NICHD.
+    - Análise automatizada de linha de base (110-160 bpm), variabilidade (ausente, mínima, moderada, acentuada), acelerações, desacelerações (precoces, tardias, variáveis e prolongadas) e padrão sinusoidal.
+    - Algoritmo de conduta escalonada: medidas de ressuscitação intrauterina (decúbito lateral esquerdo, suspensão de ocitocina, oxigênio materno, bolus de cristaloide) e critérios para cesárea de emergência (categoria 1: < 30 min).
+    - Integração com o módulo de RCF/Doppler para vigilância combinada anteparto em Estágios III-IV de Barcelona.
+
+124. [ ] **Obstetrícia & Emergência - Protocolo Completo de Eclâmpsia, Pré-eclâmpsia com Sinais de Gravidade e Síndrome HELLP (ACOG / ISSHP / FEBRASGO)**:
+    - Motor determinístico de estratificação: pré-eclâmpsia sem sinais de gravidade vs com sinais de gravidade (PAS ≥ 160 ou PAD ≥ 110 persistente, plaquetas < 100.000, TGO/TGP > 2x LSN, creatinina > 1,1, edema pulmonar, sintomas neurológicos ou dor epigástrica persistente) vs eclâmpsia (convulsão) vs síndrome HELLP.
+    - Protocolo de Sulfato de Magnésio (Zuspan: 4g IV ataque + 1g/h manutenção ou Pritchard: 4g IV + 10g IM ataque + 5g IM 4/4h) com monitoramento de toxicidade (reflexo patelar, FR > 12, diurese > 25 mL/h) e antídoto (Gluconato de Cálcio 1g IV).
+    - Anti-hipertensivos de emergência obstétrica: Nifedipino 10-20 mg VO (1ª linha), Hidralazina 5 mg IV (2ª linha), Labetalol IV escalonado; contraindicação absoluta de nitroprussiato de sódio e IECAs/BRAs.
+    - Decisão de interrupção da gestação: HELLP/eclâmpsia = parto em 24-48h após estabilização; PE com gravidade ≥ 34 sem = parto; PE com gravidade < 34 sem = conduta expectante individualizada em centro terciário com corticoide para maturação pulmonar.
+
+125. [ ] **Cirurgia & Hematologia - Manejo Perioperatório de Anticoagulação e Terapia Ponte (Bridging Therapy — Diretrizes ASH / CHEST / SBC)**:
+    - Estratificação de risco tromboembólico (CHA2DS2-VASc para FA, risco de TEV recorrente, valvas mecânicas) vs risco hemorrágico do procedimento (alto vs baixo risco).
+    - Protocolo de suspensão e ponte com HBPM (Enoxaparina dose terapêutica) para pacientes com Warfarina e risco tromboembólico alto; suspensão simples sem ponte em risco moderado-baixo (BRIDGE Trial).
+    - Manejo de DOACs (Rivaroxabana, Apixabana, Dabigatrana): tempo de suspensão guiado pela clearance de creatinina e risco hemorrágico, sem necessidade de ponte; Idarucizumabe (Praxbind) para reversão de urgência da Dabigatrana e Andexanet Alfa para anti-Xa.
+    - Timing de reinício pós-operatório com bloqueio de segurança: anti-Xa ou Warfarina não antes de 24-48h em procedimentos de alto risco hemorrágico e 12-24h em baixo risco.
 
