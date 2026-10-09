@@ -350,3 +350,75 @@ function cockpitAlternarAula(initData, aulaId, assistida) {
     lock.releaseLock();
   }
 }
+
+/**
+ * cockpitSoapAmbulatorial — gera ou atualiza SOAP ambulatorial ágil.
+ */
+function cockpitSoapAmbulatorial(initData, params) {
+  var chat = cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SoapAmbulatorialService === 'undefined') {
+    throw new Error('Módulo SoapAmbulatorialService indisponível.');
+  }
+  var resultado = SoapAmbulatorialService.estruturarSoapAmbulatorial(params);
+  if (resultado && resultado.textoProntuario) {
+    try {
+      var estAtual = modoBot(chat);
+      if (estAtual) {
+        PersistenciaBot.salvar('soapview_' + chat, { revision: estAtual.revision, texto: resultado.textoProntuario });
+      }
+    } catch (ePers) {}
+  }
+  return { sucesso: true, soap: resultado };
+}
+
+/**
+ * cockpitGerarReceitaTexto — exporta receituário limpo em texto puro para PEP.
+ */
+function cockpitGerarReceitaTexto(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SoapAmbulatorialService === 'undefined') {
+    throw new Error('Módulo SoapAmbulatorialService indisponível.');
+  }
+  var texto = SoapAmbulatorialService.exportarReceitaTexto(params);
+  return { sucesso: true, textoReceita: texto };
+}
+
+/**
+ * cockpitGerarAtestadoTexto — exporta atestado médico legal conforme Resoluções CFM 1.658/2002 e 1.851/2008.
+ */
+function cockpitGerarAtestadoTexto(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SoapAmbulatorialService === 'undefined') {
+    throw new Error('Módulo SoapAmbulatorialService indisponível.');
+  }
+  var texto = SoapAmbulatorialService.exportarAtestadoTexto(params);
+  return { sucesso: true, textoAtestado: texto };
+}
+
+/**
+ * cockpitEstratificarRisco — calcula risco cardiovascular (SBC/SBD) para apoio ambulatorial.
+ */
+function cockpitEstratificarRisco(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SoapAmbulatorialService === 'undefined') {
+    throw new Error('Módulo SoapAmbulatorialService indisponível.');
+  }
+  var estratificacao = SoapAmbulatorialService.estratificarRiscoCardiovascular(params);
+  return { sucesso: true, resultado: estratificacao };
+}
+
+/**
+ * cockpitBuscarCid — busca rápida de diagnósticos ambulatoriais com CID-10 e CIAP-2.
+ */
+function cockpitBuscarCid(initData, termo) {
+  cockpitAutorizar_(initData);
+  if (typeof SoapAmbulatorialService === 'undefined') {
+    throw new Error('Módulo SoapAmbulatorialService indisponível.');
+  }
+  var resultados = SoapAmbulatorialService.buscarDiagnostico(termo);
+  return { sucesso: true, termo: termo, resultados: resultados };
+}

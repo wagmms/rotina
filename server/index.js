@@ -114,7 +114,8 @@ async function buildServer() {
   // 5. API RPC DO COCKPIT PWA (Substitui o doGet/doPost lento do GAS)
   // Métodos de leitura idempotentes — respostas podem ser cacheadas brevemente pelo browser
   const COCKPIT_READ_METHODS = new Set([
-    'cockpitConsultar', 'cockpitPerfil', 'cockpitRemume', 'cockpitAulasProgresso'
+    'cockpitConsultar', 'cockpitPerfil', 'cockpitRemume', 'cockpitAulasProgresso',
+    'cockpitBuscarCid', 'cockpitEstratificarRisco'
   ]);
   fastify.post('/api/cockpit', async (request, reply) => {
     const t0 = performance.now();

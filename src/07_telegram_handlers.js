@@ -176,7 +176,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -188,7 +188,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -319,6 +319,65 @@ function processarMensagemTexto(message) {
     safePutCache(contextoCache, contextoKey, casoClinico, 900);
     if (typeof definirModoBot !== "undefined") definirModoBot(chatId, "soap", casoClinico);
     return processarEEntregarIA(chatId, gerarSOAPComIA, casoClinico, "soap");
+  }
+
+  if (comando === "/soap_ambulatorial" || comando === "/ambulatorio" || comando === "/soap_aps") {
+    var casoAmb = texto.replace(/^\/(soap_ambulatorial|ambulatorio|soap_aps)\s*/i, "").trim();
+    if (!casoAmb) {
+      var msgGuiaAmb = "📋 *MÓDULO SOAP AMBULATORIAL ÁGIL (ATENÇÃO PRIMÁRIA & UBS)*\n\n" +
+        "Envie o caso clínico com queixa, sinais vitais e histórico. O sistema gera prontuário SOAP estruturado com estratificação de risco (SBC/SBD), autocompleção CID-10/CIAP-2 e conduta REMUME.\n\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/ambulatorio Homem 54a, hipertenso e diabético, traz PA 150/94, glicemia jejum 164, em uso de Losartana 50mg e Metformina 850mg`\n" +
+        "• `/ambulatorio Mulher 32a, tosse produtiva e coriza há 4 dias, afebril, PA 118/76, sem dispneia`\n" +
+        "• `/ambulatorio Paciente 45a, dor lombar mecânica há 1 semana após esforço, Lasègue negativo bilateral`\n\n" +
+        "📜 *Para gerar Atestado Médico CFM:* use `/atestado [dias] [motivo]`";
+      return enviarMensagemParaChat(chatId, msgGuiaAmb);
+    }
+    safePutCache(contextoCache, contextoKey, casoAmb, 900);
+    if (typeof definirModoBot !== "undefined") definirModoBot(chatId, "soap", casoAmb);
+    return processarEEntregarIA(chatId, function(c) {
+      return gerarSOAPComIA(c, { ambulatorialAgil: true, fecharPlano: true });
+    }, casoAmb, "soap");
+  }
+
+  if (comando === "/atestado") {
+    var dadosAt = texto.replace(/^\/atestado\s*/i, "").trim();
+    if (!dadosAt) {
+      var msgAjudaAt = "📜 *GERADOR DE ATESTADO MÉDICO LEGAL (RESOLUÇÃO CFM 1.658/2002)*\n\n" +
+        "Envie a quantidade de dias e o motivo ou paciente:\n\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/atestado 3 dias repouso por lombalgia, paciente Carlos Silva`\n" +
+        "• `/atestado 5 dias, faringite aguda, com CID, paciente Ana Santos`\n" +
+        "• `/atestado 1 dia repouso`\n\n" +
+        "_Nota médica: O CID-10 só é incluído mediante autorização expressa do paciente._";
+      return enviarMensagemParaChat(chatId, msgAjudaAt);
+    }
+    var mDias = dadosAt.match(/(\d+)\s*dias?/i);
+    var qtdDias = mDias ? parseInt(mDias[1], 10) : 1;
+    var mComCid = /com\s+cid/i.test(dadosAt);
+    var mNome = dadosAt.match(/paciente\s*[:=]?\s*([^,;\n]+)/i);
+    var nomePac = mNome ? mNome[1].trim() : 'Ao Portador';
+
+    var cidEncontrado = null;
+    if (typeof SoapAmbulatorialService !== "undefined") {
+      var termosPossiveis = dadosAt.replace(/paciente\s*[:=]?\s*([^,;\n]+)/i, '').replace(/\d+\s*dias?/i, '').replace(/com\s+cid/i, '').trim();
+      var matchesDiag = SoapAmbulatorialService.buscarDiagnostico(termosPossiveis);
+      if (matchesDiag && matchesDiag.length) {
+        cidEncontrado = matchesDiag[0];
+      }
+    }
+
+    var textoAtestado = (typeof SoapAmbulatorialService !== "undefined")
+      ? SoapAmbulatorialService.exportarAtestadoTexto({
+          pacienteNome: nomePac,
+          dias: qtdDias,
+          incluirCid: mComCid,
+          cid: cidEncontrado ? cidEncontrado.cid10 : (mComCid ? 'A definir pelo assistente' : null),
+          cidDescricao: cidEncontrado ? cidEncontrado.diagnostico : null
+        })
+      : "Atestado médico indisponível.";
+
+    return enviarMensagemParaChat(chatId, "📜 *ATESTADO MÉDICO PRONTO PARA O PRONTUÁRIO / PEP:*\n\n```\n" + textoAtestado + "\n```\n\n_Toque no texto acima para copiar direto para o prontuário eletrônico._");
   }
 
   if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais") {

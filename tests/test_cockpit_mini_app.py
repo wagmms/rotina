@@ -180,3 +180,28 @@ def test_cockpit_sincronizacao_deploy_gh_pages():
         "cockpit_movel.html e gh_cockpit_deploy/index.html devem ter conteúdo exatamente idêntico."
     )
 
+
+def test_cockpit_soap_ambulatorial_e_atestados_cfm():
+    """Valida os botões, modais e funções do Módulo SOAP Ambulatorial Ágil e Atestado CFM no Cockpit."""
+    html_path = BASE_DIR / "cockpit_movel.html"
+    conteudo = html_path.read_text(encoding="utf-8")
+
+    # Botões na aba SOAP
+    assert "abrirModalAmbulatorioSOAP()" in conteudo
+    assert "abrirModalAtestadoCFM()" in conteudo
+    assert "copiarReceitaLimpaPEP()" in conteudo
+
+    # Modais estruturados
+    assert 'id="modal-ambulatorio-soap"' in conteudo
+    assert 'id="modal-atestado-cfm"' in conteudo
+    assert 'id="amb-select-modelo-ef"' in conteudo
+    assert 'id="atestado-select-dias"' in conteudo
+    assert 'id="atestado-check-cid"' in conteudo
+
+    # Funções JavaScript no client
+    assert "gerarSOAPAmbulatorialModal" in conteudo
+    assert "copiarSOAPAmbulatorialGerado" in conteudo
+    assert "gerarAtestadoModal" in conteudo
+    assert "copiarAtestadoGerado" in conteudo
+    assert "copiarReceitaLimpaPEP" in conteudo
+

@@ -739,6 +739,11 @@ module.exports = {
         _rpcMap.cockpitRegistrarPeso = ctx.cockpitRegistrarPeso;
         _rpcMap.cockpitAulasProgresso = ctx.cockpitAulasProgresso;
         _rpcMap.cockpitAlternarAula = ctx.cockpitAlternarAula;
+        _rpcMap.cockpitSoapAmbulatorial = ctx.cockpitSoapAmbulatorial;
+        _rpcMap.cockpitGerarReceitaTexto = ctx.cockpitGerarReceitaTexto;
+        _rpcMap.cockpitGerarAtestadoTexto = ctx.cockpitGerarAtestadoTexto;
+        _rpcMap.cockpitEstratificarRisco = ctx.cockpitEstratificarRisco;
+        _rpcMap.cockpitBuscarCid = ctx.cockpitBuscarCid;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

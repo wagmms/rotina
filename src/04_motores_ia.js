@@ -1014,7 +1014,8 @@ function sanitizarNegativasSOAP(texto, casoClinico) {
 
 function gerarSOAPComIA(casoClinico, opcoes) {
   opcoes = opcoes || {};
-  var fecharPlano = !!(opcoes.fecharPlano || verificarPedidoExplicitoPlano(casoClinico));
+  var fecharPlano = !!(opcoes.fecharPlano || verificarPedidoExplicitoPlano(casoClinico) || opcoes.ambulatorialAgil);
+  var ambulatorialAgil = !!(opcoes.ambulatorialAgil || /ambulatori[oa]|consulta\s+rapida|atencao\s+primaria|posto\s+de\s+saude|ubs/i.test(casoClinico));
   var dadosCaso = String(casoClinico || "").trim();
 
   if (fecharPlano) {
@@ -1059,6 +1060,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "   - Exames complementares prioritários solicitados.",
       "   - Medidas não farmacológicas e orientações ao paciente.",
       "   - Critérios de alarme e tempo de retorno ambulatorial.",
+      ambulatorialAgil ? "   - FOCO AMBULATORIAL / ATENÇÃO PRIMÁRIA: No Plano (P), destaque com clareza: Prescrição Farmacológica (fármacos da REMUME/Farmácia Popular com posologia e horários práticos de tomada), Orientações Não Farmacológicas / Estilo de Vida (MEV), Sinais de Alarme Claros para procura imediata de Pronto-Socorro e Prazo de Retorno Ambulatorial com metas de reavaliação." : "",
       "6. DADOS PENDENTES E SEGURANÇA:",
       "   - Liste todas as pendências que condicionam a segurança da conduta. Diferencie dados obrigatórios antes de prescrever e complementos opcionais.",
       "",
