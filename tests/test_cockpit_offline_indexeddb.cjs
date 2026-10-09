@@ -31,7 +31,10 @@ assert(htmlContent.includes('id="btn-pn-soro"'), 'Botão btn-pn-soro presente no
 assert(htmlContent.includes('id="sec-pn-soro"'), 'Painel sec-pn-soro presente no modal de pré-natal');
 assert(htmlContent.includes('id="pn-soro-gj"'), 'Input de Glicemia de Jejum presente');
 assert(htmlContent.includes('id="pn-box-resultado-soro"'), 'Box de resultado de sorologias presente');
-console.log('  ✓ Elementos de telemetria, UI e Sorologias de Pré-Natal validados com sucesso no DOM.');
+assert(htmlContent.includes('id="calc-pediatria"'), 'Painel calc-pediatria presente no tab-calculadoras');
+assert(htmlContent.includes('id="ped-peso"'), 'Input de peso pediátrico ped-peso presente');
+assert(htmlContent.includes('id="pediatria-resultado"'), 'Box de resultado pediátrico presente');
+console.log('  ✓ Elementos de telemetria, UI, Sorologias e Pediatria validados com sucesso no DOM.');
 
 // 2. Extrai o bloco de script principal (maior bloco de script inline)
 const scripts = Array.from(htmlContent.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi));
@@ -295,6 +298,35 @@ function criarAmbienteSimulacao() {
   });
   assert(resCalcSoro.includes('DIABETES MELLITUS GESTACIONAL'), 'calcularOfflineLocal suporta sorologias_prenatal determinísticamente');
   console.log('  ✓ Motor offline de sorologias e exames de pré-natal validado com 100% de sucesso.');
+
+  console.log('\n[7] Testando motor offline determinístico de Pediatria (Holliday-Segar, PALS e Posologia)...');
+  // 7.1 Holliday-Segar Padrão
+  const resHS = fnCalcOffline('pediatria', { peso: 12, modo: 'holliday', condicaoClinica: 'manutencao_padrao' });
+  assert(resHS && resHS.includes('HIDRATAÇÃO HOLLIDAY-SEGAR'), 'Holliday-Segar executado offline');
+  assert(resHS.includes('1100 mL/dia'), 'Volume 12kg calculado corretamente: 1000 + 2*50 = 1100 mL');
+  assert(resHS.includes('45.8 mL/h'), 'Vazão 1100/24 calculada corretamente');
+  assert(resHS.includes('Sódio'), 'Eletrólitos SBP presentes');
+
+  // 7.2 Bronquiolite (70%)
+  const resBronq = fnCalcOffline('pediatria', { peso: 10, modo: 'holliday', condicaoClinica: 'restricao_bronquiolite' });
+  assert(resBronq.includes('700 mL/dia'), 'Restrição 70% na bronquiolite para 10kg (1000 * 0.7 = 700 mL)');
+
+  // 7.3 PALS (Adrenalina, Amiodarona, Choque)
+  const resPals = fnCalcOffline('pediatria', { peso: 15, modo: 'pals' });
+  assert(resPals.includes('PALS · REANIMAÇÃO PEDIÁTRICA'), 'PALS executado offline');
+  assert(resPals.includes('Adrenalina 1:10.000'), 'Adrenalina presente no PALS');
+  assert(resPals.includes('0.15 mg (1.5 mL)'), 'Dose de Adrenalina 0.01mg/kg para 15kg');
+  assert(resPals.includes('30 Joules'), '1º choque 2 J/kg para 15kg');
+  assert(resPals.includes('60 Joules'), '2º choque 4 J/kg para 15kg');
+
+  // 7.4 Posologia Sintomáticos e Amoxicilina
+  const resDipi = fnCalcOffline('pediatria', { peso: 18, modo: 'posologia', farmaco: 'dipirona' });
+  assert(resDipi.includes('18 gotas'), 'Dipirona 1 gota/kg calculada para 18kg');
+
+  const resAmoxi = fnCalcOffline('pediatria', { peso: 15, modo: 'posologia', farmaco: 'amoxicilina' });
+  assert(resAmoxi.includes('AMOXICILINA 250mg/5mL'), 'Amoxicilina calculada');
+  assert(resAmoxi.includes('5.0 mL VO de 8 em 8 horas'), 'Amoxicilina 50mg/kg/dia para 15kg = 750mg = 15mL/dia = 5mL 8/8h');
+  console.log('  ✓ Motor offline de Pediatria (Holliday-Segar, PALS e Posologia) validado com 100% de sucesso.');
 
   console.log('\n🚀 TODOS OS TESTES DE CACHE CRIPTOGRAFADO, INDEXEDDB E TELEMETRIA PASSARAM COM SUCESSO!\n');
 })().catch(err => {

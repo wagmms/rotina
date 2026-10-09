@@ -682,9 +682,10 @@
           </span>
           <span class="text-[9px] bg-rose-500/30 text-rose-200 px-1.5 py-0.5 rounded font-mono font-bold tracking-tight">HC-UE</span>
         </button>
-        <div class="grid grid-cols-5 gap-1 text-center text-[10px] font-bold">
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-1 text-center text-[10px] font-bold">
           <button onclick="abrirSubCalc('calc-dva', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-slate-800 text-slate-400">DVA</button>
           <button onclick="abrirSubCalc('calc-sri', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-slate-800 text-slate-400">SRI / IOT</button>
+          <button onclick="abrirSubCalc('calc-pediatria', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-slate-800 text-amber-300">👶 Pediatria</button>
           <button onclick="abrirSubCalc('calc-crcl', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-slate-800 text-slate-400">Clearance</button>
           <button onclick="abrirSubCalc('calc-gaso', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-slate-800 text-slate-400">Gaso</button>
           <button onclick="abrirSubCalc('calc-crosscheck', this)" class="subcalc-btn py-2 px-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">🛡️ Segurança</button>
@@ -905,6 +906,56 @@
           <!-- Resultado dinâmico -->
         </div>
       </div>
+
+      <!-- Subcalc 5: Pediatria & PALS (Holliday-Segar, PCR e Sintomáticos) -->
+      <div id="calc-pediatria" class="subcalc-pane hidden glass-card rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+            <i data-lucide="baby" class="w-3.5 h-3.5"></i> Pediatria · Holliday-Segar &amp; PALS
+          </h4>
+          <span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold font-mono">SBP / AHA</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-slate-300 mb-1">Peso da Criança (kg):</label>
+            <input type="number" step="0.1" id="ped-peso" placeholder="Ex: 12" oninput="calcularPediatriaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+          </div>
+          <div>
+            <label class="block text-slate-300 mb-1">Módulo / Protocolo:</label>
+            <select id="ped-modulo" onchange="alternarModuloPediatria()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
+              <option value="holliday">💧 Hidratação Holliday-Segar</option>
+              <option value="pals">🚨 PALS Emergência / PCR</option>
+              <option value="posologia">💊 Doses de Bolso / Sintomáticos</option>
+            </select>
+          </div>
+        </div>
+        <div id="ped-campo-condicao" class="text-xs">
+          <label class="block text-slate-300 mb-1">Condição Clínica (Holliday-Segar):</label>
+          <select id="ped-condicao" onchange="calcularPediatriaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
+            <option value="manutencao_padrao">Padrão (100% Holliday-Segar)</option>
+            <option value="restricao_bronquiolite">Restrição Bronquiolite / BVA (70%)</option>
+            <option value="restricao_ic">Restrição Cardíaca / Edema (60%)</option>
+            <option value="febre">Febre &gt; 38°C (+12%/°C insensível)</option>
+            <option value="desidratacao_leve">Reposição de Perdas / Déficit (125%)</option>
+          </select>
+        </div>
+        <div id="ped-campo-droga" class="hidden text-xs">
+          <label class="block text-slate-300 mb-1">Fármaco Pediátrico:</label>
+          <select id="ped-droga" onchange="calcularPediatriaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
+            <option value="dipirona">Dipirona gotas (1 gota/kg máx 40gts)</option>
+            <option value="paracetamol">Paracetamol gotas (1 gota/kg máx 35gts)</option>
+            <option value="ibuprofeno">Ibuprofeno gotas (1 gota/kg máx 40gts)</option>
+            <option value="amoxicilina">Amoxicilina 250mg/5mL (50 mg/kg/dia)</option>
+            <option value="amoxicilina_oma">Amoxicilina OMA (90 mg/kg/dia)</option>
+          </select>
+        </div>
+        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1.5" id="pediatria-resultado">
+          <span class="text-slate-500">Informe o peso da criança para obter os cálculos instantaneamente.</span>
+        </div>
+        <button onclick="copiarPediatriaPEP()" class="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-amber-500/30 transition">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Conduta Pediátrica para o Prontuário
+        </button>
+      </div>
     </div>
 
     <!-- =================================================================== -->
@@ -1124,6 +1175,9 @@
             </button>
             <button onclick="abrirModalGinecologiaAmbulatorial()" class="px-2.5 py-1.5 rounded-lg bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30 text-[11px] font-semibold hover:bg-fuchsia-500/30 flex items-center gap-1 transition">
               <i data-lucide="flower-2" class="w-3 h-3"></i> Ginecologia &amp; APS
+            </button>
+            <button onclick="navegarAba('tab-calculadoras', 'Emergência & Cálculos'); abrirSubCalc('calc-pediatria');" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-semibold hover:bg-amber-500/30 flex items-center gap-1 transition">
+              <i data-lucide="baby" class="w-3 h-3"></i> Pediatria &amp; PALS
             </button>
             <button onclick="copiarReceitaLimpaPEP()" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold hover:bg-emerald-500/30 flex items-center gap-1 transition">
               <i data-lucide="receipt" class="w-3 h-3"></i> Receita PEP
@@ -4885,6 +4939,98 @@
         } else if (tipo === 'sorologias_prenatal') {
           const resSoro = interpretarSorologiasOfflineLocal(entrada);
           return resSoro && resSoro.textoFormatado ? resSoro.textoFormatado : 'Nenhum exame analisado.';
+        } else if (tipo === 'pediatria' || tipo === 'holliday' || tipo === 'pals') {
+          const peso = parseFloat(String(entrada.peso).replace(',', '.'));
+          if (isNaN(peso) || peso <= 0) return 'Informe o peso da criança (kg) para calcular.';
+          const modo = String(entrada.modo || (tipo === 'pals' ? 'pals' : 'holliday')).toLowerCase();
+
+          if (modo === 'pals') {
+            const pesoCalc = Math.max(0.3, Math.min(peso, 50));
+            let adrMg = (pesoCalc * 0.01).toFixed(2);
+            let adrMl = (pesoCalc * 0.1).toFixed(1);
+            if (parseFloat(adrMg) > 1) { adrMg = "1.00"; adrMl = "10.0"; }
+            let amioMg = Math.min(300, Math.round(pesoCalc * 5));
+            const chq1 = Math.round(pesoCalc * 2 * 10) / 10;
+            const chq2 = Math.round(pesoCalc * 4 * 10) / 10;
+            let tetSem = pesoCalc < 1 ? "2.5 mm" : pesoCalc < 3 ? "3.0 mm" : pesoCalc < 10 ? "3.5 mm" : (pesoCalc < 20 ? "4.0 a 5.0 mm" : "5.5 a 6.5 mm");
+            let tetCom = pesoCalc < 3 ? "Não recomendado" : pesoCalc < 10 ? "3.0 mm" : (pesoCalc < 20 ? "3.5 a 4.5 mm" : "5.0 a 6.0 mm");
+            let fix = (pesoCalc + 6).toFixed(1) + " cm no lábio";
+
+            return `👶 PALS · REANIMAÇÃO PEDIÁTRICA [OFFLINE]\n` +
+              `🔴 AÇÃO IMEDIATA / DROGAS DE PCR:\n` +
+              `• Adrenalina 1:10.000 (0,1 mg/mL): ${adrMg} mg (${adrMl} mL) IV/IO a cada 3-5 min\n` +
+              `• Amiodarona (50 mg/mL): ${amioMg} mg (${(amioMg/50).toFixed(1)} mL) em bolus (FV/TV sem pulso)\n` +
+              `• Lidocaína 2% (20 mg/mL): ${Math.min(100, Math.round(pesoCalc))} mg (${(Math.min(100, Math.round(pesoCalc))/20).toFixed(1)} mL)\n\n` +
+              `⚡ DESFIBRILAÇÃO (JOULES):\n` +
+              `• 1º Choque (2 J/kg): ${chq1} Joules | 2º Choque (4 J/kg): ${chq2} Joules\n\n` +
+              `🫁 VIA AÉREA & INTUBAÇÃO:\n` +
+              `• Tubo sem cuff: ${tetSem} | Com cuff: ${tetCom}\n` +
+              `• Fixação: ${fix}\n` +
+              `⚠️ Flush de 5 mL SF 0,9% após cada droga IV/IO. RCE: monitorar SpO2 e normocapnia.`;
+          } else if (modo === 'posologia') {
+            const droga = String(entrada.farmaco || entrada.droga || 'dipirona').toLowerCase();
+            if (droga.includes('amoxi_oma') || droga.includes('amoxicilina_oma')) {
+              const doseDia = Math.min(3000, Math.round(peso * 90));
+              const mlDia = Math.round(doseDia / 50);
+              const mlDose = (mlDia / 2).toFixed(1);
+              return `💊 AMOXICILINA 250mg/5mL (DOSE ALTA OMA: 90 mg/kg/dia) [OFFLINE]\n` +
+                `🔴 DOSE: ${mlDose} mL VO de 12 em 12 horas por 10 dias\n` +
+                `🟡 Total diário: ${doseDia} mg (${mlDia} mL/dia)\n` +
+                `⚠️ Teto adulto seguro: máximo 3.000 mg/dia (60 mL/dia).`;
+            } else if (droga.includes('amoxi')) {
+              const doseDia = Math.min(1500, Math.round(peso * 50));
+              const mlDia = Math.round(doseDia / 50);
+              const mlDose = (mlDia / 3).toFixed(1);
+              return `💊 AMOXICILINA 250mg/5mL (DOSE PADRÃO: 50 mg/kg/dia) [OFFLINE]\n` +
+                `🔴 DOSE: ${mlDose} mL VO de 8 em 8 horas por 10 dias\n` +
+                `🟡 Total diário: ${doseDia} mg (${mlDia} mL/dia)\n` +
+                `⚠️ Teto adulto seguro: máximo 1.500 mg/dia (30 mL/dia = 10 mL 8/8h).`;
+            } else if (droga.includes('paracetamol')) {
+              const gotas = Math.min(35, Math.round(peso));
+              return `💊 PARACETAMOL GOTAS 200 mg/mL (10-15 mg/kg/dose) [OFFLINE]\n` +
+                `🔴 DOSE: ${gotas} gotas VO a cada 6 horas se dor ou febre (máx 4x/dia)\n` +
+                `⚠️ Teto seguro: máximo 35 gotas por tomada (ou 750 mg). Não exceder 5 tomadas em 24h.`;
+            } else if (droga.includes('ibuprofeno')) {
+              const gotas = Math.min(40, Math.round(peso));
+              return `💊 IBUPROFENO GOTAS 100 mg/mL (5-10 mg/kg/dose) [OFFLINE]\n` +
+                `🔴 DOSE: ${gotas} gotas VO a cada 8 horas se dor ou febre\n` +
+                `⚠️ Teto seguro: máximo 40 gotas por tomada (200 mg). Contraindicado em desidratação e < 6 meses.`;
+            } else {
+              const gotas = Math.min(40, Math.round(peso));
+              return `💊 DIPIRONA GOTAS 500 mg/mL (10-15 mg/kg/dose) [OFFLINE]\n` +
+                `🔴 DOSE: ${gotas} gotas VO a cada 6 horas se dor ou febre (máx 4x/dia)\n` +
+                `⚠️ Teto seguro: máximo 40 gotas (1.000 mg) por dose em adolescentes/adultos.`;
+            }
+          } else {
+            let volBasal = 0;
+            if (peso <= 10) volBasal = peso * 100;
+            else if (peso <= 20) volBasal = 1000 + (peso - 10) * 50;
+            else volBasal = 1500 + (peso - 20) * 20;
+
+            const cond = String(entrada.condicaoClinica || 'manutencao_padrao').toLowerCase();
+            let perc = 100;
+            let justif = 'Manutenção basal habitual (100% de Holliday-Segar)';
+            if (cond.includes('bronquiolite')) { perc = 70; justif = 'Restrição Bronquiolite/BVA (70% - prevenção de sobrecarga pulmonar)'; }
+            else if (cond.includes('ic') || cond.includes('cardio') || cond.includes('edema')) { perc = 60; justif = 'Restrição Cardiopatia/Edema (60% - prevenção de congestão)'; }
+            else if (cond.includes('desidratacao') || cond.includes('perda')) { perc = 125; justif = 'Reposição de Perdas / Déficit leve (125%)'; }
+            else if (cond.includes('febre')) { perc = 112; justif = 'Acréscimo por Febre (+12% perdas insensíveis)'; }
+
+            const volAjustado = Math.round((volBasal * perc) / 100);
+            const vazaoH = (volAjustado / 24).toFixed(1);
+            const naMeq = ((volAjustado / 100) * 2.5).toFixed(1);
+            const kMeq = ((volAjustado / 100) * 2.0).toFixed(1);
+            const tig = ((5 * (volAjustado / 24)) / (peso * 6)).toFixed(1);
+
+            return `💧 HIDRATAÇÃO HOLLIDAY-SEGAR [OFFLINE]\n` +
+              `🔴 CONDUTA & VAZÃO EM BOMBA:\n` +
+              `• Volume Total 24h: ${volAjustado} mL/dia (${justif})\n` +
+              `• Vazão Contínua na BIC: ${vazaoH} mL/h (Regra 4-2-1)\n\n` +
+              `🟡 PRESCRIÇÃO ELETROLÍTICA & TIG (SBP/AAP):\n` +
+              `• Sódio (NaCl 20%): ${naMeq} mEq/dia (2,5 mEq/100 mL)\n` +
+              `• Potássio (KCl 10%): ${kMeq} mEq/dia (2,0 mEq/100 mL — após diurese)\n` +
+              `• TIG em SG 5%: ${tig} mg/kg/min (Alvo: 4 a 6 mg/kg/min)\n` +
+              `⚠️ Adicionar KCl apenas após confirmação de diurese para prevenir hipercalemia letal.`;
+          }
         }
       } catch (e) {
         return 'Erro ao calcular: ' + e.message;
@@ -4903,6 +5049,34 @@
     }
     function calcularGaso() {
       solicitarCalculo('gaso', {ph:valorCalc('gaso-ph'), pco2:valorCalc('gaso-pco2'), hco3:valorCalc('gaso-hco3')}, 'gaso-resultado');
+    }
+    function alternarModuloPediatria() {
+      const mod = document.getElementById('ped-modulo')?.value || 'holliday';
+      const campoCond = document.getElementById('ped-campo-condicao');
+      const campoDroga = document.getElementById('ped-campo-droga');
+      if (campoCond) campoCond.classList.toggle('hidden', mod !== 'holliday');
+      if (campoDroga) campoDroga.classList.toggle('hidden', mod !== 'posologia');
+      calcularPediatriaCockpit();
+    }
+    function calcularPediatriaCockpit() {
+      const peso = valorCalc('ped-peso');
+      const modulo = valorCalc('ped-modulo') || 'holliday';
+      const condicao = valorCalc('ped-condicao') || 'manutencao_padrao';
+      const droga = valorCalc('ped-droga') || 'dipirona';
+      if (!peso) {
+        const el = document.getElementById('pediatria-resultado');
+        if (el) el.textContent = 'Informe o peso da criança para obter os cálculos instantaneamente.';
+        return;
+      }
+      solicitarCalculo('pediatria', { peso, modo: modulo, condicaoClinica: condicao, farmaco: droga }, 'pediatria-resultado');
+    }
+    function copiarPediatriaPEP() {
+      const res = document.getElementById('pediatria-resultado')?.textContent || '';
+      if (!res || res.includes('Informe o peso')) {
+        copiarToast('Informe o peso para calcular antes de copiar.');
+        return;
+      }
+      copiarTextoClipboard(res, 'Conduta pediátrica copiada para o PEP!');
     }
 
     let ultimoCrossCheckResultado = null;

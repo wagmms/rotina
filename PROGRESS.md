@@ -547,6 +547,13 @@
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Integração UI/UX de Pediatria no Cockpit PWA (Holliday-Segar, PALS e Posologia Offline)**:
+   - Adicionado botão e painel dedicado `calc-pediatria` na aba `Emergência & Cálculos` (`tab-calculadoras`) do Cockpit PWA com seletores ágeis para Holliday-Segar (regra 4-2-1, TIG SG 5% e eletrólitos SBP), PALS (Adrenalina, Amiodarona, Choque 2-4 J/kg, Tubo ET e Fixação) e Doses de Bolso/Sintomáticos (Dipirona, Paracetamol, Ibuprofeno e Amoxicilina com tetos seguros de adulto).
+   - Adicionado chip de ação rápida `Pediatria & PALS` na aba SOAP (`tab-soap`) com redirecionamento em 1 toque.
+   - Implementado motor determinístico de contingência offline (`calcularOfflineLocal`) com execução instantânea (0ms) mesmo sem rede hospitalar.
+   - Expandido endpoint RPC `cockpitCalcular` em `src/13_cockpit_integracao.js` com suporte unificado aos modos `holliday`, `pals` e `posologia` com latência < 2ms.
+   - Botão de cópia limpa com 1 toque para o Prontuário (PEP).
+   - Validação automatizada na suíte `tests/test_cockpit_offline_indexeddb.cjs` e `tests/test_server_render.cjs` com 100% de sucesso no pipeline contínuo (`npm test`).
 - [x] (2026-10-09) **Auditoria Médica Integral com Modelo PRO — Ginecologia, Pré-Natal de Baixo Risco e Segurança na Gestação/Lactação**:
    - Criação da suíte `tests/test_auditoria_pro_ginecologia_prenatal.cjs` com 32 testes determinísticos validando Naegele, concordância FEBRASGO/ACOG, exames de rotina, sorologias, farmacologia gestacional e elegibilidade da OMS.
    - Implementação de `interpretarSorologiasLaboratorioPrenatal` em `src/02_obstetricia_prenatal.js`, expondo parecer semafórico escaneável beira-leito para o médico generalista.

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 15:41:39
- * Checksum SHA256: 219c7b09b34a1f92
+ * Gerado automaticamente via build_master.py em: 2026-10-09 15:59:46
+ * Checksum SHA256: 96148809fb725bde
  * ==============================================================================
  */
 
@@ -52164,6 +52164,62 @@ function cockpitCalcular(initData, tipo, entrada) {
       return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino);
     case 'gaso':
       return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3);
+    case 'pediatria':
+    case 'pals':
+    case 'holliday':
+      var modoPed = String(entrada.modo || (tipo === 'pals' ? 'pals' : 'holliday')).toLowerCase();
+      var pesoPed = parseFloat(String(entrada.peso || 0).replace(',', '.'));
+      var idadePed = entrada.idade ? parseFloat(String(entrada.idade).replace(',', '.')) : null;
+
+      if (modoPed === 'pals') {
+        if (typeof PalsPediatriaService === 'undefined') throw new Error('Módulo PalsPediatriaService indisponível.');
+        var resPals = PalsPediatriaService.avaliarPals({ pesoKg: pesoPed, idadeAnos: idadePed });
+        var txtPals = "👶 PALS — REANIMAÇÃO & SUPORTE AVANÇADO PEDIÁTRICO\n\n" +
+          "🔴 AÇÃO IMEDIATA / DROGAS DE PCR:\n" +
+          resPals.medicacoes.map(function(m) {
+            return "• " + m.farmaco + ": " + m.doseMg + " (" + m.volumeMl + ") — " + m.via + (m.alerta ? " [" + m.alerta + "]" : "");
+          }).join("\n") + "\n\n" +
+          "⚡ DESFIBRILAÇÃO & CARDIOVERSÃO:\n" +
+          "• 1º Choque (2 J/kg): " + resPals.eletricidade.desfibrilacaoPrimeiroChoque + "\n" +
+          "• 2º Choque (4 J/kg): " + resPals.eletricidade.desfibrilacaoSegundoChoque + "\n" +
+          "• Cardioversão: " + resPals.eletricidade.cardioversaoPrimeiroChoque + "\n\n" +
+          "🫁 VIA AÉREA (TUBO ENDOTRAQUEAL):\n" +
+          "• Tubo sem cuff: " + resPals.viaAerea.tuboSemCuff + "\n" +
+          "• Tubo com cuff: " + resPals.viaAerea.tuboComCuff + "\n" +
+          "• Lâmina: " + resPals.viaAerea.laminaLaringoscopio + " | Fixação no lábio: " + resPals.viaAerea.fixacao + "\n\n" +
+          "⚠️ ALERTAS BEIRA-LEITO:\n" +
+          (resPals.alertas && resPals.alertas.length ? resPals.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Manter ventilação eficaz com bolsa-válvula-máscara e massagem cardíaca 15:2 com 2 socorristas.");
+        return { ok: true, sucesso: true, id: 'pals_pediatria', nome: 'PALS Pediátrico', texto: txtPals, textoFormatado: txtPals, dados: resPals };
+      } else if (modoPed === 'posologia') {
+        var drogaPed = entrada.farmaco || entrada.droga || 'dipirona';
+        if (typeof CalculadorasClinicas !== 'undefined' && typeof CalculadorasClinicas.posologiaPediatrica === 'function') {
+          var resPos = CalculadorasClinicas.posologiaPediatrica(pesoPed, drogaPed, { doseAlta: entrada.doseAlta });
+          if (resPos && resPos.texto) {
+            resPos.textoFormatado = resPos.texto;
+          }
+          return resPos;
+        }
+        throw new Error('Calculadora de Posologia Pediátrica indisponível.');
+      } else {
+        // Holliday-Segar
+        if (typeof SuporteNutricionalPediatricoService === 'undefined') throw new Error('Serviço SuporteNutricionalPediatricoService indisponível.');
+        var resHS = SuporteNutricionalPediatricoService.calcularHollidaySegar(pesoPed, {
+          condicaoClinica: entrada.condicaoClinica || 'manutencao_padrao',
+          temperaturaC: entrada.temperaturaC || 38.0
+        });
+        var txtHS = "💧 HIDRATAÇÃO VENOSA PEDIÁTRICA (HOLLIDAY-SEGAR)\n\n" +
+          "🔴 CONDUTA & VAZÃO EM BOMBA (BIC):\n" +
+          "• Volume Total (24h): " + resHS.volumeAjustado24h + " mL\n" +
+          "• Vazão Horária: " + resHS.vazaoHorariaMlH + " mL/h (Regra 4-2-1)\n" +
+          "• Condição Clínica: " + resHS.justificativaAjuste + "\n\n" +
+          "🟡 PRESCRIÇÃO ELETROLÍTICA & TIG (SBP/AAP):\n" +
+          "• Sódio (Na+): " + (resHS.eletrolitos ? resHS.eletrolitos.sodioTotalMeqDia : '') + " mEq/dia (2,5 mEq / 100 mL de solução)\n" +
+          "• Potássio (K+): " + (resHS.eletrolitos ? resHS.eletrolitos.potassioTotalMeqDia : '') + " mEq/dia (2,0 mEq / 100 mL — adicionar APENAS após diurese confirmada)\n" +
+          "• TIG em SG 5%: " + (resHS.glicoseTig ? resHS.glicoseTig.tigComSg5 : '') + " mg/kg/min (Alvo fisiológico: 4 a 6 mg/kg/min)\n\n" +
+          "⚠️ ALERTAS DE SEGURANÇA:\n" +
+          (resHS.alertas && resHS.alertas.length ? resHS.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Usar soluções isotônicas ou balanceadas para prevenir hiponatremia hospitalar aguda induzida por ADH.");
+        return { ok: true, sucesso: true, id: 'holliday_segar', nome: 'Hidratação Pediátrica Holliday-Segar', texto: txtHS, textoFormatado: txtHS, dados: resHS };
+      }
     case 'interacoes':
     case 'seguranca':
       var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';

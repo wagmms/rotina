@@ -61,6 +61,27 @@ async function run() {
   assert(tDva < 50, `Tempo de DVA (${tDva}ms) deve ser menor que 50ms`);
   console.log(`✓ Cockpit Cálculo DVA OK (${tDva.toFixed(2)}ms)`);
 
+  // 4.1 Cockpit RPC - Cálculo Pediatria & Holliday-Segar (< 50ms)
+  const t0Ped = performance.now();
+  const resPed = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitCalcular',
+      session: token,
+      args: ['pediatria', { peso: 12, modo: 'holliday', condicaoClinica: 'manutencao_padrao' }]
+    }
+  });
+  const tPed = performance.now() - t0Ped;
+  assert.equal(resPed.statusCode, 200);
+  const jsonPed = resPed.json();
+  assert.equal(jsonPed.ok, true);
+  assert.equal(jsonPed.resultado.ok, true);
+  assert(jsonPed.resultado.texto.includes('HOLLIDAY-SEGAR'));
+  assert(jsonPed.resultado.texto.includes('1100 mL'));
+  assert(tPed < 50, `Tempo de Pediatria (${tPed}ms) deve ser menor que 50ms`);
+  console.log(`✓ Cockpit Cálculo Pediatria & Holliday-Segar OK (${tPed.toFixed(2)}ms)`);
+
   // 5. Cockpit RPC - Consulta REMUME (< 20ms)
   const resRemume = await app.inject({
     method: 'POST',
