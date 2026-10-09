@@ -903,7 +903,122 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, resultadoPsiq.resumoFormatado);
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // PERFIS CLÍNICOS & RBAC (CFM / RESIDÊNCIA / SEGURANÇA DO PACIENTE)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/perfil" || comando === "/rbac") {
+    var argsPerfil = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof RbacPerfisClinicosService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
+    }
 
+    if (!argsPerfil) {
+      return enviarMensagemParaChat(chatId, RbacPerfisClinicosService.formatarPainelPerfil(chatId));
+    }
+
+    var argLower = argsPerfil.toLowerCase();
+    if (argLower === "listar" || argLower === "catalogo" || argLower === "ajuda") {
+      return enviarMensagemParaChat(chatId, RbacPerfisClinicosService.formatarListaPerfis());
+    }
+
+    // Extrai possível CRM e nome do perfil
+    var mCrm = argsPerfil.match(/(?:crm\s*[:=]?\s*)([0-9]{3,8}(?:\s*[-/]\s*[a-zA-Z]{2})?)/i);
+    var crmEncontrado = mCrm ? mCrm[1] : null;
+    var papelAlvo = argsPerfil.replace(/(?:crm\s*[:=]?\s*)([0-9]{3,8}(?:\s*[-/]\s*[a-zA-Z]{2})?)/i, "").trim();
+
+    var resDefinir = RbacPerfisClinicosService.definirPerfilUsuario(chatId, papelAlvo, {
+      crm: crmEncontrado,
+      nome: message.from ? ((message.from.first_name || "") + " " + (message.from.last_name || "")).trim() : null
+    });
+
+    var msgResp = "✅ *PAPEL CLÍNICO ATUALIZADO COM SUCESSO!*\n\n" +
+      "• **Papel Ativo:** " + resDefinir.perfil.titulo + "\n" +
+      "• **Nível Hierárquico:** Nível " + resDefinir.perfil.nivelHierarquico + " de 5\n" +
+      (resDefinir.crm ? ("• **CRM Registrado:** " + resDefinir.crm + "\n") : "") +
+      "• **Prescrição Hospitalar:** " + (resDefinir.perfil.podePrescreverOficialmente ? "Autorizada (supervisão de alta vigilância)" : "Restrita a rascunho de estudo") + "\n\n" +
+      "Envie `/perfil` a qualquer momento para auditar suas competências e pendências ativas.";
+
+    return enviarMensagemParaChat(chatId, msgResp);
+  }
+
+  if (comando === "/pendencias") {
+    if (typeof RbacPerfisClinicosService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
+    }
+    return enviarMensagemParaChat(chatId, RbacPerfisClinicosService.formatarListaPendencias(chatId));
+  }
+
+  if (comando === "/chancelar") {
+    var dadosChancela = texto.replace(/^\/chancelar\s*/, "").trim();
+    if (typeof RbacPerfisClinicosService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
+    }
+
+    if (!dadosChancela) {
+      return enviarMensagemParaChat(chatId, "✍️ *CHANCELA PRECEPTORIAL DE CONDUTA*\n\n" +
+        "Uso: `/chancelar <id_pendencia> [parecer clínico]`\n" +
+        "💡 *Exemplo:* `/chancelar pend_123456 Conduta e dosagem aprovadas para enfermaria.`\n\n" +
+        "Para ver as pendências aguardando chancela, envie `/pendencias`.");
+    }
+
+    var partes = dadosChancela.split(/\s+/);
+    var pId = partes[0];
+    var parecer = partes.slice(1).join(" ") || "Conduta aprovada sem ressalvas pelo preceptor responsável.";
+
+    try {
+      var resChancela = RbacPerfisClinicosService.chancelarCoAssinatura({ chatId: chatId }, pId, parecer);
+      var msgOk = "✅ *CHANCELA PRECEPTORIAL REGISTRADA!*\n\n" +
+        "• **Pendência ID:** `" + resChancela.pendenciaId + "`\n" +
+        "• **Status:** " + resChancela.status + "\n" +
+        "• **Chancelado Por:** " + resChancela.chanceladoPor.nome + " (" + resChancela.chanceladoPor.perfil + ")\n" +
+        "• **Parecer:** _" + parecer + "_\n\n" +
+        "Prescrição e conduta liberadas para execução pela equipe hospitalar.";
+      return enviarMensagemParaChat(chatId, msgOk);
+    } catch (eChancela) {
+      return enviarMensagemParaChat(chatId, "⛔ *NÃO FOI POSSÍVEL CHANCELAR:*\n" + eChancela.message);
+    }
+  }
+
+  if (comando === "/emergencia" || comando === "/breaktheglass") {
+    var justificativa = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof RbacPerfisClinicosService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
+    }
+
+    if (!justificativa) {
+      return enviarMensagemParaChat(chatId, "🚨 *PROTOCOLO BREAK-THE-GLASS (BYPASS DE EMERGÊNCIA)*\n\n" +
+        "Permite relaxar temporariamente travas hierárquicas em emergências clínicas graves (ex: PCR, choque refratário, intubação rápida).\n\n" +
+        "• Para ATIVAR: `/emergencia <motivo clínico detalhado>`\n" +
+        "  Ex: `/emergencia Paciente em PCR no leito 4, necessidade imediata de adrenalina e suporte invasivo`\n\n" +
+        "• Para DESATIVAR: `/emergencia off`");
+    }
+
+    if (justificativa.toLowerCase() === "off" || justificativa.toLowerCase() === "desativar") {
+      var resDesat = RbacPerfisClinicosService.desativarBypassEmergencia({ chatId: chatId });
+      return enviarMensagemParaChat(chatId, "🛡️ *MODO DE EMERGÊNCIA DESATIVADO*\n\n" + resDesat.mensagem);
+    }
+
+    try {
+      var resAtiv = RbacPerfisClinicosService.ativarBypassEmergencia({ chatId: chatId }, justificativa, 2);
+      var msgEmerg = "🚨 *BREAK-THE-GLASS ATIVADO COM SUCESSO!*\n\n" +
+        "• **Profissional:** " + resAtiv.usuario + " (" + resAtiv.perfil + ")\n" +
+        "• **Motivo Registrado:** " + resAtiv.justificativa + "\n" +
+        "• **Duração do Bypass:** " + resAtiv.duracaoHoras + " hora(s)\n\n" +
+        resAtiv.avisoSeguranca + "\n\n" +
+        "Ao finalizar a assistência de emergência, desative enviando: `/emergencia off`";
+      return enviarMensagemParaChat(chatId, msgEmerg);
+    } catch (eEmerg) {
+      return enviarMensagemParaChat(chatId, "⚠️ *ERRO AO ATIVAR BREAK-THE-GLASS:*\n" + eEmerg.message);
+    }
+  }
+
+  if (comando === "/auditar_rbac" || comando === "/relatorio_rbac") {
+    if (typeof RbacPerfisClinicosService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo RbacPerfisClinicosService indisponível temporariamente.");
+    }
+    var rel = RbacPerfisClinicosService.gerarRelatorioSegurancaRbac();
+    return enviarMensagemParaChat(chatId, "```\n" + rel.relatorioFormatado + "\n```");
+  }
 
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
