@@ -15,10 +15,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 
 
-8. [ ] **Algoritmo de Ressuscitação Cardiopulmonar na Gestante (PCR Materna / ACLS Materno e Cesariana Perimortem)**:
-    - Manobra de deslocamento manual contínuo do útero para a esquerda (DULE) para descompressão da veia cava inferior e restauração do retorno venoso durante as compressões.
-    - Acesso venoso preferencial acima do diafragma para rápida circulação central.
-    - Regra dos 4 Minutos / Cesariana de Ressuscitação (Cesariana Perimortem) aos 4-5 minutos de PCR em gestante >= 20 semanas para salvar a mãe e o feto.
 
 9. [ ] **Tromboembolismo Venoso (TEV) na Gestação e Puerpério (Escore de Risco RCOG/FEBRASGO & Profilaxia com HBPM)**:
     - Estratificação determinística de risco trombótico antenatal e pós-parto com pontuação cumulativa (cesariana de urgência, IMC > 30, pré-eclâmpsia, tabagismo, imobilidade, idade > 35a).
@@ -134,6 +130,20 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Motor analítico do hemograma: interpretação de VCM, HCM, RDW e contagem de reticulócitos para classificação etiológica (microcítica/hipocrômica, normocítica, macrocítica).
     - Cálculo de dose de reposição de Ferro elementar (VO) com teto seguro para evitar intolerância gastrointestinal, e critérios para indicação de Ferro Endovenoso (Noripurum).
 
+34. [ ] **Cardiologia Intensiva - Choque Cardiogênico e SCA com IC Descompensada (Classificação de Forrester & Stevenson)**:
+    - Estratificação determinística hemodinâmica beira-leito (Perfil A: quente/seco, Perfil B: quente/úmido, Perfil C: frio/úmido, Perfil L: frio/seco).
+    - Algoritmo de titulação combinada de Inotrópico (Dobutamina/Milrinona) e Vasopressor (Noradrenalina) vs Vasodilatador (Nitroprussiato de Sódio).
+    - Bloqueios de segurança: contraindicação formal de betabloqueadores na fase aguda descompensada e otimização de diuréticos de alça (Furosemida bolus vs contínua).
+
+35. [ ] **Nefrologia e Terapia Intensiva - Injúria Renal Aguda (KDIGO) e Indicações de Diálise de Urgência**:
+    - Estadiamento determinístico KDIGO 1, 2 e 3 por creatinina sérica basal vs pico e débito urinário horário (mL/kg/h).
+    - Checklist beira-leito das indicações clássicas de diálise de urgência (mnemônico AEIOU: Acidose refratária pH < 7.15, Eletrólitos/Hipercalemia > 6.5 com ECG alterado, Intoxicações dialisáveis, Overload/Hipervolemia com EAP, Uremia sintomática com pericardite/encefalopatia).
+
+36. [ ] **Pneumologia e Emergência - Manejo da Crise Asmática Grave e Estado de Mal Asmático**:
+    - Classificação rápida de gravidade (leve/moderada vs grave vs iminência de parada com silêncio respiratório).
+    - Protocolo escalonado de broncodilatação (Salbutamol em espaçador ou nebulização a cada 20 min na 1ª hora + Brometo de Ipratrópio 0.5mg).
+    - Corticoterapia sistêmica precoce e indicação oportuna de Sulfato de Magnésio 2g IV em 20 min na crise refratária.
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
@@ -141,6 +151,14 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Algoritmo de Ressuscitação Cardiopulmonar na Gestante (PCR Materna / ACLS Materno e Cesariana Perimortem)**:
+   - Motor determinístico de ACLS materno com protocolo de compressão aortocaval e manobra DULE contínua mandatória em gestante >= 20 semanas com alerta estrito contra inclinação de 30 graus.
+   - Acesso vascular com prioridade absoluta acima do diafragma para circulação central desobstruída.
+   - Aplicação da Regra dos 4 Minutos (decisão e incisão cirúrgica com extração fetal aos 5 minutos) no próprio leito da PCR sem transporte para centro cirúrgico.
+   - Protocolos imediatos de antídotos (Gluconato de Cálcio 10% para intoxicação por MgSO4 e Emulsão Lipídica 20% para LAST) e checklist mnemônico A to H das causas reversíveis.
+   - Novo módulo `src/02_pcr_gestante.js` (`PcrGestanteService`) integrado à malha RPC do `server/runtime.js` (`cockpitPcrGestante`).
+   - Suíte determinística `tests/test_pcr_gestante.cjs` e `test_pcr_gestante.py` aprovada com 100% de sucesso.
+
 - [x] (2026-10-09) **Manejo Avançado de Sepse e Choque Séptico Puerperal / Materno (Critérios SOS Score / Bundle de 1 Hora)**:
    - Motor determinístico de cálculo do Obstetric Sepsis Score (SOS) com adaptação fisiológica e qSOFA obstétrico.
    - Integração da conduta de ressuscitação (Bundle de 1 hora) baseada em parâmetros como lactato e choque séptico.

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 02:09:33
- * Checksum SHA256: 7edbc2f985fcddb2
+ * Gerado automaticamente via build_master.py em: 2026-10-09 02:45:43
+ * Checksum SHA256: b83db76383edeff5
  * ==============================================================================
  */
 
@@ -1897,6 +1897,146 @@ var AuditoriaInfusaoUtiService = (function () {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = AuditoriaInfusaoUtiService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_auditoria_y_site.js
+// ==============================================================================
+
+/**
+ * Módulo de Auditoria Farmacêutica Hospitalar: Compatibilidade Físico-Química em Y-Site (Linha Venosa)
+ * Motor determinístico para predição de precipitados e inativação de fármacos comuns.
+ */
+
+var AuditoriaYSiteService = (function() {
+    'use strict';
+
+    // Matriz de incompatibilidades graves
+    var matrizIncompatibilidades = [
+        {
+            grupoA: ['ceftriaxona'],
+            grupoB: ['ringer lactato', 'gluconato de calcio', 'cloreto de calcio', 'calcio'],
+            motivo: 'Formação de cristais insolúveis mortais (precipitados de cálcio-ceftriaxona nos pulmões e rins).',
+            tipo: 'PRECIPITAÇÃO GRAVE',
+            bloqueio: true
+        },
+        {
+            grupoA: ['fenitoina'],
+            grupoB: ['soro glicosado', 'sg 5%', 'sg 10%'],
+            motivo: 'Precipitação imediata. A Fenitoína exige diluição EXCLUSIVA em Soro Fisiológico 0,9%.',
+            tipo: 'PRECIPITAÇÃO GRAVE',
+            bloqueio: true
+        },
+        {
+            grupoA: ['bicarbonato de sodio'],
+            grupoB: ['noradrenalina', 'adrenalina', 'dobutamina', 'dopamina'],
+            motivo: 'Inativação imediata das catecolaminas devido ao pH fortemente alcalino do bicarbonato.',
+            tipo: 'INATIVAÇÃO QUÍMICA',
+            bloqueio: true
+        },
+        {
+            grupoA: ['furosemida'],
+            grupoB: ['midazolam'],
+            motivo: 'Incompatibilidade ácido-base resultando em precipitação e turvação visual imediata em Y-site.',
+            tipo: 'PRECIPITAÇÃO',
+            bloqueio: true
+        },
+        {
+            grupoA: ['diazepam'],
+            grupoB: ['soro fisiologico', 'soro glicosado', 'ringer lactato'],
+            motivo: 'Alta probabilidade de precipitação. O diazepam tem baixa solubilidade aquosa e não deve ser diluído nestas soluções.',
+            tipo: 'PRECIPITAÇÃO',
+            bloqueio: false
+        },
+        {
+            grupoA: ['ampicilina'],
+            grupoB: ['soro glicosado', 'sg 5%'],
+            motivo: 'Degradação acelerada e perda de estabilidade em meio glicosado. Exige diluição em SF 0,9%.',
+            tipo: 'PERDA DE ESTABILIDADE',
+            bloqueio: true
+        }
+    ];
+
+    function normalizarNome(nome) {
+        if (!nome) return '';
+        return nome.toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove acentos
+            .replace(/[^a-z0-9\s%]/g, " ")
+            .trim();
+    }
+
+    function checarMatch(fNormalizado, grupo) {
+        return grupo.some(function(item) {
+            return fNormalizado.indexOf(item) !== -1;
+        });
+    }
+
+    // Retorna { compativel: bool, bloqueio: bool, alertas: [] }
+    function verificarCompatibilidadeLista(listaFarmacos) {
+        if (!listaFarmacos || !Array.isArray(listaFarmacos) || listaFarmacos.length < 2) {
+            return { compativel: true, bloqueio: false, alertas: [] };
+        }
+
+        var alertas = [];
+        var bloqueioTotal = false;
+
+        var nomesNormalizados = listaFarmacos.map(function(f) { return normalizarNome(f); });
+
+        for (var i = 0; i < nomesNormalizados.length; i++) {
+            for (var j = i + 1; j < nomesNormalizados.length; j++) {
+                var f1_orig = listaFarmacos[i];
+                var f2_orig = listaFarmacos[j];
+                var f1 = nomesNormalizados[i];
+                var f2 = nomesNormalizados[j];
+
+                matrizIncompatibilidades.forEach(function(regra) {
+                    var matchF1_A = checarMatch(f1, regra.grupoA);
+                    var matchF1_B = checarMatch(f1, regra.grupoB);
+                    var matchF2_A = checarMatch(f2, regra.grupoA);
+                    var matchF2_B = checarMatch(f2, regra.grupoB);
+
+                    var colide = (matchF1_A && matchF2_B) || (matchF1_B && matchF2_A);
+
+                    if (colide) {
+                        var msg = regra.tipo + " - " + f1_orig + " + " + f2_orig + ": " + regra.motivo;
+                        
+                        var jaExiste = alertas.some(function(a) { 
+                            return (a.farmaco1 === f1_orig && a.farmaco2 === f2_orig) ||
+                                   (a.farmaco1 === f2_orig && a.farmaco2 === f1_orig);
+                        });
+                        
+                        if (!jaExiste) {
+                            alertas.push({
+                                farmaco1: f1_orig,
+                                farmaco2: f2_orig,
+                                tipo: regra.tipo,
+                                mensagem: msg,
+                                bloqueio: regra.bloqueio
+                            });
+                            if (regra.bloqueio) {
+                                bloqueioTotal = true;
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        return {
+            compativel: alertas.length === 0,
+            bloqueio: bloqueioTotal,
+            alertas: alertas
+        };
+    }
+
+    return {
+        verificarCompatibilidadeLista: verificarCompatibilidadeLista
+    };
+})();
+
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    module.exports = AuditoriaYSiteService;
 }
 
 
@@ -6639,6 +6779,244 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_mecanica_pulmonar_sdra.js
+// ==============================================================================
+
+/**
+ * Módulo de Mecânica Pulmonar e Ventilação Protetora na SDRA (ARDSNet)
+ * Motor determinístico para cálculos de ventilação mecânica beira-leito.
+ */
+
+var MecanicaPulmonarSdraService = (function() {
+    'use strict';
+
+    // --- PESO PREDITO (PBW) E VOLUME CORRENTE ---
+    function calcularPesoPredito(alturaCm, sexo) {
+        var alturaInches = alturaCm / 2.54;
+        var pbw = 0;
+        if (sexo.toLowerCase() === 'f') {
+            pbw = 45.5 + 2.3 * (alturaInches - 60);
+        } else {
+            pbw = 50.0 + 2.3 * (alturaInches - 60);
+        }
+        return Math.max(0, Math.round(pbw * 10) / 10); // não permitir valor negativo
+    }
+
+    function calcularVolumeCorrente(pbw) {
+        return {
+            vt4: Math.round(pbw * 4),
+            vt6: Math.round(pbw * 6),
+            vt8: Math.round(pbw * 8)
+        };
+    }
+
+    // --- MECÂNICA PULMONAR ---
+    function avaliarMecanicaPulmonar(pplat, peep) {
+        var deltaP = pplat - peep;
+        var alertas = [];
+
+        if (pplat > 30) {
+            alertas.push("ALERTA CRÍTICO: Pressão de Platô > 30 cmH2O. Risco de barotrauma. Reduzir Volume Corrente.");
+        }
+        if (deltaP > 15) {
+            alertas.push("ALERTA CRÍTICO: Driving Pressure (ΔP) > 15 cmH2O. Alta mortalidade. Ajustar Vt ou PEEP.");
+        }
+
+        return {
+            drivingPressure: deltaP,
+            pplatSegura: pplat <= 30,
+            deltaPSegura: deltaP <= 15,
+            alertas: alertas
+        };
+    }
+
+    // --- CRITÉRIOS DE BERLIM (SDRA) E PRONAÇÃO ---
+    function avaliarSdra(pao2, fio2, peep) {
+        // fio2 em % (ex: 40 para 0.4 ou 40%)
+        var fio2Decimal = fio2 > 1 ? fio2 / 100 : fio2;
+        var relacaoPF = Math.round(pao2 / fio2Decimal);
+        var classificacao = "Não preenche critérios graves de SDRA";
+        var condutas = [];
+
+        if (peep >= 5) {
+            if (relacaoPF <= 100) {
+                classificacao = "SDRA Grave (Critérios de Berlim)";
+            } else if (relacaoPF <= 200) {
+                classificacao = "SDRA Moderada (Critérios de Berlim)";
+            } else if (relacaoPF <= 300) {
+                classificacao = "SDRA Leve (Critérios de Berlim)";
+            }
+        } else {
+            condutas.push("Reavaliar PEEP (mínimo 5 cmH2O para critérios de SDRA).");
+        }
+
+        if (relacaoPF < 150 && peep >= 10) { 
+            condutas.push("INDICAÇÃO OPORTUNA: Posição Prona precoce (16h/dia) para P/F < 150 com PEEP >= 10.");
+            condutas.push("INDICAÇÃO OPORTUNA: Bloqueio Neuromuscular (ex: Cisatracúrio) nas primeiras 48h.");
+        } else if (relacaoPF < 150 && peep < 10 && peep >= 5) {
+            condutas.push("CONSIDERAR: Aumentar PEEP e avaliar indicação de Prona se P/F mantiver < 150.");
+        }
+
+        return {
+            pao2Fio2: relacaoPF,
+            classificacao: classificacao,
+            condutas: condutas
+        };
+    }
+
+    function processarMecanica(params) {
+        var pbw = calcularPesoPredito(params.alturaCm, params.sexo);
+        var vt = calcularVolumeCorrente(pbw);
+        var mecanica = avaliarMecanicaPulmonar(params.pplat, params.peep);
+        var sdra = avaliarSdra(params.pao2, params.fio2, params.peep);
+
+        return {
+            pesoPreditoKg: pbw,
+            volumeCorrenteAlvo: {
+                vtProtetor4ml: vt.vt4,
+                vtProtetor6ml: vt.vt6,
+                vtPermissivo8ml: vt.vt8
+            },
+            mecanicaPulmonar: mecanica,
+            gasometria: sdra
+        };
+    }
+
+    // Exposição da API
+    return {
+        calcularPesoPredito: calcularPesoPredito,
+        calcularVolumeCorrente: calcularVolumeCorrente,
+        avaliarMecanicaPulmonar: avaliarMecanicaPulmonar,
+        avaliarSdra: avaliarSdra,
+        processarMecanica: processarMecanica
+    };
+})();
+
+// Exportação para uso no Node.js/Testes
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = MecanicaPulmonarSdraService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_nefrologia_dhe.js
+// ==============================================================================
+
+/**
+ * Módulo de Nefrologia Intensiva e Distúrbios Hidroeletrolíticos (DHE)
+ * Motor determinístico para correção de sódio e manejo de hipercalemia.
+ */
+
+var NefrologiaDheService = (function() {
+    'use strict';
+
+    // --- CÁLCULO DE ÁGUA CORPORAL TOTAL (ACT) ---
+    function calcularACT(peso, sexo, idade) {
+        var fator = 0.6; // padrão homem adulto
+        if (sexo.toLowerCase() === 'f') {
+            fator = idade >= 65 ? 0.45 : 0.5;
+        } else {
+            fator = idade >= 65 ? 0.5 : 0.6;
+        }
+        return peso * fator;
+    }
+
+    // --- HIPONATREMIA ---
+    function calcularDeficitSodio(naAtual, naAlvo, peso, sexo, idade) {
+        if (naAtual >= naAlvo) return { erro: "Na atual >= Na alvo. Sem déficit." };
+        var act = calcularACT(peso, sexo, idade);
+        var deficitSodio = act * (naAlvo - naAtual);
+        
+        return {
+            act: Math.round(act * 10) / 10,
+            deficitSodioMEq: Math.round(deficitSodio)
+        };
+    }
+
+    function planejarCorrecaoHiponatremia(naAtual, peso, sexo, idade, salinaSendoUsada) {
+        // salinaSendoUsada = 3 para NaCl 3% (513 mEq/L) ou 0.9 para NaCl 0.9% (154 mEq/L)
+        var concentracaoSalina = salinaSendoUsada === 3 ? 513 : (salinaSendoUsada === 0.9 ? 154 : null);
+        if (!concentracaoSalina) return { erro: "Concentração de salina inválida (use 3 ou 0.9)" };
+
+        var act = calcularACT(peso, sexo, idade);
+        // Fórmula de Adrogué-Madias: aumento do Na com 1 L da solução
+        var variacaoNaPorLitro = (concentracaoSalina - naAtual) / (act + 1);
+
+        // Teto de segurança: máx 8 mEq em 24h
+        var volumeParaTeto24h = (8 / variacaoNaPorLitro) * 1000; // em mL
+        var taxaInfusaoSegura = volumeParaTeto24h / 24; // em mL/h
+
+        return {
+            naAtual: naAtual,
+            solucao: "NaCl " + salinaSendoUsada + "%",
+            variacaoNaPorLitro: Math.round(variacaoNaPorLitro * 10) / 10,
+            tetoElevacao24h: 8,
+            tetoElevacao48h: 18,
+            alerta: "RISCO DE SÍNDROME DE DESMIELINIZAÇÃO OSMÓTICA. Não ultrapassar 8-10 mEq/L nas primeiras 24h.",
+            taxaInfusaoMaxima24h_ml_h: Math.round(taxaInfusaoSegura * 10) / 10
+        };
+    }
+
+    // --- HIPERNATREMIA ---
+    function calcularDeficitAguaLivre(naAtual, peso, sexo, idade) {
+        if (naAtual <= 140) return { erro: "Na atual <= 140. Sem déficit de água livre." };
+        var act = calcularACT(peso, sexo, idade);
+        var deficitAguaLivre = act * ((naAtual / 140) - 1);
+
+        return {
+            act: Math.round(act * 10) / 10,
+            deficitAguaLivreLitros: Math.round(deficitAguaLivre * 100) / 100,
+            alerta: "Metade do déficit deve ser reposto nas primeiras 24h, o restante nas 24h a 48h seguintes. Monitorar Na a cada 4-6h."
+        };
+    }
+
+    // --- HIPERCALEMIA ---
+    function avaliarHipercalemia(kAtual, ecgAlterado) {
+        if (kAtual <= 5.0) return { gravidade: "Normal", conduta: "Nenhuma ação específica." };
+        
+        var condutas = [];
+        var gravidade = "Leve";
+        
+        if (kAtual >= 6.5 || ecgAlterado) {
+            gravidade = "Grave / Urgência Médica";
+            condutas.push("ESTABILIZAÇÃO DA MEMBRANA: Gluconato de Cálcio 10% 10 a 20 mL IV lento (em 3-5 min). Efeito imediato, duração 30-60 min. Repetir se ECG não melhorar em 5-10 min.");
+        } else if (kAtual >= 5.5) {
+            gravidade = "Moderada";
+        }
+
+        if (kAtual > 5.5) {
+            condutas.push("REDISTRIBUIÇÃO: Glicoinsulina (Solução Polarizante): 10 UI Insulina Regular + 100 mL de SG 50% IV em 20-30 min. Queda esperada: 0.5-1.2 mEq/L em 1-2h.");
+            condutas.push("REDISTRIBUIÇÃO: Beta-2 Agonista (Fenoterol 10-20 gotas ou Salbutamol 10-20 mg inalatório).");
+        }
+
+        if (kAtual > 5.0) {
+            condutas.push("ELIMINAÇÃO: Furosemida (se função renal e volemia permitirem).");
+            condutas.push("ELIMINAÇÃO: Resinas de troca de potássio (Poliestirenossulfonato de Cálcio / Sorcal) 15-30g VO ou Retal.");
+        }
+
+        return {
+            potassio: kAtual,
+            gravidade: gravidade,
+            alerta: ecgAlterado ? "ALERTA VERMELHO: Sinais de toxicidade cardíaca presentes no ECG. O Gluconato de Cálcio NÃO reduz o potássio, apenas estabiliza a membrana." : "",
+            condutas: condutas
+        };
+    }
+
+    return {
+        calcularACT: calcularACT,
+        calcularDeficitSodio: calcularDeficitSodio,
+        planejarCorrecaoHiponatremia: planejarCorrecaoHiponatremia,
+        calcularDeficitAguaLivre: calcularDeficitAguaLivre,
+        avaliarHipercalemia: avaliarHipercalemia
+    };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = NefrologiaDheService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_obstetricia_prenatal.js
 // ==============================================================================
 
@@ -7929,6 +8307,263 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_pcr_gestante.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 02: RESSUSCITAÇÃO CARDIOPULMONAR NA GESTANTE (PCR / ACLS MATERNO)
+ * ==============================================================================
+ * Algoritmo determinístico de alta fidelidade para Parada Cardiorrespiratória (PCR)
+ * materna e Cesariana de Ressuscitação (Perimortem / Resuscitative Hysterotomy).
+ *
+ * REFERÊNCIAS:
+ * - AHA Guidelines for CPR and ECC: Maternal Resuscitation (2020 / 2025).
+ * - FEBRASGO: Manual de Urgências e Emergências Obstétricas.
+ * - Consenso Brasileiro de Ressuscitação Cardiopulmonar na Gravidez.
+ * - SOAP (Society for Obstetric Anesthesia and Perinatology) Consensus Statement.
+ * ==============================================================================
+ */
+
+var PcrGestanteService = (function() {
+  'use strict';
+
+  /**
+   * Avalia a PCR na gestante e determina condutas críticas imediatas:
+   * DULE, via aérea, acesso venoso, histerotomia de ressuscitação e antídotos.
+   *
+   * @param {Object} params
+   * @param {number} params.idadeGestacionalSemanas - Idade gestacional em semanas
+   * @param {number} [params.alturaUterinaCm] - Altura uterina medida em cm
+   * @param {boolean} [params.fundoUterinoUmbilical] - Se fundo atinge ou ultrapassa a cicatriz umbilical
+   * @param {number} params.tempoPcrMinutos - Tempo decorrido em minutos de PCR contínua
+   * @param {string} [params.ritmoPcr] - Ritmo cardíaco ("FV", "TVSP", "TV", "AESP", "Assistolia")
+   * @param {boolean} [params.emUsoSulfatoMagnesio] - Se estava em infusão de MgSO4
+   * @param {boolean} [params.suspeitaToxicidadeAnestesicoLocal] - Se LAST (toxicidade por bupivacaína/anestésicos)
+   * @param {boolean} [params.suspeitaHemorragia] - Suspeita de choque hemorrágico / HPP maciça
+   * @param {boolean} [params.suspeitaEmboliaAmniotica] - Suspeita de Embolia de Líquido Amniótico (ELA)
+   * @param {boolean} [params.suspeitaSepse] - Suspeita de sepse materna/corioamnionite
+   * @param {boolean} [params.suspeitaPreEclampsia] - Pré-eclâmpsia grave ou eclâmpsia
+   * @returns {Object} Avaliação completa com alertas, condutas e checklist
+   */
+  function avaliarPcrGestante(params) {
+    params = params || {};
+    var ig = Number(params.idadeGestacionalSemanas) || 0;
+    var au = Number(params.alturaUterinaCm) || 0;
+    var fundoUmbilical = Boolean(params.fundoUterinoUmbilical);
+    var tempoPcr = Number(params.tempoPcrMinutos) || 0;
+    var ritmo = String(params.ritmoPcr || '').toUpperCase().trim();
+
+    // 1. Avaliação de Compressão Aortocaval e Indicação de DULE
+    // A partir de 20 semanas (ou útero palpável no umbigo / AU >= 20 cm), a compressão aortocaval é crítica.
+    var compressaoAortocavalPresente = ig >= 20 || au >= 20 || fundoUmbilical;
+
+    var dule = {
+      indicado: compressaoAortocavalPresente,
+      manobra: compressaoAortocavalPresente
+        ? "MANOBRA DULE OBRIGATÓRIA (Deslocamento Uterino para a Esquerda / Left Uterine Displacement)"
+        : "NÃO INDICADA (IG < 20 semanas sem compressão aortocaval hemodinâmica significativa)",
+      justificativaFisiologica: compressaoAortocavalPresente
+        ? "O útero gravídico oclui a veia cava inferior e a aorta descendente em decúbito dorsal, reduzindo o retorno venoso e o débito cardíaco materno em 30% a 40%. As compressões torácicas tornam-se ineficazes se o útero não for deslocado continuamente."
+        : "Útero abaixo da cicatriz umbilical não obstrui a veia cava inferior de modo a reduzir a eficácia da RCP convencional.",
+      tecnicaManual: compressaoAortocavalPresente
+        ? "Executar deslocamento manual contínuo do útero para a esquerda com uma mão (empurrando pelo lado direito da paciente) ou com duas mãos (tracionando pelo lado esquerdo)."
+        : null,
+      alertaPosicionamento: compressaoAortocavalPresente
+        ? "ALERTA CRÍTICO: Manter a paciente em decúbito dorsal HORIZONTAL em prancha rígida. NÃO inclinar a paciente ou a prancha em 30 graus, pois a inclinação lateral reduz drasticamente a profundidade e a qualidade da massagem torácica (Diretrizes AHA 2020/2025)."
+        : "Posicionar em decúbito dorsal sobre superfície rígida (prancha de RCP)."
+    };
+
+    // 2. Acesso Vascular e Vias de Infusão
+    var acessoVascular = {
+      localizacaoPrioritaria: "ACIMA DO DIAFRAGMA (Membros Superiores / Jugular Externa ou Interna / Subclávia)",
+      alertaCritico: "NÃO administrar fármacos ou infusões rápidas em membros inferiores ou veia femoral. Devido à compressão da veia cava inferior pelo útero gravídico, drogas infundidas abaixo do diafragma sofrem estase e não atingem a circulação central.",
+      alternativaEmergencial: "Se acesso venoso periférico difícil: Acesso Intraósseo (IO) imediato em membros superiores (úmero proximal)."
+    };
+
+    // 3. Vias Aéreas e Ventilação na Gestante
+    var viaAerea = {
+      riscosFisiologicos: [
+        "Via aérea potencialmente difícil devido a edema de mucosas e ganho ponderal.",
+        "Consumo basal de oxigênio aumentado em 20%, levando a hipóxia e dessaturação rápida.",
+        "Menor capacidade residual funcional e diminuição do tônus do esfíncter esofágico (alto risco de broncoaspiração)."
+      ],
+      recomendacoes: [
+        "Pré-oxigenação com FiO2 100% imediata (máscara com reservatório).",
+        "Intubação Orotraqueal (IOT) precoce realizada pelo socorrista mais experiente.",
+        "Utilizar tubo endotraqueal menor: diâmetro interno 6.0 a 7.0 mm com cuff (balonete).",
+        "Capnografia Quantitativa contínua em tempo real (EtCO2): meta > 10 a 20 mmHg durante compressões; salto abrupto para > 35-40 mmHg indica Retorno da Circulação Espontânea (RCE / ROSC).",
+        "Evitar hiperventilação: 1 ventilação a cada 6 segundos (10 respirações/minuto) após via aérea avançada."
+      ]
+    };
+
+    // 4. Farmacoterapia e Desfibrilação
+    var eRitmoChocavel = ritmo === "FV" || ritmo === "TVSP" || ritmo === "TV";
+    var condutaFarmacologica = {
+      ritmoIdentificado: ritmo || "NÃO INFORMADO",
+      eChocavel: eRitmoChocavel,
+      desfibrilacao: eRitmoChocavel
+        ? "Desfibrilação imediata: 200 Joules (bifásico) ou 360 Joules (monofásico). Não atrasar o choque! A descarga elétrica não lesa o feto."
+        : "Ritmo não chocável (AESP ou Assistolia). Desfibrilação NÃO indicada.",
+      alertaSegurancaDesfibrilador: "REMOVER/DESCONECTAR monitores fetais (tocodinamômetro, sonar fetal, cardiotocógrafo) antes de administrar o choque para evitar interferências ou risco de queimaduras.",
+      epinefrina: "Adrenalina (Epinefrina) 1 mg IV/IO a cada 3 a 5 minutos. NÃO reduzir a dose por conta da gestação.",
+      antiarritmicos: eRitmoChocavel
+        ? "Se FV/TVSP refratária ao 2º choque: Amiodarona 300 mg bolus IV/IO (segunda dose 150 mg se refratária) ou Lidocaína 1 a 1,5 mg/kg IV/IO."
+        : "Não indicado antiarrítmico em ritmos não chocáveis."
+    };
+
+    // 5. Cesariana de Ressuscitação / Perimortem (Regra dos 4 Minutos)
+    var histerotomia = {
+      indicada: false,
+      status: "NÃO_INDICADA",
+      mensagem: "",
+      tempoPcrMinutos: tempoPcr,
+      regraQuatroMinutos: "Iniciar cesariana aos 4 minutos de PCR ininterrupta sem RCE; extração fetal até o 5º minuto.",
+      prioridadeClinica: "SALVAR A MÃE. A histerotomia alivia a compressão aortocaval em 100%, restaurando o débito cardíaco materno aprisionado. A sobrevida fetal é benefício secundário.",
+      localProcedimento: "NO PRÓPRIO LOCAL DA PCR (Leito, Sala Vermelha, Pronto-Socorro ou UTI). NUNCA transportar a paciente parada para o Centro Cirúrgico!",
+      orientacoesCirurgicas: [
+        "NUNCA interromper a massagem cardíaca ou a ventilação durante o ato operatório.",
+        "Não aguardar paramentação cirúrgica estéril completa ou antissepsia demorada (apenas bisturi e luvas).",
+        "Laparotomia mediana infraumbilical rápida, histerotomia ampla e extração fetal imediata com clampeamento rápido do cordão.",
+        "Entrega imediata do neonato à equipe de reanimação pediátrica/neonatal."
+      ]
+    };
+
+    if (!compressaoAortocavalPresente) {
+      histerotomia.indicada = false;
+      histerotomia.status = "NÃO_APLICÁVEL_IG_MENOR_20";
+      histerotomia.mensagem = "Gestação < 20 semanas: Feto não viável e útero pequeno sem compressão aortocaval significativa. Cesariana perimortem não indicada.";
+    } else {
+      if (tempoPcr >= 4) {
+        histerotomia.indicada = true;
+        histerotomia.status = "INDICADA_IMEDIATAMENTE";
+        histerotomia.mensagem = "🚨 CESARIANA DE RESSUSCITAÇÃO INDICADA IMEDIATAMENTE (REGRA DOS 4 MINUTOS EXCEDIDA OU ATINGIDA). Iniciar histerotomia no próprio leito agora para salvar a mãe e o feto!";
+      } else {
+        histerotomia.indicada = false;
+        histerotomia.status = "PREPARO_IMEDIATO";
+        histerotomia.minutosRestantesDecisao = Math.max(0, 4 - tempoPcr);
+        histerotomia.mensagem = "⚠️ PREPARAR EQUIPE CIRÚRGICA E BISTURI BEIRA-LEITO: Faltam " + (4 - tempoPcr) + " minuto(s) para a decisão da cesariana de ressuscitação se não houver RCE (Retorno da Circulação Espontânea).";
+      }
+    }
+
+    // 6. Antídotos e Condutas Farmacológicas Especializadas
+    var antidotos = [];
+
+    if (params.emUsoSulfatoMagnesio) {
+      antidotos.push({
+        condicao: "Intoxicação por Sulfato de Magnésio (MgSO4)",
+        acaoImediata: "INTERROMPER IMEDIATAMENTE qualquer infusão de Sulfato de Magnésio.",
+        antidoto: "Gluconato de Cálcio a 10%",
+        posologia: "10 mL (1 g) IV lento em 2 a 3 minutos.",
+        justificativa: "O cálcio antagoniza competitivamente o bloqueio neuromuscular e a toxicidade cardiológica induzida pelo magnésio."
+      });
+    }
+
+    if (params.suspeitaToxicidadeAnestesicoLocal) {
+      antidotos.push({
+        condicao: "Toxicidade Sistêmica por Anestésicos Locais (LAST - Local Anesthetic Systemic Toxicity)",
+        acaoImediata: "Evitar bloqueadores de canal de cálcio, betabloqueadores e vasopressina.",
+        antidoto: "Emulsão Lipídica a 20% (Intralipid)",
+        posologia: "Bolus inicial de 1,5 mL/kg IV em 1 minuto, seguido de infusão contínua de 0,25 mL/kg/min (máximo 12 mL/kg).",
+        justificativa: "Cria um reservatório intravascular que sequestra o anestésico local lipofílico dos tecidos cardíacos (mecanismo lipid sink)."
+      });
+    }
+
+    if (params.suspeitaHemorragia) {
+      antidotos.push({
+        condicao: "Hemorragia Obstétrica Grave / Choque Hipovolêmico",
+        acaoImediata: "Ativação do Protocolo de Transfusão Maciça (relação 1:1:1 de Concentrado de Hemácias, Plasma Fresco Congelado e Plaquetas).",
+        antidoto: "Ácido Tranexâmico",
+        posologia: "1 g IV em 10 minutos (repetir 1 g após 30 minutos se sangramento persistente).",
+        justificativa: "Inibição precoce da hiperfibrinólise para contenção de coagulopatia consumptiva (Estudo WOMAN)."
+      });
+    }
+
+    if (params.suspeitaEmboliaAmniotica) {
+      antidotos.push({
+        condicao: "Embolia de Líquido Amniótico (ELA / Síndrome Anafilactoide da Gravidez)",
+        acaoImediata: "Falência ventricular direita aguda com coagulopatia intravascular disseminada fulminante.",
+        antidoto: "Suporte Inotrópico e Hemoderivados Precoces",
+        posologia: "Noradrenalina + Dobutamina para choque cardiogênico/vasoplégico; reposição de Crioprecipitado precoce para manter fibrinogênio > 150-200 mg/dL.",
+        justificativa: "Manejo direcionado para falência de VD e colapso hemostático."
+      });
+    }
+
+    // 7. Checklist Diagnóstico de Causas Reversíveis Maternas (Mnemônico A-to-H)
+    var checklistCausasReversiveis = [
+      { letra: "A", causa: "Anesthesia / Airway", descricao: "Complicações anestésicas (bloqueio raquídeo/peridural total), falha na intubação, hipóxia ou broncoaspiração." },
+      { letra: "B", causa: "Bleeding", descricao: "Hemorragia maciça (descolamento prematuro de placenta, placenta prévia, atonia uterina, rotura uterina)." },
+      { letra: "C", causa: "Cardiovascular", descricao: "Infarto agudo do miocárdio, dissecção aguda de aorta, cardiomiopatia periparto, arritmias." },
+      { letra: "D", causa: "Drugs", descricao: "Toxicidade por Sulfato de Magnésio (antídoto: Gluconato de Cálcio), toxicidade por anestésico local (LAST: Emulsão Lipídica)." },
+      { letra: "E", causa: "Embolic", descricao: "Embolia de líquido amniótico (colapso súbito + CIVD), Tromboembolismo pulmonar maciço (TEP)." },
+      { letra: "F", causa: "Fever / Sepsis", descricao: "Sepse puerperal, corioamnionite grave, infecção de ferida operatória / endometrite." },
+      { letra: "G", causa: "General non-obstetric (5Hs e 5Ts)", descricao: "Hipovolemia, Hipóxia, Acidose (H+), Hipo/Hipercalemia, Hipotermia; Tamponamento cardíaco, Pneumotórax hipertensivo, Trombose coronária, Trombose pulmonar, Toxinas." },
+      { letra: "H", causa: "Hypertension", descricao: "Pré-eclâmpsia grave, Síndrome HELLP, Eclâmpsia, Hemorragia intracraniana hipertensiva." }
+    ];
+
+    return {
+      sucesso: true,
+      idadeGestacionalSemanas: ig,
+      tempoPcrMinutos: tempoPcr,
+      dule: dule,
+      acessoVascular: acessoVascular,
+      viaAerea: viaAerea,
+      condutaFarmacologica: condutaFarmacologica,
+      histerotomiaRessuscitacao: histerotomia,
+      antidotos: antidotos,
+      checklistCausasReversiveis: checklistCausasReversiveis,
+      resumoExecutivo: gerarResumoExecutivo({
+        ig: ig,
+        tempoPcr: tempoPcr,
+        compressaoAortocaval: compressaoAortocavalPresente,
+        histerotomia: histerotomia,
+        antidotos: antidotos
+      })
+    };
+  }
+
+  /**
+   * Gera um resumo executivo textual rápido para ser consumido pelo Cockpit ou Telegram
+   */
+  function gerarResumoExecutivo(dados) {
+    var linhas = [];
+    linhas.push("🚨 PROTOCOLO DE PCR NA GESTANTE (ACLS MATERNO)");
+    linhas.push("• Idade Gestacional: " + dados.ig + " semanas | Tempo de PCR: " + dados.tempoPcr + " min");
+
+    if (dados.compressaoAortocaval) {
+      linhas.push("• DULE MANUAL OBRIGATÓRIO: Deslocar útero continuamente para a esquerda com a paciente plana em decúbito dorsal rígido.");
+    } else {
+      linhas.push("• DULE: Não indicado (IG < 20 semanas).");
+    }
+
+    linhas.push("• ACESSO VENOSO: Prioridade estrita ACIMA DO DIAFRAGMA (membros superiores/jugular).");
+
+    if (dados.histerotomia.status === "INDICADA_IMEDIATAMENTE") {
+      linhas.push("• ⚠️ CESARIANA PERIMORTEM: INDICADA AGORA (Regra dos 4 minutos)! Realizar no leito sem interrupção da RCP.");
+    } else if (dados.histerotomia.status === "PREPARO_IMEDIATO") {
+      linhas.push("• ⏳ CESARIANA PERIMORTEM: Preparar equipe e bisturi no leito (faltam " + dados.histerotomia.minutosRestantesDecisao + " min para decisão aos 4 min).");
+    }
+
+    if (dados.antidotos && dados.antidotos.length > 0) {
+      dados.antidotos.forEach(function(a) {
+        linhas.push("• 💊 ANTÍDOTO (" + a.condicao + "): " + a.antidoto + " - " + a.posologia);
+      });
+    }
+
+    return linhas.join("\n");
+  }
+
+  return {
+    avaliarPcrGestante: avaliarPcrGestante
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { PcrGestanteService: PcrGestanteService };
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_puericultura_pediatria.js
 // ==============================================================================
 
@@ -8372,6 +9007,334 @@ function separarSecoesPosologicas(texto) {
 }
 
 if (typeof module !== 'undefined' && module.exports) module.exports = { separarSecoesPosologicas };
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_sedacao_opioides.js
+// ==============================================================================
+
+/**
+ * Módulo de Sedação e Rotação de Opioides (UTI / Cuidados Paliativos)
+ * Motor determinístico para cálculo de MME e avaliação RASS/CAM-ICU.
+ */
+
+var SedacaoOpioidesService = (function() {
+    'use strict';
+
+    // --- ESCALA RASS (Richmond Agitation-Sedation Scale) ---
+    function avaliarRASS(score) {
+        if (score === undefined || score === null) return null;
+        
+        var interpretacoes = {
+            "4": "Combativo (violento, perigo imediato para equipe)",
+            "3": "Muito agitado (puxa cateteres, agressivo)",
+            "2": "Agitado (movimentos despropositados frequentes, assincronia com ventilador)",
+            "1": "Inquieto (ansioso, movimentos não agressivos)",
+            "0": "Alerta e calmo",
+            "-1": "Sonolento (acorda com voz, mantém contato visual > 10s)",
+            "-2": "Sedação leve (acorda com voz, mantém contato visual < 10s)",
+            "-3": "Sedação moderada (movimento ou abertura ocular ao chamado, sem contato visual)",
+            "-4": "Sedação profunda (resposta apenas a estímulo físico)",
+            "-5": "Não despertável (sem resposta à voz ou estímulo físico)"
+        };
+
+        var nivel = interpretacoes[String(score)];
+        if (!nivel) return { erro: "Score RASS inválido. Deve ser entre -5 e +4." };
+
+        var meta = "Fora do alvo";
+        if (score >= -2 && score <= 0) meta = "Meta típica para desmame ventilatório";
+        else if (score <= -3) meta = "Sedação profunda (indicação: bloqueador neuromuscular, hipertensão intracraniana ou estado de mal epiléptico)";
+        else if (score > 0) meta = "Agitação (necessita analgesia, sedação de resgate ou contenção)";
+
+        return { score: score, nivel: nivel, meta: meta };
+    }
+
+    // --- CAM-ICU (Avaliação de Delirium) ---
+    function avaliarCAMICU(params) {
+        // 1. Alteração aguda do estado mental ou flutuação
+        // 2. Desatenção
+        // 3. Nível de consciência alterado (RASS diferente de zero)
+        // 4. Pensamento desorganizado
+        
+        if (!params.alteracaoAgudaMental) return { delirium: false, justificativa: "Sem alteração aguda/flutuante do estado mental." };
+        if (!params.desatencao) return { delirium: false, justificativa: "Sem desatenção (erro < 3 letras na avaliação de atenção)." };
+        
+        if (params.alteracaoConsciencia || params.pensamentoDesorganizado) {
+            return { 
+                delirium: true, 
+                justificativa: "Critérios 1 e 2 presentes, e " + (params.alteracaoConsciencia ? "nível de consciência alterado." : "pensamento desorganizado.")
+            };
+        }
+
+        return { delirium: false, justificativa: "Critérios 3 e 4 ausentes." };
+    }
+
+    // --- ROTAÇÃO DE OPIOIDES (MME = Morphine Milligram Equivalent - oral) ---
+    function calcularMME(farmaco, via, doseMgDia) {
+        var fatorConversao = 0;
+        var metadonaObservacao = null;
+
+        var f = farmaco.toLowerCase();
+        var v = via.toLowerCase();
+
+        if (f === "morfina") {
+            fatorConversao = v === "iv" ? 3.0 : 1.0;
+        } else if (f === "oxicodona" && v === "vo") {
+            fatorConversao = 1.5;
+        } else if (f === "fentanil" && v === "iv") {
+            // Fentanil IV dose entra em MG/dia.
+            // 1 mg Fentanil IV = 1000 mcg = 100 mg Morfina IV = 300 mg Morfina VO
+            fatorConversao = 300.0;
+        } else if (f === "metadona" && (v === "vo" || v === "iv")) {
+            // Conversão não linear da Metadona
+            if (doseMgDia <= 20) { fatorConversao = 4; }
+            else if (doseMgDia <= 40) { fatorConversao = 8; }
+            else if (doseMgDia <= 60) { fatorConversao = 10; }
+            else { fatorConversao = 12; }
+            metadonaObservacao = "Conversão não linear; extrema cautela devido à meia-vida longa (pode acumular).";
+        } else {
+            return { erro: "Fármaco/Via não suportados." };
+        }
+
+        var mme = doseMgDia * fatorConversao;
+        
+        return {
+            farmacoOriginal: farmaco,
+            viaOriginal: via,
+            doseMgDia: doseMgDia,
+            mmeDia: Math.round(mme * 10) / 10,
+            observacao: metadonaObservacao
+        };
+    }
+
+    // Converte de um MME de volta para dose alvo com redução cruzada
+    function rotacionarOpioide(mmeTotal, alvoFarmaco, alvoVia, reducaoToleranciaCruzada) {
+        if (reducaoToleranciaCruzada === undefined) reducaoToleranciaCruzada = 0.25;
+        
+        var doseMgDiaAlvo = 0;
+        var fatorReverso = 0;
+
+        var mmeCorrigido = mmeTotal * (1 - reducaoToleranciaCruzada);
+
+        var f = alvoFarmaco.toLowerCase();
+        var v = alvoVia.toLowerCase();
+
+        if (f === "morfina") {
+            fatorReverso = v === "iv" ? 3.0 : 1.0;
+            doseMgDiaAlvo = mmeCorrigido / fatorReverso;
+        } else if (f === "oxicodona" && v === "vo") {
+            fatorReverso = 1.5;
+            doseMgDiaAlvo = mmeCorrigido / fatorReverso;
+        } else if (f === "fentanil" && v === "iv") {
+            fatorReverso = 300.0;
+            doseMgDiaAlvo = mmeCorrigido / fatorReverso;
+        } else if (f === "metadona") {
+            return { erro: "Rotação PARA Metadona requer especialista (fator de conversão não reversível facilmente e meia vida longa)." };
+        } else {
+            return { erro: "Fármaco alvo não suportado." };
+        }
+
+        var doseMcgDia = null;
+        if (f === "fentanil") {
+            doseMcgDia = doseMgDiaAlvo * 1000;
+        }
+
+        return {
+            alvoFarmaco: alvoFarmaco,
+            alvoVia: alvoVia,
+            mmeOriginalCorrigido: Math.round(mmeCorrigido * 10) / 10,
+            reducaoCruzadaPercentual: reducaoToleranciaCruzada * 100,
+            doseMgDiaCalculada: Math.round(doseMgDiaAlvo * 100) / 100,
+            doseMcgDiaCalculada: doseMcgDia ? Math.round(doseMcgDia * 100) / 100 : undefined
+        };
+    }
+
+    return {
+        avaliarRASS: avaliarRASS,
+        avaliarCAMICU: avaliarCAMICU,
+        calcularMME: calcularMME,
+        rotacionarOpioide: rotacionarOpioide
+    };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = SedacaoOpioidesService; // Ajustado para não usar destructuring
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_sepse_puerperal.js
+// ==============================================================================
+
+class SepsePuerperalService {
+  /**
+   * Calcula o Sepsis in Obstetrics Score (SOS)
+   * e o qSOFA adaptado para gestantes.
+   *
+   * @param {Object} params
+   * @param {number} params.temperatura em graus Celsius
+   * @param {number} params.fc frequência cardíaca (bpm)
+   * @param {number} params.fr frequência respiratória (rpm)
+   * @param {number} params.pas pressão arterial sistólica (mmHg)
+   * @param {number} params.pad pressão arterial diastólica (mmHg)
+   * @param {number} params.spo2 saturação de O2 (%)
+   * @param {number} params.leucocitos contagem global de leucócitos (células/mm3)
+   * @param {number} params.glasgow escala de coma de Glasgow (3-15)
+   * @param {number} params.lactato lactato sérico (mmol/L)
+   * @returns {Object} avaliação completa
+   */
+  static avaliarRiscoSepsis({ temperatura, fc, fr, pas, pad, spo2, leucocitos, glasgow = 15, lactato = 1.0 }) {
+    let sosScore = 0;
+    const detalhesSOS = [];
+
+    // Temperatura
+    if (temperatura < 36) {
+      sosScore += 1;
+      detalhesSOS.push("Temperatura < 36°C (+1)");
+    } else if (temperatura >= 38 && temperatura < 39) {
+      sosScore += 1;
+      detalhesSOS.push("Temperatura 38-38.9°C (+1)");
+    } else if (temperatura >= 39) {
+      sosScore += 2;
+      detalhesSOS.push("Temperatura >= 39°C (+2)");
+    }
+
+    // FC
+    if (fc < 50) {
+      sosScore += 2;
+      detalhesSOS.push("FC < 50 bpm (+2)");
+    } else if (fc >= 50 && fc <= 60) {
+      sosScore += 1;
+      detalhesSOS.push("FC 50-60 bpm (+1)");
+    } else if (fc > 119 && fc < 130) {
+      sosScore += 1;
+      detalhesSOS.push("FC 120-129 bpm (+1)");
+    } else if (fc >= 130) {
+      sosScore += 2;
+      detalhesSOS.push("FC >= 130 bpm (+2)");
+    }
+
+    // FR
+    if (fr < 10) {
+      sosScore += 2;
+      detalhesSOS.push("FR < 10 rpm (+2)");
+    } else if (fr >= 21 && fr <= 24) {
+      sosScore += 1;
+      detalhesSOS.push("FR 21-24 rpm (+1)");
+    } else if (fr >= 25 && fr <= 29) {
+      sosScore += 2;
+      detalhesSOS.push("FR 25-29 rpm (+2)");
+    } else if (fr >= 30) {
+      sosScore += 3;
+      detalhesSOS.push("FR >= 30 rpm (+3)");
+    }
+
+    // PAS
+    if (pas < 80) {
+      sosScore += 2;
+      detalhesSOS.push("PAS < 80 mmHg (+2)");
+    } else if (pas >= 80 && pas <= 89) {
+      sosScore += 1;
+      detalhesSOS.push("PAS 80-89 mmHg (+1)");
+    } else if (pas >= 140 && pas <= 149) {
+      sosScore += 1;
+      detalhesSOS.push("PAS 140-149 mmHg (+1)");
+    } else if (pas >= 150 && pas <= 159) {
+      sosScore += 2;
+      detalhesSOS.push("PAS 150-159 mmHg (+2)");
+    } else if (pas >= 160) {
+      sosScore += 3;
+      detalhesSOS.push("PAS >= 160 mmHg (+3)");
+    }
+
+    // PAD (Apenas para score, qSOFA usa PAS)
+    if (pad <= 40) {
+      sosScore += 2;
+      detalhesSOS.push("PAD <= 40 mmHg (+2)");
+    } else if (pad >= 90 && pad <= 99) {
+      sosScore += 1;
+      detalhesSOS.push("PAD 90-99 mmHg (+1)");
+    } else if (pad >= 100 && pad <= 109) {
+      sosScore += 2;
+      detalhesSOS.push("PAD 100-109 mmHg (+2)");
+    } else if (pad >= 110) {
+      sosScore += 3;
+      detalhesSOS.push("PAD >= 110 mmHg (+3)");
+    }
+
+    // SpO2
+    if (spo2 < 92) {
+      sosScore += 2;
+      detalhesSOS.push("SpO2 < 92% (+2)");
+    } else if (spo2 >= 92 && spo2 <= 95) {
+      sosScore += 1;
+      detalhesSOS.push("SpO2 92-95% (+1)");
+    }
+
+    // Leucócitos (normal na gestação até 16.900)
+    if (leucocitos < 4000) {
+      sosScore += 2;
+      detalhesSOS.push("Leucócitos < 4000 (+2)");
+    } else if (leucocitos >= 17000) {
+      sosScore += 1;
+      detalhesSOS.push("Leucócitos >= 17000 (+1)");
+    }
+
+    // qSOFA Obstétrico
+    let qSofaScore = 0;
+    const detalhesQSofa = [];
+    if (fr >= 25) {
+      qSofaScore += 1;
+      detalhesQSofa.push("FR >= 25 rpm (+1)");
+    }
+    if (pas <= 90) {
+      qSofaScore += 1;
+      detalhesQSofa.push("PAS <= 90 mmHg (+1)");
+    }
+    if (glasgow < 15) {
+      qSofaScore += 1;
+      detalhesQSofa.push("Glasgow < 15 (+1)");
+    }
+
+    const riscoAltoSOS = sosScore >= 6;
+    const riscoAltoQSofa = qSofaScore >= 2;
+    const choqueSeptico = lactato > 2.0 || pas < 90; // Critério simplificado para choque
+
+    return {
+      sosScore,
+      detalhesSOS,
+      riscoAltoSOS,
+      qSofaScore,
+      detalhesQSofa,
+      riscoAltoQSofa,
+      choqueSeptico,
+      classificacao: (riscoAltoSOS || riscoAltoQSofa || choqueSeptico) ? "ALTO RISCO PARA SEPSE" : "BAIXO RISCO",
+      conduta: this.gerarBundleUmaHora(choqueSeptico)
+    };
+  }
+
+  static gerarBundleUmaHora(choqueSeptico) {
+    const bundle = [
+      "1. Coleta de Lactato Sérico (repetir se > 2 mmol/L).",
+      "2. Hemoculturas ANTES do início do antibiótico.",
+      "3. Ressuscitação volêmica criteriosa com Cristaloides (Lactato de Ringer): 30 mL/kg, com atenção ao risco de EAP (Edema Agudo de Pulmão) na gestante.",
+      "4. Antibioticoterapia de amplo espectro intravenosa:",
+      "   - Opção 1: Ampicilina 2g IV + Gentamicina 5mg/kg IV + Clindamicina 900mg IV",
+      "   - Opção 2: Ceftriaxona 2g IV + Metronidazol 500mg IV"
+    ];
+
+    if (choqueSeptico) {
+      bundle.push("5. [ALERTA DE CHOQUE] Início precoce de Vasopressor (Noradrenalina 0.05 a 0.1 mcg/kg/min) se PAM < 65 mmHg refratária a fluidos.");
+      bundle.push("6. UTI/Transferência prioritária.");
+    }
+
+    return bundle;
+  }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { SepsePuerperalService };
+}
 
 
 // ==============================================================================
@@ -22064,4 +23027,99 @@ function cockpitObterModelosExameFisico(initData, params) {
     return { sucesso: true, modelos: SoapAmbulatorialService.MODELOS_EXAME_FISICO };
   }
   return { sucesso: true, modelos: {} };
+}
+
+
+
+
+function cockpitAuditarYSite(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof AuditoriaYSiteService === 'undefined') {
+    throw new Error('Módulo AuditoriaYSiteService indisponível.');
+  }
+
+  var lista = params.listaFarmacos || [];
+  var resultado = AuditoriaYSiteService.verificarCompatibilidadeLista(lista);
+  
+  return { sucesso: true, resultado: resultado };
+}
+
+function cockpitSedacaoOpioides(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SedacaoOpioidesService === 'undefined') {
+    throw new Error('Módulo SedacaoOpioidesService indisponível.');
+  }
+  if (params.acao === 'rass') {
+    return SedacaoOpioidesService.avaliarRASS(params.score);
+  }
+  if (params.acao === 'camicu') {
+    return SedacaoOpioidesService.avaliarCAMICU(params);
+  }
+  if (params.acao === 'calcularMME') {
+    return SedacaoOpioidesService.calcularMME(params.farmaco, params.via, params.doseMgDia);
+  }
+  if (params.acao === 'rotacionar') {
+    return SedacaoOpioidesService.rotacionarOpioide(params.mmeTotal, params.alvoFarmaco, params.alvoVia, params.reducaoCruzada);
+  }
+  throw new Error('Ação inválida para sedação/opioides. Use rass, camicu, calcularMME ou rotacionar.');
+}
+
+function cockpitNefrologiaDhe(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof NefrologiaDheService === 'undefined') {
+    throw new Error('Módulo NefrologiaDheService indisponível.');
+  }
+  if (params.acao === 'deficitSodio') {
+    return NefrologiaDheService.calcularDeficitSodio(params.naAtual, params.naAlvo, params.peso, params.sexo, params.idade);
+  }
+  if (params.acao === 'planejarCorrecaoHiponatremia') {
+    return NefrologiaDheService.planejarCorrecaoHiponatremia(params.naAtual, params.peso, params.sexo, params.idade, params.salinaSendoUsada);
+  }
+  if (params.acao === 'deficitAguaLivre') {
+    return NefrologiaDheService.calcularDeficitAguaLivre(params.naAtual, params.peso, params.sexo, params.idade);
+  }
+  if (params.acao === 'avaliarHipercalemia') {
+    return NefrologiaDheService.avaliarHipercalemia(params.kAtual, params.ecgAlterado);
+  }
+  throw new Error('Ação inválida para Nefrologia DHE.');
+}
+
+
+function cockpitSdraMecanica(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof MecanicaPulmonarSdraService === 'undefined') {
+    throw new Error('Módulo MecanicaPulmonarSdraService indisponível.');
+  }
+  if (params.acao === 'processarMecanica') {
+    return MecanicaPulmonarSdraService.processarMecanica(params);
+  }
+  throw new Error('Ação inválida para SDRA / Mecânica Pulmonar.');
+}
+
+function cockpitSepsePuerperal(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SepsePuerperalService === 'undefined') {
+    throw new Error('Módulo SepsePuerperalService indisponível.');
+  }
+  if (params.acao === 'avaliarRiscoSepsis') {
+    return SepsePuerperalService.avaliarRiscoSepsis(params);
+  }
+  throw new Error('Ação inválida para Sepse Puerperal.');
+}
+
+function cockpitPcrGestante(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PcrGestanteService === 'undefined') {
+    throw new Error('Módulo PcrGestanteService indisponível.');
+  }
+  if (params.acao === 'avaliarPcrGestante' || !params.acao) {
+    return PcrGestanteService.avaliarPcrGestante(params);
+  }
+  throw new Error('Ação inválida para PCR na Gestante.');
 }

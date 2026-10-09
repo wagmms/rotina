@@ -814,3 +814,16 @@ function cockpitSepsePuerperal(initData, params) {
   }
   throw new Error('Ação inválida para Sepse Puerperal.');
 }
+
+function cockpitPcrGestante(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PcrGestanteService === 'undefined') {
+    throw new Error('Módulo PcrGestanteService indisponível.');
+  }
+  if (params.acao === 'avaliarPcrGestante' || !params.acao) {
+    return PcrGestanteService.avaliarPcrGestante(params);
+  }
+  throw new Error('Ação inválida para PCR na Gestante.');
+}
+
