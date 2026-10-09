@@ -1615,8 +1615,33 @@ function cockpitGasometriaAcidoBase(initData, params) {
     textoFormatado: texto
   };
 }
-
 var cockpitGasometria = cockpitGasometriaAcidoBase;
+
+/**
+ * Módulo de Suporte Nutricional em Pediatria (Fórmula Infantil / Holliday-Segar)
+ * @param {string} initData Sessão / autenticação
+ * @param {Object} params Parâmetros clínicos (pesoKg, idadeMeses, condicaoClinica, tipoFormula, volumeMamadaMl, etc.)
+ */
+function cockpitSuporteNutricionalPediatrico(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para Suporte Nutricional Pediátrico não fornecidos.');
+
+  if (typeof SuporteNutricionalPediatricoService === 'undefined') {
+    throw new Error('Serviço SuporteNutricionalPediatricoService indisponível.');
+  }
+
+  var analise = SuporteNutricionalPediatricoService.avaliarSuporteNutricionalPediatricoCompleto(params);
+  var texto = SuporteNutricionalPediatricoService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+var cockpitNutricaoPediatrica = cockpitSuporteNutricionalPediatrico;
+
 
 
 

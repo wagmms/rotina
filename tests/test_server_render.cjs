@@ -117,6 +117,24 @@ async function run() {
   assert(jsonGaso.resultado.textoFormatado.includes('GASOMETRIA ARTERIAL'));
   console.log('✓ Cockpit Gasometria Arterial (5 Passos & Winter) OK');
 
+  // 6.2 Cockpit RPC - Suporte Nutricional em Pediatria (Holliday-Segar & Fórmulas)
+  const resNutriPed = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitSuporteNutricionalPediatrico',
+      session: token,
+      args: [{ pesoKg: 6.5, idadeMeses: 3, tipoFormula: 'partida', volumeMamadaMl: 90 }]
+    }
+  });
+  assert.equal(resNutriPed.statusCode, 200);
+  const jsonNutriPed = resNutriPed.json();
+  assert.equal(jsonNutriPed.ok, true);
+  assert.equal(jsonNutriPed.resultado.sucesso, true);
+  assert.equal(jsonNutriPed.resultado.resultado.formulaInfantil.prescricaoMamada.medidasRasas, 3);
+  assert(jsonNutriPed.resultado.textoFormatado.includes('SUPORTE NUTRICIONAL EM PEDIATRIA'));
+  console.log('✓ Cockpit Suporte Nutricional Pediátrico (Holliday-Segar & Fórmula Infantil) OK');
+
   // 7. PWA Manifest & Service Worker
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);

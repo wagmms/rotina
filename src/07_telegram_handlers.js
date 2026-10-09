@@ -1269,8 +1269,90 @@ function processarMensagemTexto(message) {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // DASHBOARD DE KAIZEN CLÍNICO E AUDITORIA ANALÍTICA DE PRESCRIÇÕES
+  // SUPORTE NUTRICIONAL EM PEDIATRIA (HOLLIDAY-SEGAR & FÓRMULAS INFANTIS)
   // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/nutriped" || comando === "/holliday" || comando === "/formulainfantil" || comando === "/diluicao") {
+    var dadosNutriPed = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof SuporteNutricionalPediatricoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo SuporteNutricionalPediatricoService indisponível temporariamente.");
+    }
+
+    if (!dadosNutriPed) {
+      return enviarMensagemParaChat(chatId, "👶 *SUPORTE NUTRICIONAL & HIDRATAÇÃO PEDIÁTRICA*\n\n" +
+        "Envie os parâmetros clínicos do lactente/criança:\n" +
+        "• *Peso* (ex: `7.5kg`, `12kg`)\n" +
+        "• *Idade* (ex: `3 meses`, `8m`, `2 anos`)\n" +
+        "• *Condição clínica* (`bronquiolite`, `febre 39C`, `cardiopatia`, `catch-up`)\n" +
+        "• *Fórmula* (`partida`, `seguimento`, `prematuro`, `ar`, `sl`, `ehf`, `aminoacidos`)\n" +
+        "• *Volume da mamada* (ex: `90ml`, `120ml`)\n\n" +
+        "💡 *Exemplos rápidos beira-leito:*\n" +
+        "• `/holliday 8kg` *(Volume de manutenção, vazão em bomba, eletrólitos SBP e TIG)*\n" +
+        "• `/holliday 11kg bronquiolite` *(Restrição a 70% para prevenção de sobrecarga pulmonar)*\n" +
+        "• `/diluicao 90ml partida` *(Padronização 1 medida para 30 mL e normas OMS de preparo)*\n" +
+        "• `/formulainfantil 100ml` *(Alerta contra medidas fracionadas e conduta correta)*\n" +
+        "• `/nutriped 6kg 3 meses partida` *(Avaliação nutricional e hidratação completas)*");
+    }
+
+    var paramsNP = {};
+    var mPesoNP = dadosNutriPed.match(/(\d{1,2}(?:[.,]\d+)?)\s*(?:kg|quilos)/i);
+    if (mPesoNP) paramsNP.pesoKg = parseFloat(mPesoNP[1].replace(',', '.'));
+
+    var mIdadeMesesNP = dadosNutriPed.match(/(\d{1,2})\s*(?:meses|m\b)/i);
+    if (mIdadeMesesNP) {
+      paramsNP.idadeMeses = parseInt(mIdadeMesesNP[1], 10);
+    } else {
+      var mIdadeAnosNP = dadosNutriPed.match(/(\d{1,2})\s*(?:anos|a\b)/i);
+      if (mIdadeAnosNP) paramsNP.idadeMeses = parseInt(mIdadeAnosNP[1], 10) * 12;
+    }
+
+    var mVolMamadaNP = dadosNutriPed.match(/(\d{2,3})\s*(?:ml|mls)/i);
+    if (mVolMamadaNP) paramsNP.volumeMamadaMl = parseInt(mVolMamadaNP[1], 10);
+
+    var dLower = dadosNutriPed.toLowerCase();
+    if (dLower.includes("bronquio") || dLower.includes("bva")) paramsNP.condicaoClinica = "restricao_bronquiolite";
+    else if (dLower.includes("cardio") || dLower.includes("edema") || dLower.includes("ic")) paramsNP.condicaoClinica = "restricao_ic";
+    else if (dLower.includes("siadh") || dLower.includes("oligur")) paramsNP.condicaoClinica = "siadh";
+    else if (dLower.includes("desnutri") || dLower.includes("catch")) paramsNP.condicaoClinica = "catch_up";
+    else if (dLower.includes("desidrat")) paramsNP.condicaoClinica = "desidratacao_leve";
+    else if (dLower.includes("febre")) paramsNP.condicaoClinica = "febre";
+
+    var mTempNP = dadosNutriPed.match(/(\d{2}(?:[.,]\d+)?)\s*°?c/i);
+    if (mTempNP) {
+      paramsNP.temperaturaC = parseFloat(mTempNP[1].replace(',', '.'));
+      paramsNP.condicaoClinica = "febre";
+    }
+
+    if (dLower.includes("prematur") || dLower.includes("pre-nan") || dLower.includes("pig")) paramsNP.tipoFormula = "prematuro";
+    else if (dLower.includes("seguimento") || dLower.includes("fase 2")) paramsNP.tipoFormula = "seguimento";
+    else if (dLower.includes(" anti") || dLower.includes("regurgit") || dLower.includes(" ar ") || dLower.endsWith(" ar")) paramsNP.tipoFormula = "anti_regurgitacao";
+    else if (dLower.includes("sem lactose") || dLower.includes(" sl ") || dLower.endsWith(" sl")) paramsNP.tipoFormula = "sem_lactose";
+    else if (dLower.includes("ehf") || dLower.includes("hidrolis") || dLower.includes("pepti") || dLower.includes("pregomin")) paramsNP.tipoFormula = "hidrolisada_extensa";
+    else if (dLower.includes("aaf") || dLower.includes("aminoacid") || dLower.includes("neocate") || dLower.includes("alfamino")) paramsNP.tipoFormula = "aminoacidos";
+    else if (dLower.includes("soja")) paramsNP.tipoFormula = "soja";
+    else if (dLower.includes("partida") || dLower.includes("fase 1")) paramsNP.tipoFormula = "partida";
+
+    // Se o usuário digitou número isolado inicial e ainda não tem peso ou volume
+    if (!paramsNP.pesoKg && !paramsNP.volumeMamadaMl) {
+      var mNumSolto = dadosNutriPed.match(/^(\d{1,2}(?:[.,]\d+)?)/);
+      if (mNumSolto) {
+        var valNum = parseFloat(mNumSolto[1].replace(',', '.'));
+        if (comando === "/diluicao" || comando === "/formulainfantil") {
+          if (valNum >= 30) paramsNP.volumeMamadaMl = valNum;
+          else paramsNP.pesoKg = valNum;
+        } else {
+          paramsNP.pesoKg = valNum;
+        }
+      }
+    }
+
+    try {
+      var avaliacaoNutri = SuporteNutricionalPediatricoService.avaliarSuporteNutricionalPediatricoCompleto(paramsNP);
+      return enviarMensagemParaChat(chatId, avaliacaoNutri.textoFormatado);
+    } catch (eNutriPed) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular suporte nutricional pediátrico: " + eNutriPed.message);
+    }
+  }
+
   if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
     var dadosKaizen = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof AuditoriaKaizenClinicoService === "undefined") {
@@ -2085,6 +2167,67 @@ function processarMensagemTexto(message) {
           "• PaCO₂ dentro da faixa (" + w.minimo + "–" + w.maximo + " mmHg) → *Compensação respiratória adequada*.");
       } catch (errWinter) {
         return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular Winter: " + errWinter.message);
+      }
+    }
+  }
+
+  
+  if (comando === "/nutriped") {
+    var dadosNutriped = texto.replace(/^\/nutriped\s*/i, "").trim();
+    if (!dadosNutriped) {
+      return enviarMensagemParaChat(chatId, "🍼 *SUPORTE NUTRICIONAL EM PEDIATRIA*\n\n" +
+        "Envie os parâmetros clínicos (peso, idade, etc.):\n\n" +
+        "💡 *Exemplos de envio:*\n" +
+        "• `/nutriped peso: 5.5` (calcula Holliday-Segar basal)\n" +
+        "• `/nutriped idade: 4, mamada: 120` (calcula preparo de fórmula)\n" +
+        "• `/nutriped peso: 8, tipo: ar` (fórmula Anti-Regurgitação)\n" +
+        "• `/nutriped peso: 3.2, idade: 2, mamada: 90`\n\n" +
+        "O sistema calculará:\n" +
+        "✅ Volume basal (Holliday-Segar)\n" +
+        "✅ Diluição segura da fórmula (1 medida/30 mL)\n" +
+        "✅ Alertas beira-leito.");
+    }
+
+    if (typeof cockpitNutricaoPediatrica === "function") {
+      try {
+        function numNutri(re) {
+          var m = dadosNutriped.match(re);
+          return m ? parseFloat(String(m[1]).replace(",", ".")) : null;
+        }
+        var n_peso = numNutri(/\bpeso\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bp\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var n_idade = numNutri(/\bidade\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bi\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bmeses\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var n_mamada = numNutri(/\bmamada\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bvol\w*\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bml\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        var n_num = numNutri(/\bvezes\s*[:=]?\s*(\d+[.,]?\d*)/i);
+        
+        var n_tipo = null;
+        if (/partida/i.test(dadosNutriped)) n_tipo = 'partida';
+        else if (/seguimento/i.test(dadosNutriped)) n_tipo = 'seguimento';
+        else if (/prematuro/i.test(dadosNutriped)) n_tipo = 'prematuro';
+        else if (/\bar\b|anti-?regurgita/i.test(dadosNutriped)) n_tipo = 'anti_regurgitacao';
+        else if (/sem\s*lactose|\bsl\b/i.test(dadosNutriped)) n_tipo = 'sem_lactose';
+        else if (/hidrolisada|ehf/i.test(dadosNutriped)) n_tipo = 'hidrolisada_extensa';
+        else if (/amino|aaf/i.test(dadosNutriped)) n_tipo = 'aminoacidos';
+        else if (/soja/i.test(dadosNutriped)) n_tipo = 'soja';
+
+        var params = {};
+        if (n_peso !== null) params.pesoKg = n_peso;
+        if (n_idade !== null) params.idadeMeses = n_idade;
+        if (n_mamada !== null) params.volumeMamadaMl = n_mamada;
+        if (n_num !== null) params.numeroMamadasDia = n_num;
+        if (n_tipo !== null) params.tipoFormula = n_tipo;
+        
+        if (!params.pesoKg && !params.idadeMeses) {
+             return enviarMensagemParaChat(chatId, "⚠️ *Erro:* Forneça pelo menos o peso ou a idade em meses.");
+        }
+
+        var resposta = cockpitNutricaoPediatrica(contexto.auth, params);
+        if (resposta.sucesso) {
+          return enviarMensagemParaChat(chatId, resposta.textoFormatado);
+        } else {
+          return enviarMensagemParaChat(chatId, "⚠️ " + (resposta.erro || "Erro desconhecido."));
+        }
+      } catch (errNutri) {
+        return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular nutrição: " + errNutri.message);
       }
     }
   }

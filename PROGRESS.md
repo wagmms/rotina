@@ -102,9 +102,19 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Alertas críticos beira-leito de hiperlactatemia (> 4 mmol/L) e contraindicação de NaHCO3 antes de correção de hipocalemia severa (K < 3,0 mEq/L).
     - Integrado via Fastify RPC (`cockpitGasometriaAcidoBase`), comandos Telegram (`/gaso`, `/winter`, `/gasometria`, `/aniongap`) e testes automatizados 100% aprovados.
 
-32. [ ] **Módulo de Suporte Nutricional em Pediatria (Fórmula Infantil / Terapia Nutricional)**:
-    - Calculadora determinística para diluição e preparo de fórmulas infantis (padronização 1 medida para 30 mL).
-    - Prescrição de volume hídrico e necessidade calórica para lactentes internados, baseada na fórmula de Holliday-Segar.
+32. [x] **Módulo de Suporte Nutricional em Pediatria (Fórmula Infantil / Terapia Nutricional)**:
+    - Motor determinístico beira-leito para hidratação venosa pediátrica e manutenção por Holliday-Segar (`src/02_suporte_nutricional_pediatrico.js`).
+    - Cálculo preciso de volume basal (100-50-20 mL/kg/dia) e vazão horária em bomba de infusão (regra 4-2-1).
+    - Ajustes clínicos por patologia: restrição hídrica para bronquiolite viral aguda (70%), restrição cardiovascular para cardiopatia congênita/IC (60%), restrição severa para SIADH/oligúria (50%), reposição de déficit/desidratação (125%) e compensação de perdas insensíveis por febre (+12% por °C acima de 37.8°C).
+    - Prescrição eletrolítica de manutenção atualizada segundo SBP e AAP (2,5 mEq Na+/100 mL e 2,0 mEq K+/100 mL), com alertas rígidos para soluções isotônicas/balanceadas (prevenção de hiponatremia hospitalar aguda induzida por ADH) e infusão de potássio restrita a diurese confirmada.
+    - Avaliação da Taxa de Infusão de Glicose (TIG) com SG 5% e SG 10% (alvo fisiológico de 4 a 6 mg/kg/min).
+    - Calculadora determinística de fórmulas infantis respeitando a Regra de Ouro Inflexível de 1 medida rasa para cada 30 mL de água potável morna.
+    - Bloqueio de fracionamento de medidas (meia colher) com orientação de preparo de múltiplos de 30 mL e descarte do excesso para evitar hipo ou hiperconcentração osmolar.
+    - Alerta de capacidade gástrica fisiológica do lactente (~30 mL/kg) para prevenção de regurgitação e broncoaspiração.
+    - Cobertura de fórmulas especiais (Partida, Seguimento, Prematuros/PIG, Anti-Regurgitação, Sem Lactose, Hidrolisada Extensa para APLV, Aminoácidos Livres elementares e Soja).
+    - Contraindicação formal de fórmula de soja para menores de 6 meses (fitoestrógenos/alergenicidade).
+    - Diretrizes de preparo seguro da OMS/SBP para prevenção de contaminação por *Cronobacter sakazakii* e *Salmonella* (água a 70°C).
+    - Integrado via Fastify RPC (`cockpitSuporteNutricionalPediatrico` / `cockpitNutricaoPediatrica`), comandos Telegram (`/nutriped`, `/holliday`, `/formulainfantil`, `/diluicao`) e testes automatizados 100% aprovados.
 
 33. [ ] **Módulo de Hematologia: Manejo e Investigação de Anemias**:
     - Motor analítico do hemograma: interpretação de VCM, HCM, RDW e contagem de reticulócitos para classificação etiológica (microcítica/hipocrômica, normocítica, macrocítica).
@@ -467,12 +477,29 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolo farmacológico sequencial em 4 etapas estritas: 1) Bloqueio adrenérgico (Propranolol 60-80mg VO 4/4h ou Esmolol IV); 2) Bloqueio de síntese (Propiltiouracil 200mg 4/4h preferencial vs Metimazol); 3) Bloqueio de liberação (Iodeto de Potássio / Solução de Lugol iniciado 1 HORA APÓS o antitireoidiano para evitar o efeito Jod-Basedow); 4) Bloqueio de conversão periférica T4->T3 com Hidrocortisona 100mg IV 8/8h.
     - Manejo emergencial do Coma Mixedematoso: Hidrocortisona empírica prévia (evitar crise adrenal) seguida de Levotiroxina IV/VO e aquecimento passivo.
 
+105. [ ] **Nutrologia e Cirurgia Pediátrica - Nutrição Parenteral Total (NPT) e Terapia de Reposição Eletrolítica Complexa em Neonatos Cirúrgicos**:
+    - Motor de cálculo de NPT neonatal beira-leito.
+    - Metas de aminoácidos, lipídios e taxa de infusão de glicose rigorosa para prevenção de falência hepática associada à NPT.
+
+106. [ ] **Pediatria e Infectologia - Rastreio e Conduta em Sífilis Congênita e Neurossífilis Neonatal (MS / SBP)**:
+    - Interpretação determinística do VDRL materno vs neonatal.
+    - Posologia guiada de Penicilina Cristalina IV vs Penicilina Procaína IM com alertas de segurança.
+
+107. [ ] **Ginecologia - Protocolo de Anticoncepção de Emergência e Profilaxia Pós-Exposição (PEP) em Violência Sexual**:
+    - Workflow determinístico temporal (até 72h para Levonorgestrel / até 120h para DIU de cobre).
+    - Prescrição imediata de PEP (Tenofovir/Lamivudina + Dolutegravir) e Azitromicina + Ceftriaxona para ISTs.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo de Suporte Nutricional em Pediatria (Fórmula Infantil / Terapia Nutricional)**
+- [ ] **Módulo de Hematologia: Manejo e Investigação de Anemias**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [ ] **Módulo de Hematologia: Manejo e Investigação de Anemias** (2026-10-09):
+  * Calculadora determinística para diluição e preparo de fórmulas infantis (padronização 1 medida para 30 mL).
+  * Prescrição de volume hídrico e necessidade calórica para lactentes internados, baseada na fórmula de Holliday-Segar.
+  * Integração Fastify RPC (`cockpitNutricaoPediatrica`) e bot Telegram (`/nutriped`).
+  * Testes automatizados implementados e aprovados.
 - [x] (2026-10-09) **Inteligência Gasométrica e Distúrbios Ácido-Base (Regra dos 5 Passos)**:
    - Motor determinístico beira-leito para interpretação ácido-base em 5 passos clínicos (`src/02_gasometria_acido_base.js`).
    - Passo 1: Distúrbio primário e estratificação de gravidade clínica (leve a crítica por faixas de pH).
