@@ -3697,6 +3697,16 @@
       }
     }
 
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
     // =========================================================================
     // 1.0 SUBSISTEMA DE CRIPTOGRAFIA EM REPOUSO (AES-GCM 256-BIT / WEB CRYPTO)
     // =========================================================================
@@ -10276,19 +10286,29 @@
     let preceptorPendente = false;
     async function provocarPreceptorSocratico() {
       if (preceptorPendente) return;
-      if (!cockpitDados?.revision) {
-        copiarToast('Atualize o atendimento primeiro.');
+      const inputEl = document.getElementById('conversa-input');
+      const inputTxt = inputEl?.value?.trim();
+
+      if (!cockpitDados?.revision && !inputTxt) {
+        copiarToast('Digite um caso clínico ou selecione um atendimento.');
         return;
       }
       preceptorPendente = true;
-      const revision = cockpitDados.revision;
+      const revision = cockpitDados?.revision;
       const box = document.getElementById('resposta-preceptor-box');
       const txt = document.getElementById('resposta-preceptor-texto');
       box.classList.remove('hidden');
-      txt.textContent = 'Preparando pergunta sobre o atendimento atual…';
+      txt.textContent = 'Preparando provocação socrática do preceptor…';
       try {
-        const resposta = await cockpitRpc('cockpitPreceptor', revision);
-        txt.textContent = cockpitDados?.revision === revision ? resposta : 'O atendimento mudou. Atualize o painel.';
+        let resposta = '';
+        if (revision) {
+          resposta = await cockpitRpc('cockpitPreceptor', revision);
+          txt.textContent = cockpitDados?.revision === revision ? resposta : 'O atendimento mudou. Atualize o painel.';
+        } else {
+          const res = await cockpitRpc('cockpitConversar', { acao: 'preceptor', texto: inputTxt });
+          resposta = res?.resposta || 'Qual conduta imediata você preconiza?';
+          txt.textContent = resposta;
+        }
       } catch (e) {
         txt.textContent = e.message;
       } finally {
@@ -10454,6 +10474,9 @@
           iniciarCapturaAudioLive();
         };
 
+        let audioTocadoNesteTurno = false;
+        let ultimoTextoModelo = '';
+
         liveWs.onmessage = (event) => {
           try {
             const msg = JSON.parse(event.data);
@@ -10461,16 +10484,27 @@
               setLiveStatus('🎙️ Ouvindo você... (fale agora)', 'listening');
               hapticFeedback('success');
             } else if (msg.type === 'audio' && msg.audio) {
+              audioTocadoNesteTurno = true;
               setLiveStatus('🔊 Preceptor Falando (Voz Fenrir)...', 'speaking');
               tocarChunkAudioLive(msg.audio);
             } else if (msg.type === 'transcript') {
+              if (msg.role === 'model') {
+                ultimoTextoModelo = msg.text;
+                audioTocadoNesteTurno = false;
+              }
               adicionarItemTranscricaoLive(msg.role || 'model', msg.text);
             } else if (msg.type === 'interrupted') {
               // Barge-in: médico interrompeu fala do preceptor
               pararReproducaoAudioLive();
+              if (window.speechSynthesis) window.speechSynthesis.cancel();
               setLiveStatus('🎙️ Ouvindo você...', 'listening');
             } else if (msg.type === 'turnComplete') {
-              setLiveStatus('🎙️ Ouvindo você...', 'listening');
+              if (!audioTocadoNesteTurno && ultimoTextoModelo) {
+                falarTextoPreceptorFallback(ultimoTextoModelo);
+                ultimoTextoModelo = '';
+              } else {
+                setLiveStatus('🎙️ Ouvindo você...', 'listening');
+              }
             } else if (msg.type === 'close') {
               copiarToast(msg.reason || 'Sessão do Preceptor Live finalizada.');
               desconectarLivePreceptor();
@@ -10564,6 +10598,26 @@
         const base64 = btoa(binary);
         liveWs.send(JSON.stringify({ audio: base64 }));
       };
+    }
+
+    function falarTextoPreceptorFallback(texto) {
+      if (!texto || typeof window === 'undefined' || !window.speechSynthesis) return;
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(texto);
+        utter.lang = 'pt-BR';
+        utter.rate = 1.05;
+        utter.pitch = 1.0;
+        const voices = window.speechSynthesis.getVoices();
+        const ptVoice = voices.find(v => v.lang === 'pt-BR' || (v.lang && v.lang.startsWith('pt')));
+        if (ptVoice) utter.voice = ptVoice;
+        utter.onstart = () => setLiveStatus('🔊 Preceptor Falando (Voz Sintetizada)...', 'speaking');
+        utter.onend = () => setLiveStatus('🎙️ Ouvindo você...', 'listening');
+        utter.onerror = () => setLiveStatus('🎙️ Ouvindo você...', 'listening');
+        window.speechSynthesis.speak(utter);
+      } catch (eSpeech) {
+        console.warn('[SpeechSynthesis Fallback Warning]:', eSpeech);
+      }
     }
 
     function tocarChunkAudioLive(base64Audio) {

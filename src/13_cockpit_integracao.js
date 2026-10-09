@@ -553,8 +553,11 @@ function cockpitConversar(initData, params) {
     }
 
     if (acao === 'preceptor') {
-      if (!dadosAtuais.trim()) throw new Error('Nenhum caso ativo para solicitar provocação do preceptor.');
-      var critica = gerarCriticaSocraticaPreceptor(dadosAtuais);
+      var casoPreceptor = (texto && texto.trim()) ? texto.trim() : (dadosAtuais ? dadosAtuais.trim() : '');
+      if (!casoPreceptor) throw new Error('Nenhum caso ativo ou digitado para solicitar provocação do preceptor.');
+      var critica = (typeof gerarCriticaSocraticaPreceptor === 'function')
+        ? gerarCriticaSocraticaPreceptor(casoPreceptor)
+        : 'Qual a sua principal hipótese diagnóstica e conduta imediata?';
       var sview = PersistenciaBot.ler('soapview_' + chat);
       return { sucesso: true, acao: 'preceptor', resposta: String(critica), soap: sview ? sview.texto : '', revision: estado ? estado.revision : null };
     }
@@ -571,11 +574,21 @@ function cockpitConversar(initData, params) {
     if (audioBase64) {
       try {
         var mime = params.mime || 'audio/webm';
-        var bytes = Utilities.base64Decode(audioBase64);
+        var base64Limpo = (typeof _iaNormalizarBase64 === 'function')
+          ? _iaNormalizarBase64(audioBase64)
+          : (typeof audioBase64 === 'string' ? audioBase64.replace(/^data:[^;]+;base64,/, '').trim() : (typeof Buffer !== 'undefined' && Buffer.isBuffer(audioBase64) ? audioBase64.toString('base64') : String(audioBase64)));
+
         if (typeof processarAudioClinicoMultimodal === 'function') {
-          var resAudio = processarAudioClinicoMultimodal(bytes, mime);
+          var resAudio = processarAudioClinicoMultimodal(base64Limpo, mime);
           if (resAudio && resAudio.transcricao) {
-            transcricaoAudio = resAudio.transcricao;
+            transcricaoAudio = String(resAudio.transcricao).trim();
+            texto = texto ? (texto + '\n' + transcricaoAudio) : transcricaoAudio;
+          }
+        }
+        if (!transcricaoAudio && typeof chamarGeminiPoolMultimodal === 'function') {
+          var resMultimodal = chamarGeminiPoolMultimodal(base64Limpo, mime, 'Você é um transcritor médico. Transcreva fielmente as palavras ditadas em português.', 'Transcreva este áudio.');
+          if (resMultimodal) {
+            transcricaoAudio = String(resMultimodal).trim();
             texto = texto ? (texto + '\n' + transcricaoAudio) : transcricaoAudio;
           }
         }

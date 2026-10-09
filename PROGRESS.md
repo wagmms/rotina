@@ -13,29 +13,23 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Bateria de Testes Sistemáticos e Otimização de Experiência nos Hubs e Comandos do Telegram**:
-    - Testar exaustivamente todos os fluxos de comandos de emergência, calculadoras e atendimento ambulatorial (`/menu`, `/emergencia`, `/dva`, `/sri`, `/pcr`, `/clearance`, `/gaso`, `/dhe`, `/go`, `/ambulatorio`, `/rotina`).
-    - Verificar resposta correta de todos os callbacks de botões inline, tratando eventuais timeouts ou exceções silenciosas.
-    - Otimizar a formatação das mensagens (clareza, quebras de linha e usabilidade em telas mobile) e a velocidade de resposta sem comprometer as orientações clínicas.
-    - Levantar e registrar sugestões de melhorias de interface e atalhos na seção de sugestões futuras.
-
----
-
-## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
-
-1. [ ] **Testes de Integração, Resiliência e Otimização do Cockpit PWA Beira-Leito**:
+- [ ] **Testes de Integração, Resiliência e Otimização do Cockpit PWA Beira-Leito**:
     - Testar todas as rotas e métodos RPC consumidos pelo Cockpit (`server/runtime.js` e `src/13_cockpit_integracao.js`).
     - Validar o comportamento offline determinístico do Cockpit móvel (`calcularOfflineLocal` em `cockpit_movel.html`) e cache do Service Worker.
     - Otimizar renderização dos cards de leitos, formulários rápidos e tempo de carga da interface no smartphone.
     - Levantar sugestões futuras para o Cockpit (apenas registrar na seção de sugestões).
 
-2. [ ] **Auditoria de Eficiência e Testes de Borda nas Calculadoras Clínicas**:
+---
+
+## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
+
+1. [ ] **Auditoria de Eficiência e Testes de Borda nas Calculadoras Clínicas**:
     - Testar cada calculadora clínica (DVA, SRI, Gasometria, Clearance, KDIGO, DHE, PALS, Desidratação, Insulina).
     - Assegurar que valores atípicos ou nulos não gerem erros não tratados (NaN, divisões por zero) e que todos os alertas sentinela continuem íntegros.
     - Otimizar o tempo de computação e simplificar a saída textual mantendo todo o rigor teórico e farmacológico.
     - Anotar sugestões clínicas e novos refinamentos na seção de sugestões futuras.
 
-3. [ ] **Otimização de Performance e Latência do Backend Fastify**:
+2. [ ] **Otimização de Performance e Latência do Backend Fastify**:
     - Testar todas as rotas HTTP e endpoints do servidor (`server/index.js`).
     - Avaliar consumo de memória e tempo de resposta das rotas RPC em alta frequência.
     - Otimizar middlewares, serialização JSON e tratamento global de erros para garantir máxima resiliência.
@@ -48,6 +42,10 @@
 - *Sugestão 1 (Cockpit)*: Busca rápida instantânea por texto com filtro de medicamentos padronizados na REMUME.
 - *Sugestão 2 (Cockpit)*: Modo noturno (Dark Mode) de alto contraste para economia de bateria e conforto visual no plantão.
 - *Sugestão 3 (Telegram / Cockpit)*: Botão de 1 toque para cópia direta estruturada em formato SOAP / PEP compatível com prontuários eletrônicos ambulatoriais.
+- *Sugestão 4 (Telegram - Atalhos de 1 Toque)*: Teclado inline expansível no comando `/gaso` com botões de pré-seleção rápida para distúrbios comuns (ex: Cetoacidose / Acidose Metabólica, Alcalose Respiratória, Retenção Crônica de DPOC) para agilizar o preenchimento sem digitação manual de parâmetros em emergências.
+- *Sugestão 5 (Telegram / Sala Vermelha)*: Cronômetro interativo com alerta sonoro/notificação no Telegram para ciclos de 2 minutos de RCP no ACLS (`/pcr`), alertando a troca de socorrista, checagem de ritmo e tempo da próxima dose de adrenalina (a cada 3-5 min).
+- *Sugestão 6 (Calculadoras / Cockpit)*: Calculadora integrada de Reposição de Potássio IV (KCl 19,1%) calculando concentração máxima em acesso periférico (40-60 mEq/L) vs acesso venoso central e velocidade de infusão máxima (máx 10-20 mEq/h com monitoração cardíaca) acoplada diretamente ao alerta de hipocalemia.
+- *Sugestão 7 (Telegram - Farmacologia)*: Botão inline de checagem imediata de diluição e compatibilidade em Y no Guia Farmacêutico HSL quando uma droga vasoativa (ex: Noradrenalina ou Dobutamina) for calculada via `/dva`.
 
 ---
 
@@ -216,6 +214,48 @@
     - **Auditoria e Compilação Master**:
       * Executado `python3 build_master.py` gerando `ultra_rotina_master.js` (69 módulos, 51.003 linhas, sintaxe 100% OK).
       * Bateria completa de testes executada com 100% de sucesso (`npm test` e `npm run lint`).
+
+0N. [x] **Bateria de Testes Sistemáticos e Otimização de Experiência nos Hubs e Comandos do Telegram**:
+    - **Protocolos Determinísticos de Emergência (`/pcr` e `/acls`)**:
+      * Implementado motor imediato (0ms) de ACLS beira-leito com ramificações estruturadas: Ritmo Chocável (FV/TVSP com choque 200J bifásico, RCP 2 min, Adrenalina 1 mg q3-5min e Amiodarona 300 mg/150 mg), Ritmo Não Chocável (AESP/Assistolia com RCP imediata, Adrenalina precoce e checklist mnemônico dos 5 Hs e 5 Ts).
+      * PCR na Gestante: conexão com `PcrGestanteService`, destacando a Manobra DULE obrigatória, acesso venoso supradiafragmático e cesariana de ressuscitação no 4º minuto se sem RCE.
+      * Suporte Pediátrico: conexão com PALS para compressões 15:2, cargas de 2 J/kg -> 4 J/kg e Adrenalina 0,01 mg/kg.
+    - **Calculadoras Renais e Distúrbios Hidroeletrolíticos (`/clcr` e `/dhe`)**:
+      * Correção de usabilidade no Clearance de Creatinina: adicionado suporte oficial ao alias `/clcr` ao lado de `/crcl` e `/clearance`, e adicionado teclado rápido de atalho com opções de Cockcroft e CKD-EPI.
+      * Implementação do comando `/dhe` e `/eletrolitos` integrado a `NefrologiaDheService`:
+        - Hiponatremia: Adrogué-Madias com NaCl 3% (513 mEq/L), teto estrito de elevação de 8 mEq/L em 24h, cálculo de velocidade na BIC e alertas contra desmielinização osmótica.
+        - Hipernatremia: cálculo determinístico de déficit de água livre em Litros, reposição escalonada com SG 5% em 24-48h e alertas contra edema cerebral.
+        - Hipercalemia: estratificação beira-leito, Gluconato de Cálcio 10% IV imediato para cardioproteção, glicoinsulina, beta-2 agonista e alerta sentinela máximo para K+ > 8.0 mEq/L com indicação mandatória de hemodiálise de urgência.
+    - **Otimização de UX nos Hubs e Menus (`/ambulatorio`, `/go`, `/menu`)**:
+      * `/ambulatorio`: inclusão de teclado inline de 1 toque no empty state com botões diretos para `📝 Iniciar SOAP Ágil`, `💊 Prescrição REMUME`, `🏷️ CID-10 & CIAP-2`, `📄 Atestado CFM` e `🤰 Hub G&O`.
+      * `/go`: espelhamento do Hub completo de 10 botões inline de Ginecologia & Obstetrícia no menu ambulatorial e em `enviarMenuGinecologiaObstetricia` em `src/12_experiencia_bot.js`.
+    - **Tratamento Resiliente de Callbacks**:
+      * Adicionado tratamento com `answerCallbackQuery` para `pcr_chocavel`, `pcr_naochocavel`, `pcr_gestante`, `pcr_pals`, `dhe_hipo`, `dhe_hiper`, `dhe_k`.
+    - **Suíte de Testes Automatizada Dedicada**:
+      * Criado `tests/test_hubs_e_comandos_telegram.cjs` (24 testes de comandos e callbacks) e integrado ao pipeline oficial do `npm test` no `package.json`.
+      * 100% de aprovação em todos os testes e compilação do bundle master via `build_master.py`.
+
+0O. [x] **Conserto Estrutural e Validação 100% do Preceptor IA no Cockpit PWA**:
+    - **Diagnóstico da Gênese dos Erros**:
+      * *Causa 1 (Frontend Crash)*: No Cockpit (`cockpit_movel.html` e `gh_cockpit_deploy/index.html`), a função `adicionarItemTranscricaoLive` chamava `escapeHtml(texto)`, que não estava definida em escopo global, gerando silenciosamente `ReferenceError: escapeHtml is not defined`, travando a recepção de mensagens do WebSocket e congelando a tela.
+      * *Causa 2 (Buffer Mismatch em cockpitConversar)*: Em `src/13_cockpit_integracao.js`, `Utilities.base64Decode(audioBase64)` criava um `Buffer` do Node.js passado para `processarAudioClinicoMultimodal` -> `chamarGeminiPoolMultimodal`. Ao serializar no JSON REST para a API Gemini, virava `{ type: 'Buffer', data: [...] }` em vez de string Base64 limpa, causando HTTP 400 Bad Request imediato e cancelamento da transcrição.
+      * *Causa 3 (Call Signature Mismatch)*: No backend (`server/index.js`), o WebSocket em modo contingência chamava `chamarGeminiPoolMultimodal({ prompt, dadosMidia: { ... } })` com objeto de opções, mas `chamarGeminiPoolMultimodal` em `src/04_motores_ia.js` esperava apenas argumentos posicionais `(base64Data, mimeType, ...)`.
+      * *Causa 4 (PCM sem Header WAV)*: Chunks de áudio PCM brutos de 16 kHz recebidos via WebSocket eram concatenados sem container RIFF e enviados com MIME type `audio/pcm;rate=16000`, que a API Gemini REST `generateContent` rejeita.
+      * *Causa 5 (Descarte de Áudio na Conexão)*: Em `server/index.js`, o evento `clientWs.on('message')` só era registrado após o timeout de 2 segundos de `tentarConectarLive`, descartando os primeiros pacotes de áudio transmitidos pelo browser no momento da abertura.
+      * *Causa 6 (Ausência de Fallback de TTS no Cockpit)*: Caso o backend falhasse em gerar áudio neural ou as chaves estivessem ocupadas, o médico não recebia áudio no Cockpit.
+      * *Causa 7 (Lock de Modo no Telegram)*: Em `src/07_telegram_handlers.js`, `/crcl`, `/clcr`, `/clearance` estavam mapeados em `mapaModos`, prendendo o bot no modo calculadora e interceptando mensagens subsequentes.
+    - **Correções Estruturais Implementadas**:
+      * Definida `escapeHtml(str)` universalmente no Cockpit PWA.
+      * Implementada função `_iaNormalizarBase64(dados)` em `src/04_motores_ia.js` com suporte universal a Base64 puro, data URIs, Buffers e TypedArrays (incluindo suporte cross-realm via `ArrayBuffer.isView`).
+      * Tornadas `chamarGeminiPoolMultimodal` e `processarAudioClinicoMultimodal` polimórficas (aceitando tanto objeto de opções quanto argumentos posicionais).
+      * Implementado empacotador determinístico `pcm16ToWavBuffer(pcmBuffer, sampleRate, numChannels)` em `server/index.js` gerando container WAV RIFF padrão de 44 bytes para chunks PCM antes do envio à IA.
+      * Criado buffer preventivo `pendingRawMessages` em `server/index.js` garantindo que nenhum frame de áudio seja perdido durante o handshake WebSocket.
+      * Adicionada síntese de voz fallback local no Cockpit PWA (`falarTextoPreceptorFallback(texto)`) via Web Speech API (`pt-BR`).
+      * Desvinculados comandos monoshot de clearance de `mapaModos` em `src/07_telegram_handlers.js`.
+    - **Validação e Testes Automatizados**:
+      * Criada a suíte `tests/test_preceptor_cockpit_completo.cjs` testando os 6 pilares: Normalização de Áudio, Invocação Polimórfica, RPC `cockpitConversar`, Empacotamento WAV RIFF 44-bytes, WebSocket Full-Duplex `/live` com servidor efêmero e Integridade de Frontend.
+      * Suíte integrada ao script `npm test` no `package.json` — 100% dos testes aprovados com sucesso.
+      * Deploy sincronizado e publicado no GitHub Pages (`gh_cockpit_deploy/`).
 
 ---
 

@@ -250,10 +250,12 @@ function iniciarModoBot(chat, mode, novo, messageId) {
 }
 
 function enviarMenuGinecologiaObstetricia(chat, messageId) {
-  return enviarTelaBot(chat, '🤰 *Hub Unificado de Ginecologia & Obstetrícia*\n\nEscolha o módulo de atendimento rápido:', botoesBot([
-    [['🤰 Pré-Natal (DUM, DPP, Rastreios)', 'ux:rotina:prenatal']],
-    [['🚨 Pré-Parto & Sala de Parto (Zuspan, HPP)', 'ux:rotina:parto']],
-    [['🌸 Ginecologia (Preventivo, SUA, Leucorreias)', 'ux:rotina:ginecologia']],
+  return enviarTelaBot(chat, '🌸🤰 *Hub Unificado de Ginecologia & Obstetrícia (Internato até 29/11)*\n\nEscolha o módulo de atendimento rápido:', botoesBot([
+    [['🤰 Pré-Natal & DPP', 'go_prenatal'], ['🏥 Parto & Partograma', 'go_parto']],
+    [['🩸 HPP (4 Ts)', 'go_hpp'], ['⚡ Pré-Eclâmpsia & MgSO4', 'go_mgso4']],
+    [['👶 Prematuridade & RPMO', 'go_prematuridade'], ['🔬 Toxo & Sorologias', 'go_toxo']],
+    [['🌸 Vulvovaginites', 'go_corrimento'], ['🩺 Preventivo (INCA)', 'go_preventivo']],
+    [['💊 Anticoncepção OMS', 'go_anticoncepcao'], ['🩹 DIP & Infecção Pélvica', 'go_dip']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
@@ -356,7 +358,7 @@ function enviarMenuAmbulatorio(chat, messageId) {
   var botoes = botoesBot([
     [['📝 Gerador SOAP Ágil', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
     [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado Médico CFM', 'ux:amb:atestado']],
-    [['🤰 Pré-Natal / DPP / DUM', 'ux:rotina:prenatal'], ['🌸 Ginecologia / Preventivo', 'ux:rotina:ginecologia']],
+    [['🤰 Hub G&O (Estágio até 29/11)', 'ux:rotina:go'], ['🌸 Preventivo & Citopatológico', 'ux:rotina:preventivo']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);

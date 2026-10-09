@@ -589,7 +589,7 @@ function gerarAudioTtsGeminiNeural(texto) {
 
   var modelosTts = ConfigService.getArray("IA_MODELOS_TTS_GEMINI");
   if (!modelosTts || modelosTts.length === 0) {
-    modelosTts = ["gemini-2.5-flash-preview-tts", "gemini-3.8-flash-tts"];
+    modelosTts = ["gemini-2.5-flash-preview-tts", "gemini-2.0-flash", "gemini-2.0-flash-exp", "gemini-3.8-flash-tts"];
   }
 
   var payload = {

@@ -496,6 +496,29 @@ async function buildServer() {
 
   const liveWss = new WebSocketServer({ noServer: true });
 
+  function pcm16ToWavBuffer(pcmBuffer, sampleRate = 16000, numChannels = 1) {
+    const byteRate = sampleRate * numChannels * 2;
+    const blockAlign = numChannels * 2;
+    const dataSize = pcmBuffer.length;
+    const header = Buffer.alloc(44);
+
+    header.write('RIFF', 0);
+    header.writeUInt32LE(36 + dataSize, 4);
+    header.write('WAVE', 8);
+    header.write('fmt ', 12);
+    header.writeUInt32LE(16, 16);
+    header.writeUInt16LE(1, 20); // PCM
+    header.writeUInt16LE(numChannels, 22);
+    header.writeUInt32LE(sampleRate, 24);
+    header.writeUInt32LE(byteRate, 28);
+    header.writeUInt16LE(blockAlign, 32);
+    header.writeUInt16LE(16, 34); // 16-bit
+    header.write('data', 36);
+    header.writeUInt32LE(dataSize, 40);
+
+    return Buffer.concat([header, pcmBuffer]);
+  }
+
   fastify.server.on('upgrade', (request, socket, head) => {
     const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
     if (url.pathname === '/live' || url.pathname === '/api/live' || url.pathname === '/live-preceptor') {
@@ -535,22 +558,37 @@ async function buildServer() {
         message: 'Preceptor Socrático conectado em modo teste (gemini-3.8-live)!'
       }));
 
+      const dummyPcm = Buffer.alloc(1600); // 50ms silêncio a 16kHz
+      const dummyWavBase64 = pcm16ToWavBuffer(dummyPcm, 16000, 1).toString('base64');
+
       clientWs.on('message', (raw) => {
         try {
           const msg = JSON.parse(raw.toString());
           if (msg.audio) {
             clientWs.send(JSON.stringify({
               type: 'transcript',
-              role: 'model',
-              text: 'Preceptor ouvindo: Prossiga com o exame segmentar e a hipótese.'
+              role: 'user',
+              text: 'Ditado clínico captado pelo microfone do médico.'
             }));
+            clientWs.send(JSON.stringify({
+              type: 'transcript',
+              role: 'model',
+              text: 'Preceptor ouvindo: Prossiga com o exame segmentar e a hipótese clínica.'
+            }));
+            clientWs.send(JSON.stringify({ type: 'audio', audio: dummyWavBase64 }));
             clientWs.send(JSON.stringify({ type: 'turnComplete' }));
           } else if (msg.text) {
+            clientWs.send(JSON.stringify({
+              type: 'transcript',
+              role: 'user',
+              text: msg.text
+            }));
             clientWs.send(JSON.stringify({
               type: 'transcript',
               role: 'model',
               text: 'Preceptor: Qual conduta imediata você preconiza para este quadro?'
             }));
+            clientWs.send(JSON.stringify({ type: 'audio', audio: dummyWavBase64 }));
             clientWs.send(JSON.stringify({ type: 'turnComplete' }));
           }
         } catch (_) {}
@@ -658,6 +696,58 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
 
     let liveSession = null;
     let modeloAtivo = null;
+    let modoAtivo = null; // 'live' | 'contingency'
+    const pendingRawMessages = [];
+
+    // Fila imediata de mensagens: não perde nenhum chunk de áudio enviado pelo cliente no onopen
+    clientWs.on('message', (raw) => {
+      if (!modoAtivo) {
+        pendingRawMessages.push(raw);
+        return;
+      }
+      despacharMsg(raw);
+    });
+
+    function despacharMsg(raw) {
+      if (modoAtivo === 'live') {
+        tratarMsgLive(raw);
+      } else if (modoAtivo === 'contingency') {
+        tratarMsgContingencia(raw);
+      }
+    }
+
+    function tratarMsgLive(raw) {
+      if (!liveSession) return;
+      try {
+        const msg = JSON.parse(raw.toString());
+        if (msg.audio) {
+          try {
+            liveSession.sendRealtimeInput({
+              media: { data: msg.audio, mimeType: 'audio/pcm;rate=16000' }
+            });
+          } catch (_) {
+            try {
+              liveSession.sendRealtimeInput({
+                audio: { data: msg.audio, mimeType: 'audio/pcm;rate=16000' }
+              });
+            } catch (eAud) {
+              console.warn('[Live Audio Send]:', eAud.message);
+            }
+          }
+        } else if (msg.text) {
+          try {
+            liveSession.sendClientContent({
+              turns: [{ role: 'user', parts: [{ text: msg.text }] }],
+              turnComplete: true
+            });
+          } catch (eTxt) {
+            console.warn('[Live Text Send]:', eTxt.message);
+          }
+        }
+      } catch (eParse) {
+        console.warn('[Live Ws Parse]:', eParse.message);
+      }
+    }
 
     // Tenta conectar modelo Live em até 2 segundos com a chave principal
     for (const mod of MODELOS_LIVE_CANDIDATOS) {
@@ -676,6 +766,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
 
     if (liveSession) {
       // 🟢 Canal Full-Duplex Live Nativo Estabelecido
+      modoAtivo = 'live';
       clientWs.send(JSON.stringify({
         type: 'ready',
         mode: 'live',
@@ -683,45 +774,19 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
         message: `Preceptor Socrático conectado em tempo real (${modeloAtivo})!`
       }));
 
-      clientWs.on('message', (raw) => {
-        try {
-          const msg = JSON.parse(raw.toString());
-          if (msg.audio) {
-            try {
-              liveSession.sendRealtimeInput({
-                media: { data: msg.audio, mimeType: 'audio/pcm;rate=16000' }
-              });
-            } catch (_) {
-              try {
-                liveSession.sendRealtimeInput({
-                  audio: { data: msg.audio, mimeType: 'audio/pcm;rate=16000' }
-                });
-              } catch (eAud) {
-                console.warn('[Live Audio Send]:', eAud.message);
-              }
-            }
-          } else if (msg.text) {
-            try {
-              liveSession.sendClientContent({
-                turns: [{ role: 'user', parts: [{ text: msg.text }] }],
-                turnComplete: true
-              });
-            } catch (eTxt) {
-              console.warn('[Live Text Send]:', eTxt.message);
-            }
-          }
-        } catch (eParse) {
-          console.warn('[Live Ws Parse]:', eParse.message);
-        }
-      });
-
       clientWs.on('close', () => {
         try { liveSession.close(); } catch (_) {}
       });
+
+      // Esvazia mensagens em buffer
+      while (pendingRawMessages.length > 0) {
+        despacharMsg(pendingRawMessages.shift());
+      }
       return;
     }
 
     // 🛡️ MOTOR DE CONTINGÊNCIA NEURAL (Garante funcionamento ininterrupto mesmo sem Bidi Live)
+    modoAtivo = 'contingency';
     console.log('[Live Preceptor] Ativando Motor de Contingência Neural de Alta Precisão...');
     clientWs.send(JSON.stringify({
       type: 'ready',
@@ -733,7 +798,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
     let bufferAudioPcm = [];
     let audioTimerDebounce = null;
 
-    async function processarTurnoContingencia(textoUsuario, audioPcmBase64) {
+    async function processarTurnoContingencia(textoUsuario, audioWavBase64) {
       try {
         clientWs.send(JSON.stringify({ type: 'transcript', role: 'user', text: textoUsuario || 'Ditado em áudio...' }));
 
@@ -745,7 +810,17 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
 4. Sem formatação markdown, sem asteriscos, pronto para locução de áudio.`;
 
         let respostaTexto = '';
-        if (runtime.ctx && typeof runtime.ctx._iaProvGemini === 'function') {
+        if (runtime.ctx && typeof runtime.ctx.gerarDialogoPreceptorSocratico === 'function') {
+          try {
+            respostaTexto = runtime.ctx.gerarDialogoPreceptorSocratico(null, null, textoUsuario, '') || '';
+          } catch (_) {}
+        }
+        if (!respostaTexto && runtime.ctx && typeof runtime.ctx.gerarCriticaSocraticaPreceptor === 'function') {
+          try {
+            respostaTexto = runtime.ctx.gerarCriticaSocraticaPreceptor(textoUsuario) || '';
+          } catch (_) {}
+        }
+        if (!respostaTexto && runtime.ctx && typeof runtime.ctx._iaProvGemini === 'function') {
           const resIa = runtime.ctx._iaProvGemini(sistemaPrompt, textoUsuario, 250, null, {
             clinico: true,
             instrucaoSistema: sistemaPrompt
@@ -795,7 +870,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
       }
     }
 
-    clientWs.on('message', async (raw) => {
+    async function tratarMsgContingencia(raw) {
       try {
         const msg = JSON.parse(raw.toString());
         if (msg.text) {
@@ -809,32 +884,46 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
             bufferAudioPcm = [];
             const buffers = chunks.map(c => Buffer.from(c, 'base64'));
             const totalBuffer = Buffer.concat(buffers);
-            const audioTotalBase64 = totalBuffer.toString('base64');
+            const wavBuffer = pcm16ToWavBuffer(totalBuffer, 16000, 1);
+            const audioWavBase64 = wavBuffer.toString('base64');
 
             let textoTranscrito = '';
-            if (runtime.ctx && typeof runtime.ctx.chamarGeminiPoolMultimodal === 'function') {
+            if (runtime.ctx && typeof runtime.ctx.processarAudioClinicoMultimodal === 'function') {
+              try {
+                const resAudio = runtime.ctx.processarAudioClinicoMultimodal(audioWavBase64, 'audio/wav');
+                if (resAudio && resAudio.transcricao) {
+                  textoTranscrito = String(resAudio.transcricao).trim();
+                }
+              } catch (_) {}
+            }
+            if (!textoTranscrito && runtime.ctx && typeof runtime.ctx.chamarGeminiPoolMultimodal === 'function') {
               try {
                 textoTranscrito = runtime.ctx.chamarGeminiPoolMultimodal({
                   prompt: 'Transcreva com fidelidade a fala clínica em português gravada neste áudio. Retorne exclusivamente o texto falado.',
                   dadosMidia: {
-                    mimeType: 'audio/pcm;rate=16000',
-                    data: audioTotalBase64
+                    mimeType: 'audio/wav',
+                    data: audioWavBase64
                   }
                 });
               } catch (_) {}
             }
 
             if (!textoTranscrito) {
-              textoTranscrito = 'Discussão clínica do caso beira-leito.';
+              textoTranscrito = 'Discussão clínica do caso beira-leito com o preceptor.';
             }
 
-            await processarTurnoContingencia(textoTranscrito, audioTotalBase64);
-          }, 900);
+            await processarTurnoContingencia(textoTranscrito, audioWavBase64);
+          }, 600);
         }
       } catch (eParse) {
         console.warn('[Contingency Ws Parse]:', eParse.message);
       }
-    });
+    }
+
+    // Esvazia mensagens em buffer
+    while (pendingRawMessages.length > 0) {
+      despacharMsg(pendingRawMessages.shift());
+    }
   });
 
   fastify.liveWss = liveWss;

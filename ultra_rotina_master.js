@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 19:34:18
- * Checksum SHA256: ad6289bf7e2710d6
+ * Gerado automaticamente via build_master.py em: 2026-10-09 19:51:30
+ * Checksum SHA256: ba16a0ff45f3f232
  * ==============================================================================
  */
 
@@ -715,7 +715,7 @@ function gerarAudioTtsGeminiNeural(texto) {
 
   var modelosTts = ConfigService.getArray("IA_MODELOS_TTS_GEMINI");
   if (!modelosTts || modelosTts.length === 0) {
-    modelosTts = ["gemini-2.5-flash-preview-tts", "gemini-3.8-flash-tts"];
+    modelosTts = ["gemini-2.5-flash-preview-tts", "gemini-2.0-flash", "gemini-2.0-flash-exp", "gemini-3.8-flash-tts"];
   }
 
   var payload = {
@@ -35055,12 +35055,59 @@ function chamarGeminiPoolComGrounding(sistema, promptUsuario, maxTokens, opcoes)
   }, 2500, maxTokens, { grounding: true, exibirFontes: opcoes.exibirFontes === true });
 }
 
+function _iaNormalizarBase64(dados) {
+  if (!dados) return "";
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(dados)) {
+    return dados.toString("base64");
+  }
+  if (dados instanceof Uint8Array || (typeof dados === "object" && dados !== null && (ArrayBuffer.isView(dados) || (dados.constructor && dados.constructor.name === "Uint8Array")))) {
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(dados.buffer, dados.byteOffset, dados.byteLength).toString("base64");
+    }
+  }
+  if (typeof dados === "object" && dados !== null && Array.isArray(dados.data)) {
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(dados.data).toString("base64");
+    }
+  }
+  if (typeof dados === "string") {
+    var idxVirgula = dados.indexOf(",");
+    if (dados.slice(0, 5) === "data:" && idxVirgula !== -1) {
+      return dados.substring(idxVirgula + 1).trim();
+    }
+    return dados.trim();
+  }
+  return String(dados);
+}
+
 function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario, opcoes) {
+  // Suporte polimórfico a chamada com objeto de opções: { dadosMidia: {...}, prompt: '...', sistema: '...' }
+  if (base64Data && typeof base64Data === "object" && (typeof Buffer === "undefined" || !Buffer.isBuffer(base64Data)) && !(base64Data instanceof Uint8Array) && !Array.isArray(base64Data.data)) {
+    var objConfig = base64Data;
+    var midiaConfig = objConfig.dadosMidia || objConfig.midia || {};
+    base64Data = objConfig.base64Data || objConfig.data || midiaConfig.data || midiaConfig.base64Data || "";
+    mimeType = objConfig.mimeType || objConfig.mime || midiaConfig.mimeType || midiaConfig.mime || "audio/wav";
+    sistema = objConfig.sistema || objConfig.systemInstruction || sistema || "";
+    promptUsuario = objConfig.promptUsuario || objConfig.prompt || promptUsuario || "";
+    opcoes = objConfig.opcoes || objConfig;
+  }
   opcoes = opcoes || {};
+  base64Data = _iaNormalizarBase64(base64Data);
+
   var msg = promptUsuario ? promptUsuario : "Por favor, analise a mídia anexada em detalhes.";
   var mimeNormalizado = String(mimeType || "").toLowerCase().trim();
   if (mimeNormalizado === "audio/oga" || mimeNormalizado === "audio/opus" || mimeNormalizado.indexOf("audio/ogg") !== -1) {
     mimeNormalizado = "audio/ogg";
+  } else if (mimeNormalizado.indexOf("audio/wav") !== -1 || mimeNormalizado.indexOf("audio/x-wav") !== -1 || mimeNormalizado.indexOf("audio/wave") !== -1) {
+    mimeNormalizado = "audio/wav";
+  } else if (mimeNormalizado.indexOf("audio/webm") !== -1) {
+    mimeNormalizado = "audio/webm";
+  } else if (mimeNormalizado.indexOf("audio/mp4") !== -1 || mimeNormalizado.indexOf("audio/m4a") !== -1 || mimeNormalizado.indexOf("audio/aac") !== -1) {
+    mimeNormalizado = "audio/mp4";
+  } else if (mimeNormalizado.indexOf("audio/mpeg") !== -1 || mimeNormalizado.indexOf("audio/mp3") !== -1) {
+    mimeNormalizado = "audio/mp3";
+  } else if (mimeNormalizado.indexOf("audio/pcm") !== -1) {
+    mimeNormalizado = "audio/wav";
   } else if (mimeNormalizado.indexOf("image/jpeg") !== -1 || mimeNormalizado.indexOf("image/jpg") !== -1) {
     mimeNormalizado = "image/jpeg";
   } else if (mimeNormalizado.indexOf("image/png") !== -1) {
@@ -35096,7 +35143,15 @@ function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario
  * Extrai a transcrição literal fiel E estrutura a Fase 1 do SOAP se for relato clínico.
  */
 function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
+  if (base64Data && typeof base64Data === "object" && (typeof Buffer === "undefined" || !Buffer.isBuffer(base64Data)) && !(base64Data instanceof Uint8Array)) {
+    var objA = base64Data;
+    var midiaA = objA.dadosMidia || objA.midia || {};
+    base64Data = objA.base64Data || objA.data || midiaA.data || midiaA.base64Data || "";
+    mimeType = objA.mimeType || objA.mime || midiaA.mimeType || midiaA.mime || mimeType || "audio/wav";
+    opcoes = objA.opcoes || objA;
+  }
   opcoes = opcoes || {};
+  base64Data = _iaNormalizarBase64(base64Data);
   var sistema = [
     IA_PERSONA,
     "MODO: RECONHECIMENTO E ESTRUTURAÇÃO CLÍNICA DE ÁUDIO EM TEMPO ÚNICO (FMRP-USP).",
@@ -36812,7 +36867,8 @@ if (typeof module !== "undefined" && module.exports) {
     analisarImagemMedicaComIA: analisarImagemMedicaComIA,
     chamarLocalLlmAPI: chamarLocalLlmAPI,
     verificarSaudeLocalLlm: verificarSaudeLocalLlm,
-    cockpitLocalLlm: cockpitLocalLlm
+    cockpitLocalLlm: cockpitLocalLlm,
+    _iaNormalizarBase64: _iaNormalizarBase64
   };
 }
 
@@ -38452,7 +38508,11 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
   }
 
   // K. PCR / ACLS
-  if (/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)$/i.test(tLow)) {
+  if (/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)(?:\s+.*)?$/i.test(tLow)) {
+    var dadosPcrAtalho = tLow.replace(/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)\s*/i, "").trim();
+    if (typeof tratarComandoPcr === "function") {
+      return tratarComandoPcr(chatId, dadosPcrAtalho);
+    }
     return processarMensagemTexto({ chat: { id: chatId }, text: "/conduta PCR" });
   }
 
@@ -38594,12 +38654,12 @@ function processarMensagemTexto(message) {
       var comandosSemBarra = [
         "menu", "ajuda", "help", "manual", "start", "novo", "cancelar", "cockpit", "app",
         "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot",
-        "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
+        "pcr", "acls", "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
         "prenatal", "parto", "ginecologia", "go", "obstetricia", "oftalmo", "vertigem", "epistaxe", "colica",
         "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
         "swansea", "colestase", "monoartrite", "febrereumatica", "pancreatite",
         "diabetes", "anemia", "intox", "sca",
-        "avc", "hic", "kdigo", "dhe", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia",
+        "avc", "hic", "kdigo", "dhe", "eletrolitos", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia",
         "dengue", "arbovirose", "chikungunya", "zika", "pac", "pneumonia", "itu", "cistite", "pielonefrite",
         "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "cefaleia", "dorcabeca",
         "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan"
@@ -38782,7 +38842,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/pcr", "/acls", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -38794,7 +38854,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -38944,6 +39004,12 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // 3.1. PROTOCOLO DE PCR / ACLS BEIRA-LEITO (SALA VERMELHA)
+  if (comando === "/pcr" || comando === "/acls") {
+    var dadosPcrCmd = texto.replace(/^\/(?:pcr|acls)\s*/i, "").trim();
+    return tratarComandoPcr(chatId, dadosPcrCmd);
+  }
+
   if (comando === "/soap") {
     var casoClinico = texto.replace(/^\/soap\s*/i, "").trim();
     if (!casoClinico) return enviarMensagemParaChat(chatId, "🩺 Envie os dados. Ex: `/soap Mulher 68a epigastralgia...`");
@@ -38962,7 +39028,23 @@ function processarMensagemTexto(message) {
         "• `/ambulatorio Mulher 32a, tosse produtiva e coriza há 4 dias, afebril, PA 118/76, sem dispneia`\n" +
         "• `/ambulatorio Paciente 45a, dor lombar mecânica há 1 semana após esforço, Lasègue negativo bilateral`\n\n" +
         "📜 *Para gerar Atestado Médico CFM:* use `/atestado [dias] [motivo]`";
-      return enviarMensagemParaChat(chatId, msgGuiaAmb);
+      var tecladoAmb = {
+        inline_keyboard: [
+          [
+            { text: "📝 Iniciar SOAP Ágil", callback_data: "ux:amb:soap" },
+            { text: "💊 Prescrição REMUME", callback_data: "ux:amb:remume" }
+          ],
+          [
+            { text: "🏷️ CID-10 & CIAP-2", callback_data: "ux:amb:cid" },
+            { text: "📄 Atestado CFM", callback_data: "ux:amb:atestado" }
+          ],
+          [
+            { text: "🤰 Hub G&O", callback_data: "go_prenatal" },
+            { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }
+          ]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, msgGuiaAmb, tecladoAmb);
     }
     safePutCache(contextoCache, contextoKey, casoAmb, 900);
     if (typeof definirModoBot !== "undefined") definirModoBot(chatId, "soap", casoAmb);
@@ -41125,19 +41207,32 @@ function processarMensagemTexto(message) {
   // ───────────────────────────────────────────────────────────────────────────
   // NEFROLOGIA: CLEARANCE DE CREATININA (COCKCROFT-GAULT)
   // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/crcl" || comando === "/clearance") {
+  if (comando === "/crcl" || comando === "/clcr" || comando === "/clearance") {
     var dadosCrcl = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof NefrologiaClearanceService === "undefined") {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo NefrologiaClearanceService indisponível temporariamente.");
     }
 
     if (!dadosCrcl) {
-      return enviarMensagemParaChat(chatId, "🧪 *CALCULADORA DE CLEARANCE E AUDITORIA RENAL*\n\n" +
+      var txtGuiaCrcl = "🧪 *CALCULADORA DE CLEARANCE E AUDITORIA RENAL*\n\n" +
         "Envie a idade, peso, creatinina, sexo e medicamentos para auditar.\n\n" +
         "Exemplos:\n" +
         "▶️ `/crcl 65 anos, 70kg, cr 1.8, masculino`\n" +
         "▶️ `/crcl 80 anos, 55kg, cr 2.1, fem, medicações: vancomicina, cefepime`\n" +
-        "▶️ `/clearance 45a, 80kg, cr 3.5, mulher, enoxaparina e metformina`");
+        "▶️ `/clearance 45a, 80kg, cr 3.5, mulher, enoxaparina e metformina`";
+      var kbCrcl = {
+        inline_keyboard: [
+          [
+            { text: "🧪 Cockcroft 70kg Cr 1.2 M", callback_data: "calc_Cockcroft" },
+            { text: "📊 CKD-EPI (TFG)", callback_data: "calc_CKD" }
+          ],
+          [
+            { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, txtGuiaCrcl, kbCrcl);
     }
 
     var mIdade = dadosCrcl.match(/(\d+)\s*(?:a|anos?|ano)\b/i) || dadosCrcl.match(/idade\s*[:=]?\s*(\d+)/i) || dadosCrcl.match(/^(\d+)[,\s]/);
@@ -41181,6 +41276,14 @@ function processarMensagemTexto(message) {
 
     var resCrcl = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrcl });
     return enviarMensagemParaChat(chatId, resCrcl.textoFormatado);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // NEFROLOGIA: DISTÚRBIOS HIDROELETROLÍTICOS (DHE - SÓDIO & POTÁSSIO)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/dhe" || comando === "/eletrolitos") {
+    var dadosDheCmd = texto.replace(/^\/(?:dhe|eletrolitos)\s*/i, "").trim();
+    return tratarComandoDhe(chatId, dadosDheCmd);
   }
 
   if (comando === "/pancreatite" || comando === "/bisap") {
@@ -43596,6 +43699,36 @@ function processarCallbackBotao(cb) {
     responderCallbackTelegram(cb.id, "DIP & ATO");
     return enviarMensagemParaChat(cb.message.chat.id, "🩹 *DOENÇA INFLAMATÓRIA PÉLVICA (DIP) & ATO*\n\nEnvie o quadro clínico:\n💡 *Exemplo:* `/dip dor hipogastrica descompressao brusca positiva dor mobilizacao colo febre 38.5`\n\n• *Critérios Diagnósticos (MS/CDC):* Maiores, Menores e Elaborados.\n• *Ambulatorial (Monif I):* Ceftriaxona 500 mg IM dose única + Doxiciclina 100 mg 12/12h VO 14d + Metronidazol 500 mg 12/12h VO 14d.\n• *Hospitalar (Monif II-IV):* Ceftriaxona 1g IV + Doxiciclina ou Clindamicina + Gentamicina.");
   }
+  // J. PROTOCOLOS DE PARADA CARDIORRESPIRATÓRIA (PCR / ACLS)
+  else if (data === "pcr_chocavel") {
+    responderCallbackTelegram(cb.id, "Ritmo Chocável (FV/TV)");
+    return tratarComandoPcr(cb.message.chat.id, "chocavel");
+  }
+  else if (data === "pcr_naochocavel") {
+    responderCallbackTelegram(cb.id, "Não Chocável (AESP/Assistolia)");
+    return tratarComandoPcr(cb.message.chat.id, "nao chocavel");
+  }
+  else if (data === "pcr_gestante") {
+    responderCallbackTelegram(cb.id, "PCR na Gestante");
+    return tratarComandoPcr(cb.message.chat.id, "gestante");
+  }
+  else if (data === "pcr_pals") {
+    responderCallbackTelegram(cb.id, "PALS Pediátrico");
+    return tratarComandoPcr(cb.message.chat.id, "ped");
+  }
+  // K. DISTÚRBIOS HIDROELETROLÍTICOS (DHE)
+  else if (data === "dhe_hipo") {
+    responderCallbackTelegram(cb.id, "Hiponatremia (Adrogué-Madias)");
+    return enviarMensagemParaChat(cb.message.chat.id, "💧 *CORREÇÃO DE HIPONATREMIA (ADROGUÉ-MADIAS)*\n\nEnvie os dados com sódio, peso e sexo:\n💡 *Exemplo:* `/dhe na 118 peso 60 f 72`\nou `/dhe na 122 peso 70 m nacl 3%`\n\nCalcula a elevação de Na+ por litro de NaCl 3%, teto seguro em 24h (máx 8 mEq/L) e taxa na BIC em mL/h.");
+  }
+  else if (data === "dhe_hiper") {
+    responderCallbackTelegram(cb.id, "Hipernatremia (Água Livre)");
+    return enviarMensagemParaChat(cb.message.chat.id, "🌵 *HIPERNATREMIA — DÉFICIT DE ÁGUA LIVRE*\n\nEnvie o sódio atual, peso e perfil:\n💡 *Exemplo:* `/dhe na 164 peso 70 m`\nou `/dhe na 158 peso 55 f 80 anos`\n\nCalcula o déficit de água livre em Litros e prescreve o volume seguro de SG 5% em 24h.");
+  }
+  else if (data === "dhe_k") {
+    responderCallbackTelegram(cb.id, "Hipercalemia & ECG");
+    return enviarMensagemParaChat(cb.message.chat.id, "⚡ *HIPERCALEMIA & CARDIOPROTEÇÃO (SBC/KDIGO)*\n\nEnvie o valor do potássio e alterações no ECG:\n💡 *Exemplo:* `/dhe k 7.2 ecg alterado`\nou `/dhe k 8.4`\n\nEstratifica gravidade, indica Gluconato de Cálcio 10% IV imediato, glicoinsulina, beta-2 e hemodiálise de urgência se K > 8.0 mEq/L.");
+  }
   // I. GUIAS DE EXAMES FÍSICOS ESPECIAIS
   else if (data.startsWith("ef_")) {
     var chatIdCbEf = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
@@ -45685,6 +45818,268 @@ function enviarManual(chatId) {
 }
 
 /**
+ * Trata o protocolo de Parada Cardiorrespiratória (PCR / ACLS) beira-leito
+ */
+function tratarComandoPcr(chatId, dadosPcr) {
+  dadosPcr = (dadosPcr || "").trim();
+  var dLow = dadosPcr.toLowerCase();
+
+  // Caso 1: PCR na Gestante
+  if (dLow.indexOf("gestant") !== -1 || dLow.indexOf("gravid") !== -1 || dLow.indexOf("materna") !== -1) {
+    if (typeof PcrGestanteService !== "undefined" && typeof PcrGestanteService.avaliarPcrGestante === "function") {
+      var mIg = dLow.match(/(\d{1,2})\s*s(?:em(?:anas?)?)?/i);
+      var igVal = mIg ? parseInt(mIg[1], 10) : 28;
+      var aval = PcrGestanteService.avaliarPcrGestante({
+        idadeGestacionalSemanas: igVal,
+        tempoPcrMinutos: 4,
+        ritmoPcr: (dLow.indexOf("fv") !== -1 || dLow.indexOf("tv") !== -1) ? "FV" : "AESP"
+      });
+      var txtGest = "🤰 *PCR NA GESTANTE: RESSUSCITAÇÃO CARDIOPULMONAR (ACLS MATERNO)*\n\n" +
+        "🚨 *MANOBRA DULE MANDATÓRIA:*\n" +
+        "• " + aval.dule.manobra + "\n" +
+        "• _" + aval.dule.justificativaFisiologica + "_\n\n" +
+        "⚡ *VIA AÉREA & ACESSO VENOSO:*\n" +
+        "• " + aval.viaAerea.recomendacao + " (Tubo 6.0 a 7.0 c/ cuff pelo edema de via aérea)\n" +
+        "• Acesso venoso OBRIGATORIAMENTE ACIMA DO DIAFRAGMA (jugular, subclávia ou MS).\n\n" +
+        "✂️ *CESARIANA DE RESSUSCITAÇÃO (PERIMORTEM):*\n" +
+        "• Indicação se sem RCE até o *4º MINUTO* de RCP para parto no *5º MINUTO*.\n" +
+        "• Objetivo primário: descompressão aortocaval para salvar a gestante.";
+      var kbGest = {
+        inline_keyboard: [
+          [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
+          [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, txtGest, kbGest);
+    }
+  }
+
+  // Caso 2: Pediátrico
+  if (dLow.indexOf("ped") !== -1 || dLow.indexOf("pals") !== -1 || dLow.indexOf("crianca") !== -1) {
+    var txtPals = "👶 *SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (PALS — PCR)*\n\n" +
+      "• *Compressões:* 100-120 cpm, 1/3 do diâmetro AP (4 cm lactente, 5 cm criança).\n" +
+      "• *Relação Compressão-Ventilação:* 15:2 (com 2 socorristas) ou contínua 1 vent a cada 2-3s após via aérea.\n" +
+      "• *Desfibrilação:* 2 J/kg (1º choque) ➔ 4 J/kg (2º choque e subsequentes, máx 10 J/kg).\n" +
+      "• *Adrenalina:* 0,01 mg/kg (0,1 mL/kg da solução 1:10.000) IV/IO q3-5 min.\n" +
+      "• *Amiodarona:* 5 mg/kg em bólus IV/IO (até 3 doses) para FV/TV sem pulso refratária.\n\n" +
+      "💡 *Para doses por peso exato:* envie `/pals <pesoKg>` (ex: `/pals 14`)";
+    var kbPals = {
+      inline_keyboard: [
+        [{ text: "👶 PALS 10 kg", callback_data: "pals_10kg" }, { text: "👶 PALS 20 kg", callback_data: "pals_20kg" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtPals, kbPals);
+  }
+
+  // Caso 3: Ritmo Chocável (FV / TVSP)
+  if (dLow.indexOf("fv") !== -1 || dLow.indexOf("tv") !== -1 || dLow.indexOf("chocavel") !== -1 || dLow.indexOf("chocável") !== -1) {
+    var txtChoc = "⚡ *PCR: RITMO CHOCÁVEL (FV / TV SEM PULSO) — PROTOCOLO ACLS*\n\n" +
+      "1️⃣ *DESFIBRILAÇÃO IMEDIATA:*\n" +
+      "• Choque Bifásico: *200 J* (ou carga máxima do aparelho) / Monofásico: *360 J*.\n" +
+      "• Retomar RCP imediatamente por 2 minutos (NÃO checar pulso pós-choque imediato).\n\n" +
+      "2️⃣ *CICLO 2 (Pós-2º Choque):*\n" +
+      "• *Adrenalina 1 mg IV/IO* em bólus + flush 20 mL SF 0.9% (repetir a cada 3 a 5 min).\n" +
+      "• Obter acesso IV/IO e considerar via aérea avançada (EtCO₂).\n\n" +
+      "3️⃣ *CICLO 3 (Pós-3º Choque — FV/TV Refratária):*\n" +
+      "• *Amiodarona 300 mg IV/IO* em bólus rápido (2ª dose: 150 mg após 2 ciclos).\n" +
+      "• _Alternativa à Amiodarona:_ Lidocaína 1 a 1,5 mg/kg IV/IO (2ª dose: 0,5 a 0,75 mg/kg).\n" +
+      "• Sulfato de Magnésio 50% 2g IV em 1-2 min se suspeita de *Torsades de Pointes*.\n\n" +
+      "4️⃣ *INVESTIGAR CAUSAS REVERSÍVEIS (5 Hs & 5 Ts)*";
+    var kbChoc = {
+      inline_keyboard: [
+        [{ text: "🫀 Mudar para Não Chocável", callback_data: "pcr_naochocavel" }],
+        [{ text: "🤰 PCR Gestante", callback_data: "pcr_gestante" }, { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtChoc, kbChoc);
+  }
+
+  // Caso 4: Ritmo Não Chocável (AESP / Assistolia)
+  if (dLow.indexOf("aesp") !== -1 || dLow.indexOf("assistolia") !== -1 || dLow.indexOf("nao chocavel") !== -1 || dLow.indexOf("não chocável") !== -1) {
+    var txtNaoChoc = "🫀 *PCR: RITMO NÃO CHOCÁVEL (AESP / ASSISTOLIA) — PROTOCOLO ACLS*\n\n" +
+      "1️⃣ *RCP DE ALTA QUALIDADE IMEDIATA:*\n" +
+      "• Compressões 100-120 cpm, profundidade 5-6 cm, retorno total do tórax.\n" +
+      "• Se Assistolia: confirmar pelo *Protocolo da Linha Reta* (cabos conectados, ganho no máximo e trocar derivação).\n\n" +
+      "2️⃣ *FARMACOTERAPIA IMEDIATA:*\n" +
+      "• *Adrenalina 1 mg IV/IO* o mais rápido possível! Repetir a cada 3 a 5 min.\n" +
+      "• NÃO aplicar choque! O choque na assistolia/AESP lesiona o miocárdio sem benefício.\n\n" +
+      "3️⃣ *INVESTIGAÇÃO MANDATÓRIA DOS 5 Hs E 5 Ts:*\n" +
+      "• *Hipovolemia:* Prova de carga volêmica rápida com SF 0.9% ou RL.\n" +
+      "• *Hipóxia:* Checar fixação e expansibilidade do tubo endotraqueal.\n" +
+      "• *Hidrogênio (Acidose):* Ventilação adequada e Bicarbonato 1 mEq/kg se acidose prévia.\n" +
+      "• *Hipo/Hipercalemia:* Gluconato de Cálcio 10% 20 mL IV se suspeita de hipercalemia.\n" +
+      "• *Hipotermia:* Aquecimento ativo.\n" +
+      "• *Tensão no Tórax (Pneumotórax):* Descompressão torácica por agulha / toracostomia.\n" +
+      "• *Tamponamento Cardíaco:* Pericardiocentese de alívio.\n" +
+      "• *Toxinas:* Naloxona (opioides), Flumazenil, etc.\n" +
+      "• *Trombose Pulmonar (TEP maciço):* Considerar trombolítico (Alteplase) se forte suspeita.\n" +
+      "• *Trombose Coronariana (IAM):* Ponte para ICP após retorno da circulação espontânea (RCE).";
+    var kbNaoChoc = {
+      inline_keyboard: [
+        [{ text: "⚡ Mudar para Ritmo Chocável", callback_data: "pcr_chocavel" }],
+        [{ text: "🤰 PCR Gestante", callback_data: "pcr_gestante" }, { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtNaoChoc, kbNaoChoc);
+  }
+
+  // Padrão (Sem argumentos ou geral): Visão Geral de ACLS + Seletor de Ritmo
+  var txtPadrao = "🚨 *PARADA CARDIORRESPIRATÓRIA (PCR ADULTO — ALGORITMO ACLS)*\n\n" +
+    "1. *Checar responsividade e respiração/pulso carotídeo* (máx 10 segundos).\n" +
+    "2. *Iniciar RCP de alta qualidade:* 30:2 ou contínua com tubo (100-120 cpm, 5-6 cm).\n" +
+    "3. *Conectar monitor/desfibrilador e identificar o ritmo:*";
+  var kbPadrao = {
+    inline_keyboard: [
+      [
+        { text: "⚡ Ritmo Chocável (FV / TVSP)", callback_data: "pcr_chocavel" },
+        { text: "🫀 Não Chocável (AESP / Assistolia)", callback_data: "pcr_naochocavel" }
+      ],
+      [
+        { text: "🤰 PCR na Gestante", callback_data: "pcr_gestante" },
+        { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
+      ],
+      [
+        { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]
+    ]
+  };
+  return enviarMensagemComTecladoParaChat(chatId, txtPadrao, kbPadrao);
+}
+
+/**
+ * Trata o módulo de Distúrbios Hidroeletrolíticos (DHE - Sódio & Potássio)
+ */
+function tratarComandoDhe(chatId, dadosDhe) {
+  dadosDhe = (dadosDhe || "").trim();
+  if (!dadosDhe) {
+    var txtGuiaDhe = "🧪 *DISTÚRBIOS HIDROELETROLÍTICOS (DHE) — GUIA BEIRA-LEITO*\n\n" +
+      "Selecione uma calculadora rápida nos botões ou envie os dados clínicos:\n\n" +
+      "• 💧 *Hiponatremia (Adrogué-Madias):* `/dhe na 118 peso 60 f 72`\n" +
+      "• 🌵 *Hipernatremia (Água Livre):* `/dhe na 164 peso 70 m`\n" +
+      "• ⚡ *Hipercalemia (ECG & Cardioproteção):* `/dhe k 7.4 ecg` ou `/dhe k 8.2`";
+    var kbDhe = {
+      inline_keyboard: [
+        [
+          { text: "💧 Hiponatremia (Adrogué-Madias)", callback_data: "dhe_hipo" },
+          { text: "🌵 Hipernatremia (Água Livre)", callback_data: "dhe_hiper" }
+        ],
+        [
+          { text: "⚡ Hipercalemia & ECG", callback_data: "dhe_k" },
+          { text: "🩸 Gasometria Arterial", callback_data: "ux:iniciar:gaso" }
+        ],
+        [
+          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtGuiaDhe, kbDhe);
+  }
+
+  if (typeof NefrologiaDheService === "undefined") {
+    return enviarMensagemParaChat(chatId, "⚠️ Módulo NefrologiaDheService temporariamente indisponível.");
+  }
+
+  var dLow = dadosDhe.toLowerCase();
+
+  // 1. Hipercalemia / Potássio
+  var mK = dLow.match(/(?:k|potassio|potássio)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+  if (mK || dLow.indexOf("hipercalemia") !== -1) {
+    var kVal = mK ? parseFloat(mK[1].replace(",", ".")) : parseFloat((dLow.match(/\d+(?:[.,]\d+)?/) || [6.5])[0].replace(",", "."));
+    var ecgAlt = dLow.indexOf("ecg") !== -1 || dLow.indexOf("onda t") !== -1 || dLow.indexOf("apiculad") !== -1;
+    var resK = NefrologiaDheService.avaliarHipercalemia(kVal, ecgAlt);
+    if (resK.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resK.erro);
+
+    var txtK = "⚡ *MANEJO EMERGENCIAL DE HIPERCALEMIA (SBC / KDIGO)*\n\n" +
+      "🔴 *ESTRATIFICAÇÃO & GRAVIDADE:*\n" +
+      "• *Potássio Sérico:* " + resK.potassio + " mEq/L\n" +
+      "• *Classificação:* *" + resK.gravidade + "*\n\n";
+    if (resK.alerta) {
+      txtK += "⚠️ *" + resK.alerta + "*\n\n";
+    }
+    txtK += "📋 *CONDUTAS IMEDIATAS:*\n";
+    for (var ik = 0; ik < resK.condutas.length; ik++) {
+      txtK += "• " + resK.condutas[ik] + "\n";
+    }
+    txtK += "\nℹ️ *MONITORIZAÇÃO:* ECG contínuo na Sala Vermelha e repetir dosagem de K+ em 2h.";
+    return enviarMensagemParaChat(chatId, txtK);
+  }
+
+  // 2. Extração de Sódio, Peso, Sexo, Idade
+  var mNa = dLow.match(/(?:na|sodio|sódio)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+  var mPeso = dLow.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|kilos?)/i) || dLow.match(/peso\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+  var mIdade = dLow.match(/(\d{1,3})\s*(?:a|anos?)/i) || dLow.match(/idade\s*[:=]?\s*(\d{1,3})/i);
+  var mSexo = dLow.match(/\b(fem|feminino|mulher|f|masc|masculino|homem|m)\b/i);
+
+  var naNum = mNa ? parseFloat(mNa[1].replace(",", ".")) : null;
+  var pesoNum = mPeso ? parseFloat(mPeso[1].replace(",", ".")) : 70;
+  var idadeNum = mIdade ? parseInt(mIdade[1], 10) : 45;
+  var sexoStr = (mSexo && (mSexo[1].startsWith("f") || mSexo[1] === "mulher")) ? "f" : "m";
+
+  // Se Na não foi explicitado com 'na', pega o primeiro número isolado
+  if (naNum === null) {
+    var nums = dLow.match(/\d+(?:[.,]\d+)?/g);
+    if (nums && nums.length > 0) {
+      naNum = parseFloat(nums[0].replace(",", "."));
+      if (nums.length > 1 && !mPeso) pesoNum = parseFloat(nums[1].replace(",", "."));
+    }
+  }
+
+  if (naNum === null) {
+    return enviarMensagemParaChat(chatId, "⚠️ Sódio não identificado. Informe o sódio sérico. Ex: `/dhe na 118 peso 60 f`");
+  }
+
+  // Hipernatremia (Na > 145)
+  if (naNum > 145 || dLow.indexOf("hipernatremia") !== -1 || dLow.indexOf("agua livre") !== -1) {
+    var resHiper = NefrologiaDheService.calcularDeficitAguaLivre(naNum, pesoNum, sexoStr, idadeNum);
+    if (resHiper.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resHiper.erro);
+
+    var txtHiper = "🌵 *HIPERNATREMIA — DÉFICIT DE ÁGUA LIVRE (ADROGUÉ-MADIAS)*\n\n" +
+      "🔴 *DADOS DO PACIENTE:*\n" +
+      "• Sódio Atual: *" + naNum + " mEq/L* | Peso: " + pesoNum + " kg (" + (sexoStr === "f" ? "Fem" : "Masc") + ", " + idadeNum + "a)\n" +
+      "• Água Corporal Total (ACT): *" + resHiper.act + " L*\n\n" +
+      "💧 *DÉFICIT DE ÁGUA LIVRE CALCULADO:*\n" +
+      "• Déficit Total: *" + resHiper.deficitAguaLivreLitros + " Litros* de água livre\n\n" +
+      "📋 *PRESCRIÇÃO & PLANO DE REPOSIÇÃO:*\n" +
+      "• *Meta de Queda:* Redução lenta de no máximo *8 a 10 mEq/L em 24 horas*.\n" +
+      "• *Reposição 24h:* Administrar *" + (Math.round(resHiper.deficitAguaLivreLitros * 500)) + " mL* de SG 5% (ou água filtrada por SNE) nas primeiras 24h + perdas insensíveis.\n" +
+      "• *Velocidade:* ~" + (Math.round((resHiper.deficitAguaLivreLitros * 500) / 24)) + " mL/h em BIC contínua.\n\n";
+    if (resHiper.alertas && resHiper.alertas.length > 0) {
+      txtHiper += "⚠️ *ALERTAS SENTINELA:*\n";
+      for (var ah = 0; ah < resHiper.alertas.length; ah++) {
+        txtHiper += "• " + resHiper.alertas[ah] + "\n";
+      }
+    }
+    return enviarMensagemParaChat(chatId, txtHiper);
+  }
+
+  // Hiponatremia (Na <= 145, tipicamente < 135)
+  var salinaUsada = (dLow.indexOf("0.9") !== -1 || dLow.indexOf("fisiologico") !== -1) ? 0.9 : 3;
+  var resHipo = NefrologiaDheService.planejarCorrecaoHiponatremia(naNum, pesoNum, sexoStr, idadeNum, salinaUsada);
+  if (resHipo.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resHipo.erro);
+
+  var solNome = salinaUsada === 3 ? "NaCl 3% (513 mEq/L)" : "NaCl 0,9% (154 mEq/L)";
+  var vol24h = Math.round((8 / resHipo.variacaoNaPorLitro) * 1000);
+  var txtHipo = "💧 *CORREÇÃO DE HIPONATREMIA (FÓRMULA DE ADROGUÉ-MADIAS)*\n\n" +
+    "🔴 *DADOS CLÍNICOS:*\n" +
+    "• Sódio Inicial: *" + naNum + " mEq/L* | Peso: " + pesoNum + " kg (" + (sexoStr === "f" ? "Fem" : "Masc") + ", " + idadeNum + "a)\n" +
+    "• Solução Escolhida: *" + solNome + "*\n\n" +
+    "📊 *VARIAÇÃO PREVISTA:*\n" +
+    "• Elevação por cada 1.000 mL de " + solNome + ": *+" + resHipo.variacaoNaPorLitro + " mEq/L*\n\n" +
+    "📋 *PRESCRIÇÃO BEIRA-LEITO (TETO MÁXIMO 8 mEq/L em 24h):*\n" +
+    "• Volume Seguro 24h: *" + vol24h + " mL* de " + solNome + "\n" +
+    "• Taxa de Infusão em BIC: *" + resHipo.taxaInfusaoMaxima24h_ml_h + " mL/h*\n\n" +
+    "⚠️ *BLOQUEIO DE SEGURANÇA MANDATÓRIO:*\n" +
+    "• " + resHipo.alerta + "\n" +
+    "• Dosar sódio sérico a cada *2 a 4 horas* em fase aguda.";
+  return enviarMensagemParaChat(chatId, txtHipo);
+}
+
+/**
  * Trata o comando /rotina e suas variações
  */
 function tratarComandoRotina(chatId, argRotina) {
@@ -47480,10 +47875,12 @@ function iniciarModoBot(chat, mode, novo, messageId) {
 }
 
 function enviarMenuGinecologiaObstetricia(chat, messageId) {
-  return enviarTelaBot(chat, '🤰 *Hub Unificado de Ginecologia & Obstetrícia*\n\nEscolha o módulo de atendimento rápido:', botoesBot([
-    [['🤰 Pré-Natal (DUM, DPP, Rastreios)', 'ux:rotina:prenatal']],
-    [['🚨 Pré-Parto & Sala de Parto (Zuspan, HPP)', 'ux:rotina:parto']],
-    [['🌸 Ginecologia (Preventivo, SUA, Leucorreias)', 'ux:rotina:ginecologia']],
+  return enviarTelaBot(chat, '🌸🤰 *Hub Unificado de Ginecologia & Obstetrícia (Internato até 29/11)*\n\nEscolha o módulo de atendimento rápido:', botoesBot([
+    [['🤰 Pré-Natal & DPP', 'go_prenatal'], ['🏥 Parto & Partograma', 'go_parto']],
+    [['🩸 HPP (4 Ts)', 'go_hpp'], ['⚡ Pré-Eclâmpsia & MgSO4', 'go_mgso4']],
+    [['👶 Prematuridade & RPMO', 'go_prematuridade'], ['🔬 Toxo & Sorologias', 'go_toxo']],
+    [['🌸 Vulvovaginites', 'go_corrimento'], ['🩺 Preventivo (INCA)', 'go_preventivo']],
+    [['💊 Anticoncepção OMS', 'go_anticoncepcao'], ['🩹 DIP & Infecção Pélvica', 'go_dip']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
@@ -47586,7 +47983,7 @@ function enviarMenuAmbulatorio(chat, messageId) {
   var botoes = botoesBot([
     [['📝 Gerador SOAP Ágil', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
     [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado Médico CFM', 'ux:amb:atestado']],
-    [['🤰 Pré-Natal / DPP / DUM', 'ux:rotina:prenatal'], ['🌸 Ginecologia / Preventivo', 'ux:rotina:ginecologia']],
+    [['🤰 Hub G&O (Estágio até 29/11)', 'ux:rotina:go'], ['🌸 Preventivo & Citopatológico', 'ux:rotina:preventivo']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -48882,8 +49279,11 @@ function cockpitConversar(initData, params) {
     }
 
     if (acao === 'preceptor') {
-      if (!dadosAtuais.trim()) throw new Error('Nenhum caso ativo para solicitar provocação do preceptor.');
-      var critica = gerarCriticaSocraticaPreceptor(dadosAtuais);
+      var casoPreceptor = (texto && texto.trim()) ? texto.trim() : (dadosAtuais ? dadosAtuais.trim() : '');
+      if (!casoPreceptor) throw new Error('Nenhum caso ativo ou digitado para solicitar provocação do preceptor.');
+      var critica = (typeof gerarCriticaSocraticaPreceptor === 'function')
+        ? gerarCriticaSocraticaPreceptor(casoPreceptor)
+        : 'Qual a sua principal hipótese diagnóstica e conduta imediata?';
       var sview = PersistenciaBot.ler('soapview_' + chat);
       return { sucesso: true, acao: 'preceptor', resposta: String(critica), soap: sview ? sview.texto : '', revision: estado ? estado.revision : null };
     }
@@ -48900,11 +49300,21 @@ function cockpitConversar(initData, params) {
     if (audioBase64) {
       try {
         var mime = params.mime || 'audio/webm';
-        var bytes = Utilities.base64Decode(audioBase64);
+        var base64Limpo = (typeof _iaNormalizarBase64 === 'function')
+          ? _iaNormalizarBase64(audioBase64)
+          : (typeof audioBase64 === 'string' ? audioBase64.replace(/^data:[^;]+;base64,/, '').trim() : (typeof Buffer !== 'undefined' && Buffer.isBuffer(audioBase64) ? audioBase64.toString('base64') : String(audioBase64)));
+
         if (typeof processarAudioClinicoMultimodal === 'function') {
-          var resAudio = processarAudioClinicoMultimodal(bytes, mime);
+          var resAudio = processarAudioClinicoMultimodal(base64Limpo, mime);
           if (resAudio && resAudio.transcricao) {
-            transcricaoAudio = resAudio.transcricao;
+            transcricaoAudio = String(resAudio.transcricao).trim();
+            texto = texto ? (texto + '\n' + transcricaoAudio) : transcricaoAudio;
+          }
+        }
+        if (!transcricaoAudio && typeof chamarGeminiPoolMultimodal === 'function') {
+          var resMultimodal = chamarGeminiPoolMultimodal(base64Limpo, mime, 'Você é um transcritor médico. Transcreva fielmente as palavras ditadas em português.', 'Transcreva este áudio.');
+          if (resMultimodal) {
+            transcricaoAudio = String(resMultimodal).trim();
             texto = texto ? (texto + '\n' + transcricaoAudio) : transcricaoAudio;
           }
         }

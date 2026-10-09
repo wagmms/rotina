@@ -945,12 +945,59 @@ function chamarGeminiPoolComGrounding(sistema, promptUsuario, maxTokens, opcoes)
   }, 2500, maxTokens, { grounding: true, exibirFontes: opcoes.exibirFontes === true });
 }
 
+function _iaNormalizarBase64(dados) {
+  if (!dados) return "";
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(dados)) {
+    return dados.toString("base64");
+  }
+  if (dados instanceof Uint8Array || (typeof dados === "object" && dados !== null && (ArrayBuffer.isView(dados) || (dados.constructor && dados.constructor.name === "Uint8Array")))) {
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(dados.buffer, dados.byteOffset, dados.byteLength).toString("base64");
+    }
+  }
+  if (typeof dados === "object" && dados !== null && Array.isArray(dados.data)) {
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(dados.data).toString("base64");
+    }
+  }
+  if (typeof dados === "string") {
+    var idxVirgula = dados.indexOf(",");
+    if (dados.slice(0, 5) === "data:" && idxVirgula !== -1) {
+      return dados.substring(idxVirgula + 1).trim();
+    }
+    return dados.trim();
+  }
+  return String(dados);
+}
+
 function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario, opcoes) {
+  // Suporte polimórfico a chamada com objeto de opções: { dadosMidia: {...}, prompt: '...', sistema: '...' }
+  if (base64Data && typeof base64Data === "object" && (typeof Buffer === "undefined" || !Buffer.isBuffer(base64Data)) && !(base64Data instanceof Uint8Array) && !Array.isArray(base64Data.data)) {
+    var objConfig = base64Data;
+    var midiaConfig = objConfig.dadosMidia || objConfig.midia || {};
+    base64Data = objConfig.base64Data || objConfig.data || midiaConfig.data || midiaConfig.base64Data || "";
+    mimeType = objConfig.mimeType || objConfig.mime || midiaConfig.mimeType || midiaConfig.mime || "audio/wav";
+    sistema = objConfig.sistema || objConfig.systemInstruction || sistema || "";
+    promptUsuario = objConfig.promptUsuario || objConfig.prompt || promptUsuario || "";
+    opcoes = objConfig.opcoes || objConfig;
+  }
   opcoes = opcoes || {};
+  base64Data = _iaNormalizarBase64(base64Data);
+
   var msg = promptUsuario ? promptUsuario : "Por favor, analise a mídia anexada em detalhes.";
   var mimeNormalizado = String(mimeType || "").toLowerCase().trim();
   if (mimeNormalizado === "audio/oga" || mimeNormalizado === "audio/opus" || mimeNormalizado.indexOf("audio/ogg") !== -1) {
     mimeNormalizado = "audio/ogg";
+  } else if (mimeNormalizado.indexOf("audio/wav") !== -1 || mimeNormalizado.indexOf("audio/x-wav") !== -1 || mimeNormalizado.indexOf("audio/wave") !== -1) {
+    mimeNormalizado = "audio/wav";
+  } else if (mimeNormalizado.indexOf("audio/webm") !== -1) {
+    mimeNormalizado = "audio/webm";
+  } else if (mimeNormalizado.indexOf("audio/mp4") !== -1 || mimeNormalizado.indexOf("audio/m4a") !== -1 || mimeNormalizado.indexOf("audio/aac") !== -1) {
+    mimeNormalizado = "audio/mp4";
+  } else if (mimeNormalizado.indexOf("audio/mpeg") !== -1 || mimeNormalizado.indexOf("audio/mp3") !== -1) {
+    mimeNormalizado = "audio/mp3";
+  } else if (mimeNormalizado.indexOf("audio/pcm") !== -1) {
+    mimeNormalizado = "audio/wav";
   } else if (mimeNormalizado.indexOf("image/jpeg") !== -1 || mimeNormalizado.indexOf("image/jpg") !== -1) {
     mimeNormalizado = "image/jpeg";
   } else if (mimeNormalizado.indexOf("image/png") !== -1) {
@@ -986,7 +1033,15 @@ function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario
  * Extrai a transcrição literal fiel E estrutura a Fase 1 do SOAP se for relato clínico.
  */
 function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
+  if (base64Data && typeof base64Data === "object" && (typeof Buffer === "undefined" || !Buffer.isBuffer(base64Data)) && !(base64Data instanceof Uint8Array)) {
+    var objA = base64Data;
+    var midiaA = objA.dadosMidia || objA.midia || {};
+    base64Data = objA.base64Data || objA.data || midiaA.data || midiaA.base64Data || "";
+    mimeType = objA.mimeType || objA.mime || midiaA.mimeType || midiaA.mime || mimeType || "audio/wav";
+    opcoes = objA.opcoes || objA;
+  }
   opcoes = opcoes || {};
+  base64Data = _iaNormalizarBase64(base64Data);
   var sistema = [
     IA_PERSONA,
     "MODO: RECONHECIMENTO E ESTRUTURAÇÃO CLÍNICA DE ÁUDIO EM TEMPO ÚNICO (FMRP-USP).",
@@ -2702,6 +2757,7 @@ if (typeof module !== "undefined" && module.exports) {
     analisarImagemMedicaComIA: analisarImagemMedicaComIA,
     chamarLocalLlmAPI: chamarLocalLlmAPI,
     verificarSaudeLocalLlm: verificarSaudeLocalLlm,
-    cockpitLocalLlm: cockpitLocalLlm
+    cockpitLocalLlm: cockpitLocalLlm,
+    _iaNormalizarBase64: _iaNormalizarBase64
   };
 }
