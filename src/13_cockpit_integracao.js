@@ -776,3 +776,15 @@ function cockpitNefrologiaDhe(initData, params) {
   throw new Error('Ação inválida para Nefrologia DHE.');
 }
 
+
+function cockpitSdraMecanica(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof MecanicaPulmonarSdraService === 'undefined') {
+    throw new Error('Módulo MecanicaPulmonarSdraService indisponível.');
+  }
+  if (params.acao === 'processarMecanica') {
+    return MecanicaPulmonarSdraService.processarMecanica(params);
+  }
+  throw new Error('Ação inválida para SDRA / Mecânica Pulmonar.');
+}

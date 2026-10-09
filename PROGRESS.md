@@ -15,11 +15,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 
 
-5. [ ] **Mecânica Pulmonar e Ventilação Protetora na SDRA (ARDSNet)**:
-   - Calculador beira-leito de peso predito (fórmula ARDSNet baseada na altura e sexo biológico) com ajuste estrito de volume corrente em 4 a 6 mL/kg.
-   - Titulação e monitoramento de pressão de platô (Pplat <= 30 cmH2O) e cálculo automático da Driving Pressure (Delta P = Pplat - PEEP, meta <= 14-15 cmH2O).
-   - Gasometria arterial integrada com cálculo da relação PaO2/FiO2 (critérios de Berlim para SDRA leve, moderada, grave) e indicação oportuna de posição prona precoce (PaO2/FiO2 < 150 com PEEP >= 10 por 16h) e bloqueio neuromuscular (Cisatracúrio nas primeiras 48h).
-
 6. [ ] **Auditoria Farmacêutica Hospitalar: Compatibilidade Físico-Química em Y-Site (Linha Venosa)**:
    - Matriz determinística em RAM de incompatibilidades de precipitados e inativação de fármacos comuns em acesso venoso único/duplo de emergência (ex: Ceftriaxona + Ringer Lactato / soluções com Cálcio causando cristais mortais; Fenitoína em infusão com qualquer solução glicosada causando precipitação imediata; Bicarbonato de Sódio + Catecolaminas causando inativação por pH alcalino; Furosemida + Midazolam).
 
@@ -119,6 +114,17 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Motor determinístico para estimar o ritmo de filtração glomerular beira-leito.
     - Bloqueio e alerta automático para antibióticos e anticoagulantes quando TFG < 30 mL/min, exigindo ajuste de dose renal obrigatório no PWA.
 
+
+28. [ ] **Infectologia - Manejo de Neutropenia Febril Oncológica (Escore MASCC/CISNE)**:
+    - Motor determinístico de estratificação de risco para indicação de tratamento ambulatorial (MASCC >= 21) vs internação hospitalar imediata.
+    - Protocolo de antibioticoterapia empírica em até 1 hora da triagem (Cefepime vs Piperacilina-Tazobactam) e indicação de Vancomicina baseada em instabilidade, cateter central ou MRSA.
+    - Alerta para indicação oportuna de terapia antifúngica (Echinocandinas) em casos refratários de febre persistente por > 4-7 dias.
+
+29. [ ] **Gastroenterologia - Pancreatite Aguda e Manejo da Hidratação (Critérios de Atlanta / BISAP)**:
+    - Calculadora determinística beira-leito dos escores de gravidade (BISAP, Ranson, Marshall) para predição de mortalidade e falência orgânica.
+    - Protocolo de ressuscitação volêmica dirigida por metas (Lactato Ringer precoce e agressivo nas primeiras 12-24h, com monitorização de ureia e hematócrito para prevenir sobrecarga hídrica e SDRA secundária).
+    - Regras alimentares precoces: dieta oral ou enteral (sonda nasojejunal) em 24-48h se tolerável, rejeitando NPO prolongado sem justificativa.
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
@@ -126,6 +132,13 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Mecânica Pulmonar e Ventilação Protetora na SDRA (ARDSNet)**:
+   - Calculador beira-leito de peso predito (fórmula ARDSNet baseada na altura e sexo biológico) com ajuste estrito de volume corrente em 4 a 6 mL/kg.
+   - Titulação e monitoramento de pressão de platô (Pplat <= 30 cmH2O) e cálculo automático da Driving Pressure (Delta P = Pplat - PEEP, meta <= 14-15 cmH2O).
+   - Gasometria arterial integrada com cálculo da relação PaO2/FiO2 (critérios de Berlim para SDRA leve, moderada, grave) e indicação oportuna de posição prona precoce.
+   - Integração de `src/02_mecanica_pulmonar_sdra.js` e métodos RPC `cockpitSdraMecanica`.
+   - Suíte de testes determinística validada com 100% de aprovação.
+
 - [x] (2026-10-09) **Nefrologia Intensiva e Distúrbios Hidroeletrolíticos (DHE)**:
    - Módulo determinístico para correção segura de hiponatremia aguda vs crônica com cálculo de déficit de sódio e teto rígido de elevação (8 mEq/L 24h e 18 mEq/L 48h).
    - Manejo escalonado de hipercalemia com critérios de urgência dialítica, estabilização de membrana, e glicoinsulina.
