@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 10:03:01
- * Checksum SHA256: 135c335b12d89f9e
+ * Gerado automaticamente via build_master.py em: 2026-10-09 10:14:04
+ * Checksum SHA256: 2a63c1bb2e6de5a1
  * ==============================================================================
  */
 
@@ -39017,7 +39017,7 @@ function processarMensagemTexto(message) {
   if (comando === "/bio" || comando === "/mounjaro" || comando === "/composicao") {
     var urlCockpit = obterUrlCockpit(chatId);
     var kb = { inline_keyboard: [[{ text: "📱 Abrir Cockpit (Aba Perfil)", web_app: { url: urlCockpit } }]] };
-    return enviarMensagemComBotoes(chatId, "📊 *Composição Corporal & Protocolo Mounjaro*\n\nAbra o Cockpit Móvel e navegue até a aba *Perfil* para ver e registrar seus dados.", kb);
+    return enviarMensagemComBotoes(chatId, "📊 *Composição Corporal & Cutting Natural*\n\nAbra o Cockpit Móvel e navegue até a aba *Perfil* para ver e registrar seus dados.", kb);
   }
 
   if (comando === "/status" || comando === "/fontes") {
@@ -47683,8 +47683,8 @@ function cockpitPerfil(initData) {
   var props = PropertiesService.getScriptProperties();
   var pesoRaw = props.getProperty('PESO_ATUAL');
   var bfRaw = props.getProperty('BF_ATUAL');
-  var semanaRaw = props.getProperty('MOUNJARO_SEMANA');
-  var doseRaw = props.getProperty('MOUNJARO_DOSE');
+  var semanaRaw = props.getProperty('PROTOCOLO_SEMANA');
+  var doseRaw = props.getProperty('PROTOCOLO_DOSE');
 
   // Blocos de rotina do dia — usa RotinaService se disponível
   var rotinaBlocos = [];
@@ -47701,7 +47701,7 @@ function cockpitPerfil(initData) {
     bf: bfRaw ? Number(bfRaw) : null,
     semana: semanaRaw ? Number(semanaRaw) : null,
     dose: doseRaw || null,
-    protocolo: 'Mounjaro',
+    protocolo: 'Cutting Natural (Musculação)',
     rotina_blocos: rotinaBlocos
   };
 }
@@ -47725,7 +47725,7 @@ function cockpitRegistrarPeso(initData, pesoKg, bfPercent, semana) {
   }
   if (semana !== undefined && semana !== null && semana !== '') {
     var sem = parseInt(String(semana), 10);
-    if (sem > 0) props.setProperty('MOUNJARO_SEMANA', String(sem));
+    if (sem > 0) props.setProperty('PROTOCOLO_SEMANA', String(sem));
   }
 
   ConfigService.invalidar();

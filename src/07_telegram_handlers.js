@@ -211,7 +211,7 @@ function processarMensagemTexto(message) {
   if (comando === "/bio" || comando === "/mounjaro" || comando === "/composicao") {
     var urlCockpit = obterUrlCockpit(chatId);
     var kb = { inline_keyboard: [[{ text: "📱 Abrir Cockpit (Aba Perfil)", web_app: { url: urlCockpit } }]] };
-    return enviarMensagemComBotoes(chatId, "📊 *Composição Corporal & Protocolo Mounjaro*\n\nAbra o Cockpit Móvel e navegue até a aba *Perfil* para ver e registrar seus dados.", kb);
+    return enviarMensagemComBotoes(chatId, "📊 *Composição Corporal & Cutting Natural*\n\nAbra o Cockpit Móvel e navegue até a aba *Perfil* para ver e registrar seus dados.", kb);
   }
 
   if (comando === "/status" || comando === "/fontes") {

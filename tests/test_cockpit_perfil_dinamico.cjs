@@ -90,7 +90,7 @@ console.log('✓ Rejeição sem credenciais');
 const token = '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11';
 const authOk = gerarInitData(token, '987654321');
 const perfilInicial = cockpitPerfil(authOk);
-assert.strictEqual(perfilInicial.protocolo, 'Mounjaro');
+assert.strictEqual(perfilInicial.protocolo, 'Cutting Natural (Musculação)');
 assert.strictEqual(perfilInicial.peso_atual, null);
 assert.strictEqual(perfilInicial.bf, null);
 assert.strictEqual(perfilInicial.rotina_blocos.length, 2);

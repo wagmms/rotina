@@ -371,8 +371,8 @@ function cockpitPerfil(initData) {
   var props = PropertiesService.getScriptProperties();
   var pesoRaw = props.getProperty('PESO_ATUAL');
   var bfRaw = props.getProperty('BF_ATUAL');
-  var semanaRaw = props.getProperty('MOUNJARO_SEMANA');
-  var doseRaw = props.getProperty('MOUNJARO_DOSE');
+  var semanaRaw = props.getProperty('PROTOCOLO_SEMANA');
+  var doseRaw = props.getProperty('PROTOCOLO_DOSE');
 
   // Blocos de rotina do dia — usa RotinaService se disponível
   var rotinaBlocos = [];
@@ -389,7 +389,7 @@ function cockpitPerfil(initData) {
     bf: bfRaw ? Number(bfRaw) : null,
     semana: semanaRaw ? Number(semanaRaw) : null,
     dose: doseRaw || null,
-    protocolo: 'Mounjaro',
+    protocolo: 'Cutting Natural (Musculação)',
     rotina_blocos: rotinaBlocos
   };
 }
@@ -413,7 +413,7 @@ function cockpitRegistrarPeso(initData, pesoKg, bfPercent, semana) {
   }
   if (semana !== undefined && semana !== null && semana !== '') {
     var sem = parseInt(String(semana), 10);
-    if (sem > 0) props.setProperty('MOUNJARO_SEMANA', String(sem));
+    if (sem > 0) props.setProperty('PROTOCOLO_SEMANA', String(sem));
   }
 
   ConfigService.invalidar();
