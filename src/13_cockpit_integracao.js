@@ -855,4 +855,42 @@ function cockpitTevGestante(initData, params) {
   throw new Error('Ação inválida para TEV na Gestação/Puerpério.');
 }
 
+function cockpitClimaterioThm(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ClimaterioThmService === 'undefined') {
+    throw new Error('Módulo ClimaterioThmService indisponível.');
+  }
+  var acao = params.acao || 'avaliarThmCompleto';
+  if (acao === 'avaliarThmCompleto') {
+    return ClimaterioThmService.avaliarThmCompleto(params);
+  }
+  if (acao === 'avaliarJanelaOportunidade') {
+    return ClimaterioThmService.avaliarJanelaOportunidade(params);
+  }
+  if (acao === 'auditarContraindicacoesThm') {
+    return ClimaterioThmService.auditarContraindicacoesThm(params);
+  }
+  if (acao === 'determinarProtecaoEndometrial') {
+    return ClimaterioThmService.determinarProtecaoEndometrial(params);
+  }
+  if (acao === 'selecionarViaAdministracao') {
+    return ClimaterioThmService.selecionarViaAdministracao(params);
+  }
+  if (acao === 'avaliarSintomasGeniturinarios') {
+    return ClimaterioThmService.avaliarSintomasGeniturinarios(params);
+  }
+  if (acao === 'sugerirAlternativasNaoHormonais') {
+    return ClimaterioThmService.sugerirAlternativasNaoHormonais(params);
+  }
+  if (acao === 'verificarChecklistPreThm') {
+    return ClimaterioThmService.verificarChecklistPreThm(params);
+  }
+  if (acao === 'gerarResumoThm') {
+    return ClimaterioThmService.gerarResumoThm(params);
+  }
+  throw new Error('Ação inválida para Climatério e THM.');
+}
+
+
 

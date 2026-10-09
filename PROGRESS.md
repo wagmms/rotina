@@ -1,6 +1,6 @@
-# 🚀 Ultra Rotina — Motor de Evolução Perpétua (Kaizen)
-
 ### STATUS: EM_EVOLUCAO_CONTINUA
+
+# 🚀 Ultra Rotina — Motor de Evolução Perpétua (Kaizen)
 
 Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se encerra: ao concluir uma tarefa, o sistema audita o código e adiciona novas oportunidades de alto impacto.
 
@@ -16,11 +16,6 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 
 
 
-10. [ ] **Climatério e Terapia Hormonal da Menopausa (THM - Consenso FEBRASGO/NAMS)**:
-    - Janela de Oportunidade: Avaliação criteriosa da relação risco-benefício (< 60 anos ou < 10 anos de pós-menopausa).
-    - Prescrição Personalizada com Proteção Endometrial: Regra de ouro da preservação uterina (mulheres com útero intacto exigem obrigatoriamente estrogênio + progestagênio para prevenir hiperplasia/adenocarcinoma endometrial; histerectomizadas usam estrogênio isolado).
-    - Vias de Administração Ponderadas: Preferência por via transdérmica (gel ou adesivo de Estradiol) em mulheres com fatores de risco cardiovascular, HAS, hipertrigliceridemia ou IMC > 30 (evitando a passagem hepática de 1ª passagem e risco pró-trombótico).
-    - Contraindicações Absolutas e Relativas: Câncer de mama ou endométrio prévio/atual, sangramento vaginal de causa não esclarecida, doença coronariana/AVC prévio, TEV agudo ou trombofilias conhecidas, porfiria e doença hepática ativa descompensada.
 
 11. [ ] **Síndrome dos Ovários Policísticos (SOP - Critérios Internacionais de Roterdã & ASRM/ESHRE)**:
     - Diagnóstico de Alta Acurácia: Preenchimento de pelo menos 2 dos 3 critérios (Hiperandrogenismo clínico e/ou laboratorial; Oligo/Anovulação crônica com irregularidade menstrual; Morfologia policística em USG transvaginal com >= 20 folículos de 2-9mm ou volume ovariano >= 10 cm³).
@@ -154,14 +149,39 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Início precoce de Espiramicina 1g VO 8/8h para prevenir a transmissão vertical placentária.
     - Diagnóstico de infecção fetal por PCR no líquido amniótico (amniocentese após 18 semanas) e substituição imediata pelo esquema tríplice (Sulfadiazina + Pirimetamina + Ácido Folínico) para tratamento fetal intraútero.
 
+40. [ ] **Cardiologia e Emergência - Fibrilação Atrial Aguda e Anticoagulação (CHA2DS2-VASc / HAS-BLED / Controle de Frequência vs Ritmo)**:
+    - Motor determinístico de cálculo do escore CHA2DS2-VASc para indicação de anticoagulação oral (DOACs de 1ª linha: Apixabana, Rivaroxabana, Dabigatrana, Edoxabana vs Varfarina se prótese metálica/estenose mitral).
+    - Avaliação balanceada de risco hemorrágico com escore HAS-BLED identificando fatores de sangramento modificáveis.
+    - Algoritmo de decisão rápida de estabilidade hemodinâmica: cardioversão elétrica sincronizada imediata no choque/instabilidade vs controle de frequência (Metoprolol IV, Diltiazem, Digoxina) ou cardioversão química com Amiodarona observando a janela de 48h ou ecocardiograma transesofágico.
+
+41. [ ] **Urologia e Nefrologia - Manejo de Cólica Nefrética Aguda e Litíase Urinária (Diretrizes SBU / EAU)**:
+    - Algoritmo escalonado de analgesia de emergência: AINEs de 1ª linha (Cetoprofeno / Diclofenaco) vs opioides, com bloqueios renais se ClCr < 30 mL/min.
+    - Terapia Expulsiva Médica (MET): indicação de Tansulosina 0.4mg para cálculos de ureter distal de 5 a 10 mm.
+    - Checklist de gravidade com indicação de descompressão cirúrgica de urgência (duplo J ou nefrostomia percutânea) em rim único, sepse urinária obstrutiva ou anúria.
+
+42. [ ] **Pediatria de Emergência - Manejo da Bronquiolite Viral Aguda (Diretrizes SBP / AAP)**:
+    - Estratificação de gravidade clínica e desconforto respiratório (escore de Wood-Downes modificado).
+    - Recomendações estritas de NÃO indicação rotineira de broncodilatadores (salbutamol), corticoides sistêmicos ou antibióticos em casos típicos (evitando sobretratamento desnecessário).
+    - Critérios objetivos de oxigenoterapia com cânula nasal de alto fluxo (CNAF), hidratação isotônica venosa e internação em UTI pediátrica.
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Climatério e Terapia Hormonal da Menopausa (THM - Consenso FEBRASGO/NAMS)**
+- [ ] **Síndrome dos Ovários Policísticos (SOP - Critérios Internacionais de Roterdã & ASRM/ESHRE)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Climatério e Terapia Hormonal da Menopausa (THM - Consenso FEBRASGO/NAMS)**:
+   - Motor determinístico de avaliação da Janela de Oportunidade (< 60 anos e < 10 anos pós-menopausa) com relação risco-benefício favorável e bloqueio do início tardio para prevenção de DAC e AVC.
+   - Conduta específica mandatória para Insuficiência Ovariana Prematura (IOP / < 40 anos) com recomendação de reposição hormonal até pelo menos 50-52 anos.
+   - Aplicação estrita da Regra de Ouro da Proteção Endometrial: bloqueio absoluto de estrogênio isolado em mulheres com útero intacto (obrigatória associação com Progesterona micronizada ou Didrogesterona para prevenção de hiperplasia e adenocarcinoma endometrial) e liberação de estrogênio isolado em histerectomizadas (salvo exceção de endometriose prévia).
+   - Seleção ponderada da via de administração: via transdérmica mandatória/preferencial em HAS, obesidade (IMC >= 30), hipertrigliceridemia (> 150 mg/dL), diabetes, esteatose hepática, colelitíase e tabagismo, evitando a primeira passagem hepática.
+   - Auditoria de segurança contraindicações absolutas: bloqueio total em câncer de mama, câncer de endométrio, sangramento vaginal não investigado, TEV prévio/agudo, trombofilias, DAC/IAM, AVC/AIT, hepatopatia aguda ativa e porfiria.
+   - Módulo de Síndrome Geniturinária da Menopausa (SGM) isolada com terapia tópica vaginal de baixa dose sem necessidade de progestagênio, e catálogo de alternativas não hormonais (Desvenlafaxina, Venlafaxina, Gabapentina) com alerta contraindicação de Paroxetina em uso concomitante de Tamoxifeno.
+   - Novo módulo `src/02_climaterio_thm.js` (`ClimaterioThmService`) integrado à malha RPC do `server/runtime.js` (`cockpitClimaterioThm`).
+   - Suíte de testes determinística `tests/test_climaterio_thm.cjs` e runner `tests/test_climaterio_thm.py` aprovada com 100% de sucesso.
+
 - [x] (2026-10-09) **Tromboembolismo Venoso (TEV) na Gestação e Puerpério (Escore de Risco RCOG/FEBRASGO & Profilaxia com HBPM)**:
    - Motor determinístico de estratificação de risco trombótico antenatal e pós-parto com pontuação cumulativa RCOG/FEBRASGO (cesariana de urgência, IMC > 30, pré-eclâmpsia, tabagismo, imobilidade, idade > 35a).
    - Tabela ponderada de doses profiláticas de Enoxaparina por faixas de peso (20 mg a 80 mg SC/dia) e ajuste estrito para insuficiência renal (ClCr < 30 mL/min).
