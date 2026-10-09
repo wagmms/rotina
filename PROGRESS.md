@@ -1,16 +1,58 @@
-### STATUS: REVISAO_OTIMIZACAO_E_ESTABILIZACAO_EXCLUSIVA
+### STATUS: CONSERTO_ERROS_E_OTIMIZACAO_EXPERIENCIA
 
-# 🛠️ Ultra Rotina — Revisão, Otimização e Estabilização para Interno/Médico Generalista
+# 🛠️ Ultra Rotina — Conserto de Erros, Otimização da Experiência e Testes Contínuos
 
-**DIRETIVA ABSOLUTA DO USUÁRIO (FOCO ESTRITO)**:
-1. **Melhorar UI/UX para facilitar e agilizar o acesso do médico ao bot, tornando-o mais intuitivo** (Telegram e Cockpit com respostas rápidas em 3 segundos, menus limpos, atalhos rápidos e cópia direta para prontuário).
-2. **Verificar todas as funções disponíveis e retirar todas aquelas que não fazem sentido para um aluno de internato ou médico generalista** (saneamento do escopo, removendo procedimentos cirúrgicos terciários, condutas exclusivas de UTI e faturamento hospitalar/DRG).
-3. **Fazer auditoria de todo o conteúdo médico existente com o modelo PRO** (revisão clínica profunda de todas as calculadoras, doses pediátricas e adultas, tetos farmacológicos, antimicrobianos, emergências, ginecologia e pré-natal).
-4. **PROIBIDO ADICIONAR NOVAS FUNCIONALIDADES**: Nenhuma função inédita deve ser criada até que todo o sistema existente esteja auditado, purgado e otimizado.
+**DIRETRIZ ATUAL DO USUÁRIO (NOVO FOCO)**:
+1. **Conserto de Erros e Estabilidade Total**: Foco absoluto em identificar, rastrear e consertar qualquer erro, bug, exceção ou inconsistência no bot do Telegram, no Cockpit PWA e no backend Fastify.
+2. **Otimização Contínua da Experiência (UI/UX)**: Refinar a experiência prática de uso para torná-la ultra-ágil, intuitiva e sem atrito para o médico (respostas rápidas beira-leito, teclados limpos, menus objetivos e cópia de conduta facilitada).
+3. **Bateria Contínua de Testes de Todas as Funções**: Testar metódica e progressivamente todas as funções do sistema (função por função do bot, do Cockpit e calculadoras), executando suítes automatizadas e testes práticos para assegurar funcionamento 100% correto.
+4. **Eficiência Máxima Sem Perda de Rigor Teórico**: Tornar o código mais rápido, enxuto e eficiente, preservando intacta a qualidade teórica, a precisão científica dos cálculos e as diretrizes clínicas.
+5. **Documentação de Sugestões para o Futuro**: Conforme as funções forem analisadas e testadas, registrar ideias de evolução e melhorias futuras na seção dedicada `## 💡 Sugestões de Melhorias Futuras` (exclusivamente como documentação de sugestões, sem desviar a execução para implementação de novas features agora).
 
 ---
 
-## 📋 Backlog de Auditoria, Correção de Defeitos e Otimização (Prioridade Máxima)
+## 🔄 Próxima Tarefa em Andamento
+
+- [ ] **Bateria de Testes Sistemáticos e Otimização de Experiência nos Hubs e Comandos do Telegram**:
+    - Testar exaustivamente todos os fluxos de comandos de emergência, calculadoras e atendimento ambulatorial (`/menu`, `/emergencia`, `/dva`, `/sri`, `/pcr`, `/clearance`, `/gaso`, `/dhe`, `/go`, `/ambulatorio`, `/rotina`).
+    - Verificar resposta correta de todos os callbacks de botões inline, tratando eventuais timeouts ou exceções silenciosas.
+    - Otimizar a formatação das mensagens (clareza, quebras de linha e usabilidade em telas mobile) e a velocidade de resposta sem comprometer as orientações clínicas.
+    - Levantar e registrar sugestões de melhorias de interface e atalhos na seção de sugestões futuras.
+
+---
+
+## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
+
+1. [ ] **Testes de Integração, Resiliência e Otimização do Cockpit PWA Beira-Leito**:
+    - Testar todas as rotas e métodos RPC consumidos pelo Cockpit (`server/runtime.js` e `src/13_cockpit_integracao.js`).
+    - Validar o comportamento offline determinístico do Cockpit móvel (`calcularOfflineLocal` em `cockpit_movel.html`) e cache do Service Worker.
+    - Otimizar renderização dos cards de leitos, formulários rápidos e tempo de carga da interface no smartphone.
+    - Levantar sugestões futuras para o Cockpit (apenas registrar na seção de sugestões).
+
+2. [ ] **Auditoria de Eficiência e Testes de Borda nas Calculadoras Clínicas**:
+    - Testar cada calculadora clínica (DVA, SRI, Gasometria, Clearance, KDIGO, DHE, PALS, Desidratação, Insulina).
+    - Assegurar que valores atípicos ou nulos não gerem erros não tratados (NaN, divisões por zero) e que todos os alertas sentinela continuem íntegros.
+    - Otimizar o tempo de computação e simplificar a saída textual mantendo todo o rigor teórico e farmacológico.
+    - Anotar sugestões clínicas e novos refinamentos na seção de sugestões futuras.
+
+3. [ ] **Otimização de Performance e Latência do Backend Fastify**:
+    - Testar todas as rotas HTTP e endpoints do servidor (`server/index.js`).
+    - Avaliar consumo de memória e tempo de resposta das rotas RPC em alta frequência.
+    - Otimizar middlewares, serialização JSON e tratamento global de erros para garantir máxima resiliência.
+
+---
+
+## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
+*(Seção dedicada para registrar oportunidades e sugestões levantadas durante os testes de funções, sem implementação imediata no código)*
+
+- *Sugestão 1 (Cockpit)*: Busca rápida instantânea por texto com filtro de medicamentos padronizados na REMUME.
+- *Sugestão 2 (Cockpit)*: Modo noturno (Dark Mode) de alto contraste para economia de bateria e conforto visual no plantão.
+- *Sugestão 3 (Telegram / Cockpit)*: Botão de 1 toque para cópia direta estruturada em formato SOAP / PEP compatível com prontuários eletrônicos ambulatoriais.
+
+---
+
+## 📦 Histórico de Melhorias Concluídas
+
 
 0A. [x] **Conserto Imediato do Raio-X Matinal Repetido**:
     - Removido disparo automático cego de 15s no boot do servidor em `server/index.js` (causa-raiz das repetições em deploys e reinicializações).
@@ -125,6 +167,55 @@
       * Preservados e validados todos os 14 módulos clínicos de G&O no núcleo do sistema.
     - **Fastify RPC Stubs**: Stubs graciosos padronizados com `{ sucesso: false, desativado: true }` em `src/13_cockpit_integracao.js`.
     - **Suíte de Testes 100% Verde**: Recompilação atômica via `build_master.py` (62 módulos empacotados) e 16 suítes de teste de integração e segurança passando com 100% de sucesso (`npm test`).
+
+0L. [x] **Fase 2 do Plano Diretor — 7 Módulos Clínicos & Epidemiológicos Determinísticos Beira-Leito**:
+    - **Dengue & Arboviroses (MS 2024)** (`src/02_arboviroses_dengue.js`):
+      * Estadiamento em 4 grupos (A, B, C, D) conforme diretriz do Ministério da Saúde 2024.
+      * Cálculo determinístico de hidratação por peso corporal (Grupo A: oral 60 mL/kg/dia; Grupo B: oral supervisionada 80 mL/kg/dia; Grupo C: venosa 10 mL/kg/h nas 2 primeiras horas; Grupo D: bólus 20 mL/kg em 20 min).
+      * Contraindicação absoluta de AINEs e AAS, sinais de alarme e choque catalogados.
+    - **Pneumonia Adquirida na Comunidade & CURB-65** (`src/02_pneumologia_pac.js`):
+      * Cálculo automatizado do escore CURB-65 (0 a 5 pontos) com estratificação de risco (baixo, moderado, alto).
+      * Condutas antimicrobianas SBPT/ATS/IDSA estratificadas para ambulatório, enfermaria e UTI.
+    - **Infecção do Trato Urinário (ITU), Cistite & Pielonefrite** (`src/02_infectologia_itu.js`):
+      * Cistite aguda não complicada (Fosfomicina 3g DU ou Nitrofurantoína 100mg 6/6h).
+      * Proteção gestacional estrita com bloqueio formal de fluoroquinolonas e sulfas.
+      * Pielonefrite não complicada ambulatorial vs hospitalar (com critérios de sepse).
+      * ITU no homem abordada como potencialmente complicada (10-14 dias).
+    - **Crise Hipertensiva vs Pseudocrise** (`src/02_emergencia_crise_hipertensiva.js`):
+      * Diferenciação beira-leito entre Pseudocrise, Urgência e Emergência Hipertensiva.
+      * Metas pressóricas personalizadas para Dissecção Aórtica (PAS < 120 e FC < 60 em 20 min com betabloqueador antes de vasodilatador), EAP, AVC e Pré-Eclâmpsia.
+      * Bloqueio sentinela contra o uso de Nifedipino sublingual de ação rápida.
+    - **Cefaleias Agudas no Pronto Socorro & Protocolo SNOOP** (`src/02_neurologia_cefaleias.js`):
+      * Checklist mnemônico SNOOP para rastreio de bandeiras vermelhas de cefaleias secundárias.
+      * Protocolo de investigação de HSA (TC crânio sem contraste + punção lombar se TC normal).
+      * Protocolo analgésico de resgate no PS (Dipirona + Metoclopramida + Dexametasona) e bloqueio categórico de opioides.
+    - **Pequenas Urgências & Traumatologia Básica** (`src/02_pequenas_urgencias_trauma.js`):
+      * Regras de Ottawa para indicação de radiografia em entorse de tornozelo e pé.
+      * Doses máximas e volumes de Lidocaína 1% e 2% calculados por peso corporal com tetos de segurança (300 mg sem e 500 mg com vasoconstritor).
+      * Profilaxia de Tétano (MS) conforme histórico de doses e risco da ferida.
+      * Profilaxia de Raiva Humana (MS) com conduta imediata para morcegos/animais silvestres (SAR + vacina).
+      * Guia de fios cirúrgicos por topografia e contraindicação formal de suturar mordeduras infectadas.
+    - **Declaração de Óbito & Notificação Compulsória** (`src/02_medicina_legal_obito_notificacao.js`):
+      * Fluxo normativo CFM 1.779/2005 diferenciando Médico Assistente vs SVO vs IML (obrigatório para causas externas/violentas).
+      * Guia prático de preenchimento correto das Linhas a, b, c, d da Declaração de Óbito.
+      * Lista rápida de doenças de notificação compulsória imediata (24h) ao SINAN.
+    - **Comandos Telegram**: Adicionados `/dengue`, `/pac`, `/itu`, `/crisehipertensiva`, `/cefaleia`, `/sutura`, `/obito` com normalização sem barra e persistência de contexto em `src/07_telegram_handlers.js`.
+    - **Métodos RPC Cockpit**: Registrados no Fastify e despachante com suporte a chamadas internas em `src/13_cockpit_integracao.js` e `server/runtime.js`.
+
+0M. [x] **Fase 3 do Plano Diretor — Lapidação de UX Beira-Leito, Sala Vermelha e Cockpit PWA**:
+    - **Hub de Sala Vermelha no Telegram (`src/12_experiencia_bot.js`)**:
+      * Inclusão de botões de 1 toque no menu de emergência: `❤️ Crise HAS`, `🦟 Dengue C/D` e `🤕 Cefaleia / HSA`.
+      * Conexão dos callbacks `ux:emerg:crisehas`, `ux:emerg:dengue` e `ux:emerg:cefaleia` para despacho instantâneo.
+    - **Espelhamento no Cockpit PWA (`gh_cockpit_deploy/index.html`)**:
+      * Adição dos botões interativos de Dengue C/D e Crise HAS no seletor de protocolos da Sala Vermelha (HC-UE).
+      * Implementação dos objetos determinísticos `dengue` e `has` no dicionário `PROTOCOLOS_USP_SALA_VERMELHA` com cálculo automático de expansão por peso corporal, condutas escalonadas e erros críticos.
+      * Deploy atômico publicado no GitHub Pages (`gh_cockpit_deploy/`).
+    - **Suíte de Testes Automatizados da Fase 2 & 3 (`tests/test_fase2_clinica_epidemiologica.cjs`)**:
+      * 9 seções completas de testes unitários determinísticos, cobrindo todos os serviços, comandos Telegram e métodos Fastify RPC.
+      * Integrada ao script oficial `npm test` no `package.json`.
+    - **Auditoria e Compilação Master**:
+      * Executado `python3 build_master.py` gerando `ultra_rotina_master.js` (69 módulos, 51.003 linhas, sintaxe 100% OK).
+      * Bateria completa de testes executada com 100% de sucesso (`npm test` e `npm run lint`).
 
 ---
 

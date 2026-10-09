@@ -397,7 +397,10 @@ function processarMensagemTexto(message) {
         "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
         "swansea", "colestase", "monoartrite", "febrereumatica", "pancreatite",
         "diabetes", "anemia", "intox", "sca",
-        "avc", "hic", "kdigo", "dhe", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia"
+        "avc", "hic", "kdigo", "dhe", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia",
+        "dengue", "arbovirose", "chikungunya", "zika", "pac", "pneumonia", "itu", "cistite", "pielonefrite",
+        "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "cefaleia", "dorcabeca",
+        "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan"
       ];
       if (comandosSemBarra.indexOf(primPalavra) !== -1) {
         texto = "/" + texto;
@@ -577,7 +580,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -589,7 +592,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -2334,6 +2337,200 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, textMpox);
     } catch (eMpox) {
       return enviarMensagemParaChat(chatId, "❌ Erro ao avaliar Mpox: " + eMpox.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // EPIDEMIOLOGIA & INFECTOLOGIA: ARBOVIROSES (DENGUE MS 2024, CHIKUNGUNYA & ZIKA)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/dengue" || comando === "/arbovirose" || comando === "/chikungunya" || comando === "/zika") {
+    var dadosDengue = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ArbovirosesDengueService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ArbovirosesDengueService indisponível temporariamente.");
+    }
+    if (!dadosDengue) {
+      return enviarMensagemParaChat(chatId,
+        "🦟 *Manejo Clínico de Dengue & Arboviroses (MS 2024)*\n\n" +
+        "Digite o comando seguido do peso e achados clínicos (sinais de alarme/choque).\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/dengue 70kg sem alarme` (Grupo A — Hidratação oral 60 mL/kg/dia)\n" +
+        "• `/dengue 65kg gestante dm has` (Grupo B — Observação e hemograma)\n" +
+        "• `/dengue 80kg dor abdominal intensa vomitos persistentes` (Grupo C — SF 10 mL/kg/h)\n" +
+        "• `/dengue 75kg choque hipotensao pulso fino` (Grupo D — SF 20 mL/kg em 20 min bolus)");
+    }
+    try {
+      var paramsDengue = ArbovirosesDengueService.extrairParametrosTexto(dadosDengue);
+      var estagioDengue = ArbovirosesDengueService.estadiarDengue(paramsDengue);
+      var txtDengue = ArbovirosesDengueService.formatarTextoTelegram(estagioDengue);
+      return enviarMensagemParaChat(chatId, txtDengue);
+    } catch (eDengue) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao estadiar dengue: " + eDengue.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // PNEUMOLOGIA & EMERGÊNCIA: PNEUMONIA ADQUIRIDA NA COMUNIDADE (PAC & CURB-65)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/pac" || comando === "/pneumonia") {
+    var dadosPac = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof PneumologiaPacService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PneumologiaPacService indisponível temporariamente.");
+    }
+    if (!dadosPac) {
+      return enviarMensagemParaChat(chatId,
+        "🫁 *Pneumonia Adquirida na Comunidade (PAC & CURB-65)*\n\n" +
+        "Digite o comando com as variáveis do CURB-65 (Confusão, Ureia > 50, FR ≥ 30, PA < 90/60, Idade ≥ 65).\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/pac 45 anos pa 120x80 fr 18 sem confusao` (CURB-65 0 — Ambulatório)\n" +
+        "• `/pac 70 anos pa 110x70 fr 24 ureia 35` (CURB-65 1 — Ambulatório)\n" +
+        "• `/pac 72 anos pa 85x55 fr 32 confusao ureia 65` (CURB-65 5 — Internação/UTI)");
+    }
+    try {
+      var paramsPac = PneumologiaPacService.extrairParametrosTexto(dadosPac);
+      var calcPac = PneumologiaPacService.calcularCurb65(paramsPac);
+      var txtPac = PneumologiaPacService.formatarTextoTelegram(calcPac);
+      return enviarMensagemParaChat(chatId, txtPac);
+    } catch (ePac) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao calcular PAC/CURB-65: " + ePac.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // INFECTOLOGIA & UROLOGIA: INFECÇÃO DO TRATO URINÁRIO (ITU, CISTITE, PIELO)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/itu" || comando === "/cistite" || comando === "/pielonefrite" || comando === "/infeccaourinaria") {
+    var dadosItu = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof InfectologiaItuService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo InfectologiaItuService indisponível temporariamente.");
+    }
+    if (!dadosItu) {
+      return enviarMensagemParaChat(chatId,
+        "🦠 *Infecção do Trato Urinário (ITU, Cistite & Pielonefrite)*\n\n" +
+        "Informe os sintomas e o perfil do paciente (mulher, gestante, homem, pielonefrite).\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/itu disuria polaciuria mulher` (Cistite não complicada — Fosfomicina 3g DU ou Nitrofurantoína)\n" +
+        "• `/itu gestante 28 semanas bacteriuria disuria` (Cistite na gestação — Fosfomicina ou Cefalexina)\n" +
+        "• `/pielonefrite febre dor lombar giordano positivo sem sepse` (Pielonefrite ambulatorial — Ceftriaxona + Cipro)\n" +
+        "• `/itu homem 62 anos disuria jato fraco` (ITU masculina — Cipro 14 dias)");
+    }
+    try {
+      var paramsItu = InfectologiaItuService.extrairParametrosTexto(dadosItu);
+      var condutaItu = InfectologiaItuService.conduzirItu(paramsItu);
+      var txtItu = InfectologiaItuService.formatarTextoTelegram(condutaItu);
+      return enviarMensagemParaChat(chatId, txtItu);
+    } catch (eItu) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao orientar ITU: " + eItu.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // CARDIOLOGIA & EMERGÊNCIA: CRISE HIPERTENSIVA & PSEUDOCRISE (SBC 2024)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/crisehipertensiva" || comando === "/pseudocrise" || comando === "/emergenciahipertensiva") {
+    var dadosHas = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof EmergenciaCriseHipertensivaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo EmergenciaCriseHipertensivaService indisponível temporariamente.");
+    }
+    if (!dadosHas) {
+      return enviarMensagemParaChat(chatId,
+        "❤️ *Crise Hipertensiva vs Pseudocrise (SBC / AHA)*\n\n" +
+        "Informe a PA aferida e presença de sintomas ou lesão de órgão-alvo.\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/crisehipertensiva 190x110 cefaleia tensional ansiedade dor` (Pseudocrise — Repouso e analgesia)\n" +
+        "• `/crisehipertensiva 200x120 assintomatico sem lesao de orgao` (Urgência — Captopril/Clonidina VO)\n" +
+        "• `/crisehipertensiva 220x130 eap dispneia crepitacoes` (Emergência — Nitroglicerina/Nitroprussiato + VNI)\n" +
+        "• `/crisehipertensiva 210x120 disseccao dor rasgando torax` (Dissecção — Esmolol + Nitroprussiato PAS < 120 em 20 min)");
+    }
+    try {
+      var paramsHas = EmergenciaCriseHipertensivaService.extrairParametrosTexto(dadosHas);
+      var classifHas = EmergenciaCriseHipertensivaService.classificarCrise(paramsHas);
+      var txtHas = EmergenciaCriseHipertensivaService.formatarTextoTelegram(classifHas);
+      return enviarMensagemParaChat(chatId, txtHas);
+    } catch (eHas) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao classificar crise hipertensiva: " + eHas.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // NEUROLOGIA & EMERGÊNCIA: CEFALEIAS AGUDAS & BANDEIRAS VERMELHAS SNOOP
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/cefaleia" || comando === "/dorcabeca" || comando === "/enxaqueca") {
+    var dadosCef = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof NeurologiaCefaleiasService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo NeurologiaCefaleiasService indisponível temporariamente.");
+    }
+    if (!dadosCef) {
+      return enviarMensagemParaChat(chatId,
+        "🤕 *Cefaleia Aguda no Pronto Socorro & Protocolo SNOOP*\n\n" +
+        "Descreva as características da dor de cabeça e sinais associados.\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/cefaleia hemicraniana pulsatil nausea fotofobia habitual` (Primária — Dipirona + Plasil + Dexa)\n" +
+        "• `/cefaleia thunderclap trovoada inicio subito pior dor da vida` (HSA — TC sem contraste imediata)\n" +
+        "• `/cefaleia febre rigidez de nuca vomitos` (Meningite — TC + Punção lombar + Ceftriaxona)\n" +
+        "• `/cefaleia 68 anos inicio recente dor temporal` (Arterite Temporal — VHS/PCR + Corticoide)");
+    }
+    try {
+      var paramsCef = NeurologiaCefaleiasService.extrairParametrosTexto(dadosCef);
+      var avalCef = NeurologiaCefaleiasService.avaliarBandeirasVermelhas(paramsCef);
+      var txtCef = NeurologiaCefaleiasService.formatarTextoTelegram(avalCef);
+      return enviarMensagemParaChat(chatId, txtCef);
+    } catch (eCef) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao avaliar cefaleia: " + eCef.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // CIRURGIA & TRAUMA: PEQUENAS URGÊNCIAS, OTTAWA, ANESTESIA & PROFILAXIAS
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/sutura" || comando === "/ottawa" || comando === "/tetano" || comando === "/raiva" || comando === "/mordedura" || comando === "/ferimento") {
+    var dadosTrauma = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof PequenasUrgenciasTraumaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PequenasUrgenciasTraumaService indisponível temporariamente.");
+    }
+    if (!dadosTrauma) {
+      return enviarMensagemParaChat(chatId,
+        "🩹 *Pequenas Urgências, Suturas & Profilaxias de Trauma*\n\n" +
+        "Informe os achados do trauma, peso ou histórico vacinal.\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/ottawa entorse tornozelo dor maleolo lateral incapacidade 4 passos` (Indicação de Rx)\n" +
+        "• `/sutura 70kg ferimento face anestesia` (Dose máxima de lidocaína e fio 5-0/6-0)\n" +
+        "• `/tetano ferimento sujo terra 1 dose ha 8 anos` (Vacina dT + SAT/IGHAT)\n" +
+        "• `/raiva mordedura morcego na mao` (Risco máximo — Soro SAR + Vacina 4 doses)\n" +
+        "• `/mordedura mordedura de cao na perna` (Não suturar + Amoxicilina/Clavulanato)");
+    }
+    try {
+      var paramsTrauma = PequenasUrgenciasTraumaService.extrairParametrosTexto(dadosTrauma);
+      var txtTrauma = PequenasUrgenciasTraumaService.formatarTextoTelegram(paramsTrauma);
+      return enviarMensagemParaChat(chatId, txtTrauma);
+    } catch (eTrauma) {
+      return enviarMensagemParaChat(chatId, "❌ Erro em pequenas urgências: " + eTrauma.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // MEDICINA LEGAL & EPIDEMIOLOGIA: DECLARAÇÃO DE ÓBITO & NOTIFICAÇÃO COMPULSÓRIA
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/obito" || comando === "/declaracaoobito" || comando === "/do" || comando === "/notificacao" || comando === "/sinan") {
+    var dadosObito = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof MedicinaLegalObitoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo MedicinaLegalObitoService indisponível temporariamente.");
+    }
+    if (!dadosObito) {
+      return enviarMensagemParaChat(chatId,
+        "📄 *Declaração de Óbito & Notificação Compulsória (CFM 1.779/2005 & SINAN)*\n\n" +
+        "Informe o tipo de óbito ou circunstância clínica.\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/obito natural internado choque septico pneumonia` (DO pelo assistente/plantonista)\n" +
+        "• `/obito violenta acidente de transito queda trauma` (IML obrigatório — Proibido DO hospitalar)\n" +
+        "• `/obito sem assistencia morte subita em domicilio sem diagnostico` (SVO)\n" +
+        "• `/notificacao dengue grave meningite raiva mpox` (Lista de notificação imediata 24h)");
+    }
+    try {
+      var paramsObito = MedicinaLegalObitoService.extrairParametrosTexto(dadosObito);
+      var txtObito = MedicinaLegalObitoService.formatarTextoTelegram(paramsObito);
+      return enviarMensagemParaChat(chatId, txtObito);
+    } catch (eObito) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao orientar óbito/notificação: " + eObito.message);
     }
   }
 

@@ -2540,4 +2540,137 @@ function cockpitOtorrinoResumo(initData, params) {
   };
 }
 
+// ==============================================================================
+// MÓDULOS DE ATENÇÃO PRIMÁRIA E URGÊNCIA (FASE 2)
+// ==============================================================================
+
+function cockpitArbovirosesDengue(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ArbovirosesDengueService === 'undefined') {
+    throw new Error('Serviço ArbovirosesDengueService indisponível.');
+  }
+  var p = typeof params === 'string' ? ArbovirosesDengueService.extrairParametrosTexto(params) : params;
+  var analise = ArbovirosesDengueService.estadiarDengue(p);
+  var texto = ArbovirosesDengueService.formatarTextoTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitPneumologiaPac(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PneumologiaPacService === 'undefined') {
+    throw new Error('Serviço PneumologiaPacService indisponível.');
+  }
+  var p = typeof params === 'string' ? PneumologiaPacService.extrairParametrosTexto(params) : params;
+  var analise = PneumologiaPacService.calcularCurb65(p);
+  var texto = PneumologiaPacService.formatarTextoTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitInfectologiaItu(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof InfectologiaItuService === 'undefined') {
+    throw new Error('Serviço InfectologiaItuService indisponível.');
+  }
+  var p = typeof params === 'string' ? InfectologiaItuService.extrairParametrosTexto(params) : params;
+  var analise = InfectologiaItuService.conduzirItu(p);
+  var texto = InfectologiaItuService.formatarTextoTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitEmergenciaCriseHipertensiva(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof EmergenciaCriseHipertensivaService === 'undefined') {
+    throw new Error('Serviço EmergenciaCriseHipertensivaService indisponível.');
+  }
+  var p = typeof params === 'string' ? EmergenciaCriseHipertensivaService.extrairParametrosTexto(params) : params;
+  var analise = EmergenciaCriseHipertensivaService.classificarCrise(p);
+  var texto = EmergenciaCriseHipertensivaService.formatarTextoTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitNeurologiaCefaleias(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof NeurologiaCefaleiasService === 'undefined') {
+    throw new Error('Serviço NeurologiaCefaleiasService indisponível.');
+  }
+  var p = typeof params === 'string' ? NeurologiaCefaleiasService.extrairParametrosTexto(params) : params;
+  var analise = NeurologiaCefaleiasService.avaliarBandeirasVermelhas(p);
+  var texto = NeurologiaCefaleiasService.formatarTextoTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitPequenasUrgencias(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PequenasUrgenciasTraumaService === 'undefined') {
+    throw new Error('Serviço PequenasUrgenciasTraumaService indisponível.');
+  }
+  var p = typeof params === 'string' ? PequenasUrgenciasTraumaService.extrairParametrosTexto(params) : params;
+  var ottawa = PequenasUrgenciasTraumaService.regraOttawaTornozelo(p);
+  var texto = PequenasUrgenciasTraumaService.formatarTextoTelegram(p);
+  return {
+    sucesso: true,
+    resultado: { params: p, ottawa: ottawa },
+    textoFormatado: texto
+  };
+}
+
+function cockpitMedicinaLegalObito(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof MedicinaLegalObitoService === 'undefined') {
+    throw new Error('Serviço MedicinaLegalObitoService indisponível.');
+  }
+  var p = typeof params === 'string' ? MedicinaLegalObitoService.extrairParametrosTexto(params) : params;
+  var fluxo = MedicinaLegalObitoService.fluxoDeclaracaoObito(p.tipo || p.tipoMorte);
+  var texto = MedicinaLegalObitoService.formatarTextoTelegram(p);
+  return {
+    sucesso: true,
+    resultado: { params: p, fluxo: fluxo },
+    textoFormatado: texto
+  };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports.cockpitArbovirosesDengue = cockpitArbovirosesDengue;
+  module.exports.cockpitDengue = cockpitArbovirosesDengue;
+  module.exports.cockpitPneumologiaPac = cockpitPneumologiaPac;
+  module.exports.cockpitPac = cockpitPneumologiaPac;
+  module.exports.cockpitInfectologiaItu = cockpitInfectologiaItu;
+  module.exports.cockpitItu = cockpitInfectologiaItu;
+  module.exports.cockpitEmergenciaCriseHipertensiva = cockpitEmergenciaCriseHipertensiva;
+  module.exports.cockpitCriseHipertensiva = cockpitEmergenciaCriseHipertensiva;
+  module.exports.cockpitNeurologiaCefaleias = cockpitNeurologiaCefaleias;
+  module.exports.cockpitCefaleia = cockpitNeurologiaCefaleias;
+  module.exports.cockpitPequenasUrgencias = cockpitPequenasUrgencias;
+  module.exports.cockpitSutura = cockpitPequenasUrgencias;
+  module.exports.cockpitMedicinaLegalObito = cockpitMedicinaLegalObito;
+  module.exports.cockpitObito = cockpitMedicinaLegalObito;
+}
+
 

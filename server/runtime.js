@@ -909,6 +909,20 @@ module.exports = {
         _rpcMap.cockpitEpistaxe = ctx.cockpitEpistaxe || ctx.cockpitOtorrinoEpistaxe;
         _rpcMap.cockpitTamponamento = ctx.cockpitTamponamento || ctx.cockpitOtorrinoEpistaxe;
         _rpcMap.cockpitOtorrinoResumo = ctx.cockpitOtorrinoResumo;
+        _rpcMap.cockpitArbovirosesDengue = ctx.cockpitArbovirosesDengue;
+        _rpcMap.cockpitDengue = ctx.cockpitDengue || ctx.cockpitArbovirosesDengue;
+        _rpcMap.cockpitPneumologiaPac = ctx.cockpitPneumologiaPac;
+        _rpcMap.cockpitPac = ctx.cockpitPac || ctx.cockpitPneumologiaPac;
+        _rpcMap.cockpitInfectologiaItu = ctx.cockpitInfectologiaItu;
+        _rpcMap.cockpitItu = ctx.cockpitItu || ctx.cockpitInfectologiaItu;
+        _rpcMap.cockpitEmergenciaCriseHipertensiva = ctx.cockpitEmergenciaCriseHipertensiva;
+        _rpcMap.cockpitCriseHipertensiva = ctx.cockpitCriseHipertensiva || ctx.cockpitEmergenciaCriseHipertensiva;
+        _rpcMap.cockpitNeurologiaCefaleias = ctx.cockpitNeurologiaCefaleias;
+        _rpcMap.cockpitCefaleia = ctx.cockpitCefaleia || ctx.cockpitNeurologiaCefaleias;
+        _rpcMap.cockpitPequenasUrgencias = ctx.cockpitPequenasUrgencias;
+        _rpcMap.cockpitSutura = ctx.cockpitSutura || ctx.cockpitPequenasUrgencias;
+        _rpcMap.cockpitMedicinaLegalObito = ctx.cockpitMedicinaLegalObito;
+        _rpcMap.cockpitObito = ctx.cockpitObito || ctx.cockpitMedicinaLegalObito;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

@@ -266,7 +266,8 @@ function enviarMenuSalaVermelha(chat, messageId) {
     [['💉 Noradrenalina', 'ux:droga:nora'], ['💉 Dobutamina', 'ux:droga:dobuta']],
     [['💉 Vasopressina', 'ux:fixa:vaso'], ['💉 Outras DVA', 'ux:dvamenu']],
     [['🩸 Gasometria', 'ux:iniciar:gaso'], ['⚡ Choque & Hipotensão', 'ux:emerg:choque']],
-    [['🧠 Escala de Glasgow', 'ux:emerg:glasgow'], ['⚡ Outras Emergências', 'ux:condutamenu']],
+    [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🦟 Dengue C/D', 'ux:emerg:dengue']],
+    [['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
@@ -830,6 +831,9 @@ function tratarCallbackUX(cb) {
     } else if (op === 'emerg') {
       if (v === 'choque') texto('/choque');
       else if (v === 'glasgow') texto('/glasgow');
+      else if (v === 'crisehas') texto('/crisehipertensiva');
+      else if (v === 'dengue') texto('/dengue');
+      else if (v === 'cefaleia') texto('/cefaleia');
       else enviarMenuSalaVermelha(chat, msgId);
     } else if (op === 'novo') {
       iniciarModoBot(chat, v, true, msgId);

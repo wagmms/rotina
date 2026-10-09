@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 19:10:36
- * Checksum SHA256: 35d4df4255ee67cc
+ * Gerado automaticamente via build_master.py em: 2026-10-09 19:33:05
+ * Checksum SHA256: ad6289bf7e2710d6
  * ==============================================================================
  */
 
@@ -1127,6 +1127,235 @@ function formatarHierarquiaEscaneavel(config) {
 function padronizarHierarquiaVisual(texto) {
   if (!texto) return "";
   return String(texto);
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_arboviroses_dengue.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA · MÓDULO DE ARBOVIROSES (DENGUE, CHIKUNGUNYA E ZIKA)
+ * ==============================================================================
+ * Referência: Ministério da Saúde (MS), "Dengue: diagnóstico e manejo clínico —
+ * Adulto e Criança", 5ª edição, 2024. Protocolos de Triagem e Hidratação.
+ * ==============================================================================
+ */
+
+var ArbovirosesDengueService = (function () {
+  'use strict';
+
+  var SINAIS_ALARME = [
+    'Dor abdominal intensa (referida ou à palpação) e contínua',
+    'Vômitos persistentes (≥ 3 episódios em 1 hora ou ≥ 4 em 4 horas)',
+    'Acúmulo de líquidos (ascite, derrame pleural, derrame pericárdico)',
+    'Hipotensão postural ou lipotimia',
+    'Hepatomegalia dolorosa > 2 cm abaixo do rebordo costal direito',
+    'Sangramento de mucosas (gengivorragia, epistaxe, metrorragia)',
+    'Letargia, sonolência excessiva ou irritabilidade inexplicável',
+    'Aumento progressivo do hematócrito (hemoconcentração aguda)'
+  ];
+
+  var SINAIS_CHOQUE = [
+    'Hipotensão arterial (PAS < 90 mmHg ou PAM < 65 mmHg)',
+    'Pressão de pulso convergente (PAS - PAD ≤ 20 mmHg)',
+    'Pulso periférico filiforme, fino ou imperceptível',
+    'Tempo de enchimento capilar (TEC) prolongado (> 2 segundos)',
+    'Extremidades frias e sudorese pegajosa',
+    'Oligúria severa (< 0.5 mL/kg/h nas últimas horas)',
+    'Taquicardia desproporcional e taquipneia'
+  ];
+
+  function estadiarDengue(dados) {
+    dados = dados || {};
+    var pesoKg = Number(dados.pesoKg || dados.peso) || 70;
+    var temSinaisAlarme = Boolean(dados.sinaisAlarme || dados.alarme);
+    var temSinaisChoque = Boolean(dados.sinaisChoque || dados.choque || dados.gravidadeExtrema);
+    var comorbidades = Boolean(dados.comorbidades || dados.gestante || dados.idoso || dados.lactente);
+    var sangramentoEspontaneo = Boolean(dados.sangramento || dados.plaquetopeniaGrave);
+    var falenciaOrgaos = Boolean(dados.falenciaOrgaos || dados.transaminasesMil || dados.miocardite);
+
+    var grupo = 'A';
+    var localAtendimento = 'Ambulatório / UBS';
+    var classificacao = 'Dengue Sem Sinais de Alarme (Grupo A)';
+
+    if (temSinaisChoque || sangramentoEspontaneo || falenciaOrgaos) {
+      grupo = 'D';
+      classificacao = 'Dengue Grave / Choque Hipovolêmico (Grupo D)';
+      localAtendimento = 'Sala Vermelha / UTI';
+    } else if (temSinaisAlarme) {
+      grupo = 'C';
+      classificacao = 'Dengue com Sinais de Alarme (Grupo C)';
+      localAtendimento = 'Leito de Observação / Internação Hospitalar';
+    } else if (comorbidades) {
+      grupo = 'B';
+      classificacao = 'Dengue com Condições Especiais / Risco Social (Grupo B)';
+      localAtendimento = 'Ponto de Hidratação Supervisionada / UPA';
+    }
+
+    var planoHidratacao = calcularHidratacao(grupo, pesoKg);
+
+    var condutas = [];
+    var exames = [];
+
+    if (grupo === 'A') {
+      condutas.push('• Hidratação oral precoce e abundante (ver cálculo por peso).');
+      condutas.push('• Sintomáticos: Dipirona 500mg a 1g VO 6/6h ou Paracetamol 500mg a 750mg VO 6/6h.');
+      condutas.push('• ⛔ CONTRAINDICAÇÃO ABSOLUTA: AINEs (Ibuprofeno, Diclofenaco, Cetoprofeno) e AAS (risco hemorrágico e síndrome de Reye).');
+      condutas.push('• Orientar retorno IMEDIATO se surgirem sinais de alarme (dor abdominal, vômitos, tontura ao levantar).');
+      condutas.push('• Reavaliação clínica obrigatória no dia da desfervescência da febre (fase crítica: dias 3 a 7).');
+      exames.push('Não são necessários exames laboratoriais na abordagem inicial se evolução favorável.');
+    } else if (grupo === 'B') {
+      condutas.push('• Iniciar hidratação oral supervisionada imediatamente na unidade.');
+      condutas.push('• Manter em observação até o resultado dos exames laboratoriais.');
+      condutas.push('• Se hematócrito normal e paciente tolerando líquidos: alta com hidratação oral reforçada e reavaliação em 24h.');
+      condutas.push('• Se hemoconcentração (aumento de Ht) ou surgimento de alarme: migrar imediatamente para Grupo C.');
+      exames.push('Hemograma completo obrigatório (Hematócrito, Leucograma e Plaquetas).');
+      exames.push('Pesquisa de antígeno NS1 (até 5º dia) ou Sorologia IgM (a partir do 6º dia).');
+    } else if (grupo === 'C') {
+      condutas.push('• Leito de internação obrigatório (mínimo 48 horas).');
+      condutas.push('• Iniciar reposição volêmica venosa IMEDIATA com Solução Fisiológica 0,9% ou Ringer Lactato.');
+      condutas.push('• Monitorização de sinais vitais, diurese horária e repetição de hematócrito a cada 2 horas.');
+      condutas.push('• Se estabilização clínica e queda de Ht: reduzir velocidade de infusão para fase de manutenção.');
+      condutas.push('• Se refratariedade ou piora clínica: migrar imediatamente para Grupo D.');
+      exames.push('Hemograma com hematócrito seriado (a cada 2h na fase rápida).');
+      exames.push('Função renal (Ureia, Creatinina), Eletrólitos (Na, K), Transaminases (TGO, TGP) e Gasometria.');
+    } else if (grupo === 'D') {
+      condutas.push('• Acesso venoso calibroso imediato (2 acessos periféricos 14G/16G).');
+      condutas.push('• Expansão rápida com cristaloides isotônicos (SF 0,9% ou RL): 20 mL/kg em 20 minutos (repetir até 3 vezes se necessário).');
+      condutas.push('• Oxigenioterapia sob máscara com reservatório e monitorização contínua de ECG e oximetria.');
+      condutas.push('• Se choque refratário após 60 mL/kg: avaliar uso de coloides (Albumina 20% 0,5 a 1 g/kg) e suporte vasopressor com Noradrenalina.');
+      condutas.push('• Solicitação imediata de Vaga Zero / Leito de Terapia Intensiva (UTI).');
+      exames.push('Hematócrito de urgência a cada 15-30 minutos durante a ressuscitação.');
+      exames.push('Coagulograma completo (TAP, TTPA, Fibrinogênio), Tipagem sanguínea e Prova cruzada.');
+      exames.push('Gasometria arterial com lactato e raio-x de tórax beira-leito.');
+    }
+
+    return {
+      grupo: grupo,
+      classificacao: classificacao,
+      localAtendimento: localAtendimento,
+      pesoKg: pesoKg,
+      hidratacao: planoHidratacao,
+      condutas: condutas,
+      exames: exames,
+      sinaisAlarmeDisponiveis: SINAIS_ALARME,
+      sinaisChoqueDisponiveis: SINAIS_CHOQUE
+    };
+  }
+
+  function calcularHidratacao(grupo, pesoKg) {
+    pesoKg = Math.max(5, Math.min(200, Number(pesoKg) || 70));
+
+    if (grupo === 'A') {
+      // 60 mL/kg/dia (1/3 SRO e 2/3 líquidos caseiros)
+      var volTotalA = Math.round(pesoKg * 60);
+      var volSroA = Math.round(volTotalA / 3);
+      var volLiquidosA = volTotalA - volSroA;
+      return {
+        via: 'Oral',
+        volumeTotal24hMl: volTotalA,
+        volumeSroMl: volSroA,
+        volumeOutrosLiquidosMl: volLiquidosA,
+        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL GRUPO A:\n• Volume total em 24h: ' + volTotalA + ' mL (' + (volTotalA / 1000).toFixed(1) + ' L/dia)\n• Soro de Reidratação Oral (SRO): ' + volSroA + ' mL fracionados\n• Outros líquidos (água, sucos de frutas, água de coco): ' + volLiquidosA + ' mL'
+      };
+    } else if (grupo === 'B') {
+      // 80 mL/kg/dia oral na unidade supervisionada
+      var volTotalB = Math.round(pesoKg * 80);
+      var volPrimQuatroHoras = Math.round(volTotalB / 3);
+      return {
+        via: 'Oral Supervisionada',
+        volumeTotal24hMl: volTotalB,
+        volumeFaseRapidaMl: volPrimQuatroHoras,
+        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL SUPERVISIONADA GRUPO B:\n• Volume nas primeiras 4 horas na UPA: ' + volPrimQuatroHoras + ' mL de SRO\n• Manter ingestão constante até liberação do hematócrito\n• Volume total estimado em 24h: ' + volTotalB + ' mL'
+      };
+    } else if (grupo === 'C') {
+      // Fase rápida: 10 mL/kg/h em 2h
+      // Fase de manutenção: 25 mL/kg em 6h
+      var volFaseRapidaC = Math.round(pesoKg * 10 * 2);
+      var vazaoHorariaRapidaC = Math.round(pesoKg * 10);
+      var volManutencaoC = Math.round(pesoKg * 25);
+      var vazaoManutencaoC = Math.round(volManutencaoC / 6);
+
+      return {
+        via: 'Intravenosa',
+        faseRapidaTotalMl: volFaseRapidaC,
+        faseRapidaVazaoMlH: vazaoHorariaRapidaC,
+        faseManutencaoTotalMl: volManutencaoC,
+        faseManutencaoVazaoMlH: vazaoManutencaoC,
+        prescricaoFormatada: '💉 RESSUSCITAÇÃO VOLÊMICA VENOSA GRUPO C:\n• ETAPA 1 (Expansão inicial em 2h): SF 0,9% ou Ringer Lactato a ' + vazaoHorariaRapidaC + ' mL/h (Total em 2h: ' + volFaseRapidaC + ' mL)\n• Reavaliar hematócrito ao término de 2 horas.\n• ETAPA 2 (Manutenção se estável em 6h): Infundir ' + volManutencaoC + ' mL em 6 horas (Vazão: ' + vazaoManutencaoC + ' mL/h)'
+      };
+    } else {
+      // Grupo D: 20 mL/kg em 20 min
+      var volBolusD = Math.round(pesoKg * 20);
+      return {
+        via: 'Intravenosa Rápida (Sala Vermelha)',
+        volumeBolusMl: volBolusD,
+        tempoMinutos: 20,
+        prescricaoFormatada: '🚨 EXPANSÃO RÁPIDA DE CHOQUE GRUPO D:\n• SF 0,9% ou Ringer Lactato: ' + volBolusD + ' mL IV aberto em 20 minutos (20 mL/kg)\n• Repetir até 3 vezes se ausência de resposta hemodinâmica (máx 60 mL/kg)\n• Monitorar sinais de sobrecarga volêmica (crepitações pulmonares, estase jugular)'
+      };
+    }
+  }
+
+  function formatarTextoTelegram(estudo) {
+    var linhas = [];
+    linhas.push('🦟 *MANEJO CLÍNICO DE DENGUE & ARBOVIROSES (MS 2024)*');
+    linhas.push('📅 *Protocolo Oficial do Ministério da Saúde*');
+    linhas.push('');
+    linhas.push('*Classificação:* ' + estudo.classificacao);
+    linhas.push('*Local Recomendado:* ' + estudo.localAtendimento);
+    linhas.push('*Peso Referência:* ' + estudo.pesoKg + ' kg');
+    linhas.push('');
+    linhas.push('*Plano de Hidratação:*');
+    linhas.push(estudo.hidratacao.prescricaoFormatada);
+    linhas.push('');
+    linhas.push('*Condutas Imediatas:*');
+    for (var i = 0; i < estudo.condutas.length; i++) {
+      linhas.push(estudo.condutas[i]);
+    }
+    linhas.push('');
+    linhas.push('*Exames Complementares:*');
+    for (var j = 0; j < estudo.exames.length; j++) {
+      linhas.push('• ' + estudo.exames[j]);
+    }
+    linhas.push('');
+    linhas.push('⚠️ *Sinais de Alarme para Vigilância:*');
+    linhas.push('Dor abdominal intensa, vômitos frequentes, lipotimia, sangramentos e sonolência.');
+
+    return linhas.join('\n');
+  }
+
+  function extrairParametrosTexto(texto) {
+    texto = String(texto || '').toLowerCase();
+    var peso = 70;
+    var mPeso = texto.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)/);
+    if (mPeso) peso = parseFloat(mPeso[1].replace(',', '.'));
+
+    var temChoque = /(choque|hipotens|pulso fino|tec >|extremidade fria|desmaio)/i.test(texto);
+    var temAlarme = /(alarme|dor abdominal|vomit|sangrament|lipotimia|tontura|letargia|sangue)/i.test(texto);
+    var temComorbidade = /(gestante|gravid|idoso|lactente|dm|has|cardiopata|renal)/i.test(texto);
+
+    return {
+      pesoKg: peso,
+      sinaisChoque: temChoque,
+      sinaisAlarme: temAlarme,
+      comorbidades: temComorbidade
+    };
+  }
+
+  return {
+    estadiarDengue: estadiarDengue,
+    calcularHidratacao: calcularHidratacao,
+    formatarTextoTelegram: formatarTextoTelegram,
+    extrairParametrosTexto: extrairParametrosTexto,
+    SINAIS_ALARME: SINAIS_ALARME,
+    SINAIS_CHOQUE: SINAIS_CHOQUE
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = ArbovirosesDengueService;
 }
 
 
@@ -9247,6 +9476,195 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_emergencia_crise_hipertensiva.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA · MÓDULO DE CRISE HIPERTENSIVA (PSEUDOCRISE, URGÊNCIA & EMERGÊNCIA)
+ * ==============================================================================
+ * Referência: Diretrizes Brasileiras de Hipertensão Arterial (SBC 2020 / 2024),
+ * AHA/ACC 2023. Abordagem beira-leito com metas pressóricas e segurança farmacológica.
+ * ==============================================================================
+ */
+
+var EmergenciaCriseHipertensivaService = (function () {
+  'use strict';
+
+  function classificarCrise(dados) {
+    dados = dados || {};
+    var pas = Number(dados.pas || dados.pressaoSistolica) || 180;
+    var pad = Number(dados.pad || dados.pressaoDiastolica) || 110;
+    var loa = dados.lesaoOrgaoAlvo || {};
+
+    var temEap = Boolean(loa.eap || dados.eap || dados.edemaPulmao || dados.dispneiaGrave);
+    var temEncefalopatia = Boolean(loa.encefalopatia || dados.encefalopatia || dados.confusao || dados.papiledema);
+    var temDisseccao = Boolean(loa.disseccao || dados.disseccao || dados.dorRasgando);
+    var temIam = Boolean(loa.iam || dados.iam || dados.dorPrecordial || dados.sca);
+    var temAvc = Boolean(loa.avc || dados.avc || dados.deficitFocal);
+    var temPreEclampsia = Boolean(loa.preeclampsia || dados.preeclampsia || dados.gestante);
+
+    var temLoaAguda = temEap || temEncefalopatia || temDisseccao || temIam || temAvc || temPreEclampsia;
+
+    var tipo = 'URGENCIA_HIPERTENSIVA';
+    var titulo = 'Urgência Hipertensiva (PA Elevada sem Lesão de Órgão-Alvo)';
+    var local = 'Sala de Observação / UPA';
+    var metaPressorica = 'Redução gradual em 24 a 48 horas (meta de PAS 140-160 mmHg e PAD 90-100 mmHg). Queda inicial não deve ultrapassar 20-25% da PAM.';
+    var medicacoes = [];
+    var condutas = [];
+    var alertas = [];
+
+    // Checagem de Pseudocrise
+    var dorAnsiedade = Boolean(dados.dor || dados.ansiedade || dados.estresse || dados.cefaleiaTensional);
+    if (!temLoaAguda && (dorAnsiedade || (pas < 180 && pad < 120))) {
+      tipo = 'PSEUDOCRISE_HIPERTENSIVA';
+      titulo = 'Pseudocrise Hipertensiva (Elevação Reativa da PA)';
+      local = 'Acolhimento / Sala de Medicação / UBS';
+      metaPressorica = 'Não há indicação de redução agressiva imediata da PA. O foco é tratar o gatilho desencadeante.';
+      
+      condutas.push('• Repouso em ambiente calmo e silencioso por 30 a 60 minutos.');
+      condutas.push('• Analgesia simples para dor (Dipirona 1g VO/IV) ou suporte para ansiedade/pânico.');
+      condutas.push('• Reavaliar a pressão arterial após o repouso e analgesia.');
+      condutas.push('• Se PA persistir muito elevada após repouso: administrar Captopril 25mg VO.');
+      condutas.push('• Encaminhar para acompanhamento ambulatorial na UBS para ajuste da medicação de uso crônico.');
+      
+      alertas.push('⛔ NUNCA prescrever Nifedipino de ação rápida / sublingual: causa hipotensão súbita, taquicardia reflexa e risco de isquemia coronariana e cerebral.');
+    } else if (temLoaAguda) {
+      tipo = 'EMERGENCIA_HIPERTENSIVA';
+      titulo = 'EMERGÊNCIA HIPERTENSIVA (Risco Iminente de Morte / Lesão de Órgão-Alvo)';
+      local = '🚨 SALA VERMELHA / MONITORIZAÇÃO CONTÍNUA / UTI';
+
+      if (temDisseccao) {
+        metaPressorica = 'META AGUDA DISSECÇÃO DE AORTA: PAS < 120 mmHg e FC < 60 bpm em 20 minutos!';
+        medicacoes.push('💉 1º PASSO: Betabloqueador IV (Esmolol em BIC ou Metoprolol 5mg IV a cada 5 min até FC < 60 bpm). NUNCA usar vasodilatador puro antes do betabloqueador (risco de cisalhamento aórtico).');
+        medicacoes.push('💉 2º PASSO: Nitroprussiato de Sódio IV em BIC titulado (iniciar a 0.3 a 0.5 mcg/kg/min) até PAS < 120 mmHg.');
+        condutas.push('• Acionar Cirurgia Cardíaca/Vascular imediatamente e solicitar Angio-TC de Aorta urgente.');
+      } else if (temEap) {
+        metaPressorica = 'META EAP HIPERTENSIVO: Redução de 20 a 30% da PAM em 30-60 min com melhora do desconforto respiratório.';
+        medicacoes.push('💉 Nitroglicerina IV em BIC (5 mcg/min, titulando a cada 5 min) OU Nitroprussiato de Sódio IV se PAS muito elevada.');
+        medicacoes.push('💉 Furosemida 40 a 80 mg IV em bolus.');
+        condutas.push('• Oxigenioterapia com VNI (CPAP 8 a 10 cmH2O) — reduz pré-carga e necessidade de intubação.');
+      } else if (temIam) {
+        metaPressorica = 'META SCA/IAM: Controle da dor e redução gradual da PA com Nitroglicerina IV.';
+        medicacoes.push('💉 Nitroglicerina IV contínua (alivia isquemia e pré-carga) + Betabloqueador oral precoce.');
+        condutas.push('• Protocolo de SCA: AAS 300mg mastigado, Ticagrelor/Clopidogrel, anticoagulação e CAT de urgência.');
+      } else if (temAvc) {
+        metaPressorica = 'META AVC ISQUÊMICO: NÃO reduzir PA se PAS < 220 ou PAD < 120, EXCETO se candidato a trombólise (onde meta é PA < 185/110 mmHg).';
+        medicacoes.push('💉 Se elegível para trombólise e PA > 185/110: Nitroprussiato de Sódio IV ou Labetalol IV.');
+        condutas.push('• Tomografia de crânio sem contraste imediata e acionamento da equipe de AVC.');
+      } else if (temPreEclampsia) {
+        metaPressorica = 'META GESTANTE: PAS 140-150 mmHg e PAD 90-100 mmHg (evitar hipotensão para manter perfusão placentária).';
+        medicacoes.push('💉 Hidralazina 5mg IV lento a cada 20 min (máx 20mg) OU Nifedipino Retard 20mg VO.');
+        medicacoes.push('💉 Sulfato de Magnésio 50% (Esquema de Zuspan: 4g IV ataque + 1-2g/h manutenção) para profilaxia de convulsão.');
+        condutas.push('• ⛔ Contraindicação Absoluta: IECAs, BRAs e Nitroprussiato (teratogênicos / toxicidade fetal).');
+      } else {
+        // Encefalopatia hipertensiva padrão
+        metaPressorica = 'META GERAL: Reduzir PAM em 20 a 25% na primeira hora; depois atingir 160/100 mmHg em 2 a 6 horas.';
+        medicacoes.push('💉 Nitroprussiato de Sódio IV em BIC contínua: 0.25 a 0.5 mcg/kg/min (proteger frasco da luz).');
+      }
+
+      alertas.push('🚨 Linha arterial (PA invasiva) recomendada se infusão prolongada de Nitroprussiato > 24-48h (risco de intoxicação por tiocianato/cianeto em insuficiência renal).');
+    } else {
+      // Urgência Hipertensiva
+      condutas.push('• Permanência em leito de observação por 2 a 4 horas.');
+      condutas.push('• Redução gradual da PA com anti-hipertensivo oral.');
+      condutas.push('• Avaliação de fundo de olho e rastreio sumário (Eletrocardiograma, Creatinina, Urina 1).');
+      condutas.push('• Orientar reavaliação ambulatorial em 48 a 72 horas para ajuste de drogas de ação prolongada.');
+
+      medicacoes.push('💊 1ª Opção: Captopril 25mg a 50mg VO (início de ação em 15-30 min). Pode repetir 25mg após 1 hora se necessário.');
+      medicacoes.push('💊 2ª Opção: Clonidina 0.100mg a 0.200mg VO (início de ação em 30-60 min).');
+      medicacoes.push('💊 3ª Opção: Anlodipino 5mg a 10mg VO (se histórico prévio de bloqueador de canal de cálcio).');
+
+      alertas.push('⚠️ Evitar normalizar a PA na urgência: reduções drásticas reduzem fluxo cerebral e renal em hipertensos crônicos.');
+    }
+
+    return {
+      tipo: tipo,
+      titulo: titulo,
+      pas: pas,
+      pad: pad,
+      localRecomendado: local,
+      metaPressorica: metaPressorica,
+      condutas: condutas,
+      medicacoes: medicacoes,
+      alertas: alertas
+    };
+  }
+
+  function formatarTextoTelegram(res) {
+    var linhas = [];
+    linhas.push('❤️ *MANEJO DE CRISE HIPERTENSIVA & PSEUDOCRISE*');
+    linhas.push('📅 *Diretrizes SBC / AHA / ACC*');
+    linhas.push('');
+    linhas.push('*Classificação:* ' + res.titulo);
+    linhas.push('*Pressão Aferida:* ' + res.pas + ' × ' + res.pad + ' mmHg');
+    linhas.push('*Local Recomendado:* ' + res.localRecomendado);
+    linhas.push('');
+    linhas.push('🎯 *Meta Pressórica:*');
+    linhas.push(res.metaPressorica);
+    linhas.push('');
+    if (res.medicacoes.length > 0) {
+      linhas.push('💊 *Conduta Farmacológica:*');
+      for (var i = 0; i < res.medicacoes.length; i++) {
+        linhas.push(res.medicacoes[i]);
+      }
+      linhas.push('');
+    }
+    if (res.condutas.length > 0) {
+      linhas.push('*Condutas Gerais:*');
+      for (var j = 0; j < res.condutas.length; j++) {
+        linhas.push(res.condutas[j]);
+      }
+      linhas.push('');
+    }
+    for (var k = 0; k < res.alertas.length; k++) {
+      linhas.push(res.alertas[k]);
+    }
+
+    return linhas.join('\n');
+  }
+
+  function extrairParametrosTexto(texto) {
+    texto = String(texto || '').toLowerCase();
+    var pas = 180, pad = 110;
+    var mPa = texto.match(/(\d{2,3})\s*[xX/]\s*(\d{2,3})/);
+    if (mPa) {
+      pas = parseInt(mPa[1], 10);
+      pad = parseInt(mPa[2], 10);
+    }
+
+    var loa = {
+      eap: /(eap|edema agudo|congestao pulmonar|crepit)/i.test(texto),
+      encefalopatia: /(encefalopatia|confus|papiledema|turvacao|coma)/i.test(texto),
+      disseccao: /(dissecc|dor rasgando|dor transfix|assimetria de pulso)/i.test(texto),
+      iam: /(iam|dor precordial|infarto|sca|supra)/i.test(texto),
+      avc: /(avc|deficit|hemiplegia|afasia)/i.test(texto),
+      preeclampsia: /(gestant|gravid|preeclamp|eclamp)/i.test(texto)
+    };
+
+    var dorAnsiedade = /(dor|ansiedad|panico|estresse|nervos|tensional)/i.test(texto);
+
+    return {
+      pas: pas,
+      pad: pad,
+      lesaoOrgaoAlvo: loa,
+      dor: dorAnsiedade
+    };
+  }
+
+  return {
+    classificarCrise: classificarCrise,
+    formatarTextoTelegram: formatarTextoTelegram,
+    extrairParametrosTexto: extrairParametrosTexto
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = EmergenciaCriseHipertensivaService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_endocrinologia_diabetes.js
 // ==============================================================================
 
@@ -14636,6 +15054,313 @@ if (typeof module !== 'undefined' && module.exports) {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_infectologia_itu.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA · MÓDULO DE INFECÇÃO DO TRATO URINÁRIO (ITU, CISTITE & PIELONEFRITE)
+ * ==============================================================================
+ * Referência: Diretrizes de Infecções Urinárias da Sociedade Brasileira de Urologia
+ * (SBU 2023) / IDSA 2022 / Protocolos Clínicos do Ministério da Saúde.
+ * ==============================================================================
+ */
+
+var InfectologiaItuService = (function () {
+  'use strict';
+
+  function conduzirItu(dados) {
+    dados = dados || {};
+    var tipo = String(dados.tipo || 'cistite_nao_complicada').toLowerCase();
+    var gestante = Boolean(dados.gestante);
+    var sexo = String(dados.sexo || (gestante ? 'F' : 'F')).toUpperCase();
+    var clcr = Number(dados.clcr || dados.clearance);
+    var febre = Boolean(dados.febre || dados.giordanoPositivo || dados.dorLombar);
+    var sepse = Boolean(dados.sepse || dados.vomitosIncoerciveis || dados.hipotensao);
+
+    // Ajuste automático por sintomas
+    if (sepse || (febre && gestante)) {
+      tipo = 'pielonefrite_hospitalar';
+    } else if (febre) {
+      tipo = 'pielonefrite_ambulatorial';
+    } else if (gestante) {
+      tipo = 'cistite_gestante';
+    } else if (sexo === 'M' || sexo === 'MASCULINO') {
+      tipo = 'itu_masculina';
+    }
+
+    var diagnostico = 'Cistite Aguda Não Complicada (Mulher)';
+    var recomendacoes = [];
+    var prescricoes = [];
+    var alertas = [];
+
+    if (tipo === 'cistite_gestante') {
+      diagnostico = 'Cistite Aguda / Bacteriúria na Gestação';
+      recomendacoes.push('• Tratamento obrigatório em qualquer fase da gestação (previne pielonefrite em até 30% e parto prematuro).');
+      recomendacoes.push('• Urocultura com antibiograma mandatória no início e teste de cura 7 a 14 dias após o fim do tratamento.');
+      
+      prescricoes.push('💊 1ª Opção: Fosfomicina Trometamol 3g sachê dose única VO (dissolver em meio copo de água à noite ao deitar com bexiga vazia).');
+      prescricoes.push('💊 2ª Opção: Cefalexina 500mg VO a cada 6 horas por 7 dias.');
+      prescricoes.push('💊 3ª Opção: Amoxicilina + Clavulanato 500/125mg VO a cada 8 horas por 7 dias.');
+
+      alertas.push('⛔ CONTRAINDICAÇÕES GESTACIONAIS: Fluoroquinolonas (Cipro/Levo — risco de lesão cartilaginosa fetal) são terminantemente proibidas. Sulfametoxazol+Trimetoprima contraindicado no 1º trimestre (teratogênico) e no final do 3º trimestre (risco de kernicterus neonatal).');
+    } else if (tipo === 'pielonefrite_ambulatorial') {
+      diagnostico = 'Pielonefrite Aguda Não Complicada (Manejo Ambulatorial)';
+      recomendacoes.push('• Paciente tolerando líquidos por via oral, sem sinais de sepse, náuseas controladas e suporte domiciliar seguro.');
+      recomendacoes.push('• Coleta obrigatória de Urocultura com TSA e Hemograma antes do início do antimicrobiano.');
+      recomendacoes.push('• Reavaliação clínica obrigatória em 48 a 72 horas.');
+
+      prescricoes.push('💊 Dose de ataque na unidade: Ceftriaxona 1g IM ou IV na UPA antes da liberação.');
+      prescricoes.push('💊 Seguimento oral: Ciprofloxacino 500mg VO 12/12h por 7 dias OU Levofloxacino 750mg VO 1x/dia por 5 dias.');
+      prescricoes.push('💊 Analgesia: Dipirona 1g VO 6/6h se dor/febre.');
+
+      alertas.push('⚠️ Se ausência de melhora clínica em 48-72h, vômitos ou piora do estado geral: internar imediatamente e solicitar USG ou TC de rins/vias urinárias (descartar abscesso renal ou litíase obstrutiva).');
+    } else if (tipo === 'pielonefrite_hospitalar') {
+      diagnostico = 'Pielonefrite Aguda Grave / Hospitalar';
+      recomendacoes.push('• Internação hospitalar mandatória em leito clínico/enfermaria (ou UTI se instabilidade hemodinâmica).');
+      recomendacoes.push('• Coleta imediata de Hemoculturas (2 pares) e Urocultura com TSA.');
+      recomendacoes.push('• Hidratação venosa vigorosa com cristaloides isotônicos e controle de diurese.');
+
+      prescricoes.push('💊 1ª Linha: Ceftriaxona 1g a 2g IV a cada 24 horas (ou 1g IV 12/12h).');
+      prescricoes.push('💊 Se choque séptico ou suspeita de Pseudomonas/germes multirresistentes: Meropenem 1g IV 8/8h OU Cefepime 2g IV 8/8h associado ou não a Amicacina.');
+      prescricoes.push('💊 Transição para via oral após 48h afebril e conforme o padrão do antibiograma.');
+
+      alertas.push('🚨 ALERTA: Em caso de persistência da febre após 72h de antibioticoterapia adequada, realizar Tomografia Computadorizada de Abdome com contraste (rastreio de fleimão, abscesso perirrenal ou necrose papilar).');
+    } else if (tipo === 'itu_masculina') {
+      diagnostico = 'ITU no Sexo Masculino (Considerada Complicada)';
+      recomendacoes.push('• Toda ITU em homem deve ser investigada para obstrução urinária baixa (HPB), estenose de uretra ou prostatite.');
+      recomendacoes.push('• Duração estendida do tratamento devido à penetração tecidual na próstata.');
+
+      prescricoes.push('💊 1ª Opção: Ciprofloxacino 500mg VO 12/12h por 10 a 14 dias.');
+      prescricoes.push('💊 2ª Opção: Sulfametoxazol + Trimetoprima 800/160mg VO 12/12h por 14 dias (se suscetível em antibiograma).');
+      prescricoes.push('💊 Se febre alta e retenção: Ceftriaxona 1g a 2g IV/dia e avaliação urológica urgente.');
+
+      alertas.push('⚠️ Evitar Nitrofurantoína e Fosfomicina para homens, pois não atingem concentração terapêutica adequada no parênquima prostático.');
+    } else {
+      // Cistite não complicada feminina
+      diagnostico = 'Cistite Aguda Não Complicada (Mulher não gestante)';
+      recomendacoes.push('• Quadro típico de disúria, polaciúria e urgência miccional sem febre ou dor lombar.');
+      recomendacoes.push('• Urocultura geralmente dispensável no primeiro episódio não complicado.');
+      recomendacoes.push('• Aumento da ingesta hídrica e micção pós-coito.');
+
+      prescricoes.push('💊 1ª Opção (Padrão Ouro): Fosfomicina Trometamol 3g dose única VO (dissolver em meio copo de água e tomar ao deitar).');
+      if (!isNaN(clcr) && clcr < 30) {
+        prescricoes.push('💊 2ª Opção: Cefalexina 500mg VO 6/6h por 5 a 7 dias (Nitrofurantoína contraindicada devido a ClCr < 30 mL/min).');
+      } else {
+        prescricoes.push('💊 2ª Opção: Nitrofurantoína 100mg VO a cada 6 horas por 5 dias (tomar junto com as refeições).');
+      }
+      prescricoes.push('💊 Sintomático urinário se disúria intensa: Fenazopiridina 200mg VO 8/8h por no máximo 48h (alertar paciente sobre urina avermelhada/alaranjada).');
+
+      alertas.push('⚠️ Evitar Fluoroquinolonas (Ciprofloxacino/Levofloxacino) na cistite não complicada para poupar resistência bacteriana e prevenir tendinopatias e neuropatias.');
+    }
+
+    return {
+      diagnostico: diagnostico,
+      tipo: tipo,
+      sexo: sexo,
+      gestante: gestante,
+      recomendacoes: recomendacoes,
+      prescricoes: prescricoes,
+      alertas: alertas
+    };
+  }
+
+  function formatarTextoTelegram(res) {
+    var linhas = [];
+    linhas.push('🦠 *INFECÇÃO DO TRATO URINÁRIO (ITU, CISTITE & PIELONEFRITE)*');
+    linhas.push('📅 *Diretrizes SBU / IDSA / Ministério da Saúde*');
+    linhas.push('');
+    linhas.push('*Diagnóstico:* ' + res.diagnostico);
+    linhas.push('');
+    linhas.push('💊 *Esquema Antimicrobiano e Posologia:*');
+    for (var i = 0; i < res.prescricoes.length; i++) {
+      linhas.push(res.prescricoes[i]);
+    }
+    linhas.push('');
+    linhas.push('*Condutas e Orientações:*');
+    for (var j = 0; j < res.recomendacoes.length; j++) {
+      linhas.push(res.recomendacoes[j]);
+    }
+    if (res.alertas.length > 0) {
+      linhas.push('');
+      for (var k = 0; k < res.alertas.length; k++) {
+        linhas.push(res.alertas[k]);
+      }
+    }
+
+    return linhas.join('\n');
+  }
+
+  function extrairParametrosTexto(texto) {
+    texto = String(texto || '').toLowerCase();
+    var gestante = /(gestant|gravid|prenatal|dpp|semanas)/i.test(texto);
+    var pielo = /(pielonefrit|febre|giordano|dor lombar|calafrio)/i.test(texto);
+    var sepse = /(sepse|choque|hipotens|vomit)/i.test(texto);
+    var homem = /(homem|masculin|macho|senhor|rapaz)/i.test(texto);
+
+    var tipo = 'cistite_nao_complicada';
+    if (sepse || (pielo && gestante)) tipo = 'pielonefrite_hospitalar';
+    else if (pielo) tipo = 'pielonefrite_ambulatorial';
+    else if (gestante) tipo = 'cistite_gestante';
+    else if (homem) tipo = 'itu_masculina';
+
+    return {
+      tipo: tipo,
+      gestante: gestante,
+      sexo: homem ? 'M' : 'F',
+      febre: pielo,
+      sepse: sepse
+    };
+  }
+
+  return {
+    conduzirItu: conduzirItu,
+    formatarTextoTelegram: formatarTextoTelegram,
+    extrairParametrosTexto: extrairParametrosTexto
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = InfectologiaItuService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_medicina_legal_obito_notificacao.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA · MÓDULO DE DECLARAÇÃO DE ÓBITO & NOTIFICAÇÃO COMPULSÓRIA
+ * ==============================================================================
+ * Referência: Conselho Federal de Medicina (Resolução CFM 1.779/2005), Ministério da
+ * Saúde (Manual de Instruções para Preenchimento da Declaração de Óbito 2022),
+ * Portaria GM/MS nº 217/2023 (Lista Nacional de Notificação Compulsória / SINAN).
+ * ==============================================================================
+ */
+
+var MedicinaLegalObitoService = (function () {
+  'use strict';
+
+  function fluxoDeclaracaoObito(tipoMorte) {
+    tipoMorte = String(tipoMorte || 'natural_assistida').toLowerCase();
+
+    var ehViolenta = /(violent|acident|homicid|suicid|queda|trauma|afogament|intoxicacao|externa|suspeita)/i.test(tipoMorte);
+    var ehSemAssistencia = /(sem[\s_]+assistencia|indefinid|desconhecid|svo|domiciliar)/i.test(tipoMorte);
+
+    var destino = 'MÉDICO ASSISTENTE / PLANTONISTA DO HOSPITAL';
+    var orientacoes = [];
+    var modeloCausaMorte = {};
+
+    if (ehViolenta) {
+      destino = 'INSTITUTO MÉDICO LEGAL (IML) — MANDATÓRIO';
+      orientacoes.push('🚨 MORTE VIOLENTA OU SUSPEITA DE CAUSA EXTERNA.');
+      orientacoes.push('• É TERMINANTEMENTE PROIBIDO ao médico assistente ou hospitalar emitir a Declaração de Óbito.');
+      orientacoes.push('• Encaminhar o corpo imediatamente ao IML acompanhado de Boletim de Ocorrência (BO).');
+      orientacoes.push('• Atenção: Morte decorrente de queda em idoso com fratura de fêmur e complicação tardia É CAUSA EXTERNA e deve ir ao IML!');
+    } else if (ehSemAssistencia) {
+      destino = 'SERVIÇO DE VERIFICAÇÃO DE ÓBITO (SVO)';
+      orientacoes.push('• Morte natural sem assistência médica ou com causa clínica não esclarecida.');
+      orientacoes.push('• Encaminhar ao SVO se disponível no município.');
+      orientacoes.push('• Se inexistir SVO na localidade: a Declaração de Óbito deve ser emitida por médico do serviço público de saúde local mais próximo.');
+    } else {
+      destino = 'MÉDICO ASSISTENTE OU PLANTONISTA DA UNIDADE';
+      orientacoes.push('• Morte natural com diagnóstico firmado ou assistência durante a internação.');
+      orientacoes.push('• O médico que vinha prestando assistência ou o plantonista que constatou o óbito deve emitir a DO.');
+      orientacoes.push('• Nunca colocar "Parada Cardiorrespiratória" ou "Falência de Múltiplos Órgãos" como causa básica.');
+    }
+
+    modeloCausaMorte = {
+      parte1_linha_a_causa_imediata: 'Choque Séptico / Insuficiência Respiratória Aguda',
+      parte1_linha_b_intermediaria: 'Broncopneumonia bacteriana',
+      parte1_linha_c_antecedente: 'Acidente Vascular Cerebral Isquêmico prévio / Sequelar',
+      parte1_linha_d_causa_basica: 'Hipertensão Arterial Sistêmica severa',
+      parte2_outras_condicoes: 'Diabetes Mellitus tipo 2, Tabagismo pregresso'
+    };
+
+    return {
+      tipoMorte: tipoMorte,
+      destinoObrigatorio: destino,
+      orientacoes: orientacoes,
+      exemploPreenchimento: modeloCausaMorte
+    };
+  }
+
+  function listarNotificacoesImediatas() {
+    return [
+      '🚨 Dengue com sinais de alarme ou Dengue Grave (Choque)',
+      '🚨 Febre Amarela e Chikungunya com óbito / em área nova',
+      '🚨 Raiva Humana / Acidente com animal potencialmente transmissor',
+      '🚨 Meningites (Meningocócica, Pneumocócica, Haemophilus)',
+      '🚨 Síndrome Respiratória Aguda Grave (SRAG) por Influenza / SARS-CoV-2',
+      '🚨 Cólera, Botulismo e Difteria',
+      '🚨 Sarampo e Rubéola',
+      '🚨 Peste e Febre Maculosa',
+      '🚨 Mpox (Varíola dos Macacos)',
+      '🚨 Eventos Adversos Graves Pós-Vacinação (EAPV)'
+    ];
+  }
+
+  function formatarTextoTelegram(dados) {
+    dados = dados || {};
+    var fluxo = fluxoDeclaracaoObito(dados.tipo);
+    var linhas = [];
+
+    linhas.push('📄 *DECLARAÇÃO DE ÓBITO & NOTIFICAÇÃO COMPULSÓRIA*');
+    linhas.push('📅 *Resoluções CFM 1.779/2005 & Ministério da Saúde*');
+    linhas.push('');
+    linhas.push('*Destino Legal Obrigatório do Corpo:*');
+    linhas.push('🏛️ *' + fluxo.destinoObrigatorio + '*');
+    linhas.push('');
+
+    linhas.push('*Orientações Normativas:*');
+    for (var i = 0; i < fluxo.orientacoes.length; i++) {
+      linhas.push(fluxo.orientacoes[i]);
+    }
+    linhas.push('');
+
+    linhas.push('✍️ *Exemplo Correto de Preenchimento das Linhas (Parte I):*');
+    linhas.push('• Linha a (Causa Imediata/Terminal): ' + fluxo.exemploPreenchimento.parte1_linha_a_causa_imediata);
+    linhas.push('• Linha b (Intermediária): ' + fluxo.exemploPreenchimento.parte1_linha_b_intermediaria);
+    linhas.push('• Linha c (Antecedente): ' + fluxo.exemploPreenchimento.parte1_linha_c_antecedente);
+    linhas.push('• Linha d (Causa Básica Primária): ' + fluxo.exemploPreenchimento.parte1_linha_d_causa_basica);
+    linhas.push('• Parte II (Contribuíram sem relação direta): ' + fluxo.exemploPreenchimento.parte2_outras_condicoes);
+    linhas.push('');
+
+    linhas.push('🔔 *Doenças de Notificação Compulsória IMEDIATA (24h ao SINAN):*');
+    var notifs = listarNotificacoesImediatas();
+    for (var j = 0; j < Math.min(6, notifs.length); j++) {
+      linhas.push('• ' + notifs[j]);
+    }
+
+    return linhas.join('\n');
+  }
+
+  function extrairParametrosTexto(texto) {
+    texto = String(texto || '').toLowerCase();
+    var tipo = 'natural_assistida';
+    if (/(violent|acident|queda|tiro|homicid|suicid|iml|estranha)/i.test(texto)) {
+      tipo = 'violenta_suspeita';
+    } else if (/(sem assistencia|desconhecid|svo|domicilio|achado)/i.test(texto)) {
+      tipo = 'sem_assistencia';
+    }
+    return { tipo: tipo };
+  }
+
+  return {
+    fluxoDeclaracaoObito: fluxoDeclaracaoObito,
+    listarNotificacoesImediatas: listarNotificacoesImediatas,
+    formatarTextoTelegram: formatarTextoTelegram,
+    extrairParametrosTexto: extrairParametrosTexto
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = MedicinaLegalObitoService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_nefrologia_clearance.js
 // ==============================================================================
 
@@ -15631,6 +16356,182 @@ var NeurologiaAvcService = (function() {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = NeurologiaAvcService;
   module.exports.NeurologiaAvcService = NeurologiaAvcService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_neurologia_cefaleias.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA · MÓDULO DE CEFALEIAS AGUDAS NO PS & CRITÉRIOS SNOOP
+ * ==============================================================================
+ * Referência: International Headache Society (ICHD-3), Academia Brasileira de
+ * Neurologia (ABN), Protocolos de Triagem de Cefaleias em Emergência.
+ * ==============================================================================
+ */
+
+var NeurologiaCefaleiasService = (function () {
+  'use strict';
+
+  function avaliarBandeirasVermelhas(dados) {
+    dados = dados || {};
+    var snoop = [];
+    var redFlags = [];
+
+    // S - Sistêmicos
+    var sistemico = Boolean(dados.febre || dados.rigidezNuca || dados.neoplasia || dados.hiv || dados.imunossupressao || dados.perdaPeso);
+    if (sistemico) {
+      snoop.push('S (Sistêmicos): Febre, rigidez de nuca, perda de peso ou histórico de neoplasia/imunossupressão.');
+      redFlags.push('Sintomas sistêmicos / suspeita de infecção de SNC ou metástase');
+    }
+
+    // N - Neurológicos
+    var neurologico = Boolean(dados.deficitFocal || dados.afasia || dados.papiledema || dados.convulsao || dados.rebaixamentoConsciencia);
+    if (neurologico) {
+      snoop.push('N (Neurológicos): Déficit focal, papiledema, crise convulsiva ou alteração cognitiva/consciência.');
+      redFlags.push('Sinais neurológicos focais / hipertensão intracraniana');
+    }
+
+    // O - Onset súbito (Thunderclap)
+    var onsetSubito = Boolean(dados.thunderclap || dados.inicioSubito || dados.trovoada || dados.picoMenor1Minuto);
+    if (onsetSubito) {
+      snoop.push('O (Onset Súbito): Cefaleia em trovoada (pico de dor instantâneo em < 1 minuto).');
+      redFlags.push('Cefaleia em trovoada / suspeita crítica de Hemorragia Subaracnóidea (HSA)');
+    }
+
+    // O - Older (Idade > 50 anos)
+    var idade = Number(dados.idade) || 0;
+    var older = (!isNaN(idade) && idade >= 50 && Boolean(dados.inicioRecente || dados.primeiraCefaleia));
+    if (older || dados.idadeMais50) {
+      snoop.push('O (Older): Início recente de cefaleia ou nova dor em paciente ≥ 50 anos.');
+      redFlags.push('Início tardio / suspeita de Arterite de Células Gigantes ou lesão expansiva');
+    }
+
+    // P - Pattern change / Postural
+    var patternChange = Boolean(dados.mudancaPadrao || dados.pioraPostural || dados.pioraValsalva || dados.despertaSono);
+    if (patternChange) {
+      snoop.push('P (Pattern/Posicional): Mudança abrupta de padrão, piora com manobra de Valsalva/tosse ou ao deitar.');
+      redFlags.push('Cefaleia com sinal posicional / suspeita de variação de pressão liquórica ou massa');
+    }
+
+    var temBandeiraVermelha = snoop.length > 0;
+    var classificacao = temBandeiraVermelha
+      ? 'CEFALEIA SECUNDÁRIA POTENCIALMENTE GRAVE (Bandeira Vermelha Presente)'
+      : 'Cefaleia Primária Provável (Sem Bandeiras Vermelhas)';
+
+    var condutas = [];
+    var esquemaTratamentoPS = [];
+
+    if (temBandeiraVermelha) {
+      condutas.push('🚨 SOLICITAR TOMOGRAFIA COMPUTADORIZADA (TC) DE CRÂNIO SEM CONTRASTE IMEDIATA.');
+      if (onsetSubito) {
+        condutas.push('• Se TC de crânio for normal e o início foi súbito/thunderclap há menos de 2 semanas: PUNÇÃO LOMBAR diagnóstica mandatória para afastar HSA (pesquisa de xantocromia).');
+      }
+      if (dados.febre || dados.rigidezNuca) {
+        condutas.push('• Suspeita de Meningite bacteriana: colher Hemoculturas e Líquor imediatamente; iniciar Ceftriaxona 2g IV 12/12h + Dexametasona 10mg IV antes ou com o primeiro ATB (adicionar Ampicilina 2g IV 4/4h se idade ≥ 50 anos).');
+      }
+      if (dados.idadeMais50 || older) {
+        condutas.push('• Se dor temporal, claudicação de mandíbula ou alteração visual em > 50 anos: dosar VHS e PCR urgente (suspeita de Arterite Temporal — iniciar Prednisona 1 mg/kg/dia para prevenir cegueira irreversível).');
+      }
+    } else {
+      condutas.push('• Paciente elegível para protocolo analgésico de resgate no Pronto Socorro.');
+      condutas.push('• Manter em repouso em sala com pouca luz e baixo ruído.');
+      condutas.push('• Hidratação com SF 0,9% 500 mL a 1.000 mL IV.');
+
+      esquemaTratamentoPS = [
+        '💊 Dipirona 1g a 2g IV em 100 mL de SF 0,9% correr em 15 minutos',
+        '💊 Metoclopramida 10mg IV lento (alivia náusea e potencializa a absorção gástrica)',
+        '💊 Dexametasona 4mg a 10mg IV (reduz significativamente a taxa de recorrência da migrânea em até 72 horas)',
+        '💊 AINE IV (se sem contraindicações renais/gástricas): Cetoprofeno 100mg IV ou Tenoxicam 20mg IV'
+      ];
+    }
+
+    var bloqueiosSeguranca = [
+      '⛔ NÃO USAR OPIOIDES (Morfina, Tramadol, Codeína) na cefaleia primária/enxaqueca: causam hiperalgesia de rebote, tolerância, náusea e cronificação da dor.'
+    ];
+
+    return {
+      temBandeiraVermelha: temBandeiraVermelha,
+      classificacao: classificacao,
+      criteriosSnoopPositivos: snoop,
+      redFlags: redFlags,
+      condutas: condutas,
+      esquemaTratamentoPS: esquemaTratamentoPS,
+      bloqueiosSeguranca: bloqueiosSeguranca
+    };
+  }
+
+  function formatarTextoTelegram(res) {
+    var linhas = [];
+    linhas.push('🤕 *ABORDAGEM DE CEFALEIA AGUDA & PROTOCOLO SNOOP*');
+    linhas.push('📅 *Diretrizes ABN / International Headache Society (ICHD-3)*');
+    linhas.push('');
+    linhas.push('*Classificação:* ' + res.classificacao);
+    linhas.push('');
+
+    if (res.temBandeiraVermelha) {
+      linhas.push('🚩 *Bandeiras Vermelhas Identificadas (SNOOP):*');
+      for (var i = 0; i < res.criteriosSnoopPositivos.length; i++) {
+        linhas.push('• ' + res.criteriosSnoopPositivos[i]);
+      }
+      linhas.push('');
+      linhas.push('*Conduta de Investigação Urgente:*');
+      for (var j = 0; j < res.condutas.length; j++) {
+        linhas.push(res.condutas[j]);
+      }
+    } else {
+      linhas.push('✅ *Nenhuma bandeira vermelha detectada.* Dor compatível com crise de cefaleia primária.');
+      linhas.push('');
+      linhas.push('💊 *Protocolo de Resgate no Pronto Socorro:*');
+      for (var k = 0; k < res.esquemaTratamentoPS.length; k++) {
+        linhas.push(res.esquemaTratamentoPS[k]);
+      }
+      linhas.push('');
+      linhas.push('*Orientações Beira-Leito:*');
+      for (var l = 0; l < res.condutas.length; l++) {
+        linhas.push(res.condutas[l]);
+      }
+    }
+
+    linhas.push('');
+    linhas.push(res.bloqueiosSeguranca[0]);
+
+    return linhas.join('\n');
+  }
+
+  function extrairParametrosTexto(texto) {
+    texto = String(texto || '').toLowerCase();
+    var p = {
+      febre: /(febre|febril|calafrio)/i.test(texto),
+      rigidezNuca: /(rigidez|mening|nuca|brudzinski|kernig)/i.test(texto),
+      deficitFocal: /(deficit|motor|hemipleg|visao|afasia|diplopia)/i.test(texto),
+      thunderclap: /(thunderclap|trovoada|subit|pico instantaneo|explosiva)/i.test(texto),
+      mudancaPadrao: /(mudanca|diferente|pior da vida|nunca sentiu)/i.test(texto),
+      pioraPostural: /(deitar|tosse|valsalva|esforco)/i.test(texto),
+      idade: null,
+      idadeMais50: /(> 50|mais de 50|idoso)/i.test(texto)
+    };
+
+    var mIdade = texto.match(/(\d+)\s*(?:anos|a\b)/i);
+    if (mIdade) {
+      p.idade = parseInt(mIdade[1], 10);
+      if (p.idade >= 50) p.idadeMais50 = true;
+    }
+
+    return p;
+  }
+
+  return {
+    avaliarBandeirasVermelhas: avaliarBandeirasVermelhas,
+    formatarTextoTelegram: formatarTextoTelegram,
+    extrairParametrosTexto: extrairParametrosTexto
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = NeurologiaCefaleiasService;
 }
 
 
@@ -21904,6 +22805,240 @@ if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
 
 
 // ==============================================================================
+// ARQUIVO FONTE: 02_pequenas_urgencias_trauma.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA · MÓDULO DE PEQUENAS URGÊNCIAS & TRAUMATOLOGIA BÁSICA
+ * ==============================================================================
+ * Referência: Regras de Ottawa (Ottawa Ankle/Knee Rules), Ministério da Saúde
+ * (Guia de Profilaxia do Tétano e Raiva Humana), Manual de Suturas e Anestesia Local.
+ * ==============================================================================
+ */
+
+var PequenasUrgenciasTraumaService = (function () {
+  'use strict';
+
+  function regraOttawaTornozelo(dados) {
+    dados = dados || {};
+    var dorMaleoloLateral = Boolean(dados.dorMaleoloLateral || dados.bordaMaleoloLateral);
+    var dorMaleoloMedial = Boolean(dados.dorMaleoloMedial || dados.bordaMaleoloMedial);
+    var dorBaseQuintoMeta = Boolean(dados.dorBaseQuintoMeta || dados.quintoMetatarso);
+    var dorNavicular = Boolean(dados.dorNavicular);
+    var incapacidadePassos = Boolean(dados.incapacidadePassos || dados.naoAnda);
+
+    var indicaRxTornozelo = dorMaleoloLateral || dorMaleoloMedial || incapacidadePassos;
+    var indicaRxPe = dorBaseQuintoMeta || dorNavicular || incapacidadePassos;
+
+    var justificativas = [];
+    if (dorMaleoloLateral) justificativas.push('Dor à palpação dos 6 cm distais ou ponta do maléolo lateral.');
+    if (dorMaleoloMedial) justificativas.push('Dor à palpação dos 6 cm distais ou ponta do maléolo medial.');
+    if (dorBaseQuintoMeta) justificativas.push('Dor à palpação na base do 5º metatarso (risco de fratura de Jones).');
+    if (dorNavicular) justificativas.push('Dor à palpação do osso navicular.');
+    if (incapacidadePassos) justificativas.push('Incapacidade de suportar o peso e dar 4 passos no trauma e no exame.');
+
+    return {
+      indicaRxTornozelo: indicaRxTornozelo,
+      indicaRxPe: indicaRxPe,
+      necessitaImagem: indicaRxTornozelo || indicaRxPe,
+      justificativas: justificativas,
+      conduta: (indicaRxTornozelo || indicaRxPe)
+        ? '🚨 INDICAÇÃO DE RAIO-X (Critérios de Ottawa Positivos): Solicitar radiografia de tornozelo (AP e Perfil) e/ou pé conforme a topografia da dor.'
+        : '✅ DISPENSADA RADIOGRAFIA: Baixa probabilidade de fratura (< 1%). Tratar com PRICE (Proteção, Repouso, Gelo local por 20 min 3x/dia, Compressão com faixa elástica e Elevação do membro) + Analgesia simples.'
+    };
+  }
+
+  function calcularLidocainaDoseMaxima(pesoKg, comVasoconstritor) {
+    pesoKg = Math.max(5, Math.min(150, Number(pesoKg) || 70));
+    var comAdrenalina = Boolean(comVasoconstritor);
+
+    // 4.5 mg/kg sem vasoconstritor (teto 300 mg)
+    // 7.0 mg/kg com vasoconstritor (teto 500 mg)
+    var doseMgKg = comAdrenalina ? 7.0 : 4.5;
+    var tetoMg = comAdrenalina ? 500 : 300;
+
+    var doseCalculadaMg = Math.min(tetoMg, Math.round(pesoKg * doseMgKg));
+    var volumeLido2PctMl = Math.round((doseCalculadaMg / 20) * 10) / 10; // 20 mg/mL
+    var volumeLido1PctMl = Math.round((doseCalculadaMg / 10) * 10) / 10; // 10 mg/mL
+
+    return {
+      pesoKg: pesoKg,
+      comVasoconstritor: comAdrenalina,
+      doseMaximaMg: doseCalculadaMg,
+      volumeMaximoLidocaina2PctMl: volumeLido2PctMl,
+      volumeMaximoLidocaina1PctMl: volumeLido1PctMl,
+      advertencia: comAdrenalina
+        ? '⚠️ Adrenalina contraindicada em extremidades distais com circulação terminal (dedos, pênis, orelha, ponta do nariz).'
+        : 'Seguro para infiltração local em qualquer topografia.'
+    };
+  }
+
+  function avaliarProfilaxiaTetano(dados) {
+    dados = dados || {};
+    var dosesPrevias = Number(dados.dosesPrevias || dados.doses) || 0;
+    var tempoUltimaDoseAnos = Number(dados.anosDesdeUltimaDose || dados.tempoAnos) || 5;
+    var ferimentoGrave = Boolean(dados.ferimentoGrave || dados.contaminado || dados.terra || dados.mordedura || dados.queimadura);
+
+    var vacina = false;
+    var imunoglobulina = false;
+    var motivo = '';
+
+    if (dosesPrevias < 3 || isNaN(dosesPrevias)) {
+      vacina = true;
+      if (ferimentoGrave) {
+        imunoglobulina = true;
+        motivo = 'Esquema vacinal incerto ou incompleto (< 3 doses) com ferimento contaminado/alto risco: aplicar Vacina dT + Soro Antitetânico (SAT 5.000 UI) ou Imunoglobulina Antitetânica (IGHAT 250 UI).';
+      } else {
+        motivo = 'Esquema vacinal incompleto em ferimento limpo: aplicar 1 dose da Vacina dT e orientar completar o esquema na UBS.';
+      }
+    } else {
+      // ≥ 3 doses
+      if (ferimentoGrave) {
+        if (tempoUltimaDoseAnos >= 5) {
+          vacina = true;
+          motivo = 'Ferimento de alto risco e última dose há ≥ 5 anos: aplicar 1 dose de reforço da Vacina dT. Imunoglobulina NÃO é necessária.';
+        } else {
+          motivo = 'Paciente imunizado (última dose há < 5 anos): Nenhuma dose adicional necessária.';
+        }
+      } else {
+        // Ferimento limpo
+        if (tempoUltimaDoseAnos >= 10) {
+          vacina = true;
+          motivo = 'Ferimento limpo e última dose há ≥ 10 anos: aplicar 1 dose de reforço da Vacina dT.';
+        } else {
+          motivo = 'Paciente imunizado (última dose há < 10 anos): Nenhuma intervenção antitetânica necessária.';
+        }
+      }
+    }
+
+    return {
+      indicaVacinaDt: vacina,
+      indicaSoroOuIghat: imunoglobulina,
+      condutaDescricao: motivo
+    };
+  }
+
+  function avaliarProfilaxiaRaiva(dados) {
+    dados = dados || {};
+    var animal = String(dados.animal || 'cao_gato').toLowerCase();
+    var tipoLesao = String(dados.tipoLesao || 'arranhadura_superficial').toLowerCase();
+    var animalObservavel = Boolean(dados.animalObservavel !== false);
+
+    var ehMorcegoOuSilvestre = /(morcego|macaco|sagui|raposa|silvestre)/i.test(animal);
+    var ehGrave = /(profund|multipl|face|cabeca|mao|polpa|mucosa)/i.test(tipoLesao) || ehMorcegoOuSilvestre;
+
+    var conduta = [];
+    if (ehMorcegoOuSilvestre) {
+      conduta.push('🚨 ACIDENTE COM MORCEGO / ANIMAL SILVESTRE: RISCO MÁXIMO.');
+      conduta.push('• Lavar exaustivamente com água corrente e sabão por 15 minutos.');
+      conduta.push('• Soro Antirrábico (SAR 40 UI/kg) infiltrado na lesão e restante IM.');
+      conduta.push('• Vacina antirrábica: Esquema de 4 doses nos dias 0, 3, 7 e 14.');
+    } else if (animalObservavel) {
+      if (ehGrave) {
+        conduta.push('• Lavar com água e sabão por 15 minutos.');
+        conduta.push('• Iniciar Vacina antirrábica (D0 e D3) e observar o cão/gato por 10 dias.');
+        conduta.push('• Se animal permanecer saudável no 10º dia: encerrar o esquema e dispensar o soro.');
+        conduta.push('• Se animal adoecer, morrer ou desaparecer: aplicar Soro Antirrábico (SAR) imediatamente e completar as 4 doses de vacina (D7 e D14).');
+      } else {
+        conduta.push('• Lavar com água e sabão.');
+        conduta.push('• Observar o animal por 10 dias. Não iniciar vacina ou soro de imediato se acidente leve e animal sadio observável.');
+        conduta.push('• Se o animal adoecer ou sumir no período: iniciar vacina imediatamente.');
+      }
+    } else {
+      // Animal não observável / desconhecido
+      conduta.push('• Animal desaparecido ou raivoso:');
+      conduta.push('• Lavar exaustivamente com água e sabão.');
+      conduta.push('• Esquema vacinal completo com 4 doses (dias 0, 3, 7 e 14).');
+      if (ehGrave) {
+        conduta.push('• Associar Soro Antirrábico (SAR 40 UI/kg) no D0.');
+      }
+    }
+
+    return {
+      ehGrave: ehGrave,
+      animalObservavel: animalObservavel,
+      condutas: conduta
+    };
+  }
+
+  function guiaFiosECirurgia() {
+    return [
+      { regiao: 'Face', fio: 'Nylon 5-0 ou 6-0', tempoRetirada: '4 a 5 dias' },
+      { regiao: 'Couro Cabeludo', fio: 'Nylon 3-0 ou 4-0', tempoRetirada: '7 a 10 dias' },
+      { regiao: 'Tronco e Membros', fio: 'Nylon 3-0 ou 4-0', tempoRetirada: '10 a 14 dias' },
+      { regiao: 'Mãos, Pés e Articulações', fio: 'Nylon 4-0 ou 5-0', tempoRetirada: '12 a 14 dias' }
+    ];
+  }
+
+  function formatarTextoTelegram(dados) {
+    var linhas = [];
+    linhas.push('🩹 *PEQUENAS URGÊNCIAS & TRAUMATOLOGIA BÁSICA*');
+    linhas.push('📅 *Ottawa Rules / Profilaxia Tétano & Raiva / Suturas*');
+    linhas.push('');
+
+    var ottawa = regraOttawaTornozelo(dados);
+    linhas.push('*Critérios de Ottawa (Tornozelo/Pé):*');
+    linhas.push(ottawa.conduta);
+    linhas.push('');
+
+    var peso = dados.pesoKg || 70;
+    var lido = calcularLidocainaDoseMaxima(peso, dados.comVasoconstritor);
+    linhas.push('*Anestesia Local (Lidocaína 2% para ' + peso + ' kg):*');
+    linhas.push('• Dose máxima: ' + lido.doseMaximaMg + ' mg (' + lido.volumeMaximoLidocaina2PctMl + ' mL de Lidocaína 2%)');
+    linhas.push('• ' + lido.advertencia);
+    linhas.push('');
+
+    linhas.push('*Tabela Rápida de Fios Cirúrgicos:*');
+    var fios = guiaFiosECirurgia();
+    for (var i = 0; i < fios.length; i++) {
+      linhas.push('• ' + fios[i].regiao + ': ' + fios[i].fio + ' (retirar em ' + fios[i].tempoRetirada + ')');
+    }
+    linhas.push('');
+    linhas.push('⚠️ *Mordeduras Humanas/Animais:* NÃO suturar (risco de infecção grave). Prescrever Amoxicilina + Clavulanato 875/125mg VO 12/12h por 3-5 dias.');
+
+    return linhas.join('\n');
+  }
+
+  function extrairParametrosTexto(texto) {
+    texto = String(texto || '').toLowerCase();
+    var p = {
+      pesoKg: 70,
+      comVasoconstritor: /(vasoconstrit|adrenalina)/i.test(texto),
+      dorMaleoloLateral: /(maleolo lateral|tornozelo lateral)/i.test(texto),
+      dorMaleoloMedial: /(maleolo medial|tornozelo medial)/i.test(texto),
+      dorBaseQuintoMeta: /(5|quinto|metatarso)/i.test(texto),
+      dorNavicular: /(navicular)/i.test(texto),
+      incapacidadePassos: /(nao anda|nao apoia|passos|mancar)/i.test(texto),
+      animal: 'cao_gato',
+      ferimentoGrave: /(profund|terra|sujo|contaminad|morded)/i.test(texto)
+    };
+
+    var mPeso = texto.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)/);
+    if (mPeso) p.pesoKg = parseFloat(mPeso[1].replace(',', '.'));
+
+    if (/(morcego|macaco|silvestre)/i.test(texto)) p.animal = 'morcego';
+
+    return p;
+  }
+
+  return {
+    regraOttawaTornozelo: regraOttawaTornozelo,
+    calcularLidocainaDoseMaxima: calcularLidocainaDoseMaxima,
+    avaliarProfilaxiaTetano: avaliarProfilaxiaTetano,
+    avaliarProfilaxiaRaiva: avaliarProfilaxiaRaiva,
+    guiaFiosECirurgia: guiaFiosECirurgia,
+    formatarTextoTelegram: formatarTextoTelegram,
+    extrairParametrosTexto: extrairParametrosTexto
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PequenasUrgenciasTraumaService;
+}
+
+
+// ==============================================================================
 // ARQUIVO FONTE: 02_pneumologia_crise_asmatica.js
 // ==============================================================================
 
@@ -22568,6 +23703,158 @@ var PneumologiaDpocVniService = (function() {
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = PneumologiaDpocVniService;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_pneumologia_pac.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA · MÓDULO DE PNEUMONIA ADQUIRIDA NA COMUNIDADE (PAC & CURB-65)
+ * ==============================================================================
+ * Referência: Diretrizes Brasileiras para Manejo da PAC em Adultos (SBPT 2018 /
+ * ATS/IDSA 2019 / Ministério da Saúde).
+ * ==============================================================================
+ */
+
+var PneumologiaPacService = (function () {
+  'use strict';
+
+  function calcularCurb65(dados) {
+    dados = dados || {};
+    var confusao = Boolean(dados.confusao || dados.confusaoMental);
+    var ureia = Number(dados.ureia);
+    var fr = Number(dados.frequenciaRespiratoria || dados.fr);
+    var pas = Number(dados.pas || dados.pressaoSistolica);
+    var pad = Number(dados.pad || dados.pressaoDiastolica);
+    var idade = Number(dados.idade);
+
+    var c = confusao ? 1 : 0;
+    var u = (!isNaN(ureia) && ureia > 50) ? 1 : 0;
+    var r = (!isNaN(fr) && fr >= 30) ? 1 : 0;
+    var b = ((!isNaN(pas) && pas > 0 && pas < 90) || (!isNaN(pad) && pad > 0 && pad <= 60)) ? 1 : 0;
+    var sessentaECinco = (!isNaN(idade) && idade >= 65) ? 1 : 0;
+
+    var escore = c + u + r + b + sessentaECinco;
+
+    var risco = 'BAIXO';
+    var mortalidade = '< 1.5%';
+    var localRecomendado = 'Tratamento Ambulatorial';
+    var esquemaSugerido = [];
+
+    if (escore >= 3) {
+      risco = 'ALTO';
+      mortalidade = escore === 3 ? '17%' : '27% a 40%';
+      localRecomendado = 'Internação Hospitalar Mandatória (Avaliar UTI se escore 4 ou 5)';
+      esquemaSugerido = [
+        '• Ceftriaxona 2g IV 1x/dia + Azitromicina 500mg IV 1x/dia por 7 dias',
+        '• Alternativa (alergia grave a beta-lactâmicos): Levofloxacino 750mg IV 1x/dia ou Moxifloxacino 400mg IV 1x/dia',
+        '• Solicitar: Hemoculturas (2 pares), Raio-X de tórax, Gasometria arterial, PCR, Função renal e Eletrólitos.'
+      ];
+    } else if (escore === 2) {
+      risco = 'MODERADO';
+      mortalidade = '9.2%';
+      localRecomendado = 'Enfermaria Clínica Geral ou Observação Supervisionada em UPA';
+      esquemaSugerido = [
+        '• Ceftriaxona 1g a 2g IV 1x/dia + Azitromicina 500mg VO 1x/dia por 5 a 7 dias',
+        '• Alternativa: Amoxicilina + Clavulanato 1g/200mg IV 8/8h associado a Macrolídeo',
+        '• Se paciente jovem e estável sem vômitos: avaliar Amoxicilina + Clavulanato 875/125mg VO 12/12h + Azitromicina 500mg VO'
+      ];
+    } else {
+      risco = 'BAIXO';
+      mortalidade = '< 1.5%';
+      localRecomendado = 'Tratamento Ambulatorial em Domicílio';
+      esquemaSugerido = [
+        '• 1ª Linha (sem comorbidades): Amoxicilina 500mg VO 8/8h por 5 a 7 dias',
+        '• Com comorbidades ou idoso: Amoxicilina + Clavulanato 875/125mg VO 12/12h + Azitromicina 500mg VO 1x/dia por 5 dias',
+        '• Alérgicos a Penicilina: Azitromicina 500mg VO 1x/dia por 5 dias ou Claritromicina 500mg VO 12/12h por 7 dias',
+        '• Reavaliação clínica obrigatória em 48 a 72 horas ou imediatamente se piora da dispneia.'
+      ];
+    }
+
+    var criteriosUti = [
+      'Critérios Maiores ATS/IDSA (1 critério = Indicação de UTI): Ventilação Mecânica Invasiva ou Choque Séptico refratário.',
+      'Critérios Menores (≥ 3 critérios = Indicação de UTI): PaO2/FiO2 ≤ 250, Infiltrado multilobar, Confusão mental, Leucopenia (< 4.000), Plaquetopenia (< 100.000), Hipotermia (< 36°C) ou Hipotensão com necessidade de volume agressivo.'
+    ];
+
+    return {
+      escore: escore,
+      detalhesEscore: {
+        confusao: Boolean(c),
+        ureiaElevada: Boolean(u),
+        taquipneia: Boolean(r),
+        hipotensao: Boolean(b),
+        idadeIdoso: Boolean(sessentaECinco)
+      },
+      risco: risco,
+      mortalidadeEstimada: mortalidade,
+      localRecomendado: localRecomendado,
+      esquemaSugerido: esquemaSugerido,
+      criteriosUti: criteriosUti
+    };
+  }
+
+  function formatarTextoTelegram(res) {
+    var linhas = [];
+    linhas.push('🫁 *PNEUMONIA ADQUIRIDA NA COMUNIDADE (PAC & CURB-65)*');
+    linhas.push('📅 *Diretrizes SBPT / ATS / IDSA*');
+    linhas.push('');
+    linhas.push('*Escore CURB-65:* ' + res.escore + ' pontos');
+    linhas.push('*Estratificação de Risco:* ' + res.risco + ' (Mortalidade estimada: ' + res.mortalidadeEstimada + ')');
+    linhas.push('*Local Recomendado:* ' + res.localRecomendado);
+    linhas.push('');
+    linhas.push('💊 *Esquema Antimicrobiano Sugerido:*');
+    for (var i = 0; i < res.esquemaSugerido.length; i++) {
+      linhas.push(res.esquemaSugerido[i]);
+    }
+    linhas.push('');
+    linhas.push('⚠️ *Critérios de Gravidade / UTI (ATS/IDSA):*');
+    linhas.push('• ' + res.criteriosUti[0]);
+    linhas.push('• ' + res.criteriosUti[1]);
+
+    return linhas.join('\n');
+  }
+
+  function extrairParametrosTexto(texto) {
+    texto = String(texto || '').toLowerCase();
+    var p = {
+      confusao: /(confus|desorient|torpor|sonol)/i.test(texto),
+      ureia: null,
+      frequenciaRespiratoria: null,
+      pas: null,
+      pad: null,
+      idade: null
+    };
+
+    var mU = texto.match(/ureia\s*[:=]?\s*(\d+)/i);
+    if (mU) p.ureia = parseInt(mU[1], 10);
+
+    var mFr = texto.match(/fr\s*[:=]?\s*(\d+)/i);
+    if (mFr) p.frequenciaRespiratoria = parseInt(mFr[1], 10);
+
+    var mPa = texto.match(/pa\s*[:=]?\s*(\d+)[xX/](\d+)/i);
+    if (mPa) {
+      p.pas = parseInt(mPa[1], 10);
+      p.pad = parseInt(mPa[2], 10);
+    }
+
+    var mIdade = texto.match(/(\d+)\s*(?:anos|a\b)/i);
+    if (mIdade) p.idade = parseInt(mIdade[1], 10);
+
+    return p;
+  }
+
+  return {
+    calcularCurb65: calcularCurb65,
+    formatarTextoTelegram: formatarTextoTelegram,
+    extrairParametrosTexto: extrairParametrosTexto
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = PneumologiaPacService;
 }
 
 
@@ -37312,7 +38599,10 @@ function processarMensagemTexto(message) {
         "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
         "swansea", "colestase", "monoartrite", "febrereumatica", "pancreatite",
         "diabetes", "anemia", "intox", "sca",
-        "avc", "hic", "kdigo", "dhe", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia"
+        "avc", "hic", "kdigo", "dhe", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia",
+        "dengue", "arbovirose", "chikungunya", "zika", "pac", "pneumonia", "itu", "cistite", "pielonefrite",
+        "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "cefaleia", "dorcabeca",
+        "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan"
       ];
       if (comandosSemBarra.indexOf(primPalavra) !== -1) {
         texto = "/" + texto;
@@ -37492,7 +38782,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -37504,7 +38794,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -39249,6 +40539,200 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, textMpox);
     } catch (eMpox) {
       return enviarMensagemParaChat(chatId, "❌ Erro ao avaliar Mpox: " + eMpox.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // EPIDEMIOLOGIA & INFECTOLOGIA: ARBOVIROSES (DENGUE MS 2024, CHIKUNGUNYA & ZIKA)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/dengue" || comando === "/arbovirose" || comando === "/chikungunya" || comando === "/zika") {
+    var dadosDengue = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ArbovirosesDengueService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ArbovirosesDengueService indisponível temporariamente.");
+    }
+    if (!dadosDengue) {
+      return enviarMensagemParaChat(chatId,
+        "🦟 *Manejo Clínico de Dengue & Arboviroses (MS 2024)*\n\n" +
+        "Digite o comando seguido do peso e achados clínicos (sinais de alarme/choque).\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/dengue 70kg sem alarme` (Grupo A — Hidratação oral 60 mL/kg/dia)\n" +
+        "• `/dengue 65kg gestante dm has` (Grupo B — Observação e hemograma)\n" +
+        "• `/dengue 80kg dor abdominal intensa vomitos persistentes` (Grupo C — SF 10 mL/kg/h)\n" +
+        "• `/dengue 75kg choque hipotensao pulso fino` (Grupo D — SF 20 mL/kg em 20 min bolus)");
+    }
+    try {
+      var paramsDengue = ArbovirosesDengueService.extrairParametrosTexto(dadosDengue);
+      var estagioDengue = ArbovirosesDengueService.estadiarDengue(paramsDengue);
+      var txtDengue = ArbovirosesDengueService.formatarTextoTelegram(estagioDengue);
+      return enviarMensagemParaChat(chatId, txtDengue);
+    } catch (eDengue) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao estadiar dengue: " + eDengue.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // PNEUMOLOGIA & EMERGÊNCIA: PNEUMONIA ADQUIRIDA NA COMUNIDADE (PAC & CURB-65)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/pac" || comando === "/pneumonia") {
+    var dadosPac = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof PneumologiaPacService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PneumologiaPacService indisponível temporariamente.");
+    }
+    if (!dadosPac) {
+      return enviarMensagemParaChat(chatId,
+        "🫁 *Pneumonia Adquirida na Comunidade (PAC & CURB-65)*\n\n" +
+        "Digite o comando com as variáveis do CURB-65 (Confusão, Ureia > 50, FR ≥ 30, PA < 90/60, Idade ≥ 65).\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/pac 45 anos pa 120x80 fr 18 sem confusao` (CURB-65 0 — Ambulatório)\n" +
+        "• `/pac 70 anos pa 110x70 fr 24 ureia 35` (CURB-65 1 — Ambulatório)\n" +
+        "• `/pac 72 anos pa 85x55 fr 32 confusao ureia 65` (CURB-65 5 — Internação/UTI)");
+    }
+    try {
+      var paramsPac = PneumologiaPacService.extrairParametrosTexto(dadosPac);
+      var calcPac = PneumologiaPacService.calcularCurb65(paramsPac);
+      var txtPac = PneumologiaPacService.formatarTextoTelegram(calcPac);
+      return enviarMensagemParaChat(chatId, txtPac);
+    } catch (ePac) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao calcular PAC/CURB-65: " + ePac.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // INFECTOLOGIA & UROLOGIA: INFECÇÃO DO TRATO URINÁRIO (ITU, CISTITE, PIELO)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/itu" || comando === "/cistite" || comando === "/pielonefrite" || comando === "/infeccaourinaria") {
+    var dadosItu = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof InfectologiaItuService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo InfectologiaItuService indisponível temporariamente.");
+    }
+    if (!dadosItu) {
+      return enviarMensagemParaChat(chatId,
+        "🦠 *Infecção do Trato Urinário (ITU, Cistite & Pielonefrite)*\n\n" +
+        "Informe os sintomas e o perfil do paciente (mulher, gestante, homem, pielonefrite).\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/itu disuria polaciuria mulher` (Cistite não complicada — Fosfomicina 3g DU ou Nitrofurantoína)\n" +
+        "• `/itu gestante 28 semanas bacteriuria disuria` (Cistite na gestação — Fosfomicina ou Cefalexina)\n" +
+        "• `/pielonefrite febre dor lombar giordano positivo sem sepse` (Pielonefrite ambulatorial — Ceftriaxona + Cipro)\n" +
+        "• `/itu homem 62 anos disuria jato fraco` (ITU masculina — Cipro 14 dias)");
+    }
+    try {
+      var paramsItu = InfectologiaItuService.extrairParametrosTexto(dadosItu);
+      var condutaItu = InfectologiaItuService.conduzirItu(paramsItu);
+      var txtItu = InfectologiaItuService.formatarTextoTelegram(condutaItu);
+      return enviarMensagemParaChat(chatId, txtItu);
+    } catch (eItu) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao orientar ITU: " + eItu.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // CARDIOLOGIA & EMERGÊNCIA: CRISE HIPERTENSIVA & PSEUDOCRISE (SBC 2024)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/crisehipertensiva" || comando === "/pseudocrise" || comando === "/emergenciahipertensiva") {
+    var dadosHas = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof EmergenciaCriseHipertensivaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo EmergenciaCriseHipertensivaService indisponível temporariamente.");
+    }
+    if (!dadosHas) {
+      return enviarMensagemParaChat(chatId,
+        "❤️ *Crise Hipertensiva vs Pseudocrise (SBC / AHA)*\n\n" +
+        "Informe a PA aferida e presença de sintomas ou lesão de órgão-alvo.\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/crisehipertensiva 190x110 cefaleia tensional ansiedade dor` (Pseudocrise — Repouso e analgesia)\n" +
+        "• `/crisehipertensiva 200x120 assintomatico sem lesao de orgao` (Urgência — Captopril/Clonidina VO)\n" +
+        "• `/crisehipertensiva 220x130 eap dispneia crepitacoes` (Emergência — Nitroglicerina/Nitroprussiato + VNI)\n" +
+        "• `/crisehipertensiva 210x120 disseccao dor rasgando torax` (Dissecção — Esmolol + Nitroprussiato PAS < 120 em 20 min)");
+    }
+    try {
+      var paramsHas = EmergenciaCriseHipertensivaService.extrairParametrosTexto(dadosHas);
+      var classifHas = EmergenciaCriseHipertensivaService.classificarCrise(paramsHas);
+      var txtHas = EmergenciaCriseHipertensivaService.formatarTextoTelegram(classifHas);
+      return enviarMensagemParaChat(chatId, txtHas);
+    } catch (eHas) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao classificar crise hipertensiva: " + eHas.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // NEUROLOGIA & EMERGÊNCIA: CEFALEIAS AGUDAS & BANDEIRAS VERMELHAS SNOOP
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/cefaleia" || comando === "/dorcabeca" || comando === "/enxaqueca") {
+    var dadosCef = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof NeurologiaCefaleiasService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo NeurologiaCefaleiasService indisponível temporariamente.");
+    }
+    if (!dadosCef) {
+      return enviarMensagemParaChat(chatId,
+        "🤕 *Cefaleia Aguda no Pronto Socorro & Protocolo SNOOP*\n\n" +
+        "Descreva as características da dor de cabeça e sinais associados.\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/cefaleia hemicraniana pulsatil nausea fotofobia habitual` (Primária — Dipirona + Plasil + Dexa)\n" +
+        "• `/cefaleia thunderclap trovoada inicio subito pior dor da vida` (HSA — TC sem contraste imediata)\n" +
+        "• `/cefaleia febre rigidez de nuca vomitos` (Meningite — TC + Punção lombar + Ceftriaxona)\n" +
+        "• `/cefaleia 68 anos inicio recente dor temporal` (Arterite Temporal — VHS/PCR + Corticoide)");
+    }
+    try {
+      var paramsCef = NeurologiaCefaleiasService.extrairParametrosTexto(dadosCef);
+      var avalCef = NeurologiaCefaleiasService.avaliarBandeirasVermelhas(paramsCef);
+      var txtCef = NeurologiaCefaleiasService.formatarTextoTelegram(avalCef);
+      return enviarMensagemParaChat(chatId, txtCef);
+    } catch (eCef) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao avaliar cefaleia: " + eCef.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // CIRURGIA & TRAUMA: PEQUENAS URGÊNCIAS, OTTAWA, ANESTESIA & PROFILAXIAS
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/sutura" || comando === "/ottawa" || comando === "/tetano" || comando === "/raiva" || comando === "/mordedura" || comando === "/ferimento") {
+    var dadosTrauma = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof PequenasUrgenciasTraumaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PequenasUrgenciasTraumaService indisponível temporariamente.");
+    }
+    if (!dadosTrauma) {
+      return enviarMensagemParaChat(chatId,
+        "🩹 *Pequenas Urgências, Suturas & Profilaxias de Trauma*\n\n" +
+        "Informe os achados do trauma, peso ou histórico vacinal.\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/ottawa entorse tornozelo dor maleolo lateral incapacidade 4 passos` (Indicação de Rx)\n" +
+        "• `/sutura 70kg ferimento face anestesia` (Dose máxima de lidocaína e fio 5-0/6-0)\n" +
+        "• `/tetano ferimento sujo terra 1 dose ha 8 anos` (Vacina dT + SAT/IGHAT)\n" +
+        "• `/raiva mordedura morcego na mao` (Risco máximo — Soro SAR + Vacina 4 doses)\n" +
+        "• `/mordedura mordedura de cao na perna` (Não suturar + Amoxicilina/Clavulanato)");
+    }
+    try {
+      var paramsTrauma = PequenasUrgenciasTraumaService.extrairParametrosTexto(dadosTrauma);
+      var txtTrauma = PequenasUrgenciasTraumaService.formatarTextoTelegram(paramsTrauma);
+      return enviarMensagemParaChat(chatId, txtTrauma);
+    } catch (eTrauma) {
+      return enviarMensagemParaChat(chatId, "❌ Erro em pequenas urgências: " + eTrauma.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // MEDICINA LEGAL & EPIDEMIOLOGIA: DECLARAÇÃO DE ÓBITO & NOTIFICAÇÃO COMPULSÓRIA
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/obito" || comando === "/declaracaoobito" || comando === "/do" || comando === "/notificacao" || comando === "/sinan") {
+    var dadosObito = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof MedicinaLegalObitoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo MedicinaLegalObitoService indisponível temporariamente.");
+    }
+    if (!dadosObito) {
+      return enviarMensagemParaChat(chatId,
+        "📄 *Declaração de Óbito & Notificação Compulsória (CFM 1.779/2005 & SINAN)*\n\n" +
+        "Informe o tipo de óbito ou circunstância clínica.\n\n" +
+        "📌 *Exemplos beira-leito:*\n" +
+        "• `/obito natural internado choque septico pneumonia` (DO pelo assistente/plantonista)\n" +
+        "• `/obito violenta acidente de transito queda trauma` (IML obrigatório — Proibido DO hospitalar)\n" +
+        "• `/obito sem assistencia morte subita em domicilio sem diagnostico` (SVO)\n" +
+        "• `/notificacao dengue grave meningite raiva mpox` (Lista de notificação imediata 24h)");
+    }
+    try {
+      var paramsObito = MedicinaLegalObitoService.extrairParametrosTexto(dadosObito);
+      var txtObito = MedicinaLegalObitoService.formatarTextoTelegram(paramsObito);
+      return enviarMensagemParaChat(chatId, txtObito);
+    } catch (eObito) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao orientar óbito/notificação: " + eObito.message);
     }
   }
 
@@ -46012,7 +47496,8 @@ function enviarMenuSalaVermelha(chat, messageId) {
     [['💉 Noradrenalina', 'ux:droga:nora'], ['💉 Dobutamina', 'ux:droga:dobuta']],
     [['💉 Vasopressina', 'ux:fixa:vaso'], ['💉 Outras DVA', 'ux:dvamenu']],
     [['🩸 Gasometria', 'ux:iniciar:gaso'], ['⚡ Choque & Hipotensão', 'ux:emerg:choque']],
-    [['🧠 Escala de Glasgow', 'ux:emerg:glasgow'], ['⚡ Outras Emergências', 'ux:condutamenu']],
+    [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🦟 Dengue C/D', 'ux:emerg:dengue']],
+    [['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
@@ -46576,6 +48061,9 @@ function tratarCallbackUX(cb) {
     } else if (op === 'emerg') {
       if (v === 'choque') texto('/choque');
       else if (v === 'glasgow') texto('/glasgow');
+      else if (v === 'crisehas') texto('/crisehipertensiva');
+      else if (v === 'dengue') texto('/dengue');
+      else if (v === 'cefaleia') texto('/cefaleia');
       else enviarMenuSalaVermelha(chat, msgId);
     } else if (op === 'novo') {
       iniciarModoBot(chat, v, true, msgId);
@@ -49379,4 +50867,137 @@ function cockpitOtorrinoResumo(initData, params) {
     vertigem: vertigem,
     epistaxe: epistaxe
   };
+}
+
+// ==============================================================================
+// MÓDULOS DE ATENÇÃO PRIMÁRIA E URGÊNCIA (FASE 2)
+// ==============================================================================
+
+function cockpitArbovirosesDengue(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ArbovirosesDengueService === 'undefined') {
+    throw new Error('Serviço ArbovirosesDengueService indisponível.');
+  }
+  var p = typeof params === 'string' ? ArbovirosesDengueService.extrairParametrosTexto(params) : params;
+  var analise = ArbovirosesDengueService.estadiarDengue(p);
+  var texto = ArbovirosesDengueService.formatarTextoTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitPneumologiaPac(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PneumologiaPacService === 'undefined') {
+    throw new Error('Serviço PneumologiaPacService indisponível.');
+  }
+  var p = typeof params === 'string' ? PneumologiaPacService.extrairParametrosTexto(params) : params;
+  var analise = PneumologiaPacService.calcularCurb65(p);
+  var texto = PneumologiaPacService.formatarTextoTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitInfectologiaItu(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof InfectologiaItuService === 'undefined') {
+    throw new Error('Serviço InfectologiaItuService indisponível.');
+  }
+  var p = typeof params === 'string' ? InfectologiaItuService.extrairParametrosTexto(params) : params;
+  var analise = InfectologiaItuService.conduzirItu(p);
+  var texto = InfectologiaItuService.formatarTextoTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitEmergenciaCriseHipertensiva(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof EmergenciaCriseHipertensivaService === 'undefined') {
+    throw new Error('Serviço EmergenciaCriseHipertensivaService indisponível.');
+  }
+  var p = typeof params === 'string' ? EmergenciaCriseHipertensivaService.extrairParametrosTexto(params) : params;
+  var analise = EmergenciaCriseHipertensivaService.classificarCrise(p);
+  var texto = EmergenciaCriseHipertensivaService.formatarTextoTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitNeurologiaCefaleias(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof NeurologiaCefaleiasService === 'undefined') {
+    throw new Error('Serviço NeurologiaCefaleiasService indisponível.');
+  }
+  var p = typeof params === 'string' ? NeurologiaCefaleiasService.extrairParametrosTexto(params) : params;
+  var analise = NeurologiaCefaleiasService.avaliarBandeirasVermelhas(p);
+  var texto = NeurologiaCefaleiasService.formatarTextoTelegram(analise);
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitPequenasUrgencias(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof PequenasUrgenciasTraumaService === 'undefined') {
+    throw new Error('Serviço PequenasUrgenciasTraumaService indisponível.');
+  }
+  var p = typeof params === 'string' ? PequenasUrgenciasTraumaService.extrairParametrosTexto(params) : params;
+  var ottawa = PequenasUrgenciasTraumaService.regraOttawaTornozelo(p);
+  var texto = PequenasUrgenciasTraumaService.formatarTextoTelegram(p);
+  return {
+    sucesso: true,
+    resultado: { params: p, ottawa: ottawa },
+    textoFormatado: texto
+  };
+}
+
+function cockpitMedicinaLegalObito(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof MedicinaLegalObitoService === 'undefined') {
+    throw new Error('Serviço MedicinaLegalObitoService indisponível.');
+  }
+  var p = typeof params === 'string' ? MedicinaLegalObitoService.extrairParametrosTexto(params) : params;
+  var fluxo = MedicinaLegalObitoService.fluxoDeclaracaoObito(p.tipo || p.tipoMorte);
+  var texto = MedicinaLegalObitoService.formatarTextoTelegram(p);
+  return {
+    sucesso: true,
+    resultado: { params: p, fluxo: fluxo },
+    textoFormatado: texto
+  };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports.cockpitArbovirosesDengue = cockpitArbovirosesDengue;
+  module.exports.cockpitDengue = cockpitArbovirosesDengue;
+  module.exports.cockpitPneumologiaPac = cockpitPneumologiaPac;
+  module.exports.cockpitPac = cockpitPneumologiaPac;
+  module.exports.cockpitInfectologiaItu = cockpitInfectologiaItu;
+  module.exports.cockpitItu = cockpitInfectologiaItu;
+  module.exports.cockpitEmergenciaCriseHipertensiva = cockpitEmergenciaCriseHipertensiva;
+  module.exports.cockpitCriseHipertensiva = cockpitEmergenciaCriseHipertensiva;
+  module.exports.cockpitNeurologiaCefaleias = cockpitNeurologiaCefaleias;
+  module.exports.cockpitCefaleia = cockpitNeurologiaCefaleias;
+  module.exports.cockpitPequenasUrgencias = cockpitPequenasUrgencias;
+  module.exports.cockpitSutura = cockpitPequenasUrgencias;
+  module.exports.cockpitMedicinaLegalObito = cockpitMedicinaLegalObito;
+  module.exports.cockpitObito = cockpitMedicinaLegalObito;
 }
