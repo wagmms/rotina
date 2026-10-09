@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 09:33:38
- * Checksum SHA256: c0fc57f49f70332a
+ * Gerado automaticamente via build_master.py em: 2026-10-09 09:52:58
+ * Checksum SHA256: c3bc7afdb30bd96d
  * ==============================================================================
  */
 
@@ -518,7 +518,7 @@ function obterTecladoFixoPrincipal(chatId) {
     keyboard: [
       [
         { text: '🩺 SOAP Ambulatorial' },
-        { text: '🤰 Ginecologia & Obstetrícia' }
+        { text: '🏥 Enfermaria' }
       ],
       [
         { text: '🚨 Emergência' },
@@ -25149,7 +25149,8 @@ var SaudeIdosoService = class SaudeIdosoService {
    */
   static calcularFraxBrasil(dados) {
     dados = dados || {};
-    let idade = typeof dados.idade === 'number' ? dados.idade : 65;
+    let idadeInformada = typeof dados.idade === 'number' ? dados.idade : 65;
+    let idade = idadeInformada;
     let alertas = [];
 
     // Blindagem de idade (modelo oficial FRAX 40-90 anos)
@@ -25159,6 +25160,11 @@ var SaudeIdosoService = class SaudeIdosoService {
     } else if (idade > 90) {
       alertas.push("Idade > 90 anos: Paciente nonagenário. O modelo FRAX limita estimativas a 90 anos; risco de fratura e fragilidade clínica é extremo.");
       idade = 90;
+    }
+
+    if (typeof dados.peso === 'number') {
+      if (dados.peso < 40) alertas.push("Baixo peso corporal (< 40 kg): Fator de risco crítico para perda óssea acelerada.");
+      else if (dados.peso > 150) alertas.push("Obesidade severa (> 150 kg): Fraturas periféricas e de membros aumentam.");
     }
 
     const sexoStr = String(dados.sexo || 'F').trim().toUpperCase();
@@ -25228,12 +25234,12 @@ var SaudeIdosoService = class SaudeIdosoService {
       riscoHip *= 1.65;
       fatores.push("Tabagismo ativo (HR ~1.6)");
     }
-    if (dados.glicocorticoide) {
+    if (dados.glicocorticoide || dados.corticoide) {
       riscoMof *= 1.85;
       riscoHip *= 2.15;
       fatores.push("Glicocorticoide oral crônico >= 5mg/dia prednisona (HR ~2.1)");
     }
-    if (dados.artriteReumatoide) {
+    if (dados.artriteReumatoide || dados.ar) {
       riscoMof *= 1.35;
       riscoHip *= 1.45;
       fatores.push("Artrite Reumatoide (HR ~1.4)");
@@ -25246,7 +25252,7 @@ var SaudeIdosoService = class SaudeIdosoService {
       }
       fatores.push("Osteoporose secundária");
     }
-    if (dados.alcool) {
+    if (dados.alcool || dados.etilismo) {
       riscoMof *= 1.35;
       riscoHip *= 1.50;
       fatores.push("Ingestão de álcool >= 3 doses/dia");
@@ -25258,6 +25264,18 @@ var SaudeIdosoService = class SaudeIdosoService {
     if (typeof dados.dmoColoFemurTScore === 'number') {
       tScore = dados.dmoColoFemurTScore;
       dmoDisponivel = true;
+    } else if (typeof dados.tScoreColoFemur === 'number') {
+      tScore = dados.tScoreColoFemur;
+      dmoDisponivel = true;
+    } else if (typeof dados.tScore === 'number') {
+      tScore = dados.tScore;
+      dmoDisponivel = true;
+    }
+
+    if (dmoDisponivel) {
+      if (tScore < -4.0) {
+        alertas.push("T-score extremamente reduzido (< -4.0): Risco crítico de fratura iminente.");
+      }
       // Gradiente de risco por desvio padrão abaixo do adulto jovem
       // Cada -1 SD aumenta MOF em ~1.5x e Quadril em ~2.2x
       const gradMof = Math.pow(1.50, -tScore);
@@ -25320,7 +25338,9 @@ var SaudeIdosoService = class SaudeIdosoService {
     }
 
     return {
-      idade,
+      idade: idade,
+      idade_informada: idadeInformada,
+      idade_utilizada: idade,
       sexo: ehMasculino ? "Masculino" : "Feminino",
       imc: parseFloat(imc.toFixed(1)),
       t_score: tScore,
@@ -25432,7 +25452,7 @@ var SaudeIdosoService = class SaudeIdosoService {
     alertas.push("Contraindicação Sentinela de Megadose: PROIBIDO o uso de megadoses orais em dose única anual (ex: 500.000 UI em bolus), pois ensaios clínicos demonstraram aumento paradoxal de quedas e fraturas em idosos.");
 
     // --- C. TERAPIA ANTIRREABSORTIVA / BISFOSFONATOS (ALENDRONATO) ---
-    const ehAltoRisco = Boolean(params.altoRisco);
+    const ehAltoRisco = Boolean(params.altoRisco) || (typeof params.tScore === 'number' && params.tScore <= -2.5) || Boolean(params.fraturaPrevia);
     let prescricaoBisfosfonato = null;
 
     if (ehAltoRisco) {
@@ -25800,7 +25820,9 @@ var SaudeIdosoService = class SaudeIdosoService {
       cenario.farmacos.lista = mFarm[1].split(/[,;e]/).map(s => s.trim()).filter(s => s.length > 2);
     }
 
-    return this.gerarResumoAga(cenario);
+    const resultado = this.gerarResumoAga(cenario);
+    resultado._cenario = cenario;
+    return resultado;
   }
 
   // ===========================================================================
@@ -25820,6 +25842,15 @@ var SaudeIdosoService = class SaudeIdosoService {
       risco_fratura_maior_pct: raw.risco_fratura_maior_10a_pct,
       risco_fratura_quadril_pct: raw.risco_fratura_quadril_10a_pct,
       necessidade_dmo: raw.indicacao_solicitar_dmo,
+      fatores_risco: {
+        fratura_previa: Boolean(params.fraturaPrevia),
+        pais_fratura_quadril: Boolean(params.paisFraturaQuadril),
+        tabagismo: Boolean(params.tabagismo),
+        corticoide_cronico: Boolean(params.glicocorticoide || params.corticoide),
+        artrite_reumatoide: Boolean(params.artriteReumatoide || params.ar),
+        osteoporose_secundaria: Boolean(params.osteoporoseSecundaria),
+        etilismo: Boolean(params.alcool || params.etilismo)
+      },
       conduta: raw.justificativa_conduta,
       conduta_beira_leito: [
         "Incentivar ingestão adequada de cálcio (meta 1.000 a 1.200 mg/dia, preferencialmente pela dieta).",
@@ -25838,8 +25869,8 @@ var SaudeIdosoService = class SaudeIdosoService {
   }
 
   static interpretarTextoLivreFrax(texto) {
-    var cenario = this.interpretarTextoLivre(texto);
-    var paramFrax = cenario.frax || {};
+    var res = this.interpretarTextoLivre(texto);
+    var paramFrax = (res._cenario && res._cenario.frax) ? res._cenario.frax : (res.frax || {});
     if (!paramFrax.idade) {
       var mId = texto.match(/(\d{2})\s*(?:anos|a\b)/i);
       paramFrax.idade = mId ? parseInt(mId[1], 10) : 65;
@@ -25849,21 +25880,35 @@ var SaudeIdosoService = class SaudeIdosoService {
 
   static avaliarOsteoporose(params) {
     params = params || {};
-    var raw = this.avaliarManejoOsteoporose(params);
     var tScore = typeof params.tScore === 'number' ? params.tScore : (typeof params.dmoColoFemurTScore === 'number' ? params.dmoColoFemurTScore : null);
+    if (tScore !== null && tScore <= -2.5) {
+      params.altoRisco = true;
+    }
+    if (params.fraturaPrevia) {
+      params.altoRisco = true;
+    }
+    var raw = this.avaliarManejoOsteoporose(params);
     var classDiag = "Normal (T-score >= -1.0)";
     if (params.fraturaPrevia) {
-      classDiag = "Osteoporose Clínica (Fratura por Fragilidade Prévia)";
+      classDiag = (tScore !== null && tScore <= -2.5) ? "Osteoporose Grave (Estabelecida)" : "Osteoporose Clínica (Fratura por Fragilidade Prévia)";
     } else if (tScore !== null) {
-      if (tScore <= -2.5) classDiag = "Osteoporose Densitométrica (T-score <= -2.5)";
-      else if (tScore < -1.0) classDiag = "Osteopenia Densitométrica (-1.0 > T-score > -2.5)";
+      if (tScore <= -2.5) classDiag = "Osteoporose";
+      else if (tScore < -1.0) classDiag = "Osteopenia";
     }
 
     var esquema = "Medidas não farmacológicas e suporte nutricional de cálcio e vitamina D.";
-    if (raw.bisfosfonato && raw.bisfosfonato.medicamento) {
+    if (raw.bloqueios_seguranca && raw.bloqueios_seguranca.length > 0) {
+      if (typeof params.clcr === 'number' && params.clcr < 35) {
+        esquema = "DENOSUMABE 60 mg SC semestral (Droga de escolha em ClCr < 35 mL/min — não depurado pelos rins).";
+      } else if (typeof params.calcioSerico === 'number' && params.calcioSerico < 8.5) {
+        esquema = "AGUARDAR: Corrigir hipocalcemia sérica antes do início de qualquer antirreabsortivo.";
+      } else if (params.doencaEsofagica || params.incapazManterOrtostase) {
+        esquema = "ÁCIDO ZOLEDRÔNICO 5 mg IV anual em infusão lenta (ou Denosumabe SC).";
+      } else {
+        esquema = "⚠️ Terapia antirreabsortiva oral bloqueada por critérios de segurança clínica.";
+      }
+    } else if (raw.bisfosfonato && raw.bisfosfonato.medicamento) {
       esquema = raw.bisfosfonato.medicamento + " - " + raw.bisfosfonato.posologia;
-    } else if (raw.bloqueios_seguranca && raw.bloqueios_seguranca.length > 0) {
-      esquema = "⚠️ Terapia antirreabsortiva oral bloqueada por critérios de segurança clínica.";
     }
 
     var protoCalcio = [];
@@ -25918,8 +25963,9 @@ var SaudeIdosoService = class SaudeIdosoService {
   }
 
   static interpretarTextoLivreOsteoporose(texto) {
-    var cenario = this.interpretarTextoLivre(texto);
-    var param = cenario.osteoporose || {};
+    var res = this.interpretarTextoLivre(texto);
+    var cenario = res._cenario || {};
+    var param = Object.assign({}, cenario.osteoporose || {});
     if (cenario.frax && cenario.frax.dmoColoFemurTScore !== undefined) {
       param.tScore = cenario.frax.dmoColoFemurTScore;
     }
@@ -25928,6 +25974,9 @@ var SaudeIdosoService = class SaudeIdosoService {
       param.altoRisco = true;
     }
     if (param.tScore !== undefined && param.tScore <= -2.5) {
+      param.altoRisco = true;
+    }
+    if (res.frax_brasil && res.frax_brasil.classificacao_risco === 'Alto Risco') {
       param.altoRisco = true;
     }
     return this.avaliarOsteoporose(param);
@@ -44807,83 +44856,29 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
 
 function enviarManual(chatId) {
   var manual =
-    "📖 *GUIA DEFINITIVO DE OPERAÇÃO DO COPILOTO CLÍNICO 4.0*\n\n" +
-    "Seu assistente médico de emergência, enfermaria e rotina hospitalar 24/7 na nuvem. Aprenda a utilizar 100% das ferramentas do bot:\n\n" +
+    "📖 *GUIA DO COPILOTO CLÍNICO 4.0*\n\n" +
+    "Seu assistente médico para o dia a dia (PS, Enfermaria e UBS). Navegue usando a ⚙️ Central de Comandos (`/menu`) ou o Teclado no Rodapé.\n\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "📱 *1. COMO NAVEGAR NO BOT (3 MODOS)*\n" +
+    "🚨 *1. EMERGÊNCIA (SALA VERMELHA)*\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "1️⃣ *Teclado Rápido no Rodapé:* 6 botões sempre na base da tela para acesso com 1 toque do polegar (`🩺 Novo SOAP`, `💊 Prescrever`, `🏥 Enfermaria`, `📐 Calculadoras`, `📅 Minha rotina`, `🚨 Sala Vermelha`). Se o teclado sumir, envie `/teclado` para reativar.\n" +
-    "2️⃣ *Central de Comandos (`/menu`):* Abre um painel interativo com botões organizados por especialidade clínica. Todos os menus possuem botão de retorno `« Menu principal`.\n" +
-    "3️⃣ *Voz e Linguagem Natural:* Você não precisa decorar comandos! Pode falar por áudio gravado no corredor ou escrever naturalmente (ex.: _\"paciente 70kg em choque septico, calcula nora\"_ ou _\"prescrever amoxicilina 500mg para sinusite\"_). A IA classifica e executa automaticamente.\n\n" +
+    "• `/dva <droga> <peso>`: DVA em mL/h e mcg/kg/min (ex: `/dva nora 70`).\n" +
+    "• `/sri <peso>`: Doses e volumes (mL) para Sequência Rápida de Intubação.\n" +
+    "• `/gaso <dados>`: Interpretação de Gasometria e distúrbios mistos.\n" +
+    "• `/conduta`: Doses de ataque para PCR, EAP, hipercalemia, anafilaxia.\n\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🧠 *2. MEMÓRIA & GERENCIAMENTO DE CASOS*\n" +
+    "🏥 *2. ENFERMARIA & LEITOS*\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• *Memória de 15 minutos:* Ao iniciar um caso clínico (`/soap`, `/leito`, etc.), o bot retém os dados do paciente. Você pode enviar novas frases apenas com atualizações (ex.: _\"chegou o potássio de 3.2\"_ ou _\"ficou hipotenso\"_) sem ter que reenviar tudo.\n" +
-    "• `/novo` ou `🩺 Novo SOAP`: *Limpar memória.* Use SEMPRE ao trocar de paciente para garantir que os dados não se misturem.\n" +
-    "• `/cancelar`: Encerra o modo ativo (edição de leito, cálculo de droga ou modo de voz) a qualquer momento.\n" +
-    "• `/fila`: Mostra os pedidos e entregas assíncronas sendo geradas em segundo plano.\n\n" +
+    "• `/enfermaria`: Quadro geral de leitos e censo de gravidade.\n" +
+    "• `/leito <num> <caso>`: Evolui ou cadastra o leito (ex: `/leito 4 PAC grave`).\n" +
+    "• `/passagem`: Gera a passagem de plantão completa (SBAR).\n\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🚨 *3. SALA VERMELHA & EMERGÊNCIA (RESPOSTA IMEDIATA)*\n" +
+    "💊 *3. PRESCRIÇÃO E AMBULATÓRIO (SOAP)*\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "💉 *Drogas Vasoativas em mL/h (`/dva`):*\n" +
-    "• `/dva nora 70` → Noradrenalina (solução padrão 64 mcg/mL) calculada em mL/h e mcg/kg/min.\n" +
-    "• `/dva nora 80 concentrada` → Solução concentrada (128 mcg/mL).\n" +
-    "• `/dva dobuta 65` → Dobutamina (1 mg/mL) em mL/h para 65 kg.\n" +
-    "• `/dva vaso` → Vasopressina em dose fixa de 0,03 UI/min (vazão de 9 mL/h).\n" +
-    "• `/dva nipride 75` ou `/dva tridil` → Nitroprussiato e Nitroglicerina com titulação.\n\n" +
-    "🫁 *Sequência Rápida de Intubação (`/sri`):*\n" +
-    "• `/sri 70` → Doses e volumes exatos em mL de Etomidato, Quetamina, Succinilcolina, Rocurônio e Fentanil.\n" +
-    "• `/sri 70 choque` → Ajuste hemodinâmico de indução para choque circulatório.\n" +
-    "• `/sri 80 asma` → Indução ajustada para broncoespasmo grave.\n\n" +
-    "🩸 *Gasometria Arterial Completa (`/gaso`):*\n" +
-    "• `/gaso pH 7.22, pCO2 28, HCO3 11, Na 140, Cl 102, Alb 3.0`\n" +
-    "• Calcula: Distúrbio primário, resposta compensatória (Winter), Ânion Gap corrigido pela albumina, Delta-Delta para distúrbios mistos/triplos e relação PaO2/FiO2.\n\n" +
-    "⚡ *Condutas de Ataque em Emergências (`/conduta`):*\n" +
-    "• Doses prontas em ampolas e mL imediatos: `/conduta PCR chocavel`, `/conduta EAP hipertensivo`, `/conduta anafilaxia`, `/conduta crise convulsiva`, `/conduta hipercalemia`, `/conduta cetoacidose`.\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🏥 *4. ENFERMARIA VIRTUAL & LEITOS*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• `/enfermaria`: Quadro geral de todos os leitos com censo de gravidade (🟢 Estável, 🟡 Vigilância, 🔴 Instável) e botões de ação.\n" +
-    "• `/leito <num> <evolução>`: Cadastra ou atualiza o paciente do leito. Ex.: `/leito 4 72a, PAC grave, Ceftriaxona D3, estável, aguarda vaga UTI`.\n" +
-    "• `/passagem`: Gera a passagem de plantão consolidada da equipe no padrão SBAR (Situação, Background, Avaliação, Recomendação) com 1 toque.\n" +
-    "• `/alta <num>`: Desocupa o leito e registra a alta hospitalar.\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "💊 *5. PRESCRIÇÃO, AMBULATÓRIO & ROUND*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• `/rx <pedido ou diagnóstico>`: Busca na REMUME municipal (Ribeirão Preto), estrutura a posologia padrão e gera botão para emissão de PDF A4 timbrado oficial no Google Drive e botão nativo de cópia para prontuário.\n" +
-    "• `/rxh <caso ou leito>`: Prescrição Hospitalar Completa de internação na ordem canônica (Dieta, Hidratação venosa, Antimicrobianos com contagem D_ e ajuste renal, Conciliação, Profilaxias de TEV/úlcera de estresse, Sintomáticos SOS e Cuidados de enfermagem).\n" +
-    "• `/atb <droga> <clcr>`: Consulta determinística instantânea de ajuste renal de antimicrobianos hospitalares críticos (Vancomicina, Meropenem, Pip-Tazo, Cefepime, Ceftriaxona, Ciprofloxacino, Polimixina B, Fluconazol ou hemodiálise).\n" +
-    "• `/soap <caso>`: Síntese estruturada completa (Subjetivo, Objetivo, Avaliação, Plano) pronta para o prontuário eletrônico.\n" +
-    "• `/round <caso>`: Pitch oral de 60 segundos para apresentar o paciente no round da enfermaria/UTI + 3 perguntas socráticas antecipadas.\n" +
-    "• `/voz <caso>`: Sabatina médica cirúrgica enviada como mensagem de áudio de voz para você ouvir e responder no fone de ouvido enquanto caminha.\n" +
-    "• `/interacao <drogas>`: Checagem cruzada de interações medicamentosas graves e nomes comerciais.\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🧮 *6. CALCULADORAS CLÍNICAS DETERMINÍSTICAS (`/calc`)*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "Digite `/calc` para abrir o menu visual ou envie os dados diretamente por texto:\n" +
-    "• *Clearance de Creatinina (Cockcroft-Gault):* `/calc clearance Cr 1.2, peso 70, idade 65, masculino`\n" +
-    "• *CHA2DS2-VASc:* `/calc cha2ds2vasc` (estratificação de risco de AVC em FA)\n" +
-    "• *KDIGO:* `/calc kdigo` (estadiamento rigoroso de Injúria Renal Aguda)\n" +
-    "• *Glasgow-P:* `/calc glasgow` (escore de coma com reatividade pupilar)\n" +
-    "• *MELD e MELD-Na 2016:* `/calc meld` (estratificação de gravidade em hepatopatia crônica)\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "📅 *7. LIFESTYLE, ROTINA ADAPTATIVA & PRODUTIVIDADE*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• `/rotina`: Painel do dia com timeline dinâmica, time-blocking adaptativo e botões de ação imediata.\n" +
-    "• `/rotina alterar <ajuste>`: Adapta seus blocos em tempo real (ex.: `/rotina alterar hoje treino às 19h` ou `/rotina alterar não vou treinar`).\n" +
-    "• `/rotina [hoje/amanha/semana/reset/descanso]`: Navegação e controle ágil da rotina.\n" +
-    "• `/briefing`: Raio-X matinal completo com sua timeline real de hoje.\n" +
-    "• `/checkin`: Check-in noturno inteligente dos hábitos ativos no Notion.\n" +
-    "• `/agenda [hoje/amanha]`: Consulta seus compromissos no Google Calendar.\n" +
-    "• `/task <texto>`: Salva uma pendência imediata no Inbox do Notion Tasks (ex.: `/task Ligar para a regulação do leito 3`).\n" +
-    "• `/tasks`: Lista suas pendências e tarefas de hoje no Notion.\n" +
-    "• `/duvida <tema>`: Arquiva uma dúvida clínica para o bloco de estudo noturno no MedQuest.\n" +
-    "• `/plantao_fim`: Checklist de encerramento do plantão, leitos pendentes e passagem executiva.\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🎙️ *8. MULTIMODALIDADE (FOTOS E ÁUDIOS)*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• *Áudio de voz:* Pressione o microfone e grave seu raciocínio clínico ou ajustes de rotina enquanto anda pelo hospital. O bot transcreve e estrutura automaticamente.\n" +
-    "• *Fotos e Imagens:* Envie fotos de ECGs de 12 derivações, radiografias, laudos de tomografia ou lesões dermatológicas para suporte diagnóstico rápido e interativo.";
+    "• `/soap <caso>`: Avalia caso clínico gerando síntese estruturada e conduta.\n" +
+    "• `/rx <caso>`: Emite receita da REMUME com posologia pronta em PDF.\n" +
+    "• `/rxh <caso>`: Estrutura a prescrição hospitalar de internação.\n" +
+    "• `/atb <droga> <clcr>`: Ajuste renal imediato de antibióticos.\n\n" +
+    "💡 *Dica:* Use `/novo` sempre que trocar de paciente para limpar a memória do bot.";
 
   enviarMensagemParaChat(chatId, manual);
 }
@@ -46732,19 +46727,17 @@ function enviarMenuCondutas(chat, messageId) {
 function enviarHubPrincipal(chat, messageId) {
   var texto = '⚡ *Ultra Rotina · Central de Comandos*\n\n' +
     'Selecione uma área ou use o teclado rápido no rodapé:\n\n' +
-    '🩺 *Ambulatório (SOAP):* Síntese de prontuário e Preceptor de Voz\n' +
-    '🏥 *Enfermaria:* Quadro de Leitos e Passagem SBAR\n' +
-    '🚨 *Emergência:* DVA em mL/h, SRI, Gasometria e Condutas\n' +
-    '💊 *Prescrição & Posologias:* Guia Farmacêutico HSL + REMUME com emissão de PDF\n' +
-    '📐 *Calculadoras:* Escores clínicos e clearance determinísticos\n' +
-    '📅 *Rotina & Estudo:* Calendar, Notion Tasks e MedQuest';
+    '🩺 *Ambulatório (SOAP):* Síntese de prontuário e evolução clínica\n' +
+    '🏥 *Enfermaria:* Quadro de Leitos e Gestão de Pacientes\n' +
+    '🚨 *Emergência:* Condutas rápidas, Gasometria e DVA\n' +
+    '💊 *Prescrição:* Posologias, Ajuste Renal e REMUME\n' +
+    '📐 *Calculadoras:* Escores clínicos beira-leito';
 
   var urlApp = obterUrlCockpit(chat);
   var botoes = [
-    [['🩺 Novo SOAP', 'ux:hub:soap'], ['🏥 Enfermaria', 'ux:hub:enf']],
-    [['🚨 Sala Vermelha', 'ux:hub:sala'], ['💊 Prescrever', 'ux:hub:rx']],
-    [['📐 Calculadoras', 'ux:hub:calc'], ['📋 Passagem SBAR', 'ux:hub:sbar']],
-    [['📅 Rotina & Estudo', 'ux:hub:rotina'], { text: '📱 Cockpit Móvel', web_app: { url: urlApp } }]
+    [['🩺 Ambulatório (SOAP)', 'ux:hub:soap'], ['🏥 Enfermaria', 'ux:hub:enf']],
+    [['🚨 Emergência', 'ux:hub:sala'], ['💊 Prescrever', 'ux:hub:rx']],
+    [['📐 Calculadoras', 'ux:hub:calc'], { text: '📱 Cockpit Móvel', web_app: { url: urlApp } }]
   ];
 
   return enviarTelaBot(chat, texto, botoesBot(botoes), messageId);
@@ -47417,19 +47410,12 @@ function cockpitConsultar(initData) {
   var casosDoDia = PersistenciaBot.ler('casos_hoje_' + chat + '_' + hojeIso);
   if (!Array.isArray(casosDoDia)) casosDoDia = [];
 
-  var soapTexto = '';
-  if (resultado && resultado.texto) {
-    soapTexto = resultado.texto;
-  } else if (estado && estado.data && typeof estado.data === 'string' && estado.data.length > 15) {
-    soapTexto = estado.data;
-  } else if (casosDoDia.length > 0 && casosDoDia[0].soap) {
-    soapTexto = casosDoDia[0].soap;
-  }
+  var soapTexto = (estado && resultado && resultado.revision === estado.revision) ? resultado.texto : '';
 
   return {
-    revision: estado ? estado.revision : (resultado ? resultado.revision : null),
+    revision: estado ? estado.revision : null,
     soap: soapTexto,
-    casoAtivo: !!(estado && estado.data) || !!soapTexto,
+    casoAtivo: !!(estado && estado.data),
     leitos: Object.keys(leitos).sort().map(function(k){return leitos[k];}),
     casosDoDia: casosDoDia
   };
