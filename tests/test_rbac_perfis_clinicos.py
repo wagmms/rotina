@@ -13,7 +13,7 @@ def test_rbac_perfis_clinicos_nodejs():
         print("❌ FALHA: test_rbac_perfis_clinicos.cjs retornou código não-zero.")
         sys.exit(1)
     
-    if "TODOS OS TESTES DE RBAC E PERFIS CLÍNICOS PASSARAM COM SUCESSO" not in result.stdout:
+    if "TODOS OS 15 TESTES DO MOTOR DE PERMISSÕES E PERFIS CLÍNICOS (RBAC) PASSARAM COM SUCESSO" not in result.stdout:
         print("❌ FALHA: Mensagem de sucesso não encontrada na saída.")
         sys.exit(1)
         
