@@ -296,8 +296,9 @@ async function run() {
   });
   assert.equal(resToxo.statusCode, 200, "Erro ao testar cockpitObstetriciaToxoplasmose");
   const toxoBody = JSON.parse(resToxo.payload);
-  console.log("toxoBody: ", JSON.stringify(toxoBody)); assert.equal(toxoBody.resultado.sucesso, true);
+  assert.equal(toxoBody.resultado.sucesso, true);
   assert.equal(toxoBody.resultado.resultado.sorologia.cenario, 'INFECÇÃO AGUDA MATERNA CONFIRMADA');
+  console.log('✓ Cockpit Obstetrícia & Infectologia (Toxoplasmose Aguda / Espiramicina) OK');
 
   const resToxoTexto = await app.inject({
     method: 'POST',
@@ -312,6 +313,7 @@ async function run() {
   const toxoTextoBody = JSON.parse(resToxoTexto.payload);
   assert.equal(toxoTextoBody.resultado.sucesso, true);
   assert.equal(toxoTextoBody.resultado.resultado.sorologia.cenario, 'INFECÇÃO PREGRESSA (AVIDEZ ALTA)');
+  console.log('✓ Cockpit Toxoplasmose Gestacional via texto livre (alias) OK');
 
   // 6.10 Cockpit RPC - CIG via texto livre (alias cockpitColestaseGestacional)
   const resCigTexto = await app.inject({

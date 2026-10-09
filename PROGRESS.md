@@ -187,10 +187,18 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Posologia ponderada de Ácido Ursodesoxicólico (UDCA 10 a 15 mg/kg/dia) como fármaco de 1ª linha.
     - Programação do parto: indicação de interrupção entre 36 e 37 semanas na forma grave (ou 38 semanas na leve) evitando óbito fetal sem advertência cardiotocográfica.
 
-39. [x] **Infectologia & Obstetrícia - Rastreamento e Manejo de Toxoplasmose Aguda na Gestação (Diretrizes Ministério da Saúde)**:
-    - Interpretação sorológica (IgG, IgM e Teste de Avidez de IgG no 1º trimestre) para confirmação de infecção aguda materna.
-    - Início precoce de Espiramicina 1g VO 8/8h para prevenir a transmissão vertical placentária.
-    - Diagnóstico de infecção fetal por PCR no líquido amniótico (amniocentese após 18 semanas) e substituição imediata pelo esquema tríplice (Sulfadiazina + Pirimetamina + Ácido Folínico) para tratamento fetal intraútero.
+39. [x] **Infectologia & Obstetrícia - Rastreamento e Manejo de Toxoplasmose Aguda na Gestação (Diretrizes Ministério da Saúde / FEBRASGO / ACOG)**:
+    - Motor determinístico beira-leito para interpretação sorológica de Toxoplasmose (`src/02_obstetricia_toxoplasmose.js`).
+    - Algoritmo escalonado por perfil: Suscetível (IgG- / IgM- com profilaxia primária e sorologia trimestral), Imunidade Pregressa (IgG+ / IgM- sem necessidade de novo rastreio), Infecção Aguda Muito Recente / IgM falso-positivo (IgG- / IgM+ com início imediato de Espiramicina e recoleta em 2-3 semanas).
+    - Classificação no 1º trimestre (<= 16 semanas): interpretação de Teste de Avidez de IgG com suporte a valores numéricos (>= 60% alta afasta infecção gestacional e suspende medicação; < 50% baixa confirma infecção aguda e indica investigação fetal).
+    - Conduta em Coleta Tardia (> 16 semanas): reconhecimento de perda de poder preditivo da avidez, tratando como infecção aguda provável por segurança.
+    - Protocolo de profilaxia fetal contra transmissão vertical com Espiramicina 1g (3.000.000 UI) VO 8/8h.
+    - Indicação e timing de Amniocentese para PCR no líquido amniótico (a partir de 18 semanas e com intervalo mínimo de 4 semanas após infecção para evitar falso-negativo).
+    - Tratamento fetal intraútero com Esquema Tríplice (Sulfadiazina 1.500 mg VO 12/12h + Pirimetamina 50 mg/dia + Ácido Folínico 15 mg/dia) indicado em PCR positivo, USG alterado (hidrocefalia, calcificações cerebrais) ou infecção materna em 3º trimestre tardio (>= 32 semanas).
+    - Esquema alternativo para gestantes alérgicas a Sulfonamidas com Clindamicina 600 mg VO 6/6h + Pirimetamina + Ácido Folínico.
+    - Alerta crítico e conduta de termo (>= 37 semanas): suspensão de Sulfadiazina e substituição por Espiramicina para prevenção de Kernicterus neonatal por deslocamento de bilirrubina da albumina.
+    - Bloqueios de segurança clínica: obrigatoriedade do Ácido Folínico (proibição de substituição por ácido fólico comum), monitoramento hematológico bimensal da toxicidade de Pirimetamina e contraindicação de amniocentese antes de 18 semanas.
+    - Integração Fastify RPC (`cockpitObstetriciaToxoplasmose` e `cockpitToxoplasmoseGestacional`), comandos Telegram (`/toxo`, `/toxoplasmose`, `/espiramicina`, `/avidez`) e 20 testes unitários + testes de integração do servidor aprovados.
 
 40. [ ] **Cardiologia e Emergência - Fibrilação Atrial Aguda e Anticoagulação (CHA2DS2-VASc / HAS-BLED / Controle de Frequência vs Ritmo)**:
     - Motor determinístico de cálculo do escore CHA2DS2-VASc para indicação de anticoagulação oral (DOACs de 1ª linha: Apixabana, Rivaroxabana, Dabigatrana, Edoxabana vs Varfarina se prótese metálica/estenose mitral).
@@ -1128,3 +1136,21 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 131. [ ] **Obstetrícia & Medicina Fetal - Manejo de Aloimunização RhD e Prevenção de Doença Hemolítica Perinatal**:
     - Monitoramento por Doppler da Artéria Cerebral Média (Pico de Velocidade Sistólica - PVS) para detecção de anemia fetal grave.
     - Regras rigorosas de indicação de Imunoglobulina Anti-D em gestantes Rh negativo não sensibilizadas (com 28 semanas, pós-parto e após eventos sensibilizantes como sangramentos e procedimentos invasivos).
+
+132. [ ] **Infectologia & Obstetrícia - Sífilis Gestacional e Prevenção da Sífilis Congênita (Diretrizes Ministério da Saúde / PCDT)**:
+    - Motor determinístico de interpretação de testes treponêmicos e não treponêmicos (VDRL/RPR) com monitoramento serológico de queda de títulos pós-tratamento (cura vs reinfecção/reativação).
+    - Protocolo posológico exclusivo com Penicilina Benzatina (único fármaco que trata o feto com eficácia comprovada): 2,4 milhões UI IM dose única (primária, secundária ou latente recente) vs 7,2 milhões UI em 3 doses semanais de 2,4M UI (latente tardia, terciária ou de duração ignorada).
+    - Bloqueio mandatório de tratamento adequado materno: esquema completo iniciado e concluído pelo menos 30 dias antes do parto com Penicilina Benzatina (qualquer outro fármaco, como ceftriaxona ou azitromicina, é considerado tratamento inadequado com necessidade de investigação completa e tratamento do recém-nascido).
+    - Manejo seguro da Reação de Jarisch-Herxheimer na gestante com monitoramento cardiotocográfico e de contrações uterinas.
+
+133. [ ] **Neurologia & UTI Pediátrica - Estado de Mal Epiléptico Pediátrico e Crises Febris (Diretrizes SBP / AES / PALS)**:
+    - Algoritmo beira-leito escalonado de manejo de crises convulsivas ativas na infância: 1ª linha (Benzodiazepínicos: Midazolam IM/bucal/intranasal ou Diazepam retal/IV até 2 doses com intervalo de 5 min).
+    - 2ª linha em crise refratária (> 5-10 min): Fenitoína IV (20 mg/kg), Levetiracetam IV (60 mg/kg) ou Valproato de Sódio IV (40 mg/kg) com cálculo de velocidade de infusão para prevenir hipotensão/arritmia.
+    - 3ª linha (estado refratário > 30-60 min): indução anestésica com Midazolam contínuo, Propofol ou Tiopental sob via aérea avançada e monitorização contínua.
+    - Diferenciação criteriosa entre Convulsão Febril Simples vs Complexa e critérios para punção liquórica de urgência (lactentes < 12 meses ou sinais meníngeos).
+
+134. [ ] **Nefrologia & Emergência - Manejo da Hipercalemia Grave com Cardiotoxicidade Eletrocardiográfica (Diretrizes KDIGO / AHA)**:
+    - Classificação de gravidade por nível de K+ sérico e alterações eletrocardiográficas (ondas T apiculadas e simétricas, alargamento de QRS, perda de onda P, onda senoidal pré-PCR).
+    - Estabilização imediata da membrana miocárdica: Gluconato de Cálcio 10% IV (10 a 20 mL em 3-5 min) ou Cloreto de Cálcio 10% se choque/PCR.
+    - Medidas de shift intracelular de ação rápida: Solução Polarizante (Glicose 50% 50 mL + Insulina Regular 10 UI IV em 30 min), Beta-2 agonista inalatório (Salbutamol 10 a 20 mg nebulizado) e Bicarbonato de Sódio 8,4% IV se acidose metabólica grave concomitante.
+    - Medidas de eliminação corpórea de potássio: Furosemida IV de alça, resinas de troca / quelantes orais e indicação prioritária de hemodiálise de urgência (mnemônico AEIOU).

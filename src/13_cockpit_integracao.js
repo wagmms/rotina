@@ -1876,3 +1876,28 @@ function cockpitEhagSwansea(initData, params) {
     textoFormatado: texto
   };
 }
+
+function cockpitObstetriciaToxoplasmose(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Toxoplasmose não fornecidos.');
+  if (typeof ObstetriciaToxoplasmoseService === 'undefined') {
+    throw new Error('Serviço ObstetriciaToxoplasmoseService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? ObstetriciaToxoplasmoseService.extrairParametrosTexto(params)
+    : (params.texto ? ObstetriciaToxoplasmoseService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = ObstetriciaToxoplasmoseService.avaliar(entrada);
+  var texto = ObstetriciaToxoplasmoseService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitToxoplasmoseGestacional(initData, params) {
+  return cockpitObstetriciaToxoplasmose(initData, params);
+}
