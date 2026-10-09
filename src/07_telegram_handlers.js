@@ -175,7 +175,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/cig", "/colestase", "/ehag", "/aflp", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol"];
+  var clinicos = ["/cig", "/colestase", "/ehag", "/aflp", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -187,7 +187,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/cig":"cig","/colestase":"cig","/ehag":"cig","/aflp":"cig","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma"};
+      var mapaModos={"/cig":"cig","/colestase":"cig","/ehag":"cig","/aflp":"cig","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -1752,8 +1752,130 @@ function processarMensagemTexto(message) {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
-  // OBSTETRÍCIA & MEDICINA FETAL: RESTRIÇÃO DE CRESCIMENTO FETAL (RCF) E DOPPLER
+  // REUMATOLOGIA & EMERGÊNCIA: MONOARTRITE AGUDA E ANÁLISE DO LÍQUIDO SINOVIAL
   // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/monoartrite" || comando === "/artriteseptica" || comando === "/artriteséptica" || comando === "/gota" || comando === "/artrocentese") {
+    var dadosMono = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ReumatologiaMonoartriteFebreReumaticaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ReumatologiaMonoartriteFebreReumaticaService indisponível temporariamente.");
+    }
+
+    if (!dadosMono) {
+      return enviarMensagemParaChat(chatId,
+        "🦴 *Monoartrite Aguda & Análise do Líquido Sinovial (ACR/SBR)*\n\n" +
+        "Digite o comando seguido dos achados da artrocentese e clínica.\n\n" +
+        "📌 *Parâmetros aceitos:*\n" +
+        "• Celularidade: `leucocitos 85000`, `pmn 90%`\n" +
+        "• Aspecto: `purulento`, `turvo`, `hemorragico`, `transparente`\n" +
+        "• Microscopia/Gram: `gram cocos positivos`, `diplococos gram negativos`, `cristais urato / agulha / pirofosfato`\n" +
+        "• Glicose: `glicose 20 glicemia 100`\n" +
+        "• Modificadores: `joelho/quadril`, `febre`, `idade 65`, `peso 70`, `clcr 28`, `risco mrsa`, `sexualmente ativo`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/monoartrite leucocitos 85000 pmn 92% aspecto purulento gram cocos positivos febre joelho`\n" +
+        "• `/gota cristais urato agulha leucocitos 18000 pmn 70% clcr 28 podagra`\n" +
+        "• `/artriteseptica jovem sexualmente ativo leucocitos 60000 joelho`");
+    }
+
+    function extrairMono(re) {
+      var m = dadosMono.match(re);
+      return m ? parseFloat(m[1].replace(",", ".")) : NaN;
+    }
+
+    var paramsMono = {
+      leucocitos: extrairMono(/(?:leucocitos|leuco|celulas|gb)\s*[:=]?\s*(\d+)/i),
+      neutrofilos_pct: extrairMono(/(?:pmn|neutrofilos|polimorfo)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i),
+      glicose_sinovial: extrairMono(/(?:glicose sinovial|glicose)\s*[:=]?\s*(\d+)/i),
+      glicemia_serica: extrairMono(/(?:glicemia serica|glicemia)\s*[:=]?\s*(\d+)/i),
+      idade: extrairMono(/(?:idade|anos)\s*[:=]?\s*(\d+)/i),
+      peso: extrairMono(/(?:peso|kg)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i),
+      clcr: extrairMono(/(?:clcr|clearance|tfg)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i),
+      temperatura: extrairMono(/(?:temp|tax|temperatura)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i),
+      febre: /(?:febre|febril|toxemico)/i.test(dadosMono),
+      aspecto: dadosMono,
+      gram: dadosMono,
+      cristais: dadosMono,
+      articulacao: dadosMono,
+      sexualmente_ativo: /(?:sexualmente ativo|jovem|dst|uretrite|gonococo)/i.test(dadosMono),
+      risco_mrsa: /(?:mrsa|drogas iv|hemodialise|colonizacao|hospitalizacao|ulcera de pele)/i.test(dadosMono),
+      idoso: /(?:idoso|nonagenario|octogenario)/i.test(dadosMono),
+      imunossuprimido: /(?:imunossuprimido|neoplasia|quimioterapia|transplante)/i.test(dadosMono),
+      diabetes: /(?:diabetes|dm|diabetico)/i.test(dadosMono),
+      protese_articular: /(?:protese|artroplastia)/i.test(dadosMono)
+    };
+
+    try {
+      var analiseMono = ReumatologiaMonoartriteFebreReumaticaService.analisarMonoartrite(paramsMono);
+      var textMono = ReumatologiaMonoartriteFebreReumaticaService.formatarMonoartriteTelegram(analiseMono);
+      return enviarMensagemParaChat(chatId, textMono);
+    } catch (eMono) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao analisar monoartrite: " + eMono.message);
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // REUMATOLOGIA & PEDIATRIA: FEBRE REUMÁTICA AGUDA E CRITÉRIOS DE JONES
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/febrereumatica" || comando === "/fr" || comando === "/jones" || comando === "/aslo") {
+    var dadosFr = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ReumatologiaMonoartriteFebreReumaticaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ReumatologiaMonoartriteFebreReumaticaService indisponível temporariamente.");
+    }
+
+    if (!dadosFr) {
+      return enviarMensagemParaChat(chatId,
+        "❤️‍🩹 *Febre Reumática Aguda & Critérios de Jones (AHA/SBP)*\n\n" +
+        "Digite o comando seguido dos critérios clínicos e laboratoriais.\n\n" +
+        "📌 *Achados avaliados:*\n" +
+        "• Infecção GAS: `aslo 650` / `aslo positiva`, `cultura strepto+`, `escarlatina`\n" +
+        "• Critérios Maiores: `cardite` / `sopro`, `poliartrite migratoria`, `monoartrite`, `coreia`, `eritema marginado`, `nodulos`\n" +
+        "• Critérios Menores: `febre 38.8`, `vhs 55`, `pcr 4.2`, `pr prolongado` / `bloqueio av 1`\n" +
+        "• Dados do Paciente: `peso 25`, `idade 9`, `alergia a penicilina`, `recidiva`, `valvulopatia residual`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/febrereumatica aslo 650 poliartrite migratoria febre 38.6 vhs 45 peso 25 idade 9`\n" +
+        "• `/jones cardite sopro novo febre 38.8 pcr 5.2 aslo alta peso 42 idade 12`\n" +
+        "• `/fr coreia de sydenham peso 30 idade 10`");
+    }
+
+    function extrairFr(re) {
+      var m = dadosFr.match(re);
+      return m ? parseFloat(m[1].replace(",", ".")) : NaN;
+    }
+
+    var paramsFr = {
+      peso: extrairFr(/(?:peso|kg)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i),
+      idade: extrairFr(/(?:idade|anos)\s*[:=]?\s*(\d+)/i),
+      aslo: extrairFr(/(?:aslo|aeso)\s*[:=]?\s*(\d+)/i),
+      temperatura: extrairFr(/(?:temp|tax|temperatura)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i),
+      vhs: extrairFr(/(?:vhs)\s*[:=]?\s*(\d+)/i),
+      pcr: extrairFr(/(?:pcr)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i),
+      aslo_elevada: /(?:aslo elevada|aslo alta|aslo positiva|aeso alta)/i.test(dadosFr),
+      cultura_positiva: /(?:cultura positiva|orofaringe positiva|strep test positivo|teste rapido positivo)/i.test(dadosFr),
+      escarlatina: /(?:escarlatina)/i.test(dadosFr),
+      cardite: /(?:cardite|valvulite|sopro novo|sopro cardiaco|insuficiencia mitral)/i.test(dadosFr),
+      artrite: dadosFr,
+      poliartrite: /(?:poliartrite|migratoria|migratória)/i.test(dadosFr),
+      monoartrite: /(?:monoartrite)/i.test(dadosFr),
+      poliartralgia: /(?:poliartralgia)/i.test(dadosFr),
+      artralgia: /(?:artralgia|monoartralgia)/i.test(dadosFr),
+      coreia: /(?:coreia|sydenham|movimentos involuntarios)/i.test(dadosFr),
+      eritema_marginado: /(?:eritema marginado|eritema marginatum)/i.test(dadosFr),
+      nodulos_subcutaneos: /(?:nodulos subcutaneos|nódulos subcutâneos|nodulos)/i.test(dadosFr),
+      febre: /(?:febre|febril)/i.test(dadosFr),
+      pr_prolongado: /(?:pr prolongado|bloqueio av|bav 1|bav1)/i.test(dadosFr),
+      alergia_penicilina: /(?:alergia a penicilina|alergico a penicilina|anafilaxia a penicilina)/i.test(dadosFr),
+      recidiva: /(?:recidiva|surto previo|episodio previo|fr previa)/i.test(dadosFr),
+      valvulopatia_residual: /(?:valvulopatia residual|cardiopatia cronica|sequela valvar|protese valvar)/i.test(dadosFr),
+      cardite_previa_curada: /(?:cardite curada|sem sequela)/i.test(dadosFr)
+    };
+
+    try {
+      var analiseFr = ReumatologiaMonoartriteFebreReumaticaService.avaliarFebreReumatica(paramsFr);
+      var textFr = ReumatologiaMonoartriteFebreReumaticaService.formatarFebreReumaticaTelegram(analiseFr);
+      return enviarMensagemParaChat(chatId, textFr);
+    } catch (eFr) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao avaliar febre reumática: " + eFr.message);
+    }
+  }
   if (comando === "/rcf" || comando === "/ciur" || comando === "/rciu" || comando === "/doppler" || comando === "/crescimentofetal") {
     var dadosRcf = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof ObstetriciaRcfDopplerService === "undefined") {

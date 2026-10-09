@@ -2303,3 +2303,50 @@ function cockpitPneumologiaDpocVni(initData, params) {
 function cockpitDpocVni(initData, params) {
   return cockpitPneumologiaDpocVni(initData, params);
 }
+
+function cockpitReumatologiaMonoartrite(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Monoartrite não fornecidos.');
+  if (typeof ReumatologiaMonoartriteFebreReumaticaService === 'undefined') {
+    throw new Error('Serviço ReumatologiaMonoartriteFebreReumaticaService indisponível.');
+  }
+
+  var analise = ReumatologiaMonoartriteFebreReumaticaService.analisarMonoartrite(params);
+  var texto = ReumatologiaMonoartriteFebreReumaticaService.formatarMonoartriteTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitMonoartrite(initData, params) {
+  return cockpitReumatologiaMonoartrite(initData, params);
+}
+
+function cockpitReumatologiaFebreReumatica(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Febre Reumática não fornecidos.');
+  if (typeof ReumatologiaMonoartriteFebreReumaticaService === 'undefined') {
+    throw new Error('Serviço ReumatologiaMonoartriteFebreReumaticaService indisponível.');
+  }
+
+  var analise = ReumatologiaMonoartriteFebreReumaticaService.avaliarFebreReumatica(params);
+  var texto = ReumatologiaMonoartriteFebreReumaticaService.formatarFebreReumaticaTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitFebreReumatica(initData, params) {
+  return cockpitReumatologiaFebreReumatica(initData, params);
+}
+
+function cockpitJones(initData, params) {
+  return cockpitReumatologiaFebreReumatica(initData, params);
+}
+

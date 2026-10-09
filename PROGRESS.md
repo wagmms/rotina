@@ -362,10 +362,22 @@
     - Titulação beira-leito de IPAP e EPAP com alvos gasométricos (pH >= 7,35 e alívio do trabalho muscular).
     - Parâmetros objetivos de falha de VNI e gatilhos para intubação orotraqueal e ventilação mecânica protetora precoce.
 
-51. [ ] **Reumatologia e Urgência - Monoartrite Aguda e Febre Reumática (Critérios de Jones / ACR)**:
-    - Algoritmo de diagnóstico diferencial de monoartrite aguda (análise sinovial com celularidade, bacterioscopia e pesquisa de microcristais) distinguindo artrite séptica de gota.
-    - Esquema antimicrobiano empírico intravenoso inicial escalonado por faixa etária e perfil microbiológico.
-    - Critérios de Jones revisados pela AHA para rastreio e profilaxia secundária de Febre Reumática com Penicilina Benzatina.
+51. [x] **Reumatologia e Urgência - Monoartrite Aguda e Febre Reumática (Critérios de Jones / ACR)**:
+    - Motor determinístico beira-leito para análise do líquido sinovial e diagnóstico diferencial de monoartrite (`src/02_reumatologia_monoartrite_febre_reumatica.js`):
+      * Classificação do líquido sinovial por grupos (Grupo I: Não-inflamatório/Mecânico; Grupo II: Inflamatório/Microcristalino; Grupo III: Séptico/Infeccioso; Grupo IV: Hemorrágico).
+      * Diferenciação microcristalina sob microscopia: cristais em agulha com forte birrefringência negativa (Urato Monossódico / Gota) vs cristais romboides com birrefringência positiva fraca (Pirofosfato de Cálcio / Pseudogota/CPPD).
+      * Alerta sentinela crítico de coexistência: identificação de cristais não exclui Artrite Séptica bacteriana sobreposta se celularidade elevada, Gram positivo ou febre.
+      * Protocolo de conduta na Artrite Séptica: emergência médica ortopédica, artrocentese evacuadora seriada imediata vs indicação mandatória de drenagem cirúrgica (artroscopia/artrotomia em quadril, ombro, articulações axiais ou com prótese).
+      * Esquemas antimicrobianos empíricos intravenosos escalonados: Ceftriaxona 1-2g IV + Azitromicina 1g VO para adulto jovem sexualmente ativo (risco gonocócico); Oxacilina 2g IV 4/4h para adulto padrão (MSSA); Vancomicina 15-20 mg/kg IV 12/12h para risco de MRSA; associação de Ceftriaxona/Cefepime para risco de BGN em idosos e imunossuprimidos.
+      * Manejo da crise aguda de Gota: AINE potente em dose cheia precoce se função renal e gástrica preservadas; Colchicina em baixa dose (1,0 mg ataque + 0,5 mg após 1h); Prednisona oral 30-40 mg/dia como droga de escolha em insuficiência renal (ClCr < 30 mL/min), idosos e alto risco hemorrágico; Regra de Ouro do Alopurinol (não suspender se uso prévio e não iniciar durante o pico agudo).
+    - Motor determinístico de Febre Reumática Aguda e Critérios de Jones revisados (AHA 2015 / SBP / SBC):
+      * Estratificação por população de alto risco epidemiológico (Brasil): critérios maiores (Cardite, Artrite [poliartrite migratória, monoartrite ou poliartralgia], Coreia de Sydenham, Eritema marginado, Nódulos subcutâneos) e menores (Artralgia, Febre ≥ 38,0 °C, VHS ≥ 30 mm/h ou PCR ≥ 3,0 mg/dL, intervalo PR prolongado no ECG).
+      * Diagnóstico presuntivo independente para Coreia de Sydenham isolada.
+      * Protocolo de erradicação de orofaringe do *Streptococcus pyogenes*: Penicilina G Benzatina IM profunda dose única (1.200.000 UI se ≥ 27 kg; 600.000 UI se < 27 kg); esquema com Eritromicina ou Azitromicina para alérgicos.
+      * Controle anti-inflamatório da fase aguda: AAS em dose plena anti-inflamatória (80-100 mg/kg/dia dividido de 6/6h) na artrite pura com resposta rápida diagnóstica; Corticoterapia com Prednisona (1-2 mg/kg/dia) na cardite moderada/grave.
+      * Protocolo de Profilaxia Secundária obrigatória a cada 21 dias (padrão-ouro Brasil): Penicilina G Benzatina (1.200.000 UI se ≥ 27 kg; 600.000 UI se < 27 kg) ou Sulfadiazina 1g/dia VO em alérgicos.
+      * Duração da profilaxia secundária: até 21 anos (sem cardite), até 25 anos (cardite curada sem lesão residual) ou até 40 anos/vitalícia (valvulopatia residual crônica persistente ou prótese valvar).
+    - Integração Fastify RPC (`cockpitReumatologiaMonoartrite`, `cockpitMonoartrite`, `cockpitReumatologiaFebreReumatica`, `cockpitFebreReumatica`, `cockpitJones`), comandos Telegram (`/monoartrite`, `/artriteseptica`, `/artriteséptica`, `/gota`, `/artrocentese`, `/febrereumatica`, `/fr`, `/jones`, `/aslo`) e suíte de testes dedicados `tests/test_reumatologia_monoartrite_febre_reumatica.cjs` 100% aprovada.
 
 52. [ ] **Cockpit PWA - Cache Local Criptografado com IndexedDB e Fila Offline Resiliente**:
     - Persistência no cliente de protocolos, cálculos e consultas no IndexedDB para autonomia offline total do PWA em áreas hospitalares sem sinal.

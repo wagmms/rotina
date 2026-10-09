@@ -884,6 +884,13 @@ module.exports = {
         _rpcMap.cockpitQuedas = ctx.cockpitQuedas || ctx.cockpitGeriatriaQuedas;
         _rpcMap.cockpitGeriatriaPolifarmacia = ctx.cockpitGeriatriaPolifarmacia;
         _rpcMap.cockpitGeriatriaAvancada = ctx.cockpitGeriatriaAvancada;
+        _rpcMap.cockpitPneumologiaDpocVni = ctx.cockpitPneumologiaDpocVni;
+        _rpcMap.cockpitDpocVni = ctx.cockpitDpocVni || ctx.cockpitPneumologiaDpocVni;
+        _rpcMap.cockpitReumatologiaMonoartrite = ctx.cockpitReumatologiaMonoartrite;
+        _rpcMap.cockpitMonoartrite = ctx.cockpitMonoartrite || ctx.cockpitReumatologiaMonoartrite;
+        _rpcMap.cockpitReumatologiaFebreReumatica = ctx.cockpitReumatologiaFebreReumatica;
+        _rpcMap.cockpitFebreReumatica = ctx.cockpitFebreReumatica || ctx.cockpitReumatologiaFebreReumatica;
+        _rpcMap.cockpitJones = ctx.cockpitJones || ctx.cockpitReumatologiaFebreReumatica;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];
