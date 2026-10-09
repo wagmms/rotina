@@ -519,16 +519,40 @@
         * Auditoria do motor de interações medicamentosas graves, verificando alertas para associações potencialmente letais (ex.: prolongamento de intervalo QT, hipercalemia grave, síndrome serotoninérgica).
 
 61. [x] **Auditoria Médica Integral com Modelo PRO — Ginecologia, Pré-Natal de Baixo Risco e Segurança na Gestação/Lactação**:
-    - **Auditoria de Precisão com Modelo PRO**:
-      * Auditoria detalhada dos módulos de Saúde da Mulher e Pré-Natal (`src/02_obstetricia_prenatal.js`, `src/02_ginecologia_ambulatorial.js`, `src/02_soap_ambulatorial.js`):
-        * Cálculo determinístico de Idade Gestacional (IG) e DPP por DUM (Regra de Naegele) e concordância FEBRASGO com USG precoce de 1º trimestre.
-        * Cronograma oficial do Ministério da Saúde para exames de rotina no pré-natal de baixo risco e interpretação de sorologias (Toxoplasmose IgM/IgG com teste de avidez, VDRL, HIV, HBsAg, Urina I e Glicemia de jejum).
-        * Validador farmacológico na gestação e lactação: classificação de risco FDA/MS, bloqueio imediato e alertas severos de fetotoxicidade (IECA/BRA, estatinas, tetraciclinas, AINEs no 3º tri) e recomendação de alternativas de 1ª escolha (Metildopa, Nifedipino, Hidralazina, Paracetamol, Amoxicilina).
-        * Critérios Médicos de Elegibilidade de Anticoncepção da OMS (Categorias 1 a 4) com foco em comorbidades frequentes da atenção primária (enxaqueca com aura, HAS crônica, tabagismo > 35 anos, trombofilias).
+    - **Auditoria de Precisão com Modelo PRO Concluída**:
+      * Módulos auditados: `src/02_obstetricia_prenatal.js`, `src/02_ginecologia_ambulatorial.js` e integração com `src/07_telegram_handlers.js` e `server/runtime.js`.
+      * **Datação Gestacional e Concordância FEBRASGO/ACOG**:
+        - Regra de Naegele sanitizada e testada para anos bissextos e viradas de mês/ano.
+        - Regra de tolerância do 1º USG (CCN <= 8s6d: +-5 dias; 9 a 13s6d: +-7 dias; 14 a 15s6d: +-7 dias; 16 a 21s6d: +-10 dias; 22 a 27s6d: +-14 dias; >= 28s: +-21 dias) com redatação automática e recálculo da DPP definitiva.
+      * **Interpretação Determinística de Sorologias e Exames Laboratoriais (`interpretarSorologiasLaboratorioPrenatal`)**:
+        - Glicemia de Jejum: < 92 mg/dL (normal, TOTG 75g a 24-28s); 92 a 125 mg/dL (diagnóstico definitivo de DMG no 1º tri, dispensando e contraindicando TOTG 75g; início imediato de MEV e automonitorização); >= 126 mg/dL (Diabetes pré-gestacional / Overt Diabetes, PNAR e insulina).
+        - Toxoplasmose: IgG- IgM- (suscetível, profilaxia primária e sorologia trimestral); IgG+ IgM- (imunidade pregressa sem risco fetal); IgG- IgM+ (infecção aguda recente ou falso-positivo, Espiramicina 1g 8/8h e recoleta em 2-3s); IgG+ IgM+ com avidez em <= 16 semanas: avidez >= 60% (afasta infecção recente, infecção pregressa > 3-4 meses) vs avidez < 50% (infecção aguda confirmada, Espiramicina e PNAR para amniocentese com PCR a partir de 18s).
+        - Sífilis (VDRL / Teste Rápido): Penicilina G Benzatina 2,4M UI IM em dose única (recente < 1 ano) vs 3 semanas consecutivas (latente tardia / indeterminada), com alerta estrito de intervalo <= 7-9 dias e convocação simultânea da parceria.
+        - HIV: Início imediato de TARV (Dolutegravir + Lamivudina + Tenofovir), notificação, carga viral, CD4 e contraindicação absoluta de amamentação com inibição por Cabergolina 1mg dose única e fórmula láctea.
+        - Hepatite B (HBsAg): Encaminhamento PNAR para carga viral e prescrição obrigatória no recém-nascido de Vacina contra Hepatite B + Imunoglobulina HBIG 0,5 mL IM nas primeiras 12 horas de vida.
+        - Bacteriúria Assintomática (Urocultura >= 10^5 UFC/mL): Tratamento compulsório com Fosfomicina 3g dose única ou Cefalexina 500mg 6/6h por 7 dias para prevenção de pielonefrite aguda e parto prematuro, e urocultura de controle de cura pós-tratamento.
+        - Hemoglobina: Hb >= 11 g/dL (normal / sulfato ferroso profilático 40mg Fe/dia a partir de 20s); Hb 8 a 10.9 g/dL (anemia gestacional moderada / dose terapêutica 120-200mg Fe/dia); Hb < 8 g/dL (anemia grave, PNAR / ferro IV).
+        - Tipagem Rh e Coombs: Rh- com Coombs- (Anti-D 300 mcg na 28ª semana e periparto); Rh- com Coombs+ (aloimunização instalada, PNAR para Doppler de ACM se título >= 1:16).
+      * **Expansão Farmacológica na Gestação (`BANCO_FARMACOS_GESTACAO`)**:
+        - Adição de antidiabéticos: Insulinas NPH e Regular (Padrão ouro, Categoria B, seguras); Metformina (Cautela/2ª linha); Glibenclamida (Contraindicada por macrossomia e hipoglicemia neonatal prolongada).
+        - Adição de DOACs: Rivaroxabana, Apixabana, Dabigatrana (Contraindicados na gravidez e lactação, substituição mandatória por Enoxaparina).
+        - Adição de psicotrópicos: Sertralina (1ª escolha segura, Categoria C); Paroxetina (Contraindicada no 1º tri por defeito septal cardíaco); Clonazepam e Diazepam (Cautela, risco de hipotonia/abstinência neonatal).
+        - Adição de tireoide: Levotiroxina (Categoria A, compulsória com elevação empírica de 20-30% da dose na gestação); Propiltiouracil/PTU (1ª escolha no 1º tri para hipertireoidismo); Metimazol (Evitar no 1º tri por aplasia cutis, opção no 2º e 3º tri).
+        - Adição de antiepilépticos: Lamotrigina e Levetiracetam (Menor risco de teratogênese); Carbamazepina (Cautela com ácido fólico 5mg/dia).
+      * **Critérios Médicos de Elegibilidade para Contracepção da OMS**:
+        - Validação de regras para enxaqueca com aura (AHC Cat. 4, DIU Cu Cat. 1, Progestagênio Cat. 2); TVP/TEP (AHC Cat. 4, DIU Cu Cat. 1); HAS grave (AHC Cat. 4, DIU Cu Cat. 1); Tabagismo >= 35a >= 15 cig/dia (AHC Cat. 4, DIU Cu Cat. 1, POP Cat. 1); Câncer de Mama Atual (TODOS os hormonais Cat. 4, DIU Cu Cat. 1).
+      * **Suíte de Testes Automatizada Dedicada**:
+        - Criado `tests/test_auditoria_pro_ginecologia_prenatal.cjs` com 32 testes determinísticos rigorosos integrados ao pipeline `npm test` com 100% de sucesso.
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Auditoria Médica Integral com Modelo PRO — Ginecologia, Pré-Natal de Baixo Risco e Segurança na Gestação/Lactação**:
+   - Criação da suíte `tests/test_auditoria_pro_ginecologia_prenatal.cjs` com 32 testes determinísticos validando Naegele, concordância FEBRASGO/ACOG, exames de rotina, sorologias, farmacologia gestacional e elegibilidade da OMS.
+   - Implementação de `interpretarSorologiasLaboratorioPrenatal` em `src/02_obstetricia_prenatal.js`, expondo parecer semafórico escaneável beira-leito para o médico generalista.
+   - Expansão da base `BANCO_FARMACOS_GESTACAO` com insulinas, metformina, DOACs, sertralina, paroxetina, levotiroxina, PTU e antiepilépticos.
+   - Integração Fastify RPC com o novo método `cockpitInterpretarSorologiasPrenatal` e parser laboratorial no bot Telegram (`/prenatal`).
+   - 100% de aprovação em todos os testes do pipeline contínuo (`npm test`).
 - [x] (2026-10-09) **Saneamento do Escopo Clínico, Inventário Geral e Expurgo de Funções Terciárias/Administrativas**:
    - Criação do documento canônico `docs/INVENTARIO_CLINICO_GERAL.md` mapeando todos os 256 comandos Telegram tratados, o catálogo canônico de 97 comandos do `/ajuda`, 133 rotas Fastify RPC e 59 submódulos clínicos determinísticos (`src/02_*.js` e `src/03_*.js`).
    - Consolidação dos três pilares fundamentais do médico generalista e interno: Porta de Emergência / Sala Vermelha, Enfermaria Clínica Geral e Atenção Primária / UBS.

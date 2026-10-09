@@ -1039,6 +1039,246 @@ var ObstetriciaPrenatalService = (function() {
         '✅ Fármaco de escolha seguro para pirose e DRGE gestacional não responsiva a antiácidos.'
       ],
       alternativasRecomendadas: ['Hidróxido de Alumínio / Magnésio', 'Ranitidina/Famotidina']
+    },
+
+    // ANTIDIABÉTICOS E INSULINAS
+    insulina_nph: {
+      nome: 'Insulina NPH (Humana)',
+      classe: 'Insulina de Ação Intermediária',
+      categoriaFda: 'B',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ PADRÃO OURO ABSOLUTO NO DIABETES GESTACIONAL (DMG) E DIABETES PRÉ-GESTACIONAL (SBD / FEBRASGO / ADA).',
+        'Não ultrapassa a barreira placentária. Não causa teratogênese nem toxicidade embrionária direta.',
+        'Prescrita quando MEV/dieta não atingem as metas (Jejum < 95 mg/dL, 1h pós-prandial < 140 mg/dL ou 2h pós < 120 mg/dL).'
+      ],
+      alternativasRecomendadas: ['Insulina Regular associada se hiperglicemia pós-prandial']
+    },
+    insulina_regular: {
+      nome: 'Insulina Regular (Humana)',
+      classe: 'Insulina de Ação Rápida',
+      categoriaFda: 'B',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ PADRÃO OURO PARA CORREÇÃO PRANDIAL NO DIABETES NA GESTAÇÃO.',
+        'Segura em todos os trimestres. Não atravessa a barreira hematoplacentária.'
+      ],
+      alternativasRecomendadas: ['Insulina Lispro / Aspart sob orientação especializada']
+    },
+    metformina: {
+      nome: 'Metformina',
+      classe: 'Biguanida',
+      categoriaFda: 'B',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '⚠️ Atravessa a placenta com concentrações fetais comparáveis às maternas.',
+        'Utilizada como 2ª linha apenas quando há intolerância severa, recusa justificada ou impossibilidade técnica de uso de insulina.',
+        'Se já em uso para SOP/indução ovulatória, pode ser mantida no 1º trimestre, mas no DMG a insulina permanece como primeira escolha formal (FEBRASGO).'
+      ],
+      alternativasRecomendadas: ['Insulina NPH / Insulina Regular (1ª escolha)']
+    },
+    glibenclamida: {
+      nome: 'Glibenclamida',
+      classe: 'Sulfonilureia',
+      categoriaFda: 'C',
+      segurancaGestacao: 'CONTRAINDICADO',
+      segurancaLactacao: 'EVITAR',
+      alertas: [
+        '⛔ CONTRAINDICADA NA GESTAÇÃO.',
+        'Atravessa a placenta e estimula a secreção pancreática fetal de insulina, aumentando o risco de macrossomia fetal e hipoglicemia neonatal grave e prolongada.',
+        'Suspender imediatamente e substituir por Insulina NPH.'
+      ],
+      alternativasRecomendadas: ['Insulina NPH / Insulina Regular']
+    },
+
+    // ANTICOAGULANTES ORAIS DIRETOS (DOACs)
+    rivaroxabana: {
+      nome: 'Rivaroxabana',
+      classe: 'DOAC (Inibidor Direto do Fator Xa)',
+      categoriaFda: 'C',
+      segurancaGestacao: 'CONTRAINDICADO',
+      segurancaLactacao: 'CONTRAINDICADO',
+      alertas: [
+        '⛔ CONTRAINDICAÇÃO FORMAL E ABSOLUTA NA GESTAÇÃO E LACTAÇÃO.',
+        'Molécula pequena que atravessa livremente a placenta, com risco documentado de hemorragia fetal/neonatal grave e perda gestacional.',
+        'Falta de dados de segurança teratogênica em humanos.',
+        'Conduta imediata: suspender no ato e transicionar para Heparina de Baixo Peso Molecular (Enoxaparina).'
+      ],
+      alternativasRecomendadas: ['Enoxaparina (HBPM) 1 mg/kg SC 12/12h se dose terapêutica ou 40 mg SC/dia se profilaxia']
+    },
+    apixabana: {
+      nome: 'Apixabana',
+      classe: 'DOAC (Inibidor Direto do Fator Xa)',
+      categoriaFda: 'C',
+      segurancaGestacao: 'CONTRAINDICADO',
+      segurancaLactacao: 'CONTRAINDICADO',
+      alertas: [
+        '⛔ CONTRAINDICAÇÃO ABSOLUTA NA GRAVIDEZ.',
+        'Atravessa a placenta com alto risco de sangramento fetal. Suspender e iniciar Enoxaparina.'
+      ],
+      alternativasRecomendadas: ['Enoxaparina (HBPM)']
+    },
+    dabigatrana: {
+      nome: 'Dabigatrana',
+      classe: 'DOAC (Inibidor Direto da Trombina)',
+      categoriaFda: 'C',
+      segurancaGestacao: 'CONTRAINDICADO',
+      segurancaLactacao: 'CONTRAINDICADO',
+      alertas: [
+        '⛔ CONTRAINDICAÇÃO ABSOLUTA NA GESTAÇÃO.',
+        'Passagem placentária comprovada e risco hemorrágico embrionário. Substituir por Enoxaparina.'
+      ],
+      alternativasRecomendadas: ['Enoxaparina (HBPM)']
+    },
+
+    // ANTIDEPRESSIVOS E ANSIOLÍTICOS
+    sertralina: {
+      nome: 'Sertralina',
+      classe: 'ISRS (Inibidor Seletivo da Recaptação de Serotonina)',
+      categoriaFda: 'C',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ ANTIDEPRESSIVO DE 1ª ESCOLHA CONSAGRADO NA GESTAÇÃO E PUERPÉRIO (ACOG / APA / FEBRASGO).',
+        'Menor taxa de passagem transplacentária e baixíssima concentração no leite materno entre os ISRSs.',
+        'Indicação de manutenção para prevenção de descompensação psiquiátrica puerperal e depressão pós-parto.'
+      ],
+      alternativasRecomendadas: ['Escitalopram (alternativa aceitável)']
+    },
+    paroxetina: {
+      nome: 'Paroxetina',
+      classe: 'ISRS',
+      categoriaFda: 'D',
+      segurancaGestacao: 'CONTRAINDICADO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '⛔ CONTRAINDICADA/EVITAR FORMALMENTE NO 1º TRIMESTRE.',
+        'Associação epidemiológica comprovada com malformações cardíacas congênitas (defeito do septo ventricular / CIV e defeito do septo atrial / CIA).',
+        'Se gestante em uso de paroxetina: realizar desmame gradual supervisionado e trocar por Sertralina; solicitar ecocardiograma fetal detalhado entre 20 e 22 semanas.'
+      ],
+      alternativasRecomendadas: ['Sertralina 25 a 50 mg/dia VO (1ª escolha segura)']
+    },
+    fluoxetina: {
+      nome: 'Fluoxetina',
+      classe: 'ISRS',
+      categoriaFda: 'C',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'CAUTELA',
+      alertas: [
+        '⚠️ Pode ser mantida se resposta clínica prévia excelente, mas a Sertralina é preferida.',
+        'Meia-vida longa de seu metabólito ativo (norfluoxetina) com maior concentração no leite materno.',
+        'Monitorar recém-nascido para irritabilidade e dificuldade de sucção no período neonatal imediato.'
+      ],
+      alternativasRecomendadas: ['Sertralina']
+    },
+    clonazepam: {
+      nome: 'Clonazepam',
+      classe: 'Benzodiazepínico',
+      categoriaFda: 'D',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'EVITAR',
+      alertas: [
+        '⚠️ Evitar uso crônico ou em doses elevadas na gestação.',
+        'Uso no 3º trimestre ou próximo ao parto pode induzir síndrome do bebê hipotônico ("floppy infant syndrome"), depressão respiratória, apneia e sintomas de abstinência neonatal.',
+        'Indicar desmame gradual antes do parto se possível.'
+      ],
+      alternativasRecomendadas: ['Psicoterapia / ISRS (Sertralina)']
+    },
+    diazepam: {
+      nome: 'Diazepam',
+      classe: 'Benzodiazepínico',
+      categoriaFda: 'D',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'EVITAR',
+      alertas: [
+        '⚠️ Risco de hipotonia neonatal, hipotermia e abstinência pós-parto. Evitar uso contínuo.'
+      ],
+      alternativasRecomendadas: ['Sertralina para ansiedade crônica']
+    },
+
+    // HORMÔNIOS TIREOIDIANOS E ANTITIREOIDIANOS
+    levotiroxina: {
+      nome: 'Levotiroxina Sódica',
+      classe: 'Hormônio Tireoidiano Sintético (T4)',
+      categoriaFda: 'A',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ FÁRMACO DE CATEGORIA A — SEGURO E MANDATÓRIO NA GESTAÇÃO.',
+        'O hipotireoidismo materno não tratado está associado a abortamento, pré-eclâmpsia e prejuízo irreversível do neurodesenvolvimento fetal.',
+        'REGRA DE OURO CLÍNICA: Aumentar a dose diária em 20% a 30% assim que a gestação for confirmada (adicionar 2 doses semanais adicionais ou elevar a dosagem diária) e dosar TSH a cada 4 a 6 semanas (meta TSH < 2.5 mUI/L no 1º tri).'
+      ],
+      alternativasRecomendadas: ['Manter levotiroxina com ajuste posológico']
+    },
+    propiltiouracil: {
+      nome: 'Propiltiouracil (PTU)',
+      classe: 'Tionamida / Antitireoidiano',
+      categoriaFda: 'D',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ DROGA DE 1ª ESCOLHA NO 1º TRIMESTRE PARA HIPERTIREOIDISMO (DOENÇA DE GRAVES).',
+        'Menor potencial teratogênico comparado ao Metimazol nas primeiras 12 semanas de organogênese.',
+        'Após a 16ª semana (2º e 3º trimestres), pode ser realizada transição para Metimazol para mitigar o risco de hepatotoxicidade materna fulminante do PTU.'
+      ],
+      alternativasRecomendadas: ['Metimazol (preferido no 2º e 3º trimestres)']
+    },
+    metimazol: {
+      nome: 'Metimazol / Tiamazol',
+      classe: 'Tionamida / Antitireoidiano',
+      categoriaFda: 'D',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '⛔ EVITAR NO 1º TRIMESTRE DA GESTAÇÃO.',
+        'Embriopatia por Metimazol: associado a aplasia cutis congênita (falha do couro cabeludo), atresia de coanas e atresia esofágica.',
+        'No 1º trimestre, a droga de escolha é o Propiltiouracil (PTU).',
+        'No 2º e 3º trimestres: torna-se a droga preferencial devido ao menor risco de lesão hepática materna grave.'
+      ],
+      alternativasRecomendadas: ['Propiltiouracil no 1º trimestre']
+    },
+
+    // ANTICONVULSIVANTES E ESTABILIZADORES
+    lamotrigina: {
+      nome: 'Lamotrigina',
+      classe: 'Anticonvulsivante',
+      categoriaFda: 'C',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ PERFIL DE SEGURANÇA MAIS FAVORÁVEL ENTRE OS ANTIEPILÉPTICOS NA GESTAÇÃO.',
+        'Baixo risco de malformações congênitas maiores comparado a valproato, carbamazepina ou fenobarbital.',
+        'Atenção farmacocinética: a depuração de lamotrigina aumenta até 50% no 2º e 3º trimestres pela indução de glicuronidação hepática pelo estrogênio, podendo exigir aumento de dose monitorado para evitar crises convulsivas.'
+      ],
+      alternativasRecomendadas: ['Levetiracetam']
+    },
+    levetiracetam: {
+      nome: 'Levetiracetam',
+      classe: 'Anticonvulsivante',
+      categoriaFda: 'C',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ BAIXO RISCO DE TERATOGÊNESE. Um dos antiepilépticos de escolha na gravidez.',
+        'Pode exigir ajuste posológico no 3º trimestre por aumento da taxa de filtração glomerular.'
+      ],
+      alternativasRecomendadas: ['Lamotrigina']
+    },
+    carbamazepina: {
+      nome: 'Carbamazepina',
+      classe: 'Anticonvulsivante',
+      categoriaFda: 'D',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '⚠️ Risco aumentado de defeitos do tubo neural (espinha bífida ~0.5 a 1%), fenda labiopalatina e hipoplasia ungueal.',
+        'Risco significativamente menor que o ácido valproico.',
+        'CONDUTA OBRIGATÓRIA: Suplementação com Ácido Fólico 5 mg/dia desde o pré-concepcional ou diagnóstico precoce e dosagem de nível sérico.'
+      ],
+      alternativasRecomendadas: ['Lamotrigina', 'Levetiracetam']
     }
   };
 
@@ -1052,14 +1292,25 @@ var ObstetriciaPrenatalService = (function() {
 
     var termo = nomeMedicamento.trim().toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    var termoLimpo = termo.replace(/[\s\-_]+/g, '');
 
     var encontrado = null;
     var chaves = Object.keys(BANCO_FARMACOS_GESTACAO);
 
-    // Busca exata ou por prefixo/inclusão
+    // Busca exata ou por prefixo/inclusão (considerando variações com espaço e underline)
     for (var i = 0; i < chaves.length; i++) {
       var k = chaves[i];
-      if (termo === k || termo.indexOf(k) !== -1 || k.indexOf(termo) !== -1) {
+      var kLimpo = k.replace(/[\s\-_]+/g, '');
+      var nomeMed = BANCO_FARMACOS_GESTACAO[k].nome.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      var nomeMedLimpo = nomeMed.replace(/[\s\-_]+/g, '');
+
+      if (termo === k ||
+          termoLimpo === kLimpo ||
+          termoLimpo.indexOf(kLimpo) !== -1 ||
+          kLimpo.indexOf(termoLimpo) !== -1 ||
+          termoLimpo.indexOf(nomeMedLimpo) !== -1 ||
+          nomeMedLimpo.indexOf(termoLimpo) !== -1) {
         encontrado = BANCO_FARMACOS_GESTACAO[k];
         break;
       }
@@ -1263,6 +1514,287 @@ var ObstetriciaPrenatalService = (function() {
     };
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // 8. INTERPRETADOR DETERMINÍSTICO DE SOROLOGIAS E EXAMES DO PRÉ-NATAL (MS/FEBRASGO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Interpreta em segundos o painel sorológico e exames laboratoriais do pré-natal,
+   * emitindo condutas determinísticas segundo diretrizes do Ministério da Saúde e FEBRASGO.
+   */
+  function interpretarSorologiasLaboratorioPrenatal(dados) {
+    dados = dados || {};
+    var avaliados = [];
+    var alertasCriticos = [];
+
+    // Helper para normalizar status
+    function norm(val) {
+      if (!val) return '';
+      return String(val).toLowerCase().trim()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    // Helper robusto para avaliar se é reagente (evitando que 'nao_reagente' contenha 'rea')
+    function ehReagente(str) {
+      if (!str) return false;
+      var s = norm(str);
+      if (s.indexOf('nao') >= 0 || s.indexOf('neg') >= 0 || s === '-' || s.indexOf('ausente') >= 0) {
+        return false;
+      }
+      return s.indexOf('rea') >= 0 || s.indexOf('pos') >= 0 || s === '+' || s.indexOf('1:') >= 0;
+    }
+
+    var sem = Number(dados.semanasGestacao) || Number(dados.semanas) || 0;
+
+    // 1. GLICEMIA DE JEJUM & RASTREIO DE DMG (FEBRASGO / SBD / MS)
+    var gj = Number(dados.glicemiaJejum || dados.glicemia || dados.gj);
+    if (!isNaN(gj) && gj > 0) {
+      var itemGj = { exame: 'Glicemia de Jejum', valor: gj + ' mg/dL' };
+      if (gj < 92) {
+        itemGj.status = 'NORMAL';
+        itemGj.diagnostico = 'Glicemia de jejum dentro dos limites fisiológicos.';
+        itemGj.conduta = 'Realizar TOTG 75g (rastreio universal) entre 24 e 28 semanas de gestação.';
+      } else if (gj >= 92 && gj <= 125) {
+        itemGj.status = 'CRITICO';
+        itemGj.diagnostico = 'DIABETES MELLITUS GESTACIONAL (DMG) CONFIRMADO.';
+        itemGj.conduta = 'Conforme FEBRASGO/SBD/MS, glicemia de jejum entre 92 e 125 mg/dL no 1º trimestre JÁ FIRMA DIAGNÓSTICO DEFINITIVO de DMG (dispensa e contraindica realização de TOTG 75g). Iniciar imediatamente Terapia Nutricional fracionada, MEV e automonitorização glicêmica capilar (meta jejum < 95 mg/dL, 1h pós < 140 mg/dL ou 2h pós < 120 mg/dL). Se metas não atingidas em 1-2 semanas: prescrever Insulina NPH / Regular.';
+        alertasCriticos.push('🩸 DMG CONFIRMADO NO 1º TRIMESTRE (GJ ' + gj + ' mg/dL): Iniciar manejo de DMG imediatamente; NÃO solicitar TOTG 75g.');
+      } else { // >= 126
+        itemGj.status = 'CRITICO';
+        itemGj.diagnostico = 'DIABETES MELLITUS PRÉ-GESTACIONAL (OVERT DIABETES).';
+        itemGj.conduta = 'Glicemia de jejum >= 126 mg/dL indica diabetes prévio à gestação não diagnosticado. Risco elevado de malformações congênitas cardíacas e esqueléticas. Encaminhar imediatamente para Pré-Natal de Alto Risco (PNAR), avaliação oftalmológica (fundoscopia) e início precoce de insulinoterapia.';
+        alertasCriticos.push('🚨 OVERT DIABETES (GJ ' + gj + ' mg/dL): Diabetes pré-gestacional. Encaminhar urgente ao PNAR.');
+      }
+      avaliados.push(itemGj);
+    }
+
+    // 2. TOXOPLASMOSE (IgG, IgM e Teste de Avidez)
+    var toxIggRaw = dados.toxoIgg || dados.toxoplasmoseIgg || dados.toxoG;
+    var toxIgmRaw = dados.toxoIgm || dados.toxoplasmoseIgm || dados.toxoM;
+    if (toxIggRaw !== undefined && toxIggRaw !== null || toxIgmRaw !== undefined && toxIgmRaw !== null) {
+      var itemToxo = { exame: 'Sorologia para Toxoplasmose (IgG e IgM)' };
+      var ehIggPos = ehReagente(toxIggRaw);
+      var ehIgmPos = ehReagente(toxIgmRaw);
+      itemToxo.valor = 'IgG ' + (ehIggPos ? 'Reagente' : 'Não Reagente') + ' | IgM ' + (ehIgmPos ? 'Reagente' : 'Não Reagente');
+
+      if (!ehIggPos && !ehIgmPos) {
+        itemToxo.status = 'ATENCAO';
+        itemToxo.diagnostico = 'Gestante Suscetível (Sem contato prévio / Sem anticorpos).';
+        itemToxo.conduta = 'Orientar medidas estritas de profilaxia primária: não consumir carne crua/malpassada, higienizar rigorosamente frutas e verduras com hipoclorito, evitar contato com fezes de gatos e usar luvas na jardinagem. REPETIR SOROLOGIA A CADA TRIMESTRE (ou a cada 30-60 dias).';
+      } else if (ehIggPos && !ehIgmPos) {
+        itemToxo.status = 'NORMAL';
+        itemToxo.diagnostico = 'Imunidade Pregressa / Infecção Remota.';
+        itemToxo.conduta = 'Anticorpos adquiridos antes da gestação. Feto 100% protegido contra transmissão vertical de toxoplasmose. NÃO necessita de novas sorologias de rotina para toxoplasmose.';
+      } else if (!ehIggPos && ehIgmPos) {
+        itemToxo.status = 'CRITICO';
+        itemToxo.diagnostico = 'Infecção Aguda Muito Precoce OU IgM Falso-Positivo.';
+        itemToxo.conduta = 'Iniciar IMEDIATAMENTE Espiramicina 1g (3.000.000 UI) VO de 8/8h para profilaxia de transmissão vertical. Recoletar sorologia em 2 a 3 semanas no mesmo laboratório para confirmar soroconversão de IgG. Encaminhar ao PNAR.';
+        alertasCriticos.push('⚠️ TOXOPLASMOSE IgM+ ISOLADO: Iniciar Espiramicina 1g 8/8h no ato e repetir sorologia em 2-3 semanas.');
+      } else { // IgG+ e IgM+
+        itemToxo.status = 'CRITICO';
+        var avidezVal = Number(dados.toxoAvidez || dados.avidez);
+        var avidezStr = norm(dados.toxoAvidez || dados.avidez);
+        var temAvidez = (!isNaN(avidezVal) && avidezVal > 0) || avidezStr.length > 0;
+
+        if (sem > 0 && sem <= 16 && temAvidez) {
+          var ehAvidezAlta = avidezVal >= 60 || avidezStr.indexOf('alta') >= 0;
+          var ehAvidezBaixa = avidezVal < 50 || avidezStr.indexOf('baixa') >= 0;
+          if (ehAvidezAlta) {
+            itemToxo.status = 'NORMAL';
+            itemToxo.diagnostico = 'Infecção Antiga / Imunidade Pré-Gestacional (Avidez Alta antes de 16 semanas).';
+            itemToxo.conduta = 'Teste de avidez ALTA (>= 60%) colhido no 1º trimestre (<= 16s) confirma infecção ocorrida há mais de 3-4 meses (antes da concepção). Risco fetal afastado. Pode suspender a Espiramicina se tiver sido iniciada.';
+          } else if (ehAvidezBaixa) {
+            itemToxo.status = 'CRITICO';
+            itemToxo.diagnostico = 'INFECÇÃO AGUDA GESTACIONAL CONFIRMADA (Avidez Baixa < 50%).';
+            itemToxo.conduta = 'Avidez BAIXA (< 50%) no 1º trimestre confirma infecção aguda recente na gestação. Iniciar/manter Espiramicina 1g VO 8/8h imediatamente. Encaminhar com urgência ao Pré-Natal de Alto Risco / Medicina Fetal para programação de amniocentese diagnóstica com PCR no líquido amniótico a partir de 18 semanas.';
+            alertasCriticos.push('🚨 TOXOPLASMOSE AGUDA CONFIRMADA (Avidez Baixa): Manter Espiramicina 1g 8/8h e encaminhar PNAR para amniocentese a partir de 18s.');
+          } else {
+            itemToxo.status = 'CRITICO';
+            itemToxo.diagnostico = 'Avidez Intermediária (50 a 59%) com IgG+ e IgM+.';
+            itemToxo.conduta = 'Resultado indeterminado. Tratar preventivamente como infecção aguda com Espiramicina 1g VO 8/8h e encaminhar imediatamente ao PNAR.';
+            alertasCriticos.push('⚠️ TOXOPLASMOSE: Avidez indeterminada. Manter Espiramicina 1g 8/8h e referenciar ao PNAR.');
+          }
+        } else if (sem > 16) {
+          itemToxo.diagnostico = 'Suspeita de Infecção Aguda em IG Tardia (> 16 semanas).';
+          itemToxo.conduta = 'Após 16 semanas de gestação, o teste de avidez perde poder preditivo para afastar infecção. Por segurança materno-fetal, deve ser assumida infecção gestacional recente. Iniciar imediatamente Espiramicina 1g VO 8/8h, encaminhar ao PNAR e agendar USG morfológico fetal com pesquisa de PCR no líquido amniótico.';
+          alertasCriticos.push('🚨 TOXOPLASMOSE IgG+ IgM+ com > 16 semanas: Iniciar Espiramicina 1g 8/8h e encaminhar PNAR.');
+        } else {
+          itemToxo.diagnostico = 'IgG e IgM Reagentes (Aguardando Teste de Avidez).';
+          itemToxo.conduta = 'SOLICITAR TESTE DE AVIDEZ DE IgG IMEDIATAMENTE (se IG <= 16 semanas). Iniciar de imediato Espiramicina 1g VO 8/8h sem esperar o laudo da avidez.';
+          alertasCriticos.push('⚠️ TOXOPLASMOSE IgG+ IgM+: Iniciar Espiramicina 1g 8/8h e solicitar Teste de Avidez urgente.');
+        }
+      }
+      avaliados.push(itemToxo);
+    }
+
+    // 3. SÍFILIS (Teste Rápido / VDRL)
+    var vdrlRaw = dados.vdrl || dados.sifilis || dados.testeRapidoSifilis;
+    if (vdrlRaw !== undefined && vdrlRaw !== null && String(vdrlRaw).trim() !== '') {
+      var itemSif = { exame: 'Rastreio de Sífilis (Teste Rápido / VDRL)', valor: String(vdrlRaw) };
+      var ehSifReagente = ehReagente(vdrlRaw);
+      if (ehSifReagente) {
+        itemSif.status = 'CRITICO';
+        var fase = norm(dados.sifilisFase || dados.faseSifilis || 'latente_tardia');
+        var ehRecente = fase.indexOf('prim') >= 0 || fase.indexOf('sec') >= 0 || fase.indexOf('recente') >= 0;
+
+        if (ehRecente) {
+          itemSif.diagnostico = 'SÍFILIS EM GESTANTE — FORMA RECENTE (< 1 ano de evolução).';
+          itemSif.conduta = 'Penicilina G Benzatina 2.400.000 UI IM em DOSE ÚNICA (1.200.000 UI em cada glúteo). TRATAR O PARCEIRO SEXUAL SIMULTANEAMENTE. Notificação compulsória (SINAN). Realizar seguimento com VDRL mensal até o parto.';
+        } else {
+          itemSif.diagnostico = 'SÍFILIS EM GESTANTE — FORMA LATENTE TARDIA / INDETERMINADA.';
+          itemSif.conduta = 'Penicilina G Benzatina 2.400.000 UI IM POR SEMANA durante 3 SEMANAS CONSECUTIVAS (Dose total: 7.200.000 UI). ALERTA DE INTERVALO: O intervalo entre as doses semanais NÃO pode exceder 7 a 9 dias; se ultrapassar 9 dias, O CICLO COMPLETO DEVE SER REINICIADO DO ZERO. TRATAR O PARCEIRO SEXUAL. Notificação compulsória (SINAN). Controle de cura mensal com VDRL.';
+        }
+        alertasCriticos.push('🚨 SÍFILIS NA GESTAÇÃO CONFIRMADA: Tratar com Penicilina G Benzatina no ato e convocar parceiro!');
+      } else {
+        itemSif.status = 'NORMAL';
+        itemSif.diagnostico = 'Não Reagente / Negativo.';
+        itemSif.conduta = 'Repetir no 3º trimestre (em torno de 30 semanas) e na admissão para o parto.';
+      }
+      avaliados.push(itemSif);
+    }
+
+    // 4. HIV (Anti-HIV / Teste Rápido)
+    var hivRaw = dados.hiv || dados.antiHiv || dados.testeRapidoHiv;
+    if (hivRaw !== undefined && hivRaw !== null && String(hivRaw).trim() !== '') {
+      var itemHiv = { exame: 'Rastreio de HIV', valor: String(hivRaw) };
+      var ehHivPos = ehReagente(hivRaw);
+      if (ehHivPos) {
+        itemHiv.status = 'CRITICO';
+        itemHiv.diagnostico = 'INFECÇÃO PELO HIV EM GESTANTE.';
+        itemHiv.conduta = 'INÍCIO IMEDIATO DE TARV: Esquema de 1ª linha do MS (Dolutegravir 50mg + Tenofovir 300mg + Lamivudina 300mg em dose única diária). Solicitar Carga Viral e Linfócitos T CD4 no ato. Encaminhar imediatamente para Pré-Natal de Alto Risco / SAE. ALERTA PERIPARTO: Contraindicação absoluta à amamentação após o nascimento; prescrever Cabergolina 1mg VO dose única no pós-parto para inibição de lactação e assegurar fórmula láctea para o RN.';
+        alertasCriticos.push('🚨 GESTANTE HIV+: Iniciar TARV no ato, encaminhar SAE e registrar CONTRAINDICAÇÃO ABSOLUTA DE AMAMENTAÇÃO.');
+      } else {
+        itemHiv.status = 'NORMAL';
+        itemHiv.diagnostico = 'Não Reagente.';
+        itemHiv.conduta = 'Repetir teste no início do 3º trimestre e na admissão do parto.';
+      }
+      avaliados.push(itemHiv);
+    }
+
+    // 5. HEPATITE B (HBsAg)
+    var hbsagRaw = dados.hbsag || dados.hepatiteB || dados.hepatite;
+    if (hbsagRaw !== undefined && hbsagRaw !== null && String(hbsagRaw).trim() !== '') {
+      var itemHb = { exame: 'Hepatite B (HBsAg)', valor: String(hbsagRaw) };
+      var ehHbPos = ehReagente(hbsagRaw);
+      if (ehHbPos) {
+        itemHb.status = 'CRITICO';
+        itemHb.diagnostico = 'HBsAg REAGENTE — PORTADORA DE HEPATITE B.';
+        itemHb.conduta = 'Encaminhar ao PNAR/Hepatologia para dosagem de Carga Viral (HBV-DNA), HBeAg e transaminases. Se HBV-DNA > 200.000 UI/mL, iniciar Tenofovir a partir de 28 semanas. CONDUTA MANDATÓRIA AO NASCIMENTO: Administrar Vacina contra Hepatite B + Imunoglobulina Humana Específica (HBIG 0,5 mL IM) nas primeiras 12 horas de vida do recém-nascido em locais anatômicos diferentes (coxas opostas).';
+        alertasCriticos.push('🚨 HBsAg POSITIVO: Prescrever HBIG + Vacina no RN nas primeiras 12h de vida!');
+      } else {
+        itemHb.status = 'NORMAL';
+        itemHb.diagnostico = 'Não Reagente.';
+        itemHb.conduta = 'Verificar carteira vacinal: se gestante suscetível (sem doses prévias de vacina), iniciar esquema vacinal de 3 doses de Hepatite B.';
+      }
+      avaliados.push(itemHb);
+    }
+
+    // 6. UROCULTURA & BACTERIÚRIA ASSINTOMÁTICA
+    var uroStr = norm(dados.urocultura || dados.urinaCultura || dados.eas);
+    if (uroStr) {
+      var itemUro = { exame: 'Urocultura / Urina', valor: dados.urocultura || dados.urinaCultura || dados.eas };
+      var temBacteriuria = uroStr.indexOf('pos') >= 0 || uroStr.indexOf('coli') >= 0 || uroStr.indexOf('ufc') >= 0 || uroStr.indexOf('cre') >= 0 || uroStr.indexOf('infec') >= 0;
+      if (temBacteriuria) {
+        itemUro.status = 'CRITICO';
+        itemUro.diagnostico = 'BACTERIÚRIA ASSINTOMÁTICA / ITU NA GESTAÇÃO CONFIRMADA.';
+        itemUro.conduta = 'Toda bacteriúria assintomática (>= 10^5 UFC/mL) DEVE SER TRATADA NA GESTANTE para prevenir Pielonefrite Aguda (que acomete 30 a 40% das gestantes não tratadas) e Trabalho de Parto Prematuro. ESQUEMAS SEGUROS DE 1ª LINHA: Fosfomicina Trometamol 3g VO em dose única OU Cefalexina 500mg VO de 6/6h por 7 dias OU Amoxicilina+Clavulanato 500/125mg 8/8h por 7 dias. OBRIGATÓRIO: Realizar urocultura de controle de cura 7 a 14 dias após o término.';
+        alertasCriticos.push('⚠️ BACTERIÚRIA NA GESTAÇÃO: Tratar com Fosfomicina 3g ou Cefalexina 7 dias e colher urocultura de controle.');
+      } else {
+        itemUro.status = 'NORMAL';
+        itemUro.diagnostico = 'Urocultura Negativa / Sem Crescimento Bacteriano.';
+        itemUro.conduta = 'Repetir urocultura no 3º trimestre de rotina.';
+      }
+      avaliados.push(itemUro);
+    }
+
+    // 7. HEMOGRAMA & HEMOGLOBINA
+    var hbVal = Number(dados.hb || dados.hemoglobina || dados.hgb);
+    if (!isNaN(hbVal) && hbVal > 0) {
+      var itemHbVal = { exame: 'Hemoglobina Materna', valor: hbVal + ' g/dL' };
+      if (hbVal >= 11.0) {
+        itemHbVal.status = 'NORMAL';
+        itemHbVal.diagnostico = 'Ausência de Anemia.';
+        itemHbVal.conduta = 'Manter profilaxia com Sulfato Ferroso (40 mg de ferro elementar/dia = 1 drágea de 200mg/dia) a partir da 20ª semana.';
+      } else if (hbVal >= 8.0 && hbVal < 11.0) {
+        itemHbVal.status = 'ATENCAO';
+        itemHbVal.diagnostico = 'ANEMIA GESTACIONAL LEVE A MODERADA (Hb 8,0 a 10,9 g/dL).';
+        itemHbVal.conduta = 'Iniciar TRATAMENTO COM SULFATO FERROSO EM DOSE TERAPÊUTICA: 120 a 200 mg de ferro elementar/dia (3 a 5 drágeas de 200 mg de sulfato ferroso divididas ao longo do dia), ingeridas com água ou suco cítrico 1 hora antes das refeições. Repetir hemograma em 30 a 60 dias.';
+        alertasCriticos.push('⚠️ ANEMIA GESTACIONAL (Hb ' + hbVal + ' g/dL): Elevar Sulfato Ferroso para dose terapêutica (120-200mg Fe/dia).');
+      } else { // < 8.0
+        itemHbVal.status = 'CRITICO';
+        itemHbVal.diagnostico = 'ANEMIA GESTACIONAL GRAVE (Hb < 8,0 g/dL).';
+        itemHbVal.conduta = 'Encaminhar IMEDIATAMENTE para o Pré-Natal de Alto Risco / Serviço Hospitalar. Investigar causas associadas e avaliar ferro parenteral intravenoso (Sacarato de Óxido de Ferro / Noripurum IV) ou suporte transfusional se instabilidade hemodinâmica.';
+        alertasCriticos.push('🚨 ANEMIA GRAVE NA GESTANTE (Hb ' + hbVal + ' g/dL): Encaminhar imediato ao PNAR / Ferro IV.');
+      }
+      avaliados.push(itemHbVal);
+    }
+
+    // 8. TIPAGEM RH & COOMBS INDIRETO
+    var rhRaw = dados.rh || dados.fatorRh || dados.tipagem;
+    if (rhRaw !== undefined && rhRaw !== null && String(rhRaw).trim() !== '') {
+      var itemRh = { exame: 'Tipagem Rh e Coombs Indireto', valor: String(rhRaw) };
+      var rhStr = norm(rhRaw);
+      var ehRhNeg = rhStr.indexOf('neg') >= 0 || rhStr === '-';
+      var coombsRaw = dados.coombs || dados.coombsIndireto;
+      var ehCoombsPos = ehReagente(coombsRaw);
+
+      if (!ehRhNeg) {
+        itemRh.status = 'NORMAL';
+        itemRh.diagnostico = 'Mãe Rh Positivo.';
+        itemRh.conduta = 'Não há risco de aloimunização por incompatibilidade Rh(D). Rotina obstétrica habitual.';
+      } else {
+        if (!ehCoombsPos) {
+          itemRh.status = 'ATENCAO';
+          itemRh.diagnostico = 'Mãe Rh Negativo com Coombs Indireto Negativo (Não Isoimunizada).';
+          itemRh.conduta = 'Repetir Coombs Indireto mensalmente a partir da 24ª semana. Prescrever IMUNOGLOBULINA ANTI-D 300 mcg IM na 28ª semana de gestação. Repetir nova dose de Imunoglobulina Anti-D em até 72 horas pós-parto se o recém-nascido for confirmado Rh Positivo com Coombs Direto negativo.';
+        } else {
+          itemRh.status = 'CRITICO';
+          itemRh.diagnostico = 'MÃE RH NEGATIVO COM COOMBS INDIRETO POSITIVO (ALOIMUNIZADA).';
+          itemRh.conduta = 'Isoimunização Rh instalada. NÃO administrar Imunoglobulina Anti-D (ineficaz se já sensibilizada). Titular Coombs indireto: se título >= 1:16, encaminhar IMEDIATAMENTE ao Pré-Natal de Alto Risco com Medicina Fetal para monitoramento não invasivo de anemia fetal por Doppler de artéria cerebral média (PVS-ACM).';
+          alertasCriticos.push('🚨 ALOIMUNIZAÇÃO Rh CONFIRMADA (Coombs+): Encaminhar urgente ao PNAR para Doppler de ACM.');
+        }
+      }
+      avaliados.push(itemRh);
+    }
+
+    // Monta texto limpo e escaneável pronto para PEP
+    var linhas = [
+      '======================================================================',
+      '      PAINEL DE INTERPRETAÇÃO DE SOROLOGIAS E EXAMES DE PRÉ-NATAL     ',
+      '======================================================================',
+      'Diretrizes: Ministério da Saúde (MS) & FEBRASGO',
+      'Total de Exames Analisados: ' + avaliados.length
+    ];
+
+    if (alertasCriticos.length > 0) {
+      linhas.push('----------------------------------------------------------------------');
+      linhas.push('🚨 ALERTAS CRÍTICOS BEIRA-LEITO:');
+      for (var a = 0; a < alertasCriticos.length; a++) {
+        linhas.push('• ' + alertasCriticos[a]);
+      }
+    }
+
+    linhas.push('----------------------------------------------------------------------');
+    linhas.push('PARECER DETERMINÍSTICO E CONDUTAS DETALHADAS:');
+    for (var i = 0; i < avaliados.length; i++) {
+      var it = avaliados[i];
+      var ico = it.status === 'CRITICO' ? '🔴' : (it.status === 'ATENCAO' ? '🟡' : '🟢');
+      linhas.push(ico + ' [' + it.exame + ']: ' + it.valor);
+      linhas.push('   Diagnóstico: ' + it.diagnostico);
+      linhas.push('   Conduta Imediata: ' + it.conduta);
+      linhas.push('');
+    }
+    linhas.push('======================================================================');
+
+    return {
+      sucesso: true,
+      totalAvaliados: avaliados.length,
+      alertasCriticos: alertasCriticos,
+      itens: avaliados,
+      textoFormatado: linhas.join('\n')
+    };
+  }
+
   return {
     parseData: parseData,
     formatarDataBr: formatarDataBr,
@@ -1273,6 +1805,7 @@ var ObstetriciaPrenatalService = (function() {
     obterDiretrizesTrimestre: obterDiretrizesTrimestre,
     validarMedicamentoGestacao: validarMedicamentoGestacao,
     auditarPrescricaoGestante: auditarPrescricaoGestante,
+    interpretarSorologiasLaboratorioPrenatal: interpretarSorologiasLaboratorioPrenatal,
     gerarResumoConsultaPrenatal: gerarResumoConsultaPrenatal,
     BANCO_FARMACOS_GESTACAO: BANCO_FARMACOS_GESTACAO,
     TABELA_GANHO_PESO_IOM: TABELA_GANHO_PESO_IOM

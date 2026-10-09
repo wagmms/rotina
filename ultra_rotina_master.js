@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 14:58:55
- * Checksum SHA256: 56b57cb522e0fdc8
+ * Gerado automaticamente via build_master.py em: 2026-10-09 15:31:58
+ * Checksum SHA256: 219c7b09b34a1f92
  * ==============================================================================
  */
 
@@ -3625,6 +3625,42 @@ var CalculadorasClinicas = (function () {
     });
   }
 
+  /** Fórmula de Schwartz Pediátrico (atualizada 2009). mL/min/1,73m² para 1 a 17 anos. */
+  function schwartzPediatrico(creatinina, alturaCm) {
+    var ID = 'schwartz', NOME = 'Schwartz Pediátrico (Atualizado)';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var cr = num(c, creatinina, 'Creatinina (mg/dL)', 0.1, 15);
+      var alt = num(c, alturaCm, 'Altura (cm)', 40, 220);
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+
+      var cl = (0.413 * alt) / cr;
+      exigirFinito(cl);
+      if (cl < 0) cl = 0;
+      
+      var estado, acao, avisos = [];
+      if (lt(cl, 30)) { estado = 'ATENCAO'; acao = ['Clearance < 30 mL/min/1.73m²: Insuficiência renal grave. Ajuste mandatório de fármacos.']; }
+      else if (lt(cl, 50)) { estado = 'ATENCAO'; acao = ['Clearance 30–49 mL/min/1.73m²: Insuficiência renal moderada. Conferir bulas.']; }
+      else { estado = 'CALCULO'; acao = ['Clearance normal ou levemente reduzido.']; }
+
+      if (gt(cl, 150)) avisos.push('⚠️ Valor > 150 mL/min/1.73m² sugere hiperfiltração ou erro de dados.');
+
+      var entradas = [
+        'Creatinina: ' + fmt(cr, 2) + ' mg/dL',
+        'Altura: ' + fmt(alt, 1) + ' cm'
+      ];
+      var clNum = Math.round(cl * 10) / 10;
+      return sucesso({
+        id: ID, nome: NOME, estado: estado, rotulo: estado === 'ATENCAO' ? 'REVISÃO DE DOSE NECESSÁRIA' : null,
+        principal: fmt(cl, 0) + ' mL/min/1.73m²',
+        secoes: [['ENTRADAS', entradas], ['AÇÃO', acao]], avisos: avisos,
+        dados: { clearance: clNum, alturaCm: alt, creatinina: cr },
+        legado: { clearance: clNum, alturaCm: alt, creatinina: cr },
+        botoes: botoesPadrao(ID, [btn('💊 Selecionar medicamento', ID, 'medicamento')])
+      });
+    });
+  }
+
   /**
    * CHA2DS2-VA (SBC 2025 / ESC 2024): sem pontuação para sexo feminino.
    * a2 = idade ≥ 75 (+2); a = idade 65–74 (+1).
@@ -4351,9 +4387,9 @@ var CalculadorasClinicas = (function () {
         padrao: { mg: 16, vol: 250, conc: 64, ref: 'Ampola: 4 mg/4 mL (1 mg/mL); padrão: 4 ampolas (16 mg) em 234 mL SG5% (64 mcg/mL).' },
         concentrada: { mg: 32, vol: 250, conc: 128, ref: 'Ampola: 4 mg/4 mL (1 mg/mL); concentrada: 8 ampolas (32 mg) em 218 mL SG5% (128 mcg/mL).' }
       },
-      doses: [0.05, 0.1, 0.2, 0.5, 1.0],
-      acoes: ['Início habitual: 0,05–0,1 mcg/kg/min; titular para PAM ≥ 65 mmHg.', 'Preferir acesso venoso central. Monitorar perfusão periférica e lactato.'],
-      aviso: null
+      doses: [0.01, 0.05, 0.1, 0.2, 0.5, 1.0, 1.5, 2.0],
+      acoes: ['Início habitual: 0,05–0,1 mcg/kg/min; titular para PAM ≥ 65 mmHg.', 'Preferir acesso venoso central. Monitorar perfusão periférica e lactato.', 'Dose máxima teórica: geralmente até 3 mcg/kg/min, porém em doses > 0,25-0,5 mcg/kg/min considere associar Vasopressina.'],
+      aviso: '⚠️ ALERTA: Doses acima de 1,0 mcg/kg/min representam vasoplegia severa. Considere associação precoce de Vasopressina (0,03 UI/min) e avaliação de CIRCI (corticoide).'
     },
     dobutamina: {
       nome: 'Dobutamina', unidade: 'mcg/kg/min', peso: true, conc: 'mcg/mL',
@@ -4361,35 +4397,35 @@ var CalculadorasClinicas = (function () {
         padrao: { mg: 250, vol: 250, conc: 1000, ref: 'Ampola: 250 mg/20 mL; padrão: 1 ampola (250 mg) em 230 mL SG5% (1000 mcg/mL).' }
       },
       doses: [2.5, 5, 10, 15, 20],
-      acoes: ['Início habitual: 2,5–5 mcg/kg/min; titular até 20 mcg/kg/min.', 'Monitorar taquiarritmias, isquemia miocárdica e hipotensão.'],
-      aviso: null
+      acoes: ['Início habitual: 2,5–5 mcg/kg/min; titular até 20 mcg/kg/min.', 'Monitorar taquiarritmias, isquemia miocárdica e hipotensão.', 'Não usar como vasopressor (pode causar vasodilatação periférica inicial).'],
+      aviso: 'Doses > 20 mcg/kg/min aumentam expressivamente o consumo miocárdico de oxigênio (MVO2) e o risco de arritmias.'
     },
     nitroprussiato: {
       nome: 'Nitroprussiato de sódio', unidade: 'mcg/kg/min', peso: true, conc: 'mcg/mL',
       preparos: {
-        padrao: { mg: 50, vol: 250, conc: 200, ref: 'Ampola: 50 mg/2 mL; padrão: 1 ampola (50 mg) em 248 mL SG5% (200 mcg/mL, fotoprotetor).' }
+        padrao: { mg: 50, vol: 250, conc: 200, ref: 'Ampola: 50 mg/2 mL; padrão: 1 ampola (50 mg) em 248 mL SG5% (200 mcg/mL, envolver em fotoprotetor).' }
       },
-      doses: [0.3, 0.5, 1, 2, 3, 5],
-      acoes: ['Início habitual: 0,3–0,5 mcg/kg/min; titular com linha arterial.', 'Cuidado com toxicidade por cianeto/tiocianato em uso prolongado.'],
-      aviso: null
+      doses: [0.3, 0.5, 1, 2, 3, 5, 10],
+      acoes: ['Início habitual: 0,3–0,5 mcg/kg/min; titular a cada 3-5 minutos com linha arterial.', 'Dose máxima recomendada: 10 mcg/kg/min (por no máximo 10 minutos).'],
+      aviso: '⚠️ RISCO DE TOXICIDADE: Uso > 48h ou doses altas ou Insuficiência Renal/Hepática têm risco elevado de toxicidade por cianeto/tiocianato (acidose metabólica, confusão mental).'
     },
     nitroglicerina: {
       nome: 'Nitroglicerina', unidade: 'mcg/min', peso: false, conc: 'mcg/mL',
       preparos: {
         padrao: { mg: 50, vol: 250, conc: 200, ref: 'Ampola: 50 mg/10 mL; padrão: 1 ampola (50 mg) em 240 mL SG5% ou SF0.9% (200 mcg/mL).' }
       },
-      doses: [5, 10, 20, 30, 50, 100],
-      acoes: ['Início habitual: 5–10 mcg/min; titular a cada 5–10 min.', 'Contraindicações: Infarto de VD, PAS < 90 mmHg, Sildenafila < 24h ou Tadalafila < 48h.'],
-      aviso: null
+      doses: [5, 10, 20, 30, 50, 100, 200],
+      acoes: ['Início habitual: 5–10 mcg/min; titular a cada 5–10 min (incrementos de 5-10 mcg/min).', 'Dose máxima habitual: 200 mcg/min.'],
+      aviso: '⚠️ CONTRAINDICAÇÕES FORMAIS: Infarto de Ventrículo Direito (VD), PAS < 90 mmHg, uso de inibidores da fosfodiesterase-5 (Sildenafila < 24h ou Tadalafila < 48h).'
     },
     vasopressina: {
       nome: 'Vasopressina', unidade: 'UI/min', peso: false, conc: 'UI/mL',
       preparos: {
-        padrao: { mg: 20, vol: 100, conc: 0.2, ref: 'Ampola: 20 UI/1 mL; padrão: 1 ampola (20 UI) em 99 mL SG5% (0,2 UI/mL).' }
+        padrao: { mg: 20, vol: 100, conc: 0.2, ref: 'Ampola: 20 UI/1 mL; padrão: 1 ampola (20 UI) em 99 mL SG5% ou SF (0,2 UI/mL).' }
       },
       doses: [0.01, 0.02, 0.03, 0.04],
-      acoes: ['Dose fixa: 0,03 UI/min (SSC 2021) = 9 mL/h; não titular.', 'Iniciar quando noradrenalina estiver em 0,25–0,5 mcg/kg/min.'],
-      aviso: 'Não titular como catecolamina. Dose contínua fixa.'
+      acoes: ['Dose fixa: 0,03 a 0,04 UI/min (SSC 2021) = 9 a 12 mL/h. NÃO titular como catecolaminas.', 'Iniciar como 2ª linha quando noradrenalina estiver em 0,25–0,5 mcg/kg/min para poupar catecolamina e melhorar perfusão esplâncnica.'],
+      aviso: 'Não titular como catecolamina. Infusão contínua fixa de 0,03 ou 0,04 UI/min.'
     },
     adrenalina: {
       nome: 'Adrenalina', unidade: 'mcg/kg/min', peso: true, conc: 'mcg/mL',
@@ -4397,9 +4433,9 @@ var CalculadorasClinicas = (function () {
         padrao: { mg: 4, vol: 250, conc: 16, ref: 'Ampola: 1 mg/1 mL; padrão: 4 ampolas (4 mg) em 246 mL SG5% (16 mcg/mL).' },
         concentrada: { mg: 8, vol: 250, conc: 32, ref: 'Ampola: 1 mg/1 mL; concentrada: 8 ampolas (8 mg) em 242 mL SG5% (32 mcg/mL).' }
       },
-      doses: [0.02, 0.05, 0.1, 0.2, 0.5, 1.0],
-      acoes: ['Início habitual: 0,02–0,05 mcg/kg/min (inotrópico) a 0,1–0,5 mcg/kg/min (vasopressor).', 'Monitorar ECG contínuo por arritmias ventriculares e lactato sérico.'],
-      aviso: 'Doses > 1,0 mcg/kg/min têm alto risco de arritmias ventriculares graves e isquemia.'
+      doses: [0.01, 0.05, 0.1, 0.2, 0.5, 1.0],
+      acoes: ['Início habitual (inotrópico/cronotrópico): 0,01 a 0,1 mcg/kg/min. Como vasopressor: > 0,1 mcg/kg/min.', 'Aumenta consideravelmente o lactato sérico (efeito metabólico beta-2 adrenérgico de glicólise, e não necessariamente hipoperfusão).'],
+      aviso: 'Doses maiores causam taquicardia severa e hiperlactatemia metabólica tipo B que pode confundir a avaliação de perfusão.'
     }
   };
 
@@ -4506,13 +4542,13 @@ var CalculadorasClinicas = (function () {
   // ═════════════════════════════ SEQUÊNCIA RÁPIDA DE INTUBAÇÃO ═════════════════════════════
 
   var SRI_FARMACOS = {
-    etomidato:      { nome: 'Etomidato',      dose: 0.3, un: 'mg', conc: 2,  txt: '0,3 mg/kg · 2 mg/mL (ampola 20mg/10mL)',  grupo: 'indutor' },
-    quetamina:      { nome: 'Quetamina',      dose: 1.5, un: 'mg', conc: 50, txt: '1,5 mg/kg · 50 mg/mL (ampola 50mg/mL)', grupo: 'indutor' },
-    propofol:       { nome: 'Propofol 1%',    dose: 1.5, un: 'mg', conc: 10, txt: '1,5 mg/kg · 10 mg/mL (ampola 1%)',        grupo: 'indutor' },
-    midazolam:      { nome: 'Midazolam',      dose: 0.2, un: 'mg', conc: 5,  txt: '0,2 mg/kg · 5 mg/mL (ampola 5mg/mL)',   grupo: 'indutor' },
-    rocuronio:      { nome: 'Rocurônio',      dose: 1.2, un: 'mg', conc: 10, txt: '1,2 mg/kg · 10 mg/mL (frasco 50mg/5mL)', grupo: 'bloqueador' },
-    succinilcolina: { nome: 'Succinilcolina', dose: 1.5, un: 'mg', conc: 10, txt: '1,5 mg/kg · 10 mg/mL (frasco 100mg/10mL)', grupo: 'bloqueador' },
-    fentanil:       { nome: 'Fentanil',       dose: 2.0, un: 'mcg',conc: 50, txt: '2 mcg/kg · 50 mcg/mL (ampola 50mcg/mL)',  grupo: 'adjuvante' }
+    etomidato:      { nome: 'Etomidato',      dose: 0.3, un: 'mg', conc: 2,  txt: '0,3 mg/kg · 2 mg/mL (ampola 20mg/10mL)',  grupo: 'indutor', contra: 'Evitar em sepse se suspeita de insuficiência adrenal aguda, risco de supressão adrenal transitória.' },
+    quetamina:      { nome: 'Quetamina',      dose: 1.5, un: 'mg', conc: 50, txt: '1,5 mg/kg · 50 mg/mL (ampola 50mg/mL)', grupo: 'indutor', contra: 'Broncodilatador (ideal em asma). Evitar em hipertensão craniana severa ou glaucoma sem uso prévio de opioide.' },
+    propofol:       { nome: 'Propofol 1%',    dose: 1.5, un: 'mg', conc: 10, txt: '1,5 mg/kg · 10 mg/mL (ampola 1%)',        grupo: 'indutor', contra: 'Hipotensor potente. Reduzir dose pela metade em choque hemodinâmico ou senilidade.' },
+    midazolam:      { nome: 'Midazolam',      dose: 0.2, un: 'mg', conc: 5,  txt: '0,2 mg/kg · 5 mg/mL (ampola 5mg/mL)',   grupo: 'indutor', contra: 'Depressor miocárdico e venodilatador. Evitar em choque descompensado.' },
+    rocuronio:      { nome: 'Rocurônio',      dose: 1.2, un: 'mg', conc: 10, txt: '1,2 mg/kg · 10 mg/mL (frasco 50mg/5mL)', grupo: 'bloqueador', contra: 'Ação em ~45-60s. Escolha de excelência. Reversível com Sugamadex.' },
+    succinilcolina: { nome: 'Succinilcolina', dose: 1.5, un: 'mg', conc: 10, txt: '1,5 mg/kg · 10 mg/mL (frasco 100mg/10mL)', grupo: 'bloqueador', contra: '⚠️ CONTRAINDICADA em: Hipercalemia (> 5.5), grandes queimados, esmagamento, miopatias, paralisia/AVC > 48h (risco de PCR por hipercalemia). Teto máximo: 200 mg.' },
+    fentanil:       { nome: 'Fentanil',       dose: 2.0, un: 'mcg',conc: 50, txt: '2 mcg/kg · 50 mcg/mL (ampola 50mcg/mL)',  grupo: 'adjuvante', contra: 'Pico de ação em 3-5 min. Atenua reflexo simpático da laringoscopia.' }
   };
 
   function resolverFarmaco(ctx, v, grupo, rotulo) {
@@ -4596,11 +4632,11 @@ var CalculadorasClinicas = (function () {
         }
         if (ind) {
           var dInd = calcDose(ind.f);
-          linhasDoses.push('2️⃣ Indutor Selecionado: ' + ind.f.nome + ' (' + ind.f.conc + ' ' + ind.f.un + '/mL · ' + fmt(ind.f.dose, 1) + ' ' + ind.f.un + '/kg): ' + fmt(dInd.dose, 1) + ' ' + ind.f.un + ' → ' + fmt(dInd.ml, 1) + ' mL IV');
+          linhasDoses.push('2️⃣ Indutor Selecionado: ' + ind.f.nome + ' (' + ind.f.conc + ' ' + ind.f.un + '/mL · ' + fmt(ind.f.dose, 1) + ' ' + ind.f.un + '/kg): ' + fmt(dInd.dose, 1) + ' ' + ind.f.un + ' → ' + fmt(dInd.ml, 1) + ' mL IV'); if(ind.f.contra) linhasDoses.push('⚠️ ' + ind.f.contra);
         }
         if (blq) {
           var dBlq = calcDose(blq.f);
-          linhasDoses.push('3️⃣ Bloqueador Selecionado: ' + blq.f.nome + ' (' + blq.f.conc + ' ' + blq.f.un + '/mL · ' + fmt(blq.f.dose, 1) + ' ' + blq.f.un + '/kg): ' + fmt(dBlq.dose, 1) + ' ' + blq.f.un + ' → ' + fmt(dBlq.ml, 1) + ' mL IV');
+          linhasDoses.push('3️⃣ Bloqueador Selecionado: ' + blq.f.nome + ' (' + blq.f.conc + ' ' + blq.f.un + '/mL · ' + fmt(blq.f.dose, 1) + ' ' + blq.f.un + '/kg): ' + fmt(dBlq.dose, 1) + ' ' + blq.f.un + ' → ' + fmt(dBlq.ml, 1) + ' mL IV'); if(blq.f.contra) linhasDoses.push('⚠️ ' + blq.f.contra);
         }
       }
 
@@ -4906,7 +4942,7 @@ var CalculadorasClinicas = (function () {
           tomadasDia: opt.tomadasDia || 3,
           intervaloHoras: (opt.tomadasDia === 2) ? 12 : 8,
           diasTratamento: opt.diasTratamento || 10,
-          doseMaximaAdultoMgDia: 1500,
+          doseMaximaAdultoMgDia: opt.doseAlta ? 3000 : 1500,
           volumeFrascoMl: 150,
           indicacao: opt.doseAlta ? 'Otite Média Aguda / Sinusite / PAC (dose alta 90 mg/kg/dia)' : 'Amigdalite / Faringite / Infecções bacterianas leves (50 mg/kg/dia)',
           instrucoes: 'Pode ser administrado com ou sem alimentos. Agitar bem antes de usar.'
@@ -4915,14 +4951,14 @@ var CalculadorasClinicas = (function () {
           nome: 'Amoxicilina + Clavulanato de Potássio',
           apresentacao: 'Amoxicilina 250 mg + Clavulanato 62,5 mg / 5 mL (suspensão oral)',
           concentracaoMgPorMl: 50,
-          doseMgKgDia: opt.doseAlta ? 90 : 50,
+          doseMgKgDia: 50, // Fixado em 50 para apresentação 4:1. Dose alta exigiria apresentação 400/57 (7:1).
           tomadasDia: 3,
           intervaloHoras: 8,
           diasTratamento: opt.diasTratamento || 10,
           doseMaximaAdultoMgDia: 1500,
           volumeFrascoMl: 75,
-          indicacao: opt.doseAlta ? 'Otite complicada / Sinusite refratária (dose alta 90 mg/kg/dia)' : 'Infecções de vias aéreas com suspeita de germes produtores de beta-lactamase (50 mg/kg/dia)',
-          instrucoes: 'Administrar preferencialmente no início da refeição para minimizar risco de intolerância gastrintestinal.'
+          indicacao: 'Infecções de vias aéreas com suspeita de germes produtores de beta-lactamase (50 mg/kg/dia)',
+          instrucoes: 'Administrar preferencialmente no início da refeição. (Atenção: não utilizar esta formulação 4:1 para doses altas >50 mg/kg/dia pelo risco de toxicidade gastrintestinal do clavulanato).'
         },
         azitromicina: {
           nome: 'Azitromicina',
@@ -4931,10 +4967,10 @@ var CalculadorasClinicas = (function () {
           doseMgKgDia: 10,
           tomadasDia: 1,
           intervaloHoras: 24,
-          diasTratamento: opt.diasTratamento || 5,
+          diasTratamento: opt.diasTratamento || 3,
           doseMaximaAdultoMgDia: 500,
           volumeFrascoMl: 15,
-          indicacao: 'Faringite/Amigdalite (opção se alergia a penicilina), PAC atípica (10 mg/kg/dia)',
+          indicacao: 'Faringite/Amigdalite (opção se alergia a penicilina), PAC atípica (10 mg/kg/dia por 3 dias)',
           instrucoes: 'Administrar 1h antes ou 2h após alimentos. Tomada única diária no mesmo horário.'
         },
         cefalexina: {
@@ -4945,9 +4981,9 @@ var CalculadorasClinicas = (function () {
           tomadasDia: 4,
           intervaloHoras: 6,
           diasTratamento: opt.diasTratamento || 7,
-          doseMaximaAdultoMgDia: 2000,
+          doseMaximaAdultoMgDia: 4000,
           volumeFrascoMl: 100,
-          indicacao: 'Piodermites, impetigo, celulite leve, ITU baixa (50 mg/kg/dia)',
+          indicacao: 'Piodermites, impetigo, celulite leve, ITU baixa (50 a 100 mg/kg/dia)',
           instrucoes: 'Tomar a cada 6 horas. Agitar bem antes de usar.'
         },
         dipirona: {
@@ -5448,12 +5484,6 @@ var CalculadorasClinicas = (function () {
       if (!ausente(clcr)) crClVal = num(c, clcr, 'Clearance de Creatinina (mL/min)', 0, 350);
       var hd = false;
       if (!ausente(hemodialise)) hd = bool(c, hemodialise, 'Hemodiálise intermitente');
-      if (pendente(c)) return falhaCtx(ID, NOME, c);
-      if (crClVal === null && !hd && atb !== 'ceftriaxona' && atb !== 'polimixina_b') {
-        c.faltas.push('Informe o Clearance de Creatinina (mL/min) ou declare se está em Hemodiálise');
-        return falhaCtx(ID, NOME, c);
-      }
-
       var atb = null;
       if (/vanco/i.test(dStr)) atb = 'vancomicina';
       else if (/mero/i.test(dStr)) atb = 'meropenem';
@@ -5463,6 +5493,12 @@ var CalculadorasClinicas = (function () {
       else if (/cipro/i.test(dStr)) atb = 'ciprofloxacino';
       else if (/polimixina|polimix/i.test(dStr)) atb = 'polimixina_b';
       else if (/fluconazol/i.test(dStr)) atb = 'fluconazol';
+
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+      if (crClVal === null && !hd && atb !== 'ceftriaxona' && atb !== 'polimixina_b') {
+        c.faltas.push('Informe o Clearance de Creatinina (mL/min) ou declare se está em Hemodiálise');
+        return falhaCtx(ID, NOME, c);
+      }
 
       if (!atb) {
         return {
@@ -5491,12 +5527,10 @@ var CalculadorasClinicas = (function () {
           res.doseAjustada = '15-20 mg/kg EV a cada 8-12h (em infusão lenta de pelo menos 1-2h).';
         } else if (crClVal >= 50) {
           res.doseAjustada = '15-20 mg/kg EV a cada 12h.';
-        } else if (crClVal >= 30) {
+        } else if (crClVal >= 20) {
           res.doseAjustada = '15 mg/kg EV a cada 24h.';
-        } else if (crClVal >= 15) {
-          res.doseAjustada = '15 mg/kg EV a cada 24-48h (guiar por nível sérico).';
         } else {
-          res.doseAjustada = 'Dose de ataque 25 mg/kg; redoses guiadas por nível sérico pré-dose (alvo vale 15-20 mcg/mL).';
+          res.doseAjustada = 'Dose de ataque 25 mg/kg; redoses (a cada 48 a 96h) guiadas por nível sérico pré-dose (alvo vale 15-20 mcg/mL).';
         }
         res.cuidados = 'Infusão lenta (máx 10 mg/min ou 1g em 60 min) para prevenir síndrome do homem vermelho. Hidratação adequada.';
         res.monitorizacao = 'Nível de vale sérico pré-4ª dose (alvo: 15-20 mcg/mL para infecções graves ou AUC/MIC 400-600). Creatinina a cada 48h.';
@@ -5521,12 +5555,12 @@ var CalculadorasClinicas = (function () {
         res.dosePadrao = '4,5g EV a cada 6h (infusão de 3-4h) ou 4,5g a cada 8h (infusão de 4h).';
         if (hd) {
           res.doseAjustada = '2,25g EV a cada 8h + dose de reforço de 0,75g após cada sessão de hemodiálise.';
-        } else if (crClVal > 50) {
+        } else if (crClVal > 40) {
           res.doseAjustada = '4,5g EV a cada 6h (ou 4,5g 8/8h em infusão estendida de 3-4h).';
         } else if (crClVal >= 20) {
-          res.doseAjustada = '3,375g EV a cada 6h.';
+          res.doseAjustada = '2,25g EV a cada 6h (ou 3,375g EV a cada 8h).';
         } else {
-          res.doseAjustada = '2,25g EV a cada 6h.';
+          res.doseAjustada = '2,25g EV a cada 8h.';
         }
         res.cuidados = 'Evitar associação com Vancomicina além de 48-72h se houver alternativa, pelo risco de IRA sinérgica.';
         res.monitorizacao = 'Creatinina sérica diária; eletrólitos (contém 2,79 mEq de Na+ por grama de piperacilina).';
@@ -5535,7 +5569,7 @@ var CalculadorasClinicas = (function () {
         res.dosePadrao = '2g EV a cada 8h (infusão em 30 min ou estendida em 3h).';
         if (hd) {
           res.doseAjustada = '1g EV dose de ataque no D1; depois 500 mg a 1g EV a cada 24h (administrar dose após a hemodiálise nos dias de sessão).';
-        } else if (crClVal > 60) {
+        } else if (crClVal >= 60) {
           res.doseAjustada = '2g EV a cada 8h.';
         } else if (crClVal >= 30) {
           res.doseAjustada = '2g EV a cada 12h.';
@@ -5608,6 +5642,7 @@ var CalculadorasClinicas = (function () {
       };
     });
   }
+
   /**
    * Extrai parâmetros e executa o cálculo determinístico de ajuste renal a partir de texto livre.
    */
@@ -5648,6 +5683,7 @@ var CalculadorasClinicas = (function () {
     var API = publico;
     var r;
     r = API.ckdEpi2021(1.0, 60, false); ok(r.ok && Math.abs(r.dados.tfg - 86.2) < 2.0, 'CKD-EPI homem 60a Cr1,0');
+    r = API.schwartzPediatrico(0.8, 120); ok(r.ok && Math.abs(r.dados.clearance - 61.9) < 1.0, 'Schwartz Pediátrico Cr0.8 Alt120');
     r = API.ckdEpi2021(0, 60, false);   ok(!r.ok, 'CKD-EPI Cr=0 deve falhar');
     r = API.cockcroftGault(1.0, 70, 60, false); ok(r.ok && Math.abs(r.dados.clearance - 77.8) < 1.0, 'CG base');
     r = API.cockcroftGault(1.0, 120, 50, false, 170); ok(r.ok && r.dados.tipoPeso.indexOf('ajustado') === 0, 'CG peso ajustado em obeso');
@@ -5910,6 +5946,7 @@ var CalculadorasClinicas = (function () {
     curb65: curb65,
     ckdEpi2021: ckdEpi2021,
     cockcroftGault: cockcroftGault,
+    schwartzPediatrico: schwartzPediatrico,
     cha2ds2va: cha2ds2va,
     cha2ds2vasc: cha2ds2vasc,
     hasbled: hasbled,
@@ -19165,6 +19202,246 @@ var ObstetriciaPrenatalService = (function() {
         '✅ Fármaco de escolha seguro para pirose e DRGE gestacional não responsiva a antiácidos.'
       ],
       alternativasRecomendadas: ['Hidróxido de Alumínio / Magnésio', 'Ranitidina/Famotidina']
+    },
+
+    // ANTIDIABÉTICOS E INSULINAS
+    insulina_nph: {
+      nome: 'Insulina NPH (Humana)',
+      classe: 'Insulina de Ação Intermediária',
+      categoriaFda: 'B',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ PADRÃO OURO ABSOLUTO NO DIABETES GESTACIONAL (DMG) E DIABETES PRÉ-GESTACIONAL (SBD / FEBRASGO / ADA).',
+        'Não ultrapassa a barreira placentária. Não causa teratogênese nem toxicidade embrionária direta.',
+        'Prescrita quando MEV/dieta não atingem as metas (Jejum < 95 mg/dL, 1h pós-prandial < 140 mg/dL ou 2h pós < 120 mg/dL).'
+      ],
+      alternativasRecomendadas: ['Insulina Regular associada se hiperglicemia pós-prandial']
+    },
+    insulina_regular: {
+      nome: 'Insulina Regular (Humana)',
+      classe: 'Insulina de Ação Rápida',
+      categoriaFda: 'B',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ PADRÃO OURO PARA CORREÇÃO PRANDIAL NO DIABETES NA GESTAÇÃO.',
+        'Segura em todos os trimestres. Não atravessa a barreira hematoplacentária.'
+      ],
+      alternativasRecomendadas: ['Insulina Lispro / Aspart sob orientação especializada']
+    },
+    metformina: {
+      nome: 'Metformina',
+      classe: 'Biguanida',
+      categoriaFda: 'B',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '⚠️ Atravessa a placenta com concentrações fetais comparáveis às maternas.',
+        'Utilizada como 2ª linha apenas quando há intolerância severa, recusa justificada ou impossibilidade técnica de uso de insulina.',
+        'Se já em uso para SOP/indução ovulatória, pode ser mantida no 1º trimestre, mas no DMG a insulina permanece como primeira escolha formal (FEBRASGO).'
+      ],
+      alternativasRecomendadas: ['Insulina NPH / Insulina Regular (1ª escolha)']
+    },
+    glibenclamida: {
+      nome: 'Glibenclamida',
+      classe: 'Sulfonilureia',
+      categoriaFda: 'C',
+      segurancaGestacao: 'CONTRAINDICADO',
+      segurancaLactacao: 'EVITAR',
+      alertas: [
+        '⛔ CONTRAINDICADA NA GESTAÇÃO.',
+        'Atravessa a placenta e estimula a secreção pancreática fetal de insulina, aumentando o risco de macrossomia fetal e hipoglicemia neonatal grave e prolongada.',
+        'Suspender imediatamente e substituir por Insulina NPH.'
+      ],
+      alternativasRecomendadas: ['Insulina NPH / Insulina Regular']
+    },
+
+    // ANTICOAGULANTES ORAIS DIRETOS (DOACs)
+    rivaroxabana: {
+      nome: 'Rivaroxabana',
+      classe: 'DOAC (Inibidor Direto do Fator Xa)',
+      categoriaFda: 'C',
+      segurancaGestacao: 'CONTRAINDICADO',
+      segurancaLactacao: 'CONTRAINDICADO',
+      alertas: [
+        '⛔ CONTRAINDICAÇÃO FORMAL E ABSOLUTA NA GESTAÇÃO E LACTAÇÃO.',
+        'Molécula pequena que atravessa livremente a placenta, com risco documentado de hemorragia fetal/neonatal grave e perda gestacional.',
+        'Falta de dados de segurança teratogênica em humanos.',
+        'Conduta imediata: suspender no ato e transicionar para Heparina de Baixo Peso Molecular (Enoxaparina).'
+      ],
+      alternativasRecomendadas: ['Enoxaparina (HBPM) 1 mg/kg SC 12/12h se dose terapêutica ou 40 mg SC/dia se profilaxia']
+    },
+    apixabana: {
+      nome: 'Apixabana',
+      classe: 'DOAC (Inibidor Direto do Fator Xa)',
+      categoriaFda: 'C',
+      segurancaGestacao: 'CONTRAINDICADO',
+      segurancaLactacao: 'CONTRAINDICADO',
+      alertas: [
+        '⛔ CONTRAINDICAÇÃO ABSOLUTA NA GRAVIDEZ.',
+        'Atravessa a placenta com alto risco de sangramento fetal. Suspender e iniciar Enoxaparina.'
+      ],
+      alternativasRecomendadas: ['Enoxaparina (HBPM)']
+    },
+    dabigatrana: {
+      nome: 'Dabigatrana',
+      classe: 'DOAC (Inibidor Direto da Trombina)',
+      categoriaFda: 'C',
+      segurancaGestacao: 'CONTRAINDICADO',
+      segurancaLactacao: 'CONTRAINDICADO',
+      alertas: [
+        '⛔ CONTRAINDICAÇÃO ABSOLUTA NA GESTAÇÃO.',
+        'Passagem placentária comprovada e risco hemorrágico embrionário. Substituir por Enoxaparina.'
+      ],
+      alternativasRecomendadas: ['Enoxaparina (HBPM)']
+    },
+
+    // ANTIDEPRESSIVOS E ANSIOLÍTICOS
+    sertralina: {
+      nome: 'Sertralina',
+      classe: 'ISRS (Inibidor Seletivo da Recaptação de Serotonina)',
+      categoriaFda: 'C',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ ANTIDEPRESSIVO DE 1ª ESCOLHA CONSAGRADO NA GESTAÇÃO E PUERPÉRIO (ACOG / APA / FEBRASGO).',
+        'Menor taxa de passagem transplacentária e baixíssima concentração no leite materno entre os ISRSs.',
+        'Indicação de manutenção para prevenção de descompensação psiquiátrica puerperal e depressão pós-parto.'
+      ],
+      alternativasRecomendadas: ['Escitalopram (alternativa aceitável)']
+    },
+    paroxetina: {
+      nome: 'Paroxetina',
+      classe: 'ISRS',
+      categoriaFda: 'D',
+      segurancaGestacao: 'CONTRAINDICADO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '⛔ CONTRAINDICADA/EVITAR FORMALMENTE NO 1º TRIMESTRE.',
+        'Associação epidemiológica comprovada com malformações cardíacas congênitas (defeito do septo ventricular / CIV e defeito do septo atrial / CIA).',
+        'Se gestante em uso de paroxetina: realizar desmame gradual supervisionado e trocar por Sertralina; solicitar ecocardiograma fetal detalhado entre 20 e 22 semanas.'
+      ],
+      alternativasRecomendadas: ['Sertralina 25 a 50 mg/dia VO (1ª escolha segura)']
+    },
+    fluoxetina: {
+      nome: 'Fluoxetina',
+      classe: 'ISRS',
+      categoriaFda: 'C',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'CAUTELA',
+      alertas: [
+        '⚠️ Pode ser mantida se resposta clínica prévia excelente, mas a Sertralina é preferida.',
+        'Meia-vida longa de seu metabólito ativo (norfluoxetina) com maior concentração no leite materno.',
+        'Monitorar recém-nascido para irritabilidade e dificuldade de sucção no período neonatal imediato.'
+      ],
+      alternativasRecomendadas: ['Sertralina']
+    },
+    clonazepam: {
+      nome: 'Clonazepam',
+      classe: 'Benzodiazepínico',
+      categoriaFda: 'D',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'EVITAR',
+      alertas: [
+        '⚠️ Evitar uso crônico ou em doses elevadas na gestação.',
+        'Uso no 3º trimestre ou próximo ao parto pode induzir síndrome do bebê hipotônico ("floppy infant syndrome"), depressão respiratória, apneia e sintomas de abstinência neonatal.',
+        'Indicar desmame gradual antes do parto se possível.'
+      ],
+      alternativasRecomendadas: ['Psicoterapia / ISRS (Sertralina)']
+    },
+    diazepam: {
+      nome: 'Diazepam',
+      classe: 'Benzodiazepínico',
+      categoriaFda: 'D',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'EVITAR',
+      alertas: [
+        '⚠️ Risco de hipotonia neonatal, hipotermia e abstinência pós-parto. Evitar uso contínuo.'
+      ],
+      alternativasRecomendadas: ['Sertralina para ansiedade crônica']
+    },
+
+    // HORMÔNIOS TIREOIDIANOS E ANTITIREOIDIANOS
+    levotiroxina: {
+      nome: 'Levotiroxina Sódica',
+      classe: 'Hormônio Tireoidiano Sintético (T4)',
+      categoriaFda: 'A',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ FÁRMACO DE CATEGORIA A — SEGURO E MANDATÓRIO NA GESTAÇÃO.',
+        'O hipotireoidismo materno não tratado está associado a abortamento, pré-eclâmpsia e prejuízo irreversível do neurodesenvolvimento fetal.',
+        'REGRA DE OURO CLÍNICA: Aumentar a dose diária em 20% a 30% assim que a gestação for confirmada (adicionar 2 doses semanais adicionais ou elevar a dosagem diária) e dosar TSH a cada 4 a 6 semanas (meta TSH < 2.5 mUI/L no 1º tri).'
+      ],
+      alternativasRecomendadas: ['Manter levotiroxina com ajuste posológico']
+    },
+    propiltiouracil: {
+      nome: 'Propiltiouracil (PTU)',
+      classe: 'Tionamida / Antitireoidiano',
+      categoriaFda: 'D',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ DROGA DE 1ª ESCOLHA NO 1º TRIMESTRE PARA HIPERTIREOIDISMO (DOENÇA DE GRAVES).',
+        'Menor potencial teratogênico comparado ao Metimazol nas primeiras 12 semanas de organogênese.',
+        'Após a 16ª semana (2º e 3º trimestres), pode ser realizada transição para Metimazol para mitigar o risco de hepatotoxicidade materna fulminante do PTU.'
+      ],
+      alternativasRecomendadas: ['Metimazol (preferido no 2º e 3º trimestres)']
+    },
+    metimazol: {
+      nome: 'Metimazol / Tiamazol',
+      classe: 'Tionamida / Antitireoidiano',
+      categoriaFda: 'D',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '⛔ EVITAR NO 1º TRIMESTRE DA GESTAÇÃO.',
+        'Embriopatia por Metimazol: associado a aplasia cutis congênita (falha do couro cabeludo), atresia de coanas e atresia esofágica.',
+        'No 1º trimestre, a droga de escolha é o Propiltiouracil (PTU).',
+        'No 2º e 3º trimestres: torna-se a droga preferencial devido ao menor risco de lesão hepática materna grave.'
+      ],
+      alternativasRecomendadas: ['Propiltiouracil no 1º trimestre']
+    },
+
+    // ANTICONVULSIVANTES E ESTABILIZADORES
+    lamotrigina: {
+      nome: 'Lamotrigina',
+      classe: 'Anticonvulsivante',
+      categoriaFda: 'C',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ PERFIL DE SEGURANÇA MAIS FAVORÁVEL ENTRE OS ANTIEPILÉPTICOS NA GESTAÇÃO.',
+        'Baixo risco de malformações congênitas maiores comparado a valproato, carbamazepina ou fenobarbital.',
+        'Atenção farmacocinética: a depuração de lamotrigina aumenta até 50% no 2º e 3º trimestres pela indução de glicuronidação hepática pelo estrogênio, podendo exigir aumento de dose monitorado para evitar crises convulsivas.'
+      ],
+      alternativasRecomendadas: ['Levetiracetam']
+    },
+    levetiracetam: {
+      nome: 'Levetiracetam',
+      classe: 'Anticonvulsivante',
+      categoriaFda: 'C',
+      segurancaGestacao: 'SEGURO',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '✅ BAIXO RISCO DE TERATOGÊNESE. Um dos antiepilépticos de escolha na gravidez.',
+        'Pode exigir ajuste posológico no 3º trimestre por aumento da taxa de filtração glomerular.'
+      ],
+      alternativasRecomendadas: ['Lamotrigina']
+    },
+    carbamazepina: {
+      nome: 'Carbamazepina',
+      classe: 'Anticonvulsivante',
+      categoriaFda: 'D',
+      segurancaGestacao: 'CAUTELA',
+      segurancaLactacao: 'COMPATÍVEL',
+      alertas: [
+        '⚠️ Risco aumentado de defeitos do tubo neural (espinha bífida ~0.5 a 1%), fenda labiopalatina e hipoplasia ungueal.',
+        'Risco significativamente menor que o ácido valproico.',
+        'CONDUTA OBRIGATÓRIA: Suplementação com Ácido Fólico 5 mg/dia desde o pré-concepcional ou diagnóstico precoce e dosagem de nível sérico.'
+      ],
+      alternativasRecomendadas: ['Lamotrigina', 'Levetiracetam']
     }
   };
 
@@ -19178,14 +19455,25 @@ var ObstetriciaPrenatalService = (function() {
 
     var termo = nomeMedicamento.trim().toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    var termoLimpo = termo.replace(/[\s\-_]+/g, '');
 
     var encontrado = null;
     var chaves = Object.keys(BANCO_FARMACOS_GESTACAO);
 
-    // Busca exata ou por prefixo/inclusão
+    // Busca exata ou por prefixo/inclusão (considerando variações com espaço e underline)
     for (var i = 0; i < chaves.length; i++) {
       var k = chaves[i];
-      if (termo === k || termo.indexOf(k) !== -1 || k.indexOf(termo) !== -1) {
+      var kLimpo = k.replace(/[\s\-_]+/g, '');
+      var nomeMed = BANCO_FARMACOS_GESTACAO[k].nome.toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      var nomeMedLimpo = nomeMed.replace(/[\s\-_]+/g, '');
+
+      if (termo === k ||
+          termoLimpo === kLimpo ||
+          termoLimpo.indexOf(kLimpo) !== -1 ||
+          kLimpo.indexOf(termoLimpo) !== -1 ||
+          termoLimpo.indexOf(nomeMedLimpo) !== -1 ||
+          nomeMedLimpo.indexOf(termoLimpo) !== -1) {
         encontrado = BANCO_FARMACOS_GESTACAO[k];
         break;
       }
@@ -19389,6 +19677,287 @@ var ObstetriciaPrenatalService = (function() {
     };
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // 8. INTERPRETADOR DETERMINÍSTICO DE SOROLOGIAS E EXAMES DO PRÉ-NATAL (MS/FEBRASGO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Interpreta em segundos o painel sorológico e exames laboratoriais do pré-natal,
+   * emitindo condutas determinísticas segundo diretrizes do Ministério da Saúde e FEBRASGO.
+   */
+  function interpretarSorologiasLaboratorioPrenatal(dados) {
+    dados = dados || {};
+    var avaliados = [];
+    var alertasCriticos = [];
+
+    // Helper para normalizar status
+    function norm(val) {
+      if (!val) return '';
+      return String(val).toLowerCase().trim()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    // Helper robusto para avaliar se é reagente (evitando que 'nao_reagente' contenha 'rea')
+    function ehReagente(str) {
+      if (!str) return false;
+      var s = norm(str);
+      if (s.indexOf('nao') >= 0 || s.indexOf('neg') >= 0 || s === '-' || s.indexOf('ausente') >= 0) {
+        return false;
+      }
+      return s.indexOf('rea') >= 0 || s.indexOf('pos') >= 0 || s === '+' || s.indexOf('1:') >= 0;
+    }
+
+    var sem = Number(dados.semanasGestacao) || Number(dados.semanas) || 0;
+
+    // 1. GLICEMIA DE JEJUM & RASTREIO DE DMG (FEBRASGO / SBD / MS)
+    var gj = Number(dados.glicemiaJejum || dados.glicemia || dados.gj);
+    if (!isNaN(gj) && gj > 0) {
+      var itemGj = { exame: 'Glicemia de Jejum', valor: gj + ' mg/dL' };
+      if (gj < 92) {
+        itemGj.status = 'NORMAL';
+        itemGj.diagnostico = 'Glicemia de jejum dentro dos limites fisiológicos.';
+        itemGj.conduta = 'Realizar TOTG 75g (rastreio universal) entre 24 e 28 semanas de gestação.';
+      } else if (gj >= 92 && gj <= 125) {
+        itemGj.status = 'CRITICO';
+        itemGj.diagnostico = 'DIABETES MELLITUS GESTACIONAL (DMG) CONFIRMADO.';
+        itemGj.conduta = 'Conforme FEBRASGO/SBD/MS, glicemia de jejum entre 92 e 125 mg/dL no 1º trimestre JÁ FIRMA DIAGNÓSTICO DEFINITIVO de DMG (dispensa e contraindica realização de TOTG 75g). Iniciar imediatamente Terapia Nutricional fracionada, MEV e automonitorização glicêmica capilar (meta jejum < 95 mg/dL, 1h pós < 140 mg/dL ou 2h pós < 120 mg/dL). Se metas não atingidas em 1-2 semanas: prescrever Insulina NPH / Regular.';
+        alertasCriticos.push('🩸 DMG CONFIRMADO NO 1º TRIMESTRE (GJ ' + gj + ' mg/dL): Iniciar manejo de DMG imediatamente; NÃO solicitar TOTG 75g.');
+      } else { // >= 126
+        itemGj.status = 'CRITICO';
+        itemGj.diagnostico = 'DIABETES MELLITUS PRÉ-GESTACIONAL (OVERT DIABETES).';
+        itemGj.conduta = 'Glicemia de jejum >= 126 mg/dL indica diabetes prévio à gestação não diagnosticado. Risco elevado de malformações congênitas cardíacas e esqueléticas. Encaminhar imediatamente para Pré-Natal de Alto Risco (PNAR), avaliação oftalmológica (fundoscopia) e início precoce de insulinoterapia.';
+        alertasCriticos.push('🚨 OVERT DIABETES (GJ ' + gj + ' mg/dL): Diabetes pré-gestacional. Encaminhar urgente ao PNAR.');
+      }
+      avaliados.push(itemGj);
+    }
+
+    // 2. TOXOPLASMOSE (IgG, IgM e Teste de Avidez)
+    var toxIggRaw = dados.toxoIgg || dados.toxoplasmoseIgg || dados.toxoG;
+    var toxIgmRaw = dados.toxoIgm || dados.toxoplasmoseIgm || dados.toxoM;
+    if (toxIggRaw !== undefined && toxIggRaw !== null || toxIgmRaw !== undefined && toxIgmRaw !== null) {
+      var itemToxo = { exame: 'Sorologia para Toxoplasmose (IgG e IgM)' };
+      var ehIggPos = ehReagente(toxIggRaw);
+      var ehIgmPos = ehReagente(toxIgmRaw);
+      itemToxo.valor = 'IgG ' + (ehIggPos ? 'Reagente' : 'Não Reagente') + ' | IgM ' + (ehIgmPos ? 'Reagente' : 'Não Reagente');
+
+      if (!ehIggPos && !ehIgmPos) {
+        itemToxo.status = 'ATENCAO';
+        itemToxo.diagnostico = 'Gestante Suscetível (Sem contato prévio / Sem anticorpos).';
+        itemToxo.conduta = 'Orientar medidas estritas de profilaxia primária: não consumir carne crua/malpassada, higienizar rigorosamente frutas e verduras com hipoclorito, evitar contato com fezes de gatos e usar luvas na jardinagem. REPETIR SOROLOGIA A CADA TRIMESTRE (ou a cada 30-60 dias).';
+      } else if (ehIggPos && !ehIgmPos) {
+        itemToxo.status = 'NORMAL';
+        itemToxo.diagnostico = 'Imunidade Pregressa / Infecção Remota.';
+        itemToxo.conduta = 'Anticorpos adquiridos antes da gestação. Feto 100% protegido contra transmissão vertical de toxoplasmose. NÃO necessita de novas sorologias de rotina para toxoplasmose.';
+      } else if (!ehIggPos && ehIgmPos) {
+        itemToxo.status = 'CRITICO';
+        itemToxo.diagnostico = 'Infecção Aguda Muito Precoce OU IgM Falso-Positivo.';
+        itemToxo.conduta = 'Iniciar IMEDIATAMENTE Espiramicina 1g (3.000.000 UI) VO de 8/8h para profilaxia de transmissão vertical. Recoletar sorologia em 2 a 3 semanas no mesmo laboratório para confirmar soroconversão de IgG. Encaminhar ao PNAR.';
+        alertasCriticos.push('⚠️ TOXOPLASMOSE IgM+ ISOLADO: Iniciar Espiramicina 1g 8/8h no ato e repetir sorologia em 2-3 semanas.');
+      } else { // IgG+ e IgM+
+        itemToxo.status = 'CRITICO';
+        var avidezVal = Number(dados.toxoAvidez || dados.avidez);
+        var avidezStr = norm(dados.toxoAvidez || dados.avidez);
+        var temAvidez = (!isNaN(avidezVal) && avidezVal > 0) || avidezStr.length > 0;
+
+        if (sem > 0 && sem <= 16 && temAvidez) {
+          var ehAvidezAlta = avidezVal >= 60 || avidezStr.indexOf('alta') >= 0;
+          var ehAvidezBaixa = avidezVal < 50 || avidezStr.indexOf('baixa') >= 0;
+          if (ehAvidezAlta) {
+            itemToxo.status = 'NORMAL';
+            itemToxo.diagnostico = 'Infecção Antiga / Imunidade Pré-Gestacional (Avidez Alta antes de 16 semanas).';
+            itemToxo.conduta = 'Teste de avidez ALTA (>= 60%) colhido no 1º trimestre (<= 16s) confirma infecção ocorrida há mais de 3-4 meses (antes da concepção). Risco fetal afastado. Pode suspender a Espiramicina se tiver sido iniciada.';
+          } else if (ehAvidezBaixa) {
+            itemToxo.status = 'CRITICO';
+            itemToxo.diagnostico = 'INFECÇÃO AGUDA GESTACIONAL CONFIRMADA (Avidez Baixa < 50%).';
+            itemToxo.conduta = 'Avidez BAIXA (< 50%) no 1º trimestre confirma infecção aguda recente na gestação. Iniciar/manter Espiramicina 1g VO 8/8h imediatamente. Encaminhar com urgência ao Pré-Natal de Alto Risco / Medicina Fetal para programação de amniocentese diagnóstica com PCR no líquido amniótico a partir de 18 semanas.';
+            alertasCriticos.push('🚨 TOXOPLASMOSE AGUDA CONFIRMADA (Avidez Baixa): Manter Espiramicina 1g 8/8h e encaminhar PNAR para amniocentese a partir de 18s.');
+          } else {
+            itemToxo.status = 'CRITICO';
+            itemToxo.diagnostico = 'Avidez Intermediária (50 a 59%) com IgG+ e IgM+.';
+            itemToxo.conduta = 'Resultado indeterminado. Tratar preventivamente como infecção aguda com Espiramicina 1g VO 8/8h e encaminhar imediatamente ao PNAR.';
+            alertasCriticos.push('⚠️ TOXOPLASMOSE: Avidez indeterminada. Manter Espiramicina 1g 8/8h e referenciar ao PNAR.');
+          }
+        } else if (sem > 16) {
+          itemToxo.diagnostico = 'Suspeita de Infecção Aguda em IG Tardia (> 16 semanas).';
+          itemToxo.conduta = 'Após 16 semanas de gestação, o teste de avidez perde poder preditivo para afastar infecção. Por segurança materno-fetal, deve ser assumida infecção gestacional recente. Iniciar imediatamente Espiramicina 1g VO 8/8h, encaminhar ao PNAR e agendar USG morfológico fetal com pesquisa de PCR no líquido amniótico.';
+          alertasCriticos.push('🚨 TOXOPLASMOSE IgG+ IgM+ com > 16 semanas: Iniciar Espiramicina 1g 8/8h e encaminhar PNAR.');
+        } else {
+          itemToxo.diagnostico = 'IgG e IgM Reagentes (Aguardando Teste de Avidez).';
+          itemToxo.conduta = 'SOLICITAR TESTE DE AVIDEZ DE IgG IMEDIATAMENTE (se IG <= 16 semanas). Iniciar de imediato Espiramicina 1g VO 8/8h sem esperar o laudo da avidez.';
+          alertasCriticos.push('⚠️ TOXOPLASMOSE IgG+ IgM+: Iniciar Espiramicina 1g 8/8h e solicitar Teste de Avidez urgente.');
+        }
+      }
+      avaliados.push(itemToxo);
+    }
+
+    // 3. SÍFILIS (Teste Rápido / VDRL)
+    var vdrlRaw = dados.vdrl || dados.sifilis || dados.testeRapidoSifilis;
+    if (vdrlRaw !== undefined && vdrlRaw !== null && String(vdrlRaw).trim() !== '') {
+      var itemSif = { exame: 'Rastreio de Sífilis (Teste Rápido / VDRL)', valor: String(vdrlRaw) };
+      var ehSifReagente = ehReagente(vdrlRaw);
+      if (ehSifReagente) {
+        itemSif.status = 'CRITICO';
+        var fase = norm(dados.sifilisFase || dados.faseSifilis || 'latente_tardia');
+        var ehRecente = fase.indexOf('prim') >= 0 || fase.indexOf('sec') >= 0 || fase.indexOf('recente') >= 0;
+
+        if (ehRecente) {
+          itemSif.diagnostico = 'SÍFILIS EM GESTANTE — FORMA RECENTE (< 1 ano de evolução).';
+          itemSif.conduta = 'Penicilina G Benzatina 2.400.000 UI IM em DOSE ÚNICA (1.200.000 UI em cada glúteo). TRATAR O PARCEIRO SEXUAL SIMULTANEAMENTE. Notificação compulsória (SINAN). Realizar seguimento com VDRL mensal até o parto.';
+        } else {
+          itemSif.diagnostico = 'SÍFILIS EM GESTANTE — FORMA LATENTE TARDIA / INDETERMINADA.';
+          itemSif.conduta = 'Penicilina G Benzatina 2.400.000 UI IM POR SEMANA durante 3 SEMANAS CONSECUTIVAS (Dose total: 7.200.000 UI). ALERTA DE INTERVALO: O intervalo entre as doses semanais NÃO pode exceder 7 a 9 dias; se ultrapassar 9 dias, O CICLO COMPLETO DEVE SER REINICIADO DO ZERO. TRATAR O PARCEIRO SEXUAL. Notificação compulsória (SINAN). Controle de cura mensal com VDRL.';
+        }
+        alertasCriticos.push('🚨 SÍFILIS NA GESTAÇÃO CONFIRMADA: Tratar com Penicilina G Benzatina no ato e convocar parceiro!');
+      } else {
+        itemSif.status = 'NORMAL';
+        itemSif.diagnostico = 'Não Reagente / Negativo.';
+        itemSif.conduta = 'Repetir no 3º trimestre (em torno de 30 semanas) e na admissão para o parto.';
+      }
+      avaliados.push(itemSif);
+    }
+
+    // 4. HIV (Anti-HIV / Teste Rápido)
+    var hivRaw = dados.hiv || dados.antiHiv || dados.testeRapidoHiv;
+    if (hivRaw !== undefined && hivRaw !== null && String(hivRaw).trim() !== '') {
+      var itemHiv = { exame: 'Rastreio de HIV', valor: String(hivRaw) };
+      var ehHivPos = ehReagente(hivRaw);
+      if (ehHivPos) {
+        itemHiv.status = 'CRITICO';
+        itemHiv.diagnostico = 'INFECÇÃO PELO HIV EM GESTANTE.';
+        itemHiv.conduta = 'INÍCIO IMEDIATO DE TARV: Esquema de 1ª linha do MS (Dolutegravir 50mg + Tenofovir 300mg + Lamivudina 300mg em dose única diária). Solicitar Carga Viral e Linfócitos T CD4 no ato. Encaminhar imediatamente para Pré-Natal de Alto Risco / SAE. ALERTA PERIPARTO: Contraindicação absoluta à amamentação após o nascimento; prescrever Cabergolina 1mg VO dose única no pós-parto para inibição de lactação e assegurar fórmula láctea para o RN.';
+        alertasCriticos.push('🚨 GESTANTE HIV+: Iniciar TARV no ato, encaminhar SAE e registrar CONTRAINDICAÇÃO ABSOLUTA DE AMAMENTAÇÃO.');
+      } else {
+        itemHiv.status = 'NORMAL';
+        itemHiv.diagnostico = 'Não Reagente.';
+        itemHiv.conduta = 'Repetir teste no início do 3º trimestre e na admissão do parto.';
+      }
+      avaliados.push(itemHiv);
+    }
+
+    // 5. HEPATITE B (HBsAg)
+    var hbsagRaw = dados.hbsag || dados.hepatiteB || dados.hepatite;
+    if (hbsagRaw !== undefined && hbsagRaw !== null && String(hbsagRaw).trim() !== '') {
+      var itemHb = { exame: 'Hepatite B (HBsAg)', valor: String(hbsagRaw) };
+      var ehHbPos = ehReagente(hbsagRaw);
+      if (ehHbPos) {
+        itemHb.status = 'CRITICO';
+        itemHb.diagnostico = 'HBsAg REAGENTE — PORTADORA DE HEPATITE B.';
+        itemHb.conduta = 'Encaminhar ao PNAR/Hepatologia para dosagem de Carga Viral (HBV-DNA), HBeAg e transaminases. Se HBV-DNA > 200.000 UI/mL, iniciar Tenofovir a partir de 28 semanas. CONDUTA MANDATÓRIA AO NASCIMENTO: Administrar Vacina contra Hepatite B + Imunoglobulina Humana Específica (HBIG 0,5 mL IM) nas primeiras 12 horas de vida do recém-nascido em locais anatômicos diferentes (coxas opostas).';
+        alertasCriticos.push('🚨 HBsAg POSITIVO: Prescrever HBIG + Vacina no RN nas primeiras 12h de vida!');
+      } else {
+        itemHb.status = 'NORMAL';
+        itemHb.diagnostico = 'Não Reagente.';
+        itemHb.conduta = 'Verificar carteira vacinal: se gestante suscetível (sem doses prévias de vacina), iniciar esquema vacinal de 3 doses de Hepatite B.';
+      }
+      avaliados.push(itemHb);
+    }
+
+    // 6. UROCULTURA & BACTERIÚRIA ASSINTOMÁTICA
+    var uroStr = norm(dados.urocultura || dados.urinaCultura || dados.eas);
+    if (uroStr) {
+      var itemUro = { exame: 'Urocultura / Urina', valor: dados.urocultura || dados.urinaCultura || dados.eas };
+      var temBacteriuria = uroStr.indexOf('pos') >= 0 || uroStr.indexOf('coli') >= 0 || uroStr.indexOf('ufc') >= 0 || uroStr.indexOf('cre') >= 0 || uroStr.indexOf('infec') >= 0;
+      if (temBacteriuria) {
+        itemUro.status = 'CRITICO';
+        itemUro.diagnostico = 'BACTERIÚRIA ASSINTOMÁTICA / ITU NA GESTAÇÃO CONFIRMADA.';
+        itemUro.conduta = 'Toda bacteriúria assintomática (>= 10^5 UFC/mL) DEVE SER TRATADA NA GESTANTE para prevenir Pielonefrite Aguda (que acomete 30 a 40% das gestantes não tratadas) e Trabalho de Parto Prematuro. ESQUEMAS SEGUROS DE 1ª LINHA: Fosfomicina Trometamol 3g VO em dose única OU Cefalexina 500mg VO de 6/6h por 7 dias OU Amoxicilina+Clavulanato 500/125mg 8/8h por 7 dias. OBRIGATÓRIO: Realizar urocultura de controle de cura 7 a 14 dias após o término.';
+        alertasCriticos.push('⚠️ BACTERIÚRIA NA GESTAÇÃO: Tratar com Fosfomicina 3g ou Cefalexina 7 dias e colher urocultura de controle.');
+      } else {
+        itemUro.status = 'NORMAL';
+        itemUro.diagnostico = 'Urocultura Negativa / Sem Crescimento Bacteriano.';
+        itemUro.conduta = 'Repetir urocultura no 3º trimestre de rotina.';
+      }
+      avaliados.push(itemUro);
+    }
+
+    // 7. HEMOGRAMA & HEMOGLOBINA
+    var hbVal = Number(dados.hb || dados.hemoglobina || dados.hgb);
+    if (!isNaN(hbVal) && hbVal > 0) {
+      var itemHbVal = { exame: 'Hemoglobina Materna', valor: hbVal + ' g/dL' };
+      if (hbVal >= 11.0) {
+        itemHbVal.status = 'NORMAL';
+        itemHbVal.diagnostico = 'Ausência de Anemia.';
+        itemHbVal.conduta = 'Manter profilaxia com Sulfato Ferroso (40 mg de ferro elementar/dia = 1 drágea de 200mg/dia) a partir da 20ª semana.';
+      } else if (hbVal >= 8.0 && hbVal < 11.0) {
+        itemHbVal.status = 'ATENCAO';
+        itemHbVal.diagnostico = 'ANEMIA GESTACIONAL LEVE A MODERADA (Hb 8,0 a 10,9 g/dL).';
+        itemHbVal.conduta = 'Iniciar TRATAMENTO COM SULFATO FERROSO EM DOSE TERAPÊUTICA: 120 a 200 mg de ferro elementar/dia (3 a 5 drágeas de 200 mg de sulfato ferroso divididas ao longo do dia), ingeridas com água ou suco cítrico 1 hora antes das refeições. Repetir hemograma em 30 a 60 dias.';
+        alertasCriticos.push('⚠️ ANEMIA GESTACIONAL (Hb ' + hbVal + ' g/dL): Elevar Sulfato Ferroso para dose terapêutica (120-200mg Fe/dia).');
+      } else { // < 8.0
+        itemHbVal.status = 'CRITICO';
+        itemHbVal.diagnostico = 'ANEMIA GESTACIONAL GRAVE (Hb < 8,0 g/dL).';
+        itemHbVal.conduta = 'Encaminhar IMEDIATAMENTE para o Pré-Natal de Alto Risco / Serviço Hospitalar. Investigar causas associadas e avaliar ferro parenteral intravenoso (Sacarato de Óxido de Ferro / Noripurum IV) ou suporte transfusional se instabilidade hemodinâmica.';
+        alertasCriticos.push('🚨 ANEMIA GRAVE NA GESTANTE (Hb ' + hbVal + ' g/dL): Encaminhar imediato ao PNAR / Ferro IV.');
+      }
+      avaliados.push(itemHbVal);
+    }
+
+    // 8. TIPAGEM RH & COOMBS INDIRETO
+    var rhRaw = dados.rh || dados.fatorRh || dados.tipagem;
+    if (rhRaw !== undefined && rhRaw !== null && String(rhRaw).trim() !== '') {
+      var itemRh = { exame: 'Tipagem Rh e Coombs Indireto', valor: String(rhRaw) };
+      var rhStr = norm(rhRaw);
+      var ehRhNeg = rhStr.indexOf('neg') >= 0 || rhStr === '-';
+      var coombsRaw = dados.coombs || dados.coombsIndireto;
+      var ehCoombsPos = ehReagente(coombsRaw);
+
+      if (!ehRhNeg) {
+        itemRh.status = 'NORMAL';
+        itemRh.diagnostico = 'Mãe Rh Positivo.';
+        itemRh.conduta = 'Não há risco de aloimunização por incompatibilidade Rh(D). Rotina obstétrica habitual.';
+      } else {
+        if (!ehCoombsPos) {
+          itemRh.status = 'ATENCAO';
+          itemRh.diagnostico = 'Mãe Rh Negativo com Coombs Indireto Negativo (Não Isoimunizada).';
+          itemRh.conduta = 'Repetir Coombs Indireto mensalmente a partir da 24ª semana. Prescrever IMUNOGLOBULINA ANTI-D 300 mcg IM na 28ª semana de gestação. Repetir nova dose de Imunoglobulina Anti-D em até 72 horas pós-parto se o recém-nascido for confirmado Rh Positivo com Coombs Direto negativo.';
+        } else {
+          itemRh.status = 'CRITICO';
+          itemRh.diagnostico = 'MÃE RH NEGATIVO COM COOMBS INDIRETO POSITIVO (ALOIMUNIZADA).';
+          itemRh.conduta = 'Isoimunização Rh instalada. NÃO administrar Imunoglobulina Anti-D (ineficaz se já sensibilizada). Titular Coombs indireto: se título >= 1:16, encaminhar IMEDIATAMENTE ao Pré-Natal de Alto Risco com Medicina Fetal para monitoramento não invasivo de anemia fetal por Doppler de artéria cerebral média (PVS-ACM).';
+          alertasCriticos.push('🚨 ALOIMUNIZAÇÃO Rh CONFIRMADA (Coombs+): Encaminhar urgente ao PNAR para Doppler de ACM.');
+        }
+      }
+      avaliados.push(itemRh);
+    }
+
+    // Monta texto limpo e escaneável pronto para PEP
+    var linhas = [
+      '======================================================================',
+      '      PAINEL DE INTERPRETAÇÃO DE SOROLOGIAS E EXAMES DE PRÉ-NATAL     ',
+      '======================================================================',
+      'Diretrizes: Ministério da Saúde (MS) & FEBRASGO',
+      'Total de Exames Analisados: ' + avaliados.length
+    ];
+
+    if (alertasCriticos.length > 0) {
+      linhas.push('----------------------------------------------------------------------');
+      linhas.push('🚨 ALERTAS CRÍTICOS BEIRA-LEITO:');
+      for (var a = 0; a < alertasCriticos.length; a++) {
+        linhas.push('• ' + alertasCriticos[a]);
+      }
+    }
+
+    linhas.push('----------------------------------------------------------------------');
+    linhas.push('PARECER DETERMINÍSTICO E CONDUTAS DETALHADAS:');
+    for (var i = 0; i < avaliados.length; i++) {
+      var it = avaliados[i];
+      var ico = it.status === 'CRITICO' ? '🔴' : (it.status === 'ATENCAO' ? '🟡' : '🟢');
+      linhas.push(ico + ' [' + it.exame + ']: ' + it.valor);
+      linhas.push('   Diagnóstico: ' + it.diagnostico);
+      linhas.push('   Conduta Imediata: ' + it.conduta);
+      linhas.push('');
+    }
+    linhas.push('======================================================================');
+
+    return {
+      sucesso: true,
+      totalAvaliados: avaliados.length,
+      alertasCriticos: alertasCriticos,
+      itens: avaliados,
+      textoFormatado: linhas.join('\n')
+    };
+  }
+
   return {
     parseData: parseData,
     formatarDataBr: formatarDataBr,
@@ -19399,6 +19968,7 @@ var ObstetriciaPrenatalService = (function() {
     obterDiretrizesTrimestre: obterDiretrizesTrimestre,
     validarMedicamentoGestacao: validarMedicamentoGestacao,
     auditarPrescricaoGestante: auditarPrescricaoGestante,
+    interpretarSorologiasLaboratorioPrenatal: interpretarSorologiasLaboratorioPrenatal,
     gerarResumoConsultaPrenatal: gerarResumoConsultaPrenatal,
     BANCO_FARMACOS_GESTACAO: BANCO_FARMACOS_GESTACAO,
     TABELA_GANHO_PESO_IOM: TABELA_GANHO_PESO_IOM
@@ -41997,6 +42567,53 @@ function processarMensagemTexto(message) {
       }
     }
 
+    // Se for interpretação de sorologias e exames laboratoriais do pré-natal
+    var ehExameSorologia = /(?:sorologia|vdrl|glicemia|toxo|anti-?hiv|hbsag|hepatite|urocultura|hemoglobina|coombs|avidez)/i.test(dadosPn);
+    var semDumOuUsg = !/(?:dum|\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{4})/i.test(dadosPn);
+    if (ehExameSorologia && semDumOuUsg) {
+      var paramsSoro = {};
+      var mGj = dadosPn.match(/glic(?:emia)?(?:\s*de\s*jejum)?\s*[:=]?\s*(\d+)/i);
+      if (mGj) paramsSoro.glicemiaJejum = parseInt(mGj[1], 10);
+
+      var mToxG = dadosPn.match(/toxo(?:plasmose)?\s*igg\s*[:=]?\s*([a-záéíóú\+\-]+)/i);
+      if (mToxG) paramsSoro.toxoIgg = mToxG[1];
+
+      var mToxM = dadosPn.match(/toxo(?:plasmose)?\s*igm\s*[:=]?\s*([a-záéíóú\+\-]+)/i);
+      if (mToxM) paramsSoro.toxoIgm = mToxM[1];
+
+      var mAvid = dadosPn.match(/avidez\s*[:=]?\s*(\d+|[a-záéíóú]+)/i);
+      if (mAvid) paramsSoro.toxoAvidez = mAvid[1];
+
+      var mVdrl = dadosPn.match(/vdrl\s*[:=]?\s*([^\n,;]+)/i);
+      if (mVdrl) paramsSoro.vdrl = mVdrl[1].trim();
+
+      var mHiv = dadosPn.match(/(?:anti-?)?hiv\s*[:=]?\s*([a-záéíóú\+\-]+)/i);
+      if (mHiv) paramsSoro.hiv = mHiv[1];
+
+      var mHbs = dadosPn.match(/hbsag\s*[:=]?\s*([a-záéíóú\+\-]+)/i);
+      if (mHbs) paramsSoro.hbsag = mHbs[1];
+
+      var mUro = dadosPn.match(/urocultura\s*[:=]?\s*([^\n,;]+)/i);
+      if (mUro) paramsSoro.urocultura = mUro[1].trim();
+
+      var mHb = dadosPn.match(/h(?:b|emoglobina)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i);
+      if (mHb) paramsSoro.hb = parseFloat(mHb[1].replace(',', '.'));
+
+      var mRh = dadosPn.match(/rh\s*[:=]?\s*([a-záéíóú\+\-]+)/i);
+      if (mRh) paramsSoro.rh = mRh[1];
+
+      var mCoombs = dadosPn.match(/coombs\s*[:=]?\s*([^\n,;]+)/i);
+      if (mCoombs) paramsSoro.coombs = mCoombs[1].trim();
+
+      var mSem = dadosPn.match(/(\d+)\s*s(?:emanas?)?/i);
+      if (mSem) paramsSoro.semanasGestacao = parseInt(mSem[1], 10);
+
+      var laudoSoro = ObstetriciaPrenatalService.interpretarSorologiasLaboratorioPrenatal(paramsSoro);
+      if (laudoSoro && laudoSoro.sucesso && laudoSoro.totalAvaliados > 0) {
+        return enviarMensagemParaChat(chatId, "📋 *INTERPRETAÇÃO DE EXAMES E CONDUTA NO PRÉ-NATAL:*\n\n```\n" + laudoSoro.textoFormatado + "\n```");
+      }
+    }
+
     // Parse de dados obstétricos
     var paramsPn = {};
     var mDum = dadosPn.match(/(?:dum\s*[:=]?\s*)?(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{4})/i);
@@ -51911,6 +52528,18 @@ function cockpitAuditarPrescricaoGestante(initData, params) {
   }
   var resultado = ObstetriciaPrenatalService.auditarPrescricaoGestante(params.medicamentos, params.trimestre);
   return resultado;
+}
+
+/**
+ * cockpitInterpretarSorologiasPrenatal — interpreta painel sorológico e exames laboratoriais do pré-natal.
+ */
+function cockpitInterpretarSorologiasPrenatal(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ObstetriciaPrenatalService === 'undefined') {
+    throw new Error('Módulo ObstetriciaPrenatalService indisponível.');
+  }
+  return ObstetriciaPrenatalService.interpretarSorologiasLaboratorioPrenatal(params);
 }
 
 /**

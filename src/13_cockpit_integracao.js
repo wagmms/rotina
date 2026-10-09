@@ -586,6 +586,18 @@ function cockpitAuditarPrescricaoGestante(initData, params) {
 }
 
 /**
+ * cockpitInterpretarSorologiasPrenatal — interpreta painel sorológico e exames laboratoriais do pré-natal.
+ */
+function cockpitInterpretarSorologiasPrenatal(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof ObstetriciaPrenatalService === 'undefined') {
+    throw new Error('Módulo ObstetriciaPrenatalService indisponível.');
+  }
+  return ObstetriciaPrenatalService.interpretarSorologiasLaboratorioPrenatal(params);
+}
+
+/**
  * cockpitTrabalhoParto — avalia fase de parto, plano de De Lee e Bishop.
  */
 function cockpitTrabalhoParto(initData, params) {

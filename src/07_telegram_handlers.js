@@ -786,6 +786,53 @@ function processarMensagemTexto(message) {
       }
     }
 
+    // Se for interpretação de sorologias e exames laboratoriais do pré-natal
+    var ehExameSorologia = /(?:sorologia|vdrl|glicemia|toxo|anti-?hiv|hbsag|hepatite|urocultura|hemoglobina|coombs|avidez)/i.test(dadosPn);
+    var semDumOuUsg = !/(?:dum|\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{4})/i.test(dadosPn);
+    if (ehExameSorologia && semDumOuUsg) {
+      var paramsSoro = {};
+      var mGj = dadosPn.match(/glic(?:emia)?(?:\s*de\s*jejum)?\s*[:=]?\s*(\d+)/i);
+      if (mGj) paramsSoro.glicemiaJejum = parseInt(mGj[1], 10);
+
+      var mToxG = dadosPn.match(/toxo(?:plasmose)?\s*igg\s*[:=]?\s*([a-záéíóú\+\-]+)/i);
+      if (mToxG) paramsSoro.toxoIgg = mToxG[1];
+
+      var mToxM = dadosPn.match(/toxo(?:plasmose)?\s*igm\s*[:=]?\s*([a-záéíóú\+\-]+)/i);
+      if (mToxM) paramsSoro.toxoIgm = mToxM[1];
+
+      var mAvid = dadosPn.match(/avidez\s*[:=]?\s*(\d+|[a-záéíóú]+)/i);
+      if (mAvid) paramsSoro.toxoAvidez = mAvid[1];
+
+      var mVdrl = dadosPn.match(/vdrl\s*[:=]?\s*([^\n,;]+)/i);
+      if (mVdrl) paramsSoro.vdrl = mVdrl[1].trim();
+
+      var mHiv = dadosPn.match(/(?:anti-?)?hiv\s*[:=]?\s*([a-záéíóú\+\-]+)/i);
+      if (mHiv) paramsSoro.hiv = mHiv[1];
+
+      var mHbs = dadosPn.match(/hbsag\s*[:=]?\s*([a-záéíóú\+\-]+)/i);
+      if (mHbs) paramsSoro.hbsag = mHbs[1];
+
+      var mUro = dadosPn.match(/urocultura\s*[:=]?\s*([^\n,;]+)/i);
+      if (mUro) paramsSoro.urocultura = mUro[1].trim();
+
+      var mHb = dadosPn.match(/h(?:b|emoglobina)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i);
+      if (mHb) paramsSoro.hb = parseFloat(mHb[1].replace(',', '.'));
+
+      var mRh = dadosPn.match(/rh\s*[:=]?\s*([a-záéíóú\+\-]+)/i);
+      if (mRh) paramsSoro.rh = mRh[1];
+
+      var mCoombs = dadosPn.match(/coombs\s*[:=]?\s*([^\n,;]+)/i);
+      if (mCoombs) paramsSoro.coombs = mCoombs[1].trim();
+
+      var mSem = dadosPn.match(/(\d+)\s*s(?:emanas?)?/i);
+      if (mSem) paramsSoro.semanasGestacao = parseInt(mSem[1], 10);
+
+      var laudoSoro = ObstetriciaPrenatalService.interpretarSorologiasLaboratorioPrenatal(paramsSoro);
+      if (laudoSoro && laudoSoro.sucesso && laudoSoro.totalAvaliados > 0) {
+        return enviarMensagemParaChat(chatId, "📋 *INTERPRETAÇÃO DE EXAMES E CONDUTA NO PRÉ-NATAL:*\n\n```\n" + laudoSoro.textoFormatado + "\n```");
+      }
+    }
+
     // Parse de dados obstétricos
     var paramsPn = {};
     var mDum = dadosPn.match(/(?:dum\s*[:=]?\s*)?(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{4})/i);

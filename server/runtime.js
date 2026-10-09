@@ -793,6 +793,7 @@ module.exports = {
         _rpcMap.cockpitRastreioTrimestre = ctx.cockpitRastreioTrimestre;
         _rpcMap.cockpitValidarFarmacoGestacao = ctx.cockpitValidarFarmacoGestacao;
         _rpcMap.cockpitAuditarPrescricaoGestante = ctx.cockpitAuditarPrescricaoGestante;
+        _rpcMap.cockpitInterpretarSorologiasPrenatal = ctx.cockpitInterpretarSorologiasPrenatal;
         _rpcMap.cockpitTrabalhoParto = ctx.cockpitTrabalhoParto;
         _rpcMap.cockpitSulfatoMagnesio = ctx.cockpitSulfatoMagnesio;
         _rpcMap.cockpitCriseHipertensivaObstetrica = ctx.cockpitCriseHipertensivaObstetrica;
