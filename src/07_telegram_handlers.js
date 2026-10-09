@@ -1269,6 +1269,63 @@ function processarMensagemTexto(message) {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
+  // DASHBOARD DE KAIZEN CLÍNICO E AUDITORIA ANALÍTICA DE PRESCRIÇÕES
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
+    var dadosKaizen = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof AuditoriaKaizenClinicoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo AuditoriaKaizenClinicoService indisponível temporariamente.");
+    }
+
+    if (!dadosKaizen || dadosKaizen.toLowerCase() === "resumo" || dadosKaizen.toLowerCase() === "dashboard") {
+      var dash = AuditoriaKaizenClinicoService.gerarDashboardKaizen();
+      var msgDash = AuditoriaKaizenClinicoService.formatarDashboardEmTexto(dash);
+      return enviarMensagemParaChat(chatId, msgDash);
+    }
+
+    if (dadosKaizen.toLowerCase() === "limpar") {
+      AuditoriaKaizenClinicoService.limparHistorico();
+      return enviarMensagemParaChat(chatId, "🧹 *Histórico do Dashboard de Kaizen Clínico reinicializado com sucesso em memória.*");
+    }
+
+    var argLower = dadosKaizen.toLowerCase();
+    if (argLower === "uti" || argLower === "emergencia" || argLower === "enfermaria" || argLower === "ambulatorio") {
+      var dashSetor = AuditoriaKaizenClinicoService.gerarDashboardKaizen({ setor: argLower });
+      var msgSetor = AuditoriaKaizenClinicoService.formatarDashboardEmTexto(dashSetor);
+      return enviarMensagemParaChat(chatId, msgSetor);
+    }
+
+    // Se o usuário enviou uma prescrição para auditoria direta
+    var evAuditado = AuditoriaKaizenClinicoService.auditarPrescricao({
+      textoPrescricao: dadosKaizen,
+      paciente: "Auditoria Telegram",
+      setor: "EMERGENCIA",
+      prescritorNome: "Médico Plantonista",
+      perfilPrescritor: "ASSISTENTE"
+    });
+
+    var msgAudit = "🛡️ *PARECER DE AUDITORIA DE PRESCRIÇÃO (KAIZEN)*\n" +
+      "════════════════════════════════════════════\n" +
+      "• Status: " + evAuditado.icone + " *" + evAuditado.desfechoRotulo + "*\n" +
+      "• Prescrição Rejeitada/Retida: *" + (evAuditado.rejeitada ? "SIM 🛑" : "NÃO ✅") + "*\n" +
+      "• Escore de Risco: *" + evAuditado.escoreRisco + "/100*\n" +
+      "• Fármacos Identificados: " + (evAuditado.farmacos.length > 0 ? evAuditado.farmacos.map(function(f){return "`" + f.toUpperCase() + "`";}).join(", ") : "Nenhum") + "\n\n";
+
+    if (evAuditado.gargalosDetectados.length > 0) {
+      msgAudit += "⚠️ *Gargalos de Segurança Detectados:*\n" +
+        evAuditado.gargalosDetectados.map(function(g){ return "• " + g; }).join("\n") + "\n\n";
+    }
+
+    if (evAuditado.intervencoesRecomendadas.length > 0) {
+      msgAudit += "💡 *Recomendações e Intervenções Farmacêuticas:*\n" +
+        evAuditado.intervencoesRecomendadas.map(function(rec){ return "• " + rec; }).join("\n") + "\n\n";
+    }
+
+    msgAudit += "⏱️ _Auditoria registrada no dashboard analítico hospitalar (" + evAuditado.tempoAnaliseMs + "ms). Digite /kaizen para ver o painel consolidado._";
+    return enviarMensagemParaChat(chatId, msgAudit);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
   // TOXICOLOGIA DE EMERGÊNCIA (Paracetamol, Tricíclicos, BB/BCC, Opioides)
   // ───────────────────────────────────────────────────────────────────────────
   if (comando === "/intox" || comando === "/toxicologia") {

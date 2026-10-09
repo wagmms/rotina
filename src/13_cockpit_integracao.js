@@ -1251,3 +1251,67 @@ function cockpitViaAereaDificil(initData, params) {
   throw new Error('Ação inválida para Via Aérea Difícil.');
 }
 
+function cockpitAuditoriaKaizen(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof AuditoriaKaizenClinicoService === 'undefined') {
+    throw new Error('AuditoriaKaizenClinicoService não carregado.');
+  }
+  var p = params.parametros || params;
+  var acao = params.acao || 'dashboard';
+
+  if (acao === 'auditar') {
+    var ev = AuditoriaKaizenClinicoService.auditarPrescricao(p);
+    return {
+      sucesso: true,
+      evento: ev
+    };
+  }
+  if (acao === 'lote') {
+    var lote = Array.isArray(p) ? p : (p.lote || p.prescricoes || []);
+    return AuditoriaKaizenClinicoService.processarLotePrescricoes(lote);
+  }
+  if (acao === 'dashboard') {
+    var dash = AuditoriaKaizenClinicoService.gerarDashboardKaizen(p);
+    return {
+      sucesso: true,
+      dashboard: dash,
+      textoFormatado: AuditoriaKaizenClinicoService.formatarDashboardEmTexto(dash)
+    };
+  }
+  if (acao === 'formatarTexto') {
+    var dashAlvo = p.dashboard || AuditoriaKaizenClinicoService.gerarDashboardKaizen(p);
+    return {
+      sucesso: true,
+      textoFormatado: AuditoriaKaizenClinicoService.formatarDashboardEmTexto(dashAlvo)
+    };
+  }
+  if (acao === 'ultimos' || acao === 'historico') {
+    return {
+      sucesso: true,
+      eventos: AuditoriaKaizenClinicoService.obterHistorico(p.limite, p.apenasRejeitadas)
+    };
+  }
+  if (acao === 'limpar') {
+    return AuditoriaKaizenClinicoService.limparHistorico();
+  }
+  if (acao === 'exportar') {
+    return AuditoriaKaizenClinicoService.exportarDataset();
+  }
+  if (acao === 'importar') {
+    return AuditoriaKaizenClinicoService.importarDataset(p.dataset || p);
+  }
+  if (acao === 'completo') {
+    var evComp = p.prescricao ? AuditoriaKaizenClinicoService.auditarPrescricao(p.prescricao) : null;
+    var dashComp = AuditoriaKaizenClinicoService.gerarDashboardKaizen(p);
+    return {
+      sucesso: true,
+      evento: evComp,
+      dashboard: dashComp,
+      textoFormatado: AuditoriaKaizenClinicoService.formatarDashboardEmTexto(dashComp)
+    };
+  }
+  throw new Error('Ação inválida para Auditoria de Kaizen Clínico.');
+}
+
+

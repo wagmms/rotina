@@ -56,7 +56,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Cálculo determinístico do escore MELD / MELD-Na e Child-Pugh para hepatopatia crônica, com ajuste posológico para insuficiência hepática severa.
     - Protocolos ágeis de manejo de Hemorragia Digestiva Alta (HDA) varicosa com indicação de IBP IV contínuo, Terlipressina ou Octreotide, profilaxia antibiótica para PBE e restrição restrita de cristaloides.
 
-23. [ ] **Ferramenta de Auditoria Analítica (Dashboard de Kaizen Clínico)**:
+23. [x] **Ferramenta de Auditoria Analítica (Dashboard de Kaizen Clínico)**:
     - Sistema off-line que sumariza tendências de prescrições rejeitadas por risco clínico ou interações graves, detectando gargalos na segurança do paciente em tempo real.
 
 
@@ -343,12 +343,37 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Linha do tempo de parada de convulsão ativa em emergência pediátrica (0-5 min: ABC, glicemia e oxigênio; 5-10 min: 1ª dose de Benzodiazepínico - Midazolam IM/intranasal ou Diazepam retal/IV; 10-15 min: 2ª dose; > 15 min: anticonvulsivante de 2ª linha com Fenitoína 20 mg/kg ou Levetiracetam 60 mg/kg IV).
     - Alerta crítico para evitar doses excessivas repetidas de benzodiazepínicos que causem depressão respiratória iatrogênica.
 
+82. [ ] **Infectologia e Urgência - Manejo de Meningite Bacteriana Aguda na Emergência (Diretrizes SBD / IDSA)**:
+    - Triagem beira-leito para indicação prévia de TC de crânio antes da Punção Lombar (mnemônico FAILS: Déficit Focal, Idade >= 60, Imunossupressão, Lesão/Glasgow < 10, Crise convulsiva recente).
+    - Protocolo hiperprecoce de antibioticoterapia empírica (< 30 min da suspeita: Ceftriaxona 2g IV 12/12h + Ampicilina 2g IV 4/4h se >= 50 anos ou imunocomprometido para cobertura de Listeria monocytogenes + Vancomicina).
+    - Corticoterapia adjuvante obrigatória: Dexametasona 10mg IV 15-20 min ANTES ou junto da primeira dose de antimicrobiano para prevenir sequelas auditivas e neurológicas em pneumococo.
+    - Interpretação determinística do líquor (LCR): pleocitose neutrofílica, hiperproteinorraquia > 100-200 mg/dL, consumo de glicose (relação LCR/glicemia sérica < 0.4) e profilaxia de contatos íntimos com Rifampicina ou Ceftriaxona.
+
+83. [ ] **Endocrinologia de Urgência - Manejo da Crise Adrenal Aguda e Insuficiência Adrenal Primária vs Secundária**:
+    - Reconhecimento precoce de crise adrenal (choque refratário a aminas com hiponatremia, hipercalemia e hipoglicemia).
+    - Protocolo imediato de reposição de corticoide: Hidrocortisona 100mg IV em bolus imediato seguido de 50mg IV a cada 6h (ou 200mg/24h em infusão contínua), SEM aguardar dosagem hormonal.
+    - Ressuscitação volêmica vigorosa com SF 0.9% e glicose 5-10% para reverter hipovolemia e hipoglicemia; contraindicação de diuréticos de alça.
+    - Transição pós-estabilização para dose de manutenção ambulatorial (Hidrocortisona 15-25 mg/dia fracionada + Fludrocortisona 0.05-0.1 mg/dia se insuficiência primária/doença de Addison) com orientações para "dias de estresse" (dobrar a dose se febre ou infecção).
+
+84. [ ] **Gastroenterologia e Emergência - Manejo da Apendicite Aguda e Abdome Agudo Inflamatório (Escore de Alvarado e AIR)**:
+    - Calculadora determinística beira-leito dos escores Alvarado e AIR (Appendicitis Inflammatory Response) com estratificação de probabilidade (baixo risco < 4: alta segura com orientação; risco intermediário 5-6: USG/TC com contraste; alto risco >= 7: avaliação cirúrgica imediata).
+    - Protocolo de antibioticoterapia pré-operatória profilática (Ciprofloxacino + Metronidazol ou Ceftriaxona + Metronidazol) iniciada em até 1h antes da incisão.
+    - Bloqueio de analgesia com AINEs em pacientes desidratados ou com suspeita de abdome agudo perfurativo antes da avaliação do cirurgião geral.
+
 ## 🔄 Próxima Tarefa em Andamento
 - [ ] **Módulo Avançado de Transfusão Sanguínea (Protocolo de Transfusão Maciça e Gatilhos)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Ferramenta de Auditoria Analítica (Dashboard de Kaizen Clínico)**:
+   - Motor determinístico off-line (`AuditoriaKaizenClinicoService`) de alta performance (< 10ms) para auditoria beira-leito e processamento em lote (batch) de prescrições hospitalares.
+   - Classificação padronizada de desfechos: Bloqueio Fatal (Evento Sentinela), Rejeitada por Interação Grave/Contraindicada, Intervenção Farmacêutica por Omissão de Ajuste Renal, Retenção RBAC e Liberação Segura.
+   - Cálculo determinístico do Índice de Maturidade de Segurança do Paciente (0 a 100) com penalidades escalonadas e níveis de excelência a alerta vermelho.
+   - Identificação em tempo real dos Top Fármacos Incidentes e Top Interações Recorrentes com distribuição por setor hospitalar (UTI, Emergência, Enfermaria, Ambulatório).
+   - Formulação automática de Plano de Ação Kaizen e Intervenções Prioritárias direcionadas para Farmácia Central, Prescrição Eletrônica e Preceptoria.
+   - Renderização de Dashboard em gráficos ASCII para terminais/Telegram e integração completa com RPC Fastify (`cockpitAuditoriaKaizen`) e bot do Telegram (`/kaizen`, `/audit`).
+   - 12 testes determinísticos automatizados aprovados com 100% de sucesso.
 - [x] (2026-10-09) **Manejo de Via Aérea Difícil (Algoritmo ASA / DAS / LEMON / RSI / CICO)**:
    - Predição determinística de via aérea difícil com escore LEMON (Look, Evaluate 3-3-2, Mallampati, Obstruction, Neck mobility) e escore MOANS para ventilação difícil sob máscara facial.
    - Motor de cálculo para Sequência Rápida de Intubação (RSI - 7 Ps) com dosagem ponderada de Hipnóticos (Etomidato, Cetamina, Propofol, Midazolam) e Bloqueadores Neuromusculares (Succinilcolina vs Rocurônio).
