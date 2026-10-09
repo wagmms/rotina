@@ -1,4 +1,4 @@
-### STATUS: EM_EVOLUCAO_CONTINUA
+### STATUS: REVISAO_OTIMIZACAO_E_ESTABILIZACAO_EXCLUSIVA
 
 # 🛠️ Ultra Rotina — Revisão, Otimização e Estabilização para Interno/Médico Generalista
 
@@ -67,14 +67,16 @@
     - Criado Empty State limpo, profissional e honesto no Cockpit quando nenhum caso ou leito está registrado.
     - Sincronizado deploy do Cockpit Móvel no GitHub Pages (`gh_cockpit_deploy/`).
 
-0G. [ ] **Auditoria de Usabilidade e Telas do Cockpit PWA Beira-Leito**:
-    - Garantir que cada aba (SOAP, Leitos, Calculadoras, REMUME, Preceptor) tenha zero travamentos, carregamento instantâneo offline e navegação fluida de 1 toque no celular.
-    - Eliminar funções escondidas ou modais confusos; tornar os atalhos clínicos visíveis e diretos.
+0G. [x] **Auditoria de Usabilidade e Telas do Cockpit PWA Beira-Leito**:
+    - Implementado motor de cálculo determinístico offline de contingência (`calcularOfflineLocal`) em `cockpit_movel.html` com execução imediata (0ms) no celular mesmo em áreas sem sinal de internet: DVA (Nora, Dobuta, Vaso), SRI (padrão, choque, asma), Clearance Cockcroft-Gault e Gasometria com fórmula de Winter.
+    - Eliminação definitiva dos casos fictícios/mock de IAM e IC: cards e relatórios agora refletem 100% os casos reais conduzidos hoje (`casosDoDia`).
+    - Empty state limpo e profissional quando não há atendimentos no plantão, evitando poluição visual ou informações falsas na tela do médico.
+    - Sincronização automatizada para GitHub Pages via `gh_cockpit_deploy/index.html`.
 
 0H. [ ] **Revisão e Lapidação de Conteúdo Clínico das Calculadoras do Cockpit**:
     - Revisar cada calculadora clínica exposta no Cockpit (DVA, Gasometria, Drogas de Emergência, Clearance, Preeclâmpsia, etc.) para garantir doses exatas, alertas de segurança e bloqueios de erro médico para médico generalista/interno.
 
-0I. [ ] **Auditoria de Menus e Comandos do Telegram**:
+0I. [x] **Auditoria de Menus e Comandos do Telegram**:
     - Revisar `/menu` e `/ajuda` para apresentar apenas os fluxos essenciais ao interno e médico generalista (Emergência, Enfermaria, Ambulatório/SOAP, Prescrição/REMUME), sem poluição visual.
 
 ---
@@ -333,10 +335,20 @@
     - Algoritmo de escolha de antidepressivos (ISRS, Duais) focado em efeitos colaterais e comorbidades.
     - Protocolo de contenção física (CFM 2.057/2013) e química para urgências psiquiátricas.
 
-49. [ ] **Geriatria Avançada - Profilaxia de Quedas e Osteoporose (FRAX/ACR)**:
-    - Calculadora FRAX para risco de fratura maior osteoporótica e fratura de quadril.
-    - Protocolo de reposição de Vitamina D e Cálcio e indicação de bisfosfonatos.
-    - Revisão de polifarmácia com identificação de drogas que prolongam QT ou causam hipotensão ortostática.
+49. [x] **Geriatria Avançada - Profilaxia de Quedas e Osteoporose (FRAX/ACR)**:
+    - Motor determinístico beira-leito para estimativa do risco de fratura em 10 anos pelo modelo calibrado FRAX Brasil (ABRASSO / SBGG / NOGG / OMS) em `src/02_saude_idoso.js`.
+    - Curva basal brasileira interpolada por idade e sexo, com ajuste matemático de IMC, cálculo de Hazard Ratios para fatores de risco clínicos (fratura prévia por fragilidade, histórico parental de fratura de fêmur, tabagismo, uso crônico de glicocorticoide, artrite reumatoide, osteoporose secundária e etilismo) e gradiente por desvio padrão para T-score da DMO do colo femoral.
+    - Estratificação de risco com limiares de intervenção formais (Alto Risco para Fratura de Quadril >= 3% ou Fratura Maior >= 20%, ou fratura prévia de fragilidade ou T-score <= -2.5; Risco Intermediário com indicação expressa de DMO para reclassificação; Baixo Risco para suporte preventivo).
+    - Protocolo de manejo de osteoporose e suplementação mineral:
+      * Cálcio elementar com meta de 1.000 a 1.200 mg/dia: preferência por Citrato de Cálcio para usuários crônicos de IBP (absorção independente do pH ácido gástrico) e Carbonato de Cálcio com as refeições; teto de segurança diário <= 1.500-2.000 mg/dia para prevenir litíase urinária e calcificação arterial.
+      * Vitamina D (Colecalciferol): meta sérica de 30 a 60 ng/mL no idoso/frágil; esquema de ataque de 50.000 UI/semana por 8 semanas se deficiência (< 20 ng/mL); alerta crítico de toxicidade para 25(OH)D > 100 ng/mL; contraindicação sentinela absoluta de megadose única anual (500.000 UI em bolus) por risco paradoxal de quedas e fraturas.
+      * Bisfosfonatos (Alendronato 70 mg VO semanal): bloqueio renal estrito para ClCr < 35 mL/min (indicação de Denosumabe sob especialista); bloqueio temporário por hipocalcemia sérica (< 8.5 mg/dL) antes do início; contraindicação oral por esofagopatia grave ou incapacidade de manter ortostase por 30-60 min; instruções de ouro de tomada (jejum completo com 200 mL de água pura, ortostase 30-60 min e aguardar 30-60 min antes de qualquer alimento/droga); alerta de Drug Holiday após 3 a 5 anos de uso contínuo.
+    - Revisão de polifarmácia e auditoria de FRIDs (Fall-Risk Increasing Drugs):
+      * Detecção de fármacos que prolongam intervalo QTc com emissão de ALERTA VERMELHO DE QT LONGO e risco de Torsades de Pointes se combinação de 2 ou mais agentes.
+      * Detecção de fármacos hipotensores ortostáticos e confirmação clínica beira-leito (queda de PAS >= 20 mmHg ou PAD >= 10 mmHg aos 3 minutos após ortostase).
+      * Rastreio de psicotrópicos, benzodiazepínicos, drogas Z e relaxantes musculares com cálculo de carga iatrogênica de quedas e orientações de desprescrição segura.
+    - Integração completa via Fastify RPC (`cockpitGeriatriaFrax`, `cockpitFrax`, `cockpitGeriatriaOsteoporose`, `cockpitOsteoporose`, `cockpitGeriatriaQuedas`, `cockpitQuedas`, `cockpitGeriatriaPolifarmacia`, `cockpitGeriatriaAvancada`, `cockpitSaudeIdosoAga`) e comandos Telegram (`/frax`, `/osteoporose`, `/quedas`, `/polifarmacia`, `/frids`, `/aga`, `/idoso`, `/cfs`, `/minicog`, `/tug`, `/beers`).
+    - Nova suíte de testes automatizados `tests/test_saude_idoso_geriatria.cjs` com 22 cenários clínicos especializados, testes de endpoint Fastify `/api/cockpit` integrados no `tests/test_server_render.cjs` e 100% de aprovação no pipeline contínuo do projeto.
 
 50. [ ] **Pneumologia e Terapia Intensiva - Manejo da Crise Hipercapnica na DPOC e Ventilação Não Invasiva (GOLD 2026 / SBPT)**:
     - Critérios determinísticos de indicação e contraindicações formais para VNI (BiPAP/CPAP) na exacerbação aguda da DPOC.
@@ -659,9 +671,6 @@
 111. [ ] **Integração do Escore SOFA e qSOFA (Sepsis-3) com Alertas Pró-ativos**:
     - Cálculo contínuo da disfunção orgânica na UTI (Respiratório, Coagulação, Hepático, Cardiovascular, SNC e Renal).
     - Gatilho automático para alerta de Piora Clínica (aumento de 2 pontos no SOFA) exigindo revisão imediata do Stewardship Antimicrobiano e controle do foco.
-
-## 🔄 Próxima Tarefa em Andamento
-- [ ] **Auditoria Defensiva e Tratamento de Exceções no Telegram e Fastify RPC** (Tarefa 0B)
 
 ---
 
@@ -1430,26 +1439,4 @@
     - Reconhecimento determinístico dos "6 Ps" (Pain out of proportion, Paresthesia, Pallor, Paralysis, Pulselessness, Poikilothermia), enfatizando a dor desproporcional ao estiramento passivo da musculatura como sinal clínico precoce mais sensível antes da perda de pulsos.
     - Cálculo de delta de pressão intracompartimental (Delta P = PAD - P_compartimento): valor ≤ 30 mmHg indica hipoperfusão tecidual crítica e indicação cirúrgica imediata de Fasciotomia descompressiva.
     - Bloqueios de conduta iatrogênica: CONTRAINDICAÇÃO FORMAL de elevação do membro acima do nível cardíaco (reduz a pressão de perfusão capilar arterial e agrava a isquemia muscular profunda), contraindicação de crioterapia/gelo e necessidade de remoção imediata de qualquer gesso, atadura ou curativo circular compressivo.
-
-174. [ ] **Pediatria & Emergência - Manejo de Sepse Pediátrica e Choque Séptico Pediátrico (Diretrizes Surviving Sepsis Campaign Children 2024-2026 / PALS)**:
-    - Reconhecimento determinístico do choque compensado (taquicardia persistente, pulsos periféricos finos, TEC > 2s, oligúria, PA ainda normal) vs hipotensivo.
-    - Ressuscitação volêmica guiada com alíquotas de cristaloides isotônicos (10-20 mL/kg em 10-20 min até 40-60 mL/kg na primeira hora) com monitoramento estrito de hepatomegalia e estertores crepitantes.
-    - Suporte inotrópico e vasoativo precoce (Epinefrina para choque frio vs Norepinefrina para choque quente) administrado por via periférica segura até obtenção de acesso venoso central.
-    - Antibioticoterapia precoce de amplo espectro na 1ª hora (Golden Hour) e hidrocortisona para choque refratário a catecolaminas.
-
-175. [ ] **Clínica Médica & Hematologia - Manejo de Crises Vaso-Oclusivas e Síndrome Torácica Aguda na Doença Falciforme**:
-    - Protocolo determinístico de analgesia escalonada rápida na crise álgica com opioides IV (Morfina 0.1 mg/kg) nos primeiros 30 minutos de admissão, evitando analgesia insuficiente.
-    - Hidratação venosa cuidadosa isotônica ou hipotônica (prevenção de hiperidratação e edema pulmonar agudo) e profilaxia de vaso-oclusão.
-    - Reconhecimento precoce da Síndrome Torácica Aguda (novo infiltrado pulmonar + febre, dor torácica ou taquipneia/dessaturação): indicação de ceftriaxona + macrolídeo, suporte de O2, espirometria de incentivo e transfusão de troca parcial (eritrocitaférese ou simples) para alvo de HbS < 30%.
-    - Alertas de contraindicação formal de heparinização profilática sem indicação e restrição do uso de meperidina (risco de convulsões por acúmulo de normeperidina).
-
-176. [ ] **Infectologia & Emergência - Manejo e Profilaxia da Dengue com Sinais de Alarme e Dengue Grave (Diretrizes Ministério da Saúde 2024-2026)**:
-    - Estratificação determinística por Grupos A, B, C e D conforme estadiamento clínico e hematócrito.
-    - Detecção precoce dos sinais de alarme (dor abdominal intensa/contínua, vômitos persistentes, hipotensão postural, lipotimia, hepatomegalia > 2 cm, sangramento de mucosa, letargia/irritabilidade e elevação progressiva do hematócrito).
-    - Protocolo de hidratação venosa estrita para Grupos C (fase de expansão rápida com SF 0,9% ou RL 10 mL/kg na 1ª hora) e D (20 mL/kg em 20 min, repetindo até 3x se choque refratário), com reavaliação clínica e hematócrito de 2 em 2 horas.
-    - Bloqueios estritos de segurança: PROIBIÇÃO TERMINANTE de AINEs e AAS (risco severo de hemorragia e síndrome de Reye) e contraindicação de injeções intramusculares.
-
-
-
-
 

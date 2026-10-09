@@ -6052,83 +6052,29 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
 
 function enviarManual(chatId) {
   var manual =
-    "📖 *GUIA DEFINITIVO DE OPERAÇÃO DO COPILOTO CLÍNICO 4.0*\n\n" +
-    "Seu assistente médico de emergência, enfermaria e rotina hospitalar 24/7 na nuvem. Aprenda a utilizar 100% das ferramentas do bot:\n\n" +
+    "📖 *GUIA DO COPILOTO CLÍNICO 4.0*\n\n" +
+    "Seu assistente médico para o dia a dia (PS, Enfermaria e UBS). Navegue usando a ⚙️ Central de Comandos (`/menu`) ou o Teclado no Rodapé.\n\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "📱 *1. COMO NAVEGAR NO BOT (3 MODOS)*\n" +
+    "🚨 *1. EMERGÊNCIA (SALA VERMELHA)*\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "1️⃣ *Teclado Rápido no Rodapé:* 6 botões sempre na base da tela para acesso com 1 toque do polegar (`🩺 Novo SOAP`, `💊 Prescrever`, `🏥 Enfermaria`, `📐 Calculadoras`, `📅 Minha rotina`, `🚨 Sala Vermelha`). Se o teclado sumir, envie `/teclado` para reativar.\n" +
-    "2️⃣ *Central de Comandos (`/menu`):* Abre um painel interativo com botões organizados por especialidade clínica. Todos os menus possuem botão de retorno `« Menu principal`.\n" +
-    "3️⃣ *Voz e Linguagem Natural:* Você não precisa decorar comandos! Pode falar por áudio gravado no corredor ou escrever naturalmente (ex.: _\"paciente 70kg em choque septico, calcula nora\"_ ou _\"prescrever amoxicilina 500mg para sinusite\"_). A IA classifica e executa automaticamente.\n\n" +
+    "• `/dva <droga> <peso>`: DVA em mL/h e mcg/kg/min (ex: `/dva nora 70`).\n" +
+    "• `/sri <peso>`: Doses e volumes (mL) para Sequência Rápida de Intubação.\n" +
+    "• `/gaso <dados>`: Interpretação de Gasometria e distúrbios mistos.\n" +
+    "• `/conduta`: Doses de ataque para PCR, EAP, hipercalemia, anafilaxia.\n\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🧠 *2. MEMÓRIA & GERENCIAMENTO DE CASOS*\n" +
+    "🏥 *2. ENFERMARIA & LEITOS*\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• *Memória de 15 minutos:* Ao iniciar um caso clínico (`/soap`, `/leito`, etc.), o bot retém os dados do paciente. Você pode enviar novas frases apenas com atualizações (ex.: _\"chegou o potássio de 3.2\"_ ou _\"ficou hipotenso\"_) sem ter que reenviar tudo.\n" +
-    "• `/novo` ou `🩺 Novo SOAP`: *Limpar memória.* Use SEMPRE ao trocar de paciente para garantir que os dados não se misturem.\n" +
-    "• `/cancelar`: Encerra o modo ativo (edição de leito, cálculo de droga ou modo de voz) a qualquer momento.\n" +
-    "• `/fila`: Mostra os pedidos e entregas assíncronas sendo geradas em segundo plano.\n\n" +
+    "• `/enfermaria`: Quadro geral de leitos e censo de gravidade.\n" +
+    "• `/leito <num> <caso>`: Evolui ou cadastra o leito (ex: `/leito 4 PAC grave`).\n" +
+    "• `/passagem`: Gera a passagem de plantão completa (SBAR).\n\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🚨 *3. SALA VERMELHA & EMERGÊNCIA (RESPOSTA IMEDIATA)*\n" +
+    "💊 *3. PRESCRIÇÃO E AMBULATÓRIO (SOAP)*\n" +
     "━━━━━━━━━━━━━━━━━━━━\n" +
-    "💉 *Drogas Vasoativas em mL/h (`/dva`):*\n" +
-    "• `/dva nora 70` → Noradrenalina (solução padrão 64 mcg/mL) calculada em mL/h e mcg/kg/min.\n" +
-    "• `/dva nora 80 concentrada` → Solução concentrada (128 mcg/mL).\n" +
-    "• `/dva dobuta 65` → Dobutamina (1 mg/mL) em mL/h para 65 kg.\n" +
-    "• `/dva vaso` → Vasopressina em dose fixa de 0,03 UI/min (vazão de 9 mL/h).\n" +
-    "• `/dva nipride 75` ou `/dva tridil` → Nitroprussiato e Nitroglicerina com titulação.\n\n" +
-    "🫁 *Sequência Rápida de Intubação (`/sri`):*\n" +
-    "• `/sri 70` → Doses e volumes exatos em mL de Etomidato, Quetamina, Succinilcolina, Rocurônio e Fentanil.\n" +
-    "• `/sri 70 choque` → Ajuste hemodinâmico de indução para choque circulatório.\n" +
-    "• `/sri 80 asma` → Indução ajustada para broncoespasmo grave.\n\n" +
-    "🩸 *Gasometria Arterial Completa (`/gaso`):*\n" +
-    "• `/gaso pH 7.22, pCO2 28, HCO3 11, Na 140, Cl 102, Alb 3.0`\n" +
-    "• Calcula: Distúrbio primário, resposta compensatória (Winter), Ânion Gap corrigido pela albumina, Delta-Delta para distúrbios mistos/triplos e relação PaO2/FiO2.\n\n" +
-    "⚡ *Condutas de Ataque em Emergências (`/conduta`):*\n" +
-    "• Doses prontas em ampolas e mL imediatos: `/conduta PCR chocavel`, `/conduta EAP hipertensivo`, `/conduta anafilaxia`, `/conduta crise convulsiva`, `/conduta hipercalemia`, `/conduta cetoacidose`.\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🏥 *4. ENFERMARIA VIRTUAL & LEITOS*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• `/enfermaria`: Quadro geral de todos os leitos com censo de gravidade (🟢 Estável, 🟡 Vigilância, 🔴 Instável) e botões de ação.\n" +
-    "• `/leito <num> <evolução>`: Cadastra ou atualiza o paciente do leito. Ex.: `/leito 4 72a, PAC grave, Ceftriaxona D3, estável, aguarda vaga UTI`.\n" +
-    "• `/passagem`: Gera a passagem de plantão consolidada da equipe no padrão SBAR (Situação, Background, Avaliação, Recomendação) com 1 toque.\n" +
-    "• `/alta <num>`: Desocupa o leito e registra a alta hospitalar.\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "💊 *5. PRESCRIÇÃO, AMBULATÓRIO & ROUND*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• `/rx <pedido ou diagnóstico>`: Busca na REMUME municipal (Ribeirão Preto), estrutura a posologia padrão e gera botão para emissão de PDF A4 timbrado oficial no Google Drive e botão nativo de cópia para prontuário.\n" +
-    "• `/rxh <caso ou leito>`: Prescrição Hospitalar Completa de internação na ordem canônica (Dieta, Hidratação venosa, Antimicrobianos com contagem D_ e ajuste renal, Conciliação, Profilaxias de TEV/úlcera de estresse, Sintomáticos SOS e Cuidados de enfermagem).\n" +
-    "• `/atb <droga> <clcr>`: Consulta determinística instantânea de ajuste renal de antimicrobianos hospitalares críticos (Vancomicina, Meropenem, Pip-Tazo, Cefepime, Ceftriaxona, Ciprofloxacino, Polimixina B, Fluconazol ou hemodiálise).\n" +
-    "• `/soap <caso>`: Síntese estruturada completa (Subjetivo, Objetivo, Avaliação, Plano) pronta para o prontuário eletrônico.\n" +
-    "• `/round <caso>`: Pitch oral de 60 segundos para apresentar o paciente no round da enfermaria/UTI + 3 perguntas socráticas antecipadas.\n" +
-    "• `/voz <caso>`: Sabatina médica cirúrgica enviada como mensagem de áudio de voz para você ouvir e responder no fone de ouvido enquanto caminha.\n" +
-    "• `/interacao <drogas>`: Checagem cruzada de interações medicamentosas graves e nomes comerciais.\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🧮 *6. CALCULADORAS CLÍNICAS DETERMINÍSTICAS (`/calc`)*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "Digite `/calc` para abrir o menu visual ou envie os dados diretamente por texto:\n" +
-    "• *Clearance de Creatinina (Cockcroft-Gault):* `/calc clearance Cr 1.2, peso 70, idade 65, masculino`\n" +
-    "• *CHA2DS2-VASc:* `/calc cha2ds2vasc` (estratificação de risco de AVC em FA)\n" +
-    "• *KDIGO:* `/calc kdigo` (estadiamento rigoroso de Injúria Renal Aguda)\n" +
-    "• *Glasgow-P:* `/calc glasgow` (escore de coma com reatividade pupilar)\n" +
-    "• *MELD e MELD-Na 2016:* `/calc meld` (estratificação de gravidade em hepatopatia crônica)\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "📅 *7. LIFESTYLE, ROTINA ADAPTATIVA & PRODUTIVIDADE*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• `/rotina`: Painel do dia com timeline dinâmica, time-blocking adaptativo e botões de ação imediata.\n" +
-    "• `/rotina alterar <ajuste>`: Adapta seus blocos em tempo real (ex.: `/rotina alterar hoje treino às 19h` ou `/rotina alterar não vou treinar`).\n" +
-    "• `/rotina [hoje/amanha/semana/reset/descanso]`: Navegação e controle ágil da rotina.\n" +
-    "• `/briefing`: Raio-X matinal completo com sua timeline real de hoje.\n" +
-    "• `/checkin`: Check-in noturno inteligente dos hábitos ativos no Notion.\n" +
-    "• `/agenda [hoje/amanha]`: Consulta seus compromissos no Google Calendar.\n" +
-    "• `/task <texto>`: Salva uma pendência imediata no Inbox do Notion Tasks (ex.: `/task Ligar para a regulação do leito 3`).\n" +
-    "• `/tasks`: Lista suas pendências e tarefas de hoje no Notion.\n" +
-    "• `/duvida <tema>`: Arquiva uma dúvida clínica para o bloco de estudo noturno no MedQuest.\n" +
-    "• `/plantao_fim`: Checklist de encerramento do plantão, leitos pendentes e passagem executiva.\n\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "🎙️ *8. MULTIMODALIDADE (FOTOS E ÁUDIOS)*\n" +
-    "━━━━━━━━━━━━━━━━━━━━\n" +
-    "• *Áudio de voz:* Pressione o microfone e grave seu raciocínio clínico ou ajustes de rotina enquanto anda pelo hospital. O bot transcreve e estrutura automaticamente.\n" +
-    "• *Fotos e Imagens:* Envie fotos de ECGs de 12 derivações, radiografias, laudos de tomografia ou lesões dermatológicas para suporte diagnóstico rápido e interativo.";
+    "• `/soap <caso>`: Avalia caso clínico gerando síntese estruturada e conduta.\n" +
+    "• `/rx <caso>`: Emite receita da REMUME com posologia pronta em PDF.\n" +
+    "• `/rxh <caso>`: Estrutura a prescrição hospitalar de internação.\n" +
+    "• `/atb <droga> <clcr>`: Ajuste renal imediato de antibióticos.\n\n" +
+    "💡 *Dica:* Use `/novo` sempre que trocar de paciente para limpar a memória do bot.";
 
   enviarMensagemParaChat(chatId, manual);
 }

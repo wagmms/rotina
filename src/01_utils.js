@@ -392,7 +392,7 @@ function obterTecladoFixoPrincipal(chatId) {
     keyboard: [
       [
         { text: '🩺 SOAP Ambulatorial' },
-        { text: '🤰 Ginecologia & Obstetrícia' }
+        { text: '🏥 Enfermaria' }
       ],
       [
         { text: '🚨 Emergência' },

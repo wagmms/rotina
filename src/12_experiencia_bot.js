@@ -328,19 +328,17 @@ function enviarMenuCondutas(chat, messageId) {
 function enviarHubPrincipal(chat, messageId) {
   var texto = '⚡ *Ultra Rotina · Central de Comandos*\n\n' +
     'Selecione uma área ou use o teclado rápido no rodapé:\n\n' +
-    '🩺 *Ambulatório (SOAP):* Síntese de prontuário e Preceptor de Voz\n' +
-    '🏥 *Enfermaria:* Quadro de Leitos e Passagem SBAR\n' +
-    '🚨 *Emergência:* DVA em mL/h, SRI, Gasometria e Condutas\n' +
-    '💊 *Prescrição & Posologias:* Guia Farmacêutico HSL + REMUME com emissão de PDF\n' +
-    '📐 *Calculadoras:* Escores clínicos e clearance determinísticos\n' +
-    '📅 *Rotina & Estudo:* Calendar, Notion Tasks e MedQuest';
+    '🩺 *Ambulatório (SOAP):* Síntese de prontuário e evolução clínica\n' +
+    '🏥 *Enfermaria:* Quadro de Leitos e Gestão de Pacientes\n' +
+    '🚨 *Emergência:* Condutas rápidas, Gasometria e DVA\n' +
+    '💊 *Prescrição:* Posologias, Ajuste Renal e REMUME\n' +
+    '📐 *Calculadoras:* Escores clínicos beira-leito';
 
   var urlApp = obterUrlCockpit(chat);
   var botoes = [
-    [['🩺 Novo SOAP', 'ux:hub:soap'], ['🏥 Enfermaria', 'ux:hub:enf']],
-    [['🚨 Sala Vermelha', 'ux:hub:sala'], ['💊 Prescrever', 'ux:hub:rx']],
-    [['📐 Calculadoras', 'ux:hub:calc'], ['📋 Passagem SBAR', 'ux:hub:sbar']],
-    [['📅 Rotina & Estudo', 'ux:hub:rotina'], { text: '📱 Cockpit Móvel', web_app: { url: urlApp } }]
+    [['🩺 Ambulatório (SOAP)', 'ux:hub:soap'], ['🏥 Enfermaria', 'ux:hub:enf']],
+    [['🚨 Emergência', 'ux:hub:sala'], ['💊 Prescrever', 'ux:hub:rx']],
+    [['📐 Calculadoras', 'ux:hub:calc'], { text: '📱 Cockpit Móvel', web_app: { url: urlApp } }]
   ];
 
   return enviarTelaBot(chat, texto, botoesBot(botoes), messageId);
