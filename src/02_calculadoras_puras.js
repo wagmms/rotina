@@ -338,7 +338,12 @@ var CalculadorasClinicas = (function () {
           ['ENTRADAS', ['Creatinina: ' + fmt(cr, 2) + ' mg/dL', 'Idade: ' + fmt(id, 0) + ' anos', 'Parâmetro sexual: ' + (fem ? 'feminino' : 'masculino')]],
           ['AÇÃO', ['Válida apenas com creatinina estável.', 'Para dose de fármaco, conferir também o clearance (Cockcroft-Gault) e a bula.']]
         ],
-        avisos: ['Em lesão renal aguda, sarcopenia ou dieta atípica a eTFG pode ser imprecisa; considerar cistatina C (KDIGO 2024). Categoria de eTFG isolada não define DRC.'],
+        avisos: (function () {
+          var av = ['Em lesão renal aguda, sarcopenia ou dieta atípica a eTFG pode ser imprecisa; considerar cistatina C (KDIGO 2024). Categoria de eTFG isolada não define DRC.'];
+          if (gt(cr, 15)) av.unshift('🚨 Creatinina extremamente elevada (> 15 mg/dL): Falência renal grave/terminal. As equações perdem acurácia na uremia anúrica; avaliar suporte dialítico urgente.');
+          if (gte(id, 90)) av.push('⚠️ Paciente muito idoso (≥ 90 anos): Sarcopenia fisiológica comum resulta em creatinina sérica reduzida e eTFG superestimada. Considerar dosagem de Cistatina C.');
+          return av;
+        })(),
         dados: { tfg: tfgNum, categoria: g, estagio: g },
         legado: {
           tfg: tfgNum,
@@ -381,6 +386,9 @@ var CalculadorasClinicas = (function () {
       if (fem) cl *= 0.85;
       exigirFinito(cl, pesoUsado);
       if (cl < 0) cl = 0;
+      if (gt(cr, 15)) avisos.unshift('🚨 Creatinina extremamente elevada (> 15 mg/dL): Falência renal terminal com risco iminente de síndrome urêmica.');
+      if (gte(id, 90)) avisos.push('⚠️ Paciente muito idoso (≥ 90 anos): Sarcopenia reduz a produção de creatinina, superestimando o clearance real.');
+      if (gt(peso, 150)) avisos.push('⚠️ Obesidade severa (> 150 kg): O cálculo com peso real superestima o clearance. Recomenda-se utilizar o Peso Ajustado para ajuste posológico.');
       if (gt(cl, 200)) avisos.push('Valor muito alto: conferir peso, idade e creatinina.');
       avisos.push('Fórmula válida só com creatinina estável (não usar em lesão renal aguda). Unidade: mL/min, não mL/min/1,73 m².');
 
@@ -949,6 +957,9 @@ var CalculadorasClinicas = (function () {
       if (pendente(c)) return falhaCtx(ID, NOME, c);
 
       var avisos = [];
+      if (lt(ph, 6.80)) {
+        avisos.push('🚨 ACIDEMIA EXTREMA (pH < 6.80): Limite crítico de viabilidade fisiológica. Risco iminente de PCR por colapso cardiovascular e perda de responsividade a catecolaminas.');
+      }
       var phCalc = 6.1 + Math.log(hco3 / (0.0307 * pco2)) / Math.LN10;
       exigirFinito(phCalc);
       if (Math.abs(phCalc - ph) > 0.1) avisos.push('Inconsistência interna (pH calculado ≈ ' + fmt(phCalc, 2) + '): conferir se a amostra é arterial.');
@@ -1203,6 +1214,7 @@ var CalculadorasClinicas = (function () {
       base.push(textoPreparo);
 
       var avisos = ['Vazões calculadas para a concentração acima. Dupla checagem obrigatória na bomba.'];
+      if (d.peso && gt(peso, 150)) avisos.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo por mcg/kg/min no peso real pode levar a taxas de infusão excessivas. Recomenda-se titular a dose estritamente pela PAM alvo (≥ 65 mmHg) e considerar o Peso Ideal ou Ajustado.');
       if (d.aviso) avisos.unshift(d.aviso);
 
       var taxaFixaVaso = (chave === 'vasopressina' ? 9.0 : null);
@@ -1327,6 +1339,9 @@ var CalculadorasClinicas = (function () {
       }
 
       var recomendacoes = [];
+      if (gt(peso, 150)) {
+        recomendacoes.push('⚠️ PACIENTE COM OBESIDADE GRAVE (> 150 kg): Fentanil, Propofol e Midazolam devem ser dosados pelo Peso Ideal (IBW). Rocurônio pelo Peso Ideal ou Ajustado (máx 150 mg). Succinilcolina pode ser calculada pelo peso real (máx 200 mg).');
+      }
       if (ctxChave === 'choque') {
         recomendacoes.push('🏆 Sedativo: Etomidato ou Quetamina (estabilidade cardiovascular).');
         recomendacoes.push('⚠️ Evite Midazolam e Propofol (risco alto de colapso hemodinâmico e vasodilatação).');

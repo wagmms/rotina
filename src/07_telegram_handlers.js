@@ -725,16 +725,16 @@ function processarMensagemTexto(message) {
     return enviarMenuExamesEspeciais(chatId);
   }
   if (comando === "/ef_neuro" || comando === "/neuro") return responderComGuiaExameFisico(chatId, "neuro");
-  if (comando === "/ef_pqu" || comando === "/pqu" || comando === "/psiq") return responderComGuiaExameFisico(chatId, "pqu");
-  if (comando === "/ef_oftalmo" || comando === "/oftalmo") return responderComGuiaExameFisico(chatId, "oftalmo");
-  if (comando === "/ef_ortopo" || comando === "/ortopo" || comando === "/trauma" || comando === "/reumato") return responderComGuiaExameFisico(chatId, "ortopo");
-  if (comando === "/ef_orl" || comando === "/otorrino" || comando === "/orl") return responderComGuiaExameFisico(chatId, "orl");
-  if (comando === "/ef_dermato" || comando === "/dermato" || comando === "/pele") return responderComGuiaExameFisico(chatId, "dermato");
-  if (comando === "/ef_gineco" || comando === "/gineco" || comando === "/go") return responderComGuiaExameFisico(chatId, "gineco");
-  if (comando === "/ef_procto" || comando === "/procto" || comando === "/uro") return responderComGuiaExameFisico(chatId, "procto");
+  if (comando === "/ef_pqu") return responderComGuiaExameFisico(chatId, "pqu");
+  if (comando === "/ef_oftalmo") return responderComGuiaExameFisico(chatId, "oftalmo");
+  if (comando === "/ef_ortopo" || comando === "/ortopo" || comando === "/reumato") return responderComGuiaExameFisico(chatId, "ortopo");
+  if (comando === "/ef_orl" || comando === "/orl") return responderComGuiaExameFisico(chatId, "orl");
+  if (comando === "/ef_dermato") return responderComGuiaExameFisico(chatId, "dermato");
+  if (comando === "/ef_gineco") return responderComGuiaExameFisico(chatId, "gineco");
+  if (comando === "/ef_procto") return responderComGuiaExameFisico(chatId, "procto");
   if (comando === "/ef_ped" || comando === "/ef_pedia") return responderComGuiaExameFisico(chatId, "ped");
-  if (comando === "/ef_geriatria" || comando === "/geriatria" || comando === "/aga") return responderComGuiaExameFisico(chatId, "geriatria");
-  if (comando === "/ef_vascular" || comando === "/vascular" || comando === "/tvp") return responderComGuiaExameFisico(chatId, "vascular");
+  if (comando === "/ef_geriatria") return responderComGuiaExameFisico(chatId, "geriatria");
+  if (comando === "/ef_vascular") return responderComGuiaExameFisico(chatId, "vascular");
   // ───────────────────────────────────────────────────────────────────────────
   // SAÚDE DO IDOSO E AVALIAÇÃO GERIÁTRICA AMPLA (AGA)
   // ───────────────────────────────────────────────────────────────────────────
@@ -1465,37 +1465,6 @@ function processarMensagemTexto(message) {
     }
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // HEPATOLOGIA & EMERGÊNCIA OBSTÉTRICA: CIG E EHAG / AFLP
-  // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/cig" || comando === "/colestase" || comando === "/ehag" || comando === "/aflp") {
-    var dadosHepato = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof HepatologiaColestaseGestacionalService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo HepatologiaColestaseGestacionalService indisponível temporariamente.");
-    }
-
-    if (!dadosHepato) {
-      return enviarMensagemParaChat(chatId, "🟡 *HEPATOLOGIA & EMERGÊNCIA OBSTÉTRICA*\n\n" +
-        "Envie os parâmetros clínicos para avaliação de CIG ou EHAG:\n" +
-        "• *CIG:* `/cig ABT 45 IG 36+2 peso 70kg`\n" +
-        "• *EHAG (Swansea):* `/ehag vomitos, dor HCD, hipoglicemia, bilirrubina elevada, transaminases elevadas, amonia aumentada`\n\n" +
-        "💡 *Exemplos beira-leito:*\n" +
-        "• `/cig acidos biliares 102 ig 35s antecedente gemelar` *(CIG Grave com indicação de parto)*\n" +
-        "• `/ehag dor epigastrica, vomitos, coagulopatia, transaminases elevadas, hipoglicemia` *(Investigação de AFLP)*");
-    }
-
-    try {
-      var paramsHepato = HepatologiaColestaseGestacionalService.extrairParametrosTexto(texto);
-      if (comando === "/ehag" || comando === "/aflp" || texto.toLowerCase().includes("ehag") || texto.toLowerCase().includes("swansea")) {
-        paramsHepato.modo = "EHAG";
-        if(!paramsHepato.swansea) paramsHepato.swansea = {};
-      }
-      var analiseHepato = HepatologiaColestaseGestacionalService.avaliar(paramsHepato);
-      return enviarMensagemParaChat(chatId, HepatologiaColestaseGestacionalService.formatarTextoTelegram(analiseHepato));
-    } catch (eHepato) {
-      return enviarMensagemParaChat(chatId, "⚠️ Erro na avaliação de Hepatologia Obstétrica: " + eHepato.message);
-    }
-  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // PNEUMOLOGIA & EMERGÊNCIA: MANEJO DA CRISE ASMÁTICA E ESTADO DE MAL ASMÁTICO
@@ -1929,7 +1898,7 @@ function processarMensagemTexto(message) {
 
   // UROLOGIA & NEFROLOGIA: CÓLICA NEFRÉTICA E LITÍASE URINÁRIA
   // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/colica" || comando === "/litiase" || comando === "/pedranorim" || comando === "/calculorenal") {
+  if (comando === "/colica" || comando === "/colicanefretica" || comando === "/litiase" || comando === "/pedranorim" || comando === "/calculorenal") {
     var dadosColica = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof UrologiaColicaNefreticaService === "undefined") {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo UrologiaColicaNefreticaService indisponível temporariamente.");
@@ -1939,7 +1908,7 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, "🪨 *UROLOGIA & NEFROLOGIA — CÓLICA NEFRÉTICA*\n\n" +
         "Envie os dados clínicos para analgesia escalonada, Terapia Expulsiva (MET) e critérios de descompressão cirúrgica:\n" +
         "• *Cálculo:* `7mm`, `distal`, `proximal`\n" +
-        "• *Gravidade:* `rim único`, `anúria`, `sepse`, `dor refratária`\n" +
+        "• *Gravidade:* `rim único`, `anúria`, `sepse`, `febre`, `dor refratária`\n" +
         "• *Paciente:* `clcr 25`, `gestante`\n\n" +
         "*Exemplos:*\n" +
         "• `/colica 6mm distal` *(Terapia Expulsiva e Analgesia)*\n" +
@@ -1953,37 +1922,6 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, UrologiaColicaNefreticaService.formatarTextoTelegram(analiseColica));
     } catch (eColica) {
       return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Cólica Nefrética: " + eColica.message);
-    }
-  }
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // UROLOGIA: CÓLICA NEFRÉTICA E LITÍASE URINÁRIA
-  // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/colica" || comando === "/colicanefretica" || comando === "/litiase") {
-    var dadosUro = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof UrologiaColicaNefreticaService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo UrologiaColicaNefreticaService indisponível temporariamente.");
-    }
-
-    if (!dadosUro) {
-      return enviarMensagemParaChat(chatId, "🪨 *UROLOGIA & NEFROLOGIA — CÓLICA NEFRÉTICA*\n\n" +
-        "Envie os dados clínicos do paciente para avaliação de analgesia, terapia expulsiva e descompressão de urgência:\n" +
-        "• *Função Renal:* `ClCr 25`, `diálise`, `rim único`\n" +
-        "• *Gravidade:* `febre`, `sepse`, `anúria`, `dor refratária`\n" +
-        "• *Cálculo:* `7 mm`, `12 mm`, `ureter distal`, `pelve`\n" +
-        "• *Gestação:* `gestante`\n\n" +
-        "*Exemplos:*\n" +
-        "• `/colica cálculo 6 mm distal sem febre`\n" +
-        "• `/colica rim único febre cálculo 12mm` *(Descompressão de Urgência)*\n" +
-        "• `/colica gestante com dor refratária`");
-    }
-
-    try {
-      var paramsUro = UrologiaColicaNefreticaService.extrairParametrosTexto(dadosUro);
-      var analiseUro = UrologiaColicaNefreticaService.avaliar(paramsUro);
-      return enviarMensagemParaChat(chatId, UrologiaColicaNefreticaService.formatarTextoTelegram(analiseUro));
-    } catch (eUro) {
-      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Cólica Nefrética: " + eUro.message);
     }
   }
   if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
@@ -2805,65 +2743,7 @@ function processarMensagemTexto(message) {
   }
 
   
-  if (comando === "/nutriped") {
-    var dadosNutriped = texto.replace(/^\/nutriped\s*/i, "").trim();
-    if (!dadosNutriped) {
-      return enviarMensagemParaChat(chatId, "🍼 *SUPORTE NUTRICIONAL EM PEDIATRIA*\n\n" +
-        "Envie os parâmetros clínicos (peso, idade, etc.):\n\n" +
-        "💡 *Exemplos de envio:*\n" +
-        "• `/nutriped peso: 5.5` (calcula Holliday-Segar basal)\n" +
-        "• `/nutriped idade: 4, mamada: 120` (calcula preparo de fórmula)\n" +
-        "• `/nutriped peso: 8, tipo: ar` (fórmula Anti-Regurgitação)\n" +
-        "• `/nutriped peso: 3.2, idade: 2, mamada: 90`\n\n" +
-        "O sistema calculará:\n" +
-        "✅ Volume basal (Holliday-Segar)\n" +
-        "✅ Diluição segura da fórmula (1 medida/30 mL)\n" +
-        "✅ Alertas beira-leito.");
-    }
 
-    if (typeof cockpitNutricaoPediatrica === "function") {
-      try {
-        function numNutri(re) {
-          var m = dadosNutriped.match(re);
-          return m ? parseFloat(String(m[1]).replace(",", ".")) : null;
-        }
-        var n_peso = numNutri(/\bpeso\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bp\s*[:=]?\s*(\d+[.,]?\d*)/i);
-        var n_idade = numNutri(/\bidade\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bi\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bmeses\s*[:=]?\s*(\d+[.,]?\d*)/i);
-        var n_mamada = numNutri(/\bmamada\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bvol\w*\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bml\s*[:=]?\s*(\d+[.,]?\d*)/i);
-        var n_num = numNutri(/\bvezes\s*[:=]?\s*(\d+[.,]?\d*)/i);
-        
-        var n_tipo = null;
-        if (/partida/i.test(dadosNutriped)) n_tipo = 'partida';
-        else if (/seguimento/i.test(dadosNutriped)) n_tipo = 'seguimento';
-        else if (/prematuro/i.test(dadosNutriped)) n_tipo = 'prematuro';
-        else if (/\bar\b|anti-?regurgita/i.test(dadosNutriped)) n_tipo = 'anti_regurgitacao';
-        else if (/sem\s*lactose|\bsl\b/i.test(dadosNutriped)) n_tipo = 'sem_lactose';
-        else if (/hidrolisada|ehf/i.test(dadosNutriped)) n_tipo = 'hidrolisada_extensa';
-        else if (/amino|aaf/i.test(dadosNutriped)) n_tipo = 'aminoacidos';
-        else if (/soja/i.test(dadosNutriped)) n_tipo = 'soja';
-
-        var params = {};
-        if (n_peso !== null) params.pesoKg = n_peso;
-        if (n_idade !== null) params.idadeMeses = n_idade;
-        if (n_mamada !== null) params.volumeMamadaMl = n_mamada;
-        if (n_num !== null) params.numeroMamadasDia = n_num;
-        if (n_tipo !== null) params.tipoFormula = n_tipo;
-        
-        if (!params.pesoKg && !params.idadeMeses) {
-             return enviarMensagemParaChat(chatId, "⚠️ *Erro:* Forneça pelo menos o peso ou a idade em meses.");
-        }
-
-        var resposta = cockpitNutricaoPediatrica(contexto.auth, params);
-        if (resposta.sucesso) {
-          return enviarMensagemParaChat(chatId, resposta.textoFormatado);
-        } else {
-          return enviarMensagemParaChat(chatId, "⚠️ " + (resposta.erro || "Erro desconhecido."));
-        }
-      } catch (errNutri) {
-        return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular nutrição: " + errNutri.message);
-      }
-    }
-  }
 
   if (comando === "/choque" || comando === "/forrester" || comando === "/ic") {
     var dadosIC = texto.replace(/^\/(?:choque|forrester|ic)\s*/i, "").trim();
@@ -4023,8 +3903,10 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
 }
 
 function processarCallbackBotao(cb) {
-  if (typeof tratarCallbackUX!=="undefined" && tratarCallbackUX(cb)) return;
-  var data = cb.data || "";
+  if (!cb) return;
+  try {
+    if (typeof tratarCallbackUX!=="undefined" && tratarCallbackUX(cb)) return;
+    var data = cb.data || "";
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 
   // Vincula o registro à data original da mensagem ou usa a data atual se não informada
@@ -4374,6 +4256,16 @@ function processarCallbackBotao(cb) {
   // Z. CATCH-ALL PARA CALLBACKS NÃO RECONHECIDOS
   else {
     responderCallbackTelegram(cb.id, "⚠️ Ação não reconhecida.");
+  }
+  } catch (errCb) {
+    if (typeof console !== "undefined" && console.error) {
+      console.error("[Telegram Callback Error]", errCb);
+    }
+    if (cb && cb.id && typeof responderCallbackTelegram === "function") {
+      try {
+        responderCallbackTelegram(cb.id, "⚠️ Ocorreu um erro ao processar o botão.");
+      } catch (_) {}
+    }
   }
 }
 

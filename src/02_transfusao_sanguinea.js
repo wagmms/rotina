@@ -160,7 +160,10 @@ var TransfusaoSanguineaService = (function() {
     var alertaTaco = null;
     var recomendacaoVelocidade = 'Infundir cada bolsa em 60 a 120 minutos (máximo de 4 horas por bolsa pelo risco de contaminação bacteriana).';
 
-    if (riscoTaco) {
+    if (idade >= 90) {
+      alertaTaco = '🚨 PACIENTE NONAGENÁRIO (≥ 90 ANOS) - RISCO CRÍTICO DE TACO: Sobrecarga circulatória é a principal causa de óbito hemoterápico no paciente muito idoso. Transfundir estritamente UMA unidade por vez em velocidade lenta (3 a 4 horas). Administrar Furosemida 20 a 40 mg IV profilática antes ou entre as bolsas e monitorar ausculta respiratória e oximetria continuamente.';
+      recomendacaoVelocidade = 'Infundir ultralentamente em 3 a 4 horas sob vigilância cardiorrespiratória estrita.';
+    } else if (riscoTaco) {
       alertaTaco = '⚠️ ALTO RISCO DE SOBRECARGA CIRCULATÓRIA (TACO): Idade avançada, cardiopatia ou nefropatia prévia. Infundir em velocidade lenta (3 a 4 horas por unidade). Avaliar Furosemida 20 a 40 mg IV entre as bolsas e monitorar ausculta pulmonar e SpO2.';
       recomendacaoVelocidade = 'Infundir lentamente em 3 a 4 horas sob estrita vigilância de sinais de congestão (estertores, turgência jugular, dispneia).';
     }
@@ -481,14 +484,17 @@ var TransfusaoSanguineaService = (function() {
     var incrementoEsperado = '';
 
     if (indicada) {
-      // 1 unidade convencional a cada 10 kg de peso (ex: 70 kg -> 7 UI)
-      unidadesRandomicas = Math.max(4, Math.round(peso / 10));
+      // 1 unidade convencional a cada 10 kg de peso (ex: 70 kg -> 7 UI, teto seguro de 10 UI no adulto)
+      unidadesRandomicas = Math.min(10, Math.max(4, Math.round(peso / 10)));
       // 1 aférese de doador único equivale a 6-8 unidades randômicas
       aféreseRecomendada = 1;
       incrementoEsperado = 'Elevação esperada de 30.000 a 50.000/mcL após 1 pool de aférese (ou ~5.000 a 8.000/mcL por unidade randômica em adulto de 70 kg).';
     }
 
     var alertas = [];
+    if (peso > 150) {
+      alertas.push('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo de plaquetas randômicas foi limitado ao teto padrão de 10 unidades para prevenir sobrecarga volêmica. Recomenda-se transfundir concentrado de plaquetas por aférese (1 a 2 pools).');
+    }
     if (!indicada && plaquetas !== null) {
       alertas.push('Plaquetas atuais (' + plaquetas.toLocaleString('pt-BR') + '/mcL) estão acima do gatilho recomendado de ' + gatilho.toLocaleString('pt-BR') + '/mcL. Transfusão desnecessária evitada.');
     } else if (indicada) {

@@ -16,26 +16,39 @@ var NefrologiaLRAService = (function() {
      * @returns {Object} Dados do estadiamento KDIGO
      */
     function estadiarKDIGO(cr_basal, cr_atual, debito_urinario, horas_oliguria) {
-        var aumento_cr = cr_atual / cr_basal;
+        var crB = parseFloat(cr_basal);
+        var crA = parseFloat(cr_atual);
+        if (isNaN(crA) || crA < 0) crA = 0;
+        if (isNaN(crB) || crB <= 0) crB = (crA > 0 ? crA : 1.0);
+
+        var aumento_cr = crB > 0 ? (crA / crB) : 1.0;
         var estagio_cr = 0;
         var estagio_du = 0;
+        var alertas = [];
+
+        if (crA > 15) {
+            alertas.push("🚨 ALERTA CRÍTICO: Creatinina sérica extremamente discrepante (> 15 mg/dL: " + crA + " mg/dL). Falência renal terminal com risco altíssimo de complicações urêmicas fatais e necessidade de diálise emergencial imediata.");
+        }
 
         // Estadiamento por Creatinina
-        if (cr_atual >= 4.0 || aumento_cr >= 3.0 || (cr_atual - cr_basal >= 0.3 && cr_atual >= 4.0)) {
+        if (crA >= 4.0 || aumento_cr >= 3.0 || (crA - crB >= 0.3 && crA >= 4.0)) {
             estagio_cr = 3;
         } else if (aumento_cr >= 2.0) {
             estagio_cr = 2;
-        } else if (aumento_cr >= 1.5 || (cr_atual - cr_basal >= 0.3)) {
+        } else if (aumento_cr >= 1.5 || (crA - crB >= 0.3)) {
             estagio_cr = 1;
         }
 
         // Estadiamento por Débito Urinário (DU)
-        if (debito_urinario !== null && horas_oliguria !== null) {
-            if (debito_urinario < 0.3 && horas_oliguria >= 24 || horas_oliguria >= 12 && debito_urinario === 0) {
+        var du = debito_urinario !== null && debito_urinario !== undefined ? parseFloat(debito_urinario) : null;
+        var horas = horas_oliguria !== null && horas_oliguria !== undefined ? parseFloat(horas_oliguria) : null;
+
+        if (du !== null && horas !== null && !isNaN(du) && !isNaN(horas)) {
+            if ((du < 0.3 && horas >= 24) || (horas >= 12 && du === 0)) {
                 estagio_du = 3; // Anúria > 12h ou DU < 0.3 por 24h
-            } else if (debito_urinario < 0.5 && horas_oliguria >= 12) {
+            } else if (du < 0.5 && horas >= 12) {
                 estagio_du = 2;
-            } else if (debito_urinario < 0.5 && horas_oliguria >= 6) {
+            } else if (du < 0.5 && horas >= 6) {
                 estagio_du = 1;
             }
         }
@@ -51,7 +64,8 @@ var NefrologiaLRAService = (function() {
             estagio: estagio_final,
             descricao: descricao,
             estagio_cr: estagio_cr,
-            estagio_du: estagio_du
+            estagio_du: estagio_du,
+            alertas: alertas
         };
     }
 
@@ -60,6 +74,7 @@ var NefrologiaLRAService = (function() {
      * @param {Object} dados - Dados clínicos do paciente
      */
     function avaliarDialiseUrgencia(dados) {
+        dados = dados || {};
         var indicacoes = [];
         var aeiou = {
             acidose: false,
@@ -69,14 +84,30 @@ var NefrologiaLRAService = (function() {
             uremia: false
         };
 
-        if (dados.ph < 7.15 && dados.acidose_refrataria) {
-            indicacoes.push("🅰️ Acidose Metabólica grave refratária ao tratamento clínico (pH < 7.15).");
-            aeiou.acidose = true;
+        var ph = dados.ph !== undefined && dados.ph !== null ? parseFloat(dados.ph) : null;
+        var potassio = dados.potassio !== undefined && dados.potassio !== null ? parseFloat(dados.potassio) : null;
+        var crAtual = dados.cr_atual !== undefined && dados.cr_atual !== null ? parseFloat(dados.cr_atual) : (dados.creatinina ? parseFloat(dados.creatinina) : null);
+
+        // Acidose extrema ou refratária
+        if (ph !== null) {
+            if (ph < 6.80) {
+                indicacoes.push("🅰️ Acidose Metabólica EXTREMA (pH = " + ph + " < 6.80): Limite crítico de viabilidade. Indicação emergencial de hemodiálise.");
+                aeiou.acidose = true;
+            } else if (ph < 7.15 && dados.acidose_refrataria) {
+                indicacoes.push("🅰️ Acidose Metabólica grave refratária ao tratamento clínico (pH < 7.15).");
+                aeiou.acidose = true;
+            }
         }
 
-        if (dados.potassio > 6.5 || (dados.potassio > 6.0 && dados.ecg_alterado)) {
-            indicacoes.push("🇪 Eletrólitos: Hipercalemia grave refratária (K > 6.5) ou sintomática com alterações no ECG.");
-            aeiou.eletrolitos = true;
+        // Eletrólitos (Potássio)
+        if (potassio !== null) {
+            if (potassio > 8.0) {
+                indicacoes.push("🇪 Eletrólitos: Hipercalemia EXTREMA com risco iminente de parada cardíaca (K = " + potassio + " > 8.0 mEq/L). Diálise de urgência imediata e Gluconato de Cálcio.");
+                aeiou.eletrolitos = true;
+            } else if (potassio > 6.5 || (potassio > 6.0 && dados.ecg_alterado)) {
+                indicacoes.push("🇪 Eletrólitos: Hipercalemia grave refratária (K > 6.5) ou sintomática com alterações no ECG.");
+                aeiou.eletrolitos = true;
+            }
         }
 
         if (dados.intoxicacao_dialisavel) {
@@ -89,8 +120,12 @@ var NefrologiaLRAService = (function() {
             aeiou.overload = true;
         }
 
-        if (dados.ureia > 200 || dados.sindrome_uremica) {
-            indicacoes.push("🇺 Uremia Clínica: Pericardite urêmica, encefalopatia urêmica ou sangramento inexplicável.");
+        if ((dados.ureia && dados.ureia > 200) || dados.sindrome_uremica || (crAtual !== null && crAtual > 15)) {
+            var msgUremia = "🇺 Uremia Clínica: Pericardite urêmica, encefalopatia urêmica ou sangramento inexplicável.";
+            if (crAtual !== null && crAtual > 15) {
+                msgUremia += " Creatinina extrema (> 15 mg/dL: " + crAtual + " mg/dL).";
+            }
+            indicacoes.push(msgUremia);
             aeiou.uremia = true;
         }
 

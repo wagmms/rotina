@@ -46,6 +46,14 @@ var PalsPediatriaService = (function() {
     let idadeAnos = params.idadeAnos || 0;
     let corBroselow = params.corBroselow || null;
     
+    if (pesoKg !== undefined && pesoKg !== null) {
+      let pNum = parseFloat(pesoKg);
+      if (isNaN(pNum) || pNum <= 0) {
+        throw new Error("Peso inválido. Deve ser um número positivo maior que zero.");
+      }
+      pesoKg = pNum;
+    }
+
     if (!pesoKg && corBroselow) {
       pesoKg = estimarPesoPorBroselow(corBroselow);
     }
@@ -56,8 +64,8 @@ var PalsPediatriaService = (function() {
       throw new Error("Peso (kg), Idade (anos) ou Cor Broselow obrigatórios para cálculo PALS.");
     }
 
-    // Limitar peso máximo a 50kg para evitar superdosagem pediátrica na fórmula linear.
-    const pesoCalc = Math.min(pesoKg, 50);
+    // Limitar peso mínimo fisiológico (0.3 kg) e máximo a 50kg para fórmulas lineares do PALS
+    const pesoCalc = Math.max(0.3, Math.min(pesoKg, 50));
 
     let alertas = [];
     let medicacoes = [];
@@ -65,11 +73,13 @@ var PalsPediatriaService = (function() {
     let eletricidade = {};
 
     // 1. Choque (Desfibrilação / Cardioversão)
-    eletricidade.desfibrilacaoPrimeiroChoque = `${pesoCalc * 2} J (2 J/kg)`;
-    eletricidade.desfibrilacaoSegundoChoque = `${pesoCalc * 4} J (4 J/kg)`;
+    let desfibrilacao1 = Math.round(pesoCalc * 2 * 10) / 10;
+    let desfibrilacao2 = Math.round(pesoCalc * 4 * 10) / 10;
+    eletricidade.desfibrilacaoPrimeiroChoque = `${desfibrilacao1} J (2 J/kg)`;
+    eletricidade.desfibrilacaoSegundoChoque = `${desfibrilacao2} J (4 J/kg)`;
     eletricidade.desfibrilacaoMaximo = `Até 10 J/kg ou dose máxima de adulto (ex: 200 J bifásico)`;
     eletricidade.cardioversaoPrimeiroChoque = `${(pesoCalc * 0.5).toFixed(1)} a ${pesoCalc * 1} J (0.5 a 1 J/kg)`;
-    eletricidade.cardioversaoSegundoChoque = `${pesoCalc * 2} J (2 J/kg)`;
+    eletricidade.cardioversaoSegundoChoque = `${desfibrilacao1} J (2 J/kg)`;
 
     // 2. Medicações em PCR
     // Adrenalina 0,1 mg/mL (1:10.000) - Dose: 0,01 mg/kg (0,1 mL/kg)
@@ -91,7 +101,7 @@ var PalsPediatriaService = (function() {
     });
 
     // Amiodarona (5 mg/kg, máx 300 mg)
-    let doseAmiodaronaMg = pesoCalc * 5;
+    let doseAmiodaronaMg = Math.round(pesoCalc * 5);
     if (doseAmiodaronaMg > 300) doseAmiodaronaMg = 300;
     medicacoes.push({
       farmaco: "Amiodarona (50 mg/mL)",
@@ -102,7 +112,7 @@ var PalsPediatriaService = (function() {
     });
 
     // Lidocaína 2% (20 mg/mL) - Dose 1 mg/kg
-    let doseLidoMg = pesoCalc * 1;
+    let doseLidoMg = Math.round(pesoCalc * 1 * 10) / 10;
     if (doseLidoMg > 100) doseLidoMg = 100;
     medicacoes.push({
       farmaco: "Lidocaína 2% sem vasoconstritor (20 mg/mL)",
@@ -113,7 +123,7 @@ var PalsPediatriaService = (function() {
     });
 
     // Sulfato de Magnésio (Torsades de Pointes) - 25 a 50 mg/kg (máx 2g)
-    let doseMagMg = pesoCalc * 50;
+    let doseMagMg = Math.round(pesoCalc * 50);
     if (doseMagMg > 2000) doseMagMg = 2000;
     medicacoes.push({
       farmaco: "Sulfato de Magnésio 10%",
@@ -124,19 +134,37 @@ var PalsPediatriaService = (function() {
     });
 
     // 3. Via Aérea (Tubo Endotraqueal)
-    // Fórmula sem cuff: (idade / 4) + 4
-    // Fórmula com cuff: (idade / 4) + 3.5
-    // Para < 1 ano: 3.0 ou 3.5
+    // Para recém-nascidos e lactentes < 1 ano
     let tuboSemCuff = "";
     let tuboComCuff = "";
     let lamina = "";
     let fixacao = "";
 
     if (idadeAnos < 1) {
-       tuboSemCuff = "3.5";
-       tuboComCuff = "3.0";
-       lamina = pesoCalc < 3 ? "Reta 0" : "Reta 1";
-       fixacao = "Profundidade: 9 a 10 cm no lábio";
+       if (pesoCalc < 1.0) {
+         // Prematuro extremo (< 1 kg)
+         tuboSemCuff = "2.5";
+         tuboComCuff = "2.5 (sem cuff preferencial em prematuros)";
+         lamina = "Reta 00 ou 0 (Miller)";
+         fixacao = "Profundidade: ~" + (pesoCalc + 6).toFixed(1) + " cm no lábio [Regra Peso (kg) + 6 cm]";
+         alertas.push("🚨 PREMATURO EXTREMO / NEONATO < 1 KG: Aplicar diretrizes de Reanimação Neonatal (PRN/NRP). Para TET usar 2.5 mm sem cuff e profundidade no lábio fixada em peso (kg) + 6 cm para prevenir intubação seletiva.");
+       } else if (pesoCalc < 2.0) {
+         tuboSemCuff = "3.0";
+         tuboComCuff = "3.0";
+         lamina = "Reta 0";
+         fixacao = "Profundidade: ~" + (pesoCalc + 6).toFixed(1) + " cm no lábio";
+       } else if (pesoCalc < 3.0) {
+         tuboSemCuff = "3.5";
+         tuboComCuff = "3.0";
+         lamina = "Reta 0 ou 1";
+         fixacao = "Profundidade: ~" + (pesoCalc + 6).toFixed(1) + " cm no lábio";
+       } else {
+         // Termo (> 3 kg)
+         tuboSemCuff = "3.5";
+         tuboComCuff = "3.0";
+         lamina = "Reta 1";
+         fixacao = "Profundidade: 9 a 10 cm no lábio";
+       }
     } else {
        let calcSem = (idadeAnos / 4) + 4;
        let calcCom = (idadeAnos / 4) + 3.5;
@@ -156,7 +184,9 @@ var PalsPediatriaService = (function() {
       fixacao: fixacao
     };
 
-    if (pesoCalc >= 30) {
+    if (pesoKg > 50) {
+      alertas.push("⚠️ PACIENTE COM PESO ELEVADO (" + pesoKg + " kg > 50 kg): O protocolo pediátrico PALS limita a dosagem calculada ao teto de 50 kg (doses máximas de adulto atingidas). Seguir diretrizes do ACLS de reanimação de adultos.");
+    } else if (pesoCalc >= 30) {
       alertas.push("Paciente com peso elevado (>= 30 kg): considerar transição cautelosa para doses de adulto (ex: máx de 1 mg adrenalina, 300 mg amiodarona) limitadas ao teto terapêutico.");
     }
     

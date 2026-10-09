@@ -126,13 +126,18 @@ async function buildServer() {
       }
       body = body || {};
 
-      const metodo = body.metodo;
-      const session = body.session || body.token || '';
-      const args = Array.isArray(body.args) ? body.args : [];
+      const metodo = (body && typeof body.metodo === 'string') ? body.metodo.trim() : '';
+      const session = (body && (body.session || body.token)) ? String(body.session || body.token) : '';
+      let args = body && body.args;
+      if (args === undefined || args === null) {
+        args = [];
+      } else if (!Array.isArray(args)) {
+        args = [args];
+      }
 
       if (!metodo) {
         reply.status(400);
-        return { ok: false, erro: 'Parâmetro "metodo" é obrigatório.' };
+        return { ok: false, erro: 'Parâmetro "metodo" deve ser uma string válida.' };
       }
 
       const resultado = runtime.cockpitRpc(metodo, session, args);

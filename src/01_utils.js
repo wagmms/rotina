@@ -376,11 +376,7 @@ function obterUrlCockpit(chatId) {
   var id = chatId ? String(chatId) : ((typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_CHAT_ID") : "");
   var sessao = "";
   if (id && typeof criarSessaoCockpit_ === "function") {
-    try {
-      sessao = criarSessaoCockpit_(id);
-    } catch (eSessao) {
-      sessao = "";
-    }
+    sessao = criarSessaoCockpit_(id);
   }
   var v = (typeof ConfigService !== "undefined" && ConfigService.get && ConfigService.get("COCKPIT_VERSION")) ? ConfigService.get("COCKPIT_VERSION") : "2.5";
   return sessao ? base + "?session=" + sessao + "&v=" + v : base + "?v=" + v;

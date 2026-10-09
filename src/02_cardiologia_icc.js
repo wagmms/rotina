@@ -180,11 +180,22 @@ var CardiologiaICCService = (function() {
 
         // Alertas individualizados baseados em biomarcadores
         rel.alertas_clinicos = [];
-        if (params.k !== undefined && params.k > 5.0) {
-            rel.alertas_clinicos.push("🛑 Hipercalemia (K+ = " + params.k + " mEq/L): Contraindicação a início/titulação de Espironolactona (ARM) e cautela com ARNI/iECA/BRA.");
+        if (params.k !== undefined) {
+            if (params.k > 8.0) {
+                rel.alertas_clinicos.push("🚨 HIPERCALEMIA EXTREMA (K+ = " + params.k + " mEq/L): SUSPENSÃO IMEDIATA de ARM (Espironolactona), ARNI, iECA e BRA. Risco iminente de assistolia/FV e parada cardíaca. Cardioproteção imediata com Gluconato de Cálcio 10% IV e hemodiálise de urgência.");
+            } else if (params.k > 5.0) {
+                rel.alertas_clinicos.push("🛑 Hipercalemia (K+ = " + params.k + " mEq/L): Contraindicação a início/titulação de Espironolactona (ARM) e cautela com ARNI/iECA/BRA.");
+            }
         }
-        if (params.clcr !== undefined && params.clcr < 30) {
-            rel.alertas_clinicos.push("⚠️ Disfunção Renal Grave (ClCr/TFG = " + params.clcr + " mL/min): Espironolactona não recomendada se TFG < 30. Ajustar doses de iECA/BRA.");
+        if (params.clcr !== undefined) {
+            if (params.clcr < 15) {
+                rel.alertas_clinicos.push("🚨 Falência Renal Terminal (ClCr = " + params.clcr + " mL/min): Espironolactona e iSGLT2 contraindicados. Avaliar indicação de diálise e suspender nefrotóxicos.");
+            } else if (params.clcr < 30) {
+                rel.alertas_clinicos.push("⚠️ Disfunção Renal Grave (ClCr/TFG = " + params.clcr + " mL/min): Espironolactona não recomendada se TFG < 30. Ajustar doses de iECA/BRA.");
+            }
+        }
+        if (params.cr !== undefined && params.cr > 15) {
+            rel.alertas_clinicos.push("🚨 Creatinina Extrema (> 15 mg/dL: " + params.cr + " mg/dL): Falência renal grave/terminal associada.");
         }
         if (params.semWashout || (params.ieca && !params.washout36h && params.substituicaoArni)) {
             rel.alertas_clinicos.push("🛑 BLOQUEIO CRÍTICO DE ARNI: Necessário intervalo de washout mínimo de 36 horas após última dose de iECA antes de iniciar Sacubitril/Valsartana para prevenir ANGIOEDEMA GRAVE potencialmente fatal.");

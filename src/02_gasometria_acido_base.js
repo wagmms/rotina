@@ -751,6 +751,12 @@ var GasometriaAcidoBaseService = (function () {
     // Condutas sugeridas
     var condutas = sugerirCondutas(disturbio, agResult, oxigenacao);
 
+    // Alertas de extremos fisiológicos (pH < 6.80)
+    if (lt(ph, 6.80)) {
+      avisos.unshift('🚨 ACIDEMIA EXTREMA (pH < 6.80): Limite crítico de viabilidade fisiológica. Colapso cardiovascular iminente, perda do inotropismo cardíaco e vasoplegia refratária a catecolaminas. Risco iminente de PCR. Priorizar ressuscitação ventilatória agressiva e medidas imediatas de suporte.');
+      condutas.unshift('Acidemia extrema (pH < 6.80): Monitorização invasiva contínua em UTI, suporte hemodinâmico avançado e consideração de bicarbonato de sódio IV de resgate.');
+    }
+
     // Alertas extras com dados complementares
     if (lactato !== null) {
       if (gt(lactato, 4.0)) {
@@ -764,6 +770,9 @@ var GasometriaAcidoBaseService = (function () {
     if (potassio !== null) {
       if (lt(potassio, 3.0)) {
         avisos.push('⚠️ Hipocalemia (K⁺ < 3,0): corrigir ANTES de administrar NaHCO₃ (risco de arritmia fatal por shift intracelular).');
+      } else if (gt(potassio, 8.0)) {
+        avisos.push('🚨 HIPERCALEMIA EXTREMA (K⁺ > 8,0 mEq/L): Risco iminente de parada cardíaca em assistolia/FV. Gluconato de Cálcio 10% IV IMEDIATO para estabilização de membrana miocárdica e acionamento urgente de hemodiálise de emergência.');
+        condutas.push('K⁺ > 8,0 mEq/L: Gluconato de Cálcio 10% 20 mL IV em 3 min imediatamente; solução polarizante e preparo de hemodiálise.');
       } else if (gt(potassio, 6.0)) {
         avisos.push('⚠️ Hipercalemia grave (K⁺ > 6,0): ECG urgente, Gluconato de Ca²⁺ IV, insulina+glicose, nebulização com salbutamol.');
       }

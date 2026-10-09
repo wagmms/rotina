@@ -100,39 +100,45 @@ var ToxicologiaEmergenciaService = (function() {
 
     var prescricaoNac = null;
     if (indicacaoNac) {
+      var pesoNac = Math.min(pesoKg, 100);
+      if (pesoKg > 100) {
+        motivoIndicacao.push('⚠️ TETO DE SEGURANÇA DE PESO (100 kg): Em pacientes com peso > 100 kg (peso real: ' + pesoKg + ' kg), as doses de N-acetilcisteína (NAC) são limitadas ao peso teto de 100 kg (máximo de 15.000 mg no ataque, 5.000 mg na 2ª etapa e 10.000 mg na 3ª etapa) para prevenir reações anafilactoides graves e sobrecarga de fluidos.');
+      }
+
       if (via === 'VO') {
         prescricaoNac = {
           esquema: 'Esquema de 72 horas (VO)',
           doseAtaque: {
-            descricao: '140 mg/kg VO/SNE dose única',
-            doseMg: Math.round(pesoKg * 140)
+            descricao: '140 mg/kg VO/SNE dose única (teto 100 kg)',
+            doseMg: Math.round(pesoNac * 140)
           },
           doseManutencao: {
-            descricao: '70 mg/kg VO/SNE a cada 4 horas por 17 doses (iniciar 4h após ataque)',
-            doseMg: Math.round(pesoKg * 70),
+            descricao: '70 mg/kg VO/SNE a cada 4 horas por 17 doses (iniciar 4h após ataque, teto 100 kg)',
+            doseMg: Math.round(pesoNac * 70),
             repeticoes: 17
           },
-          observacao: 'A via VO é frequentemente associada a vômitos. Antiéticos (ex: Ondansetrona) podem ser necessários. Em caso de êmese em < 1h da dose, repetir a administração.'
+          observacao: 'A via VO é frequentemente associada a vômitos. Antieméticos (ex: Ondansetrona) podem ser necessários. Em caso de êmese em < 1h da dose, repetir a administração.'
         };
       } else {
         // IV - Protocolo de 21 horas
         prescricaoNac = {
           esquema: 'Protocolo Padrão de 21 horas (IV)',
+          pesoConsideradoKg: pesoNac,
           etapa1: {
-            descricao: '150 mg/kg IV em 1 hora',
-            doseMg: Math.round(pesoKg * 150),
-            diluicao: pesoKg > 40 ? 'Diluir em 200 mL de SG 5%' : 'Diluir em 3 mL/kg de SG 5%',
+            descricao: '150 mg/kg IV em 1 hora (máx 15.000 mg)',
+            doseMg: Math.round(pesoNac * 150),
+            diluicao: pesoNac > 40 ? 'Diluir em 200 mL de SG 5%' : 'Diluir em 3 mL/kg de SG 5%',
             alerta: 'Infusão rápida pode causar reação anafilactoide. Se ocorrer rash/rubor, pausar, administrar anti-histamínico e reiniciar mais lento.'
           },
           etapa2: {
-            descricao: '50 mg/kg IV em 4 horas',
-            doseMg: Math.round(pesoKg * 50),
-            diluicao: pesoKg > 40 ? 'Diluir em 500 mL de SG 5%' : 'Diluir em 7 mL/kg de SG 5%'
+            descricao: '50 mg/kg IV em 4 horas (máx 5.000 mg)',
+            doseMg: Math.round(pesoNac * 50),
+            diluicao: pesoNac > 40 ? 'Diluir em 500 mL de SG 5%' : 'Diluir em 7 mL/kg de SG 5%'
           },
           etapa3: {
-            descricao: '100 mg/kg IV em 16 horas',
-            doseMg: Math.round(pesoKg * 100),
-            diluicao: pesoKg > 40 ? 'Diluir em 1000 mL de SG 5%' : 'Diluir em 14 mL/kg de SG 5%'
+            descricao: '100 mg/kg IV em 16 horas (máx 10.000 mg)',
+            doseMg: Math.round(pesoNac * 100),
+            diluicao: pesoNac > 40 ? 'Diluir em 1000 mL de SG 5%' : 'Diluir em 14 mL/kg de SG 5%'
           },
           criteriosFim: 'Ao final de 21h, dosar transaminases e Paracetamol sérico. Se Paracetamol detectável ou TGP muito elevada, manter infusão da Etapa 3.'
         };

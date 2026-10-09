@@ -981,7 +981,9 @@ var HematologiaAnemiasService = (function () {
     };
 
     var peso = parseFloat(p.pesoKg || p.peso);
+    if (isNaN(peso) || peso <= 0) peso = 70;
     var atual = parseFloat(p.hbAtual || p.hb);
+    if (isNaN(atual) || atual < 0) atual = 10;
     var alvo = parseFloat(p.hbAlvo);
     if (isNaN(alvo) || alvo <= 0) alvo = (p.gestante || p.sexo === 'F') ? 14.0 : 15.0;
 
@@ -1000,6 +1002,12 @@ var HematologiaAnemiasService = (function () {
     var aptoParaFerroEv = true;
     var bloqueios = [];
 
+    if (peso < 1.0) {
+      bloqueios.push('⚠️ PREMATURO EXTREMO (< 1 kg): O ferro intravenoso é desaconselhado. Seguir protocolo de profilaxia enteral da UTI Neonatal (SBP 2024: 3-4 mg/kg/dia a partir do 15º-30º dia).');
+    }
+    if (peso > 150) {
+      bloqueios.push('⚠️ OBESIDADE SEVERA (> 150 kg): A fórmula de Ganzoni calculada pelo peso real superestima o déficit corporal de ferro pelo excesso de adiposidade. Recomenda-se utilizar o Peso Ajustado ou limite teto para prevenir toxicidade.');
+    }
     if (p.gestante && (p.trimestre === 1 || p.primeiroTrimestre)) {
       aptoParaFerroEv = false;
       bloqueios.push('Primeiro trimestre de gestação: contraindicação formal a ferro IV.');

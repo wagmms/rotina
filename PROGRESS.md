@@ -22,14 +22,15 @@
     - Restaurado comportamento padrão ergonômico do Telegram: botões recolhidos em ícone discreto na caixa de texto, abrindo apenas sob demanda e liberando a tela do smartphone.
 
 0C. [x] **Auditoria Defensiva e Tratamento de Exceções no Telegram e Fastify RPC**:
-    - Varredura de todos os 238 comandos em `src/07_telegram_handlers.js`: eliminação de bloco duplicado/quebrado de `/icc` com ReferenceError em variável inexistente `payload` e chamada a função inexistente `enviarMensagem_`.
-    - Harmonização e exportação de `CardiologiaICCService` e `CardiologiaIcCronicaService` com métodos determinísticos `extrairParametrosTexto`, `avaliar` e `formatarTextoTelegram`.
-    - Resolução de exceções não tratadas em `/pals` (adicionado `try/catch` defensivo para parâmetros inválidos) e `/task` / `/tarefa` (remoção de `throw new Error("FALHA_NOTION_CRIAR_TAREFA")`, substituído por resposta amigável informativa).
-    - Envolvimento global do despachante `processarMensagemTexto` em `try/catch` defensivo com resposta amigável ao usuário caso qualquer exceção imprevista ocorra.
-    - Proteção em `obterUrlCockpit` com `try/catch` ao gerar token com `criarSessaoCockpit_`, evitando crash para usuários desconhecidos.
+    - Varredura de todos os 238 comandos em `src/07_telegram_handlers.js`: eliminação de conflitos de comandos onde `/oftalmo` era interceptado por `/ef_oftalmo` e `/aga` por `/ef_geriatria`, restaurando o acesso direto aos módulos clínicos avançados.
+    - Eliminação de bloco duplicado/conflitante de CIG/EHAG, centralizando o fluxo no módulo completo `HepatologiaColestaseGestacionalService`.
+    - Unificação do handler de Cólica Nefrética e Litíase Urinária com todos os seus aliases (`/colica`, `/colicanefretica`, `/litiase`, `/pedranorim`, `/calculorenal`).
+    - Eliminação de bloco obsoleto e quebrado de `/nutriped` com variável indefinida `contexto.auth`, garantindo que todas as chamadas passem pelo módulo `SuporteNutricionalPediatricoService`.
+    - Blindagem de `processarCallbackBotao` com `try/catch` defensivo e resposta segura via `responderCallbackTelegram`, eliminando botões travados no cliente Telegram.
+    - Envolvimento global do despachante `processarMensagemTexto` em `try/catch` defensivo com resposta amigável informativa ao usuário caso qualquer exceção imprevista ocorra.
     - Suporte a chamadas internas `'bot'` / `'internal'` em `cockpitAutorizar_` em `src/13_cockpit_integracao.js`.
-    - Blindagem de todas as rotas e aliases RPC Fastify (`cockpitEndocrinologiaHiperprolactinemia`, `cockpitCardiologiaIcc`, etc.) contra argumentos vazios, nulos ou corrompidos, eliminando 100% dos TypeErrors de runtime.
-    - Criação de suíte de teste de segurança automatizada `tests/test_auditoria_seguranca_rpc_telegram.cjs` com 100% de aprovação.
+    - Blindagem e auto-normalização da rota `/api/cockpit` em `server/index.js` e `server/runtime.js` para `body.args` e `metodo`, garantindo imunidade a crashes por payloads vazios, nulos ou malformados.
+    - Criação e aprovação da suíte de teste de segurança automatizada `tests/test_defensivo_telegram_rpc.cjs` e `tests/test_defensivo_telegram_rpc.py` (210 testes de comandos Telegram + 70 testes de métodos RPC do Cockpit) e inclusão de testes de resiliência no `tests/test_server_render.cjs`. Cobertura de testes 100% aprovada (191 testes pytest + npm test).
 
 0D. [ ] **Varredura de Casos Extremos (Edge Cases) em Prescrições e Calculadoras Clínicas**:
     - Auditar todas as calculadoras e serviços em `src/` para pesos extremos (neonatos < 1kg, obesidade > 150kg), idades avançadas (> 90 anos), valores laboratoriais discrepantes (Cr > 15, K > 8.0, pH < 6.8).
@@ -1345,5 +1346,21 @@
     - Reconhecimento determinístico beira-leito dos sinais clássicos: Tríade de Beck (hipotensão, hipofonese de bulhas e turgência jugular patológica) e Pulso Paradoxal (queda da PAS > 10 mmHg na inspiração).
     - Conduta de ressuscitação inicial volêmica dirigida (expansão com cristaloide para manter pré-carga ventricular direita enquanto prepara intervenção).
     - Guia prático de pericardiocentese de emergência (abordagem subxifoide a 45 graus direcionada ao ombro esquerdo) e contraindicação absoluta de ventilação mecânica com pressão positiva agressiva pré-drenagem (risco de colapso circulatório imediato).
+
+165. [ ] **Endocrinologia & Terapia Intensiva - Manejo da Crise Adrenocortical Aguda (Insuficiência Adrenal Aguda e Doença de Addison Descompensada)**:
+    - Reconhecimento determinístico beira-leito de choque refratário a vasopressores associado a hiponatremia, hipercalemia e hipoglicemia.
+    - Protocolo de reposição imediata de Hidrocortisona (100 mg IV em bolus seguido de 200 mg/24h contínua ou 50 mg IV 6/6h) antes mesmo do resultado de cortisol sérico em pacientes instáveis.
+    - Ressuscitação volêmica vigorosa com SF 0,9% associado a glicose 5-10% e contraindicação formal de reposição de mineralocorticoide (Fludrocortisona) na fase aguda (a dose suprafisiológica de hidrocortisona já fornece atividade mineralocorticoide plena).
+
+166. [ ] **Gastroenterologia & Emergência - Manejo de Diarreia Aguda Severa, Colite Pseudomembranosa por Clostridioides difficile e Desidratação Grave (Diretrizes ACG / IDSA / Ministério da Saúde)**:
+    - Estratificação de gravidade (não grave vs grave [leucócitos >= 15.000 ou creatinina >= 1.5] vs fulminante [hipotensão, choque, íleo, megacólon]).
+    - Protocolo de tratamento direcionado de 1ª linha: Vancomicina oral (125 mg VO 6/6h) ou Fidaxomicina oral vs Metronidazol (somente quando indisponibilidade de vancomicina oral na forma não grave); na forma fulminante: Vancomicina 500 mg VO/SNE 6/6h associada a Metronidazol 500 mg IV 8/8h.
+    - Bloqueio estrito de segurança: contraindicação formal absoluta de agentes antimotilidade (Loperamida, Difenoxilato) pelo alto risco de precipitação de megacólon tóxico e perfuração intestinal.
+
+167. [ ] **Toxicologia & Emergência - Manejo de Intoxicação Aguda por Monóxido de Carbono (CO) e Cianeto em Vítimas de Incêndio**:
+    - Monitoramento de carboxihemoglobina (COHb) e reconhecimento de oximetria de pulso convencional falsamente normal (leitura errônea de COHb como oxi-Hb).
+    - Protocolo imediato de oxigenoterapia a 100% sob máscara com reservatório não reinalante (redução da meia-vida de CO de 300 para 60-90 minutos) e indicações determinísticas de Oxigenoterapia Hiperbárica (COHb > 25%, gestante com COHb > 15%, síncope ou alteração neurológica persistente).
+    - Tratamento empírico concomitante de intoxicação por cianeto em fumaça de incêndio com acidose lática grave inexplicada (> 8-10 mmol/L): antídoto de primeira linha Hidroxocobalamina 5g IV em 15 min.
+
 
 

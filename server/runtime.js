@@ -882,7 +882,8 @@ module.exports = {
       if (typeof fn !== 'function') {
         throw new Error(`Método do Cockpit não suportado: ${metodo}`);
       }
-      return fn.apply(null, [session].concat(args));
+      const safeArgs = Array.isArray(args) ? args : (args !== undefined && args !== null ? [args] : []);
+      return fn.apply(null, [session].concat(safeArgs));
     };
   })()
 };

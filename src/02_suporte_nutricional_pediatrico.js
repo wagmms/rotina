@@ -200,6 +200,12 @@ var SuporteNutricionalPediatricoService = (function () {
     var tigSg10 = arred((10 * vazaoAjustadaMlH) / (p * 6), 2);
 
     var alertas = [];
+    if (p < 1.0) {
+      alertas.push('⚠️ RECÉM-NASCIDO DE EXTREMO BAIXO PESO (< 1 kg): A fórmula de Holliday-Segar tradicional foi concebida para crianças > 1 mês. Em prematuros extremos (< 1 kg), o balanço hídrico diário deve ser rigorosamente individualizado pela neonatologia devido às perdas insensíveis aumentadas e risco de persistência do canal arterial.');
+    }
+    if (p > 150) {
+      alertas.push('⚠️ OBESIDADE SEVERA (> 150 kg): O volume hídrico basal calculado não deve ser expandido linearmente pelo peso total. Recomenda-se fixar o teto adulto de 2.000 a 2.500 mL/dia para prevenir sobrecarga cardiopulmonar.');
+    }
     if (alertaTetoAdulto) {
       alertas.push('⚠️ ATENÇÃO AO TETO HÍDRICO: O volume calculado (' + volBasal + ' mL) ultrapassa o limite adulto padrão (2.500 mL/dia). Avaliar prescrição de manutenção baseada em adulto.');
     }

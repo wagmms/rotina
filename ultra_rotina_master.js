@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 08:34:39
- * Checksum SHA256: 5db450909533f31c
+ * Gerado automaticamente via build_master.py em: 2026-10-09 08:50:03
+ * Checksum SHA256: cb303d7c00c1904c
  * ==============================================================================
  */
 
@@ -502,11 +502,7 @@ function obterUrlCockpit(chatId) {
   var id = chatId ? String(chatId) : ((typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_CHAT_ID") : "");
   var sessao = "";
   if (id && typeof criarSessaoCockpit_ === "function") {
-    try {
-      sessao = criarSessaoCockpit_(id);
-    } catch (eSessao) {
-      sessao = "";
-    }
+    sessao = criarSessaoCockpit_(id);
   }
   var v = (typeof ConfigService !== "undefined" && ConfigService.get && ConfigService.get("COCKPIT_VERSION")) ? ConfigService.get("COCKPIT_VERSION") : "2.5";
   return sessao ? base + "?session=" + sessao + "&v=" + v : base + "?v=" + v;
@@ -1033,9 +1029,10 @@ var AnalgesiaPcaService = (function() {
 
     function calcularPca(params) {
         var farmaco = params.farmaco ? params.farmaco.toLowerCase() : '';
-        var idade = params.idade || 40;
-        var pesoKg = params.pesoKg || 70;
-        var isIdoso = idade >= 65;
+        var idadeNum = parseFloat(idade) || 40;
+        var pesoNum = parseFloat(pesoKg) || 70;
+        var isIdoso = idadeNum >= 65;
+        var isMuitoIdoso = idadeNum >= 90;
         var opioideTolerante = params.opioideTolerante || false;
 
         if (farmaco !== 'morfina' && farmaco !== 'fentanil') {
@@ -1049,24 +1046,29 @@ var AnalgesiaPcaService = (function() {
             prescricao.farmaco = 'Morfina';
             prescricao.concentracaoSugerida = '1 mg/mL';
             
-            // Doses basais frequentemente evitadas em pacientes naive
-            prescricao.doseBasalSugerida = opioideTolerante ? (isIdoso ? '0.5 mg/h' : '1 a 2 mg/h') : '0 mg/h (Não recomendada para pacientes opioid-naive)';
+            // Doses basais frequentemente evitadas em pacientes naive e nonagenários
+            if (isMuitoIdoso) {
+                prescricao.doseBasalSugerida = '0 mg/h (CONTRAINDICADA em ≥ 90 anos pelo alto risco de acúmulo e apneia)';
+            } else {
+                prescricao.doseBasalSugerida = opioideTolerante ? (isIdoso ? '0.5 mg/h' : '1 a 2 mg/h') : '0 mg/h (Não recomendada para pacientes opioid-naive)';
+            }
             
             // Bolus
-            var bolusMin = isIdoso ? 0.5 : 1.0;
-            var bolusMax = isIdoso ? 1.0 : 2.0;
-            if (opioideTolerante) {
+            var bolusMin = isMuitoIdoso ? 0.5 : (isIdoso ? 0.5 : 1.0);
+            var bolusMax = isMuitoIdoso ? 0.5 : (isIdoso ? 1.0 : 2.0);
+            if (opioideTolerante && !isMuitoIdoso) {
                 bolusMin += 0.5;
                 bolusMax += 1.0;
             }
             prescricao.bolusSugerido = bolusMin + ' a ' + bolusMax + ' mg';
             
             // Lockout
-            prescricao.lockoutSugerido = isIdoso ? '8 a 10 minutos' : '6 a 8 minutos';
+            prescricao.lockoutSugerido = isMuitoIdoso ? '10 a 15 minutos' : (isIdoso ? '8 a 10 minutos' : '6 a 8 minutos');
             
             // Limite de 4 horas
             var limite4h = (bolusMax * (60 / 6) * 4) * 0.5; // Estimativa segura (~50% do total teórico)
-            if (limite4h > 30 && !opioideTolerante) limite4h = 30; // Teto segurança naive
+            if (isMuitoIdoso && limite4h > 15) limite4h = 15;
+            else if (limite4h > 30 && !opioideTolerante) limite4h = 30; // Teto segurança naive
             prescricao.limite4hSugerido = limite4h + ' mg';
 
         } else if (farmaco === 'fentanil') {
@@ -1074,21 +1076,26 @@ var AnalgesiaPcaService = (function() {
             prescricao.farmaco = 'Fentanil';
             prescricao.concentracaoSugerida = '10 a 20 mcg/mL';
             
-            prescricao.doseBasalSugerida = opioideTolerante ? (isIdoso ? '10 mcg/h' : '20 mcg/h') : '0 mcg/h (Não recomendada para pacientes opioid-naive)';
+            if (isMuitoIdoso) {
+                prescricao.doseBasalSugerida = '0 mcg/h (CONTRAINDICADA em ≥ 90 anos)';
+            } else {
+                prescricao.doseBasalSugerida = opioideTolerante ? (isIdoso ? '10 mcg/h' : '20 mcg/h') : '0 mcg/h (Não recomendada para pacientes opioid-naive)';
+            }
             
-            var bolusFentMin = isIdoso ? 10 : 20;
-            var bolusFentMax = isIdoso ? 20 : 40;
-            if (opioideTolerante) {
+            var bolusFentMin = isMuitoIdoso ? 10 : (isIdoso ? 10 : 20);
+            var bolusFentMax = isMuitoIdoso ? 15 : (isIdoso ? 20 : 40);
+            if (opioideTolerante && !isMuitoIdoso) {
                 bolusFentMin += 10;
                 bolusFentMax += 20;
             }
             prescricao.bolusSugerido = bolusFentMin + ' a ' + bolusFentMax + ' mcg';
             
-            prescricao.lockoutSugerido = isIdoso ? '6 a 8 minutos' : '5 a 6 minutos';
+            prescricao.lockoutSugerido = isMuitoIdoso ? '8 a 10 minutos' : (isIdoso ? '6 a 8 minutos' : '5 a 6 minutos');
             
             // Limite de 4 horas
             var limite4hFent = (bolusFentMax * (60 / 5) * 4) * 0.5;
-            if (limite4hFent > 300 && !opioideTolerante) limite4hFent = 300;
+            if (isMuitoIdoso && limite4hFent > 150) limite4hFent = 150;
+            else if (limite4hFent > 300 && !opioideTolerante) limite4hFent = 300;
             prescricao.limite4hSugerido = limite4hFent + ' mcg';
         }
 
@@ -1098,6 +1105,9 @@ var AnalgesiaPcaService = (function() {
             "Manter Naloxona (0.4 mg/mL) disponível beira-leito para emergências respiratórias.",
             "Desencorajada a prescrição simultânea de sedativos ou hipnóticos (ex: Benzodiazepínicos)."
         ];
+        if (isMuitoIdoso) {
+            prescricao.alertasSeguranca.unshift("⚠️ PACIENTE MUITO IDOSO (≥ 90 ANOS): Risco altíssimo de depressão respiratória central e sedação excessiva por depuração renal/hepática reduzida. Na escolha entre opioides, Fentanil é preferível à Morfina para evitar acúmulo de metabólitos neurotóxicos (M6G/M3G). Titulação em doses mínimas com oximetria e FR contínuas.");
+        }
         if (!opioideTolerante) {
             prescricao.alertasSeguranca.push("Paciente opioid-naïve: O uso de dose basal por infusão contínua aumenta significativamente o risco de depressão respiratória grave sem melhorar substancialmente a analgesia, sendo fortemente desaconselhado.");
         }
@@ -3435,7 +3445,12 @@ var CalculadorasClinicas = (function () {
           ['ENTRADAS', ['Creatinina: ' + fmt(cr, 2) + ' mg/dL', 'Idade: ' + fmt(id, 0) + ' anos', 'Parâmetro sexual: ' + (fem ? 'feminino' : 'masculino')]],
           ['AÇÃO', ['Válida apenas com creatinina estável.', 'Para dose de fármaco, conferir também o clearance (Cockcroft-Gault) e a bula.']]
         ],
-        avisos: ['Em lesão renal aguda, sarcopenia ou dieta atípica a eTFG pode ser imprecisa; considerar cistatina C (KDIGO 2024). Categoria de eTFG isolada não define DRC.'],
+        avisos: (function () {
+          var av = ['Em lesão renal aguda, sarcopenia ou dieta atípica a eTFG pode ser imprecisa; considerar cistatina C (KDIGO 2024). Categoria de eTFG isolada não define DRC.'];
+          if (gt(cr, 15)) av.unshift('🚨 Creatinina extremamente elevada (> 15 mg/dL): Falência renal grave/terminal. As equações perdem acurácia na uremia anúrica; avaliar suporte dialítico urgente.');
+          if (gte(id, 90)) av.push('⚠️ Paciente muito idoso (≥ 90 anos): Sarcopenia fisiológica comum resulta em creatinina sérica reduzida e eTFG superestimada. Considerar dosagem de Cistatina C.');
+          return av;
+        })(),
         dados: { tfg: tfgNum, categoria: g, estagio: g },
         legado: {
           tfg: tfgNum,
@@ -3478,6 +3493,9 @@ var CalculadorasClinicas = (function () {
       if (fem) cl *= 0.85;
       exigirFinito(cl, pesoUsado);
       if (cl < 0) cl = 0;
+      if (gt(cr, 15)) avisos.unshift('🚨 Creatinina extremamente elevada (> 15 mg/dL): Falência renal terminal com risco iminente de síndrome urêmica.');
+      if (gte(id, 90)) avisos.push('⚠️ Paciente muito idoso (≥ 90 anos): Sarcopenia reduz a produção de creatinina, superestimando o clearance real.');
+      if (gt(peso, 150)) avisos.push('⚠️ Obesidade severa (> 150 kg): O cálculo com peso real superestima o clearance. Recomenda-se utilizar o Peso Ajustado para ajuste posológico.');
       if (gt(cl, 200)) avisos.push('Valor muito alto: conferir peso, idade e creatinina.');
       avisos.push('Fórmula válida só com creatinina estável (não usar em lesão renal aguda). Unidade: mL/min, não mL/min/1,73 m².');
 
@@ -4046,6 +4064,9 @@ var CalculadorasClinicas = (function () {
       if (pendente(c)) return falhaCtx(ID, NOME, c);
 
       var avisos = [];
+      if (lt(ph, 6.80)) {
+        avisos.push('🚨 ACIDEMIA EXTREMA (pH < 6.80): Limite crítico de viabilidade fisiológica. Risco iminente de PCR por colapso cardiovascular e perda de responsividade a catecolaminas.');
+      }
       var phCalc = 6.1 + Math.log(hco3 / (0.0307 * pco2)) / Math.LN10;
       exigirFinito(phCalc);
       if (Math.abs(phCalc - ph) > 0.1) avisos.push('Inconsistência interna (pH calculado ≈ ' + fmt(phCalc, 2) + '): conferir se a amostra é arterial.');
@@ -6743,11 +6764,22 @@ var CardiologiaICCService = (function() {
 
         // Alertas individualizados baseados em biomarcadores
         rel.alertas_clinicos = [];
-        if (params.k !== undefined && params.k > 5.0) {
-            rel.alertas_clinicos.push("🛑 Hipercalemia (K+ = " + params.k + " mEq/L): Contraindicação a início/titulação de Espironolactona (ARM) e cautela com ARNI/iECA/BRA.");
+        if (params.k !== undefined) {
+            if (params.k > 8.0) {
+                rel.alertas_clinicos.push("🚨 HIPERCALEMIA EXTREMA (K+ = " + params.k + " mEq/L): SUSPENSÃO IMEDIATA de ARM (Espironolactona), ARNI, iECA e BRA. Risco iminente de assistolia/FV e parada cardíaca. Cardioproteção imediata com Gluconato de Cálcio 10% IV e hemodiálise de urgência.");
+            } else if (params.k > 5.0) {
+                rel.alertas_clinicos.push("🛑 Hipercalemia (K+ = " + params.k + " mEq/L): Contraindicação a início/titulação de Espironolactona (ARM) e cautela com ARNI/iECA/BRA.");
+            }
         }
-        if (params.clcr !== undefined && params.clcr < 30) {
-            rel.alertas_clinicos.push("⚠️ Disfunção Renal Grave (ClCr/TFG = " + params.clcr + " mL/min): Espironolactona não recomendada se TFG < 30. Ajustar doses de iECA/BRA.");
+        if (params.clcr !== undefined) {
+            if (params.clcr < 15) {
+                rel.alertas_clinicos.push("🚨 Falência Renal Terminal (ClCr = " + params.clcr + " mL/min): Espironolactona e iSGLT2 contraindicados. Avaliar indicação de diálise e suspender nefrotóxicos.");
+            } else if (params.clcr < 30) {
+                rel.alertas_clinicos.push("⚠️ Disfunção Renal Grave (ClCr/TFG = " + params.clcr + " mL/min): Espironolactona não recomendada se TFG < 30. Ajustar doses de iECA/BRA.");
+            }
+        }
+        if (params.cr !== undefined && params.cr > 15) {
+            rel.alertas_clinicos.push("🚨 Creatinina Extrema (> 15 mg/dL: " + params.cr + " mg/dL): Falência renal grave/terminal associada.");
         }
         if (params.semWashout || (params.ieca && !params.washout36h && params.substituicaoArni)) {
             rel.alertas_clinicos.push("🛑 BLOQUEIO CRÍTICO DE ARNI: Necessário intervalo de washout mínimo de 36 horas após última dose de iECA antes de iniciar Sacubitril/Valsartana para prevenir ANGIOEDEMA GRAVE potencialmente fatal.");
@@ -10270,20 +10302,25 @@ var EndocrinologiaDiabetesService = (function() {
     // ─────────────────────────────────────────────────────────────────────────
     // REGRA DE OURO 1: POTÁSSIO & LIBERAÇÃO DA INSULINA
     // ─────────────────────────────────────────────────────────────────────────
-    if (potassio < 3.3) {
+    if (potassio > 8.0) {
+      alertasSentinela.push('🚨 HIPERCALEMIA EXTREMA (K+ > 8.0 mEq/L: ' + potassio + ' mEq/L): Risco iminente de assistolia/FV e PCR. Proibida reposição de potássio. Administrar Gluconato de Cálcio 10% 20 mL IV imediatamente se qualquer alteração no ECG e acionar nefrologia para Hemodiálise de Urgência.');
+      condutaPotassio = 'K+ > 8.0 mEq/L (' + potassio + ' mEq/L): Risco crítico de PCR. NÃO repor potássio. Gluconato de Cálcio 10% IV imediato para estabilização de membrana miocárdica. Checar ECG seriado e acionar suporte dialítico.';
+      var vazaoInsExtrema = Math.min(15, Math.round(peso * 0.1 * 10) / 10);
+      condutaInsulina = 'Iniciar Insulina Regular IV contínua: ' + vazaoInsExtrema + ' UI/h (0.1 UI/kg/h) em BIC para auxiliar no shift intracelular de K+. Monitorar K+ sérico a cada 1 a 2 horas.';
+    } else if (potassio < 3.3) {
       bloqueioInsulinaAtivo = true;
       alertasSentinela.push('🚨 BLOQUEIO FATAL DE INSULINA: K+ < 3.3 mEq/L (' + potassio + ' mEq/L). Iniciar insulina com hipocalemia causa influxo celular agudo maciço de potássio, levando a arritmias ventriculares malignas e PCR súbita.');
       condutaPotassio = 'K+ < 3.3 mEq/L: PARAR/NÃO INICIAR insulina. Repor 20 a 40 mEq/h de KCl IV diluído em infusão contínua com monitorização cardíaca contínua até K+ atingir >= 3.3 mEq/L.';
       condutaInsulina = '⛔ INSULINOTERAPIA BLOQUEADA. Aguardar reposição vigorosa de potássio e documentação de K+ >= 3.3 mEq/L antes de iniciar qualquer dose de insulina.';
     } else if (potassio <= 5.2) {
       condutaPotassio = 'K+ entre 3.3 e 5.2 mEq/L (' + potassio + ' mEq/L): Adicionar 20 a 30 mEq de KCl em cada litro de fluido de manutenção para manter K+ entre 4.0 e 5.0 mEq/L durante toda a insulinoterapia.';
-      var doseBolusOpcional = Math.round(peso * 0.1 * 10) / 10;
-      var vazaoBombaInsulina = Math.round(peso * 0.1 * 10) / 10;
+      var doseBolusOpcional = Math.min(15, Math.round(peso * 0.1 * 10) / 10);
+      var vazaoBombaInsulina = Math.min(15, Math.round(peso * 0.1 * 10) / 10);
       condutaInsulina = 'Iniciar Insulina Regular IV contínua: ' + vazaoBombaInsulina + ' UI/h (0.1 UI/kg/h) em bomba de infusão (opcional bolus inicial de ' + doseBolusOpcional + ' UI EV). Alvo de redução: 50 a 75 mg/dL por hora.';
     } else {
       // K > 5.2 mEq/L
       condutaPotassio = 'K+ > 5.2 mEq/L (' + potassio + ' mEq/L): NÃO repor potássio neste momento. Checar eletrólitos a cada 2 horas (o potássio cairá rapidamente com a infusão de insulina e hidratação). Iniciar reposição assim que K < 5.3.';
-      var vazaoInsKAlto = Math.round(peso * 0.1 * 10) / 10;
+      var vazaoInsKAlto = Math.min(15, Math.round(peso * 0.1 * 10) / 10);
       condutaInsulina = 'Iniciar Insulina Regular IV contínua: ' + vazaoInsKAlto + ' UI/h (0.1 UI/kg/h). Monitorar K+ sérico a cada 2 horas.';
     }
 
@@ -10292,6 +10329,12 @@ var EndocrinologiaDiabetesService = (function() {
     // ─────────────────────────────────────────────────────────────────────────
     var volPrimeiraHoraMin = Math.round(peso * 15);
     var volPrimeiraHoraMax = Math.round(peso * 20);
+
+    if (peso > 150) {
+      volPrimeiraHoraMin = Math.min(volPrimeiraHoraMin, 2000);
+      volPrimeiraHoraMax = Math.min(volPrimeiraHoraMax, 2000);
+      alertasSentinela.push('⚠️ OBESIDADE SEVERA (> 150 kg: ' + peso + ' kg): Volume de expansão da 1ª hora limitado ao teto seguro de 2.000 mL (2 L) para prevenir sobrecarga hídrica e edema pulmonar agudo. Dose inicial de insulina com teto de 15 UI/h.');
+    }
 
     var fluidoManutencao = sodioCorrigido >= 135
       ? 'NaCl 0.45% a 250-500 mL/h (devido ao Sódio Corrigido normal/alto: ' + sodioCorrigido + ' mEq/L).'
@@ -10306,7 +10349,10 @@ var EndocrinologiaDiabetesService = (function() {
     // REGRA DE OURO 3: BICARBONATO DE SÓDIO (CRITÉRIOS ESTREITOS)
     // ─────────────────────────────────────────────────────────────────────────
     if (tipoCrise === 'CAD') {
-      if (phArterial < 6.90) {
+      if (phArterial < 6.80) {
+        alertasSentinela.push('🚨 ACIDEMIA EXTREMA (pH < 6.80: ' + phArterial + '): Disfunção miocárdica crítica e vasoplegia refratária com risco iminente de PCR. Bicarbonato de sódio IV mandatório para elevar o pH acima de 7.00.');
+        condutaBicarbonato = 'pH < 6.80 (' + phArterial + '): Acidemia extrema com risco iminente de PCR. Indicação emergencial mandatória de Bicarbonato de Sódio. Administrar 100 mmol de Bicarbonato de Sódio 8.4% diluídos em 400 mL de água destilada com 20 mEq de KCl em infusão lenta de 2 horas. Repetir gasometria de controle ao término.';
+      } else if (phArterial < 6.90) {
         condutaBicarbonato = 'pH < 6.90 (' + phArterial + '): Indicação formal de Bicarbonato de Sódio. Administrar 100 mmol de Bicarbonato de Sódio 8.4% diluídos em 400 mL de água destilada com 20 mEq de KCl em infusão lenta de 2 horas. Repetir dosagem gasométrica após o término.';
       } else {
         condutaBicarbonato = 'pH >= 6.90 (' + phArterial + '): Bicarbonato de Sódio é FORMALMENTE CONTRAINDICADO. Consensos ADA/SBD demonstram aumento do risco de hipocalemia severa, edema cerebral e acidose paradoxal intracelular do SNC.';
@@ -11390,6 +11436,12 @@ var GasometriaAcidoBaseService = (function () {
     // Condutas sugeridas
     var condutas = sugerirCondutas(disturbio, agResult, oxigenacao);
 
+    // Alertas de extremos fisiológicos (pH < 6.80)
+    if (lt(ph, 6.80)) {
+      avisos.unshift('🚨 ACIDEMIA EXTREMA (pH < 6.80): Limite crítico de viabilidade fisiológica. Colapso cardiovascular iminente, perda do inotropismo cardíaco e vasoplegia refratária a catecolaminas. Risco iminente de PCR. Priorizar ressuscitação ventilatória agressiva e medidas imediatas de suporte.');
+      condutas.unshift('Acidemia extrema (pH < 6.80): Monitorização invasiva contínua em UTI, suporte hemodinâmico avançado e consideração de bicarbonato de sódio IV de resgate.');
+    }
+
     // Alertas extras com dados complementares
     if (lactato !== null) {
       if (gt(lactato, 4.0)) {
@@ -11403,6 +11455,9 @@ var GasometriaAcidoBaseService = (function () {
     if (potassio !== null) {
       if (lt(potassio, 3.0)) {
         avisos.push('⚠️ Hipocalemia (K⁺ < 3,0): corrigir ANTES de administrar NaHCO₃ (risco de arritmia fatal por shift intracelular).');
+      } else if (gt(potassio, 8.0)) {
+        avisos.push('🚨 HIPERCALEMIA EXTREMA (K⁺ > 8,0 mEq/L): Risco iminente de parada cardíaca em assistolia/FV. Gluconato de Cálcio 10% IV IMEDIATO para estabilização de membrana miocárdica e acionamento urgente de hemodiálise de emergência.');
+        condutas.push('K⁺ > 8,0 mEq/L: Gluconato de Cálcio 10% 20 mL IV em 3 min imediatamente; solução polarizante e preparo de hemodiálise.');
       } else if (gt(potassio, 6.0)) {
         avisos.push('⚠️ Hipercalemia grave (K⁺ > 6,0): ECG urgente, Gluconato de Ca²⁺ IV, insulina+glicose, nebulização com salbutamol.');
       }
@@ -14361,7 +14416,9 @@ var HematologiaAnemiasService = (function () {
     };
 
     var peso = parseFloat(p.pesoKg || p.peso);
+    if (isNaN(peso) || peso <= 0) peso = 70;
     var atual = parseFloat(p.hbAtual || p.hb);
+    if (isNaN(atual) || atual < 0) atual = 10;
     var alvo = parseFloat(p.hbAlvo);
     if (isNaN(alvo) || alvo <= 0) alvo = (p.gestante || p.sexo === 'F') ? 14.0 : 15.0;
 
@@ -14380,6 +14437,12 @@ var HematologiaAnemiasService = (function () {
     var aptoParaFerroEv = true;
     var bloqueios = [];
 
+    if (peso < 1.0) {
+      bloqueios.push('⚠️ PREMATURO EXTREMO (< 1 kg): O ferro intravenoso é desaconselhado. Seguir protocolo de profilaxia enteral da UTI Neonatal (SBP 2024: 3-4 mg/kg/dia a partir do 15º-30º dia).');
+    }
+    if (peso > 150) {
+      bloqueios.push('⚠️ OBESIDADE SEVERA (> 150 kg): A fórmula de Ganzoni calculada pelo peso real superestima o déficit corporal de ferro pelo excesso de adiposidade. Recomenda-se utilizar o Peso Ajustado ou limite teto para prevenir toxicidade.');
+    }
     if (p.gestante && (p.trimestre === 1 || p.primeiroTrimestre)) {
       aptoParaFerroEv = false;
       bloqueios.push('Primeiro trimestre de gestação: contraindicação formal a ferro IV.');
@@ -15797,31 +15860,69 @@ var NefrologiaClearanceService = (function() {
     'use strict';
 
     function calcularCockcroftGault(idade, peso, creatinina, sexo) {
-        if (!idade || !peso || !creatinina || !sexo) {
+        if (idade === undefined || peso === undefined || creatinina === undefined || !sexo) {
             return { erro: "Parâmetros incompletos. Necessário idade, peso, creatinina e sexo (M/F)." };
         }
-        var fator = (sexo.toLowerCase() === 'f' || sexo.toLowerCase() === 'feminino') ? 0.85 : 1.0;
-        var crcl = (((140 - idade) * peso) / (72 * creatinina)) * fator;
+        var id = parseFloat(idade);
+        var p = parseFloat(peso);
+        var cr = parseFloat(creatinina);
+
+        if (isNaN(id) || isNaN(p) || isNaN(cr) || id <= 0 || p <= 0 || cr <= 0) {
+            return { erro: "Parâmetros inválidos. Idade, peso e creatinina devem ser números positivos maiores que zero." };
+        }
+
+        // Blindagem contra idade extrema (>= 140 anos evitaria numerador negativo)
+        var idCalc = Math.min(120, id);
+
+        var sexoStr = String(sexo).toLowerCase();
+        var fator = (sexoStr === 'f' || sexoStr === 'feminino') ? 0.85 : 1.0;
+
+        // Fórmula de Cockcroft-Gault: ((140 - idade) * peso) / (72 * Cr)
+        var crcl = (((140 - idCalc) * p) / (72 * cr)) * fator;
+        if (!isFinite(crcl) || isNaN(crcl) || crcl < 0) crcl = 0;
+
         return Math.round(crcl * 10) / 10;
     }
 
     function classificarEstagio(crcl) {
-        if (crcl >= 90) return "Estágio 1 (Normal ou Alto - G1)";
-        if (crcl >= 60) return "Estágio 2 (Levemente diminuído - G2)";
-        if (crcl >= 45) return "Estágio 3a (Leve a moderadamente diminuído - G3a)";
-        if (crcl >= 30) return "Estágio 3b (Moderada a severamente diminuído - G3b)";
-        if (crcl >= 15) return "Estágio 4 (Severamente diminuído - G4)";
+        var num = typeof crcl === 'number' ? crcl : parseFloat(crcl);
+        if (isNaN(num) || num < 0) return "Estágio 5 (Falência renal / G5)";
+        if (num >= 90) return "Estágio 1 (Normal ou Alto - G1)";
+        if (num >= 60) return "Estágio 2 (Levemente diminuído - G2)";
+        if (num >= 45) return "Estágio 3a (Leve a moderadamente diminuído - G3a)";
+        if (num >= 30) return "Estágio 3b (Moderada a severamente diminuído - G3b)";
+        if (num >= 15) return "Estágio 4 (Severamente diminuído - G4)";
         return "Estágio 5 (Falência renal / G5)";
     }
 
-    function auditarPrescricao(crcl, medicamentos) {
+    function auditarPrescricao(crcl, medicamentos, opcoes) {
+        opcoes = opcoes || {};
+        var valorCrcl = typeof crcl === 'object' && crcl !== null ? (crcl.crcl !== undefined ? crcl.crcl : null) : crcl;
+        var crclNum = parseFloat(valorCrcl);
+
         var auditoria = {
-            crcl_estimado: crcl,
-            estagio: classificarEstagio(crcl),
+            crcl_estimado: isNaN(crclNum) ? 0 : crclNum,
+            estagio: classificarEstagio(isNaN(crclNum) ? 0 : crclNum),
             bloqueios: [],
             alertas: [],
             orientacoes: []
         };
+
+        if (isNaN(crclNum) || crclNum < 0) {
+            auditoria.alertas.push("ALERTA DE SEGURANÇA: Clearance não mensurável ou indeterminado. Tratar como disfunção renal grave (TFG < 15 mL/min) por segurança farmacológica.");
+            crclNum = 0;
+        }
+
+        // Casos extremos de laboratório ou biometria
+        if (opcoes.creatinina !== undefined && Number(opcoes.creatinina) > 15) {
+            auditoria.alertas.push("🚨 ALERTA CRÍTICO: Creatinina sérica extremamente elevada (> 15 mg/dL: " + opcoes.creatinina + " mg/dL). Falência renal terminal com risco iminente de síndrome urêmica e indicação de diálise de urgência (AEIOU).");
+        }
+        if (opcoes.idade !== undefined && Number(opcoes.idade) >= 90) {
+            auditoria.alertas.push("⚠️ PACIENTE MUITO IDOSO (≥ 90 ANOS): Sarcopenia acentuada reduz a produção de creatinina, superestimando o clearance real. Avaliar Cistatina C e monitorar toxicidade.");
+        }
+        if (opcoes.peso !== undefined && Number(opcoes.peso) > 150) {
+            auditoria.alertas.push("⚠️ OBESIDADE SEVERA (> 150 KG): O cálculo de clearance com peso real superestima a filtração glomerular. Recomenda-se usar Peso Ajustado (ABW) ou Peso Ideal para ajuste farmacológico.");
+        }
 
         var drogasAjusteObrigatorio = [
             "vancomicina", "meropenem", "piperacilina", "tazobactam", "cefepime", 
@@ -15833,26 +15934,27 @@ var NefrologiaClearanceService = (function() {
             "nitrofurantoina", "espironolactona", "metformina"
         ];
 
-        if (crcl < 30) {
+        if (crclNum < 30) {
             auditoria.alertas.push("ALERTA CRÍTICO: Ritmo de Filtração Glomerular < 30 mL/min. Risco elevado de toxicidade e acúmulo de fármacos.");
         }
 
         if (medicamentos && Array.isArray(medicamentos)) {
             medicamentos.forEach(function(med) {
-                var nome = typeof med === 'string' ? med.toLowerCase() : med.nome.toLowerCase();
+                var nome = typeof med === 'string' ? med.toLowerCase() : (med && med.nome ? med.nome.toLowerCase() : '');
+                if (!nome) return;
                 
                 // Checa contraindicação
                 var contraindicado = drogasContraindicadasSevera.some(function(d) { return nome.indexOf(d) !== -1; });
-                if (contraindicado && crcl < 30) {
+                if (contraindicado && crclNum < 30) {
                     auditoria.bloqueios.push("CONTRAINDICAÇÃO ABSOLUTA: " + nome.toUpperCase() + " deve ser evitada em TFG < 30 mL/min.");
                 }
 
                 // Checa necessidade de ajuste
                 var precisaAjuste = drogasAjusteObrigatorio.some(function(d) { return nome.indexOf(d) !== -1; });
                 if (precisaAjuste) {
-                    if (crcl < 30) {
+                    if (crclNum < 30) {
                         auditoria.bloqueios.push("AJUSTE RENAL OBRIGATÓRIO: " + nome.toUpperCase() + " requer ajuste imediato de dose para TFG < 30 mL/min.");
-                    } else if (crcl < 50) {
+                    } else if (crclNum < 50) {
                         auditoria.alertas.push("ATENÇÃO: " + nome.toUpperCase() + " requer avaliação de ajuste de dose (TFG < 50 mL/min).");
                     }
                 }
@@ -15892,20 +15994,30 @@ var NefrologiaDheService = (function() {
 
     // --- CÁLCULO DE ÁGUA CORPORAL TOTAL (ACT) ---
     function calcularACT(peso, sexo, idade) {
+        var p = parseFloat(peso);
+        if (isNaN(p) || p <= 0) p = 70;
+        var id = parseFloat(idade);
+        if (isNaN(id) || id < 0) id = 40;
+        var s = sexo ? String(sexo).toLowerCase() : 'm';
+
         var fator = 0.6; // padrão homem adulto
-        if (sexo.toLowerCase() === 'f') {
-            fator = idade >= 65 ? 0.45 : 0.5;
+        if (s === 'f' || s === 'feminino') {
+            fator = id >= 65 ? 0.45 : 0.5;
         } else {
-            fator = idade >= 65 ? 0.5 : 0.6;
+            fator = id >= 65 ? 0.5 : 0.6;
         }
-        return peso * fator;
+        return Math.max(0.1, p * fator);
     }
 
     // --- HIPONATREMIA ---
     function calcularDeficitSodio(naAtual, naAlvo, peso, sexo, idade) {
-        if (naAtual >= naAlvo) return { erro: "Na atual >= Na alvo. Sem déficit." };
+        var naAt = parseFloat(naAtual);
+        var naAl = parseFloat(naAlvo);
+        if (isNaN(naAt) || isNaN(naAl)) return { erro: "Valores de sódio inválidos." };
+        if (naAt >= naAl) return { erro: "Na atual >= Na alvo. Sem déficit." };
+
         var act = calcularACT(peso, sexo, idade);
-        var deficitSodio = act * (naAlvo - naAtual);
+        var deficitSodio = act * (naAl - naAt);
         
         return {
             act: Math.round(act * 10) / 10,
@@ -15915,20 +16027,30 @@ var NefrologiaDheService = (function() {
 
     function planejarCorrecaoHiponatremia(naAtual, peso, sexo, idade, salinaSendoUsada) {
         // salinaSendoUsada = 3 para NaCl 3% (513 mEq/L) ou 0.9 para NaCl 0.9% (154 mEq/L)
-        var concentracaoSalina = salinaSendoUsada === 3 ? 513 : (salinaSendoUsada === 0.9 ? 154 : null);
-        if (!concentracaoSalina) return { erro: "Concentração de salina inválida (use 3 ou 0.9)" };
+        var sUsada = parseFloat(salinaSendoUsada);
+        var concentracaoSalina = sUsada === 3 ? 513 : (sUsada === 0.9 ? 154 : null);
+        if (!concentracaoSalina) return { erro: "Concentração de salina inválida (use 3 para NaCl 3% ou 0.9 para NaCl 0.9%)" };
+
+        var na = parseFloat(naAtual);
+        if (isNaN(na) || na <= 0) return { erro: "Valor de sódio atual inválido." };
+        if (na >= concentracaoSalina) {
+            return { erro: "Sódio atual (" + na + " mEq/L) é maior ou igual à concentração da solução (" + concentracaoSalina + " mEq/L)." };
+        }
 
         var act = calcularACT(peso, sexo, idade);
         // Fórmula de Adrogué-Madias: aumento do Na com 1 L da solução
-        var variacaoNaPorLitro = (concentracaoSalina - naAtual) / (act + 1);
+        var variacaoNaPorLitro = (concentracaoSalina - na) / (act + 1);
+        if (!isFinite(variacaoNaPorLitro) || variacaoNaPorLitro <= 0) {
+            return { erro: "Variação de sódio calculada inválida para esta infusão." };
+        }
 
         // Teto de segurança: máx 8 mEq em 24h
         var volumeParaTeto24h = (8 / variacaoNaPorLitro) * 1000; // em mL
         var taxaInfusaoSegura = volumeParaTeto24h / 24; // em mL/h
 
         return {
-            naAtual: naAtual,
-            solucao: "NaCl " + salinaSendoUsada + "%",
+            naAtual: na,
+            solucao: "NaCl " + sUsada + "%",
             variacaoNaPorLitro: Math.round(variacaoNaPorLitro * 10) / 10,
             tetoElevacao24h: 8,
             tetoElevacao48h: 18,
@@ -15939,9 +16061,12 @@ var NefrologiaDheService = (function() {
 
     // --- HIPERNATREMIA ---
     function calcularDeficitAguaLivre(naAtual, peso, sexo, idade) {
-        if (naAtual <= 140) return { erro: "Na atual <= 140. Sem déficit de água livre." };
+        var na = parseFloat(naAtual);
+        if (isNaN(na) || na <= 0) return { erro: "Valor de sódio atual inválido." };
+        if (na <= 140) return { erro: "Na atual <= 140. Sem déficit de água livre." };
+
         var act = calcularACT(peso, sexo, idade);
-        var deficitAguaLivre = act * ((naAtual / 140) - 1);
+        var deficitAguaLivre = act * ((na / 140) - 1);
 
         return {
             act: Math.round(act * 10) / 10,
@@ -15952,32 +16077,40 @@ var NefrologiaDheService = (function() {
 
     // --- HIPERCALEMIA ---
     function avaliarHipercalemia(kAtual, ecgAlterado) {
-        if (kAtual <= 5.0) return { gravidade: "Normal", conduta: "Nenhuma ação específica." };
+        var k = parseFloat(kAtual);
+        if (isNaN(k) || k <= 0) return { erro: "Valor de potássio atual inválido." };
+        if (k <= 5.0) return { gravidade: "Normal", conduta: "Nenhuma ação específica." };
         
         var condutas = [];
         var gravidade = "Leve";
-        
-        if (kAtual >= 6.5 || ecgAlterado) {
+        var alerta = ecgAlterado ? "ALERTA VERMELHO: Sinais de toxicidade cardíaca presentes no ECG. O Gluconato de Cálcio NÃO reduz o potássio, apenas estabiliza a membrana miocárdica." : "";
+
+        if (k > 8.0) {
+            gravidade = "Extrema / Risco Iminente de PCR em Assistolia ou FV";
+            alerta = "🚨 ALERTA VERMELHO MÁXIMO (K+ > 8.0 mEq/L): Risco iminente de parada cardiorrespiratória em assistolia/FV. Gluconato de Cálcio 10% IV IMEDIATO para estabilização de membrana miocárdica e acionamento urgente de Nefrologia para Hemodiálise de Emergência!";
+            condutas.push("🚨 EMERGÊNCIA ZERO: Gluconato de Cálcio 10% 20 mL IV em 3 min imediatamente. Repetir em 5-10 min se ritmo não normalizar.");
+            condutas.push("HEMODIÁLISE DE EMERGÊNCIA: Acionar imediatamente nefrologia e terapia intensiva para passagem de cateter de hemodiálise.");
+        } else if (k >= 6.5 || ecgAlterado) {
             gravidade = "Grave / Urgência Médica";
             condutas.push("ESTABILIZAÇÃO DA MEMBRANA: Gluconato de Cálcio 10% 10 a 20 mL IV lento (em 3-5 min). Efeito imediato, duração 30-60 min. Repetir se ECG não melhorar em 5-10 min.");
-        } else if (kAtual >= 5.5) {
+        } else if (k >= 5.5) {
             gravidade = "Moderada";
         }
 
-        if (kAtual > 5.5) {
+        if (k > 5.5) {
             condutas.push("REDISTRIBUIÇÃO: Glicoinsulina (Solução Polarizante): 10 UI Insulina Regular + 100 mL de SG 50% IV em 20-30 min. Queda esperada: 0.5-1.2 mEq/L em 1-2h.");
             condutas.push("REDISTRIBUIÇÃO: Beta-2 Agonista (Fenoterol 10-20 gotas ou Salbutamol 10-20 mg inalatório).");
         }
 
-        if (kAtual > 5.0) {
+        if (k > 5.0) {
             condutas.push("ELIMINAÇÃO: Furosemida (se função renal e volemia permitirem).");
             condutas.push("ELIMINAÇÃO: Resinas de troca de potássio (Poliestirenossulfonato de Cálcio / Sorcal) 15-30g VO ou Retal.");
         }
 
         return {
-            potassio: kAtual,
+            potassio: k,
             gravidade: gravidade,
-            alerta: ecgAlterado ? "ALERTA VERMELHO: Sinais de toxicidade cardíaca presentes no ECG. O Gluconato de Cálcio NÃO reduz o potássio, apenas estabiliza a membrana." : "",
+            alerta: alerta,
             condutas: condutas
         };
     }
@@ -16018,26 +16151,39 @@ var NefrologiaLRAService = (function() {
      * @returns {Object} Dados do estadiamento KDIGO
      */
     function estadiarKDIGO(cr_basal, cr_atual, debito_urinario, horas_oliguria) {
-        var aumento_cr = cr_atual / cr_basal;
+        var crB = parseFloat(cr_basal);
+        var crA = parseFloat(cr_atual);
+        if (isNaN(crA) || crA < 0) crA = 0;
+        if (isNaN(crB) || crB <= 0) crB = (crA > 0 ? crA : 1.0);
+
+        var aumento_cr = crB > 0 ? (crA / crB) : 1.0;
         var estagio_cr = 0;
         var estagio_du = 0;
+        var alertas = [];
+
+        if (crA > 15) {
+            alertas.push("🚨 ALERTA CRÍTICO: Creatinina sérica extremamente discrepante (> 15 mg/dL: " + crA + " mg/dL). Falência renal terminal com risco altíssimo de complicações urêmicas fatais e necessidade de diálise emergencial imediata.");
+        }
 
         // Estadiamento por Creatinina
-        if (cr_atual >= 4.0 || aumento_cr >= 3.0 || (cr_atual - cr_basal >= 0.3 && cr_atual >= 4.0)) {
+        if (crA >= 4.0 || aumento_cr >= 3.0 || (crA - crB >= 0.3 && crA >= 4.0)) {
             estagio_cr = 3;
         } else if (aumento_cr >= 2.0) {
             estagio_cr = 2;
-        } else if (aumento_cr >= 1.5 || (cr_atual - cr_basal >= 0.3)) {
+        } else if (aumento_cr >= 1.5 || (crA - crB >= 0.3)) {
             estagio_cr = 1;
         }
 
         // Estadiamento por Débito Urinário (DU)
-        if (debito_urinario !== null && horas_oliguria !== null) {
-            if (debito_urinario < 0.3 && horas_oliguria >= 24 || horas_oliguria >= 12 && debito_urinario === 0) {
+        var du = debito_urinario !== null && debito_urinario !== undefined ? parseFloat(debito_urinario) : null;
+        var horas = horas_oliguria !== null && horas_oliguria !== undefined ? parseFloat(horas_oliguria) : null;
+
+        if (du !== null && horas !== null && !isNaN(du) && !isNaN(horas)) {
+            if ((du < 0.3 && horas >= 24) || (horas >= 12 && du === 0)) {
                 estagio_du = 3; // Anúria > 12h ou DU < 0.3 por 24h
-            } else if (debito_urinario < 0.5 && horas_oliguria >= 12) {
+            } else if (du < 0.5 && horas >= 12) {
                 estagio_du = 2;
-            } else if (debito_urinario < 0.5 && horas_oliguria >= 6) {
+            } else if (du < 0.5 && horas >= 6) {
                 estagio_du = 1;
             }
         }
@@ -16053,7 +16199,8 @@ var NefrologiaLRAService = (function() {
             estagio: estagio_final,
             descricao: descricao,
             estagio_cr: estagio_cr,
-            estagio_du: estagio_du
+            estagio_du: estagio_du,
+            alertas: alertas
         };
     }
 
@@ -16062,6 +16209,7 @@ var NefrologiaLRAService = (function() {
      * @param {Object} dados - Dados clínicos do paciente
      */
     function avaliarDialiseUrgencia(dados) {
+        dados = dados || {};
         var indicacoes = [];
         var aeiou = {
             acidose: false,
@@ -16071,14 +16219,30 @@ var NefrologiaLRAService = (function() {
             uremia: false
         };
 
-        if (dados.ph < 7.15 && dados.acidose_refrataria) {
-            indicacoes.push("🅰️ Acidose Metabólica grave refratária ao tratamento clínico (pH < 7.15).");
-            aeiou.acidose = true;
+        var ph = dados.ph !== undefined && dados.ph !== null ? parseFloat(dados.ph) : null;
+        var potassio = dados.potassio !== undefined && dados.potassio !== null ? parseFloat(dados.potassio) : null;
+        var crAtual = dados.cr_atual !== undefined && dados.cr_atual !== null ? parseFloat(dados.cr_atual) : (dados.creatinina ? parseFloat(dados.creatinina) : null);
+
+        // Acidose extrema ou refratária
+        if (ph !== null) {
+            if (ph < 6.80) {
+                indicacoes.push("🅰️ Acidose Metabólica EXTREMA (pH = " + ph + " < 6.80): Limite crítico de viabilidade. Indicação emergencial de hemodiálise.");
+                aeiou.acidose = true;
+            } else if (ph < 7.15 && dados.acidose_refrataria) {
+                indicacoes.push("🅰️ Acidose Metabólica grave refratária ao tratamento clínico (pH < 7.15).");
+                aeiou.acidose = true;
+            }
         }
 
-        if (dados.potassio > 6.5 || (dados.potassio > 6.0 && dados.ecg_alterado)) {
-            indicacoes.push("🇪 Eletrólitos: Hipercalemia grave refratária (K > 6.5) ou sintomática com alterações no ECG.");
-            aeiou.eletrolitos = true;
+        // Eletrólitos (Potássio)
+        if (potassio !== null) {
+            if (potassio > 8.0) {
+                indicacoes.push("🇪 Eletrólitos: Hipercalemia EXTREMA com risco iminente de parada cardíaca (K = " + potassio + " > 8.0 mEq/L). Diálise de urgência imediata e Gluconato de Cálcio.");
+                aeiou.eletrolitos = true;
+            } else if (potassio > 6.5 || (potassio > 6.0 && dados.ecg_alterado)) {
+                indicacoes.push("🇪 Eletrólitos: Hipercalemia grave refratária (K > 6.5) ou sintomática com alterações no ECG.");
+                aeiou.eletrolitos = true;
+            }
         }
 
         if (dados.intoxicacao_dialisavel) {
@@ -16091,8 +16255,12 @@ var NefrologiaLRAService = (function() {
             aeiou.overload = true;
         }
 
-        if (dados.ureia > 200 || dados.sindrome_uremica) {
-            indicacoes.push("🇺 Uremia Clínica: Pericardite urêmica, encefalopatia urêmica ou sangramento inexplicável.");
+        if ((dados.ureia && dados.ureia > 200) || dados.sindrome_uremica || (crAtual !== null && crAtual > 15)) {
+            var msgUremia = "🇺 Uremia Clínica: Pericardite urêmica, encefalopatia urêmica ou sangramento inexplicável.";
+            if (crAtual !== null && crAtual > 15) {
+                msgUremia += " Creatinina extrema (> 15 mg/dL: " + crAtual + " mg/dL).";
+            }
+            indicacoes.push(msgUremia);
             aeiou.uremia = true;
         }
 
@@ -20756,6 +20924,14 @@ var PalsPediatriaService = (function() {
     let idadeAnos = params.idadeAnos || 0;
     let corBroselow = params.corBroselow || null;
     
+    if (pesoKg !== undefined && pesoKg !== null) {
+      let pNum = parseFloat(pesoKg);
+      if (isNaN(pNum) || pNum <= 0) {
+        throw new Error("Peso inválido. Deve ser um número positivo maior que zero.");
+      }
+      pesoKg = pNum;
+    }
+
     if (!pesoKg && corBroselow) {
       pesoKg = estimarPesoPorBroselow(corBroselow);
     }
@@ -20766,8 +20942,8 @@ var PalsPediatriaService = (function() {
       throw new Error("Peso (kg), Idade (anos) ou Cor Broselow obrigatórios para cálculo PALS.");
     }
 
-    // Limitar peso máximo a 50kg para evitar superdosagem pediátrica na fórmula linear.
-    const pesoCalc = Math.min(pesoKg, 50);
+    // Limitar peso mínimo fisiológico (0.3 kg) e máximo a 50kg para fórmulas lineares do PALS
+    const pesoCalc = Math.max(0.3, Math.min(pesoKg, 50));
 
     let alertas = [];
     let medicacoes = [];
@@ -20775,11 +20951,13 @@ var PalsPediatriaService = (function() {
     let eletricidade = {};
 
     // 1. Choque (Desfibrilação / Cardioversão)
-    eletricidade.desfibrilacaoPrimeiroChoque = `${pesoCalc * 2} J (2 J/kg)`;
-    eletricidade.desfibrilacaoSegundoChoque = `${pesoCalc * 4} J (4 J/kg)`;
+    let desfibrilacao1 = Math.round(pesoCalc * 2 * 10) / 10;
+    let desfibrilacao2 = Math.round(pesoCalc * 4 * 10) / 10;
+    eletricidade.desfibrilacaoPrimeiroChoque = `${desfibrilacao1} J (2 J/kg)`;
+    eletricidade.desfibrilacaoSegundoChoque = `${desfibrilacao2} J (4 J/kg)`;
     eletricidade.desfibrilacaoMaximo = `Até 10 J/kg ou dose máxima de adulto (ex: 200 J bifásico)`;
     eletricidade.cardioversaoPrimeiroChoque = `${(pesoCalc * 0.5).toFixed(1)} a ${pesoCalc * 1} J (0.5 a 1 J/kg)`;
-    eletricidade.cardioversaoSegundoChoque = `${pesoCalc * 2} J (2 J/kg)`;
+    eletricidade.cardioversaoSegundoChoque = `${desfibrilacao1} J (2 J/kg)`;
 
     // 2. Medicações em PCR
     // Adrenalina 0,1 mg/mL (1:10.000) - Dose: 0,01 mg/kg (0,1 mL/kg)
@@ -20801,7 +20979,7 @@ var PalsPediatriaService = (function() {
     });
 
     // Amiodarona (5 mg/kg, máx 300 mg)
-    let doseAmiodaronaMg = pesoCalc * 5;
+    let doseAmiodaronaMg = Math.round(pesoCalc * 5);
     if (doseAmiodaronaMg > 300) doseAmiodaronaMg = 300;
     medicacoes.push({
       farmaco: "Amiodarona (50 mg/mL)",
@@ -20812,7 +20990,7 @@ var PalsPediatriaService = (function() {
     });
 
     // Lidocaína 2% (20 mg/mL) - Dose 1 mg/kg
-    let doseLidoMg = pesoCalc * 1;
+    let doseLidoMg = Math.round(pesoCalc * 1 * 10) / 10;
     if (doseLidoMg > 100) doseLidoMg = 100;
     medicacoes.push({
       farmaco: "Lidocaína 2% sem vasoconstritor (20 mg/mL)",
@@ -20823,7 +21001,7 @@ var PalsPediatriaService = (function() {
     });
 
     // Sulfato de Magnésio (Torsades de Pointes) - 25 a 50 mg/kg (máx 2g)
-    let doseMagMg = pesoCalc * 50;
+    let doseMagMg = Math.round(pesoCalc * 50);
     if (doseMagMg > 2000) doseMagMg = 2000;
     medicacoes.push({
       farmaco: "Sulfato de Magnésio 10%",
@@ -20834,19 +21012,37 @@ var PalsPediatriaService = (function() {
     });
 
     // 3. Via Aérea (Tubo Endotraqueal)
-    // Fórmula sem cuff: (idade / 4) + 4
-    // Fórmula com cuff: (idade / 4) + 3.5
-    // Para < 1 ano: 3.0 ou 3.5
+    // Para recém-nascidos e lactentes < 1 ano
     let tuboSemCuff = "";
     let tuboComCuff = "";
     let lamina = "";
     let fixacao = "";
 
     if (idadeAnos < 1) {
-       tuboSemCuff = "3.5";
-       tuboComCuff = "3.0";
-       lamina = pesoCalc < 3 ? "Reta 0" : "Reta 1";
-       fixacao = "Profundidade: 9 a 10 cm no lábio";
+       if (pesoCalc < 1.0) {
+         // Prematuro extremo (< 1 kg)
+         tuboSemCuff = "2.5";
+         tuboComCuff = "2.5 (sem cuff preferencial em prematuros)";
+         lamina = "Reta 00 ou 0 (Miller)";
+         fixacao = "Profundidade: ~" + (pesoCalc + 6).toFixed(1) + " cm no lábio [Regra Peso (kg) + 6 cm]";
+         alertas.push("🚨 PREMATURO EXTREMO / NEONATO < 1 KG: Aplicar diretrizes de Reanimação Neonatal (PRN/NRP). Para TET usar 2.5 mm sem cuff e profundidade no lábio fixada em peso (kg) + 6 cm para prevenir intubação seletiva.");
+       } else if (pesoCalc < 2.0) {
+         tuboSemCuff = "3.0";
+         tuboComCuff = "3.0";
+         lamina = "Reta 0";
+         fixacao = "Profundidade: ~" + (pesoCalc + 6).toFixed(1) + " cm no lábio";
+       } else if (pesoCalc < 3.0) {
+         tuboSemCuff = "3.5";
+         tuboComCuff = "3.0";
+         lamina = "Reta 0 ou 1";
+         fixacao = "Profundidade: ~" + (pesoCalc + 6).toFixed(1) + " cm no lábio";
+       } else {
+         // Termo (> 3 kg)
+         tuboSemCuff = "3.5";
+         tuboComCuff = "3.0";
+         lamina = "Reta 1";
+         fixacao = "Profundidade: 9 a 10 cm no lábio";
+       }
     } else {
        let calcSem = (idadeAnos / 4) + 4;
        let calcCom = (idadeAnos / 4) + 3.5;
@@ -20866,7 +21062,9 @@ var PalsPediatriaService = (function() {
       fixacao: fixacao
     };
 
-    if (pesoCalc >= 30) {
+    if (pesoKg > 50) {
+      alertas.push("⚠️ PACIENTE COM PESO ELEVADO (" + pesoKg + " kg > 50 kg): O protocolo pediátrico PALS limita a dosagem calculada ao teto de 50 kg (doses máximas de adulto atingidas). Seguir diretrizes do ACLS de reanimação de adultos.");
+    } else if (pesoCalc >= 30) {
       alertas.push("Paciente com peso elevado (>= 30 kg): considerar transição cautelosa para doses de adulto (ex: máx de 1 mg adrenalina, 300 mg amiodarona) limitadas ao teto terapêutico.");
     }
     
@@ -27757,6 +27955,12 @@ var SuporteNutricionalPediatricoService = (function () {
     var tigSg10 = arred((10 * vazaoAjustadaMlH) / (p * 6), 2);
 
     var alertas = [];
+    if (p < 1.0) {
+      alertas.push('⚠️ RECÉM-NASCIDO DE EXTREMO BAIXO PESO (< 1 kg): A fórmula de Holliday-Segar tradicional foi concebida para crianças > 1 mês. Em prematuros extremos (< 1 kg), o balanço hídrico diário deve ser rigorosamente individualizado pela neonatologia devido às perdas insensíveis aumentadas e risco de persistência do canal arterial.');
+    }
+    if (p > 150) {
+      alertas.push('⚠️ OBESIDADE SEVERA (> 150 kg): O volume hídrico basal calculado não deve ser expandido linearmente pelo peso total. Recomenda-se fixar o teto adulto de 2.000 a 2.500 mL/dia para prevenir sobrecarga cardiopulmonar.');
+    }
     if (alertaTetoAdulto) {
       alertas.push('⚠️ ATENÇÃO AO TETO HÍDRICO: O volume calculado (' + volBasal + ' mL) ultrapassa o limite adulto padrão (2.500 mL/dia). Avaliar prescrição de manutenção baseada em adulto.');
     }
@@ -28965,39 +29169,45 @@ var ToxicologiaEmergenciaService = (function() {
 
     var prescricaoNac = null;
     if (indicacaoNac) {
+      var pesoNac = Math.min(pesoKg, 100);
+      if (pesoKg > 100) {
+        motivoIndicacao.push('⚠️ TETO DE SEGURANÇA DE PESO (100 kg): Em pacientes com peso > 100 kg (peso real: ' + pesoKg + ' kg), as doses de N-acetilcisteína (NAC) são limitadas ao peso teto de 100 kg (máximo de 15.000 mg no ataque, 5.000 mg na 2ª etapa e 10.000 mg na 3ª etapa) para prevenir reações anafilactoides graves e sobrecarga de fluidos.');
+      }
+
       if (via === 'VO') {
         prescricaoNac = {
           esquema: 'Esquema de 72 horas (VO)',
           doseAtaque: {
-            descricao: '140 mg/kg VO/SNE dose única',
-            doseMg: Math.round(pesoKg * 140)
+            descricao: '140 mg/kg VO/SNE dose única (teto 100 kg)',
+            doseMg: Math.round(pesoNac * 140)
           },
           doseManutencao: {
-            descricao: '70 mg/kg VO/SNE a cada 4 horas por 17 doses (iniciar 4h após ataque)',
-            doseMg: Math.round(pesoKg * 70),
+            descricao: '70 mg/kg VO/SNE a cada 4 horas por 17 doses (iniciar 4h após ataque, teto 100 kg)',
+            doseMg: Math.round(pesoNac * 70),
             repeticoes: 17
           },
-          observacao: 'A via VO é frequentemente associada a vômitos. Antiéticos (ex: Ondansetrona) podem ser necessários. Em caso de êmese em < 1h da dose, repetir a administração.'
+          observacao: 'A via VO é frequentemente associada a vômitos. Antieméticos (ex: Ondansetrona) podem ser necessários. Em caso de êmese em < 1h da dose, repetir a administração.'
         };
       } else {
         // IV - Protocolo de 21 horas
         prescricaoNac = {
           esquema: 'Protocolo Padrão de 21 horas (IV)',
+          pesoConsideradoKg: pesoNac,
           etapa1: {
-            descricao: '150 mg/kg IV em 1 hora',
-            doseMg: Math.round(pesoKg * 150),
-            diluicao: pesoKg > 40 ? 'Diluir em 200 mL de SG 5%' : 'Diluir em 3 mL/kg de SG 5%',
+            descricao: '150 mg/kg IV em 1 hora (máx 15.000 mg)',
+            doseMg: Math.round(pesoNac * 150),
+            diluicao: pesoNac > 40 ? 'Diluir em 200 mL de SG 5%' : 'Diluir em 3 mL/kg de SG 5%',
             alerta: 'Infusão rápida pode causar reação anafilactoide. Se ocorrer rash/rubor, pausar, administrar anti-histamínico e reiniciar mais lento.'
           },
           etapa2: {
-            descricao: '50 mg/kg IV em 4 horas',
-            doseMg: Math.round(pesoKg * 50),
-            diluicao: pesoKg > 40 ? 'Diluir em 500 mL de SG 5%' : 'Diluir em 7 mL/kg de SG 5%'
+            descricao: '50 mg/kg IV em 4 horas (máx 5.000 mg)',
+            doseMg: Math.round(pesoNac * 50),
+            diluicao: pesoNac > 40 ? 'Diluir em 500 mL de SG 5%' : 'Diluir em 7 mL/kg de SG 5%'
           },
           etapa3: {
-            descricao: '100 mg/kg IV em 16 horas',
-            doseMg: Math.round(pesoKg * 100),
-            diluicao: pesoKg > 40 ? 'Diluir em 1000 mL de SG 5%' : 'Diluir em 14 mL/kg de SG 5%'
+            descricao: '100 mg/kg IV em 16 horas (máx 10.000 mg)',
+            doseMg: Math.round(pesoNac * 100),
+            diluicao: pesoNac > 40 ? 'Diluir em 1000 mL de SG 5%' : 'Diluir em 14 mL/kg de SG 5%'
           },
           criteriosFim: 'Ao final de 21h, dosar transaminases e Paracetamol sérico. Se Paracetamol detectável ou TGP muito elevada, manter infusão da Etapa 3.'
         };
@@ -29367,7 +29577,10 @@ var TransfusaoSanguineaService = (function() {
     var alertaTaco = null;
     var recomendacaoVelocidade = 'Infundir cada bolsa em 60 a 120 minutos (máximo de 4 horas por bolsa pelo risco de contaminação bacteriana).';
 
-    if (riscoTaco) {
+    if (idade >= 90) {
+      alertaTaco = '🚨 PACIENTE NONAGENÁRIO (≥ 90 ANOS) - RISCO CRÍTICO DE TACO: Sobrecarga circulatória é a principal causa de óbito hemoterápico no paciente muito idoso. Transfundir estritamente UMA unidade por vez em velocidade lenta (3 a 4 horas). Administrar Furosemida 20 a 40 mg IV profilática antes ou entre as bolsas e monitorar ausculta respiratória e oximetria continuamente.';
+      recomendacaoVelocidade = 'Infundir ultralentamente em 3 a 4 horas sob vigilância cardiorrespiratória estrita.';
+    } else if (riscoTaco) {
       alertaTaco = '⚠️ ALTO RISCO DE SOBRECARGA CIRCULATÓRIA (TACO): Idade avançada, cardiopatia ou nefropatia prévia. Infundir em velocidade lenta (3 a 4 horas por unidade). Avaliar Furosemida 20 a 40 mg IV entre as bolsas e monitorar ausculta pulmonar e SpO2.';
       recomendacaoVelocidade = 'Infundir lentamente em 3 a 4 horas sob estrita vigilância de sinais de congestão (estertores, turgência jugular, dispneia).';
     }
@@ -29688,14 +29901,17 @@ var TransfusaoSanguineaService = (function() {
     var incrementoEsperado = '';
 
     if (indicada) {
-      // 1 unidade convencional a cada 10 kg de peso (ex: 70 kg -> 7 UI)
-      unidadesRandomicas = Math.max(4, Math.round(peso / 10));
+      // 1 unidade convencional a cada 10 kg de peso (ex: 70 kg -> 7 UI, teto seguro de 10 UI no adulto)
+      unidadesRandomicas = Math.min(10, Math.max(4, Math.round(peso / 10)));
       // 1 aférese de doador único equivale a 6-8 unidades randômicas
       aféreseRecomendada = 1;
       incrementoEsperado = 'Elevação esperada de 30.000 a 50.000/mcL após 1 pool de aférese (ou ~5.000 a 8.000/mcL por unidade randômica em adulto de 70 kg).';
     }
 
     var alertas = [];
+    if (peso > 150) {
+      alertas.push('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo de plaquetas randômicas foi limitado ao teto padrão de 10 unidades para prevenir sobrecarga volêmica. Recomenda-se transfundir concentrado de plaquetas por aférese (1 a 2 pools).');
+    }
     if (!indicada && plaquetas !== null) {
       alertas.push('Plaquetas atuais (' + plaquetas.toLocaleString('pt-BR') + '/mcL) estão acima do gatilho recomendado de ' + gatilho.toLocaleString('pt-BR') + '/mcL. Transfusão desnecessária evitada.');
     } else if (indicada) {
@@ -38155,16 +38371,16 @@ function processarMensagemTexto(message) {
     return enviarMenuExamesEspeciais(chatId);
   }
   if (comando === "/ef_neuro" || comando === "/neuro") return responderComGuiaExameFisico(chatId, "neuro");
-  if (comando === "/ef_pqu" || comando === "/pqu" || comando === "/psiq") return responderComGuiaExameFisico(chatId, "pqu");
-  if (comando === "/ef_oftalmo" || comando === "/oftalmo") return responderComGuiaExameFisico(chatId, "oftalmo");
-  if (comando === "/ef_ortopo" || comando === "/ortopo" || comando === "/trauma" || comando === "/reumato") return responderComGuiaExameFisico(chatId, "ortopo");
-  if (comando === "/ef_orl" || comando === "/otorrino" || comando === "/orl") return responderComGuiaExameFisico(chatId, "orl");
-  if (comando === "/ef_dermato" || comando === "/dermato" || comando === "/pele") return responderComGuiaExameFisico(chatId, "dermato");
-  if (comando === "/ef_gineco" || comando === "/gineco" || comando === "/go") return responderComGuiaExameFisico(chatId, "gineco");
-  if (comando === "/ef_procto" || comando === "/procto" || comando === "/uro") return responderComGuiaExameFisico(chatId, "procto");
+  if (comando === "/ef_pqu") return responderComGuiaExameFisico(chatId, "pqu");
+  if (comando === "/ef_oftalmo") return responderComGuiaExameFisico(chatId, "oftalmo");
+  if (comando === "/ef_ortopo" || comando === "/ortopo" || comando === "/reumato") return responderComGuiaExameFisico(chatId, "ortopo");
+  if (comando === "/ef_orl" || comando === "/orl") return responderComGuiaExameFisico(chatId, "orl");
+  if (comando === "/ef_dermato") return responderComGuiaExameFisico(chatId, "dermato");
+  if (comando === "/ef_gineco") return responderComGuiaExameFisico(chatId, "gineco");
+  if (comando === "/ef_procto") return responderComGuiaExameFisico(chatId, "procto");
   if (comando === "/ef_ped" || comando === "/ef_pedia") return responderComGuiaExameFisico(chatId, "ped");
-  if (comando === "/ef_geriatria" || comando === "/geriatria" || comando === "/aga") return responderComGuiaExameFisico(chatId, "geriatria");
-  if (comando === "/ef_vascular" || comando === "/vascular" || comando === "/tvp") return responderComGuiaExameFisico(chatId, "vascular");
+  if (comando === "/ef_geriatria") return responderComGuiaExameFisico(chatId, "geriatria");
+  if (comando === "/ef_vascular") return responderComGuiaExameFisico(chatId, "vascular");
   // ───────────────────────────────────────────────────────────────────────────
   // SAÚDE DO IDOSO E AVALIAÇÃO GERIÁTRICA AMPLA (AGA)
   // ───────────────────────────────────────────────────────────────────────────
@@ -38895,37 +39111,6 @@ function processarMensagemTexto(message) {
     }
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // HEPATOLOGIA & EMERGÊNCIA OBSTÉTRICA: CIG E EHAG / AFLP
-  // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/cig" || comando === "/colestase" || comando === "/ehag" || comando === "/aflp") {
-    var dadosHepato = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof HepatologiaColestaseGestacionalService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo HepatologiaColestaseGestacionalService indisponível temporariamente.");
-    }
-
-    if (!dadosHepato) {
-      return enviarMensagemParaChat(chatId, "🟡 *HEPATOLOGIA & EMERGÊNCIA OBSTÉTRICA*\n\n" +
-        "Envie os parâmetros clínicos para avaliação de CIG ou EHAG:\n" +
-        "• *CIG:* `/cig ABT 45 IG 36+2 peso 70kg`\n" +
-        "• *EHAG (Swansea):* `/ehag vomitos, dor HCD, hipoglicemia, bilirrubina elevada, transaminases elevadas, amonia aumentada`\n\n" +
-        "💡 *Exemplos beira-leito:*\n" +
-        "• `/cig acidos biliares 102 ig 35s antecedente gemelar` *(CIG Grave com indicação de parto)*\n" +
-        "• `/ehag dor epigastrica, vomitos, coagulopatia, transaminases elevadas, hipoglicemia` *(Investigação de AFLP)*");
-    }
-
-    try {
-      var paramsHepato = HepatologiaColestaseGestacionalService.extrairParametrosTexto(texto);
-      if (comando === "/ehag" || comando === "/aflp" || texto.toLowerCase().includes("ehag") || texto.toLowerCase().includes("swansea")) {
-        paramsHepato.modo = "EHAG";
-        if(!paramsHepato.swansea) paramsHepato.swansea = {};
-      }
-      var analiseHepato = HepatologiaColestaseGestacionalService.avaliar(paramsHepato);
-      return enviarMensagemParaChat(chatId, HepatologiaColestaseGestacionalService.formatarTextoTelegram(analiseHepato));
-    } catch (eHepato) {
-      return enviarMensagemParaChat(chatId, "⚠️ Erro na avaliação de Hepatologia Obstétrica: " + eHepato.message);
-    }
-  }
 
   // ───────────────────────────────────────────────────────────────────────────
   // PNEUMOLOGIA & EMERGÊNCIA: MANEJO DA CRISE ASMÁTICA E ESTADO DE MAL ASMÁTICO
@@ -39359,7 +39544,7 @@ function processarMensagemTexto(message) {
 
   // UROLOGIA & NEFROLOGIA: CÓLICA NEFRÉTICA E LITÍASE URINÁRIA
   // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/colica" || comando === "/litiase" || comando === "/pedranorim" || comando === "/calculorenal") {
+  if (comando === "/colica" || comando === "/colicanefretica" || comando === "/litiase" || comando === "/pedranorim" || comando === "/calculorenal") {
     var dadosColica = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof UrologiaColicaNefreticaService === "undefined") {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo UrologiaColicaNefreticaService indisponível temporariamente.");
@@ -39369,7 +39554,7 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, "🪨 *UROLOGIA & NEFROLOGIA — CÓLICA NEFRÉTICA*\n\n" +
         "Envie os dados clínicos para analgesia escalonada, Terapia Expulsiva (MET) e critérios de descompressão cirúrgica:\n" +
         "• *Cálculo:* `7mm`, `distal`, `proximal`\n" +
-        "• *Gravidade:* `rim único`, `anúria`, `sepse`, `dor refratária`\n" +
+        "• *Gravidade:* `rim único`, `anúria`, `sepse`, `febre`, `dor refratária`\n" +
         "• *Paciente:* `clcr 25`, `gestante`\n\n" +
         "*Exemplos:*\n" +
         "• `/colica 6mm distal` *(Terapia Expulsiva e Analgesia)*\n" +
@@ -39383,37 +39568,6 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, UrologiaColicaNefreticaService.formatarTextoTelegram(analiseColica));
     } catch (eColica) {
       return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Cólica Nefrética: " + eColica.message);
-    }
-  }
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // UROLOGIA: CÓLICA NEFRÉTICA E LITÍASE URINÁRIA
-  // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/colica" || comando === "/colicanefretica" || comando === "/litiase") {
-    var dadosUro = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof UrologiaColicaNefreticaService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo UrologiaColicaNefreticaService indisponível temporariamente.");
-    }
-
-    if (!dadosUro) {
-      return enviarMensagemParaChat(chatId, "🪨 *UROLOGIA & NEFROLOGIA — CÓLICA NEFRÉTICA*\n\n" +
-        "Envie os dados clínicos do paciente para avaliação de analgesia, terapia expulsiva e descompressão de urgência:\n" +
-        "• *Função Renal:* `ClCr 25`, `diálise`, `rim único`\n" +
-        "• *Gravidade:* `febre`, `sepse`, `anúria`, `dor refratária`\n" +
-        "• *Cálculo:* `7 mm`, `12 mm`, `ureter distal`, `pelve`\n" +
-        "• *Gestação:* `gestante`\n\n" +
-        "*Exemplos:*\n" +
-        "• `/colica cálculo 6 mm distal sem febre`\n" +
-        "• `/colica rim único febre cálculo 12mm` *(Descompressão de Urgência)*\n" +
-        "• `/colica gestante com dor refratária`");
-    }
-
-    try {
-      var paramsUro = UrologiaColicaNefreticaService.extrairParametrosTexto(dadosUro);
-      var analiseUro = UrologiaColicaNefreticaService.avaliar(paramsUro);
-      return enviarMensagemParaChat(chatId, UrologiaColicaNefreticaService.formatarTextoTelegram(analiseUro));
-    } catch (eUro) {
-      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Cólica Nefrética: " + eUro.message);
     }
   }
   if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
@@ -40235,65 +40389,7 @@ function processarMensagemTexto(message) {
   }
 
   
-  if (comando === "/nutriped") {
-    var dadosNutriped = texto.replace(/^\/nutriped\s*/i, "").trim();
-    if (!dadosNutriped) {
-      return enviarMensagemParaChat(chatId, "🍼 *SUPORTE NUTRICIONAL EM PEDIATRIA*\n\n" +
-        "Envie os parâmetros clínicos (peso, idade, etc.):\n\n" +
-        "💡 *Exemplos de envio:*\n" +
-        "• `/nutriped peso: 5.5` (calcula Holliday-Segar basal)\n" +
-        "• `/nutriped idade: 4, mamada: 120` (calcula preparo de fórmula)\n" +
-        "• `/nutriped peso: 8, tipo: ar` (fórmula Anti-Regurgitação)\n" +
-        "• `/nutriped peso: 3.2, idade: 2, mamada: 90`\n\n" +
-        "O sistema calculará:\n" +
-        "✅ Volume basal (Holliday-Segar)\n" +
-        "✅ Diluição segura da fórmula (1 medida/30 mL)\n" +
-        "✅ Alertas beira-leito.");
-    }
 
-    if (typeof cockpitNutricaoPediatrica === "function") {
-      try {
-        function numNutri(re) {
-          var m = dadosNutriped.match(re);
-          return m ? parseFloat(String(m[1]).replace(",", ".")) : null;
-        }
-        var n_peso = numNutri(/\bpeso\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bp\s*[:=]?\s*(\d+[.,]?\d*)/i);
-        var n_idade = numNutri(/\bidade\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bi\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bmeses\s*[:=]?\s*(\d+[.,]?\d*)/i);
-        var n_mamada = numNutri(/\bmamada\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bvol\w*\s*[:=]?\s*(\d+[.,]?\d*)/i) || numNutri(/\bml\s*[:=]?\s*(\d+[.,]?\d*)/i);
-        var n_num = numNutri(/\bvezes\s*[:=]?\s*(\d+[.,]?\d*)/i);
-        
-        var n_tipo = null;
-        if (/partida/i.test(dadosNutriped)) n_tipo = 'partida';
-        else if (/seguimento/i.test(dadosNutriped)) n_tipo = 'seguimento';
-        else if (/prematuro/i.test(dadosNutriped)) n_tipo = 'prematuro';
-        else if (/\bar\b|anti-?regurgita/i.test(dadosNutriped)) n_tipo = 'anti_regurgitacao';
-        else if (/sem\s*lactose|\bsl\b/i.test(dadosNutriped)) n_tipo = 'sem_lactose';
-        else if (/hidrolisada|ehf/i.test(dadosNutriped)) n_tipo = 'hidrolisada_extensa';
-        else if (/amino|aaf/i.test(dadosNutriped)) n_tipo = 'aminoacidos';
-        else if (/soja/i.test(dadosNutriped)) n_tipo = 'soja';
-
-        var params = {};
-        if (n_peso !== null) params.pesoKg = n_peso;
-        if (n_idade !== null) params.idadeMeses = n_idade;
-        if (n_mamada !== null) params.volumeMamadaMl = n_mamada;
-        if (n_num !== null) params.numeroMamadasDia = n_num;
-        if (n_tipo !== null) params.tipoFormula = n_tipo;
-        
-        if (!params.pesoKg && !params.idadeMeses) {
-             return enviarMensagemParaChat(chatId, "⚠️ *Erro:* Forneça pelo menos o peso ou a idade em meses.");
-        }
-
-        var resposta = cockpitNutricaoPediatrica(contexto.auth, params);
-        if (resposta.sucesso) {
-          return enviarMensagemParaChat(chatId, resposta.textoFormatado);
-        } else {
-          return enviarMensagemParaChat(chatId, "⚠️ " + (resposta.erro || "Erro desconhecido."));
-        }
-      } catch (errNutri) {
-        return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular nutrição: " + errNutri.message);
-      }
-    }
-  }
 
   if (comando === "/choque" || comando === "/forrester" || comando === "/ic") {
     var dadosIC = texto.replace(/^\/(?:choque|forrester|ic)\s*/i, "").trim();
@@ -41453,8 +41549,10 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
 }
 
 function processarCallbackBotao(cb) {
-  if (typeof tratarCallbackUX!=="undefined" && tratarCallbackUX(cb)) return;
-  var data = cb.data || "";
+  if (!cb) return;
+  try {
+    if (typeof tratarCallbackUX!=="undefined" && tratarCallbackUX(cb)) return;
+    var data = cb.data || "";
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 
   // Vincula o registro à data original da mensagem ou usa a data atual se não informada
@@ -41804,6 +41902,16 @@ function processarCallbackBotao(cb) {
   // Z. CATCH-ALL PARA CALLBACKS NÃO RECONHECIDOS
   else {
     responderCallbackTelegram(cb.id, "⚠️ Ação não reconhecida.");
+  }
+  } catch (errCb) {
+    if (typeof console !== "undefined" && console.error) {
+      console.error("[Telegram Callback Error]", errCb);
+    }
+    if (cb && cb.id && typeof responderCallbackTelegram === "function") {
+      try {
+        responderCallbackTelegram(cb.id, "⚠️ Ocorreu um erro ao processar o botão.");
+      } catch (_) {}
+    }
   }
 }
 

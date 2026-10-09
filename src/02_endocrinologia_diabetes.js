@@ -241,20 +241,25 @@ var EndocrinologiaDiabetesService = (function() {
     // ─────────────────────────────────────────────────────────────────────────
     // REGRA DE OURO 1: POTÁSSIO & LIBERAÇÃO DA INSULINA
     // ─────────────────────────────────────────────────────────────────────────
-    if (potassio < 3.3) {
+    if (potassio > 8.0) {
+      alertasSentinela.push('🚨 HIPERCALEMIA EXTREMA (K+ > 8.0 mEq/L: ' + potassio + ' mEq/L): Risco iminente de assistolia/FV e PCR. Proibida reposição de potássio. Administrar Gluconato de Cálcio 10% 20 mL IV imediatamente se qualquer alteração no ECG e acionar nefrologia para Hemodiálise de Urgência.');
+      condutaPotassio = 'K+ > 8.0 mEq/L (' + potassio + ' mEq/L): Risco crítico de PCR. NÃO repor potássio. Gluconato de Cálcio 10% IV imediato para estabilização de membrana miocárdica. Checar ECG seriado e acionar suporte dialítico.';
+      var vazaoInsExtrema = Math.min(15, Math.round(peso * 0.1 * 10) / 10);
+      condutaInsulina = 'Iniciar Insulina Regular IV contínua: ' + vazaoInsExtrema + ' UI/h (0.1 UI/kg/h) em BIC para auxiliar no shift intracelular de K+. Monitorar K+ sérico a cada 1 a 2 horas.';
+    } else if (potassio < 3.3) {
       bloqueioInsulinaAtivo = true;
       alertasSentinela.push('🚨 BLOQUEIO FATAL DE INSULINA: K+ < 3.3 mEq/L (' + potassio + ' mEq/L). Iniciar insulina com hipocalemia causa influxo celular agudo maciço de potássio, levando a arritmias ventriculares malignas e PCR súbita.');
       condutaPotassio = 'K+ < 3.3 mEq/L: PARAR/NÃO INICIAR insulina. Repor 20 a 40 mEq/h de KCl IV diluído em infusão contínua com monitorização cardíaca contínua até K+ atingir >= 3.3 mEq/L.';
       condutaInsulina = '⛔ INSULINOTERAPIA BLOQUEADA. Aguardar reposição vigorosa de potássio e documentação de K+ >= 3.3 mEq/L antes de iniciar qualquer dose de insulina.';
     } else if (potassio <= 5.2) {
       condutaPotassio = 'K+ entre 3.3 e 5.2 mEq/L (' + potassio + ' mEq/L): Adicionar 20 a 30 mEq de KCl em cada litro de fluido de manutenção para manter K+ entre 4.0 e 5.0 mEq/L durante toda a insulinoterapia.';
-      var doseBolusOpcional = Math.round(peso * 0.1 * 10) / 10;
-      var vazaoBombaInsulina = Math.round(peso * 0.1 * 10) / 10;
+      var doseBolusOpcional = Math.min(15, Math.round(peso * 0.1 * 10) / 10);
+      var vazaoBombaInsulina = Math.min(15, Math.round(peso * 0.1 * 10) / 10);
       condutaInsulina = 'Iniciar Insulina Regular IV contínua: ' + vazaoBombaInsulina + ' UI/h (0.1 UI/kg/h) em bomba de infusão (opcional bolus inicial de ' + doseBolusOpcional + ' UI EV). Alvo de redução: 50 a 75 mg/dL por hora.';
     } else {
       // K > 5.2 mEq/L
       condutaPotassio = 'K+ > 5.2 mEq/L (' + potassio + ' mEq/L): NÃO repor potássio neste momento. Checar eletrólitos a cada 2 horas (o potássio cairá rapidamente com a infusão de insulina e hidratação). Iniciar reposição assim que K < 5.3.';
-      var vazaoInsKAlto = Math.round(peso * 0.1 * 10) / 10;
+      var vazaoInsKAlto = Math.min(15, Math.round(peso * 0.1 * 10) / 10);
       condutaInsulina = 'Iniciar Insulina Regular IV contínua: ' + vazaoInsKAlto + ' UI/h (0.1 UI/kg/h). Monitorar K+ sérico a cada 2 horas.';
     }
 
@@ -263,6 +268,12 @@ var EndocrinologiaDiabetesService = (function() {
     // ─────────────────────────────────────────────────────────────────────────
     var volPrimeiraHoraMin = Math.round(peso * 15);
     var volPrimeiraHoraMax = Math.round(peso * 20);
+
+    if (peso > 150) {
+      volPrimeiraHoraMin = Math.min(volPrimeiraHoraMin, 2000);
+      volPrimeiraHoraMax = Math.min(volPrimeiraHoraMax, 2000);
+      alertasSentinela.push('⚠️ OBESIDADE SEVERA (> 150 kg: ' + peso + ' kg): Volume de expansão da 1ª hora limitado ao teto seguro de 2.000 mL (2 L) para prevenir sobrecarga hídrica e edema pulmonar agudo. Dose inicial de insulina com teto de 15 UI/h.');
+    }
 
     var fluidoManutencao = sodioCorrigido >= 135
       ? 'NaCl 0.45% a 250-500 mL/h (devido ao Sódio Corrigido normal/alto: ' + sodioCorrigido + ' mEq/L).'
@@ -277,7 +288,10 @@ var EndocrinologiaDiabetesService = (function() {
     // REGRA DE OURO 3: BICARBONATO DE SÓDIO (CRITÉRIOS ESTREITOS)
     // ─────────────────────────────────────────────────────────────────────────
     if (tipoCrise === 'CAD') {
-      if (phArterial < 6.90) {
+      if (phArterial < 6.80) {
+        alertasSentinela.push('🚨 ACIDEMIA EXTREMA (pH < 6.80: ' + phArterial + '): Disfunção miocárdica crítica e vasoplegia refratária com risco iminente de PCR. Bicarbonato de sódio IV mandatório para elevar o pH acima de 7.00.');
+        condutaBicarbonato = 'pH < 6.80 (' + phArterial + '): Acidemia extrema com risco iminente de PCR. Indicação emergencial mandatória de Bicarbonato de Sódio. Administrar 100 mmol de Bicarbonato de Sódio 8.4% diluídos em 400 mL de água destilada com 20 mEq de KCl em infusão lenta de 2 horas. Repetir gasometria de controle ao término.';
+      } else if (phArterial < 6.90) {
         condutaBicarbonato = 'pH < 6.90 (' + phArterial + '): Indicação formal de Bicarbonato de Sódio. Administrar 100 mmol de Bicarbonato de Sódio 8.4% diluídos em 400 mL de água destilada com 20 mEq de KCl em infusão lenta de 2 horas. Repetir dosagem gasométrica após o término.';
       } else {
         condutaBicarbonato = 'pH >= 6.90 (' + phArterial + '): Bicarbonato de Sódio é FORMALMENTE CONTRAINDICADO. Consensos ADA/SBD demonstram aumento do risco de hipocalemia severa, edema cerebral e acidose paradoxal intracelular do SNC.';

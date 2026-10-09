@@ -37,6 +37,13 @@ function runTests() {
   assert.strictEqual(res5.pesoConsideradoKg, 6.5, "Cor rosa na fita de Broselow deve estimar 6.5kg");
   assert.strictEqual(res5.eletricidade.desfibrilacaoPrimeiroChoque, '13 J (2 J/kg)');
 
+  // Teste 6: Neonato prematuro extremo < 1kg (Edge Case)
+  let res6 = PalsPediatriaService.avaliarPals({ pesoKg: 0.8, idadeAnos: 0 });
+  assert.strictEqual(res6.pesoConsideradoKg, 0.8, "Deve respeitar o peso de 0.8kg");
+  assert.strictEqual(res6.viaAerea.tuboSemCuff, "2.5", "Tubo deve ser 2.5mm para < 1kg");
+  assert.ok(res6.viaAerea.fixacao.includes('6.8 cm'), "Profundidade deve ser 0.8 + 6 = 6.8 cm");
+  assert.ok(res6.alertas.some(a => a.includes('PREMATURO EXTREMO')), "Deve conter alerta de prematuro extremo");
+
   console.log("=== TODOS OS TESTES PALS PEDIATRIA PASSARAM COM SUCESSO ===");
 }
 

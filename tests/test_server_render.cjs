@@ -620,6 +620,64 @@ async function run() {
   const ratio = ((1 - compressedSize / rawSize) * 100).toFixed(1);
   console.log(`✓ Compressão gzip OK (${rawSize} → ${compressedSize} bytes, -${ratio}%)`);
 
+  // 11. Bateria de Auditoria Defensiva & Resiliência (Zero-Crash em Payloads Malformados)
+  // 11.1 Payload sem método
+  const resSemMetodo = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {}
+  });
+  assert.equal(resSemMetodo.statusCode, 400);
+  assert.equal(resSemMetodo.json().ok, false);
+
+  // 11.2 Método inexistente com sessão válida
+  const resMetodoInexistente = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: { metodo: 'metodoFantasmaInexistente', session: token, args: [] }
+  });
+  assert.equal(resMetodoInexistente.statusCode, 400);
+  assert.equal(resMetodoInexistente.json().ok, false);
+  assert(resMetodoInexistente.json().erro.includes('não suportado'));
+
+  // 11.3 Payload com args null ou string simples (auto-normalização sem crash)
+  const resArgsNull = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: { metodo: 'cockpitRemume', session: token, args: null }
+  });
+  assert.equal(resArgsNull.statusCode, 200);
+  assert.equal(resArgsNull.json().ok, true);
+
+  // 11.4 Payload com JSON malformado
+  const resJsonCorrompido = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    headers: { 'content-type': 'application/json' },
+    payload: '{"metodo": "cockpitRemume", invalid_json'
+  });
+  assert.equal(resJsonCorrompido.statusCode, 400);
+
+  // 11.5 Webhook do Telegram com segredo incorreto e update inválido
+  runtime.ctx.PropertiesService.getScriptProperties().setProperty('WEBHOOK_SECRET', 'test_secret');
+  const resWebhookSegredoInvalido = await app.inject({
+    method: 'POST',
+    url: '/webhook',
+    headers: { 'x-telegram-bot-api-secret-token': 'segredo_incorreto' },
+    payload: { update_id: 123 }
+  });
+  assert.equal(resWebhookSegredoInvalido.statusCode, 401);
+
+  const resWebhookUpdateInvalido = await app.inject({
+    method: 'POST',
+    url: '/webhook',
+    headers: { 'x-telegram-bot-api-secret-token': 'test_secret' },
+    payload: { update_id: -1 }
+  });
+  assert.equal(resWebhookUpdateInvalido.statusCode, 400);
+
+  console.log('✓ Bateria de Auditoria Defensiva & Resiliência RPC/Webhook OK (Zero Crash)');
+
   console.log('\n🚀 TODOS OS TESTES DO SERVIDOR RENDER PASSARAM COM SUCESSO!');
 }
 
