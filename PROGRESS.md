@@ -9,6 +9,10 @@
 4. **Eficiência Máxima Sem Perda de Rigor Teórico**: Tornar o código mais rápido, enxuto e eficiente, preservando intacta a qualidade teórica, a precisão científica dos cálculos e as diretrizes clínicas.
 5. **Documentação de Sugestões para o Futuro**: Conforme as funções forem analisadas e testadas, registrar ideias de evolução e melhorias futuras na seção dedicada `## 💡 Sugestões de Melhorias Futuras` (exclusivamente como documentação de sugestões, sem desviar a execução para implementação de novas features agora).
 
+- *Sugestão 11 (Backend)*: Implementar @fastify/rate-limit para proteger rotas HTTP e RPC contra chamadas excessivas ou DDoS de aplicações externas.
+- *Sugestão 12 (Backend)*: Implementar @fastify/helmet para adicionar headers automáticos de segurança nas requisições HTTP públicas e endpoints Webhook.
+- *Sugestão 13 (Backend)*: Utilizar schemas JSON para os retornos mais frequentes do Cockpit (ex: censo de leitos) para permitir a compilação nativa ultra-rápida do fast-json-stringify, reduzindo CPU spikes.
+
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
@@ -22,11 +26,6 @@
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
-
-1. [ ] **Otimização de Performance e Latência do Backend Fastify**:
-    - Testar todas as rotas HTTP e endpoints do servidor (`server/index.js`).
-    - Avaliar consumo de memória e tempo de resposta das rotas RPC em alta frequência.
-    - Otimizar middlewares, serialização JSON e tratamento global de erros para garantir máxima resiliência.
 
 2. [ ] **Auditoria de Acessibilidade, Ergonomia e Atalhos Rápidos no Bot do Telegram**:
     - Revisar fluxos de navegação, tamanho de teclados e limites de caracteres para conexões instáveis de plantão.
@@ -51,6 +50,11 @@
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0P. [x] **Otimização de Performance, Latência e Resiliência do Backend Fastify**:
+    - **Otimização de Middlewares**: Configurada compressão avançada (@fastify/compress) incluindo suporte a Brotli ('br') com zlibOptions globais para reduzir payload json de respostas grandes.
+    - **Tratamento Global de Erros**: Implementados setErrorHandler e setNotFoundHandler globais no Fastify para evitar crashes silenciosos e responder JSON padronizado em falhas catastróficas.
+    - **Testes de Integração HTTP**: Criada suíte tests/test_fastify_resiliencia.cjs validando rotas de health, payloads malformados em /api/cockpit, compressão e tratamentos de erro, incluída no pipeline npm test.
 
 0P. [x] **Testes de Integração, Resiliência e Otimização do Cockpit PWA Beira-Leito**:
     - **Varredura e Mapeamento de 100% das Rotas RPC no Fastify Runtime**:

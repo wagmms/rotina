@@ -33,9 +33,29 @@ async function buildServer() {
   // 1.1. Compressão HTTP (gzip/deflate) — reduz payload ~60-80% em respostas grandes
   // (REMUME, SOAP, leitos). Threshold de 1KB para não comprimir micro-respostas.
   await fastify.register(compress, {
+    global: true,
     threshold: 1024,
-    encodings: ['gzip', 'deflate']
+    zlibOptions: { level: 6 },
+    encodings: ['gzip', 'deflate', 'br']
   });
+
+  // 1.2. Tratamento Global de Erros Fastify (Resiliência)
+  fastify.setErrorHandler((error, request, reply) => {
+    fastify.log.error(`[Fastify Global Error] ${error.message} - Rota: ${request.raw.url}`);
+    reply.status(error.statusCode || 500).send({
+      ok: false,
+      erro: 'Falha interna no servidor.',
+      detalhes: error.message
+    });
+  });
+
+  fastify.setNotFoundHandler((request, reply) => {
+    reply.status(404).send({
+      ok: false,
+      erro: 'Rota não encontrada no backend Ultra Rotina.'
+    });
+  });
+
 
   let pingTracker = {
     total: 0,
