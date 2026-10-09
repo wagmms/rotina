@@ -818,6 +818,92 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // PSIQUIATRIA DE URGÊNCIA & SAÚDE MENTAL (ABP / MS / APA / NICE)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/psiq" || comando === "/agitacao" || comando === "/suicidio" || comando === "/phq9") {
+    var dadosPsiq = texto.replace(/^\/\w+\s*/, "").trim();
+    if (!dadosPsiq) {
+      return enviarMensagemParaChat(chatId, "🧠 *MÓDULO DE PSIQUIATRIA DE URGÊNCIA & SAÚDE MENTAL*\n\n" +
+        "Envie os achados para avaliação clínica estruturada:\n" +
+        "• `/agitacao grave, agressivo, recusa VO, psicose` *(Contenção Farmacológica)*\n" +
+        "• `/suicidio ideacao ativa, plano estruturado, tentativa previa` *(Estratificação C-SSRS)*\n" +
+        "• `/phq9 3,3,2,3,2,3,2,2,2 cardiopata` *(Rastreio Depressão e Fármaco Dirigido)*\n" +
+        "• `/psiq idoso 78a, delirium, agitado, dor cronica` *(Avaliação Integrada)*");
+    }
+
+    if (typeof PsiquiatriaUrgenciaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PsiquiatriaUrgenciaService indisponível temporariamente.");
+    }
+
+    var cenarioPsiq = {
+      textoOriginal: dadosPsiq
+    };
+
+    var tLower = dadosPsiq.toLowerCase();
+
+    // Extração de parâmetros
+    if (tLower.includes("grave") || tLower.includes("extrema") || tLower.includes("agress")) cenarioPsiq.gravidade = "grave";
+    else if (tLower.includes("modera")) cenarioPsiq.gravidade = "moderada";
+    else if (tLower.includes("leve")) cenarioPsiq.gravidade = "leve";
+
+    if (tLower.includes("recusa vo") || tLower.includes("recusa oral") || tLower.includes("nao aceita vo") || tLower.includes("im")) {
+      cenarioPsiq.aceitaViaOral = false;
+      cenarioPsiq.viaPreferencial = "im";
+    } else if (tLower.includes("aceita vo") || tLower.includes("via oral")) {
+      cenarioPsiq.aceitaViaOral = true;
+      cenarioPsiq.viaPreferencial = "oral";
+    }
+
+    if (tLower.includes("abstin") || tLower.includes("alcool") || tLower.includes("etil")) cenarioPsiq.etiologia = "abstinencia_alcoolica";
+    else if (tLower.includes("estimulante") || tLower.includes("cocaina") || tLower.includes("crack")) cenarioPsiq.etiologia = "intoxicacao_estimulantes";
+    else if (tLower.includes("delirium")) cenarioPsiq.etiologia = "delirium_organico";
+    else if (tLower.includes("demencia") || tLower.includes("alzheimer")) cenarioPsiq.etiologia = "demencia_idoso";
+    else if (tLower.includes("mania") || tLower.includes("bipolar")) cenarioPsiq.etiologia = "mania_bipolar";
+    else if (tLower.includes("psicose") || tLower.includes("esquizof")) cenarioPsiq.etiologia = "psicose";
+
+    // Idade
+    var mIdade = tLower.match(/(\d{1,3})\s*a(?:nos)?/);
+    if (mIdade) cenarioPsiq.idade = parseInt(mIdade[1], 10);
+    if (tLower.includes("idoso") || tLower.includes("idosa")) cenarioPsiq.idoso = true;
+    if (tLower.includes("gestan") || tLower.includes("gravid")) cenarioPsiq.gestante = true;
+
+    // Comorbidades
+    var comorbs = [];
+    if (tLower.includes("parkinson") || tLower.includes("lewy")) comorbs.push("parkinson");
+    if (tLower.includes("qtc") || tLower.includes("arritm")) comorbs.push("qtc_longo");
+    if (tLower.includes("cardio") || tLower.includes("iam") || tLower.includes("coronar")) comorbs.push("cardiopatia");
+    if (tLower.includes("dor") || tLower.includes("fibromialg")) comorbs.push("dor_cronica");
+    if (tLower.includes("insonia") || tLower.includes("peso") || tLower.includes("caquex")) comorbs.push("insonia_perda_peso");
+    if (tLower.includes("tabag")) comorbs.push("tabagismo");
+    if (tLower.includes("epilep") || tLower.includes("convuls")) comorbs.push("epilepsia");
+    if (tLower.includes("bulimia") || tLower.includes("anorex")) comorbs.push("transtorno_alimentar");
+    cenarioPsiq.comorbidades = comorbs;
+
+    // Risco de Suicídio
+    if (comando === "/suicidio" || tLower.includes("suicid") || tLower.includes("morte")) {
+      if (tLower.includes("plano") || tLower.includes("estruturad")) cenarioPsiq.planoEstruturado = true;
+      if (tLower.includes("intencao")) cenarioPsiq.intencaoSuicida = true;
+      if (tLower.includes("meios") || tLower.includes("arma") || tLower.includes("veneno")) cenarioPsiq.acessoMeiosLetais = true;
+      if (tLower.includes("tentativa previa") || tLower.includes("tentativa anterior")) cenarioPsiq.tentativaPrevia = true;
+      if (tLower.includes("tentativa recente") || tLower.includes("tentou hoje") || tLower.includes("tentativa atual")) cenarioPsiq.tentativaRecente = true;
+      if (tLower.includes("desesperanc")) cenarioPsiq.desesperanca = true;
+      cenarioPsiq.ideacaoAtiva = true;
+    }
+
+    // PHQ-9
+    if (comando === "/phq9" || tLower.includes("phq")) {
+      var nums = dadosPsiq.match(/\b([0-3])\b/g);
+      if (nums && nums.length >= 5) {
+        cenarioPsiq.respostas = nums.slice(0, 9).map(function(n) { return parseInt(n, 10); });
+      }
+    }
+
+    var resultadoPsiq = PsiquiatriaUrgenciaService.avaliarPsiquiatriaCompleto(cenarioPsiq);
+    return enviarMensagemParaChat(chatId, resultadoPsiq.resumoFormatado);
+  }
+
+
 
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
