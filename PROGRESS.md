@@ -547,6 +547,14 @@
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Integração UI/UX de Emergência & Sala Vermelha no Cockpit PWA (DVA Avançada, SRI Neuro e Cópia com 1 Toque para PEP)**:
+   - Expansão dos seletores e calculadoras de DVA em `tab-calculadoras` do Cockpit PWA: adição de Adrenalina/Epinefrina (16 mcg/mL - Choque Séptico refratário e Anafilaxia), Nitroglicerina/Tridil (200 mcg/mL - EAP e SCA) e Nitroprussiato de Sódio/Nipride (200 mcg/mL - Emergência Hipertensiva).
+   - Expansão da SRI (Sequência Rápida de Intubação): adição do cenário Neurointensivismo / TCE / HIC (Fentanil 3 mcg/kg + Etomidato 0,3 mg/kg + Rocurônio 1,2 mg/kg com metas de PAM e PAS > 100-110 mmHg para garantir PPC = PAM - PIC).
+   - Adicionados botões de cópia com 1 clique para prontuário (PEP) com feedback tátil em DVA (`btn-copiar-dva`), SRI (`btn-copiar-sri`), Clearance Cockcroft-Gault (`btn-copiar-crcl`) e Gasometria Arterial (`btn-copiar-gaso`).
+   - Adicionados chips de ação rápida `🚨 DVA & Choque` e `🛡️ Intubação (SRI)` na aba SOAP (`tab-soap`) com redirecionamento imediato em 1 toque.
+   - Expandido o motor determinístico offline de contingência (`calcularOfflineLocal`) e o endpoint RPC Fastify `cockpitCalcular` em `src/13_cockpit_integracao.js` com execução instantânea (0ms) mesmo sem sinal hospitalar.
+   - Sincronização automatizada para GitHub Pages via `gh_cockpit_deploy/index.html`.
+   - Validação da suíte de testes `tests/test_cockpit_offline_indexeddb.cjs` e `tests/test_server_render.cjs` com 100% de sucesso no pipeline contínuo (`npm test`).
 - [x] (2026-10-09) **Integração UI/UX de Pediatria no Cockpit PWA (Holliday-Segar, PALS e Posologia Offline)**:
    - Adicionado botão e painel dedicado `calc-pediatria` na aba `Emergência & Cálculos` (`tab-calculadoras`) do Cockpit PWA com seletores ágeis para Holliday-Segar (regra 4-2-1, TIG SG 5% e eletrólitos SBP), PALS (Adrenalina, Amiodarona, Choque 2-4 J/kg, Tubo ET e Fixação) e Doses de Bolso/Sintomáticos (Dipirona, Paracetamol, Ibuprofeno e Amoxicilina com tetos seguros de adulto).
    - Adicionado chip de ação rápida `Pediatria & PALS` na aba SOAP (`tab-soap`) com redirecionamento em 1 toque.

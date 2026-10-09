@@ -34,7 +34,11 @@ assert(htmlContent.includes('id="pn-box-resultado-soro"'), 'Box de resultado de 
 assert(htmlContent.includes('id="calc-pediatria"'), 'Painel calc-pediatria presente no tab-calculadoras');
 assert(htmlContent.includes('id="ped-peso"'), 'Input de peso pediátrico ped-peso presente');
 assert(htmlContent.includes('id="pediatria-resultado"'), 'Box de resultado pediátrico presente');
-console.log('  ✓ Elementos de telemetria, UI, Sorologias e Pediatria validados com sucesso no DOM.');
+assert(htmlContent.includes('id="btn-copiar-dva"'), 'Botão btn-copiar-dva presente');
+assert(htmlContent.includes('id="btn-copiar-sri"'), 'Botão btn-copiar-sri presente');
+assert(htmlContent.includes('id="btn-copiar-crcl"'), 'Botão btn-copiar-crcl presente');
+assert(htmlContent.includes('id="btn-copiar-gaso"'), 'Botão btn-copiar-gaso presente');
+console.log('  ✓ Elementos de telemetria, UI, Sorologias, Pediatria e Botões PEP validados com sucesso no DOM.');
 
 // 2. Extrai o bloco de script principal (maior bloco de script inline)
 const scripts = Array.from(htmlContent.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi));
@@ -327,6 +331,34 @@ function criarAmbienteSimulacao() {
   assert(resAmoxi.includes('AMOXICILINA 250mg/5mL'), 'Amoxicilina calculada');
   assert(resAmoxi.includes('5.0 mL VO de 8 em 8 horas'), 'Amoxicilina 50mg/kg/dia para 15kg = 750mg = 15mL/dia = 5mL 8/8h');
   console.log('  ✓ Motor offline de Pediatria (Holliday-Segar, PALS e Posologia) validado com 100% de sucesso.');
+
+  console.log('\n[8] Testando motor offline determinístico de Emergência (DVA e SRI Avançada)...');
+  // 8.1 DVA - Adrenalina
+  const resAdrena = fnCalcOffline('dva', { peso: 70, droga: 'adrena' });
+  assert(resAdrena.includes('ADRENALINA'), 'Adrenalina calculada offline');
+  assert(resAdrena.includes('13.1 mL/h'), 'Dose inicial de adrenalina para 70kg ((0.05 * 70 * 60)/16 = 13.125 -> 13.1)');
+  assert(resAdrena.includes('Choque Séptico refratário'), 'Alerta clínico de indicação presente');
+
+  // 8.2 DVA - Tridil / Nitroglicerina
+  const resTridil = fnCalcOffline('dva', { peso: 70, droga: 'tridil' });
+  assert(resTridil.includes('NITROGLICERINA / TRIDIL'), 'Tridil calculado offline');
+  assert(resTridil.includes('1,5 mL/h'), 'Vazão inicial 5 mcg/min de Tridil');
+  assert(resTridil.includes('Infarto de VD'), 'Contraindicação formal presente');
+
+  // 8.3 DVA - Nipride / Nitroprussiato
+  const resNipride = fnCalcOffline('dva', { peso: 80, droga: 'nipride' });
+  assert(resNipride.includes('NITROPRUSSIATO DE SÓDIO / NIPRIDE'), 'Nipride calculado offline');
+  assert(resNipride.includes('7.2 mL/h'), 'Vazão inicial 0.3 mcg/kg/min para 80kg ((0.3 * 80 * 60)/200 = 7.2)');
+  assert(resNipride.includes('Emergência Hipertensiva'), 'Indicação clínica de crise HAS presente');
+
+  // 8.4 SRI - Neurointensivismo / TCE / HIC
+  const resSriNeuro = fnCalcOffline('sri', { peso: 70, cenario: 'neuro' });
+  assert(resSriNeuro.includes('NEUROINTENSIVISMO / TCE / HIC'), 'SRI cenário neuro executado offline');
+  assert(resSriNeuro.includes('Fentanil 210 mcg'), 'Fentanil 3 mcg/kg para 70kg (210 mcg)');
+  assert(resSriNeuro.includes('ETOMIDATO 21.0 mg'), 'Etomidato 0.3 mg/kg para 70kg (21.0 mg)');
+  assert(resSriNeuro.includes('ROCURÔNIO 84 mg'), 'Rocurônio 1.2 mg/kg para 70kg (84 mg)');
+  assert(resSriNeuro.includes('PAS > 100-110 mmHg'), 'Alvo hemodinâmico de neuroproteção presente');
+  console.log('  ✓ Motor offline de DVA (Adrenalina, Tridil, Nipride) e SRI (Neuro/TCE) validado com 100% de sucesso.');
 
   console.log('\n🚀 TODOS OS TESTES DE CACHE CRIPTOGRAFADO, INDEXEDDB E TELEMETRIA PASSARAM COM SUCESSO!\n');
 })().catch(err => {

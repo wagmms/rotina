@@ -819,12 +819,18 @@
               <option value="nora">Noradrenalina (64 mcg/mL)</option>
               <option value="dobuta">Dobutamina (1000 mcg/mL)</option>
               <option value="vaso">Vasopressina (Dose Fixa)</option>
+              <option value="adrena">Adrenalina (16 mcg/mL - Choque/PCR)</option>
+              <option value="tridil">Nitroglicerina / Tridil (200 mcg/mL - EAP/SCA)</option>
+              <option value="nipride">Nitroprussiato / Nipride (200 mcg/mL - Crise HAS)</option>
             </select>
           </div>
         </div>
         <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs" id="dva-resultado">
           <!-- Resultado dinâmico -->
         </div>
+        <button id="btn-copiar-dva" onclick="copiarDvaPEP()" class="hidden w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Conduta de DVA para o Prontuário
+        </button>
       </div>
 
       <!-- Subcalc 2: SRI / IOT -->
@@ -843,12 +849,16 @@
               <option value="padrao">Padrão / Hemodinâmica Estável</option>
               <option value="choque">Choque / Hipotensão Grave</option>
               <option value="asma">Broncoespasmo Grave / Asma</option>
+              <option value="neuro">Neurointensivismo / TCE / HIC</option>
             </select>
           </div>
         </div>
         <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5 text-xs" id="sri-resultado">
           <!-- Resultado dinâmico -->
         </div>
+        <button id="btn-copiar-sri" onclick="copiarSriPEP()" class="hidden w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Conduta de SRI para o Prontuário
+        </button>
       </div>
 
       <!-- Subcalc 3: Clearance Cr -->
@@ -881,6 +891,9 @@
         <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs" id="crcl-resultado">
           <!-- Resultado dinâmico -->
         </div>
+        <button id="btn-copiar-crcl" onclick="copiarCrClPEP()" class="hidden w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Parecer de ClCr para o Prontuário
+        </button>
       </div>
 
       <!-- Subcalc 4: Gasometria -->
@@ -905,6 +918,9 @@
         <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs" id="gaso-resultado">
           <!-- Resultado dinâmico -->
         </div>
+        <button id="btn-copiar-gaso" onclick="copiarGasoPEP()" class="hidden w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Gasometria para o Prontuário
+        </button>
       </div>
 
       <!-- Subcalc 5: Pediatria & PALS (Holliday-Segar, PCR e Sintomáticos) -->
@@ -1178,6 +1194,12 @@
             </button>
             <button onclick="navegarAba('tab-calculadoras', 'Emergência & Cálculos'); abrirSubCalc('calc-pediatria');" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-semibold hover:bg-amber-500/30 flex items-center gap-1 transition">
               <i data-lucide="baby" class="w-3 h-3"></i> Pediatria &amp; PALS
+            </button>
+            <button onclick="navegarAba('tab-calculadoras', 'Emergência & Cálculos'); abrirSubCalc('calc-dva');" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-semibold hover:bg-rose-500/30 flex items-center gap-1 transition">
+              <i data-lucide="zap" class="w-3 h-3"></i> DVA &amp; Choque
+            </button>
+            <button onclick="navegarAba('tab-calculadoras', 'Emergência & Cálculos'); abrirSubCalc('calc-sri');" class="px-2.5 py-1.5 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[11px] font-semibold hover:bg-sky-500/30 flex items-center gap-1 transition">
+              <i data-lucide="shield-alert" class="w-3 h-3"></i> Intubação (SRI)
             </button>
             <button onclick="copiarReceitaLimpaPEP()" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold hover:bg-emerald-500/30 flex items-center gap-1 transition">
               <i data-lucide="receipt" class="w-3 h-3"></i> Receita PEP
@@ -4784,6 +4806,23 @@
       const pedido = {entrada};pedidosCalc[tipo] = pedido;
       resultado.classList.add('whitespace-pre-wrap');
       resultado.textContent = 'Conferindo parâmetros…';
+      function atualizarBtnCopiarCalculo(idAlvo, textoValido) {
+        const mapa = {
+          'dva-resultado': 'btn-copiar-dva',
+          'sri-resultado': 'btn-copiar-sri',
+          'crcl-resultado': 'btn-copiar-crcl',
+          'gaso-resultado': 'btn-copiar-gaso'
+        };
+        const btnId = mapa[idAlvo];
+        if (btnId) {
+          const btn = document.getElementById(btnId);
+          if (btn) {
+            const ehValido = textoValido && !textoValido.includes('Informe') && !textoValido.includes('Preencha') && !textoValido.includes('Não foi possível') && !textoValido.includes('Erro ao calcular');
+            btn.classList.toggle('hidden', !ehValido);
+          }
+        }
+      }
+
       pedido.timer = setTimeout(async () => {
         // Se estiver offline, recupera diretamente do cache criptografado de cálculos
         if (isDeviceOffline()) {
@@ -4791,11 +4830,13 @@
           if (calcCache && calcCache.textoFormatado) {
             const doc = new DOMParser().parseFromString(calcCache.textoFormatado, 'text/html');
             resultado.textContent = (doc.body.textContent || '') + '\n\n[Cache Criptografado · Disponível Offline 0ms]';
+            atualizarBtnCopiarCalculo(id, resultado.textContent);
             return;
           }
           const resLocal = calcularOfflineLocal(tipo, entrada);
           if (resLocal) {
             resultado.textContent = resLocal;
+            atualizarBtnCopiarCalculo(id, resultado.textContent);
             return;
           }
         }
@@ -4809,12 +4850,14 @@
           // Aproveita o texto integral do bot, sem inserir HTML remoto no documento.
           const doc = new DOMParser().parseFromString(resposta.textoFormatado || '', 'text/html');
           resultado.textContent = doc.body.textContent || 'Não foi possível obter o resultado. Confira os parâmetros.';
+          atualizarBtnCopiarCalculo(id, resultado.textContent);
         } catch(e) {
           if (pedidosCalc[tipo] === pedido) {
             const calcCache = await carregarCalculoOffline(tipo, entrada);
             if (calcCache && calcCache.textoFormatado) {
               const doc = new DOMParser().parseFromString(calcCache.textoFormatado, 'text/html');
               resultado.textContent = (doc.body.textContent || '') + '\n\n[Cache Criptografado · Disponível Offline 0ms]';
+              atualizarBtnCopiarCalculo(id, resultado.textContent);
               return;
             }
             const resLocal = calcularOfflineLocal(tipo, entrada);
@@ -4823,6 +4866,7 @@
             } else {
               resultado.textContent = e.message;
             }
+            atualizarBtnCopiarCalculo(id, resultado.textContent);
           }
         }
       }, 350);
@@ -4836,7 +4880,7 @@
           if (isNaN(peso) || peso <= 0) return 'Informe o peso do paciente para calcular a taxa de infusão.';
           const alertaObesidade = peso > 150 ? '\n🚨 OBESIDADE SEVERA (> 150 kg): O cálculo por peso real gera doses excessivas. Considere usar Peso Ideal ou titular estritamente pela PAM alvo.' : '';
           const droga = String(entrada.droga || 'nora').toLowerCase();
-          if (droga === 'nora') {
+          if (droga === 'nora' || droga.includes('noradren')) {
             const c = 64; // mcg/mL (16mg em 250mL SG5%)
             const vIni = ((0.1 * peso * 60) / c).toFixed(1);
             const vMed = ((0.5 * peso * 60) / c).toFixed(1);
@@ -4846,7 +4890,7 @@
               `• Dose Média (0,5 mcg/kg/min): ${vMed} mL/h em BIC\n` +
               `• Dose Máxima (2,0 mcg/kg/min): ${vMax} mL/h em BIC\n` +
               `⚠️ Alvo: PAM ≥ 65 mmHg. Preferir acesso central (periférico apenas de resgate em veia calibrosa de antebraço).` + alertaObesidade;
-          } else if (droga === 'dobuta') {
+          } else if (droga === 'dobuta' || droga.includes('dobutam')) {
             const c = 1000; // mcg/mL (250mg em 250mL SG5%)
             const vIni = ((2.5 * peso * 60) / c).toFixed(1);
             const vMed = ((5.0 * peso * 60) / c).toFixed(1);
@@ -4856,11 +4900,38 @@
               `• Dose Titulada (5,0 mcg/kg/min): ${vMed} mL/h em BIC\n` +
               `• Dose Máxima (20,0 mcg/kg/min): ${vMax} mL/h em BIC\n` +
               `⚠️ Contraindicada em hipotensão grave isolada (PAS < 85-90 mmHg) sem vasopressor associado.` + alertaObesidade;
-          } else if (droga === 'vaso') {
+          } else if (droga === 'vaso' || droga.includes('vasopress')) {
             return `💉 VASOPRESSINA (Solução Padrão: 1 amp [20 UI] + 100mL SF0,9% = 0,2 UI/mL) [OFFLINE]\n` +
               `• Dose Fixa (0,01 a 0,04 UI/min): 3 a 12 mL/h em BIC contínua\n` +
               `• Dose de Escolha: 0,03 UI/min (9 mL/h em BIC)\n` +
               `⚠️ Droga de 2ª linha poupadora de noradrenalina no choque séptico refratário. Não titular.`;
+          } else if (droga === 'adrena' || droga.includes('adren')) {
+            const c = 16; // mcg/mL (4mg em 250mL SG5%)
+            const vIni = ((0.05 * peso * 60) / c).toFixed(1);
+            const vMed = ((0.10 * peso * 60) / c).toFixed(1);
+            const vMax = ((0.50 * peso * 60) / c).toFixed(1);
+            return `💉 ADRENALINA (Solução Padrão: 4 amp [4mg] + 246mL SG5% = 16 mcg/mL) [OFFLINE]\n` +
+              `• Dose Inicial (0,05 mcg/kg/min): ${vIni} mL/h em BIC\n` +
+              `• Dose Média (0,10 mcg/kg/min): ${vMed} mL/h em BIC\n` +
+              `• Dose Máxima (0,50 mcg/kg/min): ${vMax} mL/h em BIC\n` +
+              `⚠️ Alvo: PAM ≥ 65 mmHg. Indicação: Choque Séptico refratário a noradrenalina ou anafilaxia refratária. Causa taquicardia e hiperlactatemia tipo B.` + alertaObesidade;
+          } else if (droga === 'tridil' || droga.includes('nitroglic')) {
+            return `💉 NITROGLICERINA / TRIDIL (Solução Padrão: 1 amp [50mg/10mL] + 240mL SG5% = 200 mcg/mL) [OFFLINE]\n` +
+              `• Dose Inicial (5 mcg/min): 1,5 mL/h em BIC (titular a cada 5-10 min)\n` +
+              `• Dose Moderada (20 mcg/min): 6,0 mL/h em BIC\n` +
+              `• Dose Alta / EAP (50 mcg/min): 15,0 mL/h em BIC\n` +
+              `• Dose Máxima (200 mcg/min): 60,0 mL/h em BIC\n` +
+              `⚠️ Alvo: alívio da congestão/isquemia. Contraindicada em Infarto de VD, PAS < 90 mmHg e uso de IPDE-5 (Sildenafil 24h, Tadalafil 48h).`;
+          } else if (droga === 'nipride' || droga.includes('nitropruss')) {
+            const c = 200; // mcg/mL (50mg em 250mL SG5%)
+            const vIni = ((0.3 * peso * 60) / c).toFixed(1);
+            const vMed = ((1.0 * peso * 60) / c).toFixed(1);
+            const vMax = ((2.0 * peso * 60) / c).toFixed(1);
+            return `💉 NITROPRUSSIATO DE SÓDIO / NIPRIDE (Solução: 1 amp [50mg] + 248mL SG5% = 200 mcg/mL fotoprotetor) [OFFLINE]\n` +
+              `• Dose Inicial (0,3 mcg/kg/min): ${vIni} mL/h em BIC\n` +
+              `• Dose Média (1,0 mcg/kg/min): ${vMed} mL/h em BIC\n` +
+              `• Dose Máxima (2,0 mcg/kg/min): ${vMax} mL/h em BIC\n` +
+              `⚠️ Emergência Hipertensiva: redução de PAM ≤ 20-25% na 1ª hora. Risco de intoxicação por cianeto se uso > 48h ou ClCr < 30 mL/min.` + alertaObesidade;
           }
         } else if (tipo === 'sri') {
           const peso = parseFloat(String(entrada.peso).replace(',', '.'));
@@ -4868,7 +4939,7 @@
           const alertaObesidade = peso > 150 ? '\n🚨 OBESIDADE SEVERA (> 150 kg): Risco de sobredose. Utilize o Peso Ideal (IBW) para Fentanil, Quetamina, Etomidato e Rocurônio. Apenas a Succinilcolina pode ser no peso real.' : '';
           const cenario = String(entrada.cenario || 'padrao').toLowerCase();
           const fentanil = (3 * peso).toFixed(0);
-          if (cenario === 'choque') {
+          if (cenario.includes('choque') || cenario.includes('sepse') || cenario.includes('hipotens')) {
             const quetamina = (1.5 * peso).toFixed(0);
             const rocuronio = (1.2 * peso).toFixed(0);
             return `🚨 SRI · CENÁRIO CHOQUE / INSTABILIDADE HEMODINÂMICA [OFFLINE]\n` +
@@ -4877,7 +4948,7 @@
               `3. Sedação / Hipnótico: QUETAMINA ${quetamina} mg IV bolus (1,5 mg/kg - preserva drive simpático)\n` +
               `4. Bloqueador Neuromuscular: ROCURÔNIO ${rocuronio} mg IV bolus (1,2 mg/kg)\n` +
               `⚠️ Evitar Midazolam/Propofol (vasodilatação severa e colapso pressórico).` + alertaObesidade;
-          } else if (cenario === 'asma') {
+          } else if (cenario.includes('asma') || cenario.includes('bronco') || cenario.includes('dpoc')) {
             const quetamina = (1.5 * peso).toFixed(0);
             const rocuronio = (1.2 * peso).toFixed(0);
             return `🚨 SRI · CENÁRIO BRONCOESPASMO SEVERO / ASMA [OFFLINE]\n` +
@@ -4885,6 +4956,15 @@
               `2. Sedação / Hipnótico: QUETAMINA ${quetamina} mg IV (1,5 mg/kg - potente broncodilatador)\n` +
               `3. Bloqueador Neuromuscular: ROCURÔNIO ${rocuronio} mg IV (1,2 mg/kg)\n` +
               `⚠️ Evitar Succinilcolina e Morfina (risco de liberação de histamina).` + alertaObesidade;
+          } else if (cenario.includes('neuro') || cenario.includes('tce') || cenario.includes('hic') || cenario.includes('avc')) {
+            const etomidato = (0.3 * peso).toFixed(1);
+            const rocuronio = (1.2 * peso).toFixed(0);
+            return `🚨 SRI · CENÁRIO NEUROINTENSIVISMO / TCE / HIC [OFFLINE]\n` +
+              `1. Pré-oxigenação: O2 a 100% por 3-5 minutos (manter SpO2 > 94%)\n` +
+              `2. Analgesia & Pré-tratamento: Fentanil ${fentanil} mcg IV lento (3 mcg/kg - atenua elevação da PIC na laringoscopia)\n` +
+              `3. Sedação / Hipnótico: ETOMIDATO ${etomidato} mg IV (0,3 mg/kg - estabilidade hemodinâmica sem elevar PIC)\n` +
+              `4. Bloqueador Neuromuscular: ROCURÔNIO ${rocuronio} mg IV (1,2 mg/kg - preferível à succinilcolina para evitar picos de PIC)\n` +
+              `⚠️ Alvos: Manter PAS > 100-110 mmHg (Diretrizes BTF) para garantir Pressão de Perfusão Cerebral (PPC = PAM - PIC). Evitar hipotensão e hipóxia a todo custo.` + alertaObesidade;
           } else {
             const etomidato = (0.3 * peso).toFixed(1);
             const succi = (1.5 * peso).toFixed(0);
@@ -5049,6 +5129,42 @@
     }
     function calcularGaso() {
       solicitarCalculo('gaso', {ph:valorCalc('gaso-ph'), pco2:valorCalc('gaso-pco2'), hco3:valorCalc('gaso-hco3')}, 'gaso-resultado');
+    }
+    function copiarDvaPEP() {
+      hapticFeedback('light');
+      const txt = document.getElementById('dva-resultado')?.innerText || '';
+      if (!txt || txt.includes('Informe o peso')) {
+        copiarToast('Calcule a taxa de DVA primeiro.');
+        return;
+      }
+      copiarTextoClipboard(txt, 'Conduta de DVA copiada para o Prontuário!');
+    }
+    function copiarSriPEP() {
+      hapticFeedback('light');
+      const txt = document.getElementById('sri-resultado')?.innerText || '';
+      if (!txt || txt.includes('Informe o peso')) {
+        copiarToast('Calcule a SRI primeiro.');
+        return;
+      }
+      copiarTextoClipboard(txt, 'Conduta de SRI copiada para o Prontuário!');
+    }
+    function copiarCrClPEP() {
+      hapticFeedback('light');
+      const txt = document.getElementById('crcl-resultado')?.innerText || '';
+      if (!txt || txt.includes('Preencha Idade')) {
+        copiarToast('Calcule o Clearance de Creatinina primeiro.');
+        return;
+      }
+      copiarTextoClipboard(txt, 'Parecer de ClCr copiado para o Prontuário!');
+    }
+    function copiarGasoPEP() {
+      hapticFeedback('light');
+      const txt = document.getElementById('gaso-resultado')?.innerText || '';
+      if (!txt || txt.includes('Preencha pH')) {
+        copiarToast('Calcule a Gasometria primeiro.');
+        return;
+      }
+      copiarTextoClipboard(txt, 'Análise gasométrica copiada para o Prontuário!');
     }
     function alternarModuloPediatria() {
       const mod = document.getElementById('ped-modulo')?.value || 'holliday';

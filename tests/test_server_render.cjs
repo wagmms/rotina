@@ -82,6 +82,43 @@ async function run() {
   assert(tPed < 50, `Tempo de Pediatria (${tPed}ms) deve ser menor que 50ms`);
   console.log(`✓ Cockpit Cálculo Pediatria & Holliday-Segar OK (${tPed.toFixed(2)}ms)`);
 
+  // 4.2 Cockpit RPC - Cálculo SRI Neurointensivismo / TCE (< 50ms)
+  const t0Sri = performance.now();
+  const resSri = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitCalcular',
+      session: token,
+      args: ['sri', { peso: 70, cenario: 'neuro' }]
+    }
+  });
+  const tSri = performance.now() - t0Sri;
+  assert.equal(resSri.statusCode, 200);
+  const jsonSri = resSri.json();
+  assert.equal(jsonSri.ok, true);
+  assert.equal(jsonSri.resultado.ok, true);
+  assert(jsonSri.resultado.texto.includes('Neurointensivismo') || jsonSri.resultado.texto.includes('TCE'));
+  assert(tSri < 50, `Tempo de SRI (${tSri}ms) deve ser menor que 50ms`);
+  console.log(`✓ Cockpit Cálculo SRI Neurointensivismo/TCE OK (${tSri.toFixed(2)}ms)`);
+
+  // 4.3 Cockpit RPC - Cálculo DVA Adrenalina & Vasodilatadores (< 50ms)
+  const resAdrena = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitCalcular',
+      session: token,
+      args: ['dva', { droga: 'adrena', peso: 70 }]
+    }
+  });
+  assert.equal(resAdrena.statusCode, 200);
+  const jsonAdrena = resAdrena.json();
+  assert.equal(jsonAdrena.ok, true);
+  assert.equal(jsonAdrena.resultado.ok, true);
+  assert(jsonAdrena.resultado.texto.includes('Adrenalina'));
+  console.log(`✓ Cockpit Cálculo DVA Adrenalina OK`);
+
   // 5. Cockpit RPC - Consulta REMUME (< 20ms)
   const resRemume = await app.inject({
     method: 'POST',
