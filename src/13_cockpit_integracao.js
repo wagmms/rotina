@@ -2282,3 +2282,24 @@ function cockpitCardiologiaIcc(initData, params) {
 function cockpitICC(initData, params) {
     return cockpitCardiologiaIcc(initData, params);
 }
+
+function cockpitPneumologiaDpocVni(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de DPOC/VNI não fornecidos.');
+  if (typeof PneumologiaDpocVniService === 'undefined') {
+    throw new Error('Serviço PneumologiaDpocVniService indisponível.');
+  }
+
+  var analise = PneumologiaDpocVniService.avaliarVni(params);
+  var texto = PneumologiaDpocVniService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitDpocVni(initData, params) {
+  return cockpitPneumologiaDpocVni(initData, params);
+}

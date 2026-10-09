@@ -357,7 +357,7 @@
     - Integração completa via Fastify RPC (`cockpitGeriatriaFrax`, `cockpitFrax`, `cockpitGeriatriaOsteoporose`, `cockpitOsteoporose`, `cockpitGeriatriaQuedas`, `cockpitQuedas`, `cockpitGeriatriaPolifarmacia`, `cockpitGeriatriaAvancada`, `cockpitSaudeIdosoAga`) e comandos Telegram (`/frax`, `/osteoporose`, `/quedas`, `/polifarmacia`, `/frids`, `/aga`, `/idoso`, `/cfs`, `/minicog`, `/tug`, `/beers`).
     - Nova suíte de testes automatizados `tests/test_saude_idoso_geriatria.cjs` com 22 cenários clínicos especializados, testes de endpoint Fastify `/api/cockpit` integrados no `tests/test_server_render.cjs` e 100% de aprovação no pipeline contínuo do projeto.
 
-50. [ ] **Pneumologia e Terapia Intensiva - Manejo da Crise Hipercapnica na DPOC e Ventilação Não Invasiva (GOLD 2026 / SBPT)**:
+50. [x] **Pneumologia e Terapia Intensiva - Manejo da Crise Hipercapnica na DPOC e Ventilação Não Invasiva (GOLD 2026 / SBPT)**:
     - Critérios determinísticos de indicação e contraindicações formais para VNI (BiPAP/CPAP) na exacerbação aguda da DPOC.
     - Titulação beira-leito de IPAP e EPAP com alvos gasométricos (pH >= 7,35 e alívio do trabalho muscular).
     - Parâmetros objetivos de falha de VNI e gatilhos para intubação orotraqueal e ventilação mecânica protetora precoce.

@@ -175,7 +175,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/cig", "/colestase", "/ehag", "/aflp", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol"];
+  var clinicos = ["/cig", "/colestase", "/ehag", "/aflp", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -187,7 +187,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/cig":"cig","/colestase":"cig","/ehag":"cig","/aflp":"cig","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma"};
+      var mapaModos={"/cig":"cig","/colestase":"cig","/ehag":"cig","/aflp":"cig","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -1692,6 +1692,62 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, msgAsma);
     } catch (eAsma) {
       return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar crise asmática: " + eAsma.message);
+    }
+  }
+
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // PNEUMOLOGIA & TERAPIA INTENSIVA: MANEJO DA CRISE HIPERCÁPNICA E VNI NA DPOC
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/dpoc" || comando === "/vni" || comando === "/bipap" || comando === "/hipercapnia") {
+    var dadosVni = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof PneumologiaDpocVniService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo PneumologiaDpocVniService indisponível temporariamente.");
+    }
+
+    if (!dadosVni) {
+      return enviarMensagemParaChat(chatId, 
+        "🫁 *Avaliação de VNI na DPOC (GOLD/SBPT)*\n\n" +
+        "Digite o comando seguido dos parâmetros clínicos e gasométricos.\n\n" +
+        "📌 *Parâmetros recomendados:*\n" +
+        "• Gasometria: `ph 7.28 pco2 65 po2 55`\n" +
+        "• Clínica: `fr 28`, `glasgow 14`\n" +
+        "• Modificadores críticos: `pcr`, `choque`, `trauma de face`, `secrecao abundante`, `hda`, `nao colabora`\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/dpoc ph 7.28 pco2 60 fr 32 uso de musculatura acessoria` *(Crise hipercápnica clássica)*\n" +
+        "• `/vni ph 7.15 pco2 80 glasgow 12` *(Acidemia severa com risco de IOT)*\n" +
+        "• `/bipap choque secrecao abundante ph 7.20` *(Contraindicação absoluta)*");
+    }
+
+    function extrairVni(re) {
+      var m = dadosVni.match(re);
+      return m ? parseFloat(m[1].replace(",", ".")) : NaN;
+    }
+    
+    var paramsVni = {
+      ph: extrairVni(/(?:ph)\s*[:=]?\s*(\d+[\.,]\d+)/i),
+      pco2: extrairVni(/(?:pco2|paco2)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i),
+      po2: extrairVni(/(?:po2|pao2)\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i),
+      fr: extrairVni(/(?:fr|resp)\s*[:=]?\s*(\d+)/i),
+      glasgow: extrairVni(/(?:glasgow|ecg|gcs)\s*[:=]?\s*(\d+)/i) || 15,
+      parada_cardiorespiratoria: /(?:pcr|parada|assistolia|fv)/i.test(dadosVni),
+      instabilidade_hemodinamica: /(?:choque|instabilidade hemodinamica|hipotensao grave)/i.test(dadosVni),
+      incapacidade_proteger_via_aerea: /(?:incapacidade de proteger|nao protege via aerea)/i.test(dadosVni),
+      secrecao_abundante: /(?:secrecao abundante|secrecao incontrolavel)/i.test(dadosVni),
+      trauma_face_cirurgia_recente: /(?:trauma de face|queimadura facial|cirurgia facial)/i.test(dadosVni),
+      obstrucao_fixa_via_aerea: /(?:obstrucao fixa)/i.test(dadosVni),
+      vometos_incoerciveis: /(?:vometos|hda|hemorragia digestiva)/i.test(dadosVni),
+      nao_colaboracao: /(?:nao colabora|agitacao extrema|delirium)/i.test(dadosVni),
+      uso_musculatura_acessoria: /(?:musculatura acessoria|tiragem|esforco)/i.test(dadosVni),
+      respiracao_paradoxal: /(?:paradoxal)/i.test(dadosVni)
+    };
+
+    try {
+      var analiseVni = PneumologiaDpocVniService.avaliarVni(paramsVni);
+      var textVni = PneumologiaDpocVniService.formatarTextoTelegram(analiseVni);
+      return enviarMensagemParaChat(chatId, textVni);
+    } catch (eVni) {
+      return enviarMensagemParaChat(chatId, "❌ Erro ao avaliar VNI: " + eVni.message);
     }
   }
 
