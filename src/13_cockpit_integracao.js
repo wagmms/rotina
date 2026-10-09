@@ -1642,6 +1642,27 @@ function cockpitSuporteNutricionalPediatrico(initData, params) {
 
 var cockpitNutricaoPediatrica = cockpitSuporteNutricionalPediatrico;
 
+/**
+ * Módulo de Hematologia: Investigação e Manejo de Anemias
+ * @param {string} initData Sessão / autenticação
+ * @param {Object} params Parâmetros clínicos (hb, vcm, hcm, chcm, rdw, hemacias, reticulocitos, ht, ferritina, ferroSerico, tibc, ist, pesoKg, gestante, etc.)
+ */
+function cockpitHematologiaAnemias(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para Análise de Anemia e Hemograma não fornecidos.');
 
+  if (typeof HematologiaAnemiasService === 'undefined') {
+    throw new Error('Serviço HematologiaAnemiasService indisponível.');
+  }
 
+  var analise = HematologiaAnemiasService.analisarCasoCompleto(params);
 
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: analise.textoFormatado
+  };
+}
+
+var cockpitManejoAnemias = cockpitHematologiaAnemias;
+var cockpitAnemia = cockpitHematologiaAnemias;

@@ -135,6 +135,26 @@ async function run() {
   assert(jsonNutriPed.resultado.textoFormatado.includes('SUPORTE NUTRICIONAL EM PEDIATRIA'));
   console.log('✓ Cockpit Suporte Nutricional Pediátrico (Holliday-Segar & Fórmula Infantil) OK');
 
+  // 6.3 Cockpit RPC - Hematologia Clínica & Investigação de Anemias (Ganzoni & Mentzer)
+  const resHemato = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitHematologiaAnemias',
+      session: token,
+      args: [{ hb: 8.0, vcm: 68, rdw: 18.0, hemacias: 3.2, pesoKg: 60, sexo: 'F', motivoIv: 'pos_bariatrica' }]
+    }
+  });
+  assert.equal(resHemato.statusCode, 200);
+  const jsonHemato = resHemato.json();
+  assert.equal(jsonHemato.ok, true);
+  assert.equal(jsonHemato.resultado.sucesso, true);
+  assert.equal(jsonHemato.resultado.resultado.analiseHemograma.temAnemia, true);
+  assert.equal(jsonHemato.resultado.resultado.analiseHemograma.morfologia.classificacaoVcm, 'MICROCITICA');
+  assert.equal(jsonHemato.resultado.resultado.reposicaoFerro.esquemaIv.totalAmpolasNecessarias, 14);
+  assert(jsonHemato.resultado.textoFormatado.includes('HEMATOLOGIA'));
+  console.log('✓ Cockpit Hematologia & Investigação de Anemias (Ganzoni & Mentzer) OK');
+
   // 7. PWA Manifest & Service Worker
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);

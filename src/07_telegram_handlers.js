@@ -1353,6 +1353,114 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // HEMATOLOGIA CLÍNICA & MANEJO DE ANEMIAS (HEMOGRAMA / GANZONI / MENTZER)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/anemia" || comando === "/hemograma" || comando === "/ganzoni" || comando === "/noripurum" || comando === "/mentzer" || comando === "/ferro") {
+    var dadosAnemia = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof HematologiaAnemiasService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo HematologiaAnemiasService indisponível temporariamente.");
+    }
+
+    if (!dadosAnemia) {
+      return enviarMensagemParaChat(chatId, "🩸 *HEMATOLOGIA CLÍNICA — MANEJO E INVESTIGAÇÃO DE ANEMIAS*\n\n" +
+        "Envie os parâmetros do hemograma e cinética de ferro:\n" +
+        "• *Hb*, *Ht*, *VCM*, *HCM*, *RDW*, *Hemácias* (milhões)\n" +
+        "• *Reticulócitos* (%) e *Hematócrito* (para IPR)\n" +
+        "• *Ferritina*, *Ferro sérico*, *TIBC*, *IST* (%)\n" +
+        "• *Peso* (kg) e perfil (`gestante`, `homem`, `mulher`, `criança`)\n\n" +
+        "💡 *Exemplos beira-leito:*\n" +
+        "• `/anemia hb 8.5 vcm 68 rdw 18 ferritina 12 peso 60kg` *(Anemia Ferropriva clássica)*\n" +
+        "• `/mentzer vcm 65 he 5.8` *(Diferencial Ferropenia vs Talassemia Minor)*\n" +
+        "• `/ganzoni 65kg hb 8.0` *(Cálculo de déficit de ferro e ampolas de Noripurum EV)*\n" +
+        "• `/ferro 50kg gestante 2 trimestre hb 9.2` *(Prescrição oral vs parenteral na gestação)*\n" +
+        "• `/hemograma hb 7.0 vcm 112 b12 140` *(Anemia Macrocítica Megaloblástica)*");
+    }
+
+    function extrairNumAnemia(re) {
+      var m = dadosAnemia.match(re);
+      return m ? parseFloat(String(m[1]).replace(",", ".")) : null;
+    }
+
+    var paramsAnemia = {};
+    paramsAnemia.hb = extrairNumAnemia(/(?:hb|hemoglobina)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.vcm = extrairNumAnemia(/\bvcm\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.hcm = extrairNumAnemia(/\bhcm\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.chcm = extrairNumAnemia(/\bchcm\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.rdw = extrairNumAnemia(/\brdw\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.hemacias = extrairNumAnemia(/(?:hem[aá]cias?|he|hem)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.reticulocitos = extrairNumAnemia(/(?:retic\w*|ret)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.ht = extrairNumAnemia(/(?:ht|hemat[oó]crito)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.ferritina = extrairNumAnemia(/ferritina\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.ferroSerico = extrairNumAnemia(/ferro(?:\s*s[eé]rico)?\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.tibc = extrairNumAnemia(/tibc\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.ist = extrairNumAnemia(/ist\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.pesoKg = extrairNumAnemia(/(\d{1,3}(?:[.,]\d+)?)\s*(?:kg|quilos)/i) || extrairNumAnemia(/peso\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.vitaminaB12 = extrairNumAnemia(/(?:b12|vit\w*\s*b12)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+    paramsAnemia.acidoFolico = extrairNumAnemia(/(?:folato|[aá]cido\s*f[oó]lico)\s*[:=]?\s*(\d+[.,]?\d*)/i);
+
+    var dLowerAnemia = dadosAnemia.toLowerCase();
+    if (dLowerAnemia.includes("gestant") || dLowerAnemia.includes("gravid") || dLowerAnemia.includes("grávid")) {
+      paramsAnemia.gestante = true;
+      paramsAnemia.perfil = "gestante";
+      if (dLowerAnemia.includes("1") && dLowerAnemia.includes("trimest")) paramsAnemia.trimestre = 1;
+      else if (dLowerAnemia.includes("2") && dLowerAnemia.includes("trimest")) paramsAnemia.trimestre = 2;
+      else if (dLowerAnemia.includes("3") && dLowerAnemia.includes("trimest")) paramsAnemia.trimestre = 3;
+    } else if (dLowerAnemia.includes("pediat") || dLowerAnemia.includes("crian") || dLowerAnemia.includes("lactent")) {
+      paramsAnemia.perfil = "pediatria";
+    } else if (dLowerAnemia.includes("homem") || dLowerAnemia.includes("masc")) {
+      paramsAnemia.sexo = "M";
+      paramsAnemia.perfil = "adulto_homem";
+    } else if (dLowerAnemia.includes("mulher") || dLowerAnemia.includes("fem")) {
+      paramsAnemia.sexo = "F";
+      paramsAnemia.perfil = "adulto_mulher";
+    }
+
+    if (dLowerAnemia.includes("esquizocit") || dLowerAnemia.includes("esquizócit")) paramsAnemia.esquizocitos = true;
+    if (dLowerAnemia.includes("coombs") && (dLowerAnemia.includes("pos") || dLowerAnemia.includes("reag"))) paramsAnemia.coombsDireto = true;
+    if (dLowerAnemia.includes("inflam") || dLowerAnemia.includes("pcr") || dLowerAnemia.includes("infecc")) paramsAnemia.inflamacao = true;
+    if (dLowerAnemia.includes("celiaca") || dLowerAnemia.includes("celíaca") || dLowerAnemia.includes("dii") || dLowerAnemia.includes("bariat") || dLowerAnemia.includes("bariát")) paramsAnemia.maAbsorcao = true;
+    if (dLowerAnemia.includes("intoler") || dLowerAnemia.includes("falha")) paramsAnemia.intoleranciaOral = true;
+    if (dLowerAnemia.includes("drc") || dLowerAnemia.includes("renal") || dLowerAnemia.includes("uremi")) paramsAnemia.drc = true;
+    if (dLowerAnemia.includes("icfer") || dLowerAnemia.includes("insuficiencia cardiaca") || dLowerAnemia.includes("cardiopatia")) paramsAnemia.insuficienciaCardiaca = true;
+
+    if (comando === "/mentzer" && !paramsAnemia.hb) {
+      var numsMentzer = dadosAnemia.match(/(\d{1,3}(?:[.,]\d+)?)/g);
+      if (numsMentzer && numsMentzer.length >= 2) {
+        var vcmM = parseFloat(numsMentzer[0].replace(",", "."));
+        var heM = parseFloat(numsMentzer[1].replace(",", "."));
+        var resM = HematologiaAnemiasService.calcularIndiceMentzer(vcmM, heM);
+        if (resM) {
+          var msgMentzer = "🔬 *ÍNDICE DE MENTZER (DIAGNÓSTICO DIFERENCIAL BEIRA-LEITO)*\n\n" +
+            "• VCM: *" + vcmM + " fL* | Hemácias: *" + heM + " milhões/mcL*\n" +
+            "• Índice de Mentzer: *" + resM.valor + "*\n" +
+            "• Sugestão: *" + resM.sugestao + "*\n" +
+            "• Probabilidade: *" + resM.probabilidade + "*\n\n" +
+            "💡 *Interpretação e Conduta:*\n" + resM.explicacao;
+          return enviarMensagemParaChat(chatId, msgMentzer);
+        }
+      }
+    }
+
+    if (!paramsAnemia.hb) {
+      var mNumSoltoHb = dadosAnemia.match(/^(\d{1,2}(?:[.,]\d+)?)/);
+      if (mNumSoltoHb) {
+        paramsAnemia.hb = parseFloat(mNumSoltoHb[1].replace(",", "."));
+      }
+    }
+
+    if (!paramsAnemia.hb) {
+      return enviarMensagemParaChat(chatId, "⚠️ *Parâmetro obrigatório ausente:* Informe pelo menos o valor da Hemoglobina (ex: `/anemia hb 8.5` ou `/ganzoni 70kg hb 8.0`).");
+    }
+
+    try {
+      var analiseAnemia = HematologiaAnemiasService.analisarCasoCompleto(paramsAnemia);
+      return enviarMensagemParaChat(chatId, analiseAnemia.textoFormatado);
+    } catch (eAnemia) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao analisar anemia: " + eAnemia.message);
+    }
+  }
+
   if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
     var dadosKaizen = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof AuditoriaKaizenClinicoService === "undefined") {

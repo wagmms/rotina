@@ -116,7 +116,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Diretrizes de preparo seguro da OMS/SBP para prevenção de contaminação por *Cronobacter sakazakii* e *Salmonella* (água a 70°C).
     - Integrado via Fastify RPC (`cockpitSuporteNutricionalPediatrico` / `cockpitNutricaoPediatrica`), comandos Telegram (`/nutriped`, `/holliday`, `/formulainfantil`, `/diluicao`) e testes automatizados 100% aprovados.
 
-33. [ ] **Módulo de Hematologia: Manejo e Investigação de Anemias**:
+33. [x] **Módulo de Hematologia: Manejo e Investigação de Anemias**:
     - Motor analítico do hemograma: interpretação de VCM, HCM, RDW e contagem de reticulócitos para classificação etiológica (microcítica/hipocrômica, normocítica, macrocítica).
     - Cálculo de dose de reposição de Ferro elementar (VO) com teto seguro para evitar intolerância gastrointestinal, e critérios para indicação de Ferro Endovenoso (Noripurum).
 
@@ -504,12 +504,38 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Estratégia não invasiva precoce em sala de parto com CPAP nasal (5-6 cmH2O) desde os primeiros minutos de vida.
     - Protocolo LISA (Less Invasive Surfactant Administration) ou MIST / INSURE com Surfactante Porcino (200 mg/kg na 1ª dose) se necessidade de FiO2 > 30% em CPAP, evitando ventilação mecânica invasiva e broncodisplasia pulmonar.
 
+111. [ ] **Gastroenterologia e Endoscopia Digestiva - Manejo da Hemorragia Digestiva Baixa (HDB) Aguda e Escore de Oakland**:
+    - Calculadora determinística do escore de Oakland para estratificação de risco de HDB e indicação de alta precoce segura (Oakland <= 8 pontos).
+    - Protocolo de ressuscitação hemodinâmica, suspensão temporária de AINEs/anticoagulantes e critérios de colonoscopia urgente em 24h vs angiotomografia computadorizada/arteriografia para sangramento ativo de grande monta.
+
+112. [ ] **Reumatologia e Terapia Intensiva - Crise Lúpica Grave e Nefrite Lúpica Aguda (Diretrizes ACR / EULAR / SBR)**:
+    - Estratificação determinística de atividade de doença (escore SLEDAI-2K beira-leito).
+    - Protocolo de pulsoterapia com Metilprednisolona (1g/dia por 3 dias) associada a Ciclofosfamida em dose baixa (Euro-Lupus) ou Micofenolato de Mofetila para nefrite lúpica proliferativa (Classe III/IV).
+    - Profilaxia de infecções oportunistas (Sulfametoxazol-Trimetoprima para *Pneumocystis jirovecii*) e monitoramento estrito de toxicidade gonadal e mielotoxicidade.
+
+113. [ ] **Pediatria e Infectologia - Manejo de Sepse Pediátrica e Choque Séptico (Diretrizes Surviving Sepsis Campaign Pediatric / PALS 2026)**:
+    - Reconhecimento precoce de choque frio (extremidades frias, pulso fino, tempo de enchimento capilar > 2s) vs choque quente (pulsos amplos, vasodilatação).
+    - Ressuscitação volêmica ponderada em alíquotas de 10-20 mL/kg de cristaloides balanceados com vigilância estrita de estertores e hepatomegalia (prevenção de sobrecarga hídrica).
+    - Titulação de inotrópicos e vasopressores de 1ª linha: Adrenalina para choque frio e Noradrenalina para choque quente, com início precoce via acesso periférico seguro enquanto se obtém acesso central.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo de Hematologia: Manejo e Investigação de Anemias** (Tarefa 33)
+- [ ] **Cardiologia Intensiva - Choque Cardiogênico e SCA com IC Descompensada (Classificação de Forrester & Stevenson)** (Tarefa 34)
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Módulo de Hematologia: Manejo e Investigação de Anemias**:
+   - Motor determinístico beira-leito para análise completa do hemograma (`src/02_hematologia_anemias.js`).
+   - Classificação morfológica precisa por VCM (< 80 microcítica, 80-100 normocítica, > 100 macrocítica), HCM/CHCM (hipocrômica, normocrômica, hipercrômica) e RDW (homogênea vs heterogênea/anisocitose).
+   - Diagnóstico diferencial de microcitose com cálculo automático do Índice de Mentzer (VCM/Hemácias: < 13 sugerindo Traço Talassêmico vs >= 13 Anemia Ferropriva) e Índice de Green & King.
+   - Avaliação da cinética eritropoietica e resposta medular pelo Índice de Produção Reticulocitária (IPR) com shift factor proporcional ao hematócrito (diferenciação entre anemias hiperproliferativas/regenerativas vs hipoproliferativas/arregenerativas).
+   - Integração diagnóstica com marcadores bioquímicos (Ferritina, Saturação de Transferrina, Vitamina B12, Ácido Fólico, LDH, Bilirrubinas e Coombs direto).
+   - Calculadora de reposição de ferro oral (VO): posologia para adultos de 60 a 100 mg/dia ou em dias alternados com teto seguro de 200 mg/dia (prevenção de bloqueio por hepcidina e intolerância gastrointestinal); posologia pediátrica ponderada de 3 a 5 mg/kg/dia com teto de 60 mg/dia.
+   - Critérios formais de indicação e Fórmula de Ganzoni para Ferro Endovenoso (Sacarato de Óxido de Ferro III / Noripurum IV): cálculo do déficit total em mg, ampolas de 100 mg necessárias, limite de 200 mg por sessão em SF 0.9% e bloqueio absoluto de segurança no 1º trimestre gestacional.
+   - Gatilhos transfusionais beira-leito restritivos (Hb < 7.0 g/dL geral estável; Hb < 8.0 g/dL para cardiopatia isquêmica aguda; alerta vermelho para Hb < 6.0 g/dL).
+   - Integração completa via Fastify RPC (`cockpitHematologiaAnemias` e alias `cockpitManejoAnemias` / `cockpitAnemia`) e comandos Telegram (`/anemia`, `/hemograma`, `/ferro`, `/ganzoni`, `/mentzer`).
+   - Cobertura de testes automatizados com 100% de sucesso em `tests/test_hematologia_anemias.cjs`, runner Python `tests/test_hematologia_anemias.py` e validação ponta a ponta no servidor Render (`tests/test_server_render.cjs`).
+   - Kaizen perpétuo: Backlog abastecido com as novas metas 111, 112 e 113.
 - [x] (2026-10-09) **Módulo de Suporte Nutricional em Pediatria (Fórmula Infantil / Terapia Nutricional)**:
    - Motor determinístico beira-leito para hidratação venosa pediátrica e manutenção por Holliday-Segar (`src/02_suporte_nutricional_pediatrico.js`).
    - Cálculo preciso de volume basal (100-50-20 mL/kg/dia) e vazão horária em bomba de infusão (regra 4-2-1).
