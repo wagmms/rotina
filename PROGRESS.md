@@ -75,7 +75,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Bloqueio e alerta automático para antibióticos e anticoagulantes quando TFG < 30 mL/min, exigindo ajuste de dose renal obrigatório no PWA.
 
 
-28. [ ] **Infectologia - Manejo de Neutropenia Febril Oncológica (Escore MASCC/CISNE)**:
+28. [x] **Infectologia - Manejo de Neutropenia Febril Oncológica (Escore MASCC/CISNE)**:
     - Motor determinístico de estratificação de risco para indicação de tratamento ambulatorial (MASCC >= 21) vs internação hospitalar imediata.
     - Protocolo de antibioticoterapia empírica em até 1 hora da triagem (Cefepime vs Piperacilina-Tazobactam) e indicação de Vancomicina baseada em instabilidade, cateter central ou MRSA.
     - Alerta para indicação oportuna de terapia antifúngica (Echinocandinas) em casos refratários de febre persistente por > 4-7 dias.
@@ -387,12 +387,24 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Diagnóstico rápido beira-leito para predição de eventos adversos, quedas e mortalidade intra-hospitalar.
     - Plano automatizado de reabilitação fisioterápica (exercícios resistidos) e prescrição de suplementação proteica ajustada à função renal e HMB (Beta-hidroxi-beta-metilbutirato).
 
+90. [ ] **Neurologia de Emergência - Manejo do Estado de Mal Epiléptico em Adultos**:
+    - Protocolo escalonado (0-5 min, 5-20 min, 20-40 min) com doses maximais de Benzodiazepínicos e dose de ataque de Fenitoína (20mg/kg) vs Levetiracetam.
+    - Indicação de intubação e indução anestésica (Propofol/Midazolam) para estado de mal refratário.
+
+91. [ ] **Infectologia - Manejo de ITU de Repetição e Profilaxia (SBU / IDSA)**:
+    - Diferenciação entre reinfecção e recidiva bacteriana.
+    - Algoritmo de profilaxia contínua vs pós-coito (Nitrofurantoína, Fosfomicina, Cefalexina) com alertas de segurança prolongados (ex: neuropatia por Nitrofurantoína e função renal).
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Infectologia - Manejo de Neutropenia Febril Oncológica (Escore MASCC/CISNE)**
+- [ ] **Gastroenterologia - Pancreatite Aguda e Manejo da Hidratação (Critérios de Atlanta / BISAP)**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Infectologia - Manejo de Neutropenia Febril Oncológica (Escore MASCC)**:
+   - Motor determinístico de estratificação de risco (MASCC).
+   - Protocolo de antibioticoterapia IV (Cefepime / Tazocin) com indicações precisas de Vancomicina (instabilidade, cateter, MRSA) e antifúngicos em febre refratária.
+   - Integração via RPC e comandos Telegram (`/neutropenia`, `/mascc`).
 - [x] (2026-10-09) **Integração de Calculadora de Clearance de Creatinina (Cockcroft-Gault) com Auditoria Automática de Prescrições**:
    - Motor determinístico robusto (`NefrologiaClearanceService`) para estimativa de TFG beira-leito.
    - Algoritmo de auditoria automática que intercepta drogas contraindicadas (nitrofurantoína, espironolactona, metformina) e exige ajuste de dose obrigatório para drogas críticas (vancomicina, enoxaparina, meropenem) quando TFG < 30 mL/min.

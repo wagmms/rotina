@@ -1441,3 +1441,35 @@ function cockpitNefrologiaClearance(initData, params) {
 
   throw new Error('Ação inválida para Nefrologia Clearance.');
 }
+
+function cockpitInfectologiaNeutropenia(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para neutropenia não fornecidos.');
+  
+  var avaliacao = InfectologiaNeutropeniaService.avaliarPaciente(params);
+  var mascc = avaliacao.mascc;
+  var atb = avaliacao.antibioticoterapia;
+  
+  var texto = "🦠 *NEUTROPENIA FEBRIL ONCOLÓGICA*\n\n";
+  texto += "*Escore MASCC:* " + mascc.escore + " pontos\n";
+  texto += "*Classificação:* " + mascc.risco + "\n";
+  texto += "*Conduta Geral:* " + mascc.conduta + "\n\n";
+  
+  texto += "💊 *ESQUEMA ANTIMICROBIANO SUGERIDO:*\n";
+  for (var i = 0; i < atb.recomendacoes.length; i++) {
+    texto += "• " + atb.recomendacoes[i] + "\n";
+  }
+  
+  if (avaliacao.alertas.length > 0) {
+    texto += "\n⚠️ *ALERTAS CLÍNICOS:*\n";
+    for (var j = 0; j < avaliacao.alertas.length; j++) {
+      texto += "• " + avaliacao.alertas[j] + "\n";
+    }
+  }
+  
+  return {
+    sucesso: true,
+    avaliacao: avaliacao,
+    textoFormatado: texto
+  };
+}

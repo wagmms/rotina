@@ -1376,6 +1376,19 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, resCrcl.textoFormatado);
   }
 
+  if (comando === "/neutropenia" || comando === "/mascc") {
+    if (typeof InfectologiaNeutropeniaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo InfectologiaNeutropeniaService indisponível.");
+    }
+    
+    // Simplificacao para demonstrar no bot (usa parametros padrão se texto for vazio)
+    var masccMock = { cargaSintomas: 'leve', semHipotensao: true, semDpoc: true, tumorSolidoOuHematoSemFungo: true, semDesidratacao: true, ambulatorial: true, idadeMenor60: true };
+    var clinicaMock = { instabilidade: false, suspeitaCateter: false, mrsa: false, alergiaPenicilina: 'nao', diasFebre: 1 };
+    
+    var resNeutro = cockpitInfectologiaNeutropenia('bot', { mascc: masccMock, clinica: clinicaMock });
+    return enviarMensagemParaChat(chatId, resNeutro.textoFormatado + "\n\n_(Exemplo gerado com parâmetros de baixo risco. No futuro, interatividade será adicionada.)_");
+  }
+
   if (comando === "/transfusao" || comando === "/hemoterapia" || comando === "/ptm" || comando === "/chad") {
     var dadosTrans = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof TransfusaoSanguineaService === "undefined") {
