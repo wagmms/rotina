@@ -1326,6 +1326,143 @@ function processarMensagemTexto(message) {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
+  // PROTOCOLO DE TRANSFUSÃO SANGUÍNEA & PROTOCOLO DE TRANSFUSÃO MACIÇA (PTM)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/transfusao" || comando === "/hemoterapia" || comando === "/ptm" || comando === "/chad") {
+    var dadosTrans = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof TransfusaoSanguineaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo TransfusaoSanguineaService indisponível temporariamente.");
+    }
+
+    if (!dadosTrans) {
+      return enviarMensagemParaChat(chatId, "🩸 *PROTOCOLO AVANÇADO DE TRANSFUSÃO SANGUÍNEA & PTM*\n\n" +
+        "Envie os dados clínicos ou laboratoriais para cálculo beira-leito:\n\n" +
+        "🔴 *Gatilho CHAD:* `/transfusao hb 6.5, 70kg, estavel`\n" +
+        "🫀 *Coronariopata:* `/transfusao hb 7.6, 75kg, sca` (ou iam/coronariopata)\n" +
+        "🚨 *Transfusão Maciça (PTM):* `/ptm fc 130, pas 80, penetrante, fast+, mulher 28 anos`\n" +
+        "🩹 *Plaquetas:* `/transfusao plaquetas 15000, 70kg, sangramento` (ou `tce`, `puncao`)\n" +
+        "🧪 *Plasma (PFC):* `/transfusao pfc, rni 2.3, 70kg, sangramento`\n" +
+        "💉 *Crioprecipitado:* `/transfusao crio, fibrinogenio 90, 70kg, hpp`\n" +
+        "⚡ *CIVD:* `/transfusao civd, plaquetas 40000, ddimero alto, tp 7s, fibrinogenio 80`");
+    }
+
+    var tTransLower = dadosTrans.toLowerCase();
+
+    // 1. Transfusão Maciça (PTM)
+    if (comando === "/ptm" || tTransLower.includes("ptm") || tTransLower.includes("macica") || tTransLower.includes("exsanguin")) {
+      var paramsPtm = {};
+      var mFcP = dadosTrans.match(/fc\s*[:=]?\s*(\d{2,3})/i);
+      if (mFcP) paramsPtm.fc = parseInt(mFcP[1], 10);
+      var mPasP = dadosTrans.match(/pas\s*[:=]?\s*(\d{2,3})/i) || dadosTrans.match(/pa\s*[:=]?\s*(\d{2,3})/i);
+      if (mPasP) paramsPtm.pas = parseInt(mPasP[1], 10);
+      var mPesoPtm = dadosTrans.match(/(\d{2,3}(?:[.,]\d+)?)\s*kg/i);
+      if (mPesoPtm) paramsPtm.peso = parseFloat(mPesoPtm[1].replace(',', '.'));
+      var mIdadeP = dadosTrans.match(/(\d{1,3})\s*anos/i);
+      if (mIdadeP) paramsPtm.idade = parseInt(mIdadeP[1], 10);
+
+      if (tTransLower.includes("mulher") || tTransLower.includes("feminino")) paramsPtm.sexo = "F";
+      if (tTransLower.includes("homem") || tTransLower.includes("masculino")) paramsPtm.sexo = "M";
+      if (tTransLower.includes("penetrante") || tTransLower.includes("paf") || tTransLower.includes("fab")) paramsPtm.traumaPenetrante = true;
+      if (tTransLower.includes("fast+") || tTransLower.includes("fast positivo") || tTransLower.includes("liquido livre")) paramsPtm.fastPositivo = true;
+
+      var resPtm = TransfusaoSanguineaService.calcularProtocoloTransfusaoMaciça(paramsPtm);
+      var msgPtm = TransfusaoSanguineaService.formatarResumoTransfusional({ ptm: resPtm });
+      return enviarMensagemParaChat(chatId, msgPtm);
+    }
+
+    // 2. Plaquetas
+    if (tTransLower.includes("plaquet")) {
+      var paramsPlaq = {};
+      var mPlaq = dadosTrans.match(/plaquet\w*\s*[:=]?\s*(\d+)/i) || dadosTrans.match(/(\d{1,3}(?:\.\d{3})*|\d+)\s*(?:plaq|\/mcl)/i);
+      if (mPlaq) paramsPlaq.plaquetasAtual = parseInt(mPlaq[1].replace(/\./g, ''), 10);
+      var mPesoPl = dadosTrans.match(/(\d{2,3}(?:[.,]\d+)?)\s*kg/i);
+      if (mPesoPl) paramsPlaq.peso = parseFloat(mPesoPl[1].replace(',', '.'));
+      if (tTransLower.includes("sangra")) paramsPlaq.sangramentoAtivo = true;
+      if (tTransLower.includes("tce") || tTransLower.includes("neuro")) paramsPlaq.tceOuNeurotrauma = true;
+      if (tTransLower.includes("puncao")) paramsPlaq.procedimento = "PUNCAO_LOMBAR";
+      if (tTransLower.includes("biopsia")) paramsPlaq.procedimento = "BIOPSIA_HEPATICA";
+      if (tTransLower.includes("ptt") || tTransLower.includes("hit")) paramsPlaq.suspeitaPttOuHit = true;
+
+      var resPlaq = TransfusaoSanguineaService.calcularReposicaoPlaquetas(paramsPlaq);
+      var msgPlaq = TransfusaoSanguineaService.formatarResumoTransfusional({ plaquetas: resPlaq });
+      return enviarMensagemParaChat(chatId, msgPlaq);
+    }
+
+    // 3. Plasma Fresco Congelado (PFC)
+    if (tTransLower.includes("pfc") || tTransLower.includes("plasma") || tTransLower.includes("rni")) {
+      var paramsPfc = {};
+      var mRni = dadosTrans.match(/rni\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosTrans.match(/inr\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+      if (mRni) paramsPfc.rni = parseFloat(mRni[1].replace(',', '.'));
+      var mPesoPfc = dadosTrans.match(/(\d{2,3}(?:[.,]\d+)?)\s*kg/i);
+      if (mPesoPfc) paramsPfc.peso = parseFloat(mPesoPfc[1].replace(',', '.'));
+      if (tTransLower.includes("sangra")) paramsPfc.sangramentoAtivo = true;
+      if (tTransLower.includes("procedimento") || tTransLower.includes("cirurgia")) paramsPfc.procedimentoInvasivo = true;
+
+      var resPfc = TransfusaoSanguineaService.calcularReposicaoPfc(paramsPfc);
+      var msgPfc = TransfusaoSanguineaService.formatarResumoTransfusional({ pfc: resPfc });
+      return enviarMensagemParaChat(chatId, msgPfc);
+    }
+
+    // 4. Crioprecipitado
+    if (tTransLower.includes("crio") || tTransLower.includes("fibrinogen")) {
+      var paramsCrio = {};
+      var mFib = dadosTrans.match(/fibrinogen\w*\s*[:=]?\s*(\d+)/i);
+      if (mFib) paramsCrio.fibrinogenioAtual = parseInt(mFib[1], 10);
+      var mPesoCr = dadosTrans.match(/(\d{2,3}(?:[.,]\d+)?)\s*kg/i);
+      if (mPesoCr) paramsCrio.peso = parseFloat(mPesoCr[1].replace(',', '.'));
+      if (tTransLower.includes("hpp") || tTransLower.includes("parto")) paramsCrio.cenario = "HPP";
+      if (tTransLower.includes("trauma")) paramsCrio.cenario = "TRAUMA";
+      if (tTransLower.includes("sangra")) paramsCrio.sangramentoAtivo = true;
+
+      var resCrio = TransfusaoSanguineaService.calcularReposicaoCrioprecipitado(paramsCrio);
+      var msgCrio = TransfusaoSanguineaService.formatarResumoTransfusional({ crioprecipitado: resCrio });
+      return enviarMensagemParaChat(chatId, msgCrio);
+    }
+
+    // 5. CIVD
+    if (tTransLower.includes("civd")) {
+      var paramsCivd = {};
+      var mPlaqCivd = dadosTrans.match(/plaquet\w*\s*[:=]?\s*(\d+)/i);
+      if (mPlaqCivd) paramsCivd.plaquetas = parseInt(mPlaqCivd[1], 10);
+      var mTpC = dadosTrans.match(/tp\s*[:=]?\s*(\d+)/i);
+      if (mTpC) paramsCivd.tpAlargadoSegundos = parseInt(mTpC[1], 10);
+      var mFibC = dadosTrans.match(/fibrinogen\w*\s*[:=]?\s*(\d+)/i);
+      if (mFibC) paramsCivd.fibrinogenio = parseInt(mFibC[1], 10);
+      if (tTransLower.includes("ddimero alto") || tTransLower.includes("d-dimero alto") || tTransLower.includes("acentuado")) paramsCivd.dDimeroAumento = "ACENTUADO";
+      else if (tTransLower.includes("ddimero") || tTransLower.includes("moderado")) paramsCivd.dDimeroAumento = "MODERADO";
+      if (tTransLower.includes("sangra")) paramsCivd.sangramentoAtivo = true;
+
+      var resCivd = TransfusaoSanguineaService.avaliarCivd(paramsCivd);
+      var msgCivd = "⚡ *AVALIAÇÃO DE COAGULAÇÃO INTRAVASCULAR DISSEMINADA (CIVD)*\n\n" +
+        "• Classificação: *" + resCivd.classificacao + "* (" + resCivd.pontosTotais + "/8 pontos ISTH)\n" +
+        "• Diagnóstico: *" + (resCivd.civdManifesta ? "CIVD MANIFESTA (Overt DIC) 🚨" : "NÃO MANIFESTA") + "*\n\n" +
+        "📋 *Achados:*\n- " + resCivd.achados.map(function(a){ return a.criterio + " (+" + a.pontos + " pts)"; }).join("\n- ") + "\n\n" +
+        "💡 *Plano de Ação:*\n- " + resCivd.planoAcao.join("\n- ");
+      return enviarMensagemParaChat(chatId, msgCivd);
+    }
+
+    // 6. Padrão: Avaliação de CHAD / Gatilho Transfusional Geral
+    var paramsChad = {};
+    var mHb = dadosTrans.match(/hb\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosTrans.match(/(\d+(?:[.,]\d+)?)\s*g\/?dl/i);
+    if (mHb) paramsChad.hb = parseFloat(mHb[1].replace(',', '.'));
+    var mPesoCh = dadosTrans.match(/(\d{2,3}(?:[.,]\d+)?)\s*kg/i);
+    if (mPesoCh) paramsChad.peso = parseFloat(mPesoCh[1].replace(',', '.'));
+
+    if (tTransLower.includes("sca") || tTransLower.includes("iam") || tTransLower.includes("coronario")) paramsChad.cenarioClinico = "SCA";
+    else if (tTransLower.includes("sepse") || tTransLower.includes("septico")) paramsChad.cenarioClinico = "CHOQUE_SEPTICO";
+    else if (tTransLower.includes("tce") || tTransLower.includes("neuro")) paramsChad.cenarioClinico = "NEUROCRITICO";
+    else if (tTransLower.includes("hemorrag") || tTransLower.includes("sangramento ativo")) paramsChad.cenarioClinico = "HEMORRAGIA_AGUDA";
+    else paramsChad.cenarioClinico = "ESTAVEL_GERAL";
+
+    if (tTransLower.includes("sintoma") || tTransLower.includes("dispneia") || tTransLower.includes("angina")) paramsChad.sintomasAnemia = true;
+    if (tTransLower.includes("icc") || tTransLower.includes("drc") || tTransLower.includes("idoso")) paramsChad.riscoTaco = true;
+
+    var resChad = TransfusaoSanguineaService.avaliarGatilhoTransfusionalChad(paramsChad);
+    var msgChad = TransfusaoSanguineaService.formatarResumoTransfusional({ chad: resChad });
+    return enviarMensagemParaChat(chatId, msgChad);
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
   // TOXICOLOGIA DE EMERGÊNCIA (Paracetamol, Tricíclicos, BB/BCC, Opioides)
   // ───────────────────────────────────────────────────────────────────────────
   if (comando === "/intox" || comando === "/toxicologia") {

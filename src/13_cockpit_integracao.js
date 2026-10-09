@@ -1314,4 +1314,84 @@ function cockpitAuditoriaKaizen(initData, params) {
   throw new Error('Ação inválida para Auditoria de Kaizen Clínico.');
 }
 
+function cockpitTransfusaoSanguinea(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof TransfusaoSanguineaService === 'undefined') {
+    throw new Error('TransfusaoSanguineaService não carregado.');
+  }
+  var p = params.parametros || params;
+  var acao = params.acao || 'completo';
+
+  if (acao === 'gatilhoChad') {
+    return {
+      sucesso: true,
+      resultado: TransfusaoSanguineaService.avaliarGatilhoTransfusionalChad(p)
+    };
+  }
+  if (acao === 'ptm' || acao === 'transfusaoMacica') {
+    return {
+      sucesso: true,
+      resultado: TransfusaoSanguineaService.calcularProtocoloTransfusaoMaciça(p)
+    };
+  }
+  if (acao === 'pfc' || acao === 'plasma') {
+    return {
+      sucesso: true,
+      resultado: TransfusaoSanguineaService.calcularReposicaoPfc(p)
+    };
+  }
+  if (acao === 'plaquetas') {
+    return {
+      sucesso: true,
+      resultado: TransfusaoSanguineaService.calcularReposicaoPlaquetas(p)
+    };
+  }
+  if (acao === 'crioprecipitado') {
+    return {
+      sucesso: true,
+      resultado: TransfusaoSanguineaService.calcularReposicaoCrioprecipitado(p)
+    };
+  }
+  if (acao === 'civd') {
+    return {
+      sucesso: true,
+      resultado: TransfusaoSanguineaService.avaliarCivd(p)
+    };
+  }
+  if (acao === 'reacaoTransfusional' || acao === 'reacao') {
+    return {
+      sucesso: true,
+      resultado: TransfusaoSanguineaService.avaliarReacaoTransfusional(p)
+    };
+  }
+  if (acao === 'prescricao') {
+    return {
+      sucesso: true,
+      resultado: TransfusaoSanguineaService.gerarPrescricaoTransfusionalCompleta(p)
+    };
+  }
+  if (acao === 'completo' || acao === 'resumo') {
+    var chad = TransfusaoSanguineaService.avaliarGatilhoTransfusionalChad(p);
+    var ptm = (p.fc || p.pas || p.traumaPenetrante || p.fastPositivo) ? TransfusaoSanguineaService.calcularProtocoloTransfusaoMaciça(p) : null;
+    var plaq = p.plaquetasAtual !== undefined ? TransfusaoSanguineaService.calcularReposicaoPlaquetas(p) : null;
+    var pfc = (p.rni !== undefined || p.ttpaRatio !== undefined) ? TransfusaoSanguineaService.calcularReposicaoPfc(p) : null;
+    var crio = p.fibrinogenioAtual !== undefined ? TransfusaoSanguineaService.calcularReposicaoCrioprecipitado(p) : null;
+
+    var dadosResumo = { chad: chad, ptm: ptm, plaquetas: plaq, pfc: pfc, crioprecipitado: crio };
+    var texto = TransfusaoSanguineaService.formatarResumoTransfusional(dadosResumo);
+
+    return {
+      sucesso: true,
+      chad: chad,
+      ptm: ptm,
+      plaquetas: plaq,
+      pfc: pfc,
+      crioprecipitado: crio,
+      textoFormatado: texto
+    };
+  }
+  throw new Error('Ação inválida para Módulo de Transfusão Sanguínea.');
+}
+
 

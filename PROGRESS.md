@@ -66,7 +66,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 25. [x] **Manejo de Via Aérea Difícil (Algoritmo ASA)**:
     - Protocolo guiado passo-a-passo (RSI, videolaringoscopia, máscara laríngea, cricotireoidostomia de emergência) com predição de via aérea difícil (LEMON score).
 
-26. [ ] **Módulo Avançado de Transfusão Sanguínea (Protocolo de Transfusão Maciça e Gatilhos)**:
+26. [x] **Módulo Avançado de Transfusão Sanguínea (Protocolo de Transfusão Maciça e Gatilhos)**:
     - Cálculos beira-leito para reposição de CHAD, Plasma Fresco Congelado, Plaquetas e Crioprecipitado em hemorragias agudas e coagulopatias (ex: CIVD).
     - Gatilhos transfusionais baseados em níveis de hemoglobina (ex: < 7 g/dL em pacientes estáveis, < 8 g/dL em doença coronariana).
 
@@ -360,12 +360,37 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Protocolo de antibioticoterapia pré-operatória profilática (Ciprofloxacino + Metronidazol ou Ceftriaxona + Metronidazol) iniciada em até 1h antes da incisão.
     - Bloqueio de analgesia com AINEs em pacientes desidratados ou com suspeita de abdome agudo perfurativo antes da avaliação do cirurgião geral.
 
+85. [ ] **Hematologia e Hemoterapia Avançada - Manejo de Reações Transfusionais e Aloimunização (Escore TACO vs TRALI / Hemovigilância)**:
+    - Algoritmo determinístico beira-leito com critérios objetivos de diferenciação rápida entre TACO e TRALI (BNP/NT-proBNP, ecocardiograma, balanço hídrico, resposta a diurético e infiltrado bilateral).
+    - Protocolo de hemovigilância imediata (notificação NOTIVISA / Hemovida) e fluxo de investigação sorológica e imuno-hematológica pós-reação.
+    - Diretriz de transfusão fenotipada (Rh estendido, Kell, Duffy, Kidd) em pacientes politransfundidos (Anemia Falciforme e Talassemia Major) para prevenção primária de aloimunização.
+
+86. [ ] **Cardiologia e Emergência - Manejo da Crise Hipertensiva: Emergência vs Urgência Hipertensiva (Diretrizes SBC / ESC)**:
+    - Diferenciação determinística entre Emergência Hipertensiva (lesão aguda de órgão-alvo: EAP, Dissecção Aórtica, Encefalopatia Hipertensiva, SCA, AVC) e Urgência Hipertensiva (PA elevada sem LOA aguda).
+    - Protocolo de titulação em bomba de infusão de Nitroprussiato de Sódio e Nitroglicerina com metas rígidas de redução de PAM (máximo de 20-25% na 1ª hora, exceto na Dissecção Aórtica onde PAS < 120 e FC < 60 bpm em 20 min com Esmolol/Labetalol).
+    - Alerta sentinela de toxicidade por cianeto/tiocianato em infusões prolongadas de Nitroprussiato (> 48h ou > 2 mcg/kg/min em insuficiência renal).
+
+87. [ ] **Infectologia e Terapia Intensiva - Manejo da Candidemia e Infecções Fúngicas Invasivas (Diretrizes IDSA / SBI)**:
+    - Escore determinístico de predição de infecção fúngica invasiva (Candida Score: NPT, cirurgia prévia, sepse grave, colonização multifocal) para indicação oportuna de antifungicidoterapia preemptiva.
+    - Protocolo posológico de Echinocandinas de 1ª linha (Anidulafungina 200mg ataque + 100mg/dia ou Caspofungina 70mg + 50mg/dia) com cobertura estrita para espécies não-albicans (C. glabrata, C. krusei).
+    - Rastreio obrigatório de fundoscopia ocular (descarte de endoftalmite) e ecocardiograma (descarte de endocardite fúngica) e retirada mandatória de cateter venoso central.
+
 ## 🔄 Próxima Tarefa em Andamento
-- [ ] **Módulo Avançado de Transfusão Sanguínea (Protocolo de Transfusão Maciça e Gatilhos)**
+- [ ] **Integração de Calculadora de Clearance de Creatinina (Cockcroft-Gault) com Auditoria Automática de Prescrições**
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Módulo Avançado de Transfusão Sanguínea (Protocolo de Transfusão Maciça e Gatilhos)**:
+   - Motor determinístico de alta performance beira-leito (`TransfusaoSanguineaService`) alinhado às diretrizes do Ministério da Saúde (Portaria de Consolidação 5/2017), ABHH, AABB 2023, e aos trials seminais TRICC, TRISS, FOCUS, REALITY, PROPPR, CRASH-2 e WOMAN.
+   - Gatilhos transfusionais de Concentrado de Hemácias (CHAD): Estratégia restritiva rigorosa para pacientes clínicos e sépticos estáveis (gatilho Hb < 7,0 g/dL, alvo 7,0-9,0 g/dL) e estratégia liberal modificada para Síndrome Coronariana Aguda/IAM e neurocríticos (gatilho Hb < 8,0 g/dL, alvo 8,0-10,0 g/dL). Bloqueio e alerta de transfusão desnecessária com Hb >= 7,0 g/dL.
+   - Doutrina Patient Blood Management (PBM): Cálculo ponderado de bolsas (1 bolsa = +1 g/dL em 70 kg) com recomendação de "1 bolsa por vez e reavaliação laboratorial em 1-2h" e alerta precoce de prevenção de TACO (infusão lenta em 3-4h e diurético preventivo).
+   - Protocolo de Transfusão Maciça (PTM 1:1:1): Escore ABC (Assessment of Blood Consumption - sensibilidade 85%) e Índice de Choque (>= 1.4 catastrófico). Pacotes balanceados com 4 CHAD, 4 PFC, 1 pool de plaquetas por aférese, reposição precoce de Ácido Tranexâmico (1g ataque + 1g em 8h na janela crítica de 3h do sangramento) e 2º pacote com Crioprecipitado e Gluconato de Cálcio 10% (prevenção de hipocalcemia induzida pelo citrato).
+   - Regra sentinela de tipagem emergencial: CHAD O negativo mandatório em mulheres em idade fértil (<= 50 anos) para proteção materno-fetal contra aloimunização anti-D; liberação de O positivo para homens e idosas preservando estoques críticos.
+   - Reposição de hemocomponentes específicos: Plasma Fresco Congelado ponderado (10-15 mL/kg) para RNI > 1.5 com sangramento; Concentrado de Plaquetas escalonado (10k, 20k, 50k, 100k) com bloqueio sentinela absoluto de plaquetas em suspeita de PTT e HIT (risco de trombose catastrófica); Crioprecipitado direcionado para hipofibrinogenemia severa (< 150-200 mg/dL).
+   - Escore ISTH completo para Coagulação Intravascular Disseminada (CIVD Manifesta / Overt DIC) com estratificação em 8 pontos e pacote hemostático associado ao combate da causa-base.
+   - Diagnóstico diferencial e conduta de emergência em Reações Transfusionais Agudas (Hemólise Aguda ABO, TACO, TRALI, Anafilaxia, RFNH, Sepse bacteriana).
+   - Integração completa com Fastify RPC (`cockpitTransfusaoSanguinea`), bot do Telegram (`/transfusao`, `/hemoterapia`, `/ptm`, `/chad`) e suíte de 16 testes determinísticos automatizados aprovados com 100% de sucesso.
 - [x] (2026-10-09) **Ferramenta de Auditoria Analítica (Dashboard de Kaizen Clínico)**:
    - Motor determinístico off-line (`AuditoriaKaizenClinicoService`) de alta performance (< 10ms) para auditoria beira-leito e processamento em lote (batch) de prescrições hospitalares.
    - Classificação padronizada de desfechos: Bloqueio Fatal (Evento Sentinela), Rejeitada por Interação Grave/Contraindicada, Intervenção Farmacêutica por Omissão de Ajuste Renal, Retenção RBAC e Liberação Segura.
