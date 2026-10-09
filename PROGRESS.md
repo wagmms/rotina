@@ -120,12 +120,12 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Motor analítico do hemograma: interpretação de VCM, HCM, RDW e contagem de reticulócitos para classificação etiológica (microcítica/hipocrômica, normocítica, macrocítica).
     - Cálculo de dose de reposição de Ferro elementar (VO) com teto seguro para evitar intolerância gastrointestinal, e critérios para indicação de Ferro Endovenoso (Noripurum).
 
-34. [x] **Cardiologia Intensiva - Choque Cardiogênico e SCA com IC Descompensada (Classificação de Forrester 34. [ ] **Cardiologia Intensiva - Choque Cardiogênico e SCA com IC Descompensada (Classificação de Forrester & Stevenson)** Stevenson)**:
+34. [x] **Cardiologia Intensiva - Choque Cardiogênico e SCA com IC Descompensada (Classificação de Forrester & Stevenson)**:
     - Estratificação determinística hemodinâmica beira-leito (Perfil A: quente/seco, Perfil B: quente/úmido, Perfil C: frio/úmido, Perfil L: frio/seco).
     - Algoritmo de titulação combinada de Inotrópico (Dobutamina/Milrinona) e Vasopressor (Noradrenalina) vs Vasodilatador (Nitroprussiato de Sódio).
     - Bloqueios de segurança: contraindicação formal de betabloqueadores na fase aguda descompensada e otimização de diuréticos de alça (Furosemida bolus vs contínua).
 
-35. [ ] **Nefrologia e Terapia Intensiva - Injúria Renal Aguda (KDIGO) e Indicações de Diálise de Urgência**:
+35. [x] **Nefrologia e Terapia Intensiva - Injúria Renal Aguda (KDIGO) e Indicações de Diálise de Urgência**:
     - Estadiamento determinístico KDIGO 1, 2 e 3 por creatinina sérica basal vs pico e débito urinário horário (mL/kg/h).
     - Checklist beira-leito das indicações clássicas de diálise de urgência (mnemônico AEIOU: Acidose refratária pH < 7.15, Eletrólitos/Hipercalemia > 6.5 com ECG alterado, Intoxicações dialisáveis, Overload/Hipervolemia com EAP, Uremia sintomática com pericardite/encefalopatia).
 
@@ -968,3 +968,15 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 - [x] **Enriquecimento do Guia de Interações Medicamentosas de UTI/Enfermaria** (2026-10-08): 66 novas interações críticas adicionadas (total de 285 regras farmacológicas em RAM). 146/146 testes aprovados.
 - [x] **Otimização de Latência do Cockpit RPC** (2026-10-08): Compressão gzip, cache singleton do dispatch map, Cache-Control headers inteligentes. 145/145 testes passando.
 - [x] **Correção da Suíte de Testes do Servidor Render** (2026-10-08): Correção e estabilização de `tests/test_server_render.cjs`.
+
+114. [ ] **Módulo de Nefrologia Avançada - Distúrbios Hidroeletrolíticos: Hipocalcemia e Hipercalcemia**:
+    - Cálculos de cálcio corrigido pela albumina sérica.
+    - Algoritmo de manejo agudo com reposição de Gluconato de Cálcio IV em hipocalcemia sintomática ou hipercalcemia severa (crise hipercalcêmica) com hidratação vigorosa e bifosfonatos.
+
+115. [ ] **Ginecologia - Manejo de Disfunções Pélvicas e Incontinência Urinária (Diretrizes ICS)**:
+    - Protocolo de avaliação de incontinência urinária de esforço vs urgência (bexiga hiperativa).
+    - Prescrição de antimuscarínicos e beta-3 agonistas com bloqueios de segurança por comorbidades (glaucoma de ângulo fechado).
+
+116. [ ] **Ferramenta de Auditoria de Custos e Faturamento Hospitalar (DRG)**:
+    - Estimativa automatizada de Diagnoses Related Groups baseada nas prescrições inseridas.
+    - Identificação de oportunidades de faturamento cruzado ou desperdício de recursos materiais para a coordenação médica.

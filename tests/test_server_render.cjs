@@ -155,6 +155,24 @@ async function run() {
   assert(jsonHemato.resultado.textoFormatado.includes('HEMATOLOGIA'));
   console.log('✓ Cockpit Hematologia & Investigação de Anemias (Ganzoni & Mentzer) OK');
 
+
+  const resNefro = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitNefrologiaKdigo',
+      session: token,
+      args: [{ cr_basal: 1.0, cr_atual: 3.5, ph: 7.10, acidose_refrataria: true }]
+    }
+  });
+  assert.equal(resNefro.statusCode, 200, "Erro ao testar cockpitNefrologiaKdigo");
+  const jsonNefro = JSON.parse(resNefro.body);
+  assert(jsonNefro.ok, "ok Nefro deve ser true");
+  assert.equal(jsonNefro.resultado.resultado.kdigo.estagio, 3);
+  assert.equal(jsonNefro.resultado.resultado.dialise.aeiou.acidose, true);
+  console.log('✓ Cockpit Nefrologia KDIGO (LRA) e Diálise OK');
+
+  // 7. PWA Manifest
   // 7. PWA Manifest & Service Worker
   const resIC = await app.inject({
     method: 'POST',

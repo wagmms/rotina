@@ -1757,3 +1757,18 @@ function cockpitCardiologiaIntensiva(initData, params) {
     textoFormatado: texto
   };
 }
+
+function cockpitNefrologiaKdigo(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros obrigatórios para LRA não fornecidos.');
+  if (typeof NefrologiaLRAService === 'undefined') throw new Error('Serviço NefrologiaLRAService indisponível.');
+  
+  var analise = NefrologiaLRAService.avaliarLRA(params);
+  var texto = NefrologiaLRAService.formatarTextoTelegram(analise);
+  
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
