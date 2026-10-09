@@ -538,6 +538,44 @@ async function run() {
   assert.equal(safTextoBody.resultado.resultado.fenotipo, 'SAF TROMBÓTICA CONFIRMADA');
   console.log('✓ Cockpit SAF e Trombofilias via texto livre (alias) OK');
 
+  // 6.19 Cockpit RPC - Oftalmologia de Emergência: Queimadura Química e Glaucoma Agudo
+  const resOftalmo = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitOftalmologiaEmergencia',
+      session: token,
+      args: [{
+        glaucoma: true,
+        pio: 54,
+        dorIntensa: true,
+        pupilaMidriaseFixa: true
+      }]
+    }
+  });
+  assert.equal(resOftalmo.statusCode, 200, "Erro ao testar cockpitOftalmologiaEmergencia");
+  const oftalmoBody = JSON.parse(resOftalmo.payload);
+  assert.equal(oftalmoBody.resultado.sucesso, true);
+  assert.equal(oftalmoBody.resultado.resultado.tipoCaso, 'GLAUCOMA_AGUDO_ANGULO_FECHADO');
+  assert.ok(oftalmoBody.resultado.textoFormatado.includes('OFTALMOLOGIA DE EMERGÊNCIA'));
+  console.log('✓ Cockpit Oftalmologia Emergência (Glaucoma Agudo & Pilocarpina) OK');
+
+  // 6.20 Cockpit RPC - Oftalmologia via texto livre (alias cockpitOftalmologia)
+  const resOftalmoTexto = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitOftalmologia',
+      session: token,
+      args: ['queimadura por soda caustica cal nos olhos pH 9.8']
+    }
+  });
+  assert.equal(resOftalmoTexto.statusCode, 200, "Erro ao testar cockpitOftalmologia via texto");
+  const oftalmoTextoBody = JSON.parse(resOftalmoTexto.payload);
+  assert.equal(oftalmoTextoBody.resultado.sucesso, true);
+  assert.equal(oftalmoTextoBody.resultado.resultado.tipoCaso, 'QUEIMADURA_QUIMICA');
+  console.log('✓ Cockpit Oftalmologia via texto livre (alias) OK');
+
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);
   const jsonManifest = JSON.parse(resManifest.body);

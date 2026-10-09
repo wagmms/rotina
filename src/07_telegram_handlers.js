@@ -1805,6 +1805,35 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // OFTALMOLOGIA DE EMERGÊNCIA: TRAUMA OCULAR, GLAUCOMA AGUDO E QUEIMADURAS
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/oftalmo" || comando === "/glaucoma" || comando === "/queimaduraocular" || comando === "/traumaocular") {
+    var dadosOftalmo = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof OftalmologiaEmergenciaService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo OftalmologiaEmergenciaService indisponível temporariamente.");
+    }
+
+    if (!dadosOftalmo) {
+      return enviarMensagemParaChat(chatId, "👁️ *OFTALMOLOGIA DE EMERGÊNCIA — PRONTO ATENDIMENTO*\n\n" +
+        "Envie os dados clínicos para avaliação de Queimaduras Químicas, Glaucoma Agudo ou Trauma Ocular:\n" +
+        "• *Queimadura Química:* `queimadura por soda caustica`, `cal nos olhos`, `cimento`, `acido de bateria`, `pH 9.5`\n" +
+        "• *Glaucoma Agudo:* `dor ocular intensa`, `olho vermelho`, `halos coloridos`, `PIO 55`, `nauseas e vomitos`\n" +
+        "• *Trauma Ocular:* `pupila em gota`, `seidel positivo`, `hifema`, `perfuracao ocular`, `blowout`, `fratura de orbita`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/oftalmo queimadura por soda caustica cal nos olhos pH 10` *(Irrigação profusa imediata com RL/SF)*\n" +
+        "• `/oftalmo dor ocular severa olho vermelho midriase fixa PIO 50` *(Glaucoma Agudo: Acetazolamida + Manitol + Regra da Pilocarpina)*\n" +
+        "• `/oftalmo trauma com estilhaco pupila em gota seidel positivo` *(Globo aberto: Shield rígido, NPO e proibir compressão)*");
+    }
+
+    try {
+      var paramsOftalmo = OftalmologiaEmergenciaService.extrairParametrosTexto(dadosOftalmo);
+      var analiseOftalmo = OftalmologiaEmergenciaService.avaliar(paramsOftalmo);
+      return enviarMensagemParaChat(chatId, OftalmologiaEmergenciaService.formatarTextoTelegram(analiseOftalmo));
+    } catch (eOftalmo) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Emergência Oftalmológica: " + eOftalmo.message);
+    }
+  }
+
   // PEDIATRIA: BRONQUIOLITE VIRAL AGUDA
   // ───────────────────────────────────────────────────────────────────────────
   if (comando === "/bronquiolite" || comando === "/bva" || comando === "/bronquioliteviral" || comando === "/cnaf") {

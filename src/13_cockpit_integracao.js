@@ -2090,6 +2090,31 @@ function cockpitIcCronica(initData, params) {
   return cockpitCardiologiaIcCronica(initData, params);
 }
 
+function cockpitOftalmologiaEmergencia(initData, params) {
+  cockpitAutorizar_(initData);
+  if (!params) throw new Error('Parâmetros de Oftalmologia de Emergência não fornecidos.');
+  if (typeof OftalmologiaEmergenciaService === 'undefined') {
+    throw new Error('Serviço OftalmologiaEmergenciaService indisponível.');
+  }
+
+  var entrada = typeof params === 'string'
+    ? OftalmologiaEmergenciaService.extrairParametrosTexto(params)
+    : (params.texto ? OftalmologiaEmergenciaService.extrairParametrosTexto(params.texto) : params);
+
+  var analise = OftalmologiaEmergenciaService.avaliar(entrada);
+  var texto = OftalmologiaEmergenciaService.formatarTextoTelegram(analise);
+
+  return {
+    sucesso: true,
+    resultado: analise,
+    textoFormatado: texto
+  };
+}
+
+function cockpitOftalmologia(initData, params) {
+  return cockpitOftalmologiaEmergencia(initData, params);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitGinecologiaEndometriose = cockpitGinecologiaEndometriose;
   module.exports.cockpitEndometriose = cockpitEndometriose;
@@ -2098,6 +2123,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitSafGestacional = cockpitSafGestacional;
   module.exports.cockpitCardiologiaIcCronica = cockpitCardiologiaIcCronica;
   module.exports.cockpitIcCronica = cockpitIcCronica;
+  module.exports.cockpitOftalmologiaEmergencia = cockpitOftalmologiaEmergencia;
+  module.exports.cockpitOftalmologia = cockpitOftalmologia;
 }
 
 

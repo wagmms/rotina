@@ -1,4 +1,4 @@
-### STATUS: REVISAO_E_CONSERTO_DE_ERROS
+### STATUS: EM_EVOLUCAO_CONTINUA
 
 # 🛠️ Ultra Rotina — Revisão Geral, Auditoria e Conserto de Erros (Prioridade Máxima)
 
@@ -263,10 +263,12 @@
     - Classificação funcional da NYHA e estadiamento ACC/AHA (A a D).
     - Prescrição sequencial escalonada do Quarteto Fantástico (iSGLT2, ARNI/IECA, Beta-bloqueador e ARM) com checagem rigorosa de contraindicações (ex: bloqueio de espironolactona e sacubitril/valsartana em hipercalemia ou piora de ClCr).
 
-47. [ ] **Oftalmologia e Emergência - Rastreio e Conduta Inicial no Trauma Ocular e Glaucoma Agudo**:
-    - Algoritmo de triagem visual (Tabela de Snellen) no Pronto Atendimento.
-    - Conduta de urgência em glaucoma de ângulo fechado (Acetazolamida sistêmica, Timolol e Pilocarpina após alívio pressórico).
-    - Escalonamento de queimaduras químicas oculares (irrigação profusa com ringer lactato IMEDIATA).
+47. [x] **Oftalmologia e Emergência - Rastreio e Conduta Inicial no Trauma Ocular, Queimaduras Químicas e Glaucoma Agudo (Diretrizes CBO / AAO / Wills Eye / ATLS)**:
+    - Motor determinístico beira-leito para acuidade visual (Snellen, Conta Dedos, Movimentos de Mãos, Percepção Luminosa) e triagem de urgência oftalmológica (`src/02_oftalmologia_emergencia.js`).
+    - Protocolo emergencial de queimaduras químicas oculares: prioridade zero de irrigação profusa contínua (Ringer Lactato ou SF 0,9%, 1-2L iniciais) antes de qualquer anamnese detalhada ou acuidade visual; aferição seriada de pH com papel tornassol (alvo neutro 7.0 a 7.2 com repouso pós-irrigação); eversão palpebral obrigatória com bastonete para remoção mecânica de partículas sólidas (cal, cimento, gesso); diferenciação fisiopatológica de álcalis (necrose de liquefação com penetração profunda e isquemia límbica) vs ácidos (necrose de coagulação).
+    - Protocolo determinístico de Glaucoma Agudo de Ângulo Fechado (GAAF): terapia hipotensora sistêmica imediata com Acetazolamida 500 mg VO/IV (bloqueio em alergia grave a sulfas), Timolol 0,5% colírio com bloqueio de segurança em asma, DPOC e bradicardia severa, Brimonidina 0,15-0,2% (bloqueio em menores de 2 anos pelo risco de depressão respiratória central) e Manitol 20% IV (1-2 g/kg em 30-45 min); **Regra de Ouro da Pilocarpina**: bloqueio formal de miótico com PIO > 40-50 mmHg devido à isquemia do esfíncter da íris, liberando Pilocarpina 1-2% somente após redução prévia da pressão intraocular; encaminhamento urgente para iridotomia periférica a laser profilática bilateral.
+    - Protocolo de trauma ocular e suspeita de globo ocular aberto (Seidel positivo, pupila em gota d'água direcionada à ferida, câmara anterior rasa/atâmica, extrusão uveal, hipotonia): **Regras de Proteção Absoluta**: NUNCA palpar, NUNCA aferir tonometria, NUNCA everter pálpebras, NUNCA prescrever pomadas ou colírios desnecessários, NUNCA aplicar curativo compressivo com gaze; proteção mecânica exclusiva com shield rígido (protetor acrílico ou de alumínio apoiado nas bordas orbitárias ósseas), NPO absoluto, antiemético IV profilático para prevenir vômito e manobra de Valsalva, profilaxia antitetânica e antibioticoterapia IV para endoftalmite; protocolo de hifema traumático com repouso em cabeceira elevada a 30-45º e bloqueio absoluto de AAS/AINEs; protocolo de fratura de assoalho de órbita (blow-out) com proibição estrita de assoar o nariz para prevenção de enfisema orbitário e amaurose.
+    - Integrado via Fastify RPC (`cockpitOftalmologiaEmergencia`, `cockpitOftalmologia`), comandos Telegram (`/oftalmo`, `/glaucoma`, `/queimaduraocular`, `/traumaocular`) e cobertura 100% aprovada nos testes unitários e de integração do servidor Render.
 
 
 48. [x] **Módulo de Psiquiatria - Manejo do Transtorno Depressivo Maior, Agitação Psicomotora e Risco de Suicídio (Concluído)**:
@@ -1295,3 +1297,18 @@
     - Classificação de sintomas pelo escore IPSS e indicações para terapia farmacológica combinada (Alfa-bloqueadores + Inibidores da 5-alfa redutase).
     - Alerta sobre hipotensão postural associada a alfa-bloqueadores e contraindicações de antimuscarínicos em retenção.
     - Protocolo de tentativa de micção sem sonda após evento de retenção aguda de urina (desmame de sonda).
+
+159. [ ] **Nefrologia & Terapia Intensiva - Manejo dos Distúrbios Agudos do Magnésio e Fósforo (Hipomagnesemia, Hipermagnesemia, Hipofosfatemia Severa e Síndrome de Realimentação)**:
+    - Motor determinístico de reposição de Sulfato de Magnésio 10% e 50% IV e VO ajustado por severidade clínica (arritmias graves, Torsades de Pointes vs hipomagnesemia assintomática) com monitoramento estrito de reflexo patelar e função renal.
+    - Protocolo de conduta na hipermagnesemia iatrogênica ou dialítica (Gluconato de Cálcio 10% IV como antagonista de membrana, expansão salina e indicação de hemodiálise de urgência).
+    - Manejo da hipofosfatemia severa (< 1,0 mg/dL): reposição parenteral com Fosfato de Potássio ou Fosfato de Sódio com taxa máxima de infusão para prevenir calcificação metastática e hipocalcemia aguda severa; integração com protocolo de Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado.
+
+160. [ ] **Dermatologia & Emergências Pediátricas e Adultas - Farmacodermias Graves (DRESS, Síndrome de Stevens-Johnson / Necrólise Epidérmica Tóxica - SCORTEN e Bloqueios Críticos)**:
+    - Calculadora determinística beira-leito do escore SCORTEN para predição de mortalidade em SSJ/NET (idade, FC, neoplasia, superfície corporal descolada > 10%, ureia, glicose, bicarbonato).
+    - Critérios diagnósticos de RegiSCAR para Síndrome DRESS (Drug Reaction with Eosinophilia and Systemic Symptoms) com rastreio de acometimento visceral (hepatite, nefrite, miocardite).
+    - Ação emergencial de bloqueio de segurança: SUSPENSÃO IMEDIATA de todos os fármacos suspeitos de alto risco (Alopurinol, Anticonvulsivantes aromáticos, Sulfas, Nevirapina, AINEs oxicanos); suporte intensivo em leito de queimados, controle térmico e hidroeletrolítico, analgesia escalonada e contraindicação formal de desbridamento cirúrgico agressivo em SSJ/NET.
+
+161. [ ] **Pediatria & Emergência - Manejo da Crise Convulsiva Febril e Estado de Mal Epiléptico Pediátrico (Diretrizes SBP / AAP / PALS)**:
+    - Diferenciação determinística entre Crise Febril Simples (< 15 min, generalizada, única em 24h, sem déficit prévio) e Complexa (focal, > 15 min ou recorrente em 24h) com desmistificação de punção lombar e neuroimagem de rotina na forma simples.
+    - Algoritmo escalonado no tempo do Estado de Mal Epiléptico Pediátrico (SE): 0-5 min (estabilização ABC, glicemia capilar), 5-10 min (1ª linha: Diazepam retal/IV ou Midazolam IM/intranasal/IV), 10-20 min (2ª linha: Levetiracetam IV vs Fenitoína IV vs Fenobarbital IV em neonatos/lactentes jovens), > 20-30 min (SE refratário: IOT com proteção de via aérea e infusão contínua de Midazolam ou Cetamina ou Tiopental em UTI pediátrica).
+
