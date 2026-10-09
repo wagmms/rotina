@@ -365,6 +365,60 @@ function cockpitCalcular(initData, tipo, entrada) {
           "• Dosar sódio sérico a cada 2 a 4 horas. Se subida > 8 mEq em 24h: suspender salina e infundir SG 5% ou Desmopressina (DDAVP).";
         return { ok: true, sucesso: true, id: 'hiponatremia', nome: 'Correção de Hiponatremia', texto: txtHipo, textoFormatado: txtHipo, dados: resHipo };
       }
+    case 'heart':
+    case 'sca':
+    case 'cardiologia':
+      if (typeof CardiologiaEmergenciaService === 'undefined') throw new Error('Serviço CardiologiaEmergenciaService indisponível.');
+      var paramsCardio = Object.assign({}, entrada);
+      if (paramsCardio.fr !== undefined) {
+        var numFr = Number(paramsCardio.fr);
+        if (numFr >= 2) paramsCardio.fatoresRiscoContagem = 3;
+        else if (numFr === 1) paramsCardio.fatoresRiscoContagem = 1;
+        else paramsCardio.fatoresRiscoContagem = 0;
+      }
+      var resCardio = CardiologiaEmergenciaService.avaliarPaciente(paramsCardio);
+      var heartRes = resCardio.heart;
+      var daptRes = resCardio.dapt;
+      var timiRes = resCardio.timiScasst;
+
+      var txtCardio = "🫀 ESCORE HEART & DOR TORÁCICA / SCA (SBC / AHA / ESC)\n\n" +
+        "🔴 ESTRATIFICAÇÃO & CONDUTA BEIRA-LEITO:\n" +
+        "• HEART Score: " + heartRes.escore + " pontos — " + String(heartRes.risco).toUpperCase() + "\n" +
+        "• Taxa de MACE (6 semanas): " + heartRes.taxaMACE + "\n" +
+        "• Conduta: " + heartRes.recomendacao + "\n" +
+        "• TIMI SCASST: " + timiRes.escore + "/7 pontos (" + timiRes.risco + " — MACE 14d: " + timiRes.taxaMACE14Dias + ")\n\n" +
+        "🟡 DUPLO BLOQUEIO ANTIPLAQUETÁRIO (DAPT):\n" +
+        "• P2Y12 de Escolha: " + daptRes.p2y12Escolhido + "\n";
+      for (var d = 0; d < daptRes.recomendacoes.length; d++) {
+        var r = daptRes.recomendacoes[d];
+        txtCardio += "• " + r.farmaco + ": Ataque " + r.ataque + " | Manutenção " + r.manutencao + "\n";
+      }
+      if (resCardio.adjuvantes && resCardio.adjuvantes.recomendacoes) {
+        txtCardio += "\n💉 ADJUVANTES & ANTICOAGULAÇÃO:\n";
+        for (var adjIdx = 0; adjIdx < resCardio.adjuvantes.recomendacoes.length; adjIdx++) {
+          var adjRec = resCardio.adjuvantes.recomendacoes[adjIdx];
+          txtCardio += "• " + adjRec.farmaco + ": " + adjRec.posologia + "\n";
+        }
+      }
+      var bloqueiosCardio = [].concat(daptRes.bloqueios || []).concat((resCardio.adjuvantes && resCardio.adjuvantes.bloqueios) || []);
+      if (bloqueiosCardio.length > 0) {
+        txtCardio += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n";
+        for (var bIdx = 0; bIdx < bloqueiosCardio.length; bIdx++) {
+          var bItem = bloqueiosCardio[bIdx];
+          txtCardio += "• [" + bItem.nivel + "] " + bItem.farmaco + ": " + bItem.motivo + "\n";
+        }
+      }
+      txtCardio += "\nℹ️ MONITORIZAÇÃO:\n• ECG seriado (a cada 15-30 min se dor ou a cada 6h), curva de troponina (0h/1h ou 0h/2h ou 0h/3h) e monitorização contínua.";
+
+      return {
+        ok: true,
+        sucesso: true,
+        id: 'heart_score',
+        nome: 'Escore HEART & SCA',
+        texto: txtCardio,
+        textoFormatado: txtCardio,
+        dados: resCardio
+      };
     case 'interacoes':
     case 'seguranca':
       var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';

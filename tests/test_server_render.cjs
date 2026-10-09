@@ -188,6 +188,26 @@ async function run() {
   assert(jsonGasoCalc.resultado.texto.includes('AG: 30') || jsonGasoCalc.resultado.texto.includes('30.0'));
   console.log(`✓ Cockpit Cálculo Gasometria Arterial 5 Passos OK`);
 
+  // 4.7 Cockpit RPC - Cálculo Escore HEART & SCA / DAPT (< 50ms)
+  const resHeartCalc = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitCalcular',
+      session: token,
+      args: ['heart', { historia: 2, ecg: 2, idade: 68, fr: 2, troponina: 2, avcPrevio: true }]
+    }
+  });
+  assert.equal(resHeartCalc.statusCode, 200);
+  const jsonHeartCalc = resHeartCalc.json();
+  assert.equal(jsonHeartCalc.ok, true);
+  assert.equal(jsonHeartCalc.resultado.ok, true);
+  assert(jsonHeartCalc.resultado.texto.includes('ESCORE HEART'));
+  assert(jsonHeartCalc.resultado.texto.includes('ALTO RISCO'));
+  assert(jsonHeartCalc.resultado.texto.includes('Ticagrelor'));
+  assert(jsonHeartCalc.resultado.texto.includes('PRASUGREL') || jsonHeartCalc.resultado.texto.includes('Prasugrel'));
+  console.log(`✓ Cockpit Cálculo Escore HEART & SCA / DAPT OK`);
+
   // 5. Cockpit RPC - Consulta REMUME (< 20ms)
   const resRemume = await app.inject({
     method: 'POST',

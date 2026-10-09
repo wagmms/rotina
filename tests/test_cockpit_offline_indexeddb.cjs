@@ -52,7 +52,12 @@ assert(htmlContent.includes('id="calc-dhe"'), 'Painel calc-dhe presente');
 assert(htmlContent.includes('id="btn-copiar-dhe"'), 'Botão btn-copiar-dhe presente');
 assert(htmlContent.includes('id="dhe-na-atual"'), 'Input dhe-na-atual presente');
 assert(htmlContent.includes('id="dhe-k-atual"'), 'Input dhe-k-atual presente');
-console.log('  ✓ Elementos de telemetria, UI, Sorologias, Pediatria, Ajuste ATB, DHE, SOAP e Atestado CFM validados com sucesso no DOM.');
+assert(htmlContent.includes('id="calc-heart"'), 'Painel calc-heart presente');
+assert(htmlContent.includes('id="btn-copiar-heart"'), 'Botão btn-copiar-heart presente');
+assert(htmlContent.includes('id="heart-historia"'), 'Select heart-historia presente');
+assert(htmlContent.includes('id="heart-ecg"'), 'Select heart-ecg presente');
+assert(htmlContent.includes('id="heart-troponina"'), 'Select heart-troponina presente');
+console.log('  ✓ Elementos de telemetria, UI, Sorologias, Pediatria, Ajuste ATB, DHE, HEART/SCA, SOAP e Atestado CFM validados com sucesso no DOM.');
 
 // 2. Extrai o bloco de script principal (maior bloco de script inline)
 const scripts = Array.from(htmlContent.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi));
@@ -556,6 +561,53 @@ function criarAmbienteSimulacao() {
   assert(resGasoExtrema.includes('BICARBONATO EXTREMAMENTE CONSUMIDO'), 'Alerta de reserva tampão consumida emitido');
 
   console.log('  ✓ Motor offline de Gasometria Arterial 5 Passos (Winter, Ânion Gap & Berlim) validado com 100% de sucesso.');
+
+  console.log('\n[13] Testando motor offline determinístico de Escore HEART, Dor Torácica (SCA) e DAPT...');
+  // 13.1 Baixo Risco (HEART 0 pts)
+  const resHeartBaixo = fnCalcOffline('heart', { historia: 0, ecg: 0, idade: 38, fr: 0, troponina: 0 });
+  assert(resHeartBaixo.includes('ESCORE HEART'), 'Título presente');
+  assert(resHeartBaixo.includes('HEART Score: 0 pontos'), 'Pontuação 0 calculada');
+  assert(resHeartBaixo.includes('BAIXO RISCO'), 'Classificação de Baixo Risco');
+  assert(resHeartBaixo.includes('0.9% a 1.7%'), 'Taxa de MACE de Baixo Risco');
+  assert(resHeartBaixo.includes('alta precoce'), 'Conduta de alta precoce indicada');
+
+  // 13.2 Risco Intermediário (HEART 4 pts)
+  const resHeartInter = fnCalcOffline('heart', { historia: 1, ecg: 1, idade: 56, fr: 1, troponina: 0 });
+  assert(resHeartInter.includes('HEART Score: 4 pontos'), 'Pontuação 4 calculada');
+  assert(resHeartInter.includes('RISCO INTERMEDIÁRIO'), 'Classificação de Risco Intermediário');
+  assert(resHeartInter.includes('Internação hospitalar'), 'Conduta de internação/observação indicada');
+
+  // 13.3 Alto Risco (HEART 10 pts) com Ticagrelor e Enoxaparina
+  const resHeartAlto = fnCalcOffline('heart', { historia: 2, ecg: 2, idade: 68, fr: 2, troponina: 2 });
+  assert(resHeartAlto.includes('HEART Score: 10 pontos'), 'Pontuação 10 calculada');
+  assert(resHeartAlto.includes('ALTO RISCO'), 'Classificação de Alto Risco');
+  assert(resHeartAlto.includes('UCO/UTI'), 'Indicação de UCO/UTI');
+  assert(resHeartAlto.includes('Cateterismo cardíaco'), 'Indicação de cateterismo precoce');
+  assert(resHeartAlto.includes('Ticagrelor (1ª Linha)'), 'Ticagrelor de 1ª linha');
+  assert(resHeartAlto.includes('Atorvastatina: 80 mg'), 'Atorvastatina 80 mg indicada');
+
+  // 13.4 Bloqueio Sentinela de Prasugrel por AVC prévio
+  const resHeartAvc = fnCalcOffline('heart', { historia: 2, ecg: 2, idade: 65, fr: 2, troponina: 1, avcPrevio: true });
+  assert(resHeartAvc.includes('BLOQUEIO SENTINELA DE PRASUGREL'), 'Alerta de bloqueio de Prasugrel por AVC emitido');
+  assert(resHeartAvc.includes('TRITON-TIMI 38'), 'Referência ao ensaio TRITON-TIMI 38');
+  assert(resHeartAvc.includes('Ticagrelor: Ataque 180 mg'), 'Ticagrelor prescrito como alternativa segura');
+
+  // 13.5 Regra de Trombólise em Idoso (> 75 anos): Omissão de Ataque de Clopidogrel
+  const resHeartTrombo = fnCalcOffline('heart', { historia: 2, ecg: 2, idade: 78, fr: 2, troponina: 2, trombolise: true });
+  assert(resHeartTrombo.includes('SEM DOSE DE ATAQUE'), 'Omissão de dose de ataque de Clopidogrel');
+  assert(resHeartTrombo.includes('REGRA DE SEGURANÇA EM TROMBÓLISE'), 'Alerta de trombólise > 75 anos emitido');
+
+  // 13.6 Bloqueio Fatal de Nitratos em IAM-VD ou Sildenafil
+  const resHeartVd = fnCalcOffline('heart', { historia: 2, ecg: 2, idade: 60, fr: 2, troponina: 2, iamVd: true });
+  assert(resHeartVd.includes('BLOQUEIO FATAL DE NITRATOS'), 'Alerta de contraindicação fatal de nitratos emitido');
+  assert(resHeartVd.includes('choque refratário por queda súbita de pré-carga'), 'Mecanismo hemodinâmico alertado');
+
+  // 13.7 Interação CYP2C19 (Clopidogrel + Omeprazol)
+  const resHeartOmeprazol = fnCalcOffline('heart', { historia: 2, ecg: 2, idade: 65, fr: 2, troponina: 1, trombolise: true, usoOmeprazol: true });
+  assert(resHeartOmeprazol.includes('INTERAÇÃO CYP2C19'), 'Detecção de interação CYP2C19');
+  assert(resHeartOmeprazol.includes('Pantoprazol'), 'Recomendação de Pantoprazol presente');
+
+  console.log('  ✓ Motor offline de Escore HEART, Dor Torácica (SCA) e DAPT validado com 100% de sucesso.');
 
   console.log('\n🚀 TODOS OS TESTES DE CACHE CRIPTOGRAFADO, INDEXEDDB E TELEMETRIA PASSARAM COM SUCESSO!\n');
 })().catch(err => {

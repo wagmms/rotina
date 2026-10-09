@@ -18,10 +18,10 @@ var CardiologiaEmergenciaService = (function() {
 
         // 1. History (História Clínica)
         var hist = dados.historia;
-        if (hist === 2 || hist === 'altamente_suspeita') {
+        if (hist === 2 || hist === '2' || hist === 'altamente_suspeita') {
             score += 2;
             justificativas.push("História altamente suspeita (+2): dor retroesternal em aperto, irradiação para mandíbula/MMSS, sudorese/diaforese ou piora ao esforço.");
-        } else if (hist === 1 || hist === 'moderadamente_suspeita') {
+        } else if (hist === 1 || hist === '1' || hist === 'moderadamente_suspeita') {
             score += 1;
             justificativas.push("História moderadamente suspeita (+1): elementos anginosos mistos ou equivalentes.");
         } else {
@@ -30,10 +30,10 @@ var CardiologiaEmergenciaService = (function() {
 
         // 2. ECG (Eletrocardiograma)
         var ecg = dados.ecg;
-        if (ecg === 2 || ecg === 'infradesnivel_st' || ecg === 'isquemia_significativa') {
+        if (ecg === 2 || ecg === '2' || ecg === 'infradesnivel_st' || ecg === 'isquemia_significativa') {
             score += 2;
             justificativas.push("ECG com desvio significativo de ST ou inversão de onda T simétrica/profunda (+2). Se Supra de ST persistente -> Protocolo IAMCSST de Reperfusão Imediata!");
-        } else if (ecg === 1 || ecg === 'alteracao_inespecifica' || ecg === 'bloqueio_ramo_previo' || ecg === 'sve') {
+        } else if (ecg === 1 || ecg === '1' || ecg === 'alteracao_inespecifica' || ecg === 'bloqueio_ramo_previo' || ecg === 'sve') {
             score += 1;
             justificativas.push("ECG com alterações inespecíficas de repolarização, LBBB prévio ou SVE (+1).");
         } else {
@@ -79,10 +79,10 @@ var CardiologiaEmergenciaService = (function() {
 
         // 5. Troponin (Troponina)
         var trop = dados.troponina;
-        if (trop === 2 || trop === 'elevada_3x' || trop === 'positiva_alta') {
+        if (trop === 2 || trop === '2' || trop === 'elevada_3x' || trop === 'positiva_alta') {
             score += 2;
             justificativas.push("Troponina > 3x o limite superior de referência (ULN) (+2). Necrose miocárdica confirmada.");
-        } else if (trop === 1 || trop === 'elevada_1a3x' || trop === 'positiva_leve') {
+        } else if (trop === 1 || trop === '1' || trop === 'elevada_1a3x' || trop === 'positiva_leve') {
             score += 1;
             justificativas.push("Troponina entre 1 e 3x o limite superior de referência (+1). Curva em andamento.");
         } else {

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 17:14:59
- * Checksum SHA256: 69de0bc165de0cd4
+ * Gerado automaticamente via build_master.py em: 2026-10-09 17:34:52
+ * Checksum SHA256: 06c835b6bf850a9f
  * ==============================================================================
  */
 
@@ -6040,10 +6040,10 @@ var CardiologiaEmergenciaService = (function() {
 
         // 1. History (História Clínica)
         var hist = dados.historia;
-        if (hist === 2 || hist === 'altamente_suspeita') {
+        if (hist === 2 || hist === '2' || hist === 'altamente_suspeita') {
             score += 2;
             justificativas.push("História altamente suspeita (+2): dor retroesternal em aperto, irradiação para mandíbula/MMSS, sudorese/diaforese ou piora ao esforço.");
-        } else if (hist === 1 || hist === 'moderadamente_suspeita') {
+        } else if (hist === 1 || hist === '1' || hist === 'moderadamente_suspeita') {
             score += 1;
             justificativas.push("História moderadamente suspeita (+1): elementos anginosos mistos ou equivalentes.");
         } else {
@@ -6052,10 +6052,10 @@ var CardiologiaEmergenciaService = (function() {
 
         // 2. ECG (Eletrocardiograma)
         var ecg = dados.ecg;
-        if (ecg === 2 || ecg === 'infradesnivel_st' || ecg === 'isquemia_significativa') {
+        if (ecg === 2 || ecg === '2' || ecg === 'infradesnivel_st' || ecg === 'isquemia_significativa') {
             score += 2;
             justificativas.push("ECG com desvio significativo de ST ou inversão de onda T simétrica/profunda (+2). Se Supra de ST persistente -> Protocolo IAMCSST de Reperfusão Imediata!");
-        } else if (ecg === 1 || ecg === 'alteracao_inespecifica' || ecg === 'bloqueio_ramo_previo' || ecg === 'sve') {
+        } else if (ecg === 1 || ecg === '1' || ecg === 'alteracao_inespecifica' || ecg === 'bloqueio_ramo_previo' || ecg === 'sve') {
             score += 1;
             justificativas.push("ECG com alterações inespecíficas de repolarização, LBBB prévio ou SVE (+1).");
         } else {
@@ -6101,10 +6101,10 @@ var CardiologiaEmergenciaService = (function() {
 
         // 5. Troponin (Troponina)
         var trop = dados.troponina;
-        if (trop === 2 || trop === 'elevada_3x' || trop === 'positiva_alta') {
+        if (trop === 2 || trop === '2' || trop === 'elevada_3x' || trop === 'positiva_alta') {
             score += 2;
             justificativas.push("Troponina > 3x o limite superior de referência (ULN) (+2). Necrose miocárdica confirmada.");
-        } else if (trop === 1 || trop === 'elevada_1a3x' || trop === 'positiva_leve') {
+        } else if (trop === 1 || trop === '1' || trop === 'elevada_1a3x' || trop === 'positiva_leve') {
             score += 1;
             justificativas.push("Troponina entre 1 e 3x o limite superior de referência (+1). Curva em andamento.");
         } else {
@@ -52358,6 +52358,60 @@ function cockpitCalcular(initData, tipo, entrada) {
           "• Dosar sódio sérico a cada 2 a 4 horas. Se subida > 8 mEq em 24h: suspender salina e infundir SG 5% ou Desmopressina (DDAVP).";
         return { ok: true, sucesso: true, id: 'hiponatremia', nome: 'Correção de Hiponatremia', texto: txtHipo, textoFormatado: txtHipo, dados: resHipo };
       }
+    case 'heart':
+    case 'sca':
+    case 'cardiologia':
+      if (typeof CardiologiaEmergenciaService === 'undefined') throw new Error('Serviço CardiologiaEmergenciaService indisponível.');
+      var paramsCardio = Object.assign({}, entrada);
+      if (paramsCardio.fr !== undefined) {
+        var numFr = Number(paramsCardio.fr);
+        if (numFr >= 2) paramsCardio.fatoresRiscoContagem = 3;
+        else if (numFr === 1) paramsCardio.fatoresRiscoContagem = 1;
+        else paramsCardio.fatoresRiscoContagem = 0;
+      }
+      var resCardio = CardiologiaEmergenciaService.avaliarPaciente(paramsCardio);
+      var heartRes = resCardio.heart;
+      var daptRes = resCardio.dapt;
+      var timiRes = resCardio.timiScasst;
+
+      var txtCardio = "🫀 ESCORE HEART & DOR TORÁCICA / SCA (SBC / AHA / ESC)\n\n" +
+        "🔴 ESTRATIFICAÇÃO & CONDUTA BEIRA-LEITO:\n" +
+        "• HEART Score: " + heartRes.escore + " pontos — " + String(heartRes.risco).toUpperCase() + "\n" +
+        "• Taxa de MACE (6 semanas): " + heartRes.taxaMACE + "\n" +
+        "• Conduta: " + heartRes.recomendacao + "\n" +
+        "• TIMI SCASST: " + timiRes.escore + "/7 pontos (" + timiRes.risco + " — MACE 14d: " + timiRes.taxaMACE14Dias + ")\n\n" +
+        "🟡 DUPLO BLOQUEIO ANTIPLAQUETÁRIO (DAPT):\n" +
+        "• P2Y12 de Escolha: " + daptRes.p2y12Escolhido + "\n";
+      for (var d = 0; d < daptRes.recomendacoes.length; d++) {
+        var r = daptRes.recomendacoes[d];
+        txtCardio += "• " + r.farmaco + ": Ataque " + r.ataque + " | Manutenção " + r.manutencao + "\n";
+      }
+      if (resCardio.adjuvantes && resCardio.adjuvantes.recomendacoes) {
+        txtCardio += "\n💉 ADJUVANTES & ANTICOAGULAÇÃO:\n";
+        for (var adjIdx = 0; adjIdx < resCardio.adjuvantes.recomendacoes.length; adjIdx++) {
+          var adjRec = resCardio.adjuvantes.recomendacoes[adjIdx];
+          txtCardio += "• " + adjRec.farmaco + ": " + adjRec.posologia + "\n";
+        }
+      }
+      var bloqueiosCardio = [].concat(daptRes.bloqueios || []).concat((resCardio.adjuvantes && resCardio.adjuvantes.bloqueios) || []);
+      if (bloqueiosCardio.length > 0) {
+        txtCardio += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n";
+        for (var bIdx = 0; bIdx < bloqueiosCardio.length; bIdx++) {
+          var bItem = bloqueiosCardio[bIdx];
+          txtCardio += "• [" + bItem.nivel + "] " + bItem.farmaco + ": " + bItem.motivo + "\n";
+        }
+      }
+      txtCardio += "\nℹ️ MONITORIZAÇÃO:\n• ECG seriado (a cada 15-30 min se dor ou a cada 6h), curva de troponina (0h/1h ou 0h/2h ou 0h/3h) e monitorização contínua.";
+
+      return {
+        ok: true,
+        sucesso: true,
+        id: 'heart_score',
+        nome: 'Escore HEART & SCA',
+        texto: txtCardio,
+        textoFormatado: txtCardio,
+        dados: resCardio
+      };
     case 'interacoes':
     case 'seguranca':
       var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';

@@ -547,6 +547,22 @@
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Integração UI/UX de Dor Torácica, Escore HEART, Duplo Bloqueio Plaquetário (DAPT) e Fallback Offline no Cockpit PWA**:
+   - Adicionado painel dedicado `calc-heart` ("Escore HEART & Dor Torácica (SCA)") na aba de calculadoras (`tab-calculadoras`) do Cockpit PWA com seletores estruturados para História clínica, ECG, Idade, Fatores de risco (DAC) e Troponina.
+   - Reorganizada a barra de subcalculadoras para grade balanceada (`grid-cols-3 sm:grid-cols-9`) com botão destacado de acesso em 1 toque `🫀 HEART`.
+   - Adicionados chips de atalhos em 1 toque para cenários comuns do plantão: 🟢 Baixo Risco (HEART 0), 🟡 Risco Intermediário (HEART 4), 🔴 Alto Risco / SCASST (HEART 10), 🚨 IAM Trombólise e ⚠️ AVC Prévio (Prasugrel Bloq).
+   - Adicionado chip de ação rápida "Dor Torácica & HEART" na aba SOAP (`tab-soap`) com redirecionamento em 1 toque e botão de cópia limpa para o prontuário (`btn-copiar-heart`).
+   - Implementado motor determinístico de contingência offline (`calcularOfflineLocal` para `heart`/`sca`/`cardiologia`) com execução instantânea (0ms) mesmo sem sinal hospitalar, cobrindo com rigor:
+     * Estratificação de risco de MACE em 6 semanas (0.9-1.7% baixo, 12-16.6% intermediário, 50-65% alto).
+     * Seleção de DAPT: AAS mastigado 162-300 mg + P2Y12 de escolha (Ticagrelor 180 mg ataque / 90 mg 12/12h vs Clopidogrel vs Prasugrel).
+     * Alerta sentinela e bloqueio de Prasugrel em antecedente de AVC/AIT (Ensaio TRITON-TIMI 38).
+     * Regra de ouro da trombólise: Clopidogrel mandatório com omissão da dose de ataque em > 75 anos (fazer apenas 75 mg).
+     * Interação CYP2C19: alerta grave entre Clopidogrel e Omeprazol recomendando troca imediata por Pantoprazol.
+     * Adjuvantes: Enoxaparina com ajuste para ClCr < 30 mL/min e idosos > 75 anos na trombólise, e Atorvastatina 80 mg.
+     * Bloqueio fatal de Nitratos em suspeita de Infarto de Ventrículo Direito (IAM-VD) ou uso recente de IPDE-5 (Sildenafil/Tadalafil).
+     * Contraindicação formal de Betabloqueadores na fase aguda com sinais de choque, Killip >= II ou congestão pulmonar.
+   - Expandido endpoint RPC Fastify `cockpitCalcular` em `src/13_cockpit_integracao.js` com suporte a `heart`, `sca` e `cardiologia` (< 2ms de latência).
+   - Validação da suíte de testes `tests/test_cockpit_offline_indexeddb.cjs` e `tests/test_server_render.cjs` com 100% de sucesso no pipeline contínuo (`npm test`).
 - [x] (2026-10-09) **Integração UI/UX de Gasometria Arterial em 5 Passos (Winter, Ânion Gap Sérico e Corrigido, Razão Delta e Berlim) e Fallback Offline no Cockpit PWA**:
    - Modernizado painel dedicado `calc-gaso` ("Gasometria Arterial · 5 Passos") na aba de calculadoras (`tab-calculadoras`) do Cockpit PWA com atalhos em 1 toque para cenários comuns do plantão: 🟢 Normal, 🔴 CAD / Cetoacidose, 🟡 DPOC Retentor, 🔴 Choque Séptico / SDRA e 🔵 Vômitos / Alcalose.
    - Adicionada seção expansível/opcional "🧪 Ânion Gap, Delta-Delta & Oxigenação" com inputs dedicados para Eletrólitos (Na+, Cl-, Albumina) e Oxigenação (PaO2, FiO2).

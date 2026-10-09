@@ -706,9 +706,10 @@
           </span>
           <span class="text-[9px] bg-rose-500/30 text-rose-200 px-1.5 py-0.5 rounded font-mono font-bold tracking-tight">HC-UE</span>
         </button>
-        <div class="grid grid-cols-4 sm:grid-cols-8 gap-1 text-center text-[9.5px] font-bold">
+        <div class="grid grid-cols-3 sm:grid-cols-9 gap-1 text-center text-[9.5px] font-bold">
           <button onclick="abrirSubCalc('calc-dva', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-800 text-slate-400">DVA</button>
           <button onclick="abrirSubCalc('calc-sri', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-800 text-slate-400">SRI / IOT</button>
+          <button onclick="abrirSubCalc('calc-heart', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-800 text-rose-300">🫀 HEART</button>
           <button onclick="abrirSubCalc('calc-pediatria', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-800 text-amber-300">👶 Pediátrico</button>
           <button onclick="abrirSubCalc('calc-crcl', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-800 text-slate-400">Clearance</button>
           <button onclick="abrirSubCalc('calc-atb', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-800 text-rose-300">💊 Ajuste ATB</button>
@@ -1200,6 +1201,125 @@
         </div>
       </div>
 
+      <!-- Subcalc: Escore HEART & SCA (Dor Torácica / SBC / AHA / ESC) -->
+      <div id="calc-heart" class="subcalc-pane hidden glass-card rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+            <i data-lucide="heart-pulse" class="w-3.5 h-3.5"></i> Escore HEART &amp; Dor Torácica (SCA)
+          </h4>
+          <span class="text-[9px] bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded-full font-bold font-mono">SBC · AHA · ESC</span>
+        </div>
+        <p class="text-[11px] text-slate-400">Estratificação de dor torácica no PS, risco de MACE em 6 semanas, indicação de DAPT e bloqueios cruzados (Prasugrel/AVC e Omeprazol).</p>
+
+        <!-- Chips de Cenários Rápidos do Plantão (1 toque) -->
+        <div class="space-y-1">
+          <div class="text-[10px] text-slate-400 font-medium">Cenários rápidos de plantão (1 toque):</div>
+          <div class="flex flex-wrap gap-1">
+            <button type="button" onclick="definirPresetHeart(0, 0, 38, 0, 0, false, false, false, false, false)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-300 text-[10px] font-semibold border border-emerald-500/30 transition">🟢 Baixo Risco (HEART 0)</button>
+            <button type="button" onclick="definirPresetHeart(1, 1, 56, 1, 0, false, false, false, false, false)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 text-[10px] font-semibold border border-amber-500/30 transition">🟡 Intermediário (HEART 4)</button>
+            <button type="button" onclick="definirPresetHeart(2, 2, 68, 2, 2, false, false, false, false, false)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-rose-300 text-[10px] font-semibold border border-rose-500/30 transition">🔴 Alto Risco / SCASST (HEART 10)</button>
+            <button type="button" onclick="definirPresetHeart(2, 2, 62, 2, 2, true, false, false, false, false)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-rose-400 text-[10px] font-semibold border border-rose-500/50 transition">🚨 IAM Trombólise</button>
+            <button type="button" onclick="definirPresetHeart(2, 2, 65, 2, 1, false, true, false, false, false)" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-purple-300 text-[10px] font-semibold border border-purple-500/30 transition">⚠️ AVC Prévio (Prasugrel Bloq)</button>
+          </div>
+        </div>
+
+        <!-- Inputs Estruturados do HEART -->
+        <div class="space-y-2 text-xs">
+          <!-- 1. História Clínica -->
+          <div>
+            <label class="block text-slate-300 mb-1 font-semibold">1. História Clínica (H):</label>
+            <select id="heart-historia" onchange="calcularHeartCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
+              <option value="0">Pouco ou não suspeita (dor atípica, pontual, reprodutível à palpação) [0 pt]</option>
+              <option value="1">Moderadamente suspeita (elementos anginosos mistos/equivalentes) [1 pt]</option>
+              <option value="2" selected>Altamente suspeita (retroesternal, aperto, irradiação, diaforese) [2 pts]</option>
+            </select>
+          </div>
+
+          <!-- 2. ECG -->
+          <div>
+            <label class="block text-slate-300 mb-1 font-semibold">2. Eletrocardiograma (E):</label>
+            <select id="heart-ecg" onchange="calcularHeartCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
+              <option value="0">Normal [0 pt]</option>
+              <option value="1">Alteração inespecífica de repolarização / BRE prévio / SVE [1 pt]</option>
+              <option value="2" selected>Desvio significativo de ST (&gt;= 0.5 mm) ou inversão profunda de T [2 pts]</option>
+            </select>
+          </div>
+
+          <!-- 3. Idade e FR -->
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-slate-300 mb-1 font-semibold">3. Idade (A):</label>
+              <input type="number" id="heart-idade" value="62" min="18" max="110" oninput="calcularHeartCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-center font-mono">
+              <span class="text-[10px] text-slate-400 block mt-0.5">&lt;45 (0), 45-64 (1), &gt;=65 (2)</span>
+            </div>
+            <div>
+              <label class="block text-slate-300 mb-1 font-semibold">4. Fatores de Risco (R):</label>
+              <select id="heart-fr" onchange="calcularHeartCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
+                <option value="0">Nenhum fator de risco conhecido [0 pt]</option>
+                <option value="1">1 ou 2 fatores (HAS, DM, DLP, Fumo, Obesidade, HF) [1 pt]</option>
+                <option value="2" selected>&gt;= 3 fatores OU aterosclerose/DAC documentada [2 pts]</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 5. Troponina -->
+          <div>
+            <label class="block text-slate-300 mb-1 font-semibold">5. Troponina (T):</label>
+            <select id="heart-troponina" onchange="calcularHeartCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
+              <option value="0">Normal (abaixo do percentil 99 / limite superior) [0 pt]</option>
+              <option value="1">Elevada 1 a 3x o limite superior de referência [1 pt]</option>
+              <option value="2" selected>Elevada &gt; 3x o limite superior (necrose miocárdica confirmada) [2 pts]</option>
+            </select>
+          </div>
+
+          <!-- Salvaguardas & Parâmetros de Segurança DAPT -->
+          <div class="pt-2 border-t border-slate-800 space-y-1.5">
+            <div class="text-[11px] font-semibold text-rose-300 flex items-center gap-1">
+              <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> Bloqueios Sentinela &amp; Condições Especiais:
+            </div>
+            <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+              <label class="flex items-center gap-1.5 text-slate-300">
+                <input type="checkbox" id="heart-trombolise" onchange="calcularHeartCockpit()" class="rounded border-slate-700 bg-slate-900 text-rose-500">
+                <span>Fibrinólise / Trombólise</span>
+              </label>
+              <label class="flex items-center gap-1.5 text-slate-300">
+                <input type="checkbox" id="heart-avc" onchange="calcularHeartCockpit()" class="rounded border-slate-700 bg-slate-900 text-rose-500">
+                <span>AVC ou AIT prévio</span>
+              </label>
+              <label class="flex items-center gap-1.5 text-slate-300">
+                <input type="checkbox" id="heart-omeprazol" onchange="calcularHeartCockpit()" class="rounded border-slate-700 bg-slate-900 text-rose-500">
+                <span>Uso de Omeprazol</span>
+              </label>
+              <label class="flex items-center gap-1.5 text-slate-300">
+                <input type="checkbox" id="heart-anticoag" onchange="calcularHeartCockpit()" class="rounded border-slate-700 bg-slate-900 text-rose-500">
+                <span>Anticoagulação (FA/DOAC)</span>
+              </label>
+              <label class="flex items-center gap-1.5 text-slate-300">
+                <input type="checkbox" id="heart-iam-vd" onchange="calcularHeartCockpit()" class="rounded border-slate-700 bg-slate-900 text-rose-500">
+                <span>Suspeita IAM-VD / Sildenafil</span>
+              </label>
+              <label class="flex items-center gap-1.5 text-slate-300">
+                <input type="checkbox" id="heart-choque" onchange="calcularHeartCockpit()" class="rounded border-slate-700 bg-slate-900 text-rose-500">
+                <span>Choque / Killip &gt;= II</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono whitespace-pre-wrap leading-relaxed" id="heart-resultado">
+          <!-- Resultado dinâmico -->
+        </div>
+
+        <div class="flex gap-2">
+          <button id="btn-copiar-heart" onclick="copiarHeartPEP()" class="hidden flex-1 py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition shadow-sm active:scale-[0.99]">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Parecer HEART &amp; DAPT para Prontuário
+          </button>
+          <button type="button" onclick="limparHeart()" class="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold border border-slate-700 transition">
+            Limpar
+          </button>
+        </div>
+      </div>
+
       <!-- Subcalc 5: Pediatria & PALS (Holliday-Segar, PCR e Sintomáticos) -->
       <div id="calc-pediatria" class="subcalc-pane hidden glass-card rounded-xl p-4 space-y-3">
         <div class="flex items-center justify-between">
@@ -1486,6 +1606,9 @@
             </button>
             <button onclick="navegarAba('tab-calculadoras', 'Emergência & Cálculos'); abrirSubCalc('calc-gaso');" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-semibold hover:bg-rose-500/30 flex items-center gap-1 transition">
               <i data-lucide="droplets" class="w-3 h-3"></i> Gasometria &amp; Winter
+            </button>
+            <button onclick="navegarAba('tab-calculadoras', 'Emergência & Cálculos'); abrirSubCalc('calc-heart');" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-semibold hover:bg-rose-500/30 flex items-center gap-1 transition">
+              <i data-lucide="heart-pulse" class="w-3 h-3"></i> Dor Torácica &amp; HEART
             </button>
             <button onclick="copiarReceitaLimpaPEP()" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold hover:bg-emerald-500/30 flex items-center gap-1 transition">
               <i data-lucide="receipt" class="w-3 h-3"></i> Receita PEP
@@ -5151,7 +5274,8 @@
           'crcl-resultado': 'btn-copiar-crcl',
           'gaso-resultado': 'btn-copiar-gaso',
           'atb-resultado': 'btn-copiar-atb',
-          'dhe-resultado': 'btn-copiar-dhe'
+          'dhe-resultado': 'btn-copiar-dhe',
+          'heart-resultado': 'btn-copiar-heart'
         };
         const btnId = mapa[idAlvo];
         const ehValido = textoValido && !textoValido.includes('Informe') && !textoValido.includes('Preencha') && !textoValido.includes('Não foi possível') && !textoValido.includes('Erro ao calcular');
@@ -5796,6 +5920,119 @@
               `ℹ️ MONITORIZAÇÃO & RESGATE:\n` +
               `• Dosar sódio sérico a cada 2 a 4 horas. Se subida > 8 mEq em 24h: suspender salina e infundir SG 5% ou Desmopressina (DDAVP).`;
           }
+        } else if (tipo === 'heart' || tipo === 'sca' || tipo === 'cardiologia') {
+          const hist = Number(entrada.historia !== undefined ? entrada.historia : 2);
+          const ecg = Number(entrada.ecg !== undefined ? entrada.ecg : 2);
+          const idade = Number(entrada.idade) || 60;
+          let ptsIdade = 0;
+          if (idade >= 65) ptsIdade = 2;
+          else if (idade >= 45) ptsIdade = 1;
+
+          let ptsFr = Number(entrada.fr !== undefined ? entrada.fr : (entrada.frCount >= 3 || entrada.dacPrevia ? 2 : (entrada.frCount >= 1 ? 1 : 0)));
+          const trop = Number(entrada.troponina !== undefined ? entrada.troponina : 2);
+
+          const scoreHeart = hist + ecg + ptsIdade + ptsFr + trop;
+          let riscoHeart = "";
+          let taxaMace = "";
+          let condutaHeart = "";
+
+          if (scoreHeart <= 3) {
+            riscoHeart = "BAIXO RISCO (0 a 3 pontos)";
+            taxaMace = "0.9% a 1.7% em 6 semanas";
+            condutaHeart = "Candidato a protocolo de alta precoce e investigação ambulatorial rápida, se troponina seriada negativa e delta estável.";
+          } else if (scoreHeart <= 6) {
+            riscoHeart = "RISCO INTERMEDIÁRIO (4 a 6 pontos)";
+            taxaMace = "12% a 16.6% em 6 semanas";
+            condutaHeart = "Internação hospitalar (observação/enfermaria) para monitorização, dosagem seriada de troponina e estratificação não-invasiva (Angio-TC de coronárias ou teste funcional).";
+          } else {
+            riscoHeart = "ALTO RISCO (7 a 10 pontos)";
+            taxaMace = "50% a 65% em 6 semanas";
+            condutaHeart = "Internação IMEDIATA em Unidade Coronariana (UCO/UTI) e indicação de Estratégia Invasiva Precoce (Cateterismo cardíaco em < 24h). Monitorização contínua.";
+          }
+
+          // DAPT
+          const trombolise = Boolean(entrada.trombolise);
+          const avcPrevio = Boolean(entrada.avcPrevio || entrada.avc || entrada.aitPrevio);
+          const usoOmeprazol = Boolean(entrada.usoOmeprazol || entrada.omeprazol);
+          const anticoag = Boolean(entrada.anticoagulacao || entrada.anticoag || entrada.fibrilacaoAtrial);
+          const alergiaAas = Boolean(entrada.alergiaAas);
+
+          let aasTxt = "";
+          if (alergiaAas) {
+            aasTxt = "• AAS: CONTRAINDICAÇÃO FORMAL (Alergia referida). Monoterapia alternativa ou dessensibilização rápida.";
+          } else {
+            aasTxt = "• AAS: Ataque 162 a 300 mg VO mastigado (2 a 3 cp infantis 100 mg) | Manutenção 81 a 100 mg VO 1x/dia contínuo";
+          }
+
+          let p2y12Txt = "";
+          let alertasBloqueios = [];
+
+          if (trombolise) {
+            if (idade > 75) {
+              p2y12Txt = "• Clopidogrel (Trombólise > 75 anos): SEM DOSE DE ATAQUE! Apenas 75 mg VO inicial | Manutenção 75 mg VO 1x/dia";
+              alertasBloqueios.push("REGRA DE SEGURANÇA EM TROMBÓLISE: Idade > 75 anos requer OMISSÃO da dose de ataque de Clopidogrel (fazer apenas 75 mg VO).");
+            } else {
+              p2y12Txt = "• Clopidogrel (Trombólise padrão): Ataque 300 mg VO dose única | Manutenção 75 mg VO 1x/dia";
+            }
+          } else if (anticoag) {
+            p2y12Txt = "• Clopidogrel (com Anticoagulante/DOAC): Ataque 300 a 600 mg VO | Manutenção 75 mg VO 1x/dia (menor risco hemorrágico em terapia combinada)";
+          } else if (avcPrevio) {
+            p2y12Txt = "• Ticagrelor: Ataque 180 mg VO | Manutenção 90 mg VO 12/12h";
+            alertasBloqueios.push("BLOQUEIO SENTINELA DE PRASUGREL: Antecedente de AVC/AIT contraindica terminantemente o Prasugrel (Ensaio TRITON-TIMI 38 - risco de sangramento intracraniano fatal).");
+          } else {
+            p2y12Txt = "• Ticagrelor (1ª Linha): Ataque 180 mg VO | Manutenção 90 mg VO 12/12h\n• Alternativa (se ICP imediata): Prasugrel 60 mg ataque | 10 mg/dia (5 mg se idade >= 75 ou peso < 60 kg)\n• Alternativa: Clopidogrel 300-600 mg ataque | 75 mg/dia";
+          }
+
+          const usaClopi = trombolise || anticoag || Boolean(entrada.clopidogrel);
+          if (usaClopi && usoOmeprazol) {
+            alertasBloqueios.push("INTERAÇÃO CYP2C19 (Clopidogrel + Omeprazol): Omeprazol inibe ativação do Clopidogrel. CONDUTA: Substituir imediatamente por Pantoprazol.");
+          }
+
+          // Adjuvantes
+          let adjTxt = "";
+          const clcr = Number(entrada.clcr) || 70;
+          if (clcr < 30) {
+            adjTxt += "• Enoxaparina (Ajuste Renal ClCr < 30): 1 mg/kg SC 1x ao dia (a cada 24h) OU Heparina Não Fracionada (HNF)\n";
+          } else if (trombolise && idade >= 75) {
+            adjTxt += "• Enoxaparina (> 75a em Trombólise): Omitir bolus IV! Fazer 0.75 mg/kg SC de 12/12h (máx 75 mg nas 2 primeiras doses)\n";
+          } else {
+            adjTxt += "• Enoxaparina: 1 mg/kg SC de 12/12h (bolus IV de 30 mg apenas se IAMCSST < 75 anos)\n";
+          }
+          adjTxt += "• Atorvastatina: 80 mg VO dose de ataque precoce (estatina de alta potência)\n";
+
+          const iamVd = Boolean(entrada.iamVd || entrada.iamVdOuSildenafil);
+          const choque = Boolean(entrada.choque || entrada.killipGrave);
+          if (iamVd) {
+            alertasBloqueios.push("BLOQUEIO FATAL DE NITRATOS: Contraindicado formalmente em Infarto de Ventrículo Direito (IAM-VD / derivações V3R/V4R) ou uso recente de IPDE-5 (Sildenafil 24h, Tadalafil 48h) devido ao risco iminente de choque refratário por queda súbita de pré-carga.");
+          } else {
+            adjTxt += "• Nitrato (Dinitrato de Isossorbida 5 mg SL): se dor isquêmica refratária e PAS > 100 mmHg sem sinais de IAM-VD ou uso de IPDE-5\n";
+          }
+
+          if (choque) {
+            alertasBloqueios.push("CONTRAINDICAÇÃO DE BETABLOQUEADOR: Bloqueio absoluto na fase aguda em vigência de choque cardiogênico, Killip >= II (congestão pulmonar/estertoração) ou bradicardia/bloqueio AV.");
+          } else {
+            adjTxt += "• Betabloqueador (Metoprolol 25-50 mg VO): indicado nas primeiras 24h apenas se paciente estável, sem congestão pulmonar e sem risco de choque";
+          }
+
+          let saida = `🫀 ESCORE HEART & DOR TORÁCICA / SCA (SBC / AHA / ESC) [OFFLINE]\n\n` +
+            `🔴 ESTRATIFICAÇÃO & CONDUTA BEIRA-LEITO:\n` +
+            `• HEART Score: ${scoreHeart} pontos — ${riscoHeart}\n` +
+            `• Taxa de MACE (6 semanas): ${taxaMace}\n` +
+            `• Conduta: ${condutaHeart}\n\n` +
+            `🟡 DUPLO BLOQUEIO PLAQUETÁRIO (DAPT):\n` +
+            `${aasTxt}\n` +
+            `${p2y12Txt}\n\n` +
+            `💉 ADJUVANTES & ANTICOAGULAÇÃO:\n` +
+            `${adjTxt}\n`;
+
+          if (alertasBloqueios.length > 0) {
+            saida += `\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n` +
+              alertasBloqueios.map(a => `• ${a}`).join('\n') + `\n`;
+          }
+
+          saida += `\nℹ️ MONITORIZAÇÃO:\n• ECG seriado (a cada 15-30 min se dor contínua), curva de troponina ultrassensível (0h/1h ou 0h/2h) e monitorização multiparamétrica.`;
+
+          return saida;
         }
       } catch (e) {
         return 'Erro ao calcular: ' + e.message;
@@ -5898,6 +6135,76 @@
         return;
       }
       copiarTextoClipboard(txt, 'Análise gasométrica copiada para o Prontuário!');
+    }
+    function definirPresetHeart(hist, ecg, idade, fr, trop, trombolise = false, avc = false, omeprazol = false, anticoag = false, iamVd = false) {
+      hapticFeedback('light');
+      const setSelect = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = String(val);
+      };
+      setSelect('heart-historia', hist);
+      setSelect('heart-ecg', ecg);
+      const inputIdade = document.getElementById('heart-idade');
+      if (inputIdade) inputIdade.value = String(idade);
+      setSelect('heart-fr', fr);
+      setSelect('heart-troponina', trop);
+
+      const setCheck = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = Boolean(val);
+      };
+      setCheck('heart-trombolise', trombolise);
+      setCheck('heart-avc', avc);
+      setCheck('heart-omeprazol', omeprazol);
+      setCheck('heart-anticoag', anticoag);
+      setCheck('heart-iam-vd', iamVd);
+      calcularHeartCockpit();
+    }
+    function limparHeart() {
+      hapticFeedback('light');
+      const setSelect = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = String(val);
+      };
+      setSelect('heart-historia', 0);
+      setSelect('heart-ecg', 0);
+      const inputIdade = document.getElementById('heart-idade');
+      if (inputIdade) inputIdade.value = '50';
+      setSelect('heart-fr', 0);
+      setSelect('heart-troponina', 0);
+      ['heart-trombolise', 'heart-avc', 'heart-omeprazol', 'heart-anticoag', 'heart-iam-vd', 'heart-choque'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.checked = false;
+      });
+      const res = document.getElementById('heart-resultado');
+      if (res) res.textContent = 'Preencha os dados do paciente para avaliar o escore HEART e DAPT.';
+      const btn = document.getElementById('btn-copiar-heart');
+      if (btn) btn.classList.add('hidden');
+    }
+    function calcularHeartCockpit() {
+      const entrada = {
+        historia: Number(valorCalc('heart-historia') || 0),
+        ecg: Number(valorCalc('heart-ecg') || 0),
+        idade: Number(valorCalc('heart-idade') || 50),
+        fr: Number(valorCalc('heart-fr') || 0),
+        troponina: Number(valorCalc('heart-troponina') || 0),
+        trombolise: Boolean(document.getElementById('heart-trombolise')?.checked),
+        avcPrevio: Boolean(document.getElementById('heart-avc')?.checked),
+        usoOmeprazol: Boolean(document.getElementById('heart-omeprazol')?.checked),
+        anticoagulacao: Boolean(document.getElementById('heart-anticoag')?.checked),
+        iamVd: Boolean(document.getElementById('heart-iam-vd')?.checked),
+        choque: Boolean(document.getElementById('heart-choque')?.checked)
+      };
+      solicitarCalculo('heart', entrada, 'heart-resultado');
+    }
+    function copiarHeartPEP() {
+      hapticFeedback('light');
+      const txt = document.getElementById('heart-resultado')?.innerText || '';
+      if (!txt || txt.includes('Preencha os dados')) {
+        copiarToast('Calcule o Escore HEART primeiro.');
+        return;
+      }
+      copiarTextoClipboard(txt, 'Parecer HEART & DAPT copiado para o Prontuário!');
     }
     function definirClcrAtb(valor, hd = false) {
       const inputClcr = document.getElementById('atb-clcr');
