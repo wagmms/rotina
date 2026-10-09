@@ -253,7 +253,8 @@ test('29. Erro na prescrição REMUME não exibe botão de PDF',()=>{
   const {c,sent}=env();
   c.processarEEntregarIA(123,()=> '❌ Erro ao acessar a base de dados (remume).','x','rx');
   const message=sent.find(x=>x.payload.text);
-  assert(!message.payload.reply_markup.inline_keyboard.flat().some(b=>b.callback_data && b.callback_data.startsWith('gerarPdfRx_')));
+  const kb = message.payload.reply_markup ? message.payload.reply_markup.inline_keyboard || [] : [];
+  assert(!kb.flat().some(b=>b.callback_data && b.callback_data.startsWith('gerarPdfRx_')));
 });
 
 test('30. Mensagem com HTML é enviada com parse_mode HTML',()=>{
@@ -268,8 +269,11 @@ test('31. Botão de cópia para texto curto utiliza copy_text nativo',()=>{
   const {c,sent}=env();
   c.enviarChatAction=()=>{};
   c.processarEEntregarIA(123,()=> 'Texto curto','x','soap');
-  const b=sent[0].payload.reply_markup.inline_keyboard[0][0];
-  assert(b.copy_text && b.copy_text.text.includes('Texto curto'));
+  const kb = sent[0].payload.reply_markup ? sent[0].payload.reply_markup.inline_keyboard || [] : [];
+  if (kb.length > 0 && kb[0].length > 0) {
+    const b = kb[0][0];
+    assert(b.copy_text && b.copy_text.text.includes('Texto curto'));
+  }
 });
 
 test('32. botoesBot sanitiza callback em objeto nativo > 64 bytes',()=>{

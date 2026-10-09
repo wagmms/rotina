@@ -920,5 +920,40 @@ function cockpitSopOvariosPolicisticos(initData, params) {
   throw new Error('Ação inválida para Síndrome dos Ovários Policísticos.');
 }
 
+function cockpitDipAbscessoTuboOvariano(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof DipAbscessoTuboOvarianoService === 'undefined') {
+    throw new Error('Módulo DipAbscessoTuboOvarianoService indisponível.');
+  }
+  var acao = params.acao || 'avaliarDipCompleto';
+  if (acao === 'avaliarDipCompleto') {
+    return DipAbscessoTuboOvarianoService.avaliarDipCompleto(params);
+  }
+  if (acao === 'avaliarCriteriosDiagnosticos') {
+    return DipAbscessoTuboOvarianoService.avaliarCriteriosDiagnosticos(params);
+  }
+  if (acao === 'estadiarMonif') {
+    return DipAbscessoTuboOvarianoService.estadiarMonif(params);
+  }
+  if (acao === 'avaliarCriteriosInternacao') {
+    return DipAbscessoTuboOvarianoService.avaliarCriteriosInternacao(params);
+  }
+  if (acao === 'avaliarCondutaDiu') {
+    return DipAbscessoTuboOvarianoService.avaliarCondutaDiu(params);
+  }
+  if (acao === 'gerarProtocoloParceiros') {
+    return DipAbscessoTuboOvarianoService.gerarProtocoloParceiros(params);
+  }
+  if (acao === 'determinarCondutaTerapeutica') {
+    return DipAbscessoTuboOvarianoService.determinarCondutaTerapeutica(params);
+  }
+  if (acao === 'gerarResumoDip') {
+    return DipAbscessoTuboOvarianoService.gerarResumoDip(params);
+  }
+  throw new Error('Ação inválida para Doença Inflamatória Pélvica / ATO.');
+}
+
+
 
 
