@@ -73,11 +73,18 @@
     - Empty state limpo e profissional quando não há atendimentos no plantão, evitando poluição visual ou informações falsas na tela do médico.
     - Sincronização automatizada para GitHub Pages via `gh_cockpit_deploy/index.html`.
 
-0H. [ ] **Revisão e Lapidação de Conteúdo Clínico das Calculadoras do Cockpit**:
-    - Revisar cada calculadora clínica exposta no Cockpit (DVA, Gasometria, Drogas de Emergência, Clearance, Preeclâmpsia, etc.) para garantir doses exatas, alertas de segurança e bloqueios de erro médico para médico generalista/interno.
+0H. [x] **Revisão e Lapidação de Conteúdo Clínico das Calculadoras do Cockpit (com Modelo PRO)**:
+    - Auditoria clínica rigorosa de ponta a ponta executada com modelo Gemini Pro (`gemini-3.1-pro-high`) em conformidade estrita com a diretriz do usuário.
+    - DVA: Noradrenalina (solução 64 mcg/mL, vazão em mL/h de 0.1 a 2.0 mcg/kg/min), Dobutamina (1.000 mcg/mL, 2.5 a 20 mcg/kg/min), Vasopressina (dose fixa de 0.01 a 0.04 UI/min).
+    - SRI / IOT: inclusão de alertas sentinela para sobrepeso e obesidade (≥ 100 kg e > 150 kg) com separação estrita de Peso Ideal (IBW) para Fentanil, Propofol, Etomidato e Rocurônio vs Peso Real para Succinilcolina (teto máximo 200 mg), além de contraindicações formais de hipercalemia e denervação.
+    - Clearance de Creatinina (Cockcroft-Gault): clamp fisiológico de idade (≤ 120 anos), alertas de sarcopenia no idoso e obesidade severa.
+    - Gasometria Arterial: fórmula de Winter validada `(1.5 * HCO3 + 8) ± 2` para acidose metabólica e `(0.7 * HCO3 + 21) ± 2` para alcalose metabólica, com detecção de distúrbios mistos e acidemia extrema (pH < 6.80).
+    - Pré-Eclâmpsia e Eclâmpsia: esquema de Zuspan validado (4g IV em 20 min + 1-2g/h manutenção) com vigilância horária de reflexo patelar, diurese e FR, e antídoto Gluconato de Cálcio 10% 10 mL IV lento.
 
-0I. [x] **Auditoria de Menus e Comandos do Telegram**:
-    - Revisar `/menu` e `/ajuda` para apresentar apenas os fluxos essenciais ao interno e médico generalista (Emergência, Enfermaria, Ambulatório/SOAP, Prescrição/REMUME), sem poluição visual.
+0I. [x] **Auditoria de Menus e Comandos do Telegram para o Interno / Médico Generalista**:
+    - Central de Comandos `/menu` e `/hub` estruturada exclusivamente nos 5 pilares do médico generalista: Ambulatório (SOAP), Enfermaria (Leitos), Emergência (Sala Vermelha), Prescrição (REMUME) e Calculadoras.
+    - Teclado do Telegram mantido não persistente (`is_persistent: false`), abrindo sob demanda sem ocupar a tela do smartphone.
+    - Eliminação de comandos espúrios e não médicos (`/pc tenda`).
 
 ---
 
