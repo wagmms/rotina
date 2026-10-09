@@ -713,23 +713,31 @@ module.exports = {
   // Helpers de despacho direto
   doPost: (reqData) => ctx.doPost(reqData),
   doGet: (reqData) => ctx.doGet(reqData),
-  cockpitRpc: (metodo, session, args = []) => {
-    const funcoes = {
-      cockpitConsultar: ctx.cockpitConsultar,
-      cockpitPreceptor: ctx.cockpitPreceptor,
-      cockpitStatusLeito: ctx.cockpitStatusLeito,
-      cockpitPassagem: ctx.cockpitPassagem,
-      cockpitCalcular: ctx.cockpitCalcular,
-      cockpitRemume: ctx.cockpitRemume,
-      cockpitConversar: ctx.cockpitConversar,
-      cockpitPerfil: ctx.cockpitPerfil,
-      cockpitRegistrarPeso: ctx.cockpitRegistrarPeso,
-      cockpitAulasProgresso: ctx.cockpitAulasProgresso,
-      cockpitAlternarAula: ctx.cockpitAlternarAula
+  cockpitRpc: (() => {
+    // Mapa de dispatch cacheado como singleton — evita alocação de objeto a cada chamada RPC.
+    // Inicializado lazily no primeiro uso para garantir que o ctx já esteja populado.
+    let _rpcMap = null;
+    return (metodo, session, args = []) => {
+      if (!_rpcMap) {
+        _rpcMap = Object.create(null);
+        _rpcMap.cockpitConsultar = ctx.cockpitConsultar;
+        _rpcMap.cockpitPreceptor = ctx.cockpitPreceptor;
+        _rpcMap.cockpitStatusLeito = ctx.cockpitStatusLeito;
+        _rpcMap.cockpitPassagem = ctx.cockpitPassagem;
+        _rpcMap.cockpitCalcular = ctx.cockpitCalcular;
+        _rpcMap.cockpitRemume = ctx.cockpitRemume;
+        _rpcMap.cockpitConversar = ctx.cockpitConversar;
+        _rpcMap.cockpitPerfil = ctx.cockpitPerfil;
+        _rpcMap.cockpitRegistrarPeso = ctx.cockpitRegistrarPeso;
+        _rpcMap.cockpitAulasProgresso = ctx.cockpitAulasProgresso;
+        _rpcMap.cockpitAlternarAula = ctx.cockpitAlternarAula;
+        Object.freeze(_rpcMap);
+      }
+      const fn = _rpcMap[metodo];
+      if (typeof fn !== 'function') {
+        throw new Error(`Método do Cockpit não suportado: ${metodo}`);
+      }
+      return fn.apply(null, [session].concat(args));
     };
-    if (typeof funcoes[metodo] !== 'function') {
-      throw new Error(`Método do Cockpit não suportado: ${metodo}`);
-    }
-    return funcoes[metodo].apply(null, [session].concat(args));
-  }
+  })()
 };

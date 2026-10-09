@@ -13,6 +13,7 @@ const fastify = require('fastify')({
 });
 
 const cors = require('@fastify/cors');
+const compress = require('@fastify/compress');
 const runtime = require('./runtime');
 const { createD1Inbox } = require('./d1-inbox');
 const { roundMs, updateKind, measureLegacyHttp, clinicalStages } = require('./telemetry');
@@ -27,6 +28,13 @@ async function buildServer() {
     origin: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Telegram-Bot-Api-Secret-Token']
+  });
+
+  // 1.1. Compressão HTTP (gzip/deflate) — reduz payload ~60-80% em respostas grandes
+  // (REMUME, SOAP, leitos). Threshold de 1KB para não comprimir micro-respostas.
+  await fastify.register(compress, {
+    threshold: 1024,
+    encodings: ['gzip', 'deflate']
   });
 
   let pingTracker = {
@@ -104,6 +112,10 @@ async function buildServer() {
   });
 
   // 5. API RPC DO COCKPIT PWA (Substitui o doGet/doPost lento do GAS)
+  // Métodos de leitura idempotentes — respostas podem ser cacheadas brevemente pelo browser
+  const COCKPIT_READ_METHODS = new Set([
+    'cockpitConsultar', 'cockpitPerfil', 'cockpitRemume', 'cockpitAulasProgresso'
+  ]);
   fastify.post('/api/cockpit', async (request, reply) => {
     const t0 = performance.now();
     try {
@@ -125,6 +137,13 @@ async function buildServer() {
       const resultado = runtime.cockpitRpc(metodo, session, args);
       const elapsed = (performance.now() - t0).toFixed(2);
 
+      // Métodos de leitura: cache curto no browser para evitar refetch desnecessário
+      if (COCKPIT_READ_METHODS.has(metodo)) {
+        reply.header('Cache-Control', 'private, max-age=30');
+      } else {
+        reply.header('Cache-Control', 'no-store');
+      }
+
       return {
         ok: true,
         resultado,
@@ -133,6 +152,7 @@ async function buildServer() {
     } catch (err) {
       const elapsed = (performance.now() - t0).toFixed(2);
       fastify.log.warn(`[Cockpit RPC Error] ${err.message} (${elapsed}ms)`);
+      reply.header('Cache-Control', 'no-store');
       reply.status(err.message.includes('autorizado') || err.message.includes('sessão') ? 401 : 400);
       return {
         ok: false,

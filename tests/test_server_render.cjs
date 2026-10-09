@@ -1,9 +1,12 @@
+process.env.NODE_ENV = 'test';
+process.env.TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '1771571035';
+process.env.TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '123456789:ABCdefGHIjklMNOpqrSTUvwxYZ';
+process.env.SPREADSHEET_ID_REMUME = process.env.SPREADSHEET_ID_REMUME || 'mock_remume_sheet_id';
 const assert = require('assert');
 const { buildServer } = require('../server/index.js');
 const runtime = require('../server/runtime.js');
 
 async function run() {
-  process.env.NODE_ENV = 'test';
   const app = await buildServer();
 
   // 1. Healthcheck
@@ -68,6 +71,37 @@ async function run() {
   assert.equal(jsonRemume.ok, true);
   assert(jsonRemume.resultado.itens.length > 200);
   console.log(`✓ Cockpit REMUME OK (${jsonRemume.resultado.itens.length} itens)`);
+
+  // 6. Cache-Control: métodos de leitura recebem cache curto
+  const resConsultar = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: { metodo: 'cockpitConsultar', session: token, args: [] }
+  });
+  assert.equal(resConsultar.statusCode, 200);
+  const ccRead = resConsultar.headers['cache-control'];
+  assert(ccRead && ccRead.includes('max-age=30'), `Leitura deve ter cache: ${ccRead}`);
+  console.log(`✓ Cache-Control leitura OK (${ccRead})`);
+
+  // 7. Cache-Control: métodos de escrita recebem no-store
+  const ccWrite = resDva.headers['cache-control'];
+  assert(ccWrite && ccWrite.includes('no-store'), `Escrita deve ter no-store: ${ccWrite}`);
+  console.log(`✓ Cache-Control escrita OK (${ccWrite})`);
+
+  // 8. Compressão HTTP: respostas grandes são comprimidas com gzip
+  const resGzip = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    headers: { 'accept-encoding': 'gzip' },
+    payload: { metodo: 'cockpitRemume', session: token, args: [] }
+  });
+  assert.equal(resGzip.statusCode, 200);
+  const contentEncoding = resGzip.headers['content-encoding'];
+  assert(contentEncoding === 'gzip', `REMUME deve ser comprimido com gzip, obteve: ${contentEncoding}`);
+  const rawSize = Buffer.byteLength(JSON.stringify(jsonRemume));
+  const compressedSize = resGzip.rawPayload.length;
+  const ratio = ((1 - compressedSize / rawSize) * 100).toFixed(1);
+  console.log(`✓ Compressão gzip OK (${rawSize} → ${compressedSize} bytes, -${ratio}%)`);
 
   console.log('\n🚀 TODOS OS TESTES DO SERVIDOR RENDER PASSARAM COM SUCESSO!');
 }
