@@ -558,3 +558,63 @@ function cockpitResumoCentroObstetrico(initData, params) {
   return CentroObstetricoService.gerarResumoCentroObstetrico(params);
 }
 
+/**
+ * cockpitRastreioColoUterino — rastreio de câncer de colo de útero (INCA/MS).
+ */
+function cockpitRastreioColoUterino(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof GinecologiaAmbulatorialService === 'undefined') {
+    throw new Error('Módulo GinecologiaAmbulatorialService indisponível.');
+  }
+  return GinecologiaAmbulatorialService.avaliarRastreioColoUterino(params);
+}
+
+/**
+ * cockpitSangramentoUterinoAnormal — SUA com classificação FIGO/PALM-COEIN e hemostasia.
+ */
+function cockpitSangramentoUterinoAnormal(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof GinecologiaAmbulatorialService === 'undefined') {
+    throw new Error('Módulo GinecologiaAmbulatorialService indisponível.');
+  }
+  return GinecologiaAmbulatorialService.avaliarSangramentoUterinoAnormal(params);
+}
+
+/**
+ * cockpitElegibilidadeAnticoncepcao — critérios médicos de elegibilidade OMS (1 a 4).
+ */
+function cockpitElegibilidadeAnticoncepcao(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof GinecologiaAmbulatorialService === 'undefined') {
+    throw new Error('Módulo GinecologiaAmbulatorialService indisponível.');
+  }
+  return GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao(params);
+}
+
+/**
+ * cockpitInfeccaoVulvovaginal — manejo de candidíase, vaginose bacteriana e tricomoníase.
+ */
+function cockpitInfeccaoVulvovaginal(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof GinecologiaAmbulatorialService === 'undefined') {
+    throw new Error('Módulo GinecologiaAmbulatorialService indisponível.');
+  }
+  return GinecologiaAmbulatorialService.avaliarInfeccaoVulvovaginal(params);
+}
+
+/**
+ * cockpitResumoGinecologia — resumo clínico unificado de ginecologia de consultório.
+ */
+function cockpitResumoGinecologia(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof GinecologiaAmbulatorialService === 'undefined') {
+    throw new Error('Módulo GinecologiaAmbulatorialService indisponível.');
+  }
+  return GinecologiaAmbulatorialService.gerarResumoGinecologia(params);
+}
+

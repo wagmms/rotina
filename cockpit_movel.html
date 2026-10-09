@@ -764,6 +764,9 @@
             <button onclick="abrirModalCentroObstetrico()" class="px-2.5 py-1.5 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[11px] font-semibold hover:bg-rose-500/30 flex items-center gap-1 transition">
               <i data-lucide="activity" class="w-3 h-3"></i> Sala de Parto & HPP
             </button>
+            <button onclick="abrirModalGinecologiaAmbulatorial()" class="px-2.5 py-1.5 rounded-lg bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/30 text-[11px] font-semibold hover:bg-fuchsia-500/30 flex items-center gap-1 transition">
+              <i data-lucide="flower-2" class="w-3 h-3"></i> Ginecologia &amp; APS
+            </button>
             <button onclick="copiarReceitaLimpaPEP()" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold hover:bg-emerald-500/30 flex items-center gap-1 transition">
               <i data-lucide="receipt" class="w-3 h-3"></i> Receita PEP
             </button>
@@ -1908,6 +1911,270 @@
   <!-- ================================================================= -->
   <!-- MODAL: MODO PLANTÃO SEM SINAL (OFFLINE-FIRST COM INDEXEDDB/DEXIE) -->
   <!-- ================================================================= -->
+
+  <!-- ================================================================= -->
+  <!-- MODAL: GINECOLOGIA AMBULATORIAL DE CONSULTÓRIO (INCA, FIGO, OMS)  -->
+  <!-- ================================================================= -->
+  <div id="modal-ginecologia-ambulatorial" class="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm hidden animate-in fade-in duration-200">
+    <div class="relative w-full max-w-lg max-h-[88vh] flex flex-col rounded-2xl border border-fuchsia-500/40 bg-slate-900 shadow-2xl overflow-hidden">
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-slate-800 p-3.5 bg-slate-950/60">
+        <div class="flex items-center gap-2.5">
+          <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-fuchsia-500/20 text-fuchsia-400 ring-1 ring-fuchsia-500/30">
+            <i data-lucide="flower-2" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[9.5px] font-extrabold uppercase tracking-wider text-fuchsia-400">Saúde da Mulher</span>
+            </div>
+            <h3 class="text-[13px] font-bold text-white leading-tight">
+              Ginecologia Ambulatorial · Consultório &amp; APS
+            </h3>
+          </div>
+        </div>
+        <button onclick="fecharModalGinecologiaAmbulatorial()" class="p-1.5 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Segmented Control (4 abas) -->
+      <div class="flex items-center gap-1 p-2 border-b border-slate-800 bg-slate-950/40 overflow-x-auto">
+        <button onclick="alternarSecaoGineco('gin-sec-colo', this)" class="gin-pill-btn px-2.5 py-1 rounded-lg bg-fuchsia-500/25 text-fuchsia-200 border border-fuchsia-500/40 shadow-sm transition text-[10.5px] font-bold whitespace-nowrap">🔬 Colo Uterino</button>
+        <button onclick="alternarSecaoGineco('gin-sec-sua', this)" class="gin-pill-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition text-[10.5px] font-bold whitespace-nowrap">🩸 SUA</button>
+        <button onclick="alternarSecaoGineco('gin-sec-anti', this)" class="gin-pill-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition text-[10.5px] font-bold whitespace-nowrap">🛡️ Anticoncepção</button>
+        <button onclick="alternarSecaoGineco('gin-sec-leucorreia', this)" class="gin-pill-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition text-[10.5px] font-bold whitespace-nowrap">🦠 Leucorreias</button>
+      </div>
+
+      <!-- Conteúdo scrollável -->
+      <div class="flex-1 overflow-y-auto p-3.5 space-y-3">
+
+        <!-- ABA 1: Rastreio de Colo Uterino (INCA/MS) -->
+        <div id="gin-sec-colo" class="gin-sec-pane space-y-2.5">
+          <label class="block text-[10.5px] font-bold text-fuchsia-300 uppercase tracking-wider">Rastreio de Câncer de Colo Uterino (INCA/MS)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Idade (anos)</label>
+              <input id="gin-input-colo-idade" type="number" value="30" min="10" max="99" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs font-mono focus:ring-1 focus:ring-fuchsia-500 focus:border-fuchsia-500 outline-none">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Laudo Citopatológico</label>
+              <select id="gin-input-colo-citologia" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:ring-1 focus:ring-fuchsia-500 outline-none">
+                <option value="rotina">Rotina / Sem resultado</option>
+                <option value="negativo">Negativo / Normal</option>
+                <option value="asc_us">ASC-US</option>
+                <option value="lsil">LSIL (Baixo Grau)</option>
+                <option value="asc_h">ASC-H</option>
+                <option value="hsil">HSIL (Alto Grau)</option>
+                <option value="agc">AGC (Células Glandulares)</option>
+                <option value="carcinoma">Carcinoma Invasor</option>
+                <option value="insatisfatorio">Insatisfatório</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Exames Negativos Consecutivos</label>
+              <input id="gin-input-colo-negativos" type="number" value="0" min="0" max="10" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs font-mono focus:ring-1 focus:ring-fuchsia-500 outline-none">
+            </div>
+            <div class="flex flex-col gap-1 pt-3">
+              <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+                <input id="gin-input-colo-imuno" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-fuchsia-500"> Imunossuprimida
+              </label>
+              <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+                <input id="gin-input-colo-histerec" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-fuchsia-500"> Histerectomia Total
+              </label>
+              <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+                <input id="gin-input-colo-persist" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-fuchsia-500"> ASC-US/LSIL Persistente
+              </label>
+            </div>
+          </div>
+          <button onclick="avaliarColoUterinoModal()" class="w-full px-3 py-1.5 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-fuchsia-950 transition">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            <span>Avaliar Conduta INCA/MS</span>
+          </button>
+          <div id="gin-box-resultado-colo" class="hidden p-3 rounded-xl bg-slate-950 border border-fuchsia-500/30">
+            <pre id="gin-pre-resultado-colo" class="text-[10.5px] text-slate-200 font-mono whitespace-pre-wrap leading-relaxed"></pre>
+          </div>
+        </div>
+
+        <!-- ABA 2: Sangramento Uterino Anormal (SUA / PALM-COEIN) -->
+        <div id="gin-sec-sua" class="gin-sec-pane space-y-2.5 hidden">
+          <label class="block text-[10.5px] font-bold text-rose-300 uppercase tracking-wider">Sangramento Uterino Anormal (FIGO / PALM-COEIN)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Idade (anos)</label>
+              <input id="gin-input-sua-idade" type="number" value="32" min="10" max="99" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs font-mono focus:ring-1 focus:ring-rose-500 outline-none">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Beta-hCG</label>
+              <select id="gin-input-sua-bhcg" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:ring-1 focus:ring-rose-500 outline-none">
+                <option value="nao_realizado">Não realizado</option>
+                <option value="negativo">Negativo</option>
+                <option value="positivo">Positivo</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">PAS (mmHg)</label>
+              <input id="gin-input-sua-pas" type="number" value="120" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs font-mono focus:ring-1 focus:ring-rose-500 outline-none">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">FC (bpm)</label>
+              <input id="gin-input-sua-fc" type="number" value="78" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs font-mono focus:ring-1 focus:ring-rose-500 outline-none">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Intensidade</label>
+              <select id="gin-input-sua-intensidade" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:ring-1 focus:ring-rose-500 outline-none">
+                <option value="leve">Leve</option>
+                <option value="moderada" selected>Moderada</option>
+                <option value="grave_aguda">Grave/Aguda</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+              <input id="gin-input-sua-menopausa" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-rose-500"> Pós-Menopausa
+            </label>
+            <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+              <input id="gin-input-sua-contraindicacao" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-rose-500"> Contraindicação a Estrogênio
+            </label>
+          </div>
+          <button onclick="avaliarSuaModal()" class="w-full px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-rose-950 transition">
+            <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+            <span>Avaliar SUA (PALM-COEIN)</span>
+          </button>
+          <div id="gin-box-resultado-sua" class="hidden p-3 rounded-xl bg-slate-950 border border-rose-500/30">
+            <pre id="gin-pre-resultado-sua" class="text-[10.5px] text-slate-200 font-mono whitespace-pre-wrap leading-relaxed"></pre>
+          </div>
+        </div>
+
+        <!-- ABA 3: Anticoncepção OMS (Categorias 1 a 4) -->
+        <div id="gin-sec-anti" class="gin-sec-pane space-y-2.5 hidden">
+          <label class="block text-[10.5px] font-bold text-indigo-300 uppercase tracking-wider">Critérios de Elegibilidade de Anticoncepção (OMS)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Idade (anos)</label>
+              <input id="gin-input-anti-idade" type="number" value="28" min="10" max="60" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs font-mono focus:ring-1 focus:ring-indigo-500 outline-none">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Enxaqueca</label>
+              <select id="gin-input-anti-enxaqueca" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:ring-1 focus:ring-indigo-500 outline-none">
+                <option value="nenhuma">Nenhuma</option>
+                <option value="sem_aura">Sem Aura</option>
+                <option value="com_aura">Com Aura ⚠️</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+              <input id="gin-input-anti-tev" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-indigo-500"> Histórico TVP/TEP
+            </label>
+            <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+              <input id="gin-input-anti-has" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-indigo-500"> HAS Grave / Descontrolada
+            </label>
+            <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+              <input id="gin-input-anti-tabagismo" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-indigo-500"> Tabagista
+            </label>
+            <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+              <input id="gin-input-anti-lactacao" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-indigo-500"> Amamentação / Pós-parto recente
+            </label>
+            <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+              <input id="gin-input-anti-mama" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-indigo-500"> Câncer de Mama Atual
+            </label>
+            <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+              <input id="gin-input-anti-diabetes" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-indigo-500"> DM com Vasculopatia
+            </label>
+          </div>
+          <button onclick="avaliarAnticoncepcaoModal()" class="w-full px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-950 transition">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            <span>Avaliar Elegibilidade OMS</span>
+          </button>
+          <div id="gin-box-resultado-anti" class="hidden p-3 rounded-xl bg-slate-950 border border-indigo-500/30">
+            <pre id="gin-pre-resultado-anti" class="text-[10.5px] text-slate-200 font-mono whitespace-pre-wrap leading-relaxed"></pre>
+          </div>
+        </div>
+
+        <!-- ABA 4: Leucorreias (Candidíase, Vaginose, Tricomoníase) -->
+        <div id="gin-sec-leucorreia" class="gin-sec-pane space-y-2.5 hidden">
+          <label class="block text-[10.5px] font-bold text-emerald-300 uppercase tracking-wider">Síndromes Infecciosas Vulvovaginais (PCDT/MS)</label>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Sintoma Predominante</label>
+              <select id="gin-input-leu-sintoma" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:ring-1 focus:ring-emerald-500 outline-none">
+                <option value="">Não informado</option>
+                <option value="prurido">Prurido Vulvar Intenso</option>
+                <option value="odor_fetido">Odor Fétido (Peixe)</option>
+                <option value="ardencia">Ardência / Disúria</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Aspecto do Corrimento</label>
+              <select id="gin-input-leu-aspecto" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:ring-1 focus:ring-emerald-500 outline-none">
+                <option value="">Não informado</option>
+                <option value="grumoso_branco">Grumoso/Branco (Leite Coalhado)</option>
+                <option value="branco_acinzentado_fino">Branco-Acinzentado Fino</option>
+                <option value="amarelo_esverdeado_bolhoso">Amarelo-Esverdeado Bolhoso</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">pH Vaginal</label>
+              <input id="gin-input-leu-ph" type="number" step="0.1" value="" placeholder="Ex: 4.5" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs font-mono focus:ring-1 focus:ring-emerald-500 outline-none">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Whiff Test (KOH 10%)</label>
+              <select id="gin-input-leu-whiff" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:ring-1 focus:ring-emerald-500 outline-none">
+                <option value="nao_realizado">Não realizado</option>
+                <option value="positivo">Positivo (+)</option>
+                <option value="negativo">Negativo (-)</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 font-semibold">Microscopia</label>
+              <select id="gin-input-leu-micro" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs focus:ring-1 focus:ring-emerald-500 outline-none">
+                <option value="">Não realizada</option>
+                <option value="hifas_esporos">Hifas/Esporos (Candida)</option>
+                <option value="clue_cells">Clue Cells (Gardnerella)</option>
+                <option value="protozoarios_moveis">Protozoários Móveis (Trichomonas)</option>
+              </select>
+            </div>
+            <div class="flex flex-col gap-1 pt-3">
+              <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+                <input id="gin-input-leu-gestante" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-emerald-500"> Gestante
+              </label>
+              <label class="text-[10px] text-slate-400 font-semibold flex items-center gap-1.5">
+                <input id="gin-input-leu-recorrente" type="checkbox" class="rounded border-slate-600 bg-slate-800 text-emerald-500"> Recorrente (&ge; 4x/ano)
+              </label>
+            </div>
+          </div>
+          <button onclick="avaliarLeucorreiaModal()" class="w-full px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-950 transition">
+            <i data-lucide="microscope" class="w-3.5 h-3.5"></i>
+            <span>Diagnosticar e Prescrever</span>
+          </button>
+          <div id="gin-box-resultado-leucorreia" class="hidden p-3 rounded-xl bg-slate-950 border border-emerald-500/30">
+            <pre id="gin-pre-resultado-leucorreia" class="text-[10.5px] text-slate-200 font-mono whitespace-pre-wrap leading-relaxed"></pre>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Rodapé -->
+      <div class="border-t border-slate-800 p-3 bg-slate-950/70 flex items-center justify-between gap-2">
+        <button onclick="copiarCondutaGinecoParaPep()" class="px-3 py-1.5 rounded-lg bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-md shadow-fuchsia-950 transition">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          <span>Copiar Conduta para PEP</span>
+        </button>
+        <button onclick="fecharModalGinecologiaAmbulatorial()" class="px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-[11px] font-semibold text-slate-300 transition">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-plantao-offline" class="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm hidden animate-in fade-in duration-200">
     <div class="relative w-full max-w-lg max-h-[88vh] flex flex-col rounded-2xl border border-amber-500/40 bg-slate-900 shadow-2xl overflow-hidden">
       <!-- Header do Modal -->
@@ -4893,6 +5160,265 @@
         }
       } catch (err) {
         copiarToast('Erro: ' + err.message);
+      }
+    }
+
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // FUNÇÕES: GINECOLOGIA AMBULATORIAL DE CONSULTÓRIO
+    // ═══════════════════════════════════════════════════════════════════════
+
+    let cacheCondutaGineco = '';
+
+    function abrirModalGinecologiaAmbulatorial() {
+      hapticFeedback('medium');
+      const modal = document.getElementById('modal-ginecologia-ambulatorial');
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function fecharModalGinecologiaAmbulatorial() {
+      hapticFeedback('light');
+      const modal = document.getElementById('modal-ginecologia-ambulatorial');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function alternarSecaoGineco(idSec, btnEl) {
+      hapticFeedback('light');
+      document.querySelectorAll('.gin-sec-pane').forEach(el => el.classList.add('hidden'));
+      const sec = document.getElementById(idSec);
+      if (sec) sec.classList.remove('hidden');
+
+      document.querySelectorAll('.gin-pill-btn').forEach(btn => {
+        btn.className = 'gin-pill-btn px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white transition text-[10.5px] font-bold whitespace-nowrap';
+      });
+      if (btnEl) {
+        btnEl.className = 'gin-pill-btn px-2.5 py-1 rounded-lg bg-fuchsia-500/25 text-fuchsia-200 border border-fuchsia-500/40 shadow-sm transition text-[10.5px] font-bold whitespace-nowrap';
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    async function avaliarColoUterinoModal() {
+      hapticFeedback('medium');
+      const idade = parseInt(document.getElementById('gin-input-colo-idade')?.value || '30', 10);
+      const citologia = document.getElementById('gin-input-colo-citologia')?.value || 'rotina';
+      const negativos = parseInt(document.getElementById('gin-input-colo-negativos')?.value || '0', 10);
+      const imuno = document.getElementById('gin-input-colo-imuno')?.checked || false;
+      const histerec = document.getElementById('gin-input-colo-histerec')?.checked || false;
+      const persist = document.getElementById('gin-input-colo-persist')?.checked || false;
+
+      try {
+        const resp = await chamarApiCockpitRpc('cockpitRastreioColoUterino', [{
+          idade: idade,
+          resultadoCitologia: citologia,
+          examesAnterioresNegativos: negativos,
+          imunossuprimida: imuno,
+          histerectomizadaTotal: histerec,
+          ascUsOuLsilPrevio: persist
+        }]);
+
+        if (resp) {
+          let texto = '🔬 RASTREIO DE COLO UTERINO (INCA/MS)\n';
+          texto += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+          texto += '• Idade: ' + resp.idade + ' anos\n';
+          texto += '• Citologia: ' + resp.citologia + '\n';
+          texto += '• Classificação: ' + resp.classificacao + '\n';
+          texto += '• Local: ' + resp.localAtendimento + '\n';
+          if (resp.prazoRecomendado) texto += '• Prazo: ' + resp.prazoRecomendado + '\n';
+          texto += '\n📋 CONDUTAS:\n';
+          (resp.condutas || []).forEach(c => { texto += '  • ' + c + '\n'; });
+          if (resp.alertas && resp.alertas.length > 0) {
+            texto += '\n⚠️ ALERTAS:\n';
+            resp.alertas.forEach(a => { texto += '  ' + a + '\n'; });
+          }
+          cacheCondutaGineco = texto;
+          const box = document.getElementById('gin-box-resultado-colo');
+          const pre = document.getElementById('gin-pre-resultado-colo');
+          if (box) box.classList.remove('hidden');
+          if (pre) pre.textContent = texto;
+          copiarToast('Conduta de colo uterino gerada!');
+        }
+      } catch (err) {
+        copiarToast('Erro: ' + err.message);
+      }
+    }
+
+    async function avaliarSuaModal() {
+      hapticFeedback('medium');
+      const idade = parseInt(document.getElementById('gin-input-sua-idade')?.value || '32', 10);
+      const bhcg = document.getElementById('gin-input-sua-bhcg')?.value || 'nao_realizado';
+      const pas = parseInt(document.getElementById('gin-input-sua-pas')?.value || '120', 10);
+      const fc = parseInt(document.getElementById('gin-input-sua-fc')?.value || '78', 10);
+      const intensidade = document.getElementById('gin-input-sua-intensidade')?.value || 'moderada';
+      const menopausa = document.getElementById('gin-input-sua-menopausa')?.checked || false;
+      const contraindicacao = document.getElementById('gin-input-sua-contraindicacao')?.checked || false;
+
+      try {
+        const resp = await chamarApiCockpitRpc('cockpitSangramentoUterinoAnormal', [{
+          idade: idade,
+          betaHcg: bhcg,
+          pas: pas,
+          fc: fc,
+          intensidade: intensidade,
+          posMenopausa: menopausa,
+          contraindicacaoEstrogenio: contraindicacao
+        }]);
+
+        if (resp) {
+          let texto = '🩸 SANGRAMENTO UTERINO ANORMAL (FIGO/PALM-COEIN)\n';
+          texto += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+          texto += '• Idade: ' + resp.idade + ' | Intensidade: ' + (resp.intensidade || '').toUpperCase() + '\n';
+          texto += '• Índice de Choque: ' + resp.indiceChoque + (resp.choqueInstavel ? ' 🚨 INSTÁVEL' : ' ✅ Estável') + '\n';
+          if (resp.alertas && resp.alertas.length > 0) {
+            texto += '\n⚠️ ALERTAS:\n';
+            resp.alertas.forEach(a => { texto += '  ' + a + '\n'; });
+          }
+          if (resp.condutasEmergencia && resp.condutasEmergencia.length > 0) {
+            texto += '\n🚨 CONDUTAS DE EMERGÊNCIA:\n';
+            resp.condutasEmergencia.forEach(c => { texto += '  • ' + c + '\n'; });
+          }
+          if (resp.prescricoesSugeridas && resp.prescricoesSugeridas.length > 0) {
+            texto += '\n💊 FARMACOTERAPIA HEMOSTÁTICA:\n';
+            resp.prescricoesSugeridas.forEach(p => {
+              texto += '  💊 ' + p.farmaco + ' (' + p.linha + ')\n';
+              texto += '     ' + p.posologia + '\n';
+            });
+          }
+          if (resp.condutasAmbulatoriais && resp.condutasAmbulatoriais.length > 0) {
+            texto += '\n📋 PLANEJAMENTO AMBULATORIAL:\n';
+            resp.condutasAmbulatoriais.forEach(c => { texto += '  • ' + c + '\n'; });
+          }
+          cacheCondutaGineco = texto;
+          const box = document.getElementById('gin-box-resultado-sua');
+          const pre = document.getElementById('gin-pre-resultado-sua');
+          if (box) box.classList.remove('hidden');
+          if (pre) pre.textContent = texto;
+          copiarToast('Avaliação de SUA concluída!');
+        }
+      } catch (err) {
+        copiarToast('Erro: ' + err.message);
+      }
+    }
+
+    async function avaliarAnticoncepcaoModal() {
+      hapticFeedback('medium');
+      const idade = parseInt(document.getElementById('gin-input-anti-idade')?.value || '28', 10);
+      const enxaqueca = document.getElementById('gin-input-anti-enxaqueca')?.value || 'nenhuma';
+      const tev = document.getElementById('gin-input-anti-tev')?.checked || false;
+      const has = document.getElementById('gin-input-anti-has')?.checked || false;
+      const tabagismo = document.getElementById('gin-input-anti-tabagismo')?.checked || false;
+      const lactacao = document.getElementById('gin-input-anti-lactacao')?.checked || false;
+      const mama = document.getElementById('gin-input-anti-mama')?.checked || false;
+      const diabetes = document.getElementById('gin-input-anti-diabetes')?.checked || false;
+
+      try {
+        const resp = await chamarApiCockpitRpc('cockpitElegibilidadeAnticoncepcao', [{
+          idade: idade,
+          enxaqueca: enxaqueca,
+          historicoTev: tev,
+          has: has ? 'grave_descontrolada' : 'normotensa',
+          tabagismo: tabagismo,
+          lactacao: lactacao,
+          semanasPosParto: lactacao ? 3 : 52,
+          cancerMama: mama ? 'atual' : 'nenhum',
+          diabetes: diabetes ? 'com_vasculopatia_ou_mais_20anos' : 'nao'
+        }]);
+
+        if (resp) {
+          let texto = '🛡️ CRITÉRIOS DE ELEGIBILIDADE DE ANTICONCEPÇÃO (OMS)\n';
+          texto += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+          texto += '• ' + (resp.resumoIndicacao || '') + '\n';
+          if (resp.metodosBloqueadosCat4 && resp.metodosBloqueadosCat4.length > 0) {
+            texto += '\n⛔ CONTRAINDICADOS (Categoria 4 OMS):\n';
+            resp.metodosBloqueadosCat4.forEach(m => {
+              texto += '  ✗ ' + m.nome + '\n';
+              (m.justificativas || []).forEach(j => { texto += '    → ' + j.motivo + '\n'; });
+            });
+          }
+          if (resp.metodosEvitarCat3 && resp.metodosEvitarCat3.length > 0) {
+            texto += '\n⚠️ NÃO RECOMENDADOS (Categoria 3 OMS):\n';
+            resp.metodosEvitarCat3.forEach(m => { texto += '  ⚠ ' + m.nome + '\n'; });
+          }
+          if (resp.metodosElegiveisCat1 && resp.metodosElegiveisCat1.length > 0) {
+            texto += '\n✅ ELEGÍVEIS (Categoria 1 OMS - Uso Irrestrito):\n';
+            resp.metodosElegiveisCat1.forEach(m => { texto += '  ✓ ' + m.nome + '\n'; });
+          }
+          if (resp.metodosAceitaveisCat2 && resp.metodosAceitaveisCat2.length > 0) {
+            texto += '\n🟡 ACEITÁVEIS (Categoria 2 OMS):\n';
+            resp.metodosAceitaveisCat2.forEach(m => { texto += '  ○ ' + m.nome + '\n'; });
+          }
+          cacheCondutaGineco = texto;
+          const box = document.getElementById('gin-box-resultado-anti');
+          const pre = document.getElementById('gin-pre-resultado-anti');
+          if (box) box.classList.remove('hidden');
+          if (pre) pre.textContent = texto;
+          copiarToast('Elegibilidade de anticoncepção avaliada!');
+        }
+      } catch (err) {
+        copiarToast('Erro: ' + err.message);
+      }
+    }
+
+    async function avaliarLeucorreiaModal() {
+      hapticFeedback('medium');
+      const sintoma = document.getElementById('gin-input-leu-sintoma')?.value || '';
+      const aspecto = document.getElementById('gin-input-leu-aspecto')?.value || '';
+      const phVal = document.getElementById('gin-input-leu-ph')?.value;
+      const whiff = document.getElementById('gin-input-leu-whiff')?.value || 'nao_realizado';
+      const micro = document.getElementById('gin-input-leu-micro')?.value || '';
+      const gestante = document.getElementById('gin-input-leu-gestante')?.checked || false;
+      const recorrente = document.getElementById('gin-input-leu-recorrente')?.checked || false;
+
+      try {
+        const params = {
+          sintomaPredominante: sintoma,
+          aspectoCorrimento: aspecto,
+          whiffTest: whiff,
+          microscopia: micro,
+          gestante: gestante,
+          recorrente: recorrente
+        };
+        if (phVal && !isNaN(parseFloat(phVal))) params.phVaginal = parseFloat(phVal);
+
+        const resp = await chamarApiCockpitRpc('cockpitInfeccaoVulvovaginal', [params]);
+
+        if (resp) {
+          let texto = '🦠 SÍNDROMES INFECCIOSAS VULVOVAGINAIS (PCDT/MS)\n';
+          texto += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+          texto += '• Diagnóstico: ' + (resp.diagnosticoDescricao || resp.diagnostico) + '\n';
+          if (resp.alertas && resp.alertas.length > 0) {
+            texto += '\n⚠️ ALERTAS:\n';
+            resp.alertas.forEach(a => { texto += '  ' + a + '\n'; });
+          }
+          if (resp.prescricoes && resp.prescricoes.length > 0) {
+            texto += '\n💊 PRESCRIÇÃO FARMACOLÓGICA (REMUME/MS):\n';
+            resp.prescricoes.forEach(p => {
+              texto += '  💊 ' + p.farmaco + ' (' + p.tipo + ')\n';
+              texto += '     ' + p.posologia + '\n';
+            });
+          }
+          if (resp.condutas && resp.condutas.length > 0) {
+            texto += '\n📋 ORIENTAÇÕES & SEGUIMENTO:\n';
+            resp.condutas.forEach(c => { texto += '  • ' + c + '\n'; });
+          }
+          cacheCondutaGineco = texto;
+          const box = document.getElementById('gin-box-resultado-leucorreia');
+          const pre = document.getElementById('gin-pre-resultado-leucorreia');
+          if (box) box.classList.remove('hidden');
+          if (pre) pre.textContent = texto;
+          copiarToast('Diagnóstico e prescrição gerados!');
+        }
+      } catch (err) {
+        copiarToast('Erro: ' + err.message);
+      }
+    }
+
+    function copiarCondutaGinecoParaPep() {
+      hapticFeedback('medium');
+      if (cacheCondutaGineco) {
+        copiarTextoClipboard(cacheCondutaGineco, 'Conduta de Ginecologia copiada para o PEP!');
+      } else {
+        copiarToast('Nenhuma conduta gerada ainda. Avalie primeiro.');
       }
     }
 

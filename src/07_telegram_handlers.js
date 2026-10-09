@@ -176,7 +176,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -188,7 +188,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -591,6 +591,135 @@ function processarMensagemTexto(message) {
     var resumo = CentroObstetricoService.gerarResumoCentroObstetrico(cenario);
     return enviarMensagemParaChat(chatId, "🏥 *CONDUTA DE CENTRO OBSTÉTRICO (PRE-PARTO & SALA DE PARTO):*\n\n```\n" + resumo.textoFormatado + "\n```");
   }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // GINECOLOGIA AMBULATORIAL DE CONSULTÓRIO (INCA/MS, FIGO, OMS, PCDT ISTs)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/ginecologia" || comando === "/preventivo" || comando === "/sua" || comando === "/anticoncepcao" || comando === "/leucorreia" || comando === "/corrimento") {
+    var dadosGin = texto.replace(/^\/\w+\s*/, "").trim();
+    if (!dadosGin) {
+      var msgAjudaGin = "🌸 *MÓDULO DE GINECOLOGIA AMBULATORIAL (CONSULTÓRIO & APS)*\n\n" +
+        "Envie os achados clínicos por texto ou use os atalhos direcionados:\n" +
+        "• `/preventivo 28a asc-us` ou `/preventivo 35a hsil` *(Diretrizes INCA/MS por citopatologia e idade)*\n" +
+        "• `/sua 38a sangramento intenso acido tranexamico mioma` *(FIGO PALM-COEIN e hemostasia de urgência)*\n" +
+        "• `/anticoncepcao 32a enxaqueca com aura has grave` *(Critérios de Elegibilidade OMS 1 a 4)*\n" +
+        "• `/leucorreia prurido grumos leite coalhado gestante` *(Candidíase, Vaginose e Tricomoníase REMUME)*\n\n" +
+        "_Diretrizes oficiais brasileiras: INCA/MS, OMS, FEBRASGO e PCDT ISTs._";
+      return enviarMensagemParaChat(chatId, msgAjudaGin);
+    }
+
+    if (typeof GinecologiaAmbulatorialService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo GinecologiaAmbulatorialService indisponível temporariamente.");
+    }
+
+    var cenario = {};
+    var mIdade = dadosGin.match(/(\d{1,2})\s*a(?:nos)?/i);
+    var idadeInformada = mIdade ? parseInt(mIdade[1], 10) : 30;
+
+    // 1. Rastreio de Colo Uterino (/preventivo)
+    if (comando === "/preventivo" || comando === "/ginecologia" || dadosGin.match(/preventiv|citolog|laudo|colo|asc|lsil|hsil|agc|biops/i)) {
+      var cu = { idade: idadeInformada };
+      if (dadosGin.match(/asc-h|asch|asc_h/i)) cu.resultadoCitologia = 'asc_h';
+      else if (dadosGin.match(/asc-us|ascus|asc_us/i)) cu.resultadoCitologia = 'asc_us';
+      else if (dadosGin.match(/hsil|alto\s*grau|nic\s*2|nic\s*3/i)) cu.resultadoCitologia = 'hsil';
+      else if (dadosGin.match(/lsil|baixo\s*grau|nic\s*1/i)) cu.resultadoCitologia = 'lsil';
+      else if (dadosGin.match(/agc|agus|glandular/i)) cu.resultadoCitologia = 'agc';
+      else if (dadosGin.match(/carcinom|malign/i)) cu.resultadoCitologia = 'carcinoma';
+      else if (dadosGin.match(/insatisfat/i)) cu.resultadoCitologia = 'insatisfatorio';
+      else if (dadosGin.match(/negat|normal/i)) cu.resultadoCitologia = 'negativo';
+      
+      if (dadosGin.match(/imuno|hiv/i)) cu.imunossuprimida = true;
+      if (dadosGin.match(/histerect/i)) cu.histerectomizadaTotal = true;
+      if (dadosGin.match(/gestant/i)) cu.gestante = true;
+      if (dadosGin.match(/persist|reincid|2\s*exames/i)) cu.ascUsOuLsilPrevio = true;
+      var mNeg = dadosGin.match(/(\d+)\s*negat/i);
+      if (mNeg) cu.examesAnterioresNegativos = parseInt(mNeg[1], 10);
+
+      cenario.coloUterino = cu;
+    }
+
+    // 2. Sangramento Uterino Anormal (/sua)
+    if (comando === "/sua" || dadosGin.match(/sua|sangra|hemorrag|endometr|miom|polip|coagul/i)) {
+      var s = { idade: idadeInformada };
+      if (dadosGin.match(/gravid|bhcg\s*positi|beta\s*positi/i)) s.betaHcg = 'positivo';
+      else if (dadosGin.match(/bhcg\s*negati|beta\s*negati/i)) s.betaHcg = 'negativo';
+
+      if (dadosGin.match(/intens|agud|grave|abundant/i)) s.intensidade = 'grave_aguda';
+      else if (dadosGin.match(/leve/i)) s.intensidade = 'leve';
+      else s.intensidade = 'moderada';
+
+      if (dadosGin.match(/menopaus/i) || idadeInformada >= 55) s.posMenopausa = true;
+
+      var mEndo = dadosGin.match(/endometrio\s*(\d+(?:[.,]\d+)?)\s*mm/i);
+      if (mEndo) s.espessuraEndometrioMm = parseFloat(mEndo[1].replace(',', '.'));
+
+      var et = [];
+      if (dadosGin.match(/polip/i)) et.push('polipo');
+      if (dadosGin.match(/adenom/i)) et.push('adenomiose');
+      if (dadosGin.match(/miom/i)) et.push('mioma');
+      if (dadosGin.match(/coagul|vwd/i)) et.push('coagulopatia');
+      if (dadosGin.match(/ovulat|sop/i)) et.push('ovulatoria');
+      if (dadosGin.match(/diu|iatrog/i)) et.push('iatrogenica');
+      s.etiologiasSuspeitas = et;
+
+      cenario.sua = s;
+    }
+
+    // 3. Anticoncepção OMS (/anticoncepcao)
+    if (comando === "/anticoncepcao" || dadosGin.match(/anticoncep|contracep|diu|pilula|implanon|depoprovera|metodo/i)) {
+      var ac = { idade: idadeInformada };
+      if (dadosGin.match(/aura/i)) ac.enxaqueca = 'com_aura';
+      else if (dadosGin.match(/enxaqueca/i)) ac.enxaqueca = 'sem_aura';
+
+      if (dadosGin.match(/has\s*grave|pa\s*160|descontrol/i)) ac.has = 'grave_descontrolada';
+      else if (dadosGin.match(/has|hipertens/i)) ac.has = 'controlada';
+
+      if (dadosGin.match(/fuma|tabag/i)) {
+        ac.tabagismo = true;
+        var mCig = dadosGin.match(/(\d+)\s*cig/i);
+        if (mCig) ac.cigarrosDia = parseInt(mCig[1], 10);
+      }
+
+      if (dadosGin.match(/trombos|tvp|tep/i)) ac.historicoTev = true;
+      if (dadosGin.match(/trombofil/i)) ac.trombofilia = true;
+      if (dadosGin.match(/mama|ca\s*mama/i)) ac.cancerMama = 'atual';
+      if (dadosGin.match(/amament|lactac/i)) ac.lactacao = true;
+      if (dadosGin.match(/diabet/i)) ac.diabetes = dadosGin.match(/vascul/i) ? 'com_vasculopatia_ou_mais_20anos' : 'sem_vasculopatia';
+
+      cenario.anticoncepcao = ac;
+    }
+
+    // 4. Infecções Vulvovaginais (/leucorreia, /corrimento)
+    if (comando === "/leucorreia" || comando === "/corrimento" || dadosGin.match(/leucorr|corriment|prurid|grumos|odor|amsel|clue|tricomon|candida|vaginose/i)) {
+      var inf = {};
+      if (dadosGin.match(/prurid/i)) inf.sintomaPredominante = 'prurido';
+      else if (dadosGin.match(/odor|fetid|peixe/i)) inf.sintomaPredominante = 'odor_fetido';
+
+      if (dadosGin.match(/grumo|leite\s*coalhad|branco/i)) inf.aspectoCorrimento = 'grumoso_branco';
+      else if (dadosGin.match(/acinzent|fino|homogen/i)) inf.aspectoCorrimento = 'branco_acinzentado_fino';
+      else if (dadosGin.match(/amarel|esverde|bolh/i)) inf.aspectoCorrimento = 'amarelo_esverdeado_bolhoso';
+
+      var mPh = dadosGin.match(/ph\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+      if (mPh) inf.phVaginal = parseFloat(mPh[1].replace(',', '.'));
+
+      if (dadosGin.match(/whiff\s*positi|aminas\s*positi/i)) inf.whiffTest = 'positivo';
+      else if (dadosGin.match(/whiff\s*negati|aminas\s*negati/i)) inf.whiffTest = 'negativo';
+
+      if (dadosGin.match(/clue|guia/i)) inf.microscopia = 'clue_cells';
+      else if (dadosGin.match(/hifa|esporo|levedur/i)) inf.microscopia = 'hifas_esporos';
+      else if (dadosGin.match(/protozo|tricomon|flagel/i)) inf.microscopia = 'protozoarios_moveis';
+
+      if (dadosGin.match(/gestant/i)) inf.gestante = true;
+      if (dadosGin.match(/recorrent/i)) inf.recorrente = true;
+      if (dadosGin.match(/alerg(?:ia)?\s*metro/i)) inf.alergiaMetronidazol = true;
+
+      cenario.infeccao = inf;
+    }
+
+    var textoResumo = GinecologiaAmbulatorialService.gerarResumoGinecologia(cenario);
+    return enviarMensagemParaChat(chatId, "🌸 *CONDUTA DE GINECOLOGIA AMBULATORIAL:*\n\n```\n" + textoResumo + "\n```");
+  }
+
 
   if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais") {
     return enviarMenuExamesEspeciais(chatId);

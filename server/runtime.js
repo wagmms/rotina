@@ -755,6 +755,11 @@ module.exports = {
         _rpcMap.cockpitProfilaxiaGbs = ctx.cockpitProfilaxiaGbs;
         _rpcMap.cockpitPrematuridadeRpmo = ctx.cockpitPrematuridadeRpmo;
         _rpcMap.cockpitResumoCentroObstetrico = ctx.cockpitResumoCentroObstetrico;
+        _rpcMap.cockpitRastreioColoUterino = ctx.cockpitRastreioColoUterino;
+        _rpcMap.cockpitSangramentoUterinoAnormal = ctx.cockpitSangramentoUterinoAnormal;
+        _rpcMap.cockpitElegibilidadeAnticoncepcao = ctx.cockpitElegibilidadeAnticoncepcao;
+        _rpcMap.cockpitInfeccaoVulvovaginal = ctx.cockpitInfeccaoVulvovaginal;
+        _rpcMap.cockpitResumoGinecologia = ctx.cockpitResumoGinecologia;
         Object.freeze(_rpcMap);
       }
       const fn = _rpcMap[metodo];

@@ -251,3 +251,34 @@ def test_cockpit_centro_obstetrico_e_sala_de_parto():
     assert "copiarCondutaCoParaPep" in conteudo
 
 
+def test_cockpit_ginecologia_ambulatorial():
+    """Valida botões, modais e funções da Ginecologia Ambulatorial no Cockpit PWA."""
+    html_path = BASE_DIR / "cockpit_movel.html"
+    conteudo = html_path.read_text(encoding="utf-8")
+
+    # Botão de abertura e Modal principal
+    assert "abrirModalGinecologiaAmbulatorial()" in conteudo
+    assert 'id="modal-ginecologia-ambulatorial"' in conteudo
+
+    # Controles das 4 abas (Colo, SUA, Anticoncepção, Leucorreias)
+    assert 'id="gin-input-colo-idade"' in conteudo
+    assert 'id="gin-input-colo-citologia"' in conteudo
+    assert 'id="gin-input-sua-idade"' in conteudo
+    assert 'id="gin-input-sua-bhcg"' in conteudo
+    assert 'id="gin-input-anti-idade"' in conteudo
+    assert 'id="gin-input-anti-enxaqueca"' in conteudo
+    assert 'id="gin-input-leu-sintoma"' in conteudo
+    assert 'id="gin-input-leu-aspecto"' in conteudo
+
+    # Funções JavaScript no client
+    assert "abrirModalGinecologiaAmbulatorial" in conteudo
+    assert "fecharModalGinecologiaAmbulatorial" in conteudo
+    assert "alternarSecaoGineco" in conteudo
+    assert "avaliarColoUterinoModal" in conteudo
+    assert "avaliarSuaModal" in conteudo
+    assert "avaliarAnticoncepcaoModal" in conteudo
+    assert "avaliarLeucorreiaModal" in conteudo
+    assert "copiarCondutaGinecoParaPep" in conteudo
+
+
+
