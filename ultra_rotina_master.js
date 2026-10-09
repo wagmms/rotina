@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 13:12:03
- * Checksum SHA256: e422e9604e21237b
+ * Gerado automaticamente via build_master.py em: 2026-10-09 13:55:51
+ * Checksum SHA256: fd5c1a6a43c09e7a
  * ==============================================================================
  */
 
@@ -572,7 +572,6 @@ function registrarComandosNativosTelegram() {
     { command: "novo", description: "Limpar memória e iniciar novo caso" },
     { command: "cancelar", description: "Encerrar modo ativo ou ação atual" },
     { command: "teclado", description: "Ativar botões rápidos no rodapé" },
-    { command: "fila", description: "Ver pedidos e entregas pendentes" },
     { command: "ajuda", description: "Manual completo de instruções" }
   ];
   executarPostTelegram(url, { commands: comandos });
@@ -38677,19 +38676,19 @@ function obterRoteiroPadraoVascular() {
 
 function obterCatalogoTodosExamesEspeciais() {
   return "🩺 *CATÁLOGO DE EXAMES FÍSICOS ESPECIAIS (COPILOTO CLÍNICO)*\n\n" +
-    "Selecione uma especialidade ou digite o comando correspondente para ver o modelo de exame físico normal pronto para prontuário e as notas clínicas:\n\n" +
-    "• `/ef_neuro` ➔ *Neurológico* (Glasgow, pares cranianos, força MRC, reflexos, marcha, meníngeos)\n" +
-    "• `/ef_pqu` ➔ *Psiquiátrico / Estado Mental* (10 funções psíquicas, risco suicida, humor, insight)\n" +
-    "• `/ef_oftalmo` ➔ *Oftalmológico* (Acuidade visual, olho vermelho superficial vs ciliar, MOE, pupilas)\n" +
-    "• `/ef_ortopo` ➔ *Ortopédico / Reumato* (Coluna, ombro, joelho, punho com manobras especiais)\n" +
-    "• `/ef_orl` ➔ *Otorrinolaringológico* (Otoscopia, rinoscopia, oroscopia e cadeias cervicais)\n" +
-    "• `/ef_dermato` ➔ *Dermatológico* (Ectoscopia, lesões elementares, regra ABCDE, fâneros)\n" +
-    "• `/ef_gineco` ➔ *Gineco-Obstétrico* (Mamas, especular, toque bimanual, BCF e Leopold)\n" +
-    "• `/ef_procto` ➔ *Urológico & Toque Retal* (Genitália, inspeção anal, próstata e esfíncter)\n" +
-    "• `/ef_ped` ➔ *Pediátrico* (Fontanelas, desenvolvimento DNPM, ausculta infantil, Ortolani)\n" +
-    "• `/ef_geriatria` ➔ *Geriátrico / AGA* (Katz, Lawton, Timed Up and Go, hipotensão ortostática)\n" +
-    "• `/ef_vascular` ➔ *Vascular Periférico* (Pulsos periféricos, sinais de TVP - Homans/Moses, TEC)\n\n" +
-    "💡 *Dica:* Se você tiver um caso clínico em andamento, você pode clicar em [➕ Incorporar ao SOAP] para injetar o modelo normal diretamente no registro!";
+    "Selecione uma especialidade pelos botões abaixo para ver o modelo de exame físico pronto para o prontuário e as notas clínicas beira-leito:\n\n" +
+    "• *Neurológico:* Glasgow, pares cranianos, força MRC, reflexos, marcha e cerebelo\n" +
+    "• *Psiquiátrico:* Funções psíquicas, risco de suicídio, humor e insight\n" +
+    "• *Oftalmológico:* Acuidade visual, olho vermelho superficial vs ciliar e pupilas\n" +
+    "• *Ortopédico / Reumato:* Coluna, ombro, joelho e punho com manobras especiais\n" +
+    "• *Otorrinolaringológico:* Otoscopia, rinoscopia, oroscopia e cadeias cervicais\n" +
+    "• *Dermatológico:* Ectoscopia, lesões elementares, regra ABCDE e fâneros\n" +
+    "• *Gineco-Obstétrico:* Mamas, exame especular, toque bimanual e BCF\n" +
+    "• *Urológico & Toque Retal:* Genitália, inspeção anal, próstata e esfíncter\n" +
+    "• *Pediátrico:* Fontanelas, desenvolvimento DNPM, ausculta e manobras\n" +
+    "• *Geriátrico / AGA:* Katz, Lawton, marcha, ortostase e sarcopenia\n" +
+    "• *Vascular Periférico:* Pulsos simétricos, sinais de TVP (Homans/Moses) e perfusão\n\n" +
+    "💡 *Dica:* Ao abrir qualquer guia, você pode tocar em *[➕ Incorporar ao SOAP]* para injetar o modelo normal diretamente no registro!";
 }
 
 function gerarGuiaExameFisicoEspecial(tipo, contexto) {
@@ -41268,7 +41267,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/cig", "/colestase", "/ehag", "/aflp", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/minicog", "/tug", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/herpes", "/zoster", "/aciclovir", "/valaciclovir", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/sifilis", "/biett", "/roseola", "/mpox", "/monkeypox"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -41280,7 +41279,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/cig":"cig","/colestase":"cig","/ehag":"cig","/aflp":"cig","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/minicog":"idoso","/tug":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/herpes":"herpes","/zoster":"herpes","/aciclovir":"herpes","/valaciclovir":"herpes","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/sifilis":"sifilis","/biett":"sifilis","/roseola":"sifilis","/mpox":"mpox","/monkeypox":"mpox"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -41844,36 +41843,23 @@ function processarMensagemTexto(message) {
   }
 
 
-  if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais") {
+  if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais" || comando.startsWith("/ef_")) {
     return enviarMenuExamesEspeciais(chatId);
   }
-  if (comando === "/ef_neuro" || comando === "/neuro") return responderComGuiaExameFisico(chatId, "neuro");
-  if (comando === "/ef_pqu") return responderComGuiaExameFisico(chatId, "pqu");
-  if (comando === "/ef_oftalmo") return responderComGuiaExameFisico(chatId, "oftalmo");
-  if (comando === "/ef_ortopo" || comando === "/ortopo" || comando === "/reumato") return responderComGuiaExameFisico(chatId, "ortopo");
-  if (comando === "/ef_orl" || comando === "/orl") return responderComGuiaExameFisico(chatId, "orl");
-  if (comando === "/ef_dermato") return responderComGuiaExameFisico(chatId, "dermato");
-  if (comando === "/ef_gineco") return responderComGuiaExameFisico(chatId, "gineco");
-  if (comando === "/ef_procto") return responderComGuiaExameFisico(chatId, "procto");
-  if (comando === "/ef_ped" || comando === "/ef_pedia") return responderComGuiaExameFisico(chatId, "ped");
-  if (comando === "/ef_geriatria") return responderComGuiaExameFisico(chatId, "geriatria");
-  if (comando === "/ef_vascular") return responderComGuiaExameFisico(chatId, "vascular");
   // ───────────────────────────────────────────────────────────────────────────
   // SAÚDE DO IDOSO E AVALIAÇÃO GERIÁTRICA AMPLA (AGA)
   // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/idoso" || comando === "/aga" || comando === "/beers" || comando === "/cfs" || comando === "/minicog" || comando === "/tug") {
+  if (comando === "/idoso" || comando === "/aga" || comando === "/beers" || comando === "/cfs") {
     var dadosIdoso = texto.replace(/^\/\w+\s*/, "").trim();
     if (!dadosIdoso) {
       return enviarMensagemParaChat(chatId, "👴 *MÓDULO DE SAÚDE DO IDOSO & AGA*\n\n" +
         "Envie os achados para avaliação estruturada:\n" +
         "• `/cfs 6` *(Triagem de Fragilidade CFS)*\n" +
-        "• `/minicog 1 relogio alterado` *(Teste Cognitivo Mini-Cog)*\n" +
-        "• `/tug 14` *(Timed Up and Go em segundos)*\n" +
         "• `/beers omeprazol clonazepam amitriptilina metformina aas` *(Polifarmácia)*\n" +
         "• `/frax mulher 68 anos, 58kg, 155cm, fratura previa, corticoide, tscore -2.6` *(Calculadora FRAX)*\n" +
         "• `/osteoporose 72 anos, tscore -2.8, clcr 28, sem fratura` *(Manejo de Osteoporose)*\n" +
-        "• `/quedas 82 anos, 3 quedas, tug 18s, usa clonazepam, doxazosina` *(Profilaxia de Quedas)*\n" +
-        "• `/aga cfs 5, minicog 2 e relogio normal, tug 15s, usa zolpidem, ibuprofeno, losartana, aas, atenolol` *(AGA Completa)*");
+        "• `/quedas 82 anos, 3 quedas, usa clonazepam, doxazosina` *(Profilaxia de Quedas)*\n" +
+        "• `/aga cfs 5, usa zolpidem, ibuprofeno, losartana, aas, atenolol` *(AGA Completa)*");
     }
 
     if (typeof SaudeIdosoService === "undefined") {
@@ -42368,7 +42354,7 @@ function processarMensagemTexto(message) {
   // ───────────────────────────────────────────────────────────────────────────
   // ENDOCRINOLOGIA E DIABETES MELLITUS AVANÇADO (SBD / ADA)
   // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/diabetes" || comando === "/insulina" || comando === "/cad" || comando === "/ehh" || comando === "/glicemia") {
+  if (comando === "/diabetes" || comando === "/insulina" || comando === "/ehh" || comando === "/glicemia") {
     var dadosDm = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof EndocrinologiaDiabetesService === "undefined") {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo EndocrinologiaDiabetesService indisponível temporariamente.");
@@ -42379,7 +42365,6 @@ function processarMensagemTexto(message) {
         "Envie os parâmetros para manejo ambulatorial ou hospitalar:\n" +
         "• `/insulina 70kg, dm1` *(Cálculo Basal-Bolus, ICR e Fator de Sensibilidade)*\n" +
         "• `/insulina 85kg, dm2, descompensado, clcr 35` *(Basalização e Ajuste Renal)*\n" +
-        "• `/cad 65kg, glicemia 420, k 3.1, ph 7.12, hco3 10` *(Cetoacidose com Alerta de K+)*\n" +
         "• `/ehh 78kg, glicemia 750, k 4.6, na 142` *(Estado Hiperosmolar Hiperglicêmico)*\n" +
         "• `/glicemia 240 padrao` *(Escala Hospitalar de Correção SC)*");
     }
@@ -42387,7 +42372,7 @@ function processarMensagemTexto(message) {
     var tLowerDm = dadosDm.toLowerCase();
 
     // 1. Rota de Emergência: CAD ou EHH
-    if (comando === "/cad" || comando === "/ehh" || tLowerDm.includes("cetoacidose") || tLowerDm.includes("hiperosmolar") || tLowerDm.includes("cad") || tLowerDm.includes("ehh")) {
+    if (comando === "/ehh" || tLowerDm.includes("cetoacidose") || tLowerDm.includes("hiperosmolar") || tLowerDm.includes("cad") || tLowerDm.includes("ehh")) {
       var paramsCad = {
         tipo: (comando === "/ehh" || tLowerDm.includes("ehh") || tLowerDm.includes("hiperosmolar")) ? "EHH" : "CAD"
       };
@@ -42602,7 +42587,7 @@ function processarMensagemTexto(message) {
   // ───────────────────────────────────────────────────────────────────────────
   // HEMATOLOGIA CLÍNICA & MANEJO DE ANEMIAS (HEMOGRAMA / GANZONI / MENTZER)
   // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/anemia" || comando === "/hemograma" || comando === "/ganzoni" || comando === "/noripurum" || comando === "/mentzer" || comando === "/ferro") {
+  if (comando === "/anemia" || comando === "/hemograma" || comando === "/ganzoni" || comando === "/noripurum" || comando === "/ferro") {
     var dadosAnemia = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof HematologiaAnemiasService === "undefined") {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo HematologiaAnemiasService indisponível temporariamente.");
@@ -42617,7 +42602,6 @@ function processarMensagemTexto(message) {
         "• *Peso* (kg) e perfil (`gestante`, `homem`, `mulher`, `criança`)\n\n" +
         "💡 *Exemplos beira-leito:*\n" +
         "• `/anemia hb 8.5 vcm 68 rdw 18 ferritina 12 peso 60kg` *(Anemia Ferropriva clássica)*\n" +
-        "• `/mentzer vcm 65 he 5.8` *(Diferencial Ferropenia vs Talassemia Minor)*\n" +
         "• `/ganzoni 65kg hb 8.0` *(Cálculo de déficit de ferro e ampolas de Noripurum EV)*\n" +
         "• `/ferro 50kg gestante 2 trimestre hb 9.2` *(Prescrição oral vs parenteral na gestação)*\n" +
         "• `/hemograma hb 7.0 vcm 112 b12 140` *(Anemia Macrocítica Megaloblástica)*");
@@ -47869,15 +47853,11 @@ function obterCatalogoComandosSlash() {
       id: "nucleo",
       titulo: "🧭 NÚCLEO, SESSÃO, NAVEGAÇÃO & COCKPIT",
       comandos: [
-        { cmd: "/start", aliases: ["/start"], sintaxe: "/start", desc: "Inicia o bot e abre o Hub Principal de navegação." },
         { cmd: "/menu", aliases: ["/menu"], sintaxe: "/menu", desc: "Central de Comandos e teclado rápido beira-leito." },
         { cmd: "/ajuda", aliases: ["/ajuda"], sintaxe: "/ajuda [filtro]", desc: "Manual resumido de comandos com busca por especialidade." },
-        { cmd: "/cockpit", aliases: ["/cockpit"], sintaxe: "/cockpit", desc: "Abre o Cockpit Móvel unificado (Mini App em tela cheia)." },
         { cmd: "/novo", aliases: ["/novo"], sintaxe: "/novo", desc: "Limpa a memória do caso e reseta o contexto clínico." },
-        { cmd: "/fila", aliases: ["/fila"], sintaxe: "/fila", desc: "Consulta fila de processamento assíncrono de tarefas." },
         { cmd: "/status", aliases: ["/status"], sintaxe: "/status", desc: "Status operacional dos servidores, REMUME e APIs." },
-        { cmd: "/pc", aliases: ["/pc"], sintaxe: "/pc [sync|audit|status]", desc: "Envia ordens para o runner local do computador." },
-        { cmd: "/pedido", aliases: ["/pedido"], sintaxe: "/pedido <id>", desc: "Inspeciona o conteúdo de uma tarefa na fila." }
+        { cmd: "/pc", aliases: ["/pc"], sintaxe: "/pc [sync|audit|status]", desc: "Envia ordens para o runner local do computador." }
       ]
     },
     {
@@ -47905,10 +47885,8 @@ function obterCatalogoComandosSlash() {
         { cmd: "/sca", aliases: ["/sca"], sintaxe: "/sca <caso/ECG>", desc: "Síndrome Coronariana Aguda: escore HEART, DAPT e anticoagulação." },
         { cmd: "/avc", aliases: ["/avc"], sintaxe: "/avc <tempo/PA>", desc: "Protocolo de AVC isquêmico, critérios de trombólise e rtPA/TNK." },
         { cmd: "/hic", aliases: ["/hic"], sintaxe: "/hic <peso>", desc: "Manejo de HIC aguda: Salina Hipertônica 3% e Manitol 20%." },
-        { cmd: "/transfusao", aliases: ["/transfusao"], sintaxe: "/transfusao <Hb/clínica>", desc: "Gatilhos transfusionais (CH, Plaquetas, PFC) e protocolo PTM." },
         { cmd: "/intox", aliases: ["/intox"], sintaxe: "/intox <agente>", desc: "Toxicologia de emergência, toxíndromes e antídotos específicos." },
         { cmd: "/pancreatite", aliases: ["/pancreatite"], sintaxe: "/pancreatite <dados>", desc: "Escore BISAP para pancreatite aguda e metas de hidratação." },
-        { cmd: "/neutropenia", aliases: ["/neutropenia"], sintaxe: "/neutropenia <dados>", desc: "Escore MASCC para neutropenia febril e antimicrobianos." },
         { cmd: "/colica", aliases: ["/colica"], sintaxe: "/colica <dor/tamanho>", desc: "Manejo de cólica nefrética: analgesia multimodal e tansulosina." }
       ]
     },
@@ -47944,11 +47922,7 @@ function obterCatalogoComandosSlash() {
         { cmd: "/mgso4", aliases: ["/mgso4"], sintaxe: "/mgso4 [esquema]", desc: "Sulfato de Magnésio (Zuspan/Pritchard) na pré-eclâmpsia/eclâmpsia." },
         { cmd: "/gbs", aliases: ["/gbs"], sintaxe: "/gbs <swab/fatores>", desc: "Profilaxia intraparto para Estreptococo do Grupo B." },
         { cmd: "/prematuridade", aliases: ["/prematuridade"], sintaxe: "/prematuridade <IG>", desc: "Manejo de parto prematuro, tocolíticos e maturação pulmonar." },
-        { cmd: "/colestase", aliases: ["/colestase"], sintaxe: "/colestase <ácidos biliares>", desc: "Colestase intra-hepática gestacional e ácido ursodesoxicólico." },
-        { cmd: "/swansea", aliases: ["/swansea"], sintaxe: "/swansea <critérios>", desc: "Critérios de Swansea para esteatose hepática aguda da gestação." },
-        { cmd: "/toxo", aliases: ["/toxo"], sintaxe: "/toxo <IgG> <IgM> [avidez]", desc: "Toxoplasmose gestacional: avidez de IgG e esquema terapêutico." },
-        { cmd: "/rcf", aliases: ["/rcf"], sintaxe: "/rcf <pFE> [Doppler]", desc: "Restrição de crescimento fetal e classificação por Doppler fetal." },
-        { cmd: "/saf", aliases: ["/saf"], sintaxe: "/saf <histórico/anticorpos>", desc: "Síndrome antifosfolipídio na gestação: enoxaparina e AAS." }
+        { cmd: "/toxo", aliases: ["/toxo"], sintaxe: "/toxo <IgG> <IgM> [avidez]", desc: "Toxoplasmose gestacional: avidez de IgG e esquema terapêutico." }
       ]
     },
     {
@@ -47960,8 +47934,7 @@ function obterCatalogoComandosSlash() {
         { cmd: "/sua", aliases: ["/sua"], sintaxe: "/sua <idade/sangramento>", desc: "Sangramento uterino anormal (PALM-COEIN) e conduta hormonal." },
         { cmd: "/anticoncepcao", aliases: ["/anticoncepcao"], sintaxe: "/anticoncepcao <perfil>", desc: "Critérios de elegibilidade da OMS para contracepção." },
         { cmd: "/corrimento", aliases: ["/corrimento"], sintaxe: "/corrimento <aspecto/odor>", desc: "Vaginoses e cervicites (candidíase, VB e tricomoníase)." },
-        { cmd: "/endometriose", aliases: ["/endometriose"], sintaxe: "/endometriose <sintomas>", desc: "Manejo da dor pélvica crônica, endometriose e dienogeste." },
-        { cmd: "/hiperprolactinemia", aliases: ["/hiperprolactinemia"], sintaxe: "/hiperprolactinemia <valor>", desc: "Investigação de prolactinomas e titulação de cabergolina." }
+        { cmd: "/endometriose", aliases: ["/endometriose"], sintaxe: "/endometriose <sintomas>", desc: "Manejo da dor pélvica crônica, endometriose e dienogeste." }
       ]
     },
     {
@@ -47970,8 +47943,6 @@ function obterCatalogoComandosSlash() {
       comandos: [
         { cmd: "/idoso", aliases: ["/idoso"], sintaxe: "/idoso <caso>", desc: "Avaliação Geriátrica Ampla (AGA): função, humor e cognição." },
         { cmd: "/cfs", aliases: ["/cfs"], sintaxe: "/cfs <escore 1-9>", desc: "Escala clínica de fragilidade de Rockwood (CFS)." },
-        { cmd: "/minicog", aliases: ["/minicog"], sintaxe: "/minicog <palavras/relógio>", desc: "Rastreio cognitivo rápido: 3 palavras + teste do relógio." },
-        { cmd: "/tug", aliases: ["/tug"], sintaxe: "/tug <segundos>", desc: "Teste Timed Up and Go para marcha e risco de quedas." },
         { cmd: "/beers", aliases: ["/beers"], sintaxe: "/beers <drogas>", desc: "Critérios de Beers e STOPP/START para desprescrição no idoso." },
         { cmd: "/frax", aliases: ["/frax"], sintaxe: "/frax <idade> <sexo>", desc: "Calculadora FRAX Brasil para risco de fratura osteoporótica." },
         { cmd: "/osteoporose", aliases: ["/osteoporose"], sintaxe: "/osteoporose <T-score>", desc: "Manejo de osteoporose: bisfosfonatos, cálcio e vitamina D." },
@@ -47995,15 +47966,9 @@ function obterCatalogoComandosSlash() {
       comandos: [
         { cmd: "/anemia", aliases: ["/anemia"], sintaxe: "/anemia <Hb/VCM/ferro>", desc: "Diagnóstico etiológico de anemias e cinética de ferro." },
         { cmd: "/ganzoni", aliases: ["/ganzoni"], sintaxe: "/ganzoni <peso> <Hb>", desc: "Fórmula de Ganzoni para reposição de ferro elementar IV." },
-        { cmd: "/mentzer", aliases: ["/mentzer"], sintaxe: "/mentzer <VCM> <Hemácias>", desc: "Índice de Mentzer para diferenciar talassemia de ferropriva." },
         { cmd: "/diabetes", aliases: ["/diabetes"], sintaxe: "/diabetes <glicemia/HbA1c>", desc: "Manejo do DM e titulação de esquema basal-bolus de insulina." },
-        { cmd: "/cad", aliases: ["/cad"], sintaxe: "/cad <peso> <glicemia>", desc: "Protocolo de Cetoacidose Diabética: hidratação, insulina e K+." },
         { cmd: "/ehh", aliases: ["/ehh"], sintaxe: "/ehh <peso> <glicemia>", desc: "Estado Hiperosmolar Hiperglicêmico: osmolaridade e hidratação." },
-        { cmd: "/glicemia", aliases: ["/glicemia"], sintaxe: "/glicemia <mg/dL>", desc: "Mapa de correção rápida de hiperglicemia hospitalar." },
-        { cmd: "/nutricao", aliases: ["/nutricao"], sintaxe: "/nutricao <peso> <altura>", desc: "Metas calórico-proteicas e via de suporte nutricional." },
-        { cmd: "/refeeding", aliases: ["/refeeding"], sintaxe: "/refeeding <jejum/íons>", desc: "Prevenção da síndrome de realimentação e reposição de íons." },
-        { cmd: "/npt", aliases: ["/npt"], sintaxe: "/npt <peso>", desc: "Prescrição, balanço e monitoramento de Nutrição Parenteral." },
-        { cmd: "/nrs", aliases: ["/nrs"], sintaxe: "/nrs <pontos>", desc: "Triagem de Risco Nutricional NRS-2002 no paciente internado." }
+        { cmd: "/glicemia", aliases: ["/glicemia"], sintaxe: "/glicemia <mg/dL>", desc: "Mapa de correção rápida de hiperglicemia hospitalar." }
       ]
     },
     {
@@ -48022,9 +47987,7 @@ function obterCatalogoComandosSlash() {
       titulo: "🧴 DERMATOLOGIA & ISTs CUTÂNEAS",
       comandos: [
         { cmd: "/dermato", aliases: ["/dermato"], sintaxe: "/dermato <lesão>", desc: "Diferenciação de lesões elementares da pele e sinais de alerta." },
-        { cmd: "/herpes", aliases: ["/herpes"], sintaxe: "/herpes [zoster|simples]", desc: "Antivirais para Herpes Zoster e Simples com ajuste por ClCr." },
         { cmd: "/ulceragenital", aliases: ["/ulceragenital"], sintaxe: "/ulceragenital <lesão>", desc: "Abordagem sindrômica de úlceras genitais (PCDT MS)." },
-        { cmd: "/sifilis", aliases: ["/sifilis"], sintaxe: "/sifilis <estágio/VDRL>", desc: "Estadiamento e tratamento da sífilis com Penicilina Benzatina." },
         { cmd: "/mpox", aliases: ["/mpox"], sintaxe: "/mpox <sintomas>", desc: "Diagnóstico, isolamento e conduta clínica para Mpox." }
       ]
     },
@@ -48042,18 +48005,7 @@ function obterCatalogoComandosSlash() {
       id: "exame_fisico",
       titulo: "🩺 EXAME FÍSICO & SEMIOLOGIA ESPECIALIZADA",
       comandos: [
-        { cmd: "/ef", aliases: ["/ef"], sintaxe: "/ef", desc: "Menu central de roteiros de exame físico beira-leito." },
-        { cmd: "/ef_neuro", aliases: ["/ef_neuro"], sintaxe: "/ef_neuro", desc: "Exame neurológico: pares cranianos, força, reflexos e cerebelo." },
-        { cmd: "/ef_pqu", aliases: ["/ef_pqu"], sintaxe: "/ef_pqu", desc: "Exame psíquico sistemático (psicopatologia beira-leito)." },
-        { cmd: "/ef_oftalmo", aliases: ["/ef_oftalmo"], sintaxe: "/ef_oftalmo", desc: "Exame oftalmológico: acuidade, pupilas e fluoresceína." },
-        { cmd: "/ef_ortopo", aliases: ["/ef_ortopo"], sintaxe: "/ef_ortopo", desc: "Manobras ortopédicas de ombro, joelho, coluna e quadril." },
-        { cmd: "/ef_orl", aliases: ["/ef_orl"], sintaxe: "/ef_orl", desc: "Semiologia ORL: otoscopia, rinoscopia e orofaringe." },
-        { cmd: "/ef_dermato", aliases: ["/ef_dermato"], sintaxe: "/ef_dermato", desc: "Identificação morfológica de lesões dermatológicas." },
-        { cmd: "/ef_gineco", aliases: ["/ef_gineco"], sintaxe: "/ef_gineco", desc: "Exame ginecológico: ectoscopia, espéculo e toque bimanual." },
-        { cmd: "/ef_procto", aliases: ["/ef_procto"], sintaxe: "/ef_procto", desc: "Exame proctológico: inspeção perianal e toque retal." },
-        { cmd: "/ef_ped", aliases: ["/ef_ped"], sintaxe: "/ef_ped", desc: "Exame físico pediátrico sistematizado por faixas etárias." },
-        { cmd: "/ef_geriatria", aliases: ["/ef_geriatria"], sintaxe: "/ef_geriatria", desc: "Semiologia geriátrica: fragilidade, sarcopenia e ortostase." },
-        { cmd: "/ef_vascular", aliases: ["/ef_vascular"], sintaxe: "/ef_vascular", desc: "Exame vascular periférico: pulsos periféricos e perfusão." }
+        { cmd: "/ef", aliases: ["/ef"], sintaxe: "/ef", desc: "Menu interativo com botões para todos os roteiros de exame físico especializado." }
       ]
     },
     {
@@ -48082,22 +48034,17 @@ function obterCatalogoComandosSlash() {
         { cmd: "/tasks", aliases: ["/tasks"], sintaxe: "/tasks", desc: "Lista as tarefas prioritárias do dia no Notion." },
         { cmd: "/briefing", aliases: ["/briefing"], sintaxe: "/briefing", desc: "Briefing matinal com agenda, previsão e prioridades." },
         { cmd: "/checkin", aliases: ["/checkin"], sintaxe: "/checkin", desc: "Check-in noturno de hábitos, sono e encerramento." },
-        { cmd: "/semana", aliases: ["/semana"], sintaxe: "/semana", desc: "Relatório semanal analítico de rotina e hábitos." },
-        { cmd: "/bio", aliases: ["/bio"], sintaxe: "/bio", desc: "Atalho para peso corporal e composição corporal no Cockpit." }
+        { cmd: "/semana", aliases: ["/semana"], sintaxe: "/semana", desc: "Relatório semanal analítico de rotina e hábitos." }
       ]
     },
     {
       id: "governanca",
       titulo: "🛡️ EVIDÊNCIAS, PROTOCOLOS & GOVERNANÇA",
       comandos: [
-        { cmd: "/evidencia", aliases: ["/evidencia"], sintaxe: "/evidencia <termo>", desc: "Busca de evidências científicas no PubMed / Europe PMC." },
         { cmd: "/protocolo", aliases: ["/protocolo"], sintaxe: "/protocolo <tema>", desc: "Comparativo de diretrizes clínicas nacionais vs internacionais." },
         { cmd: "/calc", aliases: ["/calc"], sintaxe: "/calc", desc: "Catálogo central de calculadoras médicas integradas." },
-        { cmd: "/perfil", aliases: ["/perfil"], sintaxe: "/perfil [user]", desc: "Consulta níveis de permissão e papéis RBAC ativos." },
         { cmd: "/pendencias", aliases: ["/pendencias"], sintaxe: "/pendencias", desc: "Lista condutas supervisionadas aguardando chancela." },
         { cmd: "/chancelar", aliases: ["/chancelar"], sintaxe: "/chancelar <id>", desc: "Aprova e chancela formalmente conduta supervisionada." },
-        { cmd: "/emergencia", aliases: ["/emergencia"], sintaxe: "/emergencia <motivo>", desc: "Protocolo Break-The-Glass para bypass com auditoria." },
-        { cmd: "/auditar_rbac", aliases: ["/auditar_rbac"], sintaxe: "/auditar_rbac", desc: "Relatório de conformidade e auditoria de acessos." },
         { cmd: "/kaizen", aliases: ["/kaizen"], sintaxe: "/kaizen", desc: "Painel de métricas de qualidade e melhoria contínua (Kaizen)." }
       ]
     }
@@ -48239,11 +48186,11 @@ function enviarManualCompletoComandos(chatId, filtro) {
       "vertigem": "vertigem", "hints": "vertigem", "vppb": "vertigem", "tontura": "vertigem",
       "epistaxe": "epistaxe", "sangramentonasal": "epistaxe", "tamponamento": "epistaxe",
       "lesao": "dermato", "lesoes": "dermato", "pele": "dermato", "zoster": "herpes", "aciclovir": "herpes",
-      "cancro": "ulceragenital", "donovanose": "ulceragenital", "lgv": "ulceragenital", "biett": "sifilis",
-      "roseola": "sifilis", "monkeypox": "mpox", "neuro": "ef_neuro", "pqu": "ef_pqu", "ortopo": "ef_ortopo",
-      "reumato": "ef_ortopo", "orl": "ef_orl", "sbar": "plantao", "pitch": "round", "sabatina": "voz",
-      "tarefa": "task", "relatorio": "semana", "mounjaro": "bio", "pubmed": "evidencia", "rbac": "perfil",
-      "breaktheglass": "emergencia", "auditoria": "kaizen"
+      "cancro": "ulceragenital", "donovanose": "ulceragenital", "lgv": "ulceragenital",
+      "monkeypox": "mpox", "neuro": "ef", "pqu": "ef", "ortopo": "ef",
+      "reumato": "ef", "orl": "ef", "exame": "ef", "exames": "ef", "semiologia": "ef",
+      "sbar": "plantao", "pitch": "round", "sabatina": "voz",
+      "tarefa": "task", "relatorio": "semana", "auditoria": "kaizen"
     };
     if (sinonimosBusca[cmdBusca]) {
       cmdBusca = sinonimosBusca[cmdBusca];
@@ -48277,8 +48224,13 @@ function enviarManualCompletoComandos(chatId, filtro) {
     }
   }
 
+  var totalCmds = 0;
+  for (var cTot = 0; cTot < catalogo.length; cTot++) {
+    totalCmds += catalogo[cTot].comandos.length;
+  }
+
   var manualCompleto = "📖 *MANUAL DE COMANDOS CANÔNICOS (COPILOTO CLÍNICO 4.0)*\n\n" +
-    "Abaixo estão os *134 comandos padronizados* disponíveis no Ultra Rotina (estritamente 1 comando com barra por função clínica para facilitar a memorização):\n\n";
+    "Abaixo estão os *" + totalCmds + " comandos padronizados* disponíveis no Ultra Rotina (estritamente 1 comando com barra por função clínica para facilitar a memorização):\n\n";
 
   for (var cIdx = 0; cIdx < catalogo.length; cIdx++) {
     var categoria = catalogo[cIdx];
@@ -48293,7 +48245,7 @@ function enviarManualCompletoComandos(chatId, filtro) {
     manualCompleto += "\n";
   }
 
-  manualCompleto += "💡 *Dica de Ouro:* Você não precisa memorizar barras! Qualquer função pode ser chamada diretamente em *linguagem natural* (ex: _'herpes zoster'_, _'parto dilatação 7'_, _'drogas vasoativas 70kg'_, _'prenatal dum 10/05'_).\n\n" +
+  manualCompleto += "💡 *Dica de Ouro:* Você não precisa memorizar barras! Qualquer função pode ser chamada diretamente em *linguagem natural* (ex: _'parto dilatação 7'_, _'drogas vasoativas 70kg'_, _'prenatal dum 10/05'_).\n\n" +
     "Para filtrar por especialidade, digite `/ajuda <especialidade>` ou toque nos botões:";
 
   if (typeof enviarMensagemComTecladoParaChat === "function") {
@@ -48683,7 +48635,6 @@ function configurarMenuTelegram() {
     { command: "novo", description: "Limpar memória e iniciar novo caso" },
     { command: "cancelar", description: "Encerrar modo ativo ou ação atual" },
     { command: "teclado", description: "Ativar botões rápidos no rodapé" },
-    { command: "fila", description: "Ver pedidos e entregas pendentes" },
     { command: "ajuda", description: "Manual completo de instruções" }
   ];
 
@@ -50076,28 +50027,29 @@ function enviarMenuGinecologiaObstetricia(chat, messageId) {
     [['🤰 Pré-Natal (DUM, DPP, Rastreios)', 'ux:rotina:prenatal']],
     [['🚨 Pré-Parto & Sala de Parto (Zuspan, HPP)', 'ux:rotina:parto']],
     [['🌸 Ginecologia (Preventivo, SUA, Leucorreias)', 'ux:rotina:ginecologia']],
-    [['← Voltar ao Início', 'ux:menu']]
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
-/* ========== Sala Vermelha, DVA, SRI e condutas ========== */
+/* ========== Cenário 1: 🚨 Emergência & Sala Vermelha ========== */
 
 function enviarMenuSalaVermelha(chat, messageId) {
-  return enviarTelaBot(chat, '🚨 *SALA VERMELHA*\nEscolha uma conduta ou medicamento:', botoesBot([
+  return enviarTelaBot(chat, '🚨 *EMERGÊNCIA & SALA VERMELHA*\nCondutas imediatas e suporte intensivo:', botoesBot([
     [['🫀 PCR (ACLS)', 'ux:conduta:pcr'], ['🫁 SRI / IOT', 'ux:srimenu']],
     [['💉 Noradrenalina', 'ux:droga:nora'], ['💉 Dobutamina', 'ux:droga:dobuta']],
     [['💉 Outras DVA', 'ux:dvamenu'], ['🩸 Gasometria', 'ux:iniciar:gaso']],
-    [['⚡ Emergências', 'ux:condutamenu']],
-    [['← Menu', 'ux:menu']]
+    [['⚡ Choque & Hipotensão', 'ux:emerg:choque'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
+    [['⚡ Outras Emergências', 'ux:condutamenu']],
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
 function enviarMenuDva(chat, messageId) {
-  return enviarTelaBot(chat, '💉 *Drogas vasoativas*\nQual medicamento?', botoesBot([
+  return enviarTelaBot(chat, '💉 *Drogas Vasoativas (DVA)*\nQual medicamento deseja calcular?', botoesBot([
     [['Noradrenalina', 'ux:droga:nora'], ['Dobutamina', 'ux:droga:dobuta']],
     [['Nitroprussiato', 'ux:droga:nipride'], ['Vasopressina', 'ux:fixa:vaso']],
     [['Nitroglicerina', 'ux:fixa:tridil']],
-    [['← Sala vermelha', 'ux:sala']]
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
@@ -50109,7 +50061,7 @@ function enviarTelaPesoDva(chat, droga, messageId) {
   });
   if (linha.length) r.push(linha);
   r.push([['← Trocar medicamento', 'ux:dvamenu']]);
-  r.push([['Encerrar cálculo', 'ux:cancelar']]);
+  r.push([['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]);
   return enviarTelaBot(chat,
     '💉 *' + UX_DROGAS[droga].toUpperCase() + '*\nPeso do paciente\n\n' +
     'Toque em um peso ou envie o valor em kg (ex.: 73,5). Os botões são aproximações: use o peso real quando souber.',
@@ -50123,55 +50075,107 @@ function enviarTelaDiluicaoDva(chat, droga, peso, messageId) {
     botoesBot([
       [['Padrão', 'ux:diluicao:' + droga + ':' + p + ':padrao'], ['Concentrada', 'ux:diluicao:' + droga + ':' + p + ':concentrada']],
       [['✏️ Alterar peso', 'ux:droga:' + droga]],
-      [['← Trocar medicamento', 'ux:dvamenu']]
+      [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
 }
 
 function enviarMenuSri(chat, messageId) {
   return enviarTelaBot(chat,
-    '🫁 *Intubação (SRI)*\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.',
+    '🫁 *Intubação em Sequência Rápida (SRI)*\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.',
     botoesBot([
       [['60 kg', 'ux:sri:60'], ['70 kg', 'ux:sri:70']],
       [['80 kg', 'ux:sri:80'], ['90 kg', 'ux:sri:90']],
       [['Choque 70 kg', 'ux:sri:70 choque'], ['Asma 70 kg', 'ux:sri:70 asma']],
-      [['← Sala vermelha', 'ux:sala']]
+      [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
 }
 
 function enviarMenuCondutas(chat, messageId) {
-  return enviarTelaBot(chat, '⚡ *Outras emergências*\nSelecione:', botoesBot([
+  return enviarTelaBot(chat, '⚡ *Outras Emergências*\nSelecione a conduta beira-leito:', botoesBot([
     [['🚨 EAP hipertensivo', 'ux:conduta:eap'], ['⚡ Anafilaxia', 'ux:conduta:anafilaxia']],
     [['🧠 Crise convulsiva', 'ux:conduta:convulsao'], ['🧪 Hipercalemia', 'ux:conduta:hipercalemia']],
     [['🩸 Cetoacidose (CAD)', 'ux:conduta:cad']],
-    [['← Sala vermelha', 'ux:sala']]
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
+/* ========== Cenário 2: 🛏️ Enfermaria & Prescrição Rápida ========== */
+
+function enviarMenuEnfermaria(chat, messageId) {
+  var texto = '🛏️ *ENFERMARIA & PRESCRIÇÃO RÁPIDA*\n\n' +
+    'Gestão diária de pacientes internados, função renal e prescrições:\n\n' +
+    '• *Leitos:* Painel de bordo e status clínico (verde/amarelo/vermelho)\n' +
+    '• *Função Renal:* Clearance de Creatinina e ajuste posológico\n' +
+    '• *Suporte:* Hidratação venosa (Holliday-Segar) e kits de sintomáticos';
+  var botoes = botoesBot([
+    [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:hub:sbar']],
+    [['🧪 Clearance (Cockcroft)', 'ux:enf:clcr'], ['💊 Ajuste Renal ATB', 'ux:enf:ajuste']],
+    [['💧 Hidratação / Holliday', 'ux:enf:hidratacao'], ['📋 Prescrição Hospitalar', 'ux:enf:rxh']],
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+/* ========== Cenário 3: 🩺 Ambulatório & Atenção Primária (UBS) ========== */
+
+function enviarMenuAmbulatorio(chat, messageId) {
+  var texto = '🩺 *AMBULATÓRIO & ATENÇÃO PRIMÁRIA (UBS)*\n\n' +
+    'Consultas ambulatoriais, síntese de caso e medicina de família:\n\n' +
+    '• *SOAP Ágil:* Registro rápido de anamnese, exame físico e plano\n' +
+    '• *Prescrição:* Medicamentos disponíveis na REMUME e Farmácia Popular\n' +
+    '• *Documentos:* Códigos CID-10/CIAP-2 e atestado médico CFM';
+  var botoes = botoesBot([
+    [['📝 Gerador SOAP Ágil', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
+    [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado Médico CFM', 'ux:amb:atestado']],
+    [['🤰 Pré-Natal / DPP / DUM', 'ux:rotina:prenatal'], ['🌸 Ginecologia / Preventivo', 'ux:rotina:ginecologia']],
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+/* ========== Cenário 4: 💊 Consultas Rápidas de Bolso ========== */
+
+function enviarMenuConsultasBolso(chat, messageId) {
+  var texto = '💊 *CONSULTAS RÁPIDAS DE BOLSO*\n\n' +
+    'Guias práticos imediatos para tomada de decisão farmacológica:\n\n' +
+    '• *Antimicrobianos:* Esquemas empíricos de 1ª linha por foco clínico\n' +
+    '• *Pediatria:* Doses por kg com tetos máximos de segurança\n' +
+    '• *Segurança:* Drogas na gestação/lactação e checagem de interações';
+  var botoes = botoesBot([
+    [['🦠 Antibióticos por Foco', 'ux:bolso:atb'], ['👶 Doses Pediátricas (kg)', 'ux:bolso:ped']],
+    [['🤰 Gestação & Lactação', 'ux:bolso:gestacao'], ['⚠️ Interações Graves', 'ux:bolso:interacao']],
+    [['💉 Diluição & Preparo HSL', 'ux:bolso:hsl'], ['📐 Calculadoras Clínicas', 'ux:hub:calc']],
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+/* ========== Hub Principal (4 Cenários Clínicos Imediatos) ========== */
+
 function enviarHubPrincipal(chat, messageId) {
-  var texto = '⚡ *Ultra Rotina · Central de Comandos*\n\n' +
-    'Selecione uma área ou use o teclado rápido no rodapé:\n\n' +
-    '🩺 *Ambulatório (SOAP):* Síntese de prontuário e evolução clínica\n' +
-    '🏥 *Enfermaria:* Quadro de Leitos e Gestão de Pacientes\n' +
-    '🚨 *Emergência:* Condutas rápidas, Gasometria e DVA\n' +
-    '💊 *Prescrição:* Posologias, Ajuste Renal e REMUME\n' +
-    '📐 *Calculadoras:* Escores clínicos beira-leito';
+  var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\n\n' +
+    'Selecione um dos 4 cenários clínicos imediatos (1 a 2 toques):\n\n' +
+    '🚨 *1. Emergência & Sala Vermelha:* PCR (ACLS), DVA, Intubação SRI, Choque e Glasgow\n' +
+    '🛏️ *2. Enfermaria & Prescrição:* Leitos, Clearance, Ajuste Renal, Hidratação e SBAR\n' +
+    '🩺 *3. Ambulatório & UBS:* SOAP Ágil, CID-10/CIAP-2, Prescrição REMUME e Atestado\n' +
+    '💊 *4. Consultas Rápidas de Bolso:* Antibióticos por foco, Doses Pediátricas e Drogas na Gestação';
 
   var urlApp = obterUrlCockpit(chat);
   var botoes = [
-    [['🩺 Ambulatório (SOAP)', 'ux:hub:soap'], ['🏥 Enfermaria', 'ux:hub:enf']],
-    [['🚨 Emergência', 'ux:hub:sala'], ['💊 Prescrever', 'ux:hub:rx']],
-    [['📐 Calculadoras', 'ux:hub:calc'], ['📋 Passagem SBAR', 'ux:hub:sbar']],
-    [['📅 Rotina & Estudo', 'ux:hub:rotina'], { text: '📱 Cockpit Móvel', web_app: { url: urlApp } }]
+    [['🚨 Emergência & Sala Vermelha', 'ux:hub:sala'], ['🛏️ Enfermaria & Prescrição', 'ux:hub:enf']],
+    [['🩺 Ambulatório & UBS', 'ux:hub:amb'], ['💊 Consultas de Bolso', 'ux:hub:bolso']],
+    [['📐 Calculadoras', 'ux:hub:calc'], ['📅 Rotina & Estudo', 'ux:hub:rotina']],
+    [{ text: '📱 Cockpit Mini App', web_app: { url: urlApp } }, ['🧹 Novo Paciente', 'ux:novo:soap']]
   ];
 
   return enviarTelaBot(chat, texto, botoesBot(botoes), messageId);
 }
 
 function enviarMenuUXCalculadoras(chat, messageId) {
-  return enviarTelaBot(chat, '📐 *Calculadoras*\nEscolha o que precisa.', botoesBot([
+  return enviarTelaBot(chat, '📐 *Calculadoras Clínicas*\nEscolha a ferramenta necessária:', botoesBot([
     [['Drogas vasoativas', 'ux:dvamenu'], ['Gasometria', 'ux:iniciar:gaso']],
     [['Outras calculadoras', 'calc_menu_principal'], ['Sala vermelha', 'ux:sala']],
-    [['← Menu principal', 'ux:menu']]
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
@@ -50285,14 +50289,6 @@ function uxLinhaCopiar(chaveCache, resultado) {
 function tratarEntradaUX(message) {
   var chat = message.chat.id, text = (message.text || '').trim(), cache = uxCache();
 
-  if (text === '/fila') { mostrarFilaTelegram(chat); return true; }
-  if (/^\/pedido \d+$/.test(text)) {
-    var job = recuperarRegistroBot('inbox_' + text.split(' ')[1]);
-    var original = job && job.update && (job.update.message || {}).text;
-    enviarMensagemParaChat(chat, original ? '*Pedido preservado*\n\n' + original : 'Pedido sem texto disponível; confira o áudio ou a imagem original no chat.');
-    return true;
-  }
-
   if (/^\/entrega\s+outbox_[\w-]+$/.test(text)) {
     var registro = recuperarRegistroBot(text.split(/\s+/)[1]);
     enviarMensagemParaChat(chat, registro && registro.payload ? '*Consulta de entrega preservada — não é reenvio da operação*\n\n'+String(registro.payload.text || JSON.stringify(registro.payload)) : 'Entrega não encontrada.');
@@ -50402,13 +50398,16 @@ function tratarEntradaUX(message) {
   if (text === '📅 Minha rotina' || text === '📅 Minha Rotina') { enviarRotinaBot(chat); return true; }
   if (text === '🚨 Sala Vermelha' || text === '/sala') { enviarMenuSalaVermelha(chat); return true; }
   if (text === '📐 Calculadoras') { enviarMenuUXCalculadoras(chat); return true; }
-  if (['❔ Ajuda', '⚙️ Menu / Ajuda', '/start', '/menu', '/ajuda', '/help', '/teclado'].indexOf(text) !== -1) {
-    if (text === '/menu' || text === '/start') {
-      enviarHubPrincipal(chat);
+  if (text === '/menu' || text === '/start' || text === '/teclado' || text === '⚙️ Menu / Ajuda') {
+    enviarHubPrincipal(chat);
+    return true;
+  }
+  if (text === '/ajuda' || text === '/help' || text === '❔ Ajuda') {
+    if (typeof enviarManualCompletoComandos === 'function') {
+      enviarManualCompletoComandos(chat, '');
       return true;
     }
-    enviarMensagemComTecladoFixo(chat, '*Ultra Rotina · Copiloto Clínico*\n\nEscolha uma ação no teclado rápido ou envie qualquer caso clínico por texto ou áudio.\n\n/menu · Central de comandos e atalhos\n/novo · Iniciar outro caso\n/cancelar · Sair do modo atual\n/fila · Pedidos e entregas pendentes');
-    return true;
+    return false;
   }
   if (text === '🏥 Enfermaria' || text === '/enfermaria') { enviarPainelEnfermaria(chat, 0); return true; }
   if (text === '/limpar_enfermaria') {

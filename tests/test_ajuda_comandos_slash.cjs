@@ -52,18 +52,32 @@ async function runAjudaTests() {
     });
   });
 
-  assert.strictEqual(totalCmds, 134, 'Devem existir exatamente 134 comandos funcionais canônicos');
-  assert.strictEqual(slashCmdsSet.size, 134, 'Cada função clínica deve ter seu único comando slash sem redundâncias');
-  console.log(`  ✓ 17 categorias, 134 funções clínicas e exatamente 134 comandos slash padronizados.`);
+  assert.strictEqual(totalCmds, 97, 'Devem existir exatamente 97 comandos funcionais canônicos');
+  assert.strictEqual(slashCmdsSet.size, 97, 'Cada função clínica deve ter seu único comando slash sem redundâncias');
+  console.log(`  ✓ 17 categorias, 97 funções clínicas e exatamente 97 comandos slash padronizados.`);
+
+  // 1.1 Validar que Categoria Exame Físico possui estritamente /ef com botões interativos
+  const catEf = catalogo.find(c => c.id === 'exame_fisico');
+  assert.ok(catEf, 'Categoria exame_fisico deve existir');
+  assert.strictEqual(catEf.comandos.length, 1, 'Categoria exame_fisico deve conter estritamente o comando /ef');
+  assert.strictEqual(catEf.comandos[0].cmd, '/ef', 'Comando de exame físico deve ser /ef');
 
   // 2. Testar /ajuda completo
   console.log('[2] Testando comando /ajuda completo...');
+  mensagensEnviadas = [];
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ajuda' });
+  assert.ok(mensagensEnviadas.length > 0, 'Deve enviar mensagem');
+  assert.ok(!mensagensEnviadas[0].texto.includes('/cancelar · Sair do modo atual'), 'Não pode retornar a mensagem legada de 4 comandos');
+  assert.ok(mensagensEnviadas[0].texto.includes('MANUAL DE COMANDOS CANÔNICOS'), 'Deve conter cabeçalho canônico');
+  assert.ok(mensagensEnviadas[0].texto.includes('97 comandos padronizados'), 'Deve referenciar os 97 comandos padronizados');
+  assert.ok(mensagensEnviadas[0].kb, 'Deve incluir teclado inline de categorias');
+
   mensagensEnviadas = [];
   ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ajuda todas' });
   assert.ok(mensagensEnviadas.length > 0, 'Deve enviar mensagem');
   const msgAjuda = mensagensEnviadas[0].texto;
   assert.ok(msgAjuda.includes('MANUAL DE COMANDOS CANÔNICOS'), 'Deve conter cabeçalho canônico');
-  assert.ok(msgAjuda.includes('134 comandos padronizados'), 'Deve referenciar os 134 comandos padronizados');
+  assert.ok(msgAjuda.includes('97 comandos padronizados'), 'Deve referenciar os 97 comandos padronizados');
   assert.ok(msgAjuda.includes('NÚCLEO, SESSÃO, NAVEGAÇÃO & COCKPIT'), 'Deve conter categoria núcleo');
   assert.ok(msgAjuda.includes('SALA VERMELHA & CTI'), 'Deve conter categoria emergência');
   assert.ok(msgAjuda.includes('PEDIATRIA & SUPORTE VITAL'), 'Deve conter categoria pediatria');
@@ -101,8 +115,8 @@ async function runAjudaTests() {
   assert.ok(mensagensEnviadas.length > 0);
   assert.ok(mensagensEnviadas[0].texto.includes('DERMATOLOGIA & ISTs CUTÂNEAS'));
   assert.ok(mensagensEnviadas[0].texto.includes('/dermato'));
-  assert.ok(mensagensEnviadas[0].texto.includes('/herpes'));
-  assert.ok(mensagensEnviadas[0].texto.includes('/sifilis'));
+  assert.ok(mensagensEnviadas[0].texto.includes('/ulceragenital'));
+  assert.ok(mensagensEnviadas[0].texto.includes('/mpox'));
 
   mensagensEnviadas = [];
   ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ajuda obstetrícia' });
@@ -112,7 +126,7 @@ async function runAjudaTests() {
   assert.ok(mensagensEnviadas[0].texto.includes('/parto'));
   console.log('  ✓ Filtragem por especialidade isola perfeitamente os comandos da categoria solicitada.');
 
-  // 5. Testar busca por comando direto e sinônimos (/ajuda dva, /ajuda /soap, /ajuda sifilis, /ajuda receita)
+  // 5. Testar busca por comando direto e sinônimos (/ajuda dva, /ajuda /soap, /ajuda ulceragenital, /ajuda receita)
   console.log('[5] Testando busca por comando canônico e sinônimos...');
   mensagensEnviadas = [];
   ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ajuda dva' });
@@ -127,15 +141,21 @@ async function runAjudaTests() {
   assert.ok(mensagensEnviadas[0].texto.includes('nota estruturada SOAP'));
 
   mensagensEnviadas = [];
-  ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ajuda sifilis' });
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ajuda ulceragenital' });
   assert.ok(mensagensEnviadas.length > 0);
-  assert.ok(mensagensEnviadas[0].texto.includes('DETALHES DO COMANDO /sifilis'));
-  assert.ok(mensagensEnviadas[0].texto.includes('Penicilina Benzatina'));
+  assert.ok(mensagensEnviadas[0].texto.includes('DETALHES DO COMANDO /ulceragenital'));
+  assert.ok(mensagensEnviadas[0].texto.includes('úlceras genitais'));
 
   mensagensEnviadas = [];
   ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ajuda receita' });
   assert.ok(mensagensEnviadas.length > 0);
   assert.ok(mensagensEnviadas[0].texto.includes('DETALHES DO COMANDO /rx'), 'Sinônimo receita deve apontar para /rx');
+
+  // Testar comando /ef com exibição de botões
+  mensagensEnviadas = [];
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ef' });
+  assert.ok(mensagensEnviadas.length > 0);
+  assert.ok(mensagensEnviadas[0].kb, '/ef deve retornar teclado inline com botões dos roteiros de exame');
   console.log('  ✓ Busca de comando e sinônimos direciona para o comando canônico correto.');
 
   // 6. Testar callbacks inline (ajuda_cat_geriatria, ajuda_cat_dermato, ajuda_todas)

@@ -214,7 +214,6 @@ function configurarMenuTelegram() {
     { command: "novo", description: "Limpar memória e iniciar novo caso" },
     { command: "cancelar", description: "Encerrar modo ativo ou ação atual" },
     { command: "teclado", description: "Ativar botões rápidos no rodapé" },
-    { command: "fila", description: "Ver pedidos e entregas pendentes" },
     { command: "ajuda", description: "Manual completo de instruções" }
   ];
 

@@ -1676,19 +1676,19 @@ function obterRoteiroPadraoVascular() {
 
 function obterCatalogoTodosExamesEspeciais() {
   return "🩺 *CATÁLOGO DE EXAMES FÍSICOS ESPECIAIS (COPILOTO CLÍNICO)*\n\n" +
-    "Selecione uma especialidade ou digite o comando correspondente para ver o modelo de exame físico normal pronto para prontuário e as notas clínicas:\n\n" +
-    "• `/ef_neuro` ➔ *Neurológico* (Glasgow, pares cranianos, força MRC, reflexos, marcha, meníngeos)\n" +
-    "• `/ef_pqu` ➔ *Psiquiátrico / Estado Mental* (10 funções psíquicas, risco suicida, humor, insight)\n" +
-    "• `/ef_oftalmo` ➔ *Oftalmológico* (Acuidade visual, olho vermelho superficial vs ciliar, MOE, pupilas)\n" +
-    "• `/ef_ortopo` ➔ *Ortopédico / Reumato* (Coluna, ombro, joelho, punho com manobras especiais)\n" +
-    "• `/ef_orl` ➔ *Otorrinolaringológico* (Otoscopia, rinoscopia, oroscopia e cadeias cervicais)\n" +
-    "• `/ef_dermato` ➔ *Dermatológico* (Ectoscopia, lesões elementares, regra ABCDE, fâneros)\n" +
-    "• `/ef_gineco` ➔ *Gineco-Obstétrico* (Mamas, especular, toque bimanual, BCF e Leopold)\n" +
-    "• `/ef_procto` ➔ *Urológico & Toque Retal* (Genitália, inspeção anal, próstata e esfíncter)\n" +
-    "• `/ef_ped` ➔ *Pediátrico* (Fontanelas, desenvolvimento DNPM, ausculta infantil, Ortolani)\n" +
-    "• `/ef_geriatria` ➔ *Geriátrico / AGA* (Katz, Lawton, Timed Up and Go, hipotensão ortostática)\n" +
-    "• `/ef_vascular` ➔ *Vascular Periférico* (Pulsos periféricos, sinais de TVP - Homans/Moses, TEC)\n\n" +
-    "💡 *Dica:* Se você tiver um caso clínico em andamento, você pode clicar em [➕ Incorporar ao SOAP] para injetar o modelo normal diretamente no registro!";
+    "Selecione uma especialidade pelos botões abaixo para ver o modelo de exame físico pronto para o prontuário e as notas clínicas beira-leito:\n\n" +
+    "• *Neurológico:* Glasgow, pares cranianos, força MRC, reflexos, marcha e cerebelo\n" +
+    "• *Psiquiátrico:* Funções psíquicas, risco de suicídio, humor e insight\n" +
+    "• *Oftalmológico:* Acuidade visual, olho vermelho superficial vs ciliar e pupilas\n" +
+    "• *Ortopédico / Reumato:* Coluna, ombro, joelho e punho com manobras especiais\n" +
+    "• *Otorrinolaringológico:* Otoscopia, rinoscopia, oroscopia e cadeias cervicais\n" +
+    "• *Dermatológico:* Ectoscopia, lesões elementares, regra ABCDE e fâneros\n" +
+    "• *Gineco-Obstétrico:* Mamas, exame especular, toque bimanual e BCF\n" +
+    "• *Urológico & Toque Retal:* Genitália, inspeção anal, próstata e esfíncter\n" +
+    "• *Pediátrico:* Fontanelas, desenvolvimento DNPM, ausculta e manobras\n" +
+    "• *Geriátrico / AGA:* Katz, Lawton, marcha, ortostase e sarcopenia\n" +
+    "• *Vascular Periférico:* Pulsos simétricos, sinais de TVP (Homans/Moses) e perfusão\n\n" +
+    "💡 *Dica:* Ao abrir qualquer guia, você pode tocar em *[➕ Incorporar ao SOAP]* para injetar o modelo normal diretamente no registro!";
 }
 
 function gerarGuiaExameFisicoEspecial(tipo, contexto) {

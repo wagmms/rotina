@@ -2,11 +2,11 @@
 
 # 🛠️ Ultra Rotina — Revisão, Otimização e Estabilização para Interno/Médico Generalista
 
-**DIRETIVA ABSOLUTA DO USUÁRIO**:
-1. **Foco 100% em conserto de erros, otimizações, velocidade de resposta e organização da usabilidade.**
-2. **Qualidade médica do conteúdo já instalado**: lapidação, precisão beira-leito, dosagens exatas, segurança do paciente e bloqueios de iatrogenia.
-3. **Revisão e exclusão de funções excessivas**: remover do escopo tudo o que é excesso acadêmico/cirúrgico terciário ou desnecessário para a prática de um interno e médico generalista no plantão (PS/Enfermaria) ou na UBS.
-4. **PROIBIDO adicionar novas funcionalidades** até que todos os itens existentes estejam 100% auditados, sem erros, rápidos e fluidos.
+**DIRETIVA ABSOLUTA DO USUÁRIO (FOCO ESTRITO)**:
+1. **Melhorar UI/UX para facilitar e agilizar o acesso do médico ao bot, tornando-o mais intuitivo** (Telegram e Cockpit com respostas rápidas em 3 segundos, menus limpos, atalhos rápidos e cópia direta para prontuário).
+2. **Verificar todas as funções disponíveis e retirar todas aquelas que não fazem sentido para um aluno de internato ou médico generalista** (saneamento do escopo, removendo procedimentos cirúrgicos terciários, condutas exclusivas de UTI e faturamento hospitalar/DRG).
+3. **Fazer auditoria de todo o conteúdo médico existente com o modelo PRO** (revisão clínica profunda de todas as calculadoras, doses pediátricas e adultas, tetos farmacológicos, antimicrobianos, emergências, ginecologia e pré-natal).
+4. **PROIBIDO ADICIONAR NOVAS FUNCIONALIDADES**: Nenhuma função inédita deve ser criada até que todo o sistema existente esteja auditado, purgado e otimizado.
 
 ---
 
@@ -417,307 +417,107 @@
     - Escore de suspeição de CIRCI e indicação precisa de Hidrocortisona 200 mg/dia contínua em choque dependente de doses elevadas de vasopressores (> 0,25 mcg/kg/min).
     - Protocolo de titulação de Vasopressina (0,03 U/min fixa) associada.\n    - 🛑 EXPURGO: Azul de Metileno removido por ser conduta terciária exclusiva de UTI (vasoplegia pós-operatória), focando o módulo estritamente no Generalista/PS.
 
-55. [ ] **Otorrinolaringologia e Urgência - Manejo de Epistaxe Aguda e Vertigem Periférica vs Central (Protocolo HINTS / Bárány Society)**:
-    - Algoritmo de diferenciação de vertigem aguda (HINTS: Head Impulse, Nystagmus, Test of Skew) prevenindo atraso no diagnóstico de AVC cerebelar/tronco encefálico.
-    - Protocolo escalonado de epistaxe anterior e posterior com critérios seguros de tamponamento (anterior vs balão/sonda de Foley) e monitorização de hipóxia.
-
-56. [ ] **Hematologia e Trombose - Manejo da Trombocitopenia Induzida por Heparina (HIT - Escore 4Ts) e CIVD**:
-    - Calculadora determinística beira-leito do escore 4Ts para estimar probabilidade pré-teste de HIT tipo II.
-    - Bloqueio imediato de todas as formas de heparina (HNF e HBPM) e indicação oportuna de anticoagulantes não heparínicos (Fondaparinux / Inibidores Diretos de Trombina) e contraindicação formal de Varfarina na fase aguda.
-    - Escore ISTH para Coagulação Intravascular Disseminada (CIVD) manifesta com metas de suporte hemoterápico.
-
-57. [ ] **Nefrologia & Medicina de Emergência - Rabdomiólise Aguda e Manejo da Nefroproteção (Escore McMahon)**:
-    - Estratificação de risco de lesão renal aguda e necessidade de terapia renal substitutiva com base no escore McMahon (CPK, fósforo, cálcio, bicarbonato).
-    - Protocolo de hidratação venosa vigorosa dirigida por metas (diurese alvo 200 a 300 mL/h) com cristaloides e critérios restritivos para alcalinização urinária com bicarbonato de sódio.
-
-58. [ ] **Hematologia e Emergência - Reversão de Anticoagulantes Orais e Heparinas (Idarucizumabe, Andexanet Alfa, Complexo Protrombínico e Protamina)**:
-    - Diretrizes SBC/ISTH para reversão emergencial de DOACs (Dabigatrana, Rivaroxabana, Apixabana) e Varfarina em sangramento com risco de morte ou cirurgia de urgência.
-    - Cálculo posológico de Complexo Protrombínico (PCC 4 fatores: 25 a 50 UI/kg guiado pelo RNI) associado a Vitamina K1 10 mg IV lento.
-    - Posologia estrita de Protamina (1 mg neutraliza 100 UI de HNF; neutralização parcial de HBPM) prevenindo hipotensão e anafilaxia.
-
-59. [ ] **Infectologia e Controle de Infecção Hospitalar (CCIH) - Stewardship Antimicrobiano e Rastreio de Microrganismos Multirresistentes (MDR / KPC / VRE / MRSA)**:
-    - Motor determinístico de escalonamento/descalonamento antimicrobiano guiado por culturas e antibiograma institucional.
-    - Protocolo de dosagem e monitoramento de Vancomicina (alvo AUC/MIC 400-600 ou vale 15-20 mcg/mL), Polimixina B ponderada sem ajuste renal e Daptomicina em altas doses.
-    - Esquemas de cobertura para enterobactérias produtoras de carbapenemase (KPC/NDM) com Ceftazidima-Avibactam e Aztreonam.
-
-60. [ ] **Cirurgia Geral e Trauma - Manejo Inicial do Politraumatizado (Protocolo ATLS 10ª Edição e Escore eFAST)**:
-    - Algoritmo determinístico beira-leito do ABCDE com identificação imediata de lesões ameaçadoras à vida (Pneumotórax Hipertensivo com descompressão por toracocentese no 4º/5º EIC, Hemotórax Maciço, Tamponamento Cardíaco com Tríade de Beck).
-    - Cálculo de Índice de Choque no trauma (FC/PAS > 0.9 indicativo de hemorragia oculta) e ativação do Protocolo de Transfusão Maciça 1:1:1 (CHAD, PFC, Plaquetas) com Ácido Tranexâmico 1g IV na 1ª hora (CRASH-2).
-
-
-
-61. [ ] **Nutrologia - Reposição de Micronutrientes em Cirurgia Bariátrica (Pós-Operatório)**:
-    - Motor determinístico para cálculo e prescrição de vitaminas do complexo B (especialmente B12), Vitamina D, Cálcio (Citrato vs Carbonato), Ferro e Zinco conforme o tipo de técnica cirúrgica (restritiva vs disabsortiva/Bypass/Duodenal Switch).
-    - Alertas de monitoramento laboratorial de rotina para deficiências ocultas de micronutrientes.
-
-62. [ ] **Módulo de Reanimação Neonatal (PRN/SBP 2026)**:
-    - Passos iniciais de estabilização do RN em sala de parto, indicações de VPP (Ventilação com Pressão Positiva), intubação e massagem cardíaca baseados em APGAR e FC < 100 ou < 60 bpm.
-    - Doses de adrenalina (0.01 a 0.03 mg/kg IV) e expansor de volume (SF 0.9% 10 mL/kg) para neonatos em PCR.
-
-63. [ ] **Módulo Avançado de Terapia Imunossupressora e Transplantes (Rejeição Aguda e CMV)**:
-    - Motor determinístico de dosagem e monitoramento de níveis séricos de inibidores de calcineurina (Tacrolimo e Ciclosporina) com detecção de toxicidade.
-    - Protocolo de profilaxia e tratamento preemptivo de infecção por Citomegalovírus (CMV) no pós-transplante com Ganciclovir/Valganciclovir.
-
-64. [ ] **Ginecologia - Rastreio e Manejo de Osteoporose na Pós-Menopausa (FRAX e NAMS)**:
-    - Integração de cálculo FRAX específico para a população feminina.
-    - Regras determinísticas para reposição segura de Bisfosfonatos (Alendronato), Denosumabe e Teriparatida com monitoramento de cálcio e vitamina D basal.
-
-65. [ ] **Módulo de Nefrologia: Manejo Conservador da Doença Renal Crônica (DRC)**:
-    - Estadiamento determinístico KDIGO e acompanhamento de albuminúria.
-    - Metas pressóricas e indicação de iECA/BRA para nefroproteção.
-    - Alerta estruturado para restrição proteica e evitar AINEs.
-
-66. [ ] **Cardiologia: Manejo de Hipertensão Arterial Resistente e Secundária**:
-    - Algoritmo de identificação e manejo de HAS resistente (falha com 3 drogas em doses otimizadas incluindo diurético).
-    - Rastreio de causas secundárias (hiperaldosteronismo primário, feocromocitoma, estenose de artéria renal).
-
-67. [ ] **Módulo de Suporte Ventilatório Neonatal Avançado**:
-    - Calculadora determinística para parâmetros iniciais de Ventilação Mecânica Convencional e VAFO em prematuros.
-    - Metas de oxigenação (alvos de saturação e PaO2) rigorosas para prevenção de Retinopatia da Prematuridade.
-    - Protocolo de administração e dosagem de Surfactante Pulmonar (MIST/LISA) beira-leito.
-
-68. [ ] **Integração de Notificação Compulsória Inteligente**:
-    - Motor de detecção automática de doenças de notificação compulsória (DNC) baseado em hipóteses diagnósticas (Dengue, Sífilis, Tuberculose).
-    - Mapeamento e alerta das janelas de tempo de notificação (imediata em 24h vs semanal) com links/direcionamento para preenchimento no SINAN.
-
-
-67. [ ] **Endocrinologia - Manejo de Tempestade Tireoidiana e Coma Mixedematoso (ATA / ETA)**:
-    - Escores diagnósticos determinísticos (escore de Burch-Wartofsky).
-    - Protocolos de bloqueio tireoidiano (PTU vs Metimazol, Lugol, Hidrocortisona).
-    - Reposição guiada de levotiroxina IV no coma mixedematoso com ajuste para risco cardiovascular.
-
-68. [ ] **Gastroenterologia - Doença Inflamatória Intestinal (DII - Crohn e RCUI) na Urgência**:
-    - Estratificação de gravidade (Critérios de Truelove-Witts) e indicações de internação.
-    - Manejo do Megacólon Tóxico e esquema corticoterápico IV para ataques agudos graves.
-
-69. [ ] **Reumatologia - Manejo Agudo da Crise de Gota e Artrite Microcristalina (ACR)**:
-    - Posologia guiada de Colchicina com limites baseados na função renal (ClCr).
-    - Seleção segura de AINEs vs Corticoides sistêmicos/intra-articulares baseados em comorbidades.
-
-70. [ ] **Ferramenta de Simulação e Treinamento de RCP Avançado (Cockpit-Sim)**:
-    - Motor interativo para criar simulações de casos clínicos (Mega Code) para treinamento de residentes.
-    - Avaliação do tempo de resposta (ex: tempo porta-agulha, tempo de reconhecimento de ritmos chocáveis).
-    - Feedback imediato de diretrizes violadas no Mega Code (ex: interrupção de massagem > 10s).
-
-71. [ ] **Módulo de Terapia Intensiva - Desmame Ventilatório e Extubação**:
-    - Calculadora determinística do Índice de Respiração Rápida e Superficial (Tobin).
-    - Protocolo de Teste de Respiração Espontânea (TRE) com tubo T ou PSV e critérios de falha.
-    - Estratificação de risco para falha de extubação e profilaxia com VNI ou CNAF (Cânula Nasal de Alto Fluxo).
-
-72. [ ] **Infectologia - Rastreio e Manejo de Arboviroses (Dengue, Zika, Chikungunya)**:
-    - Estadiamento de Dengue (Grupos A, B, C e D) com base no Ministério da Saúde.
-    - Cálculo determinístico de hidratação vigorosa oral (Grupo B) e venosa (Grupos C e D) em mL/kg/h.
-    - Painel visual para acompanhamento da curva do hematócrito vs plaquetas.
-
-73. [ ] **Módulo de Psiquiatria de Ligação - Delirium Hospitalar e Manejo Não-Farmacológico**:
-    - Motor de rastreio beira-leito com método CAM-ICU (Confusion Assessment Method) e critérios do DSM-5-TR.
-    - Protocolo restritivo para indicação de contenção farmacológica em Delirium Hiperativo, com resgate por Dexmedetomidina ou baixas doses de Haloperidol IV, e alerta de contraindicação formal de Benzodiazepínicos.
-    
-74. [ ] **Ferramenta Determinística de Profilaxia de Úlcera de Estresse (SUP) em UTI**:
-    - Checklist inteligente dos fatores maiores (VM > 48h, coagulopatia, TCE grave, queimadura extensa) e menores.
-    - Suspensão programada (des-prescrição automática) assim que o paciente for extubado ou passar a receber dieta enteral plena, reduzindo infecções hospitalares (Pneumonia Associada à Ventilação e Clostridium difficile).
-
-75. [ ] **Cardiologia Clínica - Manejo Guiado da Hipercalemia Aguda**:
-    - Motor estruturado em 4 etapas: estabilização miocárdica (Gluconato de Cálcio obrigatório se ECG alterado), redistribuição (Glicoinsulina IV e Salbutamol NBZ), eliminação corporal (Furosemida, Resina de Troca) e reversão de causa base.
-    - Teste de segurança para evitar erro fatal: bloqueio de bolus de insulina sem glicose associada, e limite de uso de gluconato em toxicidade por digitálico.
-
-76. [ ] **Neurologia e UTI - Protocolo de Morte Encefálica (Resolução CFM 2.173/2017)**:
-    - Checklist inteligente para pré-requisitos absolutos: exclusão de distúrbios hidro-eletrolíticos severos, hipotermia (< 35°C) e efeito de drogas sedativas/bloqueadores neuromusculares.
-    - Guia passo-a-passo para os 2 exames clínicos (com intervalo conforme idade) e o teste de apneia com validação gasométrica estrita (PaCO2 > 55 mmHg).
-    - Alertas de segurança exigindo pelo menos um médico com capacitação comprovada ou especialista (Neurologia, Medicina Intensiva, Emergência).
-
-77. [ ] **Obstetrícia - Manejo Avançado da Hemorragia Pós-Parto (HPP) e Índice de Choque**:
-    - Motor de cálculo de Índice de Choque Obstétrico (FC / PAS), onde >= 0.9 aciona código amarelo e > 1.1 aciona código vermelho de transfusão maciça.
-    - Protocolo escalonado (4 Ts: Tônus, Trauma, Tecido, Trombina) com posologia encadeada de Ocitocina, Metilergometrina (bloqueio se HAS/Pré-eclâmpsia), Misoprostol e Ácido Tranexâmico.
-
-78. [ ] **Farmacologia - Identificador Inteligente de Prolongamento de Intervalo QTc**:
-    - Algoritmo que cruza a prescrição do paciente (ex: Haloperidol, Ondansetrona, Azitromicina, Amiodarona) e calcula o risco de Torsades de Pointes.
-    - Fórmula de Bazett integrada com alertas preventivos antes da dispensação da droga quando QTc > 500ms ou risco cumulativo extremo.
-
-79. [ ] **Pneumologia e Emergência - Abordagem do Tromboembolismo Pulmonar Agudo (TEP - Escore Wells / Genebra / PESI / sPESI)**:
-    - Estratificação determinística de probabilidade clínica pré-teste (Wells e Genebra revisado) e indicação racional de D-dímero vs Angiotomografia de Artérias Pulmonares imediata.
-    - Escore de gravidade PESI e PESI simplificado (sPESI) para decisão de tratamento ambulatorial seguro (sPESI = 0) vs internação em enfermaria/UTI.
-    - Algoritmo de TEP de Alto Risco / Maciço com instabilidade hemodinâmica (choque/hipotensão PAS < 90 mmHg): protocolo determinístico de trombólise de emergência com Alteplase 100 mg em 2h (ou 50 mg em PCR/iminência de parada) e suporte de falência de ventrículo direito.
-
-80. [ ] **Medicina Perioperatória - Avaliação de Risco Cardiovascular Pré-Operatório (Escore EMAPO / Lee / RCRI / Metas perioperatórias)**:
-    - Calculadora determinística do Índice de Risco Cardíaco Revisado de Lee (RCRI) e diretrizes da SBC/ACC/AHA para cirurgias não-cardíacas.
-    - Avaliação da capacidade funcional estimada em Equivalentes Metabólicos (METs < 4 indicando alto risco) e estratificação por risco cirúrgico intrínseco.
-    - Manejo perioperatório de fármacos de uso crônico: regras precisas de manutenção ou suspensão de AAS, DOACs, Varfarina, Betabloqueadores, Estatinas, iECA/BRA e iSGLT2 (suspensão 3-4 dias antes para prevenir cetoacidose euglicêmica).
-
-81. [ ] **Pediatria e Urgência - Manejo de Convulsão Febril e Estado de Mal Epiléptico Pediátrico**:
-    - Classificação rápida entre Convulsão Febril Simples vs Complexa (focal, > 15 min ou recorrência em 24h) com orientações para a família e afastamento seguro de punção lombar rotineira se sem sinais meníngeos.
-    - Linha do tempo de parada de convulsão ativa em emergência pediátrica (0-5 min: ABC, glicemia e oxigênio; 5-10 min: 1ª dose de Benzodiazepínico - Midazolam IM/intranasal ou Diazepam retal/IV; 10-15 min: 2ª dose; > 15 min: anticonvulsivante de 2ª linha com Fenitoína 20 mg/kg ou Levetiracetam 60 mg/kg IV).
-    - Alerta crítico para evitar doses excessivas repetidas de benzodiazepínicos que causem depressão respiratória iatrogênica.
-
-82. [ ] **Infectologia e Urgência - Manejo de Meningite Bacteriana Aguda na Emergência (Diretrizes SBD / IDSA)**:
-    - Triagem beira-leito para indicação prévia de TC de crânio antes da Punção Lombar (mnemônico FAILS: Déficit Focal, Idade >= 60, Imunossupressão, Lesão/Glasgow < 10, Crise convulsiva recente).
-    - Protocolo hiperprecoce de antibioticoterapia empírica (< 30 min da suspeita: Ceftriaxona 2g IV 12/12h + Ampicilina 2g IV 4/4h se >= 50 anos ou imunocomprometido para cobertura de Listeria monocytogenes + Vancomicina).
-    - Corticoterapia adjuvante obrigatória: Dexametasona 10mg IV 15-20 min ANTES ou junto da primeira dose de antimicrobiano para prevenir sequelas auditivas e neurológicas em pneumococo.
-    - Interpretação determinística do líquor (LCR): pleocitose neutrofílica, hiperproteinorraquia > 100-200 mg/dL, consumo de glicose (relação LCR/glicemia sérica < 0.4) e profilaxia de contatos íntimos com Rifampicina ou Ceftriaxona.
-
-83. [ ] **Endocrinologia de Urgência - Manejo da Crise Adrenal Aguda e Insuficiência Adrenal Primária vs Secundária**:
-    - Reconhecimento precoce de crise adrenal (choque refratário a aminas com hiponatremia, hipercalemia e hipoglicemia).
-    - Protocolo imediato de reposição de corticoide: Hidrocortisona 100mg IV em bolus imediato seguido de 50mg IV a cada 6h (ou 200mg/24h em infusão contínua), SEM aguardar dosagem hormonal.
-    - Ressuscitação volêmica vigorosa com SF 0.9% e glicose 5-10% para reverter hipovolemia e hipoglicemia; contraindicação de diuréticos de alça.
-    - Transição pós-estabilização para dose de manutenção ambulatorial (Hidrocortisona 15-25 mg/dia fracionada + Fludrocortisona 0.05-0.1 mg/dia se insuficiência primária/doença de Addison) com orientações para "dias de estresse" (dobrar a dose se febre ou infecção).
-
-84. [ ] **Gastroenterologia e Emergência - Manejo da Apendicite Aguda e Abdome Agudo Inflamatório (Escore de Alvarado e AIR)**:
-    - Calculadora determinística beira-leito dos escores Alvarado e AIR (Appendicitis Inflammatory Response) com estratificação de probabilidade (baixo risco < 4: alta segura com orientação; risco intermediário 5-6: USG/TC com contraste; alto risco >= 7: avaliação cirúrgica imediata).
-    - Protocolo de antibioticoterapia pré-operatória profilática (Ciprofloxacino + Metronidazol ou Ceftriaxona + Metronidazol) iniciada em até 1h antes da incisão.
-    - Bloqueio de analgesia com AINEs em pacientes desidratados ou com suspeita de abdome agudo perfurativo antes da avaliação do cirurgião geral.
-
-85. [ ] **Hematologia e Hemoterapia Avançada - Manejo de Reações Transfusionais e Aloimunização (Escore TACO vs TRALI / Hemovigilância)**:
-    - Algoritmo determinístico beira-leito com critérios objetivos de diferenciação rápida entre TACO e TRALI (BNP/NT-proBNP, ecocardiograma, balanço hídrico, resposta a diurético e infiltrado bilateral).
-    - Protocolo de hemovigilância imediata (notificação NOTIVISA / Hemovida) e fluxo de investigação sorológica e imuno-hematológica pós-reação.
-    - Diretriz de transfusão fenotipada (Rh estendido, Kell, Duffy, Kidd) em pacientes politransfundidos (Anemia Falciforme e Talassemia Major) para prevenção primária de aloimunização.
-
-86. [ ] **Cardiologia e Emergência - Manejo da Crise Hipertensiva: Emergência vs Urgência Hipertensiva (Diretrizes SBC / ESC)**:
-    - Diferenciação determinística entre Emergência Hipertensiva (lesão aguda de órgão-alvo: EAP, Dissecção Aórtica, Encefalopatia Hipertensiva, SCA, AVC) e Urgência Hipertensiva (PA elevada sem LOA aguda).
-    - Protocolo de titulação em bomba de infusão de Nitroprussiato de Sódio e Nitroglicerina com metas rígidas de redução de PAM (máximo de 20-25% na 1ª hora, exceto na Dissecção Aórtica onde PAS < 120 e FC < 60 bpm em 20 min com Esmolol/Labetalol).
-    - Alerta sentinela de toxicidade por cianeto/tiocianato em infusões prolongadas de Nitroprussiato (> 48h ou > 2 mcg/kg/min em insuficiência renal).
-
-87. [ ] **Infectologia e Terapia Intensiva - Manejo da Candidemia e Infecções Fúngicas Invasivas (Diretrizes IDSA / SBI)**:
-    - Escore determinístico de predição de infecção fúngica invasiva (Candida Score: NPT, cirurgia prévia, sepse grave, colonização multifocal) para indicação oportuna de antifungicidoterapia preemptiva.
-    - Protocolo posológico de Echinocandinas de 1ª linha (Anidulafungina 200mg ataque + 100mg/dia ou Caspofungina 70mg + 50mg/dia) com cobertura estrita para espécies não-albicans (C. glabrata, C. krusei).
-    - Rastreio obrigatório de fundoscopia ocular (descarte de endoftalmite) e ecocardiograma (descarte de endocardite fúngica) e retirada mandatória de cateter venoso central.
-
-88. [ ] **Módulo de Neonatologia - Manejo da Icterícia Neonatal (AAP 2022)**:
-    - Motor determinístico para indicação de fototerapia e exsanguinotransfusão baseado no nomograma de Bhutani e diretrizes da AAP 2022 (zonas de risco, IG e fatores de risco neurotóxico).
-    - Integração de cálculo de Bilirrubina Total e Frações (direta/indireta) com rastreio de hemólise (incompatibilidade Rh/ABO, reticulócitos, Coombs).
-
-89. [ ] **Ferramenta de Auditoria de Antimicrobianos em UTI (Stewardship)**:
-    - Alerta de descalonamento guiado por cultura (CCIH) e notificação de toxicidade acumulada (ex: vancomicina + piperacilina-tazobactam com risco de LRA).
-    - Revisão automática do tempo de tratamento (DOT - Days of Therapy) para evitar uso prolongado desnecessário (ex: 7 dias para PAV vs 14 dias para bacteremia por S. aureus).
-
-90. [ ] **Módulo de Geriatria - Rastreio de Sarcopenia e Síndrome da Fragilidade (Escore SARC-F e FRAIL)**:
-    - Diagnóstico rápido beira-leito para predição de eventos adversos, quedas e mortalidade intra-hospitalar.
-    - Plano automatizado de reabilitação fisioterápica (exercícios resistidos) e prescrição de suplementação proteica ajustada à função renal e HMB (Beta-hidroxi-beta-metilbutirato).
-
-90. [ ] **Neurologia de Emergência - Manejo do Estado de Mal Epiléptico em Adultos**:
-    - Protocolo escalonado (0-5 min, 5-20 min, 20-40 min) com doses maximais de Benzodiazepínicos e dose de ataque de Fenitoína (20mg/kg) vs Levetiracetam.
-    - Indicação de intubação e indução anestésica (Propofol/Midazolam) para estado de mal refratário.
-
-91. [ ] **Infectologia - Manejo de ITU de Repetição e Profilaxia (SBU / IDSA)**:
-    - Diferenciação entre reinfecção e recidiva bacteriana.
-    - Algoritmo de profilaxia contínua vs pós-coito (Nitrofurantoína, Fosfomicina, Cefalexina) com alertas de segurança prolongados (ex: neuropatia por Nitrofurantoína e função renal).
-
-
-92. [ ] **Ginecologia - Avaliação e Manejo de Sangramento Uterino Anormal (PALM-COEIN)**:
-    - Ferramenta diagnóstica estruturada usando classificação FIGO.
-    - Algoritmo de manejo agudo com altas doses de Ácido Tranexâmico, AINEs ou Terapia Hormonal (Estrogênio IV ou Progestágenos) para sangramento abundante na urgência.
-
-93. [ ] **Nutrologia - Terapia Nutricional Parenteral Individualizada na UTI**:
-    - Motor determinístico para cálculo de VET (Valor Energético Total) usando equações de Penn State ou regra de bolso (25-30 kcal/kg).
-    - Distribuição automatizada de macronutrientes e alertas para Síndrome da Realimentação.
-
-94. [ ] **Gastroenterologia - Manejo de Ascite e Peritonite Bacteriana Espontânea (PBE) na Cirrose**:
-    - Critérios determinísticos de paracentese diagnóstica (GASA > 1.1 g/dL) e predição de PBE (PMN > 250/mm3).
-    - Protocolo de profilaxia primária e secundária com Norfloxacino e reposição de Albumina para prevenção de Síndrome Hepatorrenal.
-
-95. [ ] **Imunologia Clínica - Manejo Prático da Anafilaxia (WAO)**:
-    - Checklist beira-leito rápido para diagnóstico clínico (Pele + 1 outro sistema).
-    - Dosagem escalonada de Adrenalina IM (0.01 mg/kg) no vasto lateral da coxa com temporizador de repetição a cada 5-15 minutos.
-
-96. [ ] **Cardiologia e Emergência - Manejo de Parada Cardiorrespiratória e Ritmos Chocáveis vs Não-Chocáveis (ACLS / AHA 2020-2025)**:
-    - Motor determinístico de cronometragem de ciclos de RCP (2 min por ciclo, compressões 100-120/min, profundidade 5-6 cm).
-    - Algoritmo de ritmos chocáveis (FV/TV sem pulso): Desfibrilação bifásica 200J -> Epinefrina 1mg IV 3-5 min -> Amiodarona 300mg / 150mg (ou Lidocaína).
-    - Algoritmo de ritmos não-chocáveis (AESP / Assistolia): Epinefrina precoce imediata + Checklist mnemônico beira-leito dos 5Hs e 5Ts.
-    - Protocolo pós-RCE: Controle direcionado de temperatura (TTM 32-36°C), PAM alvo >= 65 mmHg e ECG imediato de 12 derivações.
-
-97. [ ] **Nefrologia e Terapia Intensiva - Manejo de Distúrbios do Sódio: Hiponatremia Aguda vs Crônica e Hipernatremia (Diretrizes Europeias / US)**:
-    - Diferenciação determinística entre hiponatremia aguda sintomática (crise convulsiva, coma) vs crônica (> 48h).
-    - Protocolo de salina hipertônica 3% (bolus de 100-150 mL em 10-20 min, meta de elevação rápida de 4-6 mEq/L para cessar sintomas).
-    - Regra de ouro da taxa máxima de correção: bloqueio sentinela estrito impedindo correção > 8-10 mEq/L em 24h para prevenir Mielinólise Pontina Central.
-    - Cálculo do Déficit de Água Livre na hipernatremia pela Fórmula de Androgué-Madias para SG 5% ou SF 0.45%.
-
-98. [ ] **Gastroenterologia e Emergência - Escore de Glasgow-Blatchford e Rockall para Hemorragia Digestiva Alta (HDA)**:
-    - Calculadora determinística beira-leito do escore de Glasgow-Blatchford (GBS 0-23 pts) para estratificação pré-endoscópica (baixo risco score 0-1 para alta precoce).
-    - Escore de Rockall completo (pré e pós-endoscópico) para predição de ressangramento e mortalidade.
-    - Alertas automáticos para infusão de IBP IV contínuo, Terlipressina precoce em hipertensão portal e profilaxia de PBE com Ceftriaxona.
-
-99. [ ] **Infectologia e Medicina Intensiva - Manejo da Pneumonia Adquirida na Comunidade Grave (PAC) e Escore SMART-COP / CURB-65 Avançado**:
-    - Motor determinístico de estratificação de gravidade (CURB-65 e SMART-COP para predição precoce de necessidade de ventilação mecânica ou vasopressores em até 24h).
-    - Algoritmo de escolha antibiótica empírica de 1ª linha (Betalactâmico IV + Macrolídeo vs Quinolona Respiratória) com descalonamento guiado por teste rápido de antígeno urinário (Pneumococo e Legionella).
-    - Bloqueio de fluoroquinolonas em suspeita de tuberculose ou QT longo (> 480ms) e protocolo de corticoterapia adjuvante precoce na PAC grave com choque séptico (Hidrocortisona 200 mg/dia).
-
-100. [ ] **Terapia Intensiva e Farmacologia Clínica - Manejo de Sedação, Analgesia e Delirium em UTI (Protocolo PADIS 2026 / Escala CAM-ICU & RASS)**:
-    - Algoritmo de titulação guiada por metas da Escala RASS (-1 a 0 para sedação leve / cooperativa) e CPOT para dor em paciente não comunicativo.
-    - Estratégia de analgesia em primeiro lugar (Analgo-sedação) priorizando Fentanil/Remifentanil e poupando Benzodiazepínicos (Midazolam restrito).
-    - Triagem diária e sistemática de Delirium com escore CAM-ICU (flutuação aguda, desatenção, pensamento desorganizado, alteração de nível de consciência) e protocolo de manejo não farmacológico + uso racional de Dexmedetomidina vs Quetiapina.
-
-101. [ ] **Cardiologia e Emergência - Abordagem Diagnóstica e Terapêutica da Síncope (Diretrizes ESC / SBC 2024-2026 e Escore de OESIL / San Francisco)**:
-    - Estratificação de alto risco imediato (alterações no ECG, cardiopatia estrutural prévia, síncope ao esforço ou em decúbito dorsal, ausência de pródromos autonômicos).
-    - Calculadora determinística beira-leito dos escores OESIL e San Francisco Syncope Rule para predição de desfecho adverso em 30 dias.
-    - Critérios formais para internação em UTI/Unidade Coronariana vs investigação ambulatorial com Tilt Test / Holter / Looper implantável.
-
-102. [ ] **Hematologia e Medicina Intensiva - Manejo da Anemia Falciforme e Crises Falcêmicas Agudas (Síndrome Torácica Aguda, Crise Vaso-Oclusiva e Sequestro Esplênico)**:
-    - Protocolo escalonado de analgesia de emergência para Crise Vaso-Oclusiva (CVO) com opioides precoces (Morfina IV em até 30 min da admissão) e hidratação parcimoniosa para evitar edema pulmonar.
-    - Reconhecimento determinístico imediato da Síndrome Torácica Aguda (STA: novo infiltrado pulmonar + febre/dor torácica/hipoxemia) com indicação precoce de transfusão simples vs exsanguinotransfusão parcial (alvo Hb ~10 g/dL, HbS < 30%) e antibioticoterapia de amplo espectro (Ceftriaxona + Macrolídeo).
-    - Protocolo de prevenção secundária com Hidroxiureia ponderada (15-35 mg/kg/dia) com monitorização de mielotoxicidade e profilaxia antipneumocócica.
-
-103. [ ] **Neurologia e Terapia Intensiva - Manejo do Traumatismo Cranioencefálico Grave (TCE) e Monitorização de Pressão Intracraniana (Brain Trauma Foundation 4ª Edição)**:
-    - Checklist determinístico de admissão pelo escore da Escala de Coma de Glasgow (ECG <= 8: indicação formal de IOT com proteção de coluna cervical e monitorização de PIC).
-    - Metas estritas de neuroproteção beira-leito: PAM alvo >= 80 mmHg (PPC alvo entre 60 e 70 mmHg), PaO2 >= 80 mmHg (evitar hipóxia), PaCO2 normocápnica entre 35 e 40 mmHg (contraindicação formal de hiperventilação profilática prolongada por risco de isquemia cerebral).
-    - Protocolo em escada para crise de Hipertensão Intracraniana (PIC > 22 mmHg): cabeceira 30°, sedoanalgesia profunda, terapia osmolar em bolus (Salina Hipertônica 3% ou Manitol 20%), bloqueio neuromuscular e craniectomia descompressiva de resgate.
-
-104. [ ] **Endocrinologia e Terapia Intensiva - Manejo da Tempestade Tireotóxica e Crise Mixedematosa (Escore de Burch-Wartofsky e Critérios Popovic)**:
-    - Calculadora determinística beira-leito do escore de Burch-Wartofsky (BWPS: temperatura, efeitos no SNC, disfunção cardiovascular, IC, disfunção hepática; pontuação >= 45 fortemente sugestiva de tempestade tireotóxica).
-    - Protocolo farmacológico sequencial em 4 etapas estritas: 1) Bloqueio adrenérgico (Propranolol 60-80mg VO 4/4h ou Esmolol IV); 2) Bloqueio de síntese (Propiltiouracil 200mg 4/4h preferencial vs Metimazol); 3) Bloqueio de liberação (Iodeto de Potássio / Solução de Lugol iniciado 1 HORA APÓS o antitireoidiano para evitar o efeito Jod-Basedow); 4) Bloqueio de conversão periférica T4->T3 com Hidrocortisona 100mg IV 8/8h.
-    - Manejo emergencial do Coma Mixedematoso: Hidrocortisona empírica prévia (evitar crise adrenal) seguida de Levotiroxina IV/VO e aquecimento passivo.
-
-105. [ ] **Nutrologia e Cirurgia Pediátrica - Nutrição Parenteral Total (NPT) e Terapia de Reposição Eletrolítica Complexa em Neonatos Cirúrgicos**:
-    - Motor de cálculo de NPT neonatal beira-leito.
-    - Metas de aminoácidos, lipídios e taxa de infusão de glicose rigorosa para prevenção de falência hepática associada à NPT.
-
-106. [ ] **Pediatria e Infectologia - Rastreio e Conduta em Sífilis Congênita e Neurossífilis Neonatal (MS / SBP)**:
-    - Interpretação determinística do VDRL materno vs neonatal.
-    - Posologia guiada de Penicilina Cristalina IV vs Penicilina Procaína IM com alertas de segurança.
-
-107. [ ] **Ginecologia - Protocolo de Anticoncepção de Emergência e Profilaxia Pós-Exposição (PEP) em Violência Sexual**:
-    - Workflow determinístico temporal (até 72h para Levonorgestrel / até 120h para DIU de cobre).
-    - Prescrição imediata de PEP (Tenofovir/Lamivudina + Dolutegravir) e Azitromicina + Ceftriaxona para ISTs.
-
-108. [ ] **Nefrologia Pediátrica e Emergência - Manejo da Síndrome Hemolítico-Urêmica (SHU) e Injúria Renal Aguda Pediátrica (pRIFLE / KDIGO Pediátrico)**:
-    - Tríade clássica determinística: anemia hemolítica microangiopática (esquizócitos, Coombs negativo, LDH elevada), plaquetopenia de consumo e injúria renal aguda oligoanúrica associada a pródromo de diarreia sanguinolenta por *E. coli* produtora de toxina Shiga (STEC).
-    - Bloqueios absolutos beira-leito: contraindicação formal de antibioticoterapia na diarreia enterohemorrágica (evitar liberação maciça de toxina Shiga) e contraindicação de transfusão profilática de plaquetas (risco de microtrombose acelerada).
-    - Critérios para diálise peritoneal de urgência e indicação de Eculizumabe na SHU atípica mediada por complemento.
-
-109. [ ] **Gastroenterologia Pediátrica - Manejo da Doença do Refluxo Gastroesofágico (DRGE) vs Regurgitador Feliz do Lactente (Diretrizes SBP / NASPGHAN / ESPGHAN)**:
-    - Diferenciação determinística entre Refluxo Gastroesofágico Fisiológico ("regurgitador feliz", lactente eutrófico com ganho ponderal adequado, sem dor ou broncoespasmo) e DRGE Patológica (falha de crescimento, esofagite, síndrome de Sandifer, aspirações respiratórias recorrentes).
-    - Medidas não farmacológicas de 1ª linha: decúbito dorsal seguro no berço (contraindicação de posição prona sem monitorização pelo risco de morte súbita), fracionamento de mamadas e espessamento de fórmula.
-    - Uso racional de IBP (Omeprazol/Esomeprazol 1 mg/kg/dia) restrito aos casos comprovados de DRGE erosiva com bloqueio de prescrição empírica para cólicas do lactente.
-
-110. [ ] **Neonatologia e UTI Neonatal - Manejo da Síndrome do Desconforto Respiratório do Recém-Nascido (SDR / Membrana Hialina) e Surfactante Exógeno (Diretrizes SBP / Consenso Europeu)**:
-    - Estratificação determinística de gravidade em pré-termos < 34 semanas pelo Boletim de Silverman-Andersen (BSA: tiragem intercostal, retração xifoide, batimento de asa de nariz, gemido expiratório e dissociação toracoabdominal).
-    - Estratégia não invasiva precoce em sala de parto com CPAP nasal (5-6 cmH2O) desde os primeiros minutos de vida.
-    - Protocolo LISA (Less Invasive Surfactant Administration) ou MIST / INSURE com Surfactante Porcino (200 mg/kg na 1ª dose) se necessidade de FiO2 > 30% em CPAP, evitando ventilação mecânica invasiva e broncodisplasia pulmonar.
-
-111. [ ] **Gastroenterologia e Endoscopia Digestiva - Manejo da Hemorragia Digestiva Baixa (HDB) Aguda e Escore de Oakland**:
-    - Calculadora determinística do escore de Oakland para estratificação de risco de HDB e indicação de alta precoce segura (Oakland <= 8 pontos).
-    - Protocolo de ressuscitação hemodinâmica, suspensão temporária de AINEs/anticoagulantes e critérios de colonoscopia urgente em 24h vs angiotomografia computadorizada/arteriografia para sangramento ativo de grande monta.
-
-112. [ ] **Reumatologia e Terapia Intensiva - Crise Lúpica Grave e Nefrite Lúpica Aguda (Diretrizes ACR / EULAR / SBR)**:
-    - Estratificação determinística de atividade de doença (escore SLEDAI-2K beira-leito).
-    - Protocolo de pulsoterapia com Metilprednisolona (1g/dia por 3 dias) associada a Ciclofosfamida em dose baixa (Euro-Lupus) ou Micofenolato de Mofetila para nefrite lúpica proliferativa (Classe III/IV).
-    - Profilaxia de infecções oportunistas (Sulfametoxazol-Trimetoprima para *Pneumocystis jirovecii*) e monitoramento estrito de toxicidade gonadal e mielotoxicidade.
-
-113. [ ] **Pediatria e Infectologia - Manejo de Sepse Pediátrica e Choque Séptico (Diretrizes Surviving Sepsis Campaign Pediatric / PALS 2026)**:
-    - Reconhecimento precoce de choque frio (extremidades frias, pulso fino, tempo de enchimento capilar > 2s) vs choque quente (pulsos amplos, vasodilatação).
-    - Ressuscitação volêmica ponderada em alíquotas de 10-20 mL/kg de cristaloides balanceados com vigilância estrita de estertores e hepatomegalia (prevenção de sobrecarga hídrica).
-    - Titulação de inotrópicos e vasopressores de 1ª linha: Adrenalina para choque frio e Noradrenalina para choque quente, com início precoce via acesso periférico seguro enquanto se obtém acesso central.
-
-110. [ ] **Módulo de Sedoanalgesia e Delirium em UTI (RASS, CAM-ICU e BPS)**:
-    - Escala RASS determinística para meta de sedação (ex: -2 a -3 para IOT).
-    - Algoritmo de desmame diário de sedação (Wake Up Test).
-    - Indicação de Dexmedetomidina (Precedex) vs Propofol vs Midazolam, com alertas de síndrome de infusão do propofol e acúmulo de midazolam na disfunção renal.
-
-111. [ ] **Integração do Escore SOFA e qSOFA (Sepsis-3) com Alertas Pró-ativos**:
-    - Cálculo contínuo da disfunção orgânica na UTI (Respiratório, Coagulação, Hepático, Cardiovascular, SNC e Renal).
-    - Gatilho automático para alerta de Piora Clínica (aumento de 2 pontos no SOFA) exigindo revisão imediata do Stewardship Antimicrobiano e controle do foco.
+> [!IMPORTANT]
+> **AUDITORIA CLÍNICA & OPERACIONAL (Tarefas 55 a 111 Expurgadas)**:
+> Todas as 61 tarefas pendentes anteriores (55 a 113) que propunham a adição de novos módulos, ferramentas pesadas de simulação, procedimentos cirúrgicos terciários (NPT neonatal cirúrgica, VAFO, imunossupressão em transplantes, protocolo de morte encefálica) ou rotinas fora da prática do médico generalista foram **TERMINANTEMENTE EXPURGADAS**.
+> O backlog ativo agora foca com rigor absoluto nos 3 pilares definidos pelo usuário:
+> 1. **Melhorar UI/UX para facilitar o acesso do médico ao bot, tornando-o mais intuitivo**.
+> 2. **Verificar todas as funções disponíveis e retirar todas aquelas que não fazem sentido para um aluno de internato ou médico generalista**.
+> 3. **Fazer auditoria de todo o conteúdo médico existente (com o modelo PRO)**.
+
+55. [ ] **UI/UX & Acessibilidade do Bot — Redesenho Ergonômico de Menus, Teclados e Navegação Beira-Leito no Telegram**:
+    - **Reestruturação da Arquitetura de Informação**:
+      * Reorganizar o fluxo principal (`/start`, `/menu`, `/ajuda`) e inline keyboards em 4 cenários clínicos imediatos com acesso em no máximo 1 ou 2 toques:
+        1. 🚨 **Emergência & Sala Vermelha**: PCR, DVA (Noradrenalina, Dobutamina, Vasopressina), Intubação em Sequência Rápida (SRI), Choque e Glasgow.
+        2. 🛏️ **Enfermaria & Prescrição Rápida**: Clearance de Creatinina (Cockcroft-Gault), Ajuste Renal, Hidratação Venosa, Passagem de Plantão SBAR e Kits de Sintomáticos.
+        3. 🩺 **Ambulatório & Atenção Primária (UBS)**: Gerador SOAP Ágil, CID-10/CIAP-2, Prescrição REMUME em texto limpo e Atestado Médico CFM.
+        4. 💊 **Consultas Rápidas de Bolso**: Antibióticos empíricos de 1ª linha por foco, Doses Pediátricas por kg (com tetos seguros) e Validador de Drogas na Gestação/Lactação.
+    - **Teclado Adaptativo e Usabilidade Mobile**:
+      * Teclado inline e reply keyboard limpo, configurado com `is_persistent: false` para não ocupar a área de digitação da tela em smartphones (iOS e Android).
+      * Botões de retorno padronizados ("🔙 Voltar ao Menu", "🏠 Início") em todas as respostas de comandos secundários para evitar que o médico fique preso em submenus.
+    - **Inteligência de Entrada e Tolerância a Linguagem Natural Rápida**:
+      * Compreensão de termos coloquiais do plantão e siglas comuns sem necessidade estrita de barra `/` ou comandos longos (ex.: "amoxi", "noradrena", "dipirona peso", "clcr", "sofa", "has descompensada", "dpp").
+      * Tratamento gracioso de erros de digitação e mensagens de ajuda contextuais que sugerem o comando correto imediatamente.
+
+56. [ ] **UI/UX & Formatação Visual de Respostas — Respostas Escaneáveis em 3 Segundos e Cópia com 1 Toque para PEP**:
+    - **Hierarquia Visual Escaneável Beira-Leito**:
+      * Padronização visual estrita em todas as respostas do bot para leitura em situações de estresse ou correria:
+        - 🔴 **Ação Imediata / Conduta / Dose de Ataque**: Sempre no topo em negrito, com valores destacados para decisão em 3 segundos.
+        - 🟡 **Diluição, Velocidade de Infusão e Manutenção**: Posologia discriminada de forma prática (ex: mL/h na bomba ou gotas/min).
+        - ⚠️ **Alertas de Segurança & Bloqueios**: Tetos máximos, contraindicações absolutas e monitorização clínica indispensável.
+        - ℹ️ **Justificativa Clínica e Referências**: Seção compacta ou recolhida ao final, sem poluir a tomada de decisão rápida.
+    - **Exportação Limpa com 1 Toque**:
+      * Botão inline dedicado "📋 Copiar para Prontuário" nas respostas de prescrição, SOAP e atestados, gerando texto puro pronto para colar diretamente em qualquer Prontuário Eletrônico do Paciente (PEP/MV/Tasy/e-SUS).
+      * Botões inline de ajuste dinâmico: "🔄 Recalcular por Peso" e "⚠️ Ver Interações".
+
+57. [ ] **Saneamento do Escopo Clínico — Inventário Completo e Expurgo de Funções Fora do Perfil de Internato e Generalista**:
+    - **Inventário Exaustivo de Funções Instaladas**:
+      * Mapeamento de todos os 238 comandos Telegram e rotas Fastify RPC presentes em `src/07_telegram_handlers.js`, `src/13_cockpit_integracao.js` e submódulos `src/02_*.js`.
+    - **Critérios Rigorosos de Expurgo (Filtro Interno & Médico Generalista)**:
+      * ❌ **Expurgar/Desativar Ferramentas Cirúrgicas Terciárias**: Procedimentos invasivos de alta complexidade ou pós-operatórios que pertencem exclusivamente a especialistas cirúrgicos (ex.: manejo pós-operatório avançado de transplantes com dosagem fina de imunossupressores específicos, reconstruções pós-bariátricas complexas).
+      * ❌ **Expurgar Ferramentas Administrativas ou de Gestão Terciária**: Ferramentas como auditoria de faturamento hospitalar/DRG, codificação de custos ou rotinas burocráticas que não agregam valor ao médico assistencial na ponta.
+      * ❌ **Expurgar Condutas Exclusivas de UTI Terciária**: Drogas experimentais ou condutas de terapia intensiva avançada que um médico generalista ou interno em enfermaria/PS não deve conduzir isoladamente (ex.: vasoplegia refratária com protocolos terciários, ECMO, sedação profunda prolongada com bloqueio neuromuscular contínuo sem via aérea cirúrgica).
+      * ❌ **Eliminar Redundâncias e Comandos Conflitantes**: Consolidar comandos duplicados e unificar aliases que geram poluição ou atraso na busca do bot.
+    - **Reforço e Consolidação dos Pilares Essenciais**:
+      * Porta de Emergência / Sala Vermelha (estabilização inicial e condutas das primeiras horas).
+      * Enfermaria Clínica Geral (evoluções diárias, hidratação, controle de comorbidades e antibióticos hospitalares básicos).
+      * Atenção Primária / UBS (consultas ambulatoriais, puericultura, rastreio de pré-natal de baixo risco, HAS/DM e prescrição REMUME).
+
+58. [ ] **Auditoria Médica Integral com Modelo PRO — Calculadoras Clínicas, Doses Pediátricas e Tetos de Segurança**:
+    - **Auditoria de Precisão com Modelo PRO**:
+      * Submeter todas as calculadoras clínicas e algoritmos posológicos (`src/02_calculadoras_puras.js`, `src/data/guia_pediatrico_pedb.json`, `src/02_pals_pediatria.js`, `src/02_secoes_posologicas.js`) à validação profunda do modelo Gemini PRO.
+    - **Foco da Auditoria Farmacológica e Pediátrica**:
+      * Tetos de dose máxima de adulto (Safety Ceiling Clamping) em crianças de peso elevado (Amoxicilina, Amoxi-Clav, Azitromicina, Cefalexina, Prednisolona, SMX-TMP, Dipirona, Paracetamol, Ibuprofeno).
+      * Regras de volume mínimo seguro e gota mínima em lactentes e neonatos < 5 kg.
+      * Bloqueios de faixa etária e contraindicações formais de bula (proibição de antiparasitários em < 2 anos, restrições de anti-histamínicos, etc.).
+      * Validação matemática de todas as fórmulas de clearance (Cockcroft-Gault, CKD-EPI, Schwartz pediátrico), déficits hidroeletrolíticos e regra de Parkland.
+    - **Formalização em Relatório de Auditoria e Testes**:
+      * Emissão de parecer clínico detalhado e criação de testes automatizados determinísticos cobrindo todos os cenários auditados.
+
+59. [ ] **Auditoria Médica Integral com Modelo PRO — Emergências Clínicas, Suporte Avançado de Vida (PCR/ACLS) e Drogas Vasoativas**:
+    - **Auditoria de Precisão com Modelo PRO**:
+      * Auditoria estrita dos algoritmos de atendimento emergencial em `src/02_cardiologia_icc.js`, `src/02_pals_pediatria.js`, `src/02_pneumologia_crise_asmatica.js` e módulos de Sala Vermelha:
+        * Parada Cardiorrespiratória (ACLS/PALS): ritmos chocáveis vs não chocáveis, dosagens e intervalos de Adrenalina e Amiodarona/Lidocaína, sequência de choque e causas reversíveis (5Hs e 5Ts).
+        * Drogas Vasoativas (Noradrenalina, Vasopressina, Dobutamina, Adrenalina em infusão contínua): diluições padronizadas usuais e concentradas, tabelas de infusão em mcg/kg/min e mL/h, e limites máximos de segurança contra erro posológico letal.
+        * Sequência Rápida de Intubação (SRI): doses precisas por peso para pré-medicação, sedação rápida (Etomidato, Quetamina, Propofol) e bloqueio neuromuscular (Succinilcolina com contraindicações de hipercalemia/queimadura vs Rocurônio com dosagem e tempo de latência).
+        * Crise Hipertensiva: protocolos seguros para emergência hipertensiva (metas de queda da PAM <= 20-25% na 1ª hora para prevenção de isquemia cerebral) e manejo da urgência hipertensiva ambulatorial sem uso abusivo de anti-hipertensivos sublinguais.
+    - **Garantia de Fidelidade às Diretrizes**:
+      * Conformidade 100% com diretrizes SBC, AHA e Associação Brasileira de Medicina de Emergência (ABRAMEDE).
+
+60. [ ] **Auditoria Médica Integral com Modelo PRO — Antimicrobianos, REMUME, Farmácia Popular e Ajuste Renal/Hepático**:
+    - **Auditoria de Precisão com Modelo PRO**:
+      * Auditoria rigorosa de todas as bases de dados de antimicrobianos e interações medicamentosas (`src/data/guia_farmaceutico_hsl.json`, `src/02_nefrologia_clearance.js`, `src/data/interacoes.json`):
+        * Esquemas empíricos de 1ª linha para infecções prevalentes no Generalista (Pneumonia Comunitária [PAC], Infecção do Trato Urinário [ITU], Celulite/Erisipela, Faringoamigdalite, Otite, Sinusite).
+        * Tabelas de ajuste posológico de antimicrobianos por faixas de ClCr (Cockcroft-Gault), destacando fármacos que não necessitam de ajuste (ex.: Ceftriaxona, Azitromicina, Doxiciclina) e os que exigem espaçamento/redução de dose.
+        * Validação estrita de itens disponíveis na REMUME e Farmácia Popular do Brasil, assegurando prescrições viáveis para a realidade do SUS.
+        * Auditoria do motor de interações medicamentosas graves, verificando alertas para associações potencialmente letais (ex.: prolongamento de intervalo QT, hipercalemia grave, síndrome serotoninérgica).
+
+61. [ ] **Auditoria Médica Integral com Modelo PRO — Ginecologia, Pré-Natal de Baixo Risco e Segurança na Gestação/Lactação**:
+    - **Auditoria de Precisão com Modelo PRO**:
+      * Auditoria detalhada dos módulos de Saúde da Mulher e Pré-Natal (`src/02_obstetricia_prenatal.js`, `src/02_ginecologia_ambulatorial.js`, `src/02_soap_ambulatorial.js`):
+        * Cálculo determinístico de Idade Gestacional (IG) e DPP por DUM (Regra de Naegele) e concordância FEBRASGO com USG precoce de 1º trimestre.
+        * Cronograma oficial do Ministério da Saúde para exames de rotina no pré-natal de baixo risco e interpretação de sorologias (Toxoplasmose IgM/IgG com teste de avidez, VDRL, HIV, HBsAg, Urina I e Glicemia de jejum).
+        * Validador farmacológico na gestação e lactação: classificação de risco FDA/MS, bloqueio imediato e alertas severos de fetotoxicidade (IECA/BRA, estatinas, tetraciclinas, AINEs no 3º tri) e recomendação de alternativas de 1ª escolha (Metildopa, Nifedipino, Hidralazina, Paracetamol, Amoxicilina).
+        * Critérios Médicos de Elegibilidade de Anticoncepção da OMS (Categorias 1 a 4) com foco em comorbidades frequentes da atenção primária (enxaqueca com aura, HAS crônica, tabagismo > 35 anos, trombofilias).
 
 ---
 
 ## ✅ Histórico de Melhorias Concluídas
+- [x] (2026-10-09) **Saneamento e Redução Estrita de Comandos Slash para Médico Generalista**:
+   - Expurgo de 37 comandos redundantes, terciários ou de especialista, reduzindo o catálogo de 134 para 97 comandos canônicos essenciais:
+     * **Cat 1 (Núcleo)**: Removidos `/start` e `/cockpit` (redundantes com botões do teclado) e `/fila` e `/pedido` (sem utilidade para a prática clínica).
+     * **Cat 3 (Emergência)**: Removidos `/transfusao` e `/neutropenia` (condutas terciárias/especialidade).
+     * **Cat 6 (Obstetrícia)**: Removidos `/colestase`, `/swansea`, `/rcf` e `/saf` (medicina fetal/alto risco).
+     * **Cat 7 (Ginecologia)**: Removido `/hiperprolactinemia`.
+     * **Cat 8 (Geriatria)**: Removidos `/minicog` e `/tug`.
+     * **Cat 10 (Metabolismo)**: Removidos `/mentzer`, `/cad` (protocolo já disponível na emergência), `/nutricao`, `/refeeding`, `/npt` e `/nrs`.
+     * **Cat 12 (Dermatologia)**: Removidos `/sifilis` e `/herpes` (específicos demais para comando dedicado).
+     * **Cat 14 (Exame Físico)**: Removidos todos os 11 comandos individuais `/ef_*`. Centralização exclusiva no comando `/ef`, que abre menu interativo com botões inline para todas as 11 especialidades.
+     * **Cat 16 (Rotina)**: Removido `/bio` (acessível diretamente pelo Cockpit).
+     * **Cat 17 (Governança)**: Removidos `/evidencia`, `/perfil`, `/emergencia` e `/auditar_rbac`.
+   - Reconstrução do bundle de produção `ultra_rotina_master.js` com validação de sintaxe 100% aprovada.
+   - Atualização e aprovação com 100% de sucesso da suíte de testes de comandos slash (`tests/test_ajuda_comandos_slash.cjs`) e de todos os testes do repositório (`npm test`).
+
 - [x] (2026-10-09) **Módulo de Obstetrícia & Medicina Fetal: RCF / CIUR e Doppler Obstétrico (Barcelona/ISUOG)**:
    - Motor determinístico beira-leito completo para classificação Delphi (RCF precoce/tardia/PIG), interpretação dopplervelocimétrica (AU, ACM, RCP, uterinas, istmo, DV), estadiamento Barcelona (I-IV) com limiares TRUFFLE, conduta por estágio com IG-alvo de parto, corticoide/neuroproteção e investigação etiológica.
    - Bloqueios de segurança: sildenafila contraindicada (STRIDER), AAS/heparina sem evidência para RCF, proteção contra falso positivo no parser de texto livre.
@@ -1188,298 +988,14 @@
     - Módulo `src/02_pneumologia_crise_asmatica.js` integrado via Fastify RPC (`cockpitPneumologiaAsma` e `cockpitCriseAsmatica`) e comandos Telegram (`/asma`, `/criseasma`, `/broncoespasmo`, `/salbutamol`).
     - 9 testes unitários dedicados em `tests/test_pneumologia_crise_asmatica.cjs`, runner pytest em `tests/test_pneumologia_crise_asmatica.py` e integração no `tests/test_server_render.cjs`. 100% de sucesso.
 
-114. [ ] **Módulo de Nefrologia Avançada - Distúrbios Hidroeletrolíticos: Hipocalcemia e Hipercalcemia**:
-    - Cálculos de cálcio corrigido pela albumina sérica.
-    - Algoritmo de manejo agudo com reposição de Gluconato de Cálcio IV em hipocalcemia sintomática ou hipercalcemia severa (crise hipercalcêmica) com hidratação vigorosa e bifosfonatos.
+---
 
-115. [ ] **Ginecologia - Manejo de Disfunções Pélvicas e Incontinência Urinária (Diretrizes ICS)**:
-    - Protocolo de avaliação de incontinência urinária de esforço vs urgência (bexiga hiperativa).
-    - Prescrição de antimuscarínicos e beta-3 agonistas com bloqueios de segurança por comorbidades (glaucoma de ângulo fechado).
+## 🎯 Registro de Auditoria & Unificação do Backlog (Tarefas 55 a 173 Consolidadas)
 
-116. [ ] **Ferramenta de Auditoria de Custos e Faturamento Hospitalar (DRG)**:
-    - Estimativa automatizada de Diagnoses Related Groups baseada nas prescrições inseridas.
-    - Identificação de oportunidades de faturamento cruzado ou desperdício de recursos materiais para a coordenação médica.
-
-117. [ ] **Módulo de Endocrinologia - Manejo de Nódulos Tireoidianos e Câncer de Tireoide (ACR TI-RADS e ATA)**:
-    - Algoritmo determinístico de estratificação de risco ultrassonográfico TI-RADS (1 a 5).
-    - Indicação de PAAF (Punção Aspirativa por Agulha Fina) beira-leito baseada no tamanho do nódulo e características suspeitas (microcalcificações, margens irregulares, hipoecogenicidade).
-
-118. [ ] **Gastroenterologia - Manejo de Cirrose Hepática e Complicações (Encefalopatia e Síndrome Hepatorrenal)**:
-    - Protocolos beira-leito para diagnóstico e estadiamento de Encefalopatia Hepática (Critérios de West Haven).
-    - Manejo farmacológico escalonado (Lactulose, Rifaximina) e critérios da ICA (International Club of Ascites) revisados para Lesão Renal Aguda na Cirrose e Síndrome Hepatorrenal (indicação de Terlipressina + Albumina).
-
-119. [ ] **Terapia Intensiva - Predição de Desmame Vasopressor (Vasoactive-Inotropic Score - VIS)**:
-    - Cálculo automatizado e contínuo da carga vasopressora/inotrópica total (Noradrenalina, Adrenalina, Vasopressina, Dobutamina, Milrinona).
-    - Painel visual de tendência de 24h para guiar o desmame seguro e progressivo de DVA em choque distributivo (foco em sobrevida na Sepse).
-
-120. [ ] **Pneumologia & Emergência - Manejo da Exacerbação Aguda da Asma com Critérios de Ventilação Não Invasiva (VNI) e Desmame de Broncodilatador**:
-    - Algoritmo de desmame e transição da nebulização frequente para MDI com espaçador a cada 4-6h conforme estabilização clínica.
-    - Critérios de indicação e contraindicações relativas para VNI (BiPAP/CPAP) na exacerbação de asma com retenção hipercápnica e falência iminente.
-    - Checklist estruturado de alta com Plano de Ação Escrito para Asma (PEAP/GINA) com zonas verde, amarela e vermelha para prevenção de novas crises.
-
-121. [ ] **Toxicologia Clínica - Síndrome Anticolinérgica vs Colinérgica (Toxíndromes de Emergência)**:
-    - Motor determinístico para reconhecimento rápido beira-leito dos toxíndromes anticolinérgico (rubor, midríase, pele seca, retenção urinária, delírio) e colinérgico (mnemônico DUMBELS: diarreia, urina, miose, broncorreia/bradicardia, emese, lacrimejamento, salivação).
-    - Protocolo de antídotos específicos (Fisostigmina na anticolinérgica sob monitorização cardíaca vs Atropina e Pralidoxima na intoxicação por organofosforados/carbamatos).
-
-122. [ ] **Terapia Intensiva e Cardiologia - Choque Distributivo e Manejo da Sepse / Choque Séptico (Surviving Sepsis Campaign 2026)**:
-    - Rastreio com escore SOFA e qSOFA.
-    - Pacote de 1 hora da Sepse: coleta de culturas antes de antimicrobiano, dosagem seriada de lactato sérico, antibiótico de amplo espectro na 1ª hora e ressuscitação volêmica guiada por cristaloides balanceados (30 mL/kg nas primeiras 3h se hipotensão ou lactato >= 4 mmol/L).
-    - Titulação de Noradrenalina de 1ª linha com alvo de PAM >= 65 mmHg e Vasopressina associada como poupador de catecolamina.
-
-123. [ ] **Obstetrícia & Medicina Fetal - Interpretação Inteligente de Cardiotocografia (CTG / NST) e Classificação FIGO/NICHD**:
-    - Motor determinístico beira-leito para classificação da cardiotocografia fetal em 3 categorias (Normal / Suspeita / Patológica) segundo FIGO 2015 e NICHD.
-    - Análise automatizada de linha de base (110-160 bpm), variabilidade (ausente, mínima, moderada, acentuada), acelerações, desacelerações (precoces, tardias, variáveis e prolongadas) e padrão sinusoidal.
-    - Algoritmo de conduta escalonada: medidas de ressuscitação intrauterina (decúbito lateral esquerdo, suspensão de ocitocina, oxigênio materno, bolus de cristaloide) e critérios para cesárea de emergência (categoria 1: < 30 min).
-    - Integração com o módulo de RCF/Doppler para vigilância combinada anteparto em Estágios III-IV de Barcelona.
-
-124. [ ] **Obstetrícia & Emergência - Protocolo Completo de Eclâmpsia, Pré-eclâmpsia com Sinais de Gravidade e Síndrome HELLP (ACOG / ISSHP / FEBRASGO)**:
-    - Motor determinístico de estratificação: pré-eclâmpsia sem sinais de gravidade vs com sinais de gravidade (PAS ≥ 160 ou PAD ≥ 110 persistente, plaquetas < 100.000, TGO/TGP > 2x LSN, creatinina > 1,1, edema pulmonar, sintomas neurológicos ou dor epigástrica persistente) vs eclâmpsia (convulsão) vs síndrome HELLP.
-    - Protocolo de Sulfato de Magnésio (Zuspan: 4g IV ataque + 1g/h manutenção ou Pritchard: 4g IV + 10g IM ataque + 5g IM 4/4h) com monitoramento de toxicidade (reflexo patelar, FR > 12, diurese > 25 mL/h) e antídoto (Gluconato de Cálcio 1g IV).
-    - Anti-hipertensivos de emergência obstétrica: Nifedipino 10-20 mg VO (1ª linha), Hidralazina 5 mg IV (2ª linha), Labetalol IV escalonado; contraindicação absoluta de nitroprussiato de sódio e IECAs/BRAs.
-    - Decisão de interrupção da gestação: HELLP/eclâmpsia = parto em 24-48h após estabilização; PE com gravidade ≥ 34 sem = parto; PE com gravidade < 34 sem = conduta expectante individualizada em centro terciário com corticoide para maturação pulmonar.
-
-125. [ ] **Cirurgia & Hematologia - Manejo Perioperatório de Anticoagulação e Terapia Ponte (Bridging Therapy — Diretrizes ASH / CHEST / SBC)**:
-    - Estratificação de risco tromboembólico (CHA2DS2-VASc para FA, risco de TEV recorrente, valvas mecânicas) vs risco hemorrágico do procedimento (alto vs baixo risco).
-    - Protocolo de suspensão e ponte com HBPM (Enoxaparina dose terapêutica) para pacientes com Warfarina e risco tromboembólico alto; suspensão simples sem ponte em risco moderado-baixo (BRIDGE Trial).
-    - Manejo de DOACs (Rivaroxabana, Apixabana, Dabigatrana): tempo de suspensão guiado pela clearance de creatinina e risco hemorrágico, sem necessidade de ponte; Idarucizumabe (Praxbind) para reversão de urgência da Dabigatrana e Andexanet Alfa para anti-Xa.
-    - Timing de reinício pós-operatório com bloqueio de segurança: anti-Xa ou Warfarina não antes de 24-48h em procedimentos de alto risco hemorrágico e 12-24h em baixo risco.
-
-
-
-126. [ ] **Nutrição & Terapia Intensiva - Rastreio de Sarcopenia e Síndrome de Realimentação em Pacientes Críticos (ASPEN/ESPEN 2026)**:
-    - Motor de rastreio de risco alto para síndrome de realimentação (IMC < 16, perda de peso > 15%, jejum > 10 dias).
-    - Protocolo de progressão lenta da dieta (início com 10-15 kcal/kg/dia) com suplementação empírica preemptiva obrigatória de Tiamina 200-300 mg IV antes da nutrição, associado a reposição agressiva de Fósforo e Magnésio.
-
-127. [ ] **Infectologia - Prevenção e Tratamento da Infecção do Trato Urinário (ITU) Complicada e ITU de Repetição**:
-    - Algoritmo de tratamento escalonado beira-leito, diferenciando cistite aguda simples de pielonefrite não complicada e complicada (obstrução, cateter, sepse).
-    - Recomendações de descalonamento baseadas no perfil de sensibilidade (Fosfomicina e Nitrofurantoína como 1ª linha na cistite para poupar quinolonas/cefalosporinas).
-    - Protocolo de rastreio e tratamento de bacteriúria assintomática exclusivamente nas indicações formais (gestantes, antes de procedimento urológico invasivo) alertando o não-tratamento rotineiro em idosos institucionalizados e pacientes sondados.
-
-128. [ ] **Auditoria de Kaizen - Motor de Detecção de Interação Fármaco-Nutriente e Administração por SNG/SNE**:
-    - Motor de verificação contínua que cruza a prescrição médica com a via enteral.
-    - Bloqueios de segurança beira-leito para fármacos que não podem ser triturados (cápsulas gelatinosas, liberação entérica/estendida) ou que quelam o nutriente (ex: Levotiroxina, Fenitoína, Ciprofloxacino), gerando alertas de pausa da dieta ou troca de apresentação farmacêutica.
-
-129. [ ] **Oncologia & Terapia Intensiva - Profilaxia e Manejo de Mucosite Oral e Uso Guiado de G-CSF (Filgrastim)**:
-    - Protocolo escalonado de prevenção e analgesia beira-leito para mucosite induzida por quimioterapia/radioterapia.
-    - Indicações precisas (profilaxia primária vs secundária) para uso de Fator Estimulador de Colônias de Granulócitos (G-CSF) em esquemas quimioterápicos de alto risco para neutropenia febril.
-
-130. [ ] **Pediatria de Emergência - Manejo da Crise Asmática e Escore PRAM (Pediatric Respiratory Assessment Measure)**:
-    - Motor determinístico beira-leito do escore PRAM para classificar gravidade clínica (leve, moderada, grave, iminência de falência respiratória).
-    - Protocolo dinâmico de resgate com Salbutamol associado a Brometo de Ipratrópio e corticoterapia sistêmica (Dexametasona vs Prednisolona), com indicação de Sulfato de Magnésio IV nas crises graves refratárias.
-
-131. [ ] **Obstetrícia & Medicina Fetal - Manejo de Aloimunização RhD e Prevenção de Doença Hemolítica Perinatal**:
-    - Monitoramento por Doppler da Artéria Cerebral Média (Pico de Velocidade Sistólica - PVS) para detecção de anemia fetal grave.
-    - Regras rigorosas de indicação de Imunoglobulina Anti-D em gestantes Rh negativo não sensibilizadas (com 28 semanas, pós-parto e após eventos sensibilizantes como sangramentos e procedimentos invasivos).
-
-132. [ ] **Infectologia & Obstetrícia - Sífilis Gestacional e Prevenção da Sífilis Congênita (Diretrizes Ministério da Saúde / PCDT)**:
-    - Motor determinístico de interpretação de testes treponêmicos e não treponêmicos (VDRL/RPR) com monitoramento serológico de queda de títulos pós-tratamento (cura vs reinfecção/reativação).
-    - Protocolo posológico exclusivo com Penicilina Benzatina (único fármaco que trata o feto com eficácia comprovada): 2,4 milhões UI IM dose única (primária, secundária ou latente recente) vs 7,2 milhões UI em 3 doses semanais de 2,4M UI (latente tardia, terciária ou de duração ignorada).
-    - Bloqueio mandatório de tratamento adequado materno: esquema completo iniciado e concluído pelo menos 30 dias antes do parto com Penicilina Benzatina (qualquer outro fármaco, como ceftriaxona ou azitromicina, é considerado tratamento inadequado com necessidade de investigação completa e tratamento do recém-nascido).
-    - Manejo seguro da Reação de Jarisch-Herxheimer na gestante com monitoramento cardiotocográfico e de contrações uterinas.
-
-133. [ ] **Neurologia & UTI Pediátrica - Estado de Mal Epiléptico Pediátrico e Crises Febris (Diretrizes SBP / AES / PALS)**:
-    - Algoritmo beira-leito escalonado de manejo de crises convulsivas ativas na infância: 1ª linha (Benzodiazepínicos: Midazolam IM/bucal/intranasal ou Diazepam retal/IV até 2 doses com intervalo de 5 min).
-    - 2ª linha em crise refratária (> 5-10 min): Fenitoína IV (20 mg/kg), Levetiracetam IV (60 mg/kg) ou Valproato de Sódio IV (40 mg/kg) com cálculo de velocidade de infusão para prevenir hipotensão/arritmia.
-    - 3ª linha (estado refratário > 30-60 min): indução anestésica com Midazolam contínuo, Propofol ou Tiopental sob via aérea avançada e monitorização contínua.
-    - Diferenciação criteriosa entre Convulsão Febril Simples vs Complexa e critérios para punção liquórica de urgência (lactentes < 12 meses ou sinais meníngeos).
-
-134. [ ] **Nefrologia & Emergência - Manejo da Hipercalemia Grave com Cardiotoxicidade Eletrocardiográfica (Diretrizes KDIGO / AHA)**:
-    - Classificação de gravidade por nível de K+ sérico e alterações eletrocardiográficas (ondas T apiculadas e simétricas, alargamento de QRS, perda de onda P, onda senoidal pré-PCR).
-    - Estabilização imediata da membrana miocárdica: Gluconato de Cálcio 10% IV (10 a 20 mL em 3-5 min) ou Cloreto de Cálcio 10% se choque/PCR.
-    - Medidas de shift intracelular de ação rápida: Solução Polarizante (Glicose 50% 50 mL + Insulina Regular 10 UI IV em 30 min), Beta-2 agonista inalatório (Salbutamol 10 a 20 mg nebulizado) e Bicarbonato de Sódio 8,4% IV se acidose metabólica grave concomitante.
-    - Medidas de eliminação corpórea de potássio: Furosemida IV de alça, resinas de troca / quelantes orais e indicação prioritária de hemodiálise de urgência (mnemônico AEIOU).
-
-135. [ ] **Obstetrícia & Hematologia - Profilaxia de Tromboembolismo Venoso na Gestação e Puerpério (Diretrizes RCOG / ACOG)**:
-    - Motor de estratificação de risco de TEV pré-natal, intraparto e pós-parto com escore validado identificando grupos de baixo, intermediário e alto risco.
-    - Condutas determinísticas para indicação de HBPM profilática (Enoxaparina 40 mg SC/dia ajustada por IMC) desde o 1º trimestre até 6 semanas pós-parto em pacientes de alto risco.
-    - Janelas de segurança rigorosas para suspensão de anticoagulante pré-analgesia do neuroeixo e retomada pós-parto seguro.
-
-136. [ ] **Endocrinologia & Terapia Intensiva - Reconhecimento e Manejo da Tempestade Tireoidiana (Escore de Burch-Wartofsky)**:
-    - Escore clínico determinístico para predição probabilística da tempestade tireoidiana (febre, taquicardia, IC, disfunção gastrointestinal, agitação do SNC).
-    - Protocolo escalonado de 5 frentes: betabloqueio vigoroso (Propranolol VO/IV que inibe conversão periférica T4->T3), bloqueio da síntese (Propiltiouracil > Metimazol), bloqueio da liberação (Iodo inorgânico/Lugol aplicado APÓS PTU), corticoterapia (Hidrocortisona IV) e resfriamento / manejo do fator desencadeante.
-
-137. [ ] **Cardiologia Ambulatorial e Clínica Médica - Otimização de Insuficiência Cardíaca com FE Reduzida (ICFEr / Diretrizes SBC/ESC)**:
-    - Rastreio de critérios maiores e menores de Framingham e estadiamento clínico completo (NYHA e AHA).
-    - Prescrição estruturada beira-leito ou ambulatorial do "Quarteto Fantástico" com titulação progressiva obrigatória (iECA/ARNI/Sacubitril-Valsartana + Betabloqueador Cardiosseletivo + Antagonista Mineralocorticoide / Espironolactona + inibidor SGLT2 / Dapagliflozina ou Empagliflozina).
-    - Bloqueio de segurança e contraindicações com base no ClCr e dosagem de potássio basal para proteção miocárdica/renal cruzada.
-
-138. [ ] **Nefrologia - Distúrbios do Potássio (Hipocalemia e Reposição Segura)**:
-    - Motor beira-leito para estimativa do déficit de Potássio e regras rígidas de infusão IV.
-    - Bloqueios de segurança: concentração máxima em veia periférica (40 mEq/L) vs acesso central, e velocidade máxima (10-20 mEq/h).
-
-139. [ ] **Ginecologia - Manejo de Sangramento Uterino Anormal (PALM-COEIN)**:
-    - Algoritmo de emergência para SUA agudo severo (Ácido Tranexâmico IV, Estrogênio conjugado IV ou ACO altas doses).
-    - Mapeamento das causas estruturais e não-estruturais (FIGO) no ambiente ambulatorial.
-
-140. [ ] **Reumatologia - Artrite Séptica e Manejo Inicial da Gota Aguda (ACR/EULAR)**:
-    - Interpretação rápida do líquido sinovial (contagem global de células > 50.000, PMN > 90%, glicose baixa).
-    - Protocolo da Gota aguda: Colchicina + AINE ou Corticoide intra-articular/sistêmico, contraindicação formal a início ou ajuste de Alopurinol durante a crise.
-
-141. [ ] **Pediatria - Reanimação Neonatal em Sala de Parto (Diretrizes PRN/SBP 2022-2026)**:
-    - Motor de suporte minuto de ouro (Golden Minute) para avaliação de vitalidade (tônus e respiração).
-    - Protocolo guiado passo-a-passo: VPP (Ventilação com Pressão Positiva), indicações rigorosas de intubação endotraqueal, e reanimação avançada (massagem cardíaca e adrenalina).
-    - Alertas críticos: contraindicação de aspiração de mecônio de rotina em RN vigoroso.
-
-142. [ ] **Ginecologia - Diagnóstico e Manejo da Doença Inflamatória Pélvica (DIP - CDC/Ministério da Saúde)**:
-    - Escore clínico determinístico para critérios maiores (dor em hipogástrio, anexos e mobilização do colo) e menores.
-    - Protocolo ambulatorial (Ceftriaxona IM + Doxiciclina + Metronidazol) vs Internação (Cefoxitina IV + Doxiciclina).
-    - Critérios claros de falha terapêutica e indicação de abordagem cirúrgica para abscesso tubo-ovariano.
-
-143. [ ] **Emergência Clínica - Manejo da Anafilaxia (Diretrizes WAO)**:
-    - Identificação beira-leito do choque anafilático com critérios cutâneos, respiratórios e cardiovasculares.
-    - Administração hiperprecoce de Adrenalina IM (0.01 mg/kg, máx 0.5 mg) no vasto lateral da coxa, sem atrasos por espera de corticoides ou anti-histamínicos (fármacos de 2ª/3ª linha).
-
-144. [ ] **Endocrinologia e Cirurgia - Manejo de Incidentaloma Adrenal**:
-    - Algoritmo de investigação bioquímica obrigatória (teste de supressão com 1mg de dexametasona, metanefrinas urinárias/plasmáticas e relação aldosterona/renina se hipertenso).
-    - Avaliação fenotípica tomográfica (unidades Hounsfield < 10 benigno vs > 20 suspeito, washout absoluto e relativo).
-    - Critérios de indicação cirúrgica (tamanho > 4-5 cm, crescimento em acompanhamento, ou secreção hormonal autônoma).
-
-145. [ ] **Gastroenterologia - Manejo de Hemorragia Digestiva Baixa (HDB) Aguda**:
-    - Estratificação de risco e triagem inicial de instabilidade hemodinâmica.
-    - Protocolo de preparo de cólon rápido para colonoscopia precoce (< 24h) em HDB severa.
-    - Indicações precisas para angiotomografia abdominal e arteriografia mesentérica para embolização.
-
-146. [ ] **Neurologia e Urgência - Abordagem da Síndrome de Guillain-Barré (SGB / Critérios de Brighton)**:
-    - Escala MRC para avaliação de força muscular segmentar.
-    - Indicações de Imunoglobulina IV (IgIV) vs Plasmaférese, e monitoramento da capacidade vital forçada (CVF) para predição de falência respiratória e intubação precoce.
-
-147. [ ] **Ginecologia Oncológica e Patologia Cervical - Manejo de Neoplasia Intraepitelial Cervical (NIC II/III) e Lesões Pré-Malignas (Diretrizes ASCCP / Ministério da Saúde / INCA)**:
-    - Algoritmo de risco e conduta baseado no tripé Citologia, Colposcopia especializada com biópsia dirigida e teste de DNA-HPV de alto risco oncogênico.
-    - Critérios de indicação para tratamento excisional: CAF / EZPEC (Excisão da Zona de Transformação por Cirurgia de Alta Frequência) para ZT tipo 1 e 2 vs Conização a frio para ZT tipo 3 ou suspeita de invasão/adenocarcinoma in situ (AIS).
-    - Avaliação de margens cirúrgicas (endocervical e ectocervical) e protocolo rigoroso de seguimento com co-teste aos 6 e 12 meses prevenindo recidiva invasiva.
-
-148. [ ] **Cardiologia e Medicina de Emergência - Manejo da Crise Hipertensiva: Urgência vs Emergência Hipertensiva (Diretrizes SBC / AHA 2024-2026)**:
-    - Diferenciação determinística entre Urgência Hipertensiva (PA elevada sem lesão aguda de órgão-alvo) e Emergência Hipertensiva (com lesão aguda em curso: encefalopatia hipertensiva, AVE hemorrágico/isquêmico, SCA, dissecção aguda de aorta, EAP hipertensivo, eclâmpsia).
-    - Metas pressóricas precisas de redução gradual (queda de no máximo 20-25% na PAM na 1ª hora para prevenir isquemia cerebral/coronariana iatrogênica; exceto na dissecção aguda de aorta, com meta imediata de PAS < 120 mmHg e FC < 60 bpm em 20 min com betabloqueador IV + vasodilatador).
-    - Titulação de fármacos parenterais de precisão (Nitroprussiato de Sódio, Nitroglicerina, Labetalol, Esmolol) e bloqueio formal de nifedipino de liberação rápida sublingual.
-
-149. [ ] **Pediatria & Alergia/Imunologia - Diagnóstico e Manejo da Alergia à Proteína do Leite de Vaca (APLV) na Infância (Diretrizes SBP / ESPGHAN)**:
-    - Diferenciação clínica entre manifestações IgE-mediadas (urticária aguda, angioedema, anafilaxia imediata) vs Não IgE-mediadas (proctocolite alérgica com fezes com estrias de sangue, enteropatia induzida por proteína alimentar, FPIES com vômitos profusos e choque hipovolêmico).
-    - Protocolo de teste de desencadeamento oral (TDO) e dieta de exclusão materna (se aleitamento materno exclusivo com suplementação de cálcio 1000 mg/dia) vs fórmulas especiais (fórmula extensamente hidrolisada - FeH de 1ª linha vs fórmula de aminoácidos livres em anafilaxia, falha de FeH ou FPIES severo).
-    - Contraindicação formal de fórmulas à base de soja antes dos 6 meses de vida e proibição de leites de outros mamíferos (cabra, ovelha) devido à alta reatividade cruzada (> 90%).
-
-150. [ ] **Ginecologia & Oncologia Pélvica - Rastreamento e Manejo de Câncer de Endométrio e Espessamento Endometrial na Pós-Menopausa (Diretrizes ESGO / FEBRASGO)**:
-    - Critérios ecográficos de corte para espessamento endometrial (eco endometrial > 4-5 mm sem THM ou > 8 mm com THM, ou sangramento pós-menopausa).
-    - Algoritmo de amostragem endometrial: biópsia com Pipelle de Cornier em consultório vs histeroscopia com biópsia dirigida padrão-ouro em caso de Pipelle insuficiente ou lesão focal/pólipo.
-    - Classificação molecular do câncer de endométrio (POLE ultramutado, MMR deficiente, p53 anormal / cópia alta, sem perfil molecular específico - NSMP) e estadiamento FIGO 2023.
-
-151. [ ] **Infectologia & Terapia Intensiva - Manejo da Meningite Bacteriana Aguda do Adulto e da Criança (Diretrizes IDSA / SBP / Ministério da Saúde)**:
-    - Tríade clássica (febre, rigidez de nuca, alteração do sensório) e indicações de TC de crânio antes da Punção Lombar (déficit focal, convulsão nova, papiledema, imunossupressão, rebaixamento profundo).
-    - Janela de ouro terapêutica: Antibioticoterapia empírica em até 1 hora (Ceftriaxona 2g IV 12/12h + Ampicilina se > 50 anos / gestante / imunossuprimido para *Listeria* + Vancomicina se pneumococo resistente).
-    - Regra mandatória de Dexametasona 10 mg IV (ou 0,15 mg/kg em pediatria) administrada ANTES ou junto com a primeira dose de antibiótico para redução de sequelas auditivas e mortalidade no pneumococo.
-    - Quimioprofilaxia de contatos íntimos para Meningococo e *Haemophilus influenzae* tipo b (Rifampicina vs Ciprofloxacino vs Ceftriaxona).
-
-152. [ ] **Pneumologia & Medicina de Emergência - Manejo da Crise Asmática Aguda na Gestação (Diretrizes GINA / NAEPP)**:
-    - Monitoramento materno-fetal contínuo: saturação de oxigênio alvo materno estrita (SpO2 ≥ 95% para garantir oxigenação fetal e prevenir hipóxia/RCF).
-    - Regra de segurança: A crise asmática descontrolada é MUITO mais perigosa para o feto do que as medicações inalatórias de controle. Bloqueio de omissão ou suspensão de broncodilatadores e corticoides.
-    - Segurança comprovada de Beta-2 agonistas de curta ação (Salbutamol) e corticoides inalatórios (Budesonida) e sistêmicos (Prednisona / Hidrocortisona) na exacerbação.
-    - Alerta crítico: Alcalose respiratória fisiológica na gestante mascara fadiga diafragmática (PaCO2 normal ≥ 35 mmHg ou acidose respiratória em gestante é sinal de fadiga extrema e iminência de parada respiratória).
-
-153. [ ] **Hematologia & Terapia Intensiva - Manejo da Trombocitopenia Induzida por Heparina (TIH / HIT Tipo II - Escore dos 4 Ts / ASH / CHEST)**:
-    - Motor determinístico beira-leito para cálculo do Escore dos 4 Ts (Thrombocytopenia, Timing, Thrombosis, oTher causes of thrombocytopenia) estratificado em baixo risco (≤ 3), intermediário (4-5) e alto risco (6-8).
-    - Ação emergencial de bloqueio de segurança: SUSPENSÃO IMEDIATA de TODAS as heparinas (HBPM e HNF), inclusive flushes e cateteres heparinizados.
-    - Contraindicação formal de transfusão plaquetária profilática (risco paradoxal de trombose fulminante) e contraindicação de início precoce de Varfarina na fase aguda (risco de necrose cutânea por queda de proteína C).
-    - Terapia com anticoagulantes não heparínicos de ação direta parenteral (Fondaparinux ou Argatroban ou Bivalirudina) em dose terapêutica mesmo sem trombose manifesta.
-
-154. [ ] **Obstetrícia & Infectologia - Manejo de HIV na Gestação e Prevenção da Transmissão Vertical (Diretrizes Ministério da Saúde / CDC / ACOG)**:
-    - Início imediato de TARV tripla potente (Dolutegravir 50mg + Tenofovir 300mg + Lamivudina 300mg) independentemente de contagem de linfócitos T-CD4+ ou carga viral.
-    - Algoritmo determinístico de via de parto segundo a Carga Viral (CV) com 34-36 semanas: CV < 50 cópias/mL (indicação obstétrica sem AZT venoso obrigatório se suprimida sustentada); CV 50 a 999 cópias/mL (indicação obstétrica com Zidovudina IV contínua); CV ≥ 1000 cópias/mL (Cesariana eletiva mandatória com 38 semanas + AZT IV contínuo).
-    - Cuidados de parto e puerpério: clampeamento imediato sem ordenha do cordão umbilical, profilaxia neonatal oportuna e INIBIÇÃO DA LACTAÇÃO materna (Cabergolina 1 mg dose única oral + contraindicação formal absoluta de aleitamento ao seio materno).
-
-155. [ ] **Reumatologia & Obstetrícia - Manejo do Lúpus Eritematoso Sistêmico (LES) na Gestação e Bloqueio Atrioventricular Congênito por Anti-Ro/SSA e Anti-La/SSB**:
-    - Avaliação pré-concepcional e critérios de remissão clínica (idealmente ≥ 6 meses de inatividade de doença).
-    - Manutenção de fármacos seguros (Hidroxicloroquina durante toda a gestação reduz risco de flares maternos e de BAV fetal; Azatioprina, Prednisona em baixa dose) e contraindicação absoluta de teratogênicos (Metotrexato, Micofenolato de Mofetila e Ciclofosfamida).
-    - Protocolo de vigilância fetal em gestantes anti-Ro/SSA e anti-La/SSB positivas: ecocardiograma fetal seriado semanal ou quinzenal entre a 16ª e 26ª semana de gestação para detecção de BAV de 1º e 2º graus reversíveis e miocardite fetal, com uso oportuno de Dexametasona fluorada 4 mg/dia.
-
-
-156. [ ] **Cardiologia - Rastreio e Manejo da Síndrome Coronariana Aguda (SCA) sem Supra de ST (Diretrizes SBC/ESC)**:
-    - Estratificação de risco TIMI e GRACE para definir timing de cateterismo (imediato, precoce ou seletivo).
-    - Prescrição guiada de terapia antiplaquetária dupla (AAS + Clopidogrel/Ticagrelor/Prasugrel) baseada em risco de sangramento e anatomia.
-    - Otimização de terapia antitrombótica (Enoxaparina vs HNF vs Fondaparinux).
-
-157. [ ] **Neurologia - Diagnóstico e Manejo da Crise Epiléptica e Estado de Mal Epileptico (Guidelines ILAE/Neurocritical Care)**:
-    - Algoritmo de tratamento do estado de mal epiléptico (Benzodiazepínicos de 1ª linha, Fentoína/Fenobarbital de 2ª linha, e Midazolam/Propofol de 3ª linha).
-    - Regras de dosagem e monitoramento de níveis séricos e efeitos colaterais de anticonvulsivantes.
-    - Cuidados intensivos e suporte hemodinâmico durante sedação profunda para controle de estado de mal refratário.
-
-158. [ ] **Urologia - Rastreio e Manejo de Hiperplasia Prostática Benigna (HPB) e Retenção Urinária Aguda (Diretrizes AUA/EAU)**:
-    - Classificação de sintomas pelo escore IPSS e indicações para terapia farmacológica combinada (Alfa-bloqueadores + Inibidores da 5-alfa redutase).
-    - Alerta sobre hipotensão postural associada a alfa-bloqueadores e contraindicações de antimuscarínicos em retenção.
-    - Protocolo de tentativa de micção sem sonda após evento de retenção aguda de urina (desmame de sonda).
-
-159. [ ] **Nefrologia & Terapia Intensiva - Manejo dos Distúrbios Agudos do Magnésio e Fósforo (Hipomagnesemia, Hipermagnesemia, Hipofosfatemia Severa e Síndrome de Realimentação)**:
-    - Motor determinístico de reposição de Sulfato de Magnésio 10% e 50% IV e VO ajustado por severidade clínica (arritmias graves, Torsades de Pointes vs hipomagnesemia assintomática) com monitoramento estrito de reflexo patelar e função renal.
-    - Protocolo de conduta na hipermagnesemia iatrogênica ou dialítica (Gluconato de Cálcio 10% IV como antagonista de membrana, expansão salina e indicação de hemodiálise de urgência).
-    - Manejo da hipofosfatemia severa (< 1,0 mg/dL): reposição parenteral com Fosfato de Potássio ou Fosfato de Sódio com taxa máxima de infusão para prevenir calcificação metastática e hipocalcemia aguda severa; integração com protocolo de Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado.
-
-160. [ ] **Dermatologia & Emergências Pediátricas e Adultas - Farmacodermias Graves (DRESS, Síndrome de Stevens-Johnson / Necrólise Epidérmica Tóxica - SCORTEN e Bloqueios Críticos)**:
-    - Calculadora determinística beira-leito do escore SCORTEN para predição de mortalidade em SSJ/NET (idade, FC, neoplasia, superfície corporal descolada > 10%, ureia, glicose, bicarbonato).
-    - Critérios diagnósticos de RegiSCAR para Síndrome DRESS (Drug Reaction with Eosinophilia and Systemic Symptoms) com rastreio de acometimento visceral (hepatite, nefrite, miocardite).
-    - Ação emergencial de bloqueio de segurança: SUSPENSÃO IMEDIATA de todos os fármacos suspeitos de alto risco (Alopurinol, Anticonvulsivantes aromáticos, Sulfas, Nevirapina, AINEs oxicanos); suporte intensivo em leito de queimados, controle térmico e hidroeletrolítico, analgesia escalonada e contraindicação formal de desbridamento cirúrgico agressivo em SSJ/NET.
-
-161. [ ] **Pediatria & Emergência - Manejo da Crise Convulsiva Febril e Estado de Mal Epiléptico Pediátrico (Diretrizes SBP / AAP / PALS)**:
-    - Diferenciação determinística entre Crise Febril Simples (< 15 min, generalizada, única em 24h, sem déficit prévio) e Complexa (focal, > 15 min ou recorrente em 24h) com desmistificação de punção lombar e neuroimagem de rotina na forma simples.
-    - Algoritmo escalonado no tempo do Estado de Mal Epiléptico Pediátrico (SE): 0-5 min (estabilização ABC, glicemia capilar), 5-10 min (1ª linha: Diazepam retal/IV ou Midazolam IM/intranasal/IV), 10-20 min (2ª linha: Levetiracetam IV vs Fenitoína IV vs Fenobarbital IV em neonatos/lactentes jovens), > 20-30 min (SE refratário: IOT com proteção de via aérea e infusão contínua de Midazolam ou Cetamina ou Tiopental em UTI pediátrica).
-
-162. [ ] **Infectologia & Urologia - Manejo de Pielonefrite Aguda e ITU Complicada no Pronto Socorro (Diretrizes SBU / IDSA / Ministério da Saúde)**:
-    - Critérios determinísticos de internação hospitalar (sepse/instabilidade, vômitos incoercíveis, gestante, rim único, obstrução litiásica associada).
-    - Protocolo empírico parenteral de primeira linha (Ceftriaxona 1g-2g IV vs Ciprofloxacino/Levofloxacino) com alertas de resistência local a quinolonas e cobertura de enterobactérias produtoras de ESBL (Meropenem / Amicacina).
-    - Desobstrução urológica de emergência: alerta imediato de derivação (duplo J ou nefrostomia) se ITU febril obstrutiva / abscesso perirrenal.
-
-163. [ ] **Pneumologia & Emergência - Manejo de Hemoptise Aguda Maciça vs Não Maciça e Protocolos de Proteção de Via Aérea**:
-    - Definição determinística de hemoptise maciça (> 100-200 mL/24h ou que ameace a troca gasosa/estabilidade).
-    - Conduta de posicionamento imediato de segurança: decúbito lateral sobre o lado acometido (pulmão dependente) para proteger o pulmão sadio de inundação alveolar.
-    - Cuidados de via aérea avançada (intubação seletiva com tubo de maior calibre >= 8.0, aspiração rígida) e contraindicação formal de sedação profunda/ansiolíticos sem IOT garantida.
-
-164. [ ] **Cardiologia & Terapia Intensiva - Manejo da Crise e Emergência de Tamponamento Cardíaco (Tríade de Beck, Pulso Paradoxal e Pericardiocentese Guiada)**:
-    - Reconhecimento determinístico beira-leito dos sinais clássicos: Tríade de Beck (hipotensão, hipofonese de bulhas e turgência jugular patológica) e Pulso Paradoxal (queda da PAS > 10 mmHg na inspiração).
-    - Conduta de ressuscitação inicial volêmica dirigida (expansão com cristaloide para manter pré-carga ventricular direita enquanto prepara intervenção).
-    - Guia prático de pericardiocentese de emergência (abordagem subxifoide a 45 graus direcionada ao ombro esquerdo) e contraindicação absoluta de ventilação mecânica com pressão positiva agressiva pré-drenagem (risco de colapso circulatório imediato).
-
-165. [ ] **Endocrinologia & Terapia Intensiva - Manejo da Crise Adrenocortical Aguda (Insuficiência Adrenal Aguda e Doença de Addison Descompensada)**:
-    - Reconhecimento determinístico beira-leito de choque refratário a vasopressores associado a hiponatremia, hipercalemia e hipoglicemia.
-    - Protocolo de reposição imediata de Hidrocortisona (100 mg IV em bolus seguido de 200 mg/24h contínua ou 50 mg IV 6/6h) antes mesmo do resultado de cortisol sérico em pacientes instáveis.
-    - Ressuscitação volêmica vigorosa com SF 0,9% associado a glicose 5-10% e contraindicação formal de reposição de mineralocorticoide (Fludrocortisona) na fase aguda (a dose suprafisiológica de hidrocortisona já fornece atividade mineralocorticoide plena).
-
-166. [ ] **Gastroenterologia & Emergência - Manejo de Diarreia Aguda Severa, Colite Pseudomembranosa por Clostridioides difficile e Desidratação Grave (Diretrizes ACG / IDSA / Ministério da Saúde)**:
-    - Estratificação de gravidade (não grave vs grave [leucócitos >= 15.000 ou creatinina >= 1.5] vs fulminante [hipotensão, choque, íleo, megacólon]).
-    - Protocolo de tratamento direcionado de 1ª linha: Vancomicina oral (125 mg VO 6/6h) ou Fidaxomicina oral vs Metronidazol (somente quando indisponibilidade de vancomicina oral na forma não grave); na forma fulminante: Vancomicina 500 mg VO/SNE 6/6h associada a Metronidazol 500 mg IV 8/8h.
-    - Bloqueio estrito de segurança: contraindicação formal absoluta de agentes antimotilidade (Loperamida, Difenoxilato) pelo alto risco de precipitação de megacólon tóxico e perfuração intestinal.
-
-167. [ ] **Toxicologia & Emergência - Manejo de Intoxicação Aguda por Monóxido de Carbono (CO) e Cianeto em Vítimas de Incêndio**:
-    - Monitoramento de carboxihemoglobina (COHb) e reconhecimento de oximetria de pulso convencional falsamente normal (leitura errônea de COHb como oxi-Hb).
-    - Protocolo imediato de oxigenoterapia a 100% sob máscara com reservatório não reinalante (redução da meia-vida de CO de 300 para 60-90 minutos) e indicações determinísticas de Oxigenoterapia Hiperbárica (COHb > 25%, gestante com COHb > 15%, síncope ou alteração neurológica persistente).
-    - Tratamento empírico concomitante de intoxicação por cianeto em fumaça de incêndio com acidose lática grave inexplicada (> 8-10 mmol/L): antídoto de primeira linha Hidroxocobalamina 5g IV em 15 min.
-
-168. [ ] **Neurologia & Emergência - Manejo do Traumatismo Cranioencefálico (TCE) Grave e Hipertensão Intracraniana (Guidelines Brain Trauma Foundation / SBCN)**:
-    - Escala de Coma de Glasgow com avaliação pupilar (GCS-P) determinística.
-    - Alertas de medidas de neuroproteção de 1ª linha (cabeceira a 30°, sedação/analgesia com alvo de PAM para PPC ≥ 60-70 mmHg, eucapnia PaCO2 35-40 mmHg, normotermia e normoglicemia).
-    - Terapia hiperosmolar escalonada (Salina Hipertônica 3% ou 20% bolus vs Manitol 20%) com monitoramento estrito de osmolaridade sérica (< 320 mOsm/L) e sódio (< 155-160 mEq/L), além de contraindicação formal de hiperventilação profilática prolongada (risco de isquemia cerebral reflexa) e corticoides (CRASH trial).
-
-169. [ ] **Oftalmologia & Clínica Médica - Diagnóstico Diferencial de Olho Vermelho Agudo e Bloqueios de Iatrogenia no Pronto Socorro**:
-    - Algoritmo determinístico discriminando Conjuntivite bacteriana/viral, Ceratite / Úlcera de Córnea, Esclerite, Uveíte Anterior Aguda e Glaucoma Agudo de Ângulo Fechado.
-    - Bloqueio sentinela estrito: PROIBIÇÃO ABSOLUTA de prescrição de colírios corticoides por médico generalista sem avaliação por lâmpada de fenda (risco de perfuração ocular por ceratite herpética dendrítica ou ceratite fúngica e glaucoma induzido).
-    - Alerta de contraindicação de colírios anestésicos para uso domiciliar (risco de ceratopatia tóxica e necrose corneana) e orientações claras de encaminhamento de urgência.
-
-170. [ ] **Ginecologia & Mastologia - Avaliação de Nódulos Mamários, Descarga Papilar Suspeita e Conduta em BI-RADS na Atenção Primária**:
-    - Classificação determinística da descarga papilar (unilateral, espontânea, uniorificial, serossanguínea ou água de rocha = suspeita com indicação de investigação histopatológica/setorectomia vs fisiológica/galactorreia bilateral multi-orificial).
-    - Conduta dirigida por categoria BI-RADS mamográfica/ecográfica (BI-RADS 0 [exames complementares], BI-RADS 1 e 2 [rastreio anual/bienal de rotina], BI-RADS 3 [controle em 6 meses], BI-RADS 4 e 5 [biópsia percutânea urgente Core-biopsy/Mamotomia]).
-    - Rastreio de alto risco genético (câncer de mama < 50 anos em parentes de 1º grau, câncer de mama bilateral ou câncer de ovário na família com indicação de ressonância magnética e rastreio precoce).
-
-171. [ ] **Infectologia & Emergência - Manejo de Neutropenia Febril de Alto Risco e Choque Séptico em Paciente Oncológico (MASCC Score, Cobertura Antipseudomonas e G-CSF)**:
-    - Estratificação determinística com Escore MASCC (< 21 alto risco [internação obrigatória e ATB venoso] vs ≥ 21 baixo risco).
-    - Monoterapia empírica emergencial precoce (< 1h da admissão) com betalactâmico antipseudomonas (Cefepime 2g IV 8/8h, Piperacilina-Tazobactam 4.5g IV 6/6h ou Meropenem 1g IV 8/8h).
-    - Critérios formais estritos para associação de Vancomicina (instabilidade hemodinâmica/choque séptico, mucosite grave graus III-IV, suspeita de infecção relacionada a cateter venoso central, colonização prévia por MRSA).
-    - Bloqueios de segurança clínica: PROIBIÇÃO ABSOLUTA de toque retal, aferição de temperatura por via retal, enemas ou supositórios pelo alto risco de translocação bacteriana maciça e sepse fulminante.
-
-172. [ ] **Toxicologia & Terapia Intensiva - Manejo da Síndrome Colinérgica Aguda e Intoxicação por Organofosforados e Carbamatos (Atropinização Dirigida e Oximas)**:
-    - Reconhecimento determinístico dos sinais muscarínicos e nicotínicos (SLUDGE / DUMBELS: Salivação, Lacrimejamento, Urina, Diarreia, Gastrintestinal, Emese, Miose/Broncorreia/Bradicardia).
-    - Protocolo de atropinização escalonada agressiva (início com 1 a 2 mg IV dobrando a dose a cada 5 a 10 minutos) e monitoramento de metas clínicas de atropinização (pulmões limpos sem estertores/broncorreia, FC > 80 bpm, PAS > 90 mmHg e pele seca).
-    - Uso de Pralidoxima em organofosforados para reativação da acetilcolinesterase antes do envelhecimento enzimático ("aging").
-    - Bloqueios farmacológicos de iatrogenia: CONTRAINDICAÇÃO FORMAL de Succinilcolina na sequência rápida de intubação (paralisia prolongada por inibição da pseudocolinesterase plasmática) e contraindicação de morfina/aminofilina.
-
-173. [ ] **Trauma & Ortopedia - Manejo da Síndrome Compartimental Aguda de Membros e Queimaduras Circunferenciais (Sinais Precoces, Delta de Pressão e Escarotomia/Fasciotomia)**:
-    - Reconhecimento determinístico dos "6 Ps" (Pain out of proportion, Paresthesia, Pallor, Paralysis, Pulselessness, Poikilothermia), enfatizando a dor desproporcional ao estiramento passivo da musculatura como sinal clínico precoce mais sensível antes da perda de pulsos.
-    - Cálculo de delta de pressão intracompartimental (Delta P = PAD - P_compartimento): valor ≤ 30 mmHg indica hipoperfusão tecidual crítica e indicação cirúrgica imediata de Fasciotomia descompressiva.
-    - Bloqueios de conduta iatrogênica: CONTRAINDICAÇÃO FORMAL de elevação do membro acima do nível cardíaco (reduz a pressão de perfusão capilar arterial e agrava a isquemia muscular profunda), contraindicação de crioterapia/gelo e necessidade de remoção imediata de qualquer gesso, atadura ou curativo circular compressivo.
-
+> [!NOTE]
+> **DIRETIVA DE ESTABILIZAÇÃO PERPÉTUA (2026-10-09)**:
+> Todas as tarefas antigas que propunham adição de novas funcionalidades (bloco 55 a 113 e bloco 114 a 173) foram auditadas, canceladas e expurgadas do sistema.
+> O backlog prioritário ativo do projeto está agora integralmente unificado e centralizado na seção principal imediatamente após a tarefa 54 (Tarefas 55 a 61), focado com 100% de prioridade nos 3 eixos absolutos:
+> 1. **UI/UX & Usabilidade Intuitiva Beira-Leito (Telegram & Cockpit)**.
+> 2. **Saneamento e Expurgo de Funções Excessivas (Filtro Internato/Generalista)**.
+> 3. **Auditoria Médica Integral de Conteúdo com Modelo PRO**.

@@ -254,28 +254,29 @@ function enviarMenuGinecologiaObstetricia(chat, messageId) {
     [['🤰 Pré-Natal (DUM, DPP, Rastreios)', 'ux:rotina:prenatal']],
     [['🚨 Pré-Parto & Sala de Parto (Zuspan, HPP)', 'ux:rotina:parto']],
     [['🌸 Ginecologia (Preventivo, SUA, Leucorreias)', 'ux:rotina:ginecologia']],
-    [['← Voltar ao Início', 'ux:menu']]
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
-/* ========== Sala Vermelha, DVA, SRI e condutas ========== */
+/* ========== Cenário 1: 🚨 Emergência & Sala Vermelha ========== */
 
 function enviarMenuSalaVermelha(chat, messageId) {
-  return enviarTelaBot(chat, '🚨 *SALA VERMELHA*\nEscolha uma conduta ou medicamento:', botoesBot([
+  return enviarTelaBot(chat, '🚨 *EMERGÊNCIA & SALA VERMELHA*\nCondutas imediatas e suporte intensivo:', botoesBot([
     [['🫀 PCR (ACLS)', 'ux:conduta:pcr'], ['🫁 SRI / IOT', 'ux:srimenu']],
     [['💉 Noradrenalina', 'ux:droga:nora'], ['💉 Dobutamina', 'ux:droga:dobuta']],
     [['💉 Outras DVA', 'ux:dvamenu'], ['🩸 Gasometria', 'ux:iniciar:gaso']],
-    [['⚡ Emergências', 'ux:condutamenu']],
-    [['← Menu', 'ux:menu']]
+    [['⚡ Choque & Hipotensão', 'ux:emerg:choque'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
+    [['⚡ Outras Emergências', 'ux:condutamenu']],
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
 function enviarMenuDva(chat, messageId) {
-  return enviarTelaBot(chat, '💉 *Drogas vasoativas*\nQual medicamento?', botoesBot([
+  return enviarTelaBot(chat, '💉 *Drogas Vasoativas (DVA)*\nQual medicamento deseja calcular?', botoesBot([
     [['Noradrenalina', 'ux:droga:nora'], ['Dobutamina', 'ux:droga:dobuta']],
     [['Nitroprussiato', 'ux:droga:nipride'], ['Vasopressina', 'ux:fixa:vaso']],
     [['Nitroglicerina', 'ux:fixa:tridil']],
-    [['← Sala vermelha', 'ux:sala']]
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
@@ -287,7 +288,7 @@ function enviarTelaPesoDva(chat, droga, messageId) {
   });
   if (linha.length) r.push(linha);
   r.push([['← Trocar medicamento', 'ux:dvamenu']]);
-  r.push([['Encerrar cálculo', 'ux:cancelar']]);
+  r.push([['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]);
   return enviarTelaBot(chat,
     '💉 *' + UX_DROGAS[droga].toUpperCase() + '*\nPeso do paciente\n\n' +
     'Toque em um peso ou envie o valor em kg (ex.: 73,5). Os botões são aproximações: use o peso real quando souber.',
@@ -301,55 +302,107 @@ function enviarTelaDiluicaoDva(chat, droga, peso, messageId) {
     botoesBot([
       [['Padrão', 'ux:diluicao:' + droga + ':' + p + ':padrao'], ['Concentrada', 'ux:diluicao:' + droga + ':' + p + ':concentrada']],
       [['✏️ Alterar peso', 'ux:droga:' + droga]],
-      [['← Trocar medicamento', 'ux:dvamenu']]
+      [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
 }
 
 function enviarMenuSri(chat, messageId) {
   return enviarTelaBot(chat,
-    '🫁 *Intubação (SRI)*\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.',
+    '🫁 *Intubação em Sequência Rápida (SRI)*\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.',
     botoesBot([
       [['60 kg', 'ux:sri:60'], ['70 kg', 'ux:sri:70']],
       [['80 kg', 'ux:sri:80'], ['90 kg', 'ux:sri:90']],
       [['Choque 70 kg', 'ux:sri:70 choque'], ['Asma 70 kg', 'ux:sri:70 asma']],
-      [['← Sala vermelha', 'ux:sala']]
+      [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
 }
 
 function enviarMenuCondutas(chat, messageId) {
-  return enviarTelaBot(chat, '⚡ *Outras emergências*\nSelecione:', botoesBot([
+  return enviarTelaBot(chat, '⚡ *Outras Emergências*\nSelecione a conduta beira-leito:', botoesBot([
     [['🚨 EAP hipertensivo', 'ux:conduta:eap'], ['⚡ Anafilaxia', 'ux:conduta:anafilaxia']],
     [['🧠 Crise convulsiva', 'ux:conduta:convulsao'], ['🧪 Hipercalemia', 'ux:conduta:hipercalemia']],
     [['🩸 Cetoacidose (CAD)', 'ux:conduta:cad']],
-    [['← Sala vermelha', 'ux:sala']]
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
+/* ========== Cenário 2: 🛏️ Enfermaria & Prescrição Rápida ========== */
+
+function enviarMenuEnfermaria(chat, messageId) {
+  var texto = '🛏️ *ENFERMARIA & PRESCRIÇÃO RÁPIDA*\n\n' +
+    'Gestão diária de pacientes internados, função renal e prescrições:\n\n' +
+    '• *Leitos:* Painel de bordo e status clínico (verde/amarelo/vermelho)\n' +
+    '• *Função Renal:* Clearance de Creatinina e ajuste posológico\n' +
+    '• *Suporte:* Hidratação venosa (Holliday-Segar) e kits de sintomáticos';
+  var botoes = botoesBot([
+    [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:hub:sbar']],
+    [['🧪 Clearance (Cockcroft)', 'ux:enf:clcr'], ['💊 Ajuste Renal ATB', 'ux:enf:ajuste']],
+    [['💧 Hidratação / Holliday', 'ux:enf:hidratacao'], ['📋 Prescrição Hospitalar', 'ux:enf:rxh']],
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+/* ========== Cenário 3: 🩺 Ambulatório & Atenção Primária (UBS) ========== */
+
+function enviarMenuAmbulatorio(chat, messageId) {
+  var texto = '🩺 *AMBULATÓRIO & ATENÇÃO PRIMÁRIA (UBS)*\n\n' +
+    'Consultas ambulatoriais, síntese de caso e medicina de família:\n\n' +
+    '• *SOAP Ágil:* Registro rápido de anamnese, exame físico e plano\n' +
+    '• *Prescrição:* Medicamentos disponíveis na REMUME e Farmácia Popular\n' +
+    '• *Documentos:* Códigos CID-10/CIAP-2 e atestado médico CFM';
+  var botoes = botoesBot([
+    [['📝 Gerador SOAP Ágil', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
+    [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado Médico CFM', 'ux:amb:atestado']],
+    [['🤰 Pré-Natal / DPP / DUM', 'ux:rotina:prenatal'], ['🌸 Ginecologia / Preventivo', 'ux:rotina:ginecologia']],
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+/* ========== Cenário 4: 💊 Consultas Rápidas de Bolso ========== */
+
+function enviarMenuConsultasBolso(chat, messageId) {
+  var texto = '💊 *CONSULTAS RÁPIDAS DE BOLSO*\n\n' +
+    'Guias práticos imediatos para tomada de decisão farmacológica:\n\n' +
+    '• *Antimicrobianos:* Esquemas empíricos de 1ª linha por foco clínico\n' +
+    '• *Pediatria:* Doses por kg com tetos máximos de segurança\n' +
+    '• *Segurança:* Drogas na gestação/lactação e checagem de interações';
+  var botoes = botoesBot([
+    [['🦠 Antibióticos por Foco', 'ux:bolso:atb'], ['👶 Doses Pediátricas (kg)', 'ux:bolso:ped']],
+    [['🤰 Gestação & Lactação', 'ux:bolso:gestacao'], ['⚠️ Interações Graves', 'ux:bolso:interacao']],
+    [['💉 Diluição & Preparo HSL', 'ux:bolso:hsl'], ['📐 Calculadoras Clínicas', 'ux:hub:calc']],
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+/* ========== Hub Principal (4 Cenários Clínicos Imediatos) ========== */
+
 function enviarHubPrincipal(chat, messageId) {
-  var texto = '⚡ *Ultra Rotina · Central de Comandos*\n\n' +
-    'Selecione uma área ou use o teclado rápido no rodapé:\n\n' +
-    '🩺 *Ambulatório (SOAP):* Síntese de prontuário e evolução clínica\n' +
-    '🏥 *Enfermaria:* Quadro de Leitos e Gestão de Pacientes\n' +
-    '🚨 *Emergência:* Condutas rápidas, Gasometria e DVA\n' +
-    '💊 *Prescrição:* Posologias, Ajuste Renal e REMUME\n' +
-    '📐 *Calculadoras:* Escores clínicos beira-leito';
+  var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\n\n' +
+    'Selecione um dos 4 cenários clínicos imediatos (1 a 2 toques):\n\n' +
+    '🚨 *1. Emergência & Sala Vermelha:* PCR (ACLS), DVA, Intubação SRI, Choque e Glasgow\n' +
+    '🛏️ *2. Enfermaria & Prescrição:* Leitos, Clearance, Ajuste Renal, Hidratação e SBAR\n' +
+    '🩺 *3. Ambulatório & UBS:* SOAP Ágil, CID-10/CIAP-2, Prescrição REMUME e Atestado\n' +
+    '💊 *4. Consultas Rápidas de Bolso:* Antibióticos por foco, Doses Pediátricas e Drogas na Gestação';
 
   var urlApp = obterUrlCockpit(chat);
   var botoes = [
-    [['🩺 Ambulatório (SOAP)', 'ux:hub:soap'], ['🏥 Enfermaria', 'ux:hub:enf']],
-    [['🚨 Emergência', 'ux:hub:sala'], ['💊 Prescrever', 'ux:hub:rx']],
-    [['📐 Calculadoras', 'ux:hub:calc'], ['📋 Passagem SBAR', 'ux:hub:sbar']],
-    [['📅 Rotina & Estudo', 'ux:hub:rotina'], { text: '📱 Cockpit Móvel', web_app: { url: urlApp } }]
+    [['🚨 Emergência & Sala Vermelha', 'ux:hub:sala'], ['🛏️ Enfermaria & Prescrição', 'ux:hub:enf']],
+    [['🩺 Ambulatório & UBS', 'ux:hub:amb'], ['💊 Consultas de Bolso', 'ux:hub:bolso']],
+    [['📐 Calculadoras', 'ux:hub:calc'], ['📅 Rotina & Estudo', 'ux:hub:rotina']],
+    [{ text: '📱 Cockpit Mini App', web_app: { url: urlApp } }, ['🧹 Novo Paciente', 'ux:novo:soap']]
   ];
 
   return enviarTelaBot(chat, texto, botoesBot(botoes), messageId);
 }
 
 function enviarMenuUXCalculadoras(chat, messageId) {
-  return enviarTelaBot(chat, '📐 *Calculadoras*\nEscolha o que precisa.', botoesBot([
+  return enviarTelaBot(chat, '📐 *Calculadoras Clínicas*\nEscolha a ferramenta necessária:', botoesBot([
     [['Drogas vasoativas', 'ux:dvamenu'], ['Gasometria', 'ux:iniciar:gaso']],
     [['Outras calculadoras', 'calc_menu_principal'], ['Sala vermelha', 'ux:sala']],
-    [['← Menu principal', 'ux:menu']]
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
@@ -463,14 +516,6 @@ function uxLinhaCopiar(chaveCache, resultado) {
 function tratarEntradaUX(message) {
   var chat = message.chat.id, text = (message.text || '').trim(), cache = uxCache();
 
-  if (text === '/fila') { mostrarFilaTelegram(chat); return true; }
-  if (/^\/pedido \d+$/.test(text)) {
-    var job = recuperarRegistroBot('inbox_' + text.split(' ')[1]);
-    var original = job && job.update && (job.update.message || {}).text;
-    enviarMensagemParaChat(chat, original ? '*Pedido preservado*\n\n' + original : 'Pedido sem texto disponível; confira o áudio ou a imagem original no chat.');
-    return true;
-  }
-
   if (/^\/entrega\s+outbox_[\w-]+$/.test(text)) {
     var registro = recuperarRegistroBot(text.split(/\s+/)[1]);
     enviarMensagemParaChat(chat, registro && registro.payload ? '*Consulta de entrega preservada — não é reenvio da operação*\n\n'+String(registro.payload.text || JSON.stringify(registro.payload)) : 'Entrega não encontrada.');
@@ -580,13 +625,16 @@ function tratarEntradaUX(message) {
   if (text === '📅 Minha rotina' || text === '📅 Minha Rotina') { enviarRotinaBot(chat); return true; }
   if (text === '🚨 Sala Vermelha' || text === '/sala') { enviarMenuSalaVermelha(chat); return true; }
   if (text === '📐 Calculadoras') { enviarMenuUXCalculadoras(chat); return true; }
-  if (['❔ Ajuda', '⚙️ Menu / Ajuda', '/start', '/menu', '/ajuda', '/help', '/teclado'].indexOf(text) !== -1) {
-    if (text === '/menu' || text === '/start') {
-      enviarHubPrincipal(chat);
+  if (text === '/menu' || text === '/start' || text === '/teclado' || text === '⚙️ Menu / Ajuda') {
+    enviarHubPrincipal(chat);
+    return true;
+  }
+  if (text === '/ajuda' || text === '/help' || text === '❔ Ajuda') {
+    if (typeof enviarManualCompletoComandos === 'function') {
+      enviarManualCompletoComandos(chat, '');
       return true;
     }
-    enviarMensagemComTecladoFixo(chat, '*Ultra Rotina · Copiloto Clínico*\n\nEscolha uma ação no teclado rápido ou envie qualquer caso clínico por texto ou áudio.\n\n/menu · Central de comandos e atalhos\n/novo · Iniciar outro caso\n/cancelar · Sair do modo atual\n/fila · Pedidos e entregas pendentes');
-    return true;
+    return false;
   }
   if (text === '🏥 Enfermaria' || text === '/enfermaria') { enviarPainelEnfermaria(chat, 0); return true; }
   if (text === '/limpar_enfermaria') {
