@@ -215,7 +215,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Recomendações estritas de NÃO indicação rotineira de broncodilatadores (salbutamol), corticoides sistêmicos ou antibióticos em casos típicos (evitando sobretratamento desnecessário).
     - Critérios objetivos de oxigenoterapia com cânula nasal de alto fluxo (CNAF), hidratação isotônica venosa e internação em UTI pediátrica.
 
-43. [ ] **Endocrinologia Ginecológica e Reprodução - Manejo de Hiperprolactinemia e Prolactinomas (Diretrizes Endocrine Society / FEBRASGO)**:
+43. [x] **Endocrinologia Ginecológica e Reprodução - Manejo de Hiperprolactinemia e Prolactinomas (Diretrizes Endocrine Society / FEBRASGO)**:
     - Algoritmo escalonado de investigação etiológica (exclusão de macroprolactina, hipotireoidismo primário, drogas indutoras como antipsicóticos e metoclopramida).
     - Diferenciação de microadenoma (< 10 mm) vs macroadenoma (>= 10 mm) e rastreio de alterações campimétricas/visuais.
     - Terapia farmacológica com agonistas dopaminérgicos de 1ª linha (Cabergolina 0.5 mg 1 a 2x/semana com superioridade em eficácia e tolerância gastrointestinal vs Bromocriptina).
@@ -1194,3 +1194,17 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 143. [ ] **Emergência Clínica - Manejo da Anafilaxia (Diretrizes WAO)**:
     - Identificação beira-leito do choque anafilático com critérios cutâneos, respiratórios e cardiovasculares.
     - Administração hiperprecoce de Adrenalina IM (0.01 mg/kg, máx 0.5 mg) no vasto lateral da coxa, sem atrasos por espera de corticoides ou anti-histamínicos (fármacos de 2ª/3ª linha).
+
+144. [ ] **Endocrinologia e Cirurgia - Manejo de Incidentaloma Adrenal**:
+    - Algoritmo de investigação bioquímica obrigatória (teste de supressão com 1mg de dexametasona, metanefrinas urinárias/plasmáticas e relação aldosterona/renina se hipertenso).
+    - Avaliação fenotípica tomográfica (unidades Hounsfield < 10 benigno vs > 20 suspeito, washout absoluto e relativo).
+    - Critérios de indicação cirúrgica (tamanho > 4-5 cm, crescimento em acompanhamento, ou secreção hormonal autônoma).
+
+145. [ ] **Gastroenterologia - Manejo de Hemorragia Digestiva Baixa (HDB) Aguda**:
+    - Estratificação de risco e triagem inicial de instabilidade hemodinâmica.
+    - Protocolo de preparo de cólon rápido para colonoscopia precoce (< 24h) em HDB severa.
+    - Indicações precisas para angiotomografia abdominal e arteriografia mesentérica para embolização.
+
+146. [ ] **Neurologia e Urgência - Abordagem da Síndrome de Guillain-Barré (SGB / Critérios de Brighton)**:
+    - Escala MRC para avaliação de força muscular segmentar.
+    - Indicações de Imunoglobulina IV (IgIV) vs Plasmaférese, e monitoramento da capacidade vital forçada (CVF) para predição de falência respiratória e intubação precoce.

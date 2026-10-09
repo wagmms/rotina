@@ -382,6 +382,50 @@ async function run() {
   assert.equal(jsonCigTexto.resultado.resultado.parto.parto_indicado_agora, true);
   console.log('✓ Cockpit Colestase Gestacional via texto livre (alias) OK');
 
+  // 6.12 Cockpit RPC - Pediatria: Bronquiolite Viral Aguda (CNAF e Wood-Downes)
+  const resBronq = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitPediatriaBronquiolite',
+      session: token,
+      args: [{
+        idadeMeses: 2,
+        pesoKg: 5,
+        fr: 68,
+        fc: 165,
+        spo2: 89,
+        sibilos: 2,
+        tiragem: 2
+      }]
+    }
+  });
+  if (resBronq.statusCode !== 200) console.log(resBronq.payload);
+  assert.equal(resBronq.statusCode, 200, "Erro ao testar cockpitPediatriaBronquiolite");
+  const bronqBody = JSON.parse(resBronq.payload);
+  assert.equal(bronqBody.resultado.sucesso, true);
+  assert.equal(bronqBody.resultado.resultado.gravidade.classificacao, 'Grave');
+  assert.equal(bronqBody.resultado.resultado.gravidade.indicacaoCNAF, true);
+  assert.equal(bronqBody.resultado.resultado.oxigenoterapia.cnaf.fluxoInicialLmin, 10);
+  console.log('✓ Cockpit Pediatria Bronquiolite (Wood-Downes & CNAF) OK');
+
+  // 6.13 Cockpit RPC - Pediatria: Bronquiolite via texto livre (alias cockpitBronquiolite)
+  const resBronqTexto = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitBronquiolite',
+      session: token,
+      args: ['bronquiolite 3 meses 6kg fr 65 spo2 89 exaustao']
+    }
+  });
+  if (resBronqTexto.statusCode !== 200) console.log(resBronqTexto.payload);
+  assert.equal(resBronqTexto.statusCode, 200, "Erro ao testar cockpitBronquiolite via texto");
+  const bronqTextoBody = JSON.parse(resBronqTexto.payload);
+  assert.equal(bronqTextoBody.resultado.sucesso, true);
+  assert.equal(bronqTextoBody.resultado.resultado.gravidade.internacaoUTI, true);
+  console.log('✓ Cockpit Bronquiolite via texto livre (alias) OK');
+
   const resManifest = await app.inject({ method: 'GET', url: '/manifest.json' });
   assert.equal(resManifest.statusCode, 200);
   const jsonManifest = JSON.parse(resManifest.body);

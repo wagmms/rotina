@@ -1952,31 +1952,6 @@ function cockpitColicaNefretica(initData, params) {
   return cockpitUrologiaColicaNefretica(initData, params);
 }
 
-function cockpitUrologiaColicaNefretica(initData, params) {
-  cockpitAutorizar_(initData);
-  if (!params) throw new Error('Parâmetros de Cólica Nefrética não fornecidos.');
-  if (typeof UrologiaColicaNefreticaService === 'undefined') {
-    throw new Error('Serviço UrologiaColicaNefreticaService indisponível.');
-  }
-
-  var entrada = typeof params === 'string'
-    ? UrologiaColicaNefreticaService.extrairParametrosTexto(params)
-    : (params.texto ? UrologiaColicaNefreticaService.extrairParametrosTexto(params.texto) : params);
-
-  var analise = UrologiaColicaNefreticaService.avaliar(entrada);
-  var texto = UrologiaColicaNefreticaService.formatarTextoTelegram(analise);
-
-  return {
-    sucesso: true,
-    resultado: analise,
-    textoFormatado: texto
-  };
-}
-
-function cockpitColicaNefretica(initData, params) {
-  return cockpitUrologiaColicaNefretica(initData, params);
-}
-
 function cockpitPediatriaBronquiolite(initData, params) {
   cockpitAutorizar_(initData);
   if (!params) throw new Error('Parâmetros de Bronquiolite não fornecidos.');
@@ -1998,6 +1973,38 @@ function cockpitPediatriaBronquiolite(initData, params) {
   };
 }
 
+function cockpitBronquiolite(initData, params) {
+  return cockpitPediatriaBronquiolite(initData, params);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitPediatriaBronquiolite = cockpitPediatriaBronquiolite;
+  module.exports.cockpitBronquiolite = cockpitBronquiolite;
+  module.exports.cockpitEndocrinologiaHiperprolactinemia = cockpitEndocrinologiaHiperprolactinemia;
+  module.exports.cockpitHiperprolactinemia = cockpitHiperprolactinemia;
+}
+
+function cockpitEndocrinologiaHiperprolactinemia(initData, params) {
+  if (typeof EndocrinologiaHiperprolactinemiaService === 'undefined') {
+    throw new Error('Serviço EndocrinologiaHiperprolactinemiaService indisponível.');
+  }
+  var analise = EndocrinologiaHiperprolactinemiaService.avaliarHiperprolactinemia(params);
+  var textoFormatado = "";
+  if (typeof params === 'string') {
+      textoFormatado = EndocrinologiaHiperprolactinemiaService.processarComandoTelegram(params);
+  } else if (params.texto) {
+      textoFormatado = EndocrinologiaHiperprolactinemiaService.processarComandoTelegram(params.texto);
+  } else {
+      // Just mock string representation if needed or keep it simple.
+      textoFormatado = "Processado via API Fastify";
+  }
+  return {
+    sucesso: true,
+    resultado: analise.resultado,
+    textoFormatado: textoFormatado
+  };
+}
+
+function cockpitHiperprolactinemia(initData, params) {
+  return cockpitEndocrinologiaHiperprolactinemia(initData, params);
 }
