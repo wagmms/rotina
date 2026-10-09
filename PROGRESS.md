@@ -413,9 +413,9 @@
         - Manejo de proctite intensa: banho de assento morno, anestésico tópico e analgesia escalonada.
     - Integração Fastify RPC (`cockpitDermatologiaLesao`, `cockpitDermatologiaHerpes`, `cockpitHerpes`, `cockpitZoster`, `cockpitDermatologiaUlcerasGenitais`, `cockpitUlceraGenital`, `cockpitDermatologiaSifilis`, `cockpitSifilis`, `cockpitDermatologiaMpox`, `cockpitMpox`), comandos Telegram (`/dermato`, `/lesao`, `/lesoes`, `/pele`, `/herpes`, `/zoster`, `/aciclovir`, `/valaciclovir`, `/ulceragenital`, `/cancro`, `/donovanose`, `/lgv`, `/sifilis`, `/biett`, `/roseola`, `/mpox`, `/monkeypox`), manual de ajuda expandido e suíte de testes dedicados `tests/test_dermatologia_lesoes_ists.cjs` 100% aprovada.
 
-54. [ ] **Módulo de Terapia Intensiva - Choque Séptico Refratário e Manejo de Insuficiência Adrenal Relativa (CIRCI)**:
+54. [x] **Emergência Clínica - Choque Séptico Refratário e Manejo de Insuficiência Adrenal Relativa (CIRCI)**:
     - Escore de suspeição de CIRCI e indicação precisa de Hidrocortisona 200 mg/dia contínua em choque dependente de doses elevadas de vasopressores (> 0,25 mcg/kg/min).
-    - Protocolo de titulação de Vasopressina (0,03 U/min fixa) associada e indicação oportuna de Azul de Metileno em vasoplegia refratária pós-operatória.
+    - Protocolo de titulação de Vasopressina (0,03 U/min fixa) associada.\n    - 🛑 EXPURGO: Azul de Metileno removido por ser conduta terciária exclusiva de UTI (vasoplegia pós-operatória), focando o módulo estritamente no Generalista/PS.
 
 55. [ ] **Otorrinolaringologia e Urgência - Manejo de Epistaxe Aguda e Vertigem Periférica vs Central (Protocolo HINTS / Bárány Society)**:
     - Algoritmo de diferenciação de vertigem aguda (HINTS: Head Impulse, Nystagmus, Test of Skew) prevenindo atraso no diagnóstico de AVC cerebelar/tronco encefálico.

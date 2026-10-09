@@ -2248,6 +2248,12 @@ function cockpitOftalmologia(initData, params) {
   return cockpitOftalmologiaEmergencia(initData, params);
 }
 
+
+function cockpitChoqueSeptico(pesoKg, doseNora) {
+  if (typeof EmergenciaChoqueSepticoService === "undefined") return { erro: "Módulo offline." };
+  return EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoKg, doseNora);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitGinecologiaEndometriose = cockpitGinecologiaEndometriose;
   module.exports.cockpitEndometriose = cockpitEndometriose;

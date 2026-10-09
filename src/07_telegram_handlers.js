@@ -229,6 +229,31 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, msgStatus);
   }
 
+  if (comando === "/choqueseptico" || comando === "/septico" || comando === "/circi" || comando === "/vasopressina") {
+    var dadosChoque = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof EmergenciaChoqueSepticoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo EmergenciaChoqueSepticoService indisponível temporariamente.");
+    }
+    var argsChoque = dadosChoque.split(/\s+/);
+    if (argsChoque.length < 2) {
+      return enviarMensagemParaChat(chatId, "🩸 *EMERGÊNCIA — CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" +
+        "Uso: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`\n\n" +
+        "💡 *Exemplo:* `/choqueseptico 70 0.3` (Detecta refratariedade >= 0.25 mcg/kg/min, prescreve Hidrocortisona e Vasopressina).\n" +
+        "Nota: Azul de Metileno expurgado (conduta terciária/UTI).");
+    }
+    var pesoChoque = sanitizarEValidarPesoKg(argsChoque[0]);
+    var doseNora = parseFloat((argsChoque[1] || "").replace(",", "."));
+    
+    if (pesoChoque === null || isNaN(doseNora)) {
+      return enviarMensagemParaChat(chatId, "⚠️ Parâmetros inválidos. Use: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`");
+    }
+    var resChoque = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoChoque, doseNora);
+    if (resChoque.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resChoque.erro);
+    
+    return enviarMensagemParaChat(chatId, "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + resChoque.textoSOAP);
+  }
+
+
   // 3. COMANDOS CLÍNICOS E SALA VERMELHA
   if (comando === "/dva") {
     var dadosDva = texto.replace(/^\/dva\s*/i, "").trim();
@@ -6472,6 +6497,8 @@ function obterCatalogoComandosSlash() {
       id: "emergencia",
       titulo: "🚨 SALA VERMELHA & CTI (EMERGÊNCIAS)",
       comandos: [
+
+        { cmd: "/choqueseptico", aliases: ["/choqueseptico", "/septico", "/circi", "/vasopressina"], sintaxe: "/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>", desc: "Manejo de Choque Séptico refratário e CIRCI no PS (Hidrocortisona + Vasopressina fixa)." },
         { cmd: "/dva", aliases: ["/dva"], sintaxe: "/dva <droga> <pesoKg> [solução]", desc: "Calculadora de Drogas Vasoativas (Noradrenalina, Dobutamina, Vasopressina, Nipride, Tridil) em mL/h e mcg/kg/min." },
         { cmd: "/sri", aliases: ["/sri", "/iot"], sintaxe: "/sri <pesoKg> [choque|asma|neuro]", desc: "Sequência Rápida de Intubação com doses em mg e mL de sedativos (Etomidato/Quetamina) e bloqueadores (Succinilcolina/Rocurônio)." },
         { cmd: "/conduta", aliases: ["/conduta", "/sos"], sintaxe: "/conduta <patologia>", desc: "Condutas imediatas de emergência e doses de ataque beira-leito (PCR, EAP, anafilaxia, hipercalemia)." },
@@ -6592,6 +6619,17 @@ function obterCatalogoComandosSlash() {
       ]
     },
     {
+      id: "dermato",
+      titulo: "🧴 DERMATOLOGIA & ISTs CUTÂNEAS",
+      comandos: [
+        { cmd: "/dermato", aliases: ["/dermato", "/lesao", "/lesoes", "/pele"], sintaxe: "/dermato <descrição da lesão>", desc: "Diferenciação de lesões elementares da pele (mácula, pápula, placa, vesícula, bolha, crosta, púrpura, úlcera) e sinais de alerta." },
+        { cmd: "/herpes", aliases: ["/herpes", "/zoster", "/aciclovir", "/valaciclovir"], sintaxe: "/herpes [zoster|simples] [clcr] [peso]", desc: "Protocolo antiviral para Herpes Zoster e Herpes Simples com posologia ajustada por clearance de creatinina e hemodiálise." },
+        { cmd: "/ulceragenital", aliases: ["/ulceragenital", "/cancro", "/donovanose", "/lgv"], sintaxe: "/ulceragenital <tempo/dor/fundo>", desc: "Abordagem sindrômica de úlceras genitais (PCDT MS 2026: cancro duro, cancro mole, herpes, linfogranuloma e donovanose)." },
+        { cmd: "/sifilis", aliases: ["/sifilis", "/biett", "/roseola"], sintaxe: "/sifilis <estágio/achados/VDRL>", desc: "Manejo e estadiamento da sífilis (primária, secundária, latente e terciária), doses de Penicilina Benzatina e conduta na gestante." },
+        { cmd: "/mpox", aliases: ["/mpox", "/monkeypox"], sintaxe: "/mpox <lesões/sintomas/proctite>", desc: "Manejo clínico e diagnóstico de Mpox (lesões vesicopustulosas umbilicadas, adenomegalia dolorosa, proctite e biossegurança)." }
+      ]
+    },
+    {
       id: "psiquiatria",
       titulo: "🧠 PSIQUIATRIA DE URGÊNCIA & SAÚDE MENTAL",
       comandos: [
@@ -6695,14 +6733,17 @@ function construirTecladoCategoriasAjuda() {
       ],
       [
         { text: "🦴 Reumato & Especialidades", callback_data: "ajuda_cat_especialidades" },
-        { text: "🧠 Psiquiatria", callback_data: "ajuda_cat_psiquiatria" }
+        { text: "🧴 Dermato & ISTs", callback_data: "ajuda_cat_dermato" }
       ],
       [
-        { text: "🩺 Exame Físico", callback_data: "ajuda_cat_exame_fisico" },
-        { text: "🏥 Enfermaria & Plantão", callback_data: "ajuda_cat_enfermaria" }
+        { text: "🧠 Psiquiatria", callback_data: "ajuda_cat_psiquiatria" },
+        { text: "🩺 Exame Físico", callback_data: "ajuda_cat_exame_fisico" }
       ],
       [
-        { text: "🎧 Preceptor & Rotina", callback_data: "ajuda_cat_ensino_rotina" },
+        { text: "🏥 Enfermaria & Plantão", callback_data: "ajuda_cat_enfermaria" },
+        { text: "🎧 Preceptor & Rotina", callback_data: "ajuda_cat_ensino_rotina" }
+      ],
+      [
         { text: "🛡️ Governança & Diretrizes", callback_data: "ajuda_cat_governanca" }
       ],
       [
@@ -6745,6 +6786,7 @@ function enviarManualCompletoComandos(chatId, filtro) {
       "cardiopneumo": "cardiopneumo", "cardio": "cardiopneumo", "pneumo": "cardiopneumo", "coracao": "cardiopneumo", "pulmao": "cardiopneumo",
       "metabolismo": "metabolismo", "endocrino": "metabolismo", "nutricao": "metabolismo", "sangue": "metabolismo", "hematologia": "metabolismo",
       "especialidades": "especialidades", "reumato": "especialidades", "orto": "especialidades", "oftalmo": "especialidades", "olho": "especialidades",
+      "dermato": "dermato", "pele": "dermato", "lesao": "dermato", "lesoes": "dermato", "ists": "dermato", "ist": "dermato",
       "psiquiatria": "psiquiatria", "psiq": "psiquiatria", "mental": "psiquiatria",
       "exame_fisico": "exame_fisico", "exame": "exame_fisico", "semiologia": "exame_fisico",
       "enfermaria": "enfermaria", "plantao": "enfermaria", "leitos": "enfermaria",
@@ -6805,7 +6847,7 @@ function enviarManualCompletoComandos(chatId, filtro) {
   }
 
   var manualCompleto = "📖 *MANUAL COMPLETO DE COMANDOS SLASH (COPILOTO CLÍNICO 4.0)*\n\n" +
-    "Abaixo estão *todos os 247 comandos e atalhos* disponíveis no Ultra Rotina, organizados por especialidade e função beira-leito:\n\n";
+    "Abaixo estão *todos os 268 comandos e atalhos* disponíveis no Ultra Rotina, organizados por especialidade e função beira-leito:\n\n";
 
   for (var cIdx = 0; cIdx < catalogo.length; cIdx++) {
     var categoria = catalogo[cIdx];
