@@ -187,7 +187,7 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
     - Posologia ponderada de Ácido Ursodesoxicólico (UDCA 10 a 15 mg/kg/dia) como fármaco de 1ª linha.
     - Programação do parto: indicação de interrupção entre 36 e 37 semanas na forma grave (ou 38 semanas na leve) evitando óbito fetal sem advertência cardiotocográfica.
 
-39. [ ] **Infectologia & Obstetrícia - Rastreamento e Manejo de Toxoplasmose Aguda na Gestação (Diretrizes Ministério da Saúde)**:
+39. [x] **Infectologia & Obstetrícia - Rastreamento e Manejo de Toxoplasmose Aguda na Gestação (Diretrizes Ministério da Saúde)**:
     - Interpretação sorológica (IgG, IgM e Teste de Avidez de IgG no 1º trimestre) para confirmação de infecção aguda materna.
     - Início precoce de Espiramicina 1g VO 8/8h para prevenir a transmissão vertical placentária.
     - Diagnóstico de infecção fetal por PCR no líquido amniótico (amniocentese após 18 semanas) e substituição imediata pelo esquema tríplice (Sulfadiazina + Pirimetamina + Ácido Folínico) para tratamento fetal intraútero.
@@ -1116,3 +1116,15 @@ Este projeto opera sob ciclo de melhoria contínua perpétua. O backlog nunca se
 128. [ ] **Auditoria de Kaizen - Motor de Detecção de Interação Fármaco-Nutriente e Administração por SNG/SNE**:
     - Motor de verificação contínua que cruza a prescrição médica com a via enteral.
     - Bloqueios de segurança beira-leito para fármacos que não podem ser triturados (cápsulas gelatinosas, liberação entérica/estendida) ou que quelam o nutriente (ex: Levotiroxina, Fenitoína, Ciprofloxacino), gerando alertas de pausa da dieta ou troca de apresentação farmacêutica.
+
+129. [ ] **Oncologia & Terapia Intensiva - Profilaxia e Manejo de Mucosite Oral e Uso Guiado de G-CSF (Filgrastim)**:
+    - Protocolo escalonado de prevenção e analgesia beira-leito para mucosite induzida por quimioterapia/radioterapia.
+    - Indicações precisas (profilaxia primária vs secundária) para uso de Fator Estimulador de Colônias de Granulócitos (G-CSF) em esquemas quimioterápicos de alto risco para neutropenia febril.
+
+130. [ ] **Pediatria de Emergência - Manejo da Crise Asmática e Escore PRAM (Pediatric Respiratory Assessment Measure)**:
+    - Motor determinístico beira-leito do escore PRAM para classificar gravidade clínica (leve, moderada, grave, iminência de falência respiratória).
+    - Protocolo dinâmico de resgate com Salbutamol associado a Brometo de Ipratrópio e corticoterapia sistêmica (Dexametasona vs Prednisolona), com indicação de Sulfato de Magnésio IV nas crises graves refratárias.
+
+131. [ ] **Obstetrícia & Medicina Fetal - Manejo de Aloimunização RhD e Prevenção de Doença Hemolítica Perinatal**:
+    - Monitoramento por Doppler da Artéria Cerebral Média (Pico de Velocidade Sistólica - PVS) para detecção de anemia fetal grave.
+    - Regras rigorosas de indicação de Imunoglobulina Anti-D em gestantes Rh negativo não sensibilizadas (com 28 semanas, pós-parto e após eventos sensibilizantes como sangramentos e procedimentos invasivos).

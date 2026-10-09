@@ -1678,6 +1678,39 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // INFECTOLOGIA OBSTÉTRICA: TOXOPLASMOSE GESTACIONAL (MS/FEBRASGO)
+  // ───────────────────────────────────────────────────────────────────────────
+  if (comando === "/toxo" || comando === "/toxoplasmose" || comando === "/avidez") {
+    var dadosToxo = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ObstetriciaToxoplasmoseService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaToxoplasmoseService indisponível temporariamente.");
+    }
+
+    var paramsToxo = dadosToxo ? ObstetriciaToxoplasmoseService.extrairParametrosTexto(dadosToxo) : {};
+    
+    if (!dadosToxo || (paramsToxo.igg === null && paramsToxo.igm === null && paramsToxo.pcr_amniotico === null)) {
+      return enviarMensagemParaChat(chatId, "🦠 *INFECTOLOGIA OBSTÉTRICA — TOXOPLASMOSE*\n\n" +
+        "Envie os resultados da sorologia e a idade gestacional atual:\n" +
+        "• *Sorologia:* `igg positivo`, `igm positivo`\n" +
+        "• *Teste de Avidez:* `avidez alta`, `avidez baixa`, `avidez pendente`\n" +
+        "• *IG Atual:* `12s`, `ig 12`\n" +
+        "• *IG da Coleta:* `coleta 8s` (importante se diferir da atual)\n" +
+        "• *Diagnóstico Fetal:* `pcr positivo`, `usg alterado`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/toxo igg positivo igm positivo avidez alta coleta 10s` *(Infecção prévia)*\n" +
+        "• `/toxo 16s igg positivo igm positivo avidez baixa` *(Infecção aguda, baixa avidez)*\n" +
+        "• `/toxo 20s igg positivo igm positivo pcr la positivo` *(Infecção fetal confirmada)*");
+    }
+
+    try {
+      var analiseToxo = ObstetriciaToxoplasmoseService.avaliar(paramsToxo);
+      return enviarMensagemParaChat(chatId, ObstetriciaToxoplasmoseService.formatarTextoTelegram(analiseToxo));
+    } catch (eToxo) {
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Toxoplasmose: " + eToxo.message);
+    }
+  }
+
   if (comando === "/kaizen" || comando === "/auditkaizen" || comando === "/auditoria") {
     var dadosKaizen = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof AuditoriaKaizenClinicoService === "undefined") {

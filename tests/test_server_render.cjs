@@ -283,6 +283,36 @@ async function run() {
   assert(jsonCig.resultado.textoFormatado.includes('COLESTASE INTRA-HEPÁTICA'));
   console.log('✓ Cockpit Hepatologia Obstétrica (CIG Grave & UDCA) OK');
 
+
+  // 6.11 Cockpit RPC - Toxoplasmose Gestacional
+  const resToxo = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitObstetriciaToxoplasmose',
+      session: token,
+      args: [{ ig: 14, igg: 'POSITIVO', igm: 'POSITIVO', avidez_igg: 'BAIXA' }]
+    }
+  });
+  assert.equal(resToxo.statusCode, 200, "Erro ao testar cockpitObstetriciaToxoplasmose");
+  const toxoBody = JSON.parse(resToxo.payload);
+  console.log("toxoBody: ", JSON.stringify(toxoBody)); assert.equal(toxoBody.resultado.sucesso, true);
+  assert.equal(toxoBody.resultado.resultado.sorologia.cenario, 'INFECÇÃO AGUDA MATERNA CONFIRMADA');
+
+  const resToxoTexto = await app.inject({
+    method: 'POST',
+    url: '/api/cockpit',
+    payload: {
+      metodo: 'cockpitToxoplasmoseGestacional',
+      session: token,
+      args: ["12s igg positivo igm positivo avidez alta"]
+    }
+  });
+  assert.equal(resToxoTexto.statusCode, 200, "Erro ao testar cockpitToxoplasmoseGestacional via texto");
+  const toxoTextoBody = JSON.parse(resToxoTexto.payload);
+  assert.equal(toxoTextoBody.resultado.sucesso, true);
+  assert.equal(toxoTextoBody.resultado.resultado.sorologia.cenario, 'INFECÇÃO PREGRESSA (AVIDEZ ALTA)');
+
   // 6.10 Cockpit RPC - CIG via texto livre (alias cockpitColestaseGestacional)
   const resCigTexto = await app.inject({
     method: 'POST',
