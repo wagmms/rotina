@@ -13,19 +13,19 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria de Teclados Inline e Validação de Entrada no Comando `/gaso` e Distúrbios Ácido-Base do Bot do Telegram**:
-    - Testar sistematicamente o parser de parâmetros do `/gaso` (pH, pCO2, HCO3, Na, Cl, Albumina), tratamento de inputs parciais ou malformados, verificação de compensação respiratória e metabólica esperada (fórmula de Winter, delta-delta e anion gap corrigido).
+- [ ] **Auditoria de Resiliência e Sanitização de Erros na API Fastify (`/api/calcular` e `/api/cockpit`) com Tratamento Defensivo de Payloads Malformados**:
+    - Garantir que requisições com strings malformadas, arrays vazios, objetos aninhados inesperados ou valores fisiologicamente anômalos recebam HTTP 400 com mensagem estruturada em português sem vazamento de stacktrace.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Auditoria de Teclados Inline e Validação de Entrada no Comando `/gaso` e Distúrbios Ácido-Base do Bot do Telegram**:
-    - Testar sistematicamente o parser de parâmetros do `/gaso` (pH, pCO2, HCO3, Na, Cl, Albumina), tratamento de inputs parciais ou malformados, verificação de compensação respiratória e metabólica esperada (fórmula de Winter, delta-delta e anion gap corrigido).
-2. [ ] **Auditoria de Resiliência e Sanitização de Erros na API Fastify (`/api/calcular` e `/api/cockpit`) com Tratamento Defensivo de Payloads Malformados**:
+1. [ ] **Auditoria de Resiliência e Sanitização de Erros na API Fastify (`/api/calcular` e `/api/cockpit`) com Tratamento Defensivo de Payloads Malformados**:
     - Garantir que requisições com strings malformadas, arrays vazios, objetos aninhados inesperados ou valores fisiologicamente anômalos recebam HTTP 400 com mensagem estruturada em português sem vazamento de stacktrace.
-3. [ ] **Auditoria de Acessibilidade e Teclados Numéricos nas Calculadoras de Nefrologia e Hidratação Venosa no Cockpit PWA**:
+2. [ ] **Auditoria de Acessibilidade e Teclados Numéricos nas Calculadoras de Nefrologia e Hidratação Venosa no Cockpit PWA**:
     - Verificar inputs de creatinina, peso, altura, sódio e potássio, garantindo `inputmode="decimal"`, validação de limites fisiológicos e atualização em 0ms.
+3. [ ] **Auditoria de Teclados Táteis e Sanitização de Entradas nos Presets da Calculadora de Asma e DPOC do Cockpit**:
+    - Validar limites de FR, SpO2, PCO2, cálculo de dose de corticoide e beta-2 agonista com prevenção de NaN em 0ms.
 
 ---
 
@@ -77,10 +77,31 @@
 - *Sugestão 44 (Telegram / Prescrição)*: Comando `/sbar` direto no bot do Telegram aceitando parâmetros rápidos (`/sbar leito 12 ...`) para formatação automática e envio de passagem de plantão segura via chat.
 - *Sugestão 45 (Cockpit / Farmacologia)*: Cache offline persistente de monografias e fichas completas do Guia HSL no IndexedDB com indicador visual de sincronização diferencial.
 - *Sugestão 46 (Telegram / Farmacologia)*: Comando `/posologia <fármaco>` com resposta instantânea em card compacto contendo dose usual, dose máxima diária, diluição padrão e alerta de ajuste renal beira-leito.
+- *Sugestão 47 (Gasometria / Telegram)*: Suporte a envio de foto de fita impressa de aparelho de gasometria com extração OCR multimodal direta (pH, pCO2, HCO3, eletrólitos e lactato) com preenchimento automático em 0ms.
+- *Sugestão 48 (Gasometria / Sala Vermelha)*: Sugestão de alvos de ventilação mecânica invasiva (VT 6 mL/kg de peso predito, FR ajustada para PaCO2 alvo e PEEP para PaO2 alvo) acoplada diretamente ao resultado do passo 5 (oxigenação e relação P/F) na SDRA.
+- *Sugestão 49 (Telegram / UX)*: Botão de alternância rápida entre Gasometria Arterial vs Venosa Central (ScvO2 e delta-pCO2 / pCO2 venosa - arterial com corte de 6 mmHg para ressuscitação hemodinâmica).
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0AF. [x] **Auditoria de Teclados Inline, Parser Defensivo e Validação de Entrada no Comando `/gaso` e Distúrbios Ácido-Base do Bot do Telegram**:
+    - **Parser Robusto Multi-Formato Beira-Leito (`extrairParametrosGasometria`)**:
+      * Implementado suporte a rótulos clínicos e variações de grafia (`paco2`, `pa co2`, `co2`, `hco3-`, `bicarb`, `bic`, `natremia`, `cloro`, `cl-`, `albumina`, `alb`, `oxigênio`, `fio2`, `fio2 50%`, `lactato`, `ácido lático`, `potássio`, `k+`, `idade`).
+      * Suporte a decimais com vírgula (ex: `pH 7,22 pCO2 28,5 HCO3 11,2`).
+      * Suporte a extração posicional sequencial ágil para emergência (ex: `/gaso 7.20 23 10` ou `/gaso 7.28 30 14 140 102 3.0` sem rótulos).
+    - **Detecção Inteligente de Inversões de Digitação e Feedback Parcial**:
+      * Detecção de inversão rápida de digitação (ex: `pH 25 pCO2 7.20`), efetuando o swap seguro e gerando alerta explicativo para o médico.
+      * Tratamento de entradas parciais informando exatamente quais parâmetros foram identificados e quais estão faltando para a Regra dos 5 Passos (pH, pCO2, HCO3).
+      * Validação estrita de limites de sobrevivência humana com mensagens defensivas sem falha de execução.
+    - **Teclados Inline Interativos no Bot do Telegram (`obterTecladoInlineGasometria`)**:
+      * Teclado inicial e de ajuda com botões de 1 toque para casos clássicos de ouro (`🚨 CAD`, `🫁 DPOC`, `⚡ Sepse`, `🤮 Vômitos`, `🌪️ Ansiedade/TEP`, `📐 Fórmula de Winter`).
+      * Teclado de resultado com botão `📋 Copiar Laudo PEP` integrado com UUID criptografado em cache e callback `ux:copiar:...`, botão `🔄 Novo Cálculo`, botão `📐 Ver Detalhes Winter` e navegação rápida para Sala Vermelha.
+      * Teclado interativo para `/winter` com botões rápidos de bicarbonato comum (8, 10, 12, 14, 16, 18 mEq/L) para cálculo imediato.
+    - **Roteamento Determinístico em 0ms no Telegram (`tentarCalcularDeterministico`)**:
+      * Adicionado reconhecimento direto de mensagens com gasometria em texto livre sem comando para resolução em 0ms em RAM via `GasometriaAcidoBaseService` sem retenção de conexões ou chamadas LLM desnecessárias.
+    - **Bateria de Testes Automatizada Ampliada**:
+      * A suíte `tests/test_gasometria_acido_base.cjs` foi expandida de 13 para 22 testes exaustivos cobrindo todo o parser, posicional, inversões, limites biológicos, teclados inline e simulação de comandos do Telegram, mantendo 100% de sucesso nas 33 suítes do `npm test`.
 
 0AE. [x] **Auditoria e Otimização da Busca e Filtragem de Fármacos na REMUME e Guia Farmacêutico no Cockpit PWA**:
     - **Normalização Sem Acentos e Busca Multi-Token em RAM (0ms)**:

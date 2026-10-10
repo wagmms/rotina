@@ -984,11 +984,379 @@ var GasometriaAcidoBaseService = (function () {
     return linhas.join('\n');
   }
 
+  // ═════════════════════ PARSER E TECLADOS TELEGRAM ══════════════════════════
+
+  /**
+   * Extrai e valida parâmetros gasométricos a partir de texto livre ou comando do Telegram
+   * @param {string} textoInput Texto fornecido pelo médico
+   * @returns {Object} Resultado estruturado do parsing e validação
+   */
+  function extrairParametrosGasometria(textoInput) {
+    if (!textoInput || typeof textoInput !== 'string') {
+      return {
+        sucesso: false,
+        valido: false,
+        vazio: true,
+        incompleto: false,
+        inversaoSuspeita: false,
+        mensagemInversao: null,
+        parametros: null,
+        informados: [],
+        ausentes: ['pH', 'pCO2', 'HCO3'],
+        erro: 'Nenhum parâmetro fornecido.'
+      };
+    }
+
+    var limpo = textoInput
+      .replace(/^\/(?:gaso(?:metria)?|aniongap|gaso_calc)\b/i, '')
+      .replace(/^(?:gasometria\s*(?:arterial)?|gaso|anion\s*gap)\s*[:=]?\s*/i, '')
+      .trim();
+
+    if (!limpo) {
+      return {
+        sucesso: false,
+        valido: false,
+        vazio: true,
+        incompleto: false,
+        inversaoSuspeita: false,
+        mensagemInversao: null,
+        parametros: null,
+        informados: [],
+        ausentes: ['pH', 'pCO2', 'HCO3'],
+        erro: 'Texto vazio após remoção do comando.'
+      };
+    }
+
+    function extrairNumero(re, t) {
+      var m = t.match(re);
+      if (!m) return null;
+      var raw = m[1] !== undefined ? m[1] : m[0];
+      var numStr = String(raw).replace(',', '.');
+      var val = parseFloat(numStr);
+      return Number.isFinite(val) ? val : null;
+    }
+
+    // 1. Extração por rótulos/chaves explícitas
+    var g_ph = extrairNumero(/\bph\s*[:=]?\s*([0-9]+[.,]?[0-9]*)/i, limpo);
+    var g_pco2 = extrairNumero(/\b(?:p?a?co2|pa\s*co2|co2)\s*[:=]?\s*([0-9]+[.,]?[0-9]*)/i, limpo);
+    var g_hco3 = extrairNumero(/\b(?:hco3[-–]?|bicarb(?:onato)?|bic)\s*[:=]?\s*([0-9]+[.,]?[0-9]*)/i, limpo);
+    var g_na = extrairNumero(/\b(?:na\+?|s[oó]dio|natremia)\s*[:=]?\s*([0-9]+[.,]?[0-9]*)/i, limpo);
+    var g_cl = extrairNumero(/\b(?:cl[-–]?|cloro|cloremia)\s*[:=]?\s*([0-9]+[.,]?[0-9]*)/i, limpo);
+    var g_alb = extrairNumero(/\b(?:alb(?:umina)?|albu)\s*[:=]?\s*([0-9]+[.,]?[0-9]*)/i, limpo);
+    var g_pao2 = extrairNumero(/\b(?:p?a?o2|pa\s*o2|oxig[eê]nio)\s*[:=]?\s*([0-9]+[.,]?[0-9]*)/i, limpo);
+    var g_fio2 = extrairNumero(/\b(?:fi\s*o2|fio2)\s*[:=]?\s*([0-9]+[.,]?[0-9]*)\s*%?/i, limpo);
+    var g_lac = extrairNumero(/\b(?:lact(?:ato)?|[aá]cido\s+l[aá]tico)\s*[:=]?\s*([0-9]+[.,]?[0-9]*)/i, limpo);
+    var g_k = extrairNumero(/\b(?:pot[aá]ssio|k\+?)\s*[:=]?\s*([0-9]+[.,]?[0-9]*)/i, limpo);
+    var g_idade = extrairNumero(/\b(?:idade|anos)[:=]?\s*([0-9]+)|([0-9]+)\s*(?:anos|a\b)/i, limpo);
+
+    // 2. Extração posicional inteligente se faltarem rótulos de pH, pCO2 ou HCO3
+    if (g_ph === null || g_pco2 === null || g_hco3 === null) {
+      var tokensNumericos = [];
+      var regexNum = /([0-9]+(?:[.,][0-9]+)?)/g;
+      var match;
+      while ((match = regexNum.exec(limpo)) !== null) {
+        tokensNumericos.push(parseFloat(match[1].replace(',', '.')));
+      }
+
+      if (tokensNumericos.length >= 3 && (g_ph === null && g_pco2 === null && g_hco3 === null)) {
+        var t0 = tokensNumericos[0];
+        var t1 = tokensNumericos[1];
+        var t2 = tokensNumericos[2];
+
+        // Ordem clássica beira-leito: [pH, pCO2, HCO3]
+        if (t0 >= 6.0 && t0 <= 8.0 && t1 >= 5 && t1 <= 200 && t2 >= 2 && t2 <= 70) {
+          g_ph = t0;
+          g_pco2 = t1;
+          g_hco3 = t2;
+
+          if (tokensNumericos.length >= 4) {
+            var t3 = tokensNumericos[3];
+            if (t3 >= 100 && t3 <= 200 && g_na === null) {
+              g_na = t3;
+            } else if (t3 >= 10 && t3 <= 700 && g_pao2 === null) {
+              g_pao2 = t3;
+            }
+          }
+          if (tokensNumericos.length >= 5) {
+            var t4 = tokensNumericos[4];
+            if (t4 >= 60 && t4 <= 160 && g_cl === null) {
+              g_cl = t4;
+            } else if (t4 >= 0.21 && t4 <= 100 && g_fio2 === null) {
+              g_fio2 = t4;
+            }
+          }
+          if (tokensNumericos.length >= 6) {
+            var t5 = tokensNumericos[5];
+            if (t5 >= 0.5 && t5 <= 7.0 && g_alb === null) {
+              g_alb = t5;
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Detecção de inversão de digitação comum (ex: pH 25, pCO2 7.20)
+    var inversaoSuspeita = false;
+    var msgInversao = null;
+    if (g_ph !== null && g_pco2 !== null) {
+      if ((g_ph > 8.0 || g_ph < 6.0) && (g_pco2 >= 6.8 && g_pco2 <= 7.8)) {
+        inversaoSuspeita = true;
+        msgInversao = 'Valores aparentemente invertidos: pH informado como ' + g_ph + ' e pCO2 como ' + g_pco2 + '. Corrigindo para pH ' + g_pco2 + ' e pCO2 ' + g_ph + '.';
+        var tmp = g_ph;
+        g_ph = g_pco2;
+        g_pco2 = tmp;
+      }
+    }
+
+    // 4. Verificação de completude
+    var informados = [];
+    var ausentes = [];
+    if (g_ph !== null) informados.push('pH ' + g_ph); else ausentes.push('pH');
+    if (g_pco2 !== null) informados.push('pCO2 ' + g_pco2); else ausentes.push('pCO2');
+    if (g_hco3 !== null) informados.push('HCO3 ' + g_hco3); else ausentes.push('HCO3');
+
+    if (g_na !== null) informados.push('Na ' + g_na);
+    if (g_cl !== null) informados.push('Cl ' + g_cl);
+    if (g_alb !== null) informados.push('Alb ' + g_alb);
+    if (g_pao2 !== null) informados.push('PaO2 ' + g_pao2);
+    if (g_fio2 !== null) informados.push('FiO2 ' + g_fio2);
+    if (g_lac !== null) informados.push('Lactato ' + g_lac);
+    if (g_k !== null) informados.push('K ' + g_k);
+
+    var incompleto = (g_ph === null || g_pco2 === null || g_hco3 === null);
+
+    if (incompleto) {
+      return {
+        sucesso: false,
+        valido: false,
+        vazio: false,
+        incompleto: true,
+        inversaoSuspeita: inversaoSuspeita,
+        mensagemInversao: msgInversao,
+        informados: informados,
+        ausentes: ausentes,
+        parametros: {
+          ph: g_ph,
+          pco2: g_pco2,
+          hco3: g_hco3,
+          na: g_na,
+          cl: g_cl,
+          albumina: g_alb,
+          pao2: g_pao2,
+          fio2: g_fio2,
+          lactato: g_lac,
+          potassio: g_k,
+          idade: g_idade
+        },
+        erro: 'Gasometria incompleta. Parâmetros obrigatórios ausentes: ' + ausentes.join(', ') + '.'
+      };
+    }
+
+    // 5. Validação de faixas de viabilidade biológica
+    if (g_ph < 6.0 || g_ph > 8.0) {
+      return {
+        sucesso: false,
+        valido: false,
+        vazio: false,
+        incompleto: false,
+        inversaoSuspeita: false,
+        mensagemInversao: null,
+        informados: informados,
+        ausentes: [],
+        parametros: null,
+        erro: 'pH fora dos limites de sobrevivência humana viável (6.0 a 8.0): ' + g_ph
+      };
+    }
+    if (g_pco2 < 5 || g_pco2 > 200) {
+      return {
+        sucesso: false,
+        valido: false,
+        vazio: false,
+        incompleto: false,
+        inversaoSuspeita: false,
+        mensagemInversao: null,
+        informados: informados,
+        ausentes: [],
+        parametros: null,
+        erro: 'PaCO2 fora dos limites fisiológicos compatíveis (5 a 200 mmHg): ' + g_pco2
+      };
+    }
+    if (g_hco3 < 2 || g_hco3 > 70) {
+      return {
+        sucesso: false,
+        valido: false,
+        vazio: false,
+        incompleto: false,
+        inversaoSuspeita: false,
+        mensagemInversao: null,
+        informados: informados,
+        ausentes: [],
+        parametros: null,
+        erro: 'HCO3 fora dos limites fisiológicos compatíveis (2 a 70 mEq/L): ' + g_hco3
+      };
+    }
+
+    return {
+      sucesso: true,
+      valido: true,
+      vazio: false,
+      incompleto: false,
+      inversaoSuspeita: inversaoSuspeita,
+      mensagemInversao: msgInversao,
+      informados: informados,
+      ausentes: [],
+      parametros: {
+        ph: g_ph,
+        pco2: g_pco2,
+        hco3: g_hco3,
+        na: g_na,
+        cl: g_cl,
+        albumina: g_alb,
+        pao2: g_pao2,
+        fio2: g_fio2,
+        lactato: g_lac,
+        potassio: g_k,
+        idade: g_idade
+      },
+      erro: null
+    };
+  }
+
+  /**
+   * Gera teclados inline interativos adaptados para o bot do Telegram
+   */
+  function obterTecladoInlineGasometria(modo, opcoes) {
+    opcoes = opcoes || {};
+    if (modo === 'inicial' || modo === 'ajuda' || modo === 'incompleto') {
+      return {
+        inline_keyboard: [
+          [
+            { text: "🚨 CAD (Winter)", callback_data: "ux:gaso:pre:cad" },
+            { text: "🫁 DPOC (Acidose Resp)", callback_data: "ux:gaso:pre:dpoc" }
+          ],
+          [
+            { text: "⚡ Sepse (Choque Lático)", callback_data: "ux:gaso:pre:sepse" },
+            { text: "🤮 Vômitos (Alcalose Met)", callback_data: "ux:gaso:pre:vomitos" }
+          ],
+          [
+            { text: "🌪️ Ansiedade/TEP (Alcalose Resp)", callback_data: "ux:gaso:pre:alcaloseresp" },
+            { text: "📐 Fórmula de Winter", callback_data: "ux:gaso:winter" }
+          ],
+          [
+            { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      };
+    }
+
+    if (modo === 'winter') {
+      return {
+        inline_keyboard: [
+          [
+            { text: "HCO₃⁻ 8", callback_data: "ux:gaso:winter:calc:8" },
+            { text: "HCO₃⁻ 10", callback_data: "ux:gaso:winter:calc:10" },
+            { text: "HCO₃⁻ 12", callback_data: "ux:gaso:winter:calc:12" }
+          ],
+          [
+            { text: "HCO₃⁻ 14", callback_data: "ux:gaso:winter:calc:14" },
+            { text: "HCO₃⁻ 16", callback_data: "ux:gaso:winter:calc:16" },
+            { text: "HCO₃⁻ 18", callback_data: "ux:gaso:winter:calc:18" }
+          ],
+          [
+            { text: "🩸 Gasometria Completa (5 Passos)", callback_data: "ux:iniciar:gaso" },
+            { text: "🔙 Voltar", callback_data: "ux:hub:sala" }
+          ]
+        ]
+      };
+    }
+
+    if (modo === 'resultado') {
+      var linhas = [];
+      var cacheKey = opcoes.cacheKey;
+      var btnCopiar;
+      if (cacheKey) {
+        btnCopiar = { text: "📋 Copiar Laudo PEP", callback_data: "ux:copiar:" + cacheKey };
+      } else {
+        btnCopiar = { text: "🔄 Novo Cálculo", callback_data: "ux:iniciar:gaso" };
+      }
+
+      linhas.push([
+        btnCopiar,
+        { text: "🔄 Novo Cálculo", callback_data: "ux:iniciar:gaso" }
+      ]);
+
+      if (opcoes.temAcidoseMetabolica) {
+        linhas.push([
+          { text: "📐 Ver Compensação de Winter", callback_data: "ux:gaso:winter" }
+        ]);
+      }
+
+      linhas.push([
+        { text: "🚨 Sala Vermelha", callback_data: "ux:hub:sala" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]);
+
+      return { inline_keyboard: linhas };
+    }
+
+    return null;
+  }
+
+  /**
+   * Retorna cenários clínicos clássicos predefinidos para agilidade beira-leito
+   */
+  function obterExemploGasometriaPredefinido(id) {
+    var exemplos = {
+      cad: {
+        id: 'cad',
+        titulo: 'Cetoacidose Diabética (CAD)',
+        subtitulo: 'Acidose Metabólica com AG Elevado e Resposta de Winter Adequada',
+        texto: 'pH 7.20, pCO2 23, HCO3 10, Na 140, Cl 105, Alb 4.0',
+        parametros: { ph: 7.20, pco2: 23, hco3: 10, na: 140, cl: 105, albumina: 4.0 }
+      },
+      dpoc: {
+        id: 'dpoc',
+        titulo: 'DPOC Exacerbado / Retenção Crônica',
+        subtitulo: 'Acidose Respiratória com Compensação Renal Crônica',
+        texto: 'pH 7.32, pCO2 62, HCO3 31, PaO2 55, FiO2 24%',
+        parametros: { ph: 7.32, pco2: 62, hco3: 31, pao2: 55, fio2: 24 }
+      },
+      sepse: {
+        id: 'sepse',
+        titulo: 'Choque Séptico / Hiperlactatemia',
+        subtitulo: 'Acidose Lática Grave com Winter Adequado e Alerta de Choque',
+        texto: 'pH 7.25, pCO2 28, HCO3 12, Na 138, Cl 102, Lactato 4.8',
+        parametros: { ph: 7.25, pco2: 28, hco3: 12, na: 138, cl: 102, lactato: 4.8 }
+      },
+      vomitos: {
+        id: 'vomitos',
+        titulo: 'Vômitos Volumosos / Perdas Gástricas',
+        subtitulo: 'Alcalose Metabólica Hipoclorêmica e Hipocalêmica por Perda de HCl',
+        texto: 'pH 7.52, pCO2 48, HCO3 38, Na 137, Cl 88, K 2.8',
+        parametros: { ph: 7.52, pco2: 48, hco3: 38, na: 137, cl: 88, potassio: 2.8 }
+      },
+      alcaloseresp: {
+        id: 'alcaloseresp',
+        titulo: 'Crise de Pânico / Hiperventilação / TEP',
+        subtitulo: 'Alcalose Respiratória Aguda Pura',
+        texto: 'pH 7.55, pCO2 24, HCO3 21, PaO2 95, FiO2 21%',
+        parametros: { ph: 7.55, pco2: 24, hco3: 21, pao2: 95, fio2: 21 }
+      }
+    };
+    return exemplos[id] || null;
+  }
+
   // ════════════════════════ API PÚBLICA ══════════════════════════════════════
 
   var publico = {
     analisarGasometria: analisarGasometria,
     formatarTextoTelegram: formatarTextoTelegram,
+
+    // Parser e Teclados Interativos Beira-Leito
+    extrairParametrosGasometria: extrairParametrosGasometria,
+    obterTecladoInlineGasometria: obterTecladoInlineGasometria,
+    obterExemploGasometriaPredefinido: obterExemploGasometriaPredefinido,
 
     // Funções individuais expostas para testes unitários
     calcularWinter: calcularWinter,

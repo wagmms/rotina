@@ -241,12 +241,16 @@ function iniciarModoBot(chat, mode, novo, messageId) {
   }
   definirModoBot(chat, mode, '', true);
   var orientacao = mode === 'gaso'
-    ? 'Envie pH, pCO2 e HCO3, com as unidades disponíveis.'
+    ? 'Envie pH, pCO2 e HCO3 (ex: `7.20 23 10` ou `pH 7.20, pCO2 23, HCO3 10, Na 140, Cl 105`) ou toque em um caso predefinido abaixo:'
     : 'Grave um áudio narrando o caso ou envie os dados por texto.';
+
+  var botoesModo = (mode === 'gaso' && typeof GasometriaAcidoBaseService !== 'undefined' && typeof GasometriaAcidoBaseService.obterTecladoInlineGasometria === 'function')
+    ? GasometriaAcidoBaseService.obterTecladoInlineGasometria('inicial')
+    : botoesBot([[['Encerrar', 'ux:cancelar']]]);
 
   return enviarTelaBot(chat,
     '*' + UX_NOMES_MODO[mode] + ' · Novo Caso*\n\n' + orientacao,
-    botoesBot([[['Encerrar', 'ux:cancelar']]]), messageId);
+    botoesModo, messageId);
 }
 
 function enviarMenuGinecologiaObstetricia(chat, messageId) {
@@ -837,6 +841,29 @@ function tratarCallbackUX(cb) {
       else if (v === 'dengue') texto('/dengue');
       else if (v === 'cefaleia') texto('/cefaleia');
       else enviarMenuSalaVermelha(chat, msgId);
+    } else if (op === 'gaso') {
+      if (v.indexOf('pre:') === 0) {
+        var idCasoG = v.replace('pre:', '');
+        if (typeof GasometriaAcidoBaseService !== 'undefined' && typeof GasometriaAcidoBaseService.obterExemploGasometriaPredefinido === 'function') {
+          var casoGaso = GasometriaAcidoBaseService.obterExemploGasometriaPredefinido(idCasoG);
+          if (casoGaso) {
+            texto('/gaso ' + casoGaso.texto);
+            return true;
+          }
+        }
+        texto('/gaso');
+        return true;
+      } else if (v === 'winter') {
+        texto('/winter');
+        return true;
+      } else if (v.indexOf('winter:calc:') === 0) {
+        var hco3W = v.replace('winter:calc:', '');
+        texto('/winter ' + hco3W);
+        return true;
+      } else {
+        texto('/gaso');
+        return true;
+      }
     } else if (op === 'novo') {
       iniciarModoBot(chat, v, true, msgId);
     } else if (op === 'iniciar') {

@@ -223,7 +223,137 @@ function runTests() {
   assert.strictEqual(rpcResAlias.resultado.disturbio, "Alcalose Metabólica");
   console.log("✓ Teste 13: Integração RPC Fastify (cockpitGasometriaAcidoBase e cockpitGasometria) validada.");
 
-  console.log("=== TODOS OS 13 TESTES DE GASOMETRIA ÁCIDO-BASE PASSARAM COM SUCESSO! ===");
+  // 14. Parser Robusto por Rótulos e Decimais com Vírgula
+  const pRotulos = GasometriaAcidoBaseService.extrairParametrosGasometria(
+    "gasometria pH: 7,22 paco2: 28,5 bicarb: 11,2 natremia: 138 cl-: 100 albumina: 3,5 oxigênio: 80 fio2: 50% lactato: 3,2 potássio: 4,1 68 anos"
+  );
+  assert.strictEqual(pRotulos.valido, true, "Parser deve aceitar rótulos clínicos variados");
+  assert.strictEqual(pRotulos.parametros.ph, 7.22);
+  assert.strictEqual(pRotulos.parametros.pco2, 28.5);
+  assert.strictEqual(pRotulos.parametros.hco3, 11.2);
+  assert.strictEqual(pRotulos.parametros.na, 138);
+  assert.strictEqual(pRotulos.parametros.cl, 100);
+  assert.strictEqual(pRotulos.parametros.albumina, 3.5);
+  assert.strictEqual(pRotulos.parametros.pao2, 80);
+  assert.strictEqual(pRotulos.parametros.fio2, 50);
+  assert.strictEqual(pRotulos.parametros.lactato, 3.2);
+  assert.strictEqual(pRotulos.parametros.potassio, 4.1);
+  assert.strictEqual(pRotulos.parametros.idade, 68);
+  console.log("✓ Teste 14: Parser por rótulos variados e decimais com vírgula validado com sucesso.");
+
+  // 15. Extração Posicional Sequencial Rápida (sem rótulos - plantão de emergência)
+  const pSeq3 = GasometriaAcidoBaseService.extrairParametrosGasometria("7.20 23 10");
+  assert.strictEqual(pSeq3.valido, true);
+  assert.strictEqual(pSeq3.parametros.ph, 7.20);
+  assert.strictEqual(pSeq3.parametros.pco2, 23);
+  assert.strictEqual(pSeq3.parametros.hco3, 10);
+
+  const pSeq6 = GasometriaAcidoBaseService.extrairParametrosGasometria("/gaso 7,28 30 14 140 102 3,0");
+  assert.strictEqual(pSeq6.valido, true);
+  assert.strictEqual(pSeq6.parametros.ph, 7.28);
+  assert.strictEqual(pSeq6.parametros.pco2, 30);
+  assert.strictEqual(pSeq6.parametros.hco3, 14);
+  assert.strictEqual(pSeq6.parametros.na, 140);
+  assert.strictEqual(pSeq6.parametros.cl, 102);
+  assert.strictEqual(pSeq6.parametros.albumina, 3.0);
+  console.log("✓ Teste 15: Extração posicional sequencial ágil (sem rótulos) validada.");
+
+  // 16. Tratamento Defensivo de Inputs Parciais/Incompletos
+  const pIncompleto = GasometriaAcidoBaseService.extrairParametrosGasometria("pH 7.20 pCO2 25");
+  assert.strictEqual(pIncompleto.valido, false);
+  assert.strictEqual(pIncompleto.incompleto, true);
+  assert(pIncompleto.ausentes.includes("HCO3"), "Deve acusar ausência de HCO3");
+  assert(pIncompleto.informados.includes("pH 7.2"), "Deve registrar pH informado");
+
+  const pVazio = GasometriaAcidoBaseService.extrairParametrosGasometria("/gaso");
+  assert.strictEqual(pVazio.vazio, true);
+  console.log("✓ Teste 16: Tratamento defensivo de inputs parciais e vazios validado.");
+
+  // 17. Detecção Inteligente de Inversão de Digitação Rápida
+  const pInvertido = GasometriaAcidoBaseService.extrairParametrosGasometria("pH 25 pCO2 7.20 HCO3 10");
+  assert.strictEqual(pInvertido.valido, true);
+  assert.strictEqual(pInvertido.inversaoSuspeita, true);
+  assert.strictEqual(pInvertido.parametros.ph, 7.20, "Deve inverter pH para valor correto");
+  assert.strictEqual(pInvertido.parametros.pco2, 25, "Deve inverter pCO2 para valor correto");
+  console.log("✓ Teste 17: Detecção e swap defensivo de inversão de digitação validado.");
+
+  // 18. Validação de Limites Fisiológicos de Sobrevivência
+  const pExtremo = GasometriaAcidoBaseService.extrairParametrosGasometria("pH 9.5 pCO2 250 HCO3 90");
+  assert.strictEqual(pExtremo.valido, false);
+  assert(pExtremo.erro.includes("limites"), "Deve rejeitar valores biológicos incompatíveis");
+  console.log("✓ Teste 18: Rejeição de valores fora dos limites biológicos validada.");
+
+  // 19. Teclados Inline Adaptativos para Telegram
+  const kbInicial = GasometriaAcidoBaseService.obterTecladoInlineGasometria("inicial");
+  assert.ok(kbInicial && kbInicial.inline_keyboard.length >= 3, "Teclado inicial deve conter linhas de atalhos");
+  assert(kbInicial.inline_keyboard[0].some(b => b.callback_data === "ux:gaso:pre:cad"), "Deve conter atalho para CAD");
+
+  const kbWinter = GasometriaAcidoBaseService.obterTecladoInlineGasometria("winter");
+  assert(kbWinter.inline_keyboard[0].some(b => b.callback_data === "ux:gaso:winter:calc:8"), "Deve conter atalho HCO3 8");
+
+  const kbRes = GasometriaAcidoBaseService.obterTecladoInlineGasometria("resultado", {
+    cacheKey: "mockkey123",
+    temAcidoseMetabolica: true
+  });
+  assert(kbRes.inline_keyboard[0].some(b => b.callback_data === "ux:copiar:mockkey123"), "Deve conter botão copiar laudo PEP");
+  assert(kbRes.inline_keyboard.some(row => row.some(b => b.callback_data === "ux:gaso:winter")), "Deve conter botão de Winter se acidose metabólica");
+  console.log("✓ Teste 19: Teclados inline interativos adaptativos validados.");
+
+  // 20. Casos Clínicos Predefinidos de Ouro
+  const casoCad = GasometriaAcidoBaseService.obterExemploGasometriaPredefinido("cad");
+  assert.strictEqual(casoCad.parametros.ph, 7.20);
+  assert.strictEqual(casoCad.parametros.hco3, 10);
+
+  const casoDpoc = GasometriaAcidoBaseService.obterExemploGasometriaPredefinido("dpoc");
+  assert.strictEqual(casoDpoc.parametros.pco2, 62);
+  assert.strictEqual(casoDpoc.parametros.hco3, 31);
+  console.log("✓ Teste 20: Casos clínicos predefinidos de ouro validados.");
+
+  // 21. Disparo de Comandos Telegram no Runtime
+  let msgEnviada = null;
+  let kbEnviado = null;
+  runtime.ctx.enviarMensagemParaChat = (chatId, texto) => {
+    msgEnviada = texto;
+    return true;
+  };
+  runtime.ctx.enviarMensagemComTecladoParaChat = (chatId, texto, kb) => {
+    msgEnviada = texto;
+    kbEnviado = kb;
+    return true;
+  };
+
+  // /gaso sem args -> exibe ajuda e teclado inicial
+  msgEnviada = null; kbEnviado = null;
+  runtime.ctx.processarMensagemTexto({ chat: { id: 123 }, text: "/gaso" });
+  assert(msgEnviada.includes("GASOMETRIA ARTERIAL — REGRA DOS 5 PASSOS"));
+  assert.ok(kbEnviado && kbEnviado.inline_keyboard, "Deve enviar teclado inicial");
+
+  // /gaso com args posicionais
+  msgEnviada = null; kbEnviado = null;
+  runtime.ctx.processarMensagemTexto({ chat: { id: 123 }, text: "/gaso 7.20 23 10 140 105 4.0" });
+  assert(msgEnviada.includes("Acidose Metabólica"));
+  assert(msgEnviada.includes("PASSO 1"));
+  assert.ok(kbEnviado && kbEnviado.inline_keyboard, "Deve enviar teclado de resultado");
+
+  // /winter sem args -> exibe teclado de atalhos de HCO3
+  msgEnviada = null; kbEnviado = null;
+  runtime.ctx.processarMensagemTexto({ chat: { id: 123 }, text: "/winter" });
+  assert(msgEnviada.includes("FÓRMULA DE WINTER"));
+  assert.ok(kbEnviado && kbEnviado.inline_keyboard, "Deve enviar teclado de HCO3");
+
+  // /winter 12 -> cálculo determinístico
+  msgEnviada = null; kbEnviado = null;
+  runtime.ctx.processarMensagemTexto({ chat: { id: 123 }, text: "/winter 12" });
+  assert(msgEnviada.includes("PaCO₂ esperada"));
+  console.log("✓ Teste 21: Comandos /gaso e /winter executados no Telegram com teclados inline validados.");
+
+  // 22. Roteamento de Texto Livre em tentarCalcularDeterministico
+  const resLivreGaso = runtime.ctx.tentarCalcularDeterministico("gasometria ph 7.20 pco2 23 hco3 10 na 140 cl 105 alb 4.0");
+  assert.ok(resLivreGaso, "Deve retornar resultado determinístico para texto livre");
+  assert(resLivreGaso.includes("Acidose Metabólica"));
+  console.log("✓ Teste 22: Roteamento determinístico em 0ms de texto livre validado.");
+
+  console.log("=== TODOS OS 22 TESTES DE GASOMETRIA ÁCIDO-BASE PASSARAM COM SUCESSO! ===");
 }
 
 runTests();
