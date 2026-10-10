@@ -10,6 +10,8 @@
 const crypto = require('crypto');
 const cors = require('@fastify/cors');
 const compress = require('@fastify/compress');
+const helmet = require('@fastify/helmet');
+const rateLimit = require('@fastify/rate-limit');
 const runtime = require('./runtime');
 
 function gerarETag(conteudo) {
@@ -183,14 +185,85 @@ async function buildServer() {
     encodings: ['gzip', 'deflate', 'br']
   });
 
-  // 1.2. Tratamento Global de Erros Fastify (Resiliência e Rastreabilidade)
+  // 1.2. Cabeçalhos de Segurança HTTP (Helmet / OWASP Hardening)
+  await fastify.register(helmet, {
+    global: true,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'",
+          'https://cdn.tailwindcss.com',
+          'https://unpkg.com',
+          'https://cdn.jsdelivr.net',
+          'https://telegram.org'
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          'https://cdn.tailwindcss.com',
+          'https://fonts.googleapis.com'
+        ],
+        fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+        connectSrc: ["'self'", 'https:', 'wss:', 'ws:'],
+        mediaSrc: ["'self'", 'data:', 'blob:'],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'self'", 'https://web.telegram.org', 'https://*.telegram.org']
+      }
+    },
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    frameguard: false // Permite renderização segura dentro do Telegram WebApp e Webview
+  });
+
+  // 1.3. Rate-Limiting para Proteção DoS/Brute-Force
+  const limiteRateLimit = process.env.RATE_LIMIT_MAX
+    ? parseInt(process.env.RATE_LIMIT_MAX, 10)
+    : (process.env.NODE_ENV === 'test' ? 1000 : 240);
+
+  await fastify.register(rateLimit, {
+    global: true,
+    max: limiteRateLimit,
+    timeWindow: '1 minute',
+    allowList: (req) => {
+      if (req.headers && req.headers['x-bypass-ratelimit'] === 'true') {
+        return true;
+      }
+      return false;
+    },
+    errorResponseBuilder: (request, context) => ({
+      statusCode: 429,
+      error: 'Too Many Requests',
+      erro: 'Limite de requisições excedido. Tente novamente em instantes.',
+      detalhes: `Taxa máxima de ${context.max} requisições por ${context.after} atingida.`,
+      requestId: request.id
+    })
+  });
+
+  // 1.4. Tratamento Global de Erros Fastify (Resiliência e Rastreabilidade)
   fastify.setErrorHandler((error, request, reply) => {
     const reqId = request.id || 'unknown';
+    const statusCode = error.statusCode || 500;
+
+    if (statusCode === 429) {
+      fastify.log.warn(`[Fastify RateLimit][${reqId}] 429 - Limite excedido na rota: ${request.raw.url}`);
+      reply.status(429).send({
+        ok: false,
+        erro: error.erro || 'Limite de requisições excedido. Tente novamente em instantes.',
+        detalhes: error.detalhes || error.message || 'Taxa máxima excedida.',
+        requestId: reqId
+      });
+      return;
+    }
+
     fastify.log.error(`[Fastify Global Error][${reqId}] ${error.message} - Rota: ${request.raw.url}`);
-    registrarErroSistema('fastify_global_error', error.message, { reqId, url: request.raw.url, statusCode: error.statusCode || 500 });
-    reply.status(error.statusCode || 500).send({
+    registrarErroSistema('fastify_global_error', error.message, { reqId, url: request.raw.url, statusCode });
+    reply.status(statusCode).send({
       ok: false,
-      erro: 'Falha interna no servidor.',
+      erro: statusCode >= 500 ? 'Falha interna no servidor.' : (error.message || 'Erro na requisição.'),
       detalhes: error.message,
       requestId: reqId
     });
@@ -212,7 +285,14 @@ async function buildServer() {
   };
 
   // 2. Healthcheck & Keep-Alive (Evita hibernação no Render Free)
-  fastify.get('/health', async (request, reply) => {
+  fastify.get('/health', {
+    config: {
+      rateLimit: {
+        max: 600,
+        timeWindow: '1 minute'
+      }
+    }
+  }, async (request, reply) => {
     pingTracker.total++;
     pingTracker.lastPing = new Date().toISOString();
     pingTracker.lastUserAgent = request.headers['user-agent'] || 'unknown';
@@ -227,7 +307,14 @@ async function buildServer() {
     };
   });
 
-  fastify.get('/ping', async (request, reply) => 'pong');
+  fastify.get('/ping', {
+    config: {
+      rateLimit: {
+        max: 600,
+        timeWindow: '1 minute'
+      }
+    }
+  }, async (request, reply) => 'pong');
 
   // 3. Status e Diagnóstico do Sistema
   fastify.get('/api/status', async (request, reply) => {
@@ -244,7 +331,12 @@ async function buildServer() {
         memoria_mb: Math.round(process.memoryUsage().rss / (1024 * 1024)),
         pings_received: pingTracker.total,
         last_ping_time: pingTracker.lastPing,
-        last_ping_from: pingTracker.lastUserAgent
+        last_ping_from: pingTracker.lastUserAgent,
+        seguranca: {
+          helmet: true,
+          rate_limit: true,
+          limite_max_min: limiteRateLimit
+        }
       };
     } catch (err) {
       reply.status(500);

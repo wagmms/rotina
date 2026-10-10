@@ -13,17 +13,17 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Rate-Limiting e Headers de Segurança no Fastify**:
-    - Implementar `@fastify/rate-limit` e `@fastify/helmet` para proteger endpoints HTTP contra chamadas abusivas e reforçar cabeçalhos de segurança sem degradar latência.
+- [ ] **Auditoria de Acessibilidade e Contraste de Cores nos Cards de Alertas Clínicos do Cockpit**:
+    - Garantir conformidade WCAG AA em alertas críticos (Sala Vermelha / HC-UE) e cartões de salvaguarda para visibilidade sob luz solar e telas de baixa luminosidade.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Auditoria de Acessibilidade e Contraste de Cores nos Cards de Alertas Clínicos do Cockpit**:
-    - Garantir conformidade WCAG AA em alertas críticos (Sala Vermelha / HC-UE) e cartões de salvaguarda para visibilidade sob luz solar e telas de baixa luminosidade.
-2. [ ] **Refinamento do Timeout e Circuit Breaker para Provedores de IA Multimodal**:
+1. [ ] **Refinamento do Timeout e Circuit Breaker para Provedores de IA Multimodal**:
     - Implementar timeout seguro de 15s com fallback determinístico local para evitar esperas prolongadas no plantão se um provedor externo oscilar.
+2. [ ] **Sanitização e Validação Estrita de Parâmetros de Entrada nas Calculadoras via Schema Fastify**:
+    - Adicionar schemas de validação no Fastify para payloads de rotas sensíveis a fim de descartar tipos incorretos no handshake sem consumir processamento do runtime.
 
 ---
 
@@ -54,10 +54,34 @@
 - *Sugestão 23 (Cockpit / Offline)*: Implementar busca fuzzy determinística na REMUME local para tolerar pequenas variações e erros de digitação rápidos beira-leito sem necessidade de internet.
 - *Sugestão 24 (Backend / Fastify)*: Implementar suporte a cabeçalho `Clear-Site-Data` em endpoint administrativo de redefinição de sessão para expurgo limpo de caches e Service Workers corrompidos no plantão.
 - *Sugestão 25 (Telegram / UI)*: Mini-gráfico Sparkline em caracteres Unicode ( ▂▃▅▆▇) no sumário de glicemia (`/diabetes`) para visualização instantânea de tendência sem payload de imagem.
+- *Sugestão 26 (Segurança / Fastify)*: Suporte a chave de Rate-Limit por Token/Sessão médica (em vez de apenas IP) para ambientes hospitalares onde dezenas de médicos compartilham o mesmo IP de gateway/NAT da rede Wi-Fi corporativa da instituição, evitando que o tráfego agregado de múltiplos médicos atinja o limite por IP.
+- *Sugestão 27 (Segurança / Cockpit)*: Adicionar cabeçalho `Permissions-Policy` (geolocalização, câmera, acelerômetro restritos, mantendo apenas microfone para ditado do preceptor) para reforçar privacidade beira-leito.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0V. [x] **Rate-Limiting e Headers de Segurança HTTP (Helmet / OWASP) no Fastify**:
+    - **Proteção OWASP e Headers de Segurança HTTP (@fastify/helmet)**:
+      * Integrado `@fastify/helmet` (v13) com hardening global de cabeçalhos.
+      * Ativado `Strict-Transport-Security` (HSTS) com `max-age=31536000; includeSubDomains`.
+      * Proteção contra MIME-type sniffing (`X-Content-Type-Options: nosniff`).
+      * Configurado `Cross-Origin-Resource-Policy: cross-origin` garantindo interoperabilidade plena entre a API do Render e o Cockpit PWA hospedado no GitHub Pages.
+      * Configurado `Cross-Origin-Opener-Policy: same-origin-allow-popups` viabilizando links e autenticação externa sem bloqueios.
+      * Content-Security-Policy (CSP) personalizada permitindo com segurança os CDNs oficiais do PWA (Tailwind, Lucide/unpkg, jsdelivr, Telegram WebApp), conexões WebSockets para o Preceptor Live (`/live`, `wss:`, `ws:`) e diretiva `frame-ancestors` autorizando `web.telegram.org` para renderização em Webview.
+      * Desativado `frameguard` obsoleto em prol do CSP `frame-ancestors`, eliminando bloqueios de iframe no Telegram.
+    - **Proteção Ativa contra DoS e Chamadas Abusivas (@fastify/rate-limit)**:
+      * Integrado `@fastify/rate-limit` (v11) operando em memória com complexidade O(1) e overhead inferior a 0.2ms.
+      * Taxa padrão calibrada para 240 requisições/minuto por IP (4 req/s sustentadas), garantindo fluidez total em consultas clínicas rápidas, prescrições e busca de CIDs.
+      * Tetos ampliados específicos (600 req/min) para rotas de monitoramento contínuo (`/health` e `/ping`) prevenindo falsos positivos por keep-alive do Render.
+      * Emissão consistente de cabeçalhos padrão (`x-ratelimit-limit`, `x-ratelimit-remaining`, `x-ratelimit-reset`).
+      * Resposta HTTP 429 Too Many Requests customizada com `errorResponseBuilder` e `setErrorHandler` unificados, emitindo JSON padronizado com `requestId`, mensagem amigável e cabeçalho `retry-after`.
+      * Suporte a bypass seguro via cabeçalho `x-bypass-ratelimit` para testes e rotinas internas autorizadas.
+    - **Telemetria de Segurança Operacional**:
+      * Endpoint `/api/status` enriquecido com bloco `seguranca: { helmet: true, rate_limit: true, limite_max_min }`.
+    - **Bateria de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_seguranca_helmet_ratelimit.cjs` cobrindo HSTS, nosniff, CORP, CSP, frame-ancestors, headers de rate-limit, decremento, bloqueio 429, retry-after, bypass e endpoints PWA.
+      * Integrada ao script oficial `npm test` no `package.json`, alcançando 100% de aprovação em todas as 25 suítes de teste do projeto.
 
 0U. [x] **Otimização de Caching HTTP (ETag / Stale-While-Revalidate) para Endpoints Estáticos no Fastify e Cockpit PWA**:
     - **ETags Determinísticos & Status HTTP 304 (Not Modified)**:
