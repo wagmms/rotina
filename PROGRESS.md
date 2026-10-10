@@ -13,15 +13,19 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria de Acessibilidade e Teclados Táteis Mobile em Modais de Prescrição Ambulatorial e SBAR**:
-    - Verificar inputs, auto-complete, labels semânticos, foco em campos obrigatórios e botões de cópia PEP no Cockpit PWA para garantir agilidade beira-leito sem atritos em telas pequenas.
+- [ ] **Auditoria e Otimização da Busca e Filtragem de Fármacos na REMUME e Guia Farmacêutico no Cockpit PWA**:
+    - Testar normalização sem acentos, busca por princípios ativos e nomes comerciais, tempo de resposta em 0ms no cache em memória, feedback visual de 'Nenhum medicamento encontrado' e botão de cópia de posologia com 1 toque.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Auditoria de Acessibilidade e Teclados Táteis Mobile em Modais de Prescrição Ambulatorial e SBAR**:
-    - Verificar inputs, auto-complete, labels semânticos, foco em campos obrigatórios e botões de cópia PEP no Cockpit PWA para garantir agilidade beira-leito sem atritos em telas pequenas.
+1. [ ] **Auditoria e Otimização da Busca e Filtragem de Fármacos na REMUME e Guia Farmacêutico no Cockpit PWA**:
+    - Testar normalização sem acentos, busca por princípios ativos e nomes comerciais, tempo de resposta em 0ms no cache em memória, feedback visual de 'Nenhum medicamento encontrado' e botão de cópia de posologia com 1 toque.
+2. [ ] **Auditoria de Teclados Inline e Validação de Entrada no Comando `/gaso` e Distúrbios Ácido-Base do Bot do Telegram**:
+    - Testar sistematicamente o parser de parâmetros do `/gaso` (pH, pCO2, HCO3, Na, Cl, Albumina), tratamento de inputs parciais ou malformados, verificação de compensação respiratória e metabólica esperada (fórmula de Winter, delta-delta e anion gap corrigido).
+3. [ ] **Auditoria de Resiliência e Sanitização de Erros na API Fastify (`/api/calcular` e `/api/cockpit`) com Tratamento Defensivo de Payloads Malformados**:
+    - Garantir que requisições com strings malformadas, arrays vazios, objetos aninhados inesperados ou valores fisiologicamente anômalos recebam HTTP 400 com mensagem estruturada em português sem vazamento de stacktrace.
 
 ---
 
@@ -68,10 +72,35 @@
 - *Sugestão 39 (Cockpit / Resiliência de Rede)*: Detecção proativa de degradação de sinal via Network Information API (`navigator.connection.effectiveType` e `navigator.connection.rtt`) para calibrar dinamicamente os timeouts e antecipar modo de baixo consumo em redes Wi-Fi hospitalares com alta perda de pacotes.
 - *Sugestão 40 (Cockpit / UX)*: Indicador visual de pulso / batimento de dados (Heartbeat Ping) discreto no cabeçalho durante atendimentos críticos na Sala Vermelha, confirmando em tempo real a sincronia do censo e gasometrias seriadas.
 - *Sugestão 41 (Cockpit / Telemetria)*: Compressão com gzip/deflate de snapshots volumosos no IndexedDB para economizar quota de armazenamento local em smartphones hospitalares com pouca memória livre.
+- *Sugestão 42 (Cockpit / SBAR)*: Adicionar botão de exportação da Passagem SBAR em formato PDF para arquivamento ou anexação ao prontuário hospitalar.
+- *Sugestão 43 (Cockpit / Acessibilidade)*: Navegação completa por atalhos de teclado físico (para uso em tablets e notebooks com teclado externo na enfermaria: ex: `Ctrl+K` para busca de fármacos, `Alt+S` para abrir SBAR, `Alt+P` para prescrição).
+- *Sugestão 44 (Telegram / Prescrição)*: Comando `/sbar` direto no bot do Telegram aceitando parâmetros rápidos (`/sbar leito 12 ...`) para formatação automática e envio de passagem de plantão segura via chat.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0AD. [x] **Auditoria de Acessibilidade, Teclados Táteis Mobile nos Modais Clínicos e Modal SBAR com Gerador Offline e Cópia PEP no Cockpit PWA**:
+    - **Modal Estruturado de Passagem de Plantão SBAR (`#modal-sbar-passagem`)**:
+      * Inserido modal completo com atributos semânticos (`role="dialog"`, `aria-modal="true"`, `aria-labelledby="titulo-sbar-modal"`).
+      * Seletor de leito individual ou censo geral (`#sbar-modal-seletor-leito`) com contadores ao vivo e badges de gravidade (🚨 Instável, ⚠️ Vigilância, ✅ Estável).
+      * Visor de pré-visualização SBAR com `aria-live="polite"` e botão de 1 toque de cópia rápida para prontuário (`#btn-copiar-sbar-modal` chamando `copiarSbarModalPEP`).
+      * Motor offline determinístico `gerarSbarLeitoIndividualOffline(leito)` e `gerarPassagemPlantaoSBAROfflineLocal(leitos)` operando em 0ms mesmo em zonas de sombra de Wi-Fi.
+    - **Teclados Táteis Mobile e Ergonomia de Inputs em Modais Clínicos**:
+      * `#modal-ambulatorio-soap`: labels semânticos com `for="..."`, `inputmode="tel"` para PA, `inputmode="numeric"` para Glicemia e FC, `inputmode="decimal"` para Peso, `autocomplete="off"` e `enterkeyhint="next"`.
+      * `#modal-atestado-cfm`: labels semânticos com `for="..."`, `autocomplete="off"`, `inputmode="text"` e `enterkeyhint="next"`.
+      * Modais Obstétricos e Ginecológicos (`#modal-prenatal`, `#modal-centro-obstetrico`, `#modal-ginecologia-ambulatorial`): conformidade com `role="dialog"`, labels semânticos associados e teclados numéricos nos campos de DUM, dilatação, contrações, BCF e idade.
+    - **Separação Estruturada de Prescrição PEP Ambulatorial**:
+      * Adicionado botão `#btn-copiar-prescricao-amb` ("Copiar Prescrição PEP") ao lado de "Copiar SOAP Completo".
+      * Implementada a função `copiarPrescricaoAmbulatorialGerada()` com extração regex limpa da seção `[P - PLANO]`, permitindo colar diretamente no receituário/PEP sem o restante do prontuário.
+    - **Navegação Inteligente por Teclado e Dismiss Acessível**:
+      * Implementada a função `configurarTecladosModaisAmbulatorioESbar()`: navegação sequencial móvel via tecla Enter avançando o foco entre campos, fechamento universal de modais via tecla `Escape` e fechamento ao tocar no backdrop escuro do container.
+      * Autofocus suave ao abrir os modais (`#amb-input-paciente`, `#atestado-input-paciente` e `#sbar-modal-seletor-leito`).
+    - **Erradicação Definitiva de Código Legado Google Apps Script (GAS)**:
+      * Removido bloco legado de fallback `window.google?.script?.run` em `cockpitRpc`, garantindo conformidade arquitetural absoluta com o backend oficial Fastify no Render.
+    - **Sincronismo de Produção e Bateria de Testes Automatizada Dedicada**:
+      * Mantida paridade estrita de 100% de SHA-256 entre `cockpit_movel.html` e `gh_cockpit_deploy/index.html`.
+      * Criada suíte `tests/test_cockpit_acessibilidade_modais_sbar.cjs` com 8 baterias automatizadas, integrada ao `package.json` e aprovada com 100% de sucesso nas 32 suítes do `npm test`.
 
 0AC. [x] **Auditoria de Resiliência, Feedback Visual em Conexões Flutuantes e Retry Exponencial no Cockpit PWA**:
     - **Banner Não-Obstrutivo de Conectividade Flutuante (`#banner-status-conexao`)**:
