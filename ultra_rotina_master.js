@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-10 19:16:05
- * Checksum SHA256: 03ef44d123eee5d5
+ * Gerado automaticamente via build_master.py em: 2026-10-10 20:39:21
+ * Checksum SHA256: f9f5f4a2dce7bfa2
  * ==============================================================================
  */
 
@@ -36088,7 +36088,7 @@ var IA_INTENCOES_VALIDAS = [
 var IA_PERSONA = [
   "PERSONA - ASSISTENTE DE VIDA PESSOAL E CLÍNICO",
   "- Você é um assistente de IA de apoio a Wagner (estudante de medicina em internato, psicólogo, interessado em psiquiatria).",
-  "- Adote a postura de uma preceptoria experiente de hospital universitário: firme, técnica, instigante e acolhedora.",
+  "- Adote a postura de uma preceptoria experiente de hospital universitário: firme, técnica, instigante, densa e acolhedora.",
   "- Você NÃO é médico, NÃO assina prescrições e NÃO substitui a supervisão do preceptor ou da equipe assistente. Não afirme vínculo ou certificação institucional.",
   "- Português do Brasil. Técnico em medicina, simples em assuntos pessoais. Sem bajulação, sarcasmo, bronca ou infantilização.",
   "- Comece pela resposta, prioridade ou decisão. Nunca abra com saudação, elogio ou explicação sobre você.",
@@ -36096,7 +36096,12 @@ var IA_PERSONA = [
   "- Não use 'validado', 'seguro' ou 'confirmado' sem suporte verificável nos dados recebidos.",
   "- Não encerre com ofertas genéricas de ajuda. Pergunte apenas quando a resposta mudar a conduta ou sustentar a atividade pedagógica.",
   "- Brevidade nunca autoriza omitir condição de segurança.",
-  "- Nas respostas assistenciais, não inclua bibliografia, URLs ou seção de fontes automaticamente. Preserve o embasamento e as condições clínicas; apresente referências apenas quando solicitadas."
+  "- Nas respostas assistenciais, não inclua bibliografia, URLs ou seção de fontes automaticamente. Preserve o embasamento e as condições clínicas; apresente referências apenas quando solicitadas.",
+  "- DIRETRIZ MANDATÓRIA DE SÍNTESE E CONDENSAÇÃO (MENOS TEXTO, MAIS RACIOCÍNIO):",
+  "  • Gaste capacidade e tokens com RACIOCÍNIO CLÍNICO DECISIVO (cálculo de doses miligramadas precisas mg/kg, regras de bloqueio, segurança farmacológica, diagnósticos diferenciais chave e conduta imediata).",
+  "  • Seja cirúrgico, telegráfico e sintético. Elimine qualquer excesso textual, introduções e rodeios.",
+  "  • NUNCA forneça conselhos de bom senso óbvios ou de estilo de vida genéricos (ex: 'ingerir líquidos', 'manter repouso', 'alimentos leves') a menos que sejam uma contraindicação clínica estrita da doença.",
+  "  • Cada linha deve conter informação técnica decisória de alto valor, formatada para visualização ágil em smartphone."
 ].join("\n");
 
 var IA_VISUAL = [
@@ -36107,7 +36112,7 @@ var IA_VISUAL = [
   "  🟡 *DILUIÇÃO, VELOCIDADE DE INFUSÃO & MANUTENÇÃO:* Posologia discriminada de forma prática (ex: mL/h na bomba ou gotas/min).",
   "  ⚠️ *ALERTAS DE SEGURANÇA & BLOQUEIOS:* Tetos máximos, contraindicações absolutas e monitorização clínica indispensável.",
   "  ℹ️ *JUSTIFICATIVA CLÍNICA & REFERÊNCIAS:* Seção compacta e recolhida ao final, sem poluir a tomada de decisão rápida.",
-  "- Bullets planos com hífen (-), sem listas aninhadas. Numere apenas quando a ordem de execução importar.",
+  "- SÍNTESE VISUAL: Bullets planos com hífen (-), sem listas aninhadas nem parágrafos longos. Numere apenas quando a ordem importar.",
   "- Emojis somente em títulos e avisos (não em cada bullet). Gravidade também por escrito (Instável, Pendente, Falhou), nunca só por emoji.",
   "- Negrito apenas em rótulos, dado decisivo e doses completas (fármaco + valor + unidade + via). Nunca em parágrafos inteiros.",
   "- Omita seções vazias, exceto campos obrigatórios de documentação ('Não informado').",
@@ -37373,12 +37378,15 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   }
 
   var sistema = [
-    "Você é um auditor de segurança medicamentosa e de conformidade com diretrizes. Receba o CASO e o RASCUNHO e liste SOMENTE problemas reais:",
-    "- dose acima do máximo ou abaixo do terapêutico; falta de ajuste renal/hepático/peso/idade; alergia ou interação ignorada;",
-    "- erro de cálculo pediátrico, faixa etária/peso não confirmados, apresentação divergente ou ausência de dado exigido pela referência; horários inadequados;",
-    "- diluente, velocidade de infusão ou acesso incorretos; erro aritmético (refaça a conta); medicamento fora da lista informada;",
+    "Você é um auditor de segurança medicamentosa e de conformidade com diretrizes clínicas.",
+    "Receba o CASO e o RASCUNHO e liste SOMENTE problemas reais e críticos de segurança do paciente:",
+    "- dose tóxica acima do teto ou subdose ineficaz; ausência de ajuste renal obrigatório; contraindicação absoluta ou interação grave;",
+    "- ausência de peso para cálculo pediátrico obrigatório ou erro aritmético de dosagem;",
     "- conduta em desacordo com AHA 2025 (PCR), Surviving Sepsis Campaign (sepse) ou diretrizes brasileiras vigentes.",
-    "Se não houver problema, responda exatamente: SEM ALERTAS. Caso contrário, liste todos os problemas identificados em linhas iniciadas por '- ', sem omitir alertas por brevidade.",
+    "DIRETRIZ DE CONCISÃO:",
+    "1. Se a conduta e posologia estiverem clinicamente seguras e aceitáveis, responda ESTRITAMENTE: SEM ALERTAS.",
+    "2. NÃO aponte variações cosméticas, arredondamentos práticos de volume ou detalhes triviais.",
+    "3. Se houver erro crítico real, liste apenas os problemas em tópicos diretos iniciados por '- ' (máximo 1 linha por alerta).",
     "Não use LaTeX. Não reescreva o rascunho."
   ].join("\n");
   var contexto = "CASO:\n" + dadosCaso + "\n\nRASCUNHO:\n" + rascunho;
@@ -37507,44 +37515,23 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     var promptSistemaConsolidado = [
       IA_PERSONA, IA_SEGURANCA_MEDICAMENTOSA, baseSoap,
       "MODO: DOCUMENTAÇÃO CLÍNICA SOAP - FASE 2: CONSOLIDAÇÃO COMPLETA (AVALIAÇÃO E PLANO).",
-      "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o caso em prontuário SOAP definitivo pronto para o prontuário eletrônico.",
+      "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o caso em prontuário SOAP definitivo, sintético e pronto para o PEP.",
       "",
-      "DIRETRIZES TÉCNICAS OBRIGATÓRIAS:",
-      "1. SUBJETIVO (S) - ORGANIZAÇÃO SEMIOLÓGICA ESTRUTURADA:",
-      "   - NUNCA resuma toda a história em um parágrafo único, contínuo ou corrido. NUNCA faça transcrição literal grosseira.",
-      "   - Estruture o Subjetivo obrigatoriamente com os seguintes tópicos médicos em linhas separadas:",
-      "     • Queixa Principal (QP): sintoma-guia e tempo de evolução.",
-      "     • História da Doença Atual (HDA): cronologia clara e detalhada, caracterização semiológica rica (tipo, intensidade, irradiação), fatores desencadeantes, de melhora e de piora, sintomas associados cardinais ou negados relevantes.",
-      "     • Antecedentes Gineco-Obstétricos / Clínicos: histórico prévio, métodos contraceptivos (ex: DIU, ACO), cirurgias e comorbidades.",
-      "     • Medicações de Uso Contínuo: fármacos relatados; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
-      "     • Alergias: alergias relatadas; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
-      "     • Hábitos de Vida: álcool, tabaco, outros ou 'Não relatados'.",
-      "2. INTEGRAÇÃO INTELIGENTE DE NOVOS DADOS (SEM 'ATUALIZAÇÃO:' SOLTA):",
-      "   - Se o relato do médico contiver dados complementares, novas mensagens ou adendos enviados em etapas:",
-      "     • NUNCA escreva 'Atualização:', 'Adendo:' ou notas soltas no rodapé.",
-      "     • INTEGRE cada informação cirurgicamente na sua respectiva seção médica (ex: se o médico informou alergias ou hábitos depois, insira diretamente em Alergias e Hábitos; se informou exame físico, insira no Objetivo).",
-      "     • O prontuário final deve ser coeso, limpo e parecer redigido de forma contínua e definitiva por um médico assistente experiente.",
-      "3. OBJETIVO (O) - EXAME FÍSICO E EXAMES COMPLEMENTARES:",
-      "   - Sinais Vitais: PA, FC, FR, SpO2, Tax (apenas os relatados; se ausentes, declare 'Sinais vitais pendentes de aferição').",
-      "   - Registre os achados por sistemas (Geral/Ectoscopia, ACV, AR, Abdome, Ginecológico, Extremidades e sistemas pertinentes à queixa).",
-      "   - NUNCA invente normalidade para sistemas que não foram relatados nem examinados. Para sistemas não informados, aponte 'Pendente de avaliação'.",
-      "   - Se o médico declarou 'exame físico normal' ou 'EF normal', preserve a declaração genérica; não invente manobras ou sinais específicos.",
-      "   - INTEGRAÇÃO DE EXAMES ESPECIAIS: Se o caso contiver exame especial anexado/incorporado (ex: [EXAME DO ESTADO MENTAL / PSICOPATOLÓGICO], [EXAME NEUROLÓGICO], ginecológico, etc.) ou se for diretamente relevante à queixa, transcreva a seção completa desse exame no Objetivo (O).",
-      "4. AVALIAÇÃO (A):",
-      "   - Diagnóstico principal ou problema sindrômico com código CID-10 e CIAP-2.",
+      "DIRETRIZES TÉCNICAS E SÍNTESE OBRIGATÓRIA:",
+      "1. SUBJETIVO (S): QP e HDA estruturadas e limpas. Antecedentes/Medicações/Alergias: relate o informado; se ausente, resuma em 1 linha ('Não informado'). NUNCA crie parágrafos prolixos.",
+      "2. OBJETIVO (O): Sinais vitais e achados informados organizados por sistemas. Se EF não informado, 'Exame físico pendente de avaliação'. Incorpore exame especial se presente.",
+      "3. AVALIAÇÃO (A):",
+      "   - Diagnóstico principal ou problema sindrômico com CID-10 e CIAP-2.",
       "   - Diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade.",
-      "   - Estratificação de risco/gravidade (escores clínicos pertinentes se aplicável).",
-      "5. PLANO (P):",
-      "   - Conduta terapêutica e prescrição farmacológica detalhada (fármaco, dose, posologia, via, tempo), de acordo com REMUME/SUS e segurança (ajuste renal/peso se informado).",
-      "   - Exames complementares prioritários solicitados.",
-      "   - Medidas não farmacológicas e orientações ao paciente.",
-      "   - Critérios de alarme e tempo de retorno ambulatorial.",
-      ambulatorialAgil ? "   - FOCO AMBULATORIAL / ATENÇÃO PRIMÁRIA: No Plano (P), destaque com clareza: Prescrição Farmacológica (fármacos da REMUME/Farmácia Popular com posologia e horários práticos de tomada), Orientações Não Farmacológicas / Estilo de Vida (MEV), Sinais de Alarme Claros para procura imediata de Pronto-Socorro e Prazo de Retorno Ambulatorial com metas de reavaliação." : "",
-      "6. DADOS PENDENTES E SEGURANÇA:",
-      "   - Liste todas as pendências que condicionam a segurança da conduta. Diferencie dados obrigatórios antes de prescrever e complementos opcionais.",
+      "4. PLANO (P):",
+      "   - Prescrição farmacológica detalhada e objetiva (fármaco, dose, posologia com intervalo/horário, via, tempo), de acordo com REMUME RP e segurança (ajuste renal/peso se informado).",
+      "   - Exames complementares imediatos.",
+      "   - Orientações farmacológicas e critérios de alarme objetivos.",
+      ambulatorialAgil ? "   - Foco APS: Prescrição REMUME, sinais de alarme para PS e meta de reavaliação." : "",
+      "5. PENDÊNCIAS CRÍTICAS: Liste apenas dados que condicionem a segurança antes de prescrever; omita se não houver.",
       "",
       "Contrato JSON estrito:",
-      '{"subjetivo":"Texto multi-linhas perfeitamente organizado com QP, HDA, Antecedentes, Medicações, Alergias e Hábitos","objetivo":"Texto estruturado do O por sistemas com achados e exames","avaliacao":["hipótese principal com CID-10 e CIAP-2","diferenciais em ordem de probabilidade/gravidade"],"plano":["item 1 da conduta com prescrição detalhada","exames solicitados","medidas não farmacológicas e orientações","critérios de alarme e retorno"],"pendencias_opcionais":["dado ausente que enriqueceria o caso"]}'
+      '{"subjetivo":"Texto limpo organizado com QP, HDA, Antecedentes, Medicações e Alergias","objetivo":"Texto estruturado do O por sistemas com achados e exames","avaliacao":["hipótese principal com CID-10 e CIAP-2","diferenciais em ordem de probabilidade/gravidade"],"plano":["item 1 da conduta com prescrição detalhada","exames solicitados","orientações e critérios de alarme"],"pendencias_opcionais":["dado crítico ausente"]}'
     ].join("\n");
 
     var rawCons = executarRaciocinioClinico(promptSistemaConsolidado, "CASO CLÍNICO:\n" + dadosCaso, 3500);
@@ -37567,8 +37554,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     if (pendencias.length > 0) {
       blocosCons.push(
         "⚠️ *Dados adicionais que enriqueceriam o caso (Dados pendentes — conferir antes de concluir):*\n" +
-        formatarListaTopicos(pendencias, "") +
-        "\n\n_💡 Se desejar complementar algum dado acima, basta enviar por áudio ou texto que a Avaliação e o Plano serão atualizados._"
+        formatarListaTopicos(pendencias, "")
       );
     }
 
@@ -37586,40 +37572,24 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   var promptSistemaRascunho = [
     IA_PERSONA,
     "MODO: DOCUMENTAÇÃO CLÍNICA SOAP - FASE 1: ANAMNESE E EXAME FÍSICO.",
-    "Você é o Copiloto Clínico Sênior (FMRP-USP). Sua função é estruturar o relato do médico em Anamnese Técnica e Exame Físico Inteligente.",
+    "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o relato do médico de forma concisa, técnica e sem enrolação.",
     "",
-    "DIRETRIZES SEMIOLÓGICAS OBRIGATÓRIAS:",
-    "1. SUBJETIVO (S) - ORGANIZAÇÃO SEMIOLÓGICA ESTRUTURADA:",
-    "   - NUNCA resuma toda a história em um parágrafo único, contínuo ou corrido. NUNCA faça transcrição literal grosseira.",
-    "   - Estruture o Subjetivo obrigatoriamente com os seguintes tópicos médicos em linhas separadas:",
-    "     • Queixa Principal (QP): sintoma-guia e tempo de evolução.",
-    "     • História da Doença Atual (HDA): cronologia clara e detalhada, caracterização semiológica rica (tipo, intensidade, irradiação), fatores desencadeantes, de melhora e de piora, sintomas associados cardinais ou negados relevantes.",
-    "     • Antecedentes Gineco-Obstétricos / Clínicos: histórico prévio, métodos contraceptivos (ex: DIU, ACO), cirurgias e comorbidades.",
-    "     • Medicações de Uso Contínuo: fármacos relatados; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
-    "     • Alergias: alergias relatadas; se ausentes, 'Não informado'. Registre negativa apenas quando expressamente relatada.",
-    "     • Hábitos de Vida: álcool, tabaco, outros ou 'Não relatados'.",
-    "2. INTEGRAÇÃO INTELIGENTE DE NOVOS DADOS (SEM 'ATUALIZAÇÃO:' SOLTA):",
-    "   - Se o relato do médico contiver dados complementares, novas mensagens ou adendos enviados em etapas:",
-    "     • NUNCA escreva 'Atualização:', 'Adendo:' ou notas soltas no rodapé.",
-    "     • INTEGRE cada informação cirurgicamente na sua respectiva seção médica (ex: se o médico informou alergias ou hábitos depois, insira diretamente em Alergias e Hábitos; se informou exame físico, insira no Objetivo).",
-    "     • O prontuário final deve ser coeso, limpo e parecer redigido de forma contínua e definitiva por um médico assistente experiente.",
-    "3. EXAME FÍSICO INTELIGENTE (O):",
-    "   - Sinais Vitais: PA, FC, FR, SpO2, Tax (apenas os relatados; se ausentes, declare 'Sinais vitais pendentes de aferição').",
-    "   - Registre rigorosamente os achados por sistemas (Geral/Ectoscopia, ACV, AR, Abdome, Extremidades e sistemas pertinentes à queixa).",
-    "   - Se o médico declarou 'exame físico normal' ou 'EF normal', preserve a declaração genérica; não invente manobras ou sinais específicos.",
-    "   - NUNCA invente sinais vitais numéricos (PA, FC, FR, SpO2, Tax). Se não constarem no relato, declare 'Sinais vitais pendentes de aferição' e cobre na seção dirigida.",
-    "   - NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa a menos que o médico tenha dito expressamente 'normal'. Para sistemas não informados e não examinados, declare explicitamente como pendentes à beira-leito.",
-    "   - INTEGRAÇÃO DE EXAMES ESPECIAIS: Se o caso contiver exame especial anexado/incorporado (ex: [EXAME DO ESTADO MENTAL / PSICOPATOLÓGICO], [EXAME NEUROLÓGICO], ortopédico, etc.) ou se for diretamente relevante à queixa, transcreva a seção completa desse exame no Objetivo (O) após os 5 sistemas clássicos.",
-    "   - DENSIDADE SEMIOLÓGICA: Meio termo elegante, sem excesso prolixo e sem ser telegráfico demais.",
-    "4. INVESTIGAÇÃO ATIVA DA ANAMNESE COM JUSTIFICATIVA DIDÁTICA (FMRP-USP):",
-    "   - Formule de 2 a 4 perguntas diretas e clínicas para completar as lacunas da história (início detalhado, fatores de alívio/piora, antecedentes, alergias, medicações).",
-    "   - RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses ao final. Exemplo: 'Investigar se a dor epigástrica irradia para o dorso (descartar pancreatite aguda ou dissecção de aorta abdominal)'.",
-    "5. COBRANÇA ATIVA DO EXAME FÍSICO DIRIGIDO:",
-    "   - Liste em tópicos os sinais vitais críticos (PA, FC, FR, SpO2, Tax) e manobras/auscultas essenciais para o caso que ainda não foram informados.",
-    "6. REGRA ABSOLUTA DE SEGURANÇA: NÃO gere hipóteses diagnósticas (Avaliação) e NÃO gere prescrições ou condutas (Plano) nesta fase.",
+    "DIRETRIZES SEMIOLÓGICAS E SÍNTESE OBRIGATÓRIA:",
+    "1. SUBJETIVO (S) - SÍNTESE ESTRUTURADA:",
+    "   - QP e HDA com cronologia e caracterização semiológica direta.",
+    "   - Antecedentes/Medicações/Alergias: registre se informados; se não informados, declare 'Não informado' de forma compacta em 1 linha.",
+    "2. EXAME FÍSICO (O):",
+    "   - Sinais Vitais: registre apenas os relatados. Se ausentes, declare 'Sinais vitais pendentes de aferição'.",
+    "   - Sistemas examinados relatados. Se EF não informado, declare 'Exame físico pendente de avaliação beira-leito'.",
+    "   - Integre exame especial se contido no caso.",
+    "3. PERGUNTAS DIRIGIDAS PARA A ANAMNESE:",
+    "   - Formule no máximo 2 perguntas curtas e diretas sobre lacunas essenciais da história. SEM explicações prolixas entre parênteses.",
+    "4. COBRANÇA ATIVA DO EXAME FÍSICO DIRIGIDO:",
+    "   - 1 a 2 tópicos com sinais vitais críticos ou manobras essenciais para a queixa.",
+    "5. REGRA ABSOLUTA DE SEGURANÇA: NÃO gere Avaliação nem Plano nesta fase.",
     "",
     "Contrato JSON estrito:",
-    '{"subjetivo":"Texto multi-linhas perfeitamente organizado com QP, HDA, Antecedentes, Medicações, Alergias e Hábitos","objetivo":"Texto estruturado do O por sistemas com achados e pendências","perguntas_anamnese":["Pergunta 1? (justificativa semiológica/hipótese a afastar)","Pergunta 2? (racional clínico)"],"exame_dirigido":["sinal vital ou manobra física imprescindível"]}'
+    '{"subjetivo":"Texto limpo organizado com QP, HDA, Antecedentes, Medicações e Alergias","objetivo":"Texto estruturado do O por sistemas","perguntas_anamnese":["Pergunta clínica direta 1?","Pergunta clínica direta 2?"],"exame_dirigido":["sinal vital ou manobra física imprescindível"]}'
   ].join("\n");
 
 
@@ -37643,8 +37613,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + sRasc,
     "🔍 *O - Objetivo (Exame Físico)*\n" + oRasc,
     "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."),
-    "🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa.") +
-    "\n\n_💡 Envie dados adicionais para atualizar ou clique em [📋 Gerar Avaliação & Plano] quando desejar fechar a conduta._"
+    "🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa.")
   ];
 
   return _iaFinalizarTexto(blocosRasc.join("\n\n"));
@@ -37669,12 +37638,7 @@ function obterRoteiroPadraoNeuro() {
     "• Reflexos: Reflexos tendinosos profundos normoativos (2+/4+) e simétricos (bicipital, tricipital, patelar e aquileu). Reflexo cutâneo-plantar em flexão bilateral (Babinski ausente).\n" +
     "• Coordenação & Marcha: Coordenação apendicular preservada (índex-nariz e diadococinesia sem dismetria). Sinal de Romberg negativo. Marcha típica, estável e coordenada, inclusive em tandem.\n" +
     "• Sinais Meníngeos & Radiculares: Rigidez de nuca ausente. Sinais de Kernig, Brudzinski e Lasègue negativos bilateralmente.\n" +
-    "```\n\n" +
-    "📌 *Notas Semiológicas:*\n" +
-    "1. Consciência (ECG) e Pares Cranianos (II a XII).\n" +
-    "2. Força motora MRC 0 a 5 e manobras de queda (Mingazzini/Barré).\n" +
-    "3. Reflexos profundos e cutâneo-plantar.\n" +
-    "4. Coordenação, Romberg, marcha e sinais meníngeos.";
+    "```";
 }
 
 function obterRoteiroPadraoPqu() {
@@ -37693,14 +37657,7 @@ function obterRoteiroPadraoPqu() {
     "• Memória: Fixação e evocação preservadas para fatos imediatos, recentes e remotos.\n" +
     "• Juízo Crítico e Insight: Capacidade de julgamento da realidade mantida e boa percepção sobre seu estado de saúde geral.\n" +
     "• Risco: Nega ativamente ideação de morte, planos suicidas ou heteroagressividade.\n" +
-    "```\n\n" +
-    "📌 *Notas Clínicas & 10 Funções Psíquicas Avaliadas:*\n" +
-    "1. Consciência, Orientação e Atenção.\n" +
-    "2. Sensopercepção (ausência de ilusões ou alucinações).\n" +
-    "3. Pensamento (curso, forma e conteúdo).\n" +
-    "4. Humor e Afeto (modulação e congruência).\n" +
-    "5. Linguagem, Fala e Memória.\n" +
-    "6. Juízo Crítico, Insight e Avaliação Ativa de Risco.";
+    "```";
 }
 
 function obterRoteiroPadraoOftalmo() {
@@ -37715,12 +37672,7 @@ function obterRoteiroPadraoOftalmo() {
     "• Pupilas & Reflexos: Isocóricas e fotorreagentes direta e consensualmente. Defeito pupilar aferente relativo ausente (DPAR negativo).\n" +
     "• Motilidade Ocular (MOE): Movimentação ocular preservada, ampla e simétrica nas 6 posições cardinais, sem diplopia ou nistagmo.\n" +
     "• Fundoscopia Direta: Disco óptico nítido e róseo, escavação fisiológica preservada (≤ 0,4), emergência e trajeto vascular típicos, mácula sem lesões aparentes com reflexo foveal mantido.\n" +
-    "```\n\n" +
-    "📌 *Notas Semiológicas:*\n" +
-    "1. Acuidade visual monocular (6º sinal vital).\n" +
-    "2. Diagnóstico diferencial: hiperemia conjuntival periférica vs ciliar/profunda.\n" +
-    "3. Isocoria, fotomotor direto/consensual e teste de Marcus Gunn (DPAR).\n" +
-    "4. Motilidade extrínseca e fundoscopia de emergência.";
+    "```";
 }
 
 function obterRoteiroPadraoOrtopo() {
@@ -37734,12 +37686,7 @@ function obterRoteiroPadraoOrtopo() {
     "• Joelhos: Sem derrame articular (teste da tecla/ordenha negativo). Estabilidade ligamentar preservada (Lachman e gavetas anterior/posterior negativos; estresse em varo/valgo negativos). Meniscos indolores (McMurray e Apley negativos).\n" +
     "• Punhos & Mãos: Força de preensão preservada, sem sinovite ou calor local. Testes de Phalen e Tinel negativos bilateralmente.\n" +
     "• Quadris & Bacia: Mobilidade articular de quadris livre e indolor. Teste de Patrick/FABERE negativo bilateralmente. Trendelenburg negativo.\n" +
-    "```\n\n" +
-    "📌 *Notas Semiológicas:*\n" +
-    "1. Coluna: eixos anatômicos e manobras radiculares (Lasègue / Spurling).\n" +
-    "2. Ombro: testes de impacto subacromial e manguito rotador.\n" +
-    "3. Joelho: pesquisa de derrame, testes ligamentares e meniscais.\n" +
-    "4. Punho: Phalen/Tinel para túnel do carpo e manobra de Finkelstein.";
+    "```";
 }
 
 function obterRoteiroPadraoOrl() {
@@ -37751,12 +37698,7 @@ function obterRoteiroPadraoOrl() {
     "• Rinoscopia Anterior: Mucosa nasal normocorada e úmida, cornetos inferiores normotróficos, sem hipertrofia, palidez ou rinorreia purulenta. Septo nasal centrado, sem desvio obstrutivo significativo.\n" +
     "• Oroscopia / Faringoscopia: Lábios, soalho da boca e mucosa jugal íntegros. Dentição conservada. Língua sem lesões, palato móvel e úvula centrada à fonação. Amígdalas palatinas normotróficas (grau I), sem hiperemia, exsudato purulento ou ulcerações. Parede posterior da faringe límpida.\n" +
     "• Cervical & Glândulas: Ausência de linfonodomegalias palpáveis em cadeias cervicais e supraclaviculares. Glândula tireoide tópica, consistência fibroelástica de volume normal, indolor, móvel à deglutição e sem nódulos.\n" +
-    "```\n\n" +
-    "📌 *Notas Semiológicas:*\n" +
-    "1. Otoscopia: tracionar pavilhão póstero-superiormente no adulto; avaliar MT perlácea e cone luminoso.\n" +
-    "2. Rinoscopia: aspecto da mucosa, trofismo de cornetos e desvio septal.\n" +
-    "3. Oroscopia: palato, úvula, amígdalas (escala de Brodsky) e exsudatos.\n" +
-    "4. Cervical: palpação sistematizada de cadeias ganglionares e tireoide.";
+    "```";
 }
 
 function obterRoteiroPadraoDermato() {
@@ -37768,12 +37710,7 @@ function obterRoteiroPadraoDermato() {
     "• Lesões Elementares: Ausência de lesões elementares patológicas primárias ou secundárias (sem máculas purpúricas, eritematosas, pápulas, placas, vesículas, bolhas, pústulas, crostas ou soluções de continuidade).\n" +
     "• Lesões Pigmentadas: Nevos melanocíticos preservados e sem atipias clínicas avaliados pela regra ABCDE (simétricos, bordas regulares, tonalidade homogênea, diâmetro < 6 mm e evolução estável).\n" +
     "• Fâneros: Couro cabeludo íntegro, cabelos com implantação e distribuição típicas sem áreas de alopecia difusa ou em placas. Unhas translúcidas, lisas, de formato habitual, sem estrias, onicólise ou baqueteamento digital.\n" +
-    "```\n\n" +
-    "📌 *Notas Semiológicas:*\n" +
-    "1. Ectoscopia da pele: turgor, hidratação, temperatura e coloração.\n" +
-    "2. Caracterização das lesões elementares primárias e secundárias.\n" +
-    "3. Critérios ABCDE para nevos pigmentados e rastreio de melanoma.\n" +
-    "4. Avaliação de fâneros: couro cabeludo, folículos e lâminas ungueais.";
+    "```";
 }
 
 function obterRoteiroPadraoGineco() {
@@ -37785,12 +37722,7 @@ function obterRoteiroPadraoGineco() {
     "• Genitália Externa: Trofismo vulvar preservado, sem lesões elementares, úlceras, condilomas ou distopias genitais aparentes às manobras de esforço.\n" +
     "• Exame Especular: Paredes vaginais íntegras, rugosas e normocoradas. Conteúdo vaginal fisiológico de aspecto habitual, em quantidade moderada, sem odor patológico. Colo uterino epitelizado, orifício externo pérvio/fechado, sem ectopias, lesões vegetantes ou sangramentos.\n" +
     "• Toque Bimanual: Colo uterino indolor à lateralização e mobilização (sinal de Frenkel/Chandelier ausente). Útero em anteversoflexão (AVF), consistência elástica e tamanho fisiológicos, móvel e indolor. Regiões anexiais livres e indolores bilateralmente.\n" +
-    "```\n\n" +
-    "📌 *Notas Semiológicas:*\n" +
-    "1. Mamas: inspeção estática/dinâmica, palpação sistemática por quadrantes e axilas.\n" +
-    "2. Exame especular: paredes vaginais, conteúdo vaginal e ectocérvice.\n" +
-    "3. Toque bimanual: colo (dor à mobilização), dimensões uterinas e regiões anexiais.\n" +
-    "4. Exame obstétrico (se gestante): Altura Uterina (AU), manobras de Leopold, BCF e contrações.";
+    "```";
 }
 
 function obterRoteiroPadraoProcto() {
@@ -37801,12 +37733,7 @@ function obterRoteiroPadraoProcto() {
     "• Genitália Masculina: Pênis de características típicas sem lesões ulceradas ou verrucosas, meato uretral tópico e pérvio sem secreção. Testículos tópicos na bolsa escrotal, móveis e indolores à palpação. Regiões inguinais sem hérnias ou linfonodomegalias palpáveis às manobras de esforço.\n" +
     "• Inspeção Perianal: Região perianal sem fissuras, fístulas, orifícios drenantes, plicomas dolorosos ou sinais de trombose hemorroidária. Ausência de prolapso anal à manobra de Valsalva.\n" +
     "• Toque Retal: Tônus esfincteriano anal preservado em repouso e sob contração voluntária. Ampola retal vazia e sem massas luminais palpáveis. Próstata de consistência fibroelástica, limites bem definidos, sulco mediano preservado, simétrica, indolor, sem nódulos pétreos. Luva de exame com resíduo fecal fisiológico, sem sangue vivo ou melena.\n" +
-    "```\n\n" +
-    "📌 *Notas Semiológicas:*\n" +
-    "1. Genitália externa: inspeção peniana, bolsa escrotal e orifícios inguinais.\n" +
-    "2. Inspeção anal em decúbito de Sims: fissuras, fístulas e hemorroidas.\n" +
-    "3. Toque retal: tônus esfincteriano, ampola e consistência/sulco mediano da próstata.\n" +
-    "4. Verificação da luva após o procedimento.";
+    "```";
 }
 
 function obterRoteiroPadraoPed() {
@@ -37821,12 +37748,7 @@ function obterRoteiroPadraoPed() {
     "• Aparelho Cardiovascular: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas sem sopros audíveis. Pulsos femorais e radiais cheios e simétricos.\n" +
     "• Abdome: Semi-globoso, flácido, indolor à palpação, RHA presentes, sem visceromegalias patológicas ou hérnias dolorosas.\n" +
     "• Membros / Quadris: Tônus muscular adequado para a idade. Manobras de Ortolani e Barlow negativas. Extremidades bem aquecidas e perfundidas (TEC < 2s).\n" +
-    "```\n\n" +
-    "📌 *Notas Semiológicas Pediátricas:*\n" +
-    "1. Fontanela anterior (normotensa vs deprimida/abaulada) e perímetro cefálico.\n" +
-    "2. Ausculta e pesquisa ativa de esforço respiratório (tiragem, BAN, gemência).\n" +
-    "3. Palpação obrigatória de pulsos femorais (afastar coarctação de aorta).\n" +
-    "4. Manobras de estabilidade de quadril (Ortolani e Barlow no 1º ano).";
+    "```";
 }
 
 function obterRoteiroPadraoGeriatria() {
@@ -37840,12 +37762,7 @@ function obterRoteiroPadraoGeriatria() {
     "• Mobilidade e Equilíbrio: Teste Timed Up and Go (TUG) realizado em < 10 segundos, com transferências posturais seguras e sem instabilidade. Romberg negativo.\n" +
     "• Hipotensão Ortostática: Pesquisa de hipotensão ortostática negativa (PA deitado e em ortostase sem queda significativa de PAS/PAD ou sintomas de tontura).\n" +
     "• Nutrição e Sarcopenia: Sem perda ponderal involuntária, panturrilhas com trofismo preservado (> 31 cm), força de preensão manual preservada bilateralmente.\n" +
-    "```\n\n" +
-    "📌 *Notas Semiológicas Geriátricas:*\n" +
-    "1. Rastreio cognitivo (MEEM/10-CS) e humor (GDS-15).\n" +
-    "2. Escalas funcionais de Katz (básicas) e Lawton & Brody (instrumentais).\n" +
-    "3. Teste Timed Up and Go (<10s independente; >20s alto risco de quedas).\n" +
-    "4. Pesquisa de hipotensão ortostática e biometria de panturrilha (>31cm).";
+    "```";
 }
 
 function obterRoteiroPadraoVascular() {
@@ -37857,12 +37774,7 @@ function obterRoteiroPadraoVascular() {
     "• Pulsos Periféricos: Pulsos femorais, poplíteos, tibiais posteriores e pediosos presentes, amplos (2+/2+) e simétricos bilateralmente. Ausência de sopros arteriais.\n" +
     "• Perfusão e Temperatura: Extremidades aquecidas sem gradiente térmico distal. Tempo de enchimento capilar (TEC) < 2 segundos em pododáctilos e quirodáctilos.\n" +
     "• Sistema Venoso / TVP: Ausência de edema de membros inferiores (sinal do cacifo negativo). Panturrilhas livres, simétricas à biometria comparativa, sem empastamento muscular. Sinais de Homans e Bancroft negativos bilateralmente.\n" +
-    "```\n\n" +
-    "📌 *Notas Semiológicas Vasculares:*\n" +
-    "1. Inspeção da pele: trofismo, dermatite ocre, palidez e úlceras.\n" +
-    "2. Palpação de pulsos arteriais periféricos (0 a 4+ bilateral).\n" +
-    "3. Perfusão distal e tempo de enchimento capilar (TEC < 2s).\n" +
-    "4. Sinais de TVP: empastamento, Homans, Bancroft/Moses e biometria comparativa.";
+    "```";
 }
 
 function obterCatalogoTodosExamesEspeciais() {
@@ -38059,24 +37971,24 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "",
     IA_SEGURANCA_MEDICAMENTOSA,
     "",
-    "ESTRUTURA:",
+    "ESTRUTURA SINTÉTICA E EFICIENTE (FOCO NO RECEITUÁRIO):",
     "\uD83D\uDC8A *PRESCRIÇÃO AMBULATORIAL - RASCUNHO (REMUME & GUIA HSL)*",
-    "*Status:* [Completa para revisão / Dados pendentes: listar]",
+    "*Status:* [Completa para revisão / Dados pendentes: listar em 1 linha]",
     "",
     "\uD83D\uDCDD *Receituário*",
     "*[USO ORAL / TÓPICO / INALATÓRIO / OFTÁLMICO / INJETÁVEL]*",
     "1. *Nome genérico (DCI)* - [concentração da lista] - [quantidade total calculada a dispensar]",
-    "- *Posologia:* [instrução clara com via, dose, intervalo, horários sugeridos de tomada e duração]",
+    "- *Posologia:* [instrução clara com via, dose, intervalo com horários sugeridos de tomada e duração]",
     "",
-    "\uD83D\uDCA1 *Orientações ao paciente*",
-    "- [horários práticos de tomada, relação com refeições, conservação, sinais de alerta e retorno]",
+    "💡 *Orientações ao paciente*",
+    "- [Apenas orientações farmacológicas indispensáveis: ex. jejum, horário de tomada ou agitar. NUNCA coloque conselhos óbvios como beber água ou repousar]",
     "",
-    "\uD83D\uDCCB *Conferência médica*",
+    "📋 *Conferência médica*",
     "- *Indicação clínica:* [...]",
-    "- *Memória de cálculo (se pediátrico):* [se por peso: dose HSL ➔ mg/kg/dia ➔ mg/dose ➔ mL/dose na lista ➔ frascos; se por idade (ex: Loratadina/Dexclorfeniramina): dose fixa oficial HSL por idade/peso ➔ mL/dose ➔ frascos, sem inventar mg/kg]",
-    "- *Ajustes de segurança (renal, hepático, idade/Beers, gestação):* [faixas de TFG do Guia HSL, alertas ou conformidade]",
-    "- *Alergias e interações:* [conferido com dados do caso ou pendências]",
-    "- *Disponibilidade na Rede:* [Item da REMUME de Ribeirão Preto / Não consta na REMUME - opção referenciada no Guia HSL].",
+    "- *Memória de cálculo (se pediátrico):* [se por peso: dose HSL ➔ mg/kg/dia ➔ mg/dose ➔ mL/dose na lista ➔ frascos; se por idade: dose fixa oficial]",
+    "- *Ajustes de segurança (renal, hepático, idade/Beers, gestação):* [conferido ou pendência em 1 linha]",
+    "- *Alergias e interações:* [conferido com relato do caso]",
+    "- *Disponibilidade na Rede:* [Item da REMUME Ribeirão Preto / Opção HSL]",
     "- Não acrescente seção de fontes ou bibliografia à resposta assistencial."
   ].join("\n");
 
@@ -38100,49 +38012,33 @@ function gerarPrescricaoHospitalarComIA(dadosCaso) {
   var promptSistemaHospitalar = [
     IA_PERSONA, "", IA_VISUAL, "",
     "MODO: PRESCRIÇÃO HOSPITALAR COMPLETA (ORDEM CANÔNICA DE ENFERMARIA / UTI - FMRP-USP).",
-    "Você é o Médico Assistente e Preceptor Hospitalar. Estruture a prescrição hospitalar completa para internação/enfermaria, pronta para o prontuário eletrônico e checagem de enfermagem.",
+    "Você é o Médico Assistente e Preceptor Hospitalar. Estruture a prescrição hospitalar completa, direta e pronta para checagem de enfermagem. Seja telegráfico.",
     "",
-    "ORDEM CANÔNICA OBRIGATÓRIA DA PRESCRIÇÃO HOSPITALAR:",
-    "1. DIETA: Via, consistência, fracionamento e restrições metabólicas (ex: Geral, Diabética, Hipossódica, Pastosa, Branda, Zero com hidratação, Enteral SNE com meta calórica/proteica).",
-    "2. HIDRATAÇÃO VENOSA & ELETRÓLITOS: Solução base (SF 0,9%, SG 5%, Ringer Lactato), volume, adições eletrolíticas (ex: KCl 19,1%), vazão contínua em mL/h em Bomba de Infusão Contínua (BIC) e macrogotas/min. Se euvolêmico/hipervolêmico/ICC/congesto, declare formalmente: 'Hidratação venosa zero / Manter veia periférica salinizada'.",
-    "3. ANTIMICROBIANOS (COM DIA D_ E AJUSTE RENAL):",
-    "   - Fármaco, dose miligramada precisa, via EV, diluente (volume e solução), tempo de infusão (ex: correr em 60 min; betalactâmicos preferencialmente em infusão estendida de 3 a 4h), intervalo de tomada com horários sugeridos.",
-    "   - Identificação do dia de tratamento: 'D1/?', 'D3/7', etc.",
-    "   - Ajuste obrigatório conforme ClCr/TFG do paciente (verificar base HSL).",
-    "4. MEDICAÇÕES DE USO CONTÍNUO (CONCILIAÇÃO MEDICAMENTOSA):",
-    "   - Avaliação crítica das medicações prévias do paciente: manter, suspender temporariamente (ex: suspender metformina se instabilidade/IRA; suspender IECA/BRA se choque/IRA hipercalêmica) ou substituir.",
-    "5. PROFILAXIAS HOSPITALARES OBRIGATÓRIAS (SEGURANÇA DO PACIENTE):",
-    "   - Profilaxia de Tromboembolismo Venoso (TEV): Enoxaparina 40 mg SC 1x/dia (ajustar para 20 mg SC 1x/dia se ClCr < 30 mL/min, ou HNF 5.000 UI SC 8/8h). Se contraindicação absoluta (plaquetas < 50.000, sangramento ativo recente): prescrever profilaxia mecânica (compressão pneumática intermitente / meias elásticas).",
-    "   - Profilaxia de Lesão Aguda de Mucosa Gástrica (Úlcera de Estresse): Omeprazol 40 mg EV 1x/dia pela manhã. Aplicar critérios estritos (apenas se Ventilação Mecânica > 48h, coagulopatia grave, sepse grave, TCE grave, grande queimado ou antecedente recente de HDA). Se sem critérios, declarar 'Sem indicação formal no momento'.",
-    "6. MEDICAMENTOS SINTOMÁTICOS & SE NECESSÁRIO (SOS):",
-    "   - Analgésicos / Antitérmicos: Dipirona 1g EV em 100 mL SF até de 6/6h se dor ou febre (Tax ≥ 37,8°C).",
-    "   - Antieméticos: Ondansetrona 8 mg EV até de 8/8h se náuseas/vômitos.",
-    "   - Esquema de Insulina Regular SC conforme HGT pré-refeições se diabético.",
-    "   - Analgesia de resgate (Tramadol/Morfina) se dor intensa, com parâmetros de vigilância de sedação.",
-    "7. CUIDADOS DE ENFERMAGEM & MONITORIZAÇÃO:",
-    "   - Sinais vitais com PA, FC, FR, SpO2 e Tax a cada 6 horas.",
-    "   - Glicemia capilar pré-refeições e às 22h (se aplicável).",
-    "   - Cabeceira elevada a 30° - 45° (prevenção de PAV e broncoaspiração).",
-    "   - Mudança de decúbito a cada 2 horas (prevenção de lesões por pressão).",
-    "   - Balanço hídrico rigoroso de 24h.",
-    "   - Sinais de alarme para chamar o médico assistente (PAS < 90 ou > 180 mmHg, FC < 50 ou > 120 bpm, FR < 10 ou > 26 irpm, SpO2 < 92%, Tax ≥ 37,8°C ou débito urinário < 0,5 mL/kg/h).",
+    "ORDEM CANÔNICA OBRIGATÓRIA DA PRESCRIÇÃO HOSPITALAR (SINTÉTICA):",
+    "1. DIETA: Via, consistência e restrições (ex: Geral, Diabética, Zero).",
+    "2. HIDRATAÇÃO VENOSA & ELETRÓLITOS: Solução base, eletrólitos, vazão em mL/h em BIC ou macrogotas/min. Se euvolêmico/ICC: 'Salinizar acesso periférico'.",
+    "3. ANTIMICROBIANOS (COM DIA D_ E AJUSTE RENAL): Dose precisa EV, diluente, tempo de infusão e intervalo de tomada.",
+    "4. MEDICAÇÕES DE USO CONTÍNUO: Manter, suspender ou substituir com justificativa concisa.",
+    "5. PROFILAXIAS HOSPITALARES OBRIGATÓRIAS: TEV (química/mecânica) e Úlcera de estresse (se critérios formais).",
+    "6. MEDICAMENTOS SINTOMÁTICOS & SOS: Dipirona EV, Ondansetrona EV, com intervalo mínimo e gatilhos numéricos.",
+    "7. CUIDADOS DE ENFERMAGEM & MONITORIZAÇÃO: Sinais vitais a cada 6h, cabeceira 30°-45°, balanço hídrico e parâmetros de alarme.",
     "",
     IA_SEGURANCA_MEDICAMENTOSA,
     "",
-    "ESTRUTURA DE RESPOSTA:",
+    "ESTRUTURA DE RESPOSTA (DIRETA E SEM ENROLAÇÃO):",
     "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO (ORDEM CANÔNICA)*",
-    "*Paciente / Leito:* [Dados informados] | *Status:* [Completa / Dados pendentes]",
+    "*Paciente / Leito:* [Dados informados] | *Status:* [Completa / Dados pendentes em 1 linha]",
     "",
-    "1. *DIETA:* [Descrição detalhada da dieta]",
-    "2. *HIDRATAÇÃO VENOSA:* [Solução, eletrólitos, vazão em mL/h e macrogotas/min ou 'Salinizar acesso']",
-    "3. *ANTIMICROBIANOS:* [Lista de antimicrobianos com diluição, tempo de infusão, dia D_ e ajuste renal]",
-    "4. *MEDICAÇÕES DE USO CONTÍNUO:* [Conciliação medicamentosa com justificativa de suspensões]",
-    "5. *PROFILAXIAS DE LEITO:* [TEV química/mecânica e úlcera de estresse fundamentadas]",
-    "6. *SINTOMÁTICOS & SOS:* [Dipirona, antiemético, insulina, com intervalo mínimo e gatilhos]",
-    "7. *CUIDADOS DE ENFERMAGEM:* [Sinais vitais, decúbito, cabeceira, balanço e metas de alerta]",
+    "1. *DIETA:* [Descrição concisa]",
+    "2. *HIDRATAÇÃO VENOSA:* [Solução, vazão ou 'Salinizar acesso']",
+    "3. *ANTIMICROBIANOS:* [Lista com diluição, tempo, dia D_ e ajuste renal]",
+    "4. *MEDICAÇÕES DE USO CONTÍNUO:* [Conciliação concisa]",
+    "5. *PROFILAXIAS DE LEITO:* [TEV e mucosa gástrica]",
+    "6. *SINTOMÁTICOS & SOS:* [Dipirona, antiemético, com gatilhos]",
+    "7. *CUIDADOS DE ENFERMAGEM:* [Sinais vitais, decúbito, cabeceira e metas de alerta]",
     "",
     "⚠️ *NOTAS MÉDICAS & PENDÊNCIAS:*",
-    "- [Pendências laboratoriais, culturas colhidas aguardando resultado, reavaliação de disfunção orgânica]"
+    "- [Pendências críticas imediatas em tópicos de 1 linha]"
   ].join("\n");
 
   var dados = "CASO CLÍNICO / DADOS DA INTERNAÇÃO:\n" + String(dadosCaso || "").trim();
@@ -41605,7 +41501,14 @@ function processarMensagemTexto(message) {
   }
 
 
-  if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais" || comando.startsWith("/ef_")) {
+  if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais") {
+    return enviarMenuExamesEspeciais(chatId);
+  }
+  if (comando.startsWith("/ef_")) {
+    var subTipoEf = comando.replace(/^\/ef_/, "").trim();
+    if (subTipoEf) {
+      return responderComGuiaExameFisico(chatId, subTipoEf);
+    }
     return enviarMenuExamesEspeciais(chatId);
   }
   // ───────────────────────────────────────────────────────────────────────────
@@ -45864,7 +45767,7 @@ function processarCallbackBotao(cb) {
       "• *Ritmo NÃO Chocável (AESP / Assistolia):* Administrar *IMEDIATAMENTE no Ciclo 1* assim que obtido acesso IV/IO!\n" +
       "• *Ritmo Chocável (FV / TVSP):* Administrar *após o 2º Choque* (início do Ciclo 2).\n\n" +
       "💧 *FLUSH & ELEVAÇÃO MANDATÓRIOS:*\n" +
-      "• Bólus IV rápido seguido imediatamente de *FLUSH de 20 mL de SF 0.9%*.\n" +
+      "• Bólus IV rápido seguido imediatamente de *flush de 20 mL de SF 0.9%*.\n" +
       "• *Elevar o membro por 10 a 20 segundos* para acelerar o retorno venoso central.\n\n" +
       "🫁 *VIA AÉREA AVANÇADA (IOT / MÁSCARA LARÍNGEA):*\n" +
       "• NÃO interromper as compressões torácicas para intubação.\n" +
@@ -45885,7 +45788,7 @@ function processarCallbackBotao(cb) {
       "⚡ *AMIODARONA (FV / TV SEM PULSO REFRATÁRIA):*\n" +
       "• *1ª Dose (Pós-3º Choque):* *300 mg IV/IO* em bólus rápido (2 ampolas de 150 mg/3 mL) + flush 20 mL SF 0.9%.\n" +
       "• *2ª Dose:* *150 mg IV/IO* em bólus rápido (1 ampola) após mais 1 ou 2 ciclos de RCP (após o 4º ou 5º choque).\n\n" +
-      "🧪 *DROGA ALTERNATIVA: LIDOCAÍNA 2%*\n" +
+      "🧪 *DROGA ALTERNATIVA: Lidocaína 2%*\n" +
       "• Indicada se Amiodarona indisponível ou hipersensibilidade prévia:\n" +
       "• *1ª Dose:* 1,0 a 1,5 mg/kg IV/IO em bólus rápido.\n" +
       "• *2ª Dose:* 0,5 a 0,75 mg/kg IV/IO nos ciclos subsequentes.\n" +
@@ -45907,7 +45810,7 @@ function processarCallbackBotao(cb) {
     responderCallbackTelegram(cb.id, "Ciclo RCP 2 min");
     var txtCiclo = "⏱️ *DIRETRIZES DE RCP DE ALTA QUALIDADE (CICLO DE 2 MINUTOS)*\n\n" +
       "🖐️ *MÉTRICAS DAS COMPRESSÕES TORÁCICAS (AHA / SBC):*\n" +
-      "• *Frequência:* 100 a 120 compressões por minuto.\n" +
+      "• *Frequência:* 100 a 120 cpm (compressões por minuto).\n" +
       "• *Profundidade:* 5 a 6 cm no terço inferior do esterno (adulto).\n" +
       "• *Retorno Completo do Tórax:* Permitir descompressão total a cada movimento (não apoiar o peso sobre o tórax).\n" +
       "• *Minimizar Interrupções:* Pausas < 10 segundos apenas para checar ritmo e chocar.\n" +
@@ -45963,7 +45866,7 @@ function processarCallbackBotao(cb) {
       "• *Alvo de Pressão:* PAM ≥ 65 mmHg e PAS ≥ 90 mmHg.\n" +
       "• *Suporte Vasoativo:* Iniciar infusão de *Noradrenalina* (0,1 a 1,0 mcg/kg/min) se hipotensão persistente. Considerar Dobutamina se choque cardiogênico pós-parada.\n\n" +
       "2️⃣ *VENTILAÇÃO & OXIGENAÇÃO:*\n" +
-      "• *Alvo de SpO₂:* 92% a 98% (EVITAR hiperóxia FiO₂ 100% desnecessária!).\n" +
+      "• *Alvo de SpO2:* 92% a 98% (92-98%, EVITAR hiperóxia FiO₂ 100% desnecessária!).\n" +
       "• *Normocapnia:* PaCO₂ 35 a 45 mmHg (EtCO₂ 35 a 40 mmHg). Evitar hipocapnia (vasoconstrição cerebral).\n\n" +
       "3️⃣ *ESTRATÉGIA CORONARIANA IMEDIATA (ECG 12 DERIVAÇÕES):*\n" +
       "• Realizar ECG de 12 derivações IMEDIATAMENTE.\n" +
@@ -48182,48 +48085,7 @@ function tratarComandoPcr(chatId, dadosPcr) {
     return enviarMensagemComTecladoParaChat(chatId, txtPals, kbPals);
   }
 
-  // Caso 3: Ritmo Chocável (FV / TVSP)
-  if (dLow.indexOf("fv") !== -1 || dLow.indexOf("tv") !== -1 || dLow.indexOf("chocavel") !== -1 || dLow.indexOf("chocável") !== -1) {
-    var txtChoc = "⚡ *PCR: RITMO CHOCÁVEL (FV / TV SEM PULSO) — PROTOCOLO ACLS*\n\n" +
-      "1️⃣ *DESFIBRILAÇÃO IMEDIATA:*\n" +
-      "• Choque Bifásico: *200 J* (ou carga máxima do aparelho) / Monofásico: *360 J*.\n" +
-      "• Retomar RCP imediatamente por 2 minutos (NÃO checar pulso pós-choque imediato).\n\n" +
-      "2️⃣ *CICLO 2 (Pós-2º Choque):*\n" +
-      "• *Adrenalina 1 mg IV/IO* em bólus + flush 20 mL SF 0.9% (repetir a cada 3 a 5 min).\n" +
-      "• Obter acesso IV/IO e considerar via aérea avançada (EtCO₂).\n\n" +
-      "3️⃣ *CICLO 3 (Pós-3º Choque — FV/TV Refratária):*\n" +
-      "• *Amiodarona 300 mg IV/IO* em bólus rápido (2ª dose: 150 mg após 2 ciclos).\n" +
-      "• _Alternativa à Amiodarona:_ Lidocaína 1 a 1,5 mg/kg IV/IO (2ª dose: 0,5 a 0,75 mg/kg).\n" +
-      "• Sulfato de Magnésio 50% 2g IV em 1-2 min se suspeita de *Torsades de Pointes*.\n\n" +
-      "4️⃣ *INVESTIGAR CAUSAS REVERSÍVEIS (5 Hs & 5 Ts)*";
-    var kbChoc = {
-      inline_keyboard: [
-        [
-          { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" },
-          { text: "💉 Amiodarona", callback_data: "pcr_droga_amiodarona" }
-        ],
-        [
-          { text: "⏱️ Ciclo RCP 2 min", callback_data: "pcr_ciclo_2min" },
-          { text: "🔍 5Hs & 5Ts", callback_data: "pcr_5hs_5ts" }
-        ],
-        [
-          { text: "🎯 Cuidados Pós-RCE", callback_data: "pcr_pos_rce" },
-          { text: "🫀 Mudar p/ Não Chocável", callback_data: "pcr_naochocavel" }
-        ],
-        [
-          { text: "🤰 PCR Gestante", callback_data: "pcr_gestante" },
-          { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
-        ],
-        [
-          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
-          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
-        ]
-      ]
-    };
-    return enviarMensagemComTecladoParaChat(chatId, txtChoc, kbChoc);
-  }
-
-  // Caso 4: Ritmo Não Chocável (AESP / Assistolia)
+  // Caso 3: Ritmo Não Chocável (AESP / Assistolia)
   if (dLow.indexOf("aesp") !== -1 || dLow.indexOf("assistolia") !== -1 || dLow.indexOf("nao chocavel") !== -1 || dLow.indexOf("não chocável") !== -1) {
     var txtNaoChoc = "🫀 *PCR: RITMO NÃO CHOCÁVEL (AESP / ASSISTOLIA) — PROTOCOLO ACLS*\n\n" +
       "1️⃣ *RCP DE ALTA QUALIDADE IMEDIATA:*\n" +
@@ -48266,6 +48128,48 @@ function tratarComandoPcr(chatId, dadosPcr) {
     return enviarMensagemComTecladoParaChat(chatId, txtNaoChoc, kbNaoChoc);
   }
 
+  // Caso 4: Ritmo Chocável (FV / TVSP)
+  if ((dLow.indexOf("fv") !== -1 || dLow.indexOf("tv") !== -1 || dLow.indexOf("chocavel") !== -1 || dLow.indexOf("chocável") !== -1) &&
+      dLow.indexOf("nao chocavel") === -1 && dLow.indexOf("não chocável") === -1) {
+    var txtChoc = "⚡ *PCR: RITMO CHOCÁVEL (FV / TV SEM PULSO) — PROTOCOLO ACLS*\n\n" +
+      "1️⃣ *DESFIBRILAÇÃO IMEDIATA:*\n" +
+      "• Choque Bifásico: *200 J* (ou carga máxima do aparelho) / Monofásico: *360 J*.\n" +
+      "• Retomar RCP imediatamente por 2 minutos (NÃO checar pulso pós-choque imediato).\n\n" +
+      "2️⃣ *CICLO 2 (Pós-2º Choque):*\n" +
+      "• *Adrenalina 1 mg IV/IO* em bólus + flush 20 mL SF 0.9% (repetir a cada 3 a 5 min).\n" +
+      "• Obter acesso IV/IO e considerar via aérea avançada (EtCO₂).\n\n" +
+      "3️⃣ *CICLO 3 (Pós-3º Choque — FV/TV Refratária):*\n" +
+      "• *Amiodarona 300 mg IV/IO* em bólus rápido (2ª dose: 150 mg após 2 ciclos).\n" +
+      "• _Alternativa à Amiodarona:_ Lidocaína 1 a 1,5 mg/kg IV/IO (2ª dose: 0,5 a 0,75 mg/kg).\n" +
+      "• Sulfato de Magnésio 50% 2g IV em 1-2 min se suspeita de *Torsades de Pointes*.\n\n" +
+      "4️⃣ *INVESTIGAR CAUSAS REVERSÍVEIS (5 Hs & 5 Ts)*";
+    var kbChoc = {
+      inline_keyboard: [
+        [
+          { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" },
+          { text: "💉 Amiodarona", callback_data: "pcr_droga_amiodarona" }
+        ],
+        [
+          { text: "⏱️ Ciclo RCP 2 min", callback_data: "pcr_ciclo_2min" },
+          { text: "🔍 5Hs & 5Ts", callback_data: "pcr_5hs_5ts" }
+        ],
+        [
+          { text: "🎯 Cuidados Pós-RCE", callback_data: "pcr_pos_rce" },
+          { text: "🫀 Mudar p/ Não Chocável", callback_data: "pcr_naochocavel" }
+        ],
+        [
+          { text: "🤰 PCR Gestante", callback_data: "pcr_gestante" },
+          { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
+        ],
+        [
+          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtChoc, kbChoc);
+  }
+
   // Padrão (Sem argumentos ou geral): Visão Geral de ACLS + Seletor de Ritmo
   var txtPadrao = "🚨 *PARADA CARDIORRESPIRATÓRIA (PCR ADULTO — ALGORITMO ACLS)*\n\n" +
     "1. *Checar responsividade e respiração/pulso carotídeo* (máx 10 segundos).\n" +
@@ -48298,6 +48202,10 @@ function tratarComandoPcr(chatId, dadosPcr) {
  * Trata o protocolo de Arritmias Cardíacas (ACLS) beira-leito
  */
 function tratarComandoArritmia(chatId, comando, dadosArr) {
+  if (typeof dadosArr === "undefined" && comando && comando.charAt(0) !== "/") {
+    dadosArr = comando;
+    comando = "/arritmia";
+  }
   comando = (comando || "/arritmia").toLowerCase();
   dadosArr = (dadosArr || "").trim();
   var dLow = dadosArr.toLowerCase();
@@ -50501,11 +50409,7 @@ function enviarMenuCondutas(chat, messageId) {
 /* ========== Cenário 2: 🛏️ Enfermaria & Prescrição Rápida ========== */
 
 function enviarMenuEnfermaria(chat, messageId) {
-  var texto = '🛏️ *ENFERMARIA & PRESCRIÇÃO RÁPIDA*\n\n' +
-    'Gestão diária de pacientes internados, função renal e prescrições:\n\n' +
-    '• *Leitos:* Painel de bordo e status clínico (verde/amarelo/vermelho)\n' +
-    '• *Função Renal:* Clearance de Creatinina e ajuste posológico de antimicrobianos\n' +
-    '• *Suporte:* Hidratação venosa (Holliday-Segar) e kits de sintomáticos hospitalares';
+  var texto = '🛏️ *ENFERMARIA & PRESCRIÇÃO*\nSelecione a ferramenta ou envie o caso diretamente:';
   var botoes = botoesBot([
     [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:enf:sbar']],
     [['🧪 Clearance (Cockcroft)', 'ux:enf:clcr'], ['💊 Ajuste Renal ATB', 'ux:enf:ajuste']],
@@ -50519,11 +50423,7 @@ function enviarMenuEnfermaria(chat, messageId) {
 /* ========== Cenário 3: 🩺 Ambulatório & Atenção Primária (UBS) ========== */
 
 function enviarMenuAmbulatorio(chat, messageId) {
-  var texto = '🩺 *AMBULATÓRIO & ATENÇÃO PRIMÁRIA (UBS)*\n\n' +
-    'Consultas ambulatoriais, síntese de caso e medicina de família:\n\n' +
-    '• *SOAP Ágil:* Registro rápido de anamnese, exame físico e plano\n' +
-    '• *Prescrição:* Medicamentos disponíveis na REMUME e Farmácia Popular\n' +
-    '• *Documentos:* Códigos CID-10/CIAP-2 e atestado médico CFM';
+  var texto = '🩺 *AMBULATÓRIO & ATENÇÃO PRIMÁRIA (UBS)*\nSelecione a ação ou envie o caso diretamente:';
   var botoes = botoesBot([
     [['📝 Gerador SOAP Ágil', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
     [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado CFM', 'ux:amb:atestado']],
@@ -50536,11 +50436,7 @@ function enviarMenuAmbulatorio(chat, messageId) {
 /* ========== Cenário 4: 💊 Consultas Rápidas de Bolso ========== */
 
 function enviarMenuConsultasBolso(chat, messageId) {
-  var texto = '💊 *CONSULTAS RÁPIDAS DE BOLSO*\n\n' +
-    'Guias práticos imediatos para tomada de decisão farmacológica:\n\n' +
-    '• *Antimicrobianos:* Esquemas empíricos de 1ª linha por foco clínico\n' +
-    '• *Pediatria:* Doses por kg com tetos máximos de segurança\n' +
-    '• *Segurança:* Drogas na gestação/lactação e checagem de interações';
+  var texto = '💊 *CONSULTAS RÁPIDAS DE BOLSO*\nSelecione o guia de referência:';
   var botoes = botoesBot([
     [['🦠 Antibióticos por Foco', 'ux:bolso:atb'], ['👶 Doses Pediátricas (kg)', 'ux:bolso:ped']],
     [['🤰 Gestação & Lactação', 'ux:bolso:gestacao'], ['⚠️ Interações Graves', 'ux:bolso:interacao']],
@@ -50553,12 +50449,7 @@ function enviarMenuConsultasBolso(chat, messageId) {
 /* ========== Hub Principal (4 Cenários Clínicos Imediatos) ========== */
 
 function enviarHubPrincipal(chat, messageId) {
-  var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\n\n' +
-    'Selecione um dos 4 cenários clínicos imediatos (1 a 2 toques):\n\n' +
-    '🚨 *1. Emergência & Sala Vermelha:* PCR (ACLS), DVA, Intubação SRI, Choque e Glasgow\n' +
-    '🛏️ *2. Enfermaria & Prescrição:* Leitos, Clearance, Ajuste Renal, Hidratação e SBAR\n' +
-    '🩺 *3. Ambulatório & UBS:* SOAP Ágil, CID-10/CIAP-2, Prescrição REMUME e Atestado\n' +
-    '💊 *4. Consultas Rápidas de Bolso:* Antibióticos por foco, Doses Pediátricas e Drogas na Gestação';
+  var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\nSelecione o cenário clínico ou envie o caso diretamente:';
 
   var urlApp = obterUrlCockpit(chat);
   var botoes = [
@@ -50976,7 +50867,21 @@ function tratarCallbackUX(cb) {
       else if (v === 'hidratacao') texto('/holliday');
       else if (v === 'rxh') texto('/rxh');
       else if (v === 'sbar') texto('/passagem');
-      else if (v === 'sintomaticos') texto('/rx sintomaticos dor febre nausea');
+      else if (v === 'sintomaticos') {
+        var msgSint = "💊 *SINTOMÁTICOS HOSPITALARES / SOS (ENFERMARIA)*\n\n" +
+          "1. *Dipirona 1g EV* em 100 mL SF a cada 6h se dor ou febre (Tax ≥ 37,8°C)\n" +
+          "2. *Ondansetrona 8mg EV* em 20 mL SF até de 8/8h se náuseas ou vômitos\n" +
+          "3. *Metoclopramida 10mg EV* (alternativa se náusea; evitar se distúrbio extrapiramidal)\n" +
+          "4. *Omeprazol 40mg EV 1x/dia* pela manhã (apenas se critérios formais de úlcera de estresse)\n" +
+          "5. *Simeticona 75mg (30 gotas) VO* até de 8/8h se meteorismo ou distensão\n\n" +
+          "⚠️ *Segurança:* conferir alergia a dipirona e função renal.";
+        var ckSint = Utilities.getUuid().replace(/-/g, "");
+        safePutCache(cache, ckSint, msgSint, 21600);
+        return enviarTelaBot(chat, msgSint, botoesBot([
+          [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSint]],
+          [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+        ]), msgId);
+      }
       else enviarMenuEnfermaria(chat, msgId);
     } else if (op === 'amb') {
       if (v === 'soap') iniciarModoBot(chat, 'soap', true, msgId);

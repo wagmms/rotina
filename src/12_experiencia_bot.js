@@ -337,11 +337,7 @@ function enviarMenuCondutas(chat, messageId) {
 /* ========== Cenário 2: 🛏️ Enfermaria & Prescrição Rápida ========== */
 
 function enviarMenuEnfermaria(chat, messageId) {
-  var texto = '🛏️ *ENFERMARIA & PRESCRIÇÃO RÁPIDA*\n\n' +
-    'Gestão diária de pacientes internados, função renal e prescrições:\n\n' +
-    '• *Leitos:* Painel de bordo e status clínico (verde/amarelo/vermelho)\n' +
-    '• *Função Renal:* Clearance de Creatinina e ajuste posológico de antimicrobianos\n' +
-    '• *Suporte:* Hidratação venosa (Holliday-Segar) e kits de sintomáticos hospitalares';
+  var texto = '🛏️ *ENFERMARIA & PRESCRIÇÃO*\nSelecione a ferramenta ou envie o caso diretamente:';
   var botoes = botoesBot([
     [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:enf:sbar']],
     [['🧪 Clearance (Cockcroft)', 'ux:enf:clcr'], ['💊 Ajuste Renal ATB', 'ux:enf:ajuste']],
@@ -355,11 +351,7 @@ function enviarMenuEnfermaria(chat, messageId) {
 /* ========== Cenário 3: 🩺 Ambulatório & Atenção Primária (UBS) ========== */
 
 function enviarMenuAmbulatorio(chat, messageId) {
-  var texto = '🩺 *AMBULATÓRIO & ATENÇÃO PRIMÁRIA (UBS)*\n\n' +
-    'Consultas ambulatoriais, síntese de caso e medicina de família:\n\n' +
-    '• *SOAP Ágil:* Registro rápido de anamnese, exame físico e plano\n' +
-    '• *Prescrição:* Medicamentos disponíveis na REMUME e Farmácia Popular\n' +
-    '• *Documentos:* Códigos CID-10/CIAP-2 e atestado médico CFM';
+  var texto = '🩺 *AMBULATÓRIO & ATENÇÃO PRIMÁRIA (UBS)*\nSelecione a ação ou envie o caso diretamente:';
   var botoes = botoesBot([
     [['📝 Gerador SOAP Ágil', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
     [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado CFM', 'ux:amb:atestado']],
@@ -372,11 +364,7 @@ function enviarMenuAmbulatorio(chat, messageId) {
 /* ========== Cenário 4: 💊 Consultas Rápidas de Bolso ========== */
 
 function enviarMenuConsultasBolso(chat, messageId) {
-  var texto = '💊 *CONSULTAS RÁPIDAS DE BOLSO*\n\n' +
-    'Guias práticos imediatos para tomada de decisão farmacológica:\n\n' +
-    '• *Antimicrobianos:* Esquemas empíricos de 1ª linha por foco clínico\n' +
-    '• *Pediatria:* Doses por kg com tetos máximos de segurança\n' +
-    '• *Segurança:* Drogas na gestação/lactação e checagem de interações';
+  var texto = '💊 *CONSULTAS RÁPIDAS DE BOLSO*\nSelecione o guia de referência:';
   var botoes = botoesBot([
     [['🦠 Antibióticos por Foco', 'ux:bolso:atb'], ['👶 Doses Pediátricas (kg)', 'ux:bolso:ped']],
     [['🤰 Gestação & Lactação', 'ux:bolso:gestacao'], ['⚠️ Interações Graves', 'ux:bolso:interacao']],
@@ -389,12 +377,7 @@ function enviarMenuConsultasBolso(chat, messageId) {
 /* ========== Hub Principal (4 Cenários Clínicos Imediatos) ========== */
 
 function enviarHubPrincipal(chat, messageId) {
-  var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\n\n' +
-    'Selecione um dos 4 cenários clínicos imediatos (1 a 2 toques):\n\n' +
-    '🚨 *1. Emergência & Sala Vermelha:* PCR (ACLS), DVA, Intubação SRI, Choque e Glasgow\n' +
-    '🛏️ *2. Enfermaria & Prescrição:* Leitos, Clearance, Ajuste Renal, Hidratação e SBAR\n' +
-    '🩺 *3. Ambulatório & UBS:* SOAP Ágil, CID-10/CIAP-2, Prescrição REMUME e Atestado\n' +
-    '💊 *4. Consultas Rápidas de Bolso:* Antibióticos por foco, Doses Pediátricas e Drogas na Gestação';
+  var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\nSelecione o cenário clínico ou envie o caso diretamente:';
 
   var urlApp = obterUrlCockpit(chat);
   var botoes = [
@@ -812,7 +795,21 @@ function tratarCallbackUX(cb) {
       else if (v === 'hidratacao') texto('/holliday');
       else if (v === 'rxh') texto('/rxh');
       else if (v === 'sbar') texto('/passagem');
-      else if (v === 'sintomaticos') texto('/rx sintomaticos dor febre nausea');
+      else if (v === 'sintomaticos') {
+        var msgSint = "💊 *SINTOMÁTICOS HOSPITALARES / SOS (ENFERMARIA)*\n\n" +
+          "1. *Dipirona 1g EV* em 100 mL SF a cada 6h se dor ou febre (Tax ≥ 37,8°C)\n" +
+          "2. *Ondansetrona 8mg EV* em 20 mL SF até de 8/8h se náuseas ou vômitos\n" +
+          "3. *Metoclopramida 10mg EV* (alternativa se náusea; evitar se distúrbio extrapiramidal)\n" +
+          "4. *Omeprazol 40mg EV 1x/dia* pela manhã (apenas se critérios formais de úlcera de estresse)\n" +
+          "5. *Simeticona 75mg (30 gotas) VO* até de 8/8h se meteorismo ou distensão\n\n" +
+          "⚠️ *Segurança:* conferir alergia a dipirona e função renal.";
+        var ckSint = Utilities.getUuid().replace(/-/g, "");
+        safePutCache(cache, ckSint, msgSint, 21600);
+        return enviarTelaBot(chat, msgSint, botoesBot([
+          [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSint]],
+          [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+        ]), msgId);
+      }
       else enviarMenuEnfermaria(chat, msgId);
     } else if (op === 'amb') {
       if (v === 'soap') iniciarModoBot(chat, 'soap', true, msgId);

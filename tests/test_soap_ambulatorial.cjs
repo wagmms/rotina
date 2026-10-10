@@ -298,7 +298,12 @@ test('9. Métodos RPC ambulatoriais funcionam no runtime e no cockpitRpc', () =>
 test('10. Comandos /ambulatorio e /atestado no Telegram Bot respondem com assertividade', () => {
   let msgEnviada = null;
   const originalEnviar = ctx.enviarMensagemParaChat;
+  const originalEnviarKb = ctx.enviarMensagemComTecladoParaChat;
   ctx.enviarMensagemParaChat = (chatId, texto) => {
+    msgEnviada = texto;
+    return { ok: true };
+  };
+  ctx.enviarMensagemComTecladoParaChat = (chatId, texto, kb) => {
     msgEnviada = texto;
     return { ok: true };
   };
@@ -314,6 +319,7 @@ test('10. Comandos /ambulatorio e /atestado no Telegram Bot respondem com assert
     assert(msgEnviada && msgEnviada.includes('3 (três) dia(s)'), 'Atestado deve conter 3 dias por extenso');
   } finally {
     ctx.enviarMensagemParaChat = originalEnviar;
+    ctx.enviarMensagemComTecladoParaChat = originalEnviarKb;
   }
 });
 

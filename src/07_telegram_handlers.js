@@ -1324,7 +1324,14 @@ function processarMensagemTexto(message) {
   }
 
 
-  if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais" || comando.startsWith("/ef_")) {
+  if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais") {
+    return enviarMenuExamesEspeciais(chatId);
+  }
+  if (comando.startsWith("/ef_")) {
+    var subTipoEf = comando.replace(/^\/ef_/, "").trim();
+    if (subTipoEf) {
+      return responderComGuiaExameFisico(chatId, subTipoEf);
+    }
     return enviarMenuExamesEspeciais(chatId);
   }
   // ───────────────────────────────────────────────────────────────────────────
@@ -5583,7 +5590,7 @@ function processarCallbackBotao(cb) {
       "• *Ritmo NÃO Chocável (AESP / Assistolia):* Administrar *IMEDIATAMENTE no Ciclo 1* assim que obtido acesso IV/IO!\n" +
       "• *Ritmo Chocável (FV / TVSP):* Administrar *após o 2º Choque* (início do Ciclo 2).\n\n" +
       "💧 *FLUSH & ELEVAÇÃO MANDATÓRIOS:*\n" +
-      "• Bólus IV rápido seguido imediatamente de *FLUSH de 20 mL de SF 0.9%*.\n" +
+      "• Bólus IV rápido seguido imediatamente de *flush de 20 mL de SF 0.9%*.\n" +
       "• *Elevar o membro por 10 a 20 segundos* para acelerar o retorno venoso central.\n\n" +
       "🫁 *VIA AÉREA AVANÇADA (IOT / MÁSCARA LARÍNGEA):*\n" +
       "• NÃO interromper as compressões torácicas para intubação.\n" +
@@ -5604,7 +5611,7 @@ function processarCallbackBotao(cb) {
       "⚡ *AMIODARONA (FV / TV SEM PULSO REFRATÁRIA):*\n" +
       "• *1ª Dose (Pós-3º Choque):* *300 mg IV/IO* em bólus rápido (2 ampolas de 150 mg/3 mL) + flush 20 mL SF 0.9%.\n" +
       "• *2ª Dose:* *150 mg IV/IO* em bólus rápido (1 ampola) após mais 1 ou 2 ciclos de RCP (após o 4º ou 5º choque).\n\n" +
-      "🧪 *DROGA ALTERNATIVA: LIDOCAÍNA 2%*\n" +
+      "🧪 *DROGA ALTERNATIVA: Lidocaína 2%*\n" +
       "• Indicada se Amiodarona indisponível ou hipersensibilidade prévia:\n" +
       "• *1ª Dose:* 1,0 a 1,5 mg/kg IV/IO em bólus rápido.\n" +
       "• *2ª Dose:* 0,5 a 0,75 mg/kg IV/IO nos ciclos subsequentes.\n" +
@@ -5626,7 +5633,7 @@ function processarCallbackBotao(cb) {
     responderCallbackTelegram(cb.id, "Ciclo RCP 2 min");
     var txtCiclo = "⏱️ *DIRETRIZES DE RCP DE ALTA QUALIDADE (CICLO DE 2 MINUTOS)*\n\n" +
       "🖐️ *MÉTRICAS DAS COMPRESSÕES TORÁCICAS (AHA / SBC):*\n" +
-      "• *Frequência:* 100 a 120 compressões por minuto.\n" +
+      "• *Frequência:* 100 a 120 cpm (compressões por minuto).\n" +
       "• *Profundidade:* 5 a 6 cm no terço inferior do esterno (adulto).\n" +
       "• *Retorno Completo do Tórax:* Permitir descompressão total a cada movimento (não apoiar o peso sobre o tórax).\n" +
       "• *Minimizar Interrupções:* Pausas < 10 segundos apenas para checar ritmo e chocar.\n" +
@@ -5682,7 +5689,7 @@ function processarCallbackBotao(cb) {
       "• *Alvo de Pressão:* PAM ≥ 65 mmHg e PAS ≥ 90 mmHg.\n" +
       "• *Suporte Vasoativo:* Iniciar infusão de *Noradrenalina* (0,1 a 1,0 mcg/kg/min) se hipotensão persistente. Considerar Dobutamina se choque cardiogênico pós-parada.\n\n" +
       "2️⃣ *VENTILAÇÃO & OXIGENAÇÃO:*\n" +
-      "• *Alvo de SpO₂:* 92% a 98% (EVITAR hiperóxia FiO₂ 100% desnecessária!).\n" +
+      "• *Alvo de SpO2:* 92% a 98% (92-98%, EVITAR hiperóxia FiO₂ 100% desnecessária!).\n" +
       "• *Normocapnia:* PaCO₂ 35 a 45 mmHg (EtCO₂ 35 a 40 mmHg). Evitar hipocapnia (vasoconstrição cerebral).\n\n" +
       "3️⃣ *ESTRATÉGIA CORONARIANA IMEDIATA (ECG 12 DERIVAÇÕES):*\n" +
       "• Realizar ECG de 12 derivações IMEDIATAMENTE.\n" +
@@ -7901,48 +7908,7 @@ function tratarComandoPcr(chatId, dadosPcr) {
     return enviarMensagemComTecladoParaChat(chatId, txtPals, kbPals);
   }
 
-  // Caso 3: Ritmo Chocável (FV / TVSP)
-  if (dLow.indexOf("fv") !== -1 || dLow.indexOf("tv") !== -1 || dLow.indexOf("chocavel") !== -1 || dLow.indexOf("chocável") !== -1) {
-    var txtChoc = "⚡ *PCR: RITMO CHOCÁVEL (FV / TV SEM PULSO) — PROTOCOLO ACLS*\n\n" +
-      "1️⃣ *DESFIBRILAÇÃO IMEDIATA:*\n" +
-      "• Choque Bifásico: *200 J* (ou carga máxima do aparelho) / Monofásico: *360 J*.\n" +
-      "• Retomar RCP imediatamente por 2 minutos (NÃO checar pulso pós-choque imediato).\n\n" +
-      "2️⃣ *CICLO 2 (Pós-2º Choque):*\n" +
-      "• *Adrenalina 1 mg IV/IO* em bólus + flush 20 mL SF 0.9% (repetir a cada 3 a 5 min).\n" +
-      "• Obter acesso IV/IO e considerar via aérea avançada (EtCO₂).\n\n" +
-      "3️⃣ *CICLO 3 (Pós-3º Choque — FV/TV Refratária):*\n" +
-      "• *Amiodarona 300 mg IV/IO* em bólus rápido (2ª dose: 150 mg após 2 ciclos).\n" +
-      "• _Alternativa à Amiodarona:_ Lidocaína 1 a 1,5 mg/kg IV/IO (2ª dose: 0,5 a 0,75 mg/kg).\n" +
-      "• Sulfato de Magnésio 50% 2g IV em 1-2 min se suspeita de *Torsades de Pointes*.\n\n" +
-      "4️⃣ *INVESTIGAR CAUSAS REVERSÍVEIS (5 Hs & 5 Ts)*";
-    var kbChoc = {
-      inline_keyboard: [
-        [
-          { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" },
-          { text: "💉 Amiodarona", callback_data: "pcr_droga_amiodarona" }
-        ],
-        [
-          { text: "⏱️ Ciclo RCP 2 min", callback_data: "pcr_ciclo_2min" },
-          { text: "🔍 5Hs & 5Ts", callback_data: "pcr_5hs_5ts" }
-        ],
-        [
-          { text: "🎯 Cuidados Pós-RCE", callback_data: "pcr_pos_rce" },
-          { text: "🫀 Mudar p/ Não Chocável", callback_data: "pcr_naochocavel" }
-        ],
-        [
-          { text: "🤰 PCR Gestante", callback_data: "pcr_gestante" },
-          { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
-        ],
-        [
-          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
-          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
-        ]
-      ]
-    };
-    return enviarMensagemComTecladoParaChat(chatId, txtChoc, kbChoc);
-  }
-
-  // Caso 4: Ritmo Não Chocável (AESP / Assistolia)
+  // Caso 3: Ritmo Não Chocável (AESP / Assistolia)
   if (dLow.indexOf("aesp") !== -1 || dLow.indexOf("assistolia") !== -1 || dLow.indexOf("nao chocavel") !== -1 || dLow.indexOf("não chocável") !== -1) {
     var txtNaoChoc = "🫀 *PCR: RITMO NÃO CHOCÁVEL (AESP / ASSISTOLIA) — PROTOCOLO ACLS*\n\n" +
       "1️⃣ *RCP DE ALTA QUALIDADE IMEDIATA:*\n" +
@@ -7985,6 +7951,48 @@ function tratarComandoPcr(chatId, dadosPcr) {
     return enviarMensagemComTecladoParaChat(chatId, txtNaoChoc, kbNaoChoc);
   }
 
+  // Caso 4: Ritmo Chocável (FV / TVSP)
+  if ((dLow.indexOf("fv") !== -1 || dLow.indexOf("tv") !== -1 || dLow.indexOf("chocavel") !== -1 || dLow.indexOf("chocável") !== -1) &&
+      dLow.indexOf("nao chocavel") === -1 && dLow.indexOf("não chocável") === -1) {
+    var txtChoc = "⚡ *PCR: RITMO CHOCÁVEL (FV / TV SEM PULSO) — PROTOCOLO ACLS*\n\n" +
+      "1️⃣ *DESFIBRILAÇÃO IMEDIATA:*\n" +
+      "• Choque Bifásico: *200 J* (ou carga máxima do aparelho) / Monofásico: *360 J*.\n" +
+      "• Retomar RCP imediatamente por 2 minutos (NÃO checar pulso pós-choque imediato).\n\n" +
+      "2️⃣ *CICLO 2 (Pós-2º Choque):*\n" +
+      "• *Adrenalina 1 mg IV/IO* em bólus + flush 20 mL SF 0.9% (repetir a cada 3 a 5 min).\n" +
+      "• Obter acesso IV/IO e considerar via aérea avançada (EtCO₂).\n\n" +
+      "3️⃣ *CICLO 3 (Pós-3º Choque — FV/TV Refratária):*\n" +
+      "• *Amiodarona 300 mg IV/IO* em bólus rápido (2ª dose: 150 mg após 2 ciclos).\n" +
+      "• _Alternativa à Amiodarona:_ Lidocaína 1 a 1,5 mg/kg IV/IO (2ª dose: 0,5 a 0,75 mg/kg).\n" +
+      "• Sulfato de Magnésio 50% 2g IV em 1-2 min se suspeita de *Torsades de Pointes*.\n\n" +
+      "4️⃣ *INVESTIGAR CAUSAS REVERSÍVEIS (5 Hs & 5 Ts)*";
+    var kbChoc = {
+      inline_keyboard: [
+        [
+          { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" },
+          { text: "💉 Amiodarona", callback_data: "pcr_droga_amiodarona" }
+        ],
+        [
+          { text: "⏱️ Ciclo RCP 2 min", callback_data: "pcr_ciclo_2min" },
+          { text: "🔍 5Hs & 5Ts", callback_data: "pcr_5hs_5ts" }
+        ],
+        [
+          { text: "🎯 Cuidados Pós-RCE", callback_data: "pcr_pos_rce" },
+          { text: "🫀 Mudar p/ Não Chocável", callback_data: "pcr_naochocavel" }
+        ],
+        [
+          { text: "🤰 PCR Gestante", callback_data: "pcr_gestante" },
+          { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
+        ],
+        [
+          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtChoc, kbChoc);
+  }
+
   // Padrão (Sem argumentos ou geral): Visão Geral de ACLS + Seletor de Ritmo
   var txtPadrao = "🚨 *PARADA CARDIORRESPIRATÓRIA (PCR ADULTO — ALGORITMO ACLS)*\n\n" +
     "1. *Checar responsividade e respiração/pulso carotídeo* (máx 10 segundos).\n" +
@@ -8017,6 +8025,10 @@ function tratarComandoPcr(chatId, dadosPcr) {
  * Trata o protocolo de Arritmias Cardíacas (ACLS) beira-leito
  */
 function tratarComandoArritmia(chatId, comando, dadosArr) {
+  if (typeof dadosArr === "undefined" && comando && comando.charAt(0) !== "/") {
+    dadosArr = comando;
+    comando = "/arritmia";
+  }
   comando = (comando || "/arritmia").toLowerCase();
   dadosArr = (dadosArr || "").trim();
   var dLow = dadosArr.toLowerCase();

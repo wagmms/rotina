@@ -87,12 +87,31 @@
 - *Sugestão 54 (Calculadoras / Hidratação)*: Protocolo interativo de reposição de potássio com cálculo automático de limite de concentração para acesso venoso periférico (máximo 40 mEq/L) versus acesso venoso central (máximo 60 mEq/L) com alerta sonoro/visual de monitorização cardíaca contínua.
 - *Sugestão 55 (Cockpit / Pneumologia)*: Feedback visual com indicador gráfico de saturação SpO2 e barra de cores dinâmica (verde 93-95% para asma, verde 88-92% com aviso amarelo/vermelho >92% para DPOC alertando hiperóxia e perda do drive hipóxico em tempo real).
 - *Sugestão 56 (Telegram / Emergência Respiratória)*: Atalhos inline `/asma` e `/dpoc` com botões táteis de 1 toque para classificação rápida de crise asmática/DPOC em 3 níveis (Leve/Moderada, Grave, Ameaça à Vida/Tórax Silencioso) gerando conduta imediata formatada para copiar para PEP.
-- *Sugestão 57 (Telegram / Visual)*: Barras de progresso e gravidade com blocos semafóricos em emojis (`🟩🟩🟨⬜⬜`) no Telegram para sumarização visual imediata de escores de risco clínico beira-leito (ex: FRAX, CURB-65, TIMI, Wells, qSOFA) e metas terapêuticas.
+-*Sugestão 57 (Telegram / Visual)*: Barras de progresso e gravidade com blocos semafóricos em emojis (`🟩🟩🟨⬜⬜`) no Telegram para sumarização visual imediata de escores de risco clínico beira-leito (ex: FRAX, CURB-65, TIMI, Wells, qSOFA) e metas terapêuticas.
 - *Sugestão 58 (Telegram / UX)*: Pulsador contínuo de status de digitação (`sendChatAction: typing` periódico com timer/thread) durante processamento de consultas clínicas discursivas complexas via IA (Gemini Pro) para manter feedback de vida ativo e evitar sensação de travamento na rede móvel hospitalar.
+- *Sugestão 59 (Telegram / UI)*: Modo "Resumo Telegráfico Ultra-Curto" (toggle `/modo_curto` ou `/conciso`) para médicos veteranos que desejam apenas dosagens em bullets puros sem qualquer contextualização clínica secundária.
+- *Sugestão 60 (Telegram / Farmacologia)*: Card de conduta em formato "Checklist Beira-Leito" com checkboxes visuais preenchíveis inline para conferência ágil de passos de ressuscitação em emergências.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0AJ. [x] **Síntese Extrema de Respostas no Telegram, Enxugamento de Prompts de IA e Alocação Prioritária em Raciocínio Clínico**:
+    - **Eliminação de Prolixidade e Redundâncias no Telegram**:
+      * Diagnóstico de payloads extensos (~4.200 caracteres para receitas simples como amigdalite) gerando atrito de rolagem no plantão.
+      * Injetada diretriz mandatória de síntese extrema em `IA_PERSONA` e `IA_VISUAL` (`src/04_motores_ia.js`): proibição explícita de saudações longas, enrolação, introduções vazias e conselhos triviais de bom senso ("beba água", "repouse").
+      * Alocação prioritária da capacidade cognitiva dos modelos em cálculo posológico exato, checagem de interações, contraindicações e memória de cálculo pediátrica/renal.
+    - **Otimização do Auditor Clínico e Roteiros Semiológicos**:
+      * `_iaAuditarRascunho`: calibração para responder estritamente `SEM ALERTAS` quando o rascunho for seguro, eliminando blocos gigantes de confirmações redundantes; preservado alerta objetivo de 1 linha apenas quando houver erro crítico real.
+      * `gerarSOAPComIA`: Subjetivo/Objetivo compactados e perguntas investigativas formuladas de forma direta, sem justificativas prolixas entre parênteses.
+      * Catálogo de Exames Físicos Especiais (`obterRoteiroPadraoNeuro`, `obterRoteiroPadraoPqu`, etc.): eliminação das notas semiológicas teóricas duplicadas, reduzindo o tamanho de cada modelo em ~40-50% e entregando texto focado em cópia para prontuário.
+    - **Otimização de Hubs, Menus e Botões Rápidos**:
+      * Menus e hubs encurtados de parágrafos múltiplos para cabeçalhos concisos de 1-2 linhas.
+      * Callback `ux:enf:sintomaticos` entrega imediatamente o kit hospitalar canônico padronizado (Dipirona EV, Ondansetrona EV, Simeticona) em 0ms com botão de cópia rápida para prontuário.
+    - **Conserto de Regressões e Auditoria de Testes**:
+      * Correção de precedência em `tratarComandoPcr` para garantir que Ritmo Não Chocável tenha prioridade sobre Ritmo Chocável, evitando falso-positivo pela substring `chocavel` em `nao chocavel`.
+      * Normalização de argumentos em `tratarComandoArritmia` para suporte transparente a chamadas com 2 argumentos vindas de callbacks.
+      * 100% de aprovação em toda a suíte de testes do repositório (`npm test`, `test_soap_ambulatorial.cjs`, `test_pcr_arritmias_telegram.cjs`).
 
 0AI. [x] **Auditoria de Teclados Táteis, Sanitização de Entradas e Protocolo de DPOC na Calculadora Respiratória do Cockpit PWA e Backend Fastify**:
     - **Semântica Acessível e Teclados Numéricos Móveis**:

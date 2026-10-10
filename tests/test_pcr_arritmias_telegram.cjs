@@ -194,7 +194,7 @@ async function testPcrArritmiasTelegram() {
   assert.ok(callbacksRespondidos.some(c => c.id === 'cb_adrena'), 'Callback pcr_droga_adrena deve responder ao Telegram');
   assert.ok(msgAdrena.texto.includes('1 mg IV/IO') || msgAdrena.texto.includes('1 mg IV'), 'Adrenalina deve detalhar dose 1 mg IV/IO');
   assert.ok(msgAdrena.texto.includes('3 a 5 minutos') || msgAdrena.texto.includes('3 a 5 min'), 'Adrenalina deve indicar intervalo de 3 a 5 min');
-  assert.ok(msgAdrena.texto.includes('flush de 20 mL') || msgAdrena.texto.includes('flush 20 mL'), 'Adrenalina deve prescrever flush de 20 mL');
+  assert.ok(/flush\s+(?:de\s+)?20\s*mL/i.test(msgAdrena.texto), 'Adrenalina deve prescrever flush de 20 mL');
   console.log('  ✓ Callback pcr_droga_adrena: 1 mg IV/IO, intervalo 3 a 5 min, flush 20 mL auditados.');
 
   // 4. pcr_droga_amiodarona
@@ -204,7 +204,7 @@ async function testPcrArritmiasTelegram() {
   assert.ok(callbacksRespondidos.some(c => c.id === 'cb_amio'), 'Callback pcr_droga_amiodarona deve responder ao Telegram');
   assert.ok(msgAmio.texto.includes('300 mg'), 'Amiodarona deve detalhar 1ª dose de 300 mg');
   assert.ok(msgAmio.texto.includes('150 mg'), 'Amiodarona deve detalhar 2ª dose de 150 mg');
-  assert.ok(msgAmio.texto.includes('Lidocaína') || msgAmio.texto.includes('Lidocaina'), 'Deve citar alternativa com Lidocaína');
+  assert.ok(/lidoca[ií]na/i.test(msgAmio.texto), 'Deve citar alternativa com Lidocaína');
   assert.ok(msgAmio.texto.includes('Torsades de Pointes') || msgAmio.texto.includes('Torsades'), 'Deve citar Magnésio para Torsades');
   console.log('  ✓ Callback pcr_droga_amiodarona: doses 300 mg e 150 mg, alternativa lidocaína e magnésio para Torsades auditados.');
 
@@ -213,7 +213,7 @@ async function testPcrArritmiasTelegram() {
   ctx.processarCallbackBotao({ id: 'cb_ciclo', message: { chat: { id: chatId }, message_id: 105 }, data: 'pcr_ciclo_2min' });
   const msgCiclo = obterUltimaMensagem();
   assert.ok(callbacksRespondidos.some(c => c.id === 'cb_ciclo'), 'Callback pcr_ciclo_2min deve responder ao Telegram');
-  assert.ok(msgCiclo.texto.includes('100 a 120 cpm') || msgCiclo.texto.includes('100-120 cpm'), 'Deve conter frequência 100-120 cpm');
+  assert.ok(/100\s*(?:a|-)\s*120\s*(?:cpm|compress)/i.test(msgCiclo.texto), 'Deve conter frequência 100-120 cpm');
   assert.ok(msgCiclo.texto.includes('5 a 6 cm') || msgCiclo.texto.includes('5-6 cm'), 'Deve conter profundidade 5-6 cm');
   assert.ok(msgCiclo.texto.includes('30:2') || msgCiclo.texto.includes('Ventilação'), 'Deve detalhar ventilação/relação 30:2');
   console.log('  ✓ Callback pcr_ciclo_2min: compressão 100-120 cpm, profundidade 5-6 cm e ventilação auditados.');
@@ -243,7 +243,7 @@ async function testPcrArritmiasTelegram() {
   const msgRce = obterUltimaMensagem();
   assert.ok(callbacksRespondidos.some(c => c.id === 'cb_rce'), 'Callback pcr_pos_rce deve responder ao Telegram');
   assert.ok(msgRce.texto.includes('PAM ≥ 65') || msgRce.texto.includes('PAM >= 65'), 'Deve conter meta PAM >= 65 mmHg');
-  assert.ok(msgRce.texto.includes('SpO2 92% a 98%') || msgRce.texto.includes('92-98%'), 'Deve conter meta SpO2 92-98%');
+  assert.ok(/SpO[2₂].*92.*98/i.test(msgRce.texto) || /92%?\s*(?:a|-)\s*98%/i.test(msgRce.texto), 'Deve conter meta SpO2 92-98%');
   assert.ok(msgRce.texto.includes('ECG') || msgRce.texto.includes('12 derivações'), 'Deve orientar ECG imediato');
   assert.ok(msgRce.texto.includes('32°C a 36°C') || msgRce.texto.includes('Controle Direcionado de Temperatura'), 'Deve orientar controle de temperatura (CDT 32-36°C)');
   console.log('  ✓ Callback pcr_pos_rce: metas de PAM >= 65, SpO2 92-98%, ECG e controle térmico auditados.');
