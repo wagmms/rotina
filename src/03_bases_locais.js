@@ -1612,6 +1612,12 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
     }
   }
 
+  // 3. Compatibilidade em Y de Vasopressores e Inotrópicos (D1 / BIC)
+  var auditoriaY = null;
+  if (typeof CompatibilidadeYDvaService !== "undefined") {
+    auditoriaY = CompatibilidadeYDvaService.auditarPrescricaoCombinada(farmacos);
+  }
+
   // Ordenação de interações por gravidade clínica: Contraindicado > Grave > Moderado > Leve
   var pesoGrau = { "CONTRAINDICADO": 4, "GRAVE": 3, "MODERADO": 2, "LEVE": 1 };
   interacoesAchadas.sort(function(a, b) {
@@ -1620,7 +1626,8 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
 
   var temContraindicado = interacoesAchadas.some(function(it) { return it.grauNormalizado === "CONTRAINDICADO"; });
   var temGrave = interacoesAchadas.some(function(it) { return it.grauNormalizado === "GRAVE"; });
-  var temAlertasCriticos = temContraindicado || temGrave || (ctxRenal.temDisfuncao && ajustesRenais.length > 0);
+  var temIncompativelY = auditoriaY ? (auditoriaY.temIncompativel || auditoriaY.temAlertasCriticos) : false;
+  var temAlertasCriticos = temContraindicado || temGrave || temIncompativelY || (ctxRenal.temDisfuncao && ajustesRenais.length > 0);
 
   // Formatação clínica para Telegram, Cockpit e Auditoria
   var linhasTexto = [];
@@ -1638,6 +1645,31 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
     });
   } else if (farmacos.length >= 2) {
     linhasTexto.push("\n✅ *Interações Medicamentosas:* Nenhuma interação grave cadastrada na tabela local entre as drogas listadas.");
+  }
+
+  // Bloco dedicado de Compatibilidade em Y (BIC / Terapia Intensiva)
+  if (auditoriaY && auditoriaY.pares && auditoriaY.pares.length > 0) {
+    linhasTexto.push("\n🔬 *COMPATIBILIDADE EM Y (INFUSÕES EM BIC / SALA VERMELHA & UTI):*");
+    auditoriaY.pares.forEach(function(par) {
+      linhasTexto.push(par.icone + " *" + par.grau + ":* `" + par.drogaA.toUpperCase() + "` ⚡ `" + par.drogaB.toUpperCase() + "`");
+      linhasTexto.push("   • *Mecanismo:* " + par.mecanismo);
+      linhasTexto.push("   • *Conduta beira-leito:* " + par.conduta);
+    });
+  }
+
+  // Fichas de Diluente Oficial D1 para drogas vasoativas identificadas
+  if (typeof CompatibilidadeYDvaService !== "undefined" && farmacos.length > 0) {
+    var fichasD1 = [];
+    farmacos.forEach(function(f) {
+      var fd = CompatibilidadeYDvaService.obterFichaDiluicao(f);
+      if (fd && fichasD1.indexOf(fd) === -1) fichasD1.push(fd);
+    });
+    if (fichasD1.length > 0) {
+      linhasTexto.push("\n💧 *DILUENTES PADRÃO & VIAS DE INFUSÃO (D1 / UTI):*");
+      fichasD1.forEach(function(f) {
+        linhasTexto.push("• *" + f.nome + ":* Diluente D1: `" + f.diluenteD1 + "` | Acesso: " + f.acessoVenoso);
+      });
+    }
   }
 
   if (ajustesRenais.length > 0) {
@@ -1669,6 +1701,7 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
     temAlertasCriticos: temAlertasCriticos,
     farmacosDetectados: farmacos,
     interacoes: interacoesAchadas,
+    compatibilidadeY: auditoriaY ? auditoriaY.pares : [],
     ajustesRenais: ajustesRenais,
     tetosDose: tetosDose,
     contextoRenalDetectado: ctxRenal,

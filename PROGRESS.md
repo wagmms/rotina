@@ -13,16 +13,14 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Cross-Check de Compatibilidade de Diluição de Inotrópicos e Vasopressores com D1**:
-    - Integrar tabela de compatibilidade em Y com cache local para prescrições combinadas em bomba de infusão.
+- [ ] **Auditoria de Resiliência e Feedback Visual em Conexões Flutuantes no Cockpit PWA**:
+    - Reforçar telemetria de reconexão automática e retry exponencial com feedback de banner não obstrutivo no plantão.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Cross-Check de Compatibilidade de Diluição de Inotrópicos e Vasopressores com D1**:
-    - Integrar tabela de compatibilidade em Y com cache local para prescrições combinadas em bomba de infusão.
-2. [ ] **Auditoria de Resiliência e Feedback Visual em Conexões Flutuantes no Cockpit PWA**:
+1. [ ] **Auditoria de Resiliência e Feedback Visual em Conexões Flutuantes no Cockpit PWA**:
     - Reforçar telemetria de reconexão automática e retry exponencial com feedback de banner não obstrutivo no plantão.
 
 ---
@@ -39,7 +37,7 @@
 - *Sugestão 7 (Telegram - Farmacologia)*: Botão inline de checagem imediata de diluição e compatibilidade em Y no Guia Farmacêutico HSL quando uma droga vasoativa (ex: Noradrenalina ou Dobutamina) for calculada via `/dva`.
 - *Sugestão 8 (Cockpit / PWA)*: Sincronização em segundo plano (Background Sync API) com fila outbox no IndexedDB para envio automático de prescrições e atualizações de leitos assim que o dispositivo recuperar conexão de rede após áreas de sombra no hospital.
 - *Sugestão 9 (Cockpit PWA)*: Tema "Plantão Noturno / Sala Escura" com fundo OLED puro (#000000) e tipografia em tons de âmbar/vermelho escuro para conforto visual e conservação de bateria no plantão da madrugada.
-- *Sugestão 10 (Calculadoras / Cockpit)*: Calculadora integrada de reposição de Magnésio e Fósforo IV para prevenção e manejo precoce da Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado na enfermaria/UTI.
+- *Sugestão 10 (Calculadoras / Cockpit)*: Calculadora integrada de reposição de Magnésio e Fósforo IV para prevenção e manejo precoce da根 Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado na enfermaria/UTI.
 - *Sugestão 11 (Calculadoras)*: Implementar validação cruzada entre clearance estimado (Cockcroft) e eTFG (CKD-EPI) ao gerar alertas de ajuste renal para evidenciar discrepâncias em obesos e sarcopênicos.
 - *Sugestão 12 (Gasometria)*: Adicionar cálculo visual do triângulo de Siggaard-Andersen para auxiliar o médico na compreensão do desvio de base.
 - *Sugestão 14 (Telegram - Mensagens Longas)*: Adicionar botão inline automático "📄 Ver Resumo Completo no Cockpit PWA" quando uma conduta for fragmentada em 3 ou mais partes, oferecendo opção de leitura contínua sem rolagem infinita.
@@ -65,10 +63,32 @@
 - *Sugestão 34 (Calculadoras / Resiliência)*: Validação cruzada estrita entre calculadoras de DHE e ECG prévio no handshake, disparando alerta automático de ECG mandatório quando K+ > 6.0 mEq/L ou Na+ < 120 mEq/L antes de calcular a taxa de infusão.
 - *Sugestão 35 (Cockpit / Passagem de Plantão)*: Exportação rápida do histórico de cálculos da sessão em formato de sumário de passagem de plantão / transferência estruturado (incluindo horário, peso e parâmetros de DVA/SRI/Gaso).
 - *Sugestão 36 (Cockpit / Calculadoras)*: Recurso de "Fixar Cálculo" (Pin) no histórico da sessão para manter cálculos críticos de pacientes instáveis permanentemente no topo do painel durante todo o turno.
+- *Sugestão 37 (Calculadoras / Sala Vermelha)*: Calculadora de Osmolaridade e Osmolalidade Plasmática Efetiva com cálculo de Osmolar Gap acoplada à gasometria e sódio sérico para investigação de intoxicações exógenas por álcoois tóxicos (metanol, etilenoglicol) e cetoacidose diabética.
+- *Sugestão 38 (Cockpit / Farmacologia de UTI)*: Visualização em árvore/matriz gráfica de múltiplos lúmens de CVC com alocação recomendada de fármacos (lúmen distal para vasopressores/medicação contínua crítica, medial para nutrição parenteral/sangue, proximal para sedoanalgesia/bolus) para prevenir incompatibilidades físico-químicas em acessos venosos centrais de múltiplos lúmens.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0AB. [x] **Cross-Check de Compatibilidade de Diluição de Inotrópicos e Vasopressores com D1 e Matriz em Y (Y-Site)**:
+    - **Módulo Clínico Core (`src/02_compatibilidade_y_dva.js`)**:
+      * Implementado o serviço `CompatibilidadeYDvaService` com diretrizes físico-químicas estritas para Noradrenalina, Dobutamina, Vasopressina, Adrenalina, Milrinona, Nitroprussiato de Sódio, Nitroglicerina (Tridil), Amiodarona, Furosemida, Bicarbonato de Sódio 8,4%, Gluconato de Cálcio 10%, Fenitoína, Fentanil, Midazolam, Propofol e Dexmedetomidina (Precedex).
+      * Fichas de Diluente D1 cobrindo diluente prioritário (SG 5% vs SF 0,9%), vias de infusão (Acesso Venoso Central mandatório vs Periférico transitório de salvamento), fotoproteção obrigatória (Nitroprussiato), restrição estrita a equipos livres de PVC para evitar adsorção farmacológica (Nitroglicerina) e antídotos específicos para extravasamento tecidual (Fentolamina subcutânea e compressas secas/mornas).
+      * Matriz canônica de Compatibilidade em Y (`REGRAS_COMPATIBILIDADE_Y`) com bloqueios sentinela críticos beira-leito: incompatibilidade de Furosemida (pH alcalino ~9 precipita catecolaminas em meio ácido), precipitação por Bicarbonato de Sódio (inativação e turvação de aminas vasoativas), incompatibilidade letal de Gluconato de Cálcio com Ceftriaxona e bloqueios clássicos de fenitoína.
+      * Métodos de auditoria determinística: `checarCompatibilidadeY(d1, d2)`, `obterFichaDiluicao(droga)`, `auditarPrescricaoCombinada(listaDrogas)` e gerador de parecer beira-leito `formatarParecerCompatibilidadeY(res, opcoes)`.
+    - **Integração nas Calculadoras Clínicas e Cross-Check Global**:
+      * `src/02_calculadoras_puras.js`: Enriquecido `CalculadorasClinicas.drogasVasoativas` com diluente oficial D1 e acesso venoso mandatório; expostos `CalculadorasClinicas.compatibilidadeYDva` e formatador de parecer.
+      * `src/03_bases_locais.js`: `executarCrossCheckSegurancaClinica` agora realiza varredura automática em Y quando detectar duas ou mais drogas de UTI na prescrição combinada, gerando alertas de incompatibilidade com bloqueio sentinela.
+    - **Backend Fastify e Schemas RPC**:
+      * `src/13_cockpit_integracao.js`: Suporte a `droga2` em `cockpitCalcular('dva', ...)` e novo tipo `compatibilidade_y`, além do método RPC direto `cockpitCompatibilidadeYDva`.
+      * `server/runtime.js`: Mapeado `_rpcMap.cockpitCompatibilidadeYDva` para chamadas em 0ms.
+      * `server/validators.js`: Sanitização defensiva de `droga2` em DVA e adição de `compatibilidade_y` em `TIPOS_CALCULADORA_VALIDOS`.
+    - **Bot do Telegram**:
+      * `src/07_telegram_handlers.js`: Suporte a comandos `/dva y <droga1> <droga2>`, `/compatibilidade <d1> <d2>` e detecção inteligente de duas drogas vasoativas sem peso numérico (ex: `/dva nora dobuta`, `/dva nora furosemida`), respondendo instantaneamente com parecer estruturado.
+    - **Cockpit PWA e Paridade de Deploy**:
+      * `cockpit_movel.html` e `gh_cockpit_deploy/index.html`: Seletor `#dva-droga2` integrado na subcalculadora de DVA, restauração automática com 1 toque no histórico de cálculos e enriquecimento do motor determinístico offline beira-leito. Sincronismo estrito e paridade absoluta de hash SHA-256 preservados.
+    - **Suíte de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_compatibilidade_y_dva.cjs` com 8 baterias exaustivas (Fichas D1, Matriz em Y, Auditoria Múltipla, Calculadoras Clínicas, Cross-Check Global, RPC Fastify, Integridade PWA e Bot do Telegram), 100% aprovada e integrada ao `npm test` do `package.json`.
 
 0Z. [x] **Histórico Local no Cockpit das Últimas 5 Consultas / Cálculos com Recuperação Ágil (sessionStorage) e Correção de UX**:
     - **Persistência Volátil e Ética Beira-Leito (sessionStorage)**:

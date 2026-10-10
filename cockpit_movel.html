@@ -885,7 +885,7 @@
             <input type="number" step="0.5" id="dva-peso" placeholder="Informe" inputmode="decimal" autocomplete="off" oninput="calcularDVA()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
           </div>
           <div>
-            <label class="block text-slate-300 mb-1">Droga:</label>
+            <label class="block text-slate-300 mb-1">Droga Principal (D1):</label>
             <select id="dva-droga" onchange="calcularDVA()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
               <option value="nora">Noradrenalina (64 mcg/mL)</option>
               <option value="dobuta">Dobutamina (1000 mcg/mL)</option>
@@ -895,6 +895,30 @@
               <option value="nipride">Nitroprussiato / Nipride (200 mcg/mL - Crise HAS)</option>
             </select>
           </div>
+        </div>
+        <!-- Prescrição Combinada & Compatibilidade em Y (BIC / Bomba) -->
+        <div class="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1 text-xs">
+          <div class="flex items-center justify-between">
+            <label for="dva-droga2" class="text-slate-300 text-[10.5px] font-semibold flex items-center gap-1">
+              <i data-lucide="git-merge" class="w-3.5 h-3.5 text-cyan-400"></i> Combinar em Y com 2ª Droga (BIC):
+            </label>
+            <span class="text-[9px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-1.5 py-0.2 rounded font-mono font-bold">Y-Site</span>
+          </div>
+          <select id="dva-droga2" onchange="calcularDVA()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-white text-xs">
+            <option value="">Nenhuma (Infusão Isolada)</option>
+            <option value="dobuta">Dobutamina (Inotrópico)</option>
+            <option value="vaso">Vasopressina (Vasopressor 2ª linha)</option>
+            <option value="adrena">Adrenalina (Choque Refratário)</option>
+            <option value="milrinona">Milrinona (Inodilatador)</option>
+            <option value="furosemida">🛑 Furosemida (Alerta de Precipitação)</option>
+            <option value="bicarbonato">🛑 Bicarbonato de Sódio (Alerta de Inativação)</option>
+            <option value="fentanil">Fentanil (Opioide Contínuo)</option>
+            <option value="midazolam">Midazolam (Sedação Contínua)</option>
+            <option value="propofol">⚠️ Propofol (Emulsão Lipídica)</option>
+            <option value="dexmedetomidina">Dexmedetomidina / Precedex</option>
+            <option value="amiodarona">Amiodarona (SG 5% Exclusivo)</option>
+            <option value="fenitoina">🛑 Fenitoína (Incompatível / SF exclusivo)</option>
+          </select>
         </div>
         <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs" id="dva-resultado">
           <!-- Resultado dinâmico -->
@@ -5471,9 +5495,17 @@
         case 'dva':
           subcalcId = 'calc-dva';
           const drogaDva = String(entrada.droga || 'nora').toUpperCase();
-          rotulo = `DVA · ${drogaDva}`;
-          resumo = `${entrada.peso || 70} kg`;
+          const droga2Dva = entrada.droga2 ? ` + ${String(entrada.droga2).toUpperCase()}` : '';
+          rotulo = `DVA · ${drogaDva}${droga2Dva}`;
+          resumo = `${entrada.peso || 70} kg${entrada.droga2 ? ' · Y-Site' : ''}`;
           icone = 'activity';
+          break;
+        case 'compatibilidade_y':
+        case 'dva_y':
+          subcalcId = 'calc-dva';
+          rotulo = 'Compatibilidade Y';
+          resumo = `${String(entrada.droga1 || entrada.droga || 'D1').toUpperCase()} ⚡ ${String(entrada.droga2 || 'D2').toUpperCase()}`;
+          icone = 'git-merge';
           break;
         case 'sri':
           subcalcId = 'calc-sri';
@@ -5650,11 +5682,13 @@
       const tipo = item.tipo;
 
       // 2. Preenche os campos do formulário
-      if (tipo === 'dva') {
+      if (tipo === 'dva' || tipo === 'compatibilidade_y' || tipo === 'dva_y') {
         const elPeso = document.getElementById('dva-peso');
         const elDroga = document.getElementById('dva-droga');
+        const elDroga2 = document.getElementById('dva-droga2');
         if (elPeso && entrada.peso !== undefined) elPeso.value = entrada.peso;
         if (elDroga && entrada.droga !== undefined) elDroga.value = entrada.droga;
+        if (elDroga2) elDroga2.value = entrada.droga2 || '';
         const res = document.getElementById('dva-resultado');
         if (res && item.resultadoTexto) {
           res.textContent = item.resultadoTexto;
@@ -5951,64 +5985,113 @@
     function calcularOfflineLocal(tipo, entrada) {
       if (!entrada) return null;
       try {
-        if (tipo === 'dva') {
+        if (tipo === 'dva' || tipo === 'compatibilidade_y' || tipo === 'dva_y') {
           const peso = parseFloat(String(entrada.peso).replace(',', '.'));
-          if (isNaN(peso) || peso <= 0) return 'Informe o peso do paciente para calcular a taxa de infusão.';
-          const alertaObesidade = peso > 150 ? '\n🚨 OBESIDADE SEVERA (> 150 kg): O cálculo por peso real gera doses excessivas. Considere usar Peso Ideal ou titular estritamente pela PAM alvo.' : '';
-          const droga = String(entrada.droga || 'nora').toLowerCase();
-          if (droga === 'nora' || droga.includes('noradren')) {
-            const c = 64; // mcg/mL (16mg em 250mL SG5%)
-            const vIni = ((0.1 * peso * 60) / c).toFixed(1);
-            const vMed = ((0.5 * peso * 60) / c).toFixed(1);
-            const vMax = ((2.0 * peso * 60) / c).toFixed(1);
-            return `💉 NORADRENALINA (Solução Padrão: 4 amp [16mg] + 234mL SG5% = 64 mcg/mL) [OFFLINE]\n` +
-              `• Dose Inicial (0,1 mcg/kg/min): ${vIni} mL/h em BIC\n` +
-              `• Dose Média (0,5 mcg/kg/min): ${vMed} mL/h em BIC\n` +
-              `• Dose Máxima (2,0 mcg/kg/min): ${vMax} mL/h em BIC\n` +
-              `⚠️ Alvo: PAM ≥ 65 mmHg. Preferir acesso central (periférico apenas de resgate em veia calibrosa de antebraço).` + alertaObesidade;
-          } else if (droga === 'dobuta' || droga.includes('dobutam')) {
-            const c = 1000; // mcg/mL (250mg em 250mL SG5%)
-            const vIni = ((2.5 * peso * 60) / c).toFixed(1);
-            const vMed = ((5.0 * peso * 60) / c).toFixed(1);
-            const vMax = ((20.0 * peso * 60) / c).toFixed(1);
-            return `💉 DOBUTAMINA (Solução Padrão: 1 amp [250mg] + 230mL SG5% = 1.000 mcg/mL) [OFFLINE]\n` +
-              `• Dose Inicial (2,5 mcg/kg/min): ${vIni} mL/h em BIC\n` +
-              `• Dose Titulada (5,0 mcg/kg/min): ${vMed} mL/h em BIC\n` +
-              `• Dose Máxima (20,0 mcg/kg/min): ${vMax} mL/h em BIC\n` +
-              `⚠️ Contraindicada em hipotensão grave isolada (PAS < 85-90 mmHg) sem vasopressor associado.` + alertaObesidade;
-          } else if (droga === 'vaso' || droga.includes('vasopress')) {
-            return `💉 VASOPRESSINA (Solução Padrão: 1 amp [20 UI] + 100mL SF0,9% = 0,2 UI/mL) [OFFLINE]\n` +
-              `• Dose Fixa (0,01 a 0,04 UI/min): 3 a 12 mL/h em BIC contínua\n` +
-              `• Dose de Escolha: 0,03 UI/min (9 mL/h em BIC)\n` +
-              `⚠️ Droga de 2ª linha poupadora de noradrenalina no choque séptico refratário. Não titular.`;
-          } else if (droga === 'adrena' || droga.includes('adren')) {
-            const c = 16; // mcg/mL (4mg em 250mL SG5%)
-            const vIni = ((0.05 * peso * 60) / c).toFixed(1);
-            const vMed = ((0.10 * peso * 60) / c).toFixed(1);
-            const vMax = ((0.50 * peso * 60) / c).toFixed(1);
-            return `💉 ADRENALINA (Solução Padrão: 4 amp [4mg] + 246mL SG5% = 16 mcg/mL) [OFFLINE]\n` +
-              `• Dose Inicial (0,05 mcg/kg/min): ${vIni} mL/h em BIC\n` +
-              `• Dose Média (0,10 mcg/kg/min): ${vMed} mL/h em BIC\n` +
-              `• Dose Máxima (0,50 mcg/kg/min): ${vMax} mL/h em BIC\n` +
-              `⚠️ Alvo: PAM ≥ 65 mmHg. Indicação: Choque Séptico refratário a noradrenalina ou anafilaxia refratária. Causa taquicardia e hiperlactatemia tipo B.` + alertaObesidade;
-          } else if (droga === 'tridil' || droga.includes('nitroglic')) {
-            return `💉 NITROGLICERINA / TRIDIL (Solução Padrão: 1 amp [50mg/10mL] + 240mL SG5% = 200 mcg/mL) [OFFLINE]\n` +
-              `• Dose Inicial (5 mcg/min): 1,5 mL/h em BIC (titular a cada 5-10 min)\n` +
-              `• Dose Moderada (20 mcg/min): 6,0 mL/h em BIC\n` +
-              `• Dose Alta / EAP (50 mcg/min): 15,0 mL/h em BIC\n` +
-              `• Dose Máxima (200 mcg/min): 60,0 mL/h em BIC\n` +
-              `⚠️ Alvo: alívio da congestão/isquemia. Contraindicada em Infarto de VD, PAS < 90 mmHg e uso de IPDE-5 (Sildenafil 24h, Tadalafil 48h).`;
-          } else if (droga === 'nipride' || droga.includes('nitropruss')) {
-            const c = 200; // mcg/mL (50mg em 250mL SG5%)
-            const vIni = ((0.3 * peso * 60) / c).toFixed(1);
-            const vMed = ((1.0 * peso * 60) / c).toFixed(1);
-            const vMax = ((2.0 * peso * 60) / c).toFixed(1);
-            return `💉 NITROPRUSSIATO DE SÓDIO / NIPRIDE (Solução: 1 amp [50mg] + 248mL SG5% = 200 mcg/mL fotoprotetor) [OFFLINE]\n` +
-              `• Dose Inicial (0,3 mcg/kg/min): ${vIni} mL/h em BIC\n` +
-              `• Dose Média (1,0 mcg/kg/min): ${vMed} mL/h em BIC\n` +
-              `• Dose Máxima (2,0 mcg/kg/min): ${vMax} mL/h em BIC\n` +
-              `⚠️ Emergência Hipertensiva: redução de PAM ≤ 20-25% na 1ª hora. Risco de intoxicação por cianeto se uso > 48h ou ClCr < 30 mL/min.` + alertaObesidade;
+          const droga = String(entrada.droga || entrada.droga1 || entrada.drogaA || 'nora').toLowerCase();
+          const droga2 = String(entrada.droga2 || entrada.drogaB || '').toLowerCase();
+
+          let txtDva = '';
+          if (tipo !== 'compatibilidade_y' && tipo !== 'dva_y') {
+            if (isNaN(peso) || peso <= 0) return 'Informe o peso do paciente para calcular a taxa de infusão.';
+            const alertaObesidade = peso > 150 ? '\n🚨 OBESIDADE SEVERA (> 150 kg): O cálculo por peso real gera doses excessivas. Considere usar Peso Ideal ou titular estritamente pela PAM alvo.' : '';
+            if (droga === 'nora' || droga.includes('noradren')) {
+              const c = 64; // mcg/mL (16mg em 250mL SG5%)
+              const vIni = ((0.1 * peso * 60) / c).toFixed(1);
+              const vMed = ((0.5 * peso * 60) / c).toFixed(1);
+              const vMax = ((2.0 * peso * 60) / c).toFixed(1);
+              txtDva = `💉 NORADRENALINA (Solução Padrão: 4 amp [16mg] + 234mL SG5% = 64 mcg/mL) [OFFLINE]\n` +
+                `• Dose Inicial (0,1 mcg/kg/min): ${vIni} mL/h em BIC\n` +
+                `• Dose Média (0,5 mcg/kg/min): ${vMed} mL/h em BIC\n` +
+                `• Dose Máxima (2,0 mcg/kg/min): ${vMax} mL/h em BIC\n` +
+                `💧 Diluente D1: SG 5% preferencial (protege contra oxidação). Acesso central obrigatório.\n` +
+                `⚠️ Alvo: PAM ≥ 65 mmHg. Preferir acesso central (periférico apenas de resgate em veia calibrosa de antebraço).` + alertaObesidade;
+            } else if (droga === 'dobuta' || droga.includes('dobutam')) {
+              const c = 1000; // mcg/mL (250mg em 250mL SG5%)
+              const vIni = ((2.5 * peso * 60) / c).toFixed(1);
+              const vMed = ((5.0 * peso * 60) / c).toFixed(1);
+              const vMax = ((20.0 * peso * 60) / c).toFixed(1);
+              txtDva = `💉 DOBUTAMINA (Solução Padrão: 1 amp [250mg] + 230mL SG5% = 1.000 mcg/mL) [OFFLINE]\n` +
+                `• Dose Inicial (2,5 mcg/kg/min): ${vIni} mL/h em BIC\n` +
+                `• Dose Titulada (5,0 mcg/kg/min): ${vMed} mL/h em BIC\n` +
+                `• Dose Máxima (20,0 mcg/kg/min): ${vMax} mL/h em BIC\n` +
+                `💧 Diluente D1: SG 5% ou SF 0,9%. Incompatível com soluções alcalinas.\n` +
+                `⚠️ Contraindicada em hipotensão grave isolada (PAS < 85-90 mmHg) sem vasopressor associado.` + alertaObesidade;
+            } else if (droga === 'vaso' || droga.includes('vasopress')) {
+              txtDva = `💉 VASOPRESSINA (Solução Padrão: 1 amp [20 UI] + 100mL SF0,9% = 0,2 UI/mL) [OFFLINE]\n` +
+                `• Dose Fixa (0,01 a 0,04 UI/min): 3 a 12 mL/h em BIC contínua\n` +
+                `• Dose de Escolha: 0,03 UI/min (9 mL/h em BIC)\n` +
+                `💧 Diluente D1: SF 0,9% ou SG 5%.\n` +
+                `⚠️ Droga de 2ª linha poupadora de noradrenalina no choque séptico refratário. Não titular.`;
+            } else if (droga === 'adrena' || droga.includes('adren')) {
+              const c = 16; // mcg/mL (4mg em 250mL SG5%)
+              const vIni = ((0.05 * peso * 60) / c).toFixed(1);
+              const vMed = ((0.10 * peso * 60) / c).toFixed(1);
+              const vMax = ((0.50 * peso * 60) / c).toFixed(1);
+              txtDva = `💉 ADRENALINA (Solução Padrão: 4 amp [4mg] + 246mL SG5% = 16 mcg/mL) [OFFLINE]\n` +
+                `• Dose Inicial (0,05 mcg/kg/min): ${vIni} mL/h em BIC\n` +
+                `• Dose Média (0,10 mcg/kg/min): ${vMed} mL/h em BIC\n` +
+                `• Dose Máxima (0,50 mcg/kg/min): ${vMax} mL/h em BIC\n` +
+                `💧 Diluente D1: SG 5% preferencial.\n` +
+                `⚠️ Alvo: PAM ≥ 65 mmHg. Indicação: Choque Séptico refratário a noradrenalina ou anafilaxia refratária. Causa taquicardia e hiperlactatemia tipo B.` + alertaObesidade;
+            } else if (droga === 'tridil' || droga.includes('nitroglic')) {
+              txtDva = `💉 NITROGLICERINA / TRIDIL (Solução Padrão: 1 amp [50mg/10mL] + 240mL SG5% = 200 mcg/mL) [OFFLINE]\n` +
+                `• Dose Inicial (5 mcg/min): 1,5 mL/h em BIC (titular a cada 5-10 min)\n` +
+                `• Dose Moderada (20 mcg/min): 6,0 mL/h em BIC\n` +
+                `• Dose Alta / EAP (50 mcg/min): 15,0 mL/h em BIC\n` +
+                `• Dose Máxima (200 mcg/min): 60,0 mL/h em BIC\n` +
+                `💧 Diluente D1: SG 5% ou SF 0,9%. Frasco e equipo SEM PVC obrigatórios.\n` +
+                `⚠️ Alvo: alívio da congestão/isquemia. Contraindicada em Infarto de VD, PAS < 90 mmHg e uso de IPDE-5 (Sildenafil 24h, Tadalafil 48h).`;
+            } else if (droga === 'nipride' || droga.includes('nitropruss')) {
+              const c = 200; // mcg/mL (50mg em 250mL SG5%)
+              const vIni = ((0.3 * peso * 60) / c).toFixed(1);
+              const vMed = ((1.0 * peso * 60) / c).toFixed(1);
+              const vMax = ((2.0 * peso * 60) / c).toFixed(1);
+              txtDva = `💉 NITROPRUSSIATO DE SÓDIO / NIPRIDE (Solução: 1 amp [50mg] + 248mL SG5% = 200 mcg/mL fotoprotetor) [OFFLINE]\n` +
+                `• Dose Inicial (0,3 mcg/kg/min): ${vIni} mL/h em BIC\n` +
+                `• Dose Média (1,0 mcg/kg/min): ${vMed} mL/h em BIC\n` +
+                `• Dose Máxima (2,0 mcg/kg/min): ${vMax} mL/h em BIC\n` +
+                `💧 Diluente D1: SG 5% EXCLUSIVO (não usar SF). Fotoproteção estrita de frasco e equipo.\n` +
+                `⚠️ Emergência Hipertensiva: redução de PAM ≤ 20-25% na 1ª hora. Risco de intoxicação por cianeto se uso > 48h ou ClCr < 30 mL/min.` + alertaObesidade;
+            }
           }
+
+          // Parecer de Compatibilidade em Y se droga2 presente
+          if (droga2) {
+            let blocoY = '';
+            const d1 = droga;
+            const d2 = droga2;
+            if (d2.includes('furosemid')) {
+              blocoY = '\n\n🛑 ALERTA CRÍTICO DE COMPATIBILIDADE EM Y (OFFLINE):\n' +
+                '• INCOMPATÍVEL NO MESMO EQUIPO / Y! Furosemida alcalina (pH ~9) precipita imediatamente em contato com soluções ácidas de catecolaminas/vasoativos. Risco de oclusão de cateter e microembolia. Exige via venosa exclusiva ou lúmen isolado de CVC.';
+            } else if (d2.includes('bicarbonat')) {
+              blocoY = '\n\n🛑 ALERTA CRÍTICO DE COMPATIBILIDADE EM Y (OFFLINE):\n' +
+                '• INCOMPATÍVEL NO MESMO EQUIPO / Y! O meio fortemente alcalino do bicarbonato (pH ~8.0-8.5) degrada e inativa as catecolaminas por oxidação quase instantânea, anulando o efeito hemodinâmico. Administrar sempre em via exclusiva.';
+            } else if (d2.includes('fenitoin')) {
+              blocoY = '\n\n🛑 ALERTA CRÍTICO DE COMPATIBILIDADE EM Y (OFFLINE):\n' +
+                '• INCOMPATÍVEL EM Y! Fenitoína precipita severamente em meio ácido e com soluções contendo glicose. Administrar exclusivamente em SF 0,9% em via dedicada.';
+            } else if ((d1.includes('nora') && d2.includes('dobuta')) || (d1.includes('dobuta') && d2.includes('nora'))) {
+              blocoY = '\n\n✅ COMPATIBILIDADE EM Y (OFFLINE):\n' +
+                '• COMPATÍVEL NO MESMO EQUIPO / Y. Estabilidade preservada em SG 5% e SF 0,9%. Diluente recomendado D1: SG 5% preferencial. Acesso venoso central.';
+            } else if ((d1.includes('nora') && d2.includes('vaso')) || (d1.includes('vaso') && d2.includes('nora'))) {
+              blocoY = '\n\n✅ COMPATIBILIDADE EM Y (OFFLINE):\n' +
+                '• COMPATÍVEL NO MESMO EQUIPO / Y. Associação padrão no choque séptico refratário a noradrenalina. Diluente D1: SG 5% ou SF 0,9%.';
+            } else if (d2.includes('milrinon') && (d1.includes('furosemid') || d2.includes('furosemid'))) {
+              blocoY = '\n\n🛑 ALERTA CRÍTICO DE COMPATIBILIDADE EM Y (OFFLINE):\n' +
+                '• INCOMPATÍVEL NO MESMO EQUIPO / Y! Lactato de milrinona e furosemida precipitam imediatamente formando cristais esbranquiçados densos. Via exclusiva mandatória.';
+            } else if (d2.includes('propofol')) {
+              blocoY = '\n\n⚠️ COMPATIBILIDADE EM Y (OFFLINE):\n' +
+                '• CONDICIONAL / CAUTELA. Emulsão lipídica propensa à contaminação e dificulta visualização de microcristais. Preferir via exclusiva e trocar equipo a cada 12 horas.';
+            } else if (d2.includes('fentanil') || d2.includes('midazolam') || d2.includes('dexmedetomidina') || d2.includes('adrena') || d2.includes('milrinon')) {
+              blocoY = '\n\n✅ COMPATIBILIDADE EM Y (OFFLINE):\n' +
+                '• COMPATÍVEL NO MESMO EQUIPO / Y em concentrações usuais de terapia intensiva.';
+            } else {
+              blocoY = '\n\nℹ️ COMPATIBILIDADE EM Y (OFFLINE):\n' +
+                '• Sem incompatibilidade registrada na base local. Inspecionar visualmente o sítio em Y. Diluente D1: SG 5% preferencial para catecolaminas.';
+            }
+            txtDva = (txtDva ? txtDva + blocoY : '🔬 COMPATIBILIDADE EM Y (OFFLINE):' + blocoY);
+          }
+
+          return txtDva || 'Selecione droga e peso válidos para DVA.';
         } else if (tipo === 'sri') {
           const peso = parseFloat(String(entrada.peso).replace(',', '.'));
           if (isNaN(peso) || peso <= 0) return 'Informe o peso do paciente para calcular as doses da SRI.';
@@ -6875,7 +6958,7 @@
     }
     const valorCalc = id => document.getElementById(id)?.value ?? '';
     function calcularDVA() {
-      solicitarCalculo('dva', {peso:valorCalc('dva-peso'), droga:valorCalc('dva-droga')}, 'dva-resultado');
+      solicitarCalculo('dva', {peso:valorCalc('dva-peso'), droga:valorCalc('dva-droga'), droga2:valorCalc('dva-droga2')}, 'dva-resultado');
     }
     function calcularSRI() {
       solicitarCalculo('sri', {peso:valorCalc('sri-peso'), cenario:valorCalc('sri-cenario')}, 'sri-resultado');
@@ -7286,6 +7369,30 @@
       if (t.includes('fenitoina') && (t.includes('sg 5') || t.includes('glicose') || t.includes('glicosad'))) {
         alertas.push('🛑 INCOMPATIBILIDADE FÍSICO-QUÍMICA: Fenitoína precipita imediatamente em soluções glicosadas. Diluir EXCLUSIVAMENTE em Soro Fisiológico 0,9% em linha com filtro.');
         interacoes.push({ gravidade: 'grave', drogas: 'Fenitoína + Glicose' });
+      }
+
+      // 9. Noradrenalina / Dobutamina / Milrinona + Furosemida (Incompatibilidade em Y)
+      if ((t.includes('nora') || t.includes('dobuta') || t.includes('milrinona')) && t.includes('furosemida')) {
+        alertas.push('🛑 INCOMPATIBILIDADE CRÍTICA NO Y-SITE: Furosemida (alcalina) + Catecolaminas/Inotrópicos (ácidos). Precipitação física imediata de cristais no equipo/cateter, com risco de oclusão e embolização. Exige via venosa exclusiva ou lúmen isolado de CVC.');
+        interacoes.push({ gravidade: 'grave', drogas: 'Vasoativo/Inotrópico + Furosemida' });
+      }
+
+      // 10. Noradrenalina / Dobutamina / Adrenalina + Bicarbonato de Sódio (Inativação em Y)
+      if ((t.includes('nora') || t.includes('dobuta') || t.includes('adrena')) && (t.includes('bicarbonat') || t.includes('nahco3'))) {
+        alertas.push('🛑 INATIVAÇÃO QUÍMICA NO Y-SITE: Bicarbonato de Sódio (pH alcalino) + Catecolaminas. Oxidação e decomposição rápida das catecolaminas em segundos, anulando a ação vasopressora. Contraindicado correr na mesma via.');
+        interacoes.push({ gravidade: 'grave', drogas: 'Catecolaminas + Bicarbonato' });
+      }
+
+      // 11. Bicarbonato de Sódio + Gluconato de Cálcio (Precipitação)
+      if ((t.includes('bicarbonat') || t.includes('nahco3')) && (t.includes('calcio') || t.includes('gluconato'))) {
+        alertas.push('🛑 PRECIPITAÇÃO NO Y-SITE: Bicarbonato + Cálcio. Formação imediata de Carbonato de Cálcio insolúvel (precipitado esbranquiçado denso). Administrar sequencialmente com flush entre eles.');
+        interacoes.push({ gravidade: 'grave', drogas: 'Bicarbonato + Cálcio' });
+      }
+
+      // 12. Noradrenalina + Dobutamina / Vasopressina (Compatibilidade e Diluente D1)
+      if (t.includes('nora') && (t.includes('dobuta') || t.includes('vaso'))) {
+        alertas.push('✅ COMPATIBILIDADE EM Y (INFUSÃO BIC): Noradrenalina associada a Dobutamina ou Vasopressina possui excelente compatibilidade físico-química no sítio em Y. Diluente recomendado (D1): SG 5% preferencial para proteção contra oxidação.');
+        interacoes.push({ gravidade: 'compativel', drogas: 'Nora + Dobuta/Vaso' });
       }
 
       const temCriticos = alertas.some(a => a.includes('CRÍTICO') || a.includes('FATAL') || a.includes('CONTRAINDICAÇÃO'));

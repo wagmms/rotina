@@ -1290,9 +1290,16 @@ var CalculadorasClinicas = (function () {
       base.push('Concentração: ' + fmt(conc, d.unidade === 'UI/min' ? 1 : 0) + ' ' + d.conc);
       base.push(textoPreparo);
 
+      var fichaD1 = (typeof CompatibilidadeYDvaService !== 'undefined') ? CompatibilidadeYDvaService.obterFichaDiluicao(chave) : null;
+      if (fichaD1) {
+        base.push('Diluente Padrão (D1): ' + fichaD1.diluenteD1);
+        base.push('Acesso Recomendado: ' + fichaD1.acessoVenoso);
+      }
+
       var avisos = ['Vazões calculadas para a concentração acima. Dupla checagem obrigatória na bomba.'];
       if (d.peso && gt(peso, 150)) avisos.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo por mcg/kg/min no peso real pode levar a taxas de infusão excessivas. Recomenda-se titular a dose estritamente pela PAM alvo (≥ 65 mmHg) e considerar o Peso Ideal ou Ajustado.');
       if (d.aviso) avisos.unshift(d.aviso);
+      if (fichaD1 && fichaD1.solucaoIncompativelAviso) avisos.push(fichaD1.solucaoIncompativelAviso);
 
       var taxaFixaVaso = (chave === 'vasopressina' ? 9.0 : null);
       var doseInicialTxt = d.unidade === 'UI/min' 
@@ -1307,6 +1314,8 @@ var CalculadorasClinicas = (function () {
         ]],
         ['🟡 DILUIÇÃO, VELOCIDADE DE INFUSÃO E MANUTENÇÃO', [
           textoPreparo,
+          (fichaD1 ? '💧 Diluente Oficial (D1): ' + fichaD1.diluenteD1 : '💧 Diluente de escolha: SG 5% ou SF 0,9% conforme estabilidade'),
+          (fichaD1 ? '💉 Acesso Venoso: ' + fichaD1.acessoVenoso : '💉 Acesso venoso central preferencial'),
           'Concentração da solução: ' + fmt(conc, d.unidade === 'UI/min' ? 1 : 0) + ' ' + d.conc,
           'Tabela de Vazão em Bomba de Infusão Contínua (BIC):'
         ].concat(linhas)],
@@ -2756,6 +2765,7 @@ var CalculadorasClinicas = (function () {
     calcularParklandPorTextoLivre: calcularParklandPorTextoLivre,
     drogasVasoativas: drogasVasoativas,
     auditarInfusaoUti: function (p) {
+      if (typeof CompatibilidadeYDvaService !== 'undefined') return CompatibilidadeYDvaService.auditarPrescricaoCombinada(p);
       if (typeof AuditoriaInfusaoUtiService !== 'undefined') return AuditoriaInfusaoUtiService.auditarVazaoBomba(p);
       throw new Error('Serviço de Auditoria de Infusão não carregado.');
     },
@@ -2764,8 +2774,17 @@ var CalculadorasClinicas = (function () {
       throw new Error('Serviço de Auditoria de Infusão não carregado.');
     },
     auditarPrescricaoMultiplaUti: function (p) {
+      if (typeof CompatibilidadeYDvaService !== 'undefined') return CompatibilidadeYDvaService.auditarPrescricaoCombinada(p);
       if (typeof AuditoriaInfusaoUtiService !== 'undefined') return AuditoriaInfusaoUtiService.auditarPrescricaoMultipla(p);
       throw new Error('Serviço de Auditoria de Infusão não carregado.');
+    },
+    compatibilidadeYDva: function (drogaA, drogaB) {
+      if (typeof CompatibilidadeYDvaService !== 'undefined') return CompatibilidadeYDvaService.checarCompatibilidadeY(drogaA, drogaB);
+      throw new Error('Serviço de Compatibilidade em Y não carregado.');
+    },
+    formatarParecerCompatibilidadeY: function (drogaA, drogaB) {
+      if (typeof CompatibilidadeYDvaService !== 'undefined') return CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(drogaA, drogaB);
+      throw new Error('Serviço de Compatibilidade em Y não carregado.');
     },
     gerarTabelaTitulacaoUti: function (d, p, s) {
       if (typeof AuditoriaInfusaoUtiService !== 'undefined') return AuditoriaInfusaoUtiService.gerarTabelaTitulacao(d, p, s);

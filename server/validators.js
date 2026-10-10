@@ -28,7 +28,7 @@ const LIMITES_FISIOLOGICOS = {
 const DROGAS_DVA_VALIDAS = new Set(['nora', 'dobuta', 'vaso', 'adrena', 'adrenalina', 'nipride', 'tridil']);
 const CENARIOS_SRI_VALIDOS = new Set(['padrao', 'choque', 'asma', 'neuro', 'tce', 'hic']);
 const TIPOS_CALCULADORA_VALIDOS = new Set([
-  'dva', 'sri', 'crcl', 'gaso', 'ajuste_atb', 'atb',
+  'dva', 'compatibilidade_y', 'dva_y', 'sri', 'crcl', 'gaso', 'ajuste_atb', 'atb',
   'pediatria', 'pals', 'holliday', 'dhe', 'eletrolitos', 'hidroeletrolitico',
   'heart', 'sca', 'cardiologia', 'asma', 'crise_asmatica', 'broncoespasmo'
 ]);
@@ -125,6 +125,21 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
       entradaSanitizada.droga = droga;
       entradaSanitizada.peso = vPeso.valor;
       entradaSanitizada.solucao = typeof entrada.solucao === 'string' ? entrada.solucao.trim().slice(0, 50) : 'padrao';
+      if (typeof entrada.droga2 === 'string' && entrada.droga2.trim()) {
+        entradaSanitizada.droga2 = entrada.droga2.trim().slice(0, 60);
+      }
+      break;
+    }
+
+    case 'compatibilidade_y':
+    case 'dva_y': {
+      const d1 = typeof (entrada.droga1 || entrada.drogaA || entrada.droga) === 'string' ? String(entrada.droga1 || entrada.drogaA || entrada.droga).trim().slice(0, 60) : '';
+      const d2 = typeof (entrada.droga2 || entrada.drogaB) === 'string' ? String(entrada.droga2 || entrada.drogaB).trim().slice(0, 60) : '';
+      if (!d1 || !d2) {
+        return { valido: false, erro: 'Para checar compatibilidade em Y, informe duas drogas válidas (droga1 e droga2).' };
+      }
+      entradaSanitizada.droga1 = d1;
+      entradaSanitizada.droga2 = d2;
       break;
     }
 

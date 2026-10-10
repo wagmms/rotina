@@ -210,7 +210,31 @@ function cockpitCalcular(initData, tipo, entrada) {
   switch (tipo) {
     case 'dva':
       if (['nora','dobuta','vaso','adrena','adrenalina','nipride','tridil'].indexOf(entrada.droga) < 0) throw new Error('Selecione uma droga válida.');
-      return CalculadorasClinicas.drogasVasoativas(entrada.droga, entrada.peso, entrada.solucao || 'padrao');
+      var resDva = CalculadorasClinicas.drogasVasoativas(entrada.droga, entrada.peso, entrada.solucao || 'padrao');
+      if (entrada.droga2 && typeof CompatibilidadeYDvaService !== 'undefined') {
+        var checkY = CompatibilidadeYDvaService.checarCompatibilidadeY(entrada.droga, entrada.droga2);
+        var txtCompat = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(entrada.droga, entrada.droga2);
+        resDva.compatibilidadeY = checkY;
+        if (resDva.textoFormatado) {
+          resDva.textoFormatado += "\n\n" + txtCompat;
+        }
+        if (resDva.texto) {
+          resDva.texto += "\n\n" + txtCompat;
+        }
+      }
+      return resDva;
+    case 'compatibilidade_y':
+    case 'dva_y':
+      var d1 = entrada.droga1 || entrada.drogaA || entrada.droga || 'noradrenalina';
+      var d2 = entrada.droga2 || entrada.drogaB || 'dobutamina';
+      if (typeof CompatibilidadeYDvaService !== 'undefined') {
+        var resY = CompatibilidadeYDvaService.checarCompatibilidadeY(d1, d2);
+        var txtY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(d1, d2);
+        resY.texto = txtY;
+        resY.textoFormatado = txtY;
+        return resY;
+      }
+      throw new Error('Serviço de Compatibilidade em Y indisponível.');
     case 'sri':
       if (['padrao','choque','asma','neuro','tce','hic'].indexOf(entrada.cenario) < 0) throw new Error('Selecione um cenário válido.');
       return CalculadorasClinicas.sequenciaRapidaIntubacao(entrada.peso, entrada.cenario);
@@ -494,6 +518,17 @@ function cockpitChecarSeguranca(initData, drogasOuTexto, contextoClinico) {
   cockpitAutorizar_(initData);
   if (!drogasOuTexto) throw new Error('Informe os medicamentos ou texto para checagem.');
   return executarCrossCheckSegurancaClinica(drogasOuTexto, contextoClinico);
+}
+
+function cockpitCompatibilidadeYDva(initData, droga1, droga2) {
+  cockpitAutorizar_(initData);
+  if (!droga1 || !droga2) throw new Error('Informe droga1 e droga2 para checar compatibilidade em Y.');
+  if (typeof CompatibilidadeYDvaService !== 'undefined') {
+    var checagem = CompatibilidadeYDvaService.checarCompatibilidadeY(droga1, droga2);
+    checagem.textoFormatado = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(droga1, droga2);
+    return checagem;
+  }
+  throw new Error('Módulo CompatibilidadeYDvaService indisponível.');
 }
 
 function cockpitRemume(initData) {

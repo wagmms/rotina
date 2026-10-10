@@ -784,6 +784,7 @@ module.exports = {
         _rpcMap.cockpitAulasProgresso = ctx.cockpitAulasProgresso;
         _rpcMap.cockpitAlternarAula = ctx.cockpitAlternarAula;
         _rpcMap.cockpitChecarSeguranca = ctx.cockpitChecarSeguranca;
+        _rpcMap.cockpitCompatibilidadeYDva = ctx.cockpitCompatibilidadeYDva;
         _rpcMap.cockpitSoapAmbulatorial = ctx.cockpitSoapAmbulatorial;
         _rpcMap.cockpitGerarReceitaTexto = ctx.cockpitGerarReceitaTexto;
         _rpcMap.cockpitGerarAtestadoTexto = ctx.cockpitGerarAtestadoTexto;

@@ -616,7 +616,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/pcr", "/acls", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -692,12 +692,34 @@ function processarMensagemTexto(message) {
 
 
   // 3. COMANDOS CLÍNICOS E SALA VERMELHA
-  if (comando === "/dva") {
-    var dadosDva = texto.replace(/^\/dva\s*/i, "").trim();
+  if (comando === "/dva" || comando === "/compatibilidade" || comando === "/compatibilidade_y") {
+    var dadosDva = texto.replace(/^\/(?:dva|compatibilidade|compatibilidade_y)\s*/i, "").trim();
     if (!dadosDva) {
-      return enviarMensagemParaChat(chatId, "💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nUso: `/dva <droga> <pesoKg> [solução]`\n💡 *Exemplos:*\n• `/dva nora 70` (Noradrenalina padrão)\n• `/dva nora 80 concentrada` (Solução 2x)\n• `/dva dobuta 65`\n• `/dva vaso`\n• `/dva nipride 75`\n• `/dva tridil`");
+      return enviarMensagemParaChat(chatId, "💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nUso: `/dva <droga> <pesoKg> [solução]`\n💡 *Exemplos:*\n• `/dva nora 70` (Noradrenalina padrão)\n• `/dva nora 80 concentrada` (Solução 2x)\n• `/dva dobuta 65`\n• `/dva vaso`\n• `/dva nipride 75`\n• `/dva tridil`\n\n🔬 *Compatibilidade em Y (Prescrição Combinada / BIC):*\n• `/dva y nora dobuta` (Checar se podem correr no mesmo lúmen)\n• `/dva y nora furosemida` (Alerta de precipitação físico-química)");
     }
     var partesDva = dadosDva.split(/\s+/);
+
+    // Detecção de consulta direta de compatibilidade em Y (/dva y droga1 droga2 ou /compatibilidade d1 d2)
+    var ehConsultaY = (partesDva[0].toLowerCase() === "y" || partesDva[0].toLowerCase() === "compatibilidade" || partesDva[0].toLowerCase() === "crosscheck" || comando === "/compatibilidade" || comando === "/compatibilidade_y");
+    if (ehConsultaY) {
+      var d1Y = (partesDva[0].toLowerCase() === "y" || partesDva[0].toLowerCase() === "compatibilidade" || partesDva[0].toLowerCase() === "crosscheck") ? partesDva[1] : partesDva[0];
+      var d2Y = (partesDva[0].toLowerCase() === "y" || partesDva[0].toLowerCase() === "compatibilidade" || partesDva[0].toLowerCase() === "crosscheck") ? partesDva[2] : partesDva[1];
+      if (d1Y && d2Y && typeof CompatibilidadeYDvaService !== "undefined") {
+        var parecerY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(d1Y, d2Y);
+        return enviarMensagemParaChat(chatId, parecerY);
+      }
+    }
+
+    // Detecção inteligente de 2 drogas sem peso (ex: /dva nora dobuta ou /dva nora furosemida)
+    if (partesDva.length === 2 && isNaN(Number(partesDva[1].replace(",", "."))) && typeof CompatibilidadeYDvaService !== "undefined") {
+      var d1Norm = CompatibilidadeYDvaService.normalizarNomeDroga(partesDva[0]);
+      var d2Norm = CompatibilidadeYDvaService.normalizarNomeDroga(partesDva[1]);
+      if (CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA[d1Norm] || CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA[d2Norm]) {
+        var parecerAutoY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(partesDva[0], partesDva[1]);
+        return enviarMensagemParaChat(chatId, parecerAutoY);
+      }
+    }
+
     var nomeDroga = (partesDva[0] || "").toLowerCase();
 
     // Drogas de dose fixa independentes de peso (Vasopressina, Nitroglicerina/Tridil)
