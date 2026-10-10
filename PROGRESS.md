@@ -87,6 +87,8 @@
 - *Sugestão 54 (Calculadoras / Hidratação)*: Protocolo interativo de reposição de potássio com cálculo automático de limite de concentração para acesso venoso periférico (máximo 40 mEq/L) versus acesso venoso central (máximo 60 mEq/L) com alerta sonoro/visual de monitorização cardíaca contínua.
 - *Sugestão 55 (Cockpit / Pneumologia)*: Feedback visual com indicador gráfico de saturação SpO2 e barra de cores dinâmica (verde 93-95% para asma, verde 88-92% com aviso amarelo/vermelho >92% para DPOC alertando hiperóxia e perda do drive hipóxico em tempo real).
 - *Sugestão 56 (Telegram / Emergência Respiratória)*: Atalhos inline `/asma` e `/dpoc` com botões táteis de 1 toque para classificação rápida de crise asmática/DPOC em 3 níveis (Leve/Moderada, Grave, Ameaça à Vida/Tórax Silencioso) gerando conduta imediata formatada para copiar para PEP.
+- *Sugestão 57 (Telegram / Visual)*: Barras de progresso e gravidade com blocos semafóricos em emojis (`🟩🟩🟨⬜⬜`) no Telegram para sumarização visual imediata de escores de risco clínico beira-leito (ex: FRAX, CURB-65, TIMI, Wells, qSOFA) e metas terapêuticas.
+- *Sugestão 58 (Telegram / UX)*: Pulsador contínuo de status de digitação (`sendChatAction: typing` periódico com timer/thread) durante processamento de consultas clínicas discursivas complexas via IA (Gemini Pro) para manter feedback de vida ativo e evitar sensação de travamento na rede móvel hospitalar.
 
 ---
 
