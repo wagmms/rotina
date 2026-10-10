@@ -1325,8 +1325,25 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   if (typeof executarCrossCheckSegurancaClinica === "function") {
     try {
       var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
-      if (check && (check.temAlertasCriticos || (check.interacoes && check.interacoes.length > 0) || (check.ajustesRenais && check.ajustesRenais.length > 0))) {
-        blocoCrossCheck = "\n\n" + check.textoFormatado;
+      if (check && check.temAlertasCriticos) {
+        var alertasSentinela = [];
+        if (check.interacoes) {
+          check.interacoes.filter(function(it) {
+            return it.grauNormalizado === "CONTRAINDICADO" || it.grauNormalizado === "GRAVE";
+          }).forEach(function(it) {
+            alertasSentinela.push("• 🛑 *Interação " + it.grau + ":* " + it.drogaA + " + " + it.drogaB + " (" + (it.recomendacao || it.efeito) + ")");
+          });
+        }
+        if (check.compatibilidadeY) {
+          check.compatibilidadeY.filter(function(p) {
+            return p.status === "INCOMPATIVEL" || p.alertaCritico;
+          }).forEach(function(p) {
+            alertasSentinela.push("• 🛑 *Incompatibilidade em Y:* " + p.drogaA.toUpperCase() + " ⚡ " + p.drogaB.toUpperCase() + " (" + p.conduta + ")");
+          });
+        }
+        if (alertasSentinela.length > 0) {
+          blocoCrossCheck = "\n\n⚠️ *ALERTAS CRÍTICOS DE SEGURANÇA FARMACOLÓGICA:*\n" + alertasSentinela.join("\n");
+        }
       }
     } catch (eCheck) {
       Logger.log("Aviso no cross-check de segurança: " + eCheck.message);

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-10 20:39:21
- * Checksum SHA256: f9f5f4a2dce7bfa2
+ * Gerado automaticamente via build_master.py em: 2026-10-10 20:50:48
+ * Checksum SHA256: 392ed1bd481df51b
  * ==============================================================================
  */
 
@@ -8331,7 +8331,24 @@ var CompatibilidadeYDvaService = (function() {
       };
     }
 
-    // Regras inferidas para pares sem conflito documentado conhecido
+    // Se nenhum dos fármacos for droga de infusão parenteral / UTI, compatibilidade em Y não é aplicável
+    if (!fichaA && !fichaB) {
+      return {
+        ok: true,
+        drogaA: idA,
+        drogaB: idB,
+        status: 'COMPATIVEL',
+        icone: '✅',
+        grau: 'COMPATÍVEL / NÃO APLICÁVEL A BIC',
+        mecanismo: 'Fármacos não caracterizados como drogas de infusão contínua parenteral (BIC / UTI). Compatibilidade físico-química em Y não aplicável.',
+        conduta: 'Administrar conforme prescrição médica e vias habituais.',
+        alertaCritico: false,
+        fichaA: null,
+        fichaB: null
+      };
+    }
+
+    // Regras inferidas para pares sem conflito documentado conhecido em terapia intensiva
     return {
       ok: true,
       drogaA: idA,
@@ -34673,9 +34690,25 @@ function extrairFarmacosDoTexto(texto) {
 
   var tokens = textoNorm.split(/\s+/).filter(function(t) { return t.length >= 3; });
   var encontrados = [];
+
+  var STOPWORDS_FARMACOS = {
+    "agua": 1, "sodica": 1, "potassica": 1, "cloreto": 1, "sodio": 1, "potassio": 1,
+    "soro": 1, "fisiologico": 1, "glicosado": 1, "glicose": 1, "xarope": 1, "gotas": 1,
+    "comprimido": 1, "comprimidos": 1, "capsula": 1, "capsulas": 1, "pomada": 1, "creme": 1,
+    "gel": 1, "spray": 1, "solucao": 1, "injetavel": 1, "frasco": 1, "frascos": 1,
+    "ampola": 1, "ampolas": 1, "diluente": 1, "veiculo": 1, "suspensao": 1, "suspensa": 1,
+    "oral": 1, "topico": 1, "oftalmico": 1, "nasal": 1, "retal": 1, "inalatorio": 1,
+    "aerosol": 1, "dose": 1, "doses": 1, "posologia": 1, "cada": 1, "horas": 1, "hora": 1,
+    "dias": 1, "dia": 1, "meses": 1, "ano": 1, "anos": 1, "minutos": 1, "minuto": 1,
+    "caixa": 1, "caixas": 1, "unidades": 1, "miligramas": 1, "gramas": 1, "microgramas": 1,
+    "litro": 1, "drageas": 1, "flaconete": 1, "adesivo": 1, "colirio": 1, "tabela": 1,
+    "paciente": 1, "inicio": 1, "manha": 1, "noite": 1, "tarde": 1, "tomar": 1, "usar": 1,
+    "aplicar": 1, "ingerir": 1, "administrar": 1, "iniciar": 1, "manter": 1, "ajuste": 1
+  };
+
   function adicionar(farmaco) {
     var f = String(farmaco || "").toLowerCase().trim();
-    if (f && f.length >= 3 && encontrados.indexOf(f) === -1) {
+    if (f && f.length >= 3 && !STOPWORDS_FARMACOS[f] && encontrados.indexOf(f) === -1) {
       encontrados.push(f);
     }
   }
@@ -34704,7 +34737,7 @@ function extrairFarmacosDoTexto(texto) {
         var partes = medCol.split(/[\s,+/]+/);
         for (var p = 0; p < partes.length; p++) {
           var termoP = partes[p].trim();
-          if (termoP.length >= 4 && textoNorm.indexOf(" " + termoP + " ") !== -1) {
+          if (termoP.length >= 4 && !STOPWORDS_FARMACOS[termoP] && textoNorm.indexOf(" " + termoP + " ") !== -1) {
             adicionar(termoP);
           }
         }
@@ -34718,7 +34751,7 @@ function extrairFarmacosDoTexto(texto) {
     for (var k = 0; k < medsHsl.length; k++) {
       var farnacoStr = String(medsHsl[k].farnaco || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       var primeiroTermo = farnacoStr.split(/[\s,()]+/)[0].trim();
-      if (primeiroTermo.length >= 4 && textoNorm.indexOf(" " + primeiroTermo + " ") !== -1) {
+      if (primeiroTermo.length >= 4 && !STOPWORDS_FARMACOS[primeiroTermo] && textoNorm.indexOf(" " + primeiroTermo + " ") !== -1) {
         adicionar(primeiroTermo);
       }
     }
@@ -34868,30 +34901,44 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
 
   // Formatação clínica para Telegram, Cockpit e Auditoria
   var linhasTexto = [];
-  linhasTexto.push("🛡️ *CROSS-CHECK DETERMINÍSTICO DE SEGURANÇA FARMACOLÓGICA*");
-  linhasTexto.push("═════════════════════════════════════════════════");
-  linhasTexto.push("🔍 *Fármacos rastreados na prescrição:* " + (farmacos.length > 0 ? farmacos.map(function(s){return "`" + s.toUpperCase() + "`";}).join(", ") : "Nenhum fármaco identificado"));
+  linhasTexto.push("🛡️ *CROSS-CHECK DE SEGURANÇA FARMACOLÓGICA*");
+  linhasTexto.push("🔍 *Fármacos rastreados:* " + (farmacos.length > 0 ? farmacos.map(function(s){return "`" + s.toUpperCase() + "`";}).join(", ") : "Nenhum fármaco identificado"));
 
   if (interacoesAchadas.length > 0) {
-    linhasTexto.push("\n⚠️ *INTERAÇÕES MEDICAMENTOSAS IDENTIFICADAS (BASE LOCAL):*");
+    linhasTexto.push("\n⚠️ *INTERAÇÕES MEDICAMENTOSAS IDENTIFICADAS:*");
     interacoesAchadas.forEach(function(inter) {
       var icone = inter.grauNormalizado === "CONTRAINDICADO" ? "🛑" : inter.grauNormalizado === "GRAVE" ? "🔴" : "🟡";
-      linhasTexto.push(icone + " *" + inter.grau.toUpperCase() + ":* *" + inter.drogaA + "* ⚡ *" + inter.drogaB + "*");
+      linhasTexto.push(icone + " *" + inter.grau.toUpperCase() + ":* `" + inter.drogaA + "` ⚡ `" + inter.drogaB + "`");
       linhasTexto.push("   • *Efeito clínico:* " + inter.efeito);
       if (inter.recomendacao) linhasTexto.push("   • *Conduta recomendada:* " + inter.recomendacao);
     });
   } else if (farmacos.length >= 2) {
-    linhasTexto.push("\n✅ *Interações Medicamentosas:* Nenhuma interação grave cadastrada na tabela local entre as drogas listadas.");
+    linhasTexto.push("\n✅ *Interações Medicamentosas:* Nenhuma interação grave cadastrada entre as drogas listadas.");
   }
 
   // Bloco dedicado de Compatibilidade em Y (BIC / Terapia Intensiva)
+  // Relevante exclusivamente quando houver drogas de infusão / DVA / UTI
   if (auditoriaY && auditoriaY.pares && auditoriaY.pares.length > 0) {
-    linhasTexto.push("\n🔬 *COMPATIBILIDADE EM Y (INFUSÕES EM BIC / SALA VERMELHA & UTI):*");
-    auditoriaY.pares.forEach(function(par) {
-      linhasTexto.push(par.icone + " *" + par.grau + ":* `" + par.drogaA.toUpperCase() + "` ⚡ `" + par.drogaB.toUpperCase() + "`");
-      linhasTexto.push("   • *Mecanismo:* " + par.mecanismo);
-      linhasTexto.push("   • *Conduta beira-leito:* " + par.conduta);
+    var paresUti = auditoriaY.pares.filter(function(par) {
+      return (typeof CompatibilidadeYDvaService !== "undefined" &&
+              (CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA[par.drogaA] ||
+               CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA[par.drogaB] ||
+               par.status === "INCOMPATIVEL" || par.alertaCritico));
     });
+
+    if (paresUti.length > 0) {
+      var incompPares = paresUti.filter(function(p) { return p.status === "INCOMPATIVEL" || p.alertaCritico; });
+      linhasTexto.push("\n🔬 *COMPATIBILIDADE EM Y (INFUSÕES EM BIC / SALA VERMELHA & UTI):*");
+      if (incompPares.length > 0) {
+        incompPares.forEach(function(par) {
+          linhasTexto.push("🛑 *INCOMPATÍVEL:* `" + par.drogaA.toUpperCase() + "` ⚡ `" + par.drogaB.toUpperCase() + "`");
+          linhasTexto.push("   • *Mecanismo:* " + par.mecanismo);
+          linhasTexto.push("   • *Conduta beira-leito:* " + par.conduta);
+        });
+      } else {
+        linhasTexto.push("✅ *Compatibilidade em Y:* Fármacos parenterais compatíveis na mesma via (sem precipitação documentada).");
+      }
+    }
   }
 
   // Fichas de Diluente Oficial D1 para drogas vasoativas identificadas
@@ -34910,16 +34957,15 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
   }
 
   if (ajustesRenais.length > 0) {
-    linhasTexto.push("\n🫘 *AJUSTES DE FUNÇÃO RENAL (GUIA FARMACÊUTICO HSL):*");
     if (ctxRenal.temDisfuncao) {
-      linhasTexto.push("⚠️ *ATENÇÃO:* Paciente com parâmetros renais descritos (" + ctxRenal.detalhes.join(" | ") + "). Adequar as doses abaixo:");
+      linhasTexto.push("\n🫘 *AJUSTES DE FUNÇÃO RENAL (GUIA FARMACÊUTICO HSL):*");
+      linhasTexto.push("⚠️ *ATENÇÃO:* Paciente com parâmetros renais alterados (" + ctxRenal.detalhes.join(" | ") + "). Adequar as doses abaixo:");
+      ajustesRenais.forEach(function(aj) {
+        linhasTexto.push("• *" + aj.nomeOficial + "* (" + (aj.naRemume ? "SUS/REMUME" : "Fora da REMUME") + "): " + aj.ajuste.replace(/\n+/g, " "));
+      });
     } else {
-      linhasTexto.push("💡 *Parâmetros de ajuste para checagem com o ClCr/TFG do paciente:*");
+      linhasTexto.push("\n🫘 *Ajuste Renal:* Parâmetros normais / sem disfunção declarada.");
     }
-    ajustesRenais.forEach(function(aj) {
-      linhasTexto.push("• *" + aj.nomeOficial + "* (" + (aj.naRemume ? "SUS/REMUME" : "Fora da REMUME") + "):");
-      linhasTexto.push("  " + aj.ajuste.replace(/\n/g, "\n  "));
-    });
   }
 
   if (tetosDose.length > 0) {
@@ -34930,7 +34976,6 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
   }
 
   var elapsed = Date.now() - t0;
-  linhasTexto.push("\n⏱️ _Varredura farmacológica em RAM concluída em " + elapsed + "ms._");
 
   return {
     ok: true,
@@ -37369,8 +37414,25 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   if (typeof executarCrossCheckSegurancaClinica === "function") {
     try {
       var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
-      if (check && (check.temAlertasCriticos || (check.interacoes && check.interacoes.length > 0) || (check.ajustesRenais && check.ajustesRenais.length > 0))) {
-        blocoCrossCheck = "\n\n" + check.textoFormatado;
+      if (check && check.temAlertasCriticos) {
+        var alertasSentinela = [];
+        if (check.interacoes) {
+          check.interacoes.filter(function(it) {
+            return it.grauNormalizado === "CONTRAINDICADO" || it.grauNormalizado === "GRAVE";
+          }).forEach(function(it) {
+            alertasSentinela.push("• 🛑 *Interação " + it.grau + ":* " + it.drogaA + " + " + it.drogaB + " (" + (it.recomendacao || it.efeito) + ")");
+          });
+        }
+        if (check.compatibilidadeY) {
+          check.compatibilidadeY.filter(function(p) {
+            return p.status === "INCOMPATIVEL" || p.alertaCritico;
+          }).forEach(function(p) {
+            alertasSentinela.push("• 🛑 *Incompatibilidade em Y:* " + p.drogaA.toUpperCase() + " ⚡ " + p.drogaB.toUpperCase() + " (" + p.conduta + ")");
+          });
+        }
+        if (alertasSentinela.length > 0) {
+          blocoCrossCheck = "\n\n⚠️ *ALERTAS CRÍTICOS DE SEGURANÇA FARMACOLÓGICA:*\n" + alertasSentinela.join("\n");
+        }
       }
     } catch (eCheck) {
       Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
@@ -44053,12 +44115,7 @@ function processarMensagemTexto(message) {
     // 1. Checagem imediata em RAM (0ms)
     var check = (typeof executarCrossCheckSegurancaClinica === "function") ? executarCrossCheckSegurancaClinica(drogas) : null;
     if (check && (check.interacoes.length > 0 || check.ajustesRenais.length > 0 || check.tetosDose.length > 0)) {
-      enviarMensagemParaChat(chatId, check.textoFormatado);
-      // Se não há interações graves bloqueantes, complementa com a síntese clínica do motor IA
-      if (!check.temAlertasCriticos && comando === "/interacao") {
-        return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
-      }
-      return true;
+      return enviarMensagemParaChat(chatId, check.textoFormatado);
     }
     return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
   }

@@ -3876,12 +3876,7 @@ function processarMensagemTexto(message) {
     // 1. Checagem imediata em RAM (0ms)
     var check = (typeof executarCrossCheckSegurancaClinica === "function") ? executarCrossCheckSegurancaClinica(drogas) : null;
     if (check && (check.interacoes.length > 0 || check.ajustesRenais.length > 0 || check.tetosDose.length > 0)) {
-      enviarMensagemParaChat(chatId, check.textoFormatado);
-      // Se não há interações graves bloqueantes, complementa com a síntese clínica do motor IA
-      if (!check.temAlertasCriticos && comando === "/interacao") {
-        return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
-      }
-      return true;
+      return enviarMensagemParaChat(chatId, check.textoFormatado);
     }
     return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
   }

@@ -704,7 +704,24 @@ var CompatibilidadeYDvaService = (function() {
       };
     }
 
-    // Regras inferidas para pares sem conflito documentado conhecido
+    // Se nenhum dos fármacos for droga de infusão parenteral / UTI, compatibilidade em Y não é aplicável
+    if (!fichaA && !fichaB) {
+      return {
+        ok: true,
+        drogaA: idA,
+        drogaB: idB,
+        status: 'COMPATIVEL',
+        icone: '✅',
+        grau: 'COMPATÍVEL / NÃO APLICÁVEL A BIC',
+        mecanismo: 'Fármacos não caracterizados como drogas de infusão contínua parenteral (BIC / UTI). Compatibilidade físico-química em Y não aplicável.',
+        conduta: 'Administrar conforme prescrição médica e vias habituais.',
+        alertaCritico: false,
+        fichaA: null,
+        fichaB: null
+      };
+    }
+
+    // Regras inferidas para pares sem conflito documentado conhecido em terapia intensiva
     return {
       ok: true,
       drogaA: idA,

@@ -96,6 +96,21 @@
 
 ## 📦 Histórico de Melhorias Concluídas
 
+0AK. [x] **Correção de Formatação e Eliminação de Ruído em Compatibilidade em Y e Interações (Falsos-Positivos de Veículos / Stopwords)**:
+    - **Eliminação de Falsos-Positivos Farmacológicos ("SODICA ⚡ DIPIRONA" / "AGUA ⚡ DIPIRONA")**:
+      * Implementada lista estrita de `STOPWORDS_FARMACOS` em `extrairFarmacosDoTexto` (`src/03_bases_locais.js`), filtrando veículos, diluentes, sais e formas farmacêuticas (`agua`, `sodica`, `potassica`, `cloreto`, `sodio`, `soro`, `fisiologico`, `glicosado`, `xarope`, `gotas`, `comprimido`, `ampola`, etc.).
+      * Prevenção de que sais e formas farmacêuticas sejam catalogados como princípios ativos isolados.
+    - **Restrição de Compatibilidade em Y a Fármacos de Infusão Parenteral / UTI**:
+      * Compatibilidade em Y (Y-site) restrita estritamente a drogas de infusão parenteral / BIC (`FICHAS_DILUICAO_DVA` ou injetáveis de UTI em `src/02_compatibilidade_y_dva.js` e `src/03_bases_locais.js`).
+      * Se nenhum dos fármacos for de UTI/BIC (ex: Dipirona oral, comprimidos, xaropes), a seção de Y é totalmente omitida, eliminando advertências irrelevantes sobre cateter venoso central (CVC duplo/triplo lúmen).
+      * Pares sem conflito não geram mais blocos repetitivos com "SEM REGRA DE INCOMPATIBILIDADE EM BANCO (CAUTELA RECOMENDADA)"; o sistema agora consolida em 1 linha limpa de compatibilidade ou destaca cirurgicamente apenas pares incompatíveis.
+    - **Supressão de Laudos Quilométricos no Rodapé de Prescrições (`_iaAuditarRascunho`)**:
+      * Eliminada a injeção do relatório determinístico completo de banco de dados (`check.textoFormatado`) no corpo de receitas médicas geradas pela IA (`src/04_motores_ia.js`).
+      * Se houver risco real, o sistema injeta apenas alertas sentinela objetivos de 1 a 2 linhas. A receita médica permanece limpa, escaneável e imediatamente copiável para PEP.
+      * O relatório detalhado de interações e diluições continua disponível sob demanda pelo botão interativo `[⚠️ Ver Interações]`.
+    - **Otimização do Comando `/interacao` no Telegram**:
+      * Em `src/07_telegram_handlers.js`, eliminado o envio consecutivo de duas mensagens quando o cross-check em RAM já resolveu a consulta, gerando uma resposta única, rápida e sem duplicidade.
+
 0AJ. [x] **Síntese Extrema de Respostas no Telegram, Enxugamento de Prompts de IA e Alocação Prioritária em Raciocínio Clínico**:
     - **Eliminação de Prolixidade e Redundâncias no Telegram**:
       * Diagnóstico de payloads extensos (~4.200 caracteres para receitas simples como amigdalite) gerando atrito de rolagem no plantão.
