@@ -13,17 +13,17 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria de Acessibilidade e Contraste de Cores nos Cards de Alertas Clínicos do Cockpit**:
-    - Garantir conformidade WCAG AA em alertas críticos (Sala Vermelha / HC-UE) e cartões de salvaguarda para visibilidade sob luz solar e telas de baixa luminosidade.
+- [ ] **Refinamento do Timeout e Circuit Breaker para Provedores de IA Multimodal**:
+    - Implementar timeout seguro de 15s com fallback determinístico local para evitar esperas prolongadas no plantão se um provedor externo oscilar.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Refinamento do Timeout e Circuit Breaker para Provedores de IA Multimodal**:
-    - Implementar timeout seguro de 15s com fallback determinístico local para evitar esperas prolongadas no plantão se um provedor externo oscilar.
-2. [ ] **Sanitização e Validação Estrita de Parâmetros de Entrada nas Calculadoras via Schema Fastify**:
+1. [ ] **Sanitização e Validação Estrita de Parâmetros de Entrada nas Calculadoras via Schema Fastify**:
     - Adicionar schemas de validação no Fastify para payloads de rotas sensíveis a fim de descartar tipos incorretos no handshake sem consumir processamento do runtime.
+2. [ ] **Histórico Local no Cockpit das Últimas 5 Consultas / Cálculos**:
+    - Implementar persistência volátil (sessionStorage) para recuperação ágil sem retrabalho.
 
 ---
 
@@ -56,10 +56,44 @@
 - *Sugestão 25 (Telegram / UI)*: Mini-gráfico Sparkline em caracteres Unicode ( ▂▃▅▆▇) no sumário de glicemia (`/diabetes`) para visualização instantânea de tendência sem payload de imagem.
 - *Sugestão 26 (Segurança / Fastify)*: Suporte a chave de Rate-Limit por Token/Sessão médica (em vez de apenas IP) para ambientes hospitalares onde dezenas de médicos compartilham o mesmo IP de gateway/NAT da rede Wi-Fi corporativa da instituição, evitando que o tráfego agregado de múltiplos médicos atinja o limite por IP.
 - *Sugestão 27 (Segurança / Cockpit)*: Adicionar cabeçalho `Permissions-Policy` (geolocalização, câmera, acelerômetro restritos, mantendo apenas microfone para ditado do preceptor) para reforçar privacidade beira-leito.
+- *Sugestão 28 (Cockpit / Acessibilidade)*: Adicionar chave de alternância "Modo Alto Contraste Solar / Ao Ar Livre" (Monocromático / Preto e Branco invertido com taxa de contraste > 15:1) acionável por 1 toque no cabeçalho para leitura perfeita sob sol pleno em transferências de ambulância e heliponto.
+- *Sugestão 29 (Cockpit / Acessibilidade)*: Implementar feedback auditivo discreto (Web Audio API / bips com frequências distintas para erro crítico vs sucesso) na marcação de itens da Sala Vermelha, permitindo que o médico valide os passos da conduta mesmo sem olhar fixamente para a tela durante a ressuscitação.
+- *Sugestão 30 (Cockpit / Sala Vermelha)*: Metrônomo sonoro e visual integrado de RCP com 100-120 bpm na aba de TV Instável / PCR da Sala Vermelha para manter a cadência ótima de compressões torácicas no ACLS beira-leito.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0W. [x] **Auditoria de Acessibilidade e Contraste de Cores nos Cards de Alertas Clínicos do Cockpit (WCAG AA)**:
+    - **Conformidade Estrita de Contraste e Luminância WCAG 2.1 AA/AAA**:
+      * Auditoria completa das taxas de contraste de texto e componentes de interface nos modos de luminosidade extrema (luz solar direta vs plantão noturno em telas OLED).
+      * Eliminação de textos lavados e esmaecidos (`text-slate-400`, `text-rose-400`, `text-rose-200/90` em fontes pequenas < 11px) sobre fundos escuros, elevando a taxa de contraste de 4.3:1 para > 11:1 (`text-rose-100`, `text-amber-100`, `text-emerald-100`, `text-slate-100`).
+      * Injeção de classes de contraste no CSS do Cockpit: `.alerta-clinico-critico`, `.alerta-clinico-vigilancia` e `.alerta-clinico-salvaguarda`.
+    - **Botão e Checklists de Sala Vermelha (USP-RP / HC-UE)**:
+      * Botão principal de acesso à Sala Vermelha com contorno reforçado (`border-2 border-rose-400/70`), tipografia nítida (`text-rose-100 font-black text-xs`) e badge HC-UE com contraste absoluto (`bg-rose-500/40 text-white`).
+      * Seletor de Protocolos em Pills com diferenciação tátil: inativos em `bg-slate-900/90 text-slate-200 border border-slate-700/80 font-bold` e ativos em `border-2 font-black shadow-md`.
+      * Card de Erros Críticos & Contraindicações da USP-RP calibrado com `bg-rose-950/70 border-2 border-rose-500/70 text-rose-100 font-medium` e marcadores `text-rose-300 font-bold ❌`.
+      * Card de Metas da Sala Vermelha com cenário em `text-slate-200 font-medium` e metas em `text-slate-100 font-medium` com bullets de alto contraste.
+      * Caixas de prescrição beira-leito aumentadas para `text-[11px] text-amber-200 leading-relaxed` e racional FMRP padronizado em `text-[10.5px] text-slate-300 font-medium` (sem itálico desbotado).
+    - **Cartões de Salvaguardas & Bloqueios Sentinela das Calculadoras**:
+      * **HEART / DAPT**: Card delineado `bg-rose-950/40 border-2 border-rose-500/50` com cabeçalho `text-rose-200 font-extrabold` e opções táteis em `text-slate-100 font-medium`.
+      * **Asma**: Card delineado `bg-teal-950/35 border-2 border-teal-500/50` com sinal sentinela de fadiga respiratória / normocapnia destacado em `text-rose-200 font-semibold`.
+      * **DHE**: Alerta de ECG alterado na hipercalemia com `bg-rose-950/70 border-2 border-rose-500/70 text-rose-100 font-bold` e chip sentinela de K 8.3 PCR iminente em `bg-red-600/35 text-red-100 border-2 border-red-400/80 font-black`.
+      * **Alternância de Subcalculadoras (`abrirSubCalc`)**: Botões inativos mantidos em `bg-slate-900/90 text-slate-200 border border-slate-700/80` eliminando o apagamento visual durante a navegação.
+    - **Ponto Cego do Plantão / Preceptor IA**:
+      * Ponto de atenção na conduta com `bg-slate-900/90 border border-slate-700/80 text-slate-100 font-medium`.
+      * Pérola Beira-Leito com `bg-purple-950/40 border-2 border-purple-500/50 text-slate-100 font-medium`.
+      * Diretriz Padrão-Ouro HC-UE com `bg-emerald-950/40 border-2 border-emerald-500/50 text-emerald-100 font-medium`.
+    - **Censo de Leitos da Enfermaria & Obstetrícia (G&O)**:
+      * Indicadores do censo de Leitos Instáveis e Vigilância com contorno de 2px e tipografia contrastante (`text-rose-100` e `text-amber-100`).
+      * Alerta de Intoxicação por Sulfato de Magnésio (`bg-rose-950/80 border-2 border-rose-500 text-rose-100`) e cartão sentinela de Antídoto de Cabeceira com Gluconato de Cálcio 10% destacado com tag sólida branca/vermelha.
+      * Alertas de Índice de Choque em Partograma/HPP calibrados com `border-2` e `text-rose-100` / `text-amber-100`.
+      * Padrão visual das 5 Grandes Áreas Médicas (`PADRAO_AREAS_MEDICAS`) atualizado para todos os badges operarem com contraste `text-*-100` e pills inativas em `text-slate-200`.
+    - **Sincronismo Rigoroso com GitHub Pages**:
+      * `cockpit_movel.html` e `gh_cockpit_deploy/index.html` validados com hash SHA-256 100% idêntico.
+    - **Bateria de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_acessibilidade_contraste_cockpit.cjs` cobrindo paridade de hash, classes WCAG AA, Sala Vermelha, salvaguardas, censo, ponto cego, obstetrícia e padrão das 5 grandes áreas.
+      * Integrada ao script `npm test` no `package.json`, alcançando 100% de aprovação em todas as 26 suítes de teste do projeto.
 
 0V. [x] **Rate-Limiting e Headers de Segurança HTTP (Helmet / OWASP) no Fastify**:
     - **Proteção OWASP e Headers de Segurança HTTP (@fastify/helmet)**:
