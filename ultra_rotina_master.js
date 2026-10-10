@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 21:02:22
- * Checksum SHA256: 254d8327e40812ce
+ * Gerado automaticamente via build_master.py em: 2026-10-09 22:40:52
+ * Checksum SHA256: 4f598921f555c839
  * ==============================================================================
  */
 
@@ -2774,9 +2774,16 @@ var CalculadorasClinicas = (function () {
       base.push('Concentração: ' + fmt(conc, d.unidade === 'UI/min' ? 1 : 0) + ' ' + d.conc);
       base.push(textoPreparo);
 
+      var fichaD1 = (typeof CompatibilidadeYDvaService !== 'undefined') ? CompatibilidadeYDvaService.obterFichaDiluicao(chave) : null;
+      if (fichaD1) {
+        base.push('Diluente Padrão (D1): ' + fichaD1.diluenteD1);
+        base.push('Acesso Recomendado: ' + fichaD1.acessoVenoso);
+      }
+
       var avisos = ['Vazões calculadas para a concentração acima. Dupla checagem obrigatória na bomba.'];
       if (d.peso && gt(peso, 150)) avisos.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo por mcg/kg/min no peso real pode levar a taxas de infusão excessivas. Recomenda-se titular a dose estritamente pela PAM alvo (≥ 65 mmHg) e considerar o Peso Ideal ou Ajustado.');
       if (d.aviso) avisos.unshift(d.aviso);
+      if (fichaD1 && fichaD1.solucaoIncompativelAviso) avisos.push(fichaD1.solucaoIncompativelAviso);
 
       var taxaFixaVaso = (chave === 'vasopressina' ? 9.0 : null);
       var doseInicialTxt = d.unidade === 'UI/min' 
@@ -2791,6 +2798,8 @@ var CalculadorasClinicas = (function () {
         ]],
         ['🟡 DILUIÇÃO, VELOCIDADE DE INFUSÃO E MANUTENÇÃO', [
           textoPreparo,
+          (fichaD1 ? '💧 Diluente Oficial (D1): ' + fichaD1.diluenteD1 : '💧 Diluente de escolha: SG 5% ou SF 0,9% conforme estabilidade'),
+          (fichaD1 ? '💉 Acesso Venoso: ' + fichaD1.acessoVenoso : '💉 Acesso venoso central preferencial'),
           'Concentração da solução: ' + fmt(conc, d.unidade === 'UI/min' ? 1 : 0) + ' ' + d.conc,
           'Tabela de Vazão em Bomba de Infusão Contínua (BIC):'
         ].concat(linhas)],
@@ -4240,6 +4249,7 @@ var CalculadorasClinicas = (function () {
     calcularParklandPorTextoLivre: calcularParklandPorTextoLivre,
     drogasVasoativas: drogasVasoativas,
     auditarInfusaoUti: function (p) {
+      if (typeof CompatibilidadeYDvaService !== 'undefined') return CompatibilidadeYDvaService.auditarPrescricaoCombinada(p);
       if (typeof AuditoriaInfusaoUtiService !== 'undefined') return AuditoriaInfusaoUtiService.auditarVazaoBomba(p);
       throw new Error('Serviço de Auditoria de Infusão não carregado.');
     },
@@ -4248,8 +4258,17 @@ var CalculadorasClinicas = (function () {
       throw new Error('Serviço de Auditoria de Infusão não carregado.');
     },
     auditarPrescricaoMultiplaUti: function (p) {
+      if (typeof CompatibilidadeYDvaService !== 'undefined') return CompatibilidadeYDvaService.auditarPrescricaoCombinada(p);
       if (typeof AuditoriaInfusaoUtiService !== 'undefined') return AuditoriaInfusaoUtiService.auditarPrescricaoMultipla(p);
       throw new Error('Serviço de Auditoria de Infusão não carregado.');
+    },
+    compatibilidadeYDva: function (drogaA, drogaB) {
+      if (typeof CompatibilidadeYDvaService !== 'undefined') return CompatibilidadeYDvaService.checarCompatibilidadeY(drogaA, drogaB);
+      throw new Error('Serviço de Compatibilidade em Y não carregado.');
+    },
+    formatarParecerCompatibilidadeY: function (drogaA, drogaB) {
+      if (typeof CompatibilidadeYDvaService !== 'undefined') return CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(drogaA, drogaB);
+      throw new Error('Serviço de Compatibilidade em Y não carregado.');
     },
     gerarTabelaTitulacaoUti: function (d, p, s) {
       if (typeof AuditoriaInfusaoUtiService !== 'undefined') return AuditoriaInfusaoUtiService.gerarTabelaTitulacao(d, p, s);
@@ -7529,6 +7548,829 @@ var ClimaterioThmService = (function() {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { ClimaterioThmService: ClimaterioThmService };
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 02_compatibilidade_y_dva.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * ULTRA ROTINA · COMPATIBILIDADE EM Y E DILUIÇÃO DE VASOATIVOS & INOTRÓPICOS (D1)
+ * ==============================================================================
+ * Motor determinístico em RAM para auditoria de infusões combinadas em bomba
+ * de infusão contínua (BIC) e checagem de compatibilidade em Y (Y-site) beira-leito.
+ * 
+ * Referências e Diretrizes Clínicas Oficiais:
+ * - Trissel's Stability of Compounded Formulations & Handbook on Injectable Drugs (ASHP)
+ * - Guia Farmacêutico Hospital Sírio-Libanês (HSL)
+ * - Diretrizes de Terapia Intensiva AMIB / Surviving Sepsis Campaign (SSC)
+ * - AHA / ACC / ESC Guidelines for Acute Heart Failure and Shock
+ * ==============================================================================
+ */
+
+var CompatibilidadeYDvaService = (function() {
+  'use strict';
+
+  // 1. DILUENTES PADRÃO, ACESSO VENOSO E ESTABILIDADE DE DROGAS VASOATIVAS E DE UTI (D1)
+  var FICHAS_DILUICAO_DVA = {
+    noradrenalina: {
+      id: 'noradrenalina',
+      nome: 'Hemitartarato de Norepinefrina / Noradrenalina',
+      classe: 'Vasopressor (Agonista Alfa-1 e Beta-1 Adrenérgico)',
+      diluenteD1: 'Soro Glicosado 5% (SG 5%) PREFERENCIAL',
+      diluenteDetalhes: 'O SG 5% é o diluente de escolha porque o pH ácido e a glicose protegem a noradrenalina contra a oxidação rápida que ocorre em soluções com pH neutro/básico. O SF 0,9% pode ser utilizado temporariamente em emergências caso o SG 5% não esteja disponível, mas a estabilidade prolongada é superior em SG 5%.',
+      solucoesCompativeis: ['SG 5%', 'SG 5% em SF 0,9%', 'SF 0,9% (emergência)'],
+      solucoesIncompativeis: ['Soluções alcalinas (Bicarbonato de Sódio 8,4%)', 'Soluções com pH > 5.5'],
+      concentracaoUsual: 'Padrão: 64 mcg/mL (4 amp / 16 mg em 234 mL SG5%). Concentrada: 128 mcg/mL (8 amp / 32 mg em 218 mL SG5%).',
+      acessoVenoso: 'Acesso Venoso Central (CVC) MANDATÓRIO. Em situações de choque extremo e ausência de via central imediata, pode ser infundida em acesso periférico calibroso de antebraço por no máximo 2 a 4 horas com vigilância contínua contra extravasamento.',
+      antidotoExtravasamento: 'Fentolamina injetável 5-10 mg diluída em 10 mL de SF infiltrada localmente na área de extravasamento para prevenir necrose isquêmica.',
+      estabilidade: '24 horas em temperatura ambiente (15-30°C) sob proteção de luz solar direta.',
+      monitorizacao: 'Pressão Arterial Média (alvo PAM ≥ 65 mmHg, preferencialmente invasiva por PAI), perfusão periférica, lactato e diurese.'
+    },
+
+    dobutamina: {
+      id: 'dobutamina',
+      nome: 'Cloridrato de Dobutamina',
+      classe: 'Inotrópico (Agonista Beta-1 Adrenérgico com leve Beta-2 e Alfa)',
+      diluenteD1: 'Soro Glicosado 5% (SG 5%) ou Soro Fisiológico 0,9% (SF 0,9%)',
+      diluenteDetalhes: 'Compatível tanto com SG 5% quanto com SF 0,9% ou Ringer Lactato. Incompatível com soluções alcalinas como Bicarbonato de Sódio.',
+      solucoesCompativeis: ['SG 5%', 'SF 0,9%', 'Ringer Lactato'],
+      solucoesIncompativeis: ['Bicarbonato de Sódio 8,4%', 'Soluções alcalinas', 'Gluconato de Cálcio (cautela)'],
+      concentracaoUsual: 'Padrão: 1.000 mcg/mL (1 amp [250 mg/20 mL] em 230 mL SG5% ou SF). Concentrada: 2.000 mcg/mL (2 amp [500 mg] em 210 mL SG5%).',
+      acessoVenoso: 'Acesso Venoso Central preferencial. Pode ser infundida em veia periférica calibrosa de antebraço com monitorização vascular.',
+      antidotoExtravasamento: 'Elevação do membro e compressa morna. Dobutamina tem menor potencial vesicante que noradrenalina.',
+      estabilidade: '24 horas após diluição. A solução pode adquirir coloração levemente rosada por oxidação superficial sem perda relevante de potência; soluções muito escuras ou com precipitados devem ser descartadas.',
+      monitorizacao: 'ECG contínuo (risco de taquiarritmias e extrassistolia), PAM (pode induzir vasodilatação inicial em pacientes hipovolêmicos).'
+    },
+
+    vasopressina: {
+      id: 'vasopressina',
+      nome: 'Arginina Vasopressina / Hormônio Antidiurético (AVP)',
+      classe: 'Vasopressor Não-Adrenérgico (Agonista V1a e V2)',
+      diluenteD1: 'Soro Fisiológico 0,9% (SF 0,9%) ou Soro Glicosado 5% (SG 5%)',
+      diluenteDetalhes: 'Compatível com SF 0,9% e SG 5%. Diluição padronizada de 20 UI (1 ampola de 1 mL) em 99 mL de SF 0,9% para concentração de 0,2 UI/mL.',
+      solucoesCompativeis: ['SF 0,9%', 'SG 5%'],
+      solucoesIncompativeis: ['Bicarbonato de Sódio 8,4%', 'Soluções alcalinas'],
+      concentracaoUsual: 'Padrão: 0,2 UI/mL (1 ampola [20 UI] em 99 mL SF 0,9% ou SG 5%).',
+      acessoVenoso: 'Acesso Venoso Central obrigatório. Potente vasoconstritor periférico.',
+      antidotoExtravasamento: 'Fentolamina ou nitroglicerina tópica sob supervisão médica.',
+      estabilidade: '24 horas em temperatura ambiente (15-25°C) após diluição.',
+      monitorizacao: 'PAM (alvo ≥ 65 mmHg), perfusão digital e mesentérica. Dose fixa de 0,01 a 0,04 UI/min (usual 0,03 UI/min = 9 mL/h em BIC). NÃO TITULAR como catecolamina.'
+    },
+
+    adrenalina: {
+      id: 'adrenalina',
+      nome: 'Epinefrina / Adrenalina',
+      classe: 'Vasopressor e Inotrópico Potente (Agonista Alfa-1, Beta-1 e Beta-2)',
+      diluenteD1: 'Soro Glicosado 5% (SG 5%) PREFERENCIAL',
+      diluenteDetalhes: 'SG 5% protege contra oxidação rápida. SF 0,9% aceito em emergências. Proteger de luz excessiva.',
+      solucoesCompativeis: ['SG 5%', 'SF 0,9%'],
+      solucoesIncompativeis: ['Bicarbonato de Sódio 8,4%', 'Soluções alcalinas'],
+      concentracaoUsual: 'Padrão: 16 mcg/mL (4 ampolas [4 mg] em 246 mL SG 5%). Concentrada: 32 mcg/mL (8 ampolas em 242 mL SG 5%).',
+      acessoVenoso: 'Acesso Venoso Central mandatório para infusão contínua. Em PCR e anafilaxia grave, administrada em bolus periférico/intraósseo.',
+      antidotoExtravasamento: 'Fentolamina infiltrativa 5-10 mg diluída em 10 mL de SF.',
+      estabilidade: '24 horas protegida da luz solar direta.',
+      monitorizacao: 'ECG (taquicardia severa), PAM, lactato (induz hiperlactatemia glicolítica tipo B que não reflete necessariamente hipóxia tecidual).'
+    },
+
+    milrinona: {
+      id: 'milrinona',
+      nome: 'Lactato de Milrinona',
+      classe: 'Inodilatador (Inibidor Seletivo da Fosfodiesterase III)',
+      diluenteD1: 'Soro Fisiológico 0,9% (SF 0,9%) ou Soro Glicosado 5% (SG 5%)',
+      diluenteDetalhes: 'Compatível com SF 0,9% e SG 5%. Altamente incompatível com Furosemida (precipita imediatamente no equipo).',
+      solucoesCompativeis: ['SF 0,9%', 'SG 5%'],
+      solucoesIncompativeis: ['Furosemida (precipitação física imediata de cristais)', 'Bicarbonato de Sódio'],
+      concentracaoUsual: '200 mcg/mL (1 ampola [20 mg/20 mL] em 80 mL de SF ou SG 5% para volume final de 100 mL).',
+      acessoVenoso: 'Acesso Central preferencial. Vasodilatador sistêmico e pulmonar.',
+      antidotoExtravasamento: 'Não vesicante grave.',
+      estabilidade: '72 horas diluída em temperatura ambiente.',
+      monitorizacao: 'Pressão arterial (risco de vasodilatação e hipotensão severa; não usar se PAS < 85-90 mmHg sem vasopressor), função renal (excreção renal > 85%, exige ajuste estrito se ClCr < 50 mL/min).'
+    },
+
+    nitroprussiato: {
+      id: 'nitroprussiato',
+      nome: 'Nitroprussiato de Sódio',
+      classe: 'Vasodilatador Direto Arterial e Venoso',
+      diluenteD1: 'Soro Glicosado 5% (SG 5%) EXCLUSIVO',
+      diluenteDetalhes: 'Deve ser diluído EXCLUSIVAMENTE em SG 5%. Os íons cloreto presentes no Soro Fisiológico (SF 0,9%) desestabilizam a molécula e aumentam a taxa de decomposição. EQUIPO E FRASCO FOTOPROTETOR OBRIGATÓRIOS.',
+      solucoesCompativeis: ['SG 5% EXCLUSIVO'],
+      solucoesIncompativeis: ['SF 0,9% (incompatível para diluição base)', 'Soluções alcalinas', 'Bicarbonato de Sódio'],
+      concentracaoUsual: '200 mcg/mL (1 ampola [50 mg/2 mL] em 248 mL de SG 5%).',
+      acessoVenoso: 'Acesso Central preferencial. Requer linha arterial invasiva (PAI) para titulação beira-leito minuto a minuto.',
+      antidotoExtravasamento: 'Fotoproteção obrigatória.',
+      estabilidade: '24 horas sob rigorosa fotoproteção (frasco e equipo cobertos por invólucro opaco).',
+      monitorizacao: 'Pressão Arterial contínua invasiva. Risco severo de toxicidade por tiocianato/cianeto se infusão > 48 horas, doses > 2 mcg/kg/min ou disfunção renal/hepática (manifesta com acidose lática inexplicada e confusão mental).'
+    },
+
+    nitroglicerina: {
+      id: 'nitroglicerina',
+      nome: 'Nitroglicerina (Tridil)',
+      classe: 'Vasodilatador Venoso Predominante e Coronariano',
+      diluenteD1: 'Soro Glicosado 5% (SG 5%) ou Soro Fisiológico 0,9% (SF 0,9%)',
+      diluenteDetalhes: 'Compatível com SG 5% e SF 0,9%. FRASCO DE VIDRO/POLIETILENO E EQUIPO SEM PVC SÃO OBRIGATÓRIOS. O cloreto de polivinila (PVC) adsorve 40% a 80% do fármaco, diminuindo drasticamente a dose entregue.',
+      solucoesCompativeis: ['SG 5%', 'SF 0,9%'],
+      solucoesIncompativeis: ['Fenitoína', 'Bicarbonato de Sódio'],
+      concentracaoUsual: '200 mcg/mL (1 ampola [50 mg/10 mL] em 240 mL de SG 5% ou SF 0,9%).',
+      acessoVenoso: 'Acesso periférico ou central. Exige equipo específico livre de PVC.',
+      antidotoExtravasamento: 'Sem ação vesicante.',
+      estabilidade: '24 horas em frasco de vidro ou polietileno livre de PVC.',
+      monitorizacao: 'Pressão arterial, alívio de dor anginosa ou congestão. Contraindicação absoluta: Infarto de VD, PAS < 90 mmHg e uso de inibidores da PDE-5 (Sildenafil nas últimas 24h ou Tadalafil nas últimas 48h).'
+    },
+
+    amiodarona: {
+      id: 'amiodarona',
+      nome: 'Cloridrato de Amiodarona',
+      classe: 'Antiarrítmico Classe III (Bloqueador de Canais de Potássio)',
+      diluenteD1: 'Soro Glicosado 5% (SG 5%) EXCLUSIVO para Infusão Contínua',
+      diluenteDetalhes: 'Para infusão contínua (> 2 horas), diluir EXCLUSIVAMENTE em SG 5%. Em SF 0,9%, ocorre instabilidade físico-química e precipitação com formação de microcristais. Concentrações superiores a 2 mg/mL exigem Acesso Venoso Central para evitar flebite química grave.',
+      solucoesCompativeis: ['SG 5% EXCLUSIVO para manutenção'],
+      solucoesIncompativeis: ['SF 0,9% (instável em infusões contínuas)', 'Bicarbonato de Sódio', 'Heparina (precipita)', 'Furosemida (precipita)'],
+      concentracaoUsual: 'Ataque: 150-300 mg em 100 mL SG 5% em 10-20 min. Manutenção: 900 mg (6 ampolas) em 500 mL SG 5% (1,8 mg/mL) em 24h.',
+      acessoVenoso: 'Acesso Venoso Central mandatório para infusão contínua > 1h ou concentração > 2 mg/mL (alto risco de flebite e esclerose venosa).',
+      antidotoExtravasamento: 'Suspender imediatamente, aplicar compressa fria.',
+      estabilidade: '24 horas em frasco de vidro ou poliolefina livre de PVC.',
+      monitorizacao: 'ECG contínuo (intervalo QTc, bradicardia sinusal, bloqueios AV) e pressão arterial.'
+    },
+
+    furosemida: {
+      id: 'furosemida',
+      nome: 'Furosemida',
+      classe: 'Diurético de Alça (pH Alcalino ~8.5 a 9.5)',
+      diluenteD1: 'Soro Fisiológico 0,9% (SF 0,9%) EXCLUSIVO',
+      diluenteDetalhes: 'Furosemida é uma solução fortemente alcalina (pH ~8.5-9.5). Quando misturada com soluções ácidas como SG 5% ou em Y com catecolaminas (pH 3-4), ocorre precipitação imediata de cristais de furosemida insolúveis.',
+      solucoesCompativeis: ['SF 0,9%'],
+      solucoesIncompativeis: ['SG 5% para armazenamento', 'Noradrenalina em Y', 'Dobutamina em Y', 'Milrinona em Y', 'Adrenalina em Y', 'Midazolam em Y', 'Amiodarona em Y'],
+      concentracaoUsual: 'Pura ou diluída em SF 0,9% para BIC (ex: 200 mg [20 amp] em 80 mL SF 0,9% = 2 mg/mL).',
+      acessoVenoso: 'Acesso periférico ou central. NUNCA INFUNDIR EM Y COM VASOATIVOS.',
+      antidotoExtravasamento: 'Compressas.',
+      estabilidade: '24 horas protegida da luz em SF 0,9%.',
+      monitorizacao: 'Débito urinário, eletrólitos (K+, Mg++, Na+), função renal e pressão arterial.'
+    },
+
+    bicarbonato_de_sodio: {
+      id: 'bicarbonato_de_sodio',
+      nome: 'Bicarbonato de Sódio 8,4% (1 mEq/mL)',
+      classe: 'Solução Alcalinizante Hipertônica (pH ~8.0 a 8.5)',
+      diluenteD1: 'Uso Puro ou em Soro Glicosado 5% (SG 5%)',
+      diluenteDetalhes: 'Solução fortemente alcalina. NUNCA DEVE SER ADMINISTRADA NA MESMA LINHA OU EM Y COM CATECOLAMINAS (noradrenalina, dobutamina, adrenalina) pois o meio alcalino degrada e oxida as catecolaminas em segundos, anulando seu efeito.',
+      solucoesCompativeis: ['SG 5%', 'Água para Injeção'],
+      solucoesIncompativeis: ['Noradrenalina', 'Dobutamina', 'Adrenalina', 'Gluconato de Cálcio (precipita carbonato de cálcio)', 'Amiodarona', 'Dopamina'],
+      concentracaoUsual: 'Solução 8,4% (1 mEq/mL) ou solução isotônica a 1,4% em SG 5%.',
+      acessoVenoso: 'Acesso venoso dedicado. NUNCA COMPARTILHAR VIA COM DROGAS VASOATIVAS.',
+      antidotoExtravasamento: 'Hipertônico e alcalino; risco de necrose por extravasamento.',
+      estabilidade: 'Uso imediato após diluição.',
+      monitorizacao: 'Gasometria arterial, pH, pCO2 (requer ventilação adequada para eliminar CO2 gerado) e potássio sérico.'
+    },
+
+    gluconato_de_calcio: {
+      id: 'gluconato_de_calcio',
+      nome: 'Gluconato de Cálcio 10%',
+      classe: 'Estabilizador de Membrana / Eletrólito de Emergência',
+      diluenteD1: 'Soro Glicosado 5% (SG 5%) ou Soro Fisiológico 0,9% (SF 0,9%)',
+      diluenteDetalhes: 'Compatível com SG 5% e SF 0,9%. INCOMPATÍVEL com Bicarbonato de Sódio, Fosfato e Ceftriaxona (risco de precipitação fatal de sais de cálcio insolúveis).',
+      solucoesCompativeis: ['SG 5%', 'SF 0,9%'],
+      solucoesIncompativeis: ['Bicarbonato de Sódio (precipita carbonato de cálcio)', 'Fosfato de Potássio', 'Ceftriaxona (precipitado letal)'],
+      concentracaoUsual: '10 a 20 mL em 100 mL de SG 5% ou SF infundidos em 10 a 20 minutos com monitorização cardíaca.',
+      acessoVenoso: 'Acesso venoso calibroso ou central. Menos irritante tecidual que cloreto de cálcio.',
+      antidotoExtravasamento: 'Elevação e gelo/frio.',
+      estabilidade: '24 horas em temperatura ambiente.',
+      monitorizacao: 'ECG contínuo (risco de bradicardia e arritmias se infusão rápida).'
+    },
+
+    fenitoina: {
+      id: 'fenitoina',
+      nome: 'Fenitoína Sódica (Hidantal)',
+      classe: 'Anticonvulsivante Hidantoínico EV',
+      diluenteD1: 'Soro Fisiológico 0,9% (SF 0,9%) EXCLUSIVO',
+      diluenteDetalhes: 'DEVE SER DILUÍDA EXCLUSIVAMENTE EM SF 0,9%. Extremamente insolúvel em pH ácido: precipita imediatamente em contato com SG 5% ou qualquer outra solução ou droga ácida. INFUNDIR EM VIA EXCLUSIVA COM FILTRO DE LINHA.',
+      solucoesCompativeis: ['SF 0,9% EXCLUSIVO'],
+      solucoesIncompativeis: ['SG 5%', 'TODAS AS DROGAS VASOATIVAS EM Y', 'Opioides', 'Sedativos'],
+      concentracaoUsual: 'Ataque: 15-20 mg/kg em 100-250 mL SF 0,9% em velocidade MÁXIMA de 50 mg/minuto.',
+      acessoVenoso: 'Via Venosa Exclusiva mandatória. Risco de Síndrome da Luva Roxa se extravasamento.',
+      antidotoExtravasamento: 'Suspender imediatamente.',
+      estabilidade: 'Uso imediato dentro de 1 hora após diluição.',
+      monitorizacao: 'PA e ECG contínuos durante a infusão (risco de hipotensão severa e assistolia/arritmias ventriculares induzidas pelo propilenoglicol).'
+    },
+
+    fentanil: {
+      id: 'fentanil',
+      nome: 'Citrato de Fentanila',
+      classe: 'Opioide Sintético de Alta Potência (BIC Sedoanalgesia)',
+      diluenteD1: 'Soro Fisiológico 0,9% (SF 0,9%) ou Soro Glicosado 5% (SG 5%)',
+      diluenteDetalhes: 'Altamente compatível com Noradrenalina, Dobutamina, Vasopressina e Midazolam em Y.',
+      solucoesCompativeis: ['SF 0,9%', 'SG 5%'],
+      solucoesIncompativeis: ['Fenitoína', 'Furosemida (cautela/incompatível)'],
+      concentracaoUsual: '50 mcg/mL puro ou diluído.',
+      acessoVenoso: 'Central ou periférico.',
+      antidotoExtravasamento: 'Naloxona se sobredose/depressão respiratória.',
+      estabilidade: '24 horas.',
+      monitorizacao: 'Escala RASS, frequência respiratória e reflexos.'
+    },
+
+    midazolam: {
+      id: 'midazolam',
+      nome: 'Maleato de Midazolam',
+      classe: 'Benzodiazepínico Sedativo de Ação Curta',
+      diluenteD1: 'Soro Fisiológico 0,9% (SF 0,9%) ou Soro Glicosado 5% (SG 5%)',
+      diluenteDetalhes: 'Compatível com Noradrenalina, Dobutamina e Fentanil em Y. Incompatível com Furosemida.',
+      solucoesCompativeis: ['SF 0,9%', 'SG 5%'],
+      solucoesIncompativeis: ['Furosemida (precipita)', 'Bicarbonato de Sódio', 'Fenitoína'],
+      concentracaoUsual: '1 mg/mL ou 2 mg/mL em SF ou SG5%.',
+      acessoVenoso: 'Central ou periférico.',
+      antidotoExtravasamento: 'Flumazenil (uso restrito).',
+      estabilidade: '24 horas.',
+      monitorizacao: 'Escala RASS, tolerância hemodinâmica (vasodilatador e depressor miocárdico discreto).'
+    },
+
+    propofol: {
+      id: 'propofol',
+      nome: 'Propofol 1% (Emulsão Lipídica)',
+      classe: 'Anestésico Geral Hipnótico Ultrarrápido',
+      diluenteD1: 'Puro em Frasco Original (Emulsão Lipídica a 10 mg/mL)',
+      diluenteDetalhes: 'Administrar puro em frasco original. Emulsão lipídica com alto risco de contaminação bacteriana. TROCA DE EQUIPO E FRASCO A CADA 12 HORAS.',
+      solucoesCompativeis: ['SG 5% (para flush imediato apenas)'],
+      solucoesIncompativeis: ['Diazepam', 'Fenitoína', 'Bicarbonato', 'Atracúrio'],
+      concentracaoUsual: '10 mg/mL (1%) puro.',
+      acessoVenoso: 'Acesso Central ou periférico calibroso. Preferir lúmen dedicado.',
+      antidotoExtravasamento: 'Compressas.',
+      estabilidade: '12 horas no equipo após abertura (veículo lipídico propício ao crescimento bacteriano).',
+      monitorizacao: 'Pressão arterial (potente vasodilatador e hipotensor), triglicerídeos séricos se uso > 48h (risco de Síndrome da Infusão do Propofol - PRIS com acidose lática severa, rabdomiólise e colapso cardíaco).'
+    },
+
+    dexmedetomidina: {
+      id: 'dexmedetomidina',
+      nome: 'Cloridrato de Dexmedetomidina (Precedex)',
+      classe: 'Agonista Alfa-2 Adrenérgico Seletivo (Sedativo Consciente)',
+      diluenteD1: 'Soro Fisiológico 0,9% (SF 0,9%)',
+      diluenteDetalhes: 'Diluir em SF 0,9% (400 mcg [2 ampolas de 2 mL] em 96 mL SF 0,9% = 4 mcg/mL). Compatível em Y com Noradrenalina e Dobutamina.',
+      solucoesCompativeis: ['SF 0,9%'],
+      solucoesIncompativeis: ['Soluções alcalinas', 'Fenitoína'],
+      concentracaoUsual: '4 mcg/mL.',
+      acessoVenoso: 'Central ou periférico.',
+      antidotoExtravasamento: 'Sem ação vesicante.',
+      estabilidade: '24 horas em temperatura ambiente.',
+      monitorizacao: 'FC (risco de bradicardia severa) e PA (pode causar hipotensão ou hipertensão transitória inicial por estímulo alfa-2 periférico).'
+    }
+  };
+
+  // 2. SINÔNIMOS E NORMALIZAÇÃO DE NOMES DE FÁRMACOS
+  var ALIASES_FARMACOS = {
+    'noradrenalina': 'noradrenalina',
+    'norepinefrina': 'noradrenalina',
+    'nora': 'noradrenalina',
+    'levophed': 'noradrenalina',
+    'dobutamina': 'dobutamina',
+    'dobuta': 'dobutamina',
+    'dobutrex': 'dobutamina',
+    'vasopressina': 'vasopressina',
+    'vaso': 'vasopressina',
+    'pitressin': 'vasopressina',
+    'enpress': 'vasopressina',
+    'adrenalina': 'adrenalina',
+    'adrena': 'adrenalina',
+    'epinefrina': 'adrenalina',
+    'epi': 'adrenalina',
+    'milrinona': 'milrinona',
+    'milrinone': 'milrinona',
+    'primacor': 'milrinona',
+    'nitroprussiato': 'nitroprussiato',
+    'nitroprussiato de sodio': 'nitroprussiato',
+    'nipride': 'nitroprussiato',
+    'nitropress': 'nitroprussiato',
+    'nitroglicerina': 'nitroglicerina',
+    'tridil': 'nitroglicerina',
+    'nitro': 'nitroglicerina',
+    'amiodarona': 'amiodarona',
+    'ancoron': 'amiodarona',
+    'atlansil': 'amiodarona',
+    'furosemida': 'furosemida',
+    'lasix': 'furosemida',
+    'bicarbonato': 'bicarbonato_de_sodio',
+    'bicarbonato de sodio': 'bicarbonato_de_sodio',
+    'nahco3': 'bicarbonato_de_sodio',
+    'bicarb': 'bicarbonato_de_sodio',
+    'gluconato': 'gluconato_de_calcio',
+    'gluconato de calcio': 'gluconato_de_calcio',
+    'calcio': 'gluconato_de_calcio',
+    'fenitoina': 'fenitoina',
+    'hidantal': 'fenitoina',
+    'fentanil': 'fentanil',
+    'fentanila': 'fentanil',
+    'fentanyl': 'fentanil',
+    'midazolam': 'midazolam',
+    'dormonid': 'midazolam',
+    'propofol': 'propofol',
+    'diprivan': 'propofol',
+    'dexmedetomidina': 'dexmedetomidina',
+    'precedex': 'dexmedetomidina',
+    'heparina': 'heparina',
+    'heparina sodica': 'heparina',
+    'kcl': 'cloreto_de_potassio',
+    'cloreto de potassio': 'cloreto_de_potassio',
+    'potassio': 'cloreto_de_potassio',
+    'ceftriaxona': 'ceftriaxona',
+    'rocefin': 'ceftriaxona',
+    'ringer lactato': 'ringer_lactato',
+    'rl': 'ringer_lactato'
+  };
+
+  function normalizarNomeDroga(nome) {
+    if (!nome) return '';
+    var str = String(nome).toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9_\s]/g, ' ')
+      .trim();
+    if (ALIASES_FARMACOS[str]) return ALIASES_FARMACOS[str];
+    for (var k in ALIASES_FARMACOS) {
+      if (str.indexOf(k) === 0 || k.indexOf(str) === 0) return ALIASES_FARMACOS[k];
+    }
+    return str.replace(/\s+/g, '_');
+  }
+
+  // 3. MATRIZ CANÔNICA DE COMPATIBILIDADE EM Y (Y-SITE COMPATIBILITY)
+  // Chave canônica ordenada em ordem alfabética: "drogaA_drogaB"
+  var REGRAS_COMPATIBILIDADE_Y = {
+    // Noradrenalina + Inotrópicos / Vasopressores
+    'dobutamina_noradrenalina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Estabilidade físico-química preservada em soluções ácidas comuns (SG 5% e SF 0,9%). Ambos mantêm solubilidade e eficácia sem turvação ou precipitação.',
+      conduta: 'Pode infundir na mesma via venosa ou conexão em Y na bomba de infusão. Preferir diluição de ambas em SG 5% com Acesso Venoso Central.',
+      alertaCritico: false
+    },
+    'noradrenalina_vasopressina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Excelente compatibilidade no mesmo sítio em Y. Associação padrão-ouro no choque séptico refratário a altas doses de noradrenalina.',
+      conduta: 'Pode correr na mesma via central. Lembrar: vasopressina em dose fixa (0,01 a 0,04 UI/min) enquanto noradrenalina é titulada conforme PAM.',
+      alertaCritico: false
+    },
+    'adrenalina_noradrenalina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Catecolaminas com propriedades físico-químicas análogas e pH similar. Compatíveis em Y em SG 5% e SF 0,9%.',
+      conduta: 'Compatível em Y. Monitorar rigorosamente taquiarritmias e isquemia periférica.',
+      alertaCritico: false
+    },
+    'milrinona_noradrenalina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Soluções física e quimicamente estáveis em Y por até 24 horas em SG 5% ou SF 0,9%.',
+      conduta: 'Compatível em Y. Acesso central obrigatório. Titular noradrenalina para compensar eventual vasodilatação inicial da milrinona.',
+      alertaCritico: false
+    },
+    'nitroglicerina_noradrenalina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Estabilidade física em Y por 4 horas de infusão contínua combinada.',
+      conduta: 'Compatível em Y. Utilizar equipo livre de PVC para a nitroglicerina.',
+      alertaCritico: false
+    },
+    'nitroprussiato_noradrenalina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Compatíveis em Y quando diluídos em SG 5%.',
+      conduta: 'Compatível em Y. Manter fotoproteção estrita no frasco e equipo de nitroprussiato.',
+      alertaCritico: false
+    },
+
+    // Noradrenalina + Sedoanalgesia
+    'fentanil_noradrenalina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Sem evidência de precipitados ou alteração cromática. Estáveis em Y em concentrações usuais.',
+      conduta: 'Compatível em Y.',
+      alertaCritico: false
+    },
+    'midazolam_noradrenalina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Soluções ácidas mútuas; estabilidade física mantida por 24 horas.',
+      conduta: 'Compatível em Y.',
+      alertaCritico: false
+    },
+    'dexmedetomidina_noradrenalina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Sem incompatibilidade físico-química relatada em Y em concentrações de até 4 mcg/mL.',
+      conduta: 'Compatível em Y.',
+      alertaCritico: false
+    },
+    'noradrenalina_propofol': {
+      status: 'CONDICIONAL',
+      icone: '⚠️',
+      grau: 'CONDICIONAL / CAUTELA',
+      mecanismo: 'Propofol é uma emulsão lipídica. Embora fisicamente estável com noradrenalina em Y por períodos curtos de infusão, a presença de lipídios pode diminuir a clareza visual de microcristais e favorecer contaminação.',
+      conduta: 'Preferir via exclusiva ou lúmen separado de CVC para o propofol. Se via única, inspecionar rigorasamente ausência de quebra da emulsão lipídica e trocar o equipo a cada 12 horas.',
+      alertaCritico: false
+    },
+
+    // Incompatibilidades Críticas da Noradrenalina
+    'furosemida_noradrenalina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO DE CRISTAIS)',
+      mecanismo: 'Incompatibilidade severa de pH: Furosemida possui pH fortemente alcalino (8.5 a 9.5) enquanto a Noradrenalina possui pH fortemente ácido (3.0 a 4.5). O contato no sítio em Y provoca precipitação física imediata de cristais de furosemida insolúveis, risco de oclusão do cateter venoso e microembolização pulmonar.',
+      conduta: 'NUNCA INFUNDIR NA MESMA VIA VENOSA EM Y. Exige lúmen dedicado no CVC ou via venosa exclusiva. Se em via única de resgate, suspender temporariamente a noradrenalina, lavar com flush vigoroso de 10 mL de SF 0,9% antes e depois da furosemida.',
+      alertaCritico: true
+    },
+    'bicarbonato_de_sodio_noradrenalina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (INATIVAÇÃO ALCALINA IMEDIATA)',
+      mecanismo: 'Oxidação e decomposição química rápida: Soluções alcalinas como Bicarbonato de Sódio 8,4% (pH ~8.0-8.5) aceleram a oxidação da noradrenalina em adrenocromo, inativando por completo a ação vasoconstritora em segundos e causando colapso pressórico inadvertido.',
+      conduta: 'CONTRAINDICAÇÃO FORMAL EM Y. O bicarbonato de sódio NUNCA deve correr no mesmo lúmen de drogas vasoativas. Administrar sempre em via venosa exclusiva.',
+      alertaCritico: true
+    },
+    'fenitoina_noradrenalina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO GRAVE)',
+      mecanismo: 'A fenitoína precipita instantaneamente como cristais livres em qualquer solução com pH inferior a 11.5 ou em soluções contendo dextrose.',
+      conduta: 'NUNCA ADMINISTRAR EM Y. Fenitoína exige via exclusiva diluída apenas em SF 0,9% com filtro de linha.',
+      alertaCritico: true
+    },
+
+    // Dobutamina + Vasopressores e Inotrópicos
+    'dobutamina_vasopressina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Soluções compatíveis em Y em SG 5% ou SF 0,9%.',
+      conduta: 'Compatível em Y.',
+      alertaCritico: false
+    },
+    'adrenalina_dobutamina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Catecolaminas compatíveis em Y.',
+      conduta: 'Compatível em Y. Monitorar consumo miocárdico de oxigênio (MVO2) e arritmias ventriculares.',
+      alertaCritico: false
+    },
+    'dobutamina_milrinona': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Associação inotrópica mista sinérgica (beta-agonista + inibidor de PDE-3). Estáveis em Y em SG 5% ou SF 0,9%.',
+      conduta: 'Compatível em Y. Cautela com hipotensão por vasodilatação mútua e taquiarritmias.',
+      alertaCritico: false
+    },
+    'dobutamina_nitroprussiato': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Compatíveis em Y em SG 5%. Combinação clássica no choque cardiogênico com alta resistência vascular sistêmica.',
+      conduta: 'Compatível em Y.',
+      alertaCritico: false
+    },
+    'dobutamina_nitroglicerina': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Compatíveis em Y.',
+      conduta: 'Compatível em Y. Equipo sem PVC para nitroglicerina.',
+      alertaCritico: false
+    },
+    'dobutamina_fentanil': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Estabilidade física e química em concentrações usuais.',
+      conduta: 'Compatível em Y.',
+      alertaCritico: false
+    },
+    'dobutamina_midazolam': {
+      status: 'COMPATIVEL',
+      icone: '✅',
+      grau: 'COMPATÍVEL EM Y',
+      mecanismo: 'Compatíveis em Y em SG 5% e SF 0,9%.',
+      conduta: 'Compatível em Y.',
+      alertaCritico: false
+    },
+    'dobutamina_propofol': {
+      status: 'CONDICIONAL',
+      icone: '⚠️',
+      grau: 'CONDICIONAL / CAUTELA',
+      mecanismo: 'Compatibilidade física aceitável em Y, mas a emulsão lipídica requer vigilância.',
+      conduta: 'Preferir via exclusiva para o propofol.',
+      alertaCritico: false
+    },
+
+    // Incompatibilidades Críticas da Dobutamina
+    'dobutamina_furosemida': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO DE CRISTAIS)',
+      mecanismo: 'Incompatibilidade extrema de pH: A furosemida alcalina precipita ao entrar em contato com a solução ácida de dobutamina, formando precipitados cristalinos esbranquiçados visíveis.',
+      conduta: 'CONTRAINDICADO EM Y. Exige via venosa exclusiva ou lúmen dedicado no CVC.',
+      alertaCritico: true
+    },
+    'bicarbonato_de_sodio_dobutamina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (INATIVAÇÃO E DECOMPOSIÇÃO)',
+      mecanismo: 'A dobutamina é instável em pH alcalino, sofrendo oxidação imediata e inativação com alteração cromática para tonalidade rosa-escura/marrom.',
+      conduta: 'NUNCA ADMINISTRAR EM Y. Via exclusiva para bicarbonato.',
+      alertaCritico: true
+    },
+    'dobutamina_fenitoina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO GRAVE)',
+      mecanismo: 'Precipitação imediata de fenitoína insolúvel.',
+      conduta: 'NUNCA ADMINISTRAR EM Y.',
+      alertaCritico: true
+    },
+    'dobutamina_heparina': {
+      status: 'CONDICIONAL',
+      icone: '⚠️',
+      grau: 'CONDICIONAL / EVITAR EM Y',
+      mecanismo: 'Em concentrações elevadas, pode ocorrer formação de precipitados e perda de eficácia de ambas as drogas.',
+      conduta: 'Evitar correr no mesmo sítio em Y. Preferir vias separadas.',
+      alertaCritico: false
+    },
+
+    // Milrinona
+    'furosemida_milrinona': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO IMEDIATA)',
+      mecanismo: 'Precipitação física e química imediata: o contato entre o lactato de milrinona e a furosemida alcalina resulta em precipitado esbranquiçado denso instantâneo no equipo.',
+      conduta: 'CONTRAINDICAÇÃO ABSOLUTA NO MESMO EQUIPO/Y. Exige via exclusiva ou lúmen isolado.',
+      alertaCritico: true
+    },
+    'bicarbonato_de_sodio_milrinona': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y',
+      mecanismo: 'Incompatibilidade química em meio alcalino.',
+      conduta: 'Evitar em Y. Administrar em via separada.',
+      alertaCritico: true
+    },
+
+    // Vasopressina
+    'furosemida_vasopressina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y',
+      mecanismo: 'Risco de precipitação e degradação do peptídeo em pH alcalino.',
+      conduta: 'Administrar em vias separadas.',
+      alertaCritico: true
+    },
+    'bicarbonato_de_sodio_vasopressina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y',
+      mecanismo: 'Degradação da vasopressina em soluções alcalinas.',
+      conduta: 'NUNCA misturar em Y.',
+      alertaCritico: true
+    },
+
+    // Amiodarona
+    'amiodarona_furosemida': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO DE AMIODARONA)',
+      mecanismo: 'Precipitação instantânea de amiodarona em contato com soluções alcalinas.',
+      conduta: 'CONTRAINDICADO EM Y. Via venosa exclusiva.',
+      alertaCritico: true
+    },
+    'amiodarona_bicarbonato_de_sodio': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO)',
+      mecanismo: 'Precipitação imediata de amiodarona.',
+      conduta: 'CONTRAINDICADO EM Y.',
+      alertaCritico: true
+    },
+    'amiodarona_heparina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO)',
+      mecanismo: 'Formação de precipitado insolúvel no sítio em Y.',
+      conduta: 'Administrar em linhas separadas.',
+      alertaCritico: true
+    },
+
+    // Antimicrobianos e Eletrólitos Críticos
+    'ceftriaxona_gluconato_de_calcio': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'CONTRAINDICAÇÃO FATAL EM Y (PRECIPITAÇÃO LETAL)',
+      mecanismo: 'Formação de precipitado insolúvel de Ceftriaxona-Cálcio com alto risco de oclusão microvascular letal em pulmões e rins (casos descritos de parada cardiorrespiratória e morte em neonatos e adultos).',
+      conduta: 'CONTRAINDICAÇÃO ABSOLUTA DE ADMINISTRAÇÃO CONCOMITANTE NO MESMO EQUIPO OU VIA. Nunca associar soluções com cálcio com ceftriaxona.',
+      alertaCritico: true
+    },
+    'ceftriaxona_ringer_lactato': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'CONTRAINDICAÇÃO FATAL EM Y (CÁLCIO NO RINGER)',
+      mecanismo: 'O Ringer Lactato contém íons cálcio que reagem com a Ceftriaxona formando sais precipitados insolúveis.',
+      conduta: 'CONTRAINDICADO NO MESMO EQUIPO EM Y.',
+      alertaCritico: true
+    },
+    'bicarbonato_de_sodio_gluconato_de_calcio': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (CARBONATO DE CÁLCIO)',
+      mecanismo: 'Reação imediata entre íons cálcio e bicarbonato formando carbonato de cálcio insolúvel (solução turva e precipitada como giz).',
+      conduta: 'NUNCA INFUNDIR NA MESMA VIA EM Y. Se ambos forem necessários (ex: PCR/hipercalemia grave), administrar sequencialmente com flush vigoroso de 20 mL de SF entre eles.',
+      alertaCritico: true
+    }
+  };
+
+  /**
+   * Obtém a chave canônica alfabética para o par de drogas
+   */
+  function gerarChavePar(drogaA, drogaB) {
+    var dA = normalizarNomeDroga(drogaA);
+    var dB = normalizarNomeDroga(drogaB);
+    if (!dA || !dB) return '';
+    return [dA, dB].sort().join('_');
+  }
+
+  /**
+   * Consulta a ficha completa de diluição e cuidados da Droga 1 (D1)
+   */
+  function obterFichaDiluicao(droga) {
+    var idNorm = normalizarNomeDroga(droga);
+    return FICHAS_DILUICAO_DVA[idNorm] || null;
+  }
+
+  /**
+   * Verifica a compatibilidade em Y entre duas drogas (D1 e D2)
+   */
+  function checarCompatibilidadeY(drogaA, drogaB) {
+    var idA = normalizarNomeDroga(drogaA);
+    var idB = normalizarNomeDroga(drogaB);
+
+    if (!idA || !idB) {
+      return {
+        ok: false,
+        erro: 'Informe duas drogas válidas para checagem de compatibilidade em Y.'
+      };
+    }
+
+    if (idA === idB) {
+      return {
+        ok: true,
+        drogaA: idA,
+        drogaB: idB,
+        status: 'COMPATIVEL',
+        icone: '✅',
+        grau: 'MESMA DROGA (ISOLADA)',
+        mecanismo: 'Fármaco idêntico na solução.',
+        conduta: 'Mesma substância ativa.',
+        alertaCritico: false,
+        fichaA: obterFichaDiluicao(idA),
+        fichaB: obterFichaDiluicao(idB)
+      };
+    }
+
+    var chave = gerarChavePar(idA, idB);
+    var regra = REGRAS_COMPATIBILIDADE_Y[chave];
+    var fichaA = obterFichaDiluicao(idA);
+    var fichaB = obterFichaDiluicao(idB);
+
+    if (regra) {
+      return {
+        ok: true,
+        drogaA: idA,
+        drogaB: idB,
+        status: regra.status,
+        icone: regra.icone,
+        grau: regra.grau,
+        mecanismo: regra.mecanismo,
+        conduta: regra.conduta,
+        alertaCritico: !!regra.alertaCritico,
+        fichaA: fichaA,
+        fichaB: fichaB
+      };
+    }
+
+    // Regras inferidas para pares sem conflito documentado conhecido
+    return {
+      ok: true,
+      drogaA: idA,
+      drogaB: idB,
+      status: 'CONDICIONAL',
+      icone: '⚠️',
+      grau: 'SEM REGRA DE INCOMPATIBILIDADE EM BANCO (CAUTELA RECOMENDADA)',
+      mecanismo: 'Não há registro de precipitação ou degradação físico-química catalogada para esta combinação específica. No entanto, por prudência em terapia intensiva, infusões simultâneas de drogas vasoativas devem priorizar vias dedicadas.',
+      conduta: 'Inspecionar visualmente o sítio de conexão em Y quanto à turvação, névoa ou microcristais. Preferir lúmens distintos do cateter venoso central (CVC duplo ou triplo lúmen).',
+      alertaCritico: false,
+      fichaA: fichaA,
+      fichaB: fichaB
+    };
+  }
+
+  /**
+   * Audita uma lista de drogas (array ou texto) checando todas as combinações em Y
+   */
+  function auditarPrescricaoCombinada(listaDrogasOuTexto) {
+    var drogas = [];
+    if (Array.isArray(listaDrogasOuTexto)) {
+      listaDrogasOuTexto.forEach(function(item) {
+        var norm = normalizarNomeDroga(item);
+        if (norm && drogas.indexOf(norm) === -1) drogas.push(norm);
+      });
+    } else if (typeof listaDrogasOuTexto === 'string') {
+      var textoNorm = ' ' + listaDrogasOuTexto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') + ' ';
+      for (var alias in ALIASES_FARMACOS) {
+        var padrao = new RegExp('\\b' + alias + '\\b', 'i');
+        if (padrao.test(textoNorm)) {
+          var can = ALIASES_FARMACOS[alias];
+          if (can && drogas.indexOf(can) === -1) drogas.push(can);
+        }
+      }
+    }
+
+    var paresVerificados = [];
+    var temIncompativel = false;
+    var temCritico = false;
+
+    for (var i = 0; i < drogas.length; i++) {
+      for (var j = i + 1; j < drogas.length; j++) {
+        var resPar = checarCompatibilidadeY(drogas[i], drogas[j]);
+        paresVerificados.push(resPar);
+        if (resPar.status === 'INCOMPATIVEL') temIncompativel = true;
+        if (resPar.alertaCritico) temCritico = true;
+      }
+    }
+
+    return {
+      ok: true,
+      drogasDetectadas: drogas,
+      totalPares: paresVerificados.length,
+      temIncompativel: temIncompativel,
+      temAlertasCriticos: temCritico,
+      pares: paresVerificados
+    };
+  }
+
+  /**
+   * Formata parecer clínico completo para o Telegram, Cockpit e Prontuário
+   */
+  function formatarParecerCompatibilidadeY(drogaA, drogaB) {
+    var res = checarCompatibilidadeY(drogaA, drogaB);
+    if (!res.ok) return '⚠️ ' + res.erro;
+
+    var linhas = [];
+    linhas.push('🔬 *COMPATIBILIDADE EM Y (Y-SITE) · BOMBA DE INFUSÃO CONTÍNUA*');
+    linhas.push('═════════════════════════════════════════════════');
+    linhas.push(res.icone + ' *STATUS:* *' + res.grau + '*');
+    linhas.push('💉 *Par em infusão:* `' + res.drogaA.toUpperCase() + '` ⚡ `' + res.drogaB.toUpperCase() + '`');
+    linhas.push('\n📋 *Mecanismo Físico-Químico:*');
+    linhas.push(res.mecanismo);
+    linhas.push('\n🩺 *Conduta Recomendada Beira-Leito:*');
+    linhas.push(res.conduta);
+
+    if (res.fichaA) {
+      linhas.push('\n💧 *Diluente de Escolha (D1) — ' + res.fichaA.nome + ':*');
+      linhas.push('• *Diluente:* ' + res.fichaA.diluenteD1);
+      linhas.push('• *Acesso Venoso:* ' + res.fichaA.acessoVenoso);
+    }
+    if (res.fichaB && res.drogaA !== res.drogaB) {
+      linhas.push('\n💧 *Diluente de Escolha (D2) — ' + res.fichaB.nome + ':*');
+      linhas.push('• *Diluente:* ' + res.fichaB.diluenteD1);
+      linhas.push('• *Acesso Venoso:* ' + res.fichaB.acessoVenoso);
+    }
+
+    if (res.alertaCritico) {
+      linhas.push('\n🚨 *BLOQUEIO SENTINELA:* Risco imediato ao paciente se infundidos na mesma via. Separação de lumens mandatória!');
+    }
+
+    linhas.push('\n📚 *Fontes:* Trissel\'s Handbook on Injectable Drugs · Guia HSL · AMIB Terapia Intensiva');
+    return linhas.join('\n');
+  }
+
+  return {
+    obterFichaDiluicao: obterFichaDiluicao,
+    checarCompatibilidadeY: checarCompatibilidadeY,
+    auditarPrescricaoCombinada: auditarPrescricaoCombinada,
+    formatarParecerCompatibilidadeY: formatarParecerCompatibilidadeY,
+    FICHAS_DILUICAO_DVA: FICHAS_DILUICAO_DVA,
+    REGRAS_COMPATIBILIDADE_Y: REGRAS_COMPATIBILIDADE_Y,
+    normalizarNomeDroga: normalizarNomeDroga
+  };
+})();
+
+// Exportação compatível com ambientes Node.js / VM e navegador
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { CompatibilidadeYDvaService: CompatibilidadeYDvaService };
 }
 
 
@@ -33472,6 +34314,12 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
     }
   }
 
+  // 3. Compatibilidade em Y de Vasopressores e Inotrópicos (D1 / BIC)
+  var auditoriaY = null;
+  if (typeof CompatibilidadeYDvaService !== "undefined") {
+    auditoriaY = CompatibilidadeYDvaService.auditarPrescricaoCombinada(farmacos);
+  }
+
   // Ordenação de interações por gravidade clínica: Contraindicado > Grave > Moderado > Leve
   var pesoGrau = { "CONTRAINDICADO": 4, "GRAVE": 3, "MODERADO": 2, "LEVE": 1 };
   interacoesAchadas.sort(function(a, b) {
@@ -33480,7 +34328,8 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
 
   var temContraindicado = interacoesAchadas.some(function(it) { return it.grauNormalizado === "CONTRAINDICADO"; });
   var temGrave = interacoesAchadas.some(function(it) { return it.grauNormalizado === "GRAVE"; });
-  var temAlertasCriticos = temContraindicado || temGrave || (ctxRenal.temDisfuncao && ajustesRenais.length > 0);
+  var temIncompativelY = auditoriaY ? (auditoriaY.temIncompativel || auditoriaY.temAlertasCriticos) : false;
+  var temAlertasCriticos = temContraindicado || temGrave || temIncompativelY || (ctxRenal.temDisfuncao && ajustesRenais.length > 0);
 
   // Formatação clínica para Telegram, Cockpit e Auditoria
   var linhasTexto = [];
@@ -33498,6 +34347,31 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
     });
   } else if (farmacos.length >= 2) {
     linhasTexto.push("\n✅ *Interações Medicamentosas:* Nenhuma interação grave cadastrada na tabela local entre as drogas listadas.");
+  }
+
+  // Bloco dedicado de Compatibilidade em Y (BIC / Terapia Intensiva)
+  if (auditoriaY && auditoriaY.pares && auditoriaY.pares.length > 0) {
+    linhasTexto.push("\n🔬 *COMPATIBILIDADE EM Y (INFUSÕES EM BIC / SALA VERMELHA & UTI):*");
+    auditoriaY.pares.forEach(function(par) {
+      linhasTexto.push(par.icone + " *" + par.grau + ":* `" + par.drogaA.toUpperCase() + "` ⚡ `" + par.drogaB.toUpperCase() + "`");
+      linhasTexto.push("   • *Mecanismo:* " + par.mecanismo);
+      linhasTexto.push("   • *Conduta beira-leito:* " + par.conduta);
+    });
+  }
+
+  // Fichas de Diluente Oficial D1 para drogas vasoativas identificadas
+  if (typeof CompatibilidadeYDvaService !== "undefined" && farmacos.length > 0) {
+    var fichasD1 = [];
+    farmacos.forEach(function(f) {
+      var fd = CompatibilidadeYDvaService.obterFichaDiluicao(f);
+      if (fd && fichasD1.indexOf(fd) === -1) fichasD1.push(fd);
+    });
+    if (fichasD1.length > 0) {
+      linhasTexto.push("\n💧 *DILUENTES PADRÃO & VIAS DE INFUSÃO (D1 / UTI):*");
+      fichasD1.forEach(function(f) {
+        linhasTexto.push("• *" + f.nome + ":* Diluente D1: `" + f.diluenteD1 + "` | Acesso: " + f.acessoVenoso);
+      });
+    }
   }
 
   if (ajustesRenais.length > 0) {
@@ -33529,6 +34403,7 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
     temAlertasCriticos: temAlertasCriticos,
     farmacosDetectados: farmacos,
     interacoes: interacoesAchadas,
+    compatibilidadeY: auditoriaY ? auditoriaY.pares : [],
     ajustesRenais: ajustesRenais,
     tetosDose: tetosDose,
     contextoRenalDetectado: ctxRenal,
@@ -34207,6 +35082,212 @@ var IaLocalFallbackService = (function () {
     };
   }
 
+  /**
+   * Laudo determinístico de emergência e interpretação estruturada para imagens médicas
+   * (ECG, Radiografia, OCR de Laudos/Laboratório, Lesão Dermatológica) quando a IA em nuvem estiver indisponível.
+   */
+  function analisarImagemOffline(contextoTexto, mimeType, opcoes) {
+    opcoes = opcoes || {};
+    var ctxTxt = String(contextoTexto || '').trim();
+    var ctxLow = ctxTxt.toLowerCase();
+    var mime = String(mimeType || '').toLowerCase();
+
+    // 1. Detecção da modalidade diagnóstica
+    var ehEcg = ctxLow.indexOf('ecg') !== -1 || ctxLow.indexOf('eletrocardiograma') !== -1 ||
+                ctxLow.indexOf('ritmo') !== -1 || ctxLow.indexOf('supra') !== -1 ||
+                ctxLow.indexOf('bloqueio') !== -1 || ctxLow.indexOf('ondas t') !== -1;
+
+    var ehRx = ctxLow.indexOf('raio-x') !== -1 || ctxLow.indexOf('raiox') !== -1 ||
+               ctxLow.indexOf('radiografia') !== -1 || ctxLow.indexOf('tórax') !== -1 ||
+               ctxLow.indexOf('torax') !== -1 || ctxLow.indexOf('pulm') !== -1 ||
+               ctxLow.indexOf('derrame pleural') !== -1 || ctxLow.indexOf('pneumotorax') !== -1;
+
+    var ehDerma = ctxLow.indexOf('pele') !== -1 || ctxLow.indexOf('lesao') !== -1 ||
+                  ctxLow.indexOf('lesão') !== -1 || ctxLow.indexOf('dermat') !== -1 ||
+                  ctxLow.indexOf('exantema') !== -1 || ctxLow.indexOf('mancha') !== -1 ||
+                  ctxLow.indexOf('placa') !== -1 || ctxLow.indexOf('úlcera') !== -1;
+
+    var ehLab = ctxLow.indexOf('hemograma') !== -1 || ctxLow.indexOf('gasometria') !== -1 ||
+                ctxLow.indexOf('potassio') !== -1 || ctxLow.indexOf('potássio') !== -1 ||
+                ctxLow.indexOf('troponina') !== -1 || ctxLow.indexOf('creatinina') !== -1 ||
+                ctxLow.indexOf('laudo') !== -1 || ctxLow.indexOf('resultado') !== -1;
+
+    var cabecalhoContingencia = [
+      '⚡ *MODO OFFLINE DE CONTINGÊNCIA (LAUDO DE IMAGEM FMRP-USP)*',
+      '⚠️ *Aviso do Sistema:* Provedor de IA em nuvem indisponível (timeout seguro de 15s / contingência ativa). O atendimento prossegue com o roteiro determinístico oficial do Ultra Rotina:',
+      ''
+    ].join('\n');
+
+    var rodapeSeguranca = [
+      '',
+      '---',
+      '📌 *Conduta beira-leito baseada nas diretrizes FMRP-USP / SBC / CBR. A correlação clínica presencial é obrigatória pelo médico assistente.*'
+    ].join('\n');
+
+    var corpo = [];
+
+    if (ehEcg || (!ehRx && !ehDerma && !ehLab && (ctxLow.indexOf('dor') !== -1 || ctxLow.indexOf('peito') !== -1 || ctxLow.indexOf('coracao') !== -1 || ctxLow.indexOf('coração') !== -1))) {
+      // ECG ou Suspeita Coronariana
+      if (ctxLow.indexOf('dor') !== -1 || ctxLow.indexOf('supra') !== -1 || ctxLow.indexOf('iam') !== -1 || ctxLow.indexOf('infarto') !== -1 || ctxLow.indexOf('peito') !== -1) {
+        corpo.push('🚨 *EMERGÊNCIA - ACHADO CRÍTICO (SALA VERMELHA / SCA):* Suspeita de Síndrome Coronariana Aguda. Priorizar Porta-ECG < 10min. Duplo bloqueio (AAS 200-300mg VO mastigado + Ticagrelor 180mg ou Clopidogrel 300-600mg) e Enoxaparina 1mg/kg SC se confirmado IAM.');
+        corpo.push('');
+      }
+
+      corpo.push('*ROTEIRO SISTEMÁTICO DE LEITURA DE ECG (6 PASSOS FMRP-USP):*');
+      corpo.push('1. *Ritmo:* Sinusal (onda P positiva em D1, D2, aVF; negativa em aVR, seguida de QRS regular) vs Taqui/Bradiarritmias (FA, Flutter, BAVs).');
+      corpo.push('2. *Frequência Cardíaca (FC):* 1500 / mm entre ondas R (se regular) ou complexos em 30 quadrados grandes x 10 (se irregular). Normal: 50 a 100 bpm.');
+      corpo.push('3. *Eixo Elétrico (Plano Frontal):* Normal (-30° a +90°). Se D1 (+) e aVF (+): Eixo normal (0° a +90°). Se D1 (+) e aVF (-): Desvio para esquerda (-30° a -90°). Se D1 (-) e aVF (+): Desvio para direita.');
+      corpo.push('4. *Intervalos e Condução:*');
+      corpo.push('   • Intervalo PR: 120 a 200 ms (se > 200 ms: BAV 1º grau; se < 120 ms: Pré-excitação / WPW).');
+      corpo.push('   • Duração QRS: < 120 ms (se >= 120 ms: Bloqueio de ramo BRE ou BRD).');
+      corpo.push('   • Intervalo QTc (Bazett): Normal <= 450 ms (homem) e <= 460 ms (mulher). Risco de Torsades de Pointes se > 500 ms.');
+      corpo.push('5. *Sobrecargas de Câmaras:* Sokolow-Lyon (S em V1 + R em V5/V6 >= 35 mm) ou Cornell (R em aVL + S em V3 > 28 mm homens ou > 20 mm mulheres) para SVE.');
+      corpo.push('6. *Isquemia, Lesão e Necrose (Segmento ST / Onda T por Paredes):*');
+      corpo.push('   • Anterior/Septal (V1-V4), Lateral Alta (D1, aVL), Lateral Baixa (V5-V6), Inferior (D2, D3, aVF).');
+      corpo.push('   • ⚠️ Se supra em parede inferior (D2, D3, aVF): Rodar obrigatoriamente derivações direitas (V3R, V4R) para descartar IAM de Ventrículo Direito (Nitrato contraindicado!).');
+    } else if (ehRx) {
+      corpo.push('*ROTEIRO SISTEMÁTICO DE RADIOGRAFIA DE TÓRAX (5 PASSOS FMRP-USP):*');
+      corpo.push('1. *Identificação e Técnica:* Incidência (PA vs AP), penetração correta (visualização sutil dos corpos vertebrais atrás do coração), rotação (clavículas equidistantes das espinhosas) e inspiração (8 a 10 arcos costais posteriores visíveis).');
+      corpo.push('2. *Arcabouço Ósseo e Partes Moles:* Fraturas de arcos costais ou clavícula, lesões líticas/blásticas, enfisema subcutâneo (presença de ar dissecando partes moles).');
+      corpo.push('3. *Mediastino e Silhueta Cardíaca:* Índice Cardiotorácico (ICT <= 0,50 no PA), contornos aórtico e hilar, desvio de traqueia.');
+      corpo.push('4. *Campos Pleuropulmonares:*');
+      corpo.push('   • Consolidação alveolar (opacidade densa com broncograma aéreo);');
+      corpo.push('   • Atelectasia (opacidade com perda de volume e retração de estruturas vizinhas);');
+      corpo.push('   • Infiltrado intersticial reticular/reticulonodular bilateral.');
+      corpo.push('5. *Pleura e Cúpulas Diafragmáticas:*');
+      corpo.push('   • Seios costofrênicos livres vs velamento (derrame pleural >= 200 mL no PA);');
+      corpo.push('   • Linha pleural visceral com ausência de trama vascular periférica (pneumotórax);');
+      corpo.push('   • Ar livre subdiafragmático / pneumoperitônio (sinal de perfuração de víscera oca).');
+    } else if (ehDerma) {
+      corpo.push('*ROTEIRO SEMIOLÓGICO DERMATOLÓGICO DETERMINÍSTICO:*');
+      corpo.push('1. *Lesão Elementar Primária:* Mácula (plana < 1cm), mancha (> 1cm), pápula (elevada sólida < 1cm), placa (> 1cm), nódulo, vesícula (< 1cm com líquido), bolha (> 1cm), pústula.');
+      corpo.push('2. *Topografia e Arranjo:* Simetria, superfícies extensoras vs flexurais, zosteriforme (dermatomérica), confluente.');
+      corpo.push('3. *Regra ABCDE para Lesões Pigmentadas (Melanoma):*');
+      corpo.push('   • A (Assimetria em 2 eixos);');
+      corpo.push('   • B (Bordas irregulares ou denteadas);');
+      corpo.push('   • C (Cores múltiplas - 2 ou mais tonalidades);');
+      corpo.push('   • D (Diâmetro > 6 mm);');
+      corpo.push('   • E (Evolução / mudança rápida de tamanho, formato ou relevo).');
+      corpo.push('4. *Sinais de Alarme (Encaminhamento Urgente):* Ulceração espontânea, sangramento sem trauma, sinal do "patinho feio".');
+    } else if (ehLab) {
+      corpo.push('*TRIAGEM DETERMINÍSTICA DE VALORES CRÍTICOS LABORATORIAIS:*');
+      corpo.push('• *Potássio Sérico (K+):* Normal 3,5 a 5,0 mEq/L. Se K+ > 6,0 ou com alterações no ECG (T apiculada/tenda): Gluconato de Cálcio 10% 10-20 mL IV imediato.');
+      corpo.push('• *Sódio (Na+):* Normal 135 a 145 mEq/L. Em hiponatremia aguda sintomática (convulsão/coma): NaCl 3% 100-150 mL IV em 20 min (meta de elevação: máx 8-10 mEq/L em 24h).');
+      corpo.push('• *Lactato Arterial/Venoso:* Normal < 2,0 mmol/L. Se >= 4,0 mmol/L em contexto infeccioso: Choque Séptico / Bundle SSC (30 mL/kg cristaloide balanceado).');
+      corpo.push('• *Troponina Ultrasensível:* Acima do percentil 99: confirma injúria miocárdica; correlacionar com delta temporal de 1-3 horas.');
+    } else {
+      corpo.push('*CHECKLIST UNIVERSAL DE SEGURANÇA DIAGNÓSTICA (SALA VERMELHA / ENFERMARIA):*');
+      corpo.push('1. *Sinais Vitais e Monitorização (MOV):* Monitor cardíaco, Oxímetro de pulso, PA seriada.');
+      corpo.push('2. *Descarte de Emergências Imediatas:*');
+      corpo.push('   • SCA / IAM: ECG de 12 derivações em < 10 minutos;');
+      corpo.push('   • Sepse / Choque: PA, FC, FR, lactato, hemoculturas;');
+      corpo.push('   • AVC: Déficit focal súbito, janela de 4,5 horas, TC de crânio.');
+      corpo.push('3. *Documentação:* Registre achados objetivos, horário exato do exame e plano terapêutico imediato.');
+    }
+
+    return cabecalhoContingencia + corpo.join('\n') + rodapeSeguranca;
+  }
+
+  /**
+   * Processador determinístico offline de áudio clínico em contingência.
+   * Estrutura o relato ditado sem depender de provedores de IA externos.
+   */
+  function processarAudioClinicoOffline(base64Data, mimeType, opcoes) {
+    opcoes = opcoes || {};
+    var textoContexto = String(opcoes.caption || opcoes.contextoTexto || opcoes.contexto || opcoes.textoFallback || '').trim();
+    var tLow = textoContexto.toLowerCase();
+
+    var ehLeito = /leito\s*([0-9a-zA-Z]+)|quarto\s*([0-9a-zA-Z]+)/i.test(textoContexto);
+    var numLeito = null;
+    var matchLeito = textoContexto.match(/leito\s*([0-9a-zA-Z]+)|quarto\s*([0-9a-zA-Z]+)/i);
+    if (matchLeito) {
+      numLeito = (matchLeito[1] || matchLeito[2] || '').trim();
+    }
+
+    var proto = identificarProtocoloClinico(textoContexto);
+    var statusSugerido = 'estavel';
+    if (proto || tLow.indexOf('febre') !== -1 || tLow.indexOf('dor') !== -1 || tLow.indexOf('instavel') !== -1 || tLow.indexOf('urg') !== -1) {
+      statusSugerido = (proto && (proto === PROTOCOLOS_OFFLINE.PCR_ADULTO || proto === PROTOCOLOS_OFFLINE.CHOQUE_SEPTICO || proto === PROTOCOLOS_OFFLINE.SCA_IAM))
+        ? 'instavel'
+        : 'vigilancia';
+    }
+
+    var transcricaoTexto = textoContexto
+      ? ('[Áudio Ditado Beira-Leito]: ' + textoContexto)
+      : '[Áudio clínico captado beira-leito - Contingência Offline de 15s]';
+
+    var evolucaoTexto = '';
+    var soapTexto = '';
+    var subjetivo = '';
+    var objetivo = 'Sinais vitais e exame segmentar pendentes de validação direta beira-leito.';
+    var tipoRelato = ehLeito ? 'leito' : 'soap';
+
+    if (ehLeito) {
+      evolucaoTexto = 'Paciente no Leito ' + (numLeito || 'não especificado') + '. ' +
+        (proto ? 'Quadro sugestivo de ' + proto.titulo + '. ' : 'Evolução de rotina da enfermaria. ') +
+        'Conduta e pendências em acompanhamento pela equipe médica.';
+    } else {
+      subjetivo = textoContexto || 'Paciente relata sintomas para atendimento clínico beira-leito.';
+      if (proto) {
+        soapTexto = proto.gerarConduta(textoContexto);
+      } else {
+        soapTexto = gerarCondutaGeralEmergencia(textoContexto);
+      }
+    }
+
+    return {
+      sucesso: true,
+      transcricao: transcricaoTexto,
+      eh_clinico: true,
+      tipo_relato: tipoRelato,
+      numero_leito: numLeito,
+      status_sugerido: statusSugerido,
+      evolucao_texto: evolucaoTexto || null,
+      pendencias: [],
+      subjetivo: subjetivo || null,
+      objetivo: objetivo,
+      perguntas_anamnese: [
+        '1. Quais os sinais vitais atuais (PA, FC, FR, SatO2, Temperatura)? (Para estratificação objetiva de risco)',
+        '2. Há comorbidades prévias ou alergias a medicamentos conhecidas? (Para salvaguarda de prescrição)'
+      ],
+      exame_dirigido: ['Aferição multiparamétrica completa e exame clínico dos 5 sistemas vitais.'],
+      soapTexto: soapTexto || null,
+      contingencia_offline: true,
+      aviso_contingencia: 'Processado pelo Motor Determinístico Offline (timeout seguro de 15s / Provedor em contingência).'
+    };
+  }
+
+  /**
+   * Resposta determinística para áudio quando o transdutor/LLM estiver em timeout ou contingência.
+   */
+  function gerarFallbackAudio(promptUsuario, mimeType, opcoes) {
+    opcoes = opcoes || {};
+    var p = String(promptUsuario || '').toLowerCase();
+    if (p.indexOf('[calendar]') !== -1 || p.indexOf('marcar') !== -1 || p.indexOf('agendar') !== -1 || p.indexOf('agenda') !== -1) {
+      return [
+        '⚡ *MODO OFFLINE DE CONTINGÊNCIA (ÁUDIO / AGENDAMENTO)*',
+        '📅 [CALENDAR] Agendamento solicitado registrado em contingência offline.',
+        '⚠️ *Aviso:* O provedor de reconhecimento em nuvem atingiu o timeout de 15s. Confirme os horários diretamente no aplicativo de agenda.'
+      ].join('\n');
+    }
+    return gerarRespostaOfflineClinica(null, promptUsuario, opcoes);
+  }
+
+  /**
+   * Ponto único de fallback para chamadas multimodais (imagem ou áudio).
+   */
+  function gerarFallbackMultimodal(promptUsuario, sistema, mimeType, opcoes) {
+    opcoes = opcoes || {};
+    var mime = String(mimeType || '').toLowerCase();
+    if (mime.indexOf('image/') !== -1) {
+      return analisarImagemOffline(promptUsuario || sistema, mime, opcoes);
+    }
+    if (mime.indexOf('audio/') !== -1) {
+      return gerarFallbackAudio(promptUsuario || sistema, mime, opcoes);
+    }
+    return gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
+  }
+
   return {
     MODELOS_HOMOLOGADOS_LOCAL: MODELOS_HOMOLOGADOS_LOCAL,
     PROTOCOLOS_OFFLINE: PROTOCOLOS_OFFLINE,
@@ -34214,12 +35295,211 @@ var IaLocalFallbackService = (function () {
     gerarRespostaOfflineClinica: gerarRespostaOfflineClinica,
     gerarCondutaGeralEmergencia: gerarCondutaGeralEmergencia,
     estruturarJsonOffline: estruturarJsonOffline,
-    verificarStatus: verificarStatus
+    verificarStatus: verificarStatus,
+    analisarImagemOffline: analisarImagemOffline,
+    processarAudioClinicoOffline: processarAudioClinicoOffline,
+    gerarFallbackAudio: gerarFallbackAudio,
+    gerarFallbackMultimodal: gerarFallbackMultimodal
+  };
+})();
+
+/**
+ * ==============================================================================
+ * CIRCUIT BREAKER DETERMINÍSTICO PARA PROVEDORES EXTERNOS DE IA (MULTIMODAL & LLM)
+ * ==============================================================================
+ * Gerenciador de resiliência com 3 estados (CLOSED, OPEN, HALF_OPEN):
+ * - CLOSED: Operação normal. Requisições são despachadas para APIs externas.
+ * - OPEN: Bloqueio protetivo (Fast-Fail em 0ms) após 3 falhas consecutivas ou
+ *         timeouts. Evita retenção de threads e esperas beira-leito. Cooldown: 60s.
+ * - HALF_OPEN: Após expirar o cooldown, autoriza 1 requisição de teste para avaliar
+ *              recuperação do serviço externo.
+ */
+var IaCircuitBreaker = (function () {
+  'use strict';
+
+  var ESTADOS = {
+    FECHADO: 'CLOSED',
+    ABERTO: 'OPEN',
+    MEIO_ABERTO: 'HALF_OPEN'
+  };
+
+  var CONFIG_PADRAO = {
+    falhasParaAbrir: 3,         // 3 falhas consecutivas disparam abertura
+    cooldownMs: 60000,          // 60 segundos de cooldown
+    timeoutMultimodalMs: 15000  // 15 segundos para provedores multimodais
+  };
+
+  var circuitos = {};
+
+  function _obterCircuito(chave) {
+    var k = String(chave || 'MULTIMODAL').toUpperCase();
+    if (!circuitos[k]) {
+      circuitos[k] = {
+        chave: k,
+        estado: ESTADOS.FECHADO,
+        falhasConsecutivas: 0,
+        sucessosConsecutivos: 0,
+        abertoEm: 0,
+        proximoTesteEm: 0,
+        ultimoErro: null,
+        totalFalhas: 0,
+        totalSucessos: 0,
+        totalBloqueios: 0
+      };
+    }
+    return circuitos[k];
+  }
+
+  function podeExecutar(chave) {
+    var c = _obterCircuito(chave);
+    var agora = Date.now();
+
+    if (c.estado === ESTADOS.FECHADO) {
+      return true;
+    }
+
+    if (c.estado === ESTADOS.ABERTO) {
+      if (agora >= c.proximoTesteEm) {
+        c.estado = ESTADOS.MEIO_ABERTO;
+        if (typeof Logger !== 'undefined' && Logger.log) {
+          Logger.log('[CircuitBreaker ' + c.chave + '] Transição OPEN -> HALF_OPEN (permitindo teste)');
+        }
+        return true;
+      }
+      c.totalBloqueios++;
+      return false;
+    }
+
+    if (c.estado === ESTADOS.MEIO_ABERTO) {
+      return true;
+    }
+
+    return true;
+  }
+
+  function registrarSucesso(chave) {
+    var c = _obterCircuito(chave);
+    c.totalSucessos++;
+    c.falhasConsecutivas = 0;
+    c.ultimoErro = null;
+
+    if (c.estado === ESTADOS.MEIO_ABERTO || c.estado === ESTADOS.ABERTO) {
+      c.estado = ESTADOS.FECHADO;
+      c.abertoEm = 0;
+      c.proximoTesteEm = 0;
+      if (typeof Logger !== 'undefined' && Logger.log) {
+        Logger.log('[CircuitBreaker ' + c.chave + '] Provedor restabelecido com sucesso. Circuito FECHADO.');
+      }
+    }
+  }
+
+  function registrarFalha(chave, erroOuMsg) {
+    var c = _obterCircuito(chave);
+    var agora = Date.now();
+    var msgErro = erroOuMsg ? (erroOuMsg.message || String(erroOuMsg)) : 'Erro não especificado';
+
+    c.totalFalhas++;
+    c.falhasConsecutivas++;
+    c.ultimoErro = msgErro;
+
+    if (c.estado === ESTADOS.MEIO_ABERTO) {
+      c.estado = ESTADOS.ABERTO;
+      c.abertoEm = agora;
+      c.proximoTesteEm = agora + CONFIG_PADRAO.cooldownMs;
+      if (typeof Logger !== 'undefined' && Logger.log) {
+        Logger.log('[CircuitBreaker ' + c.chave + '] Falha no teste. Circuito REABERTO por ' + (CONFIG_PADRAO.cooldownMs / 1000) + 's: ' + msgErro);
+      }
+      return;
+    }
+
+    if (c.estado === ESTADOS.FECHADO && c.falhasConsecutivas >= CONFIG_PADRAO.falhasParaAbrir) {
+      c.estado = ESTADOS.ABERTO;
+      c.abertoEm = agora;
+      c.proximoTesteEm = agora + CONFIG_PADRAO.cooldownMs;
+      if (typeof Logger !== 'undefined' && Logger.log) {
+        Logger.log('[CircuitBreaker ' + c.chave + '] ABERTO após ' + c.falhasConsecutivas + ' falhas (' + (CONFIG_PADRAO.cooldownMs / 1000) + 's de cooldown): ' + msgErro);
+      }
+    }
+  }
+
+  function obterStatus(chave) {
+    var c = _obterCircuito(chave);
+    var agora = Date.now();
+    var tempoRestanteMs = 0;
+    if (c.estado === ESTADOS.ABERTO && c.proximoTesteEm > agora) {
+      tempoRestanteMs = c.proximoTesteEm - agora;
+    }
+    return {
+      chave: c.chave,
+      estado: c.estado,
+      aberto: c.estado === ESTADOS.ABERTO,
+      meioAberto: c.estado === ESTADOS.MEIO_ABERTO,
+      fechado: c.estado === ESTADOS.FECHADO,
+      falhasConsecutivas: c.falhasConsecutivas,
+      limiteFalhas: CONFIG_PADRAO.falhasParaAbrir,
+      abertoEm: c.abertoEm,
+      proximoTesteEm: c.proximoTesteEm,
+      tempoRestanteMs: tempoRestanteMs,
+      ultimoErro: c.ultimoErro,
+      totalFalhas: c.totalFalhas,
+      totalSucessos: c.totalSucessos,
+      totalBloqueios: c.totalBloqueios
+    };
+  }
+
+  function resetar(chave) {
+    if (!chave) {
+      circuitos = {};
+      return;
+    }
+    var k = String(chave).toUpperCase();
+    if (circuitos[k]) {
+      circuitos[k].estado = ESTADOS.FECHADO;
+      circuitos[k].falhasConsecutivas = 0;
+      circuitos[k].abertoEm = 0;
+      circuitos[k].proximoTesteEm = 0;
+      circuitos[k].ultimoErro = null;
+    }
+  }
+
+  function forcarEstado(chave, novoEstado, motivo) {
+    var c = _obterCircuito(chave);
+    var agora = Date.now();
+    var st = String(novoEstado).toUpperCase();
+    if (st === ESTADOS.ABERTO) {
+      c.estado = ESTADOS.ABERTO;
+      c.abertoEm = agora;
+      c.proximoTesteEm = agora + CONFIG_PADRAO.cooldownMs;
+      c.ultimoErro = motivo || 'Forçado manualmente';
+    } else if (st === ESTADOS.MEIO_ABERTO) {
+      c.estado = ESTADOS.MEIO_ABERTO;
+      c.proximoTesteEm = agora;
+    } else {
+      c.estado = ESTADOS.FECHADO;
+      c.falhasConsecutivas = 0;
+      c.abertoEm = 0;
+      c.proximoTesteEm = 0;
+      c.ultimoErro = null;
+    }
+  }
+
+  return {
+    ESTADOS: ESTADOS,
+    CONFIG_PADRAO: CONFIG_PADRAO,
+    podeExecutar: podeExecutar,
+    registrarSucesso: registrarSucesso,
+    registrarFalha: registrarFalha,
+    obterStatus: obterStatus,
+    resetar: resetar,
+    forcarEstado: forcarEstado
   };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { IaLocalFallbackService: IaLocalFallbackService };
+  module.exports = {
+    IaLocalFallbackService: IaLocalFallbackService,
+    IaCircuitBreaker: IaCircuitBreaker
+  };
 }
 
 
@@ -34354,11 +35634,12 @@ function _iaLista(chave, padrao) {
   return lista.length ? lista : padrao.slice();
 }
 
-function _iaNovoCtx() {
+function _iaNovoCtx(limiteMs) {
+  var teto = limiteMs || Number(_iaCfg("IA_ORCAMENTO_MS", IA_PADROES.ORCAMENTO_MS)) || IA_PADROES.ORCAMENTO_MS;
   return {
     id: Utilities.getUuid().substring(0, 8),
     inicio: new Date().getTime(),
-    limite: Number(_iaCfg("IA_ORCAMENTO_MS", IA_PADROES.ORCAMENTO_MS)) || IA_PADROES.ORCAMENTO_MS
+    limite: teto
   };
 }
 
@@ -34775,12 +36056,14 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
       if (opcoes.grounding) payload.tools = [{ googleSearch: {} }];
 
       try {
+        var timeoutMsFetch = (opcoes && opcoes.timeoutMs) || (opcoes && (opcoes.multimodal || opcoes.partesUsuario) ? 15000 : 25000);
         var res = UrlFetchApp.fetch(
           "https://generativelanguage.googleapis.com/v1beta/models/" + modelo + ":generateContent",
           {
             method: "post", contentType: "application/json",
             headers: { "x-goog-api-key": chaves[idx] },
-            payload: JSON.stringify(payload), muteHttpExceptions: true
+            payload: JSON.stringify(payload), muteHttpExceptions: true,
+            timeoutMs: timeoutMsFetch
           }
         );
         var code = res.getResponseCode();
@@ -34893,6 +36176,10 @@ function _iaOrdemProvedores() {
 }
 
 function _iaChamarProvedor(nome, sistema, prompt, tokens, ctx, opcoes) {
+  if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker && !IaCircuitBreaker.podeExecutar(nome)) {
+    _iaLog(ctx, "[CircuitBreaker " + nome + "] ABERTO (cooldown ativo), pulando provedor.");
+    return null;
+  }
   if (nome === "GROQ") return _iaProvGroq(sistema, prompt, tokens, ctx);
   if (nome === "OPENROUTER") return _iaProvOpenRouter(sistema, prompt, tokens, ctx);
   if (nome === "ZAI") return _iaProvZai(sistema, prompt, tokens, ctx);
@@ -34915,17 +36202,27 @@ function _iaExecutar(sistema, promptUsuario, maxTokens, opcoes) {
     try {
       r = chamar(tokens);
       r = _iaResolverTruncamento(chamar, tokens, r, ctx, opcoes.json);
+      if (r && r.texto && String(r.texto).trim()) {
+        if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+          IaCircuitBreaker.registrarSucesso(nome);
+        }
+        _iaLog(ctx, "OK via " + nome + " (" + r.modelo + ") em " + (new Date().getTime() - ctx.inicio) + " ms");
+        return opcoes.json ? r.texto : _iaRemoverLatex(r.texto);
+      } else {
+        if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+          IaCircuitBreaker.registrarFalha(nome, "Resposta vazia");
+        }
+      }
     } catch (e) {
+      if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+        IaCircuitBreaker.registrarFalha(nome, e.message);
+      }
       _iaLog(ctx, nome + " falhou: " + e.message);
       continue;
     }
     if (r && r.truncado && opcoes.exigirRespostaCompleta) {
       _iaLog(ctx, "Resposta incompleta; revisão não concluída");
       return null;
-    }
-    if (r && r.texto && String(r.texto).trim()) {
-      _iaLog(ctx, "OK via " + nome + " (" + r.modelo + ") em " + (new Date().getTime() - ctx.inicio) + " ms");
-      return opcoes.json ? r.texto : _iaRemoverLatex(r.texto);
     }
   }
   _iaLog(ctx, "TODOS OS PROVEDORES FALHARAM");
@@ -34979,8 +36276,10 @@ function _iaAcrescentarFontesBusca(texto, metadata) {
 }
 
 function _iaPublico(chamarInterno, tokensPadrao, maxTokens, opcoes) {
+  opcoes = opcoes || {};
   var tokens = Number(maxTokens) || tokensPadrao;
-  var ctx = _iaNovoCtx();
+  var limiteCtx = (opcoes && opcoes.orcamentoMs) || (opcoes && opcoes.multimodal ? 15000 : null);
+  var ctx = _iaNovoCtx(limiteCtx);
   var chamar = function (t) { return chamarInterno(t, ctx); };
   var r = _iaResolverTruncamento(chamar, tokens, chamar(tokens), ctx, false);
   if (!r || !r.texto) return null;
@@ -35237,21 +36536,73 @@ function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario
     mimeNormalizado = "image/jpeg";
   }
   var partes = [{ inlineData: { mimeType: mimeNormalizado, data: base64Data } }, { text: msg }];
-  var res = _iaPublico(function (t, ctx) {
-    var opts = Object.assign({ clinico: true }, opcoes, { partesUsuario: partes });
-    return _iaProvGemini(sistema, msg, t, ctx, opts);
-  }, 2500, 2500);
 
-  if (!res) {
-    // Fallback resiliente multimodal: se o pool clínico prioritário sofrer saturação/429,
-    // aciona imediatamente os modelos leves com cota separada e alta disponibilidade
-    var modelosLeves = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest"];
-    res = _iaPublico(function (t, ctx) {
-      var optsFallback = Object.assign({ clinico: true, modelos: modelosLeves }, opcoes, { partesUsuario: partes });
-      return _iaProvGemini(sistema, msg, t, ctx, optsFallback);
-    }, 2500, 2500);
+  // 1. Verificação do Circuit Breaker Multimodal (Fast-fail em 0ms)
+  if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker && !IaCircuitBreaker.podeExecutar("MULTIMODAL")) {
+    if (typeof Logger !== "undefined" && Logger.log) {
+      Logger.log("[IA Multimodal] Circuit Breaker ABERTO (cooldown ativo). Acionando fallback determinístico local.");
+    }
+    if (opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.gerarFallbackMultimodal === "function") {
+      return IaLocalFallbackService.gerarFallbackMultimodal(msg, sistema, mimeNormalizado, opcoes);
+    }
+    return null;
   }
-  return res;
+
+  var timeoutMultimodal = Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 15000)) || 15000;
+  var optsMultimodal = Object.assign({
+    clinico: true,
+    multimodal: true,
+    timeoutMs: timeoutMultimodal,
+    orcamentoMs: timeoutMultimodal
+  }, opcoes, { partesUsuario: partes });
+
+  var res = null;
+  var erroOcorrido = null;
+  try {
+    res = _iaPublico(function (t, ctx) {
+      return _iaProvGemini(sistema, msg, t, ctx, optsMultimodal);
+    }, 2500, 2500, optsMultimodal);
+
+    if (!res) {
+      // Fallback resiliente multimodal: se o pool clínico prioritário sofrer saturação/429,
+      // aciona imediatamente os modelos leves com cota separada e alta disponibilidade
+      var modelosLeves = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest"];
+      var optsFallback = Object.assign({}, optsMultimodal, { modelos: modelosLeves });
+      res = _iaPublico(function (t, ctx) {
+        return _iaProvGemini(sistema, msg, t, ctx, optsFallback);
+      }, 2500, 2500, optsFallback);
+    }
+
+    if (res && String(res).trim()) {
+      if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+        IaCircuitBreaker.registrarSucesso("MULTIMODAL");
+      }
+      return res;
+    } else {
+      erroOcorrido = "Provedor multimodal retornou resposta vazia";
+      if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+        IaCircuitBreaker.registrarFalha("MULTIMODAL", erroOcorrido);
+      }
+    }
+  } catch (errMulti) {
+    erroOcorrido = errMulti.message || String(errMulti);
+    if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+      IaCircuitBreaker.registrarFalha("MULTIMODAL", erroOcorrido);
+    }
+    if (typeof Logger !== "undefined" && Logger.log) {
+      Logger.log("[IA Multimodal] Exceção na inferência: " + erroOcorrido);
+    }
+  }
+
+  // Fallback determinístico local quando o provedor externo falhar
+  if (opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.gerarFallbackMultimodal === "function") {
+    if (typeof Logger !== "undefined" && Logger.log) {
+      Logger.log("[IA Multimodal] Acionando fallback determinístico offline local");
+    }
+    return IaLocalFallbackService.gerarFallbackMultimodal(msg, sistema, mimeNormalizado, opcoes);
+  }
+
+  return null;
 }
 
 /**
@@ -35299,10 +36650,20 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
 
   var promptInstrucao = "Por favor, ouça o áudio com atenção aos termos médicos e retorne o JSON estruturado.";
   var raw = chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opcoes);
-  if (!raw) return null;
+  if (!raw) {
+    if (opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
+      return IaLocalFallbackService.processarAudioClinicoOffline(base64Data, mimeType, opcoes);
+    }
+    return null;
+  }
 
   var obj = _iaExtrairJSON(raw);
   if (!obj || typeof obj !== "object") {
+    if (String(raw).indexOf("MODO OFFLINE DE CONTINGÊNCIA") !== -1 || String(raw).indexOf("CONTINGÊNCIA") !== -1) {
+      if (opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
+        return IaLocalFallbackService.processarAudioClinicoOffline(base64Data, mimeType, Object.assign({}, opcoes, { textoFallback: raw }));
+      }
+    }
     return {
       sucesso: true,
       transcricao: String(raw).trim(),
@@ -35439,10 +36800,17 @@ function analisarImagemMedicaComIA(base64Data, mimeType, contextoTexto, opcoes) 
 
   var opts = Object.assign({
     thinkingBudget: 1024,
-    clinico: true
+    clinico: true,
+    multimodal: true,
+    timeoutMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 15000)) || 15000,
+    orcamentoMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 15000)) || 15000
   }, opcoes);
 
-  return chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opts);
+  var resLaudo = chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opts);
+  if (!resLaudo && opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.analisarImagemOffline === "function") {
+    return IaLocalFallbackService.analisarImagemOffline(contextoTexto, mimeType, opcoes);
+  }
+  return resLaudo;
 }
 
 // ==============================================================================
@@ -36987,7 +38355,8 @@ if (typeof module !== "undefined" && module.exports) {
     chamarLocalLlmAPI: chamarLocalLlmAPI,
     verificarSaudeLocalLlm: verificarSaudeLocalLlm,
     cockpitLocalLlm: cockpitLocalLlm,
-    _iaNormalizarBase64: _iaNormalizarBase64
+    _iaNormalizarBase64: _iaNormalizarBase64,
+    IaCircuitBreaker: (typeof IaCircuitBreaker !== 'undefined' ? IaCircuitBreaker : null)
   };
 }
 
@@ -38993,7 +40362,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/sri", "/iot", "/pcr", "/acls", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -39069,12 +40438,34 @@ function processarMensagemTexto(message) {
 
 
   // 3. COMANDOS CLÍNICOS E SALA VERMELHA
-  if (comando === "/dva") {
-    var dadosDva = texto.replace(/^\/dva\s*/i, "").trim();
+  if (comando === "/dva" || comando === "/compatibilidade" || comando === "/compatibilidade_y") {
+    var dadosDva = texto.replace(/^\/(?:dva|compatibilidade|compatibilidade_y)\s*/i, "").trim();
     if (!dadosDva) {
-      return enviarMensagemParaChat(chatId, "💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nUso: `/dva <droga> <pesoKg> [solução]`\n💡 *Exemplos:*\n• `/dva nora 70` (Noradrenalina padrão)\n• `/dva nora 80 concentrada` (Solução 2x)\n• `/dva dobuta 65`\n• `/dva vaso`\n• `/dva nipride 75`\n• `/dva tridil`");
+      return enviarMensagemParaChat(chatId, "💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nUso: `/dva <droga> <pesoKg> [solução]`\n💡 *Exemplos:*\n• `/dva nora 70` (Noradrenalina padrão)\n• `/dva nora 80 concentrada` (Solução 2x)\n• `/dva dobuta 65`\n• `/dva vaso`\n• `/dva nipride 75`\n• `/dva tridil`\n\n🔬 *Compatibilidade em Y (Prescrição Combinada / BIC):*\n• `/dva y nora dobuta` (Checar se podem correr no mesmo lúmen)\n• `/dva y nora furosemida` (Alerta de precipitação físico-química)");
     }
     var partesDva = dadosDva.split(/\s+/);
+
+    // Detecção de consulta direta de compatibilidade em Y (/dva y droga1 droga2 ou /compatibilidade d1 d2)
+    var ehConsultaY = (partesDva[0].toLowerCase() === "y" || partesDva[0].toLowerCase() === "compatibilidade" || partesDva[0].toLowerCase() === "crosscheck" || comando === "/compatibilidade" || comando === "/compatibilidade_y");
+    if (ehConsultaY) {
+      var d1Y = (partesDva[0].toLowerCase() === "y" || partesDva[0].toLowerCase() === "compatibilidade" || partesDva[0].toLowerCase() === "crosscheck") ? partesDva[1] : partesDva[0];
+      var d2Y = (partesDva[0].toLowerCase() === "y" || partesDva[0].toLowerCase() === "compatibilidade" || partesDva[0].toLowerCase() === "crosscheck") ? partesDva[2] : partesDva[1];
+      if (d1Y && d2Y && typeof CompatibilidadeYDvaService !== "undefined") {
+        var parecerY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(d1Y, d2Y);
+        return enviarMensagemParaChat(chatId, parecerY);
+      }
+    }
+
+    // Detecção inteligente de 2 drogas sem peso (ex: /dva nora dobuta ou /dva nora furosemida)
+    if (partesDva.length === 2 && isNaN(Number(partesDva[1].replace(",", "."))) && typeof CompatibilidadeYDvaService !== "undefined") {
+      var d1Norm = CompatibilidadeYDvaService.normalizarNomeDroga(partesDva[0]);
+      var d2Norm = CompatibilidadeYDvaService.normalizarNomeDroga(partesDva[1]);
+      if (CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA[d1Norm] || CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA[d2Norm]) {
+        var parecerAutoY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(partesDva[0], partesDva[1]);
+        return enviarMensagemParaChat(chatId, parecerAutoY);
+      }
+    }
+
     var nomeDroga = (partesDva[0] || "").toLowerCase();
 
     // Drogas de dose fixa independentes de peso (Vasopressina, Nitroglicerina/Tridil)
@@ -49095,7 +50486,31 @@ function cockpitCalcular(initData, tipo, entrada) {
   switch (tipo) {
     case 'dva':
       if (['nora','dobuta','vaso','adrena','adrenalina','nipride','tridil'].indexOf(entrada.droga) < 0) throw new Error('Selecione uma droga válida.');
-      return CalculadorasClinicas.drogasVasoativas(entrada.droga, entrada.peso, entrada.solucao || 'padrao');
+      var resDva = CalculadorasClinicas.drogasVasoativas(entrada.droga, entrada.peso, entrada.solucao || 'padrao');
+      if (entrada.droga2 && typeof CompatibilidadeYDvaService !== 'undefined') {
+        var checkY = CompatibilidadeYDvaService.checarCompatibilidadeY(entrada.droga, entrada.droga2);
+        var txtCompat = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(entrada.droga, entrada.droga2);
+        resDva.compatibilidadeY = checkY;
+        if (resDva.textoFormatado) {
+          resDva.textoFormatado += "\n\n" + txtCompat;
+        }
+        if (resDva.texto) {
+          resDva.texto += "\n\n" + txtCompat;
+        }
+      }
+      return resDva;
+    case 'compatibilidade_y':
+    case 'dva_y':
+      var d1 = entrada.droga1 || entrada.drogaA || entrada.droga || 'noradrenalina';
+      var d2 = entrada.droga2 || entrada.drogaB || 'dobutamina';
+      if (typeof CompatibilidadeYDvaService !== 'undefined') {
+        var resY = CompatibilidadeYDvaService.checarCompatibilidadeY(d1, d2);
+        var txtY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(d1, d2);
+        resY.texto = txtY;
+        resY.textoFormatado = txtY;
+        return resY;
+      }
+      throw new Error('Serviço de Compatibilidade em Y indisponível.');
     case 'sri':
       if (['padrao','choque','asma','neuro','tce','hic'].indexOf(entrada.cenario) < 0) throw new Error('Selecione um cenário válido.');
       return CalculadorasClinicas.sequenciaRapidaIntubacao(entrada.peso, entrada.cenario);
@@ -49379,6 +50794,17 @@ function cockpitChecarSeguranca(initData, drogasOuTexto, contextoClinico) {
   cockpitAutorizar_(initData);
   if (!drogasOuTexto) throw new Error('Informe os medicamentos ou texto para checagem.');
   return executarCrossCheckSegurancaClinica(drogasOuTexto, contextoClinico);
+}
+
+function cockpitCompatibilidadeYDva(initData, droga1, droga2) {
+  cockpitAutorizar_(initData);
+  if (!droga1 || !droga2) throw new Error('Informe droga1 e droga2 para checar compatibilidade em Y.');
+  if (typeof CompatibilidadeYDvaService !== 'undefined') {
+    var checagem = CompatibilidadeYDvaService.checarCompatibilidadeY(droga1, droga2);
+    checagem.textoFormatado = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(droga1, droga2);
+    return checagem;
+  }
+  throw new Error('Módulo CompatibilidadeYDvaService indisponível.');
 }
 
 function cockpitRemume(initData) {
