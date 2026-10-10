@@ -460,6 +460,9 @@ function cockpitCalcular(initData, tipo, entrada) {
       if (paramsAsma.peso !== undefined && paramsAsma.pesoKg === undefined) {
         paramsAsma.pesoKg = Number(paramsAsma.peso);
       }
+      if (paramsAsma.dpoc !== undefined || paramsAsma.perfilDpoc !== undefined) {
+        paramsAsma.dpoc = Boolean(paramsAsma.dpoc || paramsAsma.perfilDpoc);
+      }
       if (paramsAsma.gasometriaNormocapnia || paramsAsma.normocapnia) {
         paramsAsma.gasometria = { paco2: 43, ph: 7.31 };
       }
@@ -467,7 +470,11 @@ function cockpitCalcular(initData, tipo, entrada) {
       var gAsma = resAsma.gravidade;
       var pAsma = resAsma.plano;
 
-      var txtAsma = "🫁 MANEJO DA CRISE ASMÁTICA & BRONCOESPASMO (GINA / SBPT)\n\n" +
+      var cabecalhoAsma = pAsma.isDpoc ? 
+        "🫁 EXACERBAÇÃO AGUDA DE DPOC (GOLD / SBPT)\n\n" : 
+        "🫁 MANEJO DA CRISE ASMÁTICA & BRONCOESPASMO (GINA / SBPT)\n\n";
+
+      var txtAsma = cabecalhoAsma +
         "🔴 CLASSIFICAÇÃO & CONDUTA IMEDIATA:\n" +
         "• Gravidade: " + gAsma.titulo.toUpperCase() + "\n" +
         (gAsma.pfe_porcentagem !== null ? "• Pico de Fluxo (PFE): " + gAsma.pfe_porcentagem + "% do previsto\n" : "") +
@@ -488,6 +495,17 @@ function cockpitCalcular(initData, tipo, entrada) {
           "• Tempo de Infusão: " + pAsma.sulfato_magnesio.tempo_infusao + "\n";
       }
 
+      if (pAsma.antibioticoterapia && pAsma.antibioticoterapia.indicado) {
+        txtAsma += "\n💊 ANTIBIOTICOTERAPIA (CRITÉRIOS DE ANTHONISEN):\n" +
+          "• Critérios: " + pAsma.antibioticoterapia.criterios_anthonisen + "\n" +
+          "• 1ª Linha: " + pAsma.antibioticoterapia.esquema_preferencial + "\n";
+      }
+
+      if (pAsma.manejo_ventilatorio && pAsma.manejo_ventilatorio.vni) {
+        txtAsma += "\n🫁 VENTILAÇÃO NÃO INVASIVA (VNI - BiPAP):\n" +
+          "• " + pAsma.manejo_ventilatorio.vni.padrao_ouro + "\n";
+      }
+
       if (gAsma.nivel === 'PARADA_IMINENTE' || gAsma.nivel === 'GRAVE') {
         txtAsma += "\n🫁 MANEJO VENTILATÓRIO & IOT PROTETORA:\n" +
           "• Indução: " + pAsma.manejo_ventilatorio.sequencia_rapida_intubacao.inducao_escolha + "\n" +
@@ -506,8 +524,8 @@ function cockpitCalcular(initData, tipo, entrada) {
       return {
         ok: true,
         sucesso: true,
-        id: 'crise_asmatica',
-        nome: 'Manejo de Crise Asmática',
+        id: pAsma.isDpoc ? 'exacerbacao_dpoc' : 'crise_asmatica',
+        nome: pAsma.isDpoc ? 'Exacerbação de DPOC' : 'Manejo de Crise Asmática',
         texto: txtAsma,
         textoFormatado: txtAsma,
         dados: resAsma

@@ -23,7 +23,10 @@ const LIMITES_FISIOLOGICOS = {
   fio2: { min: 0.21, max: 100, nome: 'FiO₂', unidade: '%' },
   k: { min: 1.0, max: 10.0, nome: 'Potássio sérico (K⁺)', unidade: 'mEq/L' },
   clcr: { min: 0, max: 250, nome: 'Clearance de Creatinina', unidade: 'mL/min' },
-  pfe: { min: 0, max: 1000, nome: 'Pico de Fluxo Expiratório (PFE)', unidade: 'L/min' }
+  pfe: { min: 0, max: 1000, nome: 'Pico de Fluxo Expiratório (PFE)', unidade: 'L/min' },
+  fr: { min: 4, max: 80, nome: 'Frequência Respiratória (FR)', unidade: 'irpm' },
+  spo2: { min: 30, max: 100, nome: 'Saturação de Oxigênio (SpO₂)', unidade: '%' },
+  fc: { min: 20, max: 300, nome: 'Frequência Cardíaca (FC)', unidade: 'bpm' }
 };
 
 const DROGAS_DVA_VALIDAS = new Set(['nora', 'dobuta', 'vaso', 'adrena', 'adrenalina', 'nipride', 'tridil']);
@@ -439,19 +442,53 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
         entradaSanitizada.peso = vPeso.valor;
         entradaSanitizada.pesoKg = vPeso.valor;
       }
+      if (entrada.idade !== undefined && entrada.idade !== null && entrada.idade !== '') {
+        const vIdade = validarParametroFisiologico('idade', entrada.idade);
+        if (!vIdade.valido) return vIdade;
+        entradaSanitizada.idade = vIdade.valor;
+      }
+      if (entrada.spo2 !== undefined && entrada.spo2 !== null && entrada.spo2 !== '') {
+        const vSpo2 = validarParametroFisiologico('spo2', entrada.spo2);
+        if (!vSpo2.valido) return vSpo2;
+        entradaSanitizada.spo2 = vSpo2.valor;
+      }
+      if (entrada.fr !== undefined && entrada.fr !== null && entrada.fr !== '') {
+        const vFr = validarParametroFisiologico('fr', entrada.fr);
+        if (!vFr.valido) return vFr;
+        entradaSanitizada.fr = vFr.valor;
+      }
+      if (entrada.fc !== undefined && entrada.fc !== null && entrada.fc !== '') {
+        const vFc = validarParametroFisiologico('fc', entrada.fc);
+        if (!vFc.valido) return vFc;
+        entradaSanitizada.fc = vFc.valor;
+      }
       if (entrada.pfe !== undefined && entrada.pfe !== null && entrada.pfe !== '') {
         const vPfe = validarParametroFisiologico('pfe', entrada.pfe);
         if (!vPfe.valido) return vPfe;
         entradaSanitizada.pfe = vPfe.valor;
       }
-      if (entrada.refratario !== undefined && typeof entrada.refratario === 'object' && entrada.refratario !== null) {
-        return { valido: false, erro: 'Parâmetro "refratario" não pode ser um objeto aninhado.' };
+      const rawPco2 = entrada.paco2 !== undefined ? entrada.paco2 : entrada.pco2;
+      if (rawPco2 !== undefined && rawPco2 !== null && rawPco2 !== '') {
+        const vPco2 = validarParametroFisiologico('pco2', rawPco2);
+        if (!vPco2.valido) return vPco2;
+        entradaSanitizada.pco2 = vPco2.valor;
+        entradaSanitizada.paco2 = vPco2.valor;
       }
-      if (entrada.normocapnia !== undefined && typeof entrada.normocapnia === 'object' && entrada.normocapnia !== null) {
-        return { valido: false, erro: 'Parâmetro "normocapnia" não pode ser um objeto aninhado.' };
+      // Bloqueio de objetos aninhados inesperados
+      const camposProtegidos = ['refratario', 'normocapnia', 'gestante', 'dpoc', 'fala', 'ausculta', 'posicao', 'estado_mental', 'musculatura_acessoria'];
+      for (const flag of camposProtegidos) {
+        if (entrada[flag] !== undefined && typeof entrada[flag] === 'object' && entrada[flag] !== null) {
+          return { valido: false, erro: `Parâmetro "${flag}" não pode ser um objeto aninhado.` };
+        }
       }
       entradaSanitizada.refratario = Boolean(entrada.refratario || entrada.refratario_1h);
-      entradaSanitizada.normocapnia = Boolean(entrada.normocapnia || entrada.gasometriaNormocapnia);
+      entradaSanitizada.refratario_1h = entradaSanitizada.refratario;
+      entradaSanitizada.normocapnia = Boolean(entrada.normocapnia || entrada.gasometriaNormocapnia || (entradaSanitizada.pco2 >= 42));
+      entradaSanitizada.gasometriaNormocapnia = entradaSanitizada.normocapnia;
+      entradaSanitizada.gestante = Boolean(entrada.gestante);
+      entradaSanitizada.dpoc = Boolean(entrada.dpoc || entrada.perfilDpoc || entrada.perfil === 'dpoc');
+      if (entrada.fala !== undefined) entradaSanitizada.fala = String(entrada.fala);
+      if (entrada.ausculta !== undefined) entradaSanitizada.ausculta = String(entrada.ausculta);
       break;
     }
   }

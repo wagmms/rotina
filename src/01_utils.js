@@ -894,6 +894,7 @@ var ValidadorFisiologico = (function() {
     albumina: { min: 0.5, max: 7.0, unidade: "g/dL", nome: "Albumina sérica" },
     ph: { min: 6.70, max: 7.80, unidade: "", nome: "pH sanguíneo" },
     pco2: { min: 10, max: 150, unidade: "mmHg", nome: "pCO₂ arterial" },
+    paco2: { min: 10, max: 150, unidade: "mmHg", nome: "pCO₂ arterial" },
     po2: { min: 15, max: 600, unidade: "mmHg", nome: "pO₂ arterial" },
     pao2: { min: 15, max: 600, unidade: "mmHg", nome: "PaO₂ arterial" },
     fio2: { min: 0.21, max: 100, unidade: "%", nome: "FiO₂ (0.21 a 1.0 ou %)" },
@@ -1028,6 +1029,38 @@ var ValidadorFisiologico = (function() {
         if (entrada.pao2 !== undefined && entrada.pao2 !== null && entrada.pao2 !== "") {
           var vPao2 = this.validarParametro("pao2", entrada.pao2);
           if (!vPao2.valido) erros.push(vPao2.alerta);
+        }
+      }
+
+      if (tipo === "asma" || tipo === "crise_asmatica" || tipo === "broncoespasmo") {
+        if (entrada.peso !== undefined && entrada.peso !== null && entrada.peso !== "") {
+          var vPesoAsma = this.validarParametro("peso", entrada.peso);
+          if (!vPesoAsma.valido) erros.push(vPesoAsma.alerta);
+        }
+        if (entrada.idade !== undefined && entrada.idade !== null && entrada.idade !== "") {
+          var vIdadeAsma = this.validarParametro("idade", entrada.idade);
+          if (!vIdadeAsma.valido) erros.push(vIdadeAsma.alerta);
+        }
+        if (entrada.spo2 !== undefined && entrada.spo2 !== null && entrada.spo2 !== "") {
+          var vSpo2 = this.validarParametro("spo2", entrada.spo2);
+          if (!vSpo2.valido) erros.push(vSpo2.alerta);
+        }
+        if (entrada.fr !== undefined && entrada.fr !== null && entrada.fr !== "") {
+          var vFr = this.validarParametro("fr", entrada.fr);
+          if (!vFr.valido) erros.push(vFr.alerta);
+        }
+        if (entrada.fc !== undefined && entrada.fc !== null && entrada.fc !== "") {
+          var vFc = this.validarParametro("fc", entrada.fc);
+          if (!vFc.valido) erros.push(vFc.alerta);
+        }
+        if (entrada.pfe !== undefined && entrada.pfe !== null && entrada.pfe !== "") {
+          var vPfe = this.validarParametro("pfe", entrada.pfe);
+          if (!vPfe.valido) erros.push(vPfe.alerta);
+        }
+        var pco2Asma = entrada.paco2 !== undefined ? entrada.paco2 : entrada.pco2;
+        if (pco2Asma !== undefined && pco2Asma !== null && pco2Asma !== "") {
+          var vPco2Asma = this.validarParametro("pco2", pco2Asma);
+          if (!vPco2Asma.valido) erros.push(vPco2Asma.alerta);
         }
       }
 

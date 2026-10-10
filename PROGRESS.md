@@ -13,19 +13,19 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria de Teclados Táteis e Sanitização de Entradas nos Presets da Calculadora de Asma e DPOC do Cockpit**:
-    - Validar limites de FR, SpO2, PCO2, cálculo de dose de corticoide e beta-2 agonista com prevenção de NaN em 0ms.
+- [ ] **Auditoria de Teclados Inline e Atalhos de 1 Toque nas Condutas de PCR (/pcr) e Arritmias Cardíacas no Telegram**:
+    - Validar fluxos de ritmos chocáveis (FV/TVSP) vs não chocáveis (AESP/Assistolia) com cronômetro de 2 minutos e botões rápidos para adrenalina e amiodarona.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Auditoria de Teclados Táteis e Sanitização de Entradas nos Presets da Calculadora de Asma e DPOC do Cockpit**:
-    - Validar limites de FR, SpO2, PCO2, cálculo de dose de corticoide e beta-2 agonista com prevenção de NaN em 0ms.
-2. [ ] **Auditoria de Teclados Inline e Atalhos de 1 Toque nas Condutas de PCR (/pcr) e Arritmias Cardíacas no Telegram**:
+1. [ ] **Auditoria de Teclados Inline e Atalhos de 1 Toque nas Condutas de PCR (/pcr) e Arritmias Cardíacas no Telegram**:
     - Validar fluxos de ritmos chocáveis (FV/TVSP) vs não chocáveis (AESP/Assistolia) com cronômetro de 2 minutos e botões rápidos para adrenalina e amiodarona.
-3. [ ] **Auditoria de Acessibilidade e Teclados Numéricos na Calculadora de Drogas Vasoativas (/dva e Cockpit)**:
+2. [ ] **Auditoria de Acessibilidade e Teclados Numéricos na Calculadora de Drogas Vasoativas (/dva e Cockpit)**:
     - Validar cálculos de taxa de infusão (mcg/kg/min para mL/h) com presets de ampolas e proteção contra doses supra-terapêuticas acidentais.
+3. [ ] **Auditoria de Presets Táteis e Limites Fisiológicos na Calculadora de Queimaduras (Parkland / Brooke) no Cockpit**:
+    - Validar cálculo de reposição volêmica em 24h (regra dos 9 de Wallace, 4 mL/kg/% SCQ) com frações 50% nas primeiras 8h e controle de diurese horária alvo (0.5 a 1.0 mL/kg/h).
 
 ---
 
@@ -85,10 +85,33 @@
 - *Sugestão 52 (Backend / Telemetria)*: Painel de telemetria com contadores de payloads rejeitados agrupados por código de erro (JSON malformado, limites fisiológicos, protótipo inválido) exposto em `/api/telemetria/sanitizacao` para detecção proativa de anomalias de clientes.
 - *Sugestão 53 (Calculadoras / Nefrologia)*: Calculadora integrada de Taxa de Filtração Glomerular pela equação CKD-EPI 2021 (sem coeficiente racial) no Cockpit PWA em paralelo ao Cockcroft-Gault para comparação direta beira-leito entre estadiamento de DRC e ajuste farmacológico.
 - *Sugestão 54 (Calculadoras / Hidratação)*: Protocolo interativo de reposição de potássio com cálculo automático de limite de concentração para acesso venoso periférico (máximo 40 mEq/L) versus acesso venoso central (máximo 60 mEq/L) com alerta sonoro/visual de monitorização cardíaca contínua.
+- *Sugestão 55 (Cockpit / Pneumologia)*: Feedback visual com indicador gráfico de saturação SpO2 e barra de cores dinâmica (verde 93-95% para asma, verde 88-92% com aviso amarelo/vermelho >92% para DPOC alertando hiperóxia e perda do drive hipóxico em tempo real).
+- *Sugestão 56 (Telegram / Emergência Respiratória)*: Atalhos inline `/asma` e `/dpoc` com botões táteis de 1 toque para classificação rápida de crise asmática/DPOC em 3 níveis (Leve/Moderada, Grave, Ameaça à Vida/Tórax Silencioso) gerando conduta imediata formatada para copiar para PEP.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0AI. [x] **Auditoria de Teclados Táteis, Sanitização de Entradas e Protocolo de DPOC na Calculadora Respiratória do Cockpit PWA e Backend Fastify**:
+    - **Semântica Acessível e Teclados Numéricos Móveis**:
+      * Associação semântica de labels e inputs com `for="..."` e `id="..."` em todos os 11 campos da calculadora respiratória (`#asma-fala`, `#asma-ausculta`, `#asma-spo2`, `#asma-fr`, `#asma-fc`, `#asma-peso`, `#asma-idade`, `#asma-refratario`, `#asma-normocapnia`, `#asma-gestante`, `#asma-dpoc`).
+      * Configuração de `inputmode="numeric"` para parâmetros inteiros (SpO2, FR, FC, Idade) e `inputmode="decimal"` para Peso, garantindo abertura imediata do teclado numérico em dispositivos móveis beira-leito sem atrito de digitação.
+      * Contêiner de resultado com `role="status"` e `aria-live="polite"` para anúncio acessível em leitores de tela.
+      * Preset tátil de 1 toque para `🫁 DPOC Exacerbado (GOLD)` com parâmetros pré-configurados e badge de diretriz "GINA · GOLD · SBPT".
+    - **Validação de Limites Fisiológicos em 0ms no Frontend e Backend**:
+      * `FAIXAS_FISIO` e `ALIASES_FISIO` expandidos no Cockpit PWA e sincronizados com `LIMITES_FISIOLOGICOS` e `validarParametrosCalculadora` no backend Fastify e `ValidadorFisiologico` em `src/01_utils.js`.
+      * Validação estrita de limites biológicos: FR (4 a 80 irpm), SpO2 (30 a 100%), FC (20 a 300 bpm) e PaCO2 (10 a 150 mmHg), bloqueando erros grosseiros de digitação antes do cálculo com feedback háptico e mensagem defensiva em 0ms.
+    - **Suporte Robusto ao Protocolo de DPOC (Diretriz GOLD / SBPT)**:
+      * Alvo estrito de oxigenoterapia de 88% a 92% com aviso sentinela mandatório contra hiperóxia descontrolada (risco de inibição do drive hipóxico e narcose por hipercapnia).
+      * Associação mandatória de SABA (Salbutamol) + SAMA (Brometo de Ipratrópio) desde a 1ª hora.
+      * Corticoterapia sistêmica oral com Prednisona 40mg VO por exatamente 5 dias (estudo REDUCE).
+      * Antibioticoterapia estratificada pelos critérios de Anthonisen (amoxicilina-clavulanato ou azitromicina se escarro purulento).
+      * Indicação de VNI (BiPAP) como primeira linha para acidose respiratória (pH < 7.35 e PaCO2 > 45 mmHg), reduzindo necessidade de intubação.
+    - **Prevenção Absoluta de NaN e Alertas Clínicos no Modo Offline**:
+      * Sanitização de números e strings com vírgula em todas as operações matemáticas da calculadora offline e serviço clínico.
+      * Correção da exibição de alertas sentinela (`alertasTxt`) no resultado offline, assegurando que sinais de ameaça à vida (tórax silencioso, exaustão diafragmática, normocapnia/hipercapnia paradoxal) sejam destacados no topo do laudo.
+    - **Suíte de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_cockpit_asma_dpoc_acessibilidade.cjs` com 6 baterias exaustivas (paridade SHA-256 de 100%, proibição de GAS, semântica/labels/inputmode, validação fisiológica em 0ms, cálculo offline com DPOC e validadores Fastify/PneumologiaService), 100% aprovada nas 37 suítes do `npm test`.
 
 0AH. [x] **Auditoria de Acessibilidade e Teclados Numéricos nas Calculadoras de Nefrologia e Hidratação Venosa no Cockpit PWA**:
     - **Semântica Acessível e Teclados Numéricos Táteis Mobile**:
