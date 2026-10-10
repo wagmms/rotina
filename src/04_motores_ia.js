@@ -125,11 +125,12 @@ function _iaLista(chave, padrao) {
   return lista.length ? lista : padrao.slice();
 }
 
-function _iaNovoCtx() {
+function _iaNovoCtx(limiteMs) {
+  var teto = limiteMs || Number(_iaCfg("IA_ORCAMENTO_MS", IA_PADROES.ORCAMENTO_MS)) || IA_PADROES.ORCAMENTO_MS;
   return {
     id: Utilities.getUuid().substring(0, 8),
     inicio: new Date().getTime(),
-    limite: Number(_iaCfg("IA_ORCAMENTO_MS", IA_PADROES.ORCAMENTO_MS)) || IA_PADROES.ORCAMENTO_MS
+    limite: teto
   };
 }
 
@@ -546,12 +547,14 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
       if (opcoes.grounding) payload.tools = [{ googleSearch: {} }];
 
       try {
+        var timeoutMsFetch = (opcoes && opcoes.timeoutMs) || (opcoes && (opcoes.multimodal || opcoes.partesUsuario) ? 15000 : 25000);
         var res = UrlFetchApp.fetch(
           "https://generativelanguage.googleapis.com/v1beta/models/" + modelo + ":generateContent",
           {
             method: "post", contentType: "application/json",
             headers: { "x-goog-api-key": chaves[idx] },
-            payload: JSON.stringify(payload), muteHttpExceptions: true
+            payload: JSON.stringify(payload), muteHttpExceptions: true,
+            timeoutMs: timeoutMsFetch
           }
         );
         var code = res.getResponseCode();
@@ -664,6 +667,10 @@ function _iaOrdemProvedores() {
 }
 
 function _iaChamarProvedor(nome, sistema, prompt, tokens, ctx, opcoes) {
+  if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker && !IaCircuitBreaker.podeExecutar(nome)) {
+    _iaLog(ctx, "[CircuitBreaker " + nome + "] ABERTO (cooldown ativo), pulando provedor.");
+    return null;
+  }
   if (nome === "GROQ") return _iaProvGroq(sistema, prompt, tokens, ctx);
   if (nome === "OPENROUTER") return _iaProvOpenRouter(sistema, prompt, tokens, ctx);
   if (nome === "ZAI") return _iaProvZai(sistema, prompt, tokens, ctx);
@@ -686,17 +693,27 @@ function _iaExecutar(sistema, promptUsuario, maxTokens, opcoes) {
     try {
       r = chamar(tokens);
       r = _iaResolverTruncamento(chamar, tokens, r, ctx, opcoes.json);
+      if (r && r.texto && String(r.texto).trim()) {
+        if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+          IaCircuitBreaker.registrarSucesso(nome);
+        }
+        _iaLog(ctx, "OK via " + nome + " (" + r.modelo + ") em " + (new Date().getTime() - ctx.inicio) + " ms");
+        return opcoes.json ? r.texto : _iaRemoverLatex(r.texto);
+      } else {
+        if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+          IaCircuitBreaker.registrarFalha(nome, "Resposta vazia");
+        }
+      }
     } catch (e) {
+      if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+        IaCircuitBreaker.registrarFalha(nome, e.message);
+      }
       _iaLog(ctx, nome + " falhou: " + e.message);
       continue;
     }
     if (r && r.truncado && opcoes.exigirRespostaCompleta) {
       _iaLog(ctx, "Resposta incompleta; revisão não concluída");
       return null;
-    }
-    if (r && r.texto && String(r.texto).trim()) {
-      _iaLog(ctx, "OK via " + nome + " (" + r.modelo + ") em " + (new Date().getTime() - ctx.inicio) + " ms");
-      return opcoes.json ? r.texto : _iaRemoverLatex(r.texto);
     }
   }
   _iaLog(ctx, "TODOS OS PROVEDORES FALHARAM");
@@ -750,8 +767,10 @@ function _iaAcrescentarFontesBusca(texto, metadata) {
 }
 
 function _iaPublico(chamarInterno, tokensPadrao, maxTokens, opcoes) {
+  opcoes = opcoes || {};
   var tokens = Number(maxTokens) || tokensPadrao;
-  var ctx = _iaNovoCtx();
+  var limiteCtx = (opcoes && opcoes.orcamentoMs) || (opcoes && opcoes.multimodal ? 15000 : null);
+  var ctx = _iaNovoCtx(limiteCtx);
   var chamar = function (t) { return chamarInterno(t, ctx); };
   var r = _iaResolverTruncamento(chamar, tokens, chamar(tokens), ctx, false);
   if (!r || !r.texto) return null;
@@ -1008,21 +1027,73 @@ function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario
     mimeNormalizado = "image/jpeg";
   }
   var partes = [{ inlineData: { mimeType: mimeNormalizado, data: base64Data } }, { text: msg }];
-  var res = _iaPublico(function (t, ctx) {
-    var opts = Object.assign({ clinico: true }, opcoes, { partesUsuario: partes });
-    return _iaProvGemini(sistema, msg, t, ctx, opts);
-  }, 2500, 2500);
 
-  if (!res) {
-    // Fallback resiliente multimodal: se o pool clínico prioritário sofrer saturação/429,
-    // aciona imediatamente os modelos leves com cota separada e alta disponibilidade
-    var modelosLeves = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest"];
-    res = _iaPublico(function (t, ctx) {
-      var optsFallback = Object.assign({ clinico: true, modelos: modelosLeves }, opcoes, { partesUsuario: partes });
-      return _iaProvGemini(sistema, msg, t, ctx, optsFallback);
-    }, 2500, 2500);
+  // 1. Verificação do Circuit Breaker Multimodal (Fast-fail em 0ms)
+  if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker && !IaCircuitBreaker.podeExecutar("MULTIMODAL")) {
+    if (typeof Logger !== "undefined" && Logger.log) {
+      Logger.log("[IA Multimodal] Circuit Breaker ABERTO (cooldown ativo). Acionando fallback determinístico local.");
+    }
+    if (opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.gerarFallbackMultimodal === "function") {
+      return IaLocalFallbackService.gerarFallbackMultimodal(msg, sistema, mimeNormalizado, opcoes);
+    }
+    return null;
   }
-  return res;
+
+  var timeoutMultimodal = Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 15000)) || 15000;
+  var optsMultimodal = Object.assign({
+    clinico: true,
+    multimodal: true,
+    timeoutMs: timeoutMultimodal,
+    orcamentoMs: timeoutMultimodal
+  }, opcoes, { partesUsuario: partes });
+
+  var res = null;
+  var erroOcorrido = null;
+  try {
+    res = _iaPublico(function (t, ctx) {
+      return _iaProvGemini(sistema, msg, t, ctx, optsMultimodal);
+    }, 2500, 2500, optsMultimodal);
+
+    if (!res) {
+      // Fallback resiliente multimodal: se o pool clínico prioritário sofrer saturação/429,
+      // aciona imediatamente os modelos leves com cota separada e alta disponibilidade
+      var modelosLeves = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest"];
+      var optsFallback = Object.assign({}, optsMultimodal, { modelos: modelosLeves });
+      res = _iaPublico(function (t, ctx) {
+        return _iaProvGemini(sistema, msg, t, ctx, optsFallback);
+      }, 2500, 2500, optsFallback);
+    }
+
+    if (res && String(res).trim()) {
+      if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+        IaCircuitBreaker.registrarSucesso("MULTIMODAL");
+      }
+      return res;
+    } else {
+      erroOcorrido = "Provedor multimodal retornou resposta vazia";
+      if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+        IaCircuitBreaker.registrarFalha("MULTIMODAL", erroOcorrido);
+      }
+    }
+  } catch (errMulti) {
+    erroOcorrido = errMulti.message || String(errMulti);
+    if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+      IaCircuitBreaker.registrarFalha("MULTIMODAL", erroOcorrido);
+    }
+    if (typeof Logger !== "undefined" && Logger.log) {
+      Logger.log("[IA Multimodal] Exceção na inferência: " + erroOcorrido);
+    }
+  }
+
+  // Fallback determinístico local quando o provedor externo falhar
+  if (opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.gerarFallbackMultimodal === "function") {
+    if (typeof Logger !== "undefined" && Logger.log) {
+      Logger.log("[IA Multimodal] Acionando fallback determinístico offline local");
+    }
+    return IaLocalFallbackService.gerarFallbackMultimodal(msg, sistema, mimeNormalizado, opcoes);
+  }
+
+  return null;
 }
 
 /**
@@ -1070,10 +1141,20 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
 
   var promptInstrucao = "Por favor, ouça o áudio com atenção aos termos médicos e retorne o JSON estruturado.";
   var raw = chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opcoes);
-  if (!raw) return null;
+  if (!raw) {
+    if (opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
+      return IaLocalFallbackService.processarAudioClinicoOffline(base64Data, mimeType, opcoes);
+    }
+    return null;
+  }
 
   var obj = _iaExtrairJSON(raw);
   if (!obj || typeof obj !== "object") {
+    if (String(raw).indexOf("MODO OFFLINE DE CONTINGÊNCIA") !== -1 || String(raw).indexOf("CONTINGÊNCIA") !== -1) {
+      if (opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
+        return IaLocalFallbackService.processarAudioClinicoOffline(base64Data, mimeType, Object.assign({}, opcoes, { textoFallback: raw }));
+      }
+    }
     return {
       sucesso: true,
       transcricao: String(raw).trim(),
@@ -1210,10 +1291,17 @@ function analisarImagemMedicaComIA(base64Data, mimeType, contextoTexto, opcoes) 
 
   var opts = Object.assign({
     thinkingBudget: 1024,
-    clinico: true
+    clinico: true,
+    multimodal: true,
+    timeoutMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 15000)) || 15000,
+    orcamentoMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 15000)) || 15000
   }, opcoes);
 
-  return chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opts);
+  var resLaudo = chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opts);
+  if (!resLaudo && opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.analisarImagemOffline === "function") {
+    return IaLocalFallbackService.analisarImagemOffline(contextoTexto, mimeType, opcoes);
+  }
+  return resLaudo;
 }
 
 // ==============================================================================
@@ -2758,6 +2846,7 @@ if (typeof module !== "undefined" && module.exports) {
     chamarLocalLlmAPI: chamarLocalLlmAPI,
     verificarSaudeLocalLlm: verificarSaudeLocalLlm,
     cockpitLocalLlm: cockpitLocalLlm,
-    _iaNormalizarBase64: _iaNormalizarBase64
+    _iaNormalizarBase64: _iaNormalizarBase64,
+    IaCircuitBreaker: (typeof IaCircuitBreaker !== 'undefined' ? IaCircuitBreaker : null)
   };
 }

@@ -534,6 +534,212 @@ var IaLocalFallbackService = (function () {
     };
   }
 
+  /**
+   * Laudo determinístico de emergência e interpretação estruturada para imagens médicas
+   * (ECG, Radiografia, OCR de Laudos/Laboratório, Lesão Dermatológica) quando a IA em nuvem estiver indisponível.
+   */
+  function analisarImagemOffline(contextoTexto, mimeType, opcoes) {
+    opcoes = opcoes || {};
+    var ctxTxt = String(contextoTexto || '').trim();
+    var ctxLow = ctxTxt.toLowerCase();
+    var mime = String(mimeType || '').toLowerCase();
+
+    // 1. Detecção da modalidade diagnóstica
+    var ehEcg = ctxLow.indexOf('ecg') !== -1 || ctxLow.indexOf('eletrocardiograma') !== -1 ||
+                ctxLow.indexOf('ritmo') !== -1 || ctxLow.indexOf('supra') !== -1 ||
+                ctxLow.indexOf('bloqueio') !== -1 || ctxLow.indexOf('ondas t') !== -1;
+
+    var ehRx = ctxLow.indexOf('raio-x') !== -1 || ctxLow.indexOf('raiox') !== -1 ||
+               ctxLow.indexOf('radiografia') !== -1 || ctxLow.indexOf('tórax') !== -1 ||
+               ctxLow.indexOf('torax') !== -1 || ctxLow.indexOf('pulm') !== -1 ||
+               ctxLow.indexOf('derrame pleural') !== -1 || ctxLow.indexOf('pneumotorax') !== -1;
+
+    var ehDerma = ctxLow.indexOf('pele') !== -1 || ctxLow.indexOf('lesao') !== -1 ||
+                  ctxLow.indexOf('lesão') !== -1 || ctxLow.indexOf('dermat') !== -1 ||
+                  ctxLow.indexOf('exantema') !== -1 || ctxLow.indexOf('mancha') !== -1 ||
+                  ctxLow.indexOf('placa') !== -1 || ctxLow.indexOf('úlcera') !== -1;
+
+    var ehLab = ctxLow.indexOf('hemograma') !== -1 || ctxLow.indexOf('gasometria') !== -1 ||
+                ctxLow.indexOf('potassio') !== -1 || ctxLow.indexOf('potássio') !== -1 ||
+                ctxLow.indexOf('troponina') !== -1 || ctxLow.indexOf('creatinina') !== -1 ||
+                ctxLow.indexOf('laudo') !== -1 || ctxLow.indexOf('resultado') !== -1;
+
+    var cabecalhoContingencia = [
+      '⚡ *MODO OFFLINE DE CONTINGÊNCIA (LAUDO DE IMAGEM FMRP-USP)*',
+      '⚠️ *Aviso do Sistema:* Provedor de IA em nuvem indisponível (timeout seguro de 15s / contingência ativa). O atendimento prossegue com o roteiro determinístico oficial do Ultra Rotina:',
+      ''
+    ].join('\n');
+
+    var rodapeSeguranca = [
+      '',
+      '---',
+      '📌 *Conduta beira-leito baseada nas diretrizes FMRP-USP / SBC / CBR. A correlação clínica presencial é obrigatória pelo médico assistente.*'
+    ].join('\n');
+
+    var corpo = [];
+
+    if (ehEcg || (!ehRx && !ehDerma && !ehLab && (ctxLow.indexOf('dor') !== -1 || ctxLow.indexOf('peito') !== -1 || ctxLow.indexOf('coracao') !== -1 || ctxLow.indexOf('coração') !== -1))) {
+      // ECG ou Suspeita Coronariana
+      if (ctxLow.indexOf('dor') !== -1 || ctxLow.indexOf('supra') !== -1 || ctxLow.indexOf('iam') !== -1 || ctxLow.indexOf('infarto') !== -1 || ctxLow.indexOf('peito') !== -1) {
+        corpo.push('🚨 *EMERGÊNCIA - ACHADO CRÍTICO (SALA VERMELHA / SCA):* Suspeita de Síndrome Coronariana Aguda. Priorizar Porta-ECG < 10min. Duplo bloqueio (AAS 200-300mg VO mastigado + Ticagrelor 180mg ou Clopidogrel 300-600mg) e Enoxaparina 1mg/kg SC se confirmado IAM.');
+        corpo.push('');
+      }
+
+      corpo.push('*ROTEIRO SISTEMÁTICO DE LEITURA DE ECG (6 PASSOS FMRP-USP):*');
+      corpo.push('1. *Ritmo:* Sinusal (onda P positiva em D1, D2, aVF; negativa em aVR, seguida de QRS regular) vs Taqui/Bradiarritmias (FA, Flutter, BAVs).');
+      corpo.push('2. *Frequência Cardíaca (FC):* 1500 / mm entre ondas R (se regular) ou complexos em 30 quadrados grandes x 10 (se irregular). Normal: 50 a 100 bpm.');
+      corpo.push('3. *Eixo Elétrico (Plano Frontal):* Normal (-30° a +90°). Se D1 (+) e aVF (+): Eixo normal (0° a +90°). Se D1 (+) e aVF (-): Desvio para esquerda (-30° a -90°). Se D1 (-) e aVF (+): Desvio para direita.');
+      corpo.push('4. *Intervalos e Condução:*');
+      corpo.push('   • Intervalo PR: 120 a 200 ms (se > 200 ms: BAV 1º grau; se < 120 ms: Pré-excitação / WPW).');
+      corpo.push('   • Duração QRS: < 120 ms (se >= 120 ms: Bloqueio de ramo BRE ou BRD).');
+      corpo.push('   • Intervalo QTc (Bazett): Normal <= 450 ms (homem) e <= 460 ms (mulher). Risco de Torsades de Pointes se > 500 ms.');
+      corpo.push('5. *Sobrecargas de Câmaras:* Sokolow-Lyon (S em V1 + R em V5/V6 >= 35 mm) ou Cornell (R em aVL + S em V3 > 28 mm homens ou > 20 mm mulheres) para SVE.');
+      corpo.push('6. *Isquemia, Lesão e Necrose (Segmento ST / Onda T por Paredes):*');
+      corpo.push('   • Anterior/Septal (V1-V4), Lateral Alta (D1, aVL), Lateral Baixa (V5-V6), Inferior (D2, D3, aVF).');
+      corpo.push('   • ⚠️ Se supra em parede inferior (D2, D3, aVF): Rodar obrigatoriamente derivações direitas (V3R, V4R) para descartar IAM de Ventrículo Direito (Nitrato contraindicado!).');
+    } else if (ehRx) {
+      corpo.push('*ROTEIRO SISTEMÁTICO DE RADIOGRAFIA DE TÓRAX (5 PASSOS FMRP-USP):*');
+      corpo.push('1. *Identificação e Técnica:* Incidência (PA vs AP), penetração correta (visualização sutil dos corpos vertebrais atrás do coração), rotação (clavículas equidistantes das espinhosas) e inspiração (8 a 10 arcos costais posteriores visíveis).');
+      corpo.push('2. *Arcabouço Ósseo e Partes Moles:* Fraturas de arcos costais ou clavícula, lesões líticas/blásticas, enfisema subcutâneo (presença de ar dissecando partes moles).');
+      corpo.push('3. *Mediastino e Silhueta Cardíaca:* Índice Cardiotorácico (ICT <= 0,50 no PA), contornos aórtico e hilar, desvio de traqueia.');
+      corpo.push('4. *Campos Pleuropulmonares:*');
+      corpo.push('   • Consolidação alveolar (opacidade densa com broncograma aéreo);');
+      corpo.push('   • Atelectasia (opacidade com perda de volume e retração de estruturas vizinhas);');
+      corpo.push('   • Infiltrado intersticial reticular/reticulonodular bilateral.');
+      corpo.push('5. *Pleura e Cúpulas Diafragmáticas:*');
+      corpo.push('   • Seios costofrênicos livres vs velamento (derrame pleural >= 200 mL no PA);');
+      corpo.push('   • Linha pleural visceral com ausência de trama vascular periférica (pneumotórax);');
+      corpo.push('   • Ar livre subdiafragmático / pneumoperitônio (sinal de perfuração de víscera oca).');
+    } else if (ehDerma) {
+      corpo.push('*ROTEIRO SEMIOLÓGICO DERMATOLÓGICO DETERMINÍSTICO:*');
+      corpo.push('1. *Lesão Elementar Primária:* Mácula (plana < 1cm), mancha (> 1cm), pápula (elevada sólida < 1cm), placa (> 1cm), nódulo, vesícula (< 1cm com líquido), bolha (> 1cm), pústula.');
+      corpo.push('2. *Topografia e Arranjo:* Simetria, superfícies extensoras vs flexurais, zosteriforme (dermatomérica), confluente.');
+      corpo.push('3. *Regra ABCDE para Lesões Pigmentadas (Melanoma):*');
+      corpo.push('   • A (Assimetria em 2 eixos);');
+      corpo.push('   • B (Bordas irregulares ou denteadas);');
+      corpo.push('   • C (Cores múltiplas - 2 ou mais tonalidades);');
+      corpo.push('   • D (Diâmetro > 6 mm);');
+      corpo.push('   • E (Evolução / mudança rápida de tamanho, formato ou relevo).');
+      corpo.push('4. *Sinais de Alarme (Encaminhamento Urgente):* Ulceração espontânea, sangramento sem trauma, sinal do "patinho feio".');
+    } else if (ehLab) {
+      corpo.push('*TRIAGEM DETERMINÍSTICA DE VALORES CRÍTICOS LABORATORIAIS:*');
+      corpo.push('• *Potássio Sérico (K+):* Normal 3,5 a 5,0 mEq/L. Se K+ > 6,0 ou com alterações no ECG (T apiculada/tenda): Gluconato de Cálcio 10% 10-20 mL IV imediato.');
+      corpo.push('• *Sódio (Na+):* Normal 135 a 145 mEq/L. Em hiponatremia aguda sintomática (convulsão/coma): NaCl 3% 100-150 mL IV em 20 min (meta de elevação: máx 8-10 mEq/L em 24h).');
+      corpo.push('• *Lactato Arterial/Venoso:* Normal < 2,0 mmol/L. Se >= 4,0 mmol/L em contexto infeccioso: Choque Séptico / Bundle SSC (30 mL/kg cristaloide balanceado).');
+      corpo.push('• *Troponina Ultrasensível:* Acima do percentil 99: confirma injúria miocárdica; correlacionar com delta temporal de 1-3 horas.');
+    } else {
+      corpo.push('*CHECKLIST UNIVERSAL DE SEGURANÇA DIAGNÓSTICA (SALA VERMELHA / ENFERMARIA):*');
+      corpo.push('1. *Sinais Vitais e Monitorização (MOV):* Monitor cardíaco, Oxímetro de pulso, PA seriada.');
+      corpo.push('2. *Descarte de Emergências Imediatas:*');
+      corpo.push('   • SCA / IAM: ECG de 12 derivações em < 10 minutos;');
+      corpo.push('   • Sepse / Choque: PA, FC, FR, lactato, hemoculturas;');
+      corpo.push('   • AVC: Déficit focal súbito, janela de 4,5 horas, TC de crânio.');
+      corpo.push('3. *Documentação:* Registre achados objetivos, horário exato do exame e plano terapêutico imediato.');
+    }
+
+    return cabecalhoContingencia + corpo.join('\n') + rodapeSeguranca;
+  }
+
+  /**
+   * Processador determinístico offline de áudio clínico em contingência.
+   * Estrutura o relato ditado sem depender de provedores de IA externos.
+   */
+  function processarAudioClinicoOffline(base64Data, mimeType, opcoes) {
+    opcoes = opcoes || {};
+    var textoContexto = String(opcoes.caption || opcoes.contextoTexto || opcoes.contexto || opcoes.textoFallback || '').trim();
+    var tLow = textoContexto.toLowerCase();
+
+    var ehLeito = /leito\s*([0-9a-zA-Z]+)|quarto\s*([0-9a-zA-Z]+)/i.test(textoContexto);
+    var numLeito = null;
+    var matchLeito = textoContexto.match(/leito\s*([0-9a-zA-Z]+)|quarto\s*([0-9a-zA-Z]+)/i);
+    if (matchLeito) {
+      numLeito = (matchLeito[1] || matchLeito[2] || '').trim();
+    }
+
+    var proto = identificarProtocoloClinico(textoContexto);
+    var statusSugerido = 'estavel';
+    if (proto || tLow.indexOf('febre') !== -1 || tLow.indexOf('dor') !== -1 || tLow.indexOf('instavel') !== -1 || tLow.indexOf('urg') !== -1) {
+      statusSugerido = (proto && (proto === PROTOCOLOS_OFFLINE.PCR_ADULTO || proto === PROTOCOLOS_OFFLINE.CHOQUE_SEPTICO || proto === PROTOCOLOS_OFFLINE.SCA_IAM))
+        ? 'instavel'
+        : 'vigilancia';
+    }
+
+    var transcricaoTexto = textoContexto
+      ? ('[Áudio Ditado Beira-Leito]: ' + textoContexto)
+      : '[Áudio clínico captado beira-leito - Contingência Offline de 15s]';
+
+    var evolucaoTexto = '';
+    var soapTexto = '';
+    var subjetivo = '';
+    var objetivo = 'Sinais vitais e exame segmentar pendentes de validação direta beira-leito.';
+    var tipoRelato = ehLeito ? 'leito' : 'soap';
+
+    if (ehLeito) {
+      evolucaoTexto = 'Paciente no Leito ' + (numLeito || 'não especificado') + '. ' +
+        (proto ? 'Quadro sugestivo de ' + proto.titulo + '. ' : 'Evolução de rotina da enfermaria. ') +
+        'Conduta e pendências em acompanhamento pela equipe médica.';
+    } else {
+      subjetivo = textoContexto || 'Paciente relata sintomas para atendimento clínico beira-leito.';
+      if (proto) {
+        soapTexto = proto.gerarConduta(textoContexto);
+      } else {
+        soapTexto = gerarCondutaGeralEmergencia(textoContexto);
+      }
+    }
+
+    return {
+      sucesso: true,
+      transcricao: transcricaoTexto,
+      eh_clinico: true,
+      tipo_relato: tipoRelato,
+      numero_leito: numLeito,
+      status_sugerido: statusSugerido,
+      evolucao_texto: evolucaoTexto || null,
+      pendencias: [],
+      subjetivo: subjetivo || null,
+      objetivo: objetivo,
+      perguntas_anamnese: [
+        '1. Quais os sinais vitais atuais (PA, FC, FR, SatO2, Temperatura)? (Para estratificação objetiva de risco)',
+        '2. Há comorbidades prévias ou alergias a medicamentos conhecidas? (Para salvaguarda de prescrição)'
+      ],
+      exame_dirigido: ['Aferição multiparamétrica completa e exame clínico dos 5 sistemas vitais.'],
+      soapTexto: soapTexto || null,
+      contingencia_offline: true,
+      aviso_contingencia: 'Processado pelo Motor Determinístico Offline (timeout seguro de 15s / Provedor em contingência).'
+    };
+  }
+
+  /**
+   * Resposta determinística para áudio quando o transdutor/LLM estiver em timeout ou contingência.
+   */
+  function gerarFallbackAudio(promptUsuario, mimeType, opcoes) {
+    opcoes = opcoes || {};
+    var p = String(promptUsuario || '').toLowerCase();
+    if (p.indexOf('[calendar]') !== -1 || p.indexOf('marcar') !== -1 || p.indexOf('agendar') !== -1 || p.indexOf('agenda') !== -1) {
+      return [
+        '⚡ *MODO OFFLINE DE CONTINGÊNCIA (ÁUDIO / AGENDAMENTO)*',
+        '📅 [CALENDAR] Agendamento solicitado registrado em contingência offline.',
+        '⚠️ *Aviso:* O provedor de reconhecimento em nuvem atingiu o timeout de 15s. Confirme os horários diretamente no aplicativo de agenda.'
+      ].join('\n');
+    }
+    return gerarRespostaOfflineClinica(null, promptUsuario, opcoes);
+  }
+
+  /**
+   * Ponto único de fallback para chamadas multimodais (imagem ou áudio).
+   */
+  function gerarFallbackMultimodal(promptUsuario, sistema, mimeType, opcoes) {
+    opcoes = opcoes || {};
+    var mime = String(mimeType || '').toLowerCase();
+    if (mime.indexOf('image/') !== -1) {
+      return analisarImagemOffline(promptUsuario || sistema, mime, opcoes);
+    }
+    if (mime.indexOf('audio/') !== -1) {
+      return gerarFallbackAudio(promptUsuario || sistema, mime, opcoes);
+    }
+    return gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
+  }
+
   return {
     MODELOS_HOMOLOGADOS_LOCAL: MODELOS_HOMOLOGADOS_LOCAL,
     PROTOCOLOS_OFFLINE: PROTOCOLOS_OFFLINE,
@@ -541,10 +747,210 @@ var IaLocalFallbackService = (function () {
     gerarRespostaOfflineClinica: gerarRespostaOfflineClinica,
     gerarCondutaGeralEmergencia: gerarCondutaGeralEmergencia,
     estruturarJsonOffline: estruturarJsonOffline,
-    verificarStatus: verificarStatus
+    verificarStatus: verificarStatus,
+    analisarImagemOffline: analisarImagemOffline,
+    processarAudioClinicoOffline: processarAudioClinicoOffline,
+    gerarFallbackAudio: gerarFallbackAudio,
+    gerarFallbackMultimodal: gerarFallbackMultimodal
+  };
+})();
+
+/**
+ * ==============================================================================
+ * CIRCUIT BREAKER DETERMINÍSTICO PARA PROVEDORES EXTERNOS DE IA (MULTIMODAL & LLM)
+ * ==============================================================================
+ * Gerenciador de resiliência com 3 estados (CLOSED, OPEN, HALF_OPEN):
+ * - CLOSED: Operação normal. Requisições são despachadas para APIs externas.
+ * - OPEN: Bloqueio protetivo (Fast-Fail em 0ms) após 3 falhas consecutivas ou
+ *         timeouts. Evita retenção de threads e esperas beira-leito. Cooldown: 60s.
+ * - HALF_OPEN: Após expirar o cooldown, autoriza 1 requisição de teste para avaliar
+ *              recuperação do serviço externo.
+ */
+var IaCircuitBreaker = (function () {
+  'use strict';
+
+  var ESTADOS = {
+    FECHADO: 'CLOSED',
+    ABERTO: 'OPEN',
+    MEIO_ABERTO: 'HALF_OPEN'
+  };
+
+  var CONFIG_PADRAO = {
+    falhasParaAbrir: 3,         // 3 falhas consecutivas disparam abertura
+    cooldownMs: 60000,          // 60 segundos de cooldown
+    timeoutMultimodalMs: 15000  // 15 segundos para provedores multimodais
+  };
+
+  var circuitos = {};
+
+  function _obterCircuito(chave) {
+    var k = String(chave || 'MULTIMODAL').toUpperCase();
+    if (!circuitos[k]) {
+      circuitos[k] = {
+        chave: k,
+        estado: ESTADOS.FECHADO,
+        falhasConsecutivas: 0,
+        sucessosConsecutivos: 0,
+        abertoEm: 0,
+        proximoTesteEm: 0,
+        ultimoErro: null,
+        totalFalhas: 0,
+        totalSucessos: 0,
+        totalBloqueios: 0
+      };
+    }
+    return circuitos[k];
+  }
+
+  function podeExecutar(chave) {
+    var c = _obterCircuito(chave);
+    var agora = Date.now();
+
+    if (c.estado === ESTADOS.FECHADO) {
+      return true;
+    }
+
+    if (c.estado === ESTADOS.ABERTO) {
+      if (agora >= c.proximoTesteEm) {
+        c.estado = ESTADOS.MEIO_ABERTO;
+        if (typeof Logger !== 'undefined' && Logger.log) {
+          Logger.log('[CircuitBreaker ' + c.chave + '] Transição OPEN -> HALF_OPEN (permitindo teste)');
+        }
+        return true;
+      }
+      c.totalBloqueios++;
+      return false;
+    }
+
+    if (c.estado === ESTADOS.MEIO_ABERTO) {
+      return true;
+    }
+
+    return true;
+  }
+
+  function registrarSucesso(chave) {
+    var c = _obterCircuito(chave);
+    c.totalSucessos++;
+    c.falhasConsecutivas = 0;
+    c.ultimoErro = null;
+
+    if (c.estado === ESTADOS.MEIO_ABERTO || c.estado === ESTADOS.ABERTO) {
+      c.estado = ESTADOS.FECHADO;
+      c.abertoEm = 0;
+      c.proximoTesteEm = 0;
+      if (typeof Logger !== 'undefined' && Logger.log) {
+        Logger.log('[CircuitBreaker ' + c.chave + '] Provedor restabelecido com sucesso. Circuito FECHADO.');
+      }
+    }
+  }
+
+  function registrarFalha(chave, erroOuMsg) {
+    var c = _obterCircuito(chave);
+    var agora = Date.now();
+    var msgErro = erroOuMsg ? (erroOuMsg.message || String(erroOuMsg)) : 'Erro não especificado';
+
+    c.totalFalhas++;
+    c.falhasConsecutivas++;
+    c.ultimoErro = msgErro;
+
+    if (c.estado === ESTADOS.MEIO_ABERTO) {
+      c.estado = ESTADOS.ABERTO;
+      c.abertoEm = agora;
+      c.proximoTesteEm = agora + CONFIG_PADRAO.cooldownMs;
+      if (typeof Logger !== 'undefined' && Logger.log) {
+        Logger.log('[CircuitBreaker ' + c.chave + '] Falha no teste. Circuito REABERTO por ' + (CONFIG_PADRAO.cooldownMs / 1000) + 's: ' + msgErro);
+      }
+      return;
+    }
+
+    if (c.estado === ESTADOS.FECHADO && c.falhasConsecutivas >= CONFIG_PADRAO.falhasParaAbrir) {
+      c.estado = ESTADOS.ABERTO;
+      c.abertoEm = agora;
+      c.proximoTesteEm = agora + CONFIG_PADRAO.cooldownMs;
+      if (typeof Logger !== 'undefined' && Logger.log) {
+        Logger.log('[CircuitBreaker ' + c.chave + '] ABERTO após ' + c.falhasConsecutivas + ' falhas (' + (CONFIG_PADRAO.cooldownMs / 1000) + 's de cooldown): ' + msgErro);
+      }
+    }
+  }
+
+  function obterStatus(chave) {
+    var c = _obterCircuito(chave);
+    var agora = Date.now();
+    var tempoRestanteMs = 0;
+    if (c.estado === ESTADOS.ABERTO && c.proximoTesteEm > agora) {
+      tempoRestanteMs = c.proximoTesteEm - agora;
+    }
+    return {
+      chave: c.chave,
+      estado: c.estado,
+      aberto: c.estado === ESTADOS.ABERTO,
+      meioAberto: c.estado === ESTADOS.MEIO_ABERTO,
+      fechado: c.estado === ESTADOS.FECHADO,
+      falhasConsecutivas: c.falhasConsecutivas,
+      limiteFalhas: CONFIG_PADRAO.falhasParaAbrir,
+      abertoEm: c.abertoEm,
+      proximoTesteEm: c.proximoTesteEm,
+      tempoRestanteMs: tempoRestanteMs,
+      ultimoErro: c.ultimoErro,
+      totalFalhas: c.totalFalhas,
+      totalSucessos: c.totalSucessos,
+      totalBloqueios: c.totalBloqueios
+    };
+  }
+
+  function resetar(chave) {
+    if (!chave) {
+      circuitos = {};
+      return;
+    }
+    var k = String(chave).toUpperCase();
+    if (circuitos[k]) {
+      circuitos[k].estado = ESTADOS.FECHADO;
+      circuitos[k].falhasConsecutivas = 0;
+      circuitos[k].abertoEm = 0;
+      circuitos[k].proximoTesteEm = 0;
+      circuitos[k].ultimoErro = null;
+    }
+  }
+
+  function forcarEstado(chave, novoEstado, motivo) {
+    var c = _obterCircuito(chave);
+    var agora = Date.now();
+    var st = String(novoEstado).toUpperCase();
+    if (st === ESTADOS.ABERTO) {
+      c.estado = ESTADOS.ABERTO;
+      c.abertoEm = agora;
+      c.proximoTesteEm = agora + CONFIG_PADRAO.cooldownMs;
+      c.ultimoErro = motivo || 'Forçado manualmente';
+    } else if (st === ESTADOS.MEIO_ABERTO) {
+      c.estado = ESTADOS.MEIO_ABERTO;
+      c.proximoTesteEm = agora;
+    } else {
+      c.estado = ESTADOS.FECHADO;
+      c.falhasConsecutivas = 0;
+      c.abertoEm = 0;
+      c.proximoTesteEm = 0;
+      c.ultimoErro = null;
+    }
+  }
+
+  return {
+    ESTADOS: ESTADOS,
+    CONFIG_PADRAO: CONFIG_PADRAO,
+    podeExecutar: podeExecutar,
+    registrarSucesso: registrarSucesso,
+    registrarFalha: registrarFalha,
+    obterStatus: obterStatus,
+    resetar: resetar,
+    forcarEstado: forcarEstado
   };
 })();
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { IaLocalFallbackService: IaLocalFallbackService };
+  module.exports = {
+    IaLocalFallbackService: IaLocalFallbackService,
+    IaCircuitBreaker: IaCircuitBreaker
+  };
 }
+

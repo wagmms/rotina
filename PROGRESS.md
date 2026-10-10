@@ -13,17 +13,17 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Refinamento do Timeout e Circuit Breaker para Provedores de IA Multimodal**:
-    - Implementar timeout seguro de 15s com fallback determinístico local para evitar esperas prolongadas no plantão se um provedor externo oscilar.
+- [ ] **Sanitização e Validação Estrita de Parâmetros de Entrada nas Calculadoras via Schema Fastify**:
+    - Adicionar schemas de validação no Fastify para payloads de rotas sensíveis a fim de descartar tipos incorretos no handshake sem consumir processamento do runtime.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Sanitização e Validação Estrita de Parâmetros de Entrada nas Calculadoras via Schema Fastify**:
-    - Adicionar schemas de validação no Fastify para payloads de rotas sensíveis a fim de descartar tipos incorretos no handshake sem consumir processamento do runtime.
-2. [ ] **Histórico Local no Cockpit das Últimas 5 Consultas / Cálculos**:
+1. [ ] **Histórico Local no Cockpit das Últimas 5 Consultas / Cálculos**:
     - Implementar persistência volátil (sessionStorage) para recuperação ágil sem retrabalho.
+2. [ ] **Cross-Check de Compatibilidade de Diluição de Inotrópicos e Vasopressores com D1**:
+    - Integrar tabela de compatibilidade em Y com cache local para prescrições combinadas em bomba de infusão.
 
 ---
 
@@ -59,10 +59,41 @@
 - *Sugestão 28 (Cockpit / Acessibilidade)*: Adicionar chave de alternância "Modo Alto Contraste Solar / Ao Ar Livre" (Monocromático / Preto e Branco invertido com taxa de contraste > 15:1) acionável por 1 toque no cabeçalho para leitura perfeita sob sol pleno em transferências de ambulância e heliponto.
 - *Sugestão 29 (Cockpit / Acessibilidade)*: Implementar feedback auditivo discreto (Web Audio API / bips com frequências distintas para erro crítico vs sucesso) na marcação de itens da Sala Vermelha, permitindo que o médico valide os passos da conduta mesmo sem olhar fixamente para a tela durante a ressuscitação.
 - *Sugestão 30 (Cockpit / Sala Vermelha)*: Metrônomo sonoro e visual integrado de RCP com 100-120 bpm na aba de TV Instável / PCR da Sala Vermelha para manter a cadência ótima de compressões torácicas no ACLS beira-leito.
+- *Sugestão 31 (Backend / Resiliência)*: Dashboard visual ou endpoint SSE `/api/circuit-breaker/stream` com telemetria em tempo real das transições de estado (CLOSED -> OPEN -> HALF_OPEN) e taxas de timeout dos provedores de IA para observabilidade no Cockpit.
+- *Sugestão 32 (Multimodal / Áudio)*: Implementar transcrição preliminar com Web Speech API nativa do dispositivo diretamente no Cockpit PWA antes do envio do áudio, permitindo conferência e edição prévia do texto ditado pelo médico antes do handshake de rede.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0X. [x] **Refinamento do Timeout e Circuit Breaker para Provedores de IA Multimodal com Fallback Determinístico Local**:
+    - **Circuit Breaker Determinístico para Multimodal e Provedores LLM (`IaCircuitBreaker`)**:
+      * Implementado motor de resiliência com 3 estados canônicos (`CLOSED`, `OPEN`, `HALF_OPEN`).
+      * Proteção Fast-Fail (0ms) imediata: ao registrar 3 falhas consecutivas (timeouts, 5xx, saturação de cotas), transiciona para `OPEN` com cooldown de 60 segundos, desarmando chamadas de rede externas e poupando conexões e threads.
+      * Transição automática para `HALF_OPEN` após o cooldown, autorizando 1 requisição de teste para validação de reestabelecimento.
+      * Em caso de sucesso na requisição de prova, o circuito fecha (`CLOSED`) com contadores zerados; se a prova falhar, o circuito reabre (`OPEN`) imediatamente por novo período.
+      * Suporte a múltiplos canais de provedores (`MULTIMODAL`, `GEMINI`, `GROQ`, `OPENROUTER`, `ZAI`, `LOCAL`).
+    - **Timeout Seguro de 15s e Orçamento Rigoroso de Tempo**:
+      * Configurado timeout seguro de 15s (`IA_MULTIMODAL_TIMEOUT_MS`, default 15000ms) para requisições multimodais, repassado explicitamente em `UrlFetchApp.fetch` no `_iaProvGemini` (eliminando o teto default de 60s que bloqueava o bot).
+      * Delimitação orçamentária estrita em `_iaNovoCtx` e `_iaPublico` garantindo que chamadas multimodais respeitem o limite de 15s no contexto total de execução.
+    - **Motor de Fallback Determinístico Local para Imagens Médicas (`IaLocalFallbackService.analisarImagemOffline`)**:
+      * Checklist FMRP-USP em 6 passos para Eletrocardiograma (Ritmo, FC, Eixo frontal, Intervalos PR/QRS/QTc, Sobrecargas de câmaras e Paredes contíguas de isquemia com alerta mandatório de derivações direitas V3R/V4R).
+      * Alerta mandatório de emergência na PRIMEIRA LINHA (`🚨 *EMERGÊNCIA - ACHADO CRÍTICO (SALA VERMELHA / SCA):*`) em caso de suspeita coronariana ou achado crítico.
+      * Checklist FMRP-USP em 5 passos para Radiografia de Tórax (Técnica/inspiração, Arcabouço ósseo, Mediastino/ICT, Campos pleuropulmonares com consolidação vs atelectasia, Seios costofrênicos e pneumotórax).
+      * Roteiro semiológico dermatológico determinístico com lesões elementares e Regra ABCDE de lesões pigmentadas suspeitas.
+      * Triagem de limites laboratoriais críticos com indicação imediata de antídotos (Gluconato de Cálcio 10% para hipercalemia grave).
+    - **Motor de Fallback Determinístico Local para Áudio Clínico (`IaLocalFallbackService.processarAudioClinicoOffline`)**:
+      * Reconhecimento e extração determinística de evolução de leito/enfermaria (ex: "Leito 14B", "Quarto 20") com status de vigilância e prosa formal.
+      * Identificação de emergências graves com acoplamento dos protocolos oficiais de parada cardiorrespiratória (ACLS), choque séptico e IAM.
+      * Geração de contrato SOAP completo em tempo único (`eh_clinico: true`, `subjetivo`, `objetivo`, `perguntas_anamnese` com justificativas e `exame_dirigido`).
+    - **Integração Defensiva Universal**:
+      * `chamarGeminiPoolMultimodal` e `processarAudioClinicoMultimodal` protegidos com acionamento do fallback local determinístico sempre que o circuito estiver aberto ou quando a API externa falhar.
+      * `analisarImagemMedicaComIA` blindada com retorno de laudo determinístico FMRP-USP em caso de indisponibilidade externa.
+    - **Telemetria de Resiliência em `/api/status`**:
+      * Endpoint Fastify `/api/status` enriquecido com telemetria ao vivo de `circuit_breaker` (`multimodal` e `gemini`).
+    - **Suíte de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_circuit_breaker_multimodal.cjs` cobrindo transições CLOSED/OPEN/HALF_OPEN, laudos offline de imagem, áudio de leito/emergência, bypass fast-fail em 0ms e telemetria HTTP.
+      * Integrada ao script `npm test` no `package.json`, alcançando 100% de aprovação em todas as 27 suítes de teste do projeto.
 
 0W. [x] **Auditoria de Acessibilidade e Contraste de Cores nos Cards de Alertas Clínicos do Cockpit (WCAG AA)**:
     - **Conformidade Estrita de Contraste e Luminância WCAG 2.1 AA/AAA**:

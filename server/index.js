@@ -336,6 +336,10 @@ async function buildServer() {
           helmet: true,
           rate_limit: true,
           limite_max_min: limiteRateLimit
+        },
+        circuit_breaker: {
+          multimodal: runtime.ctx.IaCircuitBreaker ? runtime.ctx.IaCircuitBreaker.obterStatus('MULTIMODAL') : null,
+          gemini: runtime.ctx.IaCircuitBreaker ? runtime.ctx.IaCircuitBreaker.obterStatus('GEMINI') : null
         }
       };
     } catch (err) {
