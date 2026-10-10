@@ -13,19 +13,19 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria de Acessibilidade e Teclados Numéricos nas Calculadoras de Nefrologia e Hidratação Venosa no Cockpit PWA**:
-    - Verificar inputs de creatinina, peso, altura, sódio e potássio, garantindo `inputmode="decimal"`, validação de limites fisiológicos e atualização em 0ms.
+- [ ] **Auditoria de Teclados Táteis e Sanitização de Entradas nos Presets da Calculadora de Asma e DPOC do Cockpit**:
+    - Validar limites de FR, SpO2, PCO2, cálculo de dose de corticoide e beta-2 agonista com prevenção de NaN em 0ms.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Auditoria de Acessibilidade e Teclados Numéricos nas Calculadoras de Nefrologia e Hidratação Venosa no Cockpit PWA**:
-    - Verificar inputs de creatinina, peso, altura, sódio e potássio, garantindo `inputmode="decimal"`, validação de limites fisiológicos e atualização em 0ms.
-2. [ ] **Auditoria de Teclados Táteis e Sanitização de Entradas nos Presets da Calculadora de Asma e DPOC do Cockpit**:
+1. [ ] **Auditoria de Teclados Táteis e Sanitização de Entradas nos Presets da Calculadora de Asma e DPOC do Cockpit**:
     - Validar limites de FR, SpO2, PCO2, cálculo de dose de corticoide e beta-2 agonista com prevenção de NaN em 0ms.
-3. [ ] **Auditoria de Teclados Inline e Atalhos de 1 Toque nas Condutas de PCR (/pcr) e Arritmias Cardíacas no Telegram**:
+2. [ ] **Auditoria de Teclados Inline e Atalhos de 1 Toque nas Condutas de PCR (/pcr) e Arritmias Cardíacas no Telegram**:
     - Validar fluxos de ritmos chocáveis (FV/TVSP) vs não chocáveis (AESP/Assistolia) com cronômetro de 2 minutos e botões rápidos para adrenalina e amiodarona.
+3. [ ] **Auditoria de Acessibilidade e Teclados Numéricos na Calculadora de Drogas Vasoativas (/dva e Cockpit)**:
+    - Validar cálculos de taxa de infusão (mcg/kg/min para mL/h) com presets de ampolas e proteção contra doses supra-terapêuticas acidentais.
 
 ---
 
@@ -83,10 +83,27 @@
 - *Sugestão 50 (Backend / Fastify)*: Middleware de sanitização recursiva contra XSS / injeção de HTML nos payloads de texto livre (anamnese, evolução, SOAP e leitos) antes de persistir no banco ou propagar para o PWA.
 - *Sugestão 51 (Backend / Resiliência)*: Compressão brotli/gzip adaptativa por nível de bateria do dispositivo móvel reportado pelo header `Save-Data` / `Sec-CH-UA-Reduced-Data` para conexões de baixa largura de banda no hospital.
 - *Sugestão 52 (Backend / Telemetria)*: Painel de telemetria com contadores de payloads rejeitados agrupados por código de erro (JSON malformado, limites fisiológicos, protótipo inválido) exposto em `/api/telemetria/sanitizacao` para detecção proativa de anomalias de clientes.
+- *Sugestão 53 (Calculadoras / Nefrologia)*: Calculadora integrada de Taxa de Filtração Glomerular pela equação CKD-EPI 2021 (sem coeficiente racial) no Cockpit PWA em paralelo ao Cockcroft-Gault para comparação direta beira-leito entre estadiamento de DRC e ajuste farmacológico.
+- *Sugestão 54 (Calculadoras / Hidratação)*: Protocolo interativo de reposição de potássio com cálculo automático de limite de concentração para acesso venoso periférico (máximo 40 mEq/L) versus acesso venoso central (máximo 60 mEq/L) com alerta sonoro/visual de monitorização cardíaca contínua.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0AH. [x] **Auditoria de Acessibilidade e Teclados Numéricos nas Calculadoras de Nefrologia e Hidratação Venosa no Cockpit PWA**:
+    - **Semântica Acessível e Teclados Numéricos Táteis Mobile**:
+      * Associação semântica de labels e inputs com `for="..."` e `id="..."` em Cockcroft-Gault (`#cr-idade`, `#cr-peso`, `#cr-altura`, `#cr-val`), Ajuste de ATB (`#atb-droga`, `#atb-clcr`, `#atb-hd`), DHE (`#dhe-modulo`, `#dhe-peso`, `#dhe-na-atual`, `#dhe-k-atual`, etc.) e Pediatria Holliday-Segar (`#ped-peso`, `#ped-modulo`, etc.).
+      * Configuração estrita de `inputmode="decimal"` para inputs decimais (creatinina, peso, altura, sódio, potássio) e `inputmode="numeric"` para inteiros (idade), ativando teclados numéricos diretos em dispositivos móveis sem atrito de digitação.
+      * Regiões vivas de acessibilidade (`role="status"`, `aria-live="polite"`) nos containers de resultado para feedback claro para leitores de tela.
+      * Chips rápidos com 1 toque para valores clássicos de creatinina sérica (0.8, 1.4, 2.5, 5.0 mg/dL) com feedback tátil imediato.
+    - **Validação de Limites Fisiológicos em 0ms no Frontend e Backend**:
+      * Mapeamento instantâneo em 0ms de `FAIXAS_FISIO` e `ALIASES_FISIO` no Cockpit PWA para potássio (1.0 - 10.0 mEq/L), sódio (90 - 180 mEq/L) e altura (30 - 250 cm com conversão transparente de metros para cm), com feedback háptico e mensagens defensivas sem latência de rede.
+      * Sincronização de validação defensiva em `ValidadorFisiologico` (`src/01_utils.js`) e `server/validators.js`.
+    - **Cálculo Determinístico de Cockcroft-Gault com Peso Ideal e Peso Ajustado para Obesos**:
+      * Adicionado campo de altura no Cockpit e no backend Fastify.
+      * Em pacientes com obesidade (IMC >= 30 kg/m²), o Cockcroft-Gault agora calcula e exibe o Peso Ideal (Devine) e Peso Ajustado (`IBW + 0.4*(Peso - IBW)`), evitando superestimação de ClCr e sobredose de antimicrobianos/anticoagulantes, tanto no backend quanto no modo offline determinístico.
+    - **Suíte de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_cockpit_nefrologia_hidratacao_acessibilidade.cjs` com 6 baterias exaustivas (SHA-256, ausência de GAS, semântica/labels/inputmode, validação em 0ms com aliases, cálculo offline com peso ajustado e validadores Fastify), 100% aprovada nas 35 suítes do `npm test`.
 
 0AG. [x] **Auditoria de Resiliência e Sanitização de Erros na API Fastify (`/api/calcular` e `/api/cockpit`) com Tratamento Defensivo de Payloads Malformados**:
     - **Tratamento Defensivo de Strings Malformadas e JSON Quebrado**:

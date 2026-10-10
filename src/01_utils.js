@@ -882,8 +882,10 @@ var ValidadorFisiologico = (function() {
     temperatura: { min: 25.0, max: 44.0, unidade: "°C", nome: "Temperatura Corporal" },
     glicemia: { min: 10, max: 1500, unidade: "mg/dL", nome: "Glicemia capilar/sérica" },
     creatinina: { min: 0.1, max: 30.0, unidade: "mg/dL", nome: "Creatinina sérica" },
+    altura: { min: 30, max: 250, unidade: "cm", nome: "Altura corporal" },
     ureia: { min: 5, max: 500, unidade: "mg/dL", nome: "Ureia sérica" },
     potassio: { min: 1.0, max: 10.0, unidade: "mEq/L", nome: "Potássio sérico (K⁺)" },
+    k: { min: 1.0, max: 10.0, unidade: "mEq/L", nome: "Potássio sérico (K⁺)" },
     sodio: { min: 90, max: 180, unidade: "mEq/L", nome: "Sódio sérico (Na⁺)" },
     na: { min: 90, max: 180, unidade: "mEq/L", nome: "Sódio sérico (Na⁺)" },
     cl: { min: 60, max: 160, unidade: "mEq/L", nome: "Cloro sérico (Cl⁻)" },
@@ -896,6 +898,8 @@ var ValidadorFisiologico = (function() {
     pao2: { min: 15, max: 600, unidade: "mmHg", nome: "PaO₂ arterial" },
     fio2: { min: 0.21, max: 100, unidade: "%", nome: "FiO₂ (0.21 a 1.0 ou %)" },
     hco3: { min: 2, max: 60, unidade: "mEq/L", nome: "Bicarbonato (HCO₃⁻)" },
+    clcr: { min: 0, max: 250, unidade: "mL/min", nome: "Clearance de Creatinina" },
+    pfe: { min: 0, max: 1000, unidade: "L/min", nome: "Pico de Fluxo Expiratório (PFE)" },
     lactato: { min: 0.2, max: 30.0, unidade: "mmol/L", nome: "Lactato arterial" }
   };
 
@@ -923,6 +927,10 @@ var ValidadorFisiologico = (function() {
           valor: null,
           alerta: "Valor inválido ou não numérico para " + config.nome + "."
         };
+      }
+
+      if (p === "altura" && num > 0 && num < 3.0) {
+        num = Math.round(num * 100 * 10) / 10;
       }
 
       if (num < config.min || num > config.max) {
@@ -960,6 +968,35 @@ var ValidadorFisiologico = (function() {
         if (entrada.idade !== undefined && entrada.idade !== null && entrada.idade !== "") {
           var vIdade = this.validarParametro("idade", entrada.idade);
           if (!vIdade.valido) erros.push(vIdade.alerta);
+        }
+        var rawAlt = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
+        if (rawAlt !== undefined && rawAlt !== null && rawAlt !== "") {
+          var vAlt = this.validarParametro("altura", rawAlt);
+          if (!vAlt.valido) erros.push(vAlt.alerta);
+        }
+      }
+
+      if (tipo === "dhe" || tipo === "eletrolitos" || tipo === "hidroeletrolitico") {
+        if (entrada.idade !== undefined && entrada.idade !== null && entrada.idade !== "") {
+          var vIdadeDhe = this.validarParametro("idade", entrada.idade);
+          if (!vIdadeDhe.valido) erros.push(vIdadeDhe.alerta);
+        }
+        var kVal = entrada.kAtual !== undefined ? entrada.kAtual : (entrada.potassio !== undefined ? entrada.potassio : entrada.k);
+        if (kVal !== undefined && kVal !== null && kVal !== "") {
+          var vK = this.validarParametro("potassio", kVal);
+          if (!vK.valido) erros.push(vK.alerta);
+        }
+        var naVal = entrada.naAtual !== undefined ? entrada.naAtual : (entrada.sodio !== undefined ? entrada.sodio : entrada.na);
+        if (naVal !== undefined && naVal !== null && naVal !== "") {
+          var vNaDhe = this.validarParametro("sodio", naVal);
+          if (!vNaDhe.valido) erros.push(vNaDhe.alerta);
+        }
+      }
+
+      if (tipo === "ajuste_atb" || tipo === "atb") {
+        if (entrada.clcr !== undefined && entrada.clcr !== null && entrada.clcr !== "") {
+          var vClcr = this.validarParametro("clcr", entrada.clcr);
+          if (!vClcr.valido) erros.push(vClcr.alerta);
         }
       }
 

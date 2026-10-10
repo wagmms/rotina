@@ -240,7 +240,13 @@ function cockpitCalcular(initData, tipo, entrada) {
       return CalculadorasClinicas.sequenciaRapidaIntubacao(entrada.peso, entrada.cenario);
     case 'crcl':
       var feminino = entrada.sexo === 'f' ? true : entrada.sexo === 'm' ? false : null;
-      return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino);
+      var altCm = null;
+      var rawAlt = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
+      if (rawAlt !== undefined && rawAlt !== null && rawAlt !== '') {
+        var nAlt = parseFloat(String(rawAlt).replace(',', '.'));
+        if (!isNaN(nAlt)) altCm = (nAlt > 0 && nAlt < 3.0) ? Math.round(nAlt * 100 * 10) / 10 : nAlt;
+      }
+      return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino, altCm);
     case 'gaso':
       var naGaso = entrada.na !== undefined && entrada.na !== '' ? entrada.na : null;
       var clGaso = entrada.cl !== undefined && entrada.cl !== '' ? entrada.cl : null;

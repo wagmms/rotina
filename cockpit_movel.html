@@ -1088,32 +1088,44 @@
 
       <!-- Subcalc 3: Clearance Cr -->
       <div id="calc-crcl" class="subcalc-pane hidden glass-card rounded-xl p-4 space-y-3">
-        <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+        <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1.5" id="titulo-calc-crcl">
           <i data-lucide="gauge" class="w-3.5 h-3.5"></i> Clearance de Creatinina (Cockcroft-Gault)
         </h4>
-        <div class="grid grid-cols-3 gap-2 text-xs">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
           <div>
-            <label class="block text-slate-300 mb-1">Idade:</label>
-            <input type="number" id="cr-idade" placeholder="Informe" inputmode="numeric" autocomplete="off" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
+            <label for="cr-idade" class="block text-slate-300 mb-1 font-medium">Idade (anos):</label>
+            <input type="number" id="cr-idade" placeholder="Ex: 65" inputmode="numeric" autocomplete="off" enterkeyhint="next" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
           </div>
           <div>
-            <label class="block text-slate-300 mb-1">Peso (kg):</label>
-            <input type="number" step="0.5" id="cr-peso" placeholder="Informe" inputmode="decimal" autocomplete="off" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
+            <label for="cr-peso" class="block text-slate-300 mb-1 font-medium">Peso (kg):</label>
+            <input type="number" step="0.5" id="cr-peso" placeholder="Ex: 70" inputmode="decimal" autocomplete="off" enterkeyhint="next" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
           </div>
           <div>
-            <label class="block text-slate-300 mb-1">Creatinina (mg/dL):</label>
-            <input type="number" step="0.1" id="cr-val" placeholder="Informe" inputmode="decimal" autocomplete="off" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
+            <label for="cr-altura" class="block text-slate-300 mb-1 font-medium">Altura (cm):</label>
+            <input type="number" step="0.5" id="cr-altura" placeholder="Opcional (Ex: 170)" inputmode="decimal" autocomplete="off" enterkeyhint="next" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
           </div>
+          <div>
+            <label for="cr-val" class="block text-slate-300 mb-1 font-medium">Creatinina (mg/dL):</label>
+            <input type="number" step="0.1" id="cr-val" placeholder="Ex: 1.2" inputmode="decimal" autocomplete="off" enterkeyhint="next" oninput="calcularCrCl()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-mono">
+          </div>
+        </div>
+        <!-- Chips rápidos de Creatinina para agilidade beira-leito -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-[10.5px] font-bold no-scrollbar">
+          <span class="text-slate-300 text-[10px] uppercase font-bold">Cr:</span>
+          <button onclick="definirCreatininaAtalho(0.8)" class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-200 border border-emerald-500/40 font-bold">0.8 (Normal)</button>
+          <button onclick="definirCreatininaAtalho(1.4)" class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-200 border border-amber-500/50 font-bold">1.4 (Leve)</button>
+          <button onclick="definirCreatininaAtalho(2.5)" class="px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-100 border border-amber-400/60 font-bold">2.5 (Grave)</button>
+          <button onclick="definirCreatininaAtalho(5.0)" class="px-2 py-0.5 rounded-md bg-rose-500/25 text-rose-100 border border-rose-400/60 font-bold">5.0 (Falência)</button>
         </div>
         <div class="flex items-center gap-4 text-xs">
-          <label class="flex items-center gap-1.5 text-slate-300">
-            <input type="radio" name="cr-sexo" value="m" onchange="calcularCrCl()"> Masculino
+          <label for="cr-sexo-m" class="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+            <input type="radio" id="cr-sexo-m" name="cr-sexo" value="m" onchange="calcularCrCl()"> Masculino
           </label>
-          <label class="flex items-center gap-1.5 text-slate-300">
-            <input type="radio" name="cr-sexo" value="f" onchange="calcularCrCl()"> Feminino (x 0.85)
+          <label for="cr-sexo-f" class="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+            <input type="radio" id="cr-sexo-f" name="cr-sexo" value="f" onchange="calcularCrCl()"> Feminino (x 0.85)
           </label>
         </div>
-        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs" id="crcl-resultado">
+        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono whitespace-pre-wrap leading-relaxed text-slate-200" id="crcl-resultado" role="status" aria-live="polite">
           <!-- Resultado dinâmico -->
         </div>
         <button id="btn-copiar-crcl" onclick="copiarCrClPEP()" class="hidden w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition">
@@ -1136,7 +1148,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           <div>
-            <label class="block text-slate-300 mb-1 font-medium">Antimicrobiano:</label>
+            <label for="atb-droga" class="block text-slate-300 mb-1 font-medium">Antimicrobiano:</label>
             <select id="atb-droga" onchange="calcularAtbCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white">
               <option value="meropenem">Meropenem (Carbapenêmico)</option>
               <option value="vancomicina">Vancomicina (Glicopeptídeo)</option>
@@ -1149,10 +1161,10 @@
             </select>
           </div>
           <div>
-            <label class="block text-slate-300 mb-1 font-medium">Clearance de Creatinina (mL/min):</label>
+            <label for="atb-clcr" class="block text-slate-300 mb-1 font-medium">Clearance de Creatinina (mL/min):</label>
             <div class="flex gap-2">
               <input type="number" id="atb-clcr" placeholder="Ex: 25" inputmode="decimal" autocomplete="off" oninput="calcularAtbCockpit()" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
-              <label class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-800/80 px-2 rounded-lg border border-slate-700 cursor-pointer">
+              <label for="atb-hd" class="flex items-center gap-1 text-[11px] text-slate-300 bg-slate-800/80 px-2 rounded-lg border border-slate-700 cursor-pointer">
                 <input type="checkbox" id="atb-hd" onchange="calcularAtbCockpit()"> HD
               </label>
             </div>
@@ -1172,7 +1184,7 @@
         </div>
 
         <!-- Box de Resultado -->
-        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono whitespace-pre-wrap leading-relaxed text-slate-200" id="atb-resultado">
+        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono whitespace-pre-wrap leading-relaxed text-slate-200" id="atb-resultado" role="status" aria-live="polite">
           Selecione o antimicrobiano e informe o ClCr ou marque Hemodiálise.
         </div>
 
@@ -1194,7 +1206,7 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
           <div>
-            <label class="block text-slate-300 mb-1 font-medium">Distúrbio / Módulo:</label>
+            <label for="dhe-modulo" class="block text-slate-300 mb-1 font-medium">Distúrbio / Módulo:</label>
             <select id="dhe-modulo" onchange="alternarModuloDhe()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white">
               <option value="hiponatremia">💧 Hiponatremia (Adrogué-Madias &amp; Salina 3%)</option>
               <option value="hipercalemia">🚨 Hipercalemia (Potássio &amp; Cardioproteção)</option>
@@ -1202,7 +1214,7 @@
             </select>
           </div>
           <div>
-            <label class="block text-slate-300 mb-1 font-medium">Peso do Paciente (kg):</label>
+            <label for="dhe-peso" class="block text-slate-300 mb-1 font-medium">Peso do Paciente (kg):</label>
             <input type="number" step="0.5" id="dhe-peso" placeholder="Ex: 70" value="70" inputmode="decimal" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
           </div>
         </div>
@@ -1211,22 +1223,22 @@
         <div id="dhe-painel-hipo" class="space-y-2 text-xs">
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <div>
-              <label class="block text-slate-300 mb-1">Na+ Atual (mEq/L):</label>
+              <label for="dhe-na-atual" class="block text-slate-300 mb-1 font-medium">Na+ Atual (mEq/L):</label>
               <input type="number" id="dhe-na-atual" placeholder="Ex: 118" inputmode="decimal" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
             </div>
             <div>
-              <label class="block text-slate-300 mb-1">Solução:</label>
+              <label for="dhe-salina" class="block text-slate-300 mb-1 font-medium">Solução:</label>
               <select id="dhe-salina" onchange="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
                 <option value="3">NaCl 3% (513 mEq/L)</option>
                 <option value="0.9">NaCl 0,9% (154 mEq/L)</option>
               </select>
             </div>
             <div>
-              <label class="block text-slate-300 mb-1">Idade (anos):</label>
+              <label for="dhe-idade" class="block text-slate-300 mb-1 font-medium">Idade (anos):</label>
               <input type="number" id="dhe-idade" placeholder="Ex: 50" value="50" inputmode="numeric" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
             </div>
             <div>
-              <label class="block text-slate-300 mb-1">Sexo:</label>
+              <label for="dhe-sexo" class="block text-slate-300 mb-1 font-medium">Sexo:</label>
               <select id="dhe-sexo" onchange="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
                 <option value="m">Masculino</option>
                 <option value="f">Feminino</option>
@@ -1247,11 +1259,11 @@
         <div id="dhe-painel-k" class="hidden space-y-2 text-xs">
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block text-slate-200 mb-1 font-bold">K+ Sérico (mEq/L):</label>
+              <label for="dhe-k-atual" class="block text-slate-200 mb-1 font-bold">K+ Sérico (mEq/L):</label>
               <input type="number" step="0.1" id="dhe-k-atual" placeholder="Ex: 6.8" inputmode="decimal" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
             </div>
             <div class="flex items-center pt-5">
-              <label class="flex items-center gap-2 text-xs text-rose-100 bg-rose-950/70 px-3 py-1.5 rounded-xl border-2 border-rose-500/70 cursor-pointer font-bold shadow-sm">
+              <label for="dhe-ecg-alt" class="flex items-center gap-2 text-xs text-rose-100 bg-rose-950/70 px-3 py-1.5 rounded-xl border-2 border-rose-500/70 cursor-pointer font-bold shadow-sm">
                 <input type="checkbox" id="dhe-ecg-alt" onchange="calcularDheCockpit()">
                 <span>ECG Alterado (T tenda / QRS)</span>
               </label>
@@ -1271,15 +1283,15 @@
         <div id="dhe-painel-hiper" class="hidden space-y-2 text-xs">
           <div class="grid grid-cols-3 gap-2">
             <div>
-              <label class="block text-slate-200 mb-1 font-bold">Na+ Atual (mEq/L):</label>
+              <label for="dhe-na-hiper" class="block text-slate-200 mb-1 font-bold">Na+ Atual (mEq/L):</label>
               <input type="number" id="dhe-na-hiper" placeholder="Ex: 158" inputmode="decimal" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
             </div>
             <div>
-              <label class="block text-slate-200 mb-1 font-bold">Idade (anos):</label>
+              <label for="dhe-hiper-idade" class="block text-slate-200 mb-1 font-bold">Idade (anos):</label>
               <input type="number" id="dhe-hiper-idade" placeholder="Ex: 60" value="60" inputmode="numeric" autocomplete="off" oninput="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
             </div>
             <div>
-              <label class="block text-slate-200 mb-1 font-bold">Sexo:</label>
+              <label for="dhe-hiper-sexo" class="block text-slate-200 mb-1 font-bold">Sexo:</label>
               <select id="dhe-hiper-sexo" onchange="calcularDheCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white font-bold">
                 <option value="m">Masculino</option>
                 <option value="f">Feminino</option>
@@ -1296,7 +1308,7 @@
         </div>
 
         <!-- Box de Resultado -->
-        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono whitespace-pre-wrap leading-relaxed text-slate-200" id="dhe-resultado">
+        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono whitespace-pre-wrap leading-relaxed text-slate-200" id="dhe-resultado" role="status" aria-live="polite">
           Selecione o distúrbio e preencha os valores para calcular a conduta segura.
         </div>
 
@@ -1521,18 +1533,18 @@
       <!-- Subcalc 5: Pediatria & PALS (Holliday-Segar, PCR e Sintomáticos) -->
       <div id="calc-pediatria" class="subcalc-pane hidden glass-card rounded-xl p-4 space-y-3">
         <div class="flex items-center justify-between">
-          <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+          <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1.5" id="titulo-calc-pediatria">
             <i data-lucide="baby" class="w-3.5 h-3.5"></i> Pediatria · Holliday-Segar &amp; PALS
           </h4>
           <span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold font-mono">SBP / AHA</span>
         </div>
         <div class="grid grid-cols-2 gap-2 text-xs">
           <div>
-            <label class="block text-slate-300 mb-1">Peso da Criança (kg):</label>
+            <label for="ped-peso" class="block text-slate-300 mb-1 font-medium">Peso da Criança (kg):</label>
             <input type="number" step="0.1" id="ped-peso" placeholder="Ex: 12" inputmode="decimal" autocomplete="off" oninput="calcularPediatriaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
           </div>
           <div>
-            <label class="block text-slate-300 mb-1">Módulo / Protocolo:</label>
+            <label for="ped-modulo" class="block text-slate-300 mb-1 font-medium">Módulo / Protocolo:</label>
             <select id="ped-modulo" onchange="alternarModuloPediatria()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
               <option value="holliday">💧 Hidratação Holliday-Segar</option>
               <option value="pals">🚨 PALS Emergência / PCR</option>
@@ -1541,7 +1553,7 @@
           </div>
         </div>
         <div id="ped-campo-condicao" class="text-xs">
-          <label class="block text-slate-300 mb-1">Condição Clínica (Holliday-Segar):</label>
+          <label for="ped-condicao" class="block text-slate-300 mb-1 font-medium">Condição Clínica (Holliday-Segar):</label>
           <select id="ped-condicao" onchange="calcularPediatriaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
             <option value="manutencao_padrao">Padrão (100% Holliday-Segar)</option>
             <option value="restricao_bronquiolite">Restrição Bronquiolite / BVA (70%)</option>
@@ -1551,7 +1563,7 @@
           </select>
         </div>
         <div id="ped-campo-droga" class="hidden text-xs">
-          <label class="block text-slate-300 mb-1">Fármaco Pediátrico:</label>
+          <label for="ped-droga" class="block text-slate-300 mb-1 font-medium">Fármaco Pediátrico:</label>
           <select id="ped-droga" onchange="calcularPediatriaCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white">
             <option value="dipirona">Dipirona gotas (1 gota/kg máx 40gts)</option>
             <option value="paracetamol">Paracetamol gotas (1 gota/kg máx 35gts)</option>
@@ -1560,7 +1572,7 @@
             <option value="amoxicilina_oma">Amoxicilina OMA (90 mg/kg/dia)</option>
           </select>
         </div>
-        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1.5" id="pediatria-resultado">
+        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1.5" id="pediatria-resultado" role="status" aria-live="polite">
           <span class="text-slate-500">Informe o peso da criança para obter os cálculos instantaneamente.</span>
         </div>
         <button id="btn-copiar-pediatria" onclick="copiarPediatriaPEP()" class="hidden w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-amber-500/30 transition">
@@ -6770,7 +6782,8 @@
           subcalcId = 'calc-crcl';
           rotulo = 'Clearance Renal';
           const sexoTxt = entrada.sexo === 'f' ? 'F' : entrada.sexo === 'm' ? 'M' : '';
-          resumo = `${entrada.idade || ''}a · ${entrada.peso || ''}kg · Cr ${entrada.creatinina || ''}${sexoTxt ? ' (' + sexoTxt + ')' : ''}`;
+          const altTxt = entrada.altura ? ` · ${entrada.altura}cm` : '';
+          resumo = `${entrada.idade || ''}a · ${entrada.peso || ''}kg${altTxt} · Cr ${entrada.creatinina || ''}${sexoTxt ? ' (' + sexoTxt + ')' : ''}`;
           icone = 'droplets';
           break;
         case 'gaso':
@@ -6970,9 +6983,11 @@
       } else if (tipo === 'crcl') {
         const elIdade = document.getElementById('cr-idade');
         const elPeso = document.getElementById('cr-peso');
+        const elAltura = document.getElementById('cr-altura');
         const elVal = document.getElementById('cr-val');
         if (elIdade && entrada.idade !== undefined) elIdade.value = entrada.idade;
         if (elPeso && entrada.peso !== undefined) elPeso.value = entrada.peso;
+        if (elAltura && entrada.altura !== undefined) elAltura.value = entrada.altura;
         if (elVal && entrada.creatinina !== undefined) elVal.value = entrada.creatinina;
         if (entrada.sexo) {
           const radio = document.querySelector(`input[name="cr-sexo"][value="${entrada.sexo}"]`);
@@ -7112,20 +7127,57 @@
     const FAIXAS_FISIO = {
       peso: { min: 0.4, max: 350, rotulo: 'Peso', unidade: 'kg' },
       idade: { min: 0, max: 125, rotulo: 'Idade', unidade: 'anos' },
+      altura: { min: 30, max: 250, rotulo: 'Altura', unidade: 'cm' },
       creatinina: { min: 0.1, max: 30, rotulo: 'Creatinina', unidade: 'mg/dL' },
+      sodio: { min: 90, max: 180, rotulo: 'Sódio sérico (Na⁺)', unidade: 'mEq/L' },
+      potassio: { min: 1.0, max: 10.0, rotulo: 'Potássio sérico (K⁺)', unidade: 'mEq/L' },
+      clcr: { min: 0, max: 250, rotulo: 'Clearance de Creatinina', unidade: 'mL/min' },
+      cloro: { min: 60, max: 160, rotulo: 'Cloro sérico (Cl⁻)', unidade: 'mEq/L' },
+      albumina: { min: 0.5, max: 7.0, rotulo: 'Albumina sérica', unidade: 'g/dL' },
       ph: { min: 6.70, max: 7.80, rotulo: 'pH', unidade: '' },
       pco2: { min: 10, max: 150, rotulo: 'pCO₂', unidade: 'mmHg' },
-      hco3: { min: 2, max: 60, rotulo: 'HCO₃', unidade: 'mEq/L' }
+      hco3: { min: 2, max: 60, rotulo: 'HCO₃', unidade: 'mEq/L' },
+      pao2: { min: 15, max: 600, rotulo: 'PaO₂', unidade: 'mmHg' },
+      fio2: { min: 0.21, max: 100, rotulo: 'FiO₂', unidade: '%' },
+      pfe: { min: 0, max: 1000, rotulo: 'Pico de Fluxo Expiratório (PFE)', unidade: 'L/min' }
+    };
+
+    const ALIASES_FISIO = {
+      cr: 'creatinina',
+      creatinina: 'creatinina',
+      k: 'potassio',
+      kAtual: 'potassio',
+      potassio: 'potassio',
+      na: 'sodio',
+      naAtual: 'sodio',
+      sodio: 'sodio',
+      altura: 'altura',
+      alturaCm: 'altura',
+      cl: 'cloro',
+      cloro: 'cloro',
+      alb: 'albumina',
+      albumina: 'albumina',
+      clcr: 'clcr'
     };
 
     function validarEntradaFisiologica(tipo, entrada) {
       if (!entrada) return null;
-      for (const [campo, faixa] of Object.entries(FAIXAS_FISIO)) {
-        if (entrada[campo] !== undefined && entrada[campo] !== '' && entrada[campo] !== null) {
-          const num = parseFloat(String(entrada[campo]).replace(',', '.'));
-          if (!isNaN(num) && (num < faixa.min || num > faixa.max)) {
-            return `⚠️ ${faixa.rotulo} de ${num}${faixa.unidade ? ' ' + faixa.unidade : ''} fora da faixa biológica esperada (${faixa.min} a ${faixa.max}${faixa.unidade ? ' ' + faixa.unidade : ''}). Confirme se houve erro de digitação antes do cálculo.`;
-          }
+      for (const [campoOriginal, valor] of Object.entries(entrada)) {
+        if (valor === undefined || valor === '' || valor === null) continue;
+        const campo = ALIASES_FISIO[campoOriginal] || campoOriginal;
+        const faixa = FAIXAS_FISIO[campo];
+        if (!faixa) continue;
+
+        let num = parseFloat(String(valor).replace(',', '.'));
+        if (isNaN(num)) continue;
+
+        // Se altura informada em metros (ex: 1.70 m), normaliza para cm (170 cm)
+        if (campo === 'altura' && num > 0 && num < 3.0) {
+          num = Math.round(num * 100 * 10) / 10;
+        }
+
+        if (num < faixa.min || num > faixa.max) {
+          return `⚠️ ${faixa.rotulo} de ${num}${faixa.unidade ? ' ' + faixa.unidade : ''} fora da faixa biológica esperada (${faixa.min} a ${faixa.max}${faixa.unidade ? ' ' + faixa.unidade : ''}). Confirme se houve erro de digitação antes do cálculo.`;
         }
       }
       return null;
@@ -7389,9 +7441,35 @@
           if (ehFem) clcr *= 0.85;
           clcr = Math.round(clcr * 10) / 10;
           let estagio = clcr >= 90 ? 'G1 (Normal/Elevado)' : clcr >= 60 ? 'G2 (Levemente diminuído)' : clcr >= 45 ? 'G3a (Leve a moderado)' : clcr >= 30 ? 'G3b (Moderado a grave)' : clcr >= 15 ? 'G4 (Severamente diminuído)' : 'G5 (Falência renal / diálise)';
+
+          let blocoAntropo = '';
+          const rawAlt = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
+          if (rawAlt !== undefined && rawAlt !== null && rawAlt !== '') {
+            let altNum = parseFloat(String(rawAlt).replace(',', '.'));
+            if (!isNaN(altNum)) {
+              if (altNum > 0 && altNum < 3.0) altNum = Math.round(altNum * 100 * 10) / 10;
+              if (altNum >= 30 && altNum <= 250) {
+                const imc = Math.round((peso / Math.pow(altNum / 100, 2)) * 10) / 10;
+                const pol = altNum / 2.54;
+                const pib = Math.round(((ehFem ? 45.5 : 50) + 2.3 * (pol - 60)) * 10) / 10;
+                if (imc >= 30) {
+                  const pesoAj = Math.round((pib + 0.4 * (peso - pib)) * 10) / 10;
+                  let clcrAj = ((140 - Math.min(120, idade)) * pesoAj) / (72 * cr);
+                  if (ehFem) clcrAj *= 0.85;
+                  clcrAj = Math.round(clcrAj * 10) / 10;
+                  blocoAntropo = `\n• IMC: ${imc} kg/m² (Obesidade ≥ 30)\n` +
+                    `• Peso Ideal (Devine): ${pib} kg | Peso Ajustado: ${pesoAj} kg\n` +
+                    `• ClCr por Peso Ajustado: ${clcrAj} mL/min (recomendado para prescrição segura)`;
+                } else {
+                  blocoAntropo = `\n• IMC: ${imc} kg/m² | Peso Ideal: ${pib} kg`;
+                }
+              }
+            }
+          }
+
           return `📊 CLEARANCE DE CREATININA (Cockcroft-Gault) [OFFLINE]\n` +
             `• ClCr Estimado: ${clcr} mL/min\n` +
-            `• Estágio KDIGO: ${estagio}\n` +
+            `• Estágio KDIGO: ${estagio}` + blocoAntropo + `\n` +
             (clcr < 50 ? `⚠️ Atenção: ajuste de dose necessário para antimicrobianos e NOACs/DOACs.\n` : '') +
             (clcr < 30 ? `🚨 ClCr < 30 mL/min: Contraindicação relativa para Enoxaparina dose plena e Metformina.` : '') + alertaObesidade;
         } else if (tipo === 'gaso') {
@@ -8207,8 +8285,20 @@
     function calcularSRI() {
       solicitarCalculo('sri', {peso:valorCalc('sri-peso'), cenario:valorCalc('sri-cenario')}, 'sri-resultado');
     }
+    function definirCreatininaAtalho(val) {
+      hapticFeedback('light');
+      const el = document.getElementById('cr-val');
+      if (el) el.value = val;
+      calcularCrCl();
+    }
     function calcularCrCl() {
-      solicitarCalculo('crcl', {idade:valorCalc('cr-idade'), peso:valorCalc('cr-peso'), creatinina:valorCalc('cr-val'), sexo:document.querySelector('input[name="cr-sexo"]:checked')?.value ?? ''}, 'crcl-resultado');
+      solicitarCalculo('crcl', {
+        idade: valorCalc('cr-idade'),
+        peso: valorCalc('cr-peso'),
+        altura: valorCalc('cr-altura'),
+        creatinina: valorCalc('cr-val'),
+        sexo: document.querySelector('input[name="cr-sexo"]:checked')?.value ?? ''
+      }, 'crcl-resultado');
     }
     function definirPresetAsma(fala, spo2, fr, fc, ausculta, peso, idade, refratario = false, normocapnia = false, gestante = false) {
       hapticFeedback('light');

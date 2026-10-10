@@ -12,6 +12,7 @@ const LIMITES_FISIOLOGICOS = {
   peso: { min: 0.4, max: 350.0, nome: 'Peso corporal', unidade: 'kg' },
   idade: { min: 0, max: 125, nome: 'Idade', unidade: 'anos' },
   creatinina: { min: 0.1, max: 30.0, nome: 'Creatinina sérica', unidade: 'mg/dL' },
+  altura: { min: 30, max: 250, nome: 'Altura corporal', unidade: 'cm' },
   ph: { min: 6.70, max: 7.80, nome: 'pH sanguíneo', unidade: '' },
   pco2: { min: 10, max: 150, nome: 'pCO₂ arterial', unidade: 'mmHg' },
   hco3: { min: 2, max: 60, nome: 'Bicarbonato (HCO₃⁻)', unidade: 'mEq/L' },
@@ -65,9 +66,13 @@ function validarParametroFisiologico(chave, valor, obrigatorio = false) {
     return { valido: true, valor: null };
   }
 
-  const num = normalizarNumero(valor);
+  let num = normalizarNumero(valor);
   if (num === null) {
     return { valido: false, erro: `Valor inválido ou não numérico para ${config.nome}.` };
+  }
+
+  if (chave === 'altura' && num > 0 && num < 3.0) {
+    num = Math.round(num * 100 * 10) / 10;
   }
 
   if (num < config.min || num > config.max) {
@@ -189,6 +194,14 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
       const vIdade = validarParametroFisiologico('idade', entrada.idade, true);
       if (!vIdade.valido) return vIdade;
 
+      const rawAlt = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
+      let altura = null;
+      if (rawAlt !== undefined && rawAlt !== null && rawAlt !== '') {
+        const vAlt = validarParametroFisiologico('altura', rawAlt);
+        if (!vAlt.valido) return vAlt;
+        altura = vAlt.valor;
+      }
+
       let sexo = null;
       if (entrada.sexo !== undefined && entrada.sexo !== null) {
         if (typeof entrada.sexo !== 'string') {
@@ -204,6 +217,9 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
       entradaSanitizada.peso = vPeso.valor;
       entradaSanitizada.idade = vIdade.valor;
       entradaSanitizada.sexo = sexo;
+      if (altura !== null) {
+        entradaSanitizada.altura = altura;
+      }
       break;
     }
 
