@@ -27,6 +27,7 @@ const LIMITES_FISIOLOGICOS = {
 
 const DROGAS_DVA_VALIDAS = new Set(['nora', 'dobuta', 'vaso', 'adrena', 'adrenalina', 'nipride', 'tridil']);
 const CENARIOS_SRI_VALIDOS = new Set(['padrao', 'choque', 'asma', 'neuro', 'tce', 'hic']);
+const MODOS_DHE_VALIDOS = new Set(['hiponatremia', 'hipernatremia', 'hipercalemia', 'hipocalemia']);
 const TIPOS_CALCULADORA_VALIDOS = new Set([
   'dva', 'compatibilidade_y', 'dva_y', 'sri', 'crcl', 'gaso', 'ajuste_atb', 'atb',
   'pediatria', 'pals', 'holliday', 'dhe', 'eletrolitos', 'hidroeletrolitico',
@@ -112,6 +113,9 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
   // Validação específica por tipo
   switch (tipo) {
     case 'dva': {
+      if (entrada.droga !== undefined && typeof entrada.droga !== 'string') {
+        return { valido: false, erro: 'Droga vasoativa deve ser informada como string.' };
+      }
       const droga = typeof entrada.droga === 'string' ? entrada.droga.trim().toLowerCase() : '';
       if (!DROGAS_DVA_VALIDAS.has(droga)) {
         return {
@@ -121,6 +125,13 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
       }
       const vPeso = validarParametroFisiologico('peso', entrada.peso, true);
       if (!vPeso.valido) return vPeso;
+
+      if (entrada.solucao !== undefined && typeof entrada.solucao !== 'string') {
+        return { valido: false, erro: 'Parâmetro "solucao" de DVA deve ser uma string válida.' };
+      }
+      if (entrada.droga2 !== undefined && typeof entrada.droga2 !== 'string') {
+        return { valido: false, erro: 'Parâmetro "droga2" deve ser uma string válida.' };
+      }
 
       entradaSanitizada.droga = droga;
       entradaSanitizada.peso = vPeso.valor;
@@ -133,6 +144,12 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
 
     case 'compatibilidade_y':
     case 'dva_y': {
+      if ((entrada.droga1 !== undefined && typeof entrada.droga1 !== 'string') ||
+          (entrada.droga2 !== undefined && typeof entrada.droga2 !== 'string') ||
+          (entrada.drogaA !== undefined && typeof entrada.drogaA !== 'string') ||
+          (entrada.drogaB !== undefined && typeof entrada.drogaB !== 'string')) {
+        return { valido: false, erro: 'Para checar compatibilidade em Y, informe duas drogas válidas (droga1 e droga2) como texto.' };
+      }
       const d1 = typeof (entrada.droga1 || entrada.drogaA || entrada.droga) === 'string' ? String(entrada.droga1 || entrada.drogaA || entrada.droga).trim().slice(0, 60) : '';
       const d2 = typeof (entrada.droga2 || entrada.drogaB) === 'string' ? String(entrada.droga2 || entrada.drogaB).trim().slice(0, 60) : '';
       if (!d1 || !d2) {
@@ -144,6 +161,9 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
     }
 
     case 'sri': {
+      if (entrada.cenario !== undefined && typeof entrada.cenario !== 'string') {
+        return { valido: false, erro: 'Cenário de SRI deve ser informado como string.' };
+      }
       const cenario = typeof entrada.cenario === 'string' ? entrada.cenario.trim().toLowerCase() : '';
       if (!CENARIOS_SRI_VALIDOS.has(cenario)) {
         return {
@@ -171,7 +191,10 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
 
       let sexo = null;
       if (entrada.sexo !== undefined && entrada.sexo !== null) {
-        const s = String(entrada.sexo).trim().toLowerCase();
+        if (typeof entrada.sexo !== 'string') {
+          return { valido: false, erro: 'Sexo deve ser "m" (masculino) ou "f" (feminino).' };
+        }
+        const s = entrada.sexo.trim().toLowerCase();
         if (['f', 'feminino'].includes(s)) sexo = 'f';
         else if (['m', 'masculino'].includes(s)) sexo = 'm';
         else return { valido: false, erro: 'Sexo deve ser "m" (masculino) ou "f" (feminino).' };
@@ -229,6 +252,12 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
 
     case 'ajuste_atb':
     case 'atb': {
+      if (entrada.droga !== undefined && typeof entrada.droga !== 'string') {
+        return { valido: false, erro: 'Fármaco/Droga para ajuste renal deve ser uma string válida.' };
+      }
+      if (entrada.farmaco !== undefined && typeof entrada.farmaco !== 'string') {
+        return { valido: false, erro: 'Fármaco/Droga para ajuste renal deve ser uma string válida.' };
+      }
       entradaSanitizada.droga = typeof entrada.droga === 'string'
         ? entrada.droga.trim().slice(0, 80)
         : (typeof entrada.farmaco === 'string' ? entrada.farmaco.trim().slice(0, 80) : 'meropenem');
@@ -238,6 +267,9 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
         const vClcr = validarParametroFisiologico('clcr', clcrVal);
         if (!vClcr.valido) return vClcr;
         entradaSanitizada.clcr = vClcr.valor;
+      }
+      if (entrada.hemodialise !== undefined && typeof entrada.hemodialise === 'object' && entrada.hemodialise !== null) {
+        return { valido: false, erro: 'Parâmetro "hemodialise" não pode ser um objeto aninhado.' };
       }
       entradaSanitizada.hemodialise = Boolean(entrada.hemodialise || entrada.hd);
       break;
@@ -261,19 +293,34 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
         }
         entradaSanitizada.idade = vIdade.valor;
       }
-      entradaSanitizada.modo = typeof entrada.modo === 'string' ? entrada.modo.trim().toLowerCase() : (tipo === 'pals' ? 'pals' : 'holliday');
-      if (entrada.condicaoClinica) {
-        entradaSanitizada.condicaoClinica = String(entrada.condicaoClinica).trim().slice(0, 50);
+      if (entrada.modo !== undefined && typeof entrada.modo !== 'string') {
+        return { valido: false, erro: 'Modo pediátrico deve ser uma string válida.' };
       }
-      if (entrada.temperaturaC) {
+      entradaSanitizada.modo = typeof entrada.modo === 'string' ? entrada.modo.trim().toLowerCase() : (tipo === 'pals' ? 'pals' : 'holliday');
+      if (entrada.condicaoClinica !== undefined) {
+        if (typeof entrada.condicaoClinica !== 'string') {
+          return { valido: false, erro: 'Condição clínica pediátrica deve ser uma string válida.' };
+        }
+        entradaSanitizada.condicaoClinica = entrada.condicaoClinica.trim().slice(0, 50);
+      }
+      if (entrada.temperaturaC !== undefined && entrada.temperaturaC !== null && entrada.temperaturaC !== '') {
         const temp = normalizarNumero(entrada.temperaturaC);
         if (temp === null || temp < 30 || temp > 43) {
           return { valido: false, erro: 'Temperatura corporal deve estar entre 30 e 43°C.' };
         }
         entradaSanitizada.temperaturaC = temp;
       }
+      if (entrada.farmaco !== undefined && typeof entrada.farmaco !== 'string') {
+        return { valido: false, erro: 'Fármaco pediátrico deve ser uma string válida.' };
+      }
+      if (entrada.droga !== undefined && typeof entrada.droga !== 'string') {
+        return { valido: false, erro: 'Fármaco pediátrico deve ser uma string válida.' };
+      }
       if (entrada.farmaco || entrada.droga) {
         entradaSanitizada.farmaco = String(entrada.farmaco || entrada.droga).trim().slice(0, 80);
+      }
+      if (entrada.doseAlta !== undefined && typeof entrada.doseAlta === 'object' && entrada.doseAlta !== null) {
+        return { valido: false, erro: 'Parâmetro "doseAlta" não pode ser um objeto aninhado.' };
       }
       if (entrada.doseAlta !== undefined) {
         entradaSanitizada.doseAlta = Boolean(entrada.doseAlta);
@@ -284,7 +331,18 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
     case 'dhe':
     case 'eletrolitos':
     case 'hidroeletrolitico': {
-      const modo = typeof entrada.modo === 'string' ? entrada.modo.trim().toLowerCase() : 'hiponatremia';
+      if (entrada.modo !== undefined && typeof entrada.modo !== 'string') {
+        return { valido: false, erro: 'Modo de distúrbio hidroeletrolítico deve ser uma string válida.' };
+      }
+      const modo = typeof entrada.modo === 'string'
+        ? entrada.modo.trim().toLowerCase()
+        : (entrada.kAtual !== undefined || entrada.potassio !== undefined ? 'hipercalemia' : 'hiponatremia');
+      if (!MODOS_DHE_VALIDOS.has(modo)) {
+        return {
+          valido: false,
+          erro: `Modo de distúrbio hidroeletrolítico "${entrada.modo}" inválido. Opções: ${Array.from(MODOS_DHE_VALIDOS).join(', ')}.`
+        };
+      }
       entradaSanitizada.modo = modo;
 
       if (entrada.peso !== undefined && entrada.peso !== null && entrada.peso !== '') {
@@ -298,24 +356,26 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
         entradaSanitizada.idade = vIdade.valor;
       }
       if (entrada.sexo !== undefined && entrada.sexo !== null) {
-        entradaSanitizada.sexo = String(entrada.sexo).trim().toLowerCase().slice(0, 10);
+        if (typeof entrada.sexo !== 'string') {
+          return { valido: false, erro: 'Sexo deve ser "m" (masculino) ou "f" (feminino).' };
+        }
+        entradaSanitizada.sexo = entrada.sexo.trim().toLowerCase().slice(0, 10);
       }
 
-      const kVal = entrada.kAtual !== undefined ? entrada.kAtual : entrada.potassio;
-      if (kVal !== undefined && kVal !== null && kVal !== '') {
-        const vK = validarParametroFisiologico('k', kVal);
+      if (modo === 'hipercalemia' || modo === 'hipocalemia') {
+        const kVal = entrada.kAtual !== undefined ? entrada.kAtual : entrada.potassio;
+        const vK = validarParametroFisiologico('k', kVal, true);
         if (!vK.valido) return vK;
         entradaSanitizada.kAtual = vK.valor;
-      }
-
-      const naVal = entrada.naAtual !== undefined ? entrada.naAtual : entrada.sodio;
-      if (naVal !== undefined && naVal !== null && naVal !== '') {
-        const vNa = validarParametroFisiologico('na', naVal);
+      } else {
+        // hiponatremia ou hipernatremia
+        const naVal = entrada.naAtual !== undefined ? entrada.naAtual : entrada.sodio;
+        const vNa = validarParametroFisiologico('na', naVal, true);
         if (!vNa.valido) return vNa;
         entradaSanitizada.naAtual = vNa.valor;
       }
 
-      if (entrada.salina !== undefined && entrada.salina !== null) {
+      if (entrada.salina !== undefined && entrada.salina !== null && entrada.salina !== '') {
         const salNum = normalizarNumero(entrada.salina);
         if (salNum === null || salNum <= 0 || salNum > 20) {
           return { valido: false, erro: 'Concentração de salina inválida (deve ser entre 0.1% e 20%).' };
@@ -323,6 +383,9 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
         entradaSanitizada.salina = salNum;
       }
 
+      if (entrada.ecgAlterado !== undefined && typeof entrada.ecgAlterado === 'object' && entrada.ecgAlterado !== null) {
+        return { valido: false, erro: 'Parâmetro "ecgAlterado" não pode ser um objeto aninhado.' };
+      }
       entradaSanitizada.ecgAlterado = Boolean(entrada.ecgAlterado || entrada.ecg);
       break;
     }
@@ -344,6 +407,9 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
         if (!vIdade.valido) return vIdade;
         entradaSanitizada.idade = vIdade.valor;
       }
+      if (entrada.avcPrevio !== undefined && typeof entrada.avcPrevio === 'object' && entrada.avcPrevio !== null) {
+        return { valido: false, erro: 'Parâmetro "avcPrevio" não pode ser um objeto aninhado.' };
+      }
       entradaSanitizada.avcPrevio = Boolean(entrada.avcPrevio);
       break;
     }
@@ -361,6 +427,12 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
         const vPfe = validarParametroFisiologico('pfe', entrada.pfe);
         if (!vPfe.valido) return vPfe;
         entradaSanitizada.pfe = vPfe.valor;
+      }
+      if (entrada.refratario !== undefined && typeof entrada.refratario === 'object' && entrada.refratario !== null) {
+        return { valido: false, erro: 'Parâmetro "refratario" não pode ser um objeto aninhado.' };
+      }
+      if (entrada.normocapnia !== undefined && typeof entrada.normocapnia === 'object' && entrada.normocapnia !== null) {
+        return { valido: false, erro: 'Parâmetro "normocapnia" não pode ser um objeto aninhado.' };
       }
       entradaSanitizada.refratario = Boolean(entrada.refratario || entrada.refratario_1h);
       entradaSanitizada.normocapnia = Boolean(entrada.normocapnia || entrada.gasometriaNormocapnia);
@@ -423,6 +495,7 @@ module.exports = {
   LIMITES_FISIOLOGICOS,
   DROGAS_DVA_VALIDAS,
   CENARIOS_SRI_VALIDOS,
+  MODOS_DHE_VALIDOS,
   TIPOS_CALCULADORA_VALIDOS,
   normalizarNumero,
   validarParametroFisiologico,

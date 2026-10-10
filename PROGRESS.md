@@ -13,19 +13,19 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria de Resiliência e Sanitização de Erros na API Fastify (`/api/calcular` e `/api/cockpit`) com Tratamento Defensivo de Payloads Malformados**:
-    - Garantir que requisições com strings malformadas, arrays vazios, objetos aninhados inesperados ou valores fisiologicamente anômalos recebam HTTP 400 com mensagem estruturada em português sem vazamento de stacktrace.
+- [ ] **Auditoria de Acessibilidade e Teclados Numéricos nas Calculadoras de Nefrologia e Hidratação Venosa no Cockpit PWA**:
+    - Verificar inputs de creatinina, peso, altura, sódio e potássio, garantindo `inputmode="decimal"`, validação de limites fisiológicos e atualização em 0ms.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Auditoria de Resiliência e Sanitização de Erros na API Fastify (`/api/calcular` e `/api/cockpit`) com Tratamento Defensivo de Payloads Malformados**:
-    - Garantir que requisições com strings malformadas, arrays vazios, objetos aninhados inesperados ou valores fisiologicamente anômalos recebam HTTP 400 com mensagem estruturada em português sem vazamento de stacktrace.
-2. [ ] **Auditoria de Acessibilidade e Teclados Numéricos nas Calculadoras de Nefrologia e Hidratação Venosa no Cockpit PWA**:
+1. [ ] **Auditoria de Acessibilidade e Teclados Numéricos nas Calculadoras de Nefrologia e Hidratação Venosa no Cockpit PWA**:
     - Verificar inputs de creatinina, peso, altura, sódio e potássio, garantindo `inputmode="decimal"`, validação de limites fisiológicos e atualização em 0ms.
-3. [ ] **Auditoria de Teclados Táteis e Sanitização de Entradas nos Presets da Calculadora de Asma e DPOC do Cockpit**:
+2. [ ] **Auditoria de Teclados Táteis e Sanitização de Entradas nos Presets da Calculadora de Asma e DPOC do Cockpit**:
     - Validar limites de FR, SpO2, PCO2, cálculo de dose de corticoide e beta-2 agonista com prevenção de NaN em 0ms.
+3. [ ] **Auditoria de Teclados Inline e Atalhos de 1 Toque nas Condutas de PCR (/pcr) e Arritmias Cardíacas no Telegram**:
+    - Validar fluxos de ritmos chocáveis (FV/TVSP) vs não chocáveis (AESP/Assistolia) com cronômetro de 2 minutos e botões rápidos para adrenalina e amiodarona.
 
 ---
 
@@ -80,10 +80,31 @@
 - *Sugestão 47 (Gasometria / Telegram)*: Suporte a envio de foto de fita impressa de aparelho de gasometria com extração OCR multimodal direta (pH, pCO2, HCO3, eletrólitos e lactato) com preenchimento automático em 0ms.
 - *Sugestão 48 (Gasometria / Sala Vermelha)*: Sugestão de alvos de ventilação mecânica invasiva (VT 6 mL/kg de peso predito, FR ajustada para PaCO2 alvo e PEEP para PaO2 alvo) acoplada diretamente ao resultado do passo 5 (oxigenação e relação P/F) na SDRA.
 - *Sugestão 49 (Telegram / UX)*: Botão de alternância rápida entre Gasometria Arterial vs Venosa Central (ScvO2 e delta-pCO2 / pCO2 venosa - arterial com corte de 6 mmHg para ressuscitação hemodinâmica).
+- *Sugestão 50 (Backend / Fastify)*: Middleware de sanitização recursiva contra XSS / injeção de HTML nos payloads de texto livre (anamnese, evolução, SOAP e leitos) antes de persistir no banco ou propagar para o PWA.
+- *Sugestão 51 (Backend / Resiliência)*: Compressão brotli/gzip adaptativa por nível de bateria do dispositivo móvel reportado pelo header `Save-Data` / `Sec-CH-UA-Reduced-Data` para conexões de baixa largura de banda no hospital.
+- *Sugestão 52 (Backend / Telemetria)*: Painel de telemetria com contadores de payloads rejeitados agrupados por código de erro (JSON malformado, limites fisiológicos, protótipo inválido) exposto em `/api/telemetria/sanitizacao` para detecção proativa de anomalias de clientes.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0AG. [x] **Auditoria de Resiliência e Sanitização de Erros na API Fastify (`/api/calcular` e `/api/cockpit`) com Tratamento Defensivo de Payloads Malformados**:
+    - **Tratamento Defensivo de Strings Malformadas e JSON Quebrado**:
+      * Implementado manipulador no `fastify.setErrorHandler` que captura `SyntaxError` e falhas de parser de JSON, emitindo resposta estruturada HTTP 400 em português sem vazamento de stacktrace ou detalhes de engine interna.
+      * Suporte defensivo a payloads enviados com `Content-Type: text/plain` (utilizados pelo Cockpit PWA para cross-origin seguro) com parser resiliente e feedback claro caso o conteúdo não seja parseável.
+    - **Proteção Contra Arrays Vazios e Objetos Aninhados Inesperados**:
+      * Fast-fail em 0ms para arrays vazios, primitivos na raiz ou objetos espúrios em `/api/calcular` e `/api/cockpit`.
+      * Validação estrita de tipo em campos primitivos (strings de fármacos, cenários, modos) prevenindo que objetos aninhados inesperados (ex: `{ droga: { nome: 'nora' } }`) corrompam o fluxo ou gerem exceções não tratadas.
+      * Bloqueio explícito de métodos proibidos (`__proto__`, `constructor`, `prototype`) no endpoint `/api/cockpit`.
+    - **Limites Fisiológicos Estritos e Obrigatoriedade por Modo**:
+      * Mapeamento de `MODOS_DHE_VALIDOS` (`hiponatremia`, `hipernatremia`, `hipercalemia`, `hipocalemia`) com validação defensiva de modos desconhecidos.
+      * Exigência obrigatória de potássio sérico (`kAtual` / `potassio`) para hipercalemia e de sódio sérico (`naAtual` / `sodio`) para distúrbios do sódio com mensagens clínicas em português.
+      * Validação estrita de limites biológicos para peso (0.4-350 kg), creatinina (0.1-30 mg/dL), pH (6.70-7.80), pCO2 (10-150 mmHg), sódio (90-180 mEq/L), potássio (1.0-10.0 mEq/L) e PFE (0-1000 L/min).
+    - **Tradução Amigável de Erros de Schema Ajv para Português**:
+      * Criada função `traduzirErroSchemaAjv` que converte mensagens padrão do Ajv (`required`, `type`, `minimum`, `maximum`, `enum`, `additionalProperties`) em mensagens claras e contextuais em português do Brasil.
+      * Garantido que nenhuma resposta de erro (4xx ou 5xx) vaze o campo `stack`.
+    - **Suíte de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_fastify_resiliencia_payloads.cjs` com 7 baterias exaustivas (JSON malformado, arrays na raiz, objetos aninhados, limites fisiológicos, parâmetros obrigatórios por modo, tradução de schemas e latência < 50ms para payloads válidos), integrada ao `package.json` e 100% aprovada nas 34 suítes do `npm test`.
 
 0AF. [x] **Auditoria de Teclados Inline, Parser Defensivo e Validação de Entrada no Comando `/gaso` e Distúrbios Ácido-Base do Bot do Telegram**:
     - **Parser Robusto Multi-Formato Beira-Leito (`extrairParametrosGasometria`)**:

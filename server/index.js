@@ -35,6 +35,38 @@ function etagCorresponde(headerIfNoneMatch, etag) {
   const target = etag.replace(/^W\//, '');
   return tags.includes(target) || tags.includes('*');
 }
+
+function traduzirErroSchemaAjv(error) {
+  if (!error || !error.validation || !Array.isArray(error.validation) || error.validation.length === 0) {
+    return error?.message || 'Parâmetro de entrada inválido no schema Fastify.';
+  }
+  const v = error.validation[0];
+  const campo = v.instancePath ? v.instancePath.replace(/^\//, '') : (v.params?.missingProperty || '');
+
+  switch (v.keyword) {
+    case 'required':
+      return `Campo obrigatório ausente: "${v.params?.missingProperty || campo}".`;
+    case 'type':
+      if (campo) {
+        return `O campo "${campo}" deve ser do tipo ${v.params?.type || 'esperado'}.`;
+      }
+      return `O corpo da requisição deve ser do tipo ${v.params?.type || 'objeto JSON'}.`;
+    case 'enum':
+      return `Valor inválido para o campo "${campo}". Valores permitidos: ${Array.isArray(v.params?.allowedValues) ? v.params.allowedValues.join(', ') : ''}.`;
+    case 'minLength':
+      return `O campo "${campo}" não pode estar vazio.`;
+    case 'maxLength':
+      return `O campo "${campo}" excede o tamanho máximo permitido de ${v.params?.limit} caracteres.`;
+    case 'minimum':
+      return `O valor do campo "${campo}" deve ser no mínimo ${v.params?.limit}.`;
+    case 'maximum':
+      return `O valor do campo "${campo}" deve ser no máximo ${v.params?.limit}.`;
+    case 'additionalProperties':
+      return `Propriedade não permitida encontrada no payload: "${v.params?.additionalProperty}".`;
+    default:
+      return error.message || 'Parâmetro de entrada inválido no schema Fastify.';
+  }
+}
 const { createD1Inbox } = require('./d1-inbox');
 const {
   roundMs,
@@ -259,7 +291,7 @@ async function buildServer() {
     })
   });
 
-  // 1.4. Tratamento Global de Erros Fastify (Resiliência e Rastreabilidade)
+  // 1.4. Tratamento Global de Erros Fastify (Resiliência, Sanitização e Rastreabilidade)
   fastify.setErrorHandler((error, request, reply) => {
     const reqId = request.id || 'unknown';
     const statusCode = error.statusCode || 500;
@@ -275,11 +307,26 @@ async function buildServer() {
       return;
     }
 
-    if (error.validation) {
-      fastify.log.warn(`[Fastify Schema Validation][${reqId}] 400 - ${error.message} - Rota: ${request.raw.url}`);
+    // Tratamento defensivo de JSON malformado e SyntaxError do parser
+    const isSyntaxOrJsonError = error instanceof SyntaxError ||
+      (statusCode === 400 && typeof error.message === 'string' && /JSON|Unexpected token|Unexpected end|parsing/i.test(error.message));
+    if (isSyntaxOrJsonError) {
+      fastify.log.warn(`[Fastify Malformed JSON][${reqId}] 400 - ${error.message} - Rota: ${request.raw.url}`);
       reply.status(400).send({
         ok: false,
-        erro: error.message || 'Parâmetro de entrada inválido no schema Fastify.',
+        erro: 'Corpo da requisição contém JSON malformado ou sintaxe inválida.',
+        detalhes: 'Não foi possível interpretar o corpo da requisição como JSON válido.',
+        requestId: reqId
+      });
+      return;
+    }
+
+    if (error.validation) {
+      const mensagemPtBr = traduzirErroSchemaAjv(error);
+      fastify.log.warn(`[Fastify Schema Validation][${reqId}] 400 - ${mensagemPtBr} - Rota: ${request.raw.url}`);
+      reply.status(400).send({
+        ok: false,
+        erro: mensagemPtBr,
         detalhes: error.validation,
         requestId: reqId
       });
@@ -291,7 +338,7 @@ async function buildServer() {
     reply.status(statusCode).send({
       ok: false,
       erro: statusCode >= 500 ? 'Falha interna no servidor.' : (error.message || 'Erro na requisição.'),
-      detalhes: error.message,
+      detalhes: statusCode >= 500 ? 'Ocorreu um erro interno ao processar a requisição clínica.' : error.message,
       requestId: reqId
     });
   });
@@ -456,7 +503,32 @@ async function buildServer() {
       body: calcularBodySchema
     },
     preValidation: (request, reply, done) => {
-      const { tipo, parametros } = request.body || {};
+      let body = request.body;
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body);
+          request.body = body;
+        } catch (_) {
+          reply.status(400).send({
+            ok: false,
+            erro: 'Corpo da requisição contém JSON malformado ou string não parseável.',
+            detalhes: 'Não foi possível converter a entrada para um objeto JSON válido.',
+            requestId: request.id
+          });
+          return;
+        }
+      }
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        reply.status(400).send({
+          ok: false,
+          erro: 'Payload da requisição deve ser um objeto JSON não nulo.',
+          detalhes: 'O corpo recebido não é um objeto JSON válido.',
+          requestId: request.id
+        });
+        return;
+      }
+
+      const { tipo, parametros } = body;
       const validacao = validarParametrosCalculadora(tipo, parametros);
       if (!validacao.valido) {
         reply.status(400).send({
@@ -494,10 +566,12 @@ async function buildServer() {
       };
     } catch (err) {
       const elapsed = (performance.now() - t0).toFixed(2);
-      reply.status(err.message.includes('autorizado') || err.message.includes('sessão') ? 401 : 400);
+      const isAuthError = err.message.includes('autorizado') || err.message.includes('sessão');
+      reply.status(isAuthError ? 401 : 400);
       return {
         ok: false,
         erro: err.message,
+        detalhes: err.message,
         benchmark_ms: Number(elapsed),
         requestId: request.id
       };
@@ -517,12 +591,24 @@ async function buildServer() {
     preValidation: (request, reply, done) => {
       let body = request.body;
       if (typeof body === 'string') {
-        try { body = JSON.parse(body); request.body = body; } catch (e) { body = {}; request.body = body; }
+        try {
+          body = JSON.parse(body);
+          request.body = body;
+        } catch (_) {
+          reply.status(400).send({
+            ok: false,
+            erro: 'Corpo da requisição contém JSON malformado ou string não parseável.',
+            detalhes: 'Não foi possível converter a entrada para um objeto JSON válido.',
+            requestId: request.id
+          });
+          return;
+        }
       }
       if (!body || typeof body !== 'object' || Array.isArray(body)) {
         reply.status(400).send({
           ok: false,
-          erro: 'Payload do Cockpit deve ser um objeto JSON.',
+          erro: 'Payload do Cockpit deve ser um objeto JSON não nulo.',
+          detalhes: 'O corpo recebido não é um objeto JSON válido.',
           requestId: request.id
         });
         return;
@@ -532,6 +618,16 @@ async function buildServer() {
         reply.status(400).send({
           ok: false,
           erro: 'Parâmetro "metodo" deve ser uma string válida.',
+          detalhes: 'O método RPC solicitado não foi informado ou é inválido.',
+          requestId: request.id
+        });
+        return;
+      }
+      if (metodo === '__proto__' || metodo === 'constructor' || metodo === 'prototype') {
+        reply.status(400).send({
+          ok: false,
+          erro: 'Método solicitado inválido ou proibido.',
+          detalhes: 'Tentativa de acesso a propriedade reservada.',
           requestId: request.id
         });
         return;
@@ -544,6 +640,7 @@ async function buildServer() {
           reply.status(400).send({
             ok: false,
             erro: 'Argumentos de cálculo devem conter [tipo, parametros].',
+            detalhes: 'Esperado array com tipo de calculadora e objeto de parâmetros.',
             requestId: request.id
           });
           return;
@@ -656,11 +753,14 @@ async function buildServer() {
       });
 
       reply.header('Cache-Control', 'no-store');
-      reply.status(err.message.includes('autorizado') || err.message.includes('sessão') ? 401 : 400);
+      const isAuthError = err.message.includes('autorizado') || err.message.includes('sessão');
+      reply.status(isAuthError ? 401 : 400);
       return {
         ok: false,
         erro: err.message || 'Falha ao processar solicitação clínica.',
-        benchmark_ms: Number(elapsed)
+        detalhes: err.message,
+        benchmark_ms: Number(elapsed),
+        requestId: request.id
       };
     }
   });
