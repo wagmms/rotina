@@ -13,19 +13,19 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria e Otimização da Busca e Filtragem de Fármacos na REMUME e Guia Farmacêutico no Cockpit PWA**:
-    - Testar normalização sem acentos, busca por princípios ativos e nomes comerciais, tempo de resposta em 0ms no cache em memória, feedback visual de 'Nenhum medicamento encontrado' e botão de cópia de posologia com 1 toque.
+- [ ] **Auditoria de Teclados Inline e Validação de Entrada no Comando `/gaso` e Distúrbios Ácido-Base do Bot do Telegram**:
+    - Testar sistematicamente o parser de parâmetros do `/gaso` (pH, pCO2, HCO3, Na, Cl, Albumina), tratamento de inputs parciais ou malformados, verificação de compensação respiratória e metabólica esperada (fórmula de Winter, delta-delta e anion gap corrigido).
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Auditoria e Otimização da Busca e Filtragem de Fármacos na REMUME e Guia Farmacêutico no Cockpit PWA**:
-    - Testar normalização sem acentos, busca por princípios ativos e nomes comerciais, tempo de resposta em 0ms no cache em memória, feedback visual de 'Nenhum medicamento encontrado' e botão de cópia de posologia com 1 toque.
-2. [ ] **Auditoria de Teclados Inline e Validação de Entrada no Comando `/gaso` e Distúrbios Ácido-Base do Bot do Telegram**:
+1. [ ] **Auditoria de Teclados Inline e Validação de Entrada no Comando `/gaso` e Distúrbios Ácido-Base do Bot do Telegram**:
     - Testar sistematicamente o parser de parâmetros do `/gaso` (pH, pCO2, HCO3, Na, Cl, Albumina), tratamento de inputs parciais ou malformados, verificação de compensação respiratória e metabólica esperada (fórmula de Winter, delta-delta e anion gap corrigido).
-3. [ ] **Auditoria de Resiliência e Sanitização de Erros na API Fastify (`/api/calcular` e `/api/cockpit`) com Tratamento Defensivo de Payloads Malformados**:
+2. [ ] **Auditoria de Resiliência e Sanitização de Erros na API Fastify (`/api/calcular` e `/api/cockpit`) com Tratamento Defensivo de Payloads Malformados**:
     - Garantir que requisições com strings malformadas, arrays vazios, objetos aninhados inesperados ou valores fisiologicamente anômalos recebam HTTP 400 com mensagem estruturada em português sem vazamento de stacktrace.
+3. [ ] **Auditoria de Acessibilidade e Teclados Numéricos nas Calculadoras de Nefrologia e Hidratação Venosa no Cockpit PWA**:
+    - Verificar inputs de creatinina, peso, altura, sódio e potássio, garantindo `inputmode="decimal"`, validação de limites fisiológicos e atualização em 0ms.
 
 ---
 
@@ -75,10 +75,34 @@
 - *Sugestão 42 (Cockpit / SBAR)*: Adicionar botão de exportação da Passagem SBAR em formato PDF para arquivamento ou anexação ao prontuário hospitalar.
 - *Sugestão 43 (Cockpit / Acessibilidade)*: Navegação completa por atalhos de teclado físico (para uso em tablets e notebooks com teclado externo na enfermaria: ex: `Ctrl+K` para busca de fármacos, `Alt+S` para abrir SBAR, `Alt+P` para prescrição).
 - *Sugestão 44 (Telegram / Prescrição)*: Comando `/sbar` direto no bot do Telegram aceitando parâmetros rápidos (`/sbar leito 12 ...`) para formatação automática e envio de passagem de plantão segura via chat.
+- *Sugestão 45 (Cockpit / Farmacologia)*: Cache offline persistente de monografias e fichas completas do Guia HSL no IndexedDB com indicador visual de sincronização diferencial.
+- *Sugestão 46 (Telegram / Farmacologia)*: Comando `/posologia <fármaco>` com resposta instantânea em card compacto contendo dose usual, dose máxima diária, diluição padrão e alerta de ajuste renal beira-leito.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0AE. [x] **Auditoria e Otimização da Busca e Filtragem de Fármacos na REMUME e Guia Farmacêutico no Cockpit PWA**:
+    - **Normalização Sem Acentos e Busca Multi-Token em RAM (0ms)**:
+      * Implementada `normalizarBuscaFarmaco(texto)` com decomposição Unicode NFD e regex para busca insensível a acentos, pontuações e maiúsculas/minúsculas.
+      * Suporte a múltiplos termos em qualquer ordem (ex: "amoxi 500" e "500 amoxi" localizam Amoxicilina 500mg instantaneamente).
+    - **Mapeamento de Marcas Comerciais Consagradas para DCI e Badges de Referência**:
+      * Criado dicionário `REMUME_MARCAS_COMERCIAIS` mapeando nomes de referência populares (Novalgina, Plasil, Tylenol, Lasix, Buscopan, Glifage, Rocefin, Bactrim, Clavulin, Aerolin, etc.) diretamente para as apresentações padronizadas da REMUME.
+      * Adicionados badges visuais indicando a marca comercial correspondente nos cards de resultado (`REMUME_MARCAS_EXIBICAO`).
+    - **Posologias de Referência Beira-Leito e Botão de Cópia de 1 Toque**:
+      * Integrada base determinística `POSOLOGIAS_REFERENCIA_REMUME` e helper `obterPosologiaReferencia(linha)` com orientações de doses usuais, tetos de segurança e ajustes.
+      * Adicionado botão tátil `📋 Copiar Posologia` (`copiarPosologiaTexto`) que transfere a posologia pronta diretamente para a área de transferência com notificação visual por toast.
+    - **Modal Acessível de Ficha Farmacológica HSL (`#modal-ficha-farmaco`)**:
+      * Inserido modal semântico (`role="dialog"`, `aria-modal="true"`, `aria-labelledby="titulo-ficha-farmaco"`) para exibição de doses, vias, diluições D1, alertas renais/hepáticos e tetos máximos com botão de cópia formatada para o prontuário (`#btn-copiar-ficha-farmaco-pep`).
+      * Integrada a função `abrirModalFichaFarmaco(dci)` conectada ao backend Fastify via RPC e fallback offline determinístico.
+    - **Feedback Visual Acessível para Buscas Sem Resultado**:
+      * Implementado card estilizado com ícone informativo, `role="status"`, mensagem explicativa e botão de restauração instantânea ("Ver Todos os Medicamentos").
+    - **Backend Fastify e RPC Oficial**:
+      * Implementado endpoint RPC `cockpitConsultarFarmaco` em `src/13_cockpit_integracao.js` integrando dados do Guia Farmacêutico HSL e PedBook.
+      * Mapeado em `server/runtime.js` e registrado em `server/index.js` no conjunto `COCKPIT_READ_METHODS` com suporte a stale-while-revalidate.
+    - **Conformidade Arquitetural e Testes Automatizados**:
+      * Paridade de 100% de hash SHA-256 entre `cockpit_movel.html` e `gh_cockpit_deploy/index.html`.
+      * Criada a suíte `tests/test_cockpit_busca_remume_guia.cjs` com 10 testes dedicados validando ausência de GAS, semântica do modal, busca, marcas, posologias, latência e handshake RPC.
 
 0AD. [x] **Auditoria de Acessibilidade, Teclados Táteis Mobile nos Modais Clínicos e Modal SBAR com Gerador Offline e Cópia PEP no Cockpit PWA**:
     - **Modal Estruturado de Passagem de Plantão SBAR (`#modal-sbar-passagem`)**:

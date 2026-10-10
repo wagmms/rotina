@@ -508,7 +508,7 @@ async function buildServer() {
   // Métodos de leitura idempotentes — respostas podem ser cacheadas com stale-while-revalidate
   const COCKPIT_READ_METHODS = new Set([
     'cockpitConsultar', 'cockpitPerfil', 'cockpitRemume', 'cockpitAulasProgresso',
-    'cockpitBuscarCid', 'cockpitEstratificarRisco'
+    'cockpitBuscarCid', 'cockpitEstratificarRisco', 'cockpitConsultarFarmaco'
   ]);
   fastify.post('/api/cockpit', {
     schema: {

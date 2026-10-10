@@ -778,6 +778,7 @@ module.exports = {
         _rpcMap.cockpitPassagem = ctx.cockpitPassagem;
         _rpcMap.cockpitCalcular = ctx.cockpitCalcular;
         _rpcMap.cockpitRemume = ctx.cockpitRemume;
+        _rpcMap.cockpitConsultarFarmaco = ctx.cockpitConsultarFarmaco;
         _rpcMap.cockpitConversar = ctx.cockpitConversar;
         _rpcMap.cockpitPerfil = ctx.cockpitPerfil;
         _rpcMap.cockpitRegistrarPeso = ctx.cockpitRegistrarPeso;

@@ -538,6 +538,53 @@ function cockpitRemume(initData) {
   return {fonte:'REMUME configurada no bot', itens:String(base || '').split(/\r?\n/).filter(function(l){return l.trim().length > 0;})};
 }
 
+function cockpitConsultarFarmaco(initData, params) {
+  cockpitAutorizar_(initData);
+  var termo = (params && typeof params === 'object') ? (params.termo || params.medicamento || '') : String(params || '');
+  termo = String(termo || '').trim();
+  if (!termo) {
+    throw new Error('Informe o nome ou princípio ativo do medicamento para consulta.');
+  }
+
+  // 1. Consulta no Guia Farmacêutico Oficial HSL
+  var med = (typeof buscarMedicamentoNoHSL === 'function') ? buscarMedicamentoNoHSL(termo) : null;
+  // 2. Consulta no PedBook caso aplicável
+  var medPed = (typeof buscarMedicamentoPediatricoPedB === 'function') ? buscarMedicamentoPediatricoPedB(termo) : null;
+
+  if (!med && !medPed) {
+    return {
+      sucesso: false,
+      encontrado: false,
+      termo: termo,
+      mensagem: 'Medicamento não localizado no catálogo do Guia Farmacêutico HSL ou PedBook.'
+    };
+  }
+
+  var formatado = med && (typeof formatarFichaPosologicaHSL === 'function')
+    ? formatarFichaPosologicaHSL(med)
+    : (medPed ? '👶 Ficha Pediátrica: ' + medPed.nome : 'Ficha não formatada.');
+
+  return {
+    sucesso: true,
+    encontrado: true,
+    termo: termo,
+    farmaco: med ? (med.farnaco || med.nome_normalizado) : (medPed ? medPed.nome : termo),
+    na_remume: med ? !!med.na_remume : false,
+    apresentacoes_remume: med ? (med.apresentacoes_remume || []) : [],
+    apresentacoes_hsl: med ? (med.apresentacoes_hsl || []) : [],
+    dose_adulto: med ? (med.dose_adulto || '') : '',
+    dose_pediatria: (med && med.dose_pediatria) ? med.dose_pediatria : (medPed ? (medPed.posologia_resumida || medPed.resumo_clinico || '') : ''),
+    dose_maxima: med ? (med.dose_maxima || '') : '',
+    ajuste_dose: med ? (med.ajuste_dose || '') : '',
+    administracao: med ? (med.administracao || '') : '',
+    preparo_diluicao: med ? (med.preparo_diluicao || '') : '',
+    cuidados_especificos: med ? (med.cuidados_especificos || '') : '',
+    contraindicacoes: med ? (med.contraindicacoes || '') : '',
+    gestacao_lactacao: med ? (med.gestacao_lactacao || '') : '',
+    texto_formatado: formatado
+  };
+}
+
 function cockpitConversar(initData, params) {
   var chat = cockpitAutorizar_(initData);
   if (!params || typeof params !== 'object') throw new Error('Parâmetros de mensagem inválidos.');

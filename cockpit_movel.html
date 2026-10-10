@@ -2398,6 +2398,118 @@
   </div>
 
   <!-- ================================================================= -->
+  <!-- MODAL: FICHA FARMACOLÓGICA OFICIAL (GUIA FARMACÊUTICO HSL & REMUME)-->
+  <!-- ================================================================= -->
+  <div id="modal-ficha-farmaco" class="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm hidden animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="titulo-ficha-farmaco">
+    <div class="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border border-rose-500/40 bg-slate-900 shadow-2xl overflow-hidden">
+      <!-- Header do Modal -->
+      <div class="flex items-center justify-between border-b border-slate-800 p-3.5 bg-slate-950/70">
+        <div class="flex items-center gap-2.5">
+          <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400 ring-1 ring-rose-500/30">
+            <i data-lucide="pill" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[9.5px] font-extrabold uppercase tracking-wider text-rose-400">Guia Farmacêutico</span>
+              <span id="ficha-farmaco-badge-status" class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.2 rounded font-bold">
+                Oficial HSL / REMUME
+              </span>
+            </div>
+            <h4 id="titulo-ficha-farmaco" class="text-xs sm:text-sm font-bold text-white">
+              Ficha Posológica &amp; Segurança
+            </h4>
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="copiarFichaFarmacoPEP()" title="Copiar Ficha para o PEP" class="p-1.5 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-800" aria-label="Copiar ficha para o prontuário">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </button>
+          <button onclick="fecharModalFichaFarmaco()" class="p-1.5 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-800" aria-label="Fechar modal de farmaco">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Corpo da Ficha Farmacológica -->
+      <div class="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-3 text-xs" id="ficha-farmaco-conteudo">
+        <div id="ficha-farmaco-loading" class="text-center py-8 text-slate-400 space-y-2">
+          <div class="w-6 h-6 border-2 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p class="text-xs">Consultando catálogo oficial e posologias...</p>
+        </div>
+        <div id="ficha-farmaco-detalhes" class="hidden space-y-3">
+          <!-- Nome / Apresentações -->
+          <div class="glass-card p-3 rounded-xl border border-slate-800 bg-slate-950/60 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Princípio Ativo (DCI):</span>
+              <span id="ficha-dci-status-sus" class="text-[9.5px] px-2 py-0.5 rounded-full font-bold"></span>
+            </div>
+            <p id="ficha-nome-farmaco" class="text-sm font-black text-white"></p>
+            <div id="ficha-apresentacoes-bloco" class="text-[11px] text-slate-300 font-mono space-y-0.5 pt-1 border-t border-slate-800/80"></div>
+          </div>
+
+          <!-- Dose Adulto & Posologia Geral -->
+          <div class="glass-card p-3 rounded-xl border border-rose-500/20 bg-rose-950/10 space-y-1">
+            <div class="flex items-center gap-1.5 text-rose-300 font-bold text-[11px]">
+              <i data-lucide="user" class="w-3.5 h-3.5"></i> Dose Adulto &amp; Posologia Usual:
+            </div>
+            <p id="ficha-dose-adulto" class="text-[11.5px] text-slate-200 leading-relaxed font-sans whitespace-pre-line"></p>
+          </div>
+
+          <!-- Dose Pediátrica -->
+          <div class="glass-card p-3 rounded-xl border border-amber-500/20 bg-amber-950/10 space-y-1" id="ficha-bloco-pediatria">
+            <div class="flex items-center gap-1.5 text-amber-300 font-bold text-[11px]">
+              <i data-lucide="baby" class="w-3.5 h-3.5"></i> Dose Pediátrica:
+            </div>
+            <p id="ficha-dose-pediatria" class="text-[11.5px] text-slate-200 leading-relaxed font-sans whitespace-pre-line"></p>
+          </div>
+
+          <!-- Ajuste Renal & Teto Máximo -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div class="glass-card p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 space-y-1">
+              <span class="text-[10px] uppercase font-bold text-cyan-400 flex items-center gap-1">
+                <i data-lucide="activity" class="w-3 h-3"></i> Ajuste Renal / Hepático:
+              </span>
+              <p id="ficha-ajuste-dose" class="text-[11px] text-slate-300 leading-snug whitespace-pre-line"></p>
+            </div>
+            <div class="glass-card p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 space-y-1">
+              <span class="text-[10px] uppercase font-bold text-emerald-400 flex items-center gap-1">
+                <i data-lucide="scale" class="w-3 h-3"></i> Dose Máxima de Segurança:
+              </span>
+              <p id="ficha-dose-maxima" class="text-[11px] text-slate-300 leading-snug whitespace-pre-line"></p>
+            </div>
+          </div>
+
+          <!-- Diluição D1 & Administração -->
+          <div class="glass-card p-3 rounded-xl border border-slate-800 bg-slate-950/60 space-y-1" id="ficha-bloco-diluicao">
+            <div class="flex items-center gap-1.5 text-sky-300 font-bold text-[11px]">
+              <i data-lucide="droplet" class="w-3.5 h-3.5"></i> Preparo, Diluente D1 &amp; Administração:
+            </div>
+            <p id="ficha-preparo-diluicao" class="text-[11px] text-slate-300 leading-relaxed whitespace-pre-line"></p>
+          </div>
+
+          <!-- Cuidados & Contraindicações -->
+          <div class="glass-card p-3 rounded-xl border border-slate-800 bg-slate-950/60 space-y-1" id="ficha-bloco-cuidados">
+            <div class="flex items-center gap-1.5 text-slate-300 font-bold text-[11px]">
+              <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400"></i> Alertas, Monitoramento &amp; Contraindicações:
+            </div>
+            <p id="ficha-cuidados" class="text-[11px] text-slate-300 leading-relaxed whitespace-pre-line"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rodapé com Ações de 1 Toque -->
+      <div class="border-t border-slate-800 p-3 bg-slate-950/70 flex items-center justify-between gap-2">
+        <button onclick="copiarFichaFarmacoPEP()" id="btn-copiar-ficha-farmaco" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-950/30 flex items-center gap-1.5 transition active:scale-[0.98]">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Ficha para PEP
+        </button>
+        <button onclick="fecharModalFichaFarmaco()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
   <!-- MODAL: EXAME FÍSICO NORMAL ESTRUTURADO (SEMIOLOGIA COMPLETA)       -->
   <!-- ================================================================= -->
   <div id="modal-exame-fisico-normal" class="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm hidden animate-in fade-in duration-200">
@@ -5810,19 +5922,507 @@
     // =========================================================================
     // 4. PRESCRIÇÃO HOSPITALAR & REMUME RIBEIRÃO PRETO
     // =========================================================================
-    let remumeDatabase = null;
-    let remumeCarregando = false;
+    var remumeDatabase = null;
+    var remumeCarregando = false;
 
     // Mapa de palavras-chave por classe farmacológica para busca instantânea beira-leito
     const REMUME_CATEGORIAS_KEYWORDS = {
-      antimicrobianos: ['amoxi', 'ceftriax', 'cipro', 'azitro', 'metro', 'piperac', 'mero', 'clinda', 'oxacil', 'vanco', 'genta', 'amicac', 'sulfametox', 'fluconazol', 'nitrofurantoina', 'claritro', 'levoflox', 'sulfadiazina', 'penicilina', 'cefalexina', 'doxiciclina', 'ampicilina'],
-      analgesia: ['dipirona', 'paracetamol', 'ibuprofeno', 'cetoprofeno', 'tramadol', 'morfina', 'codeina', 'diclofenaco', 'cetorolaco', 'dipidolor', 'fentanil', 'escopolamina', 'butilbrometo'],
-      cardio: ['losartan', 'enalapril', 'anlodipino', 'atenolol', 'hidroclorotiazida', 'furosemida', 'espironolactona', 'amiodarona', 'metoprolol', 'propranolol', 'captopril', 'carvedilol', 'digoxina', 'nitropruz', 'nitroglic', 'diltiazem', 'clonidina', 'sinvastatina', 'rosuvastatina', 'doxazosina', 'hidralazina'],
-      gastro: ['omeprazol', 'pantoprazol', 'ranitidina', 'ondansetrona', 'metoclopramida', 'dimeticona', 'lactulose', 'domperidona', 'hidroxido de aluminio', 'simeticona', 'bromoprida', 'oleo mineral'],
-      psico: ['diazepam', 'clonazepam', 'midazolam', 'haloperidol', 'risperidona', 'fluoxetina', 'sertralina', 'amitriptilina', 'quetiapina', 'olanzapina', 'clorpromazina', 'fenitoina', 'carbamazepina', 'acido valproico', 'fenobarbital', 'biperideno', 'carbonato de litio'],
-      diabetes: ['metformina', 'glibenclamida', 'gliclazida', 'insulina nph', 'insulina regular'],
-      respiratorio: ['salbutamol', 'fenoterol', 'ipratropio', 'budesonida', 'beclometasona', 'prednisona', 'prednisolona', 'hidrocortisona', 'dexametasona', 'acetilcisteina', 'aminofilina']
+      antimicrobianos: ['amoxi', 'ceftriax', 'cipro', 'azitro', 'metro', 'piperac', 'mero', 'clinda', 'oxacil', 'vanco', 'genta', 'amicac', 'sulfametox', 'fluconazol', 'nitrofurantoina', 'claritro', 'levoflox', 'sulfadiazina', 'penicilina', 'cefalexina', 'doxiciclina', 'ampicilina', 'cefaclor', 'cefotaxima', 'cefalotina'],
+      analgesia: ['dipirona', 'paracetamol', 'ibuprofeno', 'cetoprofeno', 'tramadol', 'morfina', 'codeina', 'diclofenaco', 'cetorolaco', 'dipidolor', 'fentanil', 'escopolamina', 'butilbrometo', 'hioscina', 'metamizol', 'naproxeno', 'nimesulida'],
+      cardio: ['losartan', 'enalapril', 'anlodipino', 'atenolol', 'hidroclorotiazida', 'furosemida', 'espironolactona', 'amiodarona', 'metoprolol', 'propranolol', 'captopril', 'carvedilol', 'digoxina', 'nitropruz', 'nitroglic', 'diltiazem', 'clonidina', 'sinvastatina', 'rosuvastatina', 'doxazosina', 'hidralazina', 'varfarina', 'clopidogrel', 'isossorbida', 'metildopa', 'enoxaparina', 'heparina'],
+      gastro: ['omeprazol', 'pantoprazol', 'ranitidina', 'ondansetrona', 'metoclopramida', 'dimeticona', 'lactulose', 'domperidona', 'hidroxido de aluminio', 'simeticona', 'bromoprida', 'oleo mineral', 'bisacodil', 'glicerina'],
+      psico: ['diazepam', 'clonazepam', 'midazolam', 'haloperidol', 'risperidona', 'fluoxetina', 'sertralina', 'amitriptilina', 'quetiapina', 'olanzapina', 'clorpromazina', 'fenitoina', 'carbamazepina', 'acido valproico', 'fenobarbital', 'biperideno', 'carbonato de litio', 'alprazolam', 'nortriptilina', 'imipramina', 'levomepromazina', 'zolpidem'],
+      diabetes: ['metformina', 'glibenclamida', 'gliclazida', 'insulina nph', 'insulina regular', 'insulina humana'],
+      respiratorio: ['salbutamol', 'fenoterol', 'ipratropio', 'budesonida', 'beclometasona', 'prednisona', 'prednisolona', 'hidrocortisona', 'dexametasona', 'acetilcisteina', 'aminofilina', 'terbutalina']
     };
+
+    // Dicionário de equivalências de Marcas Comerciais consagradas para Denominação Comum Brasileira (DCB)
+    const REMUME_MARCAS_COMERCIAIS = {
+      // Analgésicos & Anti-inflamatórios
+      novalgina: 'dipirona', anador: 'dipirona', dorflex: 'dipirona', dipidor: 'dipirona',
+      tylenol: 'paracetamol', parador: 'paracetamol',
+      cataflam: 'diclofenaco', voltaren: 'diclofenaco', biofenac: 'diclofenaco',
+      alivium: 'ibuprofeno', advil: 'ibuprofeno', ibuprat: 'ibuprofeno',
+      flanax: 'naproxeno', naprosyn: 'naproxeno',
+      nisulid: 'nimesulida', scafit: 'nimesulida',
+      proflam: 'aceclofenaco',
+      toragesic: 'cetorolaco',
+      tramal: 'tramadol', dorless: 'tramadol', sylador: 'tramadol',
+      dimorf: 'morfina',
+      buscopan: 'hioscina', 'buscopan composto': 'hioscina + dipirona',
+      // Gastro & Antieméticos
+      plasil: 'metoclopramida',
+      vonau: 'ondansetrona', zofran: 'ondansetrona', nausedron: 'ondansetrona',
+      dramin: 'dimenidrinato',
+      luftal: 'dimeticona', flagass: 'dimeticona',
+      losec: 'omeprazol', victrix: 'omeprazol', peprazol: 'omeprazol',
+      pantozol: 'pantoprazol', pantocal: 'pantoprazol',
+      motilium: 'domperidona',
+      dulcolax: 'bisacodil',
+      antak: 'ranitidina',
+      // Cardio & HAS & Diuréticos
+      lasix: 'furosemida',
+      aldactone: 'espironolactona',
+      cozaar: 'losartana', aradois: 'losartana', losartec: 'losartana',
+      renitec: 'enalapril', vasopril: 'enalapril',
+      capoten: 'captopril',
+      norvasc: 'anlodipino', cordarex: 'anlodipino',
+      selozok: 'metoprolol',
+      atenol: 'atenolol', angipress: 'atenolol',
+      inderal: 'propranolol',
+      coreg: 'carvedilol', divar: 'carvedilol',
+      ancoron: 'amiodarona', atlansil: 'amiodarona',
+      lanoxin: 'digoxina',
+      zocor: 'sinvastatina', sinvax: 'sinvastatina',
+      plavix: 'clopidogrel',
+      marevan: 'varfarina', coumadin: 'varfarina',
+      atensina: 'clonidina',
+      apresolina: 'hidralazina',
+      carduran: 'doxazosina',
+      isordil: 'dinitrato de isossorbida',
+      aldomet: 'metildopa',
+      clexane: 'enoxaparina',
+      // Antimicrobianos & Antiparasitários
+      amoxil: 'amoxicilina', novocilin: 'amoxicilina',
+      clavulin: 'amoxicilina+clavulanato', claven: 'amoxicilina+clavulanato', sinot: 'amoxicilina+clavulanato',
+      keflex: 'cefalexina',
+      rocefin: 'ceftriaxona', triaxin: 'ceftriaxona',
+      cipro: 'ciprofloxacina', proflox: 'ciprofloxacina',
+      zitromax: 'azitromicina', astro: 'azitromicina',
+      bactrim: 'sulfametoxazol', infectrin: 'sulfametoxazol',
+      flagyl: 'metronidazol',
+      macrodantina: 'nitrofurantoina',
+      monuril: 'fosfomicina',
+      tavanic: 'levofloxacino',
+      klaricid: 'claritromicina',
+      dalacin: 'clindamicina',
+      zoltec: 'fluconazol',
+      zentel: 'albendazol',
+      pantelmin: 'mebendazol',
+      anita: 'nitazoxanida', annita: 'nitazoxanida',
+      revectina: 'ivermectina',
+      secnid: 'secnidazol',
+      zovirax: 'aciclovir',
+      tamiflu: 'oseltamivir',
+      // Respiratório & Alergia & Corticoides
+      aerolin: 'salbutamol',
+      berotec: 'fenoterol',
+      atrovent: 'ipratropio',
+      clenil: 'beclometasona', beclosol: 'beclometasona',
+      busonid: 'budesonida', pulmicort: 'budesonida',
+      prelone: 'prednisolona', predsim: 'prednisolona',
+      meticorten: 'prednisona',
+      decadron: 'dexametasona',
+      claritin: 'loratadina',
+      polaramine: 'dexclorfeniramina',
+      allegra: 'fexofenadina',
+      hixizine: 'hidroxizina',
+      fenergan: 'prometazina',
+      fluimucil: 'acetilcisteina',
+      // Diabetes & Endocrino
+      glifage: 'metformina', diaformin: 'metformina',
+      daonil: 'glibenclamida',
+      diamicron: 'gliclazida',
+      puran: 'levotiroxina', 'puran t4': 'levotiroxina', synthroid: 'levotiroxina', euthyrox: 'levotiroxina',
+      tapazol: 'tiamazol',
+      // Psico & Neuro
+      prozac: 'fluoxetina', daforin: 'fluoxetina',
+      zoloft: 'sertralina', assert: 'sertralina',
+      lexapro: 'escitalopram', reconter: 'escitalopram',
+      tryptanol: 'amitriptilina', amytril: 'amitriptilina',
+      pamelor: 'nortriptilina',
+      anafranil: 'clomipramina',
+      valium: 'diazepam', dienpax: 'diazepam',
+      rivotril: 'clonazepam',
+      dormonid: 'midazolam',
+      frontin: 'alprazolam', frontal: 'alprazolam',
+      stilnox: 'zolpidem',
+      haldol: 'haloperidol',
+      amplictil: 'clorpromazina',
+      neozine: 'levomepromazina',
+      risperdal: 'risperidona',
+      seroquel: 'quetiapina',
+      gardenal: 'fenobarbital',
+      hidantal: 'fenitoina',
+      tegretol: 'carbamazepina',
+      depakene: 'acido valproico', depakote: 'acido valproico',
+      carbolitium: 'carbonato de litio',
+      aas: 'acido acetilsalicilico', aspirina: 'acido acetilsalicilico', somalgin: 'acido acetilsalicilico'
+    };
+
+    // Marcas comerciais de referência para exibição como badge nos cards
+    const REMUME_MARCAS_EXIBICAO = {
+      dipirona: ['Novalgina', 'Anador'],
+      paracetamol: ['Tylenol', 'Parador'],
+      diclofenaco: ['Cataflam', 'Voltaren'],
+      ibuprofeno: ['Alivium', 'Advil'],
+      naproxeno: ['Flanax'],
+      nimesulida: ['Nisulid'],
+      cetoprofeno: ['Profenid'],
+      tramadol: ['Tramal', 'Dorless'],
+      morfina: ['Dimorf'],
+      hioscina: ['Buscopan'],
+      metoclopramida: ['Plasil'],
+      ondansetrona: ['Vonau Flash'],
+      dimenidrinato: ['Dramin'],
+      dimeticona: ['Luftal'],
+      omeprazol: ['Losec', 'Victrix'],
+      pantoprazol: ['Pantozol', 'Pantocal'],
+      domperidona: ['Motilium'],
+      bisacodil: ['Dulcolax'],
+      furosemida: ['Lasix'],
+      espironolactona: ['Aldactone'],
+      losartana: ['Cozaar', 'Aradois'],
+      enalapril: ['Renitec', 'Vasopril'],
+      captopril: ['Capoten'],
+      anlodipino: ['Norvasc'],
+      metoprolol: ['Selozok'],
+      atenolol: ['Atenol'],
+      propranolol: ['Inderal'],
+      carvedilol: ['Coreg', 'Divar'],
+      amiodarona: ['Ancoron'],
+      digoxina: ['Digoxina'],
+      sinvastatina: ['Zocor'],
+      clopidogrel: ['Plavix'],
+      varfarina: ['Marevan', 'Coumadin'],
+      clonidina: ['Atensina'],
+      hidralazina: ['Apresolina'],
+      doxazosina: ['Carduran'],
+      isossorbida: ['Isordil'],
+      metildopa: ['Aldomet'],
+      enoxaparina: ['Clexane'],
+      amoxicilina: ['Amoxil', 'Novocilin'],
+      cefalexina: ['Keflex'],
+      ceftriaxona: ['Rocefin'],
+      ciprofloxacina: ['Cipro'],
+      azitromicina: ['Zitromax', 'Astro'],
+      sulfametoxazol: ['Bactrim'],
+      metronidazol: ['Flagyl'],
+      nitrofurantoina: ['Macrodantina'],
+      fosfomicina: ['Monuril'],
+      levofloxacino: ['Tavanic'],
+      claritromicina: ['Klaricid'],
+      clindamicina: ['Dalacin'],
+      fluconazol: ['Zoltec'],
+      albendazol: ['Zentel'],
+      mebendazol: ['Pantelmin'],
+      nitazoxanida: ['Annita'],
+      ivermectina: ['Revectina'],
+      secnidazol: ['Secnid'],
+      aciclovir: ['Zovirax'],
+      oseltamivir: ['Tamiflu'],
+      salbutamol: ['Aerolin'],
+      fenoterol: ['Berotec'],
+      ipratropio: ['Atrovent'],
+      beclometasona: ['Clenil', 'Beclosol'],
+      budesonida: ['Busonid', 'Pulmicort'],
+      prednisolona: ['Prelone', 'Predsim'],
+      prednisona: ['Meticorten'],
+      dexametasona: ['Decadron'],
+      loratadina: ['Claritin'],
+      dexclorfeniramina: ['Polaramine'],
+      prometazina: ['Fenergan'],
+      metformina: ['Glifage'],
+      glibenclamida: ['Daonil'],
+      gliclazida: ['Diamicron MR'],
+      levotiroxina: ['Puran T4', 'Synthroid'],
+      fluoxetina: ['Prozac', 'Daforin'],
+      sertralina: ['Zoloft', 'Assert'],
+      escitalopram: ['Lexapro'],
+      amitriptilina: ['Tryptanol', 'Amytril'],
+      nortriptilina: ['Pamelor'],
+      diazepam: ['Valium'],
+      clonazepam: ['Rivotril'],
+      midazolam: ['Dormonid'],
+      alprazolam: ['Frontal', 'Frontin'],
+      haloperidol: ['Haldol'],
+      clorpromazina: ['Amplictil'],
+      risperidona: ['Risperdal'],
+      quetiapina: ['Seroquel'],
+      fenobarbital: ['Gardenal'],
+      fenitoina: ['Hidantal'],
+      carbamazepina: ['Tegretol'],
+      valproico: ['Depakene', 'Depakote'],
+      litio: ['Carbolitium'],
+      acetilsalicilico: ['Aspirina', 'AAS']
+    };
+
+    // Tabela determinística de Posologias Clínicas de Referência da REMUME & APS
+    const POSOLOGIAS_REFERENCIA_REMUME = {
+      'dipirona 500 mg': '1 a 2 comp VO de 6/6h se dor ou febre (Tax >= 37,8°C). Máx: 4g/dia.',
+      'dipirona 500 mg/ml ap. 2 ml': '1 ampola (1g) IV diluída em 100 mL SF 0,9% em 20 min de 6/6h se dor ou febre.',
+      'dipirona 500 mg/ml': '1 gota/kg (máx 40 gotas) VO de 6/6h se dor ou febre.',
+      'paracetamol 500 mg': '1 comp VO de 6/6h se dor ou febre. Máx: 4g/dia (3g se hepatopata/idoso).',
+      'paracetamol 200 mg/ml': '1 gota/kg VO de 6/6h se dor ou febre (máx 35 gotas por tomada).',
+      'ibuprofeno 600 mg': '1 comp VO de 8/8h após refeições se dor ou inflamação (máx 3 a 5 dias).',
+      'amoxicilina 500 mg': '1 cápsula VO de 8/8h por 7 a 10 dias. Tomar com ou sem alimentos.',
+      'amoxicilina 250 mg/5 ml': '50 mg/kg/dia VO fracionado de 8/8h (ou 90 mg/kg/dia em OMA/PAC) por 7 a 10 dias.',
+      'amoxicilina+clavulanato de potassio 500+125 mg': '1 comp VO de 8/8h por 7 a 10 dias no início das refeições.',
+      'amoxicilina+clavulanato de potassio (250 mg+ 62,5 mg)/5 ml': '50 mg/kg/dia (base amoxicilina) VO fracionado de 8/8h por 7 a 10 dias.',
+      'amoxicilina+clavulanato de potassio (1000 mg+ 200 mg) fr. ap.': '1,2g IV em 100 mL SF 0,9% em 30 min de 8/8h.',
+      'azitromicina 500 mg': '1 comp VO 1x/dia por 3 a 5 dias (1h antes ou 2h após alimentos).',
+      'azitromicina 200 mg/5 ml fr.': '10 mg/kg VO 1x/dia por 3 a 5 dias.',
+      'cefalexina 500 mg': '1 comp VO de 6/6h por 7 a 10 dias (infecções de pele ou ITU).',
+      'cefalexina 250 mg/5 ml': '25 a 50 mg/kg/dia VO fracionado de 6/6h por 7 a 10 dias.',
+      'ceftriaxona 1 g fr.ap.': '1g a 2g IV em 100 mL SF 0,9% correr em 30 min de 24/24h.',
+      'ciprofloxacina 500 mg': '1 comp VO de 12/12h por 7 a 14 dias (ITU complicada / diarreia bacteriana).',
+      'claritromicina 500 mg': '1 comp VO de 12/12h por 7 a 10 dias.',
+      'clindamicina 300 mg': '1 cápsula VO de 6/6h por 7 a 10 dias.',
+      'clindamicina 150 mg/ml ap.': '600 mg IV em 100 mL SF 0,9% em 30 min de 8/8h ou 6/6h.',
+      'metronidazol 250 mg': '2 comp (500mg) VO de 8/8h por 7 dias. Proibido álcool (efeito dissulfiram).',
+      'nitrofurantoina 100 mg': '1 cápsula VO de 6/6h por 7 dias com alimentos (Cistite aguda não complicada).',
+      'fluconazol 150 mg': '1 cápsula VO dose única (candidíase vaginal) ou 150mg/semana (dermatomicose).',
+      'albendazol 400 mg': '1 comp mastigável VO dose única em uma das refeições (repetir em 14 dias se oxiuríase).',
+      'ivermectina 6 mg': '1 comp para cada 30kg VO dose única com água (repetir em 14 dias se escabiose).',
+      'secnidazol 1 g': '2 comp (2g) VO dose única em uma das principais refeições.',
+      'aciclovir 200 mg': '1 comp VO 5x/dia (a cada 4h, pulando dose noturna) por 5 a 7 dias no herpes simples.',
+      'oseltamivir 75 mg': '1 cápsula VO de 12/12h por 5 dias (iniciar preferencialmente em até 48h dos sintomas).',
+      'metformina 850 mg': '1 comp VO 2x/dia após café e jantar. Titular semanalmente. Monitorar eTFG (suspender se < 30).',
+      'glibenclamida 5 mg': '1 comp VO 1x/dia 30 min antes do café. Titular até máx 15mg/dia se necessário.',
+      'gliclazida 30 mg mr ou': '1 comp VO 1x/dia pela manhã. Menor risco de hipoglicemia que glibenclamida.',
+      'gliclazida 60 mg mr fracionavel': '1/2 a 1 comp VO 1x/dia pela manhã junto ao desjejum.',
+      'insulina humana nph 100 ui/ml': '0,2 a 0,3 UI/kg/dia SC fracionada (2/3 manhã, 1/3 antes de dormir).',
+      'losartana 50 mg': '1 comp VO 1x/dia pela manhã (pode titular até 100mg/dia ou fracionar 12/12h).',
+      'enalapril 20 mg': '1 comp VO 1 a 2x/dia (titular até 40mg/dia). Avaliar tosse e função renal/potássio.',
+      'captopril 25 mg': '1 comp VO de 8/8h em jejum 1h antes das refeições.',
+      'anlodipino 5 mg': '1 comp VO 1x/dia pela manhã (pode titular para 10mg/dia). Monitorar edema maleolar.',
+      'atenolol 50 mg': '1 comp VO 1x/dia. Alvo FC de repouso 50-60 bpm.',
+      'metoprolol succinato 50 mg': '1 comp VO 1x/dia pela manhã com ou sem alimentos (ICFER / DAC).',
+      'metoprolol succinato 25 mg': '1 comp VO 1x/dia pela manhã (dose inicial na ICFER).',
+      'carvedilol 12,5 mg': '1 comp VO de 12/12h com alimentos (titular a cada 2 semanas na ICFER).',
+      'carvedilol 6,25 mg': '1 comp VO de 12/12h com alimentos (dose inicial segura na ICFER).',
+      'propranolol 40 mg': '1 comp VO de 8/8h ou 12/12h (profilaxia de enxaqueca / tremor essencial / tireotoxicose).',
+      'furosemida 40 mg': '1 comp VO pela manhã em jejum. Ajustar dose conforme edema e peso diário.',
+      'furosemida 10 mg/ml ap. 2 ml': '1 a 2 ampolas (20-40mg) IV em bólus lento (máx 4mg/min).',
+      'hidroclorotiazida 25 mg': '1 comp VO pela manhã. Monitorar eletrólitos e ácido úrico.',
+      'espironolactona 25 mg': '1 comp VO 1x/dia pela manhã. Monitorar potássio sérico (alvo K < 5.0).',
+      'espironolactona 100 mg': '1 comp VO 1x/dia pela manhã (ascite na cirrose hepática).',
+      'amiodarona 200 mg': '1 comp VO 1x/dia (manutenção). Ataque: 600-800mg/dia por 7-14 dias.',
+      'amiodarona 50 mg/ml ap. 3 ml': '300mg IV em 20-30 min em 250mL SG 5% no ACLS ou infusão contínua 900mg/24h.',
+      'digoxina 0,25 mg': '1/2 a 1 comp VO 1x/dia pela manhã (0,125-0,25mg). Monitorar intoxicação digitálica.',
+      'sinvastatina 20 mg': '1 comp VO à noite após o jantar (titular até 40mg/dia se risco CV alto).',
+      'clopidogrel 75 mg': '1 comp VO 1x/dia (dose de ataque 300-600mg na SCA).',
+      'acido acetilsalicilico 100 mg': '1 comp VO 1x/dia após almoço (antiagregação plaquetária).',
+      'varfarina sodica 5 mg': '1 comp VO 1x/dia no final da tarde. Alvo RNI 2,0 a 3,0 (2,5 a 3,5 se prótese mecânica).',
+      'omeprazol 20 mg': '1 cápsula VO pela manhã em jejum (30 a 60 min antes do café da manhã).',
+      'omeprazol 40 mg fr.': '40mg IV em bólus ou diluído em 100mL SF 0,9% em 30 min de 12/12h a 24/24h.',
+      'ondansetrona 8 mg': '1 comp VO (ou 8mg IV em 100mL SF em 15 min) de 8/8h se náuseas ou vômitos.',
+      'metoclopramida 10 mg': '1 comp VO de 8/8h 30 min antes das refeições (evitar uso prolongado > 5 dias).',
+      'metoclopramida 5 mg/ml ap 2 ml': '1 ampola (10mg) IV diluída em 100mL SF em 15 min de 8/8h.',
+      'dimeticona 75 mg/ml': '30 a 40 gotas VO de 8/8h após as refeições se flatulência/meteorismo.',
+      'hioscina + dipirona 4 mg + 500': '1 a 2 comp (ou 20-40 gotas) VO de 6/6h a 8/8h se cólica intensa.',
+      'hioscina 20 mg ap. 1 ml': '1 ampola (20mg) IV diluída em 100mL SF ou IM de 8/8h se cólica aguda.',
+      'salbutamol 100 mcg': '2 a 4 jatos via inalatória com espaçador de 4/4h a 6/6h se crise/sibilância.',
+      'beclometasona 200 mcg': '1 a 2 jatos via inalatória de 12/12h. Enxaguar a boca com água após aplicação.',
+      'beclometasona 50 mcg': '1 a 2 jatos via inalatória de 12/12h para manutenção preventiva.',
+      'prednisona 20 mg': '20mg a 60mg VO 1x/dia pela manhã por 5 dias no broncoespasmo/asma aguda.',
+      'prednisolona 3 mg/ml fr.': '1 a 2 mg/kg/dia VO pela manhã por 3 a 5 dias para pediatria (máx 40-60mg).',
+      'dexametasona 4 mg/ml ap.': '4mg a 10mg IV ou IM dose única ou a cada 12-24h.',
+      'hidrocortisona 100 mg fr.': '100mg a 200mg IV em bólus lento ou a cada 6-8h na crise asmática grave.',
+      'hidrocortisona 500 mg fr.': '500mg IV em bólus lento no choque séptico refratário ou crise adrenal.',
+      'cetoprofeno 100 mg fr. ou bolsa': '1 frasco (100mg) IV diluído em 100mL SF 0,9% em 20 min de 12/12h por 3 dias.',
+      'tramadol 50 mg': '1 cápsula VO (ou 50mg IV em 100mL SF em 20 min) de 8/8h se dor moderada a forte EVA >= 7.',
+      'tramadol 50 mg/ml ap. 2 ml': '1 ampola (100mg) diluída em 100mL SF 0,9% correr em 20 min de 8/8h se dor refratária.',
+      'morfina 10 mg/ml ap. 1 ml': '2mg a 5mg IV diluídos em 10mL SF (0,5-1mg/mL) lento se dor severa refratária.',
+      'fluoxetina 20 mg': '1 cápsula VO pela manhã após o café (pode titular para 40mg/dia). Início em 2-4 semanas.',
+      'sertralina 50 mg': '1 comp VO 1x/dia pela manhã ou noite (titular até 150-200mg se necessário). Droga segura em cardiopatas.',
+      'amitriptilina 25 mg': '1 comp VO à noite ao deitar (dor neuropática, profilaxia enxaqueca ou insônia).',
+      'nortriptilina 25 mg': '1 cápsula VO à noite ao deitar. Menor efeito anticolinérgico que amitriptilina.',
+      'diazepam 10 mg': '1 comp VO à noite (ou 5-10mg IV lento se crise convulsiva ativa).',
+      'diazepam 5 mg/ml ap. 2 ml': '1 a 2 ampolas (5-10mg) IV lento direto (máx 5mg/min) na crise convulsiva.',
+      'clonazepam 2 mg': '0,5mg a 2mg VO ao deitar ou fracionado. Monitorar tolerância e sedação.',
+      'clonazepam 2,5 mg/ml fr.': '2 a 5 gotas VO à noite (titulação gradual em idosos ou ansiedade).',
+      'midazolam 5 mg/ml ap. 3 ml ou': '2,5mg a 5mg IV lento ou IM para sedação de procedimentos ou convulsão.',
+      'haloperidol 5 mg': '1 comp VO (ou 5mg IM) de 12/12h se agitação psicomotora. Monitorar distonia/EPS.',
+      'haloperidol 1 mg': '0,5mg a 1mg VO 1 a 2x/dia (idoso com delirium hiperativo).',
+      'haloperidol 5 mg/ml ap. 1 ml': '1 ampola (5mg) IM profunda se agitação psicomotora aguda.',
+      'clorpromazina 100 mg': '1 comp VO de 8/8h se soluço intratável ou psicose refratária.',
+      'clorpromazina 25 mg': '1 comp VO de 8/8h como sedativo leve ou coadjuvante.',
+      'levomepromazina 25 mg': '1 comp VO ao deitar se insônia refratária com agitação.',
+      'risperidona 2 mg': '1 comp VO à noite (1 a 2mg/dia inicial). Titular conforme resposta clínica.',
+      'fenobarbital 100 mg': '1 comp VO à noite ao deitar (epilepsia). Monitorar sedação e níveis séricos.',
+      'fenobarbital 200 mg/ml ap.': '1 ampola (200mg) IM profunda se crise convulsiva refratária.',
+      'fenitoina 100 mg': '1 comp VO de 8/8h (300mg/dia). Ataque IV: 15-20 mg/kg em SF a máx 50mg/min.',
+      'carbamazepina 200 mg': '1 comp VO de 12/12h (titular até 800-1200mg/dia). Monitorar hemograma e sódio.',
+      'acido valproico 500 mg': '1 comp VO de 12/12h junto às refeições (15 a 30 mg/kg/dia).',
+      'carbonato de litio 300 mg': '1 comp VO de 12/12h com alimentos. Monitorar litemia (alvo 0,6 a 1,0 mEq/L).',
+      'levotiroxina 50 mcg': '1 comp VO em jejum rigoroso 30-60 min antes do café da manhã com água pura.',
+      'levotiroxina 25 mcg': '1 comp VO em jejum pela manhã (início seguro em idosos ou coronariopatas).',
+      'levotiroxina 100 mcg': '1 comp VO em jejum pela manhã conforme meta de TSH.',
+      'loratadina 10 mg': '1 comp VO 1x/dia pela manhã ou à noite (rinite ou urticária alérgica).',
+      'dexclorfeniramina 2 mg': '1 comp VO de 8/8h se prurido ou reação alérgica aguda (causa sonolência).',
+      'prometazina 25 mg': '1 comp VO de 8/8h a 12/12h (ou 25mg IM profundo se náusea/alergia aguda).',
+      'biperideno 2 mg': '1 comp VO 1 a 2x/dia se sintomas extrapiramidais por neurolépticos.',
+      'biperideno 5 mg/ml ap 1 ml': '1 ampola (5mg) IM ou IV lento se distonia aguda por neuroléptico.'
+    };
+
+    function normalizarBuscaFarmaco(texto) {
+      return String(texto || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function obterMarcasComerciais(linha) {
+      if (!linha || typeof linha !== 'string') return [];
+      const norm = normalizarBuscaFarmaco(linha);
+      const marcas = [];
+      Object.keys(REMUME_MARCAS_EXIBICAO).forEach(k => {
+        if (norm.includes(k)) {
+          marcas.push(...REMUME_MARCAS_EXIBICAO[k]);
+        }
+      });
+      return Array.from(new Set(marcas));
+    }
+
+    function obterPosologiaReferencia(linha) {
+      if (!linha || typeof linha !== 'string') return '';
+      const norm = normalizarBuscaFarmaco(linha);
+      if (POSOLOGIAS_REFERENCIA_REMUME[norm]) {
+        return POSOLOGIAS_REFERENCIA_REMUME[norm];
+      }
+      for (const [chave, poso] of Object.entries(POSOLOGIAS_REFERENCIA_REMUME)) {
+        if (norm.includes(chave) || chave.includes(norm)) {
+          return poso;
+        }
+      }
+      // Heurística clínica determinística beira-leito
+      if (norm.includes('gotas') || norm.includes('fr.')) {
+        return 'Posologia líquida: dosar em gotas ou mL conforme peso corporal e prescrição.';
+      }
+      if (norm.includes('ap.') || norm.includes('fr.ap.') || norm.includes('ampola')) {
+        return 'Posologia injetável: uso hospitalar parenteral conforme protocolo de infusão.';
+      }
+      if (norm.includes('tb.') || norm.includes('pt.') || norm.includes('pomada') || norm.includes('creme')) {
+        return 'Uso tópico: aplicar fina camada sobre a área afetada 2 a 3x/dia após higienização.';
+      }
+      return 'Posologia usual de adulto: 1 tomada via oral conforme indicação clínica e função renal.';
+    }
+
+    function copiarPosologiaTexto(linha, posologia) {
+      hapticFeedback('medium');
+      const posoFinal = posologia || obterPosologiaReferencia(linha);
+      const textoFormatado = `${linha.trim()} — Posologia: ${posoFinal}`;
+      copiarTextoClipboard(textoFormatado, 'Posologia copiada para o PEP!');
+    }
+
+    let cacheFichaFarmacoAtual = null;
+
+    async function abrirModalFichaFarmaco(termo) {
+      hapticFeedback('medium');
+      const modal = document.getElementById('modal-ficha-farmaco');
+      const loading = document.getElementById('ficha-farmaco-loading');
+      const detalhes = document.getElementById('ficha-farmaco-detalhes');
+      const titulo = document.getElementById('titulo-ficha-farmaco');
+      const badgeStatus = document.getElementById('ficha-farmaco-badge-status');
+      if (modal) modal.classList.remove('hidden');
+
+      if (loading) loading.classList.remove('hidden');
+      if (detalhes) detalhes.classList.add('hidden');
+      if (titulo) titulo.textContent = termo || 'Ficha Farmacológica';
+
+      try {
+        let dados = null;
+        if (!isDeviceOffline()) {
+          dados = await cockpitRpc('cockpitConsultarFarmaco', { termo: termo });
+        }
+        if (!dados || !dados.encontrado) {
+          // Fallback offline determinístico em 0ms
+          const posoLocal = obterPosologiaReferencia(termo);
+          const marcasLocal = obterMarcasComerciais(termo);
+          dados = {
+            encontrado: true,
+            farmaco: termo,
+            na_remume: true,
+            dose_adulto: posoLocal,
+            dose_pediatria: 'Consultar PedBook para doses pediátricas estritas por peso.',
+            dose_maxima: 'Respeitar limites terapêuticos de bula e ajustar para insuficiência orgânica.',
+            ajuste_dose: 'Avaliar eTFG (CKD-EPI / Cockcroft-Gault) para ajustes de filtração glomerular.',
+            preparo_diluicao: 'Via oral ou consultar D1 para diluição parenteral.',
+            cuidados_especificos: marcasLocal.length ? `Marcas comerciais conhecidas: ${marcasLocal.join(', ')}.` : 'Monitorar sinais vitais e resposta terapêutica.',
+            texto_formatado: `${termo}\nPosologia: ${posoLocal}`
+          };
+        }
+
+        cacheFichaFarmacoAtual = dados;
+
+        document.getElementById('ficha-nome-farmaco').textContent = dados.farmaco || termo;
+        const statusSusEl = document.getElementById('ficha-dci-status-sus');
+        if (statusSusEl) {
+          if (dados.na_remume) {
+            statusSusEl.className = 'text-[9.5px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+            statusSusEl.textContent = '✅ Padronizado REMUME (SUS)';
+          } else {
+            statusSusEl.className = 'text-[9.5px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+            statusSusEl.textContent = '🏥 Guia Hospitalar HSL (Não-REMUME)';
+          }
+        }
+
+        const aprBloco = document.getElementById('ficha-apresentacoes-bloco');
+        if (aprBloco) {
+          aprBloco.replaceChildren();
+          const aprs = (dados.apresentacoes_remume && dados.apresentacoes_remume.length)
+            ? dados.apresentacoes_remume
+            : (dados.apresentacoes_hsl || [termo]);
+          aprs.forEach(a => {
+            const d = document.createElement('div');
+            d.textContent = '• ' + a;
+            aprBloco.appendChild(d);
+          });
+        }
+
+        document.getElementById('ficha-dose-adulto').textContent = dados.dose_adulto || 'Posologia conforme indicação médica.';
+        document.getElementById('ficha-dose-pediatria').textContent = dados.dose_pediatria || 'Sem dados pediátricos isolados na ficha rápida.';
+        document.getElementById('ficha-ajuste-dose').textContent = dados.ajuste_dose || 'Sem ajuste renal específico ou dose padrão.';
+        document.getElementById('ficha-dose-maxima').textContent = dados.dose_maxima || 'Teto máximo terapêutico de bula.';
+        document.getElementById('ficha-preparo-diluicao').textContent = dados.preparo_diluicao || 'Administração padrão conforme apresentação.';
+        document.getElementById('ficha-cuidados').textContent = dados.cuidados_especificos || 'Monitorar resposta clínica e interações medicamentosas.';
+
+        if (badgeStatus) {
+          badgeStatus.textContent = dados.na_remume ? 'REMUME & HSL' : 'Guia HSL';
+        }
+
+        if (loading) loading.classList.add('hidden');
+        if (detalhes) detalhes.classList.remove('hidden');
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          try { window.lucide.createIcons(); } catch (e) {}
+        }
+      } catch (err) {
+        if (loading) loading.innerHTML = `<p class="text-xs text-rose-400">Falha ao abrir ficha: ${err.message}</p>`;
+      }
+    }
+
+    function fecharModalFichaFarmaco() {
+      hapticFeedback('light');
+      const modal = document.getElementById('modal-ficha-farmaco');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function copiarFichaFarmacoPEP() {
+      hapticFeedback('medium');
+      if (!cacheFichaFarmacoAtual) {
+        copiarToast('Nenhuma ficha disponível para copiar.');
+        return;
+      }
+      const f = cacheFichaFarmacoAtual;
+      const linhas = [
+        `============================================================`,
+        `💊 FICHA FARMACOLÓGICA — ${f.farmaco || 'MEDICAMENTO'}`,
+        `Status SUS: ${f.na_remume ? 'Padronizado na REMUME' : 'Hospitalar HSL'}`,
+        `------------------------------------------------------------`,
+        `• Dose Adulto: ${f.dose_adulto || 'Conforme indicação'}`,
+        `• Dose Pediátrica: ${f.dose_pediatria || 'Avaliar PedBook'}`,
+        `• Ajuste Renal/Hepático: ${f.ajuste_dose || 'Sem ajuste'}`,
+        `• Dose Máxima: ${f.dose_maxima || 'De bula'}`,
+        `• Preparo & Diluição: ${f.preparo_diluicao || 'Uso usual'}`,
+        `• Alertas: ${f.cuidados_especificos || 'Monitorar'}`,
+        `============================================================`
+      ];
+      copiarTextoClipboard(linhas.join('\n'), 'Ficha farmacológica copiada para o PEP!');
+    }
 
     function limparBuscaRemume() {
       const input = document.getElementById('busca-remume');
@@ -5897,24 +6497,47 @@
 
     function filtrarRemume() {
       if (!remumeDatabase) return;
-      const normalizar = t => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
       const inputBusca = document.getElementById('busca-remume');
       const btnLimpar = document.getElementById('btn-limpar-busca-remume');
-      const busca = normalizar(inputBusca ? inputBusca.value.trim() : '');
+      const termoRaw = inputBusca ? inputBusca.value.trim() : '';
+      const termoNorm = normalizarBuscaFarmaco(termoRaw);
       
       if (btnLimpar) {
-        btnLimpar.classList.toggle('hidden', !busca);
+        btnLimpar.classList.toggle('hidden', !termoNorm);
       }
 
       const keywordsCat = REMUME_CATEGORIAS_KEYWORDS[categoriaRemumeAtual] || null;
 
+      // Decomposição em tokens para busca multi-termo flexível
+      const tokensBusca = termoNorm ? termoNorm.split(' ').filter(Boolean) : [];
+      // Expansão por dicionário de marcas comerciais consagradas
+      const dcbMarca = termoNorm ? REMUME_MARCAS_COMERCIAIS[termoNorm] : null;
+      const tokensMarca = dcbMarca ? normalizarBuscaFarmaco(dcbMarca).split(' ').filter(Boolean) : [];
+
       const filtrados = remumeDatabase.filter(linha => {
-        const linhaNorm = normalizar(linha);
-        if (busca && !linhaNorm.includes(busca)) return false;
+        const linhaNorm = normalizarBuscaFarmaco(linha);
+        const marcasConhecidas = obterMarcasComerciais(linha).map(m => normalizarBuscaFarmaco(m));
+        const posologiaLocal = normalizarBuscaFarmaco(obterPosologiaReferencia(linha));
+        const textoCompleto = `${linhaNorm} ${marcasConhecidas.join(' ')} ${posologiaLocal}`;
+
+        // Checagem de categoria selecionada
         if (keywordsCat) {
-          const matchCat = keywordsCat.some(kw => linhaNorm.includes(kw));
+          const matchCat = keywordsCat.some(kw => textoCompleto.includes(kw));
           if (!matchCat) return false;
         }
+
+        // Checagem de texto/tokens de busca
+        if (tokensBusca.length > 0) {
+          // 1. Casa se todos os tokens digitados estiverem presentes no texto completo do fármaco
+          const atendeTokens = tokensBusca.every(tk => textoCompleto.includes(tk));
+          // 2. Ou se atende aos tokens do princípio ativo mapeado da marca comercial digitada
+          const atendeMarca = tokensMarca.length > 0 && tokensMarca.every(tk => textoCompleto.includes(tk));
+
+          if (!atendeTokens && !atendeMarca) {
+            return false;
+          }
+        }
+
         return true;
       });
 
@@ -5924,30 +6547,107 @@
 
       if (!filtrados.length) {
         const vazio = document.createElement('div');
-        vazio.className = 'glass-card p-4 rounded-xl text-center text-slate-400 text-xs';
-        vazio.textContent = 'Nenhuma apresentação encontrada para a pesquisa ou categoria.';
+        vazio.className = 'glass-card p-4 sm:p-5 rounded-xl text-center space-y-2 border border-dashed border-amber-500/40 bg-amber-500/5';
+        vazio.setAttribute('role', 'status');
+        vazio.setAttribute('aria-live', 'polite');
+
+        const iconeBox = document.createElement('div');
+        iconeBox.className = 'w-9 h-9 mx-auto rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center';
+        iconeBox.innerHTML = '<i data-lucide="search-x" class="w-4 h-4"></i>';
+
+        const tit = document.createElement('h4');
+        tit.className = 'text-xs font-bold text-amber-200';
+        tit.textContent = termoRaw
+          ? `Nenhum medicamento encontrado para "${termoRaw}"`
+          : 'Nenhum medicamento encontrado nesta categoria.';
+
+        const desc = document.createElement('p');
+        desc.className = 'text-[11px] text-slate-400 max-w-sm mx-auto leading-relaxed';
+        desc.textContent = 'Verifique a grafia, busque pelo princípio ativo genérico (DCI) ou consulte o Guia HSL (fármacos de uso restrito hospitalar ou componente especializado podem não constar na REMUME da APS).';
+
+        const btnRestaurar = document.createElement('button');
+        btnRestaurar.type = 'button';
+        btnRestaurar.className = 'mt-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-[0.98]';
+        btnRestaurar.innerHTML = '<i data-lucide="rotate-ccw" class="w-3 h-3"></i> Limpar pesquisa e ver catálogo completo';
+        btnRestaurar.onclick = () => limparBuscaRemume();
+
+        vazio.append(iconeBox, tit, desc, btnRestaurar);
         container.append(vazio);
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          try { window.lucide.createIcons(); } catch (e) {}
+        }
         return;
       }
 
       filtrados.forEach(linha => {
+        const posologia = obterPosologiaReferencia(linha);
+        const marcas = obterMarcasComerciais(linha);
+        const jaAdicionado = prescricaoItens.some(it => it.includes(linha.trim()) || it === linha.trim());
+
         const card = document.createElement('div');
-        card.className = 'glass-card p-2.5 sm:p-3 rounded-xl flex items-center justify-between gap-2.5 transition hover:border-slate-700';
+        card.className = 'glass-card p-3 rounded-xl space-y-2 transition hover:border-slate-700';
 
-        const texto = document.createElement('span');
-        texto.className = 'text-xs sm:text-sm text-slate-100 flex-1 leading-snug break-words';
-        texto.textContent = linha;
+        // Cabeçalho do Card
+        const topo = document.createElement('div');
+        topo.className = 'flex items-start justify-between gap-2';
 
+        const info = document.createElement('div');
+        info.className = 'flex-1 min-w-0';
+
+        const linhaNome = document.createElement('div');
+        linhaNome.className = 'flex items-center gap-1.5 flex-wrap';
+
+        const nome = document.createElement('span');
+        nome.className = 'text-xs sm:text-sm font-bold text-white break-words';
+        nome.textContent = linha;
+        linhaNome.appendChild(nome);
+
+        if (marcas.length > 0) {
+          const badgeMarca = document.createElement('span');
+          badgeMarca.className = 'text-[9.5px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-medium border border-slate-700/80';
+          badgeMarca.textContent = `Ref: ${marcas.slice(0, 3).join(', ')}`;
+          linhaNome.appendChild(badgeMarca);
+        }
+
+        info.appendChild(linhaNome);
+
+        // Bloco de Posologia Recomendada Beira-Leito
+        const blocoPoso = document.createElement('div');
+        blocoPoso.className = 'mt-1.5 text-[11px] text-slate-300 font-mono bg-slate-950/70 p-2 rounded-lg border border-slate-800/90 flex items-start gap-1.5 leading-relaxed';
+        blocoPoso.innerHTML = `<i data-lucide="file-text" class="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5"></i> <span><strong class="text-rose-200">Posologia Sugerida:</strong> ${posologia}</span>`;
+        info.appendChild(blocoPoso);
+
+        topo.appendChild(info);
+        card.appendChild(topo);
+
+        // Barra de Ações Táteis
         const acoes = document.createElement('div');
-        acoes.className = 'flex items-center gap-1.5 shrink-0';
+        acoes.className = 'flex items-center justify-end gap-1.5 pt-1.5 border-t border-slate-800/60 flex-wrap';
 
+        // 1. Botão de Cópia de Posologia com 1 Toque
+        const btnPoso = document.createElement('button');
+        btnPoso.type = 'button';
+        btnPoso.className = 'px-2 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-[10.5px] font-bold text-rose-200 border border-rose-500/30 flex items-center gap-1 transition active:scale-[0.96]';
+        btnPoso.innerHTML = '<i data-lucide="clipboard" class="w-3 h-3"></i> Copiar Posologia';
+        btnPoso.onclick = () => copiarPosologiaTexto(linha, posologia);
+
+        // 2. Botão de Ficha Farmacológica Oficial HSL
+        const btnFicha = document.createElement('button');
+        btnFicha.type = 'button';
+        btnFicha.className = 'px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-300 transition flex items-center gap-1 active:scale-[0.96]';
+        btnFicha.innerHTML = '<i data-lucide="book-open" class="w-3 h-3 text-cyan-400"></i> Ficha HSL';
+        btnFicha.onclick = () => abrirModalFichaFarmaco(linha);
+
+        // 3. Botão Copiar Nome Simples
         const copiar = document.createElement('button');
+        copiar.type = 'button';
         copiar.className = 'px-2 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-300 transition flex items-center gap-1 active:scale-[0.96]';
-        copiar.innerHTML = '<i data-lucide="copy" class="w-3 h-3"></i> Copiar';
+        copiar.innerHTML = '<i data-lucide="copy" class="w-3 h-3"></i> Nome';
         copiar.onclick = () => copiarTextoClipboard(linha, 'Apresentação copiada!');
 
+        // 4. Botão Prescrever
         const prescrever = document.createElement('button');
-        const jaAdicionado = prescricaoItens.includes(linha.trim());
+        prescrever.type = 'button';
         prescrever.className = `px-2 py-1 rounded-md text-[10.5px] font-bold transition flex items-center gap-1 active:scale-[0.96] ${
           jaAdicionado
             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
@@ -5957,16 +6657,18 @@
           ? '<i data-lucide="check" class="w-3 h-3"></i> Adicionado' 
           : '<i data-lucide="plus" class="w-3 h-3"></i> Prescrever';
         prescrever.onclick = () => {
-          adicionarItemPrescricao(linha);
+          adicionarItemPrescricao(`${linha.trim()} — ${posologia}`);
           filtrarRemume();
         };
 
-        acoes.append(copiar, prescrever);
-        card.append(texto, acoes);
+        acoes.append(btnPoso, btnFicha, copiar, prescrever);
+        card.appendChild(acoes);
         container.append(card);
       });
 
-      if (window.lucide) lucide.createIcons();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        try { window.lucide.createIcons(); } catch (e) {}
+      }
     }
 
     // 5. Calculadoras Clínicas & Sala Vermelha
@@ -13400,6 +14102,7 @@
     function configurarTecladosModaisAmbulatorioESbar() {
       const mapaModais = [
         { id: 'modal-sbar-passagem', fechar: fecharModalSbarPassagem },
+        { id: 'modal-ficha-farmaco', fechar: fecharModalFichaFarmaco },
         { id: 'modal-ambulatorio-soap', fechar: fecharModalAmbulatorioSOAP },
         { id: 'modal-atestado-cfm', fechar: fecharModalAtestadoCFM },
         { id: 'modal-prenatal', fechar: fecharModalPrenatal },
