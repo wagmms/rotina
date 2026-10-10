@@ -13,6 +13,12 @@ const compress = require('@fastify/compress');
 const helmet = require('@fastify/helmet');
 const rateLimit = require('@fastify/rate-limit');
 const runtime = require('./runtime');
+const {
+  validarParametrosCalculadora,
+  cockpitBodySchema,
+  calcularBodySchema,
+  telemetriaQuerySchema
+} = require('./validators');
 
 function gerarETag(conteudo) {
   if (!conteudo) return '"0"';
@@ -169,6 +175,16 @@ async function buildServer() {
     });
   });
 
+  // 0. Parser para text/plain (usado pelo Cockpit PWA para tráfego seguro cross-origin)
+  fastify.addContentTypeParser('text/plain', { parseAs: 'string' }, (req, body, done) => {
+    try {
+      const json = JSON.parse(body);
+      done(null, json);
+    } catch (_) {
+      done(null, body);
+    }
+  });
+
   // 1. CORS para permitir chamadas do Cockpit PWA (GitHub Pages e local)
   await fastify.register(cors, {
     origin: true,
@@ -259,6 +275,17 @@ async function buildServer() {
       return;
     }
 
+    if (error.validation) {
+      fastify.log.warn(`[Fastify Schema Validation][${reqId}] 400 - ${error.message} - Rota: ${request.raw.url}`);
+      reply.status(400).send({
+        ok: false,
+        erro: error.message || 'Parâmetro de entrada inválido no schema Fastify.',
+        detalhes: error.validation,
+        requestId: reqId
+      });
+      return;
+    }
+
     fastify.log.error(`[Fastify Global Error][${reqId}] ${error.message} - Rota: ${request.raw.url}`);
     registrarErroSistema('fastify_global_error', error.message, { reqId, url: request.raw.url, statusCode });
     reply.status(statusCode).send({
@@ -335,6 +362,7 @@ async function buildServer() {
         seguranca: {
           helmet: true,
           rate_limit: true,
+          schemas_fastify: true,
           limite_max_min: limiteRateLimit
         },
         circuit_breaker: {
@@ -422,13 +450,121 @@ async function buildServer() {
     }
   });
 
+  // 5.0 Endpoint REST Dedicado para Calculadoras Clínicas (Handshake Rápido via Fastify Schema)
+  fastify.post('/api/calcular', {
+    schema: {
+      body: calcularBodySchema
+    },
+    preValidation: (request, reply, done) => {
+      const { tipo, parametros } = request.body || {};
+      const validacao = validarParametrosCalculadora(tipo, parametros);
+      if (!validacao.valido) {
+        reply.status(400).send({
+          ok: false,
+          erro: `Parâmetros inválidos para a calculadora: ${validacao.erro}`,
+          detalhes: validacao.erro,
+          requestId: request.id
+        });
+        return;
+      }
+      request.body.parametros = validacao.entradaSanitizada;
+      done();
+    }
+  }, async (request, reply) => {
+    const t0 = performance.now();
+    try {
+      const { tipo, parametros, session, token } = request.body;
+      const sessao = session || token || '';
+      const resultado = runtime.cockpitRpc('cockpitCalcular', sessao, [tipo, parametros]);
+      const elapsed = (performance.now() - t0).toFixed(2);
+
+      registrarInteracaoAoVivo({
+        origem: 'fastify_rest_calc',
+        tipo: 'calculadora',
+        resumo: `Calc REST: ${tipo}`,
+        duracao_ms: Number(elapsed),
+        status: 'sucesso'
+      });
+
+      return {
+        ok: true,
+        tipo,
+        resultado,
+        benchmark_ms: Number(elapsed)
+      };
+    } catch (err) {
+      const elapsed = (performance.now() - t0).toFixed(2);
+      reply.status(err.message.includes('autorizado') || err.message.includes('sessão') ? 401 : 400);
+      return {
+        ok: false,
+        erro: err.message,
+        benchmark_ms: Number(elapsed),
+        requestId: request.id
+      };
+    }
+  });
+
   // 5. API RPC DO COCKPIT PWA (Substitui o doGet/doPost lento do GAS)
   // Métodos de leitura idempotentes — respostas podem ser cacheadas com stale-while-revalidate
   const COCKPIT_READ_METHODS = new Set([
     'cockpitConsultar', 'cockpitPerfil', 'cockpitRemume', 'cockpitAulasProgresso',
     'cockpitBuscarCid', 'cockpitEstratificarRisco'
   ]);
-  fastify.post('/api/cockpit', async (request, reply) => {
+  fastify.post('/api/cockpit', {
+    schema: {
+      body: cockpitBodySchema
+    },
+    preValidation: (request, reply, done) => {
+      let body = request.body;
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body); request.body = body; } catch (e) { body = {}; request.body = body; }
+      }
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        reply.status(400).send({
+          ok: false,
+          erro: 'Payload do Cockpit deve ser um objeto JSON.',
+          requestId: request.id
+        });
+        return;
+      }
+      const metodo = typeof body.metodo === 'string' ? body.metodo.trim() : '';
+      if (!metodo) {
+        reply.status(400).send({
+          ok: false,
+          erro: 'Parâmetro "metodo" deve ser uma string válida.',
+          requestId: request.id
+        });
+        return;
+      }
+
+      // Validação e sanitização estrita para calculadoras clínicas no handshake
+      if (metodo === 'cockpitCalcular') {
+        let args = body.args;
+        if (!Array.isArray(args) || args.length < 2) {
+          reply.status(400).send({
+            ok: false,
+            erro: 'Argumentos de cálculo devem conter [tipo, parametros].',
+            requestId: request.id
+          });
+          return;
+        }
+        const tipo = args[0];
+        const entrada = args[1];
+        const validacao = validarParametrosCalculadora(tipo, entrada);
+        if (!validacao.valido) {
+          reply.status(400).send({
+            ok: false,
+            erro: `Parâmetros inválidos para a calculadora: ${validacao.erro}`,
+            detalhes: validacao.erro,
+            requestId: request.id
+          });
+          return;
+        }
+        args[1] = validacao.entradaSanitizada;
+      }
+      done();
+    }
+  }, async (request, reply) => {
     const t0 = performance.now();
     try {
       let body = request.body;
@@ -530,7 +666,11 @@ async function buildServer() {
   });
 
   // 5.1. TELEMETRIA AO VIVO: Consulta das últimas interações do Bot e Cockpit
-  fastify.get('/api/telemetria/ao-vivo', async (request, reply) => {
+  fastify.get('/api/telemetria/ao-vivo', {
+    schema: {
+      querystring: telemetriaQuerySchema
+    }
+  }, async (request, reply) => {
     const limite = Math.min(100, Math.max(1, parseInt(request.query?.limite || '30', 10)));
     const interacoes = obterUltimasInteracoes(limite);
     reply.header('Cache-Control', 'no-store');
@@ -553,7 +693,11 @@ async function buildServer() {
   });
 
   // 5.3. TELEMETRIA: Últimos erros capturados em buffer circular de memória
-  fastify.get('/api/telemetria/erros', async (request, reply) => {
+  fastify.get('/api/telemetria/erros', {
+    schema: {
+      querystring: telemetriaQuerySchema
+    }
+  }, async (request, reply) => {
     const limite = Math.min(50, Math.max(1, parseInt(request.query?.limite || '10', 10)));
     reply.header('Cache-Control', 'no-store');
     return {
@@ -691,7 +835,20 @@ async function buildServer() {
     }
   });
 
-  fastify.post('/webhook', async (request, reply) => {
+  fastify.post('/webhook', {
+    preValidation: (request, reply, done) => {
+      const updateData = request.body;
+      if (!updateData || typeof updateData !== 'object' || Array.isArray(updateData)) {
+        reply.status(400).send({ ok: false, erro: 'Update inválido' });
+        return;
+      }
+      if (typeof updateData.update_id !== 'number' || !Number.isSafeInteger(updateData.update_id) || updateData.update_id < 0) {
+        reply.status(400).send({ ok: false, erro: 'Update inválido' });
+        return;
+      }
+      done();
+    }
+  }, async (request, reply) => {
     const t0 = performance.now();
     try {
       const secretEsperado = runtime.ctx.ConfigService.get('WEBHOOK_SECRET');

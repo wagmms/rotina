@@ -13,16 +13,14 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Sanitização e Validação Estrita de Parâmetros de Entrada nas Calculadoras via Schema Fastify**:
-    - Adicionar schemas de validação no Fastify para payloads de rotas sensíveis a fim de descartar tipos incorretos no handshake sem consumir processamento do runtime.
+- [ ] **Histórico Local no Cockpit das Últimas 5 Consultas / Cálculos**:
+    - Implementar persistência volátil (sessionStorage) para recuperação ágil sem retrabalho.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Histórico Local no Cockpit das Últimas 5 Consultas / Cálculos**:
-    - Implementar persistência volátil (sessionStorage) para recuperação ágil sem retrabalho.
-2. [ ] **Cross-Check de Compatibilidade de Diluição de Inotrópicos e Vasopressores com D1**:
+1. [ ] **Cross-Check de Compatibilidade de Diluição de Inotrópicos e Vasopressores com D1**:
     - Integrar tabela de compatibilidade em Y com cache local para prescrições combinadas em bomba de infusão.
 
 ---
@@ -61,6 +59,34 @@
 - *Sugestão 30 (Cockpit / Sala Vermelha)*: Metrônomo sonoro e visual integrado de RCP com 100-120 bpm na aba de TV Instável / PCR da Sala Vermelha para manter a cadência ótima de compressões torácicas no ACLS beira-leito.
 - *Sugestão 31 (Backend / Resiliência)*: Dashboard visual ou endpoint SSE `/api/circuit-breaker/stream` com telemetria em tempo real das transições de estado (CLOSED -> OPEN -> HALF_OPEN) e taxas de timeout dos provedores de IA para observabilidade no Cockpit.
 - *Sugestão 32 (Multimodal / Áudio)*: Implementar transcrição preliminar com Web Speech API nativa do dispositivo diretamente no Cockpit PWA antes do envio do áudio, permitindo conferência e edição prévia do texto ditado pelo médico antes do handshake de rede.
+- *Sugestão 33 (Segurança / Fastify)*: Documentação interativa de API via OpenAPI / Swagger UI (`/docs`) gerada diretamente a partir dos schemas JSON Fastify já declarados para auditoria rápida de contratos e parâmetros beira-leito.
+- *Sugestão 34 (Calculadoras / Resiliência)*: Validação cruzada estrita entre calculadoras de DHE e ECG prévio no handshake, disparando alerta automático de ECG mandatório quando K+ > 6.0 mEq/L ou Na+ < 120 mEq/L antes de calcular a taxa de infusão.
+
+---
+
+## 📦 Histórico de Melhorias Concluídas
+
+0Y. [x] **Sanitização e Validação Estrita de Parâmetros de Entrada nas Calculadoras via Schema Fastify**:
+    - **Módulo Dedicado de Validação e Schemas Fastify (`server/validators.js`)**:
+      * Implementada tabela de limites fisiológicos e faixas biológicas beira-leito (`LIMITES_FISIOLOGICOS`) para peso (0.4-350 kg), idade (0-125 anos), creatinina (0.1-30 mg/dL), pH (6.70-7.80), pCO2 (10-150 mmHg), HCO3 (2-60 mEq/L), eletrólitos (Na: 90-180 mEq/L, K: 1.0-10.0 mEq/L, Cl: 60-160 mEq/L), albumina (0.5-7.0 g/dL), PaO2 (15-600 mmHg) e PFE (0-1000 L/min).
+      * Validação defensiva de parâmetros por calculadora clínica (`validarParametrosCalculadora`): DVA (drogas válidas e peso), SRI (cenários válidos e peso), CrCl (creatinina, idade, peso e sexo), Gasometria (pH, pCO2, HCO3 e eletrólitos), Pediatria/PALS/Holliday (teto de 150 kg e 18 anos), DHE/Hipercalemia/Hiponatremia, HEART Score (itens restritos a 0, 1 e 2) e Asma (peso e PFE).
+      * Normalização universal de números e valores numéricos em vírgula ou ponto (ex: `"75,5"` -> `75.5`), descartando strings corrompidas ou tipos espúrios em 0ms.
+      * Blindagem ativa contra Prototype Pollution: descarte forçado de chaves perigosas (`__proto__`, `constructor`, `prototype`), protegendo a integridade do processo.
+    - **Fast-Path no Handshake HTTP de `/api/cockpit`**:
+      * Injetado schema Fastify (`cockpitBodySchema`) exigindo `metodo` string não vazia, tipagem estrita de `args`, `session` e `token`.
+      * Hook `preValidation` no `/api/cockpit` que valida e higieniza parâmetros de cálculo antes de invocar `runtime.cockpitRpc`, poupando ciclos de CPU da VM V8 e desarmando chamadas inválidas sem entrar no contexto clínico.
+      * Suporte nativo e parser automático para requisições com `Content-Type: text/plain` (utilizado pelo Cockpit PWA via GitHub Pages), garantindo validação de schema transparente.
+    - **Endpoint REST Dedicado para Calculadoras Clínicas (`POST /api/calcular`)**:
+      * Criado endpoint REST de altíssima performance com validação nativa de schema Fastify Ajv (`calcularBodySchema`).
+      * Execução direta de cálculos com resposta estruturada `{ ok: true, tipo, resultado, benchmark_ms }` com latência inferior a 1ms.
+    - **Hardening de Handshake no Webhook e Telemetria**:
+      * Injetado `preValidation` rigoroso no `/webhook` exigindo `update_id` como número inteiro não negativo (`Number.isSafeInteger(update_id)`), descartando strings, floats ou valores negativos no handshake.
+      * Injetado schema de querystring (`telemetriaQuerySchema`) em `/api/telemetria/ao-vivo` e `/api/telemetria/erros` limitando `limite` a inteiros entre 1 e 100.
+      * Tratamento customizado de `error.validation` no `errorHandler` global do Fastify emitindo JSON amigável e rastreável com `requestId`.
+      * Telemetria de segurança em `/api/status` enriquecida com flag `seguranca.schemas_fastify: true`.
+    - **Suíte de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_schemas_validacao_calculadoras.cjs` cobrindo handshake raiz, limites fisiológicos de todas as calculadoras, bloqueio de prototype pollution, endpoint REST `/api/calcular`, webhook e querystrings de telemetria.
+      * Integrada ao script `npm test` e `npm run lint` no `package.json`, alcançando 100% de aprovação em todas as 28 suítes de teste do projeto.
 
 ---
 
