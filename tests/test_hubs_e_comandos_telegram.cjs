@@ -35,6 +35,12 @@ async function executarTestesHubsEComandosTelegram() {
     callbacksRespondidos.push({ id, texto: String(texto || '') });
     return true;
   };
+  ctx.executarPostTelegram = (url, payload) => {
+    if (payload && payload.text) {
+      mensagensEnviadas.push({ tipo: 'edit', id: payload.chat_id, texto: String(payload.text), kb: payload.reply_markup });
+    }
+    return true;
+  };
 
   function limparCaptura() {
     mensagensEnviadas = [];

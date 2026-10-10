@@ -268,12 +268,13 @@ function enviarMenuGinecologiaObstetricia(chat, messageId) {
 
 function enviarMenuSalaVermelha(chat, messageId) {
   return enviarTelaBot(chat, '🚨 *EMERGÊNCIA & SALA VERMELHA*\n\nCondutas imediatas e suporte intensivo:', botoesBot([
-    [['🫀 PCR (ACLS)', 'ux:conduta:pcr'], ['🫁 SRI / IOT', 'ux:srimenu']],
+    [['🫀 PCR (ACLS)', 'ux:conduta:pcr'], ['⚡ Arritmias Cardíacas', 'ux:emerg:arritmia']],
+    [['🫁 SRI / IOT', 'ux:srimenu'], ['🩸 Gasometria', 'ux:iniciar:gaso']],
     [['💉 Noradrenalina', 'ux:droga:nora'], ['💉 Dobutamina', 'ux:droga:dobuta']],
     [['💉 Vasopressina', 'ux:fixa:vaso'], ['💉 Outras DVA', 'ux:dvamenu']],
-    [['🩸 Gasometria', 'ux:iniciar:gaso'], ['⚡ Choque & Hipotensão', 'ux:emerg:choque']],
-    [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🦟 Dengue C/D', 'ux:emerg:dengue']],
-    [['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
+    [['⚡ Choque & Hipotensão', 'ux:emerg:choque'], ['❤️ Crise HAS', 'ux:emerg:crisehas']],
+    [['🦟 Dengue C/D', 'ux:emerg:dengue'], ['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia']],
+    [['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
@@ -840,6 +841,7 @@ function tratarCallbackUX(cb) {
       else if (v === 'crisehas') texto('/crisehipertensiva');
       else if (v === 'dengue') texto('/dengue');
       else if (v === 'cefaleia') texto('/cefaleia');
+      else if (v === 'arritmia') texto('/arritmia');
       else enviarMenuSalaVermelha(chat, msgId);
     } else if (op === 'gaso') {
       if (v.indexOf('pre:') === 0) {

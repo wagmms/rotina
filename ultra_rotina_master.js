@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-10 17:36:00
- * Checksum SHA256: 61a72434e19d4c93
+ * Gerado automaticamente via build_master.py em: 2026-10-10 18:54:15
+ * Checksum SHA256: 03ef44d123eee5d5
  * ==============================================================================
  */
 
@@ -40570,6 +40570,22 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
     return processarMensagemTexto({ chat: { id: chatId }, text: "/conduta PCR" });
   }
 
+  // N. Arritmias Cardíacas (ACLS)
+  if (/^(?:arritmia|arritmias|taquiarritmia|taquiarritmias|taquicardia|taquicardias|bradiarritmia|bradiarritmias|bradicardia|bradicardias|tsv)(?:\s+.*)?$/i.test(tLow)) {
+    var matchCmdArr = tLow.match(/^(?:arritmia|arritmias|taquiarritmia|taquiarritmias|taquicardia|taquicardias|bradiarritmia|bradiarritmias|bradicardia|bradicardias|tsv)/i);
+    var cmdArr = matchCmdArr ? matchCmdArr[0].toLowerCase() : "arritmia";
+    var dadosArrAtalho = tLow.replace(/^(?:arritmia|arritmias|taquiarritmia|taquiarritmias|taquicardia|taquicardias|bradiarritmia|bradiarritmias|bradicardia|bradicardias|tsv)\s*/i, "").trim();
+    if (/^bradi/i.test(cmdArr) && !dadosArrAtalho) {
+      dadosArrAtalho = "bradi";
+    } else if (/^tsv/i.test(cmdArr)) {
+      dadosArrAtalho = "tsv " + dadosArrAtalho;
+    }
+    if (typeof tratarComandoArritmia === "function") {
+      return tratarComandoArritmia(chatId, dadosArrAtalho);
+    }
+    return processarMensagemTexto({ chat: { id: chatId }, text: "/arritmia" + (dadosArrAtalho ? " " + dadosArrAtalho : "") });
+  }
+
   return false;
 }
 
@@ -40897,7 +40913,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -40909,7 +40925,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -41085,6 +41101,12 @@ function processarMensagemTexto(message) {
   if (comando === "/pcr" || comando === "/acls") {
     var dadosPcrCmd = texto.replace(/^\/(?:pcr|acls)\s*/i, "").trim();
     return tratarComandoPcr(chatId, dadosPcrCmd);
+  }
+
+  // 3.1.1. PROTOCOLO DE ARRITMIAS CARDÍACAS (ACLS)
+  if (comando === "/arritmia" || comando === "/taquiarritmia" || comando === "/taquicardia" || comando === "/bradiarritmia" || comando === "/bradicardia") {
+    var dadosArrCmd = texto.replace(/^\/(?:arritmia|taquiarritmia|taquicardia|bradiarritmia|bradicardia)\s*/i, "").trim();
+    return tratarComandoArritmia(chatId, comando, dadosArrCmd);
   }
 
   if (comando === "/soap") {
@@ -45832,6 +45854,161 @@ function processarCallbackBotao(cb) {
     responderCallbackTelegram(cb.id, "PALS Pediátrico");
     return tratarComandoPcr(cb.message.chat.id, "ped");
   }
+  else if (data === "pcr_droga_adrena") {
+    responderCallbackTelegram(cb.id, "Adrenalina 1 mg");
+    var txtAdrena = "💉 *PCR: ADRENALINA (EPINEFRINA) 1 MG — DIRETRIZES ACLS*\n\n" +
+      "🔴 *DOSE & POSOLOGIA:*\n" +
+      "• *Dose Adulto:* *1 mg IV/IO* (1 ampola 1 mg/mL pura ou diluída em 9 mL SF 0.9%).\n" +
+      "• *Intervalo:* Administrar *a cada 3 a 5 minutos* durante todo o suporte avançado.\n\n" +
+      "⏱️ *TIMING DE ADMINISTRAÇÃO:*\n" +
+      "• *Ritmo NÃO Chocável (AESP / Assistolia):* Administrar *IMEDIATAMENTE no Ciclo 1* assim que obtido acesso IV/IO!\n" +
+      "• *Ritmo Chocável (FV / TVSP):* Administrar *após o 2º Choque* (início do Ciclo 2).\n\n" +
+      "💧 *FLUSH & ELEVAÇÃO MANDATÓRIOS:*\n" +
+      "• Bólus IV rápido seguido imediatamente de *FLUSH de 20 mL de SF 0.9%*.\n" +
+      "• *Elevar o membro por 10 a 20 segundos* para acelerar o retorno venoso central.\n\n" +
+      "🫁 *VIA AÉREA AVANÇADA (IOT / MÁSCARA LARÍNGEA):*\n" +
+      "• NÃO interromper as compressões torácicas para intubação.\n" +
+      "• Com via aérea instalada: 1 ventilação a cada 2 a 3 segundos (10 ventilações/min) e compressões torácicas contínuas (100-120 cpm).";
+    var kbAdrena = {
+      inline_keyboard: [
+        [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
+        [{ text: "💉 Amiodarona 300mg", callback_data: "pcr_droga_amiodarona" }, { text: "⏱️ Ciclo 2 min & RCP", callback_data: "pcr_ciclo_2min" }],
+        [{ text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }, { text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtAdrena, kbAdrena);
+  }
+  else if (data === "pcr_droga_amiodarona") {
+    responderCallbackTelegram(cb.id, "Amiodarona 300mg / 150mg");
+    var txtAmio = "💉 *PCR: AMIODARONA & ANTIARRÍTMICOS — DIRETRIZES ACLS*\n\n" +
+      "⚡ *AMIODARONA (FV / TV SEM PULSO REFRATÁRIA):*\n" +
+      "• *1ª Dose (Pós-3º Choque):* *300 mg IV/IO* em bólus rápido (2 ampolas de 150 mg/3 mL) + flush 20 mL SF 0.9%.\n" +
+      "• *2ª Dose:* *150 mg IV/IO* em bólus rápido (1 ampola) após mais 1 ou 2 ciclos de RCP (após o 4º ou 5º choque).\n\n" +
+      "🧪 *DROGA ALTERNATIVA: LIDOCAÍNA 2%*\n" +
+      "• Indicada se Amiodarona indisponível ou hipersensibilidade prévia:\n" +
+      "• *1ª Dose:* 1,0 a 1,5 mg/kg IV/IO em bólus rápido.\n" +
+      "• *2ª Dose:* 0,5 a 0,75 mg/kg IV/IO nos ciclos subsequentes.\n" +
+      "• *Dose máxima acumulada:* 3,0 mg/kg.\n\n" +
+      "⚡ *SULFATO DE MAGNÉSIO 50% (TORSADES DE POINTES):*\n" +
+      "• Indicação: FV/TV associada a QT longo ou suspeita de Torsades de Pointes.\n" +
+      "• *Dose:* *2 g IV/IO* (4 mL de MgSO₄ 50%) diluído em 10 mL de SG 5% ou SF 0.9% em 1 a 2 minutos.";
+    var kbAmio = {
+      inline_keyboard: [
+        [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }],
+        [{ text: "⏱️ Ciclo 2 min & RCP", callback_data: "pcr_ciclo_2min" }, { text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }],
+        [{ text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtAmio, kbAmio);
+  }
+  else if (data === "pcr_ciclo_2min") {
+    responderCallbackTelegram(cb.id, "Ciclo RCP 2 min");
+    var txtCiclo = "⏱️ *DIRETRIZES DE RCP DE ALTA QUALIDADE (CICLO DE 2 MINUTOS)*\n\n" +
+      "🖐️ *MÉTRICAS DAS COMPRESSÕES TORÁCICAS (AHA / SBC):*\n" +
+      "• *Frequência:* 100 a 120 compressões por minuto.\n" +
+      "• *Profundidade:* 5 a 6 cm no terço inferior do esterno (adulto).\n" +
+      "• *Retorno Completo do Tórax:* Permitir descompressão total a cada movimento (não apoiar o peso sobre o tórax).\n" +
+      "• *Minimizar Interrupções:* Pausas < 10 segundos apenas para checar ritmo e chocar.\n" +
+      "• *Revezamento:* Trocar o socorrista das compressões *A CADA 2 MINUTOS* ou antes se exaustão.\n\n" +
+      "🌬️ *VENTILAÇÃO & VIA AÉREA:*\n" +
+      "• *Sem via aérea avançada:* Relação 30:2 com bolsa-válvula-máscara e O₂ a 15 L/min.\n" +
+      "• *Com via aérea avançada (IOT / ML):* Compressões contínuas + 1 ventilação a cada 2 a 3 segundos (10 ventilações/min). NÃO HIPERVENTILAR!\n" +
+      "• *Capnografia (EtCO₂):* Se < 10 mmHg indica RCP ineficaz. Elevação abrupta para > 35-40 mmHg indica provável Retorno da Circulação Espontânea (RCE)!\n\n" +
+      "📏 *SE ASSISTOLIA — PROTOCOLO DA LINHA RETA MANDATÓRIO:*\n" +
+      "1. Checar cabos e conexão dos eletrodos/pás.\n" +
+      "2. Aumentar o ganho do monitor ao máximo.\n" +
+      "3. Mudar a derivação do monitor (ex: de DII para DI) para descartar FV fina oculta!";
+    var kbCiclo = {
+      inline_keyboard: [
+        [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
+        [{ text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }, { text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }],
+        [{ text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtCiclo, kbCiclo);
+  }
+  else if (data === "pcr_5hs_5ts") {
+    responderCallbackTelegram(cb.id, "Checklist 5Hs & 5Ts");
+    var txt5H5T = "🔍 *CAUSAS REVERSÍVEIS DE PCR: 5 Hs & 5 Ts COM CONDUTA IMEDIATA*\n\n" +
+      "🔴 *OS 5 Hs:*\n" +
+      "1. *Hipovolemia:* Cristaloide rápido (SF 0.9% / RL 1000-2000 mL) ou hemotransfusão se sangramento agudo.\n" +
+      "2. *Hipóxia:* FiO₂ 100%, checar posicionamento, desobstrução e expansibilidade simétrica do tubo endotraqueal.\n" +
+      "3. *H⁺ (Acidose Metabólica):* Otimizar ventilação. Bicarbonato de Sódio 8.4% 1 mEq/kg IV se acidose grave preexistente ou hipercalemia.\n" +
+      "4. *Hipo / Hipercalemia:*\n" +
+      "   • *Hipercalemia:* Gluconato de Cálcio 10% 20-30 mL IV + Glicoinsulina (10 UI regular + 50 mL SG 50%) + NaHCO₃.\n" +
+      "   • *Hipocalemia:* Reposição rápida de KCl venoso sob RCP.\n" +
+      "5. *Hipotermia:* Aquecimento ativo (mantas térmicas, infusão aquecida a 39-42°C).\n\n" +
+      "🔵 *OS 5 Ts:*\n" +
+      "1. *Tensão no Tórax (Pneumotórax Hipertensivo):* Toracostomia imediata com agulha (2º EIC linha hemiclavicular ou 4º/5º EIC linha axilar anterior) seguida de dreno de tórax.\n" +
+      "2. *Tamponamento Cardíaco:* Pericardiocentese de alívio por punção subxifoide guiada por POCUS/USG.\n" +
+      "3. *Toxinas / Intoxicações:* Naloxona 0.4 a 2 mg IV se opioides; Emulsão lipídica 20% se anestésicos locais; Flumazenil se BZD.\n" +
+      "4. *Trombose Pulmonar (TEP Maciço):* Trombolítico imediato (Alteplase rtPA 50 mg em bólus IV ou 100 mg em 2h); manter RCP contínua por 60 a 90 minutos.\n" +
+      "5. *Trombose Coronariana (IAM):* Ponte para Angioplastia Primária / Cateterismo Cardíaco (CATE) imediato após RCE.";
+    var kb5H5T = {
+      inline_keyboard: [
+        [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
+        [{ text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }, { text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txt5H5T, kb5H5T);
+  }
+  else if (data === "pcr_pos_rce") {
+    responderCallbackTelegram(cb.id, "Cuidados Pós-RCE");
+    var txtPosRce = "⚡ *CUIDADOS PÓS-RESSUSCITAÇÃO IMEDIATA (RCE — RETORNO DA CIRCULAÇÃO)*\n\n" +
+      "1️⃣ *OTIMIZAÇÃO HEMODINÂMICA:*\n" +
+      "• *Alvo de Pressão:* PAM ≥ 65 mmHg e PAS ≥ 90 mmHg.\n" +
+      "• *Suporte Vasoativo:* Iniciar infusão de *Noradrenalina* (0,1 a 1,0 mcg/kg/min) se hipotensão persistente. Considerar Dobutamina se choque cardiogênico pós-parada.\n\n" +
+      "2️⃣ *VENTILAÇÃO & OXIGENAÇÃO:*\n" +
+      "• *Alvo de SpO₂:* 92% a 98% (EVITAR hiperóxia FiO₂ 100% desnecessária!).\n" +
+      "• *Normocapnia:* PaCO₂ 35 a 45 mmHg (EtCO₂ 35 a 40 mmHg). Evitar hipocapnia (vasoconstrição cerebral).\n\n" +
+      "3️⃣ *ESTRATÉGIA CORONARIANA IMEDIATA (ECG 12 DERIVAÇÕES):*\n" +
+      "• Realizar ECG de 12 derivações IMEDIATAMENTE.\n" +
+      "• Se *Supra de ST* ou suspeita clínica elevada de infarto -> Acionar Cateterismo Cardíaco de Emergência (CATE / Angioplastia Primária imediata).\n\n" +
+      "4️⃣ *CONTROLE DIRECIONADO DE TEMPERATURA (CDT):*\n" +
+      "• Indicado se paciente permanecer comatoso / não responsivo pós-RCE.\n" +
+      "• *Temperatura Alvo:* 32°C a 36°C constante por no mínimo 24 horas.\n" +
+      "• Prevenir ativamente febre (> 37,7°C) nas primeiras 72 horas pós-PCR.\n\n" +
+      "5️⃣ *AVALIAÇÃO METABÓLICA & NEUROLÓGICA:*\n" +
+      "• Glicemia: manter 140 a 180 mg/dL (evitar rigorosamente hipoglicemia < 80).\n" +
+      "• Gasometria, lactato, eletrólitos (K+, Mg++, Ca++) e TC de crânio se suspeita de etiologia neurológica.";
+    var kbPosRce = {
+      inline_keyboard: [
+        [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
+        [{ text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }, { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtPosRce, kbPosRce);
+  }
+  // J2. PROTOCOLOS DE ARRITMIAS CARDÍACAS (ACLS)
+  else if (data === "arritmia_menu") {
+    responderCallbackTelegram(cb.id, "Central de Arritmias");
+    return tratarComandoArritmia(cb.message.chat.id, "");
+  }
+  else if (data === "arritmia_instavel") {
+    responderCallbackTelegram(cb.id, "Arritmia Instável (CVE)");
+    return tratarComandoArritmia(cb.message.chat.id, "instavel");
+  }
+  else if (data === "arritmia_tsv") {
+    responderCallbackTelegram(cb.id, "Taquicardia Supra (TSV)");
+    return tratarComandoArritmia(cb.message.chat.id, "tsv");
+  }
+  else if (data === "arritmia_tv") {
+    responderCallbackTelegram(cb.id, "TV Monomórfica");
+    return tratarComandoArritmia(cb.message.chat.id, "tv");
+  }
+  else if (data === "arritmia_fa") {
+    responderCallbackTelegram(cb.id, "FA / Flutter");
+    return tratarComandoArritmia(cb.message.chat.id, "fa");
+  }
+  else if (data === "arritmia_bradi") {
+    responderCallbackTelegram(cb.id, "Bradicardia & BAV");
+    return tratarComandoArritmia(cb.message.chat.id, "bradi");
+  }
   // K. DISTÚRBIOS HIDROELETROLÍTICOS (DHE)
   else if (data === "dhe_hipo") {
     responderCallbackTelegram(cb.id, "Hiponatremia (Adrogué-Madias)");
@@ -48021,9 +48198,26 @@ function tratarComandoPcr(chatId, dadosPcr) {
       "4️⃣ *INVESTIGAR CAUSAS REVERSÍVEIS (5 Hs & 5 Ts)*";
     var kbChoc = {
       inline_keyboard: [
-        [{ text: "🫀 Mudar para Não Chocável", callback_data: "pcr_naochocavel" }],
-        [{ text: "🤰 PCR Gestante", callback_data: "pcr_gestante" }, { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [
+          { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" },
+          { text: "💉 Amiodarona", callback_data: "pcr_droga_amiodarona" }
+        ],
+        [
+          { text: "⏱️ Ciclo RCP 2 min", callback_data: "pcr_ciclo_2min" },
+          { text: "🔍 5Hs & 5Ts", callback_data: "pcr_5hs_5ts" }
+        ],
+        [
+          { text: "🎯 Cuidados Pós-RCE", callback_data: "pcr_pos_rce" },
+          { text: "🫀 Mudar p/ Não Chocável", callback_data: "pcr_naochocavel" }
+        ],
+        [
+          { text: "🤰 PCR Gestante", callback_data: "pcr_gestante" },
+          { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
+        ],
+        [
+          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
       ]
     };
     return enviarMensagemComTecladoParaChat(chatId, txtChoc, kbChoc);
@@ -48051,9 +48245,22 @@ function tratarComandoPcr(chatId, dadosPcr) {
       "• *Trombose Coronariana (IAM):* Ponte para ICP após retorno da circulação espontânea (RCE).";
     var kbNaoChoc = {
       inline_keyboard: [
-        [{ text: "⚡ Mudar para Ritmo Chocável", callback_data: "pcr_chocavel" }],
-        [{ text: "🤰 PCR Gestante", callback_data: "pcr_gestante" }, { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [
+          { text: "⚡ Mudar p/ Ritmo Chocável", callback_data: "pcr_chocavel" },
+          { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }
+        ],
+        [
+          { text: "⏱️ Ciclo RCP 2 min", callback_data: "pcr_ciclo_2min" },
+          { text: "🔍 Checklist 5Hs & 5Ts", callback_data: "pcr_5hs_5ts" }
+        ],
+        [
+          { text: "🎯 Cuidados Pós-RCE", callback_data: "pcr_pos_rce" },
+          { text: "🤰 PCR Gestante", callback_data: "pcr_gestante" }
+        ],
+        [
+          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
       ]
     };
     return enviarMensagemComTecladoParaChat(chatId, txtNaoChoc, kbNaoChoc);
@@ -48071,6 +48278,10 @@ function tratarComandoPcr(chatId, dadosPcr) {
         { text: "🫀 Não Chocável (AESP / Assistolia)", callback_data: "pcr_naochocavel" }
       ],
       [
+        { text: "💉 Drogas ACLS", callback_data: "pcr_droga_adrena" },
+        { text: "🔍 5Hs & 5Ts", callback_data: "pcr_5hs_5ts" }
+      ],
+      [
         { text: "🤰 PCR na Gestante", callback_data: "pcr_gestante" },
         { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
       ],
@@ -48081,6 +48292,201 @@ function tratarComandoPcr(chatId, dadosPcr) {
     ]
   };
   return enviarMensagemComTecladoParaChat(chatId, txtPadrao, kbPadrao);
+}
+
+/**
+ * Trata o protocolo de Arritmias Cardíacas (ACLS) beira-leito
+ */
+function tratarComandoArritmia(chatId, comando, dadosArr) {
+  comando = (comando || "/arritmia").toLowerCase();
+  dadosArr = (dadosArr || "").trim();
+  var dLow = dadosArr.toLowerCase();
+
+  // 1. Identificação de Bradicardias
+  var ehBradi = comando === "/bradiarritmia" || comando === "/bradicardia" ||
+                dLow.indexOf("bradi") !== -1 || dLow.indexOf("bav") !== -1 ||
+                dLow.indexOf("bloqueio") !== -1 || dLow.indexOf("atropina") !== -1 ||
+                dLow.indexOf("marcapasso") !== -1;
+
+  if (ehBradi) {
+    var txtBradi = "🐢 *BRADIARRITMIAS & BLOQUEIOS ATRIOVENTRICULARES (ACLS)*\n\n" +
+      "1️⃣ *ESTRATIFICAÇÃO DE INSTABILIDADE (SINAIS DE GRAVIDADE / 4D):*\n" +
+      "• Hipotensão arterial (PAS < 90 / PAM < 65 mmHg) ou choque.\n" +
+      "• Alteração aguda do estado mental / confusão mental / síncope.\n" +
+      "• Sinais de choque ou má perfusão tecidual periférica.\n" +
+      "• Desconforto torácico isquêmico (angina / IAM).\n" +
+      "• Insuficiência cardíaca aguda / edema agudo de pulmão (EAP).\n\n" +
+      "2️⃣ *CONDUTA FARMACOLÓGICA (1ª LINHA):*\n" +
+      "• *Atropina 1 mg IV/IO* em bólus direto rápido (repetir a cada 3 a 5 min até dose máxima cumulativa de *3 mg*).\n" +
+      "• ⚠️ *ALERTA CRÍTICO DE SEGURANÇA:* A Atropina é *ineficaz em BAV avançado* (BAV de 2º grau Mobitz II e BAV de 3º grau / BAVT com QRS largo infra-hissiano) e em pacientes com transplante cardíaco (coração desnervado). NÃO atrasar o suporte elétrico nesses cenários!\n\n" +
+      "3️⃣ *SE MÁ RESPOSTA / INSTÁVEL (2ª LINHA):*\n" +
+      "• *Marcapasso Transcutâneo (MPTC)* imediato: posicionar pás, analgesia/sedação se consciente, ligar modo demanda, titular corrente (mA) até captura elétrica e conferir pulso mecânico.\n" +
+      "• *Dopamina IV:* infusão contínua de 5 a 20 mcg/kg/min.\n" +
+      "• *Adrenalina IV:* infusão contínua de 2 a 10 mcg/min (titular para FC > 50 bpm e PAM ≥ 65).\n" +
+      "• Preparar passagem de Marcapasso Transvenoso (MPTV) e acionar Cardiologia.";
+
+    var kbBradi = {
+      inline_keyboard: [
+        [{ text: "🚨 Instável (CVE Sincronizada)", callback_data: "arritmia_instavel" }],
+        [{ text: "⚡ TSV (Taqui Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
+        [{ text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }, { text: "⚡ Protocolo PCR", callback_data: "pcr_chocavel" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtBradi, kbBradi);
+  }
+
+  // 2. Identificação de Instabilidade Hemodinâmica (Critérios 4D / Choque / Dor)
+  var ehInstavel = dLow.indexOf("instavel") !== -1 || dLow.indexOf("instável") !== -1 ||
+                   dLow.indexOf("choque") !== -1 || dLow.indexOf("dor") !== -1 ||
+                   dLow.indexOf("hipotens") !== -1 || dLow.indexOf("eap") !== -1 ||
+                   dLow.indexOf("desmaio") !== -1 || dLow.indexOf("sincope") !== -1 ||
+                   dLow.indexOf("síncope") !== -1;
+
+  if (ehInstavel) {
+    var txtInstavel = "🚨 *ARRITMIA INSTÁVEL — CONDUTA: CARDIOVERSÃO ELÉTRICA (CVE) SINCRONIZADA IMEDIATA*\n\n" +
+      "⚠️ *CRITÉRIOS DE INSTABILIDADE (OS 4D / 5D DO ACLS):*\n" +
+      "1. *Dor Torácica Isquêmica* (angina, IAM em curso).\n" +
+      "2. *Dispneia Aguda / EAP* (congestão pulmonar aguda grave).\n" +
+      "3. *Diminuição do Nível de Consciência* (rebaixamento, sonolência, síncope).\n" +
+      "4. *Diminuição da PA / Choque* (hipotensão PAS < 90 / PAM < 65, TEC > 3s).\n\n" +
+      "⚡ *PROTOCOLO DE CARDIOVERSÃO ELÉTRICA SINCRONIZADA:*\n" +
+      "• *1. Sincronização Obrigatória:* Apertar o botão *SYNC* no cardioversor e confirmar que a marcação/marcador coincida com a onda R.\n" +
+      "• *2. Sedação e Analgesia Rápida (se tempo hábil e consciente):* Fentanil 1 mcg/kg (ou 50-100 mcg) + Etomidato 0,2-0,3 mg/kg IV ou Midazolam 3-5 mg IV.\n" +
+      "• *3. Cargas Recomendadas (Bifásico):*\n" +
+      "  - *QRS Estreito e Regular (TSV / Flutter Atrial):* 50 a 100 J.\n" +
+      "  - *QRS Estreito e Irregular (Fibrilação Atrial RVR):* 120 a 200 J.\n" +
+      "  - *QRS Largo e Regular (TV Monomórfica com Pulso):* 100 J.\n" +
+      "  - *QRS Largo e Irregular (TV Polimórfica / Torsades):* Choque de *Desfibrilação Assincrônica 200 J* (NÃO sincronizar!).\n\n" +
+      "🚨 *Se o paciente evoluir para inconsciência sem pulso:* Desfibrilação 200 J imediata e iniciar RCP (/pcr tv)!";
+
+    var kbInstavel = {
+      inline_keyboard: [
+        [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
+        [{ text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }, { text: "🐢 Bradicardia", callback_data: "arritmia_bradi" }],
+        [{ text: "⚡ TV sem pulso (PCR)", callback_data: "pcr_chocavel" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtInstavel, kbInstavel);
+  }
+
+  // 3. Taquicardia Ventricular (TV Monomórfica com Pulso)
+  var ehTv = dLow.indexOf("tv") !== -1 || dLow.indexOf("ventricular") !== -1 ||
+             dLow.indexOf("monomorf") !== -1 || dLow.indexOf("largo") !== -1;
+
+  if (ehTv) {
+    var txtTv = "🫀 *TAQUICARDIA VENTRICULAR MONOMÓRFICA COM PULSO (ESTÁVEL)*\n\n" +
+      "1️⃣ *ESTABILIDADE HEMODINÂMICA:*\n" +
+      "• Paciente vigil, lúcido, sem dor no peito, sem EAP e sem choque.\n" +
+      "• ⚠️ *Se instabilizar a qualquer momento:* realizar imediatamente *Cardioversão Elétrica Sincronizada (CVE) com 100 J* (bifásico)!\n\n" +
+      "2️⃣ *CONDUTA FARMACOLÓGICA (PACIENTE ESTÁVEL):*\n" +
+      "• *Amiodarona 150 mg IV:* diluída em 100 mL de Solução Glicosada 5% (SG 5%) infundida em *10 minutos*.\n" +
+      "• Se a arritmia persistir, pode-se repetir 1 bólus adicional de 150 mg em 10 min.\n" +
+      "• *Manutenção contínua na BIC:* 1 mg/min nas primeiras 6 horas (360 mg) ➔ 0,5 mg/min nas 18 horas seguintes (540 mg) — dose total máxima de 2,2 g em 24h.\n" +
+      "• *Alternativa (Lidocaína):* 1 a 1,5 mg/kg IV em bólus lento (pode repetir 0,5 a 0,75 mg/kg a cada 5-10 min, máx 3 mg/kg).\n" +
+      "• Se ritmo polimórfico / suspeita de Torsades de Pointes: *Sulfato de Magnésio 50% 2 g IV* em 1 a 2 min.\n\n" +
+      "🚨 *Se ausência de pulso carotídeo:* Tratar imediatamente como PCR chocável (/pcr tv — Desfibrilação 200 J)!";
+
+    var kbTv = {
+      inline_keyboard: [
+        [{ text: "🚨 Se Instável: CVE 100 J", callback_data: "arritmia_instavel" }],
+        [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }],
+        [{ text: "⚡ TV sem pulso (PCR)", callback_data: "pcr_chocavel" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtTv, kbTv);
+  }
+
+  // 4. Taquicardia Supraventricular (TSV / QRS Estreito Regular)
+  var ehTsv = dLow.indexOf("tsv") !== -1 || dLow.indexOf("supra") !== -1 ||
+              dLow.indexOf("estreito") !== -1 || dLow.indexOf("reentrada") !== -1 ||
+              comando === "/taquiarritmia" || comando === "/taquicardia";
+
+  if (ehTsv && dLow.indexOf("fa") === -1 && dLow.indexOf("flutter") === -1) {
+    var txtTsv = "⚡ *TAQUICARDIA SUPRAVENTRICULAR PAROXÍSTICA (TSV / TRN — ACLS)*\n\n" +
+      "1️⃣ *ESTABILIDADE CLÍNICA:*\n" +
+      "• Se apresentar dor torácica, EAP, hipotensão ou confusão mental: *Cardioversão Elétrica Sincronizada (CVE) imediata com 50 a 100 J*.\n\n" +
+      "2️⃣ *1ª LINHA NÃO FARMACOLÓGICA (PACIENTE ESTÁVEL):*\n" +
+      "• *Manobra de Valsalva Modificada (Protocolo REVERT):*\n" +
+      "  - Paciente semi-sentado (45º) sopra com força no bocal de uma seringa de 20 mL por *15 segundos* (pressão ~40 mmHg).\n" +
+      "  - Imediatamente deitar o paciente em decúbito dorsal e elevar passivamente os membros inferiores a 45º por *45 segundos*.\n" +
+      "  - Taxa de reversão comprovada superior a 40%!\n\n" +
+      "3️⃣ *2ª LINHA FARMACOLÓGICA (SE FALHA DA MANOBRA):*\n" +
+      "• *Adenosina 6 mg IV em bólus super rápido (push):* aplicar em veia calibrosa antecubital, seguido IMEDIATAMENTE de *flush de 20 mL de SF 0.9%* e elevação rápida do braço.\n" +
+      "• Monitorização contínua com ECG rodando (alerta para breve assistolia transitória fisiológica).\n" +
+      "• Se não reverter em 1 a 2 minutos: aplicar *2ª dose de Adenosina 12 mg IV push* + flush de 20 mL SF 0.9%.\n" +
+      "• *Alternativas se refratária:* Diltiazem 0,25 mg/kg IV em 2 min ou Verapamil 2,5 a 5 mg IV ou Metoprolol 5 mg IV lento.";
+
+    var kbTsv = {
+      inline_keyboard: [
+        [{ text: "🚨 Se Instável: CVE 50-100J", callback_data: "arritmia_instavel" }],
+        [{ text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }, { text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }],
+        [{ text: "🐢 Bradicardias", callback_data: "arritmia_bradi" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtTsv, kbTsv);
+  }
+
+  // 5. Fibrilação Atrial e Flutter
+  if (dLow.indexOf("fa") !== -1 || dLow.indexOf("flutter") !== -1 || dLow.indexOf("fibrilacao") !== -1 || dLow.indexOf("fibrilação") !== -1) {
+    var txtFa = "🫀 *FIBRILAÇÃO ATRIAL (FA) & FLUTTER COM ALTA RESPOSTA VENTRICULAR (RVR)*\n\n" +
+      "1️⃣ *ESTABILIDADE:*\n" +
+      "• Se instável (dor, choque, síncope, EAP): *CVE sincronizada imediata* (FA: 120-200 J bifásico; Flutter: 50-100 J bifásico).\n\n" +
+      "2️⃣ *CONTROLE DE FREQUÊNCIA CARDÍACA (ALVO FC < 110 bpm):*\n" +
+      "• *Beta-bloqueador:* Metoprolol 5 mg IV lento (a cada 5 min, máx 15 mg) se FE normal e sem broncoespasmo.\n" +
+      "• *Bloqueador dos Canais de Cálcio:* Diltiazem 0,25 mg/kg IV em 2 min (máx 20 mg).\n" +
+      "• *IC com FE Reduzida / Descompensada:* Amiodarona 150 mg a 300 mg IV ou Digoxina 0,25 a 0,5 mg IV lento. (Contraindicado Diltiazem/Verapamil em IC descompensada!).\n\n" +
+      "3️⃣ *ESTRATIFICAÇÃO TROMBOEMBÓLICA & ANTICOAGULAÇÃO:*\n" +
+      "• Avaliar tempo de início: < 48 horas vs > 48 horas (ou tempo indeterminado).\n" +
+      "• Se > 48h: cardioversão química/elétrica eletiva requer 3 semanas prévias de anticoagulação plena ou ECO transesofágico livre de trombos atriais.\n" +
+      "• Calcular *CHA2DS2-VASc* para indicação de anticoagulação oral crônica (DOACs preferenciais).";
+
+    var kbFa = {
+      inline_keyboard: [
+        [{ text: "🚨 Se Instável: CVE", callback_data: "arritmia_instavel" }],
+        [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
+        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtFa, kbFa);
+  }
+
+  // 6. Guia Geral de Arritmias Cardíacas (ACLS)
+  var txtGuiaArr = "⚡ *ARRITMIAS CARDÍACAS NA EMERGÊNCIA (ALGORITMO ACLS)*\n\n" +
+    "1. *AVALIAÇÃO DE INSTABILIDADE (CRITÉRIOS 4D):*\n" +
+    "• Dor torácica isquêmica / Dispneia aguda (EAP) / Diminuição da consciência / Diminuição da PA (choque).\n" +
+    "• 🚨 *Se Instável:* Cardioversão Elétrica (CVE) Sincronizada Imediata!\n\n" +
+    "2. *SE PACIENTE ESTÁVEL — CLASSIFICAR O RITMO AO ECG:*\n" +
+    "• *Taquicardia Supraventricular (TSV):* QRS estreito regular ➔ Valsalva Modificada ➔ Adenosina 6mg / 12mg.\n" +
+    "• *Taquicardia Ventricular (TV Monomórfica):* QRS largo regular ➔ Amiodarona 150mg em 10 min ➔ CVE se instabilizar.\n" +
+    "• *Fibrilação Atrial / Flutter:* QRS estreito irregular ➔ Controle de frequência (Beta-bloqueador / Diltiazem) e anticoagulação.\n" +
+    "• *Bradicardia / BAV:* FC < 50 bpm ➔ Atropina 1mg (máx 3mg) ➔ Marcapasso transcutâneo / Dopamina / Adrenalina se BAV avançado ou má resposta.\n\n" +
+    "Toque no botão correspondente para abrir o protocolo beira-leito:";
+
+  var kbGuiaArr = {
+    inline_keyboard: [
+      [
+        { text: "🚨 Paciente Instável (4D / CVE)", callback_data: "arritmia_instavel" }
+      ],
+      [
+        { text: "⚡ Taquicardia Supra (TSV)", callback_data: "arritmia_tsv" },
+        { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }
+      ],
+      [
+        { text: "🫀 FA / Flutter (RVR)", callback_data: "arritmia_fa" },
+        { text: "🐢 Bradicardias & BAV", callback_data: "arritmia_bradi" }
+      ],
+      [
+        { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]
+    ]
+  };
+
+  return enviarMensagemComTecladoParaChat(chatId, txtGuiaArr, kbGuiaArr);
 }
 
 /**
@@ -50026,12 +50432,13 @@ function enviarMenuGinecologiaObstetricia(chat, messageId) {
 
 function enviarMenuSalaVermelha(chat, messageId) {
   return enviarTelaBot(chat, '🚨 *EMERGÊNCIA & SALA VERMELHA*\n\nCondutas imediatas e suporte intensivo:', botoesBot([
-    [['🫀 PCR (ACLS)', 'ux:conduta:pcr'], ['🫁 SRI / IOT', 'ux:srimenu']],
+    [['🫀 PCR (ACLS)', 'ux:conduta:pcr'], ['⚡ Arritmias Cardíacas', 'ux:emerg:arritmia']],
+    [['🫁 SRI / IOT', 'ux:srimenu'], ['🩸 Gasometria', 'ux:iniciar:gaso']],
     [['💉 Noradrenalina', 'ux:droga:nora'], ['💉 Dobutamina', 'ux:droga:dobuta']],
     [['💉 Vasopressina', 'ux:fixa:vaso'], ['💉 Outras DVA', 'ux:dvamenu']],
-    [['🩸 Gasometria', 'ux:iniciar:gaso'], ['⚡ Choque & Hipotensão', 'ux:emerg:choque']],
-    [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🦟 Dengue C/D', 'ux:emerg:dengue']],
-    [['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
+    [['⚡ Choque & Hipotensão', 'ux:emerg:choque'], ['❤️ Crise HAS', 'ux:emerg:crisehas']],
+    [['🦟 Dengue C/D', 'ux:emerg:dengue'], ['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia']],
+    [['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
@@ -50598,6 +51005,7 @@ function tratarCallbackUX(cb) {
       else if (v === 'crisehas') texto('/crisehipertensiva');
       else if (v === 'dengue') texto('/dengue');
       else if (v === 'cefaleia') texto('/cefaleia');
+      else if (v === 'arritmia') texto('/arritmia');
       else enviarMenuSalaVermelha(chat, msgId);
     } else if (op === 'gaso') {
       if (v.indexOf('pre:') === 0) {

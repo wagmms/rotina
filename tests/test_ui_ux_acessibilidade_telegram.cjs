@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test';
 const assert = require('assert');
 const runtime = require('../server/runtime.js');
 
@@ -22,6 +23,18 @@ async function testUiUxAcessibilidadeTelegram() {
   };
   ctx.responderCallbackTelegram = (cbId, texto) => {
     mensagensEnviadas.push({ metodo: 'responderCallbackTelegram', cbId, texto });
+  };
+  ctx.executarPostTelegram = (url, payload) => {
+    if (payload && payload.text) {
+      mensagensEnviadas.push({ metodo: 'executarPostTelegram', id: payload.chat_id, texto: payload.text, kb: payload.reply_markup });
+    }
+    return true;
+  };
+  ctx.UrlFetchApp = {
+    fetch: () => ({
+      getResponseCode: () => 200,
+      getContentText: () => JSON.stringify({ ok: true, result: { message_id: 12345 } })
+    })
   };
 
   // =========================================================================
