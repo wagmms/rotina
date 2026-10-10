@@ -13,17 +13,17 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Otimização de Caching HTTP (ETag / Stale-While-Revalidate) para Endpoints Estáticos no Fastify**:
-    - Avaliar headers HTTP de Cache-Control e ETag para endpoints de catálogo estático (`/api/cockpit` para REMUME e aulas) para economizar dados móveis de médicos em redes 3G/4G hospitalares.
+- [ ] **Rate-Limiting e Headers de Segurança no Fastify**:
+    - Implementar `@fastify/rate-limit` e `@fastify/helmet` para proteger endpoints HTTP contra chamadas abusivas e reforçar cabeçalhos de segurança sem degradar latência.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Rate-Limiting e Headers de Segurança no Fastify**:
-    - Implementar `@fastify/rate-limit` e `@fastify/helmet` para proteger endpoints HTTP contra chamadas abusivas e reforçar cabeçalhos de segurança sem degradar latência.
-2. [ ] **Auditoria de Acessibilidade e Contraste de Cores nos Cards de Alertas Clínicos do Cockpit**:
+1. [ ] **Auditoria de Acessibilidade e Contraste de Cores nos Cards de Alertas Clínicos do Cockpit**:
     - Garantir conformidade WCAG AA em alertas críticos (Sala Vermelha / HC-UE) e cartões de salvaguarda para visibilidade sob luz solar e telas de baixa luminosidade.
+2. [ ] **Refinamento do Timeout e Circuit Breaker para Provedores de IA Multimodal**:
+    - Implementar timeout seguro de 15s com fallback determinístico local para evitar esperas prolongadas no plantão se um provedor externo oscilar.
 
 ---
 
@@ -39,7 +39,7 @@
 - *Sugestão 7 (Telegram - Farmacologia)*: Botão inline de checagem imediata de diluição e compatibilidade em Y no Guia Farmacêutico HSL quando uma droga vasoativa (ex: Noradrenalina ou Dobutamina) for calculada via `/dva`.
 - *Sugestão 8 (Cockpit / PWA)*: Sincronização em segundo plano (Background Sync API) com fila outbox no IndexedDB para envio automático de prescrições e atualizações de leitos assim que o dispositivo recuperar conexão de rede após áreas de sombra no hospital.
 - *Sugestão 9 (Cockpit PWA)*: Tema "Plantão Noturno / Sala Escura" com fundo OLED puro (#000000) e tipografia em tons de âmbar/vermelho escuro para conforto visual e conservação de bateria no plantão da madrugada.
-- *Sugestão 10 (Calculadoras / Cockpit)*: Calculadora integrada de reposição de Magnésio e Fósforo IV para prevenção e manejo precoce da根 Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado na enfermaria/UTI.
+- *Sugestão 10 (Calculadoras / Cockpit)*: Calculadora integrada de reposição de Magnésio e Fósforo IV para prevenção e manejo precoce da Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado na enfermaria/UTI.
 - *Sugestão 11 (Calculadoras)*: Implementar validação cruzada entre clearance estimado (Cockcroft) e eTFG (CKD-EPI) ao gerar alertas de ajuste renal para evidenciar discrepâncias em obesos e sarcopênicos.
 - *Sugestão 12 (Gasometria)*: Adicionar cálculo visual do triângulo de Siggaard-Andersen para auxiliar o médico na compreensão do desvio de base.
 - *Sugestão 14 (Telegram - Mensagens Longas)*: Adicionar botão inline automático "📄 Ver Resumo Completo no Cockpit PWA" quando uma conduta for fragmentada em 3 ou mais partes, oferecendo opção de leitura contínua sem rolagem infinita.
@@ -51,7 +51,34 @@
 - *Sugestão 20 (Cockpit PWA)*: Implementar Web Share API para compartilhamento seguro de prescrições e orientações de alta via WhatsApp ou PDF diretamente pelo dispositivo móvel.
 - *Sugestão 21 (Cockpit / Calculadoras)*: Implementar histórico local dos últimos 5 cálculos realizados na sessão do plantão (IndexedDB/sessionStorage) para recuperação rápida com 1 toque sem redigitação de valores prévios.
 - *Sugestão 22 (Backend / Caching)*: Adicionar ETag HTTP determinístico no endpoint de REMUME e Guia Farmacêutico para permitir respostas HTTP 304 Not Modified, eliminando transferências redundantes de dados em reconexões.
+- *Sugestão 23 (Cockpit / Offline)*: Implementar busca fuzzy determinística na REMUME local para tolerar pequenas variações e erros de digitação rápidos beira-leito sem necessidade de internet.
+- *Sugestão 24 (Backend / Fastify)*: Implementar suporte a cabeçalho `Clear-Site-Data` em endpoint administrativo de redefinição de sessão para expurgo limpo de caches e Service Workers corrompidos no plantão.
+- *Sugestão 25 (Telegram / UI)*: Mini-gráfico Sparkline em caracteres Unicode ( ▂▃▅▆▇) no sumário de glicemia (`/diabetes`) para visualização instantânea de tendência sem payload de imagem.
 
+---
+
+## 📦 Histórico de Melhorias Concluídas
+
+0U. [x] **Otimização de Caching HTTP (ETag / Stale-While-Revalidate) para Endpoints Estáticos no Fastify e Cockpit PWA**:
+    - **ETags Determinísticos & Status HTTP 304 (Not Modified)**:
+      * Funções utilitárias nativas `gerarETag` (SHA-1) e `etagCorresponde` com suporte a `W/` e curinga `*`.
+      * Resposta HTTP 304 com 0 bytes de payload em requisições condicionais com `If-None-Match` no endpoint de Aulas Flash (`/api/aulas-flash`), poupando ~240 KB por requisição.
+    - **Endpoint REST Dedicado para REMUME Municipal (`/api/remume`)**:
+      * Criado endpoint GET `/api/remume` servindo o catálogo de 255 apresentações com cabeçalho `ETag` e `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`.
+      * Suporte nativo a revalidação HTTP 304, eliminando tráfego redundante de medicamentos em reconexões hospitalares.
+    - **Otimização de Caching RPC no Cockpit (`/api/cockpit`)**:
+      * Emissão de cabeçalhos `ETag` e `Cache-Control: private, max-age=3600, stale-while-revalidate=86400` para `cockpitRemume`.
+      * Suporte duplo para revalidação: HTTP 304 via header `If-None-Match` e resposta JSON `{ ok: true, notModified: true, etag }` quando o cliente PWA informa `{ etag }` no payload.
+      * Calibração de `Cache-Control` para métodos de leitura: `cockpitConsultar` e `cockpitPerfil` com `max-age=30, stale-while-revalidate=60`; catálogos estáveis (`cockpitBuscarCid`, `cockpitAulasProgresso`, `cockpitEstratificarRisco`) com `max-age=1800, stale-while-revalidate=86400`; e métodos de mutação mantidos estritamente com `no-store`.
+    - **Assets Estáticos PWA Otimizados no Fastify**:
+      * `/manifest.json`: Cache em memória, ETag, `max-age=86400, stale-while-revalidate=604800` e resposta 304.
+      * `/sw.js`: ETag e `max-age=0, must-revalidate` com suporte a 304, garantindo atualização instantânea do Service Worker.
+      * Ícones e imagens (`/pwa-192x192.png`, `/pwa-512x512.png`, `/apple-touch-icon.png`, `/favicon.ico`): Cache de buffers em memória, ETags e `max-age=604800, stale-while-revalidate=2592000` com 304 condicional.
+    - **Consumo Inteligente no Cockpit PWA**:
+      * `carregarRemume` em `cockpit_movel.html` e `gh_cockpit_deploy/index.html` aprimorado para passar o ETag do snapshot prévio do IndexedDB e reaproveitar dados locais em caso de resposta `notModified: true` (feedback "Revalidado ETag 304").
+    - **Suíte de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_caching_etag_fastify.cjs` cobrindo 200, ETag, 304 Not Modified, `stale-while-revalidate`, fallback para ETag desatualizado, RPC com etag em JSON e mutações com `no-store`.
+      * Integrada ao script oficial `npm test` no `package.json`, com 100% de aprovação em todas as 24 suítes de teste do projeto.
 ---
 
 ## 📦 Histórico de Melhorias Concluídas

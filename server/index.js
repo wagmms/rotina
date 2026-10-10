@@ -7,9 +7,26 @@
  * ==============================================================================
  */
 
+const crypto = require('crypto');
 const cors = require('@fastify/cors');
 const compress = require('@fastify/compress');
 const runtime = require('./runtime');
+
+function gerarETag(conteudo) {
+  if (!conteudo) return '"0"';
+  const buffer = Buffer.isBuffer(conteudo)
+    ? conteudo
+    : Buffer.from(typeof conteudo === 'string' ? conteudo : JSON.stringify(conteudo));
+  const hash = crypto.createHash('sha1').update(buffer).digest('hex').substring(0, 16);
+  return `"${hash}"`;
+}
+
+function etagCorresponde(headerIfNoneMatch, etag) {
+  if (!headerIfNoneMatch || !etag) return false;
+  const tags = headerIfNoneMatch.split(',').map(t => t.trim().replace(/^W\//, ''));
+  const target = etag.replace(/^W\//, '');
+  return tags.includes(target) || tags.includes('*');
+}
 const { createD1Inbox } = require('./d1-inbox');
 const {
   roundMs,
@@ -246,15 +263,27 @@ async function buildServer() {
     }
   });
 
-  // 4.1 Catálogo de Aulas Flash R1 (cacheado em memória para o Cockpit)
+  // 4.1 Catálogo de Aulas Flash R1 (cacheado em memória com ETag e Stale-While-Revalidate)
   const pathAulas = require('path').join(__dirname, '..', 'src', 'data', 'aulas_compactas.json');
   let cacheAulasJson = null;
+  let etagAulas = null;
+
   fastify.get('/api/aulas-flash', async (request, reply) => {
     try {
       if (!cacheAulasJson && require('fs').existsSync(pathAulas)) {
-        cacheAulasJson = JSON.parse(require('fs').readFileSync(pathAulas, 'utf8'));
+        const raw = require('fs').readFileSync(pathAulas, 'utf8');
+        cacheAulasJson = JSON.parse(raw);
+        etagAulas = gerarETag(raw);
       }
-      reply.header('Cache-Control', 'public, max-age=3600');
+      const etag = etagAulas || gerarETag('[]');
+      reply.header('ETag', etag);
+      reply.header('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+
+      if (etagCorresponde(request.headers['if-none-match'], etag)) {
+        reply.status(304).send();
+        return;
+      }
+
       return { ok: true, total: cacheAulasJson ? cacheAulasJson.length : 0, aulas: cacheAulasJson || [] };
     } catch (err) {
       reply.status(500);
@@ -262,8 +291,43 @@ async function buildServer() {
     }
   });
 
+  // 4.2 Catálogo REST da REMUME Municipal (com ETag e Stale-While-Revalidate)
+  let cacheRemumePayload = null;
+  let etagRemume = null;
+
+  function obterRemumeCacheada() {
+    if (!cacheRemumePayload) {
+      try {
+        const remumeObj = runtime.cockpitRpc('cockpitRemume', 'internal', []);
+        cacheRemumePayload = remumeObj || { fonte: 'REMUME municipal', itens: [] };
+      } catch (_) {
+        cacheRemumePayload = { fonte: 'REMUME local', itens: [] };
+      }
+      etagRemume = gerarETag(cacheRemumePayload);
+    }
+    return { payload: cacheRemumePayload, etag: etagRemume };
+  }
+
+  fastify.get('/api/remume', async (request, reply) => {
+    try {
+      const { payload, etag } = obterRemumeCacheada();
+      reply.header('ETag', etag);
+      reply.header('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+
+      if (etagCorresponde(request.headers['if-none-match'], etag)) {
+        reply.status(304).send();
+        return;
+      }
+
+      return { ok: true, total: payload.itens.length, ...payload };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, erro: err.message };
+    }
+  });
+
   // 5. API RPC DO COCKPIT PWA (Substitui o doGet/doPost lento do GAS)
-  // Métodos de leitura idempotentes — respostas podem ser cacheadas brevemente pelo browser
+  // Métodos de leitura idempotentes — respostas podem ser cacheadas com stale-while-revalidate
   const COCKPIT_READ_METHODS = new Set([
     'cockpitConsultar', 'cockpitPerfil', 'cockpitRemume', 'cockpitAulasProgresso',
     'cockpitBuscarCid', 'cockpitEstratificarRisco'
@@ -291,12 +355,43 @@ async function buildServer() {
         return { ok: false, erro: 'Parâmetro "metodo" deve ser uma string válida.' };
       }
 
+      // 5.1 Otimização de Caching HTTP para Catálogo REMUME (ETag e 304 Condicional)
+      if (metodo === 'cockpitRemume') {
+        const { payload: remumeData, etag: remumeEtag } = obterRemumeCacheada();
+        reply.header('ETag', remumeEtag);
+        reply.header('Cache-Control', 'private, max-age=3600, stale-while-revalidate=86400');
+
+        if (etagCorresponde(request.headers['if-none-match'], remumeEtag)) {
+          reply.status(304).send();
+          return;
+        }
+
+        const clientEtag = (body && body.etag) || (args && args[0] && args[0].etag);
+        if (clientEtag && etagCorresponde(String(clientEtag), remumeEtag)) {
+          const elapsed = (performance.now() - t0).toFixed(2);
+          return {
+            ok: true,
+            notModified: true,
+            etag: remumeEtag,
+            benchmark_ms: Number(elapsed)
+          };
+        }
+      }
+
       const resultado = runtime.cockpitRpc(metodo, session, args);
       const elapsed = (performance.now() - t0).toFixed(2);
 
-      // Métodos de leitura: cache curto no browser para evitar refetch desnecessário
-      if (COCKPIT_READ_METHODS.has(metodo)) {
-        reply.header('Cache-Control', 'private, max-age=30');
+      // Métodos de leitura: cabeçalhos de cache otimizados com stale-while-revalidate
+      if (metodo === 'cockpitRemume') {
+        const { etag: remumeEtag } = obterRemumeCacheada();
+        reply.header('ETag', remumeEtag);
+        reply.header('Cache-Control', 'private, max-age=3600, stale-while-revalidate=86400');
+      } else if (metodo === 'cockpitConsultar' || metodo === 'cockpitPerfil') {
+        reply.header('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
+      } else if (metodo === 'cockpitBuscarCid' || metodo === 'cockpitAulasProgresso' || metodo === 'cockpitEstratificarRisco') {
+        reply.header('Cache-Control', 'private, max-age=1800, stale-while-revalidate=86400');
+      } else if (COCKPIT_READ_METHODS.has(metodo)) {
+        reply.header('Cache-Control', 'private, max-age=30, stale-while-revalidate=120');
       } else {
         reply.header('Cache-Control', 'no-store');
       }
@@ -625,41 +720,102 @@ async function buildServer() {
     return renderCockpitHtml();
   });
 
+  const pathManifest = require('path').join(__dirname, '..', 'manifest.json');
+  let cacheManifest = null;
+  let etagManifest = null;
   fastify.get('/manifest.json', async (request, reply) => {
     reply.type('application/manifest+json');
-    const pathManifest = require('path').join(__dirname, '..', 'manifest.json');
-    return require('fs').readFileSync(pathManifest, 'utf8');
+    if (!cacheManifest && require('fs').existsSync(pathManifest)) {
+      cacheManifest = require('fs').readFileSync(pathManifest, 'utf8');
+      etagManifest = gerarETag(cacheManifest);
+    }
+    const etag = etagManifest || gerarETag('manifest');
+    reply.header('ETag', etag);
+    reply.header('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    if (etagCorresponde(request.headers['if-none-match'], etag)) {
+      reply.status(304).send();
+      return;
+    }
+    return cacheManifest;
   });
 
+  const pathSw = require('path').join(__dirname, '..', 'sw.js');
+  let cacheSw = null;
+  let etagSw = null;
   fastify.get('/sw.js', async (request, reply) => {
     reply.type('application/javascript');
-    const pathSw = require('path').join(__dirname, '..', 'sw.js');
-    return require('fs').readFileSync(pathSw, 'utf8');
+    if (!cacheSw && require('fs').existsSync(pathSw)) {
+      cacheSw = require('fs').readFileSync(pathSw, 'utf8');
+      etagSw = gerarETag(cacheSw);
+    }
+    const etag = etagSw || gerarETag('sw');
+    reply.header('ETag', etag);
+    reply.header('Cache-Control', 'public, max-age=0, must-revalidate');
+    if (etagCorresponde(request.headers['if-none-match'], etag)) {
+      reply.status(304).send();
+      return;
+    }
+    return cacheSw;
   });
 
+  const pathPwa192 = require('path').join(__dirname, '..', 'pwa-192x192.png');
+  let cachePwa192 = null;
+  let etagPwa192 = null;
   fastify.get('/pwa-192x192.png', async (request, reply) => {
     reply.type('image/png');
-    const pathImg = require('path').join(__dirname, '..', 'pwa-192x192.png');
-    return require('fs').readFileSync(pathImg);
+    if (!cachePwa192 && require('fs').existsSync(pathPwa192)) {
+      cachePwa192 = require('fs').readFileSync(pathPwa192);
+      etagPwa192 = gerarETag(cachePwa192);
+    }
+    const etag = etagPwa192 || gerarETag('pwa192');
+    reply.header('ETag', etag);
+    reply.header('Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
+    if (etagCorresponde(request.headers['if-none-match'], etag)) {
+      reply.status(304).send();
+      return;
+    }
+    return cachePwa192;
   });
 
+  const pathPwa512 = require('path').join(__dirname, '..', 'pwa-512x512.png');
+  let cachePwa512 = null;
+  let etagPwa512 = null;
   fastify.get('/pwa-512x512.png', async (request, reply) => {
     reply.type('image/png');
-    const pathImg = require('path').join(__dirname, '..', 'pwa-512x512.png');
-    return require('fs').readFileSync(pathImg);
+    if (!cachePwa512 && require('fs').existsSync(pathPwa512)) {
+      cachePwa512 = require('fs').readFileSync(pathPwa512);
+      etagPwa512 = gerarETag(cachePwa512);
+    }
+    const etag = etagPwa512 || gerarETag('pwa512');
+    reply.header('ETag', etag);
+    reply.header('Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
+    if (etagCorresponde(request.headers['if-none-match'], etag)) {
+      reply.status(304).send();
+      return;
+    }
+    return cachePwa512;
   });
 
-  fastify.get('/apple-touch-icon.png', async (request, reply) => {
+  const pathAppleIcon = require('path').join(__dirname, '..', 'apple-touch-icon.png');
+  let cacheAppleIcon = null;
+  let etagAppleIcon = null;
+  function responderAppleIcon(request, reply) {
     reply.type('image/png');
-    const pathImg = require('path').join(__dirname, '..', 'apple-touch-icon.png');
-    return require('fs').readFileSync(pathImg);
-  });
-
-  fastify.get('/favicon.ico', async (request, reply) => {
-    reply.type('image/png');
-    const pathImg = require('path').join(__dirname, '..', 'apple-touch-icon.png');
-    return require('fs').readFileSync(pathImg);
-  });
+    if (!cacheAppleIcon && require('fs').existsSync(pathAppleIcon)) {
+      cacheAppleIcon = require('fs').readFileSync(pathAppleIcon);
+      etagAppleIcon = gerarETag(cacheAppleIcon);
+    }
+    const etag = etagAppleIcon || gerarETag('appleicon');
+    reply.header('ETag', etag);
+    reply.header('Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
+    if (etagCorresponde(request.headers['if-none-match'], etag)) {
+      reply.status(304).send();
+      return;
+    }
+    return cacheAppleIcon;
+  }
+  fastify.get('/apple-touch-icon.png', async (request, reply) => responderAppleIcon(request, reply));
+  fastify.get('/favicon.ico', async (request, reply) => responderAppleIcon(request, reply));
 
   // ══════════════════════════════════════════════════════════════════════════════
   // PRECEPTOR IA · VOZ EM TEMPO REAL (GEMINI-3.8-LIVE / WEBSOCKET FULL-DUPLEX)

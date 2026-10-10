@@ -5258,11 +5258,24 @@
       }
 
       try {
-        const resposta = await cockpitRpc('cockpitRemume');
-        remumeDatabase = resposta.itens;
-        salvarSnapshotOffline('remume_catalogo', resposta);
-        if (aviso) aviso.textContent = resposta.fonte + ' · ' + resposta.itens.length + ' apresentações disponíveis.';
-        filtrarRemume();
+        let etagSalvo = null;
+        const snapPrevio = await carregarSnapshotOffline('remume_catalogo');
+        if (snapPrevio && snapPrevio.dados && snapPrevio.dados.etag) {
+          etagSalvo = snapPrevio.dados.etag;
+        }
+        const resposta = await cockpitRpc('cockpitRemume', { etag: etagSalvo });
+        if (resposta && resposta.notModified && snapPrevio && snapPrevio.dados && snapPrevio.dados.itens) {
+          remumeDatabase = snapPrevio.dados.itens;
+          if (aviso) aviso.textContent = (snapPrevio.dados.fonte || 'REMUME') + ' · ' + snapPrevio.dados.itens.length + ' apresentações (Revalidado ETag 304).';
+          filtrarRemume();
+          return;
+        }
+        if (resposta && resposta.itens) {
+          remumeDatabase = resposta.itens;
+          salvarSnapshotOffline('remume_catalogo', resposta);
+          if (aviso) aviso.textContent = resposta.fonte + ' · ' + resposta.itens.length + ' apresentações disponíveis.';
+          filtrarRemume();
+        }
       } catch(e) {
         const snap = await carregarSnapshotOffline('remume_catalogo');
         if (snap && snap.dados && snap.dados.itens) {

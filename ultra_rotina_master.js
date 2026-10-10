@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-09 20:28:59
- * Checksum SHA256: d50efafc7dd02c57
+ * Gerado automaticamente via build_master.py em: 2026-10-09 21:02:22
+ * Checksum SHA256: 254d8327e40812ce
  * ==============================================================================
  */
 
@@ -48887,7 +48887,7 @@ function cockpitAutorizar_(initData) {
   function negar() { throw new Error('Abra o Cockpit pelo botão do menu /menu no Telegram. A sessão está ausente, inválida ou expirada.'); }
   if (typeof initData !== 'string' || !initData || initData.length > 16000) negar();
 
-  if (initData === 'bot' || initData === 'internal') {
+  if (initData === 'bot' || initData === 'internal' || initData === 'interno') {
     return (typeof ConfigService !== 'undefined' && ConfigService.get) ? String(ConfigService.get('TELEGRAM_CHAT_ID') || 'internal') : 'internal';
   }
 
