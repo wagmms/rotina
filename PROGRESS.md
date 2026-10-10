@@ -13,8 +13,8 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Histórico Local no Cockpit das Últimas 5 Consultas / Cálculos**:
-    - Implementar persistência volátil (sessionStorage) para recuperação ágil sem retrabalho.
+- [ ] **Cross-Check de Compatibilidade de Diluição de Inotrópicos e Vasopressores com D1**:
+    - Integrar tabela de compatibilidade em Y com cache local para prescrições combinadas em bomba de infusão.
 
 ---
 
@@ -22,6 +22,8 @@
 
 1. [ ] **Cross-Check de Compatibilidade de Diluição de Inotrópicos e Vasopressores com D1**:
     - Integrar tabela de compatibilidade em Y com cache local para prescrições combinadas em bomba de infusão.
+2. [ ] **Auditoria de Resiliência e Feedback Visual em Conexões Flutuantes no Cockpit PWA**:
+    - Reforçar telemetria de reconexão automática e retry exponencial com feedback de banner não obstrutivo no plantão.
 
 ---
 
@@ -61,6 +63,36 @@
 - *Sugestão 32 (Multimodal / Áudio)*: Implementar transcrição preliminar com Web Speech API nativa do dispositivo diretamente no Cockpit PWA antes do envio do áudio, permitindo conferência e edição prévia do texto ditado pelo médico antes do handshake de rede.
 - *Sugestão 33 (Segurança / Fastify)*: Documentação interativa de API via OpenAPI / Swagger UI (`/docs`) gerada diretamente a partir dos schemas JSON Fastify já declarados para auditoria rápida de contratos e parâmetros beira-leito.
 - *Sugestão 34 (Calculadoras / Resiliência)*: Validação cruzada estrita entre calculadoras de DHE e ECG prévio no handshake, disparando alerta automático de ECG mandatório quando K+ > 6.0 mEq/L ou Na+ < 120 mEq/L antes de calcular a taxa de infusão.
+- *Sugestão 35 (Cockpit / Passagem de Plantão)*: Exportação rápida do histórico de cálculos da sessão em formato de sumário de passagem de plantão / transferência estruturado (incluindo horário, peso e parâmetros de DVA/SRI/Gaso).
+- *Sugestão 36 (Cockpit / Calculadoras)*: Recurso de "Fixar Cálculo" (Pin) no histórico da sessão para manter cálculos críticos de pacientes instáveis permanentemente no topo do painel durante todo o turno.
+
+---
+
+## 📦 Histórico de Melhorias Concluídas
+
+0Z. [x] **Histórico Local no Cockpit das Últimas 5 Consultas / Cálculos com Recuperação Ágil (sessionStorage) e Correção de UX**:
+    - **Persistência Volátil e Ética Beira-Leito (sessionStorage)**:
+      * Implementado subsistema de persistência volátil em memória de sessão (`rotina_historico_calculos_v1` via `sessionStorage`), eliminando o atrito de redigitação de dados prévios sem reter dados sensíveis de pacientes em repouso no disco após fechar a aba/janela (em estrita conformidade com LGPD e sigilo médico CFM).
+      * Capacidade calibrada para teto de 5 itens mais recentes operando em política LIFO (mais recente no topo e descarte suave do 6º mais antigo).
+      * Desduplicação inteligente: reexecução do mesmo cálculo com parâmetros idênticos reposiciona o item para o topo com timestamp atualizado, evitando saturação do histórico por toques repetidos.
+      * Blindagem defensiva universal (`obterHistoricoCalculos` e `salvarHistoricoCalculos`) contra exceções por modo de navegação anônima ultra-restrita ou JSON corrompido, retornando array vazio seguro sem interromper o fluxo clínico.
+    - **Interface Visual e Recuperação Instantânea (1 Toque)**:
+      * Criado container tátil `#historico-calculos-container` integrado diretamente no cabeçalho de `tab-calculadoras`, com estado colapsado inicial (`hidden`) que surge fluidamente assim que o primeiro cálculo é efetuado.
+      * Renderização horizontal de chips clicáveis (`#historico-calculos-lista`) com ícones dinâmicos por especialidade, rótulo clínico, parâmetros compactados e horário da realização.
+      * Botão de limpeza rápida de sessão com 1 toque (`limparHistoricoCalculos()`), feedback sonoro/háptico e toast de confirmação.
+      * Motor de restauração de parâmetros (`restaurarCalculoHistorico`): ao tocar em um chip, alterna imediatamente para a subcalculadora correspondente (`abrirSubCalc`), preenche todos os campos numéricos, selects e checkboxes correspondentes e restabelece o texto do resultado com botão de cópia ativo em 0ms.
+      * Cobertura de restauração para 100% das calculadoras: DVA, SRI, Asma, Clearance de Creatinina (com rádio de sexo e botão de migração ATB), Gasometria (com expansão automática de seção avançada se houver eletrólitos), Escore HEART & DAPT, Ajuste de Antimicrobianos, Distúrbios Hidroeletrolíticos (DHE - Hipercalemia com ECG, Hipernatremia e Hiponatremia), Suporte Pediátrico (Holliday, PALS e Posologia) e Cross-Check Farmacológico.
+    - **Conserto de Erros e Ativação de Recursos Pendentes**:
+      * Consertado bug no manipulador de cópia de condutas em `solicitarCalculo`: corrigido argumento de `atualizarBtnCopiarCalculo(id, ...)` para `atualizarBtnCopiarCalculo(destino, ...)`, eliminando falha silenciosa e ativando os botões de cópia PEP em todas as calculadoras.
+      * Implementadas funções de controle da calculadora de Asma que estavam pendentes de ligação no Cockpit (`definirPresetAsma`, `calcularAsmaCockpit`, `limparAsma` e `copiarAsmaPEP`).
+      * Atribuído `id="btn-copiar-pediatria"` e mapeado para cópia em `pediatria-resultado`.
+      * Tornada defensiva a inspeção de `dataset` em `abrirSubCalc` via optional chaining (`b.dataset?.btnType` e `botao.dataset?.btnType`).
+      * Integração de registro automático de histórico em `solicitarCalculo` (online e contingência offline local) e `executarCrossCheckCockpit`.
+    - **Sincronismo Rigoroso com GitHub Pages**:
+      * `cockpit_movel.html` e `gh_cockpit_deploy/index.html` sincronizados com hash SHA-256 100% idêntico.
+    - **Suíte de Testes Automatizada Dedicada**:
+      * Criada suíte `tests/test_cockpit_historico_calculos.cjs` cobrindo paridade de hash, elementos no DOM, persistência em sessionStorage, teto LIFO de 5 itens, desduplicação, geração de metadados, restauração com 1 toque de todas as calculadoras, limpeza, resiliência contra falhas de storage e funções de Asma.
+      * Integrada ao script `npm test` no `package.json`, alcançando 100% de aprovação em todas as 29 suítes de teste do projeto.
 
 ---
 

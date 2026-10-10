@@ -746,6 +746,23 @@
         </div>
       </div>
 
+      <!-- Histórico Local do Plantão (sessionStorage: Últimos 5 Cálculos) -->
+      <div id="historico-calculos-container" class="hidden glass-card rounded-xl p-2.5 space-y-1.5 border border-cyan-500/30 bg-slate-900/90 shadow-sm transition">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <i data-lucide="history" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span class="text-[11px] font-bold text-slate-200">Últimos Cálculos do Plantão</span>
+            <span class="text-[9px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-1.5 py-0.5 rounded-full font-mono font-bold">Sessão</span>
+          </div>
+          <button type="button" onclick="limparHistoricoCalculos()" class="text-[10px] text-slate-400 hover:text-rose-400 transition flex items-center gap-1 py-0.5 px-1.5 rounded hover:bg-slate-800">
+            <i data-lucide="trash-2" class="w-3 h-3 text-rose-400"></i> Limpar
+          </button>
+        </div>
+        <div id="historico-calculos-lista" class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+          <!-- Chips clicáveis renderizados dinamicamente via renderizarHistoricoCalculos() -->
+        </div>
+      </div>
+
       <!-- Subcalc: Cross-Check Farmacológico & Interações (RAM Local 0ms) -->
       <div id="calc-crosscheck" class="subcalc-pane hidden glass-card rounded-xl p-4 space-y-3">
         <div class="flex items-center justify-between">
@@ -1500,7 +1517,7 @@
         <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1.5" id="pediatria-resultado">
           <span class="text-slate-500">Informe o peso da criança para obter os cálculos instantaneamente.</span>
         </div>
-        <button onclick="copiarPediatriaPEP()" class="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-amber-500/30 transition">
+        <button id="btn-copiar-pediatria" onclick="copiarPediatriaPEP()" class="hidden w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 border border-amber-500/30 transition">
           <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Conduta Pediátrica para o Prontuário
         </button>
       </div>
@@ -3692,7 +3709,10 @@
       }
       if (tabId === 'tab-soap' || tabId === 'tab-leitos') carregarLeitos();
       if (tabId === 'tab-remume') carregarRemume();
-      if (tabId === 'tab-calculadoras') configurarTecladosCalculadoras();
+      if (tabId === 'tab-calculadoras') {
+        configurarTecladosCalculadoras();
+        renderizarHistoricoCalculos();
+      }
       if (tabId === 'tab-corpo' || tabId === 'tab-rotina') {
         carregarPerfil();
         if (tabId === 'tab-corpo') {
@@ -5394,14 +5414,14 @@
       }
 
       document.querySelectorAll('.subcalc-btn').forEach(b => {
-        if (b.dataset.btnType === 'usprp') {
+        if (b.dataset?.btnType === 'usprp') {
           b.className = "subcalc-btn w-full py-2.5 px-3 rounded-xl bg-slate-900/90 text-rose-200 border border-rose-500/40 text-xs font-bold flex items-center justify-between hover:bg-slate-800 transition active:scale-[0.99]";
         } else {
           b.className = "subcalc-btn py-2 px-1 rounded-lg bg-slate-900/90 text-slate-200 border border-slate-700/80 hover:text-white text-[10px] font-bold";
         }
       });
       if (botao) {
-        if (botao.dataset.btnType === 'usprp') {
+        if (botao.dataset?.btnType === 'usprp') {
           botao.className = "subcalc-btn w-full py-2.5 px-3 rounded-xl bg-rose-500/30 text-rose-100 border-2 border-rose-400/80 text-xs font-black flex items-center justify-between shadow-md shadow-rose-950/40 transition active:scale-[0.99]";
         } else {
           botao.className = "subcalc-btn py-2 px-1 rounded-lg bg-emerald-500/25 text-emerald-100 border-2 border-emerald-400/80 text-[10px] font-extrabold shadow-sm";
@@ -5410,6 +5430,405 @@
       if (paneId === 'calc-usprp') {
         renderizarProtocoloUsp();
       }
+    }
+
+    // =========================================================================
+    // 4.0 HISTÓRICO LOCAL DE CÁLCULOS E CONSULTAS (SESSION STORAGE · LIFO 5 ITENS)
+    // =========================================================================
+    const HISTORICO_CALCULOS_KEY = 'rotina_historico_calculos_v1';
+    const HISTORICO_MAX_ITENS = 5;
+
+    function obterHistoricoCalculos() {
+      try {
+        if (typeof window === 'undefined' || !window.sessionStorage) return [];
+        const raw = window.sessionStorage.getItem(HISTORICO_CALCULOS_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function salvarHistoricoCalculos(lista) {
+      try {
+        if (typeof window === 'undefined' || !window.sessionStorage) return;
+        const sanitizada = (Array.isArray(lista) ? lista : []).slice(0, HISTORICO_MAX_ITENS);
+        window.sessionStorage.setItem(HISTORICO_CALCULOS_KEY, JSON.stringify(sanitizada));
+      } catch (e) {
+        // sessionStorage pode estar desabilitado em modo de navegação restrita ou cota excedida
+      }
+    }
+
+    function gerarMetadadosHistorico(tipo, entrada) {
+      const normTipo = String(tipo || '').toLowerCase();
+      let subcalcId = 'calc-dva';
+      let rotulo = 'Calculadora';
+      let resumo = '';
+      let icone = 'calculator';
+
+      switch (normTipo) {
+        case 'dva':
+          subcalcId = 'calc-dva';
+          const drogaDva = String(entrada.droga || 'nora').toUpperCase();
+          rotulo = `DVA · ${drogaDva}`;
+          resumo = `${entrada.peso || 70} kg`;
+          icone = 'activity';
+          break;
+        case 'sri':
+          subcalcId = 'calc-sri';
+          const cenarioSri = String(entrada.cenario || 'padrão').toUpperCase();
+          rotulo = `SRI · ${cenarioSri}`;
+          resumo = `${entrada.peso || 70} kg`;
+          icone = 'wind';
+          break;
+        case 'asma':
+        case 'broncoespasmo':
+        case 'crise_asmatica':
+          subcalcId = 'calc-asma';
+          rotulo = 'Asma Grave';
+          resumo = `SpO₂ ${entrada.spo2 || 89}% · FR ${entrada.fr || 32} · ${entrada.peso || 70} kg`;
+          icone = 'wind';
+          break;
+        case 'crcl':
+          subcalcId = 'calc-crcl';
+          rotulo = 'Clearance Renal';
+          const sexoTxt = entrada.sexo === 'f' ? 'F' : entrada.sexo === 'm' ? 'M' : '';
+          resumo = `${entrada.idade || ''}a · ${entrada.peso || ''}kg · Cr ${entrada.creatinina || ''}${sexoTxt ? ' (' + sexoTxt + ')' : ''}`;
+          icone = 'droplets';
+          break;
+        case 'gaso':
+          subcalcId = 'calc-gaso';
+          rotulo = 'Gasometria';
+          resumo = `pH ${entrada.ph || ''} · pCO₂ ${entrada.pco2 || ''} · HCO₃ ${entrada.hco3 || ''}`;
+          icone = 'activity';
+          break;
+        case 'heart':
+        case 'sca':
+          subcalcId = 'calc-heart';
+          rotulo = 'Escore HEART';
+          resumo = `${entrada.idade || 50}a · Hist ${entrada.historia || 0} · ECG ${entrada.ecg || 0}`;
+          icone = 'heart';
+          break;
+        case 'ajuste_atb':
+        case 'atb':
+          subcalcId = 'calc-atb';
+          const drogaAtb = String(entrada.droga || 'ATB').toUpperCase();
+          rotulo = `Ajuste ATB · ${drogaAtb}`;
+          resumo = entrada.hemodialise ? 'HD' : `ClCr ${entrada.clcr || ''} mL/min`;
+          icone = 'pill';
+          break;
+        case 'dhe':
+          subcalcId = 'calc-dhe';
+          const modoDhe = String(entrada.modo || 'DHE').toUpperCase();
+          rotulo = `DHE · ${modoDhe}`;
+          if (entrada.modo === 'hipercalemia') {
+            resumo = `K+ ${entrada.kAtual || ''} mEq/L${entrada.ecgAlterado ? ' [ECG Alt]' : ''}`;
+          } else if (entrada.modo === 'hipernatremia') {
+            resumo = `Na+ ${entrada.naAtual || ''} mEq/L (Hiper)`;
+          } else {
+            resumo = `Na+ ${entrada.naAtual || ''} mEq/L · NaCl ${entrada.salina || 3}%`;
+          }
+          icone = 'zap';
+          break;
+        case 'pediatria':
+        case 'holliday':
+        case 'pals':
+          subcalcId = 'calc-pediatria';
+          const modoPed = String(entrada.modo || 'Pediatria').toUpperCase();
+          rotulo = `Ped · ${modoPed}`;
+          resumo = `${entrada.peso || ''} kg · ${entrada.farmaco || entrada.condicaoClinica || ''}`;
+          icone = 'baby';
+          break;
+        case 'crosscheck':
+          subcalcId = 'calc-crosscheck';
+          rotulo = 'Cross-Check Farmaco';
+          const txtPreview = String(entrada.texto || entrada.prescricao || '').substring(0, 22);
+          resumo = txtPreview ? `${txtPreview}...` : 'Varredura';
+          icone = 'shield-check';
+          break;
+        default:
+          subcalcId = 'calc-dva';
+          rotulo = String(tipo || 'Cálculo').toUpperCase();
+          resumo = typeof entrada === 'object' ? Object.keys(entrada).slice(0, 2).map(k => `${k}:${entrada[k]}`).join(' · ') : '';
+          icone = 'calculator';
+      }
+
+      return { subcalcId, rotulo, resumo, icone };
+    }
+
+    function registrarHistoricoCalculo(tipo, entrada, resultadoTexto) {
+      if (!tipo || !entrada) return;
+      const resStr = String(resultadoTexto || '').trim();
+      if (!resStr || resStr.includes('Informe') || resStr.includes('Preencha') || resStr.includes('Conferindo') || resStr.includes('Erro ao calcular') || resStr.includes('Não foi possível')) {
+        return;
+      }
+
+      const meta = gerarMetadadosHistorico(tipo, entrada);
+      const agora = new Date();
+      const horaStr = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+      const novoItem = {
+        id: 'calc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        timestamp: horaStr,
+        dataHora: agora.toISOString(),
+        tipo: String(tipo).toLowerCase(),
+        rotulo: meta.rotulo,
+        resumo: meta.resumo,
+        icone: meta.icone,
+        subcalcId: meta.subcalcId,
+        entrada: JSON.parse(JSON.stringify(entrada)),
+        resultadoTexto: resStr
+      };
+
+      const lista = obterHistoricoCalculos();
+      const entradaJson = JSON.stringify(novoItem.entrada);
+      const filtrada = lista.filter(item => {
+        return !(item.tipo === novoItem.tipo && JSON.stringify(item.entrada) === entradaJson);
+      });
+
+      filtrada.unshift(novoItem);
+      salvarHistoricoCalculos(filtrada.slice(0, HISTORICO_MAX_ITENS));
+      renderizarHistoricoCalculos();
+    }
+
+    function renderizarHistoricoCalculos() {
+      const container = document.getElementById('historico-calculos-container');
+      const listaEl = document.getElementById('historico-calculos-lista');
+      if (!container || !listaEl) return;
+
+      const itens = obterHistoricoCalculos();
+      if (!itens || itens.length === 0) {
+        container.classList.add('hidden');
+        listaEl.innerHTML = '';
+        return;
+      }
+
+      container.classList.remove('hidden');
+      listaEl.innerHTML = itens.map(item => {
+        const rotuloEsc = escapeHtml(item.rotulo || 'Cálculo');
+        const resumoEsc = escapeHtml(item.resumo || '');
+        const horaEsc = escapeHtml(item.timestamp || '');
+        const idEsc = escapeHtml(item.id || '');
+        return `
+          <button type="button" onclick="restaurarCalculoHistorico('${idEsc}')" title="Clique para restaurar este cálculo" class="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 border border-slate-700/80 active:scale-[0.98] transition shadow-sm text-left group">
+            <i data-lucide="${item.icone || 'calculator'}" class="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300"></i>
+            <div class="flex flex-col">
+              <div class="flex items-center gap-1">
+                <span class="font-bold text-[10.5px] text-white leading-tight">${rotuloEsc}</span>
+                <span class="text-[9px] text-slate-400 font-mono">${horaEsc}</span>
+              </div>
+              <span class="text-[9.5px] text-slate-400 font-medium leading-tight">${resumoEsc}</span>
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      try {
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+          lucide.createIcons({ root: listaEl });
+        }
+      } catch (e) {}
+    }
+
+    function restaurarCalculoHistorico(id) {
+      const itens = obterHistoricoCalculos();
+      const item = itens.find(it => it.id === id);
+      if (!item) {
+        copiarToast('Cálculo não encontrado no histórico.');
+        return;
+      }
+
+      hapticFeedback('medium');
+
+      // 1. Abre a subcalculadora correspondente
+      if (item.subcalcId) {
+        abrirSubCalc(item.subcalcId);
+      }
+
+      const entrada = item.entrada || {};
+      const tipo = item.tipo;
+
+      // 2. Preenche os campos do formulário
+      if (tipo === 'dva') {
+        const elPeso = document.getElementById('dva-peso');
+        const elDroga = document.getElementById('dva-droga');
+        if (elPeso && entrada.peso !== undefined) elPeso.value = entrada.peso;
+        if (elDroga && entrada.droga !== undefined) elDroga.value = entrada.droga;
+        const res = document.getElementById('dva-resultado');
+        if (res && item.resultadoTexto) {
+          res.textContent = item.resultadoTexto;
+          const btn = document.getElementById('btn-copiar-dva');
+          if (btn) btn.classList.remove('hidden');
+        }
+      } else if (tipo === 'sri') {
+        const elPeso = document.getElementById('sri-peso');
+        const elCen = document.getElementById('sri-cenario');
+        if (elPeso && entrada.peso !== undefined) elPeso.value = entrada.peso;
+        if (elCen && entrada.cenario !== undefined) elCen.value = entrada.cenario;
+        const res = document.getElementById('sri-resultado');
+        if (res && item.resultadoTexto) {
+          res.textContent = item.resultadoTexto;
+          const btn = document.getElementById('btn-copiar-sri');
+          if (btn) btn.classList.remove('hidden');
+        }
+      } else if (tipo === 'asma' || tipo === 'broncoespasmo' || tipo === 'crise_asmatica') {
+        if (entrada.fala !== undefined) { const el = document.getElementById('asma-fala'); if (el) el.value = entrada.fala; }
+        if (entrada.ausculta !== undefined) { const el = document.getElementById('asma-ausculta'); if (el) el.value = entrada.ausculta; }
+        if (entrada.spo2 !== undefined) { const el = document.getElementById('asma-spo2'); if (el) el.value = entrada.spo2; }
+        if (entrada.fr !== undefined) { const el = document.getElementById('asma-fr'); if (el) el.value = entrada.fr; }
+        if (entrada.fc !== undefined) { const el = document.getElementById('asma-fc'); if (el) el.value = entrada.fc; }
+        if (entrada.peso !== undefined) { const el = document.getElementById('asma-peso'); if (el) el.value = entrada.peso; }
+        if (entrada.idade !== undefined) { const el = document.getElementById('asma-idade'); if (el) el.value = entrada.idade; }
+        if (entrada.refratario !== undefined) { const el = document.getElementById('asma-refratario'); if (el) el.checked = Boolean(entrada.refratario); }
+        if (entrada.normocapnia !== undefined) { const el = document.getElementById('asma-normocapnia'); if (el) el.checked = Boolean(entrada.normocapnia); }
+        if (entrada.gestante !== undefined) { const el = document.getElementById('asma-gestante'); if (el) el.checked = Boolean(entrada.gestante); }
+        const res = document.getElementById('asma-resultado');
+        if (res && item.resultadoTexto) {
+          res.textContent = item.resultadoTexto;
+          const btn = document.getElementById('btn-copiar-asma');
+          if (btn) btn.classList.remove('hidden');
+        }
+      } else if (tipo === 'crcl') {
+        const elIdade = document.getElementById('cr-idade');
+        const elPeso = document.getElementById('cr-peso');
+        const elVal = document.getElementById('cr-val');
+        if (elIdade && entrada.idade !== undefined) elIdade.value = entrada.idade;
+        if (elPeso && entrada.peso !== undefined) elPeso.value = entrada.peso;
+        if (elVal && entrada.creatinina !== undefined) elVal.value = entrada.creatinina;
+        if (entrada.sexo) {
+          const radio = document.querySelector(`input[name="cr-sexo"][value="${entrada.sexo}"]`);
+          if (radio) radio.checked = true;
+        }
+        const res = document.getElementById('crcl-resultado');
+        if (res && item.resultadoTexto) {
+          res.textContent = item.resultadoTexto;
+          const btn = document.getElementById('btn-copiar-crcl');
+          if (btn) btn.classList.remove('hidden');
+          const btnMigrar = document.getElementById('btn-migrar-crcl-atb');
+          if (btnMigrar) btnMigrar.classList.remove('hidden');
+        }
+      } else if (tipo === 'gaso') {
+        const setV = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+        setV('gaso-ph', entrada.ph);
+        setV('gaso-pco2', entrada.pco2);
+        setV('gaso-hco3', entrada.hco3);
+        setV('gaso-na', entrada.na);
+        setV('gaso-cl', entrada.cl);
+        setV('gaso-alb', entrada.alb);
+        setV('gaso-pao2', entrada.pao2);
+        setV('gaso-fio2', entrada.fio2);
+        if ((entrada.na || entrada.cl || entrada.alb || entrada.pao2 || entrada.fio2)) {
+          const secaoAvancada = document.getElementById('gaso-secao-avancada');
+          if (secaoAvancada?.classList.contains('hidden')) toggleGasoAvancado();
+        }
+        const res = document.getElementById('gaso-resultado');
+        if (res && item.resultadoTexto) {
+          res.textContent = item.resultadoTexto;
+          const btn = document.getElementById('btn-copiar-gaso');
+          if (btn) btn.classList.remove('hidden');
+        }
+      } else if (tipo === 'heart' || tipo === 'sca') {
+        const setSelect = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = String(val); };
+        setSelect('heart-historia', entrada.historia);
+        setSelect('heart-ecg', entrada.ecg);
+        setSelect('heart-idade', entrada.idade);
+        setSelect('heart-fr', entrada.fr);
+        setSelect('heart-troponina', entrada.troponina);
+        const setCheck = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.checked = Boolean(val); };
+        setCheck('heart-trombolise', entrada.trombolise);
+        setCheck('heart-avc', entrada.avcPrevio);
+        setCheck('heart-omeprazol', entrada.usoOmeprazol);
+        setCheck('heart-anticoag', entrada.anticoagulacao);
+        setCheck('heart-iam-vd', entrada.iamVd);
+        setCheck('heart-choque', entrada.choque);
+        const res = document.getElementById('heart-resultado');
+        if (res && item.resultadoTexto) {
+          res.textContent = item.resultadoTexto;
+          const btn = document.getElementById('btn-copiar-heart');
+          if (btn) btn.classList.remove('hidden');
+        }
+      } else if (tipo === 'ajuste_atb' || tipo === 'atb') {
+        const elDroga = document.getElementById('atb-droga');
+        const elClcr = document.getElementById('atb-clcr');
+        const elHd = document.getElementById('atb-hd');
+        if (elDroga && entrada.droga !== undefined) elDroga.value = entrada.droga;
+        if (elClcr && entrada.clcr !== undefined) elClcr.value = entrada.clcr !== null ? entrada.clcr : '';
+        if (elHd && entrada.hemodialise !== undefined) elHd.checked = Boolean(entrada.hemodialise);
+        const res = document.getElementById('atb-resultado');
+        if (res && item.resultadoTexto) {
+          res.textContent = item.resultadoTexto;
+          const btn = document.getElementById('btn-copiar-atb');
+          if (btn) btn.classList.remove('hidden');
+        }
+      } else if (tipo === 'dhe') {
+        const elMod = document.getElementById('dhe-modulo');
+        if (elMod && entrada.modo !== undefined) elMod.value = entrada.modo;
+        alternarModuloDhe();
+        const elPeso = document.getElementById('dhe-peso');
+        if (elPeso && entrada.peso !== undefined) elPeso.value = entrada.peso;
+        if (entrada.modo === 'hipercalemia') {
+          const elK = document.getElementById('dhe-k-atual');
+          const elEcg = document.getElementById('dhe-ecg-alt');
+          if (elK && entrada.kAtual !== undefined) elK.value = entrada.kAtual;
+          if (elEcg && entrada.ecgAlterado !== undefined) elEcg.checked = Boolean(entrada.ecgAlterado);
+        } else if (entrada.modo === 'hipernatremia') {
+          const elNa = document.getElementById('dhe-na-hiper');
+          const elIdade = document.getElementById('dhe-hiper-idade');
+          const elSexo = document.getElementById('dhe-hiper-sexo');
+          if (elNa && entrada.naAtual !== undefined) elNa.value = entrada.naAtual;
+          if (elIdade && entrada.idade !== undefined) elIdade.value = entrada.idade;
+          if (elSexo && entrada.sexo !== undefined) elSexo.value = entrada.sexo;
+        } else {
+          const elNa = document.getElementById('dhe-na-atual');
+          const elSal = document.getElementById('dhe-salina');
+          const elIdade = document.getElementById('dhe-idade');
+          const elSexo = document.getElementById('dhe-sexo');
+          if (elNa && entrada.naAtual !== undefined) elNa.value = entrada.naAtual;
+          if (elSal && entrada.salina !== undefined) elSal.value = entrada.salina;
+          if (elIdade && entrada.idade !== undefined) elIdade.value = entrada.idade;
+          if (elSexo && entrada.sexo !== undefined) elSexo.value = entrada.sexo;
+        }
+        const res = document.getElementById('dhe-resultado');
+        if (res && item.resultadoTexto) {
+          res.textContent = item.resultadoTexto;
+          const btn = document.getElementById('btn-copiar-dhe');
+          if (btn) btn.classList.remove('hidden');
+        }
+      } else if (tipo === 'pediatria' || tipo === 'holliday' || tipo === 'pals') {
+        const elPeso = document.getElementById('ped-peso');
+        const elMod = document.getElementById('ped-modulo');
+        if (elPeso && entrada.peso !== undefined) elPeso.value = entrada.peso;
+        if (elMod && entrada.modo !== undefined) elMod.value = entrada.modo;
+        alternarModuloPediatria();
+        const elCond = document.getElementById('ped-condicao');
+        const elDroga = document.getElementById('ped-droga');
+        if (elCond && entrada.condicaoClinica !== undefined) elCond.value = entrada.condicaoClinica;
+        if (elDroga && entrada.farmaco !== undefined) elDroga.value = entrada.farmaco;
+        const res = document.getElementById('pediatria-resultado');
+        if (res && item.resultadoTexto) {
+          res.textContent = item.resultadoTexto;
+          const btn = document.getElementById('btn-copiar-pediatria');
+          if (btn) btn.classList.remove('hidden');
+        }
+      } else if (tipo === 'crosscheck') {
+        const elInp = document.getElementById('crosscheck-input');
+        if (elInp && entrada.texto !== undefined) elInp.value = entrada.texto;
+        executarCrossCheckCockpit();
+      }
+
+      copiarToast('Cálculo restaurado com parâmetros prévios!');
+    }
+
+    function limparHistoricoCalculos() {
+      hapticFeedback('light');
+      try {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          window.sessionStorage.removeItem(HISTORICO_CALCULOS_KEY);
+        }
+      } catch (e) {}
+      renderizarHistoricoCalculos();
+      copiarToast('Histórico da sessão limpo!');
     }
 
     const FAIXAS_FISIO = {
@@ -5458,7 +5877,8 @@
           'gaso-resultado': 'btn-copiar-gaso',
           'atb-resultado': 'btn-copiar-atb',
           'dhe-resultado': 'btn-copiar-dhe',
-          'heart-resultado': 'btn-copiar-heart'
+          'heart-resultado': 'btn-copiar-heart',
+          'pediatria-resultado': 'btn-copiar-pediatria'
         };
         const btnId = mapa[idAlvo];
         const ehValido = textoValido && !textoValido.includes('Informe') && !textoValido.includes('Preencha') && !textoValido.includes('Não foi possível') && !textoValido.includes('Erro ao calcular');
@@ -5481,13 +5901,15 @@
           if (calcCache && calcCache.textoFormatado) {
             const doc = new DOMParser().parseFromString(calcCache.textoFormatado, 'text/html');
             resultado.textContent = (doc.body.textContent || '') + '\n\n[Cache Criptografado · Disponível Offline 0ms]';
-            atualizarBtnCopiarCalculo(id, resultado.textContent);
+            atualizarBtnCopiarCalculo(destino, resultado.textContent);
+            registrarHistoricoCalculo(tipo, entrada, resultado.textContent);
             return;
           }
           const resLocal = calcularOfflineLocal(tipo, entrada);
           if (resLocal) {
             resultado.textContent = resLocal;
-            atualizarBtnCopiarCalculo(id, resultado.textContent);
+            atualizarBtnCopiarCalculo(destino, resultado.textContent);
+            registrarHistoricoCalculo(tipo, entrada, resultado.textContent);
             return;
           }
         }
@@ -5501,23 +5923,26 @@
           // Aproveita o texto integral do bot, sem inserir HTML remoto no documento.
           const doc = new DOMParser().parseFromString(resposta.textoFormatado || '', 'text/html');
           resultado.textContent = doc.body.textContent || 'Não foi possível obter o resultado. Confira os parâmetros.';
-          atualizarBtnCopiarCalculo(id, resultado.textContent);
+          atualizarBtnCopiarCalculo(destino, resultado.textContent);
+          registrarHistoricoCalculo(tipo, entrada, resultado.textContent);
         } catch(e) {
           if (pedidosCalc[tipo] === pedido) {
             const calcCache = await carregarCalculoOffline(tipo, entrada);
             if (calcCache && calcCache.textoFormatado) {
               const doc = new DOMParser().parseFromString(calcCache.textoFormatado, 'text/html');
               resultado.textContent = (doc.body.textContent || '') + '\n\n[Cache Criptografado · Disponível Offline 0ms]';
-              atualizarBtnCopiarCalculo(id, resultado.textContent);
+              atualizarBtnCopiarCalculo(destino, resultado.textContent);
+              registrarHistoricoCalculo(tipo, entrada, resultado.textContent);
               return;
             }
             const resLocal = calcularOfflineLocal(tipo, entrada);
             if (resLocal) {
               resultado.textContent = resLocal;
+              registrarHistoricoCalculo(tipo, entrada, resultado.textContent);
             } else {
               resultado.textContent = e.message;
             }
-            atualizarBtnCopiarCalculo(id, resultado.textContent);
+            atualizarBtnCopiarCalculo(destino, resultado.textContent);
           }
         }
       }, 350);
@@ -6458,6 +6883,54 @@
     function calcularCrCl() {
       solicitarCalculo('crcl', {idade:valorCalc('cr-idade'), peso:valorCalc('cr-peso'), creatinina:valorCalc('cr-val'), sexo:document.querySelector('input[name="cr-sexo"]:checked')?.value ?? ''}, 'crcl-resultado');
     }
+    function definirPresetAsma(fala, spo2, fr, fc, ausculta, peso, idade, refratario = false, normocapnia = false, gestante = false) {
+      hapticFeedback('light');
+      const setV = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
+      setV('asma-fala', fala);
+      setV('asma-spo2', spo2);
+      setV('asma-fr', fr);
+      setV('asma-fc', fc);
+      setV('asma-ausculta', ausculta);
+      setV('asma-peso', peso);
+      setV('asma-idade', idade);
+      const setCheck = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.checked = Boolean(val); };
+      setCheck('asma-refratario', refratario);
+      setCheck('asma-normocapnia', normocapnia);
+      setCheck('asma-gestante', gestante);
+      calcularAsmaCockpit();
+    }
+    function calcularAsmaCockpit() {
+      const entrada = {
+        fala: valorCalc('asma-fala') || 'palavras_isoladas',
+        ausculta: valorCalc('asma-ausculta') || 'sibilos_difusos',
+        spo2: Number(valorCalc('asma-spo2') || 89),
+        fr: Number(valorCalc('asma-fr') || 32),
+        fc: Number(valorCalc('asma-fc') || 122),
+        peso: Number(valorCalc('asma-peso') || 70),
+        idade: Number(valorCalc('asma-idade') || 30),
+        refratario: Boolean(document.getElementById('asma-refratario')?.checked),
+        normocapnia: Boolean(document.getElementById('asma-normocapnia')?.checked),
+        gestante: Boolean(document.getElementById('asma-gestante')?.checked)
+      };
+      solicitarCalculo('asma', entrada, 'asma-resultado');
+    }
+    function limparAsma() {
+      hapticFeedback('light');
+      definirPresetAsma('palavras_isoladas', 89, 32, 122, 'sibilos_difusos', 70, 30, false, false, false);
+      const res = document.getElementById('asma-resultado');
+      if (res) res.textContent = 'Preencha os dados do paciente para avaliar a gravidade da crise asmática.';
+      const btn = document.getElementById('btn-copiar-asma');
+      if (btn) btn.classList.add('hidden');
+    }
+    function copiarAsmaPEP() {
+      hapticFeedback('light');
+      const txt = document.getElementById('asma-resultado')?.innerText || '';
+      if (!txt || txt.includes('Preencha os dados') || txt.includes('Informe')) {
+        copiarToast('Calcule a conduta de Asma antes de copiar.');
+        return;
+      }
+      copiarTextoClipboard(txt, 'Conduta de Crise Asmática copiada para o Prontuário!');
+    }
     function toggleGasoAvancado() {
       const el = document.getElementById('gaso-secao-avancada');
       const chevron = document.getElementById('gaso-avancado-chevron');
@@ -6865,6 +7338,7 @@
         }
 
         detalhes.textContent = resp.textoFormatado || 'Nenhum alerta para os termos informados.';
+        registrarHistoricoCalculo('crosscheck', { texto: entrada }, resp.textoFormatado || 'Varredura concluída');
         copiarToast('Varredura concluída (' + (resp.benchmark_ms || 1) + 'ms)');
         if (window.lucide) lucide.createIcons();
       } catch (err) {
@@ -6882,6 +7356,7 @@
           badge.innerHTML = '<i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i> 🛡️ Sem Interações Graves (Modo Offline em RAM)';
         }
         detalhes.textContent = offlineRes.textoFormatado;
+        registrarHistoricoCalculo('crosscheck', { texto: entrada }, offlineRes.textoFormatado || 'Varredura offline concluída');
         copiarToast('Varredura offline concluída (0ms)');
         if (window.lucide) lucide.createIcons();
       }
@@ -12254,7 +12729,8 @@
       carregarLeitos();
       carregarPerfil();
       configurarTecladosCalculadoras();
-      ['dva-resultado','sri-resultado','crcl-resultado','gaso-resultado'].forEach(id => {
+      renderizarHistoricoCalculos();
+      ['dva-resultado','sri-resultado','crcl-resultado','gaso-resultado','asma-resultado'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.textContent = 'Informe os parâmetros para calcular.';
       });
