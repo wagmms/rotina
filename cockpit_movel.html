@@ -143,6 +143,28 @@
     </div>
   </header>
 
+  <!-- BANNER NÃO-OBSTRUTIVO DE CONEXÃO FLUTUANTE & RESILIÊNCIA DE REDE -->
+  <aside id="banner-status-conexao" class="hidden sticky top-14 z-40 px-3 sm:px-4 py-1.5 transition-all duration-300" aria-live="polite" role="status">
+    <div id="banner-conexao-card" class="max-w-3xl mx-auto rounded-xl p-2.5 sm:px-3 sm:py-2 border shadow-lg flex items-center justify-between gap-2.5 text-xs backdrop-blur-md bg-amber-950/85 border-amber-500/40 text-amber-200">
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <span id="banner-conexao-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-ping flex-shrink-0"></span>
+        <i data-lucide="wifi-off" id="banner-conexao-icone" class="w-4 h-4 text-amber-400 flex-shrink-0"></i>
+        <div class="min-w-0 flex-1">
+          <p id="banner-conexao-texto" class="font-bold truncate text-[11px] sm:text-xs">Conexão flutuante detectada · Tentando reconectar...</p>
+          <p id="banner-conexao-subtexto" class="text-[9.5px] text-amber-300/80 truncate hidden sm:block">Operações locais preservadas com segurança.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 flex-shrink-0">
+        <button id="banner-conexao-btn-retry" onclick="tentarReconectarAgora()" class="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold text-[10px] active:scale-95 transition flex items-center gap-1" title="Tentar reconectar imediatamente">
+          <i data-lucide="refresh-cw" class="w-3 h-3"></i> Reconectar
+        </button>
+        <button id="banner-conexao-btn-fechar" onclick="fecharBannerConexao()" class="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition" title="Dispensar aviso">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
   <!-- CONTAINER DE CONTEÚDO PRINCIPAL (6 ABAS) -->
   <main class="flex-1 px-3 sm:px-4 py-3 space-y-4 max-w-3xl mx-auto w-full">
 
@@ -3603,6 +3625,34 @@
           </div>
         </div>
 
+        <!-- Diagnóstico de Telemetria de Conectividade e Rede -->
+        <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between text-[11px] font-bold text-slate-300">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="activity" class="w-3.5 h-3.5 text-sky-400"></i> Telemetria de Conectividade do Plantão
+            </span>
+            <span id="info-rede-modo" class="text-sky-400 font-mono text-[10px]">Nuvem (Render)</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[10.5px]">
+            <div class="p-2 rounded bg-slate-900 border border-slate-800/80">
+              <span class="text-slate-400 block text-[9.5px]">Latência RTT Estimada</span>
+              <span class="font-bold text-white font-mono" id="info-rede-latencia">-- ms</span>
+            </div>
+            <div class="p-2 rounded bg-slate-900 border border-slate-800/80">
+              <span class="text-slate-400 block text-[9.5px]">Flutuações Detectadas</span>
+              <span class="font-bold text-amber-400 font-mono" id="info-rede-flutuacoes">0 evento(s)</span>
+            </div>
+            <div class="p-2 rounded bg-slate-900 border border-slate-800/80">
+              <span class="text-slate-400 block text-[9.5px]">Reconexões c/ Sucesso</span>
+              <span id="info-rede-reentradas" class="font-bold text-emerald-400 font-mono">0</span>
+            </div>
+            <div class="p-2 rounded bg-slate-900 border border-slate-800/80">
+              <span class="text-slate-400 block text-[9.5px]">Retry Exponencial</span>
+              <span class="font-bold text-slate-300 font-mono">Ativo (Até 3x + Jitter)</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Seção da Fila de Ações Pendentes -->
         <div class="space-y-2">
           <div class="flex items-center justify-between">
@@ -3970,6 +4020,250 @@
       }
     } catch (eDb) {
       console.warn('[OfflineDB] Dexie não disponível ou falha ao inicializar. Usando fallback LocalStorage:', eDb);
+    }
+
+    // =========================================================================
+    // 1.2 TELEMETRIA DE CONECTIVIDADE, RETRY EXPONENCIAL E BANNER RESILIENTE
+    // =========================================================================
+    const telemetriaRede = {
+      estado: 'online', // 'online' | 'flutuante' | 'offline' | 'recarregando'
+      tentativasAtuais: 0,
+      maxTentativas: 3,
+      falhasConsecutivas: 0,
+      totalFlutuacoes: 0,
+      reentradasSucesso: 0,
+      ultimaLatenciaMs: null,
+      ultimoCheck: Date.now(),
+      historicoStatus: []
+    };
+
+    let bannerConexaoTimeoutId = null;
+    let canceladorEsperaRetry = null;
+
+    function registrarTransicaoRede(novoEstado, detalhes = '') {
+      telemetriaRede.estado = novoEstado;
+      telemetriaRede.ultimoCheck = Date.now();
+      telemetriaRede.historicoStatus.unshift({
+        estado: novoEstado,
+        timestamp: Date.now(),
+        detalhes: detalhes
+      });
+      if (telemetriaRede.historicoStatus.length > 5) {
+        telemetriaRede.historicoStatus.pop();
+      }
+    }
+
+    function exibirBannerConexao(tipo, mensagem, submensagem = '', permitirRetry = true) {
+      if (bannerConexaoTimeoutId) {
+        clearTimeout(bannerConexaoTimeoutId);
+        bannerConexaoTimeoutId = null;
+      }
+
+      const banner = document.getElementById('banner-status-conexao');
+      const card = document.getElementById('banner-conexao-card');
+      const dot = document.getElementById('banner-conexao-dot');
+      const icone = document.getElementById('banner-conexao-icone');
+      const txt = document.getElementById('banner-conexao-texto');
+      const subtxt = document.getElementById('banner-conexao-subtexto');
+      const btnRetry = document.getElementById('banner-conexao-btn-retry');
+
+      if (!banner || !card || !dot || !icone || !txt) return;
+
+      txt.textContent = mensagem || 'Conexão flutuante detectada';
+      if (subtxt) {
+        subtxt.textContent = submensagem || 'Operações seguras e dados locais preservados.';
+        subtxt.classList.toggle('hidden', !submensagem);
+      }
+
+      if (tipo === 'sucesso') {
+        card.className = 'max-w-3xl mx-auto rounded-xl p-2.5 sm:px-3 sm:py-2 border shadow-lg flex items-center justify-between gap-2.5 text-xs backdrop-blur-md bg-emerald-950/90 border-emerald-500/40 text-emerald-200';
+        dot.className = 'w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0';
+        icone.setAttribute('data-lucide', 'check-circle');
+        icone.className = 'w-4 h-4 text-emerald-400 flex-shrink-0';
+        if (btnRetry) btnRetry.classList.add('hidden');
+
+        // Auto-dismiss após 2.8 segundos
+        bannerConexaoTimeoutId = setTimeout(() => {
+          fecharBannerConexao();
+        }, 2800);
+      } else if (tipo === 'offline') {
+        card.className = 'max-w-3xl mx-auto rounded-xl p-2.5 sm:px-3 sm:py-2 border shadow-lg flex items-center justify-between gap-2.5 text-xs backdrop-blur-md bg-rose-950/90 border-rose-500/50 text-rose-200';
+        dot.className = 'w-2 h-2 rounded-full bg-rose-400 flex-shrink-0';
+        icone.setAttribute('data-lucide', 'shield-alert');
+        icone.className = 'w-4 h-4 text-rose-400 flex-shrink-0';
+        if (btnRetry) {
+          btnRetry.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i> Testar Sinal';
+          btnRetry.className = 'px-2 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 font-bold text-[10px] active:scale-95 transition flex items-center gap-1';
+          btnRetry.classList.toggle('hidden', !permitirRetry);
+        }
+      } else {
+        // 'flutuante' ou padrão
+        card.className = 'max-w-3xl mx-auto rounded-xl p-2.5 sm:px-3 sm:py-2 border shadow-lg flex items-center justify-between gap-2.5 text-xs backdrop-blur-md bg-amber-950/90 border-amber-500/50 text-amber-200';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping flex-shrink-0';
+        icone.setAttribute('data-lucide', 'wifi-off');
+        icone.className = 'w-4 h-4 text-amber-400 flex-shrink-0';
+        if (btnRetry) {
+          btnRetry.innerHTML = '<i data-lucide="refresh-cw" class="w-3 h-3"></i> Reconectar';
+          btnRetry.className = 'px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold text-[10px] active:scale-95 transition flex items-center gap-1';
+          btnRetry.classList.toggle('hidden', !permitirRetry);
+        }
+      }
+
+      banner.classList.remove('hidden');
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        try { window.lucide.createIcons(); } catch (e) {}
+      }
+    }
+
+    function fecharBannerConexao() {
+      if (bannerConexaoTimeoutId) {
+        clearTimeout(bannerConexaoTimeoutId);
+        bannerConexaoTimeoutId = null;
+      }
+      const banner = document.getElementById('banner-status-conexao');
+      if (banner) banner.classList.add('hidden');
+    }
+
+    async function executarFetchComRetry(url, options = {}, config = {}) {
+      const maxTentativas = config.maxTentativas || 3;
+      const timeoutMs = config.timeoutMs || 8000;
+      const backoffBaseMs = config.backoffBaseMs || 500;
+
+      if (isDeviceOffline()) {
+        telemetriaRede.estado = 'offline';
+        throw new Error('Dispositivo em Modo Offline.');
+      }
+
+      let ultimoErro = null;
+
+      for (let tentativa = 1; tentativa <= maxTentativas; tentativa++) {
+        telemetriaRede.tentativasAtuais = tentativa;
+        const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+        const tInicio = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+
+        try {
+          const reqOptions = { ...options };
+          if (controller) reqOptions.signal = controller.signal;
+
+          const resp = await fetch(url, reqOptions);
+          if (timeoutId) clearTimeout(timeoutId);
+
+          if (!resp.ok && resp.status >= 500) {
+            throw new Error(`Erro de servidor HTTP ${resp.status}`);
+          }
+
+          const tFim = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+          const rtt = Math.round(tFim - tInicio);
+          telemetriaRede.ultimaLatenciaMs = rtt;
+
+          const json = await resp.json();
+
+          // Se recuperou de flutuação prévia
+          if (tentativa > 1 || telemetriaRede.estado === 'flutuante' || telemetriaRede.falhasConsecutivas > 0) {
+            telemetriaRede.reentradasSucesso++;
+            telemetriaRede.falhasConsecutivas = 0;
+            registrarTransicaoRede('online', `Recuperado na tentativa ${tentativa} (${rtt}ms)`);
+            exibirBannerConexao('sucesso', 'Conexão restabelecida!', `Latência RTT: ${rtt}ms · Dados sincronizados com o servidor.`);
+          } else {
+            registrarTransicaoRede('online', `Estável (${rtt}ms)`);
+          }
+
+          return json;
+        } catch (err) {
+          if (timeoutId) clearTimeout(timeoutId);
+          ultimoErro = err;
+          telemetriaRede.falhasConsecutivas++;
+          if (telemetriaRede.falhasConsecutivas === 1) {
+            telemetriaRede.totalFlutuacoes++;
+          }
+
+          const isAbort = (err.name === 'AbortError' || String(err.message).toLowerCase().includes('abort') || String(err.message).toLowerCase().includes('timeout'));
+
+          if (tentativa < maxTentativas && !isDeviceOffline()) {
+            registrarTransicaoRede('flutuante', `Falha tentativa ${tentativa}: ${err.message}`);
+            const jitter = Math.floor(Math.random() * 300);
+            const delay = Math.round(backoffBaseMs * Math.pow(1.8, tentativa - 1)) + jitter;
+
+            const msgErro = isAbort ? 'Tempo limite esgotado (rede lenta)' : 'Falha de sinal hospitalar';
+            exibirBannerConexao(
+              'flutuante',
+              `Conexão instável (${tentativa}/${maxTentativas}) · ${msgErro}`,
+              `Reconectando em ${(delay / 1000).toFixed(1)}s... Modo offline preserva dados.`,
+              true
+            );
+
+            await new Promise(res => {
+              let tid = null;
+              const resolveEFecha = () => {
+                canceladorEsperaRetry = null;
+                if (tid) clearTimeout(tid);
+                res();
+              };
+              canceladorEsperaRetry = resolveEFecha;
+              tid = setTimeout(resolveEFecha, delay);
+            });
+          } else {
+            registrarTransicaoRede('offline', `Tentativas esgotadas (${maxTentativas}x): ${err.message}`);
+            exibirBannerConexao(
+              'offline',
+              'Servidor inalcançável no momento',
+              'Operando em Modo Offline Seguro (IndexedDB) · Seus dados estão salvos.',
+              true
+            );
+          }
+        }
+      }
+
+      throw ultimoErro || new Error('Falha de conexão com o servidor.');
+    }
+
+    async function tentarReconectarAgora() {
+      hapticFeedback('medium');
+      if (canceladorEsperaRetry) {
+        canceladorEsperaRetry();
+      }
+
+      exibirBannerConexao('flutuante', 'Testando sinal...', 'Verificando resposta do servidor...', false);
+
+      const RENDER_BACKEND = (typeof window !== 'undefined' && window.location && window.location.origin && !window.location.hostname.includes('github.io'))
+        ? window.location.origin
+        : "https://ultra-rotina-backend.onrender.com";
+
+      let customBackend = '';
+      try {
+        customBackend = localStorage.getItem('cockpit_backend_url') || '';
+      } catch (e) {}
+
+      const pingUrl = (customBackend || RENDER_BACKEND).replace(/\/+$/, '') + '/ping';
+
+      try {
+        const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        const tid = controller ? setTimeout(() => controller.abort(), 4000) : null;
+        const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        const resp = await fetch(pingUrl, { signal: controller?.signal });
+        if (tid) clearTimeout(tid);
+
+        if (resp.ok) {
+          const rtt = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - t0);
+          telemetriaRede.ultimaLatenciaMs = rtt;
+          telemetriaRede.reentradasSucesso++;
+          telemetriaRede.falhasConsecutivas = 0;
+          registrarTransicaoRede('online', `Ping ok (${rtt}ms)`);
+          exibirBannerConexao('sucesso', 'Conexão restabelecida com sucesso!', `Latência: ${rtt}ms · Sincronizando leitos e atendimentos...`);
+          atualizarIndicadorRede();
+          processarFilaSincronizacao(true);
+          carregarLeitos(true);
+          return true;
+        }
+      } catch (err) {}
+
+      telemetriaRede.falhasConsecutivas++;
+      registrarTransicaoRede('offline', 'Falha no teste manual');
+      exibirBannerConexao('offline', 'Ainda sem conexão com o servidor', 'Modo Offline Seguro ativo. Tente novamente em instantes.', true);
+      atualizarIndicadorRede();
+      return false;
     }
 
     // Controle de Conectividade & Modo Plantão Forçado
@@ -4495,9 +4789,28 @@
         }
       }
 
+      // Telemetria de Conectividade do Plantão no Modal
+      const infoModoRede = document.getElementById('info-rede-modo');
+      const infoLatencia = document.getElementById('info-rede-latencia');
+      const infoFlutuacoes = document.getElementById('info-rede-flutuacoes');
+      const infoReentradas = document.getElementById('info-rede-reentradas');
+
+      if (infoModoRede) {
+        infoModoRede.textContent = (modo === 'NUVEM') ? 'Nuvem (Render)' : (modo === 'NO_LOCAL' ? 'Nó Local' : 'Offline Seguro');
+      }
+      if (infoLatencia) {
+        infoLatencia.textContent = telemetriaRede.ultimaLatenciaMs !== null ? `${telemetriaRede.ultimaLatenciaMs} ms` : '-- ms';
+      }
+      if (infoFlutuacoes) {
+        infoFlutuacoes.textContent = `${telemetriaRede.totalFlutuacoes} evento(s)`;
+      }
+      if (infoReentradas) {
+        infoReentradas.textContent = `${telemetriaRede.reentradasSucesso} recuperada(s)`;
+      }
+
       atualizarListaFilaOffline(fila);
-      if (window.lucide && typeof lucide.createIcons === 'function') {
-        try { lucide.createIcons(); } catch (e) {}
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        try { window.lucide.createIcons(); } catch (e) {}
       }
     }
 
@@ -4576,16 +4889,19 @@
       atualizarIndicadorRede();
     }
 
-    // Ouvintes globais de status da conexão
+    // Ouvintes globais de status da conexão com resiliência visual
     window.addEventListener('online', () => {
-      copiarToast('Conexão restabelecida! Sincronizando dados pendentes...');
-      atualizarIndicadorRede();
-      processarFilaSincronizacao(true);
-      carregarLeitos(true);
+      copiarToast('Sinal detectado! Testando conexão com o servidor...');
+      telemetriaRede.falhasConsecutivas = 0;
+      tentarReconectarAgora();
     });
 
     window.addEventListener('offline', () => {
       copiarToast('Plantão sem sinal detectado. Modo Offline Seguro ativado.');
+      telemetriaRede.estado = 'offline';
+      telemetriaRede.totalFlutuacoes++;
+      registrarTransicaoRede('offline', 'Evento window.offline disparado');
+      exibirBannerConexao('offline', 'Sem sinal hospitalar detectado', 'Modo Offline Seguro ativo. Cache local criptografado (IndexedDB).', true);
       atualizarIndicadorRede();
     });
 
@@ -4623,6 +4939,12 @@
       window.setForcedOfflineState = setForcedOfflineState;
       window.isForcedOffline = isForcedOffline;
       window.isDeviceOffline = isDeviceOffline;
+      window.telemetriaRede = telemetriaRede;
+      window.obterTelemetriaRede = () => ({ ...telemetriaRede });
+      window.executarFetchComRetry = executarFetchComRetry;
+      window.exibirBannerConexao = exibirBannerConexao;
+      window.fecharBannerConexao = fecharBannerConexao;
+      window.tentarReconectarAgora = tentarReconectarAgora;
     }
 
     // Dados clínicos vêm do servidor autenticado ou do snapshot local offline.
@@ -4631,78 +4953,56 @@
     const CACHE_TTL_MS = 30_000; // 30s
     let cockpitCarregando = false;
 
-    const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwo6GqTmc0_8fl9peKlw5d5jpfL5nqsc-ozLrqHiVk2RHD4h968EZAG4P75i2qSBlw9EQ/exec";
+    async function cockpitRpc(metodo, ...args) {
+      const credencial = sessaoAtiva || tg?.initData;
+      if (!credencial) {
+        throw new Error('Sessão indisponível. Reabra pelo menu do Telegram.');
+      }
 
-    function cockpitRpc(metodo, ...args) {
-      return new Promise(async (resolve, reject) => {
-        const credencial = sessaoAtiva || tg?.initData;
-        if (!credencial) {
-          reject(new Error('Sessão indisponível. Reabra pelo menu do Telegram.')); return;
-        }
-
-        // 1. Se executado dentro do Google Apps Script
-        if (window.google?.script?.run && typeof window.google.script.run[metodo] === 'function') {
+      // 1. Se executado dentro do Google Apps Script (compatibilidade legada)
+      if (window.google?.script?.run && typeof window.google.script.run[metodo] === 'function') {
+        return new Promise((resolve, reject) => {
           window.google.script.run
             .withSuccessHandler(resolve)
             .withFailureHandler(err => reject(new Error(
               (err && err.message) ? err.message : 'Não foi possível concluir. Tente novamente.'
             )))[metodo](credencial, ...args);
-          return;
-        }
+        });
+      }
 
-        // 2. Se executado no GitHub Pages / Navegador (Render primário de alta velocidade com fallback para GAS)
-        const RENDER_BACKEND = (typeof window !== 'undefined' && window.location && window.location.origin && !window.location.hostname.includes('github.io'))
-          ? window.location.origin
-          : "https://ultra-rotina-backend.onrender.com";
-        const GAS_BACKEND = "https://script.google.com/macros/s/AKfycbwo6GqTmc0_8fl9peKlw5d5jpfL5nqsc-ozLrqHiVk2RHD4h968EZAG4P75i2qSBlw9EQ/exec";
+      // 2. Se executado no GitHub Pages / Navegador (Backend Fastify no Render com Retry Exponencial)
+      const RENDER_BACKEND = (typeof window !== 'undefined' && window.location && window.location.origin && !window.location.hostname.includes('github.io'))
+        ? window.location.origin
+        : "https://ultra-rotina-backend.onrender.com";
 
-        let customBackend = '';
-        try {
-          customBackend = localStorage.getItem('cockpit_backend_url') || '';
-        } catch (e) {}
+      let customBackend = '';
+      try {
+        customBackend = localStorage.getItem('cockpit_backend_url') || '';
+      } catch (e) {}
 
-        const primaryUrl = (customBackend || RENDER_BACKEND).replace(/\/+$/, '') + '/api/cockpit';
-        const fallbackUrl = GAS_BACKEND + '?api=cockpit';
+      const primaryUrl = (customBackend || RENDER_BACKEND).replace(/\/+$/, '') + '/api/cockpit';
 
-        try {
-          const resp = await fetch(primaryUrl, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify({
-              metodo: metodo,
-              session: credencial,
-              args: args
-            })
-          });
-          const json = await resp.json();
-          if (json.ok) {
-            resolve(json.resultado);
-            return;
-          }
-          throw new Error(json.erro || "Falha na resposta do servidor primário.");
-        } catch (primaryErr) {
-          console.warn("[Cockpit] Servidor primário indisponível. Tentando fallback para Google Apps Script...", primaryErr.message);
-          try {
-            const respFallback = await fetch(fallbackUrl, {
-              method: "POST",
-              headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify({
-                metodo: metodo,
-                session: credencial,
-                args: args
-              })
-            });
-            const jsonFallback = await respFallback.json();
-            if (jsonFallback.ok) {
-              resolve(jsonFallback.resultado);
-              return;
-            }
-            reject(new Error(jsonFallback.erro || "Falha no servidor fallback."));
-          } catch (fallbackErr) {
-            reject(new Error("Erro de conexão com o servidor: " + (primaryErr.message || primaryErr)));
-          }
-        }
+      const json = await executarFetchComRetry(primaryUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          metodo: metodo,
+          session: credencial,
+          args: args
+        })
+      }, {
+        maxTentativas: 3,
+        timeoutMs: 8000,
+        backoffBaseMs: 500
       });
+
+      if (json && json.ok) {
+        return json.resultado;
+      }
+      throw new Error(json?.erro || "Falha na resposta do servidor.");
+    }
+    if (typeof window !== 'undefined') {
+      window.cockpitRpc = cockpitRpc;
     }
 
     async function cockpitConsultarCached(forcar = false) {

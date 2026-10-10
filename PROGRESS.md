@@ -13,15 +13,15 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria de Resiliência e Feedback Visual em Conexões Flutuantes no Cockpit PWA**:
-    - Reforçar telemetria de reconexão automática e retry exponencial com feedback de banner não obstrutivo no plantão.
+- [ ] **Auditoria de Acessibilidade e Teclados Táteis Mobile em Modais de Prescrição Ambulatorial e SBAR**:
+    - Verificar inputs, auto-complete, labels semânticos, foco em campos obrigatórios e botões de cópia PEP no Cockpit PWA para garantir agilidade beira-leito sem atritos em telas pequenas.
 
 ---
 
 ## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência
 
-1. [ ] **Auditoria de Resiliência e Feedback Visual em Conexões Flutuantes no Cockpit PWA**:
-    - Reforçar telemetria de reconexão automática e retry exponencial com feedback de banner não obstrutivo no plantão.
+1. [ ] **Auditoria de Acessibilidade e Teclados Táteis Mobile em Modais de Prescrição Ambulatorial e SBAR**:
+    - Verificar inputs, auto-complete, labels semânticos, foco em campos obrigatórios e botões de cópia PEP no Cockpit PWA para garantir agilidade beira-leito sem atritos em telas pequenas.
 
 ---
 
@@ -65,10 +65,31 @@
 - *Sugestão 36 (Cockpit / Calculadoras)*: Recurso de "Fixar Cálculo" (Pin) no histórico da sessão para manter cálculos críticos de pacientes instáveis permanentemente no topo do painel durante todo o turno.
 - *Sugestão 37 (Calculadoras / Sala Vermelha)*: Calculadora de Osmolaridade e Osmolalidade Plasmática Efetiva com cálculo de Osmolar Gap acoplada à gasometria e sódio sérico para investigação de intoxicações exógenas por álcoois tóxicos (metanol, etilenoglicol) e cetoacidose diabética.
 - *Sugestão 38 (Cockpit / Farmacologia de UTI)*: Visualização em árvore/matriz gráfica de múltiplos lúmens de CVC com alocação recomendada de fármacos (lúmen distal para vasopressores/medicação contínua crítica, medial para nutrição parenteral/sangue, proximal para sedoanalgesia/bolus) para prevenir incompatibilidades físico-químicas em acessos venosos centrais de múltiplos lúmens.
+- *Sugestão 39 (Cockpit / Resiliência de Rede)*: Detecção proativa de degradação de sinal via Network Information API (`navigator.connection.effectiveType` e `navigator.connection.rtt`) para calibrar dinamicamente os timeouts e antecipar modo de baixo consumo em redes Wi-Fi hospitalares com alta perda de pacotes.
+- *Sugestão 40 (Cockpit / UX)*: Indicador visual de pulso / batimento de dados (Heartbeat Ping) discreto no cabeçalho durante atendimentos críticos na Sala Vermelha, confirmando em tempo real a sincronia do censo e gasometrias seriadas.
+- *Sugestão 41 (Cockpit / Telemetria)*: Compressão com gzip/deflate de snapshots volumosos no IndexedDB para economizar quota de armazenamento local em smartphones hospitalares com pouca memória livre.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
+
+0AC. [x] **Auditoria de Resiliência, Feedback Visual em Conexões Flutuantes e Retry Exponencial no Cockpit PWA**:
+    - **Banner Não-Obstrutivo de Conectividade Flutuante (`#banner-status-conexao`)**:
+      * Inserido container compacto e acessível (`role="status"`, `aria-live="polite"`) logo abaixo da barra superior no DOM de `cockpit_movel.html` e `gh_cockpit_deploy/index.html`.
+      * Estados adaptativos: Âmbar/Piscando (`wifi-off`) para flutuação/reconexão com contagem de tentativas e tempo de backoff; Rose escuro (`shield-alert`) para modo offline seguro (IndexedDB); Verde esmeralda (`check-circle`) com latência RTT estimada para reconexão bem-sucedida (auto-dismiss suave em 2.8s).
+      * Botão tátil de 1 toque no banner para forçar reconexão imediata beira-leito (`tentarReconectarAgora`).
+    - **Motor de Retry Exponencial com Jitter e AbortController (`executarFetchComRetry`)**:
+      * Implementado mecanismo com até 3 tentativas, timeout de 8s por tentativa via `AbortController` (eliminando retenção de threads e travamentos em conexões fantasmas/"lie-fi").
+      * Backoff exponencial com jitter aleatório (`delay = base * 1.8^(n-1) + random(0-300ms)`) para evitar tempestades de requisições simultâneas em redes hospitalares compartilhadas.
+      * Fast-fail em 0ms quando o dispositivo estiver offline ou no Modo Plantão Forçado, protegendo a bateria e garantindo resposta imediata do cache local criptografado.
+    - **Eliminação Definitiva e Absoluta de Google Apps Script (GAS)**:
+      * Removida constante legada `GAS_BACKEND_URL` e fallbacks obsoletos para Google Apps Script em `cockpitRpc`, garantindo conformidade estrita e 100% de adesão à arquitetura oficial Fastify no Render.
+    - **Telemetria de Conectividade em Tempo Real**:
+      * Implementado subsistema `telemetriaRede` monitorando estado (`online`, `flutuante`, `offline`), tentativas atuais, falhas consecutivas, total de flutuações, reentradas com sucesso e latência RTT em milissegundos.
+      * Painel de diagnóstico expandido no modal `#modal-plantao-offline` exibindo modo de conexão, latência estimada, contador de eventos de instabilidade e taxa de reconexão.
+    - **Sincronismo de Produção e Suíte de Testes Automatizada Dedicada**:
+      * Paridade estrita de 100% com hash SHA-256 idêntico entre `cockpit_movel.html` e `gh_cockpit_deploy/index.html`.
+      * Criada suíte `tests/test_cockpit_resiliencia_rede.cjs` com 9 baterias exaustivas (SHA-256, elementos DOM, proibição de GAS, compilação VM, estados visuais do banner, motor de retry com 4 cenários, reconexão manual com ping, telemetria do modal e handshake RPC), integrada ao `package.json` e 100% aprovada nas 31 suítes do `npm test`.
 
 0AB. [x] **Cross-Check de Compatibilidade de Diluição de Inotrópicos e Vasopressores com D1 e Matriz em Y (Y-Site)**:
     - **Módulo Clínico Core (`src/02_compatibilidade_y_dva.js`)**:
