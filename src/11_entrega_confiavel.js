@@ -222,8 +222,11 @@ function concluirTarefaPc(taskId, status, resultado) {
 }
 
 function rotearUpdate(update) {
+  if(update.inline_query && typeof processarInlineQuery === 'function') return processarInlineQuery(update.inline_query);
   if(update.callback_query) return processarCallbackBotao(update.callback_query);
   var m=update.message;
+  if(!m) return;
+  if(m.web_app_data && typeof processarWebAppData === 'function') return processarWebAppData(m);
   if(m.voice||m.audio) return processarMensagemVoz(m);
   if(m.photo) return processarMensagemFoto(m);
   if(m.text) return processarMensagemTexto(m);

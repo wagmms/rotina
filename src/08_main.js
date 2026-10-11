@@ -134,11 +134,29 @@ function doPost(e) {
   var u;
   try { u=JSON.parse(e.postData.contents); } catch(err) { return HtmlService.createHtmlOutput("Bad Request"); }
   if (!u || !Number.isSafeInteger(u.update_id) || u.update_id<0) return HtmlService.createHtmlOutput("Bad Request");
-  var msg=u.message || (u.callback_query && u.callback_query.message);
+  var remetenteId = null;
+  if (u.message && u.message.chat) {
+    remetenteId = String(u.message.chat.id);
+  } else if (u.callback_query && u.callback_query.message && u.callback_query.message.chat) {
+    remetenteId = String(u.callback_query.message.chat.id);
+  } else if (u.inline_query && u.inline_query.from) {
+    remetenteId = String(u.inline_query.from.id);
+  }
+
   var allowedList = (typeof ConfigService.getArray === "function")
     ? ConfigService.getArray("TELEGRAM_CHAT_ID").map(function(s){ return String(s).trim(); })
     : String(allowed).split(",").map(function(s){ return String(s).trim(); });
-  if (!msg || !msg.chat || allowedList.indexOf(String(msg.chat.id)) === -1) return HtmlService.createHtmlOutput("Forbidden");
+
+  if (!remetenteId || allowedList.indexOf(remetenteId) === -1) return HtmlService.createHtmlOutput("Forbidden");
+
+  // Fast-Path de resposta instantânea para consultas em linha (@bot)
+  if (u.inline_query) {
+    if (typeof processarInlineQuery === "function") {
+      processarInlineQuery(u.inline_query);
+    }
+    return HtmlService.createHtmlOutput("OK");
+  }
+
   if (u.callback_query) {
     destravarCallbackTelegramImediato(u.callback_query);
   }
@@ -198,7 +216,7 @@ function configurarWebhookTelegram() {
   var secret=ConfigService.exigir("WEBHOOK_SECRET");
   var response=UrlFetchApp.fetch("https://api.telegram.org/bot"+token+"/setWebhook", {
     method:"post",contentType:"application/json",muteHttpExceptions:true,
-    payload:JSON.stringify({url:url.split("?")[0]+"?secret="+encodeURIComponent(secret),secret_token:secret,drop_pending_updates:false,max_connections:1,allowed_updates:["message","callback_query"]})
+    payload:JSON.stringify({url:url.split("?")[0]+"?secret="+encodeURIComponent(secret),secret_token:secret,drop_pending_updates:false,max_connections:1,allowed_updates:["message","callback_query","inline_query"]})
   });
   if(response.getResponseCode()!==200 || !JSON.parse(response.getContentText()).ok) throw new Error("Falha ao registrar webhook.");
   if(!ScriptApp.getProjectTriggers().some(function(t){return t.getHandlerFunction()==="processarFilaTelegram";})) ScriptApp.newTrigger("processarFilaTelegram").timeBased().everyMinutes(1).create();
@@ -216,6 +234,7 @@ function configurarMenuTelegram() {
   var url = "https://api.telegram.org/bot" + token + "/setMyCommands";
   var comandos = [
     { command: "menu", description: "Central de comandos e especialidades" },
+    { command: "cockpit", description: "Abrir Cockpit Clínico (Mini App)" },
     { command: "novo", description: "Limpar memória e iniciar novo caso" },
     { command: "cancelar", description: "Encerrar modo ativo ou ação atual" },
     { command: "teclado", description: "Ativar botões rápidos no rodapé" },
@@ -238,6 +257,13 @@ function configurarMenuTelegram() {
   };
   var res = UrlFetchApp.fetch(url, optionsPriv);
   Logger.log("Menu configurado: " + res.getContentText());
+
+  // Configuração automática do Chat Menu Button para WebApp (Mini App em 1 toque)
+  if (typeof configurarMenuButtonTelegram === "function") {
+    try {
+      configurarMenuButtonTelegram();
+    } catch (_) {}
+  }
 }
 
 function instalarTodosOsAcionadores() {

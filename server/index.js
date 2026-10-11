@@ -686,10 +686,13 @@ async function buildServer() {
       let resumoInteracao = `Update #${updateId} (${kind})`;
       try {
         const up = JSON.parse(fakeGasEvent.postData.contents);
-        if (up.callback_query) {
+        if (up.inline_query) {
+          resumoInteracao = `Inline Query: "${(up.inline_query.query || '').slice(0, 60)}"`;
+        } else if (up.callback_query) {
           resumoInteracao = `Botão Telegram: ${up.callback_query.data || ''}`;
         } else if (up.message) {
-          if (up.message.text) resumoInteracao = `Texto Telegram: "${up.message.text.slice(0, 80)}"`;
+          if (up.message.web_app_data) resumoInteracao = 'Mini App (WebApp Data)';
+          else if (up.message.text) resumoInteracao = `Texto Telegram: "${up.message.text.slice(0, 80)}"`;
           else if (up.message.voice) resumoInteracao = `Voz Telegram (${up.message.voice.duration || 0}s)`;
           else if (up.message.photo) resumoInteracao = 'Imagem Médica Telegram';
           else if (up.message.document) resumoInteracao = `Documento (${up.message.document.file_name || 'anexo'})`;

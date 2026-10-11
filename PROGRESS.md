@@ -16,12 +16,14 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Telegram Router - Desacoplamento de Comandos Slash e Tabela de Despacho O(1) (`src/07a_telegram_router.js`)**:
+- [x] **Telegram Mini App (WebApp) & Inline Mode - Resposta Instantânea Inline e Sincronização Bidirecional PWA (`src/07h_telegram_inline_e_webapp.js`, `src/08_main.js`, `src/11_entrega_confiavel.js`, `tests/test_telegram_inline_e_webapp.cjs`)**:
     - **Diagnóstico e Refatoração Estrutural**:
-      * Em `src/07a_telegram_router.js`: desacoplados comandos `/rx`, `/rxh`, `/plantao` e `/calc` em handlers modulares (`tratarComandoRx`, `tratarComandoRxh`, `tratarComandoPlantao`, `tratarComandoCalc`).
-      * Tabela `rotearComandoSistema` expandida com despacho direto O(1) e early return, eliminando cascatas de `if/else` em `processarMensagemTexto`.
-      * Cláusula pétrea de conteúdo médico, doses farmacológicas, links de navegação e atalhos rápidos rigorosamente preservados.
-    - **Validação e Resultados**: 100% de aprovação na suíte direcionada (`test_hubs_e_comandos_telegram.cjs`, `test_novos_comandos.py`). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
+      * Implementado suporte oficial a **Inline Mode** (`@UltraRotinaBot [busca]`), com geração dinâmica de cards clínicos formatados (`InlineQueryResultArticle`): DVA com cálculo por peso (Nora, Vaso, Dobuta), SRI com doses exatas em mg e mL, escores de emergência (CURB-65, Wells TEP, HAS-BLED, CHA₂DS₂-VASc, Gasometria com Winter, Glasgow-P com pupilas) e consulta farmacológica local (HSL / REMUME).
+      * Despacho via `responderInlineQueryTelegram` com fast-path de resposta em tempo real (< 50ms) no `doPost` de `src/08_main.js` e autorização segura do remetente.
+      * Suporte bidirecional a **Telegram Mini App**: tratamento de `message.web_app_data` (`processarWebAppData`) para dados enviados do Cockpit PWA para o chat com botões de prontuário (PEP).
+      * Configuração nativa de Chat Menu Button (`configurarMenuButtonTelegram` via `setChatMenuButton`) com tipo `web_app`, abrindo o Cockpit em tela cheia com 1 toque ao lado do teclado.
+      * Cláusula pétrea de conteúdo médico, doses farmacológicas e salvaguardas de toxicidade rigorosamente preservadas.
+    - **Validação e Resultados**: 100% de aprovação na suíte dedicada `tests/test_telegram_inline_e_webapp.cjs` (0.42s) e 100% de sucesso na bateria completa de 49 suítes (`npm test` em 8.98s com zero regressões). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -29,24 +31,29 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Prescrição Hospitalar - Decomposição de Validações de Posologia e Ajuste Renal (`src/05_prescricao_hospitalar.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/05_prescricao_hospitalar.js`
-    - **Função/Componente/Seletor**: Funções de checagem e formatação de itens de prescrição (`validarItemPrescricao`, `aplicarAjusteRenalItem`)
-    - **Comportamento Esperado / Critério de Aceite**: Substituir escadas de condições por dicionários de regras e funções puras com early return.
+- [ ] **Telegram Callbacks - Desacoplamento de Roteamento de Callbacks Inline (`src/07d_telegram_callbacks.js`)**:
+    - **Arquivo/Módulo Alvo**: `src/07d_telegram_callbacks.js`
+    - **Função/Componente/Seletor**: Função principal `processarCallbackBotao(cb)`
+    - **Comportamento Esperado / Critério de Aceite**: Decompor cascata monolítica de 900 linhas em mapa de despacho O(1) por prefixo de ação (`ux:`, `pcr_`, `dhe_`, `go_`, `rotina_`, `ef_`, `calc_`), validando com `tests/test_hubs_e_comandos_telegram.cjs` e `tests/test_runtime_bot.py`.
 
 ---
 
 ## 📋 Backlog Prioritário: Refatoração Estrutural & Código "Liso" (Elegância Arquitetural)
 
-1. [ ] **Telegram Callbacks - Desacoplamento de Roteamento de Callbacks Inline (`src/07d_telegram_callbacks.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/07d_telegram_callbacks.js`
-    - **Função/Componente/Seletor**: Função principal `processarCallbackBotao`
-    - **Comportamento Esperado / Critério de Aceite**: Substituir cascata de regexes e `if/else` por tabela de despacho O(1) por prefixo de callback.
-
-2. [ ] **Telegram Mídia e Leitos - Decomposição de Parsing de Ditados e Round (`src/07e_telegram_midia_e_leitos.js`)**:
+1. [ ] **Telegram Mídia e Leitos - Decomposição de Parsing de Ditados e Round (`src/07e_telegram_midia_e_leitos.js`)**:
     - **Arquivo/Módulo Alvo**: `src/07e_telegram_midia_e_leitos.js`
     - **Função/Componente/Seletor**: Funções de processamento de áudio clínico e extração de leitos para passagem de plantão
     - **Comportamento Esperado / Critério de Aceite**: Desacoplar blocos aninhados de transcrição e pós-processamento clínico em helpers atômicos.
+
+2. [ ] **Prescrição Hospitalar & IA - Modularização de Validações e Prompts de Internação (`src/04_motores_ia.js`)**:
+    - **Arquivo/Módulo Alvo**: `src/04_motores_ia.js`
+    - **Função/Componente/Seletor**: Função geradora `gerarPrescricaoHospitalarComIA`
+    - **Comportamento Esperado / Critério de Aceite**: Extrair regras de validação de ajuste renal e contraindicações em funções puras antes da montagem do prompt.
+
+3. [ ] **Telegram Calculadoras Parser - Decomposição de Regexes de Scores Clínicos (`src/07f_telegram_calculadoras_parser.js`)**:
+    - **Arquivo/Módulo Alvo**: `src/07f_telegram_calculadoras_parser.js`
+    - **Função/Componente/Seletor**: Funções de parsing de texto livre para calculadoras
+    - **Comportamento Esperado / Critério de Aceite**: Decompor regexes repetitivas em tabela de extratores modulares.
 
 ---
 

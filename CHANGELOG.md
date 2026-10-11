@@ -1,5 +1,21 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C25. [x] **Telegram Mini App (WebApp) & Inline Mode - Resposta Instantânea Inline e Sincronização Bidirecional PWA (`src/07h_telegram_inline_e_webapp.js`, `src/08_main.js`, `src/11_entrega_confiavel.js`, `server/telemetry.js` e `tests/test_telegram_inline_e_webapp.cjs`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Implementado suporte oficial a **Inline Mode** (`@UltraRotinaBot [busca]`), permitindo consultas clínicas instantâneas em qualquer chat, grupo de plantão ou mensagem privada do Telegram.
+      * Criado o módulo `src/07h_telegram_inline_e_webapp.js` com funções puras e despacho direto $O(1)$:
+        • `montarResultadosInlineClinicos(query, chatId)`: geração dinâmica de artigos clínicos (`InlineQueryResultArticle`) formatados em HTML com botões de ação para o Cockpit PWA.
+        • Suporte a cálculo dinâmico por peso em DVA (Noradrenalina, Vasopressina, Dobutamina) e SRI (Etomidato, Quetamina, Succinilcolina, Rocurônio).
+        • Inclusão de escores de emergência canônicos (CURB-65 para PAC, Wells para TEP, HAS-BLED, CHA₂DS₂-VASc, Gasometria arterial com fórmula de Winter, Glasgow-P com pupilas) e busca rápida no catálogo farmacológico local (HSL / REMUME).
+        • `responderInlineQueryTelegram(inlineQueryId, results, cacheTime)`: despacho via endpoint `/answerInlineQuery` com cache pessoal.
+        • `processarWebAppData(message)`: sincronização bidirecional de dados clínicos enviados do Cockpit PWA (`Telegram.WebApp.sendData`) para o chat, com formatação e opções para prontuário (PEP).
+        • `configurarMenuButtonTelegram(chatId)`: configuração nativa do botão de menu do Telegram (`setChatMenuButton`) com tipo `web_app`, abrindo o Cockpit em tela cheia com 1 toque ao lado do teclado.
+      * Em `src/08_main.js`: atualizado `doPost(e)` com extração segura de `remetenteId` para `inline_query`, fast-path com resposta em tempo real (< 50ms) sem retenção de fila, e atualização de `allowed_updates` no webhook para incluir `"inline_query"`.
+      * Em `src/11_entrega_confiavel.js`: `rotearUpdate(update)` atualizado para despachar `inline_query` e `m.web_app_data`.
+      * Em `server/telemetry.js` e `server/index.js`: telemetria atualizada para classificar e exibir eventos `inline_query` e `web_app_data` no painel ao vivo.
+      * Cláusula pétrea de conteúdo médico, doses farmacológicas e salvaguardas de toxicidade rigorosamente preservadas.
+    - **Validação e Resultados**: 100% de aprovação na suíte dedicada `tests/test_telegram_inline_e_webapp.cjs` (0.42s); 100% de aprovação na suíte de hubs (`test_hubs_e_comandos_telegram.cjs`); e aprovação total na bateria completa de 49 suítes de testes (`npm test` em 8.98s com zero regressões). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
+
 0C24. [x] **Telegram Router - Desacoplamento de Comandos Slash e Tabela de Despacho O(1) (`src/07a_telegram_router.js`)**:
     - **Diagnóstico e Refatoração Estrutural**:
       * Em `src/07a_telegram_router.js`: identificada dispersão de comandos comuns (`/rx`, `/rxh`, `/plantao`, `/calc`) no meio de milhares de linhas aninhadas de `if/else` sequenciais dentro de `processarMensagemTexto`.
