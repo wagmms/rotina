@@ -2201,8 +2201,8 @@ function tratarCallbackUXCalc(chat, v, msgId) {
 
 function enviarRotinaBot(chat, messageId) {
   if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chat)) {
-    return enviarTelaBot(chat, "🔒 *Recurso Restrito ao Titular*\n\nA central de rotina, lifestyle e agenda do Notion é exclusiva do administrador da conta.\n\nUse o botão abaixo para voltar ao menu clínico.", botoesBot([
-      [['← Menu principal', 'ux:menu']]
+    return enviarTelaBot(chat, "🔒 *Recurso Restrito ao Titular*\n\nA central de rotina, lifestyle e agenda do Notion é exclusiva do administrador da conta.\n\nUse o botão abaixo para voltar ao início.", botoesBot([
+      [['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
   }
   var hoje = new Date();
@@ -2215,11 +2215,11 @@ function enviarRotinaBot(chat, messageId) {
 
   var botoes = botoesBot([
     [['✏️ Ajustar Rotina', 'rotina:ajustar'], ['💤 Modo Descanso', 'rotina:descanso']],
-    [['🔄 Restaurar Padrão', 'rotina:reset'], ['📆 Sincronizar Agenda', 'rotina:cal_sync']],
+    [['🔄 Restaurar Padrão', 'rotina:reset'], ['📆 Sincronizar Google', 'rotina:cal_sync']],
     [['📆 Agenda de Hoje', 'ux:rotina:agenda'], ['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha']],
-    [['📋 Minhas Tarefas', 'ux:rotina:tasks'], ['🌙 Check-in Noturno', 'ux:rotina:checkin']],
-    [['🏁 Fim de Plantão', 'ux:rotina:plantao_fim'], ['🧠 Dúvida MedQuest', 'ux:rotina:duvida']],
-    [['← Menu principal', 'ux:menu']]
+    [['📋 Tarefas Notion', 'ux:rotina:tasks'], ['🌙 Check-in Noturno', 'ux:rotina:checkin']],
+    [['☀️ Briefing Matinal', 'ux:rotina:briefing'], ['🏁 Fim de Plantão', 'ux:rotina:plantao_fim']],
+    [['🧠 Dúvida MedQuest', 'ux:rotina:duvida'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
 
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -3896,13 +3896,31 @@ function tratarCallbackUX(cb) {
         texto('/preventivo');
       } else {
         if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chat)) {
-          enviarMensagemParaChat(chat, '🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas e guias clínicos.');
-          return true;
+          var kbRestrito = botoesBot([[['🏠 Início', 'ux:hub:inicio']]]);
+          return enviarTelaBot(chat, '🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o início para acessar calculadoras, condutas e guias clínicos.', kbRestrito, msgId);
         }
-        if (v === 'duvida') {
-          enviarMensagemParaChat(chat, '🧠 *Dúvida MedQuest*\n\nEnvie: `/duvida seu tema`');
+        if (v === 'agenda') {
+          return consultarEventosAgenda('', chat, msgId);
         } else if (v === 'agenda_amanha') {
-          texto('/agenda amanha');
+          return consultarEventosAgenda('amanha', chat, msgId);
+        } else if (v === 'tasks') {
+          return listarTarefasHojeNotion(chat, msgId);
+        } else if (v === 'briefing') {
+          return enviarBriefingMatinal(chat, true, msgId);
+        } else if (v === 'checkin') {
+          return enviarCheckinNoturno(chat, msgId);
+        } else if (v === 'plantao_fim') {
+          return gerarResumoFimPlantao(chat, msgId);
+        } else if (v === 'duvida') {
+          var msgDuvida = '🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\n' +
+            'Envie sua dúvida médica a qualquer momento digitando:\n' +
+            '`/duvida <sua dúvida>`\n\n' +
+            '💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\n' +
+            'Sua dúvida será salva no Notion para o bloco noturno de estudo ativo e revisão espaçada.';
+          var kbDuvida = botoesBot([
+            [['🔙 Central de Rotina', 'ux:hub:rotina'], ['🏠 Início', 'ux:hub:inicio']]
+          ]);
+          return enviarTelaBot(chat, msgDuvida, kbDuvida, msgId);
         } else {
           texto('/' + v);
         }

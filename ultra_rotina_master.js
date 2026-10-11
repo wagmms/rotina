@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 06:10:40
- * Checksum SHA256: 8af4c2571d0e03ae
+ * Gerado automaticamente via build_master.py em: 2026-10-11 06:28:41
+ * Checksum SHA256: 2141e8eee0afe74a
  * ==============================================================================
  */
 
@@ -39152,7 +39152,12 @@ function enviarRelatorioSemanalHabitos(chatIdDestino) {
             "📖 Leitura: " + cRead + " dias\n" +
             "⚡ Energia Média: " + media + "/5.0\n";
 
-  return enviarMensagemParaChat(destino, msg);
+  var kbSemanal = {
+    inline_keyboard: [
+      [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+    ]
+  };
+  return enviarMensagemComTecladoParaChat(destino, msg, kbSemanal);
 }
 
 /**
@@ -39203,11 +39208,23 @@ function salvarDuvidaEstudoNotion(duvida) {
   return criarTarefaNotion(titulo, "Studies", "2 · Important", "Registrado via Telegram para revisão noturna no MedQuest:\n" + duvida);
 }
 
-function listarTarefasHojeNotion(chatIdDestino) {
+function listarTarefasHojeNotion(chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var dbId = ConfigService.get("NOTION_TASKS_DB_ID");
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
-  if (!dbId) return enviarMensagemParaChat(destino, "⚠️ NOTION_TASKS_DB_ID não configurado.");
+
+  var kbTarefas = {
+    inline_keyboard: [
+      [{ text: "🔄 Atualizar Tarefas", callback_data: "ux:rotina:tasks" }],
+      [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+    ]
+  };
+
+  if (!dbId) {
+    var msgSemDb = "⚠️ *Notion Tasks DB não configurado.*\n\nConfigure a variável `NOTION_TASKS_DB_ID` no ambiente para sincronizar suas tarefas.";
+    if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msgSemDb, kbTarefas, messageId);
+    return enviarMensagemComTecladoParaChat(destino, msgSemDb, kbTarefas);
+  }
 
   var hojeISO = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
   var payload = {
@@ -39221,12 +39238,16 @@ function listarTarefasHojeNotion(chatIdDestino) {
     "page_size": 15
   };
 
-  var res = chamarNotionAPI("https://api.notion.com/v1/databases/" + dbId + "/query", "POST", payload);
+  var res = (typeof chamarNotionAPI === "function") ? chamarNotionAPI("https://api.notion.com/v1/databases/" + dbId + "/query", "POST", payload) : null;
   if (!res || !res.results) {
-    return enviarMensagemParaChat(destino, "⚠️ Erro ao consultar o Notion Tasks. Tente novamente em instantes.");
+    var msgErro = "⚠️ Erro ao consultar o Notion Tasks. Tente novamente em instantes.";
+    if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msgErro, kbTarefas, messageId);
+    return enviarMensagemParaChat(destino, msgErro);
   }
   if (res.results.length === 0) {
-    return enviarMensagemParaChat(destino, "📋 *Tarefas do Notion:* Nenhuma pendência para hoje ou no Inbox! Tudo zerado. 🎉");
+    var msgVazio = "📋 *Tarefas do Notion:* Nenhuma pendência para hoje ou no Inbox! Tudo zerado. 🎉\n\n💡 *Para adicionar nova tarefa:* Digite `/task <descrição>` ou envie por voz.";
+    if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msgVazio, kbTarefas, messageId);
+    return enviarMensagemComTecladoParaChat(destino, msgVazio, kbTarefas);
   }
 
   var msg = "📋 *SUAS PENDÊNCIAS NO NOTION TASKS:*\n\n";
@@ -39246,7 +39267,10 @@ function listarTarefasHojeNotion(chatIdDestino) {
   }
 
   msg += "💡 *Dica:* Para adicionar nova tarefa, digite `/task <descrição>`.";
-  return enviarMensagemParaChat(destino, msg);
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, msg, kbTarefas, messageId);
+  }
+  return enviarMensagemComTecladoParaChat(destino, msg, kbTarefas);
 }
 
 /**
@@ -40019,6 +40043,12 @@ var RotinaService = {
       { text: "📅 Central", callback_data: "ux:hub:rotina" }
     ]);
 
+    // Linha 5: Retorno Contextual Padronizado Beira-Leito
+    teclado.push([
+      { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
+      { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+    ]);
+
     return { inline_keyboard: teclado };
   },
 
@@ -40126,7 +40156,7 @@ var RotinaService = {
   }
 };
 
-function enviarBriefingMatinal(chatIdDestino, forcar) {
+function enviarBriefingMatinal(chatIdDestino, forcar, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
@@ -40156,7 +40186,15 @@ function enviarBriefingMatinal(chatIdDestino, forcar) {
       "  • 📵 Notificações não críticas silenciadas até seu despertar.\n\n" +
       "🩺 Se tiver pendência urgente de leito (`/leito`, `/enfermaria`) ou receita pendente (`/rx`), estou na retaguarda.\n" +
       "👉 Caso contrário: Bom descanso, Dr. Wagner! Sua mente descansada salva vidas amanhã.";
-    return enviarMensagemComTecladoFixo(destino, msgPos);
+    var kbPosPlantao = {
+      inline_keyboard: [
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (messageId && typeof enviarTelaBot === "function") {
+      return enviarTelaBot(destino, msgPos, kbPosPlantao, messageId);
+    }
+    return enviarMensagemComTecladoParaChat(destino, msgPos, kbPosPlantao);
   }
 
   var calendario = CalendarApp.getDefaultCalendar();
@@ -40190,6 +40228,9 @@ function enviarBriefingMatinal(chatIdDestino, forcar) {
             "💡 *Para ajustar:* Toque abaixo ou envie: _'Hoje treino às 19h'_ ou áudio gravado!";
 
   var teclado = RotinaService.construirTecladoTimeline(hoje, blocos);
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, msg, teclado, messageId);
+  }
   return enviarMensagemComTecladoParaChat(destino, msg, teclado);
 }
 
@@ -40227,7 +40268,7 @@ function obterTreinoDoDia(diaSemanaNum, dataRef) {
   }
 }
 
-function enviarCheckinNoturno(chatIdDestino) {
+function enviarCheckinNoturno(chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
@@ -40265,15 +40306,24 @@ function enviarCheckinNoturno(chatIdDestino) {
     {"text": "🔋 5", "callback_data": "energy_5"}
   ];
 
+  var linhaNav = [
+    {"text": "🔙 Central de Rotina", "callback_data": "ux:hub:rotina"},
+    {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}
+  ];
+
   var teclado = {
     "inline_keyboard": [
       linha1,
       linha2,
       linha3,
-      linhaEnergia
+      linhaEnergia,
+      linhaNav
     ]
   };
 
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, texto, teclado, messageId);
+  }
   return enviarMensagemComTecladoParaChat(destino, texto, teclado);
 }
 
@@ -40326,7 +40376,7 @@ function criarEventoAgendaGoogle(titulo, inicioIso, fimIso, local, descricao) {
 /**
  * Consulta de Eventos da Agenda (Hoje / Amanhã)
  */
-function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
+function consultarEventosAgenda(dataAlvoStr, chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var agora = new Date();
@@ -40338,10 +40388,26 @@ function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
   }
 
   var diaFormatado = Utilities.formatDate(dataAlvo, tz, "dd/MM/yyyy");
-  var diaSemana = obterDiaSemanaExtenso(dataAlvo);
+  var diaSemana = (typeof obterDiaSemanaExtenso === "function") ? obterDiaSemanaExtenso(dataAlvo) : "";
 
-  var cal = CalendarApp.getDefaultCalendar();
-  if (!cal) return enviarMensagemParaChat(destino, "⚠️ Calendário do Google não acessível.");
+  var kbAgenda = {
+    inline_keyboard: [
+      ehAmanha
+        ? [{ text: "📆 Ver Agenda de Hoje", callback_data: "ux:rotina:agenda" }]
+        : [{ text: "📆 Ver Agenda de Amanhã", callback_data: "ux:rotina:agenda_amanha" }],
+      [
+        { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]
+    ]
+  };
+
+  var cal = (typeof CalendarApp !== "undefined" && CalendarApp.getDefaultCalendar) ? CalendarApp.getDefaultCalendar() : null;
+  if (!cal) {
+    var msgSemCal = "⚠️ *Calendário do Google não acessível no momento.*\n\nVerifique as permissões de acesso à nuvem Google Calendar.";
+    if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msgSemCal, kbAgenda, messageId);
+    return enviarMensagemComTecladoParaChat(destino, msgSemCal, kbAgenda);
+  }
 
   var inicioDia = new Date(dataAlvo.getFullYear(), dataAlvo.getMonth(), dataAlvo.getDate(), 0, 0, 0);
   var fimDia = new Date(dataAlvo.getFullYear(), dataAlvo.getMonth(), dataAlvo.getDate(), 23, 59, 59);
@@ -40351,8 +40417,10 @@ function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
   var msg = "📆 *AGENDA DE " + rotulo + " (" + diaSemana + ", " + diaFormatado + "):*\n\n";
 
   if (!eventos || eventos.length === 0) {
-    msg += "✨ Nenhum compromisso agendado para este dia! Tempo livre ou escala de estudo flexível.";
-    return enviarMensagemParaChat(destino, msg);
+    msg += "✨ Nenhum compromisso agendado para este dia! Tempo livre ou escala de estudo flexível.\n\n" +
+      "💡 *Para agendar:* Envie por texto ou áudio: _'Marcar plantão amanhã 07:00 às 19:00 no HC'_.";
+    if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msg, kbAgenda, messageId);
+    return enviarMensagemComTecladoParaChat(destino, msg, kbAgenda);
   }
 
   for (var i = 0; i < eventos.length; i++) {
@@ -40363,41 +40431,106 @@ function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
     }
     var hIni = Utilities.formatDate(ev.getStartTime(), tz, "HH:mm");
     var hFim = Utilities.formatDate(ev.getEndTime(), tz, "HH:mm");
-    var loc = ev.getLocation();
+    var loc = (typeof ev.getLocation === "function") ? ev.getLocation() : "";
 
     msg += (i + 1) + ") `" + hIni + " - " + hFim + "` | *" + ev.getTitle() + "*\n";
     if (loc) msg += "   📍 " + loc + "\n";
   }
 
   msg += "\n💡 *Para agendar:* Envie por texto ou áudio: _'Marcar plantão amanhã 07:00 às 19:00 no HC'_.";
-  var botoesAgenda = {
-    inline_keyboard: [
-      ehAmanha
-        ? [{ text: "📆 Ver Agenda de Hoje", callback_data: "ux:rotina:agenda" }]
-        : [{ text: "📆 Ver Agenda de Amanhã", callback_data: "ux:rotina:agenda_amanha" }]
-    ]
-  };
-  return enviarMensagemComTecladoParaChat(destino, msg, botoesAgenda);
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, msg, kbAgenda, messageId);
+  }
+  return enviarMensagemComTecladoParaChat(destino, msg, kbAgenda);
 }
 
 /**
  * Fechamento e Passagem de Plantão (/plantao_fim)
+ * Determinístico em 0ms com resumo da enfermaria e botão de cópia rápida
  */
-function gerarResumoFimPlantao(chatIdDestino) {
+function gerarResumoFimPlantao(chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
-  var horaAgora = Utilities.formatDate(new Date(), tz, "HH:mm");
+  var agora = new Date();
+  var horaAgora = Utilities.formatDate(agora, tz, "HH:mm");
+  var dataFormatada = Utilities.formatDate(agora, tz, "dd/MM/yyyy");
 
-  var msg = "🏁 *DEBRIEFING & FECHAMENTO DE PLANTÃO (" + horaAgora + ")*\n\n" +
-    "Prepare a passagem para o colega que está assumindo o leito/enfermaria:\n\n" +
-    "1️⃣ *Checklist de Segurança Rápido:*\n" +
+  var resumoCenso = "";
+  var leitosObj = (typeof EnfermariaService !== "undefined" && typeof EnfermariaService.obterTodos === "function") ? EnfermariaService.obterTodos() : {};
+  var keysLeitos = Object.keys(leitosObj).sort(function(a, b) { return a.localeCompare(b, undefined, { numeric: true }); });
+
+  var estaveis = 0, vigilancias = 0, instaveis = 0;
+  var listaResumoLeitos = [];
+
+  keysLeitos.forEach(function(id) {
+    var l = leitosObj[id];
+    var st = String(l.status || "").toLowerCase();
+    if (st.indexOf("inst") !== -1) instaveis++;
+    else if (st.indexOf("vigil") !== -1) vigilancias++;
+    else estaveis++;
+
+    var diag = l.diagnostico || l.caso || "Sem diagnóstico informado";
+    var pend = l.pendencias || "";
+    var linha = "• Leito " + id + " [" + (l.status || "Estável") + "]: " + diag + (pend ? " | Pend: " + pend : "");
+    listaResumoLeitos.push(linha);
+  });
+
+  if (keysLeitos.length > 0) {
+    resumoCenso = "🏥 *Censo da Enfermaria (" + keysLeitos.length + " leitos: 🟢 " + estaveis + " | 🟡 " + vigilancias + " | 🔴 " + instaveis + "):*\n" +
+      listaResumoLeitos.slice(0, 8).join("\n") + (keysLeitos.length > 8 ? "\n... (+ " + (keysLeitos.length - 8) + " leitos)" : "") + "\n\n";
+  } else {
+    resumoCenso = "🏥 *Censo da Enfermaria:* Nenhum leito registrado na enfermaria no momento.\n\n";
+  }
+
+  var textoCopia = "PASSAGEM DE PLANTÃO / DEBRIEFING (" + dataFormatada + " " + horaAgora + ")\n" +
+    "--------------------------------------------------\n" +
+    (keysLeitos.length > 0
+      ? "CENSO DA ENFERMARIA (" + keysLeitos.length + " leitos | Estáveis: " + estaveis + " | Vigilância: " + vigilancias + " | Instáveis: " + instaveis + "):\n" +
+        listaResumoLeitos.join("\n") + "\n\n"
+      : "CENSO: Sem leitos ativos na enfermaria.\n\n") +
+    "CHECKLIST DE FECHAMENTO BEIRA-LEITO:\n" +
+    "[✓] Gasometrias e exames críticos checados com conduta tomada\n" +
+    "[✓] Antibióticos do dia prescritos com D.A.T e ajuste renal\n" +
+    "[✓] Drogas vasoativas com vazão e metas comunicadas\n" +
+    "[✓] Pendências e intercorrências da noite alinhadas\n" +
+    "--------------------------------------------------\n" +
+    "Passagem concluída com segurança beira-leito.";
+
+  var cacheKey = Utilities.getUuid().replace(/-/g, "");
+  try {
+    var cache = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    if (cache) cache.put(cacheKey, textoCopia, 21600);
+  } catch (_) {}
+
+  var msg = "🏁 *DEBRIEFING & FECHAMENTO DE PLANTÃO (" + horaAgora + ")*\n" +
+    "📅 *" + dataFormatada + "*\n\n" +
+    resumoCenso +
+    "📋 *Checklist de Segurança Rápido:*\n" +
     "  ▫️ Todas as gasometrias e exames críticos foram checados e condutas tomadas?\n" +
     "  ▫️ Antibióticos do dia prescritos e aprazados com D.A.T correto?\n" +
     "  ▫️ Drogas vasoativas com vazão estável e alvos de PAM/diurese comunicados?\n" +
     "  ▫️ Pendências de pareceres e exames de imagem da noite listadas?\n\n" +
-    "2️⃣ *Dica:* Envie um áudio narrando os leitos sob sua responsabilidade, e eu formato a passagem SBAR completa para colar no grupo do plantão!";
+    "📋 *Resumo Canônico para Passagem de Plantão:*\n" +
+    "```text\n" + textoCopia + "\n```";
 
-  return enviarMensagemParaChat(destino, msg);
+  var botoes = {
+    inline_keyboard: [
+      [{ text: "📋 Copiar Resumo do Plantão", callback_data: "ux:copiar:" + cacheKey }],
+      [
+        { text: "🏥 Enfermaria / SBAR", callback_data: "ux:hub:enf" },
+        { text: "📊 Censo de Leitos", callback_data: "ux:painel:0" }
+      ],
+      [
+        { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]
+    ]
+  };
+
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, msg, botoes, messageId);
+  }
+  return enviarMensagemComTecladoParaChat(destino, msg, botoes);
 }
 
 
@@ -46620,35 +46753,49 @@ function processarCallbackBotao(cb) {
     return enviarMensagemComTecladoParaChat(cb.message.chat.id, resLimpeza.mensagem + "\n\n" + EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
   }
   // ROTINA & PRODUTIVIDADE (EXCLUSIVO TITULAR)
-  else if (data === "rotina_agenda" || data === "rotina_tasks" || data === "rotina_briefing" || data === "rotina_checkin" || data === "rotina_semana" || data === "rotina_duvida" || data === "rotina_timeline") {
+  else if (data === "rotina_agenda" || data === "rotina_tasks" || data === "rotina_briefing" || data === "rotina_checkin" || data === "rotina_semana" || data === "rotina_duvida" || data === "rotina_timeline" || data === "rotina_plantao_fim") {
     var chatCbRotProd = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+    var msgIdCbRot = cb.message ? cb.message.message_id : null;
     if (!ehUsuarioTitular(chatCbRotProd)) {
       responderCallbackTelegram(cb.id, "🔒 Recurso exclusivo do titular.", true);
       return;
     }
     if (data === "rotina_agenda") {
       responderCallbackTelegram(cb.id, "Consultando agenda...");
-      return consultarEventosAgenda("", cb.message.chat.id);
+      return consultarEventosAgenda("", cb.message.chat.id, msgIdCbRot);
     }
     else if (data === "rotina_tasks") {
       responderCallbackTelegram(cb.id, "Carregando tarefas...");
-      return listarTarefasHojeNotion(cb.message.chat.id);
+      return listarTarefasHojeNotion(cb.message.chat.id, msgIdCbRot);
     }
     else if (data === "rotina_briefing") {
       responderCallbackTelegram(cb.id, "Gerando briefing matinal...");
-      return enviarBriefingMatinal(cb.message.chat.id, true);
+      return enviarBriefingMatinal(cb.message.chat.id, true, msgIdCbRot);
     }
     else if (data === "rotina_checkin") {
       responderCallbackTelegram(cb.id, "Iniciando check-in...");
-      return enviarCheckinNoturno(cb.message.chat.id);
+      return enviarCheckinNoturno(cb.message.chat.id, msgIdCbRot);
     }
     else if (data === "rotina_semana") {
       responderCallbackTelegram(cb.id, "Gerando relatório semanal...");
       return enviarRelatorioSemanalHabitos(cb.message.chat.id);
     }
+    else if (data === "rotina_plantao_fim") {
+      responderCallbackTelegram(cb.id, "Fechamento de plantão...");
+      return gerarResumoFimPlantao(cb.message.chat.id, msgIdCbRot);
+    }
     else if (data === "rotina_duvida") {
       responderCallbackTelegram(cb.id, "MedQuest / Dúvidas");
-      return enviarMensagemParaChat(cb.message.chat.id, "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\nEnvie sua dúvida médica digitando:\n`/duvida <sua dúvida>`\n💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\nSua dúvida será salva no Notion para o bloco noturno de estudo ativo.");
+      var msgDuvidaLegacy = "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\nEnvie sua dúvida médica digitando:\n`/duvida <sua dúvida>`\n💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\nSua dúvida será salva no Notion para o bloco noturno de estudo ativo.";
+      var kbDuvidaLegacy = {
+        inline_keyboard: [
+          [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      };
+      if (typeof enviarTelaBot === "function") {
+        return enviarTelaBot(cb.message.chat.id, msgDuvidaLegacy, kbDuvidaLegacy, msgIdCbRot);
+      }
+      return enviarMensagemComTecladoParaChat(cb.message.chat.id, msgDuvidaLegacy, kbDuvidaLegacy);
     }
     else if (data === "rotina_timeline") {
       responderCallbackTelegram(cb.id, "Time-blocking de hoje...");
@@ -49743,7 +49890,12 @@ function tratarComandoRotina(chatId, argRotina) {
 
   if (arg === "semana" || arg === "grade") {
     var resumoSemanal = RotinaService.obterResumoSemanal();
-    return enviarMensagemParaChat(chatId, resumoSemanal);
+    var kbSemana = {
+      inline_keyboard: [
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, resumoSemanal, kbSemana);
   }
 
   if (arg === "reset" || arg === "restaurar" || arg === "padrao" || arg === "padrão") {
@@ -49821,7 +49973,22 @@ function tratarCallbackRotina(cb) {
       "• _'Troquei musculação por corrida de 40 min'_\n" +
       "• _'Modo descanso'_\n" +
       "• _'Reset' (volta para a grade padrão)_";
-    return enviarMensagemParaChat(chatId, msgDica);
+    var kbDica = {
+      inline_keyboard: [
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (msgId && token) {
+      executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageText", {
+        chat_id: chatId,
+        message_id: msgId,
+        text: msgDica,
+        parse_mode: "Markdown",
+        reply_markup: kbDica
+      });
+      return;
+    }
+    return enviarMensagemComTecladoParaChat(chatId, msgDica, kbDica);
   } else if (subAcao === "ver_amanha") {
     responderCallbackTelegram(cb.id, "📆 Carregando amanhã...");
     var amanha = new Date(hoje.getTime() + 86400000);
@@ -49832,7 +49999,7 @@ function tratarCallbackRotina(cb) {
     var kbAmanha = {
       inline_keyboard: [
         [{ text: "📅 Voltar para Hoje", callback_data: "rotina:ver_hoje" }],
-        [{ text: "📅 Central de Rotina", callback_data: "ux:hub:rotina" }]
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (msgId && token) {
@@ -53523,8 +53690,8 @@ function tratarCallbackUXCalc(chat, v, msgId) {
 
 function enviarRotinaBot(chat, messageId) {
   if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chat)) {
-    return enviarTelaBot(chat, "🔒 *Recurso Restrito ao Titular*\n\nA central de rotina, lifestyle e agenda do Notion é exclusiva do administrador da conta.\n\nUse o botão abaixo para voltar ao menu clínico.", botoesBot([
-      [['← Menu principal', 'ux:menu']]
+    return enviarTelaBot(chat, "🔒 *Recurso Restrito ao Titular*\n\nA central de rotina, lifestyle e agenda do Notion é exclusiva do administrador da conta.\n\nUse o botão abaixo para voltar ao início.", botoesBot([
+      [['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
   }
   var hoje = new Date();
@@ -53537,11 +53704,11 @@ function enviarRotinaBot(chat, messageId) {
 
   var botoes = botoesBot([
     [['✏️ Ajustar Rotina', 'rotina:ajustar'], ['💤 Modo Descanso', 'rotina:descanso']],
-    [['🔄 Restaurar Padrão', 'rotina:reset'], ['📆 Sincronizar Agenda', 'rotina:cal_sync']],
+    [['🔄 Restaurar Padrão', 'rotina:reset'], ['📆 Sincronizar Google', 'rotina:cal_sync']],
     [['📆 Agenda de Hoje', 'ux:rotina:agenda'], ['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha']],
-    [['📋 Minhas Tarefas', 'ux:rotina:tasks'], ['🌙 Check-in Noturno', 'ux:rotina:checkin']],
-    [['🏁 Fim de Plantão', 'ux:rotina:plantao_fim'], ['🧠 Dúvida MedQuest', 'ux:rotina:duvida']],
-    [['← Menu principal', 'ux:menu']]
+    [['📋 Tarefas Notion', 'ux:rotina:tasks'], ['🌙 Check-in Noturno', 'ux:rotina:checkin']],
+    [['☀️ Briefing Matinal', 'ux:rotina:briefing'], ['🏁 Fim de Plantão', 'ux:rotina:plantao_fim']],
+    [['🧠 Dúvida MedQuest', 'ux:rotina:duvida'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
 
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -55218,13 +55385,31 @@ function tratarCallbackUX(cb) {
         texto('/preventivo');
       } else {
         if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chat)) {
-          enviarMensagemParaChat(chat, '🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas e guias clínicos.');
-          return true;
+          var kbRestrito = botoesBot([[['🏠 Início', 'ux:hub:inicio']]]);
+          return enviarTelaBot(chat, '🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o início para acessar calculadoras, condutas e guias clínicos.', kbRestrito, msgId);
         }
-        if (v === 'duvida') {
-          enviarMensagemParaChat(chat, '🧠 *Dúvida MedQuest*\n\nEnvie: `/duvida seu tema`');
+        if (v === 'agenda') {
+          return consultarEventosAgenda('', chat, msgId);
         } else if (v === 'agenda_amanha') {
-          texto('/agenda amanha');
+          return consultarEventosAgenda('amanha', chat, msgId);
+        } else if (v === 'tasks') {
+          return listarTarefasHojeNotion(chat, msgId);
+        } else if (v === 'briefing') {
+          return enviarBriefingMatinal(chat, true, msgId);
+        } else if (v === 'checkin') {
+          return enviarCheckinNoturno(chat, msgId);
+        } else if (v === 'plantao_fim') {
+          return gerarResumoFimPlantao(chat, msgId);
+        } else if (v === 'duvida') {
+          var msgDuvida = '🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\n' +
+            'Envie sua dúvida médica a qualquer momento digitando:\n' +
+            '`/duvida <sua dúvida>`\n\n' +
+            '💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\n' +
+            'Sua dúvida será salva no Notion para o bloco noturno de estudo ativo e revisão espaçada.';
+          var kbDuvida = botoesBot([
+            [['🔙 Central de Rotina', 'ux:hub:rotina'], ['🏠 Início', 'ux:hub:inicio']]
+          ]);
+          return enviarTelaBot(chat, msgDuvida, kbDuvida, msgId);
         } else {
           texto('/' + v);
         }

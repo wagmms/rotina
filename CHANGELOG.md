@@ -1,5 +1,32 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0BB. [x] **Auditoria e Otimização da Central de Rotina & Plantão do Médico (`ux:hub:rotina`, `src/06_rotina_agenda.js`, `src/05_notion.js`, `src/12_experiencia_bot.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`, `src/07d_telegram_callbacks.js` e `tests/test_central_rotina_plantao_ux.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * A Central de Rotina (`enviarRotinaBot`) e o roteador de comandos/callbacks possuíam desvios que geravam flood no chat do Telegram: cliques em subfluxos como `ux:rotina:agenda`, `ux:rotina:agenda_amanha`, `ux:rotina:tasks`, `ux:rotina:checkin`, `ux:rotina:plantao_fim` e `ux:rotina:briefing` recorriam à injeção de novas mensagens de texto (`texto('/...')`) em vez de reaproveitar `messageId` para edição in-place (`editMessageText`), violando o princípio de interface limpa.
+      * Telas de consulta de agenda (`consultarEventosAgenda`), tarefas do Notion (`listarTarefasHojeNotion`) e debriefing de plantão (`gerarResumoFimPlantao`) careciam de teclados padronizados, apresentando telas órfãs sem botão de retorno quando o calendário ou banco não possuíam eventos ou estavam inacessíveis.
+      * O encerramento de plantão (`/plantao_fim` e `ux:rotina:plantao_fim`) não incluía integração com o censo ativo da enfermaria nem botão de 1 toque para cópia do resumo para prontuário/WhatsApp da equipe.
+    - **Contrato de UX Beira-Leito e Determinismo (0ms)**:
+      * Respostas determinísticas imediatas em 0ms sem IA para todo o fluxo de rotina: agenda do dia/amanhã, pendências do Notion Tasks, briefing matinal, check-in noturno e encerramento de plantão.
+      * Edição in-place (`editMessageText`) prioritária em 100% das transições de botões inline na Central de Rotina, eliminando acúmulo de mensagens repetitivas.
+      * Navegação contextual estrita: garantia de `[🔙 Central de Rotina]` (`ux:hub:rotina`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas, submenus e comandos diretos.
+      * Botão de 1 toque `[📋 Copiar Resumo do Plantão]` (`ux:copiar:<uuid>`) gerando resumo limpo com checklist de segurança beira-leito, censo da enfermaria e pendências alinhadas em bloco ````text`.
+    - **Implementação e Refatoração**:
+      * Em `src/06_rotina_agenda.js`:
+        • `consultarEventosAgenda` atualizado para receber `messageId`, edição in-place e teclado com alternância Hoje/Amanhã, botão de atualização e retorno contextual `[🔙 Central de Rotina]` e `[🏠 Início]`.
+        • `gerarResumoFimPlantao` enriquecido com síntese do censo de leitos ativos da enfermaria, checklist de segurança beira-leito (exames críticos, antibióticos com D.A.T, drogas vasoativas e pendências) e botão `[📋 Copiar Resumo do Plantão]` com UUID em cache.
+        • Teclado da timeline (`construirTecladoTimeline`), briefing matinal (`enviarBriefingMatinal`) e check-in noturno (`enviarCheckinNoturno`) atualizados com linhas de retorno contextual `[🔙 Central de Rotina]` e `[🏠 Início]`.
+      * Em `src/05_notion.js`: `listarTarefasHojeNotion` atualizado para aceitar `messageId`, edição in-place, botão `[🔄 Atualizar Tarefas]`, `[🔙 Central de Rotina]` e `[🏠 Início]` em todos os fluxos.
+      * Em `src/12_experiencia_bot.js`:
+        • `enviarRotinaBot` atualizado com teclado de 1 toque sem digitação manual (ajuste, descanso, reset, sync, agenda hoje/amanhã, tasks, briefing, check-in, plantao_fim e duvida) com botão `[🏠 Início]`.
+        • `tratarCallbackUX` no bloco `op === 'rotina'` refatorado para executar chamadas determinísticas diretas em 0ms com `messageId` para `agenda`, `agenda_amanha`, `tasks`, `briefing`, `checkin`, `plantao_fim` e `duvida`, eliminando flood de texto.
+      * Em `src/07g_telegram_ajuda_e_protocolos.js`: `tratarCallbackRotina` atualizado com edição in-place e botões contextuais em `rotina:ajustar` e `rotina:ver_amanha`.
+      * Em `src/07a_telegram_router.js`: `construirTecladoHubRotina` sincronizado com callbacks padronizados e retorno contextual.
+      * Em `src/07d_telegram_callbacks.js`: Callbacks legados de rotina atualizados com suporte a `messageId` e teclado contextual.
+    - **Validação e Cobertura Automatizada**:
+      * Criada suíte canônica `tests/test_central_rotina_plantao_ux.cjs` (5 blocos completos cobrindo 100% dos fluxos, in-place edit, comandos slash, cópia do resumo e callbacks da timeline).
+      * Adicionado ao manifest `scripts/test_manifest.json`.
+      * Recompilado `ultra_rotina_master.js` com sucesso e validação de sintaxe JS 100% OK.
+
 0BA. [x] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`, `src/12_experiencia_bot.js`, `src/09_enfermaria.js`, `src/07e_telegram_midia_e_leitos.js`, `src/07a_telegram_router.js` e `tests/test_gestao_leitos_sbar_ux.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * Na gestão de leitos e passagem de plantão, comandos frequentes de enfermagem hospitalar (`/leitos`, `/censo`) não possuíam roteamento direto no Telegram, caindo em fluxos genéricos.

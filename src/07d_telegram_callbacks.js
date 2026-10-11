@@ -448,35 +448,49 @@ function processarCallbackBotao(cb) {
     return enviarMensagemComTecladoParaChat(cb.message.chat.id, resLimpeza.mensagem + "\n\n" + EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
   }
   // ROTINA & PRODUTIVIDADE (EXCLUSIVO TITULAR)
-  else if (data === "rotina_agenda" || data === "rotina_tasks" || data === "rotina_briefing" || data === "rotina_checkin" || data === "rotina_semana" || data === "rotina_duvida" || data === "rotina_timeline") {
+  else if (data === "rotina_agenda" || data === "rotina_tasks" || data === "rotina_briefing" || data === "rotina_checkin" || data === "rotina_semana" || data === "rotina_duvida" || data === "rotina_timeline" || data === "rotina_plantao_fim") {
     var chatCbRotProd = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+    var msgIdCbRot = cb.message ? cb.message.message_id : null;
     if (!ehUsuarioTitular(chatCbRotProd)) {
       responderCallbackTelegram(cb.id, "🔒 Recurso exclusivo do titular.", true);
       return;
     }
     if (data === "rotina_agenda") {
       responderCallbackTelegram(cb.id, "Consultando agenda...");
-      return consultarEventosAgenda("", cb.message.chat.id);
+      return consultarEventosAgenda("", cb.message.chat.id, msgIdCbRot);
     }
     else if (data === "rotina_tasks") {
       responderCallbackTelegram(cb.id, "Carregando tarefas...");
-      return listarTarefasHojeNotion(cb.message.chat.id);
+      return listarTarefasHojeNotion(cb.message.chat.id, msgIdCbRot);
     }
     else if (data === "rotina_briefing") {
       responderCallbackTelegram(cb.id, "Gerando briefing matinal...");
-      return enviarBriefingMatinal(cb.message.chat.id, true);
+      return enviarBriefingMatinal(cb.message.chat.id, true, msgIdCbRot);
     }
     else if (data === "rotina_checkin") {
       responderCallbackTelegram(cb.id, "Iniciando check-in...");
-      return enviarCheckinNoturno(cb.message.chat.id);
+      return enviarCheckinNoturno(cb.message.chat.id, msgIdCbRot);
     }
     else if (data === "rotina_semana") {
       responderCallbackTelegram(cb.id, "Gerando relatório semanal...");
       return enviarRelatorioSemanalHabitos(cb.message.chat.id);
     }
+    else if (data === "rotina_plantao_fim") {
+      responderCallbackTelegram(cb.id, "Fechamento de plantão...");
+      return gerarResumoFimPlantao(cb.message.chat.id, msgIdCbRot);
+    }
     else if (data === "rotina_duvida") {
       responderCallbackTelegram(cb.id, "MedQuest / Dúvidas");
-      return enviarMensagemParaChat(cb.message.chat.id, "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\nEnvie sua dúvida médica digitando:\n`/duvida <sua dúvida>`\n💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\nSua dúvida será salva no Notion para o bloco noturno de estudo ativo.");
+      var msgDuvidaLegacy = "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\nEnvie sua dúvida médica digitando:\n`/duvida <sua dúvida>`\n💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\nSua dúvida será salva no Notion para o bloco noturno de estudo ativo.";
+      var kbDuvidaLegacy = {
+        inline_keyboard: [
+          [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      };
+      if (typeof enviarTelaBot === "function") {
+        return enviarTelaBot(cb.message.chat.id, msgDuvidaLegacy, kbDuvidaLegacy, msgIdCbRot);
+      }
+      return enviarMensagemComTecladoParaChat(cb.message.chat.id, msgDuvidaLegacy, kbDuvidaLegacy);
     }
     else if (data === "rotina_timeline") {
       responderCallbackTelegram(cb.id, "Time-blocking de hoje...");

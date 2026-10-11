@@ -707,6 +707,12 @@ var RotinaService = {
       { text: "📅 Central", callback_data: "ux:hub:rotina" }
     ]);
 
+    // Linha 5: Retorno Contextual Padronizado Beira-Leito
+    teclado.push([
+      { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
+      { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+    ]);
+
     return { inline_keyboard: teclado };
   },
 
@@ -814,7 +820,7 @@ var RotinaService = {
   }
 };
 
-function enviarBriefingMatinal(chatIdDestino, forcar) {
+function enviarBriefingMatinal(chatIdDestino, forcar, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
@@ -844,7 +850,15 @@ function enviarBriefingMatinal(chatIdDestino, forcar) {
       "  • 📵 Notificações não críticas silenciadas até seu despertar.\n\n" +
       "🩺 Se tiver pendência urgente de leito (`/leito`, `/enfermaria`) ou receita pendente (`/rx`), estou na retaguarda.\n" +
       "👉 Caso contrário: Bom descanso, Dr. Wagner! Sua mente descansada salva vidas amanhã.";
-    return enviarMensagemComTecladoFixo(destino, msgPos);
+    var kbPosPlantao = {
+      inline_keyboard: [
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (messageId && typeof enviarTelaBot === "function") {
+      return enviarTelaBot(destino, msgPos, kbPosPlantao, messageId);
+    }
+    return enviarMensagemComTecladoParaChat(destino, msgPos, kbPosPlantao);
   }
 
   var calendario = CalendarApp.getDefaultCalendar();
@@ -878,6 +892,9 @@ function enviarBriefingMatinal(chatIdDestino, forcar) {
             "💡 *Para ajustar:* Toque abaixo ou envie: _'Hoje treino às 19h'_ ou áudio gravado!";
 
   var teclado = RotinaService.construirTecladoTimeline(hoje, blocos);
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, msg, teclado, messageId);
+  }
   return enviarMensagemComTecladoParaChat(destino, msg, teclado);
 }
 
@@ -915,7 +932,7 @@ function obterTreinoDoDia(diaSemanaNum, dataRef) {
   }
 }
 
-function enviarCheckinNoturno(chatIdDestino) {
+function enviarCheckinNoturno(chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
@@ -953,15 +970,24 @@ function enviarCheckinNoturno(chatIdDestino) {
     {"text": "🔋 5", "callback_data": "energy_5"}
   ];
 
+  var linhaNav = [
+    {"text": "🔙 Central de Rotina", "callback_data": "ux:hub:rotina"},
+    {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}
+  ];
+
   var teclado = {
     "inline_keyboard": [
       linha1,
       linha2,
       linha3,
-      linhaEnergia
+      linhaEnergia,
+      linhaNav
     ]
   };
 
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, texto, teclado, messageId);
+  }
   return enviarMensagemComTecladoParaChat(destino, texto, teclado);
 }
 
@@ -1014,7 +1040,7 @@ function criarEventoAgendaGoogle(titulo, inicioIso, fimIso, local, descricao) {
 /**
  * Consulta de Eventos da Agenda (Hoje / Amanhã)
  */
-function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
+function consultarEventosAgenda(dataAlvoStr, chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var agora = new Date();
@@ -1026,10 +1052,26 @@ function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
   }
 
   var diaFormatado = Utilities.formatDate(dataAlvo, tz, "dd/MM/yyyy");
-  var diaSemana = obterDiaSemanaExtenso(dataAlvo);
+  var diaSemana = (typeof obterDiaSemanaExtenso === "function") ? obterDiaSemanaExtenso(dataAlvo) : "";
 
-  var cal = CalendarApp.getDefaultCalendar();
-  if (!cal) return enviarMensagemParaChat(destino, "⚠️ Calendário do Google não acessível.");
+  var kbAgenda = {
+    inline_keyboard: [
+      ehAmanha
+        ? [{ text: "📆 Ver Agenda de Hoje", callback_data: "ux:rotina:agenda" }]
+        : [{ text: "📆 Ver Agenda de Amanhã", callback_data: "ux:rotina:agenda_amanha" }],
+      [
+        { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]
+    ]
+  };
+
+  var cal = (typeof CalendarApp !== "undefined" && CalendarApp.getDefaultCalendar) ? CalendarApp.getDefaultCalendar() : null;
+  if (!cal) {
+    var msgSemCal = "⚠️ *Calendário do Google não acessível no momento.*\n\nVerifique as permissões de acesso à nuvem Google Calendar.";
+    if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msgSemCal, kbAgenda, messageId);
+    return enviarMensagemComTecladoParaChat(destino, msgSemCal, kbAgenda);
+  }
 
   var inicioDia = new Date(dataAlvo.getFullYear(), dataAlvo.getMonth(), dataAlvo.getDate(), 0, 0, 0);
   var fimDia = new Date(dataAlvo.getFullYear(), dataAlvo.getMonth(), dataAlvo.getDate(), 23, 59, 59);
@@ -1039,8 +1081,10 @@ function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
   var msg = "📆 *AGENDA DE " + rotulo + " (" + diaSemana + ", " + diaFormatado + "):*\n\n";
 
   if (!eventos || eventos.length === 0) {
-    msg += "✨ Nenhum compromisso agendado para este dia! Tempo livre ou escala de estudo flexível.";
-    return enviarMensagemParaChat(destino, msg);
+    msg += "✨ Nenhum compromisso agendado para este dia! Tempo livre ou escala de estudo flexível.\n\n" +
+      "💡 *Para agendar:* Envie por texto ou áudio: _'Marcar plantão amanhã 07:00 às 19:00 no HC'_.";
+    if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msg, kbAgenda, messageId);
+    return enviarMensagemComTecladoParaChat(destino, msg, kbAgenda);
   }
 
   for (var i = 0; i < eventos.length; i++) {
@@ -1051,40 +1095,105 @@ function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
     }
     var hIni = Utilities.formatDate(ev.getStartTime(), tz, "HH:mm");
     var hFim = Utilities.formatDate(ev.getEndTime(), tz, "HH:mm");
-    var loc = ev.getLocation();
+    var loc = (typeof ev.getLocation === "function") ? ev.getLocation() : "";
 
     msg += (i + 1) + ") `" + hIni + " - " + hFim + "` | *" + ev.getTitle() + "*\n";
     if (loc) msg += "   📍 " + loc + "\n";
   }
 
   msg += "\n💡 *Para agendar:* Envie por texto ou áudio: _'Marcar plantão amanhã 07:00 às 19:00 no HC'_.";
-  var botoesAgenda = {
-    inline_keyboard: [
-      ehAmanha
-        ? [{ text: "📆 Ver Agenda de Hoje", callback_data: "ux:rotina:agenda" }]
-        : [{ text: "📆 Ver Agenda de Amanhã", callback_data: "ux:rotina:agenda_amanha" }]
-    ]
-  };
-  return enviarMensagemComTecladoParaChat(destino, msg, botoesAgenda);
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, msg, kbAgenda, messageId);
+  }
+  return enviarMensagemComTecladoParaChat(destino, msg, kbAgenda);
 }
 
 /**
  * Fechamento e Passagem de Plantão (/plantao_fim)
+ * Determinístico em 0ms com resumo da enfermaria e botão de cópia rápida
  */
-function gerarResumoFimPlantao(chatIdDestino) {
+function gerarResumoFimPlantao(chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
-  var horaAgora = Utilities.formatDate(new Date(), tz, "HH:mm");
+  var agora = new Date();
+  var horaAgora = Utilities.formatDate(agora, tz, "HH:mm");
+  var dataFormatada = Utilities.formatDate(agora, tz, "dd/MM/yyyy");
 
-  var msg = "🏁 *DEBRIEFING & FECHAMENTO DE PLANTÃO (" + horaAgora + ")*\n\n" +
-    "Prepare a passagem para o colega que está assumindo o leito/enfermaria:\n\n" +
-    "1️⃣ *Checklist de Segurança Rápido:*\n" +
+  var resumoCenso = "";
+  var leitosObj = (typeof EnfermariaService !== "undefined" && typeof EnfermariaService.obterTodos === "function") ? EnfermariaService.obterTodos() : {};
+  var keysLeitos = Object.keys(leitosObj).sort(function(a, b) { return a.localeCompare(b, undefined, { numeric: true }); });
+
+  var estaveis = 0, vigilancias = 0, instaveis = 0;
+  var listaResumoLeitos = [];
+
+  keysLeitos.forEach(function(id) {
+    var l = leitosObj[id];
+    var st = String(l.status || "").toLowerCase();
+    if (st.indexOf("inst") !== -1) instaveis++;
+    else if (st.indexOf("vigil") !== -1) vigilancias++;
+    else estaveis++;
+
+    var diag = l.diagnostico || l.caso || "Sem diagnóstico informado";
+    var pend = l.pendencias || "";
+    var linha = "• Leito " + id + " [" + (l.status || "Estável") + "]: " + diag + (pend ? " | Pend: " + pend : "");
+    listaResumoLeitos.push(linha);
+  });
+
+  if (keysLeitos.length > 0) {
+    resumoCenso = "🏥 *Censo da Enfermaria (" + keysLeitos.length + " leitos: 🟢 " + estaveis + " | 🟡 " + vigilancias + " | 🔴 " + instaveis + "):*\n" +
+      listaResumoLeitos.slice(0, 8).join("\n") + (keysLeitos.length > 8 ? "\n... (+ " + (keysLeitos.length - 8) + " leitos)" : "") + "\n\n";
+  } else {
+    resumoCenso = "🏥 *Censo da Enfermaria:* Nenhum leito registrado na enfermaria no momento.\n\n";
+  }
+
+  var textoCopia = "PASSAGEM DE PLANTÃO / DEBRIEFING (" + dataFormatada + " " + horaAgora + ")\n" +
+    "--------------------------------------------------\n" +
+    (keysLeitos.length > 0
+      ? "CENSO DA ENFERMARIA (" + keysLeitos.length + " leitos | Estáveis: " + estaveis + " | Vigilância: " + vigilancias + " | Instáveis: " + instaveis + "):\n" +
+        listaResumoLeitos.join("\n") + "\n\n"
+      : "CENSO: Sem leitos ativos na enfermaria.\n\n") +
+    "CHECKLIST DE FECHAMENTO BEIRA-LEITO:\n" +
+    "[✓] Gasometrias e exames críticos checados com conduta tomada\n" +
+    "[✓] Antibióticos do dia prescritos com D.A.T e ajuste renal\n" +
+    "[✓] Drogas vasoativas com vazão e metas comunicadas\n" +
+    "[✓] Pendências e intercorrências da noite alinhadas\n" +
+    "--------------------------------------------------\n" +
+    "Passagem concluída com segurança beira-leito.";
+
+  var cacheKey = Utilities.getUuid().replace(/-/g, "");
+  try {
+    var cache = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    if (cache) cache.put(cacheKey, textoCopia, 21600);
+  } catch (_) {}
+
+  var msg = "🏁 *DEBRIEFING & FECHAMENTO DE PLANTÃO (" + horaAgora + ")*\n" +
+    "📅 *" + dataFormatada + "*\n\n" +
+    resumoCenso +
+    "📋 *Checklist de Segurança Rápido:*\n" +
     "  ▫️ Todas as gasometrias e exames críticos foram checados e condutas tomadas?\n" +
     "  ▫️ Antibióticos do dia prescritos e aprazados com D.A.T correto?\n" +
     "  ▫️ Drogas vasoativas com vazão estável e alvos de PAM/diurese comunicados?\n" +
     "  ▫️ Pendências de pareceres e exames de imagem da noite listadas?\n\n" +
-    "2️⃣ *Dica:* Envie um áudio narrando os leitos sob sua responsabilidade, e eu formato a passagem SBAR completa para colar no grupo do plantão!";
+    "📋 *Resumo Canônico para Passagem de Plantão:*\n" +
+    "```text\n" + textoCopia + "\n```";
 
-  return enviarMensagemParaChat(destino, msg);
+  var botoes = {
+    inline_keyboard: [
+      [{ text: "📋 Copiar Resumo do Plantão", callback_data: "ux:copiar:" + cacheKey }],
+      [
+        { text: "🏥 Enfermaria / SBAR", callback_data: "ux:hub:enf" },
+        { text: "📊 Censo de Leitos", callback_data: "ux:painel:0" }
+      ],
+      [
+        { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]
+    ]
+  };
+
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, msg, botoes, messageId);
+  }
+  return enviarMensagemComTecladoParaChat(destino, msg, botoes);
 }
 

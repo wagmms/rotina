@@ -982,7 +982,12 @@ function tratarComandoRotina(chatId, argRotina) {
 
   if (arg === "semana" || arg === "grade") {
     var resumoSemanal = RotinaService.obterResumoSemanal();
-    return enviarMensagemParaChat(chatId, resumoSemanal);
+    var kbSemana = {
+      inline_keyboard: [
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, resumoSemanal, kbSemana);
   }
 
   if (arg === "reset" || arg === "restaurar" || arg === "padrao" || arg === "padrão") {
@@ -1060,7 +1065,22 @@ function tratarCallbackRotina(cb) {
       "• _'Troquei musculação por corrida de 40 min'_\n" +
       "• _'Modo descanso'_\n" +
       "• _'Reset' (volta para a grade padrão)_";
-    return enviarMensagemParaChat(chatId, msgDica);
+    var kbDica = {
+      inline_keyboard: [
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (msgId && token) {
+      executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageText", {
+        chat_id: chatId,
+        message_id: msgId,
+        text: msgDica,
+        parse_mode: "Markdown",
+        reply_markup: kbDica
+      });
+      return;
+    }
+    return enviarMensagemComTecladoParaChat(chatId, msgDica, kbDica);
   } else if (subAcao === "ver_amanha") {
     responderCallbackTelegram(cb.id, "📆 Carregando amanhã...");
     var amanha = new Date(hoje.getTime() + 86400000);
@@ -1071,7 +1091,7 @@ function tratarCallbackRotina(cb) {
     var kbAmanha = {
       inline_keyboard: [
         [{ text: "📅 Voltar para Hoje", callback_data: "rotina:ver_hoje" }],
-        [{ text: "📅 Central de Rotina", callback_data: "ux:hub:rotina" }]
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (msgId && token) {

@@ -128,7 +128,12 @@ function enviarRelatorioSemanalHabitos(chatIdDestino) {
             "📖 Leitura: " + cRead + " dias\n" +
             "⚡ Energia Média: " + media + "/5.0\n";
 
-  return enviarMensagemParaChat(destino, msg);
+  var kbSemanal = {
+    inline_keyboard: [
+      [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+    ]
+  };
+  return enviarMensagemComTecladoParaChat(destino, msg, kbSemanal);
 }
 
 /**
@@ -179,11 +184,23 @@ function salvarDuvidaEstudoNotion(duvida) {
   return criarTarefaNotion(titulo, "Studies", "2 · Important", "Registrado via Telegram para revisão noturna no MedQuest:\n" + duvida);
 }
 
-function listarTarefasHojeNotion(chatIdDestino) {
+function listarTarefasHojeNotion(chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var dbId = ConfigService.get("NOTION_TASKS_DB_ID");
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
-  if (!dbId) return enviarMensagemParaChat(destino, "⚠️ NOTION_TASKS_DB_ID não configurado.");
+
+  var kbTarefas = {
+    inline_keyboard: [
+      [{ text: "🔄 Atualizar Tarefas", callback_data: "ux:rotina:tasks" }],
+      [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+    ]
+  };
+
+  if (!dbId) {
+    var msgSemDb = "⚠️ *Notion Tasks DB não configurado.*\n\nConfigure a variável `NOTION_TASKS_DB_ID` no ambiente para sincronizar suas tarefas.";
+    if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msgSemDb, kbTarefas, messageId);
+    return enviarMensagemComTecladoParaChat(destino, msgSemDb, kbTarefas);
+  }
 
   var hojeISO = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
   var payload = {
@@ -197,12 +214,16 @@ function listarTarefasHojeNotion(chatIdDestino) {
     "page_size": 15
   };
 
-  var res = chamarNotionAPI("https://api.notion.com/v1/databases/" + dbId + "/query", "POST", payload);
+  var res = (typeof chamarNotionAPI === "function") ? chamarNotionAPI("https://api.notion.com/v1/databases/" + dbId + "/query", "POST", payload) : null;
   if (!res || !res.results) {
-    return enviarMensagemParaChat(destino, "⚠️ Erro ao consultar o Notion Tasks. Tente novamente em instantes.");
+    var msgErro = "⚠️ Erro ao consultar o Notion Tasks. Tente novamente em instantes.";
+    if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msgErro, kbTarefas, messageId);
+    return enviarMensagemParaChat(destino, msgErro);
   }
   if (res.results.length === 0) {
-    return enviarMensagemParaChat(destino, "📋 *Tarefas do Notion:* Nenhuma pendência para hoje ou no Inbox! Tudo zerado. 🎉");
+    var msgVazio = "📋 *Tarefas do Notion:* Nenhuma pendência para hoje ou no Inbox! Tudo zerado. 🎉\n\n💡 *Para adicionar nova tarefa:* Digite `/task <descrição>` ou envie por voz.";
+    if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msgVazio, kbTarefas, messageId);
+    return enviarMensagemComTecladoParaChat(destino, msgVazio, kbTarefas);
   }
 
   var msg = "📋 *SUAS PENDÊNCIAS NO NOTION TASKS:*\n\n";
@@ -222,7 +243,10 @@ function listarTarefasHojeNotion(chatIdDestino) {
   }
 
   msg += "💡 *Dica:* Para adicionar nova tarefa, digite `/task <descrição>`.";
-  return enviarMensagemParaChat(destino, msg);
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, msg, kbTarefas, messageId);
+  }
+  return enviarMensagemComTecladoParaChat(destino, msg, kbTarefas);
 }
 
 /**
