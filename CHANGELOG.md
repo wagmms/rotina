@@ -2,6 +2,18 @@
 
 > Gerado automaticamente. Arquivo de referência para o histórico arquivado do PROGRESS.md.
 
+0AP. [x] **Auditoria e Correção de Preservação de Pedidos na Fila de Entrega Confiável (`tests/test_auditoria_resolvida.cjs` e `src/07a_telegram_router.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * No teste 19 de `tests/test_auditoria_resolvida.cjs` (`Falha no Notion preserva texto original do pedido na fila`), o status do pedido na fila `inbox_1` retornava `'done'` em vez de `'failed'`.
+      * A causa raiz residia em `src/07a_telegram_router.js` (~linha 4080 e ~linha 4528): ao falhar `criarTarefaNotion`, a função executava `return enviarMensagemParaChat(...)`. Como o envio da mensagem de notificação de falha ao Telegram era bem-sucedido, devolvia `true` ao despachante `rotearUpdate`.
+      * No motor de entrega confiável (`src/11_entrega_confiavel.js`, `executarPedidoTelegram`), `estado === 'done'` e `resultado !== false`, fazendo com que `concluirPedido(job, 'done')` fosse chamado, podando o payload original da mensagem (`job.update = {update_id: ...}`) e impedindo a retenção com status `'failed'`.
+    - **Correção e Validação**:
+      * Em `src/07a_telegram_router.js`, ajustados os handlers de `/task` e da intenção autônoma `NOTION_TASK` para disparar a notificação de erro ao usuário e retornar explicitamente `false`.
+      * Com isso, `executarPedidoTelegram` detecta `resultado === false`, transiciona o status do pedido para `'failed'` e preserva integralmente o texto da mensagem na fila `inbox_` para auditoria ou reprocessamento posterior.
+      * Recompilado `ultra_rotina_master.js` via `npm run build`.
+      * Validado em `tests/test_auditoria_resolvida.cjs` (37/37 cenários aprovados, 100% de êxito) e `tests/test_auditoria_seguranca_rpc_telegram.cjs` (100% aprovado).
+      * Evidências arquivadas em `data/autoloop_task_notes/test_auditoria_resolvida.md`.
+
 0AO. [x] **Auditoria Clínica Pro e Ajuste de Posologia Pediátrica e Schwartz (`src/02_calculadoras_puras.js`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em `src/02_calculadoras_puras.js`, `amoxicilina` havia sido indevidamente modificada para teto de 3000 mg/dia em dose alta, `cefalexina` para 4000 mg/dia, `azitromicina` para 3 dias e `amoxicilina_clavulanato` travada em 50 mg/kg/dia, quebrando as suítes de teste de segurança pediátrica.

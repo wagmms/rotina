@@ -14,11 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria Clínica Pro e Ajuste de Posologia Pediátrica e Schwartz (`src/02_calculadoras_puras.js`)**:
-    - **Diagnóstico e Causa Raiz**: `tests/test_auditoria_pediatrica_schwartz.cjs` falhava na asserção de teto de adulto para Amoxicilina em dose alta (`opt.doseAlta: true`), pois `doseMaximaAdultoMgDia` havia sido indevidamente alterada para 3000 mg/dia, além de Cefalexina para 4000 mg/dia, Azitromicina para 3 dias e Amoxi+Clav travada em 50 mg/kg/dia.
-    - **Auditoria Clínica Pro com Fontes Identificáveis**: Conforme diretrizes da Sociedade Brasileira de Pediatria (SBP), FTN/Rename (Ministério da Saúde) e Guia Farmacêutico HSL, formulações líquidas ambulatoriais de Amoxicilina 250 mg/5 mL têm teto de segurança fixado em 1500 mg/dia (500 mg de 8/8h = 30 mL/dia) em atenção básica para pacientes em transição (> 50 kg), ativando o alerta sentinela de peso elevado para prevenir sobrecarga de volume líquido hiperosmolar e sobredose. Cefalexina limitada a 2000 mg/dia e Azitromicina mantida em 5 dias.
-    - **Correção e Validação**: Restaurados os limites canônicos em `src/02_calculadoras_puras.js` (função `posologiaPediatrica`). Validação 100% aprovada em `tests/test_auditoria_pediatrica_schwartz.cjs` (6/6 asserções), `tests/test_auditoria_pediatrica_extremos.cjs` (27/27 casos) e `tests/test_posologia_deterministica.cjs` (11/11 casos).
-    - Evidências arquivadas em `data/autoloop_task_notes/test_auditoria_pediatrica_schwartz.md`.
+- [x] **Auditoria e Correção de Preservação de Pedidos na Fila de Entrega Confiável (`tests/test_auditoria_resolvida.cjs` e `src/07a_telegram_router.js`)**:
+    - **Diagnóstico e Causa Raiz**: O teste 19 de `tests/test_auditoria_resolvida.cjs` (`Falha no Notion preserva texto original do pedido na fila`) falhava com `'done' == 'failed'`. Em `src/07a_telegram_router.js` (~linha 4080 e 4528), ao falhar `criarTarefaNotion`, a execução de `return enviarMensagemParaChat(...)` retornava `true` após o envio do feedback de erro. Com isso, `executarPedidoTelegram` (`src/11_entrega_confiavel.js`) considerava `resultado !== false` e finalizava o pedido como `'done'`, podando o payload original da mensagem (`job.update`) e violando o contrato de preservação de pedidos falhos na fila.
+    - **Correção e Validação**: Nos handlers `/task` e na intenção autônoma `NOTION_TASK` de `src/07a_telegram_router.js`, após o envio da notificação de falha ao usuário, foi adicionado `return false;`. O despachante `executarPedidoTelegram` agora transiciona o status para `'failed'` e retém integralmente a mensagem na fila.
+    - **Validação de Testes**: 100% de aprovação em `tests/test_auditoria_resolvida.cjs` (37/37 cenários aprovados) e `tests/test_auditoria_seguranca_rpc_telegram.cjs` (100% aprovado, sem exceções não tratadas).
+    - Evidências arquivadas em `data/autoloop_task_notes/test_auditoria_resolvida.md`.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -68,12 +68,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 65 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 66 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 61 (Telegram / Sala Vermelha)*: Botão de alternância rápida entre apresentação clínica inicial e critérios de desmame/tapering de DVA (Noradrenalina / Dobutamina / Vasopressina) com metas de PAM ≥ 65 mmHg e lactato em clareamento.
 - *Sugestão 62 (Telegram / Emergência)*: Protocolo ágil de dose de ataque vs manutenção de Amiodarona venosa com pré-cálculo automático em SF 5% (300 mg em bolus na PCR chocável refratária vs 150 mg em 10 min na TV estável, seguido de 1 mg/min por 6h e 0,5 mg/min por 18h).
 - *Sugestão 63 (Telegram / Dengue)*: Alerta visual com calculadora rápida de hematócrito e critério de hemoconcentração (aumento de 20% do Ht basal) para reclassificação dinâmica entre Grupo B e Grupo C no Telegram.
 - *Sugestão 64 (Telegram / Cefaleia)*: Escore SNOOP4 com checklist interativo para estratificação imediata de bandeiras vermelhas em cefaleia aguda antes de liberar protocolo de analgesia primária.
 - *Sugestão 65 (Pediatria / Farmacologia)*: Transição visual automática para formulação em comprimidos de adulto quando o paciente pediátrico tiver peso > 40-50 kg ou atingir o teto de adulto (exibir sugestão alternativa "Amoxicilina 500 mg: 1 cp VO de 8/8h" ao lado da suspensão de 250 mg/5 mL para evitar sobrecarga de volume líquido).
+- *Sugestão 66 (Telegram / Fila de Entrega Confiável)*: Adicionar comando `/reprocessar_fila` ou botão de 1 toque no alerta de falha de integração externa (Notion/APIs) permitindo retry manual imediato de pedidos que permaneceram com status 'failed' na fila persistente sem exigir nova digitação do médico.
 
 ---

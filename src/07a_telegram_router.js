@@ -4077,7 +4077,8 @@ function processarMensagemTexto(message) {
     if (!tarefaTexto) return enviarMensagemParaChat(chatId, "📋 Digite a tarefa a salvar no Inbox do Notion. Ex: `/task Revisar hemograma do leito 14`");
     var okTask = criarTarefaNotion(tarefaTexto, "Personal", "2 · Important", "Captura rápida via Telegram");
     if (okTask) return enviarMensagemParaChat(chatId, "✅ *Tarefa salva no Inbox do Notion Tasks!*");
-    return enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique o token.");
+    enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique o token.");
+    return false;
   }
 
   if (comando === "/tasks") {
@@ -4524,7 +4525,8 @@ function processarMensagemTexto(message) {
     if (!ehUsuarioTitular(chatId)) return enviarMensagemParaChat(chatId, "🔒 O banco do Notion é exclusivo do titular. Use o /menu para consultar calculadoras e condutas médicas.");
     var okNovaTask = criarTarefaNotion(texto, "Personal", "2 · Important", "Captura autônoma via Telegram");
     if (okNovaTask) return enviarMensagemParaChat(chatId, "✅ *Tarefa salva no Inbox do Notion Tasks!*");
-    return enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique a configuração.");
+    enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique a configuração.");
+    return false;
   }
 
   if (decisao.intencao === "NOTION_DUVIDA") {

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 02:24:05
- * Checksum SHA256: 4e48eeb2f0afb718
+ * Gerado automaticamente via build_master.py em: 2026-10-11 02:33:42
+ * Checksum SHA256: e0d34b66c074b3ed
  * ==============================================================================
  */
 
@@ -44419,7 +44419,8 @@ function processarMensagemTexto(message) {
     if (!tarefaTexto) return enviarMensagemParaChat(chatId, "📋 Digite a tarefa a salvar no Inbox do Notion. Ex: `/task Revisar hemograma do leito 14`");
     var okTask = criarTarefaNotion(tarefaTexto, "Personal", "2 · Important", "Captura rápida via Telegram");
     if (okTask) return enviarMensagemParaChat(chatId, "✅ *Tarefa salva no Inbox do Notion Tasks!*");
-    return enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique o token.");
+    enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique o token.");
+    return false;
   }
 
   if (comando === "/tasks") {
@@ -44866,7 +44867,8 @@ function processarMensagemTexto(message) {
     if (!ehUsuarioTitular(chatId)) return enviarMensagemParaChat(chatId, "🔒 O banco do Notion é exclusivo do titular. Use o /menu para consultar calculadoras e condutas médicas.");
     var okNovaTask = criarTarefaNotion(texto, "Personal", "2 · Important", "Captura autônoma via Telegram");
     if (okNovaTask) return enviarMensagemParaChat(chatId, "✅ *Tarefa salva no Inbox do Notion Tasks!*");
-    return enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique a configuração.");
+    enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique a configuração.");
+    return false;
   }
 
   if (decisao.intencao === "NOTION_DUVIDA") {
