@@ -871,35 +871,86 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
                 segundos_reset_detectados = total + 60
 
     def _emitir_evento_equilibrado(linha_bruta):
-        txt = render_cli_event(linha_bruta)
-        if not txt:
+        linha = linha_bruta.strip()
+        if not linha:
             return
-        if txt.startswith('{'):
-            try:
-                ev = json.loads(txt)
-                tipo = ev.get('type') or ev.get('event') or ''
-                # Filtrar ruído interno de streaming, chunks parciais e heartbeats
-                if tipo in {'ping', 'heartbeat', 'turn_start', 'step_start', 'content_block_start', 'content_block_delta', 'content_block_stop', 'usage_metadata'}:
-                    return
-                # Formatação limpa de chamadas de ferramentas
-                if tipo in {'tool_use', 'tool_call'}:
-                    nome = ev.get('name') or ev.get('tool_name') or 'ferramenta'
-                    args = ev.get('input') or ev.get('arguments') or {}
-                    alvo = args.get('TargetFile') or args.get('AbsolutePath') or args.get('CommandLine') or args.get('Instruction') or ''
-                    if alvo and len(str(alvo)) > 80:
-                        alvo = str(alvo)[:77] + '...'
-                    print(f"  [AGY] 🛠️ {nome}: {alvo}" if alvo else f"  [AGY] 🛠️ {nome}", flush=True)
-                    return
-                if tipo == 'tool_result':
-                    print("  [AGY] ✓ Retorno da ferramenta concluído", flush=True)
-                    return
-                if tipo in {'thought', 'thinking'}:
-                    return
-            except (ValueError, TypeError):
-                pass
-        txt_limpo = txt.strip()
-        if txt_limpo:
-            print(f"  [AGY] {txt_limpo}", flush=True)
+
+        # Se não for JSON, imprime apenas se for texto informativo do sistema
+        if not (linha.startswith('{') and linha.endswith('}')):
+            if not any(ign in linha for ign in ["DEBUG:", "Traceback", "ConnectionResetError"]):
+                print(f"  [AGY] {linha}", flush=True)
+            return
+
+        try:
+            ev = json.loads(linha)
+        except (ValueError, TypeError):
+            return
+
+        evento = ev.get('event') or ev.get('type') or ''
+
+        # Ignorar inicialização, metadados, heartbeats e pings
+        if evento in {'init', 'ping', 'heartbeat', 'turn_start', 'step_start', 'usage_metadata'}:
+            return
+
+        # Formato nativo de streaming do AGY: step_update
+        if evento == 'step_update':
+            step = ev.get('step_update', {})
+            stype = step.get('step_type') or ''
+            state = step.get('state') or ''
+
+            # Ferramentas: emite marco legível apenas no disparo (ACTIVE)
+            if stype == 'tool' and state == 'ACTIVE':
+                tool = step.get('tool_name') or 'ferramenta'
+                params = step.get('tool_info', {}).get('parameters', {})
+                alvo = (params.get('TargetFile') or params.get('AbsolutePath') or
+                        params.get('CommandLine') or params.get('Instruction') or '')
+                alvo_str = str(alvo).strip()
+                if alvo_str:
+                    if '/' in alvo_str and len(alvo_str) > 45:
+                        alvo_str = '...' + alvo_str[-42:]
+                    elif len(alvo_str) > 65:
+                        alvo_str = alvo_str[:62] + '...'
+
+                icones = {
+                    'replace_file_content': '✍️ Editando',
+                    'write_to_file': '📝 Criando',
+                    'run_command': '💻 Executando',
+                    'grep_search': '🔍 Buscando no código',
+                    'find_by_name': '🔍 Localizando',
+                    'view_file': '📖 Consultando'
+                }
+                if tool == 'view_file':
+                    basename = alvo_str.split('/')[-1] if '/' in alvo_str else alvo_str
+                    print(f"  [AGY] 📖 Consultando: {basename}", flush=True)
+                else:
+                    acao = icones.get(tool, f"🛠️ {tool}")
+                    print(f"  [AGY] {acao}: {alvo_str}" if alvo_str else f"  [AGY] {acao}", flush=True)
+            # Ignora state == 'DONE' para evitar flood de retornos de 50 KB
+            # Ignora agent_response com text_delta picotado
+            return
+
+        # Conclusão consolidada da resposta do turno
+        if evento == 'result':
+            res = ev.get('result', {})
+            resp = res.get('response', '')
+            if isinstance(resp, str) and resp.strip():
+                linhas_texto = [l.strip() for l in resp.strip().splitlines() if l.strip() and not l.strip().startswith('```')]
+                if linhas_texto:
+                    resumo = linhas_texto[0]
+                    if len(resumo) > 100:
+                        resumo = resumo[:97] + '...'
+                    print(f"  [AGY] 💬 {resumo}", flush=True)
+            return
+
+        # Compatibilidade com formatos alternativos (OpenAI / Anthropic stream)
+        if evento in {'tool_use', 'tool_call'}:
+            nome = ev.get('name') or ev.get('tool_name') or 'ferramenta'
+            args = ev.get('input') or ev.get('arguments') or {}
+            alvo = args.get('TargetFile') or args.get('AbsolutePath') or args.get('CommandLine') or args.get('Instruction') or ''
+            if alvo and len(str(alvo)) > 60:
+                alvo = str(alvo)[:57] + '...'
+            print(f"  [AGY] 🛠️ {nome}: {alvo}" if alvo else f"  [AGY] 🛠️ {nome}", flush=True)
+            return
 
     try:
         processo = run_observed(cmd, stage="ciclo_agy", on_line=receber_linha,
