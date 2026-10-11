@@ -248,13 +248,34 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
 
   // J. Escala de Coma de Glasgow
   if (/^glasgow(?:\s+.*)?$/i.test(tLow)) {
+    var numsCompGcs = tLow.match(/\b([1-4])\s+([1-5])\s+([1-6])(?:\s+([0-2]))?\b/) ||
+                      tLow.match(/(?:ocular|\bo\b)\s*[:=]?\s*\d/i);
+    if (numsCompGcs && typeof tentarCalcularDeterministico === "function") {
+      var resGcsComp = tentarCalcularDeterministico(texto);
+      if (resGcsComp) {
+        var ckGcsDet = Utilities.getUuid().replace(/-/g, "");
+        safePutCache(CacheService.getScriptCache(), ckGcsDet, resGcsComp, 21600);
+        var kbGcsDet = {
+          inline_keyboard: [
+            [{ text: "📋 Copiar Cálculo para Prontuário", callback_data: "ux:copiar:" + ckGcsDet }],
+            [{ text: "🔙 Calculadoras", callback_data: "ux:hub:calc" }, { text: "🔙 Sala Vermelha", callback_data: "ux:sala" }],
+            [{ text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        };
+        return enviarMensagemComTecladoParaChat(chatId, resGcsComp, kbGcsDet);
+      }
+    }
     var matchNumGcs = tLow.match(/\b([3-9]|1[0-5])\b/);
     if (matchNumGcs) {
       var scoreGcs = parseInt(matchNumGcs[1], 10);
       var estrGcs = scoreGcs <= 8 ? "🔴 *TCE GRAVE (Glasgow ≤ 8):* Perda de reflexos protetores de via aérea. Indicação formal de Sequência Rápida de Intubação (SRI / IOT) imediata!" : (scoreGcs <= 12 ? "🟡 *TCE Moderado (Glasgow 9-12):* Vigilância neurológica estrita e TC de crânio." : "🟢 *TCE Leve (Glasgow 13-15):* Observação clínica.");
       var txtGcsNum = "🧠 *ESCALA DE GLASGOW: " + scoreGcs + " PONTOS*\n\n" + estrGcs;
+      var ckGcsNum = Utilities.getUuid().replace(/-/g, "");
+      safePutCache(CacheService.getScriptCache(), ckGcsNum, txtGcsNum, 21600);
       var kbGcs = (typeof botoesBot === "function") ? botoesBot([
-        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+        [['📋 Copiar para Prontuário', 'ux:copiar:' + ckGcsNum]],
+        [['🔙 Calculadoras', 'ux:hub:calc'], ['🔙 Sala Vermelha', 'ux:sala']],
+        [['🏠 Início', 'ux:hub:inicio']]
       ]) : kbNav;
       if (kbGcs && typeof enviarMensagemComTecladoParaChat === "function") {
         enviarMensagemComTecladoParaChat(chatId, txtGcsNum, kbGcs);
@@ -4148,13 +4169,26 @@ function processarMensagemTexto(message) {
 
     var resDet = tentarCalcularDeterministico(dadosCalc);
     if (resDet) {
-      return enviarMensagemParaChat(chatId, resDet);
+      var ckCalc = Utilities.getUuid().replace(/-/g, "");
+      safePutCache(CacheService.getScriptCache(), ckCalc, resDet, 21600);
+      var tecladoDet = {
+        inline_keyboard: [
+          [{ text: "📋 Copiar Cálculo para Prontuário", callback_data: "ux:copiar:" + ckCalc }],
+          [{ text: "🔙 Calculadoras", callback_data: "ux:hub:calc" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, resDet, tecladoDet);
     }
 
     // Se o usuário invocou uma calculadora reconhecida deterministicamente mas resDet não retornou resultado, NUNCA cai na IA!
     if (typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(dadosCalc)) {
       var instrucoes = obterInstrucoesCalculadora(dadosCalc);
-      return enviarMensagemParaChat(chatId, "⚠️ *Calculadora Clínica: Parâmetros Insuficientes ou Inválidos*\n\n" + instrucoes);
+      var tecladoInstr = {
+        inline_keyboard: [
+          [{ text: "🔙 Calculadoras", callback_data: "ux:hub:calc" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, "⚠️ *Calculadora Clínica: Parâmetros Insuficientes ou Inválidos*\n\n" + instrucoes, tecladoInstr);
     }
 
     return processarEEntregarIA(chatId, processarCalculadoraClinicaComIA, dadosCalc, "calc");
@@ -4525,11 +4559,26 @@ function processarMensagemTexto(message) {
   if (ehConsultaDeterministica && typeof tentarCalcularDeterministico === "function") {
     var resFastDet = tentarCalcularDeterministico(texto);
     if (resFastDet) {
-      return enviarMensagemParaChat(chatId, resFastDet);
+      var ckFastCalc = Utilities.getUuid().replace(/-/g, "");
+      safePutCache(CacheService.getScriptCache(), ckFastCalc, resFastDet, 21600);
+      var tecladoFast = {
+        inline_keyboard: [
+          [{ text: "📋 Copiar Cálculo para Prontuário", callback_data: "ux:copiar:" + ckFastCalc }],
+          [{ text: "🔙 Calculadoras", callback_data: "ux:hub:calc" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, resFastDet, tecladoFast);
     }
     if (typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(texto)) {
       var instrucoesDet = obterInstrucoesCalculadora(texto);
-      if (instrucoesDet) return enviarMensagemParaChat(chatId, instrucoesDet);
+      if (instrucoesDet) {
+        var tecladoFastInstr = {
+          inline_keyboard: [
+            [{ text: "🔙 Calculadoras", callback_data: "ux:hub:calc" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        };
+        return enviarMensagemComTecladoParaChat(chatId, instrucoesDet, tecladoFastInstr);
+      }
     }
   }
 

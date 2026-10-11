@@ -555,6 +555,68 @@ function cockpitCalcular(initData, tipo, entrada) {
     case 'seguranca':
       var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';
       return executarCrossCheckSegurancaClinica(alvos, entrada.contexto || entrada);
+    case 'parkland':
+      var pPark = parseFloat(String(entrada.peso || 0).replace(',', '.'));
+      var sPark = parseFloat(String(entrada.scq || entrada.queimadura || 0).replace(',', '.'));
+      var resPark = CalculadorasClinicas.parkland(pPark, sPark);
+      if (resPark && resPark.ok) {
+        if (!resPark.texto) resPark.texto = resPark.textoFormatado;
+        return resPark;
+      }
+      return { ok: false, erro: (resPark && resPark.erro) || 'Erro ao calcular Parkland.' };
+    case 'glasgow':
+      var oG = parseInt(entrada.ocular !== undefined ? entrada.ocular : (entrada.o !== undefined ? entrada.o : 4), 10);
+      var vG = parseInt(entrada.verbal !== undefined ? entrada.verbal : (entrada.v !== undefined ? entrada.v : 5), 10);
+      var mG = parseInt(entrada.motor !== undefined ? entrada.motor : (entrada.m !== undefined ? entrada.m : 6), 10);
+      var pG = (entrada.pupilas !== undefined && entrada.pupilas !== null && entrada.pupilas !== '') ? parseInt(entrada.pupilas, 10) : ((entrada.p !== undefined && entrada.p !== null && entrada.p !== '') ? parseInt(entrada.p, 10) : null);
+      var resG = CalculadorasClinicas.glasgowP(oG, vG, mG, pG);
+      if (resG && resG.ok) {
+        if (!resG.texto) resG.texto = resG.textoFormatado;
+        return resG;
+      }
+      return { ok: false, erro: (resG && resG.erro) || 'Erro ao calcular Glasgow-P.' };
+    case 'ckd':
+    case 'ckdepi':
+      var crCkd = parseFloat(String(entrada.creatinina || entrada.cr || 0).replace(',', '.'));
+      var idCkd = parseInt(entrada.idade || 0, 10);
+      var femCkd = entrada.sexo === 'f' || entrada.feminino === true;
+      var resCkd = CalculadorasClinicas.ckdEpi2021(crCkd, idCkd, femCkd);
+      if (resCkd && resCkd.ok) {
+        if (!resCkd.texto) resCkd.texto = resCkd.textoFormatado;
+        return resCkd;
+      }
+      return { ok: false, erro: (resCkd && resCkd.erro) || 'Erro ao calcular CKD-EPI.' };
+    case 'cockcroft':
+      var crCg = parseFloat(String(entrada.creatinina || entrada.cr || 0).replace(',', '.'));
+      var pCg = parseFloat(String(entrada.peso || 0).replace(',', '.'));
+      var idCg = parseInt(entrada.idade || 0, 10);
+      var femCg = entrada.sexo === 'f' || entrada.feminino === true ? true : entrada.sexo === 'm' ? false : null;
+      var altCmCg = null;
+      var rawAltCg = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
+      if (rawAltCg !== undefined && rawAltCg !== null && rawAltCg !== '') {
+        var nAltCg = parseFloat(String(rawAltCg).replace(',', '.'));
+        if (!isNaN(nAltCg)) altCmCg = (nAltCg > 0 && nAltCg < 3.0) ? Math.round(nAltCg * 100 * 10) / 10 : nAltCg;
+      }
+      var resCg = CalculadorasClinicas.cockcroftGault(crCg, pCg, idCg, femCg, altCmCg);
+      if (resCg && resCg.ok) {
+        if (!resCg.texto) resCg.texto = resCg.textoFormatado;
+        return resCg;
+      }
+      return { ok: false, erro: (resCg && resCg.erro) || 'Erro ao calcular Cockcroft-Gault.' };
+    case 'curb65':
+    case 'curb':
+      var confCb = Boolean(entrada.confusao || entrada.confusaoMental);
+      var urCb = parseFloat(String(entrada.ureia || entrada.bun || 0).replace(',', '.'));
+      var frCb = parseInt(entrada.fr || 0, 10);
+      var pasCb = parseInt(entrada.pas || 0, 10);
+      var padCb = parseInt(entrada.pad || 0, 10);
+      var idCb = parseInt(entrada.idade || 0, 10);
+      var resCurb = CalculadorasClinicas.curb65(confCb, urCb, frCb, pasCb, padCb, idCb);
+      if (resCurb && resCurb.ok) {
+        if (!resCurb.texto) resCurb.texto = resCurb.textoFormatado;
+        return resCurb;
+      }
+      return { ok: false, erro: (resCurb && resCurb.erro) || 'Erro ao calcular CURB-65.' };
     default: throw new Error('Calculadora desconhecida.');
   }
 }

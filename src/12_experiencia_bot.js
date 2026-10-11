@@ -297,7 +297,8 @@ function enviarMenuDva(chat, messageId) {
     [['Noradrenalina', 'ux:droga:nora'], ['Dobutamina', 'ux:droga:dobuta']],
     [['Vasopressina', 'ux:fixa:vaso'], ['Adrenalina (Infusão)', 'ux:droga:adrena']],
     [['Nitroprussiato', 'ux:droga:nipride'], ['Nitroglicerina', 'ux:fixa:tridil']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Calculadoras', 'ux:hub:calc'], ['🔙 Sala Vermelha', 'ux:sala']],
+    [['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
@@ -1775,11 +1776,396 @@ function enviarHubPrincipal(chat, messageId) {
 }
 
 function enviarMenuUXCalculadoras(chat, messageId) {
-  return enviarTelaBot(chat, '📐 *Calculadoras Clínicas*\nEscolha a ferramenta necessária:', botoesBot([
-    [['Drogas vasoativas', 'ux:dvamenu'], ['Gasometria', 'ux:iniciar:gaso']],
-    [['Outras calculadoras', 'calc_menu_principal'], ['Sala vermelha', 'ux:sala']],
+  var texto = '📐 *CALCULADORAS CLÍNICAS & ESCORES DETERMINÍSTICOS*\n\n' +
+    'Selecione a ferramenta beira-leito desejada para cálculo instantâneo em 0ms:\n\n' +
+    '• 🩸 *Gasometria:* Ácido-base, Winter, ânion gap e oxigenação\n' +
+    '• 💉 *Drogas Vasoativas:* Nora, dobuta, vaso, adrenalina e compatibilidade Y\n' +
+    '• 🧪 *Cockcroft vs CKD-EPI:* TFG/ClCr com estadiamento KDIGO\n' +
+    '• 💧 *Holliday-Segar:* Hidratação venosa e eletrólitos pediátricos\n' +
+    '• 🧠 *Glasgow-P:* Escala de coma com reatividade pupilar e indicação de IOT\n' +
+    '• 🔥 *Parkland:* Ressuscitação volêmica em queimados (RL 4 mL/kg/%)';
+
+  return enviarTelaBot(chat, texto, botoesBot([
+    [['🩸 Gasometria Arterial', 'ux:calc:gaso'], ['💉 Drogas Vasoativas', 'ux:calc:dva']],
+    [['🧪 Cockcroft vs CKD-EPI', 'ux:calc:crcl'], ['💧 Holliday-Segar', 'ux:calc:holliday']],
+    [['🧠 Glasgow-P (TCE)', 'ux:calc:glasgow'], ['🔥 Parkland (Queimados)', 'ux:calc:parkland']],
+    [['📊 Todos os Escores & Índices', 'calc_menu_principal'], ['🚨 Sala Vermelha', 'ux:sala']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
+}
+
+function enviarTelaCalcGaso(chat, messageId) {
+  var texto = '🩸 *CALCULADORA DE GASOMETRIA ARTERIAL COMPLETA*\n\n' +
+    'Avaliação ácido-base automatizada em 0ms:\n' +
+    '• Distúrbio primário e misto (pH, PaCO₂, HCO₃⁻)\n' +
+    '• Resposta compensatória (Winter / Aguda-Crônica)\n' +
+    '• Ânion Gap sérico corrigido por albumina\n' +
+    '• Razão Delta (Delta-Delta) e oxigenação (PaO₂/FiO₂)\n\n' +
+    '💡 *Envie os dados no chat ou toque em um caso clínico para cálculo instantâneo:*\n' +
+    '• Exemplo de comando: `/gaso pH 7.24 pCO2 22 HCO3 9 Na 138 Cl 101`';
+
+  return enviarTelaBot(chat, texto, botoesBot([
+    [['🧪 Cetoacidose (pH 7.18)', 'ux:calc:gaso_cad'], ['🫁 DPOC Descompensado (pH 7.30)', 'ux:calc:gaso_dpoc']],
+    [['💧 Alcalose Vômitos (pH 7.52)', 'ux:calc:gaso_vomitos'], ['🌬️ Ansiedade / Alcalose Resp', 'ux:calc:gaso_ansiedade']],
+    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
+  ]), messageId);
+}
+
+function enviarTelaCalcRenal(chat, messageId) {
+  var texto = '🧪 *ESTIMATIVA DA FUNÇÃO RENAL (COCKCROFT-GAULT vs CKD-EPI 2021)*\n\n' +
+    '• *Cockcroft-Gault:* `ClCr = [(140 - Idade) × Peso] / (72 × Cr)` (× 0,85 se mulher)\n' +
+    '• *CKD-EPI 2021 (KDIGO):* Padrão-ouro race-free para estadiamento de DRC (G1 a G5)\n\n' +
+    '💡 *Envie os dados no chat ou toque em um caso clínico para cálculo instantâneo:*\n' +
+    '• Exemplo de comando: `/calc ckd Cr 1.4 idade 68 mulher peso 62`';
+
+  return enviarTelaBot(chat, texto, botoesBot([
+    [['👴 Homem 68a, 70kg, Cr 1.8', 'ux:calc:renal_ex1'], ['👵 Mulher 74a, 56kg, Cr 1.3', 'ux:calc:renal_ex2']],
+    [['🧑 Jovem 28a, 78kg, Cr 0.9', 'ux:calc:renal_ex3'], ['🚨 DRC Grave Cr 3.2 (65a, M)', 'ux:calc:renal_ex4']],
+    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
+  ]), messageId);
+}
+
+function enviarTelaCalcHolliday(chat, messageId) {
+  var texto = '💧 *HIDRATAÇÃO VENOSA PEDIÁTRICA (HOLLIDAY-SEGAR)*\n\n' +
+    '• *Regra 100-50-20:* ≤ 10 kg (100 mL/kg) | 11–20 kg (1000 + 50 mL/kg) | > 20 kg (1500 + 20 mL/kg)\n' +
+    '• *Regra 4-2-1 na BIC:* ≤ 10 kg (4 mL/kg/h) | 11–20 kg (40 + 2 mL/kg/h) | > 20 kg (60 + 1 mL/kg/h)\n' +
+    '• *Eletrólitos:* NaCl 20% (2,5 mEq/100mL) + KCl 10% (2,0 mEq/100mL — após diurese confirmada)\n\n' +
+    '💡 *Envie o peso no chat ou selecione um perfil pediátrico:*\n' +
+    '• Exemplo de comando: `/holliday 14kg`';
+
+  return enviarTelaBot(chat, texto, botoesBot([
+    [['👶 Lactente 8 kg (Manutenção)', 'ux:calc:hol_ex1'], ['🧒 Pré-escolar 14 kg (Manutenção)', 'ux:calc:hol_ex2']],
+    [['👦 Escolar 22 kg (Manutenção)', 'ux:calc:hol_ex3'], ['🫁 Restrição Bronquiolite 11 kg', 'ux:calc:hol_ex4']],
+    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
+  ]), messageId);
+}
+
+function enviarTelaCalcGlasgow(chat, messageId) {
+  var texto = '🧠 *ESCALA DE COMA DE GLASGOW-P (GCS-P)*\n\n' +
+    '• *Ocular (1–4):* 4 Espontânea | 3 À voz | 2 À dor | 1 Ausente\n' +
+    '• *Verbal (1–5):* 5 Orientado | 4 Confuso | 3 Inapropriadas | 2 Sons | 1 Ausente\n' +
+    '• *Motor (1–6):* 6 Obedece | 5 Localiza | 4 Flexão | 3 Decorticação | 2 Descerebração | 1 Ausente\n' +
+    '• *Pupilas (P 0–2):* 0 Ambas reagem | 1 Apenas uma reage | 2 Nenhuma reage\n\n' +
+    '🚨 *Salvaguarda:* GCS ≤ 8 indica intubação orotraqueal e via aérea definitiva imediata!\n\n' +
+    '💡 *Envie no chat ou toque em uma estratificação rápida:*\n' +
+    '• Exemplo de comando: `/calc glasgow O3 V4 M5 P0`';
+
+  return enviarTelaBot(chat, texto, botoesBot([
+    [['🟢 Alerta GCS 15 (O4 V5 M6 P0)', 'ux:calc:gcs_ex1'], ['🟡 TCE Moderado GCS 11 (O3 V3 M5 P0)', 'ux:calc:gcs_ex2']],
+    [['🔴 TCE Grave GCS 7 (IOT Imediata)', 'ux:calc:gcs_ex3'], ['🚨 Midríase Bilateral GCS 4-P2', 'ux:calc:gcs_ex4']],
+    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
+  ]), messageId);
+}
+
+function enviarTelaCalcParkland(chat, messageId) {
+  var texto = '🔥 *FÓRMULA DE PARKLAND (RESSUSCITAÇÃO EM GRANDES QUEIMADOS)*\n\n' +
+    '• *Fórmula ATLS / SBA:* `Volume Total 24h = 4 mL × Peso (kg) × % SCQ` em Ringer Lactato\n' +
+    '• *1ª Etapa (50% do total):* Primeiras 8h a contar do ACIDENTE (não da admissão hospitalar)\n' +
+    '• *2ª Etapa (50% do total):* Próximas 16h em infusão contínua em BIC\n' +
+    '• *Meta Diurese Horária:* Adultos 0,5 a 1,0 mL/kg/h | Crianças 1,0 mL/kg/h\n\n' +
+    '💡 *Envie peso e SCQ no chat ou toque em um caso clínico para cálculo instantâneo:*\n' +
+    '• Exemplo de comando: `/calc parkland 70kg 25%`';
+
+  return enviarTelaBot(chat, texto, botoesBot([
+    [['🔥 Adulto 70 kg · 20% SCQ', 'ux:calc:park_ex1'], ['🔥 Adulto 80 kg · 35% SCQ', 'ux:calc:park_ex2']],
+    [['🔥 Adulto 65 kg · 15% SCQ', 'ux:calc:park_ex3'], ['🔥 Grande Queimado 75 kg · 45%', 'ux:calc:park_ex4']],
+    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
+  ]), messageId);
+}
+
+function tratarCallbackUXCalc(chat, v, msgId) {
+  var cache = CacheService.getScriptCache();
+  if (v === 'gaso') return enviarTelaCalcGaso(chat, msgId);
+  if (v === 'renal' || v === 'crcl') return enviarTelaCalcRenal(chat, msgId);
+  if (v === 'holliday') return enviarTelaCalcHolliday(chat, msgId);
+  if (v === 'glasgow') return enviarTelaCalcGlasgow(chat, msgId);
+  if (v === 'parkland') return enviarTelaCalcParkland(chat, msgId);
+  if (v === 'dva') {
+    if (typeof enviarMenuDva === 'function') return enviarMenuDva(chat, msgId);
+    texto('/dva');
+    return true;
+  }
+
+  var txtResultado = '';
+
+  // Presets Gasometria
+  if (v === 'gaso_cad' || v === 'gaso:met') {
+    txtResultado = "🩸 *GASOMETRIA ARTERIAL: CETOACIDOSE DIABÉTICA (CAD)*\n\n" +
+      "• *Parâmetros:* pH 7.18 | PaCO₂ 20 mmHg | HCO₃⁻ 8 mEq/L | Na⁺ 135 | Cl⁻ 98\n\n" +
+      "🔴 *DIAGNÓSTICO ÁCIDO-BASE DETERMINÍSTICO:*\n" +
+      "• Distúrbio Primário: Acidose Metabólica Severa (pH 7,18 e HCO₃⁻ 8 mEq/L)\n" +
+      "• Compensação (Winter): PaCO₂ esperada = 1,5 × 8 + 8 = 20 mmHg (±2: 18 a 22 mmHg) → *Compensação respiratória adequada*\n" +
+      "• Ânion Gap Sérico: Na - (Cl + HCO₃) = 135 - 106 = `29 mEq/L` (Elevado > 12: Cetoacidose)\n" +
+      "• Razão Delta: ΔAG / ΔHCO₃ = (29 - 12) / (24 - 8) = 17 / 16 = `1,06` → *Acidose de Ânion Gap elevado pura*\n\n" +
+      "🟡 *CONDUTA BEIRA-LEITO (DIRETRIZ SBD / ADA):*\n" +
+      "1. Hidratação vigorosa: SF 0,9% 1000 a 1500 mL na 1ª hora.\n" +
+      "2. Checar K⁺ sérico antes da insulina: Se K < 3,3 mEq/L, adiar insulina e repor K⁺ primeiro.\n" +
+      "3. Insulina regular: 0,1 U/kg em bolus IV + 0,1 U/kg/h em BIC.\n" +
+      "4. Bicarbonato de sódio: Apenas se pH < 6,90 (100 mEq em 400 mL água destilada em 2h).";
+  } else if (v === 'gaso_dpoc') {
+    txtResultado = "🫁 *GASOMETRIA ARTERIAL: DPOC EXACERBADO COM RETENÇÃO*\n\n" +
+      "• *Parâmetros:* pH 7.30 | PaCO₂ 62 mmHg | HCO₃⁻ 30 mEq/L | Na⁺ 140 | Cl⁻ 98\n\n" +
+      "🔴 *DIAGNÓSTICO ÁCIDO-BASE DETERMINÍSTICO:*\n" +
+      "• Distúrbio Primário: Acidose Respiratória Descompensada (pH 7,30 e PaCO₂ 62 mmHg)\n" +
+      "• Resposta Metabólica: HCO₃⁻ elevado (30 mEq/L), compatível com retenção crônica agudizada\n" +
+      "• Ânion Gap Sérico: 140 - (98 + 30) = `12 mEq/L` (Normal)\n" +
+      "• Alerta Ventilatório: Hipercapnia severa com acidose respiratória aguda.\n\n" +
+      "🟡 *CONDUTA BEIRA-LEITO (GOLD / SBPT):*\n" +
+      "1. Oxigenoterapia estritamente controlada: Alvo SpO₂ 88 a 92% (Venturi 24-28% ou cateter 1-2 L/min).\n" +
+      "2. *Indicação mandatória de VNI (BiPAP):* Acidose respiratória (pH < 7,35 e PaCO₂ > 45 mmHg).\n" +
+      "3. Broncodilatação: SABA (Salbutamol) + SAMA (Ipratrópio) na 1ª hora.\n" +
+      "4. Corticoide sistêmico: Prednisona 40 mg VO 1x/dia por 5 dias.\n" +
+      "5. Antibioticoterapia se critérios de Anthonisen (aumento de escarro, purulência, dispneia).";
+  } else if (v === 'gaso_vomitos') {
+    txtResultado = "💧 *GASOMETRIA ARTERIAL: ALCALOSE METABÓLICA POR PERDAS GÁSTRICAS*\n\n" +
+      "• *Parâmetros:* pH 7.52 | PaCO₂ 48 mmHg | HCO₃⁻ 38 mEq/L | Na⁺ 138 | Cl⁻ 88\n\n" +
+      "🔴 *DIAGNÓSTICO ÁCIDO-BASE DETERMINÍSTICO:*\n" +
+      "• Distúrbio Primário: Alcalose Metabólica Severa (pH 7,52 e HCO₃⁻ 38 mEq/L)\n" +
+      "• Compensação Respiratória: PaCO₂ esperada = 40 + 0,7 × (38 - 24) = 49,8 mmHg (±2: 48 a 52) → *Compensação respiratória adequada*\n" +
+      "• Ânion Gap: 138 - (88 + 38) = `12 mEq/L` (Normal, hipocloremia marcante)\n\n" +
+      "🟡 *CONDUTA BEIRA-LEITO:*\n" +
+      "1. Hidratação venosa com SF 0,9% (solução rica em cloreto - 'alcalose salina-responsiva').\n" +
+      "2. Reposição vigorosa de K⁺: Alcalose induz hipocalemia grave e perda urinária de K⁺.\n" +
+      "3. Antieméticos: Ondansetrona 8 mg IV de 8/8h.";
+  } else if (v === 'gaso_ansiedade') {
+    txtResultado = "🌬️ *GASOMETRIA ARTERIAL: ALCALOSE RESPIRATÓRIA AGUDA (HIPERVENTILAÇÃO)*\n\n" +
+      "• *Parâmetros:* pH 7.50 | PaCO₂ 26 mmHg | HCO₃⁻ 20 mEq/L | SpO₂ 99%\n\n" +
+      "🔴 *DIAGNÓSTICO ÁCIDO-BASE DETERMINÍSTICO:*\n" +
+      "• Distúrbio Primário: Alcalose Respiratória Aguda (pH 7,50 e PaCO₂ 26 mmHg)\n" +
+      "• Compensação: HCO₃⁻ esperado (aguda) = 24 - 0,2 × (40 - 26) = 21,2 mEq/L → *Queda de bicarbonato adequada*\n\n" +
+      "🟡 *CONDUTA BEIRA-LEITO:*\n" +
+      "1. Tranquilização e suporte verbal em ambiente calmo (técnicas de respiração lenta).\n" +
+      "2. Descartar causas orgânicas graves: Tromboembolismo Pulmonar (TEP), sepse inicial, intoxicação por salicilatos e dor intensa.\n" +
+      "3. Evitar respirar em saco de papel se hipoxemia ou suspeita de TEP.";
+  }
+  // Presets Renal
+  else if (v === 'renal_ex1' || v === 'crcl:70kg') {
+    var r1Cg = CalculadorasClinicas.cockcroftGault(1.8, 70, 68, false);
+    var r1Ckd = CalculadorasClinicas.ckdEpi2021(1.8, 68, false);
+    txtResultado = "🧪 *CLEARANCE DE CREATININA & FUNÇÃO RENAL: HOMEM 68 ANOS · 70 KG · Cr 1.8 mg/dL*\n\n" +
+      "🔴 *RESULTADOS DETERMINÍSTICOS:*\n" +
+      "• *Cockcroft-Gault (ClCr):* `" + r1Cg.principal + "`\n" +
+      "• *CKD-EPI 2021 (TFG):* `" + r1Ckd.principal + "`\n" +
+      "• *Classificação KDIGO:* " + r1Ckd.rotulo + "\n\n" +
+      "🟡 *AJUSTES FARMACOLÓGICOS BEIRA-LEITO:*\n" +
+      "• ClCr entre 30 e 50 mL/min: Reduzir dose ou ampliar intervalo de antimicrobianos (Meropenem 1g 12/12h, Pip-Tazo 3,375g 6/6h ou 4,5g 8/8h, Cefepime 2g 12/12h).\n" +
+      "• Enoxaparina profilática: 20-40 mg SC 1x/dia (dose terapêutica: monitorar anti-Xa ou HNF).\n" +
+      "• Bloqueio preventivo de AINEs e contraste iodado.";
+  } else if (v === 'renal_ex2') {
+    var r2Cg = CalculadorasClinicas.cockcroftGault(1.3, 56, 74, true);
+    var r2Ckd = CalculadorasClinicas.ckdEpi2021(1.3, 74, true);
+    txtResultado = "🧪 *FUNÇÃO RENAL: MULHER 74 ANOS · 56 KG · Cr 1.3 mg/dL*\n\n" +
+      "🔴 *RESULTADOS DETERMINÍSTICOS:*\n" +
+      "• *Cockcroft-Gault (ClCr):* `" + r2Cg.principal + "` (com fator feminino ×0,85)\n" +
+      "• *CKD-EPI 2021 (TFG):* `" + r2Ckd.principal + "`\n" +
+      "• *Classificação KDIGO:* " + r2Ckd.rotulo + "\n\n" +
+      "🟡 *ALERTA BEIRA-LEITO (IDOSA SARCOPÊNICA):*\n" +
+      "• Atenção: Apesar da Creatinina parecer 'pouco alterada' (1,3 mg/dL), o ClCr real é `" + r2Cg.principal + "` devido à baixa massa muscular e idade avançada!\n" +
+      "• Ajustar obrigatoriamente antibióticos e anticoagulantes (NOACs/DOACs: Apixabana 2,5mg 12/12h se critérios, Rivaroxabana 15mg/dia).";
+  } else if (v === 'renal_ex3') {
+    var r3Cg = CalculadorasClinicas.cockcroftGault(0.9, 78, 28, false);
+    var r3Ckd = CalculadorasClinicas.ckdEpi2021(0.9, 28, false);
+    txtResultado = "🧪 *FUNÇÃO RENAL: JOVEM 28 ANOS · 78 KG · Cr 0.9 mg/dL*\n\n" +
+      "🔴 *RESULTADOS DETERMINÍSTICOS:*\n" +
+      "• *Cockcroft-Gault (ClCr):* `" + r3Cg.principal + "`\n" +
+      "• *CKD-EPI 2021 (TFG):* `" + r3Ckd.principal + "`\n" +
+      "• *Classificação KDIGO:* " + r3Ckd.rotulo + " (G1 - Normal)\n\n" +
+      "🟡 *CONDUTA FARMACOLÓGICA:*\n" +
+      "• Função renal plena / hiperfiltração fisiológica. Doses plenas habituais recomendadas.";
+  } else if (v === 'renal_ex4') {
+    var r4Cg = CalculadorasClinicas.cockcroftGault(3.2, 72, 65, false);
+    var r4Ckd = CalculadorasClinicas.ckdEpi2021(3.2, 65, false);
+    txtResultado = "🧪 *FUNÇÃO RENAL: PACIENTE COM DRC AVANÇADA / AGUDIZADA (Cr 3.2 mg/dL)*\n\n" +
+      "🔴 *RESULTADOS DETERMINÍSTICOS:*\n" +
+      "• *Cockcroft-Gault (ClCr):* `" + r4Cg.principal + "`\n" +
+      "• *CKD-EPI 2021 (TFG):* `" + r4Ckd.principal + "`\n" +
+      "• *Classificação KDIGO:* " + r4Ckd.rotulo + " (G4/G5 - Falência Severa)\n\n" +
+      "🚨 *BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:*\n" +
+      "• CONTRAINDICAÇÃO FORMAL: Metformina (risco crítico de acidose lática letal).\n" +
+      "• CONTRAINDICAÇÃO: Enoxaparina dose plena terapêutica (preferir HNF com TTPa ou ajuste para 1 mg/kg 1x/dia).\n" +
+      "• CONTRAINDICAÇÃO: Espironolactona e AINEs.\n" +
+      "• Vigiar indicações de diálise de urgência (AEIOU: Acidose, Eletrólitos/K⁺, Intoxicação, Sobrecarga/Overload, Uremia).";
+  }
+  // Presets Holliday
+  else if (v === 'hol_ex1') {
+    var vol1 = 8 * 100;
+    var vaz1 = (vol1 / 24).toFixed(1);
+    var na1 = ((vol1 / 100) * 2.5).toFixed(1);
+    var k1 = ((vol1 / 100) * 2.0).toFixed(1);
+    txtResultado = "💧 *HIDRATAÇÃO HOLLIDAY-SEGAR: LACTENTE 8 KG*\n\n" +
+      "🔴 *PRESCRIÇÃO VENOSA PEDIÁTRICA (24 HORAS):*\n" +
+      "• *Volume Total 24h:* `800 mL/dia` (100 mL/kg para os primeiros 10 kg)\n" +
+      "• *Vazão Contínua na BIC:* `" + vaz1 + " mL/h` (Regra 4-2-1: 4 mL/kg/h = 32 mL/h)\n\n" +
+      "🟡 *COMPOSIÇÃO ELETROLÍTICA & GLICOSE (SBP):*\n" +
+      "• SG 5%: 800 mL (prevenção de hipoglicemia e cetose de jejum)\n" +
+      "• NaCl 20%: " + na1 + " mEq de Na⁺ (2,5 mEq/100 mL)\n" +
+      "• KCl 10%: " + k1 + " mEq de K⁺ (2,0 mEq/100 mL)\n" +
+      "• TIG Estimada: ~5,5 mg/kg/min (Alvo fisiológico: 4 a 6 mg/kg/min)\n\n" +
+      "⚠️ *Salvaguarda:* Adicionar KCl à solução APENAS após comprovação de diurese ativa.";
+  } else if (v === 'holliday:15kg') {
+    var vol15 = 1250;
+    var vaz15 = (vol15 / 24).toFixed(1);
+    var na15 = ((vol15 / 100) * 2.5).toFixed(1);
+    var k15 = ((vol15 / 100) * 2.0).toFixed(1);
+    txtResultado = "💧 *HOLLIDAY-SEGAR: HIDRATAÇÃO PEDIÁTRICA 15 KG*\n\n" +
+      "🔴 *PRESCRIÇÃO VENOSA PEDIÁTRICA (24 HORAS):*\n" +
+      "• *Volume Total 24h:* `1.250 mL/dia` (1250 mL — 1000 mL + 50 mL/kg para peso entre 11 e 20 kg)\n" +
+      "• *Vazão Contínua na BIC:* `" + vaz15 + " mL/h` (Regra 4-2-1: 40 + 2×5 = 50 mL/h | 1250/24h = 52.1 mL/h)\n\n" +
+      "🟡 *COMPOSIÇÃO ELETROLÍTICA & GLICOSE (SBP):*\n" +
+      "• SG 5%: 1.250 mL (1250 mL)\n" +
+      "• NaCl 20%: " + na15 + " mEq de Na⁺ (2,5 mEq/100 mL)\n" +
+      "• KCl 10%: " + k15 + " mEq de K⁺ (2,0 mEq/100 mL)\n" +
+      "• TIG Estimada: ~4,6 mg/kg/min\n\n" +
+      "⚠️ Usar soluções isotônicas ou balanceadas para prevenir hiponatremia hospitalar por excesso de ADH.";
+  } else if (v === 'hol_ex2') {
+    var vol2 = 1000 + (14 - 10) * 50;
+    var vaz2 = (vol2 / 24).toFixed(1);
+    var na2 = ((vol2 / 100) * 2.5).toFixed(1);
+    var k2 = ((vol2 / 100) * 2.0).toFixed(1);
+    txtResultado = "💧 *HIDRATAÇÃO HOLLIDAY-SEGAR: PRÉ-ESCOLAR 14 KG*\n\n" +
+      "🔴 *PRESCRIÇÃO VENOSA PEDIÁTRICA (24 HORAS):*\n" +
+      "• *Volume Total 24h:* `1.200 mL/dia` (1000 mL + 50 mL/kg para peso entre 11 e 20 kg)\n" +
+      "• *Vazão Contínua na BIC:* `" + vaz2 + " mL/h` (Regra 4-2-1: 40 + 2×4 = 48 mL/h)\n\n" +
+      "🟡 *COMPOSIÇÃO ELETROLÍTICA & GLICOSE (SBP):*\n" +
+      "• SG 5%: 1.200 mL\n" +
+      "• NaCl 20%: " + na2 + " mEq de Na⁺ (2,5 mEq/100 mL)\n" +
+      "• KCl 10%: " + k2 + " mEq de K⁺ (2,0 mEq/100 mL)\n" +
+      "• TIG Estimada: ~4,8 mg/kg/min\n\n" +
+      "⚠️ Usar soluções isotônicas ou balanceadas para prevenir hiponatremia hospitalar por excesso de ADH.";
+  } else if (v === 'hol_ex3') {
+    var vol3 = 1500 + (22 - 20) * 20;
+    var vaz3 = (vol3 / 24).toFixed(1);
+    var na3 = ((vol3 / 100) * 2.5).toFixed(1);
+    var k3 = ((vol3 / 100) * 2.0).toFixed(1);
+    txtResultado = "💧 *HIDRATAÇÃO HOLLIDAY-SEGAR: ESCOLAR 22 KG*\n\n" +
+      "🔴 *PRESCRIÇÃO VENOSA PEDIÁTRICA (24 HORAS):*\n" +
+      "• *Volume Total 24h:* `1.540 mL/dia` (1500 mL + 20 mL/kg acima de 20 kg)\n" +
+      "• *Vazão Contínua na BIC:* `" + vaz3 + " mL/h` (Regra 4-2-1: 60 + 2×1 = 62 mL/h)\n\n" +
+      "🟡 *COMPOSIÇÃO ELETROLÍTICA (SBP):*\n" +
+      "• SG 5%: 1.540 mL\n" +
+      "• NaCl 20%: " + na3 + " mEq de Na⁺\n" +
+      "• KCl 10%: " + k3 + " mEq de K⁺ (apenas pós-diurese confirmada)\n" +
+      "• TIG Estimada: ~4,3 mg/kg/min.";
+  } else if (v === 'hol_ex4') {
+    var vol4Basal = 1000 + (11 - 10) * 50; // 1050
+    var vol4Restr = Math.round(vol4Basal * 0.7); // 735 mL
+    var vaz4 = (vol4Restr / 24).toFixed(1);
+    txtResultado = "🫁 *HIDRATAÇÃO RESTRITA: BRONQUIOLITE VIRAL AGUDA (BVA) 11 KG*\n\n" +
+      "🔴 *RESTRIÇÃO VOLÊMICA (70% DE HOLLIDAY-SEGAR):*\n" +
+      "• *Justificativa:* Crianças com bronquiolite e desconforto respiratório retêm água livre por secreção inadequada de ADH. A hidratação plena a 100% precipita edema pulmonar e piora da hipoxemia.\n" +
+      "• *Volume 24h Ajustado:* `735 mL/dia` (em vez de 1.050 mL)\n" +
+      "• *Vazão Contínua na BIC:* `" + vaz4 + " mL/h`\n\n" +
+      "🟡 *ALERTAS BEIRA-LEITO:*\n" +
+      "• Monitorar Na⁺ sérico para excluir hiponatremia dilucional aguda.\n" +
+      "• Preferir via enteral em pequenos volumes fracionados se tolerado sem taquipneia extrema.";
+  }
+  // Presets Glasgow
+  else if (v === 'gcs_ex1') {
+    var rG1 = CalculadorasClinicas.glasgowP(4, 5, 6, 0);
+    txtResultado = "🧠 *ESCALA DE COMA DE GLASGOW-P: PACIENTE ALERTA (GCS 15)*\n\n" +
+      "• *Componentes:* Ocular 4/4 (Espontânea) | Verbal 5/5 (Orientado) | Motor 6/6 (Obedece) | Pupilas 0/2 (Reagentes)\n" +
+      "• *Escore GCS:* `15/15` | *GCS-P:* `15/15`\n" +
+      "• *Classificação:* TCE Leve / Normalidade neurológica\n\n" +
+      "🟡 *CONDUTA BEIRA-LEITO:*\n" +
+      "• Avaliar indicação de TC de crânio pelos critérios de New Orleans ou Canadian CT Head Rule (idade ≥ 65, vômitos ≥ 2 episódios, perda de consciência > 5 min, amnésia retrógrada > 30 min, mecanismo de alta energia ou uso de anticoagulantes/antiplaquetários).";
+  } else if (v === 'gcs_ex2') {
+    var rG2 = CalculadorasClinicas.glasgowP(3, 3, 5, 0);
+    txtResultado = "🧠 *ESCALA DE COMA DE GLASGOW-P: TCE MODERADO (GCS 11)*\n\n" +
+      "• *Componentes:* Ocular 3/4 (À voz) | Verbal 3/4 (Palavras inapropriadas) | Motor 5/6 (Localiza estímulo) | Pupilas 0/2 (Fotorreagentes)\n" +
+      "• *Escore GCS:* `11/15` | *GCS-P:* `11/15`\n" +
+      "• *Classificação:* TCE MODERADO (GCS 9 a 12)\n\n" +
+      "🟡 *CONDUTA MANDATÓRIA (ATLS 10ª ED / BRAIN TRAUMA FOUNDATION):*\n" +
+      "1. *Tomografia Computadorizada de Crânio IMEDIATA: Indicação absoluta.*\n" +
+      "2. Monitorização neurológica seriada a cada 30 a 60 minutos.\n" +
+      "3. Avaliação neurocirúrgica precoce.\n" +
+      "4. Manter cabeceira elevada a 30°, alinhamento cervical e normotermia.\n" +
+      "5. Preparar material de IOT: Qualquer queda de ≥ 2 pontos ou GCS ≤ 8 exige via aérea definitiva imediata!";
+  } else if (v === 'gcs_ex3' || v === 'glasgow:grave') {
+    var rG3 = CalculadorasClinicas.glasgowP(1, 2, 4, 1);
+    txtResultado = "🚨 *GLASGOW-P: TCE GRAVE (GCS 7 / GCS-P 6) — INDICAÇÃO DE INTUBAÇÃO IMEDIATA*\n\n" +
+      "• *Componentes:* Ocular 1/4 (Ausente) | Verbal 2/5 (Sons) | Motor 4/6 (Flexão) | Pupilas 1/2 (Reação unilateral)\n" +
+      "• *Escore GCS:* `7/15` (GCS 7) | *GCS-P:* `6/15` (GCS-P 6)\n" +
+      "• *Classificação:* 🔴 TCE GRAVE / REBAIXAMENTO SEVERO (GCS ≤ 8)\n\n" +
+      "🚨 *CONDUTA IMEDIATA EM SALA VERMELHA:*\n" +
+      "1. *VIA AÉREA DEFINITIVA MANDATÓRIA (Intubação Orotraqueal):* Paciente incapaz de proteger via aérea. Risco crítico de broncoaspiração e hipóxia secundária.\n" +
+      "2. *Sequência Rápida de Intubação com Neuroproteção (SRI TCE):*\n" +
+      "   • Fentanil 2-3 mcg/kg 3 min antes da laringoscopia (atenuação simpática)\n" +
+      "   • Etomidato 0,3 mg/kg (indutor de escolha: estabilidade hemodinâmica e reduz PIC)\n" +
+      "   • Rocurônio 1,2 mg/kg ou Succinilcolina 1,5 mg/kg\n" +
+      "3. Evitar rigorosamente hipotensão (PAS < 100-110 mmHg) e hipóxia (SpO₂ < 90% dobra a mortalidade no TCE).\n" +
+      "4. TC de crânio urgente após estabilização da via aérea e leito de UTI.";
+  } else if (v === 'gcs_ex4') {
+    var rG4 = CalculadorasClinicas.glasgowP(1, 1, 2, 2);
+    txtResultado = "🚨 *GLASGOW-P: MIDRÍASE PARALÍTICA BILATERAL (GCS 4 - P2 = GCS-P 2)*\n\n" +
+      "• *Componentes:* Ocular 1/4 | Verbal 1/5 | Motor 2/6 (Descerebração) | Pupilas 2/2 (Ambas não reagem)\n" +
+      "• *Escore GCS:* `4/15` | *GCS-P:* `2/15` (GCS 4 − Pupilas 2)\n" +
+      "• *Classificação:* ⛔ REBAIXAMENTO CRÍTICO / SÍNDROME DE HERNIAÇÃO CEREBRAL\n\n" +
+      "🚨 *EMERGÊNCIA ZERO — MEDIDAS DE RESGATE PARA HIPERTENSÃO INTRACRANIANA (HIC):*\n" +
+      "1. *Intubação Imediata* com ventilação protetora (manter PaCO₂ 35-38 mmHg; hiperventilação de resgate temporária 30-35 mmHg apenas se sinais de herniação ativa).\n" +
+      "2. *Terapia Osmolar de Urgência:* Salina Hipertônica 3% (250 mL IV em 15 min) ou Manitol 20% (1 g/kg IV rápido).\n" +
+      "3. Cabeceira 30° centrada, afrouxar colar cervical que comprima jugulares.\n" +
+      "4. Neurocirurgia de emergência para descompressão / craniectomia.";
+  }
+  // Presets Parkland
+  else if (v === 'park_ex1' || v === 'parkland:70kg20p') {
+    var rP1 = CalculadorasClinicas.parkland(70, 20);
+    txtResultado = "🔥 *PARKLAND: ADULTO 70 KG · 20% SUPERFÍCIE CORPÓREA QUEIMADA (SCQ)*\n\n" +
+      "🔴 *RESSUSCITAÇÃO VOLÊMICA ATLS 10ª ED / SBA (24 HORAS):*\n" +
+      "• *Fórmula:* 4 mL × 70 kg × 20% SCQ = `5.600 mL (5600 mL) de Ringer Lactato` em 24h\n\n" +
+      "⏱️ *CRONOGRAMA DE INFUSÃO EM BIC:*\n" +
+      "1️⃣ *Primeiras 8h a contar do ACIDENTE:* `2.800 mL` → **350 mL/h na BIC**\n" +
+      "2️⃣ *Próximas 16 horas:* `2.800 mL` → **175 mL/h na BIC**\n\n" +
+      "🎯 *META DE DÉBITO URINÁRIO (SVD HORÁRIA):*\n" +
+      "• Adulto: 0,5 a 1,0 mL/kg/h (**35 a 70 mL/h**)\n" +
+      "• Titular a vazão de RL hora a hora conforme a diurese medida para prevenir choque hipovolêmico ou síndrome compartimental abdominal.";
+  } else if (v === 'park_ex2') {
+    var rP2 = CalculadorasClinicas.parkland(80, 35);
+    txtResultado = "🔥 *PARKLAND: ADULTO 80 KG · 35% SUPERFÍCIE CORPÓREA QUEIMADA (SCQ)*\n\n" +
+      "🔴 *RESSUSCITAÇÃO VOLÊMICA ATLS 10ª ED / SBA (24 HORAS):*\n" +
+      "• *Fórmula:* 4 mL × 80 kg × 35% SCQ = `11.200 mL de Ringer Lactato` em 24h\n\n" +
+      "⏱️ *CRONOGRAMA DE INFUSÃO EM BIC:*\n" +
+      "1️⃣ *Primeiras 8h a contar do ACIDENTE:* `5.600 mL` → **700 mL/h na BIC**\n" +
+      "2️⃣ *Próximas 16 horas:* `5.600 mL` → **350 mL/h na BIC**\n\n" +
+      "🎯 *META DE DÉBITO URINÁRIO (SVD HORÁRIA):*\n" +
+      "• Alvo: 0,5 a 1,0 mL/kg/h (**40 a 80 mL/h**)\n" +
+      "• Descontar da 1ª etapa qualquer volume já infundido pelo SAMU/resgate pré-hospitalar.\n" +
+      "• Vigiar Pressão Intra-Abdominal (PIA): Volumes maciços aumentam risco de Síndrome Compartimental Abdominal.";
+  } else if (v === 'park_ex3') {
+    var rP3 = CalculadorasClinicas.parkland(65, 15);
+    txtResultado = "🔥 *PARKLAND: ADULTO 65 KG · 15% SCQ*\n\n" +
+      "🔴 *RESSUSCITAÇÃO VOLÊMICA ATLS (24 HORAS):*\n" +
+      "• *Fórmula:* 4 mL × 65 kg × 15% SCQ = `3.900 mL de Ringer Lactato`\n" +
+      "• 1ª Etapa (Primeiras 8h): 1.950 mL (**244 mL/h na BIC**)\n" +
+      "• 2ª Etapa (Próximas 16h): 1.950 mL (**122 mL/h na BIC**)\n" +
+      "• Diurese Alvo: 32 a 65 mL/h (SVD horária).";
+  } else if (v === 'park_ex4') {
+    var rP4 = CalculadorasClinicas.parkland(75, 45);
+    txtResultado = "🚨 *PARKLAND: GRANDE QUEIMADO CRÍTICO (75 KG · 45% SCQ)*\n\n" +
+      "🔴 *RESSUSCITAÇÃO VOLÊMICA DE GRANDE QUEIMADO:*\n" +
+      "• *Fórmula:* 4 mL × 75 kg × 45% SCQ = `13.500 mL de Ringer Lactato` em 24h\n" +
+      "• 1ª Etapa (Primeiras 8h): 6.750 mL (**844 mL/h na BIC**)\n" +
+      "• 2ª Etapa (Próximas 16h): 6.750 mL (**422 mL/h na BIC**)\n\n" +
+      "⚠️ *CUIDADOS CRÍTICOS BEIRA-LEITO:*\n" +
+      "• Transferência urgente para Centro de Tratamento de Queimados (CTQ).\n" +
+      "• Monitorização invasiva de PAM, SVD horária e medidas seriadas de PIA.\n" +
+      "• Avaliar lesão de via aérea por inalação (queimadura em face, vibrissas nasais chamuscadas, escarro carbonáceo, rouquidão): Indicação precoce de IOT antes do edema obstrutivo!";
+  } else if (v === 'dva:nora70') {
+    if (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.drogasVasoativas === "function") {
+      var rDvaAuto = CalculadorasClinicas.drogasVasoativas('noradrenalina', 70, 'padrao');
+      txtResultado = rDvaAuto && rDvaAuto.textoFormatado ? rDvaAuto.textoFormatado : "💉 *NORADRENALINA 70 KG (SOLUÇÃO PADRÃO 64 mcg/mL)*\n\n• Concentração: 4 amp (16 mg) em 250 mL SG 5% = 64 mcg/mL\n• Dose inicial (0,05 mcg/kg/min): 3,3 mL/h\n• Dose habitual (0,20 mcg/kg/min): 13,1 mL/h\n• Titulação estrita por PAM alvo >= 65 mmHg.";
+    } else {
+      txtResultado = "💉 *NORADRENALINA 70 KG (SOLUÇÃO PADRÃO 64 mcg/mL)*\n\n• Concentração: 4 amp (16 mg) em 250 mL SG 5% = 64 mcg/mL\n• Dose inicial (0,05 mcg/kg/min): 3,3 mL/h\n• Dose habitual (0,20 mcg/kg/min): 13,1 mL/h\n• Titulação estrita por PAM alvo >= 65 mmHg.";
+    }
+  } else {
+    return enviarMenuUXCalculadoras(chat, msgId);
+  }
+
+  var ck = Utilities.getUuid().replace(/-/g, "");
+  safePutCache(cache, ck, txtResultado, 21600);
+  return enviarTelaBot(chat, txtResultado, botoesBot([
+    [['📋 Copiar Cálculo para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
+  ]), msgId);
 }
 
 function enviarRotinaBot(chat, messageId) {
@@ -2130,7 +2516,12 @@ function tratarEntradaUX(message) {
   }
 
   if (state && UX_MODOS_TEXTO.indexOf(state.mode) !== -1) {
-    var dados = state.data ? state.data + '\n\n' + text : text;
+    var ehNovaCalc = state.mode === 'calc' && (
+      (typeof ehCalculadoraDeterministica === 'function' && ehCalculadoraDeterministica(text)) ||
+      (typeof ehCalculadoraReconhecida === 'function' && ehCalculadoraReconhecida(text)) ||
+      /\b(?:glasgow|parkland|curb|crcl|clcr|cockcroft|ckd|holliday|dva|nora|dobuta)\b/i.test(text)
+    );
+    var dados = (state.data && !ehNovaCalc) ? state.data + '\n\n' + text : text;
     if (dados.length > UX_MAX_CASO_CHARS) {
       enviarMensagemParaChat(chat, 'O caso ultrapassou 6.000 caracteres. Nenhum dado foi cortado. Use /novo para outro caso.');
       return true;
@@ -2377,6 +2768,8 @@ function tratarCallbackUX(cb) {
       else if (v.indexOf('inte:') === 0) return tratarCallbackBolsoInteracao(chat, v.replace('inte:', ''), msgId);
       else if (v.indexOf('hsl:') === 0) return tratarCallbackBolsoHSL(chat, v.replace('hsl:', ''), msgId);
       else return enviarMenuConsultasBolso(chat, msgId);
+    } else if (op === 'calc') {
+      return tratarCallbackUXCalc(chat, v, msgId);
     } else if (op === 'emerg') {
       if (v === 'choque') return enviarMenuEmergChoque(chat, msgId);
       else if (v === 'glasgow') return enviarMenuEmergGlasgow(chat, msgId);
@@ -2648,7 +3041,10 @@ function tratarCallbackUX(cb) {
       var raw = cache.get(v);
       if (!raw) { enviarMensagemParaChat(chat, 'Resultado expirado. Gere novamente com os dados do caso.'); return true; }
       if (op === 'pdf') ReceitaPdfService.processarEEnviarPdf(chat, raw);
-      else if (op === 'copiar') uxDividirTexto(uxTextoProntuario(raw), 3800).forEach(function (parte) { enviarMensagemParaChat(chat, parte); });
+      else if (op === 'copiar') {
+        var textoPronto = "📋 *PRONTO PARA O PRONTUÁRIO (1-TOQUE PARA COPIAR):*\n\n```text\n" + uxTextoProntuario(raw) + "\n```";
+        uxDividirTexto(textoPronto, 3800).forEach(function (parte) { enviarMensagemParaChat(chat, parte); });
+      }
       else enviarMensagemParaChat(chat, raw);
     } else {
       enviarMensagemParaChat(chat, 'Ação não reconhecida. Reabra o menu.');
@@ -2677,6 +3073,12 @@ if (typeof module !== 'undefined' && module.exports) {
     obterTextoCondutaEmergencia: obterTextoCondutaEmergencia,
     enviarTelaCondutaEmergencia: enviarTelaCondutaEmergencia,
     enviarMenuUXCalculadoras: enviarMenuUXCalculadoras,
+    enviarTelaCalcGaso: enviarTelaCalcGaso,
+    enviarTelaCalcRenal: enviarTelaCalcRenal,
+    enviarTelaCalcHolliday: enviarTelaCalcHolliday,
+    enviarTelaCalcGlasgow: enviarTelaCalcGlasgow,
+    enviarTelaCalcParkland: enviarTelaCalcParkland,
+    tratarCallbackUXCalc: tratarCallbackUXCalc,
     enviarRotinaBot: enviarRotinaBot,
     enviarPainelEnfermaria: enviarPainelEnfermaria,
     confirmarAltaBot: confirmarAltaBot,

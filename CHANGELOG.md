@@ -1,5 +1,34 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0AY. [x] **Auditoria e Otimização da Aba Calculadoras Clínicas & Escores (`ux:hub:calc`, `src/12_experiencia_bot.js`, `src/07f_telegram_calculadoras_parser.js`, `cockpit_movel.html` e `tests/test_calculadoras_ux.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * A aba de Calculadoras Clínicas (`ux:hub:calc`) possuía lacunas de integração tátil direta, retornos contextuais inconsistentes em presets avançados e falta de botões dedicados para Parkland e Glasgow-P no Cockpit Móvel PWA.
+      * No backend Fastify (`server/validators.js`), o validador de `/calc` rejeitava tipos modernos como `parkland` e `glasgow` por ausência em `TIPOS_CALCULADORA_VALIDOS` e falta de validação sanitizada para `% SCQ` (Superfície Corpórea Queimada).
+      * No Telegram Bot, presets clínicos e comandos diretos (`/calc parkland 70 25`, `/calc holliday 12`, `/calc glasgow 4 5 6`) careciam de fast-path determinístico robusto em 0ms e formatação padronizada para cópia direta em bloco ````text` no prontuário eletrônico (PEP).
+    - **Contrato de UX Beira-Leito e Determinismo (0ms)**:
+      * Respostas determinísticas imediatas em 0ms sem qualquer chamada externa de IA para as 6 calculadoras prioritárias (Gasometria arterial completa com Winter e Ânion Gap, Clearance de Creatinina Cockcroft-Gault vs CKD-EPI 2021, Hidratação Venosa Pediátrica Holliday-Segar, Escala de Coma de Glasgow-P com alerta sentinela de IOT, Fórmula de Parkland para ressuscitação em queimados e Drogas Vasoativas DVA com cálculo de vazão na BIC).
+      * Navegação contextual estrita: garantia de `[🔙 Calculadoras]` (`ux:hub:calc`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas, submenus, presets táteis e comandos diretos.
+      * Ação de cópia rápida em 1 toque: botão `[📋 Copiar Cálculo para Prontuário]` (`ux:copiar:<hash>`) com formatação em bloco de código ````text` para colagem limpa no PEP.
+    - **Implementação e Refatoração**:
+      * Em `server/validators.js` e `src/13_cockpit_integracao.js`:
+        • Adicionados `parkland`, `glasgow`, `ckd`, `cockcroft` e `curb65` em `TIPOS_CALCULADORA_VALIDOS`.
+        • Sanitização de limites biológicos para `scq` (1 a 100%), `ureia`, `pas` e `pad`.
+        • Roteamento determinístico em `cockpitCalcular` para execução instantânea no backend.
+      * Em `cockpit_movel.html`:
+        • Criados painéis táteis interativos dedicados para Parkland (`calc-parkland`) com botões rápidos de SCQ (10%, 20%, 30%, 45%) e Glasgow-P (`calc-glasgow`) com presets de gravidade (Alerta GCS 15, Moderado GCS 11, Grave GCS 7).
+        • Implementadas funções completas de cálculo offline local (`calcularOfflineLocal`) e cópia rápida PEP (`copiarParklandPEP`, `copiarGlasgowPEP`).
+      * Em `src/12_experiencia_bot.js`:
+        • Menu canônico `enviarMenuUXCalculadoras` estruturado com as 6 calculadoras principais e botões contextuais.
+        • Presets determinísticos completos em `tratarCallbackUXCalc` (`gaso:met`, `crcl:70kg`, `holliday:15kg`, `glasgow:grave`, `parkland:70kg20p`, `dva:nora70`).
+        • Ação de cópia (`op === 'copiar'`) formatada com `"📋 *PRONTO PARA O PRONTUÁRIO (1-TOQUE PARA COPIAR):*\n\n```text\n" + uxTextoProntuario(raw) + "\n```"`.
+      * Em `src/07f_telegram_calculadoras_parser.js` e `src/07a_telegram_router.js`:
+        • Suporte determinístico a comandos posicional/direto (`/calc parkland 70 25`, `/calc holliday 12`, `/calc glasgow 4 5 6`) e texto livre no fast-path (`parkland 70kg 25%`, `glasgow 3 3 4`).
+        • Título canônico em `calc_cat_renal` preservando compatibilidade com submenus legados.
+    - **Validação e Cobertura Automatizada**:
+      * Suíte canônica `tests/test_calculadoras_ux.cjs` (7 seções completas) aprovada com 100% de sucesso.
+      * Registrado em `scripts/test_manifest.json`.
+      * Bateria completa de testes (`npm run test:all`) executada com aprovação de 232/232 suítes em 17.69s sem nenhuma regressão.
+
 0AX. [x] **Auditoria e Otimização da Aba Ambulatório & Atenção Primária (`ux:hub:amb`, `src/12_experiencia_bot.js`, `src/07a_telegram_router.js` e `tests/test_ambulatorio_ux.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * A aba de Ambulatório & Atenção Primária (`ux:hub:amb`) delegava cliques nos botões de ação (`ux:amb:remume`, `ux:amb:cid`, `ux:amb:atestado`) para chamadas textuais genéricas (`texto('/rx')`, `texto('/cid')`, `texto('/atestado')`).

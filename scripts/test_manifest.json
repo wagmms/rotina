@@ -43,6 +43,7 @@
     "tests/test_sala_vermelha_ux.cjs",
     "tests/test_consultas_bolso_ux.cjs",
     "tests/test_ambulatorio_ux.cjs",
+    "tests/test_calculadoras_ux.cjs",
     "tests/test_autoloop_runner.cjs"
   ]
 }

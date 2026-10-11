@@ -136,13 +136,18 @@ var CATALOGO_CALCULADORAS = {
     id: "ldl",
     nome: "LDL Martin-Hopkins",
     aliases: ["ldl", "martin", "hopkins", "martin-hopkins"]
+  },
+  holliday: {
+    id: "holliday",
+    nome: "Holliday-Segar (Hidratação Pediátrica)",
+    aliases: ["holliday", "holliday-segar", "holliday segar", "hidratacao", "hidratação", "nutriped"]
   }
 };
 
 var LISTA_CALCULADORAS_DETERMINISTICAS = [
   "curb65", "ckd", "cockcroft", "cha2ds2vasc", "hasbled", "wells",
   "glasgow", "calcio", "gap_osmolar", "agua", "kdigo", "ldl", "meld",
-  "parkland", "dva", "gasometria", "gaso"
+  "parkland", "dva", "gasometria", "gaso", "holliday"
 ];
 
 function ehCalculadoraDeterministica(texto) {
@@ -246,7 +251,46 @@ function tentarCalcularDeterministico(texto) {
       var rP2 = CalculadorasClinicas.parkland(parseFloat(mPesoPark[1].replace(",", ".")), parseFloat(mScqPark[1].replace(",", ".")));
       if (rP2 && rP2.ok) return rP2.textoFormatado;
     }
+    var numsPark = t.match(/(?:parkland|queimadur[as]?)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\b/i);
+    if (numsPark) {
+      var pValP = parseFloat(numsPark[1].replace(",", "."));
+      var sValP = parseFloat(numsPark[2].replace(",", "."));
+      var rPDirect = CalculadorasClinicas.parkland(pValP, sValP);
+      if (rPDirect && rPDirect.ok) return rPDirect.textoFormatado;
+    }
     return "⚠️ *Calculadora Parkland: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("parkland");
+  }
+
+  // 0.15. Holliday-Segar (Hidratação Venosa Pediátrica)
+  if (identidade === "holliday" || /(?:holliday|holliday-segar|hidrata[çc][ãa]o\s+pedi[aá]trica|hidrata[çc][ãa]o\s+venosa)\b/i.test(t)) {
+    var mPesoHol = t.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i) ||
+                   t.match(/(?:holliday|holliday-segar)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\b/i) ||
+                   t.match(/\b(\d+(?:[.,]\d+)?)\s*kg\b/i);
+    if (mPesoHol && typeof SuporteNutricionalPediatricoService !== "undefined" && typeof SuporteNutricionalPediatricoService.calcularHollidaySegar === "function") {
+      var pValHol = parseFloat(mPesoHol[1].replace(",", "."));
+      var condHol = 'manutencao_padrao';
+      if (/bronquiolite|bva|restri[çc][ãa]o\s*(?:70%|bva)?/i.test(t)) condHol = 'restricao_bronquiolite';
+      else if (/card[ií]aca|edema|restri[çc][ãa]o\s*(?:60%|ic)?/i.test(t)) condHol = 'restricao_ic';
+      else if (/febril|febre/i.test(t)) condHol = 'febre';
+      else if (/desidrata|d[eé]ficit/i.test(t)) condHol = 'desidratacao_leve';
+
+      var resHS = SuporteNutricionalPediatricoService.calcularHollidaySegar(pValHol, { condicaoClinica: condHol });
+      var txtHS = "💧 *HIDRATAÇÃO VENOSA PEDIÁTRICA (HOLLIDAY-SEGAR)*\n\n" +
+        "• *Peso:* `" + pValHol + " kg` | *Condição:* " + resHS.justificativaAjuste + "\n" +
+        "• *Volume Total 24h:* `" + resHS.volumeAjustado24h + " mL/dia`\n" +
+        "• *Vazão Horária na BIC:* `" + resHS.vazaoHorariaMlH + " mL/h` (Regra 4-2-1)\n\n" +
+        "🟡 *COMPOSIÇÃO ELETROLÍTICA & GLICOSE (SBP):*\n" +
+        "• SG 5%: " + resHS.volumeAjustado24h + " mL\n" +
+        "• Sódio (Na⁺): " + (resHS.eletrolitos ? resHS.eletrolitos.sodioTotalMeqDia : '') + " mEq/dia (2,5 mEq / 100 mL)\n" +
+        "• Potássio (K⁺): " + (resHS.eletrolitos ? resHS.eletrolitos.potassioTotalMeqDia : '') + " mEq/dia (2,0 mEq / 100 mL — pós-diurese)\n" +
+        "• TIG em SG 5%: " + (resHS.glicoseTig ? resHS.glicoseTig.tigComSg5 : '') + " mg/kg/min (Alvo: 4 a 6 mg/kg/min)\n\n" +
+        "⚠️ *Salvaguarda Beira-Leito:*\n" +
+        "• Usar soluções isotônicas ou balanceadas para prevenir hiponatremia hospitalar aguda por ADH.\n" +
+        "• Adicionar KCl apenas após comprovação de diurese espontânea.";
+      return txtHS;
+    }
+    return "⚠️ *Calculadora Holliday-Segar: Peso Não Informado*\n\n" +
+      "Informe o peso da criança em kg (ex: `/holliday 8kg` ou `/holliday 11kg bronquiolite`).";
   }
 
   // 0.2. Drogas Vasoativas (DVA em mcg/kg/min ou mcg/min)
@@ -410,6 +454,17 @@ function tentarCalcularDeterministico(texto) {
       pupVal = 1;
     } else if (/ambas\s+reagem|reagentes|fotorreagentes/i.test(t)) {
       pupVal = 0;
+    }
+
+    if (!mO || !mV || !mM) {
+      var numsGcs = t.match(/(?:glasgow|glasgow-p|gcs)\s*[:=]?\s*([1-4])\s+([1-5])\s+([1-6])(?:\s+([0-2]))?\b/i) ||
+                    t.match(/\b([1-4])\s+([1-5])\s+([1-6])(?:\s+([0-2]))?\b/);
+      if (numsGcs) {
+        mO = [null, numsGcs[1]];
+        mV = [null, numsGcs[2]];
+        mM = [null, numsGcs[3]];
+        if (numsGcs[4] !== undefined) pupVal = Number(numsGcs[4]);
+      }
     }
 
     if (!mO || !mV || !mM) {
@@ -830,6 +885,20 @@ function obterInstrucoesCalculadora(tipo) {
       "/calc parkland\n" +
       "Peso: [ ] kg\n" +
       "SCQ: [ ] %\n" +
+      "```\n" +
+      "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
+  }
+
+  if (t.indexOf("HOLLIDAY") !== -1 || t.indexOf("HIDRAT") !== -1 || t.indexOf("NUTRIPED") !== -1) {
+    return "📐 *CALCULADORA: FÓRMULA DE HOLLIDAY-SEGAR (HIDRATAÇÃO PEDIÁTRICA)*\n\n" +
+      "Dados estritamente necessários para o cálculo:\n" +
+      "• Peso corporal da criança (kg)\n" +
+      "• Condição clínica (padrão / bronquiolite / febre / desidratação - opcional)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc holliday\n" +
+      "Peso: [ ] kg\n" +
+      "Condição: [padrão / bronquiolite / febre]\n" +
       "```\n" +
       "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
@@ -1282,17 +1351,17 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
       [{"text": "CHA2DS2-VASc", "callback_data": "calc_CHA2DS2-VASc"}, {"text": "HAS-BLED", "callback_data": "calc_HAS-BLED"}],
       [{"text": "Wells (TEP/TVP)", "callback_data": "calc_Wells"}, {"text": "HEART / TIMI", "callback_data": "calc_HEART-TIMI"}],
       [{"text": "GRACE Score", "callback_data": "calc_GRACE"}, {"text": "Framingham", "callback_data": "calc_Framingham"}],
-      [{"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
+      [{"text": "🔙 Calculadoras", "callback_data": "ux:hub:calc"}, {"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
     ];
   } else if (categoria === "calc_cat_renal") {
-    tituloCat = "🧪 *Calculadoras Nefro, Metabólicas & Gerais:*";
+    tituloCat = "🧪 *Calculadoras de Função Renal, Metabólicas & Gerais:*";
     teclado = [
       [{"text": "CKD-EPI (TFG)", "callback_data": "calc_CKD"}, {"text": "Cockcroft (ClCr)", "callback_data": "calc_Cockcroft"}],
       [{"text": "CURB-65", "callback_data": "calc_CURB-65"}, {"text": "Déficit de Água", "callback_data": "calc_Agua"}],
       [{"text": "Cálcio Corrigido", "callback_data": "calc_Calcio"}, {"text": "Gap Osmolar", "callback_data": "calc_Gap_Osmolar"}],
       [{"text": "KDIGO (IRA)", "callback_data": "calc_KDIGO"}, {"text": "LDL Martin-Hopkins", "callback_data": "calc_LDL-Martin-Hopkins"}],
       [{"text": "FRAX (Fratura)", "callback_data": "calc_FRAX"}],
-      [{"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
+      [{"text": "🔙 Calculadoras", "callback_data": "ux:hub:calc"}, {"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
     ];
   } else if (categoria === "calc_cat_neuro") {
     tituloCat = "🧠 *Calculadoras Neuro & Terapia Intensiva:*";
@@ -1301,7 +1370,7 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
       [{"text": "qSOFA (Sepse)", "callback_data": "calc_SOFA"}, {"text": "MELD / MELD-Na", "callback_data": "calc_MELD"}],
       [{"text": "Child-Pugh", "callback_data": "calc_Child"}, {"text": "BISAP (Pancreatite)", "callback_data": "calc_Ranson"}],
       [{"text": "APACHE II", "callback_data": "calc_APACHE"}],
-      [{"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
+      [{"text": "🔙 Calculadoras", "callback_data": "ux:hub:calc"}, {"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
     ];
   }
 

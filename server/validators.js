@@ -26,16 +26,21 @@ const LIMITES_FISIOLOGICOS = {
   pfe: { min: 0, max: 1000, nome: 'Pico de Fluxo Expiratório (PFE)', unidade: 'L/min' },
   fr: { min: 4, max: 80, nome: 'Frequência Respiratória (FR)', unidade: 'irpm' },
   spo2: { min: 30, max: 100, nome: 'Saturação de Oxigênio (SpO₂)', unidade: '%' },
-  fc: { min: 20, max: 300, nome: 'Frequência Cardíaca (FC)', unidade: 'bpm' }
+  fc: { min: 20, max: 300, nome: 'Frequência Cardíaca (FC)', unidade: 'bpm' },
+  scq: { min: 1, max: 100, nome: 'Superfície Corpórea Queimada (SCQ)', unidade: '%' },
+  ureia: { min: 2, max: 500, nome: 'Ureia sérica', unidade: 'mg/dL' },
+  pas: { min: 40, max: 300, nome: 'Pressão Arterial Sistólica (PAS)', unidade: 'mmHg' },
+  pad: { min: 20, max: 200, nome: 'Pressão Arterial Diastólica (PAD)', unidade: 'mmHg' }
 };
 
 const DROGAS_DVA_VALIDAS = new Set(['nora', 'dobuta', 'vaso', 'adrena', 'adrenalina', 'nipride', 'tridil']);
 const CENARIOS_SRI_VALIDOS = new Set(['padrao', 'choque', 'asma', 'neuro', 'tce', 'hic']);
 const MODOS_DHE_VALIDOS = new Set(['hiponatremia', 'hipernatremia', 'hipercalemia', 'hipocalemia']);
 const TIPOS_CALCULADORA_VALIDOS = new Set([
-  'dva', 'compatibilidade_y', 'dva_y', 'sri', 'crcl', 'gaso', 'ajuste_atb', 'atb',
+  'dva', 'compatibilidade_y', 'dva_y', 'sri', 'crcl', 'cockcroft', 'ckd', 'ckdepi', 'gaso', 'ajuste_atb', 'atb',
   'pediatria', 'pals', 'holliday', 'dhe', 'eletrolitos', 'hidroeletrolitico',
-  'heart', 'sca', 'cardiologia', 'asma', 'crise_asmatica', 'broncoespasmo'
+  'heart', 'sca', 'cardiologia', 'asma', 'crise_asmatica', 'broncoespasmo',
+  'parkland', 'glasgow', 'curb65', 'curb'
 ]);
 
 /**
@@ -489,6 +494,128 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
       entradaSanitizada.dpoc = Boolean(entrada.dpoc || entrada.perfilDpoc || entrada.perfil === 'dpoc');
       if (entrada.fala !== undefined) entradaSanitizada.fala = String(entrada.fala);
       if (entrada.ausculta !== undefined) entradaSanitizada.ausculta = String(entrada.ausculta);
+      break;
+    }
+
+    case 'parkland': {
+      const vPeso = validarParametroFisiologico('peso', entrada.peso, true);
+      if (!vPeso.valido) return vPeso;
+
+      const scqVal = entrada.scq !== undefined ? entrada.scq : entrada.queimadura;
+      const vScq = validarParametroFisiologico('scq', scqVal, true);
+      if (!vScq.valido) return vScq;
+
+      entradaSanitizada.peso = vPeso.valor;
+      entradaSanitizada.scq = vScq.valor;
+      break;
+    }
+
+    case 'glasgow': {
+      const oVal = normalizarNumero(entrada.ocular !== undefined ? entrada.ocular : entrada.o);
+      if (oVal === null || oVal < 1 || oVal > 4) {
+        return { valido: false, erro: 'Resposta Ocular do Glasgow deve ser entre 1 e 4.' };
+      }
+      const vVal = normalizarNumero(entrada.verbal !== undefined ? entrada.verbal : entrada.v);
+      if (vVal === null || vVal < 1 || vVal > 5) {
+        return { valido: false, erro: 'Resposta Verbal do Glasgow deve ser entre 1 e 5.' };
+      }
+      const mVal = normalizarNumero(entrada.motor !== undefined ? entrada.motor : entrada.m);
+      if (mVal === null || mVal < 1 || mVal > 6) {
+        return { valido: false, erro: 'Resposta Motora do Glasgow deve ser entre 1 e 6.' };
+      }
+      let pVal = 0;
+      const rawP = entrada.pupilas !== undefined ? entrada.pupilas : entrada.p;
+      if (rawP !== undefined && rawP !== null && rawP !== '') {
+        const numP = normalizarNumero(rawP);
+        if (numP === null || numP < 0 || numP > 2) {
+          return { valido: false, erro: 'Pupilas não reagentes do Glasgow-P deve ser 0, 1 ou 2.' };
+        }
+        pVal = numP;
+      }
+      entradaSanitizada.ocular = oVal;
+      entradaSanitizada.verbal = vVal;
+      entradaSanitizada.motor = mVal;
+      entradaSanitizada.pupilas = pVal;
+      break;
+    }
+
+    case 'ckd':
+    case 'ckdepi': {
+      const crVal = entrada.creatinina !== undefined ? entrada.creatinina : entrada.cr;
+      const vCr = validarParametroFisiologico('creatinina', crVal, true);
+      if (!vCr.valido) return vCr;
+
+      const vIdade = validarParametroFisiologico('idade', entrada.idade, true);
+      if (!vIdade.valido) return vIdade;
+
+      if (entrada.sexo === undefined && entrada.feminino === undefined) {
+        return { valido: false, erro: 'Sexo biológico ("m" ou "f") é obrigatório para cálculo de CKD-EPI.' };
+      }
+      let ehMulher = false;
+      if (entrada.sexo !== undefined) {
+        if (typeof entrada.sexo !== 'string') return { valido: false, erro: 'Sexo deve ser "m" ou "f".' };
+        const s = entrada.sexo.trim().toLowerCase();
+        if (['f', 'feminino'].includes(s)) ehMulher = true;
+        else if (['m', 'masculino'].includes(s)) ehMulher = false;
+        else return { valido: false, erro: 'Sexo deve ser "m" ou "f".' };
+      } else {
+        ehMulher = Boolean(entrada.feminino);
+      }
+
+      entradaSanitizada.creatinina = vCr.valor;
+      entradaSanitizada.idade = vIdade.valor;
+      entradaSanitizada.sexo = ehMulher ? 'f' : 'm';
+      entradaSanitizada.feminino = ehMulher;
+      break;
+    }
+
+    case 'cockcroft': {
+      const vCr = validarParametroFisiologico('creatinina', entrada.creatinina !== undefined ? entrada.creatinina : entrada.cr, true);
+      if (!vCr.valido) return vCr;
+      const vPeso = validarParametroFisiologico('peso', entrada.peso, true);
+      if (!vPeso.valido) return vPeso;
+      const vIdade = validarParametroFisiologico('idade', entrada.idade, true);
+      if (!vIdade.valido) return vIdade;
+
+      let sexo = null;
+      if (entrada.sexo !== undefined && entrada.sexo !== null) {
+        if (typeof entrada.sexo !== 'string') return { valido: false, erro: 'Sexo deve ser "m" ou "f".' };
+        const s = entrada.sexo.trim().toLowerCase();
+        if (['f', 'feminino'].includes(s)) sexo = 'f';
+        else if (['m', 'masculino'].includes(s)) sexo = 'm';
+        else return { valido: false, erro: 'Sexo deve ser "m" ou "f".' };
+      }
+      entradaSanitizada.creatinina = vCr.valor;
+      entradaSanitizada.peso = vPeso.valor;
+      entradaSanitizada.idade = vIdade.valor;
+      entradaSanitizada.sexo = sexo;
+      break;
+    }
+
+    case 'curb65':
+    case 'curb': {
+      const vIdade = validarParametroFisiologico('idade', entrada.idade, true);
+      if (!vIdade.valido) return vIdade;
+
+      const vFr = validarParametroFisiologico('fr', entrada.fr, true);
+      if (!vFr.valido) return vFr;
+
+      const uVal = entrada.ureia !== undefined ? entrada.ureia : entrada.bun;
+      const vUreia = validarParametroFisiologico('ureia', uVal, true);
+      if (!vUreia.valido) return vUreia;
+
+      const vPas = validarParametroFisiologico('pas', entrada.pas, true);
+      if (!vPas.valido) return vPas;
+
+      const vPad = validarParametroFisiologico('pad', entrada.pad, true);
+      if (!vPad.valido) return vPad;
+
+      entradaSanitizada.idade = vIdade.valor;
+      entradaSanitizada.fr = vFr.valor;
+      entradaSanitizada.ureia = vUreia.valor;
+      entradaSanitizada.pas = vPas.valor;
+      entradaSanitizada.pad = vPad.valor;
+      entradaSanitizada.confusao = Boolean(entrada.confusao || entrada.confusaoMental);
       break;
     }
   }

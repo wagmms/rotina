@@ -754,13 +754,15 @@
           </span>
           <span class="text-[10px] bg-rose-500/40 text-white px-2 py-0.5 rounded-md font-mono font-black tracking-wider border border-rose-400/60">HC-UE</span>
         </button>
-        <div class="grid grid-cols-5 sm:grid-cols-10 gap-1 text-center text-[9.5px] font-bold">
+        <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-1 text-center text-[9.5px] font-bold">
           <button onclick="abrirSubCalc('calc-dva', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-900/90 text-slate-200 border border-slate-700/80 hover:text-white">DVA</button>
           <button onclick="abrirSubCalc('calc-sri', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-900/90 text-slate-200 border border-slate-700/80 hover:text-white">SRI / IOT</button>
           <button onclick="abrirSubCalc('calc-asma', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-900/90 text-teal-200 border border-slate-700/80 hover:text-white">🫁 Asma</button>
           <button onclick="abrirSubCalc('calc-heart', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-900/90 text-rose-200 border border-slate-700/80 hover:text-white">🫀 HEART</button>
           <button onclick="abrirSubCalc('calc-pediatria', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-900/90 text-amber-200 border border-slate-700/80 hover:text-white">👶 Pediátrico</button>
           <button onclick="abrirSubCalc('calc-crcl', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-900/90 text-slate-200 border border-slate-700/80 hover:text-white">Clearance</button>
+          <button onclick="abrirSubCalc('calc-parkland', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-orange-500/20 text-orange-200 border border-orange-500/40 hover:text-white">🔥 Parkland</button>
+          <button onclick="abrirSubCalc('calc-glasgow', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-indigo-500/20 text-indigo-200 border border-indigo-500/40 hover:text-white">🧠 Glasgow-P</button>
           <button onclick="abrirSubCalc('calc-atb', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-900/90 text-rose-200 border border-slate-700/80 hover:text-white">💊 Ajuste ATB</button>
           <button onclick="abrirSubCalc('calc-dhe', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-900/90 text-sky-200 border border-slate-700/80 hover:text-white">⚡ DHE</button>
           <button onclick="abrirSubCalc('calc-gaso', this)" class="subcalc-btn py-2 px-0.5 rounded-lg bg-slate-900/90 text-slate-200 border border-slate-700/80 hover:text-white">Gaso</button>
@@ -1138,6 +1140,111 @@
         </button>
         <button id="btn-migrar-crcl-atb" onclick="migrarCrClParaAtb()" class="hidden w-full py-1.5 px-3 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-rose-500/30 transition">
           <i data-lucide="arrow-right-circle" class="w-3.5 h-3.5"></i> 💊 Ajustar Antimicrobianos por este ClCr
+        </button>
+      </div>
+
+      <!-- Subcalc: Fórmula de Parkland (Grandes Queimados) -->
+      <div id="calc-parkland" class="subcalc-pane hidden glass-card rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+            <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-400"></i> Ressuscitação em Queimados (Parkland)
+          </h4>
+          <span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold font-mono">ATLS 10ª Ed / SBA</span>
+        </div>
+        <p class="text-[11px] text-slate-400">Ressuscitação volêmica em 24h com Ringer Lactato (4 mL × kg × % SCQ de 2º e 3º graus).</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <div>
+            <label for="parkland-peso" class="block text-slate-300 mb-1 font-medium">Peso Corporal (kg):</label>
+            <input type="number" step="0.5" id="parkland-peso" placeholder="Ex: 70" inputmode="decimal" autocomplete="off" enterkeyhint="next" oninput="calcularParklandCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+          </div>
+          <div>
+            <label for="parkland-scq" class="block text-slate-300 mb-1 font-medium">% SCQ (2º e 3º graus):</label>
+            <input type="number" step="1" id="parkland-scq" placeholder="Ex: 25" inputmode="numeric" autocomplete="off" enterkeyhint="done" oninput="calcularParklandCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+          </div>
+        </div>
+
+        <!-- Atalhos rápidos de % SCQ (Regra dos 9 de Wallace) -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-[10.5px] font-bold no-scrollbar">
+          <span class="text-slate-300 text-[10px] uppercase font-bold">SCQ:</span>
+          <button type="button" onclick="definirScqAtalho(10)" class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-200 border border-amber-500/40 font-bold">10%</button>
+          <button type="button" onclick="definirScqAtalho(20)" class="px-2 py-0.5 rounded-md bg-amber-500/25 text-amber-100 border border-amber-400/50 font-bold">20%</button>
+          <button type="button" onclick="definirScqAtalho(30)" class="px-2 py-0.5 rounded-md bg-amber-500/30 text-amber-100 border border-amber-400/60 font-bold">30%</button>
+          <button type="button" onclick="definirScqAtalho(45)" class="px-2 py-0.5 rounded-md bg-rose-500/25 text-rose-100 border border-rose-400/60 font-bold">45% (Grave)</button>
+        </div>
+
+        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono whitespace-pre-wrap leading-relaxed text-slate-200" id="parkland-resultado" role="status" aria-live="polite">
+          <!-- Resultado dinâmico -->
+        </div>
+        <button id="btn-copiar-parkland" onclick="copiarParklandPEP()" class="hidden w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Parkland para o Prontuário
+        </button>
+      </div>
+
+      <!-- Subcalc: Escala de Coma de Glasgow & Glasgow-P -->
+      <div id="calc-glasgow" class="subcalc-pane hidden glass-card rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+            <i data-lucide="brain" class="w-3.5 h-3.5 text-cyan-400"></i> Escala de Glasgow & Glasgow-P
+          </h4>
+          <span class="text-[9px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full font-bold font-mono">Brennan 2018 / ATLS</span>
+        </div>
+        <p class="text-[11px] text-slate-400">Avaliação do nível de consciência e escore prognóstico com reatividade pupilar (GCS-P).</p>
+
+        <!-- Presets rápidos -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-[10.5px] font-bold no-scrollbar">
+          <span class="text-slate-300 text-[10px] uppercase font-bold">Presets:</span>
+          <button type="button" onclick="definirGlasgowPreset(4, 5, 6, 0)" class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-200 border border-emerald-500/40 font-bold">Normal (15)</button>
+          <button type="button" onclick="definirGlasgowPreset(3, 3, 4, 0)" class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-200 border border-amber-500/50 font-bold">Moderado (10)</button>
+          <button type="button" onclick="definirGlasgowPreset(2, 2, 3, 1)" class="px-2 py-0.5 rounded-md bg-rose-500/25 text-rose-100 border border-rose-400/60 font-bold">Grave / IOT (GCS 7, P=1)</button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <div>
+            <label for="glasgow-o" class="block text-slate-300 mb-1 font-medium">Abertura Ocular (1-4):</label>
+            <select id="glasgow-o" onchange="calcularGlasgowCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white">
+              <option value="4">4 - Espontânea</option>
+              <option value="3">3 - Ao comando verbal / som</option>
+              <option value="2">2 - À pressão / estímulo doloroso</option>
+              <option value="1">1 - Ausente</option>
+            </select>
+          </div>
+          <div>
+            <label for="glasgow-v" class="block text-slate-300 mb-1 font-medium">Resposta Verbal (1-5):</label>
+            <select id="glasgow-v" onchange="calcularGlasgowCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white">
+              <option value="5">5 - Orientada</option>
+              <option value="4">4 - Confusa / desorientada</option>
+              <option value="3">3 - Palavras inapropriadas</option>
+              <option value="2">2 - Sons ininteligíveis / gemidos</option>
+              <option value="1">1 - Ausente</option>
+            </select>
+          </div>
+          <div>
+            <label for="glasgow-m" class="block text-slate-300 mb-1 font-medium">Resposta Motora (1-6):</label>
+            <select id="glasgow-m" onchange="calcularGlasgowCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white">
+              <option value="6">6 - Obedece a comandos</option>
+              <option value="5">5 - Localiza estímulo doloroso</option>
+              <option value="4">4 - Flexão normal / retirada</option>
+              <option value="3">3 - Flexão anormal (decorticação)</option>
+              <option value="2">2 - Extensão anormal (descerebração)</option>
+              <option value="1">1 - Ausente</option>
+            </select>
+          </div>
+          <div>
+            <label for="glasgow-p" class="block text-slate-300 mb-1 font-medium">Pupilas Não Reagentes (0-2):</label>
+            <select id="glasgow-p" onchange="calcularGlasgowCockpit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white">
+              <option value="0">0 - Ambas as pupilas reagem à luz</option>
+              <option value="1">1 - Apenas uma pupila reage (assimetria)</option>
+              <option value="2">2 - Nenhuma pupila reage (midríase/fixa bilateral)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono whitespace-pre-wrap leading-relaxed text-slate-200" id="glasgow-resultado" role="status" aria-live="polite">
+          <!-- Resultado dinâmico -->
+        </div>
+        <button id="btn-copiar-glasgow" onclick="copiarGlasgowPEP()" class="hidden w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition">
+          <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Glasgow-P para o Prontuário
         </button>
       </div>
 
@@ -7148,7 +7255,8 @@
       pfe: { min: 0, max: 1000, rotulo: 'Pico de Fluxo Expiratório (PFE)', unidade: 'L/min' },
       fr: { min: 4, max: 80, rotulo: 'Frequência Respiratória (FR)', unidade: 'irpm' },
       spo2: { min: 30, max: 100, rotulo: 'Saturação de Oxigênio (SpO₂)', unidade: '%' },
-      fc: { min: 20, max: 300, rotulo: 'Frequência Cardíaca (FC)', unidade: 'bpm' }
+      fc: { min: 20, max: 300, rotulo: 'Frequência Cardíaca (FC)', unidade: 'bpm' },
+      scq: { min: 1, max: 100, rotulo: 'Superfície Corpórea Queimada (% SCQ)', unidade: '%' }
     };
 
     const ALIASES_FISIO = {
@@ -7171,7 +7279,9 @@
       spo2: 'spo2',
       fc: 'fc',
       paco2: 'pco2',
-      pco2: 'pco2'
+      pco2: 'pco2',
+      scq: 'scq',
+      scqPorcentagem: 'scq'
     };
 
     function validarEntradaFisiologica(tipo, entrada) {
@@ -7222,7 +7332,9 @@
           'atb-resultado': 'btn-copiar-atb',
           'dhe-resultado': 'btn-copiar-dhe',
           'heart-resultado': 'btn-copiar-heart',
-          'pediatria-resultado': 'btn-copiar-pediatria'
+          'pediatria-resultado': 'btn-copiar-pediatria',
+          'parkland-resultado': 'btn-copiar-parkland',
+          'glasgow-resultado': 'btn-copiar-glasgow'
         };
         const btnId = mapa[idAlvo];
         const ehValido = textoValido && !textoValido.includes('Informe') && !textoValido.includes('Preencha') && !textoValido.includes('Não foi possível') && !textoValido.includes('Erro ao calcular');
@@ -8327,6 +8439,61 @@
             `🔴 CLASSIFICAÇÃO (PA: ${pas}/${pad} mmHg):\n• ${classif}\n\n` +
             `🟡 CONDUTA RECOMENDADA:\n${condutaHas}\n\n` +
             `⚠️ BLOQUEIO SENTINELA: Contraindicação formal de Nifedipino sublingual de ação rápida (risco de queda pressórica incontrolável, AVC isquêmico e morte).`;
+        } else if (tipo === 'parkland' || tipo === 'queimadura' || tipo === 'queimaduras') {
+          const peso = parseFloat(String(entrada.peso || 70).replace(',', '.'));
+          const scq = parseFloat(String(entrada.scq || entrada.scqPorcentagem || 20).replace(',', '.'));
+          if (isNaN(peso) || peso <= 0 || isNaN(scq) || scq <= 0) {
+            return 'Informe Peso (kg) e % SCQ válidos.';
+          }
+          const volTotal = Math.round(4 * peso * scq);
+          const vol8h = Math.round(volTotal / 2);
+          const vazao8h = Math.round(vol8h / 8);
+          const vol16h = volTotal - vol8h;
+          const vazao16h = Math.round(vol16h / 16);
+          const debitoMin = Math.round(peso * 0.5 * 10) / 10;
+          const debitoMax = Math.round(peso * 1.0 * 10) / 10;
+
+          let avisosParkland = '';
+          if (scq > 50) {
+            avisosParkland += '\n🚨 GRANDE QUEIMADO CRÍTICO (SCQ > 50%): Risco altíssimo de choque hipovolêmico/distributivo e hipotermia grave.';
+          }
+          if (peso > 150) {
+            avisosParkland += '\n⚠️ OBESIDADE SEVERA (> 150 kg): Risco extremo de sobrecarga hídrica ("fluid creep") e Síndrome Compartimental Abdominal. Considerar cálculo pelo Peso Ideal e titular pela diurese.';
+          }
+
+          return `🔥 FÓRMULA DE PARKLAND · GRANDES QUEIMADOS [OFFLINE]\n\n` +
+            `🔴 PARÂMETROS:\n• Peso: ${peso} kg | SCQ: ${scq}%\n• Volume Total 24h: ${volTotal} mL de Ringer Lactato (RL)\n\n` +
+            `⏱️ CRONOGRAMA DE INFUSÃO NA BIC:\n` +
+            `• 1ª Etapa (Primeiras 8h do ACIDENTE): ${vol8h} mL (Vazão: ${vazao8h} mL/h)\n` +
+            `• 2ª Etapa (Próximas 16h): ${vol16h} mL (Vazão: ${vazao16h} mL/h)\n\n` +
+            `🎯 META DE DÉBITO URINÁRIO (SVD horária):\n` +
+            `• Adultos: 0,5 a 1,0 mL/kg/h (${debitoMin} a ${debitoMax} mL/h)\n\n` +
+            `⚠️ REGRAS DE SEGURANÇA (ATLS 10ª Ed / SBA):\n` +
+            `• As primeiras 8h contam A PARTIR DO MOMENTO DO ACIDENTE (descontar volume pré-hospitalar já infundido).\n` +
+            `• Titular vazão da BIC a cada 1 hora estritamente pela diurese horária.` + avisosParkland;
+        } else if (tipo === 'glasgow' || tipo === 'glasgow_p' || tipo === 'gcs') {
+          const o = parseInt(entrada.o || entrada.ocular || 4, 10);
+          const v = parseInt(entrada.v || entrada.verbal || 5, 10);
+          const m = parseInt(entrada.m || entrada.motor || 6, 10);
+          const p = entrada.p !== undefined && entrada.p !== null && entrada.p !== '' ? parseInt(entrada.p, 10) : 0;
+          const gcs = o + v + m;
+          const gcsP = gcs - p;
+          let gravidade = '';
+          let condutaGcs = '';
+          if (gcs <= 8) {
+            gravidade = 'TCE GRAVE (GCS ≤ 8)';
+            condutaGcs = '🚨 INDICAÇÃO MANDATÓRIA DE VIA AÉREA DEFINITIVA (Intubação Orotraqueal imediata)!\n• Encaminhar para Sala Vermelha / Leito de UTI com monitorização neurointensiva contínua.\n• TC de crânio urgente e avaliação da Neurocirurgia.';
+          } else if (gcs <= 12) {
+            gravidade = 'TCE MODERADO (GCS 9-12)';
+            condutaGcs = '• Observação neurológica estrita com checagem de sinais vitais e pupilas a cada 30-60 min.\n• TC de Crânio obrigatória e leito monitorizado.';
+          } else {
+            gravidade = 'TCE LEVE (GCS 13-15)';
+            condutaGcs = '• Avaliar critérios de indicação de TC de crânio (Canadian CT Head Rule / New Orleans).\n• Vigilância clínica seriada.';
+          }
+          return `🧠 ESCALA DE COMA DE GLASGOW & GLASGOW-P [OFFLINE]\n\n` +
+            `🔴 PONTUAÇÃO: GCS ${gcs}/15 | GCS-P ${gcsP}/15\n` +
+            `• Abertura Ocular: ${o}/4\n• Resposta Verbal: ${v}/5\n• Resposta Motora: ${m}/6\n• Pupilas Não Reagentes: ${p}/2\n• Classificação: ${gravidade}\n\n` +
+            `🟡 CONDUTA RECOMENDADA (ATLS / BRENNAN 2018):\n${condutaGcs}`;
         }
       } catch (e) {
         return 'Erro ao calcular: ' + e.message;
@@ -8497,6 +8664,55 @@
         return;
       }
       copiarTextoClipboard(txt, 'Análise gasométrica copiada para o Prontuário!');
+    }
+    function definirScqAtalho(val) {
+      hapticFeedback('light');
+      const el = document.getElementById('parkland-scq');
+      if (el) el.value = val;
+      calcularParklandCockpit();
+    }
+    function calcularParklandCockpit() {
+      const peso = valorCalc('parkland-peso');
+      const scq = valorCalc('parkland-scq');
+      if (!peso || !scq) return;
+      solicitarCalculo('parkland', { peso, scq }, 'parkland-resultado');
+    }
+    function copiarParklandPEP() {
+      hapticFeedback('light');
+      const txt = document.getElementById('parkland-resultado')?.innerText || '';
+      if (!txt || txt.includes('Informe') || txt.includes('Preencha')) {
+        copiarToast('Calcule a Fórmula de Parkland primeiro.');
+        return;
+      }
+      copiarTextoClipboard(txt, 'Conduta de Parkland copiada para o Prontuário!');
+    }
+    function definirGlasgowPreset(o, v, m, p) {
+      hapticFeedback('light');
+      const elO = document.getElementById('glasgow-o');
+      const elV = document.getElementById('glasgow-v');
+      const elM = document.getElementById('glasgow-m');
+      const elP = document.getElementById('glasgow-p');
+      if (elO) elO.value = String(o);
+      if (elV) elV.value = String(v);
+      if (elM) elM.value = String(m);
+      if (elP) elP.value = String(p);
+      calcularGlasgowCockpit();
+    }
+    function calcularGlasgowCockpit() {
+      const o = valorCalc('glasgow-o');
+      const v = valorCalc('glasgow-v');
+      const m = valorCalc('glasgow-m');
+      const p = valorCalc('glasgow-p');
+      solicitarCalculo('glasgow', { o, v, m, p }, 'glasgow-resultado');
+    }
+    function copiarGlasgowPEP() {
+      hapticFeedback('light');
+      const txt = document.getElementById('glasgow-resultado')?.innerText || '';
+      if (!txt || txt.includes('Informe') || txt.includes('Preencha')) {
+        copiarToast('Calcule o Escore de Glasgow primeiro.');
+        return;
+      }
+      copiarTextoClipboard(txt, 'Escore Glasgow-P copiado para o Prontuário!');
     }
     function definirPresetHeart(hist, ecg, idade, fr, trop, trombolise = false, avc = false, omeprazol = false, anticoag = false, iamVd = false) {
       hapticFeedback('light');

@@ -224,7 +224,16 @@ function processarCallbackBotao(cb) {
     if(typeof definirModoBot!=="undefined")definirModoBot(chatId,"calc","Calculadora selecionada: "+tipoCalc+"\nDados do paciente: ");
     responderCallbackTelegram(cb.id, "Calculadora " + tipoCalc + " selecionada");
     var instrucoes = obterInstrucoesCalculadora(tipoCalc);
-    enviarMensagemParaChat(chatId, instrucoes);
+    var tecladoCalc = {
+      inline_keyboard: [
+        [{"text": "🔙 Calculadoras", "callback_data": "ux:hub:calc"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
+      ]
+    };
+    if (cb.message && cb.message.message_id && typeof enviarTelaBot === "function") {
+      enviarTelaBot(chatId, instrucoes, tecladoCalc, cb.message.message_id);
+    } else {
+      enviarMensagemComTecladoParaChat(chatId, instrucoes, tecladoCalc);
+    }
   }
   // E. ARQUIVAMENTO NO NOTION TASKS
   else if (data.startsWith("salvarNotion_")) {
