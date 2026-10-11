@@ -1,5 +1,19 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0AU. [x] **Auditoria e Alinhamento de Contrato de Thinking no Gemini 2.5 (`tests/test_otimizacao_io_e_thinking.cjs`, `tests/test_otimizacao_io_e_thinking.py` e `src/04_motores_ia.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em `tests/test_otimizacao_io_e_thinking.cjs:138`, a asserção `assert(p1.generationConfig.thinkingConfig, 'thinkingConfig deve existir para gemini-2.5 com semThinking')` falhava com `AssertionError [ERR_ASSERTION]: thinkingConfig deve existir para gemini-2.5 com semThinking (actual: undefined, expected: true)`. O wrapper `tests/test_otimizacao_io_e_thinking.py` falhava correspondentemente.
+      * A investigação identificou que no commit `091b6a4a1c5c7665981a5b414a8124776a10a53a`, a linha `payload.generationConfig.thinkingConfig = { thinkingBudget: 0 };` havia sido substituída por um comentário deduzindo incorretamente que `thinkingBudget: 0` geraria erro HTTP 400.
+      * Na documentação oficial da Google Gemini API (`ai.google.dev`), modelos Gemini 2.5 ativam *thinking* por padrão. Para desligá-lo em tarefas puramente extrativas/classificatórias (`semThinking: true` / `extrativo: true`), o contrato oficial da API exige enviar explicitamente `thinkingConfig: { thinkingBudget: 0 }`. Se omitido, o modelo continua pensando por padrão. Modelos legados sem suporte a thinking (Gemini 2.0 / 1.5) não recebem `thinkingConfig`.
+    - **Auditoria Clínica e de Segurança (Pro)**:
+      * Casos clínicos (`opcoes.clinico: true`) mantêm raciocínio profundo ativado (`thinkingBudget` configurado pelo teto `IA_THINKING_BUDGET_CLINICO`, padrão 1024 tokens, ou pensamento nativo estendido do modelo), garantindo rigor absoluto na tomada de decisão médica, alertas sentinela e prescrição segura.
+      * O desligamento do thinking restringe-se estritamente a extrações mecânicas estruturadas de baixa latência (`semThinking: true`), assegurando respostas ultrarrápidas sem afetar o raciocínio médico.
+    - **Correção e Validação**:
+      * Em `src/04_motores_ia.js` (`_iaProvGemini`), mantida a injeção de `thinkingConfig: { thinkingBudget: 0 }` para modelos `2.5` e `3.` quando `semThinking || extrativo`.
+      * Recompilado `ultra_rotina_master.js` com validação de sintaxe e empacotamento 100% OK via `npm run build`.
+      * Validação direcionada: 100% de aprovação em `tests/test_otimizacao_io_e_thinking.cjs` (4/4 blocos) e `tests/test_otimizacao_io_e_thinking.py` (0.24s). Suítes correlatas aprovadas (5/5 em 0.88s: `test_auditoria_clinica_20261008.cjs`, `test_circuit_breaker_multimodal.cjs`, `test_preceptor_cockpit_completo.cjs`).
+      * Evidências arquivadas em `data/autoloop_task_notes/test_otimizacao_io_e_thinking.md`.
+
 0AT. [x] **Auditoria e Restauração de Didática e Segurança no Rascunho SOAP (`tests/test_didatica_seguranca_soap_ostensivo.cjs`, `tests/test_didatica_seguranca_soap_ostensivo.py` e `src/04_motores_ia.js`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em `tests/test_didatica_seguranca_soap_ostensivo.cjs:123`, a asserção `assert(promptCapturado.includes("JUSTIFICATIVA DIDÁTICA (FMRP-USP)"))` falhava com `AssertionError [ERR_ASSERTION]: Prompt do rascunho deve exigir didática FMRP-USP`.

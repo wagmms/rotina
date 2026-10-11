@@ -548,8 +548,7 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
         if (opcoes.thinkingBudget !== undefined && opcoes.thinkingBudget !== null) {
           payload.generationConfig.thinkingConfig = { thinkingBudget: Number(opcoes.thinkingBudget) };
         } else if (opcoes.semThinking || opcoes.extrativo) {
-          // Não envia thinkingConfig: a API Gemini rejeita thinkingBudget: 0 com HTTP 400 (INVALID_ARGUMENT).
-          // Omitir thinkingConfig executa sem raciocínio estendido e sem erro 400.
+          payload.generationConfig.thinkingConfig = { thinkingBudget: 0 };
         } else if (opcoes.clinico) {
           var tBudget = Number(_iaCfg("IA_THINKING_BUDGET_CLINICO", 1024));
           payload.generationConfig.thinkingConfig = { thinkingBudget: tBudget };

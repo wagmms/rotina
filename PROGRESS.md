@@ -14,11 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria e Restauração de Didática e Segurança no Rascunho SOAP (`tests/test_didatica_seguranca_soap_ostensivo.cjs`, `tests/test_didatica_seguranca_soap_ostensivo.py` e `src/04_motores_ia.js`)**:
-    - **Diagnóstico e Causa Raiz**: O teste `tests/test_didatica_seguranca_soap_ostensivo.cjs:123` falhava com `AssertionError [ERR_ASSERTION]: Prompt do rascunho deve exigir didática FMRP-USP`. No commit `05e1f28`, uma tentativa de enxugamento de tokens do prompt no bot do Telegram substituiu a diretriz pedagógica canônica da FMRP-USP de formular perguntas investigativas com justificativa clínica e hipóteses a descartar entre parênteses ("SEM explicações prolixas entre parênteses") e excluiu a cláusula sentinela de segurança que proíbe presunção de normalidade para sistemas que são foco de queixa ativa.
-    - **Correção e Demonstração do Contrato**: Em `src/04_motores_ia.js` (`promptSistemaRascunho`), restauradas a salvaguarda de exame físico de sistemas com queixa ativa ("NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa...") e a diretriz pedagógica FMRP-USP ("JUSTIFICATIVA DIDÁTICA (FMRP-USP)" com "RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses..."). Recompilado `ultra_rotina_master.js` com `npm run build`.
-    - **Validação de Testes**: 100% de aprovação em `tests/test_didatica_seguranca_soap_ostensivo.cjs` (9/9 blocos aprovados) e `tests/test_didatica_seguranca_soap_ostensivo.py` (1/1 teste via pytest em 0.10s). Lote isolado de suítes correlatas de SOAP e exame físico aprovado sem regressões (7/7 em 0.85s).
-    - Evidências arquivadas em `data/autoloop_task_notes/test_didatica_seguranca_soap_ostensivo.md`.
+- [x] **Auditoria e Alinhamento de Contrato de Thinking no Gemini 2.5 (`tests/test_otimizacao_io_e_thinking.cjs`, `tests/test_otimizacao_io_e_thinking.py` e `src/04_motores_ia.js`)**:
+    - **Diagnóstico e Causa Raiz**: O teste `tests/test_otimizacao_io_e_thinking.cjs:138` falhava com `AssertionError [ERR_ASSERTION]: thinkingConfig deve existir para gemini-2.5 com semThinking`. No commit `091b6a4`, a injeção de `thinkingBudget: 0` havia sido substituída por comentário sob hipótese de erro HTTP 400. Pelo contrato oficial da API Google Gemini (`ai.google.dev`), modelos Gemini 2.5 possuem raciocínio profundo ativado por padrão; para desativá-lo em tarefas puramente extrativas (`semThinking: true`), a API exige explicitamente `thinkingConfig: { thinkingBudget: 0 }`. Se omitido, o modelo continua pensando por padrão.
+    - **Auditoria Clínica e de Segurança (Pro)**: Para casos clínicos (`opcoes.clinico: true`), o raciocínio médico estendido é integralmente mantido com teto `IA_THINKING_BUDGET_CLINICO` (1024 tokens) ou thinking nativo, assegurando acurácia diagnóstica e terapêutica máxima. A desativação de thinking restringe-se a extrações sintáticas de alta velocidade (sub-segundo/0ms) sem impacto clínico.
+    - **Correção e Validação**: Em `src/04_motores_ia.js` (`_iaProvGemini`), mantida a injeção correta de `thinkingConfig: { thinkingBudget: 0 }` para Gemini 2.5/3.x sob `semThinking || extrativo`. Recompilado `ultra_rotina_master.js` via `npm run build`. Validação 100% verde em `test_otimizacao_io_e_thinking.cjs` (4/4 blocos), `test_otimizacao_io_e_thinking.py` e 5 suítes correlatas de IA (`test_auditoria_clinica_20261008.cjs`, `test_circuit_breaker_multimodal.cjs`, `test_preceptor_cockpit_completo.cjs`).
+    - Evidências arquivadas em `data/autoloop_task_notes/test_otimizacao_io_e_thinking.md`.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -68,12 +68,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 69 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 70 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 65 (Pediatria / Farmacologia)*: Transição visual automática para formulação em comprimidos de adulto quando o paciente pediátrico tiver peso > 40-50 kg ou atingir o teto de adulto (exibir sugestão alternativa "Amoxicilina 500 mg: 1 cp VO de 8/8h" ao lado da suspensão de 250 mg/5 mL para evitar sobrecarga de volume líquido).
 - *Sugestão 66 (Telegram / Fila de Entrega Confiável)*: Adicionar comando `/reprocessar_fila` ou botão de 1 toque no alerta de falha de integração externa (Notion/APIs) permitindo retry manual imediato de pedidos que permaneceram com status 'failed' na fila persistente sem exigir nova digitação do médico.
 - *Sugestão 67 (Telegram / Neurologia)*: Adicionar atalhos de botões táteis inline de 1 toque no roteiro de exame físico neurológico (`/neuro` / `/ef_neuro`) para graduar força motora segundo a escala MRC (Grau 0 a 5) e sinais meníngeos (Brudzinski / Kernig), permitindo montagem automática do resumo neurológico sem digitação livre no plantão.
 - *Sugestão 68 (Telegram / Fila & Resiliência)*: Exibir teclado com botões inline nos resultados de `/fila` (ex: `[📦 Ver Pedido 9]`, `[📋 Ver Entrega 9_1]`) para permitir navegação tátil direta entre pendências e histórico arquivado no chat sem necessidade de digitação manual de comandos textuais.
 - *Sugestão 69 (SOAP / Didática & Ensino Médico)*: Implementar botão inline de 1 toque no rascunho SOAP Fase 1 `[💡 Racional Didático]` para exibir em popup/mensagem complementar o mapa semiológico completo (pergunta investigativa ➔ hipótese FMRP-USP a descartar) para residentes e acadêmicos, sem sobrecarregar a transcrição limpa de prontuário para o médico assistente.
+- *Sugestão 70 (IA / Otimização de Inferência)*: Cache semântico de embeddings ou KV-cache para prompts extrativos de baixa latência em modelos Gemini 2.5/Flash-Lite quando `semThinking: true`, permitindo reaproveitamento de respostas estruturadas para consultas idênticas de CID-10, posologia e interações em 0ms sem consumo de cota de API.
 
 ---
