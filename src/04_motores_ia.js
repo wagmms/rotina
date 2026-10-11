@@ -1204,7 +1204,7 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     }
     var perguntas = obj.perguntas_anamnese || obj.perguntas || [];
     var exameDirigido = obj.exame_dirigido || [];
-    var temEfAudio = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo/i.test(transcricao);
+    var temEfAudio = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(transcricao);
 
     var blocosRasc = [
       "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
@@ -1484,7 +1484,7 @@ function sanitizarNegativasSOAP(texto, casoClinico) {
 
 function verificarEExpandirExameFisicoObjetivo(objetivoTexto, casoClinico) {
   var fonte = String(casoClinico || "").toLowerCase();
-  var temEfNormalNoCaso = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\[exame\s+f[ií]sico\s+normal\]|\bmodelo\s+(?:de\s+)?ef\s+normal\b/i.test(fonte);
+  var temEfNormalNoCaso = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\[exame\s+f[ií]sico\s+normal\]|\bmodelo\s+(?:de\s+)?ef\s+normal\b|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(fonte);
   if (!temEfNormalNoCaso) return objetivoTexto;
 
   var objStr = String(objetivoTexto || "").trim();
@@ -1616,7 +1616,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
 
   var perguntas = objRasc.perguntas_anamnese || objRasc.perguntas;
   var exameDirigido = objRasc.exame_dirigido;
-  var temEfCompleto = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo/i.test(dadosCaso);
+  var temEfCompleto = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(dadosCaso);
 
   var blocosRasc = [
     "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",

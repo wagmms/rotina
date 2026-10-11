@@ -74,7 +74,6 @@ var SoapAmbulatorialService = (function() {
     padrao_completo: {
       titulo: 'Adulto Geral Completo (Segmentar Padrão Ouro)',
       texto: [
-        '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
         'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
         'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
         '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
@@ -868,7 +867,6 @@ var SoapAmbulatorialService = (function() {
     var linhaSV = 'Sinais Vitais: ' + sv.join(' | ') + '.';
 
     return [
-      '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
       linhaSV,
       'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
       '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',

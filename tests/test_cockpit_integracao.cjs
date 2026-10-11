@@ -115,7 +115,7 @@ tests.push(
    assert(res1.revision > 0);
    const resEf = c.cockpitConversar(auth, {acao:'ef_normal'});
    assert.equal(resEf.sucesso, true);
-   assert(resEf.soap.includes('Exame físico geral e segmentar completo sem alterações'));
+   assert(resEf.soap.includes('Bom estado geral') && resEf.soap.includes('ACV:'));
    const resPlano = c.cockpitConversar(auth, {acao:'plano'});
    assert.equal(resPlano.sucesso, true);
    assert(resPlano.soap.includes('[PLANO FECHADO]'));

@@ -64,7 +64,9 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
   assert(modelo.includes('Extremidades:'), 'Deve conter Extremidades');
   assert(modelo.includes('TEC < 3 segundos'), 'Deve conter TEC < 3 segundos');
   assert(!modelo.includes('(rítmico)') && !modelo.includes('(ritmico)'), 'Não deve conter (rítmico) na FC');
-  console.log('  ✓ 1. obterModeloExameFisicoCompleto gera todos os sistemas semiológicos canônicos com [   ] para sinais vitais');
+  assert(!modelo.includes('[Exame Físico]'), 'Não deve conter cabeçalho [Exame Físico]');
+  assert(!modelo.includes('totalmente normal'), 'Não deve conter frase de totalmente normal');
+  console.log('  ✓ 1. obterModeloExameFisicoCompleto gera todos os sistemas semiológicos canônicos com [   ] para sinais vitais e sem cabeçalho');
 }
 
 // 2. Preserva sinais vitais informados pelo médico assistente no relato e deixa [   ] para os ausentes
@@ -101,7 +103,8 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
   assert(casoAtualizado.includes('ACV:'), 'Caso ativo deve conter ACV completo');
   assert(casoAtualizado.includes('AR:'), 'Caso ativo deve conter AR completo');
   assert(casoAtualizado.includes('Abdome:'), 'Caso ativo deve conter Abdome completo');
-  assert(casoAtualizado.includes('totalmente normal'), 'Caso ativo deve conter marcador de totalmente normal');
+  assert(casoAtualizado.includes('Bom estado geral'), 'Caso ativo deve conter Bom estado geral');
+  assert(!casoAtualizado.includes('[Exame Físico]'), 'Caso ativo não deve conter cabeçalho redundante');
   assert(casoAtualizado.includes('TEC < 3 segundos'), 'Caso ativo deve conter TEC < 3 segundos');
 
   const textosEnviados = sent.map(s => (s.payload && s.payload.text) || '');
@@ -112,7 +115,7 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
 // 4. gerarSOAPComIA expande o modelo completo no Objetivo e NUNCA resume em apenas 'EF normal'
 {
   const { c } = env();
-  const casoComEFNormal = 'Paciente 35a queixa de dor de garganta.\n[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.';
+  const casoComEFNormal = 'Paciente 35a queixa de dor de garganta.\n' + c.obterModeloExameFisicoCompleto();
 
   // Simulando que o modelo da IA retornou apenas a síntese "EF normal."
   c.executarRaciocinioClinico = () => JSON.stringify({
@@ -135,7 +138,7 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
 // 5. Na Fase 1 com EF completo registrado, omite cobrança redundante de EF básico
 {
   const { c } = env();
-  const casoComEFNormal = 'Paciente 35a queixa de dor de garganta.\n[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.';
+  const casoComEFNormal = 'Paciente 35a queixa de dor de garganta.\n' + c.obterModeloExameFisicoCompleto();
   c.executarRaciocinioClinico = () => JSON.stringify({
     subjetivo: 'Odinofagia há 1 dia.',
     objetivo: 'EF normal.',

@@ -348,6 +348,80 @@ function enviarMenuEnfermaria(chat, messageId) {
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
 
+function enviarTelaEnfClearance(chat, messageId) {
+  var texto = '🧪 *CALCULADORA DE CLEARANCE E AUDITORIA RENAL*\n\n' +
+    'Envie a idade, peso, creatinina, sexo e medicamentos para auditar:\n\n' +
+    '💡 *Exemplos rápidos beira-leito:*\n' +
+    '• `/crcl 65 anos, 70kg, cr 1.8, masculino`\n' +
+    '• `/crcl 80 anos, 55kg, cr 2.1, fem, medicações: vancomicina`\n' +
+    '• `/clearance 45a, 80kg, cr 3.5, mulher, enoxaparina`';
+  var botoes = botoesBot([
+    [['🧪 Cockcroft 70kg Cr 1.2 M', 'calc_Cockcroft'], ['📊 CKD-EPI (TFG)', 'calc_CKD']],
+    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaEnfAjusteATB(chat, messageId) {
+  var texto = '💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n' +
+    'Envie o antimicrobiano e o clearance ou toque em um atalho abaixo:\n\n' +
+    '💡 *Exemplos rápidos beira-leito:*\n' +
+    '• `/atb meropenem clcr 25`\n' +
+    '• `/atb vanco 40`\n' +
+    '• `/atb pip-tazo clcr 30`\n' +
+    '• `/atb cefepime hd`\n' +
+    '• `/atb polimixina b 10`';
+  var botoes = botoesBot([
+    [['💊 Meropenem ClCr 25', 'ux:atb:mero25'], ['💊 Pip-Tazo ClCr 30', 'ux:atb:tazo30']],
+    [['💊 Cefepime HD', 'ux:atb:cefepimehd'], ['💊 Vanco ClCr 40', 'ux:atb:vanco40']],
+    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaEnfHidratacao(chat, messageId) {
+  var texto = '💧 *HIDRATAÇÃO VENOSA & SUPORTE (HOLLIDAY-SEGAR)*\n\n' +
+    'Envie o peso e a condição clínica ou toque em um exemplo beira-leito:\n\n' +
+    '💡 *Exemplos:*\n' +
+    '• `/holliday 8kg` (Manutenção, vazão em bomba, eletrólitos SBP e TIG)\n' +
+    '• `/holliday 11kg bronquiolite` (Restrição a 70% p/ prevenir sobrecarga)\n' +
+    '• `/nutriped 6kg 3 meses partida` (Avaliação nutricional completa)';
+  var botoes = botoesBot([
+    [['💧 Holliday 8kg', 'ux:hol:8kg'], ['💧 Holliday 11kg Bronquiolite', 'ux:hol:11kg_bva']],
+    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaEnfPrescricaoHosp(chat, messageId) {
+  var texto = '📝 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\n' +
+    'Gere uma prescrição de internação padronizada (10 itens) com auditoria de segurança:\n\n' +
+    '💡 *Envie os dados do caso por texto ou áudio:*\n' +
+    '`/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`';
+  var botoes = botoesBot([
+    [['📋 Gerar Exemplo (PAC Grave)', 'ux:rxh:exemplo_pac']],
+    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaEnfSBAR(chat, messageId) {
+  var textoConsolidado = (typeof EnfermariaService !== 'undefined' && EnfermariaService.obterTextoConsolidadoParaPassagem)
+    ? EnfermariaService.obterTextoConsolidadoParaPassagem()
+    : null;
+  if (!textoConsolidado) {
+    var texto = '📋 *PASSAGEM DE PLANTÃO SBAR*\n\n' +
+      '🏥 Nenhum leito registrado na enfermaria para passar plantão.\n\n' +
+      '💡 Registre os leitos usando `/leito <num> <evolução>` antes de gerar a passagem.';
+    var botoes = botoesBot([
+      [['🏥 Painel de Leitos', 'ux:painel:0']],
+      [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+    ]);
+    return enviarTelaBot(chat, texto, botoes, messageId);
+  }
+  return processarMensagemTexto({ chat: { id: chat }, text: '/passagem' });
+}
+
 /* ========== Cenário 3: 🩺 Ambulatório & Atenção Primária (UBS) ========== */
 
 function enviarMenuAmbulatorio(chat, messageId) {
@@ -380,10 +454,14 @@ function enviarHubPrincipal(chat, messageId) {
   var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\nSelecione o cenário clínico ou envie o caso diretamente:';
 
   var urlApp = obterUrlCockpit(chat);
+  var linha3 = (typeof ehUsuarioTitular === 'function' && ehUsuarioTitular(chat))
+    ? [['📐 Calculadoras', 'ux:hub:calc'], ['📅 Rotina & Estudo', 'ux:hub:rotina']]
+    : [['📐 Calculadoras', 'ux:hub:calc'], ['🩸 Gasometria', 'ux:iniciar:gaso']];
+
   var botoes = [
     [['🚨 Sala Vermelha', 'ux:hub:sala'], ['🛏️ Enfermaria', 'ux:hub:enf']],
     [['🩺 Ambulatório', 'ux:hub:amb'], ['💊 Consultas Bolso', 'ux:hub:bolso']],
-    [['📐 Calculadoras', 'ux:hub:calc'], ['📅 Rotina & Estudo', 'ux:hub:rotina']],
+    linha3,
     [{ text: '📱 Cockpit Mini App', web_app: { url: urlApp } }, ['🧹 Novo Paciente', 'ux:novo:soap']]
   ];
 
@@ -399,6 +477,11 @@ function enviarMenuUXCalculadoras(chat, messageId) {
 }
 
 function enviarRotinaBot(chat, messageId) {
+  if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chat)) {
+    return enviarTelaBot(chat, "🔒 *Recurso Restrito ao Titular*\n\nA central de rotina, lifestyle e agenda do Notion é exclusiva do administrador da conta.\n\nUse o botão abaixo para voltar ao menu clínico.", botoesBot([
+      [['← Menu principal', 'ux:menu']]
+    ]), messageId);
+  }
   var hoje = new Date();
   var blocos = (typeof RotinaService !== "undefined" && RotinaService.obterBlocosDoDia) ? RotinaService.obterBlocosDoDia(hoje) : [];
   var timeline = (typeof RotinaService !== "undefined" && RotinaService.formatarTimelineMarkdown) ? RotinaService.formatarTimelineMarkdown(blocos, hoje) : "";
@@ -791,19 +874,22 @@ function tratarCallbackUX(cb) {
         texto('/manual');
       }
     } else if (op === 'enf') {
-      if (v === 'clcr') texto('/crcl');
-      else if (v === 'ajuste') texto('/ajuste');
-      else if (v === 'hidratacao') texto('/holliday');
-      else if (v === 'rxh') texto('/rxh');
-      else if (v === 'sbar') texto('/passagem');
+      if (v === 'clcr') return enviarTelaEnfClearance(chat, msgId);
+      else if (v === 'ajuste') return enviarTelaEnfAjusteATB(chat, msgId);
+      else if (v === 'hidratacao') return enviarTelaEnfHidratacao(chat, msgId);
+      else if (v === 'rxh') return enviarTelaEnfPrescricaoHosp(chat, msgId);
+      else if (v === 'sbar') return enviarTelaEnfSBAR(chat, msgId);
       else if (v === 'sintomaticos') {
         var msgSint = "💊 *SINTOMÁTICOS HOSPITALARES / SOS (ENFERMARIA)*\n\n" +
-          "1. *Dipirona 1g EV* em 100 mL SF a cada 6h se dor ou febre (Tax ≥ 37,8°C)\n" +
-          "2. *Ondansetrona 8mg EV* em 20 mL SF até de 8/8h se náuseas ou vômitos\n" +
-          "3. *Metoclopramida 10mg EV* (alternativa se náusea; evitar se distúrbio extrapiramidal)\n" +
-          "4. *Omeprazol 40mg EV 1x/dia* pela manhã (apenas se critérios formais de úlcera de estresse)\n" +
-          "5. *Simeticona 75mg (30 gotas) VO* até de 8/8h se meteorismo ou distensão\n\n" +
-          "⚠️ *Segurança:* conferir alergia a dipirona e função renal.";
+          "Prescrição rápida padronizada para intercorrências comuns:\n\n" +
+          "1. *Dipirona 1g EV* em 100 mL SF 0,9% correr em 20 min de 6/6h se dor ou febre (Tax ≥ 37,8°C)\n" +
+          "2. *Ondansetrona 8mg EV* diluída em 20 mL SF 0,9% até de 8/8h se náuseas ou vômitos\n" +
+          "3. *Metoclopramida 10mg EV* lento em 2 min (alternativa; evitar se distúrbio extrapiramidal ou Parkinson)\n" +
+          "4. *Omeprazol 40mg EV 1x/dia* pela manhã (apenas se critérios formais de profilaxia de úlcera de estresse)\n" +
+          "5. *Simeticona 75mg (30 gotas) VO* até de 8/8h se distensão abdominal ou gases\n\n" +
+          "⚠️ *Segurança Beira-Leito:*\n" +
+          "• Conferir alergia prévia a dipirona/pirazolonas.\n" +
+          "• Em ClCr < 30 mL/min, reavaliar dose ou intervalo de analgésicos e antieméticos.";
         var ckSint = Utilities.getUuid().replace(/-/g, "");
         safePutCache(cache, ckSint, msgSint, 21600);
         return enviarTelaBot(chat, msgSint, botoesBot([
@@ -811,7 +897,20 @@ function tratarCallbackUX(cb) {
           [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
         ]), msgId);
       }
-      else enviarMenuEnfermaria(chat, msgId);
+      else return enviarMenuEnfermaria(chat, msgId);
+    } else if (op === 'atb') {
+      if (v === 'mero25') texto('/atb meropenem clcr 25');
+      else if (v === 'tazo30') texto('/atb pip-tazo clcr 30');
+      else if (v === 'cefepimehd') texto('/atb cefepime hd');
+      else if (v === 'vanco40') texto('/atb vanco 40');
+      else texto('/atb ' + v);
+    } else if (op === 'hol') {
+      if (v === '8kg') texto('/holliday 8kg');
+      else if (v === '11kg_bva') texto('/holliday 11kg bronquiolite');
+      else texto('/holliday ' + v);
+    } else if (op === 'rxh') {
+      if (v === 'exemplo_pac') texto('/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2');
+      else texto('/rxh ' + v);
     } else if (op === 'amb') {
       if (v === 'soap') iniciarModoBot(chat, 'soap', true, msgId);
       else if (v === 'remume') texto('/rx');
@@ -925,7 +1024,7 @@ function tratarCallbackUX(cb) {
         }
         var modeloEfTexto = (typeof obterModeloExameFisicoCompleto === 'function')
           ? obterModeloExameFisicoCompleto(dadosNorm)
-          : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto : '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.');
+          : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto : 'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.\nBom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.\n  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.\n  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.\n  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.\n Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.');
         dadosNorm += '\n\n' + modeloEfTexto;
         definirModoBot(chat, 'soap', dadosNorm);
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);
@@ -973,12 +1072,18 @@ function tratarCallbackUX(cb) {
         enviarMenuGinecologiaObstetricia(chat, msgId);
       } else if (v === 'preventivo') {
         texto('/preventivo');
-      } else if (v === 'duvida') {
-        enviarMensagemParaChat(chat, '🧠 *Dúvida MedQuest*\n\nEnvie: `/duvida seu tema`');
-      } else if (v === 'agenda_amanha') {
-        texto('/agenda amanha');
       } else {
-        texto('/' + v);
+        if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chat)) {
+          enviarMensagemParaChat(chat, '🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas e guias clínicos.');
+          return true;
+        }
+        if (v === 'duvida') {
+          enviarMensagemParaChat(chat, '🧠 *Dúvida MedQuest*\n\nEnvie: `/duvida seu tema`');
+        } else if (v === 'agenda_amanha') {
+          texto('/agenda amanha');
+        } else {
+          texto('/' + v);
+        }
       }
     } else if (op === 'sala') {
       enviarMenuSalaVermelha(chat, msgId);

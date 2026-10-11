@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-10 21:46:31
- * Checksum SHA256: 143cfeb11753f9ce
+ * Gerado automaticamente via build_master.py em: 2026-10-10 21:57:57
+ * Checksum SHA256: db407349fb172de9
  * ==============================================================================
  */
 
@@ -640,6 +640,18 @@ function obterUrlCockpit(chatId) {
   }
   var v = (typeof ConfigService !== "undefined" && ConfigService.get && ConfigService.get("COCKPIT_VERSION")) ? ConfigService.get("COCKPIT_VERSION") : "2.5";
   return sessao ? base + "?session=" + sessao + "&v=" + v : base + "?v=" + v;
+}
+
+/**
+ * Identifica se o chat pertence ao titular/administrador da conta.
+ * Usuários convidados (segundo ID) possuem perfil estritamente clínico e não acessam Notion/Agenda.
+ */
+function ehUsuarioTitular(chatId) {
+  if (!chatId) return false;
+  var primary = (typeof ConfigService !== "undefined" && ConfigService.getPrimary)
+    ? ConfigService.getPrimary("TELEGRAM_CHAT_ID")
+    : ((typeof ConfigService !== "undefined" && ConfigService.get) ? String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim() : "");
+  return String(chatId).trim() === String(primary).trim();
 }
 
 /**
@@ -28829,7 +28841,6 @@ var SoapAmbulatorialService = (function() {
     padrao_completo: {
       titulo: 'Adulto Geral Completo (Segmentar Padrão Ouro)',
       texto: [
-        '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
         'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
         'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
         '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
@@ -29623,7 +29634,6 @@ var SoapAmbulatorialService = (function() {
     var linhaSV = 'Sinais Vitais: ' + sv.join(' | ') + '.';
 
     return [
-      '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
       linhaSV,
       'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
       '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
@@ -37336,7 +37346,7 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     }
     var perguntas = obj.perguntas_anamnese || obj.perguntas || [];
     var exameDirigido = obj.exame_dirigido || [];
-    var temEfAudio = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo/i.test(transcricao);
+    var temEfAudio = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(transcricao);
 
     var blocosRasc = [
       "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
@@ -37616,7 +37626,7 @@ function sanitizarNegativasSOAP(texto, casoClinico) {
 
 function verificarEExpandirExameFisicoObjetivo(objetivoTexto, casoClinico) {
   var fonte = String(casoClinico || "").toLowerCase();
-  var temEfNormalNoCaso = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\[exame\s+f[ií]sico\s+normal\]|\bmodelo\s+(?:de\s+)?ef\s+normal\b/i.test(fonte);
+  var temEfNormalNoCaso = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\[exame\s+f[ií]sico\s+normal\]|\bmodelo\s+(?:de\s+)?ef\s+normal\b|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(fonte);
   if (!temEfNormalNoCaso) return objetivoTexto;
 
   var objStr = String(objetivoTexto || "").trim();
@@ -37748,7 +37758,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
 
   var perguntas = objRasc.perguntas_anamnese || objRasc.perguntas;
   var exameDirigido = objRasc.exame_dirigido;
-  var temEfCompleto = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo/i.test(dadosCaso);
+  var temEfCompleto = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(dadosCaso);
 
   var blocosRasc = [
     "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
@@ -44202,7 +44212,13 @@ function processarMensagemTexto(message) {
     return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
   }
 
-  // 4. AGENDA, TAREFAS E NOTION
+  // 4. AGENDA, TAREFAS E NOTION (EXCLUSIVO TITULAR)
+  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina") {
+    if (!ehUsuarioTitular(chatId)) {
+      return enviarMensagemParaChat(chatId, "🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas, guias de diluição HSL e consultas clínicas.");
+    }
+  }
+
   if (comando === "/agenda") {
     var paramAgenda = texto.replace(/^\/agenda\s*/i, "").trim();
     return consultarEventosAgenda(paramAgenda, chatId);
@@ -44657,12 +44673,14 @@ function processarMensagemTexto(message) {
   }
 
   if (decisao.intencao === "NOTION_TASK") {
+    if (!ehUsuarioTitular(chatId)) return enviarMensagemParaChat(chatId, "🔒 O banco do Notion é exclusivo do titular. Use o /menu para consultar calculadoras e condutas médicas.");
     var okNovaTask = criarTarefaNotion(texto, "Personal", "2 · Important", "Captura autônoma via Telegram");
     if (okNovaTask) return enviarMensagemParaChat(chatId, "✅ *Tarefa salva no Inbox do Notion Tasks!*");
     return enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique a configuração.");
   }
 
   if (decisao.intencao === "NOTION_DUVIDA") {
+    if (!ehUsuarioTitular(chatId)) return enviarMensagemParaChat(chatId, "🔒 O banco do Notion é exclusivo do titular. Use o /menu para consultar calculadoras e condutas médicas.");
     var duvTexto = texto.replace(/^(?:minha\s+)?d[úu]vida(?:\s+para\s+o\s+medquest)?\s*[:=]?\s*/i, "").trim();
     var okDuv = salvarDuvidaEstudoNotion(duvTexto || texto);
     if (okDuv) return enviarMensagemParaChat(chatId, "🧠 *Dúvida arquivada no Notion para o MedQuest!*");
@@ -44694,6 +44712,7 @@ function processarMensagemTexto(message) {
   }
 
   if (decisao.intencao === "SEGUNDA_MENTE") {
+    if (!ehUsuarioTitular(chatId)) return enviarMensagemParaChat(chatId, "🔒 O Second Brain do Notion é exclusivo do titular.");
     var okNota = criarNotaSegundaMenteNotion(texto);
     if (okNota) return enviarMensagemParaChat(chatId, "💡 *Insight arquivado no Notion Second Brain!*");
   }
@@ -44705,13 +44724,14 @@ function processarMensagemTexto(message) {
     safePutCache(contextoCache, contextoKey, texto, 900);
     var cacheKeyConversa = Utilities.getUuid().replace(/-/g, "");
     safePutCache(CacheService.getScriptCache(), cacheKeyConversa, respostaConversa, 21600);
+    var linhaConversa = [
+      {"text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKeyConversa}
+    ];
+    if (ehUsuarioTitular(chatId)) {
+      linhaConversa.push({"text": "📁 Salvar no Notion", "callback_data": "salvarNotion_conversa_" + cacheKeyConversa});
+    }
     var botoesConversa = {
-      "inline_keyboard": [
-        [
-          {"text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKeyConversa},
-          {"text": "📁 Salvar no Notion", "callback_data": "salvarNotion_conversa_" + cacheKeyConversa}
-        ]
-      ]
+      "inline_keyboard": [linhaConversa]
     };
     return enviarMensagemComTecladoParaChat(chatId, respostaConversa, botoesConversa);
   }
@@ -45331,11 +45351,13 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
           { "text": "💊 Extrair Receita", "callback_data": "ux:hub:rx" },
           { "text": "🔄 Refinar Conduta", "callback_data": "ux:soap:atualizar" }
         ]);
-        var linhaNotion = [{ "text": "📁 Salvar Caso", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey }];
-        if (/IG:|DUM:|DPP:|obstetrícia/i.test(strResultado)) {
-          linhaNotion.unshift({ "text": "🤰 Cartão Gestante", "callback_data": "salvarNotion_prenatal_" + cacheKey });
+        if (ehUsuarioTitular(chatId)) {
+          var linhaNotion = [{ "text": "📁 Salvar Caso", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey }];
+          if (/IG:|DUM:|DPP:|obstetrícia/i.test(strResultado)) {
+            linhaNotion.unshift({ "text": "🤰 Cartão Gestante", "callback_data": "salvarNotion_prenatal_" + cacheKey });
+          }
+          botoes.push(linhaNotion);
         }
-        botoes.push(linhaNotion);
         botoes.push([
           { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey },
           { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
@@ -45349,7 +45371,7 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
       var linhaSecundaria = [];
       if (elegivelPdfRx) {
         linhaSecundaria.push({ "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + cacheKey });
-      } else if (tipoCache !== "rx" && !ehErro) {
+      } else if (tipoCache !== "rx" && !ehErro && ehUsuarioTitular(chatId)) {
         linhaSecundaria.push({ "text": "📁 Salvar no Notion", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey });
       }
       if (tipoCache === "plantao" && !ehErro) {
@@ -45417,6 +45439,11 @@ function processarCallbackBotao(cb) {
 
   // A. HÁBITOS E ENERGIA
   if (data.startsWith("habit_") || data.startsWith("energy_")) {
+    var chatCbHabit = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+    if (!ehUsuarioTitular(chatCbHabit)) {
+      responderCallbackTelegram(cb.id, "🔒 O Habit Tracker do Notion é exclusivo do titular.", true);
+      return;
+    }
     responderCallbackTelegram(cb.id, "Salvando no Notion...");
 
     var pageId = obterOuCriarPaginaHabitLog(dataAlvoISO);
@@ -45496,6 +45523,11 @@ function processarCallbackBotao(cb) {
   }
   // A2. ROTINA E TIMELINE ADAPTATIVA
   else if (data.startsWith("rotina:")) {
+    var chatCbRot = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+    if (!ehUsuarioTitular(chatCbRot)) {
+      responderCallbackTelegram(cb.id, "🔒 A rotina e timeline adaptativa são exclusivas do titular.", true);
+      return;
+    }
     return tratarCallbackRotina(cb);
   }
   // A3. AJUDA E MANUAL DE COMANDOS SLASH
@@ -45604,6 +45636,11 @@ function processarCallbackBotao(cb) {
   }
   // E. ARQUIVAMENTO NO NOTION TASKS
   else if (data.startsWith("salvarNotion_")) {
+    var chatCbNotion = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+    if (!ehUsuarioTitular(chatCbNotion)) {
+      responderCallbackTelegram(cb.id, "🔒 O banco do Notion é exclusivo do titular.", true);
+      return;
+    }
     var partes = data.split("_");
     var tipo = partes[1];
     var cacheKey = partes.slice(2).join("_");
@@ -45777,34 +45814,41 @@ function processarCallbackBotao(cb) {
     var resLimpeza = EnfermariaService.limparTudo();
     return enviarMensagemComTecladoParaChat(cb.message.chat.id, resLimpeza.mensagem + "\n\n" + EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
   }
-  // ROTINA & PRODUTIVIDADE
-  else if (data === "rotina_agenda") {
-    responderCallbackTelegram(cb.id, "Consultando agenda...");
-    return consultarEventosAgenda("", cb.message.chat.id);
-  }
-  else if (data === "rotina_tasks") {
-    responderCallbackTelegram(cb.id, "Carregando tarefas...");
-    return listarTarefasHojeNotion(cb.message.chat.id);
-  }
-  else if (data === "rotina_briefing") {
-    responderCallbackTelegram(cb.id, "Gerando briefing matinal...");
-    return enviarBriefingMatinal(cb.message.chat.id, true);
-  }
-  else if (data === "rotina_checkin") {
-    responderCallbackTelegram(cb.id, "Iniciando check-in...");
-    return enviarCheckinNoturno(cb.message.chat.id);
-  }
-  else if (data === "rotina_semana") {
-    responderCallbackTelegram(cb.id, "Gerando relatório semanal...");
-    return enviarRelatorioSemanalHabitos(cb.message.chat.id);
-  }
-  else if (data === "rotina_duvida") {
-    responderCallbackTelegram(cb.id, "MedQuest / Dúvidas");
-    return enviarMensagemParaChat(cb.message.chat.id, "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\nEnvie sua dúvida médica digitando:\n`/duvida <sua dúvida>`\n💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\nSua dúvida será salva no Notion para o bloco noturno de estudo ativo.");
-  }
-  else if (data === "rotina_timeline") {
-    responderCallbackTelegram(cb.id, "Time-blocking de hoje...");
-    return tratarComandoRotina(cb.message.chat.id, "hoje");
+  // ROTINA & PRODUTIVIDADE (EXCLUSIVO TITULAR)
+  else if (data === "rotina_agenda" || data === "rotina_tasks" || data === "rotina_briefing" || data === "rotina_checkin" || data === "rotina_semana" || data === "rotina_duvida" || data === "rotina_timeline") {
+    var chatCbRotProd = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+    if (!ehUsuarioTitular(chatCbRotProd)) {
+      responderCallbackTelegram(cb.id, "🔒 Recurso exclusivo do titular.", true);
+      return;
+    }
+    if (data === "rotina_agenda") {
+      responderCallbackTelegram(cb.id, "Consultando agenda...");
+      return consultarEventosAgenda("", cb.message.chat.id);
+    }
+    else if (data === "rotina_tasks") {
+      responderCallbackTelegram(cb.id, "Carregando tarefas...");
+      return listarTarefasHojeNotion(cb.message.chat.id);
+    }
+    else if (data === "rotina_briefing") {
+      responderCallbackTelegram(cb.id, "Gerando briefing matinal...");
+      return enviarBriefingMatinal(cb.message.chat.id, true);
+    }
+    else if (data === "rotina_checkin") {
+      responderCallbackTelegram(cb.id, "Iniciando check-in...");
+      return enviarCheckinNoturno(cb.message.chat.id);
+    }
+    else if (data === "rotina_semana") {
+      responderCallbackTelegram(cb.id, "Gerando relatório semanal...");
+      return enviarRelatorioSemanalHabitos(cb.message.chat.id);
+    }
+    else if (data === "rotina_duvida") {
+      responderCallbackTelegram(cb.id, "MedQuest / Dúvidas");
+      return enviarMensagemParaChat(cb.message.chat.id, "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\nEnvie sua dúvida médica digitando:\n`/duvida <sua dúvida>`\n💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\nSua dúvida será salva no Notion para o bloco noturno de estudo ativo.");
+    }
+    else if (data === "rotina_timeline") {
+      responderCallbackTelegram(cb.id, "Time-blocking de hoje...");
+      return tratarComandoRotina(cb.message.chat.id, "hoje");
+    }
   }
   // DIABETES & METABOLISMO
   else if (data === "dm_cad_ehh") {
@@ -50564,6 +50608,80 @@ function enviarMenuEnfermaria(chat, messageId) {
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
 
+function enviarTelaEnfClearance(chat, messageId) {
+  var texto = '🧪 *CALCULADORA DE CLEARANCE E AUDITORIA RENAL*\n\n' +
+    'Envie a idade, peso, creatinina, sexo e medicamentos para auditar:\n\n' +
+    '💡 *Exemplos rápidos beira-leito:*\n' +
+    '• `/crcl 65 anos, 70kg, cr 1.8, masculino`\n' +
+    '• `/crcl 80 anos, 55kg, cr 2.1, fem, medicações: vancomicina`\n' +
+    '• `/clearance 45a, 80kg, cr 3.5, mulher, enoxaparina`';
+  var botoes = botoesBot([
+    [['🧪 Cockcroft 70kg Cr 1.2 M', 'calc_Cockcroft'], ['📊 CKD-EPI (TFG)', 'calc_CKD']],
+    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaEnfAjusteATB(chat, messageId) {
+  var texto = '💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n' +
+    'Envie o antimicrobiano e o clearance ou toque em um atalho abaixo:\n\n' +
+    '💡 *Exemplos rápidos beira-leito:*\n' +
+    '• `/atb meropenem clcr 25`\n' +
+    '• `/atb vanco 40`\n' +
+    '• `/atb pip-tazo clcr 30`\n' +
+    '• `/atb cefepime hd`\n' +
+    '• `/atb polimixina b 10`';
+  var botoes = botoesBot([
+    [['💊 Meropenem ClCr 25', 'ux:atb:mero25'], ['💊 Pip-Tazo ClCr 30', 'ux:atb:tazo30']],
+    [['💊 Cefepime HD', 'ux:atb:cefepimehd'], ['💊 Vanco ClCr 40', 'ux:atb:vanco40']],
+    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaEnfHidratacao(chat, messageId) {
+  var texto = '💧 *HIDRATAÇÃO VENOSA & SUPORTE (HOLLIDAY-SEGAR)*\n\n' +
+    'Envie o peso e a condição clínica ou toque em um exemplo beira-leito:\n\n' +
+    '💡 *Exemplos:*\n' +
+    '• `/holliday 8kg` (Manutenção, vazão em bomba, eletrólitos SBP e TIG)\n' +
+    '• `/holliday 11kg bronquiolite` (Restrição a 70% p/ prevenir sobrecarga)\n' +
+    '• `/nutriped 6kg 3 meses partida` (Avaliação nutricional completa)';
+  var botoes = botoesBot([
+    [['💧 Holliday 8kg', 'ux:hol:8kg'], ['💧 Holliday 11kg Bronquiolite', 'ux:hol:11kg_bva']],
+    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaEnfPrescricaoHosp(chat, messageId) {
+  var texto = '📝 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\n' +
+    'Gere uma prescrição de internação padronizada (10 itens) com auditoria de segurança:\n\n' +
+    '💡 *Envie os dados do caso por texto ou áudio:*\n' +
+    '`/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`';
+  var botoes = botoesBot([
+    [['📋 Gerar Exemplo (PAC Grave)', 'ux:rxh:exemplo_pac']],
+    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaEnfSBAR(chat, messageId) {
+  var textoConsolidado = (typeof EnfermariaService !== 'undefined' && EnfermariaService.obterTextoConsolidadoParaPassagem)
+    ? EnfermariaService.obterTextoConsolidadoParaPassagem()
+    : null;
+  if (!textoConsolidado) {
+    var texto = '📋 *PASSAGEM DE PLANTÃO SBAR*\n\n' +
+      '🏥 Nenhum leito registrado na enfermaria para passar plantão.\n\n' +
+      '💡 Registre os leitos usando `/leito <num> <evolução>` antes de gerar a passagem.';
+    var botoes = botoesBot([
+      [['🏥 Painel de Leitos', 'ux:painel:0']],
+      [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+    ]);
+    return enviarTelaBot(chat, texto, botoes, messageId);
+  }
+  return processarMensagemTexto({ chat: { id: chat }, text: '/passagem' });
+}
+
 /* ========== Cenário 3: 🩺 Ambulatório & Atenção Primária (UBS) ========== */
 
 function enviarMenuAmbulatorio(chat, messageId) {
@@ -50596,10 +50714,14 @@ function enviarHubPrincipal(chat, messageId) {
   var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\nSelecione o cenário clínico ou envie o caso diretamente:';
 
   var urlApp = obterUrlCockpit(chat);
+  var linha3 = (typeof ehUsuarioTitular === 'function' && ehUsuarioTitular(chat))
+    ? [['📐 Calculadoras', 'ux:hub:calc'], ['📅 Rotina & Estudo', 'ux:hub:rotina']]
+    : [['📐 Calculadoras', 'ux:hub:calc'], ['🩸 Gasometria', 'ux:iniciar:gaso']];
+
   var botoes = [
     [['🚨 Sala Vermelha', 'ux:hub:sala'], ['🛏️ Enfermaria', 'ux:hub:enf']],
     [['🩺 Ambulatório', 'ux:hub:amb'], ['💊 Consultas Bolso', 'ux:hub:bolso']],
-    [['📐 Calculadoras', 'ux:hub:calc'], ['📅 Rotina & Estudo', 'ux:hub:rotina']],
+    linha3,
     [{ text: '📱 Cockpit Mini App', web_app: { url: urlApp } }, ['🧹 Novo Paciente', 'ux:novo:soap']]
   ];
 
@@ -50615,6 +50737,11 @@ function enviarMenuUXCalculadoras(chat, messageId) {
 }
 
 function enviarRotinaBot(chat, messageId) {
+  if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chat)) {
+    return enviarTelaBot(chat, "🔒 *Recurso Restrito ao Titular*\n\nA central de rotina, lifestyle e agenda do Notion é exclusiva do administrador da conta.\n\nUse o botão abaixo para voltar ao menu clínico.", botoesBot([
+      [['← Menu principal', 'ux:menu']]
+    ]), messageId);
+  }
   var hoje = new Date();
   var blocos = (typeof RotinaService !== "undefined" && RotinaService.obterBlocosDoDia) ? RotinaService.obterBlocosDoDia(hoje) : [];
   var timeline = (typeof RotinaService !== "undefined" && RotinaService.formatarTimelineMarkdown) ? RotinaService.formatarTimelineMarkdown(blocos, hoje) : "";
@@ -50662,6 +50789,7 @@ function enviarPainelEnfermaria(chat, pagina, msgId) {
   if ((pagina + 1) * 5 < keys.length) nav.push(['Próxima →', 'ux:painel:' + (pagina + 1)]);
   if (nav.length) rows.push(nav);
   rows.push([['🔄 Atualizar', 'ux:painel:' + pagina], ['Passagem SBAR', UX_CB_PASSAGEM_SBAR]]);
+  rows.push([['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]);
   return enviarTelaBot(chat, texto, botoesBot(rows), msgId);
 }
 
@@ -50675,7 +50803,7 @@ function uxTelaLeito(chat, id, msgId, aviso) {
     [['🟢 Estável', 'ux:status:' + id + ':estavel' + (ver ? ':' + ver : '')], ['🟡 Vigilância', 'ux:status:' + id + ':vigilancia' + (ver ? ':' + ver : '')]],
     [['🔴 Instável', 'ux:status:' + id + ':instavel' + (ver ? ':' + ver : '')]],
     [['✏️ Evoluir leito', 'ux:evoluir:' + id], ['Dar alta', 'ux:confirmar:' + id]],
-    [['← Enfermaria', 'ux:painel:0']]
+    [['← Leitos', 'ux:painel:0'], ['🔙 Enfermaria', 'ux:hub:enf']]
   ]), msgId);
 }
 
@@ -51006,19 +51134,22 @@ function tratarCallbackUX(cb) {
         texto('/manual');
       }
     } else if (op === 'enf') {
-      if (v === 'clcr') texto('/crcl');
-      else if (v === 'ajuste') texto('/ajuste');
-      else if (v === 'hidratacao') texto('/holliday');
-      else if (v === 'rxh') texto('/rxh');
-      else if (v === 'sbar') texto('/passagem');
+      if (v === 'clcr') return enviarTelaEnfClearance(chat, msgId);
+      else if (v === 'ajuste') return enviarTelaEnfAjusteATB(chat, msgId);
+      else if (v === 'hidratacao') return enviarTelaEnfHidratacao(chat, msgId);
+      else if (v === 'rxh') return enviarTelaEnfPrescricaoHosp(chat, msgId);
+      else if (v === 'sbar') return enviarTelaEnfSBAR(chat, msgId);
       else if (v === 'sintomaticos') {
         var msgSint = "💊 *SINTOMÁTICOS HOSPITALARES / SOS (ENFERMARIA)*\n\n" +
-          "1. *Dipirona 1g EV* em 100 mL SF a cada 6h se dor ou febre (Tax ≥ 37,8°C)\n" +
-          "2. *Ondansetrona 8mg EV* em 20 mL SF até de 8/8h se náuseas ou vômitos\n" +
-          "3. *Metoclopramida 10mg EV* (alternativa se náusea; evitar se distúrbio extrapiramidal)\n" +
-          "4. *Omeprazol 40mg EV 1x/dia* pela manhã (apenas se critérios formais de úlcera de estresse)\n" +
-          "5. *Simeticona 75mg (30 gotas) VO* até de 8/8h se meteorismo ou distensão\n\n" +
-          "⚠️ *Segurança:* conferir alergia a dipirona e função renal.";
+          "Prescrição rápida padronizada para intercorrências comuns:\n\n" +
+          "1. *Dipirona 1g EV* em 100 mL SF 0,9% correr em 20 min de 6/6h se dor ou febre (Tax ≥ 37,8°C)\n" +
+          "2. *Ondansetrona 8mg EV* diluída em 20 mL SF 0,9% até de 8/8h se náuseas ou vômitos\n" +
+          "3. *Metoclopramida 10mg EV* lento em 2 min (alternativa; evitar se distúrbio extrapiramidal ou Parkinson)\n" +
+          "4. *Omeprazol 40mg EV 1x/dia* pela manhã (apenas se critérios formais de profilaxia de úlcera de estresse)\n" +
+          "5. *Simeticona 75mg (30 gotas) VO* até de 8/8h se distensão abdominal ou gases\n\n" +
+          "⚠️ *Segurança Beira-Leito:*\n" +
+          "• Conferir alergia prévia a dipirona/pirazolonas.\n" +
+          "• Em ClCr < 30 mL/min, reavaliar dose ou intervalo de analgésicos e antieméticos.";
         var ckSint = Utilities.getUuid().replace(/-/g, "");
         safePutCache(cache, ckSint, msgSint, 21600);
         return enviarTelaBot(chat, msgSint, botoesBot([
@@ -51026,7 +51157,20 @@ function tratarCallbackUX(cb) {
           [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
         ]), msgId);
       }
-      else enviarMenuEnfermaria(chat, msgId);
+      else return enviarMenuEnfermaria(chat, msgId);
+    } else if (op === 'atb') {
+      if (v === 'mero25') texto('/atb meropenem clcr 25');
+      else if (v === 'tazo30') texto('/atb pip-tazo clcr 30');
+      else if (v === 'cefepimehd') texto('/atb cefepime hd');
+      else if (v === 'vanco40') texto('/atb vanco 40');
+      else texto('/atb ' + v);
+    } else if (op === 'hol') {
+      if (v === '8kg') texto('/holliday 8kg');
+      else if (v === '11kg_bva') texto('/holliday 11kg bronquiolite');
+      else texto('/holliday ' + v);
+    } else if (op === 'rxh') {
+      if (v === 'exemplo_pac') texto('/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2');
+      else texto('/rxh ' + v);
     } else if (op === 'amb') {
       if (v === 'soap') iniciarModoBot(chat, 'soap', true, msgId);
       else if (v === 'remume') texto('/rx');
@@ -51140,7 +51284,7 @@ function tratarCallbackUX(cb) {
         }
         var modeloEfTexto = (typeof obterModeloExameFisicoCompleto === 'function')
           ? obterModeloExameFisicoCompleto(dadosNorm)
-          : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto : '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.');
+          : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto : 'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.\nBom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.\n  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.\n  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.\n  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.\n Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.');
         dadosNorm += '\n\n' + modeloEfTexto;
         definirModoBot(chat, 'soap', dadosNorm);
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);
@@ -51188,12 +51332,18 @@ function tratarCallbackUX(cb) {
         enviarMenuGinecologiaObstetricia(chat, msgId);
       } else if (v === 'preventivo') {
         texto('/preventivo');
-      } else if (v === 'duvida') {
-        enviarMensagemParaChat(chat, '🧠 *Dúvida MedQuest*\n\nEnvie: `/duvida seu tema`');
-      } else if (v === 'agenda_amanha') {
-        texto('/agenda amanha');
       } else {
-        texto('/' + v);
+        if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chat)) {
+          enviarMensagemParaChat(chat, '🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas e guias clínicos.');
+          return true;
+        }
+        if (v === 'duvida') {
+          enviarMensagemParaChat(chat, '🧠 *Dúvida MedQuest*\n\nEnvie: `/duvida seu tema`');
+        } else if (v === 'agenda_amanha') {
+          texto('/agenda amanha');
+        } else {
+          texto('/' + v);
+        }
       }
     } else if (op === 'sala') {
       enviarMenuSalaVermelha(chat, msgId);
@@ -51998,7 +52148,6 @@ function cockpitConversar(initData, params) {
         : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO
           ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto
           : [
-            '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
             'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
             'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
             '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',

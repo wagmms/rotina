@@ -3881,7 +3881,13 @@ function processarMensagemTexto(message) {
     return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
   }
 
-  // 4. AGENDA, TAREFAS E NOTION
+  // 4. AGENDA, TAREFAS E NOTION (EXCLUSIVO TITULAR)
+  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina") {
+    if (!ehUsuarioTitular(chatId)) {
+      return enviarMensagemParaChat(chatId, "🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas, guias de diluição HSL e consultas clínicas.");
+    }
+  }
+
   if (comando === "/agenda") {
     var paramAgenda = texto.replace(/^\/agenda\s*/i, "").trim();
     return consultarEventosAgenda(paramAgenda, chatId);
@@ -4336,12 +4342,14 @@ function processarMensagemTexto(message) {
   }
 
   if (decisao.intencao === "NOTION_TASK") {
+    if (!ehUsuarioTitular(chatId)) return enviarMensagemParaChat(chatId, "🔒 O banco do Notion é exclusivo do titular. Use o /menu para consultar calculadoras e condutas médicas.");
     var okNovaTask = criarTarefaNotion(texto, "Personal", "2 · Important", "Captura autônoma via Telegram");
     if (okNovaTask) return enviarMensagemParaChat(chatId, "✅ *Tarefa salva no Inbox do Notion Tasks!*");
     return enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique a configuração.");
   }
 
   if (decisao.intencao === "NOTION_DUVIDA") {
+    if (!ehUsuarioTitular(chatId)) return enviarMensagemParaChat(chatId, "🔒 O banco do Notion é exclusivo do titular. Use o /menu para consultar calculadoras e condutas médicas.");
     var duvTexto = texto.replace(/^(?:minha\s+)?d[úu]vida(?:\s+para\s+o\s+medquest)?\s*[:=]?\s*/i, "").trim();
     var okDuv = salvarDuvidaEstudoNotion(duvTexto || texto);
     if (okDuv) return enviarMensagemParaChat(chatId, "🧠 *Dúvida arquivada no Notion para o MedQuest!*");
@@ -4373,6 +4381,7 @@ function processarMensagemTexto(message) {
   }
 
   if (decisao.intencao === "SEGUNDA_MENTE") {
+    if (!ehUsuarioTitular(chatId)) return enviarMensagemParaChat(chatId, "🔒 O Second Brain do Notion é exclusivo do titular.");
     var okNota = criarNotaSegundaMenteNotion(texto);
     if (okNota) return enviarMensagemParaChat(chatId, "💡 *Insight arquivado no Notion Second Brain!*");
   }
@@ -4384,13 +4393,14 @@ function processarMensagemTexto(message) {
     safePutCache(contextoCache, contextoKey, texto, 900);
     var cacheKeyConversa = Utilities.getUuid().replace(/-/g, "");
     safePutCache(CacheService.getScriptCache(), cacheKeyConversa, respostaConversa, 21600);
+    var linhaConversa = [
+      {"text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKeyConversa}
+    ];
+    if (ehUsuarioTitular(chatId)) {
+      linhaConversa.push({"text": "📁 Salvar no Notion", "callback_data": "salvarNotion_conversa_" + cacheKeyConversa});
+    }
     var botoesConversa = {
-      "inline_keyboard": [
-        [
-          {"text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKeyConversa},
-          {"text": "📁 Salvar no Notion", "callback_data": "salvarNotion_conversa_" + cacheKeyConversa}
-        ]
-      ]
+      "inline_keyboard": [linhaConversa]
     };
     return enviarMensagemComTecladoParaChat(chatId, respostaConversa, botoesConversa);
   }
@@ -5010,11 +5020,13 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
           { "text": "💊 Extrair Receita", "callback_data": "ux:hub:rx" },
           { "text": "🔄 Refinar Conduta", "callback_data": "ux:soap:atualizar" }
         ]);
-        var linhaNotion = [{ "text": "📁 Salvar Caso", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey }];
-        if (/IG:|DUM:|DPP:|obstetrícia/i.test(strResultado)) {
-          linhaNotion.unshift({ "text": "🤰 Cartão Gestante", "callback_data": "salvarNotion_prenatal_" + cacheKey });
+        if (ehUsuarioTitular(chatId)) {
+          var linhaNotion = [{ "text": "📁 Salvar Caso", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey }];
+          if (/IG:|DUM:|DPP:|obstetrícia/i.test(strResultado)) {
+            linhaNotion.unshift({ "text": "🤰 Cartão Gestante", "callback_data": "salvarNotion_prenatal_" + cacheKey });
+          }
+          botoes.push(linhaNotion);
         }
-        botoes.push(linhaNotion);
         botoes.push([
           { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey },
           { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
@@ -5028,7 +5040,7 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
       var linhaSecundaria = [];
       if (elegivelPdfRx) {
         linhaSecundaria.push({ "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + cacheKey });
-      } else if (tipoCache !== "rx" && !ehErro) {
+      } else if (tipoCache !== "rx" && !ehErro && ehUsuarioTitular(chatId)) {
         linhaSecundaria.push({ "text": "📁 Salvar no Notion", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey });
       }
       if (tipoCache === "plantao" && !ehErro) {
@@ -5096,6 +5108,11 @@ function processarCallbackBotao(cb) {
 
   // A. HÁBITOS E ENERGIA
   if (data.startsWith("habit_") || data.startsWith("energy_")) {
+    var chatCbHabit = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+    if (!ehUsuarioTitular(chatCbHabit)) {
+      responderCallbackTelegram(cb.id, "🔒 O Habit Tracker do Notion é exclusivo do titular.", true);
+      return;
+    }
     responderCallbackTelegram(cb.id, "Salvando no Notion...");
 
     var pageId = obterOuCriarPaginaHabitLog(dataAlvoISO);
@@ -5175,6 +5192,11 @@ function processarCallbackBotao(cb) {
   }
   // A2. ROTINA E TIMELINE ADAPTATIVA
   else if (data.startsWith("rotina:")) {
+    var chatCbRot = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+    if (!ehUsuarioTitular(chatCbRot)) {
+      responderCallbackTelegram(cb.id, "🔒 A rotina e timeline adaptativa são exclusivas do titular.", true);
+      return;
+    }
     return tratarCallbackRotina(cb);
   }
   // A3. AJUDA E MANUAL DE COMANDOS SLASH
@@ -5283,6 +5305,11 @@ function processarCallbackBotao(cb) {
   }
   // E. ARQUIVAMENTO NO NOTION TASKS
   else if (data.startsWith("salvarNotion_")) {
+    var chatCbNotion = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+    if (!ehUsuarioTitular(chatCbNotion)) {
+      responderCallbackTelegram(cb.id, "🔒 O banco do Notion é exclusivo do titular.", true);
+      return;
+    }
     var partes = data.split("_");
     var tipo = partes[1];
     var cacheKey = partes.slice(2).join("_");
@@ -5456,34 +5483,41 @@ function processarCallbackBotao(cb) {
     var resLimpeza = EnfermariaService.limparTudo();
     return enviarMensagemComTecladoParaChat(cb.message.chat.id, resLimpeza.mensagem + "\n\n" + EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
   }
-  // ROTINA & PRODUTIVIDADE
-  else if (data === "rotina_agenda") {
-    responderCallbackTelegram(cb.id, "Consultando agenda...");
-    return consultarEventosAgenda("", cb.message.chat.id);
-  }
-  else if (data === "rotina_tasks") {
-    responderCallbackTelegram(cb.id, "Carregando tarefas...");
-    return listarTarefasHojeNotion(cb.message.chat.id);
-  }
-  else if (data === "rotina_briefing") {
-    responderCallbackTelegram(cb.id, "Gerando briefing matinal...");
-    return enviarBriefingMatinal(cb.message.chat.id, true);
-  }
-  else if (data === "rotina_checkin") {
-    responderCallbackTelegram(cb.id, "Iniciando check-in...");
-    return enviarCheckinNoturno(cb.message.chat.id);
-  }
-  else if (data === "rotina_semana") {
-    responderCallbackTelegram(cb.id, "Gerando relatório semanal...");
-    return enviarRelatorioSemanalHabitos(cb.message.chat.id);
-  }
-  else if (data === "rotina_duvida") {
-    responderCallbackTelegram(cb.id, "MedQuest / Dúvidas");
-    return enviarMensagemParaChat(cb.message.chat.id, "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\nEnvie sua dúvida médica digitando:\n`/duvida <sua dúvida>`\n💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\nSua dúvida será salva no Notion para o bloco noturno de estudo ativo.");
-  }
-  else if (data === "rotina_timeline") {
-    responderCallbackTelegram(cb.id, "Time-blocking de hoje...");
-    return tratarComandoRotina(cb.message.chat.id, "hoje");
+  // ROTINA & PRODUTIVIDADE (EXCLUSIVO TITULAR)
+  else if (data === "rotina_agenda" || data === "rotina_tasks" || data === "rotina_briefing" || data === "rotina_checkin" || data === "rotina_semana" || data === "rotina_duvida" || data === "rotina_timeline") {
+    var chatCbRotProd = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+    if (!ehUsuarioTitular(chatCbRotProd)) {
+      responderCallbackTelegram(cb.id, "🔒 Recurso exclusivo do titular.", true);
+      return;
+    }
+    if (data === "rotina_agenda") {
+      responderCallbackTelegram(cb.id, "Consultando agenda...");
+      return consultarEventosAgenda("", cb.message.chat.id);
+    }
+    else if (data === "rotina_tasks") {
+      responderCallbackTelegram(cb.id, "Carregando tarefas...");
+      return listarTarefasHojeNotion(cb.message.chat.id);
+    }
+    else if (data === "rotina_briefing") {
+      responderCallbackTelegram(cb.id, "Gerando briefing matinal...");
+      return enviarBriefingMatinal(cb.message.chat.id, true);
+    }
+    else if (data === "rotina_checkin") {
+      responderCallbackTelegram(cb.id, "Iniciando check-in...");
+      return enviarCheckinNoturno(cb.message.chat.id);
+    }
+    else if (data === "rotina_semana") {
+      responderCallbackTelegram(cb.id, "Gerando relatório semanal...");
+      return enviarRelatorioSemanalHabitos(cb.message.chat.id);
+    }
+    else if (data === "rotina_duvida") {
+      responderCallbackTelegram(cb.id, "MedQuest / Dúvidas");
+      return enviarMensagemParaChat(cb.message.chat.id, "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\nEnvie sua dúvida médica digitando:\n`/duvida <sua dúvida>`\n💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\nSua dúvida será salva no Notion para o bloco noturno de estudo ativo.");
+    }
+    else if (data === "rotina_timeline") {
+      responderCallbackTelegram(cb.id, "Time-blocking de hoje...");
+      return tratarComandoRotina(cb.message.chat.id, "hoje");
+    }
   }
   // DIABETES & METABOLISMO
   else if (data === "dm_cad_ehh") {

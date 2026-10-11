@@ -89,11 +89,11 @@ test('3. EF normal exige confirmação antes de alterar o caso', () => {
   });
 
   c.tratarCallbackUX({ id: 'cb1', data: 'ux:soap:ef_normal:' + c.modoBot(123).revision, message: { chat: { id: 123 }, message_id: 10 } });
-  assert(!c.modoBot(123).data.includes('totalmente normal'));
+  assert(!c.modoBot(123).data.includes('Bom estado geral'));
   const confirmar = sent[sent.length - 1].payload.reply_markup.inline_keyboard[0][0].callback_data;
   c.tratarCallbackUX({ id: 'cb2', data: confirmar, message: { chat: { id: 123 }, message_id: 11 } });
   const modo = c.modoBot(123);
-  assert(modo.data.includes('totalmente normal'));
+  assert(modo.data.includes('Bom estado geral') && modo.data.includes('ACV:'));
   c.tratarCallbackUX({ id: 'cb3', data: confirmar, message: { chat: { id: 123 }, message_id: 11 } });
   assert.equal(c.modoBot(123).data, modo.data, 'Repetição não deve acrescentar dados');
 });
@@ -150,7 +150,7 @@ for (const acao of ['troca', 'expiracao', 'cancelamento']) test('Confirmação E
   if (acao === 'expiracao') advance(301000);
   if (acao === 'cancelamento') c.tratarCallbackUX(cb(linhas[1][0].callback_data));
   c.tratarCallbackUX(cb(linhas[0][0].callback_data));
-  assert(!c.modoBot(123).data.includes('totalmente normal'));
+  assert(!c.modoBot(123).data.includes('Bom estado geral'));
 });
 
 console.log(`${aprovados}/8 cenários SOAP aprovados`);

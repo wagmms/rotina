@@ -512,6 +512,18 @@ function obterUrlCockpit(chatId) {
 }
 
 /**
+ * Identifica se o chat pertence ao titular/administrador da conta.
+ * Usuários convidados (segundo ID) possuem perfil estritamente clínico e não acessam Notion/Agenda.
+ */
+function ehUsuarioTitular(chatId) {
+  if (!chatId) return false;
+  var primary = (typeof ConfigService !== "undefined" && ConfigService.getPrimary)
+    ? ConfigService.getPrimary("TELEGRAM_CHAT_ID")
+    : ((typeof ConfigService !== "undefined" && ConfigService.get) ? String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim() : "");
+  return String(chatId).trim() === String(primary).trim();
+}
+
+/**
  * Retorna a estrutura do teclado fixo principal (ReplyKeyboardMarkup)
  * Projetado para navegação rápida de 1 toque no celular em ambiente hospitalar e rotina.
  * Configurado com is_persistent: false para ergonomia mobile perfeita.

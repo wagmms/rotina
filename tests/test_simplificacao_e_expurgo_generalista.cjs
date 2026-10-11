@@ -149,6 +149,10 @@ assert.strictEqual(kbDm.inline_keyboard.flat().length, 4, 'Hub Diabetes deve ter
 const kbAne = ctx.construirTecladoHubAnemia();
 assert.strictEqual(kbAne.inline_keyboard.flat().length, 2, 'Hub Anemia deve ter 2 botões interativos');
 
+const chatIdTitular = (ctx.ConfigService && ctx.ConfigService.getPrimary)
+  ? ctx.ConfigService.getPrimary("TELEGRAM_CHAT_ID")
+  : (ctx.ConfigService ? String(ctx.ConfigService.get("TELEGRAM_CHAT_ID") || "123").split(",")[0].trim() : "123");
+
 let msgEnviadasF1 = [];
 ctx.enviarMensagemComTecladoParaChat = (id, texto, kb) => {
   msgEnviadasF1.push({ texto, kb });
@@ -160,32 +164,32 @@ ctx.enviarMensagemParaChat = (id, texto) => {
 };
 
 msgEnviadasF1 = [];
-ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/enfermaria' });
+ctx.processarMensagemTexto({ chat: { id: chatIdTitular }, text: '/enfermaria' });
 assert.ok(msgEnviadasF1.length > 0 && msgEnviadasF1[0].kb, '/enfermaria deve retornar teclado inline');
 assert.strictEqual(msgEnviadasF1[0].kb.inline_keyboard.flat().length, 7);
 
 msgEnviadasF1 = [];
-ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/rotina' });
+ctx.processarMensagemTexto({ chat: { id: chatIdTitular }, text: '/rotina' });
 assert.ok(msgEnviadasF1.length > 0 && msgEnviadasF1[0].kb, '/rotina deve retornar teclado inline');
 assert.strictEqual(msgEnviadasF1[0].kb.inline_keyboard.flat().length, 7);
 
 msgEnviadasF1 = [];
-ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/diabetes' });
+ctx.processarMensagemTexto({ chat: { id: chatIdTitular }, text: '/diabetes' });
 assert.ok(msgEnviadasF1.length > 0 && msgEnviadasF1[0].kb, '/diabetes deve retornar teclado inline');
 assert.strictEqual(msgEnviadasF1[0].kb.inline_keyboard.flat().length, 4);
 
 msgEnviadasF1 = [];
-ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/anemia' });
+ctx.processarMensagemTexto({ chat: { id: chatIdTitular }, text: '/anemia' });
 assert.ok(msgEnviadasF1.length > 0 && msgEnviadasF1[0].kb, '/anemia deve retornar teclado inline');
 assert.strictEqual(msgEnviadasF1[0].kb.inline_keyboard.flat().length, 2);
 
 // Validação dos aliases antigos continuando ativos
 msgEnviadasF1 = [];
-ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/alta' });
+ctx.processarMensagemTexto({ chat: { id: chatIdTitular }, text: '/alta' });
 assert.ok(msgEnviadasF1.length > 0, '/alta deve responder como alias');
 
 msgEnviadasF1 = [];
-ctx.processarMensagemTexto({ chat: { id: '123' }, text: '/tasks' });
+ctx.processarMensagemTexto({ chat: { id: chatIdTitular }, text: '/tasks' });
 assert.ok(msgEnviadasF1.length > 0, '/tasks deve responder como alias');
 
 console.log('🎉 TODOS OS TESTES DE SIMPLIFICAÇÃO, EXPURGO E CONDUTA BEIRA-LEITO PASSARAM COM 100% DE SUCESSO!');
