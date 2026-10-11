@@ -1,5 +1,29 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C1. [x] **Rotação Imediata 0ms entre Contas em Erro de Cota 429 (`tooling/autoloop/autoloop.py`, `tooling/autoloop/install.py` e `tooling/autoloop/tests/test_rotacao_cota_0ms.py`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Quando uma conta atingia cooldown de cota (HTTP 429 / resource_exhausted), o autoloop tratava o ciclo como falha geral da tarefa (`pending`), incrementando prematuramente o contador de tentativas (`attempts` em `loop_guard`) e aplicando pausas artificiais de 2 segundos (`observed_sleep(2, 'entre_ciclos')`) e até 30 segundos (`observed_sleep(30, 'pendencia_sem_progresso')`).
+      * A cada tentativa subsequente, o autoloop reconstruía do zero o brief da tarefa (`build_task_brief`), gerando releituras lentas de disco, cálculo redundante de hashes SHA-256 e parsing repetitivo de logs.
+      * Na verificação de contas disponíveis (`obter_contas_disponiveis`), chamava-se `carregar_conta(i)` para todas as contas registradas, o que podia disparar renovações síncronas de token via requisições de rede Google OAuth2 no momento do chaveamento.
+      * Em erro 429, chamava-se desnecessariamente `sincronizar_token_ativo()`, introduzindo latência de I/O e D-Bus no GNOME Keyring.
+    - **Implementação e Refatoração**:
+      * Em `tooling/autoloop/autoloop.py`:
+        • Criado flag atômico `ultimo_ciclo_cota_esgotada`, sinalizando determinística e exclusivamente eventos de esgotamento de cota da API externa sem alterar a semântica booleana de retorno de `executar_ciclo`.
+        • Implementada função `conta_configurada_rapida(num)` com checagem instantânea de integridade de arquivos locais em disco (0ms) sem requisições de rede.
+        • Atualizada `obter_contas_disponiveis()` para operação 0ms em memória/disco local, eliminando latência na sincronização do pool.
+        • Adicionado parâmetro `aguardar_se_bloqueado=True` em `obter_proximo_alvo()`: quando `False`, retorna `None` instantaneamente (0ms) se todas as contas estiverem bloqueadas, permitindo consulta de disponibilidade sem sleep indesejado.
+        • No loop principal da tarefa, implementado fluxo de Rotação Imediata 0ms: se a Conta 1 retornar 429, o autoloop identifica o esgotamento, consulta imediatamente a próxima conta disponível no pool e executa a Conta 2 com **0ms de espera**, reaproveitando o brief da tarefa (`resumo_tarefa`) e o contexto aquecido já em memória sem penalizar o orçamento de tentativas da tarefa.
+        • O sleep de repouso (calculado com teto de 90s) foi estritamente condicionado ao cenário em que **todas as 7 contas configuradas** estiverem simultaneamente em janela de bloqueio.
+        • Em `executar_ciclo`, `sincronizar_token_ativo()` foi movido para disparar exclusivamente quando `processo.returncode == 0`, eliminando qualquer overhead de D-Bus/Keyring em falhas de cota.
+      * Em `tooling/autoloop/tests/test_rotacao_cota_0ms.py` e `tooling/autoloop/tests/conftest.py`:
+        • Criada nova suíte de testes com 5 cenários completos validando rotação 0ms, reaproveitamento de brief, zero sleeps intermediários, isolamento de sincronização de token e sleep exclusivo quando todas as 7 contas estão bloqueadas.
+        • Centralizado fixture `autoloop_mod` em `conftest.py`.
+      * Instalação conferida e validada via `tooling/autoloop/install.py` com backup atômico e atualização do executável do sistema.
+    - **Validação e Cobertura Automatizada**:
+      * 100% aprovado na nova suíte `tooling/autoloop/tests/test_rotacao_cota_0ms.py` (5/5).
+      * 100% de aprovação na suíte completa do autoloop (116/116 testes passando em 5.05s).
+      * 100% de aprovação em todos os testes do projeto (`npm test`, 49/49 suítes passando em 8.08s).
+
 0C0. [x] **Motores de IA e Fallback Local (`src/04_motores_ia.js`, `src/04_ia_local_fallback.js`, `server/runtime.js` e `server/index.js`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em `src/04_motores_ia.js`, a função `_iaChamarOllamaNativo` não estava desacoplada de `_iaProvLocal`, impedindo chamadas diretas polimórficas (tanto por URL/modelo quanto por sistema/prompt), e a função unificada `executarFallbackLocalOffline` não estava definida nem exportada em `src/04_motores_ia.js`.

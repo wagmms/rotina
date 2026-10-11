@@ -14,12 +14,12 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Motores de IA e Fallback Local (`src/04_motores_ia.js`, `src/04_ia_local_fallback.js` e `server/index.js`)**:
+- [x] **Rotação Imediata 0ms entre Contas em Erro de Cota 429 (`tooling/autoloop/autoloop.py`, `tooling/autoloop/install.py` e `tooling/autoloop/tests/test_rotacao_cota_0ms.py`)**:
     - **Diagnóstico e Correção**:
-      * Em `src/04_motores_ia.js`: Implementado endpoint nativo Ollama `_iaChamarOllamaNativo` com rota `/api/chat` e suporte polimórfico de chamadas; implementado Fast-Ack com detecção precoce de timeout de rede (`ETIMEDOUT`, `504 Gateway Timeout`) no `_iaProvGemini`, interrompendo a cascata sem reter a thread médica; atualizada assinatura de `executarRaciocinioClinico` para aceitar `opcoes` e mesclar com `{ clinico: true }`; adicionado `{ json: true }` nas chamadas de `gerarSOAPComIA` (Fases 1 e 2) com salvaguarda defensiva para contingência offline.
-      * Em `src/04_ia_local_fallback.js`: Implementado `executarFallbackLocalOffline` e aprimorado `estruturarJsonOffline` para cenários SOAP e emergências clínicas de alta gravidade (ACLS, Sepse, Anafilaxia, etc.), garantindo banner de contingência e preservação integral dos protocolos médicos.
-      * Em `server/index.js`: Expostos circuitos `local` e `ollama` em `/api/status`, e implementado Fast-Ack com retorno 200 OK e resposta protocolada segura no endpoint `/api/chat`.
-    - **Validação e Cobertura**: 100% aprovado nas suítes `tests/test_ia_motores_fallback_local.cjs` (9/9 blocos), `tests/test_motores_ia_fallback_local_fastack.cjs` (8/8 blocos), `tests/test_ia_local_fallback.cjs` (15/15), `tests/test_ia_local_offline.cjs` (9/9) e `tests/test_fastify_resiliencia_payloads.cjs` (11/11).
+      * Em `tooling/autoloop/autoloop.py`: Eliminadas pausas parciais (`observed_sleep(2, 'entre_ciclos')` e `observed_sleep(30, 'pendencia_sem_progresso')`) quando ocorre erro de cota 429; implementada checagem rápida de credenciais locais `conta_configurada_rapida` (0ms) sem chamadas de rede no pool; implementado parâmetro `aguardar_se_bloqueado=False` em `obter_proximo_alvo`; implementado loop com Rotação Imediata 0ms da Conta 1 para a Conta 2 reutilizando o brief (`resumo_tarefa`) e contexto aquecido já gerados em memória; condicionado o sleep de repouso (teto 90s) exclusivamente ao cenário em que todas as 7 contas configuradas estiverem bloqueadas simultaneamente; movido `sincronizar_token_ativo()` para executar apenas em `processo.returncode == 0`.
+      * Em `tooling/autoloop/tests/test_rotacao_cota_0ms.py`: Criada suíte completa com 5 cenários atestando transição 0ms, preservação de brief, isolamento de token sync e sleep restrito ao bloqueio coletivo de todas as contas.
+      * Instalação validada via `tooling/autoloop/install.py` com backup atômico e atualização de `~/.local/bin/autoloop`.
+    - **Validação e Cobertura**: 100% aprovado nas suítes unitárias do autoloop (116/116 testes) e em toda a suíte médica e backend do projeto (`npm test`, 49/49 suítes).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
