@@ -74,7 +74,11 @@ def select_failure(root=Path('.')):
         count = item.get('attempts', 0) if isinstance(item, dict) else 0
         return count if isinstance(count, int) and count >= 0 else 0
     # Cada pendência tem uma oportunidade antes de repetir a mesma investigação.
-    key = min(groups, key=attempts)
+    from loop_guard import task_allowed
+    eligible = [key for key in groups if task_allowed(key, root)]
+    if not eligible:
+        return None
+    key = min(eligible, key=attempts)
     members = groups[key]
     policy = read_json(Path(__file__).with_name('queue_policy.json'), {})
     hashes = policy.get(key, {})

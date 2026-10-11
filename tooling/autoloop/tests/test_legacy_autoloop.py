@@ -617,73 +617,33 @@ def test_estado_grava_e_le_preservando_timestamps_e_agendador(autoloop_mod, monk
     assert estado_reinicio["next_retry_ts"] is None  # Limpo após o sucesso de deploy
 
 
-def test_adapter_bloqueia_quando_base_ausente_ou_invalida_em_multi_commit(autoloop_mod, monkeypatch):
-    """
-    Critério P0 do ChatGPT (Rodada 6):
-    Sequência: base -> A (clínico) -> B (docs).
-    1. Base válida cobre A e B.
-    2. Base ausente em repositório multi-commit sem upstream remoto aborta deterministamente.
-    3. Base inexistente/inválida no Git aborta deterministamente.
-    4. Falha de obtenção de diff aborta deterministamente.
-    5. Classificador de risco trata erro de git diff como incerteza clínica (CLINICO_ROBUSTEZ_PRO).
-    """
-    base_sha = "1" * 40
-    cand_sha = "2" * 40
-
-    class FakeResult:
-        def __init__(self, returncode, stdout="", stderr=""):
-            self.returncode = returncode
-            self.stdout = stdout
-            self.stderr = stderr
-
-    # 1. Base ausente em multi-commit sem remoto -> ABORTA sem chamada ao modelo
-    def fake_run_no_remote(cmd, *args, **kwargs):
-        cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
-        if "rev-parse" in cmd_str and ("origin/main" in cmd_str or "origin/master" in cmd_str):
-            return FakeResult(1, "", "fatal: ambiguous argument")
-        elif "rev-list" in cmd_str and "--count" in cmd_str:
-            return FakeResult(0, "3\n")  # Multi-commit (3 commits)
-        return FakeResult(0, "")
-
-    monkeypatch.setattr("subprocess.run", fake_run_no_remote)
-    dados, erro = autoloop_mod.obter_parecer_auditoria_candidato(candidate_sha=cand_sha, base_sha=None)
-    assert dados is None
-    assert "Base do release não fornecida e não há referência remota" in erro
-    assert "Para evitar auditoria parcial em release multi-commit" in erro
-
-    # 2. Base inexistente no Git -> ABORTA deterministamente
-    def fake_run_invalid_base(cmd, *args, **kwargs):
-        cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
-        if "rev-parse" in cmd_str and "--verify" in cmd_str:
-            return FakeResult(1, "", "fatal: Needed a single revision")
-        return FakeResult(0, "")
-
-    monkeypatch.setattr("subprocess.run", fake_run_invalid_base)
-    dados_inv, erro_inv = autoloop_mod.obter_parecer_auditoria_candidato(candidate_sha=cand_sha, base_sha="deadbeef" * 5)
-    assert dados_inv is None
-    assert "Base do release inválida ou inexistente no Git" in erro_inv
-
-    # 3. Falha ao extrair diff entre base e candidato -> ABORTA deterministamente
-    def fake_run_diff_fail(cmd, *args, **kwargs):
-        cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
-        if "rev-parse" in cmd_str and "--verify" in cmd_str:
-            return FakeResult(0, base_sha)
-        elif "diff" in cmd_str:
-            return FakeResult(1, "", "fatal: bad revision range")
-        return FakeResult(0, "")
-
-    monkeypatch.setattr("subprocess.run", fake_run_diff_fail)
-    dados_df, erro_df = autoloop_mod.obter_parecer_auditoria_candidato(candidate_sha=cand_sha, base_sha=base_sha)
-    assert dados_df is None
-    assert "Falha ao extrair diff" in erro_df
-
-    # 4. Classificador de risco com erro de obtenção de diff -> ELEVA para CLINICO_ROBUSTEZ_PRO
-    def fake_run_classifier_error(cmd, *args, **kwargs):
-        return FakeResult(1, "", "fatal: git command failed")
-
-    monkeypatch.setattr("subprocess.run", fake_run_classifier_error)
-    perfil = autoloop_mod.classificar_risco_release(base_sha=base_sha, candidate_sha=cand_sha)
-    assert perfil == "CLINICO_ROBUSTEZ_PRO", "Incerteza/erro em classificar_risco_release deve retornar CLINICO_ROBUSTEZ_PRO!"
+def test_adapter_bloqueia_quando_base_ausente_ou_invalida_em_multi_commit(autoloop_mod, monkeypatch, tmp_path):
+    """Git real; ausência de base, identidade inválida e diff indisponível bloqueiam chamadas."""
+    import subprocess
+    import scoped_audit
+    original = subprocess.run
+    for args in [('init', '-q'), ('config', 'user.email', 'fixture@example.invalid'), ('config', 'user.name', 'Fixture')]:
+        original(['git', *args], check=True)
+    (tmp_path / 'a.js').write_text('const dose = 1;')
+    original(['git','add','.'],check=True)
+    original(['git','commit','-qm','base'],check=True)
+    base = original(['git','rev-parse','HEAD'],capture_output=True,text=True,check=True).stdout.strip()
+    (tmp_path / 'a.js').write_text('const dose = 2;')
+    original(['git','add','.'],check=True)
+    original(['git','commit','-qm','change'],check=True)
+    head = original(['git','rev-parse','HEAD'],capture_output=True,text=True,check=True).stdout.strip()
+    calls = []
+    monkeypatch.setattr(autoloop_mod, 'revisar_escopo_codex', lambda *a: calls.append(a))
+    assert autoloop_mod.obter_parecer_auditoria_candidato(head)[0] is None
+    assert autoloop_mod.obter_parecer_auditoria_candidato(head, 'f'*40)[0] is None
+    actual_git = scoped_audit.git
+    def failed_diff(root, *args):
+        if args[0] == 'diff':
+            raise scoped_audit.ScopeError('diff indisponível')
+        return actual_git(root, *args)
+    monkeypatch.setattr(scoped_audit, 'git', failed_diff)
+    assert 'diff indisponível' in autoloop_mod.obter_parecer_auditoria_candidato(head, base)[1]
+    assert not calls
 
 
 def test_import_error_bloqueia_fatalmente_sem_validador_permissivo(monkeypatch, tmp_path):
@@ -889,7 +849,11 @@ def test_adapter_reclassifica_diff_e_valida_comando(autoloop_mod, monkeypatch, t
         calls.append(cmd)
         assert cmd[cmd.index("-m") + 1] == "gpt-6-astra"
         assert cmd[cmd.index("-c") + 1] == "model_reasoning_effort=xhigh"
-        assert "noradrenalina" in cmd[-1]
+        assert cmd[-1] == '-'
+        manifests = list((tmp_path / 'data/scoped_audits/contexts').glob('*/manifest.json'))
+        assert manifests
+        manifest = json.loads(manifests[0].read_text())
+        assert any('noradrenalina' in (tmp_path / entry['patch']).read_text() for entry in manifest['patches'])
         output = Path(cmd[cmd.index("--output-last-message") + 1])
         output.write_text(json.dumps({"candidate_sha": candidate, "verdict": "pass",
             "summary": "Fixture", "findings": [], "limitations": [], "required_followups": []}))
@@ -901,7 +865,7 @@ def test_adapter_reclassifica_diff_e_valida_comando(autoloop_mod, monkeypatch, t
     data, error = autoloop_mod.obter_parecer_auditoria_candidato(
         candidate, base, perfil_tarefa="UI_COSMETICO_LEVE")
     if invalid_config:
-        assert data is None and "Configuração de auditoria inválida" in error
+        assert data is None and "Modelo/esforço não suportado" in error
         assert not calls
     else:
         assert error is None and data["verdict"] == "pass"

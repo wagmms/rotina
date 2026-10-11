@@ -116,7 +116,15 @@ def select_repair(root=Path('.')):
             continue
         if not groups:  # Ausência de auditoria não autoriza inventar defeitos no código.
             continue
+        scoped = read_json(root / 'data/.autoloop_scoped_audits.json', {}).get('sessions', {})
+        if isinstance(scoped, dict) and any(isinstance(session, dict) and session.get('status') == 'exhausted'
+                and set(session.get('files', [])) & {name for group in groups for name in group['files']}
+                for session in scoped.values()):
+            continue
         key = 'audit-' + packet.name
+        from loop_guard import task_allowed
+        if not task_allowed(key, root):
+            continue
         previous = attempts_state.get(key, {})
         count = previous.get('attempts', 0) if isinstance(previous, dict) else 0
         if isinstance(count, int) and count >= 2:
