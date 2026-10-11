@@ -98,3 +98,30 @@ def test_usage_meter_captures_agy_native_stream_and_phases():
     assert fields['agent_phases']['counts']['reading'] == 1
     assert fields['agent_phases']['counts']['editing'] == 1
     assert render_cli_event(json.dumps({'event': 'result', 'result': {'response': 'OK visual'}})) == 'OK visual'
+
+
+def test_calculate_agent_timeout_adaptive(monkeypatch):
+    from task_context import calculate_agent_timeout
+    
+    # 1. Tarefa Clínica / Pro / Thinking -> 1200s (20 minutos)
+    assert calculate_agent_timeout(profile="CLINICO_ROBUSTEZ_PRO", model="gemini-3.1-pro-high") == 1200
+    assert calculate_agent_timeout(profile="GERAL", model="gemini-3.1-pro-high") == 1200
+    assert calculate_agent_timeout(profile=None, model="claude-opus-5-5-high") == 1200
+    assert calculate_agent_timeout(profile=None, model="claude-opus-4-6-thinking") == 1200
+
+    # 2. Tarefa UI / Engenharia / Flash -> 600s (10 minutos)
+    assert calculate_agent_timeout(profile="UI_ENGENHARIA_FLASH", model="gemini-3.8-flash-high") == 600
+    assert calculate_agent_timeout(profile="GERAL_FLASH", model="gemini-3.8-flash-high") == 600
+    assert calculate_agent_timeout(profile=None, model="gemini-3.8-flash-high") == 600
+
+    # 3. Reparo de Auditoria de Engenharia -> 600s
+    assert calculate_agent_timeout(task_key="audit-1234567890abcdef", profile="UI_ENGENHARIA_FLASH") == 600
+
+    # 4. Caso indeterminado -> default (900s)
+    assert calculate_agent_timeout(profile=None, model="custom-model") == 900
+    assert calculate_agent_timeout(profile=None, model=None, default=750) == 750
+
+    # 5. Override via variável de ambiente AUTOLOOP_TIMEOUT
+    monkeypatch.setenv("AUTOLOOP_TIMEOUT", "450")
+    assert calculate_agent_timeout(profile="CLINICO_ROBUSTEZ_PRO", model="gemini-3.1-pro-high") == 450
+

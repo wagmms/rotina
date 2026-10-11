@@ -102,6 +102,7 @@ MODELOS_PADRAO = [
 # Rastreia o horário até o qual cada par (conta, id_modelo) está bloqueado por cota
 bloqueios = {}
 indice_conta_atual = 1
+ultimo_ciclo_cota_esgotada = False
 
 TERMOS_COTA = [
     "resource_exhausted",
@@ -128,16 +129,31 @@ def log(tipo, msg):
     }.get(tipo, CORES["reset"])
     print(f"{CORES['bold']}[{hora}]{CORES['reset']} {cor}[{tipo}]{CORES['reset']} {msg}")
 
+def conta_configurada_rapida(num):
+    """Verifica rapidamente no disco local se a conta possui arquivo de credencial válido (0ms)."""
+    try:
+        c_file = agy_contas.get_conta_file(num)
+        if c_file.exists() and c_file.stat().st_size > 10:
+            return True
+    except Exception:
+        pass
+    return False
+
 def obter_contas_disponiveis():
-    """Retorna dinamicamente a lista de contas que possuem token configurado."""
+    """Retorna dinamicamente a lista de contas que possuem token configurado de forma ultra-rápida (0ms)."""
     disponiveis = []
     for f in sorted(agy_contas.CONTAS_DIR.glob("conta*.json")):
         m = re.search(r'conta(\d+)\.json', f.name)
         if m:
             num = int(m.group(1))
-            if agy_contas.carregar_conta(num) is not None:
+            if conta_configurada_rapida(num):
                 disponiveis.append(num)
     if not disponiveis:
+        for i in range(1, agy_contas.TOTAL_CONTAS_PADRAO + 1):
+            if conta_configurada_rapida(i):
+                disponiveis.append(i)
+    if not disponiveis:
+        # Fallback defensivo usando carregar_conta caso a checagem rápida seja inconclusiva
         for i in range(1, agy_contas.TOTAL_CONTAS_PADRAO + 1):
             if agy_contas.carregar_conta(i) is not None:
                 disponiveis.append(i)
@@ -418,8 +434,9 @@ Tarefa selecionada para este ciclo:
    - SQUAD CONDICIONAL (SOB DEMANDA): Utilize a ferramenta 'invoke_subagent' apenas se houver duas ou mais frentes de trabalho extensas, independentes e paralelizáveis (ex: nova implementação em larga escala paralela à elaboração de uma nova suíte massiva de testes):
 {texto_agentes}
      {diretriz_auditor}
-3. GATE DE QUALIDADE (Zero Regressões):
-   - Durante a edição, use testes direcionados. Finalize as edições, build e PROGRESS.md antes de executar UMA bateria completa via npm run test:all; após ela, faça somente o commit. Se alterar arquivos depois dos testes, a validação precisará ser refeita. O executor cataloga as suítes, isola os dados e registra duração e falhas.
+3. GATE DE QUALIDADE (Execução Direcionada / Test Sharding / Fast-Fail & Zero Regressões):
+   - FASE DE ITERAÇÃO (FAST-FAIL / TEST SHARDING): Durante a edição, refatoração e depuração de código, É TERMINANTEMENTE PROIBIDO rodar a bateria completa repetidas vezes! Execute EXCLUSIVAMENTE a suíte direcionada do arquivo editado (ex: `node scripts/run_tests.cjs tests/test_obstetricia_prenatal.cjs` ou `node tests/test_obstetricia_prenatal.cjs`), obtendo feedback imediato em ~0.3s a 0.5s.
+   - FASE DE CONCLUSÃO (RECIBO DE ESTABILIDADE): Somente após concluir as edições, build e atualizar o PROGRESS.md, execute UMA ÚNICA bateria completa de regressão via npm run test:all para emitir o recibo oficial de estabilidade (.autoloop_test_receipt.json) antes do commit. Se alterar arquivos depois dos testes, a identidade SHA-256 é invalidada e a validação precisará ser refeita. O executor cataloga as suítes, isola os dados e registra duração e falhas.
    - Não execute a mesma bateria simultaneamente no agente principal e no QA. Testes finais e auditoria devem ler código estável; agentes não podem editar o mesmo arquivo simultaneamente.
    - Se usar processo em segundo plano, acompanhe a conclusão e o código de saída antes de concluir o turno. Não use espera cega de 30 minutos.
    - Conteúdo clínico, unidades, doses, limites, contraindicações, fontes e salvaguardas devem ser preservados integralmente. Testes simulados não comprovam equivalência clínica.
@@ -442,7 +459,9 @@ _execution_shared = Path.home() / ".local" / "lib" / "autoloop_core"
 sys.path.insert(0, str(_execution_local if (_execution_local / "execution.py").exists() else _execution_shared))
 from execution import run_observed, stop_process_group, fingerprint_tree, record_metric, observed_sleep
 from failure_queue import select_failure, record_attempt
-from task_context import build_task_brief, UsageMeter, render_cli_event
+from task_context import (build_task_brief, UsageMeter, render_cli_event,
+                          coletar_telemetria_ciclo, formatar_bloco_telemetria,
+                          calculate_agent_timeout)
 from scoped_audit import build_scopes, evaluate_scopes
 from loop_guard import acquire_project_lock, task_allowed, mark_task, last_lock_holder, check_unreleased_diff_size
 from audit_repairs import capture_rejection, select_repair, audit_retry_timeout, record_approved, archive_raw_result, ready_for_reaudit, pending_repair_bypass_audit
@@ -604,6 +623,12 @@ try:
 except ImportError:
     def garantir_progress_enxuto(*args, **kwargs):
         return False
+
+try:
+    from prune_artifacts import prune_artifacts
+except ImportError:
+    def prune_artifacts(*args, **kwargs):
+        return {}
 
 
 AUDIT_DIR = Path("data/auditorias_codex")
@@ -786,6 +811,12 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
     except Exception:
         pass
 
+    # Limpeza preventiva e profilática de artefatos antigos (contextos, reparos e relatórios)
+    try:
+        prune_artifacts(".", max_age_days=5, max_releases=30)
+    except Exception:
+        pass
+
     print(f"\n{CORES['bold']}{'─' * 60}{CORES['reset']}")
     foco_tarefa = ""
     if tarefa_ativa:
@@ -799,7 +830,7 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
     if forever:
         diretriz_kaizen = """5. DIRETRIZ ABSOLUTA DO USUÁRIO (CONSERTO DE ERROS, TESTES CONTÍNUOS E OTIMIZAÇÃO DA EXPERIÊNCIA):
    - FOCO PRIMÁRIO: Conserto sistemático de erros, eliminação de bugs e otimização profunda da experiência do usuário (UI/UX, agilidade, clareza e fluidez do bot do Telegram, Cockpit PWA e rotas Fastify).
-   - TESTES SISTEMÁTICOS DE TODAS AS FUNÇÕES: A cada ciclo, teste ativamente as funções do bot, Cockpit e calculadoras, executando a bateria completa uma vez ao fechar o ciclo (npm run test:all) e ampliando testes direcionados quando necessário e verificando se todas as funções respondem corretamente sem exceções ou regressões.
+   - TESTES DIRECIONADOS NA ITERAÇÃO & BATERIA COMPLETA NA CONCLUSÃO (TEST SHARDING): Durante o ciclo de iteração, execute apenas a suíte correspondente ao arquivo editado (ex: `node scripts/run_tests.cjs tests/test_obstetricia_prenatal.cjs` em ~0.3s a 0.5s). Execute a bateria completa de regressão (`npm run test:all`) UMA ÚNICA VEZ apenas no fechamento da tarefa, gerando o recibo de estabilidade antes do commit.
    - CONSERTO, OTIMIZAÇÃO E EFICIÊNCIA: Ao detectar qualquer falha, lentidão, excesso de passos ou atrito de uso, conserte e otimize o código para torná-lo mais rápido e eficiente, SEM JAMAIS PERDER a qualidade teórica, o rigor científico e a segurança clínica beira-leito.
    - SUGESTÕES PARA O FUTURO: Enquanto analisa e testa as funções, registre ideias e sugestões de evolução futura em docs/SUGESTOES_FUTURAS.md (mantendo apenas as mais recentes no PROGRESS.md; NÃO implementar novas funcionalidades no código agora).
    - MODELOS: O Gemini Pro é utilizado EXCLUSIVAMENTE quando for necessária auditoria/validação de conteúdo clínico e precisão teórica de cálculos médicos. O Gemini Flash faz todo o resto (bateria de testes, UI/UX, bot Telegram, Cockpit, Fastify, otimizações e correções gerais).
@@ -948,11 +979,18 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
             if os.getenv("AUTOLOOP_DEBUG"):
                 print(f"  [DEBUG-STREAM] {exc}", flush=True)
 
+    timeout_ciclo = calculate_agent_timeout(
+        profile=perfil_tarefa,
+        model=id_modelo,
+        task_key=task_key
+    )
+    log("INFO", f"⏱️ Timeout adaptativo do agente: {timeout_ciclo // 60}m ({timeout_ciclo}s) [Perfil: {perfil_tarefa or 'PADRAO'} | Modelo: {id_modelo}]")
+
     try:
         processo = run_observed(cmd, stage="ciclo_agy", on_line=receber_linha,
                                 on_start=_registrar_processo_ativo,
                                 emit=_emitir_evento_equilibrado,
-                                timeout=1500)
+                                timeout=timeout_ciclo)
     except KeyboardInterrupt:
         log("AVISO", "Execução interrompida; ciclo não validado.")
         return False
@@ -1002,6 +1040,11 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
         log("AVISO", f"Cota esgotada para {nome_modelo} na Conta {num_conta} ({email})! Bloqueado por {tempo_str} (liberação: {libera.strftime('%d/%m %H:%M')})")
         return False
 
+    if processo.returncode == 124:
+        log("AVISO", f"⏱️ Processo agy interrompido por timeout adaptativo ({timeout_ciclo}s). Orçamento de tempo esgotado para o perfil {perfil_tarefa or 'PADRAO'}.")
+        observed_sleep(3, 'timeout_adaptativo')
+        return False
+
     if processo.returncode != 0:
         log("AVISO", f"Processo encerrou com código {processo.returncode}.")
         # Erro operacional não prova esgotamento de cota.
@@ -1044,6 +1087,8 @@ def enviar_relatorio_ciclo_rotina(nome_modelo, num_conta, nome_squad="Squad Padr
     commits = coletar_mudancas_ciclo(horas=1.0)
     hora_str = datetime.now().strftime("%d/%m/%Y às %H:%M")
     novo_head = obter_commit_head()
+    telemetria_ciclo = coletar_telemetria_ciclo(horas=1.0)
+    linha_telemetria = formatar_bloco_telemetria(telemetria_ciclo)
 
     linhas = [
         "🚀 <b>ULTRA ROTINA · ATUALIZAÇÃO DO AUTOLOOP</b>",
@@ -1053,6 +1098,8 @@ def enviar_relatorio_ciclo_rotina(nome_modelo, num_conta, nome_squad="Squad Padr
         f"⚡ <b>Squad:</b> <code>{nome_squad}</code>",
         f"🔖 <b>Commit HEAD:</b> <code>{novo_head}</code>"
     ]
+    if linha_telemetria:
+        linhas.append(linha_telemetria)
 
     if concluidas:
         linhas.append("")
@@ -1085,6 +1132,7 @@ def enviar_relatorio_ciclo_rotina(nome_modelo, num_conta, nome_squad="Squad Padr
             "conta": num_conta,
             "squad": nome_squad,
             "commit_head": novo_head,
+            "telemetria": telemetria_ciclo,
             "tarefas_concluidas": concluidas[:5],
             "proxima_tarefa": proxima,
             "commits_recentes": commits[:5],
@@ -1758,10 +1806,12 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=6.0, commit_anterior=None,
 
     novo_head = obter_commit_head()
 
-    # 5. Coleta de mudanças do ciclo e sugestões futuras
+    # 5. Coleta de mudanças do ciclo, sugestões futuras e telemetria
     commits = coletar_mudancas_ciclo(commit_anterior=commit_anterior, horas=intervalo_horas)
     concluidas, proxima = coletar_status_progress()
     sugestoes = coletar_sugestoes_futuras()
+    telemetria_ciclo = coletar_telemetria_ciclo(horas=intervalo_horas)
+    linha_telemetria = formatar_bloco_telemetria(telemetria_ciclo)
 
     # 6. Montagem do Relatório em HTML para o Telegram
     relatorio_html_linhas = [
@@ -1773,9 +1823,14 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=6.0, commit_anterior=None,
         f"🧪 <b>Testes:</b> {'✅ 100% Aprovados (Sem Erros)' if testes_ok else '⚠️ Falha em testes'}",
         f"📦 <b>Bundle Master:</b> {'✅ Compilado & Verificado' if build_ok else '⚠️ Verifique build'}",
         f"🔖 <b>Commit HEAD:</b> <code>{novo_head}</code>",
+    ]
+    if linha_telemetria:
+        relatorio_html_linhas.append(linha_telemetria)
+
+    relatorio_html_linhas.extend([
         "",
         "📋 <b>Principais Mudanças Realizadas no Ciclo:</b>"
-    ]
+    ])
 
     if commits:
         for c in commits[:10]:
@@ -1830,6 +1885,7 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=6.0, commit_anterior=None,
             "push_ok": push_ok,
             "testes_ok": testes_ok,
             "build_ok": build_ok,
+            "telemetria": telemetria_ciclo,
             "tarefas_concluidas": concluidas[:5],
             "proxima_tarefa": proxima,
             "commits_recentes": commits[:10],

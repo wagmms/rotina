@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import time
+import os
 from failure_queue import read_json, save_json
 
 
@@ -226,3 +227,227 @@ def summarize_metrics(root=Path('.')):
         if not group['tokens']:
             group['tokens'] = None
     return list(groups.values())
+
+
+def calculate_agent_timeout(profile=None, model=None, task_key=None, default=900):
+    """
+    Calcula timeout adaptativo por complexidade da tarefa e modelo utilizado:
+    - Override via variável de ambiente AUTOLOOP_TIMEOUT (segundos).
+    - Tarefas Clínicas / Modelos de Raciocínio (Pro / Opus / Thinking):
+      1200 segundos (20 minutos) para assegurar tempo adequado de raciocínio
+      médico, checagem cruzada de diretrizes e cálculos farmacológicos.
+    - Reparos de Auditoria (task_key começando com 'audit-'):
+      600s (10 min) para engenharia/UI; 900s (15 min) para clínico.
+    - Tarefas de Engenharia / UI / Geral (Gemini Flash):
+      600 segundos (10 minutos), impedindo que tarefas simples de interface
+      ou testes fiquem presas em loops longos de leitura.
+    - Demais tarefas / Não classificado: default (900 segundos / 15 minutos).
+    """
+    env_override = os.getenv("AUTOLOOP_TIMEOUT")
+    if env_override:
+        try:
+            val = int(env_override)
+            if val > 0:
+                return val
+        except ValueError:
+            pass
+
+    prof = str(profile or '').upper()
+    mod = str(model or '').lower()
+    key = str(task_key or '').lower()
+
+    # 1. Risco Clínico ou Modelos de Raciocínio Profundo
+    eh_clinico = ('CLINICO' in prof) or any(k in mod for k in ['pro', 'opus', 'thinking'])
+    if eh_clinico:
+        return 1200  # 20 minutos
+
+    # 2. Reparos de Auditoria
+    if key.startswith('audit-'):
+        return 600  # 10 minutos para reparos de engenharia
+
+    # 3. Engenharia, UI, Fastify e Testes (Gemini Flash)
+    eh_flash = ('FLASH' in prof) or ('flash' in mod) or (prof in {'UI_ENGENHARIA_FLASH', 'GERAL_FLASH'})
+    if eh_flash:
+        return 600  # 10 minutos
+
+    return default
+
+
+def formatar_tokens(n):
+    """Formata contagem de tokens de forma concisa e legível (ex: 142k, 18k, 1.5M)."""
+    if not isinstance(n, (int, float)) or n <= 0:
+        return "0"
+    n = int(round(n))
+    if n >= 1_000_000:
+        val = n / 1_000_000
+        return f"{val:.1f}M".replace(".0M", "M")
+    if n >= 1_000:
+        val = n / 1000
+        if val >= 10:
+            return f"{round(val)}k"
+        return f"{val:.1f}k".replace(".0k", "k")
+    return str(n)
+
+
+def formatar_duracao(segundos):
+    """Formata duração em segundos para notação limpa (ex: 6m12s, 45s, 1h05m)."""
+    if not isinstance(segundos, (int, float)) or segundos <= 0:
+        return "0s"
+    segundos = round(segundos)
+    if segundos >= 3600:
+        h = segundos // 3600
+        m = (segundos % 3600) // 60
+        s = segundos % 60
+        return f"{h}h{m:02d}m{s:02d}s" if s else f"{h}h{m:02d}m"
+    if segundos >= 60:
+        m = segundos // 60
+        s = segundos % 60
+        return f"{m}m{s:02d}s"
+    return f"{segundos}s"
+
+
+def coletar_telemetria_ciclo(root=Path('.'), horas=6.0, desde_ts=None):
+    """
+    Coleta e agrega o consumo de tokens e durações do ciclo a partir de data/autoloop_metrics.jsonl.
+    Suporta filtragem por horas retroativas ou por timestamp de corte (desde_ts).
+    """
+    target = Path(root) / 'data/autoloop_metrics.jsonl'
+    telemetria = {
+        'input_tokens': 0,
+        'output_tokens': 0,
+        'thinking_tokens': 0,
+        'cache_read_tokens': 0,
+        'cache_hit_pct': None,
+        'avg_seconds': None,
+        'records_count': 0
+    }
+    if not target.is_file():
+        return telemetria
+
+    agora = time.time()
+    corte_ts = desde_ts if desde_ts is not None else (agora - float(horas) * 3600.0)
+
+    duracoes = []
+    linhas_consumo = []
+    linhas_tarefa = []
+
+    try:
+        with target.open('r', encoding='utf-8') as f:
+            for line in f:
+                line_str = line.strip()
+                if not line_str:
+                    continue
+                try:
+                    item = json.loads(line_str)
+                except ValueError:
+                    continue
+                if not isinstance(item, dict):
+                    continue
+
+                ts = item.get('time')
+                if not isinstance(ts, (int, float)):
+                    continue
+
+                if ts < corte_ts:
+                    continue
+
+                stage = item.get('stage')
+                if stage == 'consumo_agy':
+                    linhas_consumo.append(item)
+                elif stage in {'tarefa', 'ciclo_agy'} and item.get('status') in {'passed', 'failed', 'pending', 'reported'}:
+                    linhas_tarefa.append(item)
+    except Exception:
+        return telemetria
+
+    # Fallback se não houver registros dentro do corte temporal exato
+    if not linhas_consumo:
+        try:
+            with target.open('r', encoding='utf-8') as f:
+                todas_consumo = []
+                for line in f:
+                    try:
+                        it = json.loads(line)
+                        if isinstance(it, dict) and it.get('stage') == 'consumo_agy':
+                            todas_consumo.append(it)
+                    except ValueError:
+                        continue
+                linhas_consumo = todas_consumo[-10:]
+        except Exception:
+            pass
+
+    for item in linhas_consumo:
+        tokens = item.get('tokens')
+        in_tok = (tokens.get('input_tokens') if isinstance(tokens, dict) else None) or item.get('input_tokens') or 0
+        out_tok = (tokens.get('output_tokens') if isinstance(tokens, dict) else None) or item.get('output_tokens') or 0
+        cache_tok = None
+        if isinstance(tokens, dict):
+            cache_tok = tokens.get('cache_read_input_tokens') or tokens.get('cache_read_tokens')
+        if cache_tok is None:
+            cache_tok = item.get('cache_read_input_tokens') or item.get('cache_read_tokens') or 0
+        think_tok = (tokens.get('thinking_tokens') if isinstance(tokens, dict) else None) or item.get('thinking_tokens') or 0
+
+        sec = item.get('seconds')
+        if isinstance(sec, (int, float)) and sec > 0:
+            duracoes.append(sec)
+
+        if in_tok > 0 or out_tok > 0 or cache_tok > 0:
+            telemetria['input_tokens'] += in_tok
+            telemetria['output_tokens'] += out_tok
+            telemetria['cache_read_tokens'] += cache_tok
+            telemetria['thinking_tokens'] += think_tok
+            telemetria['records_count'] += 1
+
+    # Durações das tarefas completadas têm prioridade para a métrica de tempo médio do ciclo
+    tarefas_sec = [t.get('seconds') for t in linhas_tarefa if isinstance(t.get('seconds'), (int, float)) and t.get('seconds') > 0]
+    if tarefas_sec:
+        telemetria['avg_seconds'] = round(sum(tarefas_sec) / len(tarefas_sec), 2)
+    elif duracoes:
+        telemetria['avg_seconds'] = round(sum(duracoes) / len(duracoes), 2)
+
+    total_in = telemetria['input_tokens']
+    total_cache = telemetria['cache_read_tokens']
+    if total_in > 0:
+        if total_cache <= total_in:
+            telemetria['cache_hit_pct'] = round((total_cache / total_in) * 100)
+        else:
+            telemetria['cache_hit_pct'] = round((total_cache / (total_in + total_cache)) * 100)
+    elif total_cache > 0:
+        telemetria['cache_hit_pct'] = 100
+
+    return telemetria
+
+
+def formatar_bloco_telemetria(telemetria):
+    """
+    Formata bloco HTML leve para o Telegram:
+    Ex: 📊 <b>Telemetria do Ciclo:</b> 142k in · 18k out (84% cache hit) · Tempo médio: 6m12s
+    """
+    if not isinstance(telemetria, dict):
+        return None
+
+    in_tok = telemetria.get('input_tokens') or 0
+    out_tok = telemetria.get('output_tokens') or 0
+    hit_pct = telemetria.get('cache_hit_pct')
+    avg_sec = telemetria.get('avg_seconds')
+
+    if in_tok == 0 and out_tok == 0 and (avg_sec is None or avg_sec <= 0):
+        return None
+
+    partes = []
+    if in_tok > 0 or out_tok > 0:
+        in_str = f"{formatar_tokens(in_tok)} in"
+        hit_str = f"({hit_pct}% cache hit)" if hit_pct is not None else "(0% cache hit)"
+        out_str = f"{formatar_tokens(out_tok)} out {hit_str}"
+        partes.append(in_str)
+        partes.append(out_str)
+
+    if avg_sec is not None and avg_sec > 0:
+        partes.append(f"Tempo médio: {formatar_duracao(avg_sec)}")
+
+    if not partes:
+        return None
+
+    conteudo = " · ".join(partes)
+    return f"📊 <b>Telemetria do Ciclo:</b> {conteudo}"
+
+
