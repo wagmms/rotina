@@ -130,3 +130,60 @@ def test_identical_rejection_does_not_reset_repair_attempts(tmp_path):
     second = capture_rejection(sha, report=report(sha), root=tmp_path)
     assert second['report_path'] == first['report_path']
     assert select_repair(tmp_path) is None
+
+
+def test_classify_repair_response_via_resolution_and_markdown(tmp_path):
+    from audit_repairs import classify_repair_response
+    packet = tmp_path / "packet"
+    packet.mkdir()
+    
+    # 1. Sem arquivos de resolução
+    assert classify_repair_response(packet) == 'INDEFINIDO'
+    
+    # 2. Com resolution.json indicando EXIGENCIA_DIFERENTE
+    res_json = packet / "resolution.json"
+    res_json.write_text(json.dumps({"classification": "EXIGENCIA_DIFERENTE"}))
+    assert classify_repair_response(packet) == 'EXIGENCIA_DIFERENTE'
+    
+    # 3. Com resolution.json indicando DEFEITO_REAL
+    res_json.write_text(json.dumps({"classification": "DEFEITO_REAL"}))
+    assert classify_repair_response(packet) == 'DEFEITO_REAL'
+    res_json.unlink()
+    
+    # 4. Via response.md com termos de exigência diferente
+    resp_md = packet / "response.md"
+    resp_md.write_text("Análise: o apontamento é apenas uma exigência diferente de estilo, sem erro real no código.")
+    assert classify_repair_response(packet) == 'EXIGENCIA_DIFERENTE'
+    
+    # 5. Via response.md com defeito real consertado
+    resp_md.write_text("Análise: foi constatado defeito real de cálculo e corrigido o defeito.")
+    assert classify_repair_response(packet) == 'DEFEITO_REAL'
+
+
+def test_pending_repair_bypass_audit_releases_deploy_for_exigencia_diferente(tmp_path):
+    from audit_repairs import pending_repair_bypass_audit
+    sha = repository(tmp_path)
+    meta = capture_rejection(sha, report=report(sha), root=tmp_path)
+    state = json.loads((tmp_path / 'data/.autoloop_audit_repairs.json').read_text())
+    packet = tmp_path / state[sha]['packet']
+    
+    # Antes de resposta: sem bypass
+    bypass, rejected = pending_repair_bypass_audit(tmp_path)
+    assert not bypass
+    
+    # Gemini responde como EXIGENCIA_DIFERENTE
+    (packet / 'response.md').write_text("Tag: EXIGENCIA_DIFERENTE. Apontamento sem erro real no repositório.")
+    
+    # Candidato descendente (commit criado após a resposta)
+    (tmp_path / 'src/a.js').write_text('const n = 10;')
+    subprocess.run(['git', 'add', '.'], cwd=tmp_path, check=True)
+    subprocess.run(['git', 'commit', '-qm', 'update docs and acknowledge'], cwd=tmp_path, check=True)
+    
+    bypass, rejected = pending_repair_bypass_audit(tmp_path)
+    assert bypass is True
+    assert rejected == sha
+    
+    # Se o Gemini classificasse como DEFEITO_REAL, não deveria haver bypass (deve ir para 2ª auditoria)
+    (packet / 'response.md').write_text("Confirmado: defeito real corrigido.")
+    bypass, rejected = pending_repair_bypass_audit(tmp_path)
+    assert not bypass

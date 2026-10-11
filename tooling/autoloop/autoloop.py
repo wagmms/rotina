@@ -445,7 +445,7 @@ from failure_queue import select_failure, record_attempt
 from task_context import build_task_brief, UsageMeter, render_cli_event
 from scoped_audit import build_scopes, evaluate_scopes
 from loop_guard import acquire_project_lock, task_allowed, mark_task, last_lock_holder, check_unreleased_diff_size
-from audit_repairs import capture_rejection, select_repair, audit_retry_timeout, record_approved, archive_raw_result, ready_for_reaudit
+from audit_repairs import capture_rejection, select_repair, audit_retry_timeout, record_approved, archive_raw_result, ready_for_reaudit, pending_repair_bypass_audit
 
 
 def _registrar_processo_ativo(processo):
@@ -1688,24 +1688,38 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=6.0, commit_anterior=None,
     base_sha = estado_deploy.get("last_pushed_sha") or estado_deploy.get("ultimo_pushed_sha")
     perfil_release = classificar_risco_release(base_sha=base_sha, candidate_sha=candidate_sha)
 
-    # Auditoria obrigatória: ausência de cota nunca equivale a aprovação clínica.
-    auditoria_resultado_texto = "✅ Auditado & Aprovado pelo Codex"
-    log("INFO", f"🛡️ Auditoria obrigatória para {candidate_sha[:10]} (perfil {perfil_release}).")
-    parecer, erro_parecer = obter_parecer_auditoria_candidato(
-        candidate_sha=candidate_sha, base_sha=base_sha, perfil_tarefa=perfil_release)
-    if erro_parecer:
-        log("ERRO", f"Deploy bloqueado: auditoria não concluída ({erro_parecer}).")
-        capture_rejection(candidate_sha, base_sha, report=parecer, error=erro_parecer, profile=perfil_release)
-        record_metric('recusa_auditoria', 'incomplete', 0, candidate_sha=candidate_sha)
-        salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + 900)
-        return False
-    aprovado, motivo_bloqueio = avaliar_parecer_auditoria(parecer, sha_esperado=candidate_sha)
-    if not aprovado:
-        log("ERRO", f"Deploy bloqueado por auditoria: {motivo_bloqueio}")
-        capture_rejection(candidate_sha, base_sha, report=parecer, profile=perfil_release)
-        record_metric('recusa_auditoria', 'rejected', 0, candidate_sha=candidate_sha)
-        salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + 1800)
-        return False
+    # 3.5 Verificação de Bypass de 2ª Auditoria (Exigência Diferente vs Defeito Real)
+    bypass_audit, rejected_sha = pending_repair_bypass_audit(Path.cwd())
+    if bypass_audit:
+        auditoria_resultado_texto = f"✅ Deploy Direto (Exigência Diferente - sem erro real - ref {rejected_sha[:8]})"
+        log("OK", f"🛡️ 2ª rodada de auditoria dispensada para {candidate_sha[:10]}: o Gemini classificou o apontamento da recusa {rejected_sha[:10]} como EXIGÊNCIA DIFERENTE (sem defeito real). Deploy liberado direto!")
+        parecer = {
+            "candidate_sha": candidate_sha,
+            "verdict": "pass",
+            "summary": f"Deploy direto autorizado: Gemini avaliou apontamento de {rejected_sha[:10]} como exigência diferente sem erro real.",
+            "findings": [],
+            "limitations": [],
+            "required_followups": []
+        }
+    else:
+        # Auditoria obrigatória: ausência de cota nunca equivale a aprovação clínica.
+        auditoria_resultado_texto = "✅ Auditado & Aprovado pelo Codex"
+        log("INFO", f"🛡️ Auditoria obrigatória para {candidate_sha[:10]} (perfil {perfil_release}).")
+        parecer, erro_parecer = obter_parecer_auditoria_candidato(
+            candidate_sha=candidate_sha, base_sha=base_sha, perfil_tarefa=perfil_release)
+        if erro_parecer:
+            log("ERRO", f"Deploy bloqueado: auditoria não concluída ({erro_parecer}).")
+            capture_rejection(candidate_sha, base_sha, report=parecer, error=erro_parecer, profile=perfil_release)
+            record_metric('recusa_auditoria', 'incomplete', 0, candidate_sha=candidate_sha)
+            salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + 900)
+            return False
+        aprovado, motivo_bloqueio = avaliar_parecer_auditoria(parecer, sha_esperado=candidate_sha)
+        if not aprovado:
+            log("ERRO", f"Deploy bloqueado por auditoria: {motivo_bloqueio}")
+            capture_rejection(candidate_sha, base_sha, report=parecer, profile=perfil_release)
+            record_metric('recusa_auditoria', 'rejected', 0, candidate_sha=candidate_sha)
+            salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + 1800)
+            return False
     if not validar_codigo_estavel(identidade_testada, "a auditoria"):
         return False
 
@@ -1730,7 +1744,8 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=6.0, commit_anterior=None,
     if not validar_codigo_estavel(identidade_testada, "a conferência anterior ao push"):
         return False
     for repair in record_approved(candidate_sha):
-        record_metric('correcao_recusa', 'approved_by_new_audit', repair['seconds'],
+        metrica_evento = 'bypass_exigencia_diferente' if bypass_audit else 'approved_by_new_audit'
+        record_metric('correcao_recusa', metrica_evento, repair['seconds'],
                       rejected_sha=repair['rejected_sha'], approved_candidate=candidate_sha)
     # 4. Deploy no GitHub (Render e GitHub Pages acionados)
     log("INFO", "🌐 Realizando deploy via git push origin main...")

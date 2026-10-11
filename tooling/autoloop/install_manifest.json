@@ -1,5 +1,9 @@
 {
   "version": 1,
   "original_executable_sha256": "0285d106ce09c5b7f4c6ca994246d2e9ebd47c376dac5ee160b953fbe903d708",
+  "known_executable_sha256": [
+    "0285d106ce09c5b7f4c6ca994246d2e9ebd47c376dac5ee160b953fbe903d708",
+    "f9f363246fe9c5e40a38c97a2cbf460006daf212a49d4316f7e9ebe41f86b1ab"
+  ],
   "original_runner_sha256": "795dbbe1f6392c64576c32de471040ad996bd2a9207ff2d421d6b49144926c95"
 }

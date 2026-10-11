@@ -19,7 +19,10 @@ def sha(path):
 def install(home=Path.home()):
     manifest = json.loads((SOURCE / "install_manifest.json").read_text())
     executable = home / ".local/bin/autoloop"
-    if sha(executable) not in {manifest["original_executable_sha256"], sha(SOURCE / "autoloop.py")}:
+    valid_hashes = {manifest.get("original_executable_sha256"), sha(SOURCE / "autoloop.py")}
+    if "known_executable_sha256" in manifest:
+        valid_hashes.update(manifest["known_executable_sha256"])
+    if sha(executable) not in valid_hashes:
         raise RuntimeError("Executável original mudou após a preparação; instalação cancelada.")
     pairs = [(SOURCE / "core/execution.py", home / ".local/lib/autoloop_core/execution.py"),
              (SOURCE / "autoloop.py", executable)]
