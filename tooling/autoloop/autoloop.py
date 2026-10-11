@@ -449,9 +449,92 @@ def _registrar_processo_ativo(processo):
     _processo_agy_ativo = processo
 
 
+def formatador_etapa_resumido(etapa):
+    """
+    Formatador dinâmico de saída para etapas de execução:
+    - Para testes: exibe progresso dinâmico in-place (\r),
+      notifica falhas imediatamente e finaliza com resumo de 1 linha.
+    - Para build e demais etapas: resume saídas prolixas, mantendo avisos e erros.
+    """
+    total_suites = None
+    suites_ok = 0
+    eh_teste = "teste" in etapa.lower()
+
+    def emit(linha_bruta):
+        nonlocal total_suites, suites_ok
+        linha = str(linha_bruta).strip()
+        if not linha:
+            return
+
+        if eh_teste:
+            # Detecta total inicial de suítes se informado (ex: "[TESTES] 242 suítes; ...")
+            m_total = re.search(r'\[TESTES\]\s+(\d+)\s+suítes', linha)
+            if m_total:
+                total_suites = int(m_total.group(1))
+                sys.stdout.write(f"\r  🧪 [TESTES] Executando: 0/{total_suites} suítes...   ")
+                sys.stdout.flush()
+                return
+
+            # Suíte individual aprovada (ex: "[OK] tests/test_fastify.cjs: 0.89s")
+            if linha.startswith("[OK]") or linha.startswith("ok "):
+                suites_ok += 1
+                nome_suite = ""
+                m_nome = re.search(r'\[OK\]\s+tests/([^:]+)', linha)
+                if m_nome:
+                    nome_suite = m_nome.group(1)
+                    if len(nome_suite) > 28:
+                        nome_suite = nome_suite[:25] + "..."
+                total_str = f"/{total_suites}" if total_suites else ""
+                sys.stdout.write(f"\r  🧪 [TESTES] Progresso: {suites_ok}{total_str} concluídas ({nome_suite})    ")
+                sys.stdout.flush()
+                return
+
+            # Sumário de conclusão: "[TESTES] 242/242 aprovadas; 35.37s; ..."
+            if linha.startswith("[TESTES]") and "aprovadas" in linha:
+                sys.stdout.write("\r\033[K")
+                m_res = re.search(r'\[TESTES\]\s+(\d+/\d+\s+aprovadas;\s+[\d\.]+s)', linha)
+                res_str = m_res.group(1) if m_res else linha.replace("[TESTES]", "").strip()
+                print(f"  🧪 [TESTES] {CORES['green']}✅ {res_str}{CORES['reset']}", flush=True)
+                return
+
+            # Falhas ou erros em testes: exibe imediatamente em destaque
+            if any(k in linha for k in ["[FALHA]", "FAIL", "Error:", "AssertionError", "SyntaxError"]) or (linha.startswith("[TESTES]") and ("falha" in linha.lower() or "reprov" in linha.lower())):
+                sys.stdout.write("\r\033[K")
+                print(f"  ❌ {CORES['red']}{linha}{CORES['reset']}", flush=True)
+                return
+
+            # Bateria já aprovada por cache
+            if "Bateria completa já aprovada" in linha:
+                sys.stdout.write("\r\033[K")
+                print(f"  🧪 [TESTES] ⚡ Bateria já aprovada para este código estável.", flush=True)
+                return
+
+            # Heartbeat de testes paralelos ou progresso interno: não polui terminal
+            if "[PROGRESSO]" in linha and "Testes ativos:" in linha:
+                return
+
+            # Demais saídas não críticas durante testes são omitidas para manter o terminal limpo
+            return
+
+        # Para build
+        if "build" in etapa.lower():
+            if "sucesso" in linha.lower() or "ok" in linha.lower():
+                print(f"  📦 [BUILD] ✅ {linha}", flush=True)
+            elif "erro" in linha.lower() or "falha" in linha.lower():
+                print(f"  ❌ {CORES['red']}[BUILD] {linha}{CORES['reset']}", flush=True)
+            return
+
+        # Demais etapas: ignora ruídos e emite mensagens relevantes
+        if not any(ign in linha for ign in ["DEBUG:", "Traceback", "ConnectionResetError"]):
+            print(f"  [{etapa}] {linha}", flush=True)
+
+    return emit
+
+
 def executar_etapa(cmd, etapa, timeout=None, **kwargs):
+    handler = formatador_etapa_resumido(etapa)
     return run_observed(cmd, stage=etapa, timeout=timeout,
-                        emit=lambda msg: print(msg, flush=True),
+                        emit=handler,
                         on_start=_registrar_processo_ativo,
                         **kwargs)
 
