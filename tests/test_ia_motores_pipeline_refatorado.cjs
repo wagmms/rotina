@@ -174,5 +174,18 @@ test('Pipeline de Motores de IA - Refatoração e Resiliência', async (t) => {
     const res = ctx.chamarMotorIaComFallback('', '', 1000, {});
     assert.strictEqual(res, null, 'Deve retornar null com guard clause se prompt e sistema forem vazios');
   });
+
+  await t.test('11. Separação cirúrgica de cascatas: alta densidade clínica vs rápida para roteamento', () => {
+    assert.ok(ctx.IA_PADROES.GEMINI_CLINICO, 'IA_PADROES.GEMINI_CLINICO deve existir');
+    assert.ok(ctx.IA_PADROES.GEMINI_RAPIDO, 'IA_PADROES.GEMINI_RAPIDO deve existir');
+    assert.strictEqual(ctx.IA_PADROES.GEMINI_CLINICO[0], 'gemini-3.5-flash', 'Ponta da cascata clínica deve ser gemini-3.5-flash para máxima qualidade médica');
+    assert.strictEqual(ctx.IA_PADROES.GEMINI_RAPIDO[0], 'gemini-flash-lite-latest', 'Ponta da cascata rápida deve ser gemini-flash-lite-latest para latência mínima');
+
+    const modelosClinicos = ctx._iaLista('IA_MODELOS_CLINICOS_GEMINI', ctx.IA_PADROES.GEMINI_CLINICO);
+    assert.strictEqual(modelosClinicos[0], 'gemini-3.5-flash', 'Modelos clínicos devem priorizar raciocínio denso');
+
+    const modelosRapidos = ctx._iaLista('IA_MODELOS_RAPIDOS_GEMINI', ctx.IA_PADROES.GEMINI_RAPIDO);
+    assert.strictEqual(modelosRapidos[0], 'gemini-flash-lite-latest', 'Modelos rápidos devem priorizar velocidade');
+  });
 });
 

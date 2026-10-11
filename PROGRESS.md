@@ -19,16 +19,12 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Estabilidade e Resiliência da API — Resolução da Queda de Conexão e Timeout de IA (`src/00_config.js`, `src/04_motores_ia.js`)**:
-    - **Diagnóstico da Causa Raiz**:
-      * A cascata do Gemini iniciava por `gemini-3.7-flash` e `gemini-3.8-flash`, que na API do Google estão sob altíssima demanda, retornando HTTP 503 ou timeouts (>10s).
-      * A cada chave recebendo 503, o código registrava falha prematura no `IaCircuitBreaker`, abrindo o circuito global do Gemini e bloqueando todas as chamadas legítimas subsequentes para o modelo saudável `gemini-flash-lite-latest`.
-      * Durante os timeouts de rede (12s a 24s), o worker síncrono bloqueava a thread do Node via `Atomics.wait`, impedindo a resposta do healthcheck `/health` do Fastify e levando o Render a reiniciar o contêiner por timeout/falha de liveness.
-    - **Correção Cirúrgica Aplicada**:
-      * Em `src/00_config.js` e `src/04_motores_ia.js`: reordenada a lista de modelos para priorizar os modelos ultra-estáveis e rápidos `gemini-flash-lite-latest` (latência ~500ms-700ms) e `gemini-3.5-flash-lite`.
-      * Reduzido o timeout de fetch de 12s para 7s para evitar travar o event loop do Fastify.
-      * Tratamento isolado para HTTP 503 e 504: em caso de saturação do modelo no Google, aplica cooldown de 60s apenas no modelo específico e faz break imediato para o próximo modelo da cascata, sem abrir indevidamente o Circuit Breaker global do Gemini.
-    - **Validação e Resultados**: Latência de IA reduzida de 16.5s para 2.6s (1º tiro determinístico). 100% de aprovação na suíte completa (`npm test`: 49/49 suítes em 7.25s).
+- [x] **Blindagem da Qualidade Clínica da IA — Separação Cirúrgica das Cascatas Clínica e Rápida (`src/00_config.js`, `src/04_motores_ia.js`, `tests/test_ia_motores_pipeline_refatorado.cjs`)**:
+    - **Proteção da Cláusula Pétrea de Excelência Médica**:
+      * Em estrito alinhamento com a diretriz do usuário de não degradar a qualidade do conteúdo clínico para ganhos de velocidade/custo, desacoplou-se a cascata clínica da cascata de roteamento rápido.
+      * **Cascata Clínica (`IA_PADROES.GEMINI_CLINICO` / `IA_MODELOS_CLINICOS_GEMINI`)**: fixada com prioridade em modelos de alta densidade diagnóstica e raciocínio multimodal (`gemini-3.5-flash` e `gemini-flash-latest`), mantendo os modelos ultraleves (`gemini-flash-lite-latest` e `gemini-3.5-flash-lite`) exclusivamente como fallback emergencial de esgotamento de cotas (HTTP 429).
+      * **Cascata Rápida (`IA_PADROES.GEMINI_RAPIDO` / `IA_MODELOS_RAPIDOS_GEMINI`)**: mantém `gemini-flash-lite-latest` na ponta para intenções sem thinking, extração de texto, parsing de JSON e comandos de baixa latência (~500ms).
+    - **Validação e Resultados**: Teste unitário adicionado em `tests/test_ia_motores_pipeline_refatorado.cjs`. 100% de aprovação na suíte completa (`npm test`: 49/49 suítes em 7.17s com zero regressões).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

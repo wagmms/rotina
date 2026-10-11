@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 18:21:04
- * Checksum SHA256: 904d151b8f6f97d5
+ * Gerado automaticamente via build_master.py em: 2026-10-11 18:33:09
+ * Checksum SHA256: 80fca9f98a6d011d
  * ==============================================================================
  */
 
@@ -43,7 +43,8 @@ var ConfigService = (function() {
   // Todos os segredos e credenciais devem ser definidos exclusivamente em ScriptProperties.
   var DEFAULTS = {
     PROVEDOR_TEXTO_PADRAO: "GEMINI",
-    IA_MODELOS_CLINICOS_GEMINI: "gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.5-flash,gemini-flash-latest",
+    IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-latest,gemini-flash-lite-latest,gemini-3.5-flash-lite",
+    IA_MODELOS_RAPIDOS_GEMINI: "gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.1-flash-lite",
     IA_MODELOS_GEMINI: "gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.5-flash,gemini-flash-latest",
     IA_MODELOS_TTS_GEMINI: "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts",
     IA_MODELOS_LOCAL: "llama3.1:latest,llama3.2:latest,mistral:latest,llama3:8b,mistral:7b",
@@ -37773,8 +37774,10 @@ var IA_PADROES = {
   GROQ: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
   OPENROUTER: ["openrouter/free"],
   ZAI: ["glm-4.7-flash", "glm-4.5-flash"],
+  GEMINI_CLINICO: ["gemini-3.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.5-flash-lite"],
+  GEMINI_RAPIDO: ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"],
   GEMINI: ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"],
-  GEMINI_GROUNDING: ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"],
+  GEMINI_GROUNDING: ["gemini-3.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.5-flash-lite"],
   LOCAL: ["llama3.1:latest", "llama3.2:latest", "mistral:latest", "llama3:8b", "mistral:7b"]
 };
 
@@ -38351,11 +38354,11 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
   var modelos = opcoes.modelos;
   if (!modelos) {
     if (opcoes.clinico) {
-      // Salvaguarda clínica: restrito a modelos previamente avaliados e homologados para medicina
-      modelos = _iaLista("IA_MODELOS_CLINICOS_GEMINI", IA_PADROES.GEMINI);
+      // Salvaguarda clínica: restrito a modelos com alta capacidade de raciocínio clínico; lite apenas como fallback de cota
+      modelos = _iaLista("IA_MODELOS_CLINICOS_GEMINI", IA_PADROES.GEMINI_CLINICO);
     } else if (opcoes.semThinking || opcoes.extrativo) {
       // Modelos ultra-rápidos para roteamento e extração sintática de baixa latência
-      modelos = _iaLista("IA_MODELOS_RAPIDOS_GEMINI", ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]);
+      modelos = _iaLista("IA_MODELOS_RAPIDOS_GEMINI", IA_PADROES.GEMINI_RAPIDO);
     } else {
       modelos = _iaLista("IA_MODELOS_GEMINI", IA_PADROES.GEMINI);
     }

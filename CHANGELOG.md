@@ -1,5 +1,12 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C30. [x] **Blindagem da Qualidade Clínica da IA — Separação Cirúrgica das Cascatas Clínica e Rápida (`src/00_config.js`, `src/04_motores_ia.js`, `tests/test_ia_motores_pipeline_refatorado.cjs`)**:
+    - **Proteção da Cláusula Pétrea de Excelência Médica**:
+      * Em atendimento à diretriz estratégica de não degradar a qualidade do conteúdo clínico para ganhos de velocidade/custo, desacoplou-se a cascata de raciocínio clínico da cascata de roteamento rápido.
+      * **Cascata Clínica (`IA_PADROES.GEMINI_CLINICO` / `IA_MODELOS_CLINICOS_GEMINI`)**: fixada com prioridade em modelos de alta densidade diagnóstica e raciocínio multimodal (`gemini-3.5-flash` e `gemini-flash-latest`), mantendo os modelos ultraleves (`gemini-flash-lite-latest` e `gemini-3.5-flash-lite`) exclusivamente como fallback emergencial de esgotamento de cotas (HTTP 429).
+      * **Cascata Rápida (`IA_PADROES.GEMINI_RAPIDO` / `IA_MODELOS_RAPIDOS_GEMINI`)**: mantém `gemini-flash-lite-latest` na ponta para intenções sem thinking, extração de texto, parsing de JSON e comandos de baixa latência (~500ms).
+    - **Validação e Estabilidade**: Adicionado teste unitário de proteção arquitetural em `tests/test_ia_motores_pipeline_refatorado.cjs`. 100% de aprovação na suíte completa (`npm test`: 49/49 suítes em 7.17s com zero regressões).
+
 0C29. [x] **Estabilidade da IA, Resiliência Fastify e Conduta Ambulatorial de HAS (`src/00_config.js`, `src/04_motores_ia.js`, `src/02_soap_ambulatorial.js`, `src/13_cockpit_integracao.js`, `server/runtime.js` e `tests/test_soap_ambulatorial.cjs`)**:
     - **Diagnóstico e Resolução da Estabilidade da API de IA**:
       * A cascata do Gemini iniciava por modelos sob alta demanda no Google (`gemini-3.7-flash` e `gemini-3.8-flash`), gerando HTTP 503 e timeouts prolongados (>10s) que travavam o event loop e abriam indevidamente o `IaCircuitBreaker` global.
