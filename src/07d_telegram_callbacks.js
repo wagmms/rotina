@@ -416,6 +416,10 @@ function tratarCallbackPreceptorSocratico_(cb, data, ctx) {
     if (!conteudoCaso) {
       conteudoCaso = CacheService.getScriptCache().get(cacheKeyVoz);
     }
+    // Fallback resiliente: recupera texto da mensagem exibida se o cache expirou
+    if (!conteudoCaso && cb && cb.message) {
+      conteudoCaso = cb.message.text || cb.message.caption || "";
+    }
     if (conteudoCaso) {
       responderCallbackTelegram(cb.id, "Transmitindo áudio para o fone...");
       return responderPreceptorVozComIA(ctx.chatId, conteudoCaso, { apenasNarrar: true });

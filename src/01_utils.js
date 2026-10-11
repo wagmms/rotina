@@ -693,13 +693,53 @@ function adicionarCabecalhoWavSeNecessario(bytes, mime) {
   return bytes;
 }
 
+function formatarTextoParaVoz(texto) {
+  if (!texto) return "";
+  var t = String(texto);
+  // Remove blocos de código e formatações Markdown
+  t = t.replace(/```[\s\S]*?```/g, " ");
+  t = t.replace(/`([^`]+)`/g, "$1");
+  t = t.replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1");
+  // Remove linhas divisórias, tabelas e marcadores visuais
+  t = t.replace(/^[-=_*]{3,}$/gm, " ");
+  t = t.replace(/\|/g, " ");
+  // Remove emojis e símbolos decorativos
+  t = t.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, " ");
+  t = t.replace(/[*_#~]/g, " ");
+  // Converte abreviações médicas comuns para locução natural no fone
+  t = t.replace(/\bVO\b/gi, "via oral");
+  t = t.replace(/\bEV\b/gi, "endovenoso");
+  t = t.replace(/\bIV\b/gi, "intravenoso");
+  t = t.replace(/\bSC\b/gi, "subcutâneo");
+  t = t.replace(/\bIM\b/gi, "intramuscular");
+  t = t.replace(/\b1x\/dia\b/gi, "uma vez ao dia");
+  t = t.replace(/\b2x\/dia\b/gi, "duas vezes ao dia");
+  t = t.replace(/\b3x\/dia\b/gi, "três vezes ao dia");
+  t = t.replace(/\b4x\/dia\b/gi, "quatro vezes ao dia");
+  t = t.replace(/\bde 8\/8h\b/gi, "de oito em oito horas");
+  t = t.replace(/\bde 12\/12h\b/gi, "de doze em doze horas");
+  t = t.replace(/\bde 6\/6h\b/gi, "de seis em seis horas");
+  t = t.replace(/\bde 24\/24h\b/gi, "a cada vinte e quatro horas");
+  t = t.replace(/\bPA\b/g, "pressão arterial");
+  t = t.replace(/\bFC\b/g, "frequência cardíaca");
+  t = t.replace(/\bFR\b/g, "frequência respiratória");
+  t = t.replace(/\bSpO2\b/gi, "saturação de oxigênio");
+  t = t.replace(/\bBEG\b/g, "bom estado geral");
+  t = t.replace(/\bREG\b/g, "regular estado geral");
+  t = t.replace(/\bMEG\b/g, "mau estado geral");
+  t = t.replace(/\bmmHg\b/gi, "milímetros de mercúrio");
+  t = t.replace(/\bbpm\b/gi, "batimentos por minuto");
+  t = t.replace(/\birpm\b/gi, "incursões por minuto");
+  return t.replace(/\s+/g, " ").trim();
+}
+
 function gerarAudioTtsGeminiNeural(texto) {
-  var limpo = String(texto || "").replace(/[*_#`\[\]\(\)]/g, "").replace(/\s+/g, " ").trim();
+  var limpo = formatarTextoParaVoz(texto);
   if (!limpo) return null;
-  if (limpo.length > 500) {
-    var corte = limpo.substring(0, 496);
+  if (limpo.length > 800) {
+    var corte = limpo.substring(0, 796);
     var ultimoEspaco = Math.max(corte.lastIndexOf("?"), corte.lastIndexOf("."), corte.lastIndexOf(" "));
-    if (ultimoEspaco > 300) {
+    if (ultimoEspaco > 400) {
       limpo = corte.substring(0, ultimoEspaco) + "...";
     } else {
       limpo = corte + "...";
@@ -720,9 +760,10 @@ function gerarAudioTtsGeminiNeural(texto) {
     inicio = parseInt(CacheService.getScriptCache().get("ia_gem_tts_idx") || "0", 10) || 0;
   } catch (e0) { inicio = 0; }
 
+  // Prioriza o modelo flash-lite-tts (ultra-rápido, leve e com ampla disponibilidade de cota)
   var modelosTts = ConfigService.getArray("IA_MODELOS_TTS_GEMINI");
   if (!modelosTts || modelosTts.length === 0) {
-    modelosTts = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"];
+    modelosTts = ["gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts"];
   }
 
   var payload = {
@@ -784,7 +825,8 @@ function gerarAudioTtsGeminiNeural(texto) {
               return blob;
             }
           }
-        } else if (code === 429 || code === 504 || code >= 500) {
+        } else if (code === 429 || code === 404 || code === 504 || code >= 500) {
+          // Se o modelo atingiu cota ou indisponibilidade, avança rapidamente
           continue;
         }
       } catch (e) {
@@ -800,7 +842,7 @@ function gerarAudioTtsGeminiNeural(texto) {
  * Converte frases curtas em áudio nativo MP3 usando TTS.
  */
 function gerarAudioTtsGoogle(texto) {
-  var limpo = String(texto || "").replace(/[*_#`\[\]\(\)]/g, "").replace(/\s+/g, " ").trim();
+  var limpo = formatarTextoParaVoz(texto);
   if (!limpo) return null;
   if (limpo.length > 200) {
     var corte = limpo.substring(0, 196);
@@ -826,7 +868,7 @@ function gerarAudioTtsGoogle(texto) {
     }
     return null;
   } catch (e) {
-    Logger.log("Erro na síntese TTS: " + e.message);
+    Logger.log("Erro na síntese TTS Google: " + e.message);
     return null;
   }
 }
@@ -842,34 +884,77 @@ function sintetizarVozPreceptor(texto) {
 }
 
 /**
- * Envio de mensagem de voz nativa no Telegram (sendVoice)
+ * Envio de mensagem de voz nativa no Telegram (sendVoice com contingência sendAudio)
  */
 function enviarAudioVozTelegram(chatId, blobAudio, legenda, replyMarkup) {
   var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
   if (!token || !blobAudio) return false;
 
-  var url = "https://api.telegram.org/bot" + token + "/sendVoice";
-  var payload = {
-    "chat_id": String(chatId),
-    "voice": blobAudio,
-    "caption": legenda ? limparMarkdownTelegram(legenda) : "",
-    "parse_mode": "Markdown"
-  };
-  if (replyMarkup) {
-    payload.reply_markup = typeof replyMarkup === "string" ? replyMarkup : JSON.stringify(replyMarkup);
+  // Sanitização defensiva da legenda: Telegram API restringe caption a no máximo 1024 caracteres
+  var captionLimpa = legenda ? limparMarkdownTelegram(legenda) : "";
+  if (captionLimpa && captionLimpa.length > 1000) {
+    captionLimpa = captionLimpa.substring(0, 996).trim() + "...";
   }
 
-  var options = {
-    "method": "post",
-    "payload": payload,
-    "muteHttpExceptions": true
+  var markupStr = replyMarkup
+    ? (typeof replyMarkup === "string" ? replyMarkup : JSON.stringify(replyMarkup))
+    : null;
+
+  // 1. TENTATIVA PRIMÁRIA: sendVoice com parse_mode Markdown
+  var urlVoice = "https://api.telegram.org/bot" + token + "/sendVoice";
+  var payloadVoice = {
+    "chat_id": String(chatId),
+    "voice": blobAudio,
+    "caption": captionLimpa,
+    "parse_mode": "Markdown"
   };
+  if (markupStr) payloadVoice.reply_markup = markupStr;
 
   try {
-    var res = UrlFetchApp.fetch(url, options);
-    return res.getResponseCode() === 200;
-  } catch (e) {
-    Logger.log("Exceção ao enviar voz no Telegram: " + e.message);
+    var resVoice = UrlFetchApp.fetch(urlVoice, {
+      "method": "post",
+      "payload": payloadVoice,
+      "muteHttpExceptions": true
+    });
+    if (resVoice.getResponseCode() === 200) return true;
+
+    // Se falhou por erro de parsing no Markdown (400), tenta sem parse_mode (texto puro)
+    if (resVoice.getResponseCode() === 400 && captionLimpa) {
+      var captionPura = captionLimpa.replace(/[*_`\[\]]/g, "");
+      payloadVoice.caption = captionPura;
+      delete payloadVoice.parse_mode;
+      var resVoicePuro = UrlFetchApp.fetch(urlVoice, {
+        "method": "post",
+        "payload": payloadVoice,
+        "muteHttpExceptions": true
+      });
+      if (resVoicePuro.getResponseCode() === 200) return true;
+    }
+  } catch (eVoice) {
+    Logger.log("Erro na tentativa sendVoice: " + eVoice.message);
+  }
+
+  // 2. CONTINGÊNCIA ROBUSTA: sendAudio (compatível com qualquer formato de arquivo de áudio WAV/MP3)
+  try {
+    var urlAudio = "https://api.telegram.org/bot" + token + "/sendAudio";
+    var payloadAudio = {
+      "chat_id": String(chatId),
+      "audio": blobAudio,
+      "caption": captionLimpa ? captionLimpa.replace(/[*_`\[\]]/g, "") : ""
+    };
+    if (markupStr) payloadAudio.reply_markup = markupStr;
+
+    var resAudio = UrlFetchApp.fetch(urlAudio, {
+      "method": "post",
+      "payload": payloadAudio,
+      "muteHttpExceptions": true
+    });
+    if (resAudio.getResponseCode() === 200) return true;
+
+    Logger.log("Falha ao enviar áudio no Telegram. Status sendVoice e sendAudio != 200: " + resAudio.getContentText());
+    return false;
+  } catch (eAudio) {
+    Logger.log("Exceção ao enviar áudio contingencial no Telegram: " + eAudio.message);
     return false;
   }
 }

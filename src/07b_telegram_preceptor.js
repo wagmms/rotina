@@ -185,25 +185,21 @@ function responderPreceptorVozComIA(chatId, casoOuDuvida, opcoes) {
     enviarChatAction(chatId, "record_voice", true);
     var blobNarrado = sintetizarVozPreceptor(casoOuDuvida);
     if (blobNarrado) {
-      var legendaNarrada = "🎧 *Preceptor Socrático:*\n" + casoOuDuvida;
+      var resumoLegenda = String(casoOuDuvida).trim();
+      if (resumoLegenda.length > 750) {
+        var corteLeg = resumoLegenda.substring(0, 746);
+        var ultimoPonto = Math.max(corteLeg.lastIndexOf("."), corteLeg.lastIndexOf("\n"), corteLeg.lastIndexOf(" "));
+        resumoLegenda = (ultimoPonto > 400 ? corteLeg.substring(0, ultimoPonto) : corteLeg) + "...";
+      }
+      var legendaNarrada = "🎧 *Áudio Clínico - Preceptor:*\n" + resumoLegenda;
       var enviadoNarrado = enviarAudioVozTelegram(chatId, blobNarrado, legendaNarrada, kbAcoes);
       if (enviadoNarrado) return true;
     }
-    // Se TTS falhar, entrega como texto
-    var cacheKeyN = Utilities.getUuid().replace(/-/g, "");
-    safePutCache(CacheService.getScriptCache(), cacheKeyN, casoOuDuvida, 21600);
-    var kbTextoN = {
-      "inline_keyboard": [
-        [
-          {"text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKeyN},
-          {"text": "📋 Gerar SOAP", "callback_data": "preceptor_gerar_soap"}
-        ],
-        [
-          {"text": "🛑 Encerrar", "callback_data": "preceptor_encerrar"}
-        ]
-      ]
-    };
-    return enviarMensagemComTecladoParaChat(chatId, "🎧 *Preceptor Socrático:*\n\n" + casoOuDuvida, kbTextoN);
+    // Se a síntese ou envio falhar, emite aviso claro sem poluir o chat com duplicação de texto
+    return enviarMensagemParaChat(
+      chatId,
+      "⚠️ *Transmissão de Áudio:* Não foi possível processar a locução de voz no momento devido a indisponibilidade temporária. O caso clínico e as condutas permanecem disponíveis acima."
+    );
   }
 
   // Variável que preserva texto entre modo direto e fallback,
