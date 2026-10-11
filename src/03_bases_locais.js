@@ -1414,8 +1414,423 @@ function formatarResumoCondutaPedB(conduta) {
  * 2. Ajustes de dose para função renal (Guia HSL - 447 medicamentos)
  * 3. Tetos de dose máxima e limites terapêuticos (Guia HSL e PedBook)
  * 4. Disponibilidade na REMUME Ribeirão Preto (256 itens)
+ * 5. Catálogo de ajuste renal estrito de antimicrobianos (ClCr >50, 30-50, 10-29 e <10/HD)
  * ==============================================================================
  */
+
+// ==============================================================================
+// CATÁLOGO CANÔNICO DE ANTIMICROBIANOS — AJUSTE RENAL E DILUIÇÕES (IDSA / SANFORD / HSL)
+// ==============================================================================
+var CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS = {
+  meropenem: {
+    nome: "Meropenem",
+    aliases: ["meropenem", "mero", "meronem"],
+    classe: "Carbapenêmico (Bactericida tempo-dependente)",
+    apresentacao: "Frasco-ampola com 500 mg ou 1 g (pó liofilizado)",
+    diluicao: "Reconstituir 1 g em 20 mL de AD. Diluir em 100 mL de SF 0,9% ou SG 5% (conc. 10 mg/mL). Infusão estendida em 3 a 4 horas em choque séptico/UTI para otimização PK/PD (T > MIC). Em enfermaria: infusão mínima de 30 minutos.",
+    dosePadrao: "1 g EV a cada 8h (2 g EV a cada 8h em meningite, infecção por Pseudomonas aeruginosa ou neutropenia febril)",
+    faixasClCr: {
+      clcr_maior_50: {
+        faixa: "ClCr > 50 mL/min",
+        dose: "1g EV a cada 8h (recomenda-se infusão estendida em 3 horas para otimização PK/PD).",
+        orientacao: "Dose plena (100%). Infusão estendida de 3-4h recomendada em sepse/UTI."
+      },
+      clcr_30_50: {
+        faixa: "ClCr 30-50 mL/min",
+        dose: "1g EV a cada 12h (infusão estendida em 3 horas).",
+        orientacao: "Espaçamento do intervalo com infusão estendida em 3 horas."
+      },
+      clcr_10_29: {
+        faixa: "ClCr 10-29 mL/min",
+        dose: "500 mg EV a cada 12h.",
+        orientacao: "Redução da dose unitária mantendo o intervalo de 12 horas."
+      },
+      clcr_menor_10_hd: {
+        faixa: "ClCr < 10 mL/min / Hemodiálise",
+        dose: "500 mg EV a cada 24h, administrado imediatamente APÓS a hemodiálise nos dias de sessão.",
+        orientacao: "Administrar a dose de 500 mg imediatamente APÓS a sessão de hemodiálise nos dias de diálise (o meropenem é dialisável; remoção de 30-50% por sessão)."
+      }
+    },
+    alertaSentinela: "⚠️ VIGILÂNCIA DE CONVULSÕES & INTERAÇÃO VALPROATO: Em pacientes com disfunção renal e doses não ajustadas, há risco aumentado de crises convulsivas. CONTRAINDICAÇÃO PRÁTICA: O meropenem reduz os níveis séricos de Ácido Valproico em 60-100% por aumento da glicuronidação e inibição da hidrólise do valproato glicuronídeo, causando perda rápida do controle de crises e risco de estado de mal epiléptico.",
+    monitorizacao: "Creatinina sérica, ureia, hemograma e vigilância clínica neurológica diária."
+  },
+
+  vancomicina: {
+    nome: "Vancomicina",
+    aliases: ["vancomicina", "vanco", "vancocina"],
+    classe: "Glicopeptídeo (Bactericida AUC/MIC-dependente)",
+    apresentacao: "Frasco-ampola com 500 mg ou 1 g (pó liofilizado)",
+    diluicao: "Reconstituir 500 mg em 10 mL de AD (ou 1 g em 20 mL de AD). Diluir em 100 a 250 mL de SF 0,9% ou SG 5% (concentração máxima recomendada: 5 mg/mL). Infundir lentamente em pelo menos 60 a 120 minutos (velocidade máxima ≤ 10 mg/min, ex: 1 g em no mínimo 60-120 min) para prevenir a Síndrome do Homem Vermelho (reação anafilactoide por liberação de histamina).",
+    dosePadrao: "Ataque: 25-30 mg/kg (máx 2g). Manutenção: 15-20 mg/kg a cada 8-12h.",
+    faixasClCr: {
+      clcr_maior_50: {
+        faixa: "ClCr > 50 mL/min",
+        dose: "15-20 mg/kg EV a cada 8-12h (em infusão lenta de pelo menos 1-2h).",
+        orientacao: "Dose plena com infusão lenta controlada (≤ 10 mg/min)."
+      },
+      clcr_30_50: {
+        faixa: "ClCr 30-50 mL/min",
+        dose: "15-20 mg/kg EV a cada 24h.",
+        orientacao: "Espaçamento do intervalo para 24 horas."
+      },
+      clcr_10_29: {
+        faixa: "ClCr 10-29 mL/min",
+        dose: "15 mg/kg EV a cada 24 a 48h (ou redoses a cada 48h guiadas por nível sérico).",
+        orientacao: "Redoses guiadas obrigatoriamente por dosagem de nível sérico (vale)."
+      },
+      clcr_menor_10_hd: {
+        faixa: "ClCr < 10 mL/min / Hemodiálise",
+        dose: "Ataque 25-30 mg/kg; redoses subsequentes (500-1000 mg) pós-hemodiálise guiadas por nível sérico.",
+        orientacao: "Administrar dose pós-sessão de hemodiálise, guiada estritamente pelo nível sérico pré-diálise."
+      }
+    },
+    alertaSentinela: "⚠️ VALE SÉRICO OBRIGATÓRIO DE 15 A 20 MCG/ML: Em infecções graves (bacteremia, endocardite, osteomielite, meningite, pneumonia hospitalar/PAV) ou meta AUC/MIC 400-600, o nível de vale (trough) sérico deve ser mantido estritamente entre 15 e 20 mcg/mL. Coletar o vale 30 minutos antes da 4ª dose (estado de equilíbrio). Risco acentuado de nefrotoxicidade sinérgica em associação com Piperacilina-Tazobactam ou Aminoglicosídeos.",
+    monitorizacao: "Vancocinemia (vale pré-4ª dose, alvo 15-20 mcg/mL para infecções graves); dosagem de creatinina sérica e ureia a cada 48h (ou diária se UTI/risco de IRA)."
+  },
+
+  ceftriaxona: {
+    nome: "Ceftriaxona",
+    aliases: ["ceftriaxona", "rocefin", "ceftriaxone", "ceftriaxon"],
+    classe: "Cefalosporina de 3ª geração",
+    apresentacao: "Frasco-ampola com 1 g pó liofilizado",
+    diluicao: "Reconstituir 1 g em 10 mL de AD. Diluir em 100 mL de SF 0,9% ou SG 5%. Infundir em 30 minutos por via intravenosa.",
+    dosePadrao: "1g a 2g EV a cada 24h (2g 12/12h em meningite bacteriana).",
+    faixasClCr: {
+      clcr_maior_50: {
+        faixa: "ClCr > 50 mL/min",
+        dose: "NÃO REQUER AJUSTE RENAL. Manter 1g a 2g EV a cada 24h (eliminação mista renal 60% e biliar 40%).",
+        orientacao: "Dose plena habitual (eliminação mista: 60% renal e 40% biliar)."
+      },
+      clcr_30_50: {
+        faixa: "ClCr 30-50 mL/min",
+        dose: "NÃO REQUER AJUSTE RENAL. Manter 1g a 2g EV a cada 24h.",
+        orientacao: "Manter dose plena habitual."
+      },
+      clcr_10_29: {
+        faixa: "ClCr 10-29 mL/min",
+        dose: "NÃO REQUER AJUSTE RENAL. Manter 1g a 2g EV a cada 24h.",
+        orientacao: "Manter dose plena habitual."
+      },
+      clcr_menor_10_hd: {
+        faixa: "ClCr < 10 mL/min / Hemodiálise",
+        dose: "NÃO REQUER AJUSTE RENAL. Manter 1g a 2g EV a cada 24h (máx 2 g/dia).",
+        orientacao: "Não dialisável significativamente; não necessita de dose de reforço pós-hemodiálise. Reduzir para máx 1-2 g/dia apenas em insuficiência combinada hepática E renal graves (falência hepatorrenal)."
+      }
+    },
+    alertaSentinela: "⚠️ CONTRAINDICAÇÃO CRÍTICA COM CÁLCIO: Contraindicada a administração concomitante na mesma via ou em Y com soluções contendo Cálcio (Ringer Lactato, Gluconato de Cálcio, NPT), pelo risco grave de precipitação de ceftriaxona-cálcio insolúvel em pulmões e rins (potencialmente fatal em neonatos e com risco embólico em adultos).",
+    monitorizacao: "Enzimas hepáticas (TGO/TGP) e bilirrubinas se uso prolongado (risco de lama/pseudolitíase biliar reversível)."
+  },
+
+  ciprofloxacino: {
+    nome: "Ciprofloxacino",
+    aliases: ["ciprofloxacino", "cipro", "ciprofloxacina", "ciprofloxacine"],
+    classe: "Fluoroquinolona (Bactericida concentração-dependente)",
+    apresentacao: "Bolsa para infusão IV com solução pronta 400 mg/200 mL (ou 200 mg/100 mL) | Comprimidos VO de 500 mg",
+    diluicao: "Solução IV pronta para infusão (400 mg em 200 mL). Infundir em no mínimo 60 minutos em veia calibrosa (infusão rápida causa dor local intensa, queimação e flebite química).",
+    dosePadrao: "400 mg EV a cada 12h ou 500-750 mg VO a cada 12h.",
+    faixasClCr: {
+      clcr_maior_50: {
+        faixa: "ClCr > 50 mL/min",
+        dose: "400 mg EV 12/12h ou 500 mg VO 12/12h.",
+        orientacao: "Dose plena (100% da dose recomendada)."
+      },
+      clcr_30_50: {
+        faixa: "ClCr 30-50 mL/min",
+        dose: "400 mg EV 12/12h ou 500 mg VO 12/12h (monitorar se terapia prolongada).",
+        orientacao: "Monitorar tolerância e função renal em uso prolongado."
+      },
+      clcr_10_29: {
+        faixa: "ClCr 10-29 mL/min",
+        dose: "400 mg EV a cada 24h ou 500 mg VO a cada 24h (ou 200 mg EV 12/12h).",
+        orientacao: "Redução de cerca de 50% na dose diária total acumulada."
+      },
+      clcr_menor_10_hd: {
+        faixa: "ClCr < 10 mL/min / Hemodiálise",
+        dose: "400 mg EV a cada 24h ou 500 mg VO a cada 24h (administrar após diálise).",
+        orientacao: "Pouco dialisável (~10%). Administrar a dose diária preferencialmente APÓS a sessão de hemodiálise."
+      }
+    },
+    alertaSentinela: "⚠️ RISCO DE PROLONGAMENTO DE QT & TENDINOPATIA: Monitorar ECG pelo risco de arritmias ventriculares graves (Torsades de Pointes), especialmente se combinado com outros depressores de repolarização. Alerta para tendinite e rotura de tendão de Aquiles (maior risco em idosos e uso concomitante de corticoides). Interação oral: quelantes com cátions bivalentes/trivalentes (ferro, cálcio, antiácidos) reduzem absorção em até 90% (espaçar 2h antes ou 4h após).",
+    monitorizacao: "ECG (intervalo QTc), função renal seriada e vigilância de dores tendinosas / articulares."
+  },
+
+  cefepime: {
+    nome: "Cefepime",
+    aliases: ["cefepime", "cefepima", "maxcef"],
+    classe: "Cefalosporina de 4ª geração (Antipseudomonas)",
+    apresentacao: "Frasco-ampola com 1 g ou 2 g (pó liofilizado)",
+    diluicao: "Reconstituir 1 g ou 2 g com 10 mL de AD. Diluir em 100 mL de SF 0,9% ou SG 5%. Infundir em 30 minutos ou em infusão estendida de 3 a 4 horas em choque séptico/UTI para otimização PK/PD (T > MIC).",
+    dosePadrao: "2g EV a cada 8h (infusão em 30 min ou estendida em 3h).",
+    faixasClCr: {
+      clcr_maior_50: {
+        faixa: "ClCr > 50 mL/min",
+        dose: "2g EV a cada 8h.",
+        orientacao: "Dose plena habitual (2 g 8/8h em neutropenia febril ou sepse grave)."
+      },
+      clcr_30_50: {
+        faixa: "ClCr 30-50 mL/min",
+        dose: "2g EV a cada 12h.",
+        orientacao: "Espaçamento do intervalo com vigilância neurológica ativa."
+      },
+      clcr_10_29: {
+        faixa: "ClCr 10-29 mL/min",
+        dose: "2g EV a cada 24h.",
+        orientacao: "Ajuste posológico obrigatório para prevenir acúmulo liquórico e neurotoxicidade."
+      },
+      clcr_menor_10_hd: {
+        faixa: "ClCr < 10 mL/min / Hemodiálise",
+        dose: "1g EV a cada 24h (administrar dose após a hemodiálise nos dias de sessão).",
+        orientacao: "Dialisável (~68% depurado em sessão de 3h de HD). Administrar dose suplementar (1 g ou dose habitual) imediatamente APÓS o término de cada sessão de hemodiálise."
+      }
+    },
+    alertaSentinela: "⚠️ ALERTA SENTINELA CRÍTICO: NEUROTOXICIDADE E ENCEFALOPATIA POR CEFEPIME (CIN - Cefepime-Induced Neurotoxicity). O cefepime atravessa rapidamente a barreira hematoencefálica e antagoniza os receptores GABAA cerebrais. Em pacientes com insuficiência renal (especialmente ClCr < 50 mL/min) sem o ajuste estrito de dose, ocorre toxicidade grave manifestada por: confusão mental aguda, letargia, encefalopatia metabólica, mioclonias, convulsões e Estado de Mal Epiléptico Não-Convulsivo (NCSE). Ajuste por ClCr é mandatório e vigilância neurológica diária.",
+    monitorizacao: "Exame neurológico diário (escala de Glasgow, reflexos, pesquisa de mioclonias); creatinina sérica e ureia diárias; EEG imediato em caso de alteração inexplicada do nível de consciência."
+  },
+
+  piperacilina_tazobactam: {
+    nome: "Piperacilina + Tazobactam (Pip-Tazo)",
+    aliases: ["piperacilina_tazobactam", "pip-tazo", "piptazo", "tazocin"],
+    classe: "Penicilina antipseudomonas + Inibidor de beta-lactamase",
+    apresentacao: "Frasco-ampola com 4,5 g (4 g piperacilina + 0,5 g tazobactam)",
+    diluicao: "Reconstituir 4,5 g com 20 mL de SF 0,9% ou AD. Diluir em 100 mL de SF 0,9% ou SG 5%. Infusão estendida de 3 a 4 horas recomendada para maximizar farmacodinâmica.",
+    dosePadrao: "4,5g EV a cada 6h (infusão de 3-4h) ou 4,5g a cada 8h (infusão de 4h).",
+    faixasClCr: {
+      clcr_maior_50: {
+        faixa: "ClCr > 50 mL/min",
+        dose: "4,5g EV a cada 6h (ou 4,5g 8/8h em infusão estendida de 3-4h).",
+        orientacao: "Dose plena."
+      },
+      clcr_30_50: {
+        faixa: "ClCr 30-50 mL/min",
+        dose: "2,25g EV a cada 6h (ou 3,375g EV a cada 8h).",
+        orientacao: "Ajuste intermediário."
+      },
+      clcr_10_29: {
+        faixa: "ClCr 10-29 mL/min",
+        dose: "2,25g EV a cada 8h.",
+        orientacao: "Redução de dose com manutenção do intervalo de 8 horas."
+      },
+      clcr_menor_10_hd: {
+        faixa: "ClCr < 10 mL/min / Hemodiálise",
+        dose: "2,25g EV a cada 8h + dose de reforço de 0,75g após cada sessão de hemodiálise.",
+        orientacao: "Administrar dose suplementar de 0,75g após a sessão de hemodiálise."
+      }
+    },
+    alertaSentinela: "⚠️ Risco aumentado de nefrotoxicidade / lesão renal aguda sinérgica em associação prolongada com Vancomicina (evitar além de 48-72h se houver alternativa).",
+    monitorizacao: "Creatinina sérica diária e eletrólitos (contém 2,79 mEq de sódio por grama de piperacilina)."
+  },
+
+  polimixina_b: {
+    nome: "Polimixina B",
+    aliases: ["polimixina_b", "polimixina", "polimixina b"],
+    classe: "Polipeptídeo (Bactericida de membrana)",
+    apresentacao: "Frasco-ampola com 500.000 UI pó liofilizado",
+    diluicao: "Reconstituir em 2 mL de AD. Diluir em 300 a 500 mL de SG 5% ou SF 0,9%. Infundir em 60 a 120 minutos.",
+    dosePadrao: "Ataque: 20.000 a 25.000 UI/kg (baseado no peso magro). Manutenção: 15.000 a 25.000 UI/kg/dia divididos em 2 doses (12/12h).",
+    faixasClCr: {
+      clcr_maior_50: {
+        faixa: "ClCr > 50 mL/min",
+        dose: "NÃO REDUZIR DOSE NA INSUFICIÊNCIA RENAL. Manutenção: 15.000 a 25.000 UI/kg/dia divididos 12/12h.",
+        orientacao: "Dose plena baseada no peso magro."
+      },
+      clcr_30_50: {
+        faixa: "ClCr 30-50 mL/min",
+        dose: "NÃO REDUZIR DOSE NA INSUFICIÊNCIA RENAL. A depuração da Polimixina B é predominantemente não-renal. Reduções causam subdosagem e falha terapêutica grave.",
+        orientacao: "Depuração predominantemente não-renal; não reduzir dose."
+      },
+      clcr_10_29: {
+        faixa: "ClCr 10-29 mL/min",
+        dose: "NÃO REDUZIR DOSE NA INSUFICIÊNCIA RENAL. A depuração da Polimixina B é predominantemente não-renal. Reduções causam subdosagem e falha terapêutica grave.",
+        orientacao: "Reduções causam subdosagem e falha terapêutica grave."
+      },
+      clcr_menor_10_hd: {
+        faixa: "ClCr < 10 mL/min / Hemodiálise",
+        dose: "NÃO REDUZIR DOSE NA INSUFICIÊNCIA RENAL. Manter dose plena calculada por peso magro (não dialisável).",
+        orientacao: "Não dialisável; não necessita de reforço pós-HD. Manter dose plena com suporte clínico."
+      }
+    },
+    alertaSentinela: "⚠️ NÃO REDUZIR DOSE NA INSUFICIÊNCIA RENAL. A Polimixina B possui clearance não-renal; reduções empíricas causam falha terapêutica grave. Diferente da Colistina (CMS), que exige redução renal drástica.",
+    monitorizacao: "Creatinina sérica a cada 24-48h; bloqueio neuromuscular / parestesias."
+  },
+
+  fluconazol: {
+    nome: "Fluconazol",
+    aliases: ["fluconazol", "zoltec"],
+    classe: "Antifúngico triazólico",
+    apresentacao: "Frasco para infusão IV de 200 mg/100 mL ou cápsulas VO de 150 mg",
+    diluicao: "Solução IV pronta para infusão. Infundir a taxa máxima de 200 mg/hora (infundir frasco de 200 mg em pelo menos 60 minutos).",
+    dosePadrao: "Ataque: 400-800 mg dose única. Manutenção: 200-400 mg EV/VO a cada 24h.",
+    faixasClCr: {
+      clcr_maior_50: {
+        faixa: "ClCr > 50 mL/min",
+        dose: "Manter 100% da dose recomendada (200-400 mg a cada 24h).",
+        orientacao: "Dose plena habitual."
+      },
+      clcr_30_50: {
+        faixa: "ClCr 30-50 mL/min",
+        dose: "Dose de ataque plena no D1; a partir de então, REDUZIR PARA 50% DA DOSE (100-200 mg a cada 24h).",
+        orientacao: "Após dose de ataque plena no D1, reduzir manutenção em 50%."
+      },
+      clcr_10_29: {
+        faixa: "ClCr 10-29 mL/min",
+        dose: "Dose de ataque plena no D1; a partir de então, REDUZIR PARA 50% DA DOSE (100-200 mg a cada 24h).",
+        orientacao: "Após dose de ataque plena no D1, reduzir manutenção em 50%."
+      },
+      clcr_menor_10_hd: {
+        faixa: "ClCr < 10 mL/min / Hemodiálise",
+        dose: "100% da dose recomendada administrada imediatamente APÓS cada sessão de hemodiálise.",
+        orientacao: "Dialisável; administrar a dose de 200-400 mg imediatamente após cada sessão de HD."
+      }
+    },
+    alertaSentinela: "⚠️ Potente inibidor de CYP3A4; verificar interações com imunossupressores e anticoagulantes orais.",
+    monitorizacao: "Enzimas hepáticas (TGO/TGP) e eletrólitos."
+  }
+};
+
+/**
+ * Normaliza o termo de busca para a chave canônica do catálogo de antimicrobianos.
+ */
+function normalizarChaveAntimicrobiano(termo) {
+  if (!termo) return null;
+  var t = String(termo).toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+  for (var chave in CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS) {
+    if (chave === t) return chave;
+    var item = CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS[chave];
+    if (Array.isArray(item.aliases)) {
+      for (var a = 0; a < item.aliases.length; a++) {
+        var alNorm = item.aliases[a].toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]/g, "");
+        if (alNorm === t || (t.length >= 4 && alNorm.indexOf(t) === 0) || (alNorm.length >= 4 && t.indexOf(alNorm) === 0)) {
+          return chave;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Obtém a recomendação determinística estruturada de ajuste renal para um antimicrobiano.
+ */
+function obterAjusteRenalAntimicrobiano(drogaOuTermo, clcr, ehHD) {
+  var chave = normalizarChaveAntimicrobiano(drogaOuTermo);
+  if (!chave || !CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS[chave]) {
+    return { ok: false, mensagem: "Antimicrobiano não encontrado no catálogo de ajuste renal." };
+  }
+  var atb = CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS[chave];
+  var crClVal = (clcr !== undefined && clcr !== null && !isNaN(Number(clcr))) ? Number(clcr) : null;
+  var dialise = !!ehHD;
+
+  var faixaId = null;
+  if (dialise) {
+    faixaId = "clcr_menor_10_hd";
+  } else if (crClVal !== null) {
+    if (crClVal > 50) faixaId = "clcr_maior_50";
+    else if (crClVal >= 30) faixaId = "clcr_30_50";
+    else if (crClVal >= 10) faixaId = "clcr_10_29";
+    else faixaId = "clcr_menor_10_hd";
+  }
+
+  var faixaObj = faixaId ? atb.faixasClCr[faixaId] : null;
+
+  return {
+    ok: true,
+    chave: chave,
+    antimicrobiano: atb.nome,
+    nomeExibicao: atb.nome,
+    classe: atb.classe,
+    apresentacao: atb.apresentacao,
+    diluicao: atb.diluicao,
+    dosePadrao: atb.dosePadrao,
+    clcrInformado: crClVal,
+    hemodialise: dialise,
+    faixaId: faixaId,
+    faixaAplicada: faixaObj ? faixaObj.faixa : null,
+    doseAjustada: faixaObj ? faixaObj.dose : atb.dosePadrao,
+    orientacaoFaixa: faixaObj ? faixaObj.orientacao : null,
+    todasFaixas: atb.faixasClCr,
+    alertaSentinela: atb.alertaSentinela,
+    cuidados: atb.diluicao + " " + atb.alertaSentinela,
+    monitorizacao: atb.monitorizacao
+  };
+}
+
+/**
+ * Formata ficha clínica de ajuste renal do antimicrobiano pronta para PEP e Telegram.
+ */
+function formatarAjusteRenalAntimicrobiano(drogaOuTermo, clcr, ehHD) {
+  var res = obterAjusteRenalAntimicrobiano(drogaOuTermo, clcr, ehHD);
+  if (!res.ok) return "❌ " + res.mensagem;
+
+  var linhas = [];
+  linhas.push("💉 *AJUSTE RENAL DE ANTIMICROBIANOS (CATÁLOGO CLÍNICO & GUIA HSL / IDSA)*");
+  linhas.push("══════════════════════════════════════════════════════════════════");
+  linhas.push("💊 *Fármaco:* *" + res.antimicrobiano + "* (" + res.classe + ")");
+  linhas.push("📦 *Apresentação:* " + res.apresentacao);
+  linhas.push("💧 *Reconstituição & Diluição:* " + res.diluicao);
+  linhas.push("⚖️ *Dose Padrão (Função Renal Normal):* " + res.dosePadrao);
+
+  if (res.faixaId) {
+    linhas.push("\n🎯 *CONDUTA PARA O PACIENTE (" + (res.hemodialise ? "Hemodiálise" : ("ClCr " + res.clcrInformado + " mL/min")) + "):*");
+    linhas.push("📌 *Faixa Aplicada:* *" + res.faixaAplicada + "*");
+    linhas.push("📋 *Prescrição Ajustada:* `" + res.doseAjustada + "`");
+    if (res.orientacaoFaixa) {
+      linhas.push("↳ _" + res.orientacaoFaixa + "_");
+    }
+  }
+
+  linhas.push("\n📊 *TABELA DE AJUSTE RENAL POR CLEARANCE (TODAS AS FAIXAS):*");
+  linhas.push("• *ClCr > 50 mL/min:* " + res.todasFaixas.clcr_maior_50.dose + " — _" + res.todasFaixas.clcr_maior_50.orientacao + "_");
+  linhas.push("• *ClCr 30-50 mL/min:* " + res.todasFaixas.clcr_30_50.dose + " — _" + res.todasFaixas.clcr_30_50.orientacao + "_");
+  linhas.push("• *ClCr 10-29 mL/min:* " + res.todasFaixas.clcr_10_29.dose + " — _" + res.todasFaixas.clcr_10_29.orientacao + "_");
+  linhas.push("• *ClCr < 10 / Hemodiálise:* " + res.todasFaixas.clcr_menor_10_hd.dose + " — _" + res.todasFaixas.clcr_menor_10_hd.orientacao + "_");
+
+  if (res.alertaSentinela) {
+    linhas.push("\n🚨 *ALERTA SENTINELA & TOXICIDADE:*");
+    linhas.push(res.alertaSentinela);
+  }
+
+  linhas.push("\n🛡️ *MONITORIZAÇÃO CLÍNICA & LABORATORIAL:*");
+  linhas.push(res.monitorizacao);
+
+  linhas.push("\n📚 *Referências:* IDSA Guidelines / Sanford Guide to Antimicrobial Therapy / Guia Farmacêutico Hospital Sírio-Libanês.");
+  return linhas.join("\n");
+}
+
+/**
+ * Consulta determinística a partir de texto livre com parsing de fármaco, clearance e hemodiálise.
+ */
+function consultarCatalogoAjusteRenal(texto) {
+  if (!texto || typeof texto !== "string") return null;
+  var dStr = String(texto).toLowerCase();
+  var ehHD = /\b(?:hd|hemodialise|dialise)\b/i.test(dStr);
+  var clcrVal = null;
+  var clcrMatch = dStr.match(/\b(?:clcr|crcl|tfg|clearance)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\b/i);
+  if (clcrMatch && clcrMatch[1]) {
+    clcrVal = Number(clcrMatch[1].replace(",", "."));
+  } else {
+    var nums = dStr.match(/\b(\d{1,3})\b/g);
+    if (nums && nums.length > 0) {
+      clcrVal = Number(nums[0]);
+    }
+  }
+
+  for (var k in CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS) {
+    var item = CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS[k];
+    if (dStr.indexOf(k) !== -1) {
+      return formatarAjusteRenalAntimicrobiano(k, clcrVal, ehHD);
+    }
+    for (var a = 0; a < item.aliases.length; a++) {
+      if (dStr.indexOf(item.aliases[a]) !== -1) {
+        return formatarAjusteRenalAntimicrobiano(k, clcrVal, ehHD);
+      }
+    }
+  }
+  return null;
+}
 
 function extrairFarmacosDoTexto(texto) {
   if (!texto) return [];
@@ -1502,6 +1917,24 @@ function extrairFarmacosDoTexto(texto) {
       }
     }
   } catch (eHsl) {}
+
+  // 4. Antimicrobianos do Catálogo de Ajuste Renal
+  if (typeof CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS !== "undefined") {
+    for (var kAtb in CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS) {
+      var itemAtb = CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS[kAtb];
+      if (textoNorm.indexOf(" " + kAtb + " ") !== -1) {
+        adicionar(kAtb);
+      } else if (Array.isArray(itemAtb.aliases)) {
+        for (var al = 0; al < itemAtb.aliases.length; al++) {
+          var alL = itemAtb.aliases[al].toLowerCase();
+          if (textoNorm.indexOf(" " + alL + " ") !== -1) {
+            adicionar(kAtb);
+            break;
+          }
+        }
+      }
+    }
+  }
 
   return encontrados;
 }
@@ -1601,30 +2034,49 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
     }
   } catch (eInt) {}
 
-  // 2. Ajustes Renais do Guia HSL
+  // 2. Ajustes Renais (Catálogo de Antimicrobianos & Guia HSL)
   var ajustesRenais = [];
   var tetosDose = [];
 
   for (var f = 0; f < farmacos.length; f++) {
-    var medHsl = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(farmacos[f]) : null;
-    if (medHsl) {
-      var temAjuste = medHsl.ajuste_dose && !/n[aã]o h[aá] ajuste|sem ajuste/i.test(medHsl.ajuste_dose) && medHsl.ajuste_dose.trim().length > 5;
-      if (temAjuste) {
-        ajustesRenais.push({
-          farmaco: farmacos[f].toUpperCase(),
-          nomeOficial: medHsl.farnaco,
-          ajuste: medHsl.ajuste_dose.trim(),
-          naRemume: !!medHsl.na_remume
-        });
-      }
+    var ajAtb = (typeof obterAjusteRenalAntimicrobiano === "function")
+      ? obterAjusteRenalAntimicrobiano(farmacos[f], ctxRenal.clcr, ctxRenal.dialise)
+      : null;
 
-      if (medHsl.dose_maxima && medHsl.dose_maxima.trim().length > 3) {
-        tetosDose.push({
-          farmaco: farmacos[f].toUpperCase(),
-          nomeOficial: medHsl.farnaco,
-          doseMaxima: medHsl.dose_maxima.trim()
-        });
+    if (ajAtb && ajAtb.ok) {
+      ajustesRenais.push({
+        farmaco: farmacos[f].toUpperCase(),
+        nomeOficial: ajAtb.antimicrobiano,
+        ajuste: ajAtb.doseAjustada + (ajAtb.orientacaoFaixa ? " (" + ajAtb.orientacaoFaixa + ")" : ""),
+        faixaClCr: ajAtb.faixaAplicada,
+        diluicao: ajAtb.diluicao,
+        alertaSentinela: ajAtb.alertaSentinela,
+        monitorizacao: ajAtb.monitorizacao,
+        naRemume: false,
+        dadosEstruturadosAtb: ajAtb
+      });
+    } else {
+      var medHsl = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(farmacos[f]) : null;
+      if (medHsl) {
+        var temAjuste = medHsl.ajuste_dose && !/n[aã]o h[aá] ajuste|sem ajuste/i.test(medHsl.ajuste_dose) && medHsl.ajuste_dose.trim().length > 5;
+        if (temAjuste) {
+          ajustesRenais.push({
+            farmaco: farmacos[f].toUpperCase(),
+            nomeOficial: medHsl.farnaco,
+            ajuste: medHsl.ajuste_dose.trim(),
+            naRemume: !!medHsl.na_remume
+          });
+        }
       }
+    }
+
+    var medHslTeto = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(farmacos[f]) : null;
+    if (medHslTeto && medHslTeto.dose_maxima && medHslTeto.dose_maxima.trim().length > 3) {
+      tetosDose.push({
+        farmaco: farmacos[f].toUpperCase(),
+        nomeOficial: medHslTeto.farnaco,
+        doseMaxima: medHslTeto.dose_maxima.trim()
+      });
     }
   }
 
@@ -1702,10 +2154,16 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
 
   if (ajustesRenais.length > 0) {
     if (ctxRenal.temDisfuncao) {
-      linhasTexto.push("\n🫘 *AJUSTES DE FUNÇÃO RENAL (GUIA FARMACÊUTICO HSL):*");
+      linhasTexto.push("\n🫘 *AJUSTES DE FUNÇÃO RENAL (ANTIMICROBIANOS & GUIA HSL):*");
       linhasTexto.push("⚠️ *ATENÇÃO:* Paciente com parâmetros renais alterados (" + ctxRenal.detalhes.join(" | ") + "). Adequar as doses abaixo:");
       ajustesRenais.forEach(function(aj) {
-        linhasTexto.push("• *" + aj.nomeOficial + "* (" + (aj.naRemume ? "SUS/REMUME" : "Fora da REMUME") + "): " + aj.ajuste.replace(/\n+/g, " "));
+        linhasTexto.push("• *" + aj.nomeOficial + "* (" + (aj.naRemume ? "SUS/REMUME" : "Uso Hospitalar") + "): " + aj.ajuste.replace(/\n+/g, " "));
+        if (aj.diluicao) {
+          linhasTexto.push("   ↳ 💧 *Diluição:* " + aj.diluicao);
+        }
+        if (aj.alertaSentinela) {
+          linhasTexto.push("   ↳ " + aj.alertaSentinela);
+        }
       });
     } else {
       linhasTexto.push("\n🫘 *Ajuste Renal:* Parâmetros normais / sem disfunção declarada.");
@@ -1762,7 +2220,17 @@ function formatarDiluicaoPreparoHSL(med) {
     linhas.push("\n❄️ *Estabilidade & Conservação:*");
     linhas.push(med.estabilidade_conservacao);
   }
-  if (med.ajuste_dose && !/n[aã]o h[aá] ajuste|sem ajuste/i.test(med.ajuste_dose)) {
+  var ajAtb = (typeof obterAjusteRenalAntimicrobiano === "function") ? obterAjusteRenalAntimicrobiano(med.farnaco || med.nome_normalizado) : null;
+  if (ajAtb && ajAtb.ok) {
+    linhas.push("\n🫘 *Ajuste de Dose Renal por Clearance (ClCr / TFG):*");
+    linhas.push("  • *ClCr > 50 mL/min:* " + ajAtb.todasFaixas.clcr_maior_50.dose + " — _" + ajAtb.todasFaixas.clcr_maior_50.orientacao + "_");
+    linhas.push("  • *ClCr 30-50 mL/min:* " + ajAtb.todasFaixas.clcr_30_50.dose + " — _" + ajAtb.todasFaixas.clcr_30_50.orientacao + "_");
+    linhas.push("  • *ClCr 10-29 mL/min:* " + ajAtb.todasFaixas.clcr_10_29.dose + " — _" + ajAtb.todasFaixas.clcr_10_29.orientacao + "_");
+    linhas.push("  • *ClCr < 10 / Hemodiálise:* " + ajAtb.todasFaixas.clcr_menor_10_hd.dose + " — _" + ajAtb.todasFaixas.clcr_menor_10_hd.orientacao + "_");
+    if (ajAtb.alertaSentinela) {
+      linhas.push("\n" + ajAtb.alertaSentinela);
+    }
+  } else if (med.ajuste_dose && !/n[aã]o h[aá] ajuste|sem ajuste/i.test(med.ajuste_dose)) {
     linhas.push("\n🫘 *Ajuste de Dose Renal (ClCr / TFG):*");
     linhas.push(med.ajuste_dose);
   }
@@ -1772,4 +2240,14 @@ function formatarDiluicaoPreparoHSL(med) {
   linhas.push("\n📚 *Fonte:* Guia Farmacêutico Hospital Sírio-Libanês (https://guiafarmaceutico.hsl.org.br)");
   return linhas.join("\n");
 }
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = Object.assign(module.exports || {}, {
+    CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS: CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS,
+    obterAjusteRenalAntimicrobiano: obterAjusteRenalAntimicrobiano,
+    formatarAjusteRenalAntimicrobiano: formatarAjusteRenalAntimicrobiano,
+    consultarCatalogoAjusteRenal: consultarCatalogoAjusteRenal
+  });
+}
+
 
