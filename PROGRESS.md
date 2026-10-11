@@ -14,11 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`, `src/12_experiencia_bot.js` e `tests/test_consultas_bolso_ux.cjs`)**:
-    - **Diagnóstico e Otimização UX**: A aba `ux:hub:bolso` delegava cliques (`atb`, `ped`, `gestacao`, `interacao`, `hsl`) para comandos textuais livres (`texto('/atb')`, etc.), gerando novas mensagens sem edição in-place, telas órfãs sem botão de retorno e potencial lentidão por chamadas a modelos generativos de IA em consultas protocolares.
-    - **Implementação Determinística (0ms) e Protocolo Beira-Leito**: Criadas telas ricas e handlers canônicos com edição in-place via `enviarTelaBot`: `enviarTelaBolsoATB` (PAC CURB-65, ITU cistite/pielonefrite, foco abdominal, sepse e ajuste renal), `enviarTelaBolsoPed` (Dipirona 12kg, Amoxi 15kg, Prednisolona 10kg, Azitro 12kg com memória de cálculo), `enviarTelaBolsoGestacao` (analgésicos seguros vs bloqueio de AINEs no 3º tri, anti-hipertensivos com contraindicação de IECA/BRA, antibióticos e antieméticos), `enviarTelaBolsoInteracao` (alertas sentinela de QT longo, sangramento, hipercalemia e choque de Nitrato+5-PDE) e `enviarTelaBolsoHSL` (diluições oficiais de Ceftriaxona sem cálcio, Vancomicina lenta, Meropenem estendido e Noradrenalina concentrada em SG 5%).
-    - **Retorno Contextual e Cópia Rápida**: Garantidos botões `[🔙 Consultas de Bolso]` (`ux:hub:bolso`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas, além de botão `[📋 Copiar ...]` (`ux:copiar:<hash>`) com cache de 6h para transferência imediata ao PEP/prontuário.
-    - **Validação e Cobertura**: Criada suíte `tests/test_consultas_bolso_ux.cjs` (7 blocos) integrada à baseline de testes (`scripts/test_manifest.json`). Recompilado `ultra_rotina_master.js` (`npm run build`). 100% aprovado na baseline `npm test` (42/42) e na bateria completa `npm run test:all` (230/230 suítes verdes em 16.75s).
+- [x] **Auditoria e Otimização da Aba Ambulatório & Atenção Primária (`ux:hub:amb`, `src/12_experiencia_bot.js`, `src/07a_telegram_router.js` e `tests/test_ambulatorio_ux.cjs`)**:
+    - **Diagnóstico e Otimização UX**: A aba `ux:hub:amb` delegava botões táteis (`ux:amb:remume`, `ux:amb:cid`, `ux:amb:atestado`) para comandos textuais livres sem botões (`texto('/rx')`, etc.), gerando telas órfãs, dependência de IA em casos protocolares e ausência do comando `/cid` no roteador do Telegram.
+    - **Implementação Determinística (0ms) e Protocolo Beira-Leito**: Implementadas telas canônicas em `src/12_experiencia_bot.js` com edição in-place via `enviarTelaBot`: `enviarTelaAmbSoap` (SOAP em 4 tempos com exame físico normal pronto e casos de HAS, DM2, IVAS e Lombalgia), `enviarTelaAmbRemume` (guia farmacológico e receituários completos com via, posologia, horários e MEV), `enviarTelaAmbCid` (catálogo dos 17 diagnósticos mais frequentes na APS e fichas detalhadas com CIAP-2 e alertas sentinela) e `enviarTelaAmbAtestado` (emissão conforme Resolução CFM 1.658/2002 com dias por extenso e sigilo do Art. 5º).
+    - **Roteador Telegram & Retorno Contextual**: No `src/07a_telegram_router.js`, comandos `/ambulatorio`, `/atestado`, `/cid` e `/remume` integrados com teclado inline determinístico em 0ms. Garantidos botões `[🔙 Ambulatório]` (`ux:hub:amb`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas, além de botão `[📋 Copiar ...]` (`ux:copiar:<hash>`) com cache de 6h para colagem direta no PEP/prontuário.
+    - **Validação e Cobertura**: Criada suíte `tests/test_ambulatorio_ux.cjs` (6 blocos) integrada ao manifesto de testes (`scripts/test_manifest.json`). Recompilado `ultra_rotina_master.js` (`npm run build`). 100% aprovado na baseline `npm test` (43/43 suítes verdes em 5.96s).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -26,10 +26,10 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria e Otimização da Aba Ambulatório & Atenção Primária (`ux:hub:amb`)**:
-    - **Arquivo/Módulo Alvo**: `src/12_experiencia_bot.js` e `src/07a_telegram_router.js`
-    - **Função/Componente/Seletor**: Função `enviarMenuAmbulatorio` e callbacks `ux:amb:*` (`soap`, `remume`, `cid`, `atestado`)
-    - **Comportamento Esperado / Critério de Aceite**: Garantir retorno contextual para `[🔙 Ambulatório]` e `[🏠 Início]`, respostas determinísticas em 0ms sem chamadas desnecessárias de IA, botões táteis de 1 toque para busca ágil de CID-10/CIAP-2, receituário REMUME SUS e atestados médicos CFM com botão de cópia `[📋 Copiar Conduta]`.
+- [ ] **Auditoria e Otimização da Aba Calculadoras Clínicas & Escores (`ux:hub:calc`, Cockpit e Telegram)**:
+    - **Arquivo/Módulo Alvo**: `src/12_experiencia_bot.js`, `src/07f_telegram_calculadoras_parser.js` e `cockpit_movel.html`
+    - **Função/Componente/Seletor**: Função `enviarMenuUXCalculadoras`, rotas de cálculo `/calc` e modais interativos do Cockpit
+    - **Comportamento Esperado / Critério de Aceite**: Garantir retorno contextual para `[🔙 Calculadoras]` (`ux:hub:calc`) e `[🏠 Início]` (`ux:hub:inicio`), respostas determinísticas em 0ms sem chamadas desnecessárias de IA, botões de 1 toque para cálculo direto (Gasometria arterial completa, Cockcroft vs CKD-EPI, Holliday-Segar, Glasgow, Parkland e Drogas Vasoativas) com botão de cópia `[📋 Copiar Cálculo para Prontuário]`.
 
 ---
 
@@ -45,9 +45,8 @@
 
 1. [x] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`)**:
     - Concluído com 100% dos submódulos validados (`atb`, `ped`, `gestacao`, `interacao`, `hsl`), retorno contextual, respostas determinísticas em 0ms e botão de cópia de conduta.
-2. [ ] **Auditoria e Otimização da Aba Ambulatório & Atenção Primária (`ux:hub:amb`)**:
-    - Validar fluxos de CID-10 & CIAP-2 Rápido (`ux:amb:cid`), Prescrição REMUME SUS (`ux:amb:remume`), Atestado Médico CFM (`ux:amb:atestado`) e Receituário de Controle Especial (C1/B1).
-    - Assegurar botões de retorno para `[🔙 Ambulatório]` e `[🏠 Início]`, além de botões imediatos de cópia e impressão sem passos intermediários desnecessários.
+2. [x] **Auditoria e Otimização da Aba Ambulatório & Atenção Primária (`ux:hub:amb`)**:
+    - Concluído com 100% dos submódulos validados (`soap`, `remume`, `cid`, `atestado`), retorno contextual `[🔙 Ambulatório]`, respostas determinísticas em 0ms e botão de cópia de conduta para o PEP.
 3. [ ] **Auditoria e Otimização da Aba Calculadoras Clínicas & Escores (`ux:hub:calc` e Cockpit)**:
     - Validar Gasometria Arterial completa (`ux:iniciar:gaso`), Cockcroft vs CKD-EPI (`calc_Cockcroft`, `calc_CKD`), Hidratação Holliday-Segar (`ux:enf:hidratacao`), Glasgow e Escores de Risco.
     - Validar Calculadora de Queimaduras (Parkland / Brooke) no Cockpit (reposição em 24h, regra dos 9 de Wallace, 4 mL/kg/% SCQ, frações 50% nas primeiras 8h e diurese alvo).
@@ -67,12 +66,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 74 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 77 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 70 (IA / Otimização de Inferência)*: Cache semântico de embeddings ou KV-cache para prompts extrativos de baixa latência em modelos Gemini 2.5/Flash-Lite quando `semThinking: true`, permitindo reaproveitamento de respostas estruturadas para consultas idênticas de CID-10, posologia e interações em 0ms sem consumo de cota de API.
-- *Sugestão 71 (Segurança / RBAC Cockpit)*: Adicionar comando no Telegram `/cockpit_revogar_convidado` para invalidação imediata em cache de tokens HMAC emitidos (`ck_<hmac>`) quando um médico convidado concluir o plantão, oferecendo ciclo de vida de credenciais mais granular sem afetar o titular.
-- *Sugestão 72 (Consultas de Bolso / Antimicrobianos)*: Adicionar seletor tátil de sensibilidade local / perfil microbiológico hospitalar (ex: taxa local de ESBL, MRSA ou Pseudomonas) no submenu de Antibióticos por Foco (`ux:bolso:atb`) para escalonamento automático de dose e tempo de infusão estendida de betalactâmicos conforme epidemiologia da UTI local.
 - *Sugestão 73 (Consultas de Bolso / Pediatria)*: Implementar conversão automática de apresentações pediátricas líquidas para gotas em seringa dosadora ou colheres-medida (ex: 5 mL = 1 colher de chá, 15 mL = 1 colher de sopa) nos cards de cópia de conduta pediátrica (`ux:bolso:ped`), minimizando erros de administração domiciliar pelos cuidadores.
 - *Sugestão 74 (Consultas de Bolso / Farmacovigilância)*: Adicionar busca multi-droga combinada em 1 toque no crosscheck de interações (`ux:bolso:interacao`) permitindo colar a lista completa de medicamentos de uso crônico da admissão hospitalar (conciliação medicamentosa) com matriz visual de alertas graduada em cores (Verde: Seguro, Amarelo: Monitorar, Vermelho: Contraindicação Absoluta).
+- *Sugestão 75 (Ambulatório / CIAP-2 Multicêntrico)*: Adicionar mapeamento cruzado bidirecional entre CIAP-2 (Capítulo / Razão de Encontro) e CID-10 no seletor de diagnósticos da atenção básica (`ux:amb:cid`) com filtro por linha de cuidado (saúde da criança, da mulher, do adulto e do idoso).
+- *Sugestão 76 (Ambulatório / Controle Especial e Notificação)*: Adicionar templates estruturados em 1 toque de Receituário de Controle Especial (Portaria SVS/MS nº 344/98 - Listas C1 e B1) e Notificação de Receita B (Psicotrópicos) com cálculo automático da quantidade necessária para 30 ou 60 dias de tratamento.
+- *Sugestão 77 (Ambulatório / Validação de Atestado Digital com QR Code)*: Implementar hash de integridade e metadados criptográficos para validação de atestado médico pelo empregador ou serviço de perícia, minimizando adulterações em declarações emitidas pelo consultório digital.
 
 ---

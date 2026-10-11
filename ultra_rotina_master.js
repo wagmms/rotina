@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 04:01:47
- * Checksum SHA256: 6d2251e186b44d78
+ * Gerado automaticamente via build_master.py em: 2026-10-11 04:24:17
+ * Checksum SHA256: 54cc02ac6f60fb98
  * ==============================================================================
  */
 
@@ -41285,7 +41285,7 @@ function processarMensagemTexto(message) {
   if (comando === "/soap_ambulatorial" || comando === "/ambulatorio" || comando === "/soap_aps") {
     var casoAmb = texto.replace(/^\/(soap_ambulatorial|ambulatorio|soap_aps)\s*/i, "").trim();
     if (!casoAmb) {
-      var msgGuiaAmb = "📋 *MÓDULO SOAP AMBULATORIAL ÁGIL (ATENÇÃO PRIMÁRIA & UBS)*\n\n" +
+      var msgGuiaAmb = "📋 *AMBULATÓRIO · MÓDULO SOAP AMBULATORIAL ÁGIL (ATENÇÃO PRIMÁRIA & UBS)*\n\n" +
         "Envie o caso clínico com queixa, sinais vitais e histórico. O sistema gera prontuário SOAP estruturado com estratificação de risco (SBC/SBD), autocompleção CID-10/CIAP-2 e conduta REMUME.\n\n" +
         "💡 *Exemplos:*\n" +
         "• `/ambulatorio Homem 54a, hipertenso e diabético, traz PA 150/94, glicemia jejum 164, em uso de Losartana 50mg e Metformina 850mg`\n" +
@@ -41303,8 +41303,8 @@ function processarMensagemTexto(message) {
             { text: "📄 Atestado CFM", callback_data: "ux:amb:atestado" }
           ],
           [
-            { text: "🤰 Hub G&O", callback_data: "go_prenatal" },
-            { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }
+            { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
           ]
         ]
       };
@@ -41320,6 +41320,9 @@ function processarMensagemTexto(message) {
   if (comando === "/atestado") {
     var dadosAt = texto.replace(/^\/atestado\s*/i, "").trim();
     if (!dadosAt) {
+      if (typeof enviarTelaAmbAtestado === "function") {
+        return enviarTelaAmbAtestado(chatId);
+      }
       var msgAjudaAt = "📜 *GERADOR DE ATESTADO MÉDICO LEGAL (RESOLUÇÃO CFM 1.658/2002)*\n\n" +
         "Envie a quantidade de dias e o motivo ou paciente:\n\n" +
         "💡 *Exemplos:*\n" +
@@ -41327,7 +41330,23 @@ function processarMensagemTexto(message) {
         "• `/atestado 5 dias, faringite aguda, com CID, paciente Ana Santos`\n" +
         "• `/atestado 1 dia repouso`\n\n" +
         "_Nota médica: O CID-10 só é incluído mediante autorização expressa do paciente._";
-      return enviarMensagemParaChat(chatId, msgAjudaAt);
+      var tecladoAjudaAt = {
+        inline_keyboard: [
+          [
+            { text: "📄 1 Dia (Consulta)", callback_data: "ux:amb:atest:1d" },
+            { text: "📄 3 Dias (IVAS)", callback_data: "ux:amb:atest:3d" }
+          ],
+          [
+            { text: "📄 5 Dias (Afastamento)", callback_data: "ux:amb:atest:5d" },
+            { text: "📄 7 Dias (Lombalgia)", callback_data: "ux:amb:atest:7d" }
+          ],
+          [
+            { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, msgAjudaAt, tecladoAjudaAt);
     }
     var mDias = dadosAt.match(/(\d+)\s*dias?/i);
     var qtdDias = mDias ? parseInt(mDias[1], 10) : 1;
@@ -41367,13 +41386,88 @@ function processarMensagemTexto(message) {
       inline_keyboard: [
         [btnCopiarAt],
         [
-          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+          { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
     };
     var msgAtestado = "📜 *ATESTADO MÉDICO PRONTO PARA O PRONTUÁRIO / PEP:*\n\n```\n" + textoAtestado + "\n```\n\n_Toque no botão abaixo para copiar direto para o prontuário eletrônico (PEP)._";
     return enviarMensagemComTecladoParaChat(chatId, msgAtestado, tecladoAtestado);
+  }
+
+  if (comando === "/cid" || comando === "/ciap") {
+    var termoCid = texto.replace(/^\/(cid|ciap)\s*/i, "").trim();
+    if (!termoCid) {
+      if (typeof enviarTelaAmbCid === "function") {
+        return enviarTelaAmbCid(chatId);
+      }
+      return enviarMensagemComTecladoParaChat(chatId,
+        "🏷️ *BUSCA DE CID-10 & CIAP-2 (ATENÇÃO PRIMÁRIA / UBS)*\n\nEnvie o diagnóstico desejado (ex: `/cid lombalgia`, `/cid has`, `/cid diabetes`).",
+        {
+          inline_keyboard: [
+            [{ text: "🏷️ Ver Tabela Completa", callback_data: "ux:amb:cid" }],
+            [{ text: "🔙 Ambulatório", callback_data: "ux:hub:amb" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
+      );
+    }
+    var matchesCid = (typeof SoapAmbulatorialService !== "undefined")
+      ? SoapAmbulatorialService.buscarDiagnostico(termoCid)
+      : [];
+
+    if (matchesCid && matchesCid.length) {
+      var linhasRes = ["🏷️ *BUSCA DE CID-10 & CIAP-2 (ATENÇÃO PRIMÁRIA / UBS)*\n"];
+      linhasRes.push("Resultados encontrados para: _" + termoCid + "_\n");
+      matchesCid.forEach(function(m, idx) {
+        linhasRes.push("*" + (idx + 1) + ". " + m.diagnostico + "*");
+        linhasRes.push("• Código CID-10: `" + m.cid10 + "` | CIAP-2: `" + m.ciap2 + "`");
+        linhasRes.push("• Categoria: " + m.categoria);
+        if (m.alarmes && m.alarmes.length) {
+          linhasRes.push("• Sinais de Alarme: " + m.alarmes.slice(0, 2).join("; "));
+        }
+        linhasRes.push("");
+      });
+      var textoResCid = linhasRes.join("\n");
+      var ckCidB = Utilities.getUuid().replace(/-/g, "");
+      safePutCache(CacheService.getScriptCache(), ckCidB, textoResCid, 21600);
+      var limpoCidB = typeof uxTextoProntuario === "function" ? uxTextoProntuario(textoResCid) : textoResCid.trim();
+      var btnCopiarCid;
+      if (limpoCidB.length >= 1 && limpoCidB.length <= 256) {
+        btnCopiarCid = { "text": "📋 Copiar Resultados", "copy_text": { "text": limpoCidB } };
+      } else {
+        btnCopiarCid = { "text": "📋 Copiar Resultados", "callback_data": "ux:copiar:" + ckCidB };
+      }
+      var tecladoResCid = {
+        inline_keyboard: [
+          [btnCopiarCid],
+          [
+            { text: "🏷️ Tabela Completa", callback_data: "ux:amb:cid" },
+            { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, textoResCid, tecladoResCid);
+    } else {
+      var msgNaoEnc = "🏷️ *BUSCA DE CID-10 & CIAP-2*\n\nNenhum código direto encontrado no catálogo básico para: _" + termoCid + "_.\n\n" +
+        "💡 *Dica:* Tente pesquisar por termo amplo (ex: `/cid has`, `/cid diabetes`, `/cid dor de cabeca`, `/cid asma`).";
+      var tecladoNaoEnc = {
+        inline_keyboard: [
+          [
+            { text: "🏷️ Ver Tabela Completa", callback_data: "ux:amb:cid" },
+            { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, msgNaoEnc, tecladoNaoEnc);
+    }
+  }
+
+  if (comando === "/remume") {
+    if (typeof enviarTelaAmbRemume === "function") {
+      return enviarTelaAmbRemume(chatId);
+    }
   }
 
   if (comando === "/prenatal" || comando === "/dpp") {
@@ -43992,7 +44086,32 @@ function processarMensagemTexto(message) {
 
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
-    if (!dadosPrescricao) return enviarMensagemParaChat(chatId, "💊 Envie o pedido. Ex: `/rx amigdalite 16kg, alergia a penicilina`");
+    if (!dadosPrescricao) {
+      if (typeof enviarTelaAmbRemume === "function") {
+        return enviarTelaAmbRemume(chatId);
+      }
+      return enviarMensagemComTecladoParaChat(chatId,
+        "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME SUS)*\n\n" +
+        "Envie o diagnóstico ou selecione um kit de prescrição rápida abaixo:\n" +
+        "💡 *Exemplo:* `/rx amigdalite 16kg, alergia a penicilina` ou `/rx losartana 50mg, hidroclorotiazida 25mg`",
+        {
+          inline_keyboard: [
+            [
+              { text: "💊 Receita HAS", callback_data: "ux:amb:remume:has" },
+              { text: "🩸 Receita DM2", callback_data: "ux:amb:remume:dm" }
+            ],
+            [
+              { text: "🩹 Dor & Sintomáticos", callback_data: "ux:amb:remume:dor" },
+              { text: "🫁 Asma / DPOC", callback_data: "ux:amb:remume:asma" }
+            ],
+            [
+              { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+              { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+            ]
+          ]
+        }
+      );
+    }
     return processarEEntregarIA(chatId, gerarPrescricaoComIA, dadosPrescricao, "rx");
   }
 
@@ -50932,9 +51051,18 @@ function iniciarModoBot(chat, mode, novo, messageId) {
     ? 'Envie pH, pCO2 e HCO3 (ex: `7.20 23 10` ou `pH 7.20, pCO2 23, HCO3 10, Na 140, Cl 105`) ou toque em um caso predefinido abaixo:'
     : 'Grave um áudio narrando o caso ou envie os dados por texto.';
 
-  var botoesModo = (mode === 'gaso' && typeof GasometriaAcidoBaseService !== 'undefined' && typeof GasometriaAcidoBaseService.obterTecladoInlineGasometria === 'function')
-    ? GasometriaAcidoBaseService.obterTecladoInlineGasometria('inicial')
-    : botoesBot([[['Encerrar', 'ux:cancelar']]]);
+  var botoesModo;
+  if (mode === 'gaso' && typeof GasometriaAcidoBaseService !== 'undefined' && typeof GasometriaAcidoBaseService.obterTecladoInlineGasometria === 'function') {
+    botoesModo = GasometriaAcidoBaseService.obterTecladoInlineGasometria('inicial');
+  } else if (mode === 'soap') {
+    botoesModo = botoesBot([
+      [['🩺 Exemplo HAS', 'ux:amb:soap:has'], ['🩸 Exemplo DM2', 'ux:amb:soap:dm2']],
+      [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']],
+      [['Encerrar', 'ux:cancelar']]
+    ]);
+  } else {
+    botoesModo = botoesBot([[['Encerrar', 'ux:cancelar']]]);
+  }
 
   return enviarTelaBot(chat,
     '*' + UX_NOMES_MODO[mode] + ' · Novo Caso*\n\n' + orientacao,
@@ -51469,12 +51597,502 @@ function enviarTelaEnfSBAR(chat, messageId) {
 /* ========== Cenário 3: 🩺 Ambulatório & Atenção Primária (UBS) ========== */
 
 function enviarMenuAmbulatorio(chat, messageId) {
-  var texto = '🩺 *AMBULATÓRIO & ATENÇÃO PRIMÁRIA (UBS)*\nSelecione a ação ou envie o caso diretamente:';
+  var texto = '🩺 *AMBULATÓRIO & ATENÇÃO PRIMÁRIA (UBS)*\n\n' +
+    'Prontuário estruturado, referências de Atenção Básica e condutas em 0ms:\n' +
+    'Selecione a ferramenta ambulatorial desejada:';
   var botoes = botoesBot([
-    [['📝 Gerador SOAP Ágil', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
+    [['📝 SOAP Ambulatorial', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
     [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado CFM', 'ux:amb:atestado']],
+    [['📋 Modelo Exame Físico', 'ux:amb:ef'], ['🩺 Guia SISREG / Parecer', 'ux:amb:sisreg']],
     [['🤰 Hub G&O', 'ux:rotina:go'], ['🌸 Preventivo', 'ux:rotina:preventivo']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaAmbSoap(chat, messageId) {
+  var texto = "📝 *SOAP AMBULATORIAL ÁGIL (ATENÇÃO PRIMÁRIA & UBS)*\n\n" +
+    "Registro clínico canônico estruturado em 4 tempos:\n\n" +
+    "• *S (Subjetivo):* Queixa principal, tempo de evolução, HDA, medicações contínuas e alergias.\n" +
+    "• *O (Objetivo):* Sinais vitais (PA, FC, FR, SpO2, Tax, IMC) e exame físico segmentar dirigido.\n" +
+    "• *A (Avaliação):* Hipótese diagnóstica codificada (CID-10 / CIAP-2) e estratificação de risco (SBC/SBD).\n" +
+    "• *P (Plano):* Prescrição REMUME, exames complementares, MEV (estilo de vida), alarmes e retorno.\n\n" +
+    "💡 *Exame Físico Padrão Normal:* Toque no botão abaixo para copiar o modelo completo direto para o PEP.\n\n" +
+    "👉 *Toque em um caso clínico predefinido abaixo para testar em 1 toque ou digite `/ambulatorio [dados]`*:";
+
+  var efTexto = (typeof SoapAmbulatorialService !== "undefined" && typeof SoapAmbulatorialService.obterModeloExameFisicoCompleto === "function")
+    ? SoapAmbulatorialService.obterModeloExameFisicoCompleto()
+    : "Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36.5°C.\n" +
+      "Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.\n" +
+      "  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.\n" +
+      "  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.\n" +
+      "  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.\n" +
+      " Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.";
+
+  var cache = uxCache();
+  var ckEf = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckEf, efTexto, 21600);
+
+  var botoes = botoesBot([
+    [['📋 Copiar Exame Físico Padrão', 'ux:copiar:' + ckEf]],
+    [['🩺 Caso HAS Descompensada', 'ux:amb:soap:has'], ['🩸 Caso DM2 Descompensado', 'ux:amb:soap:dm2']],
+    [['🫁 Caso IVAS / Resfriado', 'ux:amb:soap:ivas'], ['🦴 Caso Lombalgia Aguda', 'ux:amb:soap:lombalgia']],
+    [['📝 Iniciar Novo SOAP Livre', 'ux:iniciar:soap']],
+    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackAmbSoap(chat, valor, messageId) {
+  var dadosCaso = null;
+  if (valor === 'has') {
+    dadosCaso = {
+      pacienteNome: 'João da Silva',
+      idade: 56,
+      sexo: 'm',
+      queixaPrincipal: 'Acompanhamento de pressão alta e dor de cabeça occipital',
+      tempoEvolucao: '3 semanas',
+      hda: 'Paciente hipertenso de longa data em uso irregular de medicação, relata níveis pressóricos elevados na aferição da UBS (160/96 mmHg) e cefaleia occipital vespertina leve. Nega precordialgia, dispneia ou déficit focal.',
+      medicacoesUso: 'Losartana 50mg/dia (irregular)',
+      alergias: 'Nega alergias',
+      antecedentes: 'HAS há 8 anos, dislipidemia. Pai com IAM aos 62 anos.',
+      habitos: 'Sedentário, nega tabagismo, etilismo eventual',
+      sinaisVitais: { pa: '154/96', fc: 74, fr: 16, spo2: 97, tax: 36.4, imc: 27.8 },
+      modeloExameFisico: 'has_rotina',
+      diagnosticos: ['Hipertensão Arterial Sistêmica Estágio 2 (CID-10: I10 / CIAP-2: K86)', 'Sobrepeso (CID-10: E66.9)'],
+      estratificacaoRisco: (typeof SoapAmbulatorialService !== 'undefined') ? SoapAmbulatorialService.estratificarRiscoCardiovascular({ idade: 56, sexo: 'm', pas: 154, dm: false, tabagismo: false }) : null,
+      prescricaoMedicamentosa: [
+        { nome: 'Losartana Potássica', apresentacao: '50mg comprimido', quantidade: '60 comprimidos', posologia: '1 comprimido VO de 12/12h', horarios: '08h e 20h' },
+        { nome: 'Hidroclorotiazida', apresentacao: '25mg comprimido', quantidade: '30 comprimidos', posologia: '1 comprimido VO 1x/dia pela manhã', horarios: '08h' },
+        { nome: 'Anlodipino', apresentacao: '5mg comprimido', quantidade: '30 comprimidos', posologia: '1 comprimido VO 1x/dia à noite se PA persistir > 140/90', horarios: '20h' }
+      ],
+      examesSolicitados: ['Creatinina sérica, Ureia, Potássio', 'EAS / Urina 1 e Relação Albuminúria/Creatinúria (RAC)', 'Glicemia de jejum e HbA1c', 'Perfil lipídico completo (CT, HDL, LDL, Triglicerídeos)', 'Eletrocardiograma de repouso (ECG)'],
+      mev: ['Dieta DASH com restrição de sal (< 2g sódio/dia ou 5g sal de cozinha).', 'Prática de atividade física aeróbica 150 min/semana.', 'Manutenção do Mapa de Pressão Arterial (MRPA residencial 2x/dia por 5 dias).'],
+      sinaisAlarme: ['Procurar UPA/PS se: dor torácica em aperto, falta de ar súbita, perda de força ou fala enrolada, PAS ≥ 180 ou PAD ≥ 110 com sintomas visuais.'],
+      retornoDias: 30
+    };
+  } else if (valor === 'dm2') {
+    dadosCaso = {
+      pacienteNome: 'Maria Aparecida Santos',
+      idade: 61,
+      sexo: 'f',
+      queixaPrincipal: 'Revisão de Diabetes e cansaço',
+      tempoEvolucao: '2 meses',
+      hda: 'Paciente com DM2 há 5 anos, queixa-se de poliúria discreta e astenia. Glicemia de jejum recente de 184 mg/dL e HbA1c de 8.8%. Nega hipoglicemias recentes.',
+      medicacoesUso: 'Metformina 850mg 2x/dia',
+      alergias: 'Nega alergias',
+      antecedentes: 'DM2, HAS, esteatose hepática',
+      habitos: 'Nega tabagismo e etilismo',
+      sinaisVitais: { pa: '132/84', fc: 78, fr: 18, spo2: 98, tax: 36.6, glicemia: 178, imc: 29.4 },
+      modeloExameFisico: 'dm_rotina',
+      diagnosticos: ['Diabetes Mellitus Tipo 2 com controle subótimo (CID-10: E11.9 / CIAP-2: T90)', 'Hipertensão Arterial Sistêmica controlada (CID-10: I10)'],
+      estratificacaoRisco: (typeof SoapAmbulatorialService !== 'undefined') ? SoapAmbulatorialService.estratificarRiscoCardiovascular({ idade: 61, sexo: 'f', pas: 132, dm: true }) : null,
+      prescricaoMedicamentosa: [
+        { nome: 'Metformina', apresentacao: '850mg comprimido', quantidade: '90 comprimidos', posologia: '1 comprimido VO 3x/dia após as principais refeições', horarios: 'café, almoço e jantar' },
+        { nome: 'Gliclazida MR', apresentacao: '30mg comprimido de liberação modificada', quantidade: '60 comprimidos', posologia: '2 comprimidos (60mg) VO 1x/dia no desjejum', horarios: '08h' }
+      ],
+      examesSolicitados: ['Hemoglobina Glicada (HbA1c)', 'Creatinina sérica e taxa de filtração glomerular estimada', 'Relação Albuminúria/Creatinúria em amostra isolada', 'Fundo de olho anual'],
+      mev: ['Orientação nutricional para redução de carboidratos simples e ultraprocessados.', 'Exame diário dos pés, secagem interdigital e uso de calçados confortáveis sem costuras.', 'Automonitorização da glicemia capilar em jejum.'],
+      sinaisAlarme: ['Sintomas de hipoglicemia (sudorese fria, tremor, confusão: ingerir 15g de carboidrato rápido).', 'Procurar UPA se lesão ulcerada ou bolhosa em pés, febre ou vômitos com glicemia > 300.'],
+      retornoDias: 45
+    };
+  } else if (valor === 'ivas') {
+    dadosCaso = {
+      pacienteNome: 'Carlos Eduardo Lima',
+      idade: 28,
+      sexo: 'm',
+      queixaPrincipal: 'Coriza, espirros, dor de garganta leve e tosse seca',
+      tempoEvolucao: '4 dias',
+      hda: 'Quadro iniciado há 4 dias com rinorreia clara, espirros frequentes e odinofagia leve. Sensação de febrícula no 1º dia (não aferida). Nega dispneia, dor ventilatório-dependente ou secreção purulenta.',
+      medicacoesUso: 'Nenhuma medicação contínua',
+      alergias: 'Nega alergias',
+      antecedentes: 'Hígido, nega asma ou rinite crônica',
+      habitos: 'Não fumante',
+      sinaisVitais: { pa: '118/74', fc: 72, fr: 14, spo2: 99, tax: 36.7 },
+      modeloExameFisico: 'respiratorio_ivas',
+      diagnosticos: ['Rinofaringite Aguda / Resfriado Comum (CID-10: J00 / CIAP-2: R74)'],
+      prescricaoMedicamentosa: [
+        { nome: 'Dipirona Monoidratada', apresentacao: '500mg comprimido', quantidade: '20 comprimidos', posologia: '1 a 2 comprimidos VO até de 6/6h se dor ou febre', horarios: 'SOS dor/febre' },
+        { nome: 'Cloreto de Sódio 0,9%', apresentacao: 'Solução Nasal Frasco 30 mL', quantidade: '2 frascos', posologia: 'Aplicar 2 a 3 jatos em cada narina várias vezes ao dia', horarios: 'Livre demanda' }
+      ],
+      examesSolicitados: ['Sem indicação de exames complementares ou radiografia no momento (quadro viral autolimitado).'],
+      mev: ['Hidratação oral vigorosa (2 a 3 litros de água por dia).', 'Repouso domiciliar, alimentação leve e lavagem nasal frequente.', 'Evitar antibióticos (infecção viral autolimitada).'],
+      sinaisAlarme: ['Procurar atendimento imediato se: febre persistente > 3 dias (≥ 37,8°C), falta de ar ou dor torácica, expectoração purulenta abundante com piora do estado geral.'],
+      retornoDias: 7
+    };
+  } else {
+    dadosCaso = {
+      pacienteNome: 'Ana Paula Ferreira',
+      idade: 42,
+      sexo: 'f',
+      queixaPrincipal: 'Dor na coluna lombar após carregar peso',
+      tempoEvolucao: '5 dias',
+      hda: 'Paciente relata dor lombar baixa de início súbito após esforço físico doméstico. Dor mecânica que piora à movimentação e melhora com repouso. Nega irradiação para membros inferiores, parestesias, febre ou perda de força. Nega incontinência esfincteriana.',
+      medicacoesUso: 'Nenhuma medicação contínua',
+      alergias: 'Nega alergias',
+      antecedentes: 'Sem antecedentes de neoplasia ou trauma maior',
+      habitos: 'Trabalho administrativo sedentário',
+      sinaisVitais: { pa: '122/78', fc: 76, fr: 15, spo2: 98, tax: 36.5 },
+      modeloExameFisico: 'lombalgia_postural',
+      diagnosticos: ['Lombalgia Mecânico-Postural Aguda (CID-10: M54.5 / CIAP-2: L03)'],
+      prescricaoMedicamentosa: [
+        { nome: 'Dipirona Monoidratada', apresentacao: '1g comprimido', quantidade: '15 comprimidos', posologia: '1 comprimido VO de 6/6h nos primeiros 3 dias, depois se dor', horarios: '06h, 12h, 18h, 24h' },
+        { nome: 'Ciclobenzaprina', apresentacao: '5mg comprimido', quantidade: '10 comprimidos', posologia: '1 comprimido VO à noite ao deitar por 5 dias', horarios: '22h' }
+      ],
+      examesSolicitados: ['Radiografia de coluna lombo-sacra NÃO indicada neste momento (ausência de "red flags" / sinais de alerta).'],
+      mev: ['Compressas mornas locais por 20 minutos 3x/dia.', 'Evitar repouso absoluto no leito (manter movimentação leve conforme tolerância).', 'Higiene postural e evitar erguer cargas pesadas.'],
+      sinaisAlarme: ['Procurar atendimento de emergência se: dormência no períneo ("anestesia em sela"), retenção urinária ou perda involuntária de fezes/urina (suspeita de Síndrome da Cauda Equina), fraqueza nas pernas ("pé caído") ou febre.'],
+      retornoDias: 14
+    };
+  }
+
+  var resSoap = (typeof SoapAmbulatorialService !== 'undefined')
+    ? SoapAmbulatorialService.estruturarSoapAmbulatorial(dadosCaso)
+    : { textoProntuario: 'SOAP Ambulatorial gerado com sucesso.' };
+
+  var textoRetorno = '📋 *PRONTUÁRIO CLÍNICO AMBULATORIAL (SOAP ÁGIL)*\n\n```\n' +
+    resSoap.textoProntuario + '\n```\n\n' +
+    '_Toque no botão abaixo para copiar o prontuário completo para o PEP._';
+
+  var cache = uxCache();
+  var ckSoap = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckSoap, resSoap.textoProntuario, 21600);
+
+  var botoes = botoesBot([
+    [['📋 Copiar Prontuário SOAP', 'ux:copiar:' + ckSoap]],
+    [['🩺 Outro Caso (HAS)', 'ux:amb:soap:has'], ['🩸 Caso DM2', 'ux:amb:soap:dm2']],
+    [['🔙 SOAP Ambulatorial', 'ux:amb:soap'], ['🔙 Ambulatório', 'ux:hub:amb']],
+    [['🏠 Início', 'ux:hub:inicio']]
+  ]);
+
+  return enviarTelaBot(chat, textoRetorno, botoes, messageId);
+}
+
+function enviarTelaAmbRemume(chat, messageId) {
+  var texto = "💊 *PRESCRIÇÃO AMBULATORIAL REMUME SUS (ATENÇÃO BÁSICA / FARMÁCIA POPULAR)*\n\n" +
+    "Principais esquemas terapêuticos de 1ª linha da Relação Municipal de Medicamentos:\n\n" +
+    "• *Hipertensão Arterial (HAS):*\n" +
+    "  👉 Losartana 50mg VO 12/12h + Hidroclorotiazida 25mg VO 1x/dia pela manhã\n" +
+    "  _(Alt/Associação: Anlodipino 5mg a 10mg VO 1x/dia)_\n\n" +
+    "• *Diabetes Mellitus Tipo 2 (DM2):*\n" +
+    "  👉 Metformina 850mg VO 2x a 3x/dia após refeições (máx 2.550mg/dia)\n" +
+    "  _(Associação: Gliclazida MR 30mg a 60mg VO 1x/dia no café da manhã)_\n\n" +
+    "• *Dislipidemia / Prevenção CV:*\n" +
+    "  👉 Sinvastatina 20mg a 40mg VO à noite (alvo LDL conforme risco)\n\n" +
+    "• *Analgesia & Febre (Sintomáticos):*\n" +
+    "  👉 Dipirona 500mg/1g VO 6/6h SOS ou Paracetamol 500mg/750mg até 6/6h (máx 3g/dia)\n" +
+    "  👉 Ibuprofeno 600mg VO 8/8h por 3-5 dias (usar com cautela em idosos/HAS/DRC)\n\n" +
+    "• *Asma & Doença Respiratória:*\n" +
+    "  👉 Salbutamol 100mcg/jato (resgate: 2 jatos inalatórios se falta de ar)\n" +
+    "  👉 Beclometasona 250mcg/jato (manutenção: 1 a 2 jatos inalatórios 12/12h)\n\n" +
+    "Toque abaixo para gerar e copiar receitas completas com via, posologia e MEV:";
+
+  var cache = uxCache();
+  var ckRemume = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckRemume, texto, 21600);
+
+  var botoes = botoesBot([
+    [['💊 Receita HAS (Hipertensão)', 'ux:amb:remume:has'], ['🩸 Receita DM2 (Diabetes)', 'ux:amb:remume:dm']],
+    [['🩹 Receita Dor & Sintomáticos', 'ux:amb:remume:dor'], ['🫁 Receita Asma / DPOC', 'ux:amb:remume:asma']],
+    [['📋 Copiar Guia REMUME Completo', 'ux:copiar:' + ckRemume]],
+    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackAmbRemume(chat, valor, messageId) {
+  var dadosReceita = null;
+  if (valor === 'has') {
+    dadosReceita = {
+      pacienteNome: 'Ao Portador',
+      itens: [
+        { nome: 'Losartana Potássica', apresentacao: '50 mg comprimido', quantidade: '60 comprimidos', via: 'USO ORAL', posologia: '1 comprimido de 12 em 12 horas.', horarios: '08h e 20h' },
+        { nome: 'Hidroclorotiazida', apresentacao: '25 mg comprimido', quantidade: '30 comprimidos', via: 'USO ORAL', posologia: '1 comprimido pela manhã em jejum.', horarios: '08h' },
+        { nome: 'Besilato de Anlodipino', apresentacao: '5 mg comprimido', quantidade: '30 comprimidos', via: 'USO ORAL', posologia: '1 comprimido uma vez ao dia.', horarios: '20h' }
+      ],
+      orientacoes: [
+        'Reduzir ingestão de sal de cozinha e evitar alimentos ultraprocessados e embutidos.',
+        'Praticar atividade física aeróbica regular (caminhada 30 a 45 min, 5x por semana).',
+        'Aferir e anotar a pressão arterial 2 vezes por semana para controle ambulatorial.'
+      ]
+    };
+  } else if (valor === 'dm') {
+    dadosReceita = {
+      pacienteNome: 'Ao Portador',
+      itens: [
+        { nome: 'Cloridrato de Metformina', apresentacao: '850 mg comprimido', quantidade: '90 comprimidos', via: 'USO ORAL', posologia: '1 comprimido após o café, almoço e jantar.', horarios: 'Após as refeições' },
+        { nome: 'Gliclazida MR', apresentacao: '30 mg comprimido liberação modificada', quantidade: '60 comprimidos', via: 'USO ORAL', posologia: '2 comprimidos (60 mg) no café da manhã.', horarios: '08h' }
+      ],
+      orientacoes: [
+        'Seguir plano alimentar com redução drástica de açúcares simples, doces e refrigerantes.',
+        'Inspecionar os pés diariamente em busca de calos, fissuras, bolhas ou feridas.',
+        'Se apresentar tremores, sudorese fria ou tontura (hipoglicemia), ingerir 1 copo de água com açúcar e procurar atendimento.'
+      ]
+    };
+  } else if (valor === 'dor') {
+    dadosReceita = {
+      pacienteNome: 'Ao Portador',
+      itens: [
+        { nome: 'Dipirona Monoidratada', apresentacao: '500 mg comprimido', quantidade: '20 comprimidos', via: 'USO ORAL', posologia: '1 a 2 comprimidos até de 6 em 6 horas se dor ou febre.', horarios: 'SOS dor ou febre' },
+        { nome: 'Paracetamol', apresentacao: '500 mg comprimido', quantidade: '20 comprimidos', via: 'USO ORAL', posologia: '1 comprimido de 6 em 6 horas se dor leve.', duracao: '3 a 5 dias' },
+        { nome: 'Ibuprofeno', apresentacao: '600 mg comprimido', quantidade: '15 comprimidos', via: 'USO ORAL', posologia: '1 comprimido de 8 em 8 horas após refeições por no máximo 5 dias.', duracao: '5 dias' }
+      ],
+      orientacoes: [
+        'Não ultrapassar a dose máxima de Paracetamol (3g/dia) pelo risco de toxicidade hepática.',
+        'Suspender o Ibuprofeno se dor de estômago, fezes escuras ou piora da pressão arterial.'
+      ]
+    };
+  } else {
+    dadosReceita = {
+      pacienteNome: 'Ao Portador',
+      itens: [
+        { nome: 'Sulfato de Salbutamol Aerossol', apresentacao: '100 mcg/dose frasco com 200 doses', quantidade: '1 frasco', via: 'USO INALATÓRIO', posologia: 'Inalar 2 jatos espaçados com espaçador se falta de ar ou chiado no peito (resgate).', horarios: 'SOS falta de ar' },
+        { nome: 'Dipropionato de Beclometasona Aerossol', apresentacao: '250 mcg/dose frasco com 200 doses', quantidade: '1 frasco', via: 'USO INALATÓRIO', posologia: 'Inalar 1 a 2 jatos de 12 em 12 horas de uso diário e contínuo.', horarios: '08h e 20h' }
+      ],
+      orientacoes: [
+        'Utilizar espaçador para garantir correta deposição pulmonar do medicamento.',
+        'Enxaguar a boca com água e cuspir após o uso da Beclometasona para prevenir candidíase oral.',
+        'Se necessitar do Salbutamol mais de 3 vezes por semana, retornar para reavaliação de controle da asma.'
+      ]
+    };
+  }
+
+  var textoRec = (typeof SoapAmbulatorialService !== 'undefined')
+    ? SoapAmbulatorialService.exportarReceitaTexto(dadosReceita)
+    : 'Receita médica gerada com sucesso.';
+
+  var msgRetorno = '💊 *RECEITUÁRIO AMBULATORIAL PRONTO PARA O PEP:*\n\n```\n' +
+    textoRec + '\n```\n\n' +
+    '_Toque no botão abaixo para copiar a receita completa para a área de transferência._';
+
+  var cache = uxCache();
+  var ckR = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckR, textoRec, 21600);
+
+  var botoes = botoesBot([
+    [['📋 Copiar Receita para Prontuário', 'ux:copiar:' + ckR]],
+    [['💊 Receita HAS', 'ux:amb:remume:has'], ['🩸 Receita DM2', 'ux:amb:remume:dm']],
+    [['🔙 Prescrição REMUME', 'ux:amb:remume'], ['🔙 Ambulatório', 'ux:hub:amb']],
+    [['🏠 Início', 'ux:hub:inicio']]
+  ]);
+
+  return enviarTelaBot(chat, msgRetorno, botoes, messageId);
+}
+
+function enviarTelaAmbCid(chat, messageId) {
+  var texto = "🏷️ *CATÁLOGO DE CID-10 & CIAP-2 (ATENÇÃO PRIMÁRIA / UBS)*\n\n" +
+    "Códigos canônicos mais utilizados no atendimento ambulatorial em 0ms:\n\n" +
+    "• *Cardiovascular:*\n" +
+    "  • Hipertensão Arterial Essencial: CID-10 `I10` | CIAP-2 `K86`\n" +
+    "  • Insuficiência Cardíaca: CID-10 `I50.9` | CIAP-2 `K77`\n\n" +
+    "• *Metabólico & Endócrino:*\n" +
+    "  • Diabetes Mellitus Tipo 2: CID-10 `E11.9` | CIAP-2 `T90`\n" +
+    "  • Diabetes Mellitus Tipo 1: CID-10 `E10.9` | CIAP-2 `T89`\n" +
+    "  • Dislipidemia Mista: CID-10 `E78.0` | CIAP-2 `T93`\n" +
+    "  • Hipotireoidismo Primário: CID-10 `E03.9` | CIAP-2 `T86`\n" +
+    "  • Obesidade: CID-10 `E66.9` | CIAP-2 `T82`\n\n" +
+    "• *Respiratório:*\n" +
+    "  • IVAS / Resfriado Comum: CID-10 `J00` | CIAP-2 `R74`\n" +
+    "  • Faringoamigdalite Aguda: CID-10 `J02.9` | CIAP-2 `R74`\n" +
+    "  • Asma Brônquica: CID-10 `J45.9` | CIAP-2 `R96`\n" +
+    "  • Rinite Alérgica: CID-10 `J30.4` | CIAP-2 `R97`\n" +
+    "  • DPOC: CID-10 `J44.9` | CIAP-2 `R95`\n\n" +
+    "• *Gastrointestinal:*\n" +
+    "  • Dispepsia / Gastrite: CID-10 `K30` | CIAP-2 `D87`\n" +
+    "  • DRGE / Refluxo: CID-10 `K21.9` | CIAP-2 `D84`\n\n" +
+    "• *Musculoesquelético & Reumatologia:*\n" +
+    "  • Lombalgia Mecânico-Postural: CID-10 `M54.5` | CIAP-2 `L03`\n" +
+    "  • Gonartrose / Osteoartrite: CID-10 `M17.9` | CIAP-2 `L90`\n\n" +
+    "• *Saúde Mental:*\n" +
+    "  • Ansiedade Generalizada (TAG): CID-10 `F41.1` | CIAP-2 `P74`\n" +
+    "  • Episódio Depressivo: CID-10 `F32.1` | CIAP-2 `P76`\n\n" +
+    "• *Urológico:*\n" +
+    "  • Cistite Aguda / ITU Baixa: CID-10 `N30.0` | CIAP-2 `U71`\n\n" +
+    "💡 *Busca Rápida de Qualquer Termo:* Envie `/cid [termo]` (ex: `/cid lombalgia`).";
+
+  var cache = uxCache();
+  var ckCid = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckCid, texto, 21600);
+
+  var botoes = botoesBot([
+    [['❤️ HAS (I10)', 'ux:amb:cid:has'], ['🩸 DM2 (E11.9)', 'ux:amb:cid:dm2']],
+    [['🫁 IVAS (J00)', 'ux:amb:cid:ivas'], ['🦴 Lombalgia (M54.5)', 'ux:amb:cid:lombalgia']],
+    [['🧠 Ansiedade (F41.1)', 'ux:amb:cid:tag'], ['🚽 Cistite (N30.0)', 'ux:amb:cid:itu']],
+    [['📋 Copiar Tabela CID/CIAP', 'ux:copiar:' + ckCid]],
+    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackAmbCid(chat, valor, messageId) {
+  var termoBusca = valor;
+  if (valor === 'has') termoBusca = 'hipertensao';
+  else if (valor === 'dm2') termoBusca = 'diabetes_tipo_2';
+  else if (valor === 'ivas') termoBusca = 'resfriado_comum';
+  else if (valor === 'lombalgia') termoBusca = 'lombalgia';
+  else if (valor === 'tag') termoBusca = 'ansiedade_tag';
+  else if (valor === 'itu') termoBusca = 'cistite_itu';
+
+  var matches = (typeof SoapAmbulatorialService !== 'undefined')
+    ? SoapAmbulatorialService.buscarDiagnostico(termoBusca)
+    : [];
+
+  var item = matches.length ? matches[0] : null;
+  if (!item) {
+    return enviarTelaAmbCid(chat, messageId);
+  }
+
+  var textoFicha = "🏷️ *FICHA CLÍNICA DE DIAGNÓSTICO (CID-10 & CIAP-2)*\n\n" +
+    "• *Diagnóstico Canônico:* " + item.diagnostico + "\n" +
+    "• *Código CID-10:* `" + item.cid10 + "`\n" +
+    "• *Código CIAP-2 (APS):* `" + item.ciap2 + "`\n" +
+    "• *Categoria:* " + item.categoria + "\n\n";
+
+  if (item.alarmes && item.alarmes.length) {
+    textoFicha += "🚨 *Sinais de Alarme Sentinela (Avaliar PS / Especialista):*\n";
+    item.alarmes.forEach(function(al) {
+      textoFicha += "• " + al + "\n";
+    });
+    textoFicha += "\n";
+  }
+
+  textoFicha += "💡 _Dica de PEP: Utilize o botão de cópia abaixo para transferir o código formatado diretamente para a evolução do prontuário._";
+
+  var blocoCopia = item.diagnostico + ' (CID-10: ' + item.cid10 + ' | CIAP-2: ' + item.ciap2 + ')';
+  var cache = uxCache();
+  var ckF = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckF, blocoCopia, 21600);
+
+  var botoes = botoesBot([
+    [['📋 Copiar CID-10 & Diagnóstico', 'ux:copiar:' + ckF]],
+    [['🔙 Tabela CID-10', 'ux:amb:cid'], ['🔙 Ambulatório', 'ux:hub:amb']],
+    [['🏠 Início', 'ux:hub:inicio']]
+  ]);
+
+  return enviarTelaBot(chat, textoFicha, botoes, messageId);
+}
+
+function enviarTelaAmbAtestado(chat, messageId) {
+  var texto = "📄 *EMISSOR DE ATESTADO MÉDICO CFM (RESOLUÇÃO 1.658/2002)*\n\n" +
+    "Regras éticas e legais obrigatórias para emissão de atestados médicos:\n\n" +
+    "• *Direito do Paciente:* O atestado é parte integrante da consulta e não pode ser cobrado à parte.\n" +
+    "• *Prazo por Extenso:* A quantidade de dias deve ser expressa em algarismos e por extenso.\n" +
+    "• *Sigilo Médico (Art. 5º da Res. CFM 1.658/2002):* O código CID-10 só pode ser incluído com autorização expressa do paciente. Por padrão ético, deve ser emitido sem diagnóstico.\n" +
+    "• *Limite na Atenção Primária:* Afastamentos superiores a 15 dias consecutivos pelo mesmo agravo competem à perícia médica previdenciária (INSS).\n\n" +
+    "Selecione a quantidade de dias para gerar o atestado padronizado em 1 toque ou digite `/atestado [dias] [motivo]`:";
+
+  var atModelo = (typeof SoapAmbulatorialService !== "undefined")
+    ? SoapAmbulatorialService.exportarAtestadoTexto({ dias: 3 })
+    : "Atestado médico padronizado CFM.";
+
+  var cache = uxCache();
+  var ckAt = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckAt, atModelo, 21600);
+
+  var botoes = botoesBot([
+    [['📄 1 Dia (Consulta)', 'ux:amb:atest:1d'], ['📄 2 Dias (Repouso)', 'ux:amb:atest:2d']],
+    [['📄 3 Dias (IVAS / Sintomático)', 'ux:amb:atest:3d'], ['📄 5 Dias (Afastamento)', 'ux:amb:atest:5d']],
+    [['📄 7 Dias (Lombalgia / Convalescença)', 'ux:amb:atest:7d'], ['🕒 Declaração de Comparecimento', 'ux:amb:atest:comp']],
+    [['📋 Copiar Modelo de Atestado', 'ux:copiar:' + ckAt]],
+    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackAmbAtestado(chat, valor, messageId) {
+  var textoAtestado = "";
+  if (valor === 'comp') {
+    textoAtestado = "======================================================================\n" +
+      "                    DECLARAÇÃO DE COMPARECIMENTO MÉDICO               \n" +
+      "======================================================================\n\n" +
+      "Declaro para os devidos fins de comprovação e justificativa que o(a) paciente:\n" +
+      "Nome: Ao Portador\n" +
+      "Documento: [RG / CPF / Documento]\n\n" +
+      "Compareceu a esta unidade de saúde nesta data, permanecendo em atendimento\n" +
+      "médico ambulatorial sob meus cuidados profissionais no período das [   ]h às [   ]h.\n\n" +
+      "Local e Data: Ribeirão Preto - SP, " + new Date().toLocaleDateString('pt-BR') + ".\n\n" +
+      "__________________________________________________________\n" +
+      "Dr. Wagner Moraes · CRM/SP\n" +
+      "======================================================================";
+  } else {
+    var diasNum = parseInt(valor.replace('d', ''), 10) || 1;
+    textoAtestado = (typeof SoapAmbulatorialService !== "undefined")
+      ? SoapAmbulatorialService.exportarAtestadoTexto({
+          pacienteNome: 'Ao Portador',
+          dias: diasNum,
+          incluirCid: false
+        })
+      : "Atestado médico de " + diasNum + " dia(s).";
+  }
+
+  var msgRetorno = "📜 *ATESTADO MÉDICO CFM PRONTO PARA O PRONTUÁRIO / PEP:*\n\n```\n" +
+    textoAtestado + "\n```\n\n" +
+    "_Toque no botão abaixo para copiar o atestado médico completo para o PEP._";
+
+  var cache = uxCache();
+  var ckA = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckA, textoAtestado, 21600);
+
+  var botoes = botoesBot([
+    [['📋 Copiar Atestado para Prontuário', 'ux:copiar:' + ckA]],
+    [['📄 1 Dia', 'ux:amb:atest:1d'], ['📄 3 Dias', 'ux:amb:atest:3d'], ['📄 5 Dias', 'ux:amb:atest:5d']],
+    [['🔙 Atestados CFM', 'ux:amb:atestado'], ['🔙 Ambulatório', 'ux:hub:amb']],
+    [['🏠 Início', 'ux:hub:inicio']]
+  ]);
+
+  return enviarTelaBot(chat, msgRetorno, botoes, messageId);
+}
+
+function enviarTelaAmbExameFisico(chat, messageId) {
+  var textoEf = (typeof SoapAmbulatorialService !== "undefined" && typeof SoapAmbulatorialService.obterModeloExameFisicoCompleto === "function")
+    ? SoapAmbulatorialService.obterModeloExameFisicoCompleto()
+    : "Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36.5°C.\n" +
+      "Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.\n" +
+      "  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.\n" +
+      "  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.\n" +
+      "  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.\n" +
+      " Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.";
+
+  var texto = "📋 *MODELO CANÔNICO DE EXAME FÍSICO NORMAL (SEGMENTAR PADRÃO-OURO)*\n\n" +
+    "Exame físico descritivo completo e objetivo para o Prontuário Eletrônico (sem termos vagos):\n\n```\n" +
+    textoEf + "\n```";
+
+  var cache = uxCache();
+  var ckEf = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckEf, textoEf, 21600);
+
+  var botoes = botoesBot([
+    [['📋 Copiar Exame Físico', 'ux:copiar:' + ckEf]],
+    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaAmbSisreg(chat, messageId) {
+  var textoSisreg = (typeof SoapAmbulatorialService !== "undefined" && typeof SoapAmbulatorialService.exportarEncaminhamentoTexto === "function")
+    ? SoapAmbulatorialService.exportarEncaminhamentoTexto({
+        pacienteNome: 'Ao Portador',
+        especialidade: 'Cardiologia Ambulatorial',
+        motivo: 'Hipertensão Arterial Sistêmica de difícil controle (uso de 3 classes em dose plena) para investigação de causa secundária e estratificação de lesão de órgão-alvo.',
+        cid: 'I10 - Hipertensão Essencial Primária',
+        prioridade: 'Eletiva / Prioritária'
+      })
+    : "GUIA DE ENCAMINHAMENTO SISREG:\nPaciente: [Nome] | Especialidade: [Destino]\nMotivo: Avaliação especializada e conduta compartilhada.";
+
+  var texto = "🩺 *GUIA DE ENCAMINHAMENTO / REGULAÇÃO AMBULATORIAL (SISREG / CROSS)*\n\n" +
+    "Modelo oficial de contrarreferência com critérios objetivos para regulação médica:\n\n```\n" +
+    textoSisreg + "\n```";
+
+  var cache = uxCache();
+  var ckSis = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckSis, textoSisreg, 21600);
+
+  var botoes = botoesBot([
+    [['📋 Copiar Guia SISREG', 'ux:copiar:' + ckSis]],
+    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -52536,11 +53154,18 @@ function tratarCallbackUX(cb) {
       if (v === 'exemplo_pac') texto('/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2');
       else texto('/rxh ' + v);
     } else if (op === 'amb') {
-      if (v === 'soap') iniciarModoBot(chat, 'soap', true, msgId);
-      else if (v === 'remume') texto('/rx');
-      else if (v === 'cid') texto('/cid');
-      else if (v === 'atestado') texto('/atestado');
-      else enviarMenuAmbulatorio(chat, msgId);
+      if (v === 'soap') return enviarTelaAmbSoap(chat, msgId);
+      else if (v === 'remume') return enviarTelaAmbRemume(chat, msgId);
+      else if (v === 'cid') return enviarTelaAmbCid(chat, msgId);
+      else if (v === 'atestado') return enviarTelaAmbAtestado(chat, msgId);
+      else if (v === 'ef') return enviarTelaAmbExameFisico(chat, msgId);
+      else if (v === 'sisreg') return enviarTelaAmbSisreg(chat, msgId);
+      else if (v.indexOf('cid:') === 0) return tratarCallbackAmbCid(chat, v.replace('cid:', ''), msgId);
+      else if (v.indexOf('atest:') === 0) return tratarCallbackAmbAtestado(chat, v.replace('atest:', ''), msgId);
+      else if (v.indexOf('atestado:') === 0) return tratarCallbackAmbAtestado(chat, v.replace('atestado:', ''), msgId);
+      else if (v.indexOf('remume:') === 0) return tratarCallbackAmbRemume(chat, v.replace('remume:', ''), msgId);
+      else if (v.indexOf('soap:') === 0) return tratarCallbackAmbSoap(chat, v.replace('soap:', ''), msgId);
+      else return enviarMenuAmbulatorio(chat, msgId);
     } else if (op === 'bolso') {
       if (v === 'atb') return enviarTelaBolsoATB(chat, msgId);
       else if (v === 'ped') return enviarTelaBolsoPed(chat, msgId);
@@ -52860,6 +53485,16 @@ if (typeof module !== 'undefined' && module.exports) {
     uxTextoProntuario: uxTextoProntuario,
     enviarHubPrincipal: enviarHubPrincipal,
     enviarMenuAmbulatorio: enviarMenuAmbulatorio,
+    enviarTelaAmbSoap: enviarTelaAmbSoap,
+    tratarCallbackAmbSoap: tratarCallbackAmbSoap,
+    enviarTelaAmbRemume: enviarTelaAmbRemume,
+    tratarCallbackAmbRemume: tratarCallbackAmbRemume,
+    enviarTelaAmbCid: enviarTelaAmbCid,
+    tratarCallbackAmbCid: tratarCallbackAmbCid,
+    enviarTelaAmbAtestado: enviarTelaAmbAtestado,
+    tratarCallbackAmbAtestado: tratarCallbackAmbAtestado,
+    enviarTelaAmbExameFisico: enviarTelaAmbExameFisico,
+    enviarTelaAmbSisreg: enviarTelaAmbSisreg,
     enviarMenuConsultasBolso: enviarMenuConsultasBolso,
     enviarTelaBolsoATB: enviarTelaBolsoATB,
     enviarTelaBolsoAtbPAC: enviarTelaBolsoAtbPAC,

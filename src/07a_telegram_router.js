@@ -878,7 +878,7 @@ function processarMensagemTexto(message) {
   if (comando === "/soap_ambulatorial" || comando === "/ambulatorio" || comando === "/soap_aps") {
     var casoAmb = texto.replace(/^\/(soap_ambulatorial|ambulatorio|soap_aps)\s*/i, "").trim();
     if (!casoAmb) {
-      var msgGuiaAmb = "📋 *MÓDULO SOAP AMBULATORIAL ÁGIL (ATENÇÃO PRIMÁRIA & UBS)*\n\n" +
+      var msgGuiaAmb = "📋 *AMBULATÓRIO · MÓDULO SOAP AMBULATORIAL ÁGIL (ATENÇÃO PRIMÁRIA & UBS)*\n\n" +
         "Envie o caso clínico com queixa, sinais vitais e histórico. O sistema gera prontuário SOAP estruturado com estratificação de risco (SBC/SBD), autocompleção CID-10/CIAP-2 e conduta REMUME.\n\n" +
         "💡 *Exemplos:*\n" +
         "• `/ambulatorio Homem 54a, hipertenso e diabético, traz PA 150/94, glicemia jejum 164, em uso de Losartana 50mg e Metformina 850mg`\n" +
@@ -896,8 +896,8 @@ function processarMensagemTexto(message) {
             { text: "📄 Atestado CFM", callback_data: "ux:amb:atestado" }
           ],
           [
-            { text: "🤰 Hub G&O", callback_data: "go_prenatal" },
-            { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }
+            { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
           ]
         ]
       };
@@ -913,6 +913,9 @@ function processarMensagemTexto(message) {
   if (comando === "/atestado") {
     var dadosAt = texto.replace(/^\/atestado\s*/i, "").trim();
     if (!dadosAt) {
+      if (typeof enviarTelaAmbAtestado === "function") {
+        return enviarTelaAmbAtestado(chatId);
+      }
       var msgAjudaAt = "📜 *GERADOR DE ATESTADO MÉDICO LEGAL (RESOLUÇÃO CFM 1.658/2002)*\n\n" +
         "Envie a quantidade de dias e o motivo ou paciente:\n\n" +
         "💡 *Exemplos:*\n" +
@@ -920,7 +923,23 @@ function processarMensagemTexto(message) {
         "• `/atestado 5 dias, faringite aguda, com CID, paciente Ana Santos`\n" +
         "• `/atestado 1 dia repouso`\n\n" +
         "_Nota médica: O CID-10 só é incluído mediante autorização expressa do paciente._";
-      return enviarMensagemParaChat(chatId, msgAjudaAt);
+      var tecladoAjudaAt = {
+        inline_keyboard: [
+          [
+            { text: "📄 1 Dia (Consulta)", callback_data: "ux:amb:atest:1d" },
+            { text: "📄 3 Dias (IVAS)", callback_data: "ux:amb:atest:3d" }
+          ],
+          [
+            { text: "📄 5 Dias (Afastamento)", callback_data: "ux:amb:atest:5d" },
+            { text: "📄 7 Dias (Lombalgia)", callback_data: "ux:amb:atest:7d" }
+          ],
+          [
+            { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, msgAjudaAt, tecladoAjudaAt);
     }
     var mDias = dadosAt.match(/(\d+)\s*dias?/i);
     var qtdDias = mDias ? parseInt(mDias[1], 10) : 1;
@@ -960,13 +979,88 @@ function processarMensagemTexto(message) {
       inline_keyboard: [
         [btnCopiarAt],
         [
-          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+          { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
     };
     var msgAtestado = "📜 *ATESTADO MÉDICO PRONTO PARA O PRONTUÁRIO / PEP:*\n\n```\n" + textoAtestado + "\n```\n\n_Toque no botão abaixo para copiar direto para o prontuário eletrônico (PEP)._";
     return enviarMensagemComTecladoParaChat(chatId, msgAtestado, tecladoAtestado);
+  }
+
+  if (comando === "/cid" || comando === "/ciap") {
+    var termoCid = texto.replace(/^\/(cid|ciap)\s*/i, "").trim();
+    if (!termoCid) {
+      if (typeof enviarTelaAmbCid === "function") {
+        return enviarTelaAmbCid(chatId);
+      }
+      return enviarMensagemComTecladoParaChat(chatId,
+        "🏷️ *BUSCA DE CID-10 & CIAP-2 (ATENÇÃO PRIMÁRIA / UBS)*\n\nEnvie o diagnóstico desejado (ex: `/cid lombalgia`, `/cid has`, `/cid diabetes`).",
+        {
+          inline_keyboard: [
+            [{ text: "🏷️ Ver Tabela Completa", callback_data: "ux:amb:cid" }],
+            [{ text: "🔙 Ambulatório", callback_data: "ux:hub:amb" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
+      );
+    }
+    var matchesCid = (typeof SoapAmbulatorialService !== "undefined")
+      ? SoapAmbulatorialService.buscarDiagnostico(termoCid)
+      : [];
+
+    if (matchesCid && matchesCid.length) {
+      var linhasRes = ["🏷️ *BUSCA DE CID-10 & CIAP-2 (ATENÇÃO PRIMÁRIA / UBS)*\n"];
+      linhasRes.push("Resultados encontrados para: _" + termoCid + "_\n");
+      matchesCid.forEach(function(m, idx) {
+        linhasRes.push("*" + (idx + 1) + ". " + m.diagnostico + "*");
+        linhasRes.push("• Código CID-10: `" + m.cid10 + "` | CIAP-2: `" + m.ciap2 + "`");
+        linhasRes.push("• Categoria: " + m.categoria);
+        if (m.alarmes && m.alarmes.length) {
+          linhasRes.push("• Sinais de Alarme: " + m.alarmes.slice(0, 2).join("; "));
+        }
+        linhasRes.push("");
+      });
+      var textoResCid = linhasRes.join("\n");
+      var ckCidB = Utilities.getUuid().replace(/-/g, "");
+      safePutCache(CacheService.getScriptCache(), ckCidB, textoResCid, 21600);
+      var limpoCidB = typeof uxTextoProntuario === "function" ? uxTextoProntuario(textoResCid) : textoResCid.trim();
+      var btnCopiarCid;
+      if (limpoCidB.length >= 1 && limpoCidB.length <= 256) {
+        btnCopiarCid = { "text": "📋 Copiar Resultados", "copy_text": { "text": limpoCidB } };
+      } else {
+        btnCopiarCid = { "text": "📋 Copiar Resultados", "callback_data": "ux:copiar:" + ckCidB };
+      }
+      var tecladoResCid = {
+        inline_keyboard: [
+          [btnCopiarCid],
+          [
+            { text: "🏷️ Tabela Completa", callback_data: "ux:amb:cid" },
+            { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, textoResCid, tecladoResCid);
+    } else {
+      var msgNaoEnc = "🏷️ *BUSCA DE CID-10 & CIAP-2*\n\nNenhum código direto encontrado no catálogo básico para: _" + termoCid + "_.\n\n" +
+        "💡 *Dica:* Tente pesquisar por termo amplo (ex: `/cid has`, `/cid diabetes`, `/cid dor de cabeca`, `/cid asma`).";
+      var tecladoNaoEnc = {
+        inline_keyboard: [
+          [
+            { text: "🏷️ Ver Tabela Completa", callback_data: "ux:amb:cid" },
+            { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, msgNaoEnc, tecladoNaoEnc);
+    }
+  }
+
+  if (comando === "/remume") {
+    if (typeof enviarTelaAmbRemume === "function") {
+      return enviarTelaAmbRemume(chatId);
+    }
   }
 
   if (comando === "/prenatal" || comando === "/dpp") {
@@ -3585,7 +3679,32 @@ function processarMensagemTexto(message) {
 
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
-    if (!dadosPrescricao) return enviarMensagemParaChat(chatId, "💊 Envie o pedido. Ex: `/rx amigdalite 16kg, alergia a penicilina`");
+    if (!dadosPrescricao) {
+      if (typeof enviarTelaAmbRemume === "function") {
+        return enviarTelaAmbRemume(chatId);
+      }
+      return enviarMensagemComTecladoParaChat(chatId,
+        "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME SUS)*\n\n" +
+        "Envie o diagnóstico ou selecione um kit de prescrição rápida abaixo:\n" +
+        "💡 *Exemplo:* `/rx amigdalite 16kg, alergia a penicilina` ou `/rx losartana 50mg, hidroclorotiazida 25mg`",
+        {
+          inline_keyboard: [
+            [
+              { text: "💊 Receita HAS", callback_data: "ux:amb:remume:has" },
+              { text: "🩸 Receita DM2", callback_data: "ux:amb:remume:dm" }
+            ],
+            [
+              { text: "🩹 Dor & Sintomáticos", callback_data: "ux:amb:remume:dor" },
+              { text: "🫁 Asma / DPOC", callback_data: "ux:amb:remume:asma" }
+            ],
+            [
+              { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+              { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+            ]
+          ]
+        }
+      );
+    }
     return processarEEntregarIA(chatId, gerarPrescricaoComIA, dadosPrescricao, "rx");
   }
 

@@ -1,5 +1,31 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0AX. [x] **Auditoria e Otimização da Aba Ambulatório & Atenção Primária (`ux:hub:amb`, `src/12_experiencia_bot.js`, `src/07a_telegram_router.js` e `tests/test_ambulatorio_ux.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * A aba de Ambulatório & Atenção Primária (`ux:hub:amb`) delegava cliques nos botões de ação (`ux:amb:remume`, `ux:amb:cid`, `ux:amb:atestado`) para chamadas textuais genéricas (`texto('/rx')`, `texto('/cid')`, `texto('/atestado')`).
+      * O comando `/cid` nem sequer existia como comando formal no roteador do Telegram, caindo em falha ou texto não reconhecido; o `/rx` retornava apenas orientações sem teclado; e o `/atestado` sem parâmetros enviava mensagem sem botões nem retorno contextual, gerando telas órfãs e forçando o médico a rolar ou digitar manualmente no plantão de UBS.
+      * Na geração de SOAP e receitas, havia dependência desnecessária de IA para casos que possuem condutas protocolares canônicas em 0ms (HAS primária, DM2, IVAS/resfriado e lombalgia mecânica).
+    - **Contrato de UX Beira-Leito e Determinismo (0ms)**:
+      * Respostas determinísticas imediatas em 0ms via `enviarTelaBot` com edição in-place da mensagem existente (`editMessageText`).
+      * Navegação contextual estrita: inclusão obrigatória de `[🔙 Ambulatório]` (`ux:hub:amb`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas, submenus, fichas diagnósticas e formulários de atestado.
+      * Ação de cópia rápida em 1 toque: inclusão de botão `[📋 Copiar ...]` (`ux:copiar:<hash>`) com cache persistente (TTL 6h) em todas as condutas SOAP, receituários REMUME, códigos CID-10 e atestados CFM para colagem direta no PEP/prontuário.
+    - **Implementação e Refatoração**:
+      * Em `src/12_experiencia_bot.js`:
+        • `enviarMenuAmbulatorio`: Hub ambulatorial reformulado com 4 ferramentas canônicas (SOAP, REMUME, CID-10/CIAP-2 e Atestado CFM).
+        • `enviarTelaAmbSoap` e `tratarCallbackAmbSoap`: SOAP ambulatorial ágil em 4 tempos (S, O, A, P) com modelo segmentar normal completo pronto para cópia rápida e casos predefinidos determinísticos em 0ms (HAS descompensada com MEV e MAPA, DM2 com HbA1c e exame dos pés, IVAS/resfriado viral autolimitado e lombalgia mecânica sem red flags).
+        • `enviarTelaAmbRemume` e `tratarCallbackAmbRemume`: Guia farmacológico completo da REMUME SUS / Farmácia Popular e gerador de receituários ambulatoriais formatados para o PEP com via oral/inalatória, posologia, horários e orientações de MEV (HAS: Losartana + HCTZ + Anlodipino; DM2: Metformina + Gliclazida; Analgesia: Dipirona + Paracetamol + Ibuprofeno com alertas de segurança; Asma: Salbutamol + Beclometasona com espaçador e higiene oral).
+        • `enviarTelaAmbCid` e `tratarCallbackAmbCid`: Catálogo rápido dos 17 diagnósticos mais frequentes na APS/UBS organizados por sistemas e fichas detalhadas com CID-10, CIAP-2, categoria clínica e alertas sentinela.
+        • `enviarTelaAmbAtestado` e `tratarCallbackAmbAtestado`: Emissor canônico de atestado médico CFM conforme Resoluções nº 1.658/2002 e 1.851/2008, com dias por extenso, salvaguarda de sigilo médico do CID (Art. 5º) e seletores rápidos de 1, 2, 3, 5, 7 e 14 dias.
+        • `iniciarModoBot`: Atualizado para incluir atalhos táteis e retorno contextual `[🔙 Ambulatório]` e `[🏠 Início]` quando `mode === 'soap'`.
+      * Em `src/07a_telegram_router.js`:
+        • Comandos `/ambulatorio` e `/atestado` atualizados com teclado inline contendo retorno contextual direto para `[🔙 Ambulatório]` e `[🏠 Início]`.
+        • Adicionado comando `/cid` (e `/ciap`) com busca determinística em 0ms no catálogo de patologias, formatando diagnósticos, CIDs e alertas com botão de cópia.
+        • Adicionado comando `/remume` para exibição instantânea do guia farmacológico da atenção básica.
+    - **Validação e Cobertura Automatizada**:
+      * Criada nova suíte `tests/test_ambulatorio_ux.cjs` (6 blocos cobrindo hubs, callbacks de 1 toque, geração de prontuários, receitas, fichas de CID, emissão de atestados CFM e comandos textuais com retorno contextual). Integrada ao manifesto oficial em `scripts/test_manifest.json`.
+      * Recompilado `ultra_rotina_master.js` via `npm run build` (56.309 linhas, 100% sintaxe OK).
+      * Aprovado com 43/43 suítes verdes na baseline `npm test` em 5.96s.
+
 0AW. [x] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`, `src/12_experiencia_bot.js` e `tests/test_consultas_bolso_ux.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * Na aba de Consultas Rápidas de Bolso (`ux:hub:bolso`), os botões de seleção (`ux:bolso:atb`, `ux:bolso:ped`, `ux:bolso:gestacao`, `ux:bolso:interacao` e `ux:bolso:hsl`) delegavam para chamadas de texto livre (`texto('/atb')`, `texto('/ped')`, `texto('/prenatal')`, etc.).
