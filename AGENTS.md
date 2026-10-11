@@ -13,50 +13,54 @@
 - **Regras de Negócio e Lógica Clínica**: Ficam centralizadas em `src/` e são executadas em memória de altíssima velocidade pelo runtime Node.js ([server/runtime.js](file:///home/wagmoraes/Projetos%20IA/Rotina/server/runtime.js)).
 - **Diretórios e Arquivos Legados Congelados**: As pastas `gas_deploy/`, `scripts/voos_gas/` e os scripts que mencionavam clasp são legados estritamente congelados. Nunca modifique esses arquivos nem direcione lógica nova para eles.
 
-# Diretrizes Oficiais: Os 2 Grandes Objetivos Estratégicos do Projeto
+# Diretriz Estratégica Absoluta do Autoloop: Desenvolvimento Integral da Aba Rotina
 
-> 📦 **Nota de Backup**: As diretrizes anteriores de "Refatoração Contínua e Código Liso" estão preservadas e prontas para restauração a qualquer momento em [docs/BACKUP_DIRETRIZES_AUTOLOOP.md](docs/BACKUP_DIRETRIZES_AUTOLOOP.md).
+> 📦 **Nota de Backup**: As diretrizes anteriores de "Excelência e Rigor do Conteúdo Clínico" e "Refatoração Contínua" estão preservadas e prontas para restauração a qualquer momento em [docs/BACKUP_DIRETRIZES_AUTOLOOP.md](docs/BACKUP_DIRETRIZES_AUTOLOOP.md).
 
-## 🩺 Grande Objetivo 1: Excelência e Rigor do Conteúdo Clínico das Funções Existentes (Todas as Abas)
+## 📅 OBJETIVO PRIORITÁRIO ÚNICO: DESENVOLVIMENTO INTEGRAL DA ABA ROTINA
 
-- **PROIBIÇÃO ESTRITA DE NOVAS FUNÇÕES OU ROTAS CLÍNICAS**:
-  * A malha de navegação, arquitetura e interfaces clínicas existentes estão congeladas. Concentrar 100% dos esforços em aprofundar, enriquecer e calibrar o conteúdo médico retornado pelas funções que já existem em todas as abas do bot e do Cockpit:
-    1. *Sala Vermelha*: DVA com diluições e fórmulas de vazão (mL/h), PCR/pós-PCR, choque séptico e CIRCI, crise hipertensiva, intubação SRI, CAD e DHE graves.
-    2. *Consultas de Bolso & Farmacologia*: Apresentações exatas, diluições (SF 0,9% vs SG 5%), velocidade horária, tempo de infusão, ajustes por ClCr/TFG e compatibilidade em Y.
-    3. *Ambulatório*: Alvos das diretrizes SBC, ADA, GOLD e GINA, associações farmacológicas de 1ª linha, critérios de encaminhamento e doses-alvo.
-    4. *Ginecologia & Obstetrícia*: Protocolos de pré-natal, sulfato de magnésio (Zuspan/Pritchard) com vigilância, antimicrobianos seguros e condutas de sangramento.
-    5. *Enfermaria & Leitos*: Hidratação basal, analgesia escalonada da OMS, profilaxia de TEV com enoxaparina ajustada ao risco e SBAR canônico.
-    6. *Calculadoras*: Interpretações clínicas completas, alertas de corte e condutas imediatas atreladas ao resultado.
-    7. *SOAP*: Semiologia médica real padrão PEP nos aparelhos do Objetivo (O) e receitas/prescrições completas no Plano (P).
-- **Prescrição Canônica Pronta para Prontuário (PEP)**: Toda saída farmacológica deve ser entregue pronta para cópia direta (`[📋 Copiar para Prontuário]`), contendo apresentação exata, diluição, volume, velocidade horária em BIC, via e aprazamento.
+O autoloop agora concentra **100% dos seus esforços, ciclos e capacidade de execução** no desenvolvimento, modernização e integração da **Aba Rotina** em todo o ecossistema (Cockpit PWA, backend Fastify e bot Telegram). Não há necessidade de conservadorismo: interfaces, contratos de dados, componentes e automações podem ser profundamente remodelados.
 
-## 📅 Grande Objetivo 2: Reestruturação, Organização e Integração Real da Aba Rotina
+### 🎯 Os 5 Pilares de Desenvolvimento da Aba Rotina:
 
-- **Eliminação da Desorganização e Layout Quebrado**:
-  * Reorganizar e unificar a Aba Rotina (`#tab-rotina` no Cockpit PWA e Central de Rotina `/rotina` no Telegram Bot), entregando uma timeline de time-blocking limpa, moderna, funcional e intuitiva.
-- **Integração Real com a Agenda Google (Google Calendar)**:
-  * Substituir dependências legadas/órfãs de GAS CalendarApp por integração moderna em Node.js Fastify (Google Calendar API / Service Account / OAuth / iCal) para consumir, sincronizar e exibir eventos reais da agenda do médico no Cockpit PWA e no Telegram, eliminando telas desconectadas ou dados cegos.
-- **Erradicação de Conteúdo Genérico e Mocks Estáticos**:
-  * Eliminar dados fictícios, cartões estáticos e placeholders genéricos (ex: "Turma J", "Semana Ativa", blocos de estudo congelados).
-  * Exibir a rotina médica viva do médico: escala de plantão/internato real, blocos de estudo ativo MedQuest e Anki personalizados, horários de treino/recuperação e compromissos sincronizados em tempo real.
-- **Protocolo Mandatório de UX Beira-Leito (6 Pilares)**:
-  1. *Navegação Contextual*: Botão `[🔙 Nome da Aba]` (retorno contextual ao submenu de origem) e `[🏠 Início]` em 1 toque em todas as telas, cards e calculadoras, eliminando telas órfãs ou retornos cegos à raiz.
-  2. *Edição In-Place (`editMessageText`)*: Priorizar edição da mensagem existente em transições de teclado/menu, evitando flood de novas mensagens e rolagem infinita no chat do Telegram.
-  3. *Determinismo 0ms*: Entregar condutas protocoladas, tabelas, kits de medicação e calculadoras instantaneamente em 0ms; reservar IA generativa exclusivamente para raciocínio clínico aberto e casos complexos.
-  4. *Higienização de Teclados*: Eliminar botões fantasmas (`Gerar PDF`, `Ver critérios`), botões prematuros e menus redundantes.
-  5. *Redação Semiológica Canônica*: Formatar textos de exame físico e condutas no padrão médico real de prontuário (PEP), sem frases burocráticas ou saudações prolixas.
-  6. *Ação Rápida de Cópia*: Fornecer botão `[📋 Copiar para Prontuário]` ou `[📋 Copiar Prescrição]` em 1 toque em todas as saídas de conduta.
+1. **Reestruturação Visual & UI/UX Moderna no Cockpit PWA (`gh_cockpit_deploy/index.html`)**:
+   - Modernizar totalmente a interface da aba `#tab-rotina`.
+   - Desenvolver uma timeline de *time-blocking* visual, responsiva, fluida e elegante.
+   - Cards visuais dinâmicos para cada bloco do dia (horário, atividade, categoria, status de execução, notas).
+   - Ações rápidas interativas em 1 toque (concluir bloco, adiar, pular, ativar modo descanso).
+   - Indicadores visuais claros de sincronização com a agenda e status em tempo real.
+
+2. **Erradicação Total de Conteúdo Genérico e Mocks Estáticos**:
+   - Eliminar dados fictícios, textos hardcoded e placeholders estáticos ("Turma J", "Semana Ativa", blocos de estudo congelados).
+   - Exibir e manipular a rotina viva do médico: blocos de rodízio/plantão, blocos de estudo ativo (MedQuest e Anki), horários de treino/recuperação e compromissos dinâmicos.
+
+3. **Integração Real com Agenda Google (Google Calendar) no Backend Fastify (`src/06_rotina_agenda.js`, `server/index.js`)**:
+   - Eliminar definitivamente chamadas órfãs de GAS `CalendarApp`.
+   - Implementar integração moderna e nativa em Node.js (iCal / Google Calendar API / Service Account) para consumir e sincronizar eventos reais da agenda do médico.
+   - Expor endpoints REST Fastify dedicados (`/api/rotina/blocos`, `/api/rotina/status`, `/api/rotina/agenda/sync`, `/api/rotina/resumo`).
+
+4. **Automação e Sincronização Bidirecional no Telegram (`src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`)**:
+   - Modernizar a Central de Rotina (`/rotina`, `/agenda`) com teclados inline ágeis e edição de mensagem in-place (`editMessageText`).
+   - Sincronização em 2 vias: alterações de blocos feitas no Telegram refletem instantaneamente no Cockpit PWA e vice-versa.
+   - Automação inteligente do ciclo autônomo (Briefing Matinal, Check-in Noturno e Sentinela de Hábitos) consumindo os blocos reais da timeline.
+
+5. **Persistência Resiliente e Modo Offline-First (IndexedDB)**:
+   - Persistir o estado dos blocos localmente no Cockpit PWA com IndexedDB/LocalStorage, garantindo uso instantâneo e offline beira-leito.
+   - Sincronizar automaticamente as alterações quando a conexão com o backend Fastify for restabelecida.
+
+---
+
+## 🛡️ Cláusulas de Segurança e Engenharia de Software
+
 - **CLÁUSULA PÉTREA DE QUALIDADE CLÍNICA (INVIOLÁVEL)**:
-  * A busca por código limpo, conciso e elegante NUNCA, SOB HIPÓTESE ALGUMA, PODE REDUZIR, DILUIR OU DEGRADAR A QUALIDADE, O DETALHAMENTO, AS SALVAGUARDAS DE SEGURANÇA OU O RIGOR DO CONTEÚDO MÉDICO. Doses farmacológicas, limites de toxicidade, contraindicações, alertas sentinela, semiologia descritiva e evidências científicas canônicas são imutáveis e sagradas.
+  * As funções clínicas consolidadas de outras abas (Sala Vermelha, Nefrologia, Obstetrícia, Pediatria, etc.) são imutáveis e protegidas. Nenhuma refatoração da aba rotina pode alterar fórmulas, doses, limites de toxicidade ou salvaguardas médicas dessas funções.
 - **Execução Direcionada de Testes e Validação Completa (Test Sharding / Fast-Fail)**:
-  * *Fase de Iteração (Fast-Fail / Test Sharding)*: Durante a escrita, refatoração e depuração de código, execute EXCLUSIVAMENTE a suíte de testes direcionada ao arquivo/módulo editado (ex: `node scripts/run_tests.cjs tests/test_sala_vermelha_ux.cjs`), obtendo feedback imediato em ~0.3s a 0.5s. É terminantemente proibido disparar a bateria completa repetidas vezes enquanto itera.
-  * *Fase de Conclusão (Recibo de Estabilidade & Zero Regressões)*: Apenas quando todas as alterações de código e documentação da tarefa estiverem concluídas, dispare UMA ÚNICA vez a bateria completa de regressão (`npm test`) para certificar zero regressões e emitir o recibo oficial de estabilidade antes do commit final.
-- **Alocação de Modelos**: O modelo Gemini Pro (`gemini-3.1-pro-high`) é reservado para auditoria e garantia da robustez de conteúdo clínico teórico. O Gemini Flash (`gemini-3.8-flash-high`) executa todas as demais tarefas (testes de funções, consertos de código, UI/UX, bot Telegram, Cockpit, Fastify e otimizações).
+  * *Fase de Iteração (Fast-Fail / Test Sharding)*: Durante o desenvolvimento e refatoração, execute EXCLUSIVAMENTE a suíte de testes direcionada ao módulo editado (ex: `node scripts/run_tests.cjs tests/test_central_rotina_plantao_ux.cjs`), obtendo feedback imediato em ~0.3s a 0.5s. Proibido rodar a bateria completa repetidas vezes enquanto itera.
+  * *Fase de Conclusão (Recibo de Estabilidade & Zero Regressões)*: Apenas quando as alterações da tarefa estiverem concluídas, dispare UMA ÚNICA vez a bateria completa de regressão (`npm test`) para certificar zero regressões e emitir o recibo oficial de estabilidade antes do commit final.
 - **Redação Cirúrgica Obrigatória no PROGRESS.md**:
-  * Toda tarefa movida para 'Próxima Tarefa em Andamento' ou inserida no '[Backlog Prioritário]' deve citar explicitamente:
-    1. O caminho do arquivo alvo (ex: `src/02_nefrologia_dhe.js`, `src/12_experiencia_bot.js`).
-    2. A função, método, componente ou rota a intervir.
-    3. O critério de aceite objetivo (o que deve ser validado).
-  * Tarefas vagas ("melhorar UI", "revisar rotas") são proibidas.
+  * Toda tarefa em andamento ou no backlog deve citar explicitamente:
+    1. Arquivo/Módulo Alvo relativo.
+    2. Função/Componente/Seletor exato de intervenção.
+    3. Comportamento Esperado / Critério de Aceite objetivo e verificável.
 
 

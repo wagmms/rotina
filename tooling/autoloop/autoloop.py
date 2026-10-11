@@ -969,13 +969,13 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
     print(f"{CORES['bold']}{'─' * 60}{CORES['reset']}")
 
     if forever:
-        diretriz_kaizen = """5. DIRETRIZ ABSOLUTA DO USUÁRIO (CONSERTO DE ERROS, TESTES CONTÍNUOS E OTIMIZAÇÃO DA EXPERIÊNCIA):
-   - FOCO PRIMÁRIO: Conserto sistemático de erros, eliminação de bugs e otimização profunda da experiência do usuário (UI/UX, agilidade, clareza e fluidez do bot do Telegram, Cockpit PWA e rotas Fastify).
-   - TESTES DIRECIONADOS NA ITERAÇÃO & BATERIA COMPLETA NA CONCLUSÃO (TEST SHARDING): Durante o ciclo de iteração, execute apenas a suíte correspondente ao arquivo editado (ex: `node scripts/run_tests.cjs tests/test_obstetricia_prenatal.cjs` em ~0.3s a 0.5s). Execute a bateria completa de regressão (`npm run test:all`) UMA ÚNICA VEZ apenas no fechamento da tarefa, gerando o recibo de estabilidade antes do commit.
-   - CONSERTO, OTIMIZAÇÃO E EFICIÊNCIA: Ao detectar qualquer falha, lentidão, excesso de passos ou atrito de uso, conserte e otimize o código para torná-lo mais rápido e eficiente, SEM JAMAIS PERDER a qualidade teórica, o rigor científico e a segurança clínica beira-leito.
-   - SUGESTÕES PARA O FUTURO: Enquanto analisa e testa as funções, registre ideias e sugestões de evolução futura em docs/SUGESTOES_FUTURAS.md (mantendo apenas as mais recentes no PROGRESS.md; NÃO implementar novas funcionalidades no código agora).
-   - MODELOS: O Gemini Pro é utilizado EXCLUSIVAMENTE quando for necessária auditoria/validação de conteúdo clínico e precisão teórica de cálculos médicos. O Gemini Flash faz todo o resto (bateria de testes, UI/UX, bot Telegram, Cockpit, Fastify, otimizações e correções gerais).
-   - Mantenha na primeira linha do PROGRESS.md: '### STATUS: CONSERTO_ERROS_E_OTIMIZACAO_EXPERIENCIA'."""
+        diretriz_kaizen = """5. DIRETRIZ ABSOLUTA DO USUÁRIO (DESENVOLVIMENTO INTEGRAL DA ABA ROTINA):
+   - FOCO EXCLUSIVO E PRIORITÁRIO: Desenvolvimento completo, modernização visual e integração funcional da Aba Rotina em todos os seus componentes (Cockpit PWA `#tab-rotina`, rotas Fastify `/api/rotina`, `RotinaService` em `src/06_rotina_agenda.js` e Central de Rotina no Telegram `/rotina`).
+   - DESMOCKAGEM E TIMELINE REAL: Erradicar conteúdos estáticos ("Turma J", "Semana Ativa") e construir uma timeline de time-blocking moderna, responsiva e viva com cards ricos de blocos do dia (horários, atividades, tags, status e notas).
+   - INTEGRAÇÃO CALENDAR & FASTIFY: Eliminar dependências legadas de GAS CalendarApp, implementando rotas e integrações nativas em Node.js Fastify para sincronizar eventos reais da agenda do médico.
+   - TESTES DIRECIONADOS NA ITERAÇÃO & BATERIA COMPLETA NA CONCLUSÃO (TEST SHARDING): Durante o ciclo de iteração, execute apenas a suíte correspondente ao módulo editado (ex: `node scripts/run_tests.cjs tests/test_central_rotina_plantao_ux.cjs`). Execute a bateria completa de regressão (`npm test`) UMA ÚNICA VEZ apenas no fechamento da tarefa para emitir o recibo de estabilidade antes do commit.
+   - CLÁUSULA PÉTREA DE QUALIDADE CLÍNICA: Não alterar fórmulas, doses ou salvaguardas médicas consolidadas das outras abas.
+   - Mantenha na primeira linha do PROGRESS.md: '### STATUS: DESENVOLVIMENTO_ABA_ROTINA'."""
     else:
         diretriz_kaizen = "5. Se TODO o objetivo geral for 100% concluído e verificado, escreva '### STATUS: CONCLUIDO' na PRIMEIRA LINHA do PROGRESS.md."
 
@@ -2214,7 +2214,7 @@ def main():
     parser.add_argument(
         "objetivo",
         nargs="?",
-        default="Conserto de erros, testes contínuos de funções (bot/cockpit), otimização da experiência e eficiência sem perder qualidade teórica, e registro de sugestões futuras conforme PROGRESS.md",
+        default="Desenvolvimento integral da Aba Rotina: timeline time-blocking no Cockpit PWA, integração Google Calendar no backend Node.js Fastify, sincronização em tempo real e automação da Central de Rotina no Telegram conforme PROGRESS.md",
         help="Descrição do objetivo ou tarefa a ser realizada."
     )
     parser.add_argument(
