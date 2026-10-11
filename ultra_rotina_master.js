@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 02:52:27
- * Checksum SHA256: 353f1405499275d5
+ * Gerado automaticamente via build_master.py em: 2026-10-11 03:01:52
+ * Checksum SHA256: d496b21eef0c5a8b
  * ==============================================================================
  */
 
@@ -51560,6 +51560,18 @@ function uxLinhaCopiar(chaveCache, resultado) {
 
 function tratarEntradaUX(message) {
   var chat = message.chat.id, text = (message.text || '').trim(), cache = uxCache();
+
+  if (text === '/fila') {
+    mostrarFilaTelegram(chat);
+    return true;
+  }
+  if (/^\/pedido\s+(?:inbox_)?\d+$/.test(text)) {
+    var numPedido = text.split(/\s+/)[1].replace(/^inbox_/, '');
+    var job = recuperarRegistroBot('inbox_' + numPedido);
+    var original = job && job.update && (job.update.message || {}).text;
+    enviarMensagemParaChat(chat, original ? '*Pedido preservado*\n\n' + original : (job ? 'Pedido sem texto disponível; confira o áudio ou a imagem original no chat.' : 'Pedido não encontrado.'));
+    return true;
+  }
 
   if (/^\/entrega\s+outbox_[\w-]+$/.test(text)) {
     var registro = recuperarRegistroBot(text.split(/\s+/)[1]);

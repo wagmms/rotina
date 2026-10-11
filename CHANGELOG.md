@@ -1,5 +1,16 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0AS. [x] **Auditoria e Restauração de Recuperação de Pedidos Arquivados no Telegram (`tests/test_correcao_revisao_geral.cjs`, `tests/test_correcao_revisao_geral.py` e `src/12_experiencia_bot.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em `tests/test_correcao_revisao_geral.cjs`, o cenário `R03 pedido arquivado é recuperado pelo comando e preserva mídia` falhava com `AssertionError: assert(out(sent).includes('Pedido preservado'))`.
+      * A investigação identificou um defeito real no código de produção: no commit baseline (`1fcfc04`), a função `tratarEntradaUX` tratava os comandos `/fila` e `/pedido \d+`. Durante a refatoração de menus e botões no commit `9b5e26f`, esses manipuladores foram inadvertidamente removidos, enquanto `/entrega outbox_...` permaneceu.
+      * O subsistema de entrega e persistência confiável (`src/11_entrega_confiavel.js:mostrarFilaTelegram`) estabelece formalmente o contrato de consulta de pedidos arquivados via `/pedido <número>`. Sem o manipulador em `tratarEntradaUX`, o comando caía para o despachante padrão e não consultava `recuperarRegistroBot('inbox_' + id)`.
+    - **Correção e Validação**:
+      * Em `src/12_experiencia_bot.js` (`tratarEntradaUX`), restaurados os manipuladores de `/fila` (invocando `mostrarFilaTelegram(chat)`) e `/pedido` (com regex flexível `/^\/pedido\s+(?:inbox_)?\d+$/`, recuperando o registro via `recuperarRegistroBot` e formatando a mensagem com `*Pedido preservado*\n\n` e o texto original preservado).
+      * Recompilado `ultra_rotina_master.js` com checksum e validação sintática 100% OK via `npm run build`.
+      * Validação direcionada: 16/16 testes aprovados em `tests/test_correcao_revisao_geral.cjs` (100% verde) e 1/1 teste aprovado em `tests/test_correcao_revisao_geral.py` via pytest em 0.22s.
+      * Evidências arquivadas em `data/autoloop_task_notes/test_correcao_revisao_geral.md`.
+
 0AR. [x] **Auditoria e Correção de Roteamento do Exame Físico Neurológico (`tests/test_correcao_oitava_rodada.cjs`, `tests/test_correcao_oitava_rodada.py` e `src/07a_telegram_router.js`)**:
     - **Diagnóstico e Causa Raiz**:
       * No cenário `Memória: navegação /neuro e retorno preservam caso` de `tests/test_correcao_oitava_rodada.cjs`, a asserção `assert(recebeu.includes(original))` falhava com AssertionError (falsy value).

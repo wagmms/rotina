@@ -953,6 +953,18 @@ function uxLinhaCopiar(chaveCache, resultado) {
 function tratarEntradaUX(message) {
   var chat = message.chat.id, text = (message.text || '').trim(), cache = uxCache();
 
+  if (text === '/fila') {
+    mostrarFilaTelegram(chat);
+    return true;
+  }
+  if (/^\/pedido\s+(?:inbox_)?\d+$/.test(text)) {
+    var numPedido = text.split(/\s+/)[1].replace(/^inbox_/, '');
+    var job = recuperarRegistroBot('inbox_' + numPedido);
+    var original = job && job.update && (job.update.message || {}).text;
+    enviarMensagemParaChat(chat, original ? '*Pedido preservado*\n\n' + original : (job ? 'Pedido sem texto disponível; confira o áudio ou a imagem original no chat.' : 'Pedido não encontrado.'));
+    return true;
+  }
+
   if (/^\/entrega\s+outbox_[\w-]+$/.test(text)) {
     var registro = recuperarRegistroBot(text.split(/\s+/)[1]);
     enviarMensagemParaChat(chat, registro && registro.payload ? '*Consulta de entrega preservada — não é reenvio da operação*\n\n'+String(registro.payload.text || JSON.stringify(registro.payload)) : 'Entrega não encontrada.');

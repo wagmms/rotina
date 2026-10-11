@@ -14,11 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria e Correção de Roteamento do Exame Físico Neurológico (`tests/test_correcao_oitava_rodada.cjs`, `tests/test_correcao_oitava_rodada.py` e `src/07a_telegram_router.js`)**:
-    - **Diagnóstico e Causa Raiz**: O cenário `Memória: navegação /neuro e retorno preservam caso` falhava com `AssertionError: assert(recebeu.includes(original))`. No baseline original (`1fcfc04`), o bot possuía `if (comando === "/ef_neuro" || comando === "/neuro") return responderComGuiaExameFisico(chatId, "neuro");`. Durante o desmembramento de `src/07_telegram_handlers.js`, o roteador foi reduzido para verificar apenas `comando.startsWith("/ef_")`, deixando o comando ágil `/neuro` órfão em `processarMensagemTexto`. Embora `12_experiencia_bot.js` preservasse o caso clínico ativo ao receber `/neuro`, a função `responderComGuiaExameFisico` não era acionada.
-    - **Correção e Demonstração do Contrato**: Adicionado roteamento explícito `if (comando === "/ef_neuro" || comando === "/neuro") return responderComGuiaExameFisico(chatId, "neuro");` em `src/07a_telegram_router.js` e recompilado o bundle `ultra_rotina_master.js`.
-    - **Validação de Testes**: 100% de aprovação em `tests/test_correcao_oitava_rodada.cjs` (23/23 testes aprovados) e `tests/test_correcao_oitava_rodada.py` (1/1 teste aprovado via harness multithread de isolamento de dados em 0.60s).
-    - Evidências arquivadas em `data/autoloop_task_notes/test_correcao_oitava_rodada.md`.
+- [x] **Auditoria e Restauração de Recuperação de Pedidos Arquivados no Telegram (`tests/test_correcao_revisao_geral.cjs`, `tests/test_correcao_revisao_geral.py` e `src/12_experiencia_bot.js`)**:
+    - **Diagnóstico e Causa Raiz**: O teste `R03 pedido arquivado é recuperado pelo comando e preserva mídia` falhava com `AssertionError` em `assert(out(sent).includes('Pedido preservado'))`. A investigação confirmou defeito real em código de produção: no commit baseline (`1fcfc04`), a função `tratarEntradaUX` continha tratamento para `/fila` e `/pedido \d+`. Durante refatoração de menus e botões no commit `9b5e26f`, esses manipuladores foram inadvertidamente removidos, enquanto `/entrega` permaneceu. O subsistema de persistência e entrega (`src/11_entrega_confiavel.js:mostrarFilaTelegram`) estabelece formalmente o suporte a `/pedido <número>` para resgatar pedidos originais arquivados.
+    - **Correção e Demonstração do Contrato**: Restaurados os manipuladores de `/fila` (chamando `mostrarFilaTelegram`) e `/pedido` (com regex `/^\/pedido\s+(?:inbox_)?\d+$/`, recuperando o registro via `recuperarRegistroBot` e formatando a mensagem com `*Pedido preservado*\n\n` e o texto original) em `src/12_experiencia_bot.js`. Recompilado `ultra_rotina_master.js` com `npm run build`.
+    - **Validação de Testes**: 100% de aprovação em `tests/test_correcao_revisao_geral.cjs` (16/16 testes aprovados) e `tests/test_correcao_revisao_geral.py` (1/1 teste aprovado via pytest em 0.22s).
+    - Evidências arquivadas em `data/autoloop_task_notes/test_correcao_revisao_geral.md`.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -68,12 +68,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 67 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 68 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 63 (Telegram / Dengue)*: Alerta visual com calculadora rápida de hematócrito e critério de hemoconcentração (aumento de 20% do Ht basal) para reclassificação dinâmica entre Grupo B e Grupo C no Telegram.
 - *Sugestão 64 (Telegram / Cefaleia)*: Escore SNOOP4 com checklist interativo para estratificação imediata de bandeiras vermelhas em cefaleia aguda antes de liberar protocolo de analgesia primária.
 - *Sugestão 65 (Pediatria / Farmacologia)*: Transição visual automática para formulação em comprimidos de adulto quando o paciente pediátrico tiver peso > 40-50 kg ou atingir o teto de adulto (exibir sugestão alternativa "Amoxicilina 500 mg: 1 cp VO de 8/8h" ao lado da suspensão de 250 mg/5 mL para evitar sobrecarga de volume líquido).
 - *Sugestão 66 (Telegram / Fila de Entrega Confiável)*: Adicionar comando `/reprocessar_fila` ou botão de 1 toque no alerta de falha de integração externa (Notion/APIs) permitindo retry manual imediato de pedidos que permaneceram com status 'failed' na fila persistente sem exigir nova digitação do médico.
 - *Sugestão 67 (Telegram / Neurologia)*: Adicionar atalhos de botões táteis inline de 1 toque no roteiro de exame físico neurológico (`/neuro` / `/ef_neuro`) para graduar força motora segundo a escala MRC (Grau 0 a 5) e sinais meníngeos (Brudzinski / Kernig), permitindo montagem automática do resumo neurológico sem digitação livre no plantão.
+- *Sugestão 68 (Telegram / Fila & Resiliência)*: Exibir teclado com botões inline nos resultados de `/fila` (ex: `[📦 Ver Pedido 9]`, `[📋 Ver Entrega 9_1]`) para permitir navegação tátil direta entre pendências e histórico arquivado no chat sem necessidade de digitação manual de comandos textuais.
 
 ---
