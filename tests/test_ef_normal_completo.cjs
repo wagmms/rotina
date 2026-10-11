@@ -53,26 +53,32 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
   const modelo = c.obterModeloExameFisicoCompleto('Paciente em consulta de rotina.');
   assert(modelo.includes('Bom estado geral'), 'Deve conter Bom estado geral');
   assert(modelo.includes('Sinais Vitais:'), 'Deve conter Sinais Vitais');
+  assert(modelo.includes('PA: [   ] mmHg'), 'Deve conter espaço [   ] para PA não informada');
+  assert(modelo.includes('FC: [   ] bpm'), 'Deve conter espaço [   ] para FC não informada');
+  assert(modelo.includes('FR: [   ] irpm'), 'Deve conter espaço [   ] para FR não informada');
+  assert(modelo.includes('SpO2: [   ]%'), 'Deve conter espaço [   ] para SpO2 não informada');
+  assert(modelo.includes('T: [   ]°C'), 'Deve conter espaço [   ] para T não informada');
   assert(modelo.includes('ACV:'), 'Deve conter ACV');
   assert(modelo.includes('AR:'), 'Deve conter AR');
   assert(modelo.includes('Abdome:'), 'Deve conter Abdome');
   assert(modelo.includes('Extremidades:'), 'Deve conter Extremidades');
   assert(modelo.includes('TEC < 3 segundos'), 'Deve conter TEC < 3 segundos');
   assert(!modelo.includes('(rítmico)') && !modelo.includes('(ritmico)'), 'Não deve conter (rítmico) na FC');
-  console.log('  ✓ 1. obterModeloExameFisicoCompleto gera todos os sistemas semiológicos canônicos sem (rítmico)');
+  console.log('  ✓ 1. obterModeloExameFisicoCompleto gera todos os sistemas semiológicos canônicos com [   ] para sinais vitais');
 }
 
-// 2. Preserva sinais vitais informados pelo médico assistente no relato
+// 2. Preserva sinais vitais informados pelo médico assistente no relato e deixa [   ] para os ausentes
 {
   const { c } = env();
   const relatoComSV = 'Homem 50a com cefaleia. PA 150/95 mmHg, FC 88 bpm, Tax 36.8°C, SpO2 97%.';
   const modelo = c.obterModeloExameFisicoCompleto(relatoComSV);
   assert(modelo.includes('PA: 150/95 mmHg'), 'Deve preservar PA informada');
   assert(modelo.includes('FC: 88 bpm'), 'Deve preservar FC informada');
+  assert(modelo.includes('FR: [   ] irpm'), 'Deve deixar espaço [   ] para FR não informada');
   assert(!modelo.includes('(rítmico)') && !modelo.includes('(ritmico)'), 'Não deve conter (rítmico) na FC');
   assert(modelo.includes('T: 36,8°C') || modelo.includes('T: 36.8°C') || modelo.includes('36.8°C'), 'Deve preservar Tax informada');
   assert(modelo.includes('SpO2: 97%'), 'Deve preservar SpO2 informada');
-  console.log('  ✓ 2. Preservação de sinais vitais relatados pelo médico no modelo completo sem (rítmico)');
+  console.log('  ✓ 2. Preservação de sinais vitais relatados e preenchimento com [   ] dos não informados');
 }
 
 // 3. Callback ux:soap:ef_confirmar insere modelo completo no caso ativo

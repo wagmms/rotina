@@ -446,6 +446,7 @@ function enviarPainelEnfermaria(chat, pagina, msgId) {
   if ((pagina + 1) * 5 < keys.length) nav.push(['Próxima →', 'ux:painel:' + (pagina + 1)]);
   if (nav.length) rows.push(nav);
   rows.push([['🔄 Atualizar', 'ux:painel:' + pagina], ['Passagem SBAR', UX_CB_PASSAGEM_SBAR]]);
+  rows.push([['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]);
   return enviarTelaBot(chat, texto, botoesBot(rows), msgId);
 }
 
@@ -459,7 +460,7 @@ function uxTelaLeito(chat, id, msgId, aviso) {
     [['🟢 Estável', 'ux:status:' + id + ':estavel' + (ver ? ':' + ver : '')], ['🟡 Vigilância', 'ux:status:' + id + ':vigilancia' + (ver ? ':' + ver : '')]],
     [['🔴 Instável', 'ux:status:' + id + ':instavel' + (ver ? ':' + ver : '')]],
     [['✏️ Evoluir leito', 'ux:evoluir:' + id], ['Dar alta', 'ux:confirmar:' + id]],
-    [['← Enfermaria', 'ux:painel:0']]
+    [['← Leitos', 'ux:painel:0'], ['🔙 Enfermaria', 'ux:hub:enf']]
   ]), msgId);
 }
 

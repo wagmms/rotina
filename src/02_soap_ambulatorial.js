@@ -75,7 +75,7 @@ var SoapAmbulatorialService = (function() {
       titulo: 'Adulto Geral Completo (Segmentar Padrão Ouro)',
       texto: [
         '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
-        'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.',
+        'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
         'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
         '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
         '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
@@ -859,44 +859,13 @@ var SoapAmbulatorialService = (function() {
     var taxMatch = texto.match(/\b(?:tax|temp(?:eratura)?|t)\s*[:=]?\s*(\d{2}(?:[.,]\d+)?\s*°?c)\b/i) || texto.match(/\b(\d{2}(?:[.,]\d+)?\s*°c)\b/i);
 
     var sv = [];
-    if (paMatch) {
-      var paVal = paMatch[1].trim();
-      sv.push('PA: ' + (/mmhg/i.test(paVal) ? paVal : paVal + ' mmHg'));
-    }
+    sv.push(paMatch ? ('PA: ' + (/mmhg/i.test(paMatch[1]) ? paMatch[1].trim() : paMatch[1].trim() + ' mmHg')) : 'PA: [   ] mmHg');
+    sv.push(fcMatch ? ('FC: ' + (/bpm/i.test(fcMatch[1]) ? fcMatch[1].trim() : fcMatch[1].trim() + ' bpm')) : 'FC: [   ] bpm');
+    sv.push(frMatch ? ('FR: ' + (/irpm|rpm/i.test(frMatch[1]) ? frMatch[1].trim() : frMatch[1].trim() + ' irpm')) : 'FR: [   ] irpm');
+    sv.push(satMatch ? ('SpO2: ' + (/%/.test(satMatch[1]) ? satMatch[1].trim() : satMatch[1].trim() + '% em ar ambiente')) : 'SpO2: [   ]% em ar ambiente');
+    sv.push(taxMatch ? ('T: ' + (/°?c/i.test(taxMatch[1]) ? taxMatch[1].trim() : taxMatch[1].trim() + '°C')) : 'T: [   ]°C');
 
-    if (fcMatch) {
-      var fcVal = fcMatch[1].trim();
-      sv.push('FC: ' + (/bpm/i.test(fcVal) ? fcVal : fcVal + ' bpm'));
-    }
-
-    if (frMatch) {
-      var frVal = frMatch[1].trim();
-      sv.push('FR: ' + (/irpm|rpm/i.test(frVal) ? frVal : frVal + ' irpm'));
-    }
-
-    if (satMatch) {
-      var satVal = satMatch[1].trim();
-      sv.push('SpO2: ' + (/%/.test(satVal) ? satVal : satVal + '% em ar ambiente'));
-    }
-
-    if (taxMatch) {
-      var taxVal = taxMatch[1].trim();
-      sv.push('T: ' + (/°?c/i.test(taxVal) ? taxVal : taxVal + '°C'));
-    }
-
-    var linhaSV = '';
-    if (sv.length > 0) {
-      linhaSV = 'Sinais Vitais: ' + sv.join(' | ') + '.';
-    } else {
-      // Regra de segurança clínica: sinais vitais numéricos não inventados se não foram aferidos pelo médico no relato.
-      // Se não há contexto clínico real com queixas de paciente, exibe o modelo padrão de referência.
-      var temCasoClinico = texto.trim().length > 0 && !/^(?:modelo|padrao|catalogo|normal|padrao_completo)$/i.test(texto.trim());
-      if (temCasoClinico) {
-        linhaSV = 'Sinais Vitais: Pendentes de aferição beira-leito.';
-      } else {
-        linhaSV = 'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.';
-      }
-    }
+    var linhaSV = 'Sinais Vitais: ' + sv.join(' | ') + '.';
 
     return [
       '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-10 21:42:36
- * Checksum SHA256: 795f71e10a565932
+ * Gerado automaticamente via build_master.py em: 2026-10-10 21:46:31
+ * Checksum SHA256: 143cfeb11753f9ce
  * ==============================================================================
  */
 
@@ -28830,7 +28830,7 @@ var SoapAmbulatorialService = (function() {
       titulo: 'Adulto Geral Completo (Segmentar Padrão Ouro)',
       texto: [
         '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
-        'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.',
+        'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
         'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
         '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
         '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
@@ -29614,44 +29614,13 @@ var SoapAmbulatorialService = (function() {
     var taxMatch = texto.match(/\b(?:tax|temp(?:eratura)?|t)\s*[:=]?\s*(\d{2}(?:[.,]\d+)?\s*°?c)\b/i) || texto.match(/\b(\d{2}(?:[.,]\d+)?\s*°c)\b/i);
 
     var sv = [];
-    if (paMatch) {
-      var paVal = paMatch[1].trim();
-      sv.push('PA: ' + (/mmhg/i.test(paVal) ? paVal : paVal + ' mmHg'));
-    }
+    sv.push(paMatch ? ('PA: ' + (/mmhg/i.test(paMatch[1]) ? paMatch[1].trim() : paMatch[1].trim() + ' mmHg')) : 'PA: [   ] mmHg');
+    sv.push(fcMatch ? ('FC: ' + (/bpm/i.test(fcMatch[1]) ? fcMatch[1].trim() : fcMatch[1].trim() + ' bpm')) : 'FC: [   ] bpm');
+    sv.push(frMatch ? ('FR: ' + (/irpm|rpm/i.test(frMatch[1]) ? frMatch[1].trim() : frMatch[1].trim() + ' irpm')) : 'FR: [   ] irpm');
+    sv.push(satMatch ? ('SpO2: ' + (/%/.test(satMatch[1]) ? satMatch[1].trim() : satMatch[1].trim() + '% em ar ambiente')) : 'SpO2: [   ]% em ar ambiente');
+    sv.push(taxMatch ? ('T: ' + (/°?c/i.test(taxMatch[1]) ? taxMatch[1].trim() : taxMatch[1].trim() + '°C')) : 'T: [   ]°C');
 
-    if (fcMatch) {
-      var fcVal = fcMatch[1].trim();
-      sv.push('FC: ' + (/bpm/i.test(fcVal) ? fcVal : fcVal + ' bpm'));
-    }
-
-    if (frMatch) {
-      var frVal = frMatch[1].trim();
-      sv.push('FR: ' + (/irpm|rpm/i.test(frVal) ? frVal : frVal + ' irpm'));
-    }
-
-    if (satMatch) {
-      var satVal = satMatch[1].trim();
-      sv.push('SpO2: ' + (/%/.test(satVal) ? satVal : satVal + '% em ar ambiente'));
-    }
-
-    if (taxMatch) {
-      var taxVal = taxMatch[1].trim();
-      sv.push('T: ' + (/°?c/i.test(taxVal) ? taxVal : taxVal + '°C'));
-    }
-
-    var linhaSV = '';
-    if (sv.length > 0) {
-      linhaSV = 'Sinais Vitais: ' + sv.join(' | ') + '.';
-    } else {
-      // Regra de segurança clínica: sinais vitais numéricos não inventados se não foram aferidos pelo médico no relato.
-      // Se não há contexto clínico real com queixas de paciente, exibe o modelo padrão de referência.
-      var temCasoClinico = texto.trim().length > 0 && !/^(?:modelo|padrao|catalogo|normal|padrao_completo)$/i.test(texto.trim());
-      if (temCasoClinico) {
-        linhaSV = 'Sinais Vitais: Pendentes de aferição beira-leito.';
-      } else {
-        linhaSV = 'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.';
-      }
-    }
+    var linhaSV = 'Sinais Vitais: ' + sv.join(' | ') + '.';
 
     return [
       '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
@@ -37687,7 +37656,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "",
       "DIRETRIZES TÉCNICAS E SÍNTESE OBRIGATÓRIA:",
       "1. SUBJETIVO (S): QP e HDA estruturadas, limpas e telegráficas. Antecedentes/Medicações/Alergias em 1 linha compacta ('Não informado' se ausentes). NUNCA crie parágrafos prolixos.",
-      "2. OBJETIVO (O): Sinais vitais e achados informados organizados por sistemas. Se EF não informado, 'Exame físico pendente de avaliação'. Incorpore exame especial se presente.",
+      "2. OBJETIVO (O): Sinais vitais e achados informados organizados por sistemas. Para sinais vitais não informados, reserve o espaço [   ] com a unidade (PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C). Incorpore exame especial se presente.",
       "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Bom estado geral lúcido e orientado, ACV, AR, Abdome e Extremidades), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
       "3. AVALIAÇÃO (A):",
       "   - Diagnóstico principal ou problema sindrômico com CID-10 e CIAP-2.",
@@ -37749,7 +37718,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - QP e HDA com cronologia e caracterização semiológica direta.",
     "   - Antecedentes/Medicações/Alergias: registre se informados; se não informados, declare 'Não informado' de forma compacta em 1 linha.",
     "2. EXAME FÍSICO (O):",
-    "   - Sinais Vitais: registre apenas os relatados. Se ausentes, declare 'Sinais vitais pendentes de aferição'.",
+    "   - Sinais Vitais: registre os relatados. Para sinais vitais não informados, reserve o espaço [   ] com a unidade (PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C).",
     "   - Sistemas examinados relatados. Se EF não informado, declare 'Exame físico pendente de avaliação beira-leito'.",
     "   - Integre exame especial se contido no caso.",
     "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Bom estado geral lúcido e orientado, ACV, AR, Abdome e Extremidades), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
@@ -52030,7 +51999,7 @@ function cockpitConversar(initData, params) {
           ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto
           : [
             '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
-            'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.',
+            'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
             'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
             '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
             '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
