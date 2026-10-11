@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 08:36:08
- * Checksum SHA256: fd7c9093553b0348
+ * Gerado automaticamente via build_master.py em: 2026-10-11 08:47:11
+ * Checksum SHA256: 4fdf4d4569f8f51c
  * ==============================================================================
  */
 
@@ -35714,36 +35714,37 @@ var IaLocalFallbackService = (function () {
   function identificarProtocoloClinico(texto) {
     if (!texto) return null;
     var t = String(texto).toLowerCase();
+    var tNorm = t.normalize ? t.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : t;
 
     // Verificações específicas com alta acurácia
-    if (t.indexOf('gestant') !== -1 && (t.indexOf('pcr') !== -1 || t.indexOf('parada') !== -1 || t.indexOf('dule') !== -1)) {
+    if (tNorm.indexOf('gestant') !== -1 && (tNorm.indexOf('pcr') !== -1 || tNorm.indexOf('parada') !== -1 || tNorm.indexOf('dule') !== -1)) {
       return PROTOCOLOS_OFFLINE.PCR_GESTANTE;
     }
-    if (t.indexOf('pcr') !== -1 || t.indexOf('parada cardiorrespirat') !== -1 || (t.indexOf('fv') !== -1 && t.indexOf('choque') !== -1) || t.indexOf('assistolia') !== -1) {
+    if (tNorm.indexOf('pcr') !== -1 || tNorm.indexOf('parada cardiorrespirat') !== -1 || (tNorm.indexOf('fv') !== -1 && tNorm.indexOf('choque') !== -1) || tNorm.indexOf('assistolia') !== -1) {
       return PROTOCOLOS_OFFLINE.PCR_ADULTO;
     }
-    if (t.indexOf('anafilax') !== -1 || t.indexOf('anafilat') !== -1 || (t.indexOf('urticaria') !== -1 && t.indexOf('edema de glote') !== -1)) {
+    if (tNorm.indexOf('anafilax') !== -1 || tNorm.indexOf('anafilat') !== -1 || (tNorm.indexOf('urticaria') !== -1 && tNorm.indexOf('edema de glote') !== -1)) {
       return PROTOCOLOS_OFFLINE.CHOQUE_ANAFILATICO;
     }
-    if (t.indexOf('pre eclamps') !== -1 || t.indexOf('pré-eclâmps') !== -1 || t.indexOf('eclamps') !== -1 || t.indexOf('zuspan') !== -1) {
+    if (tNorm.indexOf('pre eclamps') !== -1 || tNorm.indexOf('eclamps') !== -1 || tNorm.indexOf('zuspan') !== -1) {
       return PROTOCOLOS_OFFLINE.PRE_ECLAMPSIA_ECLAMPSIA;
     }
-    if (t.indexOf('cetoacidose') !== -1 || t.indexOf(' cad ') !== -1 || (t.indexOf('glicemia') !== -1 && t.indexOf('anion gap') !== -1 && t.indexOf('insulina') !== -1)) {
+    if (tNorm.indexOf('cetoacidose') !== -1 || tNorm.indexOf(' cad ') !== -1 || (tNorm.indexOf('glicemia') !== -1 && tNorm.indexOf('anion gap') !== -1 && tNorm.indexOf('insulina') !== -1)) {
       return PROTOCOLOS_OFFLINE.CETOACIDOSE_DIABETICA;
     }
-    if (t.indexOf('avc') !== -1 || t.indexOf('isquemic') !== -1 || t.indexOf('alteplase') !== -1 || t.indexOf('deficit motor') !== -1) {
+    if (tNorm.indexOf('avc') !== -1 || tNorm.indexOf('isquemic') !== -1 || tNorm.indexOf('alteplase') !== -1 || tNorm.indexOf('deficit motor') !== -1) {
       return PROTOCOLOS_OFFLINE.AVC_ISQUEMICO;
     }
-    if (t.indexOf('infarto') !== -1 || t.indexOf('iam') !== -1 || t.indexOf('supra') !== -1 || t.indexOf('coronari') !== -1 || (t.indexOf('dor toracica') !== -1 && t.indexOf('troponina') !== -1)) {
+    if (tNorm.indexOf('infarto') !== -1 || tNorm.indexOf('iam') !== -1 || tNorm.indexOf('supra') !== -1 || tNorm.indexOf('coronari') !== -1 || (tNorm.indexOf('dor toracica') !== -1 && tNorm.indexOf('troponina') !== -1)) {
       return PROTOCOLOS_OFFLINE.SCA_IAM;
     }
-    if (t.indexOf('choque septico') !== -1 || (t.indexOf('sepse') !== -1 && t.indexOf('lactato') !== -1) || (t.indexOf('noradrenalina') !== -1 && t.indexOf('pam') !== -1)) {
+    if (tNorm.indexOf('choque septico') !== -1 || (tNorm.indexOf('sepse') !== -1 && tNorm.indexOf('lactato') !== -1) || (tNorm.indexOf('noradrenalina') !== -1 && tNorm.indexOf('pam') !== -1) || (tNorm.indexOf('choque') !== -1 && (tNorm.indexOf('pam') !== -1 || tNorm.indexOf('volume') !== -1 || tNorm.indexOf('refrat') !== -1))) {
       return PROTOCOLOS_OFFLINE.CHOQUE_SEPTICO;
     }
-    if (t.indexOf('asma') !== -1 || t.indexOf('broncoespasmo') !== -1 || (t.indexOf('sibil') !== -1 && t.indexOf('falta de ar') !== -1)) {
+    if (tNorm.indexOf('asma') !== -1 || tNorm.indexOf('broncoespasmo') !== -1 || (tNorm.indexOf('sibil') !== -1 && tNorm.indexOf('falta de ar') !== -1)) {
       return PROTOCOLOS_OFFLINE.CRISE_ASMATICA_GRAVE;
     }
-    if (t.indexOf('dip') !== -1 || t.indexOf('doenca inflamatoria pelvica') !== -1 || t.indexOf('tubo-ovariano') !== -1 || t.indexOf('monif') !== -1) {
+    if (tNorm.indexOf('dip') !== -1 || tNorm.indexOf('doenca inflamatoria pelvica') !== -1 || tNorm.indexOf('tubo-ovariano') !== -1 || tNorm.indexOf('monif') !== -1) {
       return PROTOCOLOS_OFFLINE.DIP_ATO;
     }
 
@@ -35755,7 +35756,9 @@ var IaLocalFallbackService = (function () {
       var proto = PROTOCOLOS_OFFLINE[chave];
       var hits = 0;
       for (var k = 0; k < proto.palavrasChave.length; k++) {
-        if (t.indexOf(proto.palavrasChave[k]) !== -1) {
+        var pk = proto.palavrasChave[k];
+        var pkNorm = pk.normalize ? pk.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() : pk;
+        if (tNorm.indexOf(pkNorm) !== -1 || t.indexOf(pk) !== -1) {
           hits++;
         }
       }
