@@ -144,8 +144,24 @@ var PcrGestanteService = (function() {
         acaoImediata: "INTERROMPER IMEDIATAMENTE qualquer infusão de Sulfato de Magnésio.",
         antidoto: "Gluconato de Cálcio a 10%",
         posologia: "10 mL (1 g) IV lento em 2 a 3 minutos.",
-        justificativa: "O cálcio antagoniza competitivamente o bloqueio neuromuscular e a toxicidade cardiológica induzida pelo magnésio."
+        justificativa: "O cálcio antagoniza competitivamente o bloqueio neuromuscular e a toxicidade cardiológica induzida pelo magnésio.",
+        checklistVigilanciaToxica: [
+          "Reflexo patelar abolido (primeiro sinal clínico de hipermagnesemia ~8-10 mEq/L)",
+          "Depressão respiratória grave com FR < 16 irpm (ou < 12 irpm)",
+          "Oligúria < 25 mL/h (risco crítico de retenção e acúmulo de MgSO4 por excreção exclusivamente renal)"
+        ]
       });
+    }
+
+    var condutaPreEclampsia = null;
+    if (params.suspeitaPreEclampsia) {
+      condutaPreEclampsia = {
+        condicao: "Pré-Eclâmpsia com Sinais de Gravidade / Eclâmpsia",
+        alertaEtiologico: "Eclâmpsia e AVC hemorrágico são etiologias reversíveis frequentes de PCR materna.",
+        protocoloPosRce: "Após Retorno da Circulação Espontânea (RCE): Iniciar sulfato de magnésio (Zuspan: 4g IV em 20 min + 1g/h em BIC ou Pritchard: 4g IV + 10g IM) para prevenção de convulsões.",
+        checklistVigilancia: "Tríade de segurança horária: Reflexo patelar presente, FR >= 16 irpm e Diurese >= 25 mL/h. Antídoto pronto beira-leito: Gluconato de Cálcio 10% 10 mL IV.",
+        criseHipertensivaPosRce: "Se PAS >= 160 ou PAD >= 110 mmHg: Hidralazina 5 mg IV lento q20min (máx 20 mg). Alvo: PAD 90-100 mmHg."
+      };
     }
 
     if (params.suspeitaToxicidadeAnestesicoLocal) {
@@ -200,6 +216,7 @@ var PcrGestanteService = (function() {
       condutaFarmacologica: condutaFarmacologica,
       histerotomiaRessuscitacao: histerotomia,
       antidotos: antidotos,
+      condutaPreEclampsia: condutaPreEclampsia,
       checklistCausasReversiveis: checklistCausasReversiveis,
       resumoExecutivo: gerarResumoExecutivo({
         ig: ig,

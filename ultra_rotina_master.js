@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 18:33:09
- * Checksum SHA256: 80fca9f98a6d011d
+ * Gerado automaticamente via build_master.py em: 2026-10-11 18:53:46
+ * Checksum SHA256: f4cbe6e553831ad3
  * ==============================================================================
  */
 
@@ -5993,9 +5993,13 @@ var CentroObstetricoService = (function() {
       alertasIntoxicacao.push('🚨 REFLEXO PATELAR ABOLIDO: Primeiro sinal clínico de hipermagnesemia tóxica (níveis séricos aproximados de 8 a 10 mEq/L).');
     }
 
-    if (!isNaN(fr) && fr > 0 && fr < 12) {
+    if (!isNaN(fr) && fr > 0 && fr < 16) {
       intoxicacaoDetectada = true;
-      alertasIntoxicacao.push('🚨 DEPRESSÃO RESPIRATÓRIA (FR < 12 rpm): Risco iminente de parada respiratória por bloqueio neuromuscular!');
+      if (fr < 12) {
+        alertasIntoxicacao.push('🚨 DEPRESSÃO RESPIRATÓRIA (FR < 12 rpm): Risco iminente de parada respiratória por bloqueio neuromuscular!');
+      } else {
+        alertasIntoxicacao.push('🚨 DEPRESSÃO RESPIRATÓRIA (FR < 16 rpm): Sinal sentinela de hipermagnesemia tóxica (> 10 mEq/L). Suspender infusão imediatamente!');
+      }
     }
 
     if (!isNaN(diureseMlH) && diureseMlH >= 0 && diureseMlH < 25) {
@@ -6008,6 +6012,7 @@ var CentroObstetricoService = (function() {
       condutaIntoxicacao = {
         acaoImediata: 'SUSPENDER IMEDIATAMENTE A INFUSÃO DE SULFATO DE MAGNÉSIO!',
         antidoto: 'GLUCONATO DE CÁLCIO 10%: Administrar 1 ampola (10 mL = 1g) IV em bolus lento de 3 a 5 minutos.',
+        repeticaoAntidoto: 'Se bradipneia ou instabilidade persistir em 5 a 10 minutos: repetir 1 ampola (10 mL = 1g) IV de Gluconato de Cálcio 10%.',
         suporte: 'Ofertar O2 sob máscara a 8-10 L/min, solicitar vaga em UTI, dosar magnésio sérico urgente e preparar intubação se parada respiratória iminente.'
       };
     }
@@ -6017,48 +6022,91 @@ var CentroObstetricoService = (function() {
     if (esquema.toLowerCase().includes('pritchard')) {
       prescricao = {
         nome: 'Esquema de Pritchard (Alternativa sem Bomba de Infusão ou em Transporte)',
+        via: 'Combinada (IV + IM)',
         ataque: [
-          'MgSO4 50% 8 mL (4g) + SG 5% ou AD 12 mL = 20 mL IV administrados em bolus lento em 15 a 20 minutos.',
-          'ASSOCIADO A: MgSO4 50% 20 mL (10g) via IM profundo — aplicar 5g (10 mL) em cada glúteo profundamente, com 1 mL de lidocaína a 2% sem vasoconstritor em cada nádega para analgesia local.'
+          'Ataque IV Concomitante: MgSO4 50% 8 mL (4g) + SG 5% ou AD 12 mL = 20 mL IV administrados em bolus lento em 15 a 20 minutos (preferencialmente 20 min).',
+          'ASSOCIADO A (Ataque IM Concomitante): MgSO4 50% 20 mL (10g) via IM profundo — aplicar 5g (10 mL) em cada glúteo profundamente, com 1 mL de lidocaína a 2% sem vasoconstritor em cada nádega para analgesia local.'
         ],
         manutencao: [
-          'MgSO4 50% 10 mL (5g) via IM profundo a cada 4 horas no glúteo contralateral alternado.',
-          'SÓ APLICAR A DOSE SE: reflexo patelar presente, FR >= 12 rpm e diurese >= 25 mL/h nas últimas 4 horas.',
+          'Manutenção IM: MgSO4 50% 10 mL (5g) via IM profundo a cada 4 horas no glúteo contralateral alternado (adicionar 1 mL de lidocaína 2% sem vasoconstritor).',
+          'SÓ APLICAR A DOSE SE: reflexo patelar presente, FR >= 16 rpm e diurese >= 25 mL/h nas últimas 4 horas.',
+          'Dose de Reforço se Nova Convulsão: MgSO4 50% 4 mL (2g) + AD 6 mL = 10 mL IV lento em 10 minutos se recorrência.',
           'Manter por 24 horas após o parto ou após a última crise convulsiva.'
-        ]
+        ],
+        doseReforcoConvulsao: 'MgSO4 50% 4 mL (2g) + AD 6 mL IV em 10 minutos se nova convulsão.'
       };
     } else if (esquema.toLowerCase().includes('neuroprote')) {
       prescricao = {
         nome: 'Esquema de Neuroproteção Fetal (< 32 semanas)',
+        via: 'Intravenosa (IV)',
         ataque: [
-          'MgSO4 50% 8 mL (4g) + SG 5% ou SF 0,9% 12 mL = 20 mL IV lento em 20 a 30 minutos em bomba de infusão.'
+          'Dose de Ataque: MgSO4 50% 8 mL (4g) + SG 5% ou SF 0,9% 12 mL = 20 mL IV lento em 20 a 30 minutos em bomba de infusão.'
         ],
         manutencao: [
-          'MgSO4 50% 20 mL (10g) + SF 0,9% 480 mL = 500 mL IV contínua em Bomba de Infusão a 50 mL/h (1g/hora).',
+          'Dose de Manutenção: MgSO4 50% 20 mL (10g) + SF 0,9% 480 mL = 500 mL IV contínua em Bomba de Infusão a 50 mL/h (1g/hora).',
           'Manter até o nascimento ou por no máximo 24 horas se o parto prematuro não ocorrer.'
-        ]
+        ],
+        doseReforcoConvulsao: 'Não aplicável para indicação exclusiva de neuroproteção prematura.'
       };
     } else {
       // Zuspan padrão
       prescricao = {
         nome: 'Esquema de Zuspan (Padrão Ouro — Infusão Contínua em Bomba)',
+        via: 'Intravenosa (IV)',
         ataque: [
-          'Dose de Ataque: MgSO4 50% 8 mL (4g) + SG 5% ou SF 0,9% 12 mL = 20 mL IV em bomba de infusão lenta em 15 a 20 minutos.'
+          'Dose de Ataque: MgSO4 50% 8 mL (4g) + SG 5% ou SF 0,9% 12 mL = 20 mL IV em bomba de infusão lenta em 15 a 20 minutos (preferencialmente 20 min).'
         ],
         manutencao: [
           'Dose de Manutenção: MgSO4 50% 20 mL (10g) + SF 0,9% ou SG 5% 480 mL = 500 mL IV em Bomba de Infusão Contínua a 50 mL/h (fornece 1g de MgSO4 por hora).',
-          'Ajuste se Creatinina >= 1.2 mg/dL: Reduzir velocidade para 25 mL/h (0,5g/hora) com dosagem seriada de magnesemia a cada 6h (faixa terapêutica: 4,8 a 8,4 mg/dL ou 4 a 7 mEq/L).',
+          'Alternativa Concentrada (Restrição volêmica): MgSO4 50% 10 mL (5g) + SF 0,9% 240 mL = 250 mL a 50 mL/h em BIC (1g/h).',
+          'Dose de Reforço se Nova Convulsão: MgSO4 50% 4 mL (2g) + AD 6 mL = 10 mL IV em 10 a 15 min; considerar aumentar manutenção para 1,5 a 2 g/h em BIC.',
+          'Ajuste se Creatinina >= 1.2 mg/dL ou Oligúria: Reduzir velocidade para 25 mL/h (0,5g/hora) com dosagem seriada de magnesemia a cada 6h (faixa terapêutica: 4,8 a 8,4 mg/dL ou 4 a 7 mEq/L).',
           'Manter por 24 horas pós-parto ou 24 horas após a última crise de eclâmpsia.'
-        ]
+        ],
+        doseReforcoConvulsao: 'MgSO4 50% 4 mL (2g) + AD 6 mL = 10 mL IV em 10 a 15 min + elevar manutenção para 1,5-2 g/h em BIC se nova convulsão.'
       };
     }
 
     var rotinaVigilancia = [
-      'Reflexo patelar a cada 1 hora (deve estar PRESENTE antes de cada aplicação/infusão contínua).',
-      'Frequência respiratória horária (deve estar >= 12 rpm).',
+      'Reflexo patelar a cada 1 hora (deve estar PRESENTE antes de cada aplicação/infusão contínua; arreflexia indica hipermagnesemia ~8-10 mEq/L).',
+      'Frequência respiratória horária (deve estar >= 16 rpm; suspender se < 16 rpm; risco de parada se < 12 rpm).',
       'Diurese horária em sonda vesical de demora fechada com uripen/balanço (deve ser >= 25 mL/h).',
       'Manter 1 ampola de Gluconato de Cálcio 10% (10 mL) obrigatoriamente beira-leito pronta para uso imediato.'
     ];
+
+    var checklistVigilancia = {
+      reflexoPatelar: {
+        parametro: 'Reflexo Patelar',
+        alvo: 'Presente (avaliação horária contínua no Zuspan ou pré-dose no Pritchard)',
+        alarme: 'Abolido / Hiporreflexia (sinal precoce de hipermagnesemia sérica ~8-10 mEq/L)',
+        conduta: 'Suspender MgSO4 imediatamente e avaliar Gluconato de Cálcio 10%'
+      },
+      frequenciaRespiratoria: {
+        parametro: 'Frequência Respiratória',
+        alvo: '>= 16 irpm (ou rpm)',
+        alarme: '< 16 irpm (suspender MgSO4); < 12 irpm (risco iminente de parada por bloqueio neuromuscular)',
+        conduta: 'Suspender MgSO4 + Gluconato de Cálcio 10% 10 mL IV em 3 a 5 min'
+      },
+      diurese: {
+        parametro: 'Débito Urinário Horário (SVD)',
+        alvo: '>= 25 mL/h ou >= 100 mL em 4 horas (sonda vesical de demora com sistema fechado)',
+        alarme: '< 25 mL/h (oligúria severa com risco crítico de acúmulo tóxico por via renal)',
+        conduta: 'Reduzir manutenção pela metade (0,5 g/h) ou suspender e dosar magnesemia'
+      },
+      antidoto: {
+        droga: 'Gluconato de Cálcio 10%',
+        dose: '10 mL (= 1g) IV em bolus lento de 3 a 5 minutos beira-leito',
+        indicacao: 'Toxicidade clínica por magnésio (arreflexia, bradipneia FR < 16 ou PCR)'
+      }
+    };
+
+    var prescricaoPepTexto = [
+      'PRESCRIÇÃO BEIRA-LEITO (PEP) — SULFATO DE MAGNÉSIO (' + prescricao.nome + '):',
+      '1. ATAQUE: ' + prescricao.ataque.join(' '),
+      '2. MANUTENÇÃO: ' + prescricao.manutencao[0],
+      '3. VIGILÂNCIA HORÁRIA MANDATÓRIA (SVD): Checar Reflexo Patelar (presente), FR (>= 16 irpm) e Diurese (>= 25 mL/h).',
+      '4. ANTÍDOTO BEIRA-LEITO (SOS): Gluconato de Cálcio 10% 10 mL (= 1g) IV lento de 3 a 5 min se sinais de intoxicação (arreflexia ou FR < 16 irpm).'
+    ].join('\n');
 
     return {
       sucesso: true,
@@ -6067,7 +6115,9 @@ var CentroObstetricoService = (function() {
       intoxicacaoDetectada: intoxicacaoDetectada,
       alertasIntoxicacao: alertasIntoxicacao,
       condutaIntoxicacao: condutaIntoxicacao,
-      rotinaVigilancia: rotinaVigilancia
+      rotinaVigilancia: rotinaVigilancia,
+      checklistVigilancia: checklistVigilancia,
+      prescricaoPep: prescricaoPepTexto
     };
   }
 
@@ -6144,6 +6194,78 @@ var CentroObstetricoService = (function() {
       condutas: condutas,
       medicacoes: medicacoes,
       contraindicacoesAbsolutas: contraindicacoesAbsolutas
+    };
+  }
+
+  /**
+   * Manejo integral de Pré-Eclâmpsia com Sinais de Gravidade, Iminência de Eclâmpsia
+   * e Eclâmpsia (FEBRASGO 2024 / MS / ACOG).
+   * Consolida Sulfato de Magnésio (Zuspan/Pritchard), Crise Hipertensiva, Exames da Síndrome HELLP,
+   * Vigilância beira-leito (Patelar, FR >= 16 irpm, Diurese >= 25 mL/h) e Prescrição PEP.
+   */
+  function manejarPreEclampsiaGrave(dados) {
+    dados = dados || {};
+    var pas = Number(dados.pas) || 160;
+    var pad = Number(dados.pad) || 110;
+    var esquema = String(dados.esquema || 'Zuspan');
+    var igSemanas = Number(dados.igSemanas) || 0;
+    var sintomas = Array.isArray(dados.sintomasGravidade) ? dados.sintomasGravidade : [];
+    if (dados.sintomas && typeof dados.sintomas === 'string') {
+      sintomas.push(dados.sintomas);
+    }
+
+    var mgParams = {
+      esquema: esquema,
+      reflexoPatelar: dados.reflexoPatelar !== undefined ? dados.reflexoPatelar : true,
+      frequenciaRespiratoria: dados.frequenciaRespiratoria !== undefined ? Number(dados.frequenciaRespiratoria) : 16,
+      diureseMlHora: dados.diureseMlHora !== undefined ? Number(dados.diureseMlHora) : 35,
+      creatinina: dados.creatinina
+    };
+
+    var mg = prescreverSulfatoMagnesio(mgParams);
+    var crise = manejarCriseHipertensiva({ pas: pas, pad: pad });
+
+    var ehIminencia = sintomas.some(function(s) {
+      return /cefale|escotoma|turva|epigastr|hipocondr|reflex|clonus/i.test(s);
+    }) || Boolean(dados.iminenciaEclampsia);
+
+    var ehEclampsia = Boolean(dados.eclampsia || dados.convulsao);
+
+    var classificacao = 'PRÉ-ECLÂMPSIA COM SINAIS DE GRAVIDADE';
+    if (ehEclampsia) {
+      classificacao = 'ECLÂMPSIA CONVULSIVA (EMERGÊNCIA OBSTÉTRICA MÁXIMA)';
+    } else if (ehIminencia) {
+      classificacao = 'IMINÊNCIA DE ECLÂMPSIA (SINAIS PREMONITÓRIOS NEUROLÓGICOS/VISUAIS)';
+    }
+
+    var condutas = [];
+    condutas.push('1. ESTABILIZAÇÃO MATERNA IMEDIATA: Decúbito lateral esquerdo, O2 sob cateter se SpO2 < 95%, 2 acessos venosos calibrosos (16G/18G).');
+    condutas.push('2. SULFATO DE MAGNÉSIO IMEDIATO (' + mg.prescricao.nome + '): Iniciar imediatamente. Não aguardar resultados laboratoriais!');
+    if (crise.ehCrise) {
+      condutas.push('3. CONTROLE AGUDO DA CRISE HIPERTENSIVA (PA ' + pas + 'x' + pad + ' mmHg): Hidralazina 5 mg IV lento q20min (máx 20 mg) ou Nifedipino 10-20 mg VO deglutido. Meta: PAS 140-150 / PAD 90-100 mmHg.');
+    }
+    condutas.push('4. SONDAGEM VESICAL DE DEMORA COM SISTEMA FECHADO: Medição horária de diurese (meta: >= 25 mL/h).');
+    condutas.push('5. EXAMES LABORATORIAIS DE URGÊNCIA (Rastreio de Síndrome HELLP): Hemograma c/ plaquetas, DHL, Bilirrubinas totais/frações, TGO/AST, TGP/ALT, Creatinina, Ácido Úrico e Proteinúria.');
+
+    if (igSemanas >= 24 && igSemanas < 34) {
+      condutas.push('6. CORTICOTERAPIA PULMONAR (< 34 semanas): Betametasona 12 mg IM q24h (2 doses) se viável antes do parto.');
+    }
+
+    condutas.push('7. RESOLUÇÃO DA GESTAÇÃO: Tratamento definitivo. Proceder após estabilização materna e controle pressórico.');
+
+    return {
+      sucesso: true,
+      classificacao: classificacao,
+      ehIminencia: ehIminencia,
+      ehEclampsia: ehEclampsia,
+      pas: pas,
+      pad: pad,
+      sulfatoMagnesio: mg,
+      criseHipertensiva: crise,
+      condutas: condutas,
+      prescricaoPep: mg.prescricaoPep,
+      checklistVigilancia: mg.checklistVigilancia,
+      rotinaVigilancia: mg.rotinaVigilancia
     };
   }
 
@@ -6601,9 +6723,14 @@ var CentroObstetricoService = (function() {
         var mg = prescreverSulfatoMagnesio(cenario.has.mgso4Params);
         linhas.push('  💉 PROTOCOLO DE SULFATO DE MAGNÉSIO (' + mg.esquema + '):');
         linhas.push('  - Ataque: ' + mg.prescricao.ataque[0]);
+        if (mg.prescricao.ataque[1]) {
+          linhas.push('    ' + mg.prescricao.ataque[1]);
+        }
         linhas.push('  - Manutenção: ' + mg.prescricao.manutencao[0]);
+        linhas.push('  - Checklist de Vigilância: Patelar +, FR >= 16 irpm, Diurese >= 25 mL/h.');
+        linhas.push('  - Antídoto Beira-Leito: Gluconato de Cálcio 10% 10 mL IV lento se toxicidade.');
         if (mg.intoxicacaoDetectada) {
-          linhas.push('  ⛔ ALERTA DE INTOXICAÇÃO:');
+          linhas.push('  ⛔ ALERTA DE INTOXICAÇÃO DETECTADA:');
           for (var ai = 0; ai < mg.alertasIntoxicacao.length; ai++) {
             linhas.push('    ' + mg.alertasIntoxicacao[ai]);
           }
@@ -6693,6 +6820,7 @@ var CentroObstetricoService = (function() {
     calcularIndiceBishop: calcularIndiceBishopInternal,
     prescreverSulfatoMagnesio: prescreverSulfatoMagnesio,
     manejarCriseHipertensiva: manejarCriseHipertensiva,
+    manejarPreEclampsiaGrave: manejarPreEclampsiaGrave,
     gerenciarHemorragiaPosParto: gerenciarHemorragiaPosParto,
     avaliarProfilaxiaGbs: avaliarProfilaxiaGbs,
     protocoloPrematuridadeRpmo: protocoloPrematuridadeRpmo,
@@ -23664,8 +23792,24 @@ var PcrGestanteService = (function() {
         acaoImediata: "INTERROMPER IMEDIATAMENTE qualquer infusão de Sulfato de Magnésio.",
         antidoto: "Gluconato de Cálcio a 10%",
         posologia: "10 mL (1 g) IV lento em 2 a 3 minutos.",
-        justificativa: "O cálcio antagoniza competitivamente o bloqueio neuromuscular e a toxicidade cardiológica induzida pelo magnésio."
+        justificativa: "O cálcio antagoniza competitivamente o bloqueio neuromuscular e a toxicidade cardiológica induzida pelo magnésio.",
+        checklistVigilanciaToxica: [
+          "Reflexo patelar abolido (primeiro sinal clínico de hipermagnesemia ~8-10 mEq/L)",
+          "Depressão respiratória grave com FR < 16 irpm (ou < 12 irpm)",
+          "Oligúria < 25 mL/h (risco crítico de retenção e acúmulo de MgSO4 por excreção exclusivamente renal)"
+        ]
       });
+    }
+
+    var condutaPreEclampsia = null;
+    if (params.suspeitaPreEclampsia) {
+      condutaPreEclampsia = {
+        condicao: "Pré-Eclâmpsia com Sinais de Gravidade / Eclâmpsia",
+        alertaEtiologico: "Eclâmpsia e AVC hemorrágico são etiologias reversíveis frequentes de PCR materna.",
+        protocoloPosRce: "Após Retorno da Circulação Espontânea (RCE): Iniciar sulfato de magnésio (Zuspan: 4g IV em 20 min + 1g/h em BIC ou Pritchard: 4g IV + 10g IM) para prevenção de convulsões.",
+        checklistVigilancia: "Tríade de segurança horária: Reflexo patelar presente, FR >= 16 irpm e Diurese >= 25 mL/h. Antídoto pronto beira-leito: Gluconato de Cálcio 10% 10 mL IV.",
+        criseHipertensivaPosRce: "Se PAS >= 160 ou PAD >= 110 mmHg: Hidralazina 5 mg IV lento q20min (máx 20 mg). Alvo: PAD 90-100 mmHg."
+      };
     }
 
     if (params.suspeitaToxicidadeAnestesicoLocal) {
@@ -23720,6 +23864,7 @@ var PcrGestanteService = (function() {
       condutaFarmacologica: condutaFarmacologica,
       histerotomiaRessuscitacao: histerotomia,
       antidotos: antidotos,
+      condutaPreEclampsia: condutaPreEclampsia,
       checklistCausasReversiveis: checklistCausasReversiveis,
       resumoExecutivo: gerarResumoExecutivo({
         ig: ig,
