@@ -27,8 +27,8 @@ def autoloop_mod():
 @pytest.fixture(autouse=True)
 def preserve_legacy_process_mocks(autoloop_mod, monkeypatch):
     import subprocess
-    monkeypatch.setattr(autoloop_mod, "executar_etapa", lambda cmd, etapa, timeout=None:
-        subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False))
+    monkeypatch.setattr(autoloop_mod, "executar_etapa", lambda cmd, etapa, timeout=None, input_data=None, **kw:
+        subprocess.run(cmd, input=input_data, capture_output=True, text=True, timeout=timeout, check=False))
     monkeypatch.setattr(autoloop_mod, "fingerprint_tree", lambda: "legacy-fixture")
 
 def test_squad_rapido_ou_dupla(autoloop_mod):

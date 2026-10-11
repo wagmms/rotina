@@ -59,19 +59,38 @@ def stop_process_group(process):
 
 
 def run_observed(command, *, stage, timeout=None, heartbeat=30, on_line=None,
-                 on_start=None, emit=print, cwd=None, env=None):
+                 on_start=None, emit=print, cwd=None, env=None, input_data=None):
     """Silêncio produz diagnóstico, nunca aprovação nem cancelamento automático.
 
     Limite absoluto só é aplicado quando o chamador define timeout. A execução
     clínica não recebe prazo curto. Saída parcial, sinal e timeout são falhas.
     """
     started = time.monotonic()
+    stdin_opt = subprocess.PIPE if input_data is not None else None
     try:
-        process = subprocess.Popen(command, cwd=cwd, env=env, stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT, start_new_session=True)
+        process = subprocess.Popen(command, cwd=cwd, env=env, stdin=stdin_opt,
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   start_new_session=True)
     except OSError as exc:
         record_metric(stage, "failed_to_start", time.monotonic()-started, returncode=127)
         return subprocess.CompletedProcess(command, 127, "", str(exc))
+    if input_data is not None:
+        import threading
+        if isinstance(input_data, str):
+            input_bytes = input_data.encode("utf-8")
+        else:
+            input_bytes = input_data
+
+        def _feed_stdin():
+            try:
+                process.stdin.write(input_bytes)
+                process.stdin.flush()
+                process.stdin.close()
+            except (BrokenPipeError, OSError):
+                pass
+
+        t_in = threading.Thread(target=_feed_stdin, daemon=True)
+        t_in.start()
     if on_start:
         on_start(process)
     selector = selectors.DefaultSelector()
@@ -115,8 +134,7 @@ def run_observed(command, *, stage, timeout=None, heartbeat=30, on_line=None,
             now = time.monotonic()
             if now - last_notice >= heartbeat:
                 silence = int(now - last_output)
-                emit(f"[PROGRESSO] {stage}: {int(now-started)}s; PID {process.pid}; "
-                     f"última saída há {silence}s; aguardando conclusão verificada.")
+                emit(f"⏳ [PROGRESSO] {stage}: em andamento há {int(now-started)}s (PID {process.pid})...")
                 record_metric(stage, "running", now-started, run_id=run_id,
                               pid=process.pid, silent_seconds=silence)
                 last_notice = now
