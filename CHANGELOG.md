@@ -1,5 +1,20 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0AT. [x] **Auditoria e Restauração de Didática e Segurança no Rascunho SOAP (`tests/test_didatica_seguranca_soap_ostensivo.cjs`, `tests/test_didatica_seguranca_soap_ostensivo.py` e `src/04_motores_ia.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em `tests/test_didatica_seguranca_soap_ostensivo.cjs:123`, a asserção `assert(promptCapturado.includes("JUSTIFICATIVA DIDÁTICA (FMRP-USP)"))` falhava com `AssertionError [ERR_ASSERTION]: Prompt do rascunho deve exigir didática FMRP-USP`.
+      * A investigação identificou um defeito real no código de produção introduzido no commit `05e1f28` (`refactor(telegram): sintetizacao extrema de respostas, enxugamento de prompts de IA e resolucao de rotas de PCR`).
+      * Durante a tentativa de compactação de tokens do prompt no bot do Telegram, a diretriz pedagógica canônica da FMRP-USP de formular perguntas investigativas com justificativa clínica e hipóteses a descartar entre parênteses foi substituída ("SEM explicações prolixas entre parênteses") e a cláusula sentinela de segurança proibindo normalidade presumida para sistemas-foco de queixas ativas foi excluída.
+    - **Auditoria Clínica e de Segurança (Pro)**:
+      * A didática FMRP-USP exige justificativa entre parênteses para cada pergunta investigativa, capacitando internos e residentes no raciocínio diagnóstico dirigido. O módulo de áudio multimodal em tempo único (`src/04_motores_ia.js:1144`) já mantinha essa exigência canônica.
+      * A salvaguarda no exame físico que proíbe assumir como normais os sistemas com queixa ativa aguda é uma cláusula pétrea de segurança do paciente contra falsos-negativos e alucinações diagnósticas.
+    - **Correção e Validação**:
+      * Em `src/04_motores_ia.js` (`promptSistemaRascunho`), restauradas a salvaguarda de exame físico de sistemas com queixa ativa ("NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa...") e a diretriz pedagógica FMRP-USP ("JUSTIFICATIVA DIDÁTICA (FMRP-USP)" com "RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses...").
+      * Recompilado `ultra_rotina_master.js` com checksum e validação sintática 100% OK via `npm run build`.
+      * Validação direcionada: 9/9 blocos aprovados em `tests/test_didatica_seguranca_soap_ostensivo.cjs` (100% verde) e 1/1 teste aprovado em `tests/test_didatica_seguranca_soap_ostensivo.py` via pytest em 0.10s.
+      * Suítes correlatas validadas em lote isolado: 7/7 aprovadas em 0.85s (`test_ef_normal_completo.cjs`, `test_auditoria_qualidade_clinica.cjs`, `test_soap_exame_fisico.cjs`, `test_soap_dois_tempos.cjs`, `test_correcao_oitava_rodada.cjs`).
+      * Evidências arquivadas em `data/autoloop_task_notes/test_didatica_seguranca_soap_ostensivo.md`.
+
 0AS. [x] **Auditoria e Restauração de Recuperação de Pedidos Arquivados no Telegram (`tests/test_correcao_revisao_geral.cjs`, `tests/test_correcao_revisao_geral.py` e `src/12_experiencia_bot.js`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em `tests/test_correcao_revisao_geral.cjs`, o cenário `R03 pedido arquivado é recuperado pelo comando e preserva mídia` falhava com `AssertionError: assert(out(sent).includes('Pedido preservado'))`.

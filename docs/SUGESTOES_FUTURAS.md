@@ -136,5 +136,6 @@
 - *Sugestão 66 (Telegram / Fila de Entrega Confiável)*: Adicionar comando `/reprocessar_fila` ou botão de 1 toque no alerta de falha de integração externa (Notion/APIs) permitindo retry manual imediato de pedidos que permaneceram com status 'failed' na fila persistente sem exigir nova digitação do médico.
 - *Sugestão 67 (Telegram / Neurologia)*: Adicionar atalhos de botões táteis inline de 1 toque no roteiro de exame físico neurológico (`/neuro` / `/ef_neuro`) para graduar força motora segundo a escala MRC (Grau 0 a 5) e sinais meníngeos (Brudzinski / Kernig), permitindo montagem automática do resumo neurológico sem digitação livre no plantão.
 - *Sugestão 68 (Telegram / Fila & Resiliência)*: Exibir teclado com botões inline nos resultados de `/fila` (ex: `[📦 Ver Pedido 9]`, `[📋 Ver Entrega 9_1]`) para permitir navegação tátil direta entre pendências e histórico arquivado no chat sem necessidade de digitação manual de comandos textuais.
+- *Sugestão 69 (SOAP / Didática & Ensino Médico)*: Implementar botão inline de 1 toque no rascunho SOAP Fase 1 `[💡 Racional Didático]` para exibir em popup/mensagem complementar o mapa semiológico completo (pergunta investigativa ➔ hipótese FMRP-USP a descartar) para residentes e acadêmicos, sem sobrecarregar a transcrição limpa de prontuário para o médico assistente.
 
 ---

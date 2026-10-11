@@ -14,11 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria e Restauração de Recuperação de Pedidos Arquivados no Telegram (`tests/test_correcao_revisao_geral.cjs`, `tests/test_correcao_revisao_geral.py` e `src/12_experiencia_bot.js`)**:
-    - **Diagnóstico e Causa Raiz**: O teste `R03 pedido arquivado é recuperado pelo comando e preserva mídia` falhava com `AssertionError` em `assert(out(sent).includes('Pedido preservado'))`. A investigação confirmou defeito real em código de produção: no commit baseline (`1fcfc04`), a função `tratarEntradaUX` continha tratamento para `/fila` e `/pedido \d+`. Durante refatoração de menus e botões no commit `9b5e26f`, esses manipuladores foram inadvertidamente removidos, enquanto `/entrega` permaneceu. O subsistema de persistência e entrega (`src/11_entrega_confiavel.js:mostrarFilaTelegram`) estabelece formalmente o suporte a `/pedido <número>` para resgatar pedidos originais arquivados.
-    - **Correção e Demonstração do Contrato**: Restaurados os manipuladores de `/fila` (chamando `mostrarFilaTelegram`) e `/pedido` (com regex `/^\/pedido\s+(?:inbox_)?\d+$/`, recuperando o registro via `recuperarRegistroBot` e formatando a mensagem com `*Pedido preservado*\n\n` e o texto original) em `src/12_experiencia_bot.js`. Recompilado `ultra_rotina_master.js` com `npm run build`.
-    - **Validação de Testes**: 100% de aprovação em `tests/test_correcao_revisao_geral.cjs` (16/16 testes aprovados) e `tests/test_correcao_revisao_geral.py` (1/1 teste aprovado via pytest em 0.22s).
-    - Evidências arquivadas em `data/autoloop_task_notes/test_correcao_revisao_geral.md`.
+- [x] **Auditoria e Restauração de Didática e Segurança no Rascunho SOAP (`tests/test_didatica_seguranca_soap_ostensivo.cjs`, `tests/test_didatica_seguranca_soap_ostensivo.py` e `src/04_motores_ia.js`)**:
+    - **Diagnóstico e Causa Raiz**: O teste `tests/test_didatica_seguranca_soap_ostensivo.cjs:123` falhava com `AssertionError [ERR_ASSERTION]: Prompt do rascunho deve exigir didática FMRP-USP`. No commit `05e1f28`, uma tentativa de enxugamento de tokens do prompt no bot do Telegram substituiu a diretriz pedagógica canônica da FMRP-USP de formular perguntas investigativas com justificativa clínica e hipóteses a descartar entre parênteses ("SEM explicações prolixas entre parênteses") e excluiu a cláusula sentinela de segurança que proíbe presunção de normalidade para sistemas que são foco de queixa ativa.
+    - **Correção e Demonstração do Contrato**: Em `src/04_motores_ia.js` (`promptSistemaRascunho`), restauradas a salvaguarda de exame físico de sistemas com queixa ativa ("NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa...") e a diretriz pedagógica FMRP-USP ("JUSTIFICATIVA DIDÁTICA (FMRP-USP)" com "RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses..."). Recompilado `ultra_rotina_master.js` com `npm run build`.
+    - **Validação de Testes**: 100% de aprovação em `tests/test_didatica_seguranca_soap_ostensivo.cjs` (9/9 blocos aprovados) e `tests/test_didatica_seguranca_soap_ostensivo.py` (1/1 teste via pytest em 0.10s). Lote isolado de suítes correlatas de SOAP e exame físico aprovado sem regressões (7/7 em 0.85s).
+    - Evidências arquivadas em `data/autoloop_task_notes/test_didatica_seguranca_soap_ostensivo.md`.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -68,12 +68,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 68 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 69 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 64 (Telegram / Cefaleia)*: Escore SNOOP4 com checklist interativo para estratificação imediata de bandeiras vermelhas em cefaleia aguda antes de liberar protocolo de analgesia primária.
 - *Sugestão 65 (Pediatria / Farmacologia)*: Transição visual automática para formulação em comprimidos de adulto quando o paciente pediátrico tiver peso > 40-50 kg ou atingir o teto de adulto (exibir sugestão alternativa "Amoxicilina 500 mg: 1 cp VO de 8/8h" ao lado da suspensão de 250 mg/5 mL para evitar sobrecarga de volume líquido).
 - *Sugestão 66 (Telegram / Fila de Entrega Confiável)*: Adicionar comando `/reprocessar_fila` ou botão de 1 toque no alerta de falha de integração externa (Notion/APIs) permitindo retry manual imediato de pedidos que permaneceram com status 'failed' na fila persistente sem exigir nova digitação do médico.
 - *Sugestão 67 (Telegram / Neurologia)*: Adicionar atalhos de botões táteis inline de 1 toque no roteiro de exame físico neurológico (`/neuro` / `/ef_neuro`) para graduar força motora segundo a escala MRC (Grau 0 a 5) e sinais meníngeos (Brudzinski / Kernig), permitindo montagem automática do resumo neurológico sem digitação livre no plantão.
 - *Sugestão 68 (Telegram / Fila & Resiliência)*: Exibir teclado com botões inline nos resultados de `/fila` (ex: `[📦 Ver Pedido 9]`, `[📋 Ver Entrega 9_1]`) para permitir navegação tátil direta entre pendências e histórico arquivado no chat sem necessidade de digitação manual de comandos textuais.
+- *Sugestão 69 (SOAP / Didática & Ensino Médico)*: Implementar botão inline de 1 toque no rascunho SOAP Fase 1 `[💡 Racional Didático]` para exibir em popup/mensagem complementar o mapa semiológico completo (pergunta investigativa ➔ hipótese FMRP-USP a descartar) para residentes e acadêmicos, sem sobrecarregar a transcrição limpa de prontuário para o médico assistente.
 
 ---

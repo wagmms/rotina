@@ -1589,16 +1589,18 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "2. EXAME FÍSICO (O):",
     "   - Sinais Vitais: registre os relatados. Para sinais vitais não informados, reserve o espaço [   ] com a unidade (PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C).",
     "   - Sistemas examinados relatados. Se EF não informado, declare 'Exame físico pendente de avaliação beira-leito'.",
+    "   - NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa a menos que o médico tenha dito expressamente 'normal'. Para sistemas não informados e não examinados, declare explicitamente como pendentes à beira-leito.",
     "   - Integre exame especial se contido no caso.",
     "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Bom estado geral lúcido e orientado, ACV, AR, Abdome e Extremidades), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
-    "3. PERGUNTAS DIRIGIDAS PARA A ANAMNESE:",
-    "   - Formule no máximo 2 perguntas curtas e diretas sobre lacunas essenciais da história. SEM explicações prolixas entre parênteses.",
+    "3. INVESTIGAÇÃO ATIVA DA ANAMNESE COM JUSTIFICATIVA DIDÁTICA (FMRP-USP):",
+    "   - Formule de 2 a 4 perguntas diretas e clínicas para completar as lacunas da história (início detalhado, fatores de alívio/piora, antecedentes, alergias, medicações).",
+    "   - RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses ao final. Exemplo: 'Investigar se a dor epigástrica irradia para o dorso (descartar pancreatite aguda ou dissecção de aorta abdominal)'.",
     "4. COBRANÇA ATIVA DO EXAME FÍSICO DIRIGIDO:",
-    "   - 1 a 2 tópicos com sinais vitais críticos ou manobras essenciais para a queixa.",
+    "   - 1 a 2 tópicos com sinais vitais críticos (PA, FC, FR, SpO2, Tax) e manobras/auscultas essenciais para o caso que ainda não foram informados.",
     "5. REGRA ABSOLUTA DE SEGURANÇA: NÃO gere Avaliação nem Plano nesta fase.",
     "",
     "Contrato JSON estrito:",
-    '{"subjetivo":"Texto limpo organizado com QP, HDA, Antecedentes, Medicações e Alergias","objetivo":"Texto estruturado do O por sistemas","perguntas_anamnese":["Pergunta clínica direta 1?","Pergunta clínica direta 2?"],"exame_dirigido":["sinal vital ou manobra física imprescindível"]}'
+    '{"subjetivo":"Texto limpo organizado com QP, HDA, Antecedentes, Medicações e Alergias","objetivo":"Texto estruturado do O por sistemas","perguntas_anamnese":["Pergunta clínica direta 1? (justificativa semiológica/hipótese a afastar)","Pergunta clínica direta 2? (racional clínico)"],"exame_dirigido":["sinal vital ou manobra física imprescindível"]}'
   ].join("\n");
 
 
