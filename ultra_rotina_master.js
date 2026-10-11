@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 10:32:54
- * Checksum SHA256: 099b7904e9772564
+ * Gerado automaticamente via build_master.py em: 2026-10-11 11:37:07
+ * Checksum SHA256: df83d6adb66a96d2
  * ==============================================================================
  */
 
@@ -37345,71 +37345,107 @@ function _iaOrdemProvedores() {
   return ordem;
 }
 
+const DISPATCH_PROVEDORES_IA = {
+  GROQ: (sistema, prompt, tokens, ctx) => _iaProvGroq(sistema, prompt, tokens, ctx),
+  OPENROUTER: (sistema, prompt, tokens, ctx) => _iaProvOpenRouter(sistema, prompt, tokens, ctx),
+  ZAI: (sistema, prompt, tokens, ctx) => _iaProvZai(sistema, prompt, tokens, ctx),
+  GEMINI: (sistema, prompt, tokens, ctx, opcoes) => _iaProvGemini(sistema, prompt, tokens, ctx, opcoes),
+  OLLAMA: (sistema, prompt, tokens, ctx, opcoes) => _iaChamarOllamaNativo(sistema, prompt, tokens, ctx, opcoes),
+  LOCAL: (sistema, prompt, tokens, ctx, opcoes) => _iaProvLocal(sistema, prompt, tokens, ctx, opcoes)
+};
+
 function _iaChamarProvedor(nome, sistema, prompt, tokens, ctx, opcoes) {
   if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker && !IaCircuitBreaker.podeExecutar(nome)) {
     _iaLog(ctx, "[CircuitBreaker " + nome + "] ABERTO (cooldown ativo), pulando provedor.");
     return null;
   }
-  if (nome === "GROQ") return _iaProvGroq(sistema, prompt, tokens, ctx);
-  if (nome === "OPENROUTER") return _iaProvOpenRouter(sistema, prompt, tokens, ctx);
-  if (nome === "ZAI") return _iaProvZai(sistema, prompt, tokens, ctx);
-  if (nome === "GEMINI") return _iaProvGemini(sistema, prompt, tokens, ctx, opcoes);
-  if (nome === "OLLAMA") return _iaChamarOllamaNativo(sistema, prompt, tokens, ctx, opcoes);
-  if (nome === "LOCAL") return _iaProvLocal(sistema, prompt, tokens, ctx, opcoes);
-  return null;
+  const handler = DISPATCH_PROVEDORES_IA[nome];
+  return handler ? handler(sistema, prompt, tokens, ctx, opcoes) : null;
+}
+
+function _iaAcionarFallbackOffline(sistema, promptUsuario, opcoes, ctx) {
+  if (typeof IaLocalFallbackService === "undefined" || !IaLocalFallbackService) {
+    return null;
+  }
+  if (typeof IaLocalFallbackService.executarFallbackLocalOffline === "function") {
+    _iaLog(ctx, "Acionando executarFallbackLocalOffline unificado");
+    return IaLocalFallbackService.executarFallbackLocalOffline(sistema, promptUsuario, opcoes);
+  }
+  if (opcoes && opcoes.json) {
+    _iaLog(ctx, "Acionando fallback determinístico offline estruturado (JSON)");
+    return IaLocalFallbackService.estruturarJsonOffline(sistema, promptUsuario);
+  }
+  _iaLog(ctx, "Acionando fallback determinístico offline clínico");
+  return IaLocalFallbackService.gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
+}
+
+function executarTentativaProvedor(nome, sistema, promptUsuario, tokens, ctx, opcoes) {
+  const chamar = function (t) {
+    return _iaChamarProvedor(nome, sistema, promptUsuario, t, ctx, opcoes);
+  };
+
+  try {
+    let r = chamar(tokens);
+    r = _iaResolverTruncamento(chamar, tokens, r, ctx, opcoes && opcoes.json);
+
+    if (r && r.truncado && opcoes && opcoes.exigirRespostaCompleta) {
+      _iaLog(ctx, "Resposta incompleta; revisão não concluída");
+      return { sucesso: false, abortar: true, resultado: null };
+    }
+
+    const textoValido = r && r.texto && String(r.texto).trim();
+    if (!textoValido) {
+      if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+        IaCircuitBreaker.registrarFalha(nome, "Resposta vazia");
+      }
+      return { sucesso: false, abortar: false, resultado: null };
+    }
+
+    if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+      IaCircuitBreaker.registrarSucesso(nome);
+    }
+    const deltaMs = Date.now() - (ctx && ctx.inicio ? ctx.inicio : Date.now());
+    _iaLog(ctx, "OK via " + nome + " (" + (r.modelo || "desconhecido") + ") em " + deltaMs + " ms");
+
+    const textoFormatado = (opcoes && opcoes.json) ? r.texto : _iaRemoverLatex(r.texto);
+    return { sucesso: true, abortar: false, resultado: textoFormatado };
+  } catch (e) {
+    if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+      IaCircuitBreaker.registrarFalha(nome, e.message);
+    }
+    _iaLog(ctx, nome + " falhou: " + e.message);
+    return { sucesso: false, abortar: false, resultado: null, erro: e };
+  }
+}
+
+function chamarMotorIaComFallback(sistema, promptUsuario, maxTokens, opcoes) {
+  opcoes = opcoes || {};
+  const tokens = Number(maxTokens) || 2000;
+  const ctx = _iaNovoCtx();
+  const ordem = _iaOrdemProvedores();
+
+  for (let i = 0; i < ordem.length; i++) {
+    const nome = ordem[i];
+    if (_iaOrcamentoEsgotado(ctx)) {
+      _iaLog(ctx, "Orçamento esgotado antes de " + nome);
+      break;
+    }
+
+    const tentativa = executarTentativaProvedor(nome, sistema, promptUsuario, tokens, ctx, opcoes);
+    if (tentativa.abortar) {
+      return null;
+    }
+    if (tentativa.sucesso) {
+      return tentativa.resultado;
+    }
+  }
+
+  _iaLog(ctx, "TODOS OS PROVEDORES FALHARAM");
+  return _iaAcionarFallbackOffline(sistema, promptUsuario, opcoes, ctx);
 }
 
 function _iaExecutar(sistema, promptUsuario, maxTokens, opcoes) {
-  opcoes = opcoes || {};
-  var tokens = Number(maxTokens) || 2000;
-  var ctx = _iaNovoCtx();
-  var ordem = _iaOrdemProvedores();
-
-  for (var i = 0; i < ordem.length; i++) {
-    if (_iaOrcamentoEsgotado(ctx)) { _iaLog(ctx, "Orçamento esgotado antes de " + ordem[i]); break; }
-    var nome = ordem[i];
-    var chamar = function (t) { return _iaChamarProvedor(nome, sistema, promptUsuario, t, ctx, opcoes); };
-    var r;
-    try {
-      r = chamar(tokens);
-      r = _iaResolverTruncamento(chamar, tokens, r, ctx, opcoes.json);
-      if (r && r.truncado && opcoes.exigirRespostaCompleta) {
-        _iaLog(ctx, "Resposta incompleta; revisão não concluída");
-        return null;
-      }
-      if (r && r.texto && String(r.texto).trim()) {
-        if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
-          IaCircuitBreaker.registrarSucesso(nome);
-        }
-        _iaLog(ctx, "OK via " + nome + " (" + r.modelo + ") em " + (new Date().getTime() - ctx.inicio) + " ms");
-        return opcoes.json ? r.texto : _iaRemoverLatex(r.texto);
-      } else {
-        if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
-          IaCircuitBreaker.registrarFalha(nome, "Resposta vazia");
-        }
-      }
-    } catch (e) {
-      if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
-        IaCircuitBreaker.registrarFalha(nome, e.message);
-      }
-      _iaLog(ctx, nome + " falhou: " + e.message);
-      continue;
-    }
-  }
-  _iaLog(ctx, "TODOS OS PROVEDORES FALHARAM");
-  if (typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService) {
-    if (typeof IaLocalFallbackService.executarFallbackLocalOffline === "function") {
-      _iaLog(ctx, "Acionando executarFallbackLocalOffline unificado");
-      return IaLocalFallbackService.executarFallbackLocalOffline(sistema, promptUsuario, opcoes);
-    }
-    if (opcoes.json) {
-      _iaLog(ctx, "Acionando fallback determinístico offline estruturado (JSON)");
-      return IaLocalFallbackService.estruturarJsonOffline(sistema, promptUsuario);
-    }
-    _iaLog(ctx, "Acionando fallback determinístico offline clínico");
-    return IaLocalFallbackService.gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
-  }
-  return null;
+  return chamarMotorIaComFallback(sistema, promptUsuario, maxTokens, opcoes);
 }
 
 // Usa apenas metadados devolvidos na MESMA resposta; nenhuma consulta adicional.
@@ -39556,6 +39592,11 @@ function gerarAudioPreceptorDireto(casoOuDuvida, opcoes) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
+    chamarMotorIaComFallback: chamarMotorIaComFallback,
+    executarTentativaProvedor: executarTentativaProvedor,
+    _iaExecutar: _iaExecutar,
+    _iaChamarProvedor: _iaChamarProvedor,
+    _iaAcionarFallbackOffline: _iaAcionarFallbackOffline,
     executarRaciocinioClinico: executarRaciocinioClinico,
     chamarGroqAPI: chamarGroqAPI,
     chamarOpenRouterAPI: chamarOpenRouterAPI,

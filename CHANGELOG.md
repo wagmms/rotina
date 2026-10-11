@@ -1,5 +1,23 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C11. [x] **Motores de IA - Refatoração do Pipeline de Fallback e Resiliência (`src/04_motores_ia.js` e `tests/test_ia_motores_pipeline_refatorado.cjs`)**:
+    - **Diagnóstico e Oportunidade Estrutural**:
+      * A função `_iaExecutar` concentrava um fluxo espaguete de controle com condicionais profundamente aninhadas, try/catch misturado com retries e truncamentos, e acoplamento direto com checagens em série do serviço de contingência offline.
+      * A função `_iaChamarProvedor` continha uma escada linear de múltiplos `if (nome === "...")` para despachar provedores de inferência (`GROQ`, `OPENROUTER`, `ZAI`, `GEMINI`, `OLLAMA`, `LOCAL`).
+    - **Implementação e Refatoração**:
+      * Em `src/04_motores_ia.js`:
+        • Criado o dicionário de despacho `DISPATCH_PROVEDORES_IA` com complexidade O(1) para chamada direta de cada provedor via arrow functions modernas (Node 20+).
+        • Refatorada `_iaChamarProvedor`: guard clause imediata para CircuitBreaker e despacho limpo via `DISPATCH_PROVEDORES_IA`.
+        • Extraída a função pura `executarTentativaProvedor(nome, sistema, promptUsuario, tokens, ctx, opcoes)`: isola a lógica de tentativa individual, resolução de truncamento, guard clause de integridade (`exigirRespostaCompleta`), telemetria de latência, CircuitBreaker e sanitização sem LaTeX em formato padronizado `{ sucesso, abortar, resultado }`.
+        • Extraída a função modular `_iaAcionarFallbackOffline(sistema, promptUsuario, opcoes, ctx)`: concentra o desacoplamento de contingência clínica ou JSON estruturado determinístico em caso de falha de todos os provedores em nuvem.
+        • Implementada `chamarMotorIaComFallback(sistema, promptUsuario, maxTokens, opcoes)`: pipeline linear com early returns iterando sobre a ordem de provedores e delegando para `_iaAcionarFallbackOffline` em caso de esgotamento.
+        • Mantida `_iaExecutar` como alias transparente e compatível, preservando 100% dos contratos públicos e testes legados.
+        • Exportadas `chamarMotorIaComFallback`, `executarTentativaProvedor`, `_iaAcionarFallbackOffline` e `_iaExecutar` em `module.exports`.
+      * Em `tests/test_ia_motores_pipeline_refatorado.cjs`:
+        • Criada suíte automatizada com 8 testes unitários cobrindo disponibilidade de exportações, sucesso com remoção de LaTeX, resposta truncada com `exigirRespostaCompleta`, resposta vazia acionando falha no CircuitBreaker, captura e isolamento de exceções de rede, fluxo de fallback offline clínico e contrato de compatibilidade de `_iaExecutar`.
+    - **Validação e Resultados**:
+      * 100% de aprovação em `tests/test_ia_motores_pipeline_refatorado.cjs`, `tests/test_ia_motores_fallback_local.cjs`, `tests/test_motores_ia_fallback_local_fastack.cjs`, `tests/test_ia_local_offline.cjs`, `tests/test_resiliencia_gemini_429.cjs` e `tests/test_otimizacao_qualidade.cjs`.
+
 0C10. [x] **Organização do Exame Físico por Sistemas em Linhas Separadas, Higienização de Modelos SOAP e Início Direto sem Atrito (`src/02_soap_ambulatorial.js`, `src/04_motores_ia.js`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js` e `tests/test_soap_ef_organizacao_ux.cjs`)**:
     - **Diagnóstico e Feedback de Usuário**:
       * Achados do Exame Físico (EF) em rascunhos e respostas de IA eram exibidos com sistemas semiológicos aglutinados em texto corrido (ex.: ACV, AR e Abdome no mesmo parágrafo), dificultando a leitura rápida e cópia estruturada para o prontuário eletrônico (PEP).
