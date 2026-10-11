@@ -782,22 +782,47 @@ function enviarTelaEnfPrescricaoHosp(chat, messageId) {
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
 
-function enviarTelaEnfSBAR(chat, messageId) {
-  var textoConsolidado = (typeof EnfermariaService !== 'undefined' && EnfermariaService.obterTextoConsolidadoParaPassagem)
-    ? EnfermariaService.obterTextoConsolidadoParaPassagem()
-    : null;
-  if (!textoConsolidado) {
-    var texto = '📋 *PASSAGEM DE PLANTÃO SBAR*\n\n' +
+function tratarCallbackEnfSBAR(chat, messageId) {
+  var sbarTexto = (typeof EnfermariaService !== 'undefined' && EnfermariaService.gerarPassagemSBARConsolidada)
+    ? EnfermariaService.gerarPassagemSBARConsolidada()
+    : ((typeof EnfermariaService !== 'undefined' && EnfermariaService.obterTextoConsolidadoParaPassagem)
+        ? EnfermariaService.obterTextoConsolidadoParaPassagem()
+        : null);
+
+  if (!sbarTexto) {
+    var textoVazio = '📋 *PASSAGEM DE PLANTÃO SBAR · ENFERMARIA*\n\n' +
       '🏥 Nenhum leito registrado na enfermaria para passar plantão.\n\n' +
-      '💡 Registre os leitos usando `/leito <num> <evolução>` antes de gerar a passagem.';
-    var botoes = botoesBot([
+      '💡 Registre os leitos usando `/leito <num> <evolução>` antes de gerar a passagem.\n' +
+      'Exemplo: `/leito 4 72a, PAC grave, Ceftriaxona D3, aguarda vaga CTI`';
+    var botoesVazio = botoesBot([
       [['🏥 Painel de Leitos', 'ux:painel:0']],
       [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
     ]);
-    return enviarTelaBot(chat, texto, botoes, messageId);
+    return enviarTelaBot(chat, textoVazio, botoesVazio, messageId);
   }
-  return processarMensagemTexto({ chat: { id: chat }, text: '/passagem' });
+
+  // 100% DETERMINÍSTICO EM 0ms BEIRA-LEITO
+  var cache = uxCache();
+  var ckSbar = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckSbar, sbarTexto, 21600);
+
+  var textoLimpoPep = typeof uxTextoProntuario === 'function' ? uxTextoProntuario(sbarTexto) : sbarTexto;
+  var btnCopiar;
+  if (textoLimpoPep.length >= 1 && textoLimpoPep.length <= UX_MAX_COPY_TEXT) {
+    btnCopiar = [{ text: '📋 Copiar Conduta/Passagem para Prontuário', copy_text: { text: textoLimpoPep } }];
+  } else {
+    btnCopiar = [{ text: '📋 Copiar Conduta/Passagem para Prontuário', callback_data: 'ux:copiar:' + ckSbar }];
+  }
+
+  var botoesSbar = botoesBot([
+    [btnCopiar[0]],
+    [['🏥 Painel de Leitos', 'ux:painel:0'], ['🔄 Atualizar SBAR', 'ux:enf:sbar']],
+    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+
+  return enviarTelaBot(chat, sbarTexto, botoesSbar, messageId);
 }
+var enviarTelaEnfSBAR = tratarCallbackEnfSBAR;
 
 /* ========== Cenário 3: 🩺 Ambulatório & Atenção Primária (UBS) ========== */
 
@@ -2202,7 +2227,7 @@ function enviarRotinaBot(chat, messageId) {
 
 /* ========== Enfermaria ========== */
 
-function enviarPainelEnfermaria(chat, pagina, msgId) {
+function mostrarPainelLeitos(chat, pagina, msgId) {
   var all = EnfermariaService.obterTodos();
   var keys = Object.keys(all).sort(function (a, b) { return a.localeCompare(b, undefined, { numeric: true }); });
   pagina = Math.max(0, Math.min(Number(pagina) || 0, Math.max(0, Math.ceil(keys.length / 5) - 1)));
@@ -2216,45 +2241,151 @@ function enviarPainelEnfermaria(chat, pagina, msgId) {
   });
   var censo = keys.length ? ' · (' + keys.length + ' leitos: 🟢 ' + estaveis + ' | 🟡 ' + vigilancias + ' | 🔴 ' + instaveis + ')' : '';
   var texto = '🏥 *Enfermaria' + censo + '*\n\n';
-  if (!keys.length) texto += 'Nenhum leito registrado. Use /leito 4 seguido da evolução.';
-  slice.forEach(function (id) {
-    var l = all[id];
-    texto += '*Leito ' + id + '* · ' + l.status + '\n' + l.dataISO + ' ' + l.atualizadoEm + '\n\n';
-    rows.push([['Abrir leito ' + id, 'ux:leito:' + id]]);
-  });
-  var nav = [];
-  if (pagina > 0) nav.push(['← Anterior', 'ux:painel:' + (pagina - 1)]);
-  if ((pagina + 1) * 5 < keys.length) nav.push(['Próxima →', 'ux:painel:' + (pagina + 1)]);
-  if (nav.length) rows.push(nav);
+  if (!keys.length) {
+    texto += 'Nenhum leito registrado no momento.\n\n' +
+      '💡 *Como admitir ou evoluir:*\n' +
+      '• Digite `/leito <num> <evolução>` (ex: `/leito 4 72a, PAC grave, Ceftriaxona D3, aguarda vaga CTI`)\n' +
+      '• Ou envie um áudio ditando a evolução do leito no corredor.';
+  } else {
+    slice.forEach(function (id) {
+      var l = all[id];
+      texto += '*Leito ' + id + '* · ' + l.status + '\n' + l.dataISO + ' às ' + l.atualizadoEm + '\n\n';
+      rows.push([['Abrir leito ' + id, 'ux:leito:' + id]]);
+    });
+    var nav = [];
+    if (pagina > 0) nav.push(['← Anterior', 'ux:painel:' + (pagina - 1)]);
+    if ((pagina + 1) * 5 < keys.length) nav.push(['Próxima →', 'ux:painel:' + (pagina + 1)]);
+    if (nav.length) rows.push(nav);
+
+    var ckCenso = Utilities.getUuid().replace(/-/g, '');
+    safePutCache(uxCache(), ckCenso, EnfermariaService.formatarPainelBordo(), 21600);
+    rows.push([['📋 Copiar Censo para Prontuário', 'ux:copiar:' + ckCenso]]);
+  }
   rows.push([['🔄 Atualizar', 'ux:painel:' + pagina], ['Passagem SBAR', UX_CB_PASSAGEM_SBAR]]);
   rows.push([['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]);
   return enviarTelaBot(chat, texto, botoesBot(rows), msgId);
 }
+var enviarPainelEnfermaria = mostrarPainelLeitos;
 
 function uxTelaLeito(chat, id, msgId, aviso) {
   var l = EnfermariaService.obterLeito(id);
-  if (!l) return enviarMensagemParaChat(chat, 'Leito não encontrado.');
+  if (!l) {
+    return enviarMensagemComTecladoParaChat(chat, 'Leito não encontrado.', botoesBot([
+      [['🏥 Painel de Leitos', 'ux:painel:0']],
+      [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+    ]));
+  }
   var texto = (aviso ? '✅ ' + aviso + '\n\n' : '') +
     '🛏️ *Leito ' + id + '* · ' + l.status + '\n📅 ' + l.dataISO + ' às ' + l.atualizadoEm + '\n\n' + l.dados;
   var ver = (l.version ? l.version.slice(0, 8) : '');
+
+  var textoPep = "LEITO " + id + " · " + l.status + " (" + l.dataISO + " às " + l.atualizadoEm + ")\n\n" + l.dados;
+  var cache = uxCache();
+  var ckLeito = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckLeito, textoPep, 21600);
+
+  var limpoPep = typeof uxTextoProntuario === 'function' ? uxTextoProntuario(textoPep) : textoPep;
+  var btnCopiar;
+  if (limpoPep.length >= 1 && limpoPep.length <= UX_MAX_COPY_TEXT) {
+    btnCopiar = [{ text: '📋 Copiar Conduta/Passagem para Prontuário', copy_text: { text: limpoPep } }];
+  } else {
+    btnCopiar = [{ text: '📋 Copiar Conduta/Passagem para Prontuário', callback_data: 'ux:copiar:' + ckLeito }];
+  }
+
   return enviarTelaBot(chat, texto, botoesBot([
+    [btnCopiar[0]],
     [['🟢 Estável', 'ux:status:' + id + ':estavel' + (ver ? ':' + ver : '')], ['🟡 Vigilância', 'ux:status:' + id + ':vigilancia' + (ver ? ':' + ver : '')]],
     [['🔴 Instável', 'ux:status:' + id + ':instavel' + (ver ? ':' + ver : '')]],
     [['✏️ Evoluir leito', 'ux:evoluir:' + id], ['Dar alta', 'ux:confirmar:' + id]],
-    [['← Leitos', 'ux:painel:0'], ['🔙 Enfermaria', 'ux:hub:enf']]
+    [['← Leitos', 'ux:painel:0'], ['🔙 Enfermaria', 'ux:hub:enf']],
+    [['🏠 Início', 'ux:hub:inicio']]
   ]), msgId);
 }
 
 function confirmarAltaBot(chat, id) {
   var l = EnfermariaService.obterLeito(id);
-  if (!l) return enviarMensagemParaChat(chat, 'Leito não encontrado.');
+  if (!l) {
+    return enviarMensagemComTecladoParaChat(chat, 'Leito não encontrado.', botoesBot([
+      [['🏥 Painel de Leitos', 'ux:painel:0']],
+      [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+    ]));
+  }
   var code = Utilities.getUuid().replace(/-/g, '').slice(0, 16);
   safePutCache(uxCache(), 'alta_' + code, JSON.stringify({
     id: id, chat: String(chat), version: l.version || (l.dataISO + ' ' + l.atualizadoEm)
   }), 300);
   return enviarMensagemComTecladoParaChat(chat,
-    'Confirmar alta do leito ' + id + '? O histórico será preservado.',
-    botoesBot([[['Confirmar alta', 'ux:alta:' + code], ['Cancelar', 'ux:leito:' + id]]]));
+    'Confirmar alta do leito ' + id + '? O histórico será preservado com segurança.',
+    botoesBot([
+      [['Confirmar alta', 'ux:alta:' + code], ['Cancelar', 'ux:leito:' + id]],
+      [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+    ]));
+}
+
+function processarAcaoLeito(chat, op, v, msgId) {
+  var cache = uxCache();
+  if (op === 'painel') {
+    return mostrarPainelLeitos(chat, v, msgId);
+  }
+  if (op === 'leito' || op === 'abrir') {
+    return uxTelaLeito(chat, v, msgId);
+  }
+  if (op === 'status') {
+    var ps = v.split(':'), numL = ps[0], tipo = ps[1], versaoEsp = ps[2];
+    if (UX_STATUS_LEITO.indexOf(tipo) === -1) {
+      return enviarMensagemComTecladoParaChat(chat, 'Status inválido.', botoesBot([
+        [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+      ]));
+    }
+    if (!versaoEsp) {
+      return enviarMensagemComTecladoParaChat(chat, 'Este botão de status pertence a uma mensagem anterior ou a outro paciente. Abra o leito novamente.', botoesBot([
+        [['🛏️ Abrir Leito ' + numL, 'ux:leito:' + numL]],
+        [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+      ]));
+    }
+    var rSt = EnfermariaService.atualizarStatusLeito(numL, tipo, versaoEsp);
+    if (rSt.sucesso) return uxTelaLeito(chat, numL, msgId, rSt.mensagem);
+    return enviarMensagemComTecladoParaChat(chat, rSt.erro || rSt.mensagem, botoesBot([
+      [['🛏️ Abrir Leito ' + numL, 'ux:leito:' + numL]],
+      [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+    ]));
+  }
+  if (op === 'evoluir') {
+    aguardarEvolucaoLeito(chat, v);
+    var txtEvoluir = '📝 *EVOLUÇÃO DO LEITO ' + v + '*\n\n' +
+      'Envie a nova evolução do leito por texto ou mensagem de voz.\n' +
+      'A versão anterior ficará registrada no histórico com segurança.\n\n' +
+      '💡 *Exemplo:* `72a, PAC grave, SpO2 94% em cateter 2L/min, Ceftriaxona D4. Pendências: gasometria controle`';
+    return enviarMensagemComTecladoParaChat(chat, txtEvoluir, botoesBot([
+      [['🔙 Cancelar / Leito ' + v, 'ux:leito:' + v]],
+      [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+    ]));
+  }
+  if (op === 'confirmar') {
+    return confirmarAltaBot(chat, v);
+  }
+  if (op === 'alta') {
+    var rawAlta = cache.get('alta_' + v);
+    if (!rawAlta) {
+      return enviarMensagemComTecladoParaChat(chat, 'Confirmação expirada. Abra o leito novamente.', botoesBot([
+        [['🏥 Painel de Leitos', 'ux:painel:0']],
+        [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+      ]));
+    }
+    var a = JSON.parse(rawAlta);
+    if (a.chat !== String(chat)) {
+      return enviarMensagemComTecladoParaChat(chat, 'Confirmação inválida para este chat.', botoesBot([
+        [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+      ]));
+    }
+    var result = EnfermariaService.desocuparLeito(a.id, a.version);
+    cache.remove('alta_' + v);
+    return enviarMensagemComTecladoParaChat(chat, result.mensagem, botoesBot([
+      [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:enf:sbar']],
+      [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
+    ]));
+  }
+  return false;
 }
 
 /* ========== Exportação para prontuário ========== */
@@ -3546,7 +3677,7 @@ function tratarCallbackUX(cb) {
       } else if (v === 'soap') {
         iniciarModoBot(chat, 'soap', true, msgId);
       } else if (v === 'sbar') {
-        texto('/passagem');
+        return tratarCallbackEnfSBAR(chat, msgId);
       } else if (v === 'rotina') {
         enviarRotinaBot(chat, msgId);
       } else if (v === 'manual') {
@@ -3811,33 +3942,8 @@ function tratarCallbackUX(cb) {
       var telaDet = (typeof enviarTelaCondutaEmergencia === 'function') ? enviarTelaCondutaEmergencia(chat, v, msgId) : null;
       if (telaDet) return telaDet;
       texto('/conduta ' + (UX_CONDUTAS[v] || v));
-    } else if (op === 'painel') {
-      enviarPainelEnfermaria(chat, v, msgId);
-    } else if (op === 'leito') {
-      uxTelaLeito(chat, v, msgId);
-    } else if (op === 'status') {
-      var ps = v.split(':'), numL = ps[0], tipo = ps[1], versaoEsp = ps[2];
-      if (UX_STATUS_LEITO.indexOf(tipo) === -1) { enviarMensagemParaChat(chat, 'Status inválido.'); return true; }
-      if (!versaoEsp) {
-        enviarMensagemParaChat(chat, 'Este botão de status pertence a uma mensagem anterior ou a outro paciente. Abra o leito novamente.');
-        return true;
-      }
-      var rSt = EnfermariaService.atualizarStatusLeito(numL, tipo, versaoEsp);
-      if (rSt.sucesso) uxTelaLeito(chat, numL, msgId, rSt.mensagem);
-      else enviarMensagemParaChat(chat, rSt.erro || rSt.mensagem);
-    } else if (op === 'evoluir') {
-      aguardarEvolucaoLeito(chat, v);
-      enviarMensagemParaChat(chat, 'Envie a nova evolução do leito ' + v + ' por texto ou áudio. A versão anterior ficará registrada no histórico.');
-    } else if (op === 'confirmar') {
-      confirmarAltaBot(chat, v);
-    } else if (op === 'alta') {
-      var rawAlta = cache.get('alta_' + v);
-      if (!rawAlta) { enviarMensagemParaChat(chat, 'Confirmação expirada. Abra o leito novamente.'); return true; }
-      var a = JSON.parse(rawAlta);
-      if (a.chat !== String(chat)) { enviarMensagemParaChat(chat, 'Confirmação inválida para este chat.'); return true; }
-      var result = EnfermariaService.desocuparLeito(a.id, a.version);
-      cache.remove('alta_' + v);
-      enviarMensagemParaChat(chat, result.mensagem);
+    } else if (op === 'painel' || op === 'leito' || op === 'status' || op === 'evoluir' || op === 'confirmar' || op === 'alta') {
+      return processarAcaoLeito(chat, op, v, msgId);
     } else if (op === 'recalc') {
       var partesRecalc = v.split(':');
       var tipoRecalc = partesRecalc[0];
@@ -3930,7 +4036,12 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarTelaCalcParkland: enviarTelaCalcParkland,
     tratarCallbackUXCalc: tratarCallbackUXCalc,
     enviarRotinaBot: enviarRotinaBot,
+    mostrarPainelLeitos: mostrarPainelLeitos,
     enviarPainelEnfermaria: enviarPainelEnfermaria,
+    processarAcaoLeito: processarAcaoLeito,
+    tratarCallbackEnfSBAR: tratarCallbackEnfSBAR,
+    enviarTelaEnfSBAR: enviarTelaEnfSBAR,
+    uxTelaLeito: uxTelaLeito,
     confirmarAltaBot: confirmarAltaBot,
     uxTextoProntuario: uxTextoProntuario,
     enviarHubPrincipal: enviarHubPrincipal,

@@ -360,7 +360,7 @@ function construirTecladoHubEnfermaria() {
         {"text": "📤 Dar Alta", "callback_data": "enfermaria_alta"}
       ],
       [
-        {"text": "📋 Passagem SBAR", "callback_data": "enfermaria_passagem"},
+        {"text": "📋 Passagem SBAR", "callback_data": "ux:enf:sbar"},
         {"text": "🎙️ Pitch de Round", "callback_data": "enfermaria_round"}
       ],
       [
@@ -613,7 +613,10 @@ function processarMensagemTexto(message) {
     return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
   }
 
-  if (comando === "/enfermaria") {
+  if (comando === "/enfermaria" || comando === "/leitos" || comando === "/censo") {
+    if (typeof mostrarPainelLeitos === "function") {
+      return mostrarPainelLeitos(chatId, 0);
+    }
     return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
   }
 
@@ -690,7 +693,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/toxo", "/toxoplasmose", "/avidez", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/dip", "/pelvica", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/toxo", "/toxoplasmose", "/avidez", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/dip", "/pelvica", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan", "/leitos", "/censo"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -702,7 +705,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/toxo":"toxo","/toxoplasmose":"toxo","/avidez":"toxo","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/dip":"dip","/pelvica":"dip","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/toxo":"toxo","/toxoplasmose":"toxo","/avidez":"toxo","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/dip":"dip","/pelvica":"dip","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito","/leitos":"enfermaria","/censo":"enfermaria"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -4030,25 +4033,43 @@ function processarMensagemTexto(message) {
 
   if (comando === "/plantao" || comando === "/sbar") {
     var dadosPlantao = texto.replace(/^\/(plantao|sbar)\s*/i, "").trim();
-    if (!dadosPlantao) return enviarMensagemParaChat(chatId, "🏥 Envie os dados. Ex: `/plantao Leito 12 PAC grave...`");
+    if (!dadosPlantao) {
+      if (typeof tratarCallbackEnfSBAR === "function") {
+        return tratarCallbackEnfSBAR(chatId);
+      }
+      return enviarMensagemComTecladoParaChat(chatId, "🏥 *PASSAGEM DE PLANTÃO SBAR*\n\nEnvie os dados do caso ou paciente. Exemplo: `/sbar Leito 12 PAC grave, Ceftriaxona D3, aguarda vaga CTI`", {
+        inline_keyboard: [
+          [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+          [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      });
+    }
     return processarEEntregarIA(chatId, gerarPassagemPlantaoSBAR, dadosPlantao, "plantao");
   }
 
   // ENFERMARIA VIRTUAL MULTI-LEITOS
-  if (comando === "/enfermaria") {
+  if (comando === "/enfermaria" || comando === "/leitos" || comando === "/censo") {
+    if (typeof mostrarPainelLeitos === "function") {
+      return mostrarPainelLeitos(chatId, 0);
+    }
     return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
   }
 
   if (comando === "/leito") {
     var dadosLeito = texto.replace(/^\/leito\s*/i, "").trim();
     if (!dadosLeito) {
-      return enviarMensagemParaChat(chatId, "🛏️ *ENFERMARIA VIRTUAL*\n\n" +
+      return enviarMensagemComTecladoParaChat(chatId, "🛏️ *ENFERMARIA VIRTUAL · GESTÃO DE LEITOS*\n\n" +
         "• Para ver ou atualizar: `/leito <número> <dados>`\n" +
         "💡 *Exemplo:* `/leito 4 72a, PAC grave, Ceftriaxona D3, aguarda vaga CTI`\n" +
         "• Para ver o leito: `/leito 4`\n" +
-        "• Para ver todos: `/enfermaria`\n" +
+        "• Para ver todos: `/censo` ou `/leitos`\n" +
         "• Para desocupar leito: `/alta 4`\n" +
-        "• Para passagem geral: `/passagem`");
+        "• Para passagem geral: `/sbar` ou `/passagem`", {
+          inline_keyboard: [
+            [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }, { text: "📋 Passagem SBAR", callback_data: "ux:enf:sbar" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        });
     }
 
     var matchLeito = dadosLeito.match(/^([a-zA-Z0-9_-]{1,24})(?:\s+([\s\S]+))?$/);
@@ -4059,36 +4080,81 @@ function processarMensagemTexto(message) {
       if (!infoLeito) {
         var leitoAtual = EnfermariaService.obterLeito(numLeito);
         if (leitoAtual) {
-          return enviarMensagemParaChat(chatId, "🛏️ *LEITO " + numLeito + "* [" + leitoAtual.status + "]\n" +
+          var textoPepLeito = "LEITO " + numLeito + " · " + leitoAtual.status + " (" + leitoAtual.dataISO + " às " + leitoAtual.atualizadoEm + ")\n\n" + leitoAtual.dados;
+          var ckL = Utilities.getUuid().replace(/-/g, "");
+          safePutCache(CacheService.getScriptCache(), ckL, textoPepLeito, 21600);
+          return enviarMensagemComTecladoParaChat(chatId, "🛏️ *LEITO " + numLeito + "* [" + leitoAtual.status + "]\n" +
             "⏱️ *Atualizado às:* " + leitoAtual.atualizadoEm + "\n" +
             "📝 " + leitoAtual.dados + "\n\n" +
             "💡 Para atualizar: `/leito " + numLeito + " novos dados`\n" +
-            "🟢 Para dar alta: `/alta " + numLeito + "`");
+            "🟢 Para dar alta: `/alta " + numLeito + "`", {
+              inline_keyboard: [
+                [{ text: "📋 Copiar Conduta/Passagem para Prontuário", callback_data: "ux:copiar:" + ckL }],
+                [{ text: "✏️ Evoluir Leito", callback_data: "ux:evoluir:" + numLeito }, { text: "Dar Alta", callback_data: "ux:confirmar:" + numLeito }],
+                [{ text: "← Leitos", callback_data: "ux:painel:0" }, { text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }],
+                [{ text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+              ]
+            });
         } else {
-          return enviarMensagemParaChat(chatId, "⚪ *Leito " + numLeito + " está vago.* Para ocupar, envie `/leito " + numLeito + " dados do paciente`.");
+          return enviarMensagemComTecladoParaChat(chatId, "⚪ *Leito " + numLeito + " está vago.* Para ocupar, envie `/leito " + numLeito + " dados do paciente`.", {
+            inline_keyboard: [
+              [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+              [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+            ]
+          });
         }
       }
 
       var resAtualizacao = EnfermariaService.atualizarLeito(numLeito, infoLeito);
-      return enviarMensagemParaChat(chatId, resAtualizacao.mensagem || resAtualizacao.erro);
+      if (!resAtualizacao || !resAtualizacao.sucesso) {
+        return enviarMensagemParaChat(chatId, (resAtualizacao && (resAtualizacao.erro || resAtualizacao.mensagem)) || "Falha ao atualizar leito.");
+      }
+      var ckAt = Utilities.getUuid().replace(/-/g, "");
+      var txtGravado = resAtualizacao.leito ? ("LEITO " + numLeito + " · " + resAtualizacao.leito.status + "\n\n" + resAtualizacao.leito.dados) : (resAtualizacao.mensagem || "");
+      safePutCache(CacheService.getScriptCache(), ckAt, txtGravado, 21600);
+      return enviarMensagemComTecladoParaChat(chatId, resAtualizacao.mensagem || resAtualizacao.erro, {
+        inline_keyboard: [
+          [{ text: "📋 Copiar Conduta/Passagem para Prontuário", callback_data: "ux:copiar:" + ckAt }],
+          [{ text: "🛏️ Abrir Leito " + numLeito, callback_data: "ux:leito:" + numLeito }, { text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+          [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      });
     }
   }
 
   if (comando === "/alta") {
     var numAlta = texto.replace(/^\/alta\s*/i, "").trim();
     if (!numAlta) {
-      return enviarMensagemParaChat(chatId, "🟢 Digite o número do leito a desocupar. Ex: `/alta 4`");
+      return enviarMensagemComTecladoParaChat(chatId, "🟢 Digite o número do leito a desocupar. Ex: `/alta 4`", {
+        inline_keyboard: [
+          [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+          [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      });
     }
     var resAlta = EnfermariaService.desocuparLeito(numAlta);
-    return enviarMensagemParaChat(chatId, resAlta.mensagem);
+    return enviarMensagemComTecladoParaChat(chatId, resAlta.mensagem, {
+      inline_keyboard: [
+        [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }, { text: "📋 Passagem SBAR", callback_data: "ux:enf:sbar" }],
+        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    });
   }
 
   if (comando === "/limpar_enfermaria") {
     var resLimpeza = EnfermariaService.limparTudo();
-    return enviarMensagemParaChat(chatId, resLimpeza.mensagem);
+    return enviarMensagemComTecladoParaChat(chatId, resLimpeza.mensagem, {
+      inline_keyboard: [
+        [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    });
   }
 
   if (comando === "/passagem") {
+    if (typeof tratarCallbackEnfSBAR === "function") {
+      return tratarCallbackEnfSBAR(chatId);
+    }
     var textoConsolidado = EnfermariaService.obterTextoConsolidadoParaPassagem();
     if (!textoConsolidado) {
       return enviarMensagemComTecladoParaChat(chatId,

@@ -1,5 +1,24 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0BA. [x] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`, `src/12_experiencia_bot.js`, `src/09_enfermaria.js`, `src/07e_telegram_midia_e_leitos.js`, `src/07a_telegram_router.js` e `tests/test_gestao_leitos_sbar_ux.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Na gestão de leitos e passagem de plantão, comandos frequentes de enfermagem hospitalar (`/leitos`, `/censo`) não possuíam roteamento direto no Telegram, caindo em fluxos genéricos.
+      * O comando `/sbar` e o callback `ux:enf:sbar` recorriam a chamadas lentas de IA pela rede (`/passagem` via LLM) mesmo quando a enfermaria já possuía todos os leitos consolidados em memória, violando o princípio do determinismo em 0ms.
+      * Telas de consulta e ditado de leito (`uxTelaLeito`, `processarDitadoEvolucaoLeito`, `aguardarEvolucaoLeito`) careciam de botão direto de cópia para prontuário (`[📋 Copiar Conduta/Passagem para Prontuário]`) e possuíam botões navegacionais incompletos sem `[🏠 Início]` (`ux:hub:inicio`).
+    - **Contrato de UX Beira-Leito e Determinismo (0ms)**:
+      * Respostas determinísticas instantâneas em 0ms sem IA desnecessária para todo o fluxo de leitos e passagem de plantão: censo em tempo real, painel paginado, abertura de leito, admissão, evolução por texto/voz, alta hospitalar e passagem SBAR consolidada.
+      * Relatório de Passagem SBAR canônico e estruturado (S - Situação/Censo, B - Histórico, A - Avaliação atual, R - Recomendações e Pendências extraídas das evoluções) pronto para prontuário ou WhatsApp de plantão.
+      * Navegação contextual estrita: garantia de `[🔙 Enfermaria]` (`ux:hub:enf`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas, submenus, comandos e callbacks.
+      * Botão de 1 toque `[📋 Copiar Conduta/Passagem para Prontuário]` com cópia nativa ou via callback para PEP em todas as saídas de leitos e SBAR.
+    - **Implementação e Refatoração**:
+      * Em `src/09_enfermaria.js`: Adicionado método `gerarPassagemSBARConsolidada` em `EnfermariaService`, gerando a estrutura SBAR com censo de estabilidade e extração automatizada de pendências ativas beira-leito.
+      * Em `src/12_experiencia_bot.js`: Implementados `mostrarPainelLeitos`, `processarAcaoLeito` e `tratarCallbackEnfSBAR` em 0ms determinístico, eliminando chamadas repetitivas de IA e unificando o tratamento de ações de leitos (`painel`, `leito`/`abrir`, `status`, `evoluir`, `confirmar`, `alta`).
+      * Em `src/07e_telegram_midia_e_leitos.js`: Atualizado `processarDitadoEvolucaoLeito` com botão de cópia de conduta e linha de retorno contextual `[🔙 Enfermaria]` e `[🏠 Início]`.
+      * Em `src/07a_telegram_router.js`: Roteamento imediato para `/leitos`, `/censo`, `/sbar` (0ms sem argumentos), `/leito` e `/alta` com botões contextuais.
+      * Em `src/07d_telegram_callbacks.js`: Callback `enfermaria_passagem` direcionado para `tratarCallbackEnfSBAR` em 0ms.
+    - **Validação e Cobertura Automatizada**:
+      * Criada suíte canônica `tests/test_gestao_leitos_sbar_ux.cjs` (6 blocos com 100% de aprovação), mantida suíte `tests/test_enfermaria_ux_fluxos.cjs` e aprovadas todas as 47 suítes do baseline.
+
 0AZ. [x] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`, `src/12_experiencia_bot.js`, `src/07a_telegram_router.js` e `tests/test_go_hub_ux.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * O Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`) possuía lacunas de navegação contextual, submenus que utilizavam retornos genéricos para a raiz do bot (`ux:menu` em vez de `[🔙 Hub G&O]`), e ausência de atalhos determinísticos para comandos comuns no plantão obstétrico e ginecológico (`/toxo`, `/avidez`, `/dip`, `/pelvica`).

@@ -14,11 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`, `src/12_experiencia_bot.js`, `src/07a_telegram_router.js`, `tests/test_hub_go_ux.cjs` e `tests/test_go_hub_ux.cjs`)**:
-    - **Diagnóstico e Causa Raiz**: O teclado `construirTecladoHubGO` utilizava rodapé com retorno à raiz (`ux:menu`) em vez do retorno contextual `[🔙 Hub G&O]` (`ux:rotina:go`) e `[🏠 Início]` (`ux:hub:inicio`), violando o Protocolo das 6 Regras de Ouro. O roteador do Telegram interceptava `/go` e `/obstetricia` antecipadamente. Em `src/12_experiencia_bot.js`, presets de expulsivo, intoxicação por magnésio e anticoncepção OMS possuíam discrepâncias de casing estrito e mapeamento de categorias OMS (`metodosBloqueadosCat4`).
-    - **Determinismo 0ms e Protocolo Beira-Leito**: Respostas instantâneas em 0ms sem IA desnecessária para 100% dos 10 submódulos clínicos (Pré-Natal & DPP, Parto/Partograma, HPP 4 Ts, Pré-Eclâmpsia & MgSO4 Zuspan, Prematuridade/RPMO, Toxoplasmose, Vulvovaginites, Preventivo INCA, Anticoncepção OMS e DIP).
-    - **Navegação Contextual e Cópia em 1 Toque**: Garantidos botões `[🔙 Hub G&O]` (`ux:rotina:go`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas, presets e comandos clínicos. Respostas formatadas com botão `[📋 Copiar Conduta para Prontuário]` (`ux:copiar:<hash>`) em bloco ````text` para inserção ágil no prontuário eletrônico.
-    - **Validação e Cobertura**: 100% aprovado nas duas suítes canônicas: `tests/test_hub_go_ux.cjs` (23/23 testes verdes) e `tests/test_go_hub_ux.cjs` (6 blocos completos), além de `test_saneamento_escopo_clinico.cjs` e `test_hubs_e_comandos_telegram.cjs`. Recompilado `ultra_rotina_master.js` (58.038 linhas, 100% sintaxe OK). Integrado a `scripts/test_manifest.json` com aprovação total de 46/46 suítes em `npm test`.
+- [x] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`, `src/12_experiencia_bot.js`, `src/09_enfermaria.js`, `src/07e_telegram_midia_e_leitos.js`, `src/07a_telegram_router.js` e `tests/test_gestao_leitos_sbar_ux.cjs`)**:
+    - **Diagnóstico e Causa Raiz**: O comando `/sbar` e o callback `ux:enf:sbar` recorriam a chamadas lentas de IA pela rede (`/passagem` via LLM) mesmo quando a enfermaria já possuía os leitos consolidados em memória, violando o princípio do determinismo em 0ms. Comandos como `/leitos` e `/censo` não possuíam roteamento formal no Telegram. Telas de consulta (`uxTelaLeito`), evolução (`processarAcaoLeito`) e ditado por voz (`processarDitadoEvolucaoLeito`) careciam de botão direto de 1 toque para prontuário (`[📋 Copiar Conduta/Passagem para Prontuário]`) e de retorno ao início (`[🏠 Início]`).
+    - **Determinismo 0ms e Passagem SBAR Canônica**: Implementado o gerador determinístico em 0ms `EnfermariaService.gerarPassagemSBARConsolidada()` estruturado em 4 tempos (S - Situação/Censo, B - Histórico, A - Avaliação atual, R - Recomendações e Pendências extraídas de regex semiológico) sem dependência externa de LLM.
+    - **Navegação Contextual e Cópia em 1 Toque**: Garantidos botões `[🔙 Enfermaria]` (`ux:hub:enf`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% dos fluxos de leitos e SBAR (painel, censo, admissão, evolução diária, confirmação de alta segura e passagem de plantão). Adicionado botão de 1 toque `[📋 Copiar Conduta/Passagem para Prontuário]` em todas as saídas de leitos e SBAR.
+    - **Validação e Cobertura**: 100% aprovado na nova suíte canônica `tests/test_gestao_leitos_sbar_ux.cjs` (6 blocos completos) e na suíte de fluxos `tests/test_enfermaria_ux_fluxos.cjs`. Integrado ao manifest e aprovadas todas as 47/47 suítes no baseline de testes.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -26,10 +26,10 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`)**:
-    - **Arquivo/Módulo Alvo**: `src/12_experiencia_bot.js`, `src/09_enfermaria.js` e `src/07e_telegram_midia_e_leitos.js`
-    - **Função/Componente/Seletor**: Funções `enviarMenuEnfermaria`, `mostrarPainelLeitos`, `processarAcaoLeito`, `tratarCallbackEnfSBAR` e comandos `/leitos`, `/censo`, `/sbar`
-    - **Comportamento Esperado / Critério de Aceite**: Garantir retorno contextual para `[🔙 Enfermaria]` (`ux:hub:enf`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% dos fluxos de leitos e SBAR (painel, censo, admissão, evolução diária, alta e passagem de plantão), respostas determinísticas em 0ms sem IA desnecessária e botão de 1 toque `[📋 Copiar Conduta/Passagem para Prontuário]` em todas as saídas de leitos e SBAR.
+- [ ] **Auditoria e Otimização da Central de Rotina & Plantão do Médico (`ux:hub:rotina`)**:
+    - **Arquivo/Módulo Alvo**: `src/06_rotina_agenda.js`, `src/12_experiencia_bot.js`, `src/07g_telegram_ajuda_e_protocolos.js` e `src/07d_telegram_callbacks.js`
+    - **Função/Componente/Seletor**: Funções `enviarRotinaBot`, `consultarEventosAgenda`, `tratarCallbackRotina`, `gerarResumoFimPlantao` e comandos `/rotina`, `/agenda`, `/tasks`, `/briefing`, `/checkin`, `/plantao_fim`
+    - **Comportamento Esperado / Critério de Aceite**: Garantir navegação em 1 toque sem digitação manual, retorno contextual para `[🔙 Central de Rotina]` (`ux:hub:rotina`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% dos fluxos de agenda do dia/amanhã, tarefas do Notion, briefing matinal, check-in noturno e encerramento de plantão, com respostas determinísticas em 0ms e botão de cópia de resumo do plantão.
 
 ---
 
@@ -51,9 +51,8 @@
     - Concluído com 100% das 6 calculadoras principais, retorno contextual `[🔙 Calculadoras]`, Fastify schemas sanitizados, Parkland e Glasgow no Cockpit PWA e botão de cópia ````text`.
 4. [x] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`)**:
     - Concluído com 100% dos 10 submódulos validados, retorno contextual `[🔙 Hub G&O]` e `[🏠 Início]`, respostas determinísticas em 0ms e botão de cópia de conduta ````text`.
-5. [ ] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`)**:
-    - Validar Painel de Leitos (`ux:painel:0`), Abertura de Leito Individual (`ux:leito:*`), Evolução Diária (`ux:evoluir:*`), Alta Hospitalar (`ux:alta:*`) e Passagem SBAR (`ux:enf:sbar`).
-    - Garantir que nenhum estado de censo ou evolução deixe o médico sem opções de navegação direta para `[🔙 Enfermaria]` ou `[🏠 Início]`.
+5. [x] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`)**:
+    - Concluído com 100% dos fluxos validados (painel, censo, leito individual, evolução, alta segura, ditado por voz e SBAR), respostas determinísticas em 0ms e botão `[📋 Copiar Conduta/Passagem para Prontuário]`.
 6. [ ] **Auditoria e Otimização da Central de Rotina & Plantão do Médico (`ux:hub:rotina`)**:
     - Validar Agenda do Dia/Amanhã (`ux:rotina:agenda`, `ux:rotina:agenda_amanha`), Tarefas do Plantão (`ux:rotina:tasks`), Check-in / Briefing (`ux:rotina:checkin`, `rotina_briefing`) e Encerramento de Plantão (`ux:rotina:plantao_fim`).
     - Garantir navegação em 1 toque sem digitação manual, com retorno para `[🔙 Central de Rotina]` e `[🏠 Início]`.
@@ -62,12 +61,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 83 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 86 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 79 (Calculadoras / Parkland & Queimados)*: Adicionar temporizador regressivo e alerta horário no Cockpit PWA para término da 1ª etapa de ressuscitação volêmica (primeiras 8h a contar do horário exato do trauma), com campos de input para volume já administrado na ambulância (SAMU) e compensação automática no volume restante de Ringer Lactato.
-- *Sugestão 80 (Calculadoras / Glasgow-P Pediátrico)*: Implementar toggle de adaptação pediátrica para a Escala de Coma de Glasgow em lactentes e crianças menores de 4 anos (balbucio/choro consolável em vez de orientação verbal e retração à dor em vez de localização), garantindo acurácia neurológica beira-leito em trauma pediátrico.
-- *Sugestão 81 (Ginecologia & Obstetrícia / Partograma Dinâmico)*: Implementar renderização em ASCII/gráfico SVG inline no Telegram e Cockpit PWA da linha de alerta e linha de ação do Partograma da OMS (com marcação temporal de dilatação cervical, descida da apresentação de De Lee e frequência cardíaca fetal), facilitando a identificação imediata de parada secundária de dilatação, fase ativa prolongada e período pélvico retardado.
 - *Sugestão 82 (Ginecologia & Obstetrícia / Calculadora de Risco de Pré-Eclâmpsia 1º Trimestre)*: Adicionar algoritmo de rastreamento precoce de pré-eclâmpsia entre 11 e 13+6 semanas baseado na Fetal Medicine Foundation (FMF), combinando fatores maternos, PAM média, IP das artérias uterinas e dosagem de PlGF, com prescrição automática de AAS 150 mg/dia à noite e Carbonato de Cálcio 1,5g/dia se risco elevado.
 - *Sugestão 83 (Ginecologia & Obstetrícia / Mapeamento de Anticoncepção Pós-Parto Imediato)*: Adicionar matriz de decisão rápida beira-leito para inserção de DIU de Cobre ou DIU de Levonorgestrel pós-parto imediato (até 10 minutos após dequitação ou transcesariana) e pós-aborto imediato, com taxa de expulsão comparativa e critérios de segurança FIGO/OMS.
+- *Sugestão 84 (Enfermaria / Alertas de Antibioticoterapia D-Tempo)*: Implementar contagem regressiva e alerta automático de D-tempo de antibióticos nos leitos (ex: alertar quando atingir D7 ou D14 para reavaliação de foco infeccioso, descalonamento de espectro ou transição para terapia oral precoce segundo diretrizes de Antimicrobial Stewardship).
+- *Sugestão 85 (Enfermaria / Notificação de Alerta SBAR para Equipe Multidisciplinar)*: Adicionar formatação de exportação rápida da Passagem SBAR adaptada para transmissão via canal seguro ou WhatsApp de enfermagem e fisioterapia, agrupando leitos com suporte ventilatório ativo, drenos e sondas.
+- *Sugestão 86 (Enfermaria / Censo Dinâmico com Filtro de Gravidade)*: Adicionar filtros instantâneos no Painel de Leitos (`ux:painel:0`) permitindo visualizar exclusivamente leitos críticos (🔴 Instáveis) ou em vigilância (🟡), facilitando a priorização do médico durante a passagem de plantão e o round matinal.
 
 ---

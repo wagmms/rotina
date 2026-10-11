@@ -183,6 +183,69 @@ var EnfermariaService=(function(){
       var censo='('+keys.length+' leitos: 🟢 '+estaveis+' estáveis | 🟡 '+vigilancias+' vigilância | 🔴 '+instaveis+' críticos'+(naoConfirmados ? ' | ⚪ '+naoConfirmados+' a avaliar' : '')+')';
       return '🏥 *Enfermaria* · '+censo+'\n\n'+keys.map(function(id){var l=all[id];return '*LEITO '+id+'* · '+l.status+'\n'+l.dataISO+' '+l.atualizadoEm+'\n'+l.dados;}).join('\n\n');
     },
-    obterTextoConsolidadoParaPassagem:function(){var all=carregar(),keys=ids(all);return keys.length?keys.map(function(id){var l=all[id];return 'LEITO '+id+' · '+l.status+' · '+l.dataISO+' '+l.atualizadoEm+'\n'+l.dados;}).join('\n\n'):null;}
+    obterTextoConsolidadoParaPassagem:function(){var all=carregar(),keys=ids(all);return keys.length?keys.map(function(id){var l=all[id];return 'LEITO '+id+' · '+l.status+' · '+l.dataISO+' '+l.atualizadoEm+'\n'+l.dados;}).join('\n\n'):null;},
+    gerarPassagemSBARConsolidada:function(idLeitoAlvo){
+      var all=carregar(),keys=ids(all);
+      if(!keys.length)return null;
+      if(idLeitoAlvo){
+        keys=keys.filter(function(k){return String(k).trim()===String(idLeitoAlvo).trim();});
+        if(!keys.length)return null;
+      }
+      var estaveis=0,vigilancias=0,instaveis=0,naoConfirmados=0;
+      var pendenciasPlantao=[];
+      var listaLeitos=[];
+
+      keys.forEach(function(id){
+        var l=all[id];
+        var st=(l.status||'').toLowerCase();
+        if(st.indexOf('inst')!==-1)instaveis++;
+        else if(st.indexOf('vigil')!==-1)vigilancias++;
+        else if(st.indexOf('est')!==-1)estaveis++;
+        else naoConfirmados++;
+
+        var dadosTxt=String(l.dados||'');
+        var pendLeito=[];
+        var mPend=dadosTxt.match(/(?:pend[êe]ncia[s]?|checar|solicito|programo|aguardando|aguarda|colher|repetir|ajustar|desmamar|trocar)\s*[:=]?\s*([^.,;\n]+)/gi);
+        if(mPend){
+          mPend.forEach(function(p){
+            var limpo=p.replace(/^(?:pend[êe]ncia[s]?|checar|solicito|programo|aguardando|aguarda|colher|repetir|ajustar|desmamar|trocar)\s*[:=]?\s*/i,'').trim();
+            if(limpo.length>=3&&pendLeito.indexOf(limpo)===-1){
+              pendLeito.push(limpo);
+            }
+          });
+        }
+        if(pendLeito.length>0){
+          pendenciasPlantao.push('• Leito '+id+': '+pendLeito.join('; '));
+        }
+
+        listaLeitos.push(
+          '🛏️ *LEITO '+id+'* · '+l.status+'\n'+
+          '⏱️ Atualizado: '+l.dataISO+' às '+l.atualizadoEm+'\n'+
+          '📝 *Evolução:* '+l.dados+
+          (pendLeito.length>0?'\n⏰ *Pendências:* '+pendLeito.join('; '):'')
+        );
+      });
+
+      var tz=ConfigService.get('TIMEZONE','America/Sao_Paulo');
+      var now=new Date();
+      var dataHora=Utilities.formatDate(now,tz,'dd/MM/yyyy às HH:mm');
+
+      var censoResumo=keys.length+' leitos ativos (🟢 '+estaveis+' estáveis | 🟡 '+vigilancias+' vigilância | 🔴 '+instaveis+' críticos'+(naoConfirmados?' | ⚪ '+naoConfirmados+' a avaliar':'')+')';
+
+      var txtSbar='📋 *PASSAGEM DE PLANTÃO SBAR · ENFERMARIA*\n'+
+        '📅 '+dataHora+'\n\n'+
+        '*S (SITUAÇÃO / CENSO)*\n'+
+        '• Censo: '+censoResumo+'\n'+
+        '• Setor: Enfermaria Geral / Internação Hospitalar\n\n'+
+        '*B & A (HISTÓRICO & AVALIAÇÃO BEIRA-LEITO)*\n\n'+
+        listaLeitos.join('\n\n')+'\n\n'+
+        '*R (RECOMENDAÇÕES & PENDÊNCIAS DO PLANTÃO)*\n'+
+        (pendenciasPlantao.length>0?pendenciasPlantao.join('\n'):'• Sem pendências críticas registradas no momento. Manter vigilância clínica e planos vigentes.');
+
+      return txtSbar;
+    },
+    gerarPassagemSBARDeterministica:function(idLeitoAlvo){
+      return this.gerarPassagemSBARConsolidada(idLeitoAlvo);
+    }
   };
 })();

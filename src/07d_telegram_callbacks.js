@@ -372,9 +372,17 @@ function processarCallbackBotao(cb) {
   // H. AÇÕES RÁPIDAS DA ENFERMARIA
   else if (data === "enfermaria_passagem") {
     responderCallbackTelegram(cb.id, "Consolidando passagem SBAR...");
+    if (typeof tratarCallbackEnfSBAR === "function") {
+      return tratarCallbackEnfSBAR(cb.message.chat.id, cb.message.message_id);
+    }
     var textoLeitos = EnfermariaService.obterTextoConsolidadoParaPassagem();
     if (!textoLeitos) {
-      return enviarMensagemParaChat(cb.message.chat.id, "🏥 *Nenhum leito registrado na enfermaria para passar.* Registre os leitos usando `/leito <num> <dados>` antes de gerar a passagem.");
+      return enviarMensagemComTecladoParaChat(cb.message.chat.id, "🏥 *Nenhum leito registrado na enfermaria para passar.* Registre os leitos usando `/leito <num> <dados>` antes de gerar a passagem.", {
+        inline_keyboard: [
+          [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+          [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      });
     }
     return processarEEntregarIA(cb.message.chat.id, gerarPassagemPlantaoSBAR, textoLeitos, "plantao");
   }
@@ -384,19 +392,39 @@ function processarCallbackBotao(cb) {
   }
   else if (data === "enfermaria_add") {
     responderCallbackTelegram(cb.id, "Adicionar leito");
-    return enviarMensagemParaChat(cb.message.chat.id, "➕ *ADICIONAR OU EVOLUIR LEITO*\n\nDigite: `/leito <número> <dados do paciente>`\n💡 *Exemplo:* `/leito 4 72a, PAC grave, Ceftriaxona D3, aguarda vaga CTI`\n\n• Para consultar apenas o leito: `/leito 4`");
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "➕ *ADICIONAR OU EVOLUIR LEITO*\n\nDigite: `/leito <número> <dados do paciente>`\n💡 *Exemplo:* `/leito 4 72a, PAC grave, Ceftriaxona D3, aguarda vaga CTI`\n\n• Para consultar apenas o leito: `/leito 4`", {
+      inline_keyboard: [
+        [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    });
   }
   else if (data === "enfermaria_alta") {
     responderCallbackTelegram(cb.id, "Dar alta a leito");
-    return enviarMensagemParaChat(cb.message.chat.id, "📤 *DAR ALTA A LEITO*\n\nDigite: `/alta <número do leito>`\n💡 *Exemplo:* `/alta 4`\n\nO leito será desocupado e o censo atualizado.");
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "📤 *DAR ALTA A LEITO*\n\nDigite: `/alta <número do leito>`\n💡 *Exemplo:* `/alta 4`\n\nO leito será desocupado e o censo atualizado.", {
+      inline_keyboard: [
+        [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    });
   }
   else if (data === "enfermaria_round") {
     responderCallbackTelegram(cb.id, "Pitch de Round");
-    return enviarMensagemParaChat(cb.message.chat.id, "🎙️ *PITCH DE ROUND BEIRA-LEITO*\n\nDigite: `/round <dados do paciente>`\n💡 *Exemplo:* `/round Leito 4: 72a, DPOC exacerbado, em VNI, melhorando acidose, aguarda gaso de controle`");
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "🎙️ *PITCH DE ROUND BEIRA-LEITO*\n\nDigite: `/round <dados do paciente>`\n💡 *Exemplo:* `/round Leito 4: 72a, DPOC exacerbado, em VNI, melhorando acidose, aguarda gaso de controle`", {
+      inline_keyboard: [
+        [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    });
   }
   else if (data === "enfermaria_plantao_iniciar") {
     responderCallbackTelegram(cb.id, "Iniciando plantão");
-    return enviarMensagemParaChat(cb.message.chat.id, "🟢 *INÍCIO DE PLANTÃO NA ENFERMARIA*\n\n• Para evoluir/adicionar leito: `/leito <nº> <caso>`\n• Para registrar passagem SBAR: `/plantao <caso>`\n• Para censo completo: `/enfermaria`\n• Para checklist de encerramento: `/plantao_fim`");
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "🟢 *INÍCIO DE PLANTÃO NA ENFERMARIA*\n\n• Para evoluir/adicionar leito: `/leito <nº> <caso>`\n• Para registrar passagem SBAR: `/sbar`\n• Para censo completo: `/censo` ou `/leitos`\n• Para checklist de encerramento: `/plantao_fim`", {
+      inline_keyboard: [
+        [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }, { text: "📋 Passagem SBAR", callback_data: "ux:enf:sbar" }],
+        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    });
   }
   else if (data === "enfermaria_limpar_confirma") {
     responderCallbackTelegram(cb.id, "Confirmação de limpeza");
@@ -405,6 +433,10 @@ function processarCallbackBotao(cb) {
         [
           {"text": "⚠️ Sim, desocupar todos", "callback_data": "enfermaria_limpar_executa"},
           {"text": "❌ Cancelar", "callback_data": "enfermaria_atualizar"}
+        ],
+        [
+          {"text": "🔙 Enfermaria", "callback_data": "ux:hub:enf"},
+          {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}
         ]
       ]
     };

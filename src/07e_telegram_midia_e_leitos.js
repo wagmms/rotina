@@ -98,9 +98,9 @@ function processarDitadoEvolucaoLeito(chatId, dadosLeitoAudio) {
   var limpoPep = typeof uxTextoProntuario === "function" ? uxTextoProntuario(textoPep) : textoPep;
   var btnCopiar;
   if (limpoPep.length >= 1 && limpoPep.length <= 256) {
-    btnCopiar = { text: "📋 Copiar PEP", copy_text: { text: limpoPep } };
+    btnCopiar = { text: "📋 Copiar Conduta/Passagem para Prontuário", copy_text: { text: limpoPep } };
   } else {
-    btnCopiar = { text: "📋 Copiar PEP", callback_data: "ux:copiar:" + cacheKeyPep };
+    btnCopiar = { text: "📋 Copiar Conduta/Passagem para Prontuário", callback_data: "ux:copiar:" + cacheKeyPep };
   }
 
   var botoes = [
@@ -113,6 +113,10 @@ function processarDitadoEvolucaoLeito(chatId, dadosLeitoAudio) {
     [
       { text: "🛏️ Abrir Leito " + numLeito, callback_data: "ux:leito:" + numLeito },
       { text: "🏥 Ver Enfermaria", callback_data: "ux:painel:0" }
+    ],
+    [
+      { text: "🔙 Enfermaria", callback_data: "ux:hub:enf" },
+      { text: "🏠 Início", callback_data: "ux:hub:inicio" }
     ]
   ];
 
