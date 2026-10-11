@@ -75,3 +75,9 @@ def test_document_remains_compact_with_many_events(tmp_path):
     doc = (data / 'autoloop_observacao.md').read_text()
     assert 'Tentativas encerradas: 1200' in doc
     assert len(doc) < 20000 and len(doc.splitlines()) < 160
+
+
+def test_explicit_nested_token_counters_are_retained():
+    event = safe_event({'time': 1, 'stage': 'consumo_agy', 'status': 'reported',
+                       'tokens': {'input_tokens': 12, 'output_tokens': 4, 'prompt': 'secret'}})
+    assert event['input_tokens'] == 12 and event['output_tokens'] == 4 and 'prompt' not in event

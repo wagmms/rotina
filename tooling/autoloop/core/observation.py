@@ -9,8 +9,9 @@ import os
 import re
 import time
 
-TOKEN_FIELDS = ('input_tokens', 'output_tokens', 'total_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens')
-NUMBERS = ('seconds', 'silent_seconds', 'returncode', 'pid', 'process_id', 'prompt_characters') + TOKEN_FIELDS
+TOKEN_FIELDS = ('input_tokens', 'output_tokens', 'total_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens', 'thinking_tokens')
+PHASE_FIELDS = ('phase_reading_s', 'phase_editing_s', 'phase_testing_s', 'phase_thinking_s')
+NUMBERS = ('seconds', 'silent_seconds', 'returncode', 'pid', 'process_id', 'prompt_characters') + TOKEN_FIELDS + PHASE_FIELDS
 LABELS = ('stage', 'status', 'model', 'run_id', 'candidate_sha', 'task_key')
 
 
@@ -28,6 +29,22 @@ def safe_event(raw):
         value = raw.get(key)
         if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
             event[key] = value
+    # UsageMeter emite os contadores em tokens e fases; preservar também esses formatos explícitos.
+    tokens = raw.get('tokens')
+    if isinstance(tokens, dict):
+        for key in TOKEN_FIELDS:
+            value = tokens.get(key)
+            if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                event[key] = value
+    phases = raw.get('agent_phases')
+    if isinstance(phases, dict):
+        durations = phases.get('durations', {})
+        if isinstance(durations, dict):
+            for k, key in (('reading', 'phase_reading_s'), ('editing', 'phase_editing_s'),
+                           ('testing', 'phase_testing_s'), ('thinking', 'phase_thinking_s')):
+                d = durations.get(k)
+                if isinstance(d, (int, float)) and not isinstance(d, bool) and math.isfinite(d):
+                    event[key] = d
     for key in LABELS:
         value = raw.get(key)
         if not isinstance(value, str):

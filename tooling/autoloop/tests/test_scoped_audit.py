@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 import pytest
 from scoped_audit import build_scopes, evaluate_scopes, ScopeError
-from loop_guard import acquire_project_lock, mark_task, task_allowed
+from loop_guard import acquire_project_lock, mark_task, task_allowed, last_lock_holder, check_unreleased_diff_size
 import sys
 sys.path.append(str(Path.home() / '.local/lib/autoloop_core'))
 from audit_validator import avaliar_parecer_auditoria
@@ -151,3 +151,112 @@ def test_project_lock_and_task_budget(tmp_path):
     assert (tmp_path/'data/autoloop_task_notes/task.pending.md').exists()
     mark_task('completed','passed',tmp_path)
     assert not task_allowed('completed',tmp_path)
+
+
+def test_infrastructure_prompts_do_not_route_to_clinical_auditor(tmp_path):
+    base=repo(tmp_path)
+    target=tmp_path/'tooling/autoloop/autoloop.py'
+    target.parent.mkdir(parents=True)
+    target.write_text('prompt = "preservar doses clínicas de insulina"\n')
+    head=commit(tmp_path)
+    result=scopes(tmp_path,base,head)
+    assert result[0]['category']=='engineering'
+
+
+def test_round_two_can_approve_corrections_without_third_call(tmp_path):
+    base=repo(tmp_path)
+    (tmp_path/'src/clinical.js').write_text('function dose() { return helper(2); }\n')
+    head=commit(tmp_path)
+    calls=[]
+    def review(scope, prior, number):
+        calls.append(number)
+        return report(head, number == 2), None
+    evaluate_scopes(tmp_path,head,base,scopes(tmp_path,base,head),review,avaliar_parecer_auditoria)
+    (tmp_path/'src/clinical.js').write_text('function dose() { return helper(3); }\n')
+    head=commit(tmp_path)
+    result=evaluate_scopes(tmp_path,head,base,scopes(tmp_path,base,head),review,avaliar_parecer_auditoria)
+    assert avaliar_parecer_auditoria(result,head)[0]
+    result=evaluate_scopes(tmp_path,head,base,scopes(tmp_path,base,head),review,avaliar_parecer_auditoria)
+    assert calls==[1,2] and avaliar_parecer_auditoria(result,head)[0]
+
+
+def test_operational_error_is_not_retried_without_changed_context(tmp_path):
+    base=repo(tmp_path)
+    (tmp_path/'a.js').write_text('const a = 2;')
+    head=commit(tmp_path)
+    calls=[]
+    def review(scope, prior, number):
+        calls.append(number)
+        return None,'timeout requires diagnosis'
+    with pytest.raises(ScopeError,match='timeout'):
+        evaluate_scopes(tmp_path,head,base,scopes(tmp_path,base,head),review,avaliar_parecer_auditoria)
+    with pytest.raises(ScopeError,match='diagnóstico'):
+        evaluate_scopes(tmp_path,head,base,scopes(tmp_path,base,head),review,avaliar_parecer_auditoria)
+    assert len(calls)==1
+
+
+def test_deploy_allowed_after_repairs_without_third_audit(tmp_path):
+    """Garante que com allow_deploy_after_repairs=True, a 2ª etapa concluída libera o deploy sem 3ª auditoria."""
+    base = repo(tmp_path)
+    (tmp_path / 'src/clinical.js').write_text('function dose() { return helper(2); }\n')
+    head = commit(tmp_path)
+    calls = []
+    def review(scope, prior, number):
+        calls.append(number)
+        return report(head, False), None  # Auditoria reprova
+    # Rodada 1
+    evaluate_scopes(tmp_path, head, base, scopes(tmp_path, base, head), review, avaliar_parecer_auditoria)
+    assert calls == [1]
+    # Conserto realizado
+    (tmp_path / 'src/clinical.js').write_text('function dose() { return helper(3); }\n')
+    head = commit(tmp_path)
+    # Rodada 2
+    evaluate_scopes(tmp_path, head, base, scopes(tmp_path, base, head), review, avaliar_parecer_auditoria)
+    assert calls == [1, 2]
+    # 2ª Etapa de conserto realizada: deploy é liberado diretamente sem 3ª auditoria
+    (tmp_path / 'src/clinical.js').write_text('function dose() { return helper(4); }\n')
+    head = commit(tmp_path)
+    res = evaluate_scopes(tmp_path, head, base, scopes(tmp_path, base, head), review,
+                          avaliar_parecer_auditoria, allow_deploy_after_repairs=True)
+    assert res['verdict'] == 'pass'
+    assert len(calls) == 2  # Não chamou uma terceira auditoria
+
+
+def test_astra_only_audits_clinical_scope_not_engineering(tmp_path):
+    """Garante que arquivos de infra, scripts, tooling e UI web não sejam arrastados para o Astra."""
+    base = repo(tmp_path)
+    # Arquivo clínico
+    (tmp_path / 'src/clinical.js').write_text('function dose() { return 5; }\n')
+    # Arquivo de infraestrutura / UI web / tooling
+    (tmp_path / 'cockpit_movel.html').write_text('<div>UI Cockpit</div>\n')
+    (tmp_path / 'tooling').mkdir(exist_ok=True)
+    (tmp_path / 'tooling/script.py').write_text('print("script")\n')
+    head = commit(tmp_path)
+    result = scopes(tmp_path, base, head)
+    clinical = next(s for s in result if s['category'] == 'clinical')
+    engineering = next(s for s in result if s['category'] == 'engineering')
+    # Astra recebe APENAS os arquivos clínicos reais
+    assert clinical['files'] == ['src/clinical.js']
+    assert clinical['config']['model'] == 'gpt-6-astra'
+    # Engenharia e UI ficam exclusivamente com modelo de engenharia
+    assert set(engineering['files']) == {'cockpit_movel.html', 'tooling/script.py'}
+    assert engineering['config']['model'] != 'gpt-6-astra'
+
+
+def test_lock_holder_reports_pid_and_unreleased_diff_size(tmp_path):
+    """Valida identificação do processo concorrente e limite de diff antes de novas alterações."""
+    first = acquire_project_lock(tmp_path)
+    assert first is not None
+    # Segunda tentativa falha
+    second = acquire_project_lock(tmp_path)
+    assert second is None
+    holder = last_lock_holder(tmp_path)
+    assert f"pid={subprocess.os.getpid()}" in holder
+    first.close()
+    # Verificação de diff
+    base = repo(tmp_path)
+    (tmp_path / 'large.txt').write_text('x' * 50000)
+    commit(tmp_path)
+    size, is_over = check_unreleased_diff_size(tmp_path, base=base, max_chars=40000)
+    assert size >= 50000
+    assert is_over is True

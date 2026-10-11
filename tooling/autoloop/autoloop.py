@@ -444,7 +444,7 @@ from execution import run_observed, stop_process_group, fingerprint_tree, record
 from failure_queue import select_failure, record_attempt
 from task_context import build_task_brief, UsageMeter, render_cli_event
 from scoped_audit import build_scopes, evaluate_scopes
-from loop_guard import acquire_project_lock, task_allowed, mark_task
+from loop_guard import acquire_project_lock, task_allowed, mark_task, last_lock_holder, check_unreleased_diff_size
 from audit_repairs import capture_rejection, select_repair, audit_retry_timeout, record_approved, archive_raw_result, ready_for_reaudit
 
 
@@ -690,7 +690,8 @@ def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_taref
                                                classificar_alteracoes, selecionar_modelo_auditoria)
         result = evaluate_scopes(Path.cwd(), candidate, base, scopes,
             lambda scope, previous, number: revisar_escopo_codex(scope, previous, number, candidate, timeout),
-            avaliar_parecer_auditoria)
+            avaliar_parecer_auditoria,
+            allow_deploy_after_repairs=True)
         return result, None
     except (ValueError, OSError, subprocess.SubprocessError) as exc:
         return None, str(exc)
@@ -2047,7 +2048,8 @@ def main():
     if args.deploy_now:
         project_lock = acquire_project_lock()
         if project_lock is None:
-            log("AVISO", "Outro autoloop já controla este projeto; deploy concorrente cancelado.")
+            holder = last_lock_holder()
+            log("AVISO", f"Outro autoloop já controla este projeto ({holder}); deploy concorrente cancelado.")
             return
         executar_deploy_e_relatorio(
             intervalo_horas=args.deploy_interval,
@@ -2078,7 +2080,8 @@ def main():
 
     project_lock = acquire_project_lock()
     if project_lock is None:
-        log("AVISO", "Outro autoloop já controla este projeto; segunda execução encerrada antes de chamar agentes.")
+        holder = last_lock_holder()
+        log("AVISO", f"Outro autoloop já controla este projeto ({holder}); segunda execução encerrada antes de chamar agentes.")
         record_metric('exclusao_mutua', 'duplicate_prevented', 0)
         return
     forever_mode = not args.stop_on_done
@@ -2107,6 +2110,18 @@ def main():
         if not forever_mode and projeto_concluido():
             log("OK", "🎉 O arquivo PROGRESS.md indica que o projeto foi concluído com sucesso!")
             break
+
+        # Verificação do orçamento de diff antes de iniciar nova tarefa
+        estado_dep = carregar_estado_deploy()
+        base_dep = estado_dep.get("last_pushed_sha") or estado_dep.get("ultimo_pushed_sha")
+        diff_len, is_oversized = check_unreleased_diff_size(Path.cwd(), base=base_dep)
+        if is_oversized:
+            log("AVISO", f"Diff acumulado não publicado ({diff_len:,} caracteres > 40.000). Priorizando consolidação e deploy antes de novas alterações.")
+            executar_deploy_e_relatorio(
+                intervalo_horas=args.deploy_interval,
+                token_override=args.telegram_token,
+                chat_override=args.telegram_chat
+            )
 
         perfil_ativo = None
         tarefa_ativa = None

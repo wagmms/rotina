@@ -70,3 +70,31 @@ def test_metrics_report_keeps_missing_tokens_distinct_from_zero(tmp_path):
     assert case['tokens'] is None and case['missing_usage_records'] == 1
     assert case['finished_attempts'] == 1 and case['approved_cycles'] == 0
     assert next(x for x in report if x['task_key'] == 'other')['tokens']['input_tokens'] == 0
+
+
+def test_usage_meter_captures_agy_native_stream_and_phases():
+    meter = UsageMeter()
+    # Fase reading
+    meter.observe(json.dumps({'event': 'step_update', 'step_update': {'step_type': 'tool', 'tool_name': 'view_file', 'state': 'ACTIVE', 'duration_seconds': 1.5}}))
+    # Fase editing
+    meter.observe(json.dumps({'event': 'step_update', 'step_update': {'step_type': 'tool', 'tool_name': 'replace_file_content', 'state': 'ACTIVE', 'duration_seconds': 2.0}}))
+    # Evento terminal do AGY com usage
+    meter.observe(json.dumps({
+        'event': 'result',
+        'result': {
+            'status': 'SUCCESS',
+            'response': 'Tarefa concluída com sucesso',
+            'duration_seconds': 3.5,
+            'usage': {'input_tokens': 1500, 'output_tokens': 300, 'thinking_tokens': 120, 'cache_read_tokens': 500}
+        }
+    }))
+    fields = meter.fields()
+    assert fields['token_source'] == 'cli_terminal_usage'
+    assert fields['tokens']['input_tokens'] == 1500
+    assert fields['tokens']['output_tokens'] == 300
+    assert fields['tokens']['cache_read_input_tokens'] == 500
+    assert fields['phase_reading_s'] == 1.5
+    assert fields['phase_editing_s'] == 2.0
+    assert fields['agent_phases']['counts']['reading'] == 1
+    assert fields['agent_phases']['counts']['editing'] == 1
+    assert render_cli_event(json.dumps({'event': 'result', 'result': {'response': 'OK visual'}})) == 'OK visual'

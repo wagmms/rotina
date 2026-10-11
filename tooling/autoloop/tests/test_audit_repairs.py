@@ -119,3 +119,14 @@ def test_latest_rejection_of_same_candidate_preserves_backoff(tmp_path):
     sha = repository(tmp_path)
     capture_rejection(sha, report=report(sha), root=tmp_path)
     assert not ready_for_reaudit(tmp_path)
+
+
+def test_identical_rejection_does_not_reset_repair_attempts(tmp_path):
+    sha = repository(tmp_path)
+    first = capture_rejection(sha, report=report(sha), root=tmp_path)
+    selected = select_repair(tmp_path)
+    record_attempt(selected, 'started', root=tmp_path)
+    record_attempt(selected, 'started', root=tmp_path)
+    second = capture_rejection(sha, report=report(sha), root=tmp_path)
+    assert second['report_path'] == first['report_path']
+    assert select_repair(tmp_path) is None

@@ -1,6 +1,7 @@
 """Preserva recusas e prepara correções; nunca produz aprovação de auditoria."""
 from pathlib import Path
 import json
+import hashlib
 import re
 import subprocess
 import time
@@ -50,6 +51,12 @@ def capture_rejection(candidate, base=None, report=None, error=None, profile=Non
     state = read_json(state_path, {})
     previous = state.get(candidate, {})
     previous = previous if isinstance(previous, dict) else {}
+    signature = hashlib.sha256(json.dumps({'base': base, 'report': report, 'error': error, 'profile': profile}, sort_keys=True).encode()).hexdigest()
+    prior_packet = previous.get('packet', '')
+    if previous.get('signature') == signature and isinstance(prior_packet, str) and re.fullmatch(r'data/audit_repairs/[a-fA-F0-9]{40}/[a-f0-9]{32}', prior_packet):
+        saved = read_json(root / prior_packet / 'packet.json', {})
+        if saved:
+            return saved  # Mesmo parecer/candidato não cria outra fila de correção.
     packet = root / 'data/audit_repairs' / candidate / uuid.uuid4().hex
     packet.mkdir(parents=True)
     # Parecer integral, inclusive quando inválido/inconclusivo; nunca promovido como aprovação.
@@ -88,7 +95,7 @@ def capture_rejection(candidate, base=None, report=None, error=None, profile=Non
             'max_parallel_fronts': 2, 'parallelism_requires_confirmation': True,
             'time': time.time(), 'error': error}
     save_json(packet / 'packet.json', meta)
-    state[candidate] = {**previous, 'status': 'rejected', 'packet': packet.relative_to(root).as_posix(),
+    state[candidate] = {**previous, 'signature': signature, 'status': 'rejected', 'packet': packet.relative_to(root).as_posix(),
                         'category': category, 'time': meta['time'], 'error': error,
                         'first_rejected_at': previous.get('first_rejected_at', meta['time'])}
     save_json(state_path, state)

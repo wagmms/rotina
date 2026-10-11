@@ -79,27 +79,90 @@ def build_task_brief(task, selection=None, root=Path('.')):
 class UsageMeter:
     def __init__(self):
         self.usage = None
+        self.phase_durations = {
+            'reading': 0.0,
+            'editing': 0.0,
+            'testing': 0.0,
+            'thinking': 0.0,
+            'other': 0.0
+        }
+        self.phase_counts = {
+            'reading': 0,
+            'editing': 0,
+            'testing': 0,
+            'thinking': 0,
+            'other': 0
+        }
 
     def observe(self, line):
         try:
             event = json.loads(line)
         except (ValueError, TypeError):
             return
-        if not isinstance(event, dict) or event.get('type') not in {'result', 'turn_complete'}:
+        if not isinstance(event, dict):
             return
-        usage = event.get('usage')
-        if not isinstance(usage, dict):
-            return
-        # Apenas contadores explicitamente presentes no evento terminal do CLI.
-        result = {key: value for key, value in usage.items()
-                  if key in {'input_tokens', 'output_tokens', 'total_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens'}
-                  and isinstance(value, int) and not isinstance(value, bool) and value >= 0}
-        if result:
-            self.usage = result  # Evento terminal repetido não soma tokens novamente.
+
+        # 1. Rastreio de Fases Internas do Agente
+        ev_name = event.get('event') or event.get('type')
+        if ev_name == 'step_update':
+            step = event.get('step_update', {})
+            stype = step.get('step_type', '')
+            dur = float(step.get('duration_seconds', 0.0) or 0.0)
+            if stype == 'tool':
+                tname = step.get('tool_name', '')
+                if tname in {'view_file', 'list_dir', 'grep_search', 'find_by_name', 'read_url_content'}:
+                    fase = 'reading'
+                elif tname in {'replace_file_content', 'write_to_file', 'sed_file', 'multi_replace_file_content'}:
+                    fase = 'editing'
+                elif tname == 'run_command':
+                    fase = 'testing'
+                else:
+                    fase = 'other'
+                if step.get('state') == 'ACTIVE':
+                    self.phase_counts[fase] += 1
+                if dur > 0:
+                    self.phase_durations[fase] += dur
+            elif stype == 'agent_response':
+                if step.get('state') == 'ACTIVE':
+                    self.phase_counts['thinking'] += 1
+                if dur > 0:
+                    self.phase_durations['thinking'] += dur
+
+        # 2. Extração de Contadores de Tokens APENAS em Eventos Terminais do CLI
+        usage = None
+        if event.get('event') == 'result' and isinstance(event.get('result'), dict):
+            usage = event['result'].get('usage')
+        elif event.get('type') in {'result', 'turn_complete'}:
+            usage = event.get('usage')
+
+        if isinstance(usage, dict):
+            allowed = {'input_tokens', 'output_tokens', 'total_tokens', 'thinking_tokens',
+                       'cache_read_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens'}
+            result = {k: v for k, v in usage.items()
+                      if k in allowed and isinstance(v, int) and not isinstance(v, bool) and v >= 0}
+            if 'cache_read_tokens' in result and 'cache_read_input_tokens' not in result:
+                result['cache_read_input_tokens'] = result['cache_read_tokens']
+            if result:
+                self.usage = result
 
     def fields(self):
-        return {'token_source': 'cli_terminal_usage' if self.usage is not None else 'unavailable',
-                'tokens': self.usage}
+        f = {
+            'token_source': 'cli_terminal_usage' if self.usage is not None else 'unavailable',
+            'tokens': self.usage,
+            'phase_reading_s': round(self.phase_durations['reading'], 2),
+            'phase_editing_s': round(self.phase_durations['editing'], 2),
+            'phase_testing_s': round(self.phase_durations['testing'], 2),
+            'phase_thinking_s': round(self.phase_durations['thinking'], 2),
+            'agent_phases': {
+                'counts': self.phase_counts,
+                'durations': {k: round(v, 2) for k, v in self.phase_durations.items()}
+            }
+        }
+        if self.usage:
+            for k in ('input_tokens', 'output_tokens', 'total_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens'):
+                if k in self.usage:
+                    f[k] = self.usage[k]
+        return f
 
 
 def render_cli_event(line):
@@ -110,6 +173,10 @@ def render_cli_event(line):
         return line
     if not isinstance(event, dict):
         return line
+    if event.get('event') == 'result':
+        res = event.get('result', {})
+        if isinstance(res, dict) and isinstance(res.get('response'), str):
+            return res['response']
     if event.get('type') == 'result' and isinstance(event.get('result'), str):
         return event['result']
     if event.get('type') == 'assistant':
