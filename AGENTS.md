@@ -28,6 +28,16 @@
 - **Execução Direcionada de Testes e Validação Completa (Test Sharding / Fast-Fail)**:
   * *Fase de Iteração (Fast-Fail / Test Sharding)*: Durante a refatoração de código, execute EXCLUSIVAMENTE a suíte de testes direcionada ao arquivo/módulo editado (ex: `node scripts/run_tests.cjs tests/test_modulo.cjs` ou `node tests/test_modulo.cjs`), obtendo feedback imediato em ~0.3s a 0.5s. É terminantemente proibido disparar a bateria completa (`npm run test:all`) repetidas vezes enquanto itera.
   * *Fase de Conclusão (Recibo de Estabilidade & Zero Regressões)*: Apenas quando todas as alterações de código e documentação da tarefa de refatoração estiverem concluídas, dispare UMA ÚNICA vez a bateria completa de regressão (`npm run test:all`) para certificar zero regressões e emitir o recibo oficial de estabilidade antes do commit final.
+- **Padrões Técnicos do Código "Liso" (Legibilidade e Fluidez Prática)**:
+  1. *Guard Clauses & Early Returns*: Validações no topo com saída imediata; proibir blocos principais aninhados dentro de `if`.
+  2. *Dispatch Tables*: Substituir cadeias extensas de `if/else if` ou `switch` por dicionários/mapas de despacho direto O(1).
+  3. *Funções Curtas e Puras*: Funções de responsabilidade única (idealmente < 40 linhas), separando transporte HTTP/Telegram de regras puras de transformação.
+  4. *Preservação Estrita de Interfaces*: Nunca alterar assinaturas de exportações nem contratos de retorno, garantindo zero retrabalho em cascata.
+  5. *JavaScript Moderno Nativo (Node 20+)*: Usar recursos nativos modernos (`?.`, `??`, destructuring, `Object.fromEntries`) sem introduzir novas dependências de pacotes.
+- **Economia Radical de Tokens e Eficiência de Contexto**:
+  1. *Inspeção Cirúrgica*: Em arquivos com mais de 500 linhas, localizar previamente as linhas da função e utilizar `view_file` estritamente no intervalo alvo (`StartLine`/`EndLine`). Proibido ler blocos cegos de 800 linhas.
+  2. *Modularização com Redução Permanente de Tokens*: Ao desacoplar trechos de arquivos monolíticos (> 1.000 linhas), criar submódulos focados; isso reduz permanentemente o consumo de tokens em todos os turnos seguintes.
+  3. *Edições Mínimas*: Usar `replace_file_content` exclusivamente no trecho exato da função refatorada, sem mutações periféricas.
 - **Alocação de Modelos**: O modelo Gemini Flash (`gemini-3.8-flash-high`) executa as tarefas de refatoração de código, simplificação de estruturas e testes direcionados; o Gemini Pro (`gemini-3.1-pro-high`) é reservado para auditoria e garantia da robustez de conteúdo clínico teórico.
 - **Redação Cirúrgica Obrigatória no PROGRESS.md**:
   * Toda tarefa movida para 'Próxima Tarefa em Andamento' ou inserida no '[Backlog Prioritário]' deve citar explicitamente:

@@ -36,6 +36,7 @@ CANONICAL_PROMPT_CACHE_HEADER = """Você é o Engenheiro Sênior, Tech Lead e Es
    - Confirme a tarefa selecionada e o estado Git. Trabalhe em uma tarefa com arquivo, função e aceite explícitos. Não reabra buscas amplas nem mude de tarefa durante o ciclo.
 2. EXECUÇÃO INTELIGENTE (MÁXIMA VELOCIDADE & ZERO DESPERDÍCIO DE TOKENS):
    - REGRA SINGLE-AGENT (PADRÃO PARA VELOCIDADE MÁXIMA): Para tarefas atômicas, correções de bugs, ajustes de interface/CSS, rotas Fastify, bot do Telegram e testes, EXECUTE DIRETAMENTE no próprio turno principal. NÃO dispare subagentes para micro-tarefas ou correções pontuais, eliminando overhead de rede e consumo redundante de tokens.
+   - ORÇAMENTO CIRÚRGICO DE PASSOS: Conclua tarefas de engenharia e UI em no máximo 25 passos de ferramentas. Intervenções devem ser cirúrgicas, focadas diretamente no arquivo e função alvos, evitando explorações cegas ou loops redundantes de comandos.
    - SQUAD CONDICIONAL (SOB DEMANDA): Utilize a ferramenta 'invoke_subagent' apenas se houver duas ou mais frentes de trabalho extensas, independentes e paralelizáveis (ex: nova implementação em larga escala paralela à elaboração de uma nova suíte massiva de testes).
    - Catálogo Canônico de Subagentes Disponíveis:
      • Subagente 'core-dev' [Role: 'Core Developer', Model: 'gemini-3.8-flash-high']: Implementação central de código, refatoração de rotas Fastify, bot e lógica de interface.
@@ -183,6 +184,14 @@ class UsageMeter:
             'thinking': 0,
             'other': 0
         }
+
+    @property
+    def total_tool_steps(self):
+        return sum(self.phase_counts.get(k, 0) for k in ('reading', 'editing', 'testing', 'other'))
+
+    @property
+    def total_steps(self):
+        return sum(self.phase_counts.values())
 
     def observe(self, line):
         try:

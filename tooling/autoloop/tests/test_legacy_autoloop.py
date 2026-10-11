@@ -133,6 +133,17 @@ def test_classificacao_clinica_precedencia_absoluta(autoloop_mod):
     perfil3, _, modelos3 = autoloop_mod.classificar_perfil_tarefa("Criar novo botão no menu do Telegram")
     assert perfil3 == "UI_ENGENHARIA_FLASH", "Botão no menu sem conteúdo clínico deve ser Flash!"
     assert all("flash" in m[1] for m in modelos3)
+    assert modelos3[0][1] == "gemini-3.8-flash-high"
+
+    # 4. Tarefa puramente mecânica / sintaxe / linting (Flash Medium)
+    perfil4, _, modelos4 = autoloop_mod.classificar_perfil_tarefa("Executar linting e validação de sintaxe dos scripts")
+    assert perfil4 == "INFRA_MECANICA_FLASH_MEDIUM"
+    assert modelos4[0][1] == "gemini-3.8-flash-medium"
+
+    # 5. Tarefa com termo mecânico MAS com termo clínico (precedência clínica absoluta inviolável!)
+    perfil5, _, modelos5 = autoloop_mod.classificar_perfil_tarefa("Formatação e sintaxe da tabela de dose de insulina")
+    assert perfil5 == "CLINICO_ROBUSTEZ_PRO", "Dose clínica tem precedência absoluta sobre termo mecânico!"
+    assert any("pro" in m[1] for m in modelos5)
 
 def test_defesa_em_profundidade_parecer_codex(autoloop_mod):
     """
@@ -1056,4 +1067,73 @@ def test_formatador_etapa_resumido_falha(autoloop_mod, capsys):
     captured = capsys.readouterr().out
     assert "❌" in captured
     assert "test_erro.cjs" in captured
+
+
+def test_squad_single_agent_padrao(autoloop_mod):
+    nome, agentes = autoloop_mod.resolver_squad_agentes("single")
+    assert nome == "Single-Agent Direto"
+    assert agentes == []
+
+    nome_direto, agentes_direto = autoloop_mod.resolver_squad_agentes("direto")
+    assert agentes_direto == []
+
+
+def test_montar_prompt_ciclo_instrucoes_single_agent(autoloop_mod):
+    prompt = autoloop_mod.montar_prompt_ciclo(
+        objetivo="Refatorar rota Fastify",
+        nome_squad="Single-Agent Direto",
+        lista_agentes=[],
+        diretriz_kaizen="Diretriz Kaizen teste",
+        perfil_tarefa="UI_ENGENHARIA_FLASH",
+        tarefa_ativa="Refatorar server/index.js"
+    )
+    assert "Single-Agent - NÃO dispare subagentes via invoke_subagent" in prompt
+    assert "no máximo 25 passos de ferramentas" in prompt
+
+
+def test_executar_ciclo_teto_passos_interrompe(autoloop_mod, monkeypatch, tmp_path):
+    import json
+    import subprocess
+    monkeypatch.setattr(autoloop_mod.agy_contas, 'carregar_conta', lambda _: {})
+    monkeypatch.setattr(autoloop_mod.agy_contas, 'extract_email', lambda _: 'test@example.invalid')
+    monkeypatch.setattr(autoloop_mod.agy_contas, 'set_active_token', lambda _: None)
+    monkeypatch.setattr(autoloop_mod.agy_contas, 'sincronizar_token_ativo', lambda: None)
+    monkeypatch.setattr(autoloop_mod, 'garantir_progress_enxuto', lambda *a, **kw: False)
+
+    chamou_stop = False
+    def fake_stop(proc, grace_period=5):
+        nonlocal chamou_stop
+        chamou_stop = True
+
+    monkeypatch.setattr(autoloop_mod, 'stop_process_group', fake_stop)
+
+    def observed(cmd, **kwargs):
+        class FakeProc:
+            def poll(self): return None
+        if kwargs.get('on_start'):
+            kwargs['on_start'](FakeProc())
+        # Simula 5 chamadas de ferramenta
+        for _ in range(5):
+            kwargs['on_line'](json.dumps({
+                'event': 'step_update',
+                'step_update': {'step_type': 'tool', 'tool_name': 'view_file', 'state': 'ACTIVE', 'duration_seconds': 0.1}
+            }))
+        return subprocess.CompletedProcess(cmd, 1, '', 'interrupted')
+
+    monkeypatch.setattr(autoloop_mod, 'run_observed', observed)
+
+    # Com teto max_steps=3, 5 passos devem disparar o teto
+    sucesso = autoloop_mod.executar_ciclo(
+        1, 'Flash', 'gemini-3.8-flash-high', 'test_teto',
+        max_steps=3, task_key='task-teto-key'
+    )
+    assert sucesso is False
+    assert chamou_stop is True
+    assert autoloop_mod.ultimo_ciclo_cota_esgotada is False
+
+    rows = [json.loads(line) for line in (tmp_path / 'data/autoloop_metrics.jsonl').read_text().splitlines()]
+    metric = next((r for r in rows if r.get('status') == 'step_limit_exceeded'), None)
+    assert metric is not None
+    assert metric['task_key'] == 'task-teto-key'
+    assert metric['steps'] >= 4
 

@@ -5,10 +5,12 @@
 > 📦 **Backup das diretrizes anteriores**: Preservado em [docs/BACKUP_DIRETRIZES_AUTOLOOP.md](docs/BACKUP_DIRETRIZES_AUTOLOOP.md) para restauração sob comando.
 
 **DIRETRIZ ATUAL DO USUÁRIO (FOCO PRIORITÁRIO)**:
-1. **Refatoração Estrutural e Código Liso**: Foco total de energias em simplificar funções longas, remover aninhamentos profundos (*early returns*, *guard clauses*) e desobstruir lógicas espaguete, mantendo o código limpo, modular, legível e fluido.
-2. **CLÁUSULA PÉTREA DE QUALIDADE CLÍNICA (INVIOLÁVEL)**: A busca por código limpo, conciso e elegante NUNCA, SOB HIPÓTESE ALGUMA, PODE REDUZIR, DILUIR OU DEGRADAR A QUALIDADE, O DETALHAMENTO, AS SALVAGUARDAS DE SEGURANÇA OU O RIGOR DO CONTEÚDO MÉDICO. Doses farmacológicas, limites de toxicidade, contraindicações, alertas sentinela, semiologia descritiva e diretrizes canônicas são imutáveis e sagradas.
-3. **Validação Rigorosa (Test Sharding & Regressão Zero)**: Durante a refatoração, iterar exclusivamente com os testes direcionados da função/módulo editado (~0.3s a 0.5s); ao concluir, validar com a suíte integral para garantir 100% de estabilidade funcional sem quebras.
-4. **Documentação de Sugestões para o Futuro**: Registrar quaisquer oportunidades identificadas em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+1. **Refatoração Estrutural e Código Liso**: Foco total de energias em simplificar funções longas, remover aninhamentos profundos (*early returns*, *guard clauses*), substituir escadas `if/else` por tabelas de despacho (*dispatch tables*) e desobstruir lógicas espaguete, mantendo o código limpo, modular, legível e fluido.
+2. **Economia Radical de Tokens**: Inspeção cirúrgica por intervalos estritos de linhas (`StartLine`/`EndLine`) sem leituras cegas de 800 linhas em arquivos gigantes (> 500 linhas). Modularização contínua para baratear permanentemente o consumo de tokens nos próximos ciclos.
+3. **CLÁUSULA PÉTREA DE QUALIDADE CLÍNICA (INVIOLÁVEL)**: A busca por código limpo, conciso e elegante NUNCA, SOB HIPÓTESE ALGUMA, PODE REDUZIR, DILUIR OU DEGRADAR A QUALIDADE, O DETALHAMENTO, AS SALVAGUARDAS DE SEGURANÇA OU O RIGOR DO CONTEÚDO MÉDICO. Doses farmacológicas, limites de toxicidade, contraindicações, alertas sentinela, semiologia descritiva e diretrizes canônicas são imutáveis e sagradas.
+4. **Validação Rigorosa (Test Sharding & Regressão Zero)**: Durante a refatoração, iterar exclusivamente com os testes direcionados da função/módulo editado (~0.3s a 0.5s); ao concluir, validar com a suíte integral para garantir 100% de estabilidade funcional sem quebras.
+5. **Padrão JS Nativo Moderno (Node 20+)**: Zero dependências de pacotes novos; utilizar recursos nativos da plataforma (`?.`, `??`, destructuring).
+6. **Documentação de Sugestões para o Futuro**: Registrar quaisquer oportunidades identificadas em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
 ---
 

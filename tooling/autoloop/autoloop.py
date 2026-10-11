@@ -65,6 +65,10 @@ MAPA_MODELOS = {
     "sonnet-5-5": ("Claude Sonnet 5.5 (High)", "claude-sonnet-5-5-high"),
     "flash": ("Gemini 3.8 Flash (High)", "gemini-3.8-flash-high"),
     "gemini-flash": ("Gemini 3.8 Flash (High)", "gemini-3.8-flash-high"),
+    "flash-high": ("Gemini 3.8 Flash (High)", "gemini-3.8-flash-high"),
+    "flash-medium": ("Gemini 3.8 Flash (Medium)", "gemini-3.8-flash-medium"),
+    "gemini-flash-medium": ("Gemini 3.8 Flash (Medium)", "gemini-3.8-flash-medium"),
+    "medium": ("Gemini 3.8 Flash (Medium)", "gemini-3.8-flash-medium"),
     "pro": ("Gemini 3.1 Pro (High)", "gemini-3.1-pro-high"),
     "gemini-pro": ("Gemini 3.1 Pro (High)", "gemini-3.1-pro-high")
 }
@@ -273,7 +277,15 @@ def classificar_perfil_tarefa(texto_tarefa):
         "trombolise", "alteplase", "tenecteplase", "cetoacidose", "cad", "insulina"
     ]
 
-    # 3. Termos que indicam trabalho puramente de UI/Layout/Engenharia/Infraestrutura
+    # 3. Termos que indicam tarefas puramente mecânicas de infraestrutura / sintaxe / lint / layout estático
+    termos_infra_mecanica = [
+        "lint", "linting", "eslint", "prettier", "sintaxe", "syntax", "formatacao", "formatação",
+        "renomear", "renomeacao", "renomeação", "nome de arquivo", "nomes de arquivos", "organizacao de pastas",
+        "layout estatico", "layout estático", "teste estatico", "testes estaticos", "teste de layout estatico",
+        "typo", "ortografia", "limpeza de codigo", "dead code", "import nao utilizado", "ajuste de import"
+    ]
+
+    # 4. Termos que indicam trabalho geral de UI/Layout/Engenharia/Infraestrutura
     termos_engenharia_ui = [
         "teclado", "botao", "botoes", "css", "layout", "menu", "menus", "responsivo",
         "fastify", "rpc", "daemon", "cache", "build", "script", "scripts", "npm", "git",
@@ -282,6 +294,8 @@ def classificar_perfil_tarefa(texto_tarefa):
 
     eh_clinico = any(re.search(r"(?<!\w)" + re.escape(termo) + r"(?!\w)", norm)
                      for termo in termos_robustez_clinica)
+    eh_infra_mecanica = any(re.search(r"(?<!\w)" + re.escape(termo) + r"(?!\w)", norm)
+                            for termo in termos_infra_mecanica)
     eh_ui = bool(regex_ui.search(norm))
     eh_eng_ui = any(termo in norm for termo in termos_engenharia_ui)
 
@@ -293,14 +307,21 @@ def classificar_perfil_tarefa(texto_tarefa):
             MAPA_MODELOS["pro"]
         ]
 
-    # 2. Interface, menus, bot e engenharia (Flash faz todo o resto)
+    # 2. Infraestrutura Mecânica Pura (Reasoning Médio / Economia de Tokens):
+    # Linting, sintaxe, nomes de arquivos, testes de layout estático
+    if eh_infra_mecanica:
+        return "INFRA_MECANICA_FLASH_MEDIUM", "Infraestrutura mecânica, sintaxe e layout estático (Gemini Flash Medium)", [
+            MAPA_MODELOS["flash-medium"]
+        ]
+
+    # 3. Interface, menus, bot e engenharia (Flash faz todo o resto)
     if eh_eng_ui or eh_ui:
-        return "UI_ENGENHARIA_FLASH", "Interface, menus, bot e engenharia (Gemini Flash)", [
+        return "UI_ENGENHARIA_FLASH", "Interface, menus, bot e engenharia (Gemini Flash High)", [
             MAPA_MODELOS["flash"]
         ]
 
-    # Todo o restante -> Gemini Flash
-    return "GERAL_FLASH", "Rotinas gerais e otimizações (Gemini Flash)", [
+    # Todo o restante -> Gemini Flash High
+    return "GERAL_FLASH", "Rotinas gerais e otimizações (Gemini Flash High)", [
         MAPA_MODELOS["flash"]
     ]
 
@@ -309,6 +330,14 @@ def classificar_perfil_tarefa(texto_tarefa):
 # ==============================================================================
 
 SQUADS_CONFIG = {
+    "single": {
+        "nome": "Single-Agent Direto (Econômico)",
+        "descricao": "Execução direta e enxuta pelo agente principal sem subagentes (máxima economia de tokens)."
+    },
+    "direto": {
+        "nome": "Single-Agent Direto (Econômico)",
+        "descricao": "Execução direta e enxuta pelo agente principal sem subagentes (máxima economia de tokens)."
+    },
     "auto": {
         "nome": "Squad Inteligente Adaptativo",
         "descricao": "Detecta o tipo da tarefa e instancia agentes sob demanda (Clínico vs Engenharia)"
@@ -391,7 +420,10 @@ def resolver_squad_agentes(squad_tipo="auto", subagents_custom_str=None, perfil_
         if selecionados:
             return "Personalizado", selecionados
 
-    chave = (squad_tipo or "auto").lower()
+    chave = (squad_tipo or "single").lower()
+
+    if chave in ["single", "direto", "solo", "nenhum", "none", "1"]:
+        return "Single-Agent Direto", []
 
     if chave in ["rapido", "fast", "dupla"]:
         return "Dupla Ágil", [
@@ -455,10 +487,15 @@ def montar_prompt_ciclo(objetivo, nome_squad, lista_agentes, diretriz_kaizen, pe
     for ag in (lista_agentes or []):
         mod = ag.get("model_default", "")
         bloco_agentes.append(f"  • Subagente '{ag.get('id', '')}' [Role: '{ag.get('role', '')}', Model: '{mod}']: {ag.get('missao', '')}")
-    texto_agentes = "\n".join(bloco_agentes) if bloco_agentes else "  • Execução direta em turno único (Single-Agent)."
+    texto_agentes = "\n".join(bloco_agentes) if bloco_agentes else "  • Execução direta em turno único (Single-Agent - NÃO dispare subagentes via invoke_subagent)."
 
     eh_clinico = any(a.get("id") == "clinical-auditor" for a in (lista_agentes or [])) or (perfil_tarefa == "CLINICO_ROBUSTEZ_PRO")
-    diretriz_auditor = "- O 'clinical-auditor' (usando Model: 'pro') valida fórmulas, tetos terapêuticos e diretrizes oficiais." if eh_clinico else "- O auditor faz a checagem estática de arquitetura, concorrência e ausência de memory leaks."
+    if eh_clinico:
+        diretriz_auditor = "- O 'clinical-auditor' (usando Model: 'pro') valida fórmulas, tetos terapêuticos e diretrizes oficiais com rigor clínico absoluto."
+    elif lista_agentes:
+        diretriz_auditor = "- O auditor faz a checagem estática de arquitetura, concorrência e ausência de memory leaks."
+    else:
+        diretriz_auditor = "- Execução direta focada e atômica: conclua a tarefa no próprio agente principal em no máximo 25 passos de ferramentas."
 
     partes_dinamicas = [
         "================================================================================",
@@ -816,7 +853,7 @@ def projeto_concluido():
             pass
     return False
 
-def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, squad_mode="auto", subagents_custom=None, perfil_tarefa=None, tarefa_ativa=None, resumo_tarefa=None, task_key=None):
+def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, squad_mode="single", subagents_custom=None, perfil_tarefa=None, tarefa_ativa=None, resumo_tarefa=None, task_key=None, max_steps=None):
     global ultimo_ciclo_cota_esgotada
     ultimo_ciclo_cota_esgotada = False
 
@@ -882,9 +919,30 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
     ultimo_arquivo_lido = None
     ultimo_resumo_turno = None
 
+    # Limite adaptativo de passos por ciclo para blindar contra conversas hipertrofiadas e queima de tokens:
+    # - Perfil Clínico recebe teto maior (45 passos) para investigações aprofundadas com Gemini Pro;
+    # - Perfil de Infra Mecânica recebe teto enxuto (20 passos) para tarefas mecânicas com Flash Medium;
+    # - Perfil de Engenharia/UI recebe teto ágil (30 passos).
+    if perfil_tarefa == "CLINICO_ROBUSTEZ_PRO":
+        max_steps_padrao = 45
+    elif perfil_tarefa == "INFRA_MECANICA_FLASH_MEDIUM":
+        max_steps_padrao = 20
+    else:
+        max_steps_padrao = 30
+    teto_passos = max_steps if max_steps is not None else int(os.environ.get("AUTOLOOP_MAX_STEPS", max_steps_padrao))
+    passos_excedidos = False
+
     def receber_linha(linha):
-        nonlocal segundos_reset_detectados
+        nonlocal segundos_reset_detectados, passos_excedidos
         consumo.observe(linha)
+
+        # Guarda de teto de passos: interrompe sessão antes de explodir o contexto
+        if consumo.total_tool_steps > teto_passos and not passos_excedidos:
+            passos_excedidos = True
+            log("AVISO", f"🛑 Teto de passos atingido ({consumo.total_tool_steps}/{teto_passos} ferramentas). Interrompendo sessão para proteger o orçamento de tokens!")
+            if _processo_agy_ativo and _processo_agy_ativo.poll() is None:
+                stop_process_group(_processo_agy_ativo)
+
         # Guardar só diagnóstico limitado; marcadores de cota ficam separados.
         linhas_saida.append(linha[-4096:])
         del linhas_saida[:-128]
@@ -1032,6 +1090,13 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
     if processo.returncode == 0:
         agy_contas.sincronizar_token_ativo()
 
+    if passos_excedidos:
+        log("AVISO", f"🛑 Ciclo interrompido preventivamente por atingir o teto de {teto_passos} passos de ferramentas. Proteção de tokens acionada.")
+        record_metric('ciclo_agy', 'step_limit_exceeded', time.monotonic() - inicio_inferencia,
+                      task_key=task_key, model=id_modelo, steps=consumo.total_tool_steps)
+        observed_sleep(2, 'limite_passos')
+        return False
+
     # Validação Robusta de Esgotamento Real de Cota da API:
     # 1. O processo agy DEVE ter terminado com código de erro (!= 0).
     # 2. Deve haver marcadores inequívocos da infraestrutura do AGY/Gemini,
@@ -1061,7 +1126,7 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
         bloqueios[(num_conta, id_modelo)] = libera
         # Se for família Gemini (Google), bloqueia o bucket Google compartilhado naquela conta
         if "gemini" in id_modelo:
-            for mid in ["gemini-3.8-flash-high", "gemini-3.1-pro-high"]:
+            for mid in ["gemini-3.8-flash-high", "gemini-3.8-flash-medium", "gemini-3.1-pro-high"]:
                 bloqueios[(num_conta, mid)] = libera
         elif "claude" in id_modelo:
             for mid in ["claude-opus-4-6-thinking", "claude-sonnet-4-6", "claude-opus-5-5-high", "claude-sonnet-5-5-high", "claude-opus-5-5-medium", "claude-opus-5-5-low"]:
@@ -2122,9 +2187,26 @@ def main():
     parser.add_argument(
         "--squad",
         type=str,
-        default="auto",
-        choices=["auto", "full", "completo", "rapido", "dupla", "clinico"],
-        help="Configuração do squad de subagentes concorrentes: auto (inteligente), full (completo 3 agentes), rapido (dupla dev+qa), clinico (dev+auditor pro)."
+        default="single",
+        choices=["single", "direto", "solo", "auto", "full", "completo", "rapido", "dupla", "clinico"],
+        help="Configuração do squad de subagentes: single (padrão econômico sem subagentes), auto (adaptativo), full (completo 3 agentes), rapido (dupla dev+qa), clinico (dev+auditor pro)."
+    )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Limite máximo de passos de ferramentas por ciclo do agente (padrão: 30 para engenharia/UI, 45 para clínico). Previne sessões hipertrofiadas e queima de tokens."
+    )
+    parser.add_argument(
+        "--max-cycles",
+        type=int,
+        default=None,
+        help="Número máximo de ciclos a executar antes de encerrar graciosamente (ex: 1 ou 2). Ideal para tarefas focadas sem loop perpétuo."
+    )
+    parser.add_argument(
+        "--stop-on-quota",
+        action="store_true",
+        help="Encerra o autoloop se uma conta atingir cota (429), em vez de rotacionar infinitamente entre as contas do pool."
     )
     parser.add_argument(
         "--subagents",
@@ -2211,15 +2293,23 @@ def main():
         record_metric('exclusao_mutua', 'duplicate_prevented', 0)
         return
     forever_mode = not args.stop_on_done
+    ciclos_concluidos = 0
 
     print(f"\n{CORES['bold']}{CORES['cyan']}🤖 Autoloop Iniciado{CORES['reset']} | Pool: {contas_config} | Squad: {args.squad.upper()}")
     print(f"♾️ Modo: {'PERPÉTUO (Kaizen Contínuo)' if forever_mode else 'Parar ao Concluir'} | Roteador: {'Ativo (Flash/Pro)' if smart_mode else 'Fixo'}")
+    if args.max_cycles is not None:
+        print(f"🎯 Orçamento: Limite de {args.max_cycles} ciclo(s) configurado.")
+    if args.max_steps is not None:
+        print(f"🛡️ Guarda: Teto de {args.max_steps} passos de ferramentas por ciclo.")
     print(f"🎯 Objetivo: {args.objetivo}")
 
     if not args.no_auto_deploy:
         log("INFO", f"⏰ Deploy automático a cada {args.deploy_interval:.1f}h com relatório no Telegram.")
 
     while True:
+        if args.max_cycles is not None and ciclos_concluidos >= args.max_cycles:
+            log("OK", f"🏁 Limite de ciclos atingido ({ciclos_concluidos}/{args.max_cycles}). Encerrando autoloop conforme solicitado.")
+            break
         # Cancela qualquer agendamento pendente de shutdown no sistema
         try:
             subprocess.run(["shutdown", "-c"], capture_output=True)
@@ -2318,10 +2408,15 @@ def main():
                 perfil_tarefa=perfil_ativo,
                 tarefa_ativa=tarefa_ativa,
                 resumo_tarefa=resumo_tarefa,
-                task_key=contexto_tarefa['key']
+                task_key=contexto_tarefa['key'],
+                max_steps=args.max_steps
             )
 
             if not sucesso and ultimo_ciclo_cota_esgotada:
+                if args.stop_on_quota:
+                    log("AVISO", f"🛑 Cota atingida na Conta {num_conta} e flag --stop-on-quota ativa. Parando rotação entre contas.")
+                    break
+
                 # 429/cota: Rotação Imediata 0ms reaproveitando o brief e contexto aquecidos
                 log("INFO", f"🔄 Rotação Imediata 0ms: Conta {num_conta} atingiu cota (429). Buscando próxima conta disponível no pool...")
                 record_metric('rotacao_cota_0ms', 'rotated', 0,
@@ -2348,6 +2443,16 @@ def main():
         record_attempt(registro_tarefa, resultado_tarefa, duracao_tarefa)
         record_metric('tarefa', resultado_tarefa, duracao_tarefa, model=modelo_executado or id_modelo,
                       task_key=contexto_tarefa['key'])
+
+        if sucesso:
+            ciclos_concluidos += 1
+            if args.max_cycles is not None and ciclos_concluidos >= args.max_cycles:
+                log("OK", f"🏁 Limite de ciclos concluídos atingido ({ciclos_concluidos}/{args.max_cycles}). Encerrando autoloop com sucesso!")
+                break
+
+        if not sucesso and ultimo_ciclo_cota_esgotada and args.stop_on_quota:
+            log("AVISO", "🛑 Autoloop finalizado após esgotamento de cota (--stop-on-quota).")
+            break
 
         if not args.no_auto_deploy:
             verificar_e_executar_deploy_agendado(
