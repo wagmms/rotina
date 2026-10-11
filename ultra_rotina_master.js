@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-10 21:57:57
- * Checksum SHA256: db407349fb172de9
+ * Gerado automaticamente via build_master.py em: 2026-10-10 22:58:07
+ * Checksum SHA256: 788c8d3ba59e0c6d
  * ==============================================================================
  */
 
@@ -1703,6 +1703,9 @@ var CalculadorasClinicas = (function () {
 
   // ───────────────────────── Renderização Telegram ─────────────────────────
   function btn(texto, id, acao) {
+    if (id === 'ux') {
+      return { text: texto, callback_data: ('ux:' + acao).slice(0, 64) };
+    }
     return { text: texto, callback_data: ('calc:' + id + ':' + acao).slice(0, 64) };
   }
 
@@ -34981,15 +34984,13 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
 
     if (paresUti.length > 0) {
       var incompPares = paresUti.filter(function(p) { return p.status === "INCOMPATIVEL" || p.alertaCritico; });
-      linhasTexto.push("\n🔬 *COMPATIBILIDADE EM Y (INFUSÕES EM BIC / SALA VERMELHA & UTI):*");
       if (incompPares.length > 0) {
+        linhasTexto.push("\n🔬 *COMPATIBILIDADE EM Y (INFUSÕES EM BIC / SALA VERMELHA & UTI):*");
         incompPares.forEach(function(par) {
           linhasTexto.push("🛑 *INCOMPATÍVEL:* `" + par.drogaA.toUpperCase() + "` ⚡ `" + par.drogaB.toUpperCase() + "`");
           linhasTexto.push("   • *Mecanismo:* " + par.mecanismo);
           linhasTexto.push("   • *Conduta beira-leito:* " + par.conduta);
         });
-      } else {
-        linhasTexto.push("✅ *Compatibilidade em Y:* Fármacos parenterais compatíveis na mesma via (sem precipitação documentada).");
       }
     }
   }
@@ -42108,7 +42109,7 @@ function processarMensagemTexto(message) {
     }
 
     if (!dadosNutriPed) {
-      return enviarMensagemParaChat(chatId, "👶 *SUPORTE NUTRICIONAL & HIDRATAÇÃO PEDIÁTRICA*\n\n" +
+      return enviarMensagemComTecladoParaChat(chatId, "👶 *SUPORTE NUTRICIONAL & HIDRATAÇÃO PEDIÁTRICA*\n\n" +
         "Envie os parâmetros clínicos do lactente/criança:\n" +
         "• *Peso* (ex: `7.5kg`, `12kg`)\n" +
         "• *Idade* (ex: `3 meses`, `8m`, `2 anos`)\n" +
@@ -42117,10 +42118,14 @@ function processarMensagemTexto(message) {
         "• *Volume da mamada* (ex: `90ml`, `120ml`)\n\n" +
         "💡 *Exemplos rápidos beira-leito:*\n" +
         "• `/holliday 8kg` *(Volume de manutenção, vazão em bomba, eletrólitos SBP e TIG)*\n" +
-        "• `/holliday 11kg bronquiolite` *(Restrição a 70% para prevenção de sobrecarga pulmonar)*\n" +
-        "• `/diluicao 90ml partida` *(Padronização 1 medida para 30 mL e normas OMS de preparo)*\n" +
-        "• `/formulainfantil 100ml` *(Alerta contra medidas fracionadas e conduta correta)*\n" +
-        "• `/nutriped 6kg 3 meses partida` *(Avaliação nutricional e hidratação completas)*");
+        "• `/holliday 11kg bronquiolite` *(Restrição a 70% para prevenção de sobrecarga)*",
+        {
+          inline_keyboard: [
+            [{ text: "💧 Holliday 8kg", callback_data: "ux:hol:8kg" }, { text: "💧 Holliday 11kg Bronquiolite", callback_data: "ux:hol:11kg_bva" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
+      );
     }
 
     var paramsNP = {};
@@ -43383,7 +43388,7 @@ function processarMensagemTexto(message) {
             { text: "📊 CKD-EPI (TFG)", callback_data: "calc_CKD" }
           ],
           [
-            { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+            { text: "🔙 Enfermaria", callback_data: "ux:hub:enf" },
             { text: "🏠 Início", callback_data: "ux:hub:inicio" }
           ]
         ]
@@ -43820,7 +43825,17 @@ function processarMensagemTexto(message) {
   if (comando === "/rxh" || comando === "/prescricao_hospitalar") {
     var dadosRxh = texto.replace(/^\/(rxh|prescricao_hospitalar)\s*/i, "").trim();
     if (!dadosRxh) {
-      return enviarMensagemParaChat(chatId, "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\nEnvie os dados do paciente internado (diagnóstico, peso, idade, função renal, alergias):\n💡 *Exemplo:* `/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`");
+      return enviarMensagemComTecladoParaChat(chatId,
+        "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\n" +
+        "Envie os dados do paciente internado (diagnóstico, peso, idade, função renal, alergias):\n" +
+        "💡 *Exemplo:* `/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`",
+        {
+          inline_keyboard: [
+            [{ text: "📋 Gerar Exemplo (PAC Grave)", callback_data: "ux:rxh:exemplo_pac" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
+      );
     }
     return processarEEntregarIA(chatId, gerarPrescricaoHospitalarComIA, dadosRxh, "rxh");
   }
@@ -43828,7 +43843,7 @@ function processarMensagemTexto(message) {
   if (comando === "/atb" || comando === "/ajuste" || comando === "/ajuste_renal") {
     var dadosAtb = texto.replace(/^\/(atb|ajuste|ajuste_renal)\s*/i, "").trim();
     if (!dadosAtb) {
-      return enviarMensagemParaChat(
+      return enviarMensagemComTecladoParaChat(
         chatId,
         "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
         "Envie o antimicrobiano e o clearance de creatinina ou se o paciente está em hemodiálise:\n\n" +
@@ -43837,7 +43852,14 @@ function processarMensagemTexto(message) {
         "• `/atb vanco 40`\n" +
         "• `/atb pip-tazo clcr 30`\n" +
         "• `/atb cefepime hd`\n" +
-        "• `/atb polimixina b 10`"
+        "• `/atb polimixina b 10`",
+        {
+          inline_keyboard: [
+            [{ text: "💊 Meropenem ClCr 25", callback_data: "ux:atb:mero25" }, { text: "💊 Pip-Tazo ClCr 30", callback_data: "ux:atb:tazo30" }],
+            [{ text: "💊 Cefepime HD", callback_data: "ux:atb:cefepimehd" }, { text: "💊 Vanco ClCr 40", callback_data: "ux:atb:vanco40" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
       );
     }
     if (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
@@ -43964,7 +43986,15 @@ function processarMensagemTexto(message) {
   if (comando === "/passagem") {
     var textoConsolidado = EnfermariaService.obterTextoConsolidadoParaPassagem();
     if (!textoConsolidado) {
-      return enviarMensagemParaChat(chatId, "🏥 *Nenhum leito registrado na enfermaria para passar.* Registre os leitos usando `/leito <num> <dados>` antes de gerar a passagem.");
+      return enviarMensagemComTecladoParaChat(chatId,
+        "🏥 *Nenhum leito registrado na enfermaria para passar.* Registre os leitos usando `/leito <num> <dados>` antes de gerar a passagem.",
+        {
+          inline_keyboard: [
+            [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
+      );
     }
     return processarEEntregarIA(chatId, gerarPassagemPlantaoSBAR, "PASSAGEM GERAL DE PLANTÃO DA ENFERMARIA (TODOS OS LEITOS ATIVOS):\n\n" + textoConsolidado, "plantao");
   }
@@ -45334,9 +45364,8 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
 
     if (tipoCache === "soap" && !ehErro) {
       botoes.push(linhaPrimaria);
-      botoes.push(linhaAjustesDinamicos);
       if (!ehSoapFechado) {
-        // FASE 1: Rascunho com Anamnese e Exame Físico
+        // FASE 1: Rascunho com Anamnese e Exame Físico (sem botões prematuros de ajuste farmacológico)
         botoes.push([
           { "text": "📋 Fechar Plano", "callback_data": "ux:soap:plano" },
           { "text": "🩺 EF Normal", "callback_data": "ux:soap:ef_normal" }
@@ -45346,9 +45375,10 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
           { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey }
         ]);
       } else {
-        // FASE 2: SOAP Consolidado completo
+        // FASE 2: SOAP Consolidado completo (com plano farmacológico ativo)
+        botoes.push(linhaAjustesDinamicos);
         botoes.push([
-          { "text": "💊 Extrair Receita", "callback_data": "ux:hub:rx" },
+          { "text": "💊 Extrair Receita", "callback_data": "ux:soap:extrair_rx:" + cacheKey },
           { "text": "🔄 Refinar Conduta", "callback_data": "ux:soap:atualizar" }
         ]);
         if (ehUsuarioTitular(chatId)) {
@@ -45381,6 +45411,10 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
         linhaSecundaria.push({ "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey });
       }
       if (linhaSecundaria.length) botoes.push(linhaSecundaria);
+      var linhaNavFinal = (tipoCache === "rxh" || tipoCache === "plantao")
+        ? [{ "text": "🔙 Enfermaria", "callback_data": "ux:hub:enf" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }]
+        : [{ "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+      botoes.push(linhaNavFinal);
     }
 
     if (tipoCache === "soap") {
@@ -45431,6 +45465,13 @@ function processarCallbackBotao(cb) {
   try {
     if (typeof tratarCallbackUX!=="undefined" && tratarCallbackUX(cb)) return;
     var data = cb.data || "";
+    if (data.indexOf("ux:soap:extrair_rx") === 0) {
+      var ckSoap = data.replace(/^ux:soap:extrair_rx:?/, "").trim();
+      var chatExtrair = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+      if (typeof executarExtracaoReceitaSoap === "function") {
+        return executarExtracaoReceitaSoap(chatExtrair, ckSoap, cb.message ? cb.message.message_id : null);
+      }
+    }
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 
   // Vincula o registro à data original da mensagem ou usa a data atual se não informada
@@ -50292,7 +50333,7 @@ var UX_NOMES_MODO = {
   leito: 'Evolução do Leito'
 };
 var UX_MODOS_TEXTO = ['soap', 'rx', 'gaso', 'voz', 'calc', 'plantao', 'round', 'interacao', 'conduta'];
-var UX_DROGAS = { nora: 'Noradrenalina', dobuta: 'Dobutamina', nipride: 'Nitroprussiato' };
+var UX_DROGAS = { nora: 'Noradrenalina', dobuta: 'Dobutamina', nipride: 'Nitroprussiato', adrena: 'Adrenalina' };
 var UX_DROGAS_FIXAS = { vaso: 'Vasopressina', tridil: 'Nitroglicerina' };
 var UX_DILUICOES = { padrao: 'Padrão', concentrada: 'Concentrada' };
 var UX_PESOS_RAPIDOS = [60, 70, 80, 90];
@@ -50389,12 +50430,17 @@ function botoesBot(rows) {
 /** Edita a tela in-place; trata "message is not modified" e mensagens não editáveis com fallback. */
 function enviarTelaBot(chat, texto, kb, messageId) {
   if (messageId && String(texto).length < UX_MAX_EDIT_CHARS) {
+    var contemHtml = /<\/?(?:b|i|u|s|code|pre|a)\b/i.test(texto);
+    var parseMode = contemHtml ? 'HTML' : 'Markdown';
+    var textoEnvio = contemHtml
+      ? (typeof sanitizarHtmlTelegram === 'function' ? sanitizarHtmlTelegram(texto) : texto)
+      : limparMarkdownTelegram(texto);
     var url = 'https://api.telegram.org/bot' + ConfigService.get('TELEGRAM_BOT_TOKEN') + '/editMessageText';
     var payload = {
       chat_id: chat,
       message_id: messageId,
-      text: limparMarkdownTelegram(texto),
-      parse_mode: 'Markdown',
+      text: textoEnvio,
+      parse_mode: parseMode,
       reply_markup: kb
     };
     var okEdit = false;
@@ -50530,11 +50576,9 @@ function enviarMenuSalaVermelha(chat, messageId) {
   return enviarTelaBot(chat, '🚨 *EMERGÊNCIA & SALA VERMELHA*\n\nCondutas imediatas e suporte intensivo:', botoesBot([
     [['🫀 PCR (ACLS)', 'ux:conduta:pcr'], ['⚡ Arritmias Cardíacas', 'ux:emerg:arritmia']],
     [['🫁 SRI / IOT', 'ux:srimenu'], ['🩸 Gasometria', 'ux:iniciar:gaso']],
-    [['💉 Noradrenalina', 'ux:droga:nora'], ['💉 Dobutamina', 'ux:droga:dobuta']],
-    [['💉 Vasopressina', 'ux:fixa:vaso'], ['💉 Outras DVA', 'ux:dvamenu']],
-    [['⚡ Choque & Hipotensão', 'ux:emerg:choque'], ['❤️ Crise HAS', 'ux:emerg:crisehas']],
+    [['💉 Drogas Vasoativas (DVA)', 'ux:dvamenu'], ['⚡ Choque & Hipotensão', 'ux:emerg:choque']],
+    [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🦟 Dengue C/D', 'ux:emerg:dengue'], ['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia']],
-    [['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
@@ -50542,9 +50586,9 @@ function enviarMenuSalaVermelha(chat, messageId) {
 function enviarMenuDva(chat, messageId) {
   return enviarTelaBot(chat, '💉 *Drogas Vasoativas (DVA)*\nQual medicamento deseja calcular?', botoesBot([
     [['Noradrenalina', 'ux:droga:nora'], ['Dobutamina', 'ux:droga:dobuta']],
-    [['Nitroprussiato', 'ux:droga:nipride'], ['Vasopressina', 'ux:fixa:vaso']],
-    [['Nitroglicerina', 'ux:fixa:tridil']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+    [['Vasopressina', 'ux:fixa:vaso'], ['Adrenalina (Infusão)', 'ux:droga:adrena']],
+    [['Nitroprussiato', 'ux:droga:nipride'], ['Nitroglicerina', 'ux:fixa:tridil']],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
@@ -50556,7 +50600,7 @@ function enviarTelaPesoDva(chat, droga, messageId) {
   });
   if (linha.length) r.push(linha);
   r.push([['← Trocar medicamento', 'ux:dvamenu']]);
-  r.push([['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]);
+  r.push([['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]);
   return enviarTelaBot(chat,
     '💉 *' + UX_DROGAS[droga].toUpperCase() + '*\nPeso do paciente\n\n' +
     'Toque em um peso ou envie o valor em kg (ex.: 73,5). Os botões são aproximações: use o peso real quando souber.',
@@ -50570,7 +50614,7 @@ function enviarTelaDiluicaoDva(chat, droga, peso, messageId) {
     botoesBot([
       [['Padrão', 'ux:diluicao:' + droga + ':' + p + ':padrao'], ['Concentrada', 'ux:diluicao:' + droga + ':' + p + ':concentrada']],
       [['✏️ Alterar peso', 'ux:droga:' + droga]],
-      [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
 }
 
@@ -51086,6 +51130,128 @@ function tratarEntradaUX(message) {
   return false;
 }
 
+/* ========== Extração de Receita do SOAP ========== */
+
+function extrairPlanoDeTextoSoap(textoSoap) {
+  if (!textoSoap || typeof textoSoap !== "string") return null;
+  var texto = textoSoap.trim();
+
+  // 1. Procurar cabeçalho da seção de Plano / Conduta / Prescrição
+  var regexPlano = /(?:(?:📋\s*)?\[?\*?P\s*[-–—:]\s*(?:Plano|Conduta|Prescri[çc][ãa]o)\*?\]?[^\n]*|\b(?:4\.\s*)?PLANO(?:\s+TERAP[ÊE]UTICO)?\s*[:\n]|\bPRESCRI[ÇC][ÃA]O(?:\s+FARMACOL[ÓO]GICA)?\s*[:\n])([\s\S]+)/i;
+  var match = texto.match(regexPlano);
+  var secaoPlano = match ? match[1] : null;
+
+  if (secaoPlano) {
+    // Cortar seções subsequentes de pendências, alertas, notas ou separadores de fechamento
+    var corte = secaoPlano.search(/\n(?:\s*(?:⚠️|🚨|📌|={3,}|_{3,}|\*{1,2}(?:Dados adicionais|Pend[êe]ncias|Observa[çc][õo]es)|(?:👤|🔍|🧠)\s*\*?[SOA]\s*[-–—:]|\[[SOA]\s*[-–—:]))/i);
+    if (corte !== -1) {
+      secaoPlano = secaoPlano.substring(0, corte);
+    }
+    secaoPlano = secaoPlano.trim();
+  }
+
+  // Se encontrou seção do plano não vazia
+  if (secaoPlano && secaoPlano.length >= 5) {
+    if (/conduta\s+e\s+prescri[çc][ãa]o\s+a\s+definir/i.test(secaoPlano)) {
+      return null;
+    }
+    return secaoPlano;
+  }
+
+  // Se o próprio texto contiver fármacos detectáveis pela base clínica
+  if (typeof extrairFarmacosDoTexto === "function") {
+    var farmacos = extrairFarmacosDoTexto(texto);
+    if (farmacos && farmacos.length > 0) {
+      return texto;
+    }
+  }
+
+  return null;
+}
+
+function montarDadosPlanoParaPrescricao(textoSoap, planoExtraido) {
+  if (!planoExtraido) return "";
+  var texto = String(textoSoap || "");
+  var infoPaciente = [];
+
+  // Extrair Idade, Peso e Alergias do Subjetivo se presente
+  var matchSubj = texto.match(/(?:👤\s*\*?S\s*[-–—:]\s*Subjetivo\*?|\[S\s*[-–—:]\s*SUBJETIVO\]|\bSUBJETIVO\s*:?)([\s\S]*?)(?=\n\s*(?:🔍|🧠|📋|\[?[OAP]\s*[-–—:]|$))/i);
+  if (matchSubj && matchSubj[1]) {
+    var txtS = matchSubj[1].replace(/[*_#`]/g, " ").trim();
+    var pPeso = txtS.match(/\b\d+(?:[.,]\d+)?\s*kg\b/i);
+    var pIdade = txtS.match(/\b\d+\s*(?:anos?|meses?|m|a|dias?)\b/i);
+    var pAlergia = txtS.match(/\b(?:alergia|al[eé]rgic[ao])[^\n.,;]*/i);
+    if (pIdade) infoPaciente.push(pIdade[0]);
+    if (pPeso) infoPaciente.push(pPeso[0]);
+    if (pAlergia) infoPaciente.push(pAlergia[0]);
+  }
+
+  // Extrair Diagnóstico da Avaliação se presente
+  var matchAval = texto.match(/(?:🧠\s*\*?A\s*[-–—:]\s*Avalia[çc][ãa]o\*?|\[A\s*[-–—:]\s*AVALIA[ÇC][ÃA]O\]|\bAVALIA[ÇC][ÃA]O\s*:?)([\s\S]*?)(?=\n\s*(?:📋|\[?P\s*[-–—:]|$))/i);
+  var diag = "";
+  if (matchAval && matchAval[1]) {
+    var txtA = matchAval[1].replace(/[*_#`]/g, " ").trim().split("\n")[0];
+    if (txtA && !/a definir/i.test(txtA)) {
+      diag = txtA.replace(/^[-•*]\s*/, "").trim();
+    }
+  }
+
+  var cabecalho = "";
+  if (infoPaciente.length > 0 || diag) {
+    var partes = [];
+    if (infoPaciente.length > 0) partes.push("Paciente: " + infoPaciente.join(", "));
+    if (diag) partes.push("Diagnóstico: " + diag);
+    cabecalho = partes.join(" | ") + "\n\nPrescrição indicada no plano clínico:\n";
+  }
+
+  return cabecalho + planoExtraido;
+}
+
+function executarExtracaoReceitaSoap(chatId, cacheKey, messageId) {
+  var cache = (typeof CacheService !== "undefined" && CacheService.getScriptCache)
+    ? CacheService.getScriptCache()
+    : (typeof uxCache === "function" ? uxCache() : null);
+
+  var textoSoap = null;
+  if (cache && cacheKey) {
+    try { textoSoap = cache.get(cacheKey); } catch (e) {}
+  }
+
+  if (!textoSoap && typeof modoBot === "function") {
+    var est = modoBot(chatId);
+    if (est && est.data) textoSoap = est.data;
+  }
+
+  if (!textoSoap && cache) {
+    try { textoSoap = cache.get("ctx_" + chatId); } catch (e) {}
+  }
+
+  if (!textoSoap && typeof PersistenciaBot !== "undefined" && typeof PersistenciaBot.ler === "function") {
+    try {
+      var rawView = PersistenciaBot.ler("soapview_" + chatId);
+      if (rawView) {
+        var objView = typeof rawView === "string" ? JSON.parse(rawView) : rawView;
+        if (objView && objView.texto) textoSoap = objView.texto;
+      }
+    } catch (e) {}
+  }
+
+  if (!textoSoap || !textoSoap.trim()) {
+    enviarMensagemParaChat(chatId, "⚠️ Nenhum plano terapêutico disponível para extrair receita.");
+    return true;
+  }
+
+  var planoExtraido = extrairPlanoDeTextoSoap(textoSoap);
+  if (!planoExtraido || !planoExtraido.trim()) {
+    enviarMensagemParaChat(chatId, "⚠️ Nenhum plano terapêutico disponível para extrair receita.");
+    return true;
+  }
+
+  var dadosPlano = montarDadosPlanoParaPrescricao(textoSoap, planoExtraido);
+  var fnGeradora = (typeof gerarPrescricaoComIA === "function") ? gerarPrescricaoComIA : function(d) { return d; };
+  return processarEEntregarIA(chatId, fnGeradora, dadosPlano, "rx");
+}
+
 /* ========== Callbacks ========== */
 
 function tratarCallbackUX(cb) {
@@ -51292,6 +51458,9 @@ function tratarCallbackUX(cb) {
       } else if (v === 'atualizar') {
         enviarMensagemParaChat(chat, '🩺 *Modo SOAP Ativo*\nEnvie novos dados ou atualizações (por áudio ou texto) ou clique em [📋 Gerar Avaliação & Plano].');
         return true;
+      } else if (v.indexOf('extrair_rx') === 0) {
+        var ckRx = v.indexOf('extrair_rx:') === 0 ? v.replace(/^extrair_rx:/, '').trim() : '';
+        return executarExtracaoReceitaSoap(chat, ckRx, msgId);
       }
     } else if (op === 'ef_inc') {
       var estInc = modoBot(chat), legInc = cache.get('ctx_' + chat);
@@ -51492,7 +51661,9 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarMenuEnfermaria: enviarMenuEnfermaria,
     enviarMenuGinecologiaObstetricia: enviarMenuGinecologiaObstetricia,
     tratarEntradaUX: tratarEntradaUX,
-    tratarCallbackUX: tratarCallbackUX
+    tratarCallbackUX: tratarCallbackUX,
+    extrairPlanoDeTextoSoap: extrairPlanoDeTextoSoap,
+    executarExtracaoReceitaSoap: executarExtracaoReceitaSoap
   };
 }
 

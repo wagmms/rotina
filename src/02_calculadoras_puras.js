@@ -126,6 +126,9 @@ var CalculadorasClinicas = (function () {
 
   // ───────────────────────── Renderização Telegram ─────────────────────────
   function btn(texto, id, acao) {
+    if (id === 'ux') {
+      return { text: texto, callback_data: ('ux:' + acao).slice(0, 64) };
+    }
     return { text: texto, callback_data: ('calc:' + id + ':' + acao).slice(0, 64) };
   }
 

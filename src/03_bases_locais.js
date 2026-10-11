@@ -1674,15 +1674,13 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
 
     if (paresUti.length > 0) {
       var incompPares = paresUti.filter(function(p) { return p.status === "INCOMPATIVEL" || p.alertaCritico; });
-      linhasTexto.push("\n🔬 *COMPATIBILIDADE EM Y (INFUSÕES EM BIC / SALA VERMELHA & UTI):*");
       if (incompPares.length > 0) {
+        linhasTexto.push("\n🔬 *COMPATIBILIDADE EM Y (INFUSÕES EM BIC / SALA VERMELHA & UTI):*");
         incompPares.forEach(function(par) {
           linhasTexto.push("🛑 *INCOMPATÍVEL:* `" + par.drogaA.toUpperCase() + "` ⚡ `" + par.drogaB.toUpperCase() + "`");
           linhasTexto.push("   • *Mecanismo:* " + par.mecanismo);
           linhasTexto.push("   • *Conduta beira-leito:* " + par.conduta);
         });
-      } else {
-        linhasTexto.push("✅ *Compatibilidade em Y:* Fármacos parenterais compatíveis na mesma via (sem precipitação documentada).");
       }
     }
   }

@@ -133,7 +133,7 @@ test('5. Mensagem consolidada de Fase 2 embute botões de prontuário, REMUME e 
   assert(sent.length >= 1);
   const ultMsg = sent[sent.length - 1];
   const kbJson = JSON.stringify(ultMsg.payload.reply_markup);
-  assert(kbJson.includes('ux:hub:rx'), 'Deve conter atalho para prescrever');
+  assert(kbJson.includes('ux:soap:extrair_rx:'), 'Deve conter atalho para extrair receita');
   assert(kbJson.includes('ux:soap:atualizar'), 'Deve conter atalho para atualizar');
   assert(!kbJson.includes('ux:soap:plano'), 'Não deve repetir o botão de gerar plano se já está gerado');
 });

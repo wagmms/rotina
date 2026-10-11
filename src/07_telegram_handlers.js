@@ -1777,7 +1777,7 @@ function processarMensagemTexto(message) {
     }
 
     if (!dadosNutriPed) {
-      return enviarMensagemParaChat(chatId, "👶 *SUPORTE NUTRICIONAL & HIDRATAÇÃO PEDIÁTRICA*\n\n" +
+      return enviarMensagemComTecladoParaChat(chatId, "👶 *SUPORTE NUTRICIONAL & HIDRATAÇÃO PEDIÁTRICA*\n\n" +
         "Envie os parâmetros clínicos do lactente/criança:\n" +
         "• *Peso* (ex: `7.5kg`, `12kg`)\n" +
         "• *Idade* (ex: `3 meses`, `8m`, `2 anos`)\n" +
@@ -1786,10 +1786,14 @@ function processarMensagemTexto(message) {
         "• *Volume da mamada* (ex: `90ml`, `120ml`)\n\n" +
         "💡 *Exemplos rápidos beira-leito:*\n" +
         "• `/holliday 8kg` *(Volume de manutenção, vazão em bomba, eletrólitos SBP e TIG)*\n" +
-        "• `/holliday 11kg bronquiolite` *(Restrição a 70% para prevenção de sobrecarga pulmonar)*\n" +
-        "• `/diluicao 90ml partida` *(Padronização 1 medida para 30 mL e normas OMS de preparo)*\n" +
-        "• `/formulainfantil 100ml` *(Alerta contra medidas fracionadas e conduta correta)*\n" +
-        "• `/nutriped 6kg 3 meses partida` *(Avaliação nutricional e hidratação completas)*");
+        "• `/holliday 11kg bronquiolite` *(Restrição a 70% para prevenção de sobrecarga)*",
+        {
+          inline_keyboard: [
+            [{ text: "💧 Holliday 8kg", callback_data: "ux:hol:8kg" }, { text: "💧 Holliday 11kg Bronquiolite", callback_data: "ux:hol:11kg_bva" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
+      );
     }
 
     var paramsNP = {};
@@ -3052,7 +3056,7 @@ function processarMensagemTexto(message) {
             { text: "📊 CKD-EPI (TFG)", callback_data: "calc_CKD" }
           ],
           [
-            { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+            { text: "🔙 Enfermaria", callback_data: "ux:hub:enf" },
             { text: "🏠 Início", callback_data: "ux:hub:inicio" }
           ]
         ]
@@ -3489,7 +3493,17 @@ function processarMensagemTexto(message) {
   if (comando === "/rxh" || comando === "/prescricao_hospitalar") {
     var dadosRxh = texto.replace(/^\/(rxh|prescricao_hospitalar)\s*/i, "").trim();
     if (!dadosRxh) {
-      return enviarMensagemParaChat(chatId, "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\nEnvie os dados do paciente internado (diagnóstico, peso, idade, função renal, alergias):\n💡 *Exemplo:* `/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`");
+      return enviarMensagemComTecladoParaChat(chatId,
+        "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\n" +
+        "Envie os dados do paciente internado (diagnóstico, peso, idade, função renal, alergias):\n" +
+        "💡 *Exemplo:* `/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`",
+        {
+          inline_keyboard: [
+            [{ text: "📋 Gerar Exemplo (PAC Grave)", callback_data: "ux:rxh:exemplo_pac" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
+      );
     }
     return processarEEntregarIA(chatId, gerarPrescricaoHospitalarComIA, dadosRxh, "rxh");
   }
@@ -3497,7 +3511,7 @@ function processarMensagemTexto(message) {
   if (comando === "/atb" || comando === "/ajuste" || comando === "/ajuste_renal") {
     var dadosAtb = texto.replace(/^\/(atb|ajuste|ajuste_renal)\s*/i, "").trim();
     if (!dadosAtb) {
-      return enviarMensagemParaChat(
+      return enviarMensagemComTecladoParaChat(
         chatId,
         "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
         "Envie o antimicrobiano e o clearance de creatinina ou se o paciente está em hemodiálise:\n\n" +
@@ -3506,7 +3520,14 @@ function processarMensagemTexto(message) {
         "• `/atb vanco 40`\n" +
         "• `/atb pip-tazo clcr 30`\n" +
         "• `/atb cefepime hd`\n" +
-        "• `/atb polimixina b 10`"
+        "• `/atb polimixina b 10`",
+        {
+          inline_keyboard: [
+            [{ text: "💊 Meropenem ClCr 25", callback_data: "ux:atb:mero25" }, { text: "💊 Pip-Tazo ClCr 30", callback_data: "ux:atb:tazo30" }],
+            [{ text: "💊 Cefepime HD", callback_data: "ux:atb:cefepimehd" }, { text: "💊 Vanco ClCr 40", callback_data: "ux:atb:vanco40" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
       );
     }
     if (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
@@ -3633,7 +3654,15 @@ function processarMensagemTexto(message) {
   if (comando === "/passagem") {
     var textoConsolidado = EnfermariaService.obterTextoConsolidadoParaPassagem();
     if (!textoConsolidado) {
-      return enviarMensagemParaChat(chatId, "🏥 *Nenhum leito registrado na enfermaria para passar.* Registre os leitos usando `/leito <num> <dados>` antes de gerar a passagem.");
+      return enviarMensagemComTecladoParaChat(chatId,
+        "🏥 *Nenhum leito registrado na enfermaria para passar.* Registre os leitos usando `/leito <num> <dados>` antes de gerar a passagem.",
+        {
+          inline_keyboard: [
+            [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
+      );
     }
     return processarEEntregarIA(chatId, gerarPassagemPlantaoSBAR, "PASSAGEM GERAL DE PLANTÃO DA ENFERMARIA (TODOS OS LEITOS ATIVOS):\n\n" + textoConsolidado, "plantao");
   }
@@ -5003,9 +5032,8 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
 
     if (tipoCache === "soap" && !ehErro) {
       botoes.push(linhaPrimaria);
-      botoes.push(linhaAjustesDinamicos);
       if (!ehSoapFechado) {
-        // FASE 1: Rascunho com Anamnese e Exame Físico
+        // FASE 1: Rascunho com Anamnese e Exame Físico (sem botões prematuros de ajuste farmacológico)
         botoes.push([
           { "text": "📋 Fechar Plano", "callback_data": "ux:soap:plano" },
           { "text": "🩺 EF Normal", "callback_data": "ux:soap:ef_normal" }
@@ -5015,9 +5043,10 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
           { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey }
         ]);
       } else {
-        // FASE 2: SOAP Consolidado completo
+        // FASE 2: SOAP Consolidado completo (com plano farmacológico ativo)
+        botoes.push(linhaAjustesDinamicos);
         botoes.push([
-          { "text": "💊 Extrair Receita", "callback_data": "ux:hub:rx" },
+          { "text": "💊 Extrair Receita", "callback_data": "ux:soap:extrair_rx:" + cacheKey },
           { "text": "🔄 Refinar Conduta", "callback_data": "ux:soap:atualizar" }
         ]);
         if (ehUsuarioTitular(chatId)) {
@@ -5050,6 +5079,10 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
         linhaSecundaria.push({ "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey });
       }
       if (linhaSecundaria.length) botoes.push(linhaSecundaria);
+      var linhaNavFinal = (tipoCache === "rxh" || tipoCache === "plantao")
+        ? [{ "text": "🔙 Enfermaria", "callback_data": "ux:hub:enf" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }]
+        : [{ "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+      botoes.push(linhaNavFinal);
     }
 
     if (tipoCache === "soap") {
@@ -5100,6 +5133,13 @@ function processarCallbackBotao(cb) {
   try {
     if (typeof tratarCallbackUX!=="undefined" && tratarCallbackUX(cb)) return;
     var data = cb.data || "";
+    if (data.indexOf("ux:soap:extrair_rx") === 0) {
+      var ckSoap = data.replace(/^ux:soap:extrair_rx:?/, "").trim();
+      var chatExtrair = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+      if (typeof executarExtracaoReceitaSoap === "function") {
+        return executarExtracaoReceitaSoap(chatExtrair, ckSoap, cb.message ? cb.message.message_id : null);
+      }
+    }
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 
   // Vincula o registro à data original da mensagem ou usa a data atual se não informada
