@@ -582,7 +582,7 @@ def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_taref
         # Coleta o diff de código excluindo bundles compilados, tooling, testes e docs
         cmd_diff = ["git", "diff", f"{base_sha}..{candidate_sha}", "--", ".",
                     ":!ultra_rotina_master.js", ":!data/", ":!logs/", ":!*.tmp",
-                    ":!tooling/", ":!tests/", ":!docs/", ":!*.md", ":!package-lock.json"]
+                    ":!tooling/", ":!tests/", ":!scripts/", ":!docs/", ":!*.md", ":!package-lock.json"]
         diff_res = subprocess.run(cmd_diff, capture_output=True, text=True, check=False)
         if diff_res.returncode != 0:
             return None, f"Falha ao extrair diff entre {base_sha[:10]} e {candidate_sha[:10]}: {diff_res.stderr.strip()}"
@@ -606,7 +606,7 @@ def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_taref
                 diff_stat = stat_res.stdout.strip() if stat_res.returncode == 0 else ""
                 cmd_diff = ["git", "diff", f"{base_sha}..{candidate_sha}", "--", ".",
                             ":!ultra_rotina_master.js", ":!data/", ":!logs/", ":!*.tmp",
-                            ":!tooling/", ":!tests/", ":!docs/", ":!*.md", ":!package-lock.json"]
+                            ":!tooling/", ":!tests/", ":!scripts/", ":!docs/", ":!*.md", ":!package-lock.json"]
                 diff_res = subprocess.run(cmd_diff, capture_output=True, text=True, check=False)
                 if diff_res.returncode == 0:
                     diff_conteudo = diff_res.stdout.strip()
