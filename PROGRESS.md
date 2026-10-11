@@ -15,6 +15,7 @@
 
 - [x] **Expansão do Modelo de Exame Físico Normal Completo no Telegram e Cockpit**:
     - Substituída a string simplificada "EF normal" pelo modelo semiológico canônico completo (Ectoscopia, Sinais Vitais com preservação dos dados prévios informados, Cabeça e Pescoço, ACV, AR, Abdome, Extremidades/Vascular e Neurológico Sumário).
+    - Eliminada a mensagem intermediária de texto ("🩺 Exame físico registrado como totalmente normal. Atualizando rascunho..."), entregando diretamente a mensagem do SOAP atualizado com feedback sutil via toast.
     - Garantida a expansão determinística no campo Objetivo (O) do SOAP tanto na Fase 1 quanto na Fase 2, proibindo a redução da IA a resumos simplistas.
     - Omitida a cobrança ativa redundante de manobras de EF básico na Fase 1 quando o EF completo já estiver registrado.
     - Corrigido o balanceamento de caracteres de Markdown em `_iaFinalizarTexto` para evitar perda de formatação (negritos e itálicos) no Telegram.

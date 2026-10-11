@@ -157,6 +157,8 @@ function destravarCallbackTelegramImediato(cb) {
     var toast = "";
     if (data.indexOf("ux:soap:plano") === 0) {
       toast = "📋 Consolidando caso e gerando Avaliação e Plano...";
+    } else if (data.indexOf("ux:soap:ef_confirmar") === 0) {
+      toast = "🩺 Atualizando SOAP com exame físico completo...";
     } else if (data.indexOf("ux:soap:ef_normal") === 0) {
       toast = "🩺 Confirmando exame físico normal...";
     } else if (data.indexOf("ux:soap:atualizar") === 0) {

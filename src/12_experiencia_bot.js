@@ -928,7 +928,6 @@ function tratarCallbackUX(cb) {
         dadosNorm += '\n\n' + modeloEfTexto;
         definirModoBot(chat, 'soap', dadosNorm);
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);
-        enviarMensagemParaChat(chat, '🩺 *Exame físico normal completo registrado.*\n\nAtualizando rascunho SOAP...');
         return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, dadosNorm, "soap", msgId);
       } else if (v === 'atualizar') {
         enviarMensagemParaChat(chat, '🩺 *Modo SOAP Ativo*\nEnvie novos dados ou atualizações (por áudio ou texto) ou clique em [📋 Gerar Avaliação & Plano].');

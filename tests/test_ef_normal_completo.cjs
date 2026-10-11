@@ -94,7 +94,10 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
   assert(casoAtualizado.includes('Aparelho Respiratório (AR)'), 'Caso ativo deve conter AR completo');
   assert(casoAtualizado.includes('Abdome:'), 'Caso ativo deve conter Abdome completo');
   assert(casoAtualizado.includes('totalmente normal'), 'Caso ativo deve conter marcador de totalmente normal');
-  console.log('  ✓ 3. Callback do Telegram insere o modelo semiológico completo no caso ativo');
+
+  const textosEnviados = sent.map(s => (s.payload && s.payload.text) || '');
+  assert(!textosEnviados.some(t => t.includes('Atualizando rascunho')), 'Não deve enviar mensagem intermediária de Atualizando rascunho');
+  console.log('  ✓ 3. Callback insere modelo completo e omite mensagem intermediária, entregando apenas o SOAP atualizado');
 }
 
 // 4. gerarSOAPComIA expande o modelo completo no Objetivo e NUNCA resume em apenas 'EF normal'

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-10 21:21:23
- * Checksum SHA256: 4232981b9153c840
+ * Gerado automaticamente via build_master.py em: 2026-10-10 21:23:24
+ * Checksum SHA256: 453d40e8d054d26b
  * ==============================================================================
  */
 
@@ -49018,6 +49018,8 @@ function destravarCallbackTelegramImediato(cb) {
     var toast = "";
     if (data.indexOf("ux:soap:plano") === 0) {
       toast = "📋 Consolidando caso e gerando Avaliação e Plano...";
+    } else if (data.indexOf("ux:soap:ef_confirmar") === 0) {
+      toast = "🩺 Atualizando SOAP com exame físico completo...";
     } else if (data.indexOf("ux:soap:ef_normal") === 0) {
       toast = "🩺 Confirmando exame físico normal...";
     } else if (data.indexOf("ux:soap:atualizar") === 0) {
@@ -51169,7 +51171,6 @@ function tratarCallbackUX(cb) {
         dadosNorm += '\n\n' + modeloEfTexto;
         definirModoBot(chat, 'soap', dadosNorm);
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);
-        enviarMensagemParaChat(chat, '🩺 *Exame físico normal completo registrado.*\n\nAtualizando rascunho SOAP...');
         return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, dadosNorm, "soap", msgId);
       } else if (v === 'atualizar') {
         enviarMensagemParaChat(chat, '🩺 *Modo SOAP Ativo*\nEnvie novos dados ou atualizações (por áudio ou texto) ou clique em [📋 Gerar Avaliação & Plano].');
