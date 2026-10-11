@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 02:33:42
- * Checksum SHA256: e0d34b66c074b3ed
+ * Gerado automaticamente via build_master.py em: 2026-10-11 02:52:27
+ * Checksum SHA256: 353f1405499275d5
  * ==============================================================================
  */
 
@@ -41697,6 +41697,9 @@ function processarMensagemTexto(message) {
 
   if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais") {
     return enviarMenuExamesEspeciais(chatId);
+  }
+  if (comando === "/ef_neuro" || comando === "/neuro") {
+    return responderComGuiaExameFisico(chatId, "neuro");
   }
   if (comando.startsWith("/ef_")) {
     var subTipoEf = comando.replace(/^\/ef_/, "").trim();

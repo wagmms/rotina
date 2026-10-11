@@ -14,11 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria e Alinhamento de Contrato de Resiliência no Cockpit Integrado (`tests/test_cockpit_integracao.cjs`, `tests/test_cockpit_integracao.py` e `src/01_utils.js`)**:
-    - **Diagnóstico e Causa Raiz**: O teste `test_cockpit_integracao.cjs` (cenário 1: `sessão curta do botão autentica o painel e rejeita token inválido`) falhava com `Missing expected exception` na asserção `assert.throws(()=>c.obterUrlCockpit(456))`. A suíte continha expectativa desatualizada do commit inicial (`1fcfc04`), anterior à auditoria de robustez e resiliência dos despachantes do Telegram (`tests/test_auditoria_seguranca_rpc_telegram.cjs`). No modelo de produção, `obterUrlCockpit` intercepta a recusa de autenticação de `criarSessaoCockpit_` para evitar crashes no Telegram e retorna a URL base sem o parâmetro `session` (`?v=2.5`), preservando a barreira de segurança e impedindo acesso aos endpoints clínicos.
-    - **Correção e Demonstração do Contrato**: Em `tests/test_cockpit_integracao.cjs`, a verificação foi refinada para validar explicitamente ambas as camadas de proteção: (1) `c.criarSessaoCockpit_(456)` lança obrigatoriamente exceção `/não autorizado/i`; (2) `c.obterUrlCockpit(456)` não concede token de sessão (`session === null`).
-    - **Validação de Testes**: 100% de aprovação em `tests/test_cockpit_integracao.cjs` (10/10 cenários aprovados) e `tests/test_cockpit_integracao.py` (1/1 teste aprovado via pytest). Resiliência de `obterUrlCockpit` preservada em `test_auditoria_seguranca_rpc_telegram.cjs`.
-    - Evidências arquivadas em `data/autoloop_task_notes/test_cockpit_integracao.md`.
+- [x] **Auditoria e Correção de Roteamento do Exame Físico Neurológico (`tests/test_correcao_oitava_rodada.cjs`, `tests/test_correcao_oitava_rodada.py` e `src/07a_telegram_router.js`)**:
+    - **Diagnóstico e Causa Raiz**: O cenário `Memória: navegação /neuro e retorno preservam caso` falhava com `AssertionError: assert(recebeu.includes(original))`. No baseline original (`1fcfc04`), o bot possuía `if (comando === "/ef_neuro" || comando === "/neuro") return responderComGuiaExameFisico(chatId, "neuro");`. Durante o desmembramento de `src/07_telegram_handlers.js`, o roteador foi reduzido para verificar apenas `comando.startsWith("/ef_")`, deixando o comando ágil `/neuro` órfão em `processarMensagemTexto`. Embora `12_experiencia_bot.js` preservasse o caso clínico ativo ao receber `/neuro`, a função `responderComGuiaExameFisico` não era acionada.
+    - **Correção e Demonstração do Contrato**: Adicionado roteamento explícito `if (comando === "/ef_neuro" || comando === "/neuro") return responderComGuiaExameFisico(chatId, "neuro");` em `src/07a_telegram_router.js` e recompilado o bundle `ultra_rotina_master.js`.
+    - **Validação de Testes**: 100% de aprovação em `tests/test_correcao_oitava_rodada.cjs` (23/23 testes aprovados) e `tests/test_correcao_oitava_rodada.py` (1/1 teste aprovado via harness multithread de isolamento de dados em 0.60s).
+    - Evidências arquivadas em `data/autoloop_task_notes/test_correcao_oitava_rodada.md`.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -68,12 +68,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 66 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 67 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 62 (Telegram / Emergência)*: Protocolo ágil de dose de ataque vs manutenção de Amiodarona venosa com pré-cálculo automático em SF 5% (300 mg em bolus na PCR chocável refratária vs 150 mg em 10 min na TV estável, seguido de 1 mg/min por 6h e 0,5 mg/min por 18h).
 - *Sugestão 63 (Telegram / Dengue)*: Alerta visual com calculadora rápida de hematócrito e critério de hemoconcentração (aumento de 20% do Ht basal) para reclassificação dinâmica entre Grupo B e Grupo C no Telegram.
 - *Sugestão 64 (Telegram / Cefaleia)*: Escore SNOOP4 com checklist interativo para estratificação imediata de bandeiras vermelhas em cefaleia aguda antes de liberar protocolo de analgesia primária.
 - *Sugestão 65 (Pediatria / Farmacologia)*: Transição visual automática para formulação em comprimidos de adulto quando o paciente pediátrico tiver peso > 40-50 kg ou atingir o teto de adulto (exibir sugestão alternativa "Amoxicilina 500 mg: 1 cp VO de 8/8h" ao lado da suspensão de 250 mg/5 mL para evitar sobrecarga de volume líquido).
 - *Sugestão 66 (Telegram / Fila de Entrega Confiável)*: Adicionar comando `/reprocessar_fila` ou botão de 1 toque no alerta de falha de integração externa (Notion/APIs) permitindo retry manual imediato de pedidos que permaneceram com status 'failed' na fila persistente sem exigir nova digitação do médico.
+- *Sugestão 67 (Telegram / Neurologia)*: Adicionar atalhos de botões táteis inline de 1 toque no roteiro de exame físico neurológico (`/neuro` / `/ef_neuro`) para graduar força motora segundo a escala MRC (Grau 0 a 5) e sinais meníngeos (Brudzinski / Kernig), permitindo montagem automática do resumo neurológico sem digitação livre no plantão.
 
 ---

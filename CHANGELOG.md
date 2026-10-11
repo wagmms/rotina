@@ -1,6 +1,15 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
-> Gerado automaticamente. Arquivo de referência para o histórico arquivado do PROGRESS.md.
+0AR. [x] **Auditoria e Correção de Roteamento do Exame Físico Neurológico (`tests/test_correcao_oitava_rodada.cjs`, `tests/test_correcao_oitava_rodada.py` e `src/07a_telegram_router.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * No cenário `Memória: navegação /neuro e retorno preservam caso` de `tests/test_correcao_oitava_rodada.cjs`, a asserção `assert(recebeu.includes(original))` falhava com AssertionError (falsy value).
+      * A investigação identificou um defeito real de roteamento: no baseline histórico (`1fcfc04`), o roteador continha a regra `if (comando === "/ef_neuro" || comando === "/neuro") return responderComGuiaExameFisico(chatId, "neuro");`. Durante a modularização de `src/07_telegram_handlers.js` em submódulos, o roteador foi refatorado para capturar apenas comandos com prefixo `/ef_` (`comando.startsWith("/ef_")`), deixando o atalho canônico `/neuro` sem rota em `processarMensagemTexto`.
+      * Embora `src/12_experiencia_bot.js` continuasse preservando o caso clínico ativo ao receber `/neuro`, o assistente não disparava `responderComGuiaExameFisico`, impedindo que o caso clínico ativo fosse passado para a geração do roteiro neurológico direcionado.
+    - **Correção e Validação**:
+      * Em `src/07a_telegram_router.js` (`processarMensagemTexto`), adicionado roteamento explícito: `if (comando === "/ef_neuro" || comando === "/neuro") return responderComGuiaExameFisico(chatId, "neuro");`.
+      * Recompilado `ultra_rotina_master.js` com checksum e integridade sintática 100% validados.
+      * 100% de aprovação em `tests/test_correcao_oitava_rodada.cjs` (23/23 testes aprovados) e `tests/test_correcao_oitava_rodada.py` (1/1 teste aprovado via harness multithread de isolamento de dados).
+      * Evidências arquivadas em `data/autoloop_task_notes/test_correcao_oitava_rodada.md`.
 
 0AQ. [x] **Auditoria e Alinhamento de Contrato de Resiliência no Cockpit Integrado (`tests/test_cockpit_integracao.cjs`, `tests/test_cockpit_integracao.py` e `src/01_utils.js`)**:
     - **Diagnóstico e Causa Raiz**:

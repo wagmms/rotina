@@ -1356,6 +1356,9 @@ function processarMensagemTexto(message) {
   if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais") {
     return enviarMenuExamesEspeciais(chatId);
   }
+  if (comando === "/ef_neuro" || comando === "/neuro") {
+    return responderComGuiaExameFisico(chatId, "neuro");
+  }
   if (comando.startsWith("/ef_")) {
     var subTipoEf = comando.replace(/^\/ef_/, "").trim();
     if (subTipoEf) {
