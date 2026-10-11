@@ -1,5 +1,26 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C2. [x] **Pré-aquecimento do Contexto do Repositório (Prompt Caching / Context Caching) (`tooling/autoloop/core/task_context.py`, `tooling/autoloop/autoloop.py`, `tooling/autoloop/tests/test_task_context.py` e `tooling/autoloop/install.py`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * A cada tarefa, o autoloop montava o prompt do CLI injetando o objetivo dinâmico e o título da tarefa ativa logo nas primeiras linhas (`Objetivo Geral: ...`, `Tarefa selecionada: ...`), antes de todo o corpo longo de diretrizes, regras clínicas e arquitetura.
+      * Como provedores LLM modernos (Google Gemini Context Caching e Anthropic Claude Prompt Caching) realizam cache estritamente baseado no prefixo contínuo desde o token 0, a variação da tarefa nos primeiros ~30 tokens quebrava o cache em 100% das chamadas consecutivas, forçando o reprocessamento redundante de milhares de tokens idênticos de diretrizes a cada novo ciclo, gerando alta latência no primeiro token (TTFT) e desperdício de cota.
+    - **Implementação e Refatoração**:
+      * Em `tooling/autoloop/core/task_context.py`:
+        • Definido `CANONICAL_PROMPT_CACHE_HEADER`: bloco inicial canônico, padronizado e imutável contendo identidade do Tech Lead Clínico, arquitetura oficial (Node.js 20 Fastify no Docker/Render, Cockpit PWA no gh_cockpit_deploy, Telegram Bot, lógica em src/), proibição de Google Apps Script, cláusula pétrea de qualidade clínica, proibição de alteração de comentários médicos, diretrizes de execução ágil (Single-Agent padrão, Squad condicional sob demanda, catálogo de subagentes core-dev/qa-tester/clinical-auditor), gates de qualidade (test sharding direcionado / fast-fail, npm run test:all antes de commit), protocolo de UX beira-leito (6 regras de ouro) e gestão enxuta de progresso (~5 a 10 KB).
+        • Bloco com comprimento superior a 5.000 caracteres (~1.300+ tokens estimados), excedendo com folga o threshold mínimo de 1.024 tokens exigido para ativação de Context Caching.
+        • Implementadas funções `obter_cabecalho_estatico_cache()`, `prefixo_comum_cache()` e `estimar_tokens_prompt()`.
+      * Em `tooling/autoloop/autoloop.py`:
+        • Refatorada `montar_prompt_ciclo()` para posicionar o cabeçalho estático como prefixo invariante do prompt, delimitando a seção dinâmica (`🎯 ESCOPO DINÂMICO & TAREFA SELECIONADA DESTE CICLO`) com objetivo, squad alocado, diretriz kaizen e tarefa ativa estritamente no sufixo posterior.
+        • Adicionado feedback visual no log do autoloop (`🧠 Context Caching Ativo: X tokens lidos do cache (Y% do prompt)`) quando `cache_read_input_tokens > 0`.
+      * Em `tooling/autoloop/tests/test_task_context.py`:
+        • Adicionados testes unitários validando comprimento mínimo (>= 4.000 chars, >= 1.024 tokens) e presença de cláusulas canônicas.
+        • Validado teste de prefixo comum idêntico entre tarefas distintas, confirmando que o prefixo invariante de cache é preservado entre tarefas de escopos diferentes.
+      * Em `tooling/autoloop/install.py`:
+        • Atualizado manifesto de instalação (`install_manifest.json`) e instalada a nova versão com backup atômico em `~/.local/bin/autoloop`.
+    - **Validação e Cobertura Automatizada**:
+      * 100% aprovado na suíte do autoloop (118/118 testes passando em 4.93s).
+      * 100% aprovado no runner oficial (`npm run test:autoloop`, 2/2 suítes isoladas em 7.24s).
+
 0C1. [x] **Rotação Imediata 0ms entre Contas em Erro de Cota 429 (`tooling/autoloop/autoloop.py`, `tooling/autoloop/install.py` e `tooling/autoloop/tests/test_rotacao_cota_0ms.py`)**:
     - **Diagnóstico e Causa Raiz**:
       * Quando uma conta atingia cooldown de cota (HTTP 429 / resource_exhausted), o autoloop tratava o ciclo como falha geral da tarefa (`pending`), incrementando prematuramente o contador de tentativas (`attempts` em `loop_guard`) e aplicando pausas artificiais de 2 segundos (`observed_sleep(2, 'entre_ciclos')`) e até 30 segundos (`observed_sleep(30, 'pendencia_sem_progresso')`).

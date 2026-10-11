@@ -14,12 +14,14 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Rotação Imediata 0ms entre Contas em Erro de Cota 429 (`tooling/autoloop/autoloop.py`, `tooling/autoloop/install.py` e `tooling/autoloop/tests/test_rotacao_cota_0ms.py`)**:
+- [x] **Pré-aquecimento do Contexto do Repositório (Prompt Caching / Context Caching) (`tooling/autoloop/core/task_context.py`, `tooling/autoloop/autoloop.py`, `tooling/autoloop/tests/test_task_context.py` e `tooling/autoloop/install.py`)**:
     - **Diagnóstico e Correção**:
-      * Em `tooling/autoloop/autoloop.py`: Eliminadas pausas parciais (`observed_sleep(2, 'entre_ciclos')` e `observed_sleep(30, 'pendencia_sem_progresso')`) quando ocorre erro de cota 429; implementada checagem rápida de credenciais locais `conta_configurada_rapida` (0ms) sem chamadas de rede no pool; implementado parâmetro `aguardar_se_bloqueado=False` em `obter_proximo_alvo`; implementado loop com Rotação Imediata 0ms da Conta 1 para a Conta 2 reutilizando o brief (`resumo_tarefa`) e contexto aquecido já gerados em memória; condicionado o sleep de repouso (teto 90s) exclusivamente ao cenário em que todas as 7 contas configuradas estiverem bloqueadas simultaneamente; movido `sincronizar_token_ativo()` para executar apenas em `processo.returncode == 0`.
-      * Em `tooling/autoloop/tests/test_rotacao_cota_0ms.py`: Criada suíte completa com 5 cenários atestando transição 0ms, preservação de brief, isolamento de token sync e sleep restrito ao bloqueio coletivo de todas as contas.
-      * Instalação validada via `tooling/autoloop/install.py` com backup atômico e atualização de `~/.local/bin/autoloop`.
-    - **Validação e Cobertura**: 100% aprovado nas suítes unitárias do autoloop (116/116 testes) e em toda a suíte médica e backend do projeto (`npm test`, 49/49 suítes).
+      * Identificado que o autoloop injetava campos dinâmicos (`Objetivo Geral: ...`, `Tarefa selecionada: ...`) nas primeiras linhas do prompt do CLI, quebrando o cálculo de prefixo do Google Gemini e Claude Sonnet/Opus logo nos primeiros ~30 tokens e impedindo o reaproveitamento de cache para milhares de tokens estáticos de diretrizes.
+      * Em `tooling/autoloop/core/task_context.py`: Criado cabeçalho inicial canônico imutável (`CANONICAL_PROMPT_CACHE_HEADER`, `obter_cabecalho_estatico_cache`) com mais de 5.000 caracteres (~1.300+ tokens estimados, superando o threshold de 1.024 tokens de Context Caching) contendo arquitetura Fastify/Render/Docker, Cockpit PWA, salvaguardas clínicas pétreas, regras ágeis, Single-Agent padrão, catálogo de subagentes e gates de qualidade (test sharding direcionado).
+      * Em `tooling/autoloop/autoloop.py`: Refatorada `montar_prompt_ciclo` para fixar o cabeçalho canônico estático no topo (prefixo de cache 100% idêntico byte a byte em todas as tarefas) e alocar o escopo, squad, diretriz kaizen e tarefa ativa no sufixo dinâmico; adicionado indicador de Prompt Caching ativo no log do autoloop.
+      * Em `tooling/autoloop/tests/test_task_context.py`: Criados testes unitários validando comprimento mínimo (>= 4.000 chars / >= 1.024 tokens), cláusulas obrigatórias e prefixo comum estritamente compartilhado entre tarefas distintas de diferentes escopos.
+      * Instalação verificada via `tooling/autoloop/install.py` e atualizado `install_manifest.json`.
+    - **Validação e Cobertura**: 100% aprovado nas suítes unitárias do autoloop (118/118 testes em 4.93s) e no runner oficial (`npm run test:autoloop`, 2/2 suítes em 7.24s).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -61,12 +63,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 109 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 110 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 105 (Fastify / Rate-Limiting Dinâmico por IP com Whitelist para Redes Hospitalares)*: Implementar rate-limiting adaptativo na camada Fastify capaz de identificar sub-redes hospitalares internas e IPs corporativos de postos de enfermagem via cabeçalho `X-Forwarded-For` validado, aplicando limites diferenciados e evitando falsos-positivos de bloqueio 429 durante picos de triagem e admissão de múltiplos leitos simultâneos no mesmo terminal.
 - *Sugestão 106 (Motores de IA / Cache de Respostas Determinísticas em Memória RAM com TTL Inteligente por CID-10)*: Implementar cache determinístico em memória de alta velocidade (LRU Cache com hashing SHA-256 do prompt clínico e normalização de termos) para condutas canônicas de alta incidência (ex: PCR/ACLS, Anafilaxia, AVC, Pré-Eclâmpsia Zuspan), permitindo respostas instantâneas em 0ms sem realizar requisições HTTP locais ou remotas durante picos de emergência no plantão.
 - *Sugestão 107 (Motores de IA / Healthcheck Periódico Não-Bloqueante do Daemon Ollama Local)*: Implementar ping periódico a cada 60s em background (`/api/tags`) para aferir latência e aquecimento de modelos locais (Mistral/Llama 3/Qwen) no nó Ollama, mantendo um flag atômico de prontidão em RAM para evitar tentativas síncronas de conexão e timeouts desnecessários quando o daemon estiver pausado ou descarregado da GPU.
 - *Sugestão 108 (Motores de IA / Fallback Multinível com Transição Fluida para Modelos Locais Quantizados 4-bit)*: Adicionar perfil de contingência com modelos ultraleves quantizados GGUF (ex: Qwen 2.5 3B ou Llama 3.2 1B em 4 bits) otimizados para execução ultrarrápida em CPUs com baixo consumo de memória RAM (< 2 GB), viabilizando inferência médica offline completa mesmo em servidores hospitalares modestos ou notebooks de plantão sem GPU dedicada.
 - *Sugestão 109 (Test Sharding & Watcher Inteligente / Execução Automática por Diff do Git)*: Implementar modo observador (`--watch-diff` no runner de testes) que detecta arquivos modificados via `git status -s` e mapeia automaticamente as suítes de teste unitárias afetadas em tempo real (ex: edição em `src/03_obstetricia.js` aciona imediatamente apenas `tests/test_obstetricia_prenatal.cjs` em background com debouncing de 300ms), proporcionando feedback contínuo instantâneo com zero intervenção manual do desenvolvedor.
+- *Sugestão 110 (Autoloop / Telemetria Econômica de Custo por Token Cacheado vs Token Novo no Relatório Diário)*: Adicionar cálculo do valor financeiro economizado (em dólares e reais) a partir do diferencial de custo de Prompt Caching dos provedores (desconto de até 75% a 90% para Cache Read Tokens no Gemini e Claude), exibindo no relatório noturno ou sumário do Telegram o ganho financeiro direto obtido pela arquitetura de pré-aquecimento de contexto.
 
 ---
