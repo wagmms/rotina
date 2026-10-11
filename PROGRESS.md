@@ -25,9 +25,12 @@
       6. *Cockpit HMAC & RBAC* (`src/13_cockpit_integracao.js`): priorizado `ConfigService.exigir` sobre `getArray` para honrar mocks de teste determinísticos e evitar falhas de sessão em lanes de teste.
     - **Equilíbrio de Verbosidade do Terminal do Autoloop**:
       - Em `tooling/autoloop/autoloop.py` (`_emitir_evento_equilibrado`): suprimidos JSONs brutos gigantescos, chunks parciais e heartbeats internos; exibição sintetizada e limpa de marcos vitais (`[AGY] 🛠️ tool_name: target` e `[AGY] ✓ Retorno concluído`), mantendo as mensagens de progresso do modelo legíveis e livres de poluição.
-    - **Resiliência do Gate de Ciclo**:
-      - Se a verificação com `--reuse` indicar código != 0, o autoloop agora executa automaticamente a bateria completa do código atual (`npm run test:all`), eliminando o bloqueio cego por recibos defasados.
-    - Recompilado `ultra_rotina_master.js` (`npm run build`). Bateria completa 100% aprovada (229/229 suítes verdes em 18.13s, código estável, exit code 0).
+    - **Eficiência e Proteção Operacional Implementadas**:
+      - Timeout protetor de 25 min (`timeout=1500`) em `tooling/autoloop/autoloop.py` para evitar loops infinitos ou travamentos de socket da API durante a noite.
+      - Retenção automática de relatórios em `scripts/run_tests.cjs`, mantendo apenas os 10 relatórios mais recentes em `data/test_reports/` e eliminando inchaço de disco e overhead de I/O.
+      - Salvaguarda automática de commit: se a bateria de testes for aprovada mas o modelo não tiver emitido commit antes de fechar o ciclo, o orquestrador consolida automaticamente as alterações para não perder trabalho validado.
+      - `tests/test_autoloop_orchestrator.py` corrigido para utilizar `sys.executable`, garantindo execução no virtualenv do projeto.
+    - Recompilado `ultra_rotina_master.js` (`npm run build`). Bateria completa 100% aprovada (229/229 suítes verdes em 18.09s, código estável, exit code 0).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
