@@ -30,6 +30,7 @@
     - **Validação e Resultados**:
       * 100% aprovado em `tests/test_soap_ef_organizacao_ux.cjs`, `tests/test_ambulatorio_ux.cjs`, `tests/test_soap_modo_e_receita_ux.cjs` e `tests/test_ef_normal_completo.cjs`.
 
+0C9. [x] **Mapeador Inteligente de Testes Afetados (--affected Watch-Diff) (`scripts/run_tests.cjs`, `package.json` e `tests/test_autoloop_runner.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em tarefas atômicas onde o desenvolvedor ou agente editava um único módulo de UI ou utilitário, o comando de testes executava as 49 suítes completas do baseline (~8.08s).
       * A telemetria apontou que baterias completas foram disparadas desnecessariamente 58 vezes (`testes_finais_ciclo`), acumulando tempo ocioso e gasto redundante de ciclos de CPU durante as iterações internas.
