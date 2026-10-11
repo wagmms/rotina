@@ -615,7 +615,7 @@ def classificar_risco_release(base_sha=None, candidate_sha=None):
     return classificar_perfil_release(base_sha=base_sha, candidate_sha=candidate_sha, repo_dir=os.getcwd())
 
 
-def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_tarefa=None, timeout=300):
+def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_tarefa=None, timeout=600):
     """
     Recupera ou executa a auditoria cruzada do release candidato via Codex CLI.
     Garante:
