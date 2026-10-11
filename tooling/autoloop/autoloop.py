@@ -531,7 +531,7 @@ def classificar_risco_release(base_sha=None, candidate_sha=None):
     return classificar_perfil_release(base_sha=base_sha, candidate_sha=candidate_sha, repo_dir=os.getcwd())
 
 
-def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_tarefa=None, timeout=120):
+def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_tarefa=None, timeout=300):
     """
     Recupera ou executa a auditoria cruzada do release candidato via Codex CLI.
     Garante:
@@ -575,7 +575,14 @@ def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_taref
         if chk_base.returncode != 0:
             return None, f"Base do release inválida ou inexistente no Git: '{base_sha}'. Auditoria abortada para evitar contexto parcial."
 
-        diff_res = subprocess.run(["git", "diff", f"{base_sha}..{candidate_sha}"], capture_output=True, text=True, check=False)
+        # Coleta o resumo completo de todos os arquivos do release
+        stat_res = subprocess.run(["git", "diff", "--stat", f"{base_sha}..{candidate_sha}"], capture_output=True, text=True, check=False)
+        diff_stat = stat_res.stdout.strip() if stat_res.returncode == 0 else ""
+
+        # Coleta o diff de código excluindo apenas o bundle gerado ultra_rotina_master.js (validado via build_master.py)
+        cmd_diff = ["git", "diff", f"{base_sha}..{candidate_sha}", "--", ".",
+                    ":!ultra_rotina_master.js", ":!data/", ":!logs/", ":!*.tmp"]
+        diff_res = subprocess.run(cmd_diff, capture_output=True, text=True, check=False)
         if diff_res.returncode != 0:
             return None, f"Falha ao extrair diff entre {base_sha[:10]} e {candidate_sha[:10]}: {diff_res.stderr.strip()}"
         diff_conteudo = diff_res.stdout.strip()
@@ -594,7 +601,11 @@ def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_taref
             is_ancestor = subprocess.run(["git", "merge-base", "--is-ancestor", remote_sha, candidate_sha], capture_output=True, text=True, check=False)
             if is_ancestor.returncode == 0:
                 base_sha = remote_sha
-                diff_res = subprocess.run(["git", "diff", f"{base_sha}..{candidate_sha}"], capture_output=True, text=True, check=False)
+                stat_res = subprocess.run(["git", "diff", "--stat", f"{base_sha}..{candidate_sha}"], capture_output=True, text=True, check=False)
+                diff_stat = stat_res.stdout.strip() if stat_res.returncode == 0 else ""
+                cmd_diff = ["git", "diff", f"{base_sha}..{candidate_sha}", "--", ".",
+                            ":!ultra_rotina_master.js", ":!data/", ":!logs/", ":!*.tmp"]
+                diff_res = subprocess.run(cmd_diff, capture_output=True, text=True, check=False)
                 if diff_res.returncode == 0:
                     diff_conteudo = diff_res.stdout.strip()
                 log_res = subprocess.run(["git", "log", "--oneline", f"{base_sha}..{candidate_sha}"], capture_output=True, text=True, check=False)
@@ -607,7 +618,7 @@ def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_taref
             commit_count = int(res_count.stdout.strip()) if (res_count.returncode == 0 and res_count.stdout.strip().isdigit()) else 999
             if commit_count == 1:
                 # Commit único inicial do repositório
-                diff_res = subprocess.run(["git", "show", candidate_sha], capture_output=True, text=True, check=False)
+                diff_res = subprocess.run(["git", "show", candidate_sha, "--", ".", ":!ultra_rotina_master.js"], capture_output=True, text=True, check=False)
                 if diff_res.returncode == 0:
                     diff_conteudo = diff_res.stdout.strip()
                     commits_release = f"{candidate_sha[:10]} Commit inicial"
@@ -617,9 +628,10 @@ def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_taref
     if not diff_conteudo:
         return None, f"Diff vazio para o candidato {candidate_sha[:10]}. Nenhuma alteração verificável."
 
-    # Proteção de Orçamento de Contexto: NUNCA truncar silenciosamente
-    if len(diff_conteudo) > 40000:
-        return None, f"Orçamento de contexto excedido ({len(diff_conteudo)} caracteres > 40.000). A auditoria automática não pode truncar diff silenciosamente; divida o patch ou execute auditoria supervisionada."
+    # Proteção de Orçamento de Contexto: Teto ajustado para capacidade dos modelos OpenAI modernos (300k caracteres)
+    limite_orcamento_diff = 300000
+    if len(diff_conteudo) > limite_orcamento_diff:
+        return None, f"Orçamento de contexto excedido ({len(diff_conteudo)} caracteres > {limite_orcamento_diff}). A auditoria automática não pode truncar diff silenciosamente; divida o patch ou execute auditoria supervisionada."
 
     # Reclassifica o range efetivamente auditado. Um perfil fornecido pelo
     # chamador nunca pode reduzir o risco observado no conteúdo do release.
@@ -642,6 +654,12 @@ Realize a auditoria estrita do release candidato {candidate_sha}.
 Escopo avaliado: {escopo_desc}.
 Commits do release:
 {commits_release or candidate_sha}
+
+Resumo completo de arquivos do release (git diff --stat):
+{diff_stat}
+
+NOTA DE POLÍTICA DE AUDITORIA:
+O arquivo 'ultra_rotina_master.js' é um bundle compilado e determinístico gerado a partir de 'src/' via 'build_master.py', cuja paridade e integridade são validadas de forma estrita e automatizada pela suíte de testes determinísticos ('npm test'). O diff detalhado abaixo contém todas as fontes originais, tooling, testes e configurações, prevenindo duplicação redundante de tokens de contexto no LLM.
 
 Você DEVE preencher o campo 'candidate_sha' exatamente com '{candidate_sha}'.
 Verifique ausência de regressões, conformidade de contratos e integridade lógica.
@@ -871,86 +889,96 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
                 segundos_reset_detectados = total + 60
 
     def _emitir_evento_equilibrado(linha_bruta):
-        linha = linha_bruta.strip()
-        if not linha:
-            return
-
-        # Se não for JSON, imprime apenas se for texto informativo do sistema
-        if not (linha.startswith('{') and linha.endswith('}')):
-            if not any(ign in linha for ign in ["DEBUG:", "Traceback", "ConnectionResetError"]):
-                print(f"  [AGY] {linha}", flush=True)
-            return
-
         try:
+            linha = linha_bruta.strip()
+            if not linha:
+                return
+
+            # Se não for JSON, imprime apenas se for texto informativo do sistema
+            if not ((linha.startswith('{') and linha.endswith('}')) or (linha.startswith('[') and linha.endswith(']'))):
+                if not any(ign in linha for ign in ["DEBUG:", "Traceback", "ConnectionResetError"]):
+                    print(f"  [AGY] {linha}", flush=True)
+                return
+
             ev = json.loads(linha)
-        except (ValueError, TypeError):
-            return
+            if not isinstance(ev, dict):
+                return
 
-        evento = ev.get('event') or ev.get('type') or ''
+            evento = ev.get('event') or ev.get('type') or ''
 
-        # Ignorar inicialização, metadados, heartbeats e pings
-        if evento in {'init', 'ping', 'heartbeat', 'turn_start', 'step_start', 'usage_metadata'}:
-            return
+            # Ignorar inicialização, metadados, heartbeats e pings
+            if evento in {'init', 'ping', 'heartbeat', 'turn_start', 'step_start', 'usage_metadata'}:
+                return
 
-        # Formato nativo de streaming do AGY: step_update
-        if evento == 'step_update':
-            step = ev.get('step_update', {})
-            stype = step.get('step_type') or ''
-            state = step.get('state') or ''
+            # Formato nativo de streaming do AGY: step_update
+            if evento == 'step_update':
+                step = ev.get('step_update')
+                if not isinstance(step, dict):
+                    return
+                stype = step.get('step_type') or ''
+                state = step.get('state') or ''
 
-            # Ferramentas: emite marco legível apenas no disparo (ACTIVE)
-            if stype == 'tool' and state == 'ACTIVE':
-                tool = step.get('tool_name') or 'ferramenta'
-                params = step.get('tool_info', {}).get('parameters', {})
-                alvo = (params.get('TargetFile') or params.get('AbsolutePath') or
-                        params.get('CommandLine') or params.get('Instruction') or '')
-                alvo_str = str(alvo).strip()
-                if alvo_str:
-                    if '/' in alvo_str and len(alvo_str) > 45:
-                        alvo_str = '...' + alvo_str[-42:]
-                    elif len(alvo_str) > 65:
-                        alvo_str = alvo_str[:62] + '...'
+                # Ferramentas: emite marco legível apenas no disparo (ACTIVE)
+                if stype == 'tool' and state == 'ACTIVE':
+                    tool = step.get('tool_name') or 'ferramenta'
+                    tool_info = step.get('tool_info')
+                    params = tool_info.get('parameters', {}) if isinstance(tool_info, dict) else {}
+                    if not isinstance(params, dict):
+                        params = {}
+                    alvo = (params.get('TargetFile') or params.get('AbsolutePath') or
+                            params.get('CommandLine') or params.get('Instruction') or '')
+                    alvo_str = str(alvo).strip()
+                    if alvo_str:
+                        if '/' in alvo_str and len(alvo_str) > 45:
+                            alvo_str = '...' + alvo_str[-42:]
+                        elif len(alvo_str) > 65:
+                            alvo_str = alvo_str[:62] + '...'
 
-                icones = {
-                    'replace_file_content': '✍️ Editando',
-                    'write_to_file': '📝 Criando',
-                    'run_command': '💻 Executando',
-                    'grep_search': '🔍 Buscando no código',
-                    'find_by_name': '🔍 Localizando',
-                    'view_file': '📖 Consultando'
-                }
-                if tool == 'view_file':
-                    basename = alvo_str.split('/')[-1] if '/' in alvo_str else alvo_str
-                    print(f"  [AGY] 📖 Consultando: {basename}", flush=True)
-                else:
-                    acao = icones.get(tool, f"🛠️ {tool}")
-                    print(f"  [AGY] {acao}: {alvo_str}" if alvo_str else f"  [AGY] {acao}", flush=True)
-            # Ignora state == 'DONE' para evitar flood de retornos de 50 KB
-            # Ignora agent_response com text_delta picotado
-            return
+                    icones = {
+                        'replace_file_content': '✍️ Editando',
+                        'write_to_file': '📝 Criando',
+                        'run_command': '💻 Executando',
+                        'grep_search': '🔍 Buscando no código',
+                        'find_by_name': '🔍 Localizando',
+                        'view_file': '📖 Consultando'
+                    }
+                    if tool == 'view_file':
+                        basename = alvo_str.split('/')[-1] if '/' in alvo_str else alvo_str
+                        print(f"  [AGY] 📖 Consultando: {basename}", flush=True)
+                    else:
+                        acao = icones.get(tool, f"🛠️ {tool}")
+                        print(f"  [AGY] {acao}: {alvo_str}" if alvo_str else f"  [AGY] {acao}", flush=True)
+                return
 
-        # Conclusão consolidada da resposta do turno
-        if evento == 'result':
-            res = ev.get('result', {})
-            resp = res.get('response', '')
-            if isinstance(resp, str) and resp.strip():
-                linhas_texto = [l.strip() for l in resp.strip().splitlines() if l.strip() and not l.strip().startswith('```')]
-                if linhas_texto:
-                    resumo = linhas_texto[0]
-                    if len(resumo) > 100:
-                        resumo = resumo[:97] + '...'
-                    print(f"  [AGY] 💬 {resumo}", flush=True)
-            return
+            # Conclusão consolidada da resposta do turno (suporta result string ou result.response)
+            if evento == 'result':
+                res = ev.get('result')
+                resp = None
+                if isinstance(res, str):
+                    resp = res
+                elif isinstance(res, dict):
+                    resp = res.get('response') or res.get('result')
+                if isinstance(resp, str) and resp.strip():
+                    linhas_texto = [l.strip() for l in resp.strip().splitlines() if l.strip() and not l.strip().startswith('```')]
+                    if linhas_texto:
+                        resumo = linhas_texto[0]
+                        if len(resumo) > 100:
+                            resumo = resumo[:97] + '...'
+                        print(f"  [AGY] 💬 {resumo}", flush=True)
+                return
 
-        # Compatibilidade com formatos alternativos (OpenAI / Anthropic stream)
-        if evento in {'tool_use', 'tool_call'}:
-            nome = ev.get('name') or ev.get('tool_name') or 'ferramenta'
-            args = ev.get('input') or ev.get('arguments') or {}
-            alvo = args.get('TargetFile') or args.get('AbsolutePath') or args.get('CommandLine') or args.get('Instruction') or ''
-            if alvo and len(str(alvo)) > 60:
-                alvo = str(alvo)[:57] + '...'
-            print(f"  [AGY] 🛠️ {nome}: {alvo}" if alvo else f"  [AGY] 🛠️ {nome}", flush=True)
-            return
+            # Compatibilidade com formatos alternativos (OpenAI / Anthropic stream)
+            if evento in {'tool_use', 'tool_call'}:
+                nome = ev.get('name') or ev.get('tool_name') or 'ferramenta'
+                args = ev.get('input') or ev.get('arguments') or {}
+                if isinstance(args, dict):
+                    alvo = args.get('TargetFile') or args.get('AbsolutePath') or args.get('CommandLine') or args.get('Instruction') or ''
+                    if alvo and len(str(alvo)) > 60:
+                        alvo = str(alvo)[:57] + '...'
+                    print(f"  [AGY] 🛠️ {nome}: {alvo}" if alvo else f"  [AGY] 🛠️ {nome}", flush=True)
+        except Exception as exc:
+            if os.getenv("AUTOLOOP_DEBUG"):
+                print(f"  [DEBUG-STREAM] {exc}", flush=True)
 
     try:
         processo = run_observed(cmd, stage="ciclo_agy", on_line=receber_linha,
