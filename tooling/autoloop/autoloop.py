@@ -922,16 +922,19 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
 
     # Mantém o PROGRESS.md enxuto (5-10 KB) arquivando no CHANGELOG.md automaticamente
     try:
-        if garantir_progress_enxuto(".", titulo_projeto="Ultra Rotina"):
-            log("INFO", "🧹 PROGRESS.md otimizado: histórico antigo arquivado em CHANGELOG.md.")
+        garantir_progress_enxuto(".", titulo_projeto="Ultra Rotina")
     except Exception:
         pass
 
-    print("\n" + "=" * 70)
-    log("INFO", f"Iniciando ciclo na {CORES['bold']}Conta {num_conta}{CORES['reset']} ({email})")
-    log("INFO", f"Modelo ativo: {CORES['bold']}{CORES['green']}{nome_modelo}{CORES['reset']} (`{id_modelo}`)")
-    log("PAPEIS", f"Execução individual por padrão; papéis disponíveis sob demanda: {nome_squad} ([{', '.join(a['id'] for a in lista_agentes)}])")
-    print("=" * 70)
+    print(f"\n{CORES['bold']}{'─' * 60}{CORES['reset']}")
+    foco_tarefa = ""
+    if tarefa_ativa:
+        primeira_l = tarefa_ativa.splitlines()[0].strip()
+        primeira_l_limpa = re.sub(r'^\s*(?:\d+\.|\-)\s*\[ \]\s*', '', primeira_l).strip()
+        if primeira_l_limpa:
+            foco_tarefa = f"\n  🎯 {CORES['bold']}{primeira_l_limpa[:70]}{CORES['reset']}"
+    log("CICLO", f"Conta {num_conta} ({email}) | {CORES['bold']}{CORES['green']}{nome_modelo}{CORES['reset']}{foco_tarefa}")
+    print(f"{CORES['bold']}{'─' * 60}{CORES['reset']}")
 
     if forever:
         diretriz_kaizen = """5. DIRETRIZ ABSOLUTA DO USUÁRIO (CONSERTO DE ERROS, TESTES CONTÍNUOS E OTIMIZAÇÃO DA EXPERIÊNCIA):
@@ -962,6 +965,8 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
     indicadores_cota = set()
     consumo = UsageMeter()
     inicio_inferencia = time.monotonic()
+    ultimo_arquivo_lido = None
+    ultimo_resumo_turno = None
 
     def receber_linha(linha):
         nonlocal segundos_reset_detectados
@@ -984,14 +989,16 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
                 segundos_reset_detectados = total + 60
 
     def _emitir_evento_equilibrado(linha_bruta):
+        nonlocal ultimo_arquivo_lido, ultimo_resumo_turno
         try:
             linha = linha_bruta.strip()
             if not linha:
                 return
 
-            # Se não for JSON, imprime apenas se for texto informativo do sistema
+            # Se não for JSON, imprime apenas se for aviso/erro explícito da CLI do AGY
             if not ((linha.startswith('{') and linha.endswith('}')) or (linha.startswith('[') and linha.endswith(']'))):
-                if not any(ign in linha for ign in ["DEBUG:", "Traceback", "ConnectionResetError"]):
+                # Ignora dumps longos de subprocessos, tracebacks e ruídos internos
+                if len(linha) <= 120 and any(linha.startswith(p) for p in ["[AGY]", "WARNING:", "ERROR:", "Notice:", "agy:"]):
                     print(f"  [AGY] {linha}", flush=True)
                 return
 
@@ -1024,25 +1031,29 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
                             params.get('CommandLine') or params.get('Instruction') or '')
                     alvo_str = str(alvo).strip()
                     if alvo_str:
-                        if '/' in alvo_str and len(alvo_str) > 45:
-                            alvo_str = '...' + alvo_str[-42:]
+                        if '/' in alvo_str and len(alvo_str) > 50:
+                            alvo_str = '...' + alvo_str[-47:]
                         elif len(alvo_str) > 65:
                             alvo_str = alvo_str[:62] + '...'
 
+                    # Leituras de arquivos: evita repetições consecutivas do mesmo arquivo
+                    if tool == 'view_file':
+                        basename = alvo_str.split('/')[-1] if '/' in alvo_str else alvo_str
+                        if basename != ultimo_arquivo_lido:
+                            ultimo_arquivo_lido = basename
+                            print(f"  [AGY] 📖 Consultando: {basename}", flush=True)
+                        return
+
+                    # Ações ativas no sistema: exibe claramente para demonstrar avanço
                     icones = {
                         'replace_file_content': '✍️ Editando',
                         'write_to_file': '📝 Criando',
                         'run_command': '💻 Executando',
-                        'grep_search': '🔍 Buscando no código',
+                        'grep_search': '🔍 Buscando',
                         'find_by_name': '🔍 Localizando',
-                        'view_file': '📖 Consultando'
                     }
-                    if tool == 'view_file':
-                        basename = alvo_str.split('/')[-1] if '/' in alvo_str else alvo_str
-                        print(f"  [AGY] 📖 Consultando: {basename}", flush=True)
-                    else:
-                        acao = icones.get(tool, f"🛠️ {tool}")
-                        print(f"  [AGY] {acao}: {alvo_str}" if alvo_str else f"  [AGY] {acao}", flush=True)
+                    acao = icones.get(tool, f"🛠️ {tool}")
+                    print(f"  [AGY] {acao}: {alvo_str}" if alvo_str else f"  [AGY] {acao}", flush=True)
                 return
 
             # Conclusão consolidada da resposta do turno (suporta result string ou result.response)
@@ -1057,9 +1068,11 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
                     linhas_texto = [l.strip() for l in resp.strip().splitlines() if l.strip() and not l.strip().startswith('```')]
                     if linhas_texto:
                         resumo = linhas_texto[0]
-                        if len(resumo) > 100:
-                            resumo = resumo[:97] + '...'
-                        print(f"  [AGY] 💬 {resumo}", flush=True)
+                        if len(resumo) > 90:
+                            resumo = resumo[:87] + '...'
+                        if resumo != ultimo_resumo_turno:
+                            ultimo_resumo_turno = resumo
+                            print(f"  [AGY] 💬 {resumo}", flush=True)
                 return
 
             # Compatibilidade com formatos alternativos (OpenAI / Anthropic stream)
@@ -1140,10 +1153,10 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
 
     verificacao = executar_etapa(["npm", "run", "test:all", "--", "--reuse"], "testes_finais_ciclo", timeout=1800)
     if verificacao.returncode != 0:
-        log("AVISO", "Validação com --reuse indicou inconsistência prévia. Executando bateria completa do código atual...")
+        log("INFO", "🧪 Alterações detectadas: executando bateria completa de testes...")
         verificacao = executar_etapa(["npm", "run", "test:all"], "testes_finais_ciclo_completo", timeout=1800)
     if verificacao.returncode != 0:
-        log("ERRO", "Ciclo incompleto: bateria final falhou, expirou ou o código mudou. Sem aprovação.")
+        log("ERRO", "Ciclo incompleto: bateria final falhou ou expirou. Sem aprovação.")
         return False
 
     # Salvaguarda de commit: consolida alterações aprovadas se o agente não tiver commitado
@@ -1152,14 +1165,14 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
         if status_git:
             linhas_mod = [l for l in status_git.splitlines() if not l.startswith('?? data/') and not l.startswith('?? logs/')]
             if linhas_mod:
-                log("INFO", "Arquivos modificados detectados após testes aprovados. Consolidando commit de salvaguarda...")
                 subprocess.run(["git", "add", "src/", "tests/", "PROGRESS.md", "ultra_rotina_master.js"], capture_output=True)
                 msg_salvaguarda = f"fix(autoloop): consolidar alteracoes do ciclo aprovado ({nome_modelo})"
                 subprocess.run(["git", "commit", "-m", msg_salvaguarda], capture_output=True)
+                log("INFO", "💾 Commit de salvaguarda consolidado para o ciclo.")
     except Exception as e_git:
         log("AVISO", f"Falha na salvaguarda de commit: {e_git}")
 
-    log("OK", f"Ciclo finalizado com sucesso com {nome_modelo} na Conta {num_conta} ({nome_squad}).")
+    log("OK", f"Ciclo concluído com sucesso ({nome_modelo} na Conta {num_conta}).")
     try:
         enviar_relatorio_ciclo_rotina(nome_modelo, num_conta, nome_squad)
     except Exception as e:
@@ -1226,8 +1239,6 @@ def enviar_relatorio_ciclo_rotina(nome_modelo, num_conta, nome_squad="Squad Padr
     if notificar_telegram:
         enviar_relatorio_telegram(texto_html)
         log("TELEGRAM", "📲 Relatório do ciclo enviado ao Telegram com sucesso.")
-    else:
-        log("INFO", "📝 Resumo do ciclo persistido localmente (notificação no Telegram desativada para tarefas individuais; reservada a deploys de 6h).")
 
 STATE_DEPLOY_FILE = Path("data/.autoloop_deploy_state.json")
 
@@ -2204,23 +2215,12 @@ def main():
 
     forever_mode = not args.stop_on_done
 
-    print(f"\n{CORES['bold']}{CORES['cyan']}🤖 Iniciando Autoloop - Rotação Autônoma Multi-Contas & Multi-Modelos{CORES['reset']}")
-    print(f"📁 Diretório de trabalho: {os.getcwd()}")
-    print(f"👥 Contas ativas no pool: {contas_config}")
-    print(f"⚡ Squad Multi-Agente: {CORES['bold']}{CORES['green']}{args.squad.upper()}{CORES['reset']} (papéis sob demanda; velocidade será medida)")
-    if args.subagents:
-        print(f"🧩 Subagentes Customizados: {CORES['cyan']}{args.subagents}{CORES['reset']}")
-    print(f"♾️ Modo de Execução: {'PERPÉTUO (Kaizen Contínuo)' if forever_mode else 'Parar ao Concluir'}")
-    if smart_mode:
-        print(f"🧠 Roteador Semântico: {CORES['green']}ATIVO (Pro obrigatório para conteúdo clínico; Flash para engenharia){CORES['reset']}")
-    else:
-        print(f"🔄 Ordem de Fallback Fixa:")
-        for i, (nome, mid) in enumerate(modelos_selecionados or MODELOS_PADRAO, 1):
-            print(f"   {i}. {nome} (`{mid}`)")
-    print(f"🎯 Objetivo: {args.objetivo}\n")
+    print(f"\n{CORES['bold']}{CORES['cyan']}🤖 Autoloop Iniciado{CORES['reset']} | Pool: {contas_config} | Squad: {args.squad.upper()}")
+    print(f"♾️ Modo: {'PERPÉTUO (Kaizen Contínuo)' if forever_mode else 'Parar ao Concluir'} | Roteador: {'Ativo (Flash/Pro)' if smart_mode else 'Fixo'}")
+    print(f"🎯 Objetivo: {args.objetivo}")
 
     if not args.no_auto_deploy:
-        log("INFO", f"⏰ Deploy Automático Programado: a cada {args.deploy_interval:.1f} horas com relatório no Telegram.")
+        log("INFO", f"⏰ Deploy automático a cada {args.deploy_interval:.1f}h com relatório no Telegram.")
 
     while True:
         # Cancela qualquer agendamento pendente de shutdown no sistema
@@ -2250,10 +2250,6 @@ def main():
                 perfil, desc_perfil, modelos_ciclo = (classificar_pendencia(pendencia) if pendencia
                                                     else classificar_perfil_tarefa(tarefa_ativa))
                 perfil_ativo = perfil
-                primeira_linha = tarefa_ativa.splitlines()[0] if tarefa_ativa else ""
-                primeira_linha_limpa = re.sub(r'^\s*(?:\d+\.|\-)\s*\[ \]\s*', '', primeira_linha).strip()
-                log("SMART", f"🎯 Tarefa em foco: {CORES['bold']}{primeira_linha_limpa[:60]}...{CORES['reset']}")
-                log("SMART", f"🧠 Perfil: {CORES['cyan']}{perfil}{CORES['reset']} ({desc_perfil})")
             else:
                 modelos_ciclo = modelos_selecionados or MODELOS_PADRAO
         else:

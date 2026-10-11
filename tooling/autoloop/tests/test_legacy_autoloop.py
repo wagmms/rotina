@@ -1071,3 +1071,25 @@ def test_scheduler_reaudits_ready_new_candidate_without_waiting(autoloop_mod, mo
     monkeypatch.setattr(autoloop_mod, 'executar_deploy_e_relatorio', deploy)
     assert autoloop_mod.verificar_e_executar_deploy_agendado() is ready
     assert len(calls) == int(ready)
+
+
+def test_formatador_etapa_resumido_testes(autoloop_mod, capsys):
+    handler = autoloop_mod.formatador_etapa_resumido("testes_finais_ciclo")
+    handler("[TESTES] 10 suítes; 2 processos; código abc123; dados isolados.")
+    handler("[OK] tests/test_fastify.cjs: 0.5s")
+    handler("[OK] tests/test_seguranca.cjs: 0.8s")
+    handler("[TESTES] 10/10 aprovadas; 1.30s; código estável.")
+    captured = capsys.readouterr().out
+    assert "10/10 aprovadas" in captured
+    assert "✅" in captured
+    # Não deve ter impressões de linha inteira com print comum para cada [OK]
+    assert captured.count("\n") <= 2
+
+
+def test_formatador_etapa_resumido_falha(autoloop_mod, capsys):
+    handler = autoloop_mod.formatador_etapa_resumido("testes_finais_ciclo")
+    handler("[FALHA] tests/test_erro.cjs: 0.2s (timeout)")
+    captured = capsys.readouterr().out
+    assert "❌" in captured
+    assert "test_erro.cjs" in captured
+
