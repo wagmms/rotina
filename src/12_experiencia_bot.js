@@ -267,16 +267,22 @@ function iniciarModoBot(chat, mode, novo, messageId) {
     botoesModo, messageId);
 }
 
-function enviarMenuGinecologiaObstetricia(chat, messageId) {
-  return enviarTelaBot(chat, '🌸🤰 *Hub Unificado de Ginecologia & Obstetrícia (Internato até 29/11)*\n\nEscolha o módulo de atendimento rápido:', botoesBot([
+function enviarMenuUXGinecoObstetricia(chat, messageId) {
+  var texto = '🌸🤰 *Hub Unificado de Ginecologia & Obstetrícia (Internato até 29/11)*\n\n' +
+    'Condutas imediatas, calculadoras obstétricas e guias ambulatoriais em 0ms:\n' +
+    'Selecione o submódulo de atendimento rápido:';
+  var botoes = botoesBot([
     [['🤰 Pré-Natal & DPP', 'go_prenatal'], ['🏥 Parto & Partograma', 'go_parto']],
     [['🩸 HPP (4 Ts)', 'go_hpp'], ['⚡ Pré-Eclâmpsia & MgSO4', 'go_mgso4']],
     [['👶 Prematuridade & RPMO', 'go_prematuridade'], ['🔬 Toxo & Sorologias', 'go_toxo']],
     [['🌸 Vulvovaginites', 'go_corrimento'], ['🩺 Preventivo (INCA)', 'go_preventivo']],
     [['💊 Anticoncepção OMS', 'go_anticoncepcao'], ['🩹 DIP & Infecção Pélvica', 'go_dip']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
 }
+var enviarMenuGinecologiaObstetricia = enviarMenuUXGinecoObstetricia;
+
 
 /* ========== Cenário 1: 🚨 Emergência & Sala Vermelha ========== */
 
@@ -2279,6 +2285,843 @@ function uxLinhaCopiar(chaveCache, resultado) {
   return [['📄 Texto p/ prontuário', 'ux:copiar:' + chaveCache]];
 }
 
+/* ========== Cenário GO: 🌸🤰 Ginecologia & Obstetrícia (Internato até 29/11) ========== */
+
+// 1. Pré-Natal & DPP
+function enviarTelaGOPrenatal(chat, messageId) {
+  var texto = "🤰 *CÁLCULO DE IG & ROTINA DE PRÉ-NATAL (MS & FEBRASGO)*\n\n" +
+    "• *Cronologia Obstétrica:* Cálculo de IG e DPP pela regra de Naegele e 1º USG precoce.\n" +
+    "• *Concordância FEBRASGO:* Margem de erro de 5 dias no 1º tri (CCN ≤ 8s6d) vs redatação por USG.\n" +
+    "• *Ganho de Peso IOM/MS:* Metas ponderais individualizadas pelo IMC pré-gestacional.\n" +
+    "• *Rastreio Trimestral:* Sorologias, GJ (corte 92), TOTG 75g (24-28s) e Swab GBS (35-37s).\n" +
+    "• *Segurança Farmacológica:* Validação imediata de medicamentos na gestação.\n\n" +
+    "💡 *Toque em um caso rápido abaixo para cálculo em 0ms ou envie `/prenatal [dados]`*:";
+
+  var guiaTexto = "ROTINA DE PRÉ-NATAL DE BAIXO RISCO (MINISTÉRIO DA SAÚDE / FEBRASGO)\n" +
+    "- 1º Trimestre: Tipagem ABO/Rh + Coombs indireto se Rh negativo, Hemograma, Glicemia de jejum, VDRL, Anti-HIV, HBsAg, Sorologia Toxoplasmose (IgG/IgM), EAS e Urocultura.\n" +
+    "- 2º Trimestre (24 a 28s): TOTG 75g (Cortes: Jejum ≥ 92 | 1h ≥ 180 | 2h ≥ 153 mg/dL). Coombs se Rh neg.\n" +
+    "- 3º Trimestre (28 a 36s): Repetição VDRL, Anti-HIV, HBsAg, Hemograma e Urocultura. Swab GBS entre 35-37s.\n" +
+    "- Suplementação: Ácido Fólico 400 mcg/dia pré-concepção até 12s + Sulfato Ferroso 40mg ferro elementar/dia a partir da 20ª semana.";
+
+  var cache = uxCache();
+  var ckGuia = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckGuia, guiaTexto, 21600);
+
+  var botoes = botoesBot([
+    [['🤰 Caso DUM 10/02/2026', 'ux:go:prenatal:dum'], ['💊 Auditoria Fármacos', 'ux:go:prenatal:med']],
+    [['🔬 Sorologias 1º Tri', 'ux:go:prenatal:soro']],
+    [['📋 Copiar Guia Pré-Natal', 'ux:copiar:' + ckGuia]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackGOPrenatal(chat, v, messageId) {
+  var textoRes = "";
+  if (v === 'dum') {
+    if (typeof ObstetriciaPrenatalService !== "undefined" && typeof ObstetriciaPrenatalService.gerarResumoConsultaPrenatal === "function") {
+      var r = ObstetriciaPrenatalService.gerarResumoConsultaPrenatal({ dum: '10/02/2026', pesoPreGestacional: 65, altura: 1.62 });
+      textoRes = r.sucesso ? r.textoFormatado : "Não foi possível calcular o pré-natal.";
+    } else {
+      textoRes = "CRONOLOGIA OBSTÉTRICA:\n• DUM: 10/02/2026\n• DPP (Naegele): 17/11/2026\n• Meta Ganho Ponderal IOM: 11.5 a 16.0 kg (Eutrofia).";
+    }
+  } else if (v === 'med') {
+    if (typeof ObstetriciaPrenatalService !== "undefined" && typeof ObstetriciaPrenatalService.auditarPrescricaoGestante === "function") {
+      var a = ObstetriciaPrenatalService.auditarPrescricaoGestante("Enalapril, Sinvastatina, Metildopa, Paracetamol");
+      textoRes = "AUDITORIA DE SEGURANÇA FARMACOLÓGICA NA GESTAÇÃO:\nParecer: " + a.parecerGeral + "\n";
+      if (a.contraindicados && a.contraindicados.length > 0) {
+        textoRes += "\n⛔ CONTRAINDICADOS:\n" + a.contraindicados.map(function(c) { return "• " + c.medicamento + " (" + c.classe + ") - " + c.alertas[0] + " [Alternativas: " + c.alternativasRecomendadas.join(", ") + "]"; }).join("\n");
+      }
+      if (a.seguros && a.seguros.length > 0) {
+        textoRes += "\n\n✅ SEGUROS:\n" + a.seguros.map(function(s) { return "• " + s.medicamento + " (" + s.categoriaFda + ")"; }).join("\n");
+      }
+    } else {
+      textoRes = "AUDITORIA FARMACOLÓGICA GESTANTE:\n⛔ Enalapril: Categoria D - Risco de disgenesia renal fetal e oligoidrâmnio.\n⛔ Sinvastatina: Categoria X - Contraindicação absoluta.\n✅ Metildopa e Paracetamol: Seguros na gestação.";
+    }
+  } else if (v === 'soro') {
+    if (typeof ObstetriciaPrenatalService !== "undefined" && typeof ObstetriciaPrenatalService.interpretarSorologiasLaboratorioPrenatal === "function") {
+      var s = ObstetriciaPrenatalService.interpretarSorologiasLaboratorioPrenatal({ glicemiaJejum: 94, vdrl: "não reagente", toxoIgg: "não reagente", toxoIgm: "não reagente", semanasGestacao: 12 });
+      textoRes = s.sucesso ? s.textoFormatado : "Não foi possível interpretar sorologias.";
+    } else {
+      textoRes = "INTERPRETAÇÃO DE EXAMES PRÉ-NATAL:\n• Glicemia Jejum: 94 mg/dL -> Alerta: DMG (Glicemia de jejum ≥ 92 mg/dL no 1º trimestre).\n• VDRL: Não reagente.\n• Toxoplasmose: IgG- / IgM- (Suscetível - orientar prevenção primária e sorologia trimestral).";
+    }
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoRes, 21600);
+
+  var msgCorpo = "🤰 *CONDUTA DETERMINÍSTICA DE PRÉ-NATAL:*\n\n```text\n" + textoRes + "\n```";
+  var botoes = botoesBot([
+    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, msgCorpo, botoes, messageId);
+}
+
+// 2. Parto & Partograma
+function enviarTelaGOParto(chat, messageId) {
+  var texto = "🏥 *ASSISTÊNCIA AO PARTO & CENTRO OBSTÉTRICO (MS & FEBRASGO)*\n\n" +
+    "• *Fase Ativa de Parto:* Dilatação cervical ≥ 4 cm + contrações regulares (≥ 2/10 min com ≥ 30s).\n" +
+    "• *Planos de De Lee:* Altura da apresentação (-3 a +3; plano 0 = feto insinuado nas espinhas isquiáticas).\n" +
+    "• *Índice de Bishop:* Score > 6 (colo favorável à ocitocina); ≤ 6 (colo desfavorável -> misoprostol/Foley).\n" +
+    "• *Boas Práticas:* Liberdade de movimentação, analgesia de parto, ausculta intermitente de BCF e episiotomia NÃO rotineira.\n\n" +
+    "💡 *Toque em um caso rápido abaixo para conduta em 0ms ou envie `/parto [dados]`*:";
+
+  var guiaTexto = "DIRETRIZES DE ASSISTÊNCIA AO PARTO NORMAL (MS / FEBRASGO)\n" +
+    "- Fase Ativa: Abertura de Partograma. Ausculta de BCF a cada 15-30 min. Toque vaginal a cada 2-4h.\n" +
+    "- Período Expulsivo: Puxos espontâneos, liberdade de posição materna, ausculta de BCF a cada 5 min.\n" +
+    "- 3º Período (Dequitadura): Ocitocina 10 UI IM após desprendimento do ombro anterior (prevenção padrão de HPP). Clampeamento oportuno do cordão (1 a 3 min).\n" +
+    "- 4º Período (Greenberg): Vigilância estrita de tônus uterino e sangramento nos primeiros 60 min.";
+
+  var cache = uxCache();
+  var ckGuia = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckGuia, guiaTexto, 21600);
+
+  var botoes = botoesBot([
+    [['🏥 Fase Ativa (6cm Lee 0)', 'ux:go:parto:ativa'], ['📐 Bishop Desfavorável (3 pts)', 'ux:go:parto:bishop']],
+    [['👶 Período Expulsivo (10cm)', 'ux:go:parto:expulsivo']],
+    [['📋 Copiar Guia Parto', 'ux:copiar:' + ckGuia]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackGOParto(chat, v, messageId) {
+  var textoRes = "";
+  if (v === 'ativa') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.avaliarTrabalhoParto === "function") {
+      var r = CentroObstetricoService.avaliarTrabalhoParto({ dilatacaoCm: 6, contracoes10min: 3, duracaoContracaoSeg: 45, planoDeLee: 0, bcf: 140, bolsa: 'integra', liquidoAmniotico: 'claro' });
+      var conds = (r.condutaFase || r.condutasFase || []).map(function(c){ return "• " + c; }).join("\n");
+      textoRes = "FASE CLÍNICA: " + r.faseDescricao + "\nALTURA APRESENTAÇÃO: " + (r.deLeeInfo || ("Plano " + r.planoDeLee)) + "\nESTADO DAS MEMBRANAS: Bolsa " + (r.bolsa || "íntegra") + (r.liquidoAmniotico ? " (" + r.liquidoAmniotico + ")" : "") + "\n\nCONDUTAS RECOMENDADAS:\n" + conds;
+    } else {
+      textoRes = "FASE ATIVA DE PARTO:\n• Dilatação: 6 cm | Apresentação: Plano 0 de De Lee (Insinuado) | BCF: 140 bpm.\n• Abertura imediata de partograma.\n• Ausculta intermitente de BCF a cada 15 a 30 minutos.\n• Estímulo a métodos não farmacológicos de alívio da dor.";
+    }
+  } else if (v === 'bishop') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.calcularIndiceBishop === "function") {
+      var b = CentroObstetricoService.calcularIndiceBishop({ dilatacaoCm: 2, apagamentoPct: 40, consistenciaColo: 'firme', posicaoColo: 'posterior', planoDeLee: -2 });
+      var pts = (b.pontos !== undefined) ? b.pontos : (b.scoreTotal !== undefined ? b.scoreTotal : 3);
+      var interp = b.interpretacao || b.classificacao || (b.favoravel ? "Favorável" : "Desfavorável");
+      var cond = b.condutaInducao || b.recomendacaoInducao || "";
+      textoRes = "ÍNDICE DE BISHOP: " + pts + " pontos\n" + interp + "\n\nCONDUTA E PREPARO CERVICAL:\n" + cond;
+    } else {
+      textoRes = "ÍNDICE DE BISHOP: 3 pontos (Colo Desfavorável - Score ≤ 6)\n• Conduta: Preparo cervical com Misoprostol 25 mcg vaginal a cada 4-6h ou método mecânico com Sonda de Foley (Krauss) antes da infusão de ocitocina.";
+    }
+  } else if (v === 'expulsivo') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.avaliarTrabalhoParto === "function") {
+      var exp = CentroObstetricoService.avaliarTrabalhoParto({ dilatacaoCm: 10, contracoes10min: 5, duracaoContracaoSeg: 55, planoDeLee: 3, bcf: 136 });
+      var condsExp = (exp.condutaFase || exp.condutasFase || []).map(function(c){ return "• " + c; }).join("\n");
+      textoRes = "PERÍODO EXPULSIVO DE PARTO (Fase Clínica: " + exp.faseDescricao + "):\nALTURA APRESENTAÇÃO: " + (exp.deLeeInfo || ("Plano " + exp.planoDeLee)) + "\n\nCONDUTAS IMEDIATAS:\n" + condsExp;
+    } else {
+      textoRes = "PERÍODO EXPULSIVO DE PARTO (Dilatação 10 cm, Plano +3 de De Lee):\n• Posicionamento materno livre e confortável.\n• Puxos espontâneos sincronizados com contrações.\n• Não realizar episiotomia de rotina.\n• Ocitocina 10 UI IM profilática imediatamente após desprendimento do ombro anterior.\n• Clampeamento oportuno do cordão umbilical (1 a 3 min) e contato pele a pele.";
+    }
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoRes, 21600);
+
+  var msgCorpo = "🏥 *CONDUTA DE TRABALHO DE PARTO & CO:*\n\n```text\n" + textoRes + "\n```";
+  var botoes = botoesBot([
+    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, msgCorpo, botoes, messageId);
+}
+
+// 3. Hemorragia Pós-Parto (4 Ts)
+function enviarTelaGOHpp(chat, messageId) {
+  var texto = "🩸 *HEMORRAGIA PÓS-PARTO (HPP) — PROTOCOLO 4 Ts (MS, FEBRASGO & WOMAN)*\n\n" +
+    "• *Definição:* Perda > 500 mL (vaginal) ou > 1000 mL (cesárea) ou perda associada a choque.\n" +
+    "• *Índice de Choque (FC / PAS):* ≥ 0.9 = alerta crítico; ≥ 1.0 = choque instalado / hemotransfusão.\n" +
+    "• *Mapeamento dos 4 Ts:*\n" +
+    "  1. *Tônus (70%):* Atonia uterina -> massagem bimanual + uterotônicos sequenciais.\n" +
+    "  2. *Trauma (20%):* Lacerações de trajeto, colo, hematomas e rotura uterina.\n" +
+    "  3. *Tecido (10%):* Restos placentários / acretismo.\n" +
+    "  4. *Trombina (1%):* Coagulopatias maternas e consumo de fatores.\n" +
+    "• *Sequenciamento Uterotônico:* Ocitocina -> Metilergometrina (se normotensa) -> Misoprostol 800 mcg retal -> Ácido Tranexâmico 1g IV em 10 min (janela ≤ 3h).\n\n" +
+    "💡 *Toque em um caso rápido abaixo para conduta em 0ms ou envie `/hpp [dados]`*:";
+
+  var guiaTexto = "PROTOCOLO DE ATENDIMENTO À HEMORRAGIA PÓS-PARTO (HPP)\n" +
+    "1. Massagem uterina bimanual contínua (Manobra de Hamilton).\n" +
+    "2. Uterotônicos imediatos:\n" +
+    "   - Ocitocina 5 UI IV lento + 20 a 40 UI em 500 mL SF 0,9% a 250 mL/h.\n" +
+    "   - Metilergometrina 0.2 mg IM (CONTRAINDICADA se HAS ou pré-eclâmpsia).\n" +
+    "   - Misoprostol 800 mcg retal (4 comprimidos de 200 mcg).\n" +
+    "3. Ácido Tranexâmico 1g IV em 100 mL SF 0,9% em 10 min (em até 3 horas do parto).\n" +
+    "4. Se refratário: Balão de tamponamento intrauterino (Bakri) e suturas de B-Lynch.";
+
+  var cache = uxCache();
+  var ckGuia = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckGuia, guiaTexto, 21600);
+
+  var botoes = botoesBot([
+    [['🩸 Atonia Grave (Choque IC 1.5)', 'ux:go:hpp:atonia'], ['🩹 Trauma de Canal / Laceração', 'ux:go:hpp:trauma']],
+    [['🧩 Retenção Placentária / Restos', 'ux:go:hpp:tecido']],
+    [['📋 Copiar Protocolo 4 Ts', 'ux:copiar:' + ckGuia]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackGOHpp(chat, v, messageId) {
+  var textoRes = "";
+  if (v === 'atonia') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.gerenciarHemorragiaPosParto === "function") {
+      var h = CentroObstetricoService.gerenciarHemorragiaPosParto({ perdaEstimadaMl: 1200, fc: 120, pas: 80, etiologiaSuspeita: 'tonus_atonia', tempoDecorridoMin: 45, temHipertensao: false });
+      var seq = (h.sequenciaUterotonica || []).map(function(u){ return "• Etapa " + u.etapa + ": " + u.farmaco + " (" + (u.bloqueado ? u.motivoBloqueio : u.dose) + ")"; }).join("\n");
+      var resgates = (h.medidasResgate || h.procedimentosHemostaticos || []).map(function(p){ return "• " + p; }).join("\n");
+      textoRes = "ETIOLOGIA: TÔNUS (ATONIA UTERINA)\nPERDA ESTIMADA: " + h.perdaEstimadaMl + " mL\nÍNDICE DE CHOQUE: " + h.indiceChoque + " (" + h.gravidadeChoque + ")\n" + (h.alertaChoque || "") + "\n\nSEQUENCIAMENTO UTEROTÔNICO ESCALONADO:\n" +
+        seq + "\n\nCONDUTAS HEMOSTÁTICAS E CIRÚRGICAS:\n" + resgates;
+    } else {
+      textoRes = "HEMORRAGIA PÓS-PARTO - ATONIA UTERINA GRAVE:\n• Índice de Choque: 1.5 (Choque Instalado).\n• Massagem bimanual de Hamilton imediata.\n• Ocitocina 5 UI IV lento + 20 UI em 500 mL SF.\n• Metilergonovina 0.2 mg IM + Misoprostol 800 mcg retal.\n• Ácido Tranexâmico 1g IV em 10 min.\n• Acionar protocolo de hemotransfusão maciça e balão de Bakri.";
+    }
+  } else if (v === 'trauma') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.gerenciarHemorragiaPosParto === "function") {
+      var tr = CentroObstetricoService.gerenciarHemorragiaPosParto({ perdaEstimadaMl: 650, fc: 96, pas: 110, etiologiaSuspeita: 'trauma_laceracao', tempoDecorridoMin: 20 });
+      var resgTr = (tr.medidasResgate || tr.procedimentosHemostaticos || []).map(function(p){ return "• " + p; }).join("\n");
+      textoRes = "ETIOLOGIA: TRAUMA DE CANAL DE PARTO (LACERAÇÃO)\nÍNDICE DE CHOQUE: " + tr.indiceChoque + " (" + tr.gravidadeChoque + ")\n\nCONDUTAS:\n" + resgTr;
+    } else {
+      textoRes = "HPP POR TRAUMA DE TRAJETO DE PARTO:\n• Revisão minuciosa sob valvas de parede vaginal, fórnices e colo uterino.\n• Sutura por planos de lacerações sob anestesia adequada.\n• Drenagem de hematomas expansivos se presentes.\n• Monitorização de estabilidade hemodinâmica.";
+    }
+  } else if (v === 'tecido') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.gerenciarHemorragiaPosParto === "function") {
+      var te = CentroObstetricoService.gerenciarHemorragiaPosParto({ perdaEstimadaMl: 800, fc: 105, pas: 95, etiologiaSuspeita: 'tecido_restos', tempoDecorridoMin: 35 });
+      var resgTe = (te.medidasResgate || te.procedimentosHemostaticos || []).map(function(p){ return "• " + p; }).join("\n");
+      textoRes = "ETIOLOGIA: RETENÇÃO TECIDUAL (RESTOS PLACENTÁRIOS)\nÍNDICE DE CHOQUE: " + te.indiceChoque + " (" + te.gravidadeChoque + ")\n\nCONDUTAS:\n" + resgTe;
+    } else {
+      textoRes = "HPP POR RETENÇÃO PLACENTÁRIA:\n• Curagem ou curetagem uterina sob sedação/anestesia.\n• Manutenção de infusão contínua de ocitocina.\n• Profilaxia antimicrobiana.\n• Vigilância de sangramento e hemograma de controle.";
+    }
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoRes, 21600);
+
+  var msgCorpo = "🩸 *CONDUTA DE HEMORRAGIA PÓS-PARTO (HPP):*\n\n```text\n" + textoRes + "\n```";
+  var botoes = botoesBot([
+    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, msgCorpo, botoes, messageId);
+}
+
+// 4. Pré-Eclâmpsia & MgSO4
+function enviarTelaGOMgso4(chat, messageId) {
+  var texto = "⚡ *PRÉ-ECLÂMPSIA GRAVE & SULFATO DE MAGNÉSIO (ZUSPAN & PRITCHARD)*\n\n" +
+    "• *Critérios de Gravidade:* PA ≥ 160/110 mmHg ou PA ≥ 140/90 com plaquetas < 100k, Cr > 1.1, transaminases elevadas 2x, edema pulmonar ou cefaleia/escotomas refratários.\n" +
+    "• *Esquema de Zuspan (Preferencial IV):*\n" +
+    "  - *Ataque:* 4g IV (8 mL MgSO4 50% + 12 mL AD) infundidos em 20 minutos.\n" +
+    "  - *Manutenção:* 1 a 2 g/h em BIC contínua por 24 horas pós-parto.\n" +
+    "• *Tríade de Vigilância:* Reflexo patelar presente, FR ≥ 16 irpm e Diurese ≥ 25 mL/h.\n" +
+    "• *Antídoto Imediato:* Gluconato de Cálcio 10% 10 mL IV em 3 a 5 minutos.\n" +
+    "• *Crise Hipertensiva (PA ≥ 160/110):* Hidralazina 5 mg IV lento q20min (max 20mg) ou Nifedipino 10-20 mg VO. Alvo: PAD 90-100 mmHg.\n\n" +
+    "💡 *Toque em um caso rápido abaixo para conduta em 0ms ou envie `/mgso4 [dados]`*:";
+
+  var guiaTexto = "MANEJO DE PRÉ-ECLÂMPSIA GRAVE E CRISE HIPERTENSIVA OBSTÉTRICA\n" +
+    "1. Prevenção de Convulsões (Sulfato de Magnésio - Zuspan):\n" +
+    "   - Ataque: 4g IV em 20 min (8 mL MgSO4 50% + 12 mL AD).\n" +
+    "   - Manutenção: 1g/h em BIC contínua (MgSO4 50% 10 mL + SG 5% 490 mL a 100 mL/h).\n" +
+    "2. Monitorização horária:\n" +
+    "   - Reflexo patelar presente.\n" +
+    "   - Frequência respiratória ≥ 16 irpm.\n" +
+    "   - Diurese em sonda vesical ≥ 25 mL/h.\n" +
+    "3. Antídoto: Gluconato de Cálcio 10% 10 mL IV lento se hiporreflexia ou FR < 16.\n" +
+    "4. Anti-hipertensivo na crise: Hidralazina 5 mg IV a cada 20 min até PA < 160/110 mmHg.";
+
+  var cache = uxCache();
+  var ckGuia = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckGuia, guiaTexto, 21600);
+
+  var botoes = botoesBot([
+    [['⚡ Esquema Zuspan (4g + 1-2g/h)', 'ux:go:mgso4:zuspan'], ['💉 Crise HAS (PA 170x110)', 'ux:go:mgso4:crise']],
+    [['⚠️ Intoxicação por Magnésio', 'ux:go:mgso4:intox']],
+    [['📋 Copiar Protocolo MgSO4', 'ux:copiar:' + ckGuia]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackGOMgso4(chat, v, messageId) {
+  var textoRes = "";
+  if (v === 'zuspan') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.prescreverSulfatoMagnesio === "function") {
+      var z = CentroObstetricoService.prescreverSulfatoMagnesio({ esquema: 'Zuspan', frequenciaRespiratoria: 18, diureseMlHora: 35, reflexoPatelar: true });
+      var atq = (z.prescricao && z.prescricao.ataque) ? z.prescricao.ataque.join("\n") : (z.doseAtaque ? z.doseAtaque.dose : "MgSO4 50% 8 mL + AD 12 mL IV em 20 min");
+      var man = (z.prescricao && z.prescricao.manutencao) ? z.prescricao.manutencao.join("\n") : (z.doseManutencao ? z.doseManutencao.dose : "1 a 2 g/h em BIC contínua");
+      var vig = (z.rotinaVigilancia || z.vigilanciaClinica || []).map(function(vg){ return "• " + vg; }).join("\n");
+      textoRes = "ESQUEMA: " + z.esquema + " (Sulfato de Magnésio)\n" +
+        "• " + atq + "\n" +
+        "• " + man + "\n" +
+        "\nCRITÉRIOS DE SEGURANÇA E VIGILÂNCIA:\n" + vig +
+        "\n\nANTÍDOTO DE EMERGÊNCIA:\n• Gluconato de Cálcio 10% 10 mL IV em 3 a 5 minutos se toxicidade.";
+    } else {
+      textoRes = "PRESCRIÇÃO SULFATO DE MAGNÉSIO (ZUSPAN):\n• Ataque: MgSO4 50% 8 mL + AD 12 mL IV em 20 min.\n• Manutenção: MgSO4 50% 10 mL + SG 5% 490 mL a 100 mL/h (1 g/h) em BIC.\n• Vigilância: FR ≥ 16, Reflexo patelar +, Diurese ≥ 25 mL/h.\n• Antídoto: Gluconato de cálcio 10% 10 mL IV em 3-5 min.";
+    }
+  } else if (v === 'crise') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.manejarCriseHipertensiva === "function") {
+      var cr = CentroObstetricoService.manejarCriseHipertensiva({ pas: 175, pad: 115, frequenciaCardiaca: 88, medicacaoPrimeiraLinha: 'hidralazina' });
+      var condsCr = (cr.condutas || []).join("\n");
+      var medsCr = (cr.medicacoes || []).map(function(m){ return "• " + m.farmaco + ": " + (m.posologia || m.dose); }).join("\n");
+      textoRes = "CRISE HIPERTENSIVA OBSTÉTRICA (PA " + cr.pas + "/" + cr.pad + " mmHg):\n" +
+        condsCr + "\n\nMEDICAÇÕES ANTI-HIPERTENSIVAS:\n" + medsCr;
+    } else {
+      textoRes = "CRISE HIPERTENSIVA NA GESTAÇÃO:\n• PA: 175/115 mmHg.\n• 1ª Linha: Hidralazina 5 mg IV lento (repetir a cada 20 min até max 20 mg).\n• Alternativa: Nifedipino 10 a 20 mg VO (repetir em 20-30 min).\n• Alvo: PAS 140-150 e PAD 90-100 mmHg. Evitar quedas bruscas pelo risco de sofrimento fetal.";
+    }
+  } else if (v === 'intox') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.prescreverSulfatoMagnesio === "function") {
+      var it = CentroObstetricoService.prescreverSulfatoMagnesio({ esquema: 'Zuspan', frequenciaRespiratoria: 11, diureseMlHora: 15, reflexoPatelar: false });
+      var alertasIt = (it.alertasIntoxicacao || []).join("\n");
+      var condIt = it.condutaIntoxicacao ? ("Suspender infusão de Sulfato de Magnésio imediatamente:\n• " + it.condutaIntoxicacao.acaoImediata + "\n• " + it.condutaIntoxicacao.antidoto + "\n• " + it.condutaIntoxicacao.suporte) : "Suspender infusão e infundir Gluconato de Cálcio 10% 10 mL IV";
+      textoRes = "⚠️ ALERTA VERMELHO: INTOXICAÇÃO POR SULFATO DE MAGNÉSIO!\n" +
+        alertasIt + "\n\nCONDUTA IMEDIATA:\n• " + condIt;
+    } else {
+      textoRes = "INTOXICAÇÃO POR MAGNÉSIO:\n• Suspender MgSO4 imediatamente.\n• Administrar Gluconato de Cálcio 10% 10 mL IV em 3 a 5 min.\n• Suporte ventilatório e O2.";
+    }
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoRes, 21600);
+
+  var msgCorpo = "⚡ *CONDUTA DE PRÉ-ECLÂMPSIA & MgSO4:*\n\n```text\n" + textoRes + "\n```";
+  var botoes = botoesBot([
+    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, msgCorpo, botoes, messageId);
+}
+
+// 5. Prematuridade & RPMO
+function enviarTelaGOPrematuridade(chat, messageId) {
+  var texto = "👶 *TRABALHO DE PARTO PREMATURO & RPMO (FEBRASGO & ACOG)*\n\n" +
+    "• *Corticoterapia Pulmonar (24 a 34 semanas):* Betametasona 12 mg IM q24h (2 doses) ou Dexametasona 6 mg IM q12h (4 doses).\n" +
+    "• *Neuroproteção (< 32 semanas se parto iminente):* Sulfato de Magnésio 4g IV ataque em 20 min + 1g/h até o parto (max 24h). Previne paralisia cerebral.\n" +
+    "• *Tocólise Aguda por 48h (24 a 34 semanas):* Nifedipino 20 mg VO ataque + 10-20 mg a cada 4-6h ou Atosibana. Contraindicada se corioamnionite.\n" +
+    "• *Latência na RPMO (< 34 semanas sem corioamnionite):* Ampicilina 2g IV 6/6h por 48h + Azitromicina 1g VO, seguida de Amoxicilina 500 mg 8/8h por 5 dias.\n\n" +
+    "💡 *Toque em um caso rápido abaixo para conduta em 0ms ou envie `/prematuridade [dados]`*:";
+
+  var guiaTexto = "PROTOCOLO DE PREMATURIDADE E RPMO (FEBRASGO / ACOG)\n" +
+    "1. Corticoterapia (24 a 34 semanas): Betametasona 12 mg IM a cada 24 horas (total de 2 doses).\n" +
+    "2. Neuroproteção (< 32 semanas com parto em < 24h): MgSO4 4g IV em 20-30 min + 1g/h contínuo.\n" +
+    "3. Tocólise (para viabilizar as 48h de corticoide): Nifedipino VO. Contraindicada se sangramento com DPP, infecção ou sofrimento fetal.\n" +
+    "4. RPMO de Latência: Ampicilina 2g IV 6/6h 48h + Azitromicina 1g VO, depois Amoxicilina 500mg 8/8h 5 dias.\n" +
+    "5. Corioamnionite: Interrupção imediata da gestação independente da IG + Ampicilina e Gentamicina.";
+
+  var cache = uxCache();
+  var ckGuia = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckGuia, guiaTexto, 21600);
+
+  var botoes = botoesBot([
+    [['👶 TPP 30s (Corticoide + Neuro)', 'ux:go:prematuridade:tpp'], ['💧 RPMO 31s (Regime Latência)', 'ux:go:prematuridade:rpmo']],
+    [['🔥 Corioamnionite (Interrupção)', 'ux:go:prematuridade:corio']],
+    [['📋 Copiar Guia Prematuridade', 'ux:copiar:' + ckGuia]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackGOPrematuridade(chat, v, messageId) {
+  var textoRes = "";
+  if (v === 'tpp') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.protocoloPrematuridadeRpmo === "function") {
+      var tp = CentroObstetricoService.protocoloPrematuridadeRpmo({ igSemanas: 30, ameacaPartoIminente: true, rpmConfirmada: false, sinaisCorioamnionite: false });
+      var cort = (tp.corticoterapia && tp.corticoterapia.esquemaPrimeiraLinha) ? (tp.corticoterapia.esquemaPrimeiraLinha.farmaco + " - " + tp.corticoterapia.esquemaPrimeiraLinha.dose) : "Betametasona 12 mg IM q24h (2 doses)";
+      var tocol = (tp.tocolise && tp.tocolise.primeiraEscolha) ? (tp.tocolise.primeiraEscolha.farmaco + " (Ataque: " + tp.tocolise.primeiraEscolha.ataque + " | Manutenção: " + tp.tocolise.primeiraEscolha.manutencao + ")") : "Nifedipino 20 mg VO ataque + 10 mg manutenção";
+      textoRes = "TRABALHO DE PARTO PREMATURO (IG: " + tp.igSemanas + " semanas):\n" +
+        "• Corticoterapia: " + cort + "\n" +
+        "• Neuroproteção Fetal (< 32s): " + ((tp.neuroprotecao && tp.neuroprotecao.indicada) ? "INDICADA (MgSO4 4g ataque + 1g/h)" : "Não indicada") + "\n" +
+        "• Tocólise Aguda (48h): " + tocol;
+    } else {
+      textoRes = "TPP 30 SEMANAS:\n• Betametasona 12 mg IM q24h (2 doses).\n• MgSO4 4g IV + 1g/h até o parto (Neuroproteção < 32s).\n• Nifedipino 20 mg VO ataque + 10 mg 6/6h por 48h.";
+    }
+  } else if (v === 'rpmo') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.protocoloPrematuridadeRpmo === "function") {
+      var rp = CentroObstetricoService.protocoloPrematuridadeRpmo({ igSemanas: 31, ameacaPartoIminente: false, rpmConfirmada: true, sinaisCorioamnionite: false });
+      var fase1 = (rp.latenciaRpmo && rp.latenciaRpmo.fase1_primeiras48h) ? rp.latenciaRpmo.fase1_primeiras48h.join(" + ") : "Ampicilina 2g IV 6/6h + Azitromicina 1g VO";
+      var fase2 = (rp.latenciaRpmo && rp.latenciaRpmo.fase2_proximos5dias) ? rp.latenciaRpmo.fase2_proximos5dias.join(" + ") : "Amoxicilina 500mg VO 8/8h 5 dias";
+      textoRes = "ROTURA PREMATURA DE MEMBRANAS (RPMO " + rp.igSemanas + " semanas):\n" +
+        "• Conduta: Latência Conservadora (Sem sinais de infecção intra-amniótica).\n" +
+        "• Corticoterapia: Betametasona 12 mg IM q24h (2 doses).\n" +
+        "• Esquema Antibiótico de Latência:\n  - Primeiras 48h: " + fase1 + "\n  - Próximos 5 dias: " + fase2;
+    } else {
+      textoRes = "RPMO 31 SEMANAS (LATÊNCIA):\n• Ampicilina 2g IV 6/6h 48h + Azitromicina 1g VO dose única.\n• Amoxicilina 500 mg VO 8/8h por 5 dias subsequentes.\n• Corticoterapia pulmonar e vigilância clínica e laboratorial diária.";
+    }
+  } else if (v === 'corio') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.protocoloPrematuridadeRpmo === "function") {
+      var co = CentroObstetricoService.protocoloPrematuridadeRpmo({ igSemanas: 32, ameacaPartoIminente: true, rpmConfirmada: true, sinaisCorioamnionite: true });
+      var atbCo = (co.antibioticoterapiaTerapeutica || []).join("\n• ");
+      textoRes = (co.alertaCritico || "CORIOAMNIONITE AGUDA DETECTADA") + "\n\nCONDUTA:\n" +
+        "• " + (co.resolucaoParto || "Interrupção imediata da gestação.") + "\n" +
+        "• Antibioticoterapia: " + atbCo + "\n" +
+        "• Tocólise CONTRAINDICADA de forma absoluta.";
+    } else {
+      textoRes = "CORIOAMNIONITE AGUDA:\n• Contraindicação absoluta à tocólise.\n• Parto imediato indicado.\n• Ampicilina 2g IV 6/6h + Gentamicina 5 mg/kg IV 1x/dia.";
+    }
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoRes, 21600);
+
+  var msgCorpo = "👶 *CONDUTA DE PREMATURIDADE & RPMO:*\n\n```text\n" + textoRes + "\n```";
+  var botoes = botoesBot([
+    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, msgCorpo, botoes, messageId);
+}
+
+// 6. Toxoplasmose & Sorologias
+function enviarTelaGOToxo(chat, messageId) {
+  var texto = "🔬 *TOXOPLASMOSE GESTACIONAL & AVIDEZ (MS & FEBRASGO)*\n\n" +
+    "• *Interpretação Sorológica Inicial:*\n" +
+    "  - *IgG- / IgM-:* Suscetível -> Prevenção primária e controle trimestral.\n" +
+    "  - *IgG+ / IgM-:* Imunidade pregressa -> Alta de rastreio de toxoplasmose.\n" +
+    "  - *IgG- / IgM+:* Infecção recente ou IgM falso-positivo -> Iniciar Espiramicina 1g 8/8h e repetir em 2-3 semanas.\n" +
+    "  - *IgG+ / IgM+:*\n" +
+    "    • < 16 semanas: Teste de Avidez de IgG urgente. Avidez alta (≥ 60%) afasta infecção gestacional. Avidez baixa (< 50%) confirma infecção aguda.\n" +
+    "    • ≥ 16 semanas: Considerar infecção aguda provável (avidez perde confiabilidade).\n" +
+    "• *Condutas Farmacológicas:*\n" +
+    "  - *Profilaxia de transmissão vertical:* Espiramicina 1g VO 8/8h.\n" +
+    "  - *Feto infectado (PCR positivo em líquido amniótico ou USG com lesão):* Esquema Tríplice (Sulfadiazina 3g/dia + Pirimetamina 50mg/dia + Ácido Folínico 15mg/dia). Amniocentese a partir de 18 semanas.\n\n" +
+    "💡 *Toque em um caso rápido abaixo para conduta em 0ms ou envie `/toxo [dados]`*:";
+
+  var guiaTexto = "CONDUTA NA TOXOPLASMOSE GESTACIONAL (MINISTÉRIO DA SAÚDE)\n" +
+    "1. Iniciar Espiramicina 1g (3 MUI) VO de 8/8h imediatamente ao suspeitar de infecção aguda.\n" +
+    "2. Teste de avidez no 1º trimestre (< 16 semanas):\n" +
+    "   - Avidez Alta (≥ 60%): Infecção adquirida há mais de 4 meses (antes da gestação). Suspender Espiramicina.\n" +
+    "   - Avidez Baixa (< 50%): Infecção aguda confirmada. Manter Espiramicina e programar amniocentese após 18 semanas.\n" +
+    "3. Amniocentese com PCR positivo em LA:\n" +
+    "   - Trocar Espiramicina por Esquema Tríplice: Sulfadiazina 1.5g 12/12h + Pirimetamina 25mg 12/12h + Ácido Folínico 15mg/dia.\n" +
+    "   - Controle hematológico semanal (risco de mielotoxicidade).";
+
+  var cache = uxCache();
+  var ckGuia = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckGuia, guiaTexto, 21600);
+
+  var botoes = botoesBot([
+    [['🔬 1º Tri Avidez Baixa (Aguda)', 'ux:go:toxo:aguda'], ['✅ 1º Tri Avidez Alta (Prévia)', 'ux:go:toxo:previa']],
+    [['💊 PCR Positivo (Esquema Tríplice)', 'ux:go:toxo:fetal']],
+    [['📋 Copiar Guia Toxoplasmose', 'ux:copiar:' + ckGuia]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackGOToxo(chat, v, messageId) {
+  var textoRes = "";
+  if (v === 'aguda') {
+    if (typeof ObstetriciaToxoplasmoseService !== "undefined" && typeof ObstetriciaToxoplasmoseService.avaliar === "function") {
+      var ta = ObstetriciaToxoplasmoseService.avaliar({ ig: 11, igg: 'reagente', igm: 'reagente', avidez_igg: 'baixa' });
+      textoRes = ObstetriciaToxoplasmoseService.formatarTextoTelegram(ta);
+    } else {
+      textoRes = "TOXOPLASMOSE GESTACIONAL AGUDA CONFIRMADA (1º Trimestre - Avidez Baixa):\n• Conduta: Iniciar Espiramicina 1g VO 8/8h imediatamente.\n• Encaminhar para Pré-Natal de Alto Risco.\n• Programar Amniocentese para PCR em líquido amniótico a partir de 18 semanas.";
+    }
+  } else if (v === 'previa') {
+    if (typeof ObstetriciaToxoplasmoseService !== "undefined" && typeof ObstetriciaToxoplasmoseService.avaliar === "function") {
+      var tp = ObstetriciaToxoplasmoseService.avaliar({ ig: 10, igg: 'reagente', igm: 'reagente', avidez_igg: 'alta' });
+      textoRes = ObstetriciaToxoplasmoseService.formatarTextoTelegram(tp);
+    } else {
+      textoRes = "TOXOPLASMOSE: INFECÇÃO PREGRESSA (1º Trimestre - Avidez Alta):\n• Avidez alta (≥ 60%) colhida com 10 semanas afasta infecção gestacional recente.\n• Conduta: Suspender Espiramicina se em uso e manter pré-natal habitual.";
+    }
+  } else if (v === 'fetal') {
+    if (typeof ObstetriciaToxoplasmoseService !== "undefined" && typeof ObstetriciaToxoplasmoseService.avaliar === "function") {
+      var tf = ObstetriciaToxoplasmoseService.avaliar({ ig: 22, igg: 'reagente', igm: 'reagente', pcr_amniotico: 'positivo' });
+      textoRes = ObstetriciaToxoplasmoseService.formatarTextoTelegram(tf);
+    } else {
+      textoRes = "INFECÇÃO FETAL POR TOXOPLASMOSE CONFIRMADA (PCR Positivo em LA):\n• Substituir Espiramicina imediatamente por Esquema Tríplice:\n  - Sulfadiazina 3g/dia (1.5g VO 12/12h)\n  - Pirimetamina 50mg/dia (25mg VO 12/12h)\n  - Ácido Folínico 15mg VO 1x/dia pela manhã\n• Hemograma semanal de controle.";
+    }
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoRes, 21600);
+
+  var msgCorpo = "🔬 *CONDUTA DE TOXOPLASMOSE GESTACIONAL:*\n\n```text\n" + textoRes + "\n```";
+  var botoes = botoesBot([
+    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, msgCorpo, botoes, messageId);
+}
+
+// 7. Vulvovaginites & Corrimento
+function enviarTelaGOCorrimento(chat, messageId) {
+  var texto = "🌸 *VULVOVAGINITES & CORRIMENTOS (REMUME / MS / PCDT ISTs)*\n\n" +
+    "• *Diagnóstico Diferencial Clínico:*\n" +
+    "  1. *Candidíase Vulvovaginal:* Prurido vulvar intenso, disúria externa, corrimento branco grumoso (leite coalhado), pH vaginal < 4.5, hifas e esporos à microscopia a fresco.\n" +
+    "  2. *Vaginose Bacteriana (Critérios de Amsel ≥ 3/4):* Corrimento branco-acinzentado fluido homogêneo, odor de peixe podre (Whiff/teste das aminas com KOH 10% positivo), pH > 4.5 e clue cells > 20%.\n" +
+    "  3. *Tricomoníase (IST):* Corrimento amarelo-esverdeado bolhoso e abundante, colpite em framboesa, teste de Schiller tigróide, pH > 4.5 e protozoários móveis flagelados.\n" +
+    "• *Tratamentos Padronizados:*\n" +
+    "  - *Candidíase:* Fluconazol 150 mg VO dose única (não gestante) ou Miconazol creme vaginal 2% à noite por 7 dias (gestante).\n" +
+    "  - *Vaginose:* Metronidazol 500 mg VO 12/12h por 7 dias ou gel vaginal por 5 dias. Alerta Dissulfiram (não ingerir álcool).\n" +
+    "  - *Tricomoníase:* Metronidazol 2g VO dose única (ou 500 mg 12/12h por 7 dias) + Tratamento obrigatório do parceiro sexual.\n\n" +
+    "💡 *Toque em um caso rápido abaixo para conduta em 0ms ou envie `/corrimento [dados]`*:";
+
+  var guiaTexto = "TRATAMENTO DAS VULVOVAGINITES (REMUME / MINISTÉRIO DA SAÚDE)\n" +
+    "1. CANDIDÍASE VULVOVAGINAL:\n" +
+    "   - Não gestante: Fluconazol 150 mg VO dose única.\n" +
+    "   - Gestante: Miconazol creme vaginal 2% 1 aplicador à noite por 7 dias (Fluconazol oral é contraindicado na gestação).\n" +
+    "   - Recorrente (≥ 4 episódios/ano): Fluconazol 150 mg VO D1, D4 e D7 (indução) + 150 mg 1x/semana por 6 meses (manutenção).\n" +
+    "2. VAGINOSE BACTERIANA:\n" +
+    "   - Metronidazol 500 mg VO de 12/12h por 7 dias (ou Metronidazol gel 0.75% 1 aplicador à noite por 5 dias).\n" +
+    "   - Parceiro: Não se trata parceiro de rotina.\n" +
+    "3. TRICOMONÍASE:\n" +
+    "   - Metronidazol 2g (4 comp de 500 mg) VO em dose única ou 500 mg VO 12/12h por 7 dias.\n" +
+    "   - Tratar parceiro sexual obrigatoriamente.";
+
+  var cache = uxCache();
+  var ckGuia = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckGuia, guiaTexto, 21600);
+
+  var botoes = botoesBot([
+    [['🌸 Candidíase (Grumoso + Prurido)', 'ux:go:corrimento:candida'], ['🐟 Vaginose (Amsel / Whiff +)', 'ux:go:corrimento:vaginose']],
+    [['🍓 Tricomoníase (Colo Framboesa)', 'ux:go:corrimento:tricomoniase']],
+    [['📋 Copiar Guia Vulvovaginites', 'ux:copiar:' + ckGuia]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackGOCorrimento(chat, v, messageId) {
+  var textoRes = "";
+  if (v === 'candida') {
+    if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarInfeccaoVulvovaginal === "function") {
+      var c = GinecologiaAmbulatorialService.avaliarInfeccaoVulvovaginal({ sintomaPredominante: 'prurido', aspectoCorrimento: 'grumoso_branco', phVaginal: 4.2, whiffTest: 'negativo', microscopia: 'hifas_esporos', gestante: false });
+      var prescC = (c.prescricoes || c.tratamento || []).map(function(t){ return "• " + t.farmaco + " - " + t.posologia; }).join("\n");
+      var condC = (c.condutas || c.orientacoes || []).join("\n• ");
+      textoRes = "DIAGNÓSTICO: " + (c.diagnosticoDescricao || c.diagnostico) + "\n\nTRATAMENTO RECOMENDADO:\n" +
+        prescC + "\n\nORIENTAÇÕES CLÍNICAS:\n• " + condC;
+    } else {
+      textoRes = "CANDIDÍASE VULVOVAGINAL:\n• Prescrição: Fluconazol 150 mg comprimido - Tomar 1 comprimido VO em dose única.\n• Alternativa tópica: Miconazol creme vaginal 2% - Aplicar 1 aplicador à noite por 7 dias.";
+    }
+  } else if (v === 'vaginose') {
+    if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarInfeccaoVulvovaginal === "function") {
+      var vg = GinecologiaAmbulatorialService.avaliarInfeccaoVulvovaginal({ sintomaPredominante: 'odor_fetido', aspectoCorrimento: 'branco_acinzentado_fino', phVaginal: 5.0, whiffTest: 'positivo', microscopia: 'clue_cells' });
+      var prescVg = (vg.prescricoes || vg.tratamento || []).map(function(t){ return "• " + t.farmaco + " - " + t.posologia; }).join("\n");
+      var condVg = (vg.condutas || vg.orientacoes || []).join("\n• ");
+      textoRes = "DIAGNÓSTICO: " + (vg.diagnosticoDescricao || vg.diagnostico) + "\n\nTRATAMENTO RECOMENDADO:\n" +
+        prescVg + "\n\nORIENTAÇÕES CLÍNICAS:\n• " + condVg;
+    } else {
+      textoRes = "VAGINOSE BACTERIANA (Amsel Positivo):\n• Prescrição: Metronidazol 500 mg comprimido - Tomar 1 comprimido VO de 12/12h por 7 dias.\n• Alerta: Abstinência alcoólica estrita durante o tratamento e por 24h após (efeito dissulfiram).\n• Parceiro sexual: Não se recomenda tratamento de rotina.";
+    }
+  } else if (v === 'tricomoniase') {
+    if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarInfeccaoVulvovaginal === "function") {
+      var tr = GinecologiaAmbulatorialService.avaliarInfeccaoVulvovaginal({ sintomaPredominante: 'odor_fetido', aspectoCorrimento: 'amarelo_esverdeado_bolhoso', phVaginal: 5.5, whiffTest: 'positivo', microscopia: 'protozoarios_moveis' });
+      var prescTr = (tr.prescricoes || tr.tratamento || []).map(function(t){ return "• " + t.farmaco + " - " + t.posologia; }).join("\n");
+      var condTr = (tr.condutas || tr.orientacoes || []).join("\n• ");
+      textoRes = "DIAGNÓSTICO: " + (tr.diagnosticoDescricao || tr.diagnostico) + "\n\nTRATAMENTO RECOMENDADO:\n" +
+        prescTr + "\n\nORIENTAÇÕES CLÍNICAS:\n• " + condTr;
+    } else {
+      textoRes = "TRICOMONÍASE VAGINAL (IST):\n• Prescrição Paciente: Metronidazol 2g (4 comp de 500 mg) VO em dose única OU 500 mg VO 12/12h por 7 dias.\n• Prescrição Parceiro: Metronidazol 2g VO em dose única.\n• Abstinência sexual até o término do tratamento e desaparecimento dos sintomas.";
+    }
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoRes, 21600);
+
+  var msgCorpo = "🌸 *CONDUTA DE VULVOVAGINITES:*\n\n```text\n" + textoRes + "\n```";
+  var botoes = botoesBot([
+    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, msgCorpo, botoes, messageId);
+}
+
+// 8. Preventivo / Citopatológico INCA
+function enviarTelaGOPreventivo(chat, messageId) {
+  var texto = "🩺 *CONDUTA CITOPATOLÓGICA DE COLO DE ÚTERO (DIRETRIZES INCA / MS)*\n\n" +
+    "• *População-Alvo:* Mulheres de 25 a 64 anos com atividade sexual prévia.\n" +
+    "• *Periodicidade:* Anual; após 2 exames normais consecutivos, a cada 3 anos.\n" +
+    "• *Condutas Estratificadas por Laudo e Idade:*\n" +
+    "  - *ASC-US:*\n" +
+    "    • < 25 anos: Repetir citologia em 3 anos.\n" +
+    "    • 25 a 29 anos: Repetir citologia em 12 meses.\n" +
+    "    • ≥ 30 anos: Repetir citologia em 6 meses.\n" +
+    "    • Se 2 exames alterados consecutivos -> Colposcopia imediata.\n" +
+    "  - *LSIL (Lesão de Baixo Grau):*\n" +
+    "    • < 25 anos: Repetir em 3 anos.\n" +
+    "    • ≥ 25 anos: Repetir citologia em 6 meses. Se persistência -> Colposcopia.\n" +
+    "  - *ASC-H / HSIL / AGC / Carcinoma:* Colposcopia IMEDIATA independente da faixa etária.\n\n" +
+    "💡 *Toque em um caso rápido abaixo para conduta em 0ms ou envie `/preventivo [dados]`*:";
+
+  var guiaTexto = "DIRETRIZES BRASILEIRAS PARA O RASTREAMENTO DO CÂNCER DO COLO DO ÚTERO (INCA)\n" +
+    "1. ASC-US (Atipias de significado indeterminado possivelmente não neoplásicas):\n" +
+    "   - < 25 anos: Repetir em 3 anos.\n" +
+    "   - 25 a 29 anos: Repetir em 12 meses.\n" +
+    "   - ≥ 30 anos: Repetir em 6 meses.\n" +
+    "2. LSIL (Lesão intraepitelial de baixo grau):\n" +
+    "   - < 25 anos: Repetir em 3 anos.\n" +
+    "   - ≥ 25 anos: Repetir em 6 meses.\n" +
+    "3. ALTO GRAU (ASC-H, HSIL, AGC):\n" +
+    "   - Encaminhar imediatamente para Colposcopia especializada.\n" +
+    "   - AGC: Avaliação de canal endocervical e biópsia endometrial se ≥ 35 anos.";
+
+  var cache = uxCache();
+  var ckGuia = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckGuia, guiaTexto, 21600);
+
+  var botoes = botoesBot([
+    [['🩺 ASC-US (25-29 vs ≥30 anos)', 'ux:go:preventivo:ascus'], ['🔬 LSIL (Baixo Grau ≥25a)', 'ux:go:preventivo:lsil']],
+    [['🚨 HSIL / ASC-H (Colposcopia)', 'ux:go:preventivo:hsil']],
+    [['📋 Copiar Guia Preventivo', 'ux:copiar:' + ckGuia]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackGOPreventivo(chat, v, messageId) {
+  var textoRes = "";
+  if (v === 'ascus') {
+    if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarRastreioColoUterino === "function") {
+      var r28 = GinecologiaAmbulatorialService.avaliarRastreioColoUterino({ idade: 28, resultadoCitologia: 'asc_us' });
+      var r35 = GinecologiaAmbulatorialService.avaliarRastreioColoUterino({ idade: 35, resultadoCitologia: 'asc_us' });
+      textoRes = "CONDUTA CITOPATOLÓGICA - ASC-US:\n" +
+        "• Mulher 28 anos (25 a 29 anos): " + (r28.resumoConduta || r28.prazoRecomendado || r28.conduta) + "\n\n" +
+        "• Mulher 35 anos (≥ 30 anos): " + (r35.resumoConduta || r35.prazoRecomendado || r35.conduta);
+    } else {
+      textoRes = "ASC-US (INCA/MS):\n• 25 a 29 anos: Repetir citopatológico em 12 meses na UBS.\n• ≥ 30 anos: Repetir citopatológico em 6 meses na UBS.\n• Se 2 exames consecutivos alterados -> Colposcopia.";
+    }
+  } else if (v === 'lsil') {
+    if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarRastreioColoUterino === "function") {
+      var l = GinecologiaAmbulatorialService.avaliarRastreioColoUterino({ idade: 32, resultadoCitologia: 'lsil' });
+      textoRes = "CONDUTA CITOPATOLÓGICA - LSIL (32 anos):\n" +
+        "• Conduta: " + (l.resumoConduta || l.prazoRecomendado || l.conduta) + "\n" +
+        (l.condutas ? "• Detalhes: " + l.condutas.join("\n• ") : "");
+    } else {
+      textoRes = "LSIL (Lesão de Baixo Grau) em mulher ≥ 25 anos:\n• Repetir citopatológico em 6 meses na Atenção Primária.\n• Se persistência de LSIL ou atipia de maior grau -> Colposcopia.";
+    }
+  } else if (v === 'hsil') {
+    if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarRastreioColoUterino === "function") {
+      var h = GinecologiaAmbulatorialService.avaliarRastreioColoUterino({ idade: 40, resultadoCitologia: 'hsil' });
+      textoRes = "CONDUTA CITOPATOLÓGICA - HSIL / ALTO GRAU (40 anos):\n" +
+        "• Conduta: " + (h.resumoConduta || h.prazoRecomendado || h.conduta) + "\n" +
+        (h.condutas ? "• Detalhes: " + h.condutas.join("\n• ") : "");
+    } else {
+      textoRes = "HSIL (Lesão Intraepitelial de Alto Grau) / ASC-H:\n• Encaminhamento IMEDIATO para Colposcopia especializada.\n• Avaliação de método Ver e Tratar (EZT/CAF) se lesão de alto grau típica totalmente visível na ectocérvice.";
+    }
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoRes, 21600);
+
+  var msgCorpo = "🩺 *CONDUTA CITOPATOLÓGICA DE COLO (INCA):*\n\n```text\n" + textoRes + "\n```";
+  var botoes = botoesBot([
+    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, msgCorpo, botoes, messageId);
+}
+
+// 9. Anticoncepção OMS
+function enviarTelaGOAnticoncepcao(chat, messageId) {
+  var texto = "💊 *CRITÉRIOS DE ELEGIBILIDADE DA CONTRACEPÇÃO (OMS MEC 1 a 4)*\n\n" +
+    "• *Classificação OMS:*\n" +
+    "  - *Cat 1:* Sem restrição ao uso (método seguro de 1ª linha).\n" +
+    "  - *Cat 2:* Vantagens superam riscos comprovados.\n" +
+    "  - *Cat 3:* Riscos superam vantagens (evitar; usar somente se sem alternativas).\n" +
+    "  - *Cat 4:* Contraindicação absoluta (risco de saúde inaceitável).\n" +
+    "• *Contraindicações Absolutas a Estrogênios (Cat 4):*\n" +
+    "  - Enxaqueca com aura em qualquer idade (risco aumentado de AVC isquêmico).\n" +
+    "  - HAS grave descontrolada (PAS ≥ 160 ou PAD ≥ 100 mmHg).\n" +
+    "  - Tabagista ≥ 35 anos com consumo ≥ 15 cigarros/dia.\n" +
+    "  - Histórico de TEV / TVP / TEP ou trombofilia hereditária/adquirida (SAF).\n" +
+    "  - Câncer de mama atual.\n" +
+    "  - Pós-parto < 6 semanas com amamentação exclusiva.\n" +
+    "• *Métodos Seguros de Escolha (Cat 1):* DIU de Cobre, DIU de Levonorgestrel e Progestagênio isolado (Desogestrel 75 mcg ou Implante).\n\n" +
+    "💡 *Toque em um caso rápido abaixo para conduta em 0ms ou envie `/anticoncepcao [dados]`*:";
+
+  var guiaTexto = "CRITÉRIOS MÉDICOS DE ELEGIBILIDADE PARA ANTICONCEPÇÃO (OMS / FEBRASGO)\n" +
+    "1. ENXAQUECA COM AURA:\n" +
+    "   - Anticoncepcionais combinados (pílula, adesivo, anel, injetável mensal): CATEGORIA 4 (PROIBIDOS).\n" +
+    "   - Opções seguras: DIU de Cobre (Cat 1), DIU LNG (Cat 2), Desogestrel 75 mcg (Cat 2), Implante (Cat 2).\n" +
+    "2. TABAGISTA ≥ 35 ANOS (≥ 15 cigarros/dia):\n" +
+    "   - Anticoncepcionais combinados: CATEGORIA 4 (PROIBIDOS).\n" +
+    "   - Opções seguras: DIU Cobre (Cat 1), DIU LNG (Cat 1), Progestagênios isolados (Cat 1).\n" +
+    "3. PUÉRPERA EM ALEITAMENTO (< 6 semanas):\n" +
+    "   - Estrogênios: CATEGORIA 4.\n" +
+    "   - DIU de Cobre pode ser inserido até 48h pós-parto ou após 4 semanas (Cat 1).";
+
+  var cache = uxCache();
+  var ckGuia = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckGuia, guiaTexto, 21600);
+
+  var botoes = botoesBot([
+    [['🧠 Enxaqueca com Aura (Cat 4 Estrogênio)', 'ux:go:anticoncepcao:enxaqueca'], ['🚬 Tabagista ≥35a (≥15 cig/dia)', 'ux:go:anticoncepcao:tabagista']],
+    [['🤱 Puérpera em Aleitamento', 'ux:go:anticoncepcao:puerpera']],
+    [['📋 Copiar Guia Anticoncepção', 'ux:copiar:' + ckGuia]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackGOAnticoncepcao(chat, v, messageId) {
+  var textoRes = "";
+  if (v === 'enxaqueca') {
+    if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao === "function") {
+      var enx = GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao({ idade: 31, enxaqueca: 'com_aura' });
+      var bloqEnx = (enx.metodosBloqueadosCat4 || enx.contraindicados || []).map(function(c){ return "• " + (c.nome || c.metodo) + " (Cat " + (c.categoria || 4) + ") - " + ((c.justificativas && c.justificativas[0]) || c.motivo || "Contraindicação absoluta"); }).join("\n");
+      var libEnx = (enx.metodosElegiveisCat1 || enx.recomendados || []).concat(enx.metodosAceitaveisCat2 || []).map(function(r){ return "• " + (r.nome || r.metodo) + " (Cat " + (r.categoria || 1) + ")"; }).join("\n");
+      textoRes = "ELEGIBILIDADE CONTRACEPTIVA: ENXAQUECA COM AURA (31 anos)\n\n" +
+        "⛔ CONTRAINDICADOS (Cat 4):\n" + bloqEnx +
+        "\n\n✅ MÉTODOS SEGUROS E LIBERADOS:\n" + libEnx;
+    } else {
+      textoRes = "ENXAQUECA COM AURA:\n⛔ Estrogênios Combinados (Pílula/Anel/Adesivo/Injetável): CATEGORIA 4 (Contraindicação Absoluta pelo risco de AVC).\n✅ Permitidos: DIU de Cobre (Cat 1), DIU LNG (Cat 2), Desogestrel (Cat 2), Implante (Cat 2).";
+    }
+  } else if (v === 'tabagista') {
+    if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao === "function") {
+      var tab = GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao({ idade: 38, tabagismo: true, cigarrosDia: 20 });
+      var bloqTab = (tab.metodosBloqueadosCat4 || tab.contraindicados || []).map(function(c){ return "• " + (c.nome || c.metodo) + " (Cat " + (c.categoria || 4) + ") - " + ((c.justificativas && c.justificativas[0]) || c.motivo || "Risco cardiovascular elevado"); }).join("\n");
+      var libTab = (tab.metodosElegiveisCat1 || tab.recomendados || []).concat(tab.metodosAceitaveisCat2 || []).map(function(r){ return "• " + (r.nome || r.metodo) + " (Cat " + (r.categoria || 1) + ")"; }).join("\n");
+      textoRes = "ELEGIBILIDADE: TABAGISTA ≥ 35 ANOS (38 anos, 20 cigarros/dia)\n\n" +
+        "⛔ CONTRAINDICADOS (Cat 4):\n" + bloqTab +
+        "\n\n✅ MÉTODOS SEGUROS E LIBERADOS:\n" + libTab;
+    } else {
+      textoRes = "TABAGISTA ≥ 35 ANOS (≥ 15 cigarros/dia):\n⛔ Métodos Combinados com Estrogênio: CATEGORIA 4 (Risco de IAM e TEV).\n✅ Métodos Seguros: DIU de Cobre (Cat 1), DIU LNG (Cat 1), Minipílula/Desogestrel (Cat 1).";
+    }
+  } else if (v === 'puerpera') {
+    if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao === "function") {
+      var pue = GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao({ idade: 26, lactacao: true });
+      var bloqPue = (pue.metodosBloqueadosCat4 || pue.contraindicados || []).map(function(c){ return "• " + (c.nome || c.metodo) + " (Cat " + (c.categoria || 4) + ") - " + ((c.justificativas && c.justificativas[0]) || c.motivo || "Risco de TEV e inibição de lactação"); }).join("\n");
+      var libPue = (pue.metodosElegiveisCat1 || pue.recomendados || []).concat(pue.metodosAceitaveisCat2 || []).map(function(r){ return "• " + (r.nome || r.metodo) + " (Cat " + (r.categoria || 1) + ")"; }).join("\n");
+      textoRes = "ELEGIBILIDADE: PUÉRPERA EM ALEITAMENTO EXCLUSIVO\n\n" +
+        "⛔ CONTRAINDICADOS (Cat 4):\n" + bloqPue +
+        "\n\n✅ MÉTODOS SEGUROS:\n" + libPue;
+    } else {
+      textoRes = "PUÉRPERA EM LACTAÇÃO (< 6 semanas):\n⛔ Estrogênios: CATEGORIA 4 (Inibe lactogênese e aumenta risco de TEV).\n✅ Métodos Seguros: DIU de Cobre (Cat 1), Progestagênios isolados a partir de 6 semanas.";
+    }
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoRes, 21600);
+
+  var msgCorpo = "💊 *CONDUTA DE ANTICONCEPÇÃO OMS:*\n\n```text\n" + textoRes + "\n```";
+  var botoes = botoesBot([
+    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, msgCorpo, botoes, messageId);
+}
+
+// 10. DIP & Infecção Pélvica
+function enviarTelaGODip(chat, messageId) {
+  var texto = "🩹 *DOENÇA INFLAMATÓRIA PÉLVICA (DIP) & ATO (MS, CDC & FEBRASGO)*\n\n" +
+    "• *Critérios Diagnósticos (Critérios de Hager / MS):*\n" +
+    "  - *3 Critérios Maiores (Obrigatórios):* Dor no hipogástrio + Dor à palpação anexial bilateral + Dor à mobilização do colo uterino.\n" +
+    "  - *≥ 1 Critério Menor:* Febre (Tax > 38.3°C), leucocitose, secreção endocervical anormal purulenta, VHS/PCR aumentados ou teste positivo para N. gonorrhoeae / C. trachomatis.\n" +
+    "• *Estadiamento de Monif:*\n" +
+    "  - *Monif I (Leve):* Salpingite/Endometrite sem peritonite -> Tratamento Ambulatorial.\n" +
+    "  - *Monif II (Moderada):* Salpingite com peritonite pélvica -> Internação hospitalar.\n" +
+    "  - *Monif III (Grave):* Abscesso Tubo-Ovariano (ATO) íntegro -> Internação hospitalar + ATB venoso.\n" +
+    "  - *Monif IV (Gravíssimo):* ATO roto ou sepse -> Laparotomia / cirurgia de urgência.\n" +
+    "• *Tratamentos Antimicrobianos (PCDT MS):*\n" +
+    "  - *Ambulatorial (Monif I):* Ceftriaxona 500 mg IM dose única + Doxiciclina 100 mg VO 12/12h por 14d + Metronidazol 500 mg VO 12/12h por 14d. Reavaliação clínica obrigatória em 48-72h.\n" +
+    "  - *Hospitalar (Monif II-IV):* Ceftriaxona 1g IV 1x/dia + Doxiciclina 100 mg VO/IV 12/12h OU Clindamicina 900 mg IV 8/8h + Gentamicina 2 mg/kg ataque e 1.5 mg/kg 8/8h.\n\n" +
+    "💡 *Toque em um caso rápido abaixo para conduta em 0ms ou envie `/dip [dados]`*:";
+
+  var guiaTexto = "PROTOCOLO DE MANEJO DE DIP E ATO (MINISTÉRIO DA SAÚDE)\n" +
+    "1. TRATAMENTO AMBULATORIAL (Monif I):\n" +
+    "   - Ceftriaxona 500 mg IM dose única\n" +
+    "   - Doxiciclina 100 mg VO de 12/12h por 14 dias\n" +
+    "   - Metronidazol 500 mg VO de 12/12h por 14 dias\n" +
+    "   - Retorno obrigatório em 48 a 72 horas para checar melhora clínica.\n" +
+    "2. CONDUTA SOBRE DIU:\n" +
+    "   - Não retirar o DIU no 1º atendimento de rotina. Iniciar ATB e reavaliar em 48-72h. Retirar somente se falha terapêutica.\n" +
+    "3. PARCEIROS:\n" +
+    "   - Tratar parceiros dos últimos 60 dias para Gonococo e Clamídia: Ceftriaxona 500 mg IM + Azitromicina 1g VO dose única.";
+
+  var cache = uxCache();
+  var ckGuia = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckGuia, guiaTexto, 21600);
+
+  var botoes = botoesBot([
+    [['🩹 DIP Ambulatorial (Monif I)', 'ux:go:dip:monif1'], ['🏥 DIP Hospitalar / ATO (Monif II-III)', 'ux:go:dip:hospitalar']],
+    [['🚻 Parceiros Sexuais (Rastreio)', 'ux:go:dip:parceiro']],
+    [['📋 Copiar Guia DIP', 'ux:copiar:' + ckGuia]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackGODip(chat, v, messageId) {
+  var textoRes = "";
+  if (v === 'monif1') {
+    if (typeof DipAbscessoTuboOvarianoService !== "undefined" && typeof DipAbscessoTuboOvarianoService.avaliarDipCompleto === "function") {
+      var d1 = DipAbscessoTuboOvarianoService.avaliarDipCompleto({ dorHipogastrio: true, dorPalpacaoAnexial: true, dorMobilizacaoColo: true, febre: true, temperaturaC: 38.4, leucocitose: false, peritonitePelvica: false, abscessoTuboOvariano: false, sepse: false, diuPresente: false });
+      textoRes = (typeof DipAbscessoTuboOvarianoService.gerarResumoDip === "function") ? DipAbscessoTuboOvarianoService.gerarResumoDip(d1) : "DIP AMBULATORIAL (Monif I):\nCeftriaxona 500mg IM + Doxiciclina 100mg 12/12h 14d + Metronidazol 500mg 12/12h 14d.";
+    } else {
+      textoRes = "DIP AMBULATORIAL (MONIF I - LEVE):\n• Ceftriaxona 500 mg IM dose única\n• Doxiciclina 100 mg VO 12/12h por 14 dias\n• Metronidazol 500 mg VO 12/12h por 14 dias\n• Reavaliação clínica obrigatória em 48 a 72 horas.";
+    }
+  } else if (v === 'hospitalar') {
+    if (typeof DipAbscessoTuboOvarianoService !== "undefined" && typeof DipAbscessoTuboOvarianoService.avaliarDipCompleto === "function") {
+      var dh = DipAbscessoTuboOvarianoService.avaliarDipCompleto({ dorHipogastrio: true, dorPalpacaoAnexial: true, dorMobilizacaoColo: true, febre: true, temperaturaC: 38.9, leucocitose: true, peritonitePelvica: true, abscessoTuboOvariano: true, diametroAtoCm: 6, diuPresente: true });
+      textoRes = (typeof DipAbscessoTuboOvarianoService.gerarResumoDip === "function") ? DipAbscessoTuboOvarianoService.gerarResumoDip(dh) : "DIP HOSPITALAR / ATO (Monif III):\nInternação hospitalar imediata + Ceftriaxona 1g IV + Doxiciclina 100mg VO/IV ou Clindamicina + Gentamicina.";
+    } else {
+      textoRes = "DIP HOSPITALAR COM ABSCESSO TUBO-OVARIANO (MONIF III):\n• Internação imediata em enfermaria de Ginecologia.\n• Esquema 1: Ceftriaxona 1g IV 1x/dia + Doxiciclina 100 mg VO/IV 12/12h + Metronidazol 500 mg IV 12/12h.\n• Esquema 2: Clindamicina 900 mg IV 8/8h + Gentamicina 2 mg/kg ataque e 1.5 mg/kg 8/8h IV.\n• Vigilância ultrassonográfica seriada do abscesso.";
+    }
+  } else if (v === 'parceiro') {
+    textoRes = "MANEJO DE PARCEIROS SEXUAIS EM DIP (PCDT ISTs / MS):\n" +
+      "• Todos os parceiros sexuais dos últimos 60 dias devem ser examinados e tratados empiricamente.\n" +
+      "• Tratamento Empírico para Gonococo e Clamídia:\n" +
+      "  - Ceftriaxona 500 mg IM em dose única\n" +
+      "  - Azitromicina 1g (2 comprimidos de 500 mg) VO em dose única\n" +
+      "• Rastreio completo de ISTs (HIV, Sífilis/VDRL, Hepatite B e C).\n" +
+      "• Abstinência sexual até que o tratamento de ambos esteja concluído e assintomáticos.";
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoRes, 21600);
+
+  var msgCorpo = "🩹 *CONDUTA DE DOENÇA INFLAMATÓRIA PÉLVICA (DIP):*\n\n```text\n" + textoRes + "\n```";
+  var botoes = botoesBot([
+    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, msgCorpo, botoes, messageId);
+}
+
+// Despachante Unificado de Ginecologia & Obstetrícia
+function tratarCallbackUXGO(chat, v, messageId) {
+  v = String(v || '').replace(/^go_/, '');
+  if (v === 'prenatal') return enviarTelaGOPrenatal(chat, messageId);
+  if (v.indexOf('prenatal:') === 0) return tratarCallbackGOPrenatal(chat, v.replace('prenatal:', ''), messageId);
+
+  if (v === 'parto') return enviarTelaGOParto(chat, messageId);
+  if (v.indexOf('parto:') === 0) return tratarCallbackGOParto(chat, v.replace('parto:', ''), messageId);
+
+  if (v === 'hpp') return enviarTelaGOHpp(chat, messageId);
+  if (v.indexOf('hpp:') === 0) return tratarCallbackGOHpp(chat, v.replace('hpp:', ''), messageId);
+
+  if (v === 'mgso4') return enviarTelaGOMgso4(chat, messageId);
+  if (v.indexOf('mgso4:') === 0) return tratarCallbackGOMgso4(chat, v.replace('mgso4:', ''), messageId);
+
+  if (v === 'prematuridade') return enviarTelaGOPrematuridade(chat, messageId);
+  if (v.indexOf('prematuridade:') === 0) return tratarCallbackGOPrematuridade(chat, v.replace('prematuridade:', ''), messageId);
+
+  if (v === 'toxo') return enviarTelaGOToxo(chat, messageId);
+  if (v.indexOf('toxo:') === 0) return tratarCallbackGOToxo(chat, v.replace('toxo:', ''), messageId);
+
+  if (v === 'corrimento') return enviarTelaGOCorrimento(chat, messageId);
+  if (v.indexOf('corrimento:') === 0) return tratarCallbackGOCorrimento(chat, v.replace('corrimento:', ''), messageId);
+
+  if (v === 'preventivo') return enviarTelaGOPreventivo(chat, messageId);
+  if (v.indexOf('preventivo:') === 0) return tratarCallbackGOPreventivo(chat, v.replace('preventivo:', ''), messageId);
+
+  if (v === 'anticoncepcao') return enviarTelaGOAnticoncepcao(chat, messageId);
+  if (v.indexOf('anticoncepcao:') === 0) return tratarCallbackGOAnticoncepcao(chat, v.replace('anticoncepcao:', ''), messageId);
+
+  if (v === 'dip') return enviarTelaGODip(chat, messageId);
+  if (v.indexOf('dip:') === 0) return tratarCallbackGODip(chat, v.replace('dip:', ''), messageId);
+
+  return enviarMenuUXGinecoObstetricia(chat, messageId);
+}
+var tratarCallbackGinecoObstetricia = tratarCallbackUXGO;
+
 /* ========== Entrada de texto ========== */
 
 function tratarEntradaUX(message) {
@@ -2661,6 +3504,9 @@ function executarExtracaoReceitaSoap(chatId, cacheKey, messageId) {
 
 function tratarCallbackUX(cb) {
   var data = String(cb.data || '');
+  if (data.indexOf('go_') === 0) {
+    data = 'ux:go:' + data.substring(3);
+  }
   if (data.indexOf('ux:') !== 0) return false;
   var chat = cb.message.chat.id, msgId = cb.message.message_id, cache = uxCache();
   try { responderCallbackTelegram(cb.id, ''); } catch (e) { console.error('answerCallbackQuery: ' + e); }
@@ -2691,6 +3537,8 @@ function tratarCallbackUX(cb) {
         enviarMenuAmbulatorio(chat, msgId);
       } else if (v === 'bolso') {
         enviarMenuConsultasBolso(chat, msgId);
+      } else if (v === 'go') {
+        enviarMenuUXGinecoObstetricia(chat, msgId);
       } else if (v === 'rx') {
         iniciarModoBot(chat, 'rx', false, msgId);
       } else if (v === 'calc') {
@@ -2770,6 +3618,8 @@ function tratarCallbackUX(cb) {
       else return enviarMenuConsultasBolso(chat, msgId);
     } else if (op === 'calc') {
       return tratarCallbackUXCalc(chat, v, msgId);
+    } else if (op === 'go') {
+      return tratarCallbackUXGO(chat, v, msgId);
     } else if (op === 'emerg') {
       if (v === 'choque') return enviarMenuEmergChoque(chat, msgId);
       else if (v === 'glasgow') return enviarMenuEmergGlasgow(chat, msgId);
@@ -3109,6 +3959,29 @@ if (typeof module !== 'undefined' && module.exports) {
     tratarCallbackBolsoHSL: tratarCallbackBolsoHSL,
     enviarMenuEnfermaria: enviarMenuEnfermaria,
     enviarMenuGinecologiaObstetricia: enviarMenuGinecologiaObstetricia,
+    enviarMenuUXGinecoObstetricia: enviarMenuUXGinecoObstetricia,
+    tratarCallbackUXGO: tratarCallbackUXGO,
+    tratarCallbackGinecoObstetricia: tratarCallbackGinecoObstetricia,
+    enviarTelaGOPrenatal: enviarTelaGOPrenatal,
+    tratarCallbackGOPrenatal: tratarCallbackGOPrenatal,
+    enviarTelaGOParto: enviarTelaGOParto,
+    tratarCallbackGOParto: tratarCallbackGOParto,
+    enviarTelaGOHpp: enviarTelaGOHpp,
+    tratarCallbackGOHpp: tratarCallbackGOHpp,
+    enviarTelaGOMgso4: enviarTelaGOMgso4,
+    tratarCallbackGOMgso4: tratarCallbackGOMgso4,
+    enviarTelaGOPrematuridade: enviarTelaGOPrematuridade,
+    tratarCallbackGOPrematuridade: tratarCallbackGOPrematuridade,
+    enviarTelaGOToxo: enviarTelaGOToxo,
+    tratarCallbackGOToxo: tratarCallbackGOToxo,
+    enviarTelaGOCorrimento: enviarTelaGOCorrimento,
+    tratarCallbackGOCorrimento: tratarCallbackGOCorrimento,
+    enviarTelaGOPreventivo: enviarTelaGOPreventivo,
+    tratarCallbackGOPreventivo: tratarCallbackGOPreventivo,
+    enviarTelaGOAnticoncepcao: enviarTelaGOAnticoncepcao,
+    tratarCallbackGOAnticoncepcao: tratarCallbackGOAnticoncepcao,
+    enviarTelaGODip: enviarTelaGODip,
+    tratarCallbackGODip: tratarCallbackGODip,
     enviarMenuEmergDengue: enviarMenuEmergDengue,
     enviarMenuEmergCriseHas: enviarMenuEmergCriseHas,
     enviarMenuEmergGlasgow: enviarMenuEmergGlasgow,

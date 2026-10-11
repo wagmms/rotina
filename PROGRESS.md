@@ -14,11 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria e Otimização da Aba Calculadoras Clínicas & Escores (`ux:hub:calc`, `src/12_experiencia_bot.js`, `src/07f_telegram_calculadoras_parser.js`, `cockpit_movel.html` e `tests/test_calculadoras_ux.cjs`)**:
-    - **Diagnóstico e Otimização UX**: A aba de calculadoras e o Cockpit PWA possuíam inconsistências de navegação contextual, ausência de Parkland e Glasgow-P nos seletores táteis do Cockpit e validação Fastify (`server/validators.js`) restrita sem os tipos modernos e limites biológicos de SCQ.
-    - **Implementação Determinística (0ms) e Protocolo Beira-Leito**: Integradas em 0ms as 6 calculadoras prioritárias (Gasometria arterial completa com Winter e Ânion Gap, Clearance Cockcroft-Gault vs CKD-EPI 2021, Hidratação Venosa Pediátrica Holliday-Segar, Glasgow-P com alerta de via aérea definitiva se GCS ≤ 8, Parkland em grandes queimados e DVA Noradrenalina na BIC) tanto no Telegram quanto no Cockpit (online e offline local).
-    - **Retorno Contextual e Cópia em 1 Toque**: Garantidos botões `[🔙 Calculadoras]` (`ux:hub:calc`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% dos fluxos e comandos (/calc e texto livre no fast-path). Respostas formatadas com bloco de cópia ````text` via `ux:copiar:<hash>` para colagem instantânea no prontuário eletrônico (PEP).
-    - **Validação e Cobertura**: Criada suíte canônica `tests/test_calculadoras_ux.cjs` (7 seções completas de UI/UX, comandos e presets), integrada ao manifesto de testes (`scripts/test_manifest.json`). Recompilado `ultra_rotina_master.js` (56.934 linhas, 100% sintaxe OK). 100% aprovado na bateria completa `npm run test:all` (232/232 suítes verdes em 17.69s).
+- [x] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`, `src/12_experiencia_bot.js`, `src/07a_telegram_router.js`, `tests/test_hub_go_ux.cjs` e `tests/test_go_hub_ux.cjs`)**:
+    - **Diagnóstico e Causa Raiz**: O teclado `construirTecladoHubGO` utilizava rodapé com retorno à raiz (`ux:menu`) em vez do retorno contextual `[🔙 Hub G&O]` (`ux:rotina:go`) e `[🏠 Início]` (`ux:hub:inicio`), violando o Protocolo das 6 Regras de Ouro. O roteador do Telegram interceptava `/go` e `/obstetricia` antecipadamente. Em `src/12_experiencia_bot.js`, presets de expulsivo, intoxicação por magnésio e anticoncepção OMS possuíam discrepâncias de casing estrito e mapeamento de categorias OMS (`metodosBloqueadosCat4`).
+    - **Determinismo 0ms e Protocolo Beira-Leito**: Respostas instantâneas em 0ms sem IA desnecessária para 100% dos 10 submódulos clínicos (Pré-Natal & DPP, Parto/Partograma, HPP 4 Ts, Pré-Eclâmpsia & MgSO4 Zuspan, Prematuridade/RPMO, Toxoplasmose, Vulvovaginites, Preventivo INCA, Anticoncepção OMS e DIP).
+    - **Navegação Contextual e Cópia em 1 Toque**: Garantidos botões `[🔙 Hub G&O]` (`ux:rotina:go`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas, presets e comandos clínicos. Respostas formatadas com botão `[📋 Copiar Conduta para Prontuário]` (`ux:copiar:<hash>`) em bloco ````text` para inserção ágil no prontuário eletrônico.
+    - **Validação e Cobertura**: 100% aprovado nas duas suítes canônicas: `tests/test_hub_go_ux.cjs` (23/23 testes verdes) e `tests/test_go_hub_ux.cjs` (6 blocos completos), além de `test_saneamento_escopo_clinico.cjs` e `test_hubs_e_comandos_telegram.cjs`. Recompilado `ultra_rotina_master.js` (58.038 linhas, 100% sintaxe OK). Integrado a `scripts/test_manifest.json` com aprovação total de 46/46 suítes em `npm test`.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -26,10 +26,10 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`, Telegram e Cockpit)**:
-    - **Arquivo/Módulo Alvo**: `src/12_experiencia_bot.js`, `src/07a_telegram_router.js` e `src/02_centro_obstetrico.js`
-    - **Função/Componente/Seletor**: Função `enviarMenuUXGinecoObstetricia`, handlers `go_*` e comandos `/go`, `/prenatal`, `/parto`, `/hpp`, `/mgso4`
-    - **Comportamento Esperado / Critério de Aceite**: Garantir retorno contextual para `[🔙 Hub G&O]` (`ux:rotina:go`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% dos 10 submódulos (Pré-Natal & DPP, Parto/Partograma, HPP 4 Ts, Pré-Eclâmpsia & MgSO4, Prematuridade/RPMO, Toxoplasmose, Vulvovaginites, Preventivo INCA, Anticoncepção OMS e DIP), respostas determinísticas em 0ms sem IA desnecessária e botão de 1 toque `[📋 Copiar Conduta para Prontuário]` em todas as saídas.
+- [ ] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`)**:
+    - **Arquivo/Módulo Alvo**: `src/12_experiencia_bot.js`, `src/09_enfermaria.js` e `src/07e_telegram_midia_e_leitos.js`
+    - **Função/Componente/Seletor**: Funções `enviarMenuEnfermaria`, `mostrarPainelLeitos`, `processarAcaoLeito`, `tratarCallbackEnfSBAR` e comandos `/leitos`, `/censo`, `/sbar`
+    - **Comportamento Esperado / Critério de Aceite**: Garantir retorno contextual para `[🔙 Enfermaria]` (`ux:hub:enf`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% dos fluxos de leitos e SBAR (painel, censo, admissão, evolução diária, alta e passagem de plantão), respostas determinísticas em 0ms sem IA desnecessária e botão de 1 toque `[📋 Copiar Conduta/Passagem para Prontuário]` em todas as saídas de leitos e SBAR.
 
 ---
 
@@ -49,9 +49,8 @@
     - Concluído com 100% dos submódulos validados (`soap`, `remume`, `cid`, `atestado`), retorno contextual `[🔙 Ambulatório]`, respostas determinísticas em 0ms e botão de cópia de conduta para o PEP.
 3. [x] **Auditoria e Otimização da Aba Calculadoras Clínicas & Escores (`ux:hub:calc` e Cockpit)**:
     - Concluído com 100% das 6 calculadoras principais, retorno contextual `[🔙 Calculadoras]`, Fastify schemas sanitizados, Parkland e Glasgow no Cockpit PWA e botão de cópia ````text`.
-4. [ ] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`)**:
-    - Validar os 10 submódulos de G&O: Pré-Natal & DPP (`go_prenatal`), Parto/Partograma (`go_parto`), HPP 4 Ts (`go_hpp`), Pré-Eclâmpsia & MgSO4 (`go_mgso4`), Prematuridade/RPMO (`go_prematuridade`), Toxo (`go_toxo`), Vulvovaginites (`go_corrimento`), Preventivo INCA (`go_preventivo`), Anticoncepção OMS (`go_anticoncepcao`) e DIP (`go_dip`).
-    - Substituir retornos genéricos para o menu raiz por `[🔙 Hub G&O]` e `[🏠 Início]`, com condutas prescritivas instantâneas (0ms) e botão de cópia de conduta.
+4. [x] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`)**:
+    - Concluído com 100% dos 10 submódulos validados, retorno contextual `[🔙 Hub G&O]` e `[🏠 Início]`, respostas determinísticas em 0ms e botão de cópia de conduta ````text`.
 5. [ ] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`)**:
     - Validar Painel de Leitos (`ux:painel:0`), Abertura de Leito Individual (`ux:leito:*`), Evolução Diária (`ux:evoluir:*`), Alta Hospitalar (`ux:alta:*`) e Passagem SBAR (`ux:enf:sbar`).
     - Garantir que nenhum estado de censo ou evolução deixe o médico sem opções de navegação direta para `[🔙 Enfermaria]` ou `[🏠 Início]`.
@@ -63,12 +62,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 80 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 83 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 76 (Ambulatório / Controle Especial e Notificação)*: Adicionar templates estruturados em 1 toque de Receituário de Controle Especial (Portaria SVS/MS nº 344/98 - Listas C1 e B1) e Notificação de Receita B (Psicotrópicos) com cálculo automático da quantidade necessária para 30 ou 60 dias de tratamento.
-- *Sugestão 77 (Ambulatório / Validação de Atestado Digital com QR Code)*: Implementar hash de integridade e metadados criptográficos para validação de atestado médico pelo empregador ou serviço de perícia, minimizando adulterações em declarações emitidas pelo consultório digital.
-- *Sugestão 78 (Calculadoras / Gasometria Arterial)*: Adicionar cálculo automático do Gradiente Alvéolo-Arterial de O₂ (P(A-a)O₂ = [FiO₂ × (Patm - PH₂O) - (PaCO₂ / R)] - PaO₂) com valor de referência ajustado por idade (Idade / 4 + 4) e alerta de shunt intrapulmonar ou alteração V/Q nas análises gasométricas arteriais (`ux:calc:gaso` e Cockpit PWA).
 - *Sugestão 79 (Calculadoras / Parkland & Queimados)*: Adicionar temporizador regressivo e alerta horário no Cockpit PWA para término da 1ª etapa de ressuscitação volêmica (primeiras 8h a contar do horário exato do trauma), com campos de input para volume já administrado na ambulância (SAMU) e compensação automática no volume restante de Ringer Lactato.
 - *Sugestão 80 (Calculadoras / Glasgow-P Pediátrico)*: Implementar toggle de adaptação pediátrica para a Escala de Coma de Glasgow em lactentes e crianças menores de 4 anos (balbucio/choro consolável em vez de orientação verbal e retração à dor em vez de localização), garantindo acurácia neurológica beira-leito em trauma pediátrico.
+- *Sugestão 81 (Ginecologia & Obstetrícia / Partograma Dinâmico)*: Implementar renderização em ASCII/gráfico SVG inline no Telegram e Cockpit PWA da linha de alerta e linha de ação do Partograma da OMS (com marcação temporal de dilatação cervical, descida da apresentação de De Lee e frequência cardíaca fetal), facilitando a identificação imediata de parada secundária de dilatação, fase ativa prolongada e período pélvico retardado.
+- *Sugestão 82 (Ginecologia & Obstetrícia / Calculadora de Risco de Pré-Eclâmpsia 1º Trimestre)*: Adicionar algoritmo de rastreamento precoce de pré-eclâmpsia entre 11 e 13+6 semanas baseado na Fetal Medicine Foundation (FMF), combinando fatores maternos, PAM média, IP das artérias uterinas e dosagem de PlGF, com prescrição automática de AAS 150 mg/dia à noite e Carbonato de Cálcio 1,5g/dia se risco elevado.
+- *Sugestão 83 (Ginecologia & Obstetrícia / Mapeamento de Anticoncepção Pós-Parto Imediato)*: Adicionar matriz de decisão rápida beira-leito para inserção de DIU de Cobre ou DIU de Levonorgestrel pós-parto imediato (até 10 minutos após dequitação ou transcesariana) e pós-aborto imediato, com taxa de expulsão comparativa e critérios de segurança FIGO/OMS.
 
 ---

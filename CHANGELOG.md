@@ -1,5 +1,29 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0AZ. [x] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`, `src/12_experiencia_bot.js`, `src/07a_telegram_router.js` e `tests/test_go_hub_ux.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * O Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`) possuía lacunas de navegação contextual, submenus que utilizavam retornos genéricos para a raiz do bot (`ux:menu` em vez de `[🔙 Hub G&O]`), e ausência de atalhos determinísticos para comandos comuns no plantão obstétrico e ginecológico (`/toxo`, `/avidez`, `/dip`, `/pelvica`).
+      * Vários comandos clínicos (`/prenatal`, `/parto`, `/hpp`, `/mgso4`, `/prematuridade`, `/preventivo`, `/anticoncepcao`, `/corrimento`) enviavam mensagens de texto isoladas sem teclados inline de navegação, gerando telas órfãs no Telegram sem botões para `[🔙 Hub G&O]` (`ux:rotina:go`) e `[🏠 Início]` (`ux:hub:inicio`).
+      * Discrepâncias de tipagem e propriedades nos retornos de `CentroObstetricoService` (`condutaFase` vs `condutasFase`, `medidasResgate` vs `procedimentosHemostaticos`, formato de parâmetros de `ObstetriciaToxoplasmoseService`) causavam falhas ou formatação incompleta de condutas.
+    - **Contrato de UX Beira-Leito e Determinismo (0ms)**:
+      * Respostas determinísticas imediatas em 0ms sem qualquer chamada externa de IA para 100% dos 10 submódulos clínicos (Pré-Natal & DPP, Parto/Partograma, HPP 4 Ts, Pré-Eclâmpsia & MgSO4, Prematuridade/RPMO, Toxoplasmose Gestacional, Vulvovaginites, Preventivo INCA, Anticoncepção OMS e DIP).
+      * Navegação contextual estrita: garantia de `[🔙 Hub G&O]` (`ux:rotina:go`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas, submenus, presets clínicos e comandos diretos, além de `[🔙 Voltar ao Menu]` (`ux:menu`) e `[🏠 Início]` no menu principal do Hub.
+      * Ação de cópia rápida em 1 toque: inclusão de botão `[📋 Copiar Conduta para Prontuário]` (`ux:copiar:<hash>`) com cache persistente e formatação em bloco de código ````text` em todas as saídas de conduta.
+    - **Implementação e Refatoração**:
+      * Em `src/07a_telegram_router.js`:
+        • Registrados comandos `/toxo`, `/toxoplasmose`, `/avidez`, `/dip`, `/pelvica` no roteador clínico e no mapa de modos.
+        • Injetado roteamento direto para telas especializadas quando comandos forem chamados sem argumentos (`/prenatal`, `/dpp`, `/parto`, `/co`, `/hpp`, `/mgso4`, `/preeclampsia`, `/prematuridade`, `/gbs`, `/preventivo`, `/anticoncepcao`, `/corrimento`, `/leucorreia`, `/dip`, `/pelvica`, `/toxo`, `/toxoplasmose`, `/avidez`).
+        • Comando `/toxo` com parâmetros atualizado com bloco de cópia `ux:copiar:<hash>` e navegação contextual.
+        • Teclado do menu Hub G&O ajustado com retorno contextual `[🔙 Voltar ao Menu]` e `[🏠 Início]`.
+      * Em `src/12_experiencia_bot.js`:
+        • Corrigidas discrepâncias de retorno dos serviços em `tratarCallbackGOParto`, `tratarCallbackGOHpp`, `tratarCallbackGOMgso4`, `tratarCallbackGOPrematuridade`, `tratarCallbackGOToxo`, `tratarCallbackGOCorrimento`, `tratarCallbackGOPreventivo` e `tratarCallbackGOAnticoncepcao`.
+        • Garantidos fallbacks seguros para todas as propriedades clínicas, com cabeçalhos estruturados (ex: etiologia `TÔNUS (ATONIA UTERINA)` no HPP, ataque/manutenção/vigilância/intoxicação no MgSO4 Zuspan).
+        • Respostas de cópia rápida via `ux:copiar:<hash>` encapsuladas em bloco ````text` para inserção limpa em prontuário eletrônico.
+    - **Validação e Cobertura Automatizada**:
+      * Criada suíte canônica `tests/test_go_hub_ux.cjs` (6 blocos completos cobrindo menu principal, 10 telas interativas, 30 presets clínicos determinísticos de 1 toque, comandos vazios, comandos com parâmetros e cópia para prontuário).
+      * Registrado em `scripts/test_manifest.json`.
+      * Recompilado `ultra_rotina_master.js` (58.041 linhas, 100% sintaxe OK).
+
 0AY. [x] **Auditoria e Otimização da Aba Calculadoras Clínicas & Escores (`ux:hub:calc`, `src/12_experiencia_bot.js`, `src/07f_telegram_calculadoras_parser.js`, `cockpit_movel.html` e `tests/test_calculadoras_ux.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * A aba de Calculadoras Clínicas (`ux:hub:calc`) possuía lacunas de integração tátil direta, retornos contextuais inconsistentes em presets avançados e falta de botões dedicados para Parkland e Glasgow-P no Cockpit Móvel PWA.

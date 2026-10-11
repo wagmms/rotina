@@ -444,6 +444,10 @@ function construirTecladoHubGO() {
       [
         {"text": "💊 Anticoncepção OMS", "callback_data": "go_anticoncepcao"},
         {"text": "🩹 DIP & Infecção Pélvica", "callback_data": "go_dip"}
+      ],
+      [
+        {"text": "🔙 Hub G&O", "callback_data": "ux:rotina:go"},
+        {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}
       ]
     ]
   };
@@ -686,7 +690,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/toxo", "/toxoplasmose", "/avidez", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/dip", "/pelvica", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -698,7 +702,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/toxo":"toxo","/toxoplasmose":"toxo","/avidez":"toxo","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/dip":"dip","/pelvica":"dip","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -1095,7 +1099,18 @@ function processarMensagemTexto(message) {
         "• `/prenatal DUM 15/01/2026 USG 10/03/2026 8s2d` *(concordância FEBRASGO/ACOG)*\n" +
         "• `/prenatal med Enalapril, Sinvastatina, Paracetamol` *(validador farmacológico)*\n\n" +
         "_Todas as condutas e rastreios seguem rigorosamente as diretrizes FEBRASGO e MS._";
-      return enviarMensagemParaChat(chatId, msgAjudaPn);
+      return enviarMensagemComTecladoParaChat(chatId, msgAjudaPn, {
+        inline_keyboard: [
+          [
+            { text: "🤰 Caso DUM 10/02/2026", callback_data: "ux:go:prenatal:dum" },
+            { text: "💊 Auditoria Fármacos", callback_data: "ux:go:prenatal:med" }
+          ],
+          [
+            { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      });
     }
 
     if (typeof ObstetriciaPrenatalService === "undefined") {
@@ -1124,7 +1139,18 @@ function processarMensagemTexto(message) {
         if (audit.seguros.length > 0) {
           textoAudit += "✅ *Opções Seguras Avaliadas:* " + audit.seguros.map(function(s){ return s.medicamento; }).join(", ") + "\n";
         }
-        return enviarMensagemParaChat(chatId, textoAudit);
+        var ckAudit = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+        var cacheAudit = (typeof uxCache === "function") ? uxCache() : null;
+        if (cacheAudit && typeof safePutCache === "function") safePutCache(cacheAudit, ckAudit, textoAudit, 21600);
+        return enviarMensagemComTecladoParaChat(chatId, textoAudit, {
+          inline_keyboard: [
+            [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckAudit }],
+            [
+              { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+              { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+            ]
+          ]
+        });
       }
     }
 
@@ -1171,7 +1197,18 @@ function processarMensagemTexto(message) {
 
       var laudoSoro = ObstetriciaPrenatalService.interpretarSorologiasLaboratorioPrenatal(paramsSoro);
       if (laudoSoro && laudoSoro.sucesso && laudoSoro.totalAvaliados > 0) {
-        return enviarMensagemParaChat(chatId, "📋 *INTERPRETAÇÃO DE EXAMES E CONDUTA NO PRÉ-NATAL:*\n\n```\n" + laudoSoro.textoFormatado + "\n```");
+        var ckSoro = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+        var cacheSoro = (typeof uxCache === "function") ? uxCache() : null;
+        if (cacheSoro && typeof safePutCache === "function") safePutCache(cacheSoro, ckSoro, laudoSoro.textoFormatado, 21600);
+        return enviarMensagemComTecladoParaChat(chatId, "📋 *INTERPRETAÇÃO DE EXAMES E CONDUTA NO PRÉ-NATAL:*\n\n```\n" + laudoSoro.textoFormatado + "\n```", {
+          inline_keyboard: [
+            [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckSoro }],
+            [
+              { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+              { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+            ]
+          ]
+        });
       }
     }
 
@@ -1206,7 +1243,19 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, "⚠️ " + (resumo.erro || "Não foi possível calcular o pré-natal com os dados informados."));
     }
 
-    return enviarMensagemParaChat(chatId, "🤰 *AVALIAÇÃO DE PRÉ-NATAL E CRONOLOGIA OBSTÉTRICA:*\n\n```\n" + resumo.textoFormatado + "\n```");
+    var ckPn = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cachePn = (typeof uxCache === "function") ? uxCache() : null;
+    if (cachePn && typeof safePutCache === "function") safePutCache(cachePn, ckPn, resumo.textoFormatado, 21600);
+
+    return enviarMensagemComTecladoParaChat(chatId, "🤰 *AVALIAÇÃO DE PRÉ-NATAL E CRONOLOGIA OBSTÉTRICA:*\n\n```\n" + resumo.textoFormatado + "\n```", {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckPn }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    });
   }
 
   // Comandos de Centro Obstétrico e Emergências (Pré-parto & Sala de Parto)
@@ -1214,6 +1263,18 @@ function processarMensagemTexto(message) {
     var dadosCo = texto.replace(/^\/(parto|co|hpp|mgso4|preeclampsia|gbs|prematuridade)\s*/i, "").trim();
 
     if (!dadosCo) {
+      if (typeof enviarTelaGOParto === "function" && (comando === "/parto" || comando === "/co")) {
+        return enviarTelaGOParto(chatId);
+      }
+      if (typeof enviarTelaGOHpp === "function" && comando === "/hpp") {
+        return enviarTelaGOHpp(chatId);
+      }
+      if (typeof enviarTelaGOMgso4 === "function" && (comando === "/mgso4" || comando === "/preeclampsia")) {
+        return enviarTelaGOMgso4(chatId);
+      }
+      if (typeof enviarTelaGOPrematuridade === "function" && (comando === "/prematuridade" || comando === "/gbs")) {
+        return enviarTelaGOPrematuridade(chatId);
+      }
       var msgAjudaCo = "🏥 *CENTRO OBSTÉTRICO & SALA DE PARTO (PROTOCOLOS DE EMERGÊNCIA)*\n\n" +
         "Envie os achados clínicos ou parâmetros do caso:\n\n" +
         "💡 *Exemplos Práticos:*\n" +
@@ -1223,7 +1284,22 @@ function processarMensagemTexto(message) {
         "• `/gbs ig 35s bolsa rota 20h sem cultura` *(profilaxia para Streptococcus agalactiae)*\n" +
         "• `/prematuridade ig 29s ameaca parto rpm` *(betametasona, neuroproteção <32s, tocólise e latência)*\n\n" +
         "_Algoritmos estritamente alinhados às diretrizes da FEBRASGO, Ministério da Saúde e ACOG._";
-      return enviarMensagemParaChat(chatId, msgAjudaCo);
+      return enviarMensagemComTecladoParaChat(chatId, msgAjudaCo, {
+        inline_keyboard: [
+          [
+            { text: "🏥 Fase Ativa de Parto", callback_data: "ux:go:parto:ativa" },
+            { text: "🩸 Protocolo HPP (4 Ts)", callback_data: "ux:go:hpp:atonia" }
+          ],
+          [
+            { text: "⚡ Pré-Eclâmpsia & MgSO4", callback_data: "ux:go:mgso4:zuspan" },
+            { text: "👶 Prematuridade & RPMO", callback_data: "ux:go:prematuridade:tpp" }
+          ],
+          [
+            { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      });
     }
 
     if (typeof CentroObstetricoService === "undefined") {
@@ -1340,7 +1416,19 @@ function processarMensagemTexto(message) {
     }
 
     var resumo = CentroObstetricoService.gerarResumoCentroObstetrico(cenario);
-    return enviarMensagemParaChat(chatId, "🏥 *CONDUTA DE CENTRO OBSTÉTRICO (PRE-PARTO & SALA DE PARTO):*\n\n```\n" + resumo.textoFormatado + "\n```");
+    var ckCo = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheCo = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheCo && typeof safePutCache === "function") safePutCache(cacheCo, ckCo, resumo.textoFormatado, 21600);
+
+    return enviarMensagemComTecladoParaChat(chatId, "🏥 *CONDUTA DE CENTRO OBSTÉTRICO (PRE-PARTO & SALA DE PARTO):*\n\n```\n" + resumo.textoFormatado + "\n```", {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckCo }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    });
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -1349,6 +1437,15 @@ function processarMensagemTexto(message) {
   if (comando === "/go" || comando === "/obstetricia" || comando === "/ginecologia" || comando === "/preventivo" || comando === "/sua" || comando === "/anticoncepcao" || comando === "/leucorreia" || comando === "/corrimento") {
     var dadosGin = texto.replace(/^\/\w+\s*/, "").trim();
     if (!dadosGin || comando === "/go" || (comando === "/obstetricia" && !dadosGin)) {
+      if (typeof enviarTelaGOPreventivo === "function" && comando === "/preventivo") {
+        return enviarTelaGOPreventivo(chatId);
+      }
+      if (typeof enviarTelaGOAnticoncepcao === "function" && comando === "/anticoncepcao") {
+        return enviarTelaGOAnticoncepcao(chatId);
+      }
+      if (typeof enviarTelaGOCorrimento === "function" && (comando === "/corrimento" || comando === "/leucorreia")) {
+        return enviarTelaGOCorrimento(chatId);
+      }
       var msgAjudaGin = "🌸🤰 *HUB DE GINECOLOGIA & OBSTETRÍCIA (INTERNATO)*\n" +
         "📅 *Estágio Ativo até 29/11* — Guia Rápido Beira-Leito\n\n" +
         "Selecione uma conduta imediata nos botões abaixo ou envie o caso:\n\n" +
@@ -1474,7 +1571,78 @@ function processarMensagemTexto(message) {
     }
 
     var textoResumo = GinecologiaAmbulatorialService.gerarResumoGinecologia(cenario);
-    return enviarMensagemParaChat(chatId, "🌸 *CONDUTA DE GINECOLOGIA AMBULATORIAL:*\n\n```\n" + textoResumo + "\n```");
+    var ckGin = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheGin = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheGin && typeof safePutCache === "function") safePutCache(cacheGin, ckGin, textoResumo, 21600);
+
+    return enviarMensagemComTecladoParaChat(chatId, "🌸 *CONDUTA DE GINECOLOGIA AMBULATORIAL:*\n\n```\n" + textoResumo + "\n```", {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckGin }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    });
+  }
+
+  // Comandos de Infecção Pélvica & DIP (/dip)
+  if (comando === "/dip" || comando === "/pelvica") {
+    var dadosDip = texto.replace(/^\/(dip|pelvica)\s*/i, "").trim();
+    if (!dadosDip) {
+      if (typeof enviarTelaGODip === "function") {
+        return enviarTelaGODip(chatId);
+      }
+      var msgAjudaDip = "🩹 *DOENÇA INFLAMATÓRIA PÉLVICA (DIP) & ATO*\n\n" +
+        "Envie os achados clínicos ou parâmetros do caso:\n\n" +
+        "💡 *Exemplos Práticos:*\n" +
+        "• `/dip dor hipogastrio febre 38.5 mobilizacao colo positiva` *(Monif I ambulatorial)*\n" +
+        "• `/dip dor anexial peritonite abscesso 6cm diu presente` *(Monif II-III hospitalar)*\n" +
+        "• `/dip parceiro sexual gonococo clamidia` *(protocolo de contatos)*\n\n" +
+        "_Algoritmos estritamente alinhados ao Ministério da Saúde (PCDT ISTs) e CDC._";
+      return enviarMensagemComTecladoParaChat(chatId, msgAjudaDip, {
+        inline_keyboard: [
+          [
+            { text: "🩹 DIP Ambulatorial", callback_data: "ux:go:dip:monif1" },
+            { text: "🏥 DIP Hospitalar", callback_data: "ux:go:dip:hospitalar" }
+          ],
+          [
+            { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      });
+    }
+
+    if (typeof DipAbscessoTuboOvarianoService === "undefined") {
+      return enviarMensagemParaChat(chatId, "⚠️ Módulo DipAbscessoTuboOvarianoService indisponível temporariamente.");
+    }
+
+    var paramsDip = {
+      dorHipogastrio: true,
+      dorPalpacaoAnexial: true,
+      dorMobilizacaoColo: true,
+      febre: dadosDip.match(/febre|38/i) ? true : false,
+      leucocitose: dadosDip.match(/leucocit|hemograma/i) ? true : false,
+      peritonitePelvica: dadosDip.match(/periton|blumberg|descompress/i) ? true : false,
+      abscessoTuboOvariano: dadosDip.match(/abscess|ato|massa/i) ? true : false,
+      diuPresente: dadosDip.match(/diu/i) ? true : false
+    };
+    var avaliacaoDip = DipAbscessoTuboOvarianoService.avaliarDipCompleto(paramsDip);
+    var textoResumoDip = DipAbscessoTuboOvarianoService.gerarResumoDip(avaliacaoDip);
+    var ckDip = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheDip = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheDip && typeof safePutCache === "function") safePutCache(cacheDip, ckDip, textoResumoDip, 21600);
+
+    return enviarMensagemComTecladoParaChat(chatId, "🩹 *CONDUTA DE DOENÇA INFLAMATÓRIA PÉLVICA (DIP):*\n\n```\n" + textoResumoDip + "\n```", {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckDip }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    });
   }
 
 
@@ -2944,7 +3112,10 @@ function processarMensagemTexto(message) {
     var paramsToxo = dadosToxo ? ObstetriciaToxoplasmoseService.extrairParametrosTexto(dadosToxo) : {};
     
     if (!dadosToxo || (paramsToxo.igg === null && paramsToxo.igm === null && paramsToxo.pcr_amniotico === null)) {
-      return enviarMensagemParaChat(chatId, "🦠 *INFECTOLOGIA OBSTÉTRICA — TOXOPLASMOSE*\n\n" +
+      if (typeof enviarTelaGOToxo === "function") {
+        return enviarTelaGOToxo(chatId);
+      }
+      return enviarMensagemComTecladoParaChat(chatId, "🦠 *INFECTOLOGIA OBSTÉTRICA — TOXOPLASMOSE*\n\n" +
         "Envie os resultados da sorologia e a idade gestacional atual:\n" +
         "• *Sorologia:* `igg positivo`, `igm positivo`\n" +
         "• *Teste de Avidez:* `avidez alta`, `avidez baixa`, `avidez pendente`\n" +
@@ -2954,12 +3125,39 @@ function processarMensagemTexto(message) {
         "*Exemplos:*\n" +
         "• `/toxo igg positivo igm positivo avidez alta coleta 10s` *(Infecção prévia)*\n" +
         "• `/toxo 16s igg positivo igm positivo avidez baixa` *(Infecção aguda, baixa avidez)*\n" +
-        "• `/toxo 20s igg positivo igm positivo pcr la positivo` *(Infecção fetal confirmada)*");
+        "• `/toxo 20s igg positivo igm positivo pcr la positivo` *(Infecção fetal confirmada)*", {
+        inline_keyboard: [
+          [
+            { text: "🔬 1º Tri Avidez Baixa (Aguda)", callback_data: "ux:go:toxo:aguda" },
+            { text: "✅ 1º Tri Avidez Alta (Prévia)", callback_data: "ux:go:toxo:previa" }
+          ],
+          [
+            { text: "💊 PCR Positivo (Esquema Tríplice)", callback_data: "ux:go:toxo:fetal" }
+          ],
+          [
+            { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      });
     }
 
     try {
       var analiseToxo = ObstetriciaToxoplasmoseService.avaliar(paramsToxo);
-      return enviarMensagemParaChat(chatId, ObstetriciaToxoplasmoseService.formatarTextoTelegram(analiseToxo));
+      var textoResumoToxo = ObstetriciaToxoplasmoseService.formatarTextoTelegram(analiseToxo);
+      var ckToxo = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+      var cacheToxo = (typeof uxCache === "function") ? uxCache() : null;
+      if (cacheToxo && typeof safePutCache === "function") safePutCache(cacheToxo, ckToxo, textoResumoToxo, 21600);
+
+      return enviarMensagemComTecladoParaChat(chatId, "🔬 *AVALIAÇÃO DE TOXOPLASMOSE GESTACIONAL:*\n\n```\n" + textoResumoToxo + "\n```", {
+        inline_keyboard: [
+          [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckToxo }],
+          [
+            { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      });
     } catch (eToxo) {
       return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Toxoplasmose: " + eToxo.message);
     }

@@ -309,7 +309,12 @@ test('Cockpit RPC: Métodos de Obstetrícia funcionam via dispatch do runtime', 
 test('Comandos /prenatal e /dpp no Telegram Bot respondem com assertividade clínica', () => {
   let msgEnviada = null;
   const originalEnviar = ctx.enviarMensagemParaChat;
+  const originalEnviarTeclado = ctx.enviarMensagemComTecladoParaChat;
   ctx.enviarMensagemParaChat = (chatId, texto) => {
+    msgEnviada = texto;
+    return { ok: true };
+  };
+  ctx.enviarMensagemComTecladoParaChat = (chatId, texto, kb) => {
     msgEnviada = texto;
     return { ok: true };
   };
@@ -331,6 +336,7 @@ test('Comandos /prenatal e /dpp no Telegram Bot respondem com assertividade clí
     assert(msgEnviada && msgEnviada.includes('Enalapril'));
   } finally {
     ctx.enviarMensagemParaChat = originalEnviar;
+    ctx.enviarMensagemComTecladoParaChat = originalEnviarTeclado;
   }
 });
 

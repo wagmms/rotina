@@ -486,43 +486,73 @@ function processarCallbackBotao(cb) {
   // HUB GINECOLOGIA & OBSTETRÍCIA (ESTÁGIO ATIVO ATÉ 29/11)
   else if (data === "go_prenatal") {
     responderCallbackTelegram(cb.id, "Pré-Natal & DPP");
-    return enviarMensagemParaChat(cb.message.chat.id, "🤰 *CÁLCULO DE IG & ROTINA DE PRÉ-NATAL (MS)*\n\nEnvie a DUM ou dados de USG precoce:\n💡 *Exemplo:* `/prenatal DUM 15/02/2026`\nou `/prenatal USG 01/03/2026 8s3d`\n\nCalcula IG atual, DPP pela regra de Naegele e exames do trimestre.");
+    if (typeof enviarTelaGOPrenatal === "function") return enviarTelaGOPrenatal(cb.message.chat.id, cb.message.message_id);
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "🤰 *CÁLCULO DE IG & ROTINA DE PRÉ-NATAL (MS)*\n\nEnvie a DUM ou dados de USG precoce:\n💡 *Exemplo:* `/prenatal DUM 15/02/2026`\nou `/prenatal USG 01/03/2026 8s3d`\n\nCalcula IG atual, DPP pela regra de Naegele e exames do trimestre.", {
+      inline_keyboard: [[{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]]
+    });
   }
   else if (data === "go_parto") {
     responderCallbackTelegram(cb.id, "Parto & Centro Obstétrico");
-    return enviarMensagemParaChat(cb.message.chat.id, "🏥 *CONDUÇÃO DO TRABALHO DE PARTO & BISHOP*\n\nEnvie os dados do exame obstétrico:\n💡 *Exemplo:* `/parto 6cm apagamento 80% plano 0 feto cefalico`\nou `/co bishop dilatacao 3cm apagamento 50% consistencia media posicao intermediaria altura -2`\n\nCalcula índice de Bishop, fase do parto e orienta analgesia/indução.");
+    if (typeof enviarTelaGOParto === "function") return enviarTelaGOParto(cb.message.chat.id, cb.message.message_id);
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "🏥 *CONDUÇÃO DO TRABALHO DE PARTO & BISHOP*\n\nEnvie os dados do exame obstétrico:\n💡 *Exemplo:* `/parto 6cm apagamento 80% plano 0 feto cefalico`\nou `/co bishop dilatacao 3cm apagamento 50% consistencia media posicao intermediaria altura -2`\n\nCalcula índice de Bishop, fase do parto e orienta analgesia/indução.", {
+      inline_keyboard: [[{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]]
+    });
   }
   else if (data === "go_hpp") {
     responderCallbackTelegram(cb.id, "Hemorragia Pós-Parto (4 Ts)");
-    return enviarMensagemParaChat(cb.message.chat.id, "🩸 *HEMORRAGIA PÓS-PARTO (HPP) — PROTOCOLO 4 Ts*\n\nEnvie os parâmetros clínicos e perda estimada:\n💡 *Exemplo:* `/hpp perda 1200ml atonia uterina pas 85 fc 125`\n\nCalcula Índice de Choque (FC/PAS), orienta Ocitocina (5 UI IV lento + 20 UI em 500 mL), Metilergonovina, Misoprostol (800 mcg retal) e Ácido Tranexâmico (1g IV em 10 min até 3h do parto).");
+    if (typeof enviarTelaGOHpp === "function") return enviarTelaGOHpp(cb.message.chat.id, cb.message.message_id);
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "🩸 *HEMORRAGIA PÓS-PARTO (HPP) — PROTOCOLO 4 Ts*\n\nEnvie os parâmetros clínicos e perda estimada:\n💡 *Exemplo:* `/hpp perda 1200ml atonia uterina pas 85 fc 125`\n\nCalcula Índice de Choque (FC/PAS), orienta Ocitocina (5 UI IV lento + 20 UI em 500 mL), Metilergonovina, Misoprostol (800 mcg retal) e Ácido Tranexâmico (1g IV em 10 min até 3h do parto).", {
+      inline_keyboard: [[{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]]
+    });
   }
   else if (data === "go_mgso4") {
     responderCallbackTelegram(cb.id, "Pré-Eclâmpsia & MgSO4");
-    return enviarMensagemParaChat(cb.message.chat.id, "⚡ *PRÉ-ECLÂMPSIA GRAVE & ESQUEMA DE ZUSPAN*\n\nEnvie o comando para orientações imediatas:\n💡 *Exemplo:* `/mgso4 zuspan`\n\n• *Ataque:* Sulfato de Magnésio 50% 4g (8 mL de MgSO4 50% + 12 mL de AD) IV em 20 min.\n• *Manutenção:* 1 a 2 g/h em BIC contínua.\n• *Vigilância:* Reflexo patelar presente, FR > 16 irpm, Diurese > 25 mL/h.\n• *Antídoto imediato:* Gluconato de Cálcio 10% 10 mL IV em 3-5 min.");
+    if (typeof enviarTelaGOMgso4 === "function") return enviarTelaGOMgso4(cb.message.chat.id, cb.message.message_id);
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "⚡ *PRÉ-ECLÂMPSIA GRAVE & ESQUEMA DE ZUSPAN*\n\nEnvie o comando para orientações imediatas:\n💡 *Exemplo:* `/mgso4 zuspan`\n\n• *Ataque:* Sulfato de Magnésio 50% 4g (8 mL de MgSO4 50% + 12 mL de AD) IV em 20 min.\n• *Manutenção:* 1 a 2 g/h em BIC contínua.\n• *Vigilância:* Reflexo patelar presente, FR > 16 irpm, Diurese > 25 mL/h.\n• *Antídoto imediato:* Gluconato de Cálcio 10% 10 mL IV em 3-5 min.", {
+      inline_keyboard: [[{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]]
+    });
   }
   else if (data === "go_prematuridade") {
     responderCallbackTelegram(cb.id, "Prematuridade & RPMO");
-    return enviarMensagemParaChat(cb.message.chat.id, "👶 *TRABALHO DE PARTO PREMATURO & RPMO*\n\nEnvie a idade gestacional:\n💡 *Exemplo:* `/prematuridade 30 semanas dinamica uterina presente bolsa integra`\n\n• *Maturação Pulmonar (24 a 34 sem):* Betametasona 12 mg IM q24h (2 doses).\n• *Neuroproteção (< 32 sem):* MgSO4 4g ataque + 1g/h até o parto.\n• *Tocólise (24 a 34 sem):* Nifedipino ou Atosibana.");
+    if (typeof enviarTelaGOPrematuridade === "function") return enviarTelaGOPrematuridade(cb.message.chat.id, cb.message.message_id);
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "👶 *TRABALHO DE PARTO PREMATURO & RPMO*\n\nEnvie a idade gestacional:\n💡 *Exemplo:* `/prematuridade 30 semanas dinamica uterina presente bolsa integra`\n\n• *Maturação Pulmonar (24 a 34 sem):* Betametasona 12 mg IM q24h (2 doses).\n• *Neuroproteção (< 32 sem):* MgSO4 4g ataque + 1g/h até o parto.\n• *Tocólise (24 a 34 sem):* Nifedipino ou Atosibana.", {
+      inline_keyboard: [[{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]]
+    });
   }
   else if (data === "go_toxo") {
     responderCallbackTelegram(cb.id, "Toxoplasmose Gestacional");
-    return enviarMensagemParaChat(cb.message.chat.id, "🔬 *TOXOPLASMOSE GESTACIONAL & AVIDEZ*\n\nEnvie sorologias e idade gestacional:\n💡 *Exemplo:* `/toxo igg 250 igm 3.2 avidez alta 10 semanas`\nou `/toxo igg positivo igm positivo 18 semanas sem avidez`\n\nInterpreta soroconversão, orienta Espiramicina 1g 8/8h e esquema tríplice se infecção fetal confirmada.");
+    if (typeof enviarTelaGOToxo === "function") return enviarTelaGOToxo(cb.message.chat.id, cb.message.message_id);
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "🔬 *TOXOPLASMOSE GESTACIONAL & AVIDEZ*\n\nEnvie sorologias e idade gestacional:\n💡 *Exemplo:* `/toxo igg 250 igm 3.2 avidez alta 10 semanas`\nou `/toxo igg positivo igm positivo 18 semanas sem avidez`\n\nInterpreta soroconversão, orienta Espiramicina 1g 8/8h e esquema tríplice se infecção fetal confirmada.", {
+      inline_keyboard: [[{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]]
+    });
   }
   else if (data === "go_corrimento") {
     responderCallbackTelegram(cb.id, "Vulvovaginites");
-    return enviarMensagemParaChat(cb.message.chat.id, "🌸 *VULVOVAGINITES & CORRIMENTOS (REMUME/MS)*\n\nEnvie os achados clínicos:\n💡 *Exemplo:* `/corrimento branco grumoso prurido intenso`\n• `/corrimento bolhoso amarelo esverdeado odor fetido colo em framboesa`\n• `/corrimento acinzentado odor peixe podre whiff positivo`\n\nOrienta conduta de Candidíase (Fluconazol/Miconazol), Vaginose (Metronidazol) e Tricomoníase (Metronidazol + tratar parceiro).");
+    if (typeof enviarTelaGOCorrimento === "function") return enviarTelaGOCorrimento(cb.message.chat.id, cb.message.message_id);
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "🌸 *VULVOVAGINITES & CORRIMENTOS (REMUME/MS)*\n\nEnvie os achados clínicos:\n💡 *Exemplo:* `/corrimento branco grumoso prurido intenso`\n• `/corrimento bolhoso amarelo esverdeado odor fetido colo em framboesa`\n• `/corrimento acinzentado odor peixe podre whiff positivo`\n\nOrienta conduta de Candidíase (Fluconazol/Miconazol), Vaginose (Metronidazol) e Tricomoníase (Metronidazol + tratar parceiro).", {
+      inline_keyboard: [[{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]]
+    });
   }
   else if (data === "go_preventivo") {
     responderCallbackTelegram(cb.id, "Preventivo / Citopatológico");
-    return enviarMensagemParaChat(cb.message.chat.id, "🩺 *CONDUTA CITOPATOLÓGICA DE COLO DE ÚTERO (INCA)*\n\nEnvie o laudo e idade da paciente:\n💡 *Exemplo:* `/preventivo 28 anos asc-us`\n• `/preventivo 35 anos lsil`\n• `/preventivo 42 anos hsil`\n• `/preventivo 30 anos agc`\n\nOrienta repetição em 6 ou 12 meses vs encaminhamento imediato para Colposcopia.");
+    if (typeof enviarTelaGOPreventivo === "function") return enviarTelaGOPreventivo(cb.message.chat.id, cb.message.message_id);
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "🩺 *CONDUTA CITOPATOLÓGICA DE COLO DE ÚTERO (INCA)*\n\nEnvie o laudo e idade da paciente:\n💡 *Exemplo:* `/preventivo 28 anos asc-us`\n• `/preventivo 35 anos lsil`\n• `/preventivo 42 anos hsil`\n• `/preventivo 30 anos agc`\n\nOrienta repetição em 6 ou 12 meses vs encaminhamento imediato para Colposcopia.", {
+      inline_keyboard: [[{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]]
+    });
   }
   else if (data === "go_anticoncepcao") {
     responderCallbackTelegram(cb.id, "Anticoncepção OMS");
-    return enviarMensagemParaChat(cb.message.chat.id, "💊 *CRITÉRIOS DE ELEGIBILIDADE DA CONTRACEPÇÃO (OMS MEC 1 a 4)*\n\nEnvie idade e comorbidades da paciente:\n💡 *Exemplo:* `/anticoncepcao 32 anos enxaqueca com aura`\n• `/anticoncepcao 38 anos tabagista 15 cigarros/dia`\n• `/anticoncepcao puerpera 3 semanas em aleitamento materno exclusivo`\n\nClassifica métodos seguros (MEC 1 e 2) vs contraindicados (MEC 3 e 4).");
+    if (typeof enviarTelaGOAnticoncepcao === "function") return enviarTelaGOAnticoncepcao(cb.message.chat.id, cb.message.message_id);
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "💊 *CRITÉRIOS DE ELEGIBILIDADE DA CONTRACEPÇÃO (OMS MEC 1 a 4)*\n\nEnvie idade e comorbidades da paciente:\n💡 *Exemplo:* `/anticoncepcao 32 anos enxaqueca com aura`\n• `/anticoncepcao 38 anos tabagista 15 cigarros/dia`\n• `/anticoncepcao puerpera 3 semanas em aleitamento materno exclusivo`\n\nClassifica métodos seguros (MEC 1 e 2) vs contraindicados (MEC 3 e 4).", {
+      inline_keyboard: [[{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]]
+    });
   }
   else if (data === "go_dip") {
     responderCallbackTelegram(cb.id, "DIP & ATO");
-    return enviarMensagemParaChat(cb.message.chat.id, "🩹 *DOENÇA INFLAMATÓRIA PÉLVICA (DIP) & ATO*\n\nEnvie o quadro clínico:\n💡 *Exemplo:* `/dip dor hipogastrica descompressao brusca positiva dor mobilizacao colo febre 38.5`\n\n• *Critérios Diagnósticos (MS/CDC):* Maiores, Menores e Elaborados.\n• *Ambulatorial (Monif I):* Ceftriaxona 500 mg IM dose única + Doxiciclina 100 mg 12/12h VO 14d + Metronidazol 500 mg 12/12h VO 14d.\n• *Hospitalar (Monif II-IV):* Ceftriaxona 1g IV + Doxiciclina ou Clindamicina + Gentamicina.");
+    if (typeof enviarTelaGODip === "function") return enviarTelaGODip(cb.message.chat.id, cb.message.message_id);
+    return enviarMensagemComTecladoParaChat(cb.message.chat.id, "🩹 *DOENÇA INFLAMATÓRIA PÉLVICA (DIP) & ATO*\n\nEnvie o quadro clínico:\n💡 *Exemplo:* `/dip dor hipogastrica descompressao brusca positiva dor mobilizacao colo febre 38.5`\n\n• *Critérios Diagnósticos (MS/CDC):* Maiores, Menores e Elaborados.\n• *Ambulatorial (Monif I):* Ceftriaxona 500 mg IM dose única + Doxiciclina 100 mg 12/12h VO 14d + Metronidazol 500 mg 12/12h VO 14d.\n• *Hospitalar (Monif II-IV):* Ceftriaxona 1g IV + Doxiciclina ou Clindamicina + Gentamicina.", {
+      inline_keyboard: [[{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]]
+    });
   }
   // J. PROTOCOLOS DE PARADA CARDIORRESPIRATÓRIA (PCR / ACLS)
   else if (data === "pcr_chocavel") {
