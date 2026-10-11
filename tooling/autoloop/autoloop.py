@@ -694,6 +694,83 @@ def classificar_risco_release(base_sha=None, candidate_sha=None):
     return classificar_perfil_release(base_sha=base_sha, candidate_sha=candidate_sha, repo_dir=os.getcwd())
 
 
+def extrair_tempo_reset_codex(texto):
+    """
+    Extrai o tempo de liberação da mensagem de erro da API do Codex/OpenAI.
+    Suporta:
+    - 'try again at 1:26 PM' ou 'try again at 13:26'
+    - 'resets in 2h30m' ou 'try again in 45m'
+    Retorna segundos restantes (com margem de 60s) ou None.
+    """
+    if not texto:
+        return None
+    # 1. 'try again at HH:MM (AM/PM)?'
+    m_time = re.search(r'try again at\s+(\d{1,2}):(\d{2})(?:\s*([APap][Mm]))?', texto, re.IGNORECASE)
+    if m_time:
+        hora = int(m_time.group(1))
+        minuto = int(m_time.group(2))
+        ampm = (m_time.group(3) or "").upper()
+        if ampm == "PM" and hora < 12:
+            hora += 12
+        elif ampm == "AM" and hora == 12:
+            hora = 0
+        agora = datetime.now()
+        alvo = agora.replace(hour=hora, minute=minuto, second=0, microsecond=0)
+        if alvo <= agora:
+            alvo += timedelta(days=1)
+        segundos = int((alvo - agora).total_seconds()) + 60
+        return max(60, segundos)
+
+    # 2. 'Resets in ...' ou 'try again in ...'
+    m_dur = re.search(r'(?:resets|try again) in (?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?', texto, re.IGNORECASE)
+    if m_dur:
+        d, h, m_val, s = [int(x) if x else 0 for x in m_dur.groups()]
+        total_s = d * 86400 + h * 3600 + m_val * 60 + s
+        if total_s > 0:
+            return total_s + 60
+
+    return None
+
+
+def detectar_esgotamento_cota_codex(returncode, texto_saida):
+    """
+    Detecta se o término do processo codex foi esgotamento de cota da API (OpenAI/ChatGPT)
+    e não uma recusa ou falha de validação do código.
+    Retorna (eh_cota: bool, erro_formatado: str, segundos_reset: int | None).
+    """
+    if returncode == 0 or not texto_saida:
+        return False, None, None
+
+    texto_low = str(texto_saida).lower()
+    termos_cota = [
+        "you’ve hit your usage limit",
+        "you've hit your usage limit",
+        "usage limit",
+        "upgrade to pro",
+        "purchase more credits",
+        "exceeded your current quota",
+        "quota exceeded",
+        "rate limit",
+        "429",
+        "too many requests",
+        "resource_exhausted",
+        "credit balance",
+        "credits balance is too low"
+    ]
+    eh_cota = any(termo in texto_low for termo in termos_cota)
+    if not eh_cota:
+        return False, None, None
+
+    seg_reset = extrair_tempo_reset_codex(texto_saida)
+
+    linhas = [l.strip() for l in str(texto_saida).splitlines() if any(t in l.lower() for t in termos_cota)]
+    motivo = linhas[0] if linhas else "Limite de uso/cota da API atingido"
+    motivo = re.sub(r'^(?:ERROR:\s*)+', '', motivo).strip()
+
+    erro_formatado = f"CODEX_QUOTA_EXHAUSTED: {motivo}"
+    return True, erro_formatado, seg_reset
+
+
 def revisar_escopo_codex(scope, previous, round_number, candidate_sha, timeout=600):
     """Uma chamada por domínio/rodada; patches integrais ficam em arquivos locais."""
     import uuid
@@ -739,6 +816,10 @@ Parecer anterior para conferência: {json.dumps(previous, ensure_ascii=False) if
         if result.returncode:
             if output.exists():
                 archive_raw_result(output, candidate_sha)
+            saida_erro = (getattr(result, 'stdout', '') or '') + "\n" + (getattr(result, 'stderr', '') or '')
+            eh_cota, erro_cota, _ = detectar_esgotamento_cota_codex(result.returncode, saida_erro)
+            if eh_cota:
+                return None, erro_cota
             return None, f"Auditoria {scope_key} incompleta; código {result.returncode}; diagnóstico necessário antes de outra tentativa."
         data = json.loads(output.read_text())
         # O avaliador canônico valida estrutura/identidade/semântica; não fabrica aprovação.
@@ -1876,6 +1957,19 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=6.0, commit_anterior=None,
         parecer, erro_parecer = obter_parecer_auditoria_candidato(
             candidate_sha=candidate_sha, base_sha=base_sha, perfil_tarefa=perfil_release)
         if erro_parecer:
+            eh_cota, erro_formatado, seg_reset = detectar_esgotamento_cota_codex(1, str(erro_parecer))
+            if not eh_cota and "CODEX_QUOTA_EXHAUSTED" in str(erro_parecer):
+                eh_cota = True
+                seg_reset = extrair_tempo_reset_codex(str(erro_parecer))
+            if eh_cota:
+                tempo_espera = seg_reset if (seg_reset and seg_reset > 0) else 3600
+                dt_liberacao = datetime.now() + timedelta(seconds=tempo_espera)
+                hora_liberacao = dt_liberacao.strftime("%H:%M")
+                log("AVISO", f"⏳ Deploy suspenso temporariamente: cota do Codex/OpenAI esgotada ({erro_parecer}).")
+                log("INFO", f"🕒 Próxima tentativa agendada para {hora_liberacao} (em ~{tempo_espera // 60} min).")
+                record_metric('cota_codex', 'exhausted', 0, candidate_sha=candidate_sha)
+                salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + tempo_espera)
+                return False
             log("ERRO", f"Deploy bloqueado: auditoria não concluída ({erro_parecer}).")
             capture_rejection(candidate_sha, base_sha, report=parecer, error=erro_parecer, profile=perfil_release)
             record_metric('recusa_auditoria', 'incomplete', 0, candidate_sha=candidate_sha)

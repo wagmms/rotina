@@ -238,8 +238,8 @@ def evaluate_scopes(root, candidate, base, scopes, review, validate, allow_deplo
             valid_previous, _ = validate(previous_report, sha_esperado=session.get('candidate'))
         if same and valid_previous:
             report = previous_report
-        elif same and session.get('rounds', 0):
-            # Identidade sem mudanças: repetir a chamada não corrige nada.
+        elif same and session.get('rounds', 0) and session.get('status') != 'quota_exhausted' and not str(session.get('error', '')).startswith('CODEX_QUOTA_EXHAUSTED'):
+            # Identidade sem mudanças: repetir a chamada não corrige nada se já houve veredito estruturado.
             report = previous_report
             if not report:
                 raise ScopeError(f'Auditoria operacionalmente incompleta já registrada para {scope_key}; requer diagnóstico, sem repetição automática.')
@@ -272,6 +272,12 @@ def evaluate_scopes(root, candidate, base, scopes, review, validate, allow_deplo
                 save_json(path, state)
                 prior = previous_report if rounds == 2 else None
                 report, error = review(scope, prior, rounds)
+                if error and ("CODEX_QUOTA_EXHAUSTED" in str(error) or "usage limit" in str(error).lower() or "quota" in str(error).lower()):
+                    # Falha transitória de cota da API externa: não consome o orçamento de rodadas da tarefa
+                    rounds = max(0, rounds - 1)
+                    session.update(report=None, error=error, status='quota_exhausted', rounds=rounds, updated_at=time.time())
+                    save_json(path, state)
+                    raise ScopeError(error)
                 session.update(report=report, error=error, status='pending', updated_at=time.time())
                 if error:
                     save_json(path, state)
