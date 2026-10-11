@@ -2,6 +2,24 @@
 
 > Gerado automaticamente. Arquivo de referência para o histórico arquivado do PROGRESS.md.
 
+0AN. [x] **Auditoria de UX Beira-Leito e Navegação Contextual na Aba Emergências & Sala Vermelha Interna do Telegram**:
+    - **Navegação Contextual e Eliminação de Telas Órfãs**:
+      * Implementados botões de retorno contextual em 1 toque `[🔙 Sala Vermelha]` (`ux:sala`) e `[🏠 Início]` (`ux:hub:inicio`) em todos os fluxos de emergência, PCR (/pcr), arritmias (/arritmia), SRI (/sri), DVA (/dva) e condutas protocoladas.
+      * Eliminadas telas órfãs e saídas cegas para o menu raiz genérico.
+    - **Respostas Determinísticas em 0ms e Expansão para 17 Condutas Críticas**:
+      * Em `src/12_experiencia_bot.js`, implementado catálogo determinístico de 17 condutas canônicas em `obterTextoCondutaEmergencia` (EAP, Anafilaxia, Crise Convulsiva, Hipercalemia, CAD, Dengue Grupo C, Dengue Grupo D Choque, Dengue Grupos A/B, Crise Hipertensiva Emergência, Urgência, Pseudocrise, TCE Glasgow ≤ 8, 9-12, 13-15, IC Descompensada Choque Perfil C, Perfil B EAP, Perfil L Hipovolemia, Choque Séptico CIRCI, e Cefaleias HSA, Meningite, Primária de Resgate, Arterite de Células Gigantes).
+      * Resposta instantânea em 0ms sem consumo desnecessário de IA generativa em emergência de sala vermelha.
+    - **Menus Dedicados e Botões de 1 Toque**:
+      * Criadas funções de menus dedicados: `enviarMenuEmergDengue`, `enviarMenuEmergCriseHas`, `enviarMenuEmergGlasgow`, `enviarMenuEmergChoque` e `enviarMenuEmergCefaleia`.
+      * Roteamento ágil para os novos menus via callbacks `ux:emerg:*` e comandos slash `/dengue`, `/crisehipertensiva`, `/cefaleia`, `/choque` e `/glasgow` (com e sem argumentos).
+      * Correção de bug no Telegram: `/choque` acionava RPC do PWA (`cockpitCardiologiaIntensiva`) sem token de autenticação; corrigido para invocar diretamente `CardiologiaIntensivaService.avaliarPacienteICDescompensada` com persistência em cache e botões de cópia.
+    - **Ação Rápida de Cópia para Prontuário (`[📋 Copiar para Prontuário]`)**:
+      * Todas as condutas e saídas de calculadoras salvam o resultado em cache com UUID (TTL 6 horas) e fornecem botão inline de 1 toque para cópia formatada direta no prontuário/PEP.
+    - **Higienização de Teclados e Submenus de Calculadoras**:
+      * Adicionados botões contextuais `[🔙 Calculadoras]` e `[🏠 Início]` em `enviarMenuCategoriasCalculadoras` e `[⬅️ Voltar]` e `[🏠 Início]` em `enviarSubmenuCalculadoras` com fallback defensivo para envio de nova mensagem quando `messageId` for nulo.
+    - **Suíte de Testes Automatizados**:
+      * Criada suíte `tests/test_sala_vermelha_ux.cjs` com 9 baterias de testes e integrada ao `npm test` oficial com 100% de aprovação.
+
 0AM. [x] **Otimização do Pool de Modelos Gemini, Correção de HTTP 400 em thinkingBudget e Eliminação de Gargalo 429**:
     - **Diagnóstico Preciso de Cotas e Erros da API do Gemini**:
       * Identificado que o erro `429` no `gemini-3.5-flash` ocorre por esgotamento da cota diária do Free Tier da Google (apenas 20 RPD por projeto/consumer), impondo um bloqueio de ~20,7 horas compartilhado por todas as chaves do mesmo projeto GCP.

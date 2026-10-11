@@ -249,13 +249,20 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
       var scoreGcs = parseInt(matchNumGcs[1], 10);
       var estrGcs = scoreGcs <= 8 ? "🔴 *TCE GRAVE (Glasgow ≤ 8):* Perda de reflexos protetores de via aérea. Indicação formal de Sequência Rápida de Intubação (SRI / IOT) imediata!" : (scoreGcs <= 12 ? "🟡 *TCE Moderado (Glasgow 9-12):* Vigilância neurológica estrita e TC de crânio." : "🟢 *TCE Leve (Glasgow 13-15):* Observação clínica.");
       var txtGcsNum = "🧠 *ESCALA DE GLASGOW: " + scoreGcs + " PONTOS*\n\n" + estrGcs;
-      if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
-        enviarMensagemComTecladoParaChat(chatId, txtGcsNum, kbNav);
+      var kbGcs = (typeof botoesBot === "function") ? botoesBot([
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : kbNav;
+      if (kbGcs && typeof enviarMensagemComTecladoParaChat === "function") {
+        enviarMensagemComTecladoParaChat(chatId, txtGcsNum, kbGcs);
       } else {
         enviarMensagemParaChat(chatId, txtGcsNum);
       }
       return true;
     } else {
+      if (typeof enviarMenuEmergGlasgow === "function") {
+        enviarMenuEmergGlasgow(chatId);
+        return true;
+      }
       var txtGuiaGcs = "🧠 *ESCALA DE COMA DE GLASGOW (GUIA RÁPIDO)*\n\n" +
         "👁️ *Abertura Ocular (1 a 4):*\n" +
         "• 4: Espontânea | 3: Ao som | 2: À pressão | 1: Ausente\n\n" +
@@ -265,8 +272,11 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
         "• 6: À ordem | 5: Localiza | 4: Flexão normal | 3: Decorticação | 2: Descerebração | 1: Ausente\n\n" +
         "💡 *Avaliação rápida com pontuação:* Envie `glasgow 7` ou `glasgow 14`\n\n" +
         "🚨 *Alerta Sentinela:* Glasgow ≤ 8 = Proteção de via aérea obrigatória (IOT / SRI imediata).";
-      if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
-        enviarMensagemComTecladoParaChat(chatId, txtGuiaGcs, kbNav);
+      var kbGuiaGcs = (typeof botoesBot === "function") ? botoesBot([
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : kbNav;
+      if (kbGuiaGcs && typeof enviarMensagemComTecladoParaChat === "function") {
+        enviarMensagemComTecladoParaChat(chatId, txtGuiaGcs, kbGuiaGcs);
       } else {
         enviarMensagemParaChat(chatId, txtGuiaGcs);
       }
@@ -2481,19 +2491,38 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo ArbovirosesDengueService indisponível temporariamente.");
     }
     if (!dadosDengue) {
-      return enviarMensagemParaChat(chatId,
-        "🦟 *Manejo Clínico de Dengue & Arboviroses (MS 2024)*\n\n" +
+      if (typeof enviarMenuEmergDengue === "function") {
+        return enviarMenuEmergDengue(chatId);
+      }
+      var msgAjudaDengue = "🦟 *Manejo Clínico de Dengue & Arboviroses (MS 2024)*\n\n" +
         "Digite o comando seguido do peso e achados clínicos (sinais de alarme/choque).\n\n" +
         "📌 *Exemplos beira-leito:*\n" +
         "• `/dengue 70kg sem alarme` (Grupo A — Hidratação oral 60 mL/kg/dia)\n" +
         "• `/dengue 65kg gestante dm has` (Grupo B — Observação e hemograma)\n" +
         "• `/dengue 80kg dor abdominal intensa vomitos persistentes` (Grupo C — SF 10 mL/kg/h)\n" +
-        "• `/dengue 75kg choque hipotensao pulso fino` (Grupo D — SF 20 mL/kg em 20 min bolus)");
+        "• `/dengue 75kg choque hipotensao pulso fino` (Grupo D — SF 20 mL/kg em 20 min bolus)";
+      var kbAjudaDengue = (typeof botoesBot === "function") ? botoesBot([
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : null;
+      if (kbAjudaDengue && typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, msgAjudaDengue, kbAjudaDengue);
+      }
+      return enviarMensagemParaChat(chatId, msgAjudaDengue);
     }
     try {
       var paramsDengue = ArbovirosesDengueService.extrairParametrosTexto(dadosDengue);
       var estagioDengue = ArbovirosesDengueService.estadiarDengue(paramsDengue);
       var txtDengue = ArbovirosesDengueService.formatarTextoTelegram(estagioDengue);
+      var cacheD = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+      var ckD = Utilities.getUuid().replace(/-/g, '');
+      safePutCache(cacheD, ckD, txtDengue, 21600);
+      var kbD = (typeof botoesBot === "function") ? botoesBot([
+        [['📋 Copiar para Prontuário', 'ux:copiar:' + ckD]],
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : (typeof obterBotoesNavegacaoPadrao === "function" ? obterBotoesNavegacaoPadrao() : null);
+      if (kbD && typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, txtDengue, kbD);
+      }
       return enviarMensagemParaChat(chatId, txtDengue);
     } catch (eDengue) {
       return enviarMensagemParaChat(chatId, "❌ Erro ao estadiar dengue: " + eDengue.message);
@@ -2564,19 +2593,38 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo EmergenciaCriseHipertensivaService indisponível temporariamente.");
     }
     if (!dadosHas) {
-      return enviarMensagemParaChat(chatId,
-        "❤️ *Crise Hipertensiva vs Pseudocrise (SBC / AHA)*\n\n" +
+      if (typeof enviarMenuEmergCriseHas === "function") {
+        return enviarMenuEmergCriseHas(chatId);
+      }
+      var msgAjudaHas = "❤️ *Crise Hipertensiva vs Pseudocrise (SBC / AHA)*\n\n" +
         "Informe a PA aferida e presença de sintomas ou lesão de órgão-alvo.\n\n" +
         "📌 *Exemplos beira-leito:*\n" +
         "• `/crisehipertensiva 190x110 cefaleia tensional ansiedade dor` (Pseudocrise — Repouso e analgesia)\n" +
         "• `/crisehipertensiva 200x120 assintomatico sem lesao de orgao` (Urgência — Captopril/Clonidina VO)\n" +
         "• `/crisehipertensiva 220x130 eap dispneia crepitacoes` (Emergência — Nitroglicerina/Nitroprussiato + VNI)\n" +
-        "• `/crisehipertensiva 210x120 disseccao dor rasgando torax` (Dissecção — Esmolol + Nitroprussiato PAS < 120 em 20 min)");
+        "• `/crisehipertensiva 210x120 disseccao dor rasgando torax` (Dissecção — Esmolol + Nitroprussiato PAS < 120 em 20 min)";
+      var kbAjudaHas = (typeof botoesBot === "function") ? botoesBot([
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : null;
+      if (kbAjudaHas && typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, msgAjudaHas, kbAjudaHas);
+      }
+      return enviarMensagemParaChat(chatId, msgAjudaHas);
     }
     try {
       var paramsHas = EmergenciaCriseHipertensivaService.extrairParametrosTexto(dadosHas);
       var classifHas = EmergenciaCriseHipertensivaService.classificarCrise(paramsHas);
       var txtHas = EmergenciaCriseHipertensivaService.formatarTextoTelegram(classifHas);
+      var cacheHas = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+      var ckHas = Utilities.getUuid().replace(/-/g, '');
+      safePutCache(cacheHas, ckHas, txtHas, 21600);
+      var kbHas = (typeof botoesBot === "function") ? botoesBot([
+        [['📋 Copiar para Prontuário', 'ux:copiar:' + ckHas]],
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : (typeof obterBotoesNavegacaoPadrao === "function" ? obterBotoesNavegacaoPadrao() : null);
+      if (kbHas && typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, txtHas, kbHas);
+      }
       return enviarMensagemParaChat(chatId, txtHas);
     } catch (eHas) {
       return enviarMensagemParaChat(chatId, "❌ Erro ao classificar crise hipertensiva: " + eHas.message);
@@ -2592,19 +2640,38 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo NeurologiaCefaleiasService indisponível temporariamente.");
     }
     if (!dadosCef) {
-      return enviarMensagemParaChat(chatId,
-        "🤕 *Cefaleia Aguda no Pronto Socorro & Protocolo SNOOP*\n\n" +
+      if (typeof enviarMenuEmergCefaleia === "function") {
+        return enviarMenuEmergCefaleia(chatId);
+      }
+      var msgAjudaCef = "🤕 *Cefaleia Aguda no Pronto Socorro & Protocolo SNOOP*\n\n" +
         "Descreva as características da dor de cabeça e sinais associados.\n\n" +
         "📌 *Exemplos beira-leito:*\n" +
         "• `/cefaleia hemicraniana pulsatil nausea fotofobia habitual` (Primária — Dipirona + Plasil + Dexa)\n" +
         "• `/cefaleia thunderclap trovoada inicio subito pior dor da vida` (HSA — TC sem contraste imediata)\n" +
         "• `/cefaleia febre rigidez de nuca vomitos` (Meningite — TC + Punção lombar + Ceftriaxona)\n" +
-        "• `/cefaleia 68 anos inicio recente dor temporal` (Arterite Temporal — VHS/PCR + Corticoide)");
+        "• `/cefaleia 68 anos inicio recente dor temporal` (Arterite Temporal — VHS/PCR + Corticoide)";
+      var kbAjudaCef = (typeof botoesBot === "function") ? botoesBot([
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : null;
+      if (kbAjudaCef && typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, msgAjudaCef, kbAjudaCef);
+      }
+      return enviarMensagemParaChat(chatId, msgAjudaCef);
     }
     try {
       var paramsCef = NeurologiaCefaleiasService.extrairParametrosTexto(dadosCef);
       var avalCef = NeurologiaCefaleiasService.avaliarBandeirasVermelhas(paramsCef);
       var txtCef = NeurologiaCefaleiasService.formatarTextoTelegram(avalCef);
+      var cacheCef = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+      var ckCef = Utilities.getUuid().replace(/-/g, '');
+      safePutCache(cacheCef, ckCef, txtCef, 21600);
+      var kbCef = (typeof botoesBot === "function") ? botoesBot([
+        [['📋 Copiar para Prontuário', 'ux:copiar:' + ckCef]],
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : (typeof obterBotoesNavegacaoPadrao === "function" ? obterBotoesNavegacaoPadrao() : null);
+      if (kbCef && typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, txtCef, kbCef);
+      }
       return enviarMensagemParaChat(chatId, txtCef);
     } catch (eCef) {
       return enviarMensagemParaChat(chatId, "❌ Erro ao avaliar cefaleia: " + eCef.message);
@@ -3744,12 +3811,22 @@ function processarMensagemTexto(message) {
   if (comando === "/choque" || comando === "/forrester" || comando === "/ic") {
     var dadosIC = texto.replace(/^\/(?:choque|forrester|ic)\s*/i, "").trim();
     if (!dadosIC) {
-      return enviarMensagemParaChat(chatId, "🫀 *IC DESCOMPENSADA / CHOQUE (FORRESTER & STEVENSON)*\n\n" +
+      if (typeof enviarMenuEmergChoque === "function") {
+        return enviarMenuEmergChoque(chatId);
+      }
+      var msgAjudaIC = "🫀 *IC DESCOMPENSADA / CHOQUE (FORRESTER & STEVENSON)*\n\n" +
         "Envie os sinais clínicos de congestão e perfusão.\n" +
         "💡 *Exemplos:*\n" +
         "• `/ic congestao sim, perfusao baixa, pas 80` (Perfil C, choque franco)\n" +
         "• `/ic estertores, sem hipoperfusao, pas 120` (Perfil B)\n" +
-        "• `/ic sem congestao, perfusao ruim, pas 90` (Perfil L)");
+        "• `/ic sem congestao, perfusao ruim, pas 90` (Perfil L)";
+      var kbAjudaIC = (typeof botoesBot === "function") ? botoesBot([
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : null;
+      if (kbAjudaIC && typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, msgAjudaIC, kbAjudaIC);
+      }
+      return enviarMensagemParaChat(chatId, msgAjudaIC);
     }
     
     // Parse básico via regex
@@ -3769,10 +3846,48 @@ function processarMensagemTexto(message) {
     
     if (pasMatch && !pamMatch) paramsIC.pam = (paramsIC.pas * 2 + 60) / 3; // Estimativa chula, geralmente PAD = PAS-40
 
-    if (typeof cockpitCardiologiaIntensiva === "function") {
+    if (typeof CardiologiaIntensivaService !== "undefined") {
       try {
-        var respIC = cockpitCardiologiaIntensiva({}, paramsIC);
-        return enviarMensagemParaChat(chatId, respIC.textoFormatado);
+        var avaliacao = CardiologiaIntensivaService.avaliarPacienteICDescompensada(paramsIC);
+        var perf = avaliacao.perfil_clinico;
+        var farmaco = avaliacao.plano_farmacologico;
+        var txtIC = "🫀 *CARDIOLOGIA INTENSIVA — CHOQUE CARDIOGÊNICO E IC DESCOMPENSADA*\n\n" +
+          "*Classificação de Forrester & Stevenson:* Perfil " + perf.perfil + "\n" +
+          "*Descrição:* " + perf.descricao + "\n" +
+          "*Hemodinâmica:* " + perf.diagnostico_hemodinamico + " / " + perf.perfusao + "\n\n" +
+          "*Conduta Geral:* " + perf.conduta_geral + "\n\n";
+
+        if (farmaco.bloqueios_seguranca && farmaco.bloqueios_seguranca.length > 0) {
+          txtIC += "⚠️ *BLOQUEIOS DE SEGURANÇA:*\n";
+          for (var b = 0; b < farmaco.bloqueios_seguranca.length; b++) {
+            txtIC += "• " + farmaco.bloqueios_seguranca[b] + "\n";
+          }
+          txtIC += "\n";
+        }
+        if (farmaco.vasopressor && farmaco.vasopressor.length > 0) {
+          txtIC += "💉 *VASOPRESSORES:*\n" + farmaco.vasopressor.join("\n") + "\n\n";
+        }
+        if (farmaco.inotropico && farmaco.inotropico.length > 0) {
+          txtIC += "⚡ *INOTRÓPICOS:*\n" + farmaco.inotropico.join("\n") + "\n\n";
+        }
+        if (farmaco.diuretico && farmaco.diuretico.length > 0) {
+          txtIC += "💧 *DIURÉTICOS:*\n" + farmaco.diuretico.join("\n") + "\n\n";
+        }
+        if (farmaco.vasodilatador && farmaco.vasodilatador.length > 0) {
+          txtIC += "🩺 *VASODILATADORES:*\n" + farmaco.vasodilatador.join("\n") + "\n\n";
+        }
+
+        var cacheIC = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+        var ckIC = Utilities.getUuid().replace(/-/g, '');
+        safePutCache(cacheIC, ckIC, txtIC, 21600);
+        var kbIC = (typeof botoesBot === "function") ? botoesBot([
+          [['📋 Copiar para Prontuário', 'ux:copiar:' + ckIC]],
+          [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+        ]) : (typeof obterBotoesNavegacaoPadrao === "function" ? obterBotoesNavegacaoPadrao() : null);
+        if (kbIC && typeof enviarMensagemComTecladoParaChat === "function") {
+          return enviarMensagemComTecladoParaChat(chatId, txtIC, kbIC);
+        }
+        return enviarMensagemParaChat(chatId, txtIC);
       } catch (err) {
         return enviarMensagemParaChat(chatId, "⚠️ Erro: " + err.message);
       }

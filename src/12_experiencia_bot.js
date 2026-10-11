@@ -416,7 +416,268 @@ function obterTextoCondutaEmergencia(tipo) {
       "ℹ️ *CRITÉRIOS DE RESOLUÇÃO:*\n" +
       "• Glicemia < 200 mg/dL + dois dos seguintes: Bicarbonato ≥ 15 mEq/L, pH venoso > 7,30 e Ânion Gap normal (≤ 12).";
   }
+  if (k === 'dengue_c') {
+    return "🦟 *EMERGÊNCIA: DENGUE COM SINAIS DE ALARME (GRUPO C — MS 2024)*\n\n" +
+      "🔴 *INDICAÇÃO & VIGILÂNCIA:*\n" +
+      "• Sinais de alarme: dor abdominal intensa, vômitos persistentes, lipotimia, acúmulo de líquidos, hepatomegalia > 2cm, hemoconcentração.\n" +
+      "• Leito de observação / internação hospitalar imediato.\n\n" +
+      "💧 *RESSUSCITAÇÃO VOLÊMICA VENOSA (ETAPA 1 — 2 HORAS):*\n" +
+      "• *SF 0,9% ou Ringer Lactato:* *10 mL/kg/h EV* nas primeiras 2 horas (ex: 700 mL/h para paciente de 70 kg; total em 2h = 1.400 mL).\n" +
+      "• Reavaliar hematócrito e sinais vitais ao término das 2 horas.\n\n" +
+      "🟡 *FASE DE MANUTENÇÃO (ETAPA 2 — 6 HORAS):*\n" +
+      "• Se melhora clínica e hematócrito estável: reduzir para 25 mL/kg em 6 horas (~290 mL/h para 70 kg).\n" +
+      "• Etapa 3 (se mantida estabilidade): 25 mL/kg em 8 horas (~220 mL/h para 70 kg).\n\n" +
+      "⛔ *CONTRAINDICAÇÃO ABSOLUTA:* AINEs e AAS (risco de hemorragia grave e óbito).\n" +
+      "💊 *Sintomáticos:* Dipirona 1g EV ou Paracetamol 750mg VO até de 6/6h.";
+  }
+  if (k === 'dengue_d') {
+    return "🚨 *EMERGÊNCIA CRÍTICA: DENGUE GRAVE / CHOQUE HIPOVOLÊMICO (GRUPO D — MS 2024)*\n\n" +
+      "🔴 *SINAIS DE CHOQUE / SALA VERMELHA IMEDIATA:*\n" +
+      "• Hipotensão (PAS < 90 ou PAM < 65), pressão de pulso convergente (≤ 20 mmHg), pulso fino, TEC > 2s, extremidades frias, oligúria.\n\n" +
+      "⚡ *EXPANSÃO RÁPIDA EM BOLUS (ETAPA 1 — 20 MINUTOS):*\n" +
+      "• *SF 0,9% ou Ringer Lactato:* *20 mL/kg EV aberto em 20 minutos* (ex: 1.400 mL em 20 min para 70 kg).\n" +
+      "• Se choque persistir após 20 min: *repetir bolus de 20 mL/kg em 20 min* (até 3 vezes — máx 60 mL/kg).\n" +
+      "• Se refratário a 60 mL/kg: investigar sangramento oculto (hemoterapia/concentrado de hemácias) ou iniciar Noradrenalina IV.\n\n" +
+      "⚠️ *SEGURANÇA BEIRA-LEITO:*\n" +
+      "• Ausculta pulmonar contínua para prevenir sobrecarga hídrica após restauração hemodinâmica.\n" +
+      "• Coleta imediata de hemograma, coagulograma, tipagem sanguínea, transaminases e gasometria.";
+  }
+  if (k === 'dengue_ab') {
+    return "🦟 *MANEJO: DENGUE SEM SINAIS DE ALARME (GRUPOS A E B — MS 2024)*\n\n" +
+      "🟢 *GRUPO A (Ambulatorial Puro — Sem comorbidades/risco):*\n" +
+      "• *Hidratação Oral Abundante:* 60 mL/kg/dia (1/3 com SRO — Soro de Reidratação Oral e 2/3 com líquidos caseiros/água/sucos).\n" +
+      "• Para paciente de 70 kg: ~4.200 mL/dia (1.400 mL de SRO + 2.800 mL de água/líquidos).\n" +
+      "• Sintomáticos: Dipirona 500mg a 1g VO até 6/6h ou Paracetamol 500mg a 750mg VO até 6/6h.\n\n" +
+      "🟡 *GRUPO B (Condições especiais: gestantes, idosos > 65a, DM, HAS, DRC ou lactentes):*\n" +
+      "• Hidratação oral supervisionada na UPA/UBS até resultado de hemograma completo.\n" +
+      "• Se hematócrito normal e sem alarme: alta com hidratação 60 mL/kg/dia e reavaliação clínica diária obrigatória.\n\n" +
+      "⛔ *CONTRAINDICAÇÃO FORMAL:* AINEs (Ibuprofeno, Cetoprofeno, Nimesulida, Diclofenaco) e AAS.";
+  }
+  if (k === 'crisehas_emerg') {
+    return "🚨 *EMERGÊNCIA HIPERTENSIVA (SALA VERMELHA — SBC / AHA)*\n\n" +
+      "🔴 *DEFINIÇÃO:* PA muito elevada (PAS ≥ 180 e/ou PAD ≥ 120 mmHg) com lesão aguda de órgão-alvo (LOA: EAP, Dissecção de Aorta, SCA, AVC, Encefalopatia ou Eclâmpsia).\n\n" +
+      "🟡 *METAS PRESSÓRICAS & FÁRMACOS DE 1ª LINHA:*\n" +
+      "• *EAP Hipertensivo:* Nitroglicerina IV em BIC (10-20 mcg/min) + Furosemida 20-40 mg IV + VNI precoce (meta: reduzir 20-25% da PAM em 1h).\n" +
+      "• *Dissecção Aguda de Aorta:* PAS < 120 mmHg e FC < 60 bpm em 20 min! 1º Betabloqueador IV (Esmolol ou Metoprolol 5mg IV) seguido de Nitroprussiato de Sódio IV.\n" +
+      "• *SCA / IAM:* Nitroglicerina IV + Betabloqueador VO precoce + protocolo de SCA.\n" +
+      "• *AVC Isquêmico:* Não reduzir PA a menos que PAS > 220 ou PAD > 120 mmHg (ou se elegível para trombólise, meta < 185/110 mmHg com Nitroprussiato ou Labetalol).\n\n" +
+      "⛔ *ALERTA DE SEGURANÇA:* NUNCA usar Nifedipino sublingual/ação rápida (risco de AVC e IAM por queda brusca não controlada).";
+  }
+  if (k === 'crisehas_urg') {
+    return "⚡ *URGÊNCIA HIPERTENSIVA (SALA DE OBSERVAÇÃO — SBC / AHA)*\n\n" +
+      "🟡 *DEFINIÇÃO:* PA substancialmente elevada (PAS ≥ 180 e/ou PAD ≥ 120 mmHg) SEM lesão aguda de órgão-alvo e sem risco iminente de morte.\n\n" +
+      "💊 *CONDUTA FARMACOLÓGICA POR VIA ORAL:*\n" +
+      "• *Meta:* Redução gradual e segura da PA ao longo de 24 a 48 horas (meta de PAS 140-160 mmHg e PAD 90-100 mmHg). Evitar quedas abruptas.\n" +
+      "• *1ª Linha:* Captopril 25 mg VO (início de ação em 15-30 min; pode repetir em 60 min se necessário).\n" +
+      "• *Alternativa:* Clonidina 0,100 mg a 0,200 mg VO (indicada se taquicardia ou componente adrenérgico).\n" +
+      "• *Período de Observação:* 2 a 4 horas. Após estabilização e sem sintomas, liberar com encaminhamento para UBS para otimização da terapia anti-hipertensiva crônica.\n\n" +
+      "⛔ *PROIBIDO:* Vasodilatadores parenterais e Nifedipino de ação curta.";
+  }
+  if (k === 'crisehas_pseudo') {
+    return "🟢 *PSEUDOCRISE HIPERTENSIVA (REATIVA A DOR, ANSIEDADE OU PÂNICO)*\n\n" +
+      "🟢 *DEFINIÇÃO:* Elevação tensional reativa causada por dor aguda, cefaleia tensional, estresse emocional, labirintopatia ou síndrome do pânico, sem lesão de órgão-alvo.\n\n" +
+      "🧘 *CONDUTA BEIRA-LEITO (TRATAR O GATILHO):*\n" +
+      "• *Repouso:* Deixar o paciente em repouso em sala tranquila e com pouca luz por 30 a 60 minutos.\n" +
+      "• *Analgesia se Dor:* Dipirona 1g VO ou IV.\n" +
+      "• *Suporte se Ansiedade:* Acalmar o paciente, técnicas de respiração; considerar Diazepam 5-10 mg VO se crise de pânico intensa.\n" +
+      "• *Reavaliação:* Reaferir a PA após 40-60 min. Na grande maioria dos casos a pressão normaliza ou cai expressivamente sem qualquer anti-hipertensivo.\n\n" +
+      "💡 Se a PA persistir muito elevada após analgesia e repouso: administrar Captopril 25 mg VO.";
+  }
+  if (k === 'gcs_8') {
+    return "🔴 *ESCALA DE GLASGOW ≤ 8: TRAUMA CRANIOENCEFÁLICO GRAVE*\n\n" +
+      "🚨 *AÇÃO IMEDIATA BEIRA-LEITO:*\n" +
+      "• *Indicação Formal de Via Aérea Definitiva:* Perda de reflexos protetores de via aérea. Preparar Sequência Rápida de Intubação (SRI / IOT) imediatamente!\n" +
+      "• *Estabilização de Coluna Cervical:* Manter prancha rígida e colar cervical até exclusão de lesão raquimedular.\n\n" +
+      "🧠 *PREVENÇÃO DE LESÃO CEREBRAL SECUNDÁRIA (REGRAS DE OURO):*\n" +
+      "• *Evitar Hipóxia:* Manter SpO₂ ≥ 94% e PaO₂ > 80 mmHg.\n" +
+      "• *Evitar Hipotensão:* Manter PAS ≥ 100 mmHg (se 50-69 anos) ou ≥ 110 mmHg (se 15-49 anos ou ≥ 70 anos) com cristaloide (SF 0,9%) e Noradrenalina se necessário.\n" +
+      "• *Ventilação Protetora:* Normocapnia (PaCO₂ alvo 35-40 mmHg). NUNCA hiperventilar de rotina (risco de isquemia cerebral).\n" +
+      "• *Manejo de HIC (se anisocoria ou postura patológica):* Salina Hipertônica 3% (150-250 mL EV em 10-20 min) ou Manitol 20% (0,5 a 1 g/kg EV).\n" +
+      "• *Exame Diagnóstico:* TC de crânio sem contraste de emergência após estabilização.";
+  }
+  if (k === 'gcs_10') {
+    return "🟡 *ESCALA DE GLASGOW 9 A 12: TRAUMA CRANIOENCEFÁLICO MODERADO*\n\n" +
+      "🟡 *CONDUTA E MONITORIZAÇÃO:*\n" +
+      "• *Vigilância Neurológica Estrita:* Escala de Glasgow e reatividade pupilar checadas a cada 30 a 60 minutos.\n" +
+      "• *Neuroimagem:* Tomografia Computadorizada (TC) de crânio sem contraste mandatória.\n" +
+      "• *Acesso Venoso & Monitorização:* Monitor multiparâmetro contínuo, cabeceira elevada a 30° e jejum.\n" +
+      "• *Alerta de Queda de Glasgow:* Queda de ≥ 2 pontos no Glasgow indica deterioração neurológica aguda (hematoma extradural/subdural expansivo): acionar Neurocirurgia e preparar SRI/IOT imediata.\n" +
+      "• *Exames Laboratoriais:* Hemograma, coagulograma, sódio, potássio, glicemia e tipagem sanguínea.";
+  }
+  if (k === 'gcs_14') {
+    return "🟢 *ESCALA DE GLASGOW 13 A 15: TRAUMA CRANIOENCEFÁLICO LEVE*\n\n" +
+      "🟢 *AVALIAÇÃO & CRITÉRIOS DE TC DE CRÂNIO (CANADIAN CT HEAD RULE):*\n" +
+      "• TC de crânio recomendada se qualquer um dos seguintes critérios de alto risco:\n" +
+      "  1. Glasgow < 15 após 2 horas do trauma.\n" +
+      "  2. Suspeita de fratura de crânio aberta ou com afundamento.\n" +
+      "  3. Sinais de fratura de base de crânio (olhos de guaxinim, sinal de Battle, rinorreia/otorreia liquórica, hemotímpano).\n" +
+      "  4. Idade ≥ 65 anos.\n" +
+      "  5. ≥ 2 episódios de vômitos.\n" +
+      "  6. Uso de anticoagulantes ou antiagregantes plaquetários.\n" +
+      "• Se sem critérios de risco e Glasgow 15: observação clínica de 4 a 6 horas com orientações escritas de alarme para alta com acompanhante responsável.";
+  }
+  if (k === 'choque_c') {
+    return "🔴 *CHOQUE CARDIOGÊNICO / PERFIL C (FRIO & ÚMIDO — STEVENSON / FORRESTER)*\n\n" +
+      "🔴 *DIAGNÓSTICO:* Baixa perfusão periférica (frio, TEC prolongado, oligúria, lactato alto) + Congestão pulmonar e sistêmica (úmido, crepitações, B3, turgência jugular).\n\n" +
+      "💉 *CONDUTA FARMACOLÓGICA IMEDIATA:*\n" +
+      "• *Se PAS < 85-90 mmHg (Choque Franco):* Iniciar *Noradrenalina IV* em BIC imediatamente (0,1 a 0,5 mcg/kg/min) para restaurar PAM ≥ 65 mmHg e perfusão coronariana.\n" +
+      "• *Inotrópico:* Associar *Dobutamina IV* (2,5 a 10 mcg/kg/min) para melhora do débito cardíaco após PAM restaurada.\n" +
+      "• *Diurético (Furosemida):* Administrar em baixas doses com extrema cautela somente após garantir PAM ≥ 65 mmHg com vasoativas.\n" +
+      "• *VNI:* CPAP com cautela se desconforto respiratório (monitorar queda de débito cardíaco por aumento de pressão intratorácica).\n\n" +
+      "⛔ *CONTRAINDICAÇÃO:* Vasodilatadores puros (Tridil/Nipride) enquanto PAS < 90 mmHg. Betabloqueadores contraindicados na fase aguda.";
+  }
+  if (k === 'choque_b') {
+    return "🟡 *IC DESCOMPENSADA PERFIL B (QUENTE & ÚMIDO — STEVENSON / FORRESTER)*\n\n" +
+      "🟡 *DIAGNÓSTICO:* Boa perfusão periférica (quente, pulsos cheios, TEC < 2s) + Congestão pulmonar/sistêmica proeminente (úmido, EAP, edema, estertores).\n\n" +
+      "💧 *PILAR DO TRATAMENTO (VASODILATAÇÃO + DIURESE):*\n" +
+      "• *Vasodilatador Precoce (se PAS ≥ 110 mmHg):* *Nitroglicerina (Tridil) IV* em BIC (iniciar a 10 a 20 mcg/min, titulando a cada 5 min). Reduz pré e pós-carga rapidamente.\n" +
+      "• *Diurético de Alça:* *Furosemida 40 a 80 mg IV* em bolus lento (1 a 2x a dose oral de uso habitual).\n" +
+      "• *Suporte Respiratório:* CPAP (8-10 cmH2O) ou BiPAP precoce se desconforto respiratório importante.\n" +
+      "• *Posicionamento:* Cabeceira elevada a 90° e pernas pendentes.\n\n" +
+      "💡 Perfil de melhor prognóstico se tratado rapidamente com vasodilatador venoso e VNI.";
+  }
+  if (k === 'choque_l') {
+    return "🔵 *IC DESCOMPENSADA PERFIL L (FRIO & SECO — HIPOVOLEMIA / SUPERDIURESE)*\n\n" +
+      "🔵 *DIAGNÓSTICO:* Baixa perfusão periférica (frio, pulsos finos, oligúria) SEM congestão (seco, sem estertores, sem edema, PVC baixa).\n\n" +
+      "💧 *CONDUTA BEIRA-LEITO:*\n" +
+      "• *Causa Comum:* Superdiurese com furosemida, desidratação, vômitos/diarreia intercorrentes.\n" +
+      "• *Prova de Volume Cautelosa:* SF 0,9% ou Ringer Lactato 250 a 500 mL IV em 30 a 60 minutos sob ausculta pulmonar contínua.\n" +
+      "• Se PAS e perfusão melhorarem: suspender diuréticos temporariamente.\n" +
+      "• Se persistir hipoperfusão após restauração volêmica: avaliar choque cardiogênico verdadeiro e iniciar Dobutamina ou Noradrenalina.";
+  }
+  if (k === 'choque_septico') {
+    return "💉 *CHOQUE SÉPTICO & PROTOCOLO CIRCI (SURVIVING SEPSIS CAMPAIGN 2021)*\n\n" +
+      "🔴 *DEFINIÇÃO:* Sepse com hipotensão persistente necessitando de vasopressor para PAM ≥ 65 mmHg E lactato > 2 mmol/L apesar de ressuscitação volêmica adequada (30 mL/kg).\n\n" +
+      "💉 *MANEJO VASOPRESSOR ESCALONADO:*\n" +
+      "• *1ª Linha:* *Noradrenalina IV* contínua na BIC (titular para PAM alvo 65 mmHg).\n" +
+      "• *2ª Linha (Choque Refratário a Nora ≥ 0,25 mcg/kg/min):* Associar *Vasopressina* na dose fixa de *0,03 UI/min* (20 UI em 100 mL SF a 9 mL/h). Não titular!\n" +
+      "• *3ª Linha (CIRCI — Insuficiência Adrenal Relativa):* *Hidrocortisona 200 mg/dia EV* (50 mg EV de 6/6h ou 200 mg em infusão contínua 24h).\n\n" +
+      "🔬 *MEDIDAS DO BUNDLE DE 1 HORA:*\n" +
+      "• Coletar 2 pares de hemoculturas antes do antibiótico (não atrasar ATB além de 1h se choque).\n" +
+      "• Antibioticoterapia de amplo espectro venosa na 1ª hora.\n" +
+      "• Dosagem e redosagem seriada de Lactato a cada 2-4h.";
+  }
+  if (k === 'cef_hsa') {
+    return "🚨 *CEFALEIA EM TROVOADA / SUSPEITA DE HEMORRAGIA SUBARACNÓIDEA (HSA)*\n\n" +
+      "🔴 *CRITÉRIOS SNOOP (ONSET SÚBITO / THUNDERCLAP):*\n" +
+      "• Dor de cabeça que atinge intensidade máxima (10/10) em menos de 1 minuto (\"pior dor de cabeça da vida\").\n\n" +
+      "⚡ *PROTOCOLO DIAGNÓSTICO EMERGENCIAL:*\n" +
+      "1. *TC de Crânio sem contraste IMEDIATA:* Sensibilidade de ~98% nas primeiras 6 horas; cai significativamente após 24-48 horas.\n" +
+      "2. *Punção Lombar (PL) Mandatória:* SE a TC de crânio for NORMAL e o quadro tiver menos de 2 semanas de evolução. Pesquisar xantocromia e contagem de hemácias nos 4 tubos (teste dos 3 tubos).\n\n" +
+      "💊 *MANEJO BEIRA-LEITO:*\n" +
+      "• Controle pressórico estrito (PAS < 140-160 mmHg com Labetalol ou Nitroprussiato se PAS muito elevada).\n" +
+      "• Nimodipino 60 mg VO de 4/4h (prevenção de vasoespasmo e isquemia secundária se HSA confirmada).\n" +
+      "• Analgesia venosa e acionamento urgente de Neurocirurgia / Neurorradiologia Intervencionista.";
+  }
+  if (k === 'cef_mening') {
+    return "⚠️ *SUSPEITA DE MENINGITE BACTERIANA AGUDA*\n\n" +
+      "🔴 *TRÍADE / SINAIS DE ALARME:* Febre + Cefaleia holocraniana + Rigidez de nuca (sinais de Kernig e Brudzinski).\n\n" +
+      "⚡ *AÇÃO IMEDIATA (NÃO ATRASAR ANTIBIÓTICO!):*\n" +
+      "• Se NÃO houver sinais de HIC/déficit focal: realizar Punção Lombar (Líquor) imediatamente e iniciar ATB venoso.\n" +
+      "• Se houver déficit focal, convulsão recente, papiledema ou imunossupressão: coletar Hemoculturas, iniciar ATB imediatamente e realizar TC de crânio antes da PL.\n\n" +
+      "💊 *TERAPIA ANTIMICROBIANA EMPÍRICA (ADULTO PS):*\n" +
+      "• *Ceftriaxona:* 2g EV de 12/12h.\n" +
+      "• *Dexametasona:* 10 mg EV administrada 15 a 20 minutos ANTES ou junto com a primeira dose de Ceftriaxona (reduz perda auditiva e mortalidade na meningite por pneumococo; manter 10 mg 6/6h por 4 dias se S. pneumoniae confirmado).\n" +
+      "• *Se Idade ≥ 50 anos ou imunossuprimido:* Adicionar *Ampicilina 2g EV de 4/4h* para cobertura de Listeria monocytogenes.";
+  }
+  if (k === 'cef_primaria') {
+    return "💊 *PROTOCOLO DE RESGATE: CEFALEIA PRIMÁRIA / ENXAQUECA NO PS*\n\n" +
+      "🟢 *ELEGIBILIDADE:* Cefaleia pulsátil/hemicraniana habitual, fotofobia/fonofobia, SEM febre, SEM déficit focal, SEM início em trovoada (SNOOP negativo).\n\n" +
+      "💊 *ESQUEMA MULTIMODAL DE RESGATE NO PRONTO SOCORRO:*\n" +
+      "1. *Dipirona:* 1g a 2g EV em 100 mL SF 0,9% correr em 15-20 minutos.\n" +
+      "2. *Metoclopramida (Plasil):* 10 mg EV lento em 2 minutos (alivia náusea e potencializa analgesia pela ação antidopaminérgica).\n" +
+      "3. *Dexametasona:* 10 mg EV lento (reduz taxa de recorrência da cefaleia nas 72 horas seguintes).\n" +
+      "4. *Hidratação:* SF 0,9% 500 a 1000 mL EV.\n" +
+      "5. *Alternativa / Adjuvante:* Cetoprofeno 100 mg EV ou Clorpromazina 12,5 a 25 mg EV lento se crise refratária.\n\n" +
+      "🧘 Ambiente silencioso, escuro e repouso de 60 minutos.";
+  }
+  if (k === 'cef_arterite') {
+    return "👵 *ARTERITE DE CÉLULAS GIGANTES / ARTERITE TEMPORAL*\n\n" +
+      "🔴 *INDICAÇÃO:* Paciente ≥ 50 anos com cefaleia de início recente, dor na região temporal, claudicação de mandíbula ao mastigar e/ou alteração visual (amaurose fugaz).\n\n" +
+      "⚡ *AÇÃO IMEDIATA (RISCO CRÍTICO DE CEGUEIRA IRREVERSÍVEL):*\n" +
+      "• *Dosagem Urgente:* VHS (> 50 mm/h) e PCR sérico.\n" +
+      "• *CORTICOTERAPIA IMEDIATA:* Iniciar *Prednisona 1 mg/kg/dia VO (40 a 60 mg/dia)* IMEDIATAMENTE! Não aguardar biópsia de artéria temporal se forte suspeita clínica.\n" +
+      "• Se sintomas visuais agudos: considerar pulsoterapia com *Metilprednisolona 1g EV/dia por 3 dias*.\n" +
+      "• Encaminhar para biópsia da artéria temporal (permanece positiva até 1-2 semanas após início do corticoide).";
+  }
   return null;
+}
+
+function enviarMenuEmergDengue(chat, messageId) {
+  var texto = '🦟 *MANEJO DE DENGUE & ARBOVIROSES (MS 2024)*\n\n' +
+    'Classificação e condutas de hidratação rápida por peso:\n\n' +
+    '• *Grupo C:* Dengue com sinais de alarme (hidratação venosa imediata 10 mL/kg/h)\n' +
+    '• *Grupo D:* Choque hipovolêmico (expansão rápida em bolus 20 mL/kg em 20 min)\n' +
+    '• *Grupos A e B:* Hidratação oral supervisionada (60 mL/kg/dia)';
+  var botoes = botoesBot([
+    [['🦟 Grupo C (10 mL/kg/h)', 'ux:conduta:dengue_c'], ['🚨 Grupo D Choque (20 mL/kg)', 'ux:conduta:dengue_d']],
+    [['📋 Grupos A e B (Oral)', 'ux:conduta:dengue_ab']],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarMenuEmergCriseHas(chat, messageId) {
+  var texto = '❤️ *CRISE HIPERTENSIVA (SBC 2020 / AHA)*\n\n' +
+    'Selecione a apresentação clínica beira-leito:\n\n' +
+    '• *Emergência:* LOA aguda (EAP, Dissecção, SCA, AVC) — drogas venosas em BIC\n' +
+    '• *Urgência:* PA elevada sem LOA — controle oral em 24-48h (Captopril VO)\n' +
+    '• *Pseudocrise:* Reativa a dor/ansiedade — repouso e analgesia simples';
+  var botoes = botoesBot([
+    [['🚨 Emergência (EAP / Dissecção)', 'ux:conduta:crisehas_emerg'], ['⚡ Urgência (Captopril/Clonidina)', 'ux:conduta:crisehas_urg']],
+    [['🟢 Pseudocrise (Repouso/Analgesia)', 'ux:conduta:crisehas_pseudo']],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarMenuEmergGlasgow(chat, messageId) {
+  var texto = '🧠 *ESCALA DE COMA DE GLASGOW (GUIA RÁPIDO)*\n\n' +
+    '👁️ *Abertura Ocular (1 a 4):*\n' +
+    '• 4: Espontânea | 3: Ao som | 2: À pressão | 1: Ausente\n\n' +
+    '🗣️ *Resposta Verbal (1 a 5):*\n' +
+    '• 5: Orientada | 4: Confusa | 3: Palavras | 2: Sons | 1: Ausente\n\n' +
+    '💪 *Resposta Motora (1 a 6):*\n' +
+    '• 6: À ordem | 5: Localiza | 4: Flexão normal | 3: Decorticação | 2: Descerebração | 1: Ausente\n\n' +
+    '💡 *Envie a pontuação:* `glasgow 7` ou `glasgow 14`\n' +
+    '🚨 *Alerta Sentinela:* Glasgow ≤ 8 = Proteção de via aérea obrigatória (SRI / IOT).\n\n' +
+    'Selecione a gravidade clínica pela pontuação:';
+  var botoes = botoesBot([
+    [['🔴 Glasgow ≤ 8 (SRI / IOT)', 'ux:conduta:gcs_8'], ['🟡 Glasgow 9-12 (TC / Vigia)', 'ux:conduta:gcs_10']],
+    [['🟢 Glasgow 13-15 (Observação)', 'ux:conduta:gcs_14'], ['📐 Calculadora Glasgow-P', 'calc_Glasgow']],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarMenuEmergChoque(chat, messageId) {
+  var texto = '🫀 *IC DESCOMPENSADA & CHOQUE (STEVENSON / FORRESTER)*\n\n' +
+    'Selecione o perfil clínico-hemodinâmico beira-leito:\n\n' +
+    '• *Perfil C (Frio & Úmido):* Choque cardiogênico franco — Nora + Dobuta\n' +
+    '• *Perfil B (Quente & Úmido):* Congestão/EAP — Nitroglicerina + Furosemida\n' +
+    '• *Perfil L (Frio & Seco):* Hipovolemia/Superdiurese — Prova de volume\n' +
+    '• *Choque Séptico:* Nora + Vasopressina + Hidrocortisona (CIRCI)';
+  var botoes = botoesBot([
+    [['🔴 Perfil C: Frio & Úmido (Choque)', 'ux:conduta:choque_c'], ['🟡 Perfil B: Quente & Úmido (EAP)', 'ux:conduta:choque_b']],
+    [['🔵 Perfil L: Frio & Seco (Hipovolemia)', 'ux:conduta:choque_l'], ['💉 Choque Séptico (CIRCI/Nora)', 'ux:conduta:choque_septico']],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarMenuEmergCefaleia(chat, messageId) {
+  var texto = '🤕 *CEFALEIAS AGUDAS NO PRONTO SOCORRO (SNOOP)*\n\n' +
+    'Selecione a suspeita clínica ou bandeira vermelha:\n\n' +
+    '• *Trovoada / HSA:* Início súbito < 1 min — TC sem contraste imediata + PL se normal\n' +
+    '• *Meningite:* Febre + rigidez de nuca — Líquor e Ceftriaxona 2g + Dexa 10mg\n' +
+    '• *Primária / Enxaqueca:* Resgate multimodal com Dipirona + Plasil + Dexa\n' +
+    '• *Arterite Temporal:* Paciente > 50 anos com dor temporal — VHS + Prednisona urgente';
+  var botoes = botoesBot([
+    [['🚨 Trovoada / HSA (TC+PL)', 'ux:conduta:cef_hsa'], ['⚠️ Meningite / Febre (Punção)', 'ux:conduta:cef_mening']],
+    [['💊 Cefaleia Primária (Resgate PS)', 'ux:conduta:cef_primaria'], ['👵 Arterite Temporal (Corticoide)', 'ux:conduta:cef_arterite']],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
 }
 
 function enviarTelaCondutaEmergencia(chat, condutaKey, messageId) {
@@ -1155,11 +1416,11 @@ function tratarCallbackUX(cb) {
         }
       } else enviarMenuConsultasBolso(chat, msgId);
     } else if (op === 'emerg') {
-      if (v === 'choque') texto('/choque');
-      else if (v === 'glasgow') texto('/glasgow');
-      else if (v === 'crisehas') texto('/crisehipertensiva');
-      else if (v === 'dengue') texto('/dengue');
-      else if (v === 'cefaleia') texto('/cefaleia');
+      if (v === 'choque') return enviarMenuEmergChoque(chat, msgId);
+      else if (v === 'glasgow') return enviarMenuEmergGlasgow(chat, msgId);
+      else if (v === 'crisehas') return enviarMenuEmergCriseHas(chat, msgId);
+      else if (v === 'dengue') return enviarMenuEmergDengue(chat, msgId);
+      else if (v === 'cefaleia') return enviarMenuEmergCefaleia(chat, msgId);
       else if (v === 'arritmia') texto('/arritmia');
       else enviarMenuSalaVermelha(chat, msgId);
     } else if (op === 'gaso') {
@@ -1463,6 +1724,11 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarMenuConsultasBolso: enviarMenuConsultasBolso,
     enviarMenuEnfermaria: enviarMenuEnfermaria,
     enviarMenuGinecologiaObstetricia: enviarMenuGinecologiaObstetricia,
+    enviarMenuEmergDengue: enviarMenuEmergDengue,
+    enviarMenuEmergCriseHas: enviarMenuEmergCriseHas,
+    enviarMenuEmergGlasgow: enviarMenuEmergGlasgow,
+    enviarMenuEmergChoque: enviarMenuEmergChoque,
+    enviarMenuEmergCefaleia: enviarMenuEmergCefaleia,
     tratarEntradaUX: tratarEntradaUX,
     tratarCallbackUX: tratarCallbackUX,
     extrairPlanoDeTextoSoap: extrairPlanoDeTextoSoap,

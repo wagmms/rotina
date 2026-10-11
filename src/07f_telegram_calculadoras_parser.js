@@ -1256,7 +1256,8 @@ function enviarMenuCategoriasCalculadoras(chatId, messageId) {
     "inline_keyboard": [
       [{"text": "🫀 Cardio & Vascular", "callback_data": "calc_cat_cardio"}],
       [{"text": "🧪 Nefro, Metabólico & Geral", "callback_data": "calc_cat_renal"}],
-      [{"text": "🧠 Neuro & Terapia Intensiva", "callback_data": "calc_cat_neuro"}]
+      [{"text": "🧠 Neuro & Terapia Intensiva", "callback_data": "calc_cat_neuro"}],
+      [{"text": "🔙 Calculadoras", "callback_data": "ux:hub:calc"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
     ]
   };
   var texto = "📐 *CALCULADORAS CLÍNICAS DETERMINÍSTICAS*\n\nEscolha uma categoria ou envie diretamente no chat:\n💡 *Ex:* `/calc curb65 71a confuso PA 100/60 FR 32 Ureia 68`";
@@ -1281,7 +1282,7 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
       [{"text": "CHA2DS2-VASc", "callback_data": "calc_CHA2DS2-VASc"}, {"text": "HAS-BLED", "callback_data": "calc_HAS-BLED"}],
       [{"text": "Wells (TEP/TVP)", "callback_data": "calc_Wells"}, {"text": "HEART / TIMI", "callback_data": "calc_HEART-TIMI"}],
       [{"text": "GRACE Score", "callback_data": "calc_GRACE"}, {"text": "Framingham", "callback_data": "calc_Framingham"}],
-      [{"text": "⬅️ Voltar ao Menu", "callback_data": "calc_menu_principal"}]
+      [{"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
     ];
   } else if (categoria === "calc_cat_renal") {
     tituloCat = "🧪 *Calculadoras Nefro, Metabólicas & Gerais:*";
@@ -1291,7 +1292,7 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
       [{"text": "Cálcio Corrigido", "callback_data": "calc_Calcio"}, {"text": "Gap Osmolar", "callback_data": "calc_Gap_Osmolar"}],
       [{"text": "KDIGO (IRA)", "callback_data": "calc_KDIGO"}, {"text": "LDL Martin-Hopkins", "callback_data": "calc_LDL-Martin-Hopkins"}],
       [{"text": "FRAX (Fratura)", "callback_data": "calc_FRAX"}],
-      [{"text": "⬅️ Voltar ao Menu", "callback_data": "calc_menu_principal"}]
+      [{"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
     ];
   } else if (categoria === "calc_cat_neuro") {
     tituloCat = "🧠 *Calculadoras Neuro & Terapia Intensiva:*";
@@ -1300,7 +1301,7 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
       [{"text": "qSOFA (Sepse)", "callback_data": "calc_SOFA"}, {"text": "MELD / MELD-Na", "callback_data": "calc_MELD"}],
       [{"text": "Child-Pugh", "callback_data": "calc_Child"}, {"text": "BISAP (Pancreatite)", "callback_data": "calc_Ranson"}],
       [{"text": "APACHE II", "callback_data": "calc_APACHE"}],
-      [{"text": "⬅️ Voltar ao Menu", "callback_data": "calc_menu_principal"}]
+      [{"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
     ];
   }
 
@@ -1308,5 +1309,7 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
     executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageText", {
       "chat_id": chatId, "message_id": messageId, "text": "📐 " + tituloCat + "\n\nSelecione a ferramenta desejada:", "parse_mode": "Markdown", "reply_markup": { "inline_keyboard": teclado }
     });
+  } else {
+    enviarMensagemComTecladoParaChat(chatId, "📐 " + tituloCat + "\n\nSelecione a ferramenta desejada:", { "inline_keyboard": teclado });
   }
 }

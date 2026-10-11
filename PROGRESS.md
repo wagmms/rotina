@@ -14,22 +14,22 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Otimização do Pool de Modelos Gemini, Correção de HTTP 400 em thinkingBudget e Eliminação de Gargalo 429**:
-    - **Diagnóstico e Correção de Argumento (HTTP 400)**: Mapeado que a Google AI API rejeita `thinkingBudget: 0` com `400 INVALID_ARGUMENT` em modelos rápidos/extrativos; removido o parâmetro para omitir `thinkingConfig` de forma limpa, permitindo que `gemini-3.5-flash-lite` e `gemini-flash-lite-latest` rodem em ~700ms sem erro.
-    - **Mitigação do Esgotamento de Cota Diária (429 / 20 RPD)**: Deslocado `gemini-3.5-flash` (limitado a 20 RPD no Free Tier GCP) do topo para contingência tardia; promovido `gemini-3.7-flash` (200 OK) como prioritário clínico e `gemini-flash-lite-latest` como esteira rápida ultra-disponível.
-    - **Saneamento de Modelos em Configurações e Utils**: Atualizados `IA_PADROES.GEMINI`, `IA_PADROES.GEMINI_GROUNDING`, `IA_MODELOS_RAPIDOS_GEMINI` e `IA_MODELOS_TTS_GEMINI` (`gemini-3.8-flash-tts` e `gemini-3.8-flash-lite-tts`, eliminando o modelo 2.5 obsoleto).
-    - **Recompilação e Validação**: `npm run build` gerou `ultra_rotina_master.js` com 100% de integridade sintática e testes de callbacks e formatação PEP aprovados sem erros.
+- [x] **Auditoria de UX Beira-Leito e Navegação Contextual na Aba Emergências & Sala Vermelha Interna do Telegram**:
+    - **Navegação Contextual Completa**: Implementados botões de retorno contextual em 1 toque `[🔙 Sala Vermelha]` e `[🏠 Início]` em fluxos de emergência, PCR (/pcr), arritmias (/arritmia), SRI (/sri), DVA (/dva) e condutas protocoladas.
+    - **Determinismo 0ms & Expansão para 17 Condutas**: Em `src/12_experiencia_bot.js`, implementado catálogo determinístico de 17 condutas canônicas em `obterTextoCondutaEmergencia` (EAP, Anafilaxia, Convulsão, Hipercalemia, CAD, Dengue C, Dengue D Choque, Dengue A/B, Crise HAS Emergência, Urgência, Pseudocrise, TCE Glasgow ≤ 8, 9-12, 13-15, IC Descompensada Choque Perfil C, Perfil B, Perfil L, Choque Séptico CIRCI e Cefaleias HSA, Meningite, Primária de Resgate, Arterite de Células Gigantes).
+    - **Menus Dedicados e Correção de Sessão**: Criadas funções de menus dedicados (`enviarMenuEmergDengue`, `enviarMenuEmergCriseHas`, `enviarMenuEmergGlasgow`, `enviarMenuEmergChoque` e `enviarMenuEmergCefaleia`). Corrigido bug crítico de `/choque` no Telegram (invocava RPC do Cockpit sem autenticação; agora chama diretamente `CardiologiaIntensivaService.avaliarPacienteICDescompensada` com retorno contextual).
+    - **Cópia para Prontuário (`[📋 Copiar para Prontuário]`)**: Persistência de resultados em cache com TTL 6h e botão de cópia de conduta formatada em 1 toque.
+    - **Testes Automatizados**: Suíte `tests/test_sala_vermelha_ux.cjs` criada com 9 baterias de testes, integrada ao `package.json` e executada junto com a suíte geral `npm test` com 100% de aprovação.
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria de UX Beira-Leito e Navegação Contextual na Aba Emergências & Sala Vermelha Interna (Telegram)**:
-    - Aplicar o protocolo das 6 regras de ouro (navegação contextual sem ficar preso, edição in-place sem flood, determinismo 0ms sem IA desnecessária, eliminação de botões fantasmas, redação canônica e botão de cópia de conduta) nos fluxos internos:
-      * PCR (/pcr) e Arritmias Cardíacas (Taquiarritmias, Bradiarritmias, FA, ritmos de PCR).
-      * Condutas de Sala Vermelha: EAP Hipertensivo, Anafilaxia, Crise Convulsiva, Hipercalemia e CAD.
-      * SRI (/sri) e DVA (/dva): garantir botões de retorno contextual `[🔙 Sala Vermelha]` e `[🏠 Início]` em vez de jogada cega para o menu raiz.
+- [ ] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`)**:
+    - **Arquivo/Módulo Alvo**: `src/12_experiencia_bot.js`
+    - **Função/Componente/Seletor**: Função `enviarMenuConsultasBolso` e handlers de callbacks `ux:bolso:*` (`atb`, `ped`, `gestacao`, `interacao`, `hsl`).
+    - **Comportamento Esperado / Critério de Aceite**: Garantir retorno contextual para `[🔙 Consultas de Bolso]` e `[🏠 Início]`, respostas determinísticas em 0ms sem chamadas redundantes de IA generativa, botões táteis de 1 toque e botão `[📋 Copiar Conduta]`.
 
 ---
 
@@ -43,27 +43,24 @@
 > 5. **Redação Médica Canônica de Prontuário**: Textos de conduta objetivos, semiologia real descritiva (sem "alterações não relatadas"), eliminação de saudações e enrolação.
 > 6. **Ação Rápida de 1 Toque (`[📋 Copiar para Prontuário]`)**: Sempre fornecer botão de cópia de conduta/prescrição formatada para colar direto no prontuário/PEP.
 
-1. [ ] **Auditoria e Otimização da Aba Emergências & Sala Vermelha Interna (`ux:sala`, `ux:conduta:*`, `ux:emerg:*`)**:
-    - Validar e higienizar fluxos de PCR, Arritmias, EAP, CAD, Anafilaxia, Convulsão, Hipercalemia, Dengue C/D, Cefaleia, SRI e DVA.
-    - Eliminar botões fantasmas (`Gerar PDF`, `Ver critérios`), garantir edição in-place e rodapés navegacionais com `[🔙 Sala Vermelha]` e `[🏠 Início]`.
-2. [ ] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`)**:
+1. [ ] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`)**:
     - Validar submódulos: Antibióticos por Foco (`ux:bolso:atb`), Doses Pediátricas por Peso (`ux:bolso:ped`), Gestação & Lactação (`ux:bolso:gestacao`), Interações Medicamentosas Graves (`ux:bolso:interacao`) e Diluição HSL (`ux:bolso:hsl`).
     - Garantir retorno contextual para `[🔙 Consultas de Bolso]`, entrega de respostas em 0ms sem chamadas redundantes de IA e botão `[📋 Copiar Conduta]`.
-3. [ ] **Auditoria e Otimização da Aba Ambulatório & Atenção Primária (`ux:hub:amb`)**:
+2. [ ] **Auditoria e Otimização da Aba Ambulatório & Atenção Primária (`ux:hub:amb`)**:
     - Validar fluxos de CID-10 & CIAP-2 Rápido (`ux:amb:cid`), Prescrição REMUME SUS (`ux:amb:remume`), Atestado Médico CFM (`ux:amb:atestado`) e Receituário de Controle Especial (C1/B1).
     - Assegurar botões de retorno para `[🔙 Ambulatório]` e `[🏠 Início]`, além de botões imediatos de cópia e impressão sem passos intermediários desnecessários.
-4. [ ] **Auditoria e Otimização da Aba Calculadoras Clínicas & Escores (`ux:hub:calc` e Cockpit)**:
+3. [ ] **Auditoria e Otimização da Aba Calculadoras Clínicas & Escores (`ux:hub:calc` e Cockpit)**:
     - Validar Gasometria Arterial completa (`ux:iniciar:gaso`), Cockcroft vs CKD-EPI (`calc_Cockcroft`, `calc_CKD`), Hidratação Holliday-Segar (`ux:enf:hidratacao`), Glasgow e Escores de Risco.
     - Validar Calculadora de Queimaduras (Parkland / Brooke) no Cockpit (reposição em 24h, regra dos 9 de Wallace, 4 mL/kg/% SCQ, frações 50% nas primeiras 8h e diurese alvo).
     - Validar Calculadora de Drogas Vasoativas (/dva e Cockpit): taxa de infusão (mcg/kg/min para mL/h) com presets táteis de ampolas e salvaguardas anti-dose excessiva.
     - Garantir retorno consistente para `[🔙 Calculadoras]` ou para o cenário clínico chamador (Enfermaria ou Sala Vermelha), eliminando telas órfãs.
-5. [ ] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`)**:
+4. [ ] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`)**:
     - Validar os 10 submódulos de G&O: Pré-Natal & DPP (`go_prenatal`), Parto/Partograma (`go_parto`), HPP 4 Ts (`go_hpp`), Pré-Eclâmpsia & MgSO4 (`go_mgso4`), Prematuridade/RPMO (`go_prematuridade`), Toxo (`go_toxo`), Vulvovaginites (`go_corrimento`), Preventivo INCA (`go_preventivo`), Anticoncepção OMS (`go_anticoncepcao`) e DIP (`go_dip`).
     - Substituir retornos genéricos para o menu raiz por `[🔙 Hub G&O]` e `[🏠 Início]`, com condutas prescritivas instantâneas (0ms) e botão de cópia de conduta.
-6. [ ] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`)**:
+5. [ ] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`)**:
     - Validar Painel de Leitos (`ux:painel:0`), Abertura de Leito Individual (`ux:leito:*`), Evolução Diária (`ux:evoluir:*`), Alta Hospitalar (`ux:alta:*`) e Passagem SBAR (`ux:enf:sbar`).
     - Garantir que nenhum estado de censo ou evolução deixe o médico sem opções de navegação direta para `[🔙 Enfermaria]` ou `[🏠 Início]`.
-7. [ ] **Auditoria e Otimização da Central de Rotina & Plantão do Médico (`ux:hub:rotina`)**:
+6. [ ] **Auditoria e Otimização da Central de Rotina & Plantão do Médico (`ux:hub:rotina`)**:
     - Validar Agenda do Dia/Amanhã (`ux:rotina:agenda`, `ux:rotina:agenda_amanha`), Tarefas do Plantão (`ux:rotina:tasks`), Check-in / Briefing (`ux:rotina:checkin`, `rotina_briefing`) e Encerramento de Plantão (`ux:rotina:plantao_fim`).
     - Garantir navegação em 1 toque sem digitação manual, com retorno para `[🔙 Central de Rotina]` e `[🏠 Início]`.
 
@@ -72,16 +69,16 @@
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 *(Seção dedicada para registrar oportunidades e sugestões levantadas durante os testes de funções, sem implementação imediata no código)*
 
-> 💡 Catálogo completo de 60 sugestões anteriores arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 64 sugestões anteriores arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 56 (Telegram / Emergência Respiratória)*: Atalhos inline `/asma` e `/dpoc` com botões táteis de 1 toque para classificação rápida de crise asmática/DPOC em 3 níveis (Leve/Moderada, Grave, Ameaça à Vida/Tórax Silencioso) gerando conduta imediata formatada para copiar para PEP.
-- *Sugestão 57 (Telegram / Visual)*: Barras de progresso e gravidade com blocos semafóricos em emojis (`🟩🟩🟨⬜⬜`) no Telegram para sumarização visual imediata de escores de risco clínico beira-leito (ex: FRAX, CURB-65, TIMI, Wells, qSOFA) e metas terapêuticas.
-- *Sugestão 58 (Telegram / UX)*: Pulsador contínuo de status de digitação (`sendChatAction: typing` periódico com timer/thread) durante processamento de consultas clínicas discursivas complexas via IA (Gemini Pro) para manter feedback de vida ativo e evitar sensação de travamento na rede móvel hospitalar.
-- *Sugestão 59 (Telegram / UI)*: Modo "Resumo Telegráfico Ultra-Curto" (toggle `/modo_curto` ou `/conciso`) para médicos veteranos que desejam apenas dosagens em bullets puros sem qualquer contextualização clínica secundária.
 - *Sugestão 60 (Telegram / Farmacologia)*: Card de conduta em formato "Checklist Beira-Leito" com checkboxes visuais preenchíveis inline para conferência ágil de passos de ressuscitação em emergências.
+- *Sugestão 61 (Telegram / Sala Vermelha)*: Botão de alternância rápida entre apresentação clínica inicial e critérios de desmame/tapering de DVA (Noradrenalina / Dobutamina / Vasopressina) com metas de PAM ≥ 65 mmHg e lactato em clareamento.
+- *Sugestão 62 (Telegram / Emergência)*: Protocolo ágil de dose de ataque vs manutenção de Amiodarona venosa com pré-cálculo automático em SF 5% (300 mg em bolus na PCR chocável refratária vs 150 mg em 10 min na TV estável, seguido de 1 mg/min por 6h e 0,5 mg/min por 18h).
+- *Sugestão 63 (Telegram / Dengue)*: Alerta visual com calculadora rápida de hematócrito e critério de hemoconcentração (aumento de 20% do Ht basal) para reclassificação dinâmica entre Grupo B e Grupo C no Telegram.
+- *Sugestão 64 (Telegram / Cefaleia)*: Escore SNOOP4 com checklist interativo para estratificação imediata de bandeiras vermelhas em cefaleia aguda antes de liberar protocolo de analgesia primária.
 
 ---
 
 ## 📦 Histórico de Melhorias Concluídas
 
-> 📁 Histórico completo de 83 melhorias anteriores arquivado e documentado em [CHANGELOG.md](CHANGELOG.md).
+> 📁 Histórico completo de 84 melhorias anteriores arquivado e documentado em [CHANGELOG.md](CHANGELOG.md).
