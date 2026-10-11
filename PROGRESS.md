@@ -14,23 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Desbloqueio e Harmonização do Autoloop (`tooling/autoloop/autoloop.py`, `src/13_cockpit_integracao.js`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js` e testes)**:
-    - **Diagnóstico e Causa Raiz**: O autoloop recusava commits após os ciclos do agy porque o gate de fechamento executava `npm run test:all -- --reuse`, que lia falhas legadas no recibo (`.autoloop_test_receipt.json`) de suítes de outros módulos e abortava em 0.2s com código 1, gerando falso-positivo de recusa. Além disso, o terminal sofria com poluição extrema devido ao streaming de JSONs brutos gigantescos de eventos internos do agy CLI.
-    - **Correção da Bateria Completa (100% Verde - 229/229 Suítes Aprovadas)**:
-      1. *Geriatria & FRAX* (`src/02_saude_idoso.js`): corrigido regex split (`/[,;]|\s+e\s+/i`) e acesso ao cenário no parser de quedas.
-      2. *IA / Thinking* (`src/04_motores_ia.js`): restaurado `thinkingBudget: 0` para `gemini-2.5-flash` em tarefas `semThinking`.
-      3. *Agenda / Treino* (`src/06_rotina_agenda.js`): cancelamento confirma "cancelado" mesmo em dias sem treino prévio na grade.
-      4. *UI/UX & Teclado Universal* (`tests/test_ui_ux_bot.py`): alinhadas asserções do teclado ergonômico de 3 linhas e comandos nativos enxutos (5 comandos).
-      5. *Drogas Vasoativas & Modos* (`src/07a_telegram_router.js` e `src/12_experiencia_bot.js`): priorizado marcador de peso sobre idade em `nora`/`dobuta` e isolado `💊 Prescrever` para acionar `iniciarModoBot(chatId, 'rx', false)` com bloqueio de texto livre pendente.
-      6. *Cockpit HMAC & RBAC* (`src/13_cockpit_integracao.js`): priorizado `ConfigService.exigir` sobre `getArray` para honrar mocks de teste determinísticos e evitar falhas de sessão em lanes de teste.
-    - **Equilíbrio de Verbosidade do Terminal do Autoloop**:
-      - Em `tooling/autoloop/autoloop.py` (`_emitir_evento_equilibrado`): suprimidos JSONs brutos gigantescos, chunks parciais e heartbeats internos; exibição sintetizada e limpa de marcos vitais (`[AGY] 🛠️ tool_name: target` e `[AGY] ✓ Retorno concluído`), mantendo as mensagens de progresso do modelo legíveis e livres de poluição.
-    - **Eficiência e Proteção Operacional Implementadas**:
-      - Timeout protetor de 25 min (`timeout=1500`) em `tooling/autoloop/autoloop.py` para evitar loops infinitos ou travamentos de socket da API durante a noite.
-      - Retenção automática de relatórios em `scripts/run_tests.cjs`, mantendo apenas os 10 relatórios mais recentes em `data/test_reports/` e eliminando inchaço de disco e overhead de I/O.
-      - Salvaguarda automática de commit: se a bateria de testes for aprovada mas o modelo não tiver emitido commit antes de fechar o ciclo, o orquestrador consolida automaticamente as alterações para não perder trabalho validado.
-      - `tests/test_autoloop_orchestrator.py` corrigido para utilizar `sys.executable`, garantindo execução no virtualenv do projeto.
-    - Recompilado `ultra_rotina_master.js` (`npm run build`). Bateria completa 100% aprovada (229/229 suítes verdes em 18.09s, código estável, exit code 0).
+- [x] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`, `src/12_experiencia_bot.js` e `tests/test_consultas_bolso_ux.cjs`)**:
+    - **Diagnóstico e Otimização UX**: A aba `ux:hub:bolso` delegava cliques (`atb`, `ped`, `gestacao`, `interacao`, `hsl`) para comandos textuais livres (`texto('/atb')`, etc.), gerando novas mensagens sem edição in-place, telas órfãs sem botão de retorno e potencial lentidão por chamadas a modelos generativos de IA em consultas protocolares.
+    - **Implementação Determinística (0ms) e Protocolo Beira-Leito**: Criadas telas ricas e handlers canônicos com edição in-place via `enviarTelaBot`: `enviarTelaBolsoATB` (PAC CURB-65, ITU cistite/pielonefrite, foco abdominal, sepse e ajuste renal), `enviarTelaBolsoPed` (Dipirona 12kg, Amoxi 15kg, Prednisolona 10kg, Azitro 12kg com memória de cálculo), `enviarTelaBolsoGestacao` (analgésicos seguros vs bloqueio de AINEs no 3º tri, anti-hipertensivos com contraindicação de IECA/BRA, antibióticos e antieméticos), `enviarTelaBolsoInteracao` (alertas sentinela de QT longo, sangramento, hipercalemia e choque de Nitrato+5-PDE) e `enviarTelaBolsoHSL` (diluições oficiais de Ceftriaxona sem cálcio, Vancomicina lenta, Meropenem estendido e Noradrenalina concentrada em SG 5%).
+    - **Retorno Contextual e Cópia Rápida**: Garantidos botões `[🔙 Consultas de Bolso]` (`ux:hub:bolso`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas, além de botão `[📋 Copiar ...]` (`ux:copiar:<hash>`) com cache de 6h para transferência imediata ao PEP/prontuário.
+    - **Validação e Cobertura**: Criada suíte `tests/test_consultas_bolso_ux.cjs` (7 blocos) integrada à baseline de testes (`scripts/test_manifest.json`). Recompilado `ultra_rotina_master.js` (`npm run build`). 100% aprovado na baseline `npm test` (42/42) e na bateria completa `npm run test:all` (230/230 suítes verdes em 16.75s).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -38,10 +26,10 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`)**:
-    - **Arquivo/Módulo Alvo**: `src/12_experiencia_bot.js`
-    - **Função/Componente/Seletor**: Função `enviarMenuConsultasBolso` e handlers de callbacks `ux:bolso:*` (`atb`, `ped`, `gestacao`, `interacao`, `hsl`).
-    - **Comportamento Esperado / Critério de Aceite**: Garantir retorno contextual para `[🔙 Consultas de Bolso]` e `[🏠 Início]`, respostas determinísticas em 0ms sem chamadas redundantes de IA generativa, botões táteis de 1 toque e botão `[📋 Copiar Conduta]`.
+- [ ] **Auditoria e Otimização da Aba Ambulatório & Atenção Primária (`ux:hub:amb`)**:
+    - **Arquivo/Módulo Alvo**: `src/12_experiencia_bot.js` e `src/07a_telegram_router.js`
+    - **Função/Componente/Seletor**: Função `enviarMenuAmbulatorio` e callbacks `ux:amb:*` (`soap`, `remume`, `cid`, `atestado`)
+    - **Comportamento Esperado / Critério de Aceite**: Garantir retorno contextual para `[🔙 Ambulatório]` e `[🏠 Início]`, respostas determinísticas em 0ms sem chamadas desnecessárias de IA, botões táteis de 1 toque para busca ágil de CID-10/CIAP-2, receituário REMUME SUS e atestados médicos CFM com botão de cópia `[📋 Copiar Conduta]`.
 
 ---
 
@@ -55,9 +43,8 @@
 > 5. **Redação Médica Canônica de Prontuário**: Textos de conduta objetivos, semiologia real descritiva (sem "alterações não relatadas"), eliminação de saudações e enrolação.
 > 6. **Ação Rápida de 1 Toque (`[📋 Copiar para Prontuário]`)**: Sempre fornecer botão de cópia de conduta/prescrição formatada para colar direto no prontuário/PEP.
 
-1. [ ] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`)**:
-    - Validar submódulos: Antibióticos por Foco (`ux:bolso:atb`), Doses Pediátricas por Peso (`ux:bolso:ped`), Gestação & Lactação (`ux:bolso:gestacao`), Interações Medicamentosas Graves (`ux:bolso:interacao`) e Diluição HSL (`ux:bolso:hsl`).
-    - Garantir retorno contextual para `[🔙 Consultas de Bolso]`, entrega de respostas em 0ms sem chamadas redundantes de IA e botão `[📋 Copiar Conduta]`.
+1. [x] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`)**:
+    - Concluído com 100% dos submódulos validados (`atb`, `ped`, `gestacao`, `interacao`, `hsl`), retorno contextual, respostas determinísticas em 0ms e botão de cópia de conduta.
 2. [ ] **Auditoria e Otimização da Aba Ambulatório & Atenção Primária (`ux:hub:amb`)**:
     - Validar fluxos de CID-10 & CIAP-2 Rápido (`ux:amb:cid`), Prescrição REMUME SUS (`ux:amb:remume`), Atestado Médico CFM (`ux:amb:atestado`) e Receituário de Controle Especial (C1/B1).
     - Assegurar botões de retorno para `[🔙 Ambulatório]` e `[🏠 Início]`, além de botões imediatos de cópia e impressão sem passos intermediários desnecessários.
@@ -80,12 +67,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 71 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 74 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 67 (Telegram / Neurologia)*: Adicionar atalhos de botões táteis inline de 1 toque no roteiro de exame físico neurológico (`/neuro` / `/ef_neuro`) para graduar força motora segundo a escala MRC (Grau 0 a 5) e sinais meníngeos (Brudzinski / Kernig), permitindo montagem automática do resumo neurológico sem digitação livre no plantão.
-- *Sugestão 68 (Telegram / Fila & Resiliência)*: Exibir teclado com botões inline nos resultados de `/fila` (ex: `[📦 Ver Pedido 9]`, `[📋 Ver Entrega 9_1]`) para permitir navegação tátil direta entre pendências e histórico arquivado no chat sem necessidade de digitação manual de comandos textuais.
-- *Sugestão 69 (SOAP / Didática & Ensino Médico)*: Implementar botão inline de 1 toque no rascunho SOAP Fase 1 `[💡 Racional Didático]` para exibir em popup/mensagem complementar o mapa semiológico completo (pergunta investigativa ➔ hipótese FMRP-USP a descartar) para residentes e acadêmicos, sem sobrecarregar a transcrição limpa de prontuário para o médico assistente.
 - *Sugestão 70 (IA / Otimização de Inferência)*: Cache semântico de embeddings ou KV-cache para prompts extrativos de baixa latência em modelos Gemini 2.5/Flash-Lite quando `semThinking: true`, permitindo reaproveitamento de respostas estruturadas para consultas idênticas de CID-10, posologia e interações em 0ms sem consumo de cota de API.
 - *Sugestão 71 (Segurança / RBAC Cockpit)*: Adicionar comando no Telegram `/cockpit_revogar_convidado` para invalidação imediata em cache de tokens HMAC emitidos (`ck_<hmac>`) quando um médico convidado concluir o plantão, oferecendo ciclo de vida de credenciais mais granular sem afetar o titular.
+- *Sugestão 72 (Consultas de Bolso / Antimicrobianos)*: Adicionar seletor tátil de sensibilidade local / perfil microbiológico hospitalar (ex: taxa local de ESBL, MRSA ou Pseudomonas) no submenu de Antibióticos por Foco (`ux:bolso:atb`) para escalonamento automático de dose e tempo de infusão estendida de betalactâmicos conforme epidemiologia da UTI local.
+- *Sugestão 73 (Consultas de Bolso / Pediatria)*: Implementar conversão automática de apresentações pediátricas líquidas para gotas em seringa dosadora ou colheres-medida (ex: 5 mL = 1 colher de chá, 15 mL = 1 colher de sopa) nos cards de cópia de conduta pediátrica (`ux:bolso:ped`), minimizando erros de administração domiciliar pelos cuidadores.
+- *Sugestão 74 (Consultas de Bolso / Farmacovigilância)*: Adicionar busca multi-droga combinada em 1 toque no crosscheck de interações (`ux:bolso:interacao`) permitindo colar a lista completa de medicamentos de uso crônico da admissão hospitalar (conciliação medicamentosa) com matriz visual de alertas graduada em cores (Verde: Seguro, Amarelo: Monitorar, Vermelho: Contraindicação Absoluta).
 
 ---

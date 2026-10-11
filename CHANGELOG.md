@@ -1,5 +1,27 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0AW. [x] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`, `src/12_experiencia_bot.js` e `tests/test_consultas_bolso_ux.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Na aba de Consultas Rápidas de Bolso (`ux:hub:bolso`), os botões de seleção (`ux:bolso:atb`, `ux:bolso:ped`, `ux:bolso:gestacao`, `ux:bolso:interacao` e `ux:bolso:hsl`) delegavam para chamadas de texto livre (`texto('/atb')`, `texto('/ped')`, `texto('/prenatal')`, etc.).
+      * Esse comportamento violava as diretrizes de UX Beira-Leito: gerava novas mensagens no chat (flood sem edição in-place), exibia mensagens puramente textuais desprovidas de botões táteis inline de 1 toque, criava telas órfãs sem botão de retorno contextual para `[🔙 Consultas de Bolso]`, e em algumas rotas incorria em lentidão por chamadas a modelos de IA para fichas clínicas que deveriam ser determinísticas em 0ms.
+    - **Contrato de UX Beira-Leito e Determinismo (0ms)**:
+      * Respostas determinísticas imediatas em 0ms via `enviarTelaBot` com edição in-place da mensagem existente (`editMessageText`).
+      * Navegação contextual estrita: inclusão obrigatória de `[🔙 Consultas de Bolso]` (`ux:hub:bolso`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas e submenus de bolso.
+      * Ação de cópia rápida em 1 toque: inclusão de botão `[📋 Copiar ...]` (`ux:copiar:<hash>`) com armazenamento persistente em cache (TTL 6h) em todas as condutas, doses pediátricas, guias de diluição HSL e alertas farmacológicos para colagem direta no PEP/prontuário.
+    - **Implementação e Refatoração**:
+      * Em `src/12_experiencia_bot.js`, implementadas telas canônicas e handlers dedicados:
+        • `enviarMenuConsultasBolso`: Hub de bolso reformulado com chamadas táteis para os 5 submódulos clínicos.
+        • `enviarTelaBolsoATB`, `enviarTelaBolsoAtbPAC` e `enviarTelaBolsoAtbITU`: Antimicrobianos empíricos por foco de 1ª linha (PAC enfermaria/UTI com CURB-65, ITU cistite/pielonefrite/gestante, foco abdominal e sepse) com atalhos de ajuste renal.
+        • `enviarTelaBolsoPed` e `tratarCallbackBolsoPed`: Doses pediátricas por peso (PedBook/SBP) com memória de cálculo matemática e botões de 1 toque (Dipirona 12kg, Amoxicilina 15kg, Prednisolona 10kg, Azitromicina 12kg).
+        • `enviarTelaBolsoGestacao` e `tratarCallbackBolsoGestacao`: Segurança farmacológica na gestação e lactação (FEBRASGO/FDA) com analgésicos seguros vs contraindicação de AINEs no 3º trimestre, anti-hipertensivos com advertência formal contra IECA/BRA, antibióticos seguros e antieméticos.
+        • `enviarTelaBolsoInteracao` e `tratarCallbackBolsoInteracao`: Farmacovigilância e alertas sentinela de interações críticas (QT longo, hemorragia anticoagulante + AINE, hipercalemia IECA + Espironolactona, colapso hemodinâmico Nitrato + 5-PDE).
+        • `enviarTelaBolsoHSL` e `tratarCallbackBolsoHSL`: Guia oficial de diluição HSL com soluções padrão, tempos de infusão e alertas de segurança (Ceftriaxona sem cálcio, Vancomicina lenta anti-Homem Vermelho, Meropenem em infusão estendida e Noradrenalina concentrada em SG 5%).
+      * Em `tratarCallbackUX`, roteamento determinístico de `op === 'bolso'` para as telas correspondentes, eliminando qualquer overhead de IA generativa.
+    - **Validação e Cobertura Automatizada**:
+      * Criada nova suíte `tests/test_consultas_bolso_ux.cjs` com 7 blocos de testes validando todos os callbacks, navegação bidirecional e botões de cópia. Adicionada à baseline de testes em `scripts/test_manifest.json`.
+      * Recompilado `ultra_rotina_master.js` via `npm run build` (55.708 linhas, 100% sintaxe OK).
+      * 100% de aprovação na baseline de testes `npm test` (42/42 suítes em 5.88s) e na bateria completa `npm run test:all` (230/230 suítes aprovadas em 16.75s).
+
 0AV. [x] **Auditoria e Resolução de Fixture e Permissões RBAC no Cockpit e Telegram (`tests/test_rbac_perfis_clinicos.cjs`, `tests/test_rbac_perfis_clinicos.py` e `src/13_cockpit_integracao.js`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em `tests/test_rbac_perfis_clinicos.cjs:144`, a asserção `assert.strictEqual(ctx.cockpitAutorizar_('ck_' + hashConvidado), String(idConvidado))` falhava com `Error: Abra o Cockpit pelo botão do menu /menu no Telegram. A sessão está ausente, inválida ou expirada`.
