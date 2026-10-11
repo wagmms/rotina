@@ -14,11 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria e Alinhamento de Contrato de Thinking no Gemini 2.5 (`tests/test_otimizacao_io_e_thinking.cjs`, `tests/test_otimizacao_io_e_thinking.py` e `src/04_motores_ia.js`)**:
-    - **Diagnóstico e Causa Raiz**: O teste `tests/test_otimizacao_io_e_thinking.cjs:138` falhava com `AssertionError [ERR_ASSERTION]: thinkingConfig deve existir para gemini-2.5 com semThinking`. No commit `091b6a4`, a injeção de `thinkingBudget: 0` havia sido substituída por comentário sob hipótese de erro HTTP 400. Pelo contrato oficial da API Google Gemini (`ai.google.dev`), modelos Gemini 2.5 possuem raciocínio profundo ativado por padrão; para desativá-lo em tarefas puramente extrativas (`semThinking: true`), a API exige explicitamente `thinkingConfig: { thinkingBudget: 0 }`. Se omitido, o modelo continua pensando por padrão.
-    - **Auditoria Clínica e de Segurança (Pro)**: Para casos clínicos (`opcoes.clinico: true`), o raciocínio médico estendido é integralmente mantido com teto `IA_THINKING_BUDGET_CLINICO` (1024 tokens) ou thinking nativo, assegurando acurácia diagnóstica e terapêutica máxima. A desativação de thinking restringe-se a extrações sintáticas de alta velocidade (sub-segundo/0ms) sem impacto clínico.
-    - **Correção e Validação**: Em `src/04_motores_ia.js` (`_iaProvGemini`), mantida a injeção correta de `thinkingConfig: { thinkingBudget: 0 }` para Gemini 2.5/3.x sob `semThinking || extrativo`. Recompilado `ultra_rotina_master.js` via `npm run build`. Validação 100% verde em `test_otimizacao_io_e_thinking.cjs` (4/4 blocos), `test_otimizacao_io_e_thinking.py` e 5 suítes correlatas de IA (`test_auditoria_clinica_20261008.cjs`, `test_circuit_breaker_multimodal.cjs`, `test_preceptor_cockpit_completo.cjs`).
-    - Evidências arquivadas em `data/autoloop_task_notes/test_otimizacao_io_e_thinking.md`.
+- [x] **Auditoria e Resolução de Fixture e Permissões RBAC no Cockpit e Telegram (`tests/test_rbac_perfis_clinicos.cjs`, `tests/test_rbac_perfis_clinicos.py` e `src/13_cockpit_integracao.js`)**:
+    - **Diagnóstico e Causa Raiz**: O teste `tests/test_rbac_perfis_clinicos.cjs:144` falhava com `Error: Abra o Cockpit pelo botão do menu /menu no Telegram. A sessão está ausente, inválida ou expirada`. A investigação confirmou **preparação incompleta de fixture**: o teste avaliava a segregação entre Titular (`1771571035`), Convidado (`1154165211`) e Estranho (`999999999`), mas no ambiente de teste isolado do runner (`scripts/run_tests.cjs`), `TELEGRAM_CHAT_ID` continha apenas o titular (`1771571035`). Sem configurar `${idTitular},${idConvidado}` no ambiente do teste, o convidado era legitimamente recusado por `cockpitAutorizar_`.
+    - **Contrato e Robustez (Produção)**: Pelo contrato RBAC do sistema, o primeiro ID em `TELEGRAM_CHAT_ID` é o Titular (acesso irrestrito) e os subsequentes são Convidados (acesso clínico e Cockpit, bloqueio de Notion/rotina pessoal). Em `src/13_cockpit_integracao.js` (`cockpitAutorizar_` e `criarSessaoCockpit_`), a leitura foi alinhada com `ConfigService.getArray('TELEGRAM_CHAT_ID')`, garantindo suporte nativo a arrays e strings delimitadas por vírgula.
+    - **Correção e Validação**: Em `tests/test_rbac_perfis_clinicos.cjs`, configurada fixture determinística com ambos os IDs em `TELEGRAM_CHAT_ID` via `PropertiesService.setProperty` e restauração garantida em bloco `finally` (incluindo `process.env.TELEGRAM_CHAT_ID`), com zero contaminação cruzada. Recompilado `ultra_rotina_master.js` via `npm run build`. 100% de aprovação em `test_rbac_perfis_clinicos.cjs` (15/15 testes) e `test_rbac_perfis_clinicos.py`, além de suítes correlatas (`test_cockpit_integracao.cjs`, `test_hubs_e_comandos_telegram.cjs`, `test_preceptor_cockpit_completo.cjs`, `test_teclado_adaptativo.cjs`).
+    - Evidências arquivadas em `data/autoloop_task_notes/test_rbac_perfis_clinicos.md`.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -68,12 +68,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 70 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 71 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 66 (Telegram / Fila de Entrega Confiável)*: Adicionar comando `/reprocessar_fila` ou botão de 1 toque no alerta de falha de integração externa (Notion/APIs) permitindo retry manual imediato de pedidos que permaneceram com status 'failed' na fila persistente sem exigir nova digitação do médico.
 - *Sugestão 67 (Telegram / Neurologia)*: Adicionar atalhos de botões táteis inline de 1 toque no roteiro de exame físico neurológico (`/neuro` / `/ef_neuro`) para graduar força motora segundo a escala MRC (Grau 0 a 5) e sinais meníngeos (Brudzinski / Kernig), permitindo montagem automática do resumo neurológico sem digitação livre no plantão.
 - *Sugestão 68 (Telegram / Fila & Resiliência)*: Exibir teclado com botões inline nos resultados de `/fila` (ex: `[📦 Ver Pedido 9]`, `[📋 Ver Entrega 9_1]`) para permitir navegação tátil direta entre pendências e histórico arquivado no chat sem necessidade de digitação manual de comandos textuais.
 - *Sugestão 69 (SOAP / Didática & Ensino Médico)*: Implementar botão inline de 1 toque no rascunho SOAP Fase 1 `[💡 Racional Didático]` para exibir em popup/mensagem complementar o mapa semiológico completo (pergunta investigativa ➔ hipótese FMRP-USP a descartar) para residentes e acadêmicos, sem sobrecarregar a transcrição limpa de prontuário para o médico assistente.
 - *Sugestão 70 (IA / Otimização de Inferência)*: Cache semântico de embeddings ou KV-cache para prompts extrativos de baixa latência em modelos Gemini 2.5/Flash-Lite quando `semThinking: true`, permitindo reaproveitamento de respostas estruturadas para consultas idênticas de CID-10, posologia e interações em 0ms sem consumo de cota de API.
+- *Sugestão 71 (Segurança / RBAC Cockpit)*: Adicionar comando no Telegram `/cockpit_revogar_convidado` para invalidação imediata em cache de tokens HMAC emitidos (`ck_<hmac>`) quando um médico convidado concluir o plantão, oferecendo ciclo de vida de credenciais mais granular sem afetar o titular.
 
 ---

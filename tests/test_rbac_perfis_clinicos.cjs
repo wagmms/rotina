@@ -7,7 +7,10 @@
  */
 const assert = require('assert');
 const crypto = require('crypto');
-const path = require('path');
+const envOriginal = process.env.TELEGRAM_CHAT_ID;
+if (process.env.TELEGRAM_CHAT_ID && !process.env.TELEGRAM_CHAT_ID.includes('1154165211')) {
+  process.env.TELEGRAM_CHAT_ID += ',1154165211';
+}
 const runtime = require('../server/runtime.js');
 
 async function executarTestesRBAC() {
@@ -17,38 +20,48 @@ async function executarTestesRBAC() {
   const idConvidado = 1154165211;
   const idEstranho = 999999999;
 
+  const propsScript = ctx.PropertiesService.getScriptProperties();
+  const chatOriginal = propsScript.getProperty('TELEGRAM_CHAT_ID');
+
+  // Assegura ambiente RBAC determinístico com titular e convidado autorizados
+  propsScript.setProperty('TELEGRAM_CHAT_ID', `${idTitular},${idConvidado}`);
+  if (ctx.ConfigService && typeof ctx.ConfigService.invalidar === 'function') {
+    ctx.ConfigService.invalidar();
+  }
+
   let mensagensEnviadas = [];
   let callbacksRespondidos = [];
 
-  ctx.enviarMensagemParaChat = (id, texto) => {
-    mensagensEnviadas.push({ tipo: 'texto', id, texto: String(texto) });
-    return true;
-  };
-  ctx.enviarMensagemComTecladoParaChat = (id, texto, kb) => {
-    mensagensEnviadas.push({ tipo: 'teclado', id, texto: String(texto), kb });
-    return true;
-  };
-  ctx.enviarMensagemComTecladoFixo = (id, texto) => {
-    mensagensEnviadas.push({ tipo: 'teclado_fixo', id, texto: String(texto) });
-    return true;
-  };
-  ctx.responderCallbackTelegram = (id, texto) => {
-    callbacksRespondidos.push({ id, texto: String(texto || '') });
-    return true;
-  };
-  ctx.executarPostTelegram = (url, payload) => {
-    if (payload && payload.text) {
-      mensagensEnviadas.push({ tipo: 'post', id: payload.chat_id, texto: String(payload.text), kb: payload.reply_markup });
+  try {
+    ctx.enviarMensagemParaChat = (id, texto) => {
+      mensagensEnviadas.push({ tipo: 'texto', id, texto: String(texto) });
+      return true;
+    };
+    ctx.enviarMensagemComTecladoParaChat = (id, texto, kb) => {
+      mensagensEnviadas.push({ tipo: 'teclado', id, texto: String(texto), kb });
+      return true;
+    };
+    ctx.enviarMensagemComTecladoFixo = (id, texto) => {
+      mensagensEnviadas.push({ tipo: 'teclado_fixo', id, texto: String(texto) });
+      return true;
+    };
+    ctx.responderCallbackTelegram = (id, texto) => {
+      callbacksRespondidos.push({ id, texto: String(texto || '') });
+      return true;
+    };
+    ctx.executarPostTelegram = (url, payload) => {
+      if (payload && payload.text) {
+        mensagensEnviadas.push({ tipo: 'post', id: payload.chat_id, texto: String(payload.text), kb: payload.reply_markup });
+      }
+      return true;
+    };
+
+    function limpar() {
+      mensagensEnviadas = [];
+      callbacksRespondidos = [];
     }
-    return true;
-  };
 
-  function limpar() {
-    mensagensEnviadas = [];
-    callbacksRespondidos = [];
-  }
-
-  console.log("=== INICIANDO BATERIA COMPLETA DE 15 TESTES DE RBAC ===");
+    console.log("=== INICIANDO BATERIA COMPLETA DE 15 TESTES DE RBAC ===");
 
   // Teste 1: ehUsuarioTitular para ID numérico do titular
   assert.strictEqual(ctx.ehUsuarioTitular(idTitular), true);
@@ -146,6 +159,21 @@ async function executarTestesRBAC() {
   console.log("✓ Teste 15: Sessões HMAC do Cockpit validadas para ambos os IDs autorizados.");
 
   console.log("\n🚀 TODOS OS 15 TESTES DO MOTOR DE PERMISSÕES E PERFIS CLÍNICOS (RBAC) PASSARAM COM SUCESSO!\n");
+  } finally {
+    if (envOriginal !== undefined) {
+      process.env.TELEGRAM_CHAT_ID = envOriginal;
+    } else {
+      delete process.env.TELEGRAM_CHAT_ID;
+    }
+    if (chatOriginal !== null && chatOriginal !== undefined) {
+      propsScript.setProperty('TELEGRAM_CHAT_ID', chatOriginal);
+    } else {
+      propsScript.deleteProperty('TELEGRAM_CHAT_ID');
+    }
+    if (ctx.ConfigService && typeof ctx.ConfigService.invalidar === 'function') {
+      ctx.ConfigService.invalidar();
+    }
+  }
 }
 
 executarTestesRBAC().catch(err => {

@@ -1,5 +1,17 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0AV. [x] **Auditoria e Resolução de Fixture e Permissões RBAC no Cockpit e Telegram (`tests/test_rbac_perfis_clinicos.cjs`, `tests/test_rbac_perfis_clinicos.py` e `src/13_cockpit_integracao.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em `tests/test_rbac_perfis_clinicos.cjs:144`, a asserção `assert.strictEqual(ctx.cockpitAutorizar_('ck_' + hashConvidado), String(idConvidado))` falhava com `Error: Abra o Cockpit pelo botão do menu /menu no Telegram. A sessão está ausente, inválida ou expirada`.
+      * A investigação confirmou **Preparação Incompleta de Fixture de Teste**: a suíte testa segregação entre Titular (`1771571035`), Convidado (`1154165211`) e Estranho (`999999999`). Na validação de sessão HMAC do Cockpit (Teste 15), `cockpitAutorizar_` valida o token contra a lista de IDs autorizados em `TELEGRAM_CHAT_ID`. No ambiente isolado do test runner (`scripts/run_tests.cjs`), `TELEGRAM_CHAT_ID` é inicializado apenas com o titular (`1771571035`), e a suíte não configurava o ambiente com os dois IDs autorizados `${idTitular},${idConvidado}`, resultando na rejeição legítima do convidado.
+      * Adicionalmente, em `src/13_cockpit_integracao.js` (`cockpitAutorizar_` e `criarSessaoCockpit_`), a leitura de permissões utilizava `ConfigService.exigir('TELEGRAM_CHAT_ID')`, diferindo da linha 64 que já utilizava `ConfigService.getArray('TELEGRAM_CHAT_ID')`.
+    - **Correção e Validação**:
+      * Em `tests/test_rbac_perfis_clinicos.cjs`, configurado ambiente determinístico via `PropertiesService.setProperty('TELEGRAM_CHAT_ID', `${idTitular},${idConvidado}`)` com restauração obrigatória em bloco `finally` (incluindo `process.env.TELEGRAM_CHAT_ID`), eliminando qualquer vazamento de estado.
+      * Em `src/13_cockpit_integracao.js`, alinhadas as funções `cockpitAutorizar_` e `criarSessaoCockpit_` para priorizarem `ConfigService.getArray('TELEGRAM_CHAT_ID')`, oferecendo máxima resiliência com arrays nativos ou strings delimitadas por vírgula.
+      * Recompilado `ultra_rotina_master.js` com validação de sintaxe e empacotamento 100% OK via `npm run build`.
+      * Validação 100% verde em `tests/test_rbac_perfis_clinicos.cjs` (15/15 testes aprovados), `tests/test_rbac_perfis_clinicos.py` e suítes correlatas (`test_cockpit_integracao.cjs`, `test_hubs_e_comandos_telegram.cjs`, `test_preceptor_cockpit_completo.cjs`, `test_teclado_adaptativo.cjs`).
+      * Evidências arquivadas em `data/autoloop_task_notes/test_rbac_perfis_clinicos.md`.
+
 0AU. [x] **Auditoria e Alinhamento de Contrato de Thinking no Gemini 2.5 (`tests/test_otimizacao_io_e_thinking.cjs`, `tests/test_otimizacao_io_e_thinking.py` e `src/04_motores_ia.js`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em `tests/test_otimizacao_io_e_thinking.cjs:138`, a asserção `assert(p1.generationConfig.thinkingConfig, 'thinkingConfig deve existir para gemini-2.5 com semThinking')` falhava com `AssertionError [ERR_ASSERTION]: thinkingConfig deve existir para gemini-2.5 com semThinking (actual: undefined, expected: true)`. O wrapper `tests/test_otimizacao_io_e_thinking.py` falhava correspondentemente.

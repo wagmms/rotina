@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 03:33:21
- * Checksum SHA256: 3d277eb425ea34c4
+ * Gerado automaticamente via build_master.py em: 2026-10-11 03:50:34
+ * Checksum SHA256: 67583d17d2fdb934
  * ==============================================================================
  */
 
@@ -40473,7 +40473,9 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
 
   // B. Noradrenalina / Nora
   if (/^(?:noradrena(?:lina)?|nora)(?:\s+.*)?$/i.test(tLow)) {
-    var matchPesoNora = tLow.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*(?:kg)?\b/i);
+    var matchPesoNora = tLow.match(/(?:peso\s*[:=]?\s*)(\d+(?:[.,]\d+)?)/i) ||
+                        tLow.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i) ||
+                        tLow.match(/\b(\d+(?:[.,]\d+)?)\b(?!\s*(?:anos?|a\b|meses|m\b))/i);
     if (!matchPesoNora || !matchPesoNora[1] || isNaN(parseFloat(matchPesoNora[1].replace(",", "."))) || parseFloat(matchPesoNora[1].replace(",", ".")) < 10) {
       if (typeof enviarTelaPesoDva === "function") {
         enviarTelaPesoDva(chatId, "nora");
@@ -40500,7 +40502,9 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
 
   // C. Dobutamina / Dobuta
   if (/^(?:dobuta(?:mina)?)(?:\s+.*)?$/i.test(tLow)) {
-    var matchPesoDobuta = tLow.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*(?:kg)?\b/i);
+    var matchPesoDobuta = tLow.match(/(?:peso\s*[:=]?\s*)(\d+(?:[.,]\d+)?)/i) ||
+                          tLow.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i) ||
+                          tLow.match(/\b(\d+(?:[.,]\d+)?)\b(?!\s*(?:anos?|a\b|meses|m\b))/i);
     if (!matchPesoDobuta || !matchPesoDobuta[1] || isNaN(parseFloat(matchPesoDobuta[1].replace(",", "."))) || parseFloat(matchPesoDobuta[1].replace(",", ".")) < 10) {
       if (typeof enviarTelaPesoDva === "function") {
         enviarTelaPesoDva(chatId, "dobuta");
@@ -41002,7 +41006,13 @@ function processarMensagemTexto(message) {
     return processarMensagemTexto({ chat: { id: chatId }, text: "/ambulatorio" });
   }
 
-  if (texto === "💊 Consultas de Bolso" || texto === "💊 Prescrever" || texto === "💊 REMUME Rápida") {
+  if (texto === "💊 Prescrever") {
+    if (typeof iniciarModoBot === "function") {
+      return iniciarModoBot(chatId, "rx", false);
+    }
+  }
+
+  if (texto === "💊 Consultas de Bolso" || texto === "💊 REMUME Rápida") {
     if (typeof enviarMenuConsultasBolso === "function") {
       return enviarMenuConsultasBolso(chatId);
     }
@@ -44890,8 +44900,8 @@ function processarMensagemTexto(message) {
 
   // 2. CÁLCULOS DETERMINÍSTICOS DIRETOS EM RAM (0ms a 15ms)
   if (decisao.intencao === "CLINICO_EMERGENCIA") {
-    var tEmerg = texto.toLowerCase();
-    var matchPesoGeral = texto.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i);
+    var matchPesoGeral = texto.match(/(?:peso\s*[:=]?\s*)(\d+(?:[.,]\d+)?)/i) ||
+                         texto.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i);
 
     // A. Drogas Vasoativas Puras
     if (matchPesoGeral && (tEmerg.indexOf("nora") !== -1 || tEmerg.indexOf("dobuta") !== -1 || tEmerg.indexOf("vaso") !== -1 || tEmerg.indexOf("dva") !== -1)) {
@@ -51681,7 +51691,7 @@ function tratarEntradaUX(message) {
     }
     return true;
   }
-  if (text === '💊 Consultas de Bolso' || text === '💊 REMUME Rápida' || text === '💊 Prescrever') {
+  if (text === '💊 Consultas de Bolso' || text === '💊 REMUME Rápida') {
     if (typeof enviarMenuConsultasBolso === "function") {
       enviarMenuConsultasBolso(chat);
     }
@@ -52438,7 +52448,9 @@ function cockpitAutorizar_(initData) {
   if (typeof initData === 'string' && /^ck_[a-f0-9]{64}$/.test(initData)) {
     var rawPermitidos = (typeof ConfigService !== 'undefined' && ConfigService.exigir)
       ? ConfigService.exigir('TELEGRAM_CHAT_ID')
-      : (typeof ConfigService !== 'undefined' && ConfigService.get ? ConfigService.get('TELEGRAM_CHAT_ID') : '');
+      : ((typeof ConfigService !== 'undefined' && ConfigService.getArray)
+        ? ConfigService.getArray('TELEGRAM_CHAT_ID')
+        : ((typeof ConfigService !== 'undefined' && ConfigService.get) ? ConfigService.get('TELEGRAM_CHAT_ID') : ''));
     var permitidos = Array.isArray(rawPermitidos)
       ? rawPermitidos.map(function(s){ return String(s).trim(); })
       : String(rawPermitidos || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
@@ -52498,9 +52510,11 @@ function cockpitAutorizar_(initData) {
 }
 
 function criarSessaoCockpit_(chatId) {
-  var rawPermitidos = (typeof ConfigService !== 'undefined' && ConfigService.exigir)
-    ? ConfigService.exigir('TELEGRAM_CHAT_ID')
-    : (typeof ConfigService !== 'undefined' && ConfigService.get ? ConfigService.get('TELEGRAM_CHAT_ID') : '');
+  var rawPermitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
+    ? ConfigService.getArray('TELEGRAM_CHAT_ID')
+    : ((typeof ConfigService !== 'undefined' && ConfigService.exigir)
+      ? ConfigService.exigir('TELEGRAM_CHAT_ID')
+      : (typeof ConfigService !== 'undefined' && ConfigService.get ? ConfigService.get('TELEGRAM_CHAT_ID') : ''));
   var permitidos = Array.isArray(rawPermitidos)
     ? rawPermitidos.map(function(s){ return String(s).trim(); })
     : String(rawPermitidos || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);

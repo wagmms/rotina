@@ -10,7 +10,9 @@ function cockpitAutorizar_(initData) {
   if (typeof initData === 'string' && /^ck_[a-f0-9]{64}$/.test(initData)) {
     var rawPermitidos = (typeof ConfigService !== 'undefined' && ConfigService.exigir)
       ? ConfigService.exigir('TELEGRAM_CHAT_ID')
-      : (typeof ConfigService !== 'undefined' && ConfigService.get ? ConfigService.get('TELEGRAM_CHAT_ID') : '');
+      : ((typeof ConfigService !== 'undefined' && ConfigService.getArray)
+        ? ConfigService.getArray('TELEGRAM_CHAT_ID')
+        : ((typeof ConfigService !== 'undefined' && ConfigService.get) ? ConfigService.get('TELEGRAM_CHAT_ID') : ''));
     var permitidos = Array.isArray(rawPermitidos)
       ? rawPermitidos.map(function(s){ return String(s).trim(); })
       : String(rawPermitidos || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
@@ -70,9 +72,11 @@ function cockpitAutorizar_(initData) {
 }
 
 function criarSessaoCockpit_(chatId) {
-  var rawPermitidos = (typeof ConfigService !== 'undefined' && ConfigService.exigir)
-    ? ConfigService.exigir('TELEGRAM_CHAT_ID')
-    : (typeof ConfigService !== 'undefined' && ConfigService.get ? ConfigService.get('TELEGRAM_CHAT_ID') : '');
+  var rawPermitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
+    ? ConfigService.getArray('TELEGRAM_CHAT_ID')
+    : ((typeof ConfigService !== 'undefined' && ConfigService.exigir)
+      ? ConfigService.exigir('TELEGRAM_CHAT_ID')
+      : (typeof ConfigService !== 'undefined' && ConfigService.get ? ConfigService.get('TELEGRAM_CHAT_ID') : ''));
   var permitidos = Array.isArray(rawPermitidos)
     ? rawPermitidos.map(function(s){ return String(s).trim(); })
     : String(rawPermitidos || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
