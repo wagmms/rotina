@@ -1,5 +1,44 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C28. [x] **Sala Vermelha — Otimização Farmacológica e Diluições Prontas de Choque Séptico e CIRCI (`src/02_emergencia_choque_septico_circi.js`, `tests/test_emergencia_choque_septico_circi.cjs`)**:
+    - **Diagnóstico e Enriquecimento Clínico Beira-Leito**:
+      * Em `src/02_emergencia_choque_septico_circi.js`: na função existente `EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoKg, doseNoraMcgKgMin)`, enriquecido o retorno com a prescrição beira-leito canônica para Prontuário Eletrônico (PEP) e condutas SSC:
+        (1) Solução de Noradrenalina padrão (4 ampolas de 4mg/4mL = 16mg em 234mL de SG 5%, concentração 64 mcg/mL) com cálculo determinístico exato de vazão inicial (0,05 a 0,10 mcg/kg/min), limiar de refratariedade (0,25 mcg/kg/min) e teto máximo (1,00 mcg/kg/min) em mL/h na BIC para o peso informado;
+        (2) Solução padrão de Vasopressina (1 ampola de 20 UI/1mL em 99mL de SF 0,9% = 0,2 UI/mL) com vazão fixa em BIC de 9 mL/h (0,03 UI/min) sem titulação para proteção esplâncnica/coronariana;
+        (3) Diluição da Hidrocortisona para CIRCI (50mg pó liofilizado diluído em 10mL de SF 0,9% administrado IV em bolus lento de 3 min de 6/6h - 200 mg/dia);
+        (4) Alertas canônicos de segurança e metas: PAM alvo >= 65 mmHg, lactato sérico seriado de 2-4h (clareamento > 20% a cada 2h) e restrição volêmica pós-ressuscitação inicial (após 30 mL/kg);
+        (5) Estruturação do objeto `prescricaoPEP` e preservação do expurgo terciário de Azul de Metileno (restrito à UTI).
+    - **Validação e Resultados**: 100% de aprovação na suíte `tests/test_emergencia_choque_septico_circi.cjs` com validação de cálculos determinísticos para diferentes pesos, limiares de refratariedade e formatação Telegram. Bundle `ultra_rotina_master.js` 100% sincronizado.
+
+0C27. [x] **Telegram Callbacks - Desacoplamento de Roteamento Inline e Tabela de Despacho O(1) (`src/07d_telegram_callbacks.js`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Em `src/07d_telegram_callbacks.js`: função monolítica `processarCallbackBotao(cb)` de mais de 900 linhas com cadeias profundas de `if/else if` foi decomposta em arquitetura modular limpa e desacoplada.
+      * Criados helpers puros de extração de contexto: `extrairChatIdCallback_`, `extrairMsgIdCallback_` e `obterContextoCallback_` (com timezone e data ISO).
+      * Decompostos handlers especializados por domínio clínico e funcional:
+        • `tratarCallbackHabitoEEnergia_`: gravação no Notion Habit Log e toggle de botões visuais.
+        • `tratarCallbackRotinaProdutividade_`: agenda, tarefas, briefing, check-in, relatório semanal e timeline do titular.
+        • `tratarCallbackAjuda_`: manual de comandos slash por categoria.
+        • `tratarCallbackGerarRound_` e `tratarCallbackIncorporarLaudoSoap_`: integração de laudos e rounds com IA.
+        • `tratarCallbackCalculadoras_`: despacho v3.0 (`calc:`), menus e submenus, e legado (`calc_`).
+        • `tratarCallbackNotionTasks_`: arquivamento categorizado no Notion Tasks com remoção limpa do botão.
+        • `tratarCallbackPrescricaoEFarmaco_`: geração de PDF no Drive e atalhos rápidos de guias (HSL e PedBook).
+        • `tratarCallbackPreceptorSocratico_`: narração via TTS, consolidação de discussão SOAP e encerramento.
+        • `tratarCallbackEnfermaria_`: passagem SBAR, painel de bordo, leitos, altas e confirmação defensiva de limpeza.
+        • `tratarCallbackDiabetesMetabolismo_`, `tratarCallbackAnemiaGanzoni_` e `tratarCallbackDhe_`: protocolos de conduta beira-leito.
+        • `tratarCallbackGinecologiaObstetricia_`: protocolos canônicos de G&O (pré-natal, parto, HPP, MgSO4, etc.).
+        • `tratarCallbackPcrProtocolos_` e `tratarCallbackArritmiasCardiacas_`: protocolos ACLS/AHA/SBC (drogas, ciclo 2 min, 5Hs e 5Ts, pós-RCE, arritmias).
+        • `tratarCallbackSalaVermelha_` e `tratarCallbackExamesFisicos_`: exames físicos e menus de emergência.
+      * Implementada tabela de despacho direto `MAPA_CALLBACKS_EXATOS_` com busca $O(1)$ e lista de prefixos `ROTEADORES_PREFIXO_CALLBACKS_`, reduzindo a função principal `processarCallbackBotao` de 920 para menos de 50 linhas com legibilidade máxima.
+      * Cláusula pétrea de conteúdo médico, doses farmacológicas e salvaguardas de toxicidade rigorosamente preservadas.
+    - **Validação e Resultados**: 100% de aprovação nas baterias direcionadas (`test_hubs_e_comandos_telegram.cjs`, `test_telegram_inline_e_webapp.cjs`, `test_pcr_arritmias_telegram.cjs`, `test_defensivo_telegram_rpc.cjs`, `test_rotina_adaptativa.cjs`, `test_ajuda_comandos_slash.cjs`, `test_soap_modo_e_receita_ux.cjs`) e bateria ampla de 12 suítes com zero regressões.
+
+0C26. [x] **SOAP & Exame Físico - Isolamento Estrito de EF em Subjetivo e Correção de Duplicação "Geral:" (`src/02_soap_ambulatorial.js`, `src/04_ia_local_fallback.js`, `src/04_motores_ia.js`, `tests/test_soap_modo_e_receita_ux.cjs`)**:
+    - **Diagnóstico e Correção**:
+      * Em `src/02_soap_ambulatorial.js`: corrigida regex em `formatarExameFisicoSistemas` que capturava `Geral:` como token posterior aos sinais vitais e multiplicava o prefixo a cada formatação (`Geral: Geral: Geral:`). Implementada garantia de idempotência e limpeza de repetições.
+      * Em `src/04_ia_local_fallback.js`: corrigido `estruturarJsonOffline` para isolar a anamnese (Subjetivo) dos sistemas de exame físico anexados ao caso, evitando que o relato clínico do Subjetivo recebesse a íntegra dos sistemas físicos.
+      * Em `src/04_motores_ia.js`: criado `sanitizarSubjetivoSemExameFisico` integrado a `sanitizarNegativasSOAP`, `sRasc` (Fase 1) e `sTexto` (Fase 2), garantindo que sistemas semiológicos (Sinais Vitais, Geral, ACV, AR, Abdome, Extremidades) permaneçam restritos ao Objetivo (O) e nunca vazem para o Subjetivo (S).
+    - **Validação e Resultados**: 100% de aprovação na suíte `tests/test_soap_modo_e_receita_ux.cjs` e validação completa com 247/247 testes aprovados em 31.2s com zero regressões. Bundle `ultra_rotina_master.js` 100% sincronizado.
+
 0C25. [x] **Telegram Mini App (WebApp) & Inline Mode - Resposta Instantânea Inline e Sincronização Bidirecional PWA (`src/07h_telegram_inline_e_webapp.js`, `src/08_main.js`, `src/11_entrega_confiavel.js`, `server/telemetry.js` e `tests/test_telegram_inline_e_webapp.cjs`)**:
     - **Diagnóstico e Refatoração Estrutural**:
       * Implementado suporte oficial a **Inline Mode** (`@UltraRotinaBot [busca]`), permitindo consultas clínicas instantâneas em qualquer chat, grupo de plantão ou mensagem privada do Telegram.

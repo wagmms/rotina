@@ -179,6 +179,10 @@ As sugestões abaixo representam as intervenções de maior valor prático para 
 
 ## 📅 Central de Rotina, Hábitos & Integrações Pessoais
 
+- **Conector Moderno do Google Calendar em Node.js Fastify (Eliminação Definitiva de GAS)**:
+  Substituição completa das chamadas legadas/órfãs de `CalendarApp` por biblioteca/cliente HTTP oficial em Node.js (via Google Calendar API v3 / Service Account / iCal URL segura), permitindo listar eventos do dia, calcular tempo até o próximo compromisso e disparar notificações reais de agenda no Telegram e Cockpit.
+- **Redesenho Completo da Interface da Aba Rotina no Cockpit PWA (#tab-rotina)**:
+  Reestruturação visual da aba rotina eliminando cartões mockados e estáticos ("Turma J", "Semana Ativa", blocos de estudo congelados), introduzindo timeline tátil de time-blocking com indicadores visuais de progresso (concluído, pendente, pulado, descanso) e sincronização ao vivo com a agenda do médico.
 - **Check-in de Hábitos por Voz em Fluxo Contínuo (Notion & MedQuest)**:
   Processamento de áudio único relatando atividades do dia (treino, questões do MedQuest, estudo, hábitos) com atualização atômica das propriedades correspondentes no Notion.
 - **Parser Inteligente de Escala de Plantão em PDF para Google Calendar**:
