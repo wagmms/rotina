@@ -706,7 +706,12 @@ function processarMensagemTexto(message) {
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
       var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/toxo":"toxo","/toxoplasmose":"toxo","/avidez":"toxo","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/dip":"dip","/pelvica":"dip","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehas":"crisehipertensiva","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito","/leitos":"enfermaria","/censo":"enfermaria"};
-      if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
+      if (mapaModos[comando]) {
+        var dadosCmd = texto.replace(/^\/\w+\s*/, "").trim();
+        if (dadosCmd.length > 0) {
+          definirModoBot(chatId, mapaModos[comando], dadosCmd);
+        }
+      }
     }
   } else if (texto.charAt(0) === "/") {
     contextoCache.remove(contextoKey);
@@ -959,9 +964,38 @@ function processarMensagemTexto(message) {
 
   if (comando === "/soap") {
     var casoClinico = texto.replace(/^\/soap\s*/i, "").trim();
-    if (!casoClinico) return enviarMensagemParaChat(chatId, "🩺 Envie os dados. Ex: `/soap Mulher 68a epigastralgia...`");
+    if (!casoClinico) {
+      if (typeof iniciarModoBot === "function") {
+        return iniciarModoBot(chatId, "soap", true);
+      }
+      return enviarMensagemComTecladoParaChat(chatId,
+        "🩺 *MODO SOAP · ANAMNESE & EXAME CLÍNICO*\n\n" +
+        "Envie o caso clínico narrado ou em tópicos para estruturação em prontuário PEP.\n\n" +
+        "💡 *Exemplo:* `/soap Mulher 68a, dor epigástrica em queimação há 3 semanas, sem vômitos, PA 130/80`\n\n" +
+        "Toque em um caso rápido abaixo para iniciar em 1 toque:",
+        {
+          inline_keyboard: [
+            [
+              { text: "🩺 Exemplo HAS", callback_data: "ux:amb:soap:has" },
+              { text: "🩸 Exemplo DM2", callback_data: "ux:amb:soap:dm2" }
+            ],
+            [
+              { text: "🫁 Exemplo IVAS", callback_data: "ux:amb:soap:ivas" },
+              { text: "🦴 Exemplo Lombalgia", callback_data: "ux:amb:soap:lombalgia" }
+            ],
+            [
+              { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+              { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+            ]
+          ]
+        }
+      );
+    }
     safePutCache(contextoCache, contextoKey, casoClinico, 900);
     if (typeof definirModoBot !== "undefined") definirModoBot(chatId, "soap", casoClinico);
+    if (typeof processarEntradaSoap === "function") {
+      return processarEntradaSoap(chatId, casoClinico);
+    }
     return processarEEntregarIA(chatId, gerarSOAPComIA, casoClinico, "soap");
   }
 
@@ -3964,29 +3998,31 @@ function processarMensagemTexto(message) {
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
     if (!dadosPrescricao) {
-      if (typeof enviarTelaAmbRemume === "function") {
-        return enviarTelaAmbRemume(chatId);
+      var ctxAtivo = (typeof obterContextoClinicoBot === "function") ? obterContextoClinicoBot(chatId) : "";
+      var planoAtivo = (typeof extrairPlanoDeTextoSoap === "function") ? extrairPlanoDeTextoSoap(ctxAtivo) : null;
+      var botoesRx = [];
+      if (planoAtivo && planoAtivo.trim().length >= 5) {
+        botoesRx.push([{ text: "💊 Extrair Receita do SOAP Ativo", callback_data: "ux:soap:extrair_rx:" }]);
       }
+      botoesRx.push([
+        { text: "💊 Receita HAS", callback_data: "ux:amb:remume:has" },
+        { text: "🩸 Receita DM2", callback_data: "ux:amb:remume:dm" }
+      ]);
+      botoesRx.push([
+        { text: "🩹 Dor & Sintomáticos", callback_data: "ux:amb:remume:dor" },
+        { text: "🫁 Asma / DPOC", callback_data: "ux:amb:remume:asma" }
+      ]);
+      botoesRx.push([
+        { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]);
+
       return enviarMensagemComTecladoParaChat(chatId,
         "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME SUS)*\n\n" +
+        (planoAtivo ? "💡 *Caso SOAP ativo detectado:* Toque em [💊 Extrair Receita do SOAP Ativo] ou selecione um kit abaixo:\n\n" : "") +
         "Envie o diagnóstico ou selecione um kit de prescrição rápida abaixo:\n" +
         "💡 *Exemplo:* `/rx amigdalite 16kg, alergia a penicilina` ou `/rx losartana 50mg, hidroclorotiazida 25mg`",
-        {
-          inline_keyboard: [
-            [
-              { text: "💊 Receita HAS", callback_data: "ux:amb:remume:has" },
-              { text: "🩸 Receita DM2", callback_data: "ux:amb:remume:dm" }
-            ],
-            [
-              { text: "🩹 Dor & Sintomáticos", callback_data: "ux:amb:remume:dor" },
-              { text: "🫁 Asma / DPOC", callback_data: "ux:amb:remume:asma" }
-            ],
-            [
-              { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
-              { text: "🏠 Início", callback_data: "ux:hub:inicio" }
-            ]
-          ]
-        }
+        { inline_keyboard: botoesRx }
       );
     }
     return processarEEntregarIA(chatId, gerarPrescricaoComIA, dadosPrescricao, "rx");

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 07:03:35
- * Checksum SHA256: 99d8dbec403b33da
+ * Gerado automaticamente via build_master.py em: 2026-10-11 07:28:58
+ * Checksum SHA256: 6e8d3b37441a630b
  * ==============================================================================
  */
 
@@ -29735,6 +29735,118 @@ var SoapAmbulatorialService = (function() {
     ].join('\n');
   }
 
+  // 11. FORMATAÇÃO CANÔNICA DE RASCUNHO SOAP PARA O TELEGRAM (FASE 1 vs FASE 2)
+  function formatarRascunhoSoapTelegram(dados, opcoes) {
+    opcoes = opcoes || {};
+    dados = dados || {};
+    var ehFechado = !!(opcoes.fecharPlano || (dados && (dados.avaliacao || dados.plano)));
+
+    if (typeof dados === 'string') {
+      var textoPuro = dados.trim();
+      if (!textoPuro) return 'Nenhum dado clínico informado para o SOAP.';
+      if (/^🩺\s*\*SÍNTESE SOAP/i.test(textoPuro)) {
+        return textoPuro;
+      }
+      if (ehFechado) {
+        dados = { queixaPrincipal: textoPuro, hda: textoPuro };
+      } else {
+        return [
+          '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*',
+          '👤 *S - Subjetivo (Anamnese Estruturada)*\n' + textoPuro,
+          '🔍 *O - Objetivo (Exame Físico)*\nExame físico pendente de avaliação beira-leito. Aferir sinais vitais e exame direcionado.',
+          '❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n• Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.',
+          '🎯 *Cobrança Ativa do Exame Físico Dirigido*\n• Aferir sinais vitais completos e exame direcionado ao foco da queixa.'
+        ].join('\n\n');
+      }
+    }
+
+    if (ehFechado) {
+      var estruturado = (typeof estruturarSoapAmbulatorial === 'function' && !dados.textoProntuario && !dados.avaliacao && !dados.plano)
+        ? estruturarSoapAmbulatorial(dados)
+        : dados;
+
+      var sText = dados.subjetivo || (estruturado && estruturado.subjetivo) || dados.hda || 'Anamnese realizada.';
+      var oText = dados.objetivo || (estruturado && estruturado.objetivo) || dados.exameFisicoTexto || 'Exame físico realizado.';
+      var aText = dados.avaliacao || (estruturado && estruturado.avaliacao) || 'Avaliação clínica a definir.';
+      var pText = dados.plano || (estruturado && estruturado.plano) || 'Conduta e orientações a definir.';
+      if (Array.isArray(aText)) aText = aText.join('\n');
+      if (Array.isArray(pText)) pText = pText.join('\n');
+
+      var linhasFase2 = [
+        '🩺 *SÍNTESE SOAP · REGISTRO CONSOLIDADO*',
+        '👤 *S - Subjetivo*\n' + sText,
+        '🔍 *O - Objetivo*\n' + oText,
+        '🧠 *A - Avaliação*\n' + aText,
+        '📋 *P - Plano*\n' + pText
+      ];
+
+      var pends = dados.pendencias || dados.pendencias_opcionais;
+      if (Array.isArray(pends) && pends.length) {
+        linhasFase2.push('⚠️ *Dados adicionais que enriqueceriam o caso (Dados pendentes — conferir antes de concluir):*\n' + pends.map(function(item) { return '• ' + item; }).join('\n'));
+      }
+
+      return linhasFase2.join('\n\n');
+    } else {
+      var sRasc = dados.subjetivo || dados.hda || dados.queixaPrincipal || 'Anamnese em andamento.';
+      var oRasc = dados.objetivo || dados.exameFisicoTexto || 'Exame físico em estruturação; conferir sinais vitais e achados.';
+      var pergs = dados.perguntas_anamnese || dados.perguntas;
+      var dirigs = dados.exame_dirigido || dados.exameDirigido;
+
+      var linhasFase1 = [
+        '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*',
+        '👤 *S - Subjetivo (Anamnese Estruturada)*\n' + sRasc,
+        '🔍 *O - Objetivo (Exame Físico)*\n' + oRasc
+      ];
+
+      if (Array.isArray(pergs) && pergs.length) {
+        linhasFase1.push('❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n' + pergs.map(function(item) { return '• ' + item; }).join('\n'));
+      } else {
+        linhasFase1.push('❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n• Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.');
+      }
+
+      if (Array.isArray(dirigs) && dirigs.length) {
+        linhasFase1.push('🎯 *Cobrança Ativa do Exame Físico Dirigido*\n' + dirigs.map(function(item) { return '• ' + item; }).join('\n'));
+      } else {
+        linhasFase1.push('🎯 *Cobrança Ativa do Exame Físico Dirigido*\n• Aferir sinais vitais completos e exame direcionado ao foco da queixa.');
+      }
+
+      return linhasFase1.join('\n\n');
+    }
+  }
+
+  // 12. PROCESSAMENTO DETERMINÍSTICO E RESILIENTE DE ENTRADA SOAP
+  function processarEntradaSoap(chatId, textoEntrada, opcoes) {
+    opcoes = opcoes || {};
+    var caso = String(textoEntrada || '').trim();
+    if (!caso) {
+      if (typeof iniciarModoBot === 'function') {
+        return iniciarModoBot(chatId, 'soap', true);
+      }
+      return false;
+    }
+    var cache = (typeof CacheService !== 'undefined' && CacheService.getScriptCache)
+      ? CacheService.getScriptCache()
+      : (typeof uxCache === 'function' ? uxCache() : null);
+    if (cache && typeof safePutCache === 'function') {
+      safePutCache(cache, 'ctx_' + chatId, caso, 900);
+      safePutCache(cache, 'pending_soap_' + chatId, caso, 900);
+    }
+    if (typeof definirModoBot === 'function') {
+      definirModoBot(chatId, 'soap', caso);
+    }
+    var fechar = !!(opcoes.fecharPlano || /fechar\s+plano|gerar\s+plano|conduta\s+completa|prescri[çc][ãa]o/i.test(caso));
+    if (typeof processarEEntregarIA === 'function' && typeof gerarSOAPComIA === 'function') {
+      return processarEEntregarIA(chatId, function(c) {
+        return gerarSOAPComIA(c, { fecharPlano: fechar });
+      }, caso, 'soap');
+    }
+    var rascunho = formatarRascunhoSoapTelegram(caso, { fecharPlano: fechar });
+    if (typeof enviarMensagemParaChat === 'function') {
+      return enviarMensagemParaChat(chatId, rascunho);
+    }
+    return rascunho;
+  }
+
   return {
     VALORES_REFERENCIA: VALORES_REFERENCIA,
     MODELOS_EXAME_FISICO: MODELOS_EXAME_FISICO,
@@ -29746,12 +29858,22 @@ var SoapAmbulatorialService = (function() {
     exportarReceitaTexto: exportarReceitaTexto,
     exportarAtestadoTexto: exportarAtestadoTexto,
     exportarEncaminhamentoTexto: exportarEncaminhamentoTexto,
-    obterModeloExameFisicoCompleto: obterModeloExameFisicoCompleto
+    obterModeloExameFisicoCompleto: obterModeloExameFisicoCompleto,
+    formatarRascunhoSoapTelegram: formatarRascunhoSoapTelegram,
+    processarEntradaSoap: processarEntradaSoap
   };
 })();
 
 function obterModeloExameFisicoCompleto(contextoPrevio) {
   return SoapAmbulatorialService.obterModeloExameFisicoCompleto(contextoPrevio);
+}
+
+function formatarRascunhoSoapTelegram(dados, opcoes) {
+  return SoapAmbulatorialService.formatarRascunhoSoapTelegram(dados, opcoes);
+}
+
+function processarEntradaSoap(chatId, textoEntrada, opcoes) {
+  return SoapAmbulatorialService.processarEntradaSoap(chatId, textoEntrada, opcoes);
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -41266,7 +41388,12 @@ function processarMensagemTexto(message) {
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
       var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/toxo":"toxo","/toxoplasmose":"toxo","/avidez":"toxo","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/dip":"dip","/pelvica":"dip","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehas":"crisehipertensiva","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito","/leitos":"enfermaria","/censo":"enfermaria"};
-      if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
+      if (mapaModos[comando]) {
+        var dadosCmd = texto.replace(/^\/\w+\s*/, "").trim();
+        if (dadosCmd.length > 0) {
+          definirModoBot(chatId, mapaModos[comando], dadosCmd);
+        }
+      }
     }
   } else if (texto.charAt(0) === "/") {
     contextoCache.remove(contextoKey);
@@ -41519,9 +41646,38 @@ function processarMensagemTexto(message) {
 
   if (comando === "/soap") {
     var casoClinico = texto.replace(/^\/soap\s*/i, "").trim();
-    if (!casoClinico) return enviarMensagemParaChat(chatId, "🩺 Envie os dados. Ex: `/soap Mulher 68a epigastralgia...`");
+    if (!casoClinico) {
+      if (typeof iniciarModoBot === "function") {
+        return iniciarModoBot(chatId, "soap", true);
+      }
+      return enviarMensagemComTecladoParaChat(chatId,
+        "🩺 *MODO SOAP · ANAMNESE & EXAME CLÍNICO*\n\n" +
+        "Envie o caso clínico narrado ou em tópicos para estruturação em prontuário PEP.\n\n" +
+        "💡 *Exemplo:* `/soap Mulher 68a, dor epigástrica em queimação há 3 semanas, sem vômitos, PA 130/80`\n\n" +
+        "Toque em um caso rápido abaixo para iniciar em 1 toque:",
+        {
+          inline_keyboard: [
+            [
+              { text: "🩺 Exemplo HAS", callback_data: "ux:amb:soap:has" },
+              { text: "🩸 Exemplo DM2", callback_data: "ux:amb:soap:dm2" }
+            ],
+            [
+              { text: "🫁 Exemplo IVAS", callback_data: "ux:amb:soap:ivas" },
+              { text: "🦴 Exemplo Lombalgia", callback_data: "ux:amb:soap:lombalgia" }
+            ],
+            [
+              { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+              { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+            ]
+          ]
+        }
+      );
+    }
     safePutCache(contextoCache, contextoKey, casoClinico, 900);
     if (typeof definirModoBot !== "undefined") definirModoBot(chatId, "soap", casoClinico);
+    if (typeof processarEntradaSoap === "function") {
+      return processarEntradaSoap(chatId, casoClinico);
+    }
     return processarEEntregarIA(chatId, gerarSOAPComIA, casoClinico, "soap");
   }
 
@@ -44524,29 +44680,31 @@ function processarMensagemTexto(message) {
   if (comando === "/rx" || comando === "/receita") {
     var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
     if (!dadosPrescricao) {
-      if (typeof enviarTelaAmbRemume === "function") {
-        return enviarTelaAmbRemume(chatId);
+      var ctxAtivo = (typeof obterContextoClinicoBot === "function") ? obterContextoClinicoBot(chatId) : "";
+      var planoAtivo = (typeof extrairPlanoDeTextoSoap === "function") ? extrairPlanoDeTextoSoap(ctxAtivo) : null;
+      var botoesRx = [];
+      if (planoAtivo && planoAtivo.trim().length >= 5) {
+        botoesRx.push([{ text: "💊 Extrair Receita do SOAP Ativo", callback_data: "ux:soap:extrair_rx:" }]);
       }
+      botoesRx.push([
+        { text: "💊 Receita HAS", callback_data: "ux:amb:remume:has" },
+        { text: "🩸 Receita DM2", callback_data: "ux:amb:remume:dm" }
+      ]);
+      botoesRx.push([
+        { text: "🩹 Dor & Sintomáticos", callback_data: "ux:amb:remume:dor" },
+        { text: "🫁 Asma / DPOC", callback_data: "ux:amb:remume:asma" }
+      ]);
+      botoesRx.push([
+        { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]);
+
       return enviarMensagemComTecladoParaChat(chatId,
         "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME SUS)*\n\n" +
+        (planoAtivo ? "💡 *Caso SOAP ativo detectado:* Toque em [💊 Extrair Receita do SOAP Ativo] ou selecione um kit abaixo:\n\n" : "") +
         "Envie o diagnóstico ou selecione um kit de prescrição rápida abaixo:\n" +
         "💡 *Exemplo:* `/rx amigdalite 16kg, alergia a penicilina` ou `/rx losartana 50mg, hidroclorotiazida 25mg`",
-        {
-          inline_keyboard: [
-            [
-              { text: "💊 Receita HAS", callback_data: "ux:amb:remume:has" },
-              { text: "🩸 Receita DM2", callback_data: "ux:amb:remume:dm" }
-            ],
-            [
-              { text: "🩹 Dor & Sintomáticos", callback_data: "ux:amb:remume:dor" },
-              { text: "🫁 Asma / DPOC", callback_data: "ux:amb:remume:asma" }
-            ],
-            [
-              { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
-              { text: "🏠 Início", callback_data: "ux:hub:inicio" }
-            ]
-          ]
-        }
+        { inline_keyboard: botoesRx }
       );
     }
     return processarEEntregarIA(chatId, gerarPrescricaoComIA, dadosPrescricao, "rx");
@@ -46257,10 +46415,11 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
 
     // Destaque absoluto: Copiar para Prontuário em linha exclusiva de largura total
     var btnCopiar;
+    var textoCopiarBtn = (tipoCache === "soap") ? "📋 Copiar SOAP para PEP" : "📋 Copiar para Prontuário";
     if (limpo.length >= 1 && limpo.length <= 256) {
-      btnCopiar = { "text": "📋 Copiar para Prontuário", "copy_text": { "text": limpo } };
+      btnCopiar = { "text": textoCopiarBtn, "copy_text": { "text": limpo } };
     } else {
-      btnCopiar = { "text": "📋 Copiar para Prontuário", "callback_data": "ux:copiar:" + cacheKey };
+      btnCopiar = { "text": textoCopiarBtn, "callback_data": "ux:copiar:" + cacheKey };
     }
     var linhaPrimaria = [btnCopiar];
 
@@ -46308,6 +46467,10 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
           { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
         ]);
       }
+      botoes.push([
+        { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
+        { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
+      ]);
     } else {
       botoes.push(linhaPrimaria);
       if ((tipoCache === "rx" || tipoCache === "rxh" || tipoCache === "conduta") && !ehErro) {
@@ -46331,6 +46494,12 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
         linhaNavFinal = [{ "text": "🔙 Enfermaria", "callback_data": "ux:hub:enf" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
       } else if (tipoCache === "conduta") {
         linhaNavFinal = [{ "text": "🔙 Sala Vermelha", "callback_data": "ux:sala" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+      } else if (tipoCache === "rx") {
+        linhaNavFinal = [
+          { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
+          { "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" },
+          { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
+        ];
       } else {
         linhaNavFinal = [{ "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
       }
@@ -50863,7 +51032,7 @@ var ReceitaPdfService = (function() {
     var itemAtual = null;
 
     var regexVia = /\[?(USO\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/]+)\]?/i;
-    var regexIgnorar = /^(📋|⚖️|⚠️|💡|🔬|•\s*memória|•\s*indicação|•\s*dados|•\s*alergia|•\s*estoque|indicação|dados do paciente|peso:|atenção|raciocínio)/i;
+    var regexIgnorar = /^(📋|⚖️|⚠️|💡|🔬|•\s*memória|•\s*indicação|•\s*dados|•\s*alergia|•\s*estoque|indicação|dados do paciente|peso:|atenção|raciocínio|prescri[çc][ãa]o\s+indicada)/i;
 
     for (var j = 0; j < linhas.length; j++) {
       var l = linhas[j].trim();
@@ -51967,9 +52136,14 @@ function iniciarModoBot(chat, mode, novo, messageId) {
     return uxMostrarDecisaoCaso(chat, mode, messageId);
   }
   definirModoBot(chat, mode, '', true);
-  var orientacao = mode === 'gaso'
-    ? 'Envie pH, pCO2 e HCO3 (ex: `7.20 23 10` ou `pH 7.20, pCO2 23, HCO3 10, Na 140, Cl 105`) ou toque em um caso predefinido abaixo:'
-    : 'Grave um áudio narrando o caso ou envie os dados por texto.';
+  var orientacao;
+  if (mode === 'gaso') {
+    orientacao = 'Envie pH, pCO2 e HCO3 (ex: `7.20 23 10` ou `pH 7.20, pCO2 23, HCO3 10, Na 140, Cl 105`) ou toque em um caso predefinido abaixo:';
+  } else if (mode === 'soap') {
+    orientacao = 'Grave um áudio narrando o caso ou envie os dados por texto (queixa, história, sinais vitais e exame físico).\n\n💡 Ou toque em um caso predefinido abaixo para praticar:';
+  } else {
+    orientacao = 'Grave um áudio narrando o caso ou envie os dados por texto.';
+  }
 
   var botoesModo;
   if (mode === 'gaso' && typeof GasometriaAcidoBaseService !== 'undefined' && typeof GasometriaAcidoBaseService.obterTecladoInlineGasometria === 'function') {
@@ -51977,8 +52151,8 @@ function iniciarModoBot(chat, mode, novo, messageId) {
   } else if (mode === 'soap') {
     botoesModo = botoesBot([
       [['🩺 Exemplo HAS', 'ux:amb:soap:has'], ['🩸 Exemplo DM2', 'ux:amb:soap:dm2']],
-      [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']],
-      [['Encerrar', 'ux:cancelar']]
+      [['🫁 Exemplo IVAS', 'ux:amb:soap:ivas'], ['🦴 Lombalgia', 'ux:amb:soap:lombalgia']],
+      [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
     ]);
   } else {
     botoesModo = botoesBot([[['Encerrar', 'ux:cancelar']]]);
@@ -52711,7 +52885,7 @@ function tratarCallbackAmbSoap(chat, valor, messageId) {
   safePutCache(cache, ckSoap, resSoap.textoProntuario, 21600);
 
   var botoes = botoesBot([
-    [['📋 Copiar Prontuário SOAP', 'ux:copiar:' + ckSoap]],
+    [['📋 Copiar SOAP para PEP', 'ux:copiar:' + ckSoap]],
     [['🩺 Outro Caso (HAS)', 'ux:amb:soap:has'], ['🩸 Caso DM2', 'ux:amb:soap:dm2']],
     [['🔙 SOAP Ambulatorial', 'ux:amb:soap'], ['🔙 Ambulatório', 'ux:hub:amb']],
     [['🏠 Início', 'ux:hub:inicio']]
@@ -55147,11 +55321,13 @@ function tratarEntradaUX(message) {
 
   if (text.charAt(0) === '/') {
     // Outros comandos suspendem a captura livre sem apagar os dados do atendimento.
-    if (!/^\/(?:soap|rx|receita|gaso|voz|sabatina|calc|plantao|sbar|round|pitch|interacao|conduta|sos)(?:\s|$)/i.test(text)) {
+    var ehCmdPreservado = /^\/(?:soap|rx|receita|gaso|voz|sabatina|calc|plantao|sbar|round|pitch|interacao|conduta|sos)(?:\s|$)/i.test(text);
+    if (!ehCmdPreservado) {
       var emCurso = modoBot(chat);
       if (emCurso && emCurso.mode) salvarModoBot(chat, {caseId: emCurso.caseId, mode: '', data: emCurso.data});
+      cache.remove('modo_' + chat);
     }
-    ['modo_' + chat, 'dvaw_' + chat, 'leito_' + chat, 'efconfirm_' + chat].forEach(function (k) {
+    ['dvaw_' + chat, 'leito_' + chat, 'efconfirm_' + chat].forEach(function (k) {
       cache.remove(k);
     });
     return false;
@@ -55212,6 +55388,9 @@ function tratarEntradaUX(message) {
   }
 
   if (state && UX_MODOS_TEXTO.indexOf(state.mode) !== -1) {
+    if (state.mode === 'soap') {
+      return processarEntradaSoap(chat, text);
+    }
     var ehNovaCalc = state.mode === 'calc' && (
       (typeof ehCalculadoraDeterministica === 'function' && ehCalculadoraDeterministica(text)) ||
       (typeof ehCalculadoraReconhecida === 'function' && ehCalculadoraReconhecida(text)) ||
@@ -55231,6 +55410,72 @@ function tratarEntradaUX(message) {
   return false;
 }
 
+/* ========== Modo SOAP & Prescrição Ambulatorial Ágil ========== */
+
+/**
+ * Processamento unificado de entrada do modo SOAP (Fase 1 e Fase 2).
+ * Preserva o contexto clínico sem perda de anamnese/exame físico e consolida sob demanda.
+ */
+function processarEntradaSoap(chatId, textoEntrada, opcoes) {
+  opcoes = opcoes || {};
+  var chat = Number(chatId);
+  var texto = String(textoEntrada || '').trim();
+  var cache = (typeof uxCache === 'function') ? uxCache() : ((typeof CacheService !== 'undefined' && CacheService.getScriptCache) ? CacheService.getScriptCache() : null);
+
+  var estadoAtual = (typeof modoBot === 'function') ? modoBot(chat) : null;
+  var legSoap = cache ? cache.get('ctx_' + chat) : null;
+  var dadosPrevios = (estadoAtual && estadoAtual.data) ? estadoAtual.data : String(legSoap || '');
+
+  var ehNovo = !!(opcoes.novo || !dadosPrevios.trim());
+  var casoAcumulado = '';
+
+  if (ehNovo) {
+    casoAcumulado = texto;
+  } else if (texto) {
+    if (dadosPrevios.indexOf(texto) === -1) {
+      casoAcumulado = dadosPrevios + '\n\n' + texto;
+    } else {
+      casoAcumulado = dadosPrevios;
+    }
+  } else {
+    casoAcumulado = dadosPrevios;
+  }
+
+  if (!casoAcumulado.trim()) {
+    if (typeof iniciarModoBot === 'function') {
+      return iniciarModoBot(chat, 'soap', true, opcoes.messageId);
+    }
+    return enviarMensagemParaChat(chat, '🩺 Envie os dados do caso clínico para estruturação no SOAP.');
+  }
+
+  if (casoAcumulado.length > UX_MAX_CASO_CHARS) {
+    enviarMensagemParaChat(chat, 'O caso ultrapassou ' + UX_MAX_CASO_CHARS + ' caracteres. Nenhum dado foi cortado. Use /novo para outro caso.');
+  }
+
+  if (typeof definirModoBot === 'function') {
+    definirModoBot(chat, 'soap', casoAcumulado);
+  }
+  if (cache) {
+    safePutCache(cache, 'ctx_' + chat, casoAcumulado, UX_TTL_SEG);
+  }
+
+  var fecharPlano = !!(opcoes.fecharPlano ||
+    (typeof verificarPedidoExplicitoPlano === 'function' && verificarPedidoExplicitoPlano(casoAcumulado)) ||
+    /fechar\s+plano|gerar\s+plano|avalia[çc][ãa]o\s+e\s+plano|conduta\s+definitiva/i.test(texto));
+
+  var fnGeradora = function(d) {
+    if (typeof gerarSOAPComIA === 'function') {
+      return gerarSOAPComIA(d, { fecharPlano: fecharPlano, ambulatorialAgil: !!opcoes.ambulatorialAgil });
+    }
+    if (typeof formatarRascunhoSoapTelegram === 'function') {
+      return formatarRascunhoSoapTelegram(d, { fecharPlano: fecharPlano });
+    }
+    return String(d);
+  };
+
+  return processarEEntregarIA(chat, fnGeradora, casoAcumulado, 'soap', opcoes.messageId);
+}
+
 /* ========== Extração de Receita do SOAP ========== */
 
 function extrairPlanoDeTextoSoap(textoSoap) {
@@ -55238,7 +55483,7 @@ function extrairPlanoDeTextoSoap(textoSoap) {
   var texto = textoSoap.trim();
 
   // 1. Procurar cabeçalho da seção de Plano / Conduta / Prescrição
-  var regexPlano = /(?:(?:📋\s*)?\[?\*?P\s*[-–—:]\s*(?:Plano|Conduta|Prescri[çc][ãa]o)\*?\]?[^\n]*|\b(?:4\.\s*)?PLANO(?:\s+TERAP[ÊE]UTICO)?\s*[:\n]|\bPRESCRI[ÇC][ÃA]O(?:\s+FARMACOL[ÓO]GICA)?\s*[:\n])([\s\S]+)/i;
+  var regexPlano = /(?:(?:📋\s*)?\[?\*?P\s*[-–—:]\s*(?:Plano|Conduta|Prescri[çc][ãa]o)\*?\]?\s*(?::|[-–—])?\s*|\b(?:4\.\s*)?PLANO(?:\s+TERAP[ÊE]UTICO)?\s*[:\n]\s*|\bPRESCRI[ÇC][ÃA]O(?:\s+FARMACOL[ÓO]GICA)?\s*[:\n]\s*)([\s\S]+)/i;
   var match = texto.match(regexPlano);
   var secaoPlano = match ? match[1] : null;
 
@@ -55528,8 +55773,21 @@ function tratarCallbackUX(cb) {
         var estadoAtual = modoBot(chat), legSoap = cache.get('ctx_' + chat);
         var dadosSoap = (estadoAtual && estadoAtual.data) ? estadoAtual.data : String(legSoap || '');
         if (!dadosSoap || dadosSoap.trim().length < 5) {
-          enviarMensagemParaChat(chat, '🩺 Nenhum caso ativo para gerar Avaliação e Plano. Envie os dados do caso primeiro.');
-          return true;
+          if (typeof PersistenciaBot !== "undefined" && typeof PersistenciaBot.ler === "function") {
+            try {
+              var rawV = PersistenciaBot.ler('soapview_' + chat);
+              if (rawV) {
+                var objV = typeof rawV === 'string' ? JSON.parse(rawV) : rawV;
+                if (objV && objV.texto) dadosSoap = objV.texto;
+              }
+            } catch (eV) {}
+          }
+        }
+        if (!dadosSoap || dadosSoap.trim().length < 5) {
+          return enviarTelaBot(chat, '🩺 *Nenhum caso ativo para gerar Avaliação e Plano.*\n\nEnvie os dados do caso clínico por áudio ou texto ou escolha um exemplo abaixo:', botoesBot([
+            [['🩺 Exemplo HAS', 'ux:amb:soap:has'], ['🩸 Exemplo DM2', 'ux:amb:soap:dm2']],
+            [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
+          ]), msgId);
         }
         enviarMensagemParaChat(chat, '📋 *Consolidando anamnese, exame físico e gerando Avaliação e Plano...*');
         return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: true }); }, dadosSoap, "soap", msgId);
@@ -55538,8 +55796,10 @@ function tratarCallbackUX(cb) {
         var dadosNorm = (estNorm && estNorm.data) ? estNorm.data : String(cache.get('ctx_' + chat) || '');
         if (v === 'ef_normal') {
           if (!dadosNorm.trim()) {
-            enviarMensagemParaChat(chat, 'Nenhum caso ativo. Envie os dados antes de registrar o exame físico.');
-            return true;
+            return enviarTelaBot(chat, '🩺 *Nenhum caso clínico ativo.*\n\nEnvie os dados do caso antes de registrar o exame físico:', botoesBot([
+              [['📝 Iniciar SOAP', 'ux:iniciar:soap'], ['🔙 Ambulatório', 'ux:hub:amb']],
+              [['🏠 Início', 'ux:hub:inicio']]
+            ]), msgId);
           }
           var idConfirmacao = Utilities.getUuid().replace(/-/g, '');
           var confirmacao = { id: idConfirmacao, dados: dadosNorm, estado: JSON.stringify(estNorm), expires: Date.now() + 300000 };
@@ -55555,16 +55815,24 @@ function tratarCallbackUX(cb) {
         var confirmEf = pendenteEf ? JSON.parse(pendenteEf) : null;
         var idEf = v.split(':')[1];
         if (!confirmEf || confirmEf.id !== idEf) {
-          enviarMensagemParaChat(chat, 'Confirmação indisponível. Reabra a ação no SOAP atual.');
-          return true;
+          return enviarTelaBot(chat, '⚠️ Confirmação indisponível ou expirada. Reabra a ação no caso SOAP atual:', botoesBot([
+            [['📋 Fechar Plano', 'ux:soap:plano'], ['🔙 Ambulatório', 'ux:hub:amb']],
+            [['🏠 Início', 'ux:hub:inicio']]
+          ]), msgId);
         }
         cache.remove('efconfirm_' + chat);
+        var revCanc = (estNorm && estNorm.revision) ? (':' + estNorm.revision) : '';
         if (v.indexOf('ef_cancelar:') === 0) {
-          return enviarTelaBot(chat, 'Registro cancelado. O caso foi mantido.', botoesBot([]), msgId);
+          return enviarTelaBot(chat, 'Registro do exame físico normal cancelado. O caso clínico foi mantido.', botoesBot([
+            [['📋 Fechar Plano', 'ux:soap:plano' + revCanc], ['🩺 EF Normal', 'ux:soap:ef_normal' + revCanc]],
+            [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
+          ]), msgId);
         }
         if (confirmEf.expires < Date.now() || confirmEf.dados !== dadosNorm || confirmEf.estado !== JSON.stringify(estNorm)) {
-          enviarMensagemParaChat(chat, 'O caso mudou ou a confirmação expirou. Confira o SOAP atual antes de registrar o exame.');
-          return true;
+          return enviarTelaBot(chat, '⚠️ O caso mudou ou a confirmação expirou. Confira o SOAP atual antes de registrar o exame:', botoesBot([
+            [['📋 Fechar Plano', 'ux:soap:plano' + revCanc], ['🔙 Ambulatório', 'ux:hub:amb']],
+            [['🏠 Início', 'ux:hub:inicio']]
+          ]), msgId);
         }
         var modeloEfTexto = (typeof obterModeloExameFisicoCompleto === 'function')
           ? obterModeloExameFisicoCompleto(dadosNorm)
@@ -55574,8 +55842,13 @@ function tratarCallbackUX(cb) {
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);
         return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, dadosNorm, "soap", msgId);
       } else if (v === 'atualizar') {
-        enviarMensagemParaChat(chat, '🩺 *Modo SOAP Ativo*\nEnvie novos dados ou atualizações (por áudio ou texto) ou clique em [📋 Gerar Avaliação & Plano].');
-        return true;
+        var estAtu = modoBot(chat);
+        var revAtu = (estAtu && estAtu.revision) ? (':' + estAtu.revision) : '';
+        var msgAtu = '🩺 *Modo SOAP Ativo*\n\nEnvie novos dados ou atualizações (por áudio ou texto) para complementar o atendimento, ou utilize as ações rápidas abaixo:';
+        return enviarTelaBot(chat, msgAtu, botoesBot([
+          [['📋 Fechar Plano', 'ux:soap:plano' + revAtu], ['🩺 EF Normal', 'ux:soap:ef_normal' + revAtu]],
+          [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
+        ]), msgId);
       } else if (v.indexOf('extrair_rx') === 0) {
         var ckRx = v.indexOf('extrair_rx:') === 0 ? v.replace(/^extrair_rx:/, '').trim() : '';
         return executarExtracaoReceitaSoap(chat, ckRx, msgId);
@@ -55879,6 +56152,8 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarMenuEmergCefaleia: enviarMenuEmergCefaleia,
     tratarEntradaUX: tratarEntradaUX,
     tratarCallbackUX: tratarCallbackUX,
+    processarEntradaSoap: typeof processarEntradaSoap === 'function' ? processarEntradaSoap : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.processarEntradaSoap ? SoapAmbulatorialService.processarEntradaSoap : null),
+    formatarRascunhoSoapTelegram: typeof formatarRascunhoSoapTelegram === 'function' ? formatarRascunhoSoapTelegram : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.formatarRascunhoSoapTelegram ? SoapAmbulatorialService.formatarRascunhoSoapTelegram : null),
     extrairPlanoDeTextoSoap: extrairPlanoDeTextoSoap,
     executarExtracaoReceitaSoap: executarExtracaoReceitaSoap
   };

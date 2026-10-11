@@ -63,7 +63,7 @@ var ReceitaPdfService = (function() {
     var itemAtual = null;
 
     var regexVia = /\[?(USO\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/]+)\]?/i;
-    var regexIgnorar = /^(📋|⚖️|⚠️|💡|🔬|•\s*memória|•\s*indicação|•\s*dados|•\s*alergia|•\s*estoque|indicação|dados do paciente|peso:|atenção|raciocínio)/i;
+    var regexIgnorar = /^(📋|⚖️|⚠️|💡|🔬|•\s*memória|•\s*indicação|•\s*dados|•\s*alergia|•\s*estoque|indicação|dados do paciente|peso:|atenção|raciocínio|prescri[çc][ãa]o\s+indicada)/i;
 
     for (var j = 0; j < linhas.length; j++) {
       var l = linhas[j].trim();

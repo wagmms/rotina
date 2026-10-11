@@ -245,9 +245,14 @@ function iniciarModoBot(chat, mode, novo, messageId) {
     return uxMostrarDecisaoCaso(chat, mode, messageId);
   }
   definirModoBot(chat, mode, '', true);
-  var orientacao = mode === 'gaso'
-    ? 'Envie pH, pCO2 e HCO3 (ex: `7.20 23 10` ou `pH 7.20, pCO2 23, HCO3 10, Na 140, Cl 105`) ou toque em um caso predefinido abaixo:'
-    : 'Grave um áudio narrando o caso ou envie os dados por texto.';
+  var orientacao;
+  if (mode === 'gaso') {
+    orientacao = 'Envie pH, pCO2 e HCO3 (ex: `7.20 23 10` ou `pH 7.20, pCO2 23, HCO3 10, Na 140, Cl 105`) ou toque em um caso predefinido abaixo:';
+  } else if (mode === 'soap') {
+    orientacao = 'Grave um áudio narrando o caso ou envie os dados por texto (queixa, história, sinais vitais e exame físico).\n\n💡 Ou toque em um caso predefinido abaixo para praticar:';
+  } else {
+    orientacao = 'Grave um áudio narrando o caso ou envie os dados por texto.';
+  }
 
   var botoesModo;
   if (mode === 'gaso' && typeof GasometriaAcidoBaseService !== 'undefined' && typeof GasometriaAcidoBaseService.obterTecladoInlineGasometria === 'function') {
@@ -255,8 +260,8 @@ function iniciarModoBot(chat, mode, novo, messageId) {
   } else if (mode === 'soap') {
     botoesModo = botoesBot([
       [['🩺 Exemplo HAS', 'ux:amb:soap:has'], ['🩸 Exemplo DM2', 'ux:amb:soap:dm2']],
-      [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']],
-      [['Encerrar', 'ux:cancelar']]
+      [['🫁 Exemplo IVAS', 'ux:amb:soap:ivas'], ['🦴 Lombalgia', 'ux:amb:soap:lombalgia']],
+      [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
     ]);
   } else {
     botoesModo = botoesBot([[['Encerrar', 'ux:cancelar']]]);
@@ -989,7 +994,7 @@ function tratarCallbackAmbSoap(chat, valor, messageId) {
   safePutCache(cache, ckSoap, resSoap.textoProntuario, 21600);
 
   var botoes = botoesBot([
-    [['📋 Copiar Prontuário SOAP', 'ux:copiar:' + ckSoap]],
+    [['📋 Copiar SOAP para PEP', 'ux:copiar:' + ckSoap]],
     [['🩺 Outro Caso (HAS)', 'ux:amb:soap:has'], ['🩸 Caso DM2', 'ux:amb:soap:dm2']],
     [['🔙 SOAP Ambulatorial', 'ux:amb:soap'], ['🔙 Ambulatório', 'ux:hub:amb']],
     [['🏠 Início', 'ux:hub:inicio']]
@@ -3425,11 +3430,13 @@ function tratarEntradaUX(message) {
 
   if (text.charAt(0) === '/') {
     // Outros comandos suspendem a captura livre sem apagar os dados do atendimento.
-    if (!/^\/(?:soap|rx|receita|gaso|voz|sabatina|calc|plantao|sbar|round|pitch|interacao|conduta|sos)(?:\s|$)/i.test(text)) {
+    var ehCmdPreservado = /^\/(?:soap|rx|receita|gaso|voz|sabatina|calc|plantao|sbar|round|pitch|interacao|conduta|sos)(?:\s|$)/i.test(text);
+    if (!ehCmdPreservado) {
       var emCurso = modoBot(chat);
       if (emCurso && emCurso.mode) salvarModoBot(chat, {caseId: emCurso.caseId, mode: '', data: emCurso.data});
+      cache.remove('modo_' + chat);
     }
-    ['modo_' + chat, 'dvaw_' + chat, 'leito_' + chat, 'efconfirm_' + chat].forEach(function (k) {
+    ['dvaw_' + chat, 'leito_' + chat, 'efconfirm_' + chat].forEach(function (k) {
       cache.remove(k);
     });
     return false;
@@ -3490,6 +3497,9 @@ function tratarEntradaUX(message) {
   }
 
   if (state && UX_MODOS_TEXTO.indexOf(state.mode) !== -1) {
+    if (state.mode === 'soap') {
+      return processarEntradaSoap(chat, text);
+    }
     var ehNovaCalc = state.mode === 'calc' && (
       (typeof ehCalculadoraDeterministica === 'function' && ehCalculadoraDeterministica(text)) ||
       (typeof ehCalculadoraReconhecida === 'function' && ehCalculadoraReconhecida(text)) ||
@@ -3509,6 +3519,72 @@ function tratarEntradaUX(message) {
   return false;
 }
 
+/* ========== Modo SOAP & Prescrição Ambulatorial Ágil ========== */
+
+/**
+ * Processamento unificado de entrada do modo SOAP (Fase 1 e Fase 2).
+ * Preserva o contexto clínico sem perda de anamnese/exame físico e consolida sob demanda.
+ */
+function processarEntradaSoap(chatId, textoEntrada, opcoes) {
+  opcoes = opcoes || {};
+  var chat = Number(chatId);
+  var texto = String(textoEntrada || '').trim();
+  var cache = (typeof uxCache === 'function') ? uxCache() : ((typeof CacheService !== 'undefined' && CacheService.getScriptCache) ? CacheService.getScriptCache() : null);
+
+  var estadoAtual = (typeof modoBot === 'function') ? modoBot(chat) : null;
+  var legSoap = cache ? cache.get('ctx_' + chat) : null;
+  var dadosPrevios = (estadoAtual && estadoAtual.data) ? estadoAtual.data : String(legSoap || '');
+
+  var ehNovo = !!(opcoes.novo || !dadosPrevios.trim());
+  var casoAcumulado = '';
+
+  if (ehNovo) {
+    casoAcumulado = texto;
+  } else if (texto) {
+    if (dadosPrevios.indexOf(texto) === -1) {
+      casoAcumulado = dadosPrevios + '\n\n' + texto;
+    } else {
+      casoAcumulado = dadosPrevios;
+    }
+  } else {
+    casoAcumulado = dadosPrevios;
+  }
+
+  if (!casoAcumulado.trim()) {
+    if (typeof iniciarModoBot === 'function') {
+      return iniciarModoBot(chat, 'soap', true, opcoes.messageId);
+    }
+    return enviarMensagemParaChat(chat, '🩺 Envie os dados do caso clínico para estruturação no SOAP.');
+  }
+
+  if (casoAcumulado.length > UX_MAX_CASO_CHARS) {
+    enviarMensagemParaChat(chat, 'O caso ultrapassou ' + UX_MAX_CASO_CHARS + ' caracteres. Nenhum dado foi cortado. Use /novo para outro caso.');
+  }
+
+  if (typeof definirModoBot === 'function') {
+    definirModoBot(chat, 'soap', casoAcumulado);
+  }
+  if (cache) {
+    safePutCache(cache, 'ctx_' + chat, casoAcumulado, UX_TTL_SEG);
+  }
+
+  var fecharPlano = !!(opcoes.fecharPlano ||
+    (typeof verificarPedidoExplicitoPlano === 'function' && verificarPedidoExplicitoPlano(casoAcumulado)) ||
+    /fechar\s+plano|gerar\s+plano|avalia[çc][ãa]o\s+e\s+plano|conduta\s+definitiva/i.test(texto));
+
+  var fnGeradora = function(d) {
+    if (typeof gerarSOAPComIA === 'function') {
+      return gerarSOAPComIA(d, { fecharPlano: fecharPlano, ambulatorialAgil: !!opcoes.ambulatorialAgil });
+    }
+    if (typeof formatarRascunhoSoapTelegram === 'function') {
+      return formatarRascunhoSoapTelegram(d, { fecharPlano: fecharPlano });
+    }
+    return String(d);
+  };
+
+  return processarEEntregarIA(chat, fnGeradora, casoAcumulado, 'soap', opcoes.messageId);
+}
+
 /* ========== Extração de Receita do SOAP ========== */
 
 function extrairPlanoDeTextoSoap(textoSoap) {
@@ -3516,7 +3592,7 @@ function extrairPlanoDeTextoSoap(textoSoap) {
   var texto = textoSoap.trim();
 
   // 1. Procurar cabeçalho da seção de Plano / Conduta / Prescrição
-  var regexPlano = /(?:(?:📋\s*)?\[?\*?P\s*[-–—:]\s*(?:Plano|Conduta|Prescri[çc][ãa]o)\*?\]?[^\n]*|\b(?:4\.\s*)?PLANO(?:\s+TERAP[ÊE]UTICO)?\s*[:\n]|\bPRESCRI[ÇC][ÃA]O(?:\s+FARMACOL[ÓO]GICA)?\s*[:\n])([\s\S]+)/i;
+  var regexPlano = /(?:(?:📋\s*)?\[?\*?P\s*[-–—:]\s*(?:Plano|Conduta|Prescri[çc][ãa]o)\*?\]?\s*(?::|[-–—])?\s*|\b(?:4\.\s*)?PLANO(?:\s+TERAP[ÊE]UTICO)?\s*[:\n]\s*|\bPRESCRI[ÇC][ÃA]O(?:\s+FARMACOL[ÓO]GICA)?\s*[:\n]\s*)([\s\S]+)/i;
   var match = texto.match(regexPlano);
   var secaoPlano = match ? match[1] : null;
 
@@ -3806,8 +3882,21 @@ function tratarCallbackUX(cb) {
         var estadoAtual = modoBot(chat), legSoap = cache.get('ctx_' + chat);
         var dadosSoap = (estadoAtual && estadoAtual.data) ? estadoAtual.data : String(legSoap || '');
         if (!dadosSoap || dadosSoap.trim().length < 5) {
-          enviarMensagemParaChat(chat, '🩺 Nenhum caso ativo para gerar Avaliação e Plano. Envie os dados do caso primeiro.');
-          return true;
+          if (typeof PersistenciaBot !== "undefined" && typeof PersistenciaBot.ler === "function") {
+            try {
+              var rawV = PersistenciaBot.ler('soapview_' + chat);
+              if (rawV) {
+                var objV = typeof rawV === 'string' ? JSON.parse(rawV) : rawV;
+                if (objV && objV.texto) dadosSoap = objV.texto;
+              }
+            } catch (eV) {}
+          }
+        }
+        if (!dadosSoap || dadosSoap.trim().length < 5) {
+          return enviarTelaBot(chat, '🩺 *Nenhum caso ativo para gerar Avaliação e Plano.*\n\nEnvie os dados do caso clínico por áudio ou texto ou escolha um exemplo abaixo:', botoesBot([
+            [['🩺 Exemplo HAS', 'ux:amb:soap:has'], ['🩸 Exemplo DM2', 'ux:amb:soap:dm2']],
+            [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
+          ]), msgId);
         }
         enviarMensagemParaChat(chat, '📋 *Consolidando anamnese, exame físico e gerando Avaliação e Plano...*');
         return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: true }); }, dadosSoap, "soap", msgId);
@@ -3816,8 +3905,10 @@ function tratarCallbackUX(cb) {
         var dadosNorm = (estNorm && estNorm.data) ? estNorm.data : String(cache.get('ctx_' + chat) || '');
         if (v === 'ef_normal') {
           if (!dadosNorm.trim()) {
-            enviarMensagemParaChat(chat, 'Nenhum caso ativo. Envie os dados antes de registrar o exame físico.');
-            return true;
+            return enviarTelaBot(chat, '🩺 *Nenhum caso clínico ativo.*\n\nEnvie os dados do caso antes de registrar o exame físico:', botoesBot([
+              [['📝 Iniciar SOAP', 'ux:iniciar:soap'], ['🔙 Ambulatório', 'ux:hub:amb']],
+              [['🏠 Início', 'ux:hub:inicio']]
+            ]), msgId);
           }
           var idConfirmacao = Utilities.getUuid().replace(/-/g, '');
           var confirmacao = { id: idConfirmacao, dados: dadosNorm, estado: JSON.stringify(estNorm), expires: Date.now() + 300000 };
@@ -3833,16 +3924,24 @@ function tratarCallbackUX(cb) {
         var confirmEf = pendenteEf ? JSON.parse(pendenteEf) : null;
         var idEf = v.split(':')[1];
         if (!confirmEf || confirmEf.id !== idEf) {
-          enviarMensagemParaChat(chat, 'Confirmação indisponível. Reabra a ação no SOAP atual.');
-          return true;
+          return enviarTelaBot(chat, '⚠️ Confirmação indisponível ou expirada. Reabra a ação no caso SOAP atual:', botoesBot([
+            [['📋 Fechar Plano', 'ux:soap:plano'], ['🔙 Ambulatório', 'ux:hub:amb']],
+            [['🏠 Início', 'ux:hub:inicio']]
+          ]), msgId);
         }
         cache.remove('efconfirm_' + chat);
+        var revCanc = (estNorm && estNorm.revision) ? (':' + estNorm.revision) : '';
         if (v.indexOf('ef_cancelar:') === 0) {
-          return enviarTelaBot(chat, 'Registro cancelado. O caso foi mantido.', botoesBot([]), msgId);
+          return enviarTelaBot(chat, 'Registro do exame físico normal cancelado. O caso clínico foi mantido.', botoesBot([
+            [['📋 Fechar Plano', 'ux:soap:plano' + revCanc], ['🩺 EF Normal', 'ux:soap:ef_normal' + revCanc]],
+            [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
+          ]), msgId);
         }
         if (confirmEf.expires < Date.now() || confirmEf.dados !== dadosNorm || confirmEf.estado !== JSON.stringify(estNorm)) {
-          enviarMensagemParaChat(chat, 'O caso mudou ou a confirmação expirou. Confira o SOAP atual antes de registrar o exame.');
-          return true;
+          return enviarTelaBot(chat, '⚠️ O caso mudou ou a confirmação expirou. Confira o SOAP atual antes de registrar o exame:', botoesBot([
+            [['📋 Fechar Plano', 'ux:soap:plano' + revCanc], ['🔙 Ambulatório', 'ux:hub:amb']],
+            [['🏠 Início', 'ux:hub:inicio']]
+          ]), msgId);
         }
         var modeloEfTexto = (typeof obterModeloExameFisicoCompleto === 'function')
           ? obterModeloExameFisicoCompleto(dadosNorm)
@@ -3852,8 +3951,13 @@ function tratarCallbackUX(cb) {
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);
         return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, dadosNorm, "soap", msgId);
       } else if (v === 'atualizar') {
-        enviarMensagemParaChat(chat, '🩺 *Modo SOAP Ativo*\nEnvie novos dados ou atualizações (por áudio ou texto) ou clique em [📋 Gerar Avaliação & Plano].');
-        return true;
+        var estAtu = modoBot(chat);
+        var revAtu = (estAtu && estAtu.revision) ? (':' + estAtu.revision) : '';
+        var msgAtu = '🩺 *Modo SOAP Ativo*\n\nEnvie novos dados ou atualizações (por áudio ou texto) para complementar o atendimento, ou utilize as ações rápidas abaixo:';
+        return enviarTelaBot(chat, msgAtu, botoesBot([
+          [['📋 Fechar Plano', 'ux:soap:plano' + revAtu], ['🩺 EF Normal', 'ux:soap:ef_normal' + revAtu]],
+          [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
+        ]), msgId);
       } else if (v.indexOf('extrair_rx') === 0) {
         var ckRx = v.indexOf('extrair_rx:') === 0 ? v.replace(/^extrair_rx:/, '').trim() : '';
         return executarExtracaoReceitaSoap(chat, ckRx, msgId);
@@ -4157,6 +4261,8 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarMenuEmergCefaleia: enviarMenuEmergCefaleia,
     tratarEntradaUX: tratarEntradaUX,
     tratarCallbackUX: tratarCallbackUX,
+    processarEntradaSoap: typeof processarEntradaSoap === 'function' ? processarEntradaSoap : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.processarEntradaSoap ? SoapAmbulatorialService.processarEntradaSoap : null),
+    formatarRascunhoSoapTelegram: typeof formatarRascunhoSoapTelegram === 'function' ? formatarRascunhoSoapTelegram : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.formatarRascunhoSoapTelegram ? SoapAmbulatorialService.formatarRascunhoSoapTelegram : null),
     extrairPlanoDeTextoSoap: extrairPlanoDeTextoSoap,
     executarExtracaoReceitaSoap: executarExtracaoReceitaSoap
   };

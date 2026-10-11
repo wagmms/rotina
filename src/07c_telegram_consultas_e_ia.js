@@ -288,10 +288,11 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
 
     // Destaque absoluto: Copiar para Prontuário em linha exclusiva de largura total
     var btnCopiar;
+    var textoCopiarBtn = (tipoCache === "soap") ? "📋 Copiar SOAP para PEP" : "📋 Copiar para Prontuário";
     if (limpo.length >= 1 && limpo.length <= 256) {
-      btnCopiar = { "text": "📋 Copiar para Prontuário", "copy_text": { "text": limpo } };
+      btnCopiar = { "text": textoCopiarBtn, "copy_text": { "text": limpo } };
     } else {
-      btnCopiar = { "text": "📋 Copiar para Prontuário", "callback_data": "ux:copiar:" + cacheKey };
+      btnCopiar = { "text": textoCopiarBtn, "callback_data": "ux:copiar:" + cacheKey };
     }
     var linhaPrimaria = [btnCopiar];
 
@@ -339,6 +340,10 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
           { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
         ]);
       }
+      botoes.push([
+        { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
+        { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
+      ]);
     } else {
       botoes.push(linhaPrimaria);
       if ((tipoCache === "rx" || tipoCache === "rxh" || tipoCache === "conduta") && !ehErro) {
@@ -362,6 +367,12 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
         linhaNavFinal = [{ "text": "🔙 Enfermaria", "callback_data": "ux:hub:enf" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
       } else if (tipoCache === "conduta") {
         linhaNavFinal = [{ "text": "🔙 Sala Vermelha", "callback_data": "ux:sala" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+      } else if (tipoCache === "rx") {
+        linhaNavFinal = [
+          { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
+          { "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" },
+          { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
+        ];
       } else {
         linhaNavFinal = [{ "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
       }

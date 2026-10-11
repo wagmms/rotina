@@ -876,6 +876,118 @@ var SoapAmbulatorialService = (function() {
     ].join('\n');
   }
 
+  // 11. FORMATAÇÃO CANÔNICA DE RASCUNHO SOAP PARA O TELEGRAM (FASE 1 vs FASE 2)
+  function formatarRascunhoSoapTelegram(dados, opcoes) {
+    opcoes = opcoes || {};
+    dados = dados || {};
+    var ehFechado = !!(opcoes.fecharPlano || (dados && (dados.avaliacao || dados.plano)));
+
+    if (typeof dados === 'string') {
+      var textoPuro = dados.trim();
+      if (!textoPuro) return 'Nenhum dado clínico informado para o SOAP.';
+      if (/^🩺\s*\*SÍNTESE SOAP/i.test(textoPuro)) {
+        return textoPuro;
+      }
+      if (ehFechado) {
+        dados = { queixaPrincipal: textoPuro, hda: textoPuro };
+      } else {
+        return [
+          '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*',
+          '👤 *S - Subjetivo (Anamnese Estruturada)*\n' + textoPuro,
+          '🔍 *O - Objetivo (Exame Físico)*\nExame físico pendente de avaliação beira-leito. Aferir sinais vitais e exame direcionado.',
+          '❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n• Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.',
+          '🎯 *Cobrança Ativa do Exame Físico Dirigido*\n• Aferir sinais vitais completos e exame direcionado ao foco da queixa.'
+        ].join('\n\n');
+      }
+    }
+
+    if (ehFechado) {
+      var estruturado = (typeof estruturarSoapAmbulatorial === 'function' && !dados.textoProntuario && !dados.avaliacao && !dados.plano)
+        ? estruturarSoapAmbulatorial(dados)
+        : dados;
+
+      var sText = dados.subjetivo || (estruturado && estruturado.subjetivo) || dados.hda || 'Anamnese realizada.';
+      var oText = dados.objetivo || (estruturado && estruturado.objetivo) || dados.exameFisicoTexto || 'Exame físico realizado.';
+      var aText = dados.avaliacao || (estruturado && estruturado.avaliacao) || 'Avaliação clínica a definir.';
+      var pText = dados.plano || (estruturado && estruturado.plano) || 'Conduta e orientações a definir.';
+      if (Array.isArray(aText)) aText = aText.join('\n');
+      if (Array.isArray(pText)) pText = pText.join('\n');
+
+      var linhasFase2 = [
+        '🩺 *SÍNTESE SOAP · REGISTRO CONSOLIDADO*',
+        '👤 *S - Subjetivo*\n' + sText,
+        '🔍 *O - Objetivo*\n' + oText,
+        '🧠 *A - Avaliação*\n' + aText,
+        '📋 *P - Plano*\n' + pText
+      ];
+
+      var pends = dados.pendencias || dados.pendencias_opcionais;
+      if (Array.isArray(pends) && pends.length) {
+        linhasFase2.push('⚠️ *Dados adicionais que enriqueceriam o caso (Dados pendentes — conferir antes de concluir):*\n' + pends.map(function(item) { return '• ' + item; }).join('\n'));
+      }
+
+      return linhasFase2.join('\n\n');
+    } else {
+      var sRasc = dados.subjetivo || dados.hda || dados.queixaPrincipal || 'Anamnese em andamento.';
+      var oRasc = dados.objetivo || dados.exameFisicoTexto || 'Exame físico em estruturação; conferir sinais vitais e achados.';
+      var pergs = dados.perguntas_anamnese || dados.perguntas;
+      var dirigs = dados.exame_dirigido || dados.exameDirigido;
+
+      var linhasFase1 = [
+        '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*',
+        '👤 *S - Subjetivo (Anamnese Estruturada)*\n' + sRasc,
+        '🔍 *O - Objetivo (Exame Físico)*\n' + oRasc
+      ];
+
+      if (Array.isArray(pergs) && pergs.length) {
+        linhasFase1.push('❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n' + pergs.map(function(item) { return '• ' + item; }).join('\n'));
+      } else {
+        linhasFase1.push('❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n• Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.');
+      }
+
+      if (Array.isArray(dirigs) && dirigs.length) {
+        linhasFase1.push('🎯 *Cobrança Ativa do Exame Físico Dirigido*\n' + dirigs.map(function(item) { return '• ' + item; }).join('\n'));
+      } else {
+        linhasFase1.push('🎯 *Cobrança Ativa do Exame Físico Dirigido*\n• Aferir sinais vitais completos e exame direcionado ao foco da queixa.');
+      }
+
+      return linhasFase1.join('\n\n');
+    }
+  }
+
+  // 12. PROCESSAMENTO DETERMINÍSTICO E RESILIENTE DE ENTRADA SOAP
+  function processarEntradaSoap(chatId, textoEntrada, opcoes) {
+    opcoes = opcoes || {};
+    var caso = String(textoEntrada || '').trim();
+    if (!caso) {
+      if (typeof iniciarModoBot === 'function') {
+        return iniciarModoBot(chatId, 'soap', true);
+      }
+      return false;
+    }
+    var cache = (typeof CacheService !== 'undefined' && CacheService.getScriptCache)
+      ? CacheService.getScriptCache()
+      : (typeof uxCache === 'function' ? uxCache() : null);
+    if (cache && typeof safePutCache === 'function') {
+      safePutCache(cache, 'ctx_' + chatId, caso, 900);
+      safePutCache(cache, 'pending_soap_' + chatId, caso, 900);
+    }
+    if (typeof definirModoBot === 'function') {
+      definirModoBot(chatId, 'soap', caso);
+    }
+    var fechar = !!(opcoes.fecharPlano || /fechar\s+plano|gerar\s+plano|conduta\s+completa|prescri[çc][ãa]o/i.test(caso));
+    if (typeof processarEEntregarIA === 'function' && typeof gerarSOAPComIA === 'function') {
+      return processarEEntregarIA(chatId, function(c) {
+        return gerarSOAPComIA(c, { fecharPlano: fechar });
+      }, caso, 'soap');
+    }
+    var rascunho = formatarRascunhoSoapTelegram(caso, { fecharPlano: fechar });
+    if (typeof enviarMensagemParaChat === 'function') {
+      return enviarMensagemParaChat(chatId, rascunho);
+    }
+    return rascunho;
+  }
+
   return {
     VALORES_REFERENCIA: VALORES_REFERENCIA,
     MODELOS_EXAME_FISICO: MODELOS_EXAME_FISICO,
@@ -887,7 +999,9 @@ var SoapAmbulatorialService = (function() {
     exportarReceitaTexto: exportarReceitaTexto,
     exportarAtestadoTexto: exportarAtestadoTexto,
     exportarEncaminhamentoTexto: exportarEncaminhamentoTexto,
-    obterModeloExameFisicoCompleto: obterModeloExameFisicoCompleto
+    obterModeloExameFisicoCompleto: obterModeloExameFisicoCompleto,
+    formatarRascunhoSoapTelegram: formatarRascunhoSoapTelegram,
+    processarEntradaSoap: processarEntradaSoap
   };
 })();
 
@@ -895,6 +1009,15 @@ function obterModeloExameFisicoCompleto(contextoPrevio) {
   return SoapAmbulatorialService.obterModeloExameFisicoCompleto(contextoPrevio);
 }
 
+function formatarRascunhoSoapTelegram(dados, opcoes) {
+  return SoapAmbulatorialService.formatarRascunhoSoapTelegram(dados, opcoes);
+}
+
+function processarEntradaSoap(chatId, textoEntrada, opcoes) {
+  return SoapAmbulatorialService.processarEntradaSoap(chatId, textoEntrada, opcoes);
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = SoapAmbulatorialService;
 }
+

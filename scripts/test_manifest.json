@@ -48,6 +48,7 @@
     "tests/test_hub_go_ux.cjs",
     "tests/test_gestao_leitos_sbar_ux.cjs",
     "tests/test_central_rotina_plantao_ux.cjs",
+    "tests/test_soap_modo_e_receita_ux.cjs",
     "tests/test_autoloop_runner.cjs"
   ]
 }

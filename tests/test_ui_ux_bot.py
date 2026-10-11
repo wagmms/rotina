@@ -31,6 +31,7 @@ def run_js(code):
     eval(fs.readFileSync('{SRC_DIR}/00_config.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/01_utils.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/02_calculadoras_puras.js', 'utf8'));
+    eval(fs.readFileSync('{SRC_DIR}/02_soap_ambulatorial.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/03_bases_locais.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/04_motores_ia.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/05_notion.js', 'utf8'));

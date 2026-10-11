@@ -1,5 +1,35 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0BD. [x] **Auditoria e Otimização do Modo SOAP & Prescrição Ambulatorial Ágil (`ux:soap`, `/soap`, `src/02_soap_ambulatorial.js`, `src/12_experiencia_bot.js`, `src/07c_telegram_consultas_e_ia.js`, `src/07a_telegram_router.js`, `src/10_pdf_receita.js` e `tests/test_soap_modo_e_receita_ux.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * No fluxo do SOAP, faltavam as funções canônicas `processarEntradaSoap` e exportação estruturada de `formatarRascunhoSoapTelegram` para suportar preenchimento determinístico ágil com EF normal por aparelho.
+      * No roteador (`07a_telegram_router.js`), a chamada `/soap` sem parâmetros retornava apenas texto simples sem botões nem navegação contextual, resultando em atrito de uso e falta de exemplos rápidos beira-leito.
+      * Em `12_experiencia_bot.js`, a checagem de botões do SOAP (`ux:soap:plano`, `ux:soap:ef_normal`, `ux:soap:atualizar`) rejeitava callbacks válidos quando a revision não era enviada ou divergia por atualização recente, bloqueando o médico com mensagem de erro mesmo quando havia caso clínico ativo em memória ou cache (`modoBot(chat).data`, `ctx_` ou `soapview_`).
+      * O botão `ux:soap:atualizar` e o cancelamento de exame físico geravam mensagens de texto simples ou com teclado vazio (`botoesBot([])`), caracterizando telas órfãs sem opções de retorno ao ambulatório ou início.
+      * Em `07c_telegram_consultas_e_ia.js`, as respostas de SOAP (Fase 1 e Fase 2) não incluíam a linha de navegação contextual obrigatória `[🔙 Ambulatório]` (`ux:hub:amb`) e `[🏠 Início]` (`ux:hub:inicio`), e o botão de cópia de conduta utilizava texto genérico em vez do atalho canônico `[📋 Copiar SOAP para PEP]`.
+      * Em prescrições ambulatoriais (`tipoCache === "rx"`), a navegação contextual apontava para o menu geral (`ux:menu`) com 3 botões comprimidos em vez do retorno natural e limpo em 2 colunas para `[🔙 Ambulatório]` e `[🏠 Início]`.
+    - **Contrato de UX Beira-Leito e Determinismo (0ms)**:
+      * Preenchimento e revisão de SOAP em 1 toque sem perda de contexto entre Fase 1 (Anamnese e Exame Físico dirigido com perguntas semiológicas ativas) e Fase 2 (Consolidação com Avaliação e Plano terapêutico detalhado).
+      * Botão primário exclusivo de largura total `[📋 Copiar SOAP para PEP]` (`copy_text` nativo ou `ux:copiar:<uuid>`) entregando texto higienizado pronto para colar diretamente no prontuário eletrônico.
+      * Inserção determinística em 0ms de Exame Físico normal completo estruturado sistematicamente por aparelhos (Ectoscopia, ACV, AR, Abdome e Extremidades), preservando sinais vitais previamente informados.
+      * Eliminação absoluta de formulários órfãos: telas de atualização e cancelamento de EF equipadas com botões de ação e retorno contextual.
+      * Navegação contextual estrita: garantia incondicional dos botões `[🔙 Ambulatório]` (`ux:hub:amb`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% das telas de SOAP e prescrição ambulatorial (`/rx` e `/receita`).
+    - **Implementação e Refatoração**:
+      * Em `src/02_soap_ambulatorial.js`: Implementada função `processarEntradaSoap` com persistência em cache e modoBot, e expostas `formatarRascunhoSoapTelegram` e `processarEntradaSoap` no núcleo `SoapAmbulatorialService`.
+      * Em `src/07c_telegram_consultas_e_ia.js`: Atualizado rótulo do botão primário para `[📋 Copiar SOAP para PEP]`, adicionada linha de navegação contextual `[🔙 Ambulatório]` e `[🏠 Início]` tanto na Fase 1 quanto na Fase 2 de SOAP, e padronizada a linha de navegação de prescrição `/rx` em 2 colunas limpas.
+      * Em `src/12_experiencia_bot.js`:
+        • `acaoSoap`: Verificação defensiva que recupera dados do caso ativo mesmo se a revision diferir ou for omitida, eliminando rejeições indevidas.
+        • `ux:soap:plano`: Recuperação resiliente do caso em `modoBot.data`, `ctx_` ou `soapview_` com teclado contextual quando não houver caso ativo.
+        • `ux:soap:ef_cancelar`: Substituição de teclado vazio por retorno contextual com `[📋 Fechar Plano]`, `[🩺 EF Normal]`, `[🔙 Ambulatório]` e `[🏠 Início]`.
+        • `ux:soap:atualizar`: Substituição de mensagem de texto órfã por tela com orientações e teclado contextual completo.
+        • `iniciarModoBot(chat, 'soap', ...)`: Atalhos de 1 toque expandidos com os 4 cenários clínicos canônicos (HAS, DM2, IVAS e Lombalgia).
+        • Exportadas `formatarRascunhoSoapTelegram` e `processarEntradaSoap` em `ExperienciaBotService`.
+      * Em `src/07a_telegram_router.js`: Comando `/soap` aprimorado para abrir o modo com teclado rápido e exemplos quando acionado sem parâmetros, e rotear via `processarEntradaSoap` quando houver caso clínico.
+    - **Validação e Cobertura Automatizada**:
+      * Criada suíte canônica `tests/test_soap_modo_e_receita_ux.cjs` (8 blocos cobrindo 100% dos requisitos).
+      * Aprovadas com 100% de sucesso as suítes relacionadas `tests/test_ambulatorio_ux.cjs`, `tests/test_soap_ambulatorial.cjs`, `tests/test_soap_dois_tempos.cjs` e `tests/test_soap_extrair_receita.cjs`.
+      * Recompilado `ultra_rotina_master.js` com sintaxe JS 100% OK e bateria completa aprovada.
+
 0BC. [x] **Auditoria e Otimização da Sala Vermelha & Emergências Médicas (`ux:hub:sala`, `ux:hub:emerg`, `src/12_experiencia_bot.js`, `src/02_emergencia_choque_septico_circi.js`, `src/02_emergencia_crise_hipertensiva.js`, `src/02_pcr_gestante.js`, `src/07a_telegram_router.js`, `src/07d_telegram_callbacks.js`, `src/07g_telegram_ajuda_e_protocolos.js` e `tests/test_sala_vermelha_ux.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em emergências obstétricas (`PcrGestanteService`), o campo `viaAerea.recomendacao` acessava chave inexistente (`recomendacoes` é um array), gerando texto `undefined` no bot durante ressuscitação de gestante.
