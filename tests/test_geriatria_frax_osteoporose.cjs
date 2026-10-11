@@ -323,7 +323,7 @@ const rpcQuedas = runtime.ctx.cockpitGeriatriaQuedas(tokenFake, {
   tempoTug: 16,
   historicoQuedasUltimoAno: 1
 });
-assert(rpcQuedas.nivel_risco.includes('Moderado'));
+assert(/moderado/i.test(rpcQuedas.nivel_risco));
 
 // 6.4 cockpitGeriatriaPolifarmacia
 const rpcPolifarm = runtime.ctx.cockpitGeriatriaPolifarmacia(tokenFake, ['diazepam', 'furosemida', 'haloperidol']);

@@ -52,17 +52,17 @@ function carregarAmbiente() {
 
 console.log('Iniciando testes da Máquina de Estados do Teclado Adaptativo...');
 
-// 1. Teclado Fixo Universal 2x2 com SOAP prioritário
+// 1. Teclado Fixo Universal com acesso aos quatro hubs
 carregarAmbiente();
 const kbUniversal = obterTecladoFixoPrincipal();
 assert.strictEqual(kbUniversal.keyboard.length, 3);
 assert.deepStrictEqual(
   kbUniversal.keyboard[0].map(b => b.text),
-  ['🩺 SOAP Ambulatorial', '🏥 Enfermaria']
+  ['🚨 Sala Vermelha', '🛏️ Enfermaria']
 );
-assert.strictEqual(kbUniversal.keyboard[1][0].text, '🚨 Emergência');
-assert.strictEqual(kbUniversal.keyboard[1][1].text, '💊 REMUME Rápida');
-console.log('✓ Teclado Fixo Universal 2x2 com SOAP prioritário verificado');
+assert.strictEqual(kbUniversal.keyboard[1][0].text, '🩺 Ambulatório');
+assert.strictEqual(kbUniversal.keyboard[1][1].text, '💊 Consultas de Bolso');
+console.log('✓ Teclado Fixo Universal com acesso aos quatro hubs verificado');
 
 // 2. Despachante Contextual retorna sempre o Teclado Universal estável
 assert.deepStrictEqual(obterTecladoContextual('soap'), kbUniversal);

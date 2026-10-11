@@ -1,14 +1,11 @@
+"""Contrato atual após retirada explícita no commit 498b4a5; não reativa módulos."""
 import subprocess
-import os
-import pytest
+from pathlib import Path
 
-def test_auditoria_y_site_js():
-    """
-    Executa a suite determinística de Y-Site (compatibilidade) escrita em Node.js.
-    """
-    script_path = os.path.join(os.path.dirname(__file__), "test_auditoria_y_site.cjs")
-    result = subprocess.run(["node", script_path], capture_output=True, text=True)
-    
-    assert result.returncode == 0, f"Teste JS falhou: {result.stderr}"
-    assert "Todos os testes de Y-Site (CJS) passaram com sucesso!" in result.stdout
 
+def test_auditoria_y_site_desativado_com_autorizacao():
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(["node", "tests/test_modulos_desativados.cjs"],
+                            cwd=root, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "DESATIVACAO_VALIDADA:auditoria_y_site" in result.stdout

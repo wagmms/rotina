@@ -1,13 +1,11 @@
+"""Contrato atual após retirada explícita no commit 498b4a5; não reativa módulos."""
 import subprocess
-import sys
+from pathlib import Path
 
-def main():
-    print("Iniciando testes em Python para Analgesia PCA...")
-    result = subprocess.run(["node", "tests/test_analgesia_pca.cjs"], capture_output=True, text=True)
-    print(result.stdout)
-    if result.stderr:
-        print(result.stderr, file=sys.stderr)
-    sys.exit(result.returncode)
 
-if __name__ == "__main__":
-    main()
+def test_analgesia_pca_desativado_com_autorizacao():
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(["node", "tests/test_modulos_desativados.cjs"],
+                            cwd=root, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "DESATIVACAO_VALIDADA:analgesia_pca" in result.stdout

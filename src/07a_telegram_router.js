@@ -66,7 +66,9 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
 
   // B. Noradrenalina / Nora
   if (/^(?:noradrena(?:lina)?|nora)(?:\s+.*)?$/i.test(tLow)) {
-    var matchPesoNora = tLow.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*(?:kg)?\b/i);
+    var matchPesoNora = tLow.match(/(?:peso\s*[:=]?\s*)(\d+(?:[.,]\d+)?)/i) ||
+                        tLow.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i) ||
+                        tLow.match(/\b(\d+(?:[.,]\d+)?)\b(?!\s*(?:anos?|a\b|meses|m\b))/i);
     if (!matchPesoNora || !matchPesoNora[1] || isNaN(parseFloat(matchPesoNora[1].replace(",", "."))) || parseFloat(matchPesoNora[1].replace(",", ".")) < 10) {
       if (typeof enviarTelaPesoDva === "function") {
         enviarTelaPesoDva(chatId, "nora");
@@ -93,7 +95,9 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
 
   // C. Dobutamina / Dobuta
   if (/^(?:dobuta(?:mina)?)(?:\s+.*)?$/i.test(tLow)) {
-    var matchPesoDobuta = tLow.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*(?:kg)?\b/i);
+    var matchPesoDobuta = tLow.match(/(?:peso\s*[:=]?\s*)(\d+(?:[.,]\d+)?)/i) ||
+                          tLow.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i) ||
+                          tLow.match(/\b(\d+(?:[.,]\d+)?)\b(?!\s*(?:anos?|a\b|meses|m\b))/i);
     if (!matchPesoDobuta || !matchPesoDobuta[1] || isNaN(parseFloat(matchPesoDobuta[1].replace(",", "."))) || parseFloat(matchPesoDobuta[1].replace(",", ".")) < 10) {
       if (typeof enviarTelaPesoDva === "function") {
         enviarTelaPesoDva(chatId, "dobuta");
@@ -595,7 +599,13 @@ function processarMensagemTexto(message) {
     return processarMensagemTexto({ chat: { id: chatId }, text: "/ambulatorio" });
   }
 
-  if (texto === "💊 Consultas de Bolso" || texto === "💊 Prescrever" || texto === "💊 REMUME Rápida") {
+  if (texto === "💊 Prescrever") {
+    if (typeof iniciarModoBot === "function") {
+      return iniciarModoBot(chatId, "rx", false);
+    }
+  }
+
+  if (texto === "💊 Consultas de Bolso" || texto === "💊 REMUME Rápida") {
     if (typeof enviarMenuConsultasBolso === "function") {
       return enviarMenuConsultasBolso(chatId);
     }
@@ -4483,8 +4493,8 @@ function processarMensagemTexto(message) {
 
   // 2. CÁLCULOS DETERMINÍSTICOS DIRETOS EM RAM (0ms a 15ms)
   if (decisao.intencao === "CLINICO_EMERGENCIA") {
-    var tEmerg = texto.toLowerCase();
-    var matchPesoGeral = texto.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i);
+    var matchPesoGeral = texto.match(/(?:peso\s*[:=]?\s*)(\d+(?:[.,]\d+)?)/i) ||
+                         texto.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i);
 
     // A. Drogas Vasoativas Puras
     if (matchPesoGeral && (tEmerg.indexOf("nora") !== -1 || tEmerg.indexOf("dobuta") !== -1 || tEmerg.indexOf("vaso") !== -1 || tEmerg.indexOf("dva") !== -1)) {

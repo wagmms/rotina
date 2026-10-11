@@ -35,7 +35,7 @@ def run_js(code):
     eval(fs.readFileSync('{SRC_DIR}/04_motores_ia.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/05_notion.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/06_rotina_agenda.js', 'utf8'));
-        fs.readdirSync('{SRC_DIR}').sort().filter(f => f.startsWith('07') && f.endsWith('.js')).forEach(f => eval(fs.readFileSync('{SRC_DIR}/' + f, 'utf8')));
+    for (const f of fs.readdirSync('{SRC_DIR}').sort().filter(f => f.startsWith('07') && f.endsWith('.js'))) eval(fs.readFileSync('{SRC_DIR}/' + f, 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/08_main.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/09_enfermaria.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/10_pdf_receita.js', 'utf8'));
@@ -54,10 +54,12 @@ def test_teclado_ergonomico_sala_vermelha():
     """
     out = json.loads(run_js(js))
     linhas = [[b["text"] for b in linha] for linha in out["keyboard"]]
-    assert len(linhas) == 3, "O teclado ergonômico universal possui grade 2x2"
-    assert "🩺 SOAP Ambulatorial" in linhas[0]
-    assert "🚨 Emergência" in linhas[1]
-    assert "📱 Cockpit Mini App" in linhas[2]
+    assert len(linhas) == 3, "O teclado ergonômico universal possui 3 linhas"
+    assert "🚨 Sala Vermelha" in linhas[0]
+    assert "🛏️ Enfermaria" in linhas[0]
+    assert "🩺 Ambulatório" in linhas[1]
+    assert "💊 Consultas de Bolso" in linhas[1]
+    assert any("Cockpit" in t for t in linhas[2])
     assert out.get("resize_keyboard") is True
     assert out.get("is_persistent") is False
 
@@ -185,8 +187,8 @@ def test_hub_central_e_comandos_nativos_enxutos():
     assert out["hubSent"] == 1
     assert "Ultra Rotina · Central de Comandos" in out["hubTexto"]
     assert out["hubBotoesQtd"] == 4
-    assert out["comandosQtd"] == 6
-    assert out["comandosLista"] == ["menu", "novo", "cancelar", "teclado", "fila", "ajuda"]
+    assert out["comandosQtd"] == 5
+    assert out["comandosLista"] == ["menu", "novo", "cancelar", "teclado", "ajuda"]
 
 
 

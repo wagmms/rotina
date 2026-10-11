@@ -464,13 +464,15 @@ var SaudeIdosoService = class SaudeIdosoService {
 
     // --- B. VITAMINA D (COLECALCIFEROL) ---
     let prescricaoVitD = null;
-    const vitD = params.vitaminaD25OH;
+    const vitD = typeof params.vitaminaD25OH === 'number' ? params.vitaminaD25OH :
+                 (typeof params.vitaminaD === 'number' ? params.vitaminaD :
+                 (typeof params.vitD === 'number' ? params.vitD : null));
 
     if (typeof vitD === 'number') {
       if (vitD < 20) {
         prescricaoVitD = {
           status: "Deficiência (< 20 ng/mL)",
-          esquema_ataque: "Colecalciferol (Vitamina D3) 50.000 UI VO, 1 vez por semana por 8 semanas consecutivas (total 400.000 UI).",
+          esquema_ataque: "Colecalciferol (Vitamina D3) 50.000 UI VO 1x por semana por 8 semanas consecutivas (total 400.000 UI).",
           esquema_manutencao: "Após 8 semanas, dosar 25(OH)D e manter 1.000 a 2.000 UI/dia VO (ou 7.000 a 14.000 UI/semana).",
           alvo: "Manter 25(OH)D sérica entre 30 e 60 ng/mL para idosos frágeis, osteoporóticos ou com risco de quedas."
         };
@@ -501,6 +503,16 @@ var SaudeIdosoService = class SaudeIdosoService {
     }
     alertas.push("Contraindicação Sentinela de Megadose: PROIBIDO o uso de megadoses orais em dose única anual (ex: 500.000 UI em bolus), pois ensaios clínicos demonstraram aumento paradoxal de quedas e fraturas em idosos.");
 
+    // Alerta Odontológico / ONJ (AAOMS / ABRASSO)
+    if (params.procedimentoOdontologicoPendente) {
+      alertas.push("🚨 PROCEDIMENTO ODONTOLÓGICO INVASIVO PENDENTE: Alto risco de Osteonecrose dos Maxilares (ONJ). Realizar todos os procedimentos dentários invasivos e assegurar cicatrização completa da mucosa antes de iniciar antirreabsortivos.");
+    }
+
+    // Alerta de Drug Holiday (Pausa Terapêutica após 3-5 anos)
+    if (typeof params.tempoUsoBisfosfonatoAnos === 'number' && params.tempoUsoBisfosfonatoAnos >= 3) {
+      alertas.push(`⚠️ ALERTA DE DRUG HOLIDAY (PAUSA TERAPÊUTICA): Paciente em uso de bisfosfonato há ${params.tempoUsoBisfosfonatoAnos} anos. Reavaliar risco com nova DMO. Se risco moderado/baixo e ausência de novas fraturas, indicar pausa temporária de 1 a 2 anos ("Drug Holiday") para prevenir Fratura Atípica de Fêmur e Osteonecrose de Mandíbula (ONJ).`);
+    }
+
     // --- C. TERAPIA ANTIRREABSORTIVA / BISFOSFONATOS (ALENDRONATO) ---
     const ehAltoRisco = Boolean(params.altoRisco) || (typeof params.tScore === 'number' && params.tScore <= -2.5) || Boolean(params.fraturaPrevia);
     let prescricaoBisfosfonato = null;
@@ -513,7 +525,7 @@ var SaudeIdosoService = class SaudeIdosoService {
         impedimentoBisfosfonato = true;
         bloqueios.push({
           tipo: "CONTRAINDICACAO_RENAL_BISFOSFONATO",
-          descricao: `🚨 CONTRAINDICAÇÃO FORMAL A BISFOSFONATOS (ClCr ${params.clcr} mL/min < 35 mL/min): Risco de nefrotoxicidade grave e osso adinâmico. Bisfosfonatos orais e IV estão terminantemente contraindicados. Opção de escolha: Denosumabe 60 mg SC semestral (com especialista) após assegurar níveis de cálcio e vitamina D.`
+          descricao: `🚨 BLOQUEIO RENAL ABSOLUTO / CONTRAINDICAÇÃO FORMAL A BISFOSFONATOS (ClCr ${params.clcr} mL/min < 35 mL/min): Risco de nefrotoxicidade grave e osso adinâmico. Bisfosfonatos orais e IV estão terminantemente contraindicados. Opção de escolha: Denosumabe 60 mg SC semestral (com especialista) após assegurar níveis de cálcio e vitamina D.`
         });
       }
 
@@ -522,7 +534,7 @@ var SaudeIdosoService = class SaudeIdosoService {
         impedimentoBisfosfonato = true;
         bloqueios.push({
           tipo: "CONTRAINDICACAO_HIPOCALCEMIA",
-          descricao: `🚨 CONTRAINDICAÇÃO TEMPORÁRIA: Hipocalcemia sérica (${params.calcioSerico} mg/dL < 8.5 mg/dL). O bisfosfonato não deve ser iniciado antes da normalização estrita dos níveis de cálcio e vitamina D, sob risco iminente de hipocalcemia grave refratária e tetania.`
+          descricao: `🚨 BLOQUEIO DE HIPOCALCEMIA / CONTRAINDICAÇÃO TEMPORÁRIA: Hipocalcemia sérica (${params.calcioSerico} mg/dL < 8.5 mg/dL). O bisfosfonato não deve ser iniciado antes da normalização estrita dos níveis de cálcio e vitamina D, sob risco iminente de hipocalcemia grave refratária e tetania.`
         });
       }
 
@@ -531,7 +543,7 @@ var SaudeIdosoService = class SaudeIdosoService {
         impedimentoBisfosfonato = true;
         bloqueios.push({
           tipo: "CONTRAINDICACAO_ESOFAGICA_ORAL",
-          descricao: "🚨 CONTRAINDICAÇÃO AO ALENDRONATO ORAL: Esofagopatia grave (refluxo severo, estenose, acalásia) ou incapacidade de manter ortostase/tronco ereto por 30-60 minutos. Risco elevado de esofagite erosiva severa e perfuração esofágica. Alternativa: Ácido Zoledrônico 5 mg IV anual (se ClCr >= 35) ou Denosumabe."
+          descricao: "🚨 BLOQUEIO ESOFÁGICO / CONTRAINDICAÇÃO AO ALENDRONATO ORAL: Esofagopatia grave (refluxo severo, estenose, acalásia) ou incapacidade de manter ortostase/tronco ereto por 30-60 minutos. Risco elevado de esofagite erosiva severa e perfuração esofágica. Alternativa: Ácido Zoledrônico 5 mg IV anual (se ClCr >= 35) ou Denosumabe."
         });
       }
 
@@ -547,11 +559,6 @@ var SaudeIdosoService = class SaudeIdosoService {
             "4. Aguardar pelo menos 30 a 60 minutos antes de ingerir o café da manhã, alimentos ou qualquer outro medicamento."
           ]
         };
-      }
-
-      // 4. Alerta de Drug Holiday (Pausa Terapêutica)
-      if (typeof params.tempoUsoBisfosfonatoAnos === 'number' && params.tempoUsoBisfosfonatoAnos >= 3) {
-        alertas.push(`⚠️ ALERTA DE DRUG HOLIDAY (PAUSA TERAPÊUTICA): Paciente em uso de bisfosfonato há ${params.tempoUsoBisfosfonatoAnos} anos. Reavaliar risco com nova DMO. Se risco moderado/baixo e ausência de novas fraturas, indicar pausa temporária de 1 a 2 anos ("Drug Holiday") para prevenir Fratura Atípica de Fêmur e Osteonecrose de Mandíbula (ONJ).`);
       }
     } else {
       prescricaoBisfosfonato = {
@@ -867,7 +874,7 @@ var SaudeIdosoService = class SaudeIdosoService {
     // Fármacos listados
     const mFarm = texto.match(/(?:usa|medicamentos?|remedios?|toma|farmacos?)\s*[:=]?\s*([^\n.;]+)/i);
     if (mFarm) {
-      cenario.farmacos.lista = mFarm[1].split(/[,;e]/).map(s => s.trim()).filter(s => s.length > 2);
+      cenario.farmacos.lista = mFarm[1].split(/[,;]|\s+e\s+/i).map(s => s.trim()).filter(s => s.length > 2);
     }
 
     const resultado = this.gerarResumoAga(cenario);
@@ -886,6 +893,7 @@ var SaudeIdosoService = class SaudeIdosoService {
       categoriaRisco = "MUITO ALTO RISCO";
     }
     return Object.assign({}, raw, {
+      idade: (raw.idade_informada !== undefined && raw.idade_informada !== null) ? raw.idade_informada : raw.idade,
       categoria_risco: categoriaRisco,
       tem_dmo: raw.t_score !== null && raw.t_score !== undefined,
       t_score_colo_femur: raw.t_score,
@@ -958,7 +966,9 @@ var SaudeIdosoService = class SaudeIdosoService {
         esquema = "⚠️ Terapia antirreabsortiva oral bloqueada por critérios de segurança clínica.";
       }
     } else if (raw.bisfosfonato && raw.bisfosfonato.medicamento) {
-      esquema = raw.bisfosfonato.medicamento + " - " + raw.bisfosfonato.posologia;
+      var medStr = String(raw.bisfosfonato.medicamento);
+      var medUpper = medStr.replace(/alendronato de sódio/i, 'ALENDRONATO DE SÓDIO');
+      esquema = medUpper + " - " + raw.bisfosfonato.posologia;
     }
 
     var protoCalcio = [];
@@ -971,13 +981,14 @@ var SaudeIdosoService = class SaudeIdosoService {
       }
     }
     protoCalcio.push("Meta total de cálcio elementar: 1.000 a 1.200 mg/dia (teto de segurança máximo de 2.000 mg/dia).");
+    protoCalcio.push("Segurança: NUNCA prescrever suplementação que exceda 2.000 mg/dia de cálcio total.");
 
-    var protoVitD = "Colecalciferol: Manter suporte diário de 1.000 a 2.000 UI/dia VO (alvo 30 a 60 ng/mL). Proibido megadose anual única.";
+    var protoVitD = "Colecalciferol: Manter suporte diário de 1.000 a 2.000 UI/dia VO (alvo 30 a 60 ng/mL). PROIBIDO prescrever megadoses anuais em bolus único.";
     if (raw.vitamina_d) {
       if (raw.vitamina_d.esquema_ataque) {
-        protoVitD = raw.vitamina_d.esquema_ataque + " Manutenção subsequente: " + raw.vitamina_d.esquema_manutencao;
+        protoVitD = raw.vitamina_d.esquema_ataque + " Manutenção subsequente: " + raw.vitamina_d.esquema_manutencao + " (PROIBIDO prescrever megadoses anuais em bolus único).";
       } else if (raw.vitamina_d.esquema_manutencao) {
-        protoVitD = raw.vitamina_d.esquema_manutencao;
+        protoVitD = raw.vitamina_d.esquema_manutencao + " (PROIBIDO prescrever megadoses anuais em bolus único).";
       }
     }
 
@@ -995,7 +1006,7 @@ var SaudeIdosoService = class SaudeIdosoService {
       esquema_recomendado: esquema,
       alternativas: [
         "Ácido Zoledrônico 5 mg IV anual em infusão lenta com hidratação prévia (se intolerância gástrica ao oral e ClCr >= 35 mL/min).",
-        "Denosumabe 60 mg SC semestral (opção preferencial se ClCr < 35 mL/min após correção de cálcio sérico).",
+        "Denosumabe 60 mg SC semestral (opção preferencial se ClCr < 35 mL/min após correção de cálcio sérico; atenção ao risco de efeito rebote de fraturas vertebrais se descontinuado sem transição).",
         "Avaliar suspensão programada ('Drug Holiday') após 3 a 5 anos de uso em pacientes estabilizados."
       ],
       bloqueios_seguranca: bloqueiosTxt,
@@ -1034,40 +1045,70 @@ var SaudeIdosoService = class SaudeIdosoService {
 
   static revisarPolifarmaciaQuedas(lista) {
     var raw = this.revisarPolifarmaciaERiscoQuedas(lista);
+    var temSedativo = raw.drogas_sedativas_frids && raw.drogas_sedativas_frids.length > 0;
+    var temHipotensao = raw.drogas_hipotensao_ortostatica && raw.drogas_hipotensao_ortostatica.length > 0;
+    var temQt = raw.drogas_prolongamento_qt && raw.drogas_prolongamento_qt.length > 0;
+    var temCombinadoPerigoso = temSedativo && temHipotensao;
+
     var carga = raw.nivel_risco_iatrogenico_quedas.toUpperCase();
+    if (temCombinadoPerigoso) {
+      carga = "CARGA CRÍTICA (SEDATIVO + HIPOTENSOR ORTOSTÁTICO)";
+    }
+    var alertaCritico = carga.includes("ALTA") || carga.includes("CRÍTICA") || temCombinadoPerigoso;
+
+    var recomendacoes = [ raw.conduta_desprescricao ];
+    if (temHipotensao) {
+      recomendacoes.push("Hipotensores Ortostáticos e vasodilatadores: desprescrever ou reduzir dose; aferir PA em ortostase.");
+    }
+    if (temQt) {
+      recomendacoes.push("Prolongamento de QT: monitorar ECG com cálculo de QTc e evitar associação de múltiplos fármacos arritmogênicos.");
+    }
+    if (temSedativo) {
+      recomendacoes.push("Benzodiazepínicos / Drogas Z: desprescrever ou desmamar gradualmente para prevenir ataxia e quedas.");
+    }
+    recomendacoes.push("Aferir pressão arterial deitada e em pé (teste de hipotensão ortostática) em todas as consultas.");
+
+    var totalFrids = (raw.drogas_sedativas_frids ? raw.drogas_sedativas_frids.length : 0) +
+                     (raw.drogas_hipotensao_ortostatica ? raw.drogas_hipotensao_ortostatica.length : 0) +
+                     (raw.drogas_prolongamento_qt ? raw.drogas_prolongamento_qt.length : 0);
+
     return {
       total_medicamentos_analisados: raw.quantidade_medicamentos,
       carga_risco_quedas: carga,
-      alerta_critico: carga === "ALTA" || carga === "CRÍTICA",
+      alerta_critico: alertaCritico,
+      total_frids_detectados: totalFrids,
       drogas_hipotensao_ortostatica: raw.drogas_hipotensao_ortostatica,
       drogas_prolongamento_qt: raw.drogas_prolongamento_qt,
       drogas_sedativas_ataxia: raw.drogas_sedativas_frids,
-      recomendacoes_desprescricao: [
-        raw.conduta_desprescricao,
-        "Desprescrever ou desmamar benzodiazepínicos e indutores do sono ('Drogas Z'); evitar associação com relaxantes musculares.",
-        "Se uso de alfa-1 bloqueador (doxazosina/terazosina), avaliar troca por tansulosina ou descontinuação em idosos com tontura ortostática.",
-        "Monitorar ECG com cálculo de QTc se associação de 2 ou mais fármacos prolongadores de QT.",
-        "Aferir pressão arterial deitada e em pé (teste de hipotensão ortostática) em todas as consultas."
-      ]
+      recomendacoes_desprescricao: recomendacoes
     };
   }
 
   static protocoloProfilaxiaQuedas(params) {
     params = params || {};
-    var tug = null;
-    if (typeof params.tempoTugSegundos === 'number') {
-      tug = this.avaliarRiscoQuedasTUG(params.tempoTugSegundos);
-    } else if (typeof params.tug === 'number') {
-      tug = this.avaliarRiscoQuedasTUG(params.tug);
-    }
-    var polifarm = this.revisarPolifarmaciaQuedas(params.medicamentos || []);
-    var riscoAlto = (tug && tug.risco_alto) || (params.historicoQuedas && params.historicoQuedas >= 2) || (polifarm.alerta_critico);
-    var nivelRisco = riscoAlto ? "ALTO RISCO DE QUEDAS" : ((tug && tug.classificacao.includes("Moderado")) ? "RISCO MODERADO DE QUEDAS" : "BAIXO RISCO DE QUEDAS");
+    var tempoTug = typeof params.tempoTug === 'number' ? params.tempoTug :
+                   (typeof params.tempoTugSegundos === 'number' ? params.tempoTugSegundos :
+                   (typeof params.tug === 'number' ? params.tug : null));
+    var tug = (tempoTug !== null) ? this.avaliarRiscoQuedasTUG(tempoTug) : null;
+
+    var listaMeds = Array.isArray(params.listaMedicamentos) ? params.listaMedicamentos :
+                    (Array.isArray(params.medicamentos) ? params.medicamentos : []);
+    var polifarm = this.revisarPolifarmaciaQuedas(listaMeds);
+
+    var qtdQuedas = typeof params.historicoQuedasUltimoAno === 'number' ? params.historicoQuedasUltimoAno :
+                    (typeof params.historicoQuedas === 'number' ? params.historicoQuedas : 0);
+
+    var riscoAlto = (tug && (tug.tempo_segundos > 20 || tug.classificacao.includes("Alto"))) ||
+                    (qtdQuedas >= 2) ||
+                    Boolean(params.quedaComFraturaOuLesao) ||
+                    Boolean(polifarm.alerta_critico);
+    var riscoModerado = !riscoAlto && ((tug && (tug.tempo_segundos > 10 || tug.classificacao.includes("Moderado"))) || qtdQuedas === 1);
+    var nivelRisco = riscoAlto ? "ALTO RISCO DE QUEDAS" : (riscoModerado ? "RISCO MODERADO DE QUEDAS" : "BAIXO RISCO DE QUEDAS");
 
     var justificativas = [];
     if (tug) justificativas.push("TUG de " + tug.tempo_segundos + "s (" + tug.classificacao + ")");
-    if (params.historicoQuedas) justificativas.push(params.historicoQuedas + " quedas no último ano");
-    if (polifarm.carga_risco_quedas === "ALTA" || polifarm.carga_risco_quedas === "CRÍTICA") {
+    if (qtdQuedas > 0) justificativas.push(qtdQuedas + " quedas no último ano");
+    if (polifarm.carga_risco_quedas.includes("ALTA") || polifarm.carga_risco_quedas.includes("CRÍTICA")) {
       justificativas.push("Polifarmácia com drogas de alto risco de quedas (" + polifarm.carga_risco_quedas + ")");
     }
 
@@ -1075,15 +1116,17 @@ var SaudeIdosoService = class SaudeIdosoService {
       nivel_risco: nivelRisco,
       justificativas: justificativas,
       analise_medicamentosa: {
+        alerta_critico: polifarm.alerta_critico,
         carga_risco_quedas: polifarm.carga_risco_quedas,
-        total_frids_detectados: polifarm.drogas_sedativas_ataxia.length + polifarm.drogas_hipotensao_ortostatica.length
+        total_frids_detectados: polifarm.total_frids_detectados
       },
       acoes_beira_leito: [
+        "Teste da Hipotensão Ortostática (aferir PA deitado e em pé aos 3 minutos).",
+        "CONTRAINDICAÇÃO FORMAL de contenção mecânica no leito (aumenta risco de lesões graves e delirium).",
         "Prescrever fisioterapia motora com treino de equilíbrio, marcha e fortalecimento muscular de membros inferiores.",
         "Revisão e desprescrição imediata de psicotrópicos, benzodiazepínicos e sedativos.",
         "Adequação ambiental residencial: remoção de tapetes soltos, instalação de barras no banheiro e iluminação noturna de rodapé.",
-        "Correção de acuidade visual e auditiva; uso de calçados fechados e antiderrapantes.",
-        "Investigação ativa de hipotensão ortostática (medir PA deitado e em pé aos 3 minutos)."
+        "Correção de acuidade visual e auditiva; uso de calçados fechados e antiderrapantes."
       ],
       criterios_encaminhamento_especialista: [
         "Quedas recorrentes inexplicadas ou associadas a perda transitória da consciência (suspeita de síncope arrítmica/neurológica).",
@@ -1094,10 +1137,11 @@ var SaudeIdosoService = class SaudeIdosoService {
   }
 
   static interpretarTextoLivreQuedas(texto) {
-    var cenario = this.interpretarTextoLivre(texto);
+    var res = this.interpretarTextoLivre(texto);
+    var cenario = res._cenario || res;
     var param = {
-      tempoTugSegundos: cenario.tug ? cenario.tug.tempo : undefined,
-      medicamentos: cenario.farmacos ? cenario.farmacos.lista : []
+      tempoTugSegundos: (cenario.tug && typeof cenario.tug.tempo === 'number') ? cenario.tug.tempo : (res.risco_quedas ? res.risco_quedas.tempo_segundos : undefined),
+      medicamentos: (cenario.farmacos && Array.isArray(cenario.farmacos.lista)) ? cenario.farmacos.lista : []
     };
     var mQuedas = texto.match(/(\d+)\s*quedas?/i);
     if (mQuedas) param.historicoQuedas = parseInt(mQuedas[1], 10);
@@ -1108,7 +1152,23 @@ var SaudeIdosoService = class SaudeIdosoService {
     if (typeof params === 'string') {
       return this.interpretarTextoLivre(params);
     }
-    return this.gerarResumoAga(params);
+    var resumo = this.gerarResumoAga(params);
+    var fraxCalc = params.frax ? this.calcularFrax(params.frax) : (resumo.frax_brasil || null);
+    var osteoCalc = params.osteoporose ? this.avaliarOsteoporose(params.osteoporose) : (resumo.osteoporose_manejo || null);
+    var quedasCalc = this.protocoloProfilaxiaQuedas({
+      tempoTug: params.tug ? params.tug.tempo : undefined,
+      medicamentos: params.farmacos ? params.farmacos.lista : []
+    });
+    return Object.assign({}, resumo, {
+      aga: {
+        fragilidade: resumo.fragilidade || (params.cfs ? this.avaliarFragilidadeCFS(params.cfs.score) : null),
+        cognicao: resumo.cognicao || (params.miniCog ? this.avaliarMiniCog(params.miniCog.palavras, params.miniCog.relogioNormal) : null),
+        mobilidade: resumo.risco_quedas || (params.tug ? this.avaliarRiscoQuedasTUG(params.tug.tempo) : null)
+      },
+      frax: fraxCalc,
+      osteoporose: osteoCalc,
+      profilaxia_quedas: quedasCalc
+    });
   }
 };
 

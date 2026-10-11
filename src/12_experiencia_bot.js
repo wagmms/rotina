@@ -1008,7 +1008,7 @@ function tratarEntradaUX(message) {
     }
     return true;
   }
-  if (text === '💊 Consultas de Bolso' || text === '💊 REMUME Rápida' || text === '💊 Prescrever') {
+  if (text === '💊 Consultas de Bolso' || text === '💊 REMUME Rápida') {
     if (typeof enviarMenuConsultasBolso === "function") {
       enviarMenuConsultasBolso(chat);
     }

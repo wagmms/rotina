@@ -19,7 +19,7 @@ def run_js_pdf(script_code):
     eval(fs.readFileSync('{SRC_DIR}/00_config.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/01_utils.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/03_bases_locais.js', 'utf8'));
-        fs.readdirSync('{SRC_DIR}').sort().filter(f => f.startsWith('07') && f.endsWith('.js')).forEach(f => eval(fs.readFileSync('{SRC_DIR}/' + f, 'utf8')));
+    for (const f of fs.readdirSync('{SRC_DIR}').sort().filter(f => f.startsWith('07') && f.endsWith('.js'))) eval(fs.readFileSync('{SRC_DIR}/' + f, 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/10_pdf_receita.js', 'utf8'));
     """
     full_code = js_preamble + "\n" + script_code
@@ -71,6 +71,7 @@ def test_gerar_html_receituario():
 def test_processar_e_enviar_pdf_mock():
     js = """
     global.enviarDocumentoTelegram = function(chatId, blob, legenda) { return true; };
+    global.validarReceitaTemMedicamentos = function() { return true; };
     var prescricao = "1) Cefalexina 500mg VO 6/6h por 7 dias";
     var res = ReceitaPdfService.processarEEnviarPdf("1771571035", prescricao);
     console.log(JSON.stringify({

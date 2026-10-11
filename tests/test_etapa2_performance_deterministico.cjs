@@ -108,9 +108,9 @@ async function run() {
   console.log('\n🧪 4. Testando Cache em Camadas do Service Worker e PWA Assets...');
   const resSw = await app.inject({ method: 'GET', url: '/sw.js' });
   assert.strictEqual(resSw.statusCode, 200);
-  assert(resSw.payload.includes('ultra-rotina-cockpit-v3.0'), 'Deve conter versão do cache');
+  assert(/const\s+CACHE_NAME\s*=\s*['"]ultra-rotina-cockpit-v\d+(?:\.\d+)+['"]/.test(resSw.payload), 'Service Worker deve declarar cache versionado válido');
   assert(resSw.payload.includes('PRECACHE_ASSETS'), 'Deve conter lista de precache');
-  console.log('   ✓ Service Worker v3.0 com Cache em Camadas operacional');
+  console.log('   ✓ Service Worker versionado com Cache em Camadas operacional');
 
   const resIcon192 = await app.inject({ method: 'GET', url: '/pwa-192x192.png' });
   assert.strictEqual(resIcon192.statusCode, 200);

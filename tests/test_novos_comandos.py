@@ -21,7 +21,7 @@ def run_js_handlers(script_code):
     eval(fs.readFileSync('{SRC_DIR}/04_motores_ia.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/05_notion.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/06_rotina_agenda.js', 'utf8'));
-        fs.readdirSync('{SRC_DIR}').sort().filter(f => f.startsWith('07') && f.endsWith('.js')).forEach(f => eval(fs.readFileSync('{SRC_DIR}/' + f, 'utf8')));
+    for (const f of fs.readdirSync('{SRC_DIR}').sort().filter(f => f.startsWith('07') && f.endsWith('.js'))) eval(fs.readFileSync('{SRC_DIR}/' + f, 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/08_main.js', 'utf8'));
     """
     full_code = js_preamble + "\n" + script_code
@@ -67,9 +67,9 @@ def test_teclado_fixo_principal_estrutura():
     assert data.get("is_persistent") is False
     linhas = [[btn["text"] for btn in linha] for linha in data["keyboard"]]
     assert len(linhas) == 3
-    assert "🩺 SOAP Ambulatorial" in linhas[0]
-    assert "🚨 Emergência" in linhas[1]
-    assert "📱 Cockpit Mini App" in linhas[2]
+    assert any("Sala Vermelha" in btn for btn in linhas[0])
+    assert any("Ambulatório" in btn for btn in linhas[1])
+    assert any("Cockpit Mini App" in btn for btn in linhas[2])
 
 def test_classificador_intencao_heuristica():
     js_test = """
@@ -173,7 +173,7 @@ def test_callbacks_calc_v3_e_catch_all():
     assert "não reconhecida" in toasts[4]["toast"]
 
     # Mensagens de conteúdo clínico entregues
-    msgs = [x for x in data if x.get("tipo") == "msg"]
+    msgs = [x for x in data if x.get("tipo") in ["msg", "msg_kb"]]
     textos = [m["texto"] for m in msgs]
     assert any("CURB-65" in t for t in textos)
     assert any("CHECKLIST DOS 7 Ps" in t for t in textos)

@@ -481,15 +481,19 @@ var RotinaService = {
 
     // 3. Cancelamento ou pulo de treino
     else if (/(?:n[aã]o\s+vou|sem|cancel(?:ar?|e|ado)?|tirar?|pular?)\s+(?:trein(?:ar?|o)|academia|muscula[çc][aã]o)/i.test(instLower)) {
+      var achouTreino = false;
       for (var it = 0; it < blocos.length; it++) {
         if (blocos[it].categoria === "treino" || blocos[it].id === "treino") {
           blocos[it].status = "pulado";
           blocos[it].nota = "Cancelado pelo Dr. Wagner";
-          alterado = true;
-          resumoAcao = "🚫 *Treino de hoje cancelado.* Foco nas demais metas do dia.";
+          achouTreino = true;
           break;
         }
       }
+      alterado = true;
+      resumoAcao = achouTreino
+        ? "🚫 *Treino de hoje cancelado.* Foco nas demais metas do dia."
+        : "🚫 *Treino de hoje cancelado / sem sessão prevista.* Foco nas demais metas do dia.";
     }
 
     // 4. Cancelamento ou pulo de estudo / MedQuest

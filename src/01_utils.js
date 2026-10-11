@@ -371,8 +371,8 @@ function enviarMensagemSegmentada(chatId, texto, teclado, messageIdParaEditar) {
       enviado = executarPostTelegram("https://api.telegram.org/bot" + token + "/sendMessage", payload);
     }
 
-    // Se falhou o envio formatado, tenta fallback em texto plano limpo
-    if (!enviado) {
+    // Se falhou o envio formatado, tenta fallback em texto plano limpo apenas fora da persistencia confiavel
+    if (!enviado && typeof PersistenciaBot === "undefined") {
       var textoPuro = parteConteudo.replace(/<[^>]+>/g, "").replace(/[*_`#]/g, "");
       var payloadFallback = {
         "chat_id": chatId,
