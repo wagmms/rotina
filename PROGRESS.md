@@ -17,11 +17,10 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Blindagem da Qualidade Clínica da IA — Separação Cirúrgica das Cascatas Clínica e Rápida (`src/00_config.js`, `src/04_motores_ia.js`, `tests/test_ia_motores_pipeline_refatorado.cjs`)**:
-    - **Proteção da Cláusula Pétrea de Excelência Médica**:
-      * Desacoplamento da cascata clínica da rápida: `IA_PADROES.GEMINI_CLINICO` fixada com modelos de alta densidade diagnóstica (`gemini-3.5-flash` / `gemini-flash-latest`), reservando lite para fallback 429.
-      * Cascata rápida mantendo `gemini-flash-lite-latest` na ponta para parsing e comandos de baixa latência (~500ms).
-    - **Validação e Resultados**: 100% de aprovação na suíte completa (`npm test`: 49/49 suítes com zero regressões).
+- [x] **Alocação Exclusiva de Luna para Revisões e Liberação de Deploy sem Cota do ChatGPT (`tooling/autoloop/core/model_router.py`, `tooling/autoloop/core/scoped_audit.py`, `tooling/autoloop/autoloop.py`)**:
+    - **Luna para Todas as Revisões**: Toda matriz de rotas de auditoria migrada para a família Luna (`gpt-6-luna`), preservando 100% da cota externa de outros modelos.
+    - **Deploy Desbloqueado com Cota Esgotada**: Auditoria que encontre esgotamento de cota do ChatGPT/Codex não suspende mais o deploy; emite aviso e autoriza o envio para produção imediatamente mantendo a integridade do código.
+    - **Validação e Resultados**: 160/160 testes do autoloop e 49/49 suítes completas de testes no `npm test` aprovadas com zero regressões.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

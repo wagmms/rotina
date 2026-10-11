@@ -4,8 +4,8 @@ import sys
 from pathlib import Path
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'core'))
 sys.path.insert(0, str(Path.home() / '.local/lib/autoloop_core'))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'core'))
 
 import model_router as mr
 from scoped_audit import build_scopes, ScopeError
@@ -47,18 +47,18 @@ def commit_all(root, msg):
 class TestMatrizModelosEEsforcos:
     """Valida que cada categoria de tarefa recebe o modelo e o nível de raciocínio estritamente adequados."""
 
-    def test_css_cosmetico_aloca_terra_low(self):
+    def test_css_cosmetico_aloca_luna_low(self):
         perfil = mr.classificar_alteracoes('style: ajusta espaçamento', ['theme.css'], '+margin: 4px;', 'rotina')
         assert perfil == 'UI_COSMETICO_LEVE'
         cfg = mr.selecionar_modelo_auditoria(perfil)
-        assert cfg['model'] == 'gpt-5.6-terra'
+        assert cfg['model'] == 'gpt-6-luna'
         assert cfg['effort'] == 'low'
 
-    def test_css_layout_aloca_terra_medium(self):
+    def test_css_layout_aloca_luna_medium(self):
         perfil = mr.classificar_alteracoes('feat: layout modal cockpit', ['cockpit.css'], '+display: grid;', 'rotina')
         assert perfil == 'UI_LAYOUT_ESTRUTURAL'
         cfg = mr.selecionar_modelo_auditoria(perfil)
-        assert cfg['model'] == 'gpt-5.6-terra'
+        assert cfg['model'] == 'gpt-6-luna'
         assert cfg['effort'] == 'medium'
 
     def test_documentacao_pura_aloca_luna_low(self):
@@ -95,21 +95,21 @@ class TestMatrizModelosEEsforcos:
         assert cfg['model'] == 'gpt-6-luna'
         assert cfg['effort'] == 'high'
 
-    def test_engenharia_logica_complexa_auth_aloca_sol_high(self):
+    def test_engenharia_logica_complexa_auth_aloca_luna_high(self):
         perfil = mr.classificar_alteracoes('feat: autenticacao e validacao jwt', ['server/auth.js'], '+jwt.verify(token)', 'rotina')
         assert perfil == 'ENGENHARIA_LOGICA_COMPLEXA'
         cfg = mr.selecionar_modelo_auditoria(perfil)
-        assert cfg['model'] == 'gpt-6-sol'
+        assert cfg['model'] == 'gpt-6-luna'
         assert cfg['effort'] == 'high'
 
-    def test_concorrencia_critica_flock_mutex_aloca_sol_xhigh(self):
+    def test_concorrencia_critica_flock_mutex_aloca_luna_xhigh(self):
         perfil = mr.classificar_alteracoes('fix: previne deadlock com fcntl.flock', ['tooling/lock.py'], '+fcntl.flock(fd, LOCK_EX)', 'rotina')
         assert perfil == 'ARQUITETURA_CONCORRENCIA_CRITICA'
         cfg = mr.selecionar_modelo_auditoria(perfil)
-        assert cfg['model'] == 'gpt-6-sol'
+        assert cfg['model'] == 'gpt-6-luna'
         assert cfg['effort'] == 'xhigh'
 
-    def test_clinico_geral_aloca_astra_high(self):
+    def test_clinico_geral_aloca_luna_high(self):
         perfil = mr.classificar_alteracoes(
             'fix: ajuste na conduta e dose de amoxicilina',
             ['src/02_soap_ambulatorial.js'],
@@ -118,10 +118,10 @@ class TestMatrizModelosEEsforcos:
         )
         assert perfil == 'CLINICO_ROBUSTEZ_PRO'
         cfg = mr.selecionar_modelo_auditoria(perfil)
-        assert cfg['model'] == 'gpt-6-astra'
+        assert cfg['model'] == 'gpt-6-luna'
         assert cfg['effort'] == 'high'
 
-    def test_clinico_drogas_criticas_aloca_astra_xhigh(self):
+    def test_clinico_drogas_criticas_aloca_luna_xhigh(self):
         perfil = mr.classificar_alteracoes(
             'fix: dosagem de noradrenalina em choque septico',
             ['src/03_doses_e_calculos.js'],
@@ -130,7 +130,7 @@ class TestMatrizModelosEEsforcos:
         )
         assert perfil == 'CLINICO_DROGAS_CRITICAS_EXTRA'
         cfg = mr.selecionar_modelo_auditoria(perfil)
-        assert cfg['model'] == 'gpt-6-astra'
+        assert cfg['model'] == 'gpt-6-luna'
         assert cfg['effort'] == 'xhigh'
 
     def test_bloqueio_comentarios_residencia_gasta_zero_tokens(self):
@@ -175,7 +175,7 @@ class TestIsolamentoEscoposBuildScopes:
 
         # O escopo clínico deve conter EXCLUSIVAMENTE o arquivo médico de src/
         assert clinical_scopes[0]['files'] == ['src/02_soap_ambulatorial.js']
-        assert clinical_scopes[0]['config']['model'] == 'gpt-6-astra'
+        assert clinical_scopes[0]['config']['model'] == 'gpt-6-luna'
         assert clinical_scopes[0]['config']['effort'] in {'high', 'xhigh'}
 
         # Os controllers Fastify NUNCA podem ser transferidos para o Astra

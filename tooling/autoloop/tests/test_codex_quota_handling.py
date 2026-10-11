@@ -97,7 +97,12 @@ def test_deploy_core_trata_cota_sem_rejeicao_falsa(autoloop_mod, monkeypatch, tm
             self.stderr = ""
 
     monkeypatch.setattr(autoloop_mod, "executar_etapa", lambda cmd, *a, **kw: FakeResult(0))
-    monkeypatch.setattr("subprocess.run", lambda *a, **kw: FakeResult(0))
+    def fake_subprocess_run(cmd, *a, **kw):
+        cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
+        if "--abbrev-ref" in cmd_str:
+            return FakeResult(0, "main")
+        return FakeResult(0, "")
+    monkeypatch.setattr("subprocess.run", fake_subprocess_run)
     monkeypatch.setattr(autoloop_mod, "obter_commit_head", lambda: sha_teste)
     monkeypatch.setattr(autoloop_mod, "fingerprint_tree", lambda *a, **kw: "hash_estavel_123")
     monkeypatch.setattr(autoloop_mod, "validar_codigo_estavel", lambda *a, **kw: True)
@@ -116,11 +121,9 @@ def test_deploy_core_trata_cota_sem_rejeicao_falsa(autoloop_mod, monkeypatch, tm
     )
 
     res = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=6.0)
-    assert res is False
+    assert res is True
     # capture_rejection NUNCA deve ser chamado para erro de cota da API!
     assert len(chamadas_rejection) == 0
 
     estado = autoloop_mod.carregar_estado_deploy()
-    assert estado["next_retry_ts"] is not None
-    # Deve ter agendado para o futuro
-    assert estado["next_retry_ts"] > datetime.now().timestamp()
+    assert estado["last_pushed_sha"] == sha_teste

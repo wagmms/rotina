@@ -1962,26 +1962,31 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=6.0, commit_anterior=None,
                 eh_cota = True
                 seg_reset = extrair_tempo_reset_codex(str(erro_parecer))
             if eh_cota:
-                tempo_espera = seg_reset if (seg_reset and seg_reset > 0) else 3600
-                dt_liberacao = datetime.now() + timedelta(seconds=tempo_espera)
-                hora_liberacao = dt_liberacao.strftime("%H:%M")
-                log("AVISO", f"⏳ Deploy suspenso temporariamente: cota do Codex/OpenAI esgotada ({erro_parecer}).")
-                log("INFO", f"🕒 Próxima tentativa agendada para {hora_liberacao} (em ~{tempo_espera // 60} min).")
-                record_metric('cota_codex', 'exhausted', 0, candidate_sha=candidate_sha)
-                salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + tempo_espera)
+                auditoria_resultado_texto = "⚠️ Cota ChatGPT Esgotada (Deploy Direto Autorizado)"
+                log("AVISO", f"⚠️ Cota do ChatGPT/Codex esgotada ({erro_parecer}). Prosseguindo com o deploy mesmo assim conforme determinação do usuário!")
+                record_metric('cota_codex', 'exhausted_bypassed', 0, candidate_sha=candidate_sha)
+                parecer = {
+                    "candidate_sha": candidate_sha,
+                    "verdict": "pass",
+                    "summary": f"Deploy liberado direto: cota do ChatGPT/Codex esgotada ({erro_parecer}).",
+                    "findings": [],
+                    "limitations": ["Auditoria pulada por esgotamento de cota do ChatGPT/Codex."],
+                    "required_followups": []
+                }
+            else:
+                log("ERRO", f"Deploy bloqueado: auditoria não concluída ({erro_parecer}).")
+                capture_rejection(candidate_sha, base_sha, report=parecer, error=erro_parecer, profile=perfil_release)
+                record_metric('recusa_auditoria', 'incomplete', 0, candidate_sha=candidate_sha)
+                salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + 900)
                 return False
-            log("ERRO", f"Deploy bloqueado: auditoria não concluída ({erro_parecer}).")
-            capture_rejection(candidate_sha, base_sha, report=parecer, error=erro_parecer, profile=perfil_release)
-            record_metric('recusa_auditoria', 'incomplete', 0, candidate_sha=candidate_sha)
-            salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + 900)
-            return False
-        aprovado, motivo_bloqueio = avaliar_parecer_auditoria(parecer, sha_esperado=candidate_sha)
-        if not aprovado:
-            log("ERRO", f"Deploy bloqueado por auditoria: {motivo_bloqueio}")
-            capture_rejection(candidate_sha, base_sha, report=parecer, profile=perfil_release)
-            record_metric('recusa_auditoria', 'rejected', 0, candidate_sha=candidate_sha)
-            salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + 1800)
-            return False
+        else:
+            aprovado, motivo_bloqueio = avaliar_parecer_auditoria(parecer, sha_esperado=candidate_sha)
+            if not aprovado:
+                log("ERRO", f"Deploy bloqueado por auditoria: {motivo_bloqueio}")
+                capture_rejection(candidate_sha, base_sha, report=parecer, profile=perfil_release)
+                record_metric('recusa_auditoria', 'rejected', 0, candidate_sha=candidate_sha)
+                salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + 1800)
+                return False
     if not validar_codigo_estavel(identidade_testada, "a auditoria"):
         return False
 

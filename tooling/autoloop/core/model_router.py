@@ -65,16 +65,16 @@ EXTENSOES_ESTILO = {".css", ".scss", ".sass", ".less"}
 LOCKFILES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "uv.lock",
              "poetry.lock", "cargo.lock", "composer.lock", "gemfile.lock"}
 ROTAS = {
-    "UI_COSMETICO_LEVE": ("gpt-5.6-terra", "low", "Estilo estático verificado pelo diff."),
-    "UI_LAYOUT_ESTRUTURAL": ("gpt-5.6-terra", "medium", "Layout em arquivos de estilo."),
-    "DOCUMENTACAO_PADRAO": ("gpt-5.6-luna", "low", "Documentação sem indício clínico — modelo leve para máxima economia de cota."),
+    "UI_COSMETICO_LEVE": ("gpt-6-luna", "low", "Estilo estático verificado via Luna com máxima economia."),
+    "UI_LAYOUT_ESTRUTURAL": ("gpt-6-luna", "medium", "Layout em arquivos de estilo verificado via Luna."),
+    "DOCUMENTACAO_PADRAO": ("gpt-5.6-luna", "low", "Documentação sem indício clínico via Luna."),
     "ENGENHARIA_DEPENDENCIAS": ("gpt-6-luna", "medium", "Dependências e lockfiles auditados com economia de cota via Luna."),
     "ENGENHARIA_PADRAO": ("gpt-6-luna", "medium", "Engenharia geral de alto volume via Luna; preserva cota semanal."),
-    "ENGENHARIA_LOGICA_COMPLEXA": ("gpt-6-sol", "high", "Autenticação ou lógica complexa."),
+    "ENGENHARIA_LOGICA_COMPLEXA": ("gpt-6-luna", "high", "Autenticação ou lógica complexa auditada via Luna."),
     "ARQUITETURA_INFRAESTRUTURA": ("gpt-6-luna", "high", "Infraestrutura e deploy auditados via Luna com alto raciocínio."),
-    "ARQUITETURA_CONCORRENCIA_CRITICA": ("gpt-6-sol", "xhigh", "Concorrência requer revisão aprofundada."),
-    "CLINICO_ROBUSTEZ_PRO": ("gpt-6-astra", "high", "Impacto clínico possível ou escopo incerto."),
-    "CLINICO_DROGAS_CRITICAS_EXTRA": ("gpt-6-astra", "xhigh", "Conteúdo clínico crítico; exige validação independente."),
+    "ARQUITETURA_CONCORRENCIA_CRITICA": ("gpt-6-luna", "xhigh", "Concorrência auditada via Luna com raciocínio aprofundado."),
+    "CLINICO_ROBUSTEZ_PRO": ("gpt-6-luna", "high", "Impacto clínico auditado via Luna para preservação de cota."),
+    "CLINICO_DROGAS_CRITICAS_EXTRA": ("gpt-6-luna", "xhigh", "Conteúdo clínico crítico auditado via Luna para preservação de cota."),
 }
 
 
@@ -233,9 +233,6 @@ def selecionar_modelo_auditoria(perfil_tarefa, repo_dir=None):
     if perfil_tarefa not in ROTAS:
         raise ValueError(f"Perfil de auditoria desconhecido: {perfil_tarefa!r}")
     modelo, effort, motivo = ROTAS[perfil_tarefa]
-    if modelo == "gpt-6-astra" and eh_projeto_habitflow(repo_dir):
-        modelo, effort = "gpt-6-sol", "xhigh"
-        motivo = "Política explícita do HabitFlow: revisão aprofundada sem Astra."
     validar_configuracao_modelo(modelo, effort)
     return {"model": modelo, "effort": effort, "tier": perfil_tarefa,
             "justificativa": motivo, "policy_version": POLITICA_VERSAO}

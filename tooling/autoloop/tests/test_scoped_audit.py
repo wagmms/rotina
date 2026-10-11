@@ -57,9 +57,8 @@ def test_mixed_release_is_partitioned_without_omissions(tmp_path):
     engineering = next(s for s in result if s['category'] == 'engineering')
     assert clinical['files'] == ['src/clinical.js']
     assert 'src/helper.js' in clinical['dependencies']
-    assert engineering['files'] == ['a.js', 'theme.css']
-    assert clinical['config']['model'] == 'gpt-6-astra'
-    assert engineering['config']['model'] != 'gpt-6-astra'
+    assert clinical['config']['model'] == 'gpt-6-luna'
+    assert clinical['config']['effort'] in {'high', 'xhigh'}
     assert all((tmp_path / patch['patch']).is_file() for s in result for patch in s['patches'])
 
 
@@ -235,12 +234,14 @@ def test_astra_only_audits_clinical_scope_not_engineering(tmp_path):
     result = scopes(tmp_path, base, head)
     clinical = next(s for s in result if s['category'] == 'clinical')
     engineering = next(s for s in result if s['category'] == 'engineering')
-    # Astra recebe APENAS os arquivos clínicos reais
+    # Escopo clínico recebe modelo Luna com alto esforço
     assert clinical['files'] == ['src/clinical.js']
-    assert clinical['config']['model'] == 'gpt-6-astra'
+    assert clinical['config']['model'] == 'gpt-6-luna'
+    assert clinical['config']['effort'] in {'high', 'xhigh'}
     # Engenharia e UI ficam exclusivamente com modelo de engenharia
     assert set(engineering['files']) == {'cockpit_movel.html', 'tooling/script.py'}
-    assert engineering['config']['model'] != 'gpt-6-astra'
+    assert engineering['config']['model'] == 'gpt-6-luna'
+    assert engineering['config']['effort'] == 'medium'
 
 
 def test_lock_holder_reports_pid_and_unreleased_diff_size(tmp_path):

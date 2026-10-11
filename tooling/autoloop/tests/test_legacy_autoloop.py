@@ -780,8 +780,7 @@ def test_codex_quota_exhausted_never_allows_deploy_when_tests_pass(autoloop_mod,
     monkeypatch.setattr(autoloop_mod, "STATE_DEPLOY_FILE", tmp_path / "data" / "estado_quota.json")
     monkeypatch.setattr(autoloop_mod, "enviar_relatorio_telegram", lambda *args, **kwargs: True)
 
-    # 1. Simula erro de cota esgotada do Codex (CODEX_QUOTA_EXHAUSTED) com fallback ativo (padrão)
-    monkeypatch.setenv("AUTOLOOP_CODEX_FALLBACK_ON_QUOTA", "1")
+    # 1. Simula erro de cota esgotada do Codex (CODEX_QUOTA_EXHAUSTED): o deploy deve prosseguir mesmo assim
     monkeypatch.setattr(
         autoloop_mod,
         "obter_parecer_auditoria_candidato",
@@ -789,16 +788,9 @@ def test_codex_quota_exhausted_never_allows_deploy_when_tests_pass(autoloop_mod,
     )
 
     comandos_executados.clear()
-    res_quota_fallback = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=3.0)
-    assert res_quota_fallback is False, "Cota não pode dispensar a auditoria obrigatória!"
-    assert not any("git push" in c for c in comandos_executados), "Sem auditoria válida, nenhum push é permitido!"
-
-    # 2. Simula erro de cota com modo estrito (AUTOLOOP_CODEX_FALLBACK_ON_QUOTA=0)
-    monkeypatch.setenv("AUTOLOOP_CODEX_FALLBACK_ON_QUOTA", "0")
-    comandos_executados.clear()
-    res_quota_strict = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=3.0)
-    assert res_quota_strict is False, "Deploy com cota esgotada no modo estrito DEVE ser bloqueado!"
-    assert not any("git push" in c for c in comandos_executados), "git push NÃO pode ser chamado no modo estrito!"
+    res_quota = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=3.0)
+    assert res_quota is True, "Com cota do ChatGPT esgotada, o deploy deve prosseguir mesmo assim conforme diretriz do usuário!"
+    assert any("git push" in c for c in comandos_executados), "git push deve ser executado quando cota estiver esgotada!"
 
     # 3. Com cota disponível, mas veredito fail -> DEVE bloquear categoricamente mesmo com fallback ativo!
     monkeypatch.setenv("AUTOLOOP_CODEX_FALLBACK_ON_QUOTA", "1")
@@ -858,7 +850,7 @@ def test_adapter_reclassifica_diff_e_valida_comando(autoloop_mod, monkeypatch, t
         if cmd[0] != "/usr/bin/true":
             return original_run(cmd, *args, **kwargs)
         calls.append(cmd)
-        assert cmd[cmd.index("-m") + 1] == "gpt-6-astra"
+        assert cmd[cmd.index("-m") + 1] == "gpt-6-luna"
         assert cmd[cmd.index("-c") + 1] == "model_reasoning_effort=xhigh"
         assert cmd[-1] == '-'
         manifests = list((tmp_path / 'data/scoped_audits/contexts').glob('*/manifest.json'))

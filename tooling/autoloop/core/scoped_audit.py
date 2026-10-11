@@ -132,7 +132,7 @@ def build_scopes(root, base, candidate, classify, configure, max_chunk_chars=DEF
             if not profile.startswith('CLINICO'):
                 profile = 'CLINICO_ROBUSTEZ_PRO'
         config = configure(profile, repo_dir=str(root))
-        category = 'clinical' if (config['model'] == 'gpt-6-astra' and not infrastructure) else 'engineering'
+        category = 'clinical' if (profile.startswith('CLINICO') and not infrastructure) else 'engineering'
         details[name] = {'patch': patch, 'profile': profile, 'config': config}
         groups[category].append(name)
     # Mudanças em símbolos chamados pelo domínio clínico acompanham sua revisão apenas se pertencerem a fontes de código clínico/src.
@@ -163,7 +163,7 @@ def build_scopes(root, base, candidate, classify, configure, max_chunk_chars=DEF
             # Mantém esforço máximo da classe; não reduz raciocínio clínico.
             configs = [details[name]['config'] for name in files]
             rank = {'low': 0, 'medium': 1, 'high': 2, 'xhigh': 3, 'max': 4, 'ultra': 5}
-            config = max(configs, key=lambda c: (rank.get(c['effort'], 99), {'gpt-6-sol': 3, 'gpt-6-luna': 2}.get(c['model'], 1)))
+            config = max(configs, key=lambda c: (rank.get(c['effort'], 99), {'gpt-6-luna': 3, 'gpt-5.6-luna': 2}.get(c['model'], 1)))
             if category == 'clinical':
                 profile = 'CLINICO_DROGAS_CRITICAS_EXTRA' if any(details[n]['profile'] == 'CLINICO_DROGAS_CRITICAS_EXTRA' for n in files) else 'CLINICO_ROBUSTEZ_PRO'
                 config = configure(profile, repo_dir=str(root))
