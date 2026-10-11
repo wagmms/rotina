@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
-const { fingerprint, environment, runOne, runPool, receiptValid, receiptReusableFailure, loadSuiteDurations, orderLPT } = require('../scripts/run_tests.cjs');
+const { fingerprint, environment, runOne, runPool, receiptValid, receiptReusableFailure, loadSuiteDurations, orderLPT, findAffectedSuites, getChangedFiles, STATIC_AFFECTED_MAP } = require('../scripts/run_tests.cjs');
 
 async function main() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'runner-contract-'));
@@ -95,7 +95,48 @@ async function main() {
     assert.equal(orderedTasks[3].file, 'tests/test_empate_b.cjs', 'Empate deve ser resolvido em ordem alfabética estável');
     assert.equal(orderedTasks[4].file, 'tests/test_curto.cjs', 'A suíte mais rápida (0.1s) deve vir ao final');
 
-    console.log('✓ Runner: isolamento, falhas, timeout, concorrência, execução direcionada (test sharding), agendamento LPT e identidade validados.');
+    // Validação do Mapeador Inteligente de Testes Afetados (--affected Watch-Diff)
+    const repoRoot = path.resolve(__dirname, '..');
+    
+    // 1. Mapeamento estático explícito (ex.: src/02_soap_ambulatorial.js)
+    const affectedSoap = findAffectedSuites(['src/02_soap_ambulatorial.js'], repoRoot);
+    assert.deepEqual(affectedSoap, [
+      'tests/test_soap_ambulatorial.cjs',
+      'tests/test_soap_modo_e_receita_ux.cjs'
+    ], 'src/02_soap_ambulatorial.js deve acionar exatamente test_soap_ambulatorial.cjs e test_soap_modo_e_receita_ux.cjs');
+
+    // 2. Arquivos de documentação/dados ignorados não devem acionar suítes de teste de código
+    const affectedDocs = findAffectedSuites(['PROGRESS.md', 'CHANGELOG.md', 'docs/SUGESTOES_FUTURAS.md'], repoRoot);
+    assert.deepEqual(affectedDocs, [], 'Edição exclusiva de documentação/markdown não deve acionar testes de código');
+
+    // 3. Suíte de teste direta aciona a si mesma
+    const affectedDirectTest = findAffectedSuites(['tests/test_obstetricia_prenatal.cjs'], repoRoot);
+    assert.deepEqual(affectedDirectTest, ['tests/test_obstetricia_prenatal.cjs'], 'Edição direta em arquivo de teste aciona a própria suíte');
+
+    // 4. Mapeamento heurístico de stem para módulos clínicos
+    const affectedStem = findAffectedSuites(['src/02_pneumologia_dpoc_vni.js'], repoRoot);
+    assert(affectedStem.includes('tests/test_pneumologia_dpoc_vni.cjs'), 'Heurística por stem deve mapear pneumologia_dpoc_vni para sua suíte');
+
+    // 5. Mapeamento de componentes de servidor Fastify
+    const affectedServer = findAffectedSuites(['server/validators.js'], repoRoot);
+    assert(affectedServer.includes('tests/test_schemas_validacao_calculadoras.cjs'), 'Edição em validators.js deve mapear para schemas de validação');
+    assert(affectedServer.includes('tests/test_fastify_resiliencia_payloads.cjs'), 'Edição em validators.js deve mapear para resiliência de payloads');
+
+    // 6. getChangedFiles com detecção de arquivos no git
+    const mockGitFiles = getChangedFiles(repoRoot);
+    assert(Array.isArray(mockGitFiles), 'getChangedFiles deve retornar um array');
+
+    // 7. Execução CLI com flag --affected
+    if (fs.existsSync(path.join(repoRoot, '.git'))) {
+      const affectedCliOutput = execFileSync(process.execPath, [
+        path.join(repoRoot, 'scripts/run_tests.cjs'),
+        '--affected'
+      ], { cwd: repoRoot, encoding: 'utf8' });
+      assert(affectedCliOutput.includes('[AFETADOS]') || affectedCliOutput.includes('[TESTES]'),
+        'CLI com --affected deve emitir logs de análise de testes afetados');
+    }
+
+    console.log('✓ Runner: isolamento, falhas, timeout, concorrência, execução direcionada (test sharding), agendamento LPT, mapeador inteligente (--affected) e identidade validados.');
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

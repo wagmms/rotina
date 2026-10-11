@@ -838,8 +838,8 @@ function enviarMenuAmbulatorio(chat, messageId) {
   var botoes = botoesBot([
     [['📝 SOAP Ambulatorial', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
     [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado CFM', 'ux:amb:atestado']],
-    [['📋 Modelo Exame Físico', 'ux:amb:ef'], ['🩺 Guia SISREG / Parecer', 'ux:amb:sisreg']],
-    [['🤰 Hub G&O', 'ux:rotina:go'], ['🌸 Preventivo', 'ux:rotina:preventivo']],
+    [['🩺 Guia SISREG / Parecer', 'ux:amb:sisreg'], ['🌸 Preventivo', 'ux:rotina:preventivo']],
+    [['🤰 Hub G&O', 'ux:rotina:go']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -852,27 +852,10 @@ function enviarTelaAmbSoap(chat, messageId) {
     "• *O (Objetivo):* Sinais vitais (PA, FC, FR, SpO2, Tax, IMC) e exame físico segmentar dirigido.\n" +
     "• *A (Avaliação):* Hipótese diagnóstica codificada (CID-10 / CIAP-2) e estratificação de risco (SBC/SBD).\n" +
     "• *P (Plano):* Prescrição REMUME, exames complementares, MEV (estilo de vida), alarmes e retorno.\n\n" +
-    "💡 *Exame Físico Padrão Normal:* Toque no botão abaixo para copiar o modelo completo direto para o PEP.\n\n" +
-    "👉 *Toque em um caso clínico predefinido abaixo para testar em 1 toque ou digite `/ambulatorio [dados]`*:";
-
-  var efTexto = (typeof SoapAmbulatorialService !== "undefined" && typeof SoapAmbulatorialService.obterModeloExameFisicoCompleto === "function")
-    ? SoapAmbulatorialService.obterModeloExameFisicoCompleto()
-    : "Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36.5°C.\n" +
-      "Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.\n" +
-      "  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.\n" +
-      "  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.\n" +
-      "  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.\n" +
-      " Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.";
-
-  var cache = uxCache();
-  var ckEf = Utilities.getUuid().replace(/-/g, '');
-  safePutCache(cache, ckEf, efTexto, 21600);
+    "👉 *Envie os dados do caso clínico por áudio ou texto, ou toque abaixo para iniciar*:";
 
   var botoes = botoesBot([
-    [['📋 Copiar Exame Físico Padrão', 'ux:copiar:' + ckEf]],
-    [['🩺 Caso HAS Descompensada', 'ux:amb:soap:has'], ['🩸 Caso DM2 Descompensado', 'ux:amb:soap:dm2']],
-    [['🫁 Caso IVAS / Resfriado', 'ux:amb:soap:ivas'], ['🦴 Caso Lombalgia Aguda', 'ux:amb:soap:lombalgia']],
-    [['📝 Iniciar Novo SOAP Livre', 'ux:iniciar:soap']],
+    [['📝 Iniciar SOAP', 'ux:iniciar:soap']],
     [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -995,9 +978,8 @@ function tratarCallbackAmbSoap(chat, valor, messageId) {
 
   var botoes = botoesBot([
     [['📋 Copiar SOAP para PEP', 'ux:copiar:' + ckSoap]],
-    [['🩺 Outro Caso (HAS)', 'ux:amb:soap:has'], ['🩸 Caso DM2', 'ux:amb:soap:dm2']],
-    [['🔙 SOAP Ambulatorial', 'ux:amb:soap'], ['🔙 Ambulatório', 'ux:hub:amb']],
-    [['🏠 Início', 'ux:hub:inicio']]
+    [['📝 Novo SOAP', 'ux:iniciar:soap']],
+    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
 
   return enviarTelaBot(chat, textoRetorno, botoes, messageId);
@@ -3870,7 +3852,14 @@ function tratarCallbackUX(cb) {
       var anterior = modoBot(chat), legacy = cache.get('ctx_' + chat);
       var dados = (anterior && anterior.data) ? anterior.data : String(legacy || '');
       definirModoBot(chat, v, dados);
-      enviarTelaBot(chat, '*' + UX_NOMES_MODO[v] + '*\n\nDados do caso atual mantidos. Envie a próxima informação.',
+      if (v === 'soap') {
+        if (dados && dados.trim().length >= 5) {
+          return processarEntradaSoap(chat, '', { messageId: msgId });
+        } else {
+          return iniciarModoBot(chat, 'soap', true, msgId);
+        }
+      }
+      enviarTelaBot(chat, '*' + UX_NOMES_MODO[v] + '*\n\nCaso ativo iniciado com os dados atuais.',
         botoesBot([[['Encerrar', 'ux:cancelar']]]), msgId);
     } else if (op === 'manter') {
       cache.remove('pending_' + chat);
@@ -3893,8 +3882,8 @@ function tratarCallbackUX(cb) {
           }
         }
         if (!dadosSoap || dadosSoap.trim().length < 5) {
-          return enviarTelaBot(chat, '🩺 *Nenhum caso ativo para gerar Avaliação e Plano.*\n\nEnvie os dados do caso clínico por áudio ou texto ou escolha um exemplo abaixo:', botoesBot([
-            [['🩺 Exemplo HAS', 'ux:amb:soap:has'], ['🩸 Exemplo DM2', 'ux:amb:soap:dm2']],
+          return enviarTelaBot(chat, '🩺 *Nenhum caso ativo para gerar Avaliação e Plano.*\n\nEnvie os dados do caso clínico por áudio ou texto:', botoesBot([
+            [['📝 Iniciar SOAP', 'ux:iniciar:soap']],
             [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
           ]), msgId);
         }
@@ -3945,7 +3934,19 @@ function tratarCallbackUX(cb) {
         }
         var modeloEfTexto = (typeof obterModeloExameFisicoCompleto === 'function')
           ? obterModeloExameFisicoCompleto(dadosNorm)
-          : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto : 'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.\nBom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.\n  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.\n  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.\n  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.\n Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.');
+          : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO
+            ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto
+            : [
+                'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
+                'Geral: Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+                'ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
+                'AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente.',
+                'Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
+                'Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
+              ].join('\n'));
+        if (typeof formatarExameFisicoSistemas === 'function') {
+          modeloEfTexto = formatarExameFisicoSistemas(modeloEfTexto);
+        }
         dadosNorm += '\n\n' + modeloEfTexto;
         definirModoBot(chat, 'soap', dadosNorm);
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);

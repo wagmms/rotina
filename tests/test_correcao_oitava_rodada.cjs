@@ -24,7 +24,7 @@ function test(nome,fn){total++;try{fn();aprovados++;console.log('OK '+nome);}cat
 const cb=data=>({id:'teste',data,message:{chat:{id:123},message_id:1}});
 const textos=sent=>sent.map(x=>x.payload.text||'').join('\n');
 const pdf=sent=>sent.some(x=>JSON.stringify(x.payload).includes('gerarPdfRx_'));
-function clicarCopia(c,sent){const buttons=sent.flatMap(x=>x.payload.reply_markup ? x.payload.reply_markup.inline_keyboard.flat():[]);const b=buttons.find(x=>(x.callback_data||'').startsWith('ux:copiar:'));assert(b);sent.length=0;c.tratarCallbackUX(cb(b.callback_data));return textos(sent);}
+function clicarCopia(c,sent){const buttons=sent.flatMap(x=>x.payload.reply_markup ? x.payload.reply_markup.inline_keyboard.flat():[]);const b=buttons.find(x=>(x.callback_data||'').startsWith('ux:copiar:')||(x.copy_text&&x.copy_text.text));assert(b);if(b.copy_text&&b.copy_text.text){return b.copy_text.text;}sent.length=0;c.tratarCallbackUX(cb(b.callback_data));return textos(sent);}
 test('SOAP: resposta livre com medidas inventadas não é exportada',()=>{
  const {c,sent}=env();c.executarRaciocinioClinico=()=> 'PA 120x80 mmHg | FC 76 bpm | Tax 36.5 °C. Afebril.';
  c.processarMensagemTexto({chat:{id:123},text:'/soap Tosse há três dias. Sinais vitais não informados.'});

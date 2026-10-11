@@ -970,11 +970,11 @@ var SoapAmbulatorialService = (function() {
       ];
 
       if (Array.isArray(pergs) && pergs.length) {
-        linhasFase1.push('💡 *Investigação Complementar (se desejar enriquecer o caso):*\n' + pergs.map(function(item) { return '• ' + item; }).join('\n'));
+        linhasFase1.push('❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n' + pergs.map(function(item) { return '• ' + item; }).join('\n'));
       }
 
       if (Array.isArray(dirigs) && dirigs.length) {
-        linhasFase1.push('💡 *Exame Físico Dirigido Sugerido:*\n' + dirigs.map(function(item) { return '• ' + item; }).join('\n'));
+        linhasFase1.push('🎯 *Cobrança Ativa do Exame Físico Dirigido*\n' + dirigs.map(function(item) { return '• ' + item; }).join('\n'));
       }
 
       return linhasFase1.join('\n\n');

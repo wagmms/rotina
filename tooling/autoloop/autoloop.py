@@ -670,8 +670,10 @@ def revisar_escopo_codex(scope, previous, round_number, candidate_sha, timeout=6
     except ValueError as exc:
         return None, str(exc)
     AUDIT_DIR.mkdir(parents=True, exist_ok=True)
+    scope_key = scope.get('scope_key') or scope['category']
+    chunk_str = f" [Fatia {scope.get('chunk_index', 1)}/{scope.get('chunk_total', 1)}]" if scope.get('chunk_total', 1) > 1 else ""
     output = AUDIT_DIR / f"tmp_audit_{uuid.uuid4().hex}_{candidate_sha}.json"
-    prompt = f"""Auditoria independente de escopo {scope['category']} do candidato {candidate_sha}.
+    prompt = f"""Auditoria independente de escopo {scope['category']}{chunk_str} do candidato {candidate_sha}.
 Modelo/esforço definidos pela política: {cfg['model']}/{cfg['effort']}.
 Rodada {round_number} de no máximo DUAS. Faça uma avaliação completa e precisa na primeira rodada.
 Leia INTEGRALMENTE o manifesto {scope['manifest_path']} e TODOS os patches nele enumerados.
@@ -693,18 +695,19 @@ Parecer anterior para conferência: {json.dumps(previous, ensure_ascii=False) if
     cmd = [bin_codex, 'exec', '--sandbox', 'read-only', '-m', cfg['model'],
            '-c', f"model_reasoning_effort={cfg['effort']}", '--output-schema', str(schema_path),
            '--output-last-message', str(output), '-']
-    record_metric('auditoria_escopo', 'started', 0, model=cfg['model'], task_key=scope['category'])
+    record_metric('auditoria_escopo', 'started', 0, model=cfg['model'], task_key=scope_key)
     try:
-        result = executar_etapa(cmd, 'auditoria_' + scope['category'], timeout=timeout, input_data=prompt)
+        tag_etapa = 'auditoria_' + scope_key.replace(':', '_')
+        result = executar_etapa(cmd, tag_etapa, timeout=timeout, input_data=prompt)
         if result.returncode:
             if output.exists():
                 archive_raw_result(output, candidate_sha)
-            return None, f"Auditoria {scope['category']} incompleta; código {result.returncode}; diagnóstico necessário antes de outra tentativa."
+            return None, f"Auditoria {scope_key} incompleta; código {result.returncode}; diagnóstico necessário antes de outra tentativa."
         data = json.loads(output.read_text())
         # O avaliador canônico valida estrutura/identidade/semântica; não fabrica aprovação.
         approved, _ = avaliar_parecer_auditoria(data, sha_esperado=candidate_sha)
         if approved:
-            os.replace(output, AUDIT_DIR / f"audit_{scope['category']}_{candidate_sha}.json")
+            os.replace(output, AUDIT_DIR / f"audit_{scope_key.replace(':', '_')}_{candidate_sha}.json")
         else:
             archive_raw_result(output, candidate_sha)
         return data, None

@@ -41,20 +41,60 @@ def observed_sleep(seconds, reason):
         record_metric('espera_' + reason, 'finished', time.monotonic() - started)
 
 
-def stop_process_group(process):
-    """Finaliza também descendentes para não deixar testes órfãos após timeout."""
+def stop_process_group(process, grace_period=5):
+    """Finaliza o processo e todo o seu grupo de processos (árvore de descendentes).
+
+    Utiliza interrupção em nível de grupo de processos:
+    os.killpg(os.getpgid(p.pid), signal.SIGTERM) seguido de signal.SIGKILL
+    após grace_period (5s), eliminando processos zumbis e descritores órfãos.
+    """
+    if process is None or getattr(process, "pid", None) is None:
+        return
     try:
-        os.killpg(process.pid, signal.SIGTERM)
-        process.wait(timeout=2)
-    except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGKILL)
-        process.wait(timeout=2)
-    except ProcessLookupError:
+        pgid = os.getpgid(process.pid)
+    except (ProcessLookupError, OSError):
+        pgid = process.pid
+
+    # Salvaguarda: nunca enviar sinais para PID 0, 1 ou para o grupo do autoloop principal
+    if not pgid or pgid <= 1 or pgid == os.getpgrp():
+        try:
+            process.terminate()
+            process.wait(timeout=grace_period)
+        except (subprocess.TimeoutExpired, OSError):
+            try:
+                process.kill()
+                process.wait(timeout=2)
+            except (ProcessLookupError, OSError):
+                pass
+        return
+
+    # 1. Enviar SIGTERM para o grupo de processos
+    try:
+        os.killpg(pgid, signal.SIGTERM)
+    except (ProcessLookupError, OSError):
         pass
-    # O pai pode terminar antes de um filho que ignora SIGTERM.
+
+    # 2. Aguardar até grace_period (padrão: 5s) pelo encerramento gracioso
     try:
-        os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
+        process.wait(timeout=grace_period)
+    except subprocess.TimeoutExpired:
+        # Se não encerrou no prazo, enviar SIGKILL para todo o grupo
+        try:
+            os.killpg(pgid, signal.SIGKILL)
+        except (ProcessLookupError, OSError):
+            pass
+        try:
+            process.wait(timeout=grace_period)
+        except (subprocess.TimeoutExpired, ProcessLookupError, OSError):
+            pass
+    except (ProcessLookupError, OSError):
+        pass
+
+    # 3. Varredura sentinela com SIGKILL no grupo de processos para eliminar
+    # qualquer subprocesso/neto zumbi que tenha ignorado SIGTERM
+    try:
+        os.killpg(pgid, signal.SIGKILL)
+    except (ProcessLookupError, OSError):
         pass
 
 
@@ -109,6 +149,27 @@ def run_observed(command, *, stage, timeout=None, heartbeat=30, on_line=None,
                 timed_out = True
                 stop_process_group(process)
                 break
+            # Resiliência contra subprocessos zumbis com pipes abertos:
+            # se o processo pai terminou, drena saída remanescente e finaliza órfãos
+            if process.poll() is not None:
+                for key, _ in selector.select(timeout=0.1):
+                    chunk = os.read(key.fileobj.fileno(), 65536)
+                    if not chunk:
+                        selector.unregister(key.fileobj)
+                        continue
+                    last_output = time.monotonic()
+                    pending += chunk
+                    while b"\n" in pending:
+                        raw, pending = pending.split(b"\n", 1)
+                        line = raw.decode("utf-8", errors="replace") + "\n"
+                        tail.append(line[-4096:])
+                        emit(line.rstrip("\n"))
+                        if on_line:
+                            on_line(line)
+                if selector.get_map():
+                    # Processo pai encerrou mas pipes continuam abertos por filhos órfãos
+                    stop_process_group(process)
+                    break
             for key, _ in selector.select(timeout=min(1, heartbeat)):
                 chunk = os.read(key.fileobj.fileno(), 65536)
                 if not chunk:
@@ -144,14 +205,24 @@ def run_observed(command, *, stage, timeout=None, heartbeat=30, on_line=None,
             emit(line)
             if on_line:
                 on_line(line)
-        process.wait()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            stop_process_group(process)
+            try:
+                process.wait(timeout=2)
+            except Exception:
+                pass
     except BaseException:
         stop_process_group(process)
         record_metric(stage, "interrupted", time.monotonic()-started, run_id=run_id)
         raise
     finally:
         selector.close()
-        process.stdout.close()
+        try:
+            process.stdout.close()
+        except Exception:
+            pass
         if on_start:
             on_start(None)
     elapsed = time.monotonic() - started

@@ -1,182 +1,210 @@
-# 💡 Catálogo Completo de Sugestões de Melhorias Futuras (Ultra Rotina)
+# 💡 Catálogo Oficial de Sugestões de Melhorias Futuras (Ultra Rotina)
 
-> Documentação de oportunidades e melhorias levantadas durante os testes e auditorias de funções.
-
-## 💡 Sugestões de Melhorias Futuras` (exclusivamente como documentação de sugestões, sem desviar a execução para implementação de novas features agora).
-
----
-
-## 🔄 Tarefa Concluída
-
-- [x] **Expansão e Refinamento do Modelo de Exame Físico Normal Completo no Telegram e Cockpit**:
-    - Substituída a string simplificada "EF normal" pelo modelo semiológico canônico completo (Ectoscopia, Sinais Vitais com preservação dos dados prévios informados, ACV, AR, Abdome, Extremidades com TEC < 3s).
-    - Removido o cabeçalho redundante `[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.`, iniciando diretamente em `Sinais Vitais:` seguido de `Bom estado geral...`.
-    - Eliminado o termo `(rítmico)` da FC e garantido o preenchimento com `[   ]` para sinais vitais não aferidos/informados.
-    - Eliminada a mensagem intermediária de texto ("🩺 Exame físico registrado como totalmente normal. Atualizando rascunho..."), entregando diretamente a mensagem do SOAP atualizado com feedback sutil via toast.
-    - Garantida a expansão determinística no campo Objetivo (O) do SOAP tanto na Fase 1 quanto na Fase 2, proibindo a redução da IA a resumos simplistas.
-    - Omitida a cobrança ativa redundante de manobras de EF básico na Fase 1 quando o EF completo já estiver registrado.
-    - Corrigido o balanceamento de caracteres de Markdown em `_iaFinalizarTexto` para evitar perda de formatação (negritos e itálicos) no Telegram.
-    - Suíte de testes `test_ef_normal_completo.cjs` e suíte geral `npm test` aprovadas com 100% de sucesso.
+> Catálogo estruturado de oportunidades e melhorias levantadas durante auditorias clínicas, testes de funções e uso beira-leito.
+> Organizado por áreas de atuação clínica, prioridade médica e impacto prático.
+>
+> 📌 **Diretriz de Governança & Inserção de Novas Sugestões**:
+> 1. **Formato Obrigatório**: Toda nova sugestão deve ser inserida na seção temática pertinente abaixo no formato:
+>    `- **Nome da Sugestão / Recurso** (*Área / Contexto*): Descrição clínica ou técnica objetiva.`
+> 2. **Proibição de Poluição de Tarefas**: É terminantemente proibido colar blocos de tarefas concluídas, andamento ou backlog neste arquivo (devem residir exclusivamente em `CHANGELOG.md` e `PROGRESS.md`).
+> 3. **Filtro de Relevância**: Não adicionar sugestões cosméticas dispensáveis, redundantes com funcionalidades já existentes ou que reduzam salvaguardas clínicas.
+> 4. **Buffer do PROGRESS.md**: Ao adicionar sugestões de alto impacto, atualize o buffer leve de 5 sugestões no `PROGRESS.md`.
 
 ---
 
-## 🔄 Próxima Tarefa em Andamento
+## 🏆 As Melhores Sugestões (Alto Impacto Clínico & Beira-Leito)
 
-- [ ] **Auditoria de UX Beira-Leito e Navegação Contextual na Aba Emergências & Sala Vermelha Interna (Telegram)**:
-    - Aplicar o protocolo das 6 regras de ouro (navegação contextual sem ficar preso, edição in-place sem flood, determinismo 0ms sem IA desnecessária, eliminação de botões fantasmas, redação canônica e botão de cópia de conduta) nos fluxos internos:
-      * PCR (/pcr) e Arritmias Cardíacas (Taquiarritmias, Bradiarritmias, FA, ritmos de PCR).
-      * Condutas de Sala Vermelha: EAP Hipertensivo, Anafilaxia, Crise Convulsiva, Hipercalemia e CAD.
-      * SRI (/sri) e DVA (/dva): garantir botões de retorno contextual `[🔙 Sala Vermelha]` e `[🏠 Início]` em vez de jogada cega para o menu raiz.
+As sugestões abaixo representam as intervenções de maior valor prático para salvar vidas, evitar erros farmacológicos graves e acelerar a rotina médica:
 
----
-
-## 📋 Backlog Prioritário: Testes de Funções, Correção de Falhas e Otimização da Experiência (Todas as Abas do Bot)
-
-> **Protocolo Mandatório de UX Beira-Leito para o Autoloop (Inspirado nos 4 Vídeos de Feedback Real)**:
-> 1. **Navegação Contextual & Anti-Preso**: Botão `[🔙 Nome da Aba]` (voltando para o submenu exato de origem, sem cair na raiz genérica) + `[🏠 Início]` em 1 toque.
-> 2. **Edição In-Place (`editMessageText`)**: Navegação fluida entre telas sem flood de novas mensagens, mantendo o histórico do chat limpo.
-> 3. **Determinismo Instantâneo (0 ms) vs IA Desnecessária**: Respostas imediatas para fichas, condutas protocoladas, tabelas e calculadoras; IA reservada exclusivamente para raciocínio clínico aberto e casos complexos.
-> 4. **Higienização de Botões & Anti-Ruído**: Eliminação de botões prematuros, botões fantasmas (`Gerar PDF` inútil em emergência, etc.) e menus redundantes ("outras opções" duplicando opções já visíveis).
-> 5. **Redação Médica Canônica de Prontuário**: Textos de conduta objetivos, semiologia real descritiva (sem "alterações não relatadas"), eliminação de saudações e enrolação.
-> 6. **Ação Rápida de 1 Toque (`[📋 Copiar para Prontuário]`)**: Sempre fornecer botão de cópia de conduta/prescrição formatada para colar direto no prontuário/PEP.
-
-1. [ ] **Auditoria e Otimização da Aba Emergências & Sala Vermelha Interna (`ux:sala`, `ux:conduta:*`, `ux:emerg:*`)**:
-    - Validar e higienizar fluxos de PCR, Arritmias, EAP, CAD, Anafilaxia, Convulsão, Hipercalemia, Dengue C/D, Cefaleia, SRI e DVA.
-    - Eliminar botões fantasmas (`Gerar PDF`, `Ver critérios`), garantir edição in-place e rodapés navegacionais com `[🔙 Sala Vermelha]` e `[🏠 Início]`.
-2. [ ] **Auditoria e Otimização da Aba Consultas Rápidas de Bolso (`ux:hub:bolso`)**:
-    - Validar submódulos: Antibióticos por Foco (`ux:bolso:atb`), Doses Pediátricas por Peso (`ux:bolso:ped`), Gestação & Lactação (`ux:bolso:gestacao`), Interações Medicamentosas Graves (`ux:bolso:interacao`) e Diluição HSL (`ux:bolso:hsl`).
-    - Garantir retorno contextual para `[🔙 Consultas de Bolso]`, entrega de respostas em 0ms sem chamadas redundantes de IA e botão `[📋 Copiar Conduta]`.
-3. [ ] **Auditoria e Otimização da Aba Ambulatório & Atenção Primária (`ux:hub:amb`)**:
-    - Validar fluxos de CID-10 & CIAP-2 Rápido (`ux:amb:cid`), Prescrição REMUME SUS (`ux:amb:remume`), Atestado Médico CFM (`ux:amb:atestado`) e Receituário de Controle Especial (C1/B1).
-    - Assegurar botões de retorno para `[🔙 Ambulatório]` e `[🏠 Início]`, além de botões imediatos de cópia e impressão sem passos intermediários desnecessários.
-4. [ ] **Auditoria e Otimização da Aba Calculadoras Clínicas & Escores (`ux:hub:calc` e Cockpit)**:
-    - Validar Gasometria Arterial completa (`ux:iniciar:gaso`), Cockcroft vs CKD-EPI (`calc_Cockcroft`, `calc_CKD`), Hidratação Holliday-Segar (`ux:enf:hidratacao`), Glasgow e Escores de Risco.
-    - Validar Calculadora de Queimaduras (Parkland / Brooke) no Cockpit (reposição em 24h, regra dos 9 de Wallace, 4 mL/kg/% SCQ, frações 50% nas primeiras 8h e diurese alvo).
-    - Validar Calculadora de Drogas Vasoativas (/dva e Cockpit): taxa de infusão (mcg/kg/min para mL/h) com presets táteis de ampolas e salvaguardas anti-dose excessiva.
-    - Garantir retorno consistente para `[🔙 Calculadoras]` ou para o cenário clínico chamador (Enfermaria ou Sala Vermelha), eliminando telas órfãs.
-5. [ ] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`)**:
-    - Validar os 10 submódulos de G&O: Pré-Natal & DPP (`go_prenatal`), Parto/Partograma (`go_parto`), HPP 4 Ts (`go_hpp`), Pré-Eclâmpsia & MgSO4 (`go_mgso4`), Prematuridade/RPMO (`go_prematuridade`), Toxo (`go_toxo`), Vulvovaginites (`go_corrimento`), Preventivo INCA (`go_preventivo`), Anticoncepção OMS (`go_anticoncepcao`) e DIP (`go_dip`).
-    - Substituir retornos genéricos para o menu raiz por `[🔙 Hub G&O]` e `[🏠 Início]`, com condutas prescritivas instantâneas (0ms) e botão de cópia de conduta.
-6. [ ] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`)**:
-    - Validar Painel de Leitos (`ux:painel:0`), Abertura de Leito Individual (`ux:leito:*`), Evolução Diária (`ux:evoluir:*`), Alta Hospitalar (`ux:alta:*`) e Passagem SBAR (`ux:enf:sbar`).
-    - Garantir que nenhum estado de censo ou evolução deixe o médico sem opções de navegação direta para `[🔙 Enfermaria]` ou `[🏠 Início]`.
-7. [ ] **Auditoria e Otimização da Central de Rotina & Plantão do Médico (`ux:hub:rotina`)**:
-    - Validar Agenda do Dia/Amanhã (`ux:rotina:agenda`, `ux:rotina:agenda_amanha`), Tarefas do Plantão (`ux:rotina:tasks`), Check-in / Briefing (`ux:rotina:checkin`, `rotina_briefing`) e Encerramento de Plantão (`ux:rotina:plantao_fim`).
-    - Garantir navegação em 1 toque sem digitação manual, com retorno para `[🔙 Central de Rotina]` e `[🏠 Início]`.
+1. **Kit Prescritivo Rápido do Tripé da Hipercalemia Grave** (*Emergência / Sala Vermelha*):
+   Prescrição estruturada em 1 toque combinando Estabilização de Membrana (Gluconato de Cálcio 10% 10-20 mL EV em 3-5 min), Shift Intracelular (Glicoinsulina 10 UI Regular + 50g Glicose 50% + Fenoterol/Salbutamol inalatório) e Eliminação Corpórea (Furosemida / Resinas trocadoras) com vigilância seriada de ECG e glicemia.
+2. **Alerta Sentinela de Colapso Hemodinâmico na Sequência Rápida de Intubação (SRI)** (*Emergência / Sala Vermelha*):
+   Trava ativa impedindo o uso inadvertido de drogas vasodilatadoras/depressoras miocárdicas (Propofol ou Midazolam) em pacientes em choque com Noradrenalina, direcionando imediatamente para indutores hemodinamicamente estáveis (Etomidato 0,3 mg/kg ou Quetamina 1,5-2 mg/kg).
+3. **Calculadora Integrada de Reposição de Potássio IV (KCl 19,1%) com Limites de Concentração e Velocidade** (*Nefrologia / UTI*):
+   Cálculo automático de concentração máxima de segurança para acesso venoso periférico (máx 40 mEq/L) vs acesso venoso central (máx 60 mEq/L) e taxa máxima horária de infusão (10-20 mEq/h sob monitorização cardíaca contínua), eliminando risco de flebite química e parada cardíaca.
+4. **Matriz Visual de Alocação de Fármacos por Lúmen de Cateter Venoso Central (CVC Multilúmen)** (*UTI / Farmacologia*):
+   Guia visual de compatibilidade física para cateteres de duplo/triplo lúmen: alocação do lúmen distal para vasopressores contínuos críticos (Noradrenalina, Vasopressina), lúmen medial para Nutrição Parenteral Total/hemoderivados e lúmen proximal para sedoanalgesia/bolus, prevenindo precipitação físico-química e perda de acesso.
+5. **Checklist de Bandeiras Vermelhas em Cefaleia Aguda (Escore SNOOP4)** (*Emergência / Neurologia*):
+   Checklist tátil obrigatório antes de liberar conduta de analgesia primária para triagem rápida de Hemorragia Subaracnóidea (HSA), meningite, trombose venosa cerebral ou hipertensão intracraniana.
+6. **Alvos de Ventilação Mecânica Protetora na SDRA Acoplados à Gasometria** (*Emergência / Terapia Intensiva*):
+   Sugestão imediata de volume corrente protetor (VT 6 mL/kg de peso predito pela altura, não peso real), FR ajustada para PaCO2 alvo e titulação de PEEP/FiO2 acoplados à relação P/F da classificação de Berlin.
+7. **Rastreamento Precoce de Pré-Eclâmpsia no 1º Trimestre (FMF)** (*Ginecologia & Obstetrícia*):
+   Algoritmo de estratificação entre 11 e 13+6 semanas baseado na Fetal Medicine Foundation, com prescrição preventiva automática de AAS 150 mg/dia à noite e Carbonato de Cálcio 1,5g/dia se risco elevado antes da 16ª semana gestacional.
+8. **Extração Inteligente de Atestado Médico CFM e Resumo para WhatsApp a partir do SOAP** (*Ambulatório / Atenção Primária*):
+   Geração em 1 toque de atestado médico CFM preenchido com repouso adequado à patologia, acompanhado de botão para envio das orientações de alta em linguagem leiga para o WhatsApp do paciente.
 
 ---
 
+## 🚨 Sala Vermelha, Emergências Médicas & UTI
 
-- *Sugestão 28 (SOAP / Exame Físico)*: Menu seletor rápido de modelos normais dirigidos por especialidade médica (ex: Pediátrico normal com fontanelas e reflexos arcaicos, Geriátrico/AGA com marcha e funcionalidade, Neuro normal com pares cranianos detalhados) expansíveis em 1 toque diretamente no botão [🔬 Exames].
-
-- *Sugestão 1 (Cockpit)*: Busca rápida instantânea por texto com filtro de medicamentos padronizados na REMUME.
-- *Sugestão 2 (Cockpit)*: Modo noturno (Dark Mode) de alto contraste para economia de bateria e conforto visual no plantão.
-- *Sugestão 3 (Telegram / Cockpit)*: Botão de 1 toque para cópia direta estruturada em formato SOAP / PEP compatível com prontuários eletrônicos ambulatoriais.
-- *Sugestão 4 (Telegram - Atalhos de 1 Toque)*: Teclado inline expansível no comando `/gaso` com botões de pré-seleção rápida para distúrbios comuns (ex: Cetoacidose / Acidose Metabólica, Alcalose Respiratória, Retenção Crônica de DPOC) para agilizar o preenchimento sem digitação manual de parâmetros em emergências.
-- *Sugestão 5 (Telegram / Sala Vermelha)*: Cronômetro interativo com alerta sonoro/notificação no Telegram para ciclos de 2 minutos de RCP no ACLS (`/pcr`), alertando a troca de socorrista, checagem de ritmo e tempo da próxima dose de adrenalina (a cada 3-5 min).
-- *Sugestão 6 (Calculadoras / Cockpit)*: Calculadora integrada de Reposição de Potássio IV (KCl 19,1%) calculando concentração máxima em acesso periférico (40-60 mEq/L) vs acesso venoso central e velocidade de infusão máxima (máx 10-20 mEq/h com monitoração cardíaca) acoplada diretamente ao alerta de hipocalemia.
-- *Sugestão 7 (Telegram - Farmacologia)*: Botão inline de checagem imediata de diluição e compatibilidade em Y no Guia Farmacêutico HSL quando uma droga vasoativa (ex: Noradrenalina ou Dobutamina) for calculada via `/dva`.
-- *Sugestão 8 (Cockpit / PWA)*: Sincronização em segundo plano (Background Sync API) com fila outbox no IndexedDB para envio automático de prescrições e atualizações de leitos assim que o dispositivo recuperar conexão de rede após áreas de sombra no hospital.
-- *Sugestão 9 (Cockpit PWA)*: Tema "Plantão Noturno / Sala Escura" com fundo OLED puro (#000000) e tipografia em tons de âmbar/vermelho escuro para conforto visual e conservação de bateria no plantão da madrugada.
-- *Sugestão 10 (Calculadoras / Cockpit)*: Calculadora integrada de reposição de Magnésio e Fósforo IV para prevenção e manejo precoce da根 Síndrome de Realimentação em pacientes desnutridos ou em jejum prolongado na enfermaria/UTI.
-- *Sugestão 11 (Calculadoras)*: Implementar validação cruzada entre clearance estimado (Cockcroft) e eTFG (CKD-EPI) ao gerar alertas de ajuste renal para evidenciar discrepâncias em obesos e sarcopênicos.
-- *Sugestão 12 (Gasometria)*: Adicionar cálculo visual do triângulo de Siggaard-Andersen para auxiliar o médico na compreensão do desvio de base.
-- *Sugestão 14 (Telegram - Mensagens Longas)*: Adicionar botão inline automático "📄 Ver Resumo Completo no Cockpit PWA" quando uma conduta for fragmentada em 3 ou mais partes, oferecendo opção de leitura contínua sem rolagem infinita.
-- *Sugestão 15 (Telegram / Sala Vermelha)*: Teclado inline com botões para pontuação direta da Escala de Glasgow por componentes (Abertura Ocular: 1 a 4, Resposta Verbal: 1 a 5, Resposta Motora: 1 a 6) com soma automática e cálculo de reatividade pupilar (GCS-P) para traumatismo cranioencefálico.
-- *Sugestão 16 (Telegram - Conexões Instáveis)*: Mecanismo de handshake leve com heartbeat de 10s via chatAction para avaliar latência da rede hospitalar antes de disparar payloads pesados com fallbacks adaptativos.
-- *Sugestão 17 (Backend / Telemetria)*: Implementar exportação Prometheus / OpenTelemetry (`/metrics`) com gauges e histogramas padronizados de latência de IA multimodal e tempo de resposta do Fastify para dashboards externos (Grafana/Datadog).
-- *Sugestão 18 (Backend / Resiliência)*: Circuit Breaker determinístico com estados Closed/Open/Half-Open para chamadas de provedores LLM externos (Gemini/Groq/OpenRouter), evitando retenção de conexões e travamento de threads em casos de timeout prolongado da API externa.
-- *Sugestão 19 (Cockpit PWA / Telemetria)*: Envio assíncrono em lote (Beacon API / navigator.sendBeacon) de métricas de telemetria de performance do frontend (Web Vitals: LCP, FID, CLS e latência de toque nos cards) diretamente para `/api/telemetria/ao-vivo` no encerramento ou pausa de sessão do plantão.
-- *Sugestão 20 (Cockpit PWA)*: Implementar Web Share API para compartilhamento seguro de prescrições e orientações de alta via WhatsApp ou PDF diretamente pelo dispositivo móvel.
-- *Sugestão 21 (Cockpit / Calculadoras)*: Implementar histórico local dos últimos 5 cálculos realizados na sessão do plantão (IndexedDB/sessionStorage) para recuperação rápida com 1 toque sem redigitação de valores prévios.
-- *Sugestão 22 (Backend / Caching)*: Adicionar ETag HTTP determinístico no endpoint de REMUME e Guia Farmacêutico para permitir respostas HTTP 304 Not Modified, eliminando transferências redundantes de dados em reconexões.
-- *Sugestão 23 (Cockpit / Offline)*: Implementar busca fuzzy determinística na REMUME local para tolerar pequenas variações e erros de digitação rápidos beira-leito sem necessidade de internet.
-- *Sugestão 24 (Backend / Fastify)*: Implementar suporte a cabeçalho `Clear-Site-Data` em endpoint administrativo de redefinição de sessão para expurgo limpo de caches e Service Workers corrompidos no plantão.
-- *Sugestão 25 (Telegram / UI)*: Mini-gráfico Sparkline em caracteres Unicode ( ▂▃▅▆▇) no sumário de glicemia (`/diabetes`) para visualização instantânea de tendência sem payload de imagem.
-- *Sugestão 26 (Segurança / Fastify)*: Suporte a chave de Rate-Limit por Token/Sessão médica (em vez de apenas IP) para ambientes hospitalares onde dezenas de médicos compartilham o mesmo IP de gateway/NAT da rede Wi-Fi corporativa da instituição, evitando que o tráfego agregado de múltiplos médicos atinja o limite por IP.
-- *Sugestão 27 (Segurança / Cockpit)*: Adicionar cabeçalho `Permissions-Policy` (geolocalização, câmera, acelerômetro restritos, mantendo apenas microfone para ditado do preceptor) para reforçar privacidade beira-leito.
-- *Sugestão 28 (Cockpit / Acessibilidade)*: Adicionar chave de alternância "Modo Alto Contraste Solar / Ao Ar Livre" (Monocromático / Preto e Branco invertido com taxa de contraste > 15:1) acionável por 1 toque no cabeçalho para leitura perfeita sob sol pleno em transferências de ambulância e heliponto.
-- *Sugestão 29 (Cockpit / Acessibilidade)*: Implementar feedback auditivo discreto (Web Audio API / bips com frequências distintas para erro crítico vs sucesso) na marcação de itens da Sala Vermelha, permitindo que o médico valide os passos da conduta mesmo sem olhar fixamente para a tela durante a ressuscitação.
-- *Sugestão 30 (Cockpit / Sala Vermelha)*: Metrônomo sonoro e visual integrado de RCP com 100-120 bpm na aba de TV Instável / PCR da Sala Vermelha para manter a cadência ótima de compressões torácicas no ACLS beira-leito.
-- *Sugestão 31 (Backend / Resiliência)*: Dashboard visual ou endpoint SSE `/api/circuit-breaker/stream` com telemetria em tempo real das transições de estado (CLOSED -> OPEN -> HALF_OPEN) e taxas de timeout dos provedores de IA para observabilidade no Cockpit.
-- *Sugestão 32 (Multimodal / Áudio)*: Implementar transcrição preliminar com Web Speech API nativa do dispositivo diretamente no Cockpit PWA antes do envio do áudio, permitindo conferência e edição prévia do texto ditado pelo médico antes do handshake de rede.
-- *Sugestão 33 (Segurança / Fastify)*: Documentação interativa de API via OpenAPI / Swagger UI (`/docs`) gerada diretamente a partir dos schemas JSON Fastify já declarados para auditoria rápida de contratos e parâmetros beira-leito.
-- *Sugestão 34 (Calculadoras / Resiliência)*: Validação cruzada estrita entre calculadoras de DHE e ECG prévio no handshake, disparando alerta automático de ECG mandatório quando K+ > 6.0 mEq/L ou Na+ < 120 mEq/L antes de calcular a taxa de infusão.
-- *Sugestão 35 (Cockpit / Passagem de Plantão)*: Exportação rápida do histórico de cálculos da sessão em formato de sumário de passagem de plantão / transferência estruturado (incluindo horário, peso e parâmetros de DVA/SRI/Gaso).
-- *Sugestão 36 (Cockpit / Calculadoras)*: Recurso de "Fixar Cálculo" (Pin) no histórico da sessão para manter cálculos críticos de pacientes instáveis permanentemente no topo do painel durante todo o turno.
-- *Sugestão 37 (Calculadoras / Sala Vermelha)*: Calculadora de Osmolaridade e Osmolalidade Plasmática Efetiva com cálculo de Osmolar Gap acoplada à gasometria e sódio sérico para investigação de intoxicações exógenas por álcoois tóxicos (metanol, etilenoglicol) e cetoacidose diabética.
-- *Sugestão 38 (Cockpit / Farmacologia de UTI)*: Visualização em árvore/matriz gráfica de múltiplos lúmens de CVC com alocação recomendada de fármacos (lúmen distal para vasopressores/medicação contínua crítica, medial para nutrição parenteral/sangue, proximal para sedoanalgesia/bolus) para prevenir incompatibilidades físico-químicas em acessos venosos centrais de múltiplos lúmens.
-- *Sugestão 39 (Cockpit / Resiliência de Rede)*: Detecção proativa de degradação de sinal via Network Information API (`navigator.connection.effectiveType` e `navigator.connection.rtt`) para calibrar dinamicamente os timeouts e antecipar modo de baixo consumo em redes Wi-Fi hospitalares com alta perda de pacotes.
-- *Sugestão 40 (Cockpit / UX)*: Indicador visual de pulso / batimento de dados (Heartbeat Ping) discreto no cabeçalho durante atendimentos críticos na Sala Vermelha, confirmando em tempo real a sincronia do censo e gasometrias seriadas.
-- *Sugestão 41 (Cockpit / Telemetria)*: Compressão com gzip/deflate de snapshots volumosos no IndexedDB para economizar quota de armazenamento local em smartphones hospitalares com pouca memória livre.
-- *Sugestão 42 (Cockpit / SBAR)*: Adicionar botão de exportação da Passagem SBAR em formato PDF para arquivamento ou anexação ao prontuário hospitalar.
-- *Sugestão 43 (Cockpit / Acessibilidade)*: Navegação completa por atalhos de teclado físico (para uso em tablets e notebooks com teclado externo na enfermaria: ex: `Ctrl+K` para busca de fármacos, `Alt+S` para abrir SBAR, `Alt+P` para prescrição).
-- *Sugestão 44 (Telegram / Prescrição)*: Comando `/sbar` direto no bot do Telegram aceitando parâmetros rápidos (`/sbar leito 12 ...`) para formatação automática e envio de passagem de plantão segura via chat.
-- *Sugestão 45 (Cockpit / Farmacologia)*: Cache offline persistente de monografias e fichas completas do Guia HSL no IndexedDB com indicador visual de sincronização diferencial.
-- *Sugestão 46 (Telegram / Farmacologia)*: Comando `/posologia <fármaco>` com resposta instantânea em card compacto contendo dose usual, dose máxima diária, diluição padrão e alerta de ajuste renal beira-leito.
-- *Sugestão 47 (Gasometria / Telegram)*: Suporte a envio de foto de fita impressa de aparelho de gasometria com extração OCR multimodal direta (pH, pCO2, HCO3, eletrólitos e lactato) com preenchimento automático em 0ms.
-- *Sugestão 48 (Gasometria / Sala Vermelha)*: Sugestão de alvos de ventilação mecânica invasiva (VT 6 mL/kg de peso predito, FR ajustada para PaCO2 alvo e PEEP para PaO2 alvo) acoplada diretamente ao resultado do passo 5 (oxigenação e relação P/F) na SDRA.
-- *Sugestão 49 (Telegram / UX)*: Botão de alternância rápida entre Gasometria Arterial vs Venosa Central (ScvO2 e delta-pCO2 / pCO2 venosa - arterial com corte de 6 mmHg para ressuscitação hemodinâmica).
-- *Sugestão 50 (Backend / Fastify)*: Middleware de sanitização recursiva contra XSS / injeção de HTML nos payloads de texto livre (anamnese, evolução, SOAP e leitos) antes de persistir no banco ou propagar para o PWA.
-- *Sugestão 51 (Backend / Resiliência)*: Compressão brotli/gzip adaptativa por nível de bateria do dispositivo móvel reportado pelo header `Save-Data` / `Sec-CH-UA-Reduced-Data` para conexões de baixa largura de banda no hospital.
-- *Sugestão 52 (Backend / Telemetria)*: Painel de telemetria com contadores de payloads rejeitados agrupados por código de erro (JSON malformado, limites fisiológicos, protótipo inválido) exposto em `/api/telemetria/sanitizacao` para detecção proativa de anomalias de clientes.
-- *Sugestão 53 (Calculadoras / Nefrologia)*: Calculadora integrada de Taxa de Filtração Glomerular pela equação CKD-EPI 2021 (sem coeficiente racial) no Cockpit PWA em paralelo ao Cockcroft-Gault para comparação direta beira-leito entre estadiamento de DRC e ajuste farmacológico.
-- *Sugestão 54 (Calculadoras / Hidratação)*: Protocolo interativo de reposição de potássio com cálculo automático de limite de concentração para acesso venoso periférico (máximo 40 mEq/L) versus acesso venoso central (máximo 60 mEq/L) com alerta sonoro/visual de monitorização cardíaca contínua.
-- *Sugestão 55 (Cockpit / Pneumologia)*: Feedback visual com indicador gráfico de saturação SpO2 e barra de cores dinâmica (verde 93-95% para asma, verde 88-92% com aviso amarelo/vermelho >92% para DPOC alertando hiperóxia e perda do drive hipóxico em tempo real).
-- *Sugestão 56 (Telegram / Emergência Respiratória)*: Atalhos inline `/asma` e `/dpoc` com botões táteis de 1 toque para classificação rápida de crise asmática/DPOC em 3 níveis (Leve/Moderada, Grave, Ameaça à Vida/Tórax Silencioso) gerando conduta imediata formatada para copiar para PEP.
--*Sugestão 57 (Telegram / Visual)*: Barras de progresso e gravidade com blocos semafóricos em emojis (`🟩🟩🟨⬜⬜`) no Telegram para sumarização visual imediata de escores de risco clínico beira-leito (ex: FRAX, CURB-65, TIMI, Wells, qSOFA) e metas terapêuticas.
-- *Sugestão 58 (Telegram / UX)*: Pulsador contínuo de status de digitação (`sendChatAction: typing` periódico com timer/thread) durante processamento de consultas clínicas discursivas complexas via IA (Gemini Pro) para manter feedback de vida ativo e evitar sensação de travamento na rede móvel hospitalar.
-- *Sugestão 59 (Telegram / UI)*: Modo "Resumo Telegráfico Ultra-Curto" (toggle `/modo_curto` ou `/conciso`) para médicos veteranos que desejam apenas dosagens em bullets puros sem qualquer contextualização clínica secundária.
-- *Sugestão 60 (Telegram / Farmacologia)*: Card de conduta em formato "Checklist Beira-Leito" com checkboxes visuais preenchíveis inline para conferência ágil de passos de ressuscitação em emergências.
-- *Sugestão 61 (Telegram / Sala Vermelha)*: Botão de alternância rápida entre apresentação clínica inicial e critérios de desmame/tapering de DVA (Noradrenalina / Dobutamina / Vasopressina) com metas de PAM ≥ 65 mmHg e lactato em clareamento.
-- *Sugestão 62 (Telegram / Emergência)*: Protocolo ágil de dose de ataque vs manutenção de Amiodarona venosa com pré-cálculo automático em SF 5% (300 mg em bolus na PCR chocável refratária vs 150 mg em 10 min na TV estável, seguido de 1 mg/min por 6h e 0,5 mg/min por 18h).
-- *Sugestão 63 (Telegram / Dengue)*: Alerta visual com calculadora rápida de hematócrito e critério de hemoconcentração (aumento de 20% do Ht basal) para reclassificação dinâmica entre Grupo B e Grupo C no Telegram.
-- *Sugestão 64 (Telegram / Cefaleia)*: Escore SNOOP4 com checklist interativo para estratificação imediata de bandeiras vermelhas em cefaleia aguda antes de liberar protocolo de analgesia primária.
-- *Sugestão 65 (Pediatria / Farmacologia)*: Transição visual automática para formulação em comprimidos de adulto quando o paciente pediátrico tiver peso > 40-50 kg ou atingir o teto de adulto (exibir sugestão alternativa "Amoxicilina 500 mg: 1 cp VO de 8/8h" ao lado da suspensão de 250 mg/5 mL para evitar sobrecarga de volume líquido).
-- *Sugestão 66 (Telegram / Fila de Entrega Confiável)*: Adicionar comando `/reprocessar_fila` ou botão de 1 toque no alerta de falha de integração externa (Notion/APIs) permitindo retry manual imediato de pedidos que permaneceram com status 'failed' na fila persistente sem exigir nova digitação do médico.
-- *Sugestão 67 (Telegram / Neurologia)*: Adicionar atalhos de botões táteis inline de 1 toque no roteiro de exame físico neurológico (`/neuro` / `/ef_neuro`) para graduar força motora segundo a escala MRC (Grau 0 a 5) e sinais meníngeos (Brudzinski / Kernig), permitindo montagem automática do resumo neurológico sem digitação livre no plantão.
-- *Sugestão 68 (Telegram / Fila & Resiliência)*: Exibir teclado com botões inline nos resultados de `/fila` (ex: `[📦 Ver Pedido 9]`, `[📋 Ver Entrega 9_1]`) para permitir navegação tátil direta entre pendências e histórico arquivado no chat sem necessidade de digitação manual de comandos textuais.
-- *Sugestão 69 (SOAP / Didática & Ensino Médico)*: Implementar botão inline de 1 toque no rascunho SOAP Fase 1 `[💡 Racional Didático]` para exibir em popup/mensagem complementar o mapa semiológico completo (pergunta investigativa ➔ hipótese FMRP-USP a descartar) para residentes e acadêmicos, sem sobrecarregar a transcrição limpa de prontuário para o médico assistente.
-- *Sugestão 70 (IA / Otimização de Inferência)*: Cache semântico de embeddings ou KV-cache para prompts extrativos de baixa latência em modelos Gemini 2.5/Flash-Lite quando `semThinking: true`, permitindo reaproveitamento de respostas estruturadas para consultas idênticas de CID-10, posologia e interações em 0ms sem consumo de cota de API.
-- *Sugestão 71 (Segurança / RBAC Cockpit)*: Adicionar comando no Telegram `/cockpit_revogar_convidado` para invalidação imediata em cache de tokens HMAC emitidos (`ck_<hmac>`) quando um médico convidado concluir o plantão, oferecendo ciclo de vida de credenciais mais granular sem afetar o titular.
-- *Sugestão 72 (Consultas de Bolso / Antimicrobianos)*: Adicionar seletor tátil de sensibilidade local / perfil microbiológico hospitalar (ex: taxa local de ESBL, MRSA ou Pseudomonas) no submenu de Antibióticos por Foco (`ux:bolso:atb`) para escalonamento automático de dose e tempo de infusão estendida de betalactâmicos conforme epidemiologia da UTI local.
-- *Sugestão 73 (Consultas de Bolso / Pediatria)*: Implementar conversão automática de apresentações pediátricas líquidas para gotas em seringa dosadora ou colheres-medida (ex: 5 mL = 1 colher de chá, 15 mL = 1 colher de sopa) nos cards de cópia de conduta pediátrica (`ux:bolso:ped`), minimizando erros de administração domiciliar pelos cuidadores.
-- *Sugestão 74 (Consultas de Bolso / Farmacovigilância)*: Adicionar busca multi-droga combinada em 1 toque no crosscheck de interações (`ux:bolso:interacao`) permitindo colar a lista completa de medicamentos de uso crônico da admissão hospitalar (conciliação medicamentosa) com matriz visual de alertas graduada em cores (Verde: Seguro, Amarelo: Monitorar, Vermelho: Contraindicação Absoluta).
-- *Sugestão 75 (Ambulatório / CIAP-2 Multicêntrico)*: Adicionar mapeamento cruzado bidirecional entre CIAP-2 (Capítulo / Razão de Encontro) e CID-10 no seletor de diagnósticos da atenção básica (`ux:amb:cid`) com filtro por linha de cuidado (saúde da criança, da mulher, do adulto e do idoso).
-- *Sugestão 76 (Ambulatório / Controle Especial e Notificação)*: Adicionar templates estruturados em 1 toque de Receituário de Controle Especial (Portaria SVS/MS nº 344/98 - Listas C1 e B1) e Notificação de Receita B (Psicotrópicos) com cálculo automático da quantidade necessária para 30 ou 60 dias de tratamento.
-- *Sugestão 77 (Ambulatório / Validação de Atestado Digital com QR Code)*: Implementar hash de integridade e metadados criptográficos para validação de atestado médico pelo empregador ou serviço de perícia, minimizando adulterações em declarações emitidas pelo consultório digital.
-- *Sugestão 78 (Calculadoras / Gasometria Arterial)*: Adicionar cálculo automático do Gradiente Alvéolo-Arterial de O₂ (P(A-a)O₂ = [FiO₂ × (Patm - PH₂O) - (PaCO₂ / R)] - PaO₂) com valor de referência ajustado por idade (Idade / 4 + 4) e alerta de shunt intrapulmonar ou alteração V/Q nas análises gasométricas arteriais (`ux:calc:gaso` e Cockpit PWA).
-- *Sugestão 79 (Calculadoras / Parkland & Queimados)*: Adicionar temporizador regressivo e alerta horário no Cockpit PWA para término da 1ª etapa de ressuscitação volêmica (primeiras 8h a contar do horário exato do trauma), com campos de input para volume já administrado na ambulância (SAMU) e compensação automática no volume restante de Ringer Lactato.
-- *Sugestão 80 (Calculadoras / Glasgow-P Pediátrico)*: Implementar toggle de adaptação pediátrica para a Escala de Coma de Glasgow em lactentes e crianças menores de 4 anos (balbucio/choro consolável em vez de orientação verbal e retração à dor em vez de localização), garantindo acurácia neurológica beira-leito em trauma pediátrico.
-- *Sugestão 81 (Ginecologia & Obstetrícia / Partograma Dinâmico)*: Implementar renderização em ASCII/gráfico SVG inline no Telegram e Cockpit PWA da linha de alerta e linha de ação do Partograma da OMS (com marcação temporal de dilatação cervical, descida da apresentação de De Lee e frequência cardíaca fetal), facilitando a identificação imediata de parada secundária de dilatação, fase ativa prolongada e período pélvico retardado.
-- *Sugestão 82 (Ginecologia & Obstetrícia / Calculadora de Risco de Pré-Eclâmpsia 1º Trimestre)*: Adicionar algoritmo de rastreamento precoce de pré-eclâmpsia entre 11 e 13+6 semanas baseado na Fetal Medicine Foundation (FMF), combinando fatores maternos, PAM média, IP das artérias uterinas e dosagem de PlGF, com prescrição automática de AAS 150 mg/dia à noite e Carbonato de Cálcio 1,5g/dia se risco elevado.
-- *Sugestão 83 (Ginecologia & Obstetrícia / Mapeamento de Anticoncepção Pós-Parto Imediato)*: Adicionar matriz de decisão rápida beira-leito para inserção de DIU de Cobre ou DIU de Levonorgestrel pós-parto imediato (até 10 minutos após dequitação ou transcesariana) e pós-aborto imediato, com taxa de expulsão comparativa e critérios de segurança FIGO/OMS.
-- *Sugestão 84 (Enfermaria / Alertas de Antibioticoterapia D-Tempo)*: Implementar contagem regressiva e alerta automático de D-tempo de antibióticos nos leitos (ex: alertar quando atingir D7 ou D14 para reavaliação de foco infeccioso, descalonamento de espectro ou transição para terapia oral precoce segundo diretrizes de Antimicrobial Stewardship).
-- *Sugestão 85 (Enfermaria / Notificação de Alerta SBAR para Equipe Multidisciplinar)*: Adicionar formatação de exportação rápida da Passagem SBAR adaptada para transmissão via canal seguro ou WhatsApp de enfermagem e fisioterapia, agrupando leitos com suporte ventilatório ativo, drenos e sondas.
-- *Sugestão 86 (Enfermaria / Censo Dinâmico com Filtro de Gravidade)*: Adicionar filtros instantâneos no Painel de Leitos (`ux:painel:0`) permitindo visualizar exclusivamente leitos críticos (🔴 Instáveis) ou em vigilância (🟡), facilitando a priorização do médico durante a passagem de plantão e o round matinal.
-- *Sugestão 87 (Rotina & Plantão / Sincronização Bidirecional com Google Calendar para Plantões em Escala)*: Adicionar parser inteligente de escala de plantão em PDF/texto que extraia automaticamente datas, hospitais e horários (ex: 12h ou 24h) e crie os eventos em lote no Google Calendar com alertas pré-plantão (D-1 para higiene do sono e D0 com kit de Sala Vermelha).
-- *Sugestão 88 (Rotina & Plantão / Check-in de Hábitos por Voz em Fluxo Contínuo)*: Permitir que o médico envie um único áudio relatando os hábitos do dia (ex: "hoje treinei costas, fiz 40 questões do MedQuest e toquei violão por 30 minutos") e o sistema marque todos os checkboxes correspondentes no Notion Habit Log e atualize a timeline adaptativa em 1 única operação atômica.
-- *Sugestão 89 (Rotina & Plantão / Exportação do Debriefing de Plantão para Prontuário Eletrônico com Assinatura Digital)*: Adicionar botão para gerar documento de Fechamento de Plantão formatado como laudo/relatório médico em PDF (`pdfkit`) com checklist de segurança preenchido e hash de integridade para anexar ao livro de ocorrências hospitalar.
-- *Sugestão 90 (Sala Vermelha & Emergências / Cronômetro e Metrônomo Sonoro de RCP 100-120 bpm no Cockpit PWA)*: Implementar metrônomo auditivo e visual sincronizado a 110 bpm com temporizador de ciclos de 2 minutos para checagem de pulso/ritmo e troca ágil de compressores durante ressuscitação cardiopulmonar.
-- *Sugestão 91 (Sala Vermelha & Emergências / Seletor de Carga de Desfibrilação Bifásica vs Monofásica)*: Adicionar visualizador rápido beira-leito com seleção de tecnologia do desfibrilador disponível no serviço (Bifásico 120-200J vs Monofásico 360J) e carga de cardioversão sincronizada imediata por arritmia (50-100J para Flutter e TSV; 100J para TV monomórfica; 200J para FA).
-- *Sugestão 92 (Sala Vermelha & Emergências / Prescrição Estruturada de Resgate em Hipercalemia Grave)*: Adicionar kit de prescrição em 1 toque combinando Estabilização de Membrana (Gluconato de Cálcio 10% 10-20 mL EV em 3-5 min), Shift Intracelular (Glicoinsulina 10 UI Regular + 50g Glicose 50% + Fenoterol inalatório) e Eliminação Corpórea (Furosemida / Resinas trocadoras) com vigilância de ritmo e glicemia seriada.
-- *Sugestão 93 (Sala Vermelha & Emergências / Protocolo Multidisciplinar de Histerotomia de Ressuscitação em 4 Minutos)*: Adicionar checklist tátil de prontidão perimortem no Telegram/Cockpit para PCR em gestante ≥ 20 semanas (kit cesariana de emergência, bisturi nº 20, clamp de cordão e equipe neonatal em espera), exibindo contagem regressiva para incisão aos 4 minutos se RCE não for obtido.
-- *Sugestão 94 (Sala Vermelha & Emergências / Matriz Rápida de Interações Farmacológicas na Sequência Rápida de Intubação)*: Adicionar checagem automática de risco de colapso hemodinâmico pré-IOT combinando droga indutora selecionada e dose de vasopressor atual (ex: alerta sentinela se paciente em choque grave com Noradrenalina for induzido com Propofol ou Midazolam em vez de Etomidato ou Quetamina).
-- *Sugestão 95 (SOAP Ambulatorial / Seleção Tátil de Modelos de Exame Físico por Aparelho no Telegram)*: Permitir que o médico no Telegram, ao clicar em `[🩺 EF Normal]`, escolha entre o Exame Físico Completo Padrão ou modelos dirigidos rápidos (Cardiovascular/HAS, Metabólico/Pés DM, Respiratório/IVAS, Coluna/Lombalgia, Gastrointestinal/Dispepsia) em 1 toque antes de incorporar ao SOAP.
-- *Sugestão 96 (SOAP Ambulatorial / Extração Inteligente de Atestado Médico CFM a partir da Avaliação SOAP)*: Adicionar botão `[📄 Gerar Atestado CFM]` na Fase 2 do SOAP quando a queixa e diagnóstico justificarem repouso laboral (ex: IVAS, lombalgia, gastroenterite), preenchendo automaticamente paciente, dias sugeridos conforme patologia e opção de consentimento para CID-10.
-- *Sugestão 97 (Prescrição Ambulatorial / Validação Automática de Dispensação por Programa Farmácia Popular)*: No momento da prescrição farmacológica do SOAP, identificar visualmente com badge `[Farmácia Popular]` os medicamentos gratuitos (Losartana, Enalapril, Hidroclorotiazida, Metformina, Glibenclamida, Insulinas, Salbutamol) e com co-pagamento, orientando o paciente sobre retirada sem custo na rede credenciada.
-- *Sugestão 98 (SOAP Ambulatorial / Calculadora Automática de Meta de HbA1c Individualizada por Fragilidade)*: Incorporar ao plano SOAP em pacientes diabéticos a definição dinâmica da meta de hemoglobina glicada conforme diretrizes SBD/ADA (jovem sem comorbidades: < 6,5-7,0%; idoso funcional ou com risco cardiovascular: < 7,5-8,0%; idoso frágil ou com expectativa limitada: < 8,5%).
-- *Sugestão 99 (SOAP Ambulatorial / Exportação de Resumo Clínico para WhatsApp do Paciente)*: Adicionar botão inline `[📱 Enviar Orientações ao Paciente]` para extrair exclusivamente as orientações não farmacológicas, sinais de alarme e data de retorno em linguagem leiga, acessível e empática para envio direto por mensagem.
-- *Sugestão 100 (Cockpit PWA / Sincronização Automática em Background via Web Worker / BroadcastChannel)*: Utilizar Web Workers dedicados e `BroadcastChannel` para desacoplar a fila de sincronização de rede da thread principal do DOM, garantindo renderização fluida a 60 fps em smartphones de entrada e tablets médicos sem bloqueio de microtarefas durante o envio em lote de ações offline.
-- *Sugestão 101 (Cockpit PWA / Gestos de Swipe para Ações Rápidas nos Leitos e Calculadoras)*: Implementar suporte a gestos touch nativos (`touchstart`/`touchend` com feedback haptic) para que o médico possa deslizar o card de um leito para a direita para marcar como 'Estável' ou para a esquerda para abrir o modal SBAR em 1 gesto rápido durante o round.
-- *Sugestão 102 (Cockpit PWA / Exportação do Histórico de Cálculos do Plantão em CSV/JSON Criptografado)*: Adicionar botão de exportação segura do histórico de cálculos do plantão para auditoria médica local ou registro em prontuário eletrônico hospitalar, permitindo download direto com sanitização de identificadores conforme a LGPD.
-- *Sugestão 103 (Cockpit PWA / Atalhos de Teclado Físico para Uso em Tablet e Desktop Hospitalar)*: Implementar atalhos globais de teclado (ex: `Alt+1` para Leitos, `Alt+2` para Cálculos, `Alt+3` para Farmacologia, `Ctrl+K` para busca universal e `Esc` para fechar modais) para médicos que utilizam o Cockpit em estações de trabalho de enfermagem ou tablets acoplados com teclado.
-- *Sugestão 104 (Cockpit PWA / Modo Alto Contraste Solar para Atendimento Pré-Hospitalar & SAMU)*: Criar modo visual com fundo branco puro, tipografia em preto sólido e bordas reforçadas para uso sob luz solar intensa em viaturas de resgate ou atendimento de rua, mantendo alternância em 1 toque com o tema dark hospitalar padrão.
-- *Sugestão 105 (Fastify / Rate-Limiting Dinâmico por IP com Whitelist para Redes Hospitalares)*: Implementar rate-limiting adaptativo na camada Fastify capaz de identificar sub-redes hospitalares internas e IPs corporativos de postos de enfermagem via cabeçalho `X-Forwarded-For` validado, aplicando limites diferenciados e evitando falsos-positivos de bloqueio 429 durante picos de triagem e admissão de múltiplos leitos simultâneos no mesmo terminal.
-- *Sugestão 106 (Motores de IA / Cache de Respostas Determinísticas em Memória RAM com TTL Inteligente por CID-10)*: Implementar cache determinístico em memória de alta velocidade (LRU Cache com hashing SHA-256 do prompt clínico e normalização de termos) para condutas canônicas de alta incidência (ex: PCR/ACLS, Anafilaxia, AVC, Pré-Eclâmpsia Zuspan), permitindo respostas instantâneas em 0ms sem realizar requisições HTTP locais ou remotas durante picos de emergência no plantão.
-- *Sugestão 107 (Motores de IA / Healthcheck Periódico Não-Bloqueante do Daemon Ollama Local)*: Implementar ping periódico a cada 60s em background (`/api/tags`) para aferir latência e aquecimento de modelos locais (Mistral/Llama 3/Qwen) no nó Ollama, mantendo um flag atômico de prontidão em RAM para evitar tentativas síncronas de conexão e timeouts desnecessários quando o daemon estiver pausado ou descarregado da GPU.
-- *Sugestão 108 (Motores de IA / Fallback Multinível com Transição Fluida para Modelos Locais Quantizados 4-bit)*: Adicionar perfil de contingência com modelos ultraleves quantizados GGUF (ex: Qwen 2.5 3B ou Llama 3.2 1B em 4 bits) otimizados para execução ultrarrápida em CPUs com baixo consumo de memória RAM (< 2 GB), viabilizando inferência médica offline completa mesmo em servidores hospitalares modestos ou notebooks de plantão sem GPU dedicada.
-- *Sugestão 109 (Test Sharding & Watcher Inteligente / Execução Automática por Diff do Git)*: Implementar modo observador (`--watch-diff` no runner de testes) que detecta arquivos modificados via `git status -s` e mapeia automaticamente as suítes de teste unitárias afetadas em tempo real (ex: edição em `src/03_obstetricia.js` aciona imediatamente apenas `tests/test_obstetricia_prenatal.cjs` em background com debouncing de 300ms), proporcionando feedback contínuo instantâneo com zero intervenção manual do desenvolvedor.
-- *Sugestão 110 (Autoloop / Telemetria Econômica de Custo por Token Cacheado vs Token Novo no Relatório Diário)*: Adicionar cálculo do valor financeiro economizado (em dólares e reais) a partir do diferencial de custo de Prompt Caching dos provedores (desconto de até 75% a 90% para Cache Read Tokens no Gemini e Claude), exibindo no relatório noturno ou sumário do Telegram o ganho financeiro direto obtido pela arquitetura de pré-aquecimento de contexto.
+- **Metrônomo Sonoro e Visual de RCP (100-120 bpm) com Ciclos de 2 Minutos no Cockpit PWA**:
+  Implementar metrônomo auditivo e visual sincronizado a 110 bpm com Web Audio API e temporizador regressivo de ciclos de 2 minutos para checagem de pulso/ritmo e troca de compressores durante ressuscitação cardiopulmonar no ACLS.
+- **Seletor Rápido de Carga de Desfibrilação e Cardioversão Sincronizada**:
+  Adicionar visualizador beira-leito com seleção de tecnologia do equipamento (Bifásico 120-200J vs Monofásico 360J) e carga recomendada por arritmia (50-100J para Flutter e TSV; 100J para TV monomórfica; 200J para FA).
+- **Protocolo Diferencial de Amiodarona Venosa (PCR Chocável vs Taquiarritmia Estável)**:
+  Exibição clara de dosagens e diluições em SG 5%: 300 mg em bolus na PCR chocável refratária (segunda dose 150 mg) vs ataque de 150 mg em 10 minutos na TV estável, seguido de manutenção em BIC (1 mg/min nas primeiras 6h e 0,5 mg/min nas 18h seguintes) com filtro de linha.
+- **Kit Prescritivo Estruturado do Tripé da Hipercalemia Grave**:
+  Kit de resgate em 1 toque para K+ > 6.0 mEq/L ou alterações eletrocardiográficas: Estabilização de Membrana (Gluconato de Cálcio 10% 10-20 mL EV em 3-5 min), Shift Intracelular (Glicoinsulina + Fenoterol/Salbutamol) e Eliminação Corpórea (Furosemida / Resinas) com vigilância de ritmo e glicemia.
+- **Alerta Sentinela de Colapso Hemodinâmico na Sequência Rápida de Intubação (SRI)**:
+  Checagem cruzada automática bloqueando indutores vasodilatadores (Propofol/Midazolam) em pacientes em choque com Noradrenalina, sugerindo Etomidato (0,3 mg/kg) ou Quetamina (1,5-2 mg/kg).
+- **Desmame Estruturado (Tapering) de Drogas Vasoativas**:
+  Critérios objetivos e ordem canônica de desmame de Noradrenalina, Vasopressina e Dobutamina, com metas de PAM ≥ 65 mmHg e clareamento de lactato.
+- **Checklist Tátil de Prontidão Perimortem para PCR em Gestante ≥ 20 Semanas**:
+  Checklist de prontidão (kit cesariana, bisturi nº 20, clamp de cordão, equipe neonatal) acoplado a temporizador de 4 minutos para decisão de incisão perimortem se RCE não for obtido.
+- **Checklist Beira-Leito Interativo para Emergências no Telegram**:
+  Card de conduta em formato de checklist com botões inline dinâmicos para marcação rápida de passos de ressuscitação sem poluir o histórico do chat.
 
 ---
+
+## 💊 Farmacologia Clínica, Segurança & Interações
+
+- **Matriz Visual de Alocação de Fármacos por Lúmen de Cateter Venoso Central (CVC Multilúmen)**:
+  Visualização esquemática recomendada para cateteres de duplo e triplo lúmen: distal para vasopressores contínuos, medial para hemoderivados/NPT e proximal para sedativos e bolus intermitentes, prevenindo perda de acessos e cristalização.
+- **Botão Inline de Compatibilidade em Y e Diluição HSL no Comando `/dva`**:
+  Ao calcular qualquer droga vasoativa (ex: `/dva nora 70`), exibir teclado inline com atalhos para verificar compatibilidade em Y com outras drogas em infusão contínua e monografia oficial do Guia Farmacêutico HSL.
+- **Conciliação Medicamentosa Multi-Droga de Admissão Hospitalar**:
+  Ferramenta de checagem simultânea permitindo colar a lista completa de medicamentos de uso crônico do paciente na admissão hospitalar, gerando matriz visual de alertas graduada em cores (Verde, Amarelo, Vermelho).
+- **Seletor de Sensibilidade Local e Perfil Microbiológico no Submenu de Antibióticos**:
+  Ajuste de esquema de antibióticos por foco conforme taxas locais de resistência bacteriana (ESBL, MRSA, Pseudomonas) e orientações de infusão estendida de betalactâmicos.
+- **Transição Automática para Apresentação em Comprimidos em Pediatria com Peso de Adulto**:
+  Exibir sugestão automática de comprimidos para pacientes pediátricos com peso ≥ 40-50 kg (ex: Amoxicilina 500 mg cp VO em vez de suspensão oral volumosa), evitando sobrecarga de volume líquido e desperdício de frascos.
+- **Conversão Automática de Apresentações Pediátricas Líquidas para Medidas Práticas**:
+  Nos cards de conduta pediátrica, adicionar correspondência prática de doses em gotas, seringa dosadora e colheres-medida (5 mL = chá; 15 mL = sopa) para minimizar erros de administração domiciliar pelos cuidadores.
+
+---
+
+## 📐 Calculadoras Clínicas, Nefrologia & Distúrbios Hidroeletrolíticos
+
+- **Calculadora Integrada de Reposição de Potássio IV (KCl 19,1%)**:
+  Cálculo automático de concentração máxima de segurança para acesso periférico (40 mEq/L) vs central (60 mEq/L) e velocidade horária máxima (10-20 mEq/h sob monitorização cardíaca) acoplada diretamente aos alertas de hipocalemia.
+- **Validação Cruzada entre Clearance Estimado (Cockcroft) e eTFG (CKD-EPI 2021)**:
+  Exibição comparativa com alertas de discrepâncias em idosos sarcopênicos e pacientes com obesidade mórbida no momento de sugerir ajustes de dose de antimicrobianos.
+- **Validação Cruzada entre Distúrbios Eletrolíticos Graves e ECG Obrigatório**:
+  Bloqueio/alerta automático exigindo checagem de ECG antes de calcular taxas de infusão agressivas quando K+ > 6.0 mEq/L ou Na+ < 120 mEq/L.
+- **Calculadora de Reposição de Magnésio e Fósforo IV na Síndrome de Realimentação**:
+  Cálculo de reposição profilática e terapêutica em pacientes com desnutrição severa, etilismo crônico ou jejum prolongado na enfermaria e UTI.
+- **Calculadora de Parkland com Compensação Horária Real do Trauma e Volume Pré-Hospitalar (SAMU)**:
+  Temporizador e cálculo da primeira etapa de reposição volêmica considerando o horário exato da queimadura (primeiras 8h a contar do acidente) e compensando o volume de Ringer Lactato já infundido pelo SAMU.
+- **Glasgow Pediátrico Adaptado para Lactentes e Menores de 4 Anos**:
+  Alternância de parâmetros para escala de Glasgow adaptada à faixa pediátrica (choro consolável e resposta motora à dor), evitando subestimação de gravidade neurológica.
+- **Checklist de Bandeiras Vermelhas em Cefaleia Aguda (Escore SNOOP4)**:
+  Estratificação de sinais de alerta (início súbito/trovoada, febre, déficit neurológico, idade > 50 anos, mudança de padrão) antes de liberar conduta analgésica primária.
+- **Calculadora Dinâmica de Hemoconcentração e Hematócrito na Dengue**:
+  Cálculo da variação de 20% do hematócrito basal para reclassificação dinâmica entre Grupo B e Grupo C no Telegram e Cockpit.
+- **Atalhos Táteis para Exame Físico Neurológico (Escala MRC e Sinais Meníngeos)**:
+  Botoeiras inline para registro rápido de força motora (Graus 0 a 5 por membro) e pesquisa de Brudzinski/Kernig no Telegram.
+
+---
+
+## 🫁 Pneumologia & Emergência Respiratória
+
+- **Alvos de Ventilação Mecânica Protetora na SDRA Acoplados à Gasometria**:
+  Cálculo imediato de volume corrente protetor (6 mL/kg de peso predito pela altura), FR para PaCO2 alvo e PEEP para PaO2 alvo associados ao cálculo de P/F da classificação de Berlin.
+- **Alternância entre Gasometria Arterial vs Venosa Central**:
+  Avaliação de parâmetros hemodinâmicos de ressuscitação: saturação venosa central (ScvO2) e delta-pCO2 venoarterial (corte de 6 mmHg) para suporte no choque séptico.
+- **Atalhos Táteis no Telegram para Crise Asmática e DPOC Descompensada**:
+  Submenu com botões de 1 toque no comando `/asma` e `/dpoc` para estratificação em 3 níveis (Leve/Moderada, Grave, Ameaça à Vida/Tórax Silencioso) entregando conduta imediata formatada para PEP.
+- **Indicador Visual de SpO2 Alvo com Alerta de Hiperóxia em DPOC**:
+  No Cockpit PWA, barra com faixas dinâmicas de oxigenação (93-95% em asma; 88-92% em DPOC com alerta visual > 92% para risco de narcose por CO2 e perda do drive hipóxico).
+- **OCR Multimodal para Fita Impressa de Gasometria**:
+  Suporte ao envio de foto do papel impresso da máquina de gasometria com extração dos parâmetros laboratoriais (pH, pCO2, HCO3, Na, K, Cl, Lactato) e acionamento do motor determinístico.
+
+---
+
+## 🤰 Ginecologia, Obstetrícia & Pediatria
+
+- **Algoritmo de Rastreamento Precoce de Pré-Eclâmpsia no 1º Trimestre (FMF)**:
+  Rastreamento entre 11 e 13+6 semanas associando fatores maternos, PAM média e IP das artérias uterinas, com prescrição automática de AAS 150 mg à noite e Cálcio 1,5g/dia se alto risco.
+- **Matriz de Decisão para Inserção de DIU Pós-Parto Imediato e Pós-Aborto (FIGO/OMS)**:
+  Conduta beira-leito para DIU de Cobre e Levonorgestrel pós-dequitação imediata (até 10 min) e transcesariana, com critérios de segurança e manejo de expulsão.
+- **Partograma Dinâmico com Linha de Alerta e Ação da OMS**:
+  Visualização esquemática no Telegram e Cockpit PWA da linha de alerta e ação da OMS (intervalo de 4h) para identificação precoce de distócias funcionais e desproporção céfalo-pélvica.
+
+---
+
+## 🩺 SOAP Ambulatorial, Prontuário & Comunicação com o Paciente
+
+- **Extração Inteligente de Atestado Médico CFM a partir da Avaliação SOAP**:
+  Botão `[📄 Gerar Atestado CFM]` na Fase 2 do SOAP quando o quadro clínico indicar repouso laboral, preenchendo automaticamente paciente, período sugerido e autorização para CID-10.
+- **Identificação de Medicamentos Gratuitos do Programa Farmácia Popular no SOAP**:
+  Badge visual destacando medicamentos fornecidos 100% gratuitamente (anti-hipertensivos, antidiabéticos orais, insulinas e broncodilatadores) para orientar o paciente no consultório.
+- **Exportação de Resumo de Orientações para WhatsApp do Paciente em Linguagem Leiga**:
+  Botão `[📱 Enviar Orientações ao Paciente]` para extrair exclusivamente orientações comportamentais, cuidados em domicílio, sinais de alarme e retorno em linguagem clara e acessível.
+- **Meta de HbA1c Individualizada por Fragilidade e Expectativa de Vida no DM2**:
+  Definição dinâmica da meta de hemoglobina glicada conforme diretrizes SBD/ADA no plano terapêutico (jovem sem comorbidades: < 6,5-7,0%; idoso funcional: < 7,5-8,0%; idoso frágil: < 8,5%).
+- **Templates de Receituário de Controle Especial (Portaria 344/98 - Listas C1 e B1)**:
+  Modelos de receituário controlado em 1 toque com cálculo exato de caixas para 30 ou 60 dias de tratamento.
+- **Mapeamento Bidirecional entre CIAP-2 e CID-10 na Atenção Básica**:
+  Facilitador de codificação para atendimento no e-SUS APS com filtro por linhas de cuidado.
+- **Botão `[💡 Racional Didático]` no Rascunho SOAP Fase 1**:
+  Exibição sob demanda do mapa semiológico de perguntas e hipóteses a descartar (didática FMRP-USP), preservando a transcrição limpa do prontuário oficial.
+- **Seleção Tátil de Modelos Dirigidos de Exame Físico por Aparelho**:
+  Ao clicar em `[🩺 EF Normal]`, permitir selecionar rapidamente entre o modelo completo padrão ou modelos focados (Cardiovascular/HAS, Respiratório/IVAS, Metabólico/Pés DM, Ortopédico/Coluna, Gastrointestinal).
+
+---
+
+## 🏥 Enfermaria, Gestão de Leitos & Passagem SBAR
+
+- **Contagem Regressiva e Alertas de D-Tempo de Antibióticos nos Leitos**:
+  Alertas automáticos ao atingir D3 (revisão de culturas), D7 ou D14 para reavaliação de foco infeccioso, descalonamento de espectro ou transição para terapia oral precoce (Stewardship).
+- **Filtro Instantâneo por Gravidade no Painel de Leitos (`ux:painel:0`)**:
+  Filtro em 1 toque para isolar no painel apenas leitos instáveis (🔴) ou em observação rigorosa (🟡), otimizando o round matinal e a passagem de plantão.
+- **Exportação da Passagem SBAR Adaptada para Canal Multidisciplinar**:
+  Formatação do relatório SBAR destacando leitos com ventilação mecânica, drenos, sondas e drogas vasoativas para comunicação ágil com enfermagem e fisioterapia.
+- **Exportação da Passagem SBAR em Formato PDF Estruturado**:
+  Geração de documento PDF oficial de passagem de plantão para arquivamento ou anexação ao livro hospitalar.
+
+---
+
+## 📱 Cockpit PWA Mobile, Usabilidade & Offline
+
+- **Modo Alto Contraste Solar para Atendimento Pré-Hospitalar (SAMU / Resgate)**:
+  Tema visual de altíssimo contraste (fundo branco puro, tipografia em preto sólido e bordas reforçadas) para leitura sob sol pleno em ambulâncias, viaturas e helipontos.
+- **Gestos de Swipe para Ações Rápidas nos Leitos e Calculadoras**:
+  Suporte a gestos touch nativos (`touchstart`/`touchend` com feedback haptic) para deslizar o card do leito e marcá-lo como estável ou abrir evolução/SBAR em 1 gesto.
+- **Histórico e Fixação (Pin) dos Últimos Cálculos da Sessão do Plantão**:
+  Recurso para fixar cálculos de pacientes críticos no topo do painel durante o turno e histórico dos últimos 5 cálculos da sessão para consulta rápida sem redigitação.
+- **Navegação Global por Atalhos de Teclado Físico no Cockpit**:
+  Atalhos de produtividade para uso em computadores e tablets com teclado (`Ctrl+K` para busca de fármacos, `Alt+1` para leitos, `Alt+2` para calculadoras, `Alt+S` para SBAR).
+- **Feedback Auditivo Discreto na Checagem de Protocolos de Emergência**:
+  Bips sutis com Web Audio API diferenciando sucesso vs alerta crítico ao marcar etapas na Sala Vermelha, permitindo confirmação sensorial sem tirar os olhos do paciente.
+- **Web Share API para Compartilhamento Nativo no Celular**:
+  Botão de compartilhamento nativo para envio direto de receitas, orientações e sumários clínicos para o WhatsApp ou outros aplicativos instalados no aparelho.
+- **Ditado de Voz com Web Speech API Nativa no Cockpit PWA**:
+  Transcrição prévia local no próprio navegador móvel antes do envio à rede, permitindo conferência e edição rápida do texto ditado pelo médico.
+- **Sincronização em Segundo Plano com Fila Outbox Local**:
+  Armazenamento resiliente no IndexedDB de ações tomadas offline durante passagens por áreas de sombra ou subsolos hospitalares, sincronizando automaticamente ao recuperar sinal.
+
+---
+
+## 📅 Central de Rotina, Hábitos & Integrações Pessoais
+
+- **Check-in de Hábitos por Voz em Fluxo Contínuo (Notion & MedQuest)**:
+  Processamento de áudio único relatando atividades do dia (treino, questões do MedQuest, estudo, hábitos) com atualização atômica das propriedades correspondentes no Notion.
+- **Parser Inteligente de Escala de Plantão em PDF para Google Calendar**:
+  Extração automática de datas, turnos e hospitais a partir de escala em PDF com criação dos eventos no Google Calendar e notificações pré-plantão.
+- **Fechamento de Plantão em PDF com Assinatura e Hash de Integridade**:
+  Geração de relatório formal de encerramento de plantão com checklist de pendências e hash de segurança para livro de ocorrências hospitalar.
+
+---
+
+## ⚙️ Telegram Bot, Backend Fastify & Resiliência
+
+- **Pulsador Contínuo de Status de Digitação (`typing`) no Telegram**:
+  Disparo periódico de `sendChatAction: typing` com timer durante raciocínios clínicos mais longos via IA para manter sinal de vida ativo na rede móvel hospitalar.
+- **Botão "Ver Resumo no Cockpit PWA" em Condutas Fragmentadas**:
+  Inclusão de botão inline quando uma conduta for dividida em múltiplas mensagens no Telegram, permitindo leitura contínua e integrada no Cockpit.
+- **Navegação Tátil nos Resultados de `/fila`**:
+  Botões inline nos retornos do comando `/fila` permitindo inspecionar pedidos e pendências arquivadas sem digitação manual.
+- **Comando `/reprocessar_fila` para Retry Manual Imediato**:
+  Opção de reprocessamento em 1 toque de pedidos retidos com status 'failed' na fila persistente após restabelecimento de serviços externos.
+- **Rate-Limiting Adaptativo por Token/Sessão Médica para Redes Hospitalares**:
+  Rate-limiting baseado no token ou sessão do médico para evitar falsos-positivos de limite excedido (HTTP 429) em redes Wi-Fi hospitalares onde dezenas de profissionais compartilham o mesmo IP/NAT corporativo.
+- **Comando `/cockpit_revogar_convidado` para Revogação Imediata**:
+  Comando no Telegram para invalidação ágil de tokens HMAC temporários concedidos a médicos convidados ao final do turno.
+- **Cabeçalho Administrativo `Clear-Site-Data` para Redefinição Limpa**:
+  Endpoint de redefinição de sessão capaz de expurgar caches e Service Workers corrompidos no dispositivo móvel do médico.
+- **Cabeçalho de Segurança `Permissions-Policy` no Cockpit**:
+  Restrição ativa de recursos dispensáveis (câmera, geolocalização) preservando apenas microfone para ditado e reforçando privacidade de dados beira-leito.
+- **Gatilho Automático de Compactação de Métricas por Tamanho (`auto_rollup_threshold_mb`)**:
+  Implementar disparo automático de `prune_and_rollup_metrics` quando `autoloop_metrics.jsonl` ultrapassar 500 KB durante a gravação de métricas em tempo real (`record_metric`), garantindo que o log nunca cresça além do teto configurado mesmo em execuções ininterruptas de 24h a 48h sem intervenção manual.

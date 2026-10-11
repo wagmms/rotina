@@ -8,6 +8,7 @@
     "dev": "node --watch server.js",
     "lint": "node --check server.js && node --check server/index.js && node --check server/runtime.js && node --check server/validators.js",
     "test": "node scripts/run_tests.cjs",
+    "test:affected": "node scripts/run_tests.cjs --affected",
     "build": "python3 build_master.py",
     "extrair:hsl": "node scripts/extrair_guia_hsl.js",
     "test:all": "node scripts/run_tests.cjs --all",

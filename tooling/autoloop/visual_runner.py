@@ -58,13 +58,18 @@ def matar_processo_ativo():
             pgid = os.getpgid(pid)
             if pgid > 1 and pgid != os.getpgrp():
                 os.killpg(pgid, signal.SIGTERM)
-                # Espera ordenada pelo término
-                for _ in range(10):
+                # Espera ordenada pelo término (até 5 segundos)
+                for _ in range(50):
                     if _processo_ativo.poll() is not None:
                         break
                     time.sleep(0.1)
                 if _processo_ativo.poll() is None:
                     os.killpg(pgid, signal.SIGKILL)
+                # Varredura sentinela com SIGKILL para garantir eliminação de descendentes órfãos
+                try:
+                    os.killpg(pgid, signal.SIGKILL)
+                except Exception:
+                    pass
         except Exception:
             try:
                 _processo_ativo.terminate()
@@ -75,7 +80,7 @@ def matar_processo_ativo():
                 pass
         finally:
             try:
-                _processo_ativo.wait(timeout=1)
+                _processo_ativo.wait(timeout=2)
             except Exception:
                 pass
         _processo_ativo = None

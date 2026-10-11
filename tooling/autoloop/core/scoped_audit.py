@@ -31,7 +31,43 @@ def patch_body(patch):
                      if line.startswith(('+', '-', ' ')) and not line.startswith(('+++', '---')))
 
 
-def build_scopes(root, base, candidate, classify, configure):
+DEFAULT_MAX_DIFF_CHARS_PER_CHUNK = 35000
+
+
+def particionar_arquivos_por_orcamento(files, details, max_chars=DEFAULT_MAX_DIFF_CHARS_PER_CHUNK):
+    """
+    Particiona lista de arquivos de um escopo em lotes (chunks) onde a soma dos patches
+    não excede max_chars (orçamento seguro de tokens).
+    Arquivos individuais que sozinhos excedem max_chars ficam isolados em sua própria fatia.
+    Garante cobertura total de 100% dos arquivos sem omissões nem truncamento.
+    """
+    if not files:
+        return []
+    total_diff_chars = sum(len(details[f]['patch']) for f in files)
+    if total_diff_chars <= max_chars:
+        return [list(files)]
+
+    particoes = []
+    lote_atual = []
+    tamanho_atual = 0
+
+    for name in files:
+        tam = len(details[name]['patch'])
+        if lote_atual and (tamanho_atual + tam > max_chars):
+            particoes.append(lote_atual)
+            lote_atual = [name]
+            tamanho_atual = tam
+        else:
+            lote_atual.append(name)
+            tamanho_atual += tam
+
+    if lote_atual:
+        particoes.append(lote_atual)
+
+    return particoes
+
+
+def build_scopes(root, base, candidate, classify, configure, max_chunk_chars=DEFAULT_MAX_DIFF_CHARS_PER_CHUNK):
     root = Path(root).resolve()
     candidate = resolve(root, candidate)
     if not base:
@@ -106,64 +142,72 @@ def build_scopes(root, base, candidate, classify, configure):
             groups['engineering'].remove(name)
             groups['clinical'].append(name)
     scopes = []
-    for category, files in groups.items():
-        if not files:
+    for category, all_files in groups.items():
+        if not all_files:
             continue
-        files.sort()
-        # Mantém esforço máximo da classe; não reduz raciocínio clínico.
-        configs = [details[name]['config'] for name in files]
-        rank = {'low': 0, 'medium': 1, 'high': 2, 'xhigh': 3, 'max': 4, 'ultra': 5}
-        config = max(configs, key=lambda c: (rank.get(c['effort'], 99), {'gpt-6-sol': 3, 'gpt-6-luna': 2}.get(c['model'], 1)))
-        if category == 'clinical':
-            profile = 'CLINICO_DROGAS_CRITICAS_EXTRA' if any(details[n]['profile'] == 'CLINICO_DROGAS_CRITICAS_EXTRA' for n in files) else 'CLINICO_ROBUSTEZ_PRO'
-            config = configure(profile, repo_dir=str(root))
-        else:
-            profile = config['tier']
-        dependencies = set()
-        pending = list(files)
-        visited = set()
-        while pending:
-            name = pending.pop()
-            if name in visited:
-                continue
-            visited.add(name)
-            text = sources.get(name, '') + patch_body(details.get(name, {}).get('patch', ''))
-            for symbol in set(re.findall(r'\b[A-Za-z_$][\w$]*', text)):
-                for dependency in definitions.get(symbol, ()):
-                    if dependency not in visited:
-                        dependencies.add(dependency)
-                        pending.append(dependency)
-            # Imports literais internos: contexto preservado também para funções anônimas.
-            for ref in re.findall(r'(?:require\(|from\s+)[\s\'\"]*(\.[A-Za-z0-9_./-]+)', text):
-                for suffix in ('', '.js', '.cjs', '/index.js'):
-                    path = (root / Path(name).parent / (ref+suffix)).resolve()
-                    if path.is_relative_to(root):
-                        dependency = path.relative_to(root).as_posix()
-                        if dependency in sources and dependency not in visited:
+        all_files.sort()
+        particoes = particionar_arquivos_por_orcamento(all_files, details, max_chunk_chars)
+        total_chunks = len(particoes)
+
+        for chunk_idx, files in enumerate(particoes, 1):
+            # Mantém esforço máximo da classe; não reduz raciocínio clínico.
+            configs = [details[name]['config'] for name in files]
+            rank = {'low': 0, 'medium': 1, 'high': 2, 'xhigh': 3, 'max': 4, 'ultra': 5}
+            config = max(configs, key=lambda c: (rank.get(c['effort'], 99), {'gpt-6-sol': 3, 'gpt-6-luna': 2}.get(c['model'], 1)))
+            if category == 'clinical':
+                profile = 'CLINICO_DROGAS_CRITICAS_EXTRA' if any(details[n]['profile'] == 'CLINICO_DROGAS_CRITICAS_EXTRA' for n in files) else 'CLINICO_ROBUSTEZ_PRO'
+                config = configure(profile, repo_dir=str(root))
+            else:
+                profile = config['tier']
+            dependencies = set()
+            pending = list(files)
+            visited = set()
+            while pending:
+                name = pending.pop()
+                if name in visited:
+                    continue
+                visited.add(name)
+                text = sources.get(name, '') + patch_body(details.get(name, {}).get('patch', ''))
+                for symbol in set(re.findall(r'\b[A-Za-z_$][\w$]*', text)):
+                    for dependency in definitions.get(symbol, ()):
+                        if dependency not in visited:
                             dependencies.add(dependency)
                             pending.append(dependency)
-        if category == 'clinical':
-            dependencies.update(name for name in ('server/runtime.js', 'src/00_config.js') if name in inventory)
-        context = {}
-        for name in sorted(set(files) | dependencies):
-            blob = git(root, 'ls-tree', candidate, '--', name).strip()
-            before = git(root, 'ls-tree', base, '--', name).strip()
-            context[name] = {'base': before, 'candidate': blob}
-        identity = {'base': base, 'files': files, 'context': context, 'config': config}
-        fingerprint = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
-        directory = root / 'data/scoped_audits/contexts' / fingerprint
-        directory.mkdir(parents=True, exist_ok=True)
-        patches = []
-        for index, name in enumerate(files):
-            patch_path = directory / f'{index:04d}.diff'
-            patch_path.write_text(details[name]['patch'])
-            patches.append({'file': name, 'patch': patch_path.relative_to(root).as_posix(),
-                            'sha256': hashlib.sha256(details[name]['patch'].encode()).hexdigest()})
-        manifest = {**identity, 'category': category, 'fingerprint': fingerprint, 'candidate_sha': candidate,
-                    'profile': profile, 'patches': patches, 'dependencies': sorted(dependencies - set(files)),
-                    'generated_exclusion': ['ultra_rotina_master.js'] if 'ultra_rotina_master.js' in names else []}
-        save_json(directory / 'manifest.json', manifest)
-        scopes.append({**manifest, 'manifest_path': (directory / 'manifest.json').relative_to(root).as_posix()})
+                # Imports literais internos: contexto preservado também para funções anônimas.
+                for ref in re.findall(r'(?:require\(|from\s+)[\s\'\"]*(\.[A-Za-z0-9_./-]+)', text):
+                    for suffix in ('', '.js', '.cjs', '/index.js'):
+                        path = (root / Path(name).parent / (ref+suffix)).resolve()
+                        if path.is_relative_to(root):
+                            dependency = path.relative_to(root).as_posix()
+                            if dependency in sources and dependency not in visited:
+                                dependencies.add(dependency)
+                                pending.append(dependency)
+            if category == 'clinical':
+                dependencies.update(name for name in ('server/runtime.js', 'src/00_config.js') if name in inventory)
+            context = {}
+            for name in sorted(set(files) | dependencies):
+                blob = git(root, 'ls-tree', candidate, '--', name).strip()
+                before = git(root, 'ls-tree', base, '--', name).strip()
+                context[name] = {'base': before, 'candidate': blob}
+
+            scope_key = category if total_chunks == 1 else f"{category}:part_{chunk_idx}_de_{total_chunks}"
+            identity = {'base': base, 'files': files, 'context': context, 'config': config, 'scope_key': scope_key}
+            fingerprint = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+            directory = root / 'data/scoped_audits/contexts' / fingerprint
+            directory.mkdir(parents=True, exist_ok=True)
+            patches = []
+            for index, name in enumerate(files):
+                patch_path = directory / f'{index:04d}.diff'
+                patch_path.write_text(details[name]['patch'])
+                patches.append({'file': name, 'patch': patch_path.relative_to(root).as_posix(),
+                                'sha256': hashlib.sha256(details[name]['patch'].encode()).hexdigest()})
+            manifest = {**identity, 'category': category, 'scope_key': scope_key,
+                        'chunk_index': chunk_idx, 'chunk_total': total_chunks,
+                        'fingerprint': fingerprint, 'candidate_sha': candidate,
+                        'profile': profile, 'patches': patches, 'dependencies': sorted(dependencies - set(files)),
+                        'generated_exclusion': ['ultra_rotina_master.js'] if 'ultra_rotina_master.js' in names else []}
+            save_json(directory / 'manifest.json', manifest)
+            scopes.append({**manifest, 'manifest_path': (directory / 'manifest.json').relative_to(root).as_posix()})
     covered = set(n for scope in scopes for n in scope['files']) | ({'ultra_rotina_master.js'} & set(names))
     if covered != set(names):
         raise ScopeError('Inventário de cobertura incompleto.')
@@ -180,8 +224,9 @@ def evaluate_scopes(root, candidate, base, scopes, review, validate, allow_deplo
     approved = True
     evidence = []
     for scope in scopes:
-        # Uma série clínica e uma de engenharia por base, persistentes entre SHAs corrigidos.
-        key = base + ':' + scope['category']
+        # Uma série por base e escopo/fatia, persistentes entre SHAs corrigidos.
+        scope_key = scope.get('scope_key') or scope['category']
+        key = base + ':' + scope_key
         session = state['sessions'].get(key, {})
         same = session.get('fingerprint') == scope['fingerprint']
         valid_previous = False
@@ -194,19 +239,19 @@ def evaluate_scopes(root, candidate, base, scopes, review, validate, allow_deplo
             # Identidade sem mudanças: repetir a chamada não corrige nada.
             report = previous_report
             if not report:
-                raise ScopeError('Auditoria operacionalmente incompleta já registrada; requer diagnóstico, sem repetição automática.')
+                raise ScopeError(f'Auditoria operacionalmente incompleta já registrada para {scope_key}; requer diagnóstico, sem repetição automática.')
         else:
             if session.get('status') == 'approved':
                 session = {}  # Conteúdo novo após aprovação constitui outro trabalho.
             rounds = session.get('rounds', 0)
             if rounds >= 2:
                 if not allow_deploy_after_repairs:
-                    raise ScopeError(f"AUDIT_BUDGET_EXHAUSTED: {scope['category']} já recebeu duas rodadas; pendência registrada para intervenção, sem terceira revisão automática.")
+                    raise ScopeError(f"AUDIT_BUDGET_EXHAUSTED: {scope_key} já recebeu duas rodadas; pendência registrada para intervenção, sem terceira revisão automática.")
                 # Conclusão após duas etapas de auditoria/reparo: deploy liberado sem terceira auditoria
                 report = {
                     'candidate_sha': candidate,
                     'verdict': 'pass',
-                    'summary': f"Release liberado após conclusão da 2ª etapa de revisão para {scope['category']}.",
+                    'summary': f"Release liberado após conclusão da 2ª etapa de revisão para {scope_key}.",
                     'findings': [],
                     'limitations': [],
                     'required_followups': []
@@ -242,8 +287,9 @@ def evaluate_scopes(root, candidate, base, scopes, review, validate, allow_deplo
         save_json(path, state)
         if not isinstance(report, dict):
             raise ScopeError('Parecer estruturado ausente.')
-        evidence.append({'scope': scope['category'], 'fingerprint': scope['fingerprint'],
-                         'audited_candidate': session['candidate'], 'round': session['rounds'], 'reused': same})
+        evidence.append({'scope': scope['category'], 'scope_key': scope_key, 'fingerprint': scope['fingerprint'],
+                         'audited_candidate': session['candidate'], 'round': session['rounds'], 'reused': same,
+                         'chunk_index': scope.get('chunk_index', 1), 'chunk_total': scope.get('chunk_total', 1)})
         findings.extend(report.get('findings', []))
         limitations.extend(report.get('limitations', []))
         followups.extend(report.get('required_followups', []))
@@ -252,13 +298,14 @@ def evaluate_scopes(root, candidate, base, scopes, review, validate, allow_deplo
             if not report.get('limitations') and not report.get('required_followups') and not report.get('findings'):
                 followups.append(reason)
     receipt = {'candidate_sha': candidate, 'base_sha': base, 'coverage': evidence, 'approved': approved,
-               'files': sorted(n for scope in scopes for n in scope['files']), 'time': time.time()}
+               'files': sorted(n for scope in scopes for n in scope['files']), 'chunks_total': len(scopes), 'time': time.time()}
     save_json(root / 'data/scoped_audits' / f'release_{candidate}.json', receipt)
     try:
         from prune_artifacts import prune_scoped_audits
         prune_scoped_audits(root)
     except Exception:
         pass
+    desc_chunks = f" ({len(scopes)} fatia(s))" if len(scopes) > 1 else ""
     return {'candidate_sha': candidate, 'verdict': 'pass' if approved else 'fail',
-            'summary': 'Composição de pareceres por escopo, com identidade e dependências verificadas; rastreabilidade em data/scoped_audits/release_' + candidate + '.json',
+            'summary': f'Composição de pareceres por escopo{desc_chunks}, com identidade e dependências verificadas; rastreabilidade em data/scoped_audits/release_' + candidate + '.json',
             'findings': findings, 'limitations': limitations, 'required_followups': followups}

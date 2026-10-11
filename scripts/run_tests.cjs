@@ -235,24 +235,281 @@ function receiptReusableFailure(receipt, identity, inventory, versions) {
   return receiptValid(shape, identity, inventory, versions);
 }
 
+const IGNORED_AFFECTED_PATTERN = /^(?:\.git|docs\/|logs\/|auditorias\/|archive\/|scratch\/|\.github\/|\.gemini\/|\.cursor\/|\.codex\/|\.vscode\/)|(?:\.(?:md|txt|png|jpg|jpeg|gif|ico|webp)$)|(?:^\.gitignore$)/i;
+
+const STATIC_AFFECTED_MAP = {
+  // Módulos Clínicos, SOAP e Ambulatório
+  'src/02_soap_ambulatorial.js': [
+    'tests/test_soap_ambulatorial.cjs',
+    'tests/test_soap_modo_e_receita_ux.cjs'
+  ],
+  'src/02_calculadoras_puras.js': [
+    'tests/test_schemas_validacao_calculadoras.cjs',
+    'tests/test_calculadoras_ux.cjs'
+  ],
+  'src/02_centro_obstetrico.js': [
+    'tests/test_auditoria_pro_ginecologia_prenatal.cjs',
+    'tests/test_hub_go_ux.cjs',
+    'tests/test_go_hub_ux.cjs'
+  ],
+  'src/02_cardiologia_emergencia.js': [
+    'tests/test_sala_vermelha_ux.cjs',
+    'tests/test_cardiologia_emergencia.cjs'
+  ],
+  'src/02_emergencia_choque_septico_circi.js': [
+    'tests/test_emergencia_choque_septico_circi.cjs',
+    'tests/test_sala_vermelha_ux.cjs'
+  ],
+  'src/02_compatibilidade_y_dva.js': [
+    'tests/test_compatibilidade_y_dva.cjs',
+    'tests/test_sala_vermelha_ux.cjs'
+  ],
+  'src/02_pcr_gestante.js': [
+    'tests/test_pcr_gestante.cjs',
+    'tests/test_sala_vermelha_ux.cjs'
+  ],
+  // Motores de IA e Fallbacks
+  'src/04_motores_ia.js': [
+    'tests/test_circuit_breaker_multimodal.cjs',
+    'tests/test_resiliencia_gemini_429.cjs',
+    'tests/test_resiliencia_multimodal.cjs'
+  ],
+  'src/04_ia_local_fallback.js': [
+    'tests/test_circuit_breaker_multimodal.cjs',
+    'tests/test_resiliencia_gemini_429.cjs'
+  ],
+  // Handlers e Roteamento do Bot Telegram
+  'src/07a_telegram_router.js': [
+    'tests/test_hubs_e_comandos_telegram.cjs',
+    'tests/test_ajuda_comandos_slash.cjs',
+    'tests/test_defensivo_telegram_rpc.cjs'
+  ],
+  'src/07b_telegram_preceptor.js': [
+    'tests/test_preceptor_dialogo_socratico.cjs',
+    'tests/test_preceptor_live_voice.cjs',
+    'tests/test_tts_modo_rapido_preceptor.cjs'
+  ],
+  'src/07c_telegram_consultas_e_ia.js': [
+    'tests/test_consultas_bolso_ux.cjs',
+    'tests/test_hubs_e_comandos_telegram.cjs'
+  ],
+  'src/07d_telegram_callbacks.js': [
+    'tests/test_hubs_e_comandos_telegram.cjs',
+    'tests/test_ui_ux_acessibilidade_telegram.cjs'
+  ],
+  'src/07e_telegram_midia_e_leitos.js': [
+    'tests/test_gestao_leitos_sbar_ux.cjs',
+    'tests/test_pipeline_audio_otimizado.cjs',
+    'tests/test_hubs_e_comandos_telegram.cjs'
+  ],
+  'src/07f_telegram_calculadoras_parser.js': [
+    'tests/test_calculadoras_ux.cjs',
+    'tests/test_schemas_validacao_calculadoras.cjs'
+  ],
+  'src/07g_telegram_ajuda_e_protocolos.js': [
+    'tests/test_ajuda_comandos_slash.cjs',
+    'tests/test_hubs_e_comandos_telegram.cjs'
+  ],
+  // Enfermaria e Gestão de Leitos SBAR
+  'src/09_enfermaria.js': [
+    'tests/test_enfermaria_ux_fluxos.cjs',
+    'tests/test_gestao_leitos_sbar_ux.cjs'
+  ],
+  // PDF e Prescrição
+  'src/10_pdf_receita.js': [
+    'tests/test_pdf_receita.py',
+    'tests/test_soap_extrair_receita.cjs'
+  ],
+  // Experiência do Bot e PEP
+  'src/12_experiencia_bot.js': [
+    'tests/test_ui_ux_formatacao_respostas_pep.cjs',
+    'tests/test_central_rotina_plantao_ux.cjs',
+    'tests/test_ui_ux_acessibilidade_telegram.cjs'
+  ],
+  // Cockpit PWA e Integrações
+  'src/13_cockpit_integracao.js': [
+    'tests/test_cockpit_resiliencia_e_offline.cjs',
+    'tests/test_cockpit_carga_e_teclados.cjs',
+    'tests/test_defensivo_telegram_rpc.cjs'
+  ],
+  'cockpit_movel.html': [
+    'tests/test_acessibilidade_contraste_cockpit.cjs',
+    'tests/test_cockpit_resiliencia_e_offline.cjs',
+    'tests/test_cockpit_carga_e_teclados.cjs',
+    'tests/test_cockpit_historico_calculos.cjs'
+  ],
+  // Servidor Fastify e Runtime
+  'server.js': [
+    'tests/test_server_render.cjs',
+    'tests/test_fastify_resiliencia.cjs'
+  ],
+  'server/index.js': [
+    'tests/test_server_render.cjs',
+    'tests/test_fastify_resiliencia.cjs',
+    'tests/test_fastify_resiliencia_payloads.cjs',
+    'tests/test_seguranca_helmet_ratelimit.cjs',
+    'tests/test_caching_etag_fastify.cjs',
+    'tests/test_logs_telemetria_render.cjs'
+  ],
+  'server/runtime.js': [
+    'tests/test_server_render.cjs',
+    'tests/test_defensivo_telegram_rpc.cjs',
+    'tests/test_autoloop_runner.cjs'
+  ],
+  'server/validators.js': [
+    'tests/test_schemas_validacao_calculadoras.cjs',
+    'tests/test_fastify_resiliencia_payloads.cjs'
+  ],
+  // Scripts do Runner
+  'scripts/run_tests.cjs': [
+    'tests/test_autoloop_runner.cjs'
+  ],
+  'scripts/test_manifest.json': [
+    'tests/test_autoloop_runner.cjs'
+  ],
+  'scripts/python_test_catalog.py': [
+    'tests/test_autoloop_runner.cjs'
+  ],
+  'build_master.py': [
+    'tests/test_autoloop_runner.cjs',
+    'tests/test_server_render.cjs'
+  ],
+  'ultra_rotina_master.js': [
+    'tests/test_server_render.cjs'
+  ]
+};
+
+function getChangedFiles(root = ROOT, options = {}) {
+  const ref = options.ref || null;
+  const changed = new Set();
+  try {
+    const statusOut = execFileSync('git', ['status', '--porcelain', '-uall'], {
+      cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']
+    });
+    for (const line of statusOut.split('\n')) {
+      if (!line.trim()) continue;
+      const payload = line.slice(3).trim();
+      if (!payload) continue;
+      if (payload.includes('->')) {
+        const parts = payload.split('->').map(p => p.trim());
+        for (const p of parts) if (p) changed.add(p);
+      } else {
+        changed.add(payload);
+      }
+    }
+  } catch (_) {}
+
+  if (ref) {
+    try {
+      const diffOut = execFileSync('git', ['diff', '--name-only', ref], {
+        cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore']
+      });
+      for (const line of diffOut.split('\n')) {
+        const file = line.trim();
+        if (file) changed.add(file);
+      }
+    } catch (_) {}
+  }
+
+  return [...changed]
+    .map(f => path.normalize(f).replace(/^\.\//, ''))
+    .filter(f => !IGNORED_AFFECTED_PATTERN.test(f))
+    .sort();
+}
+
+function findAffectedSuites(changedFiles, root = ROOT) {
+  if (!Array.isArray(changedFiles) || changedFiles.length === 0) return [];
+  const allSuites = suites(root, true);
+  const knownSuiteFiles = new Set(allSuites.map(s => s.file));
+  const affected = new Set();
+
+  for (const raw of changedFiles) {
+    const file = path.normalize(raw.trim()).replace(/^\.\//, '');
+    if (!file || IGNORED_AFFECTED_PATTERN.test(file)) continue;
+
+    // 1. O próprio arquivo já é uma suíte de teste existente
+    if (knownSuiteFiles.has(file)) {
+      affected.add(file);
+      continue;
+    }
+    const withTestsPrefix = file.startsWith('tests/') ? file : 'tests/' + file;
+    if (knownSuiteFiles.has(withTestsPrefix)) {
+      affected.add(withTestsPrefix);
+      continue;
+    }
+
+    // 2. Mapeamento Estático Explícito
+    if (STATIC_AFFECTED_MAP[file]) {
+      for (const suite of STATIC_AFFECTED_MAP[file]) {
+        if (knownSuiteFiles.has(suite)) affected.add(suite);
+      }
+      continue;
+    }
+
+    // 3. Heurística de Stem (ex.: src/02_pneumologia_dpoc_vni.js -> tests/test_pneumologia_dpoc_vni.cjs)
+    if (file.startsWith('src/') || file.startsWith('server/')) {
+      const baseName = path.basename(file, path.extname(file));
+      const cleanStem = baseName.replace(/^\d+[a-z]?_/, '');
+
+      const candidateCjs = `tests/test_${cleanStem}.cjs`;
+      const candidatePy = `tests/test_${cleanStem}.py`;
+      if (knownSuiteFiles.has(candidateCjs)) affected.add(candidateCjs);
+      if (knownSuiteFiles.has(candidatePy)) affected.add(candidatePy);
+
+      // Correspondência com stem longo em suítes existentes
+      for (const known of knownSuiteFiles) {
+        if (cleanStem.length >= 6 && known.includes(cleanStem)) {
+          affected.add(known);
+        }
+      }
+    }
+  }
+
+  return [...affected].sort();
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const all = args.includes('--all');
   if (args.includes('--list')) { console.log(JSON.stringify(suites(ROOT, true), null, 2)); return; }
-  const selectedArg = args.find(arg => arg.startsWith('--select='));
-  const selectedList = selectedArg ? selectedArg.slice(9).split(',').filter(Boolean) : [];
-  const positionalList = args.filter(arg => !arg.startsWith('--'));
-  const rawWanted = [...selectedList, ...positionalList];
-  const wanted = rawWanted.length > 0 ? rawWanted.map(raw => {
-    let clean = path.normalize(raw.trim()).replace(/^\.\//, '');
-    if (path.isAbsolute(clean)) {
-      clean = path.relative(ROOT, clean);
+  const affected = args.includes('--affected') || args.some(arg => arg.startsWith('--affected='));
+  const affectedArg = args.find(arg => arg.startsWith('--affected='));
+  const affectedRef = affectedArg ? affectedArg.slice(11).trim() : null;
+
+  let wanted = null;
+
+  if (affected) {
+    const changedFiles = getChangedFiles(ROOT, { ref: affectedRef });
+    if (!changedFiles.length) {
+      console.log('[TESTES] Nenhuma modificação de código detectada via git status. Nenhuma suíte afetada.');
+      return;
     }
-    if (!clean.startsWith('tests/') && fs.existsSync(path.join(ROOT, 'tests', clean))) {
-      clean = 'tests/' + clean;
+    const affectedSuites = findAffectedSuites(changedFiles, ROOT);
+    if (!affectedSuites.length) {
+      console.log(`[TESTES] Nenhuma suíte de teste afetada pelas alterações (${changedFiles.length} arquivos analisados).`);
+      return;
     }
-    return clean;
-  }) : null;
+    const displayFiles = changedFiles.slice(0, 5).join(', ') + (changedFiles.length > 5 ? ` (+${changedFiles.length - 5} arquivos)` : '');
+    console.log(`[AFETADOS] Arquivos modificados (${changedFiles.length}): ${displayFiles}`);
+    console.log(`[AFETADOS] Suítes mapeadas (${affectedSuites.length}): ${affectedSuites.join(', ')}`);
+    wanted = affectedSuites;
+  } else {
+    const selectedArg = args.find(arg => arg.startsWith('--select='));
+    const selectedList = selectedArg ? selectedArg.slice(9).split(',').filter(Boolean) : [];
+    const positionalList = args.filter(arg => !arg.startsWith('--'));
+    const rawWanted = [...selectedList, ...positionalList];
+    wanted = rawWanted.length > 0 ? rawWanted.map(raw => {
+      let clean = path.normalize(raw.trim()).replace(/^\.\//, '');
+      if (path.isAbsolute(clean)) {
+        clean = path.relative(ROOT, clean);
+      }
+      if (!clean.startsWith('tests/') && fs.existsSync(path.join(ROOT, 'tests', clean))) {
+        clean = 'tests/' + clean;
+      }
+      return clean;
+    }) : null;
+  }
+
   const inventory = wanted ? suites(ROOT, true) : suites(ROOT, all);
   const tasks = wanted ? inventory.filter(s => wanted.includes(s.file)) : inventory;
   if (wanted) {
@@ -369,5 +626,19 @@ async function main() {
   }
 }
 
-module.exports = { fingerprint, suites, environment, snapshot, runOne, runPool, receiptValid, receiptReusableFailure, loadSuiteDurations, orderLPT };
+module.exports = {
+  fingerprint,
+  suites,
+  environment,
+  snapshot,
+  runOne,
+  runPool,
+  receiptValid,
+  receiptReusableFailure,
+  loadSuiteDurations,
+  orderLPT,
+  getChangedFiles,
+  findAffectedSuites,
+  STATIC_AFFECTED_MAP
+};
 if (require.main === module) main().catch(error => { console.error('[TESTES] ' + error.message); process.exitCode = 1; });

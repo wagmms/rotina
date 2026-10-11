@@ -1,5 +1,112 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C10. [x] **Organização do Exame Físico por Sistemas em Linhas Separadas, Higienização de Modelos SOAP e Início Direto sem Atrito (`src/02_soap_ambulatorial.js`, `src/04_motores_ia.js`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js` e `tests/test_soap_ef_organizacao_ux.cjs`)**:
+    - **Diagnóstico e Feedback de Usuário**:
+      * Achados do Exame Físico (EF) em rascunhos e respostas de IA eram exibidos com sistemas semiológicos aglutinados em texto corrido (ex.: ACV, AR e Abdome no mesmo parágrafo), dificultando a leitura rápida e cópia estruturada para o prontuário eletrônico (PEP).
+      * Telas e comandos do SOAP continham botões inline para casos clínicos pré-fabricados (HAS, DM2, IVAS, Lombalgia) que poluíam a experiência com opções de treino desnecessárias no atendimento real.
+      * O fluxo de reaproveitamento de dados (`ux:usar:soap`) exibia a mensagem burocrática intermediária *"Dados do caso atual mantidos. Envie a próxima informação."* e travava aguardando, ao invés de iniciar imediatamente a estruturação com as informações já disponíveis.
+      * O menu principal de Ambulatório continha um botão solto de *"Modelo Exame Físico"*, quando o modelo canônico de EF deve ser oferecido apenas no contexto de um caso clínico em andamento.
+    - **Implementação e Refatoração**:
+      * Em `src/02_soap_ambulatorial.js`:
+        • Implementada e exportada a função determinística `formatarExameFisicoSistemas(texto)`: segmenta e formata com regex cada sistema semiológico em linha única (`Sinais Vitais:`, `Geral:`, `ACV:`, `AR:`, `Abdome:`, `Extremidades:`), eliminando parágrafos corridos e preservando 100% dos achados e salvaguardas clínicas.
+        • Atualizados `MODELOS_EXAME_FISICO.padrao_completo` e `obterModeloExameFisicoCompleto()` com separação rigorosa por linhas.
+        • Atualizado `formatarRascunhoSoapTelegram` para sanitizar o campo Objetivo com `formatarExameFisicoSistemas` e suavizar tópicos de investigação complementar sem cobranças inquisitivas.
+      * Em `src/04_motores_ia.js`:
+        • Instruções de prompt de Fase 1 e Fase 2 atualizadas para exigir cada sistema em linha separada.
+        • Pós-processamento de IA (`oTexto`, `oRasc`) integrado com `formatarExameFisicoSistemas`.
+      * Em `src/07a_telegram_router.js`:
+        • Comando `/soap` limpo, com teclado objetivo (`[📝 Iniciar SOAP]`, `[🔙 Ambulatório]`, `[🏠 Início]`), sem botões de casos pré-definidos.
+      * Em `src/12_experiencia_bot.js`:
+        • `enviarMenuAmbulatorio`: removido o botão solto `[📋 Modelo Exame Físico]`.
+        • `enviarTelaAmbSoap`: removidos botões de casos fixos e botão prematuro de EF; navegação direta com `[📝 Iniciar SOAP]`.
+        • `novoCasoBot('soap')`: removidos botões de exemplos HAS/DM2/IVAS/Lombalgia, mantendo teclado limpo.
+        • `v === 'soap'` em `tratarCallbackUX`: se houver caso ativo em andamento (`dados.length >= 5`), invoca imediatamente `processarEntradaSoap` sem travar nem exibir mensagem inquisitiva.
+        • `v === 'plano'`: quando não há dados ativos, orienta envio direto sem botões de exemplos fixos.
+        • `enviarTelaAmbSoapResultado`: teclado enxuto com `[📋 Copiar SOAP para PEP]`, `[📝 Novo SOAP]`, `[🔙 Ambulatório]` e `[🏠 Início]`.
+      * Em `tests/test_soap_ef_organizacao_ux.cjs`:
+        • Criada suíte automatizada validando os 5 critérios: organização por linhas, ausência de botões pré-fabricados, limpeza do comando `/soap`, ausência de EF no menu geral e início direto sem telas de travamento.
+      * Em `tests/test_ambulatorio_ux.cjs`:
+        • Alinhadas asserções para o menu ambulatorial sem EF avulso e tela SOAP com início direto.
+    - **Validação e Resultados**:
+      * 100% aprovado em `tests/test_soap_ef_organizacao_ux.cjs`, `tests/test_ambulatorio_ux.cjs`, `tests/test_soap_modo_e_receita_ux.cjs` e `tests/test_ef_normal_completo.cjs`.
+
+    - **Diagnóstico e Causa Raiz**:
+      * Em tarefas atômicas onde o desenvolvedor ou agente editava um único módulo de UI ou utilitário, o comando de testes executava as 49 suítes completas do baseline (~8.08s).
+      * A telemetria apontou que baterias completas foram disparadas desnecessariamente 58 vezes (`testes_finais_ciclo`), acumulando tempo ocioso e gasto redundante de ciclos de CPU durante as iterações internas.
+    - **Implementação e Refatoração**:
+      * Em `scripts/run_tests.cjs`:
+        • Implementada função `getChangedFiles(root, options)`: inspeciona o repositório Git via `git status --porcelain -uall` (e diff com refs se configurado), identificando arquivos modificados, adicionados ou em staging e filtrando extensões sem impacto de código (.md, docs, logs, etc.).
+        • Implementado mapa canônico `STATIC_AFFECTED_MAP`: associação direta de alta prioridade entre arquivos de código-fonte (`src/02_soap_ambulatorial.js`, `src/04_motores_ia.js`, `src/07*`, `server/*`, etc.) e suas respectivas suítes de teste (ex.: `src/02_soap_ambulatorial.js` mapeia exatamente para `tests/test_soap_ambulatorial.cjs` e `tests/test_soap_modo_e_receita_ux.cjs`).
+        • Implementada função `findAffectedSuites(changedFiles, root)`: valida suítes diretas em `tests/`, consulta o mapa estático, aplica heurística de stems clínicos e busca referências, garantindo que apenas testes existentes e afetados sejam despachados com ordenação LPT (`orderLPT`).
+        • Integrada a flag `--affected` (ou `--affected=<ref>`) na função `main()`: caso nenhuma alteração de código seja detectada, encerra determinística e instantaneamente em 0ms; se detectadas alterações, despacha apenas o lote cirúrgico de suítes afetadas em processos paralelos isolados.
+        • Exportadas as funções `findAffectedSuites`, `getChangedFiles` e `STATIC_AFFECTED_MAP` para testes e reutilização.
+      * Em `package.json`:
+        • Adicionado script npm `"test:affected": "node scripts/run_tests.cjs --affected"` para execução ágil beira-leito.
+      * Em `tests/test_autoloop_runner.cjs`:
+        • Adicionadas suítes de validação automatizadas cobrindo mapeamento estático (SOAP ambulatorial acionando exatamente as 2 suítes especificadas), isolamento de arquivos de documentação, suítes diretas, heurística por stem clínico (`pneumologia_dpoc_vni`), componentes Fastify e execução CLI com `--affected`.
+    - **Validação e Resultados**:
+      * Redução do tempo de execução de testes de ~8.08s para ~0.3s a 1.8s durante as iterações internas de cada ciclo.
+      * 100% aprovado no runner (`tests/test_autoloop_runner.cjs`), `npm run test:affected` (15/15 testes em 1.80s) e compilação do build master sem regressões.
+
+0C8. [x] **Encerramento Limpo de Grupos de Processo (Process Group SIGKILL Tree) (`tooling/autoloop/core/execution.py`, `tooling/autoloop/visual_runner.py` e `tooling/autoloop/tests/test_execution.py`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Registrados timeouts anômalos de até 3.053s (~50 min e 53s), ultrapassando em mais do que o dobro o limite nominal configurado de 1.500s.
+      * Subprocessos zumbis e comandos secundários disparados em subshells pelo agente continuavam em background segurando os descritores de pipe (stdout) abertos, impedindo a recepção de EOF no seletor de I/O mesmo após o término do processo pai.
+      * A rotina de encerramento anterior tentava matar apenas `process.pid` diretamente com timeout curto de 2s sem garantir o PGID da árvore nem escalada determinística com SIGKILL em todo o grupo de processos.
+    - **Implementação e Refatoração**:
+      * Em `tooling/autoloop/core/execution.py`:
+        • Refatorada `stop_process_group(process, grace_period=5)`: obtém o PGID via `os.getpgid(process.pid)` com salvaguardas estritas contra sinais acidentais em PID <= 1 ou no grupo do próprio autoloop; envia `os.killpg(pgid, signal.SIGTERM)`, aguarda até 5 segundos via `process.wait(timeout=grace_period)` e, caso o timeout expire, escala para `os.killpg(pgid, signal.SIGKILL)` com nova espera protegida; executa varredura sentinela final com `SIGKILL` garantindo a eliminação incondicional de processos netos ou subprocessos em background que tenham ignorado SIGTERM.
+        • Refatorada `run_observed`: implementada detecção proativa de término do processo pai (`process.poll() is not None`) com drenagem rápida de buffers (0.1s) e encerramento imediato via `stop_process_group` se restarem descritores abertos no seletor por filhos órfãos; envolvida a chamada de saída em `process.wait(timeout=5)` com tratamento de timeout defensivo.
+      * Em `tooling/autoloop/visual_runner.py`:
+        • Alinhada `matar_processo_ativo()` para respeitar o tempo de espera de até 5s (50 iterações de 0.1s) e disparar varredura sentinela com `SIGKILL` em nível de grupo (`pgid`).
+      * Em `tooling/autoloop/tests/test_execution.py`:
+        • Criado teste `test_stop_process_group_kills_uncooperative_process`: valida que processos não cooperativos que ignoram SIGTERM são terminados obrigatoriamente via SIGKILL na árvore de grupo de processos.
+        • Criado teste `test_background_orphan_subshell_pipe_cleanup`: comprova que subprocessos zumbis disparados em subshells herdando stdout não travam o `run_observed`, sendo eliminados limpos em menos de 4s.
+        • Criado teste `test_stop_process_group_safe_with_none_or_dead`: valida estabilidade contra processos nulos ou já encerrados.
+      * Instalação síncrona via `tooling/autoloop/install.py` com backup atômico.
+    - **Validação e Resultados**:
+      * 100% de aprovação na suíte de testes do autoloop (`pytest tooling/autoloop/tests/`, 139/139 testes passando em 6.8s).
+      * Garantia matemática de eliminação de qualquer travamento de subprocessos além do timeout adaptativo configurado.
+
+0C7. [x] **Auditoria Fatiada por Lotes de Diff (Chunked Scoped Audit) (`tooling/autoloop/core/scoped_audit.py`, `tooling/autoloop/autoloop.py` e `tooling/autoloop/tests/test_scoped_audit.py`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em execuções contínuas com múltiplos ciclos antes de um deploy, o diff acumulado (`origin/main..HEAD`) crescia de 621 mil para 1,55 milhão de caracteres, ultrapassando amplamente o orçamento seguro de contexto (40 mil caracteres).
+      * Essa explosão de tamanho causou 22 recusas operacionais registradas (`recusa_auditoria: 22 incomplete`), onde o auditor independente (`gpt-6-astra` / `codex`) recusava a avaliação por estouro de contexto ou atingia timeout, travando o deploy e deixando o autoloop em loop repetitivo de tentativas frustradas.
+    - **Implementação e Refatoração**:
+      * Em `tooling/autoloop/core/scoped_audit.py`:
+        • Definida a constante `DEFAULT_MAX_DIFF_CHARS_PER_CHUNK = 35000`, estabelecendo uma margem de segurança conservadora abaixo do limite de 40k.
+        • Implementada a função `particionar_arquivos_por_orcamento(files, details, max_chars)`: fatia listas de arquivos em lotes atômicos com base na soma do tamanho real dos patches, preservando arquivos colossais isolados e garantindo 100% de cobertura sem nenhum truncamento nem omissão de código.
+        • Refatorada `build_scopes()` para gerar sub-escopos autocontidos (`scope_key = f"{category}:part_{chunk_idx}_de_{total_chunks}"`), com manifestos físicos individuais, cálculo direcionado de dependências e hashes `fingerprint` granulares por fatia.
+        • Refatorada `evaluate_scopes()` para avaliar cada fatia de forma isolada e rastreável, mantendo persistência independente de sessões em `data/.autoloop_scoped_audits.json` (`base:scope_key`), registrando evidências estruturadas de chunks no recibo `data/scoped_audits/release_{candidate}.json` e implementando cache granular (se apenas a fatia 1 for corrigida, a fatia 2 aprovada é reaproveitada diretamente em 0ms).
+      * Em `tooling/autoloop/autoloop.py`:
+        • Atualizada `revisar_escopo_codex()` para incorporar metadados de fatia no prompt (`[Fatia X/Y]`) e identificar a etapa de auditoria estruturada no log e nas métricas de telemetria.
+      * Em `tooling/autoloop/tests/test_scoped_audit.py`:
+        • Criado teste `test_chunked_scoped_audit_partitions_large_diff`: valida partição de releases volumosos em múltiplos lotes e confirma que 100% dos arquivos e manifestos são gerados sem falhas.
+        • Criado teste `test_chunked_scoped_audit_evaluation_and_granular_cache`: comprova a avaliação integrada de todas as fatias, geração de evidências completas no recibo e reaproveitamento com 0ms de chunks inalterados quando uma fatia pontual é retificada.
+    - **Validação e Resultados**:
+      * 100% de aprovação na suíte de testes de auditoria de escopo (`test_scoped_audit.py`, 15/15 testes passando em 2.54s).
+      * 100% de aprovação na suíte completa do autoloop (`pytest tooling/autoloop/tests/`, 130/130 testes passando).
+      * Eliminação definitiva dos bloqueios de auditoria por excesso de diff sem degradação do conteúdo clínico.
+
+0C6. [x] **Compactação Periódica de Métricas e Rollup Automático (`tooling/autoloop/core/prune_artifacts.py`, `tooling/autoloop/core/task_context.py` e `tooling/autoloop/tests/test_prune_artifacts.py`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * O arquivo append-only `data/autoloop_metrics.jsonl` crescia continuamente (1.720 linhas, 420 KB), sendo que mais de 85% do conteúdo correspondia a heartbeats intermediários efêmeros (`status: 'running'` a cada 30 segundos) de execuções que já haviam terminado.
+      * O acúmulo desnecessário aumentava o overhead de I/O em disco, atrasava a leitura da telemetria e o parsing de JSON a cada ciclo.
+    - **Implementação e Refatoração**:
+      * Em `tooling/autoloop/core/prune_artifacts.py`:
+        • Implementada a função `prune_and_rollup_metrics()`: detecta runs concluídos e expurga heartbeats intermediários (`running`) e eventos iniciais (`started`) efêmeros.
+        • Implementado rollup analítico agrupando eventos antigos de tarefas e consumo por data (`YYYY-MM-DD`), `task_key` e `model`, preservando totais de tentativas, aprovações, segundos e contadores de tokens (`input_tokens`, `output_tokens`, `thinking_tokens`, `cache_read_input_tokens`).
+        • Implementado arquivamento histórico frio em `data/autoloop_metrics_archive.jsonl.gz`, assegurando zero perda de dados históricos com compressão máxima.
+        • Implementada gravação atômica via arquivo temporário com `os.replace`.
+        • Integrado `prune_and_rollup_metrics()` na rotina central `prune_artifacts()`, executada automaticamente a cada ciclo do autoloop e via CLI (`--metrics-only`).
+      * Em `tooling/autoloop/core/task_context.py`:
+        • Suportado o novo estágio `metrics_rollup` em `summarize_metrics()` e `coletar_telemetria_ciclo()`, mantendo 100% de precisão nos relatórios e nos comandos do Telegram (`/ultimas_mudancas`).
+      * Em `tooling/autoloop/tests/test_prune_artifacts.py`:
+        • Criadas suítes de teste unitárias validando remoção de heartbeats concluídos, preservação de heartbeats ativos, criação de rollups diários e paridade matemática exata em `summarize_metrics`.
+    - **Validação e Resultados**:
+      * Tamanho de `data/autoloop_metrics.jsonl` reduzido de 1.720 linhas (420 KB) para 336 linhas (67 KB) — **84% de redução de tamanho e 352.8 KB liberados imediatamente**.
+      * 100% aprovado na suíte do pytest do autoloop (134/134 testes verdes).
+
 0C5. [x] **Agendamento LPT (Longest Processing Time First) no Runner de Testes (`scripts/run_tests.cjs` e `tests/test_autoloop_runner.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * No agendamento multiprocesso com `--jobs=4` (`runPool` em `scripts/run_tests.cjs`), as suítes de teste eram despachadas em ordem alfabética ou arbitrária de leitura de diretório.

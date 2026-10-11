@@ -14,12 +14,13 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Agendamento LPT (Longest Processing Time First) no Runner de Testes (`scripts/run_tests.cjs` e `tests/test_autoloop_runner.cjs`)**:
+- [x] **Organização do Exame Físico por Sistemas em Linhas Separadas, Higienização de Modelos SOAP e Início Direto sem Atrito (`src/02_soap_ambulatorial.js`, `src/04_motores_ia.js`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js` e `tests/test_soap_ef_organizacao_ux.cjs`)**:
     - **Diagnóstico e Correção**:
-      * No escalonamento multiprocesso com `--jobs=4` (`runPool`), as suítes eram despachadas em ordem alfabética ou arbitrária, alocando suítes pesadas (3.6s, 2.4s, 1.4s) tardiamente no final da fila e deixando workers ociosos.
-      * Em `scripts/run_tests.cjs`: Implementadas funções `loadSuiteDurations(root)` e `orderLPT(tasks, root)` que recuperam durações históricas de `.autoloop_test_receipt.json` / `data/test_reports/` e despacham as tarefas da mais longa para a mais rápida (com desempate alfabético determinístico).
-      * Em `tests/test_autoloop_runner.cjs`: Adicionados testes de contrato validando a ordenação decrescente LPT e o desempate determinístico.
-    - **Validação e Cobertura**: 100% aprovado no runner (`test_autoloop_runner.cjs`), na suíte de orquestração (128/128 testes) e na bateria oficial de testes (`npm test`, 49/49 suítes aprovadas em 8.21s com código estável).
+      * Ajustada a exibição do Exame Físico (EF) em rascunhos e respostas de IA para segmentar cada sistema semiológico em linha individual (`Sinais Vitais:`, `Geral:`, `ACV:`, `AR:`, `Abdome:`, `Extremidades:`), facilitando leitura e cópia para prontuário (PEP).
+      * Removidos botões de casos clínicos pré-fabricados (HAS, DM2, IVAS, Lombalgia) dos menus e telas do SOAP (`ux:amb:soap`, `/soap`, `novoCasoBot`).
+      * Eliminado o bloqueio "Dados do caso atual mantidos. Envie a próxima informação." ao chamar `ux:usar:soap`, acionando diretamente a estruturação SOAP com os dados já existentes.
+      * Removido o botão de modelo de EF avulso do menu Ambulatório (`ux:hub:amb`), mantendo o modelo de EF normal exclusivamente contextualizado dentro do caso clínico no SOAP (`[🩺 EF Normal]`).
+    - **Validação e Resultados**: 100% de aprovação em `tests/test_soap_ef_organizacao_ux.cjs`, `tests/test_ambulatorio_ux.cjs`, `tests/test_soap_modo_e_receita_ux.cjs` e `tests/test_ef_normal_completo.cjs`.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -61,12 +62,12 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 110 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo e limpo de sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 106 (Motores de IA / Cache de Respostas Determinísticas em Memória RAM com TTL Inteligente por CID-10)*: Implementar cache determinístico em memória de alta velocidade (LRU Cache com hashing SHA-256 do prompt clínico e normalização de termos) para condutas canônicas de alta incidência (ex: PCR/ACLS, Anafilaxia, AVC, Pré-Eclâmpsia Zuspan), permitindo respostas instantâneas em 0ms sem realizar requisições HTTP locais ou remotas durante picos de emergência no plantão.
-- *Sugestão 107 (Motores de IA / Healthcheck Periódico Não-Bloqueante do Daemon Ollama Local)*: Implementar ping periódico a cada 60s em background (`/api/tags`) para aferir latência e aquecimento de modelos locais (Mistral/Llama 3/Qwen) no nó Ollama, mantendo um flag atômico de prontidão em RAM para evitar tentativas síncronas de conexão e timeouts desnecessários quando o daemon estiver pausado ou descarregado da GPU.
-- *Sugestão 108 (Motores de IA / Fallback Multinível com Transição Fluida para Modelos Locais Quantizados 4-bit)*: Adicionar perfil de contingência com modelos ultraleves quantizados GGUF (ex: Qwen 2.5 3B ou Llama 3.2 1B em 4 bits) otimizados para execução ultrarrápida em CPUs com baixo consumo de memória RAM (< 2 GB), viabilizando inferência médica offline completa mesmo em servidores hospitalares modestos ou notebooks de plantão sem GPU dedicada.
-- *Sugestão 109 (Test Sharding & Watcher Inteligente / Execução Automática por Diff do Git)*: Implementar modo observador (`--watch-diff` no runner de testes) que detecta arquivos modificados via `git status -s` e mapeia automaticamente as suítes de teste unitárias afetadas em tempo real (ex: edição em `src/03_obstetricia.js` aciona imediatamente apenas `tests/test_obstetricia_prenatal.cjs` em background com debouncing de 300ms), proporcionando feedback contínuo instantâneo com zero intervenção manual do desenvolvedor.
-- *Sugestão 110 (Autoloop / Telemetria Econômica de Custo por Token Cacheado vs Token Novo no Relatório Diário)*: Adicionar cálculo do valor financeiro economizado (em dólares e reais) a partir do diferencial de custo de Prompt Caching dos provedores (desconto de até 75% a 90% para Cache Read Tokens no Gemini e Claude), exibindo no relatório noturno ou sumário do Telegram o ganho financeiro direto obtido pela arquitetura de pré-aquecimento de contexto.
+- *Sugestão 01 (Sala Vermelha / Hipercalemia Grave)*: Kit prescritivo em 1 toque do tripé da hipercalemia (K+ > 6.0 ou alteração de ECG) combinando Estabilização de Membrana (Gluconato 10%), Shift Intracelular (Glicoinsulina + Beta-2 inalatório) e Eliminação Corpórea (Furosemida / Resinas) com vigilância seriada de ritmo e glicemia.
+- *Sugestão 02 (Sala Vermelha / Intubação SRI)*: Alerta sentinela de colapso hemodinâmico bloqueando o uso inadvertido de drogas vasodilatadoras (Propofol ou Midazolam) em pacientes em choque com Noradrenalina, direcionando para Etomidato (0,3 mg/kg) ou Quetamina (1,5-2 mg/kg).
+- *Sugestão 03 (Nefrologia & UTI / Hidratação)*: Calculadora integrada de reposição de potássio IV (KCl 19,1%) calculando concentração máxima permitida para acesso periférico (40 mEq/L) vs central (60 mEq/L) e velocidade horária máxima (10-20 mEq/h sob monitorização cardíaca).
+- *Sugestão 04 (Farmacologia de UTI / Acessos)*: Matriz esquemática de alocação de fármacos por lúmen de Cateter Venoso Central (CVC de duplo/triplo lúmen) para evitar incompatibilidade físico-química: distal (vasopressores/DVA), medial (NPT/sangue) e proximal (sedoanalgesia/bolus).
+- *Sugestão 05 (Emergência Respiratória / Gasometria)*: Alvos de ventilação mecânica protetora na SDRA acoplados à gasometria (VT 6 mL/kg de peso predito pela altura, FR ajustada para PaCO2 alvo e PEEP para PaO2 alvo associados ao cálculo de P/F da classificação de Berlin).
 
 ---

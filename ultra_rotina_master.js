@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 10:14:11
- * Checksum SHA256: 2333104afc91dfbe
+ * Gerado automaticamente via build_master.py em: 2026-10-11 10:32:54
+ * Checksum SHA256: 099b7904e9772564
  * ==============================================================================
  */
 
@@ -29829,11 +29829,11 @@ var SoapAmbulatorialService = (function() {
       ];
 
       if (Array.isArray(pergs) && pergs.length) {
-        linhasFase1.push('💡 *Investigação Complementar (se desejar enriquecer o caso):*\n' + pergs.map(function(item) { return '• ' + item; }).join('\n'));
+        linhasFase1.push('❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n' + pergs.map(function(item) { return '• ' + item; }).join('\n'));
       }
 
       if (Array.isArray(dirigs) && dirigs.length) {
-        linhasFase1.push('💡 *Exame Físico Dirigido Sugerido:*\n' + dirigs.map(function(item) { return '• ' + item; }).join('\n'));
+        linhasFase1.push('🎯 *Cobrança Ativa do Exame Físico Dirigido*\n' + dirigs.map(function(item) { return '• ' + item; }).join('\n'));
       }
 
       return linhasFase1.join('\n\n');
@@ -37939,10 +37939,10 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
       "🔍 *O - Objetivo (Exame Físico)*\n" + (oSanitizado || "Exame físico em estruturação; conferir sinais vitais e achados.")
     ];
     if (perguntas && perguntas.length > 0) {
-      blocosRasc.push("💡 *Pontos de Anamnese para Complementar (se houver):*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
+      blocosRasc.push("❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
     }
     if (!temEfAudio && exameDirigido && exameDirigido.length > 0) {
-      blocosRasc.push("💡 *Exame Físico Dirigido Sugerido:*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
+      blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
     }
 
     return {
@@ -38341,15 +38341,16 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - QP e HDA com cronologia e caracterização semiológica direta.",
     "   - Antecedentes/Medicações/Alergias: registre se informados; se não informados, declare 'Não informado' de forma compacta em 1 linha.",
     "2. EXAME FÍSICO (O):",
+    "   - Cada sistema DEVE estar em uma linha diferente separada por quebra de linha (\\n): Sinais Vitais / Geral / ACV / AR / Abdome / Extremidades. NUNCA junte sistemas na mesma linha.",
     "   - Sinais Vitais: registre os relatados. Para sinais vitais não informados, reserve o espaço [   ] com a unidade (PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C).",
     "   - Sistemas examinados relatados. Se EF não informado, declare 'Exame físico pendente de avaliação beira-leito'.",
     "   - NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa a menos que o médico tenha dito expressamente 'normal'. Para sistemas não informados e não examinados, declare explicitamente como pendentes à beira-leito.",
     "   - Integre exame especial se contido no caso.",
-    "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Bom estado geral lúcido e orientado, ACV, AR, Abdome e Extremidades), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
+    "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Geral, ACV, AR, Abdome e Extremidades), cada um em sua própria linha separada. NUNCA junte na mesma linha e NUNCA sintetize em apenas 'EF normal'.",
     "3. INVESTIGAÇÃO ATIVA DA ANAMNESE COM JUSTIFICATIVA DIDÁTICA (FMRP-USP):",
     "   - Formule de 2 a 4 perguntas diretas e clínicas para completar as lacunas da história (início detalhado, fatores de alívio/piora, antecedentes, alergias, medicações).",
     "   - RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses ao final. Exemplo: 'Investigar se a dor epigástrica irradia para o dorso (descartar pancreatite aguda ou dissecção de aorta abdominal)'.",
-    "4. COBRANÇA ATIVA DO EXAME FÍSICO DIRIGIDO:",
+    "4. EXAME FÍSICO DIRIGIDO (SUGESTÃO COMPLEMENTAR):",
     "   - 1 a 2 tópicos com sinais vitais críticos (PA, FC, FR, SpO2, Tax) e manobras/auscultas essenciais para o caso que ainda não foram informados.",
     "5. REGRA ABSOLUTA DE SEGURANÇA: NÃO gere Avaliação nem Plano nesta fase.",
     "",
@@ -38383,6 +38384,9 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
   var oRasc = sanitizarObjetivoComRelato(objRasc.objetivo, dadosCaso);
   oRasc = verificarEExpandirExameFisicoObjetivo(oRasc, dadosCaso);
+  if (typeof formatarExameFisicoSistemas === "function") {
+    oRasc = formatarExameFisicoSistemas(oRasc);
+  }
   if (!oRasc) oRasc = "Exame físico em estruturação; conferir sinais vitais e achados.";
 
   var perguntas = objRasc.perguntas_anamnese || objRasc.perguntas;
@@ -38392,9 +38396,12 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   var blocosRasc = [
     "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
     "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + sRasc,
-    "🔍 *O - Objetivo (Exame Físico)*\n" + oRasc,
-    "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.")
+    "🔍 *O - Objetivo (Exame Físico)*\n" + oRasc
   ];
+
+  if (perguntas && perguntas.length > 0) {
+    blocosRasc.push("❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
+  }
 
   if (objRasc.contingencia_offline) {
     blocosRasc.unshift("⚠️ *MODO OFFLINE DE CONTINGÊNCIA (PROVEDOR EM NUVEM EM TIMEOUT)*\nProcessado pelo Motor Determinístico Offline.");
@@ -38403,7 +38410,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     }
   }
 
-  if (!temEfCompleto) {
+  if (!temEfCompleto && exameDirigido && exameDirigido.length > 0) {
     blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
   }
 
@@ -42251,17 +42258,11 @@ function processarMensagemTexto(message) {
       return enviarMensagemComTecladoParaChat(chatId,
         "🩺 *MODO SOAP · ANAMNESE & EXAME CLÍNICO*\n\n" +
         "Envie o caso clínico narrado ou em tópicos para estruturação em prontuário PEP.\n\n" +
-        "💡 *Exemplo:* `/soap Mulher 68a, dor epigástrica em queimação há 3 semanas, sem vômitos, PA 130/80`\n\n" +
-        "Toque em um caso rápido abaixo para iniciar em 1 toque:",
+        "💡 *Exemplo:* `/soap Mulher 68a, dor epigástrica em queimação há 3 semanas, sem vômitos, PA 130/80`",
         {
           inline_keyboard: [
             [
-              { text: "🩺 Exemplo HAS", callback_data: "ux:amb:soap:has" },
-              { text: "🩸 Exemplo DM2", callback_data: "ux:amb:soap:dm2" }
-            ],
-            [
-              { text: "🫁 Exemplo IVAS", callback_data: "ux:amb:soap:ivas" },
-              { text: "🦴 Exemplo Lombalgia", callback_data: "ux:amb:soap:lombalgia" }
+              { text: "📝 Iniciar SOAP", callback_data: "ux:iniciar:soap" }
             ],
             [
               { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
@@ -53327,8 +53328,8 @@ function enviarMenuAmbulatorio(chat, messageId) {
   var botoes = botoesBot([
     [['📝 SOAP Ambulatorial', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
     [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado CFM', 'ux:amb:atestado']],
-    [['📋 Modelo Exame Físico', 'ux:amb:ef'], ['🩺 Guia SISREG / Parecer', 'ux:amb:sisreg']],
-    [['🤰 Hub G&O', 'ux:rotina:go'], ['🌸 Preventivo', 'ux:rotina:preventivo']],
+    [['🩺 Guia SISREG / Parecer', 'ux:amb:sisreg'], ['🌸 Preventivo', 'ux:rotina:preventivo']],
+    [['🤰 Hub G&O', 'ux:rotina:go']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -53341,27 +53342,10 @@ function enviarTelaAmbSoap(chat, messageId) {
     "• *O (Objetivo):* Sinais vitais (PA, FC, FR, SpO2, Tax, IMC) e exame físico segmentar dirigido.\n" +
     "• *A (Avaliação):* Hipótese diagnóstica codificada (CID-10 / CIAP-2) e estratificação de risco (SBC/SBD).\n" +
     "• *P (Plano):* Prescrição REMUME, exames complementares, MEV (estilo de vida), alarmes e retorno.\n\n" +
-    "💡 *Exame Físico Padrão Normal:* Toque no botão abaixo para copiar o modelo completo direto para o PEP.\n\n" +
-    "👉 *Toque em um caso clínico predefinido abaixo para testar em 1 toque ou digite `/ambulatorio [dados]`*:";
-
-  var efTexto = (typeof SoapAmbulatorialService !== "undefined" && typeof SoapAmbulatorialService.obterModeloExameFisicoCompleto === "function")
-    ? SoapAmbulatorialService.obterModeloExameFisicoCompleto()
-    : "Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36.5°C.\n" +
-      "Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.\n" +
-      "  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.\n" +
-      "  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.\n" +
-      "  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.\n" +
-      " Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.";
-
-  var cache = uxCache();
-  var ckEf = Utilities.getUuid().replace(/-/g, '');
-  safePutCache(cache, ckEf, efTexto, 21600);
+    "👉 *Envie os dados do caso clínico por áudio ou texto, ou toque abaixo para iniciar*:";
 
   var botoes = botoesBot([
-    [['📋 Copiar Exame Físico Padrão', 'ux:copiar:' + ckEf]],
-    [['🩺 Caso HAS Descompensada', 'ux:amb:soap:has'], ['🩸 Caso DM2 Descompensado', 'ux:amb:soap:dm2']],
-    [['🫁 Caso IVAS / Resfriado', 'ux:amb:soap:ivas'], ['🦴 Caso Lombalgia Aguda', 'ux:amb:soap:lombalgia']],
-    [['📝 Iniciar Novo SOAP Livre', 'ux:iniciar:soap']],
+    [['📝 Iniciar SOAP', 'ux:iniciar:soap']],
     [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -53484,9 +53468,8 @@ function tratarCallbackAmbSoap(chat, valor, messageId) {
 
   var botoes = botoesBot([
     [['📋 Copiar SOAP para PEP', 'ux:copiar:' + ckSoap]],
-    [['🩺 Outro Caso (HAS)', 'ux:amb:soap:has'], ['🩸 Caso DM2', 'ux:amb:soap:dm2']],
-    [['🔙 SOAP Ambulatorial', 'ux:amb:soap'], ['🔙 Ambulatório', 'ux:hub:amb']],
-    [['🏠 Início', 'ux:hub:inicio']]
+    [['📝 Novo SOAP', 'ux:iniciar:soap']],
+    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
 
   return enviarTelaBot(chat, textoRetorno, botoes, messageId);
@@ -56359,7 +56342,14 @@ function tratarCallbackUX(cb) {
       var anterior = modoBot(chat), legacy = cache.get('ctx_' + chat);
       var dados = (anterior && anterior.data) ? anterior.data : String(legacy || '');
       definirModoBot(chat, v, dados);
-      enviarTelaBot(chat, '*' + UX_NOMES_MODO[v] + '*\n\nDados do caso atual mantidos. Envie a próxima informação.',
+      if (v === 'soap') {
+        if (dados && dados.trim().length >= 5) {
+          return processarEntradaSoap(chat, '', { messageId: msgId });
+        } else {
+          return iniciarModoBot(chat, 'soap', true, msgId);
+        }
+      }
+      enviarTelaBot(chat, '*' + UX_NOMES_MODO[v] + '*\n\nCaso ativo iniciado com os dados atuais.',
         botoesBot([[['Encerrar', 'ux:cancelar']]]), msgId);
     } else if (op === 'manter') {
       cache.remove('pending_' + chat);
@@ -56382,8 +56372,8 @@ function tratarCallbackUX(cb) {
           }
         }
         if (!dadosSoap || dadosSoap.trim().length < 5) {
-          return enviarTelaBot(chat, '🩺 *Nenhum caso ativo para gerar Avaliação e Plano.*\n\nEnvie os dados do caso clínico por áudio ou texto ou escolha um exemplo abaixo:', botoesBot([
-            [['🩺 Exemplo HAS', 'ux:amb:soap:has'], ['🩸 Exemplo DM2', 'ux:amb:soap:dm2']],
+          return enviarTelaBot(chat, '🩺 *Nenhum caso ativo para gerar Avaliação e Plano.*\n\nEnvie os dados do caso clínico por áudio ou texto:', botoesBot([
+            [['📝 Iniciar SOAP', 'ux:iniciar:soap']],
             [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
           ]), msgId);
         }
@@ -56434,7 +56424,19 @@ function tratarCallbackUX(cb) {
         }
         var modeloEfTexto = (typeof obterModeloExameFisicoCompleto === 'function')
           ? obterModeloExameFisicoCompleto(dadosNorm)
-          : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto : 'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.\nBom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.\n  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.\n  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.\n  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.\n Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.');
+          : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO
+            ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto
+            : [
+                'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
+                'Geral: Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+                'ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
+                'AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente.',
+                'Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
+                'Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
+              ].join('\n'));
+        if (typeof formatarExameFisicoSistemas === 'function') {
+          modeloEfTexto = formatarExameFisicoSistemas(modeloEfTexto);
+        }
         dadosNorm += '\n\n' + modeloEfTexto;
         definirModoBot(chat, 'soap', dadosNorm);
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);

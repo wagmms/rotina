@@ -69,7 +69,7 @@ async function testAmbulatorioUX() {
   assert(callbacksMenu.includes('ux:amb:remume'), 'Menu deve conter botão ux:amb:remume');
   assert(callbacksMenu.includes('ux:amb:cid'), 'Menu deve conter botão ux:amb:cid');
   assert(callbacksMenu.includes('ux:amb:atestado'), 'Menu deve conter botão ux:amb:atestado');
-  assert(callbacksMenu.includes('ux:amb:ef'), 'Menu deve conter botão ux:amb:ef');
+  assert(!callbacksMenu.includes('ux:amb:ef'), 'Menu não deve conter modelo EF solto (apenas dentro do caso)');
   assert(callbacksMenu.includes('ux:amb:sisreg'), 'Menu deve conter botão ux:amb:sisreg');
   assert(callbacksMenu.includes('ux:menu') || callbacksMenu.includes('ux:hub:inicio'), 'Menu deve conter botão de retorno');
   console.log('  ✓ Menu principal e seus submódulos essenciais validados com sucesso.');
@@ -85,9 +85,8 @@ async function testAmbulatorioUX() {
   let cbsSoap = botoesSoap.map(b => b.callback_data);
   assert(cbsSoap.includes('ux:hub:amb'), 'Deve conter retorno contextual [🔙 Ambulatório]');
   assert(cbsSoap.includes('ux:hub:inicio'), 'Deve conter retorno [🏠 Início]');
-  let btnCopiarEf = botoesSoap.find(b => b.text && b.text.includes('Copiar Exame Físico'));
-  assert(btnCopiarEf, 'Deve conter botão de cópia rápida de exame físico');
-  console.log('  ✓ Tela principal de SOAP validada com retorno contextual e cópia rápida.');
+  assert(cbsSoap.includes('ux:iniciar:soap'), 'Deve conter botão [📝 Iniciar SOAP]');
+  console.log('  ✓ Tela principal de SOAP validada com retorno contextual e início rápido.');
 
   // Sub-callbacks táteis de SOAP
   console.log('  [2.1] Testando sub-callbacks táteis de casos SOAP (HAS, DM2, IVAS e Lombalgia)...');

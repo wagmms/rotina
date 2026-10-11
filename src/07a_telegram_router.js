@@ -1141,17 +1141,11 @@ function processarMensagemTexto(message) {
       return enviarMensagemComTecladoParaChat(chatId,
         "🩺 *MODO SOAP · ANAMNESE & EXAME CLÍNICO*\n\n" +
         "Envie o caso clínico narrado ou em tópicos para estruturação em prontuário PEP.\n\n" +
-        "💡 *Exemplo:* `/soap Mulher 68a, dor epigástrica em queimação há 3 semanas, sem vômitos, PA 130/80`\n\n" +
-        "Toque em um caso rápido abaixo para iniciar em 1 toque:",
+        "💡 *Exemplo:* `/soap Mulher 68a, dor epigástrica em queimação há 3 semanas, sem vômitos, PA 130/80`",
         {
           inline_keyboard: [
             [
-              { text: "🩺 Exemplo HAS", callback_data: "ux:amb:soap:has" },
-              { text: "🩸 Exemplo DM2", callback_data: "ux:amb:soap:dm2" }
-            ],
-            [
-              { text: "🫁 Exemplo IVAS", callback_data: "ux:amb:soap:ivas" },
-              { text: "🦴 Exemplo Lombalgia", callback_data: "ux:amb:soap:lombalgia" }
+              { text: "📝 Iniciar SOAP", callback_data: "ux:iniciar:soap" }
             ],
             [
               { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },

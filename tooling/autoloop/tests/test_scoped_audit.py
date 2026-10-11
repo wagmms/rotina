@@ -260,3 +260,85 @@ def test_lock_holder_reports_pid_and_unreleased_diff_size(tmp_path):
     size, is_over = check_unreleased_diff_size(tmp_path, base=base, max_chars=40000)
     assert size >= 50000
     assert is_over is True
+
+
+def test_chunked_scoped_audit_partitions_large_diff(tmp_path):
+    """
+    Comprova que releases com volume de diff superior a max_chunk_chars são
+    automaticamente particionados em fatias atômicas e rastreáveis sem qualquer
+    truncamento ou perda de cobertura.
+    """
+    base = repo(tmp_path)
+    # Cria múltiplos arquivos de engenharia com conteúdo moderado
+    for i in range(5):
+        (tmp_path / f'mod_{i}.js').write_text(f'// Modulo {i}\nconst x{i} = {i};\nfunction get{i}() {{ return {i} * 10; }}\n')
+    head = commit(tmp_path)
+
+    # Com teto baixo (150 chars por chunk), 5 arquivos devem ser divididos em múltiplos lotes
+    _, _, scopes_chunked = build_scopes(tmp_path, base, head, classificar_alteracoes, selecionar_modelo_auditoria, max_chunk_chars=150)
+    eng_scopes = [s for s in scopes_chunked if s['category'] == 'engineering']
+
+    assert len(eng_scopes) > 1
+    total_files_in_chunks = [f for s in eng_scopes for f in s['files']]
+    assert sorted(total_files_in_chunks) == sorted([f'mod_{i}.js' for i in range(5)])
+
+    for s in eng_scopes:
+        assert 'part_' in s['scope_key']
+        assert s['chunk_total'] == len(eng_scopes)
+        assert 1 <= s['chunk_index'] <= len(eng_scopes)
+        # Cada fatia tem manifesto físico criado no disco
+        assert (tmp_path / s['manifest_path']).is_file()
+
+
+def test_chunked_scoped_audit_evaluation_and_granular_cache(tmp_path):
+    """
+    Comprova avaliação completa de fatias, geração de evidências consolidadas no recibo
+    de release e reaproveitamento granular de cache quando apenas uma fatia é corrigida.
+    """
+    base = repo(tmp_path)
+    for i in range(4):
+        (tmp_path / f'eng_{i}.js').write_text(f'function e{i}() {{ return {i}; }}\n')
+    head = commit(tmp_path)
+
+    _, _, scopes_chunked = build_scopes(tmp_path, base, head, classificar_alteracoes, selecionar_modelo_auditoria, max_chunk_chars=120)
+    assert len(scopes_chunked) >= 2
+
+    chamadas_auditoria = []
+    def fake_review(scope, prior, number):
+        chamadas_auditoria.append(scope['scope_key'])
+        return report(head, passed=True), None
+
+    # 1. Primeira avaliação de todas as fatias
+    res1 = evaluate_scopes(tmp_path, head, base, scopes_chunked, fake_review, avaliar_parecer_auditoria)
+    assert res1['verdict'] == 'pass'
+    assert len(chamadas_auditoria) == len(scopes_chunked)
+
+    # Recibo emitido contém evidências de todas as fatias
+    receipt_path = tmp_path / f'data/scoped_audits/release_{head}.json'
+    assert receipt_path.is_file()
+    rec_data = json.loads(receipt_path.read_text())
+    assert rec_data['approved'] is True
+    assert rec_data['chunks_total'] == len(scopes_chunked)
+    assert len(rec_data['coverage']) == len(scopes_chunked)
+
+    # 2. Modifica apenas 1 arquivo que pertence ao primeiro lote
+    primeiro_arquivo = scopes_chunked[0]['files'][0]
+    (tmp_path / primeiro_arquivo).write_text('function modificado() { return 999; }\n')
+    new_head = commit(tmp_path)
+
+    _, _, new_scopes = build_scopes(tmp_path, base, new_head, classificar_alteracoes, selecionar_modelo_auditoria, max_chunk_chars=120)
+
+    chamadas_rodada_2 = []
+    def fake_review_rodada_2(scope, prior, number):
+        chamadas_rodada_2.append(scope['scope_key'])
+        return report(new_head, passed=True), None
+
+    res2 = evaluate_scopes(tmp_path, new_head, base, new_scopes, fake_review_rodada_2, avaliar_parecer_auditoria)
+    assert res2['verdict'] == 'pass'
+
+    # Granular Cache: Apenas a fatia modificada deve ser chamada novamente para auditoria!
+    # As outras fatias inalteradas foram reaproveitadas do cache com 0ms.
+    assert len(chamadas_rodada_2) < len(new_scopes)
+    assert len(chamadas_rodada_2) == 1
+    assert chamadas_rodada_2[0] == new_scopes[0]['scope_key']
+

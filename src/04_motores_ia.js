@@ -1408,10 +1408,10 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
       "🔍 *O - Objetivo (Exame Físico)*\n" + (oSanitizado || "Exame físico em estruturação; conferir sinais vitais e achados.")
     ];
     if (perguntas && perguntas.length > 0) {
-      blocosRasc.push("💡 *Pontos de Anamnese para Complementar (se houver):*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
+      blocosRasc.push("❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
     }
     if (!temEfAudio && exameDirigido && exameDirigido.length > 0) {
-      blocosRasc.push("💡 *Exame Físico Dirigido Sugerido:*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
+      blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
     }
 
     return {
@@ -1869,7 +1869,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   ];
 
   if (perguntas && perguntas.length > 0) {
-    blocosRasc.push("💡 *Pontos de Anamnese para Complementar (se houver):*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
+    blocosRasc.push("❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
   }
 
   if (objRasc.contingencia_offline) {
@@ -1880,7 +1880,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   }
 
   if (!temEfCompleto && exameDirigido && exameDirigido.length > 0) {
-    blocosRasc.push("💡 *Exame Físico Dirigido Sugerido:*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
+    blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
   }
 
   return _iaFinalizarTexto(blocosRasc.join("\n\n"));
