@@ -1114,7 +1114,7 @@ def enviar_relatorio_ciclo_rotina(nome_modelo, num_conta, nome_squad="Squad Padr
             linhas.append(f"• {h_code} {html.escape(c['subject'])}")
 
     linhas.append("")
-    linhas.append("💡 <i>Deploy automático no Render a cada 3h. Para forçar deploy imediato, envie</i> <b>/deploy</b>.")
+    linhas.append("💡 <i>Deploy automático no Render a cada 6h. Para forçar deploy imediato, envie</i> <b>/deploy</b>.")
 
     texto_html = "\n".join(linhas)
 
@@ -1141,7 +1141,7 @@ def enviar_relatorio_ciclo_rotina(nome_modelo, num_conta, nome_squad="Squad Padr
         enviar_relatorio_telegram(texto_html)
         log("TELEGRAM", "📲 Relatório do ciclo enviado ao Telegram com sucesso.")
     else:
-        log("INFO", "📝 Resumo do ciclo persistido localmente (notificação no Telegram desativada para tarefas individuais; reservada a deploys de 3h).")
+        log("INFO", "📝 Resumo do ciclo persistido localmente (notificação no Telegram desativada para tarefas individuais; reservada a deploys de 6h).")
 
 STATE_DEPLOY_FILE = Path("data/.autoloop_deploy_state.json")
 
@@ -1343,31 +1343,17 @@ def obter_commit_head(repo_dir="."):
 
 def obter_credenciais_telegram(token_override=None, chat_override=None):
     """
-    Recupera as credenciais do Telegram para notificações de engenharia e autoloop.
-    Prioridades de resolução segura (SEM hardcoded tokens no script):
+    Recupera as credenciais do Telegram para notificações de deploy e autoloop.
+    Direciona exclusivamente para o bot do IA HUB (conforme diretriz do usuário):
     1. Parâmetros explícitos (token_override, chat_override)
-    2. Variáveis de ambiente (AUTOLOOP_TELEGRAM_BOT_TOKEN / TELEGRAM_BOT_TOKEN)
-    3. Arquivo de ambiente (.env)
-    4. Arquivo seguro de configuração (~/.config/autoloop/telegram.json)
+    2. Variáveis de ambiente do IA HUB (BOT_TOKEN_IA_HUB / AUTOLOOP_TELEGRAM_BOT_TOKEN)
+    3. Arquivo protegido ~/.config/autoloop/telegram.json ou ~/.config/ia-hub/ia-hub.env
+    4. Fallback (.env ou ambiente TELEGRAM_BOT_TOKEN)
     """
-    token = token_override or os.environ.get("AUTOLOOP_TELEGRAM_BOT_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+    token = token_override or os.environ.get("BOT_TOKEN_IA_HUB") or os.environ.get("AUTOLOOP_TELEGRAM_BOT_TOKEN")
     chat_id = chat_override or os.environ.get("TELEGRAM_CHAT_ID", "").strip()
 
-    # 1. Tenta carregar do .env local
-    env_path = Path(".env")
-    if env_path.exists() and (not token or not chat_id):
-        try:
-            with open(env_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if (line.startswith("AUTOLOOP_TELEGRAM_BOT_TOKEN=") or line.startswith("TELEGRAM_BOT_TOKEN=")) and not token:
-                        token = line.split("=", 1)[1].strip().strip('"').strip("'")
-                    elif line.startswith("TELEGRAM_CHAT_ID=") and not chat_id:
-                        chat_id = line.split("=", 1)[1].strip().strip('"').strip("'")
-        except Exception:
-            pass
-
-    # 2. Tenta carregar do arquivo protegido ~/.config/autoloop/telegram.json
+    # 1. Tenta carregar do arquivo protegido ~/.config/autoloop/telegram.json (Bot do IA HUB)
     config_json = Path.home() / ".config" / "autoloop" / "telegram.json"
     if (not token or not chat_id) and config_json.exists():
         try:
@@ -1379,6 +1365,39 @@ def obter_credenciais_telegram(token_override=None, chat_override=None):
                     chat_id = sec.get("telegram_chat_id", "").strip()
         except Exception:
             pass
+
+    # 2. Tenta carregar do ~/.config/ia-hub/ia-hub.env
+    ia_hub_env = Path.home() / ".config" / "ia-hub" / "ia-hub.env"
+    if (not token or not chat_id) and ia_hub_env.exists():
+        try:
+            for line in ia_hub_env.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line.startswith("BOT_TOKEN_IA_HUB=") and not token:
+                    token = line.split("=", 1)[1].strip().strip('"').strip("'")
+                elif line.startswith("TELEGRAM_CHAT_ID=") and not chat_id:
+                    chat_id = line.split("=", 1)[1].strip().strip('"').strip("'")
+        except Exception:
+            pass
+
+    # 3. Fallback apenas se ainda não houver token configurado
+    if not token:
+        token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+        if not token:
+            env_path = Path(".env")
+            if env_path.exists():
+                try:
+                    with open(env_path, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line.startswith("AUTOLOOP_TELEGRAM_BOT_TOKEN=") or line.startswith("TELEGRAM_BOT_TOKEN="):
+                                token = line.split("=", 1)[1].strip().strip('"').strip("'")
+                                break
+                except Exception:
+                    pass
+
+    # Chat ID padrão autorizado
+    if not chat_id:
+        chat_id = "1771571035"
 
     return token or None, chat_id or None
 
@@ -1453,9 +1472,9 @@ def enviar_relatorio_telegram(texto_html, token_override=None, chat_override=Non
         return True
     return False
 
-def coletar_mudancas_ciclo(commit_anterior=None, horas=3.0):
+def coletar_mudancas_ciclo(commit_anterior=None, horas=6.0):
     """
-    Coleta os commits semânticos realizados no ciclo de 3h.
+    Coleta os commits semânticos realizados no ciclo de 6h.
     Prioriza o intervalo commit_anterior..HEAD se disponível.
     """
     commits = []
@@ -1601,7 +1620,7 @@ def coletar_sugestoes_futuras():
 
     return sugestoes
 
-def executar_deploy_e_relatorio(intervalo_horas=3.0, commit_anterior=None, token_override=None, chat_override=None):
+def executar_deploy_e_relatorio(intervalo_horas=6.0, commit_anterior=None, token_override=None, chat_override=None):
     """
     Executa o pipeline completo garantindo exclusão mútua física e fechamento seguro do lock:
     1. Lock de exclusão mútua física por projeto (data/.deploy.lock)
@@ -1646,7 +1665,7 @@ def executar_deploy_e_relatorio(intervalo_horas=3.0, commit_anterior=None, token
                 pass
 
 
-def _executar_deploy_e_relatorio_core(intervalo_horas=3.0, commit_anterior=None, token_override=None, chat_override=None):
+def _executar_deploy_e_relatorio_core(intervalo_horas=6.0, commit_anterior=None, token_override=None, chat_override=None):
     hora_str = datetime.now().strftime("%d/%m/%Y às %H:%M")
     print("\n" + "=" * 70)
     log("INFO", f"🚀 {CORES['bold']}EXECUTANDO DEPLOY AUTOMÁTICO DO CICLO ({intervalo_horas:.1f}H){CORES['reset']}")
@@ -1834,7 +1853,7 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=3.0, commit_anterior=None,
             f.write(relatorio_md)
         info_deploy = {
             "timestamp": hora_str,
-            "tipo": "deploy_3h",
+            "tipo": "deploy_6h",
             "commit_head": novo_head,
             "push_ok": push_ok,
             "testes_ok": testes_ok,
@@ -1871,9 +1890,9 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=3.0, commit_anterior=None,
     print("=" * 70 + "\n")
     return push_ok and build_ok and testes_ok
 
-def verificar_e_executar_deploy_agendado(intervalo_horas=3.0, token_override=None, chat_override=None):
+def verificar_e_executar_deploy_agendado(intervalo_horas=6.0, token_override=None, chat_override=None):
     """
-    Verifica se o intervalo de 3 horas decorreu desde o último deploy.
+    Verifica se o intervalo de 6 horas decorreu desde o último deploy.
     Se decorreu, dispara o deploy e relatório automaticamente.
     Respeita backoff progressivo em caso de falha recente.
     """
@@ -1992,8 +2011,8 @@ def main():
     parser.add_argument(
         "--deploy-interval",
         type=float,
-        default=3.0,
-        help="Intervalo em horas para deploy automático no Render e envio de relatório no Telegram (padrão: 3.0 horas)."
+        default=6.0,
+        help="Intervalo em horas para deploy automático no Render e envio de relatório no Telegram (padrão: 6.0 horas)."
     )
     parser.add_argument(
         "--deploy-now",
@@ -2003,7 +2022,7 @@ def main():
     parser.add_argument(
         "--no-auto-deploy",
         action="store_true",
-        help="Desativa o deploy automático a cada 3 horas durante o autoloop."
+        help="Desativa o deploy automático a cada 6 horas durante o autoloop."
     )
     parser.add_argument(
         "--telegram-token",

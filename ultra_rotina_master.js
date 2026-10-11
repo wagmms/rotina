@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 08:25:52
- * Checksum SHA256: 4327320494a8a9fd
+ * Gerado automaticamente via build_master.py em: 2026-10-11 08:36:08
+ * Checksum SHA256: fd7c9093553b0348
  * ==============================================================================
  */
 
@@ -41618,8 +41618,8 @@ function tratarComandoUltimasMudancas(chatId, modoDeploy) {
 
   linhas.push("");
   linhas.push("⏰ *Agendador de Deploy:*");
-  linhas.push("• Ciclo automático a cada *3 horas* no Render.");
-  linhas.push("💡 _Notificações automáticas ocorrem a cada deploy de 3h ou quando você perguntar._");
+  linhas.push("• Ciclo automático a cada *6 horas* no Render.");
+  linhas.push("💡 _Notificações automáticas ocorrem a cada deploy de 6h ou quando você perguntar._");
 
   var msgFinal = linhas.join("\n");
   var kbRetorno = (typeof botoesBot === "function") ? botoesBot([

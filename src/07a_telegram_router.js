@@ -556,8 +556,8 @@ function tratarComandoUltimasMudancas(chatId, modoDeploy) {
 
   linhas.push("");
   linhas.push("⏰ *Agendador de Deploy:*");
-  linhas.push("• Ciclo automático a cada *3 horas* no Render.");
-  linhas.push("💡 _Notificações automáticas ocorrem a cada deploy de 3h ou quando você perguntar._");
+  linhas.push("• Ciclo automático a cada *6 horas* no Render.");
+  linhas.push("💡 _Notificações automáticas ocorrem a cada deploy de 6h ou quando você perguntar._");
 
   var msgFinal = linhas.join("\n");
   var kbRetorno = (typeof botoesBot === "function") ? botoesBot([
