@@ -278,12 +278,13 @@ function enviarMenuSalaVermelha(chat, messageId) {
     [['💉 Drogas Vasoativas (DVA)', 'ux:dvamenu'], ['⚡ Choque & Hipotensão', 'ux:emerg:choque']],
     [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🦟 Dengue C/D', 'ux:emerg:dengue'], ['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+    [['⚡ Outras Condutas', 'ux:condutamenu']],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
 function enviarMenuDva(chat, messageId) {
-  return enviarTelaBot(chat, '💉 *Drogas Vasoativas (DVA)*\nQual medicamento deseja calcular?', botoesBot([
+  return enviarTelaBot(chat, '💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nQual medicamento deseja calcular?', botoesBot([
     [['Noradrenalina', 'ux:droga:nora'], ['Dobutamina', 'ux:droga:dobuta']],
     [['Vasopressina', 'ux:fixa:vaso'], ['Adrenalina (Infusão)', 'ux:droga:adrena']],
     [['Nitroprussiato', 'ux:droga:nipride'], ['Nitroglicerina', 'ux:fixa:tridil']],
@@ -319,12 +320,12 @@ function enviarTelaDiluicaoDva(chat, droga, peso, messageId) {
 
 function enviarMenuSri(chat, messageId) {
   return enviarTelaBot(chat,
-    '🫁 *Intubação em Sequência Rápida (SRI)*\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.',
+    '🫁 *SEQUÊNCIA RÁPIDA DE INTUBAÇÃO (SRI / IOT)*\n\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.',
     botoesBot([
       [['60 kg', 'ux:sri:60'], ['70 kg', 'ux:sri:70']],
       [['80 kg', 'ux:sri:80'], ['90 kg', 'ux:sri:90']],
       [['Choque 70 kg', 'ux:sri:70 choque'], ['Asma 70 kg', 'ux:sri:70 asma']],
-      [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
 }
 
@@ -333,8 +334,104 @@ function enviarMenuCondutas(chat, messageId) {
     [['🚨 EAP hipertensivo', 'ux:conduta:eap'], ['⚡ Anafilaxia', 'ux:conduta:anafilaxia']],
     [['🧠 Crise convulsiva', 'ux:conduta:convulsao'], ['🧪 Hipercalemia', 'ux:conduta:hipercalemia']],
     [['🩸 Cetoacidose (CAD)', 'ux:conduta:cad']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
+}
+
+function obterTextoCondutaEmergencia(tipo) {
+  var k = String(tipo || '').toLowerCase().trim();
+  if (k === 'eap') {
+    return "🚨 *EMERGÊNCIA: EDEMA AGUDO DE PULMÃO (EAP HIPERTENSIVO)*\n\n" +
+      "🔴 *AÇÃO IMEDIATA / CONDUTA BEIRA-LEITO:*\n" +
+      "• *Posição:* Cabeceira elevada a 90° com pernas pendentes.\n" +
+      "• *VNI Precoce:* Iniciar CPAP (8-10 cmH2O) ou BiPAP imediatamente. Reduz intubação orotraqueal e mortalidade.\n" +
+      "• *Morfina:* NÃO recomendada de rotina (aumenta intubação e mortalidade segundo SBC/ESC).\n\n" +
+      "🟡 *VASODILATADOR DE AÇÃO RÁPIDA (REDUÇÃO DE PÓS-CARGA):*\n" +
+      "• *Nitroglicerina (Tridil):* Iniciar a 10 a 20 mcg/min (3 a 6 mL/h na BIC com 50 mg em 250 mL SG 5%) e titular a cada 5 min conforme PA.\n" +
+      "• *Nitroprussiato de Sódio (Nipride):* 0,3 a 0,5 mcg/kg/min (50 mg em 250 mL SG 5%) se emergência hipertensiva grave ou refratária a Nitroglicerina.\n\n" +
+      "💧 *DIURÉTICO DE ALÇA VENOSO:*\n" +
+      "• *Furosemida:* 20 a 40 mg EV em bolus lento (1 a 2 ampolas de 20 mg/2 mL). Se uso prévio crônico: 1 a 2x a dose oral habitual EV.\n\n" +
+      "⚠️ *SEGURANÇA BEIRA-LEITO:*\n" +
+      "• Meta: Redução de 20-25% da PA na 1ª hora (evitar hipotensão PAS < 100 mmHg).\n" +
+      "• Se PAS < 90 mmHg (choque cardiogênico): Suspender vasodilatadores e iniciar Noradrenalina.";
+  }
+  if (k === 'anafilaxia') {
+    return "⚡ *EMERGÊNCIA: ANAFILAXIA EM ADULTO (PROTOCOLO IMEDIATO)*\n\n" +
+      "🔴 *1ª LINHA MANDATÓRIA (AÇÃO IMEDIATA):*\n" +
+      "• *Adrenalina IM 0.5mg:* Administrar Adrenalina (Epinefrina) 1:1.000 (1 mg/mL) na dose de *0,5 mg IM* (0,5 mL) IMEDIATAMENTE no músculo vasto lateral da coxa (face anterolateral).\n" +
+      "• Repetir a dose a cada 5 a 15 minutos se resposta clínica insuficiente.\n" +
+      "• ⚠️ *NÃO ATRASAR A ADRENALINA!* Antialérgicos e corticoides nunca devem atrasar a administração da adrenalina intramuscular.\n\n" +
+      "🟡 *SUPORTE HEMODINÂMICO & POSICIONAMENTO:*\n" +
+      "• *Posicionamento:* Decúbito dorsal com membros inferiores elevados. NUNCA levantar ou sentar o paciente abruptamente (risco de colapso de retorno venoso).\n" +
+      "• *Expansão Volêmica Rápida:* SF 0,9% 1000 a 2000 mL em bolus rápido IV em acesso calibroso.\n" +
+      "• *Oxigenação:* O₂ a 10-15 L/min sob máscara com reservatório. Preparar SRI/IOT imediata se estridor ou edema de via aérea.\n\n" +
+      "🔵 *TERAPIA ADJUVANTE (SEGUNDA LINHA):*\n" +
+      "• *Anti-histamínico:* Difenidramina 50 mg EV lento.\n" +
+      "• *Corticoide:* Hidrocortisona 200 a 500 mg EV ou Metilprednisolona 1-2 mg/kg EV (prevenção de resposta bifásica).";
+  }
+  if (k === 'convulsao') {
+    return "🧠 *EMERGÊNCIA: CRISE CONVULSIVA & ESTADO DE MAL EPILÉPTICO (EME)*\n\n" +
+      "🔴 *1ª LINHA — BENZODIAZEPÍNICOS (CRISE > 5 MINUTOS):*\n" +
+      "• *Diazepam:* 10 mg EV puro lento (velocidade 2 a 5 mg/min). Se a crise persistir após 5 min, repetir 10 mg EV (dose máxima: 20 a 30 mg).\n" +
+      "• *OU Midazolam:* 10 mg IM (face anterolateral da coxa) se sem acesso venoso imediato, OU 5 a 10 mg EV lento.\n\n" +
+      "🟡 *2ª LINHA — CRISE REFRATÁRIA > 10 MINUTOS (STATUS EPILÉPTICO):*\n" +
+      "• *Fenitoína (Hidantal):* 20 mg/kg EV (máximo 1500 mg). Diluir em SF 0,9% (concentração máxima 10 mg/mL; NUNCA diluir em glicose pelo risco de precipitação).\n" +
+      "• Velocidade de infusão da Fenitoína: máximo de 50 mg/min sob monitorização contínua de ECG e PA.\n" +
+      "• Alternativas de 2ª linha: Levetiracetam 60 mg/kg EV (máx 4500 mg) ou Valproato de Sódio 40 mg/kg EV.\n\n" +
+      "⚠️ *CUIDADOS IMEDIATOS BEIRA-LEITO:*\n" +
+      "• Proteção de via aérea e aspiração de vias aéreas; não colocar objetos na boca do paciente.\n" +
+      "• Decúbito lateral após término da fase clônica.\n" +
+      "• Checagem imediata de HGT: se hipoglicemia (< 70 mg/dL), infundir 4 ampolas de Glicose 50% (40 mL) EV.";
+  }
+  if (k === 'hipercalemia') {
+    return "🧪 *EMERGÊNCIA: HIPERCALEMIA GRAVE COM ALTERAÇÕES NO ECG*\n\n" +
+      "🔴 *PASSO 1: ESTABILIZAÇÃO DE MEMBRANA MIOCÁRDICA:*\n" +
+      "• Indicação: Onda T apiculada, alargamento de QRS, perda de onda P ou K⁺ > 6,5 mEq/L.\n" +
+      "• *Gluconato de Cálcio 10%:* 10 a 20 mL (1 a 2 ampolas de 10 mL) EV lento em 2 a 5 minutos.\n" +
+      "• Início de ação em 1 a 3 minutos; duração de 30 a 60 min. Repetir dose em 5 a 10 min se alterações no ECG persistirem.\n" +
+      "• ⚠️ O Cálcio protege o miocárdio contra arritmias ventriculares e PCR, mas NÃO reduz os níveis séricos de potássio.\n\n" +
+      "🟡 *PASSO 2: SHIFT CELULAR (REDUÇÃO RÁPIDA DE K⁺ SÉRICO):*\n" +
+      "• *Glicoinsulina:* Glicose 50% (50 mL) + Insulina Regular 10 UI EV em infusão de 20 a 30 minutos.\n" +
+      "• Reduz K⁺ em 0,5 a 1,2 mEq/L em 15-30 min. Checar HGT em 30, 60 e 120 minutos.\n" +
+      "• *Nebulização com Beta-2 Agonista:* Salbutamol 5 mg ou Fenoterol 10 a 20 gotas nebulizado com 5 mL SF 0,9%.\n" +
+      "• *Bicarbonato de Sódio 8,4%:* 50 a 100 mL EV se acidose metabólica concomitante (pH < 7,20).\n\n" +
+      "🔵 *PASSO 3: ELIMINAÇÃO CORPORAL DE POTÁSSIO:*\n" +
+      "• *Furosemida:* 40 a 80 mg EV se paciente não anúrico.\n" +
+      "• *Resina de troca:* Poliestirenossulfonato de cálcio (Sorcal) 30g VO.\n" +
+      "• *Hemodiálise de Emergência:* Indicação mandatória se anúria, refratariedade ou K⁺ > 7,5 mEq/L.";
+  }
+  if (k === 'cad') {
+    return "🩸 *EMERGÊNCIA: CETOACIDOSE DIABÉTICA (CAD) & HIPEROSMOLARIDADE*\n\n" +
+      "🔴 *PASSO 1: EXPANSÃO VOLÊMICA AGRESSIVA (1ª HORA):*\n" +
+      "• *Hidratação 1000mL:* SF 0,9% 1000 a 1500 mL EV na primeira hora (15 a 20 mL/kg/h) para rápida restauração da perfusão tecidual.\n" +
+      "• Após 1ª hora: avaliar sódio corrigido. Se Na corrigido normal ou alto: NaCl 0,45% 250 a 500 mL/h; se Na baixo: SF 0,9% 250 a 500 mL/h.\n\n" +
+      "⚠️ *PASSO 2: CHECAGEM MANDATÓRIA DE POTÁSSIO (K⁺) ANTES DA INSULINA:*\n" +
+      "• *Se K⁺ < 3,5 mEq/L:* NÃO INICIAR INSULINA! A insulina transporta potássio para o intracelular gerando hipocalemia grave e risco de arritmia fatal / PCR. Repor KCl 20 a 30 mEq/h até K⁺ > 3,5 mEq/L.\n" +
+      "• *Se K⁺ entre 3,5 e 5,2 mEq/L:* Iniciar insulina E repor KCl 20 a 30 mEq por litro de soro de hidratação (manter K⁺ 4,0 a 5,0).\n" +
+      "• *Se K⁺ > 5,2 mEq/L:* Iniciar insulina sem reposição de K⁺. Monitorar K⁺ a cada 2 horas.\n\n" +
+      "🟡 *PASSO 3: INSULINOTERAPIA VENOSA (QUANDO K⁺ ≥ 3,5 mEq/L):*\n" +
+      "• *Insulina Regular IV Contínua:* 0,1 U/kg/h na BIC (ou bólus de 0,1 U/kg seguido de 0,1 U/kg/h). Preparo: 100 UI de Insulina Regular em 100 mL SF 0,9% (1 UI/mL).\n" +
+      "• *Meta Glicêmica:* Queda de 50 a 70 mg/dL por hora.\n" +
+      "• Quando glicemia atingir *200 mg/dL*: associar Soro Glicosado 5% (SG 5%) e reduzir a insulina para 0,02 a 0,05 U/kg/h para evitar hipoglicemia e edema cerebral enquanto fecha o ânion gap.\n\n" +
+      "ℹ️ *CRITÉRIOS DE RESOLUÇÃO:*\n" +
+      "• Glicemia < 200 mg/dL + dois dos seguintes: Bicarbonato ≥ 15 mEq/L, pH venoso > 7,30 e Ânion Gap normal (≤ 12).";
+  }
+  return null;
+}
+
+function enviarTelaCondutaEmergencia(chat, condutaKey, messageId) {
+  var textoCond = obterTextoCondutaEmergencia(condutaKey);
+  if (!textoCond) {
+    return enviarMenuCondutas(chat, messageId);
+  }
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoCond, 21600);
+  var botoes = botoesBot([
+    [['📋 Copiar para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, textoCond, botoes, messageId);
 }
 
 /* ========== Cenário 2: 🛏️ Enfermaria & Prescrição Rápida ========== */
@@ -1242,6 +1339,11 @@ function tratarCallbackUX(cb) {
     } else if (op === 'condutamenu') {
       enviarMenuCondutas(chat, msgId);
     } else if (op === 'conduta') {
+      if (v === 'pcr') {
+        if (typeof tratarComandoPcr === 'function') return tratarComandoPcr(chat, '');
+      }
+      var telaDet = (typeof enviarTelaCondutaEmergencia === 'function') ? enviarTelaCondutaEmergencia(chat, v, msgId) : null;
+      if (telaDet) return telaDet;
       texto('/conduta ' + (UX_CONDUTAS[v] || v));
     } else if (op === 'painel') {
       enviarPainelEnfermaria(chat, v, msgId);
@@ -1349,6 +1451,8 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarTelaDiluicaoDva: enviarTelaDiluicaoDva,
     enviarMenuSri: enviarMenuSri,
     enviarMenuCondutas: enviarMenuCondutas,
+    obterTextoCondutaEmergencia: obterTextoCondutaEmergencia,
+    enviarTelaCondutaEmergencia: enviarTelaCondutaEmergencia,
     enviarMenuUXCalculadoras: enviarMenuUXCalculadoras,
     enviarRotinaBot: enviarRotinaBot,
     enviarPainelEnfermaria: enviarPainelEnfermaria,

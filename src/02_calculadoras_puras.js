@@ -243,7 +243,13 @@ var CalculadorasClinicas = (function () {
   }
 
   function botoesPadrao(id, linha1) {
-    return [linha1, [btn('📚 Ver critérios', id, 'criterios'), btn('📄 Gerar PDF', id, 'pdf')]];
+    var l1 = Array.isArray(linha1) ? linha1 : [];
+    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
+  }
+
+  function botoesEmergencia(id, linha1) {
+    var l1 = Array.isArray(linha1) ? linha1 : [];
+    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
   }
 
   // ═════════════════════════════ ESCORES ═════════════════════════════
@@ -725,7 +731,7 @@ var CalculadorasClinicas = (function () {
           gcsP: gp,
           gravidade: gravidadeTexto
         },
-        botoes: botoesPadrao(ID, [btn('🫁 Avaliar via aérea', ID, 'via_aerea'), btn('✏️ Revisar exame', ID, 'editar')])
+        botoes: botoesEmergencia(ID, [btn('🫁 Avaliar via aérea', ID, 'via_aerea'), btn('✏️ Revisar exame', ID, 'editar')])
       });
     });
   }
@@ -774,7 +780,7 @@ var CalculadorasClinicas = (function () {
           avisos: avisosSemDef,
           dados: { deficitL: 0, actL: actL },
           legado: { deficitLitros: 0, aguaCorporalTotal: actL },
-          botoes: [[btn('✏️ Revisar dados', ID, 'editar'), btn('📄 Gerar PDF', ID, 'pdf')]]
+          botoes: botoesEmergencia(ID, [btn('✏️ Revisar dados', ID, 'editar')])
         });
       }
 
@@ -1170,7 +1176,7 @@ var CalculadorasClinicas = (function () {
           classificacaoPF: classifPF
         },
         botoes: [[btn('🧪 Ver ácido-base', ID, 'acidobase'), btn('🫁 Ver oxigenação', ID, 'oxigenacao')],
-                 [btn('✏️ Revisar dados', ID, 'editar'), btn('📄 Gerar PDF', ID, 'pdf')]]
+                 [btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]]
       });
     });
   }
@@ -1340,7 +1346,7 @@ var CalculadorasClinicas = (function () {
           taxaMlH: taxaFixaVaso || (tabelaLegada[0] ? tabelaLegada[0].mlH : null),
           preparo: textoPreparo
         },
-        botoes: botoesPadrao(ID, [btn('🎚️ Calcular outra dose', ID, 'dose'), btn('🧴 Revisar preparo', ID, 'preparo')])
+        botoes: botoesEmergencia(ID, [btn('🎚️ Calcular outra dose', ID, 'dose'), btn('🧴 Revisar preparo', ID, 'preparo')])
       });
     });
   }
@@ -1506,7 +1512,7 @@ var CalculadorasClinicas = (function () {
           succinilcolina: { doseMg: dSuccinil.dose, ml: dSuccinil.ml },
           rocuronio: { doseMg: dRocuronio.dose, ml: dRocuronio.ml }
         },
-        botoes: botoesPadrao(ID, [btn('✅ Checklist 7 Ps', ID, 'checklist'), btn('🫁 Via Aérea Difícil', ID, 'vad')])
+        botoes: botoesEmergencia(ID, [btn('✅ Checklist 7 Ps', ID, 'checklist'), btn('🫁 Via Aérea Difícil', ID, 'vad')])
       });
     });
   }
@@ -1603,7 +1609,7 @@ var CalculadorasClinicas = (function () {
           volume16hMl: vol16h,
           vazao16hMlH: vazao16h
         },
-        botoes: botoesPadrao(ID, [btn('🧮 Novo cálculo', ID, 'voltar')])
+        botoes: botoesEmergencia(ID, [btn('🧮 Novo cálculo', ID, 'voltar')])
       });
     });
   }
@@ -2655,6 +2661,7 @@ var CalculadorasClinicas = (function () {
         '6. <b>Passagem do Tubo com Confirmação (T+60s):</b> Laringoscopia, visualização das cordas vocais, introdução do TOT, insuflação do cuff. Confirmação imediata: capnografia em onda (padrão-ouro) + ausculta epigástrica e pulmonar bilateral.',
         '7. <b>Pós-intubação:</b> Fixação rígida do TOT, radiografia de tórax de controle, sedoanalgesia contínua iniciada de imediato (ex: Fentanil + Midazolam/Propofol) e acoplamento em ventilação mecânica protetora.'
       ];
+      botoes = [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'vad') {
       titulo = '🫁 AVALIAÇÃO DE VIA AÉREA DIFÍCIL (LEMON)';
       linhas = [
@@ -2668,6 +2675,7 @@ var CalculadorasClinicas = (function () {
         '⚠️ <b>Regra de Ouro da Sala Vermelha:</b>',
         'Se suspeita de via aérea difícil: convoque ajuda sênior, prepare o <b>Bougie</b> desde a primeira tentativa, tenha <b>Máscara Laríngea</b> desembalada para resgate e kit de cricotireoidostomia cirúrgica à beira do leito.'
       ];
+      botoes = [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'acidobase') {
       titulo = '🧪 FISIOLOGIA ÁCIDO-BASE · GASOMETRIA';
       linhas = [
@@ -2685,6 +2693,7 @@ var CalculadorasClinicas = (function () {
         '   • 0,8–2,0: Acidose metabólica pura com AG elevado.',
         '   • &gt; 2,0: Acidose com AG elevado associada a Alcalose Metabólica preexistente.'
       ];
+      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'oxigenacao') {
       titulo = '🫁 OXIGENAÇÃO E CRITÉRIOS DE BERLIN (SDRA)';
       linhas = [
@@ -2699,6 +2708,7 @@ var CalculadorasClinicas = (function () {
         '• Driving Pressure (Pressão de Distensão = Platô - PEEP) ≤ 15 cmH₂O.',
         '• Posição Prona precoce por ≥ 16 horas contínuas se PaO₂/FiO₂ &lt; 150 mmHg.'
       ];
+      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'dose' || acao === 'preparo') {
       titulo = '🧴 PREPARO E TITULAÇÃO DE VASOATIVOS';
       linhas = [
@@ -2712,6 +2722,7 @@ var CalculadorasClinicas = (function () {
         '• Dose fixa: 0,03 UI/min (9 mL/h na bomba contínua). Não requer titulação rápida.',
         '• Associação: Iniciar quando noradrenalina atingir 0,25–0,5 mcg/kg/min no choque séptico (Surviving Sepsis Campaign).'
       ];
+      botoes = [[btn('🔙 Voltar ao DVA', 'ux', 'dvamenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'editar' || acao === 'voltar' || acao === 'peso') {
       titulo = '✏️ REVISÃO DE PARÂMETROS';
       linhas = [
@@ -2722,6 +2733,7 @@ var CalculadorasClinicas = (function () {
         '• Para Gaso: <code>/gaso pH 7.20, pCO2 24, HCO3 9, Na 138, Cl 102</code>',
         '• Para DRC: <code>/calc ckd_epi Cr 1.6, idade 72, feminino</code>'
       ];
+      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'pdf') {
       titulo = '📄 EXPORTAÇÃO E REGISTRO';
       linhas = [
@@ -2729,6 +2741,7 @@ var CalculadorasClinicas = (function () {
         '• Utilize o botão <b>📁 Salvar no Notion Tasks</b> na mensagem de resumo.',
         '• Para gerar receituário oficial em PDF para medicamentos, utilize o comando <code>/rx</code>.'
       ];
+      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else {
       titulo = 'ℹ️ INFORMAÇÕES DA CALCULADORA (' + id.toUpperCase() + ')';
       linhas = [

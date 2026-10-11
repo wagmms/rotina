@@ -14,7 +14,7 @@ const path = require('path');
 const rootDir = path.resolve(__dirname, '..');
 
 // 1. Verificação de Expurgo de Comandos Não Médicos
-const telegramHandlersContent = fs.readFileSync(path.join(rootDir, 'src/07_telegram_handlers.js'), 'utf8');
+const telegramHandlersContent = fs.readFileSync(path.join(rootDir, 'src/07a_telegram_router.js'), 'utf8');
 assert.strictEqual(telegramHandlersContent.includes('/pc tenda'), false, 'Comando /pc tenda deve ter sido removido');
 
 // 2. Verificação de Expurgo no README.md

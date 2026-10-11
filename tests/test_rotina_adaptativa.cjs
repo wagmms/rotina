@@ -61,7 +61,13 @@ function setupEnvironment() {
     '04_motores_ia.js',
     '05_notion.js',
     '06_rotina_agenda.js',
-    '07_telegram_handlers.js',
+    '07a_telegram_router.js',
+    '07b_telegram_preceptor.js',
+    '07c_telegram_consultas_e_ia.js',
+    '07d_telegram_callbacks.js',
+    '07e_telegram_midia_e_leitos.js',
+    '07f_telegram_calculadoras_parser.js',
+    '07g_telegram_ajuda_e_protocolos.js',
     '08_main.js',
     '09_enfermaria.js',
     '10_pdf_receita.js',
@@ -231,14 +237,15 @@ function runTests() {
 
   // Teste 14: Comando /rotina via processarMensagemTexto
   env.sent.length = 0;
-  processarMensagemTexto({ chat: { id: '123' }, text: '/rotina' });
+  processarMensagemTexto({ chat: { id: '123456' }, text: '/rotina hoje' });
   assert(env.sent.length > 0, "Comando /rotina deve responder");
-  assert(env.sent[0].texto.includes("TIME-BLOCKING ADAPTATIVO"), "Deve responder com painel adaptativo");
+  console.log("SENT 0:", env.sent[0]);
+assert(env.sent[0].texto.includes("TIME-BLOCKING ADAPTATIVO"), "Deve responder com painel adaptativo");
   console.log("✓ Teste 14: Comando /rotina validado");
 
   // Teste 15: Mensagem livre de alteração ("não vou treinar hoje") via texto
   env.sent.length = 0;
-  processarMensagemTexto({ chat: { id: '123' }, text: 'hoje não vou treinar' });
+  processarMensagemTexto({ chat: { id: '123456' }, text: 'hoje não vou treinar' });
   assert(env.sent.length > 0, "Mensagem natural deve ser interceptada e respondida");
   assert(env.sent[0].texto.includes("cancelado"), "Deve confirmar cancelamento do treino");
   console.log("✓ Teste 15: Interceptação em linguagem natural de rotina validada");
@@ -248,8 +255,8 @@ function runTests() {
   processarCallbackBotao({
     id: 'cb-1',
     data: 'rotina:check:treino',
-    from: { id: '123' },
-    message: { chat: { id: '123' }, message_id: 99 }
+    from: { id: '123456' },
+    message: { chat: { id: '123456' }, message_id: 99 }
   });
   assert(env.sent.some(s => s.alerta && s.alerta.includes("concluído")), "Callback rotina:check deve confirmar conclusão");
   console.log("✓ Teste 16: Callbacks inline de rotina validados");

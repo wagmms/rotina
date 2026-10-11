@@ -8,9 +8,12 @@ function cockpitAutorizar_(initData) {
 
   // Token assinado criptograficamente (HMAC 64-hex) ou temporário em cache
   if (typeof initData === 'string' && /^ck_[a-f0-9]{64}$/.test(initData)) {
-    var permitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
-      ? ConfigService.getArray('TELEGRAM_CHAT_ID').map(function(s){ return String(s).trim(); })
-      : [String(ConfigService.exigir('TELEGRAM_CHAT_ID'))];
+    var rawPermitidos = (typeof ConfigService !== 'undefined' && ConfigService.exigir)
+      ? ConfigService.exigir('TELEGRAM_CHAT_ID')
+      : (typeof ConfigService !== 'undefined' && ConfigService.get ? ConfigService.get('TELEGRAM_CHAT_ID') : '');
+    var permitidos = Array.isArray(rawPermitidos)
+      ? rawPermitidos.map(function(s){ return String(s).trim(); })
+      : String(rawPermitidos || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
     try {
       var botToken = ConfigService.exigir('TELEGRAM_BOT_TOKEN');
       for (var i = 0; i < permitidos.length; i++) {
@@ -67,9 +70,12 @@ function cockpitAutorizar_(initData) {
 }
 
 function criarSessaoCockpit_(chatId) {
-  var permitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
-    ? ConfigService.getArray('TELEGRAM_CHAT_ID').map(function(s){ return String(s).trim(); })
-    : [String(ConfigService.exigir('TELEGRAM_CHAT_ID'))];
+  var rawPermitidos = (typeof ConfigService !== 'undefined' && ConfigService.exigir)
+    ? ConfigService.exigir('TELEGRAM_CHAT_ID')
+    : (typeof ConfigService !== 'undefined' && ConfigService.get ? ConfigService.get('TELEGRAM_CHAT_ID') : '');
+  var permitidos = Array.isArray(rawPermitidos)
+    ? rawPermitidos.map(function(s){ return String(s).trim(); })
+    : String(rawPermitidos || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
   var alvo = String(chatId).split(',')[0].trim();
   if (permitidos.indexOf(alvo) === -1) throw new Error('Usuário não autorizado.');
   var botToken = ConfigService.exigir('TELEGRAM_BOT_TOKEN');

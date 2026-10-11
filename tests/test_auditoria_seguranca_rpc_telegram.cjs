@@ -44,6 +44,7 @@ ctx.enviarMensagemSegmentada = (chatId, texto, kb) => {
   return true;
 };
 ctx.enviarChatAction = () => true;
+ctx.executarPostTelegram = (url, payload) => { mensagensCapturadas.push({ chatId: payload.chat_id, texto: payload.text, kb: payload.reply_markup }); return true; };
 
 // Lista de comandos clínicos chave para auditoria
 const comandosClinicos = [

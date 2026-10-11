@@ -47,7 +47,7 @@ async function testSaneamentoEscopo() {
   const btnTexts = JSON.stringify(mensagensEnviadas[0].kb);
   assert.ok(btnTexts.includes('PCR (ACLS)'), 'Deve conter botão de PCR');
   assert.ok(btnTexts.includes('SRI / IOT'), 'Deve conter botão de SRI');
-  assert.ok(btnTexts.includes('Noradrenalina'), 'Deve conter botão de Nora');
+  assert.ok(btnTexts.includes('Drogas Vasoativas (DVA)') || btnTexts.includes('DVA'), 'Deve conter botão unificado de DVA');
   assert.ok(btnTexts.includes('Gasometria'), 'Deve conter botão de Gasometria');
   console.log('  ✓ /emergencia abre imediatamente a Central de Sala Vermelha com botões rápidos.');
 

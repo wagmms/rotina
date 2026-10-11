@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-10 22:58:07
- * Checksum SHA256: 788c8d3ba59e0c6d
+ * Gerado automaticamente via build_master.py em: 2026-10-11 00:19:02
+ * Checksum SHA256: 326900b2c5c5bea0
  * ==============================================================================
  */
 
@@ -630,13 +630,9 @@ function obterUrlCockpit(chatId) {
   var id = chatId ? String(chatId) : ((typeof ConfigService !== "undefined" && ConfigService.getPrimary) ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : ((typeof ConfigService !== "undefined" && ConfigService.get) ? String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim() : ""));
   var sessao = "";
   if (id && typeof criarSessaoCockpit_ === "function") {
-    if (chatId) {
+    try {
       sessao = criarSessaoCockpit_(id);
-    } else {
-      try {
-        sessao = criarSessaoCockpit_(id);
-      } catch (_) {}
-    }
+    } catch (_) {}
   }
   var v = (typeof ConfigService !== "undefined" && ConfigService.get && ConfigService.get("COCKPIT_VERSION")) ? ConfigService.get("COCKPIT_VERSION") : "2.5";
   return sessao ? base + "?session=" + sessao + "&v=" + v : base + "?v=" + v;
@@ -1820,7 +1816,13 @@ var CalculadorasClinicas = (function () {
   }
 
   function botoesPadrao(id, linha1) {
-    return [linha1, [btn('📚 Ver critérios', id, 'criterios'), btn('📄 Gerar PDF', id, 'pdf')]];
+    var l1 = Array.isArray(linha1) ? linha1 : [];
+    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
+  }
+
+  function botoesEmergencia(id, linha1) {
+    var l1 = Array.isArray(linha1) ? linha1 : [];
+    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
   }
 
   // ═════════════════════════════ ESCORES ═════════════════════════════
@@ -2302,7 +2304,7 @@ var CalculadorasClinicas = (function () {
           gcsP: gp,
           gravidade: gravidadeTexto
         },
-        botoes: botoesPadrao(ID, [btn('🫁 Avaliar via aérea', ID, 'via_aerea'), btn('✏️ Revisar exame', ID, 'editar')])
+        botoes: botoesEmergencia(ID, [btn('🫁 Avaliar via aérea', ID, 'via_aerea'), btn('✏️ Revisar exame', ID, 'editar')])
       });
     });
   }
@@ -2351,7 +2353,7 @@ var CalculadorasClinicas = (function () {
           avisos: avisosSemDef,
           dados: { deficitL: 0, actL: actL },
           legado: { deficitLitros: 0, aguaCorporalTotal: actL },
-          botoes: [[btn('✏️ Revisar dados', ID, 'editar'), btn('📄 Gerar PDF', ID, 'pdf')]]
+          botoes: botoesEmergencia(ID, [btn('✏️ Revisar dados', ID, 'editar')])
         });
       }
 
@@ -2747,7 +2749,7 @@ var CalculadorasClinicas = (function () {
           classificacaoPF: classifPF
         },
         botoes: [[btn('🧪 Ver ácido-base', ID, 'acidobase'), btn('🫁 Ver oxigenação', ID, 'oxigenacao')],
-                 [btn('✏️ Revisar dados', ID, 'editar'), btn('📄 Gerar PDF', ID, 'pdf')]]
+                 [btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]]
       });
     });
   }
@@ -2917,7 +2919,7 @@ var CalculadorasClinicas = (function () {
           taxaMlH: taxaFixaVaso || (tabelaLegada[0] ? tabelaLegada[0].mlH : null),
           preparo: textoPreparo
         },
-        botoes: botoesPadrao(ID, [btn('🎚️ Calcular outra dose', ID, 'dose'), btn('🧴 Revisar preparo', ID, 'preparo')])
+        botoes: botoesEmergencia(ID, [btn('🎚️ Calcular outra dose', ID, 'dose'), btn('🧴 Revisar preparo', ID, 'preparo')])
       });
     });
   }
@@ -3083,7 +3085,7 @@ var CalculadorasClinicas = (function () {
           succinilcolina: { doseMg: dSuccinil.dose, ml: dSuccinil.ml },
           rocuronio: { doseMg: dRocuronio.dose, ml: dRocuronio.ml }
         },
-        botoes: botoesPadrao(ID, [btn('✅ Checklist 7 Ps', ID, 'checklist'), btn('🫁 Via Aérea Difícil', ID, 'vad')])
+        botoes: botoesEmergencia(ID, [btn('✅ Checklist 7 Ps', ID, 'checklist'), btn('🫁 Via Aérea Difícil', ID, 'vad')])
       });
     });
   }
@@ -3180,7 +3182,7 @@ var CalculadorasClinicas = (function () {
           volume16hMl: vol16h,
           vazao16hMlH: vazao16h
         },
-        botoes: botoesPadrao(ID, [btn('🧮 Novo cálculo', ID, 'voltar')])
+        botoes: botoesEmergencia(ID, [btn('🧮 Novo cálculo', ID, 'voltar')])
       });
     });
   }
@@ -4232,6 +4234,7 @@ var CalculadorasClinicas = (function () {
         '6. <b>Passagem do Tubo com Confirmação (T+60s):</b> Laringoscopia, visualização das cordas vocais, introdução do TOT, insuflação do cuff. Confirmação imediata: capnografia em onda (padrão-ouro) + ausculta epigástrica e pulmonar bilateral.',
         '7. <b>Pós-intubação:</b> Fixação rígida do TOT, radiografia de tórax de controle, sedoanalgesia contínua iniciada de imediato (ex: Fentanil + Midazolam/Propofol) e acoplamento em ventilação mecânica protetora.'
       ];
+      botoes = [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'vad') {
       titulo = '🫁 AVALIAÇÃO DE VIA AÉREA DIFÍCIL (LEMON)';
       linhas = [
@@ -4245,6 +4248,7 @@ var CalculadorasClinicas = (function () {
         '⚠️ <b>Regra de Ouro da Sala Vermelha:</b>',
         'Se suspeita de via aérea difícil: convoque ajuda sênior, prepare o <b>Bougie</b> desde a primeira tentativa, tenha <b>Máscara Laríngea</b> desembalada para resgate e kit de cricotireoidostomia cirúrgica à beira do leito.'
       ];
+      botoes = [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'acidobase') {
       titulo = '🧪 FISIOLOGIA ÁCIDO-BASE · GASOMETRIA';
       linhas = [
@@ -4262,6 +4266,7 @@ var CalculadorasClinicas = (function () {
         '   • 0,8–2,0: Acidose metabólica pura com AG elevado.',
         '   • &gt; 2,0: Acidose com AG elevado associada a Alcalose Metabólica preexistente.'
       ];
+      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'oxigenacao') {
       titulo = '🫁 OXIGENAÇÃO E CRITÉRIOS DE BERLIN (SDRA)';
       linhas = [
@@ -4276,6 +4281,7 @@ var CalculadorasClinicas = (function () {
         '• Driving Pressure (Pressão de Distensão = Platô - PEEP) ≤ 15 cmH₂O.',
         '• Posição Prona precoce por ≥ 16 horas contínuas se PaO₂/FiO₂ &lt; 150 mmHg.'
       ];
+      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'dose' || acao === 'preparo') {
       titulo = '🧴 PREPARO E TITULAÇÃO DE VASOATIVOS';
       linhas = [
@@ -4289,6 +4295,7 @@ var CalculadorasClinicas = (function () {
         '• Dose fixa: 0,03 UI/min (9 mL/h na bomba contínua). Não requer titulação rápida.',
         '• Associação: Iniciar quando noradrenalina atingir 0,25–0,5 mcg/kg/min no choque séptico (Surviving Sepsis Campaign).'
       ];
+      botoes = [[btn('🔙 Voltar ao DVA', 'ux', 'dvamenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'editar' || acao === 'voltar' || acao === 'peso') {
       titulo = '✏️ REVISÃO DE PARÂMETROS';
       linhas = [
@@ -4299,6 +4306,7 @@ var CalculadorasClinicas = (function () {
         '• Para Gaso: <code>/gaso pH 7.20, pCO2 24, HCO3 9, Na 138, Cl 102</code>',
         '• Para DRC: <code>/calc ckd_epi Cr 1.6, idade 72, feminino</code>'
       ];
+      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else if (acao === 'pdf') {
       titulo = '📄 EXPORTAÇÃO E REGISTRO';
       linhas = [
@@ -4306,6 +4314,7 @@ var CalculadorasClinicas = (function () {
         '• Utilize o botão <b>📁 Salvar no Notion Tasks</b> na mensagem de resumo.',
         '• Para gerar receituário oficial em PDF para medicamentos, utilize o comando <code>/rx</code>.'
       ];
+      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
     } else {
       titulo = 'ℹ️ INFORMAÇÕES DA CALCULADORA (' + id.toUpperCase() + ')';
       linhas = [
@@ -40327,8 +40336,17 @@ function gerarResumoFimPlantao(chatIdDestino) {
 
 
 // ==============================================================================
-// ARQUIVO FONTE: 07_telegram_handlers.js
+// ARQUIVO FONTE: 07a_telegram_router.js
 // ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 07A: TELEGRAM ROUTER & COMANDOS DE TEXTO
+ * ==============================================================================
+ * Roteamento coloquial de plantão beira-leito, teclados de hubs clínicos e
+ * processamento central de mensagens de texto (/comandos e linguagem natural).
+ * ==============================================================================
+ */
 
 /**
  * ==============================================================================
@@ -40787,8 +40805,12 @@ function processarMensagemTexto(message) {
         "glasgow", "choque", "eap", "anafilaxia", "convulsao", "hipercalemia", "hipoglicemia"
       ];
       if (comandosSemBarra.indexOf(primPalavra) !== -1) {
-        texto = "/" + texto;
-        textoLow = texto.toLowerCase();
+        var ehEvolucaoLeitoNatural = (primPalavra === "leito" || primPalavra === "quarto") &&
+          /^(?:leito|quarto)\s*[:#]?\s*[a-zA-Z0-9_-]{1,24}\s*[:,-]\s+/i.test(texto);
+        if (!ehEvolucaoLeitoNatural) {
+          texto = "/" + texto;
+          textoLow = texto.toLowerCase();
+        }
       }
     }
 
@@ -41043,6 +41065,9 @@ function processarMensagemTexto(message) {
   if (comando === "/dva" || comando === "/compatibilidade" || comando === "/compatibilidade_y") {
     var dadosDva = texto.replace(/^\/(?:dva|compatibilidade|compatibilidade_y)\s*/i, "").trim();
     if (!dadosDva) {
+      if (comando === "/dva" && typeof enviarMenuDva === "function") {
+        return enviarMenuDva(chatId);
+      }
       return enviarMensagemParaChat(chatId, "💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nUso: `/dva <droga> <pesoKg> [solução]`\n💡 *Exemplos:*\n• `/dva nora 70` (Noradrenalina padrão)\n• `/dva nora 80 concentrada` (Solução 2x)\n• `/dva dobuta 65`\n• `/dva vaso`\n• `/dva nipride 75`\n• `/dva tridil`\n\n🔬 *Compatibilidade em Y (Prescrição Combinada / BIC):*\n• `/dva y nora dobuta` (Checar se podem correr no mesmo lúmen)\n• `/dva y nora furosemida` (Alerta de precipitação físico-química)");
     }
     var partesDva = dadosDva.split(/\s+/);
@@ -41120,6 +41145,9 @@ function processarMensagemTexto(message) {
   if (comando === "/sri" || comando === "/iot") {
     var dadosSri = texto.replace(/^\/(sri|iot)\s*/i, "").trim();
     if (!dadosSri) {
+      if (typeof enviarMenuSri === "function") {
+        return enviarMenuSri(chatId);
+      }
       return enviarMensagemParaChat(chatId, "🫁 *SEQUÊNCIA RÁPIDA DE INTUBAÇÃO (SRI / IOT)*\n\nUso: `/sri <pesoKg> [contexto]`\n💡 *Exemplos:*\n• `/sri 70`\n• `/sri 80 choque`\n• `/sri 65 asma`\n• `/sri 75 tce`");
     }
     var partesSri = dadosSri.split(/\s+/);
@@ -44172,6 +44200,9 @@ function processarMensagemTexto(message) {
   if (comando === "/conduta" || comando === "/sos") {
     var dadosEmergencia = texto.replace(/^\/(conduta|sos)\s*/i, "").trim();
     if (!dadosEmergencia) {
+      if (typeof enviarMenuCondutas === "function") {
+        return enviarMenuCondutas(chatId);
+      }
       return enviarMensagemParaChat(chatId, "🚨 *CONDUTAS DE EMERGÊNCIA (SALA VERMELHA)*\n\n" +
         "Informe a intercorrência para receber conduta imediata em ampolas e mL:\n\n" +
         "💡 *Exemplos:*\n" +
@@ -44180,6 +44211,19 @@ function processarMensagemTexto(message) {
         "• `/conduta Hipercalemia K 7.4 com onda T apiculada`\n" +
         "• `/conduta Crise convulsiva em curso há 6 minutos`\n" +
         "• `/conduta Cetoacidose diabética glicemia 480`");
+    }
+    var dLowCond = dadosEmergencia.toLowerCase();
+    var chaveCondDet = null;
+    if (dLowCond.indexOf("eap") !== -1 || dLowCond.indexOf("edema agudo") !== -1) chaveCondDet = "eap";
+    else if (dLowCond.indexOf("anafil") !== -1) chaveCondDet = "anafilaxia";
+    else if (dLowCond.indexOf("convuls") !== -1 || dLowCond.indexOf("epilep") !== -1) chaveCondDet = "convulsao";
+    else if (dLowCond.indexOf("hipercal") !== -1 || dLowCond.indexOf("k 7") !== -1 || dLowCond.indexOf("k >") !== -1) chaveCondDet = "hipercalemia";
+    else if (dLowCond.indexOf("cad") !== -1 || dLowCond.indexOf("cetoacid") !== -1) chaveCondDet = "cad";
+    else if (dLowCond === "pcr" || dLowCond.indexOf("parada") !== -1) {
+      if (typeof tratarComandoPcr === "function") return tratarComandoPcr(chatId, dadosEmergencia);
+    }
+    if (chaveCondDet && typeof enviarTelaCondutaEmergencia === "function") {
+      return enviarTelaCondutaEmergencia(chatId, chaveCondDet);
     }
     return processarEEntregarIA(chatId, gerarCondutaEmergenciaComIA, dadosEmergencia, "conduta");
   }
@@ -44781,6 +44825,20 @@ function processarMensagemTexto(message) {
   }
 }
 
+
+// ==============================================================================
+// ARQUIVO FONTE: 07b_telegram_preceptor.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 07B: TELEGRAM PRECEPTOR SOCRÁTICO
+ * ==============================================================================
+ * Gerenciamento de diálogo pedagógico socrático beira-leito, persistência de
+ * sessões de preceptoria e respostas de voz/áudio com IA para treinamento clínico.
+ * ==============================================================================
+ */
+
 /**
  * ==============================================================================
  * GERENCIAMENTO DE ESTADO E DIÁLOGO DO PRECEPTOR SOCRÁTICO
@@ -45060,6 +45118,20 @@ function responderPreceptorVozComIA(chatId, casoOuDuvida, opcoes) {
   };
   return enviarMensagemComTecladoParaChat(chatId, "🎧 *Preceptor Socrático:*\n\n" + provocacao, kbTexto);
 }
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 07c_telegram_consultas_e_ia.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 07C: TELEGRAM CONSULTAS RÁPIDAS & INTEGRAÇÃO DE IA
+ * ==============================================================================
+ * Validação de receitas médicas, guias de exame físico, consultas posológicas
+ * de bolso (HSL / PedB) e orquestração de IA generativa clínica beira-leito.
+ * ==============================================================================
+ */
 
 function nomesFarmacosParaValidacao() {
   var nomes = [];
@@ -45411,9 +45483,14 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
         linhaSecundaria.push({ "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey });
       }
       if (linhaSecundaria.length) botoes.push(linhaSecundaria);
-      var linhaNavFinal = (tipoCache === "rxh" || tipoCache === "plantao")
-        ? [{ "text": "🔙 Enfermaria", "callback_data": "ux:hub:enf" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }]
-        : [{ "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+      var linhaNavFinal;
+      if (tipoCache === "rxh" || tipoCache === "plantao") {
+        linhaNavFinal = [{ "text": "🔙 Enfermaria", "callback_data": "ux:hub:enf" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+      } else if (tipoCache === "conduta") {
+        linhaNavFinal = [{ "text": "🔙 Sala Vermelha", "callback_data": "ux:sala" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+      } else {
+        linhaNavFinal = [{ "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+      }
       botoes.push(linhaNavFinal);
     }
 
@@ -45459,6 +45536,20 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
     return false;
   }
 }
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 07d_telegram_callbacks.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 07D: TELEGRAM CALLBACKS & BOTÕES INLINE
+ * ==============================================================================
+ * Processamento de eventos de toque em botões inline (menus, confirmações,
+ * calculadoras, condutas, checklist de plantão e navegação).
+ * ==============================================================================
+ */
 
 function processarCallbackBotao(cb) {
   if (!cb) return;
@@ -45647,7 +45738,11 @@ function processarCallbackBotao(cb) {
         var resAcao = CalculadorasClinicas.processarAcao(chatIdCb, calcId, calcAcao, calcArgs);
         if (resAcao && resAcao.textoFormatado) {
           if (resAcao.botoes) {
-            enviarMensagemComTecladoParaChat(chatIdCb, resAcao.textoFormatado, { inline_keyboard: resAcao.botoes });
+            if (typeof enviarTelaBot === "function") {
+              enviarTelaBot(chatIdCb, resAcao.textoFormatado, { inline_keyboard: resAcao.botoes }, cb.message && cb.message.message_id);
+            } else {
+              enviarMensagemComTecladoParaChat(chatIdCb, resAcao.textoFormatado, { inline_keyboard: resAcao.botoes });
+            }
           } else {
             enviarMensagemParaChat(chatIdCb, resAcao.textoFormatado);
           }
@@ -46001,7 +46096,7 @@ function processarCallbackBotao(cb) {
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "💉 Amiodarona 300mg", callback_data: "pcr_droga_amiodarona" }, { text: "⏱️ Ciclo 2 min & RCP", callback_data: "pcr_ciclo_2min" }],
         [{ text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }, { text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtAdrena, kbAdrena);
@@ -46025,7 +46120,7 @@ function processarCallbackBotao(cb) {
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }],
         [{ text: "⏱️ Ciclo 2 min & RCP", callback_data: "pcr_ciclo_2min" }, { text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }],
         [{ text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtAmio, kbAmio);
@@ -46052,7 +46147,7 @@ function processarCallbackBotao(cb) {
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }, { text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }],
         [{ text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtCiclo, kbCiclo);
@@ -46078,7 +46173,7 @@ function processarCallbackBotao(cb) {
       inline_keyboard: [
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }, { text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     return enviarMensagemComTecladoParaChat(cb.message.chat.id, txt5H5T, kb5H5T);
@@ -46106,7 +46201,7 @@ function processarCallbackBotao(cb) {
       inline_keyboard: [
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }, { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtPosRce, kbPosRce);
@@ -46175,6 +46270,20 @@ function processarCallbackBotao(cb) {
     }
   }
 }
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 07e_telegram_midia_e_leitos.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 07E: TELEGRAM MÍDIA & GESTÃO DE LEITOS
+ * ==============================================================================
+ * Processamento de mensagens de voz/áudio, imagens/fotos, download de mídia
+ * e ditado clínico de evolução de leitos de enfermaria com extração de pendências.
+ * ==============================================================================
+ */
 
 /**
  * ==============================================================================
@@ -46551,6 +46660,20 @@ function baixarMidiaTelegram(arquivoBase) {
     return null;
   }
 }
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 07f_telegram_calculadoras_parser.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 07F: TELEGRAM PARSER DE CALCULADORAS CLÍNICAS
+ * ==============================================================================
+ * Identificação determinística de scores clínicos beira-leito, instruções de
+ * preenchimento e navegação hierárquica por submenus de calculadoras.
+ * ==============================================================================
+ */
 
 var CATALOGO_CALCULADORAS = {
   curb: {
@@ -47856,6 +47979,20 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
   }
 }
 
+
+// ==============================================================================
+// ARQUIVO FONTE: 07g_telegram_ajuda_e_protocolos.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 07G: TELEGRAM AJUDA, COMANDOS SLASH & PROTOCOLOS DEDICADOS
+ * ==============================================================================
+ * Catálogo completo de comandos slash, central de ajuda interativa, busca e
+ * protocolos dedicados beira-leito (PCR, Arritmias, DHE e Rotina Médica).
+ * ==============================================================================
+ */
+
 /**
  * Retorna o catálogo estruturado com 1 comando slash canônico por função clínica (sem redundâncias)
  */
@@ -48257,9 +48394,10 @@ function enviarManual(chatId) {
 /**
  * Trata o protocolo de Parada Cardiorrespiratória (PCR / ACLS) beira-leito
  */
-function tratarComandoPcr(chatId, dadosPcr) {
+function tratarComandoPcr(chatId, dadosPcr, messageId) {
   dadosPcr = (dadosPcr || "").trim();
   var dLow = dadosPcr.toLowerCase();
+  var cache = CacheService.getScriptCache();
 
   // Caso 1: PCR na Gestante
   if (dLow.indexOf("gestant") !== -1 || dLow.indexOf("gravid") !== -1 || dLow.indexOf("materna") !== -1) {
@@ -48281,12 +48419,16 @@ function tratarComandoPcr(chatId, dadosPcr) {
         "✂️ *CESARIANA DE RESSUSCITAÇÃO (PERIMORTEM):*\n" +
         "• Indicação se sem RCE até o *4º MINUTO* de RCP para parto no *5º MINUTO*.\n" +
         "• Objetivo primário: descompressão aortocaval para salvar a gestante.";
+      var ckGest = Utilities.getUuid().replace(/-/g, "");
+      safePutCache(cache, ckGest, txtGest, 21600);
       var kbGest = {
         inline_keyboard: [
+          [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckGest }],
           [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
-          [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
         ]
       };
+      if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtGest, kbGest, messageId);
       return enviarMensagemComTecladoParaChat(chatId, txtGest, kbGest);
     }
   }
@@ -48300,12 +48442,16 @@ function tratarComandoPcr(chatId, dadosPcr) {
       "• *Adrenalina:* 0,01 mg/kg (0,1 mL/kg da solução 1:10.000) IV/IO q3-5 min.\n" +
       "• *Amiodarona:* 5 mg/kg em bólus IV/IO (até 3 doses) para FV/TV sem pulso refratária.\n\n" +
       "💡 *Para doses por peso exato:* envie `/pals <pesoKg>` (ex: `/pals 14`)";
+    var ckPals = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cache, ckPals, txtPals, 21600);
     var kbPals = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckPals }],
         [{ text: "👶 PALS 10 kg", callback_data: "pals_10kg" }, { text: "👶 PALS 20 kg", callback_data: "pals_20kg" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtPals, kbPals, messageId);
     return enviarMensagemComTecladoParaChat(chatId, txtPals, kbPals);
   }
 
@@ -48329,8 +48475,11 @@ function tratarComandoPcr(chatId, dadosPcr) {
       "• *Toxinas:* Naloxona (opioides), Flumazenil, etc.\n" +
       "• *Trombose Pulmonar (TEP maciço):* Considerar trombolítico (Alteplase) se forte suspeita.\n" +
       "• *Trombose Coronariana (IAM):* Ponte para ICP após retorno da circulação espontânea (RCE).";
+    var ckNaoChoc = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cache, ckNaoChoc, txtNaoChoc, 21600);
     var kbNaoChoc = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckNaoChoc }],
         [
           { text: "⚡ Mudar p/ Ritmo Chocável", callback_data: "pcr_chocavel" },
           { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }
@@ -48344,11 +48493,12 @@ function tratarComandoPcr(chatId, dadosPcr) {
           { text: "🤰 PCR Gestante", callback_data: "pcr_gestante" }
         ],
         [
-          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+          { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
     };
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtNaoChoc, kbNaoChoc, messageId);
     return enviarMensagemComTecladoParaChat(chatId, txtNaoChoc, kbNaoChoc);
   }
 
@@ -48367,8 +48517,11 @@ function tratarComandoPcr(chatId, dadosPcr) {
       "• _Alternativa à Amiodarona:_ Lidocaína 1 a 1,5 mg/kg IV/IO (2ª dose: 0,5 a 0,75 mg/kg).\n" +
       "• Sulfato de Magnésio 50% 2g IV em 1-2 min se suspeita de *Torsades de Pointes*.\n\n" +
       "4️⃣ *INVESTIGAR CAUSAS REVERSÍVEIS (5 Hs & 5 Ts)*";
+    var ckChoc = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cache, ckChoc, txtChoc, 21600);
     var kbChoc = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckChoc }],
         [
           { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" },
           { text: "💉 Amiodarona", callback_data: "pcr_droga_amiodarona" }
@@ -48386,11 +48539,12 @@ function tratarComandoPcr(chatId, dadosPcr) {
           { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
         ],
         [
-          { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+          { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
     };
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtChoc, kbChoc, messageId);
     return enviarMensagemComTecladoParaChat(chatId, txtChoc, kbChoc);
   }
 
@@ -48399,8 +48553,11 @@ function tratarComandoPcr(chatId, dadosPcr) {
     "1. *Checar responsividade e respiração/pulso carotídeo* (máx 10 segundos).\n" +
     "2. *Iniciar RCP de alta qualidade:* 30:2 ou contínua com tubo (100-120 cpm, 5-6 cm).\n" +
     "3. *Conectar monitor/desfibrilador e identificar o ritmo:*";
+  var ckPadrao = Utilities.getUuid().replace(/-/g, "");
+  safePutCache(cache, ckPadrao, txtPadrao, 21600);
   var kbPadrao = {
     inline_keyboard: [
+      [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckPadrao }],
       [
         { text: "⚡ Ritmo Chocável (FV / TVSP)", callback_data: "pcr_chocavel" },
         { text: "🫀 Não Chocável (AESP / Assistolia)", callback_data: "pcr_naochocavel" }
@@ -48414,18 +48571,19 @@ function tratarComandoPcr(chatId, dadosPcr) {
         { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
       ],
       [
-        { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+        { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
         { text: "🏠 Início", callback_data: "ux:hub:inicio" }
       ]
     ]
   };
+  if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtPadrao, kbPadrao, messageId);
   return enviarMensagemComTecladoParaChat(chatId, txtPadrao, kbPadrao);
 }
 
 /**
  * Trata o protocolo de Arritmias Cardíacas (ACLS) beira-leito
  */
-function tratarComandoArritmia(chatId, comando, dadosArr) {
+function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
   if (typeof dadosArr === "undefined" && comando && comando.charAt(0) !== "/") {
     dadosArr = comando;
     comando = "/arritmia";
@@ -48433,6 +48591,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr) {
   comando = (comando || "/arritmia").toLowerCase();
   dadosArr = (dadosArr || "").trim();
   var dLow = dadosArr.toLowerCase();
+  var cache = CacheService.getScriptCache();
 
   // 1. Identificação de Bradicardias
   var ehBradi = comando === "/bradiarritmia" || comando === "/bradicardia" ||
@@ -48457,14 +48616,18 @@ function tratarComandoArritmia(chatId, comando, dadosArr) {
       "• *Adrenalina IV:* infusão contínua de 2 a 10 mcg/min (titular para FC > 50 bpm e PAM ≥ 65).\n" +
       "• Preparar passagem de Marcapasso Transvenoso (MPTV) e acionar Cardiologia.";
 
+    var ckBradi = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cache, ckBradi, txtBradi, 21600);
     var kbBradi = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckBradi }],
         [{ text: "🚨 Instável (CVE Sincronizada)", callback_data: "arritmia_instavel" }],
         [{ text: "⚡ TSV (Taqui Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
         [{ text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }, { text: "⚡ Protocolo PCR", callback_data: "pcr_chocavel" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtBradi, kbBradi, messageId);
     return enviarMensagemComTecladoParaChat(chatId, txtBradi, kbBradi);
   }
 
@@ -48492,14 +48655,18 @@ function tratarComandoArritmia(chatId, comando, dadosArr) {
       "  - *QRS Largo e Irregular (TV Polimórfica / Torsades):* Choque de *Desfibrilação Assincrônica 200 J* (NÃO sincronizar!).\n\n" +
       "🚨 *Se o paciente evoluir para inconsciência sem pulso:* Desfibrilação 200 J imediata e iniciar RCP (/pcr tv)!";
 
+    var ckInstavel = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cache, ckInstavel, txtInstavel, 21600);
     var kbInstavel = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckInstavel }],
         [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
         [{ text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }, { text: "🐢 Bradicardia", callback_data: "arritmia_bradi" }],
         [{ text: "⚡ TV sem pulso (PCR)", callback_data: "pcr_chocavel" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtInstavel, kbInstavel, messageId);
     return enviarMensagemComTecladoParaChat(chatId, txtInstavel, kbInstavel);
   }
 
@@ -48520,14 +48687,18 @@ function tratarComandoArritmia(chatId, comando, dadosArr) {
       "• Se ritmo polimórfico / suspeita de Torsades de Pointes: *Sulfato de Magnésio 50% 2 g IV* em 1 a 2 min.\n\n" +
       "🚨 *Se ausência de pulso carotídeo:* Tratar imediatamente como PCR chocável (/pcr tv — Desfibrilação 200 J)!";
 
+    var ckTv = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cache, ckTv, txtTv, 21600);
     var kbTv = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckTv }],
         [{ text: "🚨 Se Instável: CVE 100 J", callback_data: "arritmia_instavel" }],
         [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }],
         [{ text: "⚡ TV sem pulso (PCR)", callback_data: "pcr_chocavel" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtTv, kbTv, messageId);
     return enviarMensagemComTecladoParaChat(chatId, txtTv, kbTv);
   }
 
@@ -48551,14 +48722,18 @@ function tratarComandoArritmia(chatId, comando, dadosArr) {
       "• Se não reverter em 1 a 2 minutos: aplicar *2ª dose de Adenosina 12 mg IV push* + flush de 20 mL SF 0.9%.\n" +
       "• *Alternativas se refratária:* Diltiazem 0,25 mg/kg IV em 2 min ou Verapamil 2,5 a 5 mg IV ou Metoprolol 5 mg IV lento.";
 
+    var ckTsv = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cache, ckTsv, txtTsv, 21600);
     var kbTsv = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckTsv }],
         [{ text: "🚨 Se Instável: CVE 50-100J", callback_data: "arritmia_instavel" }],
         [{ text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }, { text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }],
         [{ text: "🐢 Bradicardias", callback_data: "arritmia_bradi" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtTsv, kbTsv, messageId);
     return enviarMensagemComTecladoParaChat(chatId, txtTsv, kbTsv);
   }
 
@@ -48576,13 +48751,17 @@ function tratarComandoArritmia(chatId, comando, dadosArr) {
       "• Se > 48h: cardioversão química/elétrica eletiva requer 3 semanas prévias de anticoagulação plena ou ECO transesofágico livre de trombos atriais.\n" +
       "• Calcular *CHA2DS2-VASc* para indicação de anticoagulação oral crônica (DOACs preferenciais).";
 
+    var ckFa = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cache, ckFa, txtFa, 21600);
     var kbFa = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckFa }],
         [{ text: "🚨 Se Instável: CVE", callback_data: "arritmia_instavel" }],
         [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
-        [{ text: "🔙 Voltar ao Menu", callback_data: "ux:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtFa, kbFa, messageId);
     return enviarMensagemComTecladoParaChat(chatId, txtFa, kbFa);
   }
 
@@ -48598,8 +48777,11 @@ function tratarComandoArritmia(chatId, comando, dadosArr) {
     "• *Bradicardia / BAV:* FC < 50 bpm ➔ Atropina 1mg (máx 3mg) ➔ Marcapasso transcutâneo / Dopamina / Adrenalina se BAV avançado ou má resposta.\n\n" +
     "Toque no botão correspondente para abrir o protocolo beira-leito:";
 
+  var ckGuiaArr = Utilities.getUuid().replace(/-/g, "");
+  safePutCache(cache, ckGuiaArr, txtGuiaArr, 21600);
   var kbGuiaArr = {
     inline_keyboard: [
+      [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckGuiaArr }],
       [
         { text: "🚨 Paciente Instável (4D / CVE)", callback_data: "arritmia_instavel" }
       ],
@@ -48612,12 +48794,13 @@ function tratarComandoArritmia(chatId, comando, dadosArr) {
         { text: "🐢 Bradicardias & BAV", callback_data: "arritmia_bradi" }
       ],
       [
-        { text: "🔙 Voltar ao Menu", callback_data: "ux:menu" },
+        { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
         { text: "🏠 Início", callback_data: "ux:hub:inicio" }
       ]
     ]
   };
 
+  if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtGuiaArr, kbGuiaArr, messageId);
   return enviarMensagemComTecladoParaChat(chatId, txtGuiaArr, kbGuiaArr);
 }
 
@@ -50579,12 +50762,13 @@ function enviarMenuSalaVermelha(chat, messageId) {
     [['💉 Drogas Vasoativas (DVA)', 'ux:dvamenu'], ['⚡ Choque & Hipotensão', 'ux:emerg:choque']],
     [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🦟 Dengue C/D', 'ux:emerg:dengue'], ['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+    [['⚡ Outras Condutas', 'ux:condutamenu']],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
 function enviarMenuDva(chat, messageId) {
-  return enviarTelaBot(chat, '💉 *Drogas Vasoativas (DVA)*\nQual medicamento deseja calcular?', botoesBot([
+  return enviarTelaBot(chat, '💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nQual medicamento deseja calcular?', botoesBot([
     [['Noradrenalina', 'ux:droga:nora'], ['Dobutamina', 'ux:droga:dobuta']],
     [['Vasopressina', 'ux:fixa:vaso'], ['Adrenalina (Infusão)', 'ux:droga:adrena']],
     [['Nitroprussiato', 'ux:droga:nipride'], ['Nitroglicerina', 'ux:fixa:tridil']],
@@ -50620,12 +50804,12 @@ function enviarTelaDiluicaoDva(chat, droga, peso, messageId) {
 
 function enviarMenuSri(chat, messageId) {
   return enviarTelaBot(chat,
-    '🫁 *Intubação em Sequência Rápida (SRI)*\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.',
+    '🫁 *SEQUÊNCIA RÁPIDA DE INTUBAÇÃO (SRI / IOT)*\n\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.',
     botoesBot([
       [['60 kg', 'ux:sri:60'], ['70 kg', 'ux:sri:70']],
       [['80 kg', 'ux:sri:80'], ['90 kg', 'ux:sri:90']],
       [['Choque 70 kg', 'ux:sri:70 choque'], ['Asma 70 kg', 'ux:sri:70 asma']],
-      [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
 }
 
@@ -50634,8 +50818,104 @@ function enviarMenuCondutas(chat, messageId) {
     [['🚨 EAP hipertensivo', 'ux:conduta:eap'], ['⚡ Anafilaxia', 'ux:conduta:anafilaxia']],
     [['🧠 Crise convulsiva', 'ux:conduta:convulsao'], ['🧪 Hipercalemia', 'ux:conduta:hipercalemia']],
     [['🩸 Cetoacidose (CAD)', 'ux:conduta:cad']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
+}
+
+function obterTextoCondutaEmergencia(tipo) {
+  var k = String(tipo || '').toLowerCase().trim();
+  if (k === 'eap') {
+    return "🚨 *EMERGÊNCIA: EDEMA AGUDO DE PULMÃO (EAP HIPERTENSIVO)*\n\n" +
+      "🔴 *AÇÃO IMEDIATA / CONDUTA BEIRA-LEITO:*\n" +
+      "• *Posição:* Cabeceira elevada a 90° com pernas pendentes.\n" +
+      "• *VNI Precoce:* Iniciar CPAP (8-10 cmH2O) ou BiPAP imediatamente. Reduz intubação orotraqueal e mortalidade.\n" +
+      "• *Morfina:* NÃO recomendada de rotina (aumenta intubação e mortalidade segundo SBC/ESC).\n\n" +
+      "🟡 *VASODILATADOR DE AÇÃO RÁPIDA (REDUÇÃO DE PÓS-CARGA):*\n" +
+      "• *Nitroglicerina (Tridil):* Iniciar a 10 a 20 mcg/min (3 a 6 mL/h na BIC com 50 mg em 250 mL SG 5%) e titular a cada 5 min conforme PA.\n" +
+      "• *Nitroprussiato de Sódio (Nipride):* 0,3 a 0,5 mcg/kg/min (50 mg em 250 mL SG 5%) se emergência hipertensiva grave ou refratária a Nitroglicerina.\n\n" +
+      "💧 *DIURÉTICO DE ALÇA VENOSO:*\n" +
+      "• *Furosemida:* 20 a 40 mg EV em bolus lento (1 a 2 ampolas de 20 mg/2 mL). Se uso prévio crônico: 1 a 2x a dose oral habitual EV.\n\n" +
+      "⚠️ *SEGURANÇA BEIRA-LEITO:*\n" +
+      "• Meta: Redução de 20-25% da PA na 1ª hora (evitar hipotensão PAS < 100 mmHg).\n" +
+      "• Se PAS < 90 mmHg (choque cardiogênico): Suspender vasodilatadores e iniciar Noradrenalina.";
+  }
+  if (k === 'anafilaxia') {
+    return "⚡ *EMERGÊNCIA: ANAFILAXIA EM ADULTO (PROTOCOLO IMEDIATO)*\n\n" +
+      "🔴 *1ª LINHA MANDATÓRIA (AÇÃO IMEDIATA):*\n" +
+      "• *Adrenalina IM 0.5mg:* Administrar Adrenalina (Epinefrina) 1:1.000 (1 mg/mL) na dose de *0,5 mg IM* (0,5 mL) IMEDIATAMENTE no músculo vasto lateral da coxa (face anterolateral).\n" +
+      "• Repetir a dose a cada 5 a 15 minutos se resposta clínica insuficiente.\n" +
+      "• ⚠️ *NÃO ATRASAR A ADRENALINA!* Antialérgicos e corticoides nunca devem atrasar a administração da adrenalina intramuscular.\n\n" +
+      "🟡 *SUPORTE HEMODINÂMICO & POSICIONAMENTO:*\n" +
+      "• *Posicionamento:* Decúbito dorsal com membros inferiores elevados. NUNCA levantar ou sentar o paciente abruptamente (risco de colapso de retorno venoso).\n" +
+      "• *Expansão Volêmica Rápida:* SF 0,9% 1000 a 2000 mL em bolus rápido IV em acesso calibroso.\n" +
+      "• *Oxigenação:* O₂ a 10-15 L/min sob máscara com reservatório. Preparar SRI/IOT imediata se estridor ou edema de via aérea.\n\n" +
+      "🔵 *TERAPIA ADJUVANTE (SEGUNDA LINHA):*\n" +
+      "• *Anti-histamínico:* Difenidramina 50 mg EV lento.\n" +
+      "• *Corticoide:* Hidrocortisona 200 a 500 mg EV ou Metilprednisolona 1-2 mg/kg EV (prevenção de resposta bifásica).";
+  }
+  if (k === 'convulsao') {
+    return "🧠 *EMERGÊNCIA: CRISE CONVULSIVA & ESTADO DE MAL EPILÉPTICO (EME)*\n\n" +
+      "🔴 *1ª LINHA — BENZODIAZEPÍNICOS (CRISE > 5 MINUTOS):*\n" +
+      "• *Diazepam:* 10 mg EV puro lento (velocidade 2 a 5 mg/min). Se a crise persistir após 5 min, repetir 10 mg EV (dose máxima: 20 a 30 mg).\n" +
+      "• *OU Midazolam:* 10 mg IM (face anterolateral da coxa) se sem acesso venoso imediato, OU 5 a 10 mg EV lento.\n\n" +
+      "🟡 *2ª LINHA — CRISE REFRATÁRIA > 10 MINUTOS (STATUS EPILÉPTICO):*\n" +
+      "• *Fenitoína (Hidantal):* 20 mg/kg EV (máximo 1500 mg). Diluir em SF 0,9% (concentração máxima 10 mg/mL; NUNCA diluir em glicose pelo risco de precipitação).\n" +
+      "• Velocidade de infusão da Fenitoína: máximo de 50 mg/min sob monitorização contínua de ECG e PA.\n" +
+      "• Alternativas de 2ª linha: Levetiracetam 60 mg/kg EV (máx 4500 mg) ou Valproato de Sódio 40 mg/kg EV.\n\n" +
+      "⚠️ *CUIDADOS IMEDIATOS BEIRA-LEITO:*\n" +
+      "• Proteção de via aérea e aspiração de vias aéreas; não colocar objetos na boca do paciente.\n" +
+      "• Decúbito lateral após término da fase clônica.\n" +
+      "• Checagem imediata de HGT: se hipoglicemia (< 70 mg/dL), infundir 4 ampolas de Glicose 50% (40 mL) EV.";
+  }
+  if (k === 'hipercalemia') {
+    return "🧪 *EMERGÊNCIA: HIPERCALEMIA GRAVE COM ALTERAÇÕES NO ECG*\n\n" +
+      "🔴 *PASSO 1: ESTABILIZAÇÃO DE MEMBRANA MIOCÁRDICA:*\n" +
+      "• Indicação: Onda T apiculada, alargamento de QRS, perda de onda P ou K⁺ > 6,5 mEq/L.\n" +
+      "• *Gluconato de Cálcio 10%:* 10 a 20 mL (1 a 2 ampolas de 10 mL) EV lento em 2 a 5 minutos.\n" +
+      "• Início de ação em 1 a 3 minutos; duração de 30 a 60 min. Repetir dose em 5 a 10 min se alterações no ECG persistirem.\n" +
+      "• ⚠️ O Cálcio protege o miocárdio contra arritmias ventriculares e PCR, mas NÃO reduz os níveis séricos de potássio.\n\n" +
+      "🟡 *PASSO 2: SHIFT CELULAR (REDUÇÃO RÁPIDA DE K⁺ SÉRICO):*\n" +
+      "• *Glicoinsulina:* Glicose 50% (50 mL) + Insulina Regular 10 UI EV em infusão de 20 a 30 minutos.\n" +
+      "• Reduz K⁺ em 0,5 a 1,2 mEq/L em 15-30 min. Checar HGT em 30, 60 e 120 minutos.\n" +
+      "• *Nebulização com Beta-2 Agonista:* Salbutamol 5 mg ou Fenoterol 10 a 20 gotas nebulizado com 5 mL SF 0,9%.\n" +
+      "• *Bicarbonato de Sódio 8,4%:* 50 a 100 mL EV se acidose metabólica concomitante (pH < 7,20).\n\n" +
+      "🔵 *PASSO 3: ELIMINAÇÃO CORPORAL DE POTÁSSIO:*\n" +
+      "• *Furosemida:* 40 a 80 mg EV se paciente não anúrico.\n" +
+      "• *Resina de troca:* Poliestirenossulfonato de cálcio (Sorcal) 30g VO.\n" +
+      "• *Hemodiálise de Emergência:* Indicação mandatória se anúria, refratariedade ou K⁺ > 7,5 mEq/L.";
+  }
+  if (k === 'cad') {
+    return "🩸 *EMERGÊNCIA: CETOACIDOSE DIABÉTICA (CAD) & HIPEROSMOLARIDADE*\n\n" +
+      "🔴 *PASSO 1: EXPANSÃO VOLÊMICA AGRESSIVA (1ª HORA):*\n" +
+      "• *Hidratação 1000mL:* SF 0,9% 1000 a 1500 mL EV na primeira hora (15 a 20 mL/kg/h) para rápida restauração da perfusão tecidual.\n" +
+      "• Após 1ª hora: avaliar sódio corrigido. Se Na corrigido normal ou alto: NaCl 0,45% 250 a 500 mL/h; se Na baixo: SF 0,9% 250 a 500 mL/h.\n\n" +
+      "⚠️ *PASSO 2: CHECAGEM MANDATÓRIA DE POTÁSSIO (K⁺) ANTES DA INSULINA:*\n" +
+      "• *Se K⁺ < 3,5 mEq/L:* NÃO INICIAR INSULINA! A insulina transporta potássio para o intracelular gerando hipocalemia grave e risco de arritmia fatal / PCR. Repor KCl 20 a 30 mEq/h até K⁺ > 3,5 mEq/L.\n" +
+      "• *Se K⁺ entre 3,5 e 5,2 mEq/L:* Iniciar insulina E repor KCl 20 a 30 mEq por litro de soro de hidratação (manter K⁺ 4,0 a 5,0).\n" +
+      "• *Se K⁺ > 5,2 mEq/L:* Iniciar insulina sem reposição de K⁺. Monitorar K⁺ a cada 2 horas.\n\n" +
+      "🟡 *PASSO 3: INSULINOTERAPIA VENOSA (QUANDO K⁺ ≥ 3,5 mEq/L):*\n" +
+      "• *Insulina Regular IV Contínua:* 0,1 U/kg/h na BIC (ou bólus de 0,1 U/kg seguido de 0,1 U/kg/h). Preparo: 100 UI de Insulina Regular em 100 mL SF 0,9% (1 UI/mL).\n" +
+      "• *Meta Glicêmica:* Queda de 50 a 70 mg/dL por hora.\n" +
+      "• Quando glicemia atingir *200 mg/dL*: associar Soro Glicosado 5% (SG 5%) e reduzir a insulina para 0,02 a 0,05 U/kg/h para evitar hipoglicemia e edema cerebral enquanto fecha o ânion gap.\n\n" +
+      "ℹ️ *CRITÉRIOS DE RESOLUÇÃO:*\n" +
+      "• Glicemia < 200 mg/dL + dois dos seguintes: Bicarbonato ≥ 15 mEq/L, pH venoso > 7,30 e Ânion Gap normal (≤ 12).";
+  }
+  return null;
+}
+
+function enviarTelaCondutaEmergencia(chat, condutaKey, messageId) {
+  var textoCond = obterTextoCondutaEmergencia(condutaKey);
+  if (!textoCond) {
+    return enviarMenuCondutas(chat, messageId);
+  }
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoCond, 21600);
+  var botoes = botoesBot([
+    [['📋 Copiar para Prontuário', 'ux:copiar:' + ck]],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, textoCond, botoes, messageId);
 }
 
 /* ========== Cenário 2: 🛏️ Enfermaria & Prescrição Rápida ========== */
@@ -51543,6 +51823,11 @@ function tratarCallbackUX(cb) {
     } else if (op === 'condutamenu') {
       enviarMenuCondutas(chat, msgId);
     } else if (op === 'conduta') {
+      if (v === 'pcr') {
+        if (typeof tratarComandoPcr === 'function') return tratarComandoPcr(chat, '');
+      }
+      var telaDet = (typeof enviarTelaCondutaEmergencia === 'function') ? enviarTelaCondutaEmergencia(chat, v, msgId) : null;
+      if (telaDet) return telaDet;
       texto('/conduta ' + (UX_CONDUTAS[v] || v));
     } else if (op === 'painel') {
       enviarPainelEnfermaria(chat, v, msgId);
@@ -51650,6 +51935,8 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarTelaDiluicaoDva: enviarTelaDiluicaoDva,
     enviarMenuSri: enviarMenuSri,
     enviarMenuCondutas: enviarMenuCondutas,
+    obterTextoCondutaEmergencia: obterTextoCondutaEmergencia,
+    enviarTelaCondutaEmergencia: enviarTelaCondutaEmergencia,
     enviarMenuUXCalculadoras: enviarMenuUXCalculadoras,
     enviarRotinaBot: enviarRotinaBot,
     enviarPainelEnfermaria: enviarPainelEnfermaria,
@@ -51682,9 +51969,12 @@ function cockpitAutorizar_(initData) {
 
   // Token assinado criptograficamente (HMAC 64-hex) ou temporário em cache
   if (typeof initData === 'string' && /^ck_[a-f0-9]{64}$/.test(initData)) {
-    var permitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
-      ? ConfigService.getArray('TELEGRAM_CHAT_ID').map(function(s){ return String(s).trim(); })
-      : [String(ConfigService.exigir('TELEGRAM_CHAT_ID'))];
+    var rawPermitidos = (typeof ConfigService !== 'undefined' && ConfigService.exigir)
+      ? ConfigService.exigir('TELEGRAM_CHAT_ID')
+      : (typeof ConfigService !== 'undefined' && ConfigService.get ? ConfigService.get('TELEGRAM_CHAT_ID') : '');
+    var permitidos = Array.isArray(rawPermitidos)
+      ? rawPermitidos.map(function(s){ return String(s).trim(); })
+      : String(rawPermitidos || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
     try {
       var botToken = ConfigService.exigir('TELEGRAM_BOT_TOKEN');
       for (var i = 0; i < permitidos.length; i++) {
@@ -51741,9 +52031,12 @@ function cockpitAutorizar_(initData) {
 }
 
 function criarSessaoCockpit_(chatId) {
-  var permitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
-    ? ConfigService.getArray('TELEGRAM_CHAT_ID').map(function(s){ return String(s).trim(); })
-    : [String(ConfigService.exigir('TELEGRAM_CHAT_ID'))];
+  var rawPermitidos = (typeof ConfigService !== 'undefined' && ConfigService.exigir)
+    ? ConfigService.exigir('TELEGRAM_CHAT_ID')
+    : (typeof ConfigService !== 'undefined' && ConfigService.get ? ConfigService.get('TELEGRAM_CHAT_ID') : '');
+  var permitidos = Array.isArray(rawPermitidos)
+    ? rawPermitidos.map(function(s){ return String(s).trim(); })
+    : String(rawPermitidos || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
   var alvo = String(chatId).split(',')[0].trim();
   if (permitidos.indexOf(alvo) === -1) throw new Error('Usuário não autorizado.');
   var botToken = ConfigService.exigir('TELEGRAM_BOT_TOKEN');

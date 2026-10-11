@@ -21,7 +21,7 @@ def run_js_handlers(script_code):
     eval(fs.readFileSync('{SRC_DIR}/04_motores_ia.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/05_notion.js', 'utf8'));
     eval(fs.readFileSync('{SRC_DIR}/06_rotina_agenda.js', 'utf8'));
-    eval(fs.readFileSync('{SRC_DIR}/07_telegram_handlers.js', 'utf8'));
+        fs.readdirSync('{SRC_DIR}').sort().filter(f => f.startsWith('07') && f.endsWith('.js')).forEach(f => eval(fs.readFileSync('{SRC_DIR}/' + f, 'utf8')));
     eval(fs.readFileSync('{SRC_DIR}/08_main.js', 'utf8'));
     """
     full_code = js_preamble + "\n" + script_code
