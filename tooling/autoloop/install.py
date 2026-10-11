@@ -27,7 +27,7 @@ def install(home=Path.home()):
     pairs = [(SOURCE / "core/execution.py", home / ".local/lib/autoloop_core/execution.py"),
              (SOURCE / "autoloop.py", executable)]
     pairs += [(SOURCE / 'core' / name, home / '.local/lib/autoloop_core' / name)
-              for name in ['failure_queue.py', 'queue_policy.json', 'task_context.py', 'audit_repairs.py', 'scoped_audit.py', 'loop_guard.py', 'observation.py', 'prune_artifacts.py']]
+              for name in ['failure_queue.py', 'queue_policy.json', 'task_context.py', 'audit_repairs.py', 'scoped_audit.py', 'loop_guard.py', 'observation.py', 'prune_artifacts.py', 'backlog_sjf.py', 'syntax_checker.py']]
     runner = home / '.local/bin/ia-hub-janela-runner'
     if runner.exists() and sha(runner) not in {manifest['original_runner_sha256'], sha(SOURCE / 'visual_runner.py')}:
         raise RuntimeError('Runner visual mudou após a preparação; instalação cancelada.')

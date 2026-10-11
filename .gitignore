@@ -43,4 +43,5 @@ gas_deploy/
 *.log
 auditorias/**/*.log
 logs/
+.build_master_cache.json
 

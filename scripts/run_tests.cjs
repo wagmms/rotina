@@ -160,6 +160,60 @@ async function runPool(tasks, lanes, execute) {
   return results;
 }
 
+function loadSuiteDurations(root) {
+  const durations = new Map();
+  const receiptFile = path.join(root, 'data', '.autoloop_test_receipt.json');
+  try {
+    if (fs.existsSync(receiptFile)) {
+      const receipt = JSON.parse(fs.readFileSync(receiptFile, 'utf8'));
+      if (Array.isArray(receipt.results)) {
+        for (const r of receipt.results) {
+          if (r && r.file && typeof r.seconds === 'number' && r.seconds > 0) {
+            durations.set(r.file, r.seconds);
+          }
+        }
+      }
+    }
+  } catch (_) {}
+
+  const reportsDir = path.join(root, 'data', 'test_reports');
+  try {
+    if (fs.existsSync(reportsDir)) {
+      const recentReports = fs.readdirSync(reportsDir)
+        .map(n => ({ path: path.join(reportsDir, n, 'summary.json'), stat: fs.statSync(path.join(reportsDir, n)) }))
+        .filter(d => fs.existsSync(d.path))
+        .sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs);
+      for (const rep of recentReports.slice(0, 3)) {
+        try {
+          const summary = JSON.parse(fs.readFileSync(rep.path, 'utf8'));
+          if (Array.isArray(summary.results)) {
+            for (const r of summary.results) {
+              if (r && r.file && typeof r.seconds === 'number' && r.seconds > 0 && !durations.has(r.file)) {
+                durations.set(r.file, r.seconds);
+              }
+            }
+          }
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
+
+  return durations;
+}
+
+function orderLPT(tasks, root) {
+  if (!Array.isArray(tasks) || tasks.length <= 1) return tasks;
+  const durations = loadSuiteDurations(root || ROOT);
+  return [...tasks].sort((a, b) => {
+    const durA = durations.get(a.file) || (a.kind && a.kind.startsWith('python') ? 0.6 : 0.2);
+    const durB = durations.get(b.file) || (b.kind && b.kind.startsWith('python') ? 0.6 : 0.2);
+    if (durB !== durA) {
+      return durB - durA; // LPT: tarefas mais longas primeiro
+    }
+    return a.file.localeCompare(b.file);
+  });
+}
+
 function receiptValid(receipt, identity, inventory, versions) {
   if (!receipt || receipt.version !== 1 || receipt.scope !== 'all' || !receipt.passed ||
       !Array.isArray(receipt.results) || receipt.fingerprint !== identity || JSON.stringify(receipt.versions) !== JSON.stringify(versions)) return false;
@@ -281,13 +335,15 @@ async function main() {
       if (result.status !== 'passed') console.log(result.error || result.tail.slice(-2200));
       return result;
     };
-    const cjs = await runPool(tasks.filter(s => s.kind === 'cjs'), lanes, execute);
+    const cjsTasks = orderLPT(tasks.filter(s => s.kind === 'cjs'), ROOT);
+    const cjs = await runPool(cjsTasks, lanes, execute);
     const receiptsFile = path.join(workspace, 'cjs-receipts.json');
     const cjsReceipts = Object.fromEntries(cjs.filter(r => r.code !== null && r.status !== 'timeout').map(r => [r.file, {
       code: r.code, seconds: r.seconds, stdout: fs.readFileSync(r.stdoutFile, 'utf8'), stderr: fs.readFileSync(r.stderrFile, 'utf8')
     }]));
     fs.writeFileSync(receiptsFile, JSON.stringify(cjsReceipts));
-    const pythonResults = await runPool(tasks.filter(s => s.kind.startsWith('python')), lanes,
+    const pyTasks = orderLPT(tasks.filter(s => s.kind.startsWith('python')), ROOT);
+    const pythonResults = await runPool(pyTasks, lanes,
       (suite, lane, index) => execute(suite, lane, index, receiptsFile));
     results = [...cjs, ...pythonResults];
     const stable = fingerprint(ROOT) === identity;
@@ -313,5 +369,5 @@ async function main() {
   }
 }
 
-module.exports = { fingerprint, suites, environment, snapshot, runOne, runPool, receiptValid, receiptReusableFailure };
+module.exports = { fingerprint, suites, environment, snapshot, runOne, runPool, receiptValid, receiptReusableFailure, loadSuiteDurations, orderLPT };
 if (require.main === module) main().catch(error => { console.error('[TESTES] ' + error.message); process.exitCode = 1; });

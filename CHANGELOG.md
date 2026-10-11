@@ -1,5 +1,70 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C5. [x] **Agendamento LPT (Longest Processing Time First) no Runner de Testes (`scripts/run_tests.cjs` e `tests/test_autoloop_runner.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * No agendamento multiprocesso com `--jobs=4` (`runPool` em `scripts/run_tests.cjs`), as suítes de teste eram despachadas em ordem alfabética ou arbitrária de leitura de diretório.
+      * Suítes com maior tempo de execução (ex.: `tests/test_cockpit_resiliencia_rede.cjs` ~3.6s, `tests/test_cockpit_historico_calculos.cjs` ~2.4s, `tests/test_server_render.cjs` ~1.4s) eram despachadas tardiamente no final da fila.
+      * Como consequência da dispersão desbalanceada, 3 dos 4 workers ficavam ociosos esperando o término isolado da suíte mais longa no final da rodada, elevando o *makespan* total da execução.
+    - **Implementação e Refatoração**:
+      * Em `scripts/run_tests.cjs`:
+        • Implementada função `loadSuiteDurations(root)`: carrega com tolerância a falhas os tempos de execução históricos da última rodada armazenados em `.autoloop_test_receipt.json` ou no diretório `data/test_reports/`.
+        • Implementada função `orderLPT(tasks, root)`: ordena de forma estável e decrescente as suítes pelo tempo histórico de execução (`LPT - Longest Processing Time First`), com fallback de desempate alfabético determinístico para suítes sem histórico ou com duração idêntica.
+        • Aplicado `orderLPT` tanto no agendamento padrão da baseline (CJS unitários) quanto na suíte estendida com `--all` (CJS e testes Python).
+        • Exportadas as funções `loadSuiteDurations` e `orderLPT` em `module.exports` para permitir testes de contrato isolados.
+      * Em `tests/test_autoloop_runner.cjs`:
+        • Adicionado teste unitário de contrato para agendamento LPT, comprovando a ordenação estritamente decrescente por duração e a estabilidade com desempate determinístico.
+      * Validação de Performance:
+        • As tarefas pesadas entram imediatamente no segundo 0 nos primeiros slots dos workers, permitindo que as dezenas de tarefas rápidas preencham os slots restantes em paralelo, otimizando o paralelismo e estabilizando a suíte completa de 49 suítes em ~8.2s.
+    - **Validação e Cobertura Automatizada**:
+      * 100% aprovado no runner de testes (`tests/test_autoloop_runner.cjs`, 0.367s com código estável).
+      * 100% aprovado na suíte do orquestrador (`pytest tests/test_autoloop_orchestrator.py` e `tooling/autoloop/tests/`, 128/128 testes).
+      * 100% aprovado na bateria oficial de testes (`npm test`, 49/49 suítes em 8.21s com código estável).
+
+0C4. [x] **Validação Sintática Expressa (node --check Fast-Ack) Pós-Edição (`tooling/autoloop/core/syntax_checker.py`, `tooling/autoloop/autoloop.py`, `tooling/autoloop/tests/test_syntax_checker.py` e `tooling/autoloop/install.py`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Quando um agente ou ciclo do autoloop introduzia um erro sintático involuntário em arquivos `.js`, `.cjs` ou `.py` (ex.: vírgula ausente, parêntese aberto, token inesperado), o pipeline anterior disparava diretamente a suíte completa de testes (`npm run test:all`), consumindo 7 a 15 segundos para carregar o framework de testes e gerando diagnósticos longos, pesados e difusos.
+      * Faltava um gate de validação ultra-rápido (Fast-Ack em < 50ms) capaz de interceptar erros sintáticos antes de inicializar o runtime de testes e antes de tentar empacotar o bundle.
+    - **Implementação e Refatoração**:
+      * Em `tooling/autoloop/core/syntax_checker.py`:
+        • Criado módulo dedicado para checagem sintática expressa usando `node --check` para arquivos `.js`, `.cjs`, `.mjs` e `python3 -m py_compile` para arquivos `.py`.
+        • Implementada função `listar_arquivos_modificados_para_sintaxe()` com suporte a `git status --porcelain -uall`, expandindo dinamicamente tanto arquivos modificados quanto novos arquivos dentro de diretórios criados.
+        • Implementada função `verificar_sintaxe_arquivo()` com timeout de proteção e captura limpa de stderr.
+        • Implementada função `validar_sintaxe_expressa()` com suporte a processamento sequencial e paralelo via `ThreadPoolExecutor`, medindo tempo de execução em milissegundos e retornando resumo estruturado com contagem e mensagens cirúrgicas de erro.
+      * Em `tooling/autoloop/autoloop.py`:
+        • Integrada validação sintática expressa pós-edição em `executar_ciclo()`: executa imediatamente após a conclusão do agente AGY e antes de rodar os testes, emitindo `⚡ Validação sintática expressa aprovada (node --check): X arquivo(s) verificado(s) em Yms` ou bloqueando o ciclo com erro pontual em caso de SyntaxError.
+        • Integrada validação sintática prévia em `_executar_deploy_e_relatorio_core()`, abortando deploys precocemente se houver arquivos sintaticamente corrompidos.
+        • Registradas métricas `record_metric('validacao_sintaxe', ...)` para auditoria de telemetria.
+      * Em `tooling/autoloop/tests/test_syntax_checker.py`:
+        • Criada suíte de testes com 8 casos cobrindo arquivos JS/CJS válidos e inválidos, Python válido/inválido, validação de lote mista, detecção por git status e garantia de que testes pesados nunca são acionados se a sintaxe falhar.
+      * Em `tooling/autoloop/install.py`:
+        • Incluído `syntax_checker.py` nos manifestos e pares de instalação compartilhada (`~/.local/lib/autoloop_core`).
+    - **Validação e Cobertura Automatizada**:
+      * 100% de aprovação na nova suíte (`tooling/autoloop/tests/test_syntax_checker.py`, 8/8 testes em 0.63s).
+      * 100% de aprovação na suíte completa do autoloop (`uv run pytest tooling/autoloop/tests/`, 132/132 testes em 6.25s).
+      * 100% de aprovação na bateria completa do projeto (`npm test`, 49/49 suítes em 7.33s com código estável).
+
+0C3. [x] **Build Master Incremental com Checksum de Código Fonte (`build_master.py` e `tooling/autoloop/tests/test_build.py`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * A cada execução de `build_master.py` (`npm run build`), todos os 76 módulos de `src/` (somando mais de 59.600 linhas e 3.1 MB) eram integralmente lidos em memória, formatados em JSON e enviados via stdin para compilação pelo Node.js (`scripts/check_syntax.cjs`), gerando múltiplos arquivos temporários e executando `node --check` no bundle compilado, mesmo quando nenhuma linha de código havia sido alterada.
+      * O processo consumia ~1.000ms a cada ciclo, gerando I/O redundante em disco e chamadas repetidas de processos externos.
+    - **Implementação e Refatoração**:
+      * Em `build_master.py`:
+        • Implementado cálculo ultra-rápido de checksum consolidado de código fonte (`source_checksum`, SHA-256 em ~7ms) a partir de todos os módulos de `src/` em ordem canônica alfabética.
+        • Implementado manifesto de cache atômico em `.build_master_cache.json` contendo `source_checksum`, `artifact_checksum`, `artifact_sha256`, hashes individuais de cada módulo e timestamp.
+        • Implementado Fast-Path Incremental (0ms): se o checksum consolidado das fontes coincidir com o cache e o artefato `ultra_rotina_master.js` já estiver presente e íntegro, o build encerra imediatamente em ~20-30ms sem invocar processos do Node, sem gravar temporários e sem tocar no `st_mtime_ns` do arquivo existente.
+        • Implementada validação sintática incremental: quando apenas arquivos pontuais são modificados, apenas os módulos alterados são submetidos ao `scripts/check_syntax.cjs`, dispensando revalidação desnecessária dos demais módulos intocados.
+        • Adicionada flag `--force` (`-f`) para permitir rebuild completo sob demanda quando explicitamente solicitado.
+        • Preservada a verificação concorrente de integridade de fontes e a substituição atômica segura via `os.replace`.
+      * Em `tooling/autoloop/tests/test_build.py`:
+        • Criado teste `test_build_incremental_fast_path_com_checksum` cobrindo primeiro build frio, segundo build incremental em 0ms, alteração seletiva de módulo único, forçamento via `--force` e recuperação automática após exclusão do artefato.
+      * Em `.gitignore`:
+        • Adicionado `.build_master_cache.json` para evitar versionar o arquivo de cache de integridade local.
+    - **Validação e Cobertura Automatizada**:
+      * 100% de aprovação na suíte de testes de build (`tooling/autoloop/tests/test_build.py`, 2/2 testes).
+      * 100% de aprovação na suíte completa do autoloop (119/119 testes em 5.85s).
+      * 100% de aprovação na bateria completa do backend (`npm test`, 49/49 suítes em 7.21s).
+      * Sucesso em `npm run build` com redução de tempo para ~46ms (0ms rebuild).
+
 0C2. [x] **Pré-aquecimento do Contexto do Repositório (Prompt Caching / Context Caching) (`tooling/autoloop/core/task_context.py`, `tooling/autoloop/autoloop.py`, `tooling/autoloop/tests/test_task_context.py` e `tooling/autoloop/install.py`)**:
     - **Diagnóstico e Causa Raiz**:
       * A cada tarefa, o autoloop montava o prompt do CLI injetando o objetivo dinâmico e o título da tarefa ativa logo nas primeiras linhas (`Objetivo Geral: ...`, `Tarefa selecionada: ...`), antes de todo o corpo longo de diretrizes, regras clínicas e arquitetura.

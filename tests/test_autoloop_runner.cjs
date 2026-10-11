@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
-const { fingerprint, environment, runOne, runPool, receiptValid, receiptReusableFailure } = require('../scripts/run_tests.cjs');
+const { fingerprint, environment, runOne, runPool, receiptValid, receiptReusableFailure, loadSuiteDurations, orderLPT } = require('../scripts/run_tests.cjs');
 
 async function main() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'runner-contract-'));
@@ -69,7 +69,33 @@ async function main() {
       assert(runOutput.includes('[OK] tests/test_obstetricia_prenatal.cjs'), 'Suíte direcionada deve passar');
     }
 
-    console.log('✓ Runner: isolamento, falhas, timeout, concorrência, execução direcionada (test sharding) e identidade validados.');
+    // Validação do Agendamento LPT (Longest Processing Time First)
+    const mockReceipt = {
+      version: 1, scope: 'all', passed: true, fingerprint: 'mock', versions,
+      results: [
+        { file: 'tests/test_curto.cjs', seconds: 0.1, code: 0, status: 'passed' },
+        { file: 'tests/test_pesado.cjs', seconds: 4.2, code: 0, status: 'passed' },
+        { file: 'tests/test_medio.cjs', seconds: 1.5, code: 0, status: 'passed' },
+        { file: 'tests/test_empate_b.cjs', seconds: 0.5, code: 0, status: 'passed' },
+        { file: 'tests/test_empate_a.cjs', seconds: 0.5, code: 0, status: 'passed' }
+      ]
+    };
+    fs.writeFileSync(path.join(root, 'data', '.autoloop_test_receipt.json'), JSON.stringify(mockReceipt));
+    const inputTasks = [
+      { file: 'tests/test_curto.cjs', kind: 'cjs' },
+      { file: 'tests/test_empate_b.cjs', kind: 'cjs' },
+      { file: 'tests/test_pesado.cjs', kind: 'cjs' },
+      { file: 'tests/test_empate_a.cjs', kind: 'cjs' },
+      { file: 'tests/test_medio.cjs', kind: 'cjs' }
+    ];
+    const orderedTasks = orderLPT(inputTasks, root);
+    assert.equal(orderedTasks[0].file, 'tests/test_pesado.cjs', 'A suíte mais demorada (4.2s) deve ser a primeira (LPT)');
+    assert.equal(orderedTasks[1].file, 'tests/test_medio.cjs', 'A segunda mais demorada (1.5s) deve vir em seguida');
+    assert.equal(orderedTasks[2].file, 'tests/test_empate_a.cjs', 'Empate deve ser resolvido em ordem alfabética estável (a antes de b)');
+    assert.equal(orderedTasks[3].file, 'tests/test_empate_b.cjs', 'Empate deve ser resolvido em ordem alfabética estável');
+    assert.equal(orderedTasks[4].file, 'tests/test_curto.cjs', 'A suíte mais rápida (0.1s) deve vir ao final');
+
+    console.log('✓ Runner: isolamento, falhas, timeout, concorrência, execução direcionada (test sharding), agendamento LPT e identidade validados.');
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

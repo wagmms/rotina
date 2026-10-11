@@ -251,3 +251,99 @@ def test_prune_artifacts_orchestrator(tmp_path):
     assert 'total_removed' in stats
     assert 'bytes_freed' in stats
     assert stats['total_removed'] == 0
+
+
+def test_prune_and_rollup_metrics_removes_heartbeats_and_preserves_active(tmp_path):
+    from prune_artifacts import prune_and_rollup_metrics
+    data_dir = tmp_path / "data"
+    data_dir.mkdir(parents=True)
+    metrics_file = data_dir / "autoloop_metrics.jsonl"
+
+    now = time.time()
+    events = [
+        # Run 1 finalizado com 3 heartbeats
+        {"time": now - 300, "stage": "ciclo_agy", "status": "started", "run_id": "run1"},
+        {"time": now - 270, "stage": "ciclo_agy", "status": "running", "run_id": "run1"},
+        {"time": now - 240, "stage": "ciclo_agy", "status": "running", "run_id": "run1"},
+        {"time": now - 210, "stage": "ciclo_agy", "status": "running", "run_id": "run1"},
+        {"time": now - 200, "stage": "ciclo_agy", "status": "passed", "run_id": "run1", "seconds": 100},
+        {"time": now - 195, "stage": "consumo_agy", "run_id": "run1", "tokens": {"input_tokens": 1000, "output_tokens": 100}},
+
+        # Run 2 ativo (sem evento terminal) com 2 heartbeats
+        {"time": now - 60, "stage": "ciclo_agy", "status": "started", "run_id": "run2_ativo"},
+        {"time": now - 30, "stage": "ciclo_agy", "status": "running", "run_id": "run2_ativo"},
+        {"time": now - 5, "stage": "ciclo_agy", "status": "running", "run_id": "run2_ativo"}
+    ]
+    with metrics_file.open("w", encoding="utf-8") as f:
+        for ev in events:
+            f.write(json.dumps(ev) + "\n")
+
+    res = prune_and_rollup_metrics(tmp_path, max_age_days=1, max_recent_events=100)
+    assert res['original_lines'] == 9
+    assert res['heartbeats_removed'] == 3
+    assert res['ephemeral_started_removed'] == 1
+    assert res['final_lines'] == 5
+
+    # Lê linhas finais
+    finais = [json.loads(l) for l in metrics_file.read_text(encoding="utf-8").splitlines()]
+    # Heartbeats de run1 foram expurgados
+    assert not any(x.get('run_id') == 'run1' and x.get('status') == 'running' for x in finais)
+    # Heartbeats de run2_ativo foram rigorosamente preservados
+    assert len([x for x in finais if x.get('run_id') == 'run2_ativo' and x.get('status') == 'running']) == 2
+
+
+def test_prune_and_rollup_metrics_creates_daily_rollups_and_archives_gzip(tmp_path):
+    from prune_artifacts import prune_and_rollup_metrics
+    from task_context import summarize_metrics
+    import gzip
+
+    data_dir = tmp_path / "data"
+    data_dir.mkdir(parents=True)
+    metrics_file = data_dir / "autoloop_metrics.jsonl"
+    archive_file = data_dir / "autoloop_metrics_archive.jsonl.gz"
+
+    now = time.time()
+    old_time = now - (10 * 86400)  # 10 dias atrás
+
+    # Cria 4 eventos antigos para uma mesma tarefa e modelo
+    events = [
+        {"time": old_time, "stage": "tarefa", "status": "passed", "task_key": "taskA", "model": "flash", "seconds": 15.0},
+        {"time": old_time + 1, "stage": "consumo_agy", "task_key": "taskA", "model": "flash", "tokens": {"input_tokens": 5000, "output_tokens": 500}},
+        {"time": old_time + 10, "stage": "tarefa", "status": "passed", "task_key": "taskA", "model": "flash", "seconds": 25.0},
+        {"time": old_time + 11, "stage": "consumo_agy", "task_key": "taskA", "model": "flash", "tokens": {"input_tokens": 3000, "output_tokens": 300}},
+        # Evento recente
+        {"time": now - 100, "stage": "tarefa", "status": "passed", "task_key": "taskRecent", "model": "pro", "seconds": 40.0},
+        {"time": now - 99, "stage": "consumo_agy", "task_key": "taskRecent", "model": "pro", "tokens": {"input_tokens": 12000, "output_tokens": 1200}}
+    ]
+
+    with metrics_file.open("w", encoding="utf-8") as f:
+        for ev in events:
+            f.write(json.dumps(ev) + "\n")
+
+    # Sumário antes do rollup
+    sum_antes = summarize_metrics(tmp_path)
+    item_a_antes = next(x for x in sum_antes if x['task_key'] == 'taskA')
+    assert item_a_antes['finished_attempts'] == 2
+    assert item_a_antes['seconds'] == 40.0
+    assert item_a_antes['tokens']['input_tokens'] == 8000
+
+    # Executa rollup com janela recente de 2 eventos e max_age_days=5
+    res = prune_and_rollup_metrics(tmp_path, max_age_days=5, max_recent_events=2, archive=True)
+    assert res['rollups_created'] == 1
+    assert res['final_lines'] == 3  # 1 rollup de taskA + 2 eventos recentes de taskRecent
+    assert archive_file.exists()
+
+    # Confere dados arquivados em gzip
+    with gzip.open(archive_file, "rt", encoding="utf-8") as gz_in:
+        arquivados = [json.loads(l) for l in gz_in.read().splitlines() if l.strip()]
+    assert len(arquivados) == 4
+
+    # Confere paridade exata em summarize_metrics após rollup!
+    sum_depois = summarize_metrics(tmp_path)
+    item_a_depois = next(x for x in sum_depois if x['task_key'] == 'taskA')
+    assert item_a_depois['finished_attempts'] == item_a_antes['finished_attempts']
+    assert item_a_depois['approved_cycles'] == item_a_antes['approved_cycles']
+    assert item_a_depois['seconds'] == item_a_antes['seconds']
+    assert item_a_depois['tokens']['input_tokens'] == item_a_antes['tokens']['input_tokens']
+    assert item_a_depois['tokens']['output_tokens'] == item_a_antes['tokens']['output_tokens']
+

@@ -44,6 +44,11 @@ except Exception as e:
     print(f"Erro ao carregar módulo agy_contas: {e}")
     sys.exit(1)
 
+# Supervisão comum: versão local revisável ou instalação no diretório compartilhado.
+_execution_local = Path(__file__).resolve().parent / "core"
+_execution_shared = Path.home() / ".local" / "lib" / "autoloop_core"
+sys.path.insert(0, str(_execution_local if (_execution_local / "execution.py").exists() else _execution_shared))
+
 CORES = agy_contas.CORES
 
 # Modelos conhecidos com atalhos amigáveis
@@ -178,17 +183,28 @@ def normalizar_texto(txt):
     nfkd = unicodedata.normalize('NFKD', separado.lower())
     return "".join([c for c in nfkd if not unicodedata.combining(c)])
 
-def obter_tarefa_ativa_progress():
+def obter_tarefa_ativa_progress(root=Path('.')):
     """
-    Lê o PROGRESS.md e extrai a tarefa ativa:
-    1. Primeiro verifica se há alguma tarefa pendente em '## 🔄 Próxima Tarefa em Andamento'.
-    2. Se não houver, extrai a tarefa do topo do '[Backlog]' ainda pendente.
+    Lê o PROGRESS.md e extrai a tarefa ativa usando Priorização Inteligente de Backlog
+    (Shortest-Job-First Clínico / WSJF):
+    - Avalia tarefas pendentes combinando criticidade clínica, especificidade cirúrgica e esforço estimado.
+    - Prioriza Quick-Wins Clínicos e jobs atômicos para maximizar o throughput de resolução.
+    - Mantém proteção contra inanição (Aging) e bônus de estabilidade para a tarefa em andamento.
     """
-    if not os.path.exists("PROGRESS.md"):
+    try:
+        from backlog_sjf import selecionar_tarefa_sjf
+        tarefa_sjf = selecionar_tarefa_sjf(root)
+        if tarefa_sjf:
+            return tarefa_sjf
+    except Exception:
+        pass
+
+    # Fallback defensivo original de extração direta de texto
+    p_path = Path(root) / "PROGRESS.md"
+    if not p_path.is_file():
         return None
     try:
-        with open("PROGRESS.md", "r", encoding="utf-8") as f:
-            conteudo = f.read()
+        conteudo = p_path.read_text(encoding="utf-8")
 
         # 1. Checa 'Próxima Tarefa em Andamento'
         m_andamento = re.search(r'##\s*🔄\s*Próxima Tarefa em Andamento(.*?)(?:##|\Z)', conteudo, re.DOTALL | re.IGNORECASE)
@@ -423,6 +439,7 @@ from task_context import (build_task_brief, UsageMeter, render_cli_event,
 from scoped_audit import build_scopes, evaluate_scopes
 from loop_guard import acquire_project_lock, task_allowed, mark_task, last_lock_holder, check_unreleased_diff_size
 from audit_repairs import capture_rejection, select_repair, audit_retry_timeout, record_approved, archive_raw_result, ready_for_reaudit, pending_repair_bypass_audit
+from syntax_checker import validar_sintaxe_expressa, verificar_sintaxe_arquivo
 
 
 def montar_prompt_ciclo(objetivo, nome_squad, lista_agentes, diretriz_kaizen, perfil_tarefa=None, tarefa_ativa=None):
@@ -1065,6 +1082,23 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
     # Somente uma resposta real de cota ativa cooldown. Sucesso não impõe
     # 90 minutos artificiais de espera nem muda modelo/esforço clínico.
 
+    # 1. Validação Sintática Expressa (node --check Fast-Ack) Pós-Edição
+    res_sintaxe = validar_sintaxe_expressa(root=Path.cwd())
+    if not res_sintaxe["ok"]:
+        primeiro_erro = res_sintaxe["first_error_message"] or "Erro de sintaxe detectado"
+        arquivo_falho = res_sintaxe["failures"][0]["file"]
+        log("ERRO", f"❌ Falha de sintaxe pós-edição (node --check Fast-Ack) em {arquivo_falho}:")
+        for l in primeiro_erro.splitlines()[:6]:
+            log("ERRO", f"   {l}")
+        record_metric("validacao_sintaxe", "failed", res_sintaxe["elapsed_seconds"],
+                      file=arquivo_falho, error=primeiro_erro[:300], task_key=task_key)
+        return False
+    elif res_sintaxe["total_checked"] > 0:
+        ms = res_sintaxe["elapsed_seconds"] * 1000
+        log("OK", f"⚡ Validação sintática expressa aprovada (node --check): {res_sintaxe['total_checked']} arquivo(s) verificado(s) em {ms:.1f}ms.")
+        record_metric("validacao_sintaxe", "passed", res_sintaxe["elapsed_seconds"],
+                      files_checked=res_sintaxe["total_checked"], task_key=task_key)
+
     verificacao = executar_etapa(["npm", "run", "test:all", "--", "--reuse"], "testes_finais_ciclo", timeout=1800)
     if verificacao.returncode != 0:
         log("INFO", "🧪 Alterações detectadas: executando bateria completa de testes...")
@@ -1687,6 +1721,13 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=6.0, commit_anterior=None,
     log("INFO", f"🚀 {CORES['bold']}EXECUTANDO DEPLOY AUTOMÁTICO DO CICLO ({intervalo_horas:.1f}H){CORES['reset']}")
     log("INFO", f"Horário de disparo: {hora_str}")
     print("=" * 70)
+
+    # 0.5 Validação Sintática Expressa (node --check Fast-Ack)
+    res_sintaxe = validar_sintaxe_expressa(root=Path.cwd())
+    if not res_sintaxe["ok"]:
+        arquivo_falho = res_sintaxe["failures"][0]["file"]
+        log("ERRO", f"🛑 DEPLOY CANCELADO: Erro de sintaxe (node --check Fast-Ack) em {arquivo_falho}.")
+        return False
 
     # 1. Compilação do bundle de produção
     log("INFO", "📦 Compilando bundle de produção com build_master.py...")

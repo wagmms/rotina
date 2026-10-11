@@ -14,14 +14,12 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Pré-aquecimento do Contexto do Repositório (Prompt Caching / Context Caching) (`tooling/autoloop/core/task_context.py`, `tooling/autoloop/autoloop.py`, `tooling/autoloop/tests/test_task_context.py` e `tooling/autoloop/install.py`)**:
+- [x] **Agendamento LPT (Longest Processing Time First) no Runner de Testes (`scripts/run_tests.cjs` e `tests/test_autoloop_runner.cjs`)**:
     - **Diagnóstico e Correção**:
-      * Identificado que o autoloop injetava campos dinâmicos (`Objetivo Geral: ...`, `Tarefa selecionada: ...`) nas primeiras linhas do prompt do CLI, quebrando o cálculo de prefixo do Google Gemini e Claude Sonnet/Opus logo nos primeiros ~30 tokens e impedindo o reaproveitamento de cache para milhares de tokens estáticos de diretrizes.
-      * Em `tooling/autoloop/core/task_context.py`: Criado cabeçalho inicial canônico imutável (`CANONICAL_PROMPT_CACHE_HEADER`, `obter_cabecalho_estatico_cache`) com mais de 5.000 caracteres (~1.300+ tokens estimados, superando o threshold de 1.024 tokens de Context Caching) contendo arquitetura Fastify/Render/Docker, Cockpit PWA, salvaguardas clínicas pétreas, regras ágeis, Single-Agent padrão, catálogo de subagentes e gates de qualidade (test sharding direcionado).
-      * Em `tooling/autoloop/autoloop.py`: Refatorada `montar_prompt_ciclo` para fixar o cabeçalho canônico estático no topo (prefixo de cache 100% idêntico byte a byte em todas as tarefas) e alocar o escopo, squad, diretriz kaizen e tarefa ativa no sufixo dinâmico; adicionado indicador de Prompt Caching ativo no log do autoloop.
-      * Em `tooling/autoloop/tests/test_task_context.py`: Criados testes unitários validando comprimento mínimo (>= 4.000 chars / >= 1.024 tokens), cláusulas obrigatórias e prefixo comum estritamente compartilhado entre tarefas distintas de diferentes escopos.
-      * Instalação verificada via `tooling/autoloop/install.py` e atualizado `install_manifest.json`.
-    - **Validação e Cobertura**: 100% aprovado nas suítes unitárias do autoloop (118/118 testes em 4.93s) e no runner oficial (`npm run test:autoloop`, 2/2 suítes em 7.24s).
+      * No escalonamento multiprocesso com `--jobs=4` (`runPool`), as suítes eram despachadas em ordem alfabética ou arbitrária, alocando suítes pesadas (3.6s, 2.4s, 1.4s) tardiamente no final da fila e deixando workers ociosos.
+      * Em `scripts/run_tests.cjs`: Implementadas funções `loadSuiteDurations(root)` e `orderLPT(tasks, root)` que recuperam durações históricas de `.autoloop_test_receipt.json` / `data/test_reports/` e despacham as tarefas da mais longa para a mais rápida (com desempate alfabético determinístico).
+      * Em `tests/test_autoloop_runner.cjs`: Adicionados testes de contrato validando a ordenação decrescente LPT e o desempate determinístico.
+    - **Validação e Cobertura**: 100% aprovado no runner (`test_autoloop_runner.cjs`), na suíte de orquestração (128/128 testes) e na bateria oficial de testes (`npm test`, 49/49 suítes aprovadas em 8.21s com código estável).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

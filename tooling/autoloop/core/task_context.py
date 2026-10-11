@@ -290,7 +290,7 @@ def summarize_metrics(root=Path('.')):
                 item = json.loads(line)
             except ValueError:
                 continue
-            if not isinstance(item, dict) or item.get('stage') not in {'tarefa', 'consumo_agy'}:
+            if not isinstance(item, dict) or item.get('stage') not in {'tarefa', 'consumo_agy', 'metrics_rollup'}:
                 continue
             key = (item.get('task_key'), item.get('model'))
             if not all(isinstance(x, str) for x in key):
@@ -311,6 +311,18 @@ def summarize_metrics(root=Path('.')):
                             group['tokens'][name] = group['tokens'].get(name, 0) + value
                 else:
                     group['missing_usage_records'] += 1
+            if item['stage'] == 'metrics_rollup':
+                group['finished_attempts'] += item.get('finished_attempts', 0)
+                group['approved_cycles'] += item.get('approved_cycles', 0)
+                group['seconds'] += item.get('seconds', 0)
+                usage = item.get('tokens')
+                if isinstance(usage, dict) and usage:
+                    group['usage_records'] += item.get('usage_records', 1)
+                    for name, value in usage.items():
+                        if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                            group['tokens'][name] = group['tokens'].get(name, 0) + value
+                elif item.get('missing_usage_records'):
+                    group['missing_usage_records'] += item.get('missing_usage_records', 0)
     for group in groups.values():
         group['seconds'] = round(group['seconds'], 3)
         if not group['tokens']:
@@ -441,7 +453,7 @@ def coletar_telemetria_ciclo(root=Path('.'), horas=6.0, desde_ts=None):
                     continue
 
                 stage = item.get('stage')
-                if stage == 'consumo_agy':
+                if stage in {'consumo_agy', 'metrics_rollup'}:
                     linhas_consumo.append(item)
                 elif stage in {'tarefa', 'ciclo_agy'} and item.get('status') in {'passed', 'failed', 'pending', 'reported'}:
                     linhas_tarefa.append(item)

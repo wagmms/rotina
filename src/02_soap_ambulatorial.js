@@ -75,11 +75,11 @@ var SoapAmbulatorialService = (function() {
       titulo: 'Adulto Geral Completo (Segmentar Padrão Ouro)',
       texto: [
         'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
-        'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
-        '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
-        '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
-        '  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
-        ' Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
+        'Geral: Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+        'ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
+        'AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente.',
+        'Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
+        'Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
       ].join('\n')
     },
     pediatrico_completo: {
@@ -848,7 +848,39 @@ var SoapAmbulatorialService = (function() {
     return linhas.join('\n');
   }
 
-  // 10. MODELO CANÔNICO DE EXAME FÍSICO NORMAL COMPLETO (SEGMENTAR PADRÃO-OURO)
+  // 10. FORMATADOR E MODELO CANÔNICO DE EXAME FÍSICO POR SISTEMAS EM LINHAS DISTINTAS
+  function formatarExameFisicoSistemas(texto) {
+    if (!texto || typeof texto !== 'string') return '';
+    var t = texto.trim();
+
+    // 1. Separar sinais vitais do exame geral se estiverem na mesma linha
+    t = t.replace(/(\b(?:T:\s*[^.]+|\d+°C|ar\s+ambiente|mmHg|\bbpm|\birpm|\b%)\s*\.)\s*(Bom\s+estado\s+geral|BEG|Lúcido|LOTE|Corado|Geral:)/gi, '$1\nGeral: $2');
+    t = t.replace(/(^|\n)(?!Geral:)(Bom\s+estado\s+geral\b)/gi, '$1Geral: $2');
+
+    // 2. Garantir quebra de linha antes de cada sistema semiológico
+    var sistemas = [
+      { re: /(?:[.;,]|\b)\s*(ACV\s*:|Cardiovascular\s*:|Aparelho\s+Cardiovascular\s*:)/gi, rep: 'ACV:' },
+      { re: /(?:[.;,]|\b)\s*(AR\s*:|Respirat[óo]rio\s*:|Aparelho\s+Respirat[óo]rio\s*:)/gi, rep: 'AR:' },
+      { re: /(?:[.;,]|\b)\s*(Abdome\s*:|Abdominal\s*:)/gi, rep: 'Abdome:' },
+      { re: /(?:[.;,]|\b)\s*(Extremidades\s*:|Membros\s*:|MMII\s*:)/gi, rep: 'Extremidades:' },
+      { re: /(?:[.;,]|\b)\s*(Neurol[óo]gico\s*:|Neuro\s*:)/gi, rep: 'Neurológico:' },
+      { re: /(?:[.;,]|\b)\s*(Otoscopia\s*:)/gi, rep: 'Otoscopia:' },
+      { re: /(?:[.;,]|\b)\s*(Oroscopia\s*:)/gi, rep: 'Oroscopia:' },
+      { re: /(?:[.;,]|\b)\s*(Ginecol[óo]gico\s*:|Exame\s+Especular\s*:)/gi, rep: 'Ginecológico:' }
+    ];
+
+    sistemas.forEach(function(s) {
+      t = t.replace(s.re, function(match, p1, offset) {
+        if (offset === 0) return p1.trim();
+        return '\n' + p1.trim();
+      });
+    });
+
+    return t.split('\n').map(function(linha) {
+      return linha.trim();
+    }).filter(Boolean).join('\n');
+  }
+
   function obterModeloExameFisicoCompleto(contextoPrevio) {
     var texto = String(contextoPrevio || '');
     var paMatch = texto.match(/\b(?:pa\s*[:=]?\s*)(\d{2,3}\s*[x/]\s*\d{2,3}(?:\s*mmhg)?)\b/i) || texto.match(/\b(\d{2,3}\s*[x/]\s*\d{2,3}\s*mmhg)\b/i);
@@ -868,11 +900,11 @@ var SoapAmbulatorialService = (function() {
 
     return [
       linhaSV,
-      'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
-      '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
-      '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
-      '  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
-      ' Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
+      'Geral: Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+      'ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
+      'AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente.',
+      'Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
+      'Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
     ].join('\n');
   }
 
@@ -894,9 +926,7 @@ var SoapAmbulatorialService = (function() {
         return [
           '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*',
           '👤 *S - Subjetivo (Anamnese Estruturada)*\n' + textoPuro,
-          '🔍 *O - Objetivo (Exame Físico)*\nExame físico pendente de avaliação beira-leito. Aferir sinais vitais e exame direcionado.',
-          '❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n• Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.',
-          '🎯 *Cobrança Ativa do Exame Físico Dirigido*\n• Aferir sinais vitais completos e exame direcionado ao foco da queixa.'
+          '🔍 *O - Objetivo (Exame Físico)*\nExame físico pendente de avaliação beira-leito. Aferir sinais vitais e exame direcionado.'
         ].join('\n\n');
       }
     }
@@ -907,7 +937,7 @@ var SoapAmbulatorialService = (function() {
         : dados;
 
       var sText = dados.subjetivo || (estruturado && estruturado.subjetivo) || dados.hda || 'Anamnese realizada.';
-      var oText = dados.objetivo || (estruturado && estruturado.objetivo) || dados.exameFisicoTexto || 'Exame físico realizado.';
+      var oText = formatarExameFisicoSistemas(dados.objetivo || (estruturado && estruturado.objetivo) || dados.exameFisicoTexto || 'Exame físico realizado.');
       var aText = dados.avaliacao || (estruturado && estruturado.avaliacao) || 'Avaliação clínica a definir.';
       var pText = dados.plano || (estruturado && estruturado.plano) || 'Conduta e orientações a definir.';
       if (Array.isArray(aText)) aText = aText.join('\n');
@@ -923,13 +953,13 @@ var SoapAmbulatorialService = (function() {
 
       var pends = dados.pendencias || dados.pendencias_opcionais;
       if (Array.isArray(pends) && pends.length) {
-        linhasFase2.push('⚠️ *Dados adicionais que enriqueceriam o caso (Dados pendentes — conferir antes de concluir):*\n' + pends.map(function(item) { return '• ' + item; }).join('\n'));
+        linhasFase2.push('💡 *Dados adicionais sugeridos (se houver):*\n' + pends.map(function(item) { return '• ' + item; }).join('\n'));
       }
 
       return linhasFase2.join('\n\n');
     } else {
       var sRasc = dados.subjetivo || dados.hda || dados.queixaPrincipal || 'Anamnese em andamento.';
-      var oRasc = dados.objetivo || dados.exameFisicoTexto || 'Exame físico em estruturação; conferir sinais vitais e achados.';
+      var oRasc = formatarExameFisicoSistemas(dados.objetivo || dados.exameFisicoTexto || 'Exame físico em estruturação; conferir sinais vitais e achados.');
       var pergs = dados.perguntas_anamnese || dados.perguntas;
       var dirigs = dados.exame_dirigido || dados.exameDirigido;
 
@@ -940,15 +970,11 @@ var SoapAmbulatorialService = (function() {
       ];
 
       if (Array.isArray(pergs) && pergs.length) {
-        linhasFase1.push('❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n' + pergs.map(function(item) { return '• ' + item; }).join('\n'));
-      } else {
-        linhasFase1.push('❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n• Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.');
+        linhasFase1.push('💡 *Investigação Complementar (se desejar enriquecer o caso):*\n' + pergs.map(function(item) { return '• ' + item; }).join('\n'));
       }
 
       if (Array.isArray(dirigs) && dirigs.length) {
-        linhasFase1.push('🎯 *Cobrança Ativa do Exame Físico Dirigido*\n' + dirigs.map(function(item) { return '• ' + item; }).join('\n'));
-      } else {
-        linhasFase1.push('🎯 *Cobrança Ativa do Exame Físico Dirigido*\n• Aferir sinais vitais completos e exame direcionado ao foco da queixa.');
+        linhasFase1.push('💡 *Exame Físico Dirigido Sugerido:*\n' + dirigs.map(function(item) { return '• ' + item; }).join('\n'));
       }
 
       return linhasFase1.join('\n\n');
@@ -1005,11 +1031,16 @@ var SoapAmbulatorialService = (function() {
     exportarReceitaTexto: exportarReceitaTexto,
     exportarAtestadoTexto: exportarAtestadoTexto,
     exportarEncaminhamentoTexto: exportarEncaminhamentoTexto,
+    formatarExameFisicoSistemas: formatarExameFisicoSistemas,
     obterModeloExameFisicoCompleto: obterModeloExameFisicoCompleto,
     formatarRascunhoSoapTelegram: formatarRascunhoSoapTelegram,
     processarEntradaSoap: processarEntradaSoap
   };
 })();
+
+function formatarExameFisicoSistemas(texto) {
+  return SoapAmbulatorialService.formatarExameFisicoSistemas(texto);
+}
 
 function obterModeloExameFisicoCompleto(contextoPrevio) {
   return SoapAmbulatorialService.obterModeloExameFisicoCompleto(contextoPrevio);

@@ -78,7 +78,18 @@ def select_failure(root=Path('.')):
     eligible = [key for key in groups if task_allowed(key, root)]
     if not eligible:
         return None
-    key = min(eligible, key=attempts)
+
+    def sjf_failure_priority(k):
+        # 1. Menor número de tentativas anteriores (respeito estrito à equidade da fila justa)
+        att = attempts(k)
+        # 2. Esforço estimado da suíte (SJF: CJS unitários rápidos antes de wrappers pesados)
+        membros = groups.get(k, [k])
+        effort = 1.0 if any(m.endswith('.cjs') for m in membros) else 2.0
+        # 3. Relevância clínica (termos clínicos de emergência têm precedência de resolução)
+        clinical_weight = 1.5 if any(p in k.lower() for p in ['pcr', 'sepse', 'choque', 'dose', 'dhe', 'obstetricia']) else 1.0
+        return (att, effort / clinical_weight)
+
+    key = min(eligible, key=sjf_failure_priority)
     members = groups[key]
     policy = read_json(Path(__file__).with_name('queue_policy.json'), {})
     hashes = policy.get(key, {})

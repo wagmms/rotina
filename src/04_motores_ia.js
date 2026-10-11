@@ -1395,6 +1395,9 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     if (typeof verificarEExpandirExameFisicoObjetivo === "function") {
       oSanitizado = verificarEExpandirExameFisicoObjetivo(oSanitizado, transcricao);
     }
+    if (typeof formatarExameFisicoSistemas === "function") {
+      oSanitizado = formatarExameFisicoSistemas(oSanitizado);
+    }
     var perguntas = obj.perguntas_anamnese || obj.perguntas || [];
     var exameDirigido = obj.exame_dirigido || [];
     var temEfAudio = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(transcricao);
@@ -1402,11 +1405,13 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     var blocosRasc = [
       "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
       "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + sanitizarNegativasSOAP(obj.subjetivo, transcricao),
-      "🔍 *O - Objetivo (Exame Físico)*\n" + (oSanitizado || "Exame físico em estruturação; conferir sinais vitais e achados."),
-      "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.")
+      "🔍 *O - Objetivo (Exame Físico)*\n" + (oSanitizado || "Exame físico em estruturação; conferir sinais vitais e achados.")
     ];
-    if (!temEfAudio) {
-      blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
+    if (perguntas && perguntas.length > 0) {
+      blocosRasc.push("💡 *Pontos de Anamnese para Complementar (se houver):*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
+    }
+    if (!temEfAudio && exameDirigido && exameDirigido.length > 0) {
+      blocosRasc.push("💡 *Exame Físico Dirigido Sugerido:*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
     }
 
     return {
@@ -1692,7 +1697,13 @@ function verificarEExpandirExameFisicoObjetivo(objetivoTexto, casoClinico) {
     var modeloCompleto = (typeof obterModeloExameFisicoCompleto === "function")
       ? obterModeloExameFisicoCompleto(casoClinico)
       : (typeof SoapAmbulatorialService !== "undefined" && SoapAmbulatorialService.MODELOS_EXAME_FISICO ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto : objStr);
+    if (typeof formatarExameFisicoSistemas === "function") {
+      modeloCompleto = formatarExameFisicoSistemas(modeloCompleto);
+    }
     return modeloCompleto;
+  }
+  if (typeof formatarExameFisicoSistemas === "function") {
+    objStr = formatarExameFisicoSistemas(objStr);
   }
   return objStr;
 }
@@ -1717,8 +1728,8 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "",
       "DIRETRIZES TÉCNICAS E SÍNTESE OBRIGATÓRIA:",
       "1. SUBJETIVO (S): QP e HDA estruturadas, limpas e telegráficas. Antecedentes/Medicações/Alergias em 1 linha compacta ('Não informado' se ausentes). NUNCA crie parágrafos prolixos.",
-      "2. OBJETIVO (O): Sinais vitais e achados informados organizados por sistemas. Para sinais vitais não informados, reserve o espaço [   ] com a unidade (PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C). Incorpore exame especial se presente.",
-      "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Bom estado geral lúcido e orientado, ACV, AR, Abdome e Extremidades), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
+      "2. OBJETIVO (O): Sinais vitais e achados informados organizados por sistemas. Cada sistema DEVE estar em uma linha diferente separada por quebra de linha (\\n): Sinais Vitais / Geral / ACV / AR / Abdome / Extremidades. Para sinais vitais não informados, reserve o espaço [   ] com a unidade (PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C). Incorpore exame especial se presente.",
+      "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Geral, ACV, AR, Abdome e Extremidades), cada um em sua própria linha separada. NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações' e NUNCA junte na mesma linha.",
       "3. AVALIAÇÃO (A):",
       "   - Diagnóstico principal ou problema sindrômico com CID-10 e CIAP-2.",
       "   - Diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade. Sem teorizações prolixas.",
@@ -1754,6 +1765,9 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
     var oTexto = sanitizarObjetivoComRelato(objCons.objetivo, dadosCaso) || "Exame físico não informado; pendente de avaliação.";
     oTexto = verificarEExpandirExameFisicoObjetivo(oTexto, dadosCaso);
+    if (typeof formatarExameFisicoSistemas === "function") {
+      oTexto = formatarExameFisicoSistemas(oTexto);
+    }
     var pendencias = Array.isArray(objCons.pendencias_opcionais) ? objCons.pendencias_opcionais.filter(Boolean) : [];
 
     var blocosCons = [
@@ -1796,15 +1810,16 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - QP e HDA com cronologia e caracterização semiológica direta.",
     "   - Antecedentes/Medicações/Alergias: registre se informados; se não informados, declare 'Não informado' de forma compacta em 1 linha.",
     "2. EXAME FÍSICO (O):",
+    "   - Cada sistema DEVE estar em uma linha diferente separada por quebra de linha (\\n): Sinais Vitais / Geral / ACV / AR / Abdome / Extremidades. NUNCA junte sistemas na mesma linha.",
     "   - Sinais Vitais: registre os relatados. Para sinais vitais não informados, reserve o espaço [   ] com a unidade (PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C).",
     "   - Sistemas examinados relatados. Se EF não informado, declare 'Exame físico pendente de avaliação beira-leito'.",
     "   - NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa a menos que o médico tenha dito expressamente 'normal'. Para sistemas não informados e não examinados, declare explicitamente como pendentes à beira-leito.",
     "   - Integre exame especial se contido no caso.",
-    "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Bom estado geral lúcido e orientado, ACV, AR, Abdome e Extremidades), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
+    "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Geral, ACV, AR, Abdome e Extremidades), cada um em sua própria linha separada. NUNCA junte na mesma linha e NUNCA sintetize em apenas 'EF normal'.",
     "3. INVESTIGAÇÃO ATIVA DA ANAMNESE COM JUSTIFICATIVA DIDÁTICA (FMRP-USP):",
     "   - Formule de 2 a 4 perguntas diretas e clínicas para completar as lacunas da história (início detalhado, fatores de alívio/piora, antecedentes, alergias, medicações).",
     "   - RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses ao final. Exemplo: 'Investigar se a dor epigástrica irradia para o dorso (descartar pancreatite aguda ou dissecção de aorta abdominal)'.",
-    "4. COBRANÇA ATIVA DO EXAME FÍSICO DIRIGIDO:",
+    "4. EXAME FÍSICO DIRIGIDO (SUGESTÃO COMPLEMENTAR):",
     "   - 1 a 2 tópicos com sinais vitais críticos (PA, FC, FR, SpO2, Tax) e manobras/auscultas essenciais para o caso que ainda não foram informados.",
     "5. REGRA ABSOLUTA DE SEGURANÇA: NÃO gere Avaliação nem Plano nesta fase.",
     "",
@@ -1838,6 +1853,9 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
   var oRasc = sanitizarObjetivoComRelato(objRasc.objetivo, dadosCaso);
   oRasc = verificarEExpandirExameFisicoObjetivo(oRasc, dadosCaso);
+  if (typeof formatarExameFisicoSistemas === "function") {
+    oRasc = formatarExameFisicoSistemas(oRasc);
+  }
   if (!oRasc) oRasc = "Exame físico em estruturação; conferir sinais vitais e achados.";
 
   var perguntas = objRasc.perguntas_anamnese || objRasc.perguntas;
@@ -1847,9 +1865,12 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   var blocosRasc = [
     "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
     "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + sRasc,
-    "🔍 *O - Objetivo (Exame Físico)*\n" + oRasc,
-    "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.")
+    "🔍 *O - Objetivo (Exame Físico)*\n" + oRasc
   ];
+
+  if (perguntas && perguntas.length > 0) {
+    blocosRasc.push("💡 *Pontos de Anamnese para Complementar (se houver):*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
+  }
 
   if (objRasc.contingencia_offline) {
     blocosRasc.unshift("⚠️ *MODO OFFLINE DE CONTINGÊNCIA (PROVEDOR EM NUVEM EM TIMEOUT)*\nProcessado pelo Motor Determinístico Offline.");
@@ -1858,8 +1879,8 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     }
   }
 
-  if (!temEfCompleto) {
-    blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
+  if (!temEfCompleto && exameDirigido && exameDirigido.length > 0) {
+    blocosRasc.push("💡 *Exame Físico Dirigido Sugerido:*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
   }
 
   return _iaFinalizarTexto(blocosRasc.join("\n\n"));
