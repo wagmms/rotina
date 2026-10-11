@@ -473,9 +473,16 @@ var IaLocalFallbackService = (function () {
     };
 
     if (ehSoap) {
-      var subjetivoLimpo = String(promptUsuario || '').replace(/CASO CLÍNICO:\s*/i, '').trim();
+      var textoLimpo = String(promptUsuario || '').replace(/CASO CLÍNICO:\s*/i, '').trim();
+      var matchEf = textoLimpo.search(/(?:\n|^)\s*(?:sinais\s+vitais\s*:|exame\s+f[ií]sico(?:\s+geral)?\s*:|geral\s*:\s*(?:bom\s+estado|beg|regular|l[uú]cido)|acv\s*:|ar\s*:|abdome\s*:|extremidades\s*:)/i);
+      var subjetivoLimpo = textoLimpo;
+      var objetivoDetectado = '';
+      if (matchEf > 0) {
+        subjetivoLimpo = textoLimpo.slice(0, matchEf).trim();
+        objetivoDetectado = textoLimpo.slice(matchEf).trim();
+      }
       resultado.subjetivo = subjetivoLimpo || 'Relato clínico recebido em contingência offline.';
-      resultado.objetivo = 'Monitorização multiparamétrica contínua e checagem de sinais vitais sob suporte avançado de vida.';
+      resultado.objetivo = objetivoDetectado || 'Monitorização multiparamétrica contínua e checagem de sinais vitais sob suporte avançado de vida.';
       resultado.avaliacao = ehEmergencia ? ['Emergência clínica aguda / PCR'] : ['Atendimento clínico geral'];
       resultado.plano = condutaProto ? [condutaProto] : ['Monitorização multiparamétrica contínua e reavaliação assistencial.'];
       resultado.conduta_emergencia = condutaProto || null;

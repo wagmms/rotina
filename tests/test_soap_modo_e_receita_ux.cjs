@@ -113,17 +113,33 @@ async function testSoapModoEReceitaUX() {
   assert(efNormal.includes('ACV:') && efNormal.includes('AR:') && efNormal.includes('Abdome:') && efNormal.includes('Extremidades:'),
     'EF normal deve cobrir todos os aparelhos sistematicamente');
 
+  // Validação de idempotência de formatarExameFisicoSistemas (sem "Geral: Geral:")
+  let efRepetido = efNormal;
+  for (let step = 0; step < 3; step++) {
+    efRepetido = ctx.formatarExameFisicoSistemas(efRepetido);
+  }
+  assert(!efRepetido.includes('Geral: Geral:'), 'formatarExameFisicoSistemas não deve duplicar o prefixo Geral:');
+
   const rascunhoFase1 = ctx.formatarRascunhoSoapTelegram('Homem 52a, tosse e febre há 3 dias', { fecharPlano: false });
   assert(rascunhoFase1.includes('S - Subjetivo') && rascunhoFase1.includes('O - Objetivo'), 'Fase 1 deve conter S e O');
   assert(!rascunhoFase1.includes('🧠 *A - Avaliação*'), 'Fase 1 NÃO deve conter Avaliação prematura');
   assert(!rascunhoFase1.includes('📋 *P - Plano*'), 'Fase 1 NÃO deve conter Plano prematuro');
+
+  // Validação de caso com EF anexado: EF deve pertencer a O e não vazar em S
+  const casoComEf = 'Homem 52a, tosse e febre há 3 dias\n\n' + efNormal;
+  const rascunhoComEf = ctx.formatarRascunhoSoapTelegram(casoComEf, { fecharPlano: false });
+  const partesRasc = rascunhoComEf.split('🔍 *O - Objetivo');
+  const subExtraido = partesRasc[0];
+  const objExtraido = partesRasc[1];
+  assert(!subExtraido.includes('ACV:') && !subExtraido.includes('AR:'), 'Subjetivo NÃO deve conter sistemas do Exame Físico');
+  assert(objExtraido.includes('ACV:') && objExtraido.includes('AR:'), 'Objetivo DEVE conter sistemas do Exame Físico');
 
   const rascunhoFase2 = ctx.formatarRascunhoSoapTelegram('Homem 52a, tosse e febre há 3 dias', { fecharPlano: true });
   assert(rascunhoFase2.includes('S - Subjetivo'), 'Fase 2 deve conter Subjetivo');
   assert(rascunhoFase2.includes('O - Objetivo'), 'Fase 2 deve conter Objetivo');
   assert(rascunhoFase2.includes('A - Avaliação'), 'Fase 2 deve conter Avaliação');
   assert(rascunhoFase2.includes('P - Plano'), 'Fase 2 deve conter Plano');
-  console.log('  ✓ formatarRascunhoSoapTelegram diferencia Fase 1 e Fase 2 com rigor semiológico.');
+  console.log('  ✓ formatarExameFisicoSistemas idempotente e isolamento de EF entre S e O validado.');
 
   // ---------------------------------------------------------------------------
   // [3] TESTE DO BOTÃO PRIMÁRIO E NAVEGAÇÃO CONTEXTUAL NO PROCESSAR E ENTREGAR

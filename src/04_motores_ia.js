@@ -1767,6 +1767,16 @@ function sanitizarObjetivoComRelato(objetivo, casoClinico) {
   return texto.trim();
 }
 
+function sanitizarSubjetivoSemExameFisico(texto) {
+  var t = String(texto || '').trim();
+  var matchEf = t.search(/(?:\n|^)\s*(?:sinais\s+vitais\s*:|exame\s+f[ií]sico(?:\s+geral)?\s*:|geral\s*:\s*(?:bom\s+estado|beg|regular|l[uú]cido)|acv\s*:|ar\s*:|abdome\s*:|extremidades\s*:)/i);
+  if (matchEf > 0) {
+    var parteSub = t.slice(0, matchEf).trim();
+    if (parteSub) return parteSub;
+  }
+  return t;
+}
+
 function sanitizarNegativasSOAP(texto, casoClinico) {
   var fonte = String(casoClinico || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   var t = String(texto || '');
@@ -1776,7 +1786,7 @@ function sanitizarNegativasSOAP(texto, casoClinico) {
   if (!/\b(?:nega|sem)\s+(?:uso\s+de\s+)?medica(?:coes|mentos)\b|nao\s+(?:usa|toma)\s+medica(?:coes|mentos)/.test(fonte)) {
     t = t.replace(/nega\s+(?:uso\s+de\s+)?medica(?:ções|mentos)(?:\s+cont[ií]nu[oa]s?)?/gi, 'Medicações de uso contínuo: não informado');
   }
-  return t;
+  return sanitizarSubjetivoSemExameFisico(t);
 }
 
 function verificarEExpandirExameFisicoObjetivo(objetivoTexto, casoClinico) {
@@ -1861,7 +1871,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
 
     var sTexto = (typeof objCons.subjetivo === "string" && objCons.subjetivo.trim())
       ? sanitizarNegativasSOAP(objCons.subjetivo.trim(), dadosCaso)
-      : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
+      : sanitizarSubjetivoSemExameFisico(dadosCaso.replace(/Atualização:\s*/gi, "").trim());
     var oTexto = sanitizarObjetivoComRelato(objCons.objetivo, dadosCaso) || "Exame físico não informado; pendente de avaliação.";
     oTexto = verificarEExpandirExameFisicoObjetivo(oTexto, dadosCaso);
     if (typeof formatarExameFisicoSistemas === "function") {
@@ -1949,7 +1959,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
 
   var sRasc = (typeof objRasc.subjetivo === "string" && objRasc.subjetivo.trim())
     ? sanitizarNegativasSOAP(objRasc.subjetivo.trim(), dadosCaso)
-    : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
+    : sanitizarSubjetivoSemExameFisico(dadosCaso.replace(/Atualização:\s*/gi, "").trim());
   var oRasc = sanitizarObjetivoComRelato(objRasc.objetivo, dadosCaso);
   oRasc = verificarEExpandirExameFisicoObjetivo(oRasc, dadosCaso);
   if (typeof formatarExameFisicoSistemas === "function") {

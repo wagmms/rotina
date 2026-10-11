@@ -853,9 +853,10 @@ var SoapAmbulatorialService = (function() {
     if (!texto || typeof texto !== 'string') return '';
     var t = texto.trim();
 
-    // 1. Separar sinais vitais do exame geral se estiverem na mesma linha
-    t = t.replace(/(\b(?:T:\s*[^.]+|\d+°C|ar\s+ambiente|mmHg|\bbpm|\birpm|\b%)\s*\.)\s*(Bom\s+estado\s+geral|BEG|Lúcido|LOTE|Corado|Geral:)/gi, '$1\nGeral: $2');
-    t = t.replace(/(^|\n)(?!Geral:)(Bom\s+estado\s+geral\b)/gi, '$1Geral: $2');
+    // 1. Separar sinais vitais do exame geral se estiverem na mesma linha (evitando duplicações de Geral:)
+    t = t.replace(/(\b(?:T:\s*[^.]+|\d+°C|ar\s+ambiente|mmHg|\bbpm|\birpm|\b%)\s*\.)\s*(Bom\s+estado\s+geral|BEG|Lúcido|LOTE|Corado)\b/gi, '$1\nGeral: $2');
+    t = t.replace(/(^|\n)(?:Geral:\s*)*(Bom\s+estado\s+geral\b)/gi, '$1Geral: $2');
+    t = t.replace(/(?:Geral:\s*){2,}/gi, 'Geral: ');
 
     // 2. Garantir quebra de linha antes de cada sistema semiológico
     var sistemas = [
@@ -920,13 +921,20 @@ var SoapAmbulatorialService = (function() {
       if (/^🩺\s*\*SÍNTESE SOAP/i.test(textoPuro)) {
         return textoPuro;
       }
+      var matchEfStr = textoPuro.search(/(?:\n|^)\s*(?:sinais\s+vitais\s*:|exame\s+f[ií]sico(?:\s+geral)?\s*:|geral\s*:\s*(?:bom\s+estado|beg|regular|l[uú]cido)|acv\s*:|ar\s*:|abdome\s*:|extremidades\s*:)/i);
+      var subPuro = textoPuro;
+      var objPuro = '';
+      if (matchEfStr > 0) {
+        subPuro = textoPuro.slice(0, matchEfStr).trim();
+        objPuro = textoPuro.slice(matchEfStr).trim();
+      }
       if (ehFechado) {
-        dados = { queixaPrincipal: textoPuro, hda: textoPuro };
+        dados = { queixaPrincipal: subPuro, hda: subPuro, objetivo: objPuro || undefined };
       } else {
         return [
           '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*',
-          '👤 *S - Subjetivo (Anamnese Estruturada)*\n' + textoPuro,
-          '🔍 *O - Objetivo (Exame Físico)*\nExame físico pendente de avaliação beira-leito. Aferir sinais vitais e exame direcionado.'
+          '👤 *S - Subjetivo (Anamnese Estruturada)*\n' + subPuro,
+          '🔍 *O - Objetivo (Exame Físico)*\n' + (objPuro ? formatarExameFisicoSistemas(objPuro) : 'Exame físico pendente de avaliação beira-leito. Aferir sinais vitais e exame direcionado.')
         ].join('\n\n');
       }
     }
