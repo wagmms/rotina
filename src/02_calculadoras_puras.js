@@ -244,12 +244,12 @@ var CalculadorasClinicas = (function () {
 
   function botoesPadrao(id, linha1) {
     var l1 = Array.isArray(linha1) ? linha1 : [];
-    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
+    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'hub:sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
   }
 
   function botoesEmergencia(id, linha1) {
     var l1 = Array.isArray(linha1) ? linha1 : [];
-    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
+    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'hub:sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
   }
 
   // ═════════════════════════════ ESCORES ═════════════════════════════

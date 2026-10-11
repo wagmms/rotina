@@ -54,6 +54,11 @@ var EmergenciaChoqueSepticoService = {
       choqueRefratario: choqueRefratario,
       textoSOAP: textoSOAP
     };
+  },
+
+  formatarTextoTelegram: function(res) {
+    if (!res) return "";
+    return "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" + (res.textoSOAP || "");
   }
 };
 

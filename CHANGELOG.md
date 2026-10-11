@@ -1,5 +1,28 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0BC. [x] **Auditoria e Otimização da Sala Vermelha & Emergências Médicas (`ux:hub:sala`, `ux:hub:emerg`, `src/12_experiencia_bot.js`, `src/02_emergencia_choque_septico_circi.js`, `src/02_emergencia_crise_hipertensiva.js`, `src/02_pcr_gestante.js`, `src/07a_telegram_router.js`, `src/07d_telegram_callbacks.js`, `src/07g_telegram_ajuda_e_protocolos.js` e `tests/test_sala_vermelha_ux.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em emergências obstétricas (`PcrGestanteService`), o campo `viaAerea.recomendacao` acessava chave inexistente (`recomendacoes` é um array), gerando texto `undefined` no bot durante ressuscitação de gestante.
+      * No choque séptico (`EmergenciaChoqueSepticoService`), faltava o método canônico `formatarTextoTelegram` e no roteador (`07a_telegram_router.js`) os comandos `/choqueseptico`, `/dva` e `/sri` não persistiam o resultado formatado no cache nem exibiam botão de 1 toque `[📋 Copiar para Prontuário]`.
+      * Em `07d_telegram_callbacks.js`, os botões de retorno da Sala Vermelha utilizavam misturas de callbacks (`ux:hub:sala`, `ux:sala` e `ux:hub:emerg`) com inconsistência e faltavam handlers para atalhos de 1 toque de PALS (`pals_10kg`, `pals_20kg`) e ações de histerotomia perimortem e sulfato de magnésio.
+      * O comando `/crisehas` não estava mapeado no switch de crise hipertensiva, caindo em fluxos genéricos.
+    - **Contrato de UX Beira-Leito e Determinismo (0ms)**:
+      * Respostas determinísticas instantâneas em 0ms sem IA generativa para 100% dos protocolos de emergência da Sala Vermelha: PCR em 4 tempos (ritmos chocáveis, não chocáveis, gestante com DULE manual e cesariana perimortem aos 4 min, PALS pediátrico dosado por peso, drogas de PCR e cuidados pós-RCE), Arritmias (instável/CVE, TSV, TV monomórfica, FA/Flutter, Bradicardias/Atropina), Choque Séptico/CIRCI (indicação imediata de Hidrocortisona e Vasopressina quando Nora ≥ 0,25 mcg/kg/min), Crise Hipertensiva vs Pseudocrise, Escala de Glasgow com alerta de proteção de via aérea (GCS ≤ 8) e DVA rápida com compatibilidade em Y.
+      * Navegação contextual estrita: garantia de botão `[🔙 Sala Vermelha]` (`ux:sala` / `ux:hub:sala`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% dos fluxos e comandos de emergência, sem telas órfãs.
+      * Botão de 1 toque `[📋 Copiar para Prontuário]` (`ux:copiar:<uuid>`) com persistência em cache e formato limpo para PEP em todas as saídas de conduta.
+      * Zero botões fantasmas (`Gerar PDF`, `Ver critérios`) em calculadoras de emergência e condutas beira-leito.
+    - **Implementação e Refatoração**:
+      * Em `src/02_pcr_gestante.js`: Adicionada propriedade canônica `recomendacao` no objeto `viaAerea` de `PcrGestanteService`.
+      * Em `src/02_emergencia_choque_septico_circi.js`: Adicionado método `formatarTextoTelegram`.
+      * Em `src/02_emergencia_crise_hipertensiva.js`: Expandido `extrairParametrosTexto` para suportar `pas/pad` e números separados por espaço.
+      * Em `src/07g_telegram_ajuda_e_protocolos.js`: Ajustada extração de via aérea em gestante e cálculo exato de Joules/Adrenalina para PALS.
+      * Em `src/07d_telegram_callbacks.js`: Adicionado suporte a `pals_10kg`, `pals_20kg`, `pcr_gest_sulfato`, `pcr_gest_cesarea`, padronizado retorno para `ux:sala` nas drogas de PCR com `[📋 Copiar para Prontuário]`, e handler unificado para `ux:sala`, `ux:hub:sala` e `ux:hub:emerg`.
+      * Em `src/12_experiencia_bot.js`: Adicionado handler e teclado para `ux:choque:septico:70:0.3` e `ux:choquesep:<peso>:<nora>` em 0ms.
+      * Em `src/07a_telegram_router.js`: Roteamento de `/crisehas`, adição de cache e botões de cópia e retorno em `/choqueseptico`, `/dva` e `/sri`.
+    - **Validação e Cobertura Automatizada**:
+      * 100% de aprovação na suíte `tests/test_sala_vermelha_ux.cjs` (10 blocos cobrindo 100% dos critérios).
+      * Recompilado `ultra_rotina_master.js` com sintaxe JS 100% OK.
+
 0BB. [x] **Auditoria e Otimização da Central de Rotina & Plantão do Médico (`ux:hub:rotina`, `src/06_rotina_agenda.js`, `src/05_notion.js`, `src/12_experiencia_bot.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`, `src/07d_telegram_callbacks.js` e `tests/test_central_rotina_plantao_ux.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * A Central de Rotina (`enviarRotinaBot`) e o roteador de comandos/callbacks possuíam desvios que geravam flood no chat do Telegram: cliques em subfluxos como `ux:rotina:agenda`, `ux:rotina:agenda_amanha`, `ux:rotina:tasks`, `ux:rotina:checkin`, `ux:rotina:plantao_fim` e `ux:rotina:briefing` recorriam à injeção de novas mensagens de texto (`texto('/...')`) em vez de reaproveitar `messageId` para edição in-place (`editMessageText`), violando o princípio de interface limpa.

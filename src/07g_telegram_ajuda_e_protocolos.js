@@ -421,24 +421,42 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
       var aval = PcrGestanteService.avaliarPcrGestante({
         idadeGestacionalSemanas: igVal,
         tempoPcrMinutos: 4,
-        ritmoPcr: (dLow.indexOf("fv") !== -1 || dLow.indexOf("tv") !== -1) ? "FV" : "AESP"
+        ritmoPcr: (dLow.indexOf("fv") !== -1 || dLow.indexOf("tv") !== -1) ? "FV" : "AESP",
+        emUsoSulfatoMagnesio: dLow.indexOf("sulfato") !== -1 || dLow.indexOf("mgso4") !== -1,
+        suspeitaToxicidadeAnestesicoLocal: dLow.indexOf("last") !== -1 || dLow.indexOf("anestes") !== -1 || dLow.indexOf("bupiv") !== -1,
+        suspeitaHemorragia: dLow.indexOf("hemorr") !== -1 || dLow.indexOf("sangr") !== -1,
+        suspeitaEmboliaAmniotica: dLow.indexOf("ela") !== -1 || dLow.indexOf("embolia") !== -1
       });
+      var viaAereaGest = (aval.viaAerea && aval.viaAerea.recomendacao)
+        ? aval.viaAerea.recomendacao
+        : ((aval.viaAerea && aval.viaAerea.recomendacoes && aval.viaAerea.recomendacoes.length > 1)
+          ? aval.viaAerea.recomendacoes[1]
+          : "Intubação Orotraqueal (IOT) precoce");
       var txtGest = "🤰 *PCR NA GESTANTE: RESSUSCITAÇÃO CARDIOPULMONAR (ACLS MATERNO)*\n\n" +
         "🚨 *MANOBRA DULE MANDATÓRIA:*\n" +
         "• " + aval.dule.manobra + "\n" +
         "• _" + aval.dule.justificativaFisiologica + "_\n\n" +
         "⚡ *VIA AÉREA & ACESSO VENOSO:*\n" +
-        "• " + aval.viaAerea.recomendacao + " (Tubo 6.0 a 7.0 c/ cuff pelo edema de via aérea)\n" +
+        "• " + viaAereaGest + " (Tubo 6.0 a 7.0 c/ cuff pelo edema de via aérea)\n" +
         "• Acesso venoso OBRIGATORIAMENTE ACIMA DO DIAFRAGMA (jugular, subclávia ou MS).\n\n" +
         "✂️ *CESARIANA DE RESSUSCITAÇÃO (PERIMORTEM):*\n" +
         "• Indicação se sem RCE até o *4º MINUTO* de RCP para parto no *5º MINUTO*.\n" +
-        "• Objetivo primário: descompressão aortocaval para salvar a gestante.";
+        "• Objetivo primário: descompressão aortocaval em 100% para salvar a gestante.\n" +
+        "• Realizar no próprio leito da PCR, sem transporte para centro cirúrgico!";
+      if (aval.antidotos && aval.antidotos.length > 0) {
+        txtGest += "\n\n💊 *ANTÍDOTO DE EMERGÊNCIA:*\n";
+        for (var ia = 0; ia < aval.antidotos.length; ia++) {
+          txtGest += "• *" + aval.antidotos[ia].condicao + ":* " + aval.antidotos[ia].antidoto + " — " + aval.antidotos[ia].posologia + "\n";
+        }
+      }
       var ckGest = Utilities.getUuid().replace(/-/g, "");
       safePutCache(cache, ckGest, txtGest, 21600);
       var kbGest = {
         inline_keyboard: [
           [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckGest }],
           [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
+          [{ text: "💊 MgSO4 / Gluconato", callback_data: "pcr_gest_sulfato" }, { text: "✂️ Cesariana 4 min", callback_data: "pcr_gest_cesarea" }],
+          [{ text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }],
           [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
         ]
       };
@@ -449,19 +467,42 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
 
   // Caso 2: Pediátrico
   if (dLow.indexOf("ped") !== -1 || dLow.indexOf("pals") !== -1 || dLow.indexOf("crianca") !== -1) {
-    var txtPals = "👶 *SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (PALS — PCR)*\n\n" +
-      "• *Compressões:* 100-120 cpm, 1/3 do diâmetro AP (4 cm lactente, 5 cm criança).\n" +
-      "• *Relação Compressão-Ventilação:* 15:2 (com 2 socorristas) ou contínua 1 vent a cada 2-3s após via aérea.\n" +
-      "• *Desfibrilação:* 2 J/kg (1º choque) ➔ 4 J/kg (2º choque e subsequentes, máx 10 J/kg).\n" +
-      "• *Adrenalina:* 0,01 mg/kg (0,1 mL/kg da solução 1:10.000) IV/IO q3-5 min.\n" +
-      "• *Amiodarona:* 5 mg/kg em bólus IV/IO (até 3 doses) para FV/TV sem pulso refratária.\n\n" +
-      "💡 *Para doses por peso exato:* envie `/pals <pesoKg>` (ex: `/pals 14`)";
+    var mPesoPals = dLow.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|kilos?)?/i);
+    var pesoPalsVal = mPesoPals ? parseFloat(mPesoPals[1].replace(",", ".")) : null;
+    var txtPals = "";
+    if (pesoPalsVal !== null && pesoPalsVal > 0 && pesoPalsVal <= 80) {
+      var choque1 = Math.round(pesoPalsVal * 2);
+      var choque2 = Math.min(Math.round(pesoPalsVal * 4), 200);
+      var adrenaMg = (pesoPalsVal * 0.01).toFixed(2);
+      var adrenaMl = (pesoPalsVal * 0.1).toFixed(1);
+      var amioMg = Math.min(Math.round(pesoPalsVal * 5), 300);
+      txtPals = "👶 *SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (PALS — PCR " + pesoPalsVal + " KG)*\n\n" +
+        "⚡ *DESFIBRILAÇÃO (RITMOS CHOCÁVEIS):*\n" +
+        "• *1º Choque (2 J/kg):* *" + choque1 + " Joules*\n" +
+        "• *2º Choque e seguintes (4 J/kg):* *" + choque2 + " Joules* (máx 10 J/kg ou 200 J)\n\n" +
+        "💉 *FARMACOTERAPIA POR PESO (" + pesoPalsVal + " kg):*\n" +
+        "• *Adrenalina 0,01 mg/kg (1:10.000):* *" + adrenaMg + " mg* (*" + adrenaMl + " mL*) IV/IO a cada 3 a 5 min.\n" +
+        "• *Amiodarona 5 mg/kg:* *" + amioMg + " mg* IV/IO em bólus rápido (até 3 doses).\n" +
+        "• *Lidocaína (alternativa):* " + (pesoPalsVal * 1).toFixed(1) + " mg IV/IO (1 mg/kg).\n\n" +
+        "🖐️ *COMPRESSÕES & VENTILAÇÃO:*\n" +
+        "• Frequência 100-120 cpm, profundidade 1/3 do diâmetro AP (~" + (pesoPalsVal < 10 ? "4 cm" : "5 cm") + ").\n" +
+        "• Relação 15:2 com 2 socorristas ou contínua 1 vent a cada 2-3s após via aérea.";
+    } else {
+      txtPals = "👶 *SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (PALS — PCR)*\n\n" +
+        "• *Compressões:* 100-120 cpm, 1/3 do diâmetro AP (4 cm lactente, 5 cm criança).\n" +
+        "• *Relação Compressão-Ventilação:* 15:2 (com 2 socorristas) ou contínua 1 vent a cada 2-3s após via aérea.\n" +
+        "• *Desfibrilação:* 2 J/kg (1º choque) ➔ 4 J/kg (2º choque e subsequentes, máx 10 J/kg).\n" +
+        "• *Adrenalina:* 0,01 mg/kg (0,1 mL/kg da solução 1:10.000) IV/IO q3-5 min.\n" +
+        "• *Amiodarona:* 5 mg/kg em bólus IV/IO (até 3 doses) para FV/TV sem pulso refratária.\n\n" +
+        "💡 *Para doses por peso exato:* envie `/pals <pesoKg>` (ex: `/pals 14`) ou toque nos botões abaixo:";
+    }
     var ckPals = Utilities.getUuid().replace(/-/g, "");
     safePutCache(cache, ckPals, txtPals, 21600);
     var kbPals = {
       inline_keyboard: [
         [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckPals }],
         [{ text: "👶 PALS 10 kg", callback_data: "pals_10kg" }, { text: "👶 PALS 20 kg", callback_data: "pals_20kg" }],
+        [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
@@ -507,7 +548,10 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
           { text: "🤰 PCR Gestante", callback_data: "pcr_gestante" }
         ],
         [
-          { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
+          { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
+        ],
+        [
+          { text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" },
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
@@ -553,7 +597,7 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
           { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
         ],
         [
-          { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
+          { text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" },
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
@@ -585,7 +629,7 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
         { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
       ],
       [
-        { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
+        { text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" },
         { text: "🏠 Início", callback_data: "ux:hub:inicio" }
       ]
     ]
@@ -638,7 +682,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         [{ text: "🚨 Instável (CVE Sincronizada)", callback_data: "arritmia_instavel" }],
         [{ text: "⚡ TSV (Taqui Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
         [{ text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }, { text: "⚡ Protocolo PCR", callback_data: "pcr_chocavel" }],
-        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtBradi, kbBradi, messageId);
@@ -677,7 +721,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
         [{ text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }, { text: "🐢 Bradicardia", callback_data: "arritmia_bradi" }],
         [{ text: "⚡ TV sem pulso (PCR)", callback_data: "pcr_chocavel" }],
-        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtInstavel, kbInstavel, messageId);
@@ -709,7 +753,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         [{ text: "🚨 Se Instável: CVE 100 J", callback_data: "arritmia_instavel" }],
         [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }],
         [{ text: "⚡ TV sem pulso (PCR)", callback_data: "pcr_chocavel" }],
-        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtTv, kbTv, messageId);
@@ -744,7 +788,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         [{ text: "🚨 Se Instável: CVE 50-100J", callback_data: "arritmia_instavel" }],
         [{ text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }, { text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }],
         [{ text: "🐢 Bradicardias", callback_data: "arritmia_bradi" }],
-        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtTsv, kbTsv, messageId);
@@ -772,7 +816,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckFa }],
         [{ text: "🚨 Se Instável: CVE", callback_data: "arritmia_instavel" }],
         [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
-        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtFa, kbFa, messageId);
@@ -808,7 +852,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         { text: "🐢 Bradicardias & BAV", callback_data: "arritmia_bradi" }
       ],
       [
-        { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
+        { text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" },
         { text: "🏠 Início", callback_data: "ux:hub:inicio" }
       ]
     ]

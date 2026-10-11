@@ -14,11 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria e Otimização da Central de Rotina & Plantão do Médico (`ux:hub:rotina`, `src/06_rotina_agenda.js`, `src/05_notion.js`, `src/12_experiencia_bot.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`, `src/07d_telegram_callbacks.js` e `tests/test_central_rotina_plantao_ux.cjs`)**:
-    - **Diagnóstico e Causa Raiz**: O menu de rotina e roteador de callbacks executavam desvios que geravam flood no Telegram (`texto('/...')`) ao invés de edição in-place (`messageId` e `editMessageText`), violando o protocolo beira-leito. Telas de agenda (`consultarEventosAgenda`) e tarefas do Notion (`listarTarefasHojeNotion`) careciam de teclados padronizados, gerando telas órfãs quando não havia eventos ou quando os serviços estavam inacessíveis. O fechamento de plantão (`/plantao_fim`) não incluía integração com o censo ativo da enfermaria nem botão de 1 toque para cópia do resumo.
-    - **Determinismo 0ms e Debriefing Canônico**: Implementado fechamento de plantão estruturado em `gerarResumoFimPlantao` com checklist de segurança beira-leito (exames críticos, antibióticos com D.A.T, drogas vasoativas e pendências), censo consolidado de leitos ativos da enfermaria e botão de cópia rápida `[📋 Copiar Resumo do Plantão]` via `ux:copiar:<uuid>` em bloco ````text`.
-    - **Navegação Contextual e In-Place Edit**: Garantidos botões `[🔙 Central de Rotina]` (`ux:hub:rotina`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% dos fluxos de agenda hoje/amanhã, tarefas do Notion, briefing matinal, check-in noturno e debriefing de plantão, com edição in-place prioritária sem flood de mensagens.
-    - **Validação e Cobertura**: 100% aprovado na nova suíte canônica `tests/test_central_rotina_plantao_ux.cjs` (5 blocos completos), integrada ao manifest `scripts/test_manifest.json`, e recompilado `ultra_rotina_master.js` com sintaxe JS 100% OK.
+- [x] **Auditoria e Otimização da Sala Vermelha & Emergências Médicas (`ux:hub:sala`, `ux:hub:emerg`, `src/12_experiencia_bot.js`, `src/02_emergencia_choque_septico_circi.js`, `src/02_emergencia_crise_hipertensiva.js`, `src/02_pcr_gestante.js`, `src/07a_telegram_router.js`, `src/07d_telegram_callbacks.js`, `src/07g_telegram_ajuda_e_protocolos.js` e `tests/test_sala_vermelha_ux.cjs`)**:
+    - **Diagnóstico e Causa Raiz**: O protocolo de PCR na gestante acessava propriedade inexistente (`viaAerea.recomendacao`), gerando `undefined` no bot; faltava formatação Telegram em choque séptico e persistência em cache nos comandos `/choqueseptico`, `/dva` e `/sri`; callbacks de retorno misturavam `ux:sala` e `ux:hub:sala`; atalhos de 1 toque de PALS (`pals_10kg`, `pals_20kg`) não eram interceptados; e `/crisehas` não estava mapeado no roteador.
+    - **Determinismo 0ms e Protocolos Beira-Leito**: Respostas instantâneas em 0ms sem IA generativa para 100% dos protocolos: PCR em 4 tempos (ritmos chocáveis, não chocáveis, gestante com DULE/cesariana aos 4 min, PALS dosado por peso, drogas e cuidados pós-RCE), Arritmias (instável/CVE, TSV, TV, FA, Bradicardias), Choque Séptico/CIRCI (Hidrocortisona e Vasopressina com Nora ≥ 0,25 mcg/kg/min), Crise HAS, Glasgow com alerta de via aérea (≤ 8) e DVA rápida com compatibilidade em Y.
+    - **Navegação Contextual e Ação de Cópia**: Garantidos botões `[🔙 Sala Vermelha]` (`ux:sala` / `ux:hub:sala`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% dos fluxos e comandos de emergência, eliminação absoluta de botões fantasmas e inclusão de botão de 1 toque `[📋 Copiar para Prontuário]` (`ux:copiar:<uuid>`) persistido em cache.
+    - **Validação e Cobertura**: 100% aprovado na suíte `tests/test_sala_vermelha_ux.cjs` (10 blocos cobrindo 100% dos critérios) e recompilado `ultra_rotina_master.js` com sintaxe JS 100% OK.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -26,10 +26,10 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Auditoria e Otimização da Sala Vermelha & Emergências Médicas (`ux:hub:sala`, `ux:hub:emerg`)**:
-    - **Arquivo/Módulo Alvo**: `src/12_experiencia_bot.js`, `src/02_emergencia_choque_septico_circi.js`, `src/02_emergencia_crise_hipertensiva.js`, `src/02_pcr_gestante.js` e `src/07a_telegram_router.js`
-    - **Função/Componente/Seletor**: Funções `enviarMenuSalaVermelha`, `tratarComandoPcr`, `enviarMenuEmergChoque`, `enviarMenuEmergCriseHas`, `enviarMenuEmergGlasgow`, `enviarMenuEmergDengue`, `enviarMenuEmergCefaleia` e comandos `/sala`, `/emergencia`, `/pcr`, `/acls`, `/choque`, `/crisehas`
-    - **Comportamento Esperado / Critério de Aceite**: Garantir navegação em 1 toque sem digitação manual, retorno contextual para `[🔙 Sala Vermelha]` (`ux:hub:sala`) e `[🏠 Início]` (`ux:hub:inicio`) em 100% dos fluxos de emergência (PCR em 4 tempos, choque séptico/cardiogênico, crise hipertensiva, Glasgow e DVA rápida), com respostas determinísticas em 0ms e botão `[📋 Copiar para Prontuário]`.
+- [ ] **Auditoria e Otimização do Modo SOAP & Prescrição Ambulatorial Ágil (`ux:soap`, `/soap`)**:
+    - **Arquivo/Módulo Alvo**: `src/02_soap_ambulatorial.js`, `src/12_experiencia_bot.js`, `src/07c_telegram_consultas_e_ia.js` e `src/10_pdf_receita.js`
+    - **Função/Componente/Seletor**: Funções `iniciarModoBot` (modo 'soap'), `processarEntradaSoap`, `formatarRascunhoSoapTelegram`, botões `ux:soap:plano`, `ux:soap:ef_normal`, `ux:soap:atualizar` e comando `/receita`
+    - **Comportamento Esperado / Critério de Aceite**: Garantir preenchimento e revisão de SOAP em 1 toque sem perda de contexto entre Fases 1 e 2, atalho imediato `[📋 Copiar SOAP para PEP]`, inserção determinística de EF normal estruturado por aparelho, eliminação de formulários órfãos e teclado de retorno contextual para `[🔙 Ambulatório]` (`ux:hub:amb`) e `[🏠 Início]` (`ux:hub:inicio`).
 
 ---
 
@@ -49,20 +49,21 @@
 4. [x] **Auditoria e Otimização do Hub Unificado de Ginecologia & Obstetrícia (`ux:rotina:go`)**: Concluído com 100% dos 10 submódulos validados, retorno contextual `[🔙 Hub G&O]` e `[🏠 Início]`, respostas determinísticas em 0ms e botão de cópia de conduta.
 5. [x] **Auditoria e Otimização da Gestão de Leitos, Passagem SBAR & Prescrição Hospitalar (`ux:hub:enf`)**: Concluído com 100% dos fluxos validados (painel, censo, leito individual, evolução, alta segura, ditado por voz e SBAR), respostas determinísticas em 0ms e botão `[📋 Copiar Conduta/Passagem para Prontuário]`.
 6. [x] **Auditoria e Otimização da Central de Rotina & Plantão do Médico (`ux:hub:rotina`)**: Concluído com 100% dos fluxos validados (agenda hoje/amanhã, tarefas do Notion, briefing matinal, check-in noturno e debriefing de plantão), respostas determinísticas em 0ms e botão `[📋 Copiar Resumo do Plantão]`.
-7. [ ] **Auditoria e Otimização da Sala Vermelha & Emergências Médicas (`ux:hub:sala`, `ux:hub:emerg`)**:
-    - Validar PCR/ACLS (`ux:conduta:pcr`, `/pcr`), Choque Séptico/Cardiogênico (`ux:emerg:choque`), Crise Hipertensiva (`ux:emerg:crisehas`), Glasgow (`ux:emerg:glasgow`), Dengue (`ux:emerg:dengue`) e DVA.
-    - Garantir navegação em 1 toque sem digitação manual, retorno contextual para `[🔙 Sala Vermelha]` e `[🏠 Início]`.
+7. [x] **Auditoria e Otimização da Sala Vermelha & Emergências Médicas (`ux:hub:sala`, `ux:hub:emerg`)**: Concluído com 100% dos fluxos validados (PCR em 4 tempos, arritmias, choque séptico/CIRCI, crise HAS, Glasgow e DVA rápida), respostas determinísticas em 0ms, retorno contextual `[🔙 Sala Vermelha]` e `[🏠 Início]` e botão de cópia.
+8. [ ] **Auditoria e Otimização do Modo SOAP & Prescrição Ambulatorial Ágil (`ux:soap`, `/soap`)**:
+    - Validar fluxo conversacional SOAP Fase 1 e Fase 2, persistência de contexto em cache, inserção rápida de EF normal e geração de receita.
+    - Garantir botões de 1 toque, retorno contextual para `[🔙 Ambulatório]` e cópia limpa para PEP.
 
 ---
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 89 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 94 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 85 (Enfermaria / Notificação de Alerta SBAR para Equipe Multidisciplinar)*: Adicionar formatação de exportação rápida da Passagem SBAR adaptada para transmissão via canal seguro ou WhatsApp de enfermagem e fisioterapia, agrupando leitos com suporte ventilatório ativo, drenos e sondas.
-- *Sugestão 86 (Enfermaria / Censo Dinâmico com Filtro de Gravidade)*: Adicionar filtros instantâneos no Painel de Leitos (`ux:painel:0`) permitindo visualizar exclusivamente leitos críticos (🔴 Instáveis) ou em vigilância (🟡), facilitando a priorização do médico durante a passagem de plantão e o round matinal.
-- *Sugestão 87 (Rotina & Plantão / Sincronização Bidirecional com Google Calendar para Plantões em Escala)*: Adicionar parser inteligente de escala de plantão em PDF/texto que extraia automaticamente datas, hospitais e horários (ex: 12h ou 24h) e crie os eventos em lote no Google Calendar com alertas pré-plantão (D-1 para higiene do sono e D0 com kit de Sala Vermelha).
-- *Sugestão 88 (Rotina & Plantão / Check-in de Hábitos por Voz em Fluxo Contínuo)*: Permitir que o médico envie um único áudio relatando os hábitos do dia (ex: "hoje treinei costas, fiz 40 questões do MedQuest e toquei violão por 30 minutos") e o sistema marque todos os checkboxes correspondentes no Notion Habit Log e atualize a timeline adaptativa em 1 única operação atômica.
-- *Sugestão 89 (Rotina & Plantão / Exportação do Debriefing de Plantão para Prontuário Eletrônico com Assinatura Digital)*: Adicionar botão para gerar documento de Fechamento de Plantão formatado como laudo/relatório médico em PDF (`pdfkit`) com checklist de segurança preenchido e hash de integridade para anexar ao livro de ocorrências hospitalar.
+- *Sugestão 90 (Sala Vermelha & Emergências / Cronômetro e Metrônomo Sonoro de RCP 100-120 bpm no Cockpit PWA)*: Implementar metrônomo auditivo e visual sincronizado a 110 bpm com temporizador de ciclos de 2 minutos para checagem de pulso/ritmo e troca ágil de compressores durante RCP.
+- *Sugestão 91 (Sala Vermelha & Emergências / Seletor de Carga de Desfibrilação Bifásica vs Monofásica)*: Adicionar visualizador rápido beira-leito com seleção de tecnologia do desfibrilador disponível no serviço (Bifásico 120-200J vs Monofásico 360J) e carga de cardioversão sincronizada imediata por arritmia.
+- *Sugestão 92 (Sala Vermelha & Emergências / Prescrição Estruturada de Resgate em Hipercalemia Grave)*: Adicionar kit de prescrição em 1 toque combinando Estabilização de Membrana (Gluconato 10%), Shift Intracelular (Glicoinsulina + Beta-2) e Eliminação Corpórea (Furosemida / Resinas) com vigilância seriada.
+- *Sugestão 93 (Sala Vermelha & Emergências / Protocolo Multidisciplinar de Histerotomia de Ressuscitação em 4 Minutos)*: Adicionar checklist tátil de prontidão perimortem no Telegram/Cockpit para PCR em gestante ≥ 20 semanas com contagem regressiva para incisão aos 4 minutos se RCE não for obtido.
+- *Sugestão 94 (Sala Vermelha & Emergências / Matriz Rápida de Interações Farmacológicas na SRI)*: Adicionar checagem automática de risco de colapso hemodinâmico pré-IOT combinando droga indutora selecionada e dose de vasopressor atual.
 
 ---

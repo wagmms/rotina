@@ -294,7 +294,7 @@ function enviarMenuSalaVermelha(chat, messageId) {
     [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🦟 Dengue C/D', 'ux:emerg:dengue'], ['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia']],
     [['⚡ Outras Condutas', 'ux:condutamenu']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
@@ -303,7 +303,7 @@ function enviarMenuDva(chat, messageId) {
     [['Noradrenalina', 'ux:droga:nora'], ['Dobutamina', 'ux:droga:dobuta']],
     [['Vasopressina', 'ux:fixa:vaso'], ['Adrenalina (Infusão)', 'ux:droga:adrena']],
     [['Nitroprussiato', 'ux:droga:nipride'], ['Nitroglicerina', 'ux:fixa:tridil']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🔙 Sala Vermelha', 'ux:sala']],
+    [['🔙 Calculadoras', 'ux:hub:calc'], ['🔙 Sala Vermelha', 'ux:hub:sala']],
     [['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
@@ -316,7 +316,7 @@ function enviarTelaPesoDva(chat, droga, messageId) {
   });
   if (linha.length) r.push(linha);
   r.push([['← Trocar medicamento', 'ux:dvamenu']]);
-  r.push([['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]);
+  r.push([['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]);
   return enviarTelaBot(chat,
     '💉 *' + UX_DROGAS[droga].toUpperCase() + '*\nPeso do paciente\n\n' +
     'Toque em um peso ou envie o valor em kg (ex.: 73,5). Os botões são aproximações: use o peso real quando souber.',
@@ -330,7 +330,7 @@ function enviarTelaDiluicaoDva(chat, droga, peso, messageId) {
     botoesBot([
       [['Padrão', 'ux:diluicao:' + droga + ':' + p + ':padrao'], ['Concentrada', 'ux:diluicao:' + droga + ':' + p + ':concentrada']],
       [['✏️ Alterar peso', 'ux:droga:' + droga]],
-      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
 }
 
@@ -341,7 +341,7 @@ function enviarMenuSri(chat, messageId) {
       [['60 kg', 'ux:sri:60'], ['70 kg', 'ux:sri:70']],
       [['80 kg', 'ux:sri:80'], ['90 kg', 'ux:sri:90']],
       [['Choque 70 kg', 'ux:sri:70 choque'], ['Asma 70 kg', 'ux:sri:70 asma']],
-      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
 }
 
@@ -350,7 +350,7 @@ function enviarMenuCondutas(chat, messageId) {
     [['🚨 EAP hipertensivo', 'ux:conduta:eap'], ['⚡ Anafilaxia', 'ux:conduta:anafilaxia']],
     [['🧠 Crise convulsiva', 'ux:conduta:convulsao'], ['🧪 Hipercalemia', 'ux:conduta:hipercalemia']],
     [['🩸 Cetoacidose (CAD)', 'ux:conduta:cad']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
@@ -628,7 +628,7 @@ function enviarMenuEmergDengue(chat, messageId) {
   var botoes = botoesBot([
     [['🦟 Grupo C (10 mL/kg/h)', 'ux:conduta:dengue_c'], ['🚨 Grupo D Choque (20 mL/kg)', 'ux:conduta:dengue_d']],
     [['📋 Grupos A e B (Oral)', 'ux:conduta:dengue_ab']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -642,7 +642,7 @@ function enviarMenuEmergCriseHas(chat, messageId) {
   var botoes = botoesBot([
     [['🚨 Emergência (EAP / Dissecção)', 'ux:conduta:crisehas_emerg'], ['⚡ Urgência (Captopril/Clonidina)', 'ux:conduta:crisehas_urg']],
     [['🟢 Pseudocrise (Repouso/Analgesia)', 'ux:conduta:crisehas_pseudo']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -661,7 +661,7 @@ function enviarMenuEmergGlasgow(chat, messageId) {
   var botoes = botoesBot([
     [['🔴 Glasgow ≤ 8 (SRI / IOT)', 'ux:conduta:gcs_8'], ['🟡 Glasgow 9-12 (TC / Vigia)', 'ux:conduta:gcs_10']],
     [['🟢 Glasgow 13-15 (Observação)', 'ux:conduta:gcs_14'], ['📐 Calculadora Glasgow-P', 'calc_Glasgow']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -676,7 +676,7 @@ function enviarMenuEmergChoque(chat, messageId) {
   var botoes = botoesBot([
     [['🔴 Perfil C: Frio & Úmido (Choque)', 'ux:conduta:choque_c'], ['🟡 Perfil B: Quente & Úmido (EAP)', 'ux:conduta:choque_b']],
     [['🔵 Perfil L: Frio & Seco (Hipovolemia)', 'ux:conduta:choque_l'], ['💉 Choque Séptico (CIRCI/Nora)', 'ux:conduta:choque_septico']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -691,7 +691,7 @@ function enviarMenuEmergCefaleia(chat, messageId) {
   var botoes = botoesBot([
     [['🚨 Trovoada / HSA (TC+PL)', 'ux:conduta:cef_hsa'], ['⚠️ Meningite / Febre (Punção)', 'ux:conduta:cef_mening']],
     [['💊 Cefaleia Primária (Resgate PS)', 'ux:conduta:cef_primaria'], ['👵 Arterite Temporal (Corticoide)', 'ux:conduta:cef_arterite']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -706,7 +706,7 @@ function enviarTelaCondutaEmergencia(chat, condutaKey, messageId) {
   safePutCache(cache, ck, textoCond, 21600);
   var botoes = botoesBot([
     [['📋 Copiar para Prontuário', 'ux:copiar:' + ck]],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, textoCond, botoes, messageId);
 }
@@ -3660,7 +3660,7 @@ function tratarCallbackUX(cb) {
     } else if (op === 'menu' || (op === 'hub' && v === 'inicio')) {
       enviarHubPrincipal(chat, msgId);
     } else if (op === 'hub') {
-      if (v === 'sala') {
+      if (v === 'sala' || v === 'emerg') {
         enviarMenuSalaVermelha(chat, msgId);
       } else if (v === 'enf') {
         enviarMenuEnfermaria(chat, msgId);
@@ -3757,8 +3757,11 @@ function tratarCallbackUX(cb) {
       else if (v === 'crisehas') return enviarMenuEmergCriseHas(chat, msgId);
       else if (v === 'dengue') return enviarMenuEmergDengue(chat, msgId);
       else if (v === 'cefaleia') return enviarMenuEmergCefaleia(chat, msgId);
-      else if (v === 'arritmia') texto('/arritmia');
-      else enviarMenuSalaVermelha(chat, msgId);
+      else if (v === 'arritmia') {
+        if (typeof tratarComandoArritmia === 'function') return tratarComandoArritmia(chat, '', '', msgId);
+        return texto('/arritmia');
+      }
+      else return enviarMenuSalaVermelha(chat, msgId);
     } else if (op === 'gaso') {
       if (v.indexOf('pre:') === 0) {
         var idCasoG = v.replace('pre:', '');
@@ -3927,6 +3930,23 @@ function tratarCallbackUX(cb) {
       }
     } else if (op === 'sala') {
       enviarMenuSalaVermelha(chat, msgId);
+    } else if (op === 'choque') {
+      if (v.indexOf('septico:') === 0) {
+        var partesCh = v.split(':');
+        var pChoque = parseFloat(partesCh[1]) || 70;
+        var dNora = parseFloat(partesCh[2]) || 0.3;
+        if (typeof EmergenciaChoqueSepticoService !== 'undefined') {
+          var resCh = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pChoque, dNora);
+          var txtCh = "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + (resCh.textoSOAP || resCh.erro);
+          var ckCh = Utilities.getUuid().replace(/-/g, '');
+          safePutCache(cache, ckCh, txtCh, 21600);
+          return enviarTelaBot(chat, txtCh, botoesBot([
+            [['📋 Copiar para Prontuário', 'ux:copiar:' + ckCh]],
+            [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
+          ]), msgId);
+        }
+      }
+      return enviarMenuEmergChoque(chat, msgId);
     } else if (op === 'dvamenu') {
       enviarMenuDva(chat, msgId);
     } else if (op === 'fixa') {
@@ -3955,11 +3975,30 @@ function tratarCallbackUX(cb) {
       enviarMenuCondutas(chat, msgId);
     } else if (op === 'conduta') {
       if (v === 'pcr') {
-        if (typeof tratarComandoPcr === 'function') return tratarComandoPcr(chat, '');
+        if (typeof tratarComandoPcr === 'function') return tratarComandoPcr(chat, '', msgId);
       }
       var telaDet = (typeof enviarTelaCondutaEmergencia === 'function') ? enviarTelaCondutaEmergencia(chat, v, msgId) : null;
       if (telaDet) return telaDet;
       texto('/conduta ' + (UX_CONDUTAS[v] || v));
+    } else if (op === 'choquesep') {
+      var partesSep = v.split(':');
+      var pSep = parseFloat(partesSep[0]) || 70;
+      var nSep = parseFloat(partesSep[1]) || 0.3;
+      if (typeof EmergenciaChoqueSepticoService !== 'undefined') {
+        var resSep = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pSep, nSep);
+        if (resSep && resSep.textoSOAP) {
+          var txtSep = "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" + resSep.textoSOAP;
+          var ckSep = Utilities.getUuid().replace(/-/g, '');
+          safePutCache(cache, ckSep, txtSep, 21600);
+          var kbSep = botoesBot([
+            [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSep]],
+            [['💉 Simular 70kg Nora 0.3', 'ux:choque:septico:70:0.3'], ['💉 Simular 80kg Nora 0.3', 'ux:choque:septico:80:0.3']],
+            [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+          ]);
+          return enviarTelaBot(chat, txtSep, kbSep, msgId);
+        }
+      }
+      return enviarMenuEmergChoque(chat, msgId);
     } else if (op === 'painel' || op === 'leito' || op === 'status' || op === 'evoluir' || op === 'confirmar' || op === 'alta') {
       return processarAcaoLeito(chat, op, v, msgId);
     } else if (op === 'recalc') {

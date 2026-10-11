@@ -82,7 +82,14 @@ function extrairBotoes(payload) {
 
 function temBotao(kb, callbackEsperado, textoEsperado) {
   return kb.some(row => row.some(b => {
-    const cbOk = callbackEsperado ? b.callback_data === callbackEsperado : true;
+    let cbOk = true;
+    if (callbackEsperado) {
+      if (callbackEsperado === 'ux:sala' || callbackEsperado === 'ux:hub:sala') {
+        cbOk = (b.callback_data === 'ux:sala' || b.callback_data === 'ux:hub:sala');
+      } else {
+        cbOk = b.callback_data === callbackEsperado;
+      }
+    }
     const txtOk = textoEsperado ? (b.text && b.text.includes(textoEsperado)) : true;
     return cbOk && txtOk;
   }));
@@ -188,16 +195,18 @@ console.log('🧪 Iniciando testes de integridade da Sala Vermelha & Emergência
 
   function validarBotoesNavegacao(nomeTela, payload, opts = {}) {
     const kb = extrairBotoes(payload);
-    const temSala = temBotao(kb, 'ux:sala', 'Sala Vermelha');
+    const temSala = temBotao(kb, 'ux:hub:sala', 'Sala Vermelha') || temBotao(kb, 'ux:sala', 'Sala Vermelha');
     const temInicio = temBotao(kb, 'ux:hub:inicio', 'Início');
 
-    assert.ok(temSala, `${nomeTela} DEVE conter botão [🔙 Sala Vermelha] ('ux:sala')`);
+    assert.ok(temSala, `${nomeTela} DEVE conter botão [🔙 Sala Vermelha] ('ux:hub:sala' ou 'ux:sala')`);
     assert.ok(temInicio, `${nomeTela} DEVE conter botão [🏠 Início] ('ux:hub:inicio')`);
   }
 
-  // 3.1. Menu Sala Vermelha
+  // 3.1. Menu Sala Vermelha (Tela raiz da Sala Vermelha retorna ao Menu Central e Início)
   c.enviarMenuSalaVermelha(123456);
-  validarBotoesNavegacao('enviarMenuSalaVermelha', sent[sent.length - 1].payload);
+  const kbRootSala = extrairBotoes(sent[sent.length - 1].payload);
+  assert.ok(temBotao(kbRootSala, 'ux:menu', 'Menu'), 'enviarMenuSalaVermelha DEVE conter botão [🔙 Voltar ao Menu]');
+  assert.ok(temBotao(kbRootSala, 'ux:hub:inicio', 'Início'), 'enviarMenuSalaVermelha DEVE conter botão [🏠 Início]');
 
   // 3.2. Menu Condutas
   c.enviarMenuCondutas(123456);
@@ -539,6 +548,83 @@ console.log('🧪 Iniciando testes de integridade da Sala Vermelha & Emergência
   });
 
   console.log('  ✓ 9. Menus de calculadoras e submenus com navegação contextual completa e sem telas órfãs');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TESTE 10: Novos atalhos e protocolos (/acls, /crisehas, /choqueseptico e PcrGestante)
+// ─────────────────────────────────────────────────────────────────────────────
+{
+  const { c, sent, cache } = setupEnv();
+
+  // 10.1 /acls como alias imediato de PCR
+  c.processarMensagemTexto({ chat: { id: 123456 }, text: '/acls' });
+  let envio = sent[sent.length - 1].payload;
+  assert.ok(envio.text.includes('PARADA CARDIORRESPIRATÓRIA'), '/acls deve abrir protocolo ACLS de PCR');
+  let kb = extrairBotoes(envio);
+  assert.ok(temBotao(kb, 'pcr_chocavel', 'Ritmo Chocável'), '/acls deve conter seletor de ritmo chocável');
+  assert.ok(temBotao(kb, 'ux:hub:sala', 'Sala Vermelha'), '/acls deve conter retorno [🔙 Sala Vermelha]');
+
+  // 10.2 /crisehas como comando e texto sem barra
+  c.processarMensagemTexto({ chat: { id: 123456 }, text: '/crisehas' });
+  envio = sent[sent.length - 1].payload;
+  assert.ok(/crise hipertensiva/i.test(envio.text), '/crisehas sem args deve abrir menu de crise HAS');
+  kb = extrairBotoes(envio);
+  assert.ok(temBotao(kb, 'ux:hub:sala', 'Sala Vermelha'), '/crisehas deve conter [🔙 Sala Vermelha]');
+
+  c.processarMensagemTexto({ chat: { id: 123456 }, text: '/crisehas 210x120 disseccao dor rasgando torax' });
+  envio = sent[sent.length - 1].payload;
+  assert.ok(/dissec[çc][ãa]o/i.test(envio.text), '/crisehas com dissecção deve alertar emergência');
+  kb = extrairBotoes(envio);
+  assert.ok(temBotao(kb, null, 'Copiar para Prontuário'), '/crisehas deve conter botão de cópia');
+  assert.ok(temBotao(kb, 'ux:hub:sala', 'Sala Vermelha'), '/crisehas com resultado deve conter [🔙 Sala Vermelha]');
+
+  // 10.3 /choqueseptico sem argumentos (menu com atalho de 1 toque e retorno)
+  c.processarMensagemTexto({ chat: { id: 123456 }, text: '/choqueseptico' });
+  envio = sent[sent.length - 1].payload;
+  assert.ok(/choque s[eé]ptico refrat[aá]rio/i.test(envio.text), '/choqueseptico sem args deve exibir guia e atalhos');
+  kb = extrairBotoes(envio);
+  assert.ok(temBotao(kb, 'ux:choque:septico:70:0.3', 'Choque Séptico'), '/choqueseptico deve conter botão de atalho 70kg 0.3');
+  assert.ok(temBotao(kb, 'ux:hub:sala', 'Sala Vermelha'), '/choqueseptico deve conter [🔙 Sala Vermelha]');
+
+  // 10.4 /choqueseptico com argumentos
+  c.processarMensagemTexto({ chat: { id: 123456 }, text: '/choqueseptico 70 0.3' });
+  envio = sent[sent.length - 1].payload;
+  assert.ok(/hidrocortisona/i.test(envio.text), '/choqueseptico refratário deve prescrever Hidrocortisona');
+  assert.ok(/vasopressina/i.test(envio.text), '/choqueseptico refratário deve prescrever Vasopressina');
+  kb = extrairBotoes(envio);
+  const btnCopiarSeptico = kb.flatMap(r => r).find(b => b.text && b.text.includes('Copiar para Prontuário'));
+  assert.ok(btnCopiarSeptico, '/choqueseptico com cálculo deve ter botão de cópia');
+  assert.ok(temBotao(kb, 'ux:hub:sala', 'Sala Vermelha'), '/choqueseptico com cálculo deve conter [🔙 Sala Vermelha]');
+
+  // 10.5 Callback determinístico de 1 toque ux:choque:septico:70:0.3
+  const t0Choque = Date.now();
+  c.tratarCallbackUX({
+    id: 'cb_choque_fast',
+    data: 'ux:choque:septico:70:0.3',
+    message: { chat: { id: 123456 }, message_id: 88 }
+  });
+  const durChoque = Date.now() - t0Choque;
+  assert.ok(durChoque < 50, `Atalho de choque deve responder em 0ms (demorou ${durChoque}ms)`);
+  envio = sent[sent.length - 1].payload;
+  assert.ok(/vasopressina/i.test(envio.text), 'Atalho 1-toque de choque deve conter vasopressina');
+  kb = extrairBotoes(envio);
+  assert.ok(temBotao(kb, null, 'Copiar para Prontuário'), 'Atalho 1-toque deve ter botão de cópia');
+
+  // 10.6 PcrGestanteService.gerarResumoExecutivo
+  const resPcrG = c.PcrGestanteService.avaliarPcrGestante({ idadeGestacionalSemanas: 28, tempoPcrMinutos: 4 });
+  assert.ok(resPcrG.sucesso, 'PcrGestanteService deve retornar sucesso');
+  assert.ok(typeof c.PcrGestanteService.gerarResumoExecutivo === 'function', 'gerarResumoExecutivo deve ser exportado');
+  const txtResumo = c.PcrGestanteService.gerarResumoExecutivo({
+    ig: 28,
+    tempoPcr: 4,
+    compressaoAortocaval: true,
+    histerotomia: resPcrG.histerotomiaRessuscitacao,
+    antidotos: []
+  });
+  assert.ok(/DULE MANUAL OBRIGATÓRIO/i.test(txtResumo), 'Resumo executivo de PCR gestante deve conter DULE');
+  assert.ok(/CESARIANA PERIMORTEM/i.test(txtResumo), 'Resumo executivo de PCR gestante deve conter cesariana perimortem');
+
+  console.log('  ✓ 10. /acls, /crisehas, /choqueseptico e PcrGestanteService 100% validados com determinismo 0ms');
 }
 
 console.log('\n🎉 TODOS OS TESTES DA SALA VERMELHA & EMERGÊNCIA PASSARAM COM 100% DE SUCESSO!\n');

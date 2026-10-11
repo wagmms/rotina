@@ -146,10 +146,23 @@ var EmergenciaCriseHipertensivaService = (function () {
   function extrairParametrosTexto(texto) {
     texto = String(texto || '').toLowerCase();
     var pas = 180, pad = 110;
-    var mPa = texto.match(/(\d{2,3})\s*[xX/]\s*(\d{2,3})/);
-    if (mPa) {
-      pas = parseInt(mPa[1], 10);
-      pad = parseInt(mPa[2], 10);
+    var mPas = texto.match(/pas\s*[:=]?\s*(\d{2,3})/);
+    var mPad = texto.match(/pad\s*[:=]?\s*(\d{2,3})/);
+    if (mPas && mPad) {
+      pas = parseInt(mPas[1], 10);
+      pad = parseInt(mPad[1], 10);
+    } else {
+      var mPa = texto.match(/(\d{2,3})\s*[xX/]\s*(\d{2,3})/);
+      if (mPa) {
+        pas = parseInt(mPa[1], 10);
+        pad = parseInt(mPa[2], 10);
+      } else {
+        var mPaEspaco = texto.match(/\b(1\d\d|2\d\d)\s+(\d{2,3})\b/);
+        if (mPaEspaco) {
+          pas = parseInt(mPaEspaco[1], 10);
+          pad = parseInt(mPaEspaco[2], 10);
+        }
+      }
     }
 
     var loa = {

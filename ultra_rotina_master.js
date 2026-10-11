@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 06:28:41
- * Checksum SHA256: 2141e8eee0afe74a
+ * Gerado automaticamente via build_master.py em: 2026-10-11 07:03:35
+ * Checksum SHA256: 99d8dbec403b33da
  * ==============================================================================
  */
 
@@ -1817,12 +1817,12 @@ var CalculadorasClinicas = (function () {
 
   function botoesPadrao(id, linha1) {
     var l1 = Array.isArray(linha1) ? linha1 : [];
-    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
+    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'hub:sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
   }
 
   function botoesEmergencia(id, linha1) {
     var l1 = Array.isArray(linha1) ? linha1 : [];
-    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
+    return [l1, [btn('🔙 Sala Vermelha', 'ux', 'hub:sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
   }
 
   // ═════════════════════════════ ESCORES ═════════════════════════════
@@ -10550,6 +10550,11 @@ var EmergenciaChoqueSepticoService = {
       choqueRefratario: choqueRefratario,
       textoSOAP: textoSOAP
     };
+  },
+
+  formatarTextoTelegram: function(res) {
+    if (!res) return "";
+    return "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" + (res.textoSOAP || "");
   }
 };
 
@@ -10710,10 +10715,23 @@ var EmergenciaCriseHipertensivaService = (function () {
   function extrairParametrosTexto(texto) {
     texto = String(texto || '').toLowerCase();
     var pas = 180, pad = 110;
-    var mPa = texto.match(/(\d{2,3})\s*[xX/]\s*(\d{2,3})/);
-    if (mPa) {
-      pas = parseInt(mPa[1], 10);
-      pad = parseInt(mPa[2], 10);
+    var mPas = texto.match(/pas\s*[:=]?\s*(\d{2,3})/);
+    var mPad = texto.match(/pad\s*[:=]?\s*(\d{2,3})/);
+    if (mPas && mPad) {
+      pas = parseInt(mPas[1], 10);
+      pad = parseInt(mPad[1], 10);
+    } else {
+      var mPa = texto.match(/(\d{2,3})\s*[xX/]\s*(\d{2,3})/);
+      if (mPa) {
+        pas = parseInt(mPa[1], 10);
+        pad = parseInt(mPa[2], 10);
+      } else {
+        var mPaEspaco = texto.match(/\b(1\d\d|2\d\d)\s+(\d{2,3})\b/);
+        if (mPaEspaco) {
+          pas = parseInt(mPaEspaco[1], 10);
+          pad = parseInt(mPaEspaco[2], 10);
+        }
+      }
     }
 
     var loa = {
@@ -23412,6 +23430,7 @@ var PcrGestanteService = (function() {
         "Consumo basal de oxigênio aumentado em 20%, levando a hipóxia e dessaturação rápida.",
         "Menor capacidade residual funcional e diminuição do tônus do esfíncter esofágico (alto risco de broncoaspiração)."
       ],
+      recomendacao: "Intubação Orotraqueal (IOT) precoce realizada pelo socorrista mais experiente",
       recomendacoes: [
         "Pré-oxigenação com FiO2 100% imediata (máscara com reservatório).",
         "Intubação Orotraqueal (IOT) precoce realizada pelo socorrista mais experiente.",
@@ -23578,7 +23597,8 @@ var PcrGestanteService = (function() {
   }
 
   return {
-    avaliarPcrGestante: avaliarPcrGestante
+    avaliarPcrGestante: avaliarPcrGestante,
+    gerarResumoExecutivo: gerarResumoExecutivo
   };
 })();
 
@@ -40787,7 +40807,7 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
   }
 
   // J. Escala de Coma de Glasgow
-  if (/^glasgow(?:\s+.*)?$/i.test(tLow)) {
+  if (/^\/?(?:glasgow|gcs)(?:\s+.*)?$/i.test(tLow)) {
     var numsCompGcs = tLow.match(/\b([1-4])\s+([1-5])\s+([1-6])(?:\s+([0-2]))?\b/) ||
                       tLow.match(/(?:ocular|\bo\b)\s*[:=]?\s*\d/i);
     if (numsCompGcs && typeof tentarCalcularDeterministico === "function") {
@@ -40825,8 +40845,7 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
       return true;
     } else {
       if (typeof enviarMenuEmergGlasgow === "function") {
-        enviarMenuEmergGlasgow(chatId);
-        return true;
+        return enviarMenuEmergGlasgow(chatId);
       }
       var txtGuiaGcs = "🧠 *ESCALA DE COMA DE GLASGOW (GUIA RÁPIDO)*\n\n" +
         "👁️ *Abertura Ocular (1 a 4):*\n" +
@@ -40860,13 +40879,14 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
   }
 
   // L. Crise Hipertensiva / HAS Descompensada
-  if (/^(?:crisehas|crise\s*has)$/i.test(tLow)) {
-    return processarMensagemTexto({ chat: { id: chatId }, text: "/crisehipertensiva" });
+  if (/^\/?(?:crisehas|crise\s*has|has\s*crise)(?:\s+.*)?$/i.test(tLow)) {
+    var restoHas = tLimpo.replace(/^\/?(?:crisehas|crise\s*has|has\s*crise)\s*/i, "").trim();
+    return processarMensagemTexto({ chat: { id: chatId }, text: "/crisehipertensiva" + (restoHas ? " " + restoHas : "") });
   }
 
   // M. PCR / ACLS
-  if (/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)(?:\s+.*)?$/i.test(tLow)) {
-    var dadosPcrAtalho = tLow.replace(/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)\s*/i, "").trim();
+  if (/^\/?(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)(?:\s+.*)?$/i.test(tLow)) {
+    var dadosPcrAtalho = tLow.replace(/^\/?(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)\s*/i, "").trim();
     if (typeof tratarComandoPcr === "function") {
       return tratarComandoPcr(chatId, dadosPcrAtalho);
     }
@@ -41233,7 +41253,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/toxo", "/toxoplasmose", "/avidez", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/dip", "/pelvica", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan", "/leitos", "/censo"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/toxo", "/toxoplasmose", "/avidez", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/dip", "/pelvica", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehas", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan", "/leitos", "/censo"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -41245,7 +41265,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/toxo":"toxo","/toxoplasmose":"toxo","/avidez":"toxo","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/dip":"dip","/pelvica":"dip","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito","/leitos":"enfermaria","/censo":"enfermaria"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/toxo":"toxo","/toxoplasmose":"toxo","/avidez":"toxo","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/dip":"dip","/pelvica":"dip","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehas":"crisehipertensiva","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito","/leitos":"enfermaria","/censo":"enfermaria"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -41287,10 +41307,18 @@ function processarMensagemTexto(message) {
     }
     var nums = dadosChoque.match(/\d+(?:[.,]\d+)?/g);
     if (!nums || nums.length < 2) {
-      return enviarMensagemParaChat(chatId, "🩸 *EMERGÊNCIA — CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" +
+      var msgAjudaSeptico = "🩸 *EMERGÊNCIA — CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" +
         "Uso: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`\n\n" +
         "💡 *Exemplo:* `/choqueseptico 70 0.3` (Detecta refratariedade >= 0.25 mcg/kg/min, prescreve Hidrocortisona e Vasopressina).\n" +
-        "Nota: Azul de Metileno expurgado (conduta terciária/UTI).");
+        "Nota: Azul de Metileno expurgado (conduta terciária/UTI).";
+      var kbAjudaSeptico = (typeof botoesBot === "function") ? botoesBot([
+        [['🩸 Choque Séptico (70kg 0.3 mcg/kg/min)', 'ux:choque:septico:70:0.3']],
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : null;
+      if (kbAjudaSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, msgAjudaSeptico, kbAjudaSeptico);
+      }
+      return enviarMensagemParaChat(chatId, msgAjudaSeptico);
     }
     var val1 = parseFloat(nums[0].replace(",", "."));
     var val2 = parseFloat(nums[1].replace(",", "."));
@@ -41299,12 +41327,30 @@ function processarMensagemTexto(message) {
     pesoChoque = sanitizarEValidarPesoKg(pesoChoque);
     
     if (pesoChoque === null || isNaN(doseNora)) {
-      return enviarMensagemParaChat(chatId, "⚠️ Parâmetros inválidos. Use: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`");
+      var msgInvSeptico = "⚠️ Parâmetros inválidos. Use: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`";
+      var kbInvSeptico = (typeof botoesBot === "function") ? botoesBot([
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : null;
+      if (kbInvSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, msgInvSeptico, kbInvSeptico);
+      }
+      return enviarMensagemParaChat(chatId, msgInvSeptico);
     }
     var resChoque = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoChoque, doseNora);
     if (resChoque.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resChoque.erro);
     
-    return enviarMensagemParaChat(chatId, "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + resChoque.textoSOAP);
+    var txtOutSeptico = "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + resChoque.textoSOAP;
+    var cacheSeptico = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ckSeptico = Utilities.getUuid().replace(/-/g, '');
+    safePutCache(cacheSeptico, ckSeptico, txtOutSeptico, 21600);
+    var kbResSeptico = (typeof botoesBot === "function") ? botoesBot([
+      [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSeptico]],
+      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    ]) : null;
+    if (kbResSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+      return enviarMensagemComTecladoParaChat(chatId, txtOutSeptico, kbResSeptico);
+    }
+    return enviarMensagemParaChat(chatId, txtOutSeptico);
   }
 
 
@@ -41375,7 +41421,25 @@ function processarMensagemTexto(message) {
         return enviarMensagemParaChat(chatId, "⚠️ " + resDva.erro);
       }
       if (resDva && resDva.textoFormatado) {
+        var cacheDva = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+        var ckDva = Utilities.getUuid().replace(/-/g, '');
+        safePutCache(cacheDva, ckDva, resDva.textoFormatado, 21600);
         var tecladoDva = resDva.botoes ? (resDva.botoes.inline_keyboard ? resDva.botoes : { inline_keyboard: resDva.botoes }) : null;
+        if (!tecladoDva && typeof botoesBot === "function") {
+          tecladoDva = botoesBot([
+            [['📋 Copiar para Prontuário', 'ux:copiar:' + ckDva]],
+            [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+          ]);
+        } else if (tecladoDva && tecladoDva.inline_keyboard) {
+          var jaTemCopiarDva = tecladoDva.inline_keyboard.some(function(row) {
+            return row.some(function(btn) { return btn.text && btn.text.indexOf("Copiar") !== -1; });
+          });
+          if (!jaTemCopiarDva) {
+            tecladoDva.inline_keyboard.unshift([
+              { text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckDva }
+            ]);
+          }
+        }
         if (tecladoDva) {
           return enviarMensagemComTecladoParaChat(chatId, resDva.textoFormatado, tecladoDva);
         } else {
@@ -41409,7 +41473,25 @@ function processarMensagemTexto(message) {
         return enviarMensagemParaChat(chatId, "⚠️ " + resSri.erro);
       }
       if (resSri && resSri.textoFormatado) {
+        var cacheSri = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+        var ckSri = Utilities.getUuid().replace(/-/g, '');
+        safePutCache(cacheSri, ckSri, resSri.textoFormatado, 21600);
         var tecladoSri = resSri.botoes ? (resSri.botoes.inline_keyboard ? resSri.botoes : { inline_keyboard: resSri.botoes }) : null;
+        if (!tecladoSri && typeof botoesBot === "function") {
+          tecladoSri = botoesBot([
+            [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSri]],
+            [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+          ]);
+        } else if (tecladoSri && tecladoSri.inline_keyboard) {
+          var jaTemCopiarSri = tecladoSri.inline_keyboard.some(function(row) {
+            return row.some(function(btn) { return btn.text && btn.text.indexOf("Copiar") !== -1; });
+          });
+          if (!jaTemCopiarSri) {
+            tecladoSri.inline_keyboard.unshift([
+              { text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckSri }
+            ]);
+          }
+        }
         if (tecladoSri) {
           return enviarMensagemComTecladoParaChat(chatId, resSri.textoFormatado, tecladoSri);
         } else {
@@ -43426,7 +43508,7 @@ function processarMensagemTexto(message) {
   // ───────────────────────────────────────────────────────────────────────────
   // CARDIOLOGIA & EMERGÊNCIA: CRISE HIPERTENSIVA & PSEUDOCRISE (SBC 2024)
   // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/crisehipertensiva" || comando === "/pseudocrise" || comando === "/emergenciahipertensiva") {
+  if (comando === "/crisehipertensiva" || comando === "/pseudocrise" || comando === "/emergenciahipertensiva" || comando === "/crisehas") {
     var dadosHas = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof EmergenciaCriseHipertensivaService === "undefined") {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo EmergenciaCriseHipertensivaService indisponível temporariamente.");
@@ -44778,7 +44860,7 @@ function processarMensagemTexto(message) {
         "• `/ic estertores, sem hipoperfusao, pas 120` (Perfil B)\n" +
         "• `/ic sem congestao, perfusao ruim, pas 90` (Perfil L)";
       var kbAjudaIC = (typeof botoesBot === "function") ? botoesBot([
-        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+        [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
       ]) : null;
       if (kbAjudaIC && typeof enviarMensagemComTecladoParaChat === "function") {
         return enviarMensagemComTecladoParaChat(chatId, msgAjudaIC, kbAjudaIC);
@@ -44839,7 +44921,7 @@ function processarMensagemTexto(message) {
         safePutCache(cacheIC, ckIC, txtIC, 21600);
         var kbIC = (typeof botoesBot === "function") ? botoesBot([
           [['📋 Copiar para Prontuário', 'ux:copiar:' + ckIC]],
-          [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+          [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
         ]) : (typeof obterBotoesNavegacaoPadrao === "function" ? obterBotoesNavegacaoPadrao() : null);
         if (kbIC && typeof enviarMensagemComTecladoParaChat === "function") {
           return enviarMensagemComTecladoParaChat(chatId, txtIC, kbIC);
@@ -46908,22 +46990,37 @@ function processarCallbackBotao(cb) {
   // J. PROTOCOLOS DE PARADA CARDIORRESPIRATÓRIA (PCR / ACLS)
   else if (data === "pcr_chocavel") {
     responderCallbackTelegram(cb.id, "Ritmo Chocável (FV/TV)");
-    return tratarComandoPcr(cb.message.chat.id, "chocavel");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "chocavel", msgId);
   }
   else if (data === "pcr_naochocavel") {
     responderCallbackTelegram(cb.id, "Não Chocável (AESP/Assistolia)");
-    return tratarComandoPcr(cb.message.chat.id, "nao chocavel");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "nao chocavel", msgId);
   }
   else if (data === "pcr_gestante") {
     responderCallbackTelegram(cb.id, "PCR na Gestante");
-    return tratarComandoPcr(cb.message.chat.id, "gestante");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "gestante", msgId);
   }
   else if (data === "pcr_pals") {
     responderCallbackTelegram(cb.id, "PALS Pediátrico");
-    return tratarComandoPcr(cb.message.chat.id, "ped");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "ped", msgId);
   }
   else if (data === "pcr_droga_adrena") {
     responderCallbackTelegram(cb.id, "Adrenalina 1 mg");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
     var txtAdrena = "💉 *PCR: ADRENALINA (EPINEFRINA) 1 MG — DIRETRIZES ACLS*\n\n" +
       "🔴 *DOSE & POSOLOGIA:*\n" +
       "• *Dose Adulto:* *1 mg IV/IO* (1 ampola 1 mg/mL pura ou diluída em 9 mL SF 0.9%).\n" +
@@ -46937,18 +47034,26 @@ function processarCallbackBotao(cb) {
       "🫁 *VIA AÉREA AVANÇADA (IOT / MÁSCARA LARÍNGEA):*\n" +
       "• NÃO interromper as compressões torácicas para intubação.\n" +
       "• Com via aérea instalada: 1 ventilação a cada 2 a 3 segundos (10 ventilações/min) e compressões torácicas contínuas (100-120 cpm).";
+    var cacheAdrena = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ckAdrena = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cacheAdrena, ckAdrena, txtAdrena, 21600);
     var kbAdrena = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckAdrena }],
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "💉 Amiodarona 300mg", callback_data: "pcr_droga_amiodarona" }, { text: "⏱️ Ciclo 2 min & RCP", callback_data: "pcr_ciclo_2min" }],
         [{ text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }, { text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
-    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtAdrena, kbAdrena);
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtAdrena, kbAdrena, msgId);
+    return enviarMensagemComTecladoParaChat(chatId, txtAdrena, kbAdrena);
   }
   else if (data === "pcr_droga_amiodarona") {
     responderCallbackTelegram(cb.id, "Amiodarona 300mg / 150mg");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
     var txtAmio = "💉 *PCR: AMIODARONA & ANTIARRÍTMICOS — DIRETRIZES ACLS*\n\n" +
       "⚡ *AMIODARONA (FV / TV SEM PULSO REFRATÁRIA):*\n" +
       "• *1ª Dose (Pós-3º Choque):* *300 mg IV/IO* em bólus rápido (2 ampolas de 150 mg/3 mL) + flush 20 mL SF 0.9%.\n" +
@@ -46961,18 +47066,26 @@ function processarCallbackBotao(cb) {
       "⚡ *SULFATO DE MAGNÉSIO 50% (TORSADES DE POINTES):*\n" +
       "• Indicação: FV/TV associada a QT longo ou suspeita de Torsades de Pointes.\n" +
       "• *Dose:* *2 g IV/IO* (4 mL de MgSO₄ 50%) diluído em 10 mL de SG 5% ou SF 0.9% em 1 a 2 minutos.";
+    var cacheAmio = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ckAmio = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cacheAmio, ckAmio, txtAmio, 21600);
     var kbAmio = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckAmio }],
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }],
         [{ text: "⏱️ Ciclo 2 min & RCP", callback_data: "pcr_ciclo_2min" }, { text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }],
         [{ text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
-    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtAmio, kbAmio);
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtAmio, kbAmio, msgId);
+    return enviarMensagemComTecladoParaChat(chatId, txtAmio, kbAmio);
   }
   else if (data === "pcr_ciclo_2min") {
     responderCallbackTelegram(cb.id, "Ciclo RCP 2 min");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
     var txtCiclo = "⏱️ *DIRETRIZES DE RCP DE ALTA QUALIDADE (CICLO DE 2 MINUTOS)*\n\n" +
       "🖐️ *MÉTRICAS DAS COMPRESSÕES TORÁCICAS (AHA / SBC):*\n" +
       "• *Frequência:* 100 a 120 cpm (compressões por minuto).\n" +
@@ -46988,18 +47101,26 @@ function processarCallbackBotao(cb) {
       "1. Checar cabos e conexão dos eletrodos/pás.\n" +
       "2. Aumentar o ganho do monitor ao máximo.\n" +
       "3. Mudar a derivação do monitor (ex: de DII para DI) para descartar FV fina oculta!";
+    var cacheCiclo = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ckCiclo = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cacheCiclo, ckCiclo, txtCiclo, 21600);
     var kbCiclo = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckCiclo }],
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }, { text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }],
         [{ text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
-    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtCiclo, kbCiclo);
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtCiclo, kbCiclo, msgId);
+    return enviarMensagemComTecladoParaChat(chatId, txtCiclo, kbCiclo);
   }
   else if (data === "pcr_5hs_5ts") {
     responderCallbackTelegram(cb.id, "Checklist 5Hs & 5Ts");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
     var txt5H5T = "🔍 *CAUSAS REVERSÍVEIS DE PCR: 5 Hs & 5 Ts COM CONDUTA IMEDIATA*\n\n" +
       "🔴 *OS 5 Hs:*\n" +
       "1. *Hipovolemia:* Cristaloide rápido (SF 0.9% / RL 1000-2000 mL) ou hemotransfusão se sangramento agudo.\n" +
@@ -47015,17 +47136,25 @@ function processarCallbackBotao(cb) {
       "3. *Toxinas / Intoxicações:* Naloxona 0.4 a 2 mg IV se opioides; Emulsão lipídica 20% se anestésicos locais; Flumazenil se BZD.\n" +
       "4. *Trombose Pulmonar (TEP Maciço):* Trombolítico imediato (Alteplase rtPA 50 mg em bólus IV ou 100 mg em 2h); manter RCP contínua por 60 a 90 minutos.\n" +
       "5. *Trombose Coronariana (IAM):* Ponte para Angioplastia Primária / Cateterismo Cardíaco (CATE) imediato após RCE.";
+    var cache5H5T = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ck5H5T = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cache5H5T, ck5H5T, txt5H5T, 21600);
     var kb5H5T = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ck5H5T }],
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }, { text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
-    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txt5H5T, kb5H5T);
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txt5H5T, kb5H5T, msgId);
+    return enviarMensagemComTecladoParaChat(chatId, txt5H5T, kb5H5T);
   }
   else if (data === "pcr_pos_rce") {
     responderCallbackTelegram(cb.id, "Cuidados Pós-RCE");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
     var txtPosRce = "⚡ *CUIDADOS PÓS-RESSUSCITAÇÃO IMEDIATA (RCE — RETORNO DA CIRCULAÇÃO)*\n\n" +
       "1️⃣ *OTIMIZAÇÃO HEMODINÂMICA:*\n" +
       "• *Alvo de Pressão:* PAM ≥ 65 mmHg e PAS ≥ 90 mmHg.\n" +
@@ -47043,39 +47172,99 @@ function processarCallbackBotao(cb) {
       "5️⃣ *AVALIAÇÃO METABÓLICA & NEUROLÓGICA:*\n" +
       "• Glicemia: manter 140 a 180 mg/dL (evitar rigorosamente hipoglicemia < 80).\n" +
       "• Gasometria, lactato, eletrólitos (K+, Mg++, Ca++) e TC de crânio se suspeita de etiologia neurológica.";
+    var cachePosRce = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ckPosRce = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cachePosRce, ckPosRce, txtPosRce, 21600);
     var kbPosRce = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckPosRce }],
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }, { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
-    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtPosRce, kbPosRce);
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtPosRce, kbPosRce, msgId);
+    return enviarMensagemComTecladoParaChat(chatId, txtPosRce, kbPosRce);
   }
   // J2. PROTOCOLOS DE ARRITMIAS CARDÍACAS (ACLS)
   else if (data === "arritmia_menu") {
     responderCallbackTelegram(cb.id, "Central de Arritmias");
-    return tratarComandoArritmia(cb.message.chat.id, "");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "", msgId);
   }
   else if (data === "arritmia_instavel") {
     responderCallbackTelegram(cb.id, "Arritmia Instável (CVE)");
-    return tratarComandoArritmia(cb.message.chat.id, "instavel");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "instavel", msgId);
   }
   else if (data === "arritmia_tsv") {
     responderCallbackTelegram(cb.id, "Taquicardia Supra (TSV)");
-    return tratarComandoArritmia(cb.message.chat.id, "tsv");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "tsv", msgId);
   }
   else if (data === "arritmia_tv") {
     responderCallbackTelegram(cb.id, "TV Monomórfica");
-    return tratarComandoArritmia(cb.message.chat.id, "tv");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "tv", msgId);
   }
   else if (data === "arritmia_fa") {
     responderCallbackTelegram(cb.id, "FA / Flutter");
-    return tratarComandoArritmia(cb.message.chat.id, "fa");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "fa", msgId);
   }
   else if (data === "arritmia_bradi") {
     responderCallbackTelegram(cb.id, "Bradicardia & BAV");
-    return tratarComandoArritmia(cb.message.chat.id, "bradi");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "bradi", msgId);
+  }
+  else if (data === "pals_10kg") {
+    responderCallbackTelegram(cb.id, "PALS 10 kg");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "ped 10kg", msgId);
+  }
+  else if (data === "pals_20kg") {
+    responderCallbackTelegram(cb.id, "PALS 20 kg");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "ped 20kg", msgId);
+  }
+  else if (data === "pcr_gest_sulfato") {
+    responderCallbackTelegram(cb.id, "Antídoto MgSO4 (Gluconato)");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "gestante sulfato", msgId);
+  }
+  else if (data === "pcr_gest_cesarea") {
+    responderCallbackTelegram(cb.id, "Cesariana Perimortem 4 min");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "gestante cesarea", msgId);
+  }
+  else if (data === "ux:hub:sala" || data === "ux:sala" || data === "ux:hub:emerg") {
+    responderCallbackTelegram(cb.id, "Sala Vermelha");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    if (typeof enviarMenuSalaVermelha === "function") {
+      return enviarMenuSalaVermelha(chatId, msgId);
+    }
   }
   // K. DISTÚRBIOS HIDROELETROLÍTICOS (DHE)
   else if (data === "dhe_hipo") {
@@ -49329,24 +49518,42 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
       var aval = PcrGestanteService.avaliarPcrGestante({
         idadeGestacionalSemanas: igVal,
         tempoPcrMinutos: 4,
-        ritmoPcr: (dLow.indexOf("fv") !== -1 || dLow.indexOf("tv") !== -1) ? "FV" : "AESP"
+        ritmoPcr: (dLow.indexOf("fv") !== -1 || dLow.indexOf("tv") !== -1) ? "FV" : "AESP",
+        emUsoSulfatoMagnesio: dLow.indexOf("sulfato") !== -1 || dLow.indexOf("mgso4") !== -1,
+        suspeitaToxicidadeAnestesicoLocal: dLow.indexOf("last") !== -1 || dLow.indexOf("anestes") !== -1 || dLow.indexOf("bupiv") !== -1,
+        suspeitaHemorragia: dLow.indexOf("hemorr") !== -1 || dLow.indexOf("sangr") !== -1,
+        suspeitaEmboliaAmniotica: dLow.indexOf("ela") !== -1 || dLow.indexOf("embolia") !== -1
       });
+      var viaAereaGest = (aval.viaAerea && aval.viaAerea.recomendacao)
+        ? aval.viaAerea.recomendacao
+        : ((aval.viaAerea && aval.viaAerea.recomendacoes && aval.viaAerea.recomendacoes.length > 1)
+          ? aval.viaAerea.recomendacoes[1]
+          : "Intubação Orotraqueal (IOT) precoce");
       var txtGest = "🤰 *PCR NA GESTANTE: RESSUSCITAÇÃO CARDIOPULMONAR (ACLS MATERNO)*\n\n" +
         "🚨 *MANOBRA DULE MANDATÓRIA:*\n" +
         "• " + aval.dule.manobra + "\n" +
         "• _" + aval.dule.justificativaFisiologica + "_\n\n" +
         "⚡ *VIA AÉREA & ACESSO VENOSO:*\n" +
-        "• " + aval.viaAerea.recomendacao + " (Tubo 6.0 a 7.0 c/ cuff pelo edema de via aérea)\n" +
+        "• " + viaAereaGest + " (Tubo 6.0 a 7.0 c/ cuff pelo edema de via aérea)\n" +
         "• Acesso venoso OBRIGATORIAMENTE ACIMA DO DIAFRAGMA (jugular, subclávia ou MS).\n\n" +
         "✂️ *CESARIANA DE RESSUSCITAÇÃO (PERIMORTEM):*\n" +
         "• Indicação se sem RCE até o *4º MINUTO* de RCP para parto no *5º MINUTO*.\n" +
-        "• Objetivo primário: descompressão aortocaval para salvar a gestante.";
+        "• Objetivo primário: descompressão aortocaval em 100% para salvar a gestante.\n" +
+        "• Realizar no próprio leito da PCR, sem transporte para centro cirúrgico!";
+      if (aval.antidotos && aval.antidotos.length > 0) {
+        txtGest += "\n\n💊 *ANTÍDOTO DE EMERGÊNCIA:*\n";
+        for (var ia = 0; ia < aval.antidotos.length; ia++) {
+          txtGest += "• *" + aval.antidotos[ia].condicao + ":* " + aval.antidotos[ia].antidoto + " — " + aval.antidotos[ia].posologia + "\n";
+        }
+      }
       var ckGest = Utilities.getUuid().replace(/-/g, "");
       safePutCache(cache, ckGest, txtGest, 21600);
       var kbGest = {
         inline_keyboard: [
           [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckGest }],
           [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
+          [{ text: "💊 MgSO4 / Gluconato", callback_data: "pcr_gest_sulfato" }, { text: "✂️ Cesariana 4 min", callback_data: "pcr_gest_cesarea" }],
+          [{ text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }],
           [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
         ]
       };
@@ -49357,19 +49564,42 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
 
   // Caso 2: Pediátrico
   if (dLow.indexOf("ped") !== -1 || dLow.indexOf("pals") !== -1 || dLow.indexOf("crianca") !== -1) {
-    var txtPals = "👶 *SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (PALS — PCR)*\n\n" +
-      "• *Compressões:* 100-120 cpm, 1/3 do diâmetro AP (4 cm lactente, 5 cm criança).\n" +
-      "• *Relação Compressão-Ventilação:* 15:2 (com 2 socorristas) ou contínua 1 vent a cada 2-3s após via aérea.\n" +
-      "• *Desfibrilação:* 2 J/kg (1º choque) ➔ 4 J/kg (2º choque e subsequentes, máx 10 J/kg).\n" +
-      "• *Adrenalina:* 0,01 mg/kg (0,1 mL/kg da solução 1:10.000) IV/IO q3-5 min.\n" +
-      "• *Amiodarona:* 5 mg/kg em bólus IV/IO (até 3 doses) para FV/TV sem pulso refratária.\n\n" +
-      "💡 *Para doses por peso exato:* envie `/pals <pesoKg>` (ex: `/pals 14`)";
+    var mPesoPals = dLow.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|kilos?)?/i);
+    var pesoPalsVal = mPesoPals ? parseFloat(mPesoPals[1].replace(",", ".")) : null;
+    var txtPals = "";
+    if (pesoPalsVal !== null && pesoPalsVal > 0 && pesoPalsVal <= 80) {
+      var choque1 = Math.round(pesoPalsVal * 2);
+      var choque2 = Math.min(Math.round(pesoPalsVal * 4), 200);
+      var adrenaMg = (pesoPalsVal * 0.01).toFixed(2);
+      var adrenaMl = (pesoPalsVal * 0.1).toFixed(1);
+      var amioMg = Math.min(Math.round(pesoPalsVal * 5), 300);
+      txtPals = "👶 *SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (PALS — PCR " + pesoPalsVal + " KG)*\n\n" +
+        "⚡ *DESFIBRILAÇÃO (RITMOS CHOCÁVEIS):*\n" +
+        "• *1º Choque (2 J/kg):* *" + choque1 + " Joules*\n" +
+        "• *2º Choque e seguintes (4 J/kg):* *" + choque2 + " Joules* (máx 10 J/kg ou 200 J)\n\n" +
+        "💉 *FARMACOTERAPIA POR PESO (" + pesoPalsVal + " kg):*\n" +
+        "• *Adrenalina 0,01 mg/kg (1:10.000):* *" + adrenaMg + " mg* (*" + adrenaMl + " mL*) IV/IO a cada 3 a 5 min.\n" +
+        "• *Amiodarona 5 mg/kg:* *" + amioMg + " mg* IV/IO em bólus rápido (até 3 doses).\n" +
+        "• *Lidocaína (alternativa):* " + (pesoPalsVal * 1).toFixed(1) + " mg IV/IO (1 mg/kg).\n\n" +
+        "🖐️ *COMPRESSÕES & VENTILAÇÃO:*\n" +
+        "• Frequência 100-120 cpm, profundidade 1/3 do diâmetro AP (~" + (pesoPalsVal < 10 ? "4 cm" : "5 cm") + ").\n" +
+        "• Relação 15:2 com 2 socorristas ou contínua 1 vent a cada 2-3s após via aérea.";
+    } else {
+      txtPals = "👶 *SUPORTE AVANÇADO DE VIDA PEDIÁTRICO (PALS — PCR)*\n\n" +
+        "• *Compressões:* 100-120 cpm, 1/3 do diâmetro AP (4 cm lactente, 5 cm criança).\n" +
+        "• *Relação Compressão-Ventilação:* 15:2 (com 2 socorristas) ou contínua 1 vent a cada 2-3s após via aérea.\n" +
+        "• *Desfibrilação:* 2 J/kg (1º choque) ➔ 4 J/kg (2º choque e subsequentes, máx 10 J/kg).\n" +
+        "• *Adrenalina:* 0,01 mg/kg (0,1 mL/kg da solução 1:10.000) IV/IO q3-5 min.\n" +
+        "• *Amiodarona:* 5 mg/kg em bólus IV/IO (até 3 doses) para FV/TV sem pulso refratária.\n\n" +
+        "💡 *Para doses por peso exato:* envie `/pals <pesoKg>` (ex: `/pals 14`) ou toque nos botões abaixo:";
+    }
     var ckPals = Utilities.getUuid().replace(/-/g, "");
     safePutCache(cache, ckPals, txtPals, 21600);
     var kbPals = {
       inline_keyboard: [
         [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckPals }],
         [{ text: "👶 PALS 10 kg", callback_data: "pals_10kg" }, { text: "👶 PALS 20 kg", callback_data: "pals_20kg" }],
+        [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
@@ -49415,7 +49645,10 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
           { text: "🤰 PCR Gestante", callback_data: "pcr_gestante" }
         ],
         [
-          { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
+          { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
+        ],
+        [
+          { text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" },
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
@@ -49461,7 +49694,7 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
           { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
         ],
         [
-          { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
+          { text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" },
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
@@ -49493,7 +49726,7 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
         { text: "👶 PALS Pediátrico", callback_data: "pcr_pals" }
       ],
       [
-        { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
+        { text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" },
         { text: "🏠 Início", callback_data: "ux:hub:inicio" }
       ]
     ]
@@ -49546,7 +49779,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         [{ text: "🚨 Instável (CVE Sincronizada)", callback_data: "arritmia_instavel" }],
         [{ text: "⚡ TSV (Taqui Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
         [{ text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }, { text: "⚡ Protocolo PCR", callback_data: "pcr_chocavel" }],
-        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtBradi, kbBradi, messageId);
@@ -49585,7 +49818,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
         [{ text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }, { text: "🐢 Bradicardia", callback_data: "arritmia_bradi" }],
         [{ text: "⚡ TV sem pulso (PCR)", callback_data: "pcr_chocavel" }],
-        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtInstavel, kbInstavel, messageId);
@@ -49617,7 +49850,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         [{ text: "🚨 Se Instável: CVE 100 J", callback_data: "arritmia_instavel" }],
         [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }],
         [{ text: "⚡ TV sem pulso (PCR)", callback_data: "pcr_chocavel" }],
-        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtTv, kbTv, messageId);
@@ -49652,7 +49885,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         [{ text: "🚨 Se Instável: CVE 50-100J", callback_data: "arritmia_instavel" }],
         [{ text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }, { text: "🫀 FA / Flutter", callback_data: "arritmia_fa" }],
         [{ text: "🐢 Bradicardias", callback_data: "arritmia_bradi" }],
-        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtTsv, kbTsv, messageId);
@@ -49680,7 +49913,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckFa }],
         [{ text: "🚨 Se Instável: CVE", callback_data: "arritmia_instavel" }],
         [{ text: "⚡ TSV (Supra)", callback_data: "arritmia_tsv" }, { text: "🫀 TV Monomórfica", callback_data: "arritmia_tv" }],
-        [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
     if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtFa, kbFa, messageId);
@@ -49716,7 +49949,7 @@ function tratarComandoArritmia(chatId, comando, dadosArr, messageId) {
         { text: "🐢 Bradicardias & BAV", callback_data: "arritmia_bradi" }
       ],
       [
-        { text: "🔙 Sala Vermelha", callback_data: "ux:sala" },
+        { text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" },
         { text: "🏠 Início", callback_data: "ux:hub:inicio" }
       ]
     ]
@@ -51783,7 +52016,7 @@ function enviarMenuSalaVermelha(chat, messageId) {
     [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🦟 Dengue C/D', 'ux:emerg:dengue'], ['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia']],
     [['⚡ Outras Condutas', 'ux:condutamenu']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
@@ -51792,7 +52025,7 @@ function enviarMenuDva(chat, messageId) {
     [['Noradrenalina', 'ux:droga:nora'], ['Dobutamina', 'ux:droga:dobuta']],
     [['Vasopressina', 'ux:fixa:vaso'], ['Adrenalina (Infusão)', 'ux:droga:adrena']],
     [['Nitroprussiato', 'ux:droga:nipride'], ['Nitroglicerina', 'ux:fixa:tridil']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🔙 Sala Vermelha', 'ux:sala']],
+    [['🔙 Calculadoras', 'ux:hub:calc'], ['🔙 Sala Vermelha', 'ux:hub:sala']],
     [['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
@@ -51805,7 +52038,7 @@ function enviarTelaPesoDva(chat, droga, messageId) {
   });
   if (linha.length) r.push(linha);
   r.push([['← Trocar medicamento', 'ux:dvamenu']]);
-  r.push([['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]);
+  r.push([['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]);
   return enviarTelaBot(chat,
     '💉 *' + UX_DROGAS[droga].toUpperCase() + '*\nPeso do paciente\n\n' +
     'Toque em um peso ou envie o valor em kg (ex.: 73,5). Os botões são aproximações: use o peso real quando souber.',
@@ -51819,7 +52052,7 @@ function enviarTelaDiluicaoDva(chat, droga, peso, messageId) {
     botoesBot([
       [['Padrão', 'ux:diluicao:' + droga + ':' + p + ':padrao'], ['Concentrada', 'ux:diluicao:' + droga + ':' + p + ':concentrada']],
       [['✏️ Alterar peso', 'ux:droga:' + droga]],
-      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
 }
 
@@ -51830,7 +52063,7 @@ function enviarMenuSri(chat, messageId) {
       [['60 kg', 'ux:sri:60'], ['70 kg', 'ux:sri:70']],
       [['80 kg', 'ux:sri:80'], ['90 kg', 'ux:sri:90']],
       [['Choque 70 kg', 'ux:sri:70 choque'], ['Asma 70 kg', 'ux:sri:70 asma']],
-      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
     ]), messageId);
 }
 
@@ -51839,7 +52072,7 @@ function enviarMenuCondutas(chat, messageId) {
     [['🚨 EAP hipertensivo', 'ux:conduta:eap'], ['⚡ Anafilaxia', 'ux:conduta:anafilaxia']],
     [['🧠 Crise convulsiva', 'ux:conduta:convulsao'], ['🧪 Hipercalemia', 'ux:conduta:hipercalemia']],
     [['🩸 Cetoacidose (CAD)', 'ux:conduta:cad']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]), messageId);
 }
 
@@ -52117,7 +52350,7 @@ function enviarMenuEmergDengue(chat, messageId) {
   var botoes = botoesBot([
     [['🦟 Grupo C (10 mL/kg/h)', 'ux:conduta:dengue_c'], ['🚨 Grupo D Choque (20 mL/kg)', 'ux:conduta:dengue_d']],
     [['📋 Grupos A e B (Oral)', 'ux:conduta:dengue_ab']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -52131,7 +52364,7 @@ function enviarMenuEmergCriseHas(chat, messageId) {
   var botoes = botoesBot([
     [['🚨 Emergência (EAP / Dissecção)', 'ux:conduta:crisehas_emerg'], ['⚡ Urgência (Captopril/Clonidina)', 'ux:conduta:crisehas_urg']],
     [['🟢 Pseudocrise (Repouso/Analgesia)', 'ux:conduta:crisehas_pseudo']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -52150,7 +52383,7 @@ function enviarMenuEmergGlasgow(chat, messageId) {
   var botoes = botoesBot([
     [['🔴 Glasgow ≤ 8 (SRI / IOT)', 'ux:conduta:gcs_8'], ['🟡 Glasgow 9-12 (TC / Vigia)', 'ux:conduta:gcs_10']],
     [['🟢 Glasgow 13-15 (Observação)', 'ux:conduta:gcs_14'], ['📐 Calculadora Glasgow-P', 'calc_Glasgow']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -52165,7 +52398,7 @@ function enviarMenuEmergChoque(chat, messageId) {
   var botoes = botoesBot([
     [['🔴 Perfil C: Frio & Úmido (Choque)', 'ux:conduta:choque_c'], ['🟡 Perfil B: Quente & Úmido (EAP)', 'ux:conduta:choque_b']],
     [['🔵 Perfil L: Frio & Seco (Hipovolemia)', 'ux:conduta:choque_l'], ['💉 Choque Séptico (CIRCI/Nora)', 'ux:conduta:choque_septico']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -52180,7 +52413,7 @@ function enviarMenuEmergCefaleia(chat, messageId) {
   var botoes = botoesBot([
     [['🚨 Trovoada / HSA (TC+PL)', 'ux:conduta:cef_hsa'], ['⚠️ Meningite / Febre (Punção)', 'ux:conduta:cef_mening']],
     [['💊 Cefaleia Primária (Resgate PS)', 'ux:conduta:cef_primaria'], ['👵 Arterite Temporal (Corticoide)', 'ux:conduta:cef_arterite']],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -52195,7 +52428,7 @@ function enviarTelaCondutaEmergencia(chat, condutaKey, messageId) {
   safePutCache(cache, ck, textoCond, 21600);
   var botoes = botoesBot([
     [['📋 Copiar para Prontuário', 'ux:copiar:' + ck]],
-    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, textoCond, botoes, messageId);
 }
@@ -55149,7 +55382,7 @@ function tratarCallbackUX(cb) {
     } else if (op === 'menu' || (op === 'hub' && v === 'inicio')) {
       enviarHubPrincipal(chat, msgId);
     } else if (op === 'hub') {
-      if (v === 'sala') {
+      if (v === 'sala' || v === 'emerg') {
         enviarMenuSalaVermelha(chat, msgId);
       } else if (v === 'enf') {
         enviarMenuEnfermaria(chat, msgId);
@@ -55246,8 +55479,11 @@ function tratarCallbackUX(cb) {
       else if (v === 'crisehas') return enviarMenuEmergCriseHas(chat, msgId);
       else if (v === 'dengue') return enviarMenuEmergDengue(chat, msgId);
       else if (v === 'cefaleia') return enviarMenuEmergCefaleia(chat, msgId);
-      else if (v === 'arritmia') texto('/arritmia');
-      else enviarMenuSalaVermelha(chat, msgId);
+      else if (v === 'arritmia') {
+        if (typeof tratarComandoArritmia === 'function') return tratarComandoArritmia(chat, '', '', msgId);
+        return texto('/arritmia');
+      }
+      else return enviarMenuSalaVermelha(chat, msgId);
     } else if (op === 'gaso') {
       if (v.indexOf('pre:') === 0) {
         var idCasoG = v.replace('pre:', '');
@@ -55416,6 +55652,23 @@ function tratarCallbackUX(cb) {
       }
     } else if (op === 'sala') {
       enviarMenuSalaVermelha(chat, msgId);
+    } else if (op === 'choque') {
+      if (v.indexOf('septico:') === 0) {
+        var partesCh = v.split(':');
+        var pChoque = parseFloat(partesCh[1]) || 70;
+        var dNora = parseFloat(partesCh[2]) || 0.3;
+        if (typeof EmergenciaChoqueSepticoService !== 'undefined') {
+          var resCh = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pChoque, dNora);
+          var txtCh = "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + (resCh.textoSOAP || resCh.erro);
+          var ckCh = Utilities.getUuid().replace(/-/g, '');
+          safePutCache(cache, ckCh, txtCh, 21600);
+          return enviarTelaBot(chat, txtCh, botoesBot([
+            [['📋 Copiar para Prontuário', 'ux:copiar:' + ckCh]],
+            [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
+          ]), msgId);
+        }
+      }
+      return enviarMenuEmergChoque(chat, msgId);
     } else if (op === 'dvamenu') {
       enviarMenuDva(chat, msgId);
     } else if (op === 'fixa') {
@@ -55444,11 +55697,30 @@ function tratarCallbackUX(cb) {
       enviarMenuCondutas(chat, msgId);
     } else if (op === 'conduta') {
       if (v === 'pcr') {
-        if (typeof tratarComandoPcr === 'function') return tratarComandoPcr(chat, '');
+        if (typeof tratarComandoPcr === 'function') return tratarComandoPcr(chat, '', msgId);
       }
       var telaDet = (typeof enviarTelaCondutaEmergencia === 'function') ? enviarTelaCondutaEmergencia(chat, v, msgId) : null;
       if (telaDet) return telaDet;
       texto('/conduta ' + (UX_CONDUTAS[v] || v));
+    } else if (op === 'choquesep') {
+      var partesSep = v.split(':');
+      var pSep = parseFloat(partesSep[0]) || 70;
+      var nSep = parseFloat(partesSep[1]) || 0.3;
+      if (typeof EmergenciaChoqueSepticoService !== 'undefined') {
+        var resSep = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pSep, nSep);
+        if (resSep && resSep.textoSOAP) {
+          var txtSep = "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" + resSep.textoSOAP;
+          var ckSep = Utilities.getUuid().replace(/-/g, '');
+          safePutCache(cache, ckSep, txtSep, 21600);
+          var kbSep = botoesBot([
+            [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSep]],
+            [['💉 Simular 70kg Nora 0.3', 'ux:choque:septico:70:0.3'], ['💉 Simular 80kg Nora 0.3', 'ux:choque:septico:80:0.3']],
+            [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+          ]);
+          return enviarTelaBot(chat, txtSep, kbSep, msgId);
+        }
+      }
+      return enviarMenuEmergChoque(chat, msgId);
     } else if (op === 'painel' || op === 'leito' || op === 'status' || op === 'evoluir' || op === 'confirmar' || op === 'alta') {
       return processarAcaoLeito(chat, op, v, msgId);
     } else if (op === 'recalc') {

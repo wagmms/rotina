@@ -76,6 +76,7 @@ var PcrGestanteService = (function() {
         "Consumo basal de oxigênio aumentado em 20%, levando a hipóxia e dessaturação rápida.",
         "Menor capacidade residual funcional e diminuição do tônus do esfíncter esofágico (alto risco de broncoaspiração)."
       ],
+      recomendacao: "Intubação Orotraqueal (IOT) precoce realizada pelo socorrista mais experiente",
       recomendacoes: [
         "Pré-oxigenação com FiO2 100% imediata (máscara com reservatório).",
         "Intubação Orotraqueal (IOT) precoce realizada pelo socorrista mais experiente.",
@@ -242,7 +243,8 @@ var PcrGestanteService = (function() {
   }
 
   return {
-    avaliarPcrGestante: avaliarPcrGestante
+    avaliarPcrGestante: avaliarPcrGestante,
+    gerarResumoExecutivo: gerarResumoExecutivo
   };
 })();
 

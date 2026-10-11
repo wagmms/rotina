@@ -247,7 +247,7 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
   }
 
   // J. Escala de Coma de Glasgow
-  if (/^glasgow(?:\s+.*)?$/i.test(tLow)) {
+  if (/^\/?(?:glasgow|gcs)(?:\s+.*)?$/i.test(tLow)) {
     var numsCompGcs = tLow.match(/\b([1-4])\s+([1-5])\s+([1-6])(?:\s+([0-2]))?\b/) ||
                       tLow.match(/(?:ocular|\bo\b)\s*[:=]?\s*\d/i);
     if (numsCompGcs && typeof tentarCalcularDeterministico === "function") {
@@ -285,8 +285,7 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
       return true;
     } else {
       if (typeof enviarMenuEmergGlasgow === "function") {
-        enviarMenuEmergGlasgow(chatId);
-        return true;
+        return enviarMenuEmergGlasgow(chatId);
       }
       var txtGuiaGcs = "🧠 *ESCALA DE COMA DE GLASGOW (GUIA RÁPIDO)*\n\n" +
         "👁️ *Abertura Ocular (1 a 4):*\n" +
@@ -320,13 +319,14 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
   }
 
   // L. Crise Hipertensiva / HAS Descompensada
-  if (/^(?:crisehas|crise\s*has)$/i.test(tLow)) {
-    return processarMensagemTexto({ chat: { id: chatId }, text: "/crisehipertensiva" });
+  if (/^\/?(?:crisehas|crise\s*has|has\s*crise)(?:\s+.*)?$/i.test(tLow)) {
+    var restoHas = tLimpo.replace(/^\/?(?:crisehas|crise\s*has|has\s*crise)\s*/i, "").trim();
+    return processarMensagemTexto({ chat: { id: chatId }, text: "/crisehipertensiva" + (restoHas ? " " + restoHas : "") });
   }
 
   // M. PCR / ACLS
-  if (/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)(?:\s+.*)?$/i.test(tLow)) {
-    var dadosPcrAtalho = tLow.replace(/^(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)\s*/i, "").trim();
+  if (/^\/?(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)(?:\s+.*)?$/i.test(tLow)) {
+    var dadosPcrAtalho = tLow.replace(/^\/?(?:pcr|acls|parada\s+cardiorrespirat[oó]ria)\s*/i, "").trim();
     if (typeof tratarComandoPcr === "function") {
       return tratarComandoPcr(chatId, dadosPcrAtalho);
     }
@@ -693,7 +693,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/toxo", "/toxoplasmose", "/avidez", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/dip", "/pelvica", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan", "/leitos", "/censo"];
+  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/toxo", "/toxoplasmose", "/avidez", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/dip", "/pelvica", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehas", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan", "/leitos", "/censo"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -705,7 +705,7 @@ function processarMensagemTexto(message) {
     }
     safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
     if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/toxo":"toxo","/toxoplasmose":"toxo","/avidez":"toxo","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/dip":"dip","/pelvica":"dip","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito","/leitos":"enfermaria","/censo":"enfermaria"};
+      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/toxo":"toxo","/toxoplasmose":"toxo","/avidez":"toxo","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/dip":"dip","/pelvica":"dip","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehas":"crisehipertensiva","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito","/leitos":"enfermaria","/censo":"enfermaria"};
       if(mapaModos[comando])definirModoBot(chatId,mapaModos[comando],texto.replace(/^\/\w+\s*/,""));
     }
   } else if (texto.charAt(0) === "/") {
@@ -747,10 +747,18 @@ function processarMensagemTexto(message) {
     }
     var nums = dadosChoque.match(/\d+(?:[.,]\d+)?/g);
     if (!nums || nums.length < 2) {
-      return enviarMensagemParaChat(chatId, "🩸 *EMERGÊNCIA — CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" +
+      var msgAjudaSeptico = "🩸 *EMERGÊNCIA — CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" +
         "Uso: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`\n\n" +
         "💡 *Exemplo:* `/choqueseptico 70 0.3` (Detecta refratariedade >= 0.25 mcg/kg/min, prescreve Hidrocortisona e Vasopressina).\n" +
-        "Nota: Azul de Metileno expurgado (conduta terciária/UTI).");
+        "Nota: Azul de Metileno expurgado (conduta terciária/UTI).";
+      var kbAjudaSeptico = (typeof botoesBot === "function") ? botoesBot([
+        [['🩸 Choque Séptico (70kg 0.3 mcg/kg/min)', 'ux:choque:septico:70:0.3']],
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : null;
+      if (kbAjudaSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, msgAjudaSeptico, kbAjudaSeptico);
+      }
+      return enviarMensagemParaChat(chatId, msgAjudaSeptico);
     }
     var val1 = parseFloat(nums[0].replace(",", "."));
     var val2 = parseFloat(nums[1].replace(",", "."));
@@ -759,12 +767,30 @@ function processarMensagemTexto(message) {
     pesoChoque = sanitizarEValidarPesoKg(pesoChoque);
     
     if (pesoChoque === null || isNaN(doseNora)) {
-      return enviarMensagemParaChat(chatId, "⚠️ Parâmetros inválidos. Use: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`");
+      var msgInvSeptico = "⚠️ Parâmetros inválidos. Use: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`";
+      var kbInvSeptico = (typeof botoesBot === "function") ? botoesBot([
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]) : null;
+      if (kbInvSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, msgInvSeptico, kbInvSeptico);
+      }
+      return enviarMensagemParaChat(chatId, msgInvSeptico);
     }
     var resChoque = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoChoque, doseNora);
     if (resChoque.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resChoque.erro);
     
-    return enviarMensagemParaChat(chatId, "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + resChoque.textoSOAP);
+    var txtOutSeptico = "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + resChoque.textoSOAP;
+    var cacheSeptico = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ckSeptico = Utilities.getUuid().replace(/-/g, '');
+    safePutCache(cacheSeptico, ckSeptico, txtOutSeptico, 21600);
+    var kbResSeptico = (typeof botoesBot === "function") ? botoesBot([
+      [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSeptico]],
+      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    ]) : null;
+    if (kbResSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+      return enviarMensagemComTecladoParaChat(chatId, txtOutSeptico, kbResSeptico);
+    }
+    return enviarMensagemParaChat(chatId, txtOutSeptico);
   }
 
 
@@ -835,7 +861,25 @@ function processarMensagemTexto(message) {
         return enviarMensagemParaChat(chatId, "⚠️ " + resDva.erro);
       }
       if (resDva && resDva.textoFormatado) {
+        var cacheDva = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+        var ckDva = Utilities.getUuid().replace(/-/g, '');
+        safePutCache(cacheDva, ckDva, resDva.textoFormatado, 21600);
         var tecladoDva = resDva.botoes ? (resDva.botoes.inline_keyboard ? resDva.botoes : { inline_keyboard: resDva.botoes }) : null;
+        if (!tecladoDva && typeof botoesBot === "function") {
+          tecladoDva = botoesBot([
+            [['📋 Copiar para Prontuário', 'ux:copiar:' + ckDva]],
+            [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+          ]);
+        } else if (tecladoDva && tecladoDva.inline_keyboard) {
+          var jaTemCopiarDva = tecladoDva.inline_keyboard.some(function(row) {
+            return row.some(function(btn) { return btn.text && btn.text.indexOf("Copiar") !== -1; });
+          });
+          if (!jaTemCopiarDva) {
+            tecladoDva.inline_keyboard.unshift([
+              { text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckDva }
+            ]);
+          }
+        }
         if (tecladoDva) {
           return enviarMensagemComTecladoParaChat(chatId, resDva.textoFormatado, tecladoDva);
         } else {
@@ -869,7 +913,25 @@ function processarMensagemTexto(message) {
         return enviarMensagemParaChat(chatId, "⚠️ " + resSri.erro);
       }
       if (resSri && resSri.textoFormatado) {
+        var cacheSri = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+        var ckSri = Utilities.getUuid().replace(/-/g, '');
+        safePutCache(cacheSri, ckSri, resSri.textoFormatado, 21600);
         var tecladoSri = resSri.botoes ? (resSri.botoes.inline_keyboard ? resSri.botoes : { inline_keyboard: resSri.botoes }) : null;
+        if (!tecladoSri && typeof botoesBot === "function") {
+          tecladoSri = botoesBot([
+            [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSri]],
+            [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+          ]);
+        } else if (tecladoSri && tecladoSri.inline_keyboard) {
+          var jaTemCopiarSri = tecladoSri.inline_keyboard.some(function(row) {
+            return row.some(function(btn) { return btn.text && btn.text.indexOf("Copiar") !== -1; });
+          });
+          if (!jaTemCopiarSri) {
+            tecladoSri.inline_keyboard.unshift([
+              { text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckSri }
+            ]);
+          }
+        }
         if (tecladoSri) {
           return enviarMensagemComTecladoParaChat(chatId, resSri.textoFormatado, tecladoSri);
         } else {
@@ -2886,7 +2948,7 @@ function processarMensagemTexto(message) {
   // ───────────────────────────────────────────────────────────────────────────
   // CARDIOLOGIA & EMERGÊNCIA: CRISE HIPERTENSIVA & PSEUDOCRISE (SBC 2024)
   // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/crisehipertensiva" || comando === "/pseudocrise" || comando === "/emergenciahipertensiva") {
+  if (comando === "/crisehipertensiva" || comando === "/pseudocrise" || comando === "/emergenciahipertensiva" || comando === "/crisehas") {
     var dadosHas = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof EmergenciaCriseHipertensivaService === "undefined") {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo EmergenciaCriseHipertensivaService indisponível temporariamente.");
@@ -4238,7 +4300,7 @@ function processarMensagemTexto(message) {
         "• `/ic estertores, sem hipoperfusao, pas 120` (Perfil B)\n" +
         "• `/ic sem congestao, perfusao ruim, pas 90` (Perfil L)";
       var kbAjudaIC = (typeof botoesBot === "function") ? botoesBot([
-        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+        [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
       ]) : null;
       if (kbAjudaIC && typeof enviarMensagemComTecladoParaChat === "function") {
         return enviarMensagemComTecladoParaChat(chatId, msgAjudaIC, kbAjudaIC);
@@ -4299,7 +4361,7 @@ function processarMensagemTexto(message) {
         safePutCache(cacheIC, ckIC, txtIC, 21600);
         var kbIC = (typeof botoesBot === "function") ? botoesBot([
           [['📋 Copiar para Prontuário', 'ux:copiar:' + ckIC]],
-          [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+          [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
         ]) : (typeof obterBotoesNavegacaoPadrao === "function" ? obterBotoesNavegacaoPadrao() : null);
         if (kbIC && typeof enviarMensagemComTecladoParaChat === "function") {
           return enviarMensagemComTecladoParaChat(chatId, txtIC, kbIC);

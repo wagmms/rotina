@@ -603,22 +603,37 @@ function processarCallbackBotao(cb) {
   // J. PROTOCOLOS DE PARADA CARDIORRESPIRATÓRIA (PCR / ACLS)
   else if (data === "pcr_chocavel") {
     responderCallbackTelegram(cb.id, "Ritmo Chocável (FV/TV)");
-    return tratarComandoPcr(cb.message.chat.id, "chocavel");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "chocavel", msgId);
   }
   else if (data === "pcr_naochocavel") {
     responderCallbackTelegram(cb.id, "Não Chocável (AESP/Assistolia)");
-    return tratarComandoPcr(cb.message.chat.id, "nao chocavel");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "nao chocavel", msgId);
   }
   else if (data === "pcr_gestante") {
     responderCallbackTelegram(cb.id, "PCR na Gestante");
-    return tratarComandoPcr(cb.message.chat.id, "gestante");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "gestante", msgId);
   }
   else if (data === "pcr_pals") {
     responderCallbackTelegram(cb.id, "PALS Pediátrico");
-    return tratarComandoPcr(cb.message.chat.id, "ped");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "ped", msgId);
   }
   else if (data === "pcr_droga_adrena") {
     responderCallbackTelegram(cb.id, "Adrenalina 1 mg");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
     var txtAdrena = "💉 *PCR: ADRENALINA (EPINEFRINA) 1 MG — DIRETRIZES ACLS*\n\n" +
       "🔴 *DOSE & POSOLOGIA:*\n" +
       "• *Dose Adulto:* *1 mg IV/IO* (1 ampola 1 mg/mL pura ou diluída em 9 mL SF 0.9%).\n" +
@@ -632,18 +647,26 @@ function processarCallbackBotao(cb) {
       "🫁 *VIA AÉREA AVANÇADA (IOT / MÁSCARA LARÍNGEA):*\n" +
       "• NÃO interromper as compressões torácicas para intubação.\n" +
       "• Com via aérea instalada: 1 ventilação a cada 2 a 3 segundos (10 ventilações/min) e compressões torácicas contínuas (100-120 cpm).";
+    var cacheAdrena = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ckAdrena = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cacheAdrena, ckAdrena, txtAdrena, 21600);
     var kbAdrena = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckAdrena }],
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "💉 Amiodarona 300mg", callback_data: "pcr_droga_amiodarona" }, { text: "⏱️ Ciclo 2 min & RCP", callback_data: "pcr_ciclo_2min" }],
         [{ text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }, { text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
-    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtAdrena, kbAdrena);
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtAdrena, kbAdrena, msgId);
+    return enviarMensagemComTecladoParaChat(chatId, txtAdrena, kbAdrena);
   }
   else if (data === "pcr_droga_amiodarona") {
     responderCallbackTelegram(cb.id, "Amiodarona 300mg / 150mg");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
     var txtAmio = "💉 *PCR: AMIODARONA & ANTIARRÍTMICOS — DIRETRIZES ACLS*\n\n" +
       "⚡ *AMIODARONA (FV / TV SEM PULSO REFRATÁRIA):*\n" +
       "• *1ª Dose (Pós-3º Choque):* *300 mg IV/IO* em bólus rápido (2 ampolas de 150 mg/3 mL) + flush 20 mL SF 0.9%.\n" +
@@ -656,18 +679,26 @@ function processarCallbackBotao(cb) {
       "⚡ *SULFATO DE MAGNÉSIO 50% (TORSADES DE POINTES):*\n" +
       "• Indicação: FV/TV associada a QT longo ou suspeita de Torsades de Pointes.\n" +
       "• *Dose:* *2 g IV/IO* (4 mL de MgSO₄ 50%) diluído em 10 mL de SG 5% ou SF 0.9% em 1 a 2 minutos.";
+    var cacheAmio = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ckAmio = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cacheAmio, ckAmio, txtAmio, 21600);
     var kbAmio = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckAmio }],
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }],
         [{ text: "⏱️ Ciclo 2 min & RCP", callback_data: "pcr_ciclo_2min" }, { text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }],
         [{ text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
-    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtAmio, kbAmio);
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtAmio, kbAmio, msgId);
+    return enviarMensagemComTecladoParaChat(chatId, txtAmio, kbAmio);
   }
   else if (data === "pcr_ciclo_2min") {
     responderCallbackTelegram(cb.id, "Ciclo RCP 2 min");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
     var txtCiclo = "⏱️ *DIRETRIZES DE RCP DE ALTA QUALIDADE (CICLO DE 2 MINUTOS)*\n\n" +
       "🖐️ *MÉTRICAS DAS COMPRESSÕES TORÁCICAS (AHA / SBC):*\n" +
       "• *Frequência:* 100 a 120 cpm (compressões por minuto).\n" +
@@ -683,18 +714,26 @@ function processarCallbackBotao(cb) {
       "1. Checar cabos e conexão dos eletrodos/pás.\n" +
       "2. Aumentar o ganho do monitor ao máximo.\n" +
       "3. Mudar a derivação do monitor (ex: de DII para DI) para descartar FV fina oculta!";
+    var cacheCiclo = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ckCiclo = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cacheCiclo, ckCiclo, txtCiclo, 21600);
     var kbCiclo = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckCiclo }],
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }, { text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }],
         [{ text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
-    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtCiclo, kbCiclo);
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtCiclo, kbCiclo, msgId);
+    return enviarMensagemComTecladoParaChat(chatId, txtCiclo, kbCiclo);
   }
   else if (data === "pcr_5hs_5ts") {
     responderCallbackTelegram(cb.id, "Checklist 5Hs & 5Ts");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
     var txt5H5T = "🔍 *CAUSAS REVERSÍVEIS DE PCR: 5 Hs & 5 Ts COM CONDUTA IMEDIATA*\n\n" +
       "🔴 *OS 5 Hs:*\n" +
       "1. *Hipovolemia:* Cristaloide rápido (SF 0.9% / RL 1000-2000 mL) ou hemotransfusão se sangramento agudo.\n" +
@@ -710,17 +749,25 @@ function processarCallbackBotao(cb) {
       "3. *Toxinas / Intoxicações:* Naloxona 0.4 a 2 mg IV se opioides; Emulsão lipídica 20% se anestésicos locais; Flumazenil se BZD.\n" +
       "4. *Trombose Pulmonar (TEP Maciço):* Trombolítico imediato (Alteplase rtPA 50 mg em bólus IV ou 100 mg em 2h); manter RCP contínua por 60 a 90 minutos.\n" +
       "5. *Trombose Coronariana (IAM):* Ponte para Angioplastia Primária / Cateterismo Cardíaco (CATE) imediato após RCE.";
+    var cache5H5T = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ck5H5T = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cache5H5T, ck5H5T, txt5H5T, 21600);
     var kb5H5T = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ck5H5T }],
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }, { text: "⚡ Cuidados Pós-RCE", callback_data: "pcr_pos_rce" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
-    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txt5H5T, kb5H5T);
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txt5H5T, kb5H5T, msgId);
+    return enviarMensagemComTecladoParaChat(chatId, txt5H5T, kb5H5T);
   }
   else if (data === "pcr_pos_rce") {
     responderCallbackTelegram(cb.id, "Cuidados Pós-RCE");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
     var txtPosRce = "⚡ *CUIDADOS PÓS-RESSUSCITAÇÃO IMEDIATA (RCE — RETORNO DA CIRCULAÇÃO)*\n\n" +
       "1️⃣ *OTIMIZAÇÃO HEMODINÂMICA:*\n" +
       "• *Alvo de Pressão:* PAM ≥ 65 mmHg e PAS ≥ 90 mmHg.\n" +
@@ -738,39 +785,99 @@ function processarCallbackBotao(cb) {
       "5️⃣ *AVALIAÇÃO METABÓLICA & NEUROLÓGICA:*\n" +
       "• Glicemia: manter 140 a 180 mg/dL (evitar rigorosamente hipoglicemia < 80).\n" +
       "• Gasometria, lactato, eletrólitos (K+, Mg++, Ca++) e TC de crânio se suspeita de etiologia neurológica.";
+    var cachePosRce = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+    var ckPosRce = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cachePosRce, ckPosRce, txtPosRce, 21600);
     var kbPosRce = {
       inline_keyboard: [
+        [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckPosRce }],
         [{ text: "⚡ Ritmo Chocável", callback_data: "pcr_chocavel" }, { text: "🫀 Não Chocável", callback_data: "pcr_naochocavel" }],
         [{ text: "🔍 5 Hs & 5 Ts", callback_data: "pcr_5hs_5ts" }, { text: "💉 Adrenalina 1mg", callback_data: "pcr_droga_adrena" }],
         [{ text: "🔙 Sala Vermelha", callback_data: "ux:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
       ]
     };
-    return enviarMensagemComTecladoParaChat(cb.message.chat.id, txtPosRce, kbPosRce);
+    if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, txtPosRce, kbPosRce, msgId);
+    return enviarMensagemComTecladoParaChat(chatId, txtPosRce, kbPosRce);
   }
   // J2. PROTOCOLOS DE ARRITMIAS CARDÍACAS (ACLS)
   else if (data === "arritmia_menu") {
     responderCallbackTelegram(cb.id, "Central de Arritmias");
-    return tratarComandoArritmia(cb.message.chat.id, "");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "", msgId);
   }
   else if (data === "arritmia_instavel") {
     responderCallbackTelegram(cb.id, "Arritmia Instável (CVE)");
-    return tratarComandoArritmia(cb.message.chat.id, "instavel");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "instavel", msgId);
   }
   else if (data === "arritmia_tsv") {
     responderCallbackTelegram(cb.id, "Taquicardia Supra (TSV)");
-    return tratarComandoArritmia(cb.message.chat.id, "tsv");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "tsv", msgId);
   }
   else if (data === "arritmia_tv") {
     responderCallbackTelegram(cb.id, "TV Monomórfica");
-    return tratarComandoArritmia(cb.message.chat.id, "tv");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "tv", msgId);
   }
   else if (data === "arritmia_fa") {
     responderCallbackTelegram(cb.id, "FA / Flutter");
-    return tratarComandoArritmia(cb.message.chat.id, "fa");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "fa", msgId);
   }
   else if (data === "arritmia_bradi") {
     responderCallbackTelegram(cb.id, "Bradicardia & BAV");
-    return tratarComandoArritmia(cb.message.chat.id, "bradi");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoArritmia(chatId, "/arritmia", "bradi", msgId);
+  }
+  else if (data === "pals_10kg") {
+    responderCallbackTelegram(cb.id, "PALS 10 kg");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "ped 10kg", msgId);
+  }
+  else if (data === "pals_20kg") {
+    responderCallbackTelegram(cb.id, "PALS 20 kg");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "ped 20kg", msgId);
+  }
+  else if (data === "pcr_gest_sulfato") {
+    responderCallbackTelegram(cb.id, "Antídoto MgSO4 (Gluconato)");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "gestante sulfato", msgId);
+  }
+  else if (data === "pcr_gest_cesarea") {
+    responderCallbackTelegram(cb.id, "Cesariana Perimortem 4 min");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    return tratarComandoPcr(chatId, "gestante cesarea", msgId);
+  }
+  else if (data === "ux:hub:sala" || data === "ux:sala" || data === "ux:hub:emerg") {
+    responderCallbackTelegram(cb.id, "Sala Vermelha");
+    var chatId = (cb.message && cb.message.chat) ? cb.message.chat.id : null;
+    var msgId = cb.message ? cb.message.message_id : null;
+    if (!chatId) return true;
+    if (typeof enviarMenuSalaVermelha === "function") {
+      return enviarMenuSalaVermelha(chatId, msgId);
+    }
   }
   // K. DISTÚRBIOS HIDROELETROLÍTICOS (DHE)
   else if (data === "dhe_hipo") {
