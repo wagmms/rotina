@@ -828,6 +828,7 @@ module.exports = {
         _rpcMap.cockpitGerarAtestadoTexto = ctx.cockpitGerarAtestadoTexto;
         _rpcMap.cockpitEstratificarRisco = ctx.cockpitEstratificarRisco;
         _rpcMap.cockpitBuscarCid = ctx.cockpitBuscarCid;
+        _rpcMap.cockpitEstruturarCondutaHas = ctx.cockpitEstruturarCondutaHas;
         _rpcMap.cockpitCalcularPrenatal = ctx.cockpitCalcularPrenatal;
         _rpcMap.cockpitRastreioTrimestre = ctx.cockpitRastreioTrimestre;
         _rpcMap.cockpitValidarFarmacoGestacao = ctx.cockpitValidarFarmacoGestacao;

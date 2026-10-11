@@ -554,7 +554,7 @@ var SoapAmbulatorialService = (function() {
       recomendacao: 'Evitar PAS < 120 e PAD < 70 mmHg'
     },
     idoso_fragil: {
-      meta: '< 140/90 mmHg (com cautela)',
+      meta: '< 140/90 mmHg',
       populacao: 'Idosos frágeis, polimedicados ou muito idosos (>= 80 anos)',
       recomendacao: 'Evitar reduções excessivas de PA pelo risco de quedas e curva J de hipoperfusão coronariana/cerebral'
     }
@@ -636,7 +636,8 @@ var SoapAmbulatorialService = (function() {
       'Elevação de Creatinina > 30% em relação ao basal: suspender temporariamente IECA/BRA, pesquisar hipovolemia/desidratação, estenose bilateral de artéria renal ou suspender AINEs.',
       'Potássio sérico (K+) > 5,5 mEq/L: reduzir dose ou suspender IECA/BRA/Espironolactona; se K+ >= 6,0 mEq/L, encaminhar com urgência para ECG e protocolo de hipercalemia.',
       'Proibição estrita de AINEs: orientar o paciente a nunca utilizar anti-inflamatórios (ibuprofeno, diclofenaco, cetoprofeno, nimesulida), pois inibem as prostaglandinas vasodilatadoras renais, anulam o efeito anti-hipertensivo e provocam insuficiência renal aguda ("triplo golpe").'
-    ]
+    ],
+    duploBloqueioProibido: 'Contraindicação formal de associar IECA com BRA (estudos ONTARGET, ALTITUDE e VA NEPHRON-D demonstraram ausência de benefício cardiovascular com aumento drástico de eventos renais e hipercalemia).'
   };
 
   /**
@@ -687,7 +688,7 @@ var SoapAmbulatorialService = (function() {
 
     // 3. Estratificação de Risco Cardiovascular
     var risco = dados.estratificacaoRisco || estratificarRiscoCardiovascular({
-      idade: dados.idade || 55,
+      idade: dados.idade !== undefined ? Number(dados.idade) : 55,
       sexo: dados.sexo || 'm',
       pas: pas,
       pad: pad,
@@ -698,7 +699,7 @@ var SoapAmbulatorialService = (function() {
       ldl: dados.ldl || 110
     });
 
-    var ehAltoRisco = (risco.nivel === 'ALTO' || risco.nivel === 'MUITO ALTO' || dados.dm || dados.drc || dados.dcvPrevia);
+    var ehAltoRisco = !!(risco.nivel === 'ALTO' || risco.nivel === 'MUITO ALTO' || dados.dm || dados.drc || dados.dcvPrevia);
 
     // 4. Definição da Meta Pressórica Rigorosa por Risco (SBC 2020/2024)
     var metaPressorica = ehAltoRisco
@@ -710,7 +711,8 @@ var SoapAmbulatorialService = (function() {
       : '< 140/90 mmHg (alvo primário; almejar < 130/80 mmHg se bem tolerado)';
 
     if (dados.idade && Number(dados.idade) >= 80) {
-      metaTexto = METAS_PRESSORICAS_SBC.idoso_fragil.meta + ' (idoso >= 80 anos)';
+      metaPressorica = METAS_PRESSORICAS_SBC.idoso_fragil.meta;
+      metaTexto = METAS_PRESSORICAS_SBC.idoso_fragil.meta + ' (idoso >= 80 anos com titulação gradual para evitar hipotensão ortostática e curva J)';
     }
 
     // 5. Determinação do Passo de Escalonamento Farmacológico
@@ -749,59 +751,146 @@ var SoapAmbulatorialService = (function() {
     var escalonamentoDetalhe = '';
 
     if (passo === 1) {
-      escalonamentoDetalhe = 'Passo 1 (Monoterapia Inicial SBC): Indicado para HAS Estágio 1 de Risco Baixo/Intermediário. Droga de 1ª linha em dose inicial.';
-      prescricaoPEP.push({
-        nome: 'Losartana Potássica',
-        apresentacao: '50 mg comprimido',
-        quantidade: '30 comprimidos',
-        via: 'USO ORAL',
-        posologia: 'Tomar 1 comprimido VO pela manhã.',
-        horarios: '08h',
-        duracao: 'Uso contínuo'
-      });
+      escalonamentoDetalhe = 'Passo 1 (Monoterapia Inicial SBC 2020/2024): Indicado para HAS Estágio 1 de Risco Baixo/Intermediário ou idosos frágeis/muito idosos (>= 80a). Iniciar fármaco de 1ª linha em monoterapia.';
+      if (dados.opcaoMonoterapia === 'ieca' || dados.preferenciaIeca) {
+        prescricaoPEP.push({
+          nome: 'Maleato de Enalapril',
+          apresentacao: '10 mg comprimido',
+          quantidade: '60 comprimidos',
+          via: 'USO ORAL',
+          posologia: 'Tomar 1 comprimido VO de 12 em 12 horas (dose inicial: 20 mg/dia).',
+          horarios: '08h e 20h',
+          duracao: 'Uso contínuo'
+        });
+      } else if (dados.opcaoMonoterapia === 'bcc') {
+        prescricaoPEP.push({
+          nome: 'Besilato de Anlodipino',
+          apresentacao: '5 mg comprimido',
+          quantidade: '30 comprimidos',
+          via: 'USO ORAL',
+          posologia: 'Tomar 1 comprimido VO 1x/dia à noite.',
+          horarios: '20h',
+          duracao: 'Uso contínuo'
+        });
+      } else if (dados.opcaoMonoterapia === 'tiazidico') {
+        prescricaoPEP.push({
+          nome: 'Hidroclorotiazida',
+          apresentacao: '25 mg comprimido',
+          quantidade: '30 comprimidos',
+          via: 'USO ORAL',
+          posologia: 'Tomar 1 comprimido VO 1x/dia pela manhã.',
+          horarios: '08h',
+          duracao: 'Uso contínuo'
+        });
+      } else {
+        prescricaoPEP.push({
+          nome: 'Losartana Potássica',
+          apresentacao: '50 mg comprimido',
+          quantidade: '30 comprimidos',
+          via: 'USO ORAL',
+          posologia: 'Tomar 1 comprimido VO 1x/dia pela manhã.',
+          horarios: '08h',
+          duracao: 'Uso contínuo'
+        });
+      }
     } else if (passo === 2) {
-      escalonamentoDetalhe = 'Passo 2 (Dupla Terapia Sinérgica SBC): Indicado para HAS Estágio 2/3 ou Estágio 1 de Alto Risco. Associação sinérgica IECA/BRA + Tiazídico ou BCC.';
-      prescricaoPEP.push({
-        nome: 'Losartana Potássica',
-        apresentacao: '50 mg comprimido',
-        quantidade: '60 comprimidos',
-        via: 'USO ORAL',
-        posologia: 'Tomar 1 comprimido VO de 12 em 12 horas (dose diária: 100 mg).',
-        horarios: '08h e 20h',
-        duracao: 'Uso contínuo'
-      });
-      prescricaoPEP.push({
-        nome: 'Hidroclorotiazida',
-        apresentacao: '25 mg comprimido',
-        quantidade: '30 comprimidos',
-        via: 'USO ORAL',
-        posologia: 'Tomar 1 comprimido VO 1x/dia pela manhã.',
-        horarios: '08h',
-        duracao: 'Uso contínuo'
-      });
+      var opcaoDupla = String(dados.opcaoDupla || '').toLowerCase();
+      var prefBcc = opcaoDupla === 'bcc' || opcaoDupla === 'anlodipino' || opcaoDupla === 'ieca_bcc' || opcaoDupla === 'bra_bcc';
+      escalonamentoDetalhe = 'Passo 2 (Dupla Terapia Sinérgica SBC 2020/2024): Indicado para HAS Estágio 2 ou 3 (mesmo inicial) OU HAS Estágio 1 de Alto/Muito Alto Risco CV OU falha de monoterapia. Associação sinérgica de 1ª linha (IECA/BRA + BCC ou IECA/BRA + Tiazídico). Bloqueio duplo IECA + BRA é contraindicado formalmente.';
+
+      if (prefBcc) {
+        prescricaoPEP.push({
+          nome: 'Losartana Potássica',
+          apresentacao: '50 mg comprimido',
+          quantidade: '60 comprimidos',
+          via: 'USO ORAL',
+          posologia: 'Tomar 1 comprimido VO de 12 em 12 horas (dose diária: 100 mg).',
+          horarios: '08h e 20h',
+          duracao: 'Uso contínuo'
+        });
+        prescricaoPEP.push({
+          nome: 'Besilato de Anlodipino',
+          apresentacao: '5 mg comprimido',
+          quantidade: '30 comprimidos',
+          via: 'USO ORAL',
+          posologia: 'Tomar 1 comprimido VO 1x/dia à noite.',
+          horarios: '20h',
+          duracao: 'Uso contínuo'
+        });
+      } else if (opcaoDupla === 'bcc_tiazidico') {
+        prescricaoPEP.push({
+          nome: 'Besilato de Anlodipino',
+          apresentacao: '5 mg comprimido',
+          quantidade: '30 comprimidos',
+          via: 'USO ORAL',
+          posologia: 'Tomar 1 comprimido VO 1x/dia à noite.',
+          horarios: '20h',
+          duracao: 'Uso contínuo'
+        });
+        prescricaoPEP.push({
+          nome: 'Hidroclorotiazida',
+          apresentacao: '25 mg comprimido',
+          quantidade: '30 comprimidos',
+          via: 'USO ORAL',
+          posologia: 'Tomar 1 comprimido VO 1x/dia pela manhã.',
+          horarios: '08h',
+          duracao: 'Uso contínuo'
+        });
+      } else {
+        // Padrão clássico: BRA + Tiazídico
+        prescricaoPEP.push({
+          nome: 'Losartana Potássica',
+          apresentacao: '50 mg comprimido',
+          quantidade: '60 comprimidos',
+          via: 'USO ORAL',
+          posologia: 'Tomar 1 comprimido VO de 12 em 12 horas (dose diária: 100 mg).',
+          horarios: '08h e 20h',
+          duracao: 'Uso contínuo'
+        });
+        prescricaoPEP.push({
+          nome: 'Hidroclorotiazida',
+          apresentacao: '25 mg comprimido',
+          quantidade: '30 comprimidos',
+          via: 'USO ORAL',
+          posologia: 'Tomar 1 comprimido VO 1x/dia pela manhã.',
+          horarios: '08h',
+          duracao: 'Uso contínuo'
+        });
+      }
     } else if (passo === 3) {
-      escalonamentoDetalhe = 'Passo 3 (Tripla Terapia Canônica SBC): Tripé obrigatório completo (BRA/IECA + BCC + Tiazídico) para alcance da meta pressórica rigorosa (< 130/80 mmHg).';
+      escalonamentoDetalhe = 'Passo 3 (Tripla Terapia Canônica SBC 2020/2024): Tripé obrigatório completo (BRA/IECA + BCC + Tiazídico) em doses plenas/otimizadas para alcance da meta pressórica rigorosa (< 130/80 mmHg em alto risco ou < 140/90 mmHg). Atuação sinérgica nos 3 eixos fisiopatológicos: bloqueio do SRAA, vasodilatação arteriolar periférica e natriurese.';
+
+      var nomeBloqueadorSraa = (dados.preferenciaIeca) ? 'Maleato de Enalapril' : 'Losartana Potássica';
+      var apresBloqueadorSraa = (dados.preferenciaIeca) ? '20 mg comprimido' : '50 mg comprimido';
+      var posoBloqueadorSraa = (dados.preferenciaIeca)
+        ? 'Tomar 1 comprimido VO de 12 em 12 horas (dose plena: 40 mg/dia).'
+        : 'Tomar 1 comprimido VO de 12 em 12 horas (dose plena: 100 mg/dia).';
+
       prescricaoPEP.push({
-        nome: 'Losartana Potássica',
-        apresentacao: '50 mg comprimido',
+        nome: nomeBloqueadorSraa,
+        apresentacao: apresBloqueadorSraa,
         quantidade: '60 comprimidos',
         via: 'USO ORAL',
-        posologia: 'Tomar 1 comprimido VO de 12 em 12 horas (dose total: 100 mg/dia).',
+        posologia: posoBloqueadorSraa,
         horarios: '08h e 20h',
         duracao: 'Uso contínuo'
       });
+
       prescricaoPEP.push({
         nome: 'Besilato de Anlodipino',
-        apresentacao: '5 mg comprimido',
+        apresentacao: (dados.dosePlenaAnlodipino ? '10 mg comprimido' : '5 mg comprimido'),
         quantidade: '30 comprimidos',
         via: 'USO ORAL',
-        posologia: 'Tomar 1 comprimido VO 1x/dia à noite (titulável até 10 mg se PA mantida acima do alvo).',
+        posologia: (dados.dosePlenaAnlodipino ? 'Tomar 1 comprimido VO 1x/dia à noite (dose plena: 10 mg/dia).' : 'Tomar 1 comprimido VO 1x/dia à noite (titulável até 10 mg/dia se PA mantida acima do alvo).'),
         horarios: '20h',
         duracao: 'Uso contínuo'
       });
+
+      var nomeDiuretico = (dados.preferenciaClortalidona) ? 'Clortalidona' : 'Hidroclorotiazida';
+      var apresDiuretico = (dados.preferenciaClortalidona) ? '25 mg comprimido' : '25 mg comprimido';
       prescricaoPEP.push({
-        nome: 'Hidroclorotiazida',
-        apresentacao: '25 mg comprimido',
+        nome: nomeDiuretico,
+        apresentacao: apresDiuretico,
         quantidade: '30 comprimidos',
         via: 'USO ORAL',
         posologia: 'Tomar 1 comprimido VO 1x/dia pela manhã.',
@@ -810,13 +899,13 @@ var SoapAmbulatorialService = (function() {
       });
     } else {
       // Passo 4 (HAR)
-      escalonamentoDetalhe = 'Passo 4 (Hipertensão Arterial Resistente - HAR / PATHWAY-2): PA acima da meta a despeito de 3 fármacos em doses plenas. Adição de Espironolactona como 4º fármaco.';
+      escalonamentoDetalhe = 'Passo 4 (Hipertensão Arterial Resistente - HAR / PATHWAY-2): PA acima da meta a despeito de 3 fármacos sinérgicos de classes distintas em doses plenas (sendo 1 diurético). Adição obrigatória de Espironolactona 25 a 50 mg/dia como 4º fármaco.';
       prescricaoPEP.push({
         nome: 'Losartana Potássica',
         apresentacao: '50 mg comprimido',
         quantidade: '60 comprimidos',
         via: 'USO ORAL',
-        posologia: 'Tomar 1 comprimido VO de 12 em 12 horas.',
+        posologia: 'Tomar 1 comprimido VO de 12 em 12 horas (dose plena: 100 mg/dia).',
         horarios: '08h e 20h',
         duracao: 'Uso contínuo'
       });
@@ -825,7 +914,7 @@ var SoapAmbulatorialService = (function() {
         apresentacao: '10 mg comprimido',
         quantidade: '30 comprimidos',
         via: 'USO ORAL',
-        posologia: 'Tomar 1 comprimido VO 1x/dia à noite.',
+        posologia: 'Tomar 1 comprimido VO 1x/dia à noite (dose plena: 10 mg/dia).',
         horarios: '20h',
         duracao: 'Uso contínuo'
       });
@@ -843,7 +932,7 @@ var SoapAmbulatorialService = (function() {
         apresentacao: '25 mg comprimido',
         quantidade: '30 comprimidos',
         via: 'USO ORAL',
-        posologia: 'Tomar 1 comprimido VO 1x/dia pela manhã (monitorar K+ e Cr após 7-14 dias).',
+        posologia: 'Tomar 1 comprimido VO 1x/dia pela manhã (titulável até 50 mg/dia se K+ < 5,0 mEq/L; checar K+ e Cr em 7 a 14 dias).',
         horarios: '08h',
         duracao: 'Uso contínuo'
       });
@@ -851,10 +940,12 @@ var SoapAmbulatorialService = (function() {
 
     // 7. Monitorização Laboratorial e Salvaguardas
     var monitorizacaoTexto = [
-      '• Janela de Avaliação: Dosar Creatinina sérica e Potássio sérico (K+) em 1 a 2 semanas (14 dias) após início ou titulação de doses.',
-      '• Tolerância de Creatinina: Elevação de até 30% em relação ao valor basal é esperada e clinicamente tolerável (vasodilatação eferente e nefroproteção). Se elevação > 30% ou K+ > 5,5 mEq/L, investigar hipovolemia, estenose de artéria renal e reduzir/suspender fármacos.',
-      '• Contraindicação Sentinela a AINEs: Orientar formalmente o paciente a NÃO utilizar anti-inflamatórios (ibuprofeno, cetoprofeno, diclofenaco, nimesulida) pelo risco de injúria renal aguda e abolição do efeito hipotensor.',
-      '• Bloqueio Absoluto: Proibida a associação concomitante de IECA com BRA (ONTARGET).'
+      '• Janela de Avaliação: Dosar Creatinina sérica e Potássio sérico (K+) em 1 a 2 semanas (7 a 14 dias) após início ou titulação de doses.',
+      '• Tolerância de Creatinina: Elevação de até 30% em relação ao valor basal é esperada e clinicamente tolerável (vasodilatação eferente e alívio da hiperfiltração intraglomerular pelos bloqueadores do SRAA, traduzindo nefroproteção a longo prazo).',
+      '• Alerta de Creatinina > 30%: Se elevação exceder 30%, suspender temporariamente IECA/BRA, pesquisar hipovolemia/desidratação, descartar uso de AINEs e investigar estenose bilateral de artéria renal.',
+      '• Manejo de Potássio (K+): Se K+ > 5,5 mEq/L, reduzir dose ou suspender IECA/BRA/Espironolactona; se K+ >= 6,0 mEq/L, encaminhar com urgência para ECG e protocolo de hipercalemia.',
+      '• Contraindicação Sentinela a AINEs: Orientar formalmente o paciente a NUNCA utilizar anti-inflamatórios (ibuprofeno, cetoprofeno, diclofenaco, nimesulida) pelo risco de injúria renal aguda ("triplo golpe") e abolição do efeito hipotensor.',
+      '• Bloqueio Absoluto: Proibida a associação concomitante de IECA com BRA (estudos ONTARGET, ALTITUDE e VA NEPHRON-D demonstraram nefrotoxicidade e hipercalemia sem benefício).'
     ].join('\n');
 
     // 8. Exames Complementares Solicitados (Rastreio de LOA)
@@ -885,6 +976,45 @@ var SoapAmbulatorialService = (function() {
     // 11. Prazo de Retorno Ambulatorial
     var retornoDias = 14; // Janela de 1 a 2 semanas para controle de K+/Cr e resposta pressórica
 
+    // 12. Geração de Textos Prontos para PEP
+    var linhasRxPEP = ['[USO ORAL]'];
+    prescricaoPEP.forEach(function(item, idx) {
+      linhasRxPEP.push((idx + 1) + ') ' + item.nome + ' ' + (item.apresentacao || '') + ' -------------------- ' + (item.quantidade || 'Uso contínuo'));
+      var pStr = '   Tomar ' + item.posologia;
+      if (item.horarios) pStr += ' (Horários: ' + item.horarios + ')';
+      if (item.duracao) pStr += ' por ' + item.duracao + '.';
+      linhasRxPEP.push(pStr);
+    });
+    var textoPrescricaoPEP = linhasRxPEP.join('\n');
+
+    var textoCondutaPEP = [
+      '======================================================================',
+      '        CONDUTA AMBULATORIAL DE HIPERTENSÃO ARTERIAL (SBC 2020 / 2024)',
+      '======================================================================',
+      '• Diagnóstico & Estadiamento: ' + estagioNome + ' (PA aferida: ' + pas + '/' + pad + ' mmHg).',
+      '• Estratificação de Risco Cardiovascular: ' + (risco.corBadge || '') + ' ' + risco.nivel + ' (' + risco.justificativa + ').',
+      '• Meta Pressórica Alvo (SBC 2020/2024): ' + metaTexto + ' [Alvo numérico: ' + metaPressorica + '].',
+      '• Estratégia de Escalonamento: ' + escalonamentoDetalhe,
+      '',
+      '[PRESCRIÇÃO MEDICAMENTOSA SUGERIDA - REMUME / FARMÁCIA POPULAR]',
+      textoPrescricaoPEP,
+      '',
+      '[PROTOCOLO DE MONITORIZAÇÃO DE K+ E CREATININA (7 A 14 DIAS)]',
+      monitorizacaoTexto,
+      '',
+      '[EXAMES COMPLEMENTARES DE RASTREIO DE LESÃO DE ÓRGÃO-ALVO (LOA)]',
+      examesSolicitados.map(function(e) { return '• ' + e; }).join('\n'),
+      '',
+      '[ORIENTAÇÕES DE ESTILO DE VIDA (MEV)]',
+      mev.map(function(m) { return '• ' + m; }).join('\n'),
+      '',
+      '[SINAIS DE ALARME PARA PRONTO-SOCORRO]',
+      sinaisAlarme.map(function(s) { return '• ' + s; }).join('\n'),
+      '',
+      '📅 Retorno ambulatorial agendado em ' + retornoDias + ' dias (1 a 2 semanas para controle de K+/Cr e titulação).',
+      '======================================================================'
+    ].join('\n');
+
     return {
       pas: pas,
       pad: pad,
@@ -897,6 +1027,8 @@ var SoapAmbulatorialService = (function() {
       passo: passo,
       escalonamentoDetalhe: escalonamentoDetalhe,
       prescricaoPEP: prescricaoPEP,
+      textoPrescricaoPEP: textoPrescricaoPEP,
+      textoCondutaPEP: textoCondutaPEP,
       monitorizacao: monitorizacaoTexto,
       monitorizacaoKCr: MONITORIZACAO_HAS_SBC,
       examesSolicitados: examesSolicitados,
@@ -981,19 +1113,47 @@ var SoapAmbulatorialService = (function() {
       return (i + 1) + '. ' + d;
     }).join('\n');
 
+    // Detecção se o caso envolve Hipertensão Arterial Sistêmica
+    var condutaHas = null;
+    var ehHas = !!(dados.condutaHas || dados.hipertensao || dados.has ||
+      (Array.isArray(dados.diagnosticos) && dados.diagnosticos.some(function(d) { return /hipertens|has\b|i10/i.test(d); })) ||
+      (typeof dados.diagnosticoPrincipal === 'string' && /hipertens|has\b|i10/i.test(dados.diagnosticoPrincipal)) ||
+      (typeof dados.queixaPrincipal === 'string' && /hipertens|press[aã]o\s+alta|has\b/i.test(dados.queixaPrincipal)));
+
+    if (ehHas) {
+      condutaHas = (typeof dados.condutaHas === 'object' && dados.condutaHas && dados.condutaHas.metaPressorica)
+        ? dados.condutaHas
+        : estruturarCondutaHas(dados);
+    }
+
     if (dados.estratificacaoRisco) {
       var r = dados.estratificacaoRisco;
       textoAvaliacao += '\n\n• Estratificação de Risco Cardiovascular: ' + (r.corBadge || '') + ' Risco ' + r.nivel +
         ' (' + r.justificativa + ')\n  Meta Pressórica: ' + r.meta_pa + ' | Meta LDL: ' + r.meta_ldl;
+    } else if (condutaHas && condutaHas.riscoCardiovascular) {
+      textoAvaliacao += '\n\n• Estratificação de Risco Cardiovascular: Risco ' + condutaHas.riscoCardiovascular +
+        '\n  Meta Pressórica (SBC 2020/2024): ' + condutaHas.metaPressoricaTexto + ' [Alvo: ' + condutaHas.metaPressorica + ']';
     }
 
     // P - PLANO
     var planoLinhas = [];
 
+    // Metas Pressóricas e Escalonamento SBC 2020/2024 se HAS
+    if (condutaHas) {
+      planoLinhas.push('🎯 Metas Pressóricas & Escalonamento (SBC 2020/2024):');
+      planoLinhas.push('  • Meta Alvo: ' + condutaHas.metaPressoricaTexto + ' [Alvo numérico: ' + condutaHas.metaPressorica + ']');
+      planoLinhas.push('  • Estratégia de Escalonamento: ' + condutaHas.escalonamentoDetalhe);
+    }
+
     // 1. Prescrição Farmacológica
-    if (dados.prescricaoMedicamentosa && dados.prescricaoMedicamentosa.length) {
-      planoLinhas.push('💊 Prescrição Medicamentosa (REMUME / Farmácia Popular):');
-      var itensMed = Array.isArray(dados.prescricaoMedicamentosa) ? dados.prescricaoMedicamentosa : [dados.prescricaoMedicamentosa];
+    var listaPrescricao = dados.prescricaoMedicamentosa;
+    if ((!listaPrescricao || !listaPrescricao.length) && condutaHas && condutaHas.prescricaoPEP && condutaHas.prescricaoPEP.length) {
+      listaPrescricao = condutaHas.prescricaoPEP;
+    }
+
+    if (listaPrescricao && listaPrescricao.length) {
+      planoLinhas.push((condutaHas ? '\n' : '') + '💊 Prescrição Medicamentosa (REMUME / Farmácia Popular):');
+      var itensMed = Array.isArray(listaPrescricao) ? listaPrescricao : [listaPrescricao];
       itensMed.forEach(function(m, idx) {
         if (typeof m === 'string') {
           planoLinhas.push('  ' + (idx + 1) + ') ' + m);
@@ -1005,12 +1165,21 @@ var SoapAmbulatorialService = (function() {
       });
     }
 
+    // Protocolo de Monitorização K+/Cr após 2 semanas se HAS
+    if (condutaHas) {
+      planoLinhas.push('\n🧪 Protocolo de Monitorização Laboratorial (K+ e Creatinina após 2 semanas):');
+      planoLinhas.push('  • Janela de Avaliação: Dosar Creatinina sérica (TFG CKD-EPI) e Potássio sérico (K+) em 1 a 2 semanas (7 a 14 dias).');
+      planoLinhas.push('  • Tolerância de Creatinina: Elevação de até 30% da Cr em relação ao basal é esperada e aceitável (vasodilatação eferente protetora). Suspender IECA/BRA e investigar se elevação > 30%.');
+      planoLinhas.push('  • Manejo de Potássio: Reduzir dose ou suspender IECA/BRA/Espironolactona se K+ > 5,5 mEq/L; emergência com ECG se K+ >= 6,0 mEq/L.');
+      planoLinhas.push('  • Bloqueio Sentinela: Contraindicação formal a AINEs (prevenção do triplo golpe renal) e proibição absoluta de associar IECA + BRA.');
+    }
+
     // 2. Orientações Não Farmacológicas (MEV)
-    var mev = dados.mev || [
+    var mev = dados.mev || (condutaHas ? condutaHas.mev : [
       'Alimentação balanceada (redução de sódio < 2g/dia, açúcares simples e ultraprocessados).',
       'Atividade física regular aeróbica (meta de 150 min/semana divididos em 3 a 5 sessões).',
       'Manter hidratação oral adequada e cessação do tabagismo se aplicável.'
-    ];
+    ]);
     if (Array.isArray(mev) && mev.length) {
       planoLinhas.push('\n🥗 Orientações Não Farmacológicas / Mudanças de Estilo de Vida (MEV):');
       mev.forEach(function(item) {
@@ -1019,18 +1188,19 @@ var SoapAmbulatorialService = (function() {
     }
 
     // 3. Exames Solicitados
-    if (dados.examesSolicitados && dados.examesSolicitados.length) {
+    var exames = dados.examesSolicitados || (condutaHas ? condutaHas.examesSolicitados : null);
+    if (exames && exames.length) {
       planoLinhas.push('\n🔬 Exames Complementares Solicitados:');
-      var exList = Array.isArray(dados.examesSolicitados) ? dados.examesSolicitados : [dados.examesSolicitados];
+      var exList = Array.isArray(exames) ? exames : [exames];
       exList.forEach(function(ex) {
         planoLinhas.push('  • ' + ex);
       });
     }
 
     // 4. Sinais de Alarme
-    var alarmes = dados.sinaisAlarme || [
+    var alarmes = dados.sinaisAlarme || (condutaHas ? condutaHas.sinaisAlarme : [
       'Procurar atendimento imediato em Pronto-Socorro se: dor no peito em aperto, falta de ar súbita, perda de força em um lado do corpo, fala enrolada ou febre alta persistente.'
-    ];
+    ]);
     if (Array.isArray(alarmes) && alarmes.length) {
       planoLinhas.push('\n🚨 Sinais de Alarme para Procura de Pronto-Socorro:');
       alarmes.forEach(function(al) {
@@ -1039,7 +1209,7 @@ var SoapAmbulatorialService = (function() {
     }
 
     // 5. Retorno
-    var diasRetorno = dados.retornoDias ? (dados.retornoDias + ' dias') : '30 a 60 dias';
+    var diasRetorno = dados.retornoDias ? (dados.retornoDias + ' dias') : (condutaHas ? (condutaHas.retornoDias + ' dias (1 a 2 semanas para controle de K+/Cr e titulação)') : '30 a 60 dias');
     planoLinhas.push('\n📅 Retorno Ambulatorial: Reavaliação clínica e checagem de exames em ' + diasRetorno + '.');
 
     var blocoP = planoLinhas.join('\n');
@@ -1071,7 +1241,8 @@ var SoapAmbulatorialService = (function() {
       objetivo: blocoO,
       avaliacao: textoAvaliacao,
       plano: blocoP,
-      textoProntuario: textoProntuario
+      textoProntuario: textoProntuario,
+      condutaHas: condutaHas
     };
   }
 
@@ -1412,6 +1583,10 @@ var SoapAmbulatorialService = (function() {
     VALORES_REFERENCIA: VALORES_REFERENCIA,
     MODELOS_EXAME_FISICO: MODELOS_EXAME_FISICO,
     CATALOGO_DIAGNOSTICOS: CATALOGO_DIAGNOSTICOS,
+    METAS_PRESSORICAS_SBC: METAS_PRESSORICAS_SBC,
+    ESCALONAMENTO_HAS_SBC: ESCALONAMENTO_HAS_SBC,
+    MONITORIZACAO_HAS_SBC: MONITORIZACAO_HAS_SBC,
+    estruturarCondutaHas: estruturarCondutaHas,
     buscarDiagnostico: buscarDiagnostico,
     estratificarRiscoCardiovascular: estratificarRiscoCardiovascular,
     converterNumeroPorExtenso: converterNumeroPorExtenso,
@@ -1425,6 +1600,10 @@ var SoapAmbulatorialService = (function() {
     processarEntradaSoap: processarEntradaSoap
   };
 })();
+
+function estruturarCondutaHas(dados) {
+  return SoapAmbulatorialService.estruturarCondutaHas(dados);
+}
 
 function formatarExameFisicoSistemas(texto) {
   return SoapAmbulatorialService.formatarExameFisicoSistemas(texto);

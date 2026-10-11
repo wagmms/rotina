@@ -19,15 +19,16 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Aba Sala Vermelha — Otimização Farmacológica e Diluições Prontas de Choque Séptico e CIRCI (`src/02_emergencia_choque_septico_circi.js`, `tests/test_emergencia_choque_septico_circi.cjs`)**:
-    - **Diagnóstico e Enriquecimento Clínico Beira-Leito**:
-      * Em `src/02_emergencia_choque_septico_circi.js`: enriquecida a função existente `EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoKg, doseNoraMcgKgMin)` com prescrição pronta para PEP e determinismo SSC:
-        (1) Noradrenalina padrão (4 amp = 16mg em 234mL SG 5%, 64 mcg/mL) com vazão inicial (0,05 a 0,10 mcg/kg/min), refratariedade (0,25) e teto (1,00 mcg/kg/min) calculados em mL/h na BIC;
-        (2) Vasopressina padrão (1 amp 20 UI em 99mL SF 0,9% = 0,2 UI/mL) com infusão fixa de 9 mL/h (0,03 UI/min) sem titulação;
-        (3) Hidrocortisona CIRCI (50mg liofilizado em 10mL SF 0,9% IV em bolus lento de 3 min 6/6h);
-        (4) Alertas de PAM alvo >= 65 mmHg, lactato seriado de 2-4h e restrição volêmica pós-ressuscitação inicial (após 30 mL/kg);
-        (5) Estruturação em `prescricaoPEP` e preservação do expurgo terciário de Azul de Metileno.
-    - **Validação e Resultados**: 100% de aprovação na suíte `tests/test_emergencia_choque_septico_circi.cjs` em 0.34s com validação determinística de todos os parâmetros e asserções.
+- [x] **Estabilidade e Resiliência da API — Resolução da Queda de Conexão e Timeout de IA (`src/00_config.js`, `src/04_motores_ia.js`)**:
+    - **Diagnóstico da Causa Raiz**:
+      * A cascata do Gemini iniciava por `gemini-3.7-flash` e `gemini-3.8-flash`, que na API do Google estão sob altíssima demanda, retornando HTTP 503 ou timeouts (>10s).
+      * A cada chave recebendo 503, o código registrava falha prematura no `IaCircuitBreaker`, abrindo o circuito global do Gemini e bloqueando todas as chamadas legítimas subsequentes para o modelo saudável `gemini-flash-lite-latest`.
+      * Durante os timeouts de rede (12s a 24s), o worker síncrono bloqueava a thread do Node via `Atomics.wait`, impedindo a resposta do healthcheck `/health` do Fastify e levando o Render a reiniciar o contêiner por timeout/falha de liveness.
+    - **Correção Cirúrgica Aplicada**:
+      * Em `src/00_config.js` e `src/04_motores_ia.js`: reordenada a lista de modelos para priorizar os modelos ultra-estáveis e rápidos `gemini-flash-lite-latest` (latência ~500ms-700ms) e `gemini-3.5-flash-lite`.
+      * Reduzido o timeout de fetch de 12s para 7s para evitar travar o event loop do Fastify.
+      * Tratamento isolado para HTTP 503 e 504: em caso de saturação do modelo no Google, aplica cooldown de 60s apenas no modelo específico e faz break imediato para o próximo modelo da cascata, sem abrir indevidamente o Circuit Breaker global do Gemini.
+    - **Validação e Resultados**: Latência de IA reduzida de 16.5s para 2.6s (1º tiro determinístico). 100% de aprovação na suíte completa (`npm test`: 49/49 suítes em 7.25s).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

@@ -290,6 +290,17 @@ test('9. Métodos RPC ambulatoriais funcionam no runtime e no cockpitRpc', () =>
     modeloExameFisico: 'respiratorio_ivas'
   }]);
   assert(resSoap.sucesso === true && resSoap.soap.subjetivo.includes('Dor de garganta'), 'SOAP via RPC deve funcionar');
+
+  // Testa cockpitEstruturarCondutaHas via RPC
+  const resCondHas = runtime.cockpitRpc('cockpitEstruturarCondutaHas', fakeSession, [{
+    pas: 165,
+    pad: 102,
+    dm: true,
+    triplaTerapia: true
+  }]);
+  assert(resCondHas.sucesso === true, 'cockpitEstruturarCondutaHas deve responder com sucesso');
+  assert.strictEqual(resCondHas.conduta.passo, 3, 'Deve estruturar passo 3 (tripla terapia)');
+  assert.strictEqual(resCondHas.conduta.metaPressorica, '< 130/80 mmHg', 'Meta deve ser < 130/80 mmHg para paciente com DM');
 });
 
 // =============================================================================
@@ -321,6 +332,131 @@ test('10. Comandos /ambulatorio e /atestado no Telegram Bot respondem com assert
     ctx.enviarMensagemParaChat = originalEnviar;
     ctx.enviarMensagemComTecladoParaChat = originalEnviarKb;
   }
+});
+
+// =============================================================================
+// 11. METAS PRESSÓRICAS POR RISCO CARDIOVASCULAR (SBC 2020 / 2024)
+// =============================================================================
+test('11. Definição determinística de metas de PA por risco conforme SBC 2020/2024', () => {
+  assert(SoapAmbulatorialService.METAS_PRESSORICAS_SBC, 'METAS_PRESSORICAS_SBC deve estar exportado');
+  const metas = SoapAmbulatorialService.METAS_PRESSORICAS_SBC;
+  assert.strictEqual(metas.alto_muito_alto_risco.meta, '< 130/80 mmHg', 'Alto risco deve ter meta < 130/80 mmHg');
+  assert.strictEqual(metas.baixo_intermediario_risco.meta, '< 140/90 mmHg', 'Baixo/Intermediário risco deve ter meta < 140/90 mmHg');
+
+  // Cenário Alto Risco (Diabético com PA 155/95):
+  const cAlto = SoapAmbulatorialService.estruturarCondutaHas({ pas: 155, pad: 95, dm: true });
+  assert.strictEqual(cAlto.metaPressorica, '< 130/80 mmHg', 'Paciente diabético deve ter meta < 130/80 mmHg');
+  assert(cAlto.ehAltoRisco === true, 'Deve ser classificado como alto risco');
+  assert(cAlto.metaPressoricaTexto.includes('< 130/80 mmHg'), 'Texto deve citar recomendação SBC');
+
+  // Cenário Baixo Risco (Jovem 30a com PA 145/92):
+  const cBaixo = SoapAmbulatorialService.estruturarCondutaHas({ pas: 145, pad: 92, idade: 30, sexo: 'f', tabagismo: false, dm: false });
+  assert.strictEqual(cBaixo.metaPressorica, '< 140/90 mmHg', 'Paciente de baixo risco deve ter meta < 140/90 mmHg');
+  assert(cBaixo.ehAltoRisco === false, 'Não deve ser classificado como alto risco');
+
+  // Cenário Idoso Frágil / Muito Idoso (82a):
+  const cIdoso = SoapAmbulatorialService.estruturarCondutaHas({ pas: 150, pad: 85, idade: 82 });
+  assert.strictEqual(cIdoso.metaPressorica, '< 140/90 mmHg', 'Idoso >= 80a deve ter meta < 140/90 mmHg');
+  assert(cIdoso.metaPressoricaTexto.includes('idoso >= 80 anos'), 'Texto deve citar cautela com hipotensão ortostática');
+});
+
+// =============================================================================
+// 12. ESCALONAMENTO FARMACOLÓGICO E TRIPLA TERAPIA CANÔNICA (SBC 2020 / 2024)
+// =============================================================================
+test('12. Escalonamento farmacológico canônico: monoterapia, dupla, tripla terapia e HAR', () => {
+  assert(SoapAmbulatorialService.ESCALONAMENTO_HAS_SBC, 'ESCALONAMENTO_HAS_SBC deve estar exportado');
+
+  // Passo 1: Monoterapia inicial (Estágio 1 baixo risco)
+  const p1 = SoapAmbulatorialService.estruturarCondutaHas({ pas: 144, pad: 92, idade: 35, sexo: 'm', passo: 1 });
+  assert.strictEqual(p1.passo, 1, 'Deve ser Passo 1');
+  assert(p1.escalonamentoDetalhe.includes('Passo 1'), 'Detalhe deve indicar Passo 1');
+  assert.strictEqual(p1.prescricaoPEP.length, 1, 'Monoterapia deve conter 1 fármaco');
+  assert(p1.prescricaoPEP[0].nome.includes('Losartana'), 'Fármaco padrão de 1ª linha deve ser Losartana');
+
+  // Passo 2: Dupla terapia sinérgica (Estágio 2 de início: PA 165/102)
+  const p2 = SoapAmbulatorialService.estruturarCondutaHas({ pas: 165, pad: 102 });
+  assert.strictEqual(p2.passo, 2, 'Estágio 2 virgem de tratamento deve iniciar no Passo 2 (dupla terapia)');
+  assert.strictEqual(p2.prescricaoPEP.length, 2, 'Dupla terapia deve conter 2 fármacos');
+  assert(p2.escalonamentoDetalhe.includes('Passo 2'), 'Detalhe deve indicar Passo 2');
+  assert(p2.escalonamentoDetalhe.includes('Bloqueio duplo IECA + BRA é contraindicado'), 'Deve alertar contra duplo bloqueio SRAA');
+
+  // Passo 2 com opção BCC (Losartana + Anlodipino)
+  const p2Bcc = SoapAmbulatorialService.estruturarCondutaHas({ pas: 165, pad: 102, opcaoDupla: 'bcc' });
+  assert.strictEqual(p2Bcc.passo, 2, 'Deve ser Passo 2');
+  const nomesP2 = p2Bcc.prescricaoPEP.map(m => m.nome);
+  assert(nomesP2.some(n => n.includes('Losartana')) && nomesP2.some(n => n.includes('Anlodipino')), 'Opção BCC deve ter Losartana + Anlodipino');
+
+  // Passo 3: Tripla Terapia Canônica (Tripé SRAA + BCC + Tiazídico em doses plenas)
+  const p3 = SoapAmbulatorialService.estruturarCondutaHas({
+    pas: 152,
+    pad: 96,
+    medicacoesUso: 'Losartana 100mg/dia + Anlodipino 5mg/dia',
+    triplaTerapia: true
+  });
+  assert.strictEqual(p3.passo, 3, 'Deve estruturar Passo 3 (Tripla Terapia)');
+  assert.strictEqual(p3.prescricaoPEP.length, 3, 'Tripla terapia deve conter exatamente 3 fármacos');
+  const nomesP3 = p3.prescricaoPEP.map(m => m.nome);
+  assert(nomesP3.some(n => n.includes('Losartana')), 'Tripla terapia deve ter Bloqueador SRAA (Losartana)');
+  assert(nomesP3.some(n => n.includes('Anlodipino')), 'Tripla terapia deve ter BCC (Anlodipino)');
+  assert(nomesP3.some(n => n.includes('Hidroclorotiazida')), 'Tripla terapia deve ter Tiazídico (HCTZ)');
+  assert(p3.escalonamentoDetalhe.includes('Passo 3 (Tripla Terapia Canônica'), 'Detalhe deve citar tripé canônico SBC');
+  assert(p3.textoPrescricaoPEP.includes('[USO ORAL]'), 'Prescrição formatada para PEP deve existir');
+
+  // Passo 4: Hipertensão Arterial Resistente (HAR) - Espironolactona
+  const p4 = SoapAmbulatorialService.estruturarCondutaHas({
+    pas: 148,
+    pad: 94,
+    medicacoesUso: 'Losartana 100mg + Anlodipino 10mg + Hidroclorotiazida 25mg',
+    har: true
+  });
+  assert.strictEqual(p4.passo, 4, 'Deve estruturar Passo 4 (HAR)');
+  assert.strictEqual(p4.prescricaoPEP.length, 4, 'HAR deve prescrever 4 fármacos');
+  const nomesP4 = p4.prescricaoPEP.map(m => m.nome);
+  assert(nomesP4.some(n => n.includes('Espironolactona')), '4º fármaco canônico deve ser Espironolactona (PATHWAY-2)');
+});
+
+// =============================================================================
+// 13. MONITORIZAÇÃO DE K+ E CREATININA APÓS 2 SEMANAS E SALVAGUARDAS RENAIS
+// =============================================================================
+test('13. Protocolo de monitorização de K+ e Creatinina após 2 semanas e tolerância de 30%', () => {
+  assert(SoapAmbulatorialService.MONITORIZACAO_HAS_SBC, 'MONITORIZACAO_HAS_SBC deve estar exportado');
+  const mon = SoapAmbulatorialService.MONITORIZACAO_HAS_SBC;
+  assert(mon.janelaReavaliacao.includes('1 a 2 semanas') || mon.janelaReavaliacao.includes('7 a 14 dias'), 'Janela deve ser de 1 a 2 semanas');
+  assert(mon.toleranciaCreatinina.includes('30%'), 'Tolerância aceitável de Cr deve ser até 30%');
+  assert(mon.duploBloqueioProibido.includes('ONTARGET'), 'Deve citar proibição formal de IECA + BRA pelo ONTARGET');
+
+  const cHas = SoapAmbulatorialService.estruturarCondutaHas({ pas: 160, pad: 100 });
+  assert.strictEqual(cHas.retornoDias, 14, 'Retorno ambulatorial para controle laboratorial deve ser em 14 dias');
+  assert(cHas.monitorizacao.includes('Creatinina') && cHas.monitorizacao.includes('Potássio'), 'Deve orientar dosagem de Cr e K+');
+  assert(cHas.monitorizacao.includes('30%'), 'Deve registrar tolerância de Cr até 30% por vasodilatação eferente');
+  assert(cHas.monitorizacao.includes('5,5 mEq/L'), 'Ponto de corte de potássio deve ser 5,5 mEq/L');
+  assert(cHas.monitorizacao.includes('AINEs'), 'Deve conter contraindicação sentinela a AINEs');
+  assert(cHas.textoCondutaPEP.includes('CONDUTA AMBULATORIAL DE HIPERTENSÃO ARTERIAL'), 'Texto de conduta para prontuário deve estar completo');
+});
+
+// =============================================================================
+// 14. INTEGRAÇÃO AUTOMÁTICA DA CONDUTA HAS NO SOAP AMBULATORIAL COMPLETO
+// =============================================================================
+test('14. estruturarSoapAmbulatorial integra metas SBC e prescrição quando caso é HAS', () => {
+  const dadosSoapHas = {
+    pacienteNome: 'Sebastião Rodrigues',
+    idade: 62,
+    queixaPrincipal: 'Acompanhamento de hipertensão arterial sistêmica',
+    tempoEvolucao: '3 anos',
+    sinaisVitais: { pa: '164/102', fc: '76', fr: '16', spo2: '97' },
+    diagnosticos: [
+      'Hipertensão Arterial Sistêmica Estágio 2 (CID-10: I10 / CIAP-2: K86)'
+    ]
+  };
+
+  const soap = SoapAmbulatorialService.estruturarSoapAmbulatorial(dadosSoapHas);
+  assert(soap.condutaHas, 'Objeto retornado deve conter condutaHas integrada');
+  assert.strictEqual(soap.condutaHas.passo, 2, 'Caso de HAS Estágio 2 deve escalonar para Passo 2 (dupla terapia)');
+  assert(soap.plano.includes('Metas Pressóricas & Escalonamento (SBC 2020/2024)'), 'Plano deve conter cabeçalho de metas SBC');
+  assert(soap.plano.includes('Losartana Potássica'), 'Prescrição automática do plano deve conter Losartana');
+  assert(soap.plano.includes('Hidroclorotiazida'), 'Prescrição automática do plano deve conter Hidroclorotiazida');
+  assert(soap.plano.includes('Protocolo de Monitorização Laboratorial (K+ e Creatinina após 2 semanas)'), 'Plano deve conter monitorização de K+ e Cr');
+  assert(soap.plano.includes('14 dias'), 'Retorno do plano deve estar calibrado para 14 dias (1 a 2 semanas)');
 });
 
 console.log(`\n🎉 SUITE CONCLUÍDA: ${aprovados}/${total} testes aprovados com 100% de sucesso.`);

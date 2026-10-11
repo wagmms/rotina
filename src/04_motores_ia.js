@@ -26,8 +26,8 @@ var IA_PADROES = {
   GROQ: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
   OPENROUTER: ["openrouter/free"],
   ZAI: ["glm-4.7-flash", "glm-4.5-flash"],
-  GEMINI: ["gemini-3.7-flash", "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash"],
-  GEMINI_GROUNDING: ["gemini-3.7-flash", "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash"],
+  GEMINI: ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"],
+  GEMINI_GROUNDING: ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"],
   LOCAL: ["llama3.1:latest", "llama3.2:latest", "mistral:latest", "llama3:8b", "mistral:7b"]
 };
 
@@ -668,8 +668,8 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
       if (opcoes.grounding) payload.tools = [{ googleSearch: {} }];
 
       try {
-        var timeoutMsConfig = Number(_iaCfg("GEMINI_TIMEOUT_MS", 12000)) || 12000;
-        var timeoutMsFetch = (opcoes && opcoes.timeoutMs) || (opcoes && (opcoes.multimodal || opcoes.partesUsuario) ? Math.max(15000, timeoutMsConfig) : timeoutMsConfig);
+        var timeoutMsConfig = Number(_iaCfg("GEMINI_TIMEOUT_MS", 7000)) || 7000;
+        var timeoutMsFetch = (opcoes && opcoes.timeoutMs) || (opcoes && (opcoes.multimodal || opcoes.partesUsuario) ? Math.max(12000, timeoutMsConfig) : timeoutMsConfig);
         var res = UrlFetchApp.fetch(
           "https://generativelanguage.googleapis.com/v1beta/models/" + modelo + ":generateContent",
           {
@@ -734,19 +734,18 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
           continue;
         } else if (code === 504) {
           todas429 = false;
-          if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
-            IaCircuitBreaker.registrarFalha("GEMINI", "HTTP 504 Gateway Timeout em " + modelo);
-          }
-          _iaBloquear("GEMINI_K_" + hashChave + "_" + modelo, 60);
-          _iaLog(ctx, "GEMINI " + modelo + ": HTTP 504 Timeout na chave #" + idx + " (Fast-Ack ativado para fallback local)");
+          _iaBloquear("GEMINI_" + modelo, 60);
+          _iaLog(ctx, "GEMINI " + modelo + ": HTTP 504 Timeout na chave #" + idx + ", pulando para próximo modelo.");
           break;
-        } else if (code === 500 || code === 502 || code === 503) {
+        } else if (code === 503) {
           todas429 = false;
-          if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
-            IaCircuitBreaker.registrarFalha("GEMINI", "HTTP " + code + " na chave #" + idx);
-          }
+          _iaBloquear("GEMINI_" + modelo, 60);
+          _iaLog(ctx, "GEMINI " + modelo + ": HTTP 503 Alta Demanda/Indisponível no Google, pulando para próximo modelo.");
+          break;
+        } else if (code === 500 || code === 502) {
+          todas429 = false;
           _iaBloquear("GEMINI_K_" + hashChave + "_" + modelo, 30);
-          _iaLog(ctx, "GEMINI " + modelo + ": " + code + " na chave #" + idx + ", tentando próxima chave");
+          _iaLog(ctx, "GEMINI " + modelo + ": " + code + " na chave #" + idx + ", tentando próxima chave.");
           continue;
         } else if (code === 404) {
           todas429 = false;

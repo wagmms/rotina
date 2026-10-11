@@ -1178,6 +1178,19 @@ function cockpitBuscarCid(initData, termo) {
 }
 
 /**
+ * cockpitEstruturarCondutaHas — conduta ambulatorial de HAS com metas SBC e tripla terapia.
+ */
+function cockpitEstruturarCondutaHas(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SoapAmbulatorialService === 'undefined' || typeof SoapAmbulatorialService.estruturarCondutaHas !== 'function') {
+    throw new Error('Módulo SoapAmbulatorialService.estruturarCondutaHas indisponível.');
+  }
+  var conduta = SoapAmbulatorialService.estruturarCondutaHas(params);
+  return { sucesso: true, conduta: conduta };
+}
+
+/**
  * cockpitCalcularPrenatal — calcula IG, DPP (Naegele/USG FEBRASGO), ganho de peso e resumo de consulta.
  */
 function cockpitCalcularPrenatal(initData, params) {

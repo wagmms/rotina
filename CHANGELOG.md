@@ -1,5 +1,18 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C29. [x] **Estabilidade da IA, Resiliência Fastify e Conduta Ambulatorial de HAS (`src/00_config.js`, `src/04_motores_ia.js`, `src/02_soap_ambulatorial.js`, `src/13_cockpit_integracao.js`, `server/runtime.js` e `tests/test_soap_ambulatorial.cjs`)**:
+    - **Diagnóstico e Resolução da Estabilidade da API de IA**:
+      * A cascata do Gemini iniciava por modelos sob alta demanda no Google (`gemini-3.7-flash` e `gemini-3.8-flash`), gerando HTTP 503 e timeouts prolongados (>10s) que travavam o event loop e abriam indevidamente o `IaCircuitBreaker` global.
+      * Reordenada a lista de modelos para priorizar os ultra-rápidos e estáveis `gemini-flash-lite-latest` e `gemini-3.5-flash-lite`.
+      * Reduzido o timeout de fetch para 7s e adicionado tratamento específico para HTTP 503/504 com cooldown seletivo de 60s por modelo, eliminando quedas de conexão e timeouts.
+    - **Enriquecimento Clínico Ambulatorial — Hipertensão Arterial Sistêmica (HAS - SBC 2020/2024)**:
+      * Em `src/02_soap_ambulatorial.js`: implementada função canônica `SoapAmbulatorialService.estruturarCondutaHas(dados)` integrada à geração de prontuário PEP.
+      * Estratificação de risco cardiovascular SBC, determinação de metas pressóricas rigorosas (< 130/80 mmHg para alto risco/DM/DRC e < 140/90 mmHg para baixo/moderado risco).
+      * Estratégia de escalonamento com dupla/tripla terapia (IECA/BRA + BCC + Tiazídico em monoterapia/dupla de acordo com o estágio e risco), alerta formal contra combinação de IECA + BRA.
+      * Protocolo estrito de monitorização de K+ e Creatinina em 1-2 semanas após início/ajuste de IECA/BRA, limites de tolerância de elevação da creatinina (até 30%) e condutas em hipercalemia.
+      * Exposta rota RPC `cockpitEstruturarCondutaHas` em `src/13_cockpit_integracao.js` e `server/runtime.js`.
+    - **Validação e Resultados**: 100% de aprovação na suíte de testes `test_soap_ambulatorial.cjs` e 49/49 suítes no `npm test` em 7.26s com zero regressões.
+
 0C28. [x] **Sala Vermelha — Otimização Farmacológica e Diluições Prontas de Choque Séptico e CIRCI (`src/02_emergencia_choque_septico_circi.js`, `tests/test_emergencia_choque_septico_circi.cjs`)**:
     - **Diagnóstico e Enriquecimento Clínico Beira-Leito**:
       * Em `src/02_emergencia_choque_septico_circi.js`: na função existente `EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoKg, doseNoraMcgKgMin)`, enriquecido o retorno com a prescrição beira-leito canônica para Prontuário Eletrônico (PEP) e condutas SSC:
