@@ -1,5 +1,28 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0BF. [x] **Auditoria de Resiliência de Payload e Sanitização das Rotas Fastify do Servidor (`server/index.js`, `server/validators.js` e `server/runtime.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em `server/validators.js`, os limites fisiológicos (`LIMITES_FISIOLOGICOS`) não continham parâmetros clínicos de exames laboratoriais e vitais frequentes em urgência (glicemia, lactato, hemoglobina, leucócitos, plaquetas e temperatura), e não havia o schema formal `chatBodySchema` para validação em handshake do endpoint `/api/chat`; calculadoras como CURB-65 não bloqueavam combinações hemodinamicamente impossíveis (PAS < PAD), e escores como Glasgow-P e HEART aceitavam valores fracionários não-inteiros.
+      * Em `server/runtime.js`, `cockpitRpc` permitia que chamadas com `metodo` inválido ou nomes reservados da cadeia de protótipos de JavaScript (`__proto__`, `constructor`, `prototype`, `toString`, `valueOf`, `hasOwnProperty`, `isPrototypeOf`, `propertyIsEnumerable`) pudessem alcançar funções herdadas do V8 via `ctx[metodo]`.
+      * Em `server/index.js`, a rota `/api/chat` necessitava de validação estrita de payloads JSON truncados e text/plain não parseável; a checagem de erros de autenticação e sessão em `/api/calcular`, `/api/cockpit` e `/api/chat` era baseada em `includes` simples ('sessão' com acento), sujeita a falsos negativos com mensagens em maiúsculas ('Sessão'), variações ortográficas ('sessao') ou status de expiração ('expirada'); e não havia sanitização ativa de mensagens de erro contra caminhos de arquivos internos do servidor ou traços de pilha.
+    - **Implementação e Refatoração**:
+      * Em `server/validators.js`:
+        • Expandido `LIMITES_FISIOLOGICOS` com temperatura (30-44°C), glicemia (10-2000 mg/dL), lactato (0.1-35 mmol/L), plaquetas (1.000-2.000.000/mm³), leucócitos (100-300.000/mm³) e hemoglobina (1.0-25.0 g/dL).
+        • Implementado e exportado `chatBodySchema` com suporte flexível e defensivo a `mensagem`, `texto`, `prompt`, `acao`, `session`, `token`, `audioBase64` e `mime`.
+        • Adicionada validação fisiológica hemodinâmica no CURB-65 rejeitando PAS < PAD, e validação de inteiros estrita (`Number.isInteger`) para respostas de Glasgow-P e parâmetros de história, ECG e troponina do HEART Score.
+      * Em `server/runtime.js`:
+        • Adicionada validação estrita no despacho `cockpitRpc`, rejeitando métodos vazios, não-string e propriedades reservadas (`__proto__`, `constructor`, `prototype`, `toString`, `valueOf`, `hasOwnProperty`, `isPrototypeOf`, `propertyIsEnumerable`) com lançamento imediato de `Error('Método solicitado inválido ou proibido.')`.
+        • Reforçada a checagem de funções em `ctx` com `Object.prototype.hasOwnProperty.call(ctx, metodoTrim)` antes da invocação.
+      * Em `server/index.js`:
+        • Criado helper padronizado `ehErroAutenticacaoOuSessao(err)` com regex resiliente (`/autorizad[ao]|sess[aã]o|expirad[ao]|token|n[aã]o\s+permitid[ao]|credencia[li]s?/i`) garantindo retorno HTTP 401 Unauthorized para qualquer sessão ausente, inválida ou expirada em `/api/calcular`, `/api/cockpit` e `/api/chat`.
+        • Criada função `sanitizarMensagemErro(msg)` para remover rastros de stacktrace (`at ...`) e substituir caminhos de sistema (`/home/...`, `/app/...`) por `[servidor]` em todas as respostas de erro HTTP 400, 401 e 500.
+        • Implementado endpoint REST dedicado `/api/chat` com validação de schema Ajv, preValidation defensivo com bloqueio de prototype pollution (`Object.getPrototypeOf` e propriedades reservadas), suporte a sessões via header ou body e resposta rápida sem vazamento de stacktrace.
+        • Reforçado o tratamento de erros global (`setErrorHandler`) para capturar HTTP 413 com mensagem padronizada em português e assegurar que erros 4xx/5xx nunca incluam propriedades de stack ou rastros de execução.
+      * Em `tests/test_fastify_resiliencia_payloads.cjs`:
+        • Expandida a suíte com testes 8, 9, 10 e 11 cobrindo 100% dos novos fluxos de `/api/chat`, sessões expiradas/inválidas, blindagem contra prototype pollution, limites hemodinâmicos e validação estrita de inteiros (11/11 testes aprovados).
+    - **Validação e Cobertura Automatizada**:
+      * 100% de sucesso nas suítes `tests/test_fastify_resiliencia_payloads.cjs` (11/11), `tests/test_schemas_validacao_calculadoras.cjs`, `tests/test_fastify_resiliencia.cjs`, `tests/test_server_render.cjs`, `tests/test_caching_etag_fastify.cjs` e `tests/test_seguranca_helmet_ratelimit.cjs`.
+
 0BE. [x] **Auditoria e Otimização da Interface e Responsividade do Cockpit PWA (`cockpit_movel.html`, `server/runtime.js` e `src/13_cockpit_integracao.js`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em `src/13_cockpit_integracao.js`, `cockpitConsultar` descartava o texto do SOAP quando `resultado.revision !== estado.revision` mesmo havendo um SOAP válido recém-gerado pelo Telegram, e não fazia parse defensivo caso `PersistenciaBot.ler('soapview_' + chat)` retornasse string JSON serializada.

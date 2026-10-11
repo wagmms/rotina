@@ -965,9 +965,19 @@ module.exports = {
         _rpcMap.cockpitObito = ctx.cockpitObito || ctx.cockpitMedicinaLegalObito;
         Object.freeze(_rpcMap);
       }
-      const fn = _rpcMap[metodo] || (typeof ctx[metodo] === 'function' ? ctx[metodo] : null);
+      if (!metodo || typeof metodo !== 'string') {
+        throw new Error('Método do Cockpit deve ser uma string válida.');
+      }
+      const metodoTrim = metodo.trim();
+      if (!metodoTrim || metodoTrim === '__proto__' || metodoTrim === 'constructor' || metodoTrim === 'prototype' || metodoTrim === 'toString' || metodoTrim === 'valueOf' || metodoTrim === 'hasOwnProperty' || metodoTrim === 'isPrototypeOf' || metodoTrim === 'propertyIsEnumerable') {
+        throw new Error('Método solicitado inválido ou proibido.');
+      }
+      let fn = _rpcMap[metodoTrim] || null;
+      if (!fn && Object.prototype.hasOwnProperty.call(ctx, metodoTrim) && typeof ctx[metodoTrim] === 'function') {
+        fn = ctx[metodoTrim];
+      }
       if (typeof fn !== 'function') {
-        throw new Error(`Método do Cockpit não suportado: ${metodo}`);
+        throw new Error(`Método do Cockpit não suportado: ${metodoTrim}`);
       }
       const safeArgs = Array.isArray(args) ? args : (args !== undefined && args !== null ? [args] : []);
       return fn.apply(null, [session].concat(safeArgs));

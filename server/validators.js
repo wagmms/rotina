@@ -30,7 +30,13 @@ const LIMITES_FISIOLOGICOS = {
   scq: { min: 1, max: 100, nome: 'Superfície Corpórea Queimada (SCQ)', unidade: '%' },
   ureia: { min: 2, max: 500, nome: 'Ureia sérica', unidade: 'mg/dL' },
   pas: { min: 40, max: 300, nome: 'Pressão Arterial Sistólica (PAS)', unidade: 'mmHg' },
-  pad: { min: 20, max: 200, nome: 'Pressão Arterial Diastólica (PAD)', unidade: 'mmHg' }
+  pad: { min: 20, max: 200, nome: 'Pressão Arterial Diastólica (PAD)', unidade: 'mmHg' },
+  temperatura: { min: 30.0, max: 44.0, nome: 'Temperatura corporal', unidade: '°C' },
+  glicemia: { min: 10, max: 2000, nome: 'Glicemia', unidade: 'mg/dL' },
+  lactato: { min: 0.1, max: 35.0, nome: 'Lactato sérico', unidade: 'mmol/L' },
+  plaquetas: { min: 1000, max: 2000000, nome: 'Plaquetas', unidade: '/mm³' },
+  leucocitos: { min: 100, max: 300000, nome: 'Leucócitos', unidade: '/mm³' },
+  hemoglobina: { min: 1.0, max: 25.0, nome: 'Hemoglobina (Hb)', unidade: 'g/dL' }
 };
 
 const DROGAS_DVA_VALIDAS = new Set(['nora', 'dobuta', 'vaso', 'adrena', 'adrenalina', 'nipride', 'tridil']);
@@ -420,7 +426,7 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
       for (const campo of ['historia', 'ecg', 'fr', 'troponina']) {
         if (entrada[campo] !== undefined && entrada[campo] !== null && entrada[campo] !== '') {
           const num = normalizarNumero(entrada[campo]);
-          if (num === null || num < 0 || num > 2) {
+          if (num === null || !Number.isInteger(num) || num < 0 || num > 2) {
             return { valido: false, erro: `Parâmetro "${campo}" do HEART Score deve ser 0, 1 ou 2.` };
           }
           entradaSanitizada[campo] = num;
@@ -512,22 +518,22 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
 
     case 'glasgow': {
       const oVal = normalizarNumero(entrada.ocular !== undefined ? entrada.ocular : entrada.o);
-      if (oVal === null || oVal < 1 || oVal > 4) {
+      if (oVal === null || !Number.isInteger(oVal) || oVal < 1 || oVal > 4) {
         return { valido: false, erro: 'Resposta Ocular do Glasgow deve ser entre 1 e 4.' };
       }
       const vVal = normalizarNumero(entrada.verbal !== undefined ? entrada.verbal : entrada.v);
-      if (vVal === null || vVal < 1 || vVal > 5) {
+      if (vVal === null || !Number.isInteger(vVal) || vVal < 1 || vVal > 5) {
         return { valido: false, erro: 'Resposta Verbal do Glasgow deve ser entre 1 e 5.' };
       }
       const mVal = normalizarNumero(entrada.motor !== undefined ? entrada.motor : entrada.m);
-      if (mVal === null || mVal < 1 || mVal > 6) {
+      if (mVal === null || !Number.isInteger(mVal) || mVal < 1 || mVal > 6) {
         return { valido: false, erro: 'Resposta Motora do Glasgow deve ser entre 1 e 6.' };
       }
       let pVal = 0;
       const rawP = entrada.pupilas !== undefined ? entrada.pupilas : entrada.p;
       if (rawP !== undefined && rawP !== null && rawP !== '') {
         const numP = normalizarNumero(rawP);
-        if (numP === null || numP < 0 || numP > 2) {
+        if (numP === null || !Number.isInteger(numP) || numP < 0 || numP > 2) {
           return { valido: false, erro: 'Pupilas não reagentes do Glasgow-P deve ser 0, 1 ou 2.' };
         }
         pVal = numP;
@@ -610,6 +616,13 @@ function validarParametrosCalculadora(tipoRaw, entradaRaw) {
       const vPad = validarParametroFisiologico('pad', entrada.pad, true);
       if (!vPad.valido) return vPad;
 
+      if (vPas.valor < vPad.valor) {
+        return {
+          valido: false,
+          erro: 'Pressão Arterial Sistólica (PAS) não pode ser menor que a Pressão Arterial Diastólica (PAD).'
+        };
+      }
+
       entradaSanitizada.idade = vIdade.valor;
       entradaSanitizada.fr = vFr.valor;
       entradaSanitizada.ureia = vUreia.valor;
@@ -671,6 +684,28 @@ const telemetriaQuerySchema = {
   additionalProperties: true
 };
 
+const chatBodySchema = {
+  type: 'object',
+  properties: {
+    mensagem: { type: 'string', minLength: 1, maxLength: 16384 },
+    texto: { type: 'string', minLength: 1, maxLength: 16384 },
+    prompt: { type: 'string', minLength: 1, maxLength: 16384 },
+    acao: { type: 'string', minLength: 1, maxLength: 60 },
+    session: { type: 'string', maxLength: 2048 },
+    token: { type: 'string', maxLength: 2048 },
+    audioBase64: { type: 'string', maxLength: 15 * 1024 * 1024 },
+    mime: { type: 'string', maxLength: 100 }
+  },
+  anyOf: [
+    { required: ['mensagem'] },
+    { required: ['texto'] },
+    { required: ['prompt'] },
+    { required: ['acao'] },
+    { required: ['audioBase64'] }
+  ],
+  additionalProperties: true
+};
+
 module.exports = {
   LIMITES_FISIOLOGICOS,
   DROGAS_DVA_VALIDAS,
@@ -682,5 +717,7 @@ module.exports = {
   validarParametrosCalculadora,
   cockpitBodySchema,
   calcularBodySchema,
+  chatBodySchema,
   telemetriaQuerySchema
 };
+

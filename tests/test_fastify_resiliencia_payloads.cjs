@@ -438,4 +438,214 @@ describe('Resiliência e Sanitização de Erros na API Fastify (/api/calcular e 
     assert.strictEqual(resCockpitTextPlainOk.json().ok, true);
     assert(resCockpitTextPlainOk.json().resultado.texto.includes('Etomidato') || resCockpitTextPlainOk.json().resultado.texto.includes('Cetamina'));
   });
+
+  test('8. Resiliência e Sanitização do Endpoint Dedicado /api/chat', async () => {
+    // 8.1 JSON truncado em /api/chat
+    const resChatTruncado = await app.inject({
+      method: 'POST',
+      url: '/api/chat',
+      headers: { 'content-type': 'application/json' },
+      payload: '{"mensagem": "Paciente hipertenso com PA 180x110'
+    });
+    const errChat1 = verificarRespostaErroDefensiva(resChatTruncado, 400);
+    assert(errChat1.erro.includes('JSON malformado') || errChat1.erro.includes('sintaxe inválida'));
+
+    // 8.2 String pura não-JSON via text/plain em /api/chat
+    const resChatTextPlainRuim = await app.inject({
+      method: 'POST',
+      url: '/api/chat',
+      headers: { 'content-type': 'text/plain' },
+      payload: 'texto_sem_formato_json_para_o_chat{{{'
+    });
+    const errChat2 = verificarRespostaErroDefensiva(resChatTextPlainRuim, 400);
+    assert(errChat2.erro.includes('JSON malformado') || errChat2.erro.includes('não parseável'));
+
+    // 8.3 Array vazio em /api/chat
+    const resChatArray = await app.inject({
+      method: 'POST',
+      url: '/api/chat',
+      payload: []
+    });
+    verificarRespostaErroDefensiva(resChatArray, 400);
+
+    // 8.4 Tentativa de Prototype Pollution em /api/chat
+    const resChatProto = await app.inject({
+      method: 'POST',
+      url: '/api/chat',
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({
+        __proto__: { admin: true },
+        constructor: { admin: true },
+        session: token,
+        mensagem: 'Pergunta com payload malicioso'
+      })
+    });
+    const errProto = verificarRespostaErroDefensiva(resChatProto, 400);
+    assert(errProto.erro.includes('propriedade reservada') || errProto.erro.includes('protótipo') || errProto.erro.includes('inválido') || errProto.erro.includes('bloqueada'));
+
+    // 8.5 Ausência de campos mínimos exigidos (sem mensagem, texto, prompt, acao, audioBase64)
+    const resChatVazio = await app.inject({
+      method: 'POST',
+      url: '/api/chat',
+      payload: { session: token }
+    });
+    verificarRespostaErroDefensiva(resChatVazio, 400);
+
+    // 8.6 Sessão ausente em /api/chat -> 401 Unauthorized
+    const resChatSemSessao = await app.inject({
+      method: 'POST',
+      url: '/api/chat',
+      payload: { mensagem: 'Qual a dose de noradrenalina em choque séptico?' }
+    });
+    const errAuth1 = verificarRespostaErroDefensiva(resChatSemSessao, 401);
+    assert(errAuth1.erro.includes('Sessão') || errAuth1.erro.includes('Telegram') || errAuth1.erro.includes('expirada'));
+
+    // 8.7 Sessão inválida / expirada em /api/chat -> 401 Unauthorized
+    const resChatSessaoRuim = await app.inject({
+      method: 'POST',
+      url: '/api/chat',
+      payload: {
+        session: 'ck_0000000000000000000000000000000000000000000000000000000000000000',
+        mensagem: 'Qual conduta na acidose diabética?'
+      }
+    });
+    const errAuth2 = verificarRespostaErroDefensiva(resChatSessaoRuim, 401);
+    assert(errAuth2.erro.includes('Sessão') || errAuth2.erro.includes('Telegram') || errAuth2.erro.includes('expirada'));
+
+    // 8.8 Requisição legítima ao /api/chat com resposta rápida
+    const resChatOk = await app.inject({
+      method: 'POST',
+      url: '/api/chat',
+      payload: {
+        session: token,
+        acao: 'novo'
+      }
+    });
+    assert.strictEqual(resChatOk.statusCode, 200);
+    assert.strictEqual(resChatOk.json().ok, true);
+    assert(typeof resChatOk.json().benchmark_ms === 'number');
+  });
+
+  test('9. Sessões ausentes e expiradas em /api/cockpit e /api/calcular', async () => {
+    // 9.1 /api/cockpit sem sessão
+    const resCockpitSemSessao = await app.inject({
+      method: 'POST',
+      url: '/api/cockpit',
+      payload: { metodo: 'cockpitConsultar' }
+    });
+    const err1 = verificarRespostaErroDefensiva(resCockpitSemSessao, 401);
+    assert(err1.erro.includes('Sessão') || err1.erro.includes('autorizado') || err1.erro.includes('Telegram'));
+
+    // 9.2 /api/cockpit com token HMAC expirado/falso
+    const resCockpitTokenFalso = await app.inject({
+      method: 'POST',
+      url: '/api/cockpit',
+      payload: {
+        metodo: 'cockpitConsultar',
+        session: 'ck_deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+      }
+    });
+    const err2 = verificarRespostaErroDefensiva(resCockpitTokenFalso, 401);
+    assert(err2.erro.includes('Sessão') || err2.erro.includes('Telegram') || err2.erro.includes('expirada'));
+
+    // 9.3 /api/calcular sem sessão e com token inválido
+    const resCalcTokenFalso = await app.inject({
+      method: 'POST',
+      url: '/api/calcular',
+      payload: {
+        tipo: 'dva',
+        session: 'ck_fake_token_invalido',
+        parametros: { droga: 'nora', peso: 70 }
+      }
+    });
+    const err3 = verificarRespostaErroDefensiva(resCalcTokenFalso, 401);
+    assert(err3.erro.includes('Sessão') || err3.erro.includes('Telegram') || err3.erro.includes('autorizado'));
+  });
+
+  test('10. Blindagem contra Prototype Pollution e Métodos Reservados em cockpitRpc', async () => {
+    // 10.1 Métodos de protótipo de Object no Cockpit RPC
+    for (const metodoProibido of ['__proto__', 'constructor', 'prototype', 'toString', 'valueOf']) {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/cockpit',
+        payload: {
+          metodo: metodoProibido,
+          session: token,
+          args: []
+        }
+      });
+      const err = verificarRespostaErroDefensiva(res, 400);
+      assert(err.erro.includes('inválido ou proibido') || err.erro.includes('não suportado'));
+    }
+
+    // 10.2 Chamada direta ao helper runtime.cockpitRpc com método proibido
+    assert.throws(
+      () => runtime.cockpitRpc('constructor', token, []),
+      /Método solicitado inválido ou proibido/
+    );
+    assert.throws(
+      () => runtime.cockpitRpc('__proto__', token, []),
+      /Método solicitado inválido ou proibido/
+    );
+    assert.throws(
+      () => runtime.cockpitRpc('toString', token, []),
+      /Método solicitado inválido ou proibido/
+    );
+    assert.throws(
+      () => runtime.cockpitRpc('hasOwnProperty', token, []),
+      /Método solicitado inválido ou proibido/
+    );
+    assert.throws(
+      () => runtime.cockpitRpc('isPrototypeOf', token, []),
+      /Método solicitado inválido ou proibido/
+    );
+    assert.throws(
+      () => runtime.cockpitRpc('', token, []),
+      /Método do Cockpit deve ser uma string válida/
+    );
+  });
+
+  test('11. Limites fisiológicos hemodinâmicos e validação estrita de inteiros (CURB, Glasgow, HEART)', async () => {
+    // 11.1 CURB-65: PAS menor que PAD (hemodinamicamente impossível: PAS 70, PAD 100)
+    const resCurbPasMenor = await app.inject({
+      method: 'POST',
+      url: '/api/calcular',
+      payload: {
+        tipo: 'curb65',
+        parametros: { idade: 65, fr: 25, ureia: 40, pas: 70, pad: 100 }
+      }
+    });
+    const errCurb = verificarRespostaErroDefensiva(resCurbPasMenor, 400);
+    assert(errCurb.erro.includes('Pressão Arterial Sistólica') && errCurb.erro.includes('não pode ser menor'), 'CURB deve rejeitar PAS < PAD');
+
+    // 11.2 Glasgow com valores decimais não-inteiros
+    const resGlasgowDecimal = await app.inject({
+      method: 'POST',
+      url: '/api/calcular',
+      payload: {
+        tipo: 'glasgow',
+        parametros: { ocular: 3.5, verbal: 5, motor: 6 }
+      }
+    });
+    const errGlas = verificarRespostaErroDefensiva(resGlasgowDecimal, 400);
+    assert(errGlas.erro.includes('Resposta Ocular do Glasgow') || errGlas.erro.includes('número inteiro'), 'Glasgow deve rejeitar valores fracionários');
+
+    // 11.3 HEART score com valor decimal não-inteiro
+    const resHeartDecimal = await app.inject({
+      method: 'POST',
+      url: '/api/calcular',
+      payload: {
+        tipo: 'heart',
+        parametros: { historia: 1.5, ecg: 1, troponina: 1 }
+      }
+    });
+    const errHeart = verificarRespostaErroDefensiva(resHeartDecimal, 400);
+    assert(errHeart.erro.includes('HEART Score') && errHeart.erro.includes('0, 1 ou 2'), 'HEART deve exigir inteiros 0, 1 ou 2');
+
+    // 11.4 Garantia de ausência de paths internos ou stacktraces em qualquer resposta de erro
+    assert(!JSON.stringify(errCurb).includes('/home/'), 'Nenhum caminho de sistema deve vazar no erro CURB');
+    assert(!JSON.stringify(errGlas).includes('/home/'), 'Nenhum caminho de sistema deve vazar no erro Glasgow');
+    assert(!JSON.stringify(errHeart).includes('/home/'), 'Nenhum caminho de sistema deve vazar no erro HEART');
+  });
 });
+

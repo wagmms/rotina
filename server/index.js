@@ -17,8 +17,21 @@ const {
   validarParametrosCalculadora,
   cockpitBodySchema,
   calcularBodySchema,
+  chatBodySchema,
   telemetriaQuerySchema
 } = require('./validators');
+
+function ehErroAutenticacaoOuSessao(err) {
+  if (!err) return false;
+  const msg = typeof err === 'string' ? err : (err.message || '');
+  return /autorizad[ao]|sess[aã]o|expirad[ao]|token|n[aã]o\s+permitid[ao]|credencia[li]s?/i.test(msg);
+}
+
+function sanitizarMensagemErro(msg) {
+  if (typeof msg !== 'string') return 'Erro na requisição.';
+  const limpo = msg.split(/\r?\n/).filter(line => !/^\s*at\s+.*\(.*:\d+:\d+\)/.test(line)).join(' ').trim();
+  return limpo.replace(/\/home\/[^\s:]+|\/app\/[^\s:]+/g, '[servidor]');
+}
 
 function gerarETag(conteudo) {
   if (!conteudo) return '"0"';
@@ -307,6 +320,17 @@ async function buildServer() {
       return;
     }
 
+    if (statusCode === 413) {
+      fastify.log.warn(`[Fastify Payload Too Large][${reqId}] 413 - Payload excede limite na rota: ${request.raw.url}`);
+      reply.status(413).send({
+        ok: false,
+        erro: 'Payload da requisição excede o limite máximo permitido (15MB).',
+        detalhes: 'Reduza o tamanho dos dados ou divida em lotes menores.',
+        requestId: reqId
+      });
+      return;
+    }
+
     // Tratamento defensivo de JSON malformado e SyntaxError do parser
     const isSyntaxOrJsonError = error instanceof SyntaxError ||
       (statusCode === 400 && typeof error.message === 'string' && /JSON|Unexpected token|Unexpected end|parsing/i.test(error.message));
@@ -335,10 +359,12 @@ async function buildServer() {
 
     fastify.log.error(`[Fastify Global Error][${reqId}] ${error.message} - Rota: ${request.raw.url}`);
     registrarErroSistema('fastify_global_error', error.message, { reqId, url: request.raw.url, statusCode });
+    const msgErro = statusCode >= 500 ? 'Falha interna no servidor.' : (sanitizarMensagemErro(error.message) || 'Erro na requisição.');
+    const detalhesErro = statusCode >= 500 ? 'Ocorreu um erro interno ao processar a requisição clínica.' : sanitizarMensagemErro(error.message);
     reply.status(statusCode).send({
       ok: false,
-      erro: statusCode >= 500 ? 'Falha interna no servidor.' : (error.message || 'Erro na requisição.'),
-      detalhes: statusCode >= 500 ? 'Ocorreu um erro interno ao processar a requisição clínica.' : error.message,
+      erro: msgErro,
+      detalhes: detalhesErro,
       requestId: reqId
     });
   });
@@ -528,6 +554,27 @@ async function buildServer() {
         return;
       }
 
+      if (Object.getPrototypeOf(body) !== Object.prototype && Object.getPrototypeOf(body) !== null) {
+        reply.status(400).send({
+          ok: false,
+          erro: 'Payload contém protótipo alterado ou propriedade reservada proibida.',
+          detalhes: 'Tentativa de prototype pollution bloqueada.',
+          requestId: request.id
+        });
+        return;
+      }
+      for (const k of ['__proto__', 'constructor', 'prototype']) {
+        if (Object.prototype.hasOwnProperty.call(body, k)) {
+          reply.status(400).send({
+            ok: false,
+            erro: 'Payload contém propriedade reservada proibida.',
+            detalhes: 'Tentativa de prototype pollution bloqueada.',
+            requestId: request.id
+          });
+          return;
+        }
+      }
+
       const { tipo, parametros } = body;
       const validacao = validarParametrosCalculadora(tipo, parametros);
       if (!validacao.valido) {
@@ -566,12 +613,12 @@ async function buildServer() {
       };
     } catch (err) {
       const elapsed = (performance.now() - t0).toFixed(2);
-      const isAuthError = err.message.includes('autorizado') || err.message.includes('sessão');
+      const isAuthError = ehErroAutenticacaoOuSessao(err);
       reply.status(isAuthError ? 401 : 400);
       return {
         ok: false,
-        erro: err.message,
-        detalhes: err.message,
+        erro: sanitizarMensagemErro(err.message) || 'Falha ao processar cálculo clínico.',
+        detalhes: sanitizarMensagemErro(err.message),
         benchmark_ms: Number(elapsed),
         requestId: request.id
       };
@@ -612,6 +659,26 @@ async function buildServer() {
           requestId: request.id
         });
         return;
+      }
+      if (Object.getPrototypeOf(body) !== Object.prototype && Object.getPrototypeOf(body) !== null) {
+        reply.status(400).send({
+          ok: false,
+          erro: 'Payload contém protótipo alterado ou propriedade reservada proibida.',
+          detalhes: 'Tentativa de prototype pollution bloqueada.',
+          requestId: request.id
+        });
+        return;
+      }
+      for (const k of ['__proto__', 'constructor', 'prototype']) {
+        if (Object.prototype.hasOwnProperty.call(body, k)) {
+          reply.status(400).send({
+            ok: false,
+            erro: 'Payload contém propriedade reservada proibida.',
+            detalhes: 'Tentativa de prototype pollution bloqueada.',
+            requestId: request.id
+          });
+          return;
+        }
       }
       const metodo = typeof body.metodo === 'string' ? body.metodo.trim() : '';
       if (!metodo) {
@@ -753,12 +820,136 @@ async function buildServer() {
       });
 
       reply.header('Cache-Control', 'no-store');
-      const isAuthError = err.message.includes('autorizado') || err.message.includes('sessão');
+      const isAuthError = ehErroAutenticacaoOuSessao(err);
       reply.status(isAuthError ? 401 : 400);
       return {
         ok: false,
-        erro: err.message || 'Falha ao processar solicitação clínica.',
-        detalhes: err.message,
+        erro: sanitizarMensagemErro(err.message) || 'Falha ao processar solicitação clínica.',
+        detalhes: sanitizarMensagemErro(err.message),
+        benchmark_ms: Number(elapsed),
+        requestId: request.id
+      };
+    }
+  });
+
+  // 5.0.2 Endpoint REST Dedicado para Chat Clínico e Assistente IA (/api/chat)
+  fastify.post('/api/chat', {
+    schema: {
+      body: chatBodySchema
+    },
+    preValidation: (request, reply, done) => {
+      let body = request.body;
+      if (typeof body === 'string') {
+        try {
+          body = JSON.parse(body);
+          request.body = body;
+        } catch (_) {
+          reply.status(400).send({
+            ok: false,
+            erro: 'Corpo da requisição contém JSON malformado ou string não parseável.',
+            detalhes: 'Não foi possível converter a entrada para um objeto JSON válido.',
+            requestId: request.id
+          });
+          return;
+        }
+      }
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        reply.status(400).send({
+          ok: false,
+          erro: 'Payload do Chat deve ser um objeto JSON não nulo.',
+          detalhes: 'O corpo recebido não é um objeto JSON válido.',
+          requestId: request.id
+        });
+        return;
+      }
+      if (Object.getPrototypeOf(body) !== Object.prototype && Object.getPrototypeOf(body) !== null) {
+        reply.status(400).send({
+          ok: false,
+          erro: 'Payload contém protótipo alterado ou propriedade reservada proibida.',
+          detalhes: 'Tentativa de prototype pollution bloqueada.',
+          requestId: request.id
+        });
+        return;
+      }
+      for (const k of ['__proto__', 'constructor', 'prototype']) {
+        if (Object.prototype.hasOwnProperty.call(body, k)) {
+          reply.status(400).send({
+            ok: false,
+            erro: 'Payload contém propriedade reservada proibida.',
+            detalhes: 'Tentativa de prototype pollution bloqueada.',
+            requestId: request.id
+          });
+          return;
+        }
+      }
+      done();
+    }
+  }, async (request, reply) => {
+    const t0 = performance.now();
+    try {
+      const body = request.body || {};
+      const session = body.session || body.token || (typeof request.headers['authorization'] === 'string' ? request.headers['authorization'].replace(/^Bearer\s+/i, '').trim() : '') || '';
+      const texto = body.mensagem || body.texto || body.prompt || '';
+      const acao = typeof body.acao === 'string' ? body.acao.trim() : 'enviar';
+      const audioBase64 = body.audioBase64 || null;
+      const mime = typeof body.mime === 'string' ? body.mime.trim() : 'audio/webm';
+
+      if (!session) {
+        reply.status(401).send({
+          ok: false,
+          erro: 'Sessão ausente, inválida ou expirada. Autentique-se via Telegram para interagir com o chat clínico.',
+          detalhes: 'Token de sessão do Cockpit não fornecido.',
+          requestId: request.id
+        });
+        return;
+      }
+
+      const params = {
+        acao,
+        texto: String(texto),
+        audioBase64,
+        mime
+      };
+
+      const resultado = runtime.cockpitRpc('cockpitConversar', session, [params]);
+      const elapsed = (performance.now() - t0).toFixed(2);
+
+      registrarInteracaoAoVivo({
+        origem: 'fastify_rest_chat',
+        tipo: 'chat',
+        resumo: `Chat REST: ${acao} - "${String(texto).slice(0, 40)}"`,
+        duracao_ms: Number(elapsed),
+        status: 'sucesso'
+      });
+
+      return {
+        ok: true,
+        resultado,
+        resposta: resultado?.resposta || resultado?.mensagem || resultado,
+        soap: resultado?.soap || '',
+        benchmark_ms: Number(elapsed)
+      };
+    } catch (err) {
+      const elapsed = (performance.now() - t0).toFixed(2);
+      fastify.log.warn(`[Chat REST Error] ${err.message} (${elapsed}ms)`);
+
+      registrarInteracaoAoVivo({
+        origem: 'fastify_rest_chat',
+        tipo: 'chat',
+        resumo: `Chat REST: ${request.body?.acao || 'enviar'}`,
+        duracao_ms: Number(elapsed),
+        status: 'erro',
+        detalhes: err.message
+      });
+
+      const isAuthError = ehErroAutenticacaoOuSessao(err);
+      reply.status(isAuthError ? 401 : 400);
+      return {
+        ok: false,
+        erro: isAuthError
+          ? 'Sessão ausente, inválida ou expirada. Autentique-se via Telegram para interagir com o chat clínico.'
+          : (sanitizarMensagemErro(err.message) || 'Falha ao processar mensagem do chat clínico.'),
+        detalhes: sanitizarMensagemErro(err.message),
         benchmark_ms: Number(elapsed),
         requestId: request.id
       };
