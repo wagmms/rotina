@@ -27,9 +27,9 @@ var ConfigService = (function() {
   // Todos os segredos e credenciais devem ser definidos exclusivamente em ScriptProperties.
   var DEFAULTS = {
     PROVEDOR_TEXTO_PADRAO: "GEMINI",
-    IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
-    IA_MODELOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
-    IA_MODELOS_TTS_GEMINI: "gemini-2.5-flash-preview-tts,gemini-3.8-flash-tts",
+    IA_MODELOS_CLINICOS_GEMINI: "gemini-3.7-flash,gemini-flash-lite-latest,gemini-3.8-flash,gemini-flash-latest,gemini-3.5-flash",
+    IA_MODELOS_GEMINI: "gemini-3.7-flash,gemini-flash-lite-latest,gemini-3.8-flash,gemini-flash-latest,gemini-3.5-flash",
+    IA_MODELOS_TTS_GEMINI: "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts",
     IA_MODELOS_LOCAL: "llama3.1:latest,llama3.2:latest,mistral:latest,llama3:8b,mistral:7b",
     LOCAL_LLM_URL: "http://127.0.0.1:11434/v1/chat/completions",
     LOCAL_LLM_API_KEY: "ollama",

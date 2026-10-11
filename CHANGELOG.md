@@ -2,6 +2,29 @@
 
 > Gerado automaticamente. Arquivo de referência para o histórico arquivado do PROGRESS.md.
 
+0AM. [x] **Otimização do Pool de Modelos Gemini, Correção de HTTP 400 em thinkingBudget e Eliminação de Gargalo 429**:
+    - **Diagnóstico Preciso de Cotas e Erros da API do Gemini**:
+      * Identificado que o erro `429` no `gemini-3.5-flash` ocorre por esgotamento da cota diária do Free Tier da Google (apenas 20 RPD por projeto/consumer), impondo um bloqueio de ~20,7 horas compartilhado por todas as chaves do mesmo projeto GCP.
+      * Mapeado erro `HTTP 400 (INVALID_ARGUMENT)` no `gemini-3.5-flash-lite`: a API do Google rejeita `thinkingBudget: 0`. Para desativar o pensamento estendido em modelos rápidos, o schema exige simplesmente omitir o parâmetro `thinkingConfig`.
+    - **Reestruturação e Homologação de Modelos Ativos**:
+      * `IA_MODELOS_CLINICOS_GEMINI` e `IA_PADROES.GEMINI`: promovido `gemini-3.7-flash` para prioridade máxima clínica (ativo com HTTP 200), seguido de `gemini-flash-lite-latest` (~700ms de latência), `gemini-3.8-flash`, `gemini-flash-latest` e mantendo `gemini-3.5-flash` como contingência secundária.
+      * `IA_MODELOS_RAPIDOS_GEMINI`: fixado em `["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]`, priorizando o alias canônico mais rápido e estável da Google.
+      * `IA_MODELOS_TTS_GEMINI`: expurgado `gemini-2.5-flash-preview-tts` (erro 400) e fixado nos modelos funcionais `gemini-3.8-flash-tts` e `gemini-3.8-flash-lite-tts`.
+      * Adicionado `gemini-2.5-flash-lite` (404) à lista de modelos obsoletos descartados automaticamente em `_iaLista`.
+    - **Build e Validação de 100% da Suíte de Testes**:
+      * Build `python3 build_master.py` executado com sucesso e paridade de checksum SHA-256.
+      * Execução dos testes de callbacks e formatação PEP (`test_ui_ux_formatacao_respostas_pep.cjs`) aprovada com eliminação completa dos erros de 400 e 429 em cascata.
+
+0AL. [x] **Expansão e Refinamento do Modelo de Exame Físico Normal Completo no Telegram e Cockpit**:
+    - Substituída a string simplificada "EF normal" pelo modelo semiológico canônico completo (Ectoscopia, Sinais Vitais com preservação dos dados prévios informados, ACV, AR, Abdome, Extremidades com TEC < 3s).
+    - Removido o cabeçalho redundante `[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.`, iniciando diretamente em `Sinais Vitais:` seguido de `Bom estado geral...`.
+    - Eliminado o termo `(rítmico)` da FC e garantido o preenchimento com `[   ]` para sinais vitais não aferidos/informados.
+    - Eliminada a mensagem intermediária de texto ("🩺 Exame físico registrado como totalmente normal. Atualizando rascunho..."), entregando diretamente a mensagem do SOAP atualizado com feedback sutil via toast.
+    - Garantida a expansão determinística no campo Objetivo (O) do SOAP tanto na Fase 1 quanto na Fase 2, proibindo a redução da IA a resumos simplistas.
+    - Omitida a cobrança ativa redundante de manobras de EF básico na Fase 1 quando o EF completo já estiver registrado.
+    - Corrigido o balanceamento de caracteres de Markdown em `_iaFinalizarTexto` para evitar perda de formatação (negritos e itálicos) no Telegram.
+    - Suíte de testes `test_ef_normal_completo.cjs` e suíte geral `npm test` aprovadas com 100% de sucesso.
+
 0AK. [x] **Correção de Formatação e Eliminação de Ruído em Compatibilidade em Y e Interações (Falsos-Positivos de Veículos / Stopwords)**:
     - **Eliminação de Falsos-Positivos Farmacológicos ("SODICA ⚡ DIPIRONA" / "AGUA ⚡ DIPIRONA")**:
       * Implementada lista estrita de `STOPWORDS_FARMACOS` em `extrairFarmacosDoTexto` (`src/03_bases_locais.js`), filtrando veículos, diluentes, sais e formas farmacêuticas (`agua`, `sodica`, `potassica`, `cloreto`, `sodio`, `soro`, `fisiologico`, `glicosado`, `xarope`, `gotas`, `comprimido`, `ampola`, etc.).

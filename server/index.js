@@ -1285,6 +1285,7 @@ async function buildServer() {
 
     const MODELOS_LIVE_CANDIDATOS = [
       process.env.GEMINI_LIVE_MODEL,
+      'gemini-omni-flash-preview',
       'gemini-2.0-flash-exp'
     ].filter(Boolean);
 

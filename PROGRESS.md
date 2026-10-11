@@ -14,15 +14,12 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Expansão e Refinamento do Modelo de Exame Físico Normal Completo no Telegram e Cockpit**:
-    - Substituída a string simplificada "EF normal" pelo modelo semiológico canônico completo (Ectoscopia, Sinais Vitais com preservação dos dados prévios informados, ACV, AR, Abdome, Extremidades com TEC < 3s).
-    - Removido o cabeçalho redundante `[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.`, iniciando diretamente em `Sinais Vitais:` seguido de `Bom estado geral...`.
-    - Eliminado o termo `(rítmico)` da FC e garantido o preenchimento com `[   ]` para sinais vitais não aferidos/informados.
-    - Eliminada a mensagem intermediária de texto ("🩺 Exame físico registrado como totalmente normal. Atualizando rascunho..."), entregando diretamente a mensagem do SOAP atualizado com feedback sutil via toast.
-    - Garantida a expansão determinística no campo Objetivo (O) do SOAP tanto na Fase 1 quanto na Fase 2, proibindo a redução da IA a resumos simplistas.
-    - Omitida a cobrança ativa redundante de manobras de EF básico na Fase 1 quando o EF completo já estiver registrado.
-    - Corrigido o balanceamento de caracteres de Markdown em `_iaFinalizarTexto` para evitar perda de formatação (negritos e itálicos) no Telegram.
-    - Suíte de testes `test_ef_normal_completo.cjs` e suíte geral `npm test` aprovadas com 100% de sucesso.
+- [x] **Otimização do Pool de Modelos Gemini, Correção de HTTP 400 em thinkingBudget e Eliminação de Gargalo 429**:
+    - **Diagnóstico e Correção de Argumento (HTTP 400)**: Mapeado que a Google AI API rejeita `thinkingBudget: 0` com `400 INVALID_ARGUMENT` em modelos rápidos/extrativos; removido o parâmetro para omitir `thinkingConfig` de forma limpa, permitindo que `gemini-3.5-flash-lite` e `gemini-flash-lite-latest` rodem em ~700ms sem erro.
+    - **Mitigação do Esgotamento de Cota Diária (429 / 20 RPD)**: Deslocado `gemini-3.5-flash` (limitado a 20 RPD no Free Tier GCP) do topo para contingência tardia; promovido `gemini-3.7-flash` (200 OK) como prioritário clínico e `gemini-flash-lite-latest` como esteira rápida ultra-disponível.
+    - **Saneamento de Modelos em Configurações e Utils**: Atualizados `IA_PADROES.GEMINI`, `IA_PADROES.GEMINI_GROUNDING`, `IA_MODELOS_RAPIDOS_GEMINI` e `IA_MODELOS_TTS_GEMINI` (`gemini-3.8-flash-tts` e `gemini-3.8-flash-lite-tts`, eliminando o modelo 2.5 obsoleto).
+    - **Recompilação e Validação**: `npm run build` gerou `ultra_rotina_master.js` com 100% de integridade sintática e testes de callbacks e formatação PEP aprovados sem erros.
+> 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
 ---
 

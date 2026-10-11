@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 00:19:02
- * Checksum SHA256: 326900b2c5c5bea0
+ * Gerado automaticamente via build_master.py em: 2026-10-11 00:33:01
+ * Checksum SHA256: 6466d941efbbaeab
  * ==============================================================================
  */
 
@@ -43,9 +43,9 @@ var ConfigService = (function() {
   // Todos os segredos e credenciais devem ser definidos exclusivamente em ScriptProperties.
   var DEFAULTS = {
     PROVEDOR_TEXTO_PADRAO: "GEMINI",
-    IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
-    IA_MODELOS_GEMINI: "gemini-3.5-flash,gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest",
-    IA_MODELOS_TTS_GEMINI: "gemini-2.5-flash-preview-tts,gemini-3.8-flash-tts",
+    IA_MODELOS_CLINICOS_GEMINI: "gemini-3.7-flash,gemini-flash-lite-latest,gemini-3.8-flash,gemini-flash-latest,gemini-3.5-flash",
+    IA_MODELOS_GEMINI: "gemini-3.7-flash,gemini-flash-lite-latest,gemini-3.8-flash,gemini-flash-latest,gemini-3.5-flash",
+    IA_MODELOS_TTS_GEMINI: "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts",
     IA_MODELOS_LOCAL: "llama3.1:latest,llama3.2:latest,mistral:latest,llama3:8b,mistral:7b",
     LOCAL_LLM_URL: "http://127.0.0.1:11434/v1/chat/completions",
     LOCAL_LLM_API_KEY: "ollama",
@@ -853,7 +853,7 @@ function gerarAudioTtsGeminiNeural(texto) {
 
   var modelosTts = ConfigService.getArray("IA_MODELOS_TTS_GEMINI");
   if (!modelosTts || modelosTts.length === 0) {
-    modelosTts = ["gemini-2.5-flash-preview-tts", "gemini-2.0-flash", "gemini-2.0-flash-exp", "gemini-3.8-flash-tts"];
+    modelosTts = ["gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"];
   }
 
   var payload = {
@@ -36178,8 +36178,8 @@ var IA_PADROES = {
   GROQ: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
   OPENROUTER: ["openrouter/free"],
   ZAI: ["glm-4.7-flash", "glm-4.5-flash"],
-  GEMINI: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"],
-  GEMINI_GROUNDING: ["gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-3.8-flash"],
+  GEMINI: ["gemini-3.7-flash", "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash"],
+  GEMINI_GROUNDING: ["gemini-3.7-flash", "gemini-flash-lite-latest", "gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash"],
   LOCAL: ["llama3.1:latest", "llama3.2:latest", "mistral:latest", "llama3:8b", "mistral:7b"]
 };
 
@@ -36277,7 +36277,7 @@ function _iaLista(chave, padrao) {
   }
   lista = lista.map(function (x) { return String(x).trim(); }).filter(function (x) { return x; });
   // Ignora modelos obsoletos ou descontinuados pela API do Gemini
-  var obsoletos = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+  var obsoletos = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
   lista = lista.filter(function (m) { return obsoletos.indexOf(m) === -1; });
   return lista.length ? lista : padrao.slice();
 }
@@ -36653,7 +36653,7 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
       modelos = _iaLista("IA_MODELOS_CLINICOS_GEMINI", IA_PADROES.GEMINI);
     } else if (opcoes.semThinking || opcoes.extrativo) {
       // Modelos ultra-rápidos para roteamento e extração sintática de baixa latência
-      modelos = _iaLista("IA_MODELOS_RAPIDOS_GEMINI", ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.5-flash"]);
+      modelos = _iaLista("IA_MODELOS_RAPIDOS_GEMINI", ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]);
     } else {
       modelos = _iaLista("IA_MODELOS_GEMINI", IA_PADROES.GEMINI);
     }
@@ -36700,7 +36700,8 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
         if (opcoes.thinkingBudget !== undefined && opcoes.thinkingBudget !== null) {
           payload.generationConfig.thinkingConfig = { thinkingBudget: Number(opcoes.thinkingBudget) };
         } else if (opcoes.semThinking || opcoes.extrativo) {
-          payload.generationConfig.thinkingConfig = { thinkingBudget: 0 };
+          // Não envia thinkingConfig: a API Gemini rejeita thinkingBudget: 0 com HTTP 400 (INVALID_ARGUMENT).
+          // Omitir thinkingConfig executa sem raciocínio estendido e sem erro 400.
         } else if (opcoes.clinico) {
           var tBudget = Number(_iaCfg("IA_THINKING_BUDGET_CLINICO", 1024));
           payload.generationConfig.thinkingConfig = { thinkingBudget: tBudget };
@@ -37219,7 +37220,7 @@ function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario
     if (!res) {
       // Fallback resiliente multimodal: se o pool clínico prioritário sofrer saturação/429,
       // aciona imediatamente os modelos leves com cota separada e alta disponibilidade
-      var modelosLeves = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest"];
+      var modelosLeves = ["gemini-flash-lite-latest", "gemini-3.5-flash-lite"];
       var optsFallback = Object.assign({}, optsMultimodal, { modelos: modelosLeves });
       res = _iaPublico(function (t, ctx) {
         return _iaProvGemini(sistema, msg, t, ctx, optsFallback);

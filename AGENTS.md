@@ -32,5 +32,11 @@
   5. *Redação Semiológica Canônica*: Formatar textos de exame físico e condutas no padrão médico real de prontuário (PEP), sem frases burocráticas ("sem alterações relatadas") ou saudações prolixas.
   6. *Ação Rápida de Cópia*: Fornecer botão `[📋 Copiar para Prontuário]` ou `[📋 Copiar Prescrição]` em 1 toque em todas as saídas de conduta.
 - **Alocação de Modelos**: O modelo Gemini Pro (`gemini-3.1-pro-high`) é reservado para auditoria e garantia da robustez de conteúdo clínico teórico. O Gemini Flash (`gemini-3.8-flash-high`) executa todas as demais tarefas (testes de funções, consertos de código, UI/UX, bot Telegram, Cockpit, Fastify e otimizações).
+- **Redação Cirúrgica Obrigatória no PROGRESS.md**:
+  * Toda tarefa movida para 'Próxima Tarefa em Andamento' ou inserida no '[Backlog Prioritário]' deve citar explicitamente:
+    1. O caminho do arquivo alvo (ex: `src/07_telegram_handlers.js`, `cockpit_movel.html`, `server/routes/...`).
+    2. A função, método, componente ou rota a intervir.
+    3. O critério de aceite objetivo (o que deve ser validado).
+  * Tarefas vagas ("melhorar UI", "revisar rotas") são proibidas.
 
 
