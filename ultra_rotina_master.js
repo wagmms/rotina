@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-10 21:23:24
- * Checksum SHA256: 453d40e8d054d26b
+ * Gerado automaticamente via build_master.py em: 2026-10-10 21:38:23
+ * Checksum SHA256: 4b49e20ad862b3e0
  * ==============================================================================
  */
 
@@ -28830,14 +28830,12 @@ var SoapAmbulatorialService = (function() {
       titulo: 'Adulto Geral Completo (Segmentar Padrão Ouro)',
       texto: [
         '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
-        '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
-        '• Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | Tax: 36,5°C.',
-        '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
-        '• Aparelho Cardiovascular (ACV): Ritmo cardíaco regular em 2 tempos (RCR 2T), bulhas normofonéticas (BNF), sem sopros ou extrassístoles. Pulsos periféricos presentes, amplos, cheios e simétricos bilateralmente.',
-        '• Aparelho Respiratório (AR): Murmúrio vesicular universalmente audível (MVUA), sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
-        '• Abdome: Plano, flácido, depressível, indolor à palpação superficial e profunda. Ruídos hidroaéreos (RHA) normoativos. Fígado e baço impalpáveis. Descompressão brusca negativa (Blumberg ausente). Sem massas palpáveis.',
-        '• Extremidades / Vascular: Sem edema de membros inferiores (ausência de sinal do cacifo). Panturrilhas livres sem empastamento (sinal de Homans negativo). Tempo de enchimento capilar (TEC) < 2 segundos. Pulsos pediosos cheios.',
-        '• Neurológico Sumário: Glasgow 15, pupilas isocóricas e fotorreagentes direta e consensualmente. Força motora grau 5/5 simétrica. Sem déficits focais. Rigidez de nuca ausente, Kernig e Brudzinski negativos.'
+        'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.',
+        'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+        '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
+        '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
+        '  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
+        ' Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
       ].join('\n')
     },
     pediatrico_completo: {
@@ -29613,56 +29611,56 @@ var SoapAmbulatorialService = (function() {
     var fcMatch = texto.match(/\b(?:fc|frequ[eê]ncia\s+card[ií]aca)\s*[:=]?\s*(\d{2,3}(?:\s*bpm)?)\b/i) || texto.match(/\b(\d{2,3})\s*bpm\b/i);
     var frMatch = texto.match(/\b(?:fr|frequ[eê]ncia\s+respirat[oó]ria)\s*[:=]?\s*(\d{2}(?:\s*irpm|\s*rpm)?)\b/i) || texto.match(/\b(\d{2})\s*(?:irpm|rpm)\b/i);
     var satMatch = texto.match(/\b(?:spo2|sat(?:ura[çc][ãa]o)?(?:[\s_]o2)?)\s*[:=]?\s*(\d{2,3}%?(?:\s*(?:em\s+)?aa|\s*(?:em\s+)?ar\s+ambiente)?)\b/i) || texto.match(/\b(\d{2,3}%)\b/);
-    var taxMatch = texto.match(/\b(?:tax|temp(?:eratura)?)\s*[:=]?\s*(\d{2}(?:[.,]\d+)?\s*°?c)\b/i) || texto.match(/\b(\d{2}(?:[.,]\d+)?\s*°c)\b/i);
+    var taxMatch = texto.match(/\b(?:tax|temp(?:eratura)?|t)\s*[:=]?\s*(\d{2}(?:[.,]\d+)?\s*°?c)\b/i) || texto.match(/\b(\d{2}(?:[.,]\d+)?\s*°c)\b/i);
 
     var sv = [];
     if (paMatch) {
       var paVal = paMatch[1].trim();
       sv.push('PA: ' + (/mmhg/i.test(paVal) ? paVal : paVal + ' mmHg'));
-    } else {
-      sv.push('PA: 120/80 mmHg');
     }
 
     if (fcMatch) {
       var fcVal = fcMatch[1].trim();
       sv.push('FC: ' + (/bpm/i.test(fcVal) ? fcVal : fcVal + ' bpm (rítmico)'));
-    } else {
-      sv.push('FC: 72 bpm (rítmico)');
     }
 
     if (frMatch) {
       var frVal = frMatch[1].trim();
       sv.push('FR: ' + (/irpm|rpm/i.test(frVal) ? frVal : frVal + ' irpm'));
-    } else {
-      sv.push('FR: 16 irpm');
     }
 
     if (satMatch) {
       var satVal = satMatch[1].trim();
       sv.push('SpO2: ' + (/%/.test(satVal) ? satVal : satVal + '% em ar ambiente'));
-    } else {
-      sv.push('SpO2: 98% em ar ambiente');
     }
 
     if (taxMatch) {
       var taxVal = taxMatch[1].trim();
-      sv.push('Tax: ' + (/°?c/i.test(taxVal) ? taxVal : taxVal + '°C'));
-    } else {
-      sv.push('Tax: 36,5°C');
+      sv.push('T: ' + (/°?c/i.test(taxVal) ? taxVal : taxVal + '°C'));
     }
 
-    var linhaSV = '• Sinais Vitais: ' + sv.join(' | ') + '.';
+    var linhaSV = '';
+    if (sv.length > 0) {
+      linhaSV = 'Sinais Vitais: ' + sv.join(' | ') + '.';
+    } else {
+      // Regra de segurança clínica: sinais vitais numéricos não inventados se não foram aferidos pelo médico no relato.
+      // Se não há contexto clínico real com queixas de paciente, exibe o modelo padrão de referência.
+      var temCasoClinico = texto.trim().length > 0 && !/^(?:modelo|padrao|catalogo|normal|padrao_completo)$/i.test(texto.trim());
+      if (temCasoClinico) {
+        linhaSV = 'Sinais Vitais: Pendentes de aferição beira-leito.';
+      } else {
+        linhaSV = 'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.';
+      }
+    }
 
     return [
       '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
-      '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
       linhaSV,
-      '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
-      '• Aparelho Cardiovascular (ACV): Ritmo cardíaco regular em 2 tempos (RCR 2T), bulhas normofonéticas (BNF), sem sopros ou extrassístoles. Pulsos periféricos presentes, amplos, cheios e simétricos bilateralmente.',
-      '• Aparelho Respiratório (AR): Murmúrio vesicular universalmente audível (MVUA), sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
-      '• Abdome: Plano, flácido, depressível, indolor à palpação superficial e profunda. Ruídos hidroaéreos (RHA) normoativos. Fígado e baço impalpáveis. Descompressão brusca negativa (Blumberg ausente). Sem massas palpáveis.',
-      '• Extremidades / Vascular: Sem edema de membros inferiores (ausência de sinal do cacifo). Panturrilhas livres sem empastamento (sinal de Homans negativo). Tempo de enchimento capilar (TEC) < 2 segundos. Pulsos pediosos cheios.',
-      '• Neurológico Sumário: Glasgow 15, pupilas isocóricas e fotorreagentes direta e consensualmente. Força motora grau 5/5 simétrica. Sem déficits focais. Rigidez de nuca ausente, Kernig e Brudzinski negativos.'
+      'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+      '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
+      '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
+      '  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
+      ' Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
     ].join('\n');
   }
 
@@ -37364,17 +37362,22 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     var oSanitizado = (typeof sanitizarObjetivoComRelato === "function")
       ? sanitizarObjetivoComRelato(obj.objetivo, transcricao)
       : String(obj.objetivo).trim();
+    if (typeof verificarEExpandirExameFisicoObjetivo === "function") {
+      oSanitizado = verificarEExpandirExameFisicoObjetivo(oSanitizado, transcricao);
+    }
     var perguntas = obj.perguntas_anamnese || obj.perguntas || [];
     var exameDirigido = obj.exame_dirigido || [];
+    var temEfAudio = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo/i.test(transcricao);
 
     var blocosRasc = [
       "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
       "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + sanitizarNegativasSOAP(obj.subjetivo, transcricao),
       "🔍 *O - Objetivo (Exame Físico)*\n" + (oSanitizado || "Exame físico em estruturação; conferir sinais vitais e achados."),
-      "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."),
-      "🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa.") +
-      "\n\n_💡 Envie dados adicionais para atualizar ou clique em [📋 Gerar Avaliação & Plano] quando desejar fechar a conduta._"
+      "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.")
     ];
+    if (!temEfAudio) {
+      blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
+    }
 
     return {
       sucesso: true,
@@ -37648,11 +37651,12 @@ function verificarEExpandirExameFisicoObjetivo(objetivoTexto, casoClinico) {
   if (!temEfNormalNoCaso) return objetivoTexto;
 
   var objStr = String(objetivoTexto || "").trim();
-  // Se a resposta for resumida ou omitir sistemas essenciais (ACV, AR, Abdome)
-  var ehResumido = objStr.length < 200 ||
-    !/(?:acv|cardiovascular|aparelho\s+cardiovascular)/i.test(objStr) ||
-    !/(?:ar|respirat[oó]rio|aparelho\s+respirat[oó]rio)/i.test(objStr) ||
-    !/(?:abdome|abdominal)/i.test(objStr);
+  // Se a resposta for resumida ou omitir sistemas essenciais (ACV, AR, Abdome, Extremidades)
+  var ehResumido = objStr.length < 160 ||
+    !/(?:acv|cardiovascular)/i.test(objStr) ||
+    !/(?:ar|respirat[oó]rio)/i.test(objStr) ||
+    !/(?:abdome|abdominal)/i.test(objStr) ||
+    !/(?:extremidades|membros\s+inferiores)/i.test(objStr);
 
   if (ehResumido) {
     var modeloCompleto = (typeof obterModeloExameFisicoCompleto === "function")
@@ -37682,16 +37686,16 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o caso em prontuário SOAP definitivo, sintético e pronto para o PEP.",
       "",
       "DIRETRIZES TÉCNICAS E SÍNTESE OBRIGATÓRIA:",
-      "1. SUBJETIVO (S): QP e HDA estruturadas e limpas. Antecedentes/Medicações/Alergias: relate o informado; se ausente, resuma em 1 linha ('Não informado'). NUNCA crie parágrafos prolixos.",
+      "1. SUBJETIVO (S): QP e HDA estruturadas, limpas e telegráficas. Antecedentes/Medicações/Alergias em 1 linha compacta ('Não informado' se ausentes). NUNCA crie parágrafos prolixos.",
       "2. OBJETIVO (O): Sinais vitais e achados informados organizados por sistemas. Se EF não informado, 'Exame físico pendente de avaliação'. Incorpore exame especial se presente.",
-      "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Ectoscopia, Sinais Vitais, Cabeça e Pescoço, ACV, AR, Abdome, Extremidades/Vascular e Neurológico), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
+      "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Bom estado geral lúcido e orientado, ACV, AR, Abdome e Extremidades), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
       "3. AVALIAÇÃO (A):",
       "   - Diagnóstico principal ou problema sindrômico com CID-10 e CIAP-2.",
-      "   - Diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade.",
+      "   - Diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade. Sem teorizações prolixas.",
       "4. PLANO (P):",
       "   - Prescrição farmacológica detalhada e objetiva (fármaco, dose, posologia com intervalo/horário, via, tempo), de acordo com REMUME RP e segurança (ajuste renal/peso se informado).",
       "   - Exames complementares imediatos.",
-      "   - Orientações farmacológicas e critérios de alarme objetivos.",
+      "   - Orientações farmacológicas e critérios de alarme objetivos. Sem conselhos de estilo de vida genéricos óbvios.",
       ambulatorialAgil ? "   - Foco APS: Prescrição REMUME, sinais de alarme para PS e meta de reavaliação." : "",
       "5. PENDÊNCIAS CRÍTICAS: Liste apenas dados que condicionem a segurança antes de prescrever; omita se não houver.",
       "",
@@ -37738,7 +37742,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   var promptSistemaRascunho = [
     IA_PERSONA,
     "MODO: DOCUMENTAÇÃO CLÍNICA SOAP - FASE 1: ANAMNESE E EXAME FÍSICO.",
-    "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o relato do médico de forma concisa, técnica e sem enrolação.",
+    "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o relato do médico de forma concisa, técnica, sem enrolação e sem parágrafos prolixos.",
     "",
     "DIRETRIZES SEMIOLÓGICAS E SÍNTESE OBRIGATÓRIA:",
     "1. SUBJETIVO (S) - SÍNTESE ESTRUTURADA:",
@@ -37748,7 +37752,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - Sinais Vitais: registre apenas os relatados. Se ausentes, declare 'Sinais vitais pendentes de aferição'.",
     "   - Sistemas examinados relatados. Se EF não informado, declare 'Exame físico pendente de avaliação beira-leito'.",
     "   - Integre exame especial se contido no caso.",
-    "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Ectoscopia, Sinais Vitais, Cabeça e Pescoço, ACV, AR, Abdome, Extremidades/Vascular e Neurológico), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
+    "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Bom estado geral lúcido e orientado, ACV, AR, Abdome e Extremidades), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
     "3. PERGUNTAS DIRIGIDAS PARA A ANAMNESE:",
     "   - Formule no máximo 2 perguntas curtas e diretas sobre lacunas essenciais da história. SEM explicações prolixas entre parênteses.",
     "4. COBRANÇA ATIVA DO EXAME FÍSICO DIRIGIDO:",
@@ -52022,17 +52026,17 @@ function cockpitConversar(initData, params) {
       var textoEfCustom = (params.textoEf || params.texto || '').trim();
       var exameAInserir = textoEfCustom || ((typeof obterModeloExameFisicoCompleto === 'function')
         ? obterModeloExameFisicoCompleto(dadosAtuais)
-        : [
-          '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
-          '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
-          '• Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | Tax: 36,5°C.',
-          '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
-          '• Aparelho Cardiovascular (ACV): Ritmo cardíaco regular em 2 tempos (RCR 2T), bulhas normofonéticas (BNF), sem sopros ou extrassístoles. Pulsos periféricos presentes, amplos, cheios e simétricos bilateralmente.',
-          '• Aparelho Respiratório (AR): Murmúrio vesicular universalmente audível (MVUA), sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
-          '• Abdome: Plano, flácido, depressível, indolor à palpação superficial e profunda. Ruídos hidroaéreos (RHA) normoativos. Fígado e baço impalpáveis. Descompressão brusca negativa (Blumberg ausente). Sem massas palpáveis.',
-          '• Extremidades / Vascular: Sem edema de membros inferiores (ausência de sinal do cacifo). Panturrilhas livres sem empastamento (sinal de Homans negativo). Tempo de enchimento capilar (TEC) < 2 segundos. Pulsos pediosos cheios.',
-          '• Neurológico Sumário: Glasgow 15, pupilas isocóricas e fotorreagentes direta e consensualmente. Força motora grau 5/5 simétrica. Sem déficits focais. Rigidez de nuca ausente, Kernig e Brudzinski negativos.'
-        ].join('\n'));
+        : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO
+          ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto
+          : [
+            '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
+            'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.',
+            'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+            '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
+            '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
+            '  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
+            ' Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
+          ].join('\n')));
 
       var novoTextoEf = dadosAtuais.trim()
         ? dadosAtuais + '\n' + exameAInserir

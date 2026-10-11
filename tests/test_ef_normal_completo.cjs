@@ -51,14 +51,14 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
 {
   const { c } = env();
   const modelo = c.obterModeloExameFisicoCompleto('Paciente em consulta de rotina.');
-  assert(modelo.includes('Ectoscopia: Bom estado geral'), 'Deve conter Ectoscopia');
+  assert(modelo.includes('Bom estado geral'), 'Deve conter Bom estado geral');
   assert(modelo.includes('Sinais Vitais:'), 'Deve conter Sinais Vitais');
-  assert(modelo.includes('Aparelho Cardiovascular (ACV):'), 'Deve conter ACV');
-  assert(modelo.includes('Aparelho Respiratório (AR):'), 'Deve conter AR');
+  assert(modelo.includes('ACV:'), 'Deve conter ACV');
+  assert(modelo.includes('AR:'), 'Deve conter AR');
   assert(modelo.includes('Abdome:'), 'Deve conter Abdome');
-  assert(modelo.includes('Extremidades / Vascular:'), 'Deve conter Extremidades');
-  assert(modelo.includes('Neurológico Sumário:'), 'Deve conter Neurológico');
-  console.log('  ✓ 1. obterModeloExameFisicoCompleto gera todos os 7 sistemas semiológicos canônicos');
+  assert(modelo.includes('Extremidades:'), 'Deve conter Extremidades');
+  assert(modelo.includes('TEC < 3 segundos'), 'Deve conter TEC < 3 segundos');
+  console.log('  ✓ 1. obterModeloExameFisicoCompleto gera todos os sistemas semiológicos canônicos');
 }
 
 // 2. Preserva sinais vitais informados pelo médico assistente no relato
@@ -68,7 +68,7 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
   const modelo = c.obterModeloExameFisicoCompleto(relatoComSV);
   assert(modelo.includes('PA: 150/95 mmHg'), 'Deve preservar PA informada');
   assert(modelo.includes('FC: 88 bpm'), 'Deve preservar FC informada');
-  assert(modelo.includes('Tax: 36,8°C') || modelo.includes('Tax: 36.8°C'), 'Deve preservar Tax informada');
+  assert(modelo.includes('T: 36,8°C') || modelo.includes('T: 36.8°C') || modelo.includes('36.8°C'), 'Deve preservar Tax informada');
   assert(modelo.includes('SpO2: 97%'), 'Deve preservar SpO2 informada');
   console.log('  ✓ 2. Preservação de sinais vitais relatados pelo médico no modelo completo');
 }
@@ -90,10 +90,11 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
   c.tratarCallbackUX({ id: 'cb2', data: btnConfirmar, message: { chat: { id: 123 }, message_id: 11 } });
   const casoAtualizado = c.modoBot(123).data;
 
-  assert(casoAtualizado.includes('Aparelho Cardiovascular (ACV)'), 'Caso ativo deve conter ACV completo');
-  assert(casoAtualizado.includes('Aparelho Respiratório (AR)'), 'Caso ativo deve conter AR completo');
+  assert(casoAtualizado.includes('ACV:'), 'Caso ativo deve conter ACV completo');
+  assert(casoAtualizado.includes('AR:'), 'Caso ativo deve conter AR completo');
   assert(casoAtualizado.includes('Abdome:'), 'Caso ativo deve conter Abdome completo');
   assert(casoAtualizado.includes('totalmente normal'), 'Caso ativo deve conter marcador de totalmente normal');
+  assert(casoAtualizado.includes('TEC < 3 segundos'), 'Caso ativo deve conter TEC < 3 segundos');
 
   const textosEnviados = sent.map(s => (s.payload && s.payload.text) || '');
   assert(!textosEnviados.some(t => t.includes('Atualizando rascunho')), 'Não deve enviar mensagem intermediária de Atualizando rascunho');
@@ -115,10 +116,11 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
 
   const soapRascunho = c.gerarSOAPComIA(casoComEFNormal, { fecharPlano: false });
   assert(!soapRascunho.includes('🔍 *O - Objetivo (Exame Físico)*\nEF normal.'), 'Não deve conter apenas EF normal no Objetivo');
-  assert(soapRascunho.includes('Ectoscopia: Bom estado geral'), 'Objetivo deve conter Ectoscopia completa');
-  assert(soapRascunho.includes('Aparelho Cardiovascular (ACV)'), 'Objetivo deve conter ACV completo');
-  assert(soapRascunho.includes('Aparelho Respiratório (AR)'), 'Objetivo deve conter AR completo');
-  assert(soapRascunho.includes('Abdome:'), 'Objetivo deve conter Abdome completo');
+  assert(soapRascunho.includes('Bom estado geral'), 'Objetivo deve conter Bom estado geral');
+  assert(soapRascunho.includes('ACV:'), 'Objetivo deve conter ACV');
+  assert(soapRascunho.includes('AR:'), 'Objetivo deve conter AR');
+  assert(soapRascunho.includes('Abdome:'), 'Objetivo deve conter Abdome');
+  assert(soapRascunho.includes('Extremidades:'), 'Objetivo deve conter Extremidades');
   console.log('  ✓ 4. gerarSOAPComIA expande deterministamente o modelo completo no campo Objetivo');
 }
 

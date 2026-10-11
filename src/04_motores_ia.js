@@ -1199,17 +1199,22 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     var oSanitizado = (typeof sanitizarObjetivoComRelato === "function")
       ? sanitizarObjetivoComRelato(obj.objetivo, transcricao)
       : String(obj.objetivo).trim();
+    if (typeof verificarEExpandirExameFisicoObjetivo === "function") {
+      oSanitizado = verificarEExpandirExameFisicoObjetivo(oSanitizado, transcricao);
+    }
     var perguntas = obj.perguntas_anamnese || obj.perguntas || [];
     var exameDirigido = obj.exame_dirigido || [];
+    var temEfAudio = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo/i.test(transcricao);
 
     var blocosRasc = [
       "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
       "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + sanitizarNegativasSOAP(obj.subjetivo, transcricao),
       "🔍 *O - Objetivo (Exame Físico)*\n" + (oSanitizado || "Exame físico em estruturação; conferir sinais vitais e achados."),
-      "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."),
-      "🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa.") +
-      "\n\n_💡 Envie dados adicionais para atualizar ou clique em [📋 Gerar Avaliação & Plano] quando desejar fechar a conduta._"
+      "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.")
     ];
+    if (!temEfAudio) {
+      blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
+    }
 
     return {
       sucesso: true,
@@ -1483,11 +1488,12 @@ function verificarEExpandirExameFisicoObjetivo(objetivoTexto, casoClinico) {
   if (!temEfNormalNoCaso) return objetivoTexto;
 
   var objStr = String(objetivoTexto || "").trim();
-  // Se a resposta for resumida ou omitir sistemas essenciais (ACV, AR, Abdome)
-  var ehResumido = objStr.length < 200 ||
-    !/(?:acv|cardiovascular|aparelho\s+cardiovascular)/i.test(objStr) ||
-    !/(?:ar|respirat[oó]rio|aparelho\s+respirat[oó]rio)/i.test(objStr) ||
-    !/(?:abdome|abdominal)/i.test(objStr);
+  // Se a resposta for resumida ou omitir sistemas essenciais (ACV, AR, Abdome, Extremidades)
+  var ehResumido = objStr.length < 160 ||
+    !/(?:acv|cardiovascular)/i.test(objStr) ||
+    !/(?:ar|respirat[oó]rio)/i.test(objStr) ||
+    !/(?:abdome|abdominal)/i.test(objStr) ||
+    !/(?:extremidades|membros\s+inferiores)/i.test(objStr);
 
   if (ehResumido) {
     var modeloCompleto = (typeof obterModeloExameFisicoCompleto === "function")
@@ -1517,16 +1523,16 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o caso em prontuário SOAP definitivo, sintético e pronto para o PEP.",
       "",
       "DIRETRIZES TÉCNICAS E SÍNTESE OBRIGATÓRIA:",
-      "1. SUBJETIVO (S): QP e HDA estruturadas e limpas. Antecedentes/Medicações/Alergias: relate o informado; se ausente, resuma em 1 linha ('Não informado'). NUNCA crie parágrafos prolixos.",
+      "1. SUBJETIVO (S): QP e HDA estruturadas, limpas e telegráficas. Antecedentes/Medicações/Alergias em 1 linha compacta ('Não informado' se ausentes). NUNCA crie parágrafos prolixos.",
       "2. OBJETIVO (O): Sinais vitais e achados informados organizados por sistemas. Se EF não informado, 'Exame físico pendente de avaliação'. Incorpore exame especial se presente.",
-      "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Ectoscopia, Sinais Vitais, Cabeça e Pescoço, ACV, AR, Abdome, Extremidades/Vascular e Neurológico), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
+      "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Bom estado geral lúcido e orientado, ACV, AR, Abdome e Extremidades), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
       "3. AVALIAÇÃO (A):",
       "   - Diagnóstico principal ou problema sindrômico com CID-10 e CIAP-2.",
-      "   - Diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade.",
+      "   - Diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade. Sem teorizações prolixas.",
       "4. PLANO (P):",
       "   - Prescrição farmacológica detalhada e objetiva (fármaco, dose, posologia com intervalo/horário, via, tempo), de acordo com REMUME RP e segurança (ajuste renal/peso se informado).",
       "   - Exames complementares imediatos.",
-      "   - Orientações farmacológicas e critérios de alarme objetivos.",
+      "   - Orientações farmacológicas e critérios de alarme objetivos. Sem conselhos de estilo de vida genéricos óbvios.",
       ambulatorialAgil ? "   - Foco APS: Prescrição REMUME, sinais de alarme para PS e meta de reavaliação." : "",
       "5. PENDÊNCIAS CRÍTICAS: Liste apenas dados que condicionem a segurança antes de prescrever; omita se não houver.",
       "",
@@ -1573,7 +1579,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   var promptSistemaRascunho = [
     IA_PERSONA,
     "MODO: DOCUMENTAÇÃO CLÍNICA SOAP - FASE 1: ANAMNESE E EXAME FÍSICO.",
-    "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o relato do médico de forma concisa, técnica e sem enrolação.",
+    "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o relato do médico de forma concisa, técnica, sem enrolação e sem parágrafos prolixos.",
     "",
     "DIRETRIZES SEMIOLÓGICAS E SÍNTESE OBRIGATÓRIA:",
     "1. SUBJETIVO (S) - SÍNTESE ESTRUTURADA:",
@@ -1583,7 +1589,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - Sinais Vitais: registre apenas os relatados. Se ausentes, declare 'Sinais vitais pendentes de aferição'.",
     "   - Sistemas examinados relatados. Se EF não informado, declare 'Exame físico pendente de avaliação beira-leito'.",
     "   - Integre exame especial se contido no caso.",
-    "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Ectoscopia, Sinais Vitais, Cabeça e Pescoço, ACV, AR, Abdome, Extremidades/Vascular e Neurológico), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
+    "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Bom estado geral lúcido e orientado, ACV, AR, Abdome e Extremidades), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
     "3. PERGUNTAS DIRIGIDAS PARA A ANAMNESE:",
     "   - Formule no máximo 2 perguntas curtas e diretas sobre lacunas essenciais da história. SEM explicações prolixas entre parênteses.",
     "4. COBRANÇA ATIVA DO EXAME FÍSICO DIRIGIDO:",
