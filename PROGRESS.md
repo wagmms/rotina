@@ -14,11 +14,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria e Correção de Preservação de Pedidos na Fila de Entrega Confiável (`tests/test_auditoria_resolvida.cjs` e `src/07a_telegram_router.js`)**:
-    - **Diagnóstico e Causa Raiz**: O teste 19 de `tests/test_auditoria_resolvida.cjs` (`Falha no Notion preserva texto original do pedido na fila`) falhava com `'done' == 'failed'`. Em `src/07a_telegram_router.js` (~linha 4080 e 4528), ao falhar `criarTarefaNotion`, a execução de `return enviarMensagemParaChat(...)` retornava `true` após o envio do feedback de erro. Com isso, `executarPedidoTelegram` (`src/11_entrega_confiavel.js`) considerava `resultado !== false` e finalizava o pedido como `'done'`, podando o payload original da mensagem (`job.update`) e violando o contrato de preservação de pedidos falhos na fila.
-    - **Correção e Validação**: Nos handlers `/task` e na intenção autônoma `NOTION_TASK` de `src/07a_telegram_router.js`, após o envio da notificação de falha ao usuário, foi adicionado `return false;`. O despachante `executarPedidoTelegram` agora transiciona o status para `'failed'` e retém integralmente a mensagem na fila.
-    - **Validação de Testes**: 100% de aprovação em `tests/test_auditoria_resolvida.cjs` (37/37 cenários aprovados) e `tests/test_auditoria_seguranca_rpc_telegram.cjs` (100% aprovado, sem exceções não tratadas).
-    - Evidências arquivadas em `data/autoloop_task_notes/test_auditoria_resolvida.md`.
+- [x] **Auditoria e Alinhamento de Contrato de Resiliência no Cockpit Integrado (`tests/test_cockpit_integracao.cjs`, `tests/test_cockpit_integracao.py` e `src/01_utils.js`)**:
+    - **Diagnóstico e Causa Raiz**: O teste `test_cockpit_integracao.cjs` (cenário 1: `sessão curta do botão autentica o painel e rejeita token inválido`) falhava com `Missing expected exception` na asserção `assert.throws(()=>c.obterUrlCockpit(456))`. A suíte continha expectativa desatualizada do commit inicial (`1fcfc04`), anterior à auditoria de robustez e resiliência dos despachantes do Telegram (`tests/test_auditoria_seguranca_rpc_telegram.cjs`). No modelo de produção, `obterUrlCockpit` intercepta a recusa de autenticação de `criarSessaoCockpit_` para evitar crashes no Telegram e retorna a URL base sem o parâmetro `session` (`?v=2.5`), preservando a barreira de segurança e impedindo acesso aos endpoints clínicos.
+    - **Correção e Demonstração do Contrato**: Em `tests/test_cockpit_integracao.cjs`, a verificação foi refinada para validar explicitamente ambas as camadas de proteção: (1) `c.criarSessaoCockpit_(456)` lança obrigatoriamente exceção `/não autorizado/i`; (2) `c.obterUrlCockpit(456)` não concede token de sessão (`session === null`).
+    - **Validação de Testes**: 100% de aprovação em `tests/test_cockpit_integracao.cjs` (10/10 cenários aprovados) e `tests/test_cockpit_integracao.py` (1/1 teste aprovado via pytest). Resiliência de `obterUrlCockpit` preservada em `test_auditoria_seguranca_rpc_telegram.cjs`.
+    - Evidências arquivadas em `data/autoloop_task_notes/test_cockpit_integracao.md`.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

@@ -40,7 +40,8 @@ const tests=[
    assert.match(token,/^ck_[a-f0-9]{64}$/);
    assert.equal(c.cockpitAutorizar_(token),'123');
    assert.throws(()=>c.cockpitAutorizar_(token.slice(0,-1)+'f'));
-   assert.throws(()=>c.obterUrlCockpit(456));
+   assert.throws(()=>c.criarSessaoCockpit_(456), /não autorizado/i);
+   assert.equal(new URL(c.obterUrlCockpit(456)).searchParams.get('session'), null);
  }],
  ['sessão assinada e dados reais sem reescrever SOAP',()=>{
    const {c}=preparado();const estado=c.definirModoBot(123,'soap','Relato original');

@@ -2,6 +2,16 @@
 
 > Gerado automaticamente. Arquivo de referência para o histórico arquivado do PROGRESS.md.
 
+0AQ. [x] **Auditoria e Alinhamento de Contrato de Resiliência no Cockpit Integrado (`tests/test_cockpit_integracao.cjs`, `tests/test_cockpit_integracao.py` e `src/01_utils.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * No cenário 1 de `tests/test_cockpit_integracao.cjs`, a asserção `assert.throws(()=>c.obterUrlCockpit(456))` falhava com `Missing expected exception`.
+      * A expectativa era legada do commit inicial (`1fcfc04`), anterior à implementação da resiliência defensiva de `obterUrlCockpit` formalizada em `tests/test_auditoria_seguranca_rpc_telegram.cjs`.
+      * Em produção, `obterUrlCockpit` intercepta a recusa de `criarSessaoCockpit_` para evitar crashes no despachante do Telegram ao montar teclados e menus para usuários não autorizados, retornando a URL base limpa (`?v=2.5`), sem parâmetro `session`.
+    - **Correção e Validação**:
+      * Em `tests/test_cockpit_integracao.cjs`, a asserção foi refinada para verificar as duas barreiras de segurança: `criarSessaoCockpit_(456)` lança exceção `/não autorizado/i` e `obterUrlCockpit(456)` não concede token de sessão (`session === null`).
+      * 100% de aprovação em `tests/test_cockpit_integracao.cjs` (10/10 cenários) e `tests/test_cockpit_integracao.py` (1/1 teste). Resiliência em `test_auditoria_seguranca_rpc_telegram.cjs` preservada integralmente.
+      * Evidências arquivadas em `data/autoloop_task_notes/test_cockpit_integracao.md`.
+
 0AP. [x] **Auditoria e Correção de Preservação de Pedidos na Fila de Entrega Confiável (`tests/test_auditoria_resolvida.cjs` e `src/07a_telegram_router.js`)**:
     - **Diagnóstico e Causa Raiz**:
       * No teste 19 de `tests/test_auditoria_resolvida.cjs` (`Falha no Notion preserva texto original do pedido na fila`), o status do pedido na fila `inbox_1` retornava `'done'` em vez de `'failed'`.
