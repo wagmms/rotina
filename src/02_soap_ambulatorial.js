@@ -972,16 +972,22 @@ var SoapAmbulatorialService = (function() {
       safePutCache(cache, 'ctx_' + chatId, caso, 900);
       safePutCache(cache, 'pending_soap_' + chatId, caso, 900);
     }
+    var estAtual = null;
     if (typeof definirModoBot === 'function') {
-      definirModoBot(chatId, 'soap', caso);
+      estAtual = definirModoBot(chatId, 'soap', caso);
+    } else if (typeof modoBot === 'function') {
+      estAtual = modoBot(chatId);
     }
     var fechar = !!(opcoes.fecharPlano || /fechar\s+plano|gerar\s+plano|conduta\s+completa|prescri[çc][ãa]o/i.test(caso));
+    var rascunho = formatarRascunhoSoapTelegram(caso, { fecharPlano: fechar });
+    if (typeof salvarSoapCockpit_ === 'function') {
+      salvarSoapCockpit_(chatId, estAtual, rascunho);
+    }
     if (typeof processarEEntregarIA === 'function' && typeof gerarSOAPComIA === 'function') {
       return processarEEntregarIA(chatId, function(c) {
         return gerarSOAPComIA(c, { fecharPlano: fechar });
       }, caso, 'soap');
     }
-    var rascunho = formatarRascunhoSoapTelegram(caso, { fecharPlano: fechar });
     if (typeof enviarMensagemParaChat === 'function') {
       return enviarMensagemParaChat(chatId, rascunho);
     }

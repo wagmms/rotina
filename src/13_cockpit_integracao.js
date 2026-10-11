@@ -117,17 +117,25 @@ function cockpitComCaso_(initData, revision, executar) {
 
 function cockpitConsultar(initData) {
   var chat = cockpitAutorizar_(initData), estado = modoBot(chat), resultado = PersistenciaBot.ler('soapview_'+chat);
+  if (typeof resultado === 'string') {
+    try { resultado = JSON.parse(resultado); } catch(e) {}
+  }
   var leitos = EnfermariaService.obterTodos();
   var hojeIso = new Date().toISOString().slice(0, 10);
   var casosDoDia = PersistenciaBot.ler('casos_hoje_' + chat + '_' + hojeIso);
   if (!Array.isArray(casosDoDia)) casosDoDia = [];
 
-  var soapTexto = (estado && resultado && resultado.revision === estado.revision) ? resultado.texto : '';
+  var soapTexto = '';
+  if (estado && resultado && resultado.revision === estado.revision) {
+    soapTexto = resultado.texto || '';
+  } else if (!estado && resultado && resultado.texto) {
+    soapTexto = resultado.texto;
+  }
 
   return {
-    revision: estado ? estado.revision : null,
+    revision: estado ? estado.revision : ((resultado && resultado.revision) ? resultado.revision : null),
     soap: soapTexto,
-    casoAtivo: !!(estado && estado.data),
+    casoAtivo: !!((estado && estado.data) || (soapTexto && soapTexto.length > 0)),
     leitos: Object.keys(leitos).sort().map(function(k){return leitos[k];}),
     casosDoDia: casosDoDia
   };
@@ -168,7 +176,16 @@ function salvarSoapCockpit_(chat, origem, texto) {
   try {
     var strTexto = String(texto).trim();
     if (strTexto.length < 10) return;
-    var rev = (origem && origem.revision) ? origem.revision : Utilities.getUuid().replace(/-/g, '');
+    var rev = (origem && origem.revision) ? origem.revision : null;
+    if (!rev && typeof modoBot === 'function') {
+      var estBot = modoBot(chat);
+      if (estBot && estBot.revision) rev = estBot.revision;
+    }
+    if (!rev) {
+      rev = (typeof Utilities !== 'undefined' && Utilities.getUuid)
+        ? Utilities.getUuid().replace(/-/g, '')
+        : ('rev_' + Date.now());
+    }
     
     // 1. Salva o SOAP mais recente para visualização direta no Cockpit
     PersistenciaBot.salvar('soapview_' + chat, {
@@ -749,6 +766,7 @@ function cockpitConversar(initData, params) {
         ? gerarCriticaSocraticaPreceptor(casoPreceptor)
         : 'Qual a sua principal hipótese diagnóstica e conduta imediata?';
       var sview = PersistenciaBot.ler('soapview_' + chat);
+      if (typeof sview === 'string') { try { sview = JSON.parse(sview); } catch(e) {} }
       return { sucesso: true, acao: 'preceptor', resposta: String(critica), soap: sview ? sview.texto : '', revision: estado ? estado.revision : null };
     }
 
@@ -757,6 +775,7 @@ function cockpitConversar(initData, params) {
       var dadosPrescricao = texto ? (dadosAtuais ? dadosAtuais + '\n[Solicitação Prescrição]: ' + texto : texto) : dadosAtuais;
       var prescricao = (typeof gerarPrescricaoMedicaIA === 'function') ? gerarPrescricaoMedicaIA(dadosPrescricao) : 'Prescrição indisponível no momento.';
       var sviewP = PersistenciaBot.ler('soapview_' + chat);
+      if (typeof sviewP === 'string') { try { sviewP = JSON.parse(sviewP); } catch(e) {} }
       return { sucesso: true, acao: 'prescricao', resposta: String(prescricao), soap: sviewP ? sviewP.texto : '', revision: estado ? estado.revision : null };
     }
 

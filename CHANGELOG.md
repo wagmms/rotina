@@ -1,5 +1,29 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0BE. [x] **Auditoria e Otimização da Interface e Responsividade do Cockpit PWA (`cockpit_movel.html`, `server/runtime.js` e `src/13_cockpit_integracao.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em `src/13_cockpit_integracao.js`, `cockpitConsultar` descartava o texto do SOAP quando `resultado.revision !== estado.revision` mesmo havendo um SOAP válido recém-gerado pelo Telegram, e não fazia parse defensivo caso `PersistenciaBot.ler('soapview_' + chat)` retornasse string JSON serializada.
+      * No Cockpit PWA (`cockpit_movel.html`), a renderização de SOAP estava dispersa em múltiplos blocos manuais com manipulação direta de `soapEl.textContent`, sem uma função modularizada `cockpitRenderizarSoap` para tratamento elegante de estados vazios, status dinâmico e quebra responsiva de texto.
+      * Não existia a função de conveniência `abrirModalCalc(calcId)`, necessária para transição direta entre modais de cálculo e subcalculadoras clínicas a partir de links, botões e histórico de cálculos.
+      * Quatro modais clínicos (`modal-raiox-preceptor`, `modal-preceptor-live`, `modal-sintese-dia-soap` e `modal-exame-fisico-normal`) não estavam mapeados para fechamento ao toque no backdrop nem com a tecla Escape, gerando risco de modais travados na tela mobile.
+      * Na fila offline e no histórico de cálculos, o histórico dependia exclusivamente de `sessionStorage` volátil, e na fila offline (`obterFilaOffline`/`removerItemFilaOffline`) itens gravados em `localStorage` não eram sincronizados quando o Dexie estava ativo, nem havia descarte de itens travados com falhas consecutivas repetidas.
+      * Em telas mobile estreitas (320px a 420px), botões de cópia de conduta com textos longos podiam quebrar a largura do viewport sem regras CSS defensivas de quebra de palavra.
+    - **Implementação e Refatoração**:
+      * Em `src/13_cockpit_integracao.js`: Implementado parse seguro de JSON em `cockpitConsultar`, `cockpitConversar` (ações preceptor e prescricao), e garantida entrega de `resultado.texto` quando houver SOAP salvo no chat; sincronizado `casoAtivo: !!((estado && estado.data) || (soapTexto && soapTexto.length > 0))`.
+      * Em `server/runtime.js`: Implementado fallback dinâmico para métodos do Cockpit em `cockpitRpc` (`const fn = _rpcMap[metodo] || (typeof ctx[metodo] === 'function' ? ctx[metodo] : null)`), garantindo alta resiliência na invocação RPC.
+      * Em `cockpit_movel.html`:
+        • Implementada `cockpitRenderizarSoap(soapTexto, casoAtivo, avisoTexto)` centralizando a exibição limpa e acessível de prontuários SOAP.
+        • Implementadas `abrirModalCalc(calcId)` e `fecharTodosModais()`, permitindo abertura de qualquer calculadora ou modal com fechamento defensivo de modais abertos.
+        • Mapeados todos os 12 modais clínicos com listeners de toque no backdrop e tecla Escape com fallback universal contra modais travados.
+        • Implementada persistência dupla de cálculos recentes: `sessionStorage` primário com espelhamento resiliente em `localStorage` (`rotina_historico_calculos_v1_offline`).
+        • Refatorada a fila offline: unificação e desduplicação por ID entre Dexie (IndexedDB) e `localStorage`, remoção em ambos e descarte inteligente de itens com 5 falhas consecutivas.
+        • Adicionadas regras CSS com media query `(max-width: 420px)` garantindo botões de cópia de conduta e containers sem estouro horizontal no mobile.
+        • Sincronizado integralmente `gh_cockpit_deploy/index.html` mantendo paridade estrita SHA-256.
+    - **Validação e Cobertura Automatizada**:
+      * Criada nova suíte `tests/test_cockpit_pwa_interface_e_responsividade.cjs` (7 blocos cobrindo 100% dos critérios).
+      * Aprovadas com 100% de sucesso as suítes `test_cockpit_integracao.cjs`, `test_cockpit_offline_indexeddb.cjs`, `test_cockpit_historico_calculos.cjs`, `test_cockpit_acessibilidade_modais_sbar.cjs`, `test_cockpit_resiliencia_e_offline.cjs`, `test_cockpit_resiliencia_rede.cjs` e `test_soap_modo_e_receita_ux.cjs`.
+      * Recompilado `ultra_rotina_master.js` com sintaxe JS 100% OK e build de produção validado.
+
 0BD. [x] **Auditoria e Otimização do Modo SOAP & Prescrição Ambulatorial Ágil (`ux:soap`, `/soap`, `src/02_soap_ambulatorial.js`, `src/12_experiencia_bot.js`, `src/07c_telegram_consultas_e_ia.js`, `src/07a_telegram_router.js`, `src/10_pdf_receita.js` e `tests/test_soap_modo_e_receita_ux.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * No fluxo do SOAP, faltavam as funções canônicas `processarEntradaSoap` e exportação estruturada de `formatarRascunhoSoapTelegram` para suportar preenchimento determinístico ágil com EF normal por aparelho.

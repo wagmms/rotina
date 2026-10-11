@@ -90,6 +90,26 @@
         font-size: 16px !important;
       }
     }
+    /* Responsividade Beira-Leito Extrema (Mobile 320px a 420px) */
+    @media screen and (max-width: 420px) {
+      .btn-copiar-conduta, [id^="btn-copiar-"], button[onclick*="copiar"] {
+        white-space: normal !important;
+        word-break: break-word !important;
+        min-height: 38px !important;
+        font-size: 11px !important;
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+        line-height: 1.25 !important;
+      }
+      .tab-pane {
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+      }
+      .modal-dialog-box {
+        max-width: calc(100vw - 16px) !important;
+        margin: 8px !important;
+      }
+    }
     /* Reforço de contraste e acessibilidade clínica WCAG AA */
     .alerta-clinico-critico {
       background-color: rgba(76, 5, 25, 0.75);
@@ -1083,8 +1103,8 @@
           <!-- Resultado dinâmico -->
         </div>
 
-        <div class="flex gap-2">
-          <button id="btn-copiar-asma" onclick="copiarAsmaPEP()" class="hidden flex-1 py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition shadow-sm active:scale-[0.99]">
+        <div class="flex flex-wrap gap-2">
+          <button id="btn-copiar-asma" onclick="copiarAsmaPEP()" class="hidden flex-1 min-w-[200px] py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition shadow-sm active:scale-[0.99]">
             <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Conduta de Asma / DPOC para Prontuário
           </button>
           <button type="button" onclick="limparAsma()" class="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold border border-slate-700 transition">
@@ -1513,8 +1533,8 @@
           <!-- Resultado dinâmico -->
         </div>
 
-        <div class="flex gap-2">
-          <button id="btn-copiar-gaso" onclick="copiarGasoPEP()" class="hidden flex-1 py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition shadow-sm active:scale-[0.99]">
+        <div class="flex flex-wrap gap-2">
+          <button id="btn-copiar-gaso" onclick="copiarGasoPEP()" class="hidden flex-1 min-w-[200px] py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition shadow-sm active:scale-[0.99]">
             <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Gasometria para o Prontuário
           </button>
           <button type="button" onclick="limparGaso()" class="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold border border-slate-700 transition">
@@ -1632,8 +1652,8 @@
           <!-- Resultado dinâmico -->
         </div>
 
-        <div class="flex gap-2">
-          <button id="btn-copiar-heart" onclick="copiarHeartPEP()" class="hidden flex-1 py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition shadow-sm active:scale-[0.99]">
+        <div class="flex flex-wrap gap-2">
+          <button id="btn-copiar-heart" onclick="copiarHeartPEP()" class="hidden flex-1 min-w-[200px] py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-1.5 border border-emerald-500/30 transition shadow-sm active:scale-[0.99]">
             <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Parecer HEART &amp; DAPT para Prontuário
           </button>
           <button type="button" onclick="limparHeart()" class="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-semibold border border-slate-700 transition">
@@ -2814,7 +2834,7 @@
         <div id="amb-box-resultado" class="hidden space-y-2 pt-2 border-t border-slate-800">
           <div class="flex items-center justify-between flex-wrap gap-1.5">
             <span class="text-[10px] font-bold uppercase tracking-wider text-teal-400">Prontuário Estruturado (PEP)</span>
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center flex-wrap gap-1.5">
               <button onclick="copiarPrescricaoAmbulatorialGerada()" id="btn-copiar-prescricao-amb" class="px-2 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-semibold text-[10px] flex items-center gap-1 transition active:scale-[0.97]" title="Copiar somente o bloco de prescrição/plano para o receituário">
                 <i data-lucide="pill" class="w-3 h-3"></i> Copiar Prescrição PEP
               </button>
@@ -4069,9 +4089,23 @@
       }
     }
 
+    function fecharTodosModais() {
+      const ids = [
+        'modal-sbar-passagem', 'modal-ficha-farmaco', 'modal-ambulatorio-soap', 'modal-atestado-cfm',
+        'modal-prenatal', 'modal-centro-obstetrico', 'modal-ginecologia-ambulatorial', 'modal-plantao-offline',
+        'modal-sintese-dia-soap', 'modal-exame-fisico-normal', 'modal-raiox-preceptor', 'modal-preceptor-live'
+      ];
+      ids.forEach(id => {
+        const m = document.getElementById(id);
+        if (m) m.classList.add('hidden');
+      });
+      document.querySelectorAll('.fixed.inset-0:not(.hidden)').forEach(el => el.classList.add('hidden'));
+    }
+
     // 2. Navegação de Abas
     function navegarAba(tabId, subtitulo) {
       hapticFeedback('light');
+      fecharTodosModais();
       document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
       const ativa = document.getElementById(tabId);
       if (ativa) ativa.classList.remove('hidden');
@@ -4802,35 +4836,39 @@
     }
 
     async function obterFilaOffline() {
-      let lista = [];
+      let listaDexie = [];
+      let listaStorage = [];
       if (localDbUsandoIndexedDb && localDb) {
         try {
-          lista = await localDb.syncQueue.toArray();
+          listaDexie = await localDb.syncQueue.toArray();
         } catch (e) {
           console.warn('[OfflineDB] Falha ao ler fila Dexie:', e);
         }
       }
-      if (!lista || lista.length === 0) {
-        try {
-          lista = JSON.parse(localStorage.getItem('cockpit_sync_queue') || '[]');
-        } catch (e) {
-          lista = [];
-        }
+      try {
+        listaStorage = JSON.parse(localStorage.getItem('cockpit_sync_queue') || '[]');
+        if (!Array.isArray(listaStorage)) listaStorage = [];
+      } catch (e) {
+        listaStorage = [];
       }
-      return lista;
+      const mapa = new Map();
+      (listaDexie || []).forEach(it => { if (it && it.id != null) mapa.set(String(it.id), it); });
+      (listaStorage || []).forEach(it => { if (it && it.id != null && !mapa.has(String(it.id))) mapa.set(String(it.id), it); });
+      return Array.from(mapa.values());
     }
 
     async function removerItemFilaOffline(id) {
       if (localDbUsandoIndexedDb && localDb) {
         try {
           await localDb.syncQueue.delete(id);
-          return;
         } catch (e) {}
       }
       try {
         let fila = JSON.parse(localStorage.getItem('cockpit_sync_queue') || '[]');
-        fila = fila.filter(item => item.id !== id);
-        localStorage.setItem('cockpit_sync_queue', JSON.stringify(fila));
+        if (Array.isArray(fila)) {
+          fila = fila.filter(item => item && String(item.id) !== String(id));
+          localStorage.setItem('cockpit_sync_queue', JSON.stringify(fila));
+        }
       } catch (e) {}
     }
 
@@ -4881,6 +4919,11 @@
         } catch (err) {
           console.warn('[OfflineSync] Erro ao sincronizar item:', item, err);
           falhaCount++;
+          item.tentativas = (item.tentativas || 0) + 1;
+          if (item.tentativas >= 5 && !isDeviceOffline()) {
+            console.warn('[OfflineSync] Descartando item com 5 falhas consecutivas:', item.id);
+            await removerItemFilaOffline(item.id);
+          }
           if (isDeviceOffline()) break;
         }
       }
@@ -5333,12 +5376,8 @@
           const snap = await carregarSnapshotOffline('leitos_dados');
           if (snap && snap.dados) {
             cockpitDados = snap.dados;
-            const soapEl = document.getElementById('soap-integral');
-            if (soapEl) soapEl.textContent = snap.dados.soap || '';
-            if (aviso) {
-              const hora = new Date(snap.atualizadoEm).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              aviso.textContent = `📴 Modo Plantão sem Sinal · Dados locais em cache (${hora})`;
-            }
+            const hora = new Date(snap.atualizadoEm).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            cockpitRenderizarSoap(snap.dados.soap, snap.dados.casoAtivo, `📴 Modo Plantão sem Sinal · Dados locais em cache (${hora})`);
             renderizarLeitos();
             atualizarBadgeLeitos(snap.dados.leitos);
             atualizarPontoCegoPlantaoDinamico();
@@ -5355,13 +5394,7 @@
         salvarSnapshotOffline('leitos_dados', dados);
         atualizarIndicadorRede();
 
-        const soapEl = document.getElementById('soap-integral');
-        if (soapEl) soapEl.textContent = dados.soap || '';
-        if (aviso) {
-          aviso.textContent = dados.soap
-            ? 'SOAP do atendimento atual · atualizado agora'
-            : (dados.casoAtivo ? 'Atendimento ativo. Gere ou atualize o SOAP no chat.' : 'Nenhum atendimento ativo. Inicie um caso no chat.');
-        }
+        cockpitRenderizarSoap(dados.soap, dados.casoAtivo);
         renderizarLeitos();
         atualizarBadgeLeitos(dados.leitos);
         atualizarPontoCegoPlantaoDinamico();
@@ -5370,23 +5403,17 @@
         const snap = await carregarSnapshotOffline('leitos_dados');
         if (snap && snap.dados) {
           cockpitDados = snap.dados;
-          const soapEl = document.getElementById('soap-integral');
-          if (soapEl) soapEl.textContent = snap.dados.soap || '';
-          if (aviso) {
-            const hora = new Date(snap.atualizadoEm).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            aviso.textContent = `📴 Sinal indisponível · Exibindo último snapshot em cache (${hora})`;
-          }
+          const hora = new Date(snap.atualizadoEm).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          cockpitRenderizarSoap(snap.dados.soap, snap.dados.casoAtivo, `📴 Sinal indisponível · Exibindo último snapshot em cache (${hora})`);
           renderizarLeitos();
           atualizarBadgeLeitos(snap.dados.leitos);
           atualizarPontoCegoPlantaoDinamico();
           copiarToast('Sem conexão: exibindo dados do cache local.');
         } else {
           cockpitDados = null;
-          const soapEl = document.getElementById('soap-integral');
-          if (soapEl) soapEl.textContent = '';
+          cockpitRenderizarSoap('', false, e.message);
           const leitosEl = document.getElementById('lista-leitos-container');
           if (leitosEl) leitosEl.textContent = e.message;
-          if (aviso) aviso.textContent = e.message;
         }
       } finally { cockpitCarregando = false; }
     }
@@ -6824,6 +6851,91 @@
       }
     }
 
+    function fecharTodosModais() {
+      const mapaModais = [
+        { id: 'modal-sbar-passagem', fechar: typeof fecharModalSbarPassagem === 'function' ? fecharModalSbarPassagem : null },
+        { id: 'modal-ficha-farmaco', fechar: typeof fecharModalFichaFarmaco === 'function' ? fecharModalFichaFarmaco : null },
+        { id: 'modal-ambulatorio-soap', fechar: typeof fecharModalAmbulatorioSOAP === 'function' ? fecharModalAmbulatorioSOAP : null },
+        { id: 'modal-atestado-cfm', fechar: typeof fecharModalAtestadoCFM === 'function' ? fecharModalAtestadoCFM : null },
+        { id: 'modal-prenatal', fechar: typeof fecharModalPrenatal === 'function' ? fecharModalPrenatal : null },
+        { id: 'modal-centro-obstetrico', fechar: typeof fecharModalCentroObstetrico === 'function' ? fecharModalCentroObstetrico : null },
+        { id: 'modal-ginecologia-ambulatorial', fechar: typeof fecharModalGinecologiaAmbulatorial === 'function' ? fecharModalGinecologiaAmbulatorial : null },
+        { id: 'modal-plantao-offline', fechar: typeof fecharPainelOffline === 'function' ? fecharPainelOffline : null },
+        { id: 'modal-raiox-preceptor', fechar: typeof fecharModalRaioXPreceptor === 'function' ? fecharModalRaioXPreceptor : null },
+        { id: 'modal-preceptor-live', fechar: typeof fecharModalPreceptorLive === 'function' ? fecharModalPreceptorLive : null },
+        { id: 'modal-sintese-dia-soap', fechar: typeof fecharModalSinteseDiaSOAP === 'function' ? fecharModalSinteseDiaSOAP : null },
+        { id: 'modal-exame-fisico-normal', fechar: typeof fecharModalExameFisicoNormal === 'function' ? fecharModalExameFisicoNormal : null }
+      ];
+      mapaModais.forEach(({ id, fechar }) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.add('hidden');
+          if (typeof fechar === 'function') {
+            try { fechar(); } catch (e) {}
+          }
+        }
+      });
+      document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden'));
+    }
+
+    function abrirModalCalc(calcId) {
+      if (!calcId) return;
+      hapticFeedback('light');
+      fecharTodosModais();
+
+      const idLimpo = String(calcId).toLowerCase().trim().replace(/^(modal-|calc-)/, '');
+
+      if (idLimpo === 'prenatal' || idLimpo === 'obstetricia_prenatal') {
+        if (typeof abrirModalPrenatal === 'function') return abrirModalPrenatal();
+      } else if (idLimpo === 'centro_obstetrico' || idLimpo === 'parto') {
+        if (typeof abrirModalCentroObstetrico === 'function') return abrirModalCentroObstetrico();
+      } else if (idLimpo === 'ginecologia' || idLimpo === 'ginecologia_ambulatorial') {
+        if (typeof abrirModalGinecologiaAmbulatorial === 'function') return abrirModalGinecologiaAmbulatorial();
+      } else if (idLimpo === 'sbar' || idLimpo === 'passagem') {
+        if (typeof abrirModalSbarPassagem === 'function') return abrirModalSbarPassagem();
+      } else if (idLimpo === 'atestado' || idLimpo === 'atestado_cfm') {
+        if (typeof abrirModalAtestadoCFM === 'function') return abrirModalAtestadoCFM();
+      } else if (idLimpo === 'ambulatorio_soap' || idLimpo === 'soap_amb') {
+        if (typeof abrirModalAmbulatorioSOAP === 'function') return abrirModalAmbulatorioSOAP();
+      }
+
+      const mapaSubcalc = {
+        'dva': 'calc-dva',
+        'sri': 'calc-sri',
+        'asma': 'calc-asma',
+        'crcl': 'calc-crcl',
+        'clearance': 'calc-crcl',
+        'parkland': 'calc-parkland',
+        'queimados': 'calc-parkland',
+        'glasgow': 'calc-glasgow',
+        'atb': 'calc-atb',
+        'antimicrobiano': 'calc-atb',
+        'dhe': 'calc-dhe',
+        'gaso': 'calc-gaso',
+        'gasometria': 'calc-gaso',
+        'heart': 'calc-heart',
+        'sca': 'calc-heart',
+        'pediatria': 'calc-pediatria',
+        'pals': 'calc-pediatria',
+        'holliday': 'calc-pediatria',
+        'usprp': 'calc-usprp'
+      };
+
+      const paneId = mapaSubcalc[idLimpo] || (document.getElementById('calc-' + idLimpo) ? ('calc-' + idLimpo) : 'calc-dva');
+
+      if (typeof navegarAba === 'function') {
+        navegarAba('tab-calculadoras', 'Emergência & Cálculos');
+      }
+      abrirSubCalc(paneId);
+
+      setTimeout(() => {
+        const el = document.getElementById(paneId);
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
+    }
+
     // =========================================================================
     // 4.0 HISTÓRICO LOCAL DE CÁLCULOS E CONSULTAS (SESSION STORAGE · LIFO 5 ITENS)
     // =========================================================================
@@ -6832,11 +6944,21 @@
 
     function obterHistoricoCalculos() {
       try {
-        if (typeof window === 'undefined' || !window.sessionStorage) return [];
-        const raw = window.sessionStorage.getItem(HISTORICO_CALCULOS_KEY);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          const raw = window.sessionStorage.getItem(HISTORICO_CALCULOS_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+        }
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const rawOff = window.localStorage.getItem(HISTORICO_CALCULOS_KEY + '_offline');
+          if (rawOff) {
+            const parsedOff = JSON.parse(rawOff);
+            if (Array.isArray(parsedOff)) return parsedOff;
+          }
+        }
+        return [];
       } catch (e) {
         return [];
       }
@@ -6844,11 +6966,15 @@
 
     function salvarHistoricoCalculos(lista) {
       try {
-        if (typeof window === 'undefined' || !window.sessionStorage) return;
         const sanitizada = (Array.isArray(lista) ? lista : []).slice(0, HISTORICO_MAX_ITENS);
-        window.sessionStorage.setItem(HISTORICO_CALCULOS_KEY, JSON.stringify(sanitizada));
+        const jsonStr = JSON.stringify(sanitizada);
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          window.sessionStorage.setItem(HISTORICO_CALCULOS_KEY, jsonStr);
+        }
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(HISTORICO_CALCULOS_KEY + '_offline', jsonStr);
+        }
       } catch (e) {
-        // sessionStorage pode estar desabilitado em modo de navegação restrita ou cota excedida
       }
     }
 
@@ -7231,6 +7357,9 @@
       try {
         if (typeof window !== 'undefined' && window.sessionStorage) {
           window.sessionStorage.removeItem(HISTORICO_CALCULOS_KEY);
+        }
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.removeItem(HISTORICO_CALCULOS_KEY + '_offline');
         }
       } catch (e) {}
       renderizarHistoricoCalculos();
@@ -9815,6 +9944,53 @@
     }
 
     // 6. SOAP & Copiloto Clínico Conversacional
+    function cockpitRenderizarSoap(soapTexto, casoAtivo, avisoTexto) {
+      const soapEl = document.getElementById('soap-integral');
+      const aviso = document.getElementById('cockpit-status');
+      let texto = '';
+      let ativo = casoAtivo;
+      let avisoTxt = avisoTexto;
+
+      if (soapTexto && typeof soapTexto === 'object') {
+        texto = (soapTexto.soap != null) ? String(soapTexto.soap).trim() : '';
+        ativo = (casoAtivo !== undefined) ? casoAtivo : !!soapTexto.casoAtivo;
+        if (!avisoTxt && soapTexto.aviso) avisoTxt = soapTexto.aviso;
+      } else {
+        texto = (soapTexto != null) ? String(soapTexto).trim() : '';
+      }
+
+      if (soapEl) {
+        if (texto) {
+          soapEl.textContent = texto;
+          soapEl.classList.remove('text-slate-400', 'italic');
+          soapEl.classList.add('text-slate-100');
+        } else {
+          soapEl.textContent = 'Nenhum prontuário SOAP carregado. Inicie um atendimento no Telegram ou use o Copiloto Clínico.';
+          soapEl.classList.remove('text-slate-100');
+          soapEl.classList.add('text-slate-400', 'italic');
+        }
+      }
+
+      if (cockpitDados && typeof cockpitDados === 'object') {
+        cockpitDados.soap = texto;
+      }
+
+      if (aviso) {
+        if (avisoTxt) {
+          aviso.textContent = avisoTxt;
+        } else if (texto) {
+          aviso.textContent = 'SOAP do atendimento atual · atualizado agora';
+        } else if (ativo) {
+          aviso.textContent = 'Atendimento ativo. Gere ou atualize o SOAP no chat.';
+        } else {
+          aviso.textContent = 'Nenhum atendimento ativo. Inicie um caso no chat.';
+        }
+      }
+    }
+    if (typeof window !== 'undefined') {
+      window.cockpitRenderizarSoap = cockpitRenderizarSoap;
+    }
+
     async function carregarSOAP() {
       await carregarLeitos();
     }
@@ -13275,15 +13451,9 @@
           adicionarMensagemFeed('ia', res.resposta);
         }
         if (res.soap !== undefined) {
-          const soapEl = document.getElementById('soap-integral');
-          if (soapEl) soapEl.textContent = res.soap;
-          if (cockpitDados) {
-            cockpitDados.soap = res.soap;
+          cockpitRenderizarSoap(res.soap, true);
+          if (cockpitDados && res.revision) {
             cockpitDados.revision = res.revision;
-          }
-          const avisoStatus = document.getElementById('cockpit-status');
-          if (avisoStatus) {
-            avisoStatus.textContent = res.soap ? 'SOAP do atendimento atual · atualizado agora' : 'Nenhum atendimento ativo. Inicie um caso no chat.';
           }
         }
         copiarToast('Atualizado com sucesso!');
@@ -13316,15 +13486,9 @@
           adicionarMensagemFeed('ia', res.resposta);
         }
         if (res.soap !== undefined) {
-          const soapEl = document.getElementById('soap-integral');
-          if (soapEl) soapEl.textContent = res.soap;
-          if (cockpitDados) {
-            cockpitDados.soap = res.soap;
+          cockpitRenderizarSoap(res.soap, true);
+          if (cockpitDados && res.revision) {
             cockpitDados.revision = res.revision;
-          }
-          const avisoStatus = document.getElementById('cockpit-status');
-          if (avisoStatus) {
-            avisoStatus.textContent = res.soap ? 'SOAP do atendimento atual · atualizado agora' : 'Nenhum atendimento ativo.';
           }
         }
         copiarToast('Caso atualizado!');
@@ -13508,10 +13672,8 @@
                 adicionarMensagemFeed('ia', res.resposta);
               }
               if (res.soap !== undefined) {
-                const soapEl = document.getElementById('soap-integral');
-                if (soapEl) soapEl.textContent = res.soap;
-                if (cockpitDados) {
-                  cockpitDados.soap = res.soap;
+                cockpitRenderizarSoap(res.soap, true);
+                if (cockpitDados && res.revision) {
                   cockpitDados.revision = res.revision;
                 }
               }
@@ -14477,7 +14639,11 @@
         { id: 'modal-prenatal', fechar: fecharModalPrenatal },
         { id: 'modal-centro-obstetrico', fechar: fecharModalCentroObstetrico },
         { id: 'modal-ginecologia-ambulatorial', fechar: fecharModalGinecologiaAmbulatorial },
-        { id: 'modal-plantao-offline', fechar: fecharPainelOffline }
+        { id: 'modal-plantao-offline', fechar: fecharPainelOffline },
+        { id: 'modal-raiox-preceptor', fechar: typeof fecharModalRaioXPreceptor === 'function' ? fecharModalRaioXPreceptor : null },
+        { id: 'modal-preceptor-live', fechar: typeof fecharModalPreceptorLive === 'function' ? fecharModalPreceptorLive : null },
+        { id: 'modal-sintese-dia-soap', fechar: typeof fecharModalSinteseDiaSOAP === 'function' ? fecharModalSinteseDiaSOAP : null },
+        { id: 'modal-exame-fisico-normal', fechar: typeof fecharModalExameFisicoNormal === 'function' ? fecharModalExameFisicoNormal : null }
       ];
 
       mapaModais.forEach(({ id, fechar }) => {
@@ -14524,6 +14690,12 @@
                 return;
               }
             }
+            // Fallback universal: fecha qualquer modal que possa estar visível
+            document.querySelectorAll('[id^="modal-"]').forEach(m => {
+              if (!m.classList.contains('hidden')) {
+                m.classList.add('hidden');
+              }
+            });
           }
         });
       }

@@ -965,7 +965,7 @@ module.exports = {
         _rpcMap.cockpitObito = ctx.cockpitObito || ctx.cockpitMedicinaLegalObito;
         Object.freeze(_rpcMap);
       }
-      const fn = _rpcMap[metodo];
+      const fn = _rpcMap[metodo] || (typeof ctx[metodo] === 'function' ? ctx[metodo] : null);
       if (typeof fn !== 'function') {
         throw new Error(`Método do Cockpit não suportado: ${metodo}`);
       }
