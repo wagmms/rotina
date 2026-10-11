@@ -1,5 +1,18 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C24. [x] **Telegram Router - Desacoplamento de Comandos Slash e Tabela de Despacho O(1) (`src/07a_telegram_router.js`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Em `src/07a_telegram_router.js`: identificada dispersão de comandos comuns (`/rx`, `/rxh`, `/plantao`, `/calc`) no meio de milhares de linhas aninhadas de `if/else` sequenciais dentro de `processarMensagemTexto`.
+      * Decompostos handlers modulares desacoplados:
+        • `tratarComandoRx(chatId, texto)`: parsing isolado de termos de prescrição, extração inteligente de plano SOAP e kits ambulatoriais com orquestração de IA.
+        • `tratarComandoRxh(chatId, texto)`: tratamento atômico de dados de internação, função renal e exemplos guiados para enfermaria.
+        • `tratarComandoPlantao(chatId, texto)`: parsing de passagem de plantão SBAR com fallback visual para painel de leitos.
+        • `tratarComandoCalc(chatId, texto, contextoKey)`: orquestração de menu de categorias, memória de cálculo determinística, guard clause anti-alucinação e IA.
+      * Tabela `rotearComandoSistema(comando, texto, chatId)` expandida para cobrir `/rx`, `/receita`, `/rxh`, `/prescricao_hospitalar`, `/plantao`, `/sbar` e `/calc` logo no topo da execução com despacho direto $O(1)$ e early return.
+      * Blocos originais delegam diretamente para as funções modulares, eliminando complexidade ciclomática e preservando 100% dos contratos clínicos.
+      * Cláusula pétrea de conteúdo médico, doses farmacológicas, links de navegação e atalhos rápidos rigorosamente preservados.
+    - **Validação e Resultados**: 100% de aprovação na suíte direcionada (`test_hubs_e_comandos_telegram.cjs`, `test_novos_comandos.py`, `test_calculadoras_caixa_texto.cjs`, `test_soap_extrair_receita.cjs`, `test_runtime_bot.py` em 5.61s). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
+
 0C23. [x] **Receitas e Atestados PDF - Decomposição Modular de Parsing e Renderizadores de Layout HTML (`src/10_pdf_receita.js`)**:
     - **Diagnóstico e Refatoração Estrutural**:
       * Em `src/10_pdf_receita.js`: identificada função monolítica de 150 linhas `extrairItensReceitaLimpos` acumulando corte de texto, regexes de via, parsing de medicamentos e montagem de fallback.

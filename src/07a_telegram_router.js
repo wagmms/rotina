@@ -673,6 +673,116 @@ function tratarComandoPc(chatId, texto) {
 }
 
 /**
+ * Handlers modulares desacoplados para comandos clínicos e de sistema.
+ */
+function tratarComandoRx(chatId, texto) {
+  var dadosPrescricao = texto.replace(/^\/(?:rx|receita)\s*/i, "").trim();
+  if (!dadosPrescricao) {
+    var ctxAtivo = (typeof obterContextoClinicoBot === "function") ? obterContextoClinicoBot(chatId) : "";
+    var planoAtivo = (typeof extrairPlanoDeTextoSoap === "function") ? extrairPlanoDeTextoSoap(ctxAtivo) : null;
+    var botoesRx = [];
+    if (planoAtivo && planoAtivo.trim().length >= 5) {
+      botoesRx.push([{ text: "💊 Extrair Receita do SOAP Ativo", callback_data: "ux:soap:extrair_rx:" }]);
+    }
+    botoesRx.push([
+      { text: "💊 Receita HAS", callback_data: "ux:amb:remume:has" },
+      { text: "🩸 Receita DM2", callback_data: "ux:amb:remume:dm" }
+    ]);
+    botoesRx.push([
+      { text: "🩹 Dor & Sintomáticos", callback_data: "ux:amb:remume:dor" },
+      { text: "🫁 Asma / DPOC", callback_data: "ux:amb:remume:asma" }
+    ]);
+    botoesRx.push([
+      { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
+      { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+    ]);
+
+    return enviarMensagemComTecladoParaChat(chatId,
+      "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME SUS)*\n\n" +
+      (planoAtivo ? "💡 *Caso SOAP ativo detectado:* Toque em [💊 Extrair Receita do SOAP Ativo] ou selecione um kit abaixo:\n\n" : "") +
+      "Envie o diagnóstico ou selecione um kit de prescrição rápida abaixo:\n" +
+      "💡 *Exemplo:* `/rx amigdalite 16kg, alergia a penicilina` ou `/rx losartana 50mg, hidroclorotiazida 25mg`",
+      { inline_keyboard: botoesRx }
+    );
+  }
+  return processarEEntregarIA(chatId, gerarPrescricaoComIA, dadosPrescricao, "rx");
+}
+
+function tratarComandoRxh(chatId, texto) {
+  var dadosRxh = texto.replace(/^\/(?:rxh|prescricao_hospitalar)\s*/i, "").trim();
+  if (!dadosRxh) {
+    return enviarMensagemComTecladoParaChat(chatId,
+      "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\n" +
+      "Envie os dados do paciente internado (diagnóstico, peso, idade, função renal, alergias):\n" +
+      "💡 *Exemplo:* `/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`",
+      {
+        inline_keyboard: [
+          [{ text: "📋 Gerar Exemplo (PAC Grave)", callback_data: "ux:rxh:exemplo_pac" }],
+          [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      }
+    );
+  }
+  return processarEEntregarIA(chatId, gerarPrescricaoHospitalarComIA, dadosRxh, "rxh");
+}
+
+function tratarComandoPlantao(chatId, texto) {
+  var dadosPlantao = texto.replace(/^\/(?:plantao|sbar)\s*/i, "").trim();
+  if (!dadosPlantao) {
+    if (typeof tratarCallbackEnfSBAR === "function") {
+      return tratarCallbackEnfSBAR(chatId);
+    }
+    return enviarMensagemComTecladoParaChat(chatId, "🏥 *PASSAGEM DE PLANTÃO SBAR*\n\nEnvie os dados do caso ou paciente. Exemplo: `/sbar Leito 12 PAC grave, Ceftriaxona D3, aguarda vaga CTI`", {
+      inline_keyboard: [
+        [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    });
+  }
+  return processarEEntregarIA(chatId, gerarPassagemPlantaoSBAR, dadosPlantao, "plantao");
+}
+
+function tratarComandoCalc(chatId, texto, contextoKey) {
+  var dadosCalc = texto.replace(/^\/calc\s*/i, "").trim();
+  if (!dadosCalc) {
+    return enviarMenuCategoriasCalculadoras(chatId);
+  }
+
+  if (ehApenasNomeCalculadora(dadosCalc)) {
+    var ctxKey = contextoKey || ("ctx_" + chatId);
+    safePutCache(CacheService.getScriptCache(), ctxKey, "/calc Calculadora selecionada: " + dadosCalc + "\nDados do paciente: ", 900);
+    var guias = obterInstrucoesCalculadora(dadosCalc);
+    return enviarMensagemParaChat(chatId, guias);
+  }
+
+  var resDet = tentarCalcularDeterministico(dadosCalc);
+  if (resDet) {
+    var ckCalc = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(CacheService.getScriptCache(), ckCalc, resDet, 21600);
+    var tecladoDet = {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Cálculo para Prontuário", callback_data: "ux:copiar:" + ckCalc }],
+        [{ text: "🔙 Calculadoras", callback_data: "ux:hub:calc" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, resDet, tecladoDet);
+  }
+
+  // Se o usuário invocou uma calculadora reconhecida deterministicamente mas resDet não retornou resultado, NUNCA cai na IA!
+  if (typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(dadosCalc)) {
+    var instrucoes = obterInstrucoesCalculadora(dadosCalc);
+    var tecladoInstr = {
+      inline_keyboard: [
+        [{ text: "🔙 Calculadoras", callback_data: "ux:hub:calc" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, "⚠️ *Calculadora Clínica: Parâmetros Insuficientes ou Inválidos*\n\n" + instrucoes, tecladoInstr);
+  }
+
+  return processarEEntregarIA(chatId, processarCalculadoraClinicaComIA, dadosCalc, "calc");
+}
+
+/**
  * Tabela de despacho O(1) para comandos de sistema e navegação básica.
  */
 function rotearComandoSistema(comando, texto, chatId) {
@@ -689,11 +799,11 @@ function rotearComandoSistema(comando, texto, chatId) {
       return enviarMensagemComTecladoFixo(chatId, "Use /menu para a Central de Comandos.");
     },
     "/ajuda": function() {
-      var filtroAjuda = texto.replace(/^\/(ajuda|help)\s*/i, "").trim();
+      var filtroAjuda = texto.replace(/^\/(?:ajuda|help)\s*/i, "").trim();
       return enviarManualCompletoComandos(chatId, filtroAjuda);
     },
     "/help": function() {
-      var filtroHelp = texto.replace(/^\/(ajuda|help)\s*/i, "").trim();
+      var filtroHelp = texto.replace(/^\/(?:ajuda|help)\s*/i, "").trim();
       return enviarManualCompletoComandos(chatId, filtroHelp);
     },
     "/status": function() {
@@ -731,6 +841,27 @@ function rotearComandoSistema(comando, texto, chatId) {
     },
     "/pc": function() {
       return tratarComandoPc(chatId, texto);
+    },
+    "/rx": function() {
+      return tratarComandoRx(chatId, texto);
+    },
+    "/receita": function() {
+      return tratarComandoRx(chatId, texto);
+    },
+    "/rxh": function() {
+      return tratarComandoRxh(chatId, texto);
+    },
+    "/prescricao_hospitalar": function() {
+      return tratarComandoRxh(chatId, texto);
+    },
+    "/plantao": function() {
+      return tratarComandoPlantao(chatId, texto);
+    },
+    "/sbar": function() {
+      return tratarComandoPlantao(chatId, texto);
+    },
+    "/calc": function() {
+      return tratarComandoCalc(chatId, texto, "ctx_" + chatId);
     }
   };
 
@@ -4267,54 +4398,11 @@ function processarMensagemTexto(message) {
   }
 
   if (comando === "/rx" || comando === "/receita") {
-    var dadosPrescricao = texto.replace(/^\/(rx|receita)\s*/i, "").trim();
-    if (!dadosPrescricao) {
-      var ctxAtivo = (typeof obterContextoClinicoBot === "function") ? obterContextoClinicoBot(chatId) : "";
-      var planoAtivo = (typeof extrairPlanoDeTextoSoap === "function") ? extrairPlanoDeTextoSoap(ctxAtivo) : null;
-      var botoesRx = [];
-      if (planoAtivo && planoAtivo.trim().length >= 5) {
-        botoesRx.push([{ text: "💊 Extrair Receita do SOAP Ativo", callback_data: "ux:soap:extrair_rx:" }]);
-      }
-      botoesRx.push([
-        { text: "💊 Receita HAS", callback_data: "ux:amb:remume:has" },
-        { text: "🩸 Receita DM2", callback_data: "ux:amb:remume:dm" }
-      ]);
-      botoesRx.push([
-        { text: "🩹 Dor & Sintomáticos", callback_data: "ux:amb:remume:dor" },
-        { text: "🫁 Asma / DPOC", callback_data: "ux:amb:remume:asma" }
-      ]);
-      botoesRx.push([
-        { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
-        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
-      ]);
-
-      return enviarMensagemComTecladoParaChat(chatId,
-        "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME SUS)*\n\n" +
-        (planoAtivo ? "💡 *Caso SOAP ativo detectado:* Toque em [💊 Extrair Receita do SOAP Ativo] ou selecione um kit abaixo:\n\n" : "") +
-        "Envie o diagnóstico ou selecione um kit de prescrição rápida abaixo:\n" +
-        "💡 *Exemplo:* `/rx amigdalite 16kg, alergia a penicilina` ou `/rx losartana 50mg, hidroclorotiazida 25mg`",
-        { inline_keyboard: botoesRx }
-      );
-    }
-    return processarEEntregarIA(chatId, gerarPrescricaoComIA, dadosPrescricao, "rx");
+    return tratarComandoRx(chatId, texto);
   }
 
   if (comando === "/rxh" || comando === "/prescricao_hospitalar") {
-    var dadosRxh = texto.replace(/^\/(rxh|prescricao_hospitalar)\s*/i, "").trim();
-    if (!dadosRxh) {
-      return enviarMensagemComTecladoParaChat(chatId,
-        "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\n" +
-        "Envie os dados do paciente internado (diagnóstico, peso, idade, função renal, alergias):\n" +
-        "💡 *Exemplo:* `/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`",
-        {
-          inline_keyboard: [
-            [{ text: "📋 Gerar Exemplo (PAC Grave)", callback_data: "ux:rxh:exemplo_pac" }],
-            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-          ]
-        }
-      );
-    }
-    return processarEEntregarIA(chatId, gerarPrescricaoHospitalarComIA, dadosRxh, "rxh");
+    return tratarComandoRxh(chatId, texto);
   }
 
   if (comando === "/atb" || comando === "/ajuste" || comando === "/ajuste_renal") {
@@ -4401,19 +4489,7 @@ function processarMensagemTexto(message) {
   }
 
   if (comando === "/plantao" || comando === "/sbar") {
-    var dadosPlantao = texto.replace(/^\/(plantao|sbar)\s*/i, "").trim();
-    if (!dadosPlantao) {
-      if (typeof tratarCallbackEnfSBAR === "function") {
-        return tratarCallbackEnfSBAR(chatId);
-      }
-      return enviarMensagemComTecladoParaChat(chatId, "🏥 *PASSAGEM DE PLANTÃO SBAR*\n\nEnvie os dados do caso ou paciente. Exemplo: `/sbar Leito 12 PAC grave, Ceftriaxona D3, aguarda vaga CTI`", {
-        inline_keyboard: [
-          [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
-          [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-        ]
-      });
-    }
-    return processarEEntregarIA(chatId, gerarPassagemPlantaoSBAR, dadosPlantao, "plantao");
+    return tratarComandoPlantao(chatId, texto);
   }
 
   // ENFERMARIA VIRTUAL MULTI-LEITOS
@@ -4789,42 +4865,7 @@ function processarMensagemTexto(message) {
   }
 
   if (comando === "/calc") {
-    var dadosCalc = texto.replace(/^\/calc\s*/i, "").trim();
-    if (!dadosCalc) {
-      return enviarMenuCategoriasCalculadoras(chatId);
-    }
-
-    if (ehApenasNomeCalculadora(dadosCalc)) {
-      safePutCache(CacheService.getScriptCache(), contextoKey, "/calc Calculadora selecionada: " + dadosCalc + "\nDados do paciente: ", 900);
-      var guias = obterInstrucoesCalculadora(dadosCalc);
-      return enviarMensagemParaChat(chatId, guias);
-    }
-
-    var resDet = tentarCalcularDeterministico(dadosCalc);
-    if (resDet) {
-      var ckCalc = Utilities.getUuid().replace(/-/g, "");
-      safePutCache(CacheService.getScriptCache(), ckCalc, resDet, 21600);
-      var tecladoDet = {
-        inline_keyboard: [
-          [{ text: "📋 Copiar Cálculo para Prontuário", callback_data: "ux:copiar:" + ckCalc }],
-          [{ text: "🔙 Calculadoras", callback_data: "ux:hub:calc" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-        ]
-      };
-      return enviarMensagemComTecladoParaChat(chatId, resDet, tecladoDet);
-    }
-
-    // Se o usuário invocou uma calculadora reconhecida deterministicamente mas resDet não retornou resultado, NUNCA cai na IA!
-    if (typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(dadosCalc)) {
-      var instrucoes = obterInstrucoesCalculadora(dadosCalc);
-      var tecladoInstr = {
-        inline_keyboard: [
-          [{ text: "🔙 Calculadoras", callback_data: "ux:hub:calc" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-        ]
-      };
-      return enviarMensagemComTecladoParaChat(chatId, "⚠️ *Calculadora Clínica: Parâmetros Insuficientes ou Inválidos*\n\n" + instrucoes, tecladoInstr);
-    }
-
-    return processarEEntregarIA(chatId, processarCalculadoraClinicaComIA, dadosCalc, "calc");
+    return tratarComandoCalc(chatId, texto, contextoKey);
   }
 
   if (comando === "/round" || comando === "/pitch") {

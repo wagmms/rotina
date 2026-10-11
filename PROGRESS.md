@@ -16,12 +16,12 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Receitas e Atestados PDF - Decomposição Modular de Parsing e Renderizadores de Layout HTML (`src/10_pdf_receita.js`)**:
+- [x] **Telegram Router - Desacoplamento de Comandos Slash e Tabela de Despacho O(1) (`src/07a_telegram_router.js`)**:
     - **Diagnóstico e Refatoração Estrutural**:
-      * Em `src/10_pdf_receita.js`: decomposta a função monolítica `extrairItensReceitaLimpos` e renderização de layout em helpers atômicos e puros: `podarNotasClinicasPrescricao_`, `extrairDivisaoNomeQuantidade_`, `criarItemFallback_`, `agruparItensPorVia_`, `renderizarTabelaViasHtml_`, `renderizarBlocoOrientacoesHtml_`, `renderizarDocumentoA4Html_` e `obterBlobPdfReceita_`.
-      * Complexidade ciclomática reduzida drasticamente com eliminação de aninhamentos e blocos espaguete.
-      * Cláusula pétrea de conteúdo médico, ausência de dados do prescritor, avisos de rascunho e padrões A4 estritamente preservados.
-    - **Validação e Resultados**: 100% de aprovação na suíte direcionada (`test_pdf_receita.py` em 0.68s, `test_soap_extrair_receita.cjs`, `test_correcao_oitava_rodada.cjs`, `test_soap_modo_e_receita_ux.cjs` em 1.18s). Checksum e bundle sincronizados.
+      * Em `src/07a_telegram_router.js`: desacoplados comandos `/rx`, `/rxh`, `/plantao` e `/calc` em handlers modulares (`tratarComandoRx`, `tratarComandoRxh`, `tratarComandoPlantao`, `tratarComandoCalc`).
+      * Tabela `rotearComandoSistema` expandida com despacho direto O(1) e early return, eliminando cascatas de `if/else` em `processarMensagemTexto`.
+      * Cláusula pétrea de conteúdo médico, doses farmacológicas, links de navegação e atalhos rápidos rigorosamente preservados.
+    - **Validação e Resultados**: 100% de aprovação na suíte direcionada (`test_hubs_e_comandos_telegram.cjs`, `test_novos_comandos.py`). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -29,26 +29,21 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Telegram Router - Desacoplamento de Roteamento de Comandos Slash (`src/07a_telegram_router.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/07a_telegram_router.js`
-    - **Função/Componente/Seletor**: Função principal `processarMensagemTexto` e handlers de comandos (`/start`, `/help`, `/calc`, `/plantao`, `/rx`)
-    - **Comportamento Esperado / Critério de Aceite**: Decompor cascata de `if/else` e switch em mapa de despacho O(1) imutável com guard clauses para autorização e comandos rápidos, validando com `tests/test_hubs_e_comandos_telegram.cjs` e `tests/test_novos_comandos.py`.
+- [ ] **Prescrição Hospitalar - Decomposição de Validações de Posologia e Ajuste Renal (`src/05_prescricao_hospitalar.js`)**:
+    - **Arquivo/Módulo Alvo**: `src/05_prescricao_hospitalar.js`
+    - **Função/Componente/Seletor**: Funções de checagem e formatação de itens de prescrição (`validarItemPrescricao`, `aplicarAjusteRenalItem`)
+    - **Comportamento Esperado / Critério de Aceite**: Substituir escadas de condições por dicionários de regras e funções puras com early return.
 
 ---
 
 ## 📋 Backlog Prioritário: Refatoração Estrutural & Código "Liso" (Elegância Arquitetural)
 
-1. [ ] **Prescrição Hospitalar - Decomposição de Validações de Posologia e Ajuste Renal (`src/05_prescricao_hospitalar.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/05_prescricao_hospitalar.js`
-    - **Função/Componente/Seletor**: Funções de checagem e formatação de itens de prescrição (`validarItemPrescricao`, `aplicarAjusteRenalItem`)
-    - **Comportamento Esperado / Critério de Aceite**: Substituir escadas de condições por dicionários de regras e funções puras com early return.
-
-2. [ ] **Telegram Callbacks - Desacoplamento de Roteamento de Callbacks Inline (`src/07d_telegram_callbacks.js`)**:
+1. [ ] **Telegram Callbacks - Desacoplamento de Roteamento de Callbacks Inline (`src/07d_telegram_callbacks.js`)**:
     - **Arquivo/Módulo Alvo**: `src/07d_telegram_callbacks.js`
     - **Função/Componente/Seletor**: Função principal `processarCallbackBotao`
     - **Comportamento Esperado / Critério de Aceite**: Substituir cascata de regexes e `if/else` por tabela de despacho O(1) por prefixo de callback.
 
-3. [ ] **Telegram Mídia e Leitos - Decomposição de Parsing de Ditados e Round (`src/07e_telegram_midia_e_leitos.js`)**:
+2. [ ] **Telegram Mídia e Leitos - Decomposição de Parsing de Ditados e Round (`src/07e_telegram_midia_e_leitos.js`)**:
     - **Arquivo/Módulo Alvo**: `src/07e_telegram_midia_e_leitos.js`
     - **Função/Componente/Seletor**: Funções de processamento de áudio clínico e extração de leitos para passagem de plantão
     - **Comportamento Esperado / Critério de Aceite**: Desacoplar blocos aninhados de transcrição e pós-processamento clínico em helpers atômicos.
