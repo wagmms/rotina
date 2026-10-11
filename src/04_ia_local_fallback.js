@@ -430,6 +430,7 @@ var IaLocalFallbackService = (function () {
    */
   function estruturarJsonOffline(sistema, promptUsuario) {
     var t = String(promptUsuario || '').toLowerCase();
+    var s = String(sistema || '').toLowerCase();
     var intencao = 'CONVERSA';
     var confianca = 0.85;
 
@@ -451,12 +452,38 @@ var IaLocalFallbackService = (function () {
       intencao = 'NOTION_DUVIDA';
     }
 
-    return JSON.stringify({
+    var ehSoap = s.indexOf('soap') !== -1 || s.indexOf('subjetivo') !== -1 || t.indexOf('soap') !== -1;
+    var ehEmergencia = intencao === 'CLINICO_EMERGENCIA';
+    var protoEmerg = null;
+    if (ehEmergencia) {
+      protoEmerg = identificarProtocoloClinico(promptUsuario);
+    }
+    var condutaProto = protoEmerg ? protoEmerg.gerarConduta(promptUsuario) : null;
+
+    var resultado = {
       intencao: intencao,
       confianca: confianca,
       modoOffline: true,
+      contingencia_offline: true,
+      aviso_contingencia: 'Processado pelo Motor Determinístico Offline (Provedor em contingência).',
       timestamp: new Date().toISOString()
-    });
+    };
+
+    if (ehSoap) {
+      var subjetivoLimpo = String(promptUsuario || '').replace(/CASO CLÍNICO:\s*/i, '').trim();
+      resultado.subjetivo = subjetivoLimpo || 'Relato clínico recebido em contingência offline.';
+      resultado.objetivo = 'Monitorização multiparamétrica contínua e checagem de sinais vitais sob suporte avançado de vida.';
+      resultado.avaliacao = ehEmergencia ? ['Emergência clínica aguda / PCR'] : ['Atendimento clínico geral'];
+      resultado.plano = condutaProto ? [condutaProto] : ['Monitorização multiparamétrica contínua e reavaliação assistencial.'];
+      resultado.conduta_emergencia = condutaProto || null;
+      resultado.perguntas_anamnese = [
+        '1. Quais os sinais vitais atuais (PA, FC, FR, SatO2, T)? (Para estratificação objetiva de risco)',
+        '2. Há alergias ou comorbidades conhecidas? (Para salvaguarda terapêutica)'
+      ];
+      resultado.exame_dirigido = ['Monitorização multiparamétrica contínua e oximetria de pulso'];
+    }
+
+    return JSON.stringify(resultado);
   }
 
   /**
@@ -740,6 +767,96 @@ var IaLocalFallbackService = (function () {
     return gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
   }
 
+  /**
+   * Ponto de entrada unificado para execução de fallback local e contingência offline.
+   * Tenta primeiramente inferência local generativa com nós homologados (Ollama/Mistral/Llama 3).
+   * Se o nó local estiver inacessível, com modelo ausente ou em timeout, dispara
+   * imediata e deterministicamente o catálogo de contingência clínica oficial (ACLS/SBC/AMIB).
+   *
+   * @param {string} sistema - Contexto clínico ou persona
+   * @param {string} promptUsuario - Descrição do caso ou pergunta clínica
+   * @param {Object} [opcoes] - Opções de execução (ex: { json: boolean, modeloForcado: string, tokens: number })
+   * @returns {string|Object} Resposta clínica completa e segura
+   */
+  function executarFallbackLocalOffline(arg1, arg2, arg3, arg4) {
+    var sistema, promptUsuario, opcoes;
+
+    // Normalização polimórfica para chamada direta vs RPC Fastify
+    if (typeof arg1 === 'object' && arg1 !== null && (arg1.usuario || arg1.chatId || arg1.auth_date || arg1.hash)) {
+      if (typeof arg2 === 'object' && arg2 !== null && (arg2.prompt || arg2.caso || arg2.texto)) {
+        sistema = arg2.sistema || '';
+        promptUsuario = arg2.prompt || arg2.caso || arg2.texto || '';
+        opcoes = arg2;
+      } else {
+        sistema = arg2;
+        promptUsuario = arg3;
+        opcoes = arg4 || {};
+      }
+    } else if (typeof arg1 === 'string' && (arg1.indexOf('session_') === 0 || arg1.indexOf('Bearer ') === 0 || /^[a-f0-9]{32,64}$/i.test(arg1)) && arg3 !== undefined) {
+      sistema = arg2;
+      promptUsuario = arg3;
+      opcoes = arg4 || {};
+    } else if (typeof arg1 === 'string' && (arg1.indexOf('session_') === 0 || arg1.indexOf('Bearer ') === 0) && typeof arg2 === 'object' && arg2 !== null && (arg2.prompt || arg2.caso || arg2.texto)) {
+      sistema = arg2.sistema || '';
+      promptUsuario = arg2.prompt || arg2.caso || arg2.texto || '';
+      opcoes = arg2;
+    } else {
+      sistema = arg1;
+      promptUsuario = arg2;
+      opcoes = arg3 || {};
+    }
+
+    opcoes = opcoes || {};
+    sistema = String(sistema || '').trim();
+    promptUsuario = String(promptUsuario || '').trim();
+
+    // 1. Tentar inferência generativa local via Ollama nativo ou nó local OpenAI
+    var precisaJson = !!(opcoes.json || /contrato\s+json|json\s+estrito|\bformato\s+json\b/i.test(sistema));
+
+    if (!opcoes.forcarDeterministico) {
+      try {
+        var respostaLocal = null;
+        if (typeof _iaChamarOllamaNativo === 'function') {
+          var rOllama = _iaChamarOllamaNativo(sistema, promptUsuario, opcoes.tokens || 2000, null, opcoes);
+          if (rOllama && rOllama.texto && String(rOllama.texto).trim()) {
+            respostaLocal = String(rOllama.texto).trim();
+          }
+        }
+        if (!respostaLocal && typeof chamarLocalLlmAPI === 'function') {
+          var rLocal = chamarLocalLlmAPI(sistema, promptUsuario, opcoes.tokens || 2000, opcoes.modeloForcado);
+          if (rLocal && String(rLocal).trim()) {
+            respostaLocal = String(rLocal).trim();
+          }
+        }
+
+        if (respostaLocal) {
+          if (precisaJson) {
+            try {
+              var parsed = JSON.parse(respostaLocal);
+              return opcoes.retornarObjeto ? parsed : JSON.stringify(parsed);
+            } catch (_) {
+              // Se o modelo local gerou texto que não é JSON estrito, segue para o estruturador heurístico
+            }
+          } else {
+            return respostaLocal;
+          }
+        }
+      } catch (eLocal) {
+        if (typeof Logger !== 'undefined' && Logger.log) {
+          Logger.log('[IaLocalFallbackService] Falha na inferência local generativa: ' + (eLocal.message || eLocal) + '. Acionando determinístico.');
+        }
+      }
+    }
+
+    // 2. Contingência Determinística Canônica (Zero Latência & Salvaguarda Beira-Leito)
+    if (precisaJson) {
+      var jsonOffline = estruturarJsonOffline(sistema, promptUsuario);
+      return opcoes.retornarObjeto ? JSON.parse(jsonOffline) : jsonOffline;
+    }
+
+    return gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
+  }
+
   return {
     MODELOS_HOMOLOGADOS_LOCAL: MODELOS_HOMOLOGADOS_LOCAL,
     PROTOCOLOS_OFFLINE: PROTOCOLOS_OFFLINE,
@@ -751,7 +868,14 @@ var IaLocalFallbackService = (function () {
     analisarImagemOffline: analisarImagemOffline,
     processarAudioClinicoOffline: processarAudioClinicoOffline,
     gerarFallbackAudio: gerarFallbackAudio,
-    gerarFallbackMultimodal: gerarFallbackMultimodal
+    gerarFallbackMultimodal: gerarFallbackMultimodal,
+    executarFallbackLocalOffline: executarFallbackLocalOffline,
+    _iaChamarOllamaNativo: function(arg1, arg2, arg3, arg4, arg5, arg6) {
+      if (typeof _iaChamarOllamaNativo === 'function') {
+        return _iaChamarOllamaNativo(arg1, arg2, arg3, arg4, arg5, arg6);
+      }
+      return null;
+    }
   };
 })();
 
@@ -947,10 +1071,24 @@ var IaCircuitBreaker = (function () {
   };
 })();
 
+function executarFallbackLocalOffline(arg1, arg2, arg3, arg4) {
+  return IaLocalFallbackService.executarFallbackLocalOffline(arg1, arg2, arg3, arg4);
+}
+
+if (typeof global !== 'undefined') {
+  global.executarFallbackLocalOffline = executarFallbackLocalOffline;
+  if (typeof _iaChamarOllamaNativo !== 'undefined') {
+    global._iaChamarOllamaNativo = _iaChamarOllamaNativo;
+  }
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     IaLocalFallbackService: IaLocalFallbackService,
-    IaCircuitBreaker: IaCircuitBreaker
+    IaCircuitBreaker: IaCircuitBreaker,
+    executarFallbackLocalOffline: executarFallbackLocalOffline,
+    _iaChamarOllamaNativo: (typeof _iaChamarOllamaNativo !== 'undefined' ? _iaChamarOllamaNativo : null)
   };
 }
+
 

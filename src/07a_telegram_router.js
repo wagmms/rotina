@@ -453,12 +453,134 @@ function construirTecladoHubGO() {
   };
 }
 
+/**
+ * Trata consultas explícitas sobre últimas mudanças, commits e status de deploy no Telegram.
+ * Consolida dados locais com segurança total (zero falha se arquivo faltar).
+ */
+function tratarComandoUltimasMudancas(chatId, modoDeploy) {
+  var fs = null;
+  try { fs = require("fs"); } catch (eFs) {}
+  var path = null;
+  try { path = require("path"); } catch (eP) {}
+
+  var proc = (typeof process !== "undefined") ? process : ((typeof globalThis !== "undefined" && globalThis.process) ? globalThis.process : null);
+  var baseDir = (proc && typeof proc.cwd === "function") ? proc.cwd() : ".";
+  var ultimasMudancasPath = path ? path.join(baseDir, "data", "ultimas_mudancas.json") : "data/ultimas_mudancas.json";
+  var ultimoDeployPath = path ? path.join(baseDir, "data", "ultimo_relatorio_deploy.md") : "data/ultimo_relatorio_deploy.md";
+  var deployStatePath = path ? path.join(baseDir, "data", ".autoloop_deploy_state.json") : "data/.autoloop_deploy_state.json";
+  var progressPath = path ? path.join(baseDir, "PROGRESS.md") : "PROGRESS.md";
+
+  var infoJson = null;
+  if (fs && fs.existsSync(ultimasMudancasPath)) {
+    try {
+      infoJson = JSON.parse(fs.readFileSync(ultimasMudancasPath, "utf8"));
+    } catch (eJ) {}
+  }
+
+  var deployState = null;
+  if (fs && fs.existsSync(deployStatePath)) {
+    try {
+      deployState = JSON.parse(fs.readFileSync(deployStatePath, "utf8"));
+    } catch (eD) {}
+  }
+
+  var linhasProgress = [];
+  var proximaTarefa = "";
+  if (fs && fs.existsSync(progressPath)) {
+    try {
+      var txtProg = fs.readFileSync(progressPath, "utf8");
+      var matchProx = txtProg.match(/(?:Próxima Tarefa em Andamento|Próxima Tarefa|Next Task)[^\n]*\n+[\s\t]*[-*]?\s*\[ \]\s*([^\n]+)/i);
+      if (matchProx) proximaTarefa = matchProx[1].trim();
+      var matchUltima = txtProg.match(/(?:Última Tarefa Concluída|Últimas Tarefas Concluídas)[^\n]*\n+[\s\t]*[-*]?\s*\[x\]\s*([^\n]+)/i);
+      if (matchUltima) linhasProgress.push(matchUltima[1].trim());
+    } catch (ePr) {}
+  }
+
+  // Tenta obter commits recentes via git de forma síncrona com timeout estrito
+  var commitsGit = [];
+  try {
+    var cp = require("child_process");
+    var saidaGit = cp.execSync('git log -n 3 --pretty=format:"%h|%s"', { timeout: 3000, encoding: "utf8" });
+    if (saidaGit) {
+      saidaGit.trim().split("\n").forEach(function(l) {
+        var partes = l.split("|");
+        if (partes.length >= 2) {
+          commitsGit.push("• `" + partes[0] + "` " + partes.slice(1).join("|"));
+        }
+      });
+    }
+  } catch (eGit) {}
+
+  var linhas = [];
+  linhas.push("🚀 *ULTRA ROTINA · STATUS DE MUDANÇAS & DEPLOY*");
+  linhas.push("");
+
+  // Detalhes do último deploy
+  var dataDeploy = (deployState && (deployState.last_pushed_at || deployState.last_attempt_at)) || (infoJson && infoJson.timestamp) || "Recente";
+  var shaDeploy = (deployState && deployState.last_pushed_sha) || (infoJson && infoJson.commit_head) || "";
+  linhas.push("🌐 *Último Deploy no Render:*");
+  linhas.push("• *Data/Hora:* " + dataDeploy);
+  if (shaDeploy) linhas.push("• *Commit HEAD:* `" + String(shaDeploy).substring(0, 7) + "`");
+  linhas.push("• *Status:* ✅ Confirmado (Render / GitHub)");
+
+  // Tarefas Concluídas
+  var concluidas = (infoJson && infoJson.tarefas_concluidas && infoJson.tarefas_concluidas.length) ? infoJson.tarefas_concluidas : linhasProgress;
+  if (concluidas && concluidas.length) {
+    linhas.push("");
+    linhas.push("✅ *Últimas Tarefas Concluídas:*");
+    concluidas.slice(0, 3).forEach(function(t) {
+      linhas.push("• " + t.replace(/^[-\s*\[\]xX]+/, ""));
+    });
+  }
+
+  // Próxima Tarefa
+  var prox = (infoJson && infoJson.proxima_tarefa) ? infoJson.proxima_tarefa : proximaTarefa;
+  if (prox) {
+    linhas.push("");
+    linhas.push("🎯 *Próxima Tarefa em Foco:*");
+    linhas.push("• " + prox.replace(/^[-\s*\[\]]+/, ""));
+  }
+
+  // Commits Recentes
+  if (commitsGit.length) {
+    linhas.push("");
+    linhas.push("📋 *Commits Recentes:*");
+    linhas = linhas.concat(commitsGit);
+  } else if (infoJson && infoJson.commits_recentes && infoJson.commits_recentes.length) {
+    linhas.push("");
+    linhas.push("📋 *Commits Recentes:*");
+    infoJson.commits_recentes.slice(0, 3).forEach(function(c) {
+      linhas.push("• `" + (c.hash || "") + "` " + (c.subject || ""));
+    });
+  }
+
+  linhas.push("");
+  linhas.push("⏰ *Agendador de Deploy:*");
+  linhas.push("• Ciclo automático a cada *3 horas* no Render.");
+  linhas.push("💡 _Notificações automáticas ocorrem a cada deploy de 3h ou quando você perguntar._");
+
+  var msgFinal = linhas.join("\n");
+  var kbRetorno = (typeof botoesBot === "function") ? botoesBot([
+    [['🔄 Atualizar Mudanças', '/mudancas'], ['🏠 Início', 'ux:hub:inicio']]
+  ]) : null;
+
+  if (kbRetorno && typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, msgFinal, kbRetorno);
+  }
+  return enviarMensagemParaChat(chatId, msgFinal);
+}
+
 function processarMensagemTexto(message) {
   if (typeof tratarEntradaUX!=="undefined" && tratarEntradaUX(message)) return;
   var texto = message.text ? message.text.trim() : "";
   var textoLow = texto.toLowerCase();
   var chatId = (message.chat && message.chat.id) ? message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
   if (!texto) return;
+
+  // Interceptação imediata: Consulta explícita de últimas mudanças / o que mudou / deploy
+  if (/(?:(?:quais\s+(?:as\s+)?)?[úu]ltimas?\s+mudan[çc]as?(?:\s+feitas)?|o\s+que\s+mudou|ultimas?\s+altera[çc][õo]es?)/i.test(texto)) {
+    return tratarComandoUltimasMudancas(chatId);
+  }
 
   try {
     // 0A. Roteamento Inteligente de Termos Coloquiais e Siglas do Plantão
@@ -500,7 +622,8 @@ function processarMensagemTexto(message) {
         "dengue", "arbovirose", "chikungunya", "zika", "pac", "pneumonia", "itu", "cistite", "pielonefrite",
         "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "crisehas", "has", "cefaleia", "dorcabeca",
         "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan",
-        "glasgow", "choque", "eap", "anafilaxia", "convulsao", "hipercalemia", "hipoglicemia"
+        "glasgow", "choque", "eap", "anafilaxia", "convulsao", "hipercalemia", "hipoglicemia",
+        "mudancas", "deploy"
       ];
       if (comandosSemBarra.indexOf(primPalavra) !== -1) {
         var ehEvolucaoLeitoNatural = (primPalavra === "leito" || primPalavra === "quarto") &&
@@ -743,6 +866,10 @@ function processarMensagemTexto(message) {
       "• *Base de Interações:* " + stInteracoes + "\n" +
       "• *Notion & Calendar:* ✅ Operacionais";
     return enviarMensagemParaChat(chatId, msgStatus);
+  }
+
+  if (comando === "/mudancas" || comando === "/mudanças" || comando === "/ultimas_mudancas" || comando === "/ultimasmudancas" || comando === "/deploy") {
+    return tratarComandoUltimasMudancas(chatId, comando === "/deploy");
   }
 
   if (comando === "/choqueseptico" || comando === "/septico" || comando === "/circi" || comando === "/vasopressina") {

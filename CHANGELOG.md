@@ -1,5 +1,32 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C0. [x] **Motores de IA e Fallback Local (`src/04_motores_ia.js`, `src/04_ia_local_fallback.js`, `server/runtime.js` e `server/index.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em `src/04_motores_ia.js`, a função `_iaChamarOllamaNativo` não estava desacoplada de `_iaProvLocal`, impedindo chamadas diretas polimórficas (tanto por URL/modelo quanto por sistema/prompt), e a função unificada `executarFallbackLocalOffline` não estava definida nem exportada em `src/04_motores_ia.js`.
+      * Em `src/04_motores_ia.js`, a rotina `_iaProvGemini` não possuía Fast-Fail e Fast-Ack para timeouts de rede ou socket (`ETIMEDOUT`, `ESOCKETTIMEDOUT`, `fetch failed`), continuando a iterar inutilmente sobre todas as chaves configuradas (até 8 chaves) para todos os modelos da lista (até 5 modelos) = 40 requisições que demoravam centenas de segundos, estourando o orçamento de tempo e travando a experiência do usuário antes de alcançar os motores locais.
+      * Em `src/04_ia_local_fallback.js`, `IaLocalFallbackService.executarFallbackLocalOffline` esperava que `_iaChamarOllamaNativo` estivesse no escopo e `_iaChamarOllamaNativo` não estava devidamente exposta no objeto do serviço nem em `module.exports`.
+      * Em `server/runtime.js`, `_rpcMap` não continha o método `executarFallbackLocalOffline`, impedindo invocações diretas via RPC do Cockpit, e `executarFallbackLocalOffline` não tratava polimorficamente o argumento de sessão injetado pelo Fastify (`session, ...args`).
+      * Em `server/index.js`, o endpoint REST `/api/chat` e o canal WebSocket Live Preceptor não acionavam `executarFallbackLocalOffline` em caso de indisponibilidade da API externa, retornando erros ou frases estáticas genéricas em vez de condutas médicas canônicas.
+    - **Implementação e Refatoração**:
+      * Em `src/04_motores_ia.js`:
+        • Refatorada a função `_iaChamarOllamaNativo` com suporte polimórfico a ambas as assinaturas (`(url, modelo, sistema, prompt, tokens, opcoes)` e `(sistema, prompt, tokens, ctx, opcoes)`), normalização defensiva de `/api/chat`, autenticação com Bearer token e tratamento de respostas `done` ou truncadas.
+        • Refatorado `_iaProvLocal` para delegar chamadas de Ollama nativo diretamente a `_iaChamarOllamaNativo`, eliminando duplicações de código.
+        • Implementado Fast-Fail e Fast-Ack em `_iaProvGemini`: ao detectar timeout de rede (`ETIMEDOUT`, `timeout`, `abort`, `unreachable`), registra falha no `IaCircuitBreaker`, bloqueia temporariamente o modelo por 60s, ativa `GEMINI_NET_FAIL` por 30s e interrompe o loop de chaves e modelos via `break`, permitindo avanço imediato para `LOCAL` (Ollama/Mistral) e fallback determinístico em 0ms.
+        • Implementada e exportada a função `executarFallbackLocalOffline(arg1, arg2, arg3, arg4)` delegando para `IaLocalFallbackService`, e integrada em `_iaExecutar` e `cockpitLocalLlm`.
+      * Em `src/04_ia_local_fallback.js`:
+        • Implementada normalização polimórfica de argumentos em `executarFallbackLocalOffline` para diferenciar chamadas diretas vs chamadas RPC com token de sessão.
+        • Exportada `_iaChamarOllamaNativo` em `IaLocalFallbackService`, no escopo global e em `module.exports`.
+      * Em `server/runtime.js`:
+        • Adicionado mapeamento de `executarFallbackLocalOffline` e `chamarOllamaNativoAPI` no singleton `_rpcMap`.
+      * Em `server/index.js`:
+        • No endpoint `/api/chat`, adicionado fallback defensivo transparente com Fast-Ack chamando `executarFallbackLocalOffline`, entregando resposta clínica oficial (200 OK) mesmo sob indisponibilidade do Gemini.
+        • No canal WebSocket Live (`/live-preceptor`), adicionada chamada a `executarFallbackLocalOffline` antes de frases estáticas genéricas.
+      * Em `tests/test_motores_ia_fallback_local_fastack.cjs`:
+        • Criada nova suíte cobrindo 8 blocos de testes (polimorfismo do Ollama nativo, defesas contra 404 e erros de socket, inferência local, transição determinística em blackout, Fast-Fail de timeout e integração RPC).
+    - **Validação e Cobertura Automatizada**:
+      * 100% aprovado na suíte dedicada `tests/test_motores_ia_fallback_local_fastack.cjs` (8/8 blocos).
+      * 100% de sucesso nas suítes `test_ia_local_offline.cjs`, `test_ia_local_fallback.cjs` (15/15), `test_fastify_resiliencia_payloads.cjs` (11/11) e `test_resiliencia_gemini_429.cjs` (6/6).
+
 0BF. [x] **Auditoria de Resiliência de Payload e Sanitização das Rotas Fastify do Servidor (`server/index.js`, `server/validators.js` e `server/runtime.js`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em `server/validators.js`, os limites fisiológicos (`LIMITES_FISIOLOGICOS`) não continham parâmetros clínicos de exames laboratoriais e vitais frequentes em urgência (glicemia, lactato, hemoglobina, leucócitos, plaquetas e temperatura), e não havia o schema formal `chatBodySchema` para validação em handshake do endpoint `/api/chat`; calculadoras como CURB-65 não bloqueavam combinações hemodinamicamente impossíveis (PAS < PAD), e escores como Glasgow-P e HEART aceitavam valores fracionários não-inteiros.

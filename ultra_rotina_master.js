@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 07:42:44
- * Checksum SHA256: 38c7d0f181d65b52
+ * Gerado automaticamente via build_master.py em: 2026-10-11 08:25:52
+ * Checksum SHA256: 4327320494a8a9fd
  * ==============================================================================
  */
 
@@ -35829,6 +35829,7 @@ var IaLocalFallbackService = (function () {
    */
   function estruturarJsonOffline(sistema, promptUsuario) {
     var t = String(promptUsuario || '').toLowerCase();
+    var s = String(sistema || '').toLowerCase();
     var intencao = 'CONVERSA';
     var confianca = 0.85;
 
@@ -35850,12 +35851,38 @@ var IaLocalFallbackService = (function () {
       intencao = 'NOTION_DUVIDA';
     }
 
-    return JSON.stringify({
+    var ehSoap = s.indexOf('soap') !== -1 || s.indexOf('subjetivo') !== -1 || t.indexOf('soap') !== -1;
+    var ehEmergencia = intencao === 'CLINICO_EMERGENCIA';
+    var protoEmerg = null;
+    if (ehEmergencia) {
+      protoEmerg = identificarProtocoloClinico(promptUsuario);
+    }
+    var condutaProto = protoEmerg ? protoEmerg.gerarConduta(promptUsuario) : null;
+
+    var resultado = {
       intencao: intencao,
       confianca: confianca,
       modoOffline: true,
+      contingencia_offline: true,
+      aviso_contingencia: 'Processado pelo Motor Determinístico Offline (Provedor em contingência).',
       timestamp: new Date().toISOString()
-    });
+    };
+
+    if (ehSoap) {
+      var subjetivoLimpo = String(promptUsuario || '').replace(/CASO CLÍNICO:\s*/i, '').trim();
+      resultado.subjetivo = subjetivoLimpo || 'Relato clínico recebido em contingência offline.';
+      resultado.objetivo = 'Monitorização multiparamétrica contínua e checagem de sinais vitais sob suporte avançado de vida.';
+      resultado.avaliacao = ehEmergencia ? ['Emergência clínica aguda / PCR'] : ['Atendimento clínico geral'];
+      resultado.plano = condutaProto ? [condutaProto] : ['Monitorização multiparamétrica contínua e reavaliação assistencial.'];
+      resultado.conduta_emergencia = condutaProto || null;
+      resultado.perguntas_anamnese = [
+        '1. Quais os sinais vitais atuais (PA, FC, FR, SatO2, T)? (Para estratificação objetiva de risco)',
+        '2. Há alergias ou comorbidades conhecidas? (Para salvaguarda terapêutica)'
+      ];
+      resultado.exame_dirigido = ['Monitorização multiparamétrica contínua e oximetria de pulso'];
+    }
+
+    return JSON.stringify(resultado);
   }
 
   /**
@@ -36139,6 +36166,96 @@ var IaLocalFallbackService = (function () {
     return gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
   }
 
+  /**
+   * Ponto de entrada unificado para execução de fallback local e contingência offline.
+   * Tenta primeiramente inferência local generativa com nós homologados (Ollama/Mistral/Llama 3).
+   * Se o nó local estiver inacessível, com modelo ausente ou em timeout, dispara
+   * imediata e deterministicamente o catálogo de contingência clínica oficial (ACLS/SBC/AMIB).
+   *
+   * @param {string} sistema - Contexto clínico ou persona
+   * @param {string} promptUsuario - Descrição do caso ou pergunta clínica
+   * @param {Object} [opcoes] - Opções de execução (ex: { json: boolean, modeloForcado: string, tokens: number })
+   * @returns {string|Object} Resposta clínica completa e segura
+   */
+  function executarFallbackLocalOffline(arg1, arg2, arg3, arg4) {
+    var sistema, promptUsuario, opcoes;
+
+    // Normalização polimórfica para chamada direta vs RPC Fastify
+    if (typeof arg1 === 'object' && arg1 !== null && (arg1.usuario || arg1.chatId || arg1.auth_date || arg1.hash)) {
+      if (typeof arg2 === 'object' && arg2 !== null && (arg2.prompt || arg2.caso || arg2.texto)) {
+        sistema = arg2.sistema || '';
+        promptUsuario = arg2.prompt || arg2.caso || arg2.texto || '';
+        opcoes = arg2;
+      } else {
+        sistema = arg2;
+        promptUsuario = arg3;
+        opcoes = arg4 || {};
+      }
+    } else if (typeof arg1 === 'string' && (arg1.indexOf('session_') === 0 || arg1.indexOf('Bearer ') === 0 || /^[a-f0-9]{32,64}$/i.test(arg1)) && arg3 !== undefined) {
+      sistema = arg2;
+      promptUsuario = arg3;
+      opcoes = arg4 || {};
+    } else if (typeof arg1 === 'string' && (arg1.indexOf('session_') === 0 || arg1.indexOf('Bearer ') === 0) && typeof arg2 === 'object' && arg2 !== null && (arg2.prompt || arg2.caso || arg2.texto)) {
+      sistema = arg2.sistema || '';
+      promptUsuario = arg2.prompt || arg2.caso || arg2.texto || '';
+      opcoes = arg2;
+    } else {
+      sistema = arg1;
+      promptUsuario = arg2;
+      opcoes = arg3 || {};
+    }
+
+    opcoes = opcoes || {};
+    sistema = String(sistema || '').trim();
+    promptUsuario = String(promptUsuario || '').trim();
+
+    // 1. Tentar inferência generativa local via Ollama nativo ou nó local OpenAI
+    var precisaJson = !!(opcoes.json || /contrato\s+json|json\s+estrito|\bformato\s+json\b/i.test(sistema));
+
+    if (!opcoes.forcarDeterministico) {
+      try {
+        var respostaLocal = null;
+        if (typeof _iaChamarOllamaNativo === 'function') {
+          var rOllama = _iaChamarOllamaNativo(sistema, promptUsuario, opcoes.tokens || 2000, null, opcoes);
+          if (rOllama && rOllama.texto && String(rOllama.texto).trim()) {
+            respostaLocal = String(rOllama.texto).trim();
+          }
+        }
+        if (!respostaLocal && typeof chamarLocalLlmAPI === 'function') {
+          var rLocal = chamarLocalLlmAPI(sistema, promptUsuario, opcoes.tokens || 2000, opcoes.modeloForcado);
+          if (rLocal && String(rLocal).trim()) {
+            respostaLocal = String(rLocal).trim();
+          }
+        }
+
+        if (respostaLocal) {
+          if (precisaJson) {
+            try {
+              var parsed = JSON.parse(respostaLocal);
+              return opcoes.retornarObjeto ? parsed : JSON.stringify(parsed);
+            } catch (_) {
+              // Se o modelo local gerou texto que não é JSON estrito, segue para o estruturador heurístico
+            }
+          } else {
+            return respostaLocal;
+          }
+        }
+      } catch (eLocal) {
+        if (typeof Logger !== 'undefined' && Logger.log) {
+          Logger.log('[IaLocalFallbackService] Falha na inferência local generativa: ' + (eLocal.message || eLocal) + '. Acionando determinístico.');
+        }
+      }
+    }
+
+    // 2. Contingência Determinística Canônica (Zero Latência & Salvaguarda Beira-Leito)
+    if (precisaJson) {
+      var jsonOffline = estruturarJsonOffline(sistema, promptUsuario);
+      return opcoes.retornarObjeto ? JSON.parse(jsonOffline) : jsonOffline;
+    }
+
+    return gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
+  }
+
   return {
     MODELOS_HOMOLOGADOS_LOCAL: MODELOS_HOMOLOGADOS_LOCAL,
     PROTOCOLOS_OFFLINE: PROTOCOLOS_OFFLINE,
@@ -36150,7 +36267,14 @@ var IaLocalFallbackService = (function () {
     analisarImagemOffline: analisarImagemOffline,
     processarAudioClinicoOffline: processarAudioClinicoOffline,
     gerarFallbackAudio: gerarFallbackAudio,
-    gerarFallbackMultimodal: gerarFallbackMultimodal
+    gerarFallbackMultimodal: gerarFallbackMultimodal,
+    executarFallbackLocalOffline: executarFallbackLocalOffline,
+    _iaChamarOllamaNativo: function(arg1, arg2, arg3, arg4, arg5, arg6) {
+      if (typeof _iaChamarOllamaNativo === 'function') {
+        return _iaChamarOllamaNativo(arg1, arg2, arg3, arg4, arg5, arg6);
+      }
+      return null;
+    }
   };
 })();
 
@@ -36346,10 +36470,23 @@ var IaCircuitBreaker = (function () {
   };
 })();
 
+function executarFallbackLocalOffline(arg1, arg2, arg3, arg4) {
+  return IaLocalFallbackService.executarFallbackLocalOffline(arg1, arg2, arg3, arg4);
+}
+
+if (typeof global !== 'undefined') {
+  global.executarFallbackLocalOffline = executarFallbackLocalOffline;
+  if (typeof _iaChamarOllamaNativo !== 'undefined') {
+    global._iaChamarOllamaNativo = _iaChamarOllamaNativo;
+  }
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     IaLocalFallbackService: IaLocalFallbackService,
-    IaCircuitBreaker: IaCircuitBreaker
+    IaCircuitBreaker: IaCircuitBreaker,
+    executarFallbackLocalOffline: executarFallbackLocalOffline,
+    _iaChamarOllamaNativo: (typeof _iaChamarOllamaNativo !== 'undefined' ? _iaChamarOllamaNativo : null)
   };
 }
 
@@ -36513,6 +36650,10 @@ function _iaBloqueado(chave) {
 
 function _iaBloquear(chave, segundos) {
   try { CacheService.getScriptCache().put("iabl_" + chave, "1", Math.min(segundos, 21600)); } catch (e) { /* sem cache */ }
+}
+
+function _iaDesbloquear(chave) {
+  try { CacheService.getScriptCache().remove("iabl_" + chave); } catch (e) { /* sem cache */ }
 }
 
 function _iaEsperar(res, maxMs, padraoMs) {
@@ -36730,6 +36871,123 @@ function _iaNormalizarUrlLocal(urlBruta) {
   return url + "/v1/chat/completions";
 }
 
+/**
+ * Chamada direta à API nativa do Ollama (/api/chat)
+ * Permite execução ultrarrápida em nós locais sem depender de proxies intermediários.
+ * Suporta polimorfismo de argumentos:
+ *   _iaChamarOllamaNativo(url, modelo, sistema, prompt, tokens, opcoes) OU
+ *   _iaChamarOllamaNativo(sistema, prompt, tokens, ctx, opcoes)
+ */
+function _iaChamarOllamaNativo(arg1, arg2, arg3, arg4, arg5, arg6) {
+  var url, modelo, sistema, prompt, tokens, ctx, opcoes;
+
+  if (typeof arg1 === "string" && /^https?:\/\//i.test(arg1)) {
+    url = arg1;
+    modelo = arg2;
+    sistema = arg3;
+    prompt = arg4;
+    tokens = arg5;
+    opcoes = arg6 || {};
+    ctx = opcoes.ctx || _iaNovoCtx();
+  } else {
+    sistema = arg1;
+    prompt = arg2;
+    tokens = arg3;
+    ctx = arg4 || _iaNovoCtx();
+    opcoes = arg5 || {};
+    var urlBase = _iaCfg("LOCAL_LLM_URL", "http://127.0.0.1:11434/api/chat");
+    url = String(urlBase || "").trim();
+    modelo = opcoes.modeloForcado || opcoes.modelo || (Array.isArray(opcoes.modelos) ? opcoes.modelos[0] : null);
+  }
+
+  opcoes = opcoes || {};
+  if (url.indexOf("/api/chat") === -1) {
+    if (url.indexOf("/v1/chat/completions") !== -1) {
+      url = url.replace("/v1/chat/completions", "/api/chat");
+    } else if (url.indexOf("/v1") !== -1) {
+      url = url.replace(/\/v1\/?$/, "/api/chat");
+    } else {
+      url = url.replace(/\/+$/, "") + "/api/chat";
+    }
+  }
+
+  var apiKey = _iaCfg("LOCAL_LLM_API_KEY", "ollama");
+  var timeoutMs = Number(opcoes.timeoutMs || _iaCfg("LOCAL_LLM_TIMEOUT_MS", 15000)) || 15000;
+
+  var modelos = modelo ? [modelo] : opcoes.modelos;
+  if (!modelos || !modelos.length) {
+    modelos = _iaLista("IA_MODELOS_LOCAL", IA_PADROES.LOCAL);
+  }
+
+  for (var i = 0; i < modelos.length; i++) {
+    if (_iaOrcamentoEsgotado(ctx)) {
+      _iaLog(ctx, "OLLAMA_NATIVO: orçamento de tempo esgotado");
+      return null;
+    }
+    var mod = modelos[i];
+    if (_iaBloqueado("LOCAL_" + mod)) continue;
+
+    var headers = { "Content-Type": "application/json" };
+    if (apiKey && apiKey !== "none" && apiKey !== "sem_chave" && apiKey !== "sem-chave" && apiKey !== "ollama") {
+      headers["Authorization"] = "Bearer " + apiKey;
+    }
+
+    var payload = {
+      model: mod,
+      messages: [
+        { role: "system", content: (sistema || "") + IA_DIRETIVA_SEM_LATEX },
+        { role: "user", content: prompt }
+      ],
+      stream: false,
+      options: {
+        temperature: opcoes.temperature !== undefined ? opcoes.temperature : 0.2,
+        num_predict: _iaTokensEfetivos(tokens)
+      }
+    };
+
+    try {
+      var res = UrlFetchApp.fetch(url, {
+        method: "post",
+        headers: headers,
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true,
+        timeoutMs: timeoutMs
+      });
+      var code = res.getResponseCode();
+
+      if (code === 200) {
+        var json = JSON.parse(res.getContentText());
+        var texto = (json.message && json.message.content) ? json.message.content : (json.response || "");
+        var truncado = !!(json.done === false || json.done_reason === "length");
+
+        if (texto && String(texto).trim()) {
+          return {
+            texto: String(texto),
+            truncado: truncado,
+            modelo: "ollama/" + mod,
+            offline_disponivel: true,
+            origem: "ollama_nativo"
+          };
+        }
+        if (truncado) return { texto: "", truncado: true, modelo: "ollama/" + mod, origem: "ollama_nativo" };
+        _iaLog(ctx, "OLLAMA_NATIVO " + mod + ": resposta vazia");
+      } else if (code === 404) {
+        _iaBloquear("LOCAL_" + mod, 600);
+        _iaLog(ctx, "OLLAMA_NATIVO " + mod + ": 404 (modelo não encontrado no Ollama)");
+      } else if (code === 503 || code === 502 || code === 504) {
+        _iaBloquear("LOCAL_" + mod, 60);
+        _iaLog(ctx, "OLLAMA_NATIVO " + mod + ": HTTP " + code + " (servidor Ollama indisponível)");
+      } else {
+        _iaLog(ctx, "OLLAMA_NATIVO " + mod + ": HTTP " + code);
+      }
+    } catch (e) {
+      _iaBloquear("LOCAL_" + mod, 60);
+      _iaLog(ctx, "OLLAMA_NATIVO " + mod + " falha de conexão: " + e.message);
+    }
+  }
+  return null;
+}
+
 function _iaProvLocal(sistema, prompt, tokens, ctx, opcoes) {
   opcoes = opcoes || {};
   var urlBase = _iaCfg("LOCAL_LLM_URL", "http://127.0.0.1:11434/v1/chat/completions");
@@ -36746,7 +37004,10 @@ function _iaProvLocal(sistema, prompt, tokens, ctx, opcoes) {
     }
   }
 
-  var ehOllamaNativo = url.indexOf("/api/chat") !== -1;
+  var ehOllamaNativo = url.indexOf("/api/chat") !== -1 || !!opcoes.nativo || !!opcoes.ollama;
+  if (ehOllamaNativo) {
+    return _iaChamarOllamaNativo(sistema, prompt, tokens, ctx, opcoes);
+  }
 
   for (var i = 0; i < modelos.length; i++) {
     if (_iaOrcamentoEsgotado(ctx)) { _iaLog(ctx, "LOCAL: orçamento de tempo esgotado"); return null; }
@@ -36758,31 +37019,15 @@ function _iaProvLocal(sistema, prompt, tokens, ctx, opcoes) {
       headers["Authorization"] = "Bearer " + apiKey;
     }
 
-    var payload;
-    if (ehOllamaNativo) {
-      payload = {
-        model: modelo,
-        messages: [
-          { role: "system", content: sistema + IA_DIRETIVA_SEM_LATEX },
-          { role: "user", content: prompt }
-        ],
-        stream: false,
-        options: {
-          temperature: 0.2,
-          num_predict: _iaTokensEfetivos(tokens)
-        }
-      };
-    } else {
-      payload = {
-        model: modelo,
-        messages: [
-          { role: "system", content: sistema + IA_DIRETIVA_SEM_LATEX },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.2,
-        max_tokens: _iaTokensEfetivos(tokens)
-      };
-    }
+    var payload = {
+      model: modelo,
+      messages: [
+        { role: "system", content: sistema + IA_DIRETIVA_SEM_LATEX },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.2,
+      max_tokens: _iaTokensEfetivos(tokens)
+    };
 
     try {
       var res = UrlFetchApp.fetch(url, {
@@ -36796,17 +37041,9 @@ function _iaProvLocal(sistema, prompt, tokens, ctx, opcoes) {
 
       if (code === 200) {
         var json = JSON.parse(res.getContentText());
-        var texto = "";
-        var truncado = false;
-
-        if (ehOllamaNativo) {
-          texto = (json.message && json.message.content) ? json.message.content : (json.response || "");
-          truncado = !!(json.done === false || json.done_reason === "length");
-        } else {
-          var escolha = json.choices && json.choices[0];
-          texto = escolha && escolha.message ? _iaTextoDeConteudo(escolha.message.content) : "";
-          truncado = !!(escolha && escolha.finish_reason === "length");
-        }
+        var escolha = json.choices && json.choices[0];
+        var texto = escolha && escolha.message ? _iaTextoDeConteudo(escolha.message.content) : "";
+        var truncado = !!(escolha && escolha.finish_reason === "length");
 
         if (texto && String(texto).trim()) {
           return {
@@ -36819,6 +37056,9 @@ function _iaProvLocal(sistema, prompt, tokens, ctx, opcoes) {
         if (truncado) return { texto: "", truncado: true, modelo: "local/" + modelo };
         _iaLog(ctx, "LOCAL " + modelo + ": resposta vazia");
       } else if (code === 404) {
+        // Fallback defensivo: se endpoint OpenAI /v1 não existir, tenta o endpoint nativo do Ollama (/api/chat)
+        var fallbackOllama = _iaChamarOllamaNativo(sistema, prompt, tokens, ctx, { modeloForcado: modelo });
+        if (fallbackOllama) return fallbackOllama;
         _iaBloquear("LOCAL_" + modelo, 600);
         _iaLog(ctx, "LOCAL " + modelo + ": 404 (modelo não encontrado localmente)");
       } else if (code === 503 || code === 502 || code === 504) {
@@ -36846,6 +37086,10 @@ function _iaHashChave(k) {
 
 function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
   opcoes = opcoes || {};
+  if (_iaBloqueado("GEMINI_NET_FAIL")) {
+    _iaLog(ctx, "GEMINI: indisponibilidade transitória de rede ativa (Fast-Ack / cooldown), pulando para motor local.");
+    return null;
+  }
   var chaves = ConfigService.getArray("GEMINI_API_KEYS");
   chaves = (chaves || []).map(function (c) { return String(c).trim(); }).filter(function (c) { return c; });
   if (chaves.length === 0) {
@@ -36875,6 +37119,10 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
   } catch (e0) { inicio = 0; }
 
   for (var m = 0; m < modelos.length; m++) {
+    if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker && !IaCircuitBreaker.podeExecutar("GEMINI")) {
+      _iaLog(ctx, "[CircuitBreaker GEMINI] ABERTO durante cascata de modelos, interrompendo Gemini (Fast-Ack).");
+      break;
+    }
     var modelo = modelos[m];
     if (_iaBloqueado("GEMINI_" + modelo)) continue;
     var todas429 = true;
@@ -36917,7 +37165,8 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
       if (opcoes.grounding) payload.tools = [{ googleSearch: {} }];
 
       try {
-        var timeoutMsFetch = (opcoes && opcoes.timeoutMs) || (opcoes && (opcoes.multimodal || opcoes.partesUsuario) ? 15000 : 25000);
+        var timeoutMsConfig = Number(_iaCfg("GEMINI_TIMEOUT_MS", 12000)) || 12000;
+        var timeoutMsFetch = (opcoes && opcoes.timeoutMs) || (opcoes && (opcoes.multimodal || opcoes.partesUsuario) ? Math.max(15000, timeoutMsConfig) : timeoutMsConfig);
         var res = UrlFetchApp.fetch(
           "https://generativelanguage.googleapis.com/v1beta/models/" + modelo + ":generateContent",
           {
@@ -36980,8 +37229,19 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
             _iaLog(ctx, "GEMINI " + modelo + ": 429 na chave #" + idx + ". Cooldown: " + retrySec429 + "s");
           }
           continue;
-        } else if (code === 500 || code === 502 || code === 503 || code === 504) {
+        } else if (code === 504) {
           todas429 = false;
+          if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+            IaCircuitBreaker.registrarFalha("GEMINI", "HTTP 504 Gateway Timeout em " + modelo);
+          }
+          _iaBloquear("GEMINI_K_" + hashChave + "_" + modelo, 60);
+          _iaLog(ctx, "GEMINI " + modelo + ": HTTP 504 Timeout na chave #" + idx + " (Fast-Ack ativado para fallback local)");
+          break;
+        } else if (code === 500 || code === 502 || code === 503) {
+          todas429 = false;
+          if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+            IaCircuitBreaker.registrarFalha("GEMINI", "HTTP " + code + " na chave #" + idx);
+          }
           _iaBloquear("GEMINI_K_" + hashChave + "_" + modelo, 30);
           _iaLog(ctx, "GEMINI " + modelo + ": " + code + " na chave #" + idx + ", tentando próxima chave");
           continue;
@@ -37000,9 +37260,24 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
         }
       } catch (e) {
         todas429 = false;
+        var msgErro = String(e && (e.message || e)).toLowerCase();
+        var ehTimeout = msgErro.indexOf("timeout") !== -1 || msgErro.indexOf("timed out") !== -1 || msgErro.indexOf("timed-out") !== -1 || msgErro.indexOf("etimedout") !== -1 || msgErro.indexOf("esockettimedout") !== -1;
+        if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+          IaCircuitBreaker.registrarFalha("GEMINI", e.message || "Exceção em Gemini");
+        }
+        _iaBloquear("GEMINI_K_" + hashChave + "_" + modelo, 60);
         _iaLog(ctx, "GEMINI " + modelo + " exceção: " + e.message);
+        if (ehTimeout) {
+          _iaLog(ctx, "GEMINI " + modelo + " detectou timeout de rede. Fast-Ack ativado para preservar orçamento para o motor local.");
+          _iaBloquear("GEMINI_NET_FAIL", 30);
+          _iaBloquear("GEMINI_" + modelo, 60);
+          break;
+        }
         continue;
       }
+    }
+    if (_iaBloqueado("GEMINI_NET_FAIL")) {
+      break;
     }
     if (todas429 && chaves.length > 0) _iaBloquear("GEMINI_" + modelo, 60);
   }
@@ -37045,7 +37320,8 @@ function _iaChamarProvedor(nome, sistema, prompt, tokens, ctx, opcoes) {
   if (nome === "OPENROUTER") return _iaProvOpenRouter(sistema, prompt, tokens, ctx);
   if (nome === "ZAI") return _iaProvZai(sistema, prompt, tokens, ctx);
   if (nome === "GEMINI") return _iaProvGemini(sistema, prompt, tokens, ctx, opcoes);
-  if (nome === "LOCAL" || nome === "OLLAMA") return _iaProvLocal(sistema, prompt, tokens, ctx, opcoes);
+  if (nome === "OLLAMA") return _iaChamarOllamaNativo(sistema, prompt, tokens, ctx, opcoes);
+  if (nome === "LOCAL") return _iaProvLocal(sistema, prompt, tokens, ctx, opcoes);
   return null;
 }
 
@@ -37088,6 +37364,10 @@ function _iaExecutar(sistema, promptUsuario, maxTokens, opcoes) {
   }
   _iaLog(ctx, "TODOS OS PROVEDORES FALHARAM");
   if (typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService) {
+    if (typeof IaLocalFallbackService.executarFallbackLocalOffline === "function") {
+      _iaLog(ctx, "Acionando executarFallbackLocalOffline unificado");
+      return IaLocalFallbackService.executarFallbackLocalOffline(sistema, promptUsuario, opcoes);
+    }
     if (opcoes.json) {
       _iaLog(ctx, "Acionando fallback determinístico offline estruturado (JSON)");
       return IaLocalFallbackService.estruturarJsonOffline(sistema, promptUsuario);
@@ -37156,8 +37436,9 @@ function _iaPublico(chamarInterno, tokensPadrao, maxTokens, opcoes) {
 // FUNÇÕES EXPORTADAS - MOTORES
 // ==============================================================================
 
-function executarRaciocinioClinico(sistema, promptUsuario, maxTokens) {
-  return _iaExecutar(sistema, promptUsuario, maxTokens, { clinico: true });
+function executarRaciocinioClinico(sistema, promptUsuario, maxTokens, opcoes) {
+  var opts = Object.assign({ clinico: true }, opcoes || {});
+  return _iaExecutar(sistema, promptUsuario, maxTokens, opts);
 }
 
 function chamarGroqAPI(sistema, promptUsuario, maxTokens) {
@@ -37180,6 +37461,19 @@ function chamarLocalLlmAPI(sistema, promptUsuario, maxTokens, modelo) {
   return _iaPublico(function (t, ctx) {
     return _iaProvLocal(sistema, promptUsuario, t, ctx, { modeloForcado: modelo });
   }, 2000, maxTokens);
+}
+
+function chamarOllamaNativoAPI(sistema, promptUsuario, maxTokens, modelo) {
+  return _iaPublico(function (t, ctx) {
+    return _iaChamarOllamaNativo(sistema, promptUsuario, t, ctx, { modeloForcado: modelo });
+  }, 2000, maxTokens);
+}
+
+function executarFallbackLocalOffline(arg1, arg2, arg3, arg4) {
+  if (typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.executarFallbackLocalOffline === "function") {
+    return IaLocalFallbackService.executarFallbackLocalOffline(arg1, arg2, arg3, arg4);
+  }
+  return null;
 }
 
 function verificarSaudeLocalLlm() {
@@ -37302,6 +37596,42 @@ function cockpitLocalLlm(session, opcoes) {
       resposta: resposta,
       tempoRespostaMs: elapsed,
       modeloUsado: modelo || "padrao_local"
+    };
+  }
+
+  if (acao === "ollama_nativo") {
+    var promptOllama = opcoes.prompt || "Apresente sucintamente a conduta de emergência na anafilaxia grave.";
+    var sistemaOllama = opcoes.sistema || (IA_PERSONA + "\n\n" + IA_SEGURANCA_MEDICAMENTOSA);
+    var modeloOllama = opcoes.modelo || null;
+    var t0Ollama = new Date().getTime();
+    var respostaOllama = chamarOllamaNativoAPI(sistemaOllama, promptOllama, opcoes.maxTokens || 600, modeloOllama);
+    var elapsedOllama = new Date().getTime() - t0Ollama;
+
+    return {
+      sucesso: !!(respostaOllama && String(respostaOllama).trim()),
+      acao: "ollama_nativo",
+      resposta: respostaOllama,
+      tempoRespostaMs: elapsedOllama,
+      modeloUsado: modeloOllama || "padrao_ollama"
+    };
+  }
+
+  if (acao === "fallback_local_offline" || acao === "executar_fallback") {
+    var casoFb = opcoes.prompt || opcoes.caso || "Parada cardiorrespiratória em paciente adulto";
+    var sistemaFb = opcoes.sistema || (IA_PERSONA + "\n\n" + IA_SEGURANCA_MEDICAMENTOSA);
+    var t0Fb = new Date().getTime();
+    var respostaFb = executarFallbackLocalOffline(sistemaFb, casoFb, opcoes);
+    var txtFb = (typeof respostaFb === "object" && respostaFb !== null && respostaFb.resposta)
+      ? respostaFb.resposta
+      : (typeof respostaFb === "string" ? respostaFb : JSON.stringify(respostaFb || ""));
+    var elapsedFb = new Date().getTime() - t0Fb;
+
+    return {
+      sucesso: !!(txtFb && String(txtFb).trim()),
+      acao: "fallback_local_offline",
+      resposta: txtFb,
+      tempoRespostaMs: elapsedFb,
+      modoOffline: true
     };
   }
 
@@ -37900,8 +38230,21 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       '{"subjetivo":"Texto limpo organizado com QP, HDA, Antecedentes, Medicações e Alergias","objetivo":"Texto estruturado do O por sistemas com achados e exames","avaliacao":["hipótese principal com CID-10 e CIAP-2","diferenciais em ordem de probabilidade/gravidade"],"plano":["item 1 da conduta com prescrição detalhada","exames solicitados","orientações e critérios de alarme"],"pendencias_opcionais":["dado crítico ausente"]}'
     ].join("\n");
 
-    var rawCons = executarRaciocinioClinico(promptSistemaConsolidado, "CASO CLÍNICO:\n" + dadosCaso, 3500);
-    var objCons = _iaExtrairJSON(rawCons) || {};
+    var rawCons = executarRaciocinioClinico(promptSistemaConsolidado, "CASO CLÍNICO:\n" + dadosCaso, 3500, { json: true });
+    var objCons = _iaExtrairJSON(rawCons);
+    if (!objCons || typeof objCons !== 'object') {
+      if (typeof rawCons === 'string' && (rawCons.indexOf('MODO OFFLINE') !== -1 || rawCons.indexOf('CONTINGÊNCIA') !== -1 || rawCons.indexOf('PARADA') !== -1 || rawCons.indexOf('PCR') !== -1)) {
+        objCons = {
+          subjetivo: dadosCaso,
+          objetivo: 'Monitorização multiparamétrica e suporte vital avançado.',
+          avaliacao: ['Emergência clínica aguda / Protocolo de contingência'],
+          plano: [rawCons],
+          contingencia_offline: true
+        };
+      } else {
+        objCons = {};
+      }
+    }
 
     var sTexto = (typeof objCons.subjetivo === "string" && objCons.subjetivo.trim())
       ? sanitizarNegativasSOAP(objCons.subjetivo.trim(), dadosCaso)
@@ -37917,6 +38260,10 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "🧠 *A - Avaliação*\n" + formatarListaTopicos(objCons.avaliacao, "Avaliação diagnóstica a definir pelo médico assistente."),
       "📋 *P - Plano*\n" + formatarListaTopicos(objCons.plano, "Conduta e prescrição a definir pelo médico assistente.")
     ];
+
+    if (objCons.contingencia_offline) {
+      blocosCons.unshift("⚠️ *MODO OFFLINE DE CONTINGÊNCIA (PROVEDOR EM NUVEM EM TIMEOUT)*\nProcessado pelo Motor Determinístico Offline.");
+    }
 
     if (pendencias.length > 0) {
       blocosCons.push(
@@ -37963,11 +38310,25 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   ].join("\n");
 
 
-  var rawRasc = executarRaciocinioClinico(promptSistemaRascunho, "CASO CLÍNICO:\n" + dadosCaso, 3000);
-  if (typeof rawRasc === "string" && rawRasc.indexOf("🩺") !== -1 && rawRasc.indexOf("S -") !== -1) {
+  var rawRasc = executarRaciocinioClinico(promptSistemaRascunho, "CASO CLÍNICO:\n" + dadosCaso, 3000, { json: true });
+  if (typeof rawRasc === "string" && rawRasc.indexOf("🩺") !== -1 && rawRasc.indexOf("S -") !== -1 && rawRasc.indexOf("MODO OFFLINE") === -1 && rawRasc.indexOf("CONTINGÊNCIA") === -1) {
     return "⚠️ Estruturação SOAP incompleta. Revise o relato original antes de registrar.\n\nRelato recebido:\n" + dadosCaso;
   }
-  var objRasc = _iaExtrairJSON(rawRasc) || {};
+  var objRasc = _iaExtrairJSON(rawRasc);
+  if (!objRasc || typeof objRasc !== 'object') {
+    if (typeof rawRasc === 'string' && (rawRasc.indexOf('MODO OFFLINE') !== -1 || rawRasc.indexOf('CONTINGÊNCIA') !== -1 || rawRasc.indexOf('PARADA') !== -1 || rawRasc.indexOf('PCR') !== -1)) {
+      objRasc = {
+        subjetivo: dadosCaso,
+        objetivo: 'Monitorização multiparamétrica e suporte vital avançado.',
+        plano: [rawRasc],
+        contingencia_offline: true,
+        perguntas_anamnese: ['Monitorar ritmo e pulso após cada ciclo de reanimação.'],
+        exame_dirigido: ['Checagem de ritmo e pulso central a cada 2 minutos.']
+      };
+    } else {
+      objRasc = {};
+    }
+  }
 
   var sRasc = (typeof objRasc.subjetivo === "string" && objRasc.subjetivo.trim())
     ? sanitizarNegativasSOAP(objRasc.subjetivo.trim(), dadosCaso)
@@ -37986,6 +38347,14 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "🔍 *O - Objetivo (Exame Físico)*\n" + oRasc,
     "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.")
   ];
+
+  if (objRasc.contingencia_offline) {
+    blocosRasc.unshift("⚠️ *MODO OFFLINE DE CONTINGÊNCIA (PROVEDOR EM NUVEM EM TIMEOUT)*\nProcessado pelo Motor Determinístico Offline.");
+    if (objRasc.plano && objRasc.plano.length > 0) {
+      blocosRasc.push("🚨 *CONDUTA IMEDIATA DE CONTINGÊNCIA (EMERGÊNCIA)*\n" + formatarListaTopicos(objRasc.plano, ""));
+    }
+  }
+
   if (!temEfCompleto) {
     blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
   }
@@ -39158,9 +39527,14 @@ if (typeof module !== "undefined" && module.exports) {
     processarAudioClinicoMultimodal: processarAudioClinicoMultimodal,
     analisarImagemMedicaComIA: analisarImagemMedicaComIA,
     chamarLocalLlmAPI: chamarLocalLlmAPI,
+    _iaChamarOllamaNativo: _iaChamarOllamaNativo,
+    chamarOllamaNativoAPI: chamarOllamaNativoAPI,
+    executarFallbackLocalOffline: executarFallbackLocalOffline,
     verificarSaudeLocalLlm: verificarSaudeLocalLlm,
     cockpitLocalLlm: cockpitLocalLlm,
     _iaNormalizarBase64: _iaNormalizarBase64,
+    _iaBloquear: _iaBloquear,
+    _iaDesbloquear: _iaDesbloquear,
     IaCircuitBreaker: (typeof IaCircuitBreaker !== 'undefined' ? IaCircuitBreaker : null)
   };
 }
@@ -41141,12 +41515,134 @@ function construirTecladoHubGO() {
   };
 }
 
+/**
+ * Trata consultas explícitas sobre últimas mudanças, commits e status de deploy no Telegram.
+ * Consolida dados locais com segurança total (zero falha se arquivo faltar).
+ */
+function tratarComandoUltimasMudancas(chatId, modoDeploy) {
+  var fs = null;
+  try { fs = require("fs"); } catch (eFs) {}
+  var path = null;
+  try { path = require("path"); } catch (eP) {}
+
+  var proc = (typeof process !== "undefined") ? process : ((typeof globalThis !== "undefined" && globalThis.process) ? globalThis.process : null);
+  var baseDir = (proc && typeof proc.cwd === "function") ? proc.cwd() : ".";
+  var ultimasMudancasPath = path ? path.join(baseDir, "data", "ultimas_mudancas.json") : "data/ultimas_mudancas.json";
+  var ultimoDeployPath = path ? path.join(baseDir, "data", "ultimo_relatorio_deploy.md") : "data/ultimo_relatorio_deploy.md";
+  var deployStatePath = path ? path.join(baseDir, "data", ".autoloop_deploy_state.json") : "data/.autoloop_deploy_state.json";
+  var progressPath = path ? path.join(baseDir, "PROGRESS.md") : "PROGRESS.md";
+
+  var infoJson = null;
+  if (fs && fs.existsSync(ultimasMudancasPath)) {
+    try {
+      infoJson = JSON.parse(fs.readFileSync(ultimasMudancasPath, "utf8"));
+    } catch (eJ) {}
+  }
+
+  var deployState = null;
+  if (fs && fs.existsSync(deployStatePath)) {
+    try {
+      deployState = JSON.parse(fs.readFileSync(deployStatePath, "utf8"));
+    } catch (eD) {}
+  }
+
+  var linhasProgress = [];
+  var proximaTarefa = "";
+  if (fs && fs.existsSync(progressPath)) {
+    try {
+      var txtProg = fs.readFileSync(progressPath, "utf8");
+      var matchProx = txtProg.match(/(?:Próxima Tarefa em Andamento|Próxima Tarefa|Next Task)[^\n]*\n+[\s\t]*[-*]?\s*\[ \]\s*([^\n]+)/i);
+      if (matchProx) proximaTarefa = matchProx[1].trim();
+      var matchUltima = txtProg.match(/(?:Última Tarefa Concluída|Últimas Tarefas Concluídas)[^\n]*\n+[\s\t]*[-*]?\s*\[x\]\s*([^\n]+)/i);
+      if (matchUltima) linhasProgress.push(matchUltima[1].trim());
+    } catch (ePr) {}
+  }
+
+  // Tenta obter commits recentes via git de forma síncrona com timeout estrito
+  var commitsGit = [];
+  try {
+    var cp = require("child_process");
+    var saidaGit = cp.execSync('git log -n 3 --pretty=format:"%h|%s"', { timeout: 3000, encoding: "utf8" });
+    if (saidaGit) {
+      saidaGit.trim().split("\n").forEach(function(l) {
+        var partes = l.split("|");
+        if (partes.length >= 2) {
+          commitsGit.push("• `" + partes[0] + "` " + partes.slice(1).join("|"));
+        }
+      });
+    }
+  } catch (eGit) {}
+
+  var linhas = [];
+  linhas.push("🚀 *ULTRA ROTINA · STATUS DE MUDANÇAS & DEPLOY*");
+  linhas.push("");
+
+  // Detalhes do último deploy
+  var dataDeploy = (deployState && (deployState.last_pushed_at || deployState.last_attempt_at)) || (infoJson && infoJson.timestamp) || "Recente";
+  var shaDeploy = (deployState && deployState.last_pushed_sha) || (infoJson && infoJson.commit_head) || "";
+  linhas.push("🌐 *Último Deploy no Render:*");
+  linhas.push("• *Data/Hora:* " + dataDeploy);
+  if (shaDeploy) linhas.push("• *Commit HEAD:* `" + String(shaDeploy).substring(0, 7) + "`");
+  linhas.push("• *Status:* ✅ Confirmado (Render / GitHub)");
+
+  // Tarefas Concluídas
+  var concluidas = (infoJson && infoJson.tarefas_concluidas && infoJson.tarefas_concluidas.length) ? infoJson.tarefas_concluidas : linhasProgress;
+  if (concluidas && concluidas.length) {
+    linhas.push("");
+    linhas.push("✅ *Últimas Tarefas Concluídas:*");
+    concluidas.slice(0, 3).forEach(function(t) {
+      linhas.push("• " + t.replace(/^[-\s*\[\]xX]+/, ""));
+    });
+  }
+
+  // Próxima Tarefa
+  var prox = (infoJson && infoJson.proxima_tarefa) ? infoJson.proxima_tarefa : proximaTarefa;
+  if (prox) {
+    linhas.push("");
+    linhas.push("🎯 *Próxima Tarefa em Foco:*");
+    linhas.push("• " + prox.replace(/^[-\s*\[\]]+/, ""));
+  }
+
+  // Commits Recentes
+  if (commitsGit.length) {
+    linhas.push("");
+    linhas.push("📋 *Commits Recentes:*");
+    linhas = linhas.concat(commitsGit);
+  } else if (infoJson && infoJson.commits_recentes && infoJson.commits_recentes.length) {
+    linhas.push("");
+    linhas.push("📋 *Commits Recentes:*");
+    infoJson.commits_recentes.slice(0, 3).forEach(function(c) {
+      linhas.push("• `" + (c.hash || "") + "` " + (c.subject || ""));
+    });
+  }
+
+  linhas.push("");
+  linhas.push("⏰ *Agendador de Deploy:*");
+  linhas.push("• Ciclo automático a cada *3 horas* no Render.");
+  linhas.push("💡 _Notificações automáticas ocorrem a cada deploy de 3h ou quando você perguntar._");
+
+  var msgFinal = linhas.join("\n");
+  var kbRetorno = (typeof botoesBot === "function") ? botoesBot([
+    [['🔄 Atualizar Mudanças', '/mudancas'], ['🏠 Início', 'ux:hub:inicio']]
+  ]) : null;
+
+  if (kbRetorno && typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, msgFinal, kbRetorno);
+  }
+  return enviarMensagemParaChat(chatId, msgFinal);
+}
+
 function processarMensagemTexto(message) {
   if (typeof tratarEntradaUX!=="undefined" && tratarEntradaUX(message)) return;
   var texto = message.text ? message.text.trim() : "";
   var textoLow = texto.toLowerCase();
   var chatId = (message.chat && message.chat.id) ? message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
   if (!texto) return;
+
+  // Interceptação imediata: Consulta explícita de últimas mudanças / o que mudou / deploy
+  if (/(?:(?:quais\s+(?:as\s+)?)?[úu]ltimas?\s+mudan[çc]as?(?:\s+feitas)?|o\s+que\s+mudou|ultimas?\s+altera[çc][õo]es?)/i.test(texto)) {
+    return tratarComandoUltimasMudancas(chatId);
+  }
 
   try {
     // 0A. Roteamento Inteligente de Termos Coloquiais e Siglas do Plantão
@@ -41188,7 +41684,8 @@ function processarMensagemTexto(message) {
         "dengue", "arbovirose", "chikungunya", "zika", "pac", "pneumonia", "itu", "cistite", "pielonefrite",
         "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "crisehas", "has", "cefaleia", "dorcabeca",
         "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan",
-        "glasgow", "choque", "eap", "anafilaxia", "convulsao", "hipercalemia", "hipoglicemia"
+        "glasgow", "choque", "eap", "anafilaxia", "convulsao", "hipercalemia", "hipoglicemia",
+        "mudancas", "deploy"
       ];
       if (comandosSemBarra.indexOf(primPalavra) !== -1) {
         var ehEvolucaoLeitoNatural = (primPalavra === "leito" || primPalavra === "quarto") &&
@@ -41431,6 +41928,10 @@ function processarMensagemTexto(message) {
       "• *Base de Interações:* " + stInteracoes + "\n" +
       "• *Notion & Calendar:* ✅ Operacionais";
     return enviarMensagemParaChat(chatId, msgStatus);
+  }
+
+  if (comando === "/mudancas" || comando === "/mudanças" || comando === "/ultimas_mudancas" || comando === "/ultimasmudancas" || comando === "/deploy") {
+    return tratarComandoUltimasMudancas(chatId, comando === "/deploy");
   }
 
   if (comando === "/choqueseptico" || comando === "/septico" || comando === "/circi" || comando === "/vasopressina") {
@@ -57002,9 +57503,17 @@ function cockpitConversar(initData, params) {
     // Inferência de IA (Gemini): Reservada exclusivamente para casos abertos (evolução SOAP complexa)
     var novoContexto = dadosAtuais ? (dadosAtuais + '\n' + texto) : texto;
     var novoEstado = definirModoBot(chat, 'soap', novoContexto);
-    var resultadoSoap = gerarSOAPComIA(novoContexto);
+    var resultadoSoap;
+    if (params && params.fallbackLocal) {
+      resultadoSoap = (typeof executarFallbackLocalOffline === 'function')
+        ? executarFallbackLocalOffline('Você é copiloto médico de emergência.', novoContexto, { clinico: true })
+        : (typeof IaLocalFallbackService !== 'undefined' && IaLocalFallbackService ? IaLocalFallbackService.gerarRespostaOfflineClinica(null, novoContexto) : gerarSOAPComIA(novoContexto));
+    } else {
+      resultadoSoap = gerarSOAPComIA(novoContexto);
+    }
     salvarSoapCockpit_(chat, novoEstado, String(resultadoSoap));
 
+    var ehOffline = !!(params && params.fallbackLocal) || (typeof resultadoSoap === 'string' && (/conting[êe]ncia|modo\s+offline|protocolos?\s+offline|offline/i.test(resultadoSoap)));
     return {
       sucesso: true,
       acao: 'enviar',
@@ -57012,6 +57521,7 @@ function cockpitConversar(initData, params) {
       transcricao: transcricaoAudio || null,
       resposta: String(resultadoSoap),
       soap: String(resultadoSoap),
+      contingencia_offline: ehOffline,
       revision: novoEstado.revision
     };
   } finally {

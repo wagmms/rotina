@@ -773,7 +773,9 @@ const ctx = {
       addMetaTag: function() { return this; },
       setXFrameOptionsMode: function() { return this; }
     })
-  }
+  },
+  process: process,
+  require: require
 };
 
 // 5. CARREGA TODOS OS MÓDULOS DE SRC/ NA VM DO NODE.JS
@@ -861,6 +863,8 @@ module.exports = {
         _rpcMap.cockpitLocalLlm = ctx.cockpitLocalLlm;
         _rpcMap.cockpitIaLocalStatus = ctx.cockpitIaLocalStatus;
         _rpcMap.cockpitIaLocalFallback = ctx.cockpitIaLocalFallback;
+        _rpcMap.executarFallbackLocalOffline = ctx.executarFallbackLocalOffline;
+        _rpcMap.chamarOllamaNativoAPI = ctx.chamarOllamaNativoAPI;
         _rpcMap.cockpitRbac = ctx.cockpitRbac;
         _rpcMap.cockpitSuporteNutricional = ctx.cockpitSuporteNutricional;
         _rpcMap.cockpitOncologiaBasica = ctx.cockpitOncologiaBasica;

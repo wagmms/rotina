@@ -40,6 +40,8 @@ function runTests() {
   // ---------------------------------------------------------------------------
   const urlFetchOriginal = ctx.UrlFetchApp.fetch;
   let chamadasFeitas = [];
+  ctx.ConfigService.invalidar();
+  ctx.PropertiesService.getScriptProperties().setProperty('LOCAL_LLM_URL', 'http://127.0.0.1:11434/v1/chat/completions');
 
   ctx.UrlFetchApp.fetch = function (url, opts) {
     chamadasFeitas.push({ url, opts });

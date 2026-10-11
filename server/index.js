@@ -440,8 +440,11 @@ async function buildServer() {
         },
         circuit_breaker: {
           multimodal: runtime.ctx.IaCircuitBreaker ? runtime.ctx.IaCircuitBreaker.obterStatus('MULTIMODAL') : null,
-          gemini: runtime.ctx.IaCircuitBreaker ? runtime.ctx.IaCircuitBreaker.obterStatus('GEMINI') : null
-        }
+          gemini: runtime.ctx.IaCircuitBreaker ? runtime.ctx.IaCircuitBreaker.obterStatus('GEMINI') : null,
+          local: runtime.ctx.IaCircuitBreaker ? runtime.ctx.IaCircuitBreaker.obterStatus('LOCAL') : null,
+          ollama: runtime.ctx.IaCircuitBreaker ? runtime.ctx.IaCircuitBreaker.obterStatus('OLLAMA') : null
+        },
+        ia_local_disponivel: !!(runtime.ctx.IaLocalFallbackService && runtime.ctx.executarFallbackLocalOffline)
       };
     } catch (err) {
       reply.status(500);
@@ -908,7 +911,8 @@ async function buildServer() {
         acao,
         texto: String(texto),
         audioBase64,
-        mime
+        mime,
+        fallbackLocal: !!body.fallbackLocal
       };
 
       const resultado = runtime.cockpitRpc('cockpitConversar', session, [params]);
@@ -927,11 +931,55 @@ async function buildServer() {
         resultado,
         resposta: resultado?.resposta || resultado?.mensagem || resultado,
         soap: resultado?.soap || '',
-        benchmark_ms: Number(elapsed)
+        benchmark_ms: Number(elapsed),
+        contingencia_offline: !!(
+          resultado?.contingencia_offline ||
+          resultado?.deterministico ||
+          resultado?.offline_disponivel ||
+          (typeof (resultado?.resposta || resultado?.mensagem || '') === 'string' && /conting[êe]ncia|modo\s+offline|protocolos?\s+offline|offline/i.test(String(resultado?.resposta || resultado?.mensagem || '')))
+        )
       };
     } catch (err) {
       const elapsed = (performance.now() - t0).toFixed(2);
       fastify.log.warn(`[Chat REST Error] ${err.message} (${elapsed}ms)`);
+
+      const isAuthError = ehErroAutenticacaoOuSessao(err);
+
+      // Fast-Ack / Fallback de Alta Disponibilidade para o Chat Beira-Leito:
+      // Se NÃO for erro de autenticação e for erro de IA/timeout/provedor ou solicitação explícita de fallback:
+      const body = request.body || {};
+      const texto = body.mensagem || body.texto || body.prompt || '';
+      const ehErroIA = err.message && (/ia|gemini|timeout|timed\s*out|provedor|fetch|quota|socket|redirecionar|conexão/i.test(err.message));
+      if (!isAuthError && texto && (ehErroIA || body.fallbackLocal)) {
+        try {
+          const fallbackRes = (runtime.ctx.executarFallbackLocalOffline && typeof runtime.ctx.executarFallbackLocalOffline === 'function')
+            ? runtime.ctx.executarFallbackLocalOffline('Você é copiloto médico de emergência.', String(texto), { clinico: true })
+            : (runtime.ctx.IaLocalFallbackService ? runtime.ctx.IaLocalFallbackService.gerarRespostaOfflineClinica(null, String(texto)) : null);
+
+          if (fallbackRes) {
+            registrarInteracaoAoVivo({
+              origem: 'fastify_rest_chat',
+              tipo: 'chat_fallback',
+              resumo: `Chat Fallback: "${String(texto).slice(0, 40)}"`,
+              duracao_ms: Number(elapsed),
+              status: 'fallback'
+            });
+
+            return {
+              ok: true,
+              contingencia_offline: true,
+              origem: 'fallback_local_offline',
+              resultado: { resposta: String(fallbackRes), soap: String(fallbackRes), contingencia_offline: true },
+              resposta: String(fallbackRes),
+              soap: String(fallbackRes),
+              aviso: 'Processado pelo Motor de Fallback Local Offline após indisponibilidade temporária do provedor em nuvem.',
+              benchmark_ms: Number(elapsed)
+            };
+          }
+        } catch (eFallback) {
+          fastify.log.warn(`[Chat Fallback Error] ${eFallback.message}`);
+        }
+      }
 
       registrarInteracaoAoVivo({
         origem: 'fastify_rest_chat',
@@ -942,7 +990,6 @@ async function buildServer() {
         detalhes: err.message
       });
 
-      const isAuthError = ehErroAutenticacaoOuSessao(err);
       reply.status(isAuthError ? 401 : 400);
       return {
         ok: false,
@@ -1712,6 +1759,19 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
             prompt: textoUsuario,
             sistema: sistemaPrompt
           }) || '';
+        }
+
+        if (!respostaTexto && runtime.ctx && typeof runtime.ctx.executarFallbackLocalOffline === 'function') {
+          try {
+            const resFbVoice = runtime.ctx.executarFallbackLocalOffline(sistemaPrompt, textoUsuario, {
+              tokens: 300,
+              clinico: true
+            });
+            const txtVoice = typeof resFbVoice === 'object' ? (resFbVoice.resposta || '') : String(resFbVoice || '');
+            if (txtVoice && txtVoice.trim()) {
+              respostaTexto = txtVoice;
+            }
+          } catch (_) {}
         }
 
         if (!respostaTexto) {

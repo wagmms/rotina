@@ -14,12 +14,12 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria de Resiliência de Payload e Sanitização das Rotas Fastify do Servidor (`server/index.js`, `server/validators.js` e `server/runtime.js`)**:
+- [x] **Motores de IA e Fallback Local (`src/04_motores_ia.js`, `src/04_ia_local_fallback.js` e `server/index.js`)**:
     - **Diagnóstico e Correção**:
-      * Em `server/validators.js`: Adicionados novos limites fisiológicos a `LIMITES_FISIOLOGICOS` (temperatura 30-44°C, glicemia 10-2000 mg/dL, lactato 0.1-35 mmol/L, plaquetas 1.000-2.000.000/mm³, leucócitos 100-300.000/mm³ e hemoglobina 1.0-25.0 g/dL); implementada validação hemodinâmica estrita no CURB-65 (rejeitando PAS < PAD) e validação de inteiros no Glasgow-P e HEART Score; criado e exportado `chatBodySchema` para validação em handshake do endpoint `/api/chat`.
-      * Em `server/runtime.js`: Blindado `cockpitRpc` contra prototype pollution com validação estrita de `metodo` (rejeitando strings vazias, tipos não-string e propriedades reservadas `__proto__`, `constructor`, `prototype`, `toString`, `valueOf`, `hasOwnProperty`, `isPrototypeOf`, `propertyIsEnumerable`) e verificação `hasOwnProperty` em `ctx`.
-      * Em `server/index.js`: Implementado endpoint REST dedicado `/api/chat` com schema Ajv e preValidation defensivo; adicionado helper `ehErroAutenticacaoOuSessao` com regex uniforme para status 401 em sessões ausentes, inválidas ou expiradas em `/api/cockpit`, `/api/calcular` e `/api/chat`; adicionada sanitização de mensagens de erro com `sanitizarMensagemErro` para evitar vazamento de stacktrace ou caminhos internos nos status 400, 401 e 500; adicionado tratamento explícito para HTTP 413 (Payload Too Large).
-    - **Validação e Cobertura**: 100% aprovado na suíte expandida `tests/test_fastify_resiliencia_payloads.cjs` (11/11 blocos), além de 100% de sucesso nas suítes `test_schemas_validacao_calculadoras.cjs`, `test_fastify_resiliencia.cjs`, `test_server_render.cjs`, `test_caching_etag_fastify.cjs` e `test_seguranca_helmet_ratelimit.cjs`.
+      * Em `src/04_motores_ia.js`: Implementado endpoint nativo Ollama `_iaChamarOllamaNativo` com rota `/api/chat` e suporte polimórfico de chamadas; implementado Fast-Ack com detecção precoce de timeout de rede (`ETIMEDOUT`, `504 Gateway Timeout`) no `_iaProvGemini`, interrompendo a cascata sem reter a thread médica; atualizada assinatura de `executarRaciocinioClinico` para aceitar `opcoes` e mesclar com `{ clinico: true }`; adicionado `{ json: true }` nas chamadas de `gerarSOAPComIA` (Fases 1 e 2) com salvaguarda defensiva para contingência offline.
+      * Em `src/04_ia_local_fallback.js`: Implementado `executarFallbackLocalOffline` e aprimorado `estruturarJsonOffline` para cenários SOAP e emergências clínicas de alta gravidade (ACLS, Sepse, Anafilaxia, etc.), garantindo banner de contingência e preservação integral dos protocolos médicos.
+      * Em `server/index.js`: Expostos circuitos `local` e `ollama` em `/api/status`, e implementado Fast-Ack com retorno 200 OK e resposta protocolada segura no endpoint `/api/chat`.
+    - **Validação e Cobertura**: 100% aprovado nas suítes `tests/test_ia_motores_fallback_local.cjs` (9/9 blocos), `tests/test_motores_ia_fallback_local_fastack.cjs` (8/8 blocos), `tests/test_ia_local_fallback.cjs` (15/15), `tests/test_ia_local_offline.cjs` (9/9) e `tests/test_fastify_resiliencia_payloads.cjs` (11/11).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -27,10 +27,10 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Motores de IA e Fallback Local (`src/04_motores_ia.js`, `src/04_ia_local_fallback.js` e `server/index.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/04_motores_ia.js`, `src/04_ia_local_fallback.js` e `server/index.js`
-    - **Função/Componente/Seletor**: Funções `_iaChamarOllamaNativo`, `executarFallbackLocalOffline` e timeout com fast-ack em caso de indisponibilidade da API Gemini
-    - **Comportamento Esperado / Critério de Aceite**: Garantir que timeouts e indisponibilidades transitórias dos modelos Gemini disparem fallback automático e transparente para inferência local Ollama/Mistral sem travar o bot nem degradar as condutas médicas.
+- [ ] **Telegram Bot - Tratamento de Comandos de Voz / Áudio Clínico e Resiliência de Transcrição (`src/07e_telegram_midia_e_leitos.js`, `src/04_motores_ia.js` e `server/index.js`)**:
+    - **Arquivo/Módulo Alvo**: `src/07e_telegram_midia_e_leitos.js`, `src/04_motores_ia.js` e `server/index.js`
+    - **Função/Componente/Seletor**: Funções `processarAudioMensagemTelegram`, `processarAudioClinicoMultimodal` e rota `/api/chat` com `audioBase64`
+    - **Comportamento Esperado / Critério de Aceite**: Garantir que áudios clínicos (ditado de corredor, passagem de leito) com ruído, falha de rede ou codecs webm/ogg/mp3 recebam processamento resiliente com fallback transparente para transcrição e estruturação SOAP sem perda de termos médicos nem falha de processo.
 
 ---
 
@@ -54,18 +54,19 @@
 8. [x] **Modo SOAP & Prescrição Ambulatorial Ágil (`ux:soap`, `/soap`)**: Concluído (100% testado).
 9. [x] **Cockpit PWA Mobile & Sincronização em Tempo Real (`cockpit_movel.html`)**: Concluído (100% testado).
 10. [x] **Auditoria de Resiliência de Payload e Sanitização das Rotas Fastify do Servidor (`server/index.js`, `server/validators.js` e `server/runtime.js`)**: Concluído (100% testado).
-11. [ ] **Motores de IA e Fallback Local (`src/04_motores_ia.js`, `src/04_ia_local_fallback.js` e `server/index.js`)**: Validar timeout resiliente, Fast-Ack e respostas determinísticas locais em caso de indisponibilidade da API do Gemini.
+11. [x] **Motores de IA e Fallback Local (`src/04_motores_ia.js`, `src/04_ia_local_fallback.js` e `server/index.js`)**: Concluído (100% testado).
+12. [ ] **Telegram Bot - Tratamento de Comandos de Voz / Áudio Clínico e Resiliência de Transcrição (`src/07e_telegram_midia_e_leitos.js`, `src/04_motores_ia.js` e `server/index.js`)**: Validar processamento de áudio, ditado de corredor, tolerância a falhas na transcrição multimodal e fallback estruturado para SOAP.
 
 ---
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 
-> 💡 Catálogo completo de 105 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 108 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 101 (Cockpit PWA / Gestos de Swipe para Ações Rápidas nos Leitos e Calculadoras)*: Implementar suporte a gestos touch nativos (`touchstart`/`touchend` com feedback haptic) para que o médico possa deslizar o card de um leito para a direita para marcar como 'Estável' ou para a esquerda para abrir o modal SBAR em 1 gesto rápido durante o round.
-- *Sugestão 102 (Cockpit PWA / Exportação do Histórico de Cálculos do Plantão em CSV/JSON Criptografado)*: Adicionar botão de exportação segura do histórico de cálculos do plantão para auditoria médica local ou registro em prontuário eletrônico hospitalar, permitindo download direto com sanitização de identificadores conforme a LGPD.
-- *Sugestão 103 (Cockpit PWA / Atalhos de Teclado Físico para Uso em Tablet e Desktop Hospitalar)*: Implementar atalhos globais de teclado (ex: `Alt+1` para Leitos, `Alt+2` para Cálculos, `Alt+3` para Farmacologia, `Ctrl+K` para busca universal e `Esc` para fechar modais) para médicos que utilizam o Cockpit em estações de trabalho de enfermagem ou tablets acoplados com teclado.
 - *Sugestão 104 (Cockpit PWA / Modo Alto Contraste Solar para Atendimento Pré-Hospitalar & SAMU)*: Criar modo visual com fundo branco puro, tipografia em preto sólido e bordas reforçadas para uso sob luz solar intensa em viaturas de resgate ou atendimento de rua, mantendo alternância em 1 toque com o tema dark hospitalar padrão.
 - *Sugestão 105 (Fastify / Rate-Limiting Dinâmico por IP com Whitelist para Redes Hospitalares)*: Implementar rate-limiting adaptativo na camada Fastify capaz de identificar sub-redes hospitalares internas e IPs corporativos de postos de enfermagem via cabeçalho `X-Forwarded-For` validado, aplicando limites diferenciados e evitando falsos-positivos de bloqueio 429 durante picos de triagem e admissão de múltiplos leitos simultâneos no mesmo terminal.
+- *Sugestão 106 (Motores de IA / Cache de Respostas Determinísticas em Memória RAM com TTL Inteligente por CID-10)*: Implementar cache determinístico em memória de alta velocidade (LRU Cache com hashing SHA-256 do prompt clínico e normalização de termos) para condutas canônicas de alta incidência (ex: PCR/ACLS, Anafilaxia, AVC, Pré-Eclâmpsia Zuspan), permitindo respostas instantâneas em 0ms sem realizar requisições HTTP locais ou remotas durante picos de emergência no plantão.
+- *Sugestão 107 (Motores de IA / Healthcheck Periódico Não-Bloqueante do Daemon Ollama Local)*: Implementar ping periódico a cada 60s em background (`/api/tags`) para aferir latência e aquecimento de modelos locais (Mistral/Llama 3/Qwen) no nó Ollama, mantendo um flag atômico de prontidão em RAM para evitar tentativas síncronas de conexão e timeouts desnecessários quando o daemon estiver pausado ou descarregado da GPU.
+- *Sugestão 108 (Motores de IA / Fallback Multinível com Transição Fluida para Modelos Locais Quantizados 4-bit)*: Adicionar perfil de contingência com modelos ultraleves quantizados GGUF (ex: Qwen 2.5 3B ou Llama 3.2 1B em 4 bits) otimizados para execução ultrarrápida em CPUs com baixo consumo de memória RAM (< 2 GB), viabilizando inferência médica offline completa mesmo em servidores hospitalares modestos ou notebooks de plantão sem GPU dedicada.
 
 ---

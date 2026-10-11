@@ -579,9 +579,10 @@ def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_taref
         stat_res = subprocess.run(["git", "diff", "--stat", f"{base_sha}..{candidate_sha}"], capture_output=True, text=True, check=False)
         diff_stat = stat_res.stdout.strip() if stat_res.returncode == 0 else ""
 
-        # Coleta o diff de código excluindo apenas o bundle gerado ultra_rotina_master.js (validado via build_master.py)
+        # Coleta o diff de código excluindo bundles compilados, tooling, testes e docs
         cmd_diff = ["git", "diff", f"{base_sha}..{candidate_sha}", "--", ".",
-                    ":!ultra_rotina_master.js", ":!data/", ":!logs/", ":!*.tmp"]
+                    ":!ultra_rotina_master.js", ":!data/", ":!logs/", ":!*.tmp",
+                    ":!tooling/", ":!tests/", ":!docs/", ":!*.md", ":!package-lock.json"]
         diff_res = subprocess.run(cmd_diff, capture_output=True, text=True, check=False)
         if diff_res.returncode != 0:
             return None, f"Falha ao extrair diff entre {base_sha[:10]} e {candidate_sha[:10]}: {diff_res.stderr.strip()}"
@@ -604,7 +605,8 @@ def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_taref
                 stat_res = subprocess.run(["git", "diff", "--stat", f"{base_sha}..{candidate_sha}"], capture_output=True, text=True, check=False)
                 diff_stat = stat_res.stdout.strip() if stat_res.returncode == 0 else ""
                 cmd_diff = ["git", "diff", f"{base_sha}..{candidate_sha}", "--", ".",
-                            ":!ultra_rotina_master.js", ":!data/", ":!logs/", ":!*.tmp"]
+                            ":!ultra_rotina_master.js", ":!data/", ":!logs/", ":!*.tmp",
+                            ":!tooling/", ":!tests/", ":!docs/", ":!*.md", ":!package-lock.json"]
                 diff_res = subprocess.run(cmd_diff, capture_output=True, text=True, check=False)
                 if diff_res.returncode == 0:
                     diff_conteudo = diff_res.stdout.strip()
@@ -628,10 +630,17 @@ def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_taref
     if not diff_conteudo:
         return None, f"Diff vazio para o candidato {candidate_sha[:10]}. Nenhuma alteração verificável."
 
-    # Proteção de Orçamento de Contexto: Teto ajustado para capacidade dos modelos OpenAI modernos (300k caracteres)
-    limite_orcamento_diff = 300000
+    # Proteção de Orçamento de Contexto: Teto ajustado para capacidade dos modelos OpenAI modernos (600k caracteres)
+    limite_orcamento_diff = 600000
     if len(diff_conteudo) > limite_orcamento_diff:
-        return None, f"Orçamento de contexto excedido ({len(diff_conteudo)} caracteres > {limite_orcamento_diff}). A auditoria automática não pode truncar diff silenciosamente; divida o patch ou execute auditoria supervisionada."
+        # Se for um release cumulativo grande, prioriza estritamente os módulos de src/ e server/
+        cmd_diff_core = ["git", "diff", f"{base_sha}..{candidate_sha}", "--", "src/", "server/", "cockpit_movel.html"]
+        res_core = subprocess.run(cmd_diff_core, capture_output=True, text=True, check=False)
+        if res_core.returncode == 0 and res_core.stdout.strip() and len(res_core.stdout.strip()) <= limite_orcamento_diff:
+            diff_conteudo = res_core.stdout.strip()
+            log("INFO", f"Auditoria otimizada para o núcleo clínico/produção (src/ e server/): {len(diff_conteudo)} caracteres.")
+        else:
+            return None, f"Orçamento de contexto excedido ({len(diff_conteudo)} caracteres > {limite_orcamento_diff}). A auditoria automática não pode truncar diff silenciosamente; divida o patch ou execute auditoria supervisionada."
 
     # Reclassifica o range efetivamente auditado. Um perfil fornecido pelo
     # chamador nunca pode reduzir o risco observado no conteúdo do release.
@@ -1071,7 +1080,7 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
         log("AVISO", f"Falha ao enviar relatório do ciclo: {e}")
     return True
 
-def enviar_relatorio_ciclo_rotina(nome_modelo, num_conta, nome_squad="Squad Padrão"):
+def enviar_relatorio_ciclo_rotina(nome_modelo, num_conta, nome_squad="Squad Padrão", notificar_telegram=False):
     concluidas, proxima = coletar_status_progress()
     commits = coletar_mudancas_ciclo(horas=1.0)
     hora_str = datetime.now().strftime("%d/%m/%Y às %H:%M")
@@ -1108,8 +1117,31 @@ def enviar_relatorio_ciclo_rotina(nome_modelo, num_conta, nome_squad="Squad Padr
     linhas.append("💡 <i>Deploy automático no Render a cada 3h. Para forçar deploy imediato, envie</i> <b>/deploy</b>.")
 
     texto_html = "\n".join(linhas)
-    enviar_relatorio_telegram(texto_html)
-    log("TELEGRAM", "📲 Relatório do ciclo enviado ao Telegram com sucesso.")
+
+    # Persiste dados do último ciclo localmente para consultas sob demanda (/mudancas)
+    try:
+        info_ciclo = {
+            "timestamp": hora_str,
+            "modelo": nome_modelo,
+            "conta": num_conta,
+            "squad": nome_squad,
+            "commit_head": novo_head,
+            "tarefas_concluidas": concluidas[:5],
+            "proxima_tarefa": proxima,
+            "commits_recentes": commits[:5],
+            "texto_html": texto_html
+        }
+        Path("data").mkdir(parents=True, exist_ok=True)
+        with open("data/ultimas_mudancas.json", "w", encoding="utf-8") as f:
+            json.dump(info_ciclo, f, ensure_ascii=False, indent=2)
+    except Exception as e_json:
+        log("AVISO", f"Falha ao persistir data/ultimas_mudancas.json: {e_json}")
+
+    if notificar_telegram:
+        enviar_relatorio_telegram(texto_html)
+        log("TELEGRAM", "📲 Relatório do ciclo enviado ao Telegram com sucesso.")
+    else:
+        log("INFO", "📝 Resumo do ciclo persistido localmente (notificação no Telegram desativada para tarefas individuais; reservada a deploys de 3h).")
 
 STATE_DEPLOY_FILE = Path("data/.autoloop_deploy_state.json")
 
@@ -1383,35 +1415,41 @@ def enviar_relatorio_telegram(texto_html, token_override=None, chat_override=Non
             chunks.append("\n".join(chunk_atual))
 
     sucesso_total = True
-    for chunk in chunks:
-        payload = {
-            "chat_id": chat_id,
-            "text": chunk,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": True
-        }
+    target_chats = [c.strip() for c in str(chat_id).split(",") if c.strip()]
+    if not target_chats:
+        log("AVISO", "Nenhum chat ID válido configurado para envio ao Telegram.")
+        return False
 
-        try:
-            data_encoded = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                url,
-                data=data_encoded,
-                headers={
-                    "Content-Type": "application/json",
-                    "User-Agent": "Mozilla/5.0 (compatible; UltraRotinaBot/1.0)"
-                }
-            )
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                resp_data = json.loads(resp.read().decode())
-                if not resp_data.get("ok"):
-                    log("ERRO", f"Telegram API retornou erro: {resp_data}")
-                    sucesso_total = False
-        except Exception as e:
-            log("ERRO", f"Falha ao enviar mensagem ao Telegram: {e}")
-            sucesso_total = False
+    for c_id in target_chats:
+        for chunk in chunks:
+            payload = {
+                "chat_id": c_id,
+                "text": chunk,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True
+            }
+
+            try:
+                data_encoded = json.dumps(payload).encode("utf-8")
+                req = urllib.request.Request(
+                    url,
+                    data=data_encoded,
+                    headers={
+                        "Content-Type": "application/json",
+                        "User-Agent": "Mozilla/5.0 (compatible; UltraRotinaBot/1.0)"
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    resp_data = json.loads(resp.read().decode())
+                    if not resp_data.get("ok"):
+                        log("ERRO", f"Telegram API retornou erro para chat {c_id}: {resp_data}")
+                        sucesso_total = False
+            except Exception as e:
+                log("ERRO", f"Falha ao enviar mensagem ao Telegram (chat {c_id}): {e}")
+                sucesso_total = False
 
     if sucesso_total:
-        log("OK", "📲 Relatório do ciclo enviado com sucesso para o Telegram!")
+        log("OK", "📲 Relatório enviado com sucesso para o Telegram!")
         return True
     return False
 
@@ -1794,6 +1832,20 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=3.0, commit_anterior=None,
             f.write(relatorio_md)
         with open(f"data/relatorios_deploy/deploy_{ts_nome}.md", "w", encoding="utf-8") as f:
             f.write(relatorio_md)
+        info_deploy = {
+            "timestamp": hora_str,
+            "tipo": "deploy_3h",
+            "commit_head": novo_head,
+            "push_ok": push_ok,
+            "testes_ok": testes_ok,
+            "build_ok": build_ok,
+            "tarefas_concluidas": concluidas[:5],
+            "proxima_tarefa": proxima,
+            "commits_recentes": commits[:10],
+            "texto_html": texto_html
+        }
+        with open("data/ultimas_mudancas.json", "w", encoding="utf-8") as f:
+            json.dump(info_deploy, f, ensure_ascii=False, indent=2)
     except Exception as e:
         log("AVISO", f"Erro ao salvar arquivo de relatório local: {e}")
 

@@ -830,9 +830,17 @@ function cockpitConversar(initData, params) {
     // Inferência de IA (Gemini): Reservada exclusivamente para casos abertos (evolução SOAP complexa)
     var novoContexto = dadosAtuais ? (dadosAtuais + '\n' + texto) : texto;
     var novoEstado = definirModoBot(chat, 'soap', novoContexto);
-    var resultadoSoap = gerarSOAPComIA(novoContexto);
+    var resultadoSoap;
+    if (params && params.fallbackLocal) {
+      resultadoSoap = (typeof executarFallbackLocalOffline === 'function')
+        ? executarFallbackLocalOffline('Você é copiloto médico de emergência.', novoContexto, { clinico: true })
+        : (typeof IaLocalFallbackService !== 'undefined' && IaLocalFallbackService ? IaLocalFallbackService.gerarRespostaOfflineClinica(null, novoContexto) : gerarSOAPComIA(novoContexto));
+    } else {
+      resultadoSoap = gerarSOAPComIA(novoContexto);
+    }
     salvarSoapCockpit_(chat, novoEstado, String(resultadoSoap));
 
+    var ehOffline = !!(params && params.fallbackLocal) || (typeof resultadoSoap === 'string' && (/conting[êe]ncia|modo\s+offline|protocolos?\s+offline|offline/i.test(resultadoSoap)));
     return {
       sucesso: true,
       acao: 'enviar',
@@ -840,6 +848,7 @@ function cockpitConversar(initData, params) {
       transcricao: transcricaoAudio || null,
       resposta: String(resultadoSoap),
       soap: String(resultadoSoap),
+      contingencia_offline: ehOffline,
       revision: novoEstado.revision
     };
   } finally {
