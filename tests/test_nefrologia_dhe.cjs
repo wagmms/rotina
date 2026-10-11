@@ -67,6 +67,21 @@ function runTests() {
     assert.ok(kExtremo.condutas.join().includes("HEMODIÁLISE DE EMERGÊNCIA"), "Deve indicar hemodiálise de emergência");
     assert.ok(kExtremo.condutas.join().includes("Gluconato de Cálcio 10% (10-20mL em 100mL SG 5% em 5 min)"), "Deve conter gluconato imediato");
 
+    // Teste 9: Alias gerarCondutaPotassio e Tripé Canônico Estruturado
+    assert.strictEqual(typeof NefrologiaDheService.gerarCondutaPotassio, 'function', "gerarCondutaPotassio deve ser exportado como função");
+    var kTrip = NefrologiaDheService.gerarCondutaPotassio(6.8, true);
+    assert.ok(kTrip.tripeCanonico.gluconatoDose.includes("Gluconato de Cálcio 10% (10-20mL em 100mL SG 5% em 5 min)"), "Tripé deve conter dose exata de gluconato");
+    assert.ok(kTrip.tripeCanonico.solucaoPolarizanteDose.includes("SG 50% 50mL + 10 UI Regular em 20 min"), "Tripé deve conter dose da solução polarizante");
+    assert.ok(kTrip.tripeCanonico.alertaHgtHoraria.includes("HGT horária por 4-6h"), "Tripé deve conter alerta de HGT horária");
+    assert.ok(kTrip.tripeCanonico.eliminacaoSorcalFurosemida.includes("Sorcal/Furosemida"), "Tripé deve citar eliminação por Sorcal e Furosemida");
+    assert.ok(kTrip.prescricaoPEP.includes("Suspensão imediata de fármacos hipercalemiantes"), "Prescrição PEP deve suspender hipercalemiantes");
+
+    // Teste 10: Robustez de Entrada com Objeto e Vírgula Decimal
+    var kObj = NefrologiaDheService.avaliarHipercalemia({ kAtual: '7,2', ecgAlterado: 'sim' });
+    assert.strictEqual(kObj.potassio, 7.2, "Deve converter string com vírgula para número 7.2");
+    assert.strictEqual(kObj.gravidade, "Grave / Urgência Médica", "Deve estratificar gravidade por objeto");
+    assert.ok(kObj.tripeCanonico.estabilizacaoMembrana.includes("Gluconato"), "Deve incluir estabilização de membrana via objeto");
+
     console.log("=== TODOS OS TESTES PASSARAM ===");
 }
 
