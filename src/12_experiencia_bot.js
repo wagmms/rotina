@@ -2683,8 +2683,8 @@ function enviarTelaGOMgso4(chat, messageId) {
   safePutCache(cache, ckGuia, guiaTexto, 21600);
 
   var botoes = botoesBot([
-    [['⚡ Esquema Zuspan (4g + 1-2g/h)', 'ux:go:mgso4:zuspan'], ['💉 Crise HAS (PA 170x110)', 'ux:go:mgso4:crise']],
-    [['⚠️ Intoxicação por Magnésio', 'ux:go:mgso4:intox']],
+    [['⚡ Esquema Zuspan (4g + 1g/h)', 'ux:go:mgso4:zuspan'], ['💉 Esquema Pritchard (IV+IM)', 'ux:go:mgso4:pritchard']],
+    [['🚨 Crise HAS (PA 170x110)', 'ux:go:mgso4:crise'], ['⚠️ Intoxicação por MgSO4', 'ux:go:mgso4:intox']],
     [['📋 Copiar Protocolo MgSO4', 'ux:copiar:' + ckGuia]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
@@ -2699,13 +2699,27 @@ function tratarCallbackGOMgso4(chat, v, messageId) {
       var atq = (z.prescricao && z.prescricao.ataque) ? z.prescricao.ataque.join("\n") : (z.doseAtaque ? z.doseAtaque.dose : "MgSO4 50% 8 mL + AD 12 mL IV em 20 min");
       var man = (z.prescricao && z.prescricao.manutencao) ? z.prescricao.manutencao.join("\n") : (z.doseManutencao ? z.doseManutencao.dose : "1 a 2 g/h em BIC contínua");
       var vig = (z.rotinaVigilancia || z.vigilanciaClinica || []).map(function(vg){ return "• " + vg; }).join("\n");
-      textoRes = "ESQUEMA: " + z.esquema + " (Sulfato de Magnésio)\n" +
+      textoRes = "ESQUEMA: " + z.esquema + " (Sulfato de Magnésio — Padrão Ouro IV em BIC)\n" +
         "• " + atq + "\n" +
         "• " + man + "\n" +
         "\nCRITÉRIOS DE SEGURANÇA E VIGILÂNCIA:\n" + vig +
-        "\n\nANTÍDOTO DE EMERGÊNCIA:\n• Gluconato de Cálcio 10% 10 mL IV em 3 a 5 minutos se toxicidade.";
+        "\n\nANTÍDOTO DE EMERGÊNCIA BEIRA-LEITO:\n• Gluconato de Cálcio 10% 10 mL IV em 3 a 5 minutos se sinais de toxicidade (arreflexia patelar ou FR < 16 irpm).";
     } else {
       textoRes = "PRESCRIÇÃO SULFATO DE MAGNÉSIO (ZUSPAN):\n• Ataque: MgSO4 50% 8 mL + AD 12 mL IV em 20 min.\n• Manutenção: MgSO4 50% 10 mL + SG 5% 490 mL a 100 mL/h (1 g/h) em BIC.\n• Vigilância: FR ≥ 16, Reflexo patelar +, Diurese ≥ 25 mL/h.\n• Antídoto: Gluconato de cálcio 10% 10 mL IV em 3-5 min.";
+    }
+  } else if (v === 'pritchard') {
+    if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.prescreverSulfatoMagnesio === "function") {
+      var p = CentroObstetricoService.prescreverSulfatoMagnesio({ esquema: 'Pritchard', frequenciaRespiratoria: 18, diureseMlHora: 35, reflexoPatelar: true });
+      var atqP = (p.prescricao && p.prescricao.ataque) ? p.prescricao.ataque.join("\n• ") : "Ataque: 4g IV (8 mL MgSO4 50% + 12 mL AD) em 20 min + 10g IM (5g em cada glúteo com 1 mL lidocaína 2%)";
+      var manP = (p.prescricao && p.prescricao.manutencao) ? p.prescricao.manutencao.join("\n• ") : "Manutenção: 5g IM 4/4h no glúteo contralateral alternado";
+      var vigP = (p.rotinaVigilancia || p.vigilanciaClinica || []).map(function(vg){ return "• " + vg; }).join("\n");
+      textoRes = "ESQUEMA: " + p.esquema + " (Sulfato de Magnésio — Alternativa sem Bomba / Transporte)\n" +
+        "• " + atqP + "\n" +
+        "• " + manP + "\n" +
+        "\nCRITÉRIOS DE SEGURANÇA E VIGILÂNCIA:\n" + vigP +
+        "\n\nANTÍDOTO DE EMERGÊNCIA BEIRA-LEITO:\n• Gluconato de Cálcio 10% 10 mL IV em 3 a 5 minutos se sinais de toxicidade (arreflexia patelar ou FR < 16 irpm).";
+    } else {
+      textoRes = "PRESCRIÇÃO SULFATO DE MAGNÉSIO (PRITCHARD):\n• Ataque: 4g IV (MgSO4 50% 8 mL + AD 12 mL) em 20 min + 10g IM (5g em cada glúteo com 1 mL lidocaína 2%).\n• Manutenção: 5g IM profundo 4/4h em glúteo contralateral alternado.\n• Vigilância: FR ≥ 16, Reflexo patelar +, Diurese ≥ 25 mL/h.\n• Antídoto: Gluconato de Cálcio 10% 10 mL IV em 3-5 min.";
     }
   } else if (v === 'crise') {
     if (typeof CentroObstetricoService !== "undefined" && typeof CentroObstetricoService.manejarCriseHipertensiva === "function") {

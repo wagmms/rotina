@@ -159,8 +159,35 @@ var PcrGestanteService = (function() {
         condicao: "Pré-Eclâmpsia com Sinais de Gravidade / Eclâmpsia",
         alertaEtiologico: "Eclâmpsia e AVC hemorrágico são etiologias reversíveis frequentes de PCR materna.",
         protocoloPosRce: "Após Retorno da Circulação Espontânea (RCE): Iniciar sulfato de magnésio (Zuspan: 4g IV em 20 min + 1g/h em BIC ou Pritchard: 4g IV + 10g IM) para prevenção de convulsões.",
-        checklistVigilancia: "Tríade de segurança horária: Reflexo patelar presente, FR >= 16 irpm e Diurese >= 25 mL/h. Antídoto pronto beira-leito: Gluconato de Cálcio 10% 10 mL IV.",
-        criseHipertensivaPosRce: "Se PAS >= 160 ou PAD >= 110 mmHg: Hidralazina 5 mg IV lento q20min (máx 20 mg). Alvo: PAD 90-100 mmHg."
+        esquemaZuspan: {
+          nome: "Esquema de Zuspan (Padrão Ouro IV em BIC)",
+          ataque: "4g IV MgSO4 50% (8 mL + 12 mL AD ou SG 5%) em 20 min",
+          manutencao: "1g/h em BIC contínua (MgSO4 50% 20 mL [10g] + SF 0,9% 480 mL = 500 mL a 50 mL/h)"
+        },
+        esquemaPritchard: {
+          nome: "Esquema de Pritchard (Alternativa sem Bomba / Transporte)",
+          ataque: "4g IV em 20 min (8 mL MgSO4 50% + 12 mL AD) + 10g IM concomitante (5g/10 mL em cada glúteo com 1 mL lidocaína 2%)",
+          manutencao: "5g IM (10 mL MgSO4 50% + 1 mL lidocaína 2%) a cada 4 horas no glúteo contralateral alternado"
+        },
+        checklistVigilancia: {
+          patelar: "Reflexo patelar presente a cada 1h (suspender se ausente)",
+          frequenciaRespiratoria: "FR >= 16 irpm (suspender se < 16 irpm; parada iminente se < 12)",
+          diurese: "Diurese >= 25 mL/h em sonda vesical de demora fechada",
+          antidoto: "Gluconato de Cálcio 10% 10 mL IV em bolus lento de 3 a 5 min beira-leito"
+        },
+        antidoto: {
+          droga: "Gluconato de Cálcio 10%",
+          dose: "10 mL (= 1g) IV em bolus lento de 3 a 5 minutos",
+          indicacao: "Sinais de intoxicação por MgSO4 (arreflexia patelar, FR < 16 irpm ou parada respiratória)"
+        },
+        criseHipertensivaPosRce: "Se PAS >= 160 ou PAD >= 110 mmHg: Hidralazina 5 mg IV lento q20min (máx 20 mg). Alvo: PAD 90-100 mmHg.",
+        prescricaoPep: [
+          "PRESCRIÇÃO PÓS-RCE (PEP) — PREVENÇÃO DE CONVULSÕES / ECLÂMPSIA:",
+          "1. MgSO4 50% 8 mL (4g) + SG 5% 12 mL = 20 mL IV em 20 min (Ataque)",
+          "2. MgSO4 50% 20 mL (10g) + SF 0,9% 480 mL IV em BIC a 50 mL/h (Manutenção 1g/h)",
+          "3. Checagem horária de SVD (diurese >= 25 mL/h), FR >= 16 irpm e reflexo patelar presente",
+          "4. Gluconato de Cálcio 10% 10 mL IV lento se toxicidade (SOS)"
+        ].join("\n")
       };
     }
 

@@ -166,6 +166,38 @@ assert.ok(crisePa.medicacoes[1].farmaco.includes('Nifedipino VO'));
 assert.ok(crisePa.contraindicacoesAbsolutas[0].includes('IECAs'));
 console.log('  ✓ Caso 10: Protocolo de crise hipertensiva com Hidralazina IV e contraindicação formal de IECA aprovados.');
 
+// Caso 10b: Manejo Integral de Pré-Eclâmpsia com Sinais de Gravidade e Esquemas Zuspan/Pritchard
+const preEclampsiaGrave = CentroObstetricoService.manejarPreEclampsiaGrave({
+  pas: 165,
+  pad: 112,
+  esquema: 'Zuspan',
+  igSemanas: 33,
+  sintomasGravidade: ['cefaleia frontal intensa', 'escotomas cintilantes']
+});
+assert.strictEqual(preEclampsiaGrave.sucesso, true);
+assert.strictEqual(preEclampsiaGrave.ehIminencia, true);
+assert.strictEqual(preEclampsiaGrave.classificacao, 'IMINÊNCIA DE ECLÂMPSIA (SINAIS PREMONITÓRIOS NEUROLÓGICOS/VISUAIS)');
+
+// Validação dos dois esquemas disponíveis e canônicos
+assert.ok(preEclampsiaGrave.esquemaZuspan.ataque[0].includes('4g'));
+assert.ok(preEclampsiaGrave.esquemaZuspan.manutencao[0].includes('1g de MgSO4 por hora'));
+assert.ok(preEclampsiaGrave.esquemaPritchard.ataque[0].includes('4g'));
+assert.ok(preEclampsiaGrave.esquemaPritchard.ataque[1].includes('10g'));
+assert.ok(preEclampsiaGrave.esquemaPritchard.manutencao[0].includes('5g'));
+
+// Validação do Checklist de Vigilância (Tríade de Segurança) e Antídoto
+assert.ok(preEclampsiaGrave.checklistVigilancia.patelar.includes('Reflexo patelar presente'));
+assert.ok(preEclampsiaGrave.checklistVigilancia.frequenciaRespiratoria.includes('FR >= 16 irpm'));
+assert.ok(preEclampsiaGrave.checklistVigilancia.diurese.includes('>= 25 mL/h'));
+assert.strictEqual(preEclampsiaGrave.antidoto.droga, 'Gluconato de Cálcio 10%');
+assert.ok(preEclampsiaGrave.antidoto.dose.includes('10 mL'));
+
+// Validação da Prescrição PEP Beira-Leito
+assert.ok(preEclampsiaGrave.prescricaoPep.includes('ESQUEMA DE ZUSPAN'));
+assert.ok(preEclampsiaGrave.prescricaoPep.includes('ESQUEMA DE PRITCHARD'));
+assert.ok(preEclampsiaGrave.prescricaoPep.includes('Gluconato de Cálcio 10% 1 ampola (10 mL = 1g)'));
+console.log('  ✓ Caso 10b: Detalhamento de Pré-Eclâmpsia Grave (Zuspan, Pritchard, Vigilância e Gluconato de Cálcio) aprovado.');
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 3. PROTOCOLO DE HEMORRAGIA PÓS-PARTO (HPP - 4 Ts)
 // ─────────────────────────────────────────────────────────────────────────────

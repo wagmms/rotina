@@ -90,6 +90,28 @@ function runTests() {
   assert.strictEqual(letras, "ABCDEFGH");
 
   // ---------------------------------------------------------------------------
+  // Teste 6b: Conduta de Pré-Eclâmpsia / Eclâmpsia pós-RCE (Zuspan, Pritchard e Antídoto)
+  // ---------------------------------------------------------------------------
+  const casoPreEclampsia = PcrGestanteService.avaliarPcrGestante({
+    idadeGestacionalSemanas: 34,
+    tempoPcrMinutos: 2,
+    ritmoPcr: "Assistolia",
+    suspeitaPreEclampsia: true
+  });
+  assert.ok(casoPreEclampsia.condutaPreEclampsia);
+  assert.strictEqual(casoPreEclampsia.condutaPreEclampsia.condicao, "Pré-Eclâmpsia com Sinais de Gravidade / Eclâmpsia");
+  assert.ok(casoPreEclampsia.condutaPreEclampsia.esquemaZuspan.ataque.includes("4g IV"));
+  assert.ok(casoPreEclampsia.condutaPreEclampsia.esquemaZuspan.manutencao.includes("1g/h em BIC"));
+  assert.ok(casoPreEclampsia.condutaPreEclampsia.esquemaPritchard.ataque.includes("10g IM"));
+  assert.ok(casoPreEclampsia.condutaPreEclampsia.esquemaPritchard.manutencao.includes("5g IM"));
+  assert.ok(casoPreEclampsia.condutaPreEclampsia.checklistVigilancia.patelar.includes("Reflexo patelar presente"));
+  assert.ok(casoPreEclampsia.condutaPreEclampsia.checklistVigilancia.frequenciaRespiratoria.includes("FR >= 16 irpm"));
+  assert.ok(casoPreEclampsia.condutaPreEclampsia.checklistVigilancia.diurese.includes(">= 25 mL/h"));
+  assert.strictEqual(casoPreEclampsia.condutaPreEclampsia.antidoto.droga, "Gluconato de Cálcio 10%");
+  assert.ok(casoPreEclampsia.condutaPreEclampsia.antidoto.dose.includes("10 mL"));
+  assert.ok(casoPreEclampsia.condutaPreEclampsia.prescricaoPep.includes("PRESCRIÇÃO PÓS-RCE"));
+
+  // ---------------------------------------------------------------------------
   // Teste 7: Integração com Runtime / Cockpit RPC
   // ---------------------------------------------------------------------------
   const runtime = require('../server/runtime');
