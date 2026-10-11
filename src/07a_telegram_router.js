@@ -613,6 +613,368 @@ function tratarComandoUltimasMudancas(chatId, modoDeploy) {
   return enviarMensagemParaChat(chatId, msgFinal);
 }
 
+/**
+ * Ponto de entrada modular alternativo do roteador do Telegram.
+ */
+function rotearMensagemTelegram(message) {
+  return processarMensagemTexto(message);
+}
+
+/**
+ * Ponto de entrada para despacho direto de comandos de texto.
+ */
+function rotearComandoTexto(comando, texto, chatId, message) {
+  var msgObj = message || { chat: { id: chatId }, text: texto };
+  return processarMensagemTexto(msgObj);
+}
+
+/**
+ * Despacho O(1) de status do sistema e fontes de dados.
+ */
+function tratarComandoStatus(chatId) {
+  var stRemume = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_REMUME"), false);
+  var stInteracoes = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_INTERACOES"), true);
+  var msgStatus = "⚡ *STATUS DO SISTEMA*\n\n" +
+    "• *Modo:* Servidor Oficial Node.js 20+ / Docker (Render 24/7)\n" +
+    "• *REMUME Ribeirão Preto:* " + stRemume + "\n" +
+    "• *Base de Interações:* " + stInteracoes + "\n" +
+    "• *Notion & Calendar:* ✅ Operacionais";
+  return enviarMensagemParaChat(chatId, msgStatus);
+}
+
+/**
+ * Despacho do executor local de tarefas (PC).
+ */
+function tratarComandoPc(chatId, texto) {
+  var partesPc = texto.split(/\s+/);
+  var tarefaPc = partesPc[1] ? partesPc[1].toLowerCase() : "";
+  var argsPc = partesPc.slice(2);
+
+  if (!tarefaPc || tarefaPc === "ajuda" || tarefaPc === "help") {
+    var msgAjudaPc = "🖥️ *PONTE DE EXECUÇÃO LOCAL (PC)*\n\n" +
+      "Envie uma ordem para o seu computador executar em segundo plano:\n\n" +
+      "• `/pc sync` — Sincronização de agenda e estudos\n" +
+      "• `/pc audit` — Auditoria de sobreposições no calendário\n" +
+      "• `/pc status` — Verifica se o daemon do PC está ativo\n\n" +
+      "💡 *Funcionamento:* A ordem é enfileirada na nuvem. Se o seu PC estiver ligado, ele executa e devolve o relatório aqui. Se estiver desligado, roda assim que o PC for ligado!";
+    return enviarMensagemParaChat(chatId, msgAjudaPc);
+  }
+
+  if (typeof enfileirarTarefaPc === "function") {
+    var taskId = enfileirarTarefaPc(chatId, tarefaPc, argsPc);
+    var msgOk = "⚡ *Ordem enfileirada na nuvem com sucesso!*\n\n" +
+      "• *Tarefa:* `" + tarefaPc + "`\n" +
+      "• *ID:* `" + taskId + "`\n\n" +
+      "🕒 O runner local processará silenciosamente e enviará o relatório completo aqui assim que concluído.";
+    return enviarMensagemParaChat(chatId, msgOk);
+  } else {
+    return enviarMensagemParaChat(chatId, "⚠️ Fila de tarefas locais temporariamente indisponível.");
+  }
+}
+
+/**
+ * Tabela de despacho O(1) para comandos de sistema e navegação básica.
+ */
+function rotearComandoSistema(comando, texto, chatId) {
+  var cmdHandlers = {
+    "/manual": function() {
+      var filtroManual = texto.replace(/^\/manual\s*/i, "").trim();
+      return enviarManualCompletoComandos(chatId, filtroManual);
+    },
+    "/start": function() {
+      if (typeof enviarHubPrincipal === "function") {
+        enviarMensagemComTecladoFixo(chatId, "👋 *Olá, Dr. Wagner!* Use os botões ou envie seu caso por texto/áudio.");
+        return enviarHubPrincipal(chatId);
+      }
+      return enviarMensagemComTecladoFixo(chatId, "Use /menu para a Central de Comandos.");
+    },
+    "/ajuda": function() {
+      var filtroAjuda = texto.replace(/^\/(ajuda|help)\s*/i, "").trim();
+      return enviarManualCompletoComandos(chatId, filtroAjuda);
+    },
+    "/help": function() {
+      var filtroHelp = texto.replace(/^\/(ajuda|help)\s*/i, "").trim();
+      return enviarManualCompletoComandos(chatId, filtroHelp);
+    },
+    "/status": function() {
+      return tratarComandoStatus(chatId);
+    },
+    "/fontes": function() {
+      return tratarComandoStatus(chatId);
+    },
+    "/mudancas": function() {
+      return tratarComandoUltimasMudancas(chatId, false);
+    },
+    "/mudanças": function() {
+      return tratarComandoUltimasMudancas(chatId, false);
+    },
+    "/ultimas_mudancas": function() {
+      return tratarComandoUltimasMudancas(chatId, false);
+    },
+    "/ultimasmudancas": function() {
+      return tratarComandoUltimasMudancas(chatId, false);
+    },
+    "/deploy": function() {
+      return tratarComandoUltimasMudancas(chatId, true);
+    },
+    "/enfermaria": function() {
+      if (typeof mostrarPainelLeitos === "function") return mostrarPainelLeitos(chatId, 0);
+      return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+    },
+    "/leitos": function() {
+      if (typeof mostrarPainelLeitos === "function") return mostrarPainelLeitos(chatId, 0);
+      return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+    },
+    "/censo": function() {
+      if (typeof mostrarPainelLeitos === "function") return mostrarPainelLeitos(chatId, 0);
+      return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+    },
+    "/pc": function() {
+      return tratarComandoPc(chatId, texto);
+    }
+  };
+
+  if (cmdHandlers[comando]) {
+    return { executado: true, resultado: cmdHandlers[comando]() };
+  }
+  return { executado: false };
+}
+
+/**
+ * Tabela de despacho para atalhos do teclado fixo persistente (1-toque).
+ */
+function rotearAtalhoTecladoFixo(texto, comando, chatId) {
+  // 1. Cockpit Móvel
+  if (texto === "📱 Cockpit" || texto === "📱 Cockpit Móvel" || comando === "/cockpit" || comando === "/app") {
+    var urlPainel = obterUrlCockpit(chatId);
+    var msgCockpit = "📱 *COCKPIT MÓVEL (TELEGRAM MINI APP)*\n\n" +
+      "Seu assistente unificado com 6 abas de alta performance:\n\n" +
+      "• 🧬 *Corpo:* Composição, peso e protocolo\n" +
+      "• 🏥 *Leitos:* Painel da enfermaria e SBAR\n" +
+      "• 💊 *REMUME:* Busca rápida de doses\n" +
+      "• 🧮 *Cálculos:* DVA, SRI, CrCl e Gasometria\n" +
+      "• 📅 *Rotina:* Turma J e MedQuest\n" +
+      "• ✨ *SOAP:* Preceptor socrático e PEP\n\n" +
+      "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
+    var kbCockpit = {
+      inline_keyboard: [
+        [
+          { text: "🚀 Abrir Cockpit em Tela Cheia", web_app: { url: urlPainel } }
+        ]
+      ]
+    };
+    return { executado: true, resultado: enviarMensagemComBotoes(chatId, msgCockpit, kbCockpit) };
+  }
+
+  // 2. Sala Vermelha
+  if (texto === "🚨 Sala Vermelha" || texto === "🚨 Emergência" || comando === "/sala" || comando === "/emergencia" || comando === "/salavermelha" || comando === "/urgencia") {
+    if (typeof enviarMenuSalaVermelha === "function") {
+      return { executado: true, resultado: enviarMenuSalaVermelha(chatId) };
+    }
+    var txtSR = "🚨 *SALA VERMELHA & CTI (EMERGÊNCIAS CLÍNICAS)*\n\n" +
+      "Escolha uma ação imediata ou digite o comando:\n\n" +
+      "💉 *Drogas Vasoativas (DVA):*\n" +
+      "• `/dva nora 70` (Noradrenalina em mL/h para 70kg)\n" +
+      "• `/dva nora 80 concentrada` (Solução 2x)\n" +
+      "• `/dva dobuta 70` (Dobutamina 1mg/mL)\n" +
+      "• `/dva vaso` (Vasopressina dose fixa 12 mL/h)\n" +
+      "• `/dva nipride 75` ou `/dva tridil`\n\n" +
+      "🫁 *Sequência Rápida de Intubação (SRI / IOT):*\n" +
+      "• `/sri 70` (Doses e mL exatos de Etomidato, Quetamina, Succinil, Rocurônio e Fentanil)\n" +
+      "• `/sri 70 choque` ou `/sri 70 asma`\n\n" +
+      "⚡ *Condutas de Ataque:* `/conduta <intercorrência>` (ex: `/conduta EAP hipertensivo`)";
+    return { executado: true, resultado: enviarMensagemParaChat(chatId, txtSR) };
+  }
+
+  // 3. Enfermaria
+  if (texto === "🛏️ Enfermaria" || texto === "🏥 Enfermaria") {
+    if (typeof enviarMenuEnfermaria === "function") {
+      return { executado: true, resultado: enviarMenuEnfermaria(chatId) };
+    }
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria()) };
+  }
+
+  // 4. Ambulatório
+  if (texto === "🩺 Ambulatório" || texto === "🩺 SOAP Ambulatorial") {
+    if (typeof enviarMenuAmbulatorio === "function") {
+      return { executado: true, resultado: enviarMenuAmbulatorio(chatId) };
+    }
+    return { executado: true, resultado: processarMensagemTexto({ chat: { id: chatId }, text: "/ambulatorio" }) };
+  }
+
+  // 5. Prescrever
+  if (texto === "💊 Prescrever") {
+    if (typeof iniciarModoBot === "function") {
+      return { executado: true, resultado: iniciarModoBot(chatId, "rx", false) };
+    }
+    return { executado: true, resultado: null };
+  }
+
+  // 6. Consultas de Bolso / REMUME Rápida
+  if (texto === "💊 Consultas de Bolso" || texto === "💊 REMUME Rápida") {
+    if (typeof enviarMenuConsultasBolso === "function") {
+      return { executado: true, resultado: enviarMenuConsultasBolso(chatId) };
+    }
+    return { executado: true, resultado: enviarMensagemParaChat(chatId, "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME)*\n\nEnvie o pedido ou diagnóstico:\n💡 *Ex:* `/rx amigdalite bacteriana criança 18kg, alérgica a penicilina` ou apenas descreva o caso.") };
+  }
+
+  // 7. Agenda
+  if (texto === "📅 Agenda") {
+    return { executado: true, resultado: consultarEventosAgenda("hoje", chatId) };
+  }
+
+  // 8. Minhas Tarefas
+  if (texto === "📋 Minhas Tarefas") {
+    return { executado: true, resultado: listarTarefasHojeNotion(chatId) };
+  }
+
+  // 9. Gasometria
+  if (texto === "🩸 Gaso") {
+    return { executado: true, resultado: enviarMensagemParaChat(chatId, "🩸 *GASOMETRIA ARTERIAL*\n\nEnvie os parâmetros:\n💡 *Ex:* `/gaso pH 7.24, pCO2 26, HCO3 11, Na 140, Cl 104, Alb 3.2`") };
+  }
+
+  // 10. Fim de Plantão
+  if (texto === "🏁 Fim de Plantão") {
+    return { executado: true, resultado: gerarResumoFimPlantao(chatId) };
+  }
+
+  // 11. Preceptor Voz
+  if (texto === "🎧 Preceptor Voz") {
+    if (typeof iniciarModoBot === "function") return { executado: true, resultado: iniciarModoBot(chatId, "voz", false) };
+    return { executado: true, resultado: enviarMensagemParaChat(chatId, "🎧 Grave ou envie um caso clínico para o Preceptor Socrático.") };
+  }
+
+  // 12. Dúvida MedQuest
+  if (texto === "🧠 Dúvida MedQuest") {
+    return { executado: true, resultado: enviarMensagemParaChat(chatId, "🧠 *DÚVIDA MÉDICA (MEDQUEST)*\n\nDigite sua dúvida para arquivar no bloco de estudo noturno:\n💡 *Ex:* `/duvida Indicações de drenagem torácica no empiema`") };
+  }
+
+  // 13. Central / Menu / Hub
+  if (texto === "⚙️ Central / Menu" || texto === "⚙️ Menu / Ajuda" || comando === "/teclado" || comando === "/menu" || comando === "/hub") {
+    if (typeof registrarComandosNativosTelegram === "function") {
+      try { registrarComandosNativosTelegram(); } catch (eCmd) {}
+    }
+    if (typeof enviarHubPrincipal === "function") {
+      return { executado: true, resultado: enviarHubPrincipal(chatId) };
+    }
+    var msgTeclado = "⌨️ *Teclado de Acesso Rápido Ativado!*\n\nUse os botões na base do chat para navegação imediata de 1 toque no hospital e na rotina.";
+    return { executado: true, resultado: enviarMensagemComTecladoFixo(chatId, msgTeclado) };
+  }
+
+  return { executado: false };
+}
+
+/**
+ * Protocolo de Choque Séptico Refratário & CIRCI.
+ */
+function tratarComandoChoqueSeptico(chatId, texto) {
+  var dadosChoque = texto.replace(/^\/\w+\s*/, "").trim();
+  if (typeof EmergenciaChoqueSepticoService === "undefined") {
+    return enviarMensagemParaChat(chatId, "⚠️ Módulo EmergenciaChoqueSepticoService indisponível temporariamente.");
+  }
+  var nums = dadosChoque.match(/\d+(?:[.,]\d+)?/g);
+  if (!nums || nums.length < 2) {
+    var msgAjudaSeptico = "🩸 *EMERGÊNCIA — CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" +
+      "Uso: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`\n\n" +
+      "💡 *Exemplo:* `/choqueseptico 70 0.3` (Detecta refratariedade >= 0.25 mcg/kg/min, prescreve Hidrocortisona e Vasopressina).\n" +
+      "Nota: Azul de Metileno expurgado (conduta terciária/UTI).";
+    var kbAjudaSeptico = (typeof botoesBot === "function") ? botoesBot([
+      [['🩸 Choque Séptico (70kg 0.3 mcg/kg/min)', 'ux:choque:septico:70:0.3']],
+      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    ]) : null;
+    if (kbAjudaSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+      return enviarMensagemComTecladoParaChat(chatId, msgAjudaSeptico, kbAjudaSeptico);
+    }
+    return enviarMensagemParaChat(chatId, msgAjudaSeptico);
+  }
+  var val1 = parseFloat(nums[0].replace(",", "."));
+  var val2 = parseFloat(nums[1].replace(",", "."));
+  var pesoChoque = (val1 >= 20 && val2 < 20) ? val1 : ((val2 >= 20 && val1 < 20) ? val2 : val1);
+  var doseNora = (pesoChoque === val1) ? val2 : val1;
+  pesoChoque = sanitizarEValidarPesoKg(pesoChoque);
+
+  if (pesoChoque === null || isNaN(doseNora)) {
+    var msgInvSeptico = "⚠️ Parâmetros inválidos. Use: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`";
+    var kbInvSeptico = (typeof botoesBot === "function") ? botoesBot([
+      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    ]) : null;
+    if (kbInvSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+      return enviarMensagemComTecladoParaChat(chatId, msgInvSeptico, kbInvSeptico);
+    }
+    return enviarMensagemParaChat(chatId, msgInvSeptico);
+  }
+  var resChoque = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoChoque, doseNora);
+  if (resChoque.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resChoque.erro);
+
+  var txtOutSeptico = "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + resChoque.textoSOAP;
+  var cacheSeptico = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+  var ckSeptico = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cacheSeptico, ckSeptico, txtOutSeptico, 21600);
+  var kbResSeptico = (typeof botoesBot === "function") ? botoesBot([
+    [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSeptico]],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+  ]) : null;
+  if (kbResSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, txtOutSeptico, kbResSeptico);
+  }
+  return enviarMensagemParaChat(chatId, txtOutSeptico);
+}
+
+/**
+ * Protocolo de Sequência Rápida de Intubação (SRI / IOT).
+ */
+function tratarComandoSri(chatId, texto) {
+  var dadosSri = texto.replace(/^\/(sri|iot)\s*/i, "").trim();
+  if (!dadosSri) {
+    if (typeof enviarMenuSri === "function") {
+      return enviarMenuSri(chatId);
+    }
+    return enviarMensagemParaChat(chatId, "🫁 *SEQUÊNCIA RÁPIDA DE INTUBAÇÃO (SRI / IOT)*\n\nUso: `/sri <pesoKg> [contexto]`\n💡 *Exemplos:*\n• `/sri 70`\n• `/sri 80 choque`\n• `/sri 65 asma`\n• `/sri 75 tce`");
+  }
+  var partesSri = dadosSri.split(/\s+/);
+  var pesoSri = sanitizarEValidarPesoKg(partesSri[0]);
+  if (pesoSri === null) {
+    return enviarMensagemParaChat(chatId, "⚠️ *Peso obrigatório e inválido para SRI/IOT:*\nInforme um peso numérico positivo em kg.\n\n💡 *Exemplo:* `/sri 70` ou `/sri 72,5 choque`");
+  }
+  var contextoSri = partesSri.slice(1).join(" ") || "padrao";
+  try {
+    var resSri = CalculadorasClinicas.sequenciaRapidaIntubacao(pesoSri, contextoSri);
+    if (resSri && resSri.erro) {
+      return enviarMensagemParaChat(chatId, "⚠️ " + resSri.erro);
+    }
+    if (resSri && resSri.textoFormatado) {
+      var cacheSri = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+      var ckSri = Utilities.getUuid().replace(/-/g, '');
+      safePutCache(cacheSri, ckSri, resSri.textoFormatado, 21600);
+      var tecladoSri = resSri.botoes ? (resSri.botoes.inline_keyboard ? resSri.botoes : { inline_keyboard: resSri.botoes }) : null;
+      if (!tecladoSri && typeof botoesBot === "function") {
+        tecladoSri = botoesBot([
+          [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSri]],
+          [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+        ]);
+      } else if (tecladoSri && tecladoSri.inline_keyboard) {
+        var jaTemCopiarSri = tecladoSri.inline_keyboard.some(function(row) {
+          return row.some(function(btn) { return btn.text && btn.text.indexOf("Copiar") !== -1; });
+        });
+        if (!jaTemCopiarSri) {
+          tecladoSri.inline_keyboard.unshift([
+            { text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckSri }
+          ]);
+        }
+      }
+      if (tecladoSri) {
+        return enviarMensagemComTecladoParaChat(chatId, resSri.textoFormatado, tecladoSri);
+      } else {
+        return enviarMensagemParaChat(chatId, resSri.textoFormatado);
+      }
+    }
+    return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular SRI.");
+  } catch (eSri) {
+    Logger.log("Erro /sri: " + eSri.message);
+    return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular SRI. Tente novamente.");
+  }
+}
+
 function processarMensagemTexto(message) {
   if (typeof tratarEntradaUX!=="undefined" && tratarEntradaUX(message)) return;
   var texto = message.text ? message.text.trim() : "";
@@ -699,148 +1061,11 @@ function processarMensagemTexto(message) {
       return enviarMensagemComTecladoFixo(chatId, "🧹 *Memória limpa.* Pronto para o próximo paciente!");
     }
 
-  if (comando === "/manual") {
-    var filtroManual = texto.replace(/^\/manual\s*/i, "").trim();
-    return enviarManualCompletoComandos(chatId, filtroManual);
-  }
-
-  // 1. ATALHOS DO TECLADO FIXO PERSISTENTE (1-TOQUE NO SMARTPHONE)
-  if (texto === "📱 Cockpit" || texto === "📱 Cockpit Móvel" || comando === "/cockpit" || comando === "/app") {
-    var urlPainel = obterUrlCockpit(chatId);
-    var msgCockpit = "📱 *COCKPIT MÓVEL (TELEGRAM MINI APP)*\n\n" +
-      "Seu assistente unificado com 6 abas de alta performance:\n\n" +
-      "• 🧬 *Corpo:* Composição, peso e protocolo\n" +
-      "• 🏥 *Leitos:* Painel da enfermaria e SBAR\n" +
-      "• 💊 *REMUME:* Busca rápida de doses\n" +
-      "• 🧮 *Cálculos:* DVA, SRI, CrCl e Gasometria\n" +
-      "• 📅 *Rotina:* Turma J e MedQuest\n" +
-      "• ✨ *SOAP:* Preceptor socrático e PEP\n\n" +
-      "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
-    var kbCockpit = {
-      inline_keyboard: [
-        [
-          { text: "🚀 Abrir Cockpit em Tela Cheia", web_app: { url: urlPainel } }
-        ]
-      ]
-    };
-    return enviarMensagemComBotoes(chatId, msgCockpit, kbCockpit);
-  }
-
-  if (comando === "/pc") {
-    var partesPc = texto.split(/\s+/);
-    var tarefaPc = partesPc[1] ? partesPc[1].toLowerCase() : "";
-    var argsPc = partesPc.slice(2);
-
-    if (!tarefaPc || tarefaPc === "ajuda" || tarefaPc === "help") {
-      var msgAjudaPc = "🖥️ *PONTE DE EXECUÇÃO LOCAL (PC)*\n\n" +
-        "Envie uma ordem para o seu computador executar em segundo plano:\n\n" +
-        "• `/pc sync` — Sincronização de agenda e estudos\n" +
-        "• `/pc audit` — Auditoria de sobreposições no calendário\n" +
-        "• `/pc status` — Verifica se o daemon do PC está ativo\n\n" +
-        "💡 *Funcionamento:* A ordem é enfileirada na nuvem. Se o seu PC estiver ligado, ele executa e devolve o relatório aqui. Se estiver desligado, roda assim que o PC for ligado!";
-      return enviarMensagemParaChat(chatId, msgAjudaPc);
+    // 1. Despacho O(1) de Atalhos do Teclado Fixo Persistente
+    var resAtalho = rotearAtalhoTecladoFixo(texto, comando, chatId);
+    if (resAtalho.executado) {
+      return resAtalho.resultado;
     }
-
-    if (typeof enfileirarTarefaPc === "function") {
-      var taskId = enfileirarTarefaPc(chatId, tarefaPc, argsPc);
-      var msgOk = "⚡ *Ordem enfileirada na nuvem com sucesso!*\n\n" +
-        "• *Tarefa:* `" + tarefaPc + "`\n" +
-        "• *ID:* `" + taskId + "`\n\n" +
-        "🕒 O runner local processará silenciosamente e enviará o relatório completo aqui assim que concluído.";
-      return enviarMensagemParaChat(chatId, msgOk);
-    } else {
-      return enviarMensagemParaChat(chatId, "⚠️ Fila de tarefas locais temporariamente indisponível.");
-    }
-  }
-
-  if (texto === "🚨 Sala Vermelha" || texto === "🚨 Emergência" || comando === "/sala" || comando === "/emergencia" || comando === "/salavermelha" || comando === "/urgencia") {
-    if (typeof enviarMenuSalaVermelha === "function") {
-      return enviarMenuSalaVermelha(chatId);
-    }
-    var txtSR = "🚨 *SALA VERMELHA & CTI (EMERGÊNCIAS CLÍNICAS)*\n\n" +
-      "Escolha uma ação imediata ou digite o comando:\n\n" +
-      "💉 *Drogas Vasoativas (DVA):*\n" +
-      "• `/dva nora 70` (Noradrenalina em mL/h para 70kg)\n" +
-      "• `/dva nora 80 concentrada` (Solução 2x)\n" +
-      "• `/dva dobuta 70` (Dobutamina 1mg/mL)\n" +
-      "• `/dva vaso` (Vasopressina dose fixa 12 mL/h)\n" +
-      "• `/dva nipride 75` ou `/dva tridil`\n\n" +
-      "🫁 *Sequência Rápida de Intubação (SRI / IOT):*\n" +
-      "• `/sri 70` (Doses e mL exatos de Etomidato, Quetamina, Succinil, Rocurônio e Fentanil)\n" +
-      "• `/sri 70 choque` ou `/sri 70 asma`\n\n" +
-      "⚡ *Condutas de Ataque:* `/conduta <intercorrência>` (ex: `/conduta EAP hipertensivo`)";
-    return enviarMensagemParaChat(chatId, txtSR);
-  }
-
-  if (texto === "🛏️ Enfermaria" || texto === "🏥 Enfermaria") {
-    if (typeof enviarMenuEnfermaria === "function") {
-      return enviarMenuEnfermaria(chatId);
-    }
-    return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
-  }
-
-  if (comando === "/enfermaria" || comando === "/leitos" || comando === "/censo") {
-    if (typeof mostrarPainelLeitos === "function") {
-      return mostrarPainelLeitos(chatId, 0);
-    }
-    return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
-  }
-
-  if (texto === "🩺 Ambulatório" || texto === "🩺 SOAP Ambulatorial") {
-    if (typeof enviarMenuAmbulatorio === "function") {
-      return enviarMenuAmbulatorio(chatId);
-    }
-    return processarMensagemTexto({ chat: { id: chatId }, text: "/ambulatorio" });
-  }
-
-  if (texto === "💊 Prescrever") {
-    if (typeof iniciarModoBot === "function") {
-      return iniciarModoBot(chatId, "rx", false);
-    }
-  }
-
-  if (texto === "💊 Consultas de Bolso" || texto === "💊 REMUME Rápida") {
-    if (typeof enviarMenuConsultasBolso === "function") {
-      return enviarMenuConsultasBolso(chatId);
-    }
-    return enviarMensagemParaChat(chatId, "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME)*\n\nEnvie o pedido ou diagnóstico:\n💡 *Ex:* `/rx amigdalite bacteriana criança 18kg, alérgica a penicilina` ou apenas descreva o caso.");
-  }
-
-  if (texto === "📅 Agenda") {
-    return consultarEventosAgenda("hoje", chatId);
-  }
-
-  if (texto === "📋 Minhas Tarefas") {
-    return listarTarefasHojeNotion(chatId);
-  }
-
-  if (texto === "🩸 Gaso") {
-    return enviarMensagemParaChat(chatId, "🩸 *GASOMETRIA ARTERIAL*\n\nEnvie os parâmetros:\n💡 *Ex:* `/gaso pH 7.24, pCO2 26, HCO3 11, Na 140, Cl 104, Alb 3.2`");
-  }
-
-  if (texto === "🏁 Fim de Plantão") {
-    return gerarResumoFimPlantao(chatId);
-  }
-
-  if (texto === "🎧 Preceptor Voz") {
-    if (typeof iniciarModoBot === "function") return iniciarModoBot(chatId, "voz", false);
-    return enviarMensagemParaChat(chatId, "🎧 Grave ou envie um caso clínico para o Preceptor Socrático.");
-  }
-
-  if (texto === "🧠 Dúvida MedQuest") {
-    return enviarMensagemParaChat(chatId, "🧠 *DÚVIDA MÉDICA (MEDQUEST)*\n\nDigite sua dúvida para arquivar no bloco de estudo noturno:\n💡 *Ex:* `/duvida Indicações de drenagem torácica no empiema`");
-  }
-
-  if (texto === "⚙️ Central / Menu" || texto === "⚙️ Menu / Ajuda" || comando === "/teclado" || comando === "/menu" || comando === "/hub") {
-    if (typeof registrarComandosNativosTelegram === "function") {
-      try { registrarComandosNativosTelegram(); } catch (eCmd) {}
-    }
-    if (typeof enviarHubPrincipal === "function") {
-      return enviarHubPrincipal(chatId);
-    }
-    var msgTeclado = "⌨️ *Teclado de Acesso Rápido Ativado!*\n\nUse os botões na base do chat para navegação imediata de 1 toque no hospital e na rotina.";
-    return enviarMensagemComTecladoFixo(chatId, msgTeclado);
-  }
 
   // Se houver diálogo socrático ativo do Preceptor e Wagner enviou resposta de texto (não comando):
   var diagAtivo = (typeof obterDialogoPreceptor === "function") ? obterDialogoPreceptor(chatId) : null;
@@ -886,87 +1111,16 @@ function processarMensagemTexto(message) {
     }
   }
 
-  // 2. AJUDA E START
-  if (comando === "/start") {
-    if (typeof enviarHubPrincipal === "function") {
-      enviarMensagemComTecladoFixo(chatId, "👋 *Olá, Dr. Wagner!* Use os botões ou envie seu caso por texto/áudio.");
-      return enviarHubPrincipal(chatId);
+    // 2. Despacho O(1) de Comandos de Sistema
+    var resSistema = rotearComandoSistema(comando, texto, chatId);
+    if (resSistema.executado) {
+      return resSistema.resultado;
     }
-    return enviarMensagemComTecladoFixo(chatId, "Use /menu para a Central de Comandos.");
-  }
 
-  if (comando === "/ajuda" || comando === "/help") {
-    var filtroAjuda = texto.replace(/^\/(ajuda|help)\s*/i, "").trim();
-    return enviarManualCompletoComandos(chatId, filtroAjuda);
-  }
-
-  if (comando === "/status" || comando === "/fontes") {
-    var stRemume = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_REMUME"), false);
-    var stInteracoes = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_INTERACOES"), true);
-    var msgStatus = "⚡ *STATUS DO SISTEMA*\n\n" +
-      "• *Modo:* Servidor Oficial Node.js 20+ / Docker (Render 24/7)\n" +
-      "• *REMUME Ribeirão Preto:* " + stRemume + "\n" +
-      "• *Base de Interações:* " + stInteracoes + "\n" +
-      "• *Notion & Calendar:* ✅ Operacionais";
-    return enviarMensagemParaChat(chatId, msgStatus);
-  }
-
-  if (comando === "/mudancas" || comando === "/mudanças" || comando === "/ultimas_mudancas" || comando === "/ultimasmudancas" || comando === "/deploy") {
-    return tratarComandoUltimasMudancas(chatId, comando === "/deploy");
-  }
-
-  if (comando === "/choqueseptico" || comando === "/septico" || comando === "/circi" || comando === "/vasopressina") {
-    var dadosChoque = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof EmergenciaChoqueSepticoService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo EmergenciaChoqueSepticoService indisponível temporariamente.");
+    // 3. Choque Séptico Refratário & CIRCI
+    if (comando === "/choqueseptico" || comando === "/septico" || comando === "/circi" || comando === "/vasopressina") {
+      return tratarComandoChoqueSeptico(chatId, texto);
     }
-    var nums = dadosChoque.match(/\d+(?:[.,]\d+)?/g);
-    if (!nums || nums.length < 2) {
-      var msgAjudaSeptico = "🩸 *EMERGÊNCIA — CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" +
-        "Uso: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`\n\n" +
-        "💡 *Exemplo:* `/choqueseptico 70 0.3` (Detecta refratariedade >= 0.25 mcg/kg/min, prescreve Hidrocortisona e Vasopressina).\n" +
-        "Nota: Azul de Metileno expurgado (conduta terciária/UTI).";
-      var kbAjudaSeptico = (typeof botoesBot === "function") ? botoesBot([
-        [['🩸 Choque Séptico (70kg 0.3 mcg/kg/min)', 'ux:choque:septico:70:0.3']],
-        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
-      ]) : null;
-      if (kbAjudaSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
-        return enviarMensagemComTecladoParaChat(chatId, msgAjudaSeptico, kbAjudaSeptico);
-      }
-      return enviarMensagemParaChat(chatId, msgAjudaSeptico);
-    }
-    var val1 = parseFloat(nums[0].replace(",", "."));
-    var val2 = parseFloat(nums[1].replace(",", "."));
-    var pesoChoque = (val1 >= 20 && val2 < 20) ? val1 : ((val2 >= 20 && val1 < 20) ? val2 : val1);
-    var doseNora = (pesoChoque === val1) ? val2 : val1;
-    pesoChoque = sanitizarEValidarPesoKg(pesoChoque);
-    
-    if (pesoChoque === null || isNaN(doseNora)) {
-      var msgInvSeptico = "⚠️ Parâmetros inválidos. Use: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`";
-      var kbInvSeptico = (typeof botoesBot === "function") ? botoesBot([
-        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
-      ]) : null;
-      if (kbInvSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
-        return enviarMensagemComTecladoParaChat(chatId, msgInvSeptico, kbInvSeptico);
-      }
-      return enviarMensagemParaChat(chatId, msgInvSeptico);
-    }
-    var resChoque = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoChoque, doseNora);
-    if (resChoque.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resChoque.erro);
-    
-    var txtOutSeptico = "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + resChoque.textoSOAP;
-    var cacheSeptico = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
-    var ckSeptico = Utilities.getUuid().replace(/-/g, '');
-    safePutCache(cacheSeptico, ckSeptico, txtOutSeptico, 21600);
-    var kbResSeptico = (typeof botoesBot === "function") ? botoesBot([
-      [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSeptico]],
-      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
-    ]) : null;
-    if (kbResSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
-      return enviarMensagemComTecladoParaChat(chatId, txtOutSeptico, kbResSeptico);
-    }
-    return enviarMensagemParaChat(chatId, txtOutSeptico);
-  }
 
 
   // 3. COMANDOS CLÍNICOS E SALA VERMELHA
@@ -1068,56 +1222,9 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // 3.1. Sequência Rápida de Intubação (SRI / IOT)
   if (comando === "/sri" || comando === "/iot") {
-    var dadosSri = texto.replace(/^\/(sri|iot)\s*/i, "").trim();
-    if (!dadosSri) {
-      if (typeof enviarMenuSri === "function") {
-        return enviarMenuSri(chatId);
-      }
-      return enviarMensagemParaChat(chatId, "🫁 *SEQUÊNCIA RÁPIDA DE INTUBAÇÃO (SRI / IOT)*\n\nUso: `/sri <pesoKg> [contexto]`\n💡 *Exemplos:*\n• `/sri 70`\n• `/sri 80 choque`\n• `/sri 65 asma`\n• `/sri 75 tce`");
-    }
-    var partesSri = dadosSri.split(/\s+/);
-    var pesoSri = sanitizarEValidarPesoKg(partesSri[0]);
-    if (pesoSri === null) {
-      return enviarMensagemParaChat(chatId, "⚠️ *Peso obrigatório e inválido para SRI/IOT:*\nInforme um peso numérico positivo em kg.\n\n💡 *Exemplo:* `/sri 70` ou `/sri 72,5 choque`");
-    }
-    var contextoSri = partesSri.slice(1).join(" ") || "padrao";
-    try {
-      var resSri = CalculadorasClinicas.sequenciaRapidaIntubacao(pesoSri, contextoSri);
-      if (resSri && resSri.erro) {
-        return enviarMensagemParaChat(chatId, "⚠️ " + resSri.erro);
-      }
-      if (resSri && resSri.textoFormatado) {
-        var cacheSri = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
-        var ckSri = Utilities.getUuid().replace(/-/g, '');
-        safePutCache(cacheSri, ckSri, resSri.textoFormatado, 21600);
-        var tecladoSri = resSri.botoes ? (resSri.botoes.inline_keyboard ? resSri.botoes : { inline_keyboard: resSri.botoes }) : null;
-        if (!tecladoSri && typeof botoesBot === "function") {
-          tecladoSri = botoesBot([
-            [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSri]],
-            [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
-          ]);
-        } else if (tecladoSri && tecladoSri.inline_keyboard) {
-          var jaTemCopiarSri = tecladoSri.inline_keyboard.some(function(row) {
-            return row.some(function(btn) { return btn.text && btn.text.indexOf("Copiar") !== -1; });
-          });
-          if (!jaTemCopiarSri) {
-            tecladoSri.inline_keyboard.unshift([
-              { text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckSri }
-            ]);
-          }
-        }
-        if (tecladoSri) {
-          return enviarMensagemComTecladoParaChat(chatId, resSri.textoFormatado, tecladoSri);
-        } else {
-          return enviarMensagemParaChat(chatId, resSri.textoFormatado);
-        }
-      }
-      return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular SRI.");
-    } catch (eSri) {
-      Logger.log("Erro /sri: " + eSri.message);
-      return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular SRI. Tente novamente.");
-    }
+    return tratarComandoSri(chatId, texto);
   }
 
   // 3.1. PROTOCOLO DE PCR / ACLS BEIRA-LEITO (SALA VERMELHA)

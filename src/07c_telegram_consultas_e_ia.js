@@ -109,6 +109,50 @@ function enviarMenuExamesEspeciais(chatId) {
  * Responde à consulta direta de posologia oficial utilizando o Guia Farmacêutico do HSL
  * com cálculo determinístico de fórmulas fixas para doses pediátricas.
  */
+function formatarMensagemCalculoPediatrico_(calcPed) {
+  var txtPed = [
+    "👶 *CÁLCULO POSOLÓGICO PEDIÁTRICO DETERMINÍSTICO (FÓRMULA FIXA)*",
+    "",
+    "📋 *Fármaco:* *" + calcPed.farmaco + "*",
+    "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`",
+    "⚖️ *Peso Informado:* " + (calcPed.pesoKg == null ? "Não informado (não utilizado no cálculo)." : "`" + calcPed.pesoKg + " kg`"),
+    calcPed.idadeAnos == null ? "" : "*Idade informada:* " + calcPed.idadeAnos + " anos",
+    "",
+    "💊 *ESQUEMA CALCULADO PARA REVISÃO:*",
+    "👉 *" + calcPed.instrucaoPosologica + "*",
+    "📦 *Quantidade a Dispensar:* *" + calcPed.quantidadeDispensar + "*",
+    "",
+    "🧮 *Memória de Cálculo Matemática:*",
+    "_" + calcPed.memoriaCalculo + "_",
+    "",
+    "💡 *Orientações:* " + calcPed.orientacoes,
+    "",
+    "*Conferência:* Validar indicação, apresentação, dose, duração, alergias e ajustes antes de prescrever. O cálculo não substitui a avaliação clínica."
+  ].join("\n");
+
+  var cbParam = calcPed.chave + (calcPed.pesoKg == null ? "" : " " + calcPed.pesoKg + "kg") + (calcPed.idadeAnos == null ? "" : " " + calcPed.idadeAnos + " anos");
+  var kbPed = {
+    "inline_keyboard": [
+      [
+        { "text": "📝 Revisar no /rx", "callback_data": "rx_med:" + cbParam }
+      ]
+    ]
+  };
+  return { texto: txtPed, teclado: kbPed };
+}
+
+function enviarMensagemMedicamentoNaoEncontrado_(chatId, termo) {
+  return enviarMensagemParaChat(
+    chatId,
+    "🔍 *MEDICAMENTO NÃO ENCONTRADO*\n\n" +
+    "Não encontramos registro exato para `\"" + termo + "\"` nos guias oficiais (HSL e PedBook).\n\n" +
+    "💡 *Dicas:*\n" +
+    "• Busque pelo princípio ativo genérico (ex: `/dose amoxicilina`, `/dose dipirona`, `/ped azitromicina`).\n" +
+    "• Se for caso infantil, informe o peso: `/dose amoxicilina 16kg` ou consulte `/ped amoxicilina`.\n" +
+    "• Ou utilize o gerador de receita `/rx " + termo + "` para avaliação clínica completa."
+  );
+}
+
 function responderConsultaPosologiaHSL(chatId, termo) {
   // 1. Se informou peso, calcula determinísticamente em código puro (Zero Alucinação)
   var calcPed = (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularPosologiaPorTextoLivre === "function")
@@ -116,34 +160,8 @@ function responderConsultaPosologiaHSL(chatId, termo) {
     : null;
 
   if (calcPed) {
-    var txtPed = [
-      "👶 *CÁLCULO POSOLÓGICO PEDIÁTRICO DETERMINÍSTICO (FÓRMULA FIXA)*",
-      "",
-      "📋 *Fármaco:* *" + calcPed.farmaco + "*",
-      "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`",
-      "⚖️ *Peso Informado:* " + (calcPed.pesoKg == null ? "Não informado (não utilizado no cálculo)." : "`" + calcPed.pesoKg + " kg`"),
-      calcPed.idadeAnos == null ? "" : "*Idade informada:* " + calcPed.idadeAnos + " anos",
-      "",
-      "💊 *ESQUEMA CALCULADO PARA REVISÃO:*",
-      "👉 *" + calcPed.instrucaoPosologica + "*",
-      "📦 *Quantidade a Dispensar:* *" + calcPed.quantidadeDispensar + "*",
-      "",
-      "🧮 *Memória de Cálculo Matemática:*",
-      "_" + calcPed.memoriaCalculo + "_",
-      "",
-      "💡 *Orientações:* " + calcPed.orientacoes,
-      "",
-      "*Conferência:* Validar indicação, apresentação, dose, duração, alergias e ajustes antes de prescrever. O cálculo não substitui a avaliação clínica."
-    ].join("\n");
-
-    var kbPed = {
-      "inline_keyboard": [
-        [
-          { "text": "📝 Revisar no /rx", "callback_data": "rx_med:" + calcPed.chave + (calcPed.pesoKg == null ? "" : " " + calcPed.pesoKg + "kg") + (calcPed.idadeAnos == null ? "" : " " + calcPed.idadeAnos + " anos") }
-        ]
-      ]
-    };
-    return enviarMensagemComTecladoParaChat(chatId, txtPed, kbPed);
+    var resultadoPed = formatarMensagemCalculoPediatrico_(calcPed);
+    return enviarMensagemComTecladoParaChat(chatId, resultadoPed.texto, resultadoPed.teclado);
   }
 
   // 2. Se a busca tiver indicação explícita pediátrica, consulta primariamente o PedBook
@@ -157,19 +175,10 @@ function responderConsultaPosologiaHSL(chatId, termo) {
   // 3. Consulta da ficha técnica oficial do Guia HSL
   var med = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(termo) : null;
   if (!med) {
-    // Se não encontrou no HSL, mas existe no PedBook, entrega a ficha do PedBook!
     if (medPed) {
       return responderConsultaPediatricaPedB(chatId, termo);
     }
-    return enviarMensagemParaChat(
-      chatId,
-      "🔍 *MEDICAMENTO NÃO ENCONTRADO*\n\n" +
-      "Não encontramos registro exato para `\"" + termo + "\"` nos guias oficiais (HSL e PedBook).\n\n" +
-      "💡 *Dicas:*\n" +
-      "• Busque pelo princípio ativo genérico (ex: `/dose amoxicilina`, `/dose dipirona`, `/ped azitromicina`).\n" +
-      "• Se for caso infantil, informe o peso: `/dose amoxicilina 16kg` ou consulte `/ped amoxicilina`.\n" +
-      "• Ou utilize o gerador de receita `/rx " + termo + "` para avaliação clínica completa."
-    );
+    return enviarMensagemMedicamentoNaoEncontrado_(chatId, termo);
   }
 
   var respostaTexto = (typeof formatarFichaPosologicaHSL === "function")
@@ -183,9 +192,8 @@ function responderConsultaPosologiaHSL(chatId, termo) {
   if (medPed) {
     botoes.push([{ "text": "👶 Ver Doses Pediátricas (PedBook)", "callback_data": "ped_med:" + medPed.nome.substring(0, 30) }]);
   }
-  var kb = { "inline_keyboard": botoes };
 
-  return enviarMensagemComTecladoParaChat(chatId, respostaTexto, kb);
+  return enviarMensagemComTecladoParaChat(chatId, respostaTexto, { "inline_keyboard": botoes });
 }
 
 /**
@@ -249,175 +257,203 @@ function responderConsultaCondutaPedB(chatId, termo) {
   return enviarMensagemParaChat(chatId, txt);
 }
 
-function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageIdParaEditar) {
-  enviarChatAction(chatId, "typing", true);
-  
-  // Fast-Ack & Feedback Visual Instantâneo (< 500ms)
-  if (!messageIdParaEditar && typeof UrlFetchApp !== "undefined") {
+function executarFastAckTelegram_(chatId, messageIdParaEditar) {
+  if (messageIdParaEditar || typeof UrlFetchApp === "undefined") return messageIdParaEditar;
+  try {
+    var tokenBot = ConfigService.get("TELEGRAM_BOT_TOKEN");
+    if (!tokenBot) return messageIdParaEditar;
+    var payloadTemp = { chat_id: String(chatId), text: "⚡ Analisando caso clínico...", parse_mode: "Markdown" };
+    var optionsTemp = { method: "post", contentType: "application/json", payload: JSON.stringify(payloadTemp), muteHttpExceptions: true };
+    var resTemp = UrlFetchApp.fetch("https://api.telegram.org/bot" + tokenBot + "/sendMessage", optionsTemp);
+    if (resTemp.getResponseCode() === 200) {
+      var jsonTemp = JSON.parse(resTemp.getContentText());
+      if (jsonTemp && jsonTemp.result && jsonTemp.result.message_id) {
+        return jsonTemp.result.message_id;
+      }
+    }
+  } catch (e) {
+    console.error("Erro no Fast-Ack: " + e.message);
+  }
+  return messageIdParaEditar;
+}
+
+function montarLinhaPrimariaCopiar_(tipoCache, cacheKey, strResultado) {
+  var limpo = typeof uxTextoProntuario === "function" ? uxTextoProntuario(strResultado) : strResultado.trim();
+  var textoCopiarBtn = (tipoCache === "soap") ? "📋 Copiar SOAP para PEP" : "📋 Copiar para Prontuário";
+  if (limpo.length >= 1 && limpo.length <= 256) {
+    return [{ "text": textoCopiarBtn, "copy_text": { "text": limpo } }];
+  }
+  return [{ "text": textoCopiarBtn, "callback_data": "ux:copiar:" + cacheKey }];
+}
+
+function montarBotoesSoap_(chatId, cacheKey, strResultado, ehErro, linhaPrimaria) {
+  var botoes = [linhaPrimaria];
+  if (ehErro) return botoes;
+
+  var ehSoapFechado = /🧠\s*\*A\s*-/i.test(strResultado);
+  if (!ehSoapFechado) {
+    // FASE 1: Rascunho com Anamnese e Exame Físico (sem botões prematuros de ajuste farmacológico)
+    botoes.push([
+      { "text": "📋 Fechar Plano", "callback_data": "ux:soap:plano" },
+      { "text": "🩺 EF Normal", "callback_data": "ux:soap:ef_normal" }
+    ]);
+    botoes.push([
+      { "text": "🔬 Exames", "callback_data": "ef_menu" },
+      { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey }
+    ]);
+  } else {
+    // FASE 2: SOAP Consolidado completo (com plano farmacológico ativo)
+    botoes.push([
+      { "text": "🔄 Recalcular por Peso", "callback_data": "ux:recalc:peso:" + cacheKey },
+      { "text": "⚠️ Ver Interações", "callback_data": "ux:interacao:caso:" + cacheKey }
+    ]);
+    botoes.push([
+      { "text": "💊 Extrair Receita", "callback_data": "ux:soap:extrair_rx:" + cacheKey },
+      { "text": "🔄 Refinar Conduta", "callback_data": "ux:soap:atualizar" }
+    ]);
+    if (ehUsuarioTitular(chatId)) {
+      var linhaNotion = [{ "text": "📁 Salvar Caso", "callback_data": "salvarNotion_soap_" + cacheKey }];
+      if (/IG:|DUM:|DPP:|obstetrícia/i.test(strResultado)) {
+        linhaNotion.unshift({ "text": "🤰 Cartão Gestante", "callback_data": "salvarNotion_prenatal_" + cacheKey });
+      }
+      botoes.push(linhaNotion);
+    }
+    botoes.push([
+      { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey },
+      { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
+    ]);
+  }
+
+  botoes.push([
+    { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
+    { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
+  ]);
+  return botoes;
+}
+
+function montarBotoesNavegacaoGeral_(tipoCache) {
+  if (tipoCache === "rxh" || tipoCache === "plantao") {
+    return [{ "text": "🔙 Enfermaria", "callback_data": "ux:hub:enf" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+  }
+  if (tipoCache === "conduta") {
+    return [{ "text": "🔙 Sala Vermelha", "callback_data": "ux:sala" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+  }
+  if (tipoCache === "rx") {
+    return [
+      { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
+      { "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" },
+      { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
+    ];
+  }
+  return [{ "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+}
+
+function montarBotoesGeraisIA_(chatId, tipoCache, cacheKey, strResultado, ehErro, linhaPrimaria) {
+  var botoes = [linhaPrimaria];
+
+  if ((tipoCache === "rx" || tipoCache === "rxh" || tipoCache === "conduta") && !ehErro) {
+    botoes.push([
+      { "text": "🔄 Recalcular por Peso", "callback_data": "ux:recalc:peso:" + cacheKey },
+      { "text": "⚠️ Ver Interações", "callback_data": "ux:interacao:caso:" + cacheKey }
+    ]);
+  }
+
+  var ehIncompletoOuPendente = /⚠️\s*prescri[çc][ãa]o\s+incompleta|incomplet[ao]|pend[êe]ncia|informe\s+(?:o\s+)?(?:peso|alergia)|faltam?\s+(?:dados|informa)/i.test(strResultado);
+  var temItensFarmacologicos = tipoCache === "rx" && validarReceitaTemMedicamentos(strResultado);
+  var elegivelPdfRx = (tipoCache === "rx") && !ehErro && !ehIncompletoOuPendente && temItensFarmacologicos;
+
+  var linhaSecundaria = [];
+  if (elegivelPdfRx) {
+    linhaSecundaria.push({ "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + cacheKey });
+  } else if (tipoCache !== "rx" && !ehErro && ehUsuarioTitular(chatId)) {
+    linhaSecundaria.push({ "text": "📁 Salvar no Notion", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey });
+  }
+
+  if (tipoCache === "plantao" && !ehErro) {
+    linhaSecundaria.push({ "text": "👨‍⚕️ Pitch do Round (60s)", "callback_data": "gerarRound_" + cacheKey });
+  }
+  if ((tipoCache === "round" || tipoCache === "plantao") && !ehErro) {
+    linhaSecundaria.push({ "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey });
+  }
+  if (linhaSecundaria.length) botoes.push(linhaSecundaria);
+
+  botoes.push(montarBotoesNavegacaoGeral_(tipoCache));
+  return botoes;
+}
+
+function aplicarRevisaoSoapBotoes_(botoes, chatId, origemSoap, dados) {
+  var revFinal = (origemSoap && origemSoap.revision)
+    ? origemSoap.revision
+    : (modoBot(chatId) ? modoBot(chatId).revision : (dados ? definirModoBot(chatId, "soap", dados).revision : 'indisponivel'));
+  botoes.forEach(function(linha) {
+    linha.forEach(function(botao) {
+      if (/^ux:soap:(plano|ef_normal|atualizar)$/.test(botao.callback_data || '')) {
+        botao.callback_data += ':' + revFinal;
+      }
+    });
+  });
+}
+
+function entregarMensagemFinalIA_(chatId, textoFinal, teclado, messageIdParaEditar) {
+  // Tentativa de In-Place Edit se messageIdParaEditar fornecido
+  if (messageIdParaEditar && textoFinal.length <= 3800) {
     try {
       var tokenBot = ConfigService.get("TELEGRAM_BOT_TOKEN");
-      if (tokenBot) {
-        var payloadTemp = { chat_id: String(chatId), text: "⚡ Analisando caso clínico...", parse_mode: "Markdown" };
-        var optionsTemp = { method: "post", contentType: "application/json", payload: JSON.stringify(payloadTemp), muteHttpExceptions: true };
-        var resTemp = UrlFetchApp.fetch("https://api.telegram.org/bot" + tokenBot + "/sendMessage", optionsTemp);
-        if (resTemp.getResponseCode() === 200) {
-          var jsonTemp = JSON.parse(resTemp.getContentText());
-          if (jsonTemp && jsonTemp.result && jsonTemp.result.message_id) {
-            messageIdParaEditar = jsonTemp.result.message_id;
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Erro no Fast-Ack: " + e.message);
-    }
+      var urlEdit = "https://api.telegram.org/bot" + tokenBot + "/editMessageText";
+      var payloadEdit = {
+        "chat_id": String(chatId),
+        "message_id": Number(messageIdParaEditar),
+        "text": limparMarkdownTelegram(textoFinal),
+        "parse_mode": "Markdown",
+        "reply_markup": teclado
+      };
+      var editOk = executarPostTelegram(urlEdit, payloadEdit);
+      if (editOk) return editOk;
+    } catch (eEdit) {}
   }
+
+  if (textoFinal.length <= 3900) {
+    return enviarMensagemComTecladoParaChat(chatId, textoFinal, teclado);
+  }
+  return enviarMensagemSegmentada(chatId, textoFinal, teclado, messageIdParaEditar);
+}
+
+function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageIdParaEditar) {
+  enviarChatAction(chatId, "typing", true);
+  messageIdParaEditar = executarFastAckTelegram_(chatId, messageIdParaEditar);
 
   var origemSoap = tipoCache === "soap" ? modoBot(chatId) : null;
   var resultado = medirEtapaBot('geracao_clinica', function() { return funcaoGeradora(dados); });
   if (typeof renovarChatActionSeNecessario === "function") {
     renovarChatActionSeNecessario(chatId, "typing");
   }
-  if (resultado) {
-    var strResultado = String(resultado);
-    if (tipoCache === "soap") salvarSoapCockpit_(chatId, origemSoap, strResultado);
-    var cacheKey = Utilities.getUuid().replace(/-/g, "");
-    safePutCache(CacheService.getScriptCache(), cacheKey, strResultado, 21600);
 
-    var botoes = [];
-    var limpo = typeof uxTextoProntuario === "function" ? uxTextoProntuario(strResultado) : strResultado.trim();
-
-    // Destaque absoluto: Copiar para Prontuário em linha exclusiva de largura total
-    var btnCopiar;
-    var textoCopiarBtn = (tipoCache === "soap") ? "📋 Copiar SOAP para PEP" : "📋 Copiar para Prontuário";
-    if (limpo.length >= 1 && limpo.length <= 256) {
-      btnCopiar = { "text": textoCopiarBtn, "copy_text": { "text": limpo } };
-    } else {
-      btnCopiar = { "text": textoCopiarBtn, "callback_data": "ux:copiar:" + cacheKey };
-    }
-    var linhaPrimaria = [btnCopiar];
-
-    var ehErro = /❌|não foi possível|falha ao|erro ao acessar|erro:/i.test(strResultado);
-    var ehIncompletoOuPendente = /⚠️\s*prescri[çc][ãa]o\s+incompleta|incomplet[ao]|pend[êe]ncia|informe\s+(?:o\s+)?(?:peso|alergia)|faltam?\s+(?:dados|informa)/i.test(strResultado);
-    var temItensFarmacologicos = tipoCache === "rx" && validarReceitaTemMedicamentos(strResultado);
-    var elegivelPdfRx = (tipoCache === "rx") && !ehErro && !ehIncompletoOuPendente && temItensFarmacologicos;
-
-    var ehSoapFechado = (tipoCache === "soap") && /🧠\s*\*A\s*-/i.test(strResultado);
-
-    // Botões inline de ajuste dinâmico beira-leito
-    var linhaAjustesDinamicos = [
-      { "text": "🔄 Recalcular por Peso", "callback_data": "ux:recalc:peso:" + cacheKey },
-      { "text": "⚠️ Ver Interações", "callback_data": "ux:interacao:caso:" + cacheKey }
-    ];
-
-    if (tipoCache === "soap" && !ehErro) {
-      botoes.push(linhaPrimaria);
-      if (!ehSoapFechado) {
-        // FASE 1: Rascunho com Anamnese e Exame Físico (sem botões prematuros de ajuste farmacológico)
-        botoes.push([
-          { "text": "📋 Fechar Plano", "callback_data": "ux:soap:plano" },
-          { "text": "🩺 EF Normal", "callback_data": "ux:soap:ef_normal" }
-        ]);
-        botoes.push([
-          { "text": "🔬 Exames", "callback_data": "ef_menu" },
-          { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey }
-        ]);
-      } else {
-        // FASE 2: SOAP Consolidado completo (com plano farmacológico ativo)
-        botoes.push(linhaAjustesDinamicos);
-        botoes.push([
-          { "text": "💊 Extrair Receita", "callback_data": "ux:soap:extrair_rx:" + cacheKey },
-          { "text": "🔄 Refinar Conduta", "callback_data": "ux:soap:atualizar" }
-        ]);
-        if (ehUsuarioTitular(chatId)) {
-          var linhaNotion = [{ "text": "📁 Salvar Caso", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey }];
-          if (/IG:|DUM:|DPP:|obstetrícia/i.test(strResultado)) {
-            linhaNotion.unshift({ "text": "🤰 Cartão Gestante", "callback_data": "salvarNotion_prenatal_" + cacheKey });
-          }
-          botoes.push(linhaNotion);
-        }
-        botoes.push([
-          { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey },
-          { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
-        ]);
-      }
-      botoes.push([
-        { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
-        { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
-      ]);
-    } else {
-      botoes.push(linhaPrimaria);
-      if ((tipoCache === "rx" || tipoCache === "rxh" || tipoCache === "conduta") && !ehErro) {
-        botoes.push(linhaAjustesDinamicos);
-      }
-      var linhaSecundaria = [];
-      if (elegivelPdfRx) {
-        linhaSecundaria.push({ "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + cacheKey });
-      } else if (tipoCache !== "rx" && !ehErro && ehUsuarioTitular(chatId)) {
-        linhaSecundaria.push({ "text": "📁 Salvar no Notion", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey });
-      }
-      if (tipoCache === "plantao" && !ehErro) {
-        linhaSecundaria.push({ "text": "👨‍⚕️ Pitch do Round (60s)", "callback_data": "gerarRound_" + cacheKey });
-      }
-      if ((tipoCache === "round" || tipoCache === "plantao") && !ehErro) {
-        linhaSecundaria.push({ "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey });
-      }
-      if (linhaSecundaria.length) botoes.push(linhaSecundaria);
-      var linhaNavFinal;
-      if (tipoCache === "rxh" || tipoCache === "plantao") {
-        linhaNavFinal = [{ "text": "🔙 Enfermaria", "callback_data": "ux:hub:enf" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
-      } else if (tipoCache === "conduta") {
-        linhaNavFinal = [{ "text": "🔙 Sala Vermelha", "callback_data": "ux:sala" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
-      } else if (tipoCache === "rx") {
-        linhaNavFinal = [
-          { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
-          { "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" },
-          { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
-        ];
-      } else {
-        linhaNavFinal = [{ "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
-      }
-      botoes.push(linhaNavFinal);
-    }
-
-    if (tipoCache === "soap") {
-      var revFinal = (origemSoap && origemSoap.revision)
-        ? origemSoap.revision
-        : (modoBot(chatId) ? modoBot(chatId).revision : (dados ? definirModoBot(chatId, "soap", dados).revision : 'indisponivel'));
-      botoes.forEach(function(linha) { linha.forEach(function(botao) {
-        if (/^ux:soap:(plano|ef_normal|atualizar)$/.test(botao.callback_data || '')) {
-          botao.callback_data += ':' + revFinal;
-        }
-      }); });
-    }
-    var tecladoSalvar = { "inline_keyboard": botoes };
-    // O SOAP já traz seu título e suas seções; preserve a resposta integral.
-    var textoFinal = tipoCache === "soap" ? strResultado
-      : "*" + tipoCache.toUpperCase() + " · Resumo Clínico*\n\n" + strResultado;
-
-    // Tentativa de In-Place Edit se messageIdParaEditar fornecido
-    if (messageIdParaEditar && textoFinal.length <= 3800) {
-      try {
-        var tokenBot = ConfigService.get("TELEGRAM_BOT_TOKEN");
-        var urlEdit = "https://api.telegram.org/bot" + tokenBot + "/editMessageText";
-        var payloadEdit = {
-          "chat_id": String(chatId),
-          "message_id": Number(messageIdParaEditar),
-          "text": limparMarkdownTelegram(textoFinal),
-          "parse_mode": "Markdown",
-          "reply_markup": tecladoSalvar
-        };
-        var editOk = executarPostTelegram(urlEdit, payloadEdit);
-        if (editOk) return editOk;
-      } catch (eEdit) {}
-    }
-
-    if (textoFinal.length <= 3900) {
-      return enviarMensagemComTecladoParaChat(chatId, textoFinal, tecladoSalvar);
-    } else {
-      return enviarMensagemSegmentada(chatId, textoFinal, tecladoSalvar, messageIdParaEditar);
-    }
-  } else {
+  if (!resultado) {
     enviarMensagemParaChat(chatId, "⚠️ Erro ao processar a resposta com a IA.");
     return false;
   }
+
+  var strResultado = String(resultado);
+  if (tipoCache === "soap") salvarSoapCockpit_(chatId, origemSoap, strResultado);
+
+  var cacheKey = Utilities.getUuid().replace(/-/g, "");
+  safePutCache(CacheService.getScriptCache(), cacheKey, strResultado, 21600);
+
+  var ehErro = /❌|não foi possível|falha ao|erro ao acessar|erro:/i.test(strResultado);
+  var linhaPrimaria = montarLinhaPrimariaCopiar_(tipoCache, cacheKey, strResultado);
+
+  var botoes = (tipoCache === "soap")
+    ? montarBotoesSoap_(chatId, cacheKey, strResultado, ehErro, linhaPrimaria)
+    : montarBotoesGeraisIA_(chatId, tipoCache, cacheKey, strResultado, ehErro, linhaPrimaria);
+
+  if (tipoCache === "soap") {
+    aplicarRevisaoSoapBotoes_(botoes, chatId, origemSoap, dados);
+  }
+
+  var teclado = { "inline_keyboard": botoes };
+  var textoFinal = (tipoCache === "soap")
+    ? strResultado
+    : "*" + tipoCache.toUpperCase() + " · Resumo Clínico*\n\n" + strResultado;
+
+  return entregarMensagemFinalIA_(chatId, textoFinal, teclado, messageIdParaEditar);
 }

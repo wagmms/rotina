@@ -2530,233 +2530,284 @@ var CalculadorasClinicas = (function () {
     return f;
   }
 
+  // ═════════════════════════════ DISPATCH DE AÇÕES E CRITÉRIOS ═════════════════════════════
+
+  var DISPATCH_CRITERIOS_ESCORES = {
+    curb65: {
+      titulo: '📚 CRITÉRIOS · CURB-65',
+      linhas: [
+        'Escore prognóstico de mortalidade em PAC (Pneumonia Adquirida na Comunidade):',
+        '• <b>C</b>onfusão mental (AMTS ≤ 8 ou desorientação tempo/espaço) = 1 pt',
+        '• <b>U</b>reia > 50 mg/dL (BUN > 19 mg/dL) = 1 pt',
+        '• <b>R</b>espiratória (FR ≥ 30 irpm) = 1 pt',
+        '• <b>B</b>lood Pressure (PAS < 90 mmHg ou PAD ≤ 60 mmHg) = 1 pt',
+        '• <b>65</b> Idade ≥ 65 anos = 1 pt',
+        '',
+        '<b>Interpretação e Conduta:</b>',
+        '• 0–1 pt: Baixo risco (mortalidade < 3%). Tratamento ambulatorial seguro.',
+        '• 2 pts: Risco intermediário (mortalidade ~9%). Considerar internação em enfermaria.',
+        '• ≥ 3 pts: Alto risco (mortalidade 15–40%). Internação hospitalar obrigatória; ≥ 4 avaliar UTI.',
+        '',
+        '<i>Fonte: Lim WS et al. Thorax 2003 / Diretriz SBPT 2018.</i>'
+      ]
+    },
+    wells_tep: {
+      titulo: '📚 CRITÉRIOS · Wells para TEP',
+      linhas: [
+        'Escore preditivo para Tromboembolismo Pulmonar:',
+        '• Sinais/sintomas clínicos de TVP (+3,0 pts)',
+        '• Diagnóstico alternativo menos provável que TEP (+3,0 pts)',
+        '• Frequência cardíaca > 100 bpm (+1,5 pts)',
+        '• Imobilização ≥ 3 dias ou cirurgia prévia nas últimas 4 semanas (+1,5 pts)',
+        '• História prévia documentada de TVP ou TEP (+1,5 pts)',
+        '• Hemoptise (+1,0 pt)',
+        '• Neoplasia ativa em tratamento ou paliativo (+1,0 pt)',
+        '',
+        '<b>Interpretação (Modelo Dicotômico ESC 2019):</b>',
+        '• ≤ 4,0 pts: TEP Improvável. Solicitar D-Dímero de alta sensibilidade para exclusão.',
+        '• > 4,0 pts: TEP Provável. Não aguardar D-Dímero; indicar Angiotomografia de Tórax imediata.',
+        '',
+        '<i>Fonte: Wells PS et al. Thromb Haemost 2000 / ESC Guidelines 2019.</i>'
+      ]
+    },
+    hasbled: {
+      titulo: '📚 CRITÉRIOS · HAS-BLED',
+      linhas: [
+        'Escore de Risco Hemorrágico em Fibrilação Atrial:',
+        '• <b>H</b>ipertensão (PAS > 160 mmHg não controlada) = 1 pt',
+        '• <b>A</b>bnormal Renal ou Hepático (1 pt cada, máx 2)',
+        '• <b>S</b>troke (história prévia de AVC) = 1 pt',
+        '• <b>B</b>leeding (história de sangramento maior ou predisposição) = 1 pt',
+        '• <b>L</b>ábil INR (tempo na faixa terapêutica < 60%) = 1 pt',
+        '• <b>E</b>lderly (Idade > 65 anos) = 1 pt',
+        '• <b>D</b>rogas ou Álcool (AINEs/antiagregantes ou etilismo, 1 pt cada, máx 2)',
+        '',
+        '<b>Interpretação:</b>',
+        '• ≥ 3 pts: Alto risco de sangramento. <b>Atenção:</b> HAS-BLED elevado NÃO contraindica anticoagulação; sinaliza necessidade de vigilância intensiva e correção de fatores modificáveis.',
+        '',
+        '<i>Fonte: Pisters R et al. Chest 2010 / SBC Diretriz de FA 2025.</i>'
+      ]
+    },
+    cha2ds2va: {
+      titulo: '📚 CRITÉRIOS · CHA₂DS₂-VA (ESC 2024 / SBC 2025)',
+      linhas: [
+        'Prevenção de AVC na Fibrilação Atrial (escala 0–8):',
+        '• <b>C</b> Insuficiência Cardíaca congestiva / disfunção VE = 1 pt',
+        '• <b>H</b> Hipertensão arterial sistêmica = 1 pt',
+        '• <b>A₂</b> Idade ≥ 75 anos = 2 pts',
+        '• <b>D</b> Diabetes Mellitus = 1 pt',
+        '• <b>S₂</b> AVC / AIT / Tromboembolismo prévio = 2 pts',
+        '• <b>V</b> Doença Vascular (IAM prévio, DAP, placa aórtica) = 1 pt',
+        '• <b>A</b> Idade 65–74 anos = 1 pt',
+        '*(Critério sexo feminino retirado das diretrizes ESC 2024 e SBC 2025)*',
+        '',
+        '<b>Conduta:</b>',
+        '• 0 pt: Sem terapia antitrombótica.',
+        '• 1 pt: Anticoagulação deve ser considerada (classe IIa).',
+        '• ≥ 2 pts: Anticoagulação oral recomendada (classe I) — preferencialmente DOACs.',
+        '',
+        '<i>Fonte: ESC Guidelines AF 2024 / Diretriz SBC 2025.</i>'
+      ]
+    },
+    kdigo_ira: {
+      titulo: '📚 CRITÉRIOS · KDIGO para Injúria Renal Aguda',
+      linhas: [
+        'Estadiamento de IRA baseado em Creatinina e Débito Urinário:',
+        '• <b>Estágio 1:</b> Cr 1,5–1,9× o basal OU aumento ≥ 0,3 mg/dL em 48h; DU < 0,5 mL/kg/h por 6–12h.',
+        '• <b>Estágio 2:</b> Cr 2,0–2,9× o basal; DU < 0,5 mL/kg/h por ≥ 12h.',
+        '• <b>Estágio 3:</b> Cr 3,0× o basal OU Cr ≥ 4,0 mg/dL com aumento agudo ≥ 0,5 mg/dL OU início de TRS; DU < 0,3 mL/kg/h por ≥ 24h ou anúria por ≥ 12h.',
+        '',
+        '<i>Fonte: KDIGO AKI Guidelines 2012.</i>'
+      ]
+    }
+  };
+
+  function _obterCriteriosEscore(id) {
+    var item = DISPATCH_CRITERIOS_ESCORES[id];
+    if (item) return item;
+    return {
+      titulo: '📚 CRITÉRIOS · ' + id.toUpperCase(),
+      linhas: [
+        'Critérios validados de acordo com a literatura médica de referência.',
+        'Utilize a calculadora fornecendo os dados clínicos correspondentes.'
+      ]
+    };
+  }
+
+  var DISPATCH_ACOES_CALCULADORAS = {
+    criterios: function (id) {
+      return _obterCriteriosEscore(id);
+    },
+    ajuste: function () {
+      return {
+        titulo: '💊 REVISÃO DE AJUSTE RENAL DE FÁRMACOS',
+        linhas: [
+          'Ajuste posológico conforme estimativa da função renal:',
+          '• Utilize <b>Cockcroft-Gault</b> com peso ajustado (Devine) para antibióticos, quimioterápicos e bulas de DOACs.',
+          '• Utilize <b>CKD-EPI 2021</b> para estadiamento crônico de DRC e prognóstico.',
+          '',
+          '<b>Para revisar um medicamento específico:</b>',
+          'Envie: <code>/rx &lt;medicamento&gt; ClCr &lt;valor&gt;</code> ou <code>/rx &lt;medicamento&gt; DRC estádio &lt;G3a-G5&gt;</code>',
+          '',
+          '⚠️ <i>Nenhuma dose foi alterada automaticamente. Confirme sempre na bula do medicamento e no protocolo institucional.</i>'
+        ]
+      };
+    },
+    anticoag: function () {
+      return {
+        titulo: '🩸 CONDUTA EM ANTICOAGULAÇÃO (FA)',
+        linhas: [
+          'Recomendações da Diretriz Brasileira de FA (2025) e ESC (2024):',
+          '• <b>DOACs como 1ª linha:</b> Apixabana, Rivaroxabana, Dabigatrana ou Edoxabana (preferíveis à Varfarina na ausência de prótese valvar mecânica ou estenose mitral moderada/grave).',
+          '• <b>Critérios de Dose Reduzida (Apixabana):</b> Se 2 de 3: Idade ≥ 80a, Peso ≤ 60kg, Cr ≥ 1,5 mg/dL ➔ reduzir para 2,5 mg 12/12h.',
+          '• <b>Rivaroxabana:</b> ClCr 15–49 mL/min ➔ reduzir de 20 mg/dia para 15 mg/dia.',
+          '',
+          'Calcule também o risco hemorrágico com HAS-BLED para acompanhamento seguro.'
+        ]
+      };
+    },
+    checklist: function () {
+      return {
+        titulo: '✅ CHECKLIST DOS 7 Ps · SRI / IOT',
+        linhas: [
+          'Sequência cronológica para intubação em via aérea de emergência:',
+          '1. <b>Planejamento e Preparação (T-10 min):</b> Monitorização contínua, acesso venoso pérvio, laringo/videolaringo testado, tubos com guia, aspiração montada, drogas aspiradas e rotuladas, material de resgate (Bougie, Máscara Laríngea).',
+          '2. <b>Pré-oxigenação (T-5 min):</b> FiO₂ 100% sob máscara com reservatório a 15 L/min por 3–5 min ou 8 incursões vitais profundas. Elevar cabeceira 20–30° (rampa se obeso).',
+          '3. <b>Pré-tratamento / Otimização (T-3 min):</b> Ressuscitação hemodinâmica antes da indução (cristaloide ou noradrenalina em push-dose se PAM baixa). Fentanil se trauma de crânio ou dissecção de aorta.',
+          '4. <b>Paralisia com Indução Simultânea (T-0):</b> Administrar indutor (ex: Etomidato 0,3 mg/kg ou Cetamina 1,5–2 mg/kg) seguido imediatamente de bloqueador neuromuscular (ex: Rocurônio 1,2 mg/kg ou Succinilcolina 1,5 mg/kg) em bolus EV rápido.',
+          '5. <b>Posicionamento e Proteção (T+45s):</b> Aguardar 45–60s para relaxamento total. Alinhamento dos eixos (posição de olfacionista).',
+          '6. <b>Passagem do Tubo com Confirmação (T+60s):</b> Laringoscopia, visualização das cordas vocais, introdução do TOT, insuflação do cuff. Confirmação imediata: capnografia em onda (padrão-ouro) + ausculta epigástrica e pulmonar bilateral.',
+          '7. <b>Pós-intubação:</b> Fixação rígida do TOT, radiografia de tórax de controle, sedoanalgesia contínua iniciada de imediato (ex: Fentanil + Midazolam/Propofol) e acoplamento em ventilação mecânica protetora.'
+        ],
+        botoes: [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    vad: function () {
+      return {
+        titulo: '🫁 AVALIAÇÃO DE VIA AÉREA DIFÍCIL (LEMON)',
+        linhas: [
+          'Mnemônico LEMON para predição de laringoscopia difícil:',
+          '• <b>L (Look externally):</b> Micrognatia, retrognatia, trauma facial, pescoço curto/espesso, barba densa, obesidade mórbida.',
+          '• <b>E (Evaluate 3-3-2):</b> Abertura bucal < 3 dedos, distância mento-hioide < 3 dedos, distância tireo-hioide < 2 dedos.',
+          '• <b>M (Mallampati):</b> Classes III (apenas base da úvula visível) e IV (apenas palato duro).',
+          '• <b>O (Obstruction):</b> Estridor, hematoma cervical, abscesso periamigdaliano, neoplasia de via aérea.',
+          '• <b>N (Neck mobility):</b> Limitação de extensão cervical (colar cervical rígido, espondilite anquilosante).',
+          '',
+          '⚠️ <b>Regra de Ouro da Sala Vermelha:</b>',
+          'Se suspeita de via aérea difícil: convoque ajuda sênior, prepare o <b>Bougie</b> desde a primeira tentativa, tenha <b>Máscara Laríngea</b> desembalada para resgate e kit de cricotireoidostomia cirúrgica à beira do leito.'
+        ],
+        botoes: [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    acidobase: function () {
+      return {
+        titulo: '🧪 FISIOLOGIA ÁCIDO-BASE · GASOMETRIA',
+        linhas: [
+          'Interpretação sistemática do equilíbrio ácido-base:',
+          '1. <b>pH:</b> &lt; 7,35 (Acidemia) | &gt; 7,45 (Alcalemia).',
+          '2. <b>Distúrbio Primário:</b> Olhar PaCO₂ e HCO₃⁻.',
+          '3. <b>Compensação Respiratória (Winter na Acidose Metabólica):</b>',
+          '   • PaCO₂ esperada = (1,5 × HCO₃⁻) + 8 ± 2',
+          '   • Se PaCO₂ aferida &gt; esperada: Acidose Respiratória associada.',
+          '   • Se PaCO₂ aferida &lt; esperada: Alcalose Respiratória associada.',
+          '4. <b>Ânion Gap:</b> Na⁺ - (Cl⁻ + HCO₃⁻) [VR: 8–12 mEq/L]. Corrigir por albumina se &lt; 4,0 g/dL.',
+          '5. <b>Razão Delta (ΔAG / ΔHCO₃):</b> (AG - 12) / (24 - HCO₃⁻).',
+          '   • &lt; 0,4: Acidose hiperclorêmica pura (AG normal).',
+          '   • 0,4–0,8: Acidose mista (AG elevado + hiperclorêmica).',
+          '   • 0,8–2,0: Acidose metabólica pura com AG elevado.',
+          '   • &gt; 2,0: Acidose com AG elevado associada a Alcalose Metabólica preexistente.'
+        ],
+        botoes: [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    oxigenacao: function () {
+      return {
+        titulo: '🫁 OXIGENAÇÃO E CRITÉRIOS DE BERLIN (SDRA)',
+        linhas: [
+          'Classificação da SDRA pela relação PaO₂ / FiO₂ (com PEEP ≥ 5 cmH₂O):',
+          '• <b>Leve:</b> 201 a 300 mmHg',
+          '• <b>Moderada:</b> 101 a 200 mmHg',
+          '• <b>Grave:</b> ≤ 100 mmHg',
+          '',
+          '<b>Pilares da Ventilação Protetora:</b>',
+          '• Volume corrente: 4 a 6 mL/kg do Peso Ideal / Predito (Fórmula de Devine).',
+          '• Pressão de platô ≤ 30 cmH₂O.',
+          '• Driving Pressure (Pressão de Distensão = Platô - PEEP) ≤ 15 cmH₂O.',
+          '• Posição Prona precoce por ≥ 16 horas contínuas se PaO₂/FiO₂ &lt; 150 mmHg.'
+        ],
+        botoes: [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    dose: function () {
+      return {
+        titulo: '🧴 PREPARO E TITULAÇÃO DE VASOATIVOS',
+        linhas: [
+          '<b>Noradrenalina:</b>',
+          '• Padrão: 4 ampolas (16 mg) + 234 mL SG 5% = 64 mcg/mL.',
+          '• Concentrada (2x): 8 ampolas (32 mg) + 218 mL SG 5% = 128 mcg/mL.',
+          '• Titulação: Iniciar a 0,05–0,1 mcg/kg/min; titular a cada 2–5 min buscando PAM ≥ 65 mmHg.',
+          '',
+          '<b>Vasopressina:</b>',
+          '• Diluição: 1 ampola (20 UI) + 99 mL SG 5% ou SF 0,9% = 0,2 UI/mL.',
+          '• Dose fixa: 0,03 UI/min (9 mL/h na bomba contínua). Não requer titulação rápida.',
+          '• Associação: Iniciar quando noradrenalina atingir 0,25–0,5 mcg/kg/min no choque séptico (Surviving Sepsis Campaign).'
+        ],
+        botoes: [[btn('🔙 Voltar ao DVA', 'ux', 'dvamenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    editar: function () {
+      return {
+        titulo: '✏️ REVISÃO DE PARÂMETROS',
+        linhas: [
+          'Para refazer este cálculo com novos valores clínicos, digite diretamente no chat os novos dados do paciente.',
+          '💡 <i>Exemplos:</i>',
+          '• Para DVA: <code>/dva nora 75 concentrada</code>',
+          '• Para SRI: <code>/sri 82 choque</code>',
+          '• Para Gaso: <code>/gaso pH 7.20, pCO2 24, HCO3 9, Na 138, Cl 102</code>',
+          '• Para DRC: <code>/calc ckd_epi Cr 1.6, idade 72, feminino</code>'
+        ],
+        botoes: [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    pdf: function () {
+      return {
+        titulo: '📄 EXPORTAÇÃO E REGISTRO',
+        linhas: [
+          'Para arquivar este resultado clínico estruturado com data e hora oficiais no seu prontuário pessoal:',
+          '• Utilize o botão <b>📁 Salvar no Notion Tasks</b> na mensagem de resumo.',
+          '• Para gerar receituário oficial em PDF para medicamentos, utilize o comando <code>/rx</code>.'
+        ],
+        botoes: [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    }
+  };
+
+  DISPATCH_ACOES_CALCULADORAS.medicamento = DISPATCH_ACOES_CALCULADORAS.ajuste;
+  DISPATCH_ACOES_CALCULADORAS.preparo = DISPATCH_ACOES_CALCULADORAS.dose;
+  DISPATCH_ACOES_CALCULADORAS.voltar = DISPATCH_ACOES_CALCULADORAS.editar;
+  DISPATCH_ACOES_CALCULADORAS.peso = DISPATCH_ACOES_CALCULADORAS.editar;
+
   function processarAcao(chatId, id, acao, args) {
     id = String(id || '').toLowerCase();
     acao = String(acao || '').toLowerCase();
-    var titulo = '';
-    var linhas = [];
-    var botoes = null;
 
-    if (acao === 'criterios') {
-      if (id === 'curb65') {
-        titulo = '📚 CRITÉRIOS · CURB-65';
-        linhas = [
-          'Escore prognóstico de mortalidade em PAC (Pneumonia Adquirida na Comunidade):',
-          '• <b>C</b>onfusão mental (AMTS ≤ 8 ou desorientação tempo/espaço) = 1 pt',
-          '• <b>U</b>reia > 50 mg/dL (BUN > 19 mg/dL) = 1 pt',
-          '• <b>R</b>espiratória (FR ≥ 30 irpm) = 1 pt',
-          '• <b>B</b>lood Pressure (PAS < 90 mmHg ou PAD ≤ 60 mmHg) = 1 pt',
-          '• <b>65</b> Idade ≥ 65 anos = 1 pt',
-          '',
-          '<b>Interpretação e Conduta:</b>',
-          '• 0–1 pt: Baixo risco (mortalidade < 3%). Tratamento ambulatorial seguro.',
-          '• 2 pts: Risco intermediário (mortalidade ~9%). Considerar internação em enfermaria.',
-          '• ≥ 3 pts: Alto risco (mortalidade 15–40%). Internação hospitalar obrigatória; ≥ 4 avaliar UTI.',
-          '',
-          '<i>Fonte: Lim WS et al. Thorax 2003 / Diretriz SBPT 2018.</i>'
-        ];
-      } else if (id === 'wells_tep') {
-        titulo = '📚 CRITÉRIOS · Wells para TEP';
-        linhas = [
-          'Escore preditivo para Tromboembolismo Pulmonar:',
-          '• Sinais/sintomas clínicos de TVP (+3,0 pts)',
-          '• Diagnóstico alternativo menos provável que TEP (+3,0 pts)',
-          '• Frequência cardíaca > 100 bpm (+1,5 pts)',
-          '• Imobilização ≥ 3 dias ou cirurgia prévia nas últimas 4 semanas (+1,5 pts)',
-          '• História prévia documentada de TVP ou TEP (+1,5 pts)',
-          '• Hemoptise (+1,0 pt)',
-          '• Neoplasia ativa em tratamento ou paliativo (+1,0 pt)',
-          '',
-          '<b>Interpretação (Modelo Dicotômico ESC 2019):</b>',
-          '• ≤ 4,0 pts: TEP Improvável. Solicitar D-Dímero de alta sensibilidade para exclusão.',
-          '• > 4,0 pts: TEP Provável. Não aguardar D-Dímero; indicar Angiotomografia de Tórax imediata.',
-          '',
-          '<i>Fonte: Wells PS et al. Thromb Haemost 2000 / ESC Guidelines 2019.</i>'
-        ];
-      } else if (id === 'hasbled') {
-        titulo = '📚 CRITÉRIOS · HAS-BLED';
-        linhas = [
-          'Escore de Risco Hemorrágico em Fibrilação Atrial:',
-          '• <b>H</b>ipertensão (PAS > 160 mmHg não controlada) = 1 pt',
-          '• <b>A</b>bnormal Renal ou Hepático (1 pt cada, máx 2)',
-          '• <b>S</b>troke (história prévia de AVC) = 1 pt',
-          '• <b>B</b>leeding (história de sangramento maior ou predisposição) = 1 pt',
-          '• <b>L</b>ábil INR (tempo na faixa terapêutica < 60%) = 1 pt',
-          '• <b>E</b>lderly (Idade > 65 anos) = 1 pt',
-          '• <b>D</b>rogas ou Álcool (AINEs/antiagregantes ou etilismo, 1 pt cada, máx 2)',
-          '',
-          '<b>Interpretação:</b>',
-          '• ≥ 3 pts: Alto risco de sangramento. <b>Atenção:</b> HAS-BLED elevado NÃO contraindica anticoagulação; sinaliza necessidade de vigilância intensiva e correção de fatores modificáveis.',
-          '',
-          '<i>Fonte: Pisters R et al. Chest 2010 / SBC Diretriz de FA 2025.</i>'
-        ];
-      } else if (id === 'cha2ds2va') {
-        titulo = '📚 CRITÉRIOS · CHA₂DS₂-VA (ESC 2024 / SBC 2025)';
-        linhas = [
-          'Prevenção de AVC na Fibrilação Atrial (escala 0–8):',
-          '• <b>C</b> Insuficiência Cardíaca congestiva / disfunção VE = 1 pt',
-          '• <b>H</b> Hipertensão arterial sistêmica = 1 pt',
-          '• <b>A₂</b> Idade ≥ 75 anos = 2 pts',
-          '• <b>D</b> Diabetes Mellitus = 1 pt',
-          '• <b>S₂</b> AVC / AIT / Tromboembolismo prévio = 2 pts',
-          '• <b>V</b> Doença Vascular (IAM prévio, DAP, placa aórtica) = 1 pt',
-          '• <b>A</b> Idade 65–74 anos = 1 pt',
-          '*(Critério sexo feminino retirado das diretrizes ESC 2024 e SBC 2025)*',
-          '',
-          '<b>Conduta:</b>',
-          '• 0 pt: Sem terapia antitrombótica.',
-          '• 1 pt: Anticoagulação deve ser considerada (classe IIa).',
-          '• ≥ 2 pts: Anticoagulação oral recomendada (classe I) — preferencialmente DOACs.',
-          '',
-          '<i>Fonte: ESC Guidelines AF 2024 / Diretriz SBC 2025.</i>'
-        ];
-      } else if (id === 'kdigo_ira') {
-        titulo = '📚 CRITÉRIOS · KDIGO para Injúria Renal Aguda';
-        linhas = [
-          'Estadiamento de IRA baseado em Creatinina e Débito Urinário:',
-          '• <b>Estágio 1:</b> Cr 1,5–1,9× o basal OU aumento ≥ 0,3 mg/dL em 48h; DU < 0,5 mL/kg/h por 6–12h.',
-          '• <b>Estágio 2:</b> Cr 2,0–2,9× o basal; DU < 0,5 mL/kg/h por ≥ 12h.',
-          '• <b>Estágio 3:</b> Cr 3,0× o basal OU Cr ≥ 4,0 mg/dL com aumento agudo ≥ 0,5 mg/dL OU início de TRS; DU < 0,3 mL/kg/h por ≥ 24h ou anúria por ≥ 12h.',
-          '',
-          '<i>Fonte: KDIGO AKI Guidelines 2012.</i>'
-        ];
-      } else {
-        titulo = '📚 CRITÉRIOS · ' + id.toUpperCase();
-        linhas = [
-          'Critérios validados de acordo com a literatura médica de referência.',
-          'Utilize a calculadora fornecendo os dados clínicos correspondentes.'
-        ];
-      }
-    } else if (acao === 'ajuste' || acao === 'medicamento') {
-      titulo = '💊 REVISÃO DE AJUSTE RENAL DE FÁRMACOS';
-      linhas = [
-        'Ajuste posológico conforme estimativa da função renal:',
-        '• Utilize <b>Cockcroft-Gault</b> com peso ajustado (Devine) para antibióticos, quimioterápicos e bulas de DOACs.',
-        '• Utilize <b>CKD-EPI 2021</b> para estadiamento crônico de DRC e prognóstico.',
-        '',
-        '<b>Para revisar um medicamento específico:</b>',
-        'Envie: <code>/rx &lt;medicamento&gt; ClCr &lt;valor&gt;</code> ou <code>/rx &lt;medicamento&gt; DRC estádio &lt;G3a-G5&gt;</code>',
-        '',
-        '⚠️ <i>Nenhuma dose foi alterada automaticamente. Confirme sempre na bula do medicamento e no protocolo institucional.</i>'
-      ];
-    } else if (acao === 'anticoag') {
-      titulo = '🩸 CONDUTA EM ANTICOAGULAÇÃO (FA)';
-      linhas = [
-        'Recomendações da Diretriz Brasileira de FA (2025) e ESC (2024):',
-        '• <b>DOACs como 1ª linha:</b> Apixabana, Rivaroxabana, Dabigatrana ou Edoxabana (preferíveis à Varfarina na ausência de prótese valvar mecânica ou estenose mitral moderada/grave).',
-        '• <b>Critérios de Dose Reduzida (Apixabana):</b> Se 2 de 3: Idade ≥ 80a, Peso ≤ 60kg, Cr ≥ 1,5 mg/dL ➔ reduzir para 2,5 mg 12/12h.',
-        '• <b>Rivaroxabana:</b> ClCr 15–49 mL/min ➔ reduzir de 20 mg/dia para 15 mg/dia.',
-        '',
-        'Calcule também o risco hemorrágico com HAS-BLED para acompanhamento seguro.'
-      ];
-    } else if (acao === 'checklist') {
-      titulo = '✅ CHECKLIST DOS 7 Ps · SRI / IOT';
-      linhas = [
-        'Sequência cronológica para intubação em via aérea de emergência:',
-        '1. <b>Planejamento e Preparação (T-10 min):</b> Monitorização contínua, acesso venoso pérvio, laringo/videolaringo testado, tubos com guia, aspiração montada, drogas aspiradas e rotuladas, material de resgate (Bougie, Máscara Laríngea).',
-        '2. <b>Pré-oxigenação (T-5 min):</b> FiO₂ 100% sob máscara com reservatório a 15 L/min por 3–5 min ou 8 incursões vitais profundas. Elevar cabeceira 20–30° (rampa se obeso).',
-        '3. <b>Pré-tratamento / Otimização (T-3 min):</b> Ressuscitação hemodinâmica antes da indução (cristaloide ou noradrenalina em push-dose se PAM baixa). Fentanil se trauma de crânio ou dissecção de aorta.',
-        '4. <b>Paralisia com Indução Simultânea (T-0):</b> Administrar indutor (ex: Etomidato 0,3 mg/kg ou Cetamina 1,5–2 mg/kg) seguido imediatamente de bloqueador neuromuscular (ex: Rocurônio 1,2 mg/kg ou Succinilcolina 1,5 mg/kg) em bolus EV rápido.',
-        '5. <b>Posicionamento e Proteção (T+45s):</b> Aguardar 45–60s para relaxamento total. Alinhamento dos eixos (posição de olfacionista).',
-        '6. <b>Passagem do Tubo com Confirmação (T+60s):</b> Laringoscopia, visualização das cordas vocais, introdução do TOT, insuflação do cuff. Confirmação imediata: capnografia em onda (padrão-ouro) + ausculta epigástrica e pulmonar bilateral.',
-        '7. <b>Pós-intubação:</b> Fixação rígida do TOT, radiografia de tórax de controle, sedoanalgesia contínua iniciada de imediato (ex: Fentanil + Midazolam/Propofol) e acoplamento em ventilação mecânica protetora.'
-      ];
-      botoes = [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'vad') {
-      titulo = '🫁 AVALIAÇÃO DE VIA AÉREA DIFÍCIL (LEMON)';
-      linhas = [
-        'Mnemônico LEMON para predição de laringoscopia difícil:',
-        '• <b>L (Look externally):</b> Micrognatia, retrognatia, trauma facial, pescoço curto/espesso, barba densa, obesidade mórbida.',
-        '• <b>E (Evaluate 3-3-2):</b> Abertura bucal < 3 dedos, distância mento-hioide < 3 dedos, distância tireo-hioide < 2 dedos.',
-        '• <b>M (Mallampati):</b> Classes III (apenas base da úvula visível) e IV (apenas palato duro).',
-        '• <b>O (Obstruction):</b> Estridor, hematoma cervical, abscesso periamigdaliano, neoplasia de via aérea.',
-        '• <b>N (Neck mobility):</b> Limitação de extensão cervical (colar cervical rígido, espondilite anquilosante).',
-        '',
-        '⚠️ <b>Regra de Ouro da Sala Vermelha:</b>',
-        'Se suspeita de via aérea difícil: convoque ajuda sênior, prepare o <b>Bougie</b> desde a primeira tentativa, tenha <b>Máscara Laríngea</b> desembalada para resgate e kit de cricotireoidostomia cirúrgica à beira do leito.'
-      ];
-      botoes = [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'acidobase') {
-      titulo = '🧪 FISIOLOGIA ÁCIDO-BASE · GASOMETRIA';
-      linhas = [
-        'Interpretação sistemática do equilíbrio ácido-base:',
-        '1. <b>pH:</b> &lt; 7,35 (Acidemia) | &gt; 7,45 (Alcalemia).',
-        '2. <b>Distúrbio Primário:</b> Olhar PaCO₂ e HCO₃⁻.',
-        '3. <b>Compensação Respiratória (Winter na Acidose Metabólica):</b>',
-        '   • PaCO₂ esperada = (1,5 × HCO₃⁻) + 8 ± 2',
-        '   • Se PaCO₂ aferida &gt; esperada: Acidose Respiratória associada.',
-        '   • Se PaCO₂ aferida &lt; esperada: Alcalose Respiratória associada.',
-        '4. <b>Ânion Gap:</b> Na⁺ - (Cl⁻ + HCO₃⁻) [VR: 8–12 mEq/L]. Corrigir por albumina se &lt; 4,0 g/dL.',
-        '5. <b>Razão Delta (ΔAG / ΔHCO₃):</b> (AG - 12) / (24 - HCO₃⁻).',
-        '   • &lt; 0,4: Acidose hiperclorêmica pura (AG normal).',
-        '   • 0,4–0,8: Acidose mista (AG elevado + hiperclorêmica).',
-        '   • 0,8–2,0: Acidose metabólica pura com AG elevado.',
-        '   • &gt; 2,0: Acidose com AG elevado associada a Alcalose Metabólica preexistente.'
-      ];
-      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'oxigenacao') {
-      titulo = '🫁 OXIGENAÇÃO E CRITÉRIOS DE BERLIN (SDRA)';
-      linhas = [
-        'Classificação da SDRA pela relação PaO₂ / FiO₂ (com PEEP ≥ 5 cmH₂O):',
-        '• <b>Leve:</b> 201 a 300 mmHg',
-        '• <b>Moderada:</b> 101 a 200 mmHg',
-        '• <b>Grave:</b> ≤ 100 mmHg',
-        '',
-        '<b>Pilares da Ventilação Protetora:</b>',
-        '• Volume corrente: 4 a 6 mL/kg do Peso Ideal / Predito (Fórmula de Devine).',
-        '• Pressão de platô ≤ 30 cmH₂O.',
-        '• Driving Pressure (Pressão de Distensão = Platô - PEEP) ≤ 15 cmH₂O.',
-        '• Posição Prona precoce por ≥ 16 horas contínuas se PaO₂/FiO₂ &lt; 150 mmHg.'
-      ];
-      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'dose' || acao === 'preparo') {
-      titulo = '🧴 PREPARO E TITULAÇÃO DE VASOATIVOS';
-      linhas = [
-        '<b>Noradrenalina:</b>',
-        '• Padrão: 4 ampolas (16 mg) + 234 mL SG 5% = 64 mcg/mL.',
-        '• Concentrada (2x): 8 ampolas (32 mg) + 218 mL SG 5% = 128 mcg/mL.',
-        '• Titulação: Iniciar a 0,05–0,1 mcg/kg/min; titular a cada 2–5 min buscando PAM ≥ 65 mmHg.',
-        '',
-        '<b>Vasopressina:</b>',
-        '• Diluição: 1 ampola (20 UI) + 99 mL SG 5% ou SF 0,9% = 0,2 UI/mL.',
-        '• Dose fixa: 0,03 UI/min (9 mL/h na bomba contínua). Não requer titulação rápida.',
-        '• Associação: Iniciar quando noradrenalina atingir 0,25–0,5 mcg/kg/min no choque séptico (Surviving Sepsis Campaign).'
-      ];
-      botoes = [[btn('🔙 Voltar ao DVA', 'ux', 'dvamenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'editar' || acao === 'voltar' || acao === 'peso') {
-      titulo = '✏️ REVISÃO DE PARÂMETROS';
-      linhas = [
-        'Para refazer este cálculo com novos valores clínicos, digite diretamente no chat os novos dados do paciente.',
-        '💡 <i>Exemplos:</i>',
-        '• Para DVA: <code>/dva nora 75 concentrada</code>',
-        '• Para SRI: <code>/sri 82 choque</code>',
-        '• Para Gaso: <code>/gaso pH 7.20, pCO2 24, HCO3 9, Na 138, Cl 102</code>',
-        '• Para DRC: <code>/calc ckd_epi Cr 1.6, idade 72, feminino</code>'
-      ];
-      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'pdf') {
-      titulo = '📄 EXPORTAÇÃO E REGISTRO';
-      linhas = [
-        'Para arquivar este resultado clínico estruturado com data e hora oficiais no seu prontuário pessoal:',
-        '• Utilize o botão <b>📁 Salvar no Notion Tasks</b> na mensagem de resumo.',
-        '• Para gerar receituário oficial em PDF para medicamentos, utilize o comando <code>/rx</code>.'
-      ];
-      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else {
-      titulo = 'ℹ️ INFORMAÇÕES DA CALCULADORA (' + id.toUpperCase() + ')';
-      linhas = [
+    var handler = DISPATCH_ACOES_CALCULADORAS[acao];
+    var res = handler ? handler(id, args) : {
+      titulo: 'ℹ️ INFORMAÇÕES DA CALCULADORA (' + id.toUpperCase() + ')',
+      linhas: [
         'Ação solicitada: ' + acao,
         'Módulo determinístico de apoio à decisão clínica validado (v3.0).'
-      ];
-    }
+      ],
+      botoes: null
+    };
 
-    var textoFormatado = '<b>' + titulo + '</b>\n\n' + linhas.join('\n');
+    var textoFormatado = '<b>' + res.titulo + '</b>\n\n' + res.linhas.join('\n');
     return {
       ok: true,
       id: id,
       acao: acao,
       textoFormatado: textoFormatado,
-      botoes: botoes
+      botoes: res.botoes || null
     };
   }
 

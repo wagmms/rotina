@@ -14,12 +14,23 @@ const helmet = require('@fastify/helmet');
 const rateLimit = require('@fastify/rate-limit');
 const runtime = require('./runtime');
 const {
-  validarParametrosCalculadora,
   cockpitBodySchema,
   calcularBodySchema,
   chatBodySchema,
   telemetriaQuerySchema
 } = require('./validators');
+const {
+  preValidationCalcular,
+  handlerCalcular
+} = require('./controllers/calculadora.controller');
+const {
+  preValidationCockpit,
+  handlerCockpit
+} = require('./controllers/cockpit.controller');
+const {
+  preValidationChat,
+  handlerChat
+} = require('./controllers/chat.controller');
 
 function ehErroAutenticacaoOuSessao(err) {
   if (!err) return false;
@@ -531,477 +542,31 @@ async function buildServer() {
     schema: {
       body: calcularBodySchema
     },
-    preValidation: (request, reply, done) => {
-      let body = request.body;
-      if (typeof body === 'string') {
-        try {
-          body = JSON.parse(body);
-          request.body = body;
-        } catch (_) {
-          reply.status(400).send({
-            ok: false,
-            erro: 'Corpo da requisição contém JSON malformado ou string não parseável.',
-            detalhes: 'Não foi possível converter a entrada para um objeto JSON válido.',
-            requestId: request.id
-          });
-          return;
-        }
-      }
-      if (!body || typeof body !== 'object' || Array.isArray(body)) {
-        reply.status(400).send({
-          ok: false,
-          erro: 'Payload da requisição deve ser um objeto JSON não nulo.',
-          detalhes: 'O corpo recebido não é um objeto JSON válido.',
-          requestId: request.id
-        });
-        return;
-      }
-
-      if (Object.getPrototypeOf(body) !== Object.prototype && Object.getPrototypeOf(body) !== null) {
-        reply.status(400).send({
-          ok: false,
-          erro: 'Payload contém protótipo alterado ou propriedade reservada proibida.',
-          detalhes: 'Tentativa de prototype pollution bloqueada.',
-          requestId: request.id
-        });
-        return;
-      }
-      for (const k of ['__proto__', 'constructor', 'prototype']) {
-        if (Object.prototype.hasOwnProperty.call(body, k)) {
-          reply.status(400).send({
-            ok: false,
-            erro: 'Payload contém propriedade reservada proibida.',
-            detalhes: 'Tentativa de prototype pollution bloqueada.',
-            requestId: request.id
-          });
-          return;
-        }
-      }
-
-      const { tipo, parametros } = body;
-      const validacao = validarParametrosCalculadora(tipo, parametros);
-      if (!validacao.valido) {
-        reply.status(400).send({
-          ok: false,
-          erro: `Parâmetros inválidos para a calculadora: ${validacao.erro}`,
-          detalhes: validacao.erro,
-          requestId: request.id
-        });
-        return;
-      }
-      request.body.parametros = validacao.entradaSanitizada;
-      done();
-    }
-  }, async (request, reply) => {
-    const t0 = performance.now();
-    try {
-      const { tipo, parametros, session, token } = request.body;
-      const sessao = session || token || '';
-      const resultado = runtime.cockpitRpc('cockpitCalcular', sessao, [tipo, parametros]);
-      const elapsed = (performance.now() - t0).toFixed(2);
-
-      registrarInteracaoAoVivo({
-        origem: 'fastify_rest_calc',
-        tipo: 'calculadora',
-        resumo: `Calc REST: ${tipo}`,
-        duracao_ms: Number(elapsed),
-        status: 'sucesso'
-      });
-
-      return {
-        ok: true,
-        tipo,
-        resultado,
-        benchmark_ms: Number(elapsed)
-      };
-    } catch (err) {
-      const elapsed = (performance.now() - t0).toFixed(2);
-      const isAuthError = ehErroAutenticacaoOuSessao(err);
-      reply.status(isAuthError ? 401 : 400);
-      return {
-        ok: false,
-        erro: sanitizarMensagemErro(err.message) || 'Falha ao processar cálculo clínico.',
-        detalhes: sanitizarMensagemErro(err.message),
-        benchmark_ms: Number(elapsed),
-        requestId: request.id
-      };
-    }
-  });
+    preValidation: preValidationCalcular
+  }, (request, reply) => handlerCalcular(request, reply, runtime, { registrarInteracaoAoVivo }));
 
   // 5. API RPC DO COCKPIT PWA (Substitui o doGet/doPost lento do GAS)
-  // Métodos de leitura idempotentes — respostas podem ser cacheadas com stale-while-revalidate
-  const COCKPIT_READ_METHODS = new Set([
-    'cockpitConsultar', 'cockpitPerfil', 'cockpitRemume', 'cockpitAulasProgresso',
-    'cockpitBuscarCid', 'cockpitEstratificarRisco', 'cockpitConsultarFarmaco'
-  ]);
   fastify.post('/api/cockpit', {
     schema: {
       body: cockpitBodySchema
     },
-    preValidation: (request, reply, done) => {
-      let body = request.body;
-      if (typeof body === 'string') {
-        try {
-          body = JSON.parse(body);
-          request.body = body;
-        } catch (_) {
-          reply.status(400).send({
-            ok: false,
-            erro: 'Corpo da requisição contém JSON malformado ou string não parseável.',
-            detalhes: 'Não foi possível converter a entrada para um objeto JSON válido.',
-            requestId: request.id
-          });
-          return;
-        }
-      }
-      if (!body || typeof body !== 'object' || Array.isArray(body)) {
-        reply.status(400).send({
-          ok: false,
-          erro: 'Payload do Cockpit deve ser um objeto JSON não nulo.',
-          detalhes: 'O corpo recebido não é um objeto JSON válido.',
-          requestId: request.id
-        });
-        return;
-      }
-      if (Object.getPrototypeOf(body) !== Object.prototype && Object.getPrototypeOf(body) !== null) {
-        reply.status(400).send({
-          ok: false,
-          erro: 'Payload contém protótipo alterado ou propriedade reservada proibida.',
-          detalhes: 'Tentativa de prototype pollution bloqueada.',
-          requestId: request.id
-        });
-        return;
-      }
-      for (const k of ['__proto__', 'constructor', 'prototype']) {
-        if (Object.prototype.hasOwnProperty.call(body, k)) {
-          reply.status(400).send({
-            ok: false,
-            erro: 'Payload contém propriedade reservada proibida.',
-            detalhes: 'Tentativa de prototype pollution bloqueada.',
-            requestId: request.id
-          });
-          return;
-        }
-      }
-      const metodo = typeof body.metodo === 'string' ? body.metodo.trim() : '';
-      if (!metodo) {
-        reply.status(400).send({
-          ok: false,
-          erro: 'Parâmetro "metodo" deve ser uma string válida.',
-          detalhes: 'O método RPC solicitado não foi informado ou é inválido.',
-          requestId: request.id
-        });
-        return;
-      }
-      if (metodo === '__proto__' || metodo === 'constructor' || metodo === 'prototype') {
-        reply.status(400).send({
-          ok: false,
-          erro: 'Método solicitado inválido ou proibido.',
-          detalhes: 'Tentativa de acesso a propriedade reservada.',
-          requestId: request.id
-        });
-        return;
-      }
-
-      // Validação e sanitização estrita para calculadoras clínicas no handshake
-      if (metodo === 'cockpitCalcular') {
-        let args = body.args;
-        if (!Array.isArray(args) || args.length < 2) {
-          reply.status(400).send({
-            ok: false,
-            erro: 'Argumentos de cálculo devem conter [tipo, parametros].',
-            detalhes: 'Esperado array com tipo de calculadora e objeto de parâmetros.',
-            requestId: request.id
-          });
-          return;
-        }
-        const tipo = args[0];
-        const entrada = args[1];
-        const validacao = validarParametrosCalculadora(tipo, entrada);
-        if (!validacao.valido) {
-          reply.status(400).send({
-            ok: false,
-            erro: `Parâmetros inválidos para a calculadora: ${validacao.erro}`,
-            detalhes: validacao.erro,
-            requestId: request.id
-          });
-          return;
-        }
-        args[1] = validacao.entradaSanitizada;
-      }
-      done();
-    }
-  }, async (request, reply) => {
-    const t0 = performance.now();
-    try {
-      let body = request.body;
-      if (typeof body === 'string') {
-        try { body = JSON.parse(body); } catch (e) { body = {}; }
-      }
-      body = body || {};
-
-      const metodo = (body && typeof body.metodo === 'string') ? body.metodo.trim() : '';
-      const session = (body && (body.session || body.token)) ? String(body.session || body.token) : '';
-      let args = body && body.args;
-      if (args === undefined || args === null) {
-        args = [];
-      } else if (!Array.isArray(args)) {
-        args = [args];
-      }
-
-      if (!metodo) {
-        reply.status(400);
-        return { ok: false, erro: 'Parâmetro "metodo" deve ser uma string válida.' };
-      }
-
-      // 5.1 Otimização de Caching HTTP para Catálogo REMUME (ETag e 304 Condicional)
-      if (metodo === 'cockpitRemume') {
-        const { payload: remumeData, etag: remumeEtag } = obterRemumeCacheada();
-        reply.header('ETag', remumeEtag);
-        reply.header('Cache-Control', 'private, max-age=3600, stale-while-revalidate=86400');
-
-        if (etagCorresponde(request.headers['if-none-match'], remumeEtag)) {
-          reply.status(304).send();
-          return;
-        }
-
-        const clientEtag = (body && body.etag) || (args && args[0] && args[0].etag);
-        if (clientEtag && etagCorresponde(String(clientEtag), remumeEtag)) {
-          const elapsed = (performance.now() - t0).toFixed(2);
-          return {
-            ok: true,
-            notModified: true,
-            etag: remumeEtag,
-            benchmark_ms: Number(elapsed)
-          };
-        }
-      }
-
-      const resultado = runtime.cockpitRpc(metodo, session, args);
-      const elapsed = (performance.now() - t0).toFixed(2);
-
-      // Métodos de leitura: cabeçalhos de cache otimizados com stale-while-revalidate
-      if (metodo === 'cockpitRemume') {
-        const { etag: remumeEtag } = obterRemumeCacheada();
-        reply.header('ETag', remumeEtag);
-        reply.header('Cache-Control', 'private, max-age=3600, stale-while-revalidate=86400');
-      } else if (metodo === 'cockpitConsultar' || metodo === 'cockpitPerfil') {
-        reply.header('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
-      } else if (metodo === 'cockpitBuscarCid' || metodo === 'cockpitAulasProgresso' || metodo === 'cockpitEstratificarRisco') {
-        reply.header('Cache-Control', 'private, max-age=1800, stale-while-revalidate=86400');
-      } else if (COCKPIT_READ_METHODS.has(metodo)) {
-        reply.header('Cache-Control', 'private, max-age=30, stale-while-revalidate=120');
-      } else {
-        reply.header('Cache-Control', 'no-store');
-      }
-
-      // Telemetria ao vivo da interação no Cockpit
-      registrarInteracaoAoVivo({
-        origem: 'cockpit_pwa',
-        tipo: 'rpc',
-        resumo: `RPC: ${metodo}${args && args[0] && args[0].acao ? ' (' + args[0].acao + ')' : ''}`,
-        duracao_ms: Number(elapsed),
-        status: 'sucesso'
-      });
-
-      return {
-        ok: true,
-        resultado,
-        benchmark_ms: Number(elapsed)
-      };
-    } catch (err) {
-      const elapsed = (performance.now() - t0).toFixed(2);
-      fastify.log.warn(`[Cockpit RPC Error] ${err.message} (${elapsed}ms)`);
-      
-      registrarInteracaoAoVivo({
-        origem: 'cockpit_pwa',
-        tipo: 'rpc',
-        resumo: `RPC: ${request.body?.metodo || 'desconhecido'}`,
-        duracao_ms: Number(elapsed),
-        status: 'erro',
-        detalhes: err.message
-      });
-
-      reply.header('Cache-Control', 'no-store');
-      const isAuthError = ehErroAutenticacaoOuSessao(err);
-      reply.status(isAuthError ? 401 : 400);
-      return {
-        ok: false,
-        erro: sanitizarMensagemErro(err.message) || 'Falha ao processar solicitação clínica.',
-        detalhes: sanitizarMensagemErro(err.message),
-        benchmark_ms: Number(elapsed),
-        requestId: request.id
-      };
-    }
-  });
+    preValidation: preValidationCockpit
+  }, (request, reply) => handlerCockpit(request, reply, runtime, {
+    obterRemumeCacheada,
+    registrarInteracaoAoVivo,
+    fastifyLog: fastify.log
+  }));
 
   // 5.0.2 Endpoint REST Dedicado para Chat Clínico e Assistente IA (/api/chat)
   fastify.post('/api/chat', {
     schema: {
       body: chatBodySchema
     },
-    preValidation: (request, reply, done) => {
-      let body = request.body;
-      if (typeof body === 'string') {
-        try {
-          body = JSON.parse(body);
-          request.body = body;
-        } catch (_) {
-          reply.status(400).send({
-            ok: false,
-            erro: 'Corpo da requisição contém JSON malformado ou string não parseável.',
-            detalhes: 'Não foi possível converter a entrada para um objeto JSON válido.',
-            requestId: request.id
-          });
-          return;
-        }
-      }
-      if (!body || typeof body !== 'object' || Array.isArray(body)) {
-        reply.status(400).send({
-          ok: false,
-          erro: 'Payload do Chat deve ser um objeto JSON não nulo.',
-          detalhes: 'O corpo recebido não é um objeto JSON válido.',
-          requestId: request.id
-        });
-        return;
-      }
-      if (Object.getPrototypeOf(body) !== Object.prototype && Object.getPrototypeOf(body) !== null) {
-        reply.status(400).send({
-          ok: false,
-          erro: 'Payload contém protótipo alterado ou propriedade reservada proibida.',
-          detalhes: 'Tentativa de prototype pollution bloqueada.',
-          requestId: request.id
-        });
-        return;
-      }
-      for (const k of ['__proto__', 'constructor', 'prototype']) {
-        if (Object.prototype.hasOwnProperty.call(body, k)) {
-          reply.status(400).send({
-            ok: false,
-            erro: 'Payload contém propriedade reservada proibida.',
-            detalhes: 'Tentativa de prototype pollution bloqueada.',
-            requestId: request.id
-          });
-          return;
-        }
-      }
-      done();
-    }
-  }, async (request, reply) => {
-    const t0 = performance.now();
-    try {
-      const body = request.body || {};
-      const session = body.session || body.token || (typeof request.headers['authorization'] === 'string' ? request.headers['authorization'].replace(/^Bearer\s+/i, '').trim() : '') || '';
-      const texto = body.mensagem || body.texto || body.prompt || '';
-      const acao = typeof body.acao === 'string' ? body.acao.trim() : 'enviar';
-      const audioBase64 = body.audioBase64 || null;
-      const mime = typeof body.mime === 'string' ? body.mime.trim() : 'audio/webm';
-
-      if (!session) {
-        reply.status(401).send({
-          ok: false,
-          erro: 'Sessão ausente, inválida ou expirada. Autentique-se via Telegram para interagir com o chat clínico.',
-          detalhes: 'Token de sessão do Cockpit não fornecido.',
-          requestId: request.id
-        });
-        return;
-      }
-
-      const params = {
-        acao,
-        texto: String(texto),
-        audioBase64,
-        mime,
-        fallbackLocal: !!body.fallbackLocal
-      };
-
-      const resultado = runtime.cockpitRpc('cockpitConversar', session, [params]);
-      const elapsed = (performance.now() - t0).toFixed(2);
-
-      registrarInteracaoAoVivo({
-        origem: 'fastify_rest_chat',
-        tipo: 'chat',
-        resumo: `Chat REST: ${acao} - "${String(texto).slice(0, 40)}"`,
-        duracao_ms: Number(elapsed),
-        status: 'sucesso'
-      });
-
-      return {
-        ok: true,
-        resultado,
-        resposta: resultado?.resposta || resultado?.mensagem || resultado,
-        soap: resultado?.soap || '',
-        benchmark_ms: Number(elapsed),
-        contingencia_offline: !!(
-          resultado?.contingencia_offline ||
-          resultado?.deterministico ||
-          resultado?.offline_disponivel ||
-          (typeof (resultado?.resposta || resultado?.mensagem || '') === 'string' && /conting[êe]ncia|modo\s+offline|protocolos?\s+offline|offline/i.test(String(resultado?.resposta || resultado?.mensagem || '')))
-        )
-      };
-    } catch (err) {
-      const elapsed = (performance.now() - t0).toFixed(2);
-      fastify.log.warn(`[Chat REST Error] ${err.message} (${elapsed}ms)`);
-
-      const isAuthError = ehErroAutenticacaoOuSessao(err);
-
-      // Fast-Ack / Fallback de Alta Disponibilidade para o Chat Beira-Leito:
-      // Se NÃO for erro de autenticação e for erro de IA/timeout/provedor ou solicitação explícita de fallback:
-      const body = request.body || {};
-      const texto = body.mensagem || body.texto || body.prompt || '';
-      const ehErroIA = err.message && (/ia|gemini|timeout|timed\s*out|provedor|fetch|quota|socket|redirecionar|conexão/i.test(err.message));
-      if (!isAuthError && texto && (ehErroIA || body.fallbackLocal)) {
-        try {
-          const fallbackRes = (runtime.ctx.executarFallbackLocalOffline && typeof runtime.ctx.executarFallbackLocalOffline === 'function')
-            ? runtime.ctx.executarFallbackLocalOffline('Você é copiloto médico de emergência.', String(texto), { clinico: true })
-            : (runtime.ctx.IaLocalFallbackService ? runtime.ctx.IaLocalFallbackService.gerarRespostaOfflineClinica(null, String(texto)) : null);
-
-          if (fallbackRes) {
-            registrarInteracaoAoVivo({
-              origem: 'fastify_rest_chat',
-              tipo: 'chat_fallback',
-              resumo: `Chat Fallback: "${String(texto).slice(0, 40)}"`,
-              duracao_ms: Number(elapsed),
-              status: 'fallback'
-            });
-
-            return {
-              ok: true,
-              contingencia_offline: true,
-              origem: 'fallback_local_offline',
-              resultado: { resposta: String(fallbackRes), soap: String(fallbackRes), contingencia_offline: true },
-              resposta: String(fallbackRes),
-              soap: String(fallbackRes),
-              aviso: 'Processado pelo Motor de Fallback Local Offline após indisponibilidade temporária do provedor em nuvem.',
-              benchmark_ms: Number(elapsed)
-            };
-          }
-        } catch (eFallback) {
-          fastify.log.warn(`[Chat Fallback Error] ${eFallback.message}`);
-        }
-      }
-
-      registrarInteracaoAoVivo({
-        origem: 'fastify_rest_chat',
-        tipo: 'chat',
-        resumo: `Chat REST: ${request.body?.acao || 'enviar'}`,
-        duracao_ms: Number(elapsed),
-        status: 'erro',
-        detalhes: err.message
-      });
-
-      reply.status(isAuthError ? 401 : 400);
-      return {
-        ok: false,
-        erro: isAuthError
-          ? 'Sessão ausente, inválida ou expirada. Autentique-se via Telegram para interagir com o chat clínico.'
-          : (sanitizarMensagemErro(err.message) || 'Falha ao processar mensagem do chat clínico.'),
-        detalhes: sanitizarMensagemErro(err.message),
-        benchmark_ms: Number(elapsed),
-        requestId: request.id
-      };
-    }
-  });
+    preValidation: preValidationChat
+  }, (request, reply) => handlerChat(request, reply, runtime, {
+    registrarInteracaoAoVivo,
+    fastifyLog: fastify.log
+  }));
 
   // 5.1. TELEMETRIA AO VIVO: Consulta das últimas interações do Bot e Cockpit
   fastify.get('/api/telemetria/ao-vivo', {

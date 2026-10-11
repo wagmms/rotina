@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 11:56:55
- * Checksum SHA256: a24f5981734f97c9
+ * Gerado automaticamente via build_master.py em: 2026-10-11 15:32:46
+ * Checksum SHA256: c4b7484727191dba
  * ==============================================================================
  */
 
@@ -4103,233 +4103,284 @@ var CalculadorasClinicas = (function () {
     return f;
   }
 
+  // ═════════════════════════════ DISPATCH DE AÇÕES E CRITÉRIOS ═════════════════════════════
+
+  var DISPATCH_CRITERIOS_ESCORES = {
+    curb65: {
+      titulo: '📚 CRITÉRIOS · CURB-65',
+      linhas: [
+        'Escore prognóstico de mortalidade em PAC (Pneumonia Adquirida na Comunidade):',
+        '• <b>C</b>onfusão mental (AMTS ≤ 8 ou desorientação tempo/espaço) = 1 pt',
+        '• <b>U</b>reia > 50 mg/dL (BUN > 19 mg/dL) = 1 pt',
+        '• <b>R</b>espiratória (FR ≥ 30 irpm) = 1 pt',
+        '• <b>B</b>lood Pressure (PAS < 90 mmHg ou PAD ≤ 60 mmHg) = 1 pt',
+        '• <b>65</b> Idade ≥ 65 anos = 1 pt',
+        '',
+        '<b>Interpretação e Conduta:</b>',
+        '• 0–1 pt: Baixo risco (mortalidade < 3%). Tratamento ambulatorial seguro.',
+        '• 2 pts: Risco intermediário (mortalidade ~9%). Considerar internação em enfermaria.',
+        '• ≥ 3 pts: Alto risco (mortalidade 15–40%). Internação hospitalar obrigatória; ≥ 4 avaliar UTI.',
+        '',
+        '<i>Fonte: Lim WS et al. Thorax 2003 / Diretriz SBPT 2018.</i>'
+      ]
+    },
+    wells_tep: {
+      titulo: '📚 CRITÉRIOS · Wells para TEP',
+      linhas: [
+        'Escore preditivo para Tromboembolismo Pulmonar:',
+        '• Sinais/sintomas clínicos de TVP (+3,0 pts)',
+        '• Diagnóstico alternativo menos provável que TEP (+3,0 pts)',
+        '• Frequência cardíaca > 100 bpm (+1,5 pts)',
+        '• Imobilização ≥ 3 dias ou cirurgia prévia nas últimas 4 semanas (+1,5 pts)',
+        '• História prévia documentada de TVP ou TEP (+1,5 pts)',
+        '• Hemoptise (+1,0 pt)',
+        '• Neoplasia ativa em tratamento ou paliativo (+1,0 pt)',
+        '',
+        '<b>Interpretação (Modelo Dicotômico ESC 2019):</b>',
+        '• ≤ 4,0 pts: TEP Improvável. Solicitar D-Dímero de alta sensibilidade para exclusão.',
+        '• > 4,0 pts: TEP Provável. Não aguardar D-Dímero; indicar Angiotomografia de Tórax imediata.',
+        '',
+        '<i>Fonte: Wells PS et al. Thromb Haemost 2000 / ESC Guidelines 2019.</i>'
+      ]
+    },
+    hasbled: {
+      titulo: '📚 CRITÉRIOS · HAS-BLED',
+      linhas: [
+        'Escore de Risco Hemorrágico em Fibrilação Atrial:',
+        '• <b>H</b>ipertensão (PAS > 160 mmHg não controlada) = 1 pt',
+        '• <b>A</b>bnormal Renal ou Hepático (1 pt cada, máx 2)',
+        '• <b>S</b>troke (história prévia de AVC) = 1 pt',
+        '• <b>B</b>leeding (história de sangramento maior ou predisposição) = 1 pt',
+        '• <b>L</b>ábil INR (tempo na faixa terapêutica < 60%) = 1 pt',
+        '• <b>E</b>lderly (Idade > 65 anos) = 1 pt',
+        '• <b>D</b>rogas ou Álcool (AINEs/antiagregantes ou etilismo, 1 pt cada, máx 2)',
+        '',
+        '<b>Interpretação:</b>',
+        '• ≥ 3 pts: Alto risco de sangramento. <b>Atenção:</b> HAS-BLED elevado NÃO contraindica anticoagulação; sinaliza necessidade de vigilância intensiva e correção de fatores modificáveis.',
+        '',
+        '<i>Fonte: Pisters R et al. Chest 2010 / SBC Diretriz de FA 2025.</i>'
+      ]
+    },
+    cha2ds2va: {
+      titulo: '📚 CRITÉRIOS · CHA₂DS₂-VA (ESC 2024 / SBC 2025)',
+      linhas: [
+        'Prevenção de AVC na Fibrilação Atrial (escala 0–8):',
+        '• <b>C</b> Insuficiência Cardíaca congestiva / disfunção VE = 1 pt',
+        '• <b>H</b> Hipertensão arterial sistêmica = 1 pt',
+        '• <b>A₂</b> Idade ≥ 75 anos = 2 pts',
+        '• <b>D</b> Diabetes Mellitus = 1 pt',
+        '• <b>S₂</b> AVC / AIT / Tromboembolismo prévio = 2 pts',
+        '• <b>V</b> Doença Vascular (IAM prévio, DAP, placa aórtica) = 1 pt',
+        '• <b>A</b> Idade 65–74 anos = 1 pt',
+        '*(Critério sexo feminino retirado das diretrizes ESC 2024 e SBC 2025)*',
+        '',
+        '<b>Conduta:</b>',
+        '• 0 pt: Sem terapia antitrombótica.',
+        '• 1 pt: Anticoagulação deve ser considerada (classe IIa).',
+        '• ≥ 2 pts: Anticoagulação oral recomendada (classe I) — preferencialmente DOACs.',
+        '',
+        '<i>Fonte: ESC Guidelines AF 2024 / Diretriz SBC 2025.</i>'
+      ]
+    },
+    kdigo_ira: {
+      titulo: '📚 CRITÉRIOS · KDIGO para Injúria Renal Aguda',
+      linhas: [
+        'Estadiamento de IRA baseado em Creatinina e Débito Urinário:',
+        '• <b>Estágio 1:</b> Cr 1,5–1,9× o basal OU aumento ≥ 0,3 mg/dL em 48h; DU < 0,5 mL/kg/h por 6–12h.',
+        '• <b>Estágio 2:</b> Cr 2,0–2,9× o basal; DU < 0,5 mL/kg/h por ≥ 12h.',
+        '• <b>Estágio 3:</b> Cr 3,0× o basal OU Cr ≥ 4,0 mg/dL com aumento agudo ≥ 0,5 mg/dL OU início de TRS; DU < 0,3 mL/kg/h por ≥ 24h ou anúria por ≥ 12h.',
+        '',
+        '<i>Fonte: KDIGO AKI Guidelines 2012.</i>'
+      ]
+    }
+  };
+
+  function _obterCriteriosEscore(id) {
+    var item = DISPATCH_CRITERIOS_ESCORES[id];
+    if (item) return item;
+    return {
+      titulo: '📚 CRITÉRIOS · ' + id.toUpperCase(),
+      linhas: [
+        'Critérios validados de acordo com a literatura médica de referência.',
+        'Utilize a calculadora fornecendo os dados clínicos correspondentes.'
+      ]
+    };
+  }
+
+  var DISPATCH_ACOES_CALCULADORAS = {
+    criterios: function (id) {
+      return _obterCriteriosEscore(id);
+    },
+    ajuste: function () {
+      return {
+        titulo: '💊 REVISÃO DE AJUSTE RENAL DE FÁRMACOS',
+        linhas: [
+          'Ajuste posológico conforme estimativa da função renal:',
+          '• Utilize <b>Cockcroft-Gault</b> com peso ajustado (Devine) para antibióticos, quimioterápicos e bulas de DOACs.',
+          '• Utilize <b>CKD-EPI 2021</b> para estadiamento crônico de DRC e prognóstico.',
+          '',
+          '<b>Para revisar um medicamento específico:</b>',
+          'Envie: <code>/rx &lt;medicamento&gt; ClCr &lt;valor&gt;</code> ou <code>/rx &lt;medicamento&gt; DRC estádio &lt;G3a-G5&gt;</code>',
+          '',
+          '⚠️ <i>Nenhuma dose foi alterada automaticamente. Confirme sempre na bula do medicamento e no protocolo institucional.</i>'
+        ]
+      };
+    },
+    anticoag: function () {
+      return {
+        titulo: '🩸 CONDUTA EM ANTICOAGULAÇÃO (FA)',
+        linhas: [
+          'Recomendações da Diretriz Brasileira de FA (2025) e ESC (2024):',
+          '• <b>DOACs como 1ª linha:</b> Apixabana, Rivaroxabana, Dabigatrana ou Edoxabana (preferíveis à Varfarina na ausência de prótese valvar mecânica ou estenose mitral moderada/grave).',
+          '• <b>Critérios de Dose Reduzida (Apixabana):</b> Se 2 de 3: Idade ≥ 80a, Peso ≤ 60kg, Cr ≥ 1,5 mg/dL ➔ reduzir para 2,5 mg 12/12h.',
+          '• <b>Rivaroxabana:</b> ClCr 15–49 mL/min ➔ reduzir de 20 mg/dia para 15 mg/dia.',
+          '',
+          'Calcule também o risco hemorrágico com HAS-BLED para acompanhamento seguro.'
+        ]
+      };
+    },
+    checklist: function () {
+      return {
+        titulo: '✅ CHECKLIST DOS 7 Ps · SRI / IOT',
+        linhas: [
+          'Sequência cronológica para intubação em via aérea de emergência:',
+          '1. <b>Planejamento e Preparação (T-10 min):</b> Monitorização contínua, acesso venoso pérvio, laringo/videolaringo testado, tubos com guia, aspiração montada, drogas aspiradas e rotuladas, material de resgate (Bougie, Máscara Laríngea).',
+          '2. <b>Pré-oxigenação (T-5 min):</b> FiO₂ 100% sob máscara com reservatório a 15 L/min por 3–5 min ou 8 incursões vitais profundas. Elevar cabeceira 20–30° (rampa se obeso).',
+          '3. <b>Pré-tratamento / Otimização (T-3 min):</b> Ressuscitação hemodinâmica antes da indução (cristaloide ou noradrenalina em push-dose se PAM baixa). Fentanil se trauma de crânio ou dissecção de aorta.',
+          '4. <b>Paralisia com Indução Simultânea (T-0):</b> Administrar indutor (ex: Etomidato 0,3 mg/kg ou Cetamina 1,5–2 mg/kg) seguido imediatamente de bloqueador neuromuscular (ex: Rocurônio 1,2 mg/kg ou Succinilcolina 1,5 mg/kg) em bolus EV rápido.',
+          '5. <b>Posicionamento e Proteção (T+45s):</b> Aguardar 45–60s para relaxamento total. Alinhamento dos eixos (posição de olfacionista).',
+          '6. <b>Passagem do Tubo com Confirmação (T+60s):</b> Laringoscopia, visualização das cordas vocais, introdução do TOT, insuflação do cuff. Confirmação imediata: capnografia em onda (padrão-ouro) + ausculta epigástrica e pulmonar bilateral.',
+          '7. <b>Pós-intubação:</b> Fixação rígida do TOT, radiografia de tórax de controle, sedoanalgesia contínua iniciada de imediato (ex: Fentanil + Midazolam/Propofol) e acoplamento em ventilação mecânica protetora.'
+        ],
+        botoes: [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    vad: function () {
+      return {
+        titulo: '🫁 AVALIAÇÃO DE VIA AÉREA DIFÍCIL (LEMON)',
+        linhas: [
+          'Mnemônico LEMON para predição de laringoscopia difícil:',
+          '• <b>L (Look externally):</b> Micrognatia, retrognatia, trauma facial, pescoço curto/espesso, barba densa, obesidade mórbida.',
+          '• <b>E (Evaluate 3-3-2):</b> Abertura bucal < 3 dedos, distância mento-hioide < 3 dedos, distância tireo-hioide < 2 dedos.',
+          '• <b>M (Mallampati):</b> Classes III (apenas base da úvula visível) e IV (apenas palato duro).',
+          '• <b>O (Obstruction):</b> Estridor, hematoma cervical, abscesso periamigdaliano, neoplasia de via aérea.',
+          '• <b>N (Neck mobility):</b> Limitação de extensão cervical (colar cervical rígido, espondilite anquilosante).',
+          '',
+          '⚠️ <b>Regra de Ouro da Sala Vermelha:</b>',
+          'Se suspeita de via aérea difícil: convoque ajuda sênior, prepare o <b>Bougie</b> desde a primeira tentativa, tenha <b>Máscara Laríngea</b> desembalada para resgate e kit de cricotireoidostomia cirúrgica à beira do leito.'
+        ],
+        botoes: [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    acidobase: function () {
+      return {
+        titulo: '🧪 FISIOLOGIA ÁCIDO-BASE · GASOMETRIA',
+        linhas: [
+          'Interpretação sistemática do equilíbrio ácido-base:',
+          '1. <b>pH:</b> &lt; 7,35 (Acidemia) | &gt; 7,45 (Alcalemia).',
+          '2. <b>Distúrbio Primário:</b> Olhar PaCO₂ e HCO₃⁻.',
+          '3. <b>Compensação Respiratória (Winter na Acidose Metabólica):</b>',
+          '   • PaCO₂ esperada = (1,5 × HCO₃⁻) + 8 ± 2',
+          '   • Se PaCO₂ aferida &gt; esperada: Acidose Respiratória associada.',
+          '   • Se PaCO₂ aferida &lt; esperada: Alcalose Respiratória associada.',
+          '4. <b>Ânion Gap:</b> Na⁺ - (Cl⁻ + HCO₃⁻) [VR: 8–12 mEq/L]. Corrigir por albumina se &lt; 4,0 g/dL.',
+          '5. <b>Razão Delta (ΔAG / ΔHCO₃):</b> (AG - 12) / (24 - HCO₃⁻).',
+          '   • &lt; 0,4: Acidose hiperclorêmica pura (AG normal).',
+          '   • 0,4–0,8: Acidose mista (AG elevado + hiperclorêmica).',
+          '   • 0,8–2,0: Acidose metabólica pura com AG elevado.',
+          '   • &gt; 2,0: Acidose com AG elevado associada a Alcalose Metabólica preexistente.'
+        ],
+        botoes: [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    oxigenacao: function () {
+      return {
+        titulo: '🫁 OXIGENAÇÃO E CRITÉRIOS DE BERLIN (SDRA)',
+        linhas: [
+          'Classificação da SDRA pela relação PaO₂ / FiO₂ (com PEEP ≥ 5 cmH₂O):',
+          '• <b>Leve:</b> 201 a 300 mmHg',
+          '• <b>Moderada:</b> 101 a 200 mmHg',
+          '• <b>Grave:</b> ≤ 100 mmHg',
+          '',
+          '<b>Pilares da Ventilação Protetora:</b>',
+          '• Volume corrente: 4 a 6 mL/kg do Peso Ideal / Predito (Fórmula de Devine).',
+          '• Pressão de platô ≤ 30 cmH₂O.',
+          '• Driving Pressure (Pressão de Distensão = Platô - PEEP) ≤ 15 cmH₂O.',
+          '• Posição Prona precoce por ≥ 16 horas contínuas se PaO₂/FiO₂ &lt; 150 mmHg.'
+        ],
+        botoes: [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    dose: function () {
+      return {
+        titulo: '🧴 PREPARO E TITULAÇÃO DE VASOATIVOS',
+        linhas: [
+          '<b>Noradrenalina:</b>',
+          '• Padrão: 4 ampolas (16 mg) + 234 mL SG 5% = 64 mcg/mL.',
+          '• Concentrada (2x): 8 ampolas (32 mg) + 218 mL SG 5% = 128 mcg/mL.',
+          '• Titulação: Iniciar a 0,05–0,1 mcg/kg/min; titular a cada 2–5 min buscando PAM ≥ 65 mmHg.',
+          '',
+          '<b>Vasopressina:</b>',
+          '• Diluição: 1 ampola (20 UI) + 99 mL SG 5% ou SF 0,9% = 0,2 UI/mL.',
+          '• Dose fixa: 0,03 UI/min (9 mL/h na bomba contínua). Não requer titulação rápida.',
+          '• Associação: Iniciar quando noradrenalina atingir 0,25–0,5 mcg/kg/min no choque séptico (Surviving Sepsis Campaign).'
+        ],
+        botoes: [[btn('🔙 Voltar ao DVA', 'ux', 'dvamenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    editar: function () {
+      return {
+        titulo: '✏️ REVISÃO DE PARÂMETROS',
+        linhas: [
+          'Para refazer este cálculo com novos valores clínicos, digite diretamente no chat os novos dados do paciente.',
+          '💡 <i>Exemplos:</i>',
+          '• Para DVA: <code>/dva nora 75 concentrada</code>',
+          '• Para SRI: <code>/sri 82 choque</code>',
+          '• Para Gaso: <code>/gaso pH 7.20, pCO2 24, HCO3 9, Na 138, Cl 102</code>',
+          '• Para DRC: <code>/calc ckd_epi Cr 1.6, idade 72, feminino</code>'
+        ],
+        botoes: [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    },
+    pdf: function () {
+      return {
+        titulo: '📄 EXPORTAÇÃO E REGISTRO',
+        linhas: [
+          'Para arquivar este resultado clínico estruturado com data e hora oficiais no seu prontuário pessoal:',
+          '• Utilize o botão <b>📁 Salvar no Notion Tasks</b> na mensagem de resumo.',
+          '• Para gerar receituário oficial em PDF para medicamentos, utilize o comando <code>/rx</code>.'
+        ],
+        botoes: [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]]
+      };
+    }
+  };
+
+  DISPATCH_ACOES_CALCULADORAS.medicamento = DISPATCH_ACOES_CALCULADORAS.ajuste;
+  DISPATCH_ACOES_CALCULADORAS.preparo = DISPATCH_ACOES_CALCULADORAS.dose;
+  DISPATCH_ACOES_CALCULADORAS.voltar = DISPATCH_ACOES_CALCULADORAS.editar;
+  DISPATCH_ACOES_CALCULADORAS.peso = DISPATCH_ACOES_CALCULADORAS.editar;
+
   function processarAcao(chatId, id, acao, args) {
     id = String(id || '').toLowerCase();
     acao = String(acao || '').toLowerCase();
-    var titulo = '';
-    var linhas = [];
-    var botoes = null;
 
-    if (acao === 'criterios') {
-      if (id === 'curb65') {
-        titulo = '📚 CRITÉRIOS · CURB-65';
-        linhas = [
-          'Escore prognóstico de mortalidade em PAC (Pneumonia Adquirida na Comunidade):',
-          '• <b>C</b>onfusão mental (AMTS ≤ 8 ou desorientação tempo/espaço) = 1 pt',
-          '• <b>U</b>reia > 50 mg/dL (BUN > 19 mg/dL) = 1 pt',
-          '• <b>R</b>espiratória (FR ≥ 30 irpm) = 1 pt',
-          '• <b>B</b>lood Pressure (PAS < 90 mmHg ou PAD ≤ 60 mmHg) = 1 pt',
-          '• <b>65</b> Idade ≥ 65 anos = 1 pt',
-          '',
-          '<b>Interpretação e Conduta:</b>',
-          '• 0–1 pt: Baixo risco (mortalidade < 3%). Tratamento ambulatorial seguro.',
-          '• 2 pts: Risco intermediário (mortalidade ~9%). Considerar internação em enfermaria.',
-          '• ≥ 3 pts: Alto risco (mortalidade 15–40%). Internação hospitalar obrigatória; ≥ 4 avaliar UTI.',
-          '',
-          '<i>Fonte: Lim WS et al. Thorax 2003 / Diretriz SBPT 2018.</i>'
-        ];
-      } else if (id === 'wells_tep') {
-        titulo = '📚 CRITÉRIOS · Wells para TEP';
-        linhas = [
-          'Escore preditivo para Tromboembolismo Pulmonar:',
-          '• Sinais/sintomas clínicos de TVP (+3,0 pts)',
-          '• Diagnóstico alternativo menos provável que TEP (+3,0 pts)',
-          '• Frequência cardíaca > 100 bpm (+1,5 pts)',
-          '• Imobilização ≥ 3 dias ou cirurgia prévia nas últimas 4 semanas (+1,5 pts)',
-          '• História prévia documentada de TVP ou TEP (+1,5 pts)',
-          '• Hemoptise (+1,0 pt)',
-          '• Neoplasia ativa em tratamento ou paliativo (+1,0 pt)',
-          '',
-          '<b>Interpretação (Modelo Dicotômico ESC 2019):</b>',
-          '• ≤ 4,0 pts: TEP Improvável. Solicitar D-Dímero de alta sensibilidade para exclusão.',
-          '• > 4,0 pts: TEP Provável. Não aguardar D-Dímero; indicar Angiotomografia de Tórax imediata.',
-          '',
-          '<i>Fonte: Wells PS et al. Thromb Haemost 2000 / ESC Guidelines 2019.</i>'
-        ];
-      } else if (id === 'hasbled') {
-        titulo = '📚 CRITÉRIOS · HAS-BLED';
-        linhas = [
-          'Escore de Risco Hemorrágico em Fibrilação Atrial:',
-          '• <b>H</b>ipertensão (PAS > 160 mmHg não controlada) = 1 pt',
-          '• <b>A</b>bnormal Renal ou Hepático (1 pt cada, máx 2)',
-          '• <b>S</b>troke (história prévia de AVC) = 1 pt',
-          '• <b>B</b>leeding (história de sangramento maior ou predisposição) = 1 pt',
-          '• <b>L</b>ábil INR (tempo na faixa terapêutica < 60%) = 1 pt',
-          '• <b>E</b>lderly (Idade > 65 anos) = 1 pt',
-          '• <b>D</b>rogas ou Álcool (AINEs/antiagregantes ou etilismo, 1 pt cada, máx 2)',
-          '',
-          '<b>Interpretação:</b>',
-          '• ≥ 3 pts: Alto risco de sangramento. <b>Atenção:</b> HAS-BLED elevado NÃO contraindica anticoagulação; sinaliza necessidade de vigilância intensiva e correção de fatores modificáveis.',
-          '',
-          '<i>Fonte: Pisters R et al. Chest 2010 / SBC Diretriz de FA 2025.</i>'
-        ];
-      } else if (id === 'cha2ds2va') {
-        titulo = '📚 CRITÉRIOS · CHA₂DS₂-VA (ESC 2024 / SBC 2025)';
-        linhas = [
-          'Prevenção de AVC na Fibrilação Atrial (escala 0–8):',
-          '• <b>C</b> Insuficiência Cardíaca congestiva / disfunção VE = 1 pt',
-          '• <b>H</b> Hipertensão arterial sistêmica = 1 pt',
-          '• <b>A₂</b> Idade ≥ 75 anos = 2 pts',
-          '• <b>D</b> Diabetes Mellitus = 1 pt',
-          '• <b>S₂</b> AVC / AIT / Tromboembolismo prévio = 2 pts',
-          '• <b>V</b> Doença Vascular (IAM prévio, DAP, placa aórtica) = 1 pt',
-          '• <b>A</b> Idade 65–74 anos = 1 pt',
-          '*(Critério sexo feminino retirado das diretrizes ESC 2024 e SBC 2025)*',
-          '',
-          '<b>Conduta:</b>',
-          '• 0 pt: Sem terapia antitrombótica.',
-          '• 1 pt: Anticoagulação deve ser considerada (classe IIa).',
-          '• ≥ 2 pts: Anticoagulação oral recomendada (classe I) — preferencialmente DOACs.',
-          '',
-          '<i>Fonte: ESC Guidelines AF 2024 / Diretriz SBC 2025.</i>'
-        ];
-      } else if (id === 'kdigo_ira') {
-        titulo = '📚 CRITÉRIOS · KDIGO para Injúria Renal Aguda';
-        linhas = [
-          'Estadiamento de IRA baseado em Creatinina e Débito Urinário:',
-          '• <b>Estágio 1:</b> Cr 1,5–1,9× o basal OU aumento ≥ 0,3 mg/dL em 48h; DU < 0,5 mL/kg/h por 6–12h.',
-          '• <b>Estágio 2:</b> Cr 2,0–2,9× o basal; DU < 0,5 mL/kg/h por ≥ 12h.',
-          '• <b>Estágio 3:</b> Cr 3,0× o basal OU Cr ≥ 4,0 mg/dL com aumento agudo ≥ 0,5 mg/dL OU início de TRS; DU < 0,3 mL/kg/h por ≥ 24h ou anúria por ≥ 12h.',
-          '',
-          '<i>Fonte: KDIGO AKI Guidelines 2012.</i>'
-        ];
-      } else {
-        titulo = '📚 CRITÉRIOS · ' + id.toUpperCase();
-        linhas = [
-          'Critérios validados de acordo com a literatura médica de referência.',
-          'Utilize a calculadora fornecendo os dados clínicos correspondentes.'
-        ];
-      }
-    } else if (acao === 'ajuste' || acao === 'medicamento') {
-      titulo = '💊 REVISÃO DE AJUSTE RENAL DE FÁRMACOS';
-      linhas = [
-        'Ajuste posológico conforme estimativa da função renal:',
-        '• Utilize <b>Cockcroft-Gault</b> com peso ajustado (Devine) para antibióticos, quimioterápicos e bulas de DOACs.',
-        '• Utilize <b>CKD-EPI 2021</b> para estadiamento crônico de DRC e prognóstico.',
-        '',
-        '<b>Para revisar um medicamento específico:</b>',
-        'Envie: <code>/rx &lt;medicamento&gt; ClCr &lt;valor&gt;</code> ou <code>/rx &lt;medicamento&gt; DRC estádio &lt;G3a-G5&gt;</code>',
-        '',
-        '⚠️ <i>Nenhuma dose foi alterada automaticamente. Confirme sempre na bula do medicamento e no protocolo institucional.</i>'
-      ];
-    } else if (acao === 'anticoag') {
-      titulo = '🩸 CONDUTA EM ANTICOAGULAÇÃO (FA)';
-      linhas = [
-        'Recomendações da Diretriz Brasileira de FA (2025) e ESC (2024):',
-        '• <b>DOACs como 1ª linha:</b> Apixabana, Rivaroxabana, Dabigatrana ou Edoxabana (preferíveis à Varfarina na ausência de prótese valvar mecânica ou estenose mitral moderada/grave).',
-        '• <b>Critérios de Dose Reduzida (Apixabana):</b> Se 2 de 3: Idade ≥ 80a, Peso ≤ 60kg, Cr ≥ 1,5 mg/dL ➔ reduzir para 2,5 mg 12/12h.',
-        '• <b>Rivaroxabana:</b> ClCr 15–49 mL/min ➔ reduzir de 20 mg/dia para 15 mg/dia.',
-        '',
-        'Calcule também o risco hemorrágico com HAS-BLED para acompanhamento seguro.'
-      ];
-    } else if (acao === 'checklist') {
-      titulo = '✅ CHECKLIST DOS 7 Ps · SRI / IOT';
-      linhas = [
-        'Sequência cronológica para intubação em via aérea de emergência:',
-        '1. <b>Planejamento e Preparação (T-10 min):</b> Monitorização contínua, acesso venoso pérvio, laringo/videolaringo testado, tubos com guia, aspiração montada, drogas aspiradas e rotuladas, material de resgate (Bougie, Máscara Laríngea).',
-        '2. <b>Pré-oxigenação (T-5 min):</b> FiO₂ 100% sob máscara com reservatório a 15 L/min por 3–5 min ou 8 incursões vitais profundas. Elevar cabeceira 20–30° (rampa se obeso).',
-        '3. <b>Pré-tratamento / Otimização (T-3 min):</b> Ressuscitação hemodinâmica antes da indução (cristaloide ou noradrenalina em push-dose se PAM baixa). Fentanil se trauma de crânio ou dissecção de aorta.',
-        '4. <b>Paralisia com Indução Simultânea (T-0):</b> Administrar indutor (ex: Etomidato 0,3 mg/kg ou Cetamina 1,5–2 mg/kg) seguido imediatamente de bloqueador neuromuscular (ex: Rocurônio 1,2 mg/kg ou Succinilcolina 1,5 mg/kg) em bolus EV rápido.',
-        '5. <b>Posicionamento e Proteção (T+45s):</b> Aguardar 45–60s para relaxamento total. Alinhamento dos eixos (posição de olfacionista).',
-        '6. <b>Passagem do Tubo com Confirmação (T+60s):</b> Laringoscopia, visualização das cordas vocais, introdução do TOT, insuflação do cuff. Confirmação imediata: capnografia em onda (padrão-ouro) + ausculta epigástrica e pulmonar bilateral.',
-        '7. <b>Pós-intubação:</b> Fixação rígida do TOT, radiografia de tórax de controle, sedoanalgesia contínua iniciada de imediato (ex: Fentanil + Midazolam/Propofol) e acoplamento em ventilação mecânica protetora.'
-      ];
-      botoes = [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'vad') {
-      titulo = '🫁 AVALIAÇÃO DE VIA AÉREA DIFÍCIL (LEMON)';
-      linhas = [
-        'Mnemônico LEMON para predição de laringoscopia difícil:',
-        '• <b>L (Look externally):</b> Micrognatia, retrognatia, trauma facial, pescoço curto/espesso, barba densa, obesidade mórbida.',
-        '• <b>E (Evaluate 3-3-2):</b> Abertura bucal < 3 dedos, distância mento-hioide < 3 dedos, distância tireo-hioide < 2 dedos.',
-        '• <b>M (Mallampati):</b> Classes III (apenas base da úvula visível) e IV (apenas palato duro).',
-        '• <b>O (Obstruction):</b> Estridor, hematoma cervical, abscesso periamigdaliano, neoplasia de via aérea.',
-        '• <b>N (Neck mobility):</b> Limitação de extensão cervical (colar cervical rígido, espondilite anquilosante).',
-        '',
-        '⚠️ <b>Regra de Ouro da Sala Vermelha:</b>',
-        'Se suspeita de via aérea difícil: convoque ajuda sênior, prepare o <b>Bougie</b> desde a primeira tentativa, tenha <b>Máscara Laríngea</b> desembalada para resgate e kit de cricotireoidostomia cirúrgica à beira do leito.'
-      ];
-      botoes = [[btn('🔙 Voltar à Dose SRI', 'ux', 'srimenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'acidobase') {
-      titulo = '🧪 FISIOLOGIA ÁCIDO-BASE · GASOMETRIA';
-      linhas = [
-        'Interpretação sistemática do equilíbrio ácido-base:',
-        '1. <b>pH:</b> &lt; 7,35 (Acidemia) | &gt; 7,45 (Alcalemia).',
-        '2. <b>Distúrbio Primário:</b> Olhar PaCO₂ e HCO₃⁻.',
-        '3. <b>Compensação Respiratória (Winter na Acidose Metabólica):</b>',
-        '   • PaCO₂ esperada = (1,5 × HCO₃⁻) + 8 ± 2',
-        '   • Se PaCO₂ aferida &gt; esperada: Acidose Respiratória associada.',
-        '   • Se PaCO₂ aferida &lt; esperada: Alcalose Respiratória associada.',
-        '4. <b>Ânion Gap:</b> Na⁺ - (Cl⁻ + HCO₃⁻) [VR: 8–12 mEq/L]. Corrigir por albumina se &lt; 4,0 g/dL.',
-        '5. <b>Razão Delta (ΔAG / ΔHCO₃):</b> (AG - 12) / (24 - HCO₃⁻).',
-        '   • &lt; 0,4: Acidose hiperclorêmica pura (AG normal).',
-        '   • 0,4–0,8: Acidose mista (AG elevado + hiperclorêmica).',
-        '   • 0,8–2,0: Acidose metabólica pura com AG elevado.',
-        '   • &gt; 2,0: Acidose com AG elevado associada a Alcalose Metabólica preexistente.'
-      ];
-      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'oxigenacao') {
-      titulo = '🫁 OXIGENAÇÃO E CRITÉRIOS DE BERLIN (SDRA)';
-      linhas = [
-        'Classificação da SDRA pela relação PaO₂ / FiO₂ (com PEEP ≥ 5 cmH₂O):',
-        '• <b>Leve:</b> 201 a 300 mmHg',
-        '• <b>Moderada:</b> 101 a 200 mmHg',
-        '• <b>Grave:</b> ≤ 100 mmHg',
-        '',
-        '<b>Pilares da Ventilação Protetora:</b>',
-        '• Volume corrente: 4 a 6 mL/kg do Peso Ideal / Predito (Fórmula de Devine).',
-        '• Pressão de platô ≤ 30 cmH₂O.',
-        '• Driving Pressure (Pressão de Distensão = Platô - PEEP) ≤ 15 cmH₂O.',
-        '• Posição Prona precoce por ≥ 16 horas contínuas se PaO₂/FiO₂ &lt; 150 mmHg.'
-      ];
-      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'dose' || acao === 'preparo') {
-      titulo = '🧴 PREPARO E TITULAÇÃO DE VASOATIVOS';
-      linhas = [
-        '<b>Noradrenalina:</b>',
-        '• Padrão: 4 ampolas (16 mg) + 234 mL SG 5% = 64 mcg/mL.',
-        '• Concentrada (2x): 8 ampolas (32 mg) + 218 mL SG 5% = 128 mcg/mL.',
-        '• Titulação: Iniciar a 0,05–0,1 mcg/kg/min; titular a cada 2–5 min buscando PAM ≥ 65 mmHg.',
-        '',
-        '<b>Vasopressina:</b>',
-        '• Diluição: 1 ampola (20 UI) + 99 mL SG 5% ou SF 0,9% = 0,2 UI/mL.',
-        '• Dose fixa: 0,03 UI/min (9 mL/h na bomba contínua). Não requer titulação rápida.',
-        '• Associação: Iniciar quando noradrenalina atingir 0,25–0,5 mcg/kg/min no choque séptico (Surviving Sepsis Campaign).'
-      ];
-      botoes = [[btn('🔙 Voltar ao DVA', 'ux', 'dvamenu'), btn('🔙 Sala Vermelha', 'ux', 'sala')], [btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'editar' || acao === 'voltar' || acao === 'peso') {
-      titulo = '✏️ REVISÃO DE PARÂMETROS';
-      linhas = [
-        'Para refazer este cálculo com novos valores clínicos, digite diretamente no chat os novos dados do paciente.',
-        '💡 <i>Exemplos:</i>',
-        '• Para DVA: <code>/dva nora 75 concentrada</code>',
-        '• Para SRI: <code>/sri 82 choque</code>',
-        '• Para Gaso: <code>/gaso pH 7.20, pCO2 24, HCO3 9, Na 138, Cl 102</code>',
-        '• Para DRC: <code>/calc ckd_epi Cr 1.6, idade 72, feminino</code>'
-      ];
-      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else if (acao === 'pdf') {
-      titulo = '📄 EXPORTAÇÃO E REGISTRO';
-      linhas = [
-        'Para arquivar este resultado clínico estruturado com data e hora oficiais no seu prontuário pessoal:',
-        '• Utilize o botão <b>📁 Salvar no Notion Tasks</b> na mensagem de resumo.',
-        '• Para gerar receituário oficial em PDF para medicamentos, utilize o comando <code>/rx</code>.'
-      ];
-      botoes = [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]];
-    } else {
-      titulo = 'ℹ️ INFORMAÇÕES DA CALCULADORA (' + id.toUpperCase() + ')';
-      linhas = [
+    var handler = DISPATCH_ACOES_CALCULADORAS[acao];
+    var res = handler ? handler(id, args) : {
+      titulo: 'ℹ️ INFORMAÇÕES DA CALCULADORA (' + id.toUpperCase() + ')',
+      linhas: [
         'Ação solicitada: ' + acao,
         'Módulo determinístico de apoio à decisão clínica validado (v3.0).'
-      ];
-    }
+      ],
+      botoes: null
+    };
 
-    var textoFormatado = '<b>' + titulo + '</b>\n\n' + linhas.join('\n');
+    var textoFormatado = '<b>' + res.titulo + '</b>\n\n' + res.linhas.join('\n');
     return {
       ok: true,
       id: id,
       acao: acao,
       textoFormatado: textoFormatado,
-      botoes: botoes
+      botoes: res.botoes || null
     };
   }
 
@@ -37338,12 +37389,29 @@ function _iaResolverTruncamento(chamar, tokens, r, ctx, json) {
 function _iaOrdemProvedores() {
   const padrao = String(_iaCfg("PROVEDOR_TEXTO_PADRAO", "GEMINI")).toUpperCase();
   const ativoLocal = String(_iaCfg("LOCAL_LLM_ATIVO", "auto")).toLowerCase();
-  const canonica = ativoLocal === "false"
-    ? ["GEMINI", "GROQ", "OPENROUTER", "ZAI"]
-    : ["GEMINI", "GROQ", "OPENROUTER", "ZAI", "LOCAL"];
+  const temUrlLocal = Boolean(_iaCfg("LOCAL_LLM_URL", ""));
 
-  const priorizados = canonica.includes(padrao) ? [padrao, ...canonica] : canonica;
-  return [...new Set(priorizados)];
+  // Fast-Path: Gemini é o provedor canônico prioritário do ecossistema
+  const lista = [padrao || "GEMINI"];
+  if (!lista.includes("GEMINI")) lista.push("GEMINI");
+
+  // Provedores secundários adicionados exclusivamente se credenciais ativas estiverem presentes
+  if ((_iaCfg("OPENROUTER_API_KEY", "") || padrao === "OPENROUTER") && !lista.includes("OPENROUTER")) {
+    lista.push("OPENROUTER");
+  }
+  if ((_iaCfg("ZAI_API_KEY", "") || padrao === "ZAI") && !lista.includes("ZAI")) {
+    lista.push("ZAI");
+  }
+  if ((_iaCfg("GROQ_API_KEY", "") || padrao === "GROQ") && !lista.includes("GROQ")) {
+    lista.push("GROQ");
+  }
+
+  // Provedor local (incluído se configurado explicitamente, com URL ativa ou em modo auto)
+  if (ativoLocal !== "false" && (temUrlLocal || ativoLocal === "true" || padrao === "LOCAL" || ativoLocal === "auto")) {
+    if (!lista.includes("LOCAL")) lista.push("LOCAL");
+  }
+
+  return [...new Set(lista)];
 }
 
 const DISPATCH_PROVEDORES_IA = {
@@ -37402,6 +37470,12 @@ function _iaFormatarResultadoProvedor(resposta, opcoes) {
 }
 
 function executarTentativaProvedor(nome, sistema, promptUsuario, tokens, ctx, opcoes) {
+  // Guard Clause: Circuit Breaker aberto para este provedor
+  if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker && !IaCircuitBreaker.podeExecutar(nome)) {
+    _iaLog(ctx, "[CircuitBreaker " + nome + "] ABERTO (cooldown ativo), pulando provedor.");
+    return { sucesso: false, abortar: false, resultado: null };
+  }
+
   const chamar = (t) => _iaChamarProvedor(nome, sistema, promptUsuario, t, ctx, opcoes);
 
   try {
@@ -37417,7 +37491,7 @@ function executarTentativaProvedor(nome, sistema, promptUsuario, tokens, ctx, op
     // Guard Clause 2: Validação de corpo de texto não-vazio
     const textoValido = r?.texto && String(r.texto).trim();
     if (!textoValido) {
-      _iaRegistrarFalhaCircuito(nome, "Resposta vazia", null);
+      _iaRegistrarFalhaCircuito(nome, "Resposta vazia", ctx);
       return { sucesso: false, abortar: false, resultado: null };
     }
 
@@ -37436,6 +37510,10 @@ function executarTentativaProvedor(nome, sistema, promptUsuario, tokens, ctx, op
 }
 
 function chamarMotorIaComFallback(sistema, promptUsuario, maxTokens, opcoes = {}) {
+  if (!promptUsuario && !sistema) {
+    return null;
+  }
+
   const tokens = Number(maxTokens) || 2000;
   const ctx = _iaNovoCtx();
   const ordem = _iaOrdemProvedores();
@@ -37898,6 +37976,21 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
   }
   opcoes = opcoes || {};
   base64Data = _iaNormalizarBase64(base64Data);
+
+  var mimeNormalizado = String(mimeType || "audio/ogg").split(";")[0].trim().toLowerCase();
+  if (mimeNormalizado === "audio/oga" || mimeNormalizado === "audio/opus" || mimeNormalizado.indexOf("audio/ogg") !== -1) {
+    mimeNormalizado = "audio/ogg";
+  } else if (mimeNormalizado.indexOf("audio/webm") !== -1) {
+    mimeNormalizado = "audio/webm";
+  } else if (mimeNormalizado.indexOf("audio/mp3") !== -1 || mimeNormalizado.indexOf("audio/mpeg") !== -1) {
+    mimeNormalizado = "audio/mp3";
+  } else if (mimeNormalizado.indexOf("audio/wav") !== -1 || mimeNormalizado.indexOf("audio/x-wav") !== -1) {
+    mimeNormalizado = "audio/wav";
+  } else if (mimeNormalizado.indexOf("audio/mp4") !== -1 || mimeNormalizado.indexOf("audio/m4a") !== -1) {
+    mimeNormalizado = "audio/mp4";
+  }
+  mimeType = mimeNormalizado;
+
   var sistema = [
     IA_PERSONA,
     "MODO: RECONHECIMENTO E ESTRUTURAÇÃO CLÍNICA DE ÁUDIO EM TEMPO ÚNICO (FMRP-USP).",
@@ -37925,7 +38018,13 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
   ].join("\n");
 
   var promptInstrucao = "Por favor, ouça o áudio com atenção aos termos médicos e retorne o JSON estruturado.";
-  var raw = chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opcoes);
+  var raw = null;
+  try {
+    raw = chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opcoes);
+  } catch (eChamarMulti) {
+    Logger.log("Aviso em chamarGeminiPoolMultimodal de áudio: " + (eChamarMulti.message || eChamarMulti));
+    raw = null;
+  }
   if (!raw) {
     if (opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
       return IaLocalFallbackService.processarAudioClinicoOffline(base64Data, mimeType, opcoes);
@@ -41786,6 +41885,368 @@ function tratarComandoUltimasMudancas(chatId, modoDeploy) {
   return enviarMensagemParaChat(chatId, msgFinal);
 }
 
+/**
+ * Ponto de entrada modular alternativo do roteador do Telegram.
+ */
+function rotearMensagemTelegram(message) {
+  return processarMensagemTexto(message);
+}
+
+/**
+ * Ponto de entrada para despacho direto de comandos de texto.
+ */
+function rotearComandoTexto(comando, texto, chatId, message) {
+  var msgObj = message || { chat: { id: chatId }, text: texto };
+  return processarMensagemTexto(msgObj);
+}
+
+/**
+ * Despacho O(1) de status do sistema e fontes de dados.
+ */
+function tratarComandoStatus(chatId) {
+  var stRemume = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_REMUME"), false);
+  var stInteracoes = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_INTERACOES"), true);
+  var msgStatus = "⚡ *STATUS DO SISTEMA*\n\n" +
+    "• *Modo:* Servidor Oficial Node.js 20+ / Docker (Render 24/7)\n" +
+    "• *REMUME Ribeirão Preto:* " + stRemume + "\n" +
+    "• *Base de Interações:* " + stInteracoes + "\n" +
+    "• *Notion & Calendar:* ✅ Operacionais";
+  return enviarMensagemParaChat(chatId, msgStatus);
+}
+
+/**
+ * Despacho do executor local de tarefas (PC).
+ */
+function tratarComandoPc(chatId, texto) {
+  var partesPc = texto.split(/\s+/);
+  var tarefaPc = partesPc[1] ? partesPc[1].toLowerCase() : "";
+  var argsPc = partesPc.slice(2);
+
+  if (!tarefaPc || tarefaPc === "ajuda" || tarefaPc === "help") {
+    var msgAjudaPc = "🖥️ *PONTE DE EXECUÇÃO LOCAL (PC)*\n\n" +
+      "Envie uma ordem para o seu computador executar em segundo plano:\n\n" +
+      "• `/pc sync` — Sincronização de agenda e estudos\n" +
+      "• `/pc audit` — Auditoria de sobreposições no calendário\n" +
+      "• `/pc status` — Verifica se o daemon do PC está ativo\n\n" +
+      "💡 *Funcionamento:* A ordem é enfileirada na nuvem. Se o seu PC estiver ligado, ele executa e devolve o relatório aqui. Se estiver desligado, roda assim que o PC for ligado!";
+    return enviarMensagemParaChat(chatId, msgAjudaPc);
+  }
+
+  if (typeof enfileirarTarefaPc === "function") {
+    var taskId = enfileirarTarefaPc(chatId, tarefaPc, argsPc);
+    var msgOk = "⚡ *Ordem enfileirada na nuvem com sucesso!*\n\n" +
+      "• *Tarefa:* `" + tarefaPc + "`\n" +
+      "• *ID:* `" + taskId + "`\n\n" +
+      "🕒 O runner local processará silenciosamente e enviará o relatório completo aqui assim que concluído.";
+    return enviarMensagemParaChat(chatId, msgOk);
+  } else {
+    return enviarMensagemParaChat(chatId, "⚠️ Fila de tarefas locais temporariamente indisponível.");
+  }
+}
+
+/**
+ * Tabela de despacho O(1) para comandos de sistema e navegação básica.
+ */
+function rotearComandoSistema(comando, texto, chatId) {
+  var cmdHandlers = {
+    "/manual": function() {
+      var filtroManual = texto.replace(/^\/manual\s*/i, "").trim();
+      return enviarManualCompletoComandos(chatId, filtroManual);
+    },
+    "/start": function() {
+      if (typeof enviarHubPrincipal === "function") {
+        enviarMensagemComTecladoFixo(chatId, "👋 *Olá, Dr. Wagner!* Use os botões ou envie seu caso por texto/áudio.");
+        return enviarHubPrincipal(chatId);
+      }
+      return enviarMensagemComTecladoFixo(chatId, "Use /menu para a Central de Comandos.");
+    },
+    "/ajuda": function() {
+      var filtroAjuda = texto.replace(/^\/(ajuda|help)\s*/i, "").trim();
+      return enviarManualCompletoComandos(chatId, filtroAjuda);
+    },
+    "/help": function() {
+      var filtroHelp = texto.replace(/^\/(ajuda|help)\s*/i, "").trim();
+      return enviarManualCompletoComandos(chatId, filtroHelp);
+    },
+    "/status": function() {
+      return tratarComandoStatus(chatId);
+    },
+    "/fontes": function() {
+      return tratarComandoStatus(chatId);
+    },
+    "/mudancas": function() {
+      return tratarComandoUltimasMudancas(chatId, false);
+    },
+    "/mudanças": function() {
+      return tratarComandoUltimasMudancas(chatId, false);
+    },
+    "/ultimas_mudancas": function() {
+      return tratarComandoUltimasMudancas(chatId, false);
+    },
+    "/ultimasmudancas": function() {
+      return tratarComandoUltimasMudancas(chatId, false);
+    },
+    "/deploy": function() {
+      return tratarComandoUltimasMudancas(chatId, true);
+    },
+    "/enfermaria": function() {
+      if (typeof mostrarPainelLeitos === "function") return mostrarPainelLeitos(chatId, 0);
+      return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+    },
+    "/leitos": function() {
+      if (typeof mostrarPainelLeitos === "function") return mostrarPainelLeitos(chatId, 0);
+      return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+    },
+    "/censo": function() {
+      if (typeof mostrarPainelLeitos === "function") return mostrarPainelLeitos(chatId, 0);
+      return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+    },
+    "/pc": function() {
+      return tratarComandoPc(chatId, texto);
+    }
+  };
+
+  if (cmdHandlers[comando]) {
+    return { executado: true, resultado: cmdHandlers[comando]() };
+  }
+  return { executado: false };
+}
+
+/**
+ * Tabela de despacho para atalhos do teclado fixo persistente (1-toque).
+ */
+function rotearAtalhoTecladoFixo(texto, comando, chatId) {
+  // 1. Cockpit Móvel
+  if (texto === "📱 Cockpit" || texto === "📱 Cockpit Móvel" || comando === "/cockpit" || comando === "/app") {
+    var urlPainel = obterUrlCockpit(chatId);
+    var msgCockpit = "📱 *COCKPIT MÓVEL (TELEGRAM MINI APP)*\n\n" +
+      "Seu assistente unificado com 6 abas de alta performance:\n\n" +
+      "• 🧬 *Corpo:* Composição, peso e protocolo\n" +
+      "• 🏥 *Leitos:* Painel da enfermaria e SBAR\n" +
+      "• 💊 *REMUME:* Busca rápida de doses\n" +
+      "• 🧮 *Cálculos:* DVA, SRI, CrCl e Gasometria\n" +
+      "• 📅 *Rotina:* Turma J e MedQuest\n" +
+      "• ✨ *SOAP:* Preceptor socrático e PEP\n\n" +
+      "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
+    var kbCockpit = {
+      inline_keyboard: [
+        [
+          { text: "🚀 Abrir Cockpit em Tela Cheia", web_app: { url: urlPainel } }
+        ]
+      ]
+    };
+    return { executado: true, resultado: enviarMensagemComBotoes(chatId, msgCockpit, kbCockpit) };
+  }
+
+  // 2. Sala Vermelha
+  if (texto === "🚨 Sala Vermelha" || texto === "🚨 Emergência" || comando === "/sala" || comando === "/emergencia" || comando === "/salavermelha" || comando === "/urgencia") {
+    if (typeof enviarMenuSalaVermelha === "function") {
+      return { executado: true, resultado: enviarMenuSalaVermelha(chatId) };
+    }
+    var txtSR = "🚨 *SALA VERMELHA & CTI (EMERGÊNCIAS CLÍNICAS)*\n\n" +
+      "Escolha uma ação imediata ou digite o comando:\n\n" +
+      "💉 *Drogas Vasoativas (DVA):*\n" +
+      "• `/dva nora 70` (Noradrenalina em mL/h para 70kg)\n" +
+      "• `/dva nora 80 concentrada` (Solução 2x)\n" +
+      "• `/dva dobuta 70` (Dobutamina 1mg/mL)\n" +
+      "• `/dva vaso` (Vasopressina dose fixa 12 mL/h)\n" +
+      "• `/dva nipride 75` ou `/dva tridil`\n\n" +
+      "🫁 *Sequência Rápida de Intubação (SRI / IOT):*\n" +
+      "• `/sri 70` (Doses e mL exatos de Etomidato, Quetamina, Succinil, Rocurônio e Fentanil)\n" +
+      "• `/sri 70 choque` ou `/sri 70 asma`\n\n" +
+      "⚡ *Condutas de Ataque:* `/conduta <intercorrência>` (ex: `/conduta EAP hipertensivo`)";
+    return { executado: true, resultado: enviarMensagemParaChat(chatId, txtSR) };
+  }
+
+  // 3. Enfermaria
+  if (texto === "🛏️ Enfermaria" || texto === "🏥 Enfermaria") {
+    if (typeof enviarMenuEnfermaria === "function") {
+      return { executado: true, resultado: enviarMenuEnfermaria(chatId) };
+    }
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria()) };
+  }
+
+  // 4. Ambulatório
+  if (texto === "🩺 Ambulatório" || texto === "🩺 SOAP Ambulatorial") {
+    if (typeof enviarMenuAmbulatorio === "function") {
+      return { executado: true, resultado: enviarMenuAmbulatorio(chatId) };
+    }
+    return { executado: true, resultado: processarMensagemTexto({ chat: { id: chatId }, text: "/ambulatorio" }) };
+  }
+
+  // 5. Prescrever
+  if (texto === "💊 Prescrever") {
+    if (typeof iniciarModoBot === "function") {
+      return { executado: true, resultado: iniciarModoBot(chatId, "rx", false) };
+    }
+    return { executado: true, resultado: null };
+  }
+
+  // 6. Consultas de Bolso / REMUME Rápida
+  if (texto === "💊 Consultas de Bolso" || texto === "💊 REMUME Rápida") {
+    if (typeof enviarMenuConsultasBolso === "function") {
+      return { executado: true, resultado: enviarMenuConsultasBolso(chatId) };
+    }
+    return { executado: true, resultado: enviarMensagemParaChat(chatId, "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME)*\n\nEnvie o pedido ou diagnóstico:\n💡 *Ex:* `/rx amigdalite bacteriana criança 18kg, alérgica a penicilina` ou apenas descreva o caso.") };
+  }
+
+  // 7. Agenda
+  if (texto === "📅 Agenda") {
+    return { executado: true, resultado: consultarEventosAgenda("hoje", chatId) };
+  }
+
+  // 8. Minhas Tarefas
+  if (texto === "📋 Minhas Tarefas") {
+    return { executado: true, resultado: listarTarefasHojeNotion(chatId) };
+  }
+
+  // 9. Gasometria
+  if (texto === "🩸 Gaso") {
+    return { executado: true, resultado: enviarMensagemParaChat(chatId, "🩸 *GASOMETRIA ARTERIAL*\n\nEnvie os parâmetros:\n💡 *Ex:* `/gaso pH 7.24, pCO2 26, HCO3 11, Na 140, Cl 104, Alb 3.2`") };
+  }
+
+  // 10. Fim de Plantão
+  if (texto === "🏁 Fim de Plantão") {
+    return { executado: true, resultado: gerarResumoFimPlantao(chatId) };
+  }
+
+  // 11. Preceptor Voz
+  if (texto === "🎧 Preceptor Voz") {
+    if (typeof iniciarModoBot === "function") return { executado: true, resultado: iniciarModoBot(chatId, "voz", false) };
+    return { executado: true, resultado: enviarMensagemParaChat(chatId, "🎧 Grave ou envie um caso clínico para o Preceptor Socrático.") };
+  }
+
+  // 12. Dúvida MedQuest
+  if (texto === "🧠 Dúvida MedQuest") {
+    return { executado: true, resultado: enviarMensagemParaChat(chatId, "🧠 *DÚVIDA MÉDICA (MEDQUEST)*\n\nDigite sua dúvida para arquivar no bloco de estudo noturno:\n💡 *Ex:* `/duvida Indicações de drenagem torácica no empiema`") };
+  }
+
+  // 13. Central / Menu / Hub
+  if (texto === "⚙️ Central / Menu" || texto === "⚙️ Menu / Ajuda" || comando === "/teclado" || comando === "/menu" || comando === "/hub") {
+    if (typeof registrarComandosNativosTelegram === "function") {
+      try { registrarComandosNativosTelegram(); } catch (eCmd) {}
+    }
+    if (typeof enviarHubPrincipal === "function") {
+      return { executado: true, resultado: enviarHubPrincipal(chatId) };
+    }
+    var msgTeclado = "⌨️ *Teclado de Acesso Rápido Ativado!*\n\nUse os botões na base do chat para navegação imediata de 1 toque no hospital e na rotina.";
+    return { executado: true, resultado: enviarMensagemComTecladoFixo(chatId, msgTeclado) };
+  }
+
+  return { executado: false };
+}
+
+/**
+ * Protocolo de Choque Séptico Refratário & CIRCI.
+ */
+function tratarComandoChoqueSeptico(chatId, texto) {
+  var dadosChoque = texto.replace(/^\/\w+\s*/, "").trim();
+  if (typeof EmergenciaChoqueSepticoService === "undefined") {
+    return enviarMensagemParaChat(chatId, "⚠️ Módulo EmergenciaChoqueSepticoService indisponível temporariamente.");
+  }
+  var nums = dadosChoque.match(/\d+(?:[.,]\d+)?/g);
+  if (!nums || nums.length < 2) {
+    var msgAjudaSeptico = "🩸 *EMERGÊNCIA — CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" +
+      "Uso: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`\n\n" +
+      "💡 *Exemplo:* `/choqueseptico 70 0.3` (Detecta refratariedade >= 0.25 mcg/kg/min, prescreve Hidrocortisona e Vasopressina).\n" +
+      "Nota: Azul de Metileno expurgado (conduta terciária/UTI).";
+    var kbAjudaSeptico = (typeof botoesBot === "function") ? botoesBot([
+      [['🩸 Choque Séptico (70kg 0.3 mcg/kg/min)', 'ux:choque:septico:70:0.3']],
+      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    ]) : null;
+    if (kbAjudaSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+      return enviarMensagemComTecladoParaChat(chatId, msgAjudaSeptico, kbAjudaSeptico);
+    }
+    return enviarMensagemParaChat(chatId, msgAjudaSeptico);
+  }
+  var val1 = parseFloat(nums[0].replace(",", "."));
+  var val2 = parseFloat(nums[1].replace(",", "."));
+  var pesoChoque = (val1 >= 20 && val2 < 20) ? val1 : ((val2 >= 20 && val1 < 20) ? val2 : val1);
+  var doseNora = (pesoChoque === val1) ? val2 : val1;
+  pesoChoque = sanitizarEValidarPesoKg(pesoChoque);
+
+  if (pesoChoque === null || isNaN(doseNora)) {
+    var msgInvSeptico = "⚠️ Parâmetros inválidos. Use: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`";
+    var kbInvSeptico = (typeof botoesBot === "function") ? botoesBot([
+      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+    ]) : null;
+    if (kbInvSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+      return enviarMensagemComTecladoParaChat(chatId, msgInvSeptico, kbInvSeptico);
+    }
+    return enviarMensagemParaChat(chatId, msgInvSeptico);
+  }
+  var resChoque = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoChoque, doseNora);
+  if (resChoque.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resChoque.erro);
+
+  var txtOutSeptico = "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + resChoque.textoSOAP;
+  var cacheSeptico = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+  var ckSeptico = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cacheSeptico, ckSeptico, txtOutSeptico, 21600);
+  var kbResSeptico = (typeof botoesBot === "function") ? botoesBot([
+    [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSeptico]],
+    [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+  ]) : null;
+  if (kbResSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, txtOutSeptico, kbResSeptico);
+  }
+  return enviarMensagemParaChat(chatId, txtOutSeptico);
+}
+
+/**
+ * Protocolo de Sequência Rápida de Intubação (SRI / IOT).
+ */
+function tratarComandoSri(chatId, texto) {
+  var dadosSri = texto.replace(/^\/(sri|iot)\s*/i, "").trim();
+  if (!dadosSri) {
+    if (typeof enviarMenuSri === "function") {
+      return enviarMenuSri(chatId);
+    }
+    return enviarMensagemParaChat(chatId, "🫁 *SEQUÊNCIA RÁPIDA DE INTUBAÇÃO (SRI / IOT)*\n\nUso: `/sri <pesoKg> [contexto]`\n💡 *Exemplos:*\n• `/sri 70`\n• `/sri 80 choque`\n• `/sri 65 asma`\n• `/sri 75 tce`");
+  }
+  var partesSri = dadosSri.split(/\s+/);
+  var pesoSri = sanitizarEValidarPesoKg(partesSri[0]);
+  if (pesoSri === null) {
+    return enviarMensagemParaChat(chatId, "⚠️ *Peso obrigatório e inválido para SRI/IOT:*\nInforme um peso numérico positivo em kg.\n\n💡 *Exemplo:* `/sri 70` ou `/sri 72,5 choque`");
+  }
+  var contextoSri = partesSri.slice(1).join(" ") || "padrao";
+  try {
+    var resSri = CalculadorasClinicas.sequenciaRapidaIntubacao(pesoSri, contextoSri);
+    if (resSri && resSri.erro) {
+      return enviarMensagemParaChat(chatId, "⚠️ " + resSri.erro);
+    }
+    if (resSri && resSri.textoFormatado) {
+      var cacheSri = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
+      var ckSri = Utilities.getUuid().replace(/-/g, '');
+      safePutCache(cacheSri, ckSri, resSri.textoFormatado, 21600);
+      var tecladoSri = resSri.botoes ? (resSri.botoes.inline_keyboard ? resSri.botoes : { inline_keyboard: resSri.botoes }) : null;
+      if (!tecladoSri && typeof botoesBot === "function") {
+        tecladoSri = botoesBot([
+          [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSri]],
+          [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+        ]);
+      } else if (tecladoSri && tecladoSri.inline_keyboard) {
+        var jaTemCopiarSri = tecladoSri.inline_keyboard.some(function(row) {
+          return row.some(function(btn) { return btn.text && btn.text.indexOf("Copiar") !== -1; });
+        });
+        if (!jaTemCopiarSri) {
+          tecladoSri.inline_keyboard.unshift([
+            { text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckSri }
+          ]);
+        }
+      }
+      if (tecladoSri) {
+        return enviarMensagemComTecladoParaChat(chatId, resSri.textoFormatado, tecladoSri);
+      } else {
+        return enviarMensagemParaChat(chatId, resSri.textoFormatado);
+      }
+    }
+    return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular SRI.");
+  } catch (eSri) {
+    Logger.log("Erro /sri: " + eSri.message);
+    return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular SRI. Tente novamente.");
+  }
+}
+
 function processarMensagemTexto(message) {
   if (typeof tratarEntradaUX!=="undefined" && tratarEntradaUX(message)) return;
   var texto = message.text ? message.text.trim() : "";
@@ -41872,148 +42333,11 @@ function processarMensagemTexto(message) {
       return enviarMensagemComTecladoFixo(chatId, "🧹 *Memória limpa.* Pronto para o próximo paciente!");
     }
 
-  if (comando === "/manual") {
-    var filtroManual = texto.replace(/^\/manual\s*/i, "").trim();
-    return enviarManualCompletoComandos(chatId, filtroManual);
-  }
-
-  // 1. ATALHOS DO TECLADO FIXO PERSISTENTE (1-TOQUE NO SMARTPHONE)
-  if (texto === "📱 Cockpit" || texto === "📱 Cockpit Móvel" || comando === "/cockpit" || comando === "/app") {
-    var urlPainel = obterUrlCockpit(chatId);
-    var msgCockpit = "📱 *COCKPIT MÓVEL (TELEGRAM MINI APP)*\n\n" +
-      "Seu assistente unificado com 6 abas de alta performance:\n\n" +
-      "• 🧬 *Corpo:* Composição, peso e protocolo\n" +
-      "• 🏥 *Leitos:* Painel da enfermaria e SBAR\n" +
-      "• 💊 *REMUME:* Busca rápida de doses\n" +
-      "• 🧮 *Cálculos:* DVA, SRI, CrCl e Gasometria\n" +
-      "• 📅 *Rotina:* Turma J e MedQuest\n" +
-      "• ✨ *SOAP:* Preceptor socrático e PEP\n\n" +
-      "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
-    var kbCockpit = {
-      inline_keyboard: [
-        [
-          { text: "🚀 Abrir Cockpit em Tela Cheia", web_app: { url: urlPainel } }
-        ]
-      ]
-    };
-    return enviarMensagemComBotoes(chatId, msgCockpit, kbCockpit);
-  }
-
-  if (comando === "/pc") {
-    var partesPc = texto.split(/\s+/);
-    var tarefaPc = partesPc[1] ? partesPc[1].toLowerCase() : "";
-    var argsPc = partesPc.slice(2);
-
-    if (!tarefaPc || tarefaPc === "ajuda" || tarefaPc === "help") {
-      var msgAjudaPc = "🖥️ *PONTE DE EXECUÇÃO LOCAL (PC)*\n\n" +
-        "Envie uma ordem para o seu computador executar em segundo plano:\n\n" +
-        "• `/pc sync` — Sincronização de agenda e estudos\n" +
-        "• `/pc audit` — Auditoria de sobreposições no calendário\n" +
-        "• `/pc status` — Verifica se o daemon do PC está ativo\n\n" +
-        "💡 *Funcionamento:* A ordem é enfileirada na nuvem. Se o seu PC estiver ligado, ele executa e devolve o relatório aqui. Se estiver desligado, roda assim que o PC for ligado!";
-      return enviarMensagemParaChat(chatId, msgAjudaPc);
+    // 1. Despacho O(1) de Atalhos do Teclado Fixo Persistente
+    var resAtalho = rotearAtalhoTecladoFixo(texto, comando, chatId);
+    if (resAtalho.executado) {
+      return resAtalho.resultado;
     }
-
-    if (typeof enfileirarTarefaPc === "function") {
-      var taskId = enfileirarTarefaPc(chatId, tarefaPc, argsPc);
-      var msgOk = "⚡ *Ordem enfileirada na nuvem com sucesso!*\n\n" +
-        "• *Tarefa:* `" + tarefaPc + "`\n" +
-        "• *ID:* `" + taskId + "`\n\n" +
-        "🕒 O runner local processará silenciosamente e enviará o relatório completo aqui assim que concluído.";
-      return enviarMensagemParaChat(chatId, msgOk);
-    } else {
-      return enviarMensagemParaChat(chatId, "⚠️ Fila de tarefas locais temporariamente indisponível.");
-    }
-  }
-
-  if (texto === "🚨 Sala Vermelha" || texto === "🚨 Emergência" || comando === "/sala" || comando === "/emergencia" || comando === "/salavermelha" || comando === "/urgencia") {
-    if (typeof enviarMenuSalaVermelha === "function") {
-      return enviarMenuSalaVermelha(chatId);
-    }
-    var txtSR = "🚨 *SALA VERMELHA & CTI (EMERGÊNCIAS CLÍNICAS)*\n\n" +
-      "Escolha uma ação imediata ou digite o comando:\n\n" +
-      "💉 *Drogas Vasoativas (DVA):*\n" +
-      "• `/dva nora 70` (Noradrenalina em mL/h para 70kg)\n" +
-      "• `/dva nora 80 concentrada` (Solução 2x)\n" +
-      "• `/dva dobuta 70` (Dobutamina 1mg/mL)\n" +
-      "• `/dva vaso` (Vasopressina dose fixa 12 mL/h)\n" +
-      "• `/dva nipride 75` ou `/dva tridil`\n\n" +
-      "🫁 *Sequência Rápida de Intubação (SRI / IOT):*\n" +
-      "• `/sri 70` (Doses e mL exatos de Etomidato, Quetamina, Succinil, Rocurônio e Fentanil)\n" +
-      "• `/sri 70 choque` ou `/sri 70 asma`\n\n" +
-      "⚡ *Condutas de Ataque:* `/conduta <intercorrência>` (ex: `/conduta EAP hipertensivo`)";
-    return enviarMensagemParaChat(chatId, txtSR);
-  }
-
-  if (texto === "🛏️ Enfermaria" || texto === "🏥 Enfermaria") {
-    if (typeof enviarMenuEnfermaria === "function") {
-      return enviarMenuEnfermaria(chatId);
-    }
-    return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
-  }
-
-  if (comando === "/enfermaria" || comando === "/leitos" || comando === "/censo") {
-    if (typeof mostrarPainelLeitos === "function") {
-      return mostrarPainelLeitos(chatId, 0);
-    }
-    return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
-  }
-
-  if (texto === "🩺 Ambulatório" || texto === "🩺 SOAP Ambulatorial") {
-    if (typeof enviarMenuAmbulatorio === "function") {
-      return enviarMenuAmbulatorio(chatId);
-    }
-    return processarMensagemTexto({ chat: { id: chatId }, text: "/ambulatorio" });
-  }
-
-  if (texto === "💊 Prescrever") {
-    if (typeof iniciarModoBot === "function") {
-      return iniciarModoBot(chatId, "rx", false);
-    }
-  }
-
-  if (texto === "💊 Consultas de Bolso" || texto === "💊 REMUME Rápida") {
-    if (typeof enviarMenuConsultasBolso === "function") {
-      return enviarMenuConsultasBolso(chatId);
-    }
-    return enviarMensagemParaChat(chatId, "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME)*\n\nEnvie o pedido ou diagnóstico:\n💡 *Ex:* `/rx amigdalite bacteriana criança 18kg, alérgica a penicilina` ou apenas descreva o caso.");
-  }
-
-  if (texto === "📅 Agenda") {
-    return consultarEventosAgenda("hoje", chatId);
-  }
-
-  if (texto === "📋 Minhas Tarefas") {
-    return listarTarefasHojeNotion(chatId);
-  }
-
-  if (texto === "🩸 Gaso") {
-    return enviarMensagemParaChat(chatId, "🩸 *GASOMETRIA ARTERIAL*\n\nEnvie os parâmetros:\n💡 *Ex:* `/gaso pH 7.24, pCO2 26, HCO3 11, Na 140, Cl 104, Alb 3.2`");
-  }
-
-  if (texto === "🏁 Fim de Plantão") {
-    return gerarResumoFimPlantao(chatId);
-  }
-
-  if (texto === "🎧 Preceptor Voz") {
-    if (typeof iniciarModoBot === "function") return iniciarModoBot(chatId, "voz", false);
-    return enviarMensagemParaChat(chatId, "🎧 Grave ou envie um caso clínico para o Preceptor Socrático.");
-  }
-
-  if (texto === "🧠 Dúvida MedQuest") {
-    return enviarMensagemParaChat(chatId, "🧠 *DÚVIDA MÉDICA (MEDQUEST)*\n\nDigite sua dúvida para arquivar no bloco de estudo noturno:\n💡 *Ex:* `/duvida Indicações de drenagem torácica no empiema`");
-  }
-
-  if (texto === "⚙️ Central / Menu" || texto === "⚙️ Menu / Ajuda" || comando === "/teclado" || comando === "/menu" || comando === "/hub") {
-    if (typeof registrarComandosNativosTelegram === "function") {
-      try { registrarComandosNativosTelegram(); } catch (eCmd) {}
-    }
-    if (typeof enviarHubPrincipal === "function") {
-      return enviarHubPrincipal(chatId);
-    }
-    var msgTeclado = "⌨️ *Teclado de Acesso Rápido Ativado!*\n\nUse os botões na base do chat para navegação imediata de 1 toque no hospital e na rotina.";
-    return enviarMensagemComTecladoFixo(chatId, msgTeclado);
-  }
 
   // Se houver diálogo socrático ativo do Preceptor e Wagner enviou resposta de texto (não comando):
   var diagAtivo = (typeof obterDialogoPreceptor === "function") ? obterDialogoPreceptor(chatId) : null;
@@ -42059,87 +42383,16 @@ function processarMensagemTexto(message) {
     }
   }
 
-  // 2. AJUDA E START
-  if (comando === "/start") {
-    if (typeof enviarHubPrincipal === "function") {
-      enviarMensagemComTecladoFixo(chatId, "👋 *Olá, Dr. Wagner!* Use os botões ou envie seu caso por texto/áudio.");
-      return enviarHubPrincipal(chatId);
+    // 2. Despacho O(1) de Comandos de Sistema
+    var resSistema = rotearComandoSistema(comando, texto, chatId);
+    if (resSistema.executado) {
+      return resSistema.resultado;
     }
-    return enviarMensagemComTecladoFixo(chatId, "Use /menu para a Central de Comandos.");
-  }
 
-  if (comando === "/ajuda" || comando === "/help") {
-    var filtroAjuda = texto.replace(/^\/(ajuda|help)\s*/i, "").trim();
-    return enviarManualCompletoComandos(chatId, filtroAjuda);
-  }
-
-  if (comando === "/status" || comando === "/fontes") {
-    var stRemume = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_REMUME"), false);
-    var stInteracoes = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_INTERACOES"), true);
-    var msgStatus = "⚡ *STATUS DO SISTEMA*\n\n" +
-      "• *Modo:* Servidor Oficial Node.js 20+ / Docker (Render 24/7)\n" +
-      "• *REMUME Ribeirão Preto:* " + stRemume + "\n" +
-      "• *Base de Interações:* " + stInteracoes + "\n" +
-      "• *Notion & Calendar:* ✅ Operacionais";
-    return enviarMensagemParaChat(chatId, msgStatus);
-  }
-
-  if (comando === "/mudancas" || comando === "/mudanças" || comando === "/ultimas_mudancas" || comando === "/ultimasmudancas" || comando === "/deploy") {
-    return tratarComandoUltimasMudancas(chatId, comando === "/deploy");
-  }
-
-  if (comando === "/choqueseptico" || comando === "/septico" || comando === "/circi" || comando === "/vasopressina") {
-    var dadosChoque = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof EmergenciaChoqueSepticoService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo EmergenciaChoqueSepticoService indisponível temporariamente.");
+    // 3. Choque Séptico Refratário & CIRCI
+    if (comando === "/choqueseptico" || comando === "/septico" || comando === "/circi" || comando === "/vasopressina") {
+      return tratarComandoChoqueSeptico(chatId, texto);
     }
-    var nums = dadosChoque.match(/\d+(?:[.,]\d+)?/g);
-    if (!nums || nums.length < 2) {
-      var msgAjudaSeptico = "🩸 *EMERGÊNCIA — CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" +
-        "Uso: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`\n\n" +
-        "💡 *Exemplo:* `/choqueseptico 70 0.3` (Detecta refratariedade >= 0.25 mcg/kg/min, prescreve Hidrocortisona e Vasopressina).\n" +
-        "Nota: Azul de Metileno expurgado (conduta terciária/UTI).";
-      var kbAjudaSeptico = (typeof botoesBot === "function") ? botoesBot([
-        [['🩸 Choque Séptico (70kg 0.3 mcg/kg/min)', 'ux:choque:septico:70:0.3']],
-        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
-      ]) : null;
-      if (kbAjudaSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
-        return enviarMensagemComTecladoParaChat(chatId, msgAjudaSeptico, kbAjudaSeptico);
-      }
-      return enviarMensagemParaChat(chatId, msgAjudaSeptico);
-    }
-    var val1 = parseFloat(nums[0].replace(",", "."));
-    var val2 = parseFloat(nums[1].replace(",", "."));
-    var pesoChoque = (val1 >= 20 && val2 < 20) ? val1 : ((val2 >= 20 && val1 < 20) ? val2 : val1);
-    var doseNora = (pesoChoque === val1) ? val2 : val1;
-    pesoChoque = sanitizarEValidarPesoKg(pesoChoque);
-    
-    if (pesoChoque === null || isNaN(doseNora)) {
-      var msgInvSeptico = "⚠️ Parâmetros inválidos. Use: `/choqueseptico <pesoKg> <dose_nora_mcg/kg/min>`";
-      var kbInvSeptico = (typeof botoesBot === "function") ? botoesBot([
-        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
-      ]) : null;
-      if (kbInvSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
-        return enviarMensagemComTecladoParaChat(chatId, msgInvSeptico, kbInvSeptico);
-      }
-      return enviarMensagemParaChat(chatId, msgInvSeptico);
-    }
-    var resChoque = EmergenciaChoqueSepticoService.avaliarCirciEVasopressina(pesoChoque, doseNora);
-    if (resChoque.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resChoque.erro);
-    
-    var txtOutSeptico = "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO*\n\n" + resChoque.textoSOAP;
-    var cacheSeptico = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
-    var ckSeptico = Utilities.getUuid().replace(/-/g, '');
-    safePutCache(cacheSeptico, ckSeptico, txtOutSeptico, 21600);
-    var kbResSeptico = (typeof botoesBot === "function") ? botoesBot([
-      [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSeptico]],
-      [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
-    ]) : null;
-    if (kbResSeptico && typeof enviarMensagemComTecladoParaChat === "function") {
-      return enviarMensagemComTecladoParaChat(chatId, txtOutSeptico, kbResSeptico);
-    }
-    return enviarMensagemParaChat(chatId, txtOutSeptico);
-  }
 
 
   // 3. COMANDOS CLÍNICOS E SALA VERMELHA
@@ -42241,56 +42494,9 @@ function processarMensagemTexto(message) {
     }
   }
 
+  // 3.1. Sequência Rápida de Intubação (SRI / IOT)
   if (comando === "/sri" || comando === "/iot") {
-    var dadosSri = texto.replace(/^\/(sri|iot)\s*/i, "").trim();
-    if (!dadosSri) {
-      if (typeof enviarMenuSri === "function") {
-        return enviarMenuSri(chatId);
-      }
-      return enviarMensagemParaChat(chatId, "🫁 *SEQUÊNCIA RÁPIDA DE INTUBAÇÃO (SRI / IOT)*\n\nUso: `/sri <pesoKg> [contexto]`\n💡 *Exemplos:*\n• `/sri 70`\n• `/sri 80 choque`\n• `/sri 65 asma`\n• `/sri 75 tce`");
-    }
-    var partesSri = dadosSri.split(/\s+/);
-    var pesoSri = sanitizarEValidarPesoKg(partesSri[0]);
-    if (pesoSri === null) {
-      return enviarMensagemParaChat(chatId, "⚠️ *Peso obrigatório e inválido para SRI/IOT:*\nInforme um peso numérico positivo em kg.\n\n💡 *Exemplo:* `/sri 70` ou `/sri 72,5 choque`");
-    }
-    var contextoSri = partesSri.slice(1).join(" ") || "padrao";
-    try {
-      var resSri = CalculadorasClinicas.sequenciaRapidaIntubacao(pesoSri, contextoSri);
-      if (resSri && resSri.erro) {
-        return enviarMensagemParaChat(chatId, "⚠️ " + resSri.erro);
-      }
-      if (resSri && resSri.textoFormatado) {
-        var cacheSri = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
-        var ckSri = Utilities.getUuid().replace(/-/g, '');
-        safePutCache(cacheSri, ckSri, resSri.textoFormatado, 21600);
-        var tecladoSri = resSri.botoes ? (resSri.botoes.inline_keyboard ? resSri.botoes : { inline_keyboard: resSri.botoes }) : null;
-        if (!tecladoSri && typeof botoesBot === "function") {
-          tecladoSri = botoesBot([
-            [['📋 Copiar para Prontuário', 'ux:copiar:' + ckSri]],
-            [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
-          ]);
-        } else if (tecladoSri && tecladoSri.inline_keyboard) {
-          var jaTemCopiarSri = tecladoSri.inline_keyboard.some(function(row) {
-            return row.some(function(btn) { return btn.text && btn.text.indexOf("Copiar") !== -1; });
-          });
-          if (!jaTemCopiarSri) {
-            tecladoSri.inline_keyboard.unshift([
-              { text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckSri }
-            ]);
-          }
-        }
-        if (tecladoSri) {
-          return enviarMensagemComTecladoParaChat(chatId, resSri.textoFormatado, tecladoSri);
-        } else {
-          return enviarMensagemParaChat(chatId, resSri.textoFormatado);
-        }
-      }
-      return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular SRI.");
-    } catch (eSri) {
-      Logger.log("Erro /sri: " + eSri.message);
-      return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular SRI. Tente novamente.");
-    }
+    return tratarComandoSri(chatId, texto);
   }
 
   // 3.1. PROTOCOLO DE PCR / ACLS BEIRA-LEITO (SALA VERMELHA)
@@ -46891,6 +47097,50 @@ function enviarMenuExamesEspeciais(chatId) {
  * Responde à consulta direta de posologia oficial utilizando o Guia Farmacêutico do HSL
  * com cálculo determinístico de fórmulas fixas para doses pediátricas.
  */
+function formatarMensagemCalculoPediatrico_(calcPed) {
+  var txtPed = [
+    "👶 *CÁLCULO POSOLÓGICO PEDIÁTRICO DETERMINÍSTICO (FÓRMULA FIXA)*",
+    "",
+    "📋 *Fármaco:* *" + calcPed.farmaco + "*",
+    "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`",
+    "⚖️ *Peso Informado:* " + (calcPed.pesoKg == null ? "Não informado (não utilizado no cálculo)." : "`" + calcPed.pesoKg + " kg`"),
+    calcPed.idadeAnos == null ? "" : "*Idade informada:* " + calcPed.idadeAnos + " anos",
+    "",
+    "💊 *ESQUEMA CALCULADO PARA REVISÃO:*",
+    "👉 *" + calcPed.instrucaoPosologica + "*",
+    "📦 *Quantidade a Dispensar:* *" + calcPed.quantidadeDispensar + "*",
+    "",
+    "🧮 *Memória de Cálculo Matemática:*",
+    "_" + calcPed.memoriaCalculo + "_",
+    "",
+    "💡 *Orientações:* " + calcPed.orientacoes,
+    "",
+    "*Conferência:* Validar indicação, apresentação, dose, duração, alergias e ajustes antes de prescrever. O cálculo não substitui a avaliação clínica."
+  ].join("\n");
+
+  var cbParam = calcPed.chave + (calcPed.pesoKg == null ? "" : " " + calcPed.pesoKg + "kg") + (calcPed.idadeAnos == null ? "" : " " + calcPed.idadeAnos + " anos");
+  var kbPed = {
+    "inline_keyboard": [
+      [
+        { "text": "📝 Revisar no /rx", "callback_data": "rx_med:" + cbParam }
+      ]
+    ]
+  };
+  return { texto: txtPed, teclado: kbPed };
+}
+
+function enviarMensagemMedicamentoNaoEncontrado_(chatId, termo) {
+  return enviarMensagemParaChat(
+    chatId,
+    "🔍 *MEDICAMENTO NÃO ENCONTRADO*\n\n" +
+    "Não encontramos registro exato para `\"" + termo + "\"` nos guias oficiais (HSL e PedBook).\n\n" +
+    "💡 *Dicas:*\n" +
+    "• Busque pelo princípio ativo genérico (ex: `/dose amoxicilina`, `/dose dipirona`, `/ped azitromicina`).\n" +
+    "• Se for caso infantil, informe o peso: `/dose amoxicilina 16kg` ou consulte `/ped amoxicilina`.\n" +
+    "• Ou utilize o gerador de receita `/rx " + termo + "` para avaliação clínica completa."
+  );
+}
+
 function responderConsultaPosologiaHSL(chatId, termo) {
   // 1. Se informou peso, calcula determinísticamente em código puro (Zero Alucinação)
   var calcPed = (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularPosologiaPorTextoLivre === "function")
@@ -46898,34 +47148,8 @@ function responderConsultaPosologiaHSL(chatId, termo) {
     : null;
 
   if (calcPed) {
-    var txtPed = [
-      "👶 *CÁLCULO POSOLÓGICO PEDIÁTRICO DETERMINÍSTICO (FÓRMULA FIXA)*",
-      "",
-      "📋 *Fármaco:* *" + calcPed.farmaco + "*",
-      "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`",
-      "⚖️ *Peso Informado:* " + (calcPed.pesoKg == null ? "Não informado (não utilizado no cálculo)." : "`" + calcPed.pesoKg + " kg`"),
-      calcPed.idadeAnos == null ? "" : "*Idade informada:* " + calcPed.idadeAnos + " anos",
-      "",
-      "💊 *ESQUEMA CALCULADO PARA REVISÃO:*",
-      "👉 *" + calcPed.instrucaoPosologica + "*",
-      "📦 *Quantidade a Dispensar:* *" + calcPed.quantidadeDispensar + "*",
-      "",
-      "🧮 *Memória de Cálculo Matemática:*",
-      "_" + calcPed.memoriaCalculo + "_",
-      "",
-      "💡 *Orientações:* " + calcPed.orientacoes,
-      "",
-      "*Conferência:* Validar indicação, apresentação, dose, duração, alergias e ajustes antes de prescrever. O cálculo não substitui a avaliação clínica."
-    ].join("\n");
-
-    var kbPed = {
-      "inline_keyboard": [
-        [
-          { "text": "📝 Revisar no /rx", "callback_data": "rx_med:" + calcPed.chave + (calcPed.pesoKg == null ? "" : " " + calcPed.pesoKg + "kg") + (calcPed.idadeAnos == null ? "" : " " + calcPed.idadeAnos + " anos") }
-        ]
-      ]
-    };
-    return enviarMensagemComTecladoParaChat(chatId, txtPed, kbPed);
+    var resultadoPed = formatarMensagemCalculoPediatrico_(calcPed);
+    return enviarMensagemComTecladoParaChat(chatId, resultadoPed.texto, resultadoPed.teclado);
   }
 
   // 2. Se a busca tiver indicação explícita pediátrica, consulta primariamente o PedBook
@@ -46939,19 +47163,10 @@ function responderConsultaPosologiaHSL(chatId, termo) {
   // 3. Consulta da ficha técnica oficial do Guia HSL
   var med = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(termo) : null;
   if (!med) {
-    // Se não encontrou no HSL, mas existe no PedBook, entrega a ficha do PedBook!
     if (medPed) {
       return responderConsultaPediatricaPedB(chatId, termo);
     }
-    return enviarMensagemParaChat(
-      chatId,
-      "🔍 *MEDICAMENTO NÃO ENCONTRADO*\n\n" +
-      "Não encontramos registro exato para `\"" + termo + "\"` nos guias oficiais (HSL e PedBook).\n\n" +
-      "💡 *Dicas:*\n" +
-      "• Busque pelo princípio ativo genérico (ex: `/dose amoxicilina`, `/dose dipirona`, `/ped azitromicina`).\n" +
-      "• Se for caso infantil, informe o peso: `/dose amoxicilina 16kg` ou consulte `/ped amoxicilina`.\n" +
-      "• Ou utilize o gerador de receita `/rx " + termo + "` para avaliação clínica completa."
-    );
+    return enviarMensagemMedicamentoNaoEncontrado_(chatId, termo);
   }
 
   var respostaTexto = (typeof formatarFichaPosologicaHSL === "function")
@@ -46965,9 +47180,8 @@ function responderConsultaPosologiaHSL(chatId, termo) {
   if (medPed) {
     botoes.push([{ "text": "👶 Ver Doses Pediátricas (PedBook)", "callback_data": "ped_med:" + medPed.nome.substring(0, 30) }]);
   }
-  var kb = { "inline_keyboard": botoes };
 
-  return enviarMensagemComTecladoParaChat(chatId, respostaTexto, kb);
+  return enviarMensagemComTecladoParaChat(chatId, respostaTexto, { "inline_keyboard": botoes });
 }
 
 /**
@@ -47031,177 +47245,205 @@ function responderConsultaCondutaPedB(chatId, termo) {
   return enviarMensagemParaChat(chatId, txt);
 }
 
-function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageIdParaEditar) {
-  enviarChatAction(chatId, "typing", true);
-  
-  // Fast-Ack & Feedback Visual Instantâneo (< 500ms)
-  if (!messageIdParaEditar && typeof UrlFetchApp !== "undefined") {
+function executarFastAckTelegram_(chatId, messageIdParaEditar) {
+  if (messageIdParaEditar || typeof UrlFetchApp === "undefined") return messageIdParaEditar;
+  try {
+    var tokenBot = ConfigService.get("TELEGRAM_BOT_TOKEN");
+    if (!tokenBot) return messageIdParaEditar;
+    var payloadTemp = { chat_id: String(chatId), text: "⚡ Analisando caso clínico...", parse_mode: "Markdown" };
+    var optionsTemp = { method: "post", contentType: "application/json", payload: JSON.stringify(payloadTemp), muteHttpExceptions: true };
+    var resTemp = UrlFetchApp.fetch("https://api.telegram.org/bot" + tokenBot + "/sendMessage", optionsTemp);
+    if (resTemp.getResponseCode() === 200) {
+      var jsonTemp = JSON.parse(resTemp.getContentText());
+      if (jsonTemp && jsonTemp.result && jsonTemp.result.message_id) {
+        return jsonTemp.result.message_id;
+      }
+    }
+  } catch (e) {
+    console.error("Erro no Fast-Ack: " + e.message);
+  }
+  return messageIdParaEditar;
+}
+
+function montarLinhaPrimariaCopiar_(tipoCache, cacheKey, strResultado) {
+  var limpo = typeof uxTextoProntuario === "function" ? uxTextoProntuario(strResultado) : strResultado.trim();
+  var textoCopiarBtn = (tipoCache === "soap") ? "📋 Copiar SOAP para PEP" : "📋 Copiar para Prontuário";
+  if (limpo.length >= 1 && limpo.length <= 256) {
+    return [{ "text": textoCopiarBtn, "copy_text": { "text": limpo } }];
+  }
+  return [{ "text": textoCopiarBtn, "callback_data": "ux:copiar:" + cacheKey }];
+}
+
+function montarBotoesSoap_(chatId, cacheKey, strResultado, ehErro, linhaPrimaria) {
+  var botoes = [linhaPrimaria];
+  if (ehErro) return botoes;
+
+  var ehSoapFechado = /🧠\s*\*A\s*-/i.test(strResultado);
+  if (!ehSoapFechado) {
+    // FASE 1: Rascunho com Anamnese e Exame Físico (sem botões prematuros de ajuste farmacológico)
+    botoes.push([
+      { "text": "📋 Fechar Plano", "callback_data": "ux:soap:plano" },
+      { "text": "🩺 EF Normal", "callback_data": "ux:soap:ef_normal" }
+    ]);
+    botoes.push([
+      { "text": "🔬 Exames", "callback_data": "ef_menu" },
+      { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey }
+    ]);
+  } else {
+    // FASE 2: SOAP Consolidado completo (com plano farmacológico ativo)
+    botoes.push([
+      { "text": "🔄 Recalcular por Peso", "callback_data": "ux:recalc:peso:" + cacheKey },
+      { "text": "⚠️ Ver Interações", "callback_data": "ux:interacao:caso:" + cacheKey }
+    ]);
+    botoes.push([
+      { "text": "💊 Extrair Receita", "callback_data": "ux:soap:extrair_rx:" + cacheKey },
+      { "text": "🔄 Refinar Conduta", "callback_data": "ux:soap:atualizar" }
+    ]);
+    if (ehUsuarioTitular(chatId)) {
+      var linhaNotion = [{ "text": "📁 Salvar Caso", "callback_data": "salvarNotion_soap_" + cacheKey }];
+      if (/IG:|DUM:|DPP:|obstetrícia/i.test(strResultado)) {
+        linhaNotion.unshift({ "text": "🤰 Cartão Gestante", "callback_data": "salvarNotion_prenatal_" + cacheKey });
+      }
+      botoes.push(linhaNotion);
+    }
+    botoes.push([
+      { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey },
+      { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
+    ]);
+  }
+
+  botoes.push([
+    { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
+    { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
+  ]);
+  return botoes;
+}
+
+function montarBotoesNavegacaoGeral_(tipoCache) {
+  if (tipoCache === "rxh" || tipoCache === "plantao") {
+    return [{ "text": "🔙 Enfermaria", "callback_data": "ux:hub:enf" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+  }
+  if (tipoCache === "conduta") {
+    return [{ "text": "🔙 Sala Vermelha", "callback_data": "ux:sala" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+  }
+  if (tipoCache === "rx") {
+    return [
+      { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
+      { "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" },
+      { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
+    ];
+  }
+  return [{ "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
+}
+
+function montarBotoesGeraisIA_(chatId, tipoCache, cacheKey, strResultado, ehErro, linhaPrimaria) {
+  var botoes = [linhaPrimaria];
+
+  if ((tipoCache === "rx" || tipoCache === "rxh" || tipoCache === "conduta") && !ehErro) {
+    botoes.push([
+      { "text": "🔄 Recalcular por Peso", "callback_data": "ux:recalc:peso:" + cacheKey },
+      { "text": "⚠️ Ver Interações", "callback_data": "ux:interacao:caso:" + cacheKey }
+    ]);
+  }
+
+  var ehIncompletoOuPendente = /⚠️\s*prescri[çc][ãa]o\s+incompleta|incomplet[ao]|pend[êe]ncia|informe\s+(?:o\s+)?(?:peso|alergia)|faltam?\s+(?:dados|informa)/i.test(strResultado);
+  var temItensFarmacologicos = tipoCache === "rx" && validarReceitaTemMedicamentos(strResultado);
+  var elegivelPdfRx = (tipoCache === "rx") && !ehErro && !ehIncompletoOuPendente && temItensFarmacologicos;
+
+  var linhaSecundaria = [];
+  if (elegivelPdfRx) {
+    linhaSecundaria.push({ "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + cacheKey });
+  } else if (tipoCache !== "rx" && !ehErro && ehUsuarioTitular(chatId)) {
+    linhaSecundaria.push({ "text": "📁 Salvar no Notion", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey });
+  }
+
+  if (tipoCache === "plantao" && !ehErro) {
+    linhaSecundaria.push({ "text": "👨‍⚕️ Pitch do Round (60s)", "callback_data": "gerarRound_" + cacheKey });
+  }
+  if ((tipoCache === "round" || tipoCache === "plantao") && !ehErro) {
+    linhaSecundaria.push({ "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey });
+  }
+  if (linhaSecundaria.length) botoes.push(linhaSecundaria);
+
+  botoes.push(montarBotoesNavegacaoGeral_(tipoCache));
+  return botoes;
+}
+
+function aplicarRevisaoSoapBotoes_(botoes, chatId, origemSoap, dados) {
+  var revFinal = (origemSoap && origemSoap.revision)
+    ? origemSoap.revision
+    : (modoBot(chatId) ? modoBot(chatId).revision : (dados ? definirModoBot(chatId, "soap", dados).revision : 'indisponivel'));
+  botoes.forEach(function(linha) {
+    linha.forEach(function(botao) {
+      if (/^ux:soap:(plano|ef_normal|atualizar)$/.test(botao.callback_data || '')) {
+        botao.callback_data += ':' + revFinal;
+      }
+    });
+  });
+}
+
+function entregarMensagemFinalIA_(chatId, textoFinal, teclado, messageIdParaEditar) {
+  // Tentativa de In-Place Edit se messageIdParaEditar fornecido
+  if (messageIdParaEditar && textoFinal.length <= 3800) {
     try {
       var tokenBot = ConfigService.get("TELEGRAM_BOT_TOKEN");
-      if (tokenBot) {
-        var payloadTemp = { chat_id: String(chatId), text: "⚡ Analisando caso clínico...", parse_mode: "Markdown" };
-        var optionsTemp = { method: "post", contentType: "application/json", payload: JSON.stringify(payloadTemp), muteHttpExceptions: true };
-        var resTemp = UrlFetchApp.fetch("https://api.telegram.org/bot" + tokenBot + "/sendMessage", optionsTemp);
-        if (resTemp.getResponseCode() === 200) {
-          var jsonTemp = JSON.parse(resTemp.getContentText());
-          if (jsonTemp && jsonTemp.result && jsonTemp.result.message_id) {
-            messageIdParaEditar = jsonTemp.result.message_id;
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Erro no Fast-Ack: " + e.message);
-    }
+      var urlEdit = "https://api.telegram.org/bot" + tokenBot + "/editMessageText";
+      var payloadEdit = {
+        "chat_id": String(chatId),
+        "message_id": Number(messageIdParaEditar),
+        "text": limparMarkdownTelegram(textoFinal),
+        "parse_mode": "Markdown",
+        "reply_markup": teclado
+      };
+      var editOk = executarPostTelegram(urlEdit, payloadEdit);
+      if (editOk) return editOk;
+    } catch (eEdit) {}
   }
+
+  if (textoFinal.length <= 3900) {
+    return enviarMensagemComTecladoParaChat(chatId, textoFinal, teclado);
+  }
+  return enviarMensagemSegmentada(chatId, textoFinal, teclado, messageIdParaEditar);
+}
+
+function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageIdParaEditar) {
+  enviarChatAction(chatId, "typing", true);
+  messageIdParaEditar = executarFastAckTelegram_(chatId, messageIdParaEditar);
 
   var origemSoap = tipoCache === "soap" ? modoBot(chatId) : null;
   var resultado = medirEtapaBot('geracao_clinica', function() { return funcaoGeradora(dados); });
   if (typeof renovarChatActionSeNecessario === "function") {
     renovarChatActionSeNecessario(chatId, "typing");
   }
-  if (resultado) {
-    var strResultado = String(resultado);
-    if (tipoCache === "soap") salvarSoapCockpit_(chatId, origemSoap, strResultado);
-    var cacheKey = Utilities.getUuid().replace(/-/g, "");
-    safePutCache(CacheService.getScriptCache(), cacheKey, strResultado, 21600);
 
-    var botoes = [];
-    var limpo = typeof uxTextoProntuario === "function" ? uxTextoProntuario(strResultado) : strResultado.trim();
-
-    // Destaque absoluto: Copiar para Prontuário em linha exclusiva de largura total
-    var btnCopiar;
-    var textoCopiarBtn = (tipoCache === "soap") ? "📋 Copiar SOAP para PEP" : "📋 Copiar para Prontuário";
-    if (limpo.length >= 1 && limpo.length <= 256) {
-      btnCopiar = { "text": textoCopiarBtn, "copy_text": { "text": limpo } };
-    } else {
-      btnCopiar = { "text": textoCopiarBtn, "callback_data": "ux:copiar:" + cacheKey };
-    }
-    var linhaPrimaria = [btnCopiar];
-
-    var ehErro = /❌|não foi possível|falha ao|erro ao acessar|erro:/i.test(strResultado);
-    var ehIncompletoOuPendente = /⚠️\s*prescri[çc][ãa]o\s+incompleta|incomplet[ao]|pend[êe]ncia|informe\s+(?:o\s+)?(?:peso|alergia)|faltam?\s+(?:dados|informa)/i.test(strResultado);
-    var temItensFarmacologicos = tipoCache === "rx" && validarReceitaTemMedicamentos(strResultado);
-    var elegivelPdfRx = (tipoCache === "rx") && !ehErro && !ehIncompletoOuPendente && temItensFarmacologicos;
-
-    var ehSoapFechado = (tipoCache === "soap") && /🧠\s*\*A\s*-/i.test(strResultado);
-
-    // Botões inline de ajuste dinâmico beira-leito
-    var linhaAjustesDinamicos = [
-      { "text": "🔄 Recalcular por Peso", "callback_data": "ux:recalc:peso:" + cacheKey },
-      { "text": "⚠️ Ver Interações", "callback_data": "ux:interacao:caso:" + cacheKey }
-    ];
-
-    if (tipoCache === "soap" && !ehErro) {
-      botoes.push(linhaPrimaria);
-      if (!ehSoapFechado) {
-        // FASE 1: Rascunho com Anamnese e Exame Físico (sem botões prematuros de ajuste farmacológico)
-        botoes.push([
-          { "text": "📋 Fechar Plano", "callback_data": "ux:soap:plano" },
-          { "text": "🩺 EF Normal", "callback_data": "ux:soap:ef_normal" }
-        ]);
-        botoes.push([
-          { "text": "🔬 Exames", "callback_data": "ef_menu" },
-          { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey }
-        ]);
-      } else {
-        // FASE 2: SOAP Consolidado completo (com plano farmacológico ativo)
-        botoes.push(linhaAjustesDinamicos);
-        botoes.push([
-          { "text": "💊 Extrair Receita", "callback_data": "ux:soap:extrair_rx:" + cacheKey },
-          { "text": "🔄 Refinar Conduta", "callback_data": "ux:soap:atualizar" }
-        ]);
-        if (ehUsuarioTitular(chatId)) {
-          var linhaNotion = [{ "text": "📁 Salvar Caso", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey }];
-          if (/IG:|DUM:|DPP:|obstetrícia/i.test(strResultado)) {
-            linhaNotion.unshift({ "text": "🤰 Cartão Gestante", "callback_data": "salvarNotion_prenatal_" + cacheKey });
-          }
-          botoes.push(linhaNotion);
-        }
-        botoes.push([
-          { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey },
-          { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
-        ]);
-      }
-      botoes.push([
-        { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
-        { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
-      ]);
-    } else {
-      botoes.push(linhaPrimaria);
-      if ((tipoCache === "rx" || tipoCache === "rxh" || tipoCache === "conduta") && !ehErro) {
-        botoes.push(linhaAjustesDinamicos);
-      }
-      var linhaSecundaria = [];
-      if (elegivelPdfRx) {
-        linhaSecundaria.push({ "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + cacheKey });
-      } else if (tipoCache !== "rx" && !ehErro && ehUsuarioTitular(chatId)) {
-        linhaSecundaria.push({ "text": "📁 Salvar no Notion", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey });
-      }
-      if (tipoCache === "plantao" && !ehErro) {
-        linhaSecundaria.push({ "text": "👨‍⚕️ Pitch do Round (60s)", "callback_data": "gerarRound_" + cacheKey });
-      }
-      if ((tipoCache === "round" || tipoCache === "plantao") && !ehErro) {
-        linhaSecundaria.push({ "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey });
-      }
-      if (linhaSecundaria.length) botoes.push(linhaSecundaria);
-      var linhaNavFinal;
-      if (tipoCache === "rxh" || tipoCache === "plantao") {
-        linhaNavFinal = [{ "text": "🔙 Enfermaria", "callback_data": "ux:hub:enf" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
-      } else if (tipoCache === "conduta") {
-        linhaNavFinal = [{ "text": "🔙 Sala Vermelha", "callback_data": "ux:sala" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
-      } else if (tipoCache === "rx") {
-        linhaNavFinal = [
-          { "text": "🔙 Ambulatório", "callback_data": "ux:hub:amb" },
-          { "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" },
-          { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
-        ];
-      } else {
-        linhaNavFinal = [{ "text": "🔙 Voltar ao Menu", "callback_data": "ux:menu" }, { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }];
-      }
-      botoes.push(linhaNavFinal);
-    }
-
-    if (tipoCache === "soap") {
-      var revFinal = (origemSoap && origemSoap.revision)
-        ? origemSoap.revision
-        : (modoBot(chatId) ? modoBot(chatId).revision : (dados ? definirModoBot(chatId, "soap", dados).revision : 'indisponivel'));
-      botoes.forEach(function(linha) { linha.forEach(function(botao) {
-        if (/^ux:soap:(plano|ef_normal|atualizar)$/.test(botao.callback_data || '')) {
-          botao.callback_data += ':' + revFinal;
-        }
-      }); });
-    }
-    var tecladoSalvar = { "inline_keyboard": botoes };
-    // O SOAP já traz seu título e suas seções; preserve a resposta integral.
-    var textoFinal = tipoCache === "soap" ? strResultado
-      : "*" + tipoCache.toUpperCase() + " · Resumo Clínico*\n\n" + strResultado;
-
-    // Tentativa de In-Place Edit se messageIdParaEditar fornecido
-    if (messageIdParaEditar && textoFinal.length <= 3800) {
-      try {
-        var tokenBot = ConfigService.get("TELEGRAM_BOT_TOKEN");
-        var urlEdit = "https://api.telegram.org/bot" + tokenBot + "/editMessageText";
-        var payloadEdit = {
-          "chat_id": String(chatId),
-          "message_id": Number(messageIdParaEditar),
-          "text": limparMarkdownTelegram(textoFinal),
-          "parse_mode": "Markdown",
-          "reply_markup": tecladoSalvar
-        };
-        var editOk = executarPostTelegram(urlEdit, payloadEdit);
-        if (editOk) return editOk;
-      } catch (eEdit) {}
-    }
-
-    if (textoFinal.length <= 3900) {
-      return enviarMensagemComTecladoParaChat(chatId, textoFinal, tecladoSalvar);
-    } else {
-      return enviarMensagemSegmentada(chatId, textoFinal, tecladoSalvar, messageIdParaEditar);
-    }
-  } else {
+  if (!resultado) {
     enviarMensagemParaChat(chatId, "⚠️ Erro ao processar a resposta com a IA.");
     return false;
   }
+
+  var strResultado = String(resultado);
+  if (tipoCache === "soap") salvarSoapCockpit_(chatId, origemSoap, strResultado);
+
+  var cacheKey = Utilities.getUuid().replace(/-/g, "");
+  safePutCache(CacheService.getScriptCache(), cacheKey, strResultado, 21600);
+
+  var ehErro = /❌|não foi possível|falha ao|erro ao acessar|erro:/i.test(strResultado);
+  var linhaPrimaria = montarLinhaPrimariaCopiar_(tipoCache, cacheKey, strResultado);
+
+  var botoes = (tipoCache === "soap")
+    ? montarBotoesSoap_(chatId, cacheKey, strResultado, ehErro, linhaPrimaria)
+    : montarBotoesGeraisIA_(chatId, tipoCache, cacheKey, strResultado, ehErro, linhaPrimaria);
+
+  if (tipoCache === "soap") {
+    aplicarRevisaoSoapBotoes_(botoes, chatId, origemSoap, dados);
+  }
+
+  var teclado = { "inline_keyboard": botoes };
+  var textoFinal = (tipoCache === "soap")
+    ? strResultado
+    : "*" + tipoCache.toUpperCase() + " · Resumo Clínico*\n\n" + strResultado;
+
+  return entregarMensagemFinalIA_(chatId, textoFinal, teclado, messageIdParaEditar);
 }
 
 
@@ -48260,30 +48502,72 @@ function processarDitadoEvolucaoLeito(chatId, dadosLeitoAudio) {
   return enviarMensagemComBotoes(chatId, msgTelegram, { inline_keyboard: botoes });
 }
 
+function processarAudioMensagemTelegram(message) {
+  return processarMensagemVoz(message);
+}
+
 function processarMensagemVoz(message) {
   var chatId = (message.chat && message.chat.id) ? message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
   // Feedback imediato: transcrição + IA
   enviarChatAction(chatId, "typing");
+  var midia = null;
   try {
-    var midia = medirEtapaBot('download_midia', function() { return baixarMidiaTelegram(message.voice || message.audio); });
+    midia = medirEtapaBot('download_midia', function() { return baixarMidiaTelegram(message.voice || message.audio); });
     if (!midia || !midia.data) {
       return enviarMensagemParaChat(chatId, "⚠️ Não foi possível baixar o áudio do Telegram.");
     }
 
+    var mimeAudio = String(midia.mime || "audio/ogg").split(";")[0].trim().toLowerCase();
+    if (mimeAudio === "audio/oga" || mimeAudio === "audio/opus" || mimeAudio.indexOf("audio/ogg") !== -1) {
+      mimeAudio = "audio/ogg";
+    }
+
+    var opcoesAudio = {
+      caption: message.caption || "",
+      chatId: chatId,
+      fallbackOffline: true
+    };
+
     // 1. Processamento Multimodal em Tempo Único (Single-Pass Audio-to-SOAP)
     var resAudio = null;
     if (typeof processarAudioClinicoMultimodal === "function") {
-      try { resAudio = medirEtapaBot('processamento_audio', function() { return processarAudioClinicoMultimodal(midia.data, midia.mime); }); } catch (eAudio) { resAudio = null; }
+      try {
+        resAudio = medirEtapaBot('processamento_audio', function() {
+          return processarAudioClinicoMultimodal(midia.data, mimeAudio, opcoesAudio);
+        });
+      } catch (eAudio) {
+        Logger.log("Aviso em processarAudioClinicoMultimodal: " + (eAudio.message || eAudio));
+        resAudio = null;
+      }
     }
 
     var transcricao = (resAudio && resAudio.transcricao) ? resAudio.transcricao : "";
 
     // Fallback defensivo para transcrição clássica (se o processador multimodal falhar ou em mocks simples)
     if (!transcricao) {
-      var promptTrans = "Transcreva fielmente o áudio em português do Brasil com pontuação correta. Não acrescente introdução ou inferência. Retorne somente a transcrição literal.";
-      var tFallback = chamarGeminiPoolMultimodal(midia.data, midia.mime, promptTrans, "");
-      if (tFallback && tFallback.trim()) {
-        transcricao = tFallback.trim();
+      try {
+        var promptTrans = "Transcreva fielmente o áudio em português do Brasil com pontuação correta. Não acrescente introdução ou inferência. Retorne somente a transcrição literal.";
+        var tFallback = chamarGeminiPoolMultimodal(midia.data, mimeAudio, promptTrans, "");
+        if (tFallback && tFallback.trim()) {
+          transcricao = tFallback.trim();
+        }
+      } catch (eTrans) {
+        Logger.log("Aviso em transcrição clássica Gemini: " + (eTrans.message || eTrans));
+      }
+    }
+
+    // Se ainda assim não houver transcrição nem relato clínico, recorrer ao Fallback Offline Local
+    if (!transcricao && (!resAudio || !resAudio.eh_clinico)) {
+      if (typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
+        try {
+          var fbAudio = IaLocalFallbackService.processarAudioClinicoOffline(midia.data, mimeAudio, opcoesAudio);
+          if (fbAudio && (fbAudio.transcricao || fbAudio.soapTexto || fbAudio.dadosObj)) {
+            resAudio = fbAudio;
+            transcricao = fbAudio.transcricao || "";
+          }
+        } catch (eFbAudio) {
+          Logger.log("Aviso em fallback offline local de áudio: " + (eFbAudio.message || eFbAudio));
+        }
       }
     }
 
@@ -48385,7 +48669,25 @@ function processarMensagemVoz(message) {
 
     var caption = message.caption ? "Contexto adicional do usuário: " + message.caption : "";
 
-    var resultadoAudio = chamarGeminiPoolMultimodal(midia.data, midia.mime, promptSistema, caption);
+    var resultadoAudio = null;
+    try {
+      resultadoAudio = chamarGeminiPoolMultimodal(midia.data, mimeAudio, promptSistema, caption);
+    } catch (eChamarMulti) {
+      Logger.log("Aviso em fallback multimodal direto: " + (eChamarMulti.message || eChamarMulti));
+      resultadoAudio = null;
+    }
+
+    if (!resultadoAudio && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
+      try {
+        var fbFinal = IaLocalFallbackService.processarAudioClinicoOffline(midia.data, mimeAudio, opcoesAudio);
+        if (fbFinal) {
+          resultadoAudio = fbFinal.soapTexto || fbFinal.transcricao || "Áudio clínico registrado em contingência offline.";
+        }
+      } catch (eFbF) {
+        Logger.log("Aviso em fallback final offline: " + (eFbF.message || eFbF));
+      }
+    }
+
     if (resultadoAudio) {
       // 1. Marca hábitos proativamente se citados no áudio
       marcarHabitoProativoHoje(resultadoAudio);
@@ -48409,6 +48711,14 @@ function processarMensagemVoz(message) {
   } catch (err) {
     var msgErrVoz = (err && (err.message || err)) || "Erro desconhecido";
     Logger.log("Erro no processamento de voz: " + (err && err.stack ? err.stack : msgErrVoz));
+    if (midia && midia.data && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
+      try {
+        var fbEmerg = IaLocalFallbackService.processarAudioClinicoOffline(midia.data, (midia.mime || "audio/ogg"), { caption: message.caption || "", chatId: chatId });
+        if (fbEmerg && (fbEmerg.soapTexto || fbEmerg.transcricao)) {
+          return processarEEntregarIA(chatId, function() { return fbEmerg.soapTexto || fbEmerg.transcricao; }, fbEmerg.transcricao || "", "audio");
+        }
+      } catch (eIgnore) {}
+    }
     enviarMensagemParaChat(chatId, "⚠️ Erro ao processar áudio: " + msgErrVoz);
   }
 }
@@ -51482,136 +51792,215 @@ var EnfermariaService=(function(){
       }
     } catch(e) {}
   }
-  function statusExplicito(texto, anterior){
-    var m=texto.match(/(?:^|\n)status:\s*(est[aá]vel|inst[aá]vel|vigil[aâ]ncia|alta programada)\s*(?:\n|$)/i);
-    if(!m)return anterior||'⚪ Não confirmado';
-    var s=m[1].toLowerCase();return s.indexOf('inst')===0?'🚨 Instável / Crítico':s.indexOf('est')===0?'⚪ Estável':s.indexOf('alta')===0?'🟢 Alta Programada':'🟡 Em Vigilância';
+  var STATUS_CANONICO = {
+    instavel: '🚨 Instável / Crítico',
+    estavel: '⚪ Estável',
+    vigilancia: '🟡 Em Vigilância',
+    alta: '🟢 Alta Programada'
+  };
+
+  function normalizarStatus(statusChave) {
+    var k = String(statusChave || '').toLowerCase();
+    return STATUS_CANONICO[k] || statusChave;
   }
-  return {
-    obterTodos:carregar,
-    obterLeito:function(id){return carregar()[String(id).trim()]||null;},
-    atualizarLeito:function(num,texto){
-      try{
-        var id=String(num).trim();if(!/^[\w-]{1,24}$/.test(id))throw new Error('Use até 24 letras, números ou hífen para identificar o leito.');
-        texto=String(texto||'').trim();if(!texto)throw new Error('Informe a evolução.');
-        var all=carregar(),prior=all[id],tz=ConfigService.get('TIMEZONE','America/Sao_Paulo'),now=new Date();
-        var obj={numero:id,dados:texto,status:statusExplicito(texto,prior&&prior.status),atualizadoEm:Utilities.formatDate(now,tz,'HH:mm'),dataISO:Utilities.formatDate(now,tz,'yyyy-MM-dd'),version:Utilities.getUuid()};
-        if(unescape(encodeURIComponent(JSON.stringify(obj))).length>8000)throw new Error('Evolução excede 8 KB. Nenhum dado foi alterado; divida o conteúdo.');
-        if(prior){
-          podarHistorico(props(), id);
-          props().setProperty(gerarChaveHist(id),JSON.stringify(prior));
-        }
-        gravar(id,obj);
-        return {sucesso:true,leito:obj,mensagem:'🛏️ *Leito '+id+' atualizado*\n'+obj.dataISO+' · '+obj.atualizadoEm+'\nStatus: '+obj.status+'\n\n'+texto};
-      }catch(e){return erro(e);}
-    },
-    atualizarStatusLeito:function(num,novoStatus,versaoEsperada){
-      try{
-        var id=String(num).trim(),all=carregar(),l=all[id];
-        if(!l)return {sucesso:false,mensagem:'Leito '+id+' não está registrado.'};
-        if(versaoEsperada && l.version && versaoEsperada !== l.version.slice(0, 8) && versaoEsperada !== l.version) {
-          return {sucesso:false,mensagem:'O leito mudou de paciente ou foi atualizado. Abra-o novamente.'};
-        }
-        var statusFormatado=novoStatus;
-        if(novoStatus==='estavel')statusFormatado='⚪ Estável';
-        else if(novoStatus==='vigilancia')statusFormatado='🟡 Em Vigilância';
-        else if(novoStatus==='instavel')statusFormatado='🚨 Instável / Crítico';
-        else if(novoStatus==='alta')statusFormatado='🟢 Alta Programada';
-        var tz=ConfigService.get('TIMEZONE','America/Sao_Paulo'),now=new Date();
-        var obj={numero:id,dados:l.dados,status:statusFormatado,atualizadoEm:Utilities.formatDate(now,tz,'HH:mm'),dataISO:Utilities.formatDate(now,tz,'yyyy-MM-dd'),version:Utilities.getUuid()};
-        podarHistorico(props(), id);
-        props().setProperty(gerarChaveHist(id),JSON.stringify(l));
-        gravar(id,obj);
-        return {sucesso:true,leito:obj,mensagem:'🛏️ Status do Leito '+id+' alterado para '+statusFormatado};
-      }catch(e){return erro(e);}
-    },
-    desocuparLeito:function(num,versao){
-      try{var id=String(num).trim(),l=carregar()[id];if(!l)return {sucesso:false,mensagem:'Leito '+id+' não estava registrado como ocupado.'};
-        if(versao && versao!==(l.version||l.dataISO+' '+l.atualizadoEm))throw new Error('O leito mudou. Abra-o novamente antes de confirmar a alta.');
-        podarHistorico(props(), id);
-        props().setProperty(gerarChaveHist(id),JSON.stringify(l));
-        gravar(id,{numero:id,arquivado:true,dataAlta:new Date().toISOString()});
-        return {sucesso:true,mensagem:'🟢 Alta registrada · leito '+id+'. Histórico preservado.'};
-      }catch(e){return erro(e);}
-    },
-    limparTudo:function(){
-      try{var all=carregar(),self=this;for(var id of Object.keys(all)){var r=self.desocuparLeito(id);if(!r.sucesso)return r;}return {sucesso:true,mensagem:'Enfermaria encerrada. Histórico preservado.'};}catch(e){return erro(e);}
-    },
-    formatarPainelBordo:function(){
-      var all=carregar(),keys=ids(all);if(!keys.length)return '🏥 *ENFERMARIA · NENHUM LEITO REGISTRADO*\n\nUse /leito 4 seguido da evolução.';
-      var estaveis=0,vigilancias=0,instaveis=0,naoConfirmados=0;
-      keys.forEach(function(id){
-        var st=(all[id].status||'').toLowerCase();
-        if(st.indexOf('inst')!==-1)instaveis++;
-        else if(st.indexOf('vigil')!==-1)vigilancias++;
-        else if(st.indexOf('est')!==-1)estaveis++;
-        else naoConfirmados++;
-      });
-      var censo='('+keys.length+' leitos: 🟢 '+estaveis+' estáveis | 🟡 '+vigilancias+' vigilância | 🔴 '+instaveis+' críticos'+(naoConfirmados ? ' | ⚪ '+naoConfirmados+' a avaliar' : '')+')';
-      return '🏥 *Enfermaria* · '+censo+'\n\n'+keys.map(function(id){var l=all[id];return '*LEITO '+id+'* · '+l.status+'\n'+l.dataISO+' '+l.atualizadoEm+'\n'+l.dados;}).join('\n\n');
-    },
-    obterTextoConsolidadoParaPassagem:function(){var all=carregar(),keys=ids(all);return keys.length?keys.map(function(id){var l=all[id];return 'LEITO '+id+' · '+l.status+' · '+l.dataISO+' '+l.atualizadoEm+'\n'+l.dados;}).join('\n\n'):null;},
-    gerarPassagemSBARConsolidada:function(idLeitoAlvo){
-      var all=carregar(),keys=ids(all);
-      if(!keys.length)return null;
-      if(idLeitoAlvo){
-        keys=keys.filter(function(k){return String(k).trim()===String(idLeitoAlvo).trim();});
-        if(!keys.length)return null;
+
+  function statusExplicito(texto, anterior) {
+    var m = texto.match(/(?:^|\n)status:\s*(est[aá]vel|inst[aá]vel|vigil[aâ]ncia|alta programada)\s*(?:\n|$)/i);
+    if (!m) return anterior || '⚪ Não confirmado';
+    var s = m[1].toLowerCase();
+    if (s.indexOf('inst') === 0) return STATUS_CANONICO.instavel;
+    if (s.indexOf('est') === 0) return STATUS_CANONICO.estavel;
+    if (s.indexOf('alta') === 0) return STATUS_CANONICO.alta;
+    return STATUS_CANONICO.vigilancia;
+  }
+
+  function contarCensoLeitos(all, keys) {
+    var estaveis = 0, vigilancias = 0, instaveis = 0, naoConfirmados = 0;
+    keys.forEach(function (id) {
+      var st = (all[id].status || '').toLowerCase();
+      if (st.indexOf('inst') !== -1) instaveis++;
+      else if (st.indexOf('vigil') !== -1) vigilancias++;
+      else if (st.indexOf('est') !== -1) estaveis++;
+      else naoConfirmados++;
+    });
+    var sufixoAvaliar = naoConfirmados ? ' | ⚪ ' + naoConfirmados + ' a avaliar' : '';
+    return {
+      total: keys.length,
+      estaveis: estaveis,
+      vigilancias: vigilancias,
+      instaveis: instaveis,
+      naoConfirmados: naoConfirmados,
+      resumoPainel: '(' + keys.length + ' leitos: 🟢 ' + estaveis + ' estáveis | 🟡 ' + vigilancias + ' vigilância | 🔴 ' + instaveis + ' críticos' + sufixoAvaliar + ')',
+      resumoSbar: keys.length + ' leitos ativos (🟢 ' + estaveis + ' estáveis | 🟡 ' + vigilancias + ' vigilância | 🔴 ' + instaveis + ' críticos' + sufixoAvaliar + ')'
+    };
+  }
+
+  var REGEX_PENDENCIAS = /(?:pend[êe]ncia[s]?|checar|solicito|programo|aguardando|aguarda|colher|repetir|ajustar|desmamar|trocar)\s*[:=]?\s*([^.,;\n]+)/gi;
+  var REGEX_PREFIXO_PENDENCIA = /^(?:pend[êe]ncia[s]?|checar|solicito|programo|aguardando|aguarda|colher|repetir|ajustar|desmamar|trocar)\s*[:=]?\s*/i;
+
+  function extrairPendenciasLeito(dadosTxt) {
+    if (!dadosTxt) return [];
+    var pendLeito = [];
+    var mPend = String(dadosTxt).match(REGEX_PENDENCIAS);
+    if (!mPend) return pendLeito;
+    mPend.forEach(function (p) {
+      var limpo = p.replace(REGEX_PREFIXO_PENDENCIA, '').trim();
+      if (limpo.length >= 3 && pendLeito.indexOf(limpo) === -1) {
+        pendLeito.push(limpo);
       }
-      var estaveis=0,vigilancias=0,instaveis=0,naoConfirmados=0;
-      var pendenciasPlantao=[];
-      var listaLeitos=[];
+    });
+    return pendLeito;
+  }
 
-      keys.forEach(function(id){
-        var l=all[id];
-        var st=(l.status||'').toLowerCase();
-        if(st.indexOf('inst')!==-1)instaveis++;
-        else if(st.indexOf('vigil')!==-1)vigilancias++;
-        else if(st.indexOf('est')!==-1)estaveis++;
-        else naoConfirmados++;
+  function formatarCardLeitoSbar(id, leito, pendencias) {
+    var pendTxt = pendencias.length > 0 ? '\n⏰ *Pendências:* ' + pendencias.join('; ') : '';
+    return '🛏️ *LEITO ' + id + '* · ' + leito.status + '\n' +
+      '⏱️ Atualizado: ' + leito.dataISO + ' às ' + leito.atualizadoEm + '\n' +
+      '📝 *Evolução:* ' + leito.dados + pendTxt;
+  }
 
-        var dadosTxt=String(l.dados||'');
-        var pendLeito=[];
-        var mPend=dadosTxt.match(/(?:pend[êe]ncia[s]?|checar|solicito|programo|aguardando|aguarda|colher|repetir|ajustar|desmamar|trocar)\s*[:=]?\s*([^.,;\n]+)/gi);
-        if(mPend){
-          mPend.forEach(function(p){
-            var limpo=p.replace(/^(?:pend[êe]ncia[s]?|checar|solicito|programo|aguardando|aguarda|colher|repetir|ajustar|desmamar|trocar)\s*[:=]?\s*/i,'').trim();
-            if(limpo.length>=3&&pendLeito.indexOf(limpo)===-1){
-              pendLeito.push(limpo);
-            }
-          });
+  function formatarSecaoSituacao(censoResumo) {
+    return '*S (SITUAÇÃO / CENSO)*\n' +
+      '• Censo: ' + censoResumo + '\n' +
+      '• Setor: Enfermaria Geral / Internação Hospitalar';
+  }
+
+  function formatarSecaoHistoricoAvaliacao(listaLeitos) {
+    return '*B & A (HISTÓRICO & AVALIAÇÃO BEIRA-LEITO)*\n\n' + listaLeitos.join('\n\n');
+  }
+
+  function formatarSecaoRecomendacoes(pendenciasPlantao) {
+    return '*R (RECOMENDAÇÕES & PENDÊNCIAS DO PLANTÃO)*\n' +
+      (pendenciasPlantao.length > 0
+        ? pendenciasPlantao.join('\n')
+        : '• Sem pendências críticas registradas no momento. Manter vigilância clínica e planos vigentes.');
+  }
+
+  return {
+    obterTodos: carregar,
+    obterLeito: function (id) { return carregar()[String(id).trim()] || null; },
+    atualizarLeito: function (num, texto) {
+      try {
+        var id = String(num).trim();
+        if (!/^[\w-]{1,24}$/.test(id)) throw new Error('Use até 24 letras, números ou hífen para identificar o leito.');
+        texto = String(texto || '').trim();
+        if (!texto) throw new Error('Informe a evolução.');
+        var all = carregar(), prior = all[id], tz = ConfigService.get('TIMEZONE', 'America/Sao_Paulo'), now = new Date();
+        var obj = {
+          numero: id,
+          dados: texto,
+          status: statusExplicito(texto, prior && prior.status),
+          atualizadoEm: Utilities.formatDate(now, tz, 'HH:mm'),
+          dataISO: Utilities.formatDate(now, tz, 'yyyy-MM-dd'),
+          version: Utilities.getUuid()
+        };
+        if (unescape(encodeURIComponent(JSON.stringify(obj))).length > 8000) throw new Error('Evolução excede 8 KB. Nenhum dado foi alterado; divida o conteúdo.');
+        if (prior) {
+          podarHistorico(props(), id);
+          props().setProperty(gerarChaveHist(id), JSON.stringify(prior));
         }
-        if(pendLeito.length>0){
-          pendenciasPlantao.push('• Leito '+id+': '+pendLeito.join('; '));
+        gravar(id, obj);
+        return { sucesso: true, leito: obj, mensagem: '🛏️ *Leito ' + id + ' atualizado*\n' + obj.dataISO + ' · ' + obj.atualizadoEm + '\nStatus: ' + obj.status + '\n\n' + texto };
+      } catch (e) { return erro(e); }
+    },
+    atualizarStatusLeito: function (num, novoStatus, versaoEsperada) {
+      try {
+        var id = String(num).trim(), all = carregar(), l = all[id];
+        if (!l) return { sucesso: false, mensagem: 'Leito ' + id + ' não está registrado.' };
+        if (versaoEsperada && l.version && versaoEsperada !== l.version.slice(0, 8) && versaoEsperada !== l.version) {
+          return { sucesso: false, mensagem: 'O leito mudou de paciente ou foi atualizado. Abra-o novamente.' };
         }
+        var statusFormatado = normalizarStatus(novoStatus);
+        var tz = ConfigService.get('TIMEZONE', 'America/Sao_Paulo'), now = new Date();
+        var obj = {
+          numero: id,
+          dados: l.dados,
+          status: statusFormatado,
+          atualizadoEm: Utilities.formatDate(now, tz, 'HH:mm'),
+          dataISO: Utilities.formatDate(now, tz, 'yyyy-MM-dd'),
+          version: Utilities.getUuid()
+        };
+        podarHistorico(props(), id);
+        props().setProperty(gerarChaveHist(id), JSON.stringify(l));
+        gravar(id, obj);
+        return { sucesso: true, leito: obj, mensagem: '🛏️ Status do Leito ' + id + ' alterado para ' + statusFormatado };
+      } catch (e) { return erro(e); }
+    },
+    desocuparLeito: function (num, versao) {
+      try {
+        var id = String(num).trim(), l = carregar()[id];
+        if (!l) return { sucesso: false, mensagem: 'Leito ' + id + ' não estava registrado como ocupado.' };
+        if (versao && versao !== (l.version || l.dataISO + ' ' + l.atualizadoEm)) throw new Error('O leito mudou. Abra-o novamente antes de confirmar a alta.');
+        podarHistorico(props(), id);
+        props().setProperty(gerarChaveHist(id), JSON.stringify(l));
+        gravar(id, { numero: id, arquivado: true, dataAlta: new Date().toISOString() });
+        return { sucesso: true, mensagem: '🟢 Alta registrada · leito ' + id + '. Histórico preservado.' };
+      } catch (e) { return erro(e); }
+    },
+    limparTudo: function () {
+      try {
+        var all = carregar(), self = this;
+        for (var id of Object.keys(all)) {
+          var r = self.desocuparLeito(id);
+          if (!r.sucesso) return r;
+        }
+        return { sucesso: true, mensagem: 'Enfermaria encerrada. Histórico preservado.' };
+      } catch (e) { return erro(e); }
+    },
+    formatarPainelBordo: function () {
+      var all = carregar(), keys = ids(all);
+      if (!keys.length) return '🏥 *ENFERMARIA · NENHUM LEITO REGISTRADO*\n\nUse /leito 4 seguido da evolução.';
+      var censo = contarCensoLeitos(all, keys);
+      var cards = keys.map(function (id) {
+        var l = all[id];
+        return '*LEITO ' + id + '* · ' + l.status + '\n' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados;
+      });
+      return '🏥 *Enfermaria* · ' + censo.resumoPainel + '\n\n' + cards.join('\n\n');
+    },
+    obterTextoConsolidadoParaPassagem: function () {
+      var all = carregar(), keys = ids(all);
+      return keys.length ? keys.map(function (id) {
+        var l = all[id];
+        return 'LEITO ' + id + ' · ' + l.status + ' · ' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados;
+      }).join('\n\n') : null;
+    },
+    gerarPassagemSBARConsolidada: function (idLeitoAlvo) {
+      var all = carregar(), keys = ids(all);
+      if (!keys.length) return null;
+      if (idLeitoAlvo) {
+        var alvoStr = String(idLeitoAlvo).trim();
+        keys = keys.filter(function (k) { return String(k).trim() === alvoStr; });
+        if (!keys.length) return null;
+      }
 
-        listaLeitos.push(
-          '🛏️ *LEITO '+id+'* · '+l.status+'\n'+
-          '⏱️ Atualizado: '+l.dataISO+' às '+l.atualizadoEm+'\n'+
-          '📝 *Evolução:* '+l.dados+
-          (pendLeito.length>0?'\n⏰ *Pendências:* '+pendLeito.join('; '):'')
-        );
+      var censo = contarCensoLeitos(all, keys);
+      var pendenciasPlantao = [];
+      var listaLeitos = [];
+
+      keys.forEach(function (id) {
+        var l = all[id];
+        var pendLeito = extrairPendenciasLeito(l.dados);
+        if (pendLeito.length > 0) {
+          pendenciasPlantao.push('• Leito ' + id + ': ' + pendLeito.join('; '));
+        }
+        listaLeitos.push(formatarCardLeitoSbar(id, l, pendLeito));
       });
 
-      var tz=ConfigService.get('TIMEZONE','America/Sao_Paulo');
-      var now=new Date();
-      var dataHora=Utilities.formatDate(now,tz,'dd/MM/yyyy às HH:mm');
+      var tz = ConfigService.get('TIMEZONE', 'America/Sao_Paulo');
+      var now = new Date();
+      var dataHora = Utilities.formatDate(now, tz, 'dd/MM/yyyy às HH:mm');
 
-      var censoResumo=keys.length+' leitos ativos (🟢 '+estaveis+' estáveis | 🟡 '+vigilancias+' vigilância | 🔴 '+instaveis+' críticos'+(naoConfirmados?' | ⚪ '+naoConfirmados+' a avaliar':'')+')';
+      var secaoSituacao = formatarSecaoSituacao(censo.resumoSbar);
+      var secaoHistoricoAvaliacao = formatarSecaoHistoricoAvaliacao(listaLeitos);
+      var secaoRecomendacoes = formatarSecaoRecomendacoes(pendenciasPlantao);
 
-      var txtSbar='📋 *PASSAGEM DE PLANTÃO SBAR · ENFERMARIA*\n'+
-        '📅 '+dataHora+'\n\n'+
-        '*S (SITUAÇÃO / CENSO)*\n'+
-        '• Censo: '+censoResumo+'\n'+
-        '• Setor: Enfermaria Geral / Internação Hospitalar\n\n'+
-        '*B & A (HISTÓRICO & AVALIAÇÃO BEIRA-LEITO)*\n\n'+
-        listaLeitos.join('\n\n')+'\n\n'+
-        '*R (RECOMENDAÇÕES & PENDÊNCIAS DO PLANTÃO)*\n'+
-        (pendenciasPlantao.length>0?pendenciasPlantao.join('\n'):'• Sem pendências críticas registradas no momento. Manter vigilância clínica e planos vigentes.');
-
-      return txtSbar;
+      return '📋 *PASSAGEM DE PLANTÃO SBAR · ENFERMARIA*\n' +
+        '📅 ' + dataHora + '\n\n' +
+        secaoSituacao + '\n\n' +
+        secaoHistoricoAvaliacao + '\n\n' +
+        secaoRecomendacoes;
     },
-    gerarPassagemSBARDeterministica:function(idLeitoAlvo){
+    gerarPassagemSBARDeterministica: function (idLeitoAlvo) {
       return this.gerarPassagemSBARConsolidada(idLeitoAlvo);
     }
   };
@@ -51655,6 +52044,55 @@ var ReceitaPdfService = (function() {
     return "Ao Portador";
   }
 
+  var MARCADORES_CORTE_RECEITA = [
+    "NOTAS CLÍNICAS", "NOTAS CLINICAS", "MEMÓRIA DE CÁLCULO", "MEMORIA DE CALCULO",
+    "PARA CONFERÊNCIA", "PARA CONFERENCIA", "PRONTUÁRIO", "PRONTUARIO",
+    "JUSTIFICATIVA", "INDICAÇÃO CLÍNICA", "INDICACAO CLINICA", "ATENÇÃO:", "ATENCAO:"
+  ];
+
+  function podarNotasClinicasPrescricao_(texto) {
+    var indiceCorte = texto.length;
+    for (var i = 0; i < MARCADORES_CORTE_RECEITA.length; i++) {
+      var pos = texto.toUpperCase().indexOf(MARCADORES_CORTE_RECEITA[i]);
+      if (pos !== -1 && pos > 80 && pos < indiceCorte) {
+        indiceCorte = pos;
+      }
+    }
+    return texto.substring(0, indiceCorte);
+  }
+
+  function extrairDivisaoNomeQuantidade_(conteudoLinha) {
+    var partesDivisao = conteudoLinha.split(/\s+[-—–➔>]+\s+/);
+    if (partesDivisao.length > 1) {
+      return {
+        nome: partesDivisao[0].trim(),
+        quantidade: partesDivisao.slice(1).join(" - ").trim()
+      };
+    }
+    return {
+      nome: conteudoLinha.trim(),
+      quantidade: ""
+    };
+  }
+
+  function criarItemFallback_(textoUtil, regexIgnorar, viaAtual) {
+    var linhasPuras = textoUtil.split("\n");
+    var blocoLimpo = [];
+    for (var k = 0; k < linhasPuras.length; k++) {
+      var lp = linhasPuras[k].replace(/[*_#`]/g, "").trim();
+      if (lp && !regexIgnorar.test(lp) && lp.indexOf("PRESCRIÇÃO") === -1 && lp.indexOf("RECEITUÁRIO") === -1) {
+        blocoLimpo.push(escHtml(lp));
+      }
+    }
+    if (blocoLimpo.length === 0) return null;
+    return {
+      via: viaAtual,
+      nome: blocoLimpo[0],
+      quantidade: "",
+      posologia: blocoLimpo.slice(1).join("<br>")
+    };
+  }
+
   /**
    * Parser inteligente que extrai EXCLUSIVAMENTE os medicamentos, quantidades e modo de tomar,
    * descartando notas de prontuário, memórias de cálculo, justificativas e avisos de IA.
@@ -51662,22 +52100,7 @@ var ReceitaPdfService = (function() {
   function extrairItensReceitaLimpos(textoPrescricao) {
     var texto = String(textoPrescricao || "");
     var ehRascunho = /rascunho/i.test(texto);
-
-    // 1. Se contiver a seção de notas clínicas ou prontuário, corta o texto para ignorar completamente
-    var marcadoresCorte = [
-      "NOTAS CLÍNICAS", "NOTAS CLINICAS", "MEMÓRIA DE CÁLCULO", "MEMORIA DE CALCULO",
-      "PARA CONFERÊNCIA", "PARA CONFERENCIA", "PRONTUÁRIO", "PRONTUARIO",
-      "JUSTIFICATIVA", "INDICAÇÃO CLÍNICA", "INDICACAO CLINICA", "ATENÇÃO:", "ATENCAO:"
-    ];
-
-    var indiceCorte = texto.length;
-    for (var i = 0; i < marcadoresCorte.length; i++) {
-      var pos = texto.toUpperCase().indexOf(marcadoresCorte[i]);
-      if (pos !== -1 && pos > 80 && pos < indiceCorte) {
-        indiceCorte = pos;
-      }
-    }
-    var textoUtil = texto.substring(0, indiceCorte);
+    var textoUtil = podarNotasClinicasPrescricao_(texto);
 
     var linhas = textoUtil.split("\n");
     var itens = [];
@@ -51748,18 +52171,11 @@ var ReceitaPdfService = (function() {
           itens.push(itemAtual);
         }
 
-        var nomeMedicamento = conteudoLinha;
-        var qtdMedicamento = "";
-        var partesDivisao = conteudoLinha.split(/\s+[-—–➔>]+\s+/);
-        if (partesDivisao.length > 1) {
-          nomeMedicamento = partesDivisao[0].trim();
-          qtdMedicamento = partesDivisao.slice(1).join(" - ").trim();
-        }
-
+        var parsed = extrairDivisaoNomeQuantidade_(conteudoLinha);
         itemAtual = {
           via: viaAtual,
-          nome: escHtml(nomeMedicamento),
-          quantidade: escHtml(qtdMedicamento),
+          nome: escHtml(parsed.nome),
+          quantidade: escHtml(parsed.quantidade),
           posologia: ""
         };
         continue;
@@ -51785,21 +52201,9 @@ var ReceitaPdfService = (function() {
 
     // Fallback se nenhum item estruturado foi encontrado
     if (itens.length === 0) {
-      var linhasPuras = textoUtil.split("\n");
-      var blocoLimpo = [];
-      for (var k = 0; k < linhasPuras.length; k++) {
-        var lp = linhasPuras[k].replace(/[*_#`]/g, "").trim();
-        if (lp && !regexIgnorar.test(lp) && lp.indexOf("PRESCRIÇÃO") === -1 && lp.indexOf("RECEITUÁRIO") === -1) {
-          blocoLimpo.push(escHtml(lp));
-        }
-      }
-      if (blocoLimpo.length > 0) {
-        itens.push({
-          via: viaAtual,
-          nome: blocoLimpo[0],
-          quantidade: "",
-          posologia: blocoLimpo.slice(1).join("<br>")
-        });
+      var itemFb = criarItemFallback_(textoUtil, regexIgnorar, viaAtual);
+      if (itemFb) {
+        itens.push(itemFb);
       }
     }
 
@@ -51810,64 +52214,67 @@ var ReceitaPdfService = (function() {
     };
   }
 
-  function gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente) {
-    var dados = extrairItensReceitaLimpos(textoPrescricao);
-
-    // Agrupa itens por via de administração
+  function agruparItensPorVia_(itens) {
     var viasMap = {};
-    for (var i = 0; i < dados.itens.length; i++) {
-      var item = dados.itens[i];
+    for (var i = 0; i < itens.length; i++) {
+      var item = itens[i];
       var v = item.via || "";
       if (!viasMap[v]) viasMap[v] = [];
       viasMap[v].push(item);
     }
+    return viasMap;
+  }
 
+  function renderizarTabelaViasHtml_(viasMap) {
     var htmlCorpo = "";
     var contadorGeral = 1;
 
     for (var nomeVia in viasMap) {
       if (nomeVia) {
-        htmlCorpo += "<div style='margin-top: 14px; margin-bottom: 6px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 2px;'>";
-        htmlCorpo += escHtml(nomeVia);
-        htmlCorpo += "</div>";
+        htmlCorpo += "<div style='margin-top: 14px; margin-bottom: 6px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 2px;'>" +
+          escHtml(nomeVia) +
+          "</div>";
       }
       htmlCorpo += "<table width='100%' cellpadding='0' cellspacing='0' style='width: 100%; margin-bottom: 10px;'>";
 
       var lista = viasMap[nomeVia];
       for (var j = 0; j < lista.length; j++) {
         var m = lista[j];
-        htmlCorpo += "<tr>";
-        htmlCorpo += "  <td align='left' style='font-weight: bold; padding-top: 6px; padding-bottom: 3px; vertical-align: top;'>";
-        htmlCorpo += "    " + contadorGeral + ". " + m.nome;
-        htmlCorpo += "  </td>";
-        htmlCorpo += "  <td align='right' style='font-weight: normal; white-space: nowrap; padding-top: 6px; vertical-align: top;'>";
+        htmlCorpo += "<tr>" +
+          "  <td align='left' style='font-weight: bold; padding-top: 6px; padding-bottom: 3px; vertical-align: top;'>" +
+          "    " + contadorGeral + ". " + m.nome +
+          "  </td>" +
+          "  <td align='right' style='font-weight: normal; white-space: nowrap; padding-top: 6px; vertical-align: top;'>";
         if (m.quantidade) {
           htmlCorpo += "    ----------------- " + m.quantidade;
         }
-        htmlCorpo += "  </td>";
-        htmlCorpo += "</tr>";
+        htmlCorpo += "  </td>" +
+          "</tr>";
         if (m.posologia) {
-          htmlCorpo += "<tr>";
-          htmlCorpo += "  <td colspan='2' align='left' style='padding-left: 20px; line-height: 1.45; padding-bottom: 8px;'>";
-          htmlCorpo += "    " + m.posologia;
-          htmlCorpo += "  </td>";
-          htmlCorpo += "</tr>";
+          htmlCorpo += "<tr>" +
+            "  <td colspan='2' align='left' style='padding-left: 20px; line-height: 1.45; padding-bottom: 8px;'>" +
+            "    " + m.posologia +
+            "  </td>" +
+            "</tr>";
         }
         contadorGeral++;
       }
       htmlCorpo += "</table>";
     }
+    return htmlCorpo;
+  }
 
-    var htmlOrientacoes = "";
-    if (dados.orientacoes && dados.orientacoes.length > 0) {
-      htmlOrientacoes = "<div style='margin-top: 18px; border-top: 1px solid #000000; padding-top: 8px;'>" +
-        "<div style='font-weight: bold; text-transform: uppercase; margin-bottom: 4px;'>Orientações:</div>" +
-        "<div style='line-height: 1.4; padding-left: 8px;'>" +
-        dados.orientacoes.map(function(o) { return "• " + o + "<br>"; }).join("") +
-        "</div>" +
-        "</div>";
-    }
+  function renderizarBlocoOrientacoesHtml_(orientacoes) {
+    if (!orientacoes || orientacoes.length === 0) return "";
+    return "<div style='margin-top: 18px; border-top: 1px solid #000000; padding-top: 8px;'>" +
+      "<div style='font-weight: bold; text-transform: uppercase; margin-bottom: 4px;'>Orientações:</div>" +
+      "<div style='line-height: 1.4; padding-left: 8px;'>" +
+      orientacoes.map(function(o) { return "• " + o + "<br>"; }).join("") +
+      "</div>" +
+      "</div>";
+  }
 
+  function renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes) {
     return "<!DOCTYPE html>" +
       "<html><head><meta charset='utf-8'>" +
       "<style>" +
@@ -51903,6 +52310,14 @@ var ReceitaPdfService = (function() {
       "</body></html>";
   }
 
+  function gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente) {
+    var dados = extrairItensReceitaLimpos(textoPrescricao);
+    var viasMap = agruparItensPorVia_(dados.itens);
+    var htmlCorpo = renderizarTabelaViasHtml_(viasMap);
+    var htmlOrientacoes = renderizarBlocoOrientacoesHtml_(dados.orientacoes);
+    return renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes);
+  }
+
   function obterOuCriarPastaDrive() {
     if(typeof DriveApp==="undefined")return null;
     var props=PropertiesService.getScriptProperties();
@@ -51911,6 +52326,33 @@ var ReceitaPdfService = (function() {
     if(!id){folder.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);props.setProperty("RECEITAS_PASTA_PRIVADA_ID",folder.getId());}
     if(folder.getSharingAccess()!==DriveApp.Access.PRIVATE || folder.getEditors().length || folder.getViewers().length)throw new Error("A pasta de receitas precisa ter acesso restrito ao proprietário.");
     return folder;
+  }
+
+  function obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada) {
+    var blobPdf = null;
+    if (typeof gerarPdfReceitaNativo === "function") {
+      try {
+        var pdfBytes = gerarPdfReceitaNativo({
+          nomePaciente: nomePaciente,
+          dataFormatada: dataFormatada,
+          itens: dadosEstruturados.itens,
+          orientacoes: dadosEstruturados.orientacoes,
+          ehRascunho: dadosEstruturados.ehRascunho
+        });
+        if (pdfBytes) {
+          blobPdf = Utilities.newBlob(pdfBytes, "application/pdf", nomeBase + ".pdf");
+        }
+      } catch (ePdfNativo) {
+        Logger.log("Aviso ao gerar PDF nativo: " + ePdfNativo.message);
+      }
+    }
+
+    if (!blobPdf) {
+      var blobHtml = Utilities.newBlob(html, "text/html", nomeBase + ".html");
+      blobPdf = blobHtml.getAs("application/pdf");
+      blobPdf.setName(nomeBase + ".pdf");
+    }
+    return blobPdf;
   }
 
   return {
@@ -51931,33 +52373,14 @@ var ReceitaPdfService = (function() {
       var stampArquivo = Utilities.formatDate(agora, tz, "yyyyMMdd_HHmm");
       var nomePaciente = extrairNomePaciente(textoPrescricao);
 
-      var html = gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente);
+      var dadosEstruturados = extrairItensReceitaLimpos(textoPrescricao);
+      var viasMap = agruparItensPorVia_(dadosEstruturados.itens);
+      var htmlCorpo = renderizarTabelaViasHtml_(viasMap);
+      var htmlOrientacoes = renderizarBlocoOrientacoesHtml_(dadosEstruturados.orientacoes);
+      var html = renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes);
+
       var nomeBase = "Receita_" + stampArquivo + "_" + nomePaciente.replace(/\s+/g, "_");
-
-      var blobPdf = null;
-      if (typeof gerarPdfReceitaNativo === "function") {
-        try {
-          var dadosEstruturados = extrairItensReceitaLimpos(textoPrescricao);
-          var pdfBytes = gerarPdfReceitaNativo({
-            nomePaciente: nomePaciente,
-            dataFormatada: dataFormatada,
-            itens: dadosEstruturados.itens,
-            orientacoes: dadosEstruturados.orientacoes,
-            ehRascunho: dadosEstruturados.ehRascunho
-          });
-          if (pdfBytes) {
-            blobPdf = Utilities.newBlob(pdfBytes, "application/pdf", nomeBase + ".pdf");
-          }
-        } catch (ePdfNativo) {
-          Logger.log("Aviso ao gerar PDF nativo: " + ePdfNativo.message);
-        }
-      }
-
-      if (!blobPdf) {
-        var blobHtml = Utilities.newBlob(html, "text/html", nomeBase + ".html");
-        blobPdf = blobHtml.getAs("application/pdf");
-        blobPdf.setName(nomeBase + ".pdf");
-      }
+      var blobPdf = obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada);
 
       var linkDrive = "";
       try {
@@ -52700,6 +53123,69 @@ function enviarTelaBot(chat, texto, kb, messageId) {
   return enviarMensagemComTecladoParaChat(chat, texto, kb);
 }
 
+/* ========== Fábrica Modular de Teclados (UX Keyboard Builder) ========== */
+
+var UX_BOTAO_INICIO = ['🏠 Início', 'ux:hub:inicio'];
+
+var UX_DESTINOS_RODAPE = {
+  menu: [['🔙 Voltar ao Menu', 'ux:menu'], UX_BOTAO_INICIO],
+  sala: [['🔙 Sala Vermelha', 'ux:hub:sala'], UX_BOTAO_INICIO],
+  enf: [['🔙 Enfermaria', 'ux:hub:enf'], UX_BOTAO_INICIO],
+  amb: [['🔙 Ambulatório', 'ux:hub:amb'], UX_BOTAO_INICIO],
+  calc: [['🔙 Calculadoras', 'ux:hub:calc'], UX_BOTAO_INICIO],
+  bolso: [['🔙 Consultas de Bolso', 'ux:hub:bolso'], UX_BOTAO_INICIO],
+  leitos: [['🔙 Painel de Leitos', 'ux:painel:0'], UX_BOTAO_INICIO],
+  go: [['🔙 Hub G&O', 'ux:rotina:go'], UX_BOTAO_INICIO],
+  dva: [['← Trocar medicamento', 'ux:dvamenu'], ['🔙 Sala Vermelha', 'ux:hub:sala']]
+};
+
+function uxLinhaNavegacao(destino) {
+  if (!destino) return null;
+  if (typeof destino === 'string' && UX_DESTINOS_RODAPE[destino]) {
+    return UX_DESTINOS_RODAPE[destino];
+  }
+  if (Array.isArray(destino)) {
+    if (destino.length > 0 && Array.isArray(destino[0])) {
+      return destino;
+    }
+    return [destino, UX_BOTAO_INICIO];
+  }
+  return null;
+}
+
+function uxCriarTeclado(linhas, destinoNavegacao) {
+  var matriz = Array.isArray(linhas) ? linhas.slice() : [];
+  var rodape = uxLinhaNavegacao(destinoNavegacao);
+  if (rodape) {
+    matriz.push(rodape);
+  }
+  return botoesBot(matriz);
+}
+
+function uxCriarTecladoGrade(itens, colunas, destinoNavegacao) {
+  var cols = colunas || 2;
+  var matriz = [];
+  var linhaAtual = [];
+  var lista = Array.isArray(itens) ? itens : [];
+
+  for (var i = 0; i < lista.length; i++) {
+    linhaAtual.push(lista[i]);
+    if (linhaAtual.length === cols) {
+      matriz.push(linhaAtual);
+      linhaAtual = [];
+    }
+  }
+  if (linhaAtual.length > 0) {
+    matriz.push(linhaAtual);
+  }
+  return uxCriarTeclado(matriz, destinoNavegacao);
+}
+
+function enviarTelaBotComNavegacao(chat, texto, linhas, destinoNavegacao, messageId) {
+  var kb = uxCriarTeclado(linhas, destinoNavegacao);
+  return enviarTelaBot(chat, texto, kb, messageId);
+}
+
 /* ========== Atendimento persistente; cache somente para compatibilidade ========== */
 
 function modoBot(chat) {
@@ -52822,15 +53308,14 @@ function enviarMenuUXGinecoObstetricia(chat, messageId) {
   var texto = '🌸🤰 *Hub Unificado de Ginecologia & Obstetrícia (Internato até 29/11)*\n\n' +
     'Condutas imediatas, calculadoras obstétricas e guias ambulatoriais em 0ms:\n' +
     'Selecione o submódulo de atendimento rápido:';
-  var botoes = botoesBot([
+  var linhas = [
     [['🤰 Pré-Natal & DPP', 'go_prenatal'], ['🏥 Parto & Partograma', 'go_parto']],
     [['🩸 HPP (4 Ts)', 'go_hpp'], ['⚡ Pré-Eclâmpsia & MgSO4', 'go_mgso4']],
     [['👶 Prematuridade & RPMO', 'go_prematuridade'], ['🔬 Toxo & Sorologias', 'go_toxo']],
     [['🌸 Vulvovaginites', 'go_corrimento'], ['🩺 Preventivo (INCA)', 'go_preventivo']],
-    [['💊 Anticoncepção OMS', 'go_anticoncepcao'], ['🩹 DIP & Infecção Pélvica', 'go_dip']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['💊 Anticoncepção OMS', 'go_anticoncepcao'], ['🩹 DIP & Infecção Pélvica', 'go_dip']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 var enviarMenuGinecologiaObstetricia = enviarMenuUXGinecoObstetricia;
 
@@ -52838,71 +53323,71 @@ var enviarMenuGinecologiaObstetricia = enviarMenuUXGinecoObstetricia;
 /* ========== Cenário 1: 🚨 Emergência & Sala Vermelha ========== */
 
 function enviarMenuSalaVermelha(chat, messageId) {
-  return enviarTelaBot(chat, '🚨 *EMERGÊNCIA & SALA VERMELHA*\n\nCondutas imediatas e suporte intensivo:', botoesBot([
+  var texto = '🚨 *EMERGÊNCIA & SALA VERMELHA*\n\nCondutas imediatas e suporte intensivo:';
+  var linhas = [
     [['🫀 PCR (ACLS)', 'ux:conduta:pcr'], ['⚡ Arritmias Cardíacas', 'ux:emerg:arritmia']],
     [['🫁 SRI / IOT', 'ux:srimenu'], ['🩸 Gasometria', 'ux:iniciar:gaso']],
     [['💉 Drogas Vasoativas (DVA)', 'ux:dvamenu'], ['⚡ Choque & Hipotensão', 'ux:emerg:choque']],
     [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🦟 Dengue C/D', 'ux:emerg:dengue'], ['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia']],
-    [['⚡ Outras Condutas', 'ux:condutamenu']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['⚡ Outras Condutas', 'ux:condutamenu']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 
 function enviarMenuDva(chat, messageId) {
-  return enviarTelaBot(chat, '💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nQual medicamento deseja calcular?', botoesBot([
+  var texto = '💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nQual medicamento deseja calcular?';
+  var linhas = [
     [['Noradrenalina', 'ux:droga:nora'], ['Dobutamina', 'ux:droga:dobuta']],
     [['Vasopressina', 'ux:fixa:vaso'], ['Adrenalina (Infusão)', 'ux:droga:adrena']],
     [['Nitroprussiato', 'ux:droga:nipride'], ['Nitroglicerina', 'ux:fixa:tridil']],
     [['🔙 Calculadoras', 'ux:hub:calc'], ['🔙 Sala Vermelha', 'ux:hub:sala']],
-    [['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [UX_BOTAO_INICIO]
+  ];
+  return enviarTelaBot(chat, texto, botoesBot(linhas), messageId);
 }
 
 function enviarTelaPesoDva(chat, droga, messageId) {
-  var r = [], linha = [];
-  UX_PESOS_RAPIDOS.forEach(function (p) {
-    linha.push([p + ' kg', 'ux:peso:' + droga + ':' + p]);
-    if (linha.length === 2) { r.push(linha); linha = []; }
+  var itens = UX_PESOS_RAPIDOS.map(function (p) {
+    return [p + ' kg', 'ux:peso:' + droga + ':' + p];
   });
-  if (linha.length) r.push(linha);
-  r.push([['← Trocar medicamento', 'ux:dvamenu']]);
-  r.push([['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]);
+  var kb = uxCriarTecladoGrade(itens, 2);
+  kb.inline_keyboard.push(botoesBot([[['← Trocar medicamento', 'ux:dvamenu']]]).inline_keyboard[0]);
+  kb.inline_keyboard.push(botoesBot([UX_DESTINOS_RODAPE.sala]).inline_keyboard[0]);
   return enviarTelaBot(chat,
     '💉 *' + UX_DROGAS[droga].toUpperCase() + '*\nPeso do paciente\n\n' +
     'Toque em um peso ou envie o valor em kg (ex.: 73,5). Os botões são aproximações: use o peso real quando souber.',
-    botoesBot(r), messageId);
+    kb, messageId);
 }
 
 function enviarTelaDiluicaoDva(chat, droga, peso, messageId) {
   var p = String(peso).replace(',', '.');
-  return enviarTelaBot(chat,
-    '💉 *' + UX_DROGAS[droga].toUpperCase() + ' · ' + String(peso).replace('.', ',') + ' kg*\nSelecione a diluição.',
-    botoesBot([
-      [['Padrão', 'ux:diluicao:' + droga + ':' + p + ':padrao'], ['Concentrada', 'ux:diluicao:' + droga + ':' + p + ':concentrada']],
-      [['✏️ Alterar peso', 'ux:droga:' + droga]],
-      [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-    ]), messageId);
+  var texto = '💉 *' + UX_DROGAS[droga].toUpperCase() + ' · ' + String(peso).replace('.', ',') + ' kg*\nSelecione a diluição.';
+  var linhas = [
+    [['Padrão', 'ux:diluicao:' + droga + ':' + p + ':padrao'], ['Concentrada', 'ux:diluicao:' + droga + ':' + p + ':concentrada']],
+    [['✏️ Alterar peso', 'ux:droga:' + droga]]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuSri(chat, messageId) {
-  return enviarTelaBot(chat,
-    '🫁 *SEQUÊNCIA RÁPIDA DE INTUBAÇÃO (SRI / IOT)*\n\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.',
-    botoesBot([
-      [['60 kg', 'ux:sri:60'], ['70 kg', 'ux:sri:70']],
-      [['80 kg', 'ux:sri:80'], ['90 kg', 'ux:sri:90']],
-      [['Choque 70 kg', 'ux:sri:70 choque'], ['Asma 70 kg', 'ux:sri:70 asma']],
-      [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-    ]), messageId);
+  var texto = '🫁 *SEQUÊNCIA RÁPIDA DE INTUBAÇÃO (SRI / IOT)*\n\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.';
+  var linhas = [
+    [['60 kg', 'ux:sri:60'], ['70 kg', 'ux:sri:70']],
+    [['80 kg', 'ux:sri:80'], ['90 kg', 'ux:sri:90']],
+    [['Choque 70 kg', 'ux:sri:70 choque'], ['Asma 70 kg', 'ux:sri:70 asma']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuCondutas(chat, messageId) {
-  return enviarTelaBot(chat, '⚡ *Outras Emergências*\nSelecione a conduta beira-leito:', botoesBot([
+  var texto = '⚡ *Outras Emergências*\nSelecione a conduta beira-leito:';
+  var linhas = [
     [['🚨 EAP hipertensivo', 'ux:conduta:eap'], ['⚡ Anafilaxia', 'ux:conduta:anafilaxia']],
     [['🧠 Crise convulsiva', 'ux:conduta:convulsao'], ['🧪 Hipercalemia', 'ux:conduta:hipercalemia']],
-    [['🩸 Cetoacidose (CAD)', 'ux:conduta:cad']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['🩸 Cetoacidose (CAD)', 'ux:conduta:cad']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function obterTextoCondutaEmergencia(tipo) {
@@ -53176,12 +53661,11 @@ function enviarMenuEmergDengue(chat, messageId) {
     '• *Grupo C:* Dengue com sinais de alarme (hidratação venosa imediata 10 mL/kg/h)\n' +
     '• *Grupo D:* Choque hipovolêmico (expansão rápida em bolus 20 mL/kg em 20 min)\n' +
     '• *Grupos A e B:* Hidratação oral supervisionada (60 mL/kg/dia)';
-  var botoes = botoesBot([
+  var linhas = [
     [['🦟 Grupo C (10 mL/kg/h)', 'ux:conduta:dengue_c'], ['🚨 Grupo D Choque (20 mL/kg)', 'ux:conduta:dengue_d']],
-    [['📋 Grupos A e B (Oral)', 'ux:conduta:dengue_ab']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['📋 Grupos A e B (Oral)', 'ux:conduta:dengue_ab']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuEmergCriseHas(chat, messageId) {
@@ -53190,12 +53674,11 @@ function enviarMenuEmergCriseHas(chat, messageId) {
     '• *Emergência:* LOA aguda (EAP, Dissecção, SCA, AVC) — drogas venosas em BIC\n' +
     '• *Urgência:* PA elevada sem LOA — controle oral em 24-48h (Captopril VO)\n' +
     '• *Pseudocrise:* Reativa a dor/ansiedade — repouso e analgesia simples';
-  var botoes = botoesBot([
+  var linhas = [
     [['🚨 Emergência (EAP / Dissecção)', 'ux:conduta:crisehas_emerg'], ['⚡ Urgência (Captopril/Clonidina)', 'ux:conduta:crisehas_urg']],
-    [['🟢 Pseudocrise (Repouso/Analgesia)', 'ux:conduta:crisehas_pseudo']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['🟢 Pseudocrise (Repouso/Analgesia)', 'ux:conduta:crisehas_pseudo']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuEmergGlasgow(chat, messageId) {
@@ -53209,12 +53692,11 @@ function enviarMenuEmergGlasgow(chat, messageId) {
     '💡 *Envie a pontuação:* `glasgow 7` ou `glasgow 14`\n' +
     '🚨 *Alerta Sentinela:* Glasgow ≤ 8 = Proteção de via aérea obrigatória (SRI / IOT).\n\n' +
     'Selecione a gravidade clínica pela pontuação:';
-  var botoes = botoesBot([
+  var linhas = [
     [['🔴 Glasgow ≤ 8 (SRI / IOT)', 'ux:conduta:gcs_8'], ['🟡 Glasgow 9-12 (TC / Vigia)', 'ux:conduta:gcs_10']],
-    [['🟢 Glasgow 13-15 (Observação)', 'ux:conduta:gcs_14'], ['📐 Calculadora Glasgow-P', 'calc_Glasgow']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['🟢 Glasgow 13-15 (Observação)', 'ux:conduta:gcs_14'], ['📐 Calculadora Glasgow-P', 'calc_Glasgow']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuEmergChoque(chat, messageId) {
@@ -53224,12 +53706,11 @@ function enviarMenuEmergChoque(chat, messageId) {
     '• *Perfil B (Quente & Úmido):* Congestão/EAP — Nitroglicerina + Furosemida\n' +
     '• *Perfil L (Frio & Seco):* Hipovolemia/Superdiurese — Prova de volume\n' +
     '• *Choque Séptico:* Nora + Vasopressina + Hidrocortisona (CIRCI)';
-  var botoes = botoesBot([
+  var linhas = [
     [['🔴 Perfil C: Frio & Úmido (Choque)', 'ux:conduta:choque_c'], ['🟡 Perfil B: Quente & Úmido (EAP)', 'ux:conduta:choque_b']],
-    [['🔵 Perfil L: Frio & Seco (Hipovolemia)', 'ux:conduta:choque_l'], ['💉 Choque Séptico (CIRCI/Nora)', 'ux:conduta:choque_septico']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['🔵 Perfil L: Frio & Seco (Hipovolemia)', 'ux:conduta:choque_l'], ['💉 Choque Séptico (CIRCI/Nora)', 'ux:conduta:choque_septico']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuEmergCefaleia(chat, messageId) {
@@ -53239,12 +53720,11 @@ function enviarMenuEmergCefaleia(chat, messageId) {
     '• *Meningite:* Febre + rigidez de nuca — Líquor e Ceftriaxona 2g + Dexa 10mg\n' +
     '• *Primária / Enxaqueca:* Resgate multimodal com Dipirona + Plasil + Dexa\n' +
     '• *Arterite Temporal:* Paciente > 50 anos com dor temporal — VHS + Prednisona urgente';
-  var botoes = botoesBot([
+  var linhas = [
     [['🚨 Trovoada / HSA (TC+PL)', 'ux:conduta:cef_hsa'], ['⚠️ Meningite / Febre (Punção)', 'ux:conduta:cef_mening']],
-    [['💊 Cefaleia Primária (Resgate PS)', 'ux:conduta:cef_primaria'], ['👵 Arterite Temporal (Corticoide)', 'ux:conduta:cef_arterite']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['💊 Cefaleia Primária (Resgate PS)', 'ux:conduta:cef_primaria'], ['👵 Arterite Temporal (Corticoide)', 'ux:conduta:cef_arterite']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarTelaCondutaEmergencia(chat, condutaKey, messageId) {
@@ -53255,25 +53735,21 @@ function enviarTelaCondutaEmergencia(chat, condutaKey, messageId) {
   var cache = uxCache();
   var ck = Utilities.getUuid().replace(/-/g, '');
   safePutCache(cache, ck, textoCond, 21600);
-  var botoes = botoesBot([
-    [['📋 Copiar para Prontuário', 'ux:copiar:' + ck]],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, textoCond, botoes, messageId);
+  var linhas = [[['📋 Copiar para Prontuário', 'ux:copiar:' + ck]]];
+  return enviarTelaBotComNavegacao(chat, textoCond, linhas, 'sala', messageId);
 }
 
 /* ========== Cenário 2: 🛏️ Enfermaria & Prescrição Rápida ========== */
 
 function enviarMenuEnfermaria(chat, messageId) {
   var texto = '🛏️ *ENFERMARIA & PRESCRIÇÃO*\nSelecione a ferramenta ou envie o caso diretamente:';
-  var botoes = botoesBot([
+  var linhas = [
     [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:enf:sbar']],
     [['🧪 Clearance (Cockcroft)', 'ux:enf:clcr'], ['💊 Ajuste Renal ATB', 'ux:enf:ajuste']],
     [['💧 Hidratação / Holliday', 'ux:enf:hidratacao'], ['📋 Prescrição Hospitalar', 'ux:enf:rxh']],
-    [['💊 Sintomáticos / SOS', 'ux:enf:sintomaticos']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['💊 Sintomáticos / SOS', 'ux:enf:sintomaticos']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 
 function enviarTelaEnfClearance(chat, messageId) {
@@ -53283,11 +53759,10 @@ function enviarTelaEnfClearance(chat, messageId) {
     '• `/crcl 65 anos, 70kg, cr 1.8, masculino`\n' +
     '• `/crcl 80 anos, 55kg, cr 2.1, fem, medicações: vancomicina`\n' +
     '• `/clearance 45a, 80kg, cr 3.5, mulher, enoxaparina`';
-  var botoes = botoesBot([
-    [['🧪 Cockcroft 70kg Cr 1.2 M', 'calc_Cockcroft'], ['📊 CKD-EPI (TFG)', 'calc_CKD']],
-    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [
+    [['🧪 Cockcroft 70kg Cr 1.2 M', 'calc_Cockcroft'], ['📊 CKD-EPI (TFG)', 'calc_CKD']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'enf', messageId);
 }
 
 function enviarTelaEnfAjusteATB(chat, messageId) {
@@ -53299,12 +53774,11 @@ function enviarTelaEnfAjusteATB(chat, messageId) {
     '• `/atb pip-tazo clcr 30`\n' +
     '• `/atb cefepime hd`\n' +
     '• `/atb polimixina b 10`';
-  var botoes = botoesBot([
+  var linhas = [
     [['💊 Meropenem ClCr 25', 'ux:atb:mero25'], ['💊 Pip-Tazo ClCr 30', 'ux:atb:tazo30']],
-    [['💊 Cefepime HD', 'ux:atb:cefepimehd'], ['💊 Vanco ClCr 40', 'ux:atb:vanco40']],
-    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['💊 Cefepime HD', 'ux:atb:cefepimehd'], ['💊 Vanco ClCr 40', 'ux:atb:vanco40']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'enf', messageId);
 }
 
 function enviarTelaEnfHidratacao(chat, messageId) {
@@ -53314,11 +53788,10 @@ function enviarTelaEnfHidratacao(chat, messageId) {
     '• `/holliday 8kg` (Manutenção, vazão em bomba, eletrólitos SBP e TIG)\n' +
     '• `/holliday 11kg bronquiolite` (Restrição a 70% p/ prevenir sobrecarga)\n' +
     '• `/nutriped 6kg 3 meses partida` (Avaliação nutricional completa)';
-  var botoes = botoesBot([
-    [['💧 Holliday 8kg', 'ux:hol:8kg'], ['💧 Holliday 11kg Bronquiolite', 'ux:hol:11kg_bva']],
-    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [
+    [['💧 Holliday 8kg', 'ux:hol:8kg'], ['💧 Holliday 11kg Bronquiolite', 'ux:hol:11kg_bva']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'enf', messageId);
 }
 
 function enviarTelaEnfPrescricaoHosp(chat, messageId) {
@@ -53326,11 +53799,8 @@ function enviarTelaEnfPrescricaoHosp(chat, messageId) {
     'Gere uma prescrição de internação padronizada (10 itens) com auditoria de segurança:\n\n' +
     '💡 *Envie os dados do caso por texto ou áudio:*\n' +
     '`/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`';
-  var botoes = botoesBot([
-    [['📋 Gerar Exemplo (PAC Grave)', 'ux:rxh:exemplo_pac']],
-    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [[['📋 Gerar Exemplo (PAC Grave)', 'ux:rxh:exemplo_pac']]];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'enf', messageId);
 }
 
 function tratarCallbackEnfSBAR(chat, messageId) {
@@ -53345,11 +53815,7 @@ function tratarCallbackEnfSBAR(chat, messageId) {
       '🏥 Nenhum leito registrado na enfermaria para passar plantão.\n\n' +
       '💡 Registre os leitos usando `/leito <num> <evolução>` antes de gerar a passagem.\n' +
       'Exemplo: `/leito 4 72a, PAC grave, Ceftriaxona D3, aguarda vaga CTI`';
-    var botoesVazio = botoesBot([
-      [['🏥 Painel de Leitos', 'ux:painel:0']],
-      [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-    ]);
-    return enviarTelaBot(chat, textoVazio, botoesVazio, messageId);
+    return enviarTelaBotComNavegacao(chat, textoVazio, [[['🏥 Painel de Leitos', 'ux:painel:0']]], 'enf', messageId);
   }
 
   // 100% DETERMINÍSTICO EM 0ms BEIRA-LEITO
@@ -53365,13 +53831,12 @@ function tratarCallbackEnfSBAR(chat, messageId) {
     btnCopiar = [{ text: '📋 Copiar Conduta/Passagem para Prontuário', callback_data: 'ux:copiar:' + ckSbar }];
   }
 
-  var botoesSbar = botoesBot([
+  var linhasSbar = [
     [btnCopiar[0]],
-    [['🏥 Painel de Leitos', 'ux:painel:0'], ['🔄 Atualizar SBAR', 'ux:enf:sbar']],
-    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
+    [['🏥 Painel de Leitos', 'ux:painel:0'], ['🔄 Atualizar SBAR', 'ux:enf:sbar']]
+  ];
 
-  return enviarTelaBot(chat, sbarTexto, botoesSbar, messageId);
+  return enviarTelaBotComNavegacao(chat, sbarTexto, linhasSbar, 'enf', messageId);
 }
 var enviarTelaEnfSBAR = tratarCallbackEnfSBAR;
 
@@ -53381,14 +53846,13 @@ function enviarMenuAmbulatorio(chat, messageId) {
   var texto = '🩺 *AMBULATÓRIO & ATENÇÃO PRIMÁRIA (UBS)*\n\n' +
     'Prontuário estruturado, referências de Atenção Básica e condutas em 0ms:\n' +
     'Selecione a ferramenta ambulatorial desejada:';
-  var botoes = botoesBot([
+  var linhas = [
     [['📝 SOAP Ambulatorial', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
     [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado CFM', 'ux:amb:atestado']],
     [['🩺 Guia SISREG / Parecer', 'ux:amb:sisreg'], ['🌸 Preventivo', 'ux:rotina:preventivo']],
-    [['🤰 Hub G&O', 'ux:rotina:go']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['🤰 Hub G&O', 'ux:rotina:go']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 
 function enviarTelaAmbSoap(chat, messageId) {
@@ -53400,11 +53864,8 @@ function enviarTelaAmbSoap(chat, messageId) {
     "• *P (Plano):* Prescrição REMUME, exames complementares, MEV (estilo de vida), alarmes e retorno.\n\n" +
     "👉 *Envie os dados do caso clínico por áudio ou texto, ou toque abaixo para iniciar*:";
 
-  var botoes = botoesBot([
-    [['📝 Iniciar SOAP', 'ux:iniciar:soap']],
-    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [[['📝 Iniciar SOAP', 'ux:iniciar:soap']]];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'amb', messageId);
 }
 
 function tratarCallbackAmbSoap(chat, valor, messageId) {
@@ -53827,11 +54288,8 @@ function enviarTelaAmbExameFisico(chat, messageId) {
   var ckEf = Utilities.getUuid().replace(/-/g, '');
   safePutCache(cache, ckEf, textoEf, 21600);
 
-  var botoes = botoesBot([
-    [['📋 Copiar Exame Físico', 'ux:copiar:' + ckEf]],
-    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [[['📋 Copiar Exame Físico', 'ux:copiar:' + ckEf]]];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'amb', messageId);
 }
 
 function enviarTelaAmbSisreg(chat, messageId) {
@@ -53853,11 +54311,8 @@ function enviarTelaAmbSisreg(chat, messageId) {
   var ckSis = Utilities.getUuid().replace(/-/g, '');
   safePutCache(cache, ckSis, textoSisreg, 21600);
 
-  var botoes = botoesBot([
-    [['📋 Copiar Guia SISREG', 'ux:copiar:' + ckSis]],
-    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [[['📋 Copiar Guia SISREG', 'ux:copiar:' + ckSis]]];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'amb', messageId);
 }
 
 /* ========== Cenário 4: 💊 Consultas Rápidas de Bolso ========== */
@@ -53866,13 +54321,12 @@ function enviarMenuConsultasBolso(chat, messageId) {
   var texto = '💊 *CONSULTAS RÁPIDAS DE BOLSO*\n\n' +
     'Guias de referência imediata beira-leito (0ms determinístico):\n' +
     'Selecione o guia clínico desejado:';
-  var botoes = botoesBot([
+  var linhas = [
     [['🦠 Antibióticos por Foco', 'ux:bolso:atb'], ['👶 Doses Pediátricas (kg)', 'ux:bolso:ped']],
     [['🤰 Gestação & Lactação', 'ux:bolso:gestacao'], ['⚠️ Interações Graves', 'ux:bolso:interacao']],
-    [['💉 Diluição & Preparo HSL', 'ux:bolso:hsl'], ['📐 Calculadoras Clínicas', 'ux:hub:calc']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['💉 Diluição & Preparo HSL', 'ux:bolso:hsl'], ['📐 Calculadoras Clínicas', 'ux:hub:calc']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 
 function enviarTelaBolsoATB(chat, messageId) {
@@ -54349,13 +54803,13 @@ function enviarMenuUXCalculadoras(chat, messageId) {
     '• 🧠 *Glasgow-P:* Escala de coma com reatividade pupilar e indicação de IOT\n' +
     '• 🔥 *Parkland:* Ressuscitação volêmica em queimados (RL 4 mL/kg/%)';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['🩸 Gasometria Arterial', 'ux:calc:gaso'], ['💉 Drogas Vasoativas', 'ux:calc:dva']],
     [['🧪 Cockcroft vs CKD-EPI', 'ux:calc:crcl'], ['💧 Holliday-Segar', 'ux:calc:holliday']],
     [['🧠 Glasgow-P (TCE)', 'ux:calc:glasgow'], ['🔥 Parkland (Queimados)', 'ux:calc:parkland']],
-    [['📊 Todos os Escores & Índices', 'calc_menu_principal'], ['🚨 Sala Vermelha', 'ux:sala']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['📊 Todos os Escores & Índices', 'calc_menu_principal'], ['🚨 Sala Vermelha', 'ux:sala']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 
 function enviarTelaCalcGaso(chat, messageId) {
@@ -54368,11 +54822,11 @@ function enviarTelaCalcGaso(chat, messageId) {
     '💡 *Envie os dados no chat ou toque em um caso clínico para cálculo instantâneo:*\n' +
     '• Exemplo de comando: `/gaso pH 7.24 pCO2 22 HCO3 9 Na 138 Cl 101`';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['🧪 Cetoacidose (pH 7.18)', 'ux:calc:gaso_cad'], ['🫁 DPOC Descompensado (pH 7.30)', 'ux:calc:gaso_dpoc']],
-    [['💧 Alcalose Vômitos (pH 7.52)', 'ux:calc:gaso_vomitos'], ['🌬️ Ansiedade / Alcalose Resp', 'ux:calc:gaso_ansiedade']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['💧 Alcalose Vômitos (pH 7.52)', 'ux:calc:gaso_vomitos'], ['🌬️ Ansiedade / Alcalose Resp', 'ux:calc:gaso_ansiedade']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
 }
 
 function enviarTelaCalcRenal(chat, messageId) {
@@ -54382,11 +54836,11 @@ function enviarTelaCalcRenal(chat, messageId) {
     '💡 *Envie os dados no chat ou toque em um caso clínico para cálculo instantâneo:*\n' +
     '• Exemplo de comando: `/calc ckd Cr 1.4 idade 68 mulher peso 62`';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['👴 Homem 68a, 70kg, Cr 1.8', 'ux:calc:renal_ex1'], ['👵 Mulher 74a, 56kg, Cr 1.3', 'ux:calc:renal_ex2']],
-    [['🧑 Jovem 28a, 78kg, Cr 0.9', 'ux:calc:renal_ex3'], ['🚨 DRC Grave Cr 3.2 (65a, M)', 'ux:calc:renal_ex4']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['🧑 Jovem 28a, 78kg, Cr 0.9', 'ux:calc:renal_ex3'], ['🚨 DRC Grave Cr 3.2 (65a, M)', 'ux:calc:renal_ex4']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
 }
 
 function enviarTelaCalcHolliday(chat, messageId) {
@@ -54397,11 +54851,11 @@ function enviarTelaCalcHolliday(chat, messageId) {
     '💡 *Envie o peso no chat ou selecione um perfil pediátrico:*\n' +
     '• Exemplo de comando: `/holliday 14kg`';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['👶 Lactente 8 kg (Manutenção)', 'ux:calc:hol_ex1'], ['🧒 Pré-escolar 14 kg (Manutenção)', 'ux:calc:hol_ex2']],
-    [['👦 Escolar 22 kg (Manutenção)', 'ux:calc:hol_ex3'], ['🫁 Restrição Bronquiolite 11 kg', 'ux:calc:hol_ex4']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['👦 Escolar 22 kg (Manutenção)', 'ux:calc:hol_ex3'], ['🫁 Restrição Bronquiolite 11 kg', 'ux:calc:hol_ex4']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
 }
 
 function enviarTelaCalcGlasgow(chat, messageId) {
@@ -54414,11 +54868,11 @@ function enviarTelaCalcGlasgow(chat, messageId) {
     '💡 *Envie no chat ou toque em uma estratificação rápida:*\n' +
     '• Exemplo de comando: `/calc glasgow O3 V4 M5 P0`';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['🟢 Alerta GCS 15 (O4 V5 M6 P0)', 'ux:calc:gcs_ex1'], ['🟡 TCE Moderado GCS 11 (O3 V3 M5 P0)', 'ux:calc:gcs_ex2']],
-    [['🔴 TCE Grave GCS 7 (IOT Imediata)', 'ux:calc:gcs_ex3'], ['🚨 Midríase Bilateral GCS 4-P2', 'ux:calc:gcs_ex4']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['🔴 TCE Grave GCS 7 (IOT Imediata)', 'ux:calc:gcs_ex3'], ['🚨 Midríase Bilateral GCS 4-P2', 'ux:calc:gcs_ex4']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
 }
 
 function enviarTelaCalcParkland(chat, messageId) {
@@ -54430,11 +54884,11 @@ function enviarTelaCalcParkland(chat, messageId) {
     '💡 *Envie peso e SCQ no chat ou toque em um caso clínico para cálculo instantâneo:*\n' +
     '• Exemplo de comando: `/calc parkland 70kg 25%`';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['🔥 Adulto 70 kg · 20% SCQ', 'ux:calc:park_ex1'], ['🔥 Adulto 80 kg · 35% SCQ', 'ux:calc:park_ex2']],
-    [['🔥 Adulto 65 kg · 15% SCQ', 'ux:calc:park_ex3'], ['🔥 Grande Queimado 75 kg · 45%', 'ux:calc:park_ex4']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['🔥 Adulto 65 kg · 15% SCQ', 'ux:calc:park_ex3'], ['🔥 Grande Queimado 75 kg · 45%', 'ux:calc:park_ex4']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
 }
 
 function tratarCallbackUXCalc(chat, v, msgId) {
@@ -56993,11 +57447,46 @@ function cockpitPassagem(initData) {
   } finally {lock.releaseLock();}
 }
 
+function _extrairDiagnosticoSoap(strTexto) {
+  var mDiag = strTexto.match(/(?:🧠\s*\*A\s*-\s*Avalia[çc][ãa]o\*|A\s*\((?:Avalia[çc][ãa]o|Assessment)\):?|Diagn[oó]stic[oa]:?)\s*[:\n\-•*]*\s*([^\n\r]+)/i);
+  if (mDiag && mDiag[1]) {
+    return mDiag[1].replace(/[*_#]/g, '').trim().substring(0, 60);
+  }
+  var mQp = strTexto.match(/(?:Queixa\s+Principal|QP|S\s*\((?:Subjetivo|Subjective)\):?)\s*[:\n\-•*]*\s*([^\n\r]+)/i);
+  if (mQp && mQp[1]) {
+    return mQp[1].replace(/[*_#]/g, '').trim().substring(0, 60);
+  }
+  return 'Atendimento Clínico';
+}
+
+function _classificarStatusCasoSoap(strTexto) {
+  return /inst[aá]vel|choque|grave|emerg[eê]ncia|pcr|sala\s+vermelha/i.test(strTexto)
+    ? 'instavel'
+    : 'vigilancia';
+}
+
+function _persistirCasoPlantaoHoje_(chat, novoCaso) {
+  var hojeIso = new Date().toISOString().slice(0, 10);
+  var chaveHist = 'casos_hoje_' + chat + '_' + hojeIso;
+  var listaCasos = PersistenciaBot.ler(chaveHist);
+  if (!Array.isArray(listaCasos)) listaCasos = [];
+
+  var jaExiste = listaCasos.some(function(c) {
+    return c.soap === novoCaso.soap;
+  });
+  if (jaExiste) return;
+
+  listaCasos.unshift(novoCaso);
+  if (listaCasos.length > 20) listaCasos = listaCasos.slice(0, 20);
+  PersistenciaBot.salvar(chaveHist, listaCasos);
+}
+
 function salvarSoapCockpit_(chat, origem, texto) {
   if (!chat || !texto) return;
   try {
     var strTexto = String(texto).trim();
     if (strTexto.length < 10) return;
+
     var rev = (origem && origem.revision) ? origem.revision : null;
     if (!rev && typeof modoBot === 'function') {
       var estBot = modoBot(chat);
@@ -57008,7 +57497,7 @@ function salvarSoapCockpit_(chat, origem, texto) {
         ? Utilities.getUuid().replace(/-/g, '')
         : ('rev_' + Date.now());
     }
-    
+
     // 1. Salva o SOAP mais recente para visualização direta no Cockpit
     PersistenciaBot.salvar('soapview_' + chat, {
       revision: rev,
@@ -57016,48 +57505,473 @@ function salvarSoapCockpit_(chat, origem, texto) {
       updatedAt: Date.now()
     });
 
-    // 2. Extrai diagnóstico preliminar para titular o atendimento no histórico do plantão
-    var diag = 'Atendimento Clínico';
-    var mDiag = strTexto.match(/(?:🧠\s*\*A\s*-\s*Avalia[çc][ãa]o\*|A\s*\((?:Avalia[çc][ãa]o|Assessment)\):?|Diagn[oó]stic[oa]:?)\s*[:\n\-•*]*\s*([^\n\r]+)/i);
-    if (mDiag && mDiag[1]) {
-      diag = mDiag[1].replace(/[*_#]/g, '').trim().substring(0, 60);
-    } else {
-      var mQp = strTexto.match(/(?:Queixa\s+Principal|QP|S\s*\((?:Subjetivo|Subjective)\):?)\s*[:\n\-•*]*\s*([^\n\r]+)/i);
-      if (mQp && mQp[1]) diag = mQp[1].replace(/[*_#]/g, '').trim().substring(0, 60);
-    }
-
-    // 3. Persiste no histórico dos casos conduzidos hoje (data ISO)
-    var hojeIso = new Date().toISOString().slice(0, 10);
-    var chaveHist = 'casos_hoje_' + chat + '_' + hojeIso;
-    var listaCasos = PersistenciaBot.ler(chaveHist);
-    if (!Array.isArray(listaCasos)) listaCasos = [];
-
+    // 2. Extrai diagnóstico preliminar e status para titular o atendimento no histórico do plantão
+    var diag = _extrairDiagnosticoSoap(strTexto);
+    var status = _classificarStatusCasoSoap(strTexto);
     var novoCaso = {
       id: 'caso_' + Date.now(),
       titulo: diag,
-      status: /inst[aá]vel|choque|grave|emerg[eê]ncia|pcr|sala\s+vermelha/i.test(strTexto) ? 'instavel' : 'vigilancia',
+      status: status,
       soap: strTexto,
       origem: 'Telegram · SOAP',
       criadoEm: new Date().toISOString()
     };
-
-    var jaExiste = listaCasos.some(function(c) {
-      return c.soap === strTexto;
-    });
-
-    if (!jaExiste) {
-      listaCasos.unshift(novoCaso);
-      if (listaCasos.length > 20) listaCasos = listaCasos.slice(0, 20);
-      PersistenciaBot.salvar(chaveHist, listaCasos);
-    }
+    _persistirCasoPlantaoHoje_(chat, novoCaso);
   } catch(e) {
     Logger.log('Cockpit: não foi possível salvar cópia do SOAP: ' + e.message);
   }
 }
 
+// ==============================================================================
+// HANDLERS MODULARES DE CÁLCULO CLÍNICO DO COCKPIT
+// ==============================================================================
+
+function _calcCockpitDva(entrada) {
+  if (['nora','dobuta','vaso','adrena','adrenalina','nipride','tridil'].indexOf(entrada.droga) < 0) {
+    throw new Error('Selecione uma droga válida.');
+  }
+  var resDva = CalculadorasClinicas.drogasVasoativas(entrada.droga, entrada.peso, entrada.solucao || 'padrao');
+  if (entrada.droga2 && typeof CompatibilidadeYDvaService !== 'undefined') {
+    var checkY = CompatibilidadeYDvaService.checarCompatibilidadeY(entrada.droga, entrada.droga2);
+    var txtCompat = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(entrada.droga, entrada.droga2);
+    resDva.compatibilidadeY = checkY;
+    if (resDva.textoFormatado) resDva.textoFormatado += "\n\n" + txtCompat;
+    if (resDva.texto) resDva.texto += "\n\n" + txtCompat;
+  }
+  return resDva;
+}
+
+function _calcCockpitCompatibilidadeY(entrada) {
+  var d1 = entrada.droga1 || entrada.drogaA || entrada.droga || 'noradrenalina';
+  var d2 = entrada.droga2 || entrada.drogaB || 'dobutamina';
+  if (typeof CompatibilidadeYDvaService !== 'undefined') {
+    var resY = CompatibilidadeYDvaService.checarCompatibilidadeY(d1, d2);
+    var txtY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(d1, d2);
+    resY.texto = txtY;
+    resY.textoFormatado = txtY;
+    return resY;
+  }
+  throw new Error('Serviço de Compatibilidade em Y indisponível.');
+}
+
+function _calcCockpitSri(entrada) {
+  if (['padrao','choque','asma','neuro','tce','hic'].indexOf(entrada.cenario) < 0) {
+    throw new Error('Selecione um cenário válido.');
+  }
+  return CalculadorasClinicas.sequenciaRapidaIntubacao(entrada.peso, entrada.cenario);
+}
+
+function _calcCockpitCrcl(entrada) {
+  var feminino = entrada.sexo === 'f' ? true : entrada.sexo === 'm' ? false : null;
+  var altCm = null;
+  var rawAlt = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
+  if (rawAlt !== undefined && rawAlt !== null && rawAlt !== '') {
+    var nAlt = parseFloat(String(rawAlt).replace(',', '.'));
+    if (!isNaN(nAlt)) altCm = (nAlt > 0 && nAlt < 3.0) ? Math.round(nAlt * 100 * 10) / 10 : nAlt;
+  }
+  return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino, altCm);
+}
+
+function _calcCockpitGaso(entrada) {
+  var naGaso = entrada.na !== undefined && entrada.na !== '' ? entrada.na : null;
+  var clGaso = entrada.cl !== undefined && entrada.cl !== '' ? entrada.cl : null;
+  var albGaso = entrada.alb !== undefined && entrada.alb !== '' ? entrada.alb : null;
+  var pao2Gaso = entrada.pao2 !== undefined && entrada.pao2 !== '' ? entrada.pao2 : (entrada.po2 !== undefined && entrada.po2 !== '' ? entrada.po2 : null);
+  var fio2Gaso = entrada.fio2 !== undefined && entrada.fio2 !== '' ? entrada.fio2 : null;
+  return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3, naGaso, clGaso, albGaso, pao2Gaso, fio2Gaso);
+}
+
+function _calcCockpitAjusteAtb(entrada) {
+  var drogaAtb = entrada.droga || entrada.farmaco || entrada.antimicrobiano || 'meropenem';
+  var clcrAtb = entrada.clcr !== undefined ? entrada.clcr : entrada.crcl;
+  var hdAtb = Boolean(entrada.hemodialise || entrada.hd);
+  if (typeof CalculadorasClinicas !== 'undefined' && typeof CalculadorasClinicas.ajusteRenalAntimicrobiano === 'function') {
+    var resAtb = CalculadorasClinicas.ajusteRenalAntimicrobiano(drogaAtb, clcrAtb, hdAtb);
+    if (resAtb && resAtb.dados) {
+      var txtAtb = "💉 AJUSTE RENAL DE ANTIMICROBIANOS (IDSA / GUIA HSL)\n\n" +
+        "🔴 DOSE AJUSTADA:\n• " + resAtb.dados.nomeExibicao + ": " + resAtb.dados.doseAjustada + "\n\n" +
+        "🟡 DOSE PADRÃO (FUNÇÃO RENAL NORMAL):\n• " + resAtb.dados.dosePadrao + "\n\n" +
+        "⚠️ ORIENTAÇÕES E CUIDADOS:\n• " + resAtb.dados.cuidados + "\n\n" +
+        "ℹ️ MONITORIZAÇÃO:\n• " + resAtb.dados.monitorizacao;
+      resAtb.texto = txtAtb;
+      resAtb.textoFormatado = txtAtb;
+    }
+    return resAtb;
+  }
+  throw new Error('Calculadora de Ajuste Renal de Antimicrobianos indisponível.');
+}
+
+function _calcCockpitPediatria(entrada, tipo) {
+  var modoPed = String(entrada.modo || (tipo === 'pals' ? 'pals' : 'holliday')).toLowerCase();
+  var pesoPed = parseFloat(String(entrada.peso || 0).replace(',', '.'));
+  var idadePed = entrada.idade ? parseFloat(String(entrada.idade).replace(',', '.')) : null;
+
+  if (modoPed === 'pals') {
+    if (typeof PalsPediatriaService === 'undefined') throw new Error('Módulo PalsPediatriaService indisponível.');
+    var resPals = PalsPediatriaService.avaliarPals({ pesoKg: pesoPed, idadeAnos: idadePed });
+    var txtPals = "👶 PALS — REANIMAÇÃO & SUPORTE AVANÇADO PEDIÁTRICO\n\n" +
+      "🔴 AÇÃO IMEDIATA / DROGAS DE PCR:\n" +
+      resPals.medicacoes.map(function(m) {
+        return "• " + m.farmaco + ": " + m.doseMg + " (" + m.volumeMl + ") — " + m.via + (m.alerta ? " [" + m.alerta + "]" : "");
+      }).join("\n") + "\n\n" +
+      "⚡ DESFIBRILAÇÃO & CARDIOVERSÃO:\n" +
+      "• 1º Choque (2 J/kg): " + resPals.eletricidade.desfibrilacaoPrimeiroChoque + "\n" +
+      "• 2º Choque (4 J/kg): " + resPals.eletricidade.desfibrilacaoSegundoChoque + "\n" +
+      "• Cardioversão: " + resPals.eletricidade.cardioversaoPrimeiroChoque + "\n\n" +
+      "🫁 VIA AÉREA (TUBO ENDOTRAQUEAL):\n" +
+      "• Tubo sem cuff: " + resPals.viaAerea.tuboSemCuff + "\n" +
+      "• Tubo com cuff: " + resPals.viaAerea.tuboComCuff + "\n" +
+      "• Lâmina: " + resPals.viaAerea.laminaLaringoscopio + " | Fixação no lábio: " + resPals.viaAerea.fixacao + "\n\n" +
+      "⚠️ ALERTAS BEIRA-LEITO:\n" +
+      (resPals.alertas && resPals.alertas.length ? resPals.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Manter ventilação eficaz com bolsa-válvula-máscara e massagem cardíaca 15:2 com 2 socorristas.");
+    return { ok: true, sucesso: true, id: 'pals_pediatria', nome: 'PALS Pediátrico', texto: txtPals, textoFormatado: txtPals, dados: resPals };
+  }
+
+  if (modoPed === 'posologia') {
+    var drogaPed = entrada.farmaco || entrada.droga || 'dipirona';
+    if (typeof CalculadorasClinicas !== 'undefined' && typeof CalculadorasClinicas.posologiaPediatrica === 'function') {
+      var resPos = CalculadorasClinicas.posologiaPediatrica(pesoPed, drogaPed, { doseAlta: entrada.doseAlta });
+      if (resPos && resPos.texto) resPos.textoFormatado = resPos.texto;
+      return resPos;
+    }
+    throw new Error('Calculadora de Posologia Pediátrica indisponível.');
+  }
+
+  // Holliday-Segar
+  if (typeof SuporteNutricionalPediatricoService === 'undefined') throw new Error('Serviço SuporteNutricionalPediatricoService indisponível.');
+  var resHS = SuporteNutricionalPediatricoService.calcularHollidaySegar(pesoPed, {
+    condicaoClinica: entrada.condicaoClinica || 'manutencao_padrao',
+    temperaturaC: entrada.temperaturaC || 38.0
+  });
+  var txtHS = "💧 HIDRATAÇÃO VENOSA PEDIÁTRICA (HOLLIDAY-SEGAR)\n\n" +
+    "🔴 CONDUTA & VAZÃO EM BOMBA (BIC):\n" +
+    "• Volume Total (24h): " + resHS.volumeAjustado24h + " mL\n" +
+    "• Vazão Horária: " + resHS.vazaoHorariaMlH + " mL/h (Regra 4-2-1)\n" +
+    "• Condição Clínica: " + resHS.justificativaAjuste + "\n\n" +
+    "🟡 PRESCRIÇÃO ELETROLÍTICA & TIG (SBP/AAP):\n" +
+    "• Sódio (Na+): " + (resHS.eletrolitos ? resHS.eletrolitos.sodioTotalMeqDia : '') + " mEq/dia (2,5 mEq / 100 mL de solução)\n" +
+    "• Potássio (K+): " + (resHS.eletrolitos ? resHS.eletrolitos.potassioTotalMeqDia : '') + " mEq/dia (2,0 mEq / 100 mL — adicionar APENAS após diurese confirmada)\n" +
+    "• TIG em SG 5%: " + (resHS.glicoseTig ? resHS.glicoseTig.tigComSg5 : '') + " mg/kg/min (Alvo fisiológico: 4 a 6 mg/kg/min)\n\n" +
+    "⚠️ ALERTAS DE SEGURANÇA:\n" +
+    (resHS.alertas && resHS.alertas.length ? resHS.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Usar soluções isotônicas ou balanceadas para prevenir hiponatremia hospitalar aguda induzida por ADH.");
+  return { ok: true, sucesso: true, id: 'holliday_segar', nome: 'Hidratação Pediátrica Holliday-Segar', texto: txtHS, textoFormatado: txtHS, dados: resHS };
+}
+
+function _calcCockpitDhe(entrada) {
+  if (typeof NefrologiaDheService === 'undefined') throw new Error('Serviço NefrologiaDheService indisponível.');
+  var modoDhe = String(entrada.modo || 'hiponatremia').toLowerCase();
+  var pesoDhe = parseFloat(String(entrada.peso || 70).replace(',', '.'));
+  var idadeDhe = entrada.idade ? parseFloat(String(entrada.idade).replace(',', '.')) : 40;
+  var sexoDhe = entrada.sexo ? String(entrada.sexo).toLowerCase() : 'm';
+
+  if (modoDhe === 'hipercalemia' || entrada.kAtual !== undefined) {
+    var kVal = parseFloat(String(entrada.kAtual || entrada.potassio || 0).replace(',', '.'));
+    var ecgAlt = Boolean(entrada.ecgAlterado || entrada.ecg);
+    var resK = NefrologiaDheService.avaliarHipercalemia(kVal, ecgAlt);
+    if (resK.erro) return { ok: false, erro: resK.erro };
+
+    var txtK = "⚡ MANEJO EMERGENCIAL DE HIPERCALEMIA (SBC / KDIGO)\n\n" +
+      "🔴 ESTRATIFICAÇÃO & GRAVIDADE:\n" +
+      "• Potássio Sérico: " + resK.potassio + " mEq/L\n" +
+      "• Classificação: " + resK.gravidade + "\n\n" +
+      "🟡 CONDUTAS ESCALONADAS:\n" +
+      resK.condutas.map(function(c) { return "• " + c; }).join("\n") + "\n\n" +
+      (resK.alerta ? "⚠️ ALERTA CARDÍACO:\n• " + resK.alerta + "\n\n" : "") +
+      "ℹ️ MONITORIZAÇÃO:\n• Monitorização cardíaca contínua e repetir dosagem de K+ em 2h.";
+    return { ok: true, sucesso: true, id: 'hipercalemia', nome: 'Manejo de Hipercalemia', texto: txtK, textoFormatado: txtK, dados: resK };
+  }
+
+  if (modoDhe === 'hipernatremia') {
+    var naHiper = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
+    var resHiper = NefrologiaDheService.calcularDeficitAguaLivre(naHiper, pesoDhe, sexoDhe, idadeDhe);
+    if (resHiper.erro) return { ok: false, erro: resHiper.erro };
+
+    var txtHiper = "🌵 HIPERNATREMIA — DÉFICIT DE ÁGUA LIVRE (ADROGUÉ-MADIAS)\n\n" +
+      "🔴 DÉFICIT CALCULADO:\n" +
+      "• Sódio Atual: " + naHiper + " mEq/L | ACT: " + resHiper.act + " L\n" +
+      "• Déficit Total de Água Livre: " + resHiper.deficitAguaLivreLitros + " Litros\n\n" +
+      "🟡 PROGRAMAÇÃO DA REPOSIÇÃO (48 HORAS):\n" +
+      "• 1ªs 24 horas: Repor 50% do déficit (" + (Math.round(resHiper.deficitAguaLivreLitros * 500)) + " mL de água livre ou SG 5%)\n" +
+      "• 24h a 48h: Repor os 50% restantes + perdas insensíveis\n" +
+      "• Vias: Água potável por SNG/SNE (preferencial se TGI funcionante) ou SG 5% IV\n\n" +
+      "⚠️ ALERTA DE SEGURANÇA & TETOS:\n" +
+      (resHiper.alertas && resHiper.alertas.length ? resHiper.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Queda máxima de Na: 8-10 mEq/L em 24h (risco de edema cerebral).") + "\n\n" +
+      "ℹ️ MONITORIZAÇÃO:\n• Dosar Na sérico a cada 4 a 6 horas durante a correção.";
+    return { ok: true, sucesso: true, id: 'hipernatremia', nome: 'Hipernatremia - Déficit de Água Livre', texto: txtHiper, textoFormatado: txtHiper, dados: resHiper };
+  }
+
+  // Hiponatremia (Adrogué-Madias)
+  var naHipo = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
+  var salinaHipo = parseFloat(String(entrada.salina || 3).replace(',', '.'));
+  var resHipo = NefrologiaDheService.planejarCorrecaoHiponatremia(naHipo, pesoDhe, sexoDhe, idadeDhe, salinaHipo);
+  if (resHipo.erro) return { ok: false, erro: resHipo.erro };
+
+  var solNome = salinaHipo === 3 ? "NaCl 3% (513 mEq/L)" : "NaCl 0,9% (154 mEq/L)";
+  var vol24h = Math.round((8 / resHipo.variacaoNaPorLitro) * 1000);
+  var txtHipo = "💧 CORREÇÃO DE HIPONATREMIA (FÓRMULA DE ADROGUÉ-MADIAS)\n\n" +
+    "🔴 AÇÃO IMEDIATA / INFUSÃO EM BIC:\n" +
+    "• Solução Escolhida: " + solNome + "\n" +
+    "• Variação Esperada de Na+ com 1 L: +" + resHipo.variacaoNaPorLitro + " mEq/L\n" +
+    "• Taxa Segura de Infusão: " + resHipo.taxaInfusaoMaxima24h_ml_h + " mL/h em BIC\n" +
+    "• Volume Total Seguro em 24h (Teto 8 mEq): " + vol24h + " mL\n\n" +
+    "🟡 SINTOMAS GRAVES / RESGATE NEUROLÓGICO (CONVULSÃO / COMA):\n" +
+    "• Bolus de Emergência: 100 a 150 mL de NaCl 3% IV em 10-20 min.\n" +
+    "• Pode repetir até 2 vezes se sintomas neurológicos persistirem (meta: subir 4-6 mEq/L).\n\n" +
+    "⚠️ TETOS RÍGIDOS CONTRA MIELINÓLISE PONTINA (SDO):\n" +
+    "• NÃO ULTRAPASSAR 8 mEq/L nas 1ªs 24h e 18 mEq/L em 48h.\n" +
+    (resHipo.alertas && resHipo.alertas.length ? resHipo.alertas.map(function(a) { return "• " + a; }).join("\n") : "") + "\n\n" +
+    "ℹ️ MONITORIZAÇÃO & RESGATE:\n" +
+    "• Dosar sódio sérico a cada 2 a 4 horas. Se subida > 8 mEq em 24h: suspender salina e infundir SG 5% ou Desmopressina (DDAVP).";
+  return { ok: true, sucesso: true, id: 'hiponatremia', nome: 'Correção de Hiponatremia', texto: txtHipo, textoFormatado: txtHipo, dados: resHipo };
+}
+
+function _calcCockpitHeart(entrada) {
+  if (typeof CardiologiaEmergenciaService === 'undefined') throw new Error('Serviço CardiologiaEmergenciaService indisponível.');
+  var paramsCardio = Object.assign({}, entrada);
+  if (paramsCardio.fr !== undefined) {
+    var numFr = Number(paramsCardio.fr);
+    if (numFr >= 2) paramsCardio.fatoresRiscoContagem = 3;
+    else if (numFr === 1) paramsCardio.fatoresRiscoContagem = 1;
+    else paramsCardio.fatoresRiscoContagem = 0;
+  }
+  var resCardio = CardiologiaEmergenciaService.avaliarPaciente(paramsCardio);
+  var heartRes = resCardio.heart;
+  var daptRes = resCardio.dapt;
+  var timiRes = resCardio.timiScasst;
+
+  var txtCardio = "🫀 ESCORE HEART & DOR TORÁCICA / SCA (SBC / AHA / ESC)\n\n" +
+    "🔴 ESTRATIFICAÇÃO & CONDUTA BEIRA-LEITO:\n" +
+    "• HEART Score: " + heartRes.escore + " pontos — " + String(heartRes.risco).toUpperCase() + "\n" +
+    "• Taxa de MACE (6 semanas): " + heartRes.taxaMACE + "\n" +
+    "• Conduta: " + heartRes.recomendacao + "\n" +
+    "• TIMI SCASST: " + timiRes.escore + "/7 pontos (" + timiRes.risco + " — MACE 14d: " + timiRes.taxaMACE14Dias + ")\n\n" +
+    "🟡 DUPLO BLOQUEIO ANTIPLAQUETÁRIO (DAPT):\n" +
+    "• P2Y12 de Escolha: " + daptRes.p2y12Escolhido + "\n";
+  for (var d = 0; d < daptRes.recomendacoes.length; d++) {
+    var r = daptRes.recomendacoes[d];
+    txtCardio += "• " + r.farmaco + ": Ataque " + r.ataque + " | Manutenção " + r.manutencao + "\n";
+  }
+  if (resCardio.adjuvantes && resCardio.adjuvantes.recomendacoes) {
+    txtCardio += "\n💉 ADJUVANTES & ANTICOAGULAÇÃO:\n";
+    for (var adjIdx = 0; adjIdx < resCardio.adjuvantes.recomendacoes.length; adjIdx++) {
+      var adjRec = resCardio.adjuvantes.recomendacoes[adjIdx];
+      txtCardio += "• " + adjRec.farmaco + ": " + adjRec.posologia + "\n";
+    }
+  }
+  var bloqueiosCardio = [].concat(daptRes.bloqueios || []).concat((resCardio.adjuvantes && resCardio.adjuvantes.bloqueios) || []);
+  if (bloqueiosCardio.length > 0) {
+    txtCardio += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n";
+    for (var bIdx = 0; bIdx < bloqueiosCardio.length; bIdx++) {
+      var bItem = bloqueiosCardio[bIdx];
+      txtCardio += "• [" + bItem.nivel + "] " + bItem.farmaco + ": " + bItem.motivo + "\n";
+    }
+  }
+  txtCardio += "\nℹ️ MONITORIZAÇÃO:\n• ECG seriado (a cada 15-30 min se dor ou a cada 6h), curva de troponina (0h/1h ou 0h/2h ou 0h/3h) e monitorização contínua.";
+
+  return {
+    ok: true,
+    sucesso: true,
+    id: 'heart_score',
+    nome: 'Escore HEART & SCA',
+    texto: txtCardio,
+    textoFormatado: txtCardio,
+    dados: resCardio
+  };
+}
+
+function _calcCockpitAsma(entrada) {
+  if (typeof PneumologiaCriseAsmaticaService === 'undefined') throw new Error('Serviço PneumologiaCriseAsmaticaService indisponível.');
+  var paramsAsma = Object.assign({}, entrada);
+  if (paramsAsma.refratario !== undefined && paramsAsma.refratario_1h === undefined) {
+    paramsAsma.refratario_1h = Boolean(paramsAsma.refratario);
+  }
+  if (paramsAsma.peso !== undefined && paramsAsma.pesoKg === undefined) {
+    paramsAsma.pesoKg = Number(paramsAsma.peso);
+  }
+  if (paramsAsma.dpoc !== undefined || paramsAsma.perfilDpoc !== undefined) {
+    paramsAsma.dpoc = Boolean(paramsAsma.dpoc || paramsAsma.perfilDpoc);
+  }
+  if (paramsAsma.gasometriaNormocapnia || paramsAsma.normocapnia) {
+    paramsAsma.gasometria = { paco2: 43, ph: 7.31 };
+  }
+  var resAsma = PneumologiaCriseAsmaticaService.avaliarCriseAsmatica(paramsAsma);
+  var gAsma = resAsma.gravidade;
+  var pAsma = resAsma.plano;
+
+  var cabecalhoAsma = pAsma.isDpoc ? 
+    "🫁 EXACERBAÇÃO AGUDA DE DPOC (GOLD / SBPT)\n\n" : 
+    "🫁 MANEJO DA CRISE ASMÁTICA & BRONCOESPASMO (GINA / SBPT)\n\n";
+
+  var txtAsma = cabecalhoAsma +
+    "🔴 CLASSIFICAÇÃO & CONDUTA IMEDIATA:\n" +
+    "• Gravidade: " + gAsma.titulo.toUpperCase() + "\n" +
+    (gAsma.pfe_porcentagem !== null ? "• Pico de Fluxo (PFE): " + gAsma.pfe_porcentagem + "% do previsto\n" : "") +
+    "• Conduta: " + gAsma.recomendacao_imediata + "\n\n" +
+    "🟡 BRONCODILATAÇÃO DA 1ª HORA (SABA + SAMA):\n" +
+    "• Oxigenoterapia: Alvo SpO2 " + pAsma.oxigenoterapia.alvo_spo2 + " (" + pAsma.oxigenoterapia.dispositivo + ")\n" +
+    "• Salbutamol (SABA): " + pAsma.broncodilatacao_saba.opcao_preferencial + "\n" +
+    "• Nebulização Alternativa: " + pAsma.broncodilatacao_saba.opcao_alternativa_nebulizacao + "\n" +
+    (pAsma.anticolinergico_ipratropio && pAsma.anticolinergico_ipratropio.indicado ? "• Ipratrópio (SAMA): " + pAsma.anticolinergico_ipratropio.posologia + "\n" : "") + "\n" +
+    "💉 CORTICOTERAPIA SISTÊMICA PRECOCE (1ª HORA):\n" +
+    "• Via Oral: " + pAsma.corticoide_sistemico.oral + "\n" +
+    "• Via Intravenosa: " + pAsma.corticoide_sistemico.intravenoso + "\n";
+
+  if (pAsma.sulfato_magnesio && pAsma.sulfato_magnesio.indicado) {
+    txtAsma += "\n⚡ SULFATO DE MAGNÉSIO 2G IV (INDICAÇÃO MANDATÓRIA):\n" +
+      "• Dose: " + pAsma.sulfato_magnesio.dose + "\n" +
+      "• Diluição: " + pAsma.sulfato_magnesio.diluicao + "\n" +
+      "• Tempo de Infusão: " + pAsma.sulfato_magnesio.tempo_infusao + "\n";
+  }
+
+  if (pAsma.antibioticoterapia && pAsma.antibioticoterapia.indicado) {
+    txtAsma += "\n💊 ANTIBIOTICOTERAPIA (CRITÉRIOS DE ANTHONISEN):\n" +
+      "• Critérios: " + pAsma.antibioticoterapia.criterios_anthonisen + "\n" +
+      "• 1ª Linha: " + pAsma.antibioticoterapia.esquema_preferencial + "\n";
+  }
+
+  if (pAsma.manejo_ventilatorio && pAsma.manejo_ventilatorio.vni) {
+    txtAsma += "\n🫁 VENTILAÇÃO NÃO INVASIVA (VNI - BiPAP):\n" +
+      "• " + pAsma.manejo_ventilatorio.vni.padrao_ouro + "\n";
+  }
+
+  if (gAsma.nivel === 'PARADA_IMINENTE' || gAsma.nivel === 'GRAVE') {
+    txtAsma += "\n🫁 MANEJO VENTILATÓRIO & IOT PROTETORA:\n" +
+      "• Indução: " + pAsma.manejo_ventilatorio.sequencia_rapida_intubacao.inducao_escolha + "\n" +
+      "• Parâmetros do Respirador: Vt 5-6 mL/kg PBW, FR 10-12 rpm, Relação I:E 1:3 a 1:4, PEEP 0-5, Hipercapnia permissiva (pH >= 7.20)\n" +
+      "• Alerta pós-IOT: " + pAsma.manejo_ventilatorio.parametros_ventilador_protetor.conduta_colapso_pos_iot + "\n";
+  }
+
+  if (pAsma.bloqueios_seguranca && pAsma.bloqueios_seguranca.length > 0) {
+    txtAsma += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n" +
+      pAsma.bloqueios_seguranca.map(function(b) { return "• " + b; }).join("\n") + "\n";
+  }
+
+  txtAsma += "\nℹ️ CRITÉRIOS DE ALTA & PRESCRIÇÃO AMBULATORIAL:\n" +
+    "• " + pAsma.criterios_destino.alta_emergencia.prescricao_alta.slice(0, 3).join("\n• ");
+
+  return {
+    ok: true,
+    sucesso: true,
+    id: pAsma.isDpoc ? 'exacerbacao_dpoc' : 'crise_asmatica',
+    nome: pAsma.isDpoc ? 'Exacerbação de DPOC' : 'Manejo de Crise Asmática',
+    texto: txtAsma,
+    textoFormatado: txtAsma,
+    dados: resAsma
+  };
+}
+
+function _calcCockpitSeguranca(entrada) {
+  var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';
+  return executarCrossCheckSegurancaClinica(alvos, entrada.contexto || entrada);
+}
+
+function _calcCockpitParkland(entrada) {
+  var pPark = parseFloat(String(entrada.peso || 0).replace(',', '.'));
+  var sPark = parseFloat(String(entrada.scq || entrada.queimadura || 0).replace(',', '.'));
+  var resPark = CalculadorasClinicas.parkland(pPark, sPark);
+  if (resPark && resPark.ok) {
+    if (!resPark.texto) resPark.texto = resPark.textoFormatado;
+    return resPark;
+  }
+  return { ok: false, erro: (resPark && resPark.erro) || 'Erro ao calcular Parkland.' };
+}
+
+function _calcCockpitGlasgow(entrada) {
+  var oG = parseInt(entrada.ocular !== undefined ? entrada.ocular : (entrada.o !== undefined ? entrada.o : 4), 10);
+  var vG = parseInt(entrada.verbal !== undefined ? entrada.verbal : (entrada.v !== undefined ? entrada.v : 5), 10);
+  var mG = parseInt(entrada.motor !== undefined ? entrada.motor : (entrada.m !== undefined ? entrada.m : 6), 10);
+  var pG = (entrada.pupilas !== undefined && entrada.pupilas !== null && entrada.pupilas !== '') ? parseInt(entrada.pupilas, 10) : ((entrada.p !== undefined && entrada.p !== null && entrada.p !== '') ? parseInt(entrada.p, 10) : null);
+  var resG = CalculadorasClinicas.glasgowP(oG, vG, mG, pG);
+  if (resG && resG.ok) {
+    if (!resG.texto) resG.texto = resG.textoFormatado;
+    return resG;
+  }
+  return { ok: false, erro: (resG && resG.erro) || 'Erro ao calcular Glasgow-P.' };
+}
+
+function _calcCockpitCkd(entrada) {
+  var crCkd = parseFloat(String(entrada.creatinina || entrada.cr || 0).replace(',', '.'));
+  var idCkd = parseInt(entrada.idade || 0, 10);
+  var femCkd = entrada.sexo === 'f' || entrada.feminino === true;
+  var resCkd = CalculadorasClinicas.ckdEpi2021(crCkd, idCkd, femCkd);
+  if (resCkd && resCkd.ok) {
+    if (!resCkd.texto) resCkd.texto = resCkd.textoFormatado;
+    return resCkd;
+  }
+  return { ok: false, erro: (resCkd && resCkd.erro) || 'Erro ao calcular CKD-EPI.' };
+}
+
+function _calcCockpitCockcroft(entrada) {
+  var crCg = parseFloat(String(entrada.creatinina || entrada.cr || 0).replace(',', '.'));
+  var pCg = parseFloat(String(entrada.peso || 0).replace(',', '.'));
+  var idCg = parseInt(entrada.idade || 0, 10);
+  var femCg = entrada.sexo === 'f' || entrada.feminino === true ? true : entrada.sexo === 'm' ? false : null;
+  var altCmCg = null;
+  var rawAltCg = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
+  if (rawAltCg !== undefined && rawAltCg !== null && rawAltCg !== '') {
+    var nAltCg = parseFloat(String(rawAltCg).replace(',', '.'));
+    if (!isNaN(nAltCg)) altCmCg = (nAltCg > 0 && nAltCg < 3.0) ? Math.round(nAltCg * 100 * 10) / 10 : nAltCg;
+  }
+  var resCg = CalculadorasClinicas.cockcroftGault(crCg, pCg, idCg, femCg, altCmCg);
+  if (resCg && resCg.ok) {
+    if (!resCg.texto) resCg.texto = resCg.textoFormatado;
+    return resCg;
+  }
+  return { ok: false, erro: (resCg && resCg.erro) || 'Erro ao calcular Cockcroft-Gault.' };
+}
+
+function _calcCockpitCurb65(entrada) {
+  var confCb = Boolean(entrada.confusao || entrada.confusaoMental);
+  var urCb = parseFloat(String(entrada.ureia || entrada.bun || 0).replace(',', '.'));
+  var frCb = parseInt(entrada.fr || 0, 10);
+  var pasCb = parseInt(entrada.pas || 0, 10);
+  var padCb = parseInt(entrada.pad || 0, 10);
+  var idCb = parseInt(entrada.idade || 0, 10);
+  var resCurb = CalculadorasClinicas.curb65(confCb, urCb, frCb, pasCb, padCb, idCb);
+  if (resCurb && resCurb.ok) {
+    if (!resCurb.texto) resCurb.texto = resCurb.textoFormatado;
+    return resCurb;
+  }
+  return { ok: false, erro: (resCurb && resCurb.erro) || 'Erro ao calcular CURB-65.' };
+}
+
+var DISPATCH_COCKPIT_CALCULADORAS = {
+  dva: function(e) { return _calcCockpitDva(e); },
+  compatibilidade_y: function(e) { return _calcCockpitCompatibilidadeY(e); },
+  dva_y: function(e) { return _calcCockpitCompatibilidadeY(e); },
+  sri: function(e) { return _calcCockpitSri(e); },
+  crcl: function(e) { return _calcCockpitCrcl(e); },
+  gaso: function(e) { return _calcCockpitGaso(e); },
+  ajuste_atb: function(e) { return _calcCockpitAjusteAtb(e); },
+  atb: function(e) { return _calcCockpitAjusteAtb(e); },
+  pediatria: function(e, t) { return _calcCockpitPediatria(e, t); },
+  pals: function(e, t) { return _calcCockpitPediatria(e, t); },
+  holliday: function(e, t) { return _calcCockpitPediatria(e, t); },
+  dhe: function(e) { return _calcCockpitDhe(e); },
+  eletrolitos: function(e) { return _calcCockpitDhe(e); },
+  hidroeletrolitico: function(e) { return _calcCockpitDhe(e); },
+  heart: function(e) { return _calcCockpitHeart(e); },
+  sca: function(e) { return _calcCockpitHeart(e); },
+  cardiologia: function(e) { return _calcCockpitHeart(e); },
+  asma: function(e) { return _calcCockpitAsma(e); },
+  broncoespasmo: function(e) { return _calcCockpitAsma(e); },
+  crise_asmatica: function(e) { return _calcCockpitAsma(e); },
+  interacoes: function(e) { return _calcCockpitSeguranca(e); },
+  seguranca: function(e) { return _calcCockpitSeguranca(e); },
+  parkland: function(e) { return _calcCockpitParkland(e); },
+  glasgow: function(e) { return _calcCockpitGlasgow(e); },
+  ckd: function(e) { return _calcCockpitCkd(e); },
+  ckdepi: function(e) { return _calcCockpitCkd(e); },
+  cockcroft: function(e) { return _calcCockpitCockcroft(e); },
+  curb65: function(e) { return _calcCockpitCurb65(e); },
+  curb: function(e) { return _calcCockpitCurb65(e); }
+};
+
 function cockpitCalcular(initData, tipo, entrada) {
   cockpitAutorizar_(initData);
-  if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) throw new Error('Informe os parâmetros do cálculo.');
+  if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) {
+    throw new Error('Informe os parâmetros do cálculo.');
+  }
 
   // Validação fisiológica prévia e sanitização de limites
   if (typeof ValidadorFisiologico !== 'undefined' && typeof ValidadorFisiologico.sanitizarEntradaCalculo === 'function') {
@@ -57067,397 +57981,15 @@ function cockpitCalcular(initData, tipo, entrada) {
     }
   }
 
-  switch (tipo) {
-    case 'dva':
-      if (['nora','dobuta','vaso','adrena','adrenalina','nipride','tridil'].indexOf(entrada.droga) < 0) throw new Error('Selecione uma droga válida.');
-      var resDva = CalculadorasClinicas.drogasVasoativas(entrada.droga, entrada.peso, entrada.solucao || 'padrao');
-      if (entrada.droga2 && typeof CompatibilidadeYDvaService !== 'undefined') {
-        var checkY = CompatibilidadeYDvaService.checarCompatibilidadeY(entrada.droga, entrada.droga2);
-        var txtCompat = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(entrada.droga, entrada.droga2);
-        resDva.compatibilidadeY = checkY;
-        if (resDva.textoFormatado) {
-          resDva.textoFormatado += "\n\n" + txtCompat;
-        }
-        if (resDva.texto) {
-          resDva.texto += "\n\n" + txtCompat;
-        }
-      }
-      return resDva;
-    case 'compatibilidade_y':
-    case 'dva_y':
-      var d1 = entrada.droga1 || entrada.drogaA || entrada.droga || 'noradrenalina';
-      var d2 = entrada.droga2 || entrada.drogaB || 'dobutamina';
-      if (typeof CompatibilidadeYDvaService !== 'undefined') {
-        var resY = CompatibilidadeYDvaService.checarCompatibilidadeY(d1, d2);
-        var txtY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(d1, d2);
-        resY.texto = txtY;
-        resY.textoFormatado = txtY;
-        return resY;
-      }
-      throw new Error('Serviço de Compatibilidade em Y indisponível.');
-    case 'sri':
-      if (['padrao','choque','asma','neuro','tce','hic'].indexOf(entrada.cenario) < 0) throw new Error('Selecione um cenário válido.');
-      return CalculadorasClinicas.sequenciaRapidaIntubacao(entrada.peso, entrada.cenario);
-    case 'crcl':
-      var feminino = entrada.sexo === 'f' ? true : entrada.sexo === 'm' ? false : null;
-      var altCm = null;
-      var rawAlt = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
-      if (rawAlt !== undefined && rawAlt !== null && rawAlt !== '') {
-        var nAlt = parseFloat(String(rawAlt).replace(',', '.'));
-        if (!isNaN(nAlt)) altCm = (nAlt > 0 && nAlt < 3.0) ? Math.round(nAlt * 100 * 10) / 10 : nAlt;
-      }
-      return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino, altCm);
-    case 'gaso':
-      var naGaso = entrada.na !== undefined && entrada.na !== '' ? entrada.na : null;
-      var clGaso = entrada.cl !== undefined && entrada.cl !== '' ? entrada.cl : null;
-      var albGaso = entrada.alb !== undefined && entrada.alb !== '' ? entrada.alb : null;
-      var pao2Gaso = entrada.pao2 !== undefined && entrada.pao2 !== '' ? entrada.pao2 : (entrada.po2 !== undefined && entrada.po2 !== '' ? entrada.po2 : null);
-      var fio2Gaso = entrada.fio2 !== undefined && entrada.fio2 !== '' ? entrada.fio2 : null;
-      return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3, naGaso, clGaso, albGaso, pao2Gaso, fio2Gaso);
-    case 'ajuste_atb':
-    case 'atb':
-      var drogaAtb = entrada.droga || entrada.farmaco || entrada.antimicrobiano || 'meropenem';
-      var clcrAtb = entrada.clcr !== undefined ? entrada.clcr : entrada.crcl;
-      var hdAtb = Boolean(entrada.hemodialise || entrada.hd);
-      if (typeof CalculadorasClinicas !== 'undefined' && typeof CalculadorasClinicas.ajusteRenalAntimicrobiano === 'function') {
-        var resAtb = CalculadorasClinicas.ajusteRenalAntimicrobiano(drogaAtb, clcrAtb, hdAtb);
-        if (resAtb && resAtb.dados) {
-          var txtAtb = "💉 AJUSTE RENAL DE ANTIMICROBIANOS (IDSA / GUIA HSL)\n\n" +
-            "🔴 DOSE AJUSTADA:\n• " + resAtb.dados.nomeExibicao + ": " + resAtb.dados.doseAjustada + "\n\n" +
-            "🟡 DOSE PADRÃO (FUNÇÃO RENAL NORMAL):\n• " + resAtb.dados.dosePadrao + "\n\n" +
-            "⚠️ ORIENTAÇÕES E CUIDADOS:\n• " + resAtb.dados.cuidados + "\n\n" +
-            "ℹ️ MONITORIZAÇÃO:\n• " + resAtb.dados.monitorizacao;
-          resAtb.texto = txtAtb;
-          resAtb.textoFormatado = txtAtb;
-        }
-        return resAtb;
-      }
-      throw new Error('Calculadora de Ajuste Renal de Antimicrobianos indisponível.');
-    case 'pediatria':
-    case 'pals':
-    case 'holliday':
-      var modoPed = String(entrada.modo || (tipo === 'pals' ? 'pals' : 'holliday')).toLowerCase();
-      var pesoPed = parseFloat(String(entrada.peso || 0).replace(',', '.'));
-      var idadePed = entrada.idade ? parseFloat(String(entrada.idade).replace(',', '.')) : null;
+  var handler = Object.prototype.hasOwnProperty.call(DISPATCH_COCKPIT_CALCULADORAS, tipo)
+    ? DISPATCH_COCKPIT_CALCULADORAS[tipo]
+    : null;
 
-      if (modoPed === 'pals') {
-        if (typeof PalsPediatriaService === 'undefined') throw new Error('Módulo PalsPediatriaService indisponível.');
-        var resPals = PalsPediatriaService.avaliarPals({ pesoKg: pesoPed, idadeAnos: idadePed });
-        var txtPals = "👶 PALS — REANIMAÇÃO & SUPORTE AVANÇADO PEDIÁTRICO\n\n" +
-          "🔴 AÇÃO IMEDIATA / DROGAS DE PCR:\n" +
-          resPals.medicacoes.map(function(m) {
-            return "• " + m.farmaco + ": " + m.doseMg + " (" + m.volumeMl + ") — " + m.via + (m.alerta ? " [" + m.alerta + "]" : "");
-          }).join("\n") + "\n\n" +
-          "⚡ DESFIBRILAÇÃO & CARDIOVERSÃO:\n" +
-          "• 1º Choque (2 J/kg): " + resPals.eletricidade.desfibrilacaoPrimeiroChoque + "\n" +
-          "• 2º Choque (4 J/kg): " + resPals.eletricidade.desfibrilacaoSegundoChoque + "\n" +
-          "• Cardioversão: " + resPals.eletricidade.cardioversaoPrimeiroChoque + "\n\n" +
-          "🫁 VIA AÉREA (TUBO ENDOTRAQUEAL):\n" +
-          "• Tubo sem cuff: " + resPals.viaAerea.tuboSemCuff + "\n" +
-          "• Tubo com cuff: " + resPals.viaAerea.tuboComCuff + "\n" +
-          "• Lâmina: " + resPals.viaAerea.laminaLaringoscopio + " | Fixação no lábio: " + resPals.viaAerea.fixacao + "\n\n" +
-          "⚠️ ALERTAS BEIRA-LEITO:\n" +
-          (resPals.alertas && resPals.alertas.length ? resPals.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Manter ventilação eficaz com bolsa-válvula-máscara e massagem cardíaca 15:2 com 2 socorristas.");
-        return { ok: true, sucesso: true, id: 'pals_pediatria', nome: 'PALS Pediátrico', texto: txtPals, textoFormatado: txtPals, dados: resPals };
-      } else if (modoPed === 'posologia') {
-        var drogaPed = entrada.farmaco || entrada.droga || 'dipirona';
-        if (typeof CalculadorasClinicas !== 'undefined' && typeof CalculadorasClinicas.posologiaPediatrica === 'function') {
-          var resPos = CalculadorasClinicas.posologiaPediatrica(pesoPed, drogaPed, { doseAlta: entrada.doseAlta });
-          if (resPos && resPos.texto) {
-            resPos.textoFormatado = resPos.texto;
-          }
-          return resPos;
-        }
-        throw new Error('Calculadora de Posologia Pediátrica indisponível.');
-      } else {
-        // Holliday-Segar
-        if (typeof SuporteNutricionalPediatricoService === 'undefined') throw new Error('Serviço SuporteNutricionalPediatricoService indisponível.');
-        var resHS = SuporteNutricionalPediatricoService.calcularHollidaySegar(pesoPed, {
-          condicaoClinica: entrada.condicaoClinica || 'manutencao_padrao',
-          temperaturaC: entrada.temperaturaC || 38.0
-        });
-        var txtHS = "💧 HIDRATAÇÃO VENOSA PEDIÁTRICA (HOLLIDAY-SEGAR)\n\n" +
-          "🔴 CONDUTA & VAZÃO EM BOMBA (BIC):\n" +
-          "• Volume Total (24h): " + resHS.volumeAjustado24h + " mL\n" +
-          "• Vazão Horária: " + resHS.vazaoHorariaMlH + " mL/h (Regra 4-2-1)\n" +
-          "• Condição Clínica: " + resHS.justificativaAjuste + "\n\n" +
-          "🟡 PRESCRIÇÃO ELETROLÍTICA & TIG (SBP/AAP):\n" +
-          "• Sódio (Na+): " + (resHS.eletrolitos ? resHS.eletrolitos.sodioTotalMeqDia : '') + " mEq/dia (2,5 mEq / 100 mL de solução)\n" +
-          "• Potássio (K+): " + (resHS.eletrolitos ? resHS.eletrolitos.potassioTotalMeqDia : '') + " mEq/dia (2,0 mEq / 100 mL — adicionar APENAS após diurese confirmada)\n" +
-          "• TIG em SG 5%: " + (resHS.glicoseTig ? resHS.glicoseTig.tigComSg5 : '') + " mg/kg/min (Alvo fisiológico: 4 a 6 mg/kg/min)\n\n" +
-          "⚠️ ALERTAS DE SEGURANÇA:\n" +
-          (resHS.alertas && resHS.alertas.length ? resHS.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Usar soluções isotônicas ou balanceadas para prevenir hiponatremia hospitalar aguda induzida por ADH.");
-        return { ok: true, sucesso: true, id: 'holliday_segar', nome: 'Hidratação Pediátrica Holliday-Segar', texto: txtHS, textoFormatado: txtHS, dados: resHS };
-      }
-    case 'dhe':
-    case 'eletrolitos':
-    case 'hidroeletrolitico':
-      if (typeof NefrologiaDheService === 'undefined') throw new Error('Serviço NefrologiaDheService indisponível.');
-      var modoDhe = String(entrada.modo || 'hiponatremia').toLowerCase();
-      var pesoDhe = parseFloat(String(entrada.peso || 70).replace(',', '.'));
-      var idadeDhe = entrada.idade ? parseFloat(String(entrada.idade).replace(',', '.')) : 40;
-      var sexoDhe = entrada.sexo ? String(entrada.sexo).toLowerCase() : 'm';
-
-      if (modoDhe === 'hipercalemia' || entrada.kAtual !== undefined) {
-        var kVal = parseFloat(String(entrada.kAtual || entrada.potassio || 0).replace(',', '.'));
-        var ecgAlt = Boolean(entrada.ecgAlterado || entrada.ecg);
-        var resK = NefrologiaDheService.avaliarHipercalemia(kVal, ecgAlt);
-        if (resK.erro) return { ok: false, erro: resK.erro };
-
-        var txtK = "⚡ MANEJO EMERGENCIAL DE HIPERCALEMIA (SBC / KDIGO)\n\n" +
-          "🔴 ESTRATIFICAÇÃO & GRAVIDADE:\n" +
-          "• Potássio Sérico: " + resK.potassio + " mEq/L\n" +
-          "• Classificação: " + resK.gravidade + "\n\n" +
-          "🟡 CONDUTAS ESCALONADAS:\n" +
-          resK.condutas.map(function(c) { return "• " + c; }).join("\n") + "\n\n" +
-          (resK.alerta ? "⚠️ ALERTA CARDÍACO:\n• " + resK.alerta + "\n\n" : "") +
-          "ℹ️ MONITORIZAÇÃO:\n• Monitorização cardíaca contínua e repetir dosagem de K+ em 2h.";
-        return { ok: true, sucesso: true, id: 'hipercalemia', nome: 'Manejo de Hipercalemia', texto: txtK, textoFormatado: txtK, dados: resK };
-      } else if (modoDhe === 'hipernatremia') {
-        var naHiper = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
-        var resHiper = NefrologiaDheService.calcularDeficitAguaLivre(naHiper, pesoDhe, sexoDhe, idadeDhe);
-        if (resHiper.erro) return { ok: false, erro: resHiper.erro };
-
-        var txtHiper = "🌵 HIPERNATREMIA — DÉFICIT DE ÁGUA LIVRE (ADROGUÉ-MADIAS)\n\n" +
-          "🔴 DÉFICIT CALCULADO:\n" +
-          "• Sódio Atual: " + naHiper + " mEq/L | ACT: " + resHiper.act + " L\n" +
-          "• Déficit Total de Água Livre: " + resHiper.deficitAguaLivreLitros + " Litros\n\n" +
-          "🟡 PROGRAMAÇÃO DA REPOSIÇÃO (48 HORAS):\n" +
-          "• 1ªs 24 horas: Repor 50% do déficit (" + (Math.round(resHiper.deficitAguaLivreLitros * 500)) + " mL de água livre ou SG 5%)\n" +
-          "• 24h a 48h: Repor os 50% restantes + perdas insensíveis\n" +
-          "• Vias: Água potável por SNG/SNE (preferencial se TGI funcionante) ou SG 5% IV\n\n" +
-          "⚠️ ALERTA DE SEGURANÇA & TETOS:\n" +
-          (resHiper.alertas && resHiper.alertas.length ? resHiper.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Queda máxima de Na: 8-10 mEq/L em 24h (risco de edema cerebral).") + "\n\n" +
-          "ℹ️ MONITORIZAÇÃO:\n• Dosar Na sérico a cada 4 a 6 horas durante a correção.";
-        return { ok: true, sucesso: true, id: 'hipernatremia', nome: 'Hipernatremia - Déficit de Água Livre', texto: txtHiper, textoFormatado: txtHiper, dados: resHiper };
-      } else {
-        // Hiponatremia (Adrogué-Madias)
-        var naHipo = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
-        var salinaHipo = parseFloat(String(entrada.salina || 3).replace(',', '.'));
-        var resHipo = NefrologiaDheService.planejarCorrecaoHiponatremia(naHipo, pesoDhe, sexoDhe, idadeDhe, salinaHipo);
-        if (resHipo.erro) return { ok: false, erro: resHipo.erro };
-
-        var solNome = salinaHipo === 3 ? "NaCl 3% (513 mEq/L)" : "NaCl 0,9% (154 mEq/L)";
-        var vol24h = Math.round((8 / resHipo.variacaoNaPorLitro) * 1000);
-        var txtHipo = "💧 CORREÇÃO DE HIPONATREMIA (FÓRMULA DE ADROGUÉ-MADIAS)\n\n" +
-          "🔴 AÇÃO IMEDIATA / INFUSÃO EM BIC:\n" +
-          "• Solução Escolhida: " + solNome + "\n" +
-          "• Variação Esperada de Na+ com 1 L: +" + resHipo.variacaoNaPorLitro + " mEq/L\n" +
-          "• Taxa Segura de Infusão: " + resHipo.taxaInfusaoMaxima24h_ml_h + " mL/h em BIC\n" +
-          "• Volume Total Seguro em 24h (Teto 8 mEq): " + vol24h + " mL\n\n" +
-          "🟡 SINTOMAS GRAVES / RESGATE NEUROLÓGICO (CONVULSÃO / COMA):\n" +
-          "• Bolus de Emergência: 100 a 150 mL de NaCl 3% IV em 10-20 min.\n" +
-          "• Pode repetir até 2 vezes se sintomas neurológicos persistirem (meta: subir 4-6 mEq/L).\n\n" +
-          "⚠️ TETOS RÍGIDOS CONTRA MIELINÓLISE PONTINA (SDO):\n" +
-          "• NÃO ULTRAPASSAR 8 mEq/L nas 1ªs 24h e 18 mEq/L em 48h.\n" +
-          (resHipo.alertas && resHipo.alertas.length ? resHipo.alertas.map(function(a) { return "• " + a; }).join("\n") : "") + "\n\n" +
-          "ℹ️ MONITORIZAÇÃO & RESGATE:\n" +
-          "• Dosar sódio sérico a cada 2 a 4 horas. Se subida > 8 mEq em 24h: suspender salina e infundir SG 5% ou Desmopressina (DDAVP).";
-        return { ok: true, sucesso: true, id: 'hiponatremia', nome: 'Correção de Hiponatremia', texto: txtHipo, textoFormatado: txtHipo, dados: resHipo };
-      }
-    case 'heart':
-    case 'sca':
-    case 'cardiologia':
-      if (typeof CardiologiaEmergenciaService === 'undefined') throw new Error('Serviço CardiologiaEmergenciaService indisponível.');
-      var paramsCardio = Object.assign({}, entrada);
-      if (paramsCardio.fr !== undefined) {
-        var numFr = Number(paramsCardio.fr);
-        if (numFr >= 2) paramsCardio.fatoresRiscoContagem = 3;
-        else if (numFr === 1) paramsCardio.fatoresRiscoContagem = 1;
-        else paramsCardio.fatoresRiscoContagem = 0;
-      }
-      var resCardio = CardiologiaEmergenciaService.avaliarPaciente(paramsCardio);
-      var heartRes = resCardio.heart;
-      var daptRes = resCardio.dapt;
-      var timiRes = resCardio.timiScasst;
-
-      var txtCardio = "🫀 ESCORE HEART & DOR TORÁCICA / SCA (SBC / AHA / ESC)\n\n" +
-        "🔴 ESTRATIFICAÇÃO & CONDUTA BEIRA-LEITO:\n" +
-        "• HEART Score: " + heartRes.escore + " pontos — " + String(heartRes.risco).toUpperCase() + "\n" +
-        "• Taxa de MACE (6 semanas): " + heartRes.taxaMACE + "\n" +
-        "• Conduta: " + heartRes.recomendacao + "\n" +
-        "• TIMI SCASST: " + timiRes.escore + "/7 pontos (" + timiRes.risco + " — MACE 14d: " + timiRes.taxaMACE14Dias + ")\n\n" +
-        "🟡 DUPLO BLOQUEIO ANTIPLAQUETÁRIO (DAPT):\n" +
-        "• P2Y12 de Escolha: " + daptRes.p2y12Escolhido + "\n";
-      for (var d = 0; d < daptRes.recomendacoes.length; d++) {
-        var r = daptRes.recomendacoes[d];
-        txtCardio += "• " + r.farmaco + ": Ataque " + r.ataque + " | Manutenção " + r.manutencao + "\n";
-      }
-      if (resCardio.adjuvantes && resCardio.adjuvantes.recomendacoes) {
-        txtCardio += "\n💉 ADJUVANTES & ANTICOAGULAÇÃO:\n";
-        for (var adjIdx = 0; adjIdx < resCardio.adjuvantes.recomendacoes.length; adjIdx++) {
-          var adjRec = resCardio.adjuvantes.recomendacoes[adjIdx];
-          txtCardio += "• " + adjRec.farmaco + ": " + adjRec.posologia + "\n";
-        }
-      }
-      var bloqueiosCardio = [].concat(daptRes.bloqueios || []).concat((resCardio.adjuvantes && resCardio.adjuvantes.bloqueios) || []);
-      if (bloqueiosCardio.length > 0) {
-        txtCardio += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n";
-        for (var bIdx = 0; bIdx < bloqueiosCardio.length; bIdx++) {
-          var bItem = bloqueiosCardio[bIdx];
-          txtCardio += "• [" + bItem.nivel + "] " + bItem.farmaco + ": " + bItem.motivo + "\n";
-        }
-      }
-      txtCardio += "\nℹ️ MONITORIZAÇÃO:\n• ECG seriado (a cada 15-30 min se dor ou a cada 6h), curva de troponina (0h/1h ou 0h/2h ou 0h/3h) e monitorização contínua.";
-
-      return {
-        ok: true,
-        sucesso: true,
-        id: 'heart_score',
-        nome: 'Escore HEART & SCA',
-        texto: txtCardio,
-        textoFormatado: txtCardio,
-        dados: resCardio
-      };
-    case 'asma':
-    case 'broncoespasmo':
-    case 'crise_asmatica':
-      if (typeof PneumologiaCriseAsmaticaService === 'undefined') throw new Error('Serviço PneumologiaCriseAsmaticaService indisponível.');
-      var paramsAsma = Object.assign({}, entrada);
-      if (paramsAsma.refratario !== undefined && paramsAsma.refratario_1h === undefined) {
-        paramsAsma.refratario_1h = Boolean(paramsAsma.refratario);
-      }
-      if (paramsAsma.peso !== undefined && paramsAsma.pesoKg === undefined) {
-        paramsAsma.pesoKg = Number(paramsAsma.peso);
-      }
-      if (paramsAsma.dpoc !== undefined || paramsAsma.perfilDpoc !== undefined) {
-        paramsAsma.dpoc = Boolean(paramsAsma.dpoc || paramsAsma.perfilDpoc);
-      }
-      if (paramsAsma.gasometriaNormocapnia || paramsAsma.normocapnia) {
-        paramsAsma.gasometria = { paco2: 43, ph: 7.31 };
-      }
-      var resAsma = PneumologiaCriseAsmaticaService.avaliarCriseAsmatica(paramsAsma);
-      var gAsma = resAsma.gravidade;
-      var pAsma = resAsma.plano;
-
-      var cabecalhoAsma = pAsma.isDpoc ? 
-        "🫁 EXACERBAÇÃO AGUDA DE DPOC (GOLD / SBPT)\n\n" : 
-        "🫁 MANEJO DA CRISE ASMÁTICA & BRONCOESPASMO (GINA / SBPT)\n\n";
-
-      var txtAsma = cabecalhoAsma +
-        "🔴 CLASSIFICAÇÃO & CONDUTA IMEDIATA:\n" +
-        "• Gravidade: " + gAsma.titulo.toUpperCase() + "\n" +
-        (gAsma.pfe_porcentagem !== null ? "• Pico de Fluxo (PFE): " + gAsma.pfe_porcentagem + "% do previsto\n" : "") +
-        "• Conduta: " + gAsma.recomendacao_imediata + "\n\n" +
-        "🟡 BRONCODILATAÇÃO DA 1ª HORA (SABA + SAMA):\n" +
-        "• Oxigenoterapia: Alvo SpO2 " + pAsma.oxigenoterapia.alvo_spo2 + " (" + pAsma.oxigenoterapia.dispositivo + ")\n" +
-        "• Salbutamol (SABA): " + pAsma.broncodilatacao_saba.opcao_preferencial + "\n" +
-        "• Nebulização Alternativa: " + pAsma.broncodilatacao_saba.opcao_alternativa_nebulizacao + "\n" +
-        (pAsma.anticolinergico_ipratropio && pAsma.anticolinergico_ipratropio.indicado ? "• Ipratrópio (SAMA): " + pAsma.anticolinergico_ipratropio.posologia + "\n" : "") + "\n" +
-        "💉 CORTICOTERAPIA SISTÊMICA PRECOCE (1ª HORA):\n" +
-        "• Via Oral: " + pAsma.corticoide_sistemico.oral + "\n" +
-        "• Via Intravenosa: " + pAsma.corticoide_sistemico.intravenoso + "\n";
-
-      if (pAsma.sulfato_magnesio && pAsma.sulfato_magnesio.indicado) {
-        txtAsma += "\n⚡ SULFATO DE MAGNÉSIO 2G IV (INDICAÇÃO MANDATÓRIA):\n" +
-          "• Dose: " + pAsma.sulfato_magnesio.dose + "\n" +
-          "• Diluição: " + pAsma.sulfato_magnesio.diluicao + "\n" +
-          "• Tempo de Infusão: " + pAsma.sulfato_magnesio.tempo_infusao + "\n";
-      }
-
-      if (pAsma.antibioticoterapia && pAsma.antibioticoterapia.indicado) {
-        txtAsma += "\n💊 ANTIBIOTICOTERAPIA (CRITÉRIOS DE ANTHONISEN):\n" +
-          "• Critérios: " + pAsma.antibioticoterapia.criterios_anthonisen + "\n" +
-          "• 1ª Linha: " + pAsma.antibioticoterapia.esquema_preferencial + "\n";
-      }
-
-      if (pAsma.manejo_ventilatorio && pAsma.manejo_ventilatorio.vni) {
-        txtAsma += "\n🫁 VENTILAÇÃO NÃO INVASIVA (VNI - BiPAP):\n" +
-          "• " + pAsma.manejo_ventilatorio.vni.padrao_ouro + "\n";
-      }
-
-      if (gAsma.nivel === 'PARADA_IMINENTE' || gAsma.nivel === 'GRAVE') {
-        txtAsma += "\n🫁 MANEJO VENTILATÓRIO & IOT PROTETORA:\n" +
-          "• Indução: " + pAsma.manejo_ventilatorio.sequencia_rapida_intubacao.inducao_escolha + "\n" +
-          "• Parâmetros do Respirador: Vt 5-6 mL/kg PBW, FR 10-12 rpm, Relação I:E 1:3 a 1:4, PEEP 0-5, Hipercapnia permissiva (pH >= 7.20)\n" +
-          "• Alerta pós-IOT: " + pAsma.manejo_ventilatorio.parametros_ventilador_protetor.conduta_colapso_pos_iot + "\n";
-      }
-
-      if (pAsma.bloqueios_seguranca && pAsma.bloqueios_seguranca.length > 0) {
-        txtAsma += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n" +
-          pAsma.bloqueios_seguranca.map(function(b) { return "• " + b; }).join("\n") + "\n";
-      }
-
-      txtAsma += "\nℹ️ CRITÉRIOS DE ALTA & PRESCRIÇÃO AMBULATORIAL:\n" +
-        "• " + pAsma.criterios_destino.alta_emergencia.prescricao_alta.slice(0, 3).join("\n• ");
-
-      return {
-        ok: true,
-        sucesso: true,
-        id: pAsma.isDpoc ? 'exacerbacao_dpoc' : 'crise_asmatica',
-        nome: pAsma.isDpoc ? 'Exacerbação de DPOC' : 'Manejo de Crise Asmática',
-        texto: txtAsma,
-        textoFormatado: txtAsma,
-        dados: resAsma
-      };
-    case 'interacoes':
-    case 'seguranca':
-      var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';
-      return executarCrossCheckSegurancaClinica(alvos, entrada.contexto || entrada);
-    case 'parkland':
-      var pPark = parseFloat(String(entrada.peso || 0).replace(',', '.'));
-      var sPark = parseFloat(String(entrada.scq || entrada.queimadura || 0).replace(',', '.'));
-      var resPark = CalculadorasClinicas.parkland(pPark, sPark);
-      if (resPark && resPark.ok) {
-        if (!resPark.texto) resPark.texto = resPark.textoFormatado;
-        return resPark;
-      }
-      return { ok: false, erro: (resPark && resPark.erro) || 'Erro ao calcular Parkland.' };
-    case 'glasgow':
-      var oG = parseInt(entrada.ocular !== undefined ? entrada.ocular : (entrada.o !== undefined ? entrada.o : 4), 10);
-      var vG = parseInt(entrada.verbal !== undefined ? entrada.verbal : (entrada.v !== undefined ? entrada.v : 5), 10);
-      var mG = parseInt(entrada.motor !== undefined ? entrada.motor : (entrada.m !== undefined ? entrada.m : 6), 10);
-      var pG = (entrada.pupilas !== undefined && entrada.pupilas !== null && entrada.pupilas !== '') ? parseInt(entrada.pupilas, 10) : ((entrada.p !== undefined && entrada.p !== null && entrada.p !== '') ? parseInt(entrada.p, 10) : null);
-      var resG = CalculadorasClinicas.glasgowP(oG, vG, mG, pG);
-      if (resG && resG.ok) {
-        if (!resG.texto) resG.texto = resG.textoFormatado;
-        return resG;
-      }
-      return { ok: false, erro: (resG && resG.erro) || 'Erro ao calcular Glasgow-P.' };
-    case 'ckd':
-    case 'ckdepi':
-      var crCkd = parseFloat(String(entrada.creatinina || entrada.cr || 0).replace(',', '.'));
-      var idCkd = parseInt(entrada.idade || 0, 10);
-      var femCkd = entrada.sexo === 'f' || entrada.feminino === true;
-      var resCkd = CalculadorasClinicas.ckdEpi2021(crCkd, idCkd, femCkd);
-      if (resCkd && resCkd.ok) {
-        if (!resCkd.texto) resCkd.texto = resCkd.textoFormatado;
-        return resCkd;
-      }
-      return { ok: false, erro: (resCkd && resCkd.erro) || 'Erro ao calcular CKD-EPI.' };
-    case 'cockcroft':
-      var crCg = parseFloat(String(entrada.creatinina || entrada.cr || 0).replace(',', '.'));
-      var pCg = parseFloat(String(entrada.peso || 0).replace(',', '.'));
-      var idCg = parseInt(entrada.idade || 0, 10);
-      var femCg = entrada.sexo === 'f' || entrada.feminino === true ? true : entrada.sexo === 'm' ? false : null;
-      var altCmCg = null;
-      var rawAltCg = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
-      if (rawAltCg !== undefined && rawAltCg !== null && rawAltCg !== '') {
-        var nAltCg = parseFloat(String(rawAltCg).replace(',', '.'));
-        if (!isNaN(nAltCg)) altCmCg = (nAltCg > 0 && nAltCg < 3.0) ? Math.round(nAltCg * 100 * 10) / 10 : nAltCg;
-      }
-      var resCg = CalculadorasClinicas.cockcroftGault(crCg, pCg, idCg, femCg, altCmCg);
-      if (resCg && resCg.ok) {
-        if (!resCg.texto) resCg.texto = resCg.textoFormatado;
-        return resCg;
-      }
-      return { ok: false, erro: (resCg && resCg.erro) || 'Erro ao calcular Cockcroft-Gault.' };
-    case 'curb65':
-    case 'curb':
-      var confCb = Boolean(entrada.confusao || entrada.confusaoMental);
-      var urCb = parseFloat(String(entrada.ureia || entrada.bun || 0).replace(',', '.'));
-      var frCb = parseInt(entrada.fr || 0, 10);
-      var pasCb = parseInt(entrada.pas || 0, 10);
-      var padCb = parseInt(entrada.pad || 0, 10);
-      var idCb = parseInt(entrada.idade || 0, 10);
-      var resCurb = CalculadorasClinicas.curb65(confCb, urCb, frCb, pasCb, padCb, idCb);
-      if (resCurb && resCurb.ok) {
-        if (!resCurb.texto) resCurb.texto = resCurb.textoFormatado;
-        return resCurb;
-      }
-      return { ok: false, erro: (resCurb && resCurb.erro) || 'Erro ao calcular CURB-65.' };
-    default: throw new Error('Calculadora desconhecida.');
+  if (!handler) {
+    throw new Error('Calculadora desconhecida.');
   }
+
+  return handler(entrada, tipo);
 }
 
 function cockpitChecarSeguranca(initData, drogasOuTexto, contextoClinico) {
@@ -57531,6 +58063,145 @@ function cockpitConsultarFarmaco(initData, params) {
   };
 }
 
+// ==============================================================================
+// HANDLERS MODULARES DE AÇÕES DO COCKPIT
+// ==============================================================================
+
+function _cockpitAcaoNovo(chat) {
+  limparEstadoBot(chat);
+  PersistenciaBot.remover('soapview_' + chat);
+  return { sucesso: true, acao: 'novo', mensagem: 'Novo caso iniciado com sucesso.', soap: '', revision: null };
+}
+
+function _cockpitAcaoEfNormal(chat, dadosAtuais, params) {
+  var textoEfCustom = (params.textoEf || params.texto || '').trim();
+  var exameAInserir = textoEfCustom || ((typeof obterModeloExameFisicoCompleto === 'function')
+    ? obterModeloExameFisicoCompleto(dadosAtuais)
+    : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO
+      ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto
+      : [
+        'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
+        'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+        '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
+        '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
+        '  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
+        ' Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
+      ].join('\n')));
+
+  var novoTextoEf = dadosAtuais.trim()
+    ? dadosAtuais + '\n' + exameAInserir
+    : 'Paciente em atendimento clínico de rotina.\n' + exameAInserir;
+  var estadoAtualizadoEf = definirModoBot(chat, 'soap', novoTextoEf);
+  var soapEf = gerarSOAPComIA(novoTextoEf);
+  salvarSoapCockpit_(chat, estadoAtualizadoEf, String(soapEf));
+  return { sucesso: true, acao: 'ef_normal', resposta: String(soapEf), soap: String(soapEf), revision: estadoAtualizadoEf.revision, textoEf: exameAInserir };
+}
+
+function _cockpitAcaoPlano(chat, dadosAtuais) {
+  if (!dadosAtuais.trim()) throw new Error('Nenhum caso ativo para gerar Avaliação e Plano.');
+  var soapPlano = gerarSOAPComIA(dadosAtuais, { fecharPlano: true });
+  var estPlano = modoBot(chat);
+  salvarSoapCockpit_(chat, estPlano, String(soapPlano));
+  return { sucesso: true, acao: 'plano', resposta: String(soapPlano), soap: String(soapPlano), revision: estPlano ? estPlano.revision : null };
+}
+
+function _cockpitAcaoPreceptor(chat, dadosAtuais, texto, estado) {
+  var casoPreceptor = (texto && texto.trim()) ? texto.trim() : (dadosAtuais ? dadosAtuais.trim() : '');
+  if (!casoPreceptor) throw new Error('Nenhum caso ativo ou digitado para solicitar provocação do preceptor.');
+  var critica = (typeof gerarCriticaSocraticaPreceptor === 'function')
+    ? gerarCriticaSocraticaPreceptor(casoPreceptor)
+    : 'Qual a sua principal hipótese diagnóstica e conduta imediata?';
+  var sview = PersistenciaBot.ler('soapview_' + chat);
+  if (typeof sview === 'string') { try { sview = JSON.parse(sview); } catch(e) {} }
+  return { sucesso: true, acao: 'preceptor', resposta: String(critica), soap: sview ? sview.texto : '', revision: estado ? estado.revision : null };
+}
+
+function _cockpitAcaoPrescricao(chat, dadosAtuais, texto, estado) {
+  if (!dadosAtuais.trim() && !texto) throw new Error('Forneça os dados do caso para gerar a prescrição.');
+  var dadosPrescricao = texto ? (dadosAtuais ? dadosAtuais + '\n[Solicitação Prescrição]: ' + texto : texto) : dadosAtuais;
+  var prescricao = (typeof gerarPrescricaoMedicaIA === 'function') ? gerarPrescricaoMedicaIA(dadosPrescricao) : 'Prescrição indisponível no momento.';
+  var sviewP = PersistenciaBot.ler('soapview_' + chat);
+  if (typeof sviewP === 'string') { try { sviewP = JSON.parse(sviewP); } catch(e) {} }
+  return { sucesso: true, acao: 'prescricao', resposta: String(prescricao), soap: sviewP ? sviewP.texto : '', revision: estado ? estado.revision : null };
+}
+
+function _cockpitProcessarAudioClinico(audioBase64, mime, texto, estado, dadosAtuais) {
+  var mimeAudio = String(mime || 'audio/webm').split(';')[0].trim().toLowerCase();
+  var base64Limpo = (typeof _iaNormalizarBase64 === 'function')
+    ? _iaNormalizarBase64(audioBase64)
+    : (typeof audioBase64 === 'string' ? audioBase64.replace(/^data:[^;]+;base64,/, '').trim() : (typeof Buffer !== 'undefined' && Buffer.isBuffer(audioBase64) ? audioBase64.toString('base64') : String(audioBase64)));
+
+  var opcoesAudio = { contextoTexto: texto || '', fallbackOffline: true };
+  var transcricaoAudio = '';
+
+  try {
+    if (typeof processarAudioClinicoMultimodal === 'function') {
+      var resAudio = processarAudioClinicoMultimodal(base64Limpo, mimeAudio, opcoesAudio);
+      if (resAudio) {
+        if (resAudio.transcricao) transcricaoAudio = String(resAudio.transcricao).trim();
+        if (resAudio.eh_clinico && resAudio.soapTexto) {
+          return {
+            sucessoClinico: true,
+            retorno: {
+              sucesso: true,
+              acao: 'enviar',
+              textoRecebido: (texto ? texto + '\n' + transcricaoAudio : transcricaoAudio) || transcricaoAudio,
+              transcricao: transcricaoAudio || null,
+              resposta: resAudio.soapTexto,
+              soap: resAudio.dadosObj || dadosAtuais,
+              contingencia_offline: !!resAudio.contingencia_offline,
+              revision: estado ? estado.revision : null
+            }
+          };
+        }
+      }
+    }
+    if (!transcricaoAudio && typeof chamarGeminiPoolMultimodal === 'function') {
+      var resMultimodal = chamarGeminiPoolMultimodal(base64Limpo, mimeAudio, 'Você é um transcritor médico. Transcreva fielmente as palavras ditadas em português.', 'Transcreva este áudio.');
+      if (resMultimodal) transcricaoAudio = String(resMultimodal).trim();
+    }
+  } catch (eAudio) {
+    Logger.log('Aviso ao processar áudio com IA no Cockpit: ' + (eAudio.message || eAudio));
+  }
+
+  // Fallback offline defensivo caso o provedor externo falhe ou retorne vazio
+  if (!transcricaoAudio && base64Limpo && typeof IaLocalFallbackService !== 'undefined' && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === 'function') {
+    try {
+      var fbAudio = IaLocalFallbackService.processarAudioClinicoOffline(base64Limpo, mimeAudio, opcoesAudio);
+      if (fbAudio) {
+        transcricaoAudio = String(fbAudio.transcricao || fbAudio.soapTexto || '').trim();
+        if (fbAudio.eh_clinico && fbAudio.soapTexto) {
+          return {
+            sucessoClinico: true,
+            retorno: {
+              sucesso: true,
+              acao: 'enviar',
+              textoRecebido: (texto ? texto + '\n' + transcricaoAudio : transcricaoAudio) || transcricaoAudio,
+              transcricao: transcricaoAudio || null,
+              resposta: fbAudio.soapTexto,
+              soap: fbAudio.dadosObj || dadosAtuais,
+              contingencia_offline: true,
+              revision: estado ? estado.revision : null
+            }
+          };
+        }
+      }
+    } catch (eFb) {
+      Logger.log('Aviso no fallback offline de áudio no Cockpit: ' + (eFb.message || eFb));
+    }
+  }
+
+  return { sucessoClinico: false, transcricaoAudio: transcricaoAudio };
+}
+
+var DISPATCH_COCKPIT_ACOES = {
+  novo: function(chat) { return _cockpitAcaoNovo(chat); },
+  ef_normal: function(chat, dadosAtuais, p) { return _cockpitAcaoEfNormal(chat, dadosAtuais, p); },
+  plano: function(chat, dadosAtuais) { return _cockpitAcaoPlano(chat, dadosAtuais); },
+  preceptor: function(chat, dadosAtuais, p, txt, est) { return _cockpitAcaoPreceptor(chat, dadosAtuais, txt, est); },
+  prescricao: function(chat, dadosAtuais, p, txt, est) { return _cockpitAcaoPrescricao(chat, dadosAtuais, txt, est); }
+};
+
 function cockpitConversar(initData, params) {
   var chat = cockpitAutorizar_(initData);
   if (!params || typeof params !== 'object') throw new Error('Parâmetros de mensagem inválidos.');
@@ -57543,96 +58214,27 @@ function cockpitConversar(initData, params) {
     var estado = modoBot(chat);
     var dadosAtuais = (estado && estado.data) ? estado.data : '';
 
-    if (acao === 'novo') {
-      limparEstadoBot(chat);
-      PersistenciaBot.remover('soapview_' + chat);
-      return { sucesso: true, acao: 'novo', mensagem: 'Novo caso iniciado com sucesso.', soap: '', revision: null };
+    // Despacho O(1) de ações estruturadas do Cockpit
+    if (Object.prototype.hasOwnProperty.call(DISPATCH_COCKPIT_ACOES, acao)) {
+      return DISPATCH_COCKPIT_ACOES[acao](chat, dadosAtuais, params, texto, estado);
     }
 
-    if (acao === 'ef_normal') {
-      var textoEfCustom = (params.textoEf || params.texto || '').trim();
-      var exameAInserir = textoEfCustom || ((typeof obterModeloExameFisicoCompleto === 'function')
-        ? obterModeloExameFisicoCompleto(dadosAtuais)
-        : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO
-          ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto
-          : [
-            'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
-            'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
-            '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
-            '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
-            '  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
-            ' Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
-          ].join('\n')));
-
-      var novoTextoEf = dadosAtuais.trim()
-        ? dadosAtuais + '\n' + exameAInserir
-        : 'Paciente em atendimento clínico de rotina.\n' + exameAInserir;
-      var estadoAtualizadoEf = definirModoBot(chat, 'soap', novoTextoEf);
-      var soapEf = gerarSOAPComIA(novoTextoEf);
-      salvarSoapCockpit_(chat, estadoAtualizadoEf, String(soapEf));
-      return { sucesso: true, acao: 'ef_normal', resposta: String(soapEf), soap: String(soapEf), revision: estadoAtualizadoEf.revision, textoEf: exameAInserir };
-    }
-
-    if (acao === 'plano') {
-      if (!dadosAtuais.trim()) throw new Error('Nenhum caso ativo para gerar Avaliação e Plano.');
-      var soapPlano = gerarSOAPComIA(dadosAtuais, { fecharPlano: true });
-      var estPlano = modoBot(chat);
-      salvarSoapCockpit_(chat, estPlano, String(soapPlano));
-      return { sucesso: true, acao: 'plano', resposta: String(soapPlano), soap: String(soapPlano), revision: estPlano ? estPlano.revision : null };
-    }
-
-    if (acao === 'preceptor') {
-      var casoPreceptor = (texto && texto.trim()) ? texto.trim() : (dadosAtuais ? dadosAtuais.trim() : '');
-      if (!casoPreceptor) throw new Error('Nenhum caso ativo ou digitado para solicitar provocação do preceptor.');
-      var critica = (typeof gerarCriticaSocraticaPreceptor === 'function')
-        ? gerarCriticaSocraticaPreceptor(casoPreceptor)
-        : 'Qual a sua principal hipótese diagnóstica e conduta imediata?';
-      var sview = PersistenciaBot.ler('soapview_' + chat);
-      if (typeof sview === 'string') { try { sview = JSON.parse(sview); } catch(e) {} }
-      return { sucesso: true, acao: 'preceptor', resposta: String(critica), soap: sview ? sview.texto : '', revision: estado ? estado.revision : null };
-    }
-
-    if (acao === 'prescricao') {
-      if (!dadosAtuais.trim() && !texto) throw new Error('Forneça os dados do caso para gerar a prescrição.');
-      var dadosPrescricao = texto ? (dadosAtuais ? dadosAtuais + '\n[Solicitação Prescrição]: ' + texto : texto) : dadosAtuais;
-      var prescricao = (typeof gerarPrescricaoMedicaIA === 'function') ? gerarPrescricaoMedicaIA(dadosPrescricao) : 'Prescrição indisponível no momento.';
-      var sviewP = PersistenciaBot.ler('soapview_' + chat);
-      if (typeof sviewP === 'string') { try { sviewP = JSON.parse(sviewP); } catch(e) {} }
-      return { sucesso: true, acao: 'prescricao', resposta: String(prescricao), soap: sviewP ? sviewP.texto : '', revision: estado ? estado.revision : null };
-    }
-
+    // Processamento de áudio clínico (multimodal com contingência offline)
     var transcricaoAudio = '';
     if (audioBase64) {
-      try {
-        var mime = params.mime || 'audio/webm';
-        var base64Limpo = (typeof _iaNormalizarBase64 === 'function')
-          ? _iaNormalizarBase64(audioBase64)
-          : (typeof audioBase64 === 'string' ? audioBase64.replace(/^data:[^;]+;base64,/, '').trim() : (typeof Buffer !== 'undefined' && Buffer.isBuffer(audioBase64) ? audioBase64.toString('base64') : String(audioBase64)));
-
-        if (typeof processarAudioClinicoMultimodal === 'function') {
-          var resAudio = processarAudioClinicoMultimodal(base64Limpo, mime);
-          if (resAudio && resAudio.transcricao) {
-            transcricaoAudio = String(resAudio.transcricao).trim();
-            texto = texto ? (texto + '\n' + transcricaoAudio) : transcricaoAudio;
-          }
-        }
-        if (!transcricaoAudio && typeof chamarGeminiPoolMultimodal === 'function') {
-          var resMultimodal = chamarGeminiPoolMultimodal(base64Limpo, mime, 'Você é um transcritor médico. Transcreva fielmente as palavras ditadas em português.', 'Transcreva este áudio.');
-          if (resMultimodal) {
-            transcricaoAudio = String(resMultimodal).trim();
-            texto = texto ? (texto + '\n' + transcricaoAudio) : transcricaoAudio;
-          }
-        }
-      } catch (eAudio) {
-        throw new Error('Falha ao processar áudio: ' + (eAudio.message || eAudio));
+      var resProcAudio = _cockpitProcessarAudioClinico(audioBase64, params.mime, texto, estado, dadosAtuais);
+      if (resProcAudio.sucessoClinico) {
+        return resProcAudio.retorno;
+      }
+      if (resProcAudio.transcricaoAudio) {
+        transcricaoAudio = resProcAudio.transcricaoAudio;
+        texto = texto ? (texto + '\n' + transcricaoAudio) : transcricaoAudio;
       }
     }
 
     if (!texto) throw new Error('Envie uma mensagem de texto ou grave um áudio para prosseguir.');
 
     // ⚡ SEPARAÇÃO RÍGIDA: LÓGICA DETERMINÍSTICA EM RAM PURA (0ms a 15ms)
-    // Cálculos puros (CURB-65, Glasgow, Parkland, DVA em mcg/kg/min, clearance de creatinina, diluição de antibióticos)
-    // NUNCA envie essas tarefas para o modelo de linguagem se a matemática e a tabela já estão no código Node.js!
     if (typeof tentarCalcularDeterministico === 'function') {
       var resDetCockpit = tentarCalcularDeterministico(texto);
       if (resDetCockpit) {

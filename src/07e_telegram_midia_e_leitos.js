@@ -123,30 +123,72 @@ function processarDitadoEvolucaoLeito(chatId, dadosLeitoAudio) {
   return enviarMensagemComBotoes(chatId, msgTelegram, { inline_keyboard: botoes });
 }
 
+function processarAudioMensagemTelegram(message) {
+  return processarMensagemVoz(message);
+}
+
 function processarMensagemVoz(message) {
   var chatId = (message.chat && message.chat.id) ? message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
   // Feedback imediato: transcrição + IA
   enviarChatAction(chatId, "typing");
+  var midia = null;
   try {
-    var midia = medirEtapaBot('download_midia', function() { return baixarMidiaTelegram(message.voice || message.audio); });
+    midia = medirEtapaBot('download_midia', function() { return baixarMidiaTelegram(message.voice || message.audio); });
     if (!midia || !midia.data) {
       return enviarMensagemParaChat(chatId, "⚠️ Não foi possível baixar o áudio do Telegram.");
     }
 
+    var mimeAudio = String(midia.mime || "audio/ogg").split(";")[0].trim().toLowerCase();
+    if (mimeAudio === "audio/oga" || mimeAudio === "audio/opus" || mimeAudio.indexOf("audio/ogg") !== -1) {
+      mimeAudio = "audio/ogg";
+    }
+
+    var opcoesAudio = {
+      caption: message.caption || "",
+      chatId: chatId,
+      fallbackOffline: true
+    };
+
     // 1. Processamento Multimodal em Tempo Único (Single-Pass Audio-to-SOAP)
     var resAudio = null;
     if (typeof processarAudioClinicoMultimodal === "function") {
-      try { resAudio = medirEtapaBot('processamento_audio', function() { return processarAudioClinicoMultimodal(midia.data, midia.mime); }); } catch (eAudio) { resAudio = null; }
+      try {
+        resAudio = medirEtapaBot('processamento_audio', function() {
+          return processarAudioClinicoMultimodal(midia.data, mimeAudio, opcoesAudio);
+        });
+      } catch (eAudio) {
+        Logger.log("Aviso em processarAudioClinicoMultimodal: " + (eAudio.message || eAudio));
+        resAudio = null;
+      }
     }
 
     var transcricao = (resAudio && resAudio.transcricao) ? resAudio.transcricao : "";
 
     // Fallback defensivo para transcrição clássica (se o processador multimodal falhar ou em mocks simples)
     if (!transcricao) {
-      var promptTrans = "Transcreva fielmente o áudio em português do Brasil com pontuação correta. Não acrescente introdução ou inferência. Retorne somente a transcrição literal.";
-      var tFallback = chamarGeminiPoolMultimodal(midia.data, midia.mime, promptTrans, "");
-      if (tFallback && tFallback.trim()) {
-        transcricao = tFallback.trim();
+      try {
+        var promptTrans = "Transcreva fielmente o áudio em português do Brasil com pontuação correta. Não acrescente introdução ou inferência. Retorne somente a transcrição literal.";
+        var tFallback = chamarGeminiPoolMultimodal(midia.data, mimeAudio, promptTrans, "");
+        if (tFallback && tFallback.trim()) {
+          transcricao = tFallback.trim();
+        }
+      } catch (eTrans) {
+        Logger.log("Aviso em transcrição clássica Gemini: " + (eTrans.message || eTrans));
+      }
+    }
+
+    // Se ainda assim não houver transcrição nem relato clínico, recorrer ao Fallback Offline Local
+    if (!transcricao && (!resAudio || !resAudio.eh_clinico)) {
+      if (typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
+        try {
+          var fbAudio = IaLocalFallbackService.processarAudioClinicoOffline(midia.data, mimeAudio, opcoesAudio);
+          if (fbAudio && (fbAudio.transcricao || fbAudio.soapTexto || fbAudio.dadosObj)) {
+            resAudio = fbAudio;
+            transcricao = fbAudio.transcricao || "";
+          }
+        } catch (eFbAudio) {
+          Logger.log("Aviso em fallback offline local de áudio: " + (eFbAudio.message || eFbAudio));
+        }
       }
     }
 
@@ -248,7 +290,25 @@ function processarMensagemVoz(message) {
 
     var caption = message.caption ? "Contexto adicional do usuário: " + message.caption : "";
 
-    var resultadoAudio = chamarGeminiPoolMultimodal(midia.data, midia.mime, promptSistema, caption);
+    var resultadoAudio = null;
+    try {
+      resultadoAudio = chamarGeminiPoolMultimodal(midia.data, mimeAudio, promptSistema, caption);
+    } catch (eChamarMulti) {
+      Logger.log("Aviso em fallback multimodal direto: " + (eChamarMulti.message || eChamarMulti));
+      resultadoAudio = null;
+    }
+
+    if (!resultadoAudio && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
+      try {
+        var fbFinal = IaLocalFallbackService.processarAudioClinicoOffline(midia.data, mimeAudio, opcoesAudio);
+        if (fbFinal) {
+          resultadoAudio = fbFinal.soapTexto || fbFinal.transcricao || "Áudio clínico registrado em contingência offline.";
+        }
+      } catch (eFbF) {
+        Logger.log("Aviso em fallback final offline: " + (eFbF.message || eFbF));
+      }
+    }
+
     if (resultadoAudio) {
       // 1. Marca hábitos proativamente se citados no áudio
       marcarHabitoProativoHoje(resultadoAudio);
@@ -272,6 +332,14 @@ function processarMensagemVoz(message) {
   } catch (err) {
     var msgErrVoz = (err && (err.message || err)) || "Erro desconhecido";
     Logger.log("Erro no processamento de voz: " + (err && err.stack ? err.stack : msgErrVoz));
+    if (midia && midia.data && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
+      try {
+        var fbEmerg = IaLocalFallbackService.processarAudioClinicoOffline(midia.data, (midia.mime || "audio/ogg"), { caption: message.caption || "", chatId: chatId });
+        if (fbEmerg && (fbEmerg.soapTexto || fbEmerg.transcricao)) {
+          return processarEEntregarIA(chatId, function() { return fbEmerg.soapTexto || fbEmerg.transcricao; }, fbEmerg.transcricao || "", "audio");
+        }
+      } catch (eIgnore) {}
+    }
     enviarMensagemParaChat(chatId, "⚠️ Erro ao processar áudio: " + msgErrVoz);
   }
 }

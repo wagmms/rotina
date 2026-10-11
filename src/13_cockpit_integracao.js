@@ -171,11 +171,46 @@ function cockpitPassagem(initData) {
   } finally {lock.releaseLock();}
 }
 
+function _extrairDiagnosticoSoap(strTexto) {
+  var mDiag = strTexto.match(/(?:🧠\s*\*A\s*-\s*Avalia[çc][ãa]o\*|A\s*\((?:Avalia[çc][ãa]o|Assessment)\):?|Diagn[oó]stic[oa]:?)\s*[:\n\-•*]*\s*([^\n\r]+)/i);
+  if (mDiag && mDiag[1]) {
+    return mDiag[1].replace(/[*_#]/g, '').trim().substring(0, 60);
+  }
+  var mQp = strTexto.match(/(?:Queixa\s+Principal|QP|S\s*\((?:Subjetivo|Subjective)\):?)\s*[:\n\-•*]*\s*([^\n\r]+)/i);
+  if (mQp && mQp[1]) {
+    return mQp[1].replace(/[*_#]/g, '').trim().substring(0, 60);
+  }
+  return 'Atendimento Clínico';
+}
+
+function _classificarStatusCasoSoap(strTexto) {
+  return /inst[aá]vel|choque|grave|emerg[eê]ncia|pcr|sala\s+vermelha/i.test(strTexto)
+    ? 'instavel'
+    : 'vigilancia';
+}
+
+function _persistirCasoPlantaoHoje_(chat, novoCaso) {
+  var hojeIso = new Date().toISOString().slice(0, 10);
+  var chaveHist = 'casos_hoje_' + chat + '_' + hojeIso;
+  var listaCasos = PersistenciaBot.ler(chaveHist);
+  if (!Array.isArray(listaCasos)) listaCasos = [];
+
+  var jaExiste = listaCasos.some(function(c) {
+    return c.soap === novoCaso.soap;
+  });
+  if (jaExiste) return;
+
+  listaCasos.unshift(novoCaso);
+  if (listaCasos.length > 20) listaCasos = listaCasos.slice(0, 20);
+  PersistenciaBot.salvar(chaveHist, listaCasos);
+}
+
 function salvarSoapCockpit_(chat, origem, texto) {
   if (!chat || !texto) return;
   try {
     var strTexto = String(texto).trim();
     if (strTexto.length < 10) return;
+
     var rev = (origem && origem.revision) ? origem.revision : null;
     if (!rev && typeof modoBot === 'function') {
       var estBot = modoBot(chat);
@@ -186,7 +221,7 @@ function salvarSoapCockpit_(chat, origem, texto) {
         ? Utilities.getUuid().replace(/-/g, '')
         : ('rev_' + Date.now());
     }
-    
+
     // 1. Salva o SOAP mais recente para visualização direta no Cockpit
     PersistenciaBot.salvar('soapview_' + chat, {
       revision: rev,
@@ -194,48 +229,473 @@ function salvarSoapCockpit_(chat, origem, texto) {
       updatedAt: Date.now()
     });
 
-    // 2. Extrai diagnóstico preliminar para titular o atendimento no histórico do plantão
-    var diag = 'Atendimento Clínico';
-    var mDiag = strTexto.match(/(?:🧠\s*\*A\s*-\s*Avalia[çc][ãa]o\*|A\s*\((?:Avalia[çc][ãa]o|Assessment)\):?|Diagn[oó]stic[oa]:?)\s*[:\n\-•*]*\s*([^\n\r]+)/i);
-    if (mDiag && mDiag[1]) {
-      diag = mDiag[1].replace(/[*_#]/g, '').trim().substring(0, 60);
-    } else {
-      var mQp = strTexto.match(/(?:Queixa\s+Principal|QP|S\s*\((?:Subjetivo|Subjective)\):?)\s*[:\n\-•*]*\s*([^\n\r]+)/i);
-      if (mQp && mQp[1]) diag = mQp[1].replace(/[*_#]/g, '').trim().substring(0, 60);
-    }
-
-    // 3. Persiste no histórico dos casos conduzidos hoje (data ISO)
-    var hojeIso = new Date().toISOString().slice(0, 10);
-    var chaveHist = 'casos_hoje_' + chat + '_' + hojeIso;
-    var listaCasos = PersistenciaBot.ler(chaveHist);
-    if (!Array.isArray(listaCasos)) listaCasos = [];
-
+    // 2. Extrai diagnóstico preliminar e status para titular o atendimento no histórico do plantão
+    var diag = _extrairDiagnosticoSoap(strTexto);
+    var status = _classificarStatusCasoSoap(strTexto);
     var novoCaso = {
       id: 'caso_' + Date.now(),
       titulo: diag,
-      status: /inst[aá]vel|choque|grave|emerg[eê]ncia|pcr|sala\s+vermelha/i.test(strTexto) ? 'instavel' : 'vigilancia',
+      status: status,
       soap: strTexto,
       origem: 'Telegram · SOAP',
       criadoEm: new Date().toISOString()
     };
-
-    var jaExiste = listaCasos.some(function(c) {
-      return c.soap === strTexto;
-    });
-
-    if (!jaExiste) {
-      listaCasos.unshift(novoCaso);
-      if (listaCasos.length > 20) listaCasos = listaCasos.slice(0, 20);
-      PersistenciaBot.salvar(chaveHist, listaCasos);
-    }
+    _persistirCasoPlantaoHoje_(chat, novoCaso);
   } catch(e) {
     Logger.log('Cockpit: não foi possível salvar cópia do SOAP: ' + e.message);
   }
 }
 
+// ==============================================================================
+// HANDLERS MODULARES DE CÁLCULO CLÍNICO DO COCKPIT
+// ==============================================================================
+
+function _calcCockpitDva(entrada) {
+  if (['nora','dobuta','vaso','adrena','adrenalina','nipride','tridil'].indexOf(entrada.droga) < 0) {
+    throw new Error('Selecione uma droga válida.');
+  }
+  var resDva = CalculadorasClinicas.drogasVasoativas(entrada.droga, entrada.peso, entrada.solucao || 'padrao');
+  if (entrada.droga2 && typeof CompatibilidadeYDvaService !== 'undefined') {
+    var checkY = CompatibilidadeYDvaService.checarCompatibilidadeY(entrada.droga, entrada.droga2);
+    var txtCompat = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(entrada.droga, entrada.droga2);
+    resDva.compatibilidadeY = checkY;
+    if (resDva.textoFormatado) resDva.textoFormatado += "\n\n" + txtCompat;
+    if (resDva.texto) resDva.texto += "\n\n" + txtCompat;
+  }
+  return resDva;
+}
+
+function _calcCockpitCompatibilidadeY(entrada) {
+  var d1 = entrada.droga1 || entrada.drogaA || entrada.droga || 'noradrenalina';
+  var d2 = entrada.droga2 || entrada.drogaB || 'dobutamina';
+  if (typeof CompatibilidadeYDvaService !== 'undefined') {
+    var resY = CompatibilidadeYDvaService.checarCompatibilidadeY(d1, d2);
+    var txtY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(d1, d2);
+    resY.texto = txtY;
+    resY.textoFormatado = txtY;
+    return resY;
+  }
+  throw new Error('Serviço de Compatibilidade em Y indisponível.');
+}
+
+function _calcCockpitSri(entrada) {
+  if (['padrao','choque','asma','neuro','tce','hic'].indexOf(entrada.cenario) < 0) {
+    throw new Error('Selecione um cenário válido.');
+  }
+  return CalculadorasClinicas.sequenciaRapidaIntubacao(entrada.peso, entrada.cenario);
+}
+
+function _calcCockpitCrcl(entrada) {
+  var feminino = entrada.sexo === 'f' ? true : entrada.sexo === 'm' ? false : null;
+  var altCm = null;
+  var rawAlt = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
+  if (rawAlt !== undefined && rawAlt !== null && rawAlt !== '') {
+    var nAlt = parseFloat(String(rawAlt).replace(',', '.'));
+    if (!isNaN(nAlt)) altCm = (nAlt > 0 && nAlt < 3.0) ? Math.round(nAlt * 100 * 10) / 10 : nAlt;
+  }
+  return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino, altCm);
+}
+
+function _calcCockpitGaso(entrada) {
+  var naGaso = entrada.na !== undefined && entrada.na !== '' ? entrada.na : null;
+  var clGaso = entrada.cl !== undefined && entrada.cl !== '' ? entrada.cl : null;
+  var albGaso = entrada.alb !== undefined && entrada.alb !== '' ? entrada.alb : null;
+  var pao2Gaso = entrada.pao2 !== undefined && entrada.pao2 !== '' ? entrada.pao2 : (entrada.po2 !== undefined && entrada.po2 !== '' ? entrada.po2 : null);
+  var fio2Gaso = entrada.fio2 !== undefined && entrada.fio2 !== '' ? entrada.fio2 : null;
+  return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3, naGaso, clGaso, albGaso, pao2Gaso, fio2Gaso);
+}
+
+function _calcCockpitAjusteAtb(entrada) {
+  var drogaAtb = entrada.droga || entrada.farmaco || entrada.antimicrobiano || 'meropenem';
+  var clcrAtb = entrada.clcr !== undefined ? entrada.clcr : entrada.crcl;
+  var hdAtb = Boolean(entrada.hemodialise || entrada.hd);
+  if (typeof CalculadorasClinicas !== 'undefined' && typeof CalculadorasClinicas.ajusteRenalAntimicrobiano === 'function') {
+    var resAtb = CalculadorasClinicas.ajusteRenalAntimicrobiano(drogaAtb, clcrAtb, hdAtb);
+    if (resAtb && resAtb.dados) {
+      var txtAtb = "💉 AJUSTE RENAL DE ANTIMICROBIANOS (IDSA / GUIA HSL)\n\n" +
+        "🔴 DOSE AJUSTADA:\n• " + resAtb.dados.nomeExibicao + ": " + resAtb.dados.doseAjustada + "\n\n" +
+        "🟡 DOSE PADRÃO (FUNÇÃO RENAL NORMAL):\n• " + resAtb.dados.dosePadrao + "\n\n" +
+        "⚠️ ORIENTAÇÕES E CUIDADOS:\n• " + resAtb.dados.cuidados + "\n\n" +
+        "ℹ️ MONITORIZAÇÃO:\n• " + resAtb.dados.monitorizacao;
+      resAtb.texto = txtAtb;
+      resAtb.textoFormatado = txtAtb;
+    }
+    return resAtb;
+  }
+  throw new Error('Calculadora de Ajuste Renal de Antimicrobianos indisponível.');
+}
+
+function _calcCockpitPediatria(entrada, tipo) {
+  var modoPed = String(entrada.modo || (tipo === 'pals' ? 'pals' : 'holliday')).toLowerCase();
+  var pesoPed = parseFloat(String(entrada.peso || 0).replace(',', '.'));
+  var idadePed = entrada.idade ? parseFloat(String(entrada.idade).replace(',', '.')) : null;
+
+  if (modoPed === 'pals') {
+    if (typeof PalsPediatriaService === 'undefined') throw new Error('Módulo PalsPediatriaService indisponível.');
+    var resPals = PalsPediatriaService.avaliarPals({ pesoKg: pesoPed, idadeAnos: idadePed });
+    var txtPals = "👶 PALS — REANIMAÇÃO & SUPORTE AVANÇADO PEDIÁTRICO\n\n" +
+      "🔴 AÇÃO IMEDIATA / DROGAS DE PCR:\n" +
+      resPals.medicacoes.map(function(m) {
+        return "• " + m.farmaco + ": " + m.doseMg + " (" + m.volumeMl + ") — " + m.via + (m.alerta ? " [" + m.alerta + "]" : "");
+      }).join("\n") + "\n\n" +
+      "⚡ DESFIBRILAÇÃO & CARDIOVERSÃO:\n" +
+      "• 1º Choque (2 J/kg): " + resPals.eletricidade.desfibrilacaoPrimeiroChoque + "\n" +
+      "• 2º Choque (4 J/kg): " + resPals.eletricidade.desfibrilacaoSegundoChoque + "\n" +
+      "• Cardioversão: " + resPals.eletricidade.cardioversaoPrimeiroChoque + "\n\n" +
+      "🫁 VIA AÉREA (TUBO ENDOTRAQUEAL):\n" +
+      "• Tubo sem cuff: " + resPals.viaAerea.tuboSemCuff + "\n" +
+      "• Tubo com cuff: " + resPals.viaAerea.tuboComCuff + "\n" +
+      "• Lâmina: " + resPals.viaAerea.laminaLaringoscopio + " | Fixação no lábio: " + resPals.viaAerea.fixacao + "\n\n" +
+      "⚠️ ALERTAS BEIRA-LEITO:\n" +
+      (resPals.alertas && resPals.alertas.length ? resPals.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Manter ventilação eficaz com bolsa-válvula-máscara e massagem cardíaca 15:2 com 2 socorristas.");
+    return { ok: true, sucesso: true, id: 'pals_pediatria', nome: 'PALS Pediátrico', texto: txtPals, textoFormatado: txtPals, dados: resPals };
+  }
+
+  if (modoPed === 'posologia') {
+    var drogaPed = entrada.farmaco || entrada.droga || 'dipirona';
+    if (typeof CalculadorasClinicas !== 'undefined' && typeof CalculadorasClinicas.posologiaPediatrica === 'function') {
+      var resPos = CalculadorasClinicas.posologiaPediatrica(pesoPed, drogaPed, { doseAlta: entrada.doseAlta });
+      if (resPos && resPos.texto) resPos.textoFormatado = resPos.texto;
+      return resPos;
+    }
+    throw new Error('Calculadora de Posologia Pediátrica indisponível.');
+  }
+
+  // Holliday-Segar
+  if (typeof SuporteNutricionalPediatricoService === 'undefined') throw new Error('Serviço SuporteNutricionalPediatricoService indisponível.');
+  var resHS = SuporteNutricionalPediatricoService.calcularHollidaySegar(pesoPed, {
+    condicaoClinica: entrada.condicaoClinica || 'manutencao_padrao',
+    temperaturaC: entrada.temperaturaC || 38.0
+  });
+  var txtHS = "💧 HIDRATAÇÃO VENOSA PEDIÁTRICA (HOLLIDAY-SEGAR)\n\n" +
+    "🔴 CONDUTA & VAZÃO EM BOMBA (BIC):\n" +
+    "• Volume Total (24h): " + resHS.volumeAjustado24h + " mL\n" +
+    "• Vazão Horária: " + resHS.vazaoHorariaMlH + " mL/h (Regra 4-2-1)\n" +
+    "• Condição Clínica: " + resHS.justificativaAjuste + "\n\n" +
+    "🟡 PRESCRIÇÃO ELETROLÍTICA & TIG (SBP/AAP):\n" +
+    "• Sódio (Na+): " + (resHS.eletrolitos ? resHS.eletrolitos.sodioTotalMeqDia : '') + " mEq/dia (2,5 mEq / 100 mL de solução)\n" +
+    "• Potássio (K+): " + (resHS.eletrolitos ? resHS.eletrolitos.potassioTotalMeqDia : '') + " mEq/dia (2,0 mEq / 100 mL — adicionar APENAS após diurese confirmada)\n" +
+    "• TIG em SG 5%: " + (resHS.glicoseTig ? resHS.glicoseTig.tigComSg5 : '') + " mg/kg/min (Alvo fisiológico: 4 a 6 mg/kg/min)\n\n" +
+    "⚠️ ALERTAS DE SEGURANÇA:\n" +
+    (resHS.alertas && resHS.alertas.length ? resHS.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Usar soluções isotônicas ou balanceadas para prevenir hiponatremia hospitalar aguda induzida por ADH.");
+  return { ok: true, sucesso: true, id: 'holliday_segar', nome: 'Hidratação Pediátrica Holliday-Segar', texto: txtHS, textoFormatado: txtHS, dados: resHS };
+}
+
+function _calcCockpitDhe(entrada) {
+  if (typeof NefrologiaDheService === 'undefined') throw new Error('Serviço NefrologiaDheService indisponível.');
+  var modoDhe = String(entrada.modo || 'hiponatremia').toLowerCase();
+  var pesoDhe = parseFloat(String(entrada.peso || 70).replace(',', '.'));
+  var idadeDhe = entrada.idade ? parseFloat(String(entrada.idade).replace(',', '.')) : 40;
+  var sexoDhe = entrada.sexo ? String(entrada.sexo).toLowerCase() : 'm';
+
+  if (modoDhe === 'hipercalemia' || entrada.kAtual !== undefined) {
+    var kVal = parseFloat(String(entrada.kAtual || entrada.potassio || 0).replace(',', '.'));
+    var ecgAlt = Boolean(entrada.ecgAlterado || entrada.ecg);
+    var resK = NefrologiaDheService.avaliarHipercalemia(kVal, ecgAlt);
+    if (resK.erro) return { ok: false, erro: resK.erro };
+
+    var txtK = "⚡ MANEJO EMERGENCIAL DE HIPERCALEMIA (SBC / KDIGO)\n\n" +
+      "🔴 ESTRATIFICAÇÃO & GRAVIDADE:\n" +
+      "• Potássio Sérico: " + resK.potassio + " mEq/L\n" +
+      "• Classificação: " + resK.gravidade + "\n\n" +
+      "🟡 CONDUTAS ESCALONADAS:\n" +
+      resK.condutas.map(function(c) { return "• " + c; }).join("\n") + "\n\n" +
+      (resK.alerta ? "⚠️ ALERTA CARDÍACO:\n• " + resK.alerta + "\n\n" : "") +
+      "ℹ️ MONITORIZAÇÃO:\n• Monitorização cardíaca contínua e repetir dosagem de K+ em 2h.";
+    return { ok: true, sucesso: true, id: 'hipercalemia', nome: 'Manejo de Hipercalemia', texto: txtK, textoFormatado: txtK, dados: resK };
+  }
+
+  if (modoDhe === 'hipernatremia') {
+    var naHiper = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
+    var resHiper = NefrologiaDheService.calcularDeficitAguaLivre(naHiper, pesoDhe, sexoDhe, idadeDhe);
+    if (resHiper.erro) return { ok: false, erro: resHiper.erro };
+
+    var txtHiper = "🌵 HIPERNATREMIA — DÉFICIT DE ÁGUA LIVRE (ADROGUÉ-MADIAS)\n\n" +
+      "🔴 DÉFICIT CALCULADO:\n" +
+      "• Sódio Atual: " + naHiper + " mEq/L | ACT: " + resHiper.act + " L\n" +
+      "• Déficit Total de Água Livre: " + resHiper.deficitAguaLivreLitros + " Litros\n\n" +
+      "🟡 PROGRAMAÇÃO DA REPOSIÇÃO (48 HORAS):\n" +
+      "• 1ªs 24 horas: Repor 50% do déficit (" + (Math.round(resHiper.deficitAguaLivreLitros * 500)) + " mL de água livre ou SG 5%)\n" +
+      "• 24h a 48h: Repor os 50% restantes + perdas insensíveis\n" +
+      "• Vias: Água potável por SNG/SNE (preferencial se TGI funcionante) ou SG 5% IV\n\n" +
+      "⚠️ ALERTA DE SEGURANÇA & TETOS:\n" +
+      (resHiper.alertas && resHiper.alertas.length ? resHiper.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Queda máxima de Na: 8-10 mEq/L em 24h (risco de edema cerebral).") + "\n\n" +
+      "ℹ️ MONITORIZAÇÃO:\n• Dosar Na sérico a cada 4 a 6 horas durante a correção.";
+    return { ok: true, sucesso: true, id: 'hipernatremia', nome: 'Hipernatremia - Déficit de Água Livre', texto: txtHiper, textoFormatado: txtHiper, dados: resHiper };
+  }
+
+  // Hiponatremia (Adrogué-Madias)
+  var naHipo = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
+  var salinaHipo = parseFloat(String(entrada.salina || 3).replace(',', '.'));
+  var resHipo = NefrologiaDheService.planejarCorrecaoHiponatremia(naHipo, pesoDhe, sexoDhe, idadeDhe, salinaHipo);
+  if (resHipo.erro) return { ok: false, erro: resHipo.erro };
+
+  var solNome = salinaHipo === 3 ? "NaCl 3% (513 mEq/L)" : "NaCl 0,9% (154 mEq/L)";
+  var vol24h = Math.round((8 / resHipo.variacaoNaPorLitro) * 1000);
+  var txtHipo = "💧 CORREÇÃO DE HIPONATREMIA (FÓRMULA DE ADROGUÉ-MADIAS)\n\n" +
+    "🔴 AÇÃO IMEDIATA / INFUSÃO EM BIC:\n" +
+    "• Solução Escolhida: " + solNome + "\n" +
+    "• Variação Esperada de Na+ com 1 L: +" + resHipo.variacaoNaPorLitro + " mEq/L\n" +
+    "• Taxa Segura de Infusão: " + resHipo.taxaInfusaoMaxima24h_ml_h + " mL/h em BIC\n" +
+    "• Volume Total Seguro em 24h (Teto 8 mEq): " + vol24h + " mL\n\n" +
+    "🟡 SINTOMAS GRAVES / RESGATE NEUROLÓGICO (CONVULSÃO / COMA):\n" +
+    "• Bolus de Emergência: 100 a 150 mL de NaCl 3% IV em 10-20 min.\n" +
+    "• Pode repetir até 2 vezes se sintomas neurológicos persistirem (meta: subir 4-6 mEq/L).\n\n" +
+    "⚠️ TETOS RÍGIDOS CONTRA MIELINÓLISE PONTINA (SDO):\n" +
+    "• NÃO ULTRAPASSAR 8 mEq/L nas 1ªs 24h e 18 mEq/L em 48h.\n" +
+    (resHipo.alertas && resHipo.alertas.length ? resHipo.alertas.map(function(a) { return "• " + a; }).join("\n") : "") + "\n\n" +
+    "ℹ️ MONITORIZAÇÃO & RESGATE:\n" +
+    "• Dosar sódio sérico a cada 2 a 4 horas. Se subida > 8 mEq em 24h: suspender salina e infundir SG 5% ou Desmopressina (DDAVP).";
+  return { ok: true, sucesso: true, id: 'hiponatremia', nome: 'Correção de Hiponatremia', texto: txtHipo, textoFormatado: txtHipo, dados: resHipo };
+}
+
+function _calcCockpitHeart(entrada) {
+  if (typeof CardiologiaEmergenciaService === 'undefined') throw new Error('Serviço CardiologiaEmergenciaService indisponível.');
+  var paramsCardio = Object.assign({}, entrada);
+  if (paramsCardio.fr !== undefined) {
+    var numFr = Number(paramsCardio.fr);
+    if (numFr >= 2) paramsCardio.fatoresRiscoContagem = 3;
+    else if (numFr === 1) paramsCardio.fatoresRiscoContagem = 1;
+    else paramsCardio.fatoresRiscoContagem = 0;
+  }
+  var resCardio = CardiologiaEmergenciaService.avaliarPaciente(paramsCardio);
+  var heartRes = resCardio.heart;
+  var daptRes = resCardio.dapt;
+  var timiRes = resCardio.timiScasst;
+
+  var txtCardio = "🫀 ESCORE HEART & DOR TORÁCICA / SCA (SBC / AHA / ESC)\n\n" +
+    "🔴 ESTRATIFICAÇÃO & CONDUTA BEIRA-LEITO:\n" +
+    "• HEART Score: " + heartRes.escore + " pontos — " + String(heartRes.risco).toUpperCase() + "\n" +
+    "• Taxa de MACE (6 semanas): " + heartRes.taxaMACE + "\n" +
+    "• Conduta: " + heartRes.recomendacao + "\n" +
+    "• TIMI SCASST: " + timiRes.escore + "/7 pontos (" + timiRes.risco + " — MACE 14d: " + timiRes.taxaMACE14Dias + ")\n\n" +
+    "🟡 DUPLO BLOQUEIO ANTIPLAQUETÁRIO (DAPT):\n" +
+    "• P2Y12 de Escolha: " + daptRes.p2y12Escolhido + "\n";
+  for (var d = 0; d < daptRes.recomendacoes.length; d++) {
+    var r = daptRes.recomendacoes[d];
+    txtCardio += "• " + r.farmaco + ": Ataque " + r.ataque + " | Manutenção " + r.manutencao + "\n";
+  }
+  if (resCardio.adjuvantes && resCardio.adjuvantes.recomendacoes) {
+    txtCardio += "\n💉 ADJUVANTES & ANTICOAGULAÇÃO:\n";
+    for (var adjIdx = 0; adjIdx < resCardio.adjuvantes.recomendacoes.length; adjIdx++) {
+      var adjRec = resCardio.adjuvantes.recomendacoes[adjIdx];
+      txtCardio += "• " + adjRec.farmaco + ": " + adjRec.posologia + "\n";
+    }
+  }
+  var bloqueiosCardio = [].concat(daptRes.bloqueios || []).concat((resCardio.adjuvantes && resCardio.adjuvantes.bloqueios) || []);
+  if (bloqueiosCardio.length > 0) {
+    txtCardio += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n";
+    for (var bIdx = 0; bIdx < bloqueiosCardio.length; bIdx++) {
+      var bItem = bloqueiosCardio[bIdx];
+      txtCardio += "• [" + bItem.nivel + "] " + bItem.farmaco + ": " + bItem.motivo + "\n";
+    }
+  }
+  txtCardio += "\nℹ️ MONITORIZAÇÃO:\n• ECG seriado (a cada 15-30 min se dor ou a cada 6h), curva de troponina (0h/1h ou 0h/2h ou 0h/3h) e monitorização contínua.";
+
+  return {
+    ok: true,
+    sucesso: true,
+    id: 'heart_score',
+    nome: 'Escore HEART & SCA',
+    texto: txtCardio,
+    textoFormatado: txtCardio,
+    dados: resCardio
+  };
+}
+
+function _calcCockpitAsma(entrada) {
+  if (typeof PneumologiaCriseAsmaticaService === 'undefined') throw new Error('Serviço PneumologiaCriseAsmaticaService indisponível.');
+  var paramsAsma = Object.assign({}, entrada);
+  if (paramsAsma.refratario !== undefined && paramsAsma.refratario_1h === undefined) {
+    paramsAsma.refratario_1h = Boolean(paramsAsma.refratario);
+  }
+  if (paramsAsma.peso !== undefined && paramsAsma.pesoKg === undefined) {
+    paramsAsma.pesoKg = Number(paramsAsma.peso);
+  }
+  if (paramsAsma.dpoc !== undefined || paramsAsma.perfilDpoc !== undefined) {
+    paramsAsma.dpoc = Boolean(paramsAsma.dpoc || paramsAsma.perfilDpoc);
+  }
+  if (paramsAsma.gasometriaNormocapnia || paramsAsma.normocapnia) {
+    paramsAsma.gasometria = { paco2: 43, ph: 7.31 };
+  }
+  var resAsma = PneumologiaCriseAsmaticaService.avaliarCriseAsmatica(paramsAsma);
+  var gAsma = resAsma.gravidade;
+  var pAsma = resAsma.plano;
+
+  var cabecalhoAsma = pAsma.isDpoc ? 
+    "🫁 EXACERBAÇÃO AGUDA DE DPOC (GOLD / SBPT)\n\n" : 
+    "🫁 MANEJO DA CRISE ASMÁTICA & BRONCOESPASMO (GINA / SBPT)\n\n";
+
+  var txtAsma = cabecalhoAsma +
+    "🔴 CLASSIFICAÇÃO & CONDUTA IMEDIATA:\n" +
+    "• Gravidade: " + gAsma.titulo.toUpperCase() + "\n" +
+    (gAsma.pfe_porcentagem !== null ? "• Pico de Fluxo (PFE): " + gAsma.pfe_porcentagem + "% do previsto\n" : "") +
+    "• Conduta: " + gAsma.recomendacao_imediata + "\n\n" +
+    "🟡 BRONCODILATAÇÃO DA 1ª HORA (SABA + SAMA):\n" +
+    "• Oxigenoterapia: Alvo SpO2 " + pAsma.oxigenoterapia.alvo_spo2 + " (" + pAsma.oxigenoterapia.dispositivo + ")\n" +
+    "• Salbutamol (SABA): " + pAsma.broncodilatacao_saba.opcao_preferencial + "\n" +
+    "• Nebulização Alternativa: " + pAsma.broncodilatacao_saba.opcao_alternativa_nebulizacao + "\n" +
+    (pAsma.anticolinergico_ipratropio && pAsma.anticolinergico_ipratropio.indicado ? "• Ipratrópio (SAMA): " + pAsma.anticolinergico_ipratropio.posologia + "\n" : "") + "\n" +
+    "💉 CORTICOTERAPIA SISTÊMICA PRECOCE (1ª HORA):\n" +
+    "• Via Oral: " + pAsma.corticoide_sistemico.oral + "\n" +
+    "• Via Intravenosa: " + pAsma.corticoide_sistemico.intravenoso + "\n";
+
+  if (pAsma.sulfato_magnesio && pAsma.sulfato_magnesio.indicado) {
+    txtAsma += "\n⚡ SULFATO DE MAGNÉSIO 2G IV (INDICAÇÃO MANDATÓRIA):\n" +
+      "• Dose: " + pAsma.sulfato_magnesio.dose + "\n" +
+      "• Diluição: " + pAsma.sulfato_magnesio.diluicao + "\n" +
+      "• Tempo de Infusão: " + pAsma.sulfato_magnesio.tempo_infusao + "\n";
+  }
+
+  if (pAsma.antibioticoterapia && pAsma.antibioticoterapia.indicado) {
+    txtAsma += "\n💊 ANTIBIOTICOTERAPIA (CRITÉRIOS DE ANTHONISEN):\n" +
+      "• Critérios: " + pAsma.antibioticoterapia.criterios_anthonisen + "\n" +
+      "• 1ª Linha: " + pAsma.antibioticoterapia.esquema_preferencial + "\n";
+  }
+
+  if (pAsma.manejo_ventilatorio && pAsma.manejo_ventilatorio.vni) {
+    txtAsma += "\n🫁 VENTILAÇÃO NÃO INVASIVA (VNI - BiPAP):\n" +
+      "• " + pAsma.manejo_ventilatorio.vni.padrao_ouro + "\n";
+  }
+
+  if (gAsma.nivel === 'PARADA_IMINENTE' || gAsma.nivel === 'GRAVE') {
+    txtAsma += "\n🫁 MANEJO VENTILATÓRIO & IOT PROTETORA:\n" +
+      "• Indução: " + pAsma.manejo_ventilatorio.sequencia_rapida_intubacao.inducao_escolha + "\n" +
+      "• Parâmetros do Respirador: Vt 5-6 mL/kg PBW, FR 10-12 rpm, Relação I:E 1:3 a 1:4, PEEP 0-5, Hipercapnia permissiva (pH >= 7.20)\n" +
+      "• Alerta pós-IOT: " + pAsma.manejo_ventilatorio.parametros_ventilador_protetor.conduta_colapso_pos_iot + "\n";
+  }
+
+  if (pAsma.bloqueios_seguranca && pAsma.bloqueios_seguranca.length > 0) {
+    txtAsma += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n" +
+      pAsma.bloqueios_seguranca.map(function(b) { return "• " + b; }).join("\n") + "\n";
+  }
+
+  txtAsma += "\nℹ️ CRITÉRIOS DE ALTA & PRESCRIÇÃO AMBULATORIAL:\n" +
+    "• " + pAsma.criterios_destino.alta_emergencia.prescricao_alta.slice(0, 3).join("\n• ");
+
+  return {
+    ok: true,
+    sucesso: true,
+    id: pAsma.isDpoc ? 'exacerbacao_dpoc' : 'crise_asmatica',
+    nome: pAsma.isDpoc ? 'Exacerbação de DPOC' : 'Manejo de Crise Asmática',
+    texto: txtAsma,
+    textoFormatado: txtAsma,
+    dados: resAsma
+  };
+}
+
+function _calcCockpitSeguranca(entrada) {
+  var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';
+  return executarCrossCheckSegurancaClinica(alvos, entrada.contexto || entrada);
+}
+
+function _calcCockpitParkland(entrada) {
+  var pPark = parseFloat(String(entrada.peso || 0).replace(',', '.'));
+  var sPark = parseFloat(String(entrada.scq || entrada.queimadura || 0).replace(',', '.'));
+  var resPark = CalculadorasClinicas.parkland(pPark, sPark);
+  if (resPark && resPark.ok) {
+    if (!resPark.texto) resPark.texto = resPark.textoFormatado;
+    return resPark;
+  }
+  return { ok: false, erro: (resPark && resPark.erro) || 'Erro ao calcular Parkland.' };
+}
+
+function _calcCockpitGlasgow(entrada) {
+  var oG = parseInt(entrada.ocular !== undefined ? entrada.ocular : (entrada.o !== undefined ? entrada.o : 4), 10);
+  var vG = parseInt(entrada.verbal !== undefined ? entrada.verbal : (entrada.v !== undefined ? entrada.v : 5), 10);
+  var mG = parseInt(entrada.motor !== undefined ? entrada.motor : (entrada.m !== undefined ? entrada.m : 6), 10);
+  var pG = (entrada.pupilas !== undefined && entrada.pupilas !== null && entrada.pupilas !== '') ? parseInt(entrada.pupilas, 10) : ((entrada.p !== undefined && entrada.p !== null && entrada.p !== '') ? parseInt(entrada.p, 10) : null);
+  var resG = CalculadorasClinicas.glasgowP(oG, vG, mG, pG);
+  if (resG && resG.ok) {
+    if (!resG.texto) resG.texto = resG.textoFormatado;
+    return resG;
+  }
+  return { ok: false, erro: (resG && resG.erro) || 'Erro ao calcular Glasgow-P.' };
+}
+
+function _calcCockpitCkd(entrada) {
+  var crCkd = parseFloat(String(entrada.creatinina || entrada.cr || 0).replace(',', '.'));
+  var idCkd = parseInt(entrada.idade || 0, 10);
+  var femCkd = entrada.sexo === 'f' || entrada.feminino === true;
+  var resCkd = CalculadorasClinicas.ckdEpi2021(crCkd, idCkd, femCkd);
+  if (resCkd && resCkd.ok) {
+    if (!resCkd.texto) resCkd.texto = resCkd.textoFormatado;
+    return resCkd;
+  }
+  return { ok: false, erro: (resCkd && resCkd.erro) || 'Erro ao calcular CKD-EPI.' };
+}
+
+function _calcCockpitCockcroft(entrada) {
+  var crCg = parseFloat(String(entrada.creatinina || entrada.cr || 0).replace(',', '.'));
+  var pCg = parseFloat(String(entrada.peso || 0).replace(',', '.'));
+  var idCg = parseInt(entrada.idade || 0, 10);
+  var femCg = entrada.sexo === 'f' || entrada.feminino === true ? true : entrada.sexo === 'm' ? false : null;
+  var altCmCg = null;
+  var rawAltCg = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
+  if (rawAltCg !== undefined && rawAltCg !== null && rawAltCg !== '') {
+    var nAltCg = parseFloat(String(rawAltCg).replace(',', '.'));
+    if (!isNaN(nAltCg)) altCmCg = (nAltCg > 0 && nAltCg < 3.0) ? Math.round(nAltCg * 100 * 10) / 10 : nAltCg;
+  }
+  var resCg = CalculadorasClinicas.cockcroftGault(crCg, pCg, idCg, femCg, altCmCg);
+  if (resCg && resCg.ok) {
+    if (!resCg.texto) resCg.texto = resCg.textoFormatado;
+    return resCg;
+  }
+  return { ok: false, erro: (resCg && resCg.erro) || 'Erro ao calcular Cockcroft-Gault.' };
+}
+
+function _calcCockpitCurb65(entrada) {
+  var confCb = Boolean(entrada.confusao || entrada.confusaoMental);
+  var urCb = parseFloat(String(entrada.ureia || entrada.bun || 0).replace(',', '.'));
+  var frCb = parseInt(entrada.fr || 0, 10);
+  var pasCb = parseInt(entrada.pas || 0, 10);
+  var padCb = parseInt(entrada.pad || 0, 10);
+  var idCb = parseInt(entrada.idade || 0, 10);
+  var resCurb = CalculadorasClinicas.curb65(confCb, urCb, frCb, pasCb, padCb, idCb);
+  if (resCurb && resCurb.ok) {
+    if (!resCurb.texto) resCurb.texto = resCurb.textoFormatado;
+    return resCurb;
+  }
+  return { ok: false, erro: (resCurb && resCurb.erro) || 'Erro ao calcular CURB-65.' };
+}
+
+var DISPATCH_COCKPIT_CALCULADORAS = {
+  dva: function(e) { return _calcCockpitDva(e); },
+  compatibilidade_y: function(e) { return _calcCockpitCompatibilidadeY(e); },
+  dva_y: function(e) { return _calcCockpitCompatibilidadeY(e); },
+  sri: function(e) { return _calcCockpitSri(e); },
+  crcl: function(e) { return _calcCockpitCrcl(e); },
+  gaso: function(e) { return _calcCockpitGaso(e); },
+  ajuste_atb: function(e) { return _calcCockpitAjusteAtb(e); },
+  atb: function(e) { return _calcCockpitAjusteAtb(e); },
+  pediatria: function(e, t) { return _calcCockpitPediatria(e, t); },
+  pals: function(e, t) { return _calcCockpitPediatria(e, t); },
+  holliday: function(e, t) { return _calcCockpitPediatria(e, t); },
+  dhe: function(e) { return _calcCockpitDhe(e); },
+  eletrolitos: function(e) { return _calcCockpitDhe(e); },
+  hidroeletrolitico: function(e) { return _calcCockpitDhe(e); },
+  heart: function(e) { return _calcCockpitHeart(e); },
+  sca: function(e) { return _calcCockpitHeart(e); },
+  cardiologia: function(e) { return _calcCockpitHeart(e); },
+  asma: function(e) { return _calcCockpitAsma(e); },
+  broncoespasmo: function(e) { return _calcCockpitAsma(e); },
+  crise_asmatica: function(e) { return _calcCockpitAsma(e); },
+  interacoes: function(e) { return _calcCockpitSeguranca(e); },
+  seguranca: function(e) { return _calcCockpitSeguranca(e); },
+  parkland: function(e) { return _calcCockpitParkland(e); },
+  glasgow: function(e) { return _calcCockpitGlasgow(e); },
+  ckd: function(e) { return _calcCockpitCkd(e); },
+  ckdepi: function(e) { return _calcCockpitCkd(e); },
+  cockcroft: function(e) { return _calcCockpitCockcroft(e); },
+  curb65: function(e) { return _calcCockpitCurb65(e); },
+  curb: function(e) { return _calcCockpitCurb65(e); }
+};
+
 function cockpitCalcular(initData, tipo, entrada) {
   cockpitAutorizar_(initData);
-  if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) throw new Error('Informe os parâmetros do cálculo.');
+  if (!entrada || typeof entrada !== 'object' || Array.isArray(entrada)) {
+    throw new Error('Informe os parâmetros do cálculo.');
+  }
 
   // Validação fisiológica prévia e sanitização de limites
   if (typeof ValidadorFisiologico !== 'undefined' && typeof ValidadorFisiologico.sanitizarEntradaCalculo === 'function') {
@@ -245,397 +705,15 @@ function cockpitCalcular(initData, tipo, entrada) {
     }
   }
 
-  switch (tipo) {
-    case 'dva':
-      if (['nora','dobuta','vaso','adrena','adrenalina','nipride','tridil'].indexOf(entrada.droga) < 0) throw new Error('Selecione uma droga válida.');
-      var resDva = CalculadorasClinicas.drogasVasoativas(entrada.droga, entrada.peso, entrada.solucao || 'padrao');
-      if (entrada.droga2 && typeof CompatibilidadeYDvaService !== 'undefined') {
-        var checkY = CompatibilidadeYDvaService.checarCompatibilidadeY(entrada.droga, entrada.droga2);
-        var txtCompat = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(entrada.droga, entrada.droga2);
-        resDva.compatibilidadeY = checkY;
-        if (resDva.textoFormatado) {
-          resDva.textoFormatado += "\n\n" + txtCompat;
-        }
-        if (resDva.texto) {
-          resDva.texto += "\n\n" + txtCompat;
-        }
-      }
-      return resDva;
-    case 'compatibilidade_y':
-    case 'dva_y':
-      var d1 = entrada.droga1 || entrada.drogaA || entrada.droga || 'noradrenalina';
-      var d2 = entrada.droga2 || entrada.drogaB || 'dobutamina';
-      if (typeof CompatibilidadeYDvaService !== 'undefined') {
-        var resY = CompatibilidadeYDvaService.checarCompatibilidadeY(d1, d2);
-        var txtY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(d1, d2);
-        resY.texto = txtY;
-        resY.textoFormatado = txtY;
-        return resY;
-      }
-      throw new Error('Serviço de Compatibilidade em Y indisponível.');
-    case 'sri':
-      if (['padrao','choque','asma','neuro','tce','hic'].indexOf(entrada.cenario) < 0) throw new Error('Selecione um cenário válido.');
-      return CalculadorasClinicas.sequenciaRapidaIntubacao(entrada.peso, entrada.cenario);
-    case 'crcl':
-      var feminino = entrada.sexo === 'f' ? true : entrada.sexo === 'm' ? false : null;
-      var altCm = null;
-      var rawAlt = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
-      if (rawAlt !== undefined && rawAlt !== null && rawAlt !== '') {
-        var nAlt = parseFloat(String(rawAlt).replace(',', '.'));
-        if (!isNaN(nAlt)) altCm = (nAlt > 0 && nAlt < 3.0) ? Math.round(nAlt * 100 * 10) / 10 : nAlt;
-      }
-      return CalculadorasClinicas.cockcroftGault(entrada.creatinina, entrada.peso, entrada.idade, feminino, altCm);
-    case 'gaso':
-      var naGaso = entrada.na !== undefined && entrada.na !== '' ? entrada.na : null;
-      var clGaso = entrada.cl !== undefined && entrada.cl !== '' ? entrada.cl : null;
-      var albGaso = entrada.alb !== undefined && entrada.alb !== '' ? entrada.alb : null;
-      var pao2Gaso = entrada.pao2 !== undefined && entrada.pao2 !== '' ? entrada.pao2 : (entrada.po2 !== undefined && entrada.po2 !== '' ? entrada.po2 : null);
-      var fio2Gaso = entrada.fio2 !== undefined && entrada.fio2 !== '' ? entrada.fio2 : null;
-      return CalculadorasClinicas.gasometria(entrada.ph, entrada.pco2, entrada.hco3, naGaso, clGaso, albGaso, pao2Gaso, fio2Gaso);
-    case 'ajuste_atb':
-    case 'atb':
-      var drogaAtb = entrada.droga || entrada.farmaco || entrada.antimicrobiano || 'meropenem';
-      var clcrAtb = entrada.clcr !== undefined ? entrada.clcr : entrada.crcl;
-      var hdAtb = Boolean(entrada.hemodialise || entrada.hd);
-      if (typeof CalculadorasClinicas !== 'undefined' && typeof CalculadorasClinicas.ajusteRenalAntimicrobiano === 'function') {
-        var resAtb = CalculadorasClinicas.ajusteRenalAntimicrobiano(drogaAtb, clcrAtb, hdAtb);
-        if (resAtb && resAtb.dados) {
-          var txtAtb = "💉 AJUSTE RENAL DE ANTIMICROBIANOS (IDSA / GUIA HSL)\n\n" +
-            "🔴 DOSE AJUSTADA:\n• " + resAtb.dados.nomeExibicao + ": " + resAtb.dados.doseAjustada + "\n\n" +
-            "🟡 DOSE PADRÃO (FUNÇÃO RENAL NORMAL):\n• " + resAtb.dados.dosePadrao + "\n\n" +
-            "⚠️ ORIENTAÇÕES E CUIDADOS:\n• " + resAtb.dados.cuidados + "\n\n" +
-            "ℹ️ MONITORIZAÇÃO:\n• " + resAtb.dados.monitorizacao;
-          resAtb.texto = txtAtb;
-          resAtb.textoFormatado = txtAtb;
-        }
-        return resAtb;
-      }
-      throw new Error('Calculadora de Ajuste Renal de Antimicrobianos indisponível.');
-    case 'pediatria':
-    case 'pals':
-    case 'holliday':
-      var modoPed = String(entrada.modo || (tipo === 'pals' ? 'pals' : 'holliday')).toLowerCase();
-      var pesoPed = parseFloat(String(entrada.peso || 0).replace(',', '.'));
-      var idadePed = entrada.idade ? parseFloat(String(entrada.idade).replace(',', '.')) : null;
+  var handler = Object.prototype.hasOwnProperty.call(DISPATCH_COCKPIT_CALCULADORAS, tipo)
+    ? DISPATCH_COCKPIT_CALCULADORAS[tipo]
+    : null;
 
-      if (modoPed === 'pals') {
-        if (typeof PalsPediatriaService === 'undefined') throw new Error('Módulo PalsPediatriaService indisponível.');
-        var resPals = PalsPediatriaService.avaliarPals({ pesoKg: pesoPed, idadeAnos: idadePed });
-        var txtPals = "👶 PALS — REANIMAÇÃO & SUPORTE AVANÇADO PEDIÁTRICO\n\n" +
-          "🔴 AÇÃO IMEDIATA / DROGAS DE PCR:\n" +
-          resPals.medicacoes.map(function(m) {
-            return "• " + m.farmaco + ": " + m.doseMg + " (" + m.volumeMl + ") — " + m.via + (m.alerta ? " [" + m.alerta + "]" : "");
-          }).join("\n") + "\n\n" +
-          "⚡ DESFIBRILAÇÃO & CARDIOVERSÃO:\n" +
-          "• 1º Choque (2 J/kg): " + resPals.eletricidade.desfibrilacaoPrimeiroChoque + "\n" +
-          "• 2º Choque (4 J/kg): " + resPals.eletricidade.desfibrilacaoSegundoChoque + "\n" +
-          "• Cardioversão: " + resPals.eletricidade.cardioversaoPrimeiroChoque + "\n\n" +
-          "🫁 VIA AÉREA (TUBO ENDOTRAQUEAL):\n" +
-          "• Tubo sem cuff: " + resPals.viaAerea.tuboSemCuff + "\n" +
-          "• Tubo com cuff: " + resPals.viaAerea.tuboComCuff + "\n" +
-          "• Lâmina: " + resPals.viaAerea.laminaLaringoscopio + " | Fixação no lábio: " + resPals.viaAerea.fixacao + "\n\n" +
-          "⚠️ ALERTAS BEIRA-LEITO:\n" +
-          (resPals.alertas && resPals.alertas.length ? resPals.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Manter ventilação eficaz com bolsa-válvula-máscara e massagem cardíaca 15:2 com 2 socorristas.");
-        return { ok: true, sucesso: true, id: 'pals_pediatria', nome: 'PALS Pediátrico', texto: txtPals, textoFormatado: txtPals, dados: resPals };
-      } else if (modoPed === 'posologia') {
-        var drogaPed = entrada.farmaco || entrada.droga || 'dipirona';
-        if (typeof CalculadorasClinicas !== 'undefined' && typeof CalculadorasClinicas.posologiaPediatrica === 'function') {
-          var resPos = CalculadorasClinicas.posologiaPediatrica(pesoPed, drogaPed, { doseAlta: entrada.doseAlta });
-          if (resPos && resPos.texto) {
-            resPos.textoFormatado = resPos.texto;
-          }
-          return resPos;
-        }
-        throw new Error('Calculadora de Posologia Pediátrica indisponível.');
-      } else {
-        // Holliday-Segar
-        if (typeof SuporteNutricionalPediatricoService === 'undefined') throw new Error('Serviço SuporteNutricionalPediatricoService indisponível.');
-        var resHS = SuporteNutricionalPediatricoService.calcularHollidaySegar(pesoPed, {
-          condicaoClinica: entrada.condicaoClinica || 'manutencao_padrao',
-          temperaturaC: entrada.temperaturaC || 38.0
-        });
-        var txtHS = "💧 HIDRATAÇÃO VENOSA PEDIÁTRICA (HOLLIDAY-SEGAR)\n\n" +
-          "🔴 CONDUTA & VAZÃO EM BOMBA (BIC):\n" +
-          "• Volume Total (24h): " + resHS.volumeAjustado24h + " mL\n" +
-          "• Vazão Horária: " + resHS.vazaoHorariaMlH + " mL/h (Regra 4-2-1)\n" +
-          "• Condição Clínica: " + resHS.justificativaAjuste + "\n\n" +
-          "🟡 PRESCRIÇÃO ELETROLÍTICA & TIG (SBP/AAP):\n" +
-          "• Sódio (Na+): " + (resHS.eletrolitos ? resHS.eletrolitos.sodioTotalMeqDia : '') + " mEq/dia (2,5 mEq / 100 mL de solução)\n" +
-          "• Potássio (K+): " + (resHS.eletrolitos ? resHS.eletrolitos.potassioTotalMeqDia : '') + " mEq/dia (2,0 mEq / 100 mL — adicionar APENAS após diurese confirmada)\n" +
-          "• TIG em SG 5%: " + (resHS.glicoseTig ? resHS.glicoseTig.tigComSg5 : '') + " mg/kg/min (Alvo fisiológico: 4 a 6 mg/kg/min)\n\n" +
-          "⚠️ ALERTAS DE SEGURANÇA:\n" +
-          (resHS.alertas && resHS.alertas.length ? resHS.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Usar soluções isotônicas ou balanceadas para prevenir hiponatremia hospitalar aguda induzida por ADH.");
-        return { ok: true, sucesso: true, id: 'holliday_segar', nome: 'Hidratação Pediátrica Holliday-Segar', texto: txtHS, textoFormatado: txtHS, dados: resHS };
-      }
-    case 'dhe':
-    case 'eletrolitos':
-    case 'hidroeletrolitico':
-      if (typeof NefrologiaDheService === 'undefined') throw new Error('Serviço NefrologiaDheService indisponível.');
-      var modoDhe = String(entrada.modo || 'hiponatremia').toLowerCase();
-      var pesoDhe = parseFloat(String(entrada.peso || 70).replace(',', '.'));
-      var idadeDhe = entrada.idade ? parseFloat(String(entrada.idade).replace(',', '.')) : 40;
-      var sexoDhe = entrada.sexo ? String(entrada.sexo).toLowerCase() : 'm';
-
-      if (modoDhe === 'hipercalemia' || entrada.kAtual !== undefined) {
-        var kVal = parseFloat(String(entrada.kAtual || entrada.potassio || 0).replace(',', '.'));
-        var ecgAlt = Boolean(entrada.ecgAlterado || entrada.ecg);
-        var resK = NefrologiaDheService.avaliarHipercalemia(kVal, ecgAlt);
-        if (resK.erro) return { ok: false, erro: resK.erro };
-
-        var txtK = "⚡ MANEJO EMERGENCIAL DE HIPERCALEMIA (SBC / KDIGO)\n\n" +
-          "🔴 ESTRATIFICAÇÃO & GRAVIDADE:\n" +
-          "• Potássio Sérico: " + resK.potassio + " mEq/L\n" +
-          "• Classificação: " + resK.gravidade + "\n\n" +
-          "🟡 CONDUTAS ESCALONADAS:\n" +
-          resK.condutas.map(function(c) { return "• " + c; }).join("\n") + "\n\n" +
-          (resK.alerta ? "⚠️ ALERTA CARDÍACO:\n• " + resK.alerta + "\n\n" : "") +
-          "ℹ️ MONITORIZAÇÃO:\n• Monitorização cardíaca contínua e repetir dosagem de K+ em 2h.";
-        return { ok: true, sucesso: true, id: 'hipercalemia', nome: 'Manejo de Hipercalemia', texto: txtK, textoFormatado: txtK, dados: resK };
-      } else if (modoDhe === 'hipernatremia') {
-        var naHiper = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
-        var resHiper = NefrologiaDheService.calcularDeficitAguaLivre(naHiper, pesoDhe, sexoDhe, idadeDhe);
-        if (resHiper.erro) return { ok: false, erro: resHiper.erro };
-
-        var txtHiper = "🌵 HIPERNATREMIA — DÉFICIT DE ÁGUA LIVRE (ADROGUÉ-MADIAS)\n\n" +
-          "🔴 DÉFICIT CALCULADO:\n" +
-          "• Sódio Atual: " + naHiper + " mEq/L | ACT: " + resHiper.act + " L\n" +
-          "• Déficit Total de Água Livre: " + resHiper.deficitAguaLivreLitros + " Litros\n\n" +
-          "🟡 PROGRAMAÇÃO DA REPOSIÇÃO (48 HORAS):\n" +
-          "• 1ªs 24 horas: Repor 50% do déficit (" + (Math.round(resHiper.deficitAguaLivreLitros * 500)) + " mL de água livre ou SG 5%)\n" +
-          "• 24h a 48h: Repor os 50% restantes + perdas insensíveis\n" +
-          "• Vias: Água potável por SNG/SNE (preferencial se TGI funcionante) ou SG 5% IV\n\n" +
-          "⚠️ ALERTA DE SEGURANÇA & TETOS:\n" +
-          (resHiper.alertas && resHiper.alertas.length ? resHiper.alertas.map(function(a) { return "• " + a; }).join("\n") : "• Queda máxima de Na: 8-10 mEq/L em 24h (risco de edema cerebral).") + "\n\n" +
-          "ℹ️ MONITORIZAÇÃO:\n• Dosar Na sérico a cada 4 a 6 horas durante a correção.";
-        return { ok: true, sucesso: true, id: 'hipernatremia', nome: 'Hipernatremia - Déficit de Água Livre', texto: txtHiper, textoFormatado: txtHiper, dados: resHiper };
-      } else {
-        // Hiponatremia (Adrogué-Madias)
-        var naHipo = parseFloat(String(entrada.naAtual || entrada.sodio || 0).replace(',', '.'));
-        var salinaHipo = parseFloat(String(entrada.salina || 3).replace(',', '.'));
-        var resHipo = NefrologiaDheService.planejarCorrecaoHiponatremia(naHipo, pesoDhe, sexoDhe, idadeDhe, salinaHipo);
-        if (resHipo.erro) return { ok: false, erro: resHipo.erro };
-
-        var solNome = salinaHipo === 3 ? "NaCl 3% (513 mEq/L)" : "NaCl 0,9% (154 mEq/L)";
-        var vol24h = Math.round((8 / resHipo.variacaoNaPorLitro) * 1000);
-        var txtHipo = "💧 CORREÇÃO DE HIPONATREMIA (FÓRMULA DE ADROGUÉ-MADIAS)\n\n" +
-          "🔴 AÇÃO IMEDIATA / INFUSÃO EM BIC:\n" +
-          "• Solução Escolhida: " + solNome + "\n" +
-          "• Variação Esperada de Na+ com 1 L: +" + resHipo.variacaoNaPorLitro + " mEq/L\n" +
-          "• Taxa Segura de Infusão: " + resHipo.taxaInfusaoMaxima24h_ml_h + " mL/h em BIC\n" +
-          "• Volume Total Seguro em 24h (Teto 8 mEq): " + vol24h + " mL\n\n" +
-          "🟡 SINTOMAS GRAVES / RESGATE NEUROLÓGICO (CONVULSÃO / COMA):\n" +
-          "• Bolus de Emergência: 100 a 150 mL de NaCl 3% IV em 10-20 min.\n" +
-          "• Pode repetir até 2 vezes se sintomas neurológicos persistirem (meta: subir 4-6 mEq/L).\n\n" +
-          "⚠️ TETOS RÍGIDOS CONTRA MIELINÓLISE PONTINA (SDO):\n" +
-          "• NÃO ULTRAPASSAR 8 mEq/L nas 1ªs 24h e 18 mEq/L em 48h.\n" +
-          (resHipo.alertas && resHipo.alertas.length ? resHipo.alertas.map(function(a) { return "• " + a; }).join("\n") : "") + "\n\n" +
-          "ℹ️ MONITORIZAÇÃO & RESGATE:\n" +
-          "• Dosar sódio sérico a cada 2 a 4 horas. Se subida > 8 mEq em 24h: suspender salina e infundir SG 5% ou Desmopressina (DDAVP).";
-        return { ok: true, sucesso: true, id: 'hiponatremia', nome: 'Correção de Hiponatremia', texto: txtHipo, textoFormatado: txtHipo, dados: resHipo };
-      }
-    case 'heart':
-    case 'sca':
-    case 'cardiologia':
-      if (typeof CardiologiaEmergenciaService === 'undefined') throw new Error('Serviço CardiologiaEmergenciaService indisponível.');
-      var paramsCardio = Object.assign({}, entrada);
-      if (paramsCardio.fr !== undefined) {
-        var numFr = Number(paramsCardio.fr);
-        if (numFr >= 2) paramsCardio.fatoresRiscoContagem = 3;
-        else if (numFr === 1) paramsCardio.fatoresRiscoContagem = 1;
-        else paramsCardio.fatoresRiscoContagem = 0;
-      }
-      var resCardio = CardiologiaEmergenciaService.avaliarPaciente(paramsCardio);
-      var heartRes = resCardio.heart;
-      var daptRes = resCardio.dapt;
-      var timiRes = resCardio.timiScasst;
-
-      var txtCardio = "🫀 ESCORE HEART & DOR TORÁCICA / SCA (SBC / AHA / ESC)\n\n" +
-        "🔴 ESTRATIFICAÇÃO & CONDUTA BEIRA-LEITO:\n" +
-        "• HEART Score: " + heartRes.escore + " pontos — " + String(heartRes.risco).toUpperCase() + "\n" +
-        "• Taxa de MACE (6 semanas): " + heartRes.taxaMACE + "\n" +
-        "• Conduta: " + heartRes.recomendacao + "\n" +
-        "• TIMI SCASST: " + timiRes.escore + "/7 pontos (" + timiRes.risco + " — MACE 14d: " + timiRes.taxaMACE14Dias + ")\n\n" +
-        "🟡 DUPLO BLOQUEIO ANTIPLAQUETÁRIO (DAPT):\n" +
-        "• P2Y12 de Escolha: " + daptRes.p2y12Escolhido + "\n";
-      for (var d = 0; d < daptRes.recomendacoes.length; d++) {
-        var r = daptRes.recomendacoes[d];
-        txtCardio += "• " + r.farmaco + ": Ataque " + r.ataque + " | Manutenção " + r.manutencao + "\n";
-      }
-      if (resCardio.adjuvantes && resCardio.adjuvantes.recomendacoes) {
-        txtCardio += "\n💉 ADJUVANTES & ANTICOAGULAÇÃO:\n";
-        for (var adjIdx = 0; adjIdx < resCardio.adjuvantes.recomendacoes.length; adjIdx++) {
-          var adjRec = resCardio.adjuvantes.recomendacoes[adjIdx];
-          txtCardio += "• " + adjRec.farmaco + ": " + adjRec.posologia + "\n";
-        }
-      }
-      var bloqueiosCardio = [].concat(daptRes.bloqueios || []).concat((resCardio.adjuvantes && resCardio.adjuvantes.bloqueios) || []);
-      if (bloqueiosCardio.length > 0) {
-        txtCardio += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n";
-        for (var bIdx = 0; bIdx < bloqueiosCardio.length; bIdx++) {
-          var bItem = bloqueiosCardio[bIdx];
-          txtCardio += "• [" + bItem.nivel + "] " + bItem.farmaco + ": " + bItem.motivo + "\n";
-        }
-      }
-      txtCardio += "\nℹ️ MONITORIZAÇÃO:\n• ECG seriado (a cada 15-30 min se dor ou a cada 6h), curva de troponina (0h/1h ou 0h/2h ou 0h/3h) e monitorização contínua.";
-
-      return {
-        ok: true,
-        sucesso: true,
-        id: 'heart_score',
-        nome: 'Escore HEART & SCA',
-        texto: txtCardio,
-        textoFormatado: txtCardio,
-        dados: resCardio
-      };
-    case 'asma':
-    case 'broncoespasmo':
-    case 'crise_asmatica':
-      if (typeof PneumologiaCriseAsmaticaService === 'undefined') throw new Error('Serviço PneumologiaCriseAsmaticaService indisponível.');
-      var paramsAsma = Object.assign({}, entrada);
-      if (paramsAsma.refratario !== undefined && paramsAsma.refratario_1h === undefined) {
-        paramsAsma.refratario_1h = Boolean(paramsAsma.refratario);
-      }
-      if (paramsAsma.peso !== undefined && paramsAsma.pesoKg === undefined) {
-        paramsAsma.pesoKg = Number(paramsAsma.peso);
-      }
-      if (paramsAsma.dpoc !== undefined || paramsAsma.perfilDpoc !== undefined) {
-        paramsAsma.dpoc = Boolean(paramsAsma.dpoc || paramsAsma.perfilDpoc);
-      }
-      if (paramsAsma.gasometriaNormocapnia || paramsAsma.normocapnia) {
-        paramsAsma.gasometria = { paco2: 43, ph: 7.31 };
-      }
-      var resAsma = PneumologiaCriseAsmaticaService.avaliarCriseAsmatica(paramsAsma);
-      var gAsma = resAsma.gravidade;
-      var pAsma = resAsma.plano;
-
-      var cabecalhoAsma = pAsma.isDpoc ? 
-        "🫁 EXACERBAÇÃO AGUDA DE DPOC (GOLD / SBPT)\n\n" : 
-        "🫁 MANEJO DA CRISE ASMÁTICA & BRONCOESPASMO (GINA / SBPT)\n\n";
-
-      var txtAsma = cabecalhoAsma +
-        "🔴 CLASSIFICAÇÃO & CONDUTA IMEDIATA:\n" +
-        "• Gravidade: " + gAsma.titulo.toUpperCase() + "\n" +
-        (gAsma.pfe_porcentagem !== null ? "• Pico de Fluxo (PFE): " + gAsma.pfe_porcentagem + "% do previsto\n" : "") +
-        "• Conduta: " + gAsma.recomendacao_imediata + "\n\n" +
-        "🟡 BRONCODILATAÇÃO DA 1ª HORA (SABA + SAMA):\n" +
-        "• Oxigenoterapia: Alvo SpO2 " + pAsma.oxigenoterapia.alvo_spo2 + " (" + pAsma.oxigenoterapia.dispositivo + ")\n" +
-        "• Salbutamol (SABA): " + pAsma.broncodilatacao_saba.opcao_preferencial + "\n" +
-        "• Nebulização Alternativa: " + pAsma.broncodilatacao_saba.opcao_alternativa_nebulizacao + "\n" +
-        (pAsma.anticolinergico_ipratropio && pAsma.anticolinergico_ipratropio.indicado ? "• Ipratrópio (SAMA): " + pAsma.anticolinergico_ipratropio.posologia + "\n" : "") + "\n" +
-        "💉 CORTICOTERAPIA SISTÊMICA PRECOCE (1ª HORA):\n" +
-        "• Via Oral: " + pAsma.corticoide_sistemico.oral + "\n" +
-        "• Via Intravenosa: " + pAsma.corticoide_sistemico.intravenoso + "\n";
-
-      if (pAsma.sulfato_magnesio && pAsma.sulfato_magnesio.indicado) {
-        txtAsma += "\n⚡ SULFATO DE MAGNÉSIO 2G IV (INDICAÇÃO MANDATÓRIA):\n" +
-          "• Dose: " + pAsma.sulfato_magnesio.dose + "\n" +
-          "• Diluição: " + pAsma.sulfato_magnesio.diluicao + "\n" +
-          "• Tempo de Infusão: " + pAsma.sulfato_magnesio.tempo_infusao + "\n";
-      }
-
-      if (pAsma.antibioticoterapia && pAsma.antibioticoterapia.indicado) {
-        txtAsma += "\n💊 ANTIBIOTICOTERAPIA (CRITÉRIOS DE ANTHONISEN):\n" +
-          "• Critérios: " + pAsma.antibioticoterapia.criterios_anthonisen + "\n" +
-          "• 1ª Linha: " + pAsma.antibioticoterapia.esquema_preferencial + "\n";
-      }
-
-      if (pAsma.manejo_ventilatorio && pAsma.manejo_ventilatorio.vni) {
-        txtAsma += "\n🫁 VENTILAÇÃO NÃO INVASIVA (VNI - BiPAP):\n" +
-          "• " + pAsma.manejo_ventilatorio.vni.padrao_ouro + "\n";
-      }
-
-      if (gAsma.nivel === 'PARADA_IMINENTE' || gAsma.nivel === 'GRAVE') {
-        txtAsma += "\n🫁 MANEJO VENTILATÓRIO & IOT PROTETORA:\n" +
-          "• Indução: " + pAsma.manejo_ventilatorio.sequencia_rapida_intubacao.inducao_escolha + "\n" +
-          "• Parâmetros do Respirador: Vt 5-6 mL/kg PBW, FR 10-12 rpm, Relação I:E 1:3 a 1:4, PEEP 0-5, Hipercapnia permissiva (pH >= 7.20)\n" +
-          "• Alerta pós-IOT: " + pAsma.manejo_ventilatorio.parametros_ventilador_protetor.conduta_colapso_pos_iot + "\n";
-      }
-
-      if (pAsma.bloqueios_seguranca && pAsma.bloqueios_seguranca.length > 0) {
-        txtAsma += "\n⚠️ BLOQUEIOS SENTINELA & CONTRAINDICAÇÕES:\n" +
-          pAsma.bloqueios_seguranca.map(function(b) { return "• " + b; }).join("\n") + "\n";
-      }
-
-      txtAsma += "\nℹ️ CRITÉRIOS DE ALTA & PRESCRIÇÃO AMBULATORIAL:\n" +
-        "• " + pAsma.criterios_destino.alta_emergencia.prescricao_alta.slice(0, 3).join("\n• ");
-
-      return {
-        ok: true,
-        sucesso: true,
-        id: pAsma.isDpoc ? 'exacerbacao_dpoc' : 'crise_asmatica',
-        nome: pAsma.isDpoc ? 'Exacerbação de DPOC' : 'Manejo de Crise Asmática',
-        texto: txtAsma,
-        textoFormatado: txtAsma,
-        dados: resAsma
-      };
-    case 'interacoes':
-    case 'seguranca':
-      var alvos = entrada.drogas || entrada.texto || entrada.medicamentos || '';
-      return executarCrossCheckSegurancaClinica(alvos, entrada.contexto || entrada);
-    case 'parkland':
-      var pPark = parseFloat(String(entrada.peso || 0).replace(',', '.'));
-      var sPark = parseFloat(String(entrada.scq || entrada.queimadura || 0).replace(',', '.'));
-      var resPark = CalculadorasClinicas.parkland(pPark, sPark);
-      if (resPark && resPark.ok) {
-        if (!resPark.texto) resPark.texto = resPark.textoFormatado;
-        return resPark;
-      }
-      return { ok: false, erro: (resPark && resPark.erro) || 'Erro ao calcular Parkland.' };
-    case 'glasgow':
-      var oG = parseInt(entrada.ocular !== undefined ? entrada.ocular : (entrada.o !== undefined ? entrada.o : 4), 10);
-      var vG = parseInt(entrada.verbal !== undefined ? entrada.verbal : (entrada.v !== undefined ? entrada.v : 5), 10);
-      var mG = parseInt(entrada.motor !== undefined ? entrada.motor : (entrada.m !== undefined ? entrada.m : 6), 10);
-      var pG = (entrada.pupilas !== undefined && entrada.pupilas !== null && entrada.pupilas !== '') ? parseInt(entrada.pupilas, 10) : ((entrada.p !== undefined && entrada.p !== null && entrada.p !== '') ? parseInt(entrada.p, 10) : null);
-      var resG = CalculadorasClinicas.glasgowP(oG, vG, mG, pG);
-      if (resG && resG.ok) {
-        if (!resG.texto) resG.texto = resG.textoFormatado;
-        return resG;
-      }
-      return { ok: false, erro: (resG && resG.erro) || 'Erro ao calcular Glasgow-P.' };
-    case 'ckd':
-    case 'ckdepi':
-      var crCkd = parseFloat(String(entrada.creatinina || entrada.cr || 0).replace(',', '.'));
-      var idCkd = parseInt(entrada.idade || 0, 10);
-      var femCkd = entrada.sexo === 'f' || entrada.feminino === true;
-      var resCkd = CalculadorasClinicas.ckdEpi2021(crCkd, idCkd, femCkd);
-      if (resCkd && resCkd.ok) {
-        if (!resCkd.texto) resCkd.texto = resCkd.textoFormatado;
-        return resCkd;
-      }
-      return { ok: false, erro: (resCkd && resCkd.erro) || 'Erro ao calcular CKD-EPI.' };
-    case 'cockcroft':
-      var crCg = parseFloat(String(entrada.creatinina || entrada.cr || 0).replace(',', '.'));
-      var pCg = parseFloat(String(entrada.peso || 0).replace(',', '.'));
-      var idCg = parseInt(entrada.idade || 0, 10);
-      var femCg = entrada.sexo === 'f' || entrada.feminino === true ? true : entrada.sexo === 'm' ? false : null;
-      var altCmCg = null;
-      var rawAltCg = entrada.altura !== undefined ? entrada.altura : entrada.alturaCm;
-      if (rawAltCg !== undefined && rawAltCg !== null && rawAltCg !== '') {
-        var nAltCg = parseFloat(String(rawAltCg).replace(',', '.'));
-        if (!isNaN(nAltCg)) altCmCg = (nAltCg > 0 && nAltCg < 3.0) ? Math.round(nAltCg * 100 * 10) / 10 : nAltCg;
-      }
-      var resCg = CalculadorasClinicas.cockcroftGault(crCg, pCg, idCg, femCg, altCmCg);
-      if (resCg && resCg.ok) {
-        if (!resCg.texto) resCg.texto = resCg.textoFormatado;
-        return resCg;
-      }
-      return { ok: false, erro: (resCg && resCg.erro) || 'Erro ao calcular Cockcroft-Gault.' };
-    case 'curb65':
-    case 'curb':
-      var confCb = Boolean(entrada.confusao || entrada.confusaoMental);
-      var urCb = parseFloat(String(entrada.ureia || entrada.bun || 0).replace(',', '.'));
-      var frCb = parseInt(entrada.fr || 0, 10);
-      var pasCb = parseInt(entrada.pas || 0, 10);
-      var padCb = parseInt(entrada.pad || 0, 10);
-      var idCb = parseInt(entrada.idade || 0, 10);
-      var resCurb = CalculadorasClinicas.curb65(confCb, urCb, frCb, pasCb, padCb, idCb);
-      if (resCurb && resCurb.ok) {
-        if (!resCurb.texto) resCurb.texto = resCurb.textoFormatado;
-        return resCurb;
-      }
-      return { ok: false, erro: (resCurb && resCurb.erro) || 'Erro ao calcular CURB-65.' };
-    default: throw new Error('Calculadora desconhecida.');
+  if (!handler) {
+    throw new Error('Calculadora desconhecida.');
   }
+
+  return handler(entrada, tipo);
 }
 
 function cockpitChecarSeguranca(initData, drogasOuTexto, contextoClinico) {
@@ -709,6 +787,145 @@ function cockpitConsultarFarmaco(initData, params) {
   };
 }
 
+// ==============================================================================
+// HANDLERS MODULARES DE AÇÕES DO COCKPIT
+// ==============================================================================
+
+function _cockpitAcaoNovo(chat) {
+  limparEstadoBot(chat);
+  PersistenciaBot.remover('soapview_' + chat);
+  return { sucesso: true, acao: 'novo', mensagem: 'Novo caso iniciado com sucesso.', soap: '', revision: null };
+}
+
+function _cockpitAcaoEfNormal(chat, dadosAtuais, params) {
+  var textoEfCustom = (params.textoEf || params.texto || '').trim();
+  var exameAInserir = textoEfCustom || ((typeof obterModeloExameFisicoCompleto === 'function')
+    ? obterModeloExameFisicoCompleto(dadosAtuais)
+    : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO
+      ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto
+      : [
+        'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
+        'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+        '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
+        '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
+        '  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
+        ' Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
+      ].join('\n')));
+
+  var novoTextoEf = dadosAtuais.trim()
+    ? dadosAtuais + '\n' + exameAInserir
+    : 'Paciente em atendimento clínico de rotina.\n' + exameAInserir;
+  var estadoAtualizadoEf = definirModoBot(chat, 'soap', novoTextoEf);
+  var soapEf = gerarSOAPComIA(novoTextoEf);
+  salvarSoapCockpit_(chat, estadoAtualizadoEf, String(soapEf));
+  return { sucesso: true, acao: 'ef_normal', resposta: String(soapEf), soap: String(soapEf), revision: estadoAtualizadoEf.revision, textoEf: exameAInserir };
+}
+
+function _cockpitAcaoPlano(chat, dadosAtuais) {
+  if (!dadosAtuais.trim()) throw new Error('Nenhum caso ativo para gerar Avaliação e Plano.');
+  var soapPlano = gerarSOAPComIA(dadosAtuais, { fecharPlano: true });
+  var estPlano = modoBot(chat);
+  salvarSoapCockpit_(chat, estPlano, String(soapPlano));
+  return { sucesso: true, acao: 'plano', resposta: String(soapPlano), soap: String(soapPlano), revision: estPlano ? estPlano.revision : null };
+}
+
+function _cockpitAcaoPreceptor(chat, dadosAtuais, texto, estado) {
+  var casoPreceptor = (texto && texto.trim()) ? texto.trim() : (dadosAtuais ? dadosAtuais.trim() : '');
+  if (!casoPreceptor) throw new Error('Nenhum caso ativo ou digitado para solicitar provocação do preceptor.');
+  var critica = (typeof gerarCriticaSocraticaPreceptor === 'function')
+    ? gerarCriticaSocraticaPreceptor(casoPreceptor)
+    : 'Qual a sua principal hipótese diagnóstica e conduta imediata?';
+  var sview = PersistenciaBot.ler('soapview_' + chat);
+  if (typeof sview === 'string') { try { sview = JSON.parse(sview); } catch(e) {} }
+  return { sucesso: true, acao: 'preceptor', resposta: String(critica), soap: sview ? sview.texto : '', revision: estado ? estado.revision : null };
+}
+
+function _cockpitAcaoPrescricao(chat, dadosAtuais, texto, estado) {
+  if (!dadosAtuais.trim() && !texto) throw new Error('Forneça os dados do caso para gerar a prescrição.');
+  var dadosPrescricao = texto ? (dadosAtuais ? dadosAtuais + '\n[Solicitação Prescrição]: ' + texto : texto) : dadosAtuais;
+  var prescricao = (typeof gerarPrescricaoMedicaIA === 'function') ? gerarPrescricaoMedicaIA(dadosPrescricao) : 'Prescrição indisponível no momento.';
+  var sviewP = PersistenciaBot.ler('soapview_' + chat);
+  if (typeof sviewP === 'string') { try { sviewP = JSON.parse(sviewP); } catch(e) {} }
+  return { sucesso: true, acao: 'prescricao', resposta: String(prescricao), soap: sviewP ? sviewP.texto : '', revision: estado ? estado.revision : null };
+}
+
+function _cockpitProcessarAudioClinico(audioBase64, mime, texto, estado, dadosAtuais) {
+  var mimeAudio = String(mime || 'audio/webm').split(';')[0].trim().toLowerCase();
+  var base64Limpo = (typeof _iaNormalizarBase64 === 'function')
+    ? _iaNormalizarBase64(audioBase64)
+    : (typeof audioBase64 === 'string' ? audioBase64.replace(/^data:[^;]+;base64,/, '').trim() : (typeof Buffer !== 'undefined' && Buffer.isBuffer(audioBase64) ? audioBase64.toString('base64') : String(audioBase64)));
+
+  var opcoesAudio = { contextoTexto: texto || '', fallbackOffline: true };
+  var transcricaoAudio = '';
+
+  try {
+    if (typeof processarAudioClinicoMultimodal === 'function') {
+      var resAudio = processarAudioClinicoMultimodal(base64Limpo, mimeAudio, opcoesAudio);
+      if (resAudio) {
+        if (resAudio.transcricao) transcricaoAudio = String(resAudio.transcricao).trim();
+        if (resAudio.eh_clinico && resAudio.soapTexto) {
+          return {
+            sucessoClinico: true,
+            retorno: {
+              sucesso: true,
+              acao: 'enviar',
+              textoRecebido: (texto ? texto + '\n' + transcricaoAudio : transcricaoAudio) || transcricaoAudio,
+              transcricao: transcricaoAudio || null,
+              resposta: resAudio.soapTexto,
+              soap: resAudio.dadosObj || dadosAtuais,
+              contingencia_offline: !!resAudio.contingencia_offline,
+              revision: estado ? estado.revision : null
+            }
+          };
+        }
+      }
+    }
+    if (!transcricaoAudio && typeof chamarGeminiPoolMultimodal === 'function') {
+      var resMultimodal = chamarGeminiPoolMultimodal(base64Limpo, mimeAudio, 'Você é um transcritor médico. Transcreva fielmente as palavras ditadas em português.', 'Transcreva este áudio.');
+      if (resMultimodal) transcricaoAudio = String(resMultimodal).trim();
+    }
+  } catch (eAudio) {
+    Logger.log('Aviso ao processar áudio com IA no Cockpit: ' + (eAudio.message || eAudio));
+  }
+
+  // Fallback offline defensivo caso o provedor externo falhe ou retorne vazio
+  if (!transcricaoAudio && base64Limpo && typeof IaLocalFallbackService !== 'undefined' && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === 'function') {
+    try {
+      var fbAudio = IaLocalFallbackService.processarAudioClinicoOffline(base64Limpo, mimeAudio, opcoesAudio);
+      if (fbAudio) {
+        transcricaoAudio = String(fbAudio.transcricao || fbAudio.soapTexto || '').trim();
+        if (fbAudio.eh_clinico && fbAudio.soapTexto) {
+          return {
+            sucessoClinico: true,
+            retorno: {
+              sucesso: true,
+              acao: 'enviar',
+              textoRecebido: (texto ? texto + '\n' + transcricaoAudio : transcricaoAudio) || transcricaoAudio,
+              transcricao: transcricaoAudio || null,
+              resposta: fbAudio.soapTexto,
+              soap: fbAudio.dadosObj || dadosAtuais,
+              contingencia_offline: true,
+              revision: estado ? estado.revision : null
+            }
+          };
+        }
+      }
+    } catch (eFb) {
+      Logger.log('Aviso no fallback offline de áudio no Cockpit: ' + (eFb.message || eFb));
+    }
+  }
+
+  return { sucessoClinico: false, transcricaoAudio: transcricaoAudio };
+}
+
+var DISPATCH_COCKPIT_ACOES = {
+  novo: function(chat) { return _cockpitAcaoNovo(chat); },
+  ef_normal: function(chat, dadosAtuais, p) { return _cockpitAcaoEfNormal(chat, dadosAtuais, p); },
+  plano: function(chat, dadosAtuais) { return _cockpitAcaoPlano(chat, dadosAtuais); },
+  preceptor: function(chat, dadosAtuais, p, txt, est) { return _cockpitAcaoPreceptor(chat, dadosAtuais, txt, est); },
+  prescricao: function(chat, dadosAtuais, p, txt, est) { return _cockpitAcaoPrescricao(chat, dadosAtuais, txt, est); }
+};
+
 function cockpitConversar(initData, params) {
   var chat = cockpitAutorizar_(initData);
   if (!params || typeof params !== 'object') throw new Error('Parâmetros de mensagem inválidos.');
@@ -721,96 +938,27 @@ function cockpitConversar(initData, params) {
     var estado = modoBot(chat);
     var dadosAtuais = (estado && estado.data) ? estado.data : '';
 
-    if (acao === 'novo') {
-      limparEstadoBot(chat);
-      PersistenciaBot.remover('soapview_' + chat);
-      return { sucesso: true, acao: 'novo', mensagem: 'Novo caso iniciado com sucesso.', soap: '', revision: null };
+    // Despacho O(1) de ações estruturadas do Cockpit
+    if (Object.prototype.hasOwnProperty.call(DISPATCH_COCKPIT_ACOES, acao)) {
+      return DISPATCH_COCKPIT_ACOES[acao](chat, dadosAtuais, params, texto, estado);
     }
 
-    if (acao === 'ef_normal') {
-      var textoEfCustom = (params.textoEf || params.texto || '').trim();
-      var exameAInserir = textoEfCustom || ((typeof obterModeloExameFisicoCompleto === 'function')
-        ? obterModeloExameFisicoCompleto(dadosAtuais)
-        : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO
-          ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto
-          : [
-            'Sinais Vitais: PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C.',
-            'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
-            '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
-            '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
-            '  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.',
-            ' Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.'
-          ].join('\n')));
-
-      var novoTextoEf = dadosAtuais.trim()
-        ? dadosAtuais + '\n' + exameAInserir
-        : 'Paciente em atendimento clínico de rotina.\n' + exameAInserir;
-      var estadoAtualizadoEf = definirModoBot(chat, 'soap', novoTextoEf);
-      var soapEf = gerarSOAPComIA(novoTextoEf);
-      salvarSoapCockpit_(chat, estadoAtualizadoEf, String(soapEf));
-      return { sucesso: true, acao: 'ef_normal', resposta: String(soapEf), soap: String(soapEf), revision: estadoAtualizadoEf.revision, textoEf: exameAInserir };
-    }
-
-    if (acao === 'plano') {
-      if (!dadosAtuais.trim()) throw new Error('Nenhum caso ativo para gerar Avaliação e Plano.');
-      var soapPlano = gerarSOAPComIA(dadosAtuais, { fecharPlano: true });
-      var estPlano = modoBot(chat);
-      salvarSoapCockpit_(chat, estPlano, String(soapPlano));
-      return { sucesso: true, acao: 'plano', resposta: String(soapPlano), soap: String(soapPlano), revision: estPlano ? estPlano.revision : null };
-    }
-
-    if (acao === 'preceptor') {
-      var casoPreceptor = (texto && texto.trim()) ? texto.trim() : (dadosAtuais ? dadosAtuais.trim() : '');
-      if (!casoPreceptor) throw new Error('Nenhum caso ativo ou digitado para solicitar provocação do preceptor.');
-      var critica = (typeof gerarCriticaSocraticaPreceptor === 'function')
-        ? gerarCriticaSocraticaPreceptor(casoPreceptor)
-        : 'Qual a sua principal hipótese diagnóstica e conduta imediata?';
-      var sview = PersistenciaBot.ler('soapview_' + chat);
-      if (typeof sview === 'string') { try { sview = JSON.parse(sview); } catch(e) {} }
-      return { sucesso: true, acao: 'preceptor', resposta: String(critica), soap: sview ? sview.texto : '', revision: estado ? estado.revision : null };
-    }
-
-    if (acao === 'prescricao') {
-      if (!dadosAtuais.trim() && !texto) throw new Error('Forneça os dados do caso para gerar a prescrição.');
-      var dadosPrescricao = texto ? (dadosAtuais ? dadosAtuais + '\n[Solicitação Prescrição]: ' + texto : texto) : dadosAtuais;
-      var prescricao = (typeof gerarPrescricaoMedicaIA === 'function') ? gerarPrescricaoMedicaIA(dadosPrescricao) : 'Prescrição indisponível no momento.';
-      var sviewP = PersistenciaBot.ler('soapview_' + chat);
-      if (typeof sviewP === 'string') { try { sviewP = JSON.parse(sviewP); } catch(e) {} }
-      return { sucesso: true, acao: 'prescricao', resposta: String(prescricao), soap: sviewP ? sviewP.texto : '', revision: estado ? estado.revision : null };
-    }
-
+    // Processamento de áudio clínico (multimodal com contingência offline)
     var transcricaoAudio = '';
     if (audioBase64) {
-      try {
-        var mime = params.mime || 'audio/webm';
-        var base64Limpo = (typeof _iaNormalizarBase64 === 'function')
-          ? _iaNormalizarBase64(audioBase64)
-          : (typeof audioBase64 === 'string' ? audioBase64.replace(/^data:[^;]+;base64,/, '').trim() : (typeof Buffer !== 'undefined' && Buffer.isBuffer(audioBase64) ? audioBase64.toString('base64') : String(audioBase64)));
-
-        if (typeof processarAudioClinicoMultimodal === 'function') {
-          var resAudio = processarAudioClinicoMultimodal(base64Limpo, mime);
-          if (resAudio && resAudio.transcricao) {
-            transcricaoAudio = String(resAudio.transcricao).trim();
-            texto = texto ? (texto + '\n' + transcricaoAudio) : transcricaoAudio;
-          }
-        }
-        if (!transcricaoAudio && typeof chamarGeminiPoolMultimodal === 'function') {
-          var resMultimodal = chamarGeminiPoolMultimodal(base64Limpo, mime, 'Você é um transcritor médico. Transcreva fielmente as palavras ditadas em português.', 'Transcreva este áudio.');
-          if (resMultimodal) {
-            transcricaoAudio = String(resMultimodal).trim();
-            texto = texto ? (texto + '\n' + transcricaoAudio) : transcricaoAudio;
-          }
-        }
-      } catch (eAudio) {
-        throw new Error('Falha ao processar áudio: ' + (eAudio.message || eAudio));
+      var resProcAudio = _cockpitProcessarAudioClinico(audioBase64, params.mime, texto, estado, dadosAtuais);
+      if (resProcAudio.sucessoClinico) {
+        return resProcAudio.retorno;
+      }
+      if (resProcAudio.transcricaoAudio) {
+        transcricaoAudio = resProcAudio.transcricaoAudio;
+        texto = texto ? (texto + '\n' + transcricaoAudio) : transcricaoAudio;
       }
     }
 
     if (!texto) throw new Error('Envie uma mensagem de texto ou grave um áudio para prosseguir.');
 
     // ⚡ SEPARAÇÃO RÍGIDA: LÓGICA DETERMINÍSTICA EM RAM PURA (0ms a 15ms)
-    // Cálculos puros (CURB-65, Glasgow, Parkland, DVA em mcg/kg/min, clearance de creatinina, diluição de antibióticos)
-    // NUNCA envie essas tarefas para o modelo de linguagem se a matemática e a tabela já estão no código Node.js!
     if (typeof tentarCalcularDeterministico === 'function') {
       var resDetCockpit = tentarCalcularDeterministico(texto);
       if (resDetCockpit) {

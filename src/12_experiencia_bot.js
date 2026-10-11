@@ -154,6 +154,69 @@ function enviarTelaBot(chat, texto, kb, messageId) {
   return enviarMensagemComTecladoParaChat(chat, texto, kb);
 }
 
+/* ========== Fábrica Modular de Teclados (UX Keyboard Builder) ========== */
+
+var UX_BOTAO_INICIO = ['🏠 Início', 'ux:hub:inicio'];
+
+var UX_DESTINOS_RODAPE = {
+  menu: [['🔙 Voltar ao Menu', 'ux:menu'], UX_BOTAO_INICIO],
+  sala: [['🔙 Sala Vermelha', 'ux:hub:sala'], UX_BOTAO_INICIO],
+  enf: [['🔙 Enfermaria', 'ux:hub:enf'], UX_BOTAO_INICIO],
+  amb: [['🔙 Ambulatório', 'ux:hub:amb'], UX_BOTAO_INICIO],
+  calc: [['🔙 Calculadoras', 'ux:hub:calc'], UX_BOTAO_INICIO],
+  bolso: [['🔙 Consultas de Bolso', 'ux:hub:bolso'], UX_BOTAO_INICIO],
+  leitos: [['🔙 Painel de Leitos', 'ux:painel:0'], UX_BOTAO_INICIO],
+  go: [['🔙 Hub G&O', 'ux:rotina:go'], UX_BOTAO_INICIO],
+  dva: [['← Trocar medicamento', 'ux:dvamenu'], ['🔙 Sala Vermelha', 'ux:hub:sala']]
+};
+
+function uxLinhaNavegacao(destino) {
+  if (!destino) return null;
+  if (typeof destino === 'string' && UX_DESTINOS_RODAPE[destino]) {
+    return UX_DESTINOS_RODAPE[destino];
+  }
+  if (Array.isArray(destino)) {
+    if (destino.length > 0 && Array.isArray(destino[0])) {
+      return destino;
+    }
+    return [destino, UX_BOTAO_INICIO];
+  }
+  return null;
+}
+
+function uxCriarTeclado(linhas, destinoNavegacao) {
+  var matriz = Array.isArray(linhas) ? linhas.slice() : [];
+  var rodape = uxLinhaNavegacao(destinoNavegacao);
+  if (rodape) {
+    matriz.push(rodape);
+  }
+  return botoesBot(matriz);
+}
+
+function uxCriarTecladoGrade(itens, colunas, destinoNavegacao) {
+  var cols = colunas || 2;
+  var matriz = [];
+  var linhaAtual = [];
+  var lista = Array.isArray(itens) ? itens : [];
+
+  for (var i = 0; i < lista.length; i++) {
+    linhaAtual.push(lista[i]);
+    if (linhaAtual.length === cols) {
+      matriz.push(linhaAtual);
+      linhaAtual = [];
+    }
+  }
+  if (linhaAtual.length > 0) {
+    matriz.push(linhaAtual);
+  }
+  return uxCriarTeclado(matriz, destinoNavegacao);
+}
+
+function enviarTelaBotComNavegacao(chat, texto, linhas, destinoNavegacao, messageId) {
+  var kb = uxCriarTeclado(linhas, destinoNavegacao);
+  return enviarTelaBot(chat, texto, kb, messageId);
+}
+
 /* ========== Atendimento persistente; cache somente para compatibilidade ========== */
 
 function modoBot(chat) {
@@ -276,15 +339,14 @@ function enviarMenuUXGinecoObstetricia(chat, messageId) {
   var texto = '🌸🤰 *Hub Unificado de Ginecologia & Obstetrícia (Internato até 29/11)*\n\n' +
     'Condutas imediatas, calculadoras obstétricas e guias ambulatoriais em 0ms:\n' +
     'Selecione o submódulo de atendimento rápido:';
-  var botoes = botoesBot([
+  var linhas = [
     [['🤰 Pré-Natal & DPP', 'go_prenatal'], ['🏥 Parto & Partograma', 'go_parto']],
     [['🩸 HPP (4 Ts)', 'go_hpp'], ['⚡ Pré-Eclâmpsia & MgSO4', 'go_mgso4']],
     [['👶 Prematuridade & RPMO', 'go_prematuridade'], ['🔬 Toxo & Sorologias', 'go_toxo']],
     [['🌸 Vulvovaginites', 'go_corrimento'], ['🩺 Preventivo (INCA)', 'go_preventivo']],
-    [['💊 Anticoncepção OMS', 'go_anticoncepcao'], ['🩹 DIP & Infecção Pélvica', 'go_dip']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['💊 Anticoncepção OMS', 'go_anticoncepcao'], ['🩹 DIP & Infecção Pélvica', 'go_dip']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 var enviarMenuGinecologiaObstetricia = enviarMenuUXGinecoObstetricia;
 
@@ -292,71 +354,71 @@ var enviarMenuGinecologiaObstetricia = enviarMenuUXGinecoObstetricia;
 /* ========== Cenário 1: 🚨 Emergência & Sala Vermelha ========== */
 
 function enviarMenuSalaVermelha(chat, messageId) {
-  return enviarTelaBot(chat, '🚨 *EMERGÊNCIA & SALA VERMELHA*\n\nCondutas imediatas e suporte intensivo:', botoesBot([
+  var texto = '🚨 *EMERGÊNCIA & SALA VERMELHA*\n\nCondutas imediatas e suporte intensivo:';
+  var linhas = [
     [['🫀 PCR (ACLS)', 'ux:conduta:pcr'], ['⚡ Arritmias Cardíacas', 'ux:emerg:arritmia']],
     [['🫁 SRI / IOT', 'ux:srimenu'], ['🩸 Gasometria', 'ux:iniciar:gaso']],
     [['💉 Drogas Vasoativas (DVA)', 'ux:dvamenu'], ['⚡ Choque & Hipotensão', 'ux:emerg:choque']],
     [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🦟 Dengue C/D', 'ux:emerg:dengue'], ['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia']],
-    [['⚡ Outras Condutas', 'ux:condutamenu']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['⚡ Outras Condutas', 'ux:condutamenu']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 
 function enviarMenuDva(chat, messageId) {
-  return enviarTelaBot(chat, '💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nQual medicamento deseja calcular?', botoesBot([
+  var texto = '💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nQual medicamento deseja calcular?';
+  var linhas = [
     [['Noradrenalina', 'ux:droga:nora'], ['Dobutamina', 'ux:droga:dobuta']],
     [['Vasopressina', 'ux:fixa:vaso'], ['Adrenalina (Infusão)', 'ux:droga:adrena']],
     [['Nitroprussiato', 'ux:droga:nipride'], ['Nitroglicerina', 'ux:fixa:tridil']],
     [['🔙 Calculadoras', 'ux:hub:calc'], ['🔙 Sala Vermelha', 'ux:hub:sala']],
-    [['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [UX_BOTAO_INICIO]
+  ];
+  return enviarTelaBot(chat, texto, botoesBot(linhas), messageId);
 }
 
 function enviarTelaPesoDva(chat, droga, messageId) {
-  var r = [], linha = [];
-  UX_PESOS_RAPIDOS.forEach(function (p) {
-    linha.push([p + ' kg', 'ux:peso:' + droga + ':' + p]);
-    if (linha.length === 2) { r.push(linha); linha = []; }
+  var itens = UX_PESOS_RAPIDOS.map(function (p) {
+    return [p + ' kg', 'ux:peso:' + droga + ':' + p];
   });
-  if (linha.length) r.push(linha);
-  r.push([['← Trocar medicamento', 'ux:dvamenu']]);
-  r.push([['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]);
+  var kb = uxCriarTecladoGrade(itens, 2);
+  kb.inline_keyboard.push(botoesBot([[['← Trocar medicamento', 'ux:dvamenu']]]).inline_keyboard[0]);
+  kb.inline_keyboard.push(botoesBot([UX_DESTINOS_RODAPE.sala]).inline_keyboard[0]);
   return enviarTelaBot(chat,
     '💉 *' + UX_DROGAS[droga].toUpperCase() + '*\nPeso do paciente\n\n' +
     'Toque em um peso ou envie o valor em kg (ex.: 73,5). Os botões são aproximações: use o peso real quando souber.',
-    botoesBot(r), messageId);
+    kb, messageId);
 }
 
 function enviarTelaDiluicaoDva(chat, droga, peso, messageId) {
   var p = String(peso).replace(',', '.');
-  return enviarTelaBot(chat,
-    '💉 *' + UX_DROGAS[droga].toUpperCase() + ' · ' + String(peso).replace('.', ',') + ' kg*\nSelecione a diluição.',
-    botoesBot([
-      [['Padrão', 'ux:diluicao:' + droga + ':' + p + ':padrao'], ['Concentrada', 'ux:diluicao:' + droga + ':' + p + ':concentrada']],
-      [['✏️ Alterar peso', 'ux:droga:' + droga]],
-      [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-    ]), messageId);
+  var texto = '💉 *' + UX_DROGAS[droga].toUpperCase() + ' · ' + String(peso).replace('.', ',') + ' kg*\nSelecione a diluição.';
+  var linhas = [
+    [['Padrão', 'ux:diluicao:' + droga + ':' + p + ':padrao'], ['Concentrada', 'ux:diluicao:' + droga + ':' + p + ':concentrada']],
+    [['✏️ Alterar peso', 'ux:droga:' + droga]]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuSri(chat, messageId) {
-  return enviarTelaBot(chat,
-    '🫁 *SEQUÊNCIA RÁPIDA DE INTUBAÇÃO (SRI / IOT)*\n\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.',
-    botoesBot([
-      [['60 kg', 'ux:sri:60'], ['70 kg', 'ux:sri:70']],
-      [['80 kg', 'ux:sri:80'], ['90 kg', 'ux:sri:90']],
-      [['Choque 70 kg', 'ux:sri:70 choque'], ['Asma 70 kg', 'ux:sri:70 asma']],
-      [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-    ]), messageId);
+  var texto = '🫁 *SEQUÊNCIA RÁPIDA DE INTUBAÇÃO (SRI / IOT)*\n\nSelecione o peso ou cenário.\nOutro peso: envie `/sri 85`.';
+  var linhas = [
+    [['60 kg', 'ux:sri:60'], ['70 kg', 'ux:sri:70']],
+    [['80 kg', 'ux:sri:80'], ['90 kg', 'ux:sri:90']],
+    [['Choque 70 kg', 'ux:sri:70 choque'], ['Asma 70 kg', 'ux:sri:70 asma']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuCondutas(chat, messageId) {
-  return enviarTelaBot(chat, '⚡ *Outras Emergências*\nSelecione a conduta beira-leito:', botoesBot([
+  var texto = '⚡ *Outras Emergências*\nSelecione a conduta beira-leito:';
+  var linhas = [
     [['🚨 EAP hipertensivo', 'ux:conduta:eap'], ['⚡ Anafilaxia', 'ux:conduta:anafilaxia']],
     [['🧠 Crise convulsiva', 'ux:conduta:convulsao'], ['🧪 Hipercalemia', 'ux:conduta:hipercalemia']],
-    [['🩸 Cetoacidose (CAD)', 'ux:conduta:cad']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['🩸 Cetoacidose (CAD)', 'ux:conduta:cad']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function obterTextoCondutaEmergencia(tipo) {
@@ -630,12 +692,11 @@ function enviarMenuEmergDengue(chat, messageId) {
     '• *Grupo C:* Dengue com sinais de alarme (hidratação venosa imediata 10 mL/kg/h)\n' +
     '• *Grupo D:* Choque hipovolêmico (expansão rápida em bolus 20 mL/kg em 20 min)\n' +
     '• *Grupos A e B:* Hidratação oral supervisionada (60 mL/kg/dia)';
-  var botoes = botoesBot([
+  var linhas = [
     [['🦟 Grupo C (10 mL/kg/h)', 'ux:conduta:dengue_c'], ['🚨 Grupo D Choque (20 mL/kg)', 'ux:conduta:dengue_d']],
-    [['📋 Grupos A e B (Oral)', 'ux:conduta:dengue_ab']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['📋 Grupos A e B (Oral)', 'ux:conduta:dengue_ab']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuEmergCriseHas(chat, messageId) {
@@ -644,12 +705,11 @@ function enviarMenuEmergCriseHas(chat, messageId) {
     '• *Emergência:* LOA aguda (EAP, Dissecção, SCA, AVC) — drogas venosas em BIC\n' +
     '• *Urgência:* PA elevada sem LOA — controle oral em 24-48h (Captopril VO)\n' +
     '• *Pseudocrise:* Reativa a dor/ansiedade — repouso e analgesia simples';
-  var botoes = botoesBot([
+  var linhas = [
     [['🚨 Emergência (EAP / Dissecção)', 'ux:conduta:crisehas_emerg'], ['⚡ Urgência (Captopril/Clonidina)', 'ux:conduta:crisehas_urg']],
-    [['🟢 Pseudocrise (Repouso/Analgesia)', 'ux:conduta:crisehas_pseudo']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['🟢 Pseudocrise (Repouso/Analgesia)', 'ux:conduta:crisehas_pseudo']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuEmergGlasgow(chat, messageId) {
@@ -663,12 +723,11 @@ function enviarMenuEmergGlasgow(chat, messageId) {
     '💡 *Envie a pontuação:* `glasgow 7` ou `glasgow 14`\n' +
     '🚨 *Alerta Sentinela:* Glasgow ≤ 8 = Proteção de via aérea obrigatória (SRI / IOT).\n\n' +
     'Selecione a gravidade clínica pela pontuação:';
-  var botoes = botoesBot([
+  var linhas = [
     [['🔴 Glasgow ≤ 8 (SRI / IOT)', 'ux:conduta:gcs_8'], ['🟡 Glasgow 9-12 (TC / Vigia)', 'ux:conduta:gcs_10']],
-    [['🟢 Glasgow 13-15 (Observação)', 'ux:conduta:gcs_14'], ['📐 Calculadora Glasgow-P', 'calc_Glasgow']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['🟢 Glasgow 13-15 (Observação)', 'ux:conduta:gcs_14'], ['📐 Calculadora Glasgow-P', 'calc_Glasgow']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuEmergChoque(chat, messageId) {
@@ -678,12 +737,11 @@ function enviarMenuEmergChoque(chat, messageId) {
     '• *Perfil B (Quente & Úmido):* Congestão/EAP — Nitroglicerina + Furosemida\n' +
     '• *Perfil L (Frio & Seco):* Hipovolemia/Superdiurese — Prova de volume\n' +
     '• *Choque Séptico:* Nora + Vasopressina + Hidrocortisona (CIRCI)';
-  var botoes = botoesBot([
+  var linhas = [
     [['🔴 Perfil C: Frio & Úmido (Choque)', 'ux:conduta:choque_c'], ['🟡 Perfil B: Quente & Úmido (EAP)', 'ux:conduta:choque_b']],
-    [['🔵 Perfil L: Frio & Seco (Hipovolemia)', 'ux:conduta:choque_l'], ['💉 Choque Séptico (CIRCI/Nora)', 'ux:conduta:choque_septico']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['🔵 Perfil L: Frio & Seco (Hipovolemia)', 'ux:conduta:choque_l'], ['💉 Choque Séptico (CIRCI/Nora)', 'ux:conduta:choque_septico']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarMenuEmergCefaleia(chat, messageId) {
@@ -693,12 +751,11 @@ function enviarMenuEmergCefaleia(chat, messageId) {
     '• *Meningite:* Febre + rigidez de nuca — Líquor e Ceftriaxona 2g + Dexa 10mg\n' +
     '• *Primária / Enxaqueca:* Resgate multimodal com Dipirona + Plasil + Dexa\n' +
     '• *Arterite Temporal:* Paciente > 50 anos com dor temporal — VHS + Prednisona urgente';
-  var botoes = botoesBot([
+  var linhas = [
     [['🚨 Trovoada / HSA (TC+PL)', 'ux:conduta:cef_hsa'], ['⚠️ Meningite / Febre (Punção)', 'ux:conduta:cef_mening']],
-    [['💊 Cefaleia Primária (Resgate PS)', 'ux:conduta:cef_primaria'], ['👵 Arterite Temporal (Corticoide)', 'ux:conduta:cef_arterite']],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['💊 Cefaleia Primária (Resgate PS)', 'ux:conduta:cef_primaria'], ['👵 Arterite Temporal (Corticoide)', 'ux:conduta:cef_arterite']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
 
 function enviarTelaCondutaEmergencia(chat, condutaKey, messageId) {
@@ -709,25 +766,21 @@ function enviarTelaCondutaEmergencia(chat, condutaKey, messageId) {
   var cache = uxCache();
   var ck = Utilities.getUuid().replace(/-/g, '');
   safePutCache(cache, ck, textoCond, 21600);
-  var botoes = botoesBot([
-    [['📋 Copiar para Prontuário', 'ux:copiar:' + ck]],
-    [['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, textoCond, botoes, messageId);
+  var linhas = [[['📋 Copiar para Prontuário', 'ux:copiar:' + ck]]];
+  return enviarTelaBotComNavegacao(chat, textoCond, linhas, 'sala', messageId);
 }
 
 /* ========== Cenário 2: 🛏️ Enfermaria & Prescrição Rápida ========== */
 
 function enviarMenuEnfermaria(chat, messageId) {
   var texto = '🛏️ *ENFERMARIA & PRESCRIÇÃO*\nSelecione a ferramenta ou envie o caso diretamente:';
-  var botoes = botoesBot([
+  var linhas = [
     [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:enf:sbar']],
     [['🧪 Clearance (Cockcroft)', 'ux:enf:clcr'], ['💊 Ajuste Renal ATB', 'ux:enf:ajuste']],
     [['💧 Hidratação / Holliday', 'ux:enf:hidratacao'], ['📋 Prescrição Hospitalar', 'ux:enf:rxh']],
-    [['💊 Sintomáticos / SOS', 'ux:enf:sintomaticos']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['💊 Sintomáticos / SOS', 'ux:enf:sintomaticos']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 
 function enviarTelaEnfClearance(chat, messageId) {
@@ -737,11 +790,10 @@ function enviarTelaEnfClearance(chat, messageId) {
     '• `/crcl 65 anos, 70kg, cr 1.8, masculino`\n' +
     '• `/crcl 80 anos, 55kg, cr 2.1, fem, medicações: vancomicina`\n' +
     '• `/clearance 45a, 80kg, cr 3.5, mulher, enoxaparina`';
-  var botoes = botoesBot([
-    [['🧪 Cockcroft 70kg Cr 1.2 M', 'calc_Cockcroft'], ['📊 CKD-EPI (TFG)', 'calc_CKD']],
-    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [
+    [['🧪 Cockcroft 70kg Cr 1.2 M', 'calc_Cockcroft'], ['📊 CKD-EPI (TFG)', 'calc_CKD']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'enf', messageId);
 }
 
 function enviarTelaEnfAjusteATB(chat, messageId) {
@@ -753,12 +805,11 @@ function enviarTelaEnfAjusteATB(chat, messageId) {
     '• `/atb pip-tazo clcr 30`\n' +
     '• `/atb cefepime hd`\n' +
     '• `/atb polimixina b 10`';
-  var botoes = botoesBot([
+  var linhas = [
     [['💊 Meropenem ClCr 25', 'ux:atb:mero25'], ['💊 Pip-Tazo ClCr 30', 'ux:atb:tazo30']],
-    [['💊 Cefepime HD', 'ux:atb:cefepimehd'], ['💊 Vanco ClCr 40', 'ux:atb:vanco40']],
-    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['💊 Cefepime HD', 'ux:atb:cefepimehd'], ['💊 Vanco ClCr 40', 'ux:atb:vanco40']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'enf', messageId);
 }
 
 function enviarTelaEnfHidratacao(chat, messageId) {
@@ -768,11 +819,10 @@ function enviarTelaEnfHidratacao(chat, messageId) {
     '• `/holliday 8kg` (Manutenção, vazão em bomba, eletrólitos SBP e TIG)\n' +
     '• `/holliday 11kg bronquiolite` (Restrição a 70% p/ prevenir sobrecarga)\n' +
     '• `/nutriped 6kg 3 meses partida` (Avaliação nutricional completa)';
-  var botoes = botoesBot([
-    [['💧 Holliday 8kg', 'ux:hol:8kg'], ['💧 Holliday 11kg Bronquiolite', 'ux:hol:11kg_bva']],
-    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [
+    [['💧 Holliday 8kg', 'ux:hol:8kg'], ['💧 Holliday 11kg Bronquiolite', 'ux:hol:11kg_bva']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'enf', messageId);
 }
 
 function enviarTelaEnfPrescricaoHosp(chat, messageId) {
@@ -780,11 +830,8 @@ function enviarTelaEnfPrescricaoHosp(chat, messageId) {
     'Gere uma prescrição de internação padronizada (10 itens) com auditoria de segurança:\n\n' +
     '💡 *Envie os dados do caso por texto ou áudio:*\n' +
     '`/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`';
-  var botoes = botoesBot([
-    [['📋 Gerar Exemplo (PAC Grave)', 'ux:rxh:exemplo_pac']],
-    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [[['📋 Gerar Exemplo (PAC Grave)', 'ux:rxh:exemplo_pac']]];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'enf', messageId);
 }
 
 function tratarCallbackEnfSBAR(chat, messageId) {
@@ -799,11 +846,7 @@ function tratarCallbackEnfSBAR(chat, messageId) {
       '🏥 Nenhum leito registrado na enfermaria para passar plantão.\n\n' +
       '💡 Registre os leitos usando `/leito <num> <evolução>` antes de gerar a passagem.\n' +
       'Exemplo: `/leito 4 72a, PAC grave, Ceftriaxona D3, aguarda vaga CTI`';
-    var botoesVazio = botoesBot([
-      [['🏥 Painel de Leitos', 'ux:painel:0']],
-      [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-    ]);
-    return enviarTelaBot(chat, textoVazio, botoesVazio, messageId);
+    return enviarTelaBotComNavegacao(chat, textoVazio, [[['🏥 Painel de Leitos', 'ux:painel:0']]], 'enf', messageId);
   }
 
   // 100% DETERMINÍSTICO EM 0ms BEIRA-LEITO
@@ -819,13 +862,12 @@ function tratarCallbackEnfSBAR(chat, messageId) {
     btnCopiar = [{ text: '📋 Copiar Conduta/Passagem para Prontuário', callback_data: 'ux:copiar:' + ckSbar }];
   }
 
-  var botoesSbar = botoesBot([
+  var linhasSbar = [
     [btnCopiar[0]],
-    [['🏥 Painel de Leitos', 'ux:painel:0'], ['🔄 Atualizar SBAR', 'ux:enf:sbar']],
-    [['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
+    [['🏥 Painel de Leitos', 'ux:painel:0'], ['🔄 Atualizar SBAR', 'ux:enf:sbar']]
+  ];
 
-  return enviarTelaBot(chat, sbarTexto, botoesSbar, messageId);
+  return enviarTelaBotComNavegacao(chat, sbarTexto, linhasSbar, 'enf', messageId);
 }
 var enviarTelaEnfSBAR = tratarCallbackEnfSBAR;
 
@@ -835,14 +877,13 @@ function enviarMenuAmbulatorio(chat, messageId) {
   var texto = '🩺 *AMBULATÓRIO & ATENÇÃO PRIMÁRIA (UBS)*\n\n' +
     'Prontuário estruturado, referências de Atenção Básica e condutas em 0ms:\n' +
     'Selecione a ferramenta ambulatorial desejada:';
-  var botoes = botoesBot([
+  var linhas = [
     [['📝 SOAP Ambulatorial', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
     [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado CFM', 'ux:amb:atestado']],
     [['🩺 Guia SISREG / Parecer', 'ux:amb:sisreg'], ['🌸 Preventivo', 'ux:rotina:preventivo']],
-    [['🤰 Hub G&O', 'ux:rotina:go']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['🤰 Hub G&O', 'ux:rotina:go']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 
 function enviarTelaAmbSoap(chat, messageId) {
@@ -854,11 +895,8 @@ function enviarTelaAmbSoap(chat, messageId) {
     "• *P (Plano):* Prescrição REMUME, exames complementares, MEV (estilo de vida), alarmes e retorno.\n\n" +
     "👉 *Envie os dados do caso clínico por áudio ou texto, ou toque abaixo para iniciar*:";
 
-  var botoes = botoesBot([
-    [['📝 Iniciar SOAP', 'ux:iniciar:soap']],
-    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [[['📝 Iniciar SOAP', 'ux:iniciar:soap']]];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'amb', messageId);
 }
 
 function tratarCallbackAmbSoap(chat, valor, messageId) {
@@ -1281,11 +1319,8 @@ function enviarTelaAmbExameFisico(chat, messageId) {
   var ckEf = Utilities.getUuid().replace(/-/g, '');
   safePutCache(cache, ckEf, textoEf, 21600);
 
-  var botoes = botoesBot([
-    [['📋 Copiar Exame Físico', 'ux:copiar:' + ckEf]],
-    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [[['📋 Copiar Exame Físico', 'ux:copiar:' + ckEf]]];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'amb', messageId);
 }
 
 function enviarTelaAmbSisreg(chat, messageId) {
@@ -1307,11 +1342,8 @@ function enviarTelaAmbSisreg(chat, messageId) {
   var ckSis = Utilities.getUuid().replace(/-/g, '');
   safePutCache(cache, ckSis, textoSisreg, 21600);
 
-  var botoes = botoesBot([
-    [['📋 Copiar Guia SISREG', 'ux:copiar:' + ckSis]],
-    [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+  var linhas = [[['📋 Copiar Guia SISREG', 'ux:copiar:' + ckSis]]];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'amb', messageId);
 }
 
 /* ========== Cenário 4: 💊 Consultas Rápidas de Bolso ========== */
@@ -1320,13 +1352,12 @@ function enviarMenuConsultasBolso(chat, messageId) {
   var texto = '💊 *CONSULTAS RÁPIDAS DE BOLSO*\n\n' +
     'Guias de referência imediata beira-leito (0ms determinístico):\n' +
     'Selecione o guia clínico desejado:';
-  var botoes = botoesBot([
+  var linhas = [
     [['🦠 Antibióticos por Foco', 'ux:bolso:atb'], ['👶 Doses Pediátricas (kg)', 'ux:bolso:ped']],
     [['🤰 Gestação & Lactação', 'ux:bolso:gestacao'], ['⚠️ Interações Graves', 'ux:bolso:interacao']],
-    [['💉 Diluição & Preparo HSL', 'ux:bolso:hsl'], ['📐 Calculadoras Clínicas', 'ux:hub:calc']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]);
-  return enviarTelaBot(chat, texto, botoes, messageId);
+    [['💉 Diluição & Preparo HSL', 'ux:bolso:hsl'], ['📐 Calculadoras Clínicas', 'ux:hub:calc']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 
 function enviarTelaBolsoATB(chat, messageId) {
@@ -1803,13 +1834,13 @@ function enviarMenuUXCalculadoras(chat, messageId) {
     '• 🧠 *Glasgow-P:* Escala de coma com reatividade pupilar e indicação de IOT\n' +
     '• 🔥 *Parkland:* Ressuscitação volêmica em queimados (RL 4 mL/kg/%)';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['🩸 Gasometria Arterial', 'ux:calc:gaso'], ['💉 Drogas Vasoativas', 'ux:calc:dva']],
     [['🧪 Cockcroft vs CKD-EPI', 'ux:calc:crcl'], ['💧 Holliday-Segar', 'ux:calc:holliday']],
     [['🧠 Glasgow-P (TCE)', 'ux:calc:glasgow'], ['🔥 Parkland (Queimados)', 'ux:calc:parkland']],
-    [['📊 Todos os Escores & Índices', 'calc_menu_principal'], ['🚨 Sala Vermelha', 'ux:sala']],
-    [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['📊 Todos os Escores & Índices', 'calc_menu_principal'], ['🚨 Sala Vermelha', 'ux:sala']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 
 function enviarTelaCalcGaso(chat, messageId) {
@@ -1822,11 +1853,11 @@ function enviarTelaCalcGaso(chat, messageId) {
     '💡 *Envie os dados no chat ou toque em um caso clínico para cálculo instantâneo:*\n' +
     '• Exemplo de comando: `/gaso pH 7.24 pCO2 22 HCO3 9 Na 138 Cl 101`';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['🧪 Cetoacidose (pH 7.18)', 'ux:calc:gaso_cad'], ['🫁 DPOC Descompensado (pH 7.30)', 'ux:calc:gaso_dpoc']],
-    [['💧 Alcalose Vômitos (pH 7.52)', 'ux:calc:gaso_vomitos'], ['🌬️ Ansiedade / Alcalose Resp', 'ux:calc:gaso_ansiedade']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['💧 Alcalose Vômitos (pH 7.52)', 'ux:calc:gaso_vomitos'], ['🌬️ Ansiedade / Alcalose Resp', 'ux:calc:gaso_ansiedade']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
 }
 
 function enviarTelaCalcRenal(chat, messageId) {
@@ -1836,11 +1867,11 @@ function enviarTelaCalcRenal(chat, messageId) {
     '💡 *Envie os dados no chat ou toque em um caso clínico para cálculo instantâneo:*\n' +
     '• Exemplo de comando: `/calc ckd Cr 1.4 idade 68 mulher peso 62`';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['👴 Homem 68a, 70kg, Cr 1.8', 'ux:calc:renal_ex1'], ['👵 Mulher 74a, 56kg, Cr 1.3', 'ux:calc:renal_ex2']],
-    [['🧑 Jovem 28a, 78kg, Cr 0.9', 'ux:calc:renal_ex3'], ['🚨 DRC Grave Cr 3.2 (65a, M)', 'ux:calc:renal_ex4']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['🧑 Jovem 28a, 78kg, Cr 0.9', 'ux:calc:renal_ex3'], ['🚨 DRC Grave Cr 3.2 (65a, M)', 'ux:calc:renal_ex4']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
 }
 
 function enviarTelaCalcHolliday(chat, messageId) {
@@ -1851,11 +1882,11 @@ function enviarTelaCalcHolliday(chat, messageId) {
     '💡 *Envie o peso no chat ou selecione um perfil pediátrico:*\n' +
     '• Exemplo de comando: `/holliday 14kg`';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['👶 Lactente 8 kg (Manutenção)', 'ux:calc:hol_ex1'], ['🧒 Pré-escolar 14 kg (Manutenção)', 'ux:calc:hol_ex2']],
-    [['👦 Escolar 22 kg (Manutenção)', 'ux:calc:hol_ex3'], ['🫁 Restrição Bronquiolite 11 kg', 'ux:calc:hol_ex4']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['👦 Escolar 22 kg (Manutenção)', 'ux:calc:hol_ex3'], ['🫁 Restrição Bronquiolite 11 kg', 'ux:calc:hol_ex4']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
 }
 
 function enviarTelaCalcGlasgow(chat, messageId) {
@@ -1868,11 +1899,11 @@ function enviarTelaCalcGlasgow(chat, messageId) {
     '💡 *Envie no chat ou toque em uma estratificação rápida:*\n' +
     '• Exemplo de comando: `/calc glasgow O3 V4 M5 P0`';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['🟢 Alerta GCS 15 (O4 V5 M6 P0)', 'ux:calc:gcs_ex1'], ['🟡 TCE Moderado GCS 11 (O3 V3 M5 P0)', 'ux:calc:gcs_ex2']],
-    [['🔴 TCE Grave GCS 7 (IOT Imediata)', 'ux:calc:gcs_ex3'], ['🚨 Midríase Bilateral GCS 4-P2', 'ux:calc:gcs_ex4']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['🔴 TCE Grave GCS 7 (IOT Imediata)', 'ux:calc:gcs_ex3'], ['🚨 Midríase Bilateral GCS 4-P2', 'ux:calc:gcs_ex4']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
 }
 
 function enviarTelaCalcParkland(chat, messageId) {
@@ -1884,11 +1915,11 @@ function enviarTelaCalcParkland(chat, messageId) {
     '💡 *Envie peso e SCQ no chat ou toque em um caso clínico para cálculo instantâneo:*\n' +
     '• Exemplo de comando: `/calc parkland 70kg 25%`';
 
-  return enviarTelaBot(chat, texto, botoesBot([
+  var linhas = [
     [['🔥 Adulto 70 kg · 20% SCQ', 'ux:calc:park_ex1'], ['🔥 Adulto 80 kg · 35% SCQ', 'ux:calc:park_ex2']],
-    [['🔥 Adulto 65 kg · 15% SCQ', 'ux:calc:park_ex3'], ['🔥 Grande Queimado 75 kg · 45%', 'ux:calc:park_ex4']],
-    [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
-  ]), messageId);
+    [['🔥 Adulto 65 kg · 15% SCQ', 'ux:calc:park_ex3'], ['🔥 Grande Queimado 75 kg · 45%', 'ux:calc:park_ex4']]
+  ];
+  return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
 }
 
 function tratarCallbackUXCalc(chat, v, msgId) {

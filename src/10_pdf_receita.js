@@ -31,6 +31,55 @@ var ReceitaPdfService = (function() {
     return "Ao Portador";
   }
 
+  var MARCADORES_CORTE_RECEITA = [
+    "NOTAS CLÍNICAS", "NOTAS CLINICAS", "MEMÓRIA DE CÁLCULO", "MEMORIA DE CALCULO",
+    "PARA CONFERÊNCIA", "PARA CONFERENCIA", "PRONTUÁRIO", "PRONTUARIO",
+    "JUSTIFICATIVA", "INDICAÇÃO CLÍNICA", "INDICACAO CLINICA", "ATENÇÃO:", "ATENCAO:"
+  ];
+
+  function podarNotasClinicasPrescricao_(texto) {
+    var indiceCorte = texto.length;
+    for (var i = 0; i < MARCADORES_CORTE_RECEITA.length; i++) {
+      var pos = texto.toUpperCase().indexOf(MARCADORES_CORTE_RECEITA[i]);
+      if (pos !== -1 && pos > 80 && pos < indiceCorte) {
+        indiceCorte = pos;
+      }
+    }
+    return texto.substring(0, indiceCorte);
+  }
+
+  function extrairDivisaoNomeQuantidade_(conteudoLinha) {
+    var partesDivisao = conteudoLinha.split(/\s+[-—–➔>]+\s+/);
+    if (partesDivisao.length > 1) {
+      return {
+        nome: partesDivisao[0].trim(),
+        quantidade: partesDivisao.slice(1).join(" - ").trim()
+      };
+    }
+    return {
+      nome: conteudoLinha.trim(),
+      quantidade: ""
+    };
+  }
+
+  function criarItemFallback_(textoUtil, regexIgnorar, viaAtual) {
+    var linhasPuras = textoUtil.split("\n");
+    var blocoLimpo = [];
+    for (var k = 0; k < linhasPuras.length; k++) {
+      var lp = linhasPuras[k].replace(/[*_#`]/g, "").trim();
+      if (lp && !regexIgnorar.test(lp) && lp.indexOf("PRESCRIÇÃO") === -1 && lp.indexOf("RECEITUÁRIO") === -1) {
+        blocoLimpo.push(escHtml(lp));
+      }
+    }
+    if (blocoLimpo.length === 0) return null;
+    return {
+      via: viaAtual,
+      nome: blocoLimpo[0],
+      quantidade: "",
+      posologia: blocoLimpo.slice(1).join("<br>")
+    };
+  }
+
   /**
    * Parser inteligente que extrai EXCLUSIVAMENTE os medicamentos, quantidades e modo de tomar,
    * descartando notas de prontuário, memórias de cálculo, justificativas e avisos de IA.
@@ -38,22 +87,7 @@ var ReceitaPdfService = (function() {
   function extrairItensReceitaLimpos(textoPrescricao) {
     var texto = String(textoPrescricao || "");
     var ehRascunho = /rascunho/i.test(texto);
-
-    // 1. Se contiver a seção de notas clínicas ou prontuário, corta o texto para ignorar completamente
-    var marcadoresCorte = [
-      "NOTAS CLÍNICAS", "NOTAS CLINICAS", "MEMÓRIA DE CÁLCULO", "MEMORIA DE CALCULO",
-      "PARA CONFERÊNCIA", "PARA CONFERENCIA", "PRONTUÁRIO", "PRONTUARIO",
-      "JUSTIFICATIVA", "INDICAÇÃO CLÍNICA", "INDICACAO CLINICA", "ATENÇÃO:", "ATENCAO:"
-    ];
-
-    var indiceCorte = texto.length;
-    for (var i = 0; i < marcadoresCorte.length; i++) {
-      var pos = texto.toUpperCase().indexOf(marcadoresCorte[i]);
-      if (pos !== -1 && pos > 80 && pos < indiceCorte) {
-        indiceCorte = pos;
-      }
-    }
-    var textoUtil = texto.substring(0, indiceCorte);
+    var textoUtil = podarNotasClinicasPrescricao_(texto);
 
     var linhas = textoUtil.split("\n");
     var itens = [];
@@ -124,18 +158,11 @@ var ReceitaPdfService = (function() {
           itens.push(itemAtual);
         }
 
-        var nomeMedicamento = conteudoLinha;
-        var qtdMedicamento = "";
-        var partesDivisao = conteudoLinha.split(/\s+[-—–➔>]+\s+/);
-        if (partesDivisao.length > 1) {
-          nomeMedicamento = partesDivisao[0].trim();
-          qtdMedicamento = partesDivisao.slice(1).join(" - ").trim();
-        }
-
+        var parsed = extrairDivisaoNomeQuantidade_(conteudoLinha);
         itemAtual = {
           via: viaAtual,
-          nome: escHtml(nomeMedicamento),
-          quantidade: escHtml(qtdMedicamento),
+          nome: escHtml(parsed.nome),
+          quantidade: escHtml(parsed.quantidade),
           posologia: ""
         };
         continue;
@@ -161,21 +188,9 @@ var ReceitaPdfService = (function() {
 
     // Fallback se nenhum item estruturado foi encontrado
     if (itens.length === 0) {
-      var linhasPuras = textoUtil.split("\n");
-      var blocoLimpo = [];
-      for (var k = 0; k < linhasPuras.length; k++) {
-        var lp = linhasPuras[k].replace(/[*_#`]/g, "").trim();
-        if (lp && !regexIgnorar.test(lp) && lp.indexOf("PRESCRIÇÃO") === -1 && lp.indexOf("RECEITUÁRIO") === -1) {
-          blocoLimpo.push(escHtml(lp));
-        }
-      }
-      if (blocoLimpo.length > 0) {
-        itens.push({
-          via: viaAtual,
-          nome: blocoLimpo[0],
-          quantidade: "",
-          posologia: blocoLimpo.slice(1).join("<br>")
-        });
+      var itemFb = criarItemFallback_(textoUtil, regexIgnorar, viaAtual);
+      if (itemFb) {
+        itens.push(itemFb);
       }
     }
 
@@ -186,64 +201,67 @@ var ReceitaPdfService = (function() {
     };
   }
 
-  function gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente) {
-    var dados = extrairItensReceitaLimpos(textoPrescricao);
-
-    // Agrupa itens por via de administração
+  function agruparItensPorVia_(itens) {
     var viasMap = {};
-    for (var i = 0; i < dados.itens.length; i++) {
-      var item = dados.itens[i];
+    for (var i = 0; i < itens.length; i++) {
+      var item = itens[i];
       var v = item.via || "";
       if (!viasMap[v]) viasMap[v] = [];
       viasMap[v].push(item);
     }
+    return viasMap;
+  }
 
+  function renderizarTabelaViasHtml_(viasMap) {
     var htmlCorpo = "";
     var contadorGeral = 1;
 
     for (var nomeVia in viasMap) {
       if (nomeVia) {
-        htmlCorpo += "<div style='margin-top: 14px; margin-bottom: 6px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 2px;'>";
-        htmlCorpo += escHtml(nomeVia);
-        htmlCorpo += "</div>";
+        htmlCorpo += "<div style='margin-top: 14px; margin-bottom: 6px; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 2px;'>" +
+          escHtml(nomeVia) +
+          "</div>";
       }
       htmlCorpo += "<table width='100%' cellpadding='0' cellspacing='0' style='width: 100%; margin-bottom: 10px;'>";
 
       var lista = viasMap[nomeVia];
       for (var j = 0; j < lista.length; j++) {
         var m = lista[j];
-        htmlCorpo += "<tr>";
-        htmlCorpo += "  <td align='left' style='font-weight: bold; padding-top: 6px; padding-bottom: 3px; vertical-align: top;'>";
-        htmlCorpo += "    " + contadorGeral + ". " + m.nome;
-        htmlCorpo += "  </td>";
-        htmlCorpo += "  <td align='right' style='font-weight: normal; white-space: nowrap; padding-top: 6px; vertical-align: top;'>";
+        htmlCorpo += "<tr>" +
+          "  <td align='left' style='font-weight: bold; padding-top: 6px; padding-bottom: 3px; vertical-align: top;'>" +
+          "    " + contadorGeral + ". " + m.nome +
+          "  </td>" +
+          "  <td align='right' style='font-weight: normal; white-space: nowrap; padding-top: 6px; vertical-align: top;'>";
         if (m.quantidade) {
           htmlCorpo += "    ----------------- " + m.quantidade;
         }
-        htmlCorpo += "  </td>";
-        htmlCorpo += "</tr>";
+        htmlCorpo += "  </td>" +
+          "</tr>";
         if (m.posologia) {
-          htmlCorpo += "<tr>";
-          htmlCorpo += "  <td colspan='2' align='left' style='padding-left: 20px; line-height: 1.45; padding-bottom: 8px;'>";
-          htmlCorpo += "    " + m.posologia;
-          htmlCorpo += "  </td>";
-          htmlCorpo += "</tr>";
+          htmlCorpo += "<tr>" +
+            "  <td colspan='2' align='left' style='padding-left: 20px; line-height: 1.45; padding-bottom: 8px;'>" +
+            "    " + m.posologia +
+            "  </td>" +
+            "</tr>";
         }
         contadorGeral++;
       }
       htmlCorpo += "</table>";
     }
+    return htmlCorpo;
+  }
 
-    var htmlOrientacoes = "";
-    if (dados.orientacoes && dados.orientacoes.length > 0) {
-      htmlOrientacoes = "<div style='margin-top: 18px; border-top: 1px solid #000000; padding-top: 8px;'>" +
-        "<div style='font-weight: bold; text-transform: uppercase; margin-bottom: 4px;'>Orientações:</div>" +
-        "<div style='line-height: 1.4; padding-left: 8px;'>" +
-        dados.orientacoes.map(function(o) { return "• " + o + "<br>"; }).join("") +
-        "</div>" +
-        "</div>";
-    }
+  function renderizarBlocoOrientacoesHtml_(orientacoes) {
+    if (!orientacoes || orientacoes.length === 0) return "";
+    return "<div style='margin-top: 18px; border-top: 1px solid #000000; padding-top: 8px;'>" +
+      "<div style='font-weight: bold; text-transform: uppercase; margin-bottom: 4px;'>Orientações:</div>" +
+      "<div style='line-height: 1.4; padding-left: 8px;'>" +
+      orientacoes.map(function(o) { return "• " + o + "<br>"; }).join("") +
+      "</div>" +
+      "</div>";
+  }
 
+  function renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes) {
     return "<!DOCTYPE html>" +
       "<html><head><meta charset='utf-8'>" +
       "<style>" +
@@ -279,6 +297,14 @@ var ReceitaPdfService = (function() {
       "</body></html>";
   }
 
+  function gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente) {
+    var dados = extrairItensReceitaLimpos(textoPrescricao);
+    var viasMap = agruparItensPorVia_(dados.itens);
+    var htmlCorpo = renderizarTabelaViasHtml_(viasMap);
+    var htmlOrientacoes = renderizarBlocoOrientacoesHtml_(dados.orientacoes);
+    return renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes);
+  }
+
   function obterOuCriarPastaDrive() {
     if(typeof DriveApp==="undefined")return null;
     var props=PropertiesService.getScriptProperties();
@@ -287,6 +313,33 @@ var ReceitaPdfService = (function() {
     if(!id){folder.setSharing(DriveApp.Access.PRIVATE,DriveApp.Permission.NONE);props.setProperty("RECEITAS_PASTA_PRIVADA_ID",folder.getId());}
     if(folder.getSharingAccess()!==DriveApp.Access.PRIVATE || folder.getEditors().length || folder.getViewers().length)throw new Error("A pasta de receitas precisa ter acesso restrito ao proprietário.");
     return folder;
+  }
+
+  function obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada) {
+    var blobPdf = null;
+    if (typeof gerarPdfReceitaNativo === "function") {
+      try {
+        var pdfBytes = gerarPdfReceitaNativo({
+          nomePaciente: nomePaciente,
+          dataFormatada: dataFormatada,
+          itens: dadosEstruturados.itens,
+          orientacoes: dadosEstruturados.orientacoes,
+          ehRascunho: dadosEstruturados.ehRascunho
+        });
+        if (pdfBytes) {
+          blobPdf = Utilities.newBlob(pdfBytes, "application/pdf", nomeBase + ".pdf");
+        }
+      } catch (ePdfNativo) {
+        Logger.log("Aviso ao gerar PDF nativo: " + ePdfNativo.message);
+      }
+    }
+
+    if (!blobPdf) {
+      var blobHtml = Utilities.newBlob(html, "text/html", nomeBase + ".html");
+      blobPdf = blobHtml.getAs("application/pdf");
+      blobPdf.setName(nomeBase + ".pdf");
+    }
+    return blobPdf;
   }
 
   return {
@@ -307,33 +360,14 @@ var ReceitaPdfService = (function() {
       var stampArquivo = Utilities.formatDate(agora, tz, "yyyyMMdd_HHmm");
       var nomePaciente = extrairNomePaciente(textoPrescricao);
 
-      var html = gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente);
+      var dadosEstruturados = extrairItensReceitaLimpos(textoPrescricao);
+      var viasMap = agruparItensPorVia_(dadosEstruturados.itens);
+      var htmlCorpo = renderizarTabelaViasHtml_(viasMap);
+      var htmlOrientacoes = renderizarBlocoOrientacoesHtml_(dadosEstruturados.orientacoes);
+      var html = renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes);
+
       var nomeBase = "Receita_" + stampArquivo + "_" + nomePaciente.replace(/\s+/g, "_");
-
-      var blobPdf = null;
-      if (typeof gerarPdfReceitaNativo === "function") {
-        try {
-          var dadosEstruturados = extrairItensReceitaLimpos(textoPrescricao);
-          var pdfBytes = gerarPdfReceitaNativo({
-            nomePaciente: nomePaciente,
-            dataFormatada: dataFormatada,
-            itens: dadosEstruturados.itens,
-            orientacoes: dadosEstruturados.orientacoes,
-            ehRascunho: dadosEstruturados.ehRascunho
-          });
-          if (pdfBytes) {
-            blobPdf = Utilities.newBlob(pdfBytes, "application/pdf", nomeBase + ".pdf");
-          }
-        } catch (ePdfNativo) {
-          Logger.log("Aviso ao gerar PDF nativo: " + ePdfNativo.message);
-        }
-      }
-
-      if (!blobPdf) {
-        var blobHtml = Utilities.newBlob(html, "text/html", nomeBase + ".html");
-        blobPdf = blobHtml.getAs("application/pdf");
-        blobPdf.setName(nomeBase + ".pdf");
-      }
+      var blobPdf = obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada);
 
       var linkDrive = "";
       try {

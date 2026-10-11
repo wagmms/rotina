@@ -807,12 +807,29 @@ function _iaResolverTruncamento(chamar, tokens, r, ctx, json) {
 function _iaOrdemProvedores() {
   const padrao = String(_iaCfg("PROVEDOR_TEXTO_PADRAO", "GEMINI")).toUpperCase();
   const ativoLocal = String(_iaCfg("LOCAL_LLM_ATIVO", "auto")).toLowerCase();
-  const canonica = ativoLocal === "false"
-    ? ["GEMINI", "GROQ", "OPENROUTER", "ZAI"]
-    : ["GEMINI", "GROQ", "OPENROUTER", "ZAI", "LOCAL"];
+  const temUrlLocal = Boolean(_iaCfg("LOCAL_LLM_URL", ""));
 
-  const priorizados = canonica.includes(padrao) ? [padrao, ...canonica] : canonica;
-  return [...new Set(priorizados)];
+  // Fast-Path: Gemini é o provedor canônico prioritário do ecossistema
+  const lista = [padrao || "GEMINI"];
+  if (!lista.includes("GEMINI")) lista.push("GEMINI");
+
+  // Provedores secundários adicionados exclusivamente se credenciais ativas estiverem presentes
+  if ((_iaCfg("OPENROUTER_API_KEY", "") || padrao === "OPENROUTER") && !lista.includes("OPENROUTER")) {
+    lista.push("OPENROUTER");
+  }
+  if ((_iaCfg("ZAI_API_KEY", "") || padrao === "ZAI") && !lista.includes("ZAI")) {
+    lista.push("ZAI");
+  }
+  if ((_iaCfg("GROQ_API_KEY", "") || padrao === "GROQ") && !lista.includes("GROQ")) {
+    lista.push("GROQ");
+  }
+
+  // Provedor local (incluído se configurado explicitamente, com URL ativa ou em modo auto)
+  if (ativoLocal !== "false" && (temUrlLocal || ativoLocal === "true" || padrao === "LOCAL" || ativoLocal === "auto")) {
+    if (!lista.includes("LOCAL")) lista.push("LOCAL");
+  }
+
+  return [...new Set(lista)];
 }
 
 const DISPATCH_PROVEDORES_IA = {
@@ -871,6 +888,12 @@ function _iaFormatarResultadoProvedor(resposta, opcoes) {
 }
 
 function executarTentativaProvedor(nome, sistema, promptUsuario, tokens, ctx, opcoes) {
+  // Guard Clause: Circuit Breaker aberto para este provedor
+  if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker && !IaCircuitBreaker.podeExecutar(nome)) {
+    _iaLog(ctx, "[CircuitBreaker " + nome + "] ABERTO (cooldown ativo), pulando provedor.");
+    return { sucesso: false, abortar: false, resultado: null };
+  }
+
   const chamar = (t) => _iaChamarProvedor(nome, sistema, promptUsuario, t, ctx, opcoes);
 
   try {
@@ -886,7 +909,7 @@ function executarTentativaProvedor(nome, sistema, promptUsuario, tokens, ctx, op
     // Guard Clause 2: Validação de corpo de texto não-vazio
     const textoValido = r?.texto && String(r.texto).trim();
     if (!textoValido) {
-      _iaRegistrarFalhaCircuito(nome, "Resposta vazia", null);
+      _iaRegistrarFalhaCircuito(nome, "Resposta vazia", ctx);
       return { sucesso: false, abortar: false, resultado: null };
     }
 
@@ -905,6 +928,10 @@ function executarTentativaProvedor(nome, sistema, promptUsuario, tokens, ctx, op
 }
 
 function chamarMotorIaComFallback(sistema, promptUsuario, maxTokens, opcoes = {}) {
+  if (!promptUsuario && !sistema) {
+    return null;
+  }
+
   const tokens = Number(maxTokens) || 2000;
   const ctx = _iaNovoCtx();
   const ordem = _iaOrdemProvedores();
@@ -1367,6 +1394,21 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
   }
   opcoes = opcoes || {};
   base64Data = _iaNormalizarBase64(base64Data);
+
+  var mimeNormalizado = String(mimeType || "audio/ogg").split(";")[0].trim().toLowerCase();
+  if (mimeNormalizado === "audio/oga" || mimeNormalizado === "audio/opus" || mimeNormalizado.indexOf("audio/ogg") !== -1) {
+    mimeNormalizado = "audio/ogg";
+  } else if (mimeNormalizado.indexOf("audio/webm") !== -1) {
+    mimeNormalizado = "audio/webm";
+  } else if (mimeNormalizado.indexOf("audio/mp3") !== -1 || mimeNormalizado.indexOf("audio/mpeg") !== -1) {
+    mimeNormalizado = "audio/mp3";
+  } else if (mimeNormalizado.indexOf("audio/wav") !== -1 || mimeNormalizado.indexOf("audio/x-wav") !== -1) {
+    mimeNormalizado = "audio/wav";
+  } else if (mimeNormalizado.indexOf("audio/mp4") !== -1 || mimeNormalizado.indexOf("audio/m4a") !== -1) {
+    mimeNormalizado = "audio/mp4";
+  }
+  mimeType = mimeNormalizado;
+
   var sistema = [
     IA_PERSONA,
     "MODO: RECONHECIMENTO E ESTRUTURAÇÃO CLÍNICA DE ÁUDIO EM TEMPO ÚNICO (FMRP-USP).",
@@ -1394,7 +1436,13 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
   ].join("\n");
 
   var promptInstrucao = "Por favor, ouça o áudio com atenção aos termos médicos e retorne o JSON estruturado.";
-  var raw = chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opcoes);
+  var raw = null;
+  try {
+    raw = chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opcoes);
+  } catch (eChamarMulti) {
+    Logger.log("Aviso em chamarGeminiPoolMultimodal de áudio: " + (eChamarMulti.message || eChamarMulti));
+    raw = null;
+  }
   if (!raw) {
     if (opcoes.fallbackOffline !== false && typeof IaLocalFallbackService !== "undefined" && IaLocalFallbackService && typeof IaLocalFallbackService.processarAudioClinicoOffline === "function") {
       return IaLocalFallbackService.processarAudioClinicoOffline(base64Data, mimeType, opcoes);

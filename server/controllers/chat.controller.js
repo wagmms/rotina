@@ -86,19 +86,33 @@ async function handlerChat(request, reply, runtime, { registrarInteracaoAoVivo, 
     // Se NÃO for erro de autenticação e for erro de IA/timeout/provedor ou solicitação explícita de fallback:
     const body = request.body || {};
     const texto = body.mensagem || body.texto || body.prompt || '';
-    const ehErroIA = err.message && (/ia|gemini|timeout|timed\s*out|provedor|fetch|quota|socket|redirecionar|conexão/i.test(err.message));
-    if (!isAuthError && texto && (ehErroIA || body.fallbackLocal)) {
+    const audioBase64 = body.audioBase64 || null;
+    const mime = typeof body.mime === 'string' ? body.mime.trim() : 'audio/webm';
+    const ehErroIA = err.message && (/ia|gemini|timeout|timed\s*out|provedor|fetch|quota|socket|redirecionar|conexão|áudio|audio/i.test(err.message));
+    if (!isAuthError && (texto || audioBase64) && (ehErroIA || body.fallbackLocal)) {
       try {
-        const fallbackRes = (runtime.ctx && runtime.ctx.executarFallbackLocalOffline && typeof runtime.ctx.executarFallbackLocalOffline === 'function')
-          ? runtime.ctx.executarFallbackLocalOffline('Você é copiloto médico de emergência.', String(texto), { clinico: true })
-          : (runtime.ctx && runtime.ctx.IaLocalFallbackService ? runtime.ctx.IaLocalFallbackService.gerarRespostaOfflineClinica(null, String(texto)) : null);
+        let fallbackRes = null;
+        let fallbackSoap = '';
+        if (audioBase64 && runtime.ctx && runtime.ctx.IaLocalFallbackService && typeof runtime.ctx.IaLocalFallbackService.processarAudioClinicoOffline === 'function') {
+          const fbAudio = runtime.ctx.IaLocalFallbackService.processarAudioClinicoOffline(audioBase64, mime, { fallbackOffline: true, contextoTexto: texto });
+          if (fbAudio) {
+            fallbackRes = fbAudio.soapTexto || fbAudio.transcricao || 'Áudio clínico em contingência offline.';
+            fallbackSoap = fbAudio.dadosObj || fbAudio.soapTexto || '';
+          }
+        }
+        if (!fallbackRes && texto) {
+          fallbackRes = (runtime.ctx && runtime.ctx.executarFallbackLocalOffline && typeof runtime.ctx.executarFallbackLocalOffline === 'function')
+            ? runtime.ctx.executarFallbackLocalOffline('Você é copiloto médico de emergência.', String(texto), { clinico: true })
+            : (runtime.ctx && runtime.ctx.IaLocalFallbackService ? runtime.ctx.IaLocalFallbackService.gerarRespostaOfflineClinica(null, String(texto)) : null);
+          fallbackSoap = String(fallbackRes);
+        }
 
         if (fallbackRes) {
           if (typeof registrarInteracaoAoVivo === 'function') {
             registrarInteracaoAoVivo({
               origem: 'fastify_rest_chat',
               tipo: 'chat_fallback',
-              resumo: `Chat Fallback: "${String(texto).slice(0, 40)}"`,
+              resumo: `Chat Fallback: "${String(texto || 'Áudio Clínico').slice(0, 40)}"`,
               duracao_ms: Number(elapsed),
               status: 'fallback'
             });
@@ -108,9 +122,9 @@ async function handlerChat(request, reply, runtime, { registrarInteracaoAoVivo, 
             ok: true,
             contingencia_offline: true,
             origem: 'fallback_local_offline',
-            resultado: { resposta: String(fallbackRes), soap: String(fallbackRes), contingencia_offline: true },
+            resultado: { resposta: String(fallbackRes), soap: fallbackSoap || String(fallbackRes), contingencia_offline: true },
             resposta: String(fallbackRes),
-            soap: String(fallbackRes),
+            soap: fallbackSoap || String(fallbackRes),
             aviso: 'Processado pelo Motor de Fallback Local Offline após indisponibilidade temporária do provedor em nuvem.',
             benchmark_ms: Number(elapsed)
           };

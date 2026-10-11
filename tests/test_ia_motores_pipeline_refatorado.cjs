@@ -139,4 +139,40 @@ test('Pipeline de Motores de IA - Refatoração e Resiliência', async (t) => {
       ctx._iaChamarProvedor = origChamar;
     }
   });
+
+  await t.test('9. _iaOrdemProvedores filtra provedores sem credenciais e prioriza Gemini', () => {
+    const props = ctx.PropertiesService.getScriptProperties();
+    const origPadrao = props.getProperty('PROVEDOR_TEXTO_PADRAO');
+    const origGroq = props.getProperty('GROQ_API_KEY');
+    const origLocalAtivo = props.getProperty('LOCAL_LLM_ATIVO');
+    try {
+      props.deleteProperty('GROQ_API_KEY');
+      props.deleteProperty('OPENROUTER_API_KEY');
+      props.deleteProperty('ZAI_API_KEY');
+      props.setProperty('PROVEDOR_TEXTO_PADRAO', 'GEMINI');
+      props.setProperty('LOCAL_LLM_ATIVO', 'false');
+      ctx.ConfigService.invalidar();
+
+      const ordem = ctx._iaOrdemProvedores();
+      assert.strictEqual(ordem.length, 1, 'Deve conter apenas 1 provedor na ausência de chaves externas e local desativado');
+      assert.strictEqual(ordem[0], 'GEMINI', 'Provedor único deve ser GEMINI');
+
+      // Se GROQ_API_KEY for fornecida, deve incluir GROQ
+      props.setProperty('GROQ_API_KEY', 'mock_groq_key');
+      ctx.ConfigService.invalidar();
+      const ordemComGroq = ctx._iaOrdemProvedores();
+      assert.ok(ordemComGroq.includes('GROQ'), 'Deve incluir GROQ quando chave estiver presente');
+    } finally {
+      if (origPadrao) props.setProperty('PROVEDOR_TEXTO_PADRAO', origPadrao); else props.deleteProperty('PROVEDOR_TEXTO_PADRAO');
+      if (origGroq) props.setProperty('GROQ_API_KEY', origGroq); else props.deleteProperty('GROQ_API_KEY');
+      if (origLocalAtivo) props.setProperty('LOCAL_LLM_ATIVO', origLocalAtivo); else props.deleteProperty('LOCAL_LLM_ATIVO');
+      ctx.ConfigService.invalidar();
+    }
+  });
+
+  await t.test('10. chamarMotorIaComFallback retorna null imediatamente para entradas vazias', () => {
+    const res = ctx.chamarMotorIaComFallback('', '', 1000, {});
+    assert.strictEqual(res, null, 'Deve retornar null com guard clause se prompt e sistema forem vazios');
+  });
 });
+

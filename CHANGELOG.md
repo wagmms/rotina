@@ -1,5 +1,119 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C23. [x] **Receitas e Atestados PDF - Decomposição Modular de Parsing e Renderizadores de Layout HTML (`src/10_pdf_receita.js`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Em `src/10_pdf_receita.js`: identificada função monolítica de 150 linhas `extrairItensReceitaLimpos` acumulando corte de texto, regexes de via, parsing de medicamentos e montagem de fallback.
+      * Decompostos helpers atômicos e puros:
+        • `MARCADORES_CORTE_RECEITA` e `podarNotasClinicasPrescricao_(texto)`: poda rápida de notas de prontuário, memórias de cálculo e justificativas clínicas antes do parsing de fármacos.
+        • `extrairDivisaoNomeQuantidade_(conteudoLinha)`: separação limpa de fármaco e quantidade a dispensar com normalização.
+        • `criarItemFallback_(textoUtil, regexIgnorar, viaAtual)`: fallback isolado e seguro para textos não-estruturados.
+        • `agruparItensPorVia_(itens)`: agrupamento puro de medicamentos por via de administração.
+        • `renderizarTabelaViasHtml_(viasMap)`: renderização modular da tabela A4 com alinhamento de posologia e quantidade.
+        • `renderizarBlocoOrientacoesHtml_(orientacoes)`: template dedicado para orientações ao paciente.
+        • `renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes)`: montagem concisa do documento A4 portrait.
+        • `obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada)`: geração de blob via PDF nativo ou HTML com contingência segura.
+      * Reduzida a complexidade ciclomática de `extrairItensReceitaLimpos`, `gerarHtmlReceituario` e `processarEEnviarPdf`, tornando o fluxo límpido e modular.
+      * Cláusula pétrea estritamente inviolável: 100% de integridade dos padrões visuais A4, conformidade de medicamentos, salvaguarda de ausência de dados do médico no PDF e carimbo de conferência médica obrigatória.
+    - **Validação e Resultados**: 100% de aprovação na suíte direcionada (`test_pdf_receita.py` em 0.68s, além de `test_soap_extrair_receita.cjs`, `test_correcao_oitava_rodada.cjs`, `test_soap_modo_e_receita_ux.cjs` em 1.18s). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
+
+0C22. [x] **Telegram Consultas & IA - Desacoplamento Modular de Parsers, Orquestração de IA e Teclados (`src/07c_telegram_consultas_e_ia.js`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Em `src/07c_telegram_consultas_e_ia.js`: decomposta a função monolítica de 170 linhas `processarEEntregarIA` em helpers atômicos, puros e legíveis:
+        • `executarFastAckTelegram_(chatId, messageIdParaEditar)`: isolamento do envio de feedback visual instantâneo beira-leito (<500ms).
+        • `montarLinhaPrimariaCopiar_(tipoCache, cacheKey, strResultado)`: lógica pura de linha de largura total para PEP / Prontuário com suporte a copy_text nativo.
+        • `montarBotoesSoap_(chatId, cacheKey, strResultado, ehErro, linhaPrimaria)`: árvore desacoplada de botões do SOAP para Fase 1 (Rascunho) vs Fase 2 (Consolidado), Notion, Cartão Gestante e Navegação.
+        • `montarBotoesNavegacaoGeral_(tipoCache)`: navegação contextual direta para Rx, Ambulatório, Enfermaria, Sala Vermelha ou Menu.
+        • `montarBotoesGeraisIA_(chatId, tipoCache, cacheKey, strResultado, ehErro, linhaPrimaria)`: orquestração de botões para Rx, Rxh, Conduta, Plantão e Round com checagem de elegibilidade para PDF e Notion.
+        • `aplicarRevisaoSoapBotoes_(botoes, chatId, origemSoap, dados)`: injeção atômica de revisão em callbacks de ação SOAP.
+        • `entregarMensagemFinalIA_(chatId, textoFinal, teclado, messageIdParaEditar)`: despacho modular com tentativa de in-place edit e contingência para envio segmentado.
+      * Em `responderConsultaPosologiaHSL`: extraídos os helpers `formatarMensagemCalculoPediatrico_` e `enviarMensagemMedicamentoNaoEncontrado_`, simplificando a função em guard clauses diretas com early return para cálculo determinístico, PedBook e ficha HSL.
+      * Eliminados aninhamentos profundos e blocos `if/else` quilométricos; `processarEEntregarIA` reduzida a orquestrador limpo de ~35 linhas.
+      * Cláusula pétrea de conteúdo médico, fórmulas pediátricas fixas, segurança beira-leito e links de navegação estritamente preservados.
+    - **Validação e Resultados**: 100% de aprovação nas 8 suítes direcionadas (`test_soap_extrair_receita.cjs`, `test_correcao_oitava_rodada.cjs`, `test_posologia_deterministica.cjs`, `test_keep_alive_typing.cjs`, `test_soap_modo_e_receita_ux.cjs`, `test_hubs_e_comandos_telegram.cjs`, `test_ui_ux_bot.py`, `test_runtime_bot.py` em 5.69s). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
+
+0C21. [x] **Enfermaria e Leitos - Decomposição Modular de Censo e Estrutura Canônica SBAR (`src/09_enfermaria.js` e `tests/test_gestao_leitos_sbar_ux.cjs`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Em `src/09_enfermaria.js`: identificada duplicação na agregação de censo de leitos e acoplamento na montagem de strings do relatório de passagem de plantão SBAR em `formatarPainelBordo` e `gerarPassagemSBARConsolidada`.
+      * Extraídos helpers puros desacoplados:
+        • `STATUS_CANONICO` e `normalizarStatus(statusChave)`: tabela direta O(1) de mapeamento de status (`estavel`, `vigilancia`, `instavel`, `alta`).
+        • `contarCensoLeitos(all, keys)`: consolidação atômica de contagem de pacientes por gravidade clínica com geração de resumos padronizados para painel e SBAR.
+        • `extrairPendenciasLeito(dadosTxt)`: regex pura isolada para extração de pendências ativas (exames, drogas, vagas de CTI, desmames).
+        • `formatarCardLeitoSbar(id, leito, pendencias)`: template modular para exibição beira-leito.
+        • Decomposição do relatório SBAR em 3 seções puras: `formatarSecaoSituacao`, `formatarSecaoHistoricoAvaliacao` e `formatarSecaoRecomendacoes`.
+      * Cláusula pétrea de conteúdo médico, rigor semiológico SBAR e persistência segura de leitos rigorosamente preservadas.
+    - **Validação e Resultados**: 100% de aprovação nas 5 suítes direcionadas de enfermaria (`test_gestao_leitos_sbar_ux.cjs`, `test_enfermaria.py`, `test_enfermaria_ux_fluxos.cjs`, `test_ditado_corredor_enfermaria.cjs`, `test_ditado_corredor_enfermaria.py` em 2.44s). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
+
+0C20. [x] **Calculadoras Puras - Modularização de Ações e Critérios com Tabelas de Despacho O(1) (`src/02_calculadoras_puras.js` e `tests/test_calculadoras_caixa_texto.cjs`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Em `src/02_calculadoras_puras.js`: decomposta a cadeia monolítica de 240 linhas de `else if` aninhados em `processarAcao` em dicionários estáticos imutáveis de despacho O(1):
+        • `DISPATCH_CRITERIOS_ESCORES`: mapeamento direto para escores de referência (CURB-65 / SBPT 2018, Wells TEP / ESC 2019, HAS-BLED / SBC 2025, CHA₂DS₂-VA / ESC 2024 e KDIGO AKI 2012).
+        • `DISPATCH_ACOES_CALCULADORAS`: despacho direto para ações de revisão (`ajuste`, `medicamento`, `anticoag`, `checklist` 7 Ps de SRI, `vad` LEMON, `acidobase` Winter/Delta, `oxigenacao` Berlin SDRA, `dose`/`preparo` Noradrenalina/Vasopressina, `editar`/`voltar`/`peso` e `pdf`).
+      * A função `processarAcao` foi reduzida de 240 linhas aninhadas para apenas 15 linhas limpas, fluindo em O(1) com guard clauses e fallback seguro.
+      * Cláusula pétrea de conteúdo médico, doses farmacológicas, cortes prognósticos e referências bibliográficas rigorosamente preservadas.
+    - **Validação e Resultados**: 100% de aprovação nas 5 suítes direcionadas de calculadoras (`test_calculadoras_caixa_texto.cjs`, `test_calculadoras_caixa_texto.py`, `test_calculadoras_clinicas.py`, `test_calculadoras_ux.cjs`, `test_schemas_validacao_calculadoras.cjs` em 3.07s). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
+
+0C19. [x] **Servidor Fastify - Decomposição de Handlers Inline de Rotas e Controladores Desacoplados (`server/index.js`, `server/controllers/` e `tests/test_server_render.py`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Em `server/index.js`: identificados handlers monolíticos acumulando quase 500 linhas de lógica de negócios, validação manual repetitiva de prototype pollution e blocos try/catch aninhados nas rotas `/api/calcular`, `/api/cockpit` e `/api/chat`.
+      * Decompostos e conectados os controladores desacoplados em `server/controllers/`:
+        • `calculadora.controller.js`: pré-validação segura (`preValidationCalcular`) e execução RPC com benchmark e telemetria (`handlerCalcular`).
+        • `cockpit.controller.js`: pré-validação (`preValidationCockpit`), validação estrita de calculadora, otimização de caching HTTP com ETag/304 e telemetria (`handlerCockpit`).
+        • `chat.controller.js`: pré-validação (`preValidationChat`), parsing de sessão/prompt, execução RPC com contingência offline multimodal para texto e áudio clínico (`handlerChat`).
+        • `utils.js`: funções puras compartilhadas (`verificarPayloadSeguro`, `ehErroAutenticacaoOuSessao`, `sanitizarMensagemErro`, `etagCorresponde`, `COCKPIT_READ_METHODS`).
+      * Redução de ~500 linhas em `server/index.js`, que passa a ter rotas enxutas, lisas e dedicadas exclusivamente ao transporte HTTP e validação de schema Fastify.
+      * Cláusula pétrea de conteúdo médico, doses farmacológicas e salvaguardas de toxicidade rigorosamente preservadas.
+    - **Validação e Resultados**: 100% de aprovação nas suítes direcionadas do servidor (`test_server_render.py`, `test_server_render.cjs`, `test_server_telemetry.cjs`, `test_cockpit_integracao.cjs` em 1.68s); bateria completa de regressão do ecossistema executada com 100% de sucesso (246/246 testes aprovados em 37.17s com zero regressões e código estável). Checksum e bundle `ultra_rotina_master.js` 100% íntegros.
+
+0C18. [x] **Cockpit Integração - Modularização de Handlers de Sincronização, Calculadoras O(1) e Ações Conversacionais (`src/13_cockpit_integracao.js`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Em `src/13_cockpit_integracao.js`: decomposto o switch monolítico de 400 linhas em `cockpitCalcular` em 16 handlers modulares dedicados (`_calcCockpitDva`, `_calcCockpitCompatibilidadeY`, `_calcCockpitSri`, `_calcCockpitCrcl`, `_calcCockpitGaso`, `_calcCockpitAjusteAtb`, `_calcCockpitPediatria`, `_calcCockpitDhe`, `_calcCockpitHeart`, `_calcCockpitAsma`, `_calcCockpitSeguranca`, `_calcCockpitParkland`, `_calcCockpitGlasgow`, `_calcCockpitCkd`, `_calcCockpitCockcroft`, `_calcCockpitCurb65`) despachados em O(1) através do dicionário imutável `DISPATCH_COCKPIT_CALCULADORAS`.
+      * Decomposta a persistência de plantão e SOAP em `salvarSoapCockpit_` em funções puras de extração diagnóstica (`_extrairDiagnosticoSoap`), estratificação de status (`_classificarStatusCasoSoap`) e persistência isolada com desduplicação (`_persistirCasoPlantaoHoje_`).
+      * Decomposto o fluxo de `cockpitConversar` em handlers focados de ação (`_cockpitAcaoNovo`, `_cockpitAcaoEfNormal`, `_cockpitAcaoPlano`, `_cockpitAcaoPreceptor`, `_cockpitAcaoPrescricao`), tabela de despacho `DISPATCH_COCKPIT_ACOES` e processador desacoplado de áudio clínico com contingência offline (`_cockpitProcessarAudioClinico`).
+      * Cláusula pétrea de conteúdo médico, doses farmacológicas e salvaguardas de toxicidade rigorosamente preservadas.
+    - **Validação e Resultados**: 100% de aprovação nas suítes direcionadas de integração (`tests/test_cockpit_integracao.cjs`, `tests/test_cockpit_integracao.py`, `tests/test_cockpit_mini_app.py`, `tests/test_cockpit_carga_e_teclados.cjs` em 1.68s); bateria completa de regressão do ecossistema executada com 100% de sucesso (246/246 testes aprovados em 36.36s com zero regressões). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
+
+0C17. [x] **Motores de IA - Refatoração do Pipeline de Fallback e Resiliência (`src/04_motores_ia.js` e `tests/test_ia_motores_pipeline_refatorado.cjs`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Em `src/04_motores_ia.js`: decomposta a cadeia espaguete de retries e fallbacks de provedores em pipeline linear e desacoplado com *early returns* e *guard clauses* no topo.
+      * Fast-Path otimizado em `_iaOrdemProvedores()`: priorização absoluta do Gemini como motor canônico da aplicação. Provedores secundários legados (Groq, OpenRouter, Zai) são filtrados e somente adicionados se suas credenciais de API estiverem configuradas e ativas no ambiente.
+      * O nó local (`LOCAL`) é mantido em modo auto/ativo apenas se expressamente configurado ou em testes com mock de endpoint, evitando tentativas fantasmas e conexões rejeitadas em ambiente de produção no Render/Docker.
+      * Refatorada `executarTentativaProvedor` com guard clauses sequenciais para Circuit Breaker ativo, validação de payload não-vazio, tratamento determinístico de respostas truncadas e registro imediato de telemetria no Circuit Breaker.
+      * Refatorada `chamarMotorIaComFallback` para pipeline linear: iteração direta com early return no 1º sucesso do provedor; em caso de falha em todas as opções ou ausência de rede, desvio em < 1ms para `_iaAcionarFallbackOffline` (`IaLocalFallbackService.executarFallbackLocalOffline`), garantindo resposta clínica determinística sem degradação ou retenção de thread beira-leito.
+      * Cláusula pétrea de qualidade clínica, doses farmacológicas e salvaguardas de toxicidade rigorosamente preservadas.
+    - **Validação e Resultados**: Expandida a suíte `tests/test_ia_motores_pipeline_refatorado.cjs` para 11 testes unitários (100% aprovada em 0.13s); bateria completa de regressão do ecossistema executada com 100% de sucesso (246/246 testes aprovados em 38.31s com zero regressões). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
+
+0C16. [x] **Experiência do Bot - Fábrica Modular de Teclados (UX Keyboard Builder) e Eliminação de JSON Cru Redundante (`src/12_experiencia_bot.js` e `tests/test_fabrica_teclados_ux.cjs`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Identificadas 95+ ocorrências repetitivas de matrizes manuais de botões de rodapé (`[['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]`, `[['🔙 Sala Vermelha', ...]]`, `[['🔙 Enfermaria', ...]]`, `[['🔙 Calculadoras', ...]]`, etc.) em dezenas de telas e hubs.
+      * Extraída a Fábrica Modular de Teclados (`UX Keyboard Builder`) com a constante canônica `UX_BOTAO_INICIO`, tabela O(1) `UX_DESTINOS_RODAPE` e funções puras modulares:
+        • `uxLinhaNavegacao(destino)`: resolução O(1) de rodapés canônicos e suporte a atalhos customizados.
+        • `uxCriarTeclado(linhas, destinoNavegacao)`: acoplamento automático de linhas de navegação e sanitização via `botoesBot`.
+        • `uxCriarTecladoGrade(itens, colunas, destinoNavegacao)`: particionamento automático de listas em grades limpas (ex: seleção de peso em DVA).
+        • `enviarTelaBotComNavegacao(chat, texto, linhas, destinoNavegacao, messageId)`: despacho conciso em 1 linha de texto e teclado de navegação.
+      * Refatorados com a nova fábrica:
+        • Hubs principais: G&O (`enviarMenuUXGinecoObstetricia`), Sala Vermelha (`enviarMenuSalaVermelha`), DVA (`enviarMenuDva`, `enviarTelaDiluicaoDva`, `enviarTelaPesoDva`), SRI (`enviarMenuSri`) e Condutas (`enviarMenuCondutas`).
+        • Menus específicos de emergência: Dengue (`enviarMenuEmergDengue`), Crise HAS (`enviarMenuEmergCriseHas`), Glasgow (`enviarMenuEmergGlasgow`), Choque (`enviarMenuEmergChoque`), Cefaleia (`enviarMenuEmergCefaleia`) e Conduta com cópia para prontuário (`enviarTelaCondutaEmergencia`).
+        • Hubs de enfermaria e ambulatório: `enviarMenuEnfermaria`, `enviarTelaEnfClearance`, `enviarTelaEnfAjusteATB`, `enviarTelaEnfHidratacao`, `enviarTelaEnfPrescricaoHosp`, `tratarCallbackEnfSBAR`, `enviarMenuAmbulatorio`, `enviarTelaAmbSoap`, `enviarTelaAmbExameFisico` e `enviarTelaAmbSisreg`.
+        • Hubs de consultório e calculadoras: `enviarMenuConsultasBolso`, `enviarMenuUXCalculadoras`, `enviarTelaCalcGaso`, `enviarTelaCalcRenal`, `enviarTelaCalcHolliday`, `enviarTelaCalcGlasgow` e `enviarTelaCalcParkland`.
+      * Cláusula pétrea inviolável de qualidade clínica, doses farmacológicas e callbacks de prontuário rigorosamente preservados.
+    - **Validação e Resultados**: Criada suíte dedicada `tests/test_fabrica_teclados_ux.cjs` (100% aprovada em 0.19s); bateria completa de regressão do ecossistema executada com 100% de sucesso (246/246 testes aprovados em 38.17s com zero regressões). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
+
+0C15. [x] **Telegram Bot & Fastify - Tratamento de Comandos de Voz / Áudio Clínico e Resiliência de Transcrição (`src/07e_telegram_midia_e_leitos.js`, `src/04_motores_ia.js`, `src/13_cockpit_integracao.js`, `server/index.js` e `tests/test_resiliencia_audio_clinico.cjs`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Em `src/07e_telegram_midia_e_leitos.js`: adicionado o alias oficial `processarAudioMensagemTelegram(message)`, sanitização estrita de MIME types com parâmetros de codecs (ex: `audio/ogg; codecs=opus`, `audio/oga`), injeção de `opcoesAudio` defensivo e fallback gracioso em múltiplos níveis para `IaLocalFallbackService.processarAudioClinicoOffline` garantindo que áudios clínicos com ruído ou indisponibilidade de nuvem preservem transcrição e estruturação SOAP sem interrupção de serviço.
+      * Em `src/04_motores_ia.js`: normalização robusta de `mimeType` para formatos canônicos aceitos (`audio/ogg`, `audio/webm`, `audio/mp3`, `audio/wav`, `audio/mp4`) e proteção da chamada `chamarGeminiPoolMultimodal` em bloco `try/catch` para acionar imediatamente o fallback local em caso de timeout, circuit breaker ou erro de rede.
+      * Em `src/13_cockpit_integracao.js`: em `cockpitConversar`, substituído o lançamento de erro cru por retorno imediato em tempo único de SOAP já estruturado por `processarAudioClinicoMultimodal` e fallback offline integrado, cortando 100% de inferências textuais redundantes.
+      * Em `server/index.js`: rota `/api/chat` atualizada para suportar `audioBase64` no fallback de contingência mesmo quando a mensagem textual vier vazia (áudio exclusivo gravado via PWA), retornando status 200 com `contingencia_offline: true`.
+      * Cláusula pétrea de conteúdo médico, doses farmacológicas e salvaguardas de toxicidade rigorosamente preservadas.
+    - **Validação e Resultados**: Criada suíte dedicada `tests/test_resiliencia_audio_clinico.cjs` aprovada em 0.20s; 100% de sucesso na bateria completa de regressão do ecossistema (245/245 testes aprovados em 35.37s com zero regressões). Checksum e bundle `ultra_rotina_master.js` 100% sincronizados.
+
+0C14. [x] **Telegram Router - Despacho Modular O(1) e Eliminação de If/Else Gigantes (`src/07a_telegram_router.js`)**:
+    - **Diagnóstico e Refatoração Estrutural**:
+      * Decomposta a cadeia de 5.300 linhas de condicionais em tabelas de despacho O(1) dedicadas: `rotearAtalhoTecladoFixo` (atalhos de 1-toque do teclado fixo), `rotearComandoSistema` (comandos de sistema `/start`, `/ajuda`, `/help`, `/status`, `/fontes`, `/mudancas`, `/deploy`, `/enfermaria`, `/leitos`, `/censo`, `/manual`, `/pc`), `tratarComandoChoqueSeptico` e `tratarComandoSri`.
+      * Expostos os pontos de entrada modulares `rotearMensagemTelegram(message)` e `rotearComandoTexto(comando, texto, chatId, message)` preservando 100% dos contratos públicos e eliminando 140+ linhas de condicionais em escada com guard clauses limpas.
+      * Cláusula pétrea de conteúdo médico e doses farmacológicas rigorosamente preservada.
+    - **Validação e Resultados**: 100% de aprovação na suíte de testes do Telegram (9/9 suítes em 2.07s) e na bateria completa de regressão do ecossistema (244/244 testes em 40.19s com zero regressões). Checksum e empacotamento do bundle `ultra_rotina_master.js` 100% sincronizados.
+
 0C13. [x] **Autoloop - Roteamento Preciso de Modelos Codex (`gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`, `gpt-5.6-terra`) e Blindagem Antitransbordamento de Backend/Infraestrutura (`tooling/autoloop/core/scoped_audit.py`, `tooling/autoloop/core/model_router.py`, `tooling/autoloop/install.py` e `tooling/autoloop/tests/test_model_routing_accuracy.py`)**:
     - **Diagnóstico e Causa Raiz do Desperdício de Cota do Astra**:
       * Em deploys contendo alterações em controladores Fastify (como `server/controllers/calculadora.controller.js`), a presença da palavra `calculador` no caminho do arquivo acionava uma regex precoce em `scoped_audit.py` e termos clínicos em `model_router.py`, carimbando indevidamente código de infraestrutura HTTP como `CLINICO_ROBUSTEZ_PRO` (`gpt-6-astra`, `high`).
