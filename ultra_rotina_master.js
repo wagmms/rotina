@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 11:37:07
- * Checksum SHA256: df83d6adb66a96d2
+ * Gerado automaticamente via build_master.py em: 2026-10-11 11:56:55
+ * Checksum SHA256: a24f5981734f97c9
  * ==============================================================================
  */
 
@@ -37319,13 +37319,15 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
 }
 
 function _iaResolverTruncamento(chamar, tokens, r, ctx, json) {
-  if (!r || !r.truncado) return r;
+  if (!r?.truncado) return r;
+
   if (!_iaOrcamentoEsgotado(ctx)) {
-    var maisTokens = Math.min(Math.ceil((Number(tokens) || 2000) * 1.6), IA_PADROES.TOKENS_TETO);
-    _iaLog(ctx, "Truncamento detectado, repetindo com " + maisTokens + " tokens");
-    var r2 = chamar(maisTokens);
-    if (r2 && r2.texto) r = r2;
+    const tokensExpandidos = Math.min(Math.ceil((Number(tokens) || 2000) * 1.6), IA_PADROES.TOKENS_TETO);
+    _iaLog(ctx, "Truncamento detectado, repetindo com " + tokensExpandidos + " tokens");
+    const r2 = chamar(tokensExpandidos);
+    if (r2?.texto) r = r2;
   }
+
   if (r.truncado && r.texto && !json) {
     r.texto = _iaCortarNaFrase(r.texto) +
       "\n\n\u26A0\uFE0F Resposta interrompida por limite de tamanho. Não use como conduta completa; peça a continuação.";
@@ -37334,15 +37336,14 @@ function _iaResolverTruncamento(chamar, tokens, r, ctx, json) {
 }
 
 function _iaOrdemProvedores() {
-  var padrao = String(_iaCfg("PROVEDOR_TEXTO_PADRAO", "GEMINI")).toUpperCase();
-  var canonica = ["GEMINI", "GROQ", "OPENROUTER", "ZAI", "LOCAL"];
-  var ativoLocal = String(_iaCfg("LOCAL_LLM_ATIVO", "auto")).toLowerCase();
-  if (ativoLocal === "false") {
-    canonica = ["GEMINI", "GROQ", "OPENROUTER", "ZAI"];
-  }
-  var ordem = canonica.indexOf(padrao) >= 0 ? [padrao] : [];
-  canonica.forEach(function (p) { if (ordem.indexOf(p) < 0) ordem.push(p); });
-  return ordem;
+  const padrao = String(_iaCfg("PROVEDOR_TEXTO_PADRAO", "GEMINI")).toUpperCase();
+  const ativoLocal = String(_iaCfg("LOCAL_LLM_ATIVO", "auto")).toLowerCase();
+  const canonica = ativoLocal === "false"
+    ? ["GEMINI", "GROQ", "OPENROUTER", "ZAI"]
+    : ["GEMINI", "GROQ", "OPENROUTER", "ZAI", "LOCAL"];
+
+  const priorizados = canonica.includes(padrao) ? [padrao, ...canonica] : canonica;
+  return [...new Set(priorizados)];
 }
 
 const DISPATCH_PROVEDORES_IA = {
@@ -37371,7 +37372,7 @@ function _iaAcionarFallbackOffline(sistema, promptUsuario, opcoes, ctx) {
     _iaLog(ctx, "Acionando executarFallbackLocalOffline unificado");
     return IaLocalFallbackService.executarFallbackLocalOffline(sistema, promptUsuario, opcoes);
   }
-  if (opcoes && opcoes.json) {
+  if (opcoes?.json) {
     _iaLog(ctx, "Acionando fallback determinístico offline estruturado (JSON)");
     return IaLocalFallbackService.estruturarJsonOffline(sistema, promptUsuario);
   }
@@ -37379,53 +37380,67 @@ function _iaAcionarFallbackOffline(sistema, promptUsuario, opcoes, ctx) {
   return IaLocalFallbackService.gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
 }
 
+function _iaRegistrarFalhaCircuito(nome, razao, ctx) {
+  if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+    IaCircuitBreaker.registrarFalha(nome, razao);
+  }
+  if (ctx) {
+    _iaLog(ctx, nome + " falhou: " + razao);
+  }
+}
+
+function _iaRegistrarSucessoCircuito(nome, modelo, deltaMs, ctx) {
+  if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
+    IaCircuitBreaker.registrarSucesso(nome);
+  }
+  _iaLog(ctx, "OK via " + nome + " (" + (modelo || "desconhecido") + ") em " + deltaMs + " ms");
+}
+
+function _iaFormatarResultadoProvedor(resposta, opcoes) {
+  if (!resposta?.texto) return "";
+  return (opcoes?.json) ? resposta.texto : _iaRemoverLatex(resposta.texto);
+}
+
 function executarTentativaProvedor(nome, sistema, promptUsuario, tokens, ctx, opcoes) {
-  const chamar = function (t) {
-    return _iaChamarProvedor(nome, sistema, promptUsuario, t, ctx, opcoes);
-  };
+  const chamar = (t) => _iaChamarProvedor(nome, sistema, promptUsuario, t, ctx, opcoes);
 
   try {
     let r = chamar(tokens);
-    r = _iaResolverTruncamento(chamar, tokens, r, ctx, opcoes && opcoes.json);
+    r = _iaResolverTruncamento(chamar, tokens, r, ctx, Boolean(opcoes?.json));
 
-    if (r && r.truncado && opcoes && opcoes.exigirRespostaCompleta) {
+    // Guard Clause 1: Truncamento com exigência de resposta completa
+    if (r?.truncado && opcoes?.exigirRespostaCompleta) {
       _iaLog(ctx, "Resposta incompleta; revisão não concluída");
       return { sucesso: false, abortar: true, resultado: null };
     }
 
-    const textoValido = r && r.texto && String(r.texto).trim();
+    // Guard Clause 2: Validação de corpo de texto não-vazio
+    const textoValido = r?.texto && String(r.texto).trim();
     if (!textoValido) {
-      if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
-        IaCircuitBreaker.registrarFalha(nome, "Resposta vazia");
-      }
+      _iaRegistrarFalhaCircuito(nome, "Resposta vazia", null);
       return { sucesso: false, abortar: false, resultado: null };
     }
 
-    if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
-      IaCircuitBreaker.registrarSucesso(nome);
-    }
-    const deltaMs = Date.now() - (ctx && ctx.inicio ? ctx.inicio : Date.now());
-    _iaLog(ctx, "OK via " + nome + " (" + (r.modelo || "desconhecido") + ") em " + deltaMs + " ms");
+    // Sucesso da tentativa
+    const inicioMs = ctx?.inicio || Date.now();
+    const deltaMs = Date.now() - inicioMs;
+    _iaRegistrarSucessoCircuito(nome, r.modelo, deltaMs, ctx);
 
-    const textoFormatado = (opcoes && opcoes.json) ? r.texto : _iaRemoverLatex(r.texto);
-    return { sucesso: true, abortar: false, resultado: textoFormatado };
+    const resultadoFinal = _iaFormatarResultadoProvedor(r, opcoes);
+    return { sucesso: true, abortar: false, resultado: resultadoFinal };
   } catch (e) {
-    if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
-      IaCircuitBreaker.registrarFalha(nome, e.message);
-    }
-    _iaLog(ctx, nome + " falhou: " + e.message);
+    const msgErro = e?.message || String(e);
+    _iaRegistrarFalhaCircuito(nome, msgErro, ctx);
     return { sucesso: false, abortar: false, resultado: null, erro: e };
   }
 }
 
-function chamarMotorIaComFallback(sistema, promptUsuario, maxTokens, opcoes) {
-  opcoes = opcoes || {};
+function chamarMotorIaComFallback(sistema, promptUsuario, maxTokens, opcoes = {}) {
   const tokens = Number(maxTokens) || 2000;
   const ctx = _iaNovoCtx();
   const ordem = _iaOrdemProvedores();
 
-  for (let i = 0; i < ordem.length; i++) {
-    const nome = ordem[i];
+  for (const nome of ordem) {
     if (_iaOrcamentoEsgotado(ctx)) {
       _iaLog(ctx, "Orçamento esgotado antes de " + nome);
       break;
