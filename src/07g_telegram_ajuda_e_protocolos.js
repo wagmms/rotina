@@ -918,6 +918,9 @@ function tratarComandoDhe(chatId, dadosDhe) {
       txtK += "• " + resK.condutas[ik] + "\n";
     }
     txtK += "\nℹ️ *MONITORIZAÇÃO:* ECG contínuo na Sala Vermelha e repetir dosagem de K+ em 2h.";
+    if (resK.prescricaoPEP) {
+      txtK += "\n\n📋 *PRESCRIÇÃO SUGERIDA (PEP):*\n```\n" + resK.prescricaoPEP + "\n```";
+    }
     return enviarMensagemParaChat(chatId, txtK);
   }
 

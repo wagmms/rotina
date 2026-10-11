@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 17:06:15
- * Checksum SHA256: a89d538b7c2af616
+ * Gerado automaticamente via build_master.py em: 2026-10-11 17:30:44
+ * Checksum SHA256: 15f2085b6c36a62a
  * ==============================================================================
  */
 
@@ -17205,36 +17205,74 @@ var NefrologiaDheService = (function() {
         if (k <= 5.0) return { gravidade: "Normal", conduta: "Nenhuma ação específica." };
         
         var condutas = [];
+        var prescricoes = [];
         var gravidade = "Leve";
         var alerta = ecgAlterado ? "ALERTA VERMELHO: Sinais de toxicidade cardíaca presentes no ECG. O Gluconato de Cálcio NÃO reduz o potássio, apenas estabiliza a membrana miocárdica." : "";
+
+        // Tripé Canônico Estruturado
+        var tripe = {
+            estabilizacaoMembrana: null,
+            redistribuicaoIntracelular: [],
+            eliminacaoCorporal: [],
+            hemodialiseEmergencia: null
+        };
 
         if (k > 8.0) {
             gravidade = "Extrema / Risco Iminente de PCR em Assistolia ou FV";
             alerta = "🚨 ALERTA VERMELHO MÁXIMO (K+ > 8.0 mEq/L): Risco iminente de parada cardiorrespiratória em assistolia/FV. Gluconato de Cálcio 10% IV IMEDIATO para estabilização de membrana miocárdica e acionamento urgente de Nefrologia para Hemodiálise de Emergência!";
-            condutas.push("🚨 EMERGÊNCIA ZERO: Gluconato de Cálcio 10% 20 mL IV em 3 min imediatamente. Repetir em 5-10 min se ritmo não normalizar.");
-            condutas.push("HEMODIÁLISE DE EMERGÊNCIA: Acionar imediatamente nefrologia e terapia intensiva para passagem de cateter de hemodiálise.");
+            var condutaEstabilizacaoExtrema = "🚨 EMERGÊNCIA ZERO / ESTABILIZAÇÃO DE MEMBRANA: Gluconato de Cálcio 10% (10-20mL em 100mL SG 5% em 5 min) IV imediato (ou 20 mL IV em 3 min se PCR/instabilidade extrema). Repetir em 5-10 min se ritmo não normalizar. Alerta: Cálcio NÃO reduz K+ sérico, apenas protege o miocárdio.";
+            condutas.push(condutaEstabilizacaoExtrema);
+            tripe.estabilizacaoMembrana = condutaEstabilizacaoExtrema;
+            prescricoes.push("1. Gluconato de Cálcio 10% 20 mL + SG 5% 100 mL IV em 5 min (ou direto em 3 min se colapso). Repetir em 5-10 min se ECG mantiver toxicidade.");
+
+            var condutaDialiseExtrema = "HEMODIÁLISE DE EMERGÊNCIA: Acionar imediatamente nefrologia e terapia intensiva para passagem de cateter de hemodiálise (depuração extracorpórea mandatória para K+ > 8.0 mEq/L ou falência de medidas conservadoras).";
+            condutas.push(condutaDialiseExtrema);
+            tripe.hemodialiseEmergencia = condutaDialiseExtrema;
         } else if (k >= 6.5 || ecgAlterado) {
             gravidade = "Grave / Urgência Médica";
-            condutas.push("ESTABILIZAÇÃO DA MEMBRANA: Gluconato de Cálcio 10% 10 a 20 mL IV lento (em 3-5 min). Efeito imediato, duração 30-60 min. Repetir se ECG não melhorar em 5-10 min.");
+            var condutaEstabilizacao = "ESTABILIZAÇÃO DA MEMBRANA: Gluconato de Cálcio 10% (10-20mL em 100mL SG 5% em 5 min) IV lento. Efeito imediato (1-3 min), duração 30-60 min. Repetir se ECG não melhorar em 5-10 min. (Alerta: Gluconato NÃO reduz potássio sérico).";
+            condutas.push(condutaEstabilizacao);
+            tripe.estabilizacaoMembrana = condutaEstabilizacao;
+            prescricoes.push("1. Gluconato de Cálcio 10% 10 a 20 mL + SG 5% 100 mL IV em 5 a 10 min. Repetir em 5-10 min se persistirem alterações eletrocardiográficas.");
         } else if (k >= 5.5) {
             gravidade = "Moderada";
         }
 
         if (k > 5.5) {
-            condutas.push("REDISTRIBUIÇÃO: Glicoinsulina (Solução Polarizante): 10 UI Insulina Regular + 100 mL de SG 50% IV em 20-30 min. Queda esperada: 0.5-1.2 mEq/L em 1-2h.");
-            condutas.push("REDISTRIBUIÇÃO: Beta-2 Agonista (Fenoterol 10-20 gotas ou Salbutamol 10-20 mg inalatório).");
+            var condutaPolarizante = "REDISTRIBUIÇÃO: Glicoinsulina (Solução Polarizante): SG 50% 50mL + 10 UI Regular em 20 min IV (ou 100 mL SG 50% se glicemia < 250 mg/dL). Queda esperada de K+: 0,5 a 1,2 mEq/L em 30-60 min. ⚠️ MONITORIZAÇÃO: Alerta de HGT horária por 4-6h devido ao risco severo de hipoglicemia tardia.";
+            condutas.push(condutaPolarizante);
+            tripe.redistribuicaoIntracelular.push(condutaPolarizante);
+            prescricoes.push("2. Solução Polarizante: Insulina Regular 10 UI + Glicose 50% 50 mL IV em infusão de 20 minutos (se glicemia basal < 250 mg/dL).");
+            prescricoes.push("3. HGT (Glicemia Capilar) de 1/1 hora por 4 a 6 horas após a solução polarizante (vigilância estrita de hipoglicemia).");
+
+            var condutaBeta2 = "REDISTRIBUIÇÃO: Beta-2 Agonista: Salbutamol 10-20 mg (20-40 gotas) em nebulização com 3-5 mL SF 0,9% em 10-15 min (ou Fenoterol 10-20 gotas). Queda esperada: 0,5 a 1,0 mEq/L.";
+            condutas.push(condutaBeta2);
+            tripe.redistribuicaoIntracelular.push(condutaBeta2);
+            prescricoes.push("4. Salbutamol 5mg/mL: 20 a 40 gotas + SF 0,9% 3 a 5 mL em nebulização por 10 a 15 min (se sem taquiarritmia/isquemia).");
         }
 
         if (k > 5.0) {
-            condutas.push("ELIMINAÇÃO: Furosemida (se função renal e volemia permitirem).");
-            condutas.push("ELIMINAÇÃO: Resinas de troca de potássio (Poliestirenossulfonato de Cálcio / Sorcal) 15-30g VO ou Retal.");
+            var condutaFurosemida = "ELIMINAÇÃO: Furosemida 40-80 mg IV em bolus lento (caliurese forçada se função renal e volemia permitirem; contraindicado em hipovolemia ou anúria).";
+            condutas.push(condutaFurosemida);
+            tripe.eliminacaoCorporal.push(condutaFurosemida);
+            prescricoes.push("5. Furosemida 20mg/2mL: 2 a 4 ampolas (40 a 80 mg) IV em bolus lento (avaliar débito urinário e volemia).");
+
+            var condutaSorcal = "ELIMINAÇÃO: Resinas de troca de potássio (Poliestirenossulfonato de Cálcio / Sorcal) 15-30g VO (diluído em 100 mL de água/manitol 10%) ou retal (30-50g em enema). Repetir 6-8h. (Início de ação 2-4h; contraindicado em íleo paralítico ou pós-op abdominal).";
+            condutas.push(condutaSorcal);
+            tripe.eliminacaoCorporal.push(condutaSorcal);
+            prescricoes.push("6. Poliestirenossulfonato de Cálcio (Sorcal) 30g VO diluído em 100 mL de água potável ou via retal 8/8h.");
         }
+
+        prescricoes.push("7. Monitorização cardíaca contínua em ECG de 12 derivações na Sala Vermelha + Repetir dosagem sérica de K+ em 2 horas.");
+        var prescricaoPEP = prescricoes.join("\n");
 
         return {
             potassio: k,
             gravidade: gravidade,
             alerta: alerta,
-            condutas: condutas
+            condutas: condutas,
+            tripeCanonico: tripe,
+            prescricaoPEP: prescricaoPEP
         };
     }
 
@@ -17243,7 +17281,8 @@ var NefrologiaDheService = (function() {
         calcularDeficitSodio: calcularDeficitSodio,
         planejarCorrecaoHiponatremia: planejarCorrecaoHiponatremia,
         calcularDeficitAguaLivre: calcularDeficitAguaLivre,
-        avaliarHipercalemia: avaliarHipercalemia
+        avaliarHipercalemia: avaliarHipercalemia,
+        calcularCorrecaoK: avaliarHipercalemia
     };
 })();
 
@@ -51398,6 +51437,9 @@ function tratarComandoDhe(chatId, dadosDhe) {
       txtK += "• " + resK.condutas[ik] + "\n";
     }
     txtK += "\nℹ️ *MONITORIZAÇÃO:* ECG contínuo na Sala Vermelha e repetir dosagem de K+ em 2h.";
+    if (resK.prescricaoPEP) {
+      txtK += "\n\n📋 *PRESCRIÇÃO SUGERIDA (PEP):*\n```\n" + resK.prescricaoPEP + "\n```";
+    }
     return enviarMensagemParaChat(chatId, txtK);
   }
 
@@ -58477,7 +58519,8 @@ function _calcCockpitDhe(entrada) {
       "🟡 CONDUTAS ESCALONADAS:\n" +
       resK.condutas.map(function(c) { return "• " + c; }).join("\n") + "\n\n" +
       (resK.alerta ? "⚠️ ALERTA CARDÍACO:\n• " + resK.alerta + "\n\n" : "") +
-      "ℹ️ MONITORIZAÇÃO:\n• Monitorização cardíaca contínua e repetir dosagem de K+ em 2h.";
+      "ℹ️ MONITORIZAÇÃO:\n• Monitorização cardíaca contínua e repetir dosagem de K+ em 2h." +
+      (resK.prescricaoPEP ? "\n\n📋 PRESCRIÇÃO SUGERIDA (PEP):\n" + resK.prescricaoPEP : "");
     return { ok: true, sucesso: true, id: 'hipercalemia', nome: 'Manejo de Hipercalemia', texto: txtK, textoFormatado: txtK, dados: resK };
   }
 

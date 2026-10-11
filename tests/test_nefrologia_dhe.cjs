@@ -37,13 +37,35 @@ function runTests() {
     var kModerado = NefrologiaDheService.avaliarHipercalemia(6.0, false);
     assert.strictEqual(kModerado.gravidade, "Moderada", "Gravidade moderada para K=6.0 s/ alt ECG");
     assert.ok(kModerado.condutas.join().includes("Glicoinsulina"), "Deve recomendar glicoinsulina");
+    assert.ok(kModerado.condutas.join().includes("SG 50% 50mL + 10 UI Regular em 20 min"), "Deve conter diluição canônica de solução polarizante");
+    assert.ok(kModerado.condutas.join().includes("HGT horária por 4-6h"), "Deve alertar monitorização de HGT horária por 4-6h");
+    assert.ok(kModerado.condutas.join().includes("Furosemida"), "Deve conter Furosemida para eliminação");
+    assert.ok(kModerado.condutas.join().includes("Sorcal"), "Deve conter Sorcal para eliminação");
     assert.ok(!kModerado.condutas.join().includes("Gluconato"), "NÃO deve recomendar gluconato (s/ alt ECG e K<6.5)");
+    assert.ok(kModerado.prescricaoPEP.includes("Solução Polarizante"), "Prescrição PEP deve conter solução polarizante");
+    assert.ok(kModerado.prescricaoPEP.includes("HGT"), "Prescrição PEP deve conter vigilância de HGT");
 
     // Teste 6: Hipercalemia Grave
     var kGrave = NefrologiaDheService.avaliarHipercalemia(6.2, true);
     assert.strictEqual(kGrave.gravidade, "Grave / Urgência Médica", "Gravidade grave se alt ECG");
     assert.ok(kGrave.alerta.includes("ALERTA VERMELHO"), "Deve emitir alerta vermelho sobre toxicidade cardíaca");
-    assert.ok(kGrave.condutas.join().includes("Gluconato"), "DEVE recomendar gluconato p/ estabilizar membrana");
+    assert.ok(kGrave.condutas.join().includes("Gluconato de Cálcio 10% (10-20mL em 100mL SG 5% em 5 min)"), "DEVE recomendar gluconato canônico p/ estabilizar membrana");
+    assert.ok(kGrave.tripeCanonico.estabilizacaoMembrana.includes("Gluconato"), "Tripé canônico deve ter estabilização de membrana");
+    assert.ok(kGrave.tripeCanonico.redistribuicaoIntracelular.length > 0, "Tripé canônico deve ter redistribuição");
+    assert.ok(kGrave.tripeCanonico.eliminacaoCorporal.length > 0, "Tripé canônico deve ter eliminação");
+
+    // Teste 7: Alias calcularCorrecaoK
+    assert.strictEqual(typeof NefrologiaDheService.calcularCorrecaoK, 'function', "calcularCorrecaoK deve ser exportado como alias");
+    var kAlias = NefrologiaDheService.calcularCorrecaoK(7.0, false);
+    assert.strictEqual(kAlias.gravidade, "Grave / Urgência Médica", "K=7.0 deve ser Grave");
+    assert.ok(kAlias.condutas.join().includes("Gluconato de Cálcio 10% (10-20mL em 100mL SG 5% em 5 min)"), "K=7.0 deve receber gluconato mesmo sem ECG");
+
+    // Teste 8: Hipercalemia Extrema (K > 8.0)
+    var kExtremo = NefrologiaDheService.avaliarHipercalemia(8.4, true);
+    assert.ok(kExtremo.gravidade.includes("Extrema"), "Gravidade deve ser extrema para K > 8.0");
+    assert.ok(kExtremo.alerta.includes("ALERTA VERMELHO MÁXIMO"), "Deve conter alerta vermelho máximo");
+    assert.ok(kExtremo.condutas.join().includes("HEMODIÁLISE DE EMERGÊNCIA"), "Deve indicar hemodiálise de emergência");
+    assert.ok(kExtremo.condutas.join().includes("Gluconato de Cálcio 10% (10-20mL em 100mL SG 5% em 5 min)"), "Deve conter gluconato imediato");
 
     console.log("=== TODOS OS TESTES PASSARAM ===");
 }

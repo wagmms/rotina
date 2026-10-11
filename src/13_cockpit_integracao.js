@@ -401,7 +401,8 @@ function _calcCockpitDhe(entrada) {
       "🟡 CONDUTAS ESCALONADAS:\n" +
       resK.condutas.map(function(c) { return "• " + c; }).join("\n") + "\n\n" +
       (resK.alerta ? "⚠️ ALERTA CARDÍACO:\n• " + resK.alerta + "\n\n" : "") +
-      "ℹ️ MONITORIZAÇÃO:\n• Monitorização cardíaca contínua e repetir dosagem de K+ em 2h.";
+      "ℹ️ MONITORIZAÇÃO:\n• Monitorização cardíaca contínua e repetir dosagem de K+ em 2h." +
+      (resK.prescricaoPEP ? "\n\n📋 PRESCRIÇÃO SUGERIDA (PEP):\n" + resK.prescricaoPEP : "");
     return { ok: true, sucesso: true, id: 'hipercalemia', nome: 'Manejo de Hipercalemia', texto: txtK, textoFormatado: txtK, dados: resK };
   }
 
