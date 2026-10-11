@@ -58,7 +58,8 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
   assert(modelo.includes('Abdome:'), 'Deve conter Abdome');
   assert(modelo.includes('Extremidades:'), 'Deve conter Extremidades');
   assert(modelo.includes('TEC < 3 segundos'), 'Deve conter TEC < 3 segundos');
-  console.log('  ✓ 1. obterModeloExameFisicoCompleto gera todos os sistemas semiológicos canônicos');
+  assert(!modelo.includes('(rítmico)') && !modelo.includes('(ritmico)'), 'Não deve conter (rítmico) na FC');
+  console.log('  ✓ 1. obterModeloExameFisicoCompleto gera todos os sistemas semiológicos canônicos sem (rítmico)');
 }
 
 // 2. Preserva sinais vitais informados pelo médico assistente no relato
@@ -68,9 +69,10 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
   const modelo = c.obterModeloExameFisicoCompleto(relatoComSV);
   assert(modelo.includes('PA: 150/95 mmHg'), 'Deve preservar PA informada');
   assert(modelo.includes('FC: 88 bpm'), 'Deve preservar FC informada');
+  assert(!modelo.includes('(rítmico)') && !modelo.includes('(ritmico)'), 'Não deve conter (rítmico) na FC');
   assert(modelo.includes('T: 36,8°C') || modelo.includes('T: 36.8°C') || modelo.includes('36.8°C'), 'Deve preservar Tax informada');
   assert(modelo.includes('SpO2: 97%'), 'Deve preservar SpO2 informada');
-  console.log('  ✓ 2. Preservação de sinais vitais relatados pelo médico no modelo completo');
+  console.log('  ✓ 2. Preservação de sinais vitais relatados pelo médico no modelo completo sem (rítmico)');
 }
 
 // 3. Callback ux:soap:ef_confirmar insere modelo completo no caso ativo

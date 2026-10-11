@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-10 21:38:23
- * Checksum SHA256: 4b49e20ad862b3e0
+ * Gerado automaticamente via build_master.py em: 2026-10-10 21:42:36
+ * Checksum SHA256: 795f71e10a565932
  * ==============================================================================
  */
 
@@ -28830,7 +28830,7 @@ var SoapAmbulatorialService = (function() {
       titulo: 'Adulto Geral Completo (Segmentar Padrão Ouro)',
       texto: [
         '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
-        'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.',
+        'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.',
         'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
         '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
         '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
@@ -29621,7 +29621,7 @@ var SoapAmbulatorialService = (function() {
 
     if (fcMatch) {
       var fcVal = fcMatch[1].trim();
-      sv.push('FC: ' + (/bpm/i.test(fcVal) ? fcVal : fcVal + ' bpm (rítmico)'));
+      sv.push('FC: ' + (/bpm/i.test(fcVal) ? fcVal : fcVal + ' bpm'));
     }
 
     if (frMatch) {
@@ -29649,7 +29649,7 @@ var SoapAmbulatorialService = (function() {
       if (temCasoClinico) {
         linhaSV = 'Sinais Vitais: Pendentes de aferição beira-leito.';
       } else {
-        linhaSV = 'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.';
+        linhaSV = 'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.';
       }
     }
 
@@ -52030,7 +52030,7 @@ function cockpitConversar(initData, params) {
           ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto
           : [
             '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
-            'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.',
+            'Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36,5°C.',
             'Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
             '  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.',
             '  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
