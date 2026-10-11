@@ -16,13 +16,13 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Organização do Exame Físico por Sistemas em Linhas Separadas, Higienização de Modelos SOAP e Início Direto sem Atrito (`src/02_soap_ambulatorial.js`, `src/04_motores_ia.js`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js` e `tests/test_soap_ef_organizacao_ux.cjs`)**:
+- [x] **Autoloop - Detecção Robusta de Cota do Codex (OpenAI), Extração de Tempo de Reset e Prevenção de Deadlock de Deploy (`tooling/autoloop/autoloop.py`, `tooling/autoloop/core/scoped_audit.py` e `tooling/autoloop/tests/test_codex_quota_handling.py`)**:
     - **Diagnóstico e Correção**:
-      * Ajustada a exibição do Exame Físico (EF) em rascunhos e respostas de IA para segmentar cada sistema semiológico em linha individual (`Sinais Vitais:`, `Geral:`, `ACV:`, `AR:`, `Abdome:`, `Extremidades:`), facilitando leitura e cópia para prontuário (PEP).
-      * Removidos botões de casos clínicos pré-fabricados (HAS, DM2, IVAS, Lombalgia) dos menus e telas do SOAP (`ux:amb:soap`, `/soap`, `novoCasoBot`).
-      * Eliminado o bloqueio "Dados do caso atual mantidos. Envie a próxima informação." ao chamar `ux:usar:soap`, acionando diretamente a estruturação SOAP com os dados já existentes.
-      * Removido o botão de modelo de EF avulso do menu Ambulatório (`ux:hub:amb`), mantendo o modelo de EF normal exclusivamente contextualizado dentro do caso clínico no SOAP (`[🩺 EF Normal]`).
-    - **Validação e Resultados**: 100% de aprovação em `tests/test_soap_ef_organizacao_ux.cjs`, `tests/test_ambulatorio_ux.cjs`, `tests/test_soap_modo_e_receita_ux.cjs` e `tests/test_ef_normal_completo.cjs`.
+      * Identificado bloqueio no deploy automático de 6h onde o limite de mensagens da conta OpenAI no Codex (`ERROR: You’ve hit your usage limit... try again at 1:26 PM`) era tratado como falha de processo genérica (`código 1`), gerando pacotes espúrios em `audit_repairs/` e travando o orquestrador `scoped_audit.py` em deadlock (`ScopeError: Auditoria operacionalmente incompleta já registrada...`).
+      * Implementadas `extrair_tempo_reset_codex` e `detectar_esgotamento_cota_codex`: realizam parsing determinístico da mensagem de erro e extraem o horário de reset para agendamento exato do próximo ciclo sem retries cegos a cada 15 min.
+      * Refatorados `_executar_deploy_e_relatorio_core` (suspende deploy sem poluir a fila de reparos com falsas rejeições) e `evaluate_scopes` (preserva o orçamento de rodadas `rounds` e destrava a execução para quando a cota estiver disponível).
+      * Higienizado o estado operacional: expurgadas falsas rejeições em `data/audit_repairs/`, resetada a sessão em `data/.autoloop_scoped_audits.json` e ajustado `next_retry_ts` para 13:27:00.
+    - **Validação e Resultados**: 100% de aprovação na suíte de testes do autoloop (147/147) e na bateria completa de regressão do ecossistema (244/244 testes em 37.49s).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

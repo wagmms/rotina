@@ -1,5 +1,25 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C12. [x] **Autoloop - Detecção Robusta de Cota do Codex (OpenAI), Extração de Tempo de Reset e Prevenção de Deadlock de Deploy (`tooling/autoloop/autoloop.py`, `tooling/autoloop/core/scoped_audit.py` e `tooling/autoloop/tests/test_codex_quota_handling.py`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Durante o ciclo de deploy automático de 6h, o gate de auditoria independente com o modelo `gpt-6-astra` foi interrompido por esgotamento de cota na conta OpenAI do Codex (`ERROR: You’ve hit your usage limit... try again at 1:26 PM`).
+      * A função `revisar_escopo_codex` tratava qualquer retorno diferente de zero como falha genérica de processo (`código 1`), mascarando o erro de cota e disparando indevidamente `capture_rejection`, o que poluía `data/audit_repairs/` com falsos defeitos de código.
+      * O orquestrador `scoped_audit.py` incrementava o contador de rodadas (`rounds`) mesmo em falhas de infraestrutura de rede/cota, e com `report = None` atingia a trava `ScopeError("Auditoria operacionalmente incompleta já registrada...")`, criando um deadlock permanente que impedia o deploy mesmo após a cota ser restabelecida.
+      * O agendador marcava retries fixos de 15 minutos, ignorando o horário explícito de reset fornecido pela API da OpenAI.
+    - **Implementação e Correções**:
+      * Em `tooling/autoloop/autoloop.py`:
+        • Implementadas `extrair_tempo_reset_codex` e `detectar_esgotamento_cota_codex`: analisam a saída da CLI e identificam termos de cota (`usage limit`, `upgrade to pro`, `429`, `quota exceeded`), convertendo horários como `1:26 PM` em timestamps exatos com margem de segurança de 60s.
+        • Em `revisar_escopo_codex`: retorno identificado como `CODEX_QUOTA_EXHAUSTED` em vez de falha genérica de processo.
+        • Em `_executar_deploy_e_relatorio_core`: erro de cota detectado suspende o deploy temporariamente sem acionar `capture_rejection` (zero falsos positivos em `audit_repairs`), agendando a próxima tentativa para o horário de reset informado.
+      * Em `tooling/autoloop/core/scoped_audit.py`:
+        • Em `evaluate_scopes`: falhas de cota restauram o contador `rounds` (`rounds = max(0, rounds - 1)`) e marcam `status = 'quota_exhausted'`, evitando o consumo indevido de rodadas e permitindo reavaliação normal no reset da cota.
+      * Em `tooling/autoloop/tests/test_codex_quota_handling.py`:
+        • Implementada suíte automatizada com 4 testes cobrindo parsing da OpenAI, conversão de horários de reset, preservação de rodadas e agendamento sem rejeição falsa.
+      * Higienização de estado: resetadas sessões corrompidas em `data/.autoloop_scoped_audits.json`, limpos pacotes fantasmas em `data/audit_repairs/` e `data/.autoloop_audit_repairs.json`, e atualizado `data/.autoloop_deploy_state.json` com `next_retry_ts` para 13:27:00.
+    - **Validação e Resultados**:
+      * 147/147 testes aprovados na suíte do autoloop (`.venv/bin/pytest tooling/autoloop/tests`).
+      * 244/244 testes aprovados na bateria completa do ecossistema (`npm run test:all`) em 37.49s com zero regressões.
+
 0C11. [x] **Motores de IA - Refatoração do Pipeline de Fallback e Resiliência (`src/04_motores_ia.js` e `tests/test_ia_motores_pipeline_refatorado.cjs`)**:
     - **Diagnóstico e Oportunidade Estrutural**:
       * A função `_iaExecutar` concentrava um fluxo espaguete de controle com condicionais profundamente aninhadas, try/catch misturado com retries e truncamentos, e acoplamento direto com checagens em série do serviço de contingência offline.
