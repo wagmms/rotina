@@ -975,7 +975,12 @@ async function buildServer() {
       }
       const updateId = updateData.update_id;
       const mensagem = updateData.message || (updateData.callback_query && updateData.callback_query.message);
-      if (!mensagem || !mensagem.chat || String(mensagem.chat.id) !== String(chatPermitido)) {
+      const chatsPermitidos = (runtime.ctx.ConfigService && runtime.ctx.ConfigService.getArray
+        ? runtime.ctx.ConfigService.getArray('TELEGRAM_CHAT_ID')
+        : String(chatPermitido).split(',')
+      ).map(s => String(s).trim()).filter(Boolean);
+
+      if (!mensagem || !mensagem.chat || !chatsPermitidos.includes(String(mensagem.chat.id))) {
         // O Telegram repete respostas fora de 2xx; updates de outros chats
         // são ignorados definitivamente para não bloquear a fila legítima.
         return { ok: true, ignored: true };

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-10 20:50:48
- * Checksum SHA256: 392ed1bd481df51b
+ * Gerado automaticamente via build_master.py em: 2026-10-10 21:21:23
+ * Checksum SHA256: 4232981b9153c840
  * ==============================================================================
  */
 
@@ -83,6 +83,11 @@ var ConfigService = (function() {
         return val.split(",").map(function(s) { return s.trim(); });
       }
       return val ? [val] : [];
+    },
+    getPrimary: function(chave, valorPadrao) {
+      var arr = this.getArray(chave);
+      if (arr && arr.length > 0 && arr[0]) return String(arr[0]).trim();
+      return valorPadrao !== undefined ? valorPadrao : "";
     },
     invalidar: function() { propsCache=null; },
     exigir: function(chave) {
@@ -622,10 +627,16 @@ function executarPostTelegram(url, payload) {
 function obterUrlCockpit(chatId) {
   var urlCustom = (typeof ConfigService !== "undefined") ? ConfigService.get("COCKPIT_WEB_URL") : null;
   var base = urlCustom ? urlCustom.split("?")[0] : "https://wagmms.github.io/cockpit/";
-  var id = chatId ? String(chatId) : ((typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_CHAT_ID") : "");
+  var id = chatId ? String(chatId) : ((typeof ConfigService !== "undefined" && ConfigService.getPrimary) ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : ((typeof ConfigService !== "undefined" && ConfigService.get) ? String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim() : ""));
   var sessao = "";
   if (id && typeof criarSessaoCockpit_ === "function") {
-    sessao = criarSessaoCockpit_(id);
+    if (chatId) {
+      sessao = criarSessaoCockpit_(id);
+    } else {
+      try {
+        sessao = criarSessaoCockpit_(id);
+      } catch (_) {}
+    }
   }
   var v = (typeof ConfigService !== "undefined" && ConfigService.get && ConfigService.get("COCKPIT_VERSION")) ? ConfigService.get("COCKPIT_VERSION") : "2.5";
   return sessao ? base + "?session=" + sessao + "&v=" + v : base + "?v=" + v;
@@ -28818,7 +28829,7 @@ var SoapAmbulatorialService = (function() {
     padrao_completo: {
       titulo: 'Adulto Geral Completo (Segmentar Padrão Ouro)',
       texto: [
-        '[Exame Físico Geral e Segmentar Completo sem Alterações]:',
+        '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
         '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
         '• Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | Tax: 36,5°C.',
         '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
@@ -29595,6 +29606,66 @@ var SoapAmbulatorialService = (function() {
     return linhas.join('\n');
   }
 
+  // 10. MODELO CANÔNICO DE EXAME FÍSICO NORMAL COMPLETO (SEGMENTAR PADRÃO-OURO)
+  function obterModeloExameFisicoCompleto(contextoPrevio) {
+    var texto = String(contextoPrevio || '');
+    var paMatch = texto.match(/\b(?:pa\s*[:=]?\s*)(\d{2,3}\s*[x/]\s*\d{2,3}(?:\s*mmhg)?)\b/i) || texto.match(/\b(\d{2,3}\s*[x/]\s*\d{2,3}\s*mmhg)\b/i);
+    var fcMatch = texto.match(/\b(?:fc|frequ[eê]ncia\s+card[ií]aca)\s*[:=]?\s*(\d{2,3}(?:\s*bpm)?)\b/i) || texto.match(/\b(\d{2,3})\s*bpm\b/i);
+    var frMatch = texto.match(/\b(?:fr|frequ[eê]ncia\s+respirat[oó]ria)\s*[:=]?\s*(\d{2}(?:\s*irpm|\s*rpm)?)\b/i) || texto.match(/\b(\d{2})\s*(?:irpm|rpm)\b/i);
+    var satMatch = texto.match(/\b(?:spo2|sat(?:ura[çc][ãa]o)?(?:[\s_]o2)?)\s*[:=]?\s*(\d{2,3}%?(?:\s*(?:em\s+)?aa|\s*(?:em\s+)?ar\s+ambiente)?)\b/i) || texto.match(/\b(\d{2,3}%)\b/);
+    var taxMatch = texto.match(/\b(?:tax|temp(?:eratura)?)\s*[:=]?\s*(\d{2}(?:[.,]\d+)?\s*°?c)\b/i) || texto.match(/\b(\d{2}(?:[.,]\d+)?\s*°c)\b/i);
+
+    var sv = [];
+    if (paMatch) {
+      var paVal = paMatch[1].trim();
+      sv.push('PA: ' + (/mmhg/i.test(paVal) ? paVal : paVal + ' mmHg'));
+    } else {
+      sv.push('PA: 120/80 mmHg');
+    }
+
+    if (fcMatch) {
+      var fcVal = fcMatch[1].trim();
+      sv.push('FC: ' + (/bpm/i.test(fcVal) ? fcVal : fcVal + ' bpm (rítmico)'));
+    } else {
+      sv.push('FC: 72 bpm (rítmico)');
+    }
+
+    if (frMatch) {
+      var frVal = frMatch[1].trim();
+      sv.push('FR: ' + (/irpm|rpm/i.test(frVal) ? frVal : frVal + ' irpm'));
+    } else {
+      sv.push('FR: 16 irpm');
+    }
+
+    if (satMatch) {
+      var satVal = satMatch[1].trim();
+      sv.push('SpO2: ' + (/%/.test(satVal) ? satVal : satVal + '% em ar ambiente'));
+    } else {
+      sv.push('SpO2: 98% em ar ambiente');
+    }
+
+    if (taxMatch) {
+      var taxVal = taxMatch[1].trim();
+      sv.push('Tax: ' + (/°?c/i.test(taxVal) ? taxVal : taxVal + '°C'));
+    } else {
+      sv.push('Tax: 36,5°C');
+    }
+
+    var linhaSV = '• Sinais Vitais: ' + sv.join(' | ') + '.';
+
+    return [
+      '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
+      '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+      linhaSV,
+      '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
+      '• Aparelho Cardiovascular (ACV): Ritmo cardíaco regular em 2 tempos (RCR 2T), bulhas normofonéticas (BNF), sem sopros ou extrassístoles. Pulsos periféricos presentes, amplos, cheios e simétricos bilateralmente.',
+      '• Aparelho Respiratório (AR): Murmúrio vesicular universalmente audível (MVUA), sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
+      '• Abdome: Plano, flácido, depressível, indolor à palpação superficial e profunda. Ruídos hidroaéreos (RHA) normoativos. Fígado e baço impalpáveis. Descompressão brusca negativa (Blumberg ausente). Sem massas palpáveis.',
+      '• Extremidades / Vascular: Sem edema de membros inferiores (ausência de sinal do cacifo). Panturrilhas livres sem empastamento (sinal de Homans negativo). Tempo de enchimento capilar (TEC) < 2 segundos. Pulsos pediosos cheios.',
+      '• Neurológico Sumário: Glasgow 15, pupilas isocóricas e fotorreagentes direta e consensualmente. Força motora grau 5/5 simétrica. Sem déficits focais. Rigidez de nuca ausente, Kernig e Brudzinski negativos.'
+    ].join('\n');
+  }
+
   return {
     VALORES_REFERENCIA: VALORES_REFERENCIA,
     MODELOS_EXAME_FISICO: MODELOS_EXAME_FISICO,
@@ -29605,9 +29676,14 @@ var SoapAmbulatorialService = (function() {
     estruturarSoapAmbulatorial: estruturarSoapAmbulatorial,
     exportarReceitaTexto: exportarReceitaTexto,
     exportarAtestadoTexto: exportarAtestadoTexto,
-    exportarEncaminhamentoTexto: exportarEncaminhamentoTexto
+    exportarEncaminhamentoTexto: exportarEncaminhamentoTexto,
+    obterModeloExameFisicoCompleto: obterModeloExameFisicoCompleto
   };
 })();
+
+function obterModeloExameFisicoCompleto(contextoPrevio) {
+  return SoapAmbulatorialService.obterModeloExameFisicoCompleto(contextoPrevio);
+}
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = SoapAmbulatorialService;
@@ -36314,19 +36390,24 @@ function _iaRemoverLatex(texto) {
 function _iaFinalizarTexto(texto) {
   if (!texto) return texto;
   return transformarPreservandoUrls(String(texto), function(t) {
-  t = t.replace(/\r\n/g, "\n");
-  t = t.replace(/^\s{0,3}#{1,6}\s*(.+)$/gm, "*$1*");
-  t = t.replace(/\*\*([^*\n]+)\*\*/g, "*$1*");
-  t = t.replace(/^(\s*)\*\s+/gm, "$1- ");
-  ["*", "_", "`"].forEach(function (ch) {
-    var partes = t.split(ch).length - 1;
-    if (partes % 2 === 1) t = t.split(ch).join("");
-  });
-  t = t.replace(/\n{3,}/g, "\n\n").trim();
-  if (t.indexOf("RASCUNHO") === -1 && t.indexOf("Rascunho") === -1 && t.indexOf("rascunho") === -1) {
-    t = "⚠️ *Rascunho para conferência médica*\n\n" + t;
-  }
-  return t;
+    t = t.replace(/\r\n/g, "\n");
+    t = t.replace(/^\s{0,3}#{1,6}\s*(.+)$/gm, "*$1*");
+    t = t.replace(/\*\*([^*\n]+)\*\*/g, "*$1*");
+    t = t.replace(/^(\s*)\*\s+/gm, "$1- ");
+    ["*", "_", "`"].forEach(function (ch) {
+      var partes = (t.match(new RegExp("\\" + ch, "g")) || []).length;
+      if (partes % 2 === 1) {
+        var lastIdx = t.lastIndexOf(ch);
+        if (lastIdx !== -1) {
+          t = t.substring(0, lastIdx) + t.substring(lastIdx + 1);
+        }
+      }
+    });
+    t = t.replace(/\n{3,}/g, "\n\n").trim();
+    if (t.indexOf("RASCUNHO") === -1 && t.indexOf("Rascunho") === -1 && t.indexOf("rascunho") === -1) {
+      t = "⚠️ *Rascunho para conferência médica*\n\n" + t;
+    }
+    return t;
   });
 }
 
@@ -36787,6 +36868,10 @@ function _iaExecutar(sistema, promptUsuario, maxTokens, opcoes) {
     try {
       r = chamar(tokens);
       r = _iaResolverTruncamento(chamar, tokens, r, ctx, opcoes.json);
+      if (r && r.truncado && opcoes.exigirRespostaCompleta) {
+        _iaLog(ctx, "Resposta incompleta; revisão não concluída");
+        return null;
+      }
       if (r && r.texto && String(r.texto).trim()) {
         if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
           IaCircuitBreaker.registrarSucesso(nome);
@@ -36804,10 +36889,6 @@ function _iaExecutar(sistema, promptUsuario, maxTokens, opcoes) {
       }
       _iaLog(ctx, nome + " falhou: " + e.message);
       continue;
-    }
-    if (r && r.truncado && opcoes.exigirRespostaCompleta) {
-      _iaLog(ctx, "Resposta incompleta; revisão não concluída");
-      return null;
     }
   }
   _iaLog(ctx, "TODOS OS PROVEDORES FALHARAM");
@@ -37561,6 +37642,27 @@ function sanitizarNegativasSOAP(texto, casoClinico) {
   return t;
 }
 
+function verificarEExpandirExameFisicoObjetivo(objetivoTexto, casoClinico) {
+  var fonte = String(casoClinico || "").toLowerCase();
+  var temEfNormalNoCaso = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\[exame\s+f[ií]sico\s+normal\]|\bmodelo\s+(?:de\s+)?ef\s+normal\b/i.test(fonte);
+  if (!temEfNormalNoCaso) return objetivoTexto;
+
+  var objStr = String(objetivoTexto || "").trim();
+  // Se a resposta for resumida ou omitir sistemas essenciais (ACV, AR, Abdome)
+  var ehResumido = objStr.length < 200 ||
+    !/(?:acv|cardiovascular|aparelho\s+cardiovascular)/i.test(objStr) ||
+    !/(?:ar|respirat[oó]rio|aparelho\s+respirat[oó]rio)/i.test(objStr) ||
+    !/(?:abdome|abdominal)/i.test(objStr);
+
+  if (ehResumido) {
+    var modeloCompleto = (typeof obterModeloExameFisicoCompleto === "function")
+      ? obterModeloExameFisicoCompleto(casoClinico)
+      : (typeof SoapAmbulatorialService !== "undefined" && SoapAmbulatorialService.MODELOS_EXAME_FISICO ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto : objStr);
+    return modeloCompleto;
+  }
+  return objStr;
+}
+
 function gerarSOAPComIA(casoClinico, opcoes) {
   opcoes = opcoes || {};
   var fecharPlano = !!(opcoes.fecharPlano || verificarPedidoExplicitoPlano(casoClinico) || opcoes.ambulatorialAgil);
@@ -37582,6 +37684,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "DIRETRIZES TÉCNICAS E SÍNTESE OBRIGATÓRIA:",
       "1. SUBJETIVO (S): QP e HDA estruturadas e limpas. Antecedentes/Medicações/Alergias: relate o informado; se ausente, resuma em 1 linha ('Não informado'). NUNCA crie parágrafos prolixos.",
       "2. OBJETIVO (O): Sinais vitais e achados informados organizados por sistemas. Se EF não informado, 'Exame físico pendente de avaliação'. Incorpore exame especial se presente.",
+      "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Ectoscopia, Sinais Vitais, Cabeça e Pescoço, ACV, AR, Abdome, Extremidades/Vascular e Neurológico), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
       "3. AVALIAÇÃO (A):",
       "   - Diagnóstico principal ou problema sindrômico com CID-10 e CIAP-2.",
       "   - Diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade.",
@@ -37603,6 +37706,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       ? sanitizarNegativasSOAP(objCons.subjetivo.trim(), dadosCaso)
       : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
     var oTexto = sanitizarObjetivoComRelato(objCons.objetivo, dadosCaso) || "Exame físico não informado; pendente de avaliação.";
+    oTexto = verificarEExpandirExameFisicoObjetivo(oTexto, dadosCaso);
     var pendencias = Array.isArray(objCons.pendencias_opcionais) ? objCons.pendencias_opcionais.filter(Boolean) : [];
 
     var blocosCons = [
@@ -37644,6 +37748,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - Sinais Vitais: registre apenas os relatados. Se ausentes, declare 'Sinais vitais pendentes de aferição'.",
     "   - Sistemas examinados relatados. Se EF não informado, declare 'Exame físico pendente de avaliação beira-leito'.",
     "   - Integre exame especial se contido no caso.",
+    "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Ectoscopia, Sinais Vitais, Cabeça e Pescoço, ACV, AR, Abdome, Extremidades/Vascular e Neurológico), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
     "3. PERGUNTAS DIRIGIDAS PARA A ANAMNESE:",
     "   - Formule no máximo 2 perguntas curtas e diretas sobre lacunas essenciais da história. SEM explicações prolixas entre parênteses.",
     "4. COBRANÇA ATIVA DO EXAME FÍSICO DIRIGIDO:",
@@ -37665,18 +37770,22 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     ? sanitizarNegativasSOAP(objRasc.subjetivo.trim(), dadosCaso)
     : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
   var oRasc = sanitizarObjetivoComRelato(objRasc.objetivo, dadosCaso);
+  oRasc = verificarEExpandirExameFisicoObjetivo(oRasc, dadosCaso);
   if (!oRasc) oRasc = "Exame físico em estruturação; conferir sinais vitais e achados.";
 
   var perguntas = objRasc.perguntas_anamnese || objRasc.perguntas;
   var exameDirigido = objRasc.exame_dirigido;
+  var temEfCompleto = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo/i.test(dadosCaso);
 
   var blocosRasc = [
     "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
     "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + sRasc,
     "🔍 *O - Objetivo (Exame Físico)*\n" + oRasc,
-    "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."),
-    "🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa.")
+    "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.")
   ];
+  if (!temEfCompleto) {
+    blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
+  }
 
   return _iaFinalizarTexto(blocosRasc.join("\n\n"));
 }
@@ -38948,7 +39057,7 @@ function atualizarNumeroNotion(pageId, propName, valor) {
 }
 
 function enviarRelatorioSemanalHabitos(chatIdDestino) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var dbId = ConfigService.get("NOTION_HABIT_LOG_DB_ID");
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 
@@ -39040,7 +39149,7 @@ function salvarDuvidaEstudoNotion(duvida) {
 }
 
 function listarTarefasHojeNotion(chatIdDestino) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var dbId = ConfigService.get("NOTION_TASKS_DB_ID");
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   if (!dbId) return enviarMensagemParaChat(destino, "⚠️ NOTION_TASKS_DB_ID não configurado.");
@@ -39183,7 +39292,7 @@ function marcarBriefingEnviadoHoje(dataHojeISO) {
 
 function executarCicloRotina5Min() {
   var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
-  var chatId = ConfigService.get("TELEGRAM_CHAT_ID");
+  var chatId = (typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim();
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   if (!token || !chatId) return;
 
@@ -39238,7 +39347,7 @@ function executarCicloRotina5Min() {
 
 function verificarAgendaENotificar() {
   var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
-  var chatId = ConfigService.get("TELEGRAM_CHAT_ID");
+  var chatId = (typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim();
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   if (!token || !chatId) return;
 
@@ -39959,7 +40068,7 @@ var RotinaService = {
 };
 
 function enviarBriefingMatinal(chatIdDestino, forcar) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
   var dataHojeISO = Utilities.formatDate(hoje, tz, "yyyy-MM-dd");
@@ -40060,7 +40169,7 @@ function obterTreinoDoDia(diaSemanaNum, dataRef) {
 }
 
 function enviarCheckinNoturno(chatIdDestino) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
   var dataFormatada = Utilities.formatDate(hoje, tz, "dd/MM");
@@ -40159,7 +40268,7 @@ function criarEventoAgendaGoogle(titulo, inicioIso, fimIso, local, descricao) {
  * Consulta de Eventos da Agenda (Hoje / Amanhã)
  */
 function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var agora = new Date();
 
@@ -40216,7 +40325,7 @@ function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
  * Fechamento e Passagem de Plantão (/plantao_fim)
  */
 function gerarResumoFimPlantao(chatIdDestino) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var horaAgora = Utilities.formatDate(new Date(), tz, "HH:mm");
 
@@ -48887,7 +48996,10 @@ function doPost(e) {
   try { u=JSON.parse(e.postData.contents); } catch(err) { return HtmlService.createHtmlOutput("Bad Request"); }
   if (!u || !Number.isSafeInteger(u.update_id) || u.update_id<0) return HtmlService.createHtmlOutput("Bad Request");
   var msg=u.message || (u.callback_query && u.callback_query.message);
-  if (!msg || !msg.chat || String(msg.chat.id)!==String(allowed)) return HtmlService.createHtmlOutput("Forbidden");
+  var allowedList = (typeof ConfigService.getArray === "function")
+    ? ConfigService.getArray("TELEGRAM_CHAT_ID").map(function(s){ return String(s).trim(); })
+    : String(allowed).split(",").map(function(s){ return String(s).trim(); });
+  if (!msg || !msg.chat || allowedList.indexOf(String(msg.chat.id)) === -1) return HtmlService.createHtmlOutput("Forbidden");
   if (u.callback_query) {
     destravarCallbackTelegramImediato(u.callback_query);
   }
@@ -49002,7 +49114,7 @@ function instalarTodosOsAcionadores() {
   // 2. Ciclo contínuo de rotina e sentinela a cada 5 minutos
   ScriptApp.newTrigger("executarCicloRotina5Min").timeBased().everyMinutes(5).create();
 
-  var chatId = ConfigService.get("TELEGRAM_CHAT_ID");
+  var chatId = (typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim();
   enviarMensagemComTecladoFixo(chatId, "⚡ *ASSISTENTE ULTRA ROTINA 3.0 ATIVADO!*\nAutomação em nuvem, copiloto clínico determinístico e sentinela instalados.");
 }
 
@@ -51051,10 +51163,13 @@ function tratarCallbackUX(cb) {
           enviarMensagemParaChat(chat, 'O caso mudou ou a confirmação expirou. Confira o SOAP atual antes de registrar o exame.');
           return true;
         }
-        dadosNorm += '\n[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.';
+        var modeloEfTexto = (typeof obterModeloExameFisicoCompleto === 'function')
+          ? obterModeloExameFisicoCompleto(dadosNorm)
+          : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto : '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.');
+        dadosNorm += '\n\n' + modeloEfTexto;
         definirModoBot(chat, 'soap', dadosNorm);
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);
-        enviarMensagemParaChat(chat, '🩺 *Exame físico registrado como totalmente normal.* Atualizando rascunho...');
+        enviarMensagemParaChat(chat, '🩺 *Exame físico normal completo registrado.*\n\nAtualizando rascunho SOAP...');
         return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, dadosNorm, "soap", msgId);
       } else if (v === 'atualizar') {
         enviarMensagemParaChat(chat, '🩺 *Modo SOAP Ativo*\nEnvie novos dados ou atualizações (por áudio ou texto) ou clique em [📋 Gerar Avaliação & Plano].');
@@ -51267,32 +51382,37 @@ function cockpitAutorizar_(initData) {
   if (typeof initData !== 'string' || !initData || initData.length > 16000) negar();
 
   if (initData === 'bot' || initData === 'internal' || initData === 'interno') {
-    return (typeof ConfigService !== 'undefined' && ConfigService.get) ? String(ConfigService.get('TELEGRAM_CHAT_ID') || 'internal') : 'internal';
+    return (typeof ConfigService !== 'undefined' && ConfigService.getPrimary) ? ConfigService.getPrimary('TELEGRAM_CHAT_ID') : ((typeof ConfigService !== 'undefined' && ConfigService.get) ? String(ConfigService.get('TELEGRAM_CHAT_ID') || 'internal').split(',')[0].trim() : 'internal');
   }
 
   // Token assinado criptograficamente (HMAC 64-hex) ou temporário em cache
   if (typeof initData === 'string' && /^ck_[a-f0-9]{64}$/.test(initData)) {
-    var permitC = ConfigService.exigir('TELEGRAM_CHAT_ID');
+    var permitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
+      ? ConfigService.getArray('TELEGRAM_CHAT_ID').map(function(s){ return String(s).trim(); })
+      : [String(ConfigService.exigir('TELEGRAM_CHAT_ID'))];
     try {
       var botToken = ConfigService.exigir('TELEGRAM_BOT_TOKEN');
-      var hashEsperado = '';
-      if (typeof Utilities !== 'undefined' && Utilities.computeHmacSha256Signature && Utilities.newBlob) {
-        var bytes = function(s){ return Utilities.newBlob(s).getBytes(); };
-        hashEsperado = Utilities.computeHmacSha256Signature(bytes(String(permitC)), bytes(botToken))
-          .map(function(b){ return ('0'+((b+256)%256).toString(16)).slice(-2); }).join('');
-      } else {
-        try {
-          var cryptoMod = eval('require')('crypto');
-          hashEsperado = cryptoMod.createHmac('sha256', botToken).update(String(permitC)).digest('hex');
-        } catch(eNode) {}
+      for (var i = 0; i < permitidos.length; i++) {
+        var permitC = permitidos[i];
+        var hashEsperado = '';
+        if (typeof Utilities !== 'undefined' && Utilities.computeHmacSha256Signature && Utilities.newBlob) {
+          var bytes = function(s){ return Utilities.newBlob(s).getBytes(); };
+          hashEsperado = Utilities.computeHmacSha256Signature(bytes(String(permitC)), bytes(botToken))
+            .map(function(b){ return ('0'+((b+256)%256).toString(16)).slice(-2); }).join('');
+        } else {
+          try {
+            var cryptoMod = eval('require')('crypto');
+            hashEsperado = cryptoMod.createHmac('sha256', botToken).update(String(permitC)).digest('hex');
+          } catch(eNode) {}
+        }
+        if (hashEsperado && initData === 'ck_' + hashEsperado) return String(permitC);
       }
-      if (hashEsperado && initData === 'ck_' + hashEsperado) return String(permitC);
     } catch(eHmac) {}
 
     try {
       var cache = (typeof CacheService !== 'undefined' && CacheService.getScriptCache) ? CacheService.getScriptCache() : null;
       var sessao = cache ? cache.get('cockpit_session_' + initData) : null;
-      if (sessao && sessao === String(permitC)) return sessao;
+      if (sessao && permitidos.indexOf(String(sessao)) !== -1) return String(sessao);
     } catch (eCache) {}
     negar();
   }
@@ -51316,25 +51436,31 @@ function cockpitAutorizar_(initData) {
     if(diff) negar();
     var idade = Math.floor(Date.now()/1000)-Number(campos.auth_date);
     if (!/^\d+$/.test(campos.auth_date || '') || !Number.isFinite(idade) || idade < -30 || idade > 3600) negar();
-    var usuario = JSON.parse(campos.user || '{}'), permitido = ConfigService.exigir('TELEGRAM_CHAT_ID');
-    if (!Number.isSafeInteger(usuario.id) || usuario.id <= 0 || String(usuario.id) !== String(permitido)) negar();
+    var usuario = JSON.parse(campos.user || '{}');
+    var permitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
+      ? ConfigService.getArray('TELEGRAM_CHAT_ID').map(function(s){ return String(s).trim(); })
+      : [String(ConfigService.exigir('TELEGRAM_CHAT_ID'))];
+    if (!Number.isSafeInteger(usuario.id) || usuario.id <= 0 || permitidos.indexOf(String(usuario.id)) === -1) negar();
     return String(usuario.id);
   } catch(e) { negar(); }
 }
 
 function criarSessaoCockpit_(chatId) {
-  var permitido = ConfigService.exigir('TELEGRAM_CHAT_ID');
-  if (String(chatId) !== String(permitido)) throw new Error('Usuário não autorizado.');
+  var permitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
+    ? ConfigService.getArray('TELEGRAM_CHAT_ID').map(function(s){ return String(s).trim(); })
+    : [String(ConfigService.exigir('TELEGRAM_CHAT_ID'))];
+  var alvo = String(chatId).split(',')[0].trim();
+  if (permitidos.indexOf(alvo) === -1) throw new Error('Usuário não autorizado.');
   var botToken = ConfigService.exigir('TELEGRAM_BOT_TOKEN');
   var hash = '';
   if (typeof Utilities !== 'undefined' && Utilities.computeHmacSha256Signature && Utilities.newBlob) {
     var bytes = function(s){ return Utilities.newBlob(s).getBytes(); };
-    hash = Utilities.computeHmacSha256Signature(bytes(String(chatId)), bytes(botToken))
+    hash = Utilities.computeHmacSha256Signature(bytes(alvo), bytes(botToken))
       .map(function(b){ return ('0'+((b+256)%256).toString(16)).slice(-2); }).join('');
   } else {
     try {
       var cryptoMod = eval('require')('crypto');
-      hash = cryptoMod.createHmac('sha256', botToken).update(String(chatId)).digest('hex');
+      hash = cryptoMod.createHmac('sha256', botToken).update(alvo).digest('hex');
     } catch(e) {
       var uuid = (typeof Utilities !== 'undefined' && Utilities.getUuid) ? Utilities.getUuid() + Utilities.getUuid() : '0'.repeat(64);
       hash = uuid.replace(/[^a-f0-9]/gi, '0').padEnd(64, '0').slice(0, 64).toLowerCase();
@@ -51343,7 +51469,7 @@ function criarSessaoCockpit_(chatId) {
   var token = 'ck_' + hash;
   if (typeof CacheService !== 'undefined' && CacheService.getScriptCache) {
     var cache = CacheService.getScriptCache();
-    if (cache) cache.put('cockpit_session_' + token, String(chatId), 21600);
+    if (cache) cache.put('cockpit_session_' + token, alvo, 21600);
   }
   return token;
 }
@@ -51893,17 +52019,19 @@ function cockpitConversar(initData, params) {
 
     if (acao === 'ef_normal') {
       var textoEfCustom = (params.textoEf || params.texto || '').trim();
-      var exameAInserir = textoEfCustom || [
-        '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
-        '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
-        '• Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | Tax: 36,5°C.',
-        '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
-        '• Aparelho Cardiovascular (ACV): Ritmo cardíaco regular em 2 tempos (RCR 2T), bulhas normofonéticas (BNF), sem sopros ou extrassístoles. Pulsos periféricos presentes, amplos, cheios e simétricos bilateralmente.',
-        '• Aparelho Respiratório (AR): Murmúrio vesicular universalmente audível (MVUA), sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
-        '• Abdome: Plano, flácido, depressível, indolor à palpação superficial e profunda. Ruídos hidroaéreos (RHA) normoativos. Fígado e baço impalpáveis. Descompressão brusca negativa (Blumberg ausente). Sem massas palpáveis.',
-        '• Extremidades / Vascular: Sem edema de membros inferiores (ausência de sinal do cacifo). Panturrilhas livres sem empastamento (sinal de Homans negativo). Tempo de enchimento capilar (TEC) < 2 segundos. Pulsos pediosos cheios.',
-        '• Neurológico Sumário: Glasgow 15, pupilas isocóricas e fotorreagentes direta e consensualmente. Força motora grau 5/5 simétrica. Sem déficits focais. Rigidez de nuca ausente, Kernig e Brudzinski negativos.'
-      ].join('\n');
+      var exameAInserir = textoEfCustom || ((typeof obterModeloExameFisicoCompleto === 'function')
+        ? obterModeloExameFisicoCompleto(dadosAtuais)
+        : [
+          '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
+          '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+          '• Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | Tax: 36,5°C.',
+          '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
+          '• Aparelho Cardiovascular (ACV): Ritmo cardíaco regular em 2 tempos (RCR 2T), bulhas normofonéticas (BNF), sem sopros ou extrassístoles. Pulsos periféricos presentes, amplos, cheios e simétricos bilateralmente.',
+          '• Aparelho Respiratório (AR): Murmúrio vesicular universalmente audível (MVUA), sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
+          '• Abdome: Plano, flácido, depressível, indolor à palpação superficial e profunda. Ruídos hidroaéreos (RHA) normoativos. Fígado e baço impalpáveis. Descompressão brusca negativa (Blumberg ausente). Sem massas palpáveis.',
+          '• Extremidades / Vascular: Sem edema de membros inferiores (ausência de sinal do cacifo). Panturrilhas livres sem empastamento (sinal de Homans negativo). Tempo de enchimento capilar (TEC) < 2 segundos. Pulsos pediosos cheios.',
+          '• Neurológico Sumário: Glasgow 15, pupilas isocóricas e fotorreagentes direta e consensualmente. Força motora grau 5/5 simétrica. Sem déficits focais. Rigidez de nuca ausente, Kernig e Brudzinski negativos.'
+        ].join('\n'));
 
       var novoTextoEf = dadosAtuais.trim()
         ? dadosAtuais + '\n' + exameAInserir

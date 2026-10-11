@@ -3,32 +3,37 @@ function cockpitAutorizar_(initData) {
   if (typeof initData !== 'string' || !initData || initData.length > 16000) negar();
 
   if (initData === 'bot' || initData === 'internal' || initData === 'interno') {
-    return (typeof ConfigService !== 'undefined' && ConfigService.get) ? String(ConfigService.get('TELEGRAM_CHAT_ID') || 'internal') : 'internal';
+    return (typeof ConfigService !== 'undefined' && ConfigService.getPrimary) ? ConfigService.getPrimary('TELEGRAM_CHAT_ID') : ((typeof ConfigService !== 'undefined' && ConfigService.get) ? String(ConfigService.get('TELEGRAM_CHAT_ID') || 'internal').split(',')[0].trim() : 'internal');
   }
 
   // Token assinado criptograficamente (HMAC 64-hex) ou temporário em cache
   if (typeof initData === 'string' && /^ck_[a-f0-9]{64}$/.test(initData)) {
-    var permitC = ConfigService.exigir('TELEGRAM_CHAT_ID');
+    var permitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
+      ? ConfigService.getArray('TELEGRAM_CHAT_ID').map(function(s){ return String(s).trim(); })
+      : [String(ConfigService.exigir('TELEGRAM_CHAT_ID'))];
     try {
       var botToken = ConfigService.exigir('TELEGRAM_BOT_TOKEN');
-      var hashEsperado = '';
-      if (typeof Utilities !== 'undefined' && Utilities.computeHmacSha256Signature && Utilities.newBlob) {
-        var bytes = function(s){ return Utilities.newBlob(s).getBytes(); };
-        hashEsperado = Utilities.computeHmacSha256Signature(bytes(String(permitC)), bytes(botToken))
-          .map(function(b){ return ('0'+((b+256)%256).toString(16)).slice(-2); }).join('');
-      } else {
-        try {
-          var cryptoMod = eval('require')('crypto');
-          hashEsperado = cryptoMod.createHmac('sha256', botToken).update(String(permitC)).digest('hex');
-        } catch(eNode) {}
+      for (var i = 0; i < permitidos.length; i++) {
+        var permitC = permitidos[i];
+        var hashEsperado = '';
+        if (typeof Utilities !== 'undefined' && Utilities.computeHmacSha256Signature && Utilities.newBlob) {
+          var bytes = function(s){ return Utilities.newBlob(s).getBytes(); };
+          hashEsperado = Utilities.computeHmacSha256Signature(bytes(String(permitC)), bytes(botToken))
+            .map(function(b){ return ('0'+((b+256)%256).toString(16)).slice(-2); }).join('');
+        } else {
+          try {
+            var cryptoMod = eval('require')('crypto');
+            hashEsperado = cryptoMod.createHmac('sha256', botToken).update(String(permitC)).digest('hex');
+          } catch(eNode) {}
+        }
+        if (hashEsperado && initData === 'ck_' + hashEsperado) return String(permitC);
       }
-      if (hashEsperado && initData === 'ck_' + hashEsperado) return String(permitC);
     } catch(eHmac) {}
 
     try {
       var cache = (typeof CacheService !== 'undefined' && CacheService.getScriptCache) ? CacheService.getScriptCache() : null;
       var sessao = cache ? cache.get('cockpit_session_' + initData) : null;
-      if (sessao && sessao === String(permitC)) return sessao;
+      if (sessao && permitidos.indexOf(String(sessao)) !== -1) return String(sessao);
     } catch (eCache) {}
     negar();
   }
@@ -52,25 +57,31 @@ function cockpitAutorizar_(initData) {
     if(diff) negar();
     var idade = Math.floor(Date.now()/1000)-Number(campos.auth_date);
     if (!/^\d+$/.test(campos.auth_date || '') || !Number.isFinite(idade) || idade < -30 || idade > 3600) negar();
-    var usuario = JSON.parse(campos.user || '{}'), permitido = ConfigService.exigir('TELEGRAM_CHAT_ID');
-    if (!Number.isSafeInteger(usuario.id) || usuario.id <= 0 || String(usuario.id) !== String(permitido)) negar();
+    var usuario = JSON.parse(campos.user || '{}');
+    var permitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
+      ? ConfigService.getArray('TELEGRAM_CHAT_ID').map(function(s){ return String(s).trim(); })
+      : [String(ConfigService.exigir('TELEGRAM_CHAT_ID'))];
+    if (!Number.isSafeInteger(usuario.id) || usuario.id <= 0 || permitidos.indexOf(String(usuario.id)) === -1) negar();
     return String(usuario.id);
   } catch(e) { negar(); }
 }
 
 function criarSessaoCockpit_(chatId) {
-  var permitido = ConfigService.exigir('TELEGRAM_CHAT_ID');
-  if (String(chatId) !== String(permitido)) throw new Error('Usuário não autorizado.');
+  var permitidos = (typeof ConfigService !== 'undefined' && ConfigService.getArray)
+    ? ConfigService.getArray('TELEGRAM_CHAT_ID').map(function(s){ return String(s).trim(); })
+    : [String(ConfigService.exigir('TELEGRAM_CHAT_ID'))];
+  var alvo = String(chatId).split(',')[0].trim();
+  if (permitidos.indexOf(alvo) === -1) throw new Error('Usuário não autorizado.');
   var botToken = ConfigService.exigir('TELEGRAM_BOT_TOKEN');
   var hash = '';
   if (typeof Utilities !== 'undefined' && Utilities.computeHmacSha256Signature && Utilities.newBlob) {
     var bytes = function(s){ return Utilities.newBlob(s).getBytes(); };
-    hash = Utilities.computeHmacSha256Signature(bytes(String(chatId)), bytes(botToken))
+    hash = Utilities.computeHmacSha256Signature(bytes(alvo), bytes(botToken))
       .map(function(b){ return ('0'+((b+256)%256).toString(16)).slice(-2); }).join('');
   } else {
     try {
       var cryptoMod = eval('require')('crypto');
-      hash = cryptoMod.createHmac('sha256', botToken).update(String(chatId)).digest('hex');
+      hash = cryptoMod.createHmac('sha256', botToken).update(alvo).digest('hex');
     } catch(e) {
       var uuid = (typeof Utilities !== 'undefined' && Utilities.getUuid) ? Utilities.getUuid() + Utilities.getUuid() : '0'.repeat(64);
       hash = uuid.replace(/[^a-f0-9]/gi, '0').padEnd(64, '0').slice(0, 64).toLowerCase();
@@ -79,7 +90,7 @@ function criarSessaoCockpit_(chatId) {
   var token = 'ck_' + hash;
   if (typeof CacheService !== 'undefined' && CacheService.getScriptCache) {
     var cache = CacheService.getScriptCache();
-    if (cache) cache.put('cockpit_session_' + token, String(chatId), 21600);
+    if (cache) cache.put('cockpit_session_' + token, alvo, 21600);
   }
   return token;
 }
@@ -629,17 +640,19 @@ function cockpitConversar(initData, params) {
 
     if (acao === 'ef_normal') {
       var textoEfCustom = (params.textoEf || params.texto || '').trim();
-      var exameAInserir = textoEfCustom || [
-        '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
-        '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
-        '• Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | Tax: 36,5°C.',
-        '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
-        '• Aparelho Cardiovascular (ACV): Ritmo cardíaco regular em 2 tempos (RCR 2T), bulhas normofonéticas (BNF), sem sopros ou extrassístoles. Pulsos periféricos presentes, amplos, cheios e simétricos bilateralmente.',
-        '• Aparelho Respiratório (AR): Murmúrio vesicular universalmente audível (MVUA), sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
-        '• Abdome: Plano, flácido, depressível, indolor à palpação superficial e profunda. Ruídos hidroaéreos (RHA) normoativos. Fígado e baço impalpáveis. Descompressão brusca negativa (Blumberg ausente). Sem massas palpáveis.',
-        '• Extremidades / Vascular: Sem edema de membros inferiores (ausência de sinal do cacifo). Panturrilhas livres sem empastamento (sinal de Homans negativo). Tempo de enchimento capilar (TEC) < 2 segundos. Pulsos pediosos cheios.',
-        '• Neurológico Sumário: Glasgow 15, pupilas isocóricas e fotorreagentes direta e consensualmente. Força motora grau 5/5 simétrica. Sem déficits focais. Rigidez de nuca ausente, Kernig e Brudzinski negativos.'
-      ].join('\n');
+      var exameAInserir = textoEfCustom || ((typeof obterModeloExameFisicoCompleto === 'function')
+        ? obterModeloExameFisicoCompleto(dadosAtuais)
+        : [
+          '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
+          '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+          '• Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | Tax: 36,5°C.',
+          '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
+          '• Aparelho Cardiovascular (ACV): Ritmo cardíaco regular em 2 tempos (RCR 2T), bulhas normofonéticas (BNF), sem sopros ou extrassístoles. Pulsos periféricos presentes, amplos, cheios e simétricos bilateralmente.',
+          '• Aparelho Respiratório (AR): Murmúrio vesicular universalmente audível (MVUA), sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
+          '• Abdome: Plano, flácido, depressível, indolor à palpação superficial e profunda. Ruídos hidroaéreos (RHA) normoativos. Fígado e baço impalpáveis. Descompressão brusca negativa (Blumberg ausente). Sem massas palpáveis.',
+          '• Extremidades / Vascular: Sem edema de membros inferiores (ausência de sinal do cacifo). Panturrilhas livres sem empastamento (sinal de Homans negativo). Tempo de enchimento capilar (TEC) < 2 segundos. Pulsos pediosos cheios.',
+          '• Neurológico Sumário: Glasgow 15, pupilas isocóricas e fotorreagentes direta e consensualmente. Força motora grau 5/5 simétrica. Sem déficits focais. Rigidez de nuca ausente, Kernig e Brudzinski negativos.'
+        ].join('\n'));
 
       var novoTextoEf = dadosAtuais.trim()
         ? dadosAtuais + '\n' + exameAInserir

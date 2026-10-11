@@ -135,7 +135,10 @@ function doPost(e) {
   try { u=JSON.parse(e.postData.contents); } catch(err) { return HtmlService.createHtmlOutput("Bad Request"); }
   if (!u || !Number.isSafeInteger(u.update_id) || u.update_id<0) return HtmlService.createHtmlOutput("Bad Request");
   var msg=u.message || (u.callback_query && u.callback_query.message);
-  if (!msg || !msg.chat || String(msg.chat.id)!==String(allowed)) return HtmlService.createHtmlOutput("Forbidden");
+  var allowedList = (typeof ConfigService.getArray === "function")
+    ? ConfigService.getArray("TELEGRAM_CHAT_ID").map(function(s){ return String(s).trim(); })
+    : String(allowed).split(",").map(function(s){ return String(s).trim(); });
+  if (!msg || !msg.chat || allowedList.indexOf(String(msg.chat.id)) === -1) return HtmlService.createHtmlOutput("Forbidden");
   if (u.callback_query) {
     destravarCallbackTelegramImediato(u.callback_query);
   }
@@ -250,6 +253,6 @@ function instalarTodosOsAcionadores() {
   // 2. Ciclo contínuo de rotina e sentinela a cada 5 minutos
   ScriptApp.newTrigger("executarCicloRotina5Min").timeBased().everyMinutes(5).create();
 
-  var chatId = ConfigService.get("TELEGRAM_CHAT_ID");
+  var chatId = (typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim();
   enviarMensagemComTecladoFixo(chatId, "⚡ *ASSISTENTE ULTRA ROTINA 3.0 ATIVADO!*\nAutomação em nuvem, copiloto clínico determinístico e sentinela instalados.");
 }

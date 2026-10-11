@@ -84,7 +84,8 @@ async function executarTestes() {
   // 3. TESTE DE COCKPIT CONVERSAR COM ÁUDIO E PRECEPTOR
   // ───────────────────────────────────────────────────────────────────────────
   console.log('[3] Testando cockpitConversar (Ação preceptor e upload de áudio)...');
-  let chatId = runtime.ctx.ConfigService.get('TELEGRAM_CHAT_ID');
+  let permitidos = runtime.ctx.ConfigService.getArray ? runtime.ctx.ConfigService.getArray('TELEGRAM_CHAT_ID') : [];
+  let chatId = (permitidos && permitidos.length) ? permitidos[0] : runtime.ctx.ConfigService.get('TELEGRAM_CHAT_ID');
   if (!chatId) {
     chatId = '123456';
     runtime.ctx.PropertiesService.getScriptProperties().setProperty('TELEGRAM_CHAT_ID', chatId);

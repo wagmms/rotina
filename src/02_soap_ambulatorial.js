@@ -74,7 +74,7 @@ var SoapAmbulatorialService = (function() {
     padrao_completo: {
       titulo: 'Adulto Geral Completo (Segmentar Padrão Ouro)',
       texto: [
-        '[Exame Físico Geral e Segmentar Completo sem Alterações]:',
+        '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
         '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
         '• Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm (rítmico) | FR: 16 irpm | SpO2: 98% em ar ambiente | Tax: 36,5°C.',
         '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
@@ -851,6 +851,66 @@ var SoapAmbulatorialService = (function() {
     return linhas.join('\n');
   }
 
+  // 10. MODELO CANÔNICO DE EXAME FÍSICO NORMAL COMPLETO (SEGMENTAR PADRÃO-OURO)
+  function obterModeloExameFisicoCompleto(contextoPrevio) {
+    var texto = String(contextoPrevio || '');
+    var paMatch = texto.match(/\b(?:pa\s*[:=]?\s*)(\d{2,3}\s*[x/]\s*\d{2,3}(?:\s*mmhg)?)\b/i) || texto.match(/\b(\d{2,3}\s*[x/]\s*\d{2,3}\s*mmhg)\b/i);
+    var fcMatch = texto.match(/\b(?:fc|frequ[eê]ncia\s+card[ií]aca)\s*[:=]?\s*(\d{2,3}(?:\s*bpm)?)\b/i) || texto.match(/\b(\d{2,3})\s*bpm\b/i);
+    var frMatch = texto.match(/\b(?:fr|frequ[eê]ncia\s+respirat[oó]ria)\s*[:=]?\s*(\d{2}(?:\s*irpm|\s*rpm)?)\b/i) || texto.match(/\b(\d{2})\s*(?:irpm|rpm)\b/i);
+    var satMatch = texto.match(/\b(?:spo2|sat(?:ura[çc][ãa]o)?(?:[\s_]o2)?)\s*[:=]?\s*(\d{2,3}%?(?:\s*(?:em\s+)?aa|\s*(?:em\s+)?ar\s+ambiente)?)\b/i) || texto.match(/\b(\d{2,3}%)\b/);
+    var taxMatch = texto.match(/\b(?:tax|temp(?:eratura)?)\s*[:=]?\s*(\d{2}(?:[.,]\d+)?\s*°?c)\b/i) || texto.match(/\b(\d{2}(?:[.,]\d+)?\s*°c)\b/i);
+
+    var sv = [];
+    if (paMatch) {
+      var paVal = paMatch[1].trim();
+      sv.push('PA: ' + (/mmhg/i.test(paVal) ? paVal : paVal + ' mmHg'));
+    } else {
+      sv.push('PA: 120/80 mmHg');
+    }
+
+    if (fcMatch) {
+      var fcVal = fcMatch[1].trim();
+      sv.push('FC: ' + (/bpm/i.test(fcVal) ? fcVal : fcVal + ' bpm (rítmico)'));
+    } else {
+      sv.push('FC: 72 bpm (rítmico)');
+    }
+
+    if (frMatch) {
+      var frVal = frMatch[1].trim();
+      sv.push('FR: ' + (/irpm|rpm/i.test(frVal) ? frVal : frVal + ' irpm'));
+    } else {
+      sv.push('FR: 16 irpm');
+    }
+
+    if (satMatch) {
+      var satVal = satMatch[1].trim();
+      sv.push('SpO2: ' + (/%/.test(satVal) ? satVal : satVal + '% em ar ambiente'));
+    } else {
+      sv.push('SpO2: 98% em ar ambiente');
+    }
+
+    if (taxMatch) {
+      var taxVal = taxMatch[1].trim();
+      sv.push('Tax: ' + (/°?c/i.test(taxVal) ? taxVal : taxVal + '°C'));
+    } else {
+      sv.push('Tax: 36,5°C');
+    }
+
+    var linhaSV = '• Sinais Vitais: ' + sv.join(' | ') + '.';
+
+    return [
+      '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.',
+      '• Ectoscopia: Bom estado geral (BEG), lúcido e orientado no tempo e espaço (LOTE), corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.',
+      linhaSV,
+      '• Cabeça e Pescoço: Mucosas úmidas e coradas, oroscopia sem hiperemia ou exsudatos. Tireoide impalpável, sem linfonodomegalias cervicais. Carótidas com pulsos simétricos sem sopros, sem turgência jugular a 45°.',
+      '• Aparelho Cardiovascular (ACV): Ritmo cardíaco regular em 2 tempos (RCR 2T), bulhas normofonéticas (BNF), sem sopros ou extrassístoles. Pulsos periféricos presentes, amplos, cheios e simétricos bilateralmente.',
+      '• Aparelho Respiratório (AR): Murmúrio vesicular universalmente audível (MVUA), sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.',
+      '• Abdome: Plano, flácido, depressível, indolor à palpação superficial e profunda. Ruídos hidroaéreos (RHA) normoativos. Fígado e baço impalpáveis. Descompressão brusca negativa (Blumberg ausente). Sem massas palpáveis.',
+      '• Extremidades / Vascular: Sem edema de membros inferiores (ausência de sinal do cacifo). Panturrilhas livres sem empastamento (sinal de Homans negativo). Tempo de enchimento capilar (TEC) < 2 segundos. Pulsos pediosos cheios.',
+      '• Neurológico Sumário: Glasgow 15, pupilas isocóricas e fotorreagentes direta e consensualmente. Força motora grau 5/5 simétrica. Sem déficits focais. Rigidez de nuca ausente, Kernig e Brudzinski negativos.'
+    ].join('\n');
+  }
+
   return {
     VALORES_REFERENCIA: VALORES_REFERENCIA,
     MODELOS_EXAME_FISICO: MODELOS_EXAME_FISICO,
@@ -861,9 +921,14 @@ var SoapAmbulatorialService = (function() {
     estruturarSoapAmbulatorial: estruturarSoapAmbulatorial,
     exportarReceitaTexto: exportarReceitaTexto,
     exportarAtestadoTexto: exportarAtestadoTexto,
-    exportarEncaminhamentoTexto: exportarEncaminhamentoTexto
+    exportarEncaminhamentoTexto: exportarEncaminhamentoTexto,
+    obterModeloExameFisicoCompleto: obterModeloExameFisicoCompleto
   };
 })();
+
+function obterModeloExameFisicoCompleto(contextoPrevio) {
+  return SoapAmbulatorialService.obterModeloExameFisicoCompleto(contextoPrevio);
+}
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = SoapAmbulatorialService;

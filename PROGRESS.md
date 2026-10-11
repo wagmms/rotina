@@ -11,6 +11,17 @@
 
 ---
 
+## 🔄 Tarefa Concluída
+
+- [x] **Expansão do Modelo de Exame Físico Normal Completo no Telegram e Cockpit**:
+    - Substituída a string simplificada "EF normal" pelo modelo semiológico canônico completo (Ectoscopia, Sinais Vitais com preservação dos dados prévios informados, Cabeça e Pescoço, ACV, AR, Abdome, Extremidades/Vascular e Neurológico Sumário).
+    - Garantida a expansão determinística no campo Objetivo (O) do SOAP tanto na Fase 1 quanto na Fase 2, proibindo a redução da IA a resumos simplistas.
+    - Omitida a cobrança ativa redundante de manobras de EF básico na Fase 1 quando o EF completo já estiver registrado.
+    - Corrigido o balanceamento de caracteres de Markdown em `_iaFinalizarTexto` para evitar perda de formatação (negritos e itálicos) no Telegram.
+    - Suíte de testes `test_ef_normal_completo.cjs` criada e aprovada com 100% de sucesso.
+
+---
+
 ## 🔄 Próxima Tarefa em Andamento
 
 - [ ] **Auditoria de Teclados Inline e Atalhos de 1 Toque nas Condutas de PCR (/pcr) e Arritmias Cardíacas no Telegram**:
@@ -31,6 +42,8 @@
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
 *(Seção dedicada para registrar oportunidades e sugestões levantadas durante os testes de funções, sem implementação imediata no código)*
+
+- *Sugestão 28 (SOAP / Exame Físico)*: Menu seletor rápido de modelos normais dirigidos por especialidade médica (ex: Pediátrico normal com fontanelas e reflexos arcaicos, Geriátrico/AGA com marcha e funcionalidade, Neuro normal com pares cranianos detalhados) expansíveis em 1 toque diretamente no botão [🔬 Exames].
 
 - *Sugestão 1 (Cockpit)*: Busca rápida instantânea por texto com filtro de medicamentos padronizados na REMUME.
 - *Sugestão 2 (Cockpit)*: Modo noturno (Dark Mode) de alto contraste para economia de bateria e conforto visual no plantão.

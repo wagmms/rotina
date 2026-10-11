@@ -922,10 +922,13 @@ function tratarCallbackUX(cb) {
           enviarMensagemParaChat(chat, 'O caso mudou ou a confirmação expirou. Confira o SOAP atual antes de registrar o exame.');
           return true;
         }
-        dadosNorm += '\n[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.';
+        var modeloEfTexto = (typeof obterModeloExameFisicoCompleto === 'function')
+          ? obterModeloExameFisicoCompleto(dadosNorm)
+          : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.MODELOS_EXAME_FISICO ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto : '[Exame Físico]: Exame físico geral e segmentar completo sem alterações / totalmente normal.');
+        dadosNorm += '\n\n' + modeloEfTexto;
         definirModoBot(chat, 'soap', dadosNorm);
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);
-        enviarMensagemParaChat(chat, '🩺 *Exame físico registrado como totalmente normal.* Atualizando rascunho...');
+        enviarMensagemParaChat(chat, '🩺 *Exame físico normal completo registrado.*\n\nAtualizando rascunho SOAP...');
         return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, dadosNorm, "soap", msgId);
       } else if (v === 'atualizar') {
         enviarMensagemParaChat(chat, '🩺 *Modo SOAP Ativo*\nEnvie novos dados ou atualizações (por áudio ou texto) ou clique em [📋 Gerar Avaliação & Plano].');

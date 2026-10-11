@@ -496,10 +496,16 @@ function executarPostTelegram(url, payload) {
 function obterUrlCockpit(chatId) {
   var urlCustom = (typeof ConfigService !== "undefined") ? ConfigService.get("COCKPIT_WEB_URL") : null;
   var base = urlCustom ? urlCustom.split("?")[0] : "https://wagmms.github.io/cockpit/";
-  var id = chatId ? String(chatId) : ((typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_CHAT_ID") : "");
+  var id = chatId ? String(chatId) : ((typeof ConfigService !== "undefined" && ConfigService.getPrimary) ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : ((typeof ConfigService !== "undefined" && ConfigService.get) ? String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim() : ""));
   var sessao = "";
   if (id && typeof criarSessaoCockpit_ === "function") {
-    sessao = criarSessaoCockpit_(id);
+    if (chatId) {
+      sessao = criarSessaoCockpit_(id);
+    } else {
+      try {
+        sessao = criarSessaoCockpit_(id);
+      } catch (_) {}
+    }
   }
   var v = (typeof ConfigService !== "undefined" && ConfigService.get && ConfigService.get("COCKPIT_VERSION")) ? ConfigService.get("COCKPIT_VERSION") : "2.5";
   return sessao ? base + "?session=" + sessao + "&v=" + v : base + "?v=" + v;

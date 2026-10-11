@@ -35,7 +35,7 @@ function marcarBriefingEnviadoHoje(dataHojeISO) {
 
 function executarCicloRotina5Min() {
   var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
-  var chatId = ConfigService.get("TELEGRAM_CHAT_ID");
+  var chatId = (typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim();
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   if (!token || !chatId) return;
 
@@ -90,7 +90,7 @@ function executarCicloRotina5Min() {
 
 function verificarAgendaENotificar() {
   var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
-  var chatId = ConfigService.get("TELEGRAM_CHAT_ID");
+  var chatId = (typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim();
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   if (!token || !chatId) return;
 
@@ -811,7 +811,7 @@ var RotinaService = {
 };
 
 function enviarBriefingMatinal(chatIdDestino, forcar) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
   var dataHojeISO = Utilities.formatDate(hoje, tz, "yyyy-MM-dd");
@@ -912,7 +912,7 @@ function obterTreinoDoDia(diaSemanaNum, dataRef) {
 }
 
 function enviarCheckinNoturno(chatIdDestino) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
   var dataFormatada = Utilities.formatDate(hoje, tz, "dd/MM");
@@ -1011,7 +1011,7 @@ function criarEventoAgendaGoogle(titulo, inicioIso, fimIso, local, descricao) {
  * Consulta de Eventos da Agenda (Hoje / Amanhã)
  */
 function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var agora = new Date();
 
@@ -1068,7 +1068,7 @@ function consultarEventosAgenda(dataAlvoStr, chatIdDestino) {
  * Fechamento e Passagem de Plantão (/plantao_fim)
  */
 function gerarResumoFimPlantao(chatIdDestino) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var horaAgora = Utilities.formatDate(new Date(), tz, "HH:mm");
 

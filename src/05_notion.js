@@ -88,7 +88,7 @@ function atualizarNumeroNotion(pageId, propName, valor) {
 }
 
 function enviarRelatorioSemanalHabitos(chatIdDestino) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var dbId = ConfigService.get("NOTION_HABIT_LOG_DB_ID");
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 
@@ -180,7 +180,7 @@ function salvarDuvidaEstudoNotion(duvida) {
 }
 
 function listarTarefasHojeNotion(chatIdDestino) {
-  var destino = chatIdDestino || ConfigService.get("TELEGRAM_CHAT_ID");
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
   var dbId = ConfigService.get("NOTION_TASKS_DB_ID");
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   if (!dbId) return enviarMensagemParaChat(destino, "⚠️ NOTION_TASKS_DB_ID não configurado.");

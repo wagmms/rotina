@@ -225,19 +225,24 @@ function _iaRemoverLatex(texto) {
 function _iaFinalizarTexto(texto) {
   if (!texto) return texto;
   return transformarPreservandoUrls(String(texto), function(t) {
-  t = t.replace(/\r\n/g, "\n");
-  t = t.replace(/^\s{0,3}#{1,6}\s*(.+)$/gm, "*$1*");
-  t = t.replace(/\*\*([^*\n]+)\*\*/g, "*$1*");
-  t = t.replace(/^(\s*)\*\s+/gm, "$1- ");
-  ["*", "_", "`"].forEach(function (ch) {
-    var partes = t.split(ch).length - 1;
-    if (partes % 2 === 1) t = t.split(ch).join("");
-  });
-  t = t.replace(/\n{3,}/g, "\n\n").trim();
-  if (t.indexOf("RASCUNHO") === -1 && t.indexOf("Rascunho") === -1 && t.indexOf("rascunho") === -1) {
-    t = "⚠️ *Rascunho para conferência médica*\n\n" + t;
-  }
-  return t;
+    t = t.replace(/\r\n/g, "\n");
+    t = t.replace(/^\s{0,3}#{1,6}\s*(.+)$/gm, "*$1*");
+    t = t.replace(/\*\*([^*\n]+)\*\*/g, "*$1*");
+    t = t.replace(/^(\s*)\*\s+/gm, "$1- ");
+    ["*", "_", "`"].forEach(function (ch) {
+      var partes = (t.match(new RegExp("\\" + ch, "g")) || []).length;
+      if (partes % 2 === 1) {
+        var lastIdx = t.lastIndexOf(ch);
+        if (lastIdx !== -1) {
+          t = t.substring(0, lastIdx) + t.substring(lastIdx + 1);
+        }
+      }
+    });
+    t = t.replace(/\n{3,}/g, "\n\n").trim();
+    if (t.indexOf("RASCUNHO") === -1 && t.indexOf("Rascunho") === -1 && t.indexOf("rascunho") === -1) {
+      t = "⚠️ *Rascunho para conferência médica*\n\n" + t;
+    }
+    return t;
   });
 }
 
@@ -698,6 +703,10 @@ function _iaExecutar(sistema, promptUsuario, maxTokens, opcoes) {
     try {
       r = chamar(tokens);
       r = _iaResolverTruncamento(chamar, tokens, r, ctx, opcoes.json);
+      if (r && r.truncado && opcoes.exigirRespostaCompleta) {
+        _iaLog(ctx, "Resposta incompleta; revisão não concluída");
+        return null;
+      }
       if (r && r.texto && String(r.texto).trim()) {
         if (typeof IaCircuitBreaker !== "undefined" && IaCircuitBreaker) {
           IaCircuitBreaker.registrarSucesso(nome);
@@ -715,10 +724,6 @@ function _iaExecutar(sistema, promptUsuario, maxTokens, opcoes) {
       }
       _iaLog(ctx, nome + " falhou: " + e.message);
       continue;
-    }
-    if (r && r.truncado && opcoes.exigirRespostaCompleta) {
-      _iaLog(ctx, "Resposta incompleta; revisão não concluída");
-      return null;
     }
   }
   _iaLog(ctx, "TODOS OS PROVEDORES FALHARAM");
@@ -1472,6 +1477,27 @@ function sanitizarNegativasSOAP(texto, casoClinico) {
   return t;
 }
 
+function verificarEExpandirExameFisicoObjetivo(objetivoTexto, casoClinico) {
+  var fonte = String(casoClinico || "").toLowerCase();
+  var temEfNormalNoCaso = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\[exame\s+f[ií]sico\s+normal\]|\bmodelo\s+(?:de\s+)?ef\s+normal\b/i.test(fonte);
+  if (!temEfNormalNoCaso) return objetivoTexto;
+
+  var objStr = String(objetivoTexto || "").trim();
+  // Se a resposta for resumida ou omitir sistemas essenciais (ACV, AR, Abdome)
+  var ehResumido = objStr.length < 200 ||
+    !/(?:acv|cardiovascular|aparelho\s+cardiovascular)/i.test(objStr) ||
+    !/(?:ar|respirat[oó]rio|aparelho\s+respirat[oó]rio)/i.test(objStr) ||
+    !/(?:abdome|abdominal)/i.test(objStr);
+
+  if (ehResumido) {
+    var modeloCompleto = (typeof obterModeloExameFisicoCompleto === "function")
+      ? obterModeloExameFisicoCompleto(casoClinico)
+      : (typeof SoapAmbulatorialService !== "undefined" && SoapAmbulatorialService.MODELOS_EXAME_FISICO ? SoapAmbulatorialService.MODELOS_EXAME_FISICO.padrao_completo.texto : objStr);
+    return modeloCompleto;
+  }
+  return objStr;
+}
+
 function gerarSOAPComIA(casoClinico, opcoes) {
   opcoes = opcoes || {};
   var fecharPlano = !!(opcoes.fecharPlano || verificarPedidoExplicitoPlano(casoClinico) || opcoes.ambulatorialAgil);
@@ -1493,6 +1519,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "DIRETRIZES TÉCNICAS E SÍNTESE OBRIGATÓRIA:",
       "1. SUBJETIVO (S): QP e HDA estruturadas e limpas. Antecedentes/Medicações/Alergias: relate o informado; se ausente, resuma em 1 linha ('Não informado'). NUNCA crie parágrafos prolixos.",
       "2. OBJETIVO (O): Sinais vitais e achados informados organizados por sistemas. Se EF não informado, 'Exame físico pendente de avaliação'. Incorpore exame especial se presente.",
+      "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Ectoscopia, Sinais Vitais, Cabeça e Pescoço, ACV, AR, Abdome, Extremidades/Vascular e Neurológico), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
       "3. AVALIAÇÃO (A):",
       "   - Diagnóstico principal ou problema sindrômico com CID-10 e CIAP-2.",
       "   - Diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade.",
@@ -1514,6 +1541,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       ? sanitizarNegativasSOAP(objCons.subjetivo.trim(), dadosCaso)
       : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
     var oTexto = sanitizarObjetivoComRelato(objCons.objetivo, dadosCaso) || "Exame físico não informado; pendente de avaliação.";
+    oTexto = verificarEExpandirExameFisicoObjetivo(oTexto, dadosCaso);
     var pendencias = Array.isArray(objCons.pendencias_opcionais) ? objCons.pendencias_opcionais.filter(Boolean) : [];
 
     var blocosCons = [
@@ -1555,6 +1583,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - Sinais Vitais: registre apenas os relatados. Se ausentes, declare 'Sinais vitais pendentes de aferição'.",
     "   - Sistemas examinados relatados. Se EF não informado, declare 'Exame físico pendente de avaliação beira-leito'.",
     "   - Integre exame especial se contido no caso.",
+    "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Ectoscopia, Sinais Vitais, Cabeça e Pescoço, ACV, AR, Abdome, Extremidades/Vascular e Neurológico), formatado com marcadores prontos para prontuário (PEP). NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações'.",
     "3. PERGUNTAS DIRIGIDAS PARA A ANAMNESE:",
     "   - Formule no máximo 2 perguntas curtas e diretas sobre lacunas essenciais da história. SEM explicações prolixas entre parênteses.",
     "4. COBRANÇA ATIVA DO EXAME FÍSICO DIRIGIDO:",
@@ -1576,18 +1605,22 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     ? sanitizarNegativasSOAP(objRasc.subjetivo.trim(), dadosCaso)
     : dadosCaso.replace(/Atualização:\s*/gi, "").trim();
   var oRasc = sanitizarObjetivoComRelato(objRasc.objetivo, dadosCaso);
+  oRasc = verificarEExpandirExameFisicoObjetivo(oRasc, dadosCaso);
   if (!oRasc) oRasc = "Exame físico em estruturação; conferir sinais vitais e achados.";
 
   var perguntas = objRasc.perguntas_anamnese || objRasc.perguntas;
   var exameDirigido = objRasc.exame_dirigido;
+  var temEfCompleto = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo/i.test(dadosCaso);
 
   var blocosRasc = [
     "🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*",
     "👤 *S - Subjetivo (Anamnese Estruturada)*\n" + sRasc,
     "🔍 *O - Objetivo (Exame Físico)*\n" + oRasc,
-    "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."),
-    "🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa.")
+    "❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias.")
   ];
+  if (!temEfCompleto) {
+    blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
+  }
 
   return _iaFinalizarTexto(blocosRasc.join("\n\n"));
 }

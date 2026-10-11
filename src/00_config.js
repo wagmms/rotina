@@ -68,6 +68,11 @@ var ConfigService = (function() {
       }
       return val ? [val] : [];
     },
+    getPrimary: function(chave, valorPadrao) {
+      var arr = this.getArray(chave);
+      if (arr && arr.length > 0 && arr[0]) return String(arr[0]).trim();
+      return valorPadrao !== undefined ? valorPadrao : "";
+    },
     invalidar: function() { propsCache=null; },
     exigir: function(chave) {
       var val = this.get(chave);
