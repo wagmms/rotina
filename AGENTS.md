@@ -16,7 +16,9 @@
 # Diretrizes Oficiais do Autoloop (Conserto de Erros, Otimização de Experiência e Testes Contínuos)
 
 - **Foco Primário**: Conserto metódico de erros, eliminação de bugs e otimização profunda da experiência do usuário (UI/UX, agilidade, clareza e fluidez do bot do Telegram, Cockpit PWA e rotas Fastify).
-- **Testes Sistemáticos de Todas as Funções**: A cada ciclo autônomo, testar metódica e exaustivamente as funções do bot, Cockpit e calculadoras clínicas (rodando e ampliando as suítes automatizadas `npm test` e scripts em `tests/`), verificando se todas as funções respondem corretamente, sem travamentos, exceções ou regressões.
+- **Execução Direcionada de Testes e Validação Completa (Test Sharding / Fast-Fail)**:
+  * *Fase de Iteração (Fast-Fail / Test Sharding)*: Durante a escrita, refatoração e depuração de código, execute EXCLUSIVAMENTE a suíte de testes direcionada ao arquivo/módulo editado (ex: `node scripts/run_tests.cjs tests/test_obstetricia_prenatal.cjs` ou `node tests/test_obstetricia_prenatal.cjs`), obtendo feedback imediato em ~0.3s a 0.5s. É terminantemente proibido disparar a bateria completa (`npm run test:all`) repetidas vezes enquanto itera.
+  * *Fase de Conclusão (Recibo de Estabilidade & Zero Regressões)*: Apenas quando todas as alterações de código e documentação da tarefa estiverem concluídas, dispare UMA ÚNICA vez a bateria completa de regressão (`npm run test:all`) para certificar zero regressões e emitir o recibo oficial de estabilidade antes do commit final.
 - **Conserto, Otimização e Eficiência**: Qualquer inconsistência, quebra, lentidão ou atrito de usabilidade detectado deve ser corrigido de imediato, otimizando o código para torná-lo mais rápido, limpo e eficiente.
 - **Refatoração Contínua, Código Liso e Elegância Estrutural (Prioridade Mandatória)**:
   * Em todo ciclo autônomo, revisar ativamente o código das rotas e funções sob análise para desobstruir trechos truncados, lógicas espaguete e estruturas desnecessariamente pesadas ou confusas à toa.

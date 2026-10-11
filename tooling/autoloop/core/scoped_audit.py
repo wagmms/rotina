@@ -254,6 +254,11 @@ def evaluate_scopes(root, candidate, base, scopes, review, validate, allow_deplo
     receipt = {'candidate_sha': candidate, 'base_sha': base, 'coverage': evidence, 'approved': approved,
                'files': sorted(n for scope in scopes for n in scope['files']), 'time': time.time()}
     save_json(root / 'data/scoped_audits' / f'release_{candidate}.json', receipt)
+    try:
+        from prune_artifacts import prune_scoped_audits
+        prune_scoped_audits(root)
+    except Exception:
+        pass
     return {'candidate_sha': candidate, 'verdict': 'pass' if approved else 'fail',
             'summary': 'Composição de pareceres por escopo, com identidade e dependências verificadas; rastreabilidade em data/scoped_audits/release_' + candidate + '.json',
             'findings': findings, 'limitations': limitations, 'required_followups': followups}

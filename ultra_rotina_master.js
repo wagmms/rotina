@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 08:47:11
- * Checksum SHA256: 4fdf4d4569f8f51c
+ * Gerado automaticamente via build_master.py em: 2026-10-11 09:54:13
+ * Checksum SHA256: 6432f39017ad2adc
  * ==============================================================================
  */
 
@@ -41587,6 +41587,49 @@ function tratarComandoUltimasMudancas(chatId, modoDeploy) {
   linhas.push("• *Data/Hora:* " + dataDeploy);
   if (shaDeploy) linhas.push("• *Commit HEAD:* `" + String(shaDeploy).substring(0, 7) + "`");
   linhas.push("• *Status:* ✅ Confirmado (Render / GitHub)");
+
+  // Telemetria de Consumo e Cache do Ciclo
+  if (infoJson && infoJson.telemetria) {
+    var tel = infoJson.telemetria;
+    if (tel.input_tokens || tel.output_tokens || tel.avg_seconds) {
+      var fmtTok = function(n) {
+        if (!n || n <= 0) return "0";
+        if (n >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+        if (n >= 1000) {
+          var k = n / 1000;
+          return k >= 10 ? Math.round(k) + "k" : k.toFixed(1).replace(/\.0$/, "") + "k";
+        }
+        return String(n);
+      };
+      var fmtDur = function(s) {
+        if (!s || s <= 0) return "0s";
+        var seg = Math.round(s);
+        if (seg >= 3600) {
+          var h = Math.floor(seg / 3600);
+          var mRest = Math.floor((seg % 3600) / 60);
+          return h + "h" + (mRest < 10 ? "0" : "") + mRest + "m";
+        }
+        if (seg >= 60) {
+          var m = Math.floor(seg / 60);
+          var resto = seg % 60;
+          return m + "m" + (resto < 10 ? "0" : "") + resto + "s";
+        }
+        return seg + "s";
+      };
+      var partesTel = [];
+      if (tel.input_tokens || tel.output_tokens) {
+        var hitStr = (tel.cache_hit_pct != null) ? "(" + tel.cache_hit_pct + "% cache hit)" : "(0% cache hit)";
+        partesTel.push(fmtTok(tel.input_tokens) + " in");
+        partesTel.push(fmtTok(tel.output_tokens) + " out " + hitStr);
+      }
+      if (tel.avg_seconds) {
+        partesTel.push("Tempo médio: " + fmtDur(tel.avg_seconds));
+      }
+      if (partesTel.length > 0) {
+        linhas.push("• *Telemetria:* " + partesTel.join(" · "));
+      }
+    }
+  }
 
   // Tarefas Concluídas
   var concluidas = (infoJson && infoJson.tarefas_concluidas && infoJson.tarefas_concluidas.length) ? infoJson.tarefas_concluidas : linhasProgress;

@@ -410,49 +410,6 @@ def resolver_squad_agentes(squad_tipo="auto", subagents_custom_str=None, perfil_
             SUBAGENTES_DISPONIVEIS["qa-tester"]
         ]
 
-def montar_prompt_ciclo(objetivo, nome_squad, lista_agentes, diretriz_kaizen, perfil_tarefa=None, tarefa_ativa=None):
-    bloco_agentes = []
-    for ag in lista_agentes:
-        mod = ag["model_default"]
-        bloco_agentes.append(f"  • Subagente '{ag['id']}' [Role: '{ag['role']}', Model: '{mod}']: {ag['missao']}")
-    texto_agentes = "\n".join(bloco_agentes)
-
-    eh_clinico = any(a["id"] == "clinical-auditor" for a in lista_agentes) or (perfil_tarefa == "CLINICO_ROBUSTEZ_PRO")
-
-    diretriz_auditor = "- O 'clinical-auditor' (usando Model: 'pro') valida fórmulas, tetos terapêuticos e diretrizes oficiais." if eh_clinico else "- O auditor faz a checagem estática de arquitetura, concorrência e ausência de memory leaks."
-
-    return f"""Você é o Engenheiro Sênior, Tech Lead e Especialista Clínico do projeto Rotina.
-Objetivo Geral: {objetivo}
-Tarefa selecionada para este ciclo:
-{tarefa_ativa or "Identificar uma tarefa concreta no PROGRESS.md antes de editar."}
-
-⚡ DIRETRIZES DE EXECUÇÃO ÁGIL E QUALIDADE (Four-Eyes Principle & Double-Check):
-1. DIAGNÓSTICO (Rápido):
-   - Confirme a tarefa selecionada e o estado Git. Trabalhe em uma tarefa com arquivo, função e aceite explícitos. Não reabra buscas amplas nem mude de tarefa durante o ciclo.
-2. EXECUÇÃO INTELIGENTE (MÁXIMA VELOCIDADE & ZERO DESPERDÍCIO DE TOKENS):
-   - REGRA SINGLE-AGENT (PADRÃO PARA VELOCIDADE MÁXIMA): Para tarefas atômicas, correções de bugs, ajustes de interface/CSS, rotas Fastify, bot do Telegram e testes, EXECUTE DIRETAMENTE no próprio turno principal. NÃO dispare subagentes para micro-tarefas ou correções pontuais, eliminando overhead de rede e consumo redundante de tokens.
-   - SQUAD CONDICIONAL (SOB DEMANDA): Utilize a ferramenta 'invoke_subagent' apenas se houver duas ou mais frentes de trabalho extensas, independentes e paralelizáveis (ex: nova implementação em larga escala paralela à elaboração de uma nova suíte massiva de testes):
-{texto_agentes}
-     {diretriz_auditor}
-3. GATE DE QUALIDADE (Execução Direcionada / Test Sharding / Fast-Fail & Zero Regressões):
-   - FASE DE ITERAÇÃO (FAST-FAIL / TEST SHARDING): Durante a edição, refatoração e depuração de código, É TERMINANTEMENTE PROIBIDO rodar a bateria completa repetidas vezes! Execute EXCLUSIVAMENTE a suíte direcionada do arquivo editado (ex: `node scripts/run_tests.cjs tests/test_obstetricia_prenatal.cjs` ou `node tests/test_obstetricia_prenatal.cjs`), obtendo feedback imediato em ~0.3s a 0.5s.
-   - FASE DE CONCLUSÃO (RECIBO DE ESTABILIDADE): Somente após concluir as edições, build e atualizar o PROGRESS.md, execute UMA ÚNICA bateria completa de regressão via npm run test:all para emitir o recibo oficial de estabilidade (.autoloop_test_receipt.json) antes do commit. Se alterar arquivos depois dos testes, a identidade SHA-256 é invalidada e a validação precisará ser refeita. O executor cataloga as suítes, isola os dados e registra duração e falhas.
-   - Não execute a mesma bateria simultaneamente no agente principal e no QA. Testes finais e auditoria devem ler código estável; agentes não podem editar o mesmo arquivo simultaneamente.
-   - Se usar processo em segundo plano, acompanhe a conclusão e o código de saída antes de concluir o turno. Não use espera cega de 30 minutos.
-   - Conteúdo clínico, unidades, doses, limites, contraindicações, fontes e salvaguardas devem ser preservados integralmente. Testes simulados não comprovam equivalência clínica.
-   - Falha em expectativa clínica requer investigação com Pro e referências identificáveis antes de mudar código ou expectativa. Com Flash, registre o bloqueio clínico para o próximo ciclo; não ajuste doses, fórmulas ou testes para obter aprovação.
-   - REGRA DE QUALIDADE ABSOLUTA: Uma tentativa com falhas deve terminar com diagnóstico e pendências explícitas, sem aprovação do ciclo nem publicação. Corrija a causa selecionada; falhas independentes permanecem na fila. Não amplie indefinidamente a tarefa para corrigir toda a bateria. Nunca altere expectativas só para obter verde: demonstre o contrato vigente; divergências médicas exigem Pro e fontes.
-4. ATUALIZAÇÃO E COMMIT ATÔMICO:
-   - Atualize o PROGRESS.md marcando [x] na tarefa concluída (mantendo-o sempre enxuto conforme a diretriz global de ~5 a 10 KB, arquivando tarefas excedentes no CHANGELOG.md) e registre ideias futuras em docs/SUGESTOES_FUTURAS.md.
-   - Ao mover ou redigir a 'Próxima Tarefa em Andamento', use especificação CIRÚRGICA obrigatória: cite explicitamente o arquivo alvo relativo, a função/componente/endpoint e o critério de aceite objetivo (ex: "- [ ] Corrigir X em `src/...` na função `Y` garantindo `Z`"). Proibido usar títulos vagos ou genéricos.
-   - Um commit local de progresso pode registrar uma correção coerente com pendências explícitas e evidências; não representa aprovação para publicação. Nunca inclua alterações alheias ao escopo. A publicação continua condicionada à bateria completa e à auditoria.
-   - Conclua a tarefa selecionada e avance PROGRESS.md para a próxima tarefa concreta; não repita análise geral ou conserto de pendências alheias. Auditoria tem uma rodada inicial e no máximo uma conferência corretiva por escopo; orçamento esgotado exige pendência explícita, sem tentar contornar ou recomeçar a série.
-   - Todo bloqueio deve citar contrato vigente (requisito, decisão documentada ou comportamento de segurança), evidência e reprodução. Preferência estética, frase literal antiga ou hipótese sem demonstração vira sugestão; não invente novos requisitos nem retire salvaguardas.
-   - Faça um commit semântico claro (ex: feat: ..., fix: ..., test: ..., perf: ...).
-
-{diretriz_kaizen}
-"""
-
 # Supervisão comum: versão local revisável ou instalação no diretório compartilhado.
 _execution_local = Path(__file__).resolve().parent / "core"
 _execution_shared = Path.home() / ".local" / "lib" / "autoloop_core"
@@ -461,10 +418,49 @@ from execution import run_observed, stop_process_group, fingerprint_tree, record
 from failure_queue import select_failure, record_attempt
 from task_context import (build_task_brief, UsageMeter, render_cli_event,
                           coletar_telemetria_ciclo, formatar_bloco_telemetria,
-                          calculate_agent_timeout)
+                          calculate_agent_timeout, CANONICAL_PROMPT_CACHE_HEADER,
+                          obter_cabecalho_estatico_cache, prefixo_comum_cache)
 from scoped_audit import build_scopes, evaluate_scopes
 from loop_guard import acquire_project_lock, task_allowed, mark_task, last_lock_holder, check_unreleased_diff_size
 from audit_repairs import capture_rejection, select_repair, audit_retry_timeout, record_approved, archive_raw_result, ready_for_reaudit, pending_repair_bypass_audit
+
+
+def montar_prompt_ciclo(objetivo, nome_squad, lista_agentes, diretriz_kaizen, perfil_tarefa=None, tarefa_ativa=None):
+    """
+    Monta o prompt de ciclo otimizado para Prompt Caching (Context Caching):
+    1. Bloco Inicial Estático Canônico (>= 1024 tokens): 100% idêntico byte a byte em todos
+       os ciclos, garantindo Cache Read Tokens (KV Cache) em Gemini e Claude Opus/Sonnet.
+    2. Bloco Final Dinâmico: Escopo, objetivo da sessão, squad alocado, diretriz e tarefa ativa.
+    """
+    cabecalho = obter_cabecalho_estatico_cache()
+
+    bloco_agentes = []
+    for ag in (lista_agentes or []):
+        mod = ag.get("model_default", "")
+        bloco_agentes.append(f"  • Subagente '{ag.get('id', '')}' [Role: '{ag.get('role', '')}', Model: '{mod}']: {ag.get('missao', '')}")
+    texto_agentes = "\n".join(bloco_agentes) if bloco_agentes else "  • Execução direta em turno único (Single-Agent)."
+
+    eh_clinico = any(a.get("id") == "clinical-auditor" for a in (lista_agentes or [])) or (perfil_tarefa == "CLINICO_ROBUSTEZ_PRO")
+    diretriz_auditor = "- O 'clinical-auditor' (usando Model: 'pro') valida fórmulas, tetos terapêuticos e diretrizes oficiais." if eh_clinico else "- O auditor faz a checagem estática de arquitetura, concorrência e ausência de memory leaks."
+
+    partes_dinamicas = [
+        "================================================================================",
+        "🎯 ESCOPO DINÂMICO & TAREFA SELECIONADA DESTE CICLO",
+        "================================================================================",
+        f"Objetivo Geral: {objetivo}",
+        f"Squad Alocado: {nome_squad} (Perfil: {perfil_tarefa or 'AUTO'})",
+        "Subagentes Ativos para este Ciclo:",
+        texto_agentes,
+        f"     {diretriz_auditor}"
+    ]
+
+    if diretriz_kaizen:
+        partes_dinamicas.append(f"\n{diretriz_kaizen}")
+
+    partes_dinamicas.append("\nTarefa selecionada para este ciclo:")
+    partes_dinamicas.append(tarefa_ativa or "Identificar uma tarefa concreta no PROGRESS.md antes de editar.")
+
+    return f"{cabecalho}\n\n" + "\n".join(partes_dinamicas) + "\n"
 
 
 def _registrar_processo_ativo(processo):
@@ -721,7 +717,7 @@ def obter_parecer_auditoria_candidato(candidate_sha, base_sha=None, perfil_taref
     except (ValueError, OSError, subprocess.SubprocessError) as exc:
         return None, str(exc)
 
-def obter_proximo_alvo(modelos):
+def obter_proximo_alvo(modelos, aguardar_se_bloqueado=True):
     """
     Retorna (num_conta, nome_modelo, id_modelo) para execução.
     Algoritmo Quality-First com Rotação Round-Robin entre Contas:
@@ -730,6 +726,7 @@ def obter_proximo_alvo(modelos):
     3. Isso garante que tarefas clínicas rodem com Pro usando as contas configuradas (Contas 1 a 7) em rotação contínua,
        nunca degradando para Flash a menos que TODAS as contas estejam em repouso de 90min!
     4. Ao selecionar a conta, avança o ponteiro para distribuir uniformemente o consumo.
+    Se aguardar_se_bloqueado=False, retorna None imediatamente (0ms) se todas as contas estiverem bloqueadas.
     """
     global indice_conta_atual
     contas = obter_contas_disponiveis()
@@ -744,6 +741,11 @@ def obter_proximo_alvo(modelos):
         indice_conta_atual = contas[0]
 
     inicio_idx = contas.index(indice_conta_atual)
+
+    # Limpeza prévia de bloqueios expirados
+    bloqueios_expirados = [k for k, v in list(bloqueios.items()) if v and agora >= v]
+    for k in bloqueios_expirados:
+        bloqueios.pop(k, None)
 
     # Cascata de Qualidade (Quality-First):
     for nome_modelo_generico, id_modelo_generico in modelos:
@@ -761,12 +763,10 @@ def obter_proximo_alvo(modelos):
                 indice_conta_atual = contas[(c_idx + 1) % total_contas]
                 return conta_candidata, nome_modelo_real, id_modelo_real
 
-    # Limpeza de bloqueios expirados
-    bloqueios_expirados = [k for k, v in bloqueios.items() if v and agora >= v]
-    for k in bloqueios_expirados:
-        bloqueios.pop(k, None)
-
     # Se chegamos aqui, todas as contas e modelos estão em cooldown por cota
+    if not aguardar_se_bloqueado:
+        return None
+
     horarios_bloqueio = [t for t in bloqueios.values() if t and t > agora]
     if horarios_bloqueio:
         menor_liberacao = min(horarios_bloqueio)
@@ -779,7 +779,7 @@ def obter_proximo_alvo(modelos):
     # Reavalia o pool a cada 90 segundos para capturar contas restauradas ou intervenções
     espera_ciclo = min(segundos_espera, 90)
 
-    log("AVISO", "Todas as contas configuradas constam temporariamente em repouso de cota.")
+    log("AVISO", f"Todas as {total_contas} contas configuradas constam temporariamente em repouso de cota.")
     log("INFO", f"Reavaliando pool em {espera_ciclo}s (estimativa do menor bloqueio: {menor_liberacao.strftime('%H:%M:%S')})...")
     # Loop iterativo: períodos longos de cota não acumulam frames recursivos.
     observed_sleep(espera_ciclo, 'cota')
@@ -797,6 +797,9 @@ def projeto_concluido():
     return False
 
 def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, squad_mode="auto", subagents_custom=None, perfil_tarefa=None, tarefa_ativa=None, resumo_tarefa=None, task_key=None):
+    global ultimo_ciclo_cota_esgotada
+    ultimo_ciclo_cota_esgotada = False
+
     token = agy_contas.carregar_conta(num_conta)
     email = agy_contas.extract_email(token)
 
@@ -998,9 +1001,16 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
         record_metric('consumo_agy', 'reported' if consumo.usage is not None else 'unavailable',
                       time.monotonic() - inicio_inferencia, model=id_modelo,
                       task_key=task_key, **consumo.fields())
+        if consumo.usage:
+            in_tok = consumo.usage.get('input_tokens') or 0
+            cache_tok = consumo.usage.get('cache_read_input_tokens') or consumo.usage.get('cache_read_tokens') or 0
+            if cache_tok > 0:
+                pct = round((cache_tok / (in_tok + cache_tok)) * 100) if (in_tok + cache_tok) > 0 else 0
+                log("INFO", f"🧠 Context Caching Ativo: {cache_tok} tokens lidos do cache ({pct}% do prompt reaproveitado em 0ms)")
 
-    # Sincroniza se o token tiver sido atualizado pelo agy durante a execução
-    agy_contas.sincronizar_token_ativo()
+    # Sincroniza se o token tiver sido atualizado pelo agy durante execução bem-sucedida
+    if processo.returncode == 0:
+        agy_contas.sincronizar_token_ativo()
 
     # Validação Robusta de Esgotamento Real de Cota da API:
     # 1. O processo agy DEVE ter terminado com código de erro (!= 0).
@@ -1022,6 +1032,7 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
             cota_esgotada = True
 
     if cota_esgotada:
+        ultimo_ciclo_cota_esgotada = True
         if segundos_reset_detectados:
             libera = datetime.now() + timedelta(seconds=segundos_reset_detectados)
         else:
@@ -2215,10 +2226,13 @@ def main():
             log("AVISO", f"Tarefa {selected_key} já concluída ou com duas tentativas pendentes; aguardando próxima tarefa específica, sem repetir agente.")
             observed_sleep(30, 'pendencia_sem_progresso')
             continue
-        alvo = obter_proximo_alvo(modelos_ciclo)
-        if alvo is None:
+
+        # Verificação rápida prévia se há conta disponível no pool sem ficar bloqueado
+        if obter_proximo_alvo(modelos_ciclo, aguardar_se_bloqueado=False) is None:
+            log("AVISO", "Todas as contas configuradas constam temporariamente em repouso de cota.")
+            obter_proximo_alvo(modelos_ciclo, aguardar_se_bloqueado=True)
             continue
-        num_conta, nome_modelo, id_modelo = alvo
+
         inicio_tarefa = time.monotonic()
         resumo_tarefa, contexto_tarefa = build_task_brief(tarefa_ativa or args.objetivo, pendencia)
         if pendencia:
@@ -2229,26 +2243,66 @@ def main():
                                         'receipt_fingerprint': None, 'source_hashes': contexto_tarefa['source_hashes']}
         mark_task(contexto_tarefa['key'], 'started')
         record_attempt(registro_tarefa, 'started')
-        record_metric('tarefa', 'started', 0, model=id_modelo,
-                      task_key=contexto_tarefa['key'])
-        sucesso = executar_ciclo(
-            num_conta,
-            nome_modelo,
-            id_modelo,
-            args.objetivo,
-            forever=forever_mode,
-            squad_mode=args.squad,
-            subagents_custom=args.subagents,
-            perfil_tarefa=perfil_ativo,
-            tarefa_ativa=tarefa_ativa,
-            resumo_tarefa=resumo_tarefa,
-            task_key=contexto_tarefa['key']
-        )
+
+        sucesso = False
+        modelo_executado = None
+
+        # Loop de rotação imediata 0ms entre contas em erro de cota (429)
+        while True:
+            alvo = obter_proximo_alvo(modelos_ciclo, aguardar_se_bloqueado=False)
+            if alvo is None:
+                # Todas as contas configuradas estão simultaneamente em repouso de cota!
+                # O sleep só deve ocorrer nesta janela de repouso coletivo.
+                log("AVISO", "Todas as contas configuradas constam simultaneamente em janela de repouso de cota.")
+                alvo = obter_proximo_alvo(modelos_ciclo, aguardar_se_bloqueado=True)
+                if alvo is None:
+                    continue
+
+            num_conta, nome_modelo, id_modelo = alvo
+            modelo_executado = id_modelo
+            record_metric('tarefa', 'started', 0, model=id_modelo,
+                          task_key=contexto_tarefa['key'])
+
+            sucesso = executar_ciclo(
+                num_conta,
+                nome_modelo,
+                id_modelo,
+                args.objetivo,
+                forever=forever_mode,
+                squad_mode=args.squad,
+                subagents_custom=args.subagents,
+                perfil_tarefa=perfil_ativo,
+                tarefa_ativa=tarefa_ativa,
+                resumo_tarefa=resumo_tarefa,
+                task_key=contexto_tarefa['key']
+            )
+
+            if not sucesso and ultimo_ciclo_cota_esgotada:
+                # 429/cota: Rotação Imediata 0ms reaproveitando o brief e contexto aquecidos
+                log("INFO", f"🔄 Rotação Imediata 0ms: Conta {num_conta} atingiu cota (429). Buscando próxima conta disponível no pool...")
+                record_metric('rotacao_cota_0ms', 'rotated', 0,
+                              conta_anterior=num_conta, model=id_modelo,
+                              task_key=contexto_tarefa['key'])
+
+                proximo_alvo = obter_proximo_alvo(modelos_ciclo, aguardar_se_bloqueado=False)
+                if proximo_alvo is not None:
+                    # Transição 0ms sem sleep, reaproveitando brief e contexto
+                    log("OK", f"🔄 Transição 0ms: migrando imediatamente para a Conta {proximo_alvo[0]} ({proximo_alvo[1]}) reaproveitando brief da tarefa e contexto aquecido.")
+                    continue
+                else:
+                    # Todas as contas configuradas estão simultaneamente em repouso
+                    log("AVISO", "Todas as contas configuradas constam simultaneamente em janela de repouso de cota.")
+                    obter_proximo_alvo(modelos_ciclo, aguardar_se_bloqueado=True)
+                    continue
+
+            # Ciclo finalizado (sucesso ou erro não relacionado a cota)
+            break
+
         duracao_tarefa = time.monotonic() - inicio_tarefa
         resultado_tarefa = 'passed' if sucesso else 'pending'
         mark_task(contexto_tarefa['key'], resultado_tarefa)
         record_attempt(registro_tarefa, resultado_tarefa, duracao_tarefa)
-        record_metric('tarefa', resultado_tarefa, duracao_tarefa, model=id_modelo,
+        record_metric('tarefa', resultado_tarefa, duracao_tarefa, model=modelo_executado or id_modelo,
                       task_key=contexto_tarefa['key'])
 
         if not args.no_auto_deploy:

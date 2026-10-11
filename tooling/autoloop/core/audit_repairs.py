@@ -219,6 +219,11 @@ def record_approved(candidate, root=Path('.')):
             approved.append({'rejected_sha': rejected, 'seconds': max(0, now - item.get('first_rejected_at', now))})
             item.update(status='approved_by_new_audit', approved_candidate=candidate, approved_at=now)
     save_json(path, state)
+    try:
+        from prune_artifacts import prune_audit_repairs
+        prune_audit_repairs(root)
+    except Exception:
+        pass
     return approved
 
 

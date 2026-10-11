@@ -184,13 +184,32 @@ function receiptReusableFailure(receipt, identity, inventory, versions) {
 async function main() {
   const args = process.argv.slice(2);
   const all = args.includes('--all');
-  const inventory = suites(ROOT, all);
-  if (args.includes('--list')) { console.log(JSON.stringify(inventory, null, 2)); return; }
-  const selected = args.find(arg => arg.startsWith('--select='));
-  const wanted = selected?.slice(9).split(',');
+  if (args.includes('--list')) { console.log(JSON.stringify(suites(ROOT, true), null, 2)); return; }
+  const selectedArg = args.find(arg => arg.startsWith('--select='));
+  const selectedList = selectedArg ? selectedArg.slice(9).split(',').filter(Boolean) : [];
+  const positionalList = args.filter(arg => !arg.startsWith('--'));
+  const rawWanted = [...selectedList, ...positionalList];
+  const wanted = rawWanted.length > 0 ? rawWanted.map(raw => {
+    let clean = path.normalize(raw.trim()).replace(/^\.\//, '');
+    if (path.isAbsolute(clean)) {
+      clean = path.relative(ROOT, clean);
+    }
+    if (!clean.startsWith('tests/') && fs.existsSync(path.join(ROOT, 'tests', clean))) {
+      clean = 'tests/' + clean;
+    }
+    return clean;
+  }) : null;
+  const inventory = wanted ? suites(ROOT, true) : suites(ROOT, all);
   const tasks = wanted ? inventory.filter(s => wanted.includes(s.file)) : inventory;
-  if (!tasks.length || (wanted && new Set(wanted).size !== tasks.length)) throw new Error('Seleção contém suíte desconhecida.');
-  const jobs = Number(args.find(arg => arg.startsWith('--jobs='))?.slice(7) || 4);
+  if (wanted) {
+    const found = new Set(tasks.map(s => s.file));
+    const missing = wanted.filter(w => !found.has(w));
+    if (missing.length > 0) throw new Error(`Seleção contém suíte desconhecida: ${missing.join(', ')}`);
+  }
+  if (!tasks.length) throw new Error('Nenhuma suíte de teste selecionada.');
+  const jobsArg = args.find(arg => arg.startsWith('--jobs='));
+  const defaultJobs = wanted ? Math.min(tasks.length, 4) : 4;
+  const jobs = Number(jobsArg ? jobsArg.slice(7) : defaultJobs);
   if (!Number.isInteger(jobs) || jobs < 1 || jobs > 4) throw new Error('--jobs deve ser inteiro entre 1 e 4.');
   const timeoutMs = Number(args.find(arg => arg.startsWith('--timeout-ms='))?.slice(13) || 120000);
   if (!Number.isFinite(timeoutMs) || timeoutMs < 100) throw new Error('Timeout inválido.');
@@ -199,7 +218,8 @@ async function main() {
   const versions = { node: process.version, python: execFileSync(python, ['--version'], { encoding: 'utf8' }).trim() };
   const identity = fingerprint(ROOT);
   const receiptFile = path.join(ROOT, 'data', '.autoloop_test_receipt.json');
-  if (all && !selected && args.includes('--reuse')) {
+  const isFullRun = all && !wanted;
+  if (isFullRun && args.includes('--reuse')) {
     let receipt;
     try { receipt = JSON.parse(fs.readFileSync(receiptFile, 'utf8')); } catch (_) {}
     if (receiptValid(receipt, identity, inventory, versions)) {
@@ -272,11 +292,11 @@ async function main() {
     results = [...cjs, ...pythonResults];
     const stable = fingerprint(ROOT) === identity;
     const passed = !interrupted && stable && results.length === tasks.length && results.every(r => r.status === 'passed');
-    const receipt = { version: 1, scope: all && !selected ? 'all' : 'partial', fingerprint: identity,
+    const receipt = { version: 1, scope: isFullRun ? 'all' : 'partial', fingerprint: identity,
       versions, passed, stable, seconds: (performance.now() - started) / 1000,
       results: results.map(({ tail, logFile, stdoutFile, stderrFile, ...result }) => result) };
     fs.writeFileSync(path.join(reportDir, 'summary.json'), JSON.stringify(receipt, null, 2));
-    if (all && !selected) {
+    if (isFullRun) {
       const temp = receiptFile + '.' + process.pid + '.tmp';
       fs.writeFileSync(temp, JSON.stringify(receipt, null, 2));
       fs.renameSync(temp, receiptFile);

@@ -78,8 +78,58 @@ def test_enviar_relatorio_telegram_multiplos_chats(autoloop_mod, monkeypatch):
 
     monkeypatch.setattr(autoloop_mod.urllib.request, "urlopen", fake_urlopen)
     monkeypatch.setattr(autoloop_mod, "obter_credenciais_telegram", lambda t=None, c=None: ("fake_token_123", "11111111,22222222"))
-
     sucesso = autoloop_mod.enviar_relatorio_telegram("<b>Teste</b>")
     assert sucesso is True
     assert "11111111" in chats_recebidos
     assert "22222222" in chats_recebidos
+
+
+def test_relatorio_inclui_bloco_telemetria_consumo_e_cache(autoloop_mod, monkeypatch, tmp_path):
+    """Valida que o relatório HTML e ultimas_mudancas.json contêm o bloco de telemetria formatado."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+
+    agora = sys.modules["time"].time()
+    linhas = [
+        {"time": agora - 300, "stage": "tarefa", "status": "passed", "seconds": 372.0},
+        {
+            "time": agora - 200,
+            "stage": "consumo_agy",
+            "status": "reported",
+            "seconds": 360.0,
+            "tokens": {
+                "input_tokens": 142000,
+                "output_tokens": 18000,
+                "thinking_tokens": 5000,
+                "cache_read_tokens": 119280,
+                "cache_read_input_tokens": 119280
+            }
+        }
+    ]
+    with (tmp_path / "data" / "autoloop_metrics.jsonl").open("w", encoding="utf-8") as f:
+        for it in linhas:
+            f.write(json.dumps(it) + "\n")
+
+    mensagens_telegram = []
+    monkeypatch.setattr(autoloop_mod, "enviar_relatorio_telegram", lambda html, **kw: mensagens_telegram.append(html) or True)
+    monkeypatch.setattr(autoloop_mod, "coletar_status_progress", lambda: (["Tarefa X"], "Próxima Y"))
+    monkeypatch.setattr(autoloop_mod, "coletar_mudancas_ciclo", lambda **kw: [])
+    monkeypatch.setattr(autoloop_mod, "obter_commit_head", lambda: "c0ffee1")
+
+    # Dispara relatório com notificação habilitada
+    autoloop_mod.enviar_relatorio_ciclo_rotina("gemini-3.8-flash", 1, notificar_telegram=True)
+
+    assert len(mensagens_telegram) == 1
+    html_enviado = mensagens_telegram[0]
+    assert "📊 <b>Telemetria do Ciclo:</b> 142k in · 18k out (84% cache hit) · Tempo médio: 6m12s" in html_enviado
+
+    # Valida persistência estruturada em data/ultimas_mudancas.json
+    arq_mudancas = tmp_path / "data" / "ultimas_mudancas.json"
+    assert arq_mudancas.exists()
+    conteudo = json.loads(arq_mudancas.read_text(encoding="utf-8"))
+    assert "telemetria" in conteudo
+    assert conteudo["telemetria"]["input_tokens"] == 142000
+    assert conteudo["telemetria"]["output_tokens"] == 18000
+    assert conteudo["telemetria"]["cache_hit_pct"] == 84
+    assert conteudo["telemetria"]["avg_seconds"] == 372.0
+

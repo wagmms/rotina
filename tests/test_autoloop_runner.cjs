@@ -58,7 +58,18 @@ async function main() {
     assert(!receiptReusableFailure({ ...failedReceipt, stable: false }, initial, inventory, versions));
     assert(!receiptReusableFailure({ ...failedReceipt, results: [{ file: 'main.cjs', code: 124, status: 'timeout' }] }, initial, inventory, versions));
     assert(!receiptReusableFailure(failedReceipt, initial, inventory, { node: 'changed' }));
-    console.log('✓ Runner: isolamento, falhas, timeout, concorrência e identidade validados.');
+
+    // Validação da Execução Direcionada / Test Sharding (argumento posicional direto)
+    if (fs.existsSync(path.join(__dirname, '../.git'))) {
+      const runOutput = execFileSync(process.execPath, [
+        path.join(__dirname, '../scripts/run_tests.cjs'),
+        'tests/test_obstetricia_prenatal.cjs'
+      ], { cwd: path.resolve(__dirname, '..'), encoding: 'utf8' });
+      assert(runOutput.includes('[TESTES] 1 suítes; 1 processos'), 'Deve executar 1 suíte direcionada em 1 processo');
+      assert(runOutput.includes('[OK] tests/test_obstetricia_prenatal.cjs'), 'Suíte direcionada deve passar');
+    }
+
+    console.log('✓ Runner: isolamento, falhas, timeout, concorrência, execução direcionada (test sharding) e identidade validados.');
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
