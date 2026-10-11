@@ -904,7 +904,8 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
     try:
         processo = run_observed(cmd, stage="ciclo_agy", on_line=receber_linha,
                                 on_start=_registrar_processo_ativo,
-                                emit=_emitir_evento_equilibrado)
+                                emit=_emitir_evento_equilibrado,
+                                timeout=1500)
     except KeyboardInterrupt:
         log("AVISO", "Execução interrompida; ciclo não validado.")
         return False
@@ -970,6 +971,20 @@ def executar_ciclo(num_conta, nome_modelo, id_modelo, objetivo, forever=True, sq
     if verificacao.returncode != 0:
         log("ERRO", "Ciclo incompleto: bateria final falhou, expirou ou o código mudou. Sem aprovação.")
         return False
+
+    # Salvaguarda de commit: consolida alterações aprovadas se o agente não tiver commitado
+    try:
+        status_git = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True).stdout.strip()
+        if status_git:
+            linhas_mod = [l for l in status_git.splitlines() if not l.startswith('?? data/') and not l.startswith('?? logs/')]
+            if linhas_mod:
+                log("INFO", "Arquivos modificados detectados após testes aprovados. Consolidando commit de salvaguarda...")
+                subprocess.run(["git", "add", "src/", "tests/", "PROGRESS.md", "ultra_rotina_master.js"], capture_output=True)
+                msg_salvaguarda = f"fix(autoloop): consolidar alteracoes do ciclo aprovado ({nome_modelo})"
+                subprocess.run(["git", "commit", "-m", msg_salvaguarda], capture_output=True)
+    except Exception as e_git:
+        log("AVISO", f"Falha na salvaguarda de commit: {e_git}")
+
     log("OK", f"Ciclo finalizado com sucesso com {nome_modelo} na Conta {num_conta} ({nome_squad}).")
     try:
         enviar_relatorio_ciclo_rotina(nome_modelo, num_conta, nome_squad)

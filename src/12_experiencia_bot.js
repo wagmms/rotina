@@ -799,12 +799,458 @@ function enviarMenuAmbulatorio(chat, messageId) {
 /* ========== Cenário 4: 💊 Consultas Rápidas de Bolso ========== */
 
 function enviarMenuConsultasBolso(chat, messageId) {
-  var texto = '💊 *CONSULTAS RÁPIDAS DE BOLSO*\nSelecione o guia de referência:';
+  var texto = '💊 *CONSULTAS RÁPIDAS DE BOLSO*\n\n' +
+    'Guias de referência imediata beira-leito (0ms determinístico):\n' +
+    'Selecione o guia clínico desejado:';
   var botoes = botoesBot([
     [['🦠 Antibióticos por Foco', 'ux:bolso:atb'], ['👶 Doses Pediátricas (kg)', 'ux:bolso:ped']],
     [['🤰 Gestação & Lactação', 'ux:bolso:gestacao'], ['⚠️ Interações Graves', 'ux:bolso:interacao']],
     [['💉 Diluição & Preparo HSL', 'ux:bolso:hsl'], ['📐 Calculadoras Clínicas', 'ux:hub:calc']],
     [['🔙 Voltar ao Menu', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaBolsoATB(chat, messageId) {
+  var texto = "🦠 *ANTIBIÓTICOS POR FOCO & AJUSTE ANTIMICROBIANO (GUIA HSL / IDSA)*\n\n" +
+    "Principais esquemas empíricos de 1ª linha do adulto:\n\n" +
+    "• *Pulmão (PAC Enfermaria):*\n" +
+    "  👉 Ceftriaxona 1g a 2g EV 1x/dia + Azitromicina 500mg EV/VO 1x/dia\n" +
+    "  _(Alt: Levofloxacino 750mg EV/VO 1x/dia)_\n\n" +
+    "• *Urinário (Pielonefrite / ITU Complicada):*\n" +
+    "  👉 Ceftriaxona 1g EV 1x/dia ou Ciprofloxacino 500mg VO 12/12h\n\n" +
+    "• *Foco Abdominal (Peritonite / Diverticulite):*\n" +
+    "  👉 Ceftriaxona 1g-2g EV 1x/dia + Metronidazol 500mg EV 8/8h\n" +
+    "  _(Alt: Piperacilina-Tazobactam 4,5g EV 6/6h)_\n\n" +
+    "• *Pele / Partes Moles (Erisipela / Celulite):*\n" +
+    "  👉 Cefazolina 1g-2g EV 8/8h ou Oxacilina 2g EV 4/4h\n\n" +
+    "• *Sepse Hospitalar / CTI:*\n" +
+    "  👉 Meropenem 1g EV 8/8h ± Vancomicina 15-20 mg/kg 12/12h\n\n" +
+    "💡 *Ajuste Renal:* Envie `/atb meropenem clcr 25` ou toque abaixo:";
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, texto, 21600);
+
+  var botoes = botoesBot([
+    [['🫁 PAC (Pulmão)', 'ux:bolso:atb:pac'], ['🚽 ITU / Pielo', 'ux:bolso:atb:itu']],
+    [['💊 Meropenem ClCr 25', 'ux:atb:mero25'], ['💊 Pip-Tazo ClCr 30', 'ux:atb:tazo30']],
+    [['💊 Cefepime HD', 'ux:atb:cefepimehd'], ['💊 Vanco ClCr 40', 'ux:atb:vanco40']],
+    [['📋 Copiar Guia Antimicrobiano', 'ux:copiar:' + ck]],
+    [['🔙 Consultas de Bolso', 'ux:hub:bolso'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaBolsoAtbPAC(chat, messageId) {
+  var texto = "🫁 *ANTIBIÓTICOTERAPIA: PNEUMONIA ADQUIRIDA NA COMUNIDADE (PAC)*\n\n" +
+    "📋 *Classificação & Esquemas Recomendados (SBPT / IDSA):*\n\n" +
+    "1. *Ambulatorial sem Comorbidades (CURB-65 0-1):*\n" +
+    "   • Amoxicilina 500mg VO 8/8h (ou 1g 8/8h) por 5 a 7 dias\n" +
+    "   • Alt: Azitromicina 500mg VO 1x/dia por 5 dias\n\n" +
+    "2. *Ambulatorial com Comorbidades ou Uso Recente de ATB:*\n" +
+    "   • Amoxicilina-Clavulanato 875/125mg VO 12/12h + Azitromicina 500mg VO 1x/dia\n" +
+    "   • Alt: Levofloxacino 750mg VO 1x/dia por 5 dias ou Moxifloxacino 400mg 1x/dia\n\n" +
+    "3. *Enfermaria (CURB-65 ≥ 2):*\n" +
+    "   • Ceftriaxona 1g a 2g EV 1x/dia + Azitromicina 500mg EV/VO 1x/dia\n" +
+    "   • Alt: Ampicilina-Sulbactam 1,5g-3g EV 6/6h + Claritromicina 500mg 12/12h\n\n" +
+    "4. *UTI / Sala Vermelha (PAC Grave):*\n" +
+    "   • Ceftriaxona 2g EV 1x/dia + Levofloxacino 750mg EV 1x/dia (ou Azitro 500mg EV)\n" +
+    "   • Se risco de Pseudomonas: Pip-Tazo 4,5g EV 6/6h ou Cefepime 2g EV 8/8h + Levofloxacino\n" +
+    "   • Se risco de MRSA: Associar Vancomicina 15-20 mg/kg 12/12h\n\n" +
+    "⚠️ *Critérios de Estabilidade para Transição VO:* Afebril > 48h, FC < 100, FR < 24, SatO2 ≥ 92%, tolerando dieta VO.";
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, texto, 21600);
+  var botoes = botoesBot([
+    [['📋 Copiar Prescrição PAC', 'ux:copiar:' + ck]],
+    [['🔙 Consultas de Bolso', 'ux:hub:bolso'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaBolsoAtbITU(chat, messageId) {
+  var texto = "🚽 *ANTIBIÓTICOTERAPIA: INFECÇÃO DO TRATO URINÁRIO (ITU)*\n\n" +
+    "📋 *Conduta por Apresentação Clínica (SBU / IDSA):*\n\n" +
+    "1. *Cistite Não-Complicada (Mulher Jovem):*\n" +
+    "   • Fosfomicina Trometamol 3g VO dose única (à noite após esvaziar bexiga)\n" +
+    "   • Nitrofurantoína 100mg VO de 6/6h por 5 dias (ou formulação liberação lenta 100mg 12/12h) [Evitar se ClCr < 30]\n" +
+    "   • Alt: Sulfametoxazol-Trimetoprima 800/160mg VO 12/12h por 3 dias (apenas se resistência local < 20%)\n\n" +
+    "2. *Cistite em Gestante (Tratar Bacteriúria Assintomática e Sintomática):*\n" +
+    "   • Cefalexina 500mg VO 6/6h por 7 dias\n" +
+    "   • Fosfomicina 3g VO dose única\n" +
+    "   • Amoxicilina-Clavulanato 500/125mg VO 8/8h por 7 dias\n" +
+    "   • ⛔ Evitar Nitrofurantoína no 1º trimestre e a termo (risco de hemólise fetal)\n\n" +
+    "3. *Pielonefrite Aguda / ITU Complicada:*\n" +
+    "   • Ceftriaxona 1g EV 1x/dia por 7 a 10 dias\n" +
+    "   • Ciprofloxacino 500mg VO 12/12h por 7 dias ou 400mg EV 12/12h (se sensibilidade documentada)\n" +
+    "   • Se risco de germe multirresistente / ESBL: Ertapenem 1g EV 1x/dia ou Meropenem 1g EV 8/8h.";
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, texto, 21600);
+  var botoes = botoesBot([
+    [['📋 Copiar Prescrição ITU', 'ux:copiar:' + ck]],
+    [['🔙 Consultas de Bolso', 'ux:hub:bolso'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaBolsoPed(chat, messageId) {
+  var texto = "👶 *DOSES PEDIÁTRICAS POR PESO (GUIA PEDBOOK / SBP)*\n\n" +
+    "Regras práticas de cálculo e posologia beira-leito:\n\n" +
+    "• *Dipirona Solução Oral (500 mg/mL):*\n" +
+    "  👉 *1 gota por kg de peso* (dose: ~10 a 15 mg/kg), até 4x/dia (6/6h ou 8/8h se febre/dor)\n" +
+    "  _(Teto máximo por dose: 40 gotas = 2 mL = 1g)_\n\n" +
+    "• *Paracetamol Gotas (200 mg/mL):*\n" +
+    "  👉 *1 gota por kg de peso* (dose: ~10 a 15 mg/kg) de 6/6h\n" +
+    "  _(Teto máximo por dose: 35 a 40 gotas | Máximo 4 doses/dia)_\n\n" +
+    "• *Amoxicilina Suspensão (250 mg/5 mL):*\n" +
+    "  👉 Dose padrão: 50 mg/kg/dia dividida de 8/8h\n" +
+    "  👉 OMA / PAC de alto risco: 80-90 mg/kg/dia dividida de 12/12h (Amoxi 400mg/5mL)\n\n" +
+    "• *Azitromicina Suspensão (200 mg/5 mL = 40 mg/mL):*\n" +
+    "  👉 10 mg/kg/dia 1x/dia por 3 a 5 dias (0,25 mL/kg/dia)\n\n" +
+    "• *Prednisolona Solução Oral (3 mg/mL):*\n" +
+    "  👉 1 a 2 mg/kg/dia em dose única pela manhã por 3 a 5 dias\n\n" +
+    "💡 *Cálculo Livre:* Digite ex: `amoxi 15kg` ou `dipirona 12kg` ou toque nos atalhos:";
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, texto, 21600);
+
+  var botoes = botoesBot([
+    [['👶 Dipirona 12kg', 'ux:bolso:ped:dipi12'], ['👶 Amoxi 15kg', 'ux:bolso:ped:amoxi15']],
+    [['👶 Prednisolona 10kg', 'ux:bolso:ped:pred10'], ['👶 Azitro 12kg', 'ux:bolso:ped:azitro12']],
+    [['📋 Copiar Guia Pediátrico', 'ux:copiar:' + ck]],
+    [['🔙 Consultas de Bolso', 'ux:hub:bolso'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackBolsoPed(chat, acao, messageId) {
+  var texto = "";
+  if (acao === 'dipi12') {
+    texto = "👶 *PRESCRIÇÃO PEDIÁTRICA: DIPIRONA (12 KG)*\n\n" +
+      "📋 *Receituário / Conduta:* \n" +
+      "1. *Dipirona gotas 500 mg/mL* ------------ 1 frasco\n" +
+      "   👉 Dar *12 gotas* por via oral de 6/6 horas se temperatura axilar ≥ 37,8°C ou dor moderada/forte.\n\n" +
+      "🧮 *Memória de Cálculo:*\n" +
+      "• Dose alvo: 12,5 mg/kg = 150 mg\n" +
+      "• Concentração: 500 mg/mL (1 mL = 20 gotas = 25 mg/gota)\n" +
+      "• 150 mg ÷ 25 mg/gota = 12 gotas (1 gota/kg)\n" +
+      "• Teto de segurança: 40 gotas (1.000 mg) por tomada.";
+  } else if (acao === 'amoxi15') {
+    texto = "👶 *PRESCRIÇÃO PEDIÁTRICA: AMOXICILINA (15 KG)*\n\n" +
+      "📋 *Receituário / Conduta:* \n" +
+      "1. *Amoxicilina suspensão oral 250 mg/5 mL* ------------ 2 frascos\n" +
+      "   👉 Dar *5,0 mL* por via oral de 8/8 horas por 7 a 10 dias.\n" +
+      "   _(Para OMA ou PAC de alto risco a 90 mg/kg/dia: utilizar suspensão 400 mg/5 mL, 8,5 mL de 12/12h)_\n\n" +
+      "🧮 *Memória de Cálculo (Dose Padrão 50 mg/kg/dia):*\n" +
+      "• Dose total diária: 15 kg × 50 mg/kg/dia = 750 mg/dia\n" +
+      "• Dividida em 3 tomadas (8/8h): 250 mg por dose\n" +
+      "• Apresentação 250 mg/5 mL (50 mg/mL): 250 ÷ 50 = 5,0 mL por tomada.";
+  } else if (acao === 'pred10') {
+    texto = "👶 *PRESCRIÇÃO PEDIÁTRICA: PREDNISOLONA (10 KG)*\n\n" +
+      "📋 *Receituário / Conduta:* \n" +
+      "1. *Prednisolona solução oral 3 mg/mL* ------------ 1 frasco\n" +
+      "   👉 Dar *3,3 mL* (10 mg) por via oral 1 vez ao dia, pela manhã, por 3 a 5 dias.\n\n" +
+      "🧮 *Memória de Cálculo (1 mg/kg/dia):*\n" +
+      "• Dose diária: 10 kg × 1 mg/kg = 10 mg\n" +
+      "• Apresentação 3 mg/mL: 10 mg ÷ 3 mg/mL = 3,33 mL/dia\n" +
+      "• Não necessita desmame se curso < 7 a 14 dias.";
+  } else if (acao === 'azitro12') {
+    texto = "👶 *PRESCRIÇÃO PEDIÁTRICA: AZITROMICINA (12 KG)*\n\n" +
+      "📋 *Receituário / Conduta:* \n" +
+      "1. *Azitromicina suspensão oral 200 mg/5 mL (40 mg/mL)* ------------ 1 frasco\n" +
+      "   👉 Dar *3,0 mL* (120 mg) por via oral 1 vez ao dia durante 3 dias consecutivos (ou 5 dias).\n\n" +
+      "🧮 *Memória de Cálculo (10 mg/kg/dia):*\n" +
+      "• Dose diária: 12 kg × 10 mg/kg = 120 mg/dia\n" +
+      "• Apresentação 40 mg/mL: 120 mg ÷ 40 mg/mL = 3,0 mL/dia\n" +
+      "• Teto máximo pediátrico: 500 mg/dia.";
+  } else {
+    return enviarTelaBolsoPed(chat, messageId);
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, texto, 21600);
+
+  var botoes = botoesBot([
+    [['📋 Copiar Prescrição Pediátrica', 'ux:copiar:' + ck]],
+    [['🔙 Consultas de Bolso', 'ux:hub:bolso'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaBolsoGestacao(chat, messageId) {
+  var texto = "🤰 *GESTAÇÃO & LACTAÇÃO · SEGURANÇA FARMACOLÓGICA*\n\n" +
+    "Classificação de risco beira-leito (FEBRASGO / FDA / MS):\n\n" +
+    "• *Analgésicos & Antitérmicos:*\n" +
+    "  ✅ *Paracetamol:* 1ª escolha em qualquer trimestre (500mg-750mg até 6/6h).\n" +
+    "  ⚠️ *Dipirona:* Usar apenas se estritamente necessário; evitar uso contínuo no 3º trimestre.\n" +
+    "  ⛔ *AINEs (Ibuprofeno, Cetoprofeno, Diclofenaco):* CONTRAINDICADOS no 3º trimestre (fechamento prematuro do canal arterial e oligoidrâmnio).\n\n" +
+    "• *Anti-hipertensivos na Gestação:*\n" +
+    "  ✅ *Metildopa:* 250mg a 500mg VO 8/8h ou 12/12h (1ª linha crônica).\n" +
+    "  ✅ *Nifedipino retard:* 20mg a 40mg VO 12/12h.\n" +
+    "  ✅ *Hidralazina:* 5mg EV lento em crises hipertensivas.\n" +
+    "  ⛔ *IECA e BRA:* ABSOLUTAMENTE CONTRAINDICADOS (teratogênicos, anúria neonatal, hipoplasia pulmonar).\n\n" +
+    "• *Antibióticos Seguros:*\n" +
+    "  ✅ Penicilinas (Amoxicilina), Cefalosporinas (Cefalexina, Ceftriaxona), Macrolídeos (Azitromicina).\n" +
+    "  ⛔ Quinolonas, Tetraciclinas, Sulfas no termo.\n\n" +
+    "• *Antieméticos Seguros:*\n" +
+    "  ✅ Dimenidrinato + Piridoxina (Vitamina B6), Metoclopramida, Ondansetrona.\n\n" +
+    "💡 *Auditoria Livre:* Envie `/prenatal med Enalapril, Sinvastatina` ou selecione:";
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, texto, 21600);
+
+  var botoes = botoesBot([
+    [['💊 Analgesia na Gestante', 'ux:bolso:gest:analgesia'], ['💊 Anti-hipertensivos', 'ux:bolso:gest:has']],
+    [['🦠 ATB na Gestante', 'ux:bolso:gest:atb'], ['🤮 Antieméticos', 'ux:bolso:gest:antiem']],
+    [['📋 Copiar Guia Gestação', 'ux:copiar:' + ck]],
+    [['🔙 Consultas de Bolso', 'ux:hub:bolso'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackBolsoGestacao(chat, acao, messageId) {
+  var texto = "";
+  if (acao === 'analgesia') {
+    texto = "🤰 *ANALGESIA & CONTROLE DA DOR NA GESTANTE (FEBRASGO)*\n\n" +
+      "1. *Primeira Linha (Seguro em todos os trimestres):*\n" +
+      "   • *Paracetamol 500mg a 750mg VO* de 6/6h se dor ou febre (dose máx: 3g/dia).\n\n" +
+      "2. *Segunda Linha (Dor Moderada/Forte com Cautela):*\n" +
+      "   • *Dipirona 500mg a 1g VO/EV* de 6/6h se dor refratária (evitar uso prolongado no 3º tri).\n\n" +
+      "3. *Dor Intensa / Emergência Obstétrica:*\n" +
+      "   • *Morfina 2mg a 4mg EV* ou *Meperidina* sob monitorização materno-fetal.\n\n" +
+      "⛔ *CONTRAINDICAÇÃO FORMAL:* \n" +
+      "• AINEs (Ibuprofeno, Cetoprofeno, Nimesulida, Diclofenaco) no 3º trimestre (> 28-30 semanas) causam fechamento precoce do canal arterial, hipertensão pulmonar persistente neonatal e oligoidrâmnio.";
+  } else if (acao === 'has') {
+    texto = "🤰 *ANTI-HIPERTENSIVOS NA GESTAÇÃO (FEBRASGO / ACOG)*\n\n" +
+      "1. *Controle Crônico / Manutenção Ambulatorial:*\n" +
+      "   • *Metildopa 250mg a 500mg VO* de 8/8h ou 12/12h (dose máx: 2g/dia) - 1ª linha consagrada.\n" +
+      "   • *Nifedipino retard 20mg a 40mg VO* de 12/12h (dose máx: 80mg/dia).\n\n" +
+      "2. *Crise Hipertensiva na Gestante (PA ≥ 160x110 mmHg):*\n" +
+      "   • *Hidralazina 5mg EV* lento em 2 min; repetir 5-10mg a cada 20 min se necessário (máx: 20mg).\n" +
+      "   • Alt: *Nifedipino 10-20mg VO* (nunca sublingual).\n\n" +
+      "3. *Prevenção de Eclâmpsia:*\n" +
+      "   • *Sulfato de Magnésio (Pritchard ou Zuspan)* se sinais premonitórios de pré-eclâmpsia grave.\n\n" +
+      "⛔ *CONTRAINDICAÇÃO ABSOLUTA:* IECA (Enalapril, Captopril) e BRA (Losartana) - teratogênicos e nefrotóxicos fetais.";
+  } else if (acao === 'atb') {
+    texto = "🤰 *ANTIBIÓTICOS SEGUROS NA GESTAÇÃO (FEBRASGO / CDC)*\n\n" +
+      "✅ *CLASSES SEGURAS (Categoria B):*\n" +
+      "• *Penicilinas:* Amoxicilina 500mg 8/8h, Ampicilina 1-2g EV 6/6h, Benzetacil 2,4M UI IM.\n" +
+      "• *Cefalosporinas:* Cefalexina 500mg 6/6h, Cefazolina 1-2g EV 8/8h, Ceftriaxona 1-2g EV 1x/dia.\n" +
+      "• *Macrolídeos:* Azitromicina 500mg 1x/dia, Eritromicina.\n" +
+      "• *Outros:* Fosfomicina 3g dose única (excelente p/ ITU), Clindamicina 300-600mg EV/VO.\n\n" +
+      "⛔ *CONTRAINDICADOS NA GESTAÇÃO:*\n" +
+      "• *Quinolonas (Cipro/Levo):* Toxicidade articular e lesão cartilaginosa fetal.\n" +
+      "• *Tetraciclinas (Doxiciclina):* Manchas ósseas e dentárias permanentes.\n" +
+      "• *Sulfas (Bactrim):* Evitar no 1º tri (antagonista fólico) e no 3º tri (kernicterus).\n" +
+      "• *Aminoglicosídeos (Genta/Amica):* Ototoxicidade e nefrotoxicidade fetal (usar só com risco de vida).";
+  } else if (acao === 'antiem') {
+    texto = "🤰 *ANTIEMÉTICOS & HIPERÊMESE GRAVÍDICA (FEBRASGO)*\n\n" +
+      "1. *Primeira Linha (Náuseas Leves a Moderadas):*\n" +
+      "   • *Piridoxina (Vitamina B6) 10mg a 25mg VO* de 8/8h.\n" +
+      "   • *Dimenidrinato 50mg + Piridoxina 10mg (Dramin B6) VO* de 8/8h ou 6/6h.\n\n" +
+      "2. *Segunda Linha (Persistência dos Sintomas):*\n" +
+      "   • *Metoclopramida 10mg VO ou EV* de 8/8h (atenção a sintomas extrapiramidais).\n\n" +
+      "3. *Terceira Linha / Vômitos Refratários / Internação:*\n" +
+      "   • *Ondansetrona 4mg a 8mg EV ou VO* até de 8/8h (preferir após o 1º trimestre).\n" +
+      "   • Hidratação venosa com SG 5% + SF 0,9% + Tiamina 100mg EV (prevenir Encefalopatia de Wernicke).";
+  } else {
+    return enviarTelaBolsoGestacao(chat, messageId);
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, texto, 21600);
+
+  var botoes = botoesBot([
+    [['📋 Copiar Conduta Gestação', 'ux:copiar:' + ck]],
+    [['🔙 Consultas de Bolso', 'ux:hub:bolso'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaBolsoInteracao(chat, messageId) {
+  var texto = "⚠️ *INTERAÇÕES MEDICAMENTOSAS GRAVES & CROSSCHECK FARMACÊUTICO*\n\n" +
+    "Alertas sentinela de combinações de altíssimo risco no plantão:\n\n" +
+    "1. *Prolongamento de Intervalo QT & Torsades de Pointes:*\n" +
+    "   • Amiodarona + Azitromicina / Ciprofloxacino / Fluconazol / Haloperidol\n" +
+    "   👉 *Conduta:* Monitorar ECG contínuo, dosar K+ e Mg2+; preferir Ceftriaxona ou Amoxicilina se foco respiratório.\n\n" +
+    "2. *Hemorragia Digestiva & Sangramento Maior:*\n" +
+    "   • Varfarina / DOAC (Apixabana, Rivaroxabana) + AINEs ou AAS duplo ou Fluconazol\n" +
+    "   👉 *Conduta:* Contraindicar AINEs em pacientes anticoagulados. Para dor, prescrever Dipirona ou Paracetamol.\n\n" +
+    "3. *Hipercalemia Grave / Arritmia Ventricular Fatal:*\n" +
+    "   • Espironolactona + IECA (Enalapril) / BRA (Losartana) + Suplemento de K+\n" +
+    "   👉 *Conduta:* Monitorar K+ sérico e função renal em 48-72h. Não associar cloreto de potássio empírico.\n\n" +
+    "4. *Síndrome Serotoninérgica (Rigidez, Clonus, Hipertermia):*\n" +
+    "   • Tramadol / Fentanil + ISRS (Fluoxetina, Sertralina) ou Linezolida\n\n" +
+    "5. *Hipotensão Refratária & Choque Grave:*\n" +
+    "   • Nitratos (Monocordil, Isossorbida, Tridil) + Inibidores da 5-PDE (Sildenafila, Tadalafila)\n" +
+    "   👉 *Conduta:* CONTRAINDICAÇÃO ABSOLUTA nas últimas 24h (Sildenafila) a 48h (Tadalafila).\n\n" +
+    "💡 *Checagem Personalizada:* Envie `/interacao amiodarona fluconazol` ou toque nos botões:";
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, texto, 21600);
+
+  var botoes = botoesBot([
+    [['⚠️ Amiodarona + Fluconazol', 'ux:bolso:inte:amio_fluco'], ['⚠️ Varfarina + AINE', 'ux:bolso:inte:varf_aine']],
+    [['⚠️ IECA + Espironolactona', 'ux:bolso:inte:ieca_espiro'], ['⚠️ Nitrato + Sildenafila', 'ux:bolso:inte:nitrato_sild']],
+    [['📋 Copiar Guia Interações', 'ux:copiar:' + ck]],
+    [['🔙 Consultas de Bolso', 'ux:hub:bolso'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackBolsoInteracao(chat, acao, messageId) {
+  var texto = "";
+  if (acao === 'amio_fluco') {
+    texto = "⚠️ *INTERAÇÃO GRAVE: AMIODARONA + FLUCONAZOL*\n\n" +
+      "🔴 *Nível de Risco:* Gravidade Extrema / Crítica\n" +
+      "⚡ *Mecanismo Farmacológico:*\n" +
+      "• Efeito aditivo de prolongamento do intervalo QT no miocárdio ventricular.\n" +
+      "• Potente inibição enzimática do CYP2C9 e CYP3A4 pelo fluconazol, elevando acentuadamente as concentrações séricas de amiodarona.\n\n" +
+      "💥 *Risco Clínico:* Torsades de Pointes, Taquicardia Ventricular Polimórfica e PCR em Fibrilação Ventricular.\n\n" +
+      "🛡️ *Conduta Beira-Leito:*\n" +
+      "1. Evitar associação sempre que possível (trocar antifúngico se viável).\n" +
+      "2. Monitorização eletrocardiográfica contínua com cálculo de QTc.\n" +
+      "3. Manter Potássio sérico ≥ 4,5 mEq/L e Magnésio ≥ 2,0 mg/dL.\n" +
+      "4. Se QTc > 500 ms: Suspender imediatamente.";
+  } else if (acao === 'varf_aine') {
+    texto = "⚠️ *INTERAÇÃO GRAVE: ANTICOAGULANTE + AINE*\n\n" +
+      "🔴 *Nível de Risco:* Alto Risco de Hemorragia com Risco de Vida\n" +
+      "⚡ *Mecanismo Farmacológico:*\n" +
+      "• AINEs causam lesão e erosão direta da mucosa gastrointestinal por inibição de prostaglandinas protetoras (COX-1).\n" +
+      "• Inibição funcional da agregação plaquetária somada à inibição dos fatores de coagulação pela Varfarina ou DOACs.\n\n" +
+      "💥 *Risco Clínico:* Hemorragia digestiva alta/baixa grave, hematomas espontâneos e AVC hemorrágico.\n\n" +
+      "🛡️ *Conduta Beira-Leito:*\n" +
+      "1. CONTRAINDICAR AINEs em pacientes em uso de anticoagulação plena.\n" +
+      "2. Para analgesia, prescrever Dipirona ou Paracetamol.\n" +
+      "3. Se dor neuropática/osteomuscular refratária: associar analgésicos de ação central ou opioides fracos sob cautela.\n" +
+      "4. Se uso de AINE for estritamente mandatório: associar IBP (Omeprazol 40mg/dia) e limitar ao menor período possível.";
+  } else if (acao === 'ieca_espiro') {
+    texto = "⚠️ *INTERAÇÃO GRAVE: IECA/BRA + ESPIRONOLACTONA*\n\n" +
+      "🔴 *Nível de Risco:* Moderado a Grave (Hipercalemia Potencialmente Fatal)\n" +
+      "⚡ *Mecanismo Farmacológico:*\n" +
+      "• Duplo bloqueio do eixo renina-angiotensina-aldosterona: redução da secreção tubular distal de potássio.\n\n" +
+      "💥 *Risco Clínico:* Hipercalemia grave (K+ > 6,0 mEq/L), BAV total, arritmias ventriculares complexas e parada cardíaca em assistolia.\n\n" +
+      "🛡️ *Conduta Beira-Leito:*\n" +
+      "1. Dosar K+ sérico e Creatinina/TFG antes do início e em 7 a 14 dias.\n" +
+      "2. CONTRAINDICAR associação se K+ basal > 5,0 mEq/L ou ClCr < 30 mL/min.\n" +
+      "3. NUNCA prescrever suplementação empírica de Cloreto de Potássio (Slow-K).\n" +
+      "4. Alertar o paciente quanto a sintomas de fraqueza muscular ascendente, parestesias e palpitações.";
+  } else if (acao === 'nitrato_sild') {
+    texto = "⚠️ *INTERAÇÃO FATAL: NITRATO + INIBIDOR DA 5-FOSFODIESTERASE*\n\n" +
+      "⛔ *Nível de Risco:* CONTRAINDICAÇÃO ABSOLUTA (Risco de Óbito Imediato)\n" +
+      "⚡ *Mecanismo Farmacológico:*\n" +
+      "• Nitratos promovem síntese de óxido nítrico e ativação da Guanilato Ciclase (GMPc).\n" +
+      "• Inibidores da 5-PDE (Sildenafila, Tadalafila) bloqueiam a degradação de GMPc.\n" +
+      "• Acúmulo maciço e descontrolado de GMPc nas células musculares lisas vasculares.\n\n" +
+      "💥 *Risco Clínico:* Vasodilatação sistêmica severa, colapso hemodinâmico, choque distributivo refratário e isquemia miocárdica fatal.\n\n" +
+      "🛡️ *Conduta Beira-Leito:*\n" +
+      "1. Jamais administrar Nitratos (Isossorbida, Monocordil, Nitroglicerina, Nitroprussiato) se uso de Sildenafila nas últimas 24 horas ou Tadalafila nas últimas 48 horas.\n" +
+      "2. Em SCA com uso recente de 5-PDE: analgesia com Morfina, Betabloqueador, Estatina, AAS e Heparina; evitar nitratos.";
+  } else {
+    return enviarTelaBolsoInteracao(chat, messageId);
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, texto, 21600);
+
+  var botoes = botoesBot([
+    [['📋 Copiar Alerta de Interação', 'ux:copiar:' + ck]],
+    [['🔙 Consultas de Bolso', 'ux:hub:bolso'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarTelaBolsoHSL(chat, messageId) {
+  var texto = "💉 *DILUIÇÃO & PREPARO RÁPIDO DE INJETÁVEIS (GUIA HSL)*\n\n" +
+    "Soluções padrão, vias e tempos de infusão segura beira-leito:\n\n" +
+    "• *Ceftriaxona 1g a 2g EV:*\n" +
+    "  👉 Diluição: Reconstituir em 10 mL AD; diluir em 100 mL SF 0,9% ou SG 5%.\n" +
+    "  👉 Tempo de infusão: Correr em 30 a 60 minutos.\n" +
+    "  ⛔ *ALERTA:* NUNCA diluir em soluções com Cálcio (Ringer Lactato) - risco de precipitação fatal pulmonar/renal.\n\n" +
+    "• *Vancomicina 1g EV:*\n" +
+    "  👉 Diluição: Reconstituir frasco em 10 mL AD; diluir em 200 a 250 mL SF 0,9% (conc. ≤ 5 mg/mL).\n" +
+    "  👉 Tempo de infusão: No mínimo 60 a 120 minutos em bomba de infusão.\n" +
+    "  ⚠️ *ALERTA:* Infusão rápida causa Síndrome do Homem Vermelho e hipotensão.\n\n" +
+    "• *Meropenem 1g EV:*\n" +
+    "  👉 Diluição: Reconstituir em 20 mL AD; diluir em 100 mL SF 0,9%.\n" +
+    "  👉 Tempo: 30 minutos (ou infusão estendida em 3h para sepse grave/CTI).\n\n" +
+    "• *Noradrenalina (Solução Concentrada Adulto):*\n" +
+    "  👉 Preparo: 4 ampolas (16 mg = 16 mL) + 234 mL SG 5% (Total: 250 mL; conc: 64 mcg/mL).\n" +
+    "  👉 Infusão: Bomba de infusão contínua, preferencialmente Acesso Venoso Central (CVC).\n\n" +
+    "• *Dipirona 1g (2 mL) EV:*\n" +
+    "  👉 Diluição: Diluir em 100 mL SF 0,9% correr em 15 a 20 minutos (evita vasodilatação abrupta).\n\n" +
+    "💡 *Consulta de qualquer fármaco:* Digite `/dose ceftriaxona` ou toque nos botões:";
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, texto, 21600);
+
+  var botoes = botoesBot([
+    [['💉 Ceftriaxona EV', 'ux:bolso:hsl:ceftri'], ['💉 Vancomicina EV', 'ux:bolso:hsl:vanco']],
+    [['💉 Meropenem EV', 'ux:bolso:hsl:mero'], ['💉 Noradrenalina', 'ux:bolso:hsl:nora']],
+    [['📋 Copiar Guia Diluição', 'ux:copiar:' + ck]],
+    [['🔙 Consultas de Bolso', 'ux:hub:bolso'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackBolsoHSL(chat, acao, messageId) {
+  var texto = "";
+  if (acao === 'ceftri') {
+    texto = "💉 *DILUIÇÃO HSL: CEFTRIAXONA EV (1G A 2G)*\n\n" +
+      "📦 *Apresentação:* Frasco-ampola com pó liofilizado de 1g.\n" +
+      "🧪 *Reconstituição:* Adicionar 10 mL de Água Destilada (AD). Homogeneizar até dissolução completa.\n" +
+      "💧 *Diluição:* Diluir a dose (1g ou 2g) em 100 mL de SF 0,9% ou SG 5%.\n" +
+      "⏱️ *Tempo de Infusão:* Correr em 30 a 60 minutos por via endovenosa.\n" +
+      "🧊 *Estabilidade:* 24 horas em temperatura ambiente (15-30°C) ou 7 dias sob refrigeração (2-8°C).\n\n" +
+      "⛔ *CONTRAINDICAÇÃO SENTINELA:* NUNCA diluir ou infundir simultaneamente em soluções contendo Cálcio (ex: Ringer Lactato). Risco de precipitação de cristais de ceftriaxona-cálcio em pulmões e rins com desfecho fatal.";
+  } else if (acao === 'vanco') {
+    texto = "💉 *DILUIÇÃO HSL: VANCOMICINA EV (500MG A 1G)*\n\n" +
+      "📦 *Apresentação:* Frasco-ampola de 500mg ou 1g.\n" +
+      "🧪 *Reconstituição:* Adicionar 10 mL de Água Destilada para frasco de 500mg (ou 20 mL p/ 1g).\n" +
+      "💧 *Diluição:* \n" +
+      "• 500 mg: diluir em no mínimo 100 mL de SF 0,9% ou SG 5%.\n" +
+      "• 1.000 mg (1g): diluir em no mínimo 200 a 250 mL de SF 0,9% ou SG 5%.\n" +
+      "• Concentração máxima recomendada: 5 mg/mL (em restrição hídrica severa via CVC, máx 10 mg/mL).\n\n" +
+      "⏱️ *Tempo de Infusão:* No mínimo 60 minutos para cada 500mg a 1g (dose de 1g = infusão em 60 a 120 minutos).\n" +
+      "⚠️ *ALERTA BEIRA-LEITO:* Infusão rápida (< 60 min) desencadeia Síndrome do Homem Vermelho (eritema, prurido, hipotensão e broncoespasmo por histamina). Se ocorrer, pausar infusão, aplicar anti-histamínico e reiniciar com taxa reduzida pela metade.";
+  } else if (acao === 'mero') {
+    texto = "💉 *DILUIÇÃO HSL: MEROPENEM EV (500MG A 1G)*\n\n" +
+      "📦 *Apresentação:* Frasco-ampola com 500mg ou 1.000mg.\n" +
+      "🧪 *Reconstituição:* Adicionar 10 mL de AD para 500mg (ou 20 mL de AD para 1g).\n" +
+      "💧 *Diluição:* Diluir a dose reconstituída em 100 mL de SF 0,9% ou SG 5%.\n" +
+      "⏱️ *Tempo de Infusão:* \n" +
+      "• Infusão intermitente padrão: 30 minutos.\n" +
+      "• Infusão estendida (sepse grave, CTI, germes com MIC elevado): 3 horas em bomba de infusão para maximizar o tempo acima da MIC (T > MIC).\n" +
+      "🧊 *Estabilidade:* Em SF 0,9%: até 3 horas em temperatura ambiente ou 24 horas refrigerado. Em SG 5%: estabilidade reduzida (infundir imediatamente).";
+  } else if (acao === 'nora') {
+    texto = "💉 *PREPARO & INFUSÃO: NORADRENALINA (BITARTARATO)*\n\n" +
+      "📦 *Apresentação:* Ampola de 4 mL (conc: 2 mg/mL de bitartarato de norepinefrina = 1 mg/mL de base).\n" +
+      "🧪 *Preparo Padronizado Adulto (Solução Concentrada 64 mcg/mL):*\n" +
+      "• 4 ampolas (16 mL = 16 mg) + 234 mL de SG 5% (Volume total = 250 mL).\n" +
+      "💧 *Diluente de Escolha:* SG 5% (a glicose protege a noradrenalina da oxidação e perda de potência; SF 0,9% não é recomendado pelo HSL como 1ª escolha).\n" +
+      "⏱️ *Administração:* Exclusivamente em Bomba de Infusão Contínua (BIC).\n" +
+      "🛡️ *Acesso Venoso:* Preferencialmente via Acesso Venoso Central (CVC). Em emergência, usar veia periférica calibrosa de antebraço por no máximo 2-4h até obtenção de CVC.\n" +
+      "💡 *Cálculo de Vazão:* Use o comando `/dva nora 70` para calcular taxa de infusão exata em mL/h por peso.";
+  } else {
+    return enviarTelaBolsoHSL(chat, messageId);
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, texto, 21600);
+
+  var botoes = botoesBot([
+    [['📋 Copiar Guia de Diluição', 'ux:copiar:' + ck]],
+    [['🔙 Consultas de Bolso', 'ux:hub:bolso'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
 }
@@ -1413,20 +1859,18 @@ function tratarCallbackUX(cb) {
       else if (v === 'atestado') texto('/atestado');
       else enviarMenuAmbulatorio(chat, msgId);
     } else if (op === 'bolso') {
-      if (v === 'atb') texto('/atb');
-      else if (v === 'ped') texto('/ped');
-      else if (v === 'gestacao') texto('/prenatal');
-      else if (v === 'interacao') texto('/interacao');
-      else if (v === 'hsl') {
-        var msgHsl = "💉 *DILUIÇÃO & PREPARO RÁPIDO (GUIA HSL)*\n\n" +
-          "Para consultar a diluição, tempo de infusão, via e estabilidade de qualquer fármaco injetável:\n\n" +
-          "💡 *Envie por texto:* `como diluir ceftriaxona` ou `preparo noradrenalina` ou `/dose ceftriaxona`";
-        if (typeof enviarMensagemComTecladoParaChat === "function" && typeof obterBotoesNavegacaoPadrao === "function") {
-          enviarMensagemComTecladoParaChat(chat, msgHsl, obterBotoesNavegacaoPadrao());
-        } else {
-          enviarMensagemParaChat(chat, msgHsl);
-        }
-      } else enviarMenuConsultasBolso(chat, msgId);
+      if (v === 'atb') return enviarTelaBolsoATB(chat, msgId);
+      else if (v === 'ped') return enviarTelaBolsoPed(chat, msgId);
+      else if (v === 'gestacao') return enviarTelaBolsoGestacao(chat, msgId);
+      else if (v === 'interacao') return enviarTelaBolsoInteracao(chat, msgId);
+      else if (v === 'hsl') return enviarTelaBolsoHSL(chat, msgId);
+      else if (v === 'atb:pac') return enviarTelaBolsoAtbPAC(chat, msgId);
+      else if (v === 'atb:itu') return enviarTelaBolsoAtbITU(chat, msgId);
+      else if (v.indexOf('ped:') === 0) return tratarCallbackBolsoPed(chat, v.replace('ped:', ''), msgId);
+      else if (v.indexOf('gest:') === 0) return tratarCallbackBolsoGestacao(chat, v.replace('gest:', ''), msgId);
+      else if (v.indexOf('inte:') === 0) return tratarCallbackBolsoInteracao(chat, v.replace('inte:', ''), msgId);
+      else if (v.indexOf('hsl:') === 0) return tratarCallbackBolsoHSL(chat, v.replace('hsl:', ''), msgId);
+      else return enviarMenuConsultasBolso(chat, msgId);
     } else if (op === 'emerg') {
       if (v === 'choque') return enviarMenuEmergChoque(chat, msgId);
       else if (v === 'glasgow') return enviarMenuEmergGlasgow(chat, msgId);
@@ -1734,6 +2178,17 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarHubPrincipal: enviarHubPrincipal,
     enviarMenuAmbulatorio: enviarMenuAmbulatorio,
     enviarMenuConsultasBolso: enviarMenuConsultasBolso,
+    enviarTelaBolsoATB: enviarTelaBolsoATB,
+    enviarTelaBolsoAtbPAC: enviarTelaBolsoAtbPAC,
+    enviarTelaBolsoAtbITU: enviarTelaBolsoAtbITU,
+    enviarTelaBolsoPed: enviarTelaBolsoPed,
+    tratarCallbackBolsoPed: tratarCallbackBolsoPed,
+    enviarTelaBolsoGestacao: enviarTelaBolsoGestacao,
+    tratarCallbackBolsoGestacao: tratarCallbackBolsoGestacao,
+    enviarTelaBolsoInteracao: enviarTelaBolsoInteracao,
+    tratarCallbackBolsoInteracao: tratarCallbackBolsoInteracao,
+    enviarTelaBolsoHSL: enviarTelaBolsoHSL,
+    tratarCallbackBolsoHSL: tratarCallbackBolsoHSL,
     enviarMenuEnfermaria: enviarMenuEnfermaria,
     enviarMenuGinecologiaObstetricia: enviarMenuGinecologiaObstetricia,
     enviarMenuEmergDengue: enviarMenuEmergDengue,
