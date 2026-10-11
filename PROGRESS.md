@@ -16,13 +16,12 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Autoloop - Detecção Robusta de Cota do Codex (OpenAI), Extração de Tempo de Reset e Prevenção de Deadlock de Deploy (`tooling/autoloop/autoloop.py`, `tooling/autoloop/core/scoped_audit.py` e `tooling/autoloop/tests/test_codex_quota_handling.py`)**:
+- [x] **Autoloop - Roteamento Preciso de Modelos Codex (`gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`, `gpt-5.6-terra`) e Blindagem Antitransbordamento de Backend/Infraestrutura (`tooling/autoloop/core/scoped_audit.py`, `tooling/autoloop/core/model_router.py`, `tooling/autoloop/install.py` e `tooling/autoloop/tests/test_model_routing_accuracy.py`)**:
     - **Diagnóstico e Correção**:
-      * Identificado bloqueio no deploy automático de 6h onde o limite de mensagens da conta OpenAI no Codex (`ERROR: You’ve hit your usage limit... try again at 1:26 PM`) era tratado como falha de processo genérica (`código 1`), gerando pacotes espúrios em `audit_repairs/` e travando o orquestrador `scoped_audit.py` em deadlock (`ScopeError: Auditoria operacionalmente incompleta já registrada...`).
-      * Implementadas `extrair_tempo_reset_codex` e `detectar_esgotamento_cota_codex`: realizam parsing determinístico da mensagem de erro e extraem o horário de reset para agendamento exato do próximo ciclo sem retries cegos a cada 15 min.
-      * Refatorados `_executar_deploy_e_relatorio_core` (suspende deploy sem poluir a fila de reparos com falsas rejeições) e `evaluate_scopes` (preserva o orçamento de rodadas `rounds` e destrava a execução para quando a cota estiver disponível).
-      * Higienizado o estado operacional: expurgadas falsas rejeições em `data/audit_repairs/`, resetada a sessão em `data/.autoloop_scoped_audits.json` e ajustado `next_retry_ts` para 13:27:00.
-    - **Validação e Resultados**: 100% de aprovação na suíte de testes do autoloop (147/147) e na bateria completa de regressão do ecossistema (244/244 testes em 37.49s).
+      * Identificado desperdício massivo de tokens do Astra onde controladores Fastify (como `server/controllers/calculadora.controller.js`) eram classificados como clínicos devido à substring `calculador` no caminho do arquivo e tinham arquivos de utilitários/controllers inteiros arrastados para o Astra por chamadas de funções compartilhadas, inflando o diff em 3 fatias de particionamento e esgotando a cota semanal.
+      * Refatorados `model_router.py` (filtragem em `arquivos_busca_clinica` expurgando pastas de backend/testes da detecção clínica, e roteamento otimizado de CSS para Terra, docs/lockfiles para Luna, concorrência para Sol e termos clínicos reais para Astra com bloqueio fatal de residência a 0 tokens) e `scoped_audit.py` (`eh_infra_ou_backend` blindando backend/controllers contra transbordamento para o escopo do Astra).
+      * Integrado `model_router.py` em `install.py` e desenvolvida suíte automatizada `test_model_routing_accuracy.py` com 13 testes cobrindo a matriz completa de 10 perfis e isolamento total de escopos.
+    - **Validação e Resultados**: 100% de aprovação na suíte de testes do autoloop (160/160 testes) e na bateria completa de regressão do ecossistema (244/244 testes em 38.17s com zero regressões).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

@@ -67,6 +67,20 @@ def particionar_arquivos_por_orcamento(files, details, max_chars=DEFAULT_MAX_DIF
     return particoes
 
 
+def eh_infra_ou_backend(name):
+    return (
+        name.startswith(('tooling/', 'scripts/', 'docs/', 'gh_cockpit_deploy/', 'tests/', 'radar_voos/'))
+        or (name.startswith('server/') and name != 'server/runtime.js')
+        or name in {
+            'PROGRESS.md', 'CHANGELOG.md', 'docs/AUTOLOOP.md', 'docs/AUTOLOOP_TEST_REVIEW.md',
+            'build_master.py', 'scripts/run_tests.cjs', 'scripts/check_syntax.cjs',
+            'cockpit_movel.html', 'index.html', 'package.json', 'package-lock.json',
+            'Dockerfile', 'render.yaml', 'radar_voos/Code.js'
+        }
+        or Path(name).suffix in {'.css', '.html', '.md', '.json'}
+    )
+
+
 def build_scopes(root, base, candidate, classify, configure, max_chunk_chars=DEFAULT_MAX_DIFF_CHARS_PER_CHUNK):
     root = Path(root).resolve()
     candidate = resolve(root, candidate)
@@ -105,13 +119,8 @@ def build_scopes(root, base, candidate, classify, configure, max_chunk_chars=DEF
         if profile is None:
             profile = ('CLINICO_DROGAS_CRITICAS_EXTRA' if 'CLINICO_DROGAS_CRITICAS_EXTRA' in profiles else
                        'CLINICO_ROBUSTEZ_PRO' if 'CLINICO_ROBUSTEZ_PRO' in profiles else profiles[0])
-        infrastructure = name.startswith(('tooling/', 'scripts/', 'docs/', 'gh_cockpit_deploy/')) or name in {
-            'PROGRESS.md', 'CHANGELOG.md', 'docs/AUTOLOOP.md', 'docs/AUTOLOOP_TEST_REVIEW.md',
-            'build_master.py', 'scripts/run_tests.cjs', 'scripts/check_syntax.cjs',
-            'cockpit_movel.html', 'index.html', 'package.json', 'package-lock.json',
-            'Dockerfile', 'render.yaml', 'radar_voos/Code.js'
-        } or name.startswith('tests/test_autoloop') or Path(name).suffix in {'.css', '.html', '.md'}
-        if infrastructure or not profile.startswith('CLINICO'):
+        infrastructure = eh_infra_ou_backend(name)
+        if (infrastructure and profile != 'CLINICO_DROGAS_CRITICAS_EXTRA') or not profile.startswith('CLINICO'):
             # Classifica risco de engenharia sem herdar palavras clínicas dos prompts do orquestrador.
             profile = classify('', [name], patch if len(patch) <= 30000 else chunks[0], projeto='habitflow')
         if profile == 'BLOQUEIO_COMENTARIO_RESIDENCIA':
@@ -119,7 +128,7 @@ def build_scopes(root, base, candidate, classify, configure, max_chunk_chars=DEF
                 profile = 'ARQUITETURA_INFRAESTRUTURA'
             else:
                 raise ScopeError('Alteração em comentário de residência congelado.')
-        if not infrastructure and (name == 'server/runtime.js' or re.search(r'(calculador|clinico|clinical|posologia|farmac|prescri)', name, re.I)):
+        if not infrastructure and (name == 'server/runtime.js' or name.startswith('src/02_') or re.search(r'(calculador|clinico|clinical|posologia|farmac|prescri|soap)', name, re.I)):
             if not profile.startswith('CLINICO'):
                 profile = 'CLINICO_ROBUSTEZ_PRO'
         config = configure(profile, repo_dir=str(root))
@@ -135,10 +144,8 @@ def build_scopes(root, base, candidate, classify, configure, max_chunk_chars=DEF
     clinical_symbols = called_funcs - palavras_comuns
 
     for name in list(groups['engineering']):
-        # Arquivos de infraestrutura, UI web, html, css, scripts ou tooling NUNCA são transferidos para o escopo do Astra
-        if name.startswith(('tooling/', 'scripts/', 'docs/', 'gh_cockpit_deploy/')) or Path(name).suffix in {'.css', '.html', '.md', '.json'}:
-            continue
-        if name in {'package.json', 'Dockerfile', 'render.yaml', 'cockpit_movel.html', 'index.html', 'build_master.py', 'PROGRESS.md', 'CHANGELOG.md'}:
+        # Arquivos de infraestrutura, backend HTTP, UI web, html, css, scripts ou tooling NUNCA são transferidos para o escopo do Astra
+        if eh_infra_ou_backend(name):
             continue
         declared = set(re.findall(r'\b(?:function|class|const|let|var)\s+([A-Za-z_$][\w$]*)', details[name]['patch']))
         if declared & clinical_symbols:
@@ -161,7 +168,7 @@ def build_scopes(root, base, candidate, classify, configure, max_chunk_chars=DEF
                 profile = 'CLINICO_DROGAS_CRITICAS_EXTRA' if any(details[n]['profile'] == 'CLINICO_DROGAS_CRITICAS_EXTRA' for n in files) else 'CLINICO_ROBUSTEZ_PRO'
                 config = configure(profile, repo_dir=str(root))
             else:
-                profile = config['tier']
+                profile = config.get('tier', details[files[0]]['profile'])
             dependencies = set()
             pending = list(files)
             visited = set()

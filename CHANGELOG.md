@@ -1,5 +1,41 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C13. [x] **Autoloop - Roteamento Preciso de Modelos Codex (`gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`, `gpt-5.6-terra`) e Blindagem Antitransbordamento de Backend/Infraestrutura (`tooling/autoloop/core/scoped_audit.py`, `tooling/autoloop/core/model_router.py`, `tooling/autoloop/install.py` e `tooling/autoloop/tests/test_model_routing_accuracy.py`)**:
+    - **Diagnóstico e Causa Raiz do Desperdício de Cota do Astra**:
+      * Em deploys contendo alterações em controladores Fastify (como `server/controllers/calculadora.controller.js`), a presença da palavra `calculador` no caminho do arquivo acionava uma regex precoce em `scoped_audit.py` e termos clínicos em `model_router.py`, carimbando indevidamente código de infraestrutura HTTP como `CLINICO_ROBUSTEZ_PRO` (`gpt-6-astra`, `high`).
+      * O mecanismo de dependências clínicas transferia arquivos de engenharia de `server/controllers/*` para `groups['clinical']` sempre que houvesse funções auxiliares compartilhadas (como `verificarPayloadSeguro` em `utils.js`), arrastando controllers inteiros (`chat.controller.js`, `cockpit.controller.js`) para o escopo do Astra.
+      * Isso inflava o diff clínico para mais de 100.000 caracteres, forçando 3 fatias de particionamento (`part_1_de_3`, `part_2_de_3`, `part_3_de_3`), cada uma invocando o Astra com raciocínio `high` sobre boilerplate de HTTP Fastify e esgotando prematuramente a cota semanal de raciocínio médico de alta especialidade.
+      * Em `model_router.py`, checagens precipitadas de termos clínicos no topo atropelavam arquivos puramente cosméticos (`.css`) e documentação (`.md`), correndo risco de alocar Astra para alterações visuais ou texto.
+    - **Implementação e Correções Cirúrgicas**:
+      * Em `tooling/autoloop/core/model_router.py`:
+        • Removida a checagem precoce duplicada de termos clínicos que interceptava estilos e documentação antes das regras especializadas.
+        • Implementada a filtragem de caminhos em `arquivos_busca_clinica`: caminhos de arquivos de backend HTTP (`server/controllers/`, `server/routes/`, `server/plugins/`, etc.), testes e ferramentas são expurgados da busca de termos clínicos, impedindo que a substring do nome do controller ("calculadora") contamine a classificação.
+        • Roteamento estrito e otimizado da matriz de modelos e esforços de raciocínio:
+          - CSS puramente cosmético -> `UI_COSMETICO_LEVE` (`gpt-5.6-terra`, esforço `low`).
+          - CSS de layout/modais/menus -> `UI_LAYOUT_ESTRUTURAL` (`gpt-5.6-terra`, esforço `medium`).
+          - Documentação técnica pura -> `DOCUMENTACAO_PADRAO` (`gpt-5.6-luna`, esforço `low`).
+          - Dependências e lockfiles -> `ENGENHARIA_DEPENDENCIAS` (`gpt-6-luna`, esforço `medium`).
+          - Engenharia geral, controllers Fastify, rotas, testes -> `ENGENHARIA_PADRAO` (`gpt-6-luna`, esforço `medium`).
+          - Infraestrutura de servidor, Docker, render.yaml, build -> `ARQUITETURA_INFRAESTRUTURA` (`gpt-6-luna`, esforço `high`).
+          - Lógica complexa, autenticação, JWT, criptografia -> `ENGENHARIA_LOGICA_COMPLEXA` (`gpt-6-sol`, esforço `high`).
+          - Concorrência crítica, `fcntl.flock`, mutex, deadlocks -> `ARQUITETURA_CONCORRENCIA_CRITICA` (`gpt-6-sol`, esforço `xhigh`).
+          - Código clínico médico geral em `src/` (doses, condutas) -> `CLINICO_ROBUSTEZ_PRO` (`gpt-6-astra`, esforço `high`).
+          - Drogas críticas de emergência (noradrenalina, DVA, sedação, PCR) -> `CLINICO_DROGAS_CRITICAS_EXTRA` (`gpt-6-astra`, esforço `xhigh`).
+          - Alteração de comentários canônicos de residência -> `BLOQUEIO_COMENTARIO_RESIDENCIA` (bloqueio fatal, **0 tokens gastos**).
+      * Em `tooling/autoloop/core/scoped_audit.py`:
+        • Criada a função modular `eh_infra_ou_backend(name)`: identifica de forma determinística pastas e arquivos de engenharia, controllers HTTP Fastify, rotas, testes, scripts, tooling e docs.
+        • Restrita a regex de nomes clínicos apenas a fontes médicas reais fora de `eh_infra_ou_backend`.
+        • Blindada a transferência de dependências: arquivos identificados por `eh_infra_ou_backend` NUNCA são transferidos para `groups['clinical']`, garantindo que controllers Fastify fiquem permanentemente em `engineering` sob o Luna.
+        • Adicionado acesso defensivo `config.get('tier', details[files[0]]['profile'])` para suportar mocks e configurações customizadas sem `KeyError`.
+      * Em `tooling/autoloop/install.py`:
+        • Adicionado `model_router.py` ao array de sincronização do instalador, garantindo que o módulo versionado em `tooling/autoloop/core/` seja instalado com verificação criptográfica em `/home/wagmoraes/.local/lib/autoloop_core/`.
+      * Em `tooling/autoloop/tests/test_model_routing_accuracy.py`:
+        • Criada suíte completa com 13 testes automatizados cobrindo a matriz inteira de 10 perfis de modelo/esforço, o bloqueio fatal de comentários de residência (0 tokens), o isolamento de escopo em release misto (apenas `src/` vai para Astra; controllers ficam em Luna) e o release exclusivo de backend (0 chamadas de Astra).
+    - **Validação e Resultados**:
+      * 160/160 testes aprovados na suíte do autoloop (`.venv/bin/pytest tooling/autoloop/tests`) em 11.19s.
+      * 244/244 testes aprovados na bateria global de regressão do ecossistema (`npm run test:all`) em 38.17s.
+      * Instalação executada e validada com sucesso via `tooling/autoloop/install.py`.
+
 0C12. [x] **Autoloop - Detecção Robusta de Cota do Codex (OpenAI), Extração de Tempo de Reset e Prevenção de Deadlock de Deploy (`tooling/autoloop/autoloop.py`, `tooling/autoloop/core/scoped_audit.py` e `tooling/autoloop/tests/test_codex_quota_handling.py`)**:
     - **Diagnóstico e Causa Raiz**:
       * Durante o ciclo de deploy automático de 6h, o gate de auditoria independente com o modelo `gpt-6-astra` foi interrompido por esgotamento de cota na conta OpenAI do Codex (`ERROR: You’ve hit your usage limit... try again at 1:26 PM`).
