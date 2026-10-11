@@ -342,3 +342,21 @@ def test_chunked_scoped_audit_evaluation_and_granular_cache(tmp_path):
     assert len(chamadas_rodada_2) == 1
     assert chamadas_rodada_2[0] == new_scopes[0]['scope_key']
 
+
+def test_bloqueio_comentarios_residencia_isolamento_infraestrutura(tmp_path):
+    base = repo(tmp_path)
+    # 1. Arquivo de infraestrutura/tooling citando regras não é bloqueado
+    (tmp_path / 'tooling').mkdir(exist_ok=True)
+    (tmp_path / 'tooling/rules.py').write_text('# Diretriz: Comentários de residência médica são congelados.\n')
+    cand_infra = commit(tmp_path)
+    sc = scopes(tmp_path, base, cand_infra)
+    assert len(sc) == 1
+    assert sc[0]['profile'] == 'ARQUITETURA_INFRAESTRUTURA'
+
+    # 2. Arquivo clínico ou de dados reais modificando comentários é bloqueado fatalmente
+    (tmp_path / 'src/clinical.js').write_text('// Modifica comentários de residência médica dos professores\n')
+    cand_clinico = commit(tmp_path)
+    with pytest.raises(ScopeError, match='Alteração em comentário de residência congelado'):
+        scopes(tmp_path, cand_infra, cand_clinico)
+
+

@@ -115,7 +115,10 @@ def build_scopes(root, base, candidate, classify, configure, max_chunk_chars=DEF
             # Classifica risco de engenharia sem herdar palavras clínicas dos prompts do orquestrador.
             profile = classify('', [name], patch if len(patch) <= 30000 else chunks[0], projeto='habitflow')
         if profile == 'BLOQUEIO_COMENTARIO_RESIDENCIA':
-            raise ScopeError('Alteração em comentário de residência congelado.')
+            if infrastructure:
+                profile = 'ARQUITETURA_INFRAESTRUTURA'
+            else:
+                raise ScopeError('Alteração em comentário de residência congelado.')
         if not infrastructure and (name == 'server/runtime.js' or re.search(r'(calculador|clinico|clinical|posologia|farmac|prescri)', name, re.I)):
             if not profile.startswith('CLINICO'):
                 profile = 'CLINICO_ROBUSTEZ_PRO'
