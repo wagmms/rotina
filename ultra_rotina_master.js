@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 01:00:41
- * Checksum SHA256: 91d4d34bb2f53636
+ * Gerado automaticamente via build_master.py em: 2026-10-11 02:24:05
+ * Checksum SHA256: 4e48eeb2f0afb718
  * ==============================================================================
  */
 
@@ -3327,7 +3327,7 @@ var CalculadorasClinicas = (function () {
           tomadasDia: opt.tomadasDia || 3,
           intervaloHoras: (opt.tomadasDia === 2) ? 12 : 8,
           diasTratamento: opt.diasTratamento || 10,
-          doseMaximaAdultoMgDia: opt.doseAlta ? 3000 : 1500,
+          doseMaximaAdultoMgDia: 1500,
           volumeFrascoMl: 150,
           indicacao: opt.doseAlta ? 'Otite Média Aguda / Sinusite / PAC (dose alta 90 mg/kg/dia)' : 'Amigdalite / Faringite / Infecções bacterianas leves (50 mg/kg/dia)',
           instrucoes: 'Pode ser administrado com ou sem alimentos. Agitar bem antes de usar.'
@@ -3336,14 +3336,14 @@ var CalculadorasClinicas = (function () {
           nome: 'Amoxicilina + Clavulanato de Potássio',
           apresentacao: 'Amoxicilina 250 mg + Clavulanato 62,5 mg / 5 mL (suspensão oral)',
           concentracaoMgPorMl: 50,
-          doseMgKgDia: 50, // Fixado em 50 para apresentação 4:1. Dose alta exigiria apresentação 400/57 (7:1).
+          doseMgKgDia: opt.doseAlta ? 90 : 50,
           tomadasDia: 3,
           intervaloHoras: 8,
           diasTratamento: opt.diasTratamento || 10,
           doseMaximaAdultoMgDia: 1500,
           volumeFrascoMl: 75,
-          indicacao: 'Infecções de vias aéreas com suspeita de germes produtores de beta-lactamase (50 mg/kg/dia)',
-          instrucoes: 'Administrar preferencialmente no início da refeição. (Atenção: não utilizar esta formulação 4:1 para doses altas >50 mg/kg/dia pelo risco de toxicidade gastrintestinal do clavulanato).'
+          indicacao: opt.doseAlta ? 'Otite complicada / Sinusite refratária (dose alta 90 mg/kg/dia)' : 'Infecções de vias aéreas com suspeita de germes produtores de beta-lactamase (50 mg/kg/dia)',
+          instrucoes: 'Administrar preferencialmente no início da refeição para minimizar risco de intolerância gastrintestinal.'
         },
         azitromicina: {
           nome: 'Azitromicina',
@@ -3352,10 +3352,10 @@ var CalculadorasClinicas = (function () {
           doseMgKgDia: 10,
           tomadasDia: 1,
           intervaloHoras: 24,
-          diasTratamento: opt.diasTratamento || 3,
+          diasTratamento: opt.diasTratamento || 5,
           doseMaximaAdultoMgDia: 500,
           volumeFrascoMl: 15,
-          indicacao: 'Faringite/Amigdalite (opção se alergia a penicilina), PAC atípica (10 mg/kg/dia por 3 dias)',
+          indicacao: 'Faringite/Amigdalite (opção se alergia a penicilina), PAC atípica (10 mg/kg/dia por 5 dias)',
           instrucoes: 'Administrar 1h antes ou 2h após alimentos. Tomada única diária no mesmo horário.'
         },
         cefalexina: {
@@ -3366,7 +3366,7 @@ var CalculadorasClinicas = (function () {
           tomadasDia: 4,
           intervaloHoras: 6,
           diasTratamento: opt.diasTratamento || 7,
-          doseMaximaAdultoMgDia: 4000,
+          doseMaximaAdultoMgDia: 2000,
           volumeFrascoMl: 100,
           indicacao: 'Piodermites, impetigo, celulite leve, ITU baixa (50 a 100 mg/kg/dia)',
           instrucoes: 'Tomar a cada 6 horas. Agitar bem antes de usar.'

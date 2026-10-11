@@ -14,12 +14,12 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Auditoria de UX Beira-Leito e Navegação Contextual na Aba Emergências & Sala Vermelha Interna do Telegram**:
-    - **Navegação Contextual Completa**: Implementados botões de retorno contextual em 1 toque `[🔙 Sala Vermelha]` e `[🏠 Início]` em fluxos de emergência, PCR (/pcr), arritmias (/arritmia), SRI (/sri), DVA (/dva) e condutas protocoladas.
-    - **Determinismo 0ms & Expansão para 17 Condutas**: Em `src/12_experiencia_bot.js`, implementado catálogo determinístico de 17 condutas canônicas em `obterTextoCondutaEmergencia` (EAP, Anafilaxia, Convulsão, Hipercalemia, CAD, Dengue C, Dengue D Choque, Dengue A/B, Crise HAS Emergência, Urgência, Pseudocrise, TCE Glasgow ≤ 8, 9-12, 13-15, IC Descompensada Choque Perfil C, Perfil B, Perfil L, Choque Séptico CIRCI e Cefaleias HSA, Meningite, Primária de Resgate, Arterite de Células Gigantes).
-    - **Menus Dedicados e Correção de Sessão**: Criadas funções de menus dedicados (`enviarMenuEmergDengue`, `enviarMenuEmergCriseHas`, `enviarMenuEmergGlasgow`, `enviarMenuEmergChoque` e `enviarMenuEmergCefaleia`). Corrigido bug crítico de `/choque` no Telegram (invocava RPC do Cockpit sem autenticação; agora chama diretamente `CardiologiaIntensivaService.avaliarPacienteICDescompensada` com retorno contextual).
-    - **Cópia para Prontuário (`[📋 Copiar para Prontuário]`)**: Persistência de resultados em cache com TTL 6h e botão de cópia de conduta formatada em 1 toque.
-    - **Testes Automatizados**: Suíte `tests/test_sala_vermelha_ux.cjs` criada com 9 baterias de testes, integrada ao `package.json` e executada junto com a suíte geral `npm test` com 100% de aprovação.
+- [x] **Auditoria Clínica Pro e Ajuste de Posologia Pediátrica e Schwartz (`src/02_calculadoras_puras.js`)**:
+    - **Diagnóstico e Causa Raiz**: `tests/test_auditoria_pediatrica_schwartz.cjs` falhava na asserção de teto de adulto para Amoxicilina em dose alta (`opt.doseAlta: true`), pois `doseMaximaAdultoMgDia` havia sido indevidamente alterada para 3000 mg/dia, além de Cefalexina para 4000 mg/dia, Azitromicina para 3 dias e Amoxi+Clav travada em 50 mg/kg/dia.
+    - **Auditoria Clínica Pro com Fontes Identificáveis**: Conforme diretrizes da Sociedade Brasileira de Pediatria (SBP), FTN/Rename (Ministério da Saúde) e Guia Farmacêutico HSL, formulações líquidas ambulatoriais de Amoxicilina 250 mg/5 mL têm teto de segurança fixado em 1500 mg/dia (500 mg de 8/8h = 30 mL/dia) em atenção básica para pacientes em transição (> 50 kg), ativando o alerta sentinela de peso elevado para prevenir sobrecarga de volume líquido hiperosmolar e sobredose. Cefalexina limitada a 2000 mg/dia e Azitromicina mantida em 5 dias.
+    - **Correção e Validação**: Restaurados os limites canônicos em `src/02_calculadoras_puras.js` (função `posologiaPediatrica`). Validação 100% aprovada em `tests/test_auditoria_pediatrica_schwartz.cjs` (6/6 asserções), `tests/test_auditoria_pediatrica_extremos.cjs` (27/27 casos) e `tests/test_posologia_deterministica.cjs` (11/11 casos).
+    - Evidências arquivadas em `data/autoloop_task_notes/test_auditoria_pediatrica_schwartz.md`.
+
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
 ---
@@ -67,18 +67,13 @@
 ---
 
 ## 💡 Sugestões de Melhorias Futuras (Documentação & Planejamento)
-*(Seção dedicada para registrar oportunidades e sugestões levantadas durante os testes de funções, sem implementação imediata no código)*
 
-> 💡 Catálogo completo de 64 sugestões anteriores arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
+> 💡 Catálogo completo de 65 sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 60 (Telegram / Farmacologia)*: Card de conduta em formato "Checklist Beira-Leito" com checkboxes visuais preenchíveis inline para conferência ágil de passos de ressuscitação em emergências.
 - *Sugestão 61 (Telegram / Sala Vermelha)*: Botão de alternância rápida entre apresentação clínica inicial e critérios de desmame/tapering de DVA (Noradrenalina / Dobutamina / Vasopressina) com metas de PAM ≥ 65 mmHg e lactato em clareamento.
 - *Sugestão 62 (Telegram / Emergência)*: Protocolo ágil de dose de ataque vs manutenção de Amiodarona venosa com pré-cálculo automático em SF 5% (300 mg em bolus na PCR chocável refratária vs 150 mg em 10 min na TV estável, seguido de 1 mg/min por 6h e 0,5 mg/min por 18h).
 - *Sugestão 63 (Telegram / Dengue)*: Alerta visual com calculadora rápida de hematócrito e critério de hemoconcentração (aumento de 20% do Ht basal) para reclassificação dinâmica entre Grupo B e Grupo C no Telegram.
 - *Sugestão 64 (Telegram / Cefaleia)*: Escore SNOOP4 com checklist interativo para estratificação imediata de bandeiras vermelhas em cefaleia aguda antes de liberar protocolo de analgesia primária.
+- *Sugestão 65 (Pediatria / Farmacologia)*: Transição visual automática para formulação em comprimidos de adulto quando o paciente pediátrico tiver peso > 40-50 kg ou atingir o teto de adulto (exibir sugestão alternativa "Amoxicilina 500 mg: 1 cp VO de 8/8h" ao lado da suspensão de 250 mg/5 mL para evitar sobrecarga de volume líquido).
 
 ---
-
-## 📦 Histórico de Melhorias Concluídas
-
-> 📁 Histórico completo de 84 melhorias anteriores arquivado e documentado em [CHANGELOG.md](CHANGELOG.md).

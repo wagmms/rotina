@@ -2,6 +2,19 @@
 
 > Gerado automaticamente. Arquivo de referência para o histórico arquivado do PROGRESS.md.
 
+0AO. [x] **Auditoria Clínica Pro e Ajuste de Posologia Pediátrica e Schwartz (`src/02_calculadoras_puras.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em `src/02_calculadoras_puras.js`, `amoxicilina` havia sido indevidamente modificada para teto de 3000 mg/dia em dose alta, `cefalexina` para 4000 mg/dia, `azitromicina` para 3 dias e `amoxicilina_clavulanato` travada em 50 mg/kg/dia, quebrando as suítes de teste de segurança pediátrica.
+    - **Auditoria Clínica com Fontes Identificáveis**:
+      * SBP (Departamento de Otorrinolaringologia e Infectologia Pediátrica), FTN/Rename (Ministério da Saúde) e Guia Farmacêutico HSL.
+      * O teto máximo seguro para formulações líquidas ambulatoriais de Amoxicilina 250 mg/5 mL em atenção primária para pacientes de transição (> 50 kg) é de 1500 mg/dia (500 mg de 8/8h = 30 mL/dia), acionando o alerta sentinela de peso elevado. Cefalexina limitada a 2000 mg/dia (500 mg 6/6h). Azitromicina com tratamento padrão mantido em 5 dias.
+    - **Correção e Validação**:
+      * Restaurados os tetos canônicos de segurança em `src/02_calculadoras_puras.js` (Amoxicilina 1500 mg/dia, Cefalexina 2000 mg/dia, Amoxi+Clav com suporte a 90 mg/kg/dia e Azitromicina 5 dias).
+      * `tests/test_auditoria_pediatrica_schwartz.cjs`: 100% de sucesso (6/6 asserções).
+      * `tests/test_auditoria_pediatrica_extremos.cjs`: 100% de sucesso (27/27 casos).
+      * `tests/test_posologia_deterministica.cjs`: 100% de sucesso (11/11 casos).
+      * Nota estruturada arquivada em `data/autoloop_task_notes/test_auditoria_pediatrica_schwartz.md`.
+
 0AN. [x] **Auditoria de UX Beira-Leito e Navegação Contextual na Aba Emergências & Sala Vermelha Interna do Telegram**:
     - **Navegação Contextual e Eliminação de Telas Órfãs**:
       * Implementados botões de retorno contextual em 1 toque `[🔙 Sala Vermelha]` (`ux:sala`) e `[🏠 Início]` (`ux:hub:inicio`) em todos os fluxos de emergência, PCR (/pcr), arritmias (/arritmia), SRI (/sri), DVA (/dva) e condutas protocoladas.
