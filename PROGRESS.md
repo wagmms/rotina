@@ -28,24 +28,34 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Aba Rotina — Painel de Estatísticas e Aderência Semanal (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
-    - **Arquivo/Módulo Alvo**: `rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js` e `src/06_rotina_agenda.js`
-    - **Função/Componente/Seletor**: Função `calcularAderenciaSemanal` e componente de resumo no topo da aba rotina
-    - **Comportamento Esperado / Critério de Aceite**: Exibir percentual real de blocos cumpridos na semana e indicadores visuais de rodízio/estudo ativo com atualização offline-first.
+- [ ] **Aba Rotina — Painel de Estatísticas e Aderência Semanal (`gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
+    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js` e `src/06_rotina_agenda.js`
+    - **Função/Componente/Seletor**: Função `calcularAderenciaSemanal` e componente de resumo no topo da aba rotina (`#painel-aderencia-rotina`)
+    - **Comportamento Esperado / Critério de Aceite**: Exibir percentual real de blocos cumpridos nos últimos 7 dias, total de horas de estudo ativo (MedQuest/Anki) e horas de plantão com persistência local (`rotina_aderencia_v1`) e atualização offline-first.
 
 ---
 
 ## 📋 Backlog Prioritário: Desenvolvimento Integral da Aba Rotina
 
-1. [ ] **Aba Rotina — Painel de Estatísticas e Aderência Semanal (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
-    - **Arquivo/Módulo Alvo**: `rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js` e `src/06_rotina_agenda.js`
-    - **Função/Componente/Seletor**: Função `calcularAderenciaSemanal` e componente de resumo no topo da aba rotina
-    - **Comportamento Esperado / Critério de Aceite**: Exibir percentual real de blocos cumpridos na semana e indicadores visuais de rodízio/estudo ativo com atualização offline-first.
+1. [ ] **Aba Rotina — Painel de Estatísticas e Aderência Semanal (`gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
+    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js` e `src/06_rotina_agenda.js`
+    - **Função/Componente/Seletor**: Função `calcularAderenciaSemanal` e componente de resumo no topo da aba rotina (`#painel-aderencia-rotina`)
+    - **Comportamento Esperado / Critério de Aceite**: Exibir percentual real de blocos cumpridos nos últimos 7 dias, total de horas de estudo ativo (MedQuest/Anki) e horas de plantão com persistência local (`rotina_aderencia_v1`) e atualização offline-first.
 
-2. [ ] **Aba Rotina — Alertas Web Push 10 Minutos Antes de Blocos Críticos (`gh_cockpit_deploy/sw.js`, `server/index.js`)**:
-    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/sw.js` e `server/index.js`
-    - **Função/Componente/Seletor**: Service Worker push notification handler e cron de notificações da agenda
-    - **Comportamento Esperado / Critério de Aceite**: Disparo de notificação local/push no smartphone do médico 10 minutos antes de plantões e blocos de estudo ativo MedQuest.
+2. [ ] **Aba Rotina — Alertas Web Push 10 Minutos Antes de Blocos Críticos (`gh_cockpit_deploy/sw.js`, `gh_cockpit_deploy/rotina_timeline.js`, `server/index.js`)**:
+    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/sw.js`, `gh_cockpit_deploy/rotina_timeline.js` e `server/index.js`
+    - **Função/Componente/Seletor**: Service Worker push notification handler `notificarBlocoPrevisao` e cron de alertas da agenda
+    - **Comportamento Esperado / Critério de Aceite**: Disparo de notificação push/local no celular do médico 10 minutos antes de plantões e blocos de estudo ativo MedQuest, com botão de 1 toque para abrir o Cockpit diretamente no bloco ativo.
+
+3. [ ] **Aba Rotina — Sincronização Real com Google Calendar via Node.js Nativo (`src/06_rotina_agenda.js`, `server/index.js`, `tests/test_google_calendar_sync.cjs`)**:
+    - **Arquivo/Módulo Alvo**: `src/06_rotina_agenda.js`, `server/index.js` e `tests/test_google_calendar_sync.cjs`
+    - **Função/Componente/Seletor**: Endpoint Fastify `GET /api/rotina/agenda/sync` e função `sincronizarAgendaGoogleNativo`
+    - **Comportamento Esperado / Critério de Aceite**: Consumir feed iCal / Google API com zero dependências órfãs de GAS `CalendarApp`, mapeando automaticamente eventos para os blocos da timeline com tags de rodízio, plantão e descanso.
+
+4. [ ] **Aba Rotina — Sincronização Bidirecional Telegram ↔ Cockpit PWA (`src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`, `gh_cockpit_deploy/rotina_timeline.js`)**:
+    - **Arquivo/Módulo Alvo**: `src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js` e `gh_cockpit_deploy/rotina_timeline.js`
+    - **Função/Componente/Seletor**: Callbacks inline `rt_concluir:ID`, `rt_adiar:ID` e rota `/api/rotina/blocos/status`
+    - **Comportamento Esperado / Critério de Aceite**: Ao interagir com o teclado inline do Telegram (`/rotina`), a alteração de status reflete instantaneamente no Cockpit PWA e vice-versa, sem inconsistências de cache.
 
 ---
 
