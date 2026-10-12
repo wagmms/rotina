@@ -1,5 +1,70 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C44. [x] **Testador Master Telegram — Auditor Matemático de Fórmulas Clínicas / MathOracle Anti-Alucinação (`tooling/testador_master/math_oracle.py`, `reporter.py`, `tests/test_testador_master.py`)**:
+    - **Oráculo Matemático Determinístico Canônico (`math_oracle.py`)**:
+      * Implementada classe `MathOracle` com fórmulas analíticas canônicas puras em Python com dupla precisão (zero dependência de LLM ou IA), eliminando alucinações e erros de aritmética:
+        1. *Cockcroft-Gault*: clearance de creatinina determinístico com fator 0.85 para sexo feminino e classificação estrita KDIGO G1 a G5.
+        2. *Fórmula de Winter*: cálculo exato de PaCO2 esperada (`1.5 * HCO3 + 8`) e faixa de compensação fisiológica (±2 mmHg).
+        3. *Drogas Vasoativas (DVA)*: cálculo analítico de vazão em Bomba de Infusão Contínua (BIC em mL/h) para Noradrenalina (concentração padrão 64 mcg/mL e dose 0.1 mcg/kg/min), Dobutamina (1000 mcg/mL e 5 mcg/kg/min) e Vasopressina (0.2 UI/mL e 0.03 UI/min -> 9.0 mL/h).
+        4. *Fórmula de Parkland*: volume 24h para grandes queimados (`4 * peso * SCQ`), rateio de 50% para as primeiras 8h e 50% para as 16h seguintes.
+        5. *Cálcio Corrigido (Payne)*: correção estrita por albumina sérica (`Ca + 0.8 * (4.0 - Alb)`).
+        6. *Holliday-Segar*: hidratação venosa e regra 4-2-1 com ajustes para bronquiolite (70%) e restrição cardiovascular (60%).
+        7. *Adrogué-Madias (DHE)*: Água Corporal Total (ACT), déficit de água livre na hipernatremia e variação prevista de sódio ($\Delta$Na) por 1.000 mL de Salina 3% na hiponatremia aguda.
+    - **Auditoria de Interações em Tempo Real e Detecção de Discrepâncias (`reporter.py`)**:
+      * Parser de comandos capaz de interceptar comandos matemáticos (`/crcl`, `/winter`, `/dva`, `/parkland`, `/calcio`, `/holliday`, `/dhe`), extrair as entradas do usuário, calcular o gabarito analítico, extrair os números emitidos na resposta do bot e calcular o erro absoluto e relativo.
+      * Se o erro exceder a tolerância estrita ($\epsilon < 0.5$), registra imediatamente a anomalia de gravidade ALTA: `🚨 DISCREPÂNCIA MATEMÁTICA`, disparando automaticamente o `BugReproGenerator` para criar script de reprodução autônomo em Node.js (`tests/repros/...`) para fix imediato.
+      * Se os parâmetros forem insuficientes ou inválidos, valida se o bot acionou bloqueio defensivo ou exibiu guia de uso.
+    - **Relatórios Enriquecidos (Markdown e JSON)**:
+      * Adicionado sumário de conformidade matemática determinística no relatório executivo `docs/RELATORIO_TESTADOR_MASTER.md`.
+      * Seção dedicada com tabela comparativa: Ciclo, Calculadora, Comando, Esperado pelo Oráculo, Obtido pelo Bot, Erro Absoluto e Status de Conformidade.
+    - **Validação e Zero Regressões**:
+      * Suíte `tests/test_testador_master.py` expandida com 12/12 testes automatizados aprovados (29.5s).
+      * Bateria completa de regressão `npm test` aprovada com 52/52 suítes verdes em 9.23s.
+
+0C43. [x] **Testador Master Telegram — Dashboard Visual Interativo em HTML (`dashboard_grafo.html`, `dashboard_generator.py`, `crawler_engine.py`, `reporter.py`)**:
+    - **Dashboard Interativo Standalone (`tooling/testador_master/dashboard_grafo.html`, `data/dashboard_grafo.html`)**:
+      * Implementado visualizador de grafos em dark mode médico com Vis.js Network, renderizando a topologia completa de telas do bot e transições por callbacks/comandos.
+      * Cores semânticas para os nós: Ciano para Telas Iniciais/Hubs, Azul para telas com botões, Carmesim para `⚠️ DEAD-ENDS` (sem saída) e Esmeralda para a tela ativa atual.
+      * HUD Executivo no topo com telemetria viva: Telas Descobertas, Botões Testados, Cobertura %, Latência Média, Dead-Ends e Scripts de Reprodução.
+      * Painel Lateral de Inspeção com 2 abas:
+        1. *Detalhes da Tela*: ID único, texto renderizado formatado, e grade de botões inline com callbacks visíveis e status de clique.
+        2. *Issues & Repros*: Catálogo de anomalias com botão de copiar comando bash (`node tests/repros/...`) em 1 toque.
+      * Controles flutuantes de busca em tempo real por termo clínico, centralização automática de zoom e botão de destacar Dead-Ends.
+    - **Compilação Automática no Ciclo do Testador (`dashboard_generator.py`, `reporter.py`)**:
+      * Módulo `DashboardGenerator` gerando o dashboard com dados JSON pré-injetados (abertura instantânea via duplo clique `file://` sem bloqueios de CORS).
+      * Integração nativa no método `salvar_relatorios`: o dashboard é atualizado periodicamente e no encerramento limpo do testador master.
+    - **Validação e Zero Regressões**:
+      * Suíte `tests/test_testador_master.py` expandida com 9/9 testes unitários aprovados (24.9s).
+      * Bateria completa de regressão `npm test` aprovada com 52/52 suítes verdes em 9.85s.
+
+0C42. [x] **Testador Master Telegram — Gerador Automático de Scripts de Reprodução / Bug Repro-Generator (`tooling/testador_master/repro_generator.py`, `reporter.py`, `tests/repros/`, `tests/test_testador_master.py`)**:
+    - **Módulo Autônomo BugReproGenerator (`repro_generator.py`)**:
+      * Implementada classe `BugReproGenerator` que intercepta qualquer anomalia de código, vazamento técnico (`undefined`, `NaN`), falha de salvaguarda clínica (doses para peso <= 0), `UX DEAD-END` ou markdown desbalanceado.
+      * Geração automática de scripts de teste cirúrgicos em Node.js (`tests/repros/repro_issue_XYZ_slug.cjs`) 100% autônomos e executáveis diretamente via terminal (`node tests/repros/...`).
+      * Configuração completa de contexto: mocks de despacho Telegram, permissões de titular, injeção exata do comando, callback ou mídia, e asserções direcionadas (`assert`) que reproduzem a falha e validam a futura correção.
+    - **Integração no MasterReporter & CLI (`reporter.py`, `testador_master.py`)**:
+      * Suporte aos novos argumentos CLI `--repro-dir` (padrão: `tests/repros/`) e `--no-repro` para controle flexível.
+      * O relatório `docs/RELATORIO_TESTADOR_MASTER.md` agora inclui links diretos em 1-clique para cada script gerado e blocos de comandos bash prontos para rodar no terminal.
+      * Sumário executivo e metadados JSON atualizados com contador de scripts de reprodução gerados.
+    - **Validação e Zero Regressões**:
+      * Suíte `tests/test_testador_master.py` expandida para 8/8 testes unitários aprovados (27.6s), incluindo teste de execução real do script gerado em subprocesso Node.js.
+      * Bateria completa de regressão `npm test` aprovada com 52/52 suítes verdes em 9.13s.
+
+0C41. [x] **Testador Master Telegram — Suporte Multimodal E2E Completo com Voz e Exames (`tooling/testador_master/`, `tests/test_testador_master.py`, `docs/RELATORIO_TESTADOR_MASTER.md`)**:
+    - **Geração Dinâmica de Mídias Clínicas Sintéticas (`multimodal_generator.py`)**:
+      * Implementada classe `MultimodalGenerator` gerando notas de voz realistas em MP3 com gTTS (passagem de plantão IAM com supra de ST, choque séptico, pré-eclâmpsia e evolução de leito).
+      * Geração sintética com Pillow de imagens médicas de alta fidelidade visual (traçados de ECG com supra de ST, hemogramas com leucocitose escalonada e gasometrias arteriais de CTI).
+    - **Integração no Loop do Testador Master & Driver Simulado/Telethon (`testador_master.py`, `driver_simulado.py`, `driver_telethon.py`, `node_bridge.js`)**:
+      * Novo argumento CLI `--multimodal-prob` (padrão 0.15) permitindo simular frequência realista de envio de mídias pelas personas clínicas.
+      * Driver Simulado com suporte a `send_media` via JSON-RPC executando o pipeline Gemini Vision e processamento de áudio em RAM, com captura imediata dos botões resultantes (`➕ Incorporar ao SOAP`, `🎧 Ouvir no Fone`, etc.).
+      * Driver Telethon com `send_file(voice_note=True)` para notas de voz e `send_file()` para exames com `send_read_acknowledge` e proteção contra `FloodWaitError`.
+    - **Renderizador TUI Telegram com Badges Multimodais (`tui_renderer.py`)**:
+      * Novos badges visuais dedicados: `[🎙️ NOTA DE VOZ]` (magenta) e `[🖼️ IMAGEM DE EXAME]` (azul), com telemetria viva de tempo de resposta do Gemini e rendering em tempo real do teclado inline.
+    - **Auditoria e Validação**:
+      * Suíte `tests/test_testador_master.py` expandida com 7/7 testes automatizados aprovados (44s).
+      * Executado ciclo E2E multimodal comprovando integração fluida entre envio de imagem/áudio e estruturação SOAP no Telegram.
+      * Bateria de testes de regressão `npm test` aprovada com 51/51 suítes verdes em 9.43s.
+
 0C40. [x] **Ambulatório & SOAP — Filtro Contextual Anti-Poluição e Integração Direta com Consultório APS (`gh_cockpit_deploy/index.html`, `cockpit_movel.html`, `tests/test_cockpit_soap_modais_responsividade.cjs`)**:
     - **Filtro Contextual Anti-Poluição nas Ações Rápidas em 1 Toque**:
       * Erradicada a sobrecarga visual dos 21 botões misturados sem hierarquia na aba `#tab-soap`.
@@ -20,7 +85,7 @@
       * Paridade estrita de hash SHA-256 garantida entre `gh_cockpit_deploy/index.html` e `cockpit_movel.html`.
       * Bateria de testes de regressão completa `npm test` aprovada com 51/51 suítes verdes em 9.76s.
 
-0C39. [x] **Onboarding do Convidado (Dr. Vinicius) & Central de Ajuda Interativa (`src/00_config.js`, `src/01_utils.js`, `src/07a_telegram_router.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `src/12_experiencia_bot.js`, `src/07d_telegram_callbacks.js`, `tests/test_convidado_onboarding_e_ajuda_ux.cjs`, `ultra_rotina_master.js`)**:
+0C39. [x] **Onboarding do Convidado (Dr. Vinicius), Central de Ajuda Interativa & Isolamento Rigoroso de Privacidade (Telegram & Cockpit PWA) (`src/00_config.js`, `src/01_utils.js`, `src/06_rotina_agenda.js`, `src/05_notion.js`, `src/07a_telegram_router.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `src/13_cockpit_integracao.js`, `server/index.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`, `tests/test_convidado_onboarding_e_ajuda_ux.cjs`, `ultra_rotina_master.js`)**:
     - **Boas-Vindas Guiadas no /start (Titular vs Convidado)**:
       * Adicionado suporte a múltiplos nomes configuráveis em `DEFAULTS` (`TELEGRAM_TITULAR_NAME` e `TELEGRAM_GUEST_NAME`), com a função utilitária `obterNomeTratamentoUsuario(chatId)`.
       * Para o titular (Dr. Wagner), preservado o fluxo ágil e direto beira-leito sem atrito.
@@ -28,17 +93,23 @@
       * Teclado fixo (ReplyKeyboardMarkup) ativado automaticamente no rodapé do convidado, junto a botões inline de ação imediata: `[🚀 Como Usar em 3 Passos]`, `[💡 Exemplos Práticos]`, `[⚡ Abrir Central de Cenários]` e `[📖 Manual de Comandos]`.
     - **Nova Central de Ajuda Interativa & Didática (Anti-Sobrecarga de Comandos)**:
       * Reestruturado o comando `/ajuda` e botão de Ajuda: erradicado o despejo do textão de mais de 80 comandos de uma vez.
-      * Criado Hub Interativo (`enviarMenuAjudaInterativo`) com navegação modular em subtelas:
-        1. `🚀 Guia Rápido (3 Passos)` (`ux:ajuda:passos`): Explica envio de texto/áudio, navegação pelos 4 cenários nos botões e uso do `/novo` para trocar de paciente com memória limpa.
-        2. `💡 Exemplos Práticos Beira-Leito` (`ux:ajuda:exemplos`): Exemplos prontos para Emergência/DVA/PCR, Gasometria/Winter, Farmacologia/Doses/ATB e Ambulatório/SOAP.
-        3. `🩺 Por Especialidade` (`ux:ajuda:categorias`): Menu organizado por especialidade clínica com retorno facilitado.
-        4. `📖 Todos os Comandos` (`/manual` ou `/ajuda todas`): Catálogo integral de comandos canônicos preservado para consultas detalhadas.
-    - **Navegação Fluida In-Place e Ergonomia**:
-      * Suporte nativo a edição de mensagens (`editMessageText`) nos callbacks `ux:ajuda:*`, evitando poluição do chat.
-      * Botões permanentes de navegação de retorno `[🔙 Central de Ajuda]` e `[🏠 Início]` em todas as respostas de ajuda e categorias.
+      * Criado Hub Interativo (`enviarMenuAjudaInterativo`) com navegação modular em subtelas (Guia Rápido 3 Passos, Exemplos Práticos Beira-Leito, Especialidades Clínicas e Catálogo Completo).
+      * Suporte nativo a edição de mensagens in-place (`editMessageText`) nos callbacks `ux:ajuda:*` com botões permanentes de retorno.
+    - **Isolamento Rigoroso de Privacidade e RBAC no Telegram (Rotina & Agenda Privadas)**:
+      * Bloqueado o disparo de notificações de rotina e agenda para convidados (Briefing Matinal 06:15, Check-in Noturno 21:30, alertas do Google Calendar e relatório de hábitos).
+      * Bloqueados comandos de rotina/agenda/Notion (`/rotina`, `/agenda`, `/habitos`, `/task`, `/briefing`, `/checkin`), com resposta polida informando recurso restrito ao titular.
+      * Catálogo slash `/ajuda` adaptado para convidados: oculta `/rotina` e exibe exclusivamente `/voz` na categoria de preceptoria. Teclado de ajuda ajustado para "🎧 Preceptor Clínico" (sem citar Rotina).
+      * Despacho de `/cockpit` adaptado para o Dr. Vinicius: apresenta detalhadamente as ferramentas clínicas de plantão (SOAP, Leitos, REMUME, Calculadoras e Aulas), sem qualquer menção a "Corpo" ou "Rotina", com parâmetro `&guest=1` na URL.
+    - **Isolamento Rigoroso de Privacidade no Cockpit PWA & Backend RPC/REST**:
+      * No Cockpit PWA (`cockpit_movel.html` e `gh_cockpit_deploy/index.html`): implementadas funções `ehConvidadoCockpit()` e `aplicarRestricoesConvidado()`. Para convidados, os botões `#tab-rotina` e `#tab-corpo` são completamente ocultados e removidos do fluxo, e a barra de navegação inferior tem seu grid ajustado de 7 para 5 colunas (`grid-cols-5`). A função `navegarAba` intercepta e redireciona qualquer tentativa de acesso a essas abas para `tab-soap`.
+      * Em `carregarPerfil()` e `salvarPesagem()`: adicionado guard para convidados evitando requisições e mutações de peso/composição corporal.
+      * No backend RPC (`src/13_cockpit_integracao.js`): `cockpitPerfil` e `cockpitRegistrarPeso` verificam autorização e lançam erro de acesso restrito se o usuário não for o titular.
+      * Nas rotas REST Fastify (`server/index.js`): adicionado guard `ehRequisicaoConvidado` bloqueando endpoints `/api/rotina/*` com HTTP 403 Forbidden.
+      * Paridade estrita de hash SHA-256 mantida entre `cockpit_movel.html` e `gh_cockpit_deploy/index.html`.
     - **Validação e Zero Regressões**:
-      * Criada suíte dedicada `tests/test_convidado_onboarding_e_ajuda_ux.cjs` com 9 cenários de validação unitária e integrada aprovados em 0.44s.
-      * Bateria de testes de regressão completa `npm test` aprovada com 51/51 suítes verdes em 9.84s.
+      * Criada suíte dedicada `tests/test_convidado_onboarding_e_ajuda_ux.cjs` com 16 cenários cobrindo nomes, onboarding, central de ajuda interativa, bloqueio de comandos/notificações no Telegram, RPC de perfil/peso, proteção de abas e paridade de hash do Cockpit.
+      * Adicionado o teste à baseline oficial em `scripts/test_manifest.json`.
+      * Bateria completa de regressão `npm test` aprovada com 52/52 suítes verdes em 8.93s.
 
 0C38. [x] **Ambulatório & SOAP Ágil — Interface Limpa com Gaveta de Queixas Frequentes e Ações Cirúrgicas (`gh_cockpit_deploy/index.html`, `cockpit_movel.html`, `tests/test_cockpit_soap_modais_responsividade.cjs`)**:
     - **Interface Limpa e Sem Poluição (Anti-UI Slop)**:

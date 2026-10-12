@@ -93,6 +93,7 @@ function verificarAgendaENotificar() {
   var chatId = (typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim();
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   if (!token || !chatId) return;
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(chatId)) return;
 
   var agora = new Date();
   var janelaFrente = new Date(agora.getTime() + (8 * 60 * 1000));
@@ -830,6 +831,12 @@ var RotinaService = {
 
 function enviarBriefingMatinal(chatIdDestino, forcar, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(destino)) {
+    if (forcar && typeof enviarTelaBot === "function") {
+      return enviarTelaBot(destino, "🔒 *Recurso Restrito ao Titular*\n\nNotificações de agenda e rotina são exclusivas do administrador da conta.", (typeof botoesBot === "function" ? botoesBot([[['🏠 Início', 'ux:hub:inicio']]]) : {}), messageId);
+    }
+    return false;
+  }
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
   var dataHojeISO = Utilities.formatDate(hoje, tz, "yyyy-MM-dd");
@@ -931,6 +938,12 @@ function obterTreinoDoDia(diaSemanaNum, dataRef) {
 
 function enviarCheckinNoturno(chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(destino)) {
+    if (typeof enviarTelaBot === "function") {
+      return enviarTelaBot(destino, "🔒 *Recurso Restrito ao Titular*\n\nO check-in de hábitos e rotina é exclusivo do administrador da conta.", (typeof botoesBot === "function" ? botoesBot([[['🏠 Início', 'ux:hub:inicio']]]) : {}), messageId);
+    }
+    return false;
+  }
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
   var dataFormatada = Utilities.formatDate(hoje, tz, "dd/MM");
@@ -1039,6 +1052,13 @@ function criarEventoAgendaGoogle(titulo, inicioIso, fimIso, local, descricao) {
  */
 function consultarEventosAgenda(dataAlvoStr, chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(destino)) {
+    var txtBloqueio = "🔒 *Recurso Restrito ao Titular*\n\nA consulta de eventos da agenda é exclusiva do administrador da conta.";
+    if (typeof enviarTelaBot === "function") {
+      return enviarTelaBot(destino, txtBloqueio, (typeof botoesBot === "function" ? botoesBot([[['🏠 Início', 'ux:hub:inicio']]]) : {}), messageId);
+    }
+    return (typeof enviarMensagemParaChat === "function") ? enviarMensagemParaChat(destino, txtBloqueio) : false;
+  }
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var agora = new Date();
 

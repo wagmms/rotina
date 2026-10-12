@@ -147,7 +147,104 @@ async function executarTestesOnboardingEAjuda() {
   assert.ok(msgCardio, 'Deve responder com a especialidade cardio');
   assert.ok(msgCardio.texto.includes('CARDIO') || msgCardio.texto.includes('PNEUMO') || msgCardio.texto.includes('/sca'), 'Deve conter comandos de cardio');
 
-  console.log('\n✅ TODOS OS 9 TESTES DE ONBOARDING E AJUDA PASSARAM COM SUCESSO!');
+  console.log('[TESTE 10] Bloqueio de comandos de rotina/notion para convidado');
+  limpar();
+  const cmdsBloqueados = ['/rotina', '/agenda', '/habitos', '/task', '/briefing', '/checkin'];
+  for (const cmd of cmdsBloqueados) {
+    limpar();
+    const res = ctx.despacharComandosAgendaRotinaEAudio_(cmd, cmd, idConvidado);
+    assert.strictEqual(res.executado, true, `Comando ${cmd} deve ser interceptado para convidado`);
+    assert.ok(mensagensEnviadas.length > 0, `Deve enviar mensagem ao bloquear ${cmd}`);
+    const msgBloq = mensagensEnviadas[0];
+    assert.ok(msgBloq.texto.includes('Restrito ao Titular') || msgBloq.texto.includes('privado do Dr. Wagner') || msgBloq.texto.includes('exclusivo do administrador'), `Mensagem de bloqueio de ${cmd} deve indicar acesso restrito`);
+  }
+
+  console.log('[TESTE 11] Catálogo Slash e Botões de Ajuda Ocultam Rotina para Convidado');
+  const catalogoTitular = ctx.obterCatalogoComandosSlash(idTitular);
+  const catalogoConvidado = ctx.obterCatalogoComandosSlash(idConvidado);
+  const cmdsTitular = catalogoTitular.flatMap(cat => cat.comandos).map(c => c.cmd);
+  const cmdsConvidado = catalogoConvidado.flatMap(cat => cat.comandos).map(c => c.cmd);
+  assert.ok(cmdsTitular.includes('/rotina'), 'Titular deve ter /rotina no catálogo slash');
+  assert.ok(!cmdsConvidado.includes('/rotina'), 'Convidado NÃO deve ter /rotina no catálogo slash');
+  assert.ok(cmdsConvidado.includes('/voz'), 'Convidado deve ter /voz no catálogo slash');
+
+  const tecladoAjudaConvidado = ctx.construirTecladoCategoriasAjuda(idConvidado);
+  const textoBotoesAjuda = JSON.stringify(tecladoAjudaConvidado);
+  assert.ok(!textoBotoesAjuda.includes('Rotina'), 'Teclado de ajuda do convidado não deve exibir termo Rotina');
+  assert.ok(textoBotoesAjuda.includes('Preceptor Clínico'), 'Teclado de ajuda do convidado deve exibir Preceptor Clínico');
+
+  console.log('[TESTE 12] Bloqueio de Notificações de Agenda, Briefings e Hábitos');
+  limpar();
+  // Notificação periódica matinal automática NÃO deve enviar para convidado
+  const resBriefingAuto = ctx.enviarBriefingMatinal(idConvidado, false);
+  assert.strictEqual(resBriefingAuto, false, 'Briefing periódico automático não deve ser enviado para convidado');
+  assert.strictEqual(mensagensEnviadas.length, 0, 'Nenhuma mensagem matinal deve ser enviada para convidado');
+
+  // Relatório semanal de hábitos NÃO deve enviar para convidado
+  const resHabitos = ctx.enviarRelatorioSemanalHabitos(idConvidado);
+  assert.strictEqual(resHabitos, false, 'Relatório de hábitos deve retornar false para convidado');
+  assert.strictEqual(mensagensEnviadas.length, 0, 'Nenhuma mensagem de hábitos deve ser enviada');
+
+  // Ações interativas forçadas por convidado devem exibir tela de bloqueio restrito ao titular
+  ctx.enviarCheckinNoturno(idConvidado);
+  assert.ok(mensagensEnviadas.length > 0, 'Checkin deve responder com aviso');
+  assert.ok(mensagensEnviadas[0].texto.includes('Restrito ao Titular'), 'Check-in deve indicar restrição ao titular');
+
+  limpar();
+  ctx.consultarEventosAgenda('hoje', idConvidado);
+  assert.ok(mensagensEnviadas.length > 0, 'Consulta de agenda deve responder com aviso');
+  assert.ok(mensagensEnviadas[0].texto.includes('Restrito ao Titular'), 'Consulta de agenda deve indicar restrição ao titular');
+
+  console.log('[TESTE 13] Mensagem de /cockpit personalizada para Titular vs Convidado');
+  limpar();
+  ctx.rotearAtalhoTecladoFixo('📱 Cockpit', '/cockpit', idTitular);
+  const msgCockpitTitular = mensagensEnviadas[0];
+  assert.ok(msgCockpitTitular.texto.includes('Corpo'), 'Titular deve ver menção a Corpo no /cockpit');
+  assert.ok(msgCockpitTitular.texto.includes('Rotina'), 'Titular deve ver menção a Rotina no /cockpit');
+
+  limpar();
+  ctx.rotearAtalhoTecladoFixo('📱 Cockpit', '/cockpit', idConvidado);
+  const msgCockpitConvidado = mensagensEnviadas[0];
+  assert.ok(!msgCockpitConvidado.texto.includes('Corpo:'), 'Convidado NÃO deve ver Corpo no /cockpit');
+  assert.ok(!msgCockpitConvidado.texto.includes('Rotina:'), 'Convidado NÃO deve ver Rotina no /cockpit');
+  assert.ok(msgCockpitConvidado.texto.includes('SOAP:'), 'Convidado deve ver SOAP no /cockpit');
+  assert.ok(msgCockpitConvidado.texto.includes('Leitos:'), 'Convidado deve ver Leitos no /cockpit');
+  assert.ok(msgCockpitConvidado.texto.includes('Calculadoras:'), 'Convidado deve ver Calculadoras no /cockpit');
+  // URL deve conter &guest=1 para convidado
+  const btnCockpit = msgCockpitConvidado.kb.inline_keyboard[0][0];
+  assert.ok(btnCockpit.web_app.url.includes('guest=1'), 'URL do Cockpit para convidado deve conter &guest=1');
+
+  console.log('[TESTE 14] Bloqueio de RPC de Perfil e Registro de Peso para Convidado');
+  const tokenConvidado = ctx.criarSessaoCockpit_(idConvidado);
+  assert.throws(() => {
+    ctx.cockpitPerfil(tokenConvidado);
+  }, /Acesso restrito ao titular/i);
+  assert.throws(() => {
+    ctx.cockpitRegistrarPeso(tokenConvidado, 75, 15, 1);
+  }, /Acesso restrito ao titular/i);
+
+  // Titular deve conseguir acessar normalmente
+  const tokenTitular = ctx.criarSessaoCockpit_(idTitular);
+  const perfilTitular = ctx.cockpitPerfil(tokenTitular);
+  assert.ok(perfilTitular && typeof perfilTitular === 'object', 'Titular deve obter objeto de perfil');
+
+  console.log('[TESTE 15] Paridade Estrita de SHA-256 e Elementos no Cockpit PWA');
+  const fs = require('fs');
+  const crypto = require('crypto');
+  const htmlMovel = fs.readFileSync('cockpit_movel.html', 'utf8');
+  const htmlDeploy = fs.readFileSync('gh_cockpit_deploy/index.html', 'utf8');
+  const hashMovel = crypto.createHash('sha256').update(htmlMovel).digest('hex');
+  const hashDeploy = crypto.createHash('sha256').update(htmlDeploy).digest('hex');
+  assert.strictEqual(hashMovel, hashDeploy, 'cockpit_movel.html e gh_cockpit_deploy/index.html devem ter SHA-256 idêntico');
+
+  console.log('[TESTE 16] Elementos e Lógica de Convidado no HTML do Cockpit');
+  assert.ok(htmlMovel.includes('id="cockpit-nav-grid"'), 'Cockpit deve ter id="cockpit-nav-grid"');
+  assert.ok(htmlMovel.includes('function ehConvidadoCockpit'), 'Cockpit deve definir ehConvidadoCockpit()');
+  assert.ok(htmlMovel.includes('function aplicarRestricoesConvidado'), 'Cockpit deve definir aplicarRestricoesConvidado()');
+  assert.ok(htmlMovel.includes('grid-cols-5'), 'Cockpit deve ter lógica para reduzir para 5 colunas');
+  assert.ok(htmlMovel.includes('tab-soap'), 'Cockpit deve redirecionar convidado para tab-soap');
+
+  console.log('\n✅ TODOS OS 16 TESTES DE ONBOARDING, AJUDA E PRIVACIDADE DO CONVIDADO PASSARAM COM SUCESSO!');
 }
 
 executarTestesOnboardingEAjuda().catch(err => {

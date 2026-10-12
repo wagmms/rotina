@@ -12,6 +12,7 @@ clicando em botões inline, testando calculadoras e gerando relatório vivo de s
 import os
 import sys
 import time
+import random
 import argparse
 import signal
 from pathlib import Path
@@ -28,6 +29,7 @@ from tooling.testador_master.crawler_engine import ScreenGraph
 from tooling.testador_master.reporter import MasterReporter
 from tooling.testador_master.driver_simulado import DriverSimulado
 from tooling.testador_master.driver_telethon import DriverTelethon
+from tooling.testador_master.multimodal_generator import MultimodalGenerator
 
 
 def criar_argument_parser() -> argparse.ArgumentParser:
@@ -71,6 +73,12 @@ def criar_argument_parser() -> argparse.ArgumentParser:
         help="Tempo de espera humano entre ações em segundos (padrão: 1.8s)"
     )
     parser.add_argument(
+        "--multimodal-prob",
+        type=float,
+        default=0.15,
+        help="Probabilidade de uma persona disparar envio de nota de voz ou foto de exame (padrão: 0.15)"
+    )
+    parser.add_argument(
         "--login",
         action="store_true",
         help="Inicia assistente de autenticação interativa com o Telegram via Telethon"
@@ -102,6 +110,17 @@ def criar_argument_parser() -> argparse.ArgumentParser:
         type=str,
         default=str(ROOT_DIR / "data" / "testador_master_relatorio.json"),
         help="Caminho para salvar os dados brutos e histórico em JSON"
+    )
+    parser.add_argument(
+        "--repro-dir",
+        type=str,
+        default=str(ROOT_DIR / "tests" / "repros"),
+        help="Caminho do diretório para salvar scripts de reprodução (.cjs) de bugs"
+    )
+    parser.add_argument(
+        "--no-repro",
+        action="store_true",
+        help="Desativa a geração automática de scripts de reprodução isolados"
     )
     return parser
 
@@ -165,8 +184,14 @@ def main():
         if grafo.carregar_estado(grafo_path):
             print(f"🔄 Retomando exploração do grafo prévio ({len(grafo.nodes)} telas, {len(grafo.botoes_globais_clicados)} botões já testados)!")
 
-    reporter = MasterReporter(Path(args.output_md), Path(args.output_json))
+    reporter = MasterReporter(
+        output_md=Path(args.output_md),
+        output_json=Path(args.output_json),
+        repro_dir=Path(args.repro_dir),
+        gerar_repros=not args.no_repro
+    )
     catalogo_personas = obter_catalogo_personas()
+    multimodal_gen = MultimodalGenerator()
 
     lista_personas = (
         list(catalogo_personas.values())
@@ -212,8 +237,40 @@ def main():
             # Seleciona persona para este ciclo
             persona_atual = lista_personas[(ciclo - 1) % len(lista_personas)]
 
-            # Decide cirurgicamente a próxima ação com base no grafo e perfil
-            acao = grafo.decidir_proxima_acao(persona_atual)
+            # Decide cirurgicamente a próxima ação: avalia ação multimodal ou grafo
+            acao = None
+            if random.random() < args.multimodal_prob:
+                acao_mm = persona_atual.decidir_acao_multimodal()
+                if acao_mm:
+                    tipo_mm = acao_mm.get("tipo")
+                    subtipo = acao_mm.get("subtipo", "aleatorio")
+                    caption_mm = acao_mm.get("caption", "")
+
+                    if tipo_mm == "audio":
+                        dados_midia = multimodal_gen.gerar_audio_clinico(subtipo)
+                        acao = {
+                            "tipo": "audio",
+                            "caminho": str(dados_midia["caminho"]),
+                            "caption": caption_mm or dados_midia.get("caption", ""),
+                            "titulo": dados_midia.get("titulo", "Nota de Voz"),
+                            "texto": f"🎙️ [Nota de Voz: {dados_midia.get('titulo')}] - \"{dados_midia.get('texto_falado')}\"",
+                            "alvo_desc": dados_midia.get("titulo", "Nota de Voz"),
+                            "pensamento": persona_atual.gerar_pensamento("audio", dados_midia.get("titulo", "áudio de voz"))
+                        }
+                    elif tipo_mm == "imagem":
+                        dados_midia = multimodal_gen.gerar_imagem_clinica(subtipo)
+                        acao = {
+                            "tipo": "imagem",
+                            "caminho": str(dados_midia["caminho"]),
+                            "caption": caption_mm or dados_midia.get("caption", ""),
+                            "titulo": dados_midia.get("titulo", "Exame Clínico"),
+                            "texto": f"🖼️ [Exame Clínico: {dados_midia.get('titulo')}] {('(' + caption_mm + ')') if caption_mm else ''}",
+                            "alvo_desc": dados_midia.get("titulo", "Exame Clínico"),
+                            "pensamento": persona_atual.gerar_pensamento("imagem", dados_midia.get("titulo", "exame de imagem"))
+                        }
+
+            if not acao:
+                acao = grafo.decidir_proxima_acao(persona_atual)
 
             # Métricas para o HUD
             tempos_registrados = [e["tempo_ms"] for e in reporter.eventos if e["tempo_ms"] > 0]
@@ -241,6 +298,9 @@ def main():
 
             # Exibe o balão do usuário simulado com badge correspondente
             eh_clique = acao.get("tipo") in ["clique", "backtrack"]
+            eh_audio = acao.get("tipo") == "audio"
+            eh_imagem = acao.get("tipo") == "imagem"
+
             texto_usuario = (
                 f"[Clique no botão: {acao.get('rotulo')}]"
                 if eh_clique
@@ -262,6 +322,18 @@ def main():
                     rotulo=acao.get("rotulo", "")
                 )
                 grafo.registrar_clique(acao.get("tela_id", ""), acao.get("chave", ""))
+            elif eh_audio:
+                resp = driver.enviar_audio(
+                    caminho_audio=acao.get("caminho", ""),
+                    caption=acao.get("caption", "")
+                )
+                grafo.registrar_comando(f"[audio:{acao.get('alvo_desc')}]")
+            elif eh_imagem:
+                resp = driver.enviar_imagem(
+                    caminho_imagem=acao.get("caminho", ""),
+                    caption=acao.get("caption", "")
+                )
+                grafo.registrar_comando(f"[imagem:{acao.get('alvo_desc')}]")
             else:
                 resp = driver.enviar_mensagem(acao.get("texto", ""))
                 grafo.registrar_comando(acao.get("texto", ""))
@@ -311,8 +383,12 @@ def main():
         print(f"• Botões inline testados: {len(grafo.botoes_globais_clicados)}")
         print(f"• Cobertura estimada: {grafo.obter_cobertura_pct():.1f}%")
         print(f"• Problemas identificados: {len(reporter.problemas)}")
+        total_repros = sum(1 for p in reporter.problemas if p.get("repro_script"))
+        if total_repros > 0:
+            print(f"• 🧪 Scripts de Reprodução gerados: {total_repros} (em tests/repros/)")
         print(f"• Relatório Markdown gerado: {args.output_md}")
         print(f"• Dados JSON gerados: {args.output_json}")
+        print(f"• 🌐 Dashboard Visual Interativo: {ROOT_DIR / 'data' / 'dashboard_grafo.html'}")
         print("=" * 70 + "\n")
 
 

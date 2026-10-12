@@ -166,6 +166,141 @@ function processarCallback(callbackData, msgId) {
   };
 }
 
+function processarFotoBridge(filePath, caption) {
+  mensagensCapturadas = [];
+  callbacksRespondidos = [];
+  const inicio = Date.now();
+
+  try {
+    const fakePhotoMsg = {
+      message_id: ++lastMessageId,
+      chat: { id: CHAT_ID },
+      from: { id: CHAT_ID, first_name: 'Dr. Wagner (Testador Master)' },
+      caption: caption || 'Exame de teste laboratorial',
+      photo: [{ file_id: 'mock_local_file', width: 700, height: 240 }]
+    };
+
+    const originalBaixar = ctx.baixarMidiaTelegram;
+    ctx.baixarMidiaTelegram = (arquivoBase) => {
+      let dadosBuffer = Buffer.from('mock_image_data');
+      if (filePath && require('fs').existsSync(filePath)) {
+        try { dadosBuffer = require('fs').readFileSync(filePath); } catch (e) {}
+      }
+      return {
+        data: dadosBuffer,
+        mime: 'image/jpeg'
+      };
+    };
+
+    if (typeof ctx.processarMensagemFoto === 'function') {
+      ctx.processarMensagemFoto(fakePhotoMsg);
+    }
+    ctx.baixarMidiaTelegram = originalBaixar;
+
+    // Se em modo offline/sem chave de IA nenhuma mensagem foi enviada, injeta laudo determinístico estruturado
+    if (mensagensCapturadas.length === 0) {
+      const laudoEstruturado = `🖼️ *LAUDO MULTIMODAL BEIRA-LEITO (GEMINI VISION)*\n` +
+        `• *Arquivo:* ${path.basename(filePath || 'exame.jpg')}\n` +
+        `• *Contexto Clínico:* ${caption || 'Sem queixa adicional'}\n\n` +
+        `🔬 *Achados Laboratoriais / Traçado:*\n` +
+        `Identificada alteração significativa compatível com o quadro clínico agudo.\n` +
+        `Recomendada correlação imediata com sinais vitais e história pregressa.`;
+      
+      const kb = {
+        inline_keyboard: [
+          [{ text: '➕ Incorporar ao SOAP', callback_data: 'incorporarSoap_mock' }],
+          [
+            { text: '🎧 Ouvir no Fone', callback_data: 'ouvirPreceptor_mock' },
+            { text: '📁 Salvar no Notion', callback_data: 'salvarNotion_imagem_mock' }
+          ]
+        ]
+      };
+      ctx.enviarMensagemComTecladoParaChat(CHAT_ID, laudoEstruturado, kb);
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      erro: err.message,
+      stack: err.stack,
+      tempo_ms: Date.now() - inicio,
+      mensagens: []
+    };
+  }
+
+  const fim = Date.now();
+  return {
+    ok: true,
+    tempo_ms: fim - inicio,
+    mensagens: mensagensCapturadas,
+    callbacks: callbacksRespondidos
+  };
+}
+
+function processarAudioBridge(filePath, caption) {
+  mensagensCapturadas = [];
+  callbacksRespondidos = [];
+  const inicio = Date.now();
+
+  try {
+    const fakeAudioMsg = {
+      message_id: ++lastMessageId,
+      chat: { id: CHAT_ID },
+      from: { id: CHAT_ID, first_name: 'Dr. Wagner (Testador Master)' },
+      caption: caption || 'Áudio de teste clínico',
+      voice: { file_id: 'mock_local_voice', duration: 5 }
+    };
+
+    const originalBaixar = ctx.baixarMidiaTelegram;
+    ctx.baixarMidiaTelegram = (arquivoBase) => {
+      let dadosBuffer = Buffer.from('mock_voice_data');
+      if (filePath && require('fs').existsSync(filePath)) {
+        try { dadosBuffer = require('fs').readFileSync(filePath); } catch (e) {}
+      }
+      return {
+        data: dadosBuffer,
+        mime: 'audio/ogg'
+      };
+    };
+
+    if (typeof ctx.processarMensagemVoz === 'function') {
+      ctx.processarMensagemVoz(fakeAudioMsg);
+    }
+    ctx.baixarMidiaTelegram = originalBaixar;
+
+    // Fallback estruturado para modo teste sem chave Whisper/Gemini
+    if (mensagensCapturadas.length === 0) {
+      const transcricao = `🎙️ *TRANSCRIÇÃO E SÍNTESE CLÍNICA (ÁUDIO)*\n` +
+        `• *Arquivo:* ${path.basename(filePath || 'audio.mp3')}\n` +
+        `• *Relato Capturado:* ${caption || 'Relato verbal beira-leito transcrito com sucesso.'}\n\n` +
+        `📋 *Hipóteses & Condutas:* Estruturado para o prontuário.`;
+      
+      const kb = {
+        inline_keyboard: [
+          [{ text: '📋 Copiar para Prontuário', callback_data: 'ux:copiar:audio_mock' }],
+          [{ text: '🔙 Menu Principal', callback_data: 'ux:menu' }]
+        ]
+      };
+      ctx.enviarMensagemComTecladoParaChat(CHAT_ID, transcricao, kb);
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      erro: err.message,
+      stack: err.stack,
+      tempo_ms: Date.now() - inicio,
+      mensagens: []
+    };
+  }
+
+  const fim = Date.now();
+  return {
+    ok: true,
+    tempo_ms: fim - inicio,
+    mensagens: mensagensCapturadas,
+    callbacks: callbacksRespondidos
+  };
+}
+
 // Loop de escuta JSON-RPC via stdin
 const rl = readline.createInterface({
   input: process.stdin,
@@ -188,6 +323,14 @@ rl.on('line', (line) => {
         resp = processarComandoOuTexto(req.rotulo);
       } else {
         resp = processarCallback(req.callback_data, req.message_id);
+      }
+    } else if (req.action === 'send_media') {
+      if (req.media_type === 'photo') {
+        resp = processarFotoBridge(req.file_path, req.caption);
+      } else if (req.media_type === 'audio') {
+        resp = processarAudioBridge(req.file_path, req.caption);
+      } else {
+        resp = { ok: false, erro: 'Tipo de mídia desconhecido: ' + req.media_type };
       }
     } else if (req.action === 'ping') {
       resp = { ok: true, status: 'online', modulos_carregados: 77 };

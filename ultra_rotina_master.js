@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 23:22:48
- * Checksum SHA256: 1465f38e3a4ae8f8
+ * Gerado automaticamente via build_master.py em: 2026-10-11 23:44:15
+ * Checksum SHA256: b2a782cde3c32221
  * ==============================================================================
  */
 
@@ -638,7 +638,8 @@ function obterUrlCockpit(chatId) {
     } catch (_) {}
   }
   var v = (typeof ConfigService !== "undefined" && ConfigService.get && ConfigService.get("COCKPIT_VERSION")) ? ConfigService.get("COCKPIT_VERSION") : "2.5";
-  return sessao ? base + "?session=" + sessao + "&v=" + v : base + "?v=" + v;
+  var guestFlag = (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(id)) ? "&guest=1" : "";
+  return sessao ? base + "?session=" + sessao + "&v=" + v + guestFlag : base + "?v=" + v + guestFlag;
 }
 
 /**
@@ -41355,6 +41356,9 @@ function atualizarNumeroNotion(pageId, propName, valor) {
 
 function enviarRelatorioSemanalHabitos(chatIdDestino) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(destino)) {
+    return false;
+  }
   var dbId = ConfigService.get("NOTION_HABIT_LOG_DB_ID");
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 
@@ -41671,6 +41675,7 @@ function verificarAgendaENotificar() {
   var chatId = (typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim();
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   if (!token || !chatId) return;
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(chatId)) return;
 
   var agora = new Date();
   var janelaFrente = new Date(agora.getTime() + (8 * 60 * 1000));
@@ -42408,6 +42413,12 @@ var RotinaService = {
 
 function enviarBriefingMatinal(chatIdDestino, forcar, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(destino)) {
+    if (forcar && typeof enviarTelaBot === "function") {
+      return enviarTelaBot(destino, "🔒 *Recurso Restrito ao Titular*\n\nNotificações de agenda e rotina são exclusivas do administrador da conta.", (typeof botoesBot === "function" ? botoesBot([[['🏠 Início', 'ux:hub:inicio']]]) : {}), messageId);
+    }
+    return false;
+  }
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
   var dataHojeISO = Utilities.formatDate(hoje, tz, "yyyy-MM-dd");
@@ -42509,6 +42520,12 @@ function obterTreinoDoDia(diaSemanaNum, dataRef) {
 
 function enviarCheckinNoturno(chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(destino)) {
+    if (typeof enviarTelaBot === "function") {
+      return enviarTelaBot(destino, "🔒 *Recurso Restrito ao Titular*\n\nO check-in de hábitos e rotina é exclusivo do administrador da conta.", (typeof botoesBot === "function" ? botoesBot([[['🏠 Início', 'ux:hub:inicio']]]) : {}), messageId);
+    }
+    return false;
+  }
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var hoje = new Date();
   var dataFormatada = Utilities.formatDate(hoje, tz, "dd/MM");
@@ -42617,6 +42634,13 @@ function criarEventoAgendaGoogle(titulo, inicioIso, fimIso, local, descricao) {
  */
 function consultarEventosAgenda(dataAlvoStr, chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(destino)) {
+    var txtBloqueio = "🔒 *Recurso Restrito ao Titular*\n\nA consulta de eventos da agenda é exclusiva do administrador da conta.";
+    if (typeof enviarTelaBot === "function") {
+      return enviarTelaBot(destino, txtBloqueio, (typeof botoesBot === "function" ? botoesBot([[['🏠 Início', 'ux:hub:inicio']]]) : {}), messageId);
+    }
+    return (typeof enviarMensagemParaChat === "function") ? enviarMensagemParaChat(destino, txtBloqueio) : false;
+  }
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   var agora = new Date();
 
@@ -43690,15 +43714,28 @@ function rotearAtalhoTecladoFixo(texto, comando, chatId) {
   // 1. Cockpit Móvel
   if (texto === "📱 Cockpit" || texto === "📱 Cockpit Móvel" || comando === "/cockpit" || comando === "/app") {
     var urlPainel = obterUrlCockpit(chatId);
-    var msgCockpit = "📱 *COCKPIT MÓVEL (TELEGRAM MINI APP)*\n\n" +
-      "Seu assistente unificado com 6 abas de alta performance:\n\n" +
-      "• 🧬 *Corpo:* Composição, peso e protocolo\n" +
-      "• 🏥 *Leitos:* Painel da enfermaria e SBAR\n" +
-      "• 💊 *REMUME:* Busca rápida de doses\n" +
-      "• 🧮 *Cálculos:* DVA, SRI, CrCl e Gasometria\n" +
-      "• 📅 *Rotina:* Agenda Google e Time-Blocking\n" +
-      "• ✨ *SOAP:* Preceptor socrático e PEP\n\n" +
-      "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
+    var ehTitular = (typeof ehUsuarioTitular === "function") ? ehUsuarioTitular(chatId) : true;
+    var msgCockpit = "";
+    if (ehTitular) {
+      msgCockpit = "📱 *COCKPIT MÓVEL (TELEGRAM MINI APP)*\n\n" +
+        "Seu assistente unificado com 6 abas de alta performance:\n\n" +
+        "• 🧬 *Corpo:* Composição, peso e protocolo\n" +
+        "• 🏥 *Leitos:* Painel da enfermaria e SBAR\n" +
+        "• 💊 *REMUME:* Busca rápida de doses\n" +
+        "• 🧮 *Cálculos:* DVA, SRI, CrCl e Gasometria\n" +
+        "• 📅 *Rotina:* Agenda Google e Time-Blocking\n" +
+        "• ✨ *SOAP:* Preceptor socrático e PEP\n\n" +
+        "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
+    } else {
+      msgCockpit = "📱 *COCKPIT MÓVEL (TELEGRAM MINI APP)*\n\n" +
+        "Seu assistente clínico de plantão com acesso rápido e offline-first:\n\n" +
+        "• ✨ *SOAP:* Assistente de conduta clínica e evolução\n" +
+        "• 🏥 *Leitos:* Painel da enfermaria e metodologia SBAR\n" +
+        "• 💊 *REMUME:* Bulário municipal e doses de antibióticos\n" +
+        "• 🧮 *Calculadoras:* DVA, SRI, Clearance, CURB-65, Glasgow e Gasometria\n" +
+        "• 🎓 *Aulas:* Diretrizes clínicas e resumos práticos\n\n" +
+        "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
+    }
     var kbCockpit = {
       inline_keyboard: [
         [
@@ -43706,7 +43743,15 @@ function rotearAtalhoTecladoFixo(texto, comando, chatId) {
         ]
       ]
     };
-    return { executado: true, resultado: enviarMensagemComBotoes(chatId, msgCockpit, kbCockpit) };
+    var resEnvio;
+    if (typeof enviarMensagemComTecladoParaChat === "function") {
+      resEnvio = enviarMensagemComTecladoParaChat(chatId, msgCockpit, kbCockpit);
+    } else if (typeof enviarMensagemComBotoes === "function") {
+      resEnvio = enviarMensagemComBotoes(chatId, msgCockpit, kbCockpit);
+    } else {
+      resEnvio = enviarMensagemParaChat(chatId, msgCockpit);
+    }
+    return { executado: true, resultado: resEnvio };
   }
 
   // 2. Sala Vermelha
@@ -47694,6 +47739,7 @@ var TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_ = {
   "/duvida": true,
   "/semana": true,
   "/relatorio": true,
+  "/habitos": true,
   "/checkin": true,
   "/briefing": true,
   "/rotina": true,
@@ -47741,7 +47787,7 @@ function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, messag
 
 
   // 4. AGENDA, TAREFAS E NOTION (EXCLUSIVO TITULAR)
-  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina") {
+  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina" || comando === "/habitos") {
     if (!ehUsuarioTitular(chatId)) {
       return enviarMensagemParaChat(chatId, "🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas, guias de diluição HSL e consultas clínicas.");
     }
@@ -47773,7 +47819,7 @@ function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, messag
     return enviarMensagemParaChat(chatId, "❌ Falha ao arquivar dúvida.");
   }
 
-  if (comando === "/semana" || comando === "/relatorio") return enviarRelatorioSemanalHabitos(chatId);
+  if (comando === "/semana" || comando === "/relatorio" || comando === "/habitos") return enviarRelatorioSemanalHabitos(chatId);
   if (comando === "/checkin") return enviarCheckinNoturno(chatId);
   if (comando === "/briefing") return enviarBriefingMatinal(chatId, true);
   if (comando === "/rotina") {
@@ -52351,7 +52397,8 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
 /**
  * Retorna o catálogo estruturado com 1 comando slash canônico por função clínica (sem redundâncias)
  */
-function obterCatalogoComandosSlash() {
+function obterCatalogoComandosSlash(chatId) {
+  var ehConvidado = (typeof ehUsuarioTitular === "function" && chatId) ? !ehUsuarioTitular(chatId) : false;
   return [
     {
       id: "nucleo",
@@ -52519,7 +52566,13 @@ function obterCatalogoComandosSlash() {
         { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Relatório consolidado de passagem de plantão da enfermaria." }
       ]
     },
-    {
+    ehConvidado ? {
+      id: "ensino_rotina",
+      titulo: "🎧 PRECEPTOR CLÍNICO & DISCUSSÃO DE CASOS",
+      comandos: [
+        { cmd: "/voz", aliases: ["/voz"], sintaxe: "/voz [caso/tema]", desc: "Sabatina preceptorial socrática por áudio ou texto beira-leito." }
+      ]
+    } : {
       id: "ensino_rotina",
       titulo: "🎧 PRECEPTOR, ROTINA & PRODUTIVIDADE",
       comandos: [
@@ -52541,7 +52594,10 @@ function obterCatalogoComandosSlash() {
 /**
  * Constrói o teclado inline com todas as categorias do manual de ajuda
  */
-function construirTecladoCategoriasAjuda() {
+function construirTecladoCategoriasAjuda(chatId) {
+  var labelPreceptor = (typeof ehUsuarioTitular === "function" && chatId && !ehUsuarioTitular(chatId))
+    ? "🎧 Preceptor Clínico"
+    : "🎧 Preceptor & Rotina";
   return {
     inline_keyboard: [
       [
@@ -52574,7 +52630,7 @@ function construirTecladoCategoriasAjuda() {
       ],
       [
         { text: "🏥 Enfermaria & Plantão", callback_data: "ajuda_cat_enfermaria" },
-        { text: "🎧 Preceptor & Rotina", callback_data: "ajuda_cat_ensino_rotina" }
+        { text: labelPreceptor, callback_data: "ajuda_cat_ensino_rotina" }
       ],
       [
         { text: "🛡️ Governança & Diretrizes", callback_data: "ajuda_cat_governanca" }
@@ -52729,7 +52785,7 @@ function enviarExemplosPraticosBeiraLeito(chatId, messageId) {
 function enviarMenuCategoriasAjuda(chatId, messageId) {
   var texto = "🩺 *COMANDOS POR ESPECIALIDADE CLÍNICA*\n\n" +
     "Selecione uma especialidade abaixo para visualizar os comandos canônicos e atalhos rápidos:";
-  var kb = construirTecladoCategoriasAjuda();
+  var kb = construirTecladoCategoriasAjuda(chatId);
   var inlineKb = (kb && kb.inline_keyboard) ? kb.inline_keyboard.slice() : [];
   inlineKb.push([
     { text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" },
@@ -52750,12 +52806,27 @@ function enviarMenuCategoriasAjuda(chatId, messageId) {
  * Envia o manual completo ou filtrado por categoria/comando
  */
 function enviarManualCompletoComandos(chatId, filtro, messageId) {
-  var catalogo = obterCatalogoComandosSlash();
+  var catalogo = obterCatalogoComandosSlash(chatId);
   var filtroNorm = normalizarTextoBuscaAjuda(filtro);
-  var kb = construirTecladoCategoriasAjuda();
+  var kb = construirTecladoCategoriasAjuda(chatId);
 
   if (!filtroNorm) {
     return enviarMenuAjudaInterativo(chatId, messageId);
+  }
+
+  // Bloqueio explícito de ajuda sobre rotina e agenda pessoal para convidados
+  if (typeof ehUsuarioTitular === "function" && chatId && !ehUsuarioTitular(chatId)) {
+    if (filtroNorm === "rotina" || filtroNorm === "agenda" || filtroNorm === "habitos" || filtroNorm === "task" || filtroNorm === "tarefa" || filtroNorm === "tasks" || filtroNorm === "briefing" || filtroNorm === "checkin") {
+      var msgRestrita = "🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use a Central de Ajuda para explorar calculadoras, condutas e protocolos clínicos.";
+      var kbRestrito = {
+        inline_keyboard: [
+          [{ text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      };
+      if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, msgRestrita, kbRestrito, messageId);
+      if (typeof enviarMensagemComTecladoParaChat === "function") return enviarMensagemComTecladoParaChat(chatId, msgRestrita, kbRestrito);
+      return enviarMensagemParaChat(chatId, msgRestrita);
+    }
   }
 
   if (filtroNorm && filtroNorm !== "todas" && filtroNorm !== "tudo" && filtroNorm !== "full" && filtroNorm !== "manual" && filtroNorm !== "catalogo" && filtroNorm !== "todos") {
@@ -61187,7 +61258,10 @@ function cockpitConversar(initData, params) {
  * Retorna nulos quando os dados ainda não foram configurados (não exibe hardcode).
  */
 function cockpitPerfil(initData) {
-  cockpitAutorizar_(initData);
+  var chatAut = cockpitAutorizar_(initData);
+  if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chatAut)) {
+    throw new Error('Acesso restrito ao titular. A aba de perfil/rotina pessoal é privada.');
+  }
   var props = PropertiesService.getScriptProperties();
   var pesoRaw = props.getProperty('PESO_ATUAL');
   var bfRaw = props.getProperty('BF_ATUAL');
@@ -61219,7 +61293,10 @@ function cockpitPerfil(initData) {
  * Atualiza peso e opcionalmente BF%.
  */
 function cockpitRegistrarPeso(initData, pesoKg, bfPercent, semana) {
-  cockpitAutorizar_(initData);
+  var chatAut = cockpitAutorizar_(initData);
+  if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chatAut)) {
+    throw new Error('Acesso restrito ao titular. O registro de peso pessoal é privado.');
+  }
   var peso = Number(String(pesoKg || '').replace(',', '.'));
   if (!peso || peso < 30 || peso > 300) {
     throw new Error('Peso inválido. Informe um valor entre 30 e 300 kg.');

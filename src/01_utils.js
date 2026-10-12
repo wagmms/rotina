@@ -504,7 +504,8 @@ function obterUrlCockpit(chatId) {
     } catch (_) {}
   }
   var v = (typeof ConfigService !== "undefined" && ConfigService.get && ConfigService.get("COCKPIT_VERSION")) ? ConfigService.get("COCKPIT_VERSION") : "2.5";
-  return sessao ? base + "?session=" + sessao + "&v=" + v : base + "?v=" + v;
+  var guestFlag = (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(id)) ? "&guest=1" : "";
+  return sessao ? base + "?session=" + sessao + "&v=" + v + guestFlag : base + "?v=" + v + guestFlag;
 }
 
 /**

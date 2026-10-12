@@ -10,7 +10,8 @@
 /**
  * Retorna o catálogo estruturado com 1 comando slash canônico por função clínica (sem redundâncias)
  */
-function obterCatalogoComandosSlash() {
+function obterCatalogoComandosSlash(chatId) {
+  var ehConvidado = (typeof ehUsuarioTitular === "function" && chatId) ? !ehUsuarioTitular(chatId) : false;
   return [
     {
       id: "nucleo",
@@ -178,7 +179,13 @@ function obterCatalogoComandosSlash() {
         { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Relatório consolidado de passagem de plantão da enfermaria." }
       ]
     },
-    {
+    ehConvidado ? {
+      id: "ensino_rotina",
+      titulo: "🎧 PRECEPTOR CLÍNICO & DISCUSSÃO DE CASOS",
+      comandos: [
+        { cmd: "/voz", aliases: ["/voz"], sintaxe: "/voz [caso/tema]", desc: "Sabatina preceptorial socrática por áudio ou texto beira-leito." }
+      ]
+    } : {
       id: "ensino_rotina",
       titulo: "🎧 PRECEPTOR, ROTINA & PRODUTIVIDADE",
       comandos: [
@@ -200,7 +207,10 @@ function obterCatalogoComandosSlash() {
 /**
  * Constrói o teclado inline com todas as categorias do manual de ajuda
  */
-function construirTecladoCategoriasAjuda() {
+function construirTecladoCategoriasAjuda(chatId) {
+  var labelPreceptor = (typeof ehUsuarioTitular === "function" && chatId && !ehUsuarioTitular(chatId))
+    ? "🎧 Preceptor Clínico"
+    : "🎧 Preceptor & Rotina";
   return {
     inline_keyboard: [
       [
@@ -233,7 +243,7 @@ function construirTecladoCategoriasAjuda() {
       ],
       [
         { text: "🏥 Enfermaria & Plantão", callback_data: "ajuda_cat_enfermaria" },
-        { text: "🎧 Preceptor & Rotina", callback_data: "ajuda_cat_ensino_rotina" }
+        { text: labelPreceptor, callback_data: "ajuda_cat_ensino_rotina" }
       ],
       [
         { text: "🛡️ Governança & Diretrizes", callback_data: "ajuda_cat_governanca" }
@@ -388,7 +398,7 @@ function enviarExemplosPraticosBeiraLeito(chatId, messageId) {
 function enviarMenuCategoriasAjuda(chatId, messageId) {
   var texto = "🩺 *COMANDOS POR ESPECIALIDADE CLÍNICA*\n\n" +
     "Selecione uma especialidade abaixo para visualizar os comandos canônicos e atalhos rápidos:";
-  var kb = construirTecladoCategoriasAjuda();
+  var kb = construirTecladoCategoriasAjuda(chatId);
   var inlineKb = (kb && kb.inline_keyboard) ? kb.inline_keyboard.slice() : [];
   inlineKb.push([
     { text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" },
@@ -409,12 +419,27 @@ function enviarMenuCategoriasAjuda(chatId, messageId) {
  * Envia o manual completo ou filtrado por categoria/comando
  */
 function enviarManualCompletoComandos(chatId, filtro, messageId) {
-  var catalogo = obterCatalogoComandosSlash();
+  var catalogo = obterCatalogoComandosSlash(chatId);
   var filtroNorm = normalizarTextoBuscaAjuda(filtro);
-  var kb = construirTecladoCategoriasAjuda();
+  var kb = construirTecladoCategoriasAjuda(chatId);
 
   if (!filtroNorm) {
     return enviarMenuAjudaInterativo(chatId, messageId);
+  }
+
+  // Bloqueio explícito de ajuda sobre rotina e agenda pessoal para convidados
+  if (typeof ehUsuarioTitular === "function" && chatId && !ehUsuarioTitular(chatId)) {
+    if (filtroNorm === "rotina" || filtroNorm === "agenda" || filtroNorm === "habitos" || filtroNorm === "task" || filtroNorm === "tarefa" || filtroNorm === "tasks" || filtroNorm === "briefing" || filtroNorm === "checkin") {
+      var msgRestrita = "🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use a Central de Ajuda para explorar calculadoras, condutas e protocolos clínicos.";
+      var kbRestrito = {
+        inline_keyboard: [
+          [{ text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      };
+      if (typeof enviarTelaBot === "function") return enviarTelaBot(chatId, msgRestrita, kbRestrito, messageId);
+      if (typeof enviarMensagemComTecladoParaChat === "function") return enviarMensagemComTecladoParaChat(chatId, msgRestrita, kbRestrito);
+      return enviarMensagemParaChat(chatId, msgRestrita);
+    }
   }
 
   if (filtroNorm && filtroNorm !== "todas" && filtroNorm !== "tudo" && filtroNorm !== "full" && filtroNorm !== "manual" && filtroNorm !== "catalogo" && filtroNorm !== "todos") {

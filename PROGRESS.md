@@ -17,11 +17,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Ambulatório & SOAP — Filtro Contextual Anti-Poluição e Integração com Consultório APS (`gh_cockpit_deploy/index.html`, `cockpit_movel.html`, `tests/test_cockpit_soap_modais_responsividade.cjs`)**:
-    - **Filtro Contextual Anti-Poluição**: Barra seletora tátil em 5 contextos (`Todos`, `Ambulatório`, `Emergência`, `Materno`, `PEP`) eliminando a desordem visual de 21 botões misturados, com persistência da preferência em `localStorage` (`rotina_soap_filtro_acoes`).
-    - **Atalho Rápido 'Consultório APS'**: Botão de acesso em 1 toque no cabeçalho do Copiloto Clínico ao lado de `Copiar PEP`, abrindo diretamente o prontuário ambulatorial ágil.
-    - **Sincronização Bidirecional & Copiar PEP**: O SOAP gerado no modal reflete imediatamente no `#soap-integral` e no status da tela principal; a função `copiarSOAPProntuario()` agora conta com fallback seguro para copiar prontuários originados tanto no chat do Telegram quanto no modal ambulatorial.
-    - **Validação e Zero Regressões**: Suíte `tests/test_cockpit_soap_modais_responsividade.cjs` expandida (0.42s), paridade estrita SHA-256 e aprovação global de 51/51 suítes íntegras no `npm test` em 9.76s.
+- [x] **Testador Master Telegram — Auditor Matemático de Fórmulas Clínicas / MathOracle Anti-Alucinação (`math_oracle.py`, `reporter.py`, `tests/test_testador_master.py`)**:
+    - **Oráculo Determinístico Anti-Alucinação**: Módulo `MathOracle` com fórmulas canônicas fechadas em Python com dupla precisão (zero dependência de LLM) para Cockcroft-Gault, Winter, DVA (Nora/Dobu/Vaso), Parkland, Cálcio Corrigido, Holliday-Segar e Adrogué-Madias (DHE).
+    - **Auditoria de Interações em Tempo Real**: Parser determinístico em `MasterReporter` que extrai inputs e outputs clínicos, compara valores com o gabarito canônico e alerta discrepâncias numéricas ($\epsilon < 0.5$).
+    - **Integração com Bug Repro-Generator & Relatórios**: Disparo automático de script de reprodução autônomo (`tests/repros/...`) ao detectar erro de cálculo e geração de tabela comparativa no relatório Markdown e no Dashboard JSON.
+    - **Validação e Zero Regressões**: Suíte `tests/test_testador_master.py` expandida para 12/12 testes aprovados (29.5s) e regressão completa `npm test` aprovada com 52/52 suítes verdes em 9.23s.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

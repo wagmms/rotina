@@ -89,6 +89,9 @@ function atualizarNumeroNotion(pageId, propName, valor) {
 
 function enviarRelatorioSemanalHabitos(chatIdDestino) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(destino)) {
+    return false;
+  }
   var dbId = ConfigService.get("NOTION_HABIT_LOG_DB_ID");
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 

@@ -29,6 +29,16 @@ class BaseTelegramDriver(ABC):
         pass
 
     @abstractmethod
+    def enviar_audio(self, caminho_audio: str, caption: str = "") -> Dict[str, Any]:
+        """Envia nota de voz/áudio para o bot e retorna a transcrição/laudo."""
+        pass
+
+    @abstractmethod
+    def enviar_imagem(self, caminho_imagem: str, caption: str = "") -> Dict[str, Any]:
+        """Envia imagem médica para o bot e retorna o laudo estruturado e botões."""
+        pass
+
+    @abstractmethod
     def encerrar(self):
         """Finaliza processos e conexões de forma segura."""
         pass

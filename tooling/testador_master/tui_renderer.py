@@ -132,7 +132,9 @@ class TUIRenderer:
             "clique": f"{CYAN}[CLIQUE INLINE]{RESET}",
             "backtrack": f"{YELLOW}[RETORNO/VOLTAR]{RESET}",
             "fuzzing": f"{RED}[FUZZING/EDGE-CASE]{RESET}",
-            "comando": f"{GREEN}[COMANDO/TEXTO]{RESET}"
+            "comando": f"{GREEN}[COMANDO/TEXTO]{RESET}",
+            "audio": f"{MAGENTA}[🎙️ NOTA DE VOZ]{RESET}",
+            "imagem": f"{BLUE}[🖼️ IMAGEM DE EXAME]{RESET}"
         }
         badge = badges.get(tipo_acao, f"{GREEN}[AÇÃO]{RESET}")
 

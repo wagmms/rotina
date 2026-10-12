@@ -31,6 +31,7 @@ async function runAjudaTests() {
     mensagensEnviadas.push({ tipo: 'callback_answer', cbId, texto });
     return true;
   };
+  ctx.ehUsuarioTitular = () => true;
 
   // 1. Validar Catálogo Completo (132 funções clínicas, 1 comando por função)
   console.log('[1] Testando estrutura do catálogo de comandos (1 comando slash por função)...');

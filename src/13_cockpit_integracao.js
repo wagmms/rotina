@@ -1010,7 +1010,10 @@ function cockpitConversar(initData, params) {
  * Retorna nulos quando os dados ainda não foram configurados (não exibe hardcode).
  */
 function cockpitPerfil(initData) {
-  cockpitAutorizar_(initData);
+  var chatAut = cockpitAutorizar_(initData);
+  if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chatAut)) {
+    throw new Error('Acesso restrito ao titular. A aba de perfil/rotina pessoal é privada.');
+  }
   var props = PropertiesService.getScriptProperties();
   var pesoRaw = props.getProperty('PESO_ATUAL');
   var bfRaw = props.getProperty('BF_ATUAL');
@@ -1042,7 +1045,10 @@ function cockpitPerfil(initData) {
  * Atualiza peso e opcionalmente BF%.
  */
 function cockpitRegistrarPeso(initData, pesoKg, bfPercent, semana) {
-  cockpitAutorizar_(initData);
+  var chatAut = cockpitAutorizar_(initData);
+  if (typeof ehUsuarioTitular === 'function' && !ehUsuarioTitular(chatAut)) {
+    throw new Error('Acesso restrito ao titular. O registro de peso pessoal é privado.');
+  }
   var peso = Number(String(pesoKg || '').replace(',', '.'));
   if (!peso || peso < 30 || peso > 300) {
     throw new Error('Peso inválido. Informe um valor entre 30 e 300 kg.');

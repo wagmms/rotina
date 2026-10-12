@@ -219,10 +219,9 @@ class ScreenGraph:
             "pensamento": persona.gerar_pensamento("comando", cmd_alvo)
         }
 
-    def salvar_estado(self, caminho_arquivo: Path):
-        """Persiste o grafo de navegação em disco para retomada contínua."""
-        caminho_arquivo.parent.mkdir(parents=True, exist_ok=True)
-        dados = {
+    def to_dict(self) -> Dict[str, Any]:
+        """Converte o estado do grafo em dicionário estruturado serializável."""
+        return {
             "nodes": {nid: node.to_dict() for nid, node in self.nodes.items()},
             "botoes_descobertos": list(self.botoes_globais_descobertos),
             "botoes_clicados": list(self.botoes_globais_clicados),
@@ -230,6 +229,11 @@ class ScreenGraph:
             "dead_ends": list(self.dead_ends),
             "tela_atual_id": self.tela_atual_id
         }
+
+    def salvar_estado(self, caminho_arquivo: Path):
+        """Persiste o grafo de navegação em disco para retomada contínua."""
+        caminho_arquivo.parent.mkdir(parents=True, exist_ok=True)
+        dados = self.to_dict()
         with open(caminho_arquivo, "w", encoding="utf-8") as f:
             json.dump(dados, f, ensure_ascii=False, indent=2)
 

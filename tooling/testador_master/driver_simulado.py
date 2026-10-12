@@ -67,6 +67,24 @@ class DriverSimulado(BaseTelegramDriver):
             "message_id": mensagem_id
         })
 
+    def enviar_audio(self, caminho_audio: str, caption: str = "") -> Dict[str, Any]:
+        """Dispara envio simulado de nota de voz/áudio."""
+        return self._enviar_rpc({
+            "action": "send_media",
+            "media_type": "audio",
+            "file_path": str(caminho_audio),
+            "caption": caption
+        })
+
+    def enviar_imagem(self, caminho_imagem: str, caption: str = "") -> Dict[str, Any]:
+        """Dispara envio simulado de imagem médica."""
+        return self._enviar_rpc({
+            "action": "send_media",
+            "media_type": "photo",
+            "file_path": str(caminho_imagem),
+            "caption": caption
+        })
+
     def _enviar_rpc(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         if not self.process or self.process.poll() is not None:
             return {"ok": False, "erro": "Processo Node.js não está rodando.", "mensagens": []}

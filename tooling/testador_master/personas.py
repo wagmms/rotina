@@ -48,10 +48,40 @@ class Persona:
                 f"Cheguei ao final deste fluxo. Voltando pelo botão '{alvo}' para explorar outros ramos.",
                 f"Retornando ao menu principal para abrir uma nova linha de conduta.",
             ]
+        elif acao_tipo in ["audio", "imagem"]:
+            pensamentos = [
+                f"Enviando mídia clínica ({alvo}) para avaliar transcrição e processamento multimodal.",
+                f"Testando a capacidade do bot de interpretar {alvo} beira-leito com agilidade.",
+                f"Simulando envio de exame/áudio real ({alvo}) no cenário de {self.titulo}."
+            ]
         else:
             pensamentos = [f"Analisando a tela atual e decidindo o próximo passo como {self.titulo}."]
         
         return random.choice(pensamentos)
+
+    def decidir_acao_multimodal(self) -> Optional[Dict[str, Any]]:
+        """Gera uma ação de envio de imagem ou áudio compatível com a persona."""
+        if self.id == "emergencista":
+            opcoes = [
+                {"tipo": "imagem", "subtipo": "ecg_supra_st", "caption": "ECG de entrada na Sala Vermelha (dor no peito)"},
+                {"tipo": "audio", "subtipo": "iam_sala_vermelha", "caption": "Passagem de plantão Sala Vermelha (IAM)"},
+                {"tipo": "audio", "subtipo": "sepse_choque", "caption": "Choque séptico grave beira-leito"}
+            ]
+            return random.choice(opcoes)
+        elif self.id == "r1_clinico":
+            opcoes = [
+                {"tipo": "imagem", "subtipo": "hemograma_leucocitose", "caption": "Hemograma da enfermaria com febre"},
+                {"tipo": "imagem", "subtipo": "gasometria_cti", "caption": "Gasometria arterial do leito de UTI"},
+                {"tipo": "audio", "subtipo": "leito_enfermaria", "caption": "Evolução corrida de leito 4"}
+            ]
+            return random.choice(opcoes)
+        elif self.id == "estudante_socratico":
+            opcoes = [
+                {"tipo": "audio", "subtipo": "round_preceptor", "caption": "Caso clínico para discussão de round"},
+                {"tipo": "imagem", "subtipo": "gasometria_cti", "caption": "Interpretação socrática de gasometria"}
+            ]
+            return random.choice(opcoes)
+        return None
 
     def gerar_comando_dinamico(self) -> Dict[str, Any]:
         """Gera combinações clínicas randômicas para testes exaustivos e variados."""

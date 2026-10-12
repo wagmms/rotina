@@ -210,6 +210,62 @@ class DriverTelethon(BaseTelegramDriver):
                 "mensagens": []
             }
 
+    def enviar_audio(self, caminho_audio: str, caption: str = "") -> Dict[str, Any]:
+        """Envia nota de voz/áudio para o bot e aguarda laudo/transcrição."""
+        if not self.client or not self.loop:
+            return {"ok": False, "erro": "Telethon não inicializado", "mensagens": []}
+        return self.loop.run_until_complete(self._enviar_midia_async(caminho_audio, caption, eh_voz=True))
+
+    def enviar_imagem(self, caminho_imagem: str, caption: str = "") -> Dict[str, Any]:
+        """Envia imagem médica para o bot e aguarda laudo/visão computacional."""
+        if not self.client or not self.loop:
+            return {"ok": False, "erro": "Telethon não inicializado", "mensagens": []}
+        return self.loop.run_until_complete(self._enviar_midia_async(caminho_imagem, caption, eh_voz=False))
+
+    async def _enviar_midia_async(self, caminho: str, caption: str, eh_voz: bool) -> Dict[str, Any]:
+        from telethon.errors import FloodWaitError
+        inicio = time.time()
+        try:
+            kwargs = {"voice_note": True} if eh_voz else {}
+            sent = await self.client.send_file(
+                self.bot_entity,
+                str(caminho),
+                caption=caption,
+                **kwargs
+            )
+            await self.client.send_read_acknowledge(self.bot_entity)
+            resp = await self._aguardar_resposta(sent.id, timeout=35)
+            fim = time.time()
+            tempo_ms = int((fim - inicio) * 1000)
+
+            if not resp:
+                return {
+                    "ok": False,
+                    "erro": "Timeout: Bot não respondeu ao envio de mídia dentro de 35s",
+                    "tempo_ms": tempo_ms,
+                    "mensagens": []
+                }
+
+            self.ultima_msg_bot = resp
+            msg_formatada = self._formatar_mensagem_telethon(resp)
+            return {
+                "ok": True,
+                "tempo_ms": tempo_ms,
+                "mensagens": [msg_formatada],
+                "callbacks": []
+            }
+        except FloodWaitError as e:
+            print(f"\n[Telethon] ⏳ Anti-flood ativado. Aguardando {e.seconds}s...")
+            await asyncio.sleep(e.seconds + 1)
+            return await self._enviar_midia_async(caminho, caption, eh_voz)
+        except Exception as e:
+            return {
+                "ok": False,
+                "erro": str(e),
+                "tempo_ms": int((time.time() - inicio) * 1000),
+                "mensagens": []
+            }
+
     async def _aguardar_resposta(self, sent_id: int, timeout: int = 25):
         fim = time.time() + timeout
         while time.time() < fim:

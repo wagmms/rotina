@@ -911,15 +911,28 @@ function rotearAtalhoTecladoFixo(texto, comando, chatId) {
   // 1. Cockpit Móvel
   if (texto === "📱 Cockpit" || texto === "📱 Cockpit Móvel" || comando === "/cockpit" || comando === "/app") {
     var urlPainel = obterUrlCockpit(chatId);
-    var msgCockpit = "📱 *COCKPIT MÓVEL (TELEGRAM MINI APP)*\n\n" +
-      "Seu assistente unificado com 6 abas de alta performance:\n\n" +
-      "• 🧬 *Corpo:* Composição, peso e protocolo\n" +
-      "• 🏥 *Leitos:* Painel da enfermaria e SBAR\n" +
-      "• 💊 *REMUME:* Busca rápida de doses\n" +
-      "• 🧮 *Cálculos:* DVA, SRI, CrCl e Gasometria\n" +
-      "• 📅 *Rotina:* Agenda Google e Time-Blocking\n" +
-      "• ✨ *SOAP:* Preceptor socrático e PEP\n\n" +
-      "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
+    var ehTitular = (typeof ehUsuarioTitular === "function") ? ehUsuarioTitular(chatId) : true;
+    var msgCockpit = "";
+    if (ehTitular) {
+      msgCockpit = "📱 *COCKPIT MÓVEL (TELEGRAM MINI APP)*\n\n" +
+        "Seu assistente unificado com 6 abas de alta performance:\n\n" +
+        "• 🧬 *Corpo:* Composição, peso e protocolo\n" +
+        "• 🏥 *Leitos:* Painel da enfermaria e SBAR\n" +
+        "• 💊 *REMUME:* Busca rápida de doses\n" +
+        "• 🧮 *Cálculos:* DVA, SRI, CrCl e Gasometria\n" +
+        "• 📅 *Rotina:* Agenda Google e Time-Blocking\n" +
+        "• ✨ *SOAP:* Preceptor socrático e PEP\n\n" +
+        "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
+    } else {
+      msgCockpit = "📱 *COCKPIT MÓVEL (TELEGRAM MINI APP)*\n\n" +
+        "Seu assistente clínico de plantão com acesso rápido e offline-first:\n\n" +
+        "• ✨ *SOAP:* Assistente de conduta clínica e evolução\n" +
+        "• 🏥 *Leitos:* Painel da enfermaria e metodologia SBAR\n" +
+        "• 💊 *REMUME:* Bulário municipal e doses de antibióticos\n" +
+        "• 🧮 *Calculadoras:* DVA, SRI, Clearance, CURB-65, Glasgow e Gasometria\n" +
+        "• 🎓 *Aulas:* Diretrizes clínicas e resumos práticos\n\n" +
+        "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
+    }
     var kbCockpit = {
       inline_keyboard: [
         [
@@ -927,7 +940,15 @@ function rotearAtalhoTecladoFixo(texto, comando, chatId) {
         ]
       ]
     };
-    return { executado: true, resultado: enviarMensagemComBotoes(chatId, msgCockpit, kbCockpit) };
+    var resEnvio;
+    if (typeof enviarMensagemComTecladoParaChat === "function") {
+      resEnvio = enviarMensagemComTecladoParaChat(chatId, msgCockpit, kbCockpit);
+    } else if (typeof enviarMensagemComBotoes === "function") {
+      resEnvio = enviarMensagemComBotoes(chatId, msgCockpit, kbCockpit);
+    } else {
+      resEnvio = enviarMensagemParaChat(chatId, msgCockpit);
+    }
+    return { executado: true, resultado: resEnvio };
   }
 
   // 2. Sala Vermelha
@@ -4915,6 +4936,7 @@ var TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_ = {
   "/duvida": true,
   "/semana": true,
   "/relatorio": true,
+  "/habitos": true,
   "/checkin": true,
   "/briefing": true,
   "/rotina": true,
@@ -4962,7 +4984,7 @@ function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, messag
 
 
   // 4. AGENDA, TAREFAS E NOTION (EXCLUSIVO TITULAR)
-  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina") {
+  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina" || comando === "/habitos") {
     if (!ehUsuarioTitular(chatId)) {
       return enviarMensagemParaChat(chatId, "🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas, guias de diluição HSL e consultas clínicas.");
     }
@@ -4994,7 +5016,7 @@ function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, messag
     return enviarMensagemParaChat(chatId, "❌ Falha ao arquivar dúvida.");
   }
 
-  if (comando === "/semana" || comando === "/relatorio") return enviarRelatorioSemanalHabitos(chatId);
+  if (comando === "/semana" || comando === "/relatorio" || comando === "/habitos") return enviarRelatorioSemanalHabitos(chatId);
   if (comando === "/checkin") return enviarCheckinNoturno(chatId);
   if (comando === "/briefing") return enviarBriefingMatinal(chatId, true);
   if (comando === "/rotina") {

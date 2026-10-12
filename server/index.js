@@ -572,9 +572,31 @@ async function buildServer() {
   // 5.0.3 ROTAS REST DEDICADAS: ABA ROTINA & SINCRONIZAÇÃO GOOGLE CALENDAR
   // ==============================================================================
 
+  // Função auxiliar para verificar se a requisição veio de convidado (não titular)
+  const ehRequisicaoConvidado = (req) => {
+    const qGuest = req.query?.guest;
+    const bGuest = req.body?.guest;
+    const hGuest = req.headers?.['x-cockpit-guest'];
+    if (qGuest === '1' || qGuest === 'true' || bGuest === '1' || bGuest === true || hGuest === '1' || hGuest === 'true') {
+      return true;
+    }
+    const qChat = req.query?.chatId || req.query?.chat_id;
+    const bChat = req.body?.chatId || req.body?.chat_id;
+    const hChat = req.headers?.['x-telegram-chat-id'];
+    const id = qChat || bChat || hChat;
+    if (id && runtime.ctx.ehUsuarioTitular && !runtime.ctx.ehUsuarioTitular(id)) {
+      return true;
+    }
+    return false;
+  };
+
   // Obter blocos da rotina do dia (Google Calendar + Overrides)
   fastify.get('/api/rotina/blocos', async (request, reply) => {
     try {
+      if (ehRequisicaoConvidado(request)) {
+        reply.status(403);
+        return { ok: false, sucesso: false, erro: 'Acesso restrito ao titular. A aba de rotina e agenda é privada.' };
+      }
       const dataParam = request.query?.data;
       const dataRef = dataParam ? new Date(dataParam + 'T12:00:00') : new Date();
       const blocos = (runtime.ctx.RotinaService && runtime.ctx.RotinaService.obterBlocosDoDia)
@@ -594,6 +616,10 @@ async function buildServer() {
   // Salvar / atualizar lista de blocos da rotina
   fastify.post('/api/rotina/blocos', async (request, reply) => {
     try {
+      if (ehRequisicaoConvidado(request)) {
+        reply.status(403);
+        return { ok: false, sucesso: false, erro: 'Acesso restrito ao titular. A aba de rotina e agenda é privada.' };
+      }
       const body = request.body || {};
       const dataParam = body.data;
       const dataRef = dataParam ? new Date(dataParam + 'T12:00:00') : new Date();
@@ -618,6 +644,10 @@ async function buildServer() {
   // Marcar status de um bloco individual (concluido, pendente, pulado, descanso)
   fastify.post('/api/rotina/status', async (request, reply) => {
     try {
+      if (ehRequisicaoConvidado(request)) {
+        reply.status(403);
+        return { ok: false, sucesso: false, erro: 'Acesso restrito ao titular. A aba de rotina e agenda é privada.' };
+      }
       const body = request.body || {};
       const dataParam = body.data;
       const blocoId = body.blocoId;
@@ -643,6 +673,10 @@ async function buildServer() {
   // Sincronização forçada imediata com o Google Calendar do médico (moraes.wagg@gmail.com)
   fastify.post('/api/rotina/agenda/sync', async (request, reply) => {
     try {
+      if (ehRequisicaoConvidado(request)) {
+        reply.status(403);
+        return { ok: false, sucesso: false, erro: 'Acesso restrito ao titular. A aba de rotina e agenda é privada.' };
+      }
       const body = request.body || {};
       const dataParam = body.data;
       const dataRef = dataParam ? new Date(dataParam + 'T12:00:00') : new Date();
@@ -689,6 +723,10 @@ async function buildServer() {
   // Resumo semanal da rotina e agenda
   fastify.get('/api/rotina/resumo', async (request, reply) => {
     try {
+      if (ehRequisicaoConvidado(request)) {
+        reply.status(403);
+        return { ok: false, sucesso: false, erro: 'Acesso restrito ao titular. A aba de rotina e agenda é privada.' };
+      }
       const resumo = (runtime.ctx.RotinaService && runtime.ctx.RotinaService.obterResumoSemanal)
         ? runtime.ctx.RotinaService.obterResumoSemanal()
         : '';
@@ -702,6 +740,10 @@ async function buildServer() {
   // Status da conexão com Google Calendar
   fastify.get('/api/rotina/calendar/status', async (request, reply) => {
     try {
+      if (ehRequisicaoConvidado(request)) {
+        reply.status(403);
+        return { ok: false, sucesso: false, erro: 'Acesso restrito ao titular. A aba de rotina e agenda é privada.' };
+      }
       const status = (runtime.ctx.GoogleCalendarService && runtime.ctx.GoogleCalendarService.obterStatus)
         ? runtime.ctx.GoogleCalendarService.obterStatus()
         : { conectado: false };
