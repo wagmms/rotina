@@ -1,5 +1,22 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C33. [x] **Aba Rotina — Reestruturação Visual no Cockpit PWA, Desacoplamento Modular e Quebra do Monolito (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`, `sw.js`, `gh_cockpit_deploy/sw.js`, `tests/test_aba_rotina_cockpit.cjs`, `scripts/test_manifest.json`)**:
+    - **Desacoplamento Arquitetural & Quebra do Monolito**:
+      * Criado o módulo desacoplado `rotina_timeline.js` (com cópia idêntica em `gh_cockpit_deploy/rotina_timeline.js`), extraindo a lógica da Aba Rotina para fora do monolito de 18.000 linhas.
+      * Módulo estruturado em IIFE limpa expondo `window.RotinaTimeline`, permitindo manutenção atômica pelo autoloop e desenvolvedores sem sobrecarga de contexto.
+      * Integrado ao Service Worker (`sw.js` e `gh_cockpit_deploy/sw.js`) em `PRECACHE_ASSETS` com estratégia Cache-First para disponibilidade imediata (0ms) mesmo offline em áreas hospitalares sem sinal.
+    - **Reestruturação Visual de Time-Blocking & UI/UX (Anti-UI-Slop)**:
+      * Removidos definitivamente todos os resquícios de cards estáticos genéricos de `#tab-rotina`.
+      * Implementado layout completo de Time-Blocking com tema médico de alta densidade: card hero com contadores do dia (`concluídos / total`), barra de progresso gradiente e badge de sincronização em tempo real (`rotina-sync-badge`).
+      * Adicionada barra de filtros rápidos por categoria clínica e funcional: Todos, Plantão / Hospital, MedQuest & Anki, Treino & Bio.
+      * Ações rápidas interativas em 1 toque: Concluir (✓), Adiar (+30m), Pular (✕) e Reabrir, além do botão de cabeçalho "🌿 Modo Descanso" para recuperação biológica pós-plantão.
+      * Empty state contextual e elegante com botão para carregar a grade padrão do dia.
+    - **Validação e Estabilidade**:
+      * Criada suíte de testes dedicada `tests/test_aba_rotina_cockpit.cjs` (execução em ~0.08s) validando paridade SHA-256 dos 3 pares de arquivos, seletores DOM, normalização de blocos e métodos do módulo em VM isolada.
+      * Adicionado `tests/test_aba_rotina_cockpit.cjs` ao `scripts/test_manifest.json`.
+      * Bateria completa com 51/51 suítes verdes no `npm test` em 8.12s com zero regressões.
+      * Suíte do autoloop com 160/160 testes aprovados no `uv run pytest`.
+
 0C32. [x] **Síntese TTS Neural no Fone, Erradicação de Casos Mocks e Expurgo Total da Rotina Fixa (Exclusividade Google Calendar) (`src/00_config.js`, `src/01_utils.js`, `src/06_rotina_agenda.js`, `src/07a_telegram_router.js`, `src/07b_telegram_preceptor.js`, `src/12_experiencia_bot.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`)**:
     - **Áudio Neural "Ouvir no Fone" sem Reenvio de SOAP**:
       * Em `src/00_config.js` e `src/01_utils.js`: atualizada lista de modelos TTS Gemini (`gemini-3.8-flash-lite-tts,gemini-3.8-flash-tts`) e corrigido o tratamento de cota com fallback rápido entre modelos, gerando áudio neural de alta fidelidade sem esgotar o timeout de 15s.
