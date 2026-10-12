@@ -7,7 +7,7 @@ const crypto = require('node:crypto');
 const { spawn, execFileSync } = require('node:child_process');
 const ROOT = path.resolve(__dirname, '..');
 const MANIFEST = require('./test_manifest.json');
-const EXCLUDED = /^(?:data|logs|auditorias|gas_deploy|gh_cockpit_deploy|archive|scratch|scripts\/voos_gas)\//;
+const EXCLUDED = /^(?:data|logs|auditorias|tests\/repros|gas_deploy|gh_cockpit_deploy|archive|scratch|scripts\/voos_gas)\//;
 const FORBIDDEN = /(?:\.gs$|(?:^|\/)appsscript\.json$|(?:^|\/)ultra_rotina_gas\.js$)/;
 
 function files(root) {
@@ -32,7 +32,7 @@ function fingerprint(root) {
   const inventory = files(root);
   if (!inventory.length) throw new Error('Inventário Git vazio; código não identificável.');
   for (const name of inventory) {
-    if (/^(data|logs|auditorias)\//.test(name)) continue;
+    if (/^(?:data|logs|auditorias|tests\/repros)\//.test(name) || name === 'docs/RELATORIO_TESTADOR_MASTER.md' || name === 'tooling/testador_master/dashboard_grafo.html') continue;
     hash.update(name + '\0');
     const target = path.join(root, name);
     if (!fs.existsSync(target)) { hash.update('deleted'); continue; }

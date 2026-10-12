@@ -53,27 +53,7 @@ function setupEnvironment() {
   store.TELEGRAM_BOT_TOKEN = 'mock_token_123';
   store.TELEGRAM_CHAT_ID = '123456';
 
-  const files = [
-    '00_config.js',
-    '01_utils.js',
-    '02_calculadoras_puras.js',
-    '03_bases_locais.js',
-    '04_motores_ia.js',
-    '05_notion.js',
-    '06_rotina_agenda.js',
-    '07a_telegram_router.js',
-    '07b_telegram_preceptor.js',
-    '07c_telegram_consultas_e_ia.js',
-    '07d_telegram_callbacks.js',
-    '07e_telegram_midia_e_leitos.js',
-    '07f_telegram_calculadoras_parser.js',
-    '07g_telegram_ajuda_e_protocolos.js',
-    '08_main.js',
-    '09_enfermaria.js',
-    '10_pdf_receita.js',
-    '11_entrega_confiavel.js',
-    '12_experiencia_bot.js'
-  ];
+  const files = fs.readdirSync(SRC_DIR).sort().filter(f => f.endsWith('.js'));
 
   const vm = require('vm');
   for (const f of files) {

@@ -241,4 +241,36 @@ assert.strictEqual(typeof RotinaTimeline.carregarGradePadraoComConfirmacao, 'fun
 assert.strictEqual(typeof RotinaTimeline.iniciarPollingSuave, 'function');
 console.log('  ✓ Métodos de proteção e polling suave validados.');
 
+// 4.9 Persistência Offline-First IndexedDB e Fila de Sincronização Resiliente
+console.log('\n[8] Testando Persistência Offline-First IndexedDB e Fila de Sincronização Resiliente...');
+assert.strictEqual(typeof RotinaTimeline.salvarBlocosOfflineAsync, 'function', 'salvarBlocosOfflineAsync deve ser função');
+assert.strictEqual(typeof RotinaTimeline.carregarBlocosOfflineAsync, 'function', 'carregarBlocosOfflineAsync deve ser função');
+assert.strictEqual(typeof RotinaTimeline.obterFilaOffline, 'function', 'obterFilaOffline deve ser função');
+assert.strictEqual(typeof RotinaTimeline.obterStatusFilaOffline, 'function', 'obterStatusFilaOffline deve ser função');
+
+// Validação de enfileiramento e contagem
+RotinaTimeline.enfileirarMutacaoOffline('b-offline-1', 'concluido', 'Marcado no leito sem sinal');
+const fila = RotinaTimeline.obterFilaOffline();
+assert.ok(Array.isArray(fila), 'Fila offline deve retornar array');
+assert.ok(fila.length >= 1, 'Fila offline deve conter pelo menos 1 mutação');
+assert.strictEqual(fila[fila.length - 1].blocoId, 'b-offline-1');
+
+const statusFila = RotinaTimeline.obterStatusFilaOffline();
+assert.ok(statusFila.pendencias >= 1, 'Status da fila deve apontar pendências');
+
+// Validação de roundtrip assíncrono (Promise)
+const blocosParaSalvar = [
+  { id: 'b-off-roundtrip', titulo: 'Plantão Noturno Sem Sinal', inicio: '19:00', fim: '07:00', categoria: 'plantao', status: 'ativo' }
+];
+RotinaTimeline.salvarBlocosOfflineAsync(blocosParaSalvar, '2026-10-12').then(function() {
+  return RotinaTimeline.carregarBlocosOfflineAsync('2026-10-12');
+}).then(function(blocosCarregados) {
+  assert.ok(Array.isArray(blocosCarregados));
+  assert.ok(blocosCarregados.some(b => b.id === 'b-off-roundtrip'), 'Bloco salvo assincronamente deve ser recuperado');
+});
+
+RotinaTimeline.processarFilaOffline();
+console.log('  ✓ Persistência IndexedDB e contratos da fila offline validados.');
+
 console.log('\n=== TODOS OS TESTES DA ABA ROTINA COCKPIT APROVADOS COM SUCESSO! ===');
+

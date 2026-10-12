@@ -224,7 +224,7 @@ test('Rigor Semiológico: prompt de sistema de analisarImagemMedicaComIA contém
   assert.ok(systemText.includes('Incidência') || systemText.includes('Técnica'), 'Prompt deve checar técnica de RX');
   assert.ok(systemText.includes('Índice Cardiotorácico') || systemText.includes('ICT'), 'Prompt deve conter ICT');
   assert.ok(systemText.includes('Campos Pleuropulmonares'), 'Prompt deve conter campos pulmonares');
-  assert.ok(systemText.includes('Seios Costofrênicos'), 'Prompt deve conter seios costofrênicos');
+  assert.ok(/seios costofr[eê]nicos/i.test(systemText), 'Prompt deve conter seios costofrênicos');
 
   // Laboratório / OCR
   assert.ok(systemText.includes('EXAMES LABORATORIAIS'), 'Prompt deve conter roteiro laboratorial');
@@ -236,8 +236,26 @@ test('Rigor Semiológico: prompt de sistema de analisarImagemMedicaComIA contém
   assert.ok(systemText.includes('Lesão elementar'), 'Prompt deve exigir lesão elementar');
   assert.ok(systemText.includes('Regra ABCDE'), 'Prompt deve exigir Regra ABCDE');
 
-  // Calibração de thinkingBudget
-  assert.strictEqual(geminiCall.payload.generationConfig.thinkingConfig.thinkingBudget, 1024, 'Deve usar thinkingBudget: 1024 para análise médica precisa');
+  // Tomografia Computadorizada (TC por topografias)
+  assert.ok(systemText.includes('TOMOGRAFIA COMPUTADORIZADA'), 'Prompt deve conter roteiro de TC');
+  assert.ok(systemText.includes('B-C-B-V-B'), 'Prompt deve conter o método B-C-B-V-B de crânio');
+  assert.ok(systemText.includes('TC DE TÓRAX') && systemText.includes('TEP'), 'Prompt deve cobrir TC de Tórax e TEP');
+  assert.ok(systemText.includes('TC DE ABDOME') && systemText.includes('Apendicite'), 'Prompt deve cobrir TC de Abdome e apendicite');
+
+  // Ultrassonografia Beira-Leito (POCUS) e Ressonância
+  assert.ok(systemText.includes('POCUS') && systemText.includes('eFAST'), 'Prompt deve conter POCUS e protocolo eFAST');
+  assert.ok(systemText.includes('BLUE'), 'Prompt deve conter protocolo BLUE');
+  assert.ok(systemText.includes('RESSONÂNCIA MAGNÉTICA') && systemText.includes('DWI'), 'Prompt deve cobrir Ressonância e difusão DWI');
+
+  // Critérios diagnósticos de alta sensibilidade clínica (OMIs, Silhueta e Gasometria)
+  assert.ok(systemText.includes('Sgarbossa'), 'Prompt deve conter critérios de Sgarbossa');
+  assert.ok(systemText.includes('Wellens'), 'Prompt deve conter Síndrome de Wellens');
+  assert.ok(systemText.includes('Silhueta de Felson'), 'Prompt deve conter sinal da silhueta de Felson');
+  assert.ok(systemText.includes('Fórmula de Winter'), 'Prompt deve conter fórmula de Winter para gasometria');
+  assert.ok(systemText.includes('ASPECTS'), 'Prompt deve conter score ASPECTS');
+
+  // Calibração de thinkingBudget de alto raciocínio deliberado
+  assert.strictEqual(geminiCall.payload.generationConfig.thinkingConfig.thinkingBudget, 2048, 'Deve usar thinkingBudget: 2048 para raciocínio clínico deliberado profundo');
 });
 
 // 5. Protocolo de Segurança Máxima (Sala Vermelha / Achado Crítico)

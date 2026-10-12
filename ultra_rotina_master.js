@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-12 09:41:47
- * Checksum SHA256: fcac591f4d59912a
+ * Gerado automaticamente via build_master.py em: 2026-10-12 11:55:51
+ * Checksum SHA256: 2800c190c1b554ea
  * ==============================================================================
  */
 
@@ -39643,32 +39643,77 @@ function analisarImagemMedicaComIA(base64Data, mimeType, contextoTexto, opcoes) 
     "- A PRIMEIRA LINHA DA RESPOSTA DEVE SER OBRIGATORIAMENTE ESTE ALERTA EM MAIÚSCULAS E NEGRITO:",
     "  🚨 *EMERGÊNCIA - ACHADO CRÍTICO:* [Descrição do Achado + Ação Imediata Obrigatória]",
     "",
-    "ROTEIROS METÓDICOS POR MODALIDADE:",
+    "ROTEIROS METÓDICOS POR MODALIDADE (PADRÃO OURO INTERNACIONAL):",
     "1. SE FOR ELETROCARDIOGRAMA (ECG DE 12 DERIVAÇÕES):",
     "   - Realize a leitura sistemática obrigatória em 6 passos:",
-    "     * 1.1 Ritmo: Ritmo sinusal (onda P positiva em D1, D2, aVF, negativa em aVR, seguida de QRS) vs ritmos não sinusais (FA, flutter, juncional, escape).",
-    "     * 1.2 Frequência Cardíaca: Estimar FC em bpm (método dos quadradinhos 1500/mm ou 300/quadrados grandes; ou número de complexos em 30 quadrados grandes x 10 se irregular).",
-    "     * 1.3 Eixo Elétrico no Plano Frontal: Normal (-30° a +90°), desvio para esquerda (< -30°) ou para a direita (> +90°), avaliando D1 e aVF.",
-    "     * 1.4 Intervalos e Condução: Intervalo PR (normal 120-200 ms; pesquisar BAVs ou pré-excitação/WPW); Duração do QRS (normal < 120 ms; bloqueios de ramo BRE/BRD); Intervalo QT e QTc corrigido por Bazett (normal até 450 ms homem, 460 ms mulher; risco de Torsades se > 500 ms).",
-    "     * 1.5 Sobrecargas de Câmaras: Sobrecarga atrial (P pulmonale em D2 ou índice de Morris em V1); Sobrecarga ventricular esquerda (Sokolow-Lyon S em V1 + R em V5/V6 >= 35 mm, Cornell R em aVL + S em V3 > 28 mm homens ou > 20 mm mulheres) e sobrecarga ventricular direita.",
-    "     * 1.6 Isquemia, Lesão e Necrose (Segmento ST e Onda T por paredes contíguas): Analisar parede anterior/septal (V1-V4), lateral alta (D1, aVL), lateral baixa (V5, V6), inferior (D2, D3, aVF), posterior/dorsal (espelho em V1-V3) e VD (V3R/V4R se IAM inferior). Identificar supradesnivelamento de ST, infradesnivelamento, ondas T isquêmicas/hiperagudas e ondas Q patológicas.",
+    "     * 1.1 Ritmo e Frequência Cardíaca: Ritmo sinusal (onda P positiva em D1, D2, aVF, negativa em aVR, seguida de QRS) vs ritmos não sinusais (FA, flutter, juncional, escape). FC exata em bpm (método 1500/quadradinhos ou 300/quadrados grandes).",
+    "     * 1.2 Eixo Elétrico no Plano Frontal: Normal (-30° a +90°), desvio para esquerda (< -30°) ou para a direita (> +90°), determinando o quadrante e graus exatos por D1 e aVF.",
+    "     * 1.3 Intervalos e Condução AV: Intervalo PR (normal 120-200 ms; pesquisar BAVs, pré-excitação/WPW com onda delta); Duração do QRS (< 120 ms; bloqueios de ramo BRE/BRD, BDAS/BDPI); Intervalo QT e QTc corrigido por Bazett (normal até 450 ms homem, 460 ms mulher; risco de Torsades se > 500 ms).",
+    "     * 1.4 Sobrecargas de Câmaras: Sobrecarga atrial (P pulmonale em D2 ou índice de Morris em V1); Sobrecarga ventricular esquerda (Sokolow-Lyon S em V1 + R em V5/V6 >= 35 mm, Cornell R em aVL + S em V3 > 28 mm H / > 20 mm M, critério de Peguero-Lo Presti) e sobrecarga de VD.",
+    "     * 1.5 Isquemia, Lesão e Necrose (Segmento ST e Onda T por paredes contíguas): Analisar parede anterior/septal (V1-V4), lateral alta (D1, aVL), lateral baixa (V5, V6), inferior (D2, D3, aVF), posterior/dorsal (espelho em V1-V3) e VD (V3R/V4R se IAM inferior).",
+    "     * 1.6 Critérios de Sgarbossa Modificados por Smith (em BRE ou Marca-passo): Supra concordante >= 1mm; Infra concordante em V1-V3 >= 1mm; Supra discordante excessivo com razão ST/S <= -0.25.",
+    "     * 1.7 Equivalentes a Supra de ST (OMIs): Síndrome de Wellens (Tipo A bifásica ou Tipo B invertida simétrica em V2-V3); Padrão de de Winter (infra em rampa com onda T hiperaguda); Padrão de Aslanger; Supra de aVR >= 1mm com infra difuso em 6 derivações (tronco de coronária esquerda ou DA proximal).",
+    "     * 1.8 Diagnósticos Diferenciais de Supra: Pericardite Aguda (supra difuso com concavidade para cima, infra de PR em D2 e sinal de Spodick com depressão do segmento TP) vs Repolarização Precoce (onda J) vs Brugada Tipo 1 (coved-type >= 2mm em V1-V2).",
     "",
     "2. SE FOR RADIOGRAFIA (TÓRAX OU OSSO):",
-    "   - 2.1 Identificação e Técnica: Incidência (PA, AP, Perfil); qualidade técnica (Penetração, Rotação e Grau de inspiração com contagem de arcos costais posteriores 8-10).",
-    "   - 2.2 Arcabouço Ósseo e Partes Moles: Fraturas, lesões líticas/blásticas, enfisema subcutâneo.",
-    "   - 2.3 Mediastino e Silhueta Cardíaca: Índice Cardiotorácico (ICT normal <= 0,50 no PA), alargamento de mediastino, contornos aórtico e hilar.",
-    "   - 2.4 Campos Pleuropulmonares: Consolidação alveolar (com/sem broncograma aéreo), infiltrado intersticial reticular/nodular, atelectasia com perda volumétrica, nódulos ou massas pulmonares.",
-    "   - 2.5 Pleura, Seios Costofrênicos e Cúpulas: Seios livres vs velamento por derrame pleural; linha de pneumotórax; ar livre subdiafragmático (pneumoperitônio).",
+    "   - 2.1 Identificação e Técnica: Incidência (PA, AP, Perfil); qualidade técnica (Penetração, Rotação e Grau de inspiração com contagem obrigatória de arcos costais posteriores 8-10).",
+    "   - 2.2 Sinal da Silhueta de Felson: Localização anatômica de densidades (apagamento do contorno cardíaco direito = lobo médio; contorno esquerdo = língula; hemidiafragma = lobo inferior).",
+    "   - 2.3 Arcabouço Ósseo e Partes Moles: Fraturas, lesões líticas/blásticas, enfisema subcutâneo.",
+    "   - 2.4 Mediastino e Silhueta Cardíaca: Índice Cardiotorácico (ICT normal <= 0,50 no PA), alargamento de mediastino, contornos aórtico e hilar.",
+    "   - 2.5 Campos Pleuropulmonares e Estadiamento de Congestão Pulmonar:",
+    "     * Padrão alveolar com broncograma aéreo vs intersticial reticular.",
+    "     * Grau 1: Cefalização/redistribuição vascular para os ápices.",
+    "     * Grau 2: Edema intersticial com Linhas B de Kerley nas bases e manguito peribrônquico.",
+    "     * Grau 3: Edema alveolar com infiltrado bilateral confluente em asa de borboleta (bat-wing).",
+    "   - 2.6 Pleura e Diafragma: Seios Costofrênicos livres vs velamento por derrame pleural (Curva de Damoiseau); linha de pneumotórax (pesquisar sinal do sulco profundo no decúbito); ar livre subdiafragmático (pneumoperitônio).",
     "",
-    "3. SE FOREM EXAMES LABORATORIAIS / OCR DE LAUDOS:",
-    "   - 3.1 Transcrição fiel com unidades de medida e valores de referência informados.",
-    "   - 3.2 Realce imediato de valores alterados (críticos, limítrofes, altos ou baixos).",
-    "   - 3.3 Interpretação integrada dos desvios (ex: gasometria com distúrbio primário e compensação; hemograma com classificação de anemias e desvio escalonado).",
+    "3. SE FOREM EXAMES LABORATORIAIS / OCR DE LAUDOS E FITAS DE GASOMETRIA:",
+    "   - 3.1 Gasometria Arterial (Método Sistemático em 6 Passos):",
+    "     * Passo 1: Acidemia (pH < 7.35) vs Alcalemia (pH > 7.45).",
+    "     * Passo 2: Distúrbio Primário (pCO2 respiratório vs HCO3 metabólico).",
+    "     * Passo 3: Compensação esperada pela Fórmula de Winter: pCO2 = (1.5 x HCO3) + 8 (+/- 2) na acidose metabólica; pCO2 = HCO3 + 15 (+/- 2) na alcalose metabólica.",
+    "     * Passo 4: Ânion-Gap Sérico (Na - [Cl + HCO3]) com correção obrigatória pela albumina: AG corrigido = AG + 2.5 x (4.0 - Albumina).",
+    "     * Passo 5: Delta-Gap: (AG - 12) / (24 - HCO3). Se > 2 = Alcalose Metabólica associada; se < 0.8 = Acidose Hiperclorêmica associada.",
+    "     * Passo 6: Oxigenação: PaO2 e Relação PaO2/FiO2 (Critérios de Berlim para SDRA).",
+    "   - 3.2 Exames Bioquímicos e Hematológicos:",
+    "     * Transcrição fiel com unidades de medida e valores de referência informados.",
+    "     * Realce imediato de valores alterados (críticos, limítrofes, altos ou baixos).",
+    "     * Hemograma com desvio escalonado à esquerda e cinética do ferro; Função renal (estadiamento KDIGO) e eletrólitos.",
     "",
     "4. SE FOR LESÃO DERMATOLÓGICA (PELE):",
     "   - 4.1 Lesão elementar primária e secundária (mácula, pápula, placa, vesícula, bolha, pústula, úlcera, crosta, descamação).",
     "   - 4.2 Topografia, arranjo e distribuição corporal (zosteriforme, simétrica, flexural, extensora).",
     "   - 4.3 Se lesão pigmentada/suspeita, aplicar Regra ABCDE (Assimetria, Bordas, Cores, Diâmetro > 6mm, Evolução).",
+    "",
+    "5. SE FOR TOMOGRAFIA COMPUTADORIZADA (TC E ANGIOTC POR TOPOGRAFIA):",
+    "   - 5.1 TC DE CRÂNIO (MÉTODO B-C-B-V-B E SCORE ASPECTS):",
+    "     * B (Blood): Sangramento agudo hiperdenso (+50 a +80 HU): extradural biconvexo, subdural crescente, subaracnóidea (Fisher 1-4) ou intraparenquimatoso.",
+    "     * C (Cisterns): Cisternas da base e perimesencefálicas (pérvias ou apagadas).",
+    "     * B (Brain): Parênquima, diferenciação substância branca/cinzenta, desvio de linha média (> 5mm), edema cerebral e Score ASPECTS no AVC isquêmico (perda da fita insular, núcleo lenticular e sulcos corticais).",
+    "     * V (Ventricles): Ventrículos laterais, 3º e 4º ventrículos (simetria, apagamento, hidrocefalia).",
+    "     * B (Bone): Fraturas da calvária, base do crânio, seios paranasais e pneumoencéfalo.",
+    "   - 5.2 TC DE TÓRAX & ANGIOTOMOGRAFIA:",
+    "     * Janela de Parênquima: Vidro fosco, consolidações alveolares, broncograma aéreo, pavimentação em mosaico (crazy-paving), faveolamento (honeycombing), bronquiectasias, enfisema, árvore em brotamento (tree-in-bud), nódulos e massas escavadas.",
+    "     * Janela de Mediastino/Pleura: Linfonodomegalias (> 10mm), massas mediastinais, derrame pleural/pericárdico.",
+    "     * AngioTC (TEP e Aorta): Falhas de enchimento pulmonares (TEP em sela/ramos lobares), cor pulmonale agudo (relação VD/VE > 1); Dissecção aórtica aguda (Stanford A vs B, flap intimal, falsa luz, rotura).",
+    "   - 5.3 TC DE ABDOME E PELVE (ABDOME AGUDO):",
+    "     * Fases de Contraste: Sem contraste, arterial (blush hemorrágico), portal (parênquimas e vasos mesentéricos) e excretora.",
+    "     * Órgãos Sólidos: Lacerações traumáticas (fígado/baço AAST), pancreatite aguda (Balthazar/necrose), colecistite (parede > 3mm).",
+    "     * Trato Gastrointestinal: Apendicite aguda (apêndice > 6mm, apendicolito e borramento adiposo), diverticulite (Hinchey), obstrução intestinal com ponto de transição e pneumoperitônio (ar livre subdiafragmático/mesentérico); isquemia de alça (pneumatose intestinal, gás na veia porta).",
+    "     * Rins e Vasos: Nefrolitíase, hidronefrose, pielonefrite em cunha, hematoma retroperitoneal e aneurisma de aorta abdominal (> 5,5cm).",
+    "   - 5.4 TC DE COLUNA (TRAUMA E ESTABILIDADE):",
+    "     * Alinhamento e Critérios de Denis de 3 colunas (anterior, média e posterior; risco de instabilidade na coluna média).",
+    "     * Canal Medular: Retropulsão de fragmentos ósseos e estenose traumática de canal.",
+    "",
+    "6. SE FOR ULTRASSONOGRAFIA BEIRA-LEITO (POCUS):",
+    "   - 6.1 Protocolo eFAST (Trauma): Janela pericárdica/subxifoide, espaço hepatorrenal (Morrison), espaço esplenorrenal, pelve (retovesical/Douglas) e ápices pleurais (lung sliding e ponto de pulmão para pneumotórax).",
+    "   - 6.2 Protocolo BLUE (Dispneia Aguda): Perfil A (linhas A normais), Perfil B (linhas B > 3 coalescentes em cometa = edema agudo), Perfil C (consolidação subpleural) e Perfil PLAPS (derrame pleural posterior).",
+    "   - 6.3 Ecocardiograma Focado & Volemia: Fração de ejeção subjetiva no olho, dilatação de VD (sinal de McConnell), calibre e colababilidade de veia cava inferior (VCI).",
+    "",
+    "7. SE FOR RESSONÂNCIA MAGNÉTICA (RM ENCEFÁLICA):",
+    "   - 7.1 Ponderações: T1, T2, FLAIR (edema/gliose), SWI/T2* (sangramento/calcificação).",
+    "   - 7.2 Difusão (DWI) e Mapa ADC: Restrição citotóxica verdadeira (hiper no DWI e hipo no ADC = AVC isquêmico hiperagudo ou abscesso piogênico central).",
+    "   - 7.3 Parênquima: Efeito de massa, herniações e padrão de realce pós-gadolínio.",
     "",
     "ESTRUTURA FORMAL DO LAUDO (Markdown do Telegram):",
     "- Título em destaque com emoji funcional e modalidade identificada (ex: *LAUDO CLÍNICO MULTIMODAL · ECG DE 12 DERIVAÇÕES* ou *LAUDO CLÍNICO MULTIMODAL · RADIOGRAFIA DE TÓRAX*).",
@@ -39685,11 +39730,11 @@ function analisarImagemMedicaComIA(base64Data, mimeType, contextoTexto, opcoes) 
   ].join("\n");
 
   var opts = Object.assign({
-    thinkingBudget: 1024,
+    thinkingBudget: 2048,
     clinico: true,
     multimodal: true,
-    timeoutMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 15000)) || 15000,
-    orcamentoMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 15000)) || 15000
+    timeoutMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 20000)) || 20000,
+    orcamentoMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 20000)) || 20000
   }, opcoes);
 
   var resLaudo = chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opts);
@@ -43297,28 +43342,6 @@ function construirTecladoHubEnfermaria() {
       ],
       [
         {"text": "🗑️ Limpar Todos", "callback_data": "enfermaria_limpar_confirma"}
-      ]
-    ]
-  };
-}
-
-function construirTecladoHubRotina() {
-  return {
-    "inline_keyboard": [
-      [
-        {"text": "📅 Agenda Hoje", "callback_data": "rotina_agenda"},
-        {"text": "📋 Tarefas Notion", "callback_data": "rotina_tasks"}
-      ],
-      [
-        {"text": "☀️ Briefing Matinal", "callback_data": "rotina_briefing"},
-        {"text": "🌙 Check-in Noturno", "callback_data": "rotina_checkin"}
-      ],
-      [
-        {"text": "📊 Relatório Semanal", "callback_data": "rotina_semana"},
-        {"text": "🧠 MedQuest / Dúvidas", "callback_data": "rotina_duvida"}
-      ],
-      [
-        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"}
       ]
     ]
   };
@@ -47912,59 +47935,12 @@ function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, messag
   }
 
 
-  // 4. AGENDA, TAREFAS E NOTION (EXCLUSIVO TITULAR)
-  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/duvidas" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina" || comando === "/habitos") {
-    if (!ehUsuarioTitular(chatId)) {
-      return enviarMensagemParaChat(chatId, "🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas, guias de diluição HSL e consultas clínicas.");
+  // 4. AGENDA, ROTINA, TAREFAS E CICLOS DIÁRIOS (DELEGADO AO MÓDULO 07i)
+  if (typeof despacharComandosRotinaEProdutividade === "function") {
+    var resRotina = despacharComandosRotinaEProdutividade(comando, texto, chatId, message);
+    if (resRotina && resRotina.tratado) {
+      return resRotina.resultado;
     }
-  }
-
-  if (comando === "/agenda") {
-    var paramAgenda = texto.replace(/^\/agenda\s*/i, "").trim();
-    return consultarEventosAgenda(paramAgenda, chatId);
-  }
-
-  if (comando === "/task" || comando === "/tarefa") {
-    var tarefaTexto = texto.replace(/^\/(task|tarefa)\s*/i, "").trim();
-    if (!tarefaTexto) return enviarMensagemParaChat(chatId, "📋 Digite a tarefa a salvar no Inbox do Notion. Ex: `/task Revisar hemograma do leito 14`");
-    var okTask = criarTarefaNotion(tarefaTexto, "Personal", "2 · Important", "Captura rápida via Telegram");
-    if (okTask) return enviarMensagemParaChat(chatId, "✅ *Tarefa salva no Inbox do Notion Tasks!*");
-    enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique o token.");
-    return false;
-  }
-
-  if (comando === "/tasks") {
-    return listarTarefasHojeNotion(chatId);
-  }
-
-  if (comando === "/duvidas") {
-    return listarDuvidasMedQuest(chatId);
-  }
-
-  if (comando === "/duvida") {
-    var duvidaTexto = texto.replace(/^\/duvida\s*/i, "").trim();
-    if (!duvidaTexto || duvidaTexto.toLowerCase() === "listar") {
-      return listarDuvidasMedQuest(chatId);
-    }
-    var okDuvida = salvarDuvidaEstudoNotion(duvidaTexto);
-    if (okDuvida) {
-      var kbDuv = {
-        inline_keyboard: [
-          [{ text: "📋 Ver Dúvidas Salvas", callback_data: "ux:rotina:duvidas_lista" }],
-          [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-        ]
-      };
-      return enviarMensagemComTecladoParaChat(chatId, "🧠 *DÚVIDA CLÍNICA ARQUIVADA COM SUCESSO!*\n\n📌 _\"" + duvidaTexto + "\"_\n\n✅ Salva no banco local para o seu bloco noturno de estudo ativo no MedQuest.\n💡 Digite `/duvidas` a qualquer momento para revisar.", kbDuv);
-    }
-    return enviarMensagemParaChat(chatId, "❌ Falha ao arquivar dúvida.");
-  }
-
-  if (comando === "/semana" || comando === "/relatorio" || comando === "/habitos") return enviarRelatorioSemanalHabitos(chatId);
-  if (comando === "/checkin") return enviarCheckinNoturno(chatId);
-  if (comando === "/briefing") return enviarBriefingMatinal(chatId, true);
-  if (comando === "/rotina") {
-    var argRotina = texto.replace(/^\/rotina\s*/i, "").trim();
-    return tratarComandoRotina(chatId, argRotina);
   }
 
   if (comando === "/protocolo") {
@@ -53747,206 +53723,6 @@ function tratarComandoDhe(chatId, dadosDhe) {
   return enviarMensagemParaChat(chatId, txtHipo);
 }
 
-/**
- * Trata o comando /rotina e suas variações
- */
-function tratarComandoRotina(chatId, argRotina) {
-  var hoje = new Date();
-  var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
-  var arg = (argRotina || "").trim().toLowerCase();
-
-  if (!arg) {
-    var txtHubRotina = "🧭 *HUB DE ROTINA & PRODUTIVIDADE*\n\n" +
-      "Selecione uma das opções abaixo para gerenciar seu dia, agenda e estudos, ou use comandos diretos:";
-    return enviarMensagemComTecladoParaChat(chatId, txtHubRotina, construirTecladoHubRotina());
-  }
-
-  if (arg === "hoje") {
-    var blocosHoje = RotinaService.obterBlocosDoDia(hoje);
-    var txtHoje = "☀️ *ROTINA DO DIA (TIME-BLOCKING ADAPTATIVO)*\n\n" +
-      RotinaService.formatarTimelineMarkdown(blocosHoje, hoje) +
-      "\n\n💡 *Para ajustar:* Toque abaixo ou envie: _'Hoje treino às 19h'_ ou áudio gravado!";
-    var kbHoje = RotinaService.construirTecladoTimeline(hoje, blocosHoje);
-    return enviarMensagemComTecladoParaChat(chatId, txtHoje, kbHoje);
-  }
-
-  if (arg === "amanha" || arg === "amanhã") {
-    var amanha = new Date(hoje.getTime() + 86400000);
-    var blocosAmanha = RotinaService.obterBlocosDoDia(amanha);
-    var txtAmanha = "📆 *ROTINA DE AMANHÃ (PLANEJAMENTO ADAPTATIVO)*\n\n" +
-      RotinaService.formatarTimelineMarkdown(blocosAmanha, amanha) +
-      "\n\n💡 *Para ajustar amanhã:* Envie: _'/rotina alterar amanhã <instrução>'_.";
-    var kbAmanha = RotinaService.construirTecladoTimeline(amanha, blocosAmanha);
-    return enviarMensagemComTecladoParaChat(chatId, txtAmanha, kbAmanha);
-  }
-
-  if (arg === "semana" || arg === "grade") {
-    var resumoSemanal = RotinaService.obterResumoSemanal();
-    var kbSemana = {
-      inline_keyboard: [
-        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-      ]
-    };
-    return enviarMensagemComTecladoParaChat(chatId, resumoSemanal, kbSemana);
-  }
-
-  if (arg === "reset" || arg === "restaurar" || arg === "padrao" || arg === "padrão") {
-    var resReset = RotinaService.aplicarInstrucao(hoje, "reset");
-    var txtReset = resReset.mensagem + "\n\n" +
-      RotinaService.formatarTimelineMarkdown(resReset.blocos, hoje);
-    var kbReset = RotinaService.construirTecladoTimeline(hoje, resReset.blocos);
-    return enviarMensagemComTecladoParaChat(chatId, txtReset, kbReset);
-  }
-
-  if (arg === "descanso") {
-    var resDesc = RotinaService.aplicarInstrucao(hoje, "modo descanso");
-    var txtDesc = resDesc.mensagem + "\n\n" +
-      RotinaService.formatarTimelineMarkdown(resDesc.blocos, hoje);
-    var kbDesc = RotinaService.construirTecladoTimeline(hoje, resDesc.blocos);
-    return enviarMensagemComTecladoParaChat(chatId, txtDesc, kbDesc);
-  }
-
-  var instrucao = argRotina.replace(/^alterar\s+/i, "").trim();
-  var dataAlvo = hoje;
-  if (/^amanh[aã]\s+/i.test(instrucao)) {
-    dataAlvo = new Date(hoje.getTime() + 86400000);
-    instrucao = instrucao.replace(/^amanh[aã]\s+/i, "").trim();
-  }
-
-  var resAjuste = RotinaService.aplicarInstrucao(dataAlvo, instrucao);
-  var txtAjuste = resAjuste.mensagem + "\n\n" +
-    RotinaService.formatarTimelineMarkdown(resAjuste.blocos, dataAlvo);
-  var kbAjuste = RotinaService.construirTecladoTimeline(dataAlvo, resAjuste.blocos);
-  return enviarMensagemComTecladoParaChat(chatId, txtAjuste, kbAjuste);
-}
-
-/**
- * Trata callbacks da rotina inline
- */
-function tratarCallbackRotina(cb) {
-  var data = cb.data || "";
-  var chatId = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
-  var msgId = cb.message ? cb.message.message_id : null;
-  var token = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_BOT_TOKEN") : "";
-  var hoje = new Date();
-
-  var partes = data.split(":");
-  var subAcao = partes[1]; // check, skip, reset, descanso, cal_sync, ajustar, ver_amanha, ver_hoje
-  var param = partes[2];
-
-  if (subAcao === "check") {
-    RotinaService.marcarStatusBloco(hoje, param, "concluido", "Concluído via Telegram");
-    responderCallbackTelegram(cb.id, "✅ Bloco marcado como concluído!");
-  } else if (subAcao === "skip") {
-    RotinaService.marcarStatusBloco(hoje, param, "pulado", "Pular bloco");
-    responderCallbackTelegram(cb.id, "⏭️ Bloco pulado hoje.");
-  } else if (subAcao === "reset") {
-    RotinaService.resetarBlocosDoDia(hoje);
-    responderCallbackTelegram(cb.id, "🔄 Rotina restaurada para o padrão!");
-  } else if (subAcao === "descanso") {
-    RotinaService.aplicarInstrucao(hoje, "modo descanso");
-    responderCallbackTelegram(cb.id, "💤 Modo descanso ativado hoje!");
-  } else if (subAcao === "cal_sync") {
-    if (typeof GoogleCalendarService !== "undefined" && GoogleCalendarService.limparCache) {
-      GoogleCalendarService.limparCache();
-    }
-    var blocosFrescos = RotinaService.importarEventosGoogleCalendar(hoje);
-    if (blocosFrescos && blocosFrescos.length > 0) {
-      var salvosAtuais = RotinaService.obterBlocosSalvos(hoje);
-      if (Array.isArray(salvosAtuais) && salvosAtuais.length > 0) {
-        for (var idxB = 0; idxB < blocosFrescos.length; idxB++) {
-          var bF = blocosFrescos[idxB];
-          for (var idxS = 0; idxS < salvosAtuais.length; idxS++) {
-            if (salvosAtuais[idxS].id === bF.id || salvosAtuais[idxS].titulo === bF.titulo) {
-              if (salvosAtuais[idxS].status && salvosAtuais[idxS].status !== "pendente") {
-                bF.status = salvosAtuais[idxS].status;
-                if (salvosAtuais[idxS].nota) bF.nota = salvosAtuais[idxS].nota;
-              }
-              break;
-            }
-          }
-        }
-      }
-      RotinaService.salvarBlocosDoDia(hoje, blocosFrescos);
-      responderCallbackTelegram(cb.id, "📆 " + blocosFrescos.length + " blocos sincronizados do Google Calendar!");
-    } else {
-      responderCallbackTelegram(cb.id, "📆 Agenda Google verificada!");
-    }
-  } else if (subAcao === "ajustar") {
-    responderCallbackTelegram(cb.id, "✏️ Envie sua instrução de ajuste!");
-    var msgDica = "✏️ *COMO AJUSTAR SUA ROTINA HOJE:*\n\n" +
-      "Basta digitar ou mandar um áudio gravado no chat. Exemplos:\n" +
-      "• _'Hoje não vou treinar'_\n" +
-      "• _'Mudei o treino para as 19h'_\n" +
-      "• _'Hoje vou estudar das 15h às 17h'_\n" +
-      "• _'Sem cochilo hoje'_\n" +
-      "• _'Troquei musculação por corrida de 40 min'_\n" +
-      "• _'Modo descanso'_\n" +
-      "• _'Reset' (volta para a grade padrão)_";
-    var kbDica = {
-      inline_keyboard: [
-        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-      ]
-    };
-    if (msgId && token) {
-      executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageText", {
-        chat_id: chatId,
-        message_id: msgId,
-        text: msgDica,
-        parse_mode: "Markdown",
-        reply_markup: kbDica
-      });
-      return;
-    }
-    return enviarMensagemComTecladoParaChat(chatId, msgDica, kbDica);
-  } else if (subAcao === "ver_amanha") {
-    responderCallbackTelegram(cb.id, "📆 Carregando amanhã...");
-    var amanha = new Date(hoje.getTime() + 86400000);
-    var blocosAmanha = RotinaService.obterBlocosDoDia(amanha);
-    var txtAmanha = "📆 *ROTINA DE AMANHÃ (PLANEJAMENTO ADAPTATIVO)*\n\n" +
-      RotinaService.formatarTimelineMarkdown(blocosAmanha, amanha) +
-      "\n\n💡 *Para ajustar amanhã:* Envie: _'/rotina alterar amanhã <instrução>'_.";
-    var kbAmanha = {
-      inline_keyboard: [
-        [{ text: "📅 Voltar para Hoje", callback_data: "rotina:ver_hoje" }],
-        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-      ]
-    };
-    if (msgId && token) {
-      executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageText", {
-        chat_id: chatId,
-        message_id: msgId,
-        text: txtAmanha,
-        parse_mode: "Markdown",
-        reply_markup: kbAmanha
-      });
-    } else {
-      enviarMensagemComTecladoParaChat(chatId, txtAmanha, kbAmanha);
-    }
-    return;
-  } else if (subAcao === "ver_hoje") {
-    responderCallbackTelegram(cb.id, "📅 Carregando hoje...");
-  }
-
-  var blocosAtualizados = RotinaService.obterBlocosDoDia(hoje);
-  var textoAtualizado = "☀️ *ROTINA DO DIA (TIME-BLOCKING ADAPTATIVO)*\n\n" +
-    RotinaService.formatarTimelineMarkdown(blocosAtualizados, hoje) +
-    "\n\n💡 *Para ajustar:* Toque abaixo ou envie áudio/texto:";
-  var tecladoAtualizado = RotinaService.construirTecladoTimeline(hoje, blocosAtualizados);
-
-  if (msgId && token) {
-    executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageText", {
-      chat_id: chatId,
-      message_id: msgId,
-      text: textoAtualizado,
-      parse_mode: "Markdown",
-      reply_markup: tecladoAtualizado
-    });
-  } else {
-    enviarMensagemComTecladoParaChat(chatId, textoAtualizado, tecladoAtualizado);
-  }
-}
-
 
 // ==============================================================================
 // ARQUIVO FONTE: 07h_telegram_inline_e_webapp.js
@@ -54467,6 +54243,340 @@ function processarWebAppData(message) {
     return enviarMensagemParaChat(chatId, msgFormatada);
   }
   return false;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 07i_telegram_rotina_central.js
+// ==============================================================================
+
+/**
+ * ==============================================================================
+ * MÓDULO 07i: CENTRAL DE ROTINA, TIME-BLOCKING E PRODUTIVIDADE NO TELEGRAM
+ * ==============================================================================
+ * Centraliza e desacopla todas as interações de rotina do médico no Telegram:
+ * - Hub de Navegação e Teclados de Rotina & Lifestyle Adaptativo
+ * - Despacho de Comandos de Agenda, Tarefas Notion, Dúvidas MedQuest e Ciclos Diários
+ * - Execução e Edição In-Place da Timeline de Time-Blocking Adaptativo
+ * - Callbacks inline de conclusão, adiamento e sincronização com Google Calendar
+ * ==============================================================================
+ */
+
+var TABELA_COMANDOS_ROTINA_PRODUTIVIDADE_ = {
+  "/agenda": true,
+  "/task": true,
+  "/tarefa": true,
+  "/tasks": true,
+  "/duvida": true,
+  "/duvidas": true,
+  "/semana": true,
+  "/relatorio": true,
+  "/habitos": true,
+  "/checkin": true,
+  "/briefing": true,
+  "/rotina": true
+};
+
+/**
+ * Verifica se um comando pertence à Central de Rotina e Produtividade
+ */
+function ehComandoRotinaOuProdutividade(comando) {
+  return !!TABELA_COMANDOS_ROTINA_PRODUTIVIDADE_[comando];
+}
+
+/**
+ * Constrói o teclado inline para o Hub de Rotina e Produtividade
+ */
+function construirTecladoHubRotina() {
+  return {
+    "inline_keyboard": [
+      [
+        {"text": "📅 Agenda Hoje", "callback_data": "rotina_agenda"},
+        {"text": "📋 Tarefas Notion", "callback_data": "rotina_tasks"}
+      ],
+      [
+        {"text": "☀️ Briefing Matinal", "callback_data": "rotina_briefing"},
+        {"text": "🌙 Check-in Noturno", "callback_data": "rotina_checkin"}
+      ],
+      [
+        {"text": "📊 Relatório Semanal", "callback_data": "rotina_semana"},
+        {"text": "🧠 MedQuest / Dúvidas", "callback_data": "rotina_duvida"}
+      ],
+      [
+        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"}
+      ]
+    ]
+  };
+}
+
+/**
+ * Despachador modular de comandos de Rotina, Agenda, Notion e Ciclos Diários
+ */
+function despacharComandosRotinaEProdutividade(comando, texto, chatId, message) {
+  if (!TABELA_COMANDOS_ROTINA_PRODUTIVIDADE_[comando]) {
+    return { tratado: false };
+  }
+
+  // Validação estrita de autorização do titular
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(chatId)) {
+    return {
+      tratado: true,
+      resultado: enviarMensagemParaChat(chatId, "🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas, guias de diluição HSL e consultas clínicas.")
+    };
+  }
+
+  var res = null;
+
+  if (comando === "/agenda") {
+    var paramAgenda = (texto || "").replace(/^\/agenda\s*/i, "").trim();
+    res = (typeof consultarEventosAgenda === "function") ? consultarEventosAgenda(paramAgenda, chatId) : false;
+  } else if (comando === "/task" || comando === "/tarefa") {
+    var tarefaTexto = (texto || "").replace(/^\/(task|tarefa)\s*/i, "").trim();
+    if (!tarefaTexto) {
+      res = enviarMensagemParaChat(chatId, "📋 Digite a tarefa a salvar no Inbox do Notion. Ex: `/task Revisar hemograma do leito 14`");
+    } else {
+      var okTask = (typeof criarTarefaNotion === "function") ? criarTarefaNotion(tarefaTexto, "Personal", "2 · Important", "Captura rápida via Telegram") : false;
+      if (okTask) {
+        res = enviarMensagemParaChat(chatId, "✅ *Tarefa salva no Inbox do Notion Tasks!*");
+      } else {
+        enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique o token.");
+        res = false;
+      }
+    }
+  } else if (comando === "/tasks") {
+    res = (typeof listarTarefasHojeNotion === "function") ? listarTarefasHojeNotion(chatId) : false;
+  } else if (comando === "/duvidas") {
+    res = (typeof listarDuvidasMedQuest === "function") ? listarDuvidasMedQuest(chatId) : false;
+  } else if (comando === "/duvida") {
+    var duvidaTexto = (texto || "").replace(/^\/duvida\s*/i, "").trim();
+    if (!duvidaTexto || duvidaTexto.toLowerCase() === "listar") {
+      res = (typeof listarDuvidasMedQuest === "function") ? listarDuvidasMedQuest(chatId) : false;
+    } else {
+      var okDuvida = (typeof salvarDuvidaEstudoNotion === "function") ? salvarDuvidaEstudoNotion(duvidaTexto) : false;
+      if (okDuvida) {
+        var kbDuv = {
+          inline_keyboard: [
+            [{ text: "📋 Ver Dúvidas Salvas", callback_data: "ux:rotina:duvidas_lista" }],
+            [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        };
+        res = enviarMensagemComTecladoParaChat(chatId, "🧠 *DÚVIDA CLÍNICA ARQUIVADA COM SUCESSO!*\n\n📌 _\"" + duvidaTexto + "\"_\n\n✅ Salva no banco local para o seu bloco noturno de estudo ativo no MedQuest.\n💡 Digite `/duvidas` a qualquer momento para revisar.", kbDuv);
+      } else {
+        res = enviarMensagemParaChat(chatId, "❌ Falha ao arquivar dúvida.");
+      }
+    }
+  } else if (comando === "/semana" || comando === "/relatorio" || comando === "/habitos") {
+    res = (typeof enviarRelatorioSemanalHabitos === "function") ? enviarRelatorioSemanalHabitos(chatId) : false;
+  } else if (comando === "/checkin") {
+    res = (typeof enviarCheckinNoturno === "function") ? enviarCheckinNoturno(chatId) : false;
+  } else if (comando === "/briefing") {
+    res = (typeof enviarBriefingMatinal === "function") ? enviarBriefingMatinal(chatId, true) : false;
+  } else if (comando === "/rotina") {
+    var argRotina = (texto || "").replace(/^\/rotina\s*/i, "").trim();
+    res = tratarComandoRotina(chatId, argRotina);
+  }
+
+  return { tratado: true, resultado: res };
+}
+
+/**
+ * Trata o comando /rotina e suas variações
+ */
+function tratarComandoRotina(chatId, argRotina) {
+  var hoje = new Date();
+  var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
+  var arg = (argRotina || "").trim().toLowerCase();
+
+  if (!arg) {
+    var txtHubRotina = "🧭 *HUB DE ROTINA & PRODUTIVIDADE*\n\n" +
+      "Selecione uma das opções abaixo para gerenciar seu dia, agenda e estudos, ou use comandos diretos:";
+    return enviarMensagemComTecladoParaChat(chatId, txtHubRotina, construirTecladoHubRotina());
+  }
+
+  if (arg === "hoje") {
+    var blocosHoje = RotinaService.obterBlocosDoDia(hoje);
+    var txtHoje = "☀️ *ROTINA DO DIA (TIME-BLOCKING ADAPTATIVO)*\n\n" +
+      RotinaService.formatarTimelineMarkdown(blocosHoje, hoje) +
+      "\n\n💡 *Para ajustar:* Toque abaixo ou envie: _'Hoje treino às 19h'_ ou áudio gravado!";
+    var kbHoje = RotinaService.construirTecladoTimeline(hoje, blocosHoje);
+    return enviarMensagemComTecladoParaChat(chatId, txtHoje, kbHoje);
+  }
+
+  if (arg === "amanha" || arg === "amanhã") {
+    var amanha = new Date(hoje.getTime() + 86400000);
+    var blocosAmanha = RotinaService.obterBlocosDoDia(amanha);
+    var txtAmanha = "📆 *ROTINA DE AMANHÃ (PLANEJAMENTO ADAPTATIVO)*\n\n" +
+      RotinaService.formatarTimelineMarkdown(blocosAmanha, amanha) +
+      "\n\n💡 *Para ajustar amanhã:* Envie: _'/rotina alterar amanhã <instrução>'_.";
+    var kbAmanha = RotinaService.construirTecladoTimeline(amanha, blocosAmanha);
+    return enviarMensagemComTecladoParaChat(chatId, txtAmanha, kbAmanha);
+  }
+
+  if (arg === "semana" || arg === "grade") {
+    var resumoSemanal = RotinaService.obterResumoSemanal();
+    var kbSemana = {
+      inline_keyboard: [
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, resumoSemanal, kbSemana);
+  }
+
+  if (arg === "reset" || arg === "restaurar" || arg === "padrao" || arg === "padrão") {
+    var resReset = RotinaService.aplicarInstrucao(hoje, "reset");
+    var txtReset = resReset.mensagem + "\n\n" +
+      RotinaService.formatarTimelineMarkdown(resReset.blocos, hoje);
+    var kbReset = RotinaService.construirTecladoTimeline(hoje, resReset.blocos);
+    return enviarMensagemComTecladoParaChat(chatId, txtReset, kbReset);
+  }
+
+  if (arg === "descanso") {
+    var resDesc = RotinaService.aplicarInstrucao(hoje, "modo descanso");
+    var txtDesc = resDesc.mensagem + "\n\n" +
+      RotinaService.formatarTimelineMarkdown(resDesc.blocos, hoje);
+    var kbDesc = RotinaService.construirTecladoTimeline(hoje, resDesc.blocos);
+    return enviarMensagemComTecladoParaChat(chatId, txtDesc, kbDesc);
+  }
+
+  var instrucao = argRotina.replace(/^alterar\s+/i, "").trim();
+  var dataAlvo = hoje;
+  if (/^amanh[aã]\s+/i.test(instrucao)) {
+    dataAlvo = new Date(hoje.getTime() + 86400000);
+    instrucao = instrucao.replace(/^amanh[aã]\s+/i, "").trim();
+  }
+
+  var resAjuste = RotinaService.aplicarInstrucao(dataAlvo, instrucao);
+  var txtAjuste = resAjuste.mensagem + "\n\n" +
+    RotinaService.formatarTimelineMarkdown(resAjuste.blocos, dataAlvo);
+  var kbAjuste = RotinaService.construirTecladoTimeline(dataAlvo, resAjuste.blocos);
+  return enviarMensagemComTecladoParaChat(chatId, txtAjuste, kbAjuste);
+}
+
+/**
+ * Trata callbacks da rotina inline
+ */
+function tratarCallbackRotina(cb) {
+  var data = cb.data || "";
+  var chatId = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : cb.from.id;
+  var msgId = cb.message ? cb.message.message_id : null;
+  var token = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_BOT_TOKEN") : "";
+  var hoje = new Date();
+
+  var partes = data.split(":");
+  var subAcao = partes[1]; // check, skip, reset, descanso, cal_sync, ajustar, ver_amanha, ver_hoje
+  var param = partes[2];
+
+  if (subAcao === "check") {
+    RotinaService.marcarStatusBloco(hoje, param, "concluido", "Concluído via Telegram");
+    responderCallbackTelegram(cb.id, "✅ Bloco marcado como concluído!");
+  } else if (subAcao === "skip") {
+    RotinaService.marcarStatusBloco(hoje, param, "pulado", "Pular bloco");
+    responderCallbackTelegram(cb.id, "⏭️ Bloco pulado hoje.");
+  } else if (subAcao === "reset") {
+    RotinaService.resetarBlocosDoDia(hoje);
+    responderCallbackTelegram(cb.id, "🔄 Rotina restaurada para o padrão!");
+  } else if (subAcao === "descanso") {
+    RotinaService.aplicarInstrucao(hoje, "modo descanso");
+    responderCallbackTelegram(cb.id, "💤 Modo descanso ativado hoje!");
+  } else if (subAcao === "cal_sync") {
+    if (typeof GoogleCalendarService !== "undefined" && GoogleCalendarService.limparCache) {
+      GoogleCalendarService.limparCache();
+    }
+    var blocosFrescos = RotinaService.importarEventosGoogleCalendar(hoje);
+    if (blocosFrescos && blocosFrescos.length > 0) {
+      var salvosAtuais = RotinaService.obterBlocosSalvos(hoje);
+      if (Array.isArray(salvosAtuais) && salvosAtuais.length > 0) {
+        for (var idxB = 0; idxB < blocosFrescos.length; idxB++) {
+          var bF = blocosFrescos[idxB];
+          for (var idxS = 0; idxS < salvosAtuais.length; idxS++) {
+            if (salvosAtuais[idxS].id === bF.id || salvosAtuais[idxS].titulo === bF.titulo) {
+              if (salvosAtuais[idxS].status && salvosAtuais[idxS].status !== "pendente") {
+                bF.status = salvosAtuais[idxS].status;
+                if (salvosAtuais[idxS].nota) bF.nota = salvosAtuais[idxS].nota;
+              }
+              break;
+            }
+          }
+        }
+      }
+      RotinaService.salvarBlocosDoDia(hoje, blocosFrescos);
+      responderCallbackTelegram(cb.id, "📆 " + blocosFrescos.length + " blocos sincronizados do Google Calendar!");
+    } else {
+      responderCallbackTelegram(cb.id, "📆 Agenda Google verificada!");
+    }
+  } else if (subAcao === "ajustar") {
+    responderCallbackTelegram(cb.id, "✏️ Envie sua instrução de ajuste!");
+    var msgDica = "✏️ *COMO AJUSTAR SUA ROTINA HOJE:*\n\n" +
+      "Basta digitar ou mandar um áudio gravado no chat. Exemplos:\n" +
+      "• _'Hoje não vou treinar'_\n" +
+      "• _'Mudei o treino para as 19h'_\n" +
+      "• _'Hoje vou estudar das 15h às 17h'_\n" +
+      "• _'Sem cochilo hoje'_\n" +
+      "• _'Troquei musculação por corrida de 40 min'_\n" +
+      "• _'Modo descanso'_\n" +
+      "• _'Reset' (volta para a grade padrão)_";
+    var kbDica = {
+      inline_keyboard: [
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (msgId && token) {
+      executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageText", {
+        chat_id: chatId,
+        message_id: msgId,
+        text: msgDica,
+        parse_mode: "Markdown",
+        reply_markup: kbDica
+      });
+      return;
+    }
+    return enviarMensagemComTecladoParaChat(chatId, msgDica, kbDica);
+  } else if (subAcao === "ver_amanha") {
+    responderCallbackTelegram(cb.id, "📆 Carregando amanhã...");
+    var amanha = new Date(hoje.getTime() + 86400000);
+    var blocosAmanha = RotinaService.obterBlocosDoDia(amanha);
+    var txtAmanha = "📆 *ROTINA DE AMANHÃ (PLANEJAMENTO ADAPTATIVO)*\n\n" +
+      RotinaService.formatarTimelineMarkdown(blocosAmanha, amanha) +
+      "\n\n💡 *Para ajustar amanhã:* Envie: _'/rotina alterar amanhã <instrução>'_.";
+    var kbAmanha = {
+      inline_keyboard: [
+        [{ text: "📅 Voltar para Hoje", callback_data: "rotina:ver_hoje" }],
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (msgId && token) {
+      executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageText", {
+        chat_id: chatId,
+        message_id: msgId,
+        text: txtAmanha,
+        parse_mode: "Markdown",
+        reply_markup: kbAmanha
+      });
+    } else {
+      enviarMensagemComTecladoParaChat(chatId, txtAmanha, kbAmanha);
+    }
+    return;
+  } else if (subAcao === "ver_hoje") {
+    responderCallbackTelegram(cb.id, "📅 Carregando hoje...");
+  }
+
+  var blocosAtualizados = RotinaService.obterBlocosDoDia(hoje);
+  var textoAtualizado = "☀️ *ROTINA DO DIA (TIME-BLOCKING ADAPTATIVO)*\n\n" +
+    RotinaService.formatarTimelineMarkdown(blocosAtualizados, hoje) +
+    "\n\n💡 *Para ajustar:* Toque abaixo ou envie áudio/texto:";
+  var tecladoAtualizado = RotinaService.construirTecladoTimeline(hoje, blocosAtualizados);
+
+  if (msgId && token) {
+    executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageText", {
+      chat_id: chatId,
+      message_id: msgId,
+      text: textoAtualizado,
+      parse_mode: "Markdown",
+      reply_markup: tecladoAtualizado
+    });
+  } else {
+    enviarMensagemComTecladoParaChat(chatId, textoAtualizado, tecladoAtualizado);
+  }
 }
 
 

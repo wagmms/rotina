@@ -374,28 +374,6 @@ function construirTecladoHubEnfermaria() {
   };
 }
 
-function construirTecladoHubRotina() {
-  return {
-    "inline_keyboard": [
-      [
-        {"text": "📅 Agenda Hoje", "callback_data": "rotina_agenda"},
-        {"text": "📋 Tarefas Notion", "callback_data": "rotina_tasks"}
-      ],
-      [
-        {"text": "☀️ Briefing Matinal", "callback_data": "rotina_briefing"},
-        {"text": "🌙 Check-in Noturno", "callback_data": "rotina_checkin"}
-      ],
-      [
-        {"text": "📊 Relatório Semanal", "callback_data": "rotina_semana"},
-        {"text": "🧠 MedQuest / Dúvidas", "callback_data": "rotina_duvida"}
-      ],
-      [
-        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"}
-      ]
-    ]
-  };
-}
-
 function construirTecladoHubDiabetes() {
   return {
     "inline_keyboard": [
@@ -4984,59 +4962,12 @@ function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, messag
   }
 
 
-  // 4. AGENDA, TAREFAS E NOTION (EXCLUSIVO TITULAR)
-  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/duvidas" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina" || comando === "/habitos") {
-    if (!ehUsuarioTitular(chatId)) {
-      return enviarMensagemParaChat(chatId, "🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas, guias de diluição HSL e consultas clínicas.");
+  // 4. AGENDA, ROTINA, TAREFAS E CICLOS DIÁRIOS (DELEGADO AO MÓDULO 07i)
+  if (typeof despacharComandosRotinaEProdutividade === "function") {
+    var resRotina = despacharComandosRotinaEProdutividade(comando, texto, chatId, message);
+    if (resRotina && resRotina.tratado) {
+      return resRotina.resultado;
     }
-  }
-
-  if (comando === "/agenda") {
-    var paramAgenda = texto.replace(/^\/agenda\s*/i, "").trim();
-    return consultarEventosAgenda(paramAgenda, chatId);
-  }
-
-  if (comando === "/task" || comando === "/tarefa") {
-    var tarefaTexto = texto.replace(/^\/(task|tarefa)\s*/i, "").trim();
-    if (!tarefaTexto) return enviarMensagemParaChat(chatId, "📋 Digite a tarefa a salvar no Inbox do Notion. Ex: `/task Revisar hemograma do leito 14`");
-    var okTask = criarTarefaNotion(tarefaTexto, "Personal", "2 · Important", "Captura rápida via Telegram");
-    if (okTask) return enviarMensagemParaChat(chatId, "✅ *Tarefa salva no Inbox do Notion Tasks!*");
-    enviarMensagemParaChat(chatId, "❌ Falha ao salvar no Notion. O pedido foi preservado na fila local ou verifique o token.");
-    return false;
-  }
-
-  if (comando === "/tasks") {
-    return listarTarefasHojeNotion(chatId);
-  }
-
-  if (comando === "/duvidas") {
-    return listarDuvidasMedQuest(chatId);
-  }
-
-  if (comando === "/duvida") {
-    var duvidaTexto = texto.replace(/^\/duvida\s*/i, "").trim();
-    if (!duvidaTexto || duvidaTexto.toLowerCase() === "listar") {
-      return listarDuvidasMedQuest(chatId);
-    }
-    var okDuvida = salvarDuvidaEstudoNotion(duvidaTexto);
-    if (okDuvida) {
-      var kbDuv = {
-        inline_keyboard: [
-          [{ text: "📋 Ver Dúvidas Salvas", callback_data: "ux:rotina:duvidas_lista" }],
-          [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-        ]
-      };
-      return enviarMensagemComTecladoParaChat(chatId, "🧠 *DÚVIDA CLÍNICA ARQUIVADA COM SUCESSO!*\n\n📌 _\"" + duvidaTexto + "\"_\n\n✅ Salva no banco local para o seu bloco noturno de estudo ativo no MedQuest.\n💡 Digite `/duvidas` a qualquer momento para revisar.", kbDuv);
-    }
-    return enviarMensagemParaChat(chatId, "❌ Falha ao arquivar dúvida.");
-  }
-
-  if (comando === "/semana" || comando === "/relatorio" || comando === "/habitos") return enviarRelatorioSemanalHabitos(chatId);
-  if (comando === "/checkin") return enviarCheckinNoturno(chatId);
-  if (comando === "/briefing") return enviarBriefingMatinal(chatId, true);
-  if (comando === "/rotina") {
-    var argRotina = texto.replace(/^\/rotina\s*/i, "").trim();
-    return tratarComandoRotina(chatId, argRotina);
   }
 
   if (comando === "/protocolo") {

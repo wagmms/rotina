@@ -8,8 +8,22 @@ Suporta persistência/retomada de estado e rastreamento de breadcrumbs.
 import json
 import hashlib
 import random
+import re
 from pathlib import Path
 from typing import Dict, List, Set, Optional, Any
+
+
+# Regex para identificar UUIDs e hashes hexadecimais efêmeros em callback_data
+HEX_TOKEN_REGEX = re.compile(
+    r'[a-f0-9]{16,32}|(?=[a-f0-9]*[0-9])[a-f0-9]{8,15}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}'
+)
+
+
+def canonicalizar_chave(chave: str) -> str:
+    """Substitui UUIDs e hashes efêmeros por {id} para evitar vazamento de memória e denominador."""
+    if not chave:
+        return ""
+    return HEX_TOKEN_REGEX.sub("{id}", chave)
 
 
 class TelaNode:
@@ -25,14 +39,37 @@ class TelaNode:
             for b in row:
                 rotulo = b.get("text", "").strip()
                 cb_data = b.get("callback_data", "").strip()
-                chave = cb_data if cb_data else f"label:{rotulo}"
-                if chave:
-                    self.arestas_saindo[chave] = {
+                chave_can = canonicalizar_chave(cb_data) if cb_data else f"label:{rotulo}"
+                if chave_can:
+                    self.arestas_saindo[chave_can] = {
                         "text": rotulo,
                         "callback_data": cb_data,
+                        "chave_canonica": chave_can,
                         "url": b.get("url", ""),
                         "cliques": 0
                     }
+
+    def atualizar_dados_recentes(self, texto: str, botoes: List[List[Dict[str, str]]]):
+        """Atualiza texto e callback_data mais recentes da tela preservando histórico de cliques."""
+        self.texto = texto
+        self.botoes = botoes
+        for row in botoes:
+            for b in row:
+                rotulo = b.get("text", "").strip()
+                cb_data = b.get("callback_data", "").strip()
+                chave_can = canonicalizar_chave(cb_data) if cb_data else f"label:{rotulo}"
+                if chave_can:
+                    if chave_can in self.arestas_saindo:
+                        self.arestas_saindo[chave_can]["callback_data"] = cb_data
+                        self.arestas_saindo[chave_can]["text"] = rotulo
+                    else:
+                        self.arestas_saindo[chave_can] = {
+                            "text": rotulo,
+                            "callback_data": cb_data,
+                            "chave_canonica": chave_can,
+                            "url": b.get("url", ""),
+                            "cliques": 0
+                        }
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -48,7 +85,15 @@ class TelaNode:
     def from_dict(cls, data: Dict[str, Any]) -> "TelaNode":
         node = cls(data["id"], data["titulo"], data["texto"], data["botoes"])
         node.visitas = data.get("visitas", 0)
-        node.arestas_saindo = data.get("arestas_saindo", {})
+        for ch, aresta in data.get("arestas_saindo", {}).items():
+            ch_can = canonicalizar_chave(ch)
+            if ch_can in node.arestas_saindo:
+                node.arestas_saindo[ch_can]["cliques"] = aresta.get("cliques", 0)
+                if aresta.get("callback_data"):
+                    node.arestas_saindo[ch_can]["callback_data"] = aresta.get("callback_data")
+            else:
+                aresta["chave_canonica"] = ch_can
+                node.arestas_saindo[ch_can] = aresta
         return node
 
 
@@ -64,14 +109,19 @@ class ScreenGraph:
         self.breadcrumbs: List[str] = []
 
     def gerar_id_tela(self, texto: str, botoes: List[List[Dict[str, str]]]) -> str:
-        """Gera um hash único representativo da tela e de seus botões."""
-        primeiras_linhas = "\n".join(texto.split("\n")[:3])
+        """Gera um hash único representativo da tela e de seus botões canônicos."""
+        linhas = [l.strip() for l in texto.split("\n") if l.strip()]
+        titulo = linhas[0][:80] if linhas else "Tela Sem Texto"
+        titulo_can = re.sub(r'\d+', '#', titulo)
+
         botoes_sig = []
         for r in botoes:
             for b in r:
-                botoes_sig.append(b.get("callback_data") or b.get("text") or "")
+                cb = b.get("callback_data") or ""
+                chave_can = canonicalizar_chave(cb) if cb else (b.get("text") or "")
+                botoes_sig.append(chave_can)
         
-        bruto = f"{primeiras_linhas}|{'#'.join(botoes_sig)}"
+        bruto = f"{titulo_can}|{'#'.join(botoes_sig)}"
         return hashlib.sha1(bruto.encode("utf-8")).hexdigest()[:12]
 
     def registrar_tela(self, texto: str, botoes: List[List[Dict[str, str]]]) -> TelaNode:
@@ -87,6 +137,9 @@ class ScreenGraph:
                 self.botoes_globais_descobertos.add(chave)
         else:
             node = self.nodes[tela_id]
+            node.atualizar_dados_recentes(texto, botoes)
+            for chave in node.arestas_saindo:
+                self.botoes_globais_descobertos.add(chave)
 
         node.visitas += 1
         self.tela_atual_id = tela_id
@@ -105,10 +158,15 @@ class ScreenGraph:
         return node
 
     def registrar_clique(self, tela_id: str, chave_botao: str):
-        """Registra a execução de um clique."""
-        self.botoes_globais_clicados.add(chave_botao)
-        if tela_id in self.nodes and chave_botao in self.nodes[tela_id].arestas_saindo:
-            self.nodes[tela_id].arestas_saindo[chave_botao]["cliques"] += 1
+        """Registra a execução de um clique garantindo chave canônica."""
+        chave_can = canonicalizar_chave(chave_botao)
+        self.botoes_globais_clicados.add(chave_can)
+        if tela_id in self.nodes:
+            node = self.nodes[tela_id]
+            if chave_can in node.arestas_saindo:
+                node.arestas_saindo[chave_can]["cliques"] += 1
+            elif chave_botao in node.arestas_saindo:
+                node.arestas_saindo[chave_botao]["cliques"] += 1
 
     def registrar_comando(self, comando_ou_texto: str):
         cmd = comando_ou_texto.split(" ")[0].strip()
@@ -238,15 +296,39 @@ class ScreenGraph:
             json.dump(dados, f, ensure_ascii=False, indent=2)
 
     def carregar_estado(self, caminho_arquivo: Path) -> bool:
-        """Carrega estado persistido de sessão anterior."""
+        """Carrega estado persistido de sessão anterior, consolidando chaves e nós canônicos."""
         if not caminho_arquivo.exists():
             return False
         try:
             with open(caminho_arquivo, "r", encoding="utf-8") as f:
                 dados = json.load(f)
-            self.nodes = {nid: TelaNode.from_dict(d) for nid, d in dados.get("nodes", {}).items()}
-            self.botoes_globais_descobertos = set(dados.get("botoes_descobertos", []))
-            self.botoes_globais_clicados = set(dados.get("botoes_clicados", []))
+
+            # Reconstrói nós consolidando duplicatas históricas causadas por UUIDs efêmeros
+            nodes_consolidados: Dict[str, TelaNode] = {}
+            for nid, d in dados.get("nodes", {}).items():
+                node = TelaNode.from_dict(d)
+                cid = self.gerar_id_tela(node.texto, node.botoes)
+                if cid not in nodes_consolidados:
+                    node.id = cid
+                    nodes_consolidados[cid] = node
+                else:
+                    existente = nodes_consolidados[cid]
+                    existente.visitas += node.visitas
+                    for ch, aresta in node.arestas_saindo.items():
+                        if ch in existente.arestas_saindo:
+                            existente.arestas_saindo[ch]["cliques"] += aresta.get("cliques", 0)
+                            if aresta.get("callback_data"):
+                                existente.arestas_saindo[ch]["callback_data"] = aresta.get("callback_data")
+                        else:
+                            existente.arestas_saindo[ch] = aresta
+
+            self.nodes = nodes_consolidados
+            self.botoes_globais_descobertos = {canonicalizar_chave(k) for k in dados.get("botoes_descobertos", []) if k}
+            for n in self.nodes.values():
+                for ch in n.arestas_saindo:
+                    self.botoes_globais_descobertos.add(ch)
+
+            self.botoes_globais_clicados = {canonicalizar_chave(k) for k in dados.get("botoes_clicados", []) if k}
             self.comandos_testados = set(dados.get("comandos_testados", []))
             self.dead_ends = set(dados.get("dead_ends", []))
             self.tela_atual_id = dados.get("tela_atual_id")

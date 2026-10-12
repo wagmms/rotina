@@ -1,5 +1,35 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C48. [x] **Aba Rotina & Telegram — Desacoplamento Modular da Central de Rotina, Módulo Dedicado 07i e Refatoração Deep Module (`src/07i_telegram_rotina_central.js`, `src/07a_telegram_router.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `tests/test_rotina_adaptativa.cjs`, `tests/test_central_rotina_plantao_ux.cjs`)**:
+    - **Criação do Módulo Dedicado `src/07i_telegram_rotina_central.js` (`codebase-design`)**:
+      * Centralizada toda a lógica de time-blocking, navegação, teclados de rotina e execução de comandos diários do médico em módulo profundo e coeso com seam bem definido.
+      * Funções isoladas: `construirTecladoHubRotina`, `ehComandoRotinaOuProdutividade`, `despacharComandosRotinaEProdutividade`, `tratarComandoRotina` e `tratarCallbackRotina`.
+      * Suporte pleno para subcomandos `/rotina` (`hoje`, `amanha`, `semana`, `reset`, `descanso` e linguagem natural com regex de intenção).
+      * Processamento in-place de callbacks de timeline (`rotina:check`, `rotina:skip`, `rotina:reset`, `rotina:descanso`, `rotina:cal_sync`, `rotina:ajustar`, `rotina:ver_amanha`, `rotina:ver_hoje`).
+    - **Desacoplamento do Monólito `src/07a_telegram_router.js`**:
+      * Removida duplicação de `construirTecladoHubRotina`.
+      * Substituído o bloco de 55 linhas de despachos de agenda/notion/rotina por delegação direta via interface concisa `despacharComandosRotinaEProdutividade(comando, texto, chatId, message)`, garantindo alta coesão e baixo acoplamento.
+    - **Saneamento do Escopo de `src/07g_telegram_ajuda_e_protocolos.js`**:
+      * Removidas funções legadas de rotina e callbacks (`tratarComandoRotina`, `tratarCallbackRotina`), restaurando a responsabilidade única do arquivo em manuais de ajuda e protocolos de emergência clínica.
+    - **Carregamento Dinâmico em Testes & Zero Regressões**:
+      * Atualizado `tests/test_rotina_adaptativa.cjs` para carregar dinamicamente todos os módulos de `src/` em paridade com o runtime oficial (`server/runtime.js`).
+      * Bateria completa de regressão `npm test` aprovada com 52/52 suítes verdes e código estável em 9.62s.
+
+0C47. [x] **Aba Rotina — UI/UX Anti-Slop Beira-Leito, Persistência Offline-First IndexedDB e Fila de Sincronização Resiliente (`gh_cockpit_deploy/index.html`, `gh_cockpit_deploy/rotina_timeline.js`, `cockpit_movel.html`, `rotina_timeline.js`, `scripts/run_tests.cjs`, `tests/test_aba_rotina_cockpit.cjs`)**:
+    - **Refinamento de UI/UX Intencional Beira-Leito (`frontend-design` & `web-design-guidelines`)**:
+      * Alvos táteis generosos para celular beira-leito (`min-h-[34px]` a `min-h-[38px]`) com microinteração `active:scale-95` em botões de ação rápida (`Concluir`, `Adiar +30m`, `Pular`, `Reabrir Bloco`).
+      * Ícones clínicos representativos ao lado da faixa horária mono (`stethoscope`, `book-open`, `dumbbell`, `moon`, `heart`, `calendar`) com alto contraste para ambiente hospitalar.
+      * Bloco ativo (`AGORA`) com anel cirúrgico `ring-1.5 ring-brand-400`, live badge pulsante com contagem regressiva de tempo restante.
+      * Atenuação suave para blocos concluídos (`opacity-80 bg-slate-950/60`), reduzindo sobrecarga cognitiva imediata do médico de plantão.
+      * Barra de progresso do time-blocking reforçada para `h-2` e botões de filtro com touch targets ampliados (`min-h-[32px]`).
+    - **Motor de Persistência Offline-First IndexedDB e Fila de Mutações Resiliente (`tdd`)**:
+      * Implementados métodos assíncronos `salvarBlocosOfflineAsync` e `carregarBlocosOfflineAsync` com suporte a IndexedDB (`localDb` / Dexie) e fallback síncrono a 0ms em `localStorage`.
+      * Fila persistente de mutações em segundo plano (`enfileirarMutacaoOffline`, `obterFilaOffline`, `obterStatusFilaOffline`, `processarFilaOffline`) para operações offline no leito, com auto-drenagem via evento `online`.
+      * Telemetria visual no badge `#rotina-sync-badge` refletindo contagem exata de mutações pendentes offline ou confirmação de sincronização ativa.
+    - **Validação E2E, TDD e Recibo de Estabilidade**:
+      * Testes de unidade e E2E expandidos em `tests/test_aba_rotina_cockpit.cjs` (execução em 0.091s).
+      * Bateria completa `npm test` aprovada com 52/52 suítes verdes e código estável em 9.61s.
+
 0C46. [x] **Aba Rotina — Gaveta de Dúvidas MedQuest no Cockpit PWA, Filtro Lifestyle, Polling Suave e Proteção da Grade Padrão (`gh_cockpit_deploy/index.html`, `gh_cockpit_deploy/rotina_timeline.js`, `cockpit_movel.html`, `rotina_timeline.js`, `server/index.js`, `tests/test_aba_rotina_cockpit.cjs`, `tests/test_server_render.cjs`)**:
     - **Gaveta de Dúvidas MedQuest Integrada no Cockpit PWA**:
       * Implementada gaveta expansível/colapsável no topo da timeline de rotina com badge contador de pendências em tempo real.

@@ -17,12 +17,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Aba Rotina — Gaveta de Dúvidas MedQuest no Cockpit PWA, Filtro Lifestyle, Polling Suave e Proteção da Grade Padrão (`gh_cockpit_deploy/index.html`, `gh_cockpit_deploy/rotina_timeline.js`, `cockpit_movel.html`, `rotina_timeline.js`, `server/index.js`, `tests/test_aba_rotina_cockpit.cjs`, `tests/test_server_render.cjs`)**:
-    - **Gaveta de Dúvidas MedQuest Integrada no Cockpit PWA**: Gaveta expansível com input rápido e lista com resolução em 1 clique, sincronizada com o backend Fastify (`/api/rotina/duvidas`), espelhada no Telegram e com persistência offline transparente (`rotina_duvidas_v1`).
-    - **Filtro e Classificação Lifestyle**: Botão `[🎸 Vida & Lifestyle]` e detecção automática em `normalizarBloco` para violão, música, lazer, livro, inglês e hábitos pessoais.
-    - **Proteção da Grade Padrão Fixa**: Confirmação visual explícita com `confirm()` impedindo que a grade padrão sobrescreva acidentalmente a agenda do Google Calendar.
-    - **Auto-Sincronização por Polling Suave**: Polling a cada 30 segundos disparado apenas com a página visível e aba `#tab-rotina` aberta, trazendo blocos e dúvidas frescos sem travar a interface.
-    - **Zero Regressões**: Bateria completa `npm test` aprovada com 52/52 suítes verdes e código estável em 10.09s.
+- [x] **Aba Rotina & Telegram — Desacoplamento Modular da Central de Rotina, Módulo Dedicado 07i e Refatoração Deep Module (`src/07i_telegram_rotina_central.js`, `src/07a_telegram_router.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `tests/test_rotina_adaptativa.cjs`, `tests/test_central_rotina_plantao_ux.cjs`)**:
+    - **Criação do Módulo Dedicado `src/07i_telegram_rotina_central.js` (`codebase-design`)**: Módulo profundo isolando `construirTecladoHubRotina`, `ehComandoRotinaOuProdutividade`, `despacharComandosRotinaEProdutividade`, `tratarComandoRotina` e `tratarCallbackRotina`.
+    - **Desacoplamento do Monólito `src/07a_telegram_router.js`**: Substituído o bloco de 55 linhas de despachos de agenda/notion/rotina por delegação direta via interface concisa `despacharComandosRotinaEProdutividade(comando, texto, chatId, message)`.
+    - **Saneamento do Escopo de `src/07g_telegram_ajuda_e_protocolos.js`**: Removidas funções legadas de rotina e callbacks (`tratarComandoRotina`, `tratarCallbackRotina`), restaurando a responsabilidade única do arquivo em manuais e protocolos de emergência médica.
+    - **Carregamento Dinâmico em Testes & Zero Regressões**: Atualizado `tests/test_rotina_adaptativa.cjs` para carregar dinamicamente todos os módulos de `src/` em paridade com o runtime oficial (`server/runtime.js`). Bateria completa `npm test` aprovada com 52/52 suítes verdes e código estável em 9.62s.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -30,24 +29,24 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Aba Rotina — Persistência Offline-First e Fila de Sincronização no Cockpit PWA (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `gh_cockpit_deploy/sw.js`)**:
-    - **Arquivo/Módulo Alvo**: `rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js` e `gh_cockpit_deploy/sw.js`
-    - **Função/Componente/Seletor**: Armazenamento IndexedDB de rotina e fila de sincronização em segundo plano
-    - **Comportamento Esperado / Critério de Aceite**: Salvar blocos do dia no IndexedDB local do navegador para renderização offline instantânea (0ms), sincronizando mutações pendentes com o backend Fastify assim que a conexão for restabelecida.
+- [ ] **Aba Rotina — Painel de Estatísticas e Aderência Semanal (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
+    - **Arquivo/Módulo Alvo**: `rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js` e `src/06_rotina_agenda.js`
+    - **Função/Componente/Seletor**: Função `calcularAderenciaSemanal` e componente de resumo no topo da aba rotina
+    - **Comportamento Esperado / Critério de Aceite**: Exibir percentual real de blocos cumpridos na semana e indicadores visuais de rodízio/estudo ativo com atualização offline-first.
 
 ---
 
 ## 📋 Backlog Prioritário: Desenvolvimento Integral da Aba Rotina
 
-1. [ ] **Aba Rotina — Persistência Offline-First e Fila de Sincronização no Cockpit PWA (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `gh_cockpit_deploy/sw.js`)**:
-    - **Arquivo/Módulo Alvo**: `rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js` e `gh_cockpit_deploy/sw.js`
-    - **Função/Componente/Seletor**: Armazenamento IndexedDB de rotina e fila de sincronização em segundo plano
-    - **Comportamento Esperado / Critério de Aceite**: Salvar blocos do dia no IndexedDB local do navegador para renderização offline instantânea (0ms), sincronizando mutações pendentes com o backend Fastify assim que a conexão for restabelecida.
-
-2. [ ] **Aba Rotina — Painel de Estatísticas e Aderência Semanal (`rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
-    - **Arquivo/Módulo Alvo**: `rotina_timeline.js` e `src/06_rotina_agenda.js`
+1. [ ] **Aba Rotina — Painel de Estatísticas e Aderência Semanal (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
+    - **Arquivo/Módulo Alvo**: `rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js` e `src/06_rotina_agenda.js`
     - **Função/Componente/Seletor**: Função `calcularAderenciaSemanal` e componente de resumo no topo da aba rotina
-    - **Comportamento Esperado / Critério de Aceite**: Exibir percentual real de blocos cumpridos na semana e indicadores visuais de rodízio/estudo ativo.
+    - **Comportamento Esperado / Critério de Aceite**: Exibir percentual real de blocos cumpridos na semana e indicadores visuais de rodízio/estudo ativo com atualização offline-first.
+
+2. [ ] **Aba Rotina — Alertas Web Push 10 Minutos Antes de Blocos Críticos (`gh_cockpit_deploy/sw.js`, `server/index.js`)**:
+    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/sw.js` e `server/index.js`
+    - **Função/Componente/Seletor**: Service Worker push notification handler e cron de notificações da agenda
+    - **Comportamento Esperado / Critério de Aceite**: Disparo de notificação local/push no smartphone do médico 10 minutos antes de plantões e blocos de estudo ativo MedQuest.
 
 ---
 

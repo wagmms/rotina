@@ -90,6 +90,36 @@ class TestTestadorMaster(unittest.TestCase):
 
         arquivo_temp.unlink(missing_ok=True)
 
+    def test_screen_graph_anti_leak_uuids(self):
+        grafo = ScreenGraph()
+        texto_tela_1 = "⚠️ *Rascunho para conferência médica*\n🩺 *SÍNTESE SOAP*\nPaciente 1"
+        botoes_1 = [
+            [{"text": "📋 Copiar", "callback_data": "ux:copiar:11112222333344445555666677778888", "url": ""}],
+            [{"text": "🎧 Ouvir", "callback_data": "ouvirPreceptor_aaaa1111bbbb2222cccc3333dddd4444", "url": ""}]
+        ]
+        texto_tela_2 = "⚠️ *Rascunho para conferência médica*\n🩺 *SÍNTESE SOAP*\nPaciente 2"
+        botoes_2 = [
+            [{"text": "📋 Copiar", "callback_data": "ux:copiar:99998888777766665555444433332222", "url": ""}],
+            [{"text": "🎧 Ouvir", "callback_data": "ouvirPreceptor_eeee5555ffff66660000777711118888", "url": ""}]
+        ]
+
+        grafo.registrar_tela(texto_tela_1, botoes_1)
+        self.assertEqual(len(grafo.nodes), 1)
+        self.assertEqual(len(grafo.botoes_globais_descobertos), 2)
+        self.assertIn("ux:copiar:{id}", grafo.botoes_globais_descobertos)
+        self.assertIn("ouvirPreceptor_{id}", grafo.botoes_globais_descobertos)
+
+        # Registra segunda tela similar com UUIDs efêmeros diferentes
+        grafo.registrar_tela(texto_tela_2, botoes_2)
+        # Deve colapsar na mesma tela e NÃO inflar o denominador de botões descobertos
+        self.assertEqual(len(grafo.nodes), 1)
+        self.assertEqual(len(grafo.botoes_globais_descobertos), 2)
+
+        # Clica em um dos botões usando UUID bruto
+        grafo.registrar_clique(grafo.tela_atual_id, "ux:copiar:99998888777766665555444433332222")
+        self.assertEqual(len(grafo.botoes_globais_clicados), 1)
+        self.assertIn("ux:copiar:{id}", grafo.botoes_globais_clicados)
+
     def test_tui_renderer_formatacao_e_progresso(self):
         tui = TUIRenderer(largura_max=80)
         linhas = tui._quebrar_texto("Texto longo para teste de quebra automática em várias linhas", 20)
@@ -144,6 +174,44 @@ class TestTestadorMaster(unittest.TestCase):
         reporter.salvar_relatorios(grafo, total_ciclos=3)
         self.assertTrue(md_file.exists())
         self.assertTrue(json_file.exists())
+
+        md_file.unlink(missing_ok=True)
+        json_file.unlink(missing_ok=True)
+
+    def test_reporter_persistencia_e_retomada(self):
+        md_file = ROOT_DIR / "data" / "temp_resume_test.md"
+        json_file = ROOT_DIR / "data" / "temp_resume_test.json"
+
+        rep1 = MasterReporter(md_file, json_file, gerar_repros=False)
+        p = obter_catalogo_personas()["emergencista"]
+        rep1.registrar_evento(
+            ciclo=1,
+            persona=p,
+            acao={"alvo_desc": "/cmd_erro", "tipo": "comando"},
+            resposta={"ok": False, "erro": "Erro simulado", "mensagens": []},
+            tempo_ms=10
+        )
+        self.assertEqual(len(rep1.problemas), 1)
+        grafo = ScreenGraph()
+        rep1.salvar_relatorios(grafo, total_ciclos=1)
+
+        # Novo reporter retoma estado prévio
+        rep2 = MasterReporter(md_file, json_file, gerar_repros=False)
+        carregou = rep2.carregar_estado(json_file)
+        self.assertTrue(carregou)
+        self.assertEqual(len(rep2.problemas), 1)
+        self.assertEqual(rep2.ciclos_anteriores, 1)
+
+        # Registra o mesmo problema novamente (deve somar ocorrência em vez de duplicar)
+        rep2.registrar_evento(
+            ciclo=2,
+            persona=p,
+            acao={"alvo_desc": "/cmd_erro", "tipo": "comando"},
+            resposta={"ok": False, "erro": "Erro simulado", "mensagens": []},
+            tempo_ms=10
+        )
+        self.assertEqual(len(rep2.problemas), 1)
+        self.assertEqual(rep2.problemas[0]["ocorrencias"], 2)
 
         md_file.unlink(missing_ok=True)
         json_file.unlink(missing_ok=True)

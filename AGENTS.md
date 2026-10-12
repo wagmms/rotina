@@ -63,4 +63,12 @@ O autoloop agora concentra **100% dos seus esforços, ciclos e capacidade de exe
     2. Função/Componente/Seletor exato de intervenção.
     3. Comportamento Esperado / Critério de Aceite objetivo e verificável.
 
+---
 
+## 🧠 Memória Contínua de Aprendizado (Self-Improving Agent)
+
+- **Registro Permanente em `.learnings/`**:
+  * Ao detectar falhas de comando ou testes quebrados, registrar o incidente em `.learnings/ERRORS.md`.
+  * Ao identificar boas práticas arquiteturais, correções de premissas ou padrões de estabilidade, registrar em `.learnings/LEARNINGS.md`.
+  * Demandas de funcionalidades futuras identificadas devem ser catalogadas em `.learnings/FEATURE_REQUESTS.md`.
+  * Antes de intervenções críticas, consultar `.learnings/` para evitar reincidência de armadilhas conhecidas do ecossistema.

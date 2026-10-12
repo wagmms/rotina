@@ -30,6 +30,8 @@ class MasterReporter:
         self.problemas: List[Dict[str, Any]] = []
         self.sugestoes: List[Dict[str, Any]] = []
         self.auditorias_matematicas: List[Dict[str, Any]] = []
+        self.ciclos_anteriores: int = 0
+        self.duracao_anterior_seg: int = 0
         self.inicio_sessao = datetime.now()
 
     def registrar_evento(
@@ -248,14 +250,68 @@ class MasterReporter:
 
         self.problemas.append(item)
 
+    def carregar_estado(self, caminho_json: Path) -> bool:
+        """Carrega problemas acumulados e auditorias prévias para continuidade entre sessões (--resume)."""
+        if not caminho_json.exists():
+            return False
+        try:
+            with open(caminho_json, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+
+            meta = dados.get("meta", {})
+            self.ciclos_anteriores += meta.get("total_ciclos", 0)
+            self.duracao_anterior_seg += meta.get("duracao_segundos", 0)
+
+            # Carrega problemas salvos do relatório e também do seed histórico (apenas para o relatório oficial)
+            problemas_salvos = list(dados.get("problemas", []))
+            seed_path = caminho_json.parent / "testador_master_issues_seed.json"
+            if caminho_json.name == "testador_master_relatorio.json" and seed_path.exists():
+                try:
+                    with open(seed_path, "r", encoding="utf-8") as sf:
+                        seed_data = json.load(sf)
+                    problemas_salvos = list(seed_data.get("problemas", [])) + problemas_salvos
+                except Exception:
+                    pass
+
+            if problemas_salvos:
+                mapa = {(p.get("categoria"), p.get("acao")): p for p in self.problemas}
+                for p in problemas_salvos:
+                    chave = (p.get("categoria"), p.get("acao"))
+                    if chave not in mapa:
+                        self.problemas.append(p)
+                        mapa[chave] = p
+                    else:
+                        mapa[chave]["ocorrencias"] += p.get("ocorrencias", 1)
+
+            # Reordena IDs para numeração sequencial limpa
+            for i, p in enumerate(self.problemas, start=1):
+                p["id"] = f"ISSUE-{i:03d}"
+
+            # Mescla histórico de auditorias matemáticas determinísticas
+            salvos_math = dados.get("auditorias_matematicas", [])
+            if salvos_math:
+                cmds_existentes = {f"{a.get('calculadora')}:{a.get('comando')}" for a in self.auditorias_matematicas}
+                for sm in salvos_math:
+                    chave_math = f"{sm.get('calculadora')}:{sm.get('comando')}"
+                    if chave_math not in cmds_existentes:
+                        self.auditorias_matematicas.append(sm)
+                        cmds_existentes.add(chave_math)
+
+            return True
+        except Exception as e:
+            print(f"[MasterReporter] Falha ao carregar estado de problemas salvo: {e}")
+            return False
+
     def salvar_relatorios(self, grafo: Any, total_ciclos: int):
         """Salva os relatórios em Markdown e JSON."""
         self.output_md.parent.mkdir(parents=True, exist_ok=True)
         self.output_json.parent.mkdir(parents=True, exist_ok=True)
 
-        duracao_seg = max(1, int((datetime.now() - self.inicio_sessao).total_seconds()))
-        minutos = duracao_seg // 60
-        segundos = duracao_seg % 60
+        duracao_sessao_seg = max(1, int((datetime.now() - self.inicio_sessao).total_seconds()))
+        duracao_total_seg = self.duracao_anterior_seg + duracao_sessao_seg
+        minutos = duracao_total_seg // 60
+        segundos = duracao_total_seg % 60
+        ciclos_totais = self.ciclos_anteriores + total_ciclos
 
         tempos = [e["tempo_ms"] for e in self.eventos if e["tempo_ms"] > 0]
         latencia_media = (sum(tempos) / len(tempos)) if tempos else 0.0
@@ -270,8 +326,8 @@ class MasterReporter:
             "meta": {
                 "gerado_em": datetime.now().isoformat(),
                 "duracao_formatada": f"{minutos}m {segundos}s",
-                "duracao_segundos": duracao_seg,
-                "total_ciclos": total_ciclos,
+                "duracao_segundos": duracao_total_seg,
+                "total_ciclos": ciclos_totais,
                 "total_eventos": len(self.eventos),
                 "latencia_media_ms": round(latencia_media, 1),
                 "telas_descobertas": len(grafo.nodes),
@@ -298,7 +354,7 @@ class MasterReporter:
             "# 📋 Relatório de Auditoria & Sugestões: Testador Master (Telegram)",
             "",
             f"> ⏱️ **Sessão executada em:** {datetime.now().strftime('%d/%m/%Y às %H:%M:%S')}  ",
-            f"> ⏳ **Duração total:** {minutos}m {segundos}s | **Ciclos concluídos:** {total_ciclos}  ",
+            f"> ⏳ **Duração total:** {minutos}m {segundos}s | **Ciclos concluídos:** {ciclos_totais}  ",
             f"> 📊 **Cobertura estimada:** {grafo.obter_cobertura_pct():.1f}% | **Telas descobertas:** {len(grafo.nodes)} | **Botões testados:** {len(grafo.botoes_globais_clicados)}  ",
             f"> ⚡ **Latência média beira-leito:** {latencia_media:.1f}ms",
             "",

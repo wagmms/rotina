@@ -190,6 +190,10 @@ def main():
         repro_dir=Path(args.repro_dir),
         gerar_repros=not args.no_repro
     )
+
+    if args.resume and Path(args.output_json).exists():
+        if reporter.carregar_estado(Path(args.output_json)):
+            print(f"🔄 Retomando backlog prévio de {len(reporter.problemas)} anomalias/issues auditadas!")
     catalogo_personas = obter_catalogo_personas()
     multimodal_gen = MultimodalGenerator()
 
