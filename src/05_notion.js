@@ -4,6 +4,14 @@
  * ==============================================================================
  */
 
+function normalizarNotionId(idOuUrl) {
+  if (!idOuUrl) return "";
+  var str = String(idOuUrl).trim();
+  var match = str.match(/([a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+  if (match) return match[1];
+  return str.split("?")[0].replace(/^.*[\/]/, "").trim();
+}
+
 function chamarNotionAPI(url, metodo, dados) {
   var token = ConfigService.get("NOTION_TOKEN");
   if (!token) {
@@ -34,11 +42,13 @@ function chamarNotionAPI(url, metodo, dados) {
       if (code === 429) {
         Utilities.sleep(1500);
       } else {
-        Logger.log("Notion erro HTTP " + code);
+        var textoErro = "";
+        try { textoErro = res.getContentText(); } catch (_) {}
+        Logger.log("Notion erro HTTP " + code + (textoErro ? ": " + textoErro.slice(0, 300) : ""));
         return null;
       }
     } catch (e) {
-      Logger.log("Falha de comunicação com o Notion; resultado incerto.");
+      Logger.log("Falha de comunicação com o Notion: " + (e ? e.message : "resultado incerto"));
       return null;
     }
   }
@@ -46,8 +56,11 @@ function chamarNotionAPI(url, metodo, dados) {
 }
 
 function obterOuCriarPaginaHabitLog(dataISO) {
-  var dbId = ConfigService.get("NOTION_HABIT_LOG_DB_ID");
-  if (!dbId) return null;
+  var dbId = normalizarNotionId(ConfigService.get("NOTION_HABIT_LOG_DB_ID"));
+  if (!dbId) {
+    Logger.log("Aviso: NOTION_HABIT_LOG_DB_ID não configurado.");
+    return null;
+  }
 
   var res = chamarNotionAPI("https://api.notion.com/v1/databases/" + dbId + "/query", "POST", {
     "filter": { "property": "Date", "date": { "equals": dataISO } }
@@ -92,8 +105,16 @@ function enviarRelatorioSemanalHabitos(chatIdDestino) {
   if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(destino)) {
     return false;
   }
-  var dbId = ConfigService.get("NOTION_HABIT_LOG_DB_ID");
+  var token = ConfigService.get("NOTION_TOKEN");
+  var rawDbId = ConfigService.get("NOTION_HABIT_LOG_DB_ID");
+  var dbId = normalizarNotionId(rawDbId);
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
+
+  if (!token || !dbId) {
+    var detalheFalta = !token && !dbId ? "NOTION_TOKEN e NOTION_HABIT_LOG_DB_ID" : (!token ? "NOTION_TOKEN" : "NOTION_HABIT_LOG_DB_ID");
+    Logger.log("Aviso: Falha ao consultar Habit Log - " + detalheFalta + " ausente.");
+    return enviarMensagemParaChat(destino, "⚠️ O Habit Log não pôde ser consultado: `" + detalheFalta + "` não está configurado no servidor (Render). Configure a variável de ambiente para habilitar.");
+  }
 
   var dataISO = Utilities.formatDate(new Date(new Date().getTime() - 7 * 86400000), tz, "yyyy-MM-dd");
   var payload = {
@@ -103,7 +124,7 @@ function enviarRelatorioSemanalHabitos(chatIdDestino) {
 
   var res = chamarNotionAPI("https://api.notion.com/v1/databases/" + dbId + "/query", "POST", payload);
   if (!res || !res.results) {
-    return enviarMensagemParaChat(destino, "⚠️ Erro ao consultar o Notion Habit Log.");
+    return enviarMensagemParaChat(destino, "⚠️ Erro ao consultar o Notion Habit Log. Verifique se a integração possui acesso à base e se o ID está correto.");
   }
 
   var cMQ = 0, cGym = 0, cEng = 0, cVio = 0, cLov = 0, cRead = 0, sEn = 0, kEn = 0;
@@ -145,7 +166,7 @@ function enviarRelatorioSemanalHabitos(chatIdDestino) {
  * em blocos de texto/callout, eliminando limitações de tamanho de rich_text.
  */
 function criarTarefaNotion(titulo, area, prioridade, notas) {
-  var dbId = ConfigService.get("NOTION_TASKS_DB_ID");
+  var dbId = normalizarNotionId(ConfigService.get("NOTION_TASKS_DB_ID"));
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   if (!dbId) return false;
 
@@ -291,7 +312,7 @@ function listarDuvidasMedQuest(chatIdDestino, messageId) {
 
 function listarTarefasHojeNotion(chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
-  var dbId = ConfigService.get("NOTION_TASKS_DB_ID");
+  var dbId = normalizarNotionId(ConfigService.get("NOTION_TASKS_DB_ID"));
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 
   var kbTarefas = {

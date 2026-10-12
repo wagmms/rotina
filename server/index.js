@@ -455,6 +455,11 @@ async function buildServer() {
           local: runtime.ctx.IaCircuitBreaker ? runtime.ctx.IaCircuitBreaker.obterStatus('LOCAL') : null,
           ollama: runtime.ctx.IaCircuitBreaker ? runtime.ctx.IaCircuitBreaker.obterStatus('OLLAMA') : null
         },
+        notion: {
+          token_configurado: !!cfg.get('NOTION_TOKEN'),
+          habit_log_db_configurado: !!cfg.get('NOTION_HABIT_LOG_DB_ID'),
+          tasks_db_configurado: !!cfg.get('NOTION_TASKS_DB_ID')
+        },
         ia_local_disponivel: !!(runtime.ctx.IaLocalFallbackService && runtime.ctx.executarFallbackLocalOffline)
       };
     } catch (err) {
