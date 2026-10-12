@@ -351,10 +351,11 @@ var RotinaService = {
         var tit = ev.getTitle() || "Compromisso";
         var cat = "clinico";
         var titLower = tit.toLowerCase();
-        if (/treino|academia|muscula/i.test(titLower)) cat = "treino";
-        else if (/medquest|anki|estudo|revis[aã]o|aula/i.test(titLower)) cat = "estudo";
+        if (/treino|academia|muscula|corrida|aer[oó]bico/i.test(titLower)) cat = "treino";
+        else if (/medquest|anki|estudo|revis[aã]o|aula|quest[oõ]es|teoria|ingl[eê]s|english|mastologia|pediatria|cirurgia|cl[ií]nica|gineco|obstetr/i.test(titLower)) cat = "estudo";
         else if (/sono|descanso|cochilo|recupera/i.test(titLower)) cat = "recuperacao";
-        else if (/plant[aã]o|ps|uti|enfermaria|ambulat/i.test(titLower)) cat = "clinico";
+        else if (/plant[aã]o|ps|uti|cti|enfermaria|ambulat|internato|usf|hospital|relat[oó]rio|pgr/i.test(titLower)) cat = "clinico";
+        else if (/viol[aã]o|m[uú]sica|h[aá]bito/i.test(titLower)) cat = "lifestyle";
         else cat = "lifestyle";
 
         blocos.push({
@@ -368,6 +369,11 @@ var RotinaService = {
           nota: (ev.getLocation ? ev.getLocation() : "") || "Agenda Google"
         });
       }
+
+      blocos.sort(function(a, b) {
+        return (a.inicio || "").localeCompare(b.inicio || "");
+      });
+
       return blocos;
     } catch (e) {
       Logger.log("Erro ao importar eventos do Google Calendar: " + e.message);
@@ -380,12 +386,29 @@ var RotinaService = {
     if (isNaN(ref.getTime())) ref = new Date();
 
     var salvos = RotinaService.obterBlocosSalvos(ref);
-    if (salvos && salvos.length > 0) return salvos;
-
     var blocosAgenda = RotinaService.importarEventosGoogleCalendar(ref);
+
+    // Se temos eventos da agenda Google, mesclamos status com blocos salvos anteriormente
     if (blocosAgenda && blocosAgenda.length > 0) {
+      if (salvos && salvos.length > 0) {
+        for (var i = 0; i < blocosAgenda.length; i++) {
+          var b = blocosAgenda[i];
+          for (var s = 0; s < salvos.length; s++) {
+            var sv = salvos[s];
+            if (sv.id === b.id || (sv.titulo && b.titulo && sv.titulo.trim().toLowerCase() === b.titulo.trim().toLowerCase())) {
+              if (sv.status && sv.status !== "pendente") {
+                b.status = sv.status;
+                if (sv.nota) b.nota = sv.nota;
+              }
+              break;
+            }
+          }
+        }
+      }
       return blocosAgenda;
     }
+
+    if (salvos && salvos.length > 0) return salvos;
 
     var stPl = typeof detectarPlantaoStatus === "function" ? detectarPlantaoStatus(ref) : { ehPlantaoHoje: false, ehPosPlantao: false };
     if (stPl && stPl.ehPosPlantao) {

@@ -301,6 +301,17 @@ test('9. Métodos RPC ambulatoriais funcionam no runtime e no cockpitRpc', () =>
   assert(resCondHas.sucesso === true, 'cockpitEstruturarCondutaHas deve responder com sucesso');
   assert.strictEqual(resCondHas.conduta.passo, 3, 'Deve estruturar passo 3 (tripla terapia)');
   assert.strictEqual(resCondHas.conduta.metaPressorica, '< 130/80 mmHg', 'Meta deve ser < 130/80 mmHg para paciente com DM');
+
+  // Testa cockpitGerarEncaminhamentoTexto via RPC
+  const resSisreg = runtime.cockpitRpc('cockpitGerarEncaminhamentoTexto', fakeSession, [{
+    pacienteNome: 'Sebastião Alves',
+    especialidade: 'Nefrologia',
+    motivo: 'Investigação de DRC estágio 3b e albuminúria persistente',
+    cid: 'N18.3'
+  }]);
+  assert(resSisreg.sucesso === true, 'cockpitGerarEncaminhamentoTexto deve retornar sucesso');
+  assert(resSisreg.textoEncaminhamento.includes('NEFROLOGIA'), 'Guia SISREG deve conter a especialidade');
+  assert(resSisreg.textoEncaminhamento.includes('Sebastião Alves'), 'Guia SISREG deve conter o paciente');
 });
 
 // =============================================================================

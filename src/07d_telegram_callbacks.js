@@ -183,9 +183,9 @@ function tratarCallbackRotinaProdutividade_(cb, data, ctx) {
  * A3. AJUDA E MANUAL DE COMANDOS SLASH
  */
 function tratarCallbackAjuda_(cb, data, ctx) {
-  var catAlvo = (data === "ajuda_todas") ? "todas" : data.replace(/^ajuda_cat_/, "");
+  var catAlvo = (data === "ajuda_todas") ? "todas" : ((data === "ajuda_menu") ? "" : data.replace(/^ajuda_cat_/, ""));
   responderCallbackTelegram(cb.id, "Carregando comandos...");
-  return enviarManualCompletoComandos(ctx.chatId, catAlvo);
+  return enviarManualCompletoComandos(ctx.chatId, catAlvo, ctx.msgId);
 }
 
 /**
@@ -445,6 +445,52 @@ function tratarCallbackPreceptorSocratico_(cb, data, ctx) {
       definirModoBot(ctx.chatId, "soap", casoParaSoap);
     }
     return processarEEntregarIA(ctx.chatId, gerarSOAPComIA, casoParaSoap, "soap");
+  }
+  if (data.startsWith("preceptor_retomar_")) {
+    responderCallbackTelegram(cb.id, "Retomando caso clínico...");
+    var keyRetomar = data.replace("preceptor_retomar_", "");
+    var cachePrec = CacheService.getScriptCache();
+    var casoRetomado = (typeof safeGetCache === "function")
+      ? safeGetCache(cachePrec, "prec_rec_" + keyRetomar)
+      : cachePrec.get("prec_rec_" + keyRetomar);
+    if (!casoRetomado) {
+      casoRetomado = (typeof obterContextoClinicoBot === "function" ? obterContextoClinicoBot(ctx.chatId) : "") || cachePrec.get("ctx_" + ctx.chatId);
+    }
+    if (casoRetomado) {
+      return responderPreceptorVozComIA(ctx.chatId, casoRetomado);
+    }
+    return enviarMensagemParaChat(ctx.chatId, "⚠️ O caso anterior expirou da memória. Por favor, dite ou envie o resumo do caso para iniciarmos a discussão.");
+  }
+  if (data === "preceptor_novo_caso") {
+    responderCallbackTelegram(cb.id, "Iniciando novo caso...");
+    limparDialogoPreceptor(ctx.chatId);
+    var cScript = CacheService.getScriptCache();
+    try { cScript.remove("ctx_" + ctx.chatId); } catch (eRem) {}
+    salvarDialogoPreceptor(ctx.chatId, {
+      em_andamento: true,
+      aguardando_caso: true,
+      caso_base: "",
+      ultima_pergunta: "Perfeito! Caso anterior resetado. Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.",
+      historico: [{
+        papel: "preceptor",
+        texto: "Perfeito! Caso anterior resetado. Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo."
+      }]
+    });
+    if (typeof definirModoBot !== "undefined") {
+      definirModoBot(ctx.chatId, "voz", "");
+    }
+    var textoNovo = "Perfeito! Caso anterior resetado. Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.";
+    var cacheKeyNovo = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cScript, cacheKeyNovo, textoNovo, 21600);
+    var kbNovo = {
+      "inline_keyboard": [
+        [
+          {"text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKeyNovo},
+          {"text": "🛑 Encerrar", "callback_data": "preceptor_encerrar"}
+        ]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(ctx.chatId, "🎧 *Preceptor Socrático:*\n\n" + textoNovo, kbNovo);
   }
   if (data === "preceptor_encerrar") {
     responderCallbackTelegram(cb.id, "Discussão encerrada.");
@@ -892,12 +938,14 @@ var MAPA_CALLBACKS_EXATOS_ = {
 
   // Ajuda geral
   "ajuda_todas": tratarCallbackAjuda_,
+  "ajuda_menu": tratarCallbackAjuda_,
 
   // Calculadoras menu principal
   "calc_menu_principal": tratarCallbackCalculadoras_,
 
   // Preceptor socrático
   "preceptor_gerar_soap": tratarCallbackPreceptorSocratico_,
+  "preceptor_novo_caso": tratarCallbackPreceptorSocratico_,
   "preceptor_encerrar": tratarCallbackPreceptorSocratico_,
 
   // Enfermaria
@@ -994,6 +1042,7 @@ var ROTEADORES_PREFIXO_CALLBACKS_ = [
   { prefix: "ped_med:", handler: tratarCallbackPrescricaoEFarmaco_ },
   { prefix: "hsl_med:", handler: tratarCallbackPrescricaoEFarmaco_ },
   { prefix: "ouvirPreceptor_", handler: tratarCallbackPreceptorSocratico_ },
+  { prefix: "preceptor_retomar_", handler: tratarCallbackPreceptorSocratico_ },
   { prefix: "ef_", handler: tratarCallbackExamesFisicos_ }
 ];
 

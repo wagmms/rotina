@@ -568,6 +568,150 @@ async function buildServer() {
     fastifyLog: fastify.log
   }));
 
+  // ==============================================================================
+  // 5.0.3 ROTAS REST DEDICADAS: ABA ROTINA & SINCRONIZAÇÃO GOOGLE CALENDAR
+  // ==============================================================================
+
+  // Obter blocos da rotina do dia (Google Calendar + Overrides)
+  fastify.get('/api/rotina/blocos', async (request, reply) => {
+    try {
+      const dataParam = request.query?.data;
+      const dataRef = dataParam ? new Date(dataParam + 'T12:00:00') : new Date();
+      const blocos = (runtime.ctx.RotinaService && runtime.ctx.RotinaService.obterBlocosDoDia)
+        ? runtime.ctx.RotinaService.obterBlocosDoDia(dataRef)
+        : [];
+      const dataISO = (runtime.ctx.RotinaService && runtime.ctx.RotinaService.normalizarDataISO)
+        ? runtime.ctx.RotinaService.normalizarDataISO(dataRef)
+        : (dataParam || new Date().toISOString().slice(0, 10));
+      reply.header('Cache-Control', 'no-cache');
+      return { ok: true, sucesso: true, data: dataISO, total: (blocos || []).length, blocos: blocos || [] };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
+  // Salvar / atualizar lista de blocos da rotina
+  fastify.post('/api/rotina/blocos', async (request, reply) => {
+    try {
+      const body = request.body || {};
+      const dataParam = body.data;
+      const dataRef = dataParam ? new Date(dataParam + 'T12:00:00') : new Date();
+      const blocos = body.blocos;
+      if (!Array.isArray(blocos)) {
+        reply.status(400);
+        return { ok: false, sucesso: false, erro: 'Campo "blocos" deve ser um array.' };
+      }
+      if (runtime.ctx.RotinaService && runtime.ctx.RotinaService.salvarBlocosDoDia) {
+        runtime.ctx.RotinaService.salvarBlocosDoDia(dataRef, blocos);
+      }
+      const dataISO = (runtime.ctx.RotinaService && runtime.ctx.RotinaService.normalizarDataISO)
+        ? runtime.ctx.RotinaService.normalizarDataISO(dataRef)
+        : (dataParam || new Date().toISOString().slice(0, 10));
+      return { ok: true, sucesso: true, data: dataISO, blocos: blocos };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
+  // Marcar status de um bloco individual (concluido, pendente, pulado, descanso)
+  fastify.post('/api/rotina/status', async (request, reply) => {
+    try {
+      const body = request.body || {};
+      const dataParam = body.data;
+      const blocoId = body.blocoId;
+      const novoStatus = body.status;
+      const nota = body.nota;
+      if (!blocoId || !novoStatus) {
+        reply.status(400);
+        return { ok: false, sucesso: false, erro: 'Parâmetros "blocoId" e "status" são obrigatórios.' };
+      }
+      const dataRef = dataParam ? new Date(dataParam + 'T12:00:00') : new Date();
+      if (!runtime.ctx.RotinaService || !runtime.ctx.RotinaService.marcarStatusBloco) {
+        throw new Error('RotinaService indisponível.');
+      }
+      const res = runtime.ctx.RotinaService.marcarStatusBloco(dataRef, blocoId, novoStatus, nota);
+      const dataISO = runtime.ctx.RotinaService.normalizarDataISO(dataRef);
+      return { ok: true, sucesso: res.sucesso, data: dataISO, blocos: res.blocos };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
+  // Sincronização forçada imediata com o Google Calendar do médico (moraes.wagg@gmail.com)
+  fastify.post('/api/rotina/agenda/sync', async (request, reply) => {
+    try {
+      const body = request.body || {};
+      const dataParam = body.data;
+      const dataRef = dataParam ? new Date(dataParam + 'T12:00:00') : new Date();
+      
+      if (runtime.ctx.GoogleCalendarService && runtime.ctx.GoogleCalendarService.limparCache) {
+        runtime.ctx.GoogleCalendarService.limparCache();
+      }
+      if (!runtime.ctx.RotinaService) {
+        throw new Error('RotinaService indisponível.');
+      }
+
+      const blocosFrescos = runtime.ctx.RotinaService.importarEventosGoogleCalendar(dataRef) || [];
+      const salvos = runtime.ctx.RotinaService.obterBlocosSalvos(dataRef);
+      if (Array.isArray(salvos) && salvos.length > 0 && Array.isArray(blocosFrescos)) {
+        for (const b of blocosFrescos) {
+          const existente = salvos.find(s => s.id === b.id || (s.titulo && b.titulo && s.titulo.trim().toLowerCase() === b.titulo.trim().toLowerCase()));
+          if (existente && existente.status && existente.status !== 'pendente') {
+            b.status = existente.status;
+            if (existente.nota) b.nota = existente.nota;
+          }
+        }
+      }
+
+      if (blocosFrescos.length > 0) {
+        runtime.ctx.RotinaService.salvarBlocosDoDia(dataRef, blocosFrescos);
+      }
+
+      const blocosFinais = runtime.ctx.RotinaService.obterBlocosDoDia(dataRef);
+      const dataISO = runtime.ctx.RotinaService.normalizarDataISO(dataRef);
+      return {
+        ok: true,
+        sucesso: true,
+        sincronizado: true,
+        data: dataISO,
+        total: blocosFinais.length,
+        blocos: blocosFinais
+      };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
+  // Resumo semanal da rotina e agenda
+  fastify.get('/api/rotina/resumo', async (request, reply) => {
+    try {
+      const resumo = (runtime.ctx.RotinaService && runtime.ctx.RotinaService.obterResumoSemanal)
+        ? runtime.ctx.RotinaService.obterResumoSemanal()
+        : '';
+      return { ok: true, sucesso: true, resumo: resumo };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
+  // Status da conexão com Google Calendar
+  fastify.get('/api/rotina/calendar/status', async (request, reply) => {
+    try {
+      const status = (runtime.ctx.GoogleCalendarService && runtime.ctx.GoogleCalendarService.obterStatus)
+        ? runtime.ctx.GoogleCalendarService.obterStatus()
+        : { conectado: false };
+      return { ok: true, sucesso: true, status: status };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
   // 5.1. TELEMETRIA AO VIVO: Consulta das últimas interações do Bot e Cockpit
   fastify.get('/api/telemetria/ao-vivo', {
     schema: {
@@ -1101,7 +1245,8 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
 1. Discuta o caso clínico com alto rigor técnico e vocabulário médico culto e direto.
 2. Faça perguntas socráticas provocativas e curtas para estimular o raciocínio: "Qual hipótese diagnóstica você prioriza?", "Qual o próximo exame confirmatório?", "Por que indicou essa droga e não a primeira linha?".
 3. Mantenha cada turno de fala curto (15 a 40 segundos), permitindo que Wagner fale livremente.
-4. Ao ouvir uma conduta, reforce a segurança do paciente, alergias, contraindicações e diretrizes brasileiras (SBC, ILAS, AMIB, SBPT).`;
+4. Ao ouvir uma conduta, reforce a segurança do paciente, alergias, contraindicações e diretrizes brasileiras (SBC, ILAS, AMIB, SBPT).
+5. NUNCA INVENTE DADOS DE PACIENTES nem simule casos fictícios aleatoriamente do nada. Se Wagner apenas chamar ou se faltarem dados (sinais vitais, exames), pergunte qual caso ele quer discutir ou pergunte ativamente o dado faltante. Somente simule caso se ele pedir expressamente.`;
 
     // Função de tentativa de conexão com timeout defensivo rápido (2s)
     async function tentarConectarLive(key, modelo) {
@@ -1301,7 +1446,8 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
 1. Discuta o caso clínico com alto rigor técnico e vocabulário médico culto e direto.
 2. Faça perguntas socráticas provocativas e curtas para estimular o raciocínio clínico.
 3. Responda em no máximo 2 a 3 frases concisas (15 a 30 segundos de fala).
-4. Sem formatação markdown, sem asteriscos, pronto para locução de áudio.`;
+4. Sem formatação markdown, sem asteriscos, pronto para locução de áudio.
+5. NUNCA invente dados de pacientes nem simule casos fictícios aleatoriamente do nada. Se Wagner não relatou o paciente ou faltarem dados, pergunte qual caso ele quer discutir ou pergunte o dado que falta.`;
 
         let respostaTexto = '';
         if (runtime.ctx && typeof runtime.ctx.gerarDialogoPreceptorSocratico === 'function') {

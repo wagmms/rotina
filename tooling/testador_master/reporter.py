@@ -1,0 +1,279 @@
+"""
+Ultra Rotina · Testador Master: Gerador de Relatório de Auditoria e Sugestões
+Analisa usabilidade, performance beira-leito, ergonomia mobile e gera relatórios estruturados.
+"""
+
+import json
+from pathlib import Path
+from datetime import datetime
+from typing import Dict, List, Any
+
+
+class MasterReporter:
+    def __init__(self, output_md: Path, output_json: Path):
+        self.output_md = output_md
+        self.output_json = output_json
+        self.eventos: List[Dict[str, Any]] = []
+        self.problemas: List[Dict[str, Any]] = []
+        self.sugestoes: List[Dict[str, Any]] = []
+        self.inicio_sessao = datetime.now()
+
+    def registrar_evento(
+        self,
+        ciclo: int,
+        persona: Any,
+        acao: Dict[str, Any],
+        resposta: Dict[str, Any],
+        tempo_ms: int
+    ):
+        """Audita cada interação da persona com o bot e extrai anomalias de UX/código."""
+        ok = resposta.get("ok", False)
+        mensagens = resposta.get("mensagens", [])
+        msg_principal = mensagens[0] if mensagens else {}
+        texto = msg_principal.get("texto", "")
+        botoes = msg_principal.get("buttons", [])
+
+        evento = {
+            "timestamp": datetime.now().isoformat(),
+            "ciclo": ciclo,
+            "persona_id": persona.id,
+            "persona_nome": persona.nome,
+            "acao_tipo": acao.get("tipo"),
+            "alvo": acao.get("alvo_desc"),
+            "tempo_ms": tempo_ms,
+            "ok": ok,
+            "total_mensagens": len(mensagens),
+            "texto_len": len(texto),
+            "total_botoes": sum(len(r) for r in botoes) if botoes else 0
+        }
+        self.eventos.append(evento)
+
+        # ─────────────────────────────────────────────────────────────
+        # REGRAS DE AUDITORIA CLÍNICA E ERGONÔMICA (BEIRA-LEITO)
+        # ─────────────────────────────────────────────────────────────
+
+        # 1. Detecção de Erro Crítico ou Insucesso
+        if not ok or not mensagens:
+            self._adicionar_problema(
+                categoria="🚨 BUG CRÍTICO",
+                gravidade="ALTA",
+                acao=acao.get("alvo_desc"),
+                descricao=f"Falha ao processar ação '{acao.get('alvo_desc')}'. O bot não respondeu ou gerou erro: {resposta.get('erro', 'Sem resposta')}",
+                sugestao=f"Garantir bloco defensivo try/catch e resposta amigável para '{acao.get('alvo_desc')}'."
+            )
+
+        # 2. Verificação de Stack Traces ou Vazamento Técnico
+        termos_erro_tecnico = ["typeerror", "referenceerror", "syntaxerror", "undefined", "nan", "[object object]"]
+        for termo in termos_erro_tecnico:
+            if termo in texto.lower():
+                self._adicionar_problema(
+                    categoria="🚨 VAZAMENTO TÉCNICO",
+                    gravidade="ALTA",
+                    acao=acao.get("alvo_desc"),
+                    descricao=f"Mensagem contém termo técnico suspeito ('{termo}') exibido ao usuário.",
+                    sugestao="Sanitizar saída e validar variáveis antes de compor a resposta do Telegram."
+                )
+                break
+
+        # 3. Detecção de Dead End (Tela sem botões de volta e sem instrução clara)
+        if ok and len(texto) > 100 and not botoes:
+            texto_lower = texto.lower()
+            tem_dica_retorno = any(k in texto_lower for k in ["/menu", "/ajuda", "/novo", "digite /", "voltar"])
+            if not tem_dica_retorno:
+                self._adicionar_problema(
+                    categoria="⚠️ UX DEAD-END",
+                    gravidade="MÉDIA",
+                    acao=acao.get("alvo_desc"),
+                    descricao=f"Tela gerada por '{acao.get('alvo_desc')}' não possui teclado inline nem instruções de como voltar ou avançar.",
+                    sugestao="Incluir teclado inline com botão de retorno ('🔙 Voltar' ou '🏠 Menu') para evitar que o médico fique sem saída."
+                )
+
+        # 4. Detecção de Poluição Visual / Texto Longo Demais para Mobile
+        if len(texto) > 1800:
+            self._adicionar_problema(
+                categoria="⚠️ ERGONOMIA MOBILE",
+                gravidade="BAIXA",
+                acao=acao.get("alvo_desc"),
+                descricao=f"Resposta muito extensa ({len(texto)} caracteres). Exige scroll longo na tela do celular durante o plantão.",
+                sugestao="Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'."
+            )
+
+        # 5. Detecção de Botões com Rótulos Longos (Corte na tela mobile)
+        if botoes:
+            for row in botoes:
+                for b in row:
+                    rotulo = b.get("text", "")
+                    if len(rotulo) > 34:
+                        self._adicionar_problema(
+                            categoria="⚠️ RÓTULO TRUNCADO",
+                            gravidade="BAIXA",
+                            acao=acao.get("alvo_desc"),
+                            descricao=f"Botão inline com rótulo muito longo ({len(rotulo)} chars): '{rotulo}'. Risco de truncamento no app do Telegram.",
+                            sugestao=f"Encurtar rótulo para até 28 caracteres mantendo o ícone e clareza clínica."
+                        )
+
+        # 6. Alerta de Latência Superior à Tolerância da Persona
+        if tempo_ms > persona.tolerancia_latencia_ms:
+            self._adicionar_problema(
+                categoria="⏱️ GARGALO DE LATÊNCIA",
+                gravidade="MÉDIA" if tempo_ms > 2000 else "BAIXA",
+                acao=acao.get("alvo_desc"),
+                descricao=f"Ação demorou {tempo_ms}ms, ultrapassando a tolerância de {persona.tolerancia_latencia_ms}ms da persona {persona.nome}.",
+                sugestao="Otimizar pré-computação em memória ou cachear resposta de consultas frequentes."
+            )
+
+        # 7. Verificação de Entidades Markdown Desbalanceadas (Risco de Parse Error no Telegram)
+        if ok and texto:
+            if texto.count("*") % 2 != 0:
+                self._adicionar_problema(
+                    categoria="⚠️ FORMATAÇÃO MARKDOWN",
+                    gravidade="BAIXA",
+                    acao=acao.get("alvo_desc"),
+                    descricao="Texto retornado possui número ímpar de asteriscos (*), o que pode quebrar formatação negrito no Telegram.",
+                    sugestao="Fechar todas as tags de negrito (*) ou usar escape de Markdown antes do envio."
+                )
+            if texto.count("`") % 2 != 0:
+                self._adicionar_problema(
+                    categoria="⚠️ FORMATAÇÃO CODE",
+                    gravidade="BAIXA",
+                    acao=acao.get("alvo_desc"),
+                    descricao="Texto retornado possui crases (`) desbalanceadas, podendo truncar blocos monoespaçados.",
+                    sugestao="Revisar template do comando para garantir pares de crases balanceados."
+                )
+
+        # 8. Salvaguardas Clínicas em Fuzzing / Valores Extremos
+        alvo_lower = str(acao.get("alvo_desc", "")).lower()
+        if any(b in alvo_lower for b in [" -", " 0", "peso 0", "crcl -"]):
+            if ok and ("ml/h" in texto.lower() or "mg" in texto.lower()) and "inválid" not in texto.lower() and "erro" not in texto.lower() and "atenção" not in texto.lower():
+                self._adicionar_problema(
+                    categoria="🚨 SEGURANÇA CLÍNICA",
+                    gravidade="ALTA",
+                    acao=acao.get("alvo_desc"),
+                    descricao="Calculadora médica retornou dose ou vazão positiva para entrada com valor nulo ou negativo sem exibir alerta de bloqueio.",
+                    sugestao="Adicionar guard clause estrita: exigir peso/dose estritamente positivos antes de calcular BIC ou dosagens."
+                )
+
+    def _adicionar_problema(self, categoria: str, gravidade: str, acao: str, descricao: str, sugestao: str):
+        # Evita duplicatas idênticas de problemas
+        for p in self.problemas:
+            if p["categoria"] == categoria and p["acao"] == acao:
+                p["ocorrencias"] += 1
+                return
+
+        item = {
+            "id": f"ISSUE-{len(self.problemas) + 1:03d}",
+            "categoria": categoria,
+            "gravidade": gravidade,
+            "acao": acao,
+            "descricao": descricao,
+            "sugestao": sugestao,
+            "ocorrencias": 1,
+            "timestamp": datetime.now().isoformat()
+        }
+        self.problemas.append(item)
+
+    def salvar_relatorios(self, grafo: Any, total_ciclos: int):
+        """Salva os relatórios em Markdown e JSON."""
+        self.output_md.parent.mkdir(parents=True, exist_ok=True)
+        self.output_json.parent.mkdir(parents=True, exist_ok=True)
+
+        duracao_seg = max(1, int((datetime.now() - self.inicio_sessao).total_seconds()))
+        minutos = duracao_seg // 60
+        segundos = duracao_seg % 60
+
+        tempos = [e["tempo_ms"] for e in self.eventos if e["tempo_ms"] > 0]
+        latencia_media = (sum(tempos) / len(tempos)) if tempos else 0.0
+
+        # Compilação JSON
+        dados_json = {
+            "meta": {
+                "gerado_em": datetime.now().isoformat(),
+                "duracao_formatada": f"{minutos}m {segundos}s",
+                "duracao_segundos": duracao_seg,
+                "total_ciclos": total_ciclos,
+                "total_eventos": len(self.eventos),
+                "latencia_media_ms": round(latencia_media, 1),
+                "telas_descobertas": len(grafo.nodes),
+                "botoes_clicados": len(grafo.botoes_globais_clicados),
+                "cobertura_estimada_pct": round(grafo.obter_cobertura_pct(), 1)
+            },
+            "problemas": self.problemas,
+            "eventos_recentes": self.eventos[-50:]
+        }
+
+        with open(self.output_json, "w", encoding="utf-8") as f:
+            json.dump(dados_json, f, ensure_ascii=False, indent=2)
+
+        # Compilação Markdown Rico
+        md_linhas = [
+            "# 📋 Relatório de Auditoria & Sugestões: Testador Master (Telegram)",
+            "",
+            f"> ⏱️ **Sessão executada em:** {datetime.now().strftime('%d/%m/%Y às %H:%M:%S')}  ",
+            f"> ⏳ **Duração total:** {minutos}m {segundos}s | **Ciclos concluídos:** {total_ciclos}  ",
+            f"> 📊 **Cobertura estimada:** {grafo.obter_cobertura_pct():.1f}% | **Telas descobertas:** {len(grafo.nodes)} | **Botões testados:** {len(grafo.botoes_globais_clicados)}  ",
+            f"> ⚡ **Latência média beira-leito:** {latencia_media:.1f}ms",
+            "",
+            "---",
+            "",
+            "## 🎯 Sumário Executivo de Diagnóstico",
+            "",
+            f"- **Total de anomalias detectadas:** {len(self.problemas)}",
+            f"- **Críticos / Bugs:** {sum(1 for p in self.problemas if p['gravidade'] == 'ALTA')}",
+            f"- **Oportunidades de UX / Ergonomia:** {sum(1 for p in self.problemas if 'UX' in p['categoria'] or 'ERGONOMIA' in p['categoria'])}",
+            f"- **Alertas de Performance / Latência:** {sum(1 for p in self.problemas if 'LATÊNCIA' in p['categoria'])}",
+            "",
+            "---",
+            "",
+            "## 🚨 Anomalias e Pontos de Atenção Identificados",
+            ""
+        ]
+
+        if not self.problemas:
+            md_linhas.extend([
+                "🎉 **Nenhum bug crítico ou falha estrutural foi detectada!**",
+                "O bot respondeu com alta consistência, teclados alinhados e latência excelente em todos os fluxos testados.",
+                ""
+            ])
+        else:
+            for p in self.problemas:
+                md_linhas.extend([
+                    f"### `{p['id']}` · {p['categoria']} ({p['gravidade']}) — `{p['acao']}`",
+                    f"- **Descrição:** {p['descricao']}",
+                    f"- **Ocorrências no teste:** {p['ocorrencias']}x",
+                    f"- **💡 Recomendação Cirúrgica:** {p['sugestao']}",
+                    ""
+                ])
+
+        md_linhas.extend([
+            "---",
+            "",
+            "## 💡 Catálogo de Sugestões Priorizadas para o Telegram Bot",
+            "",
+            "Com base na simulação do comportamento das personas (Plantonista de Choque, R1 Metódica, Gestor de Rotina, Fuzzer e Residente de Round), listamos as principais recomendações para elevar a experiência médica beira-leito:",
+            "",
+            "1. **Teclado de Retorno Universal ('🔙 Voltar' / '🏠 Início')**: Garantir que absolutamente todo comando clínico (ex: `/gaso`, `/dhe`, `/sri`, `/crcl`) termine com uma linha de botões de navegação, eliminando 100% dos *dead-ends* identificados.",
+            "2. **Resumo Visual em 1 Tela (Sem Scroll)**: Em condutas de PCR e Choque Séptico, limitar a primeira mensagem aos passos imediatos (1 a 3) com botões para aprofundar, evitando rolagem em situações de emergência.",
+            "3. **Feedback Háptico / Textual Imediato em Botões**: Nos callbacks de habit log e ações de rotina, responder `answerCallbackQuery` com texto dinâmico claro (ex: `✅ Concluído!`) para dar retorno instantâneo antes da renderização.",
+            "4. **Atalhos de 1 Toque para Cálculos Sequenciais**: Ao calcular `/dva nora 70`, oferecer botões imediatos de titulação rápida (`+0.05 mcg/kg/min`, `-0.05 mcg/kg/min`) para ajuste contínuo durante a infusão.",
+            "",
+            "---",
+            "",
+            "## 🗺️ Mapa de Menus e Telas Mapeadas pelo Crawler",
+            "",
+            "| ID da Tela | Título / Primeira Linha | Botões Disponíveis | Visitas |",
+            "| :--- | :--- | :--- | :--- |"
+        ])
+
+        for node_id, node in list(grafo.nodes.items())[:30]:
+            tot_botoes = len(node.arestas_saindo)
+            tit_limpo = node.titulo.replace("|", "-").replace("\n", " ").strip()
+            md_linhas.append(f"| `{node_id}` | {tit_limpo[:45]} | {tot_botoes} opções | {node.visitas} |")
+
+        md_linhas.extend([
+            "",
+            "---",
+            "*(Relatório gerado automaticamente pelo Ultra Rotina Testador Master)*"
+        ])
+
+        with open(self.output_md, "w", encoding="utf-8") as f:
+            f.write("\n".join(md_linhas) + "\n")

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 22:20:47
- * Checksum SHA256: dfc4f8b4cb46cc91
+ * Gerado automaticamente via build_master.py em: 2026-10-11 23:22:48
+ * Checksum SHA256: 1465f38e3a4ae8f8
  * ==============================================================================
  */
 
@@ -60,7 +60,9 @@ var ConfigService = (function() {
     IA_LOCAL_ENDPOINT: "http://127.0.0.1:11434/v1/chat/completions",
     IA_MODELOS_LOCAL: "llama3.1:latest,llama3:8b,mistral:latest,llama3:latest,mistral:7b",
     IA_LOCAL_TIMEOUT_MS: "12000",
-    IA_FALLBACK_OFFLINE_HABILITADO: "true"
+    IA_FALLBACK_OFFLINE_HABILITADO: "true",
+    TELEGRAM_TITULAR_NAME: "Dr. Wagner",
+    TELEGRAM_GUEST_NAME: "Dr. Vinicius"
   };
 
   return {
@@ -649,6 +651,16 @@ function ehUsuarioTitular(chatId) {
     ? ConfigService.getPrimary("TELEGRAM_CHAT_ID")
     : ((typeof ConfigService !== "undefined" && ConfigService.get) ? String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim() : "");
   return String(chatId).trim() === String(primary).trim();
+}
+
+/**
+ * Retorna o nome de tratamento do usuário atual (Dr. Wagner para titular, Dr. Vinicius para convidado).
+ */
+function obterNomeTratamentoUsuario(chatId) {
+  if (ehUsuarioTitular(chatId)) {
+    return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_TITULAR_NAME", "Dr. Wagner") : "Dr. Wagner";
+  }
+  return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_GUEST_NAME", "Dr. Vinicius") : "Dr. Vinicius";
 }
 
 /**
@@ -40894,7 +40906,7 @@ function classificarIntencaoMensagem(textoMensagem) {
   var tn = _iaNormalizarParaRegex(texto);
 
   // 1) Solicitação explícita de áudio ou preceptor socrático (incluindo atalhos rápidos)
-  if (/(?:me\s+)?respond(?:a|e)\s+(?:com\s+|em\s+)?(?:um\s+)?[aá]udio|no\s+fone|fala\s+comigo|preceptor\s+socr[aá]tico|\bsabatina\b|manda\s+[aá]udio|^(?:preceptor|áudio|audio|no\s+fone)\b/i.test(t)) {
+  if (/(?:me\s+)?respond(?:a|e)\s+(?:com\s+|em\s+)?(?:um\s+)?[aá]udio|no\s+fone|fala\s+comigo|preceptor\s+socr[aá]tico|\bsabatina\b|manda\s+[aá]udio|^(?:preceptor|áudio|audio|no\s+fone)\b|chama(?:r)?\s+(?:o\s+)?preceptor|falar?\s+com\s+(?:o\s+)?preceptor/i.test(t)) {
     return { intencao: "PRECEPTOR_VOZ", confianca: 0.99 };
   }
 
@@ -41040,7 +41052,7 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
     "MODO ADAPTATIVO - escolha o modo conforme a mensagem:",
     "1. EMERGÊNCIA: se descrever paciente instável ou risco de vida, aplique o modo emergência (ação prioritária na primeira linha, medicação com dose, via, preparo e velocidade, reavaliação, sem perguntas didáticas) e siga a checagem de segurança abaixo.",
     "2. DISCUSSÃO CLÍNICA: hipótese principal, achados que a sustentam, o que não pode ser perdido, próxima decisão e o dado pendente que mudaria a conduta. Tom de preceptor: firme, técnico, acolhedor.",
-    "3. PRECEPTORIA: se Wagner pedir para treinar, ou se o HISTÓRICO mostrar perguntas de preceptoria aguardando resposta, avalie a resposta dele: o que está correto, o que precisa de ajuste e por que, e aplique ao caso. Só entregue gabarito completo se ele pedir. Uma pergunta por vez.",
+    "3. PRECEPTORIA: se Wagner pedir para discutir um caso ou sabatina, avalie o caso real apresentado por ele: o que está correto, o que precisa de ajuste e por que, aplicando ao caso. NUNCA INVENTE DADOS DE PACIENTES aleatoriamente do nada. Se Wagner apenas chamou o preceptor ou não forneceu os dados do paciente, pergunte qual paciente ou caso ele quer discutir. Se faltarem dados (sinais vitais, exames), pergunte ativamente o dado faltante. Somente crie um caso simulado fictício se Wagner pedir expressamente por uma simulação de treino (ex: 'simule um caso', 'crie um caso de treino').",
     "4. ROTINA / VIDA PESSOAL / ESTUDO: assertivo, executivo e proativo; resultado e próximo passo primeiro. Conversa simples dispensa estrutura.",
     "",
     "EMBASAMENTO:",
@@ -41070,7 +41082,7 @@ function gerarProvocacaoPreceptorAudio(casoOuDuvida) {
     "1. Texto corrido, SEM tópicos, SEM markdown, SEM asteriscos, SEM emojis, SEM URLs.",
     "2. Emergência (ex: pneumotórax, choque, PCR): diga PRIMEIRO a ação prioritária imediata; só depois, uma pergunta curta de checagem.",
     "3. Caso clínico: aponte o achado semiológico discriminante ou o critério de gravidade mais crítico e termine com UMA pergunta de raciocínio.",
-    "4. Nunca invente dados do paciente. Não use LaTeX. Termine sempre com frase completa.",
+    "4. NUNCA INVENTE DADOS DO PACIENTE, idades, valores laboratoriais ou sinais vitais fictícios. Baseie-se estritamente no que Wagner informou. Se faltarem informações críticas (sinais vitais, exames ou histórico), PERGUNTE ATIVAMENTE o dado faltante para Wagner antes de propor condutas definitivas. Somente formule caso fictício se Wagner pedir expressamente uma simulação (ex: 'simule um caso'). Não use LaTeX. Termine sempre com frase completa.",
     "5. Você não é o médico responsável: em risco de vida, reforce acionar a equipe/preceptor."
   ].join("\n");
   var r = executarRaciocinioClinico(promptSistema, casoOuDuvida, 250);
@@ -41098,7 +41110,7 @@ function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagn
     "   - SEM tópicos, SEM markdown, SEM asteriscos, SEM emojis, SEM URLs, SEM introduções vazias.",
     "   - Termine com frase completa e UMA pergunta direta.",
     "   - Diretrizes brasileiras vigentes como base (SBC, SBPT, SBD, AMIB, Conitec).",
-    "   - Nunca invente dados do paciente."
+    "   - NUNCA invente dados do paciente. Se a resposta de Wagner estiver incompleta ou faltarem dados fundamentais para o desfecho clínico, pergunte diretamente o dado que falta em vez de presumir valores laboratoriais ou sinais vitais."
   ].join("\n");
 
   var partesUsuario = [];
@@ -41167,7 +41179,7 @@ function gerarCriticaSocraticaPreceptor(casoOuLeitoTexto) {
     "REGRAS:",
     "1. Uma ou duas frases completas, terminando em interrogação (?).",
     "2. Sem introdução, saudação, gabarito ou rodeios. Comece direto na pergunta.",
-    "3. Não invente dados do paciente. Não use LaTeX nem markdown. Português do Brasil natural.",
+    "3. Não invente dados do paciente. Não assuma valores numéricos ou achados não mencionados. Se o caso estiver omisso em dados críticos, pergunte o dado que falta. Não use LaTeX nem markdown. Português do Brasil natural.",
     "4. Se o caso descrever instabilidade, a pergunta deve focar a prioridade imediata de segurança."
   ].join("\n");
   var res = executarRaciocinioClinico(promptSistema, "CASO CLÍNICO:\n" + casoOuLeitoTexto, 400);
@@ -41917,10 +41929,11 @@ var RotinaService = {
         var tit = ev.getTitle() || "Compromisso";
         var cat = "clinico";
         var titLower = tit.toLowerCase();
-        if (/treino|academia|muscula/i.test(titLower)) cat = "treino";
-        else if (/medquest|anki|estudo|revis[aã]o|aula/i.test(titLower)) cat = "estudo";
+        if (/treino|academia|muscula|corrida|aer[oó]bico/i.test(titLower)) cat = "treino";
+        else if (/medquest|anki|estudo|revis[aã]o|aula|quest[oõ]es|teoria|ingl[eê]s|english|mastologia|pediatria|cirurgia|cl[ií]nica|gineco|obstetr/i.test(titLower)) cat = "estudo";
         else if (/sono|descanso|cochilo|recupera/i.test(titLower)) cat = "recuperacao";
-        else if (/plant[aã]o|ps|uti|enfermaria|ambulat/i.test(titLower)) cat = "clinico";
+        else if (/plant[aã]o|ps|uti|cti|enfermaria|ambulat|internato|usf|hospital|relat[oó]rio|pgr/i.test(titLower)) cat = "clinico";
+        else if (/viol[aã]o|m[uú]sica|h[aá]bito/i.test(titLower)) cat = "lifestyle";
         else cat = "lifestyle";
 
         blocos.push({
@@ -41934,6 +41947,11 @@ var RotinaService = {
           nota: (ev.getLocation ? ev.getLocation() : "") || "Agenda Google"
         });
       }
+
+      blocos.sort(function(a, b) {
+        return (a.inicio || "").localeCompare(b.inicio || "");
+      });
+
       return blocos;
     } catch (e) {
       Logger.log("Erro ao importar eventos do Google Calendar: " + e.message);
@@ -41946,12 +41964,29 @@ var RotinaService = {
     if (isNaN(ref.getTime())) ref = new Date();
 
     var salvos = RotinaService.obterBlocosSalvos(ref);
-    if (salvos && salvos.length > 0) return salvos;
-
     var blocosAgenda = RotinaService.importarEventosGoogleCalendar(ref);
+
+    // Se temos eventos da agenda Google, mesclamos status com blocos salvos anteriormente
     if (blocosAgenda && blocosAgenda.length > 0) {
+      if (salvos && salvos.length > 0) {
+        for (var i = 0; i < blocosAgenda.length; i++) {
+          var b = blocosAgenda[i];
+          for (var s = 0; s < salvos.length; s++) {
+            var sv = salvos[s];
+            if (sv.id === b.id || (sv.titulo && b.titulo && sv.titulo.trim().toLowerCase() === b.titulo.trim().toLowerCase())) {
+              if (sv.status && sv.status !== "pendente") {
+                b.status = sv.status;
+                if (sv.nota) b.nota = sv.nota;
+              }
+              break;
+            }
+          }
+        }
+      }
       return blocosAgenda;
     }
+
+    if (salvos && salvos.length > 0) return salvos;
 
     var stPl = typeof detectarPlantaoStatus === "function" ? detectarPlantaoStatus(ref) : { ehPlantaoHoje: false, ehPosPlantao: false };
     if (stPl && stPl.ehPosPlantao) {
@@ -43532,15 +43567,48 @@ function tratarComandoCalc(chatId, texto, contextoKey) {
 function rotearComandoSistema(comando, texto, chatId) {
   var cmdHandlers = {
     "/manual": function() {
-      var filtroManual = texto.replace(/^\/manual\s*/i, "").trim();
+      var filtroManual = texto.replace(/^\/manual\s*/i, "").trim() || "todas";
       return enviarManualCompletoComandos(chatId, filtroManual);
     },
     "/start": function() {
-      if (typeof enviarHubPrincipal === "function") {
-        enviarMensagemComTecladoFixo(chatId, "👋 *Olá, Dr. Wagner!* Use os botões ou envie seu caso por texto/áudio.");
-        return enviarHubPrincipal(chatId);
+      if (typeof ehUsuarioTitular === "function" && ehUsuarioTitular(chatId)) {
+        if (typeof enviarHubPrincipal === "function") {
+          enviarMensagemComTecladoFixo(chatId, "👋 *Olá, Dr. Wagner!* Use os botões ou envie seu caso por texto/áudio.");
+          return enviarHubPrincipal(chatId);
+        }
+        return enviarMensagemComTecladoFixo(chatId, "Use /menu para a Central de Comandos.");
       }
-      return enviarMensagemComTecladoFixo(chatId, "Use /menu para a Central de Comandos.");
+
+      // Experiência Acolhedora e Didática para Convidado (Dr. Vinicius)
+      var nomeConvidado = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Dr. Vinicius";
+      var msgBoasVindas = "👋 *Olá, " + nomeConvidado + "! Seja muito bem-vindo ao Ultra Rotina.*\n\n" +
+        "Este bot é o seu copiloto médico beira-leito para plantão, enfermaria e ambulatório. Você pode utilizá-lo de 3 maneiras super simples:\n\n" +
+        "📱 *1. Navegação Rápida por Botões:*\n" +
+        "Toque nos botões fixos no rodapé ou nos menus da tela para acessar na hora condutas de *Sala Vermelha*, *Enfermaria*, *Ambulatório* e *Calculadoras*.\n\n" +
+        "🎙️ *2. Fale ou Escreva Como Quiser (Texto ou Áudio):*\n" +
+        "Você NÃO precisa memorizar comandos com barra! Pode ditar um áudio ou escrever o caso clínico com suas próprias palavras (ex: _\"paciente 68 anos dor torácica típica há 1h\"_ ou _\"dose de vancomicina clearance 35\"_).\n\n" +
+        "⚡ *3. Calculadoras & Protocolos Instantâneos:*\n" +
+        "Atalhos diretos para cálculos em segundos (ex: `/gaso`, `/dva`, `/sri`, `/curb65`).\n\n" +
+        "💡 *Como começar:* Toque em um dos botões abaixo para ver o guia rápido, conferir exemplos práticos ou abrir a central de cenários clínicos:";
+
+      var tecladoBoasVindas = {
+        inline_keyboard: [
+          [
+            { text: "🚀 Como Usar em 3 Passos", callback_data: "ux:ajuda:passos" },
+            { text: "💡 Exemplos Práticos", callback_data: "ux:ajuda:exemplos" }
+          ],
+          [
+            { text: "⚡ Abrir Central de Cenários", callback_data: "ux:hub:inicio" },
+            { text: "📖 Manual de Comandos", callback_data: "ux:ajuda:todos" }
+          ]
+        ]
+      };
+
+      enviarMensagemComTecladoFixo(chatId, "👋 Bem-vindo, " + nomeConvidado + "! Teclado de navegação ativado no rodapé.");
+      if (typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, msgBoasVindas, tecladoBoasVindas);
+      }
+      return enviarMensagemParaChat(chatId, msgBoasVindas);
     },
     "/ajuda": function() {
       var filtroAjuda = texto.replace(/^\/(?:ajuda|help)\s*/i, "").trim();
@@ -43715,6 +43783,9 @@ function rotearAtalhoTecladoFixo(texto, comando, chatId) {
 
   // 11. Preceptor Voz
   if (texto === "🎧 Preceptor Voz") {
+    if (typeof iniciarOuConvidarDiscussaoPreceptor === "function") {
+      return { executado: true, resultado: iniciarOuConvidarDiscussaoPreceptor(chatId, { ehAudio: false }) };
+    }
     if (typeof iniciarModoBot === "function") return { executado: true, resultado: iniciarModoBot(chatId, "voz", false) };
     return { executado: true, resultado: enviarMensagemParaChat(chatId, "🎧 Grave ou envie um caso clínico para o Preceptor Socrático.") };
   }
@@ -43850,162 +43921,25 @@ function tratarComandoSri(chatId, texto) {
   }
 }
 
-function processarMensagemTexto(message) {
-  if (typeof tratarEntradaUX!=="undefined" && tratarEntradaUX(message)) return;
-  var texto = message.text ? message.text.trim() : "";
-  var textoLow = texto.toLowerCase();
-  var chatId = (message.chat && message.chat.id) ? message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
-  if (!texto) return;
 
-  // Interceptação imediata: Consulta explícita de últimas mudanças / o que mudou / deploy
-  if (/(?:(?:quais\s+(?:as\s+)?)?[úu]ltimas?\s+mudan[çc]as?(?:\s+feitas)?|o\s+que\s+mudou|ultimas?\s+altera[çc][õo]es?)/i.test(texto)) {
-    return tratarComandoUltimasMudancas(chatId);
+// ============================================================================
+// DESPACHADORES MODULARES POR DOMÍNIO CLÍNICO (DECOUPLING FASE 1)
+// ============================================================================
+
+function despacharComandosEmergenciaSalaVermelha_(comando, texto, chatId, message) {
+  // 1. Choque Séptico Refratário & CIRCI
+  if (comando === "/choqueseptico" || comando === "/septico" || comando === "/circi" || comando === "/vasopressina") {
+    return { executado: true, resultado: tratarComandoChoqueSeptico(chatId, texto) };
   }
 
-  try {
-    // 0A. Roteamento Inteligente de Termos Coloquiais e Siglas do Plantão
-    if (tentarRoteamentoColoquialPlantao(texto, chatId)) return;
-
-    // 0B. Dicionário de Correção de Erros de Digitação Comuns (Typos)
-    var mapaTypos = {
-      "clearence": "/crcl", "clerance": "/crcl", "clerence": "/crcl",
-      "gasometria": "/gaso", "gasoarterial": "/gaso",
-      "intubacao": "/sri", "intubação": "/sri", "entubacao": "/sri", "entubação": "/sri",
-      "amoxilina": "amoxi", "amoxil": "amoxi",
-      "receita": "/rx", "prescricao": "/rx", "prescrição": "/rx",
-      "adrenalina": "/dva", "noradrenalina": "/dva nora", "dobutamina": "/dva dobuta",
-      "eap": "/conduta EAP hipertensivo", "parada": "/conduta PCR"
-    };
-    var primPalavra = textoLow.split(/\s+/)[0].replace(/^\//, "");
-    if (mapaTypos[primPalavra]) {
-      var cmdCorrigido = mapaTypos[primPalavra];
-      if (cmdCorrigido.charAt(0) === "/") {
-        var restoTxt = texto.split(/\s+/).slice(1).join(" ");
-        return processarMensagemTexto({ chat: message.chat, text: cmdCorrigido + (restoTxt ? " " + restoTxt : "") });
-      }
-    }
-
-    // 0C. Normalização de Comandos Canônicos digitados sem barra (/)
-    if (texto.charAt(0) !== "/") {
-      if (/(?:choque\s+s[eé]ptico(?:\s+refrat[aá]rio)?|\bcirci\b)/i.test(texto)) {
-        return processarMensagemTexto({ chat: message.chat, text: "/choqueseptico " + texto });
-      }
-      var comandosSemBarra = [
-        "menu", "ajuda", "help", "manual", "start", "novo", "cancelar", "cockpit", "app",
-        "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot",
-        "pcr", "acls", "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
-        "prenatal", "parto", "ginecologia", "go", "obstetricia", "oftalmo", "vertigem", "epistaxe", "colica",
-        "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
-        "swansea", "colestase", "monoartrite", "febrereumatica", "pancreatite",
-        "diabetes", "anemia", "intox", "sca",
-        "avc", "hic", "kdigo", "dhe", "eletrolitos", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia",
-        "dengue", "arbovirose", "chikungunya", "zika", "pac", "pneumonia", "itu", "cistite", "pielonefrite",
-        "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "crisehas", "has", "cefaleia", "dorcabeca",
-        "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan",
-        "glasgow", "choque", "eap", "anafilaxia", "convulsao", "hipercalemia", "hipoglicemia",
-        "mudancas", "deploy"
-      ];
-      if (comandosSemBarra.indexOf(primPalavra) !== -1) {
-        var ehEvolucaoLeitoNatural = (primPalavra === "leito" || primPalavra === "quarto") &&
-          /^(?:leito|quarto)\s*[:#]?\s*[a-zA-Z0-9_-]{1,24}\s*[:,-]\s+/i.test(texto);
-        if (!ehEvolucaoLeitoNatural) {
-          texto = "/" + texto;
-          textoLow = texto.toLowerCase();
-        }
-      }
-    }
-
-    var comando = textoLow.split(/\s/)[0];
-    var contextoCache = CacheService.getScriptCache();
-    var contextoKey = "ctx_" + chatId;
-
-    // Gerenciamento de Memória (Contexto Clínico)
-    if (comando === "/cancelar" || comando === "/novo" || texto === "🩺 Novo SOAP" || texto === "🧹 Novo Paciente" || texto === "🧹 Novo" || texto === "🧹 Limpar Paciente" || texto === "🧹 Limpar Memória") {
-      if (typeof limparEstadoBot === "function") {
-        try { limparEstadoBot(chatId); } catch (eLimp) {}
-      } else {
-        contextoCache.remove(contextoKey);
-        contextoCache.remove("modo_" + chatId);
-        contextoCache.remove("leito_" + chatId);
-        contextoCache.remove("dvaw_" + chatId);
-        contextoCache.remove("pending_" + chatId);
-      }
-      if (typeof cancelarAcoesPendentes === "function") {
-        try { cancelarAcoesPendentes(chatId); } catch (eCanc) {}
-      }
-      return enviarMensagemComTecladoFixo(chatId, "🧹 *Memória limpa.* Pronto para o próximo paciente!");
-    }
-
-    // 1. Despacho O(1) de Atalhos do Teclado Fixo Persistente
-    var resAtalho = rotearAtalhoTecladoFixo(texto, comando, chatId);
-    if (resAtalho.executado) {
-      return resAtalho.resultado;
-    }
-
-  // Se houver diálogo socrático ativo do Preceptor e Wagner enviou resposta de texto (não comando):
-  var diagAtivo = (typeof obterDialogoPreceptor === "function") ? obterDialogoPreceptor(chatId) : null;
-  if (diagAtivo && diagAtivo.em_andamento) {
-    if (texto.charAt(0) !== "/" && !/^(?:📱|🚨|💊|🏥|📅|📋|🩸|🏁|🎧|🧠|⚙️)/.test(texto)) {
-      return processarRespostaPreceptorSocratico(chatId, texto, false);
-    }
-  }
-
-  // Se não for um comando com barra (/), verifica se tem contexto salvo para complementar
-  if (texto.charAt(0) !== "/") {
-    var contextoAnterior = contextoCache.get(contextoKey);
-    if (contextoAnterior) {
-      texto = contextoAnterior + "\n[Nova Informação do Usuário]: " + texto;
-      comando = contextoAnterior.split(/\s/)[0].toLowerCase();
-    }
-  }
-
-  var clinicos = ["/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/toxo", "/toxoplasmose", "/avidez", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/dip", "/pelvica", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/voz", "/sabatina", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehas", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan", "/leitos", "/censo"];
-
-  // Se for comando clínico, salva no contexto de conversação (15 min)
-  if (clinicos.indexOf(comando) !== -1) {
-    if (comando !== "/voz" && comando !== "/sabatina" && typeof limparDialogoPreceptor === "function") {
-      try { limparDialogoPreceptor(chatId); } catch (eLimparP) {}
-    }
-    if (texto.length > 6000) {
-      return enviarMensagemParaChat(chatId, "⚠️ O caso excedeu o limite de caracteres. Use `/novo` e resuma.");
-    }
-    safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
-    if(typeof definirModoBot!=="undefined") {
-      var mapaModos={"/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/toxo":"toxo","/toxoplasmose":"toxo","/avidez":"toxo","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/dip":"dip","/pelvica":"dip","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehas":"crisehipertensiva","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito","/leitos":"enfermaria","/censo":"enfermaria"};
-      if (mapaModos[comando]) {
-        var dadosCmd = texto.replace(/^\/\w+\s*/, "").trim();
-        if (dadosCmd.length > 0) {
-          definirModoBot(chatId, mapaModos[comando], dadosCmd);
-        }
-      }
-    }
-  } else if (texto.charAt(0) === "/") {
-    contextoCache.remove(contextoKey);
-    if (typeof limparDialogoPreceptor === "function") {
-      try { limparDialogoPreceptor(chatId); } catch (eLimparP2) {}
-    }
-  }
-
-    // 2. Despacho O(1) de Comandos de Sistema
-    var resSistema = rotearComandoSistema(comando, texto, chatId);
-    if (resSistema.executado) {
-      return resSistema.resultado;
-    }
-
-    // 3. Choque Séptico Refratário & CIRCI
-    if (comando === "/choqueseptico" || comando === "/septico" || comando === "/circi" || comando === "/vasopressina") {
-      return tratarComandoChoqueSeptico(chatId, texto);
-    }
-
-
-  // 3. COMANDOS CLÍNICOS E SALA VERMELHA
+  // 2. Calculadora de Drogas Vasoativas (DVA) & Compatibilidade em Y
   if (comando === "/dva" || comando === "/compatibilidade" || comando === "/compatibilidade_y") {
     var dadosDva = texto.replace(/^\/(?:dva|compatibilidade|compatibilidade_y)\s*/i, "").trim();
     if (!dadosDva) {
       if (comando === "/dva" && typeof enviarMenuDva === "function") {
-        return enviarMenuDva(chatId);
+        return { executado: true, resultado: enviarMenuDva(chatId) };
       }
-      return enviarMensagemParaChat(chatId, "💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nUso: `/dva <droga> <pesoKg> [solução]`\n💡 *Exemplos:*\n• `/dva nora 70` (Noradrenalina padrão)\n• `/dva nora 80 concentrada` (Solução 2x)\n• `/dva dobuta 65`\n• `/dva vaso`\n• `/dva nipride 75`\n• `/dva tridil`\n\n🔬 *Compatibilidade em Y (Prescrição Combinada / BIC):*\n• `/dva y nora dobuta` (Checar se podem correr no mesmo lúmen)\n• `/dva y nora furosemida` (Alerta de precipitação físico-química)");
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "💉 *CALCULADORA DE DROGAS VASOATIVAS (DVA)*\n\nUso: `/dva <droga> <pesoKg> [solução]`\n💡 *Exemplos:*\n• `/dva nora 70` (Noradrenalina padrão)\n• `/dva nora 80 concentrada` (Solução 2x)\n• `/dva dobuta 65`\n• `/dva vaso`\n• `/dva nipride 75`\n• `/dva tridil`\n\n🔬 *Compatibilidade em Y (Prescrição Combinada / BIC):*\n• `/dva y nora dobuta` (Checar se podem correr no mesmo lúmen)\n• `/dva y nora furosemida` (Alerta de precipitação físico-química)") };
     }
     var partesDva = dadosDva.split(/\s+/);
 
@@ -44016,7 +43950,7 @@ function processarMensagemTexto(message) {
       var d2Y = (partesDva[0].toLowerCase() === "y" || partesDva[0].toLowerCase() === "compatibilidade" || partesDva[0].toLowerCase() === "crosscheck") ? partesDva[2] : partesDva[1];
       if (d1Y && d2Y && typeof CompatibilidadeYDvaService !== "undefined") {
         var parecerY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(d1Y, d2Y);
-        return enviarMensagemParaChat(chatId, parecerY);
+        return { executado: true, resultado: enviarMensagemParaChat(chatId, parecerY) };
       }
     }
 
@@ -44026,7 +43960,7 @@ function processarMensagemTexto(message) {
       var d2Norm = CompatibilidadeYDvaService.normalizarNomeDroga(partesDva[1]);
       if (CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA[d1Norm] || CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA[d2Norm]) {
         var parecerAutoY = CompatibilidadeYDvaService.formatarParecerCompatibilidadeY(partesDva[0], partesDva[1]);
-        return enviarMensagemParaChat(chatId, parecerAutoY);
+        return { executado: true, resultado: enviarMensagemParaChat(chatId, parecerAutoY) };
       }
     }
 
@@ -44050,11 +43984,11 @@ function processarMensagemTexto(message) {
       }
     } else {
       if (partesDva.length < 2 || !partesDva[1]) {
-        return enviarMensagemParaChat(chatId, "⚠️ *Peso obrigatório:* Para " + partesDva[0] + ", informe o peso do paciente em kg.\n\n💡 *Exemplo:* `/dva " + partesDva[0] + " 70` ou `/dva " + partesDva[0] + " 70,5`");
+        return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ *Peso obrigatório:* Para " + partesDva[0] + ", informe o peso do paciente em kg.\n\n💡 *Exemplo:* `/dva " + partesDva[0] + " 70` ou `/dva " + partesDva[0] + " 70,5`") };
       }
       pesoDva = sanitizarEValidarPesoKg(partesDva[1]);
       if (pesoDva === null) {
-        return enviarMensagemParaChat(chatId, "⚠️ *Peso inválido:* \"" + partesDva[1] + "\" não é um peso válido em kg. Digite um valor numérico positivo (ex: `/dva " + partesDva[0] + " 70` ou `/dva " + partesDva[0] + " 70,5`).");
+        return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ *Peso inválido:* \"" + partesDva[1] + "\" não é um peso válido em kg. Digite um valor numérico positivo (ex: `/dva " + partesDva[0] + " 70` ou `/dva " + partesDva[0] + " 70,5`).") };
       }
       solucaoDva = partesDva.slice(2).join(" ") || "padrao";
     }
@@ -44062,7 +43996,7 @@ function processarMensagemTexto(message) {
     try {
       var resDva = CalculadorasClinicas.drogasVasoativas(nomeDroga, pesoDva, solucaoDva);
       if (resDva && resDva.erro) {
-        return enviarMensagemParaChat(chatId, "⚠️ " + resDva.erro);
+        return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ " + resDva.erro) };
       }
       if (resDva && resDva.textoFormatado) {
         var cacheDva = (typeof uxCache === "function") ? uxCache() : CacheService.getScriptCache();
@@ -44085,42 +44019,46 @@ function processarMensagemTexto(message) {
           }
         }
         if (tecladoDva) {
-          return enviarMensagemComTecladoParaChat(chatId, resDva.textoFormatado, tecladoDva);
+          return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, resDva.textoFormatado, tecladoDva) };
         } else {
-          return enviarMensagemParaChat(chatId, resDva.textoFormatado);
+          return { executado: true, resultado: enviarMensagemParaChat(chatId, resDva.textoFormatado) };
         }
       }
-      return enviarMensagemParaChat(chatId, "⚠️ Droga não reconhecida. Opções: `nora`, `dobuta`, `vaso`, `nipride`, `tridil`.");
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Droga não reconhecida. Opções: `nora`, `dobuta`, `vaso`, `nipride`, `tridil`.") };
     } catch (eDva) {
       Logger.log("Erro /dva: " + eDva.message);
-      return enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular DVA. Tente novamente.");
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Erro ao calcular DVA. Tente novamente.") };
     }
   }
 
-  // 3.1. Sequência Rápida de Intubação (SRI / IOT)
+  // 3. Sequência Rápida de Intubação (SRI / IOT)
   if (comando === "/sri" || comando === "/iot") {
-    return tratarComandoSri(chatId, texto);
+    return { executado: true, resultado: tratarComandoSri(chatId, texto) };
   }
 
-  // 3.1. PROTOCOLO DE PCR / ACLS BEIRA-LEITO (SALA VERMELHA)
+  // 4. PROTOCOLO DE PCR / ACLS BEIRA-LEITO (SALA VERMELHA)
   if (comando === "/pcr" || comando === "/acls") {
     var dadosPcrCmd = texto.replace(/^\/(?:pcr|acls)\s*/i, "").trim();
-    return tratarComandoPcr(chatId, dadosPcrCmd);
+    return { executado: true, resultado: tratarComandoPcr(chatId, dadosPcrCmd) };
   }
 
-  // 3.1.1. PROTOCOLO DE ARRITMIAS CARDÍACAS (ACLS)
+  // 5. PROTOCOLO DE ARRITMIAS CARDÍACAS (ACLS)
   if (comando === "/arritmia" || comando === "/taquiarritmia" || comando === "/taquicardia" || comando === "/bradiarritmia" || comando === "/bradicardia") {
     var dadosArrCmd = texto.replace(/^\/(?:arritmia|taquiarritmia|taquicardia|bradiarritmia|bradicardia)\s*/i, "").trim();
-    return tratarComandoArritmia(chatId, comando, dadosArrCmd);
+    return { executado: true, resultado: tratarComandoArritmia(chatId, comando, dadosArrCmd) };
   }
 
+  return { executado: false };
+}
+
+function despacharComandosAmbulatorioESoap_(comando, texto, chatId, contextoCache, contextoKey) {
   if (comando === "/soap") {
     var casoClinico = texto.replace(/^\/soap\s*/i, "").trim();
     if (!casoClinico) {
       if (typeof iniciarModoBot === "function") {
-        return iniciarModoBot(chatId, "soap", true);
+        return { executado: true, resultado: iniciarModoBot(chatId, "soap", true) };
       }
-      return enviarMensagemComTecladoParaChat(chatId,
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId,
         "🩺 *MODO SOAP · ANAMNESE & EXAME CLÍNICO*\n\n" +
         "Envie o caso clínico narrado ou em tópicos para estruturação em prontuário PEP.\n\n" +
         "💡 *Exemplo:* `/soap Mulher 68a, dor epigástrica em queimação há 3 semanas, sem vômitos, PA 130/80`",
@@ -44135,14 +44073,14 @@ function processarMensagemTexto(message) {
             ]
           ]
         }
-      );
+      ) };
     }
     safePutCache(contextoCache, contextoKey, casoClinico, 900);
     if (typeof definirModoBot !== "undefined") definirModoBot(chatId, "soap", casoClinico);
     if (typeof processarEntradaSoap === "function") {
-      return processarEntradaSoap(chatId, casoClinico);
+      return { executado: true, resultado: processarEntradaSoap(chatId, casoClinico) };
     }
-    return processarEEntregarIA(chatId, gerarSOAPComIA, casoClinico, "soap");
+    return { executado: true, resultado: processarEEntregarIA(chatId, gerarSOAPComIA, casoClinico, "soap") };
   }
 
   if (comando === "/soap_ambulatorial" || comando === "/ambulatorio" || comando === "/soap_aps") {
@@ -44171,20 +44109,20 @@ function processarMensagemTexto(message) {
           ]
         ]
       };
-      return enviarMensagemComTecladoParaChat(chatId, msgGuiaAmb, tecladoAmb);
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, msgGuiaAmb, tecladoAmb) };
     }
     safePutCache(contextoCache, contextoKey, casoAmb, 900);
     if (typeof definirModoBot !== "undefined") definirModoBot(chatId, "soap", casoAmb);
-    return processarEEntregarIA(chatId, function(c) {
+    return { executado: true, resultado: processarEEntregarIA(chatId, function(c) {
       return gerarSOAPComIA(c, { ambulatorialAgil: true, fecharPlano: true });
-    }, casoAmb, "soap");
+    }, casoAmb, "soap") };
   }
 
   if (comando === "/atestado") {
     var dadosAt = texto.replace(/^\/atestado\s*/i, "").trim();
     if (!dadosAt) {
       if (typeof enviarTelaAmbAtestado === "function") {
-        return enviarTelaAmbAtestado(chatId);
+        return { executado: true, resultado: enviarTelaAmbAtestado(chatId) };
       }
       var msgAjudaAt = "📜 *GERADOR DE ATESTADO MÉDICO LEGAL (RESOLUÇÃO CFM 1.658/2002)*\n\n" +
         "Envie a quantidade de dias e o motivo ou paciente:\n\n" +
@@ -44209,7 +44147,7 @@ function processarMensagemTexto(message) {
           ]
         ]
       };
-      return enviarMensagemComTecladoParaChat(chatId, msgAjudaAt, tecladoAjudaAt);
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, msgAjudaAt, tecladoAjudaAt) };
     }
     var mDias = dadosAt.match(/(\d+)\s*dias?/i);
     var qtdDias = mDias ? parseInt(mDias[1], 10) : 1;
@@ -44255,16 +44193,16 @@ function processarMensagemTexto(message) {
       ]
     };
     var msgAtestado = "📜 *ATESTADO MÉDICO PRONTO PARA O PRONTUÁRIO / PEP:*\n\n```\n" + textoAtestado + "\n```\n\n_Toque no botão abaixo para copiar direto para o prontuário eletrônico (PEP)._";
-    return enviarMensagemComTecladoParaChat(chatId, msgAtestado, tecladoAtestado);
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, msgAtestado, tecladoAtestado) };
   }
 
   if (comando === "/cid" || comando === "/ciap") {
     var termoCid = texto.replace(/^\/(cid|ciap)\s*/i, "").trim();
     if (!termoCid) {
       if (typeof enviarTelaAmbCid === "function") {
-        return enviarTelaAmbCid(chatId);
+        return { executado: true, resultado: enviarTelaAmbCid(chatId) };
       }
-      return enviarMensagemComTecladoParaChat(chatId,
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId,
         "🏷️ *BUSCA DE CID-10 & CIAP-2 (ATENÇÃO PRIMÁRIA / UBS)*\n\nEnvie o diagnóstico desejado (ex: `/cid lombalgia`, `/cid has`, `/cid diabetes`).",
         {
           inline_keyboard: [
@@ -44272,7 +44210,7 @@ function processarMensagemTexto(message) {
             [{ text: "🔙 Ambulatório", callback_data: "ux:hub:amb" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
           ]
         }
-      );
+      ) };
     }
     var matchesCid = (typeof SoapAmbulatorialService !== "undefined")
       ? SoapAmbulatorialService.buscarDiagnostico(termoCid)
@@ -44310,9 +44248,9 @@ function processarMensagemTexto(message) {
           ]
         ]
       };
-      return enviarMensagemComTecladoParaChat(chatId, textoResCid, tecladoResCid);
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, textoResCid, tecladoResCid) };
     } else {
-      var msgNaoEnc = "🏷️ *BUSCA DE CID-10 & CIAP-2*\n\nNenhum código direto encontrado no catálogo básico para: _" + termoCid + "_.\n\n" +
+      var msgNaoEnc = "🏷️ *BUSCA DE CID-10 & CIAP-2*\n\nNenhum código direto encontrado no catálogo básico para: _" + termoCid + "_\n\n" +
         "💡 *Dica:* Tente pesquisar por termo amplo (ex: `/cid has`, `/cid diabetes`, `/cid dor de cabeca`, `/cid asma`).";
       var tecladoNaoEnc = {
         inline_keyboard: [
@@ -44323,16 +44261,20 @@ function processarMensagemTexto(message) {
           ]
         ]
       };
-      return enviarMensagemComTecladoParaChat(chatId, msgNaoEnc, tecladoNaoEnc);
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, msgNaoEnc, tecladoNaoEnc) };
     }
   }
 
   if (comando === "/remume") {
     if (typeof enviarTelaAmbRemume === "function") {
-      return enviarTelaAmbRemume(chatId);
+      return { executado: true, resultado: enviarTelaAmbRemume(chatId) };
     }
   }
 
+  return { executado: false };
+}
+
+function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
   if (comando === "/prenatal" || comando === "/dpp") {
     var dadosPn = texto.replace(/^\/(prenatal|dpp)\s*/i, "").trim();
     if (!dadosPn) {
@@ -44344,7 +44286,7 @@ function processarMensagemTexto(message) {
         "• `/prenatal DUM 15/01/2026 USG 10/03/2026 8s2d` *(concordância FEBRASGO/ACOG)*\n" +
         "• `/prenatal med Enalapril, Sinvastatina, Paracetamol` *(validador farmacológico)*\n\n" +
         "_Todas as condutas e rastreios seguem rigorosamente as diretrizes FEBRASGO e MS._";
-      return enviarMensagemComTecladoParaChat(chatId, msgAjudaPn, {
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, msgAjudaPn, {
         inline_keyboard: [
           [
             { text: "🤰 Caso DUM 10/02/2026", callback_data: "ux:go:prenatal:dum" },
@@ -44355,11 +44297,11 @@ function processarMensagemTexto(message) {
             { text: "🏠 Início", callback_data: "ux:hub:inicio" }
           ]
         ]
-      });
+      }) };
     }
 
     if (typeof ObstetriciaPrenatalService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaPrenatalService indisponível temporariamente.");
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaPrenatalService indisponível temporariamente.") };
     }
 
     // Se for consulta de med/farmaco
@@ -44387,7 +44329,7 @@ function processarMensagemTexto(message) {
         var ckAudit = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
         var cacheAudit = (typeof uxCache === "function") ? uxCache() : null;
         if (cacheAudit && typeof safePutCache === "function") safePutCache(cacheAudit, ckAudit, textoAudit, 21600);
-        return enviarMensagemComTecladoParaChat(chatId, textoAudit, {
+        return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, textoAudit, {
           inline_keyboard: [
             [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckAudit }],
             [
@@ -44395,7 +44337,7 @@ function processarMensagemTexto(message) {
               { text: "🏠 Início", callback_data: "ux:hub:inicio" }
             ]
           ]
-        });
+        }) };
       }
     }
 
@@ -44445,7 +44387,7 @@ function processarMensagemTexto(message) {
         var ckSoro = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
         var cacheSoro = (typeof uxCache === "function") ? uxCache() : null;
         if (cacheSoro && typeof safePutCache === "function") safePutCache(cacheSoro, ckSoro, laudoSoro.textoFormatado, 21600);
-        return enviarMensagemComTecladoParaChat(chatId, "📋 *INTERPRETAÇÃO DE EXAMES E CONDUTA NO PRÉ-NATAL:*\n\n```\n" + laudoSoro.textoFormatado + "\n```", {
+        return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, "📋 *INTERPRETAÇÃO DE EXAMES E CONDUTA NO PRÉ-NATAL:*\n\n```\n" + laudoSoro.textoFormatado + "\n```", {
           inline_keyboard: [
             [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckSoro }],
             [
@@ -44453,7 +44395,7 @@ function processarMensagemTexto(message) {
               { text: "🏠 Início", callback_data: "ux:hub:inicio" }
             ]
           ]
-        });
+        }) };
       }
     }
 
@@ -44485,14 +44427,14 @@ function processarMensagemTexto(message) {
 
     var resumo = ObstetriciaPrenatalService.gerarResumoConsultaPrenatal(paramsPn);
     if (!resumo.sucesso) {
-      return enviarMensagemParaChat(chatId, "⚠️ " + (resumo.erro || "Não foi possível calcular o pré-natal com os dados informados."));
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ " + (resumo.erro || "Não foi possível calcular o pré-natal com os dados informados.")) };
     }
 
     var ckPn = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
     var cachePn = (typeof uxCache === "function") ? uxCache() : null;
     if (cachePn && typeof safePutCache === "function") safePutCache(cachePn, ckPn, resumo.textoFormatado, 21600);
 
-    return enviarMensagemComTecladoParaChat(chatId, "🤰 *AVALIAÇÃO DE PRÉ-NATAL E CRONOLOGIA OBSTÉTRICA:*\n\n```\n" + resumo.textoFormatado + "\n```", {
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, "🤰 *AVALIAÇÃO DE PRÉ-NATAL E CRONOLOGIA OBSTÉTRICA:*\n\n```\n" + resumo.textoFormatado + "\n```", {
       inline_keyboard: [
         [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckPn }],
         [
@@ -44500,7 +44442,7 @@ function processarMensagemTexto(message) {
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
-    });
+    }) };
   }
 
   // Comandos de Centro Obstétrico e Emergências (Pré-parto & Sala de Parto)
@@ -44509,16 +44451,16 @@ function processarMensagemTexto(message) {
 
     if (!dadosCo) {
       if (typeof enviarTelaGOParto === "function" && (comando === "/parto" || comando === "/co")) {
-        return enviarTelaGOParto(chatId);
+        return { executado: true, resultado: enviarTelaGOParto(chatId) };
       }
       if (typeof enviarTelaGOHpp === "function" && comando === "/hpp") {
-        return enviarTelaGOHpp(chatId);
+        return { executado: true, resultado: enviarTelaGOHpp(chatId) };
       }
       if (typeof enviarTelaGOMgso4 === "function" && (comando === "/mgso4" || comando === "/preeclampsia")) {
-        return enviarTelaGOMgso4(chatId);
+        return { executado: true, resultado: enviarTelaGOMgso4(chatId) };
       }
       if (typeof enviarTelaGOPrematuridade === "function" && (comando === "/prematuridade" || comando === "/gbs")) {
-        return enviarTelaGOPrematuridade(chatId);
+        return { executado: true, resultado: enviarTelaGOPrematuridade(chatId) };
       }
       var msgAjudaCo = "🏥 *CENTRO OBSTÉTRICO & SALA DE PARTO (PROTOCOLOS DE EMERGÊNCIA)*\n\n" +
         "Envie os achados clínicos ou parâmetros do caso:\n\n" +
@@ -44529,7 +44471,7 @@ function processarMensagemTexto(message) {
         "• `/gbs ig 35s bolsa rota 20h sem cultura` *(profilaxia para Streptococcus agalactiae)*\n" +
         "• `/prematuridade ig 29s ameaca parto rpm` *(betametasona, neuroproteção <32s, tocólise e latência)*\n\n" +
         "_Algoritmos estritamente alinhados às diretrizes da FEBRASGO, Ministério da Saúde e ACOG._";
-      return enviarMensagemComTecladoParaChat(chatId, msgAjudaCo, {
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, msgAjudaCo, {
         inline_keyboard: [
           [
             { text: "🏥 Fase Ativa de Parto", callback_data: "ux:go:parto:ativa" },
@@ -44544,11 +44486,11 @@ function processarMensagemTexto(message) {
             { text: "🏠 Início", callback_data: "ux:hub:inicio" }
           ]
         ]
-      });
+      }) };
     }
 
     if (typeof CentroObstetricoService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo CentroObstetricoService indisponível temporariamente.");
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Módulo CentroObstetricoService indisponível temporariamente.") };
     }
 
     var cenario = {};
@@ -44665,7 +44607,7 @@ function processarMensagemTexto(message) {
     var cacheCo = (typeof uxCache === "function") ? uxCache() : null;
     if (cacheCo && typeof safePutCache === "function") safePutCache(cacheCo, ckCo, resumo.textoFormatado, 21600);
 
-    return enviarMensagemComTecladoParaChat(chatId, "🏥 *CONDUTA DE CENTRO OBSTÉTRICO (PRE-PARTO & SALA DE PARTO):*\n\n```\n" + resumo.textoFormatado + "\n```", {
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, "🏥 *CONDUTA DE CENTRO OBSTÉTRICO (PRE-PARTO & SALA DE PARTO):*\n\n```\n" + resumo.textoFormatado + "\n```", {
       inline_keyboard: [
         [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckCo }],
         [
@@ -44673,23 +44615,21 @@ function processarMensagemTexto(message) {
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
-    });
+    }) };
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // GINECOLOGIA AMBULATORIAL DE CONSULTÓRIO (INCA/MS, FIGO, OMS, PCDT ISTs)
-  // ───────────────────────────────────────────────────────────────────────────
+  // 3. Ginecologia Ambulatorial (/go, /obstetricia, /ginecologia, /preventivo, /sua, /anticoncepcao, /leucorreia, /corrimento)
   if (comando === "/go" || comando === "/obstetricia" || comando === "/ginecologia" || comando === "/preventivo" || comando === "/sua" || comando === "/anticoncepcao" || comando === "/leucorreia" || comando === "/corrimento") {
     var dadosGin = texto.replace(/^\/\w+\s*/, "").trim();
     if (!dadosGin || comando === "/go" || (comando === "/obstetricia" && !dadosGin)) {
       if (typeof enviarTelaGOPreventivo === "function" && comando === "/preventivo") {
-        return enviarTelaGOPreventivo(chatId);
+        return { executado: true, resultado: enviarTelaGOPreventivo(chatId) };
       }
       if (typeof enviarTelaGOAnticoncepcao === "function" && comando === "/anticoncepcao") {
-        return enviarTelaGOAnticoncepcao(chatId);
+        return { executado: true, resultado: enviarTelaGOAnticoncepcao(chatId) };
       }
       if (typeof enviarTelaGOCorrimento === "function" && (comando === "/corrimento" || comando === "/leucorreia")) {
-        return enviarTelaGOCorrimento(chatId);
+        return { executado: true, resultado: enviarTelaGOCorrimento(chatId) };
       }
       var msgAjudaGin = "🌸🤰 *HUB DE GINECOLOGIA & OBSTETRÍCIA (INTERNATO)*\n" +
         "📅 *Estágio Ativo até 29/11* — Guia Rápido Beira-Leito\n\n" +
@@ -44704,11 +44644,11 @@ function processarMensagemTexto(message) {
         "• 🩺 *Preventivo / Citopatológico:* `/preventivo lsil 28 anos`\n" +
         "• 💊 *Anticoncepção OMS:* `/anticoncepcao 35 anos enxaqueca com aura`\n" +
         "• 🩹 *DIP & Infecção Pélvica:* `/dip febre dor anexial corrimento purulento`";
-      return enviarMensagemComTecladoParaChat(chatId, msgAjudaGin, construirTecladoHubGO());
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, msgAjudaGin, construirTecladoHubGO()) };
     }
 
     if (typeof GinecologiaAmbulatorialService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo GinecologiaAmbulatorialService indisponível temporariamente.");
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Módulo GinecologiaAmbulatorialService indisponível temporariamente.") };
     }
 
     var cenario = {};
@@ -44820,7 +44760,7 @@ function processarMensagemTexto(message) {
     var cacheGin = (typeof uxCache === "function") ? uxCache() : null;
     if (cacheGin && typeof safePutCache === "function") safePutCache(cacheGin, ckGin, textoResumo, 21600);
 
-    return enviarMensagemComTecladoParaChat(chatId, "🌸 *CONDUTA DE GINECOLOGIA AMBULATORIAL:*\n\n```\n" + textoResumo + "\n```", {
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, "🌸 *CONDUTA DE GINECOLOGIA AMBULATORIAL:*\n\n```\n" + textoResumo + "\n```", {
       inline_keyboard: [
         [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckGin }],
         [
@@ -44828,15 +44768,15 @@ function processarMensagemTexto(message) {
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
-    });
+    }) };
   }
 
-  // Comandos de Infecção Pélvica & DIP (/dip)
+  // 4. Doença Inflamatória Pélvica (/dip, /pelvica)
   if (comando === "/dip" || comando === "/pelvica") {
     var dadosDip = texto.replace(/^\/(dip|pelvica)\s*/i, "").trim();
     if (!dadosDip) {
       if (typeof enviarTelaGODip === "function") {
-        return enviarTelaGODip(chatId);
+        return { executado: true, resultado: enviarTelaGODip(chatId) };
       }
       var msgAjudaDip = "🩹 *DOENÇA INFLAMATÓRIA PÉLVICA (DIP) & ATO*\n\n" +
         "Envie os achados clínicos ou parâmetros do caso:\n\n" +
@@ -44845,7 +44785,7 @@ function processarMensagemTexto(message) {
         "• `/dip dor anexial peritonite abscesso 6cm diu presente` *(Monif II-III hospitalar)*\n" +
         "• `/dip parceiro sexual gonococo clamidia` *(protocolo de contatos)*\n\n" +
         "_Algoritmos estritamente alinhados ao Ministério da Saúde (PCDT ISTs) e CDC._";
-      return enviarMensagemComTecladoParaChat(chatId, msgAjudaDip, {
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, msgAjudaDip, {
         inline_keyboard: [
           [
             { text: "🩹 DIP Ambulatorial", callback_data: "ux:go:dip:monif1" },
@@ -44856,11 +44796,11 @@ function processarMensagemTexto(message) {
             { text: "🏠 Início", callback_data: "ux:hub:inicio" }
           ]
         ]
-      });
+      }) };
     }
 
     if (typeof DipAbscessoTuboOvarianoService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo DipAbscessoTuboOvarianoService indisponível temporariamente.");
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Módulo DipAbscessoTuboOvarianoService indisponível temporariamente.") };
     }
 
     var paramsDip = {
@@ -44879,7 +44819,7 @@ function processarMensagemTexto(message) {
     var cacheDip = (typeof uxCache === "function") ? uxCache() : null;
     if (cacheDip && typeof safePutCache === "function") safePutCache(cacheDip, ckDip, textoResumoDip, 21600);
 
-    return enviarMensagemComTecladoParaChat(chatId, "🩹 *CONDUTA DE DOENÇA INFLAMATÓRIA PÉLVICA (DIP):*\n\n```\n" + textoResumoDip + "\n```", {
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, "🩹 *CONDUTA DE DOENÇA INFLAMATÓRIA PÉLVICA (DIP):*\n\n```\n" + textoResumoDip + "\n```", {
       inline_keyboard: [
         [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckDip }],
         [
@@ -44887,10 +44827,183 @@ function processarMensagemTexto(message) {
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
         ]
       ]
-    });
+    }) };
   }
 
+  // 5. RCF / Doppler Fetal (/rcf, /ciur, /rciu, /doppler, /crescimentofetal)
+  if (comando === "/rcf" || comando === "/ciur" || comando === "/rciu" || comando === "/doppler" || comando === "/crescimentofetal") {
+    var dadosRcf = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ObstetriciaRcfDopplerService === "undefined") {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaRcfDopplerService indisponível temporariamente.") };
+    }
 
+    var paramsRcf = dadosRcf ? ObstetriciaRcfDopplerService.extrairParametrosTexto(dadosRcf) : {};
+    if (!dadosRcf || paramsRcf.ig_semanas === undefined) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "🤰 *OBSTETRÍCIA & MEDICINA FETAL — RCF / DOPPLER*\n\n" +
+        "Envie a *idade gestacional* (obrigatória) e os percentis do laudo:\n" +
+        "• *IG:* `30s4d`, `30+4` ou `ig 30`\n" +
+        "• *Biometria:* `pfe p2` (peso fetal), `ca p4` (circunferência abdominal), `1450g`, `queda de percentil`\n" +
+        "• *Artéria umbilical:* `au p97`, `diastole zero`, `diastole reversa`\n" +
+        "• *ACM / RCP / Uterinas:* `acm p3`, `rcp p2` (ou `ip au 1.3 ip acm 1.1`), `uterinas p97`\n" +
+        "• *Ducto venoso:* `dv p97`, `onda a reversa` / `onda a ausente`; *Istmo:* `istmo reverso`\n" +
+        "• *cCTG:* `vcp 2.8`, `desaceleracoes`; *Outros:* `ila 4`, `pre-eclampsia`, `gemelar`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/rcf 35+2 pfe p6 rcp p3` *(RCF tardia — Estágio I)*\n" +
+        "• `/rcf 31s pfe p2 diastole zero` *(Estágio II)*\n" +
+        "• `/doppler 27s3d pfe p1 diastole reversa onda a reversa vcp 2.4` *(Estágio IV)*") };
+    }
+
+    try {
+      var analiseRcf = ObstetriciaRcfDopplerService.avaliarRcf(paramsRcf);
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, ObstetriciaRcfDopplerService.formatarTextoTelegram(analiseRcf)) };
+    } catch (eRcf) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar RCF/Doppler: " + eRcf.message) };
+    }
+  }
+
+  // 6. Colestase Gestacional (CIG) e EHAG / Swansea (/colestase, /cig, /icp, /swansea, /ehag, /aflp)
+  if (comando === "/colestase" || comando === "/cig" || comando === "/icp" || comando === "/swansea" || comando === "/ehag" || comando === "/aflp") {
+    var dadosCig = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof HepatologiaColestaseGestacionalService === "undefined") {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Módulo HepatologiaColestaseGestacionalService indisponível temporariamente.") };
+    }
+
+    var paramsCig = dadosCig ? HepatologiaColestaseGestacionalService.extrairParametrosTexto(dadosCig) : {};
+
+    if ((comando === "/swansea" || comando === "/ehag" || comando === "/aflp") && (!dadosCig || Object.keys(paramsCig).length === 0)) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "🟡 *ESTEATOSE HEPÁTICA AGUDA DA GESTAÇÃO (EHAG / SWANSEA)*\n\n" +
+        "Envie os achados clínicos e laboratoriais (mínimo 6 critérios para confirmação):\n" +
+        "• *Clínicos:* `vomitos`, `dor abdominal`, `polidipsia/poliuria`, `encefalopatia`\n" +
+        "• *Laboratório:* `hipoglicemia` (<72), `bilirrubina` (>0.8), `acido urico` (>5.7), `leucocitose` (>11k), `tgo/tgp` (>42), `amonia` (>47), `insuficiencia renal` (cr >1.7), `coagulopatia` (TP>14s ou TTPa>34s)\n" +
+        "• *Imagem/Biópsia:* `ascite/usg brilhante`, `esteatose biopsia`\n\n" +
+        "*Exemplo:* `/swansea vomitos dor abdominal hipoglicemia coagulopatia tgo 250 bilirrubina 3.5 creatinina 1.9`") };
+    }
+
+    if (!dadosCig || (paramsCig.acidos_biliares === undefined && (!paramsCig.swansea || paramsCig.modo !== 'EHAG'))) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "🤰 *HEPATOLOGIA OBSTÉTRICA — COLESTASE (CIG) & EHAG*\n\n" +
+        "Envie a dosagem de *Ácidos Biliares Totais (ABT)*, idade gestacional e peso:\n" +
+        "• *ABT séricos (mcmol/L):* `abt 45` ou `acidos biliares 120`\n" +
+        "• *Idade Gestacional:* `34s`, `36+2` ou `ig 36`\n" +
+        "• *Peso materno:* `68kg` ou `peso 70` (para cálculo exato de UDCA 10-15 mg/kg)\n" +
+        "• *Outros:* `prurido`, `tgo 120`, `tgp 95`, `bilirrubina 1.8`, `gemelar`, `antecedente cig`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/cig abt 25 34s peso 65` *(CIG leve — parto 38-39s)*\n" +
+        "• `/colestase abt 110 ig 35s peso 72` *(CIG grave — risco óbito fetal, parto 36s)*\n" +
+        "• `/swansea vomitos dor hipoglicemia coagulopatia tgo 300 encefalopatia` *(EHAG)*") };
+    }
+
+    try {
+      var analiseCig = HepatologiaColestaseGestacionalService.avaliar(paramsCig);
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, HepatologiaColestaseGestacionalService.formatarTextoTelegram(analiseCig)) };
+    } catch (eCig) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Colestase/EHAG: " + eCig.message) };
+    }
+  }
+
+  // 7. Toxoplasmose Gestacional (/toxo, /toxoplasmose, /avidez)
+  if (comando === "/toxo" || comando === "/toxoplasmose" || comando === "/avidez") {
+    var dadosToxo = texto.replace(/^\/\w+\s*/, "").trim();
+    if (typeof ObstetriciaToxoplasmoseService === "undefined") {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaToxoplasmoseService indisponível temporariamente.") };
+    }
+
+    var paramsToxo = dadosToxo ? ObstetriciaToxoplasmoseService.extrairParametrosTexto(dadosToxo) : {};
+    
+    if (!dadosToxo || (paramsToxo.igg === null && paramsToxo.igm === null && paramsToxo.pcr_amniotico === null)) {
+      if (typeof enviarTelaGOToxo === "function") {
+        return { executado: true, resultado: enviarTelaGOToxo(chatId) };
+      }
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, "🦠 *INFECTOLOGIA OBSTÉTRICA — TOXOPLASMOSE*\n\n" +
+        "Envie os resultados da sorologia e a idade gestacional atual:\n" +
+        "• *Sorologia:* `igg positivo`, `igm positivo`\n" +
+        "• *Teste de Avidez:* `avidez alta`, `avidez baixa`, `avidez pendente`\n" +
+        "• *IG Atual:* `12s`, `ig 12`\n" +
+        "• *IG da Coleta:* `coleta 8s` (importante se diferir da atual)\n" +
+        "• *Diagnóstico Fetal:* `pcr positivo`, `usg alterado`\n\n" +
+        "*Exemplos:*\n" +
+        "• `/toxo igg positivo igm positivo avidez alta coleta 10s` *(Infecção prévia)*\n" +
+        "• `/toxo 16s igg positivo igm positivo avidez baixa` *(Infecção aguda, baixa avidez)*\n" +
+        "• `/toxo 20s igg positivo igm positivo pcr la positivo` *(Infecção fetal confirmada)*", {
+        inline_keyboard: [
+          [
+            { text: "🔬 1º Tri Avidez Baixa (Aguda)", callback_data: "ux:go:toxo:aguda" },
+            { text: "✅ 1º Tri Avidez Alta (Prévia)", callback_data: "ux:go:toxo:previa" }
+          ],
+          [
+            { text: "💊 PCR Positivo (Esquema Tríplice)", callback_data: "ux:go:toxo:fetal" }
+          ],
+          [
+            { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      }) };
+    }
+
+    try {
+      var analiseToxo = ObstetriciaToxoplasmoseService.avaliar(paramsToxo);
+      var textoResumoToxo = ObstetriciaToxoplasmoseService.formatarTextoTelegram(analiseToxo);
+      var ckToxo = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+      var cacheToxo = (typeof uxCache === "function") ? uxCache() : null;
+      if (cacheToxo && typeof safePutCache === "function") safePutCache(cacheToxo, ckToxo, textoResumoToxo, 21600);
+
+      return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, "🔬 *AVALIAÇÃO DE TOXOPLASMOSE GESTACIONAL:*\n\n```\n" + textoResumoToxo + "\n```", {
+        inline_keyboard: [
+          [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckToxo }],
+          [
+            { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+          ]
+        ]
+      }) };
+    } catch (eToxo) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Toxoplasmose: " + eToxo.message) };
+    }
+  }
+
+  return { executado: false };
+}
+
+
+var TABELA_COMANDOS_ESPECIALIDADES_ = {
+  "/aciclovir": true, "/aga": true, "/agitacao": true, "/anemia": true, "/antifosfolipidio": true,
+  "/arbovirose": true, "/artriteseptica": true, "/artriteséptica": true, "/artrocentese": true, "/aslo": true,
+  "/asma": true, "/beers": true, "/biett": true, "/bipap": true, "/broncoespasmo": true,
+  "/bronquiolite": true, "/bronquioliteviral": true, "/bva": true, "/calculorenal": true, "/cancro": true,
+  "/cefaleia": true, "/cfs": true, "/chascore": true, "/chikungunya": true, "/cistite": true,
+  "/cnaf": true, "/colica": true, "/colicanefretica": true, "/criseasma": true, "/crisehas": true,
+  "/crisehipertensiva": true, "/declaracaoobito": true, "/dengue": true, "/dermato": true, "/diabetes": true,
+  "/dienogeste": true, "/diluicao": true, "/do": true, "/donovanose": true, "/dorcabeca": true,
+  "/dorpelvica": true, "/dpoc": true, "/ef": true, "/ef_neuro": true, "/ehh": true,
+  "/emergenciahipertensiva": true, "/endometriose": true, "/enoxaparina": true, "/enxaqueca": true, "/epistaxe": true,
+  "/exames": true, "/exames_especiais": true, "/fa": true, "/febrereumatica": true, "/ferimento": true,
+  "/ferro": true, "/fibrilacaoatrial": true, "/formulainfantil": true, "/fr": true, "/framingham": true,
+  "/frax": true, "/frids": true, "/ganzoni": true, "/glaucoma": true, "/glicemia": true,
+  "/gota": true, "/hasbled": true, "/hemograma": true, "/herpes": true, "/hints": true,
+  "/hipercapnia": true, "/holliday": true, "/icc": true, "/idoso": true, "/infeccaourinaria": true,
+  "/insuficienciacardiaca": true, "/insulina": true, "/itu": true, "/jones": true, "/lesao": true,
+  "/lesoes": true, "/lgv": true, "/litiase": true, "/mentzer": true, "/minicog": true,
+  "/monkeypox": true, "/monoartrite": true, "/mordedura": true, "/mpox": true, "/neuro": true,
+  "/noripurum": true, "/notificacao": true, "/nutriped": true, "/obito": true, "/oftalmo": true,
+  "/osteoporose": true, "/ottawa": true, "/pac": true, "/pals": true, "/pediatria_pcr": true,
+  "/pedranorim": true, "/pele": true, "/phq9": true, "/pielonefrite": true, "/pneumonia": true,
+  "/polifarmacia": true, "/pseudocrise": true, "/psiq": true, "/quarteto": true, "/quedas": true,
+  "/queimaduraocular": true, "/raiva": true, "/roseola": true, "/saf": true, "/safgestante": true,
+  "/salbutamol": true, "/sangramentonasal": true, "/sifilis": true, "/sinan": true, "/suicidio": true,
+  "/sutura": true, "/tamponamento": true, "/tetano": true, "/tontura": true, "/traumaocular": true,
+  "/trombofilia": true, "/trombofiliagestante": true, "/tug": true, "/ulceragenital": true, "/valaciclovir": true,
+  "/vertigem": true, "/vni": true, "/vppb": true, "/zika": true, "/zoster": true
+};
+
+function despacharComandosEspecialidadesClinicas_(comando, texto, chatId) {
+  if (!TABELA_COMANDOS_ESPECIALIDADES_[comando] && !comando.startsWith("/ef_")) {
+    return { executado: false };
+  }
+  var res = executarComandoEspecialidadesInterno_(comando, texto, chatId);
+  return { executado: true, resultado: res };
+}
+
+function executarComandoEspecialidadesInterno_(comando, texto, chatId) {
   if (comando === "/ef" || comando === "/exames" || comando === "/exames_especiais") {
     return enviarMenuExamesEspeciais(chatId);
   }
@@ -46273,140 +46386,6 @@ function processarMensagemTexto(message) {
     }
   }
 
-  if (comando === "/rcf" || comando === "/ciur" || comando === "/rciu" || comando === "/doppler" || comando === "/crescimentofetal") {
-    var dadosRcf = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof ObstetriciaRcfDopplerService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaRcfDopplerService indisponível temporariamente.");
-    }
-
-    var paramsRcf = dadosRcf ? ObstetriciaRcfDopplerService.extrairParametrosTexto(dadosRcf) : {};
-    if (!dadosRcf || paramsRcf.ig_semanas === undefined) {
-      return enviarMensagemParaChat(chatId, "🤰 *OBSTETRÍCIA & MEDICINA FETAL — RCF / DOPPLER*\n\n" +
-        "Envie a *idade gestacional* (obrigatória) e os percentis do laudo:\n" +
-        "• *IG:* `30s4d`, `30+4` ou `ig 30`\n" +
-        "• *Biometria:* `pfe p2` (peso fetal), `ca p4` (circunferência abdominal), `1450g`, `queda de percentil`\n" +
-        "• *Artéria umbilical:* `au p97`, `diastole zero`, `diastole reversa`\n" +
-        "• *ACM / RCP / Uterinas:* `acm p3`, `rcp p2` (ou `ip au 1.3 ip acm 1.1`), `uterinas p97`\n" +
-        "• *Ducto venoso:* `dv p97`, `onda a reversa` / `onda a ausente`; *Istmo:* `istmo reverso`\n" +
-        "• *cCTG:* `vcp 2.8`, `desaceleracoes`; *Outros:* `ila 4`, `pre-eclampsia`, `gemelar`\n\n" +
-        "*Exemplos:*\n" +
-        "• `/rcf 35+2 pfe p6 rcp p3` *(RCF tardia — Estágio I)*\n" +
-        "• `/rcf 31s pfe p2 diastole zero` *(Estágio II)*\n" +
-        "• `/doppler 27s3d pfe p1 diastole reversa onda a reversa vcp 2.4` *(Estágio IV)*");
-    }
-
-    try {
-      var analiseRcf = ObstetriciaRcfDopplerService.avaliarRcf(paramsRcf);
-      return enviarMensagemParaChat(chatId, ObstetriciaRcfDopplerService.formatarTextoTelegram(analiseRcf));
-    } catch (eRcf) {
-      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar RCF/Doppler: " + eRcf.message);
-    }
-  }
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // HEPATOLOGIA & EMERGÊNCIA OBSTÉTRICA: COLESTASE GESTACIONAL (CIG) E EHAG
-  // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/colestase" || comando === "/cig" || comando === "/icp" || comando === "/swansea" || comando === "/ehag" || comando === "/aflp") {
-    var dadosCig = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof HepatologiaColestaseGestacionalService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo HepatologiaColestaseGestacionalService indisponível temporariamente.");
-    }
-
-    var paramsCig = dadosCig ? HepatologiaColestaseGestacionalService.extrairParametrosTexto(dadosCig) : {};
-
-    if ((comando === "/swansea" || comando === "/ehag" || comando === "/aflp") && (!dadosCig || Object.keys(paramsCig).length === 0)) {
-      return enviarMensagemParaChat(chatId, "🟡 *ESTEATOSE HEPÁTICA AGUDA DA GESTAÇÃO (EHAG / SWANSEA)*\n\n" +
-        "Envie os achados clínicos e laboratoriais (mínimo 6 critérios para confirmação):\n" +
-        "• *Clínicos:* `vomitos`, `dor abdominal`, `polidipsia/poliuria`, `encefalopatia`\n" +
-        "• *Laboratório:* `hipoglicemia` (<72), `bilirrubina` (>0.8), `acido urico` (>5.7), `leucocitose` (>11k), `tgo/tgp` (>42), `amonia` (>47), `insuficiencia renal` (cr >1.7), `coagulopatia` (TP>14s ou TTPa>34s)\n" +
-        "• *Imagem/Biópsia:* `ascite/usg brilhante`, `esteatose biopsia`\n\n" +
-        "*Exemplo:* `/swansea vomitos dor abdominal hipoglicemia coagulopatia tgo 250 bilirrubina 3.5 creatinina 1.9`");
-    }
-
-    if (!dadosCig || (paramsCig.acidos_biliares === undefined && (!paramsCig.swansea || paramsCig.modo !== 'EHAG'))) {
-      return enviarMensagemParaChat(chatId, "🤰 *HEPATOLOGIA OBSTÉTRICA — COLESTASE (CIG) & EHAG*\n\n" +
-        "Envie a dosagem de *Ácidos Biliares Totais (ABT)*, idade gestacional e peso:\n" +
-        "• *ABT séricos (mcmol/L):* `abt 45` ou `acidos biliares 120`\n" +
-        "• *Idade Gestacional:* `34s`, `36+2` ou `ig 36`\n" +
-        "• *Peso materno:* `68kg` ou `peso 70` (para cálculo exato de UDCA 10-15 mg/kg)\n" +
-        "• *Outros:* `prurido`, `tgo 120`, `tgp 95`, `bilirrubina 1.8`, `gemelar`, `antecedente cig`\n\n" +
-        "*Exemplos:*\n" +
-        "• `/cig abt 25 34s peso 65` *(CIG leve — parto 38-39s)*\n" +
-        "• `/colestase abt 110 ig 35s peso 72` *(CIG grave — risco óbito fetal, parto 36s)*\n" +
-        "• `/swansea vomitos dor hipoglicemia coagulopatia tgo 300 encefalopatia` *(EHAG)*");
-    }
-
-    try {
-      var analiseCig = HepatologiaColestaseGestacionalService.avaliar(paramsCig);
-      return enviarMensagemParaChat(chatId, HepatologiaColestaseGestacionalService.formatarTextoTelegram(analiseCig));
-    } catch (eCig) {
-      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Colestase/EHAG: " + eCig.message);
-    }
-  }
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // INFECTOLOGIA OBSTÉTRICA: TOXOPLASMOSE GESTACIONAL (MS/FEBRASGO)
-  // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/toxo" || comando === "/toxoplasmose" || comando === "/avidez") {
-    var dadosToxo = texto.replace(/^\/\w+\s*/, "").trim();
-    if (typeof ObstetriciaToxoplasmoseService === "undefined") {
-      return enviarMensagemParaChat(chatId, "⚠️ Módulo ObstetriciaToxoplasmoseService indisponível temporariamente.");
-    }
-
-    var paramsToxo = dadosToxo ? ObstetriciaToxoplasmoseService.extrairParametrosTexto(dadosToxo) : {};
-    
-    if (!dadosToxo || (paramsToxo.igg === null && paramsToxo.igm === null && paramsToxo.pcr_amniotico === null)) {
-      if (typeof enviarTelaGOToxo === "function") {
-        return enviarTelaGOToxo(chatId);
-      }
-      return enviarMensagemComTecladoParaChat(chatId, "🦠 *INFECTOLOGIA OBSTÉTRICA — TOXOPLASMOSE*\n\n" +
-        "Envie os resultados da sorologia e a idade gestacional atual:\n" +
-        "• *Sorologia:* `igg positivo`, `igm positivo`\n" +
-        "• *Teste de Avidez:* `avidez alta`, `avidez baixa`, `avidez pendente`\n" +
-        "• *IG Atual:* `12s`, `ig 12`\n" +
-        "• *IG da Coleta:* `coleta 8s` (importante se diferir da atual)\n" +
-        "• *Diagnóstico Fetal:* `pcr positivo`, `usg alterado`\n\n" +
-        "*Exemplos:*\n" +
-        "• `/toxo igg positivo igm positivo avidez alta coleta 10s` *(Infecção prévia)*\n" +
-        "• `/toxo 16s igg positivo igm positivo avidez baixa` *(Infecção aguda, baixa avidez)*\n" +
-        "• `/toxo 20s igg positivo igm positivo pcr la positivo` *(Infecção fetal confirmada)*", {
-        inline_keyboard: [
-          [
-            { text: "🔬 1º Tri Avidez Baixa (Aguda)", callback_data: "ux:go:toxo:aguda" },
-            { text: "✅ 1º Tri Avidez Alta (Prévia)", callback_data: "ux:go:toxo:previa" }
-          ],
-          [
-            { text: "💊 PCR Positivo (Esquema Tríplice)", callback_data: "ux:go:toxo:fetal" }
-          ],
-          [
-            { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
-            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
-          ]
-        ]
-      });
-    }
-
-    try {
-      var analiseToxo = ObstetriciaToxoplasmoseService.avaliar(paramsToxo);
-      var textoResumoToxo = ObstetriciaToxoplasmoseService.formatarTextoTelegram(analiseToxo);
-      var ckToxo = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
-      var cacheToxo = (typeof uxCache === "function") ? uxCache() : null;
-      if (cacheToxo && typeof safePutCache === "function") safePutCache(cacheToxo, ckToxo, textoResumoToxo, 21600);
-
-      return enviarMensagemComTecladoParaChat(chatId, "🔬 *AVALIAÇÃO DE TOXOPLASMOSE GESTACIONAL:*\n\n```\n" + textoResumoToxo + "\n```", {
-        inline_keyboard: [
-          [{ text: "📋 Copiar Conduta para Prontuário", callback_data: "ux:copiar:" + ckToxo }],
-          [
-            { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
-            { text: "🏠 Início", callback_data: "ux:hub:inicio" }
-          ]
-        ]
-      });
-    } catch (eToxo) {
-      return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Toxoplasmose: " + eToxo.message);
-    }
-  }
-
   // ───────────────────────────────────────────────────────────────────────────
   // CARDIOLOGIA & EMERGÊNCIA: FIBRILAÇÃO ATRIAL E ANTICOAGULAÇÃO
   // ───────────────────────────────────────────────────────────────────────────
@@ -46689,7 +46668,299 @@ function processarMensagemTexto(message) {
       return enviarMensagemParaChat(chatId, "⚠️ Erro ao avaliar Cólica Nefrética: " + eColica.message);
     }
   }
-  // ───────────────────────────────────────────────────────────────────────────
+}
+
+
+var TABELA_COMANDOS_ENFERMARIA_PLANTAO_RECEITAS_ = {
+  "/rx": true, "/receita": true, "/rxh": true, "/prescricao_hospitalar": true,
+  "/atb": true, "/ajuste": true, "/ajuste_renal": true, "/dose": true, "/posologia": true, "/hsl": true,
+  "/ped": true, "/dose_ped": true, "/pediatria": true, "/conduta_ped": true,
+  "/plantao": true, "/sbar": true, "/enfermaria": true, "/leitos": true, "/censo": true,
+  "/leito": true, "/alta": true, "/limpar_enfermaria": true, "/passagem": true, "/plantao_fim": true
+};
+
+function despacharComandosEnfermariaPlantaoEReceitas_(comando, texto, chatId) {
+  if (!TABELA_COMANDOS_ENFERMARIA_PLANTAO_RECEITAS_[comando]) {
+    return { executado: false };
+  }
+  var res = executarComandoEnfermariaPlantaoEReceitasInterno_(comando, texto, chatId);
+  return { executado: true, resultado: res };
+}
+
+function executarComandoEnfermariaPlantaoEReceitasInterno_(comando, texto, chatId) {
+  if (comando === "/rx" || comando === "/receita") {
+    return tratarComandoRx(chatId, texto);
+  }
+
+  if (comando === "/rxh" || comando === "/prescricao_hospitalar") {
+    return tratarComandoRxh(chatId, texto);
+  }
+
+  if (comando === "/atb" || comando === "/ajuste" || comando === "/ajuste_renal") {
+    var dadosAtb = texto.replace(/^\/(atb|ajuste|ajuste_renal)\s*/i, "").trim();
+    if (!dadosAtb) {
+      return enviarMensagemComTecladoParaChat(
+        chatId,
+        "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
+        "Envie o antimicrobiano e o clearance de creatinina ou se o paciente está em hemodiálise:\n\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/atb meropenem clcr 25`\n" +
+        "• `/atb vanco 40`\n" +
+        "• `/atb pip-tazo clcr 30`\n" +
+        "• `/atb cefepime hd`\n" +
+        "• `/atb polimixina b 10`",
+        {
+          inline_keyboard: [
+            [{ text: "💊 Meropenem ClCr 25", callback_data: "ux:atb:mero25" }, { text: "💊 Pip-Tazo ClCr 30", callback_data: "ux:atb:tazo30" }],
+            [{ text: "💊 Cefepime HD", callback_data: "ux:atb:cefepimehd" }, { text: "💊 Vanco ClCr 40", callback_data: "ux:atb:vanco40" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
+      );
+    }
+    if (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
+      var calcDetAtb = CalculadorasClinicas.calcularAjusteRenalPorTextoLivre(dadosAtb);
+      if (calcDetAtb && calcDetAtb.ok && calcDetAtb.dados) {
+        var dAtb = calcDetAtb.dados;
+        var msgAtb = "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
+          "• *Fármaco:* " + dAtb.nomeExibicao + "\n" +
+          "• *Dose Padrão:* " + dAtb.dosePadrao + "\n" +
+          "• *Dose Ajustada:* `" + dAtb.doseAjustada + "`\n" +
+          "• *Condições:* " + (dAtb.hemodialise ? "Em Hemodiálise" : ("ClCr " + (dAtb.clcrInformado !== null ? dAtb.clcrInformado + " mL/min" : "não informado"))) + "\n\n" +
+          "💡 *Cuidados Farmacológicos:*\n" + dAtb.cuidados + "\n\n" +
+          "🛡️ *Monitorização:*\n" + dAtb.monitorizacao;
+        return enviarMensagemParaChat(chatId, msgAtb);
+      }
+    }
+    return responderConsultaPosologiaHSL(chatId, dadosAtb);
+  }
+
+  if (comando === "/dose" || comando === "/posologia" || comando === "/hsl") {
+    var termoDose = texto.replace(/^\/(dose|posologia|hsl)\s*/i, "").trim();
+    if (!termoDose) {
+      return enviarMensagemParaChat(
+        chatId,
+        "💊 *CONSULTA DE POSOLOGIA OFICIAL (GUIA FARMACÊUTICO HSL & PEDBOOK)*\n\n" +
+        "Envie o nome do medicamento para consultar as doses adultas, pediátricas, ajuste renal e disponibilidade na REMUME.\n\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/dose amoxicilina`\n" +
+        "• `/dose dipirona`\n" +
+        "• `/dose ceftriaxona`\n" +
+        "• `/ped azitromicina` (doses pediátricas dedicadas)\n" +
+        "• `/dose amoxicilina 16kg`"
+      );
+    }
+    return responderConsultaPosologiaHSL(chatId, termoDose);
+  }
+
+  if (comando === "/ped" || comando === "/dose_ped" || comando === "/pediatria") {
+    var termoPed = texto.replace(/^\/(ped|dose_ped|pediatria)\s*/i, "").trim();
+    if (!termoPed) {
+      return enviarMensagemParaChat(
+        chatId,
+        "👶 *CONSULTA DE DOSES PEDIÁTRICAS (PEDBOOK pedb.com.br)*\n\n" +
+        "Envie o nome do medicamento ou conduta para consultar doses por kg/idade, apresentações líquidas e alertas de segurança.\n\n" +
+        "💡 *Exemplos:*\n" +
+        "• `/ped amoxicilina`\n" +
+        "• `/ped dipirona`\n" +
+        "• `/ped azitromicina`\n" +
+        "• `/ped cefalexina`\n" +
+        "• `/ped bronquiolite`"
+      );
+    }
+    return responderConsultaPediatricaPedB(chatId, termoPed);
+  }
+
+  if (comando === "/conduta_ped") {
+    var termoCond = texto.replace(/^\/conduta_ped\s*/i, "").trim();
+    if (!termoCond) {
+      return enviarMensagemParaChat(chatId, "🩺 Envie o tema da conduta pediátrica. Ex: `/conduta_ped bronquiolite` ou `/conduta_ped crup`");
+    }
+    return responderConsultaCondutaPedB(chatId, termoCond);
+  }
+
+  if (comando === "/plantao" || comando === "/sbar") {
+    return tratarComandoPlantao(chatId, texto);
+  }
+
+  // ENFERMARIA VIRTUAL MULTI-LEITOS
+  if (comando === "/enfermaria" || comando === "/leitos" || comando === "/censo") {
+    if (typeof mostrarPainelLeitos === "function") {
+      return mostrarPainelLeitos(chatId, 0);
+    }
+    return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
+  }
+
+  if (comando === "/leito") {
+    var dadosLeito = texto.replace(/^\/leito\s*/i, "").trim();
+    if (!dadosLeito) {
+      return enviarMensagemComTecladoParaChat(chatId, "🛏️ *ENFERMARIA VIRTUAL · GESTÃO DE LEITOS*\n\n" +
+        "• Para ver ou atualizar: `/leito <número> <dados>`\n" +
+        "💡 *Exemplo:* `/leito 4 72a, PAC grave, Ceftriaxona D3, aguarda vaga CTI`\n" +
+        "• Para ver o leito: `/leito 4`\n" +
+        "• Para ver todos: `/censo` ou `/leitos`\n" +
+        "• Para desocupar leito: `/alta 4`\n" +
+        "• Para passagem geral: `/sbar` ou `/passagem`", {
+          inline_keyboard: [
+            [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }, { text: "📋 Passagem SBAR", callback_data: "ux:enf:sbar" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        });
+    }
+
+    var matchLeito = dadosLeito.match(/^([a-zA-Z0-9_-]{1,24})(?:\s+([\s\S]+))?$/);
+    if (matchLeito) {
+      var numLeito = matchLeito[1];
+      var infoLeito = matchLeito[2];
+
+      if (!infoLeito) {
+        var leitoAtual = EnfermariaService.obterLeito(numLeito);
+        if (leitoAtual) {
+          var textoPepLeito = "LEITO " + numLeito + " · " + leitoAtual.status + " (" + leitoAtual.dataISO + " às " + leitoAtual.atualizadoEm + ")\n\n" + leitoAtual.dados;
+          var ckL = Utilities.getUuid().replace(/-/g, "");
+          safePutCache(CacheService.getScriptCache(), ckL, textoPepLeito, 21600);
+          return enviarMensagemComTecladoParaChat(chatId, "🛏️ *LEITO " + numLeito + "* [" + leitoAtual.status + "]\n" +
+            "⏱️ *Atualizado às:* " + leitoAtual.atualizadoEm + "\n" +
+            "📝 " + leitoAtual.dados + "\n\n" +
+            "💡 Para atualizar: `/leito " + numLeito + " novos dados`\n" +
+            "🟢 Para dar alta: `/alta " + numLeito + "`", {
+              inline_keyboard: [
+                [{ text: "📋 Copiar Conduta/Passagem para Prontuário", callback_data: "ux:copiar:" + ckL }],
+                [{ text: "✏️ Evoluir Leito", callback_data: "ux:evoluir:" + numLeito }, { text: "Dar Alta", callback_data: "ux:confirmar:" + numLeito }],
+                [{ text: "← Leitos", callback_data: "ux:painel:0" }, { text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }],
+                [{ text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+              ]
+            });
+        } else {
+          return enviarMensagemComTecladoParaChat(chatId, "⚪ *Leito " + numLeito + " está vago.* Para ocupar, envie `/leito " + numLeito + " dados do paciente`.", {
+            inline_keyboard: [
+              [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+              [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+            ]
+          });
+        }
+      }
+
+      var resAtualizacao = EnfermariaService.atualizarLeito(numLeito, infoLeito);
+      if (!resAtualizacao || !resAtualizacao.sucesso) {
+        return enviarMensagemParaChat(chatId, (resAtualizacao && (resAtualizacao.erro || resAtualizacao.mensagem)) || "Falha ao atualizar leito.");
+      }
+      var ckAt = Utilities.getUuid().replace(/-/g, "");
+      var txtGravado = resAtualizacao.leito ? ("LEITO " + numLeito + " · " + resAtualizacao.leito.status + "\n\n" + resAtualizacao.leito.dados) : (resAtualizacao.mensagem || "");
+      safePutCache(CacheService.getScriptCache(), ckAt, txtGravado, 21600);
+      return enviarMensagemComTecladoParaChat(chatId, resAtualizacao.mensagem || resAtualizacao.erro, {
+        inline_keyboard: [
+          [{ text: "📋 Copiar Conduta/Passagem para Prontuário", callback_data: "ux:copiar:" + ckAt }],
+          [{ text: "🛏️ Abrir Leito " + numLeito, callback_data: "ux:leito:" + numLeito }, { text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+          [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      });
+    }
+  }
+
+  if (comando === "/alta") {
+    var numAlta = texto.replace(/^\/alta\s*/i, "").trim();
+    if (!numAlta) {
+      return enviarMensagemComTecladoParaChat(chatId, "🟢 Digite o número do leito a desocupar. Ex: `/alta 4`", {
+        inline_keyboard: [
+          [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+          [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      });
+    }
+    var resAlta = EnfermariaService.desocuparLeito(numAlta);
+    return enviarMensagemComTecladoParaChat(chatId, resAlta.mensagem, {
+      inline_keyboard: [
+        [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }, { text: "📋 Passagem SBAR", callback_data: "ux:enf:sbar" }],
+        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    });
+  }
+
+  if (comando === "/limpar_enfermaria") {
+    var resLimpeza = EnfermariaService.limparTudo();
+    return enviarMensagemComTecladoParaChat(chatId, resLimpeza.mensagem, {
+      inline_keyboard: [
+        [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    });
+  }
+
+  if (comando === "/passagem") {
+    if (typeof tratarCallbackEnfSBAR === "function") {
+      return tratarCallbackEnfSBAR(chatId);
+    }
+    var textoConsolidado = EnfermariaService.obterTextoConsolidadoParaPassagem();
+    if (!textoConsolidado) {
+      return enviarMensagemComTecladoParaChat(chatId,
+        "🏥 *Nenhum leito registrado na enfermaria para passar.* Registre os leitos usando `/leito <num> <dados>` antes de gerar a passagem.",
+        {
+          inline_keyboard: [
+            [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
+            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
+      );
+    }
+    return processarEEntregarIA(chatId, gerarPassagemPlantaoSBAR, "PASSAGEM GERAL DE PLANTÃO DA ENFERMARIA (TODOS OS LEITOS ATIVOS):\n\n" + textoConsolidado, "plantao");
+  }
+
+  if (comando === "/plantao_fim") {
+    return gerarResumoFimPlantao(chatId);
+  }
+}
+
+
+// ============================================================================
+// DESPACHO MODULAR DE CALCULADORAS CLÍNICAS, UTI & EMERGÊNCIA INTENSIVA
+// ============================================================================
+var TABELA_COMANDOS_CALCULADORAS_UTI_ = {
+  "/crcl": true,
+  "/clcr": true,
+  "/clearance": true,
+  "/dhe": true,
+  "/eletrolitos": true,
+  "/pancreatite": true,
+  "/bisap": true,
+  "/sca": true,
+  "/iam": true,
+  "/heart": true,
+  "/dapt": true,
+  "/intox": true,
+  "/toxicologia": true,
+  "/avc": true,
+  "/trombolise": true,
+  "/hic": true,
+  "/winter": true,
+  "/choque": true,
+  "/forrester": true,
+  "/ic": true,
+  "/gaso": true,
+  "/gasometria": true,
+  "/aniongap": true,
+  "/conduta": true,
+  "/sos": true,
+  "/calc": true,
+  "/interacao": true,
+  "/seguranca": true,
+  "/crosscheck": true
+};
+
+function despacharComandosCalculadorasUTIEEmergenciaIntensiva_(comando, texto, chatId, contextoKey) {
+  if (!TABELA_COMANDOS_CALCULADORAS_UTI_[comando]) {
+    return { executado: false };
+  }
+  return {
+    executado: true,
+    resultado: executarComandoCalculadorasUTIInterno_(comando, texto, chatId, contextoKey)
+  };
+}
+
+function executarComandoCalculadorasUTIInterno_(comando, texto, chatId, contextoKey) {
+  if (!contextoKey) {
+    contextoKey = "ctx_" + chatId;
+  }
   // NEFROLOGIA: CLEARANCE DE CREATININA (COCKCROFT-GAULT)
   // ───────────────────────────────────────────────────────────────────────────
   if (comando === "/crcl" || comando === "/clcr" || comando === "/clearance") {
@@ -47140,230 +47411,7 @@ function processarMensagemTexto(message) {
     return enviarMensagemParaChat(chatId, NeurologiaAvcService.formatarResumoAvc(resultadoFinal));
   }
 
-  if (comando === "/rx" || comando === "/receita") {
-    return tratarComandoRx(chatId, texto);
-  }
-
-  if (comando === "/rxh" || comando === "/prescricao_hospitalar") {
-    return tratarComandoRxh(chatId, texto);
-  }
-
-  if (comando === "/atb" || comando === "/ajuste" || comando === "/ajuste_renal") {
-    var dadosAtb = texto.replace(/^\/(atb|ajuste|ajuste_renal)\s*/i, "").trim();
-    if (!dadosAtb) {
-      return enviarMensagemComTecladoParaChat(
-        chatId,
-        "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
-        "Envie o antimicrobiano e o clearance de creatinina ou se o paciente está em hemodiálise:\n\n" +
-        "💡 *Exemplos:*\n" +
-        "• `/atb meropenem clcr 25`\n" +
-        "• `/atb vanco 40`\n" +
-        "• `/atb pip-tazo clcr 30`\n" +
-        "• `/atb cefepime hd`\n" +
-        "• `/atb polimixina b 10`",
-        {
-          inline_keyboard: [
-            [{ text: "💊 Meropenem ClCr 25", callback_data: "ux:atb:mero25" }, { text: "💊 Pip-Tazo ClCr 30", callback_data: "ux:atb:tazo30" }],
-            [{ text: "💊 Cefepime HD", callback_data: "ux:atb:cefepimehd" }, { text: "💊 Vanco ClCr 40", callback_data: "ux:atb:vanco40" }],
-            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-          ]
-        }
-      );
-    }
-    if (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
-      var calcDetAtb = CalculadorasClinicas.calcularAjusteRenalPorTextoLivre(dadosAtb);
-      if (calcDetAtb && calcDetAtb.ok && calcDetAtb.dados) {
-        var dAtb = calcDetAtb.dados;
-        var msgAtb = "💉 *AJUSTE RENAL DE ANTIMICROBIANOS (GUIA HSL / IDSA)*\n\n" +
-          "• *Fármaco:* " + dAtb.nomeExibicao + "\n" +
-          "• *Dose Padrão:* " + dAtb.dosePadrao + "\n" +
-          "• *Dose Ajustada:* `" + dAtb.doseAjustada + "`\n" +
-          "• *Condições:* " + (dAtb.hemodialise ? "Em Hemodiálise" : ("ClCr " + (dAtb.clcrInformado !== null ? dAtb.clcrInformado + " mL/min" : "não informado"))) + "\n\n" +
-          "💡 *Cuidados Farmacológicos:*\n" + dAtb.cuidados + "\n\n" +
-          "🛡️ *Monitorização:*\n" + dAtb.monitorizacao;
-        return enviarMensagemParaChat(chatId, msgAtb);
-      }
-    }
-    return responderConsultaPosologiaHSL(chatId, dadosAtb);
-  }
-
-  if (comando === "/dose" || comando === "/posologia" || comando === "/hsl") {
-    var termoDose = texto.replace(/^\/(dose|posologia|hsl)\s*/i, "").trim();
-    if (!termoDose) {
-      return enviarMensagemParaChat(
-        chatId,
-        "💊 *CONSULTA DE POSOLOGIA OFICIAL (GUIA FARMACÊUTICO HSL & PEDBOOK)*\n\n" +
-        "Envie o nome do medicamento para consultar as doses adultas, pediátricas, ajuste renal e disponibilidade na REMUME.\n\n" +
-        "💡 *Exemplos:*\n" +
-        "• `/dose amoxicilina`\n" +
-        "• `/dose dipirona`\n" +
-        "• `/dose ceftriaxona`\n" +
-        "• `/ped azitromicina` (doses pediátricas dedicadas)\n" +
-        "• `/dose amoxicilina 16kg`"
-      );
-    }
-    return responderConsultaPosologiaHSL(chatId, termoDose);
-  }
-
-  if (comando === "/ped" || comando === "/dose_ped" || comando === "/pediatria") {
-    var termoPed = texto.replace(/^\/(ped|dose_ped|pediatria)\s*/i, "").trim();
-    if (!termoPed) {
-      return enviarMensagemParaChat(
-        chatId,
-        "👶 *CONSULTA DE DOSES PEDIÁTRICAS (PEDBOOK pedb.com.br)*\n\n" +
-        "Envie o nome do medicamento ou conduta para consultar doses por kg/idade, apresentações líquidas e alertas de segurança.\n\n" +
-        "💡 *Exemplos:*\n" +
-        "• `/ped amoxicilina`\n" +
-        "• `/ped dipirona`\n" +
-        "• `/ped azitromicina`\n" +
-        "• `/ped cefalexina`\n" +
-        "• `/ped bronquiolite`"
-      );
-    }
-    return responderConsultaPediatricaPedB(chatId, termoPed);
-  }
-
-  if (comando === "/conduta_ped") {
-    var termoCond = texto.replace(/^\/conduta_ped\s*/i, "").trim();
-    if (!termoCond) {
-      return enviarMensagemParaChat(chatId, "🩺 Envie o tema da conduta pediátrica. Ex: `/conduta_ped bronquiolite` ou `/conduta_ped crup`");
-    }
-    return responderConsultaCondutaPedB(chatId, termoCond);
-  }
-
-  if (comando === "/plantao" || comando === "/sbar") {
-    return tratarComandoPlantao(chatId, texto);
-  }
-
-  // ENFERMARIA VIRTUAL MULTI-LEITOS
-  if (comando === "/enfermaria" || comando === "/leitos" || comando === "/censo") {
-    if (typeof mostrarPainelLeitos === "function") {
-      return mostrarPainelLeitos(chatId, 0);
-    }
-    return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
-  }
-
-  if (comando === "/leito") {
-    var dadosLeito = texto.replace(/^\/leito\s*/i, "").trim();
-    if (!dadosLeito) {
-      return enviarMensagemComTecladoParaChat(chatId, "🛏️ *ENFERMARIA VIRTUAL · GESTÃO DE LEITOS*\n\n" +
-        "• Para ver ou atualizar: `/leito <número> <dados>`\n" +
-        "💡 *Exemplo:* `/leito 4 72a, PAC grave, Ceftriaxona D3, aguarda vaga CTI`\n" +
-        "• Para ver o leito: `/leito 4`\n" +
-        "• Para ver todos: `/censo` ou `/leitos`\n" +
-        "• Para desocupar leito: `/alta 4`\n" +
-        "• Para passagem geral: `/sbar` ou `/passagem`", {
-          inline_keyboard: [
-            [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }, { text: "📋 Passagem SBAR", callback_data: "ux:enf:sbar" }],
-            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-          ]
-        });
-    }
-
-    var matchLeito = dadosLeito.match(/^([a-zA-Z0-9_-]{1,24})(?:\s+([\s\S]+))?$/);
-    if (matchLeito) {
-      var numLeito = matchLeito[1];
-      var infoLeito = matchLeito[2];
-
-      if (!infoLeito) {
-        var leitoAtual = EnfermariaService.obterLeito(numLeito);
-        if (leitoAtual) {
-          var textoPepLeito = "LEITO " + numLeito + " · " + leitoAtual.status + " (" + leitoAtual.dataISO + " às " + leitoAtual.atualizadoEm + ")\n\n" + leitoAtual.dados;
-          var ckL = Utilities.getUuid().replace(/-/g, "");
-          safePutCache(CacheService.getScriptCache(), ckL, textoPepLeito, 21600);
-          return enviarMensagemComTecladoParaChat(chatId, "🛏️ *LEITO " + numLeito + "* [" + leitoAtual.status + "]\n" +
-            "⏱️ *Atualizado às:* " + leitoAtual.atualizadoEm + "\n" +
-            "📝 " + leitoAtual.dados + "\n\n" +
-            "💡 Para atualizar: `/leito " + numLeito + " novos dados`\n" +
-            "🟢 Para dar alta: `/alta " + numLeito + "`", {
-              inline_keyboard: [
-                [{ text: "📋 Copiar Conduta/Passagem para Prontuário", callback_data: "ux:copiar:" + ckL }],
-                [{ text: "✏️ Evoluir Leito", callback_data: "ux:evoluir:" + numLeito }, { text: "Dar Alta", callback_data: "ux:confirmar:" + numLeito }],
-                [{ text: "← Leitos", callback_data: "ux:painel:0" }, { text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }],
-                [{ text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-              ]
-            });
-        } else {
-          return enviarMensagemComTecladoParaChat(chatId, "⚪ *Leito " + numLeito + " está vago.* Para ocupar, envie `/leito " + numLeito + " dados do paciente`.", {
-            inline_keyboard: [
-              [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
-              [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-            ]
-          });
-        }
-      }
-
-      var resAtualizacao = EnfermariaService.atualizarLeito(numLeito, infoLeito);
-      if (!resAtualizacao || !resAtualizacao.sucesso) {
-        return enviarMensagemParaChat(chatId, (resAtualizacao && (resAtualizacao.erro || resAtualizacao.mensagem)) || "Falha ao atualizar leito.");
-      }
-      var ckAt = Utilities.getUuid().replace(/-/g, "");
-      var txtGravado = resAtualizacao.leito ? ("LEITO " + numLeito + " · " + resAtualizacao.leito.status + "\n\n" + resAtualizacao.leito.dados) : (resAtualizacao.mensagem || "");
-      safePutCache(CacheService.getScriptCache(), ckAt, txtGravado, 21600);
-      return enviarMensagemComTecladoParaChat(chatId, resAtualizacao.mensagem || resAtualizacao.erro, {
-        inline_keyboard: [
-          [{ text: "📋 Copiar Conduta/Passagem para Prontuário", callback_data: "ux:copiar:" + ckAt }],
-          [{ text: "🛏️ Abrir Leito " + numLeito, callback_data: "ux:leito:" + numLeito }, { text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
-          [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-        ]
-      });
-    }
-  }
-
-  if (comando === "/alta") {
-    var numAlta = texto.replace(/^\/alta\s*/i, "").trim();
-    if (!numAlta) {
-      return enviarMensagemComTecladoParaChat(chatId, "🟢 Digite o número do leito a desocupar. Ex: `/alta 4`", {
-        inline_keyboard: [
-          [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
-          [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-        ]
-      });
-    }
-    var resAlta = EnfermariaService.desocuparLeito(numAlta);
-    return enviarMensagemComTecladoParaChat(chatId, resAlta.mensagem, {
-      inline_keyboard: [
-        [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }, { text: "📋 Passagem SBAR", callback_data: "ux:enf:sbar" }],
-        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-      ]
-    });
-  }
-
-  if (comando === "/limpar_enfermaria") {
-    var resLimpeza = EnfermariaService.limparTudo();
-    return enviarMensagemComTecladoParaChat(chatId, resLimpeza.mensagem, {
-      inline_keyboard: [
-        [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
-        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-      ]
-    });
-  }
-
-  if (comando === "/passagem") {
-    if (typeof tratarCallbackEnfSBAR === "function") {
-      return tratarCallbackEnfSBAR(chatId);
-    }
-    var textoConsolidado = EnfermariaService.obterTextoConsolidadoParaPassagem();
-    if (!textoConsolidado) {
-      return enviarMensagemComTecladoParaChat(chatId,
-        "🏥 *Nenhum leito registrado na enfermaria para passar.* Registre os leitos usando `/leito <num> <dados>` antes de gerar a passagem.",
-        {
-          inline_keyboard: [
-            [{ text: "🏥 Painel de Leitos", callback_data: "ux:painel:0" }],
-            [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-          ]
-        }
-      );
-    }
-    return processarEEntregarIA(chatId, gerarPassagemPlantaoSBAR, "PASSAGEM GERAL DE PLANTÃO DA ENFERMARIA (TODOS OS LEITOS ATIVOS):\n\n" + textoConsolidado, "plantao");
-  }
-
-  if (comando === "/plantao_fim") {
-    return gerarResumoFimPlantao(chatId);
-  }
-
-
-  if (comando === "/winter") {
+    if (comando === "/winter") {
     var paramWinter = texto.replace(/^\/winter\s*/i, "").trim();
     if (!paramWinter) {
       var kbWinter = (typeof GasometriaAcidoBaseService !== "undefined" && typeof GasometriaAcidoBaseService.obterTecladoInlineGasometria === "function")
@@ -47611,25 +47659,6 @@ function processarMensagemTexto(message) {
     return tratarComandoCalc(chatId, texto, contextoKey);
   }
 
-  if (comando === "/round" || comando === "/pitch") {
-    var dadosRound = texto.replace(/^\/(round|pitch)\s*/i, "").trim();
-    if (!dadosRound) return enviarMensagemParaChat(chatId, "👨‍⚕️ Envie os dados do paciente.");
-    return processarEEntregarIA(chatId, gerarPitchERoundComIA, dadosRound, "round");
-  }
-
-  if (comando === "/voz" || comando === "/sabatina" || comando === "/v" || comando === "/audio" || comando === "/a") {
-    var dadosVoz = texto.replace(/^\/(voz|sabatina|v|audio|a)\s*/i, "").trim();
-    if (!dadosVoz) {
-      var casoMemoria = (typeof obterContextoClinicoBot === "function" ? obterContextoClinicoBot(chatId) : "") || contextoCache.get(contextoKey);
-      if (casoMemoria && casoMemoria.length >= 5) {
-        return responderPreceptorVozComIA(chatId, casoMemoria);
-      }
-      return enviarMensagemParaChat(chatId, "🎧 *PRECEPTOR SOCRÁTICO NO FONE DE OUVIDO*\n\n" +
-        "Envie o caso clínico ou resumo do paciente para receber uma sabatina socrática em áudio de voz:\n" +
-        "💡 *Exemplo:* `/v Paciente 68a, DPOC exacerbado, gasometria pH 7.28, pCO2 58, sonolento, iniciado VNI`");
-    }
-    return responderPreceptorVozComIA(chatId, dadosVoz);
-  }
 
   if (comando === "/interacao" || comando === "/seguranca" || comando === "/crosscheck") {
     var drogas = texto.replace(/^\/(interacao|seguranca|crosscheck)\s*/i, "").trim();
@@ -47642,6 +47671,74 @@ function processarMensagemTexto(message) {
     }
     return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
   }
+
+  return null;
+}
+
+// ============================================================================
+// DESPACHO MODULAR DE AGENDA, ROTINA, ÁUDIO & PRECEPTOR
+// ============================================================================
+var TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_ = {
+  "/round": true,
+  "/pitch": true,
+  "/preceptor": true,
+  "/voz": true,
+  "/sabatina": true,
+  "/v": true,
+  "/audio": true,
+  "/a": true,
+  "/agenda": true,
+  "/task": true,
+  "/tarefa": true,
+  "/tasks": true,
+  "/duvida": true,
+  "/semana": true,
+  "/relatorio": true,
+  "/checkin": true,
+  "/briefing": true,
+  "/rotina": true,
+  "/protocolo": true
+};
+
+function despacharComandosAgendaRotinaEAudio_(comando, texto, chatId, message) {
+  if (!TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_[comando]) {
+    return { executado: false };
+  }
+  return {
+    executado: true,
+    resultado: executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, message)
+  };
+}
+
+function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, message) {
+  if (comando === "/round" || comando === "/pitch") {
+    var dadosRound = texto.replace(/^\/(round|pitch)\s*/i, "").trim();
+    if (!dadosRound) return enviarMensagemParaChat(chatId, "👨‍⚕️ Envie os dados do paciente.");
+    return processarEEntregarIA(chatId, gerarPitchERoundComIA, dadosRound, "round");
+  }
+
+  if (comando === "/preceptor") {
+    var dadosPreceptor = texto.replace(/^\/preceptor\s*/i, "").trim();
+    if (!dadosPreceptor) {
+      if (typeof iniciarOuConvidarDiscussaoPreceptor === "function") {
+        return iniciarOuConvidarDiscussaoPreceptor(chatId, { ehAudio: false });
+      }
+      return responderPreceptorVozComIA(chatId, "");
+    }
+    return responderPreceptorVozComIA(chatId, dadosPreceptor);
+  }
+
+  if (comando === "/voz" || comando === "/sabatina" || comando === "/v" || comando === "/audio" || comando === "/a") {
+    var dadosVoz = texto.replace(/^\/(voz|sabatina|v|audio|a)\s*/i, "").trim();
+    if (!dadosVoz) {
+      if (typeof iniciarOuConvidarDiscussaoPreceptor === "function") {
+        return iniciarOuConvidarDiscussaoPreceptor(chatId, { ehAudio: false });
+      }
+      return responderPreceptorVozComIA(chatId, "");
+    }
+    return responderPreceptorVozComIA(chatId, dadosVoz);
+  }
+
 
   // 4. AGENDA, TAREFAS E NOTION (EXCLUSIVO TITULAR)
   if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina") {
@@ -47700,6 +47797,196 @@ function processarMensagemTexto(message) {
       "⚖️ *Divergência Notável:*\n" + proto.divergencia;
     return enviarMensagemParaChat(chatId, msgProto);
   }
+
+  return null;
+}
+
+function processarMensagemTexto(message) {
+  if (typeof tratarEntradaUX!=="undefined" && tratarEntradaUX(message)) return;
+  var texto = message.text ? message.text.trim() : "";
+  var textoLow = texto.toLowerCase();
+  var chatId = (message.chat && message.chat.id) ? message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
+  if (!texto) return;
+
+  // Interceptação imediata: Consulta explícita de últimas mudanças / o que mudou / deploy
+  if (/(?:(?:quais\s+(?:as\s+)?)?[úu]ltimas?\s+mudan[çc]as?(?:\s+feitas)?|o\s+que\s+mudou|ultimas?\s+altera[çc][õo]es?)/i.test(texto)) {
+    return tratarComandoUltimasMudancas(chatId);
+  }
+
+  try {
+    // 0A. Roteamento Inteligente de Termos Coloquiais e Siglas do Plantão
+    if (tentarRoteamentoColoquialPlantao(texto, chatId)) return;
+
+    // 0B. Dicionário de Correção de Erros de Digitação Comuns (Typos)
+    var mapaTypos = {
+      "clearence": "/crcl", "clerance": "/crcl", "clerence": "/crcl",
+      "gasometria": "/gaso", "gasoarterial": "/gaso",
+      "intubacao": "/sri", "intubação": "/sri", "entubacao": "/sri", "entubação": "/sri",
+      "amoxilina": "amoxi", "amoxil": "amoxi",
+      "receita": "/rx", "prescricao": "/rx", "prescrição": "/rx",
+      "adrenalina": "/dva", "noradrenalina": "/dva nora", "dobutamina": "/dva dobuta",
+      "eap": "/conduta EAP hipertensivo", "parada": "/conduta PCR"
+    };
+    var primPalavra = textoLow.split(/\s+/)[0].replace(/^\//, "");
+    if (mapaTypos[primPalavra]) {
+      var cmdCorrigido = mapaTypos[primPalavra];
+      if (cmdCorrigido.charAt(0) === "/") {
+        var restoTxt = texto.split(/\s+/).slice(1).join(" ");
+        return processarMensagemTexto({ chat: message.chat, text: cmdCorrigido + (restoTxt ? " " + restoTxt : "") });
+      }
+    }
+
+    // 0C. Normalização de Comandos Canônicos digitados sem barra (/)
+    if (texto.charAt(0) !== "/") {
+      if (/(?:choque\s+s[eé]ptico(?:\s+refrat[aá]rio)?|\bcirci\b)/i.test(texto)) {
+        return processarMensagemTexto({ chat: message.chat, text: "/choqueseptico " + texto });
+      }
+      var comandosSemBarra = [
+        "menu", "ajuda", "help", "manual", "start", "novo", "cancelar", "cockpit", "app",
+        "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot",
+        "pcr", "acls", "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
+        "prenatal", "parto", "ginecologia", "go", "obstetricia", "oftalmo", "vertigem", "epistaxe", "colica",
+        "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
+        "swansea", "colestase", "monoartrite", "febrereumatica", "pancreatite",
+        "diabetes", "anemia", "intox", "sca",
+        "avc", "hic", "kdigo", "dhe", "eletrolitos", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia",
+        "dengue", "arbovirose", "chikungunya", "zika", "pac", "pneumonia", "itu", "cistite", "pielonefrite",
+        "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "crisehas", "has", "cefaleia", "dorcabeca",
+        "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan",
+        "glasgow", "choque", "eap", "anafilaxia", "convulsao", "hipercalemia", "hipoglicemia",
+        "mudancas", "deploy"
+      ];
+      if (comandosSemBarra.indexOf(primPalavra) !== -1) {
+        var ehEvolucaoLeitoNatural = (primPalavra === "leito" || primPalavra === "quarto") &&
+          /^(?:leito|quarto)\s*[:#]?\s*[a-zA-Z0-9_-]{1,24}\s*[:,-]\s+/i.test(texto);
+        if (!ehEvolucaoLeitoNatural) {
+          texto = "/" + texto;
+          textoLow = texto.toLowerCase();
+        }
+      }
+    }
+
+    var comando = textoLow.split(/\s/)[0];
+    var contextoCache = CacheService.getScriptCache();
+    var contextoKey = "ctx_" + chatId;
+
+    // Gerenciamento de Memória (Contexto Clínico)
+    if (comando === "/cancelar" || comando === "/novo" || texto === "🩺 Novo SOAP" || texto === "🧹 Novo Paciente" || texto === "🧹 Novo" || texto === "🧹 Limpar Paciente" || texto === "🧹 Limpar Memória") {
+      if (typeof limparEstadoBot === "function") {
+        try { limparEstadoBot(chatId); } catch (eLimp) {}
+      } else {
+        contextoCache.remove(contextoKey);
+        contextoCache.remove("modo_" + chatId);
+        contextoCache.remove("leito_" + chatId);
+        contextoCache.remove("dvaw_" + chatId);
+        contextoCache.remove("pending_" + chatId);
+      }
+      if (typeof cancelarAcoesPendentes === "function") {
+        try { cancelarAcoesPendentes(chatId); } catch (eCanc) {}
+      }
+      return enviarMensagemComTecladoFixo(chatId, "🧹 *Memória limpa.* Pronto para o próximo paciente!");
+    }
+
+    // 1. Despacho O(1) de Atalhos do Teclado Fixo Persistente
+    var resAtalho = rotearAtalhoTecladoFixo(texto, comando, chatId);
+    if (resAtalho.executado) {
+      return resAtalho.resultado;
+    }
+
+  // Se houver diálogo socrático ativo do Preceptor e Wagner enviou resposta de texto (não comando):
+  var diagAtivo = (typeof obterDialogoPreceptor === "function") ? obterDialogoPreceptor(chatId) : null;
+  if (diagAtivo && diagAtivo.em_andamento) {
+    if (texto.charAt(0) !== "/" && !/^(?:📱|🚨|💊|🏥|📅|📋|🩸|🏁|🎧|🧠|⚙️)/.test(texto)) {
+      return processarRespostaPreceptorSocratico(chatId, texto, false);
+    }
+  }
+
+  // Se não for um comando com barra (/), verifica se tem contexto salvo para complementar
+  if (texto.charAt(0) !== "/") {
+    var contextoAnterior = contextoCache.get(contextoKey);
+    if (contextoAnterior) {
+      texto = contextoAnterior + "\n[Nova Informação do Usuário]: " + texto;
+      comando = contextoAnterior.split(/\s/)[0].toLowerCase();
+    }
+  }
+
+  var clinicos = ["/preceptor", "/voz", "/sabatina", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/toxo", "/toxoplasmose", "/avidez", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/dip", "/pelvica", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehas", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan", "/leitos", "/censo"];
+
+  // Se for comando clínico, salva no contexto de conversação (15 min)
+  if (clinicos.indexOf(comando) !== -1) {
+    if (comando !== "/voz" && comando !== "/sabatina" && comando !== "/preceptor" && typeof limparDialogoPreceptor === "function") {
+      try { limparDialogoPreceptor(chatId); } catch (eLimparP) {}
+    }
+    if (texto.length > 6000) {
+      return enviarMensagemParaChat(chatId, "⚠️ O caso excedeu o limite de caracteres. Use `/novo` e resuma.");
+    }
+    var ehPreceptorOuVozSemCaso = (comando === "/preceptor" || comando === "/voz" || comando === "/sabatina") && texto.trim() === comando;
+    if (!ehPreceptorOuVozSemCaso) {
+      safePutCache(contextoCache, contextoKey, texto, 900); // compatibilidade
+    }
+    if(typeof definirModoBot!=="undefined") {
+      var mapaModos={"/preceptor":"voz","/soap":"soap","/soap_ambulatorial":"soap","/ambulatorio":"soap","/atestado":"atestado","/go":"ginecologia","/obstetricia":"ginecologia","/prenatal":"prenatal","/dpp":"prenatal","/parto":"parto","/co":"parto","/hpp":"hpp","/mgso4":"mgso4","/preeclampsia":"preeclampsia","/gbs":"gbs","/prematuridade":"prematuridade","/toxo":"toxo","/toxoplasmose":"toxo","/avidez":"toxo","/ginecologia":"ginecologia","/preventivo":"preventivo","/sua":"sua","/anticoncepcao":"anticoncepcao","/leucorreia":"leucorreia","/corrimento":"leucorreia","/dip":"dip","/pelvica":"dip","/idoso":"idoso","/aga":"idoso","/beers":"idoso","/cfs":"idoso","/frax":"frax","/osteoporose":"osteoporose","/quedas":"quedas","/polifarmacia":"polifarmacia","/frids":"polifarmacia","/psiq":"psiq","/agitacao":"psiq","/suicidio":"psiq","/phq9":"psiq","/rx":"rx","/rxh":"rxh","/prescricao_hospitalar":"rxh","/receita":"rx","/gaso":"gaso","/voz":"voz","/sabatina":"voz","/calc":"calc","/atb":"calc","/ajuste":"calc","/plantao":"plantao","/sbar":"plantao","/round":"round","/pitch":"round","/interacao":"interacao","/conduta":"conduta","/sos":"conduta","/pcr":"conduta","/acls":"conduta","/arritmia":"conduta","/taquiarritmia":"conduta","/taquicardia":"conduta","/bradiarritmia":"conduta","/bradicardia":"conduta","/dhe":"calc","/eletrolitos":"calc","/dpoc":"dpoc","/vni":"dpoc","/bipap":"dpoc","/hipercapnia":"dpoc","/asma":"asma","/criseasma":"asma","/broncoespasmo":"asma","/salbutamol":"asma","/monoartrite":"monoartrite","/artriteseptica":"monoartrite","/artriteséptica":"monoartrite","/gota":"monoartrite","/artrocentese":"monoartrite","/febrereumatica":"febrereumatica","/fr":"febrereumatica","/jones":"febrereumatica","/aslo":"febrereumatica","/dermato":"dermato","/lesao":"dermato","/lesoes":"dermato","/ulceragenital":"ulceragenital","/cancro":"ulceragenital","/donovanose":"ulceragenital","/lgv":"ulceragenital","/mpox":"mpox","/monkeypox":"mpox","/dengue":"dengue","/arbovirose":"dengue","/chikungunya":"dengue","/zika":"dengue","/pac":"pac","/pneumonia":"pac","/itu":"itu","/cistite":"itu","/pielonefrite":"itu","/infeccaourinaria":"itu","/crisehas":"crisehipertensiva","/crisehipertensiva":"crisehipertensiva","/pseudocrise":"crisehipertensiva","/emergenciahipertensiva":"crisehipertensiva","/cefaleia":"cefaleia","/dorcabeca":"cefaleia","/enxaqueca":"cefaleia","/sutura":"sutura","/ottawa":"sutura","/tetano":"sutura","/raiva":"sutura","/mordedura":"sutura","/ferimento":"sutura","/obito":"obito","/declaracaoobito":"obito","/do":"obito","/notificacao":"obito","/sinan":"obito","/leitos":"enfermaria","/censo":"enfermaria"};
+      if (mapaModos[comando]) {
+        var dadosCmd = texto.replace(/^\/\w+\s*/, "").trim();
+        if (dadosCmd.length > 0) {
+          definirModoBot(chatId, mapaModos[comando], dadosCmd);
+        }
+      }
+    }
+  } else if (texto.charAt(0) === "/") {
+    contextoCache.remove(contextoKey);
+    if (typeof limparDialogoPreceptor === "function") {
+      try { limparDialogoPreceptor(chatId); } catch (eLimparP2) {}
+    }
+  }
+
+    // 2. Despacho O(1) de Comandos de Sistema
+    var resSistema = rotearComandoSistema(comando, texto, chatId);
+    if (resSistema.executado) {
+      return resSistema.resultado;
+    }
+
+    // 3. Despacho de Comandos de Emergência e Sala Vermelha
+    var resEmergencia = despacharComandosEmergenciaSalaVermelha_(comando, texto, chatId, message);
+    if (resEmergencia && resEmergencia.executado) {
+      return resEmergencia.resultado;
+    }
+
+    // 4. Despacho de Comandos de Ambulatório e SOAP
+    var resAmbulatorio = despacharComandosAmbulatorioESoap_(comando, texto, chatId, contextoCache, contextoKey);
+    if (resAmbulatorio && resAmbulatorio.executado) {
+      return resAmbulatorio.resultado;
+    }
+
+    // 5. Despacho de Comandos de Ginecologia e Obstetrícia
+    var resGO = despacharComandosGinecologiaObstetricia_(comando, texto, chatId);
+    if (resGO && resGO.executado) {
+      return resGO.resultado;
+    }
+
+    // 6. Despacho de Comandos de Especialidades Clínicas Gerais e Exames
+    var resEsp = despacharComandosEspecialidadesClinicas_(comando, texto, chatId);
+    if (resEsp && resEsp.executado) {
+      return resEsp.resultado;
+    }
+
+    // ───────────────────────────────────────────────────────────────────────────    // 5. Despacho de Comandos de Enfermaria, Plantão, Leitos e Prescrições
+    var resEnf = despacharComandosEnfermariaPlantaoEReceitas_(comando, texto, chatId);
+    if (resEnf && resEnf.executado) {
+      return resEnf.resultado;
+    }
+
+    // 6. Despacho de Comandos de Calculadoras Clínicas, UTI & Emergência Intensiva
+    var resUti = despacharComandosCalculadorasUTIEEmergenciaIntensiva_(comando, texto, chatId, contextoKey);
+    if (resUti && resUti.executado) {
+      return resUti.resultado;
+    }
+
+    // 7. Despacho de Comandos de Agenda, Rotina, Áudio & Preceptor
+    var resAgenda = despacharComandosAgendaRotinaEAudio_(comando, texto, chatId, message);
+    if (resAgenda && resAgenda.executado) {
+      return resAgenda.resultado;
+    }
 
   // 5. ROTEADOR DE INTENÇÃO AUTÔNOMO (SEM NECESSIDADE DE COMANDO COM BARRA /)
   // Roteamento de Rotina em Linguagem Natural
@@ -48053,12 +48340,14 @@ function processarMensagemTexto(message) {
 
   if (decisao.intencao === "PRECEPTOR_VOZ") {
     var casoAudio = texto.replace(/(?:me\s+)?respond(?:a|e)\s+(?:com\s+|em\s+)?(?:um\s+)?[áa]udio|no\s+fone|fala\s+comigo|preceptor\s+socr[áa]tico|\bsabatina\b|manda\s+[áa]udio|^(?:preceptor|áudio|audio|no\s+fone)\s*[:,-]?\s*/gi, "").trim();
-    if (!casoAudio || casoAudio.length < 5) {
-      casoAudio = (typeof obterContextoClinicoBot === "function" ? obterContextoClinicoBot(chatId) : "") || contextoCache.get(contextoKey);
-      if (!casoAudio) return enviarMensagemParaChat(chatId, "Envie o caso clínico antes de solicitar a resposta em áudio.");
-    } else {
-      safePutCache(contextoCache, contextoKey, casoAudio, 900);
+    var ehApenasChamado = !casoAudio || casoAudio.length < 5 || /^(?:ia|socr[áa]tico|bot|ajuda|online|plant[ãa]o|ouvir|fone|discutir|caso|um\s+caso)$/i.test(casoAudio);
+    if (ehApenasChamado) {
+      if (typeof iniciarOuConvidarDiscussaoPreceptor === "function") {
+        return iniciarOuConvidarDiscussaoPreceptor(chatId, { ehAudio: false });
+      }
+      return enviarMensagemParaChat(chatId, "Opa Wagner! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.");
     }
+    safePutCache(contextoCache, contextoKey, casoAudio, 900);
     return responderPreceptorVozComIA(chatId, casoAudio);
   }
 
@@ -48302,7 +48591,21 @@ function processarRespostaPreceptorSocratico(chatId, textoResposta, ehAudio) {
   }
 
   var replicaPreceptor = null;
-  if (typeof gerarDialogoPreceptorSocratico === "function") {
+
+  // Se o preceptor estava aguardando o médico relatar o caso clínico:
+  if (dialogo && dialogo.aguardando_caso) {
+    casoBase = respostaLimpa;
+    if (typeof gerarProvocacaoPreceptorAudio === "function") {
+      try {
+        replicaPreceptor = gerarProvocacaoPreceptorAudio(casoBase);
+      } catch (eProv) {
+        Logger.log("Erro em gerarProvocacaoPreceptorAudio: " + (eProv.message || eProv));
+      }
+    }
+    if (!replicaPreceptor) {
+      replicaPreceptor = "Compreendido o quadro clínico. Qual é a principal hipótese diagnóstica e a conduta imediata para descartar gravidade?";
+    }
+  } else if (typeof gerarDialogoPreceptorSocratico === "function") {
     try {
       replicaPreceptor = gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaLimpa, historicoStr);
     } catch (eDiag) {
@@ -48321,6 +48624,7 @@ function processarRespostaPreceptorSocratico(chatId, textoResposta, ehAudio) {
 
   salvarDialogoPreceptor(chatId, {
     em_andamento: true,
+    aguardando_caso: false,
     caso_base: casoBase,
     ultima_pergunta: replicaPreceptor,
     historico: novoHist
@@ -48498,6 +48802,112 @@ function extrairTextoLocucaoSoap_(texto) {
     ]
   };
   return enviarMensagemComTecladoParaChat(chatId, "🎧 *Preceptor Socrático:*\n\n" + provocacao, kbTexto);
+}
+
+/**
+ * Inicia ou convida para uma discussão clínica com o Preceptor Socrático.
+ * Se houver um caso recente (últimos 15 min), oferece opções de retomar ou iniciar novo caso.
+ * Se não houver caso, pergunta diretamente o que o médico quer discutir, sem inventar dados aleatórios.
+ */
+function iniciarOuConvidarDiscussaoPreceptor(chatId, opcoes) {
+  opcoes = opcoes || {};
+  var ehAudio = !!opcoes.ehAudio;
+  var contextoCache = CacheService.getScriptCache();
+  var contextoKey = "ctx_" + chatId;
+
+  // 1. Verifica se há caso recente nos últimos 15 min
+  var casoRecente = "";
+  if (typeof obterContextoClinicoBot === "function") {
+    casoRecente = obterContextoClinicoBot(chatId) || "";
+  }
+  if (!casoRecente) {
+    casoRecente = contextoCache.get(contextoKey) || "";
+  }
+  if (!casoRecente && typeof modoBot === "function") {
+    var estBot = modoBot(chatId);
+    if (estBot && estBot.data && estBot.data.length >= 10) {
+      casoRecente = estBot.data;
+    }
+  }
+
+  var nomeDoutor = (typeof ehUsuarioTitular === "function" && ehUsuarioTitular(chatId)) ? "Wagner" : ((typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Doutor");
+  var textoConvite = "Opa " + nomeDoutor + "! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.";
+
+  // 2. Prepara estado do preceptor aguardando relato do caso
+  salvarDialogoPreceptor(chatId, {
+    em_andamento: true,
+    aguardando_caso: true,
+    caso_base: "",
+    ultima_pergunta: textoConvite,
+    historico: [{
+      papel: "preceptor",
+      texto: textoConvite
+    }]
+  });
+
+  if (typeof definirModoBot !== "undefined") {
+    definirModoBot(chatId, "voz", "");
+  }
+
+  // 3. Se houver caso recente substantivo (>= 15 caracteres), oferece botões para continuar ou novo caso
+  if (casoRecente && casoRecente.trim().length >= 15) {
+    var resumoCaso = casoRecente.trim();
+    if (resumoCaso.length > 80) {
+      resumoCaso = resumoCaso.substring(0, 77) + "...";
+    }
+
+    var cacheKeyRecente = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(contextoCache, "prec_rec_" + cacheKeyRecente, casoRecente, 900);
+
+    var textoComRecente = "🎧 *Preceptor Socrático:*\n\n" + textoConvite + "\n\n" +
+      "📌 *Último caso na memória:* _\"" + resumoCaso.replace(/[*_`]/g, "") + "\"_";
+
+    var kbBotoes = {
+      "inline_keyboard": [
+        [
+          {"text": "🔄 Continuar caso anterior", "callback_data": "preceptor_retomar_" + cacheKeyRecente},
+          {"text": "🆕 Novo caso", "callback_data": "preceptor_novo_caso"}
+        ],
+        [
+          {"text": "🛑 Encerrar", "callback_data": "preceptor_encerrar"}
+        ]
+      ]
+    };
+
+    if (ehAudio) {
+      var blobVozRecente = sintetizarVozPreceptor(textoConvite);
+      if (blobVozRecente) {
+        var enviadoVozRec = enviarAudioVozTelegram(chatId, blobVozRecente, textoComRecente, kbBotoes);
+        if (enviadoVozRec) return true;
+      }
+    }
+
+    return enviarMensagemComTecladoParaChat(chatId, textoComRecente, kbBotoes);
+  }
+
+  // 4. Sem caso recente: envio direto e limpo
+  var cacheKeyAudio = Utilities.getUuid().replace(/-/g, "");
+  safePutCache(contextoCache, cacheKeyAudio, textoConvite, 21600);
+
+  var kbSimples = {
+    "inline_keyboard": [
+      [
+        {"text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKeyAudio},
+        {"text": "🛑 Encerrar", "callback_data": "preceptor_encerrar"}
+      ]
+    ]
+  };
+
+  if (ehAudio) {
+    var blobVozSimples = sintetizarVozPreceptor(textoConvite);
+    if (blobVozSimples) {
+      var legendaVoz = "🎧 *Preceptor Socrático:*\n\n" + textoConvite;
+      var okVoz = enviarAudioVozTelegram(chatId, blobVozSimples, legendaVoz, kbSimples);
+      if (okVoz) return true;
+    }
+  }
+
+  return enviarMensagemComTecladoParaChat(chatId, "🎧 *Preceptor Socrático:*\n\n" + textoConvite, kbSimples);
 }
 
 
@@ -49155,9 +49565,9 @@ function tratarCallbackRotinaProdutividade_(cb, data, ctx) {
  * A3. AJUDA E MANUAL DE COMANDOS SLASH
  */
 function tratarCallbackAjuda_(cb, data, ctx) {
-  var catAlvo = (data === "ajuda_todas") ? "todas" : data.replace(/^ajuda_cat_/, "");
+  var catAlvo = (data === "ajuda_todas") ? "todas" : ((data === "ajuda_menu") ? "" : data.replace(/^ajuda_cat_/, ""));
   responderCallbackTelegram(cb.id, "Carregando comandos...");
-  return enviarManualCompletoComandos(ctx.chatId, catAlvo);
+  return enviarManualCompletoComandos(ctx.chatId, catAlvo, ctx.msgId);
 }
 
 /**
@@ -49417,6 +49827,52 @@ function tratarCallbackPreceptorSocratico_(cb, data, ctx) {
       definirModoBot(ctx.chatId, "soap", casoParaSoap);
     }
     return processarEEntregarIA(ctx.chatId, gerarSOAPComIA, casoParaSoap, "soap");
+  }
+  if (data.startsWith("preceptor_retomar_")) {
+    responderCallbackTelegram(cb.id, "Retomando caso clínico...");
+    var keyRetomar = data.replace("preceptor_retomar_", "");
+    var cachePrec = CacheService.getScriptCache();
+    var casoRetomado = (typeof safeGetCache === "function")
+      ? safeGetCache(cachePrec, "prec_rec_" + keyRetomar)
+      : cachePrec.get("prec_rec_" + keyRetomar);
+    if (!casoRetomado) {
+      casoRetomado = (typeof obterContextoClinicoBot === "function" ? obterContextoClinicoBot(ctx.chatId) : "") || cachePrec.get("ctx_" + ctx.chatId);
+    }
+    if (casoRetomado) {
+      return responderPreceptorVozComIA(ctx.chatId, casoRetomado);
+    }
+    return enviarMensagemParaChat(ctx.chatId, "⚠️ O caso anterior expirou da memória. Por favor, dite ou envie o resumo do caso para iniciarmos a discussão.");
+  }
+  if (data === "preceptor_novo_caso") {
+    responderCallbackTelegram(cb.id, "Iniciando novo caso...");
+    limparDialogoPreceptor(ctx.chatId);
+    var cScript = CacheService.getScriptCache();
+    try { cScript.remove("ctx_" + ctx.chatId); } catch (eRem) {}
+    salvarDialogoPreceptor(ctx.chatId, {
+      em_andamento: true,
+      aguardando_caso: true,
+      caso_base: "",
+      ultima_pergunta: "Perfeito! Caso anterior resetado. Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.",
+      historico: [{
+        papel: "preceptor",
+        texto: "Perfeito! Caso anterior resetado. Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo."
+      }]
+    });
+    if (typeof definirModoBot !== "undefined") {
+      definirModoBot(ctx.chatId, "voz", "");
+    }
+    var textoNovo = "Perfeito! Caso anterior resetado. Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.";
+    var cacheKeyNovo = Utilities.getUuid().replace(/-/g, "");
+    safePutCache(cScript, cacheKeyNovo, textoNovo, 21600);
+    var kbNovo = {
+      "inline_keyboard": [
+        [
+          {"text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKeyNovo},
+          {"text": "🛑 Encerrar", "callback_data": "preceptor_encerrar"}
+        ]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(ctx.chatId, "🎧 *Preceptor Socrático:*\n\n" + textoNovo, kbNovo);
   }
   if (data === "preceptor_encerrar") {
     responderCallbackTelegram(cb.id, "Discussão encerrada.");
@@ -49864,12 +50320,14 @@ var MAPA_CALLBACKS_EXATOS_ = {
 
   // Ajuda geral
   "ajuda_todas": tratarCallbackAjuda_,
+  "ajuda_menu": tratarCallbackAjuda_,
 
   // Calculadoras menu principal
   "calc_menu_principal": tratarCallbackCalculadoras_,
 
   // Preceptor socrático
   "preceptor_gerar_soap": tratarCallbackPreceptorSocratico_,
+  "preceptor_novo_caso": tratarCallbackPreceptorSocratico_,
   "preceptor_encerrar": tratarCallbackPreceptorSocratico_,
 
   // Enfermaria
@@ -49966,6 +50424,7 @@ var ROTEADORES_PREFIXO_CALLBACKS_ = [
   { prefix: "ped_med:", handler: tratarCallbackPrescricaoEFarmaco_ },
   { prefix: "hsl_med:", handler: tratarCallbackPrescricaoEFarmaco_ },
   { prefix: "ouvirPreceptor_", handler: tratarCallbackPreceptorSocratico_ },
+  { prefix: "preceptor_retomar_", handler: tratarCallbackPreceptorSocratico_ },
   { prefix: "ef_", handler: tratarCallbackExamesFisicos_ }
 ];
 
@@ -50235,14 +50694,16 @@ function processarMensagemVoz(message) {
 
       if (querVoz) {
         var casoAudio = tLimpo.replace(/(?:me\s+)?respond(?:a|e)\s+(?:com\s+|em\s+)?(?:um\s+)?[áa]udio|no\s+fone|fala\s+comigo|preceptor\s+socr[áa]tico|\bsabatina\b|manda\s+[áa]udio|^(?:preceptor|áudio|audio|no\s+fone)\s*[:,-]?\s*/gi, "").trim();
+        var ehApenasChamadoVoz = !casoAudio || casoAudio.length < 5 || /^(?:ia|socr[áa]tico|bot|ajuda|online|plant[ãa]o|ouvir|fone|discutir|caso|um\s+caso)$/i.test(casoAudio);
+        if (ehApenasChamadoVoz) {
+          if (typeof iniciarOuConvidarDiscussaoPreceptor === "function") {
+            return iniciarOuConvidarDiscussaoPreceptor(chatId, { ehAudio: true });
+          }
+          return enviarMensagemParaChat(chatId, "Opa Wagner! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.");
+        }
         var contextoCache = CacheService.getScriptCache();
         var contextoKey = "ctx_" + chatId;
-        if (!casoAudio || casoAudio.length < 5) {
-          casoAudio = (typeof obterContextoClinicoBot === "function" ? obterContextoClinicoBot(chatId) : "") || contextoCache.get(contextoKey);
-          if (!casoAudio) return enviarMensagemParaChat(chatId, "Envie o caso clínico antes de solicitar a resposta em áudio.");
-        } else {
-          safePutCache(contextoCache, contextoKey, casoAudio, 900);
-        }
+        safePutCache(contextoCache, contextoKey, casoAudio, 900);
         return responderPreceptorVozComIA(chatId, casoAudio);
       }
 
@@ -52138,14 +52599,166 @@ function normalizarTextoBuscaAjuda(t) {
 }
 
 /**
+ * Menu principal interativo e didático de Ajuda (onboarding e central de comandos)
+ */
+function enviarMenuAjudaInterativo(chatId, messageId) {
+  var nomeUsuario = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Doutor(a)";
+  var texto = "⚡ *CENTRAL DE AJUDA & GUIA PRÁTICO*\n\n" +
+    "Olá, " + nomeUsuario + "! O Ultra Rotina foi desenhado para agilidade máxima beira-leito. Você pode utilizá-lo de 3 formas simples:\n\n" +
+    "1️⃣ *Navegação por Menus e Botões:*\n" +
+    "Toque nas opções para abrir fluxogramas imediatos de Sala Vermelha, Enfermaria, Ambulatório e Consultas de Bolso.\n\n" +
+    "2️⃣ *Linguagem Natural (Texto ou Áudio):*\n" +
+    "Envie suas dúvidas clínicas ou casos reais do jeito que preferir — por mensagem escrita ou áudio gravado no hospital (ex: _\"paciente com dor torácica típica\"_, _\"ajuste de vancomicina clearance 30\"_).\n\n" +
+    "3️⃣ *Calculadoras & Protocolos Diretos:*\n" +
+    "Comandos rápidos com barra para obter doses exatas e escores na hora (ex: `/dva`, `/gaso`, `/sri`, `/curb65`).\n\n" +
+    "💡 Toque abaixo para explorar o guia passo a passo ou ver exemplos práticos:";
+
+  var botoes = (typeof botoesBot === "function") ? botoesBot([
+    [['🚀 Guia Rápido (3 Passos)', 'ux:ajuda:passos'], ['💡 Exemplos Práticos', 'ux:ajuda:exemplos']],
+    [['🩺 Por Especialidade', 'ux:ajuda:categorias'], ['📖 Todos os Comandos', 'ajuda_todas']],
+    [['🏠 Início / Menu', 'ux:hub:inicio']]
+  ]) : {
+    inline_keyboard: [
+      [
+        { text: "🚀 Guia Rápido (3 Passos)", callback_data: "ux:ajuda:passos" },
+        { text: "💡 Exemplos Práticos", callback_data: "ux:ajuda:exemplos" }
+      ],
+      [
+        { text: "🩺 Por Especialidade", callback_data: "ux:ajuda:categorias" },
+        { text: "📖 Todos os Comandos", callback_data: "ajuda_todas" }
+      ],
+      [
+        { text: "🏠 Início / Menu", callback_data: "ux:hub:inicio" }
+      ]
+    ]
+  };
+
+  if (typeof enviarTelaBot === "function") {
+    return enviarTelaBot(chatId, texto, botoes, messageId);
+  }
+  if (typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, texto, botoes);
+  }
+  return enviarMensagemParaChat(chatId, texto);
+}
+
+/**
+ * Guia didático passo a passo de como usar o bot beira-leito
+ */
+function enviarGuiaRapidoPassos(chatId, messageId) {
+  var texto = "🚀 *COMO USAR O ULTRA ROTINA EM 3 PASSOS*\n\n" +
+    "*1️⃣ Passo 1: Envie Dúvidas ou Casos Clínicos (Texto ou Áudio)*\n" +
+    "• Fale ou escreva naturalmente como falaria com um colega médico.\n" +
+    "• O bot reconhece sinais vitais, exames e sintomas e estrutura a conduta com doses, diluições e diagnósticos diferenciais.\n" +
+    "• 💡 _Exemplo:_ \"Homem 72 anos, tosse produtiva e febre há 3 dias, FR 28, PAS 85, ureia 65.\"\n\n" +
+    "*2️⃣ Passo 2: Navegue pelos Cenários nos Botões*\n" +
+    "• 🚨 *Sala Vermelha:* PCR, Choque Séptico, DVA, SRI, Arritmias, AVC e SCA.\n" +
+    "• 🛏️ *Enfermaria:* Antibióticos, SBAR, hidratação e prescrição hospitalar.\n" +
+    "• 🩺 *Ambulatório:* SOAP, REMUME, CID-10, atestados e rastreios da APS.\n" +
+    "• 💊 *Consultas de Bolso:* Posologias rápidas e doses pediátricas/adulto.\n\n" +
+    "*3️⃣ Passo 3: Atalhos Rápidos e Troca de Paciente*\n" +
+    "• Digite comandos como `/gaso`, `/dva`, `/curb65` para obter cálculos em 1 segundo.\n" +
+    "• Para iniciar um novo atendimento com memória limpa, use o comando `/novo` ou toque em `🧹 Novo Paciente`.\n\n" +
+    "Toque abaixo para ver exemplos prontos ou voltar à Central de Ajuda:";
+
+  var botoes = (typeof botoesBot === "function") ? botoesBot([
+    [['💡 Ver Exemplos Práticos', 'ux:ajuda:exemplos']],
+    [['🔙 Central de Ajuda', 'ux:ajuda:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]) : {
+    inline_keyboard: [
+      [{ text: "💡 Ver Exemplos Práticos", callback_data: "ux:ajuda:exemplos" }],
+      [{ text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+    ]
+  };
+
+  if (typeof enviarTelaBot === "function") {
+    return enviarTelaBot(chatId, texto, botoes, messageId);
+  }
+  if (typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, texto, botoes);
+  }
+  return enviarMensagemParaChat(chatId, texto);
+}
+
+/**
+ * Exemplos práticos beira-leito abrangendo os principais cenários
+ */
+function enviarExemplosPraticosBeiraLeito(chatId, messageId) {
+  var texto = "💡 *EXEMPLOS PRÁTICOS BEIRA-LEITO*\n\n" +
+    "Você pode copiar ou enviar mensagens parecidas com estes exemplos a qualquer momento:\n\n" +
+    "🚨 *Emergência & Sala Vermelha:*\n" +
+    "• `/dva nora 70kg` — Vazão de noradrenalina em mL/h e solução padrão\n" +
+    "• `/dva y nora dobuta` — Compatibilidade físico-química em Y na mesma via\n" +
+    "• `/sri etomidato 80kg` — Doses exatas em mg e mL para intubação\n" +
+    "• `/choqueseptico 75kg nora 0.5` — Protocolo de CIRCI e vasopressina\n" +
+    "• `/pcr gestante 30 semanas` — Protocolo ACLS com cesariana perimortem\n\n" +
+    "🩸 *Gasometria & Ácido-Base:*\n" +
+    "• `/gaso ph 7.22 pco2 28 hco3 11 na 138 cl 102`\n" +
+    "• `/winter 14` — pCO₂ esperada na acidose metabólica\n\n" +
+    "💊 *Prescrição, Doses & Antimicrobianos:*\n" +
+    "• `/dose amoxicilina crianca 16kg` — Dose e volume em mL da suspensão\n" +
+    "• `/atb meropenem clearance 25` — Ajuste para função renal\n" +
+    "• `/rxh pneumonia comunitaria 70kg` — Prescrição hospitalar completa\n\n" +
+    "🩺 *Ambulatório & Prontuário:*\n" +
+    "• `/soap mulher 55 anos fogachos intensos sem útero`\n" +
+    "• `/prenatal dum 15/04/2026` — Idade gestacional e DPP\n" +
+    "• `/colica dor lombar unilateral sem febre`";
+
+  var botoes = (typeof botoesBot === "function") ? botoesBot([
+    [['🚀 Guia Rápido (3 Passos)', 'ux:ajuda:passos']],
+    [['🔙 Central de Ajuda', 'ux:ajuda:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]) : {
+    inline_keyboard: [
+      [{ text: "🚀 Guia Rápido (3 Passos)", callback_data: "ux:ajuda:passos" }],
+      [{ text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+    ]
+  };
+
+  if (typeof enviarTelaBot === "function") {
+    return enviarTelaBot(chatId, texto, botoes, messageId);
+  }
+  if (typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, texto, botoes);
+  }
+  return enviarMensagemParaChat(chatId, texto);
+}
+
+/**
+ * Exibe as categorias do catálogo de comandos com navegação
+ */
+function enviarMenuCategoriasAjuda(chatId, messageId) {
+  var texto = "🩺 *COMANDOS POR ESPECIALIDADE CLÍNICA*\n\n" +
+    "Selecione uma especialidade abaixo para visualizar os comandos canônicos e atalhos rápidos:";
+  var kb = construirTecladoCategoriasAjuda();
+  var inlineKb = (kb && kb.inline_keyboard) ? kb.inline_keyboard.slice() : [];
+  inlineKb.push([
+    { text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" },
+    { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+  ]);
+  var tecladoFinal = { inline_keyboard: inlineKb };
+
+  if (typeof enviarTelaBot === "function") {
+    return enviarTelaBot(chatId, texto, tecladoFinal, messageId);
+  }
+  if (typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, texto, tecladoFinal);
+  }
+  return enviarMensagemParaChat(chatId, texto);
+}
+
+/**
  * Envia o manual completo ou filtrado por categoria/comando
  */
-function enviarManualCompletoComandos(chatId, filtro) {
+function enviarManualCompletoComandos(chatId, filtro, messageId) {
   var catalogo = obterCatalogoComandosSlash();
   var filtroNorm = normalizarTextoBuscaAjuda(filtro);
   var kb = construirTecladoCategoriasAjuda();
 
-  if (filtroNorm && filtroNorm !== "todas" && filtroNorm !== "tudo" && filtroNorm !== "full" && filtroNorm !== "manual") {
+  if (!filtroNorm) {
+    return enviarMenuAjudaInterativo(chatId, messageId);
+  }
+
+  if (filtroNorm && filtroNorm !== "todas" && filtroNorm !== "tudo" && filtroNorm !== "full" && filtroNorm !== "manual" && filtroNorm !== "catalogo" && filtroNorm !== "todos") {
     var mapaCategorias = {
       "nucleo": "nucleo", "inicio": "nucleo", "cockpit": "nucleo", "app": "nucleo", "sessao": "nucleo",
       "ambulatorio": "ambulatorio", "aps": "ambulatorio", "mfc": "ambulatorio",
@@ -52178,9 +52791,23 @@ function enviarManualCompletoComandos(chatId, filtro) {
             var c = cat.comandos[j];
             msgCat += "• `" + c.sintaxe + "` — " + c.desc + "\n";
           }
-          msgCat += "\n💡 *Dica:* Você também pode enviar qualquer caso ou dúvida em *linguagem natural* sem usar barra (/). Envie `/ajuda` para ver todas as categorias.";
+          msgCat += "\n💡 *Dica:* Você também pode enviar qualquer caso ou dúvida em *linguagem natural* sem usar barra (/).";
+          var kbCat = {
+            inline_keyboard: [
+              [
+                { text: "🩺 Mais Especialidades", callback_data: "ux:ajuda:categorias" },
+                { text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" }
+              ],
+              [
+                { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+              ]
+            ]
+          };
+          if (typeof enviarTelaBot === "function") {
+            return enviarTelaBot(chatId, msgCat, kbCat, messageId);
+          }
           if (typeof enviarMensagemComTecladoParaChat === "function") {
-            return enviarMensagemComTecladoParaChat(chatId, msgCat, kb);
+            return enviarMensagemComTecladoParaChat(chatId, msgCat, kbCat);
           }
           return enviarMensagemParaChat(chatId, msgCat);
         }
@@ -52242,8 +52869,19 @@ function enviarManualCompletoComandos(chatId, filtro) {
             "• *Função beira-leito:* " + cmdObj.desc + "\n" +
             "• *Especialidade:* " + catItem.titulo + "\n\n" +
             "💡 *Dica:* Você também pode acionar esta função enviando dúvidas ou casos em *linguagem natural*, sem precisar da barra (/).";
+          var kbCmd = {
+            inline_keyboard: [
+              [
+                { text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" },
+                { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+              ]
+            ]
+          };
+          if (typeof enviarTelaBot === "function") {
+            return enviarTelaBot(chatId, msgCmd, kbCmd, messageId);
+          }
           if (typeof enviarMensagemComTecladoParaChat === "function") {
-            return enviarMensagemComTecladoParaChat(chatId, msgCmd, kb);
+            return enviarMensagemComTecladoParaChat(chatId, msgCmd, kbCmd);
           }
           return enviarMensagemParaChat(chatId, msgCmd);
         }
@@ -52275,8 +52913,20 @@ function enviarManualCompletoComandos(chatId, filtro) {
   manualCompleto += "💡 *Dica de Ouro:* Você não precisa memorizar barras! Qualquer função pode ser chamada diretamente em *linguagem natural* (ex: _'parto dilatação 7'_, _'drogas vasoativas 70kg'_, _'prenatal dum 10/05'_).\n\n" +
     "Para filtrar por especialidade, digite `/ajuda <especialidade>` ou toque nos botões:";
 
+  var kbCompleto = {
+    inline_keyboard: (kb && kb.inline_keyboard ? kb.inline_keyboard.slice() : []).concat([
+      [
+        { text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]
+    ])
+  };
+
+  if (typeof enviarTelaBot === "function") {
+    return enviarTelaBot(chatId, manualCompleto, kbCompleto, messageId);
+  }
   if (typeof enviarMensagemComTecladoParaChat === "function") {
-    return enviarMensagemComTecladoParaChat(chatId, manualCompleto, kb);
+    return enviarMensagemComTecladoParaChat(chatId, manualCompleto, kbCompleto);
   }
   return enviarMensagemParaChat(chatId, manualCompleto);
 }
@@ -52974,13 +53624,31 @@ function tratarCallbackRotina(cb) {
     RotinaService.aplicarInstrucao(hoje, "modo descanso");
     responderCallbackTelegram(cb.id, "💤 Modo descanso ativado hoje!");
   } else if (subAcao === "cal_sync") {
-    var resSync = RotinaService.sincronizarComGoogleCalendar(hoje);
-    if (resSync && resSync.sucesso) {
-      responderCallbackTelegram(cb.id, "📆 " + resSync.criados + " blocos sincronizados na Agenda Google!");
-    } else {
-      responderCallbackTelegram(cb.id, "⚠️ Erro ao sincronizar com Agenda Google.");
+    if (typeof GoogleCalendarService !== "undefined" && GoogleCalendarService.limparCache) {
+      GoogleCalendarService.limparCache();
     }
-    return;
+    var blocosFrescos = RotinaService.importarEventosGoogleCalendar(hoje);
+    if (blocosFrescos && blocosFrescos.length > 0) {
+      var salvosAtuais = RotinaService.obterBlocosSalvos(hoje);
+      if (Array.isArray(salvosAtuais) && salvosAtuais.length > 0) {
+        for (var idxB = 0; idxB < blocosFrescos.length; idxB++) {
+          var bF = blocosFrescos[idxB];
+          for (var idxS = 0; idxS < salvosAtuais.length; idxS++) {
+            if (salvosAtuais[idxS].id === bF.id || salvosAtuais[idxS].titulo === bF.titulo) {
+              if (salvosAtuais[idxS].status && salvosAtuais[idxS].status !== "pendente") {
+                bF.status = salvosAtuais[idxS].status;
+                if (salvosAtuais[idxS].nota) bF.nota = salvosAtuais[idxS].nota;
+              }
+              break;
+            }
+          }
+        }
+      }
+      RotinaService.salvarBlocosDoDia(hoje, blocosFrescos);
+      responderCallbackTelegram(cb.id, "📆 " + blocosFrescos.length + " blocos sincronizados do Google Calendar!");
+    } else {
+      responderCallbackTelegram(cb.id, "📆 Agenda Google verificada!");
+    }
   } else if (subAcao === "ajustar") {
     responderCallbackTelegram(cb.id, "✏️ Envie sua instrução de ajuste!");
     var msgDica = "✏️ *COMO AJUSTAR SUA ROTINA HOJE:*\n\n" +
@@ -58958,6 +59626,21 @@ function tratarCallbackUX(cb) {
         enviarRotinaBot(chat, msgId);
       } else if (v === 'manual') {
         texto('/manual');
+      } else if (v === 'ajuda') {
+        if (typeof enviarMenuAjudaInterativo === 'function') return enviarMenuAjudaInterativo(chat, msgId);
+        texto('/ajuda');
+      }
+    } else if (op === 'ajuda') {
+      if (v === 'passos') {
+        if (typeof enviarGuiaRapidoPassos === 'function') return enviarGuiaRapidoPassos(chat, msgId);
+      } else if (v === 'exemplos') {
+        if (typeof enviarExemplosPraticosBeiraLeito === 'function') return enviarExemplosPraticosBeiraLeito(chat, msgId);
+      } else if (v === 'categorias') {
+        if (typeof enviarMenuCategoriasAjuda === 'function') return enviarMenuCategoriasAjuda(chat, msgId);
+      } else if (v === 'todos' || v === 'todas') {
+        if (typeof enviarManualCompletoComandos === 'function') return enviarManualCompletoComandos(chat, 'todas', msgId);
+      } else {
+        if (typeof enviarMenuAjudaInterativo === 'function') return enviarMenuAjudaInterativo(chat, msgId);
       }
     } else if (op === 'enf') {
       if (v === 'clcr') return enviarTelaEnfClearance(chat, msgId);
@@ -60682,6 +61365,19 @@ function cockpitEstruturarCondutaHas(initData, params) {
   }
   var conduta = SoapAmbulatorialService.estruturarCondutaHas(params);
   return { sucesso: true, conduta: conduta };
+}
+
+/**
+ * cockpitGerarEncaminhamentoTexto — exporta guia regulada de referência SISREG/CROSS.
+ */
+function cockpitGerarEncaminhamentoTexto(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SoapAmbulatorialService === 'undefined' || typeof SoapAmbulatorialService.exportarEncaminhamentoTexto !== 'function') {
+    throw new Error('Módulo SoapAmbulatorialService.exportarEncaminhamentoTexto indisponível.');
+  }
+  var texto = SoapAmbulatorialService.exportarEncaminhamentoTexto(params);
+  return { sucesso: true, textoEncaminhamento: texto };
 }
 
 /**
@@ -62543,6 +63239,72 @@ function cockpitMedicinaLegalObito(initData, params) {
   };
 }
 
+function cockpitRotinaBlocos(initData, dataStr) {
+  cockpitAutorizar_(initData);
+  var ref = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+  var blocos = (typeof RotinaService !== 'undefined' && RotinaService.obterBlocosDoDia)
+    ? RotinaService.obterBlocosDoDia(ref)
+    : [];
+  return {
+    sucesso: true,
+    data: (typeof RotinaService !== 'undefined' && RotinaService.normalizarDataISO)
+      ? RotinaService.normalizarDataISO(ref)
+      : dataStr,
+    blocos: blocos || []
+  };
+}
+
+function cockpitRotinaMarcarStatus(initData, dataStr, blocoId, novoStatus, nota) {
+  cockpitAutorizar_(initData);
+  var ref = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+  if (typeof RotinaService === 'undefined' || !RotinaService.marcarStatusBloco) {
+    throw new Error('RotinaService indisponível.');
+  }
+  var res = RotinaService.marcarStatusBloco(ref, blocoId, novoStatus, nota);
+  return {
+    sucesso: res.sucesso,
+    data: RotinaService.normalizarDataISO(ref),
+    blocos: res.blocos
+  };
+}
+
+function cockpitRotinaSyncAgenda(initData, dataStr) {
+  cockpitAutorizar_(initData);
+  var ref = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+  if (typeof GoogleCalendarService !== 'undefined' && GoogleCalendarService.limparCache) {
+    GoogleCalendarService.limparCache();
+  }
+  if (typeof RotinaService === 'undefined') {
+    throw new Error('RotinaService indisponível.');
+  }
+  var blocosFrescos = RotinaService.importarEventosGoogleCalendar(ref) || [];
+  var salvos = RotinaService.obterBlocosSalvos(ref);
+  if (Array.isArray(salvos) && salvos.length > 0 && Array.isArray(blocosFrescos)) {
+    for (var i = 0; i < blocosFrescos.length; i++) {
+      var b = blocosFrescos[i];
+      for (var s = 0; s < salvos.length; s++) {
+        if (salvos[s].id === b.id || salvos[s].titulo === b.titulo) {
+          if (salvos[s].status && salvos[s].status !== 'pendente') {
+            b.status = salvos[s].status;
+            if (salvos[s].nota) b.nota = salvos[s].nota;
+          }
+          break;
+        }
+      }
+    }
+  }
+  if (blocosFrescos.length > 0) {
+    RotinaService.salvarBlocosDoDia(ref, blocosFrescos);
+  }
+  var blocosFinais = RotinaService.obterBlocosDoDia(ref);
+  return {
+    sucesso: true,
+    sincronizado: true,
+    data: RotinaService.normalizarDataISO(ref),
+    blocos: blocosFinais
+  };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitArbovirosesDengue = cockpitArbovirosesDengue;
   module.exports.cockpitDengue = cockpitArbovirosesDengue;
@@ -62558,4 +63320,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitSutura = cockpitPequenasUrgencias;
   module.exports.cockpitMedicinaLegalObito = cockpitMedicinaLegalObito;
   module.exports.cockpitObito = cockpitMedicinaLegalObito;
+  module.exports.cockpitRotinaBlocos = cockpitRotinaBlocos;
+  module.exports.cockpitRotinaMarcarStatus = cockpitRotinaMarcarStatus;
+  module.exports.cockpitRotinaSyncAgenda = cockpitRotinaSyncAgenda;
 }

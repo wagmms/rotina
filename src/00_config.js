@@ -44,7 +44,9 @@ var ConfigService = (function() {
     IA_LOCAL_ENDPOINT: "http://127.0.0.1:11434/v1/chat/completions",
     IA_MODELOS_LOCAL: "llama3.1:latest,llama3:8b,mistral:latest,llama3:latest,mistral:7b",
     IA_LOCAL_TIMEOUT_MS: "12000",
-    IA_FALLBACK_OFFLINE_HABILITADO: "true"
+    IA_FALLBACK_OFFLINE_HABILITADO: "true",
+    TELEGRAM_TITULAR_NAME: "Dr. Wagner",
+    TELEGRAM_GUEST_NAME: "Dr. Vinicius"
   };
 
   return {

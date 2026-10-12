@@ -23,6 +23,10 @@ async function runAjudaTests() {
     mensagensEnviadas.push({ tipo: 'teclado_fixo', id, texto });
     return true;
   };
+  ctx.enviarTelaBot = (id, texto, kb) => {
+    mensagensEnviadas.push({ tipo: 'teclado', id, texto, kb });
+    return true;
+  };
   ctx.responderCallbackTelegram = (cbId, texto) => {
     mensagensEnviadas.push({ tipo: 'callback_answer', cbId, texto });
     return true;
@@ -63,13 +67,12 @@ async function runAjudaTests() {
   assert.strictEqual(catEf.comandos[0].cmd, '/ef', 'Comando de exame físico deve ser /ef');
 
   // 2. Testar /ajuda completo
-  console.log('[2] Testando comando /ajuda completo...');
+  console.log('[2] Testando comando /ajuda interativo...');
   mensagensEnviadas = [];
   ctx.processarMensagemTexto({ chat: { id: chatId }, text: '/ajuda' });
   assert.ok(mensagensEnviadas.length > 0, 'Deve enviar mensagem');
   assert.ok(!mensagensEnviadas[0].texto.includes('/cancelar · Sair do modo atual'), 'Não pode retornar a mensagem legada de 4 comandos');
-  assert.ok(mensagensEnviadas[0].texto.includes('MANUAL DE COMANDOS CANÔNICOS'), 'Deve conter cabeçalho canônico');
-  assert.ok(mensagensEnviadas[0].texto.includes('80 comandos padronizados'), 'Deve referenciar os 80 comandos padronizados');
+  assert.ok(mensagensEnviadas[0].texto.includes('CENTRAL DE AJUDA & GUIA PRÁTICO'), 'Deve abrir o menu interativo de ajuda');
   assert.ok(mensagensEnviadas[0].kb, 'Deve incluir teclado inline de categorias');
 
   mensagensEnviadas = [];

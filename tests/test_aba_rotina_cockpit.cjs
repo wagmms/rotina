@@ -179,6 +179,18 @@ RotinaTimeline.ativarModoDescanso();
 const blocosAposDescanso = RotinaTimeline.carregarBlocosLocais();
 const treinoBloco = blocosAposDescanso.find(b => b.id === 'b3');
 assert.strictEqual(treinoBloco.status, 'descanso', 'Bloco de treino deve ter transitado para status descanso');
-console.log('  ✓ Lógica de normalização, renderização, contadores e modo descanso aprovada.');
+
+// 4.5 Cálculo de Horários e Ação Adiar (+30m)
+assert.strictEqual(typeof RotinaTimeline.adiarBloco, 'function', 'adiarBloco deve ser função');
+assert.strictEqual(RotinaTimeline.converterHoraEmMinutos('10:30'), 630);
+assert.strictEqual(RotinaTimeline.formatarMinutosEmHora(660), '11:00');
+
+RotinaTimeline.adiarBloco('b2', 30);
+const blocosAposAdiar = RotinaTimeline.carregarBlocosLocais();
+const b2Adiado = blocosAposAdiar.find(b => b.id === 'b2');
+assert.strictEqual(b2Adiado.status, 'adiado');
+assert.strictEqual(b2Adiado.inicio, '20:30');
+assert.strictEqual(b2Adiado.fim, '22:30');
+console.log('  ✓ Lógica de normalização, renderização, contadores, modo descanso e adiar (+30m) aprovada.');
 
 console.log('\n=== TODOS OS TESTES DA ABA ROTINA COCKPIT APROVADOS COM SUCESSO! ===');

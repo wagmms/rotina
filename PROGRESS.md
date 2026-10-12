@@ -17,10 +17,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Aba Rotina — Reestruturação Visual no Cockpit PWA, Desacoplamento Modular e Quebra do Monolito (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`, `sw.js`, `gh_cockpit_deploy/sw.js`, `tests/test_aba_rotina_cockpit.cjs`)**:
-    - **Desacoplamento Arquitetural & Quebra do Monolito**: Criado o módulo desacoplado `rotina_timeline.js` (com paridade em `gh_cockpit_deploy/`), extraindo a lógica da rotina do monolito para um arquivo atômico de alta manutenibilidade, integrado com Cache-First no Service Worker (`sw.js`).
-    - **UI/UX Moderna de Time-Blocking**: Card hero com contadores do dia (`concluídos / total`), barra de progresso visual, filtros rápidos por categoria clínica (Plantão, MedQuest, Treino) e ações rápidas em 1 toque (Concluir, Adiar, Pular e Modo Descanso).
-    - **Validação e Estabilidade**: 51/51 suítes aprovadas no `npm test` (incluindo `test_aba_rotina_cockpit.cjs`) e 160/160 testes do autoloop aprovados com zero regressões.
+- [x] **Ambulatório & SOAP — Filtro Contextual Anti-Poluição e Integração com Consultório APS (`gh_cockpit_deploy/index.html`, `cockpit_movel.html`, `tests/test_cockpit_soap_modais_responsividade.cjs`)**:
+    - **Filtro Contextual Anti-Poluição**: Barra seletora tátil em 5 contextos (`Todos`, `Ambulatório`, `Emergência`, `Materno`, `PEP`) eliminando a desordem visual de 21 botões misturados, com persistência da preferência em `localStorage` (`rotina_soap_filtro_acoes`).
+    - **Atalho Rápido 'Consultório APS'**: Botão de acesso em 1 toque no cabeçalho do Copiloto Clínico ao lado de `Copiar PEP`, abrindo diretamente o prontuário ambulatorial ágil.
+    - **Sincronização Bidirecional & Copiar PEP**: O SOAP gerado no modal reflete imediatamente no `#soap-integral` e no status da tela principal; a função `copiarSOAPProntuario()` agora conta com fallback seguro para copiar prontuários originados tanto no chat do Telegram quanto no modal ambulatorial.
+    - **Validação e Zero Regressões**: Suíte `tests/test_cockpit_soap_modais_responsividade.cjs` expandida (0.42s), paridade estrita SHA-256 e aprovação global de 51/51 suítes íntegras no `npm test` em 9.76s.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -28,29 +29,24 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Aba Rotina — Rotas REST Fastify e Endpoint de Blocos e Status (`server/index.js`, `src/13_cockpit_integracao.js`)**:
-    - **Arquivo/Módulo Alvo**: `server/index.js` e `src/13_cockpit_integracao.js`
-    - **Função/Componente/Seletor**: Rotas Fastify `/api/rotina/blocos`, `/api/rotina/status` e função `cockpitPerfil`
-    - **Comportamento Esperado / Critério de Aceite**: Criar rotas REST para ler, atualizar status de blocos e resetar a grade diária conectadas diretamente ao `RotinaService`, permitindo que o Cockpit PWA sincronize alterações em tempo real via HTTP/JSON.
+- [ ] **Aba Rotina — Sincronização Bidirecional e Ações Rápidas no Telegram (`src/07g_telegram_ajuda_e_protocolos.js`, `src/06_rotina_agenda.js`)**:
+    - **Arquivo/Módulo Alvo**: `src/07g_telegram_ajuda_e_protocolos.js` e `src/06_rotina_agenda.js`
+    - **Função/Componente/Seletor**: Handlers de `/rotina`, callbacks de transição de status `rotina:check:*` e `RotinaService.formatarTimelineMarkdown`
+    - **Comportamento Esperado / Critério de Aceite**: Atualizar o teclado inline e a formatação da timeline no Telegram para permitir marcar conclusão de bloco com 1 toque (in-place `editMessageText`), sincronizando o estado com o banco de dados e refletindo imediatamente no Cockpit PWA.
 
 ---
 
 ## 📋 Backlog Prioritário: Desenvolvimento Integral da Aba Rotina
 
-1. [ ] **Aba Rotina — Integração Real com Google Calendar no Backend Node.js (`src/06_rotina_agenda.js`, `server/index.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/06_rotina_agenda.js` e `server/index.js`
-    - **Função/Componente/Seletor**: Funções `RotinaService.sincronizarComGoogleCalendar`, `detectarPlantaoStatus` e rota Fastify `/api/rotina/agenda/sync`
-    - **Comportamento Esperado / Critério de Aceite**: Substituir dependência inoperante de `CalendarApp` (GAS) por conector moderno em Node.js (iCal / Google Calendar API) para consumir a agenda real do médico e sincronizar eventos de plantão, internato e rotina pessoal com precisão de minutos.
-
-2. [ ] **Aba Rotina — Sincronização Bidirecional e Ações Rápidas no Telegram (`src/07g_telegram_ajuda_e_protocolos.js`, `src/06_rotina_agenda.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/07g_telegram_ajuda_e_protocolos.js` e `src/06_rotina_agenda.js`
-    - **Função/Componente/Seletor**: Handlers de `/rotina`, callbacks de transição de status e `RotinaService.formatarTimelineMarkdown`
-    - **Comportamento Esperado / Critério de Aceite**: Atualizar o teclado inline e a formatação da timeline no Telegram para permitir marcar conclusão de bloco com 1 toque (in-place `editMessageText`), sincronizando o estado com o banco de dados e refletindo imediatamente no Cockpit PWA.
-
-3. [ ] **Aba Rotina — Persistência Offline-First e Fila de Sincronização no Cockpit PWA (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `gh_cockpit_deploy/sw.js`)**:
+1. [ ] **Aba Rotina — Persistência Offline-First e Fila de Sincronização no Cockpit PWA (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `gh_cockpit_deploy/sw.js`)**:
     - **Arquivo/Módulo Alvo**: `rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js` e `gh_cockpit_deploy/sw.js`
     - **Função/Componente/Seletor**: Armazenamento IndexedDB de rotina e fila de sincronização em segundo plano
     - **Comportamento Esperado / Critério de Aceite**: Salvar blocos do dia no IndexedDB local do navegador para renderização offline instantânea (0ms), sincronizando mutações pendentes com o backend Fastify assim que a conexão for restabelecida.
+
+2. [ ] **Aba Rotina — Painel de Estatísticas e Aderência Semanal (`rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
+    - **Arquivo/Módulo Alvo**: `rotina_timeline.js` e `src/06_rotina_agenda.js`
+    - **Função/Componente/Seletor**: Função `calcularAderenciaSemanal` e componente de resumo no topo da aba rotina
+    - **Comportamento Esperado / Critério de Aceite**: Exibir percentual real de blocos cumpridos na semana e indicadores visuais de rodízio/estudo ativo.
 
 ---
 

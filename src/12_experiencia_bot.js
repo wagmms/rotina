@@ -3786,6 +3786,21 @@ function tratarCallbackUX(cb) {
         enviarRotinaBot(chat, msgId);
       } else if (v === 'manual') {
         texto('/manual');
+      } else if (v === 'ajuda') {
+        if (typeof enviarMenuAjudaInterativo === 'function') return enviarMenuAjudaInterativo(chat, msgId);
+        texto('/ajuda');
+      }
+    } else if (op === 'ajuda') {
+      if (v === 'passos') {
+        if (typeof enviarGuiaRapidoPassos === 'function') return enviarGuiaRapidoPassos(chat, msgId);
+      } else if (v === 'exemplos') {
+        if (typeof enviarExemplosPraticosBeiraLeito === 'function') return enviarExemplosPraticosBeiraLeito(chat, msgId);
+      } else if (v === 'categorias') {
+        if (typeof enviarMenuCategoriasAjuda === 'function') return enviarMenuCategoriasAjuda(chat, msgId);
+      } else if (v === 'todos' || v === 'todas') {
+        if (typeof enviarManualCompletoComandos === 'function') return enviarManualCompletoComandos(chat, 'todas', msgId);
+      } else {
+        if (typeof enviarMenuAjudaInterativo === 'function') return enviarMenuAjudaInterativo(chat, msgId);
       }
     } else if (op === 'enf') {
       if (v === 'clcr') return enviarTelaEnfClearance(chat, msgId);

@@ -13,6 +13,7 @@ const vm = require('vm');
 const crypto = require('crypto');
 const syncFetch = require('sync-fetch');
 const { Worker } = require('worker_threads');
+const { googleCalendarInstance } = require('./google_calendar');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const DATA_DIR = process.env.BOT_DATA_DIR ? path.resolve(process.env.BOT_DATA_DIR) : path.resolve(ROOT_DIR, 'data');
@@ -92,7 +93,7 @@ const ENV_BLOCKLIST = new Set([
 
 const BOT_ENV_PREFIXES = [
   'BOT_', 'TELEGRAM_', 'GEMINI_', 'NOTION_', 'GROQ_', 'OPENROUTER_', 'ZAI_',
-  'LOCAL_LLM_', 'OLLAMA_', 'LOCAL_',
+  'LOCAL_LLM_', 'OLLAMA_', 'LOCAL_', 'GOOGLE_', 'CALENDAR_',
   'SPREADSHEET_', 'WEBHOOK_', 'WEB_APP_', 'IA_', 'TIMEZONE', 'PORT', 'HOST',
   'D1_', 'CF_', 'RENDER_', 'NODE_ENV'
 ];
@@ -774,6 +775,38 @@ const ctx = {
       setXFrameOptionsMode: function() { return this; }
     })
   },
+  CalendarApp: {
+    _mockEventos: null,
+    _setMockEventos: function(evs) { this._mockEventos = evs; },
+    getDefaultCalendar: function() {
+      const self = this;
+      return {
+        getEvents: (inicio, fim) => {
+          if (Array.isArray(self._mockEventos)) {
+            return self._mockEventos;
+          }
+          return googleCalendarInstance.listarEventosSync(inicio, fim);
+        },
+        createEvent: (tit, ini, fim, opt) => {
+          if (Array.isArray(self._mockEventos)) {
+            const ev = {
+              getId: () => 'mock-event-' + Math.random().toString(36).substring(2, 8),
+              getTitle: () => tit,
+              getStartTime: () => ini,
+              getEndTime: () => fim,
+              getLocation: () => (opt && opt.location) || '',
+              getDescription: () => (opt && opt.description) || '',
+              isAllDayEvent: () => false
+            };
+            self._mockEventos.push(ev);
+            return ev;
+          }
+          return googleCalendarInstance.criarEventoSync(tit, ini, fim, opt);
+        }
+      };
+    }
+  },
+  GoogleCalendarService: googleCalendarInstance,
   process: process,
   require: require
 };
@@ -829,6 +862,7 @@ module.exports = {
         _rpcMap.cockpitEstratificarRisco = ctx.cockpitEstratificarRisco;
         _rpcMap.cockpitBuscarCid = ctx.cockpitBuscarCid;
         _rpcMap.cockpitEstruturarCondutaHas = ctx.cockpitEstruturarCondutaHas;
+        _rpcMap.cockpitGerarEncaminhamentoTexto = ctx.cockpitGerarEncaminhamentoTexto;
         _rpcMap.cockpitCalcularPrenatal = ctx.cockpitCalcularPrenatal;
         _rpcMap.cockpitRastreioTrimestre = ctx.cockpitRastreioTrimestre;
         _rpcMap.cockpitValidarFarmacoGestacao = ctx.cockpitValidarFarmacoGestacao;
@@ -968,6 +1002,9 @@ module.exports = {
         _rpcMap.cockpitSutura = ctx.cockpitSutura || ctx.cockpitPequenasUrgencias;
         _rpcMap.cockpitMedicinaLegalObito = ctx.cockpitMedicinaLegalObito;
         _rpcMap.cockpitObito = ctx.cockpitObito || ctx.cockpitMedicinaLegalObito;
+        _rpcMap.cockpitRotinaBlocos = ctx.cockpitRotinaBlocos;
+        _rpcMap.cockpitRotinaMarcarStatus = ctx.cockpitRotinaMarcarStatus;
+        _rpcMap.cockpitRotinaSyncAgenda = ctx.cockpitRotinaSyncAgenda;
         Object.freeze(_rpcMap);
       }
       if (!metodo || typeof metodo !== 'string') {

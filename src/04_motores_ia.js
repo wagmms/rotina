@@ -2825,7 +2825,7 @@ function classificarIntencaoMensagem(textoMensagem) {
   var tn = _iaNormalizarParaRegex(texto);
 
   // 1) Solicitação explícita de áudio ou preceptor socrático (incluindo atalhos rápidos)
-  if (/(?:me\s+)?respond(?:a|e)\s+(?:com\s+|em\s+)?(?:um\s+)?[aá]udio|no\s+fone|fala\s+comigo|preceptor\s+socr[aá]tico|\bsabatina\b|manda\s+[aá]udio|^(?:preceptor|áudio|audio|no\s+fone)\b/i.test(t)) {
+  if (/(?:me\s+)?respond(?:a|e)\s+(?:com\s+|em\s+)?(?:um\s+)?[aá]udio|no\s+fone|fala\s+comigo|preceptor\s+socr[aá]tico|\bsabatina\b|manda\s+[aá]udio|^(?:preceptor|áudio|audio|no\s+fone)\b|chama(?:r)?\s+(?:o\s+)?preceptor|falar?\s+com\s+(?:o\s+)?preceptor/i.test(t)) {
     return { intencao: "PRECEPTOR_VOZ", confianca: 0.99 };
   }
 
@@ -2971,7 +2971,7 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
     "MODO ADAPTATIVO - escolha o modo conforme a mensagem:",
     "1. EMERGÊNCIA: se descrever paciente instável ou risco de vida, aplique o modo emergência (ação prioritária na primeira linha, medicação com dose, via, preparo e velocidade, reavaliação, sem perguntas didáticas) e siga a checagem de segurança abaixo.",
     "2. DISCUSSÃO CLÍNICA: hipótese principal, achados que a sustentam, o que não pode ser perdido, próxima decisão e o dado pendente que mudaria a conduta. Tom de preceptor: firme, técnico, acolhedor.",
-    "3. PRECEPTORIA: se Wagner pedir para treinar, ou se o HISTÓRICO mostrar perguntas de preceptoria aguardando resposta, avalie a resposta dele: o que está correto, o que precisa de ajuste e por que, e aplique ao caso. Só entregue gabarito completo se ele pedir. Uma pergunta por vez.",
+    "3. PRECEPTORIA: se Wagner pedir para discutir um caso ou sabatina, avalie o caso real apresentado por ele: o que está correto, o que precisa de ajuste e por que, aplicando ao caso. NUNCA INVENTE DADOS DE PACIENTES aleatoriamente do nada. Se Wagner apenas chamou o preceptor ou não forneceu os dados do paciente, pergunte qual paciente ou caso ele quer discutir. Se faltarem dados (sinais vitais, exames), pergunte ativamente o dado faltante. Somente crie um caso simulado fictício se Wagner pedir expressamente por uma simulação de treino (ex: 'simule um caso', 'crie um caso de treino').",
     "4. ROTINA / VIDA PESSOAL / ESTUDO: assertivo, executivo e proativo; resultado e próximo passo primeiro. Conversa simples dispensa estrutura.",
     "",
     "EMBASAMENTO:",
@@ -3001,7 +3001,7 @@ function gerarProvocacaoPreceptorAudio(casoOuDuvida) {
     "1. Texto corrido, SEM tópicos, SEM markdown, SEM asteriscos, SEM emojis, SEM URLs.",
     "2. Emergência (ex: pneumotórax, choque, PCR): diga PRIMEIRO a ação prioritária imediata; só depois, uma pergunta curta de checagem.",
     "3. Caso clínico: aponte o achado semiológico discriminante ou o critério de gravidade mais crítico e termine com UMA pergunta de raciocínio.",
-    "4. Nunca invente dados do paciente. Não use LaTeX. Termine sempre com frase completa.",
+    "4. NUNCA INVENTE DADOS DO PACIENTE, idades, valores laboratoriais ou sinais vitais fictícios. Baseie-se estritamente no que Wagner informou. Se faltarem informações críticas (sinais vitais, exames ou histórico), PERGUNTE ATIVAMENTE o dado faltante para Wagner antes de propor condutas definitivas. Somente formule caso fictício se Wagner pedir expressamente uma simulação (ex: 'simule um caso'). Não use LaTeX. Termine sempre com frase completa.",
     "5. Você não é o médico responsável: em risco de vida, reforce acionar a equipe/preceptor."
   ].join("\n");
   var r = executarRaciocinioClinico(promptSistema, casoOuDuvida, 250);
@@ -3029,7 +3029,7 @@ function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagn
     "   - SEM tópicos, SEM markdown, SEM asteriscos, SEM emojis, SEM URLs, SEM introduções vazias.",
     "   - Termine com frase completa e UMA pergunta direta.",
     "   - Diretrizes brasileiras vigentes como base (SBC, SBPT, SBD, AMIB, Conitec).",
-    "   - Nunca invente dados do paciente."
+    "   - NUNCA invente dados do paciente. Se a resposta de Wagner estiver incompleta ou faltarem dados fundamentais para o desfecho clínico, pergunte diretamente o dado que falta em vez de presumir valores laboratoriais ou sinais vitais."
   ].join("\n");
 
   var partesUsuario = [];
@@ -3098,7 +3098,7 @@ function gerarCriticaSocraticaPreceptor(casoOuLeitoTexto) {
     "REGRAS:",
     "1. Uma ou duas frases completas, terminando em interrogação (?).",
     "2. Sem introdução, saudação, gabarito ou rodeios. Comece direto na pergunta.",
-    "3. Não invente dados do paciente. Não use LaTeX nem markdown. Português do Brasil natural.",
+    "3. Não invente dados do paciente. Não assuma valores numéricos ou achados não mencionados. Se o caso estiver omisso em dados críticos, pergunte o dado que falta. Não use LaTeX nem markdown. Português do Brasil natural.",
     "4. Se o caso descrever instabilidade, a pergunta deve focar a prioridade imediata de segurança."
   ].join("\n");
   var res = executarRaciocinioClinico(promptSistema, "CASO CLÍNICO:\n" + casoOuLeitoTexto, 400);

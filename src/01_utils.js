@@ -520,6 +520,16 @@ function ehUsuarioTitular(chatId) {
 }
 
 /**
+ * Retorna o nome de tratamento do usuário atual (Dr. Wagner para titular, Dr. Vinicius para convidado).
+ */
+function obterNomeTratamentoUsuario(chatId) {
+  if (ehUsuarioTitular(chatId)) {
+    return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_TITULAR_NAME", "Dr. Wagner") : "Dr. Wagner";
+  }
+  return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_GUEST_NAME", "Dr. Vinicius") : "Dr. Vinicius";
+}
+
+/**
  * Retorna a estrutura do teclado fixo principal (ReplyKeyboardMarkup)
  * Projetado para navegação rápida de 1 toque no celular em ambiente hospitalar e rotina.
  * Configurado com is_persistent: false para ergonomia mobile perfeita.

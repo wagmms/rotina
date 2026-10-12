@@ -1191,6 +1191,19 @@ function cockpitEstruturarCondutaHas(initData, params) {
 }
 
 /**
+ * cockpitGerarEncaminhamentoTexto — exporta guia regulada de referência SISREG/CROSS.
+ */
+function cockpitGerarEncaminhamentoTexto(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof SoapAmbulatorialService === 'undefined' || typeof SoapAmbulatorialService.exportarEncaminhamentoTexto !== 'function') {
+    throw new Error('Módulo SoapAmbulatorialService.exportarEncaminhamentoTexto indisponível.');
+  }
+  var texto = SoapAmbulatorialService.exportarEncaminhamentoTexto(params);
+  return { sucesso: true, textoEncaminhamento: texto };
+}
+
+/**
  * cockpitCalcularPrenatal — calcula IG, DPP (Naegele/USG FEBRASGO), ganho de peso e resumo de consulta.
  */
 function cockpitCalcularPrenatal(initData, params) {
@@ -3049,6 +3062,72 @@ function cockpitMedicinaLegalObito(initData, params) {
   };
 }
 
+function cockpitRotinaBlocos(initData, dataStr) {
+  cockpitAutorizar_(initData);
+  var ref = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+  var blocos = (typeof RotinaService !== 'undefined' && RotinaService.obterBlocosDoDia)
+    ? RotinaService.obterBlocosDoDia(ref)
+    : [];
+  return {
+    sucesso: true,
+    data: (typeof RotinaService !== 'undefined' && RotinaService.normalizarDataISO)
+      ? RotinaService.normalizarDataISO(ref)
+      : dataStr,
+    blocos: blocos || []
+  };
+}
+
+function cockpitRotinaMarcarStatus(initData, dataStr, blocoId, novoStatus, nota) {
+  cockpitAutorizar_(initData);
+  var ref = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+  if (typeof RotinaService === 'undefined' || !RotinaService.marcarStatusBloco) {
+    throw new Error('RotinaService indisponível.');
+  }
+  var res = RotinaService.marcarStatusBloco(ref, blocoId, novoStatus, nota);
+  return {
+    sucesso: res.sucesso,
+    data: RotinaService.normalizarDataISO(ref),
+    blocos: res.blocos
+  };
+}
+
+function cockpitRotinaSyncAgenda(initData, dataStr) {
+  cockpitAutorizar_(initData);
+  var ref = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+  if (typeof GoogleCalendarService !== 'undefined' && GoogleCalendarService.limparCache) {
+    GoogleCalendarService.limparCache();
+  }
+  if (typeof RotinaService === 'undefined') {
+    throw new Error('RotinaService indisponível.');
+  }
+  var blocosFrescos = RotinaService.importarEventosGoogleCalendar(ref) || [];
+  var salvos = RotinaService.obterBlocosSalvos(ref);
+  if (Array.isArray(salvos) && salvos.length > 0 && Array.isArray(blocosFrescos)) {
+    for (var i = 0; i < blocosFrescos.length; i++) {
+      var b = blocosFrescos[i];
+      for (var s = 0; s < salvos.length; s++) {
+        if (salvos[s].id === b.id || salvos[s].titulo === b.titulo) {
+          if (salvos[s].status && salvos[s].status !== 'pendente') {
+            b.status = salvos[s].status;
+            if (salvos[s].nota) b.nota = salvos[s].nota;
+          }
+          break;
+        }
+      }
+    }
+  }
+  if (blocosFrescos.length > 0) {
+    RotinaService.salvarBlocosDoDia(ref, blocosFrescos);
+  }
+  var blocosFinais = RotinaService.obterBlocosDoDia(ref);
+  return {
+    sucesso: true,
+    sincronizado: true,
+    data: RotinaService.normalizarDataISO(ref),
+    blocos: blocosFinais
+  };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitArbovirosesDengue = cockpitArbovirosesDengue;
   module.exports.cockpitDengue = cockpitArbovirosesDengue;
@@ -3064,6 +3143,9 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitSutura = cockpitPequenasUrgencias;
   module.exports.cockpitMedicinaLegalObito = cockpitMedicinaLegalObito;
   module.exports.cockpitObito = cockpitMedicinaLegalObito;
+  module.exports.cockpitRotinaBlocos = cockpitRotinaBlocos;
+  module.exports.cockpitRotinaMarcarStatus = cockpitRotinaMarcarStatus;
+  module.exports.cockpitRotinaSyncAgenda = cockpitRotinaSyncAgenda;
 }
 
 

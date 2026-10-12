@@ -258,14 +258,166 @@ function normalizarTextoBuscaAjuda(t) {
 }
 
 /**
+ * Menu principal interativo e didático de Ajuda (onboarding e central de comandos)
+ */
+function enviarMenuAjudaInterativo(chatId, messageId) {
+  var nomeUsuario = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Doutor(a)";
+  var texto = "⚡ *CENTRAL DE AJUDA & GUIA PRÁTICO*\n\n" +
+    "Olá, " + nomeUsuario + "! O Ultra Rotina foi desenhado para agilidade máxima beira-leito. Você pode utilizá-lo de 3 formas simples:\n\n" +
+    "1️⃣ *Navegação por Menus e Botões:*\n" +
+    "Toque nas opções para abrir fluxogramas imediatos de Sala Vermelha, Enfermaria, Ambulatório e Consultas de Bolso.\n\n" +
+    "2️⃣ *Linguagem Natural (Texto ou Áudio):*\n" +
+    "Envie suas dúvidas clínicas ou casos reais do jeito que preferir — por mensagem escrita ou áudio gravado no hospital (ex: _\"paciente com dor torácica típica\"_, _\"ajuste de vancomicina clearance 30\"_).\n\n" +
+    "3️⃣ *Calculadoras & Protocolos Diretos:*\n" +
+    "Comandos rápidos com barra para obter doses exatas e escores na hora (ex: `/dva`, `/gaso`, `/sri`, `/curb65`).\n\n" +
+    "💡 Toque abaixo para explorar o guia passo a passo ou ver exemplos práticos:";
+
+  var botoes = (typeof botoesBot === "function") ? botoesBot([
+    [['🚀 Guia Rápido (3 Passos)', 'ux:ajuda:passos'], ['💡 Exemplos Práticos', 'ux:ajuda:exemplos']],
+    [['🩺 Por Especialidade', 'ux:ajuda:categorias'], ['📖 Todos os Comandos', 'ajuda_todas']],
+    [['🏠 Início / Menu', 'ux:hub:inicio']]
+  ]) : {
+    inline_keyboard: [
+      [
+        { text: "🚀 Guia Rápido (3 Passos)", callback_data: "ux:ajuda:passos" },
+        { text: "💡 Exemplos Práticos", callback_data: "ux:ajuda:exemplos" }
+      ],
+      [
+        { text: "🩺 Por Especialidade", callback_data: "ux:ajuda:categorias" },
+        { text: "📖 Todos os Comandos", callback_data: "ajuda_todas" }
+      ],
+      [
+        { text: "🏠 Início / Menu", callback_data: "ux:hub:inicio" }
+      ]
+    ]
+  };
+
+  if (typeof enviarTelaBot === "function") {
+    return enviarTelaBot(chatId, texto, botoes, messageId);
+  }
+  if (typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, texto, botoes);
+  }
+  return enviarMensagemParaChat(chatId, texto);
+}
+
+/**
+ * Guia didático passo a passo de como usar o bot beira-leito
+ */
+function enviarGuiaRapidoPassos(chatId, messageId) {
+  var texto = "🚀 *COMO USAR O ULTRA ROTINA EM 3 PASSOS*\n\n" +
+    "*1️⃣ Passo 1: Envie Dúvidas ou Casos Clínicos (Texto ou Áudio)*\n" +
+    "• Fale ou escreva naturalmente como falaria com um colega médico.\n" +
+    "• O bot reconhece sinais vitais, exames e sintomas e estrutura a conduta com doses, diluições e diagnósticos diferenciais.\n" +
+    "• 💡 _Exemplo:_ \"Homem 72 anos, tosse produtiva e febre há 3 dias, FR 28, PAS 85, ureia 65.\"\n\n" +
+    "*2️⃣ Passo 2: Navegue pelos Cenários nos Botões*\n" +
+    "• 🚨 *Sala Vermelha:* PCR, Choque Séptico, DVA, SRI, Arritmias, AVC e SCA.\n" +
+    "• 🛏️ *Enfermaria:* Antibióticos, SBAR, hidratação e prescrição hospitalar.\n" +
+    "• 🩺 *Ambulatório:* SOAP, REMUME, CID-10, atestados e rastreios da APS.\n" +
+    "• 💊 *Consultas de Bolso:* Posologias rápidas e doses pediátricas/adulto.\n\n" +
+    "*3️⃣ Passo 3: Atalhos Rápidos e Troca de Paciente*\n" +
+    "• Digite comandos como `/gaso`, `/dva`, `/curb65` para obter cálculos em 1 segundo.\n" +
+    "• Para iniciar um novo atendimento com memória limpa, use o comando `/novo` ou toque em `🧹 Novo Paciente`.\n\n" +
+    "Toque abaixo para ver exemplos prontos ou voltar à Central de Ajuda:";
+
+  var botoes = (typeof botoesBot === "function") ? botoesBot([
+    [['💡 Ver Exemplos Práticos', 'ux:ajuda:exemplos']],
+    [['🔙 Central de Ajuda', 'ux:ajuda:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]) : {
+    inline_keyboard: [
+      [{ text: "💡 Ver Exemplos Práticos", callback_data: "ux:ajuda:exemplos" }],
+      [{ text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+    ]
+  };
+
+  if (typeof enviarTelaBot === "function") {
+    return enviarTelaBot(chatId, texto, botoes, messageId);
+  }
+  if (typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, texto, botoes);
+  }
+  return enviarMensagemParaChat(chatId, texto);
+}
+
+/**
+ * Exemplos práticos beira-leito abrangendo os principais cenários
+ */
+function enviarExemplosPraticosBeiraLeito(chatId, messageId) {
+  var texto = "💡 *EXEMPLOS PRÁTICOS BEIRA-LEITO*\n\n" +
+    "Você pode copiar ou enviar mensagens parecidas com estes exemplos a qualquer momento:\n\n" +
+    "🚨 *Emergência & Sala Vermelha:*\n" +
+    "• `/dva nora 70kg` — Vazão de noradrenalina em mL/h e solução padrão\n" +
+    "• `/dva y nora dobuta` — Compatibilidade físico-química em Y na mesma via\n" +
+    "• `/sri etomidato 80kg` — Doses exatas em mg e mL para intubação\n" +
+    "• `/choqueseptico 75kg nora 0.5` — Protocolo de CIRCI e vasopressina\n" +
+    "• `/pcr gestante 30 semanas` — Protocolo ACLS com cesariana perimortem\n\n" +
+    "🩸 *Gasometria & Ácido-Base:*\n" +
+    "• `/gaso ph 7.22 pco2 28 hco3 11 na 138 cl 102`\n" +
+    "• `/winter 14` — pCO₂ esperada na acidose metabólica\n\n" +
+    "💊 *Prescrição, Doses & Antimicrobianos:*\n" +
+    "• `/dose amoxicilina crianca 16kg` — Dose e volume em mL da suspensão\n" +
+    "• `/atb meropenem clearance 25` — Ajuste para função renal\n" +
+    "• `/rxh pneumonia comunitaria 70kg` — Prescrição hospitalar completa\n\n" +
+    "🩺 *Ambulatório & Prontuário:*\n" +
+    "• `/soap mulher 55 anos fogachos intensos sem útero`\n" +
+    "• `/prenatal dum 15/04/2026` — Idade gestacional e DPP\n" +
+    "• `/colica dor lombar unilateral sem febre`";
+
+  var botoes = (typeof botoesBot === "function") ? botoesBot([
+    [['🚀 Guia Rápido (3 Passos)', 'ux:ajuda:passos']],
+    [['🔙 Central de Ajuda', 'ux:ajuda:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]) : {
+    inline_keyboard: [
+      [{ text: "🚀 Guia Rápido (3 Passos)", callback_data: "ux:ajuda:passos" }],
+      [{ text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+    ]
+  };
+
+  if (typeof enviarTelaBot === "function") {
+    return enviarTelaBot(chatId, texto, botoes, messageId);
+  }
+  if (typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, texto, botoes);
+  }
+  return enviarMensagemParaChat(chatId, texto);
+}
+
+/**
+ * Exibe as categorias do catálogo de comandos com navegação
+ */
+function enviarMenuCategoriasAjuda(chatId, messageId) {
+  var texto = "🩺 *COMANDOS POR ESPECIALIDADE CLÍNICA*\n\n" +
+    "Selecione uma especialidade abaixo para visualizar os comandos canônicos e atalhos rápidos:";
+  var kb = construirTecladoCategoriasAjuda();
+  var inlineKb = (kb && kb.inline_keyboard) ? kb.inline_keyboard.slice() : [];
+  inlineKb.push([
+    { text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" },
+    { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+  ]);
+  var tecladoFinal = { inline_keyboard: inlineKb };
+
+  if (typeof enviarTelaBot === "function") {
+    return enviarTelaBot(chatId, texto, tecladoFinal, messageId);
+  }
+  if (typeof enviarMensagemComTecladoParaChat === "function") {
+    return enviarMensagemComTecladoParaChat(chatId, texto, tecladoFinal);
+  }
+  return enviarMensagemParaChat(chatId, texto);
+}
+
+/**
  * Envia o manual completo ou filtrado por categoria/comando
  */
-function enviarManualCompletoComandos(chatId, filtro) {
+function enviarManualCompletoComandos(chatId, filtro, messageId) {
   var catalogo = obterCatalogoComandosSlash();
   var filtroNorm = normalizarTextoBuscaAjuda(filtro);
   var kb = construirTecladoCategoriasAjuda();
 
-  if (filtroNorm && filtroNorm !== "todas" && filtroNorm !== "tudo" && filtroNorm !== "full" && filtroNorm !== "manual") {
+  if (!filtroNorm) {
+    return enviarMenuAjudaInterativo(chatId, messageId);
+  }
+
+  if (filtroNorm && filtroNorm !== "todas" && filtroNorm !== "tudo" && filtroNorm !== "full" && filtroNorm !== "manual" && filtroNorm !== "catalogo" && filtroNorm !== "todos") {
     var mapaCategorias = {
       "nucleo": "nucleo", "inicio": "nucleo", "cockpit": "nucleo", "app": "nucleo", "sessao": "nucleo",
       "ambulatorio": "ambulatorio", "aps": "ambulatorio", "mfc": "ambulatorio",
@@ -298,9 +450,23 @@ function enviarManualCompletoComandos(chatId, filtro) {
             var c = cat.comandos[j];
             msgCat += "• `" + c.sintaxe + "` — " + c.desc + "\n";
           }
-          msgCat += "\n💡 *Dica:* Você também pode enviar qualquer caso ou dúvida em *linguagem natural* sem usar barra (/). Envie `/ajuda` para ver todas as categorias.";
+          msgCat += "\n💡 *Dica:* Você também pode enviar qualquer caso ou dúvida em *linguagem natural* sem usar barra (/).";
+          var kbCat = {
+            inline_keyboard: [
+              [
+                { text: "🩺 Mais Especialidades", callback_data: "ux:ajuda:categorias" },
+                { text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" }
+              ],
+              [
+                { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+              ]
+            ]
+          };
+          if (typeof enviarTelaBot === "function") {
+            return enviarTelaBot(chatId, msgCat, kbCat, messageId);
+          }
           if (typeof enviarMensagemComTecladoParaChat === "function") {
-            return enviarMensagemComTecladoParaChat(chatId, msgCat, kb);
+            return enviarMensagemComTecladoParaChat(chatId, msgCat, kbCat);
           }
           return enviarMensagemParaChat(chatId, msgCat);
         }
@@ -362,8 +528,19 @@ function enviarManualCompletoComandos(chatId, filtro) {
             "• *Função beira-leito:* " + cmdObj.desc + "\n" +
             "• *Especialidade:* " + catItem.titulo + "\n\n" +
             "💡 *Dica:* Você também pode acionar esta função enviando dúvidas ou casos em *linguagem natural*, sem precisar da barra (/).";
+          var kbCmd = {
+            inline_keyboard: [
+              [
+                { text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" },
+                { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+              ]
+            ]
+          };
+          if (typeof enviarTelaBot === "function") {
+            return enviarTelaBot(chatId, msgCmd, kbCmd, messageId);
+          }
           if (typeof enviarMensagemComTecladoParaChat === "function") {
-            return enviarMensagemComTecladoParaChat(chatId, msgCmd, kb);
+            return enviarMensagemComTecladoParaChat(chatId, msgCmd, kbCmd);
           }
           return enviarMensagemParaChat(chatId, msgCmd);
         }
@@ -395,8 +572,20 @@ function enviarManualCompletoComandos(chatId, filtro) {
   manualCompleto += "💡 *Dica de Ouro:* Você não precisa memorizar barras! Qualquer função pode ser chamada diretamente em *linguagem natural* (ex: _'parto dilatação 7'_, _'drogas vasoativas 70kg'_, _'prenatal dum 10/05'_).\n\n" +
     "Para filtrar por especialidade, digite `/ajuda <especialidade>` ou toque nos botões:";
 
+  var kbCompleto = {
+    inline_keyboard: (kb && kb.inline_keyboard ? kb.inline_keyboard.slice() : []).concat([
+      [
+        { text: "🔙 Central de Ajuda", callback_data: "ux:ajuda:menu" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]
+    ])
+  };
+
+  if (typeof enviarTelaBot === "function") {
+    return enviarTelaBot(chatId, manualCompleto, kbCompleto, messageId);
+  }
   if (typeof enviarMensagemComTecladoParaChat === "function") {
-    return enviarMensagemComTecladoParaChat(chatId, manualCompleto, kb);
+    return enviarMensagemComTecladoParaChat(chatId, manualCompleto, kbCompleto);
   }
   return enviarMensagemParaChat(chatId, manualCompleto);
 }
@@ -1094,13 +1283,31 @@ function tratarCallbackRotina(cb) {
     RotinaService.aplicarInstrucao(hoje, "modo descanso");
     responderCallbackTelegram(cb.id, "💤 Modo descanso ativado hoje!");
   } else if (subAcao === "cal_sync") {
-    var resSync = RotinaService.sincronizarComGoogleCalendar(hoje);
-    if (resSync && resSync.sucesso) {
-      responderCallbackTelegram(cb.id, "📆 " + resSync.criados + " blocos sincronizados na Agenda Google!");
-    } else {
-      responderCallbackTelegram(cb.id, "⚠️ Erro ao sincronizar com Agenda Google.");
+    if (typeof GoogleCalendarService !== "undefined" && GoogleCalendarService.limparCache) {
+      GoogleCalendarService.limparCache();
     }
-    return;
+    var blocosFrescos = RotinaService.importarEventosGoogleCalendar(hoje);
+    if (blocosFrescos && blocosFrescos.length > 0) {
+      var salvosAtuais = RotinaService.obterBlocosSalvos(hoje);
+      if (Array.isArray(salvosAtuais) && salvosAtuais.length > 0) {
+        for (var idxB = 0; idxB < blocosFrescos.length; idxB++) {
+          var bF = blocosFrescos[idxB];
+          for (var idxS = 0; idxS < salvosAtuais.length; idxS++) {
+            if (salvosAtuais[idxS].id === bF.id || salvosAtuais[idxS].titulo === bF.titulo) {
+              if (salvosAtuais[idxS].status && salvosAtuais[idxS].status !== "pendente") {
+                bF.status = salvosAtuais[idxS].status;
+                if (salvosAtuais[idxS].nota) bF.nota = salvosAtuais[idxS].nota;
+              }
+              break;
+            }
+          }
+        }
+      }
+      RotinaService.salvarBlocosDoDia(hoje, blocosFrescos);
+      responderCallbackTelegram(cb.id, "📆 " + blocosFrescos.length + " blocos sincronizados do Google Calendar!");
+    } else {
+      responderCallbackTelegram(cb.id, "📆 Agenda Google verificada!");
+    }
   } else if (subAcao === "ajustar") {
     responderCallbackTelegram(cb.id, "✏️ Envie sua instrução de ajuste!");
     var msgDica = "✏️ *COMO AJUSTAR SUA ROTINA HOJE:*\n\n" +

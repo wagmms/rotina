@@ -192,3 +192,62 @@ test('Cockpit Responsividade & SOAP - Integração Fastify / Runtime com soapvie
   assert.ok(Array.isArray(consulta.casosDoDia), 'consulta.casosDoDia deve ser array');
   assert.strictEqual(typeof consulta.soap, 'string', 'consulta.soap deve ser string');
 });
+
+test('Cockpit Responsividade & SOAP - Modal Ambulatorial com Gaveta de Queixas Frequentes e Ações Cirúrgicas', () => {
+  const html = fs.readFileSync(cockpitHtmlPath, 'utf8');
+
+  // 1. Elementos da interface limpa (sem poluição)
+  assert.ok(html.includes('id="btn-toggle-queixas-freq"'), 'Deve conter botão toggle de Queixas Frequentes');
+  assert.ok(html.includes('id="gaveta-queixas-frequentes"'), 'Deve conter gaveta recolhível de Queixas Frequentes');
+  assert.ok(html.includes('id="amb-sv-badge"'), 'Deve conter badge dinâmico de sinais vitais');
+
+  // 2. Os 8 protocolos rápidos da APS
+  const tiposEsperados = ['has', 'dm', 'ivas', 'lombalgia', 'dispepsia', 'cefaleia', 'saude_mental', 'checkup'];
+  for (const tipo of tiposEsperados) {
+    assert.ok(html.includes(`setSoapQueixaRapida('${tipo}')`), `Gaveta deve conter atalho clínico para ${tipo}`);
+  }
+
+  // 3. Botões de cópia e exportação cirúrgica
+  assert.ok(html.includes('id="btn-copiar-so-amb"'), 'Deve conter botão de copiar Subjetivo + Objetivo (S+O)');
+  assert.ok(html.includes('id="btn-atestado-from-soap"'), 'Deve conter botão de transferir para Atestado CFM');
+  assert.ok(html.includes('id="btn-sisreg-amb"'), 'Deve conter botão de gerar Guia SISREG');
+
+  // 4. Presença das funções no JavaScript
+  assert.ok(html.includes('id="amb-input-diagnostico"'), 'Deve conter input de busca de diagnóstico');
+  assert.ok(html.includes('id="amb-lista-sugestoes-cid"'), 'Deve conter dropdown de sugestões de CID');
+  assert.ok(html.includes('id="amb-cid-badge-selecionado"'), 'Deve conter badge de CID selecionado');
+  assert.ok(html.includes('function alternarGavetaQueixasFrequentes()'), 'Deve definir alternarGavetaQueixasFrequentes');
+  assert.ok(html.includes('function atualizarBadgeSinaisVitaisAmbulatorial()'), 'Deve definir atualizarBadgeSinaisVitaisAmbulatorial');
+  assert.ok(html.includes('function buscarDiagnosticosAmbulatorial('), 'Deve definir buscarDiagnosticosAmbulatorial');
+  assert.ok(html.includes('function selecionarDiagnosticoAmbulatorial('), 'Deve definir selecionarDiagnosticoAmbulatorial');
+  assert.ok(html.includes('function copiarSOAPAmbulatorialSO()'), 'Deve definir copiarSOAPAmbulatorialSO');
+  assert.ok(html.includes('function transferirParaAtestadoAmbulatorial()'), 'Deve definir transferirParaAtestadoAmbulatorial');
+  assert.ok(html.includes('function gerarEncaminhamentoSisregModal()'), 'Deve definir gerarEncaminhamentoSisregModal');
+  assert.ok(html.includes('function limparFormularioAmbulatorioSOAP()'), 'Deve definir limparFormularioAmbulatorioSOAP');
+  assert.ok(html.includes('function salvarEstadoSoapAmbulatorialLocal()'), 'Deve definir salvarEstadoSoapAmbulatorialLocal');
+  assert.ok(html.includes('function restaurarEstadoSoapAmbulatorialLocal()'), 'Deve definir restaurarEstadoSoapAmbulatorialLocal');
+});
+
+test('Cockpit Responsividade & SOAP - Filtro Contextual Anti-Poluição de Ações Rápidas na Aba SOAP', () => {
+  const html = fs.readFileSync(cockpitHtmlPath, 'utf8');
+
+  // 1. Botão de atalho rápido no header do Copiloto
+  assert.ok(html.includes('Consultório APS'), 'Deve conter atalho Consultório APS no header do Copiloto');
+  assert.ok(html.includes('abrirModalAmbulatorioSOAP()'), 'Atalho deve invocar abrirModalAmbulatorioSOAP');
+
+  // 2. Filtro de Contexto Clínico Anti-Poluição
+  assert.ok(html.includes('id="filtro-acoes-todos"'), 'Deve conter botão de filtro Todos');
+  assert.ok(html.includes('id="filtro-acoes-amb"'), 'Deve conter botão de filtro Ambulatório');
+  assert.ok(html.includes('id="filtro-acoes-emerg"'), 'Deve conter botão de filtro Emergência');
+  assert.ok(html.includes('id="filtro-acoes-materno"'), 'Deve conter botão de filtro Materno');
+  assert.ok(html.includes('id="filtro-acoes-pep"'), 'Deve conter botão de filtro PEP');
+
+  // 3. Atributos data-soap-cat nos botões
+  assert.ok(html.includes('data-soap-cat="amb"'), 'Botão de SOAP Ambulatorial deve ter tag amb');
+  assert.ok(html.includes('data-soap-cat="emerg"'), 'Botões de DVA/SRI devem ter tag emerg');
+  assert.ok(html.includes('data-soap-cat="materno amb"'), 'Botão de Pré-natal deve ter tag materno');
+
+  // 4. Funções no JavaScript
+  assert.ok(html.includes('function filtrarAcoesRapidasSOAP('), 'Deve definir função filtrarAcoesRapidasSOAP');
+  assert.ok(html.includes('function restaurarFiltroAcoesRapidasSOAP('), 'Deve definir função restaurarFiltroAcoesRapidasSOAP');
+});

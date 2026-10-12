@@ -267,4 +267,151 @@ test('5. Encerramento socrático limpa a memória e restaura o teclado', () => {
   assert.equal(restaurouTeclado, true);
 });
 
+// 6. ACOLHIMENTO SEM CASO: NÃO INVENTA DADOS E PERGUNTA QUAL PACIENTE DISCUTIR
+test('6. Chamar preceptor sem caso não inventa paciente aleatório e pergunta o que discutir', () => {
+  const { c } = criarAmbiente();
+
+  let mensagemEnviada = '';
+  let botoesEnviados = null;
+  c.enviarMensagemComTecladoParaChat = (chatId, texto, kb) => {
+    mensagemEnviada = texto;
+    botoesEnviados = kb;
+    return true;
+  };
+
+  // Aciona via texto "preceptor ia"
+  c.processarMensagemTexto({
+    chat: { id: 123 },
+    text: 'preceptor ia'
+  });
+
+  assert(mensagemEnviada.includes('Opa Wagner! Qual paciente ou caso você quer discutir agora?'),
+    'Deve acolher o médico perguntando qual paciente discutir');
+  assert(!mensagemEnviada.includes('Temos um paciente de 58 anos'),
+    'Não deve inventar paciente aleatório');
+  assert(!mensagemEnviada.includes('leito 4'),
+    'Não deve inventar leitos fictícios');
+
+  const diag = c.obterDialogoPreceptor(123);
+  assert(diag, 'Deve iniciar o diálogo');
+  assert.equal(diag.aguardando_caso, true, 'Deve marcar aguardando_caso como true');
+});
+
+// 7. ACOLHIMENTO COM CASO RECENTE EM MEMÓRIA: OFERECE BOTÕES RETOMAR OU NOVO
+test('7. Chamar preceptor com caso recente em memória oferece continuar ou novo caso', () => {
+  const { c, cache } = criarAmbiente();
+
+  // Define um caso recente na memória
+  cache['ctx_123'] = 'Paciente 55a hipertenso com dor torácica atípica há 2h';
+
+  let msgEnviada = '';
+  let kbEnviado = null;
+  c.enviarMensagemComTecladoParaChat = (chatId, texto, kb) => {
+    msgEnviada = texto;
+    kbEnviado = kb;
+    return true;
+  };
+
+  // Aciona via comando /preceptor
+  c.processarMensagemTexto({
+    chat: { id: 123 },
+    text: '/preceptor'
+  });
+
+  assert(msgEnviada.includes('Opa Wagner! Qual paciente ou caso você quer discutir agora?'));
+  assert(msgEnviada.includes('Último caso na memória:'));
+  assert(msgEnviada.includes('dor torácica atípica'));
+  assert(kbEnviado && kbEnviado.inline_keyboard, 'Deve conter inline_keyboard');
+
+  const botoes = kbEnviado.inline_keyboard.flat();
+  const btnRetomar = botoes.find(b => b.callback_data && b.callback_data.startsWith('preceptor_retomar_'));
+  const btnNovo = botoes.find(b => b.callback_data === 'preceptor_novo_caso');
+  assert(btnRetomar, 'Deve ter botão para retomar caso anterior');
+  assert(btnNovo, 'Deve ter botão para novo caso');
+});
+
+// 8. CALLBACK NOVO CASO: RESETA ANTERIOR E PREPARA NOVO DIÁLOGO LIMPO
+test('8. Clicar em novo caso reseta contexto anterior e aguarda novo paciente', () => {
+  const { c, cache } = criarAmbiente();
+
+  cache['ctx_123'] = 'Caso anterior antigo';
+
+  let msgEnviada = '';
+  c.enviarMensagemComTecladoParaChat = (chatId, texto, kb) => {
+    msgEnviada = texto;
+    return true;
+  };
+
+  c.processarCallbackBotao({
+    id: 'cb_novo_1',
+    data: 'preceptor_novo_caso',
+    message: { chat: { id: 123 }, message_id: 300 }
+  });
+
+  assert(msgEnviada.includes('Caso anterior resetado. Pode ditar a história'));
+  assert.equal(cache['ctx_123'], undefined, 'Deve ter removido o caso antigo do cache');
+
+  const diag = c.obterDialogoPreceptor(123);
+  assert(diag, 'Deve ter diálogo armado');
+  assert.equal(diag.aguardando_caso, true, 'Deve estar aguardando novo caso');
+});
+
+// 9. ENVIO DO CASO APÓS O CONVITE: ASSIMILA O CASO REAL E DISPARA PRIMEIRA PROVOCAÇÃO
+test('9. Médico envia caso após convite: preceptor assimila caso real e dispara provocação', () => {
+  const { c } = criarAmbiente();
+
+  // Inicia aguardando caso
+  c.iniciarOuConvidarDiscussaoPreceptor(123, { ehAudio: false });
+
+  let provocacaoGerada = '';
+  c.gerarProvocacaoPreceptorAudio = (caso) => {
+    provocacaoGerada = caso;
+    return 'Diante desta suspeita de apendicite, qual sinal semiológico você busca no exame físico?';
+  };
+
+  let msgEnviada = '';
+  c.enviarMensagemComTecladoParaChat = (chatId, texto, kb) => {
+    msgEnviada = texto;
+    return true;
+  };
+
+  // Wagner envia o caso real
+  c.processarMensagemTexto({
+    chat: { id: 123 },
+    text: 'Paciente de 24 anos com dor em fossa ilíaca direita, febre baixa e descompressão brusca duvidosa'
+  });
+
+  assert(provocacaoGerada.includes('fossa ilíaca direita'), 'Deve passar o caso real para a provocação');
+  assert(msgEnviada.includes('qual sinal semiológico você busca'), 'Deve enviar a provocação clínica gerada');
+
+  const diag = c.obterDialogoPreceptor(123);
+  assert.equal(diag.aguardando_caso, false, 'Não deve mais estar aguardando_caso');
+  assert(diag.caso_base.includes('fossa ilíaca direita'), 'Deve salvar o caso_base real');
+});
+
+// 10. CALLBACK RETOMAR CASO ANTERIOR: REABRE DISCUSSÃO COM O CASO PRESERVADO
+test('10. Callback preceptor_retomar_ reabre discussão com o caso preservado', () => {
+  const { c, cache } = criarAmbiente();
+
+  cache['prec_rec_chave123'] = 'Paciente 72a DPOC GOLD 4 com piora da dispneia';
+
+  let casoChamadoAoPreceptor = '';
+  c.gerarProvocacaoPreceptorAudio = (caso) => {
+    casoChamadoAoPreceptor = caso;
+    return 'Qual parâmetro gasométrico indicará VNI imediata neste paciente com DPOC?';
+  };
+
+  c.processarCallbackBotao({
+    id: 'cb_retomar_1',
+    data: 'preceptor_retomar_chave123',
+    message: { chat: { id: 123 }, message_id: 400 }
+  });
+
+  assert(casoChamadoAoPreceptor.includes('DPOC GOLD 4'), 'Deve retomar o caso preservado na chave');
+  const diag = c.obterDialogoPreceptor(123);
+  assert(diag, 'Deve ter diálogo ativo');
+  assert(diag.caso_base.includes('DPOC GOLD 4'), 'Deve salvar o caso base retomado');
+});
+
 console.log(`\n🎉 TODOS OS ${pass}/${total} TESTES DO DIÁLOGO SOCRÁTICO FORAM APROVADOS!`);
+

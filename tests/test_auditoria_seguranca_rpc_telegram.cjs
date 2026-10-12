@@ -87,6 +87,7 @@ const metodosRpc = [
   'cockpitRegistrarPeso', 'cockpitAulasProgresso', 'cockpitAlternarAula',
   'cockpitChecarSeguranca', 'cockpitSoapAmbulatorial', 'cockpitGerarReceitaTexto',
   'cockpitGerarAtestadoTexto', 'cockpitEstratificarRisco', 'cockpitBuscarCid',
+  'cockpitEstruturarCondutaHas', 'cockpitGerarEncaminhamentoTexto',
   'cockpitCalcularPrenatal', 'cockpitRastreioTrimestre', 'cockpitValidarFarmacoGestacao',
   'cockpitAuditarPrescricaoGestante', 'cockpitTrabalhoParto', 'cockpitSulfatoMagnesio',
   'cockpitCriseHipertensivaObstetrica', 'cockpitHemorragiaPosParto', 'cockpitProfilaxiaGbs',

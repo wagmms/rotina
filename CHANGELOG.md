@@ -1,5 +1,133 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C40. [x] **Ambulatório & SOAP — Filtro Contextual Anti-Poluição e Integração Direta com Consultório APS (`gh_cockpit_deploy/index.html`, `cockpit_movel.html`, `tests/test_cockpit_soap_modais_responsividade.cjs`)**:
+    - **Filtro Contextual Anti-Poluição nas Ações Rápidas em 1 Toque**:
+      * Erradicada a sobrecarga visual dos 21 botões misturados sem hierarquia na aba `#tab-soap`.
+      * Criada barra seletora compacta com 5 contextos clínicos:
+        1. `✨ Todos`: visualização completa com compatibilidade retroativa total.
+        2. `🩺 Ambulatório`: foca nas ações de consultório e atenção primária (SOAP Ambulatorial, Atestado CFM, Prescrição UBS, Prescrição Rápida/REMUME, Ginecologia & APS, EF Normal e Síntese do Dia).
+        3. `🚨 Emergência`: foca nas calculadoras de choque e suporte intensivo (DVA & Choque, Intubação/SRI, Dor Torácica/HEART, Gasometria/Winter, Crise Asmática/GINA, Ajuste ATB e DHE).
+        4. `👶 Materno`: reúne Pré-Natal & DPP, Sala de Parto & HPP, Pediatria & PALS e Ginecologia & APS.
+        5. `📄 PEP`: foca nas ferramentas de documentação clínica e inteligência (Copiar PEP, Receita PEP, Fechar Plano, EF Normal, Preceptor Socrático, Preceptor Live e Novo Caso).
+      * Adicionada persistência da preferência do usuário em `localStorage` (`rotina_soap_filtro_acoes`), restaurando o contexto ativo ao iniciar o Cockpit PWA.
+    - **Atalho Rápido 'Consultório APS' no Topo do Copiloto**:
+      * Inserido botão dedicado `[🩺 Consultório APS]` no cabeçalho do Copiloto Clínico ao lado de `[Copiar PEP]`, permitindo acesso instantâneo ao prontuário ambulatorial ágil sem rolar a tela.
+    - **Sincronização Bidirecional e Integração com Prontuário Eletrônico**:
+      * Ao gerar um atendimento no modal ambulatorial (`gerarSOAPAmbulatorialModal`), o texto estruturado é espelhado imediatamente no `#soap-integral` e o status atualizado para *"SOAP Ambulatorial ativo · Pronto para copiar ao PEP"*.
+      * A função `copiarSOAPProntuario()` foi aprimorada com fallback seguro para `cacheSoapAmbulatorialGerado` e `#soap-integral`, permitindo que o botão principal `Copiar PEP` copie tanto prontuários vindos do chat do Telegram quanto gerados no modal ambulatorial.
+    - **Validação e Paridade**:
+      * Suíte `tests/test_cockpit_soap_modais_responsividade.cjs` expandida para validar o atalho, botões de filtro e atributos contextuais.
+      * Paridade estrita de hash SHA-256 garantida entre `gh_cockpit_deploy/index.html` e `cockpit_movel.html`.
+      * Bateria de testes de regressão completa `npm test` aprovada com 51/51 suítes verdes em 9.76s.
+
+0C39. [x] **Onboarding do Convidado (Dr. Vinicius) & Central de Ajuda Interativa (`src/00_config.js`, `src/01_utils.js`, `src/07a_telegram_router.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `src/12_experiencia_bot.js`, `src/07d_telegram_callbacks.js`, `tests/test_convidado_onboarding_e_ajuda_ux.cjs`, `ultra_rotina_master.js`)**:
+    - **Boas-Vindas Guiadas no /start (Titular vs Convidado)**:
+      * Adicionado suporte a múltiplos nomes configuráveis em `DEFAULTS` (`TELEGRAM_TITULAR_NAME` e `TELEGRAM_GUEST_NAME`), com a função utilitária `obterNomeTratamentoUsuario(chatId)`.
+      * Para o titular (Dr. Wagner), preservado o fluxo ágil e direto beira-leito sem atrito.
+      * Para o convidado (Dr. Vinicius), implementada mensagem acolhedora que explica de forma didática as 3 formas de uso: 1. Navegação rápida por botões; 2. Envio livre por texto ou áudio sem precisar decorar barras; 3. Atalhos rápidos para calculadoras e protocolos.
+      * Teclado fixo (ReplyKeyboardMarkup) ativado automaticamente no rodapé do convidado, junto a botões inline de ação imediata: `[🚀 Como Usar em 3 Passos]`, `[💡 Exemplos Práticos]`, `[⚡ Abrir Central de Cenários]` e `[📖 Manual de Comandos]`.
+    - **Nova Central de Ajuda Interativa & Didática (Anti-Sobrecarga de Comandos)**:
+      * Reestruturado o comando `/ajuda` e botão de Ajuda: erradicado o despejo do textão de mais de 80 comandos de uma vez.
+      * Criado Hub Interativo (`enviarMenuAjudaInterativo`) com navegação modular em subtelas:
+        1. `🚀 Guia Rápido (3 Passos)` (`ux:ajuda:passos`): Explica envio de texto/áudio, navegação pelos 4 cenários nos botões e uso do `/novo` para trocar de paciente com memória limpa.
+        2. `💡 Exemplos Práticos Beira-Leito` (`ux:ajuda:exemplos`): Exemplos prontos para Emergência/DVA/PCR, Gasometria/Winter, Farmacologia/Doses/ATB e Ambulatório/SOAP.
+        3. `🩺 Por Especialidade` (`ux:ajuda:categorias`): Menu organizado por especialidade clínica com retorno facilitado.
+        4. `📖 Todos os Comandos` (`/manual` ou `/ajuda todas`): Catálogo integral de comandos canônicos preservado para consultas detalhadas.
+    - **Navegação Fluida In-Place e Ergonomia**:
+      * Suporte nativo a edição de mensagens (`editMessageText`) nos callbacks `ux:ajuda:*`, evitando poluição do chat.
+      * Botões permanentes de navegação de retorno `[🔙 Central de Ajuda]` e `[🏠 Início]` em todas as respostas de ajuda e categorias.
+    - **Validação e Zero Regressões**:
+      * Criada suíte dedicada `tests/test_convidado_onboarding_e_ajuda_ux.cjs` com 9 cenários de validação unitária e integrada aprovados em 0.44s.
+      * Bateria de testes de regressão completa `npm test` aprovada com 51/51 suítes verdes em 9.84s.
+
+0C38. [x] **Ambulatório & SOAP Ágil — Interface Limpa com Gaveta de Queixas Frequentes e Ações Cirúrgicas (`gh_cockpit_deploy/index.html`, `cockpit_movel.html`, `tests/test_cockpit_soap_modais_responsividade.cjs`)**:
+    - **Interface Limpa e Sem Poluição (Anti-UI Slop)**:
+      * Adicionado botão compacto `⚡ Queixas Frequentes ▾` alinhado ao rótulo da Queixa Principal no modal `#modal-ambulatorio-soap`.
+      * Criada gaveta retrátil (`#gaveta-queixas-frequentes`) com transição suave que expande sob demanda e fecha automaticamente após a seleção, contendo os 8 protocolos clínicos mais prevalentes da Atenção Primária à Saúde (APS):
+        1. 🩺 *HAS Rotina* (Controle pressórico, MEV, carótidas e receita)
+        2. 🩸 *DM2 & Pés* (Controle glicêmico e monofilamento 10g)
+        3. 🫁 *IVAS / Tosse* (Resfriado, oroscopia e otoscopia)
+        4. 🦴 *Lombalgia* (Dor mecânica, Lasègue e reflexos)
+        5. 🥣 *Dispepsia / DRGE* (Pirose, abdome e sinais de alarme)
+        6. 🧠 *Cefaleia* (Cefaleia tensional e exclusão de meningismo/alarme)
+        7. 🌿 *Saúde Mental* (Ansiedade e exame psíquico sumário)
+        8. 📋 *Check-up Geral* (Rastreio preventivo e promoção de saúde)
+    - **Feedback Dinâmico de Sinais Vitais (Diretrizes SBC/SBD)**:
+      * Criado indicador visual ao vivo (`#amb-sv-badge`) que avalia em tempo real a PA digitada (Ótima/Normal, Pré-HAS, HAS Estágio 1, 2, 3 ou Crise Hipertensiva com meta SBC < 130/80 mmHg) e a glicemia capilar.
+    - **Ações Cirúrgicas de 1 Toque para o PEP**:
+      * Inseridos botões segmentados no resultado: `Copiar Prescrição`, `Copiar S+O` (Anamnese + Exame para prontuários eletrônicos com campos divididos), `Gerar Atestado` (transfere nome e CID automaticamente para o modal de Atestado CFM) e `Guia SISREG` (gera e copia guia de encaminhamento regulada para especialista).
+    - **Persistência Local e Resiliência Offline**:
+      * Implementadas funções `salvarEstadoSoapAmbulatorialLocal` e `restaurarEstadoSoapAmbulatorialLocal` no `localStorage`, além do botão `Novo Paciente` para limpeza e reinício rápido.
+    - **Validação e Paridade**:
+      * Atualizado `tests/test_cockpit_soap_modais_responsividade.cjs` com testes unitários para a gaveta e botões de cópia.
+      * Paridade estrita de hash SHA-256 entre `gh_cockpit_deploy/index.html` e `cockpit_movel.html`.
+      * Bateria completa `npm test` aprovada com 51/51 suítes verdes em 9.33s.
+
+0C37. [x] **Desacoplamento Modular Integral de Roteamento Telegram (`src/07a_telegram_router.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `tests/test_ajuda_comandos_slash.cjs`, `ultra_rotina_master.js`)**:
+    - **Desacoplamento Completo das 5 Fases do Monólito de Roteamento**:
+      * Em `src/07a_telegram_router.js`, a função central `processarMensagemTexto` foi integralmente desmembrada, caindo de mais de 4.300 linhas inline para apenas 686 linhas limpas e organizadas (redução superior a 84%), com todo o miolo de comandos delegando para despachadores especializados por domínio clínico com tabelas hash $O(1)$.
+      * Criados e consolidados os 7 Despachadores Modulares:
+        1. `despacharComandosEmergenciaSalaVermelha_`: `/choqueseptico`, `/septico`, `/circi`, `/vasopressina`, `/dva`, `/compatibilidade`, `/compatibilidade_y`, `/sri`, `/iot`, `/pcr`, `/acls`, `/arritmia`, `/taquiarritmia`, `/taquicardia`, `/bradiarritmia`, `/bradicardia`.
+        2. `despacharComandosAmbulatorioESoap_`: `/soap`, `/soap_ambulatorial`, `/ambulatorio`, `/soap_aps`, `/atestado`, `/cid`, `/ciap`, `/remume`.
+        3. `despacharComandosGinecologiaObstetricia_`: `/prenatal`, `/dpp`, `/parto`, `/co`, `/hpp`, `/mgso4`, `/preeclampsia`, `/gbs`, `/prematuridade`, `/go`, `/obstetricia`, `/ginecologia`, `/preventivo`, `/sua`, `/anticoncepcao`, `/leucorreia`, `/corrimento`, `/dip`, `/pelvica`, `/rcf`, `/ciur`, `/rciu`, `/doppler`, `/crescimentofetal`, `/colestase`, `/cig`, `/icp`, `/swansea`, `/ehag`, `/aflp`, `/toxo`, `/toxoplasmose`, `/avidez`.
+        4. `despacharComandosEspecialidadesClinicas_`: 135 comandos clínicos mapeados em `TABELA_COMANDOS_ESPECIALIDADES_` + `/ef_*` (geriatria, cardiopneumo, metabolismo, reumatologia, infectologia, dermatologia, psiquiatria, otorrino, oftalmologia, pediatria).
+        5. `despacharComandosEnfermariaPlantaoEReceitas_`: 24 comandos mapeados em `TABELA_COMANDOS_ENFERMARIA_PLANTAO_RECEITAS_` (`/rx`, `/receita`, `/rxh`, `/prescricao_hospitalar`, `/atb`, `/ajuste`, `/ajuste_renal`, `/dose`, `/posologia`, `/hsl`, `/ped`, `/dose_ped`, `/pediatria`, `/conduta_ped`, `/plantao`, `/sbar`, `/enfermaria`, `/leitos`, `/censo`, `/leito`, `/alta`, `/limpar_enfermaria`, `/passagem`, `/plantao_fim`).
+        6. `despacharComandosCalculadorasUTIEEmergenciaIntensiva_`: 28 comandos mapeados em `TABELA_COMANDOS_CALCULADORAS_UTI_` (`/crcl`, `/clcr`, `/clearance`, `/dhe`, `/eletrolitos`, `/pancreatite`, `/bisap`, `/sca`, `/iam`, `/heart`, `/dapt`, `/intox`, `/toxicologia`, `/avc`, `/trombolise`, `/hic`, `/winter`, `/choque`, `/forrester`, `/ic`, `/gaso`, `/gasometria`, `/aniongap`, `/conduta`, `/sos`, `/calc`, `/interacao`, `/seguranca`, `/crosscheck`).
+        7. `despacharComandosAgendaRotinaEAudio_`: 19 comandos mapeados em `TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_` (`/round`, `/pitch`, `/preceptor`, `/voz`, `/sabatina`, `/v`, `/audio`, `/a`, `/agenda`, `/task`, `/tarefa`, `/tasks`, `/duvida`, `/semana`, `/relatorio`, `/checkin`, `/briefing`, `/rotina`, `/protocolo`).
+    - **Correção e Alinhamento do Manual Canônico de Comandos Slash**:
+      * Em `src/07g_telegram_ajuda_e_protocolos.js`: alinhada a função `enviarManualCompletoComandos` para manter a renderização padronizada do catálogo de 80 comandos slash em 17 especialidades com teclado inline navegável, preservando o atalho para a Central de Ajuda Interativa (`ux:ajuda:menu`).
+      * Em `tests/test_ajuda_comandos_slash.cjs`: adicionado mock defensivo de `ctx.enviarTelaBot` para suportar renderização in-place (`editMessageText`) nos testes de callbacks.
+    - **Validação e Zero Regressões**:
+      * Bundle reconstruído via `npm run build` (`ultra_rotina_master.js` 100% íntegro com 63.308 linhas).
+      * Bateria de testes completa aprovada com 51/51 suítes verdes em 9.23s. Zero regressões.
+
+0C36. [x] **Preceptor IA — Erradicação de Alucinação de Dados Fictícios e Acolhimento Adaptativo Socrático (`src/07b_telegram_preceptor.js`, `src/07a_telegram_router.js`, `src/07d_telegram_callbacks.js`, `src/07e_telegram_midia_e_leitos.js`, `src/04_motores_ia.js`, `server/index.js`, `tests/test_preceptor_dialogo_socratico.cjs`)**:
+    - **Acolhimento Humano e Direto ao Acionar o Preceptor**:
+      * Criada função `iniciarOuConvidarDiscussaoPreceptor(chatId, opcoes)` em `src/07b_telegram_preceptor.js`: ao acionar o Preceptor IA sem dados de paciente (via `/preceptor`, `/voz` vazio, botão `🎧 Preceptor Voz` ou mensagens livres como "preceptor ia", "chama o preceptor"), o bot não inventa mais pacientes aleatórios e responde com acolhimento direto: *"Opa Wagner! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo."*
+      * Formato adaptativo: se chamado por áudio, responde com áudio sintetizado no fone; se chamado por texto/menu, envia mensagem com botão inline `[🎧 Ouvir no Fone]`.
+    - **Gestão Inteligente de Caso Anterior na Memória**:
+      * Se houver um caso clínico recente nos últimos 15 min, exibe o resumo com botões inline rápidos: `[🔄 Continuar caso anterior]` e `[🆕 Novo caso]`.
+      * Botão `[🆕 Novo caso]` limpa o cache anterior e prepara novo caso limpo.
+      * Ao ditar/enviar o caso clínico após o convite (`aguardando_caso: true`), o preceptor assimila os dados reais fornecidos pelo médico e dispara a primeira provocação clínica.
+    - **Blindagem e Prompts Anti-Alucinação nos Motores de IA**:
+      * Em `src/04_motores_ia.js` (`gerarProvocacaoPreceptorAudio`, `gerarDialogoPreceptorSocratico`, `gerarCriticaSocraticaPreceptor` e `gerarRespostaConversaClinica`) e em `server/index.js` (Live Preceptor WebSocket), adicionadas regras canônicas categóricas: proibição estrita de criar idades, sinais vitais ou casos fictícios aleatórios do nada; se faltarem dados clínicos ou laboratoriais, o preceptor pergunta ativamente o dado que falta antes de avançar na conduta; casos simulados são permitidos exclusivamente se o usuário pedir expressamente uma simulação de treino.
+    - **Validação e Testes Unitários**:
+      * Expandida a suíte `tests/test_preceptor_dialogo_socratico.cjs` com 5 novos testes (10/10 testes aprovados).
+      * Bateria completa de regressão `npm test` aprovada com 51/51 suítes verdes em 9.57s.
+
+    - **Conector Nativo em Node.js (Google Calendar API v3)**:
+      * Criado `server/google_calendar.js`: conector puro em Node.js consumindo a Google Calendar API v3 diretamente, eliminando de forma definitiva a dependência do mock legado do Google Apps Script (`CalendarApp`).
+      * Renovação autônoma de token OAuth2 via refresh token (`https://oauth2.googleapis.com/token`) com persistência em disco e memória, prevenindo expirações silenciosas.
+      * Suporte a chamadas síncronas (`syncFetch`) para o runtime VM do assistente e assíncronas nativas (`fetch`) para o servidor Fastify.
+      * Cache inteligente com TTL e suporte a expurgo manual forçado para sincronização em tempo real beira-leito.
+    - **Injeção Transparente no Runtime & RotinaService**:
+      * Em `server/runtime.js`: injetado `CalendarApp` vivo que delega consultas a `googleCalendarInstance`, preservando isolamento de mocks para testes unitários com zero atrito.
+      * Em `src/06_rotina_agenda.js`: classificador semântico aprimorado mapeando eventos reais da agenda do médico (MedQuest, Anki, Teoria/Questões, Plantão, USF Internato, Academia, Treino, Violão, Inglês) em categorias dinâmicas com ordenação cronológica e preservação de status concluído.
+      * Em `src/13_cockpit_integracao.js`: adicionados métodos RPC `cockpitRotinaBlocos`, `cockpitRotinaMarcarStatus` e `cockpitRotinaSyncAgenda`.
+    - **Rotas REST Dedicadas no Fastify (`server/index.js`)**:
+      * Criadas rotas `/api/rotina/blocos` (GET/POST), `/api/rotina/status` (POST), `/api/rotina/agenda/sync` (POST), `/api/rotina/resumo` (GET) e `/api/rotina/calendar/status` (GET).
+    - **Cockpit PWA Atualizado & Sincronização em Tempo Real**:
+      * Em `rotina_timeline.js` e `gh_cockpit_deploy/rotina_timeline.js`: adicionadas funções `carregarBlocosDoServidor` e `sincronizarAgendaGoogle`, com feedback visual e toast informativo ao usuário.
+      * Botão de recarga na UI do Cockpit configurado para acionar sincronização imediata com a agenda.
+    - **Validação e Estabilidade**:
+      * Criada suíte `tests/test_google_calendar_sync.cjs` validando conexão com `moraes.wagg@gmail.com`, 34 eventos dos próximos 7 dias e todos os endpoints REST.
+      * Bateria de regressão completa aprovada com 51/51 suítes no `npm test` em 9.57s com zero regressões. Bundle `ultra_rotina_master.js` 100% íntegro.
+
+0C34. [x] **Desacoplamento Modular de Roteamento — Fase 1: Emergência, Ambulatório/SOAP e Ginecologia/Obstetrícia (`src/07a_telegram_router.js`, `ultra_rotina_master.js`)**:
+    - **Decomposição do Monólito de Roteamento Telegram**:
+      * Em `src/07a_telegram_router.js`, desacopladas mais de 1.000 linhas monolíticas inline que sobrecarregavam a função central `processarMensagemTexto`.
+      * Criados despachadores modulares isolados por domínio clínico:
+        1. `despacharComandosEmergenciaSalaVermelha_`: Trata `/choqueseptico`, `/septico`, `/circi`, `/vasopressina`, `/dva`, `/compatibilidade`, `/compatibilidade_y`, `/sri`, `/iot`, `/pcr`, `/acls`, `/arritmia`, `/taquiarritmia`, `/taquicardia`, `/bradiarritmia`, `/bradicardia`.
+        2. `despacharComandosAmbulatorioESoap_`: Trata `/soap`, `/soap_ambulatorial`, `/ambulatorio`, `/soap_aps`, `/atestado`, `/cid`, `/ciap`, `/remume`.
+        3. `despacharComandosGinecologiaObstetricia_`: Trata `/prenatal`, `/dpp`, `/parto`, `/co`, `/hpp`, `/mgso4`, `/preeclampsia`, `/gbs`, `/prematuridade`, `/go`, `/obstetricia`, `/ginecologia`, `/preventivo`, `/sua`, `/anticoncepcao`, `/leucorreia`, `/corrimento`, `/dip`, `/pelvica`, `/rcf`, `/ciur`, `/rciu`, `/doppler`, `/crescimentofetal`, `/colestase`, `/cig`, `/icp`, `/swansea`, `/ehag`, `/aflp`, `/toxo`, `/toxoplasmose`, `/avidez`.
+      * O orquestrador central `processarMensagemTexto` passa a consultar os despachadores em ordem de prioridade cirúrgica, preservando 100% dos contratos e retornos originais.
+    - **Integridade Clínica e Preservação de Fórmulas**:
+      * Fórmulas de diluição de DVA, cálculos de dose de sulfato de magnésio (Zuspan/Pritchard), critérios de Swansea e protocolos de PCR/ACLS mantidos com 100% de paridade e rigor canônico.
+    - **Validação e Estabilidade**:
+      * Suítes direcionadas (`test_sala_vermelha_ux.cjs`, `test_ambulatorio_ux.cjs`, `test_hub_go_ux.cjs`, `test_pcr_arritmias_telegram.cjs`, `test_hubs_e_comandos_telegram.cjs`) 100% verdes.
+      * Bundle reconstruído via `npm run build` (`ultra_rotina_master.js` com sintaxe 100% validada).
+      * Bateria de regressão completa aprovada com 51/51 suítes no `npm test` em 9.67s com zero regressões.
+
 0C33. [x] **Aba Rotina — Reestruturação Visual no Cockpit PWA, Desacoplamento Modular e Quebra do Monolito (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`, `sw.js`, `gh_cockpit_deploy/sw.js`, `tests/test_aba_rotina_cockpit.cjs`, `scripts/test_manifest.json`)**:
     - **Desacoplamento Arquitetural & Quebra do Monolito**:
       * Criado o módulo desacoplado `rotina_timeline.js` (com cópia idêntica em `gh_cockpit_deploy/rotina_timeline.js`), extraindo a lógica da Aba Rotina para fora do monolito de 18.000 linhas.
