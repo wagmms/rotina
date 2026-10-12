@@ -17,11 +17,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Testador Master & Dashboard de Grafo — Live Auto-Refresh, Reconciliação de Status Resolvido e Guardião de Regressão (`tooling/testador_master/dashboard_generator.py`, `tooling/testador_master/reporter.py`, `data/testador_master_relatorio.json`, `tooling/testador_master/dashboard_grafo.html`)**:
-    - **Live Auto-Refresh & Persistência**: Adicionado controle visual de Live Sync no topo do dashboard com timer regressivo de 10s e persistência de abas/filtros no `localStorage`.
-    - **Sub-filtros e Estilização de Issues**: Criados sub-filtros (`🚨 Pendentes`, `✅ Resolvidos`, `🌐 Todos`) com badge esmeralda `✅ RESOLVIDO` e comando de reprodução verificado.
-    - **Reconciliação e Guardião de Regressão**: 30 issues ativas conciliadas e marcadas como resolvidas (8 matemáticas, 6 bugs de callbacks, 4 dead-ends, 12 latências), com reabertura automática (`REABERTO_REGRESSAO`) em caso de falha futura. 40 avisos de ergonomia mobile protegidos sob a Cláusula Pétrea Clínica.
-    - **Recibo de Estabilidade**: Bateria completa `npm test` aprovada com 55/55 suítes verdes e zero regressões em 14.96s.
+- [x] **Testador Master & Dashboard de Grafo — Reescrita Integral, Detecção em Tempo Real de Processo Inativo/Cancelado e Auto-Sync Reativo (`tooling/testador_master/dashboard_generator.py`, `tooling/testador_master/reporter.py`, `tooling/testador_master/testador_master.py`, `data/testador_master_relatorio.json`, `tooling/testador_master/dashboard_grafo.html`)**:
+    - **Detecção Real de Processo no SO**: Implementada checagem via `pgrep` e reconciliação com `meta.status_execucao`. Se o testador não estiver rodando, exibe badge âmbar `⏸️ TESTADOR INATIVO (Sessão Cancelada)`, banner informativo de encerramento e pausa o auto-sync por padrão, eliminando falsos positivos de "AO VIVO".
+    - **Reescrita Visual & Componentização**: Banner de estado superior, toolbar flutuante, física de grafo Vis.js, sub-filtros de issues (`🚨 Pendentes`, `✅ Resolvidos`, `🌐 Todos`) e cards com estilo esmeralda para resolvidas.
+    - **Guardião de Regressão & Fechamento Limpo**: Registro de `em_execucao=False` no bloco `finally:` de `testador_master.py` e reabertura automática (`REABERTO_REGRESSAO`) em `reporter.py`.
+    - **Recibo de Estabilidade**: Bateria completa de testes aprovada com zero regressões.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

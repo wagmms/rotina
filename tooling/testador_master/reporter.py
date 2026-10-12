@@ -319,7 +319,13 @@ class MasterReporter:
             print(f"[MasterReporter] Falha ao carregar estado de problemas salvo: {e}")
             return False
 
-    def salvar_relatorios(self, grafo: Any, total_ciclos: int):
+    def salvar_relatorios(
+        self,
+        grafo: Any,
+        total_ciclos: int,
+        em_execucao: bool = False,
+        motivo: Optional[str] = None
+    ):
         """Salva os relatórios em Markdown e JSON."""
         self.output_md.parent.mkdir(parents=True, exist_ok=True)
         self.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -342,6 +348,10 @@ class MasterReporter:
         dados_json = {
             "meta": {
                 "gerado_em": datetime.now().isoformat(),
+                "status_execucao": "EM_EXECUCAO" if em_execucao else "INATIVO",
+                "ativo": em_execucao,
+                "motivo_encerramento": motivo or ("Em execução" if em_execucao else "Sessão encerrada/cancelada"),
+                "heartbeat": datetime.now().isoformat(),
                 "duracao_formatada": f"{minutos}m {segundos}s",
                 "duracao_segundos": duracao_total_seg,
                 "total_ciclos": ciclos_totais,

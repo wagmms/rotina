@@ -79,7 +79,7 @@ const mockLocalStorage = {
 
 const listeners = {};
 const mockWindow = {
-  location: { origin: 'https://ultra-rotina-backend.onrender.com', hostname: 'ultra-rotina-backend.onrender.com', search: '' },
+  location: { origin: 'https://rotina-tt8n.onrender.com', hostname: 'rotina-tt8n.onrender.com', search: '' },
   navigator: { onLine: true, clipboard: { writeText: async () => {} } },
   sessionStorage: mockSessionStorage,
   localStorage: mockLocalStorage,

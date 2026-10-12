@@ -368,7 +368,7 @@ def main():
 
             # Salva relatórios e grafo periodicamente
             if ciclo % 5 == 0:
-                reporter.salvar_relatorios(grafo, ciclo)
+                reporter.salvar_relatorios(grafo, ciclo, em_execucao=True)
                 grafo.salvar_estado(grafo_path)
 
             # Delay humano configurável antes da próxima ação
@@ -379,7 +379,7 @@ def main():
         # Encerramento limpo e emissão do relatório final
         print("\n💾 Salvando relatório final e estado do grafo...")
         try:
-            reporter.salvar_relatorios(grafo, ciclo)
+            reporter.salvar_relatorios(grafo, ciclo, em_execucao=False, motivo="Sessão cancelada ou concluída")
         except Exception as e:
             print(f"⚠️ Falha ao salvar relatórios: {e}")
         try:

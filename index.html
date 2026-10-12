@@ -3502,7 +3502,7 @@
 
       const RENDER_BACKEND = (typeof window !== 'undefined' && window.location && window.location.origin && !window.location.hostname.includes('github.io'))
         ? window.location.origin
-        : "https://ultra-rotina-backend.onrender.com";
+        : "https://rotina-tt8n.onrender.com";
 
       let customBackend = '';
       try {
@@ -3827,7 +3827,7 @@
         // 2. Se executado no GitHub Pages / Navegador (Render primário de alta velocidade com fallback para GAS)
         const RENDER_BACKEND = (typeof window !== 'undefined' && window.location && window.location.origin && !window.location.hostname.includes('github.io'))
           ? window.location.origin
-          : "https://ultra-rotina-backend.onrender.com";
+          : "https://rotina-tt8n.onrender.com";
         const GAS_BACKEND = "https://script.google.com/macros/s/AKfycbwo6GqTmc0_8fl9peKlw5d5jpfL5nqsc-ozLrqHiVk2RHD4h968EZAG4P75i2qSBlw9EQ/exec";
 
         let customBackend = '';
@@ -7887,7 +7887,7 @@
           const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
           wsUrl = `${proto}//${window.location.host}/live`;
         } else {
-          wsUrl = 'wss://ultra-rotina-backend.onrender.com/live';
+          wsUrl = 'wss://rotina-tt8n.onrender.com/live';
         }
 
         liveWs = new WebSocket(wsUrl);

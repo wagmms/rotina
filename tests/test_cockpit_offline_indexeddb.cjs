@@ -145,7 +145,7 @@ function criarAmbienteSimulacao() {
 
   const listeners = {};
   const mockWindow = {
-    location: { origin: 'https://ultra-rotina-backend.onrender.com', hostname: 'ultra-rotina-backend.onrender.com', search: '' },
+    location: { origin: 'https://rotina-tt8n.onrender.com', hostname: 'rotina-tt8n.onrender.com', search: '' },
     navigator: { onLine: true, clipboard: { writeText: async () => {} } },
     crypto: {
       getRandomValues(arr) {
@@ -270,7 +270,7 @@ function criarAmbienteSimulacao() {
   // Cenário 1: Conectado à Nuvem (Render)
   w.setForcedOfflineState(false);
   mockWindow.navigator.onLine = true;
-  mockWindow.location.origin = 'https://ultra-rotina-backend.onrender.com';
+  mockWindow.location.origin = 'https://rotina-tt8n.onrender.com';
   let modo = w.detectarModoConexao();
   assert.strictEqual(modo, 'NUVEM', 'Modo Nuvem detectado para endpoint oficial Render');
 

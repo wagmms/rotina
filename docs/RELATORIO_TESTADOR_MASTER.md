@@ -1,20 +1,20 @@
 # 📋 Relatório de Auditoria & Sugestões: Testador Master (Telegram)
 
-> ⏱️ **Sessão executada em:** 12/10/2026 às 16:38:50  
-> ⏳ **Duração total:** 27m 46s | **Ciclos concluídos:** 1353  
-> 📊 **Cobertura estimada:** 78.1% | **Telas descobertas:** 311 | **Botões testados:** 301  
-> ⚡ **Latência média beira-leito:** 235.1ms
+> ⏱️ **Sessão executada em:** 12/10/2026 às 16:50:11  
+> ⏳ **Duração total:** 30m 48s | **Ciclos concluídos:** 1468  
+> 📊 **Cobertura estimada:** 78.7% | **Telas descobertas:** 316 | **Botões testados:** 304  
+> ⚡ **Latência média beira-leito:** 219.6ms
 
 ---
 
 ## 🎯 Sumário Executivo de Diagnóstico
 
-- **Total de anomalias detectadas:** 141
+- **Total de anomalias detectadas:** 152
 - **Scripts de Reprodução gerados (1-Clique):** 20
-- **🧮 Fórmulas Clínicas auditadas pelo Oráculo Matemático:** 138 (94.2% em conformidade determinística)
+- **🧮 Fórmulas Clínicas auditadas pelo Oráculo Matemático:** 137 (94.2% em conformidade determinística)
 - **Críticos / Bugs:** 15
-- **Oportunidades de UX / Ergonomia:** 85
-- **Alertas de Performance / Latência:** 41
+- **Oportunidades de UX / Ergonomia:** 93
+- **Alertas de Performance / Latência:** 44
 
 ---
 
@@ -22,7 +22,7 @@
 
 ### `ISSUE-001` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `Traçado de ECG (Supra de ST Inferior)`
 - **Descrição:** Resposta muito extensa (1997 caracteres). Exige scroll longo na tela do celular durante o plantão.
-- **Ocorrências no teste:** 20x
+- **Ocorrências no teste:** 24x
 - **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
 
 ### `ISSUE-002` · ⏱️ GARGALO DE LATÊNCIA (MÉDIA) — `➕ Incorporar ao SOAP`
@@ -252,7 +252,7 @@
 
 ### `ISSUE-043` · ⏱️ GARGALO DE LATÊNCIA (MÉDIA) — `!@#$%`
 - **Descrição:** Ação demorou 2874ms, ultrapassando a tolerância de 1500ms da persona Dr. Lucas Antunes.
-- **Ocorrências no teste:** 2x
+- **Ocorrências no teste:** 3x
 - **💡 Recomendação Cirúrgica:** Otimizar pré-computação em memória ou cachear resposta de consultas frequentes.
 
 ### `ISSUE-044` · ⏱️ GARGALO DE LATÊNCIA (BAIXA) — `oi bot`
@@ -519,7 +519,7 @@
 
 ### `ISSUE-086` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/dhe k 6.5 ecg`
 - **Descrição:** Resposta muito extensa (2513 caracteres). Exige scroll longo na tela do celular durante o plantão.
-- **Ocorrências no teste:** 2x
+- **Ocorrências no teste:** 3x
 - **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
 
 ### `ISSUE-087` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/ped azitromicina 22`
@@ -559,12 +559,12 @@
 
 ### `ISSUE-094` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/ped dipirona 14`
 - **Descrição:** Resposta muito extensa (4226 caracteres). Exige scroll longo na tela do celular durante o plantão.
-- **Ocorrências no teste:** 1x
+- **Ocorrências no teste:** 2x
 - **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
 
 ### `ISSUE-095` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/dose furosemida`
 - **Descrição:** Resposta muito extensa (2507 caracteres). Exige scroll longo na tela do celular durante o plantão.
-- **Ocorrências no teste:** 2x
+- **Ocorrências no teste:** 3x
 - **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
 
 ### `ISSUE-096` · ⏱️ GARGALO DE LATÊNCIA (MÉDIA) — `💊 Prescrever (FUROSEMIDA)`
@@ -574,7 +574,7 @@
 
 ### `ISSUE-097` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/conduta_ped bronquiolite`
 - **Descrição:** Resposta muito extensa (13521 caracteres). Exige scroll longo na tela do celular durante o plantão.
-- **Ocorrências no teste:** 3x
+- **Ocorrências no teste:** 4x
 - **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
 
 ### `ISSUE-098` · ⏱️ GARGALO DE LATÊNCIA (MÉDIA) — `/rx amigdalite bacteriana adulto 82kg`
@@ -649,7 +649,7 @@
 
 ### `ISSUE-112` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/dhe k 6.8 ecg`
 - **Descrição:** Resposta muito extensa (2513 caracteres). Exige scroll longo na tela do celular durante o plantão.
-- **Ocorrências no teste:** 1x
+- **Ocorrências no teste:** 3x
 - **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
 
 ### `ISSUE-113` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/prenatal 10/05/2026`
@@ -722,7 +722,7 @@
 
 ### `ISSUE-125` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/dose azitromicina`
 - **Descrição:** Resposta muito extensa (1952 caracteres). Exige scroll longo na tela do celular durante o plantão.
-- **Ocorrências no teste:** 1x
+- **Ocorrências no teste:** 2x
 - **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
 
 ### `ISSUE-126` · ⏱️ GARGALO DE LATÊNCIA (MÉDIA) — `💊 Prescrever (AZITROMICINA)`
@@ -805,13 +805,68 @@
 - **Ocorrências no teste:** 1x
 - **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
 
+### `ISSUE-142` · ⏱️ GARGALO DE LATÊNCIA (MÉDIA) — `/round Paciente 81a, Sepse foco urinario`
+- **Descrição:** Ação demorou 10173ms, ultrapassando a tolerância de 3000ms da persona Dra. Camila Nogueira.
+- **Ocorrências no teste:** 1x
+- **💡 Recomendação Cirúrgica:** Otimizar pré-computação em memória ou cachear resposta de consultas frequentes.
+
+### `ISSUE-143` · ⏱️ GARGALO DE LATÊNCIA (MÉDIA) — `/rx pneumonia comunitaria adulto 73kg`
+- **Descrição:** Ação demorou 3222ms, ultrapassando a tolerância de 2500ms da persona Dra. Beatriz Toledo.
+- **Ocorrências no teste:** 1x
+- **💡 Recomendação Cirúrgica:** Otimizar pré-computação em memória ou cachear resposta de consultas frequentes.
+
+### `ISSUE-144` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/prenatal 13/06/2026`
+- **Descrição:** Resposta muito extensa (2513 caracteres). Exige scroll longo na tela do celular durante o plantão.
+- **Ocorrências no teste:** 1x
+- **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
+
+### `ISSUE-145` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `🏁 Fim de Plantão`
+- **Descrição:** Resposta muito extensa (2088 caracteres). Exige scroll longo na tela do celular durante o plantão.
+- **Ocorrências no teste:** 1x
+- **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
+
+### `ISSUE-146` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `👶 Doses PedBook`
+- **Descrição:** Resposta muito extensa (2183 caracteres). Exige scroll longo na tela do celular durante o plantão.
+- **Ocorrências no teste:** 1x
+- **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
+
+### `ISSUE-147` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/dhe k 7.2 ecg`
+- **Descrição:** Resposta muito extensa (2513 caracteres). Exige scroll longo na tela do celular durante o plantão.
+- **Ocorrências no teste:** 1x
+- **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
+
+### `ISSUE-148` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/dhe k 7.6 ecg`
+- **Descrição:** Resposta muito extensa (2513 caracteres). Exige scroll longo na tela do celular durante o plantão.
+- **Ocorrências no teste:** 1x
+- **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
+
+### `ISSUE-149` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `📖 Todos os Comandos`
+- **Descrição:** Resposta muito extensa (8572 caracteres). Exige scroll longo na tela do celular durante o plantão.
+- **Ocorrências no teste:** 1x
+- **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
+
+### `ISSUE-150` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/rx amigdalite bacteriana adulto 70kg`
+- **Descrição:** Resposta muito extensa (1981 caracteres). Exige scroll longo na tela do celular durante o plantão.
+- **Ocorrências no teste:** 1x
+- **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
+
+### `ISSUE-151` · ⏱️ GARGALO DE LATÊNCIA (MÉDIA) — `/rx amigdalite bacteriana adulto 70kg`
+- **Descrição:** Ação demorou 3787ms, ultrapassando a tolerância de 2500ms da persona Dra. Beatriz Toledo.
+- **Ocorrências no teste:** 1x
+- **💡 Recomendação Cirúrgica:** Otimizar pré-computação em memória ou cachear resposta de consultas frequentes.
+
+### `ISSUE-152` · ⚠️ ERGONOMIA MOBILE (BAIXA) — `/dhe k 7.0 ecg`
+- **Descrição:** Resposta muito extensa (2511 caracteres). Exige scroll longo na tela do celular durante o plantão.
+- **Ocorrências no teste:** 1x
+- **💡 Recomendação Cirúrgica:** Quebrar a resposta em tópicos colapsáveis ou resumir condutas em pontos de 1 linha com botão '📖 Ver Mais'.
+
 ---
 
 ## 🧮 Auditoria Matemática de Fórmulas Clínicas (Anti-Alucinação Determinístico)
 
 > 🛡️ **Gabarito Canônico Determinístico**: Todo cálculo clínico executado durante os testes é auditado em tempo real por um oráculo analítico em Python puro com dupla precisão (Harrison, KDIGO, SBC, SBP, NEJM), sem uso de LLM, prevenindo alucinações e garantindo tolerância estrita (ε < 0.5).
 
-**Resumo da Avaliação Numérica:** 130/138 cálculos aprovados (94.2% de conformidade).
+**Resumo da Avaliação Numérica:** 129/137 cálculos aprovados (94.2% de conformidade).
 
 | Ciclo | Calculadora | Comando Testado | Esperado (Oráculo) | Obtido (Bot) | Erro Abs | Conformidade |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -863,11 +918,11 @@ Com base na simulação do comportamento das personas (Plantonista de Choque, R1
 
 | ID da Tela | Título / Primeira Linha | Botões Disponíveis | Visitas |
 | :--- | :--- | :--- | :--- |
-| `13f6d71de75f` | ⚡ *Ultra Rotina · Central de Comandos Beira-L | 8 opções | 182 |
+| `13f6d71de75f` | ⚡ *Ultra Rotina · Central de Comandos Beira-L | 8 opções | 197 |
 | `4ffe3f69e658` | 🚨 *EMERGÊNCIA & SALA VERMELHA* | 13 opções | 51 |
 | `094fafe57c25` | 🛏️ *LEITO 4 · ATUALIZADO VIA VOZ* | 8 opções | 31 |
 | `2429ea4cafdc` | ⚠️ *Rascunho para conferência médica* | 7 opções | 16 |
-| `965ccf6bc819` | ❌ Falta informação! Preciso de *Idade*, *Peso | 4 opções | 24 |
+| `965ccf6bc819` | ❌ Falta informação! Preciso de *Idade*, *Peso | 4 opções | 27 |
 | `db822b0f81e4` | 📐 *CALCULADORA CLÍNICA: MERO* | 2 opções | 11 |
 | `5fb929e91436` | 📐 *CALCULADORAS CLÍNICAS & ESCORES DETERMINÍS | 10 opções | 7 |
 | `94ea337404eb` | 🩸 *CALCULADORA DE GASOMETRIA ARTERIAL COMPLET | 6 opções | 1 |
@@ -877,8 +932,8 @@ Com base na simulação do comportamento das personas (Plantonista de Choque, R1
 | `3ae965b9beac` | 🩺 *AMBULATÓRIO & ATENÇÃO PRIMÁRIA (UBS)* | 9 opções | 21 |
 | `f045c065dd4c` | 🩺 *CONDUTA CITOPATOLÓGICA DE COLO DE ÚTERO (D | 6 opções | 4 |
 | `d4c726c0703f` | 🩺 *CONDUTA CITOPATOLÓGICA DE COLO (INCA):* | 3 opções | 2 |
-| `4a44ca6cef73` | 📋 *PRONTO PARA O PRONTUÁRIO (1-TOQUE PARA COP | 2 opções | 66 |
-| `a6dae6fbfaaf` | 🚨 *PARADA CARDIORRESPIRATÓRIA (PCR ADULTO — A | 9 opções | 26 |
+| `4a44ca6cef73` | 📋 *PRONTO PARA O PRONTUÁRIO (1-TOQUE PARA COP | 2 opções | 67 |
+| `a6dae6fbfaaf` | 🚨 *PARADA CARDIORRESPIRATÓRIA (PCR ADULTO — A | 9 opções | 27 |
 | `aa377d9966f8` | ⚡ *PCR: RITMO CHOCÁVEL (FV / TV SEM PULSO) —  | 11 opções | 2 |
 | `146431a57fb4` | ⚠️ *Rascunho para conferência médica* | 2 opções | 47 |
 | `118b7339ea73` | ❌ Falha ao salvar no Notion. Tente novamente. | 0 opções | 10 |
@@ -888,11 +943,11 @@ Com base na simulação do comportamento das personas (Plantonista de Choque, R1
 | `31c34754534b` | 📝 *EVOLUÇÃO DO LEITO 4* | 3 opções | 1 |
 | `0eadaee890b8` | 🛏️ *Leito 4* · ⚪ Estável | 9 opções | 2 |
 | `153d120cf866` | ⚠️ *Peso obrigatório e inválido para SRI/IOT: | 0 opções | 11 |
-| `7eeb32544189` | 📋 *CONDUTA PEDIÁTRICA OFICIAL (PEDBOOK)* | 3 opções | 11 |
-| `3effb4da1c4e` | 💊 *CONSULTAS RÁPIDAS DE BOLSO* | 8 opções | 11 |
+| `7eeb32544189` | 📋 *CONDUTA PEDIÁTRICA OFICIAL (PEDBOOK)* | 3 opções | 12 |
+| `3effb4da1c4e` | 💊 *CONSULTAS RÁPIDAS DE BOLSO* | 8 opções | 12 |
 | `923fde375773` | 🦠 *ANTIBIÓTICOS POR FOCO & AJUSTE ANTIMICROBI | 9 opções | 2 |
 | `8981a2d53ee1` | 🫁 *ANTIBIÓTICOTERAPIA: PNEUMONIA ADQUIRIDA NA | 3 opções | 1 |
-| `bc65425c5bf0` | ⚡ *MODO OFFLINE DE CONTINGÊNCIA (LAUDO DE IMA | 3 opções | 117 |
+| `bc65425c5bf0` | ⚡ *MODO OFFLINE DE CONTINGÊNCIA (LAUDO DE IMA | 3 opções | 125 |
 
 ---
 > 🌐 **Dashboard Visual Interativo:** Abra [`data/dashboard_grafo.html`](../data/dashboard_grafo.html) no navegador para explorar o grafo de navegação em tempo real.

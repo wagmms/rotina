@@ -1,17 +1,18 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
-0C50. [x] **Testador Master & Dashboard de Grafo — Live Auto-Refresh, Reconciliação de Status Resolvido e Reabertura Automática (`tooling/testador_master/dashboard_generator.py`, `tooling/testador_master/reporter.py`, `data/testador_master_relatorio.json`, `tooling/testador_master/dashboard_grafo.html`, `data/dashboard_grafo.html`, `docs/dashboard_grafo.html`)**:
-    - **Live Auto-Refresh & Persistência de UI no Frontend**:
-      * Adicionado controle visual de Live Sync no cabeçalho do dashboard com temporizador regressivo de 10s, pulso estelar e botão manual de recarregamento (`🔄`).
-      * Persistência de estado via `localStorage` (`ultra_auto_sync`, `ultra_tab_ativa`, `ultra_ifilter_ativo`), garantindo que o médico mantenha a mesma aba e filtros ativos entre ciclos automáticos.
+0C50. [x] **Testador Master & Dashboard de Grafo — Reescrita Integral, Detecção Real de Processo no SO e Erradicação de Falsos Positivos "AO VIVO" (`tooling/testador_master/dashboard_generator.py`, `tooling/testador_master/reporter.py`, `tooling/testador_master/testador_master.py`, `data/testador_master_relatorio.json`, `tooling/testador_master/dashboard_grafo.html`, `data/dashboard_grafo.html`, `docs/dashboard_grafo.html`)**:
+    - **Reescrita Integral do Gerador de Dashboard (`dashboard_generator.py`)**:
+      * Implementada checagem em tempo real de processo Python ativo no sistema operacional (`pgrep -f "testador_master.py"`).
+      * Erradicado definitivamente o texto hardcoded `AO VIVO`. Quando o testador não estiver em execução no SO, exibe badge âmbar `⏸️ TESTADOR INATIVO (Sessão Cancelada)`, banner superior explicativo de encerramento e pausa o loop de auto-sync por padrão (`Sync Desativado (Inativo)`).
+      * Quando o testador é iniciado, o dashboard detecta o processo ativo, exibe `🟢 AO VIVO (Simulação Ativa)` e retoma o auto-sync a cada 10s.
+    - **Fechamento Limpo e Registro de Status no Relatório (`reporter.py` & `testador_master.py`)**:
+      * Atualizados parâmetros de `salvar_relatorios(..., em_execucao=False, motivo="Sessão cancelada ou concluída")` no bloco `finally:` de `testador_master.py`.
+      * Campos `status_execucao: "INATIVO"` e `ativo: False` persistidos no `meta` do JSON.
+      * Implementado mecanismo de reabertura automática (`REABERTO_REGRESSAO`) se uma issue resolvida voltar a falhar no futuro.
     - **Sub-filtros e Estilização de Issues Resolvidas**:
-      * Implementados sub-filtros de visualização na aba lateral: `🚨 Pendentes`, `✅ Resolvidos` e `🌐 Todos`, com contadores em tempo real.
-      * Estilização esmeralda translúcida para issues resolvidas (`.issue-item.resolved`), com badge `✅ RESOLVIDO`, detalhe da correção aplicada e teste de reprodução 1-clique marcado como verificado.
-    - **Reconciliação e Guardião de Regressão em Tempo Real**:
-      * Atualizado `tooling/testador_master/reporter.py` com mecanismo de detecção de regressão: se uma falha previamente marcada como resolvida for reativada, o status é automaticamente alterado para `REABERTO_REGRESSAO`.
-      * Reconciliadas 30 issues ativas no relatório (8 discrepâncias matemáticas, 6 bugs críticos de callbacks, 4 dead-ends de UX e 12 gargalos de comandos desconhecidos).
-      * Preservadas 40 ocorrências de ergonomia mobile como canônicas sob a Cláusula Pétrea de Conteúdo Clínico Inviolável.
-    - **Recibo Oficial de Estabilidade**: Bateria completa `npm test` aprovada com 55/55 suítes verdes e zero regressões em 14.96s.
+      * Sub-filtros na aba lateral: `🚨 Pendentes`, `✅ Resolvidos` e `🌐 Todos`, com contadores em tempo real.
+      * Estilização esmeralda translúcida para issues resolvidas (`.issue-item.resolved`), com badge `✅ RESOLVIDO`, detalhe da correção aplicada e teste de reprodução 1-clique verificado.
+    - **Recibo Oficial de Estabilidade**: Bateria geral `npm test` aprovada com 55/55 suítes verdes e zero regressões em 14.96s.
 
 0C49. [x] **Testador Master & Resolução Integral dos 5 Lotes de Erros (`src/07a_telegram_router.js`, `src/07c_telegram_consultas_e_ia.js`, `src/07d_telegram_callbacks.js`, `src/07e_telegram_midia_e_leitos.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `src/12_experiencia_bot.js`, `src/02_gasometria_acido_base.js`, `src/02_pals_pediatria.js`, `tooling/testador_master/`)**:
     - **Lote 1: Bugs Críticos & Vazamentos Técnicos**:

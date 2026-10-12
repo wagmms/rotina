@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: ultra-rotina-backend
+    name: rotina-tt8n
     env: node
     plan: free
     region: ohio # ou oregon / frankfurt

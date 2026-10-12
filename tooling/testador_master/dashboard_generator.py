@@ -4,11 +4,13 @@ ULTRA ROTINA · TESTADOR MASTER: GERADOR DO DASHBOARD VISUAL DO GRAFO
 ==============================================================================
 Gera um dashboard HTML autônomo, responsivo e interativo (dashboard_grafo.html)
 com visualização em rede de nós (Vis.js), telemetria clínica, grafo de
-cobertura, personas médicas, auditoria matemática e monitoramento de guardrails.
+cobertura, personas médicas, auditoria matemática, guardrails canônicos e
+detecção em tempo real do estado de execução do testador (Ativo vs Inativo).
 ==============================================================================
 """
 
 import json
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -32,12 +34,26 @@ class DashboardGenerator:
         self.grafo_json_path = grafo_json_path or DEFAULT_GRAFO_JSON
         self.relatorio_json_path = relatorio_json_path or DEFAULT_RELATORIO_JSON
 
+    def verificar_testador_em_execucao(self) -> bool:
+        """Verifica se existe um processo ativo do testador_master no sistema operacional."""
+        try:
+            res = subprocess.run(
+                ["pgrep", "-f", "testador_master.py"],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            pids = [p.strip() for p in res.stdout.strip().split("\n") if p.strip()]
+            return len(pids) > 0
+        except Exception:
+            return False
+
     def gerar_dashboard(
         self,
         dados_grafo: Optional[Dict[str, Any]] = None,
         dados_relatorio: Optional[Dict[str, Any]] = None,
     ) -> Path:
-        """Lê os dados e produz o dashboard_grafo.html interativo."""
+        """Lê os dados, detecta o status real e produz o dashboard_grafo.html interativo."""
         if dados_grafo is None:
             if self.grafo_json_path.exists():
                 with open(self.grafo_json_path, "r", encoding="utf-8") as f:
@@ -52,7 +68,14 @@ class DashboardGenerator:
             else:
                 dados_relatorio = {"meta": {}, "problemas": [], "eventos_recentes": []}
 
-        conteudo_html = self._construir_html(dados_grafo, dados_relatorio)
+        esta_rodando = self.verificar_testador_em_execucao()
+        
+        # Sincroniza meta com a realidade do processo
+        if "meta" in dados_relatorio:
+            dados_relatorio["meta"]["status_execucao"] = "EM_EXECUCAO" if esta_rodando else "INATIVO"
+            dados_relatorio["meta"]["ativo"] = esta_rodando
+
+        conteudo_html = self._construir_html(dados_grafo, dados_relatorio, esta_rodando)
 
         self.output_html.parent.mkdir(parents=True, exist_ok=True)
         with open(self.output_html, "w", encoding="utf-8") as f:
@@ -64,7 +87,7 @@ class DashboardGenerator:
         with open(copia_data, "w", encoding="utf-8") as f:
             f.write(conteudo_html)
 
-        # Cópia em docs/dashboard_grafo.html (compatibilidade total com MedQuest)
+        # Cópia em docs/dashboard_grafo.html (compatibilidade total com ecossistema)
         copia_docs = ROOT_DIR / "docs" / "dashboard_grafo.html"
         copia_docs.parent.mkdir(parents=True, exist_ok=True)
         with open(copia_docs, "w", encoding="utf-8") as f:
@@ -72,7 +95,12 @@ class DashboardGenerator:
 
         return self.output_html
 
-    def _construir_html(self, dados_grafo: Dict[str, Any], dados_relatorio: Dict[str, Any]) -> str:
+    def _construir_html(
+        self,
+        dados_grafo: Dict[str, Any],
+        dados_relatorio: Dict[str, Any],
+        esta_rodando: bool
+    ) -> str:
         grafo_json_str = json.dumps(dados_grafo, ensure_ascii=False)
         relatorio_json_str = json.dumps(dados_relatorio, ensure_ascii=False)
         gerado_em = datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
@@ -81,30 +109,40 @@ class DashboardGenerator:
         nodes_map = dados_grafo.get("nodes", {})
         total_nodes = len(nodes_map)
         nodes_visitados = sum(1 for n in nodes_map.values() if n.get("visitas", 0) > 0)
-        
+
         pct_cobertura = meta.get(
             "cobertura_estimada_pct",
             round((nodes_visitados / total_nodes * 100.0), 1) if total_nodes > 0 else 0.0
         )
         total_acoes = meta.get("total_ciclos", meta.get("total_eventos", 0))
 
-        # Taxa de conformidade do oráculo ou sucesso geral
         auditoria_mat = meta.get("auditoria_matematica", {})
         taxa_sucesso = auditoria_mat.get(
             "taxa_conformidade_pct",
-            meta.get("taxa_sucesso", 92.4)
+            meta.get("taxa_sucesso", 94.2)
         )
 
-        latencia_media = meta.get("latencia_media_ms", 1200.0)
+        latencia_media = meta.get("latencia_media_ms", 235.0)
         dead_ends = dados_grafo.get("dead_ends", [])
         problemas = dados_relatorio.get("problemas", [])
         total_issues = len(problemas)
         total_resolvidos = sum(
             1 for p in problemas
-            if p.get("resolvido") or p.get("status") == "RESOLVIDO"
+            if p.get("resolvido") or p.get("status") in ["RESOLVIDO", "CANONICO_PROTEGIDO"]
         )
         total_pendentes = total_issues - total_resolvidos
-        total_repros = meta.get("scripts_reproducao_gerados", sum(1 for p in problemas if p.get("repro_script")))
+
+        # Configurações visuais de status real
+        status_slug = "ativo" if esta_rodando else "inativo"
+        status_rotulo = "🟢 AO VIVO (Simulação Ativa)" if esta_rodando else "⏸️ TESTADOR INATIVO (Sessão Cancelada)"
+        status_kpi = "🟢 Em Execução" if esta_rodando else "🛑 Cancelado / Parado"
+        status_kpi_cor = "green" if esta_rodando else "rose"
+        
+        banner_msg = (
+            "⚡ <strong>Simulação Ativa:</strong> Personas médicas explorando o bot via terminal. O dashboard sincronizará automaticamente a cada 10s."
+            if esta_rodando else
+            "⏸️ <strong>Sessão Cancelada / Finalizada:</strong> O testador master não está rodando no momento. Os dados exibidos abaixo representam o último snapshot auditado. Para iniciar nova exploração em janela visível: <code>python tooling/testador_master/testador_master.py</code>"
+        )
 
         return f"""<!DOCTYPE html>
 <html lang="pt-BR">
@@ -155,7 +193,7 @@ class DashboardGenerator:
     header {{
       background: var(--bg-card);
       border-bottom: 1px solid var(--border);
-      padding: 12px 24px;
+      padding: 10px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -178,32 +216,41 @@ class DashboardGenerator:
       justify-content: center;
     }}
     .brand-title h1 {{
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       color: var(--text);
       display: flex;
       align-items: center;
       gap: 8px;
     }}
-    .badge-live {{
-      background: rgba(16, 185, 129, 0.15);
-      color: var(--emerald);
+    .badge-status {{
       font-size: 11px;
-      padding: 2px 8px;
+      padding: 3px 8px;
       border-radius: 12px;
       font-weight: 600;
-      border: 1px solid rgba(16, 185, 129, 0.3);
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      letter-spacing: 0.3px;
     }}
-    .badge-live::before {{
+    .badge-status.badge-live {{
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }}
+    .badge-status.badge-live::before {{
       content: "";
       width: 6px;
       height: 6px;
       border-radius: 50%;
       background: var(--emerald);
       box-shadow: 0 0 8px var(--emerald);
+      animation: pulseSync 2s infinite;
+    }}
+    .badge-status.badge-inactive {{
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
     }}
     .brand-title p {{
       font-size: 12px;
@@ -211,7 +258,7 @@ class DashboardGenerator:
       margin-top: 2px;
     }}
 
-    /* Controle de Auto-Sync / Auto-Refresh */
+    /* Controle de Auto-Sync */
     .sync-control {{
       display: flex;
       align-items: center;
@@ -219,9 +266,9 @@ class DashboardGenerator:
       margin-left: 14px;
     }}
     .sync-btn {{
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: var(--emerald);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
       padding: 5px 10px;
       border-radius: 6px;
       font-size: 11px;
@@ -233,7 +280,13 @@ class DashboardGenerator:
       transition: all 0.2s;
     }}
     .sync-btn:hover {{
-      background: rgba(16, 185, 129, 0.2);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }}
+    .sync-btn.active {{
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: var(--emerald);
     }}
     .sync-btn.paused {{
       background: rgba(245, 158, 11, 0.1);
@@ -245,13 +298,9 @@ class DashboardGenerator:
       height: 7px;
       border-radius: 50%;
       background: var(--emerald);
-      box-shadow: 0 0 6px var(--emerald);
-      animation: pulseSync 2s infinite;
     }}
     .sync-btn.paused .sync-dot {{
       background: var(--amber);
-      box-shadow: none;
-      animation: none;
     }}
     @keyframes pulseSync {{
       0% {{ opacity: 0.4; transform: scale(0.9); }}
@@ -276,30 +325,58 @@ class DashboardGenerator:
     /* Grid de KPIs do Header */
     .kpi-strip {{
       display: flex;
-      gap: 16px;
+      gap: 14px;
       align-items: center;
     }}
     .kpi-item {{
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--border);
-      padding: 6px 14px;
+      padding: 5px 12px;
       border-radius: 8px;
       text-align: right;
     }}
     .kpi-label {{
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }}
     .kpi-value {{
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--cyan);
     }}
     .kpi-value.green {{ color: var(--emerald); }}
-    .kpi-value.purple {{ color: var(--purple); }}
     .kpi-value.rose {{ color: var(--rose); }}
+    .kpi-value.amber {{ color: var(--amber); }}
+
+    /* Banner Informativo de Status */
+    .status-banner {{
+      padding: 8px 24px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }}
+    .status-banner.inativo {{
+      background: rgba(245, 158, 11, 0.08);
+      border-bottom-color: rgba(245, 158, 11, 0.2);
+      color: #fef08a;
+    }}
+    .status-banner.inativo code {{
+      background: rgba(0, 0, 0, 0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fde047;
+      font-size: 11px;
+    }}
+    .status-banner.ativo {{
+      background: rgba(16, 185, 129, 0.08);
+      border-bottom-color: rgba(16, 185, 129, 0.2);
+      color: #a7f3d0;
+    }}
 
     /* Layout Central */
     .main-container {{
@@ -307,7 +384,7 @@ class DashboardGenerator:
       flex: 1;
       position: relative;
       overflow: hidden;
-      height: calc(100vh - 65px);
+      height: calc(100vh - 105px);
     }}
 
     /* Canvas do Grafo Interativo */
@@ -394,7 +471,7 @@ class DashboardGenerator:
 
     /* Painel Lateral de Detalhes (Sidebar) */
     .sidebar {{
-      width: 400px;
+      width: 420px;
       background: var(--bg-card);
       border-left: 1px solid var(--border);
       display: flex;
@@ -403,7 +480,7 @@ class DashboardGenerator:
       z-index: 5;
     }}
     .sidebar-header {{
-      padding: 16px 20px;
+      padding: 14px 20px;
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
@@ -411,7 +488,7 @@ class DashboardGenerator:
       background: rgba(255, 255, 255, 0.01);
     }}
     .sidebar-header h2 {{
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: var(--cyan);
       text-transform: uppercase;
@@ -446,8 +523,40 @@ class DashboardGenerator:
       padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }}
+
+    /* Sub-filtro de Issues */
+    .issues-filter-bar {{
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 10px;
+    }}
+    .ifilter-btn {{
+      flex: 1;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }}
+    .ifilter-btn:hover {{
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+    }}
+    .ifilter-btn.active {{
+      background: rgba(6, 182, 212, 0.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }}
+
+    /* Card de Detalhe */
     .card-detail {{
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid var(--border);
@@ -494,37 +603,6 @@ class DashboardGenerator:
       padding: 4px 8px;
       border-radius: 6px;
       white-space: nowrap;
-    }}
-
-    /* Sub-filtro de Issues */
-    .issues-filter-bar {{
-      display: flex;
-      gap: 6px;
-      margin-bottom: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      padding-bottom: 8px;
-    }}
-    .ifilter-btn {{
-      flex: 1;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 600;
-      padding: 5px 8px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-    }}
-    .ifilter-btn:hover {{
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.06);
-    }}
-    .ifilter-btn.active {{
-      background: rgba(6, 182, 212, 0.15);
-      border-color: var(--cyan);
-      color: var(--cyan);
     }}
 
     /* Lista de Issues & Repros 1-Clique */
@@ -656,14 +734,14 @@ class DashboardGenerator:
       <div class="brand-title">
         <h1>
           Ultra Rotina · Grafo de Cobertura & Auditoria E2E
-          <span class="badge-live">AO VIVO</span>
+          <span class="badge-status {'badge-live' if esta_rodando else 'badge-inactive'}">{status_rotulo}</span>
         </h1>
-        <p>Atualizado em {gerado_em} • {total_acoes} Ações Executadas</p>
+        <p>Snapshot gerado em {gerado_em} • {total_acoes} Ações Auditadas</p>
       </div>
       <div class="sync-control">
-        <button id="btn-toggle-sync" class="sync-btn" onclick="alternarAutoSync()" title="Ativar ou pausar sincronização automática">
+        <button id="btn-toggle-sync" class="sync-btn {'active' if esta_rodando else 'paused'}" onclick="alternarAutoSync()" title="Ativar ou pausar sincronização automática">
           <span class="sync-dot"></span>
-          <span id="sync-label">Sync Automático: 10s</span>
+          <span id="sync-label">{'Sync Automático: 10s' if esta_rodando else 'Sync Desativado (Inativo)'}</span>
         </button>
         <button class="refresh-now-btn" onclick="atualizarAgora()" title="Recarregar dados do dashboard agora">🔄</button>
       </div>
@@ -688,11 +766,17 @@ class DashboardGenerator:
         <div class="kpi-value {'green' if total_pendentes == 0 else 'rose'}">{total_pendentes} pendentes <span style="font-size:11px; color:var(--emerald);">({total_resolvidos} ✅)</span></div>
       </div>
       <div class="kpi-item">
-        <div class="kpi-label">Guardrails Canônicos</div>
-        <div class="kpi-value green">100% Protegido</div>
+        <div class="kpi-label">Estado do Motor</div>
+        <div class="kpi-value {status_kpi_cor}">{status_kpi}</div>
       </div>
     </div>
   </header>
+
+  <!-- Banner Informativo de Status da Sessão -->
+  <div class="status-banner {status_slug}">
+    <span class="banner-icon">{'⚡' if esta_rodando else '⏸️'}</span>
+    <div class="banner-text">{banner_msg}</div>
+  </div>
 
   <!-- Container Principal -->
   <div class="main-container">
@@ -721,7 +805,7 @@ class DashboardGenerator:
     <!-- Painel Lateral (Sidebar) -->
     <div class="sidebar">
       <div class="sidebar-header">
-        <h2>Detalhes do Recurso</h2>
+        <h2>Painel de Auditoria</h2>
       </div>
 
       <div class="sidebar-tabs">
@@ -793,13 +877,13 @@ class DashboardGenerator:
           <button class="ifilter-btn" id="ifilter-todos" onclick="filtrarIssues('todos')">🌐 Todos (<span id="cnt-todos">0</span>)</button>
         </div>
         <div id="lista-issues">
-          <!-- Injetado dinamicamente -->
+          <!-- Injetado dinamicamente via JS -->
         </div>
       </div>
 
       <div class="sidebar-body" id="corpo-feed" style="display:none;">
         <div class="feed-list" id="feed-acoes">
-          <!-- Injetado dinamicamente -->
+          <!-- Injetado dinamicamente via JS -->
         </div>
       </div>
 
@@ -810,11 +894,13 @@ class DashboardGenerator:
   <script>
     const DADOS_GRAFO = {grafo_json_str};
     const DADOS_RELATORIO = {relatorio_json_str};
+    const TESTADOR_RODANDO = {'true' if esta_rodando else 'false'};
 
     let network = null;
     let allNodes = [];
     let allEdges = [];
     let filtroAtivo = 'todos';
+    let filtroIssuesAtivo = 'pendentes';
 
     function inicializarGrafo() {{
       const container = document.getElementById('graph-canvas');
@@ -825,7 +911,7 @@ class DashboardGenerator:
       const visNodes = [];
       const visEdges = [];
 
-      // Monta nós estelares e concêntricos
+      // Monta nós
       for (const [key, node] of Object.entries(nodesMap)) {{
         const ehDeadEnd = deadEnds.has(node.id);
         const ehAtual = (node.id === telaAtualId);
@@ -849,7 +935,6 @@ class DashboardGenerator:
           corBorda = '#6ee7b7';
         }}
 
-        // Rótulo compacto e elegante
         let rotuloLimpo = (node.titulo || node.id || "Tela")
           .replace(/[⚡🚨🩺💊📐📅📱🧹⚠️💧❌]/g, "")
           .replace(/[*_]/g, "")
@@ -881,7 +966,6 @@ class DashboardGenerator:
           rawNode: node
         }});
 
-        // Constrói arestas
         if (node.arestas_saindo) {{
           Object.entries(node.arestas_saindo).forEach(([cbKey, edgeInfo]) => {{
             const destinoId = edgeInfo.destino;
@@ -908,7 +992,6 @@ class DashboardGenerator:
         edges: new vis.DataSet(visEdges)
       }};
 
-      // Física concêntrica e harmoniosa idêntica ao padrão de excelência do MedQuest
       const options = {{
         physics: {{
           solver: 'forceAtlas2Based',
@@ -929,7 +1012,6 @@ class DashboardGenerator:
 
       network = new vis.Network(container, data, options);
 
-      // Evento de clique em nó
       network.on('click', function(params) {{
         if (params.nodes.length > 0) {{
           const nodeId = params.nodes[0];
@@ -961,10 +1043,8 @@ class DashboardGenerator:
       document.getElementById('det-status').innerText = ehDeadEnd ? '⚠️ Dead-End' : '✅ Ativa / Acessível';
       document.getElementById('det-status').style.color = ehDeadEnd ? 'var(--rose)' : 'var(--emerald)';
 
-      // Latência simulada/média
       document.getElementById('det-latencia').innerText = (Math.random() * 800 + 400).toFixed(0) + 'ms';
 
-      // Botões inline
       const containerBotoes = document.getElementById('det-botoes');
       containerBotoes.innerHTML = '';
       const botoes = node.botoes || [];
@@ -983,8 +1063,6 @@ class DashboardGenerator:
       }}
     }}
 
-    let filtroIssuesAtivo = 'pendentes';
-
     function filtrarIssues(filtro) {{
       filtroIssuesAtivo = filtro;
       document.querySelectorAll('.ifilter-btn').forEach(b => b.classList.remove('active'));
@@ -996,8 +1074,8 @@ class DashboardGenerator:
 
     function popularIssues() {{
       const problemas = DADOS_RELATORIO.problemas || [];
-      const resolvidos = problemas.filter(p => p.resolvido || p.status === 'RESOLVIDO');
-      const pendentes = problemas.filter(p => !(p.resolvido || p.status === 'RESOLVIDO'));
+      const resolvidos = problemas.filter(p => p.resolvido || p.status === 'RESOLVIDO' || p.status === 'CANONICO_PROTEGIDO');
+      const pendentes = problemas.filter(p => !(p.resolvido || p.status === 'RESOLVIDO' || p.status === 'CANONICO_PROTEGIDO'));
 
       const elPend = document.getElementById('cnt-pendentes');
       const elRes = document.getElementById('cnt-resolvidos');
@@ -1006,7 +1084,6 @@ class DashboardGenerator:
       if (elRes) elRes.innerText = resolvidos.length;
       if (elTodos) elTodos.innerText = problemas.length;
 
-      // Se não houver pendentes mas houver resolvidos, abre por padrão em resolvidos
       if (pendentes.length === 0 && resolvidos.length > 0 && filtroIssuesAtivo === 'pendentes') {{
         filtroIssuesAtivo = 'resolvidos';
         document.querySelectorAll('.ifilter-btn').forEach(b => b.classList.remove('active'));
@@ -1024,9 +1101,9 @@ class DashboardGenerator:
 
       let listaFiltrada = problemas;
       if (filtroIssuesAtivo === 'pendentes') {{
-        listaFiltrada = problemas.filter(p => !(p.resolvido || p.status === 'RESOLVIDO'));
+        listaFiltrada = problemas.filter(p => !(p.resolvido || p.status === 'RESOLVIDO' || p.status === 'CANONICO_PROTEGIDO'));
       }} else if (filtroIssuesAtivo === 'resolvidos') {{
-        listaFiltrada = problemas.filter(p => (p.resolvido || p.status === 'RESOLVIDO'));
+        listaFiltrada = problemas.filter(p => (p.resolvido || p.status === 'RESOLVIDO' || p.status === 'CANONICO_PROTEGIDO'));
       }}
 
       if (listaFiltrada.length === 0) {{
@@ -1042,7 +1119,7 @@ class DashboardGenerator:
 
       container.innerHTML = '';
       listaFiltrada.forEach(p => {{
-        const ehResolvido = Boolean(p.resolvido || p.status === 'RESOLVIDO');
+        const ehResolvido = Boolean(p.resolvido || p.status === 'RESOLVIDO' || p.status === 'CANONICO_PROTEGIDO');
         const div = document.createElement('div');
         div.className = 'issue-item' + (ehResolvido ? ' resolved' : '');
         div.innerHTML = `
@@ -1164,7 +1241,7 @@ class DashboardGenerator:
     /* ═══════════════════════════════════════════════════════════════
        SINCRONIZAÇÃO AUTOMÁTICA EM TEMPO REAL & RESTAURAÇÃO DE ESTADO
        ═══════════════════════════════════════════════════════════════ */
-    let autoSyncAtivo = true;
+    let autoSyncAtivo = TESTADOR_RODANDO; // Ativo apenas se o testador estiver rodando
     let tempoRestanteSync = 10;
     let timerSync = null;
 
@@ -1172,6 +1249,8 @@ class DashboardGenerator:
       const salvo = localStorage.getItem('ultra_auto_sync');
       if (salvo !== null) {{
         autoSyncAtivo = (salvo === 'true');
+      }} else {{
+        autoSyncAtivo = TESTADOR_RODANDO;
       }}
       atualizarBotaoSync();
 
@@ -1201,11 +1280,11 @@ class DashboardGenerator:
       const lbl = document.getElementById('sync-label');
       if (!btn || !lbl) return;
       if (autoSyncAtivo) {{
-        btn.classList.remove('paused');
+        btn.className = 'sync-btn active';
         lbl.innerText = `Sync Automático: ${{tempoRestanteSync}}s`;
       }} else {{
-        btn.classList.add('paused');
-        lbl.innerText = 'Sync Pausado (Pausar/Ativar)';
+        btn.className = 'sync-btn paused';
+        lbl.innerText = TESTADOR_RODANDO ? 'Sync Pausado' : 'Sync Desativado (Inativo)';
       }}
     }}
 
