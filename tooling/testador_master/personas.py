@@ -147,6 +147,16 @@ class Persona:
             lambda: "/status",
             lambda: "/menu",
             lambda: "/novo",
+            lambda: f"/task {random.choice(['Revisar exames do leito 14', 'Checar retorno de cultura de urina', 'Preparar sumário de alta', 'Discutir antibioticoterapia com CCIH'])}",
+            lambda: f"/tarefa {random.choice(['Reavaliar dreno de tórax leito 2', 'Solicitar ecocardiograma transtorácico'])}",
+            lambda: "/tasks",
+            lambda: f"/duvida {random.choice(['Dose de ataque de fenobarbital em neonato', 'Critérios de Light para exsudato pleural', 'Manejo de hipercalemia refratária na emergência', 'Profilaxia pós-exposição para HIV com TDF+3TC+DTG'])}",
+            lambda: "/duvidas",
+            lambda: "/habitos",
+            lambda: "/checkin",
+            lambda: "/briefing",
+            lambda: "/semana",
+            lambda: "/relatorio",
             lambda: f"/ajuda {random.choice(['rotina', 'calculadoras', 'sala', 'enfermaria', 'farmaco'])}"
         ]
         texto = random.choice(geradores)()
@@ -217,8 +227,8 @@ def obter_catalogo_personas() -> Dict[str, Persona]:
             descricao="Focado em organização pessoal, Google Calendar, blocos de plantão, time-blocking, hábitos e check-ins.",
             tolerancia_latencia_ms=1800,
             prob_fuzzing=0.03,
-            comandos_favoritos=["/rotina", "/agenda", "/minharotina", "/menu", "/status", "/novo", "/ajuda"],
-            palavras_chave_botoes=["rotina", "agenda", "timeline", "tarefas", "briefing", "checkin", "semana", "plantão", "concluir", "adiar"],
+            comandos_favoritos=["/rotina", "/agenda", "/task", "/tasks", "/duvida", "/duvidas", "/habitos", "/checkin", "/briefing", "/semana", "/relatorio", "/minharotina", "/status", "/menu"],
+            palavras_chave_botoes=["rotina", "agenda", "timeline", "tarefas", "briefing", "checkin", "semana", "plantão", "concluir", "adiar", "duvida", "medquest", "notion", "lifestyle", "bloco"],
             mensagens_teste=[{"tipo": "comando", "texto": "/rotina"}]
         ),
         "caotico_fuzzer": Persona(

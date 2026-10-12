@@ -98,9 +98,9 @@ function processarDitadoEvolucaoLeito(chatId, dadosLeitoAudio) {
   var limpoPep = typeof uxTextoProntuario === "function" ? uxTextoProntuario(textoPep) : textoPep;
   var btnCopiar;
   if (limpoPep.length >= 1 && limpoPep.length <= 256) {
-    btnCopiar = { text: "📋 Copiar Conduta/Passagem para Prontuário", copy_text: { text: limpoPep } };
+    btnCopiar = { text: "📋 Copiar para Prontuário", copy_text: { text: limpoPep } };
   } else {
-    btnCopiar = { text: "📋 Copiar Conduta/Passagem para Prontuário", callback_data: "ux:copiar:" + cacheKeyPep };
+    btnCopiar = { text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + cacheKeyPep };
   }
 
   var botoes = [

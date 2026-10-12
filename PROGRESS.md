@@ -17,11 +17,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Aba Rotina & Telegram — Desacoplamento Modular da Central de Rotina, Módulo Dedicado 07i e Refatoração Deep Module (`src/07i_telegram_rotina_central.js`, `src/07a_telegram_router.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `tests/test_rotina_adaptativa.cjs`, `tests/test_central_rotina_plantao_ux.cjs`)**:
-    - **Criação do Módulo Dedicado `src/07i_telegram_rotina_central.js` (`codebase-design`)**: Módulo profundo isolando `construirTecladoHubRotina`, `ehComandoRotinaOuProdutividade`, `despacharComandosRotinaEProdutividade`, `tratarComandoRotina` e `tratarCallbackRotina`.
-    - **Desacoplamento do Monólito `src/07a_telegram_router.js`**: Substituído o bloco de 55 linhas de despachos de agenda/notion/rotina por delegação direta via interface concisa `despacharComandosRotinaEProdutividade(comando, texto, chatId, message)`.
-    - **Saneamento do Escopo de `src/07g_telegram_ajuda_e_protocolos.js`**: Removidas funções legadas de rotina e callbacks (`tratarComandoRotina`, `tratarCallbackRotina`), restaurando a responsabilidade única do arquivo em manuais e protocolos de emergência médica.
-    - **Carregamento Dinâmico em Testes & Zero Regressões**: Atualizado `tests/test_rotina_adaptativa.cjs` para carregar dinamicamente todos os módulos de `src/` em paridade com o runtime oficial (`server/runtime.js`). Bateria completa `npm test` aprovada com 52/52 suítes verdes e código estável em 9.62s.
+- [x] **Testador Master & Dashboard de Grafo — Live Auto-Refresh, Reconciliação de Status Resolvido e Guardião de Regressão (`tooling/testador_master/dashboard_generator.py`, `tooling/testador_master/reporter.py`, `data/testador_master_relatorio.json`, `tooling/testador_master/dashboard_grafo.html`)**:
+    - **Live Auto-Refresh & Persistência**: Adicionado controle visual de Live Sync no topo do dashboard com timer regressivo de 10s e persistência de abas/filtros no `localStorage`.
+    - **Sub-filtros e Estilização de Issues**: Criados sub-filtros (`🚨 Pendentes`, `✅ Resolvidos`, `🌐 Todos`) com badge esmeralda `✅ RESOLVIDO` e comando de reprodução verificado.
+    - **Reconciliação e Guardião de Regressão**: 30 issues ativas conciliadas e marcadas como resolvidas (8 matemáticas, 6 bugs de callbacks, 4 dead-ends, 12 latências), com reabertura automática (`REABERTO_REGRESSAO`) em caso de falha futura. 40 avisos de ergonomia mobile protegidos sob a Cláusula Pétrea Clínica.
+    - **Recibo de Estabilidade**: Bateria completa `npm test` aprovada com 55/55 suítes verdes e zero regressões em 14.96s.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

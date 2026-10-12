@@ -45,3 +45,12 @@ auditorias/**/*.log
 logs/
 .build_master_cache.json
 
+
+# Tokens do Calendar
+calendar_manager/token*.json
+
+# Artefatos dinâmicos do testador master
+tests/repros/
+docs/RELATORIO_TESTADOR_VERIFICACAO.md
+tooling/testador_master/*.json
+calendar_manager/credentials*.json

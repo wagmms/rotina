@@ -8,6 +8,33 @@ Corrections, insights, and knowledge gaps captured during development.
 
 ---
 
+## [LRN-20261012-002] best_practice
+
+**Logged**: 2026-10-12T15:43:00-03:00
+**Priority**: critical
+**Status**: resolved
+**Area**: tests
+
+### Summary
+Reset e sincronização da memória de erros do Testador Master após conserto de lotes.
+
+### Details
+Ao finalizar o conserto de lotes de problemas identificados pelo testador autônomo, a memória acumulada de falhas em disco (`testador_master_relatorio.json`, seeds estáticos como `testador_master_issues_seed.json`) deve ser purgada e sincronizada com a nova rodada pós-conserto. Caso contrário, flags de continuidade como `--resume` re-injetam no reporter centenas de falhas mortas do passado que já foram corrigidas no código-fonte, exibindo dashboards inflados com erros fantasmas.
+
+### Suggested Action
+Sempre que um lote de correções for concluído e validado, expurgar seeds estáticos de issues antigas e atualizar o baseline de relatórios e dashboards com a sessão limpa atual do código.
+
+### Metadata
+- Source: user_correction
+- Related Files: `tooling/testador_master/reporter.py`, `data/testador_master_relatorio.json`
+- Tags: testador_master, reporting, cache_invalidation, resume
+- Pattern-Key: testador_master.reset_error_memory_post_fix
+- Recurrence-Count: 1
+- First-Seen: 2026-10-12
+- Last-Seen: 2026-10-12
+
+---
+
 ## [LRN-20261012-001] best_practice
 
 **Logged**: 2026-10-12T10:45:00-03:00
@@ -119,3 +146,44 @@ Sempre executar cópia e verificação de paridade com `cmp -s` antes de validar
 - Evidence: Paridade 100% verificada com `cmp -s`.
 - Disposition: retain
 - Guidance: Incluir verificação no fluxo de entrega contínua.
+
+---
+
+## [LRN-20261012-004] best_practice
+
+**Logged**: 2026-10-12T16:30:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: tooling
+
+### Summary
+Dashboards HTML gerados estaticamente a partir de JSON requerem mecanismo de auto-refresh no cliente e reconciliação de status de issues com suporte a detecção de regressão.
+
+### Details
+Quando um processo de simulação ou testador em segundo plano/monitor é pausado, o arquivo HTML visualizado no navegador permanece congelado no último snapshot a menos que possua:
+1. Um loop de auto-sync (ex: polling/recarregamento a cada 10s) com toggle visual e persistência de abas via `localStorage`.
+2. Um modelo de dados que reconcilie o status das issues (`status: "RESOLVIDO"` / `resolvido: true`) e reabra a issue automaticamente (`REABERTO_REGRESSAO`) caso uma falha volte a ocorrer no runtime.
+
+### Suggested Action
+Sempre equipar geradores de relatórios e dashboards com controle visual de auto-refresh configurável e renderização diferenciada de issues pendentes vs resolvidas.
+
+### Metadata
+- Source: best_practice
+- Related Files: `tooling/testador_master/dashboard_generator.py`, `tooling/testador_master/reporter.py`, `data/testador_master_relatorio.json`
+- Tags: dashboard, testador_master, live_sync, ui_ux
+- Pattern-Key: tooling.dashboard_live_sync
+- Recurrence-Count: 1
+- First-Seen: 2026-10-12
+- Last-Seen: 2026-10-12
+
+### Maintenance
+- Claim: Dashboards visuais devem ser auto-sincronizáveis e refletir status de issues resolvidas com guardião contra regressões.
+- Scope: `tooling/testador_master/*`
+- Authority: Engenharia de confiabilidade do projeto
+- Decay: project / tooling
+- Revalidate: when updating testador or dashboard generator
+- Validation: validated
+- Evidence: Dashboard gerado com live-sync de 10s e 96/122 issues marcadas como resolvidas/protegidas.
+- Disposition: retain
+- Guidance: Manter o timer de auto-sync ativado por padrão.
+

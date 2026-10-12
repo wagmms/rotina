@@ -110,32 +110,59 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
     }
   }
 
-  if (gravouComSucesso && kb && cb.message && cb.message.chat) {
-    for (var ki = 0; ki < kb.length; ki++) {
-      for (var kj = 0; kj < kb[ki].length; kj++) {
-        var kbtn = kb[ki][kj];
-        if (kbtn.callback_data === data) {
-          if (data.startsWith("habit_")) {
-            kbtn.text = valorStatus ? ("✅ " + kbtn.text.replace("✅ ", "")) : kbtn.text.replace("✅ ", "");
-          } else if (data.startsWith("energy_")) {
-            kbtn.text = "✅ " + kbtn.text.replace("✅ ", "");
+  if (gravouComSucesso) {
+    if (kb && cb.message && cb.message.chat) {
+      for (var ki = 0; ki < kb.length; ki++) {
+        for (var kj = 0; kj < kb[ki].length; kj++) {
+          var kbtn = kb[ki][kj];
+          if (kbtn.callback_data === data) {
+            if (data.startsWith("habit_")) {
+              kbtn.text = valorStatus ? ("✅ " + kbtn.text.replace("✅ ", "")) : kbtn.text.replace("✅ ", "");
+            } else if (data.startsWith("energy_")) {
+              kbtn.text = "✅ " + kbtn.text.replace("✅ ", "");
+            }
+          } else if (data.startsWith("energy_") && kbtn.callback_data.startsWith("energy_")) {
+            kbtn.text = kbtn.text.replace("✅ ", "");
           }
-        } else if (data.startsWith("energy_") && kbtn.callback_data.startsWith("energy_")) {
-          kbtn.text = kbtn.text.replace("✅ ", "");
         }
       }
+      var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
+      executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageReplyMarkup", {
+        "chat_id": cb.message.chat.id,
+        "message_id": cb.message.message_id,
+        "reply_markup": { "inline_keyboard": kb }
+      });
+    } else if (cb.message && cb.message.chat) {
+      var msgConfirmacao = data.startsWith("habit_") ? "✅ Hábito atualizado com sucesso!" : "⚡ Nível de energia registrado com sucesso!";
+      enviarMensagemParaChat(cb.message.chat.id, msgConfirmacao);
     }
-    var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
-    executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageReplyMarkup", {
-      "chat_id": cb.message.chat.id,
-      "message_id": cb.message.message_id,
-      "reply_markup": { "inline_keyboard": kb }
-    });
     responderCallbackTelegram(cb.id, "✅ Registrado com sucesso!");
-  } else if (!gravouComSucesso) {
+  } else {
     responderCallbackTelegram(cb.id, "⚠️ Erro ao registrar.");
   }
   return true;
+}
+
+/**
+ * A1.1 DÚVIDAS E PENDÊNCIAS CLÍNICAS (MEDQUEST / NOTION)
+ */
+function tratarCallbackDuvidasMedQuest_(cb, data, ctx) {
+  if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(ctx.chatId)) {
+    responderCallbackTelegram(cb.id, "🔒 Recurso exclusivo do titular.", true);
+    return true;
+  }
+  if (data.indexOf("duvida:check:") === 0) {
+    var duvidaId = data.replace("duvida:check:", "").trim();
+    if (typeof marcarDuvidaEstudoResolvida === "function") {
+      marcarDuvidaEstudoResolvida(duvidaId);
+    }
+    responderCallbackTelegram(cb.id, "✅ Dúvida marcada como resolvida!");
+    if (typeof listarDuvidasMedQuest === "function") {
+      return listarDuvidasMedQuest(ctx.chatId, ctx.msgId);
+    }
+    return enviarMensagemParaChat(ctx.chatId, "✅ Dúvida marcada como resolvida!");
+  }
+  return false;
 }
 
 /**
@@ -437,7 +464,12 @@ function tratarCallbackPreceptorSocratico_(cb, data, ctx) {
       return responderPreceptorVozComIA(ctx.chatId, conteudoCaso, { apenasNarrar: true });
     }
     responderCallbackTelegram(cb.id, "⚠️ Caso expirado do cache.");
-    return true;
+    return enviarMensagemComTecladoParaChat(ctx.chatId, "⚠️ *Áudio indisponível:* O conteúdo clínico não foi encontrado no cache recente (ou expirou).\n\n💡 Envie o caso novamente ou escolha uma opção abaixo:", {
+      inline_keyboard: [
+        [{ text: "🎙️ Sabatina", callback_data: "preceptor_sabatina" }, { text: "🚨 Sala Vermelha", callback_data: "ux:hub:sala" }],
+        [{ text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    });
   }
   if (data === "preceptor_gerar_soap") {
     responderCallbackTelegram(cb.id, "Consolidando discussão e gerando SOAP...");
@@ -1033,6 +1065,7 @@ var MAPA_CALLBACKS_EXATOS_ = {
 var ROTEADORES_PREFIXO_CALLBACKS_ = [
   { prefix: "habit_", handler: tratarCallbackHabitoEEnergia_ },
   { prefix: "energy_", handler: tratarCallbackHabitoEEnergia_ },
+  { prefix: "duvida:", handler: tratarCallbackDuvidasMedQuest_ },
   { prefix: "rotina:", handler: function(cb, data, ctx) {
       if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(ctx.chatId)) {
         responderCallbackTelegram(cb.id, "🔒 A rotina e timeline adaptativa são exclusivas do titular.", true);

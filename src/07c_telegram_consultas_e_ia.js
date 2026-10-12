@@ -185,13 +185,17 @@ function responderConsultaPosologiaHSL(chatId, termo) {
     ? formatarFichaPosologicaHSL(med)
     : "Ficha posológica indisponível.";
 
-  var rotuloPrescrever = "💊 Prescrever no /rx (" + (med.farnaco.length > 15 ? med.farnaco.substring(0, 15) + "..." : med.farnaco) + ")";
+  var rotuloPrescrever = "💊 Prescrever (" + (med.farnaco.length > 12 ? med.farnaco.substring(0, 12) + "..." : med.farnaco) + ")";
   var botoes = [
     [{ "text": rotuloPrescrever, "callback_data": "rx_med:" + med.farnaco.substring(0, 30) }]
   ];
   if (medPed) {
-    botoes.push([{ "text": "👶 Ver Doses Pediátricas (PedBook)", "callback_data": "ped_med:" + medPed.nome.substring(0, 30) }]);
+    botoes.push([{ "text": "👶 Doses PedBook", "callback_data": "ped_med:" + medPed.nome.substring(0, 30) }]);
   }
+  botoes.push([
+    { "text": "🔙 Consultas", "callback_data": "ux:hub:bolso" },
+    { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
+  ]);
 
   return enviarMensagemComTecladoParaChat(chatId, respostaTexto, { "inline_keyboard": botoes });
 }
@@ -201,20 +205,36 @@ function responderConsultaPosologiaHSL(chatId, termo) {
  */
 function responderConsultaPediatricaPedB(chatId, termo) {
   var medPed = (typeof buscarMedicamentoPediatricoPedB === "function") ? buscarMedicamentoPediatricoPedB(termo) : null;
+  if (!medPed && termo && termo.indexOf(" ") !== -1) {
+    var primeiroTermo = termo.split(/\s+/)[0];
+    medPed = (typeof buscarMedicamentoPediatricoPedB === "function") ? buscarMedicamentoPediatricoPedB(primeiroTermo) : null;
+  }
   if (!medPed) {
     // Se não encontrou medicamento, verifica se é uma conduta clínica pediátrica
     var cond = (typeof buscarCondutaPediatricaPedB === "function") ? buscarCondutaPediatricaPedB(termo) : null;
     if (cond) {
       return responderConsultaCondutaPedB(chatId, termo);
     }
-    return enviarMensagemParaChat(
+    var kbNaoEnc = {
+      inline_keyboard: [
+        [
+          { text: "💊 REMUME UBS", callback_data: "ux:amb:remume" },
+          { text: "🔙 Consultas", callback_data: "ux:hub:bolso" }
+        ],
+        [
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(
       chatId,
       "🔍 *MEDICAMENTO PEDIÁTRICO NÃO ENCONTRADO NO PEDBOOK*\n\n" +
       "Não encontramos ficha pediátrica específica para `\"" + termo + "\"` no PedBook.\n\n" +
       "💡 *Dicas:*\n" +
       "• Busque pelo princípio ativo (ex: `/ped amoxicilina`, `/ped dipirona`, `/ped prednisolona`).\n" +
       "• Ou busque condutas: `/conduta_ped bronquiolite` ou `/conduta_ped crup`.\n" +
-      "• Para posologia geral ou adulto, utilize `/dose " + termo + "`."
+      "• Para posologia geral ou adulto, utilize `/dose " + termo + "`.",
+      kbNaoEnc
     );
   }
 
@@ -223,13 +243,17 @@ function responderConsultaPediatricaPedB(chatId, termo) {
     : "Ficha pediátrica indisponível.";
 
   var botoes = [
-    [{ "text": "💊 Prescrever no /rx (" + (medPed.nome.length > 15 ? medPed.nome.substring(0, 15) + "..." : medPed.nome) + ")", "callback_data": "rx_med:" + medPed.nome.substring(0, 30) }]
+    [{ "text": "💊 Prescrever (" + (medPed.nome.length > 12 ? medPed.nome.substring(0, 12) + "..." : medPed.nome) + ")", "callback_data": "rx_med:" + medPed.nome.substring(0, 30) }]
   ];
 
   var medHsl = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(medPed.nome) : null;
   if (medHsl) {
-    botoes.push([{ "text": "🏢 Ver Doses Adulto / HSL", "callback_data": "hsl_med:" + medHsl.farnaco.substring(0, 30) }]);
+    botoes.push([{ "text": "🏢 Doses Adulto (HSL)", "callback_data": "hsl_med:" + medHsl.farnaco.substring(0, 30) }]);
   }
+  botoes.push([
+    { "text": "🔙 Consultas", "callback_data": "ux:hub:bolso" },
+    { "text": "🏠 Início", "callback_data": "ux:hub:inicio" }
+  ]);
 
   var kb = { "inline_keyboard": botoes };
   return enviarMensagemComTecladoParaChat(chatId, respostaTexto, kb);
@@ -239,9 +263,20 @@ function responderConsultaPediatricaPedB(chatId, termo) {
  * Responde à consulta de condutas e manejos pediátricos oficiais do PedBook.
  */
 function responderConsultaCondutaPedB(chatId, termo) {
+  var kbRetornoPed = {
+    inline_keyboard: [
+      [
+        { text: "👶 Menu Pediátrico", callback_data: "ux:bolso:ped" },
+        { text: "🔙 Consultas", callback_data: "ux:hub:bolso" }
+      ],
+      [
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]
+    ]
+  };
   var cond = (typeof buscarCondutaPediatricaPedB === "function") ? buscarCondutaPediatricaPedB(termo) : null;
   if (!cond) {
-    return enviarMensagemParaChat(
+    return enviarMensagemComTecladoParaChat(
       chatId,
       "🔍 *CONDUTA PEDIÁTRICA NÃO ENCONTRADA*\n\n" +
       "Não encontramos protocolo específico para `\"" + termo + "\"` no PedBook.\n\n" +
@@ -250,11 +285,12 @@ function responderConsultaCondutaPedB(chatId, termo) {
       "• `/conduta_ped crup` ou `/conduta_ped laringite`\n" +
       "• `/conduta_ped asma`\n" +
       "• `/conduta_ped convulsao febril`\n" +
-      "• `/conduta_ped anafilaxia`"
+      "• `/conduta_ped anafilaxia`",
+      kbRetornoPed
     );
   }
   var txt = (typeof formatarResumoCondutaPedB === "function") ? formatarResumoCondutaPedB(cond) : "Conduta indisponível.";
-  return enviarMensagemParaChat(chatId, txt);
+  return enviarMensagemComTecladoParaChat(chatId, txt, kbRetornoPed);
 }
 
 function executarFastAckTelegram_(chatId, messageIdParaEditar) {

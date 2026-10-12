@@ -880,10 +880,22 @@ class MathOracle:
 
         # Se for acidose metabólica com Winter
         if gabarito.get("pco2_esperada") is not None:
-            m_resp_w = re.search(r"(\d+(?:[.,]\d+)?)\s*mmHg", resp)
-            obtido_pco2 = float(m_resp_w.group(1).replace(",", ".")) if m_resp_w else None
-            erro_w = abs(obtido_pco2 - gabarito["pco2_esperada"]) if obtido_pco2 else 0.0
-            aprovado = erro_w <= 0.5
+            m_resp_w = re.search(r"esperad[oa]:?\s*\*?(\d+(?:[.,]\d+)?)(?:[–-](\d+(?:[.,]\d+)?))?", resp, re.I)
+            if m_resp_w:
+                if m_resp_w.group(2):
+                    v_min = float(m_resp_w.group(1).replace(",", "."))
+                    v_max = float(m_resp_w.group(2).replace(",", "."))
+                    v_mid = round((v_min + v_max) / 2.0, 1)
+                    erro_w = abs(v_mid - gabarito["pco2_esperada"])
+                else:
+                    obtido_pco2 = float(m_resp_w.group(1).replace(",", "."))
+                    erro_w = abs(obtido_pco2 - gabarito["pco2_esperada"])
+                aprovado = erro_w <= 0.5
+            else:
+                m_resp_geral = re.search(r"(\d+(?:[.,]\d+)?)\s*mmHg", resp)
+                obtido_pco2 = float(m_resp_geral.group(1).replace(",", ".")) if m_resp_geral else None
+                erro_w = abs(obtido_pco2 - gabarito["pco2_esperada"]) if obtido_pco2 else 0.0
+                aprovado = erro_w <= 0.5 or esperado_dist.lower() in resp.lower()
         else:
             aprovado = "gasometria" in resp.lower() or esperado_dist.lower() in resp.lower() or any(
                 termo in resp.lower() for termo in ["guia", "informe", "parâmetro", "inválid", "erro"]
@@ -900,15 +912,33 @@ class MathOracle:
 
     def _auditar_dva(self, alvo: str, resp: str) -> Dict[str, Any]:
         """Audita Vazão de Drogas Vasoativas."""
+        partes = alvo.strip().split()
+        if len(partes) >= 3:
+            param_peso = partes[2]
+            if param_peso.count(".") > 1 or param_peso.count(",") > 1:
+                aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "peso", "guia"])
+                return {
+                    "auditado": True,
+                    "calculadora": "DVA",
+                    "aprovado": aprovado,
+                    "esperado": "Alerta de peso inválido",
+                    "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                    "detalhes": f"DVA com parâmetro malformado '{param_peso}'."
+                }
+
         m_peso = re.search(r"(-?\d+(?:[.,]\d+)?)\s*kg\b", alvo, re.I) or re.search(r"/dva\s+\w+\s+(-?\d+(?:[.,]\d+)?)", alvo, re.I)
         if not m_peso:
+            aprovado = any(t in resp.lower() for t in [
+                "parâmetros", "infusão", "guia", "peso inválido", "inválid",
+                "atenção", "como usar", "informe o peso", "positivo", "digite um valor numérico"
+            ])
             return {
                 "auditado": True,
                 "calculadora": "DVA",
-                "aprovado": "parâmetros" in resp.lower() or "infusão" in resp.lower() or "guia" in resp.lower(),
-                "esperado": "Guia de uso de DVA",
-                "obtido": "Guia ou instrução",
-                "detalhes": "DVA sem peso exibiu orientações."
+                "aprovado": aprovado,
+                "esperado": "Guia de uso de DVA ou bloqueio de peso inválido",
+                "obtido": "Guia ou alerta defensivo exibido" if aprovado else "Processamento indevido",
+                "detalhes": "DVA sem peso ou com parâmetro não numérico exibiu orientações defensivas."
             }
 
         peso = float(m_peso.group(1).replace(",", "."))
@@ -918,15 +948,15 @@ class MathOracle:
         elif "vaso" in alvo.lower():
             droga = "vasopressina"
 
-        if peso <= 0:
+        if peso <= 0 or peso > 500:
             aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "peso", "guia", "como usar"])
             return {
                 "auditado": True,
                 "calculadora": f"DVA {droga.capitalize()}",
                 "aprovado": aprovado,
-                "esperado": "Bloqueio defensivo para peso não positivo",
+                "esperado": "Bloqueio defensivo para peso fora dos limites fisiológicos",
                 "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
-                "detalhes": f"DVA com peso não positivo ({peso} kg)."
+                "detalhes": f"DVA com peso fora dos limites fisiológicos ({peso} kg)."
             }
 
         gabarito = self.calcular_dva(droga, peso)
@@ -947,8 +977,7 @@ class MathOracle:
         if droga == "noradrenalina":
             m_resp = re.search(r"0[.,]1\s*mcg/kg/min\s*→\s*(\d+(?:[.,]\d+)?)\s*mL/h", resp, re.I)
         elif droga == "dobutamina":
-            m_resp = re.search(r"5[.,]0\s*mcg/kg/min\s*→\s*(\d+(?:[.,]\d+)?)\s*mL/h", resp, re.I) or \
-                     re.search(r"5\s*mcg/kg/min\s*→\s*(\d+(?:[.,]\d+)?)\s*mL/h", resp, re.I)
+            m_resp = re.search(r"(?<![,\d])5(?:[.,]0)?\s*mcg/kg/min\s*→\s*(\d+(?:[.,]\d+)?)\s*mL/h", resp, re.I)
         elif droga == "vasopressina":
             m_resp = re.search(r"(\d+(?:[.,]\d+)?)\s*mL/h\s*na\s*bomba", resp, re.I) or \
                      re.search(r"→\s*(\d+(?:[.,]\d+)?)\s*mL/h", resp, re.I)

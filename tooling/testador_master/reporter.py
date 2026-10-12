@@ -3,6 +3,7 @@ Ultra Rotina · Testador Master: Gerador de Relatório de Auditoria e Sugestões
 Analisa usabilidade, performance beira-leito, ergonomia mobile e gera relatórios estruturados.
 """
 
+import re
 import json
 from pathlib import Path
 from datetime import datetime
@@ -81,7 +82,8 @@ class MasterReporter:
             )
 
         # 2. Verificação de Stack Traces ou Vazamento Técnico
-        termos_erro_tecnico = ["typeerror", "referenceerror", "syntaxerror", "undefined", "nan", "[object object]"]
+        termos_erro_tecnico = ["typeerror", "referenceerror", "syntaxerror", "undefined", "[object object]"]
+        vazamento_detectado = False
         for termo in termos_erro_tecnico:
             if termo in texto.lower():
                 self._adicionar_problema(
@@ -93,7 +95,18 @@ class MasterReporter:
                     acao_obj=acao,
                     resposta=resposta
                 )
+                vazamento_detectado = True
                 break
+        if not vazamento_detectado and re.search(r'\b(?:nan|null)\b', texto, re.IGNORECASE):
+            self._adicionar_problema(
+                categoria="🚨 VAZAMENTO TÉCNICO",
+                gravidade="ALTA",
+                acao=acao.get("alvo_desc"),
+                descricao="Mensagem contém termo técnico suspeito ('NaN/null') exibido ao usuário.",
+                sugestao="Sanitizar saída e validar variáveis antes de compor a resposta do Telegram.",
+                acao_obj=acao,
+                resposta=resposta
+            )
 
         # 3. Detecção de Dead End (Tela sem botões de volta e sem instrução clara)
         if ok and len(texto) > 100 and not botoes:
@@ -175,8 +188,16 @@ class MasterReporter:
 
         # 8. Salvaguardas Clínicas em Fuzzing / Valores Extremos
         alvo_lower = str(acao.get("alvo_desc", "")).lower()
-        if any(b in alvo_lower for b in [" -", " 0", "peso 0", "crcl -"]):
-            if ok and ("ml/h" in texto.lower() or "mg" in texto.lower()) and "inválid" not in texto.lower() and "erro" not in texto.lower() and "atenção" not in texto.lower():
+        tem_negativo_ou_zero = bool(
+            re.search(r'(?:^|\s)(?:-\d+|\b0(?:\.0+)?\b)(?:\s|$)', alvo_lower)
+            or "peso 0" in alvo_lower
+            or "crcl -" in alvo_lower
+            or "peso -" in alvo_lower
+            or "na -" in alvo_lower
+            or "k -" in alvo_lower
+        )
+        if tem_negativo_ou_zero:
+            if ok and ("ml/h" in texto.lower() or "mg" in texto.lower()) and not any(t in texto.lower() for t in ["inválid", "erro", "atenção", "bloque", "positiv"]):
                 self._adicionar_problema(
                     categoria="🚨 SEGURANÇA CLÍNICA",
                     gravidade="ALTA",
@@ -226,6 +247,10 @@ class MasterReporter:
         for p in self.problemas:
             if p["categoria"] == categoria and p["acao"] == acao:
                 p["ocorrencias"] += 1
+                if p.get("resolvido"):
+                    p["resolvido"] = False
+                    p["status"] = "REABERTO_REGRESSAO"
+                    p["reaberto_em"] = datetime.now().isoformat()
                 return
 
         item = {
@@ -262,16 +287,8 @@ class MasterReporter:
             self.ciclos_anteriores += meta.get("total_ciclos", 0)
             self.duracao_anterior_seg += meta.get("duracao_segundos", 0)
 
-            # Carrega problemas salvos do relatório e também do seed histórico (apenas para o relatório oficial)
+            # Carrega problemas salvos do relatório prévio para continuidade da sessão
             problemas_salvos = list(dados.get("problemas", []))
-            seed_path = caminho_json.parent / "testador_master_issues_seed.json"
-            if caminho_json.name == "testador_master_relatorio.json" and seed_path.exists():
-                try:
-                    with open(seed_path, "r", encoding="utf-8") as sf:
-                        seed_data = json.load(sf)
-                    problemas_salvos = list(seed_data.get("problemas", [])) + problemas_salvos
-                except Exception:
-                    pass
 
             if problemas_salvos:
                 mapa = {(p.get("categoria"), p.get("acao")): p for p in self.problemas}
@@ -463,8 +480,10 @@ class MasterReporter:
 
         # Compilação do Dashboard Visual Interativo HTML
         try:
-            from tooling.testador_master.dashboard_generator import DashboardGenerator
-            dash_gen = DashboardGenerator()
+            import importlib
+            from tooling.testador_master import dashboard_generator
+            importlib.reload(dashboard_generator)
+            dash_gen = dashboard_generator.DashboardGenerator()
             dados_grafo = grafo.to_dict() if hasattr(grafo, "to_dict") else None
             dash_gen.gerar_dashboard(dados_grafo=dados_grafo, dados_relatorio=dados_json)
         except Exception:

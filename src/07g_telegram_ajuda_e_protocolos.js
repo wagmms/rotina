@@ -249,7 +249,7 @@ function construirTecladoCategoriasAjuda(chatId) {
         { text: "🛡️ Governança & Diretrizes", callback_data: "ajuda_cat_governanca" }
       ],
       [
-        { text: "📖 Ver Todos os Comandos (Manual Completo)", callback_data: "ajuda_todas" }
+        { text: "📖 Ver Manual Completo", callback_data: "ajuda_todas" }
       ]
     ]
   };
@@ -831,8 +831,8 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
     inline_keyboard: [
       [{ text: "📋 Copiar para Prontuário", callback_data: "ux:copiar:" + ckPadrao }],
       [
-        { text: "⚡ Ritmo Chocável (FV / TVSP)", callback_data: "pcr_chocavel" },
-        { text: "🫀 Não Chocável (AESP / Assistolia)", callback_data: "pcr_naochocavel" }
+        { text: "⚡ Ritmo Chocável (FV/TV)", callback_data: "pcr_chocavel" },
+        { text: "🫀 Não Chocável (AESP)", callback_data: "pcr_naochocavel" }
       ],
       [
         { text: "💉 Drogas ACLS", callback_data: "pcr_droga_adrena" },
@@ -1090,7 +1090,7 @@ function tratarComandoDhe(chatId, dadosDhe) {
     var kbDhe = {
       inline_keyboard: [
         [
-          { text: "💧 Hiponatremia (Adrogué-Madias)", callback_data: "dhe_hipo" },
+          { text: "💧 Hiponatremia (Adrogué)", callback_data: "dhe_hipo" },
           { text: "🌵 Hipernatremia (Água Livre)", callback_data: "dhe_hiper" }
         ],
         [
@@ -1112,13 +1112,22 @@ function tratarComandoDhe(chatId, dadosDhe) {
 
   var dLow = dadosDhe.toLowerCase();
 
+  var kbDheRetorno = {
+    inline_keyboard: [
+      [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+    ]
+  };
+
   // 1. Hipercalemia / Potássio
-  var mK = dLow.match(/(?:k|potassio|potássio)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+  var mK = dLow.match(/(?:k|potassio|potássio)\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)/i);
   if (mK || dLow.indexOf("hipercalemia") !== -1) {
-    var kVal = mK ? parseFloat(mK[1].replace(",", ".")) : parseFloat((dLow.match(/\d+(?:[.,]\d+)?/) || [6.5])[0].replace(",", "."));
+    var kVal = mK ? parseFloat(mK[1].replace(",", ".")) : parseFloat((dLow.match(/-?\d+(?:[.,]\d+)?/) || [6.5])[0].replace(",", "."));
+    if (isNaN(kVal) || kVal <= 0 || kVal > 15) {
+      return enviarMensagemComTecladoParaChat(chatId, "⚠️ *Atenção — Parâmetro Inválido:* O valor de potássio (K+) deve ser um número positivo (ex: `/dhe k 7.2 ecg`).", kbDheRetorno);
+    }
     var ecgAlt = dLow.indexOf("ecg") !== -1 || dLow.indexOf("onda t") !== -1 || dLow.indexOf("apiculad") !== -1;
     var resK = NefrologiaDheService.avaliarHipercalemia(kVal, ecgAlt);
-    if (resK.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resK.erro);
+    if (resK.erro) return enviarMensagemComTecladoParaChat(chatId, "⚠️ " + resK.erro, kbDheRetorno);
 
     var txtK = "⚡ *MANEJO EMERGENCIAL DE HIPERCALEMIA (SBC / KDIGO)*\n\n" +
       "🔴 *ESTRATIFICAÇÃO & GRAVIDADE:*\n" +
@@ -1135,37 +1144,48 @@ function tratarComandoDhe(chatId, dadosDhe) {
     if (resK.prescricaoPEP) {
       txtK += "\n\n📋 *PRESCRIÇÃO SUGERIDA (PEP):*\n```\n" + resK.prescricaoPEP + "\n```";
     }
-    return enviarMensagemParaChat(chatId, txtK);
+    return enviarMensagemComTecladoParaChat(chatId, txtK, kbDheRetorno);
   }
 
   // 2. Extração de Sódio, Peso, Sexo, Idade
-  var mNa = dLow.match(/(?:na|sodio|sódio)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
-  var mPeso = dLow.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|kilos?)/i) || dLow.match(/peso\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
-  var mIdade = dLow.match(/(\d{1,3})\s*(?:a|anos?)/i) || dLow.match(/idade\s*[:=]?\s*(\d{1,3})/i);
+  var mNa = dLow.match(/(?:na|sodio|sódio)\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)/i);
+  var mPeso = dLow.match(/(-?\d+(?:[.,]\d+)?)\s*(?:kg|kilos?)/i) || dLow.match(/peso\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)/i);
+  var mIdade = dLow.match(/(-?\d{1,3})\s*(?:a|anos?)/i) || dLow.match(/idade\s*[:=]?\s*(-?\d{1,3})/i);
   var mSexo = dLow.match(/\b(fem|feminino|mulher|f|masc|masculino|homem|m)\b/i);
 
   var naNum = mNa ? parseFloat(mNa[1].replace(",", ".")) : null;
-  var pesoNum = mPeso ? parseFloat(mPeso[1].replace(",", ".")) : 70;
+  var pesoNum = mPeso ? parseFloat(mPeso[1].replace(",", ".")) : null;
   var idadeNum = mIdade ? parseInt(mIdade[1], 10) : 45;
   var sexoStr = (mSexo && (mSexo[1].startsWith("f") || mSexo[1] === "mulher")) ? "f" : "m";
 
   // Se Na não foi explicitado com 'na', pega o primeiro número isolado
   if (naNum === null) {
-    var nums = dLow.match(/\d+(?:[.,]\d+)?/g);
+    var nums = dLow.match(/-?\d+(?:[.,]\d+)?/g);
     if (nums && nums.length > 0) {
       naNum = parseFloat(nums[0].replace(",", "."));
-      if (nums.length > 1 && !mPeso) pesoNum = parseFloat(nums[1].replace(",", "."));
+      if (nums.length > 1 && pesoNum === null) pesoNum = parseFloat(nums[1].replace(",", "."));
     }
   }
 
-  if (naNum === null) {
-    return enviarMensagemParaChat(chatId, "⚠️ Sódio não identificado. Informe o sódio sérico. Ex: `/dhe na 118 peso 60 f`");
+  if (naNum === null || isNaN(naNum)) {
+    return enviarMensagemComTecladoParaChat(chatId, "⚠️ *Atenção:* Sódio não identificado. Informe o valor do sódio sérico.\n\n💡 *Como usar:* `/dhe na 118 peso 60 f`", kbDheRetorno);
+  }
+
+  if (pesoNum === null) pesoNum = 70;
+
+  // Validação clínica defensiva mandatória beira-leito
+  if (naNum <= 0 || naNum < 80 || naNum > 200 || pesoNum <= 0 || pesoNum > 300 || idadeNum <= 0 || idadeNum > 125) {
+    return enviarMensagemComTecladoParaChat(chatId, "⚠️ *Atenção — Parâmetros Inválidos no DHE:*\n\n" +
+      "• O sódio sérico deve ser um valor positivo e plausível (80 a 200 mEq/L).\n" +
+      "• O peso corporal deve ser um número positivo maior que zero (> 0 kg).\n" +
+      "• A idade deve ser positiva (> 0 anos).\n\n" +
+      "💡 *Como usar corretamente:* `/dhe na 118 peso 60 f 72` ou `/dhe na 164 peso 70 m`", kbDheRetorno);
   }
 
   // Hipernatremia (Na > 145)
   if (naNum > 145 || dLow.indexOf("hipernatremia") !== -1 || dLow.indexOf("agua livre") !== -1) {
     var resHiper = NefrologiaDheService.calcularDeficitAguaLivre(naNum, pesoNum, sexoStr, idadeNum);
-    if (resHiper.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resHiper.erro);
+    if (resHiper.erro) return enviarMensagemComTecladoParaChat(chatId, "⚠️ " + resHiper.erro, kbDheRetorno);
 
     var txtHiper = "🌵 *HIPERNATREMIA — DÉFICIT DE ÁGUA LIVRE (ADROGUÉ-MADIAS)*\n\n" +
       "🔴 *DADOS DO PACIENTE:*\n" +
@@ -1183,13 +1203,13 @@ function tratarComandoDhe(chatId, dadosDhe) {
         txtHiper += "• " + resHiper.alertas[ah] + "\n";
       }
     }
-    return enviarMensagemParaChat(chatId, txtHiper);
+    return enviarMensagemComTecladoParaChat(chatId, txtHiper, kbDheRetorno);
   }
 
   // Hiponatremia (Na <= 145, tipicamente < 135)
   var salinaUsada = (dLow.indexOf("0.9") !== -1 || dLow.indexOf("fisiologico") !== -1) ? 0.9 : 3;
   var resHipo = NefrologiaDheService.planejarCorrecaoHiponatremia(naNum, pesoNum, sexoStr, idadeNum, salinaUsada);
-  if (resHipo.erro) return enviarMensagemParaChat(chatId, "⚠️ " + resHipo.erro);
+  if (resHipo.erro) return enviarMensagemComTecladoParaChat(chatId, "⚠️ " + resHipo.erro, kbDheRetorno);
 
   var solNome = salinaUsada === 3 ? "NaCl 3% (513 mEq/L)" : "NaCl 0,9% (154 mEq/L)";
   var vol24h = Math.round((8 / resHipo.variacaoNaPorLitro) * 1000);
@@ -1205,6 +1225,6 @@ function tratarComandoDhe(chatId, dadosDhe) {
     "⚠️ *BLOQUEIO DE SEGURANÇA MANDATÓRIO:*\n" +
     "• " + resHipo.alerta + "\n" +
     "• Dosar sódio sérico a cada *2 a 4 horas* em fase aguda.";
-  return enviarMensagemParaChat(chatId, txtHipo);
+  return enviarMensagemComTecladoParaChat(chatId, txtHipo, kbDheRetorno);
 }
 

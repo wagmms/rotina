@@ -77,8 +77,10 @@ var PalsPediatriaService = (function() {
     let desfibrilacao2 = Math.round(pesoCalc * 4 * 10) / 10;
     eletricidade.desfibrilacaoPrimeiroChoque = `${desfibrilacao1} J (2 J/kg)`;
     eletricidade.desfibrilacaoSegundoChoque = `${desfibrilacao2} J (4 J/kg)`;
+    eletricidade.desfibrilacaoChoquesSubsequentes = `${desfibrilacao2} J (4 J/kg)`;
     eletricidade.desfibrilacaoMaximo = `Até 10 J/kg ou dose máxima de adulto (ex: 200 J bifásico)`;
     eletricidade.cardioversaoPrimeiroChoque = `${(pesoCalc * 0.5).toFixed(1)} a ${pesoCalc * 1} J (0.5 a 1 J/kg)`;
+    eletricidade.cardioversaoSincronizadaInicial = `${(pesoCalc * 0.5).toFixed(1)} a ${pesoCalc * 1} J (0.5 a 1 J/kg)`;
     eletricidade.cardioversaoSegundoChoque = `${desfibrilacao1} J (2 J/kg)`;
 
     // 2. Medicações em PCR

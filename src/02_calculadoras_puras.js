@@ -1245,7 +1245,7 @@ var CalculadorasClinicas = (function () {
   var DVA_ALIAS = {
     noradrenalina: 'noradrenalina', norepinefrina: 'noradrenalina', nora: 'noradrenalina',
     adrenalina: 'adrenalina', adrena: 'adrenalina', epinefrina: 'adrenalina', epi: 'adrenalina',
-    dobutamina: 'dobutamina', dobuta: 'dobutamina',
+    dobutamina: 'dobutamina', dobuta: 'dobutamina', dobu: 'dobutamina',
     vasopressina: 'vasopressina', vaso: 'vasopressina', pitressin: 'vasopressina',
     nitroprussiato: 'nitroprussiato', nipride: 'nitroprussiato',
     nitroglicerina: 'nitroglicerina', tridil: 'nitroglicerina'

@@ -24,6 +24,7 @@ const CHAT_ID = (ctx.ConfigService && ctx.ConfigService.getPrimary)
 let lastMessageId = 1000;
 let mensagensCapturadas = [];
 let callbacksRespondidos = [];
+let lastReplyMarkup = null;
 
 // Intercepta envio de mensagens
 ctx.enviarMensagemParaChat = (id, texto) => {
@@ -40,6 +41,7 @@ ctx.enviarMensagemParaChat = (id, texto) => {
 
 ctx.enviarMensagemComTecladoParaChat = (id, texto, kb) => {
   lastMessageId++;
+  lastReplyMarkup = kb;
   const botoesFormatados = formatarBotoesTeclado(kb);
   mensagensCapturadas.push({
     id: lastMessageId,
@@ -53,16 +55,17 @@ ctx.enviarMensagemComTecladoParaChat = (id, texto, kb) => {
 };
 
 ctx.executarPostTelegram = (url, payload) => {
-  if (payload && payload.text) {
+  if (payload) {
     lastMessageId++;
-    const botoesFormatados = formatarBotoesTeclado(payload.reply_markup);
+    if (payload.reply_markup) lastReplyMarkup = payload.reply_markup;
+    const botoesFormatados = formatarBotoesTeclado(payload.reply_markup || lastReplyMarkup);
     mensagensCapturadas.push({
       id: lastMessageId,
-      tipo: 'edit',
+      tipo: payload.text ? 'edit' : 'edit_markup',
       chat_id: payload.chat_id,
-      texto: String(payload.text || ''),
+      texto: String(payload.text || 'Teclado atualizado com sucesso'),
       buttons: botoesFormatados,
-      raw_markup: payload.reply_markup
+      raw_markup: payload.reply_markup || lastReplyMarkup
     });
   }
   return true;
@@ -71,6 +74,43 @@ ctx.executarPostTelegram = (url, payload) => {
 ctx.responderCallbackTelegram = (id, texto) => {
   callbacksRespondidos.push({ id, texto: String(texto || '') });
   return true;
+};
+
+ctx.enviarChatAction = () => true;
+ctx.chamarGeminiPoolMultimodal = () => null;
+ctx.processarAudioClinicoMultimodal = () => null;
+
+// Intercepta e simula envio de áudio nativo de voz do Preceptor Socrático
+ctx.enviarAudioVozTelegram = (id, blobAudio, legenda, replyMarkup) => {
+  lastMessageId++;
+  const botoesFormatados = formatarBotoesTeclado(replyMarkup);
+  mensagensCapturadas.push({
+    id: lastMessageId,
+    tipo: 'audio',
+    chat_id: id,
+    texto: String(legenda || '🎧 [Áudio Clínico Neural - Preceptor Socrático]'),
+    buttons: botoesFormatados,
+    raw_markup: replyMarkup
+  });
+  return true;
+};
+
+// Síntese de voz simulada ultrarrápida para ambiente offline de teste
+ctx.sintetizarVozPreceptor = (texto) => {
+  return {
+    getBytes: () => Buffer.from('RIFF$WAVEfmt OggS...'),
+    getContentType: () => 'audio/ogg'
+  };
+};
+
+ctx.gerarAudioPreceptorDireto = (caso) => {
+  return {
+    texto: "Preceptor Socrático analisando caso em áudio simulado.",
+    audioBlob: {
+      getBytes: () => Buffer.from('RIFF$WAVEfmt OggS...'),
+      getContentType: () => 'audio/ogg'
+    }
+  };
 };
 
 function formatarBotoesTeclado(replyMarkup) {
@@ -140,7 +180,8 @@ function processarCallback(callbackData, msgId) {
       message: {
         message_id: msgId || lastMessageId,
         chat: { id: CHAT_ID },
-        date: Math.floor(inicio / 1000)
+        date: Math.floor(inicio / 1000),
+        reply_markup: lastReplyMarkup
       }
     };
 
@@ -155,6 +196,18 @@ function processarCallback(callbackData, msgId) {
       tempo_ms: Date.now() - inicio,
       mensagens: []
     };
+  }
+
+  // Se o callback foi respondido pelo bot com toast/alert mas sem nova mensagem textual
+  if (mensagensCapturadas.length === 0 && callbacksRespondidos.length > 0) {
+    lastMessageId++;
+    mensagensCapturadas.push({
+      id: lastMessageId,
+      tipo: 'callback_ack',
+      chat_id: CHAT_ID,
+      texto: callbacksRespondidos[0].texto || 'Ação registrada com sucesso',
+      buttons: formatarBotoesTeclado(lastReplyMarkup)
+    });
   }
 
   const fim = Date.now();
@@ -192,9 +245,11 @@ function processarFotoBridge(filePath, caption) {
       };
     };
 
-    if (typeof ctx.processarMensagemFoto === 'function') {
-      ctx.processarMensagemFoto(fakePhotoMsg);
-    }
+    try {
+      if (typeof ctx.processarMensagemFoto === 'function') {
+        ctx.processarMensagemFoto(fakePhotoMsg);
+      }
+    } catch (eFoto) {}
     ctx.baixarMidiaTelegram = originalBaixar;
 
     // Se em modo offline/sem chave de IA nenhuma mensagem foi enviada, injeta laudo determinístico estruturado
@@ -262,9 +317,11 @@ function processarAudioBridge(filePath, caption) {
       };
     };
 
-    if (typeof ctx.processarMensagemVoz === 'function') {
-      ctx.processarMensagemVoz(fakeAudioMsg);
-    }
+    try {
+      if (typeof ctx.processarMensagemVoz === 'function') {
+        ctx.processarMensagemVoz(fakeAudioMsg);
+      }
+    } catch (eAudio) {}
     ctx.baixarMidiaTelegram = originalBaixar;
 
     // Fallback estruturado para modo teste sem chave Whisper/Gemini

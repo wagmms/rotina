@@ -1239,7 +1239,7 @@ var GasometriaAcidoBaseService = (function () {
             { text: "🤮 Vômitos (Alcalose Met)", callback_data: "ux:gaso:pre:vomitos" }
           ],
           [
-            { text: "🌪️ Ansiedade/TEP (Alcalose Resp)", callback_data: "ux:gaso:pre:alcaloseresp" },
+            { text: "🌪️ Ansiedade/TEP (Alcalose)", callback_data: "ux:gaso:pre:alcaloseresp" },
             { text: "📐 Fórmula de Winter", callback_data: "ux:gaso:winter" }
           ],
           [
@@ -1264,7 +1264,7 @@ var GasometriaAcidoBaseService = (function () {
             { text: "HCO₃⁻ 18", callback_data: "ux:gaso:winter:calc:18" }
           ],
           [
-            { text: "🩸 Gasometria Completa (5 Passos)", callback_data: "ux:iniciar:gaso" },
+            { text: "🩸 Gasometria Completa", callback_data: "ux:iniciar:gaso" },
             { text: "🔙 Voltar", callback_data: "ux:hub:sala" }
           ]
         ]

@@ -277,7 +277,7 @@ console.log('🧪 Iniciando testes de Gestão de Leitos, Passagem SBAR & Prescri
   assert.ok(msgDitado.text.includes('checar PCR amanhã cedo'), 'Deve listar pendências extraídas');
 
   const kb = msgDitado.reply_markup.inline_keyboard;
-  assert.ok(kb.some(r => r.some(b => b.text.includes('Copiar Conduta/Passagem para Prontuário'))), 'Deve conter botão de cópia de conduta');
+  assert.ok(kb.some(r => r.some(b => b.text.includes('Copiar para Prontuário') || b.text.includes('Copiar Conduta/Passagem para Prontuário'))), 'Deve conter botão de cópia de conduta');
   assert.ok(kb.some(r => r.some(b => b.callback_data === 'ux:leito:04')), 'Deve conter [🛏️ Abrir Leito 04]');
   assert.ok(kb.some(r => r.some(b => b.callback_data === 'ux:painel:0')), 'Deve conter [🏥 Ver Enfermaria]');
   assert.ok(kb.some(r => r.some(b => b.callback_data === 'ux:hub:enf')), 'Deve conter [🔙 Enfermaria]');
@@ -310,7 +310,7 @@ console.log('🧪 Iniciando testes de Gestão de Leitos, Passagem SBAR & Prescri
   const msgSbarCmd = sent[sent.length - 1].payload;
   assert.ok(msgSbarCmd.text.includes('S (SITUAÇÃO / CENSO)'), '/sbar sem parâmetros entrega passagem SBAR 0ms');
   kb = msgSbarCmd.reply_markup?.inline_keyboard;
-  assert.ok(kb && kb.some(r => r.some(b => b.text.includes('Copiar Conduta/Passagem para Prontuário'))), '/sbar deve conter botão de cópia');
+  assert.ok(kb && kb.some(r => r.some(b => b.text.includes('Copiar para Prontuário') || b.text.includes('Copiar Conduta/Passagem para Prontuário'))), '/sbar deve conter botão de cópia');
   assert.ok(kb && kb.some(r => r.some(b => b.callback_data === 'ux:hub:enf')), '/sbar deve conter [🔙 Enfermaria]');
 
   // /leito sem parâmetros
@@ -323,7 +323,7 @@ console.log('🧪 Iniciando testes de Gestão de Leitos, Passagem SBAR & Prescri
   const msgL04 = sent[sent.length - 1].payload;
   assert.ok(msgL04.text.includes('LEITO 04'), '/leito 04 deve exibir dados do leito');
   kb = msgL04.reply_markup?.inline_keyboard;
-  assert.ok(kb && kb.some(r => r.some(b => b.text.includes('Copiar Conduta/Passagem para Prontuário'))), '/leito 04 deve ter botão de cópia');
+  assert.ok(kb && kb.some(r => r.some(b => b.text.includes('Copiar para Prontuário') || b.text.includes('Copiar Conduta/Passagem para Prontuário'))), '/leito 04 deve ter botão de cópia');
   assert.ok(kb && kb.some(r => r.some(b => b.callback_data === 'ux:hub:enf')), '/leito 04 deve conter [🔙 Enfermaria]');
 
   // /alta 04 (dispara tela de confirmação de alta segura)

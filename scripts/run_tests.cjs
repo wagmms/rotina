@@ -32,7 +32,7 @@ function fingerprint(root) {
   const inventory = files(root);
   if (!inventory.length) throw new Error('Inventário Git vazio; código não identificável.');
   for (const name of inventory) {
-    if (/^(?:data|logs|auditorias|tests\/repros)\//.test(name) || name === 'docs/RELATORIO_TESTADOR_MASTER.md' || name === 'tooling/testador_master/dashboard_grafo.html') continue;
+    if (/^(?:data|logs|auditorias|tests\/repros)\//.test(name) || name === 'docs/RELATORIO_TESTADOR_MASTER.md' || name === 'docs/dashboard_grafo.html' || name === 'tooling/testador_master/dashboard_grafo.html') continue;
     hash.update(name + '\0');
     const target = path.join(root, name);
     if (!fs.existsSync(target)) { hash.update('deleted'); continue; }
@@ -83,6 +83,11 @@ function snapshot(root, destination) {
     fs.mkdirSync(path.dirname(output), { recursive: true });
     fs.copyFileSync(source, output);
     fs.chmodSync(output, stat.mode & 0o777);
+  }
+  if (fs.existsSync(path.join(root, 'calendar_manager', 'token.json'))) {
+    const destToken = path.join(destination, 'calendar_manager', 'token.json');
+    fs.mkdirSync(path.dirname(destToken), { recursive: true });
+    try { fs.copyFileSync(path.join(root, 'calendar_manager', 'token.json'), destToken); } catch (_) {}
   }
   if (fs.existsSync(path.join(root, 'node_modules'))) {
     fs.symlinkSync(path.join(root, 'node_modules'), path.join(destination, 'node_modules'), 'dir');

@@ -706,8 +706,8 @@ function enviarMenuEmergCriseHas(chat, messageId) {
     '• *Urgência:* PA elevada sem LOA — controle oral em 24-48h (Captopril VO)\n' +
     '• *Pseudocrise:* Reativa a dor/ansiedade — repouso e analgesia simples';
   var linhas = [
-    [['🚨 Emergência (EAP / Dissecção)', 'ux:conduta:crisehas_emerg'], ['⚡ Urgência (Captopril/Clonidina)', 'ux:conduta:crisehas_urg']],
-    [['🟢 Pseudocrise (Repouso/Analgesia)', 'ux:conduta:crisehas_pseudo']]
+    [['🚨 Emergência (EAP/Dissecção)', 'ux:conduta:crisehas_emerg'], ['⚡ Urgência Hipertensiva', 'ux:conduta:crisehas_urg']],
+    [['🟢 Pseudocrise Hipertensiva', 'ux:conduta:crisehas_pseudo']]
   ];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
@@ -738,8 +738,8 @@ function enviarMenuEmergChoque(chat, messageId) {
     '• *Perfil L (Frio & Seco):* Hipovolemia/Superdiurese — Prova de volume\n' +
     '• *Choque Séptico:* Nora + Vasopressina + Hidrocortisona (CIRCI)';
   var linhas = [
-    [['🔴 Perfil C: Frio & Úmido (Choque)', 'ux:conduta:choque_c'], ['🟡 Perfil B: Quente & Úmido (EAP)', 'ux:conduta:choque_b']],
-    [['🔵 Perfil L: Frio & Seco (Hipovolemia)', 'ux:conduta:choque_l'], ['💉 Choque Séptico (CIRCI/Nora)', 'ux:conduta:choque_septico']]
+    [['🔴 Perfil C: Frio & Úmido', 'ux:conduta:choque_c'], ['🟡 Perfil B: Quente & Úmido', 'ux:conduta:choque_b']],
+    [['🔵 Perfil L: Frio & Seco', 'ux:conduta:choque_l'], ['💉 Choque Séptico (CIRCI)', 'ux:conduta:choque_septico']]
   ];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
@@ -753,7 +753,7 @@ function enviarMenuEmergCefaleia(chat, messageId) {
     '• *Arterite Temporal:* Paciente > 50 anos com dor temporal — VHS + Prednisona urgente';
   var linhas = [
     [['🚨 Trovoada / HSA (TC+PL)', 'ux:conduta:cef_hsa'], ['⚠️ Meningite / Febre (Punção)', 'ux:conduta:cef_mening']],
-    [['💊 Cefaleia Primária (Resgate PS)', 'ux:conduta:cef_primaria'], ['👵 Arterite Temporal (Corticoide)', 'ux:conduta:cef_arterite']]
+    [['💊 Cefaleia Primária (PS)', 'ux:conduta:cef_primaria'], ['👵 Arterite Temporal', 'ux:conduta:cef_arterite']]
   ];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'sala', messageId);
 }
@@ -858,9 +858,9 @@ function tratarCallbackEnfSBAR(chat, messageId) {
   var textoLimpoPep = typeof uxTextoProntuario === 'function' ? uxTextoProntuario(sbarTexto) : sbarTexto;
   var btnCopiar;
   if (textoLimpoPep.length >= 1 && textoLimpoPep.length <= UX_MAX_COPY_TEXT) {
-    btnCopiar = [{ text: '📋 Copiar Conduta/Passagem para Prontuário', copy_text: { text: textoLimpoPep } }];
+    btnCopiar = [{ text: '📋 Copiar para Prontuário', copy_text: { text: textoLimpoPep } }];
   } else {
-    btnCopiar = [{ text: '📋 Copiar Conduta/Passagem para Prontuário', callback_data: 'ux:copiar:' + ckSbar }];
+    btnCopiar = [{ text: '📋 Copiar para Prontuário', callback_data: 'ux:copiar:' + ckSbar }];
   }
 
   var linhasSbar = [
@@ -1127,7 +1127,7 @@ function tratarCallbackAmbRemume(chat, valor, messageId) {
   safePutCache(cache, ckR, textoRec, 21600);
 
   var botoes = botoesBot([
-    [['📋 Copiar Receita para Prontuário', 'ux:copiar:' + ckR]],
+    [['📋 Copiar Receita', 'ux:copiar:' + ckR]],
     [['💊 Receita HAS', 'ux:amb:remume:has'], ['🩸 Receita DM2', 'ux:amb:remume:dm']],
     [['🔙 Prescrição REMUME', 'ux:amb:remume'], ['🔙 Ambulatório', 'ux:hub:amb']],
     [['🏠 Início', 'ux:hub:inicio']]
@@ -1250,7 +1250,7 @@ function enviarTelaAmbAtestado(chat, messageId) {
   var botoes = botoesBot([
     [['📄 1 Dia (Consulta)', 'ux:amb:atest:1d'], ['📄 2 Dias (Repouso)', 'ux:amb:atest:2d']],
     [['📄 3 Dias (IVAS / Sintomático)', 'ux:amb:atest:3d'], ['📄 5 Dias (Afastamento)', 'ux:amb:atest:5d']],
-    [['📄 7 Dias (Lombalgia / Convalescença)', 'ux:amb:atest:7d'], ['🕒 Declaração de Comparecimento', 'ux:amb:atest:comp']],
+    [['📄 7 Dias (Lombalgia)', 'ux:amb:atest:7d'], ['🕒 Declaração Comparecimento', 'ux:amb:atest:comp']],
     [['📋 Copiar Modelo de Atestado', 'ux:copiar:' + ckAt]],
     [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
@@ -1293,7 +1293,7 @@ function tratarCallbackAmbAtestado(chat, valor, messageId) {
   safePutCache(cache, ckA, textoAtestado, 21600);
 
   var botoes = botoesBot([
-    [['📋 Copiar Atestado para Prontuário', 'ux:copiar:' + ckA]],
+    [['📋 Copiar Atestado', 'ux:copiar:' + ckA]],
     [['📄 1 Dia', 'ux:amb:atest:1d'], ['📄 3 Dias', 'ux:amb:atest:3d'], ['📄 5 Dias', 'ux:amb:atest:5d']],
     [['🔙 Atestados CFM', 'ux:amb:atestado'], ['🔙 Ambulatório', 'ux:hub:amb']],
     [['🏠 Início', 'ux:hub:inicio']]
@@ -1884,7 +1884,7 @@ function enviarTelaCalcHolliday(chat, messageId) {
     '• Exemplo de comando: `/holliday 14kg`';
 
   var linhas = [
-    [['👶 Lactente 8 kg (Manutenção)', 'ux:calc:hol_ex1'], ['🧒 Pré-escolar 14 kg (Manutenção)', 'ux:calc:hol_ex2']],
+    [['👶 Lactente 8 kg (Manutenção)', 'ux:calc:hol_ex1'], ['🧒 Pré-escolar 14 kg', 'ux:calc:hol_ex2']],
     [['👦 Escolar 22 kg (Manutenção)', 'ux:calc:hol_ex3'], ['🫁 Restrição Bronquiolite 11 kg', 'ux:calc:hol_ex4']]
   ];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
@@ -1901,8 +1901,8 @@ function enviarTelaCalcGlasgow(chat, messageId) {
     '• Exemplo de comando: `/calc glasgow O3 V4 M5 P0`';
 
   var linhas = [
-    [['🟢 Alerta GCS 15 (O4 V5 M6 P0)', 'ux:calc:gcs_ex1'], ['🟡 TCE Moderado GCS 11 (O3 V3 M5 P0)', 'ux:calc:gcs_ex2']],
-    [['🔴 TCE Grave GCS 7 (IOT Imediata)', 'ux:calc:gcs_ex3'], ['🚨 Midríase Bilateral GCS 4-P2', 'ux:calc:gcs_ex4']]
+    [['🟢 Alerta GCS 15 (O4 V5 M6 P0)', 'ux:calc:gcs_ex1'], ['🟡 TCE Moderado (GCS 11)', 'ux:calc:gcs_ex2']],
+    [['🔴 TCE Grave (GCS 7 - IOT)', 'ux:calc:gcs_ex3'], ['🚨 Midríase Bilateral GCS 4-P2', 'ux:calc:gcs_ex4']]
   ];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'calc', messageId);
 }
@@ -2213,7 +2213,7 @@ function tratarCallbackUXCalc(chat, v, msgId) {
   var ck = Utilities.getUuid().replace(/-/g, "");
   safePutCache(cache, ck, txtResultado, 21600);
   return enviarTelaBot(chat, txtResultado, botoesBot([
-    [['📋 Copiar Cálculo para Prontuário', 'ux:copiar:' + ck]],
+    [['📋 Copiar Cálculo', 'ux:copiar:' + ck]],
     [['🔙 Calculadoras', 'ux:hub:calc'], ['🏠 Início', 'ux:hub:inicio']]
   ]), msgId);
 }
@@ -2306,9 +2306,9 @@ function uxTelaLeito(chat, id, msgId, aviso) {
   var limpoPep = typeof uxTextoProntuario === 'function' ? uxTextoProntuario(textoPep) : textoPep;
   var btnCopiar;
   if (limpoPep.length >= 1 && limpoPep.length <= UX_MAX_COPY_TEXT) {
-    btnCopiar = [{ text: '📋 Copiar Conduta/Passagem para Prontuário', copy_text: { text: limpoPep } }];
+    btnCopiar = [{ text: '📋 Copiar para Prontuário', copy_text: { text: limpoPep } }];
   } else {
-    btnCopiar = [{ text: '📋 Copiar Conduta/Passagem para Prontuário', callback_data: 'ux:copiar:' + ckLeito }];
+    btnCopiar = [{ text: '📋 Copiar para Prontuário', callback_data: 'ux:copiar:' + ckLeito }];
   }
 
   return enviarTelaBot(chat, texto, botoesBot([
@@ -2503,7 +2503,7 @@ function tratarCallbackGOPrenatal(chat, v, messageId) {
 
   var msgCorpo = "🤰 *CONDUTA DETERMINÍSTICA DE PRÉ-NATAL:*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
-    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['📋 Copiar Conduta', 'ux:copiar:' + ck]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, msgCorpo, botoes, messageId);
@@ -2573,7 +2573,7 @@ function tratarCallbackGOParto(chat, v, messageId) {
 
   var msgCorpo = "🏥 *CONDUTA DE TRABALHO DE PARTO & CO:*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
-    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['📋 Copiar Conduta', 'ux:copiar:' + ck]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, msgCorpo, botoes, messageId);
@@ -2607,7 +2607,7 @@ function enviarTelaGOHpp(chat, messageId) {
 
   var botoes = botoesBot([
     [['🩸 Atonia Grave (Choque IC 1.5)', 'ux:go:hpp:atonia'], ['🩹 Trauma de Canal / Laceração', 'ux:go:hpp:trauma']],
-    [['🧩 Retenção Placentária / Restos', 'ux:go:hpp:tecido']],
+    [['🧩 Retenção Placentária', 'ux:go:hpp:tecido']],
     [['📋 Copiar Protocolo 4 Ts', 'ux:copiar:' + ckGuia]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
@@ -2650,7 +2650,7 @@ function tratarCallbackGOHpp(chat, v, messageId) {
 
   var msgCorpo = "🩸 *CONDUTA DE HEMORRAGIA PÓS-PARTO (HPP):*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
-    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['📋 Copiar Conduta', 'ux:copiar:' + ck]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, msgCorpo, botoes, messageId);
@@ -2750,7 +2750,7 @@ function tratarCallbackGOMgso4(chat, v, messageId) {
 
   var msgCorpo = "⚡ *CONDUTA DE PRÉ-ECLÂMPSIA & MgSO4:*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
-    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['📋 Copiar Conduta', 'ux:copiar:' + ck]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, msgCorpo, botoes, messageId);
@@ -2830,7 +2830,7 @@ function tratarCallbackGOPrematuridade(chat, v, messageId) {
 
   var msgCorpo = "👶 *CONDUTA DE PREMATURIDADE & RPMO:*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
-    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['📋 Copiar Conduta', 'ux:copiar:' + ck]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, msgCorpo, botoes, messageId);
@@ -2866,7 +2866,7 @@ function enviarTelaGOToxo(chat, messageId) {
 
   var botoes = botoesBot([
     [['🔬 1º Tri Avidez Baixa (Aguda)', 'ux:go:toxo:aguda'], ['✅ 1º Tri Avidez Alta (Prévia)', 'ux:go:toxo:previa']],
-    [['💊 PCR Positivo (Esquema Tríplice)', 'ux:go:toxo:fetal']],
+    [['💊 PCR+ (Esquema Tríplice)', 'ux:go:toxo:fetal']],
     [['📋 Copiar Guia Toxoplasmose', 'ux:copiar:' + ckGuia]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
@@ -2904,7 +2904,7 @@ function tratarCallbackGOToxo(chat, v, messageId) {
 
   var msgCorpo = "🔬 *CONDUTA DE TOXOPLASMOSE GESTACIONAL:*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
-    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['📋 Copiar Conduta', 'ux:copiar:' + ck]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, msgCorpo, botoes, messageId);
@@ -2940,8 +2940,8 @@ function enviarTelaGOCorrimento(chat, messageId) {
   safePutCache(cache, ckGuia, guiaTexto, 21600);
 
   var botoes = botoesBot([
-    [['🌸 Candidíase (Grumoso + Prurido)', 'ux:go:corrimento:candida'], ['🐟 Vaginose (Amsel / Whiff +)', 'ux:go:corrimento:vaginose']],
-    [['🍓 Tricomoníase (Colo Framboesa)', 'ux:go:corrimento:tricomoniase']],
+    [['🌸 Candidíase Vaginal', 'ux:go:corrimento:candida'], ['🐟 Vaginose (Amsel)', 'ux:go:corrimento:vaginose']],
+    [['🍓 Tricomoníase Vaginal', 'ux:go:corrimento:tricomoniase']],
     [['📋 Copiar Guia Vulvovaginites', 'ux:copiar:' + ckGuia]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
@@ -2988,7 +2988,7 @@ function tratarCallbackGOCorrimento(chat, v, messageId) {
 
   var msgCorpo = "🌸 *CONDUTA DE VULVOVAGINITES:*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
-    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['📋 Copiar Conduta', 'ux:copiar:' + ck]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, msgCorpo, botoes, messageId);
@@ -3074,7 +3074,7 @@ function tratarCallbackGOPreventivo(chat, v, messageId) {
 
   var msgCorpo = "🩺 *CONDUTA CITOPATOLÓGICA DE COLO (INCA):*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
-    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['📋 Copiar Conduta', 'ux:copiar:' + ck]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, msgCorpo, botoes, messageId);
@@ -3114,7 +3114,7 @@ function enviarTelaGOAnticoncepcao(chat, messageId) {
   safePutCache(cache, ckGuia, guiaTexto, 21600);
 
   var botoes = botoesBot([
-    [['🧠 Enxaqueca com Aura (Cat 4 Estrogênio)', 'ux:go:anticoncepcao:enxaqueca'], ['🚬 Tabagista ≥35a (≥15 cig/dia)', 'ux:go:anticoncepcao:tabagista']],
+    [['🧠 Enxaqueca com Aura (Cat 4)', 'ux:go:anticoncepcao:enxaqueca'], ['🚬 Tabagista ≥35a (≥15 cig)', 'ux:go:anticoncepcao:tabagista']],
     [['🤱 Puérpera em Aleitamento', 'ux:go:anticoncepcao:puerpera']],
     [['📋 Copiar Guia Anticoncepção', 'ux:copiar:' + ckGuia]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
@@ -3123,11 +3123,22 @@ function enviarTelaGOAnticoncepcao(chat, messageId) {
 }
 
 function tratarCallbackGOAnticoncepcao(chat, v, messageId) {
+  function obterMotivoBloqueio(c, fallback) {
+    if (c.justificativas && c.justificativas.length > 0) {
+      var j0 = c.justificativas[0];
+      if (typeof j0 === "object" && j0 !== null) {
+        return j0.motivo || j0.criterio || fallback;
+      }
+      return String(j0);
+    }
+    return c.motivo || fallback;
+  }
+
   var textoRes = "";
   if (v === 'enxaqueca') {
     if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao === "function") {
       var enx = GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao({ idade: 31, enxaqueca: 'com_aura' });
-      var bloqEnx = (enx.metodosBloqueadosCat4 || enx.contraindicados || []).map(function(c){ return "• " + (c.nome || c.metodo) + " (Cat " + (c.categoria || 4) + ") - " + ((c.justificativas && c.justificativas[0]) || c.motivo || "Contraindicação absoluta"); }).join("\n");
+      var bloqEnx = (enx.metodosBloqueadosCat4 || enx.contraindicados || []).map(function(c){ return "• " + (c.nome || c.metodo) + " (Cat " + (c.categoria || 4) + ") - " + obterMotivoBloqueio(c, "Contraindicação absoluta"); }).join("\n");
       var libEnx = (enx.metodosElegiveisCat1 || enx.recomendados || []).concat(enx.metodosAceitaveisCat2 || []).map(function(r){ return "• " + (r.nome || r.metodo) + " (Cat " + (r.categoria || 1) + ")"; }).join("\n");
       textoRes = "ELEGIBILIDADE CONTRACEPTIVA: ENXAQUECA COM AURA (31 anos)\n\n" +
         "⛔ CONTRAINDICADOS (Cat 4):\n" + bloqEnx +
@@ -3138,7 +3149,7 @@ function tratarCallbackGOAnticoncepcao(chat, v, messageId) {
   } else if (v === 'tabagista') {
     if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao === "function") {
       var tab = GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao({ idade: 38, tabagismo: true, cigarrosDia: 20 });
-      var bloqTab = (tab.metodosBloqueadosCat4 || tab.contraindicados || []).map(function(c){ return "• " + (c.nome || c.metodo) + " (Cat " + (c.categoria || 4) + ") - " + ((c.justificativas && c.justificativas[0]) || c.motivo || "Risco cardiovascular elevado"); }).join("\n");
+      var bloqTab = (tab.metodosBloqueadosCat4 || tab.contraindicados || []).map(function(c){ return "• " + (c.nome || c.metodo) + " (Cat " + (c.categoria || 4) + ") - " + obterMotivoBloqueio(c, "Risco cardiovascular elevado"); }).join("\n");
       var libTab = (tab.metodosElegiveisCat1 || tab.recomendados || []).concat(tab.metodosAceitaveisCat2 || []).map(function(r){ return "• " + (r.nome || r.metodo) + " (Cat " + (r.categoria || 1) + ")"; }).join("\n");
       textoRes = "ELEGIBILIDADE: TABAGISTA ≥ 35 ANOS (38 anos, 20 cigarros/dia)\n\n" +
         "⛔ CONTRAINDICADOS (Cat 4):\n" + bloqTab +
@@ -3149,7 +3160,7 @@ function tratarCallbackGOAnticoncepcao(chat, v, messageId) {
   } else if (v === 'puerpera') {
     if (typeof GinecologiaAmbulatorialService !== "undefined" && typeof GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao === "function") {
       var pue = GinecologiaAmbulatorialService.avaliarCriteriosElegibilidadeContracepcao({ idade: 26, lactacao: true });
-      var bloqPue = (pue.metodosBloqueadosCat4 || pue.contraindicados || []).map(function(c){ return "• " + (c.nome || c.metodo) + " (Cat " + (c.categoria || 4) + ") - " + ((c.justificativas && c.justificativas[0]) || c.motivo || "Risco de TEV e inibição de lactação"); }).join("\n");
+      var bloqPue = (pue.metodosBloqueadosCat4 || pue.contraindicados || []).map(function(c){ return "• " + (c.nome || c.metodo) + " (Cat " + (c.categoria || 4) + ") - " + obterMotivoBloqueio(c, "Risco de TEV e inibição de lactação"); }).join("\n");
       var libPue = (pue.metodosElegiveisCat1 || pue.recomendados || []).concat(pue.metodosAceitaveisCat2 || []).map(function(r){ return "• " + (r.nome || r.metodo) + " (Cat " + (r.categoria || 1) + ")"; }).join("\n");
       textoRes = "ELEGIBILIDADE: PUÉRPERA EM ALEITAMENTO EXCLUSIVO\n\n" +
         "⛔ CONTRAINDICADOS (Cat 4):\n" + bloqPue +
@@ -3165,7 +3176,7 @@ function tratarCallbackGOAnticoncepcao(chat, v, messageId) {
 
   var msgCorpo = "💊 *CONDUTA DE ANTICONCEPÇÃO OMS:*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
-    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['📋 Copiar Conduta', 'ux:copiar:' + ck]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, msgCorpo, botoes, messageId);
@@ -3203,7 +3214,7 @@ function enviarTelaGODip(chat, messageId) {
   safePutCache(cache, ckGuia, guiaTexto, 21600);
 
   var botoes = botoesBot([
-    [['🩹 DIP Ambulatorial (Monif I)', 'ux:go:dip:monif1'], ['🏥 DIP Hospitalar / ATO (Monif II-III)', 'ux:go:dip:hospitalar']],
+    [['🩹 DIP Ambulatorial (Monif I)', 'ux:go:dip:monif1'], ['🏥 DIP Hospitalar / ATO', 'ux:go:dip:hospitalar']],
     [['🚻 Parceiros Sexuais (Rastreio)', 'ux:go:dip:parceiro']],
     [['📋 Copiar Guia DIP', 'ux:copiar:' + ckGuia]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
@@ -3243,7 +3254,7 @@ function tratarCallbackGODip(chat, v, messageId) {
 
   var msgCorpo = "🩹 *CONDUTA DE DOENÇA INFLAMATÓRIA PÉLVICA (DIP):*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
-    [['📋 Copiar Conduta para Prontuário', 'ux:copiar:' + ck]],
+    [['📋 Copiar Conduta', 'ux:copiar:' + ck]],
     [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, msgCorpo, botoes, messageId);
@@ -4222,13 +4233,25 @@ function tratarCallbackUX(cb) {
       return processarMensagemTexto({ chat: { id: chat }, text: '/interacao ' + textoInteracao });
     } else if (op === 'detalhes' || op === 'copiar' || op === 'pdf') {
       var raw = cache.get(v);
-      if (!raw) { enviarMensagemParaChat(chat, 'Resultado expirado. Gere novamente com os dados do caso.'); return true; }
-      if (op === 'pdf') ReceitaPdfService.processarEEnviarPdf(chat, raw);
-      else if (op === 'copiar') {
-        var textoPronto = "📋 *PRONTO PARA O PRONTUÁRIO (1-TOQUE PARA COPIAR):*\n\n```text\n" + uxTextoProntuario(raw) + "\n```";
-        uxDividirTexto(textoPronto, 3800).forEach(function (parte) { enviarMensagemParaChat(chat, parte); });
+      var kbRetornoCopiar = botoesBot([
+        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+      ]);
+      if (!raw) {
+        enviarMensagemComTecladoParaChat(chat, '⚠️ Resultado expirado do cache. Gere novamente com os dados do caso.', kbRetornoCopiar);
+        return true;
       }
-      else enviarMensagemParaChat(chat, raw);
+      if (op === 'pdf') {
+        ReceitaPdfService.processarEEnviarPdf(chat, raw);
+      } else if (op === 'copiar') {
+        var textoLimpo = uxTextoProntuario(raw);
+        var fatias = uxDividirTexto(textoLimpo, 3500);
+        fatias.forEach(function (fatia, idx) {
+          var blocoFatia = "📋 *PRONTO PARA O PRONTUÁRIO (1-TOQUE PARA COPIAR" + (fatias.length > 1 ? " · PARTE " + (idx + 1) + "/" + fatias.length : "") + "):*\n\n```text\n" + fatia + "\n```\n\n💡 Retorne ao menu ou sala vermelha abaixo:";
+          enviarMensagemComTecladoParaChat(chat, blocoFatia, kbRetornoCopiar);
+        });
+      } else {
+        enviarMensagemComTecladoParaChat(chat, raw, kbRetornoCopiar);
+      }
     } else {
       enviarMensagemParaChat(chat, 'Ação não reconhecida. Reabra o menu.');
     }

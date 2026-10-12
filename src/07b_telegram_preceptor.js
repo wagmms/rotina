@@ -217,6 +217,10 @@ function extrairTextoLocucaoSoap_(texto) {
         var ultimoPonto = Math.max(corteLeg.lastIndexOf("."), corteLeg.lastIndexOf("\n"), corteLeg.lastIndexOf(" "));
         resumoLegenda = (ultimoPonto > 400 ? corteLeg.substring(0, ultimoPonto) : corteLeg) + "...";
       }
+      var numAst = (resumoLegenda.match(/\*/g) || []).length;
+      if (numAst % 2 !== 0) resumoLegenda += "*";
+      var numCrases = (resumoLegenda.match(/`/g) || []).length;
+      if (numCrases % 2 !== 0) resumoLegenda += "`";
       var legendaNarrada = "🎧 *Áudio Clínico - Preceptor:*\n" + resumoLegenda;
       var enviadoNarrado = enviarAudioVozTelegram(chatId, blobNarrado, legendaNarrada, kbAcoes);
       if (enviadoNarrado) return true;
@@ -240,7 +244,12 @@ function extrairTextoLocucaoSoap_(texto) {
         if (typeof renovarChatActionSeNecessario === "function") {
           renovarChatActionSeNecessario(chatId, "record_voice");
         }
-        var legendaDireta = "🎧 *Preceptor Socrático:*\n" + resDireto.texto;
+        var txtDir = String(resDireto.texto || "");
+        var numAstDir = (txtDir.match(/\*/g) || []).length;
+        if (numAstDir % 2 !== 0) txtDir += "*";
+        var numCrDir = (txtDir.match(/`/g) || []).length;
+        if (numCrDir % 2 !== 0) txtDir += "`";
+        var legendaDireta = "🎧 *Preceptor Socrático:*\n" + txtDir;
         salvarDialogoPreceptor(chatId, {
           em_andamento: true,
           caso_base: casoOuDuvida,

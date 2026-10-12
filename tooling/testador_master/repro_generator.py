@@ -139,11 +139,14 @@ class BugReproGenerator:
         # Constrói asserções especializadas que falham se o bug se manifestar
         if "VAZAMENTO TÉCNICO" in categoria:
             bloco_assercao = """  // Validação: a resposta NÃO pode vazar termos técnicos como 'undefined' ou 'NaN'
-  const termosVazamento = ['undefined', 'nan', '[object object]', 'referenceerror', 'typeerror'];
+  const termosVazamento = ['undefined', '[object object]', 'referenceerror', 'typeerror'];
   for (const termo of termosVazamento) {
     if (textoResposta.toLowerCase().includes(termo)) {
       throw new Error(`VAZAMENTO DETECTADO: A resposta contém '${termo}':\\n"${textoResposta.substring(0, 300)}..."`);
     }
+  }
+  if (/\\b(?:nan|null)\\b/i.test(textoResposta)) {
+    throw new Error(`VAZAMENTO DETECTADO: A resposta contém 'NaN' ou 'null':\\n"${textoResposta.substring(0, 300)}..."`);
   }
   console.log('  ✓ Nenhuma variável undefined ou termo técnico encontrado.');"""
 

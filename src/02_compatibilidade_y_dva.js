@@ -267,6 +267,7 @@ var CompatibilidadeYDvaService = (function() {
     'levophed': 'noradrenalina',
     'dobutamina': 'dobutamina',
     'dobuta': 'dobutamina',
+    'dobu': 'dobutamina',
     'dobutrex': 'dobutamina',
     'vasopressina': 'vasopressina',
     'vaso': 'vasopressina',

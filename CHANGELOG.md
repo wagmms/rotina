@@ -1,5 +1,41 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C50. [x] **Testador Master & Dashboard de Grafo — Live Auto-Refresh, Reconciliação de Status Resolvido e Reabertura Automática (`tooling/testador_master/dashboard_generator.py`, `tooling/testador_master/reporter.py`, `data/testador_master_relatorio.json`, `tooling/testador_master/dashboard_grafo.html`, `data/dashboard_grafo.html`, `docs/dashboard_grafo.html`)**:
+    - **Live Auto-Refresh & Persistência de UI no Frontend**:
+      * Adicionado controle visual de Live Sync no cabeçalho do dashboard com temporizador regressivo de 10s, pulso estelar e botão manual de recarregamento (`🔄`).
+      * Persistência de estado via `localStorage` (`ultra_auto_sync`, `ultra_tab_ativa`, `ultra_ifilter_ativo`), garantindo que o médico mantenha a mesma aba e filtros ativos entre ciclos automáticos.
+    - **Sub-filtros e Estilização de Issues Resolvidas**:
+      * Implementados sub-filtros de visualização na aba lateral: `🚨 Pendentes`, `✅ Resolvidos` e `🌐 Todos`, com contadores em tempo real.
+      * Estilização esmeralda translúcida para issues resolvidas (`.issue-item.resolved`), com badge `✅ RESOLVIDO`, detalhe da correção aplicada e teste de reprodução 1-clique marcado como verificado.
+    - **Reconciliação e Guardião de Regressão em Tempo Real**:
+      * Atualizado `tooling/testador_master/reporter.py` com mecanismo de detecção de regressão: se uma falha previamente marcada como resolvida for reativada, o status é automaticamente alterado para `REABERTO_REGRESSAO`.
+      * Reconciliadas 30 issues ativas no relatório (8 discrepâncias matemáticas, 6 bugs críticos de callbacks, 4 dead-ends de UX e 12 gargalos de comandos desconhecidos).
+      * Preservadas 40 ocorrências de ergonomia mobile como canônicas sob a Cláusula Pétrea de Conteúdo Clínico Inviolável.
+    - **Recibo Oficial de Estabilidade**: Bateria completa `npm test` aprovada com 55/55 suítes verdes e zero regressões em 14.96s.
+
+0C49. [x] **Testador Master & Resolução Integral dos 5 Lotes de Erros (`src/07a_telegram_router.js`, `src/07c_telegram_consultas_e_ia.js`, `src/07d_telegram_callbacks.js`, `src/07e_telegram_midia_e_leitos.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `src/12_experiencia_bot.js`, `src/02_gasometria_acido_base.js`, `src/02_pals_pediatria.js`, `tooling/testador_master/`)**:
+    - **Lote 1: Bugs Críticos & Vazamentos Técnicos**:
+      * Corrigido motor PALS com verificação de ranges de idade/peso e eliminação de retornos nulos.
+      * Corrigido renderizador de critérios OMS de anticoncepção para descompactar objetos e eliminar vazamento visual `[object Object]`.
+      * Tratamento de mensagem vazia com boas-vindas defensivas e teclado ágil para evitar mensagens em branco no Telegram.
+      * Ajuste de cache de áudio (`🎧 Ouvir no Fone`) com chave estável por hash de conteúdo.
+      * Saneamento do testador master para eliminar falso positivo de regex `nan` em palavras legítimas (`\b(?:nan|null)\b`).
+    - **Lote 2: Segurança Clínica & Matemática Beira-Leito**:
+      * Validação estrita de limites clínicos em DHE (Na/K) e DVA (peso positivo e drogas vasoativas).
+      * Interceptador de `/dva y` ajustado para verificação e parecer de compatibilidade físico-química em Y-site de UTI.
+      * Inclusão de cabeçalho sentinela e alerta clínico no protocolo de choque séptico refratário e CIRCI.
+      * Validação robusta de limites biológicos em `/clcr` (idade > 0 e < 130, creatinina positiva).
+    - **Lote 3: UX Dead-Ends & Navegabilidade**:
+      * Eliminados dead-ends nos fluxos de cópia para prontuário (`op === 'copiar'`) e chave expirada, garantindo teclados inline de retorno (`🔙 Sala Vermelha` e `🏠 Início`).
+      * Adicionado teclado inline `kbHicRetorno` em `/hic` determinístico de osmoterapia (manitol/salina hipertônica).
+      * Adicionada busca resiliente pela primeira palavra em `/ped <droga> <peso>` e teclados inline em rotas pediátricas não encontradas.
+    - **Lote 4: Rótulos Truncados no Mobile**:
+      * Todos os botões inline do repositório auditados e encurtados para `<= 30` caracteres, garantindo ergonomia mobile sem truncamento na interface do Telegram.
+      * Total de botões > 30 caracteres restantes no repositório reduzido a 0.
+    - **Lote 5: Ergonomia Mobile & Formatação Markdown**:
+      * Resolução definitiva de blocos monoespaçados fatiando o texto antes do envelopamento para evitar desbalanceamento de crases triplas.
+      * Bateria completa de regressão `npm test` aprovada com 55/55 suítes verdes e código estável em 10.78s.
+
 0C48. [x] **Aba Rotina & Telegram — Desacoplamento Modular da Central de Rotina, Módulo Dedicado 07i e Refatoração Deep Module (`src/07i_telegram_rotina_central.js`, `src/07a_telegram_router.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `tests/test_rotina_adaptativa.cjs`, `tests/test_central_rotina_plantao_ux.cjs`)**:
     - **Criação do Módulo Dedicado `src/07i_telegram_rotina_central.js` (`codebase-design`)**:
       * Centralizada toda a lógica de time-blocking, navegação, teclados de rotina e execução de comandos diários do médico em módulo profundo e coeso com seam bem definido.
