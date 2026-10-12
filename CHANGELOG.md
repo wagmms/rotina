@@ -1,5 +1,22 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C32. [x] **Síntese TTS Neural no Fone, Erradicação de Casos Mocks e Expurgo Total da Rotina Fixa (Exclusividade Google Calendar) (`src/00_config.js`, `src/01_utils.js`, `src/06_rotina_agenda.js`, `src/07a_telegram_router.js`, `src/07b_telegram_preceptor.js`, `src/12_experiencia_bot.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`)**:
+    - **Áudio Neural "Ouvir no Fone" sem Reenvio de SOAP**:
+      * Em `src/00_config.js` e `src/01_utils.js`: atualizada lista de modelos TTS Gemini (`gemini-3.8-flash-lite-tts,gemini-3.8-flash-tts`) e corrigido o tratamento de cota com fallback rápido entre modelos, gerando áudio neural de alta fidelidade sem esgotar o timeout de 15s.
+      * Em `src/07b_telegram_preceptor.js`: criada a função `extrairTextoLocucaoSoap_` para locução focada na Avaliação e Conduta. Eliminado o fallback indevido que reenviava o texto bruto do SOAP se o áudio falhasse.
+    - **Erradicação Total de Casos Clínicos Fictícios em Comandos e Telas**:
+      * Em `src/07a_telegram_router.js` e `src/12_experiencia_bot.js`: removidos todos os exemplos fictícios de casos (HAS, DM2, PAC grave) e botões mockados dos comandos `/rx`, `/rxh`, `/insulina` e telas de enfermagem, substituídos por orientações práticas de preenchimento.
+      * Em `cockpit_movel.html` e `gh_cockpit_deploy/index.html`: eliminados botões de queixa rápida fictícia ("HAS Rotina", "DM2 Rotina") do modal de SOAP, inserindo guia orientador com "O que fazer" e placeholder explicativo.
+    - **Expurgo Integral da Rotina Genérica & Exclusividade da Agenda Google (Segunda a Domingo)**:
+      * Em `src/06_rotina_agenda.js`: expurgo completo de grades fixas estáticas (`obterGradeBase` retorna `[]` para todos os dias de 0 a 6). Eliminadas todas as rotinas hardcoded ("Internato: Enfermaria", "Cochilo Estratégico", "Musculação: Superior A/B", "Imersão MedQuest", etc.) em qualquer dia da semana.
+      * `obterBlocosDoDia`: exibe exclusivamente eventos reais sincronizados da Agenda Google ou plantões detectados; sem compromissos na agenda, retorna timeline limpa com orientações sem exibir "0/6 blocos concluídos".
+      * `obterResumoSemanal` e `obterTreinoDoDia`: sincronizados diretamente com os eventos reais do Google Calendar.
+      * Em `cockpit_movel.html` e `gh_cockpit_deploy/index.html`: removidos os cartões estáticos mockados de `#tab-rotina` ("Turma J", "Semana Ativa", "Bloco Noturno MedQuest com Sangramento de 1º Trimestre"), conectando diretamente a timeline viva aos blocos da Agenda Google.
+    - **Validação e Estabilidade**:
+      * Testes unitários `tests/test_ajustes_usuario_audio_rotina.cjs` e `tests/test_rotina_adaptativa.cjs` 100% aprovados.
+      * Suíte completa com 50/50 suítes verdes no `npm test` em 8.57s com zero regressões. Bundle `ultra_rotina_master.js` 100% íntegro.
+
+
 0C31. [x] **Alocação Exclusiva de Luna para Revisões e Liberação de Deploy sem Cota do ChatGPT (`tooling/autoloop/core/model_router.py`, `tooling/autoloop/core/scoped_audit.py`, `tooling/autoloop/autoloop.py`)**:
     - **Alocação de Modelos — Luna para Todas as Auditorias**:
       * Em cumprimento à diretriz expressa do usuário de poupar cotas externas de modelos caros, todo o roteamento de auditoria em `model_router.py` foi reconfigurado para utilizar a família Luna (`gpt-6-luna` / `gpt-5.6-luna`) para todas as rotas de estilo, documentação, engenharia, arquitetura e revisão clínica.

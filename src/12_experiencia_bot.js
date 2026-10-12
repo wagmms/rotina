@@ -827,10 +827,11 @@ function enviarTelaEnfHidratacao(chat, messageId) {
 
 function enviarTelaEnfPrescricaoHosp(chat, messageId) {
   var texto = '📝 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\n' +
-    'Gere uma prescrição de internação padronizada (10 itens) com auditoria de segurança:\n\n' +
-    '💡 *Envie os dados do caso por texto ou áudio:*\n' +
-    '`/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`';
-  var linhas = [[['📋 Gerar Exemplo (PAC Grave)', 'ux:rxh:exemplo_pac']]];
+    'Gere uma prescrição de internação estruturada em 10 itens com verificação de profilaxias e ajuste renal:\n\n' +
+    '💡 *Como prescrever (por texto ou áudio):*\n' +
+    'Envie `/rxh` informando idade, peso, diagnóstico principal, creatinina/função renal, comorbidades e alergias.\n\n' +
+    '• O sistema calcula hidratação venosa, ajuste de medicamentos à função renal, analgésicos e profilaxia de TEV.';
+  var linhas = [];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'enf', messageId);
 }
 
@@ -3822,7 +3823,7 @@ function tratarCallbackUX(cb) {
       else if (v === '11kg_bva') texto('/holliday 11kg bronquiolite');
       else texto('/holliday ' + v);
     } else if (op === 'rxh') {
-      if (v === 'exemplo_pac') texto('/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2');
+      if (v === 'exemplo_pac') return enviarTelaEnfPrescricaoHosp(chat, msgId);
       else texto('/rxh ' + v);
     } else if (op === 'amb') {
       if (v === 'soap') return enviarTelaAmbSoap(chat, msgId);

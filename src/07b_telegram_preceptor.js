@@ -179,13 +179,24 @@ function responderPreceptorVozComIA(chatId, casoOuDuvida, opcoes) {
     ]
   };
 
+function extrairTextoLocucaoSoap_(texto) {
+  if (!texto) return "";
+  var t = String(texto).trim();
+  var matchAvaliacao = t.match(/(?:🧠\s*\*?AVALIA[ÇC][ÃA]O|Hipótese|Conduta)[\s\S]*/i);
+  if (matchAvaliacao && matchAvaliacao[0].length >= 30) {
+    return matchAvaliacao[0].trim();
+  }
+  return t;
+}
+
   // Se opcoes.apenasNarrar === true, pula a geração de texto e vai direto para TTS
   // (usado pelo callback "Ouvir no Fone" para narrar texto já existente)
   if (opcoes.apenasNarrar && casoOuDuvida) {
     enviarChatAction(chatId, "record_voice", true);
-    var blobNarrado = sintetizarVozPreceptor(casoOuDuvida);
+    var textoLocucao = extrairTextoLocucaoSoap_(casoOuDuvida);
+    var blobNarrado = sintetizarVozPreceptor(textoLocucao);
     if (blobNarrado) {
-      var resumoLegenda = String(casoOuDuvida).trim();
+      var resumoLegenda = String(textoLocucao).trim();
       if (resumoLegenda.length > 750) {
         var corteLeg = resumoLegenda.substring(0, 746);
         var ultimoPonto = Math.max(corteLeg.lastIndexOf("."), corteLeg.lastIndexOf("\n"), corteLeg.lastIndexOf(" "));

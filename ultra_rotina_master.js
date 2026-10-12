@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 19:08:41
- * Checksum SHA256: 11742ed074de6123
+ * Gerado automaticamente via build_master.py em: 2026-10-11 22:20:47
+ * Checksum SHA256: dfc4f8b4cb46cc91
  * ==============================================================================
  */
 
@@ -46,7 +46,7 @@ var ConfigService = (function() {
     IA_MODELOS_CLINICOS_GEMINI: "gemini-3.5-flash,gemini-flash-latest,gemini-flash-lite-latest,gemini-3.5-flash-lite",
     IA_MODELOS_RAPIDOS_GEMINI: "gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.1-flash-lite",
     IA_MODELOS_GEMINI: "gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.5-flash,gemini-flash-latest",
-    IA_MODELOS_TTS_GEMINI: "gemini-3.8-flash-tts,gemini-3.8-flash-lite-tts",
+    IA_MODELOS_TTS_GEMINI: "gemini-3.8-flash-lite-tts,gemini-3.8-flash-tts",
     IA_MODELOS_LOCAL: "llama3.1:latest,llama3.2:latest,mistral:latest,llama3:8b,mistral:7b",
     LOCAL_LLM_URL: "http://127.0.0.1:11434/v1/chat/completions",
     LOCAL_LLM_API_KEY: "ollama",
@@ -957,7 +957,10 @@ function gerarAudioTtsGeminiNeural(texto) {
               return blob;
             }
           }
-        } else if (code === 429 || code === 404 || code === 504 || code >= 500) {
+        } else if (code === 404) {
+          // Modelo inexistente nesta versão da API: avança imediatamente para o próximo modelo
+          break;
+        } else if (code === 429 || code === 504 || code >= 500) {
           // Se o modelo atingiu cota ou indisponibilidade, avança rapidamente
           continue;
         }
@@ -41812,80 +41815,9 @@ var RotinaService = {
   },
 
   obterGradeBase: function(diaSemanaNum) {
-    var d = typeof diaSemanaNum === "number" ? diaSemanaNum : (new Date()).getDay();
-    switch (d) {
-      case 1: // Segunda-feira
-        return [
-          { id: "internato_m", titulo: "Internato: Enfermaria / Ambulatório", inicio: "07:00", fim: "12:00", categoria: "clinico", status: "pendente", essencial: true, nota: "" },
-          { id: "cochilo", titulo: "Almoço & Cochilo Estratégico (25 min)", inicio: "12:00", fim: "13:30", categoria: "recuperacao", status: "pendente", essencial: true, nota: "Reset do córtex pré-frontal" },
-          { id: "internato_t", titulo: "Internato: Prática / Procedimentos", inicio: "13:30", fim: "17:00", categoria: "clinico", status: "pendente", essencial: true, nota: "" },
-          { id: "treino", titulo: "Musculação: Superior A (Peito/Costas/Ombros/Braços)", inicio: "17:30", fim: "19:00", categoria: "treino", status: "pendente", essencial: false, nota: "Séries válidas e descanso cronometrado" },
-          { id: "jantar", titulo: "Jantar & Descompressão", inicio: "19:00", fim: "20:00", categoria: "lifestyle", status: "pendente", essencial: false, nota: "" },
-          { id: "estudo", titulo: "Imersão MedQuest & Anki (Questões Ativas)", inicio: "20:00", fim: "21:30", categoria: "estudo", status: "pendente", essencial: true, nota: "Foco no R1-USP e flashcards de erro" },
-          { id: "sono", titulo: "Higiene do Sono & Repouso Restaurador", inicio: "22:30", fim: "06:00", categoria: "recuperacao", status: "pendente", essencial: true, nota: "Desligar telas às 22:00" }
-        ];
-      case 2: // Terça-feira
-        return [
-          { id: "internato_m", titulo: "Internato: Enfermaria / Ambulatório", inicio: "07:00", fim: "12:00", categoria: "clinico", status: "pendente", essencial: true, nota: "" },
-          { id: "cochilo", titulo: "Almoço & Cochilo Estratégico (25 min)", inicio: "12:00", fim: "13:30", categoria: "recuperacao", status: "pendente", essencial: true, nota: "Reset cognitivo" },
-          { id: "internato_t", titulo: "Internato: Visita Clínica / Prática", inicio: "13:30", fim: "17:00", categoria: "clinico", status: "pendente", essencial: true, nota: "" },
-          { id: "treino", titulo: "Musculação: Inferior A (Pernas foco Quadríceps)", inicio: "17:30", fim: "19:00", categoria: "treino", status: "pendente", essencial: false, nota: "Sobrecarga progressiva" },
-          { id: "jantar", titulo: "Jantar & Descompressão", inicio: "19:00", fim: "20:00", categoria: "lifestyle", status: "pendente", essencial: false, nota: "" },
-          { id: "estudo", titulo: "Imersão MedQuest & Anki (Questões Ativas)", inicio: "20:00", fim: "21:30", categoria: "estudo", status: "pendente", essencial: true, nota: "Revisão espaçada ativa" },
-          { id: "sono", titulo: "Higiene do Sono & Repouso Restaurador", inicio: "22:30", fim: "06:00", categoria: "recuperacao", status: "pendente", essencial: true, nota: "" }
-        ];
-      case 3: // Quarta-feira
-        return [
-          { id: "internato_m", titulo: "Internato: Enfermaria / Ambulatório", inicio: "07:00", fim: "12:00", categoria: "clinico", status: "pendente", essencial: true, nota: "" },
-          { id: "cochilo", titulo: "Almoço & Cochilo Estratégico (25 min)", inicio: "12:00", fim: "13:30", categoria: "recuperacao", status: "pendente", essencial: true, nota: "Pausa restauradora" },
-          { id: "internato_t", titulo: "Internato: Especialidades / Prática", inicio: "13:30", fim: "17:00", categoria: "clinico", status: "pendente", essencial: true, nota: "" },
-          { id: "treino", titulo: "Descanso da Academia (Recuperação Biológica)", inicio: "17:30", fim: "17:30", categoria: "treino", status: "descanso", essencial: false, nota: "Dia sem musculação" },
-          { id: "estudo", titulo: "Imersão MedQuest 2h (Intensivo Grandes Temas)", inicio: "17:30", fim: "19:30", categoria: "estudo", status: "pendente", essencial: true, nota: "Bloco estendido de questões" },
-          { id: "jantar", titulo: "Jantar & Hidratação", inicio: "19:30", fim: "20:30", categoria: "lifestyle", status: "pendente", essencial: false, nota: "" },
-          { id: "hobby", titulo: "Violão & Inglês Ativo (Descompressão Criativa)", inicio: "20:30", fim: "21:30", categoria: "lifestyle", status: "pendente", essencial: false, nota: "Prática leve e relaxante" },
-          { id: "sono", titulo: "Higiene do Sono & Repouso Restaurador", inicio: "22:30", fim: "06:00", categoria: "recuperacao", status: "pendente", essencial: true, nota: "" }
-        ];
-      case 4: // Quinta-feira
-        return [
-          { id: "internato_m", titulo: "Internato: Enfermaria / Emergência", inicio: "07:00", fim: "12:00", categoria: "clinico", status: "pendente", essencial: true, nota: "" },
-          { id: "cochilo", titulo: "Almoço & Cochilo Estratégico (25 min)", inicio: "12:00", fim: "13:30", categoria: "recuperacao", status: "pendente", essencial: true, nota: "" },
-          { id: "internato_t", titulo: "Internato: Prática / Discussão de Casos", inicio: "13:30", fim: "17:00", categoria: "clinico", status: "pendente", essencial: true, nota: "" },
-          { id: "treino", titulo: "Musculação: Superior B (Costas/Peito/Braços)", inicio: "17:30", fim: "19:00", categoria: "treino", status: "pendente", essencial: false, nota: "" },
-          { id: "jantar", titulo: "Jantar & Descompressão", inicio: "19:00", fim: "20:00", categoria: "lifestyle", status: "pendente", essencial: false, nota: "" },
-          { id: "estudo", titulo: "Imersão MedQuest & Anki (Questões Ativas)", inicio: "20:00", fim: "21:30", categoria: "estudo", status: "pendente", essencial: true, nota: "" },
-          { id: "sono", titulo: "Higiene do Sono & Repouso Restaurador", inicio: "22:30", fim: "06:00", categoria: "recuperacao", status: "pendente", essencial: true, nota: "" }
-        ];
-      case 5: // Sexta-feira
-        return [
-          { id: "internato_m", titulo: "Internato: Enfermaria / Ambulatório", inicio: "07:00", fim: "12:00", categoria: "clinico", status: "pendente", essencial: true, nota: "" },
-          { id: "cochilo", titulo: "Almoço & Cochilo Estratégico (25 min)", inicio: "12:00", fim: "13:30", categoria: "recuperacao", status: "pendente", essencial: true, nota: "" },
-          { id: "internato_t", titulo: "Internato: Fechamento de Casos da Semana", inicio: "13:30", fim: "17:00", categoria: "clinico", status: "pendente", essencial: true, nota: "" },
-          { id: "treino", titulo: "Musculação: Inferior B (Posterior/Glúteos)", inicio: "17:30", fim: "19:00", categoria: "treino", status: "pendente", essencial: false, nota: "" },
-          { id: "estudo", titulo: "MedQuest Flash: Revisão de Cards Críticos", inicio: "19:00", fim: "20:00", categoria: "estudo", status: "pendente", essencial: true, nota: "Sessão focada" },
-          { id: "pessoal", titulo: "Tempo de Qualidade / Namorada / Lazer", inicio: "20:00", fim: "23:00", categoria: "pessoal", status: "pendente", essencial: false, nota: "Presença plena" },
-          { id: "sono", titulo: "Sono Restaurador", inicio: "23:30", fim: "07:30", categoria: "recuperacao", status: "pendente", essencial: true, nota: "" }
-        ];
-      case 6: // Sábado
-        return [
-          { id: "estudo", titulo: "Teoria Nobre & Questões de Alta Dificuldade", inicio: "08:00", fim: "12:20", categoria: "estudo", status: "pendente", essencial: true, nota: "Imersão teórica" },
-          { id: "almoco", titulo: "Almoço em Família / Descompressão", inicio: "12:30", fim: "14:00", categoria: "lifestyle", status: "pendente", essencial: false, nota: "" },
-          { id: "hobby", titulo: "Prática de Violão & Leitura / Inglês", inicio: "14:30", fim: "17:00", categoria: "lifestyle", status: "pendente", essencial: false, nota: "" },
-          { id: "treino", titulo: "Treino Livre / Aeróbico Leve", inicio: "17:30", fim: "19:00", categoria: "treino", status: "pendente", essencial: false, nota: "Caminhada ou corrida leve" },
-          { id: "pessoal", titulo: "Tempo Livre / Cinema / Lazer", inicio: "19:30", fim: "23:00", categoria: "pessoal", status: "pendente", essencial: false, nota: "" },
-          { id: "sono", titulo: "Sono Restaurador", inicio: "23:30", fim: "07:30", categoria: "recuperacao", status: "pendente", essencial: true, nota: "" }
-        ];
-      case 0: // Domingo
-        return [
-          { id: "estudo", titulo: "Simulado Semanal R1-USP / Revisão de Erros", inicio: "08:00", fim: "12:20", categoria: "estudo", status: "pendente", essencial: true, nota: "Simulação de prova e erros" },
-          { id: "almoco", titulo: "Almoço em Família / Descanso Pleno", inicio: "12:30", fim: "15:00", categoria: "lifestyle", status: "pendente", essencial: false, nota: "" },
-          { id: "lazer", titulo: "Descompressão / Natureza / Hobbies", inicio: "16:00", fim: "18:00", categoria: "lifestyle", status: "pendente", essencial: false, nota: "" },
-          { id: "planejamento", titulo: "Planejamento Estratégico da Próxima Semana", inicio: "20:00", fim: "20:45", categoria: "lifestyle", status: "pendente", essencial: true, nota: "Escala e metas" },
-          { id: "sono_preparo", titulo: "Higiene do Sono & Desaceleração de Telas", inicio: "21:30", fim: "22:30", categoria: "recuperacao", status: "pendente", essencial: true, nota: "" },
-          { id: "sono", titulo: "Repouso Restaurador para Segunda-feira", inicio: "22:30", fim: "06:00", categoria: "recuperacao", status: "pendente", essencial: true, nota: "" }
-        ];
-      default:
-        return [];
-    }
+    // Expurgo total de rotina genérica e agendas fixas:
+    // Apenas a agenda sincronizada da Agenda Google é utilizada.
+    return [];
   },
 
   obterGradePosPlantao: function(tituloPlantao) {
@@ -41900,18 +41832,12 @@ var RotinaService = {
   },
 
   obterGradePlantaoHoje: function(diaSemanaNum, statusPlantao) {
-    var grade = RotinaService.obterGradeBase(diaSemanaNum);
     var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
     var hIni = statusPlantao.horarioInicio ? Utilities.formatDate(statusPlantao.horarioInicio, tz, "HH:mm") : "19:00";
     var hFim = statusPlantao.horarioFim ? Utilities.formatDate(statusPlantao.horarioFim, tz, "HH:mm") : "07:00";
     var tit = statusPlantao.tituloPlantao || "Turno de Plantão Hospitalar";
 
-    var filtrados = grade.filter(function(b) {
-      if (b.categoria === "treino") return false;
-      return true;
-    });
-
-    filtrados.push({
+    return [{
       id: "plantao_ativo",
       titulo: "🚨 " + tit,
       inicio: hIni,
@@ -41920,9 +41846,7 @@ var RotinaService = {
       status: "pendente",
       essencial: true,
       nota: "Foco nos pacientes e suporte da Sala Vermelha"
-    });
-
-    return filtrados;
+    }];
   },
 
   obterBlocosSalvos: function(dataRef) {
@@ -41971,12 +41895,63 @@ var RotinaService = {
     return false;
   },
 
+  importarEventosGoogleCalendar: function(dataRef) {
+    var ref = dataRef ? (dataRef instanceof Date ? dataRef : new Date(dataRef)) : new Date();
+    if (isNaN(ref.getTime())) ref = new Date();
+    try {
+      if (typeof CalendarApp === "undefined" || !CalendarApp.getDefaultCalendar) return [];
+      var cal = CalendarApp.getDefaultCalendar();
+      if (!cal) return [];
+      var inicioDia = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate(), 0, 0, 0);
+      var fimDia = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate(), 23, 59, 59);
+      var eventos = cal.getEvents(inicioDia, fimDia);
+      if (!eventos || eventos.length === 0) return [];
+
+      var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
+      var blocos = [];
+      for (var i = 0; i < eventos.length; i++) {
+        var ev = eventos[i];
+        if (ev.isAllDayEvent()) continue;
+        var hIni = Utilities.formatDate(ev.getStartTime(), tz, "HH:mm");
+        var hFim = Utilities.formatDate(ev.getEndTime(), tz, "HH:mm");
+        var tit = ev.getTitle() || "Compromisso";
+        var cat = "clinico";
+        var titLower = tit.toLowerCase();
+        if (/treino|academia|muscula/i.test(titLower)) cat = "treino";
+        else if (/medquest|anki|estudo|revis[aã]o|aula/i.test(titLower)) cat = "estudo";
+        else if (/sono|descanso|cochilo|recupera/i.test(titLower)) cat = "recuperacao";
+        else if (/plant[aã]o|ps|uti|enfermaria|ambulat/i.test(titLower)) cat = "clinico";
+        else cat = "lifestyle";
+
+        blocos.push({
+          id: "google_" + (ev.getId ? ev.getId() : i),
+          titulo: tit,
+          inicio: hIni,
+          fim: hFim,
+          categoria: cat,
+          status: "pendente",
+          essencial: true,
+          nota: (ev.getLocation ? ev.getLocation() : "") || "Agenda Google"
+        });
+      }
+      return blocos;
+    } catch (e) {
+      Logger.log("Erro ao importar eventos do Google Calendar: " + e.message);
+      return [];
+    }
+  },
+
   obterBlocosDoDia: function(dataRef) {
     var ref = dataRef ? (dataRef instanceof Date ? dataRef : new Date(dataRef)) : new Date();
     if (isNaN(ref.getTime())) ref = new Date();
 
     var salvos = RotinaService.obterBlocosSalvos(ref);
-    if (salvos) return salvos;
+    if (salvos && salvos.length > 0) return salvos;
+
+    var blocosAgenda = RotinaService.importarEventosGoogleCalendar(ref);
+    if (blocosAgenda && blocosAgenda.length > 0) {
+      return blocosAgenda;
+    }
 
     var stPl = typeof detectarPlantaoStatus === "function" ? detectarPlantaoStatus(ref) : { ehPlantaoHoje: false, ehPosPlantao: false };
     if (stPl && stPl.ehPosPlantao) {
@@ -41986,14 +41961,15 @@ var RotinaService = {
       return RotinaService.obterGradePlantaoHoje(ref.getDay(), stPl);
     }
 
-    return RotinaService.obterGradeBase(ref.getDay());
+    // Expurgo de rotina genérica: se não há eventos na Agenda Google nem plantão, a timeline é limpa
+    return [];
   },
 
   marcarStatusBloco: function(dataRef, blocoId, novoStatus, nota) {
     var blocos = RotinaService.obterBlocosDoDia(dataRef);
     var modificado = false;
     for (var i = 0; i < blocos.length; i++) {
-      if (blocos[i].id === blocoId || (blocoId && blocos[i].titulo.toLowerCase().indexOf(blocoId.toLowerCase()) !== -1)) {
+      if (blocos[i].id === blocoId || (blocoId && blocos[i].categoria === blocoId) || (blocoId && blocos[i].titulo.toLowerCase().indexOf(blocoId.toLowerCase()) !== -1)) {
         blocos[i].status = novoStatus;
         if (nota) blocos[i].nota = nota;
         modificado = true;
@@ -42198,7 +42174,8 @@ var RotinaService = {
     texto += "\n⏱️ *TIMELINE DE HOJE:*\n";
 
     if (!blocos || blocos.length === 0) {
-      texto += "✨ Nenhum bloco programado para este dia.\n";
+      texto += "✨ *Nenhum compromisso registrado na Agenda Google hoje.*\n\n" +
+        "💡 Seus eventos adicionados no Google Calendar são sincronizados automaticamente aqui.\n";
       return texto;
     }
 
@@ -42362,23 +42339,34 @@ var RotinaService = {
 
   obterResumoSemanal: function() {
     var dias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-    var txt = "📊 *GRADE BASE SEMANAL (TIME-BLOCKING MÉDICO)*\n\n";
-    for (var d = 1; d <= 6; d++) {
+    var txt = "📊 *AGENDA SEMANAL SINCRONIZADA (GOOGLE CALENDAR)*\n\n";
+    var agora = new Date();
+    var inicioSemana = new Date(agora);
+    inicioSemana.setDate(agora.getDate() - agora.getDay());
+    var totalEventos = 0;
+
+    for (var d = 0; d <= 6; d++) {
+      var diaRef = new Date(inicioSemana);
+      diaRef.setDate(inicioSemana.getDate() + d);
       txt += "*" + dias[d] + ":*\n";
-      var grade = RotinaService.obterGradeBase(d);
-      for (var i = 0; i < grade.length; i++) {
-        var b = grade[i];
-        txt += "  • `" + b.inicio + " - " + b.fim + "` " + b.titulo + "\n";
+      var blocos = RotinaService.obterBlocosDoDia(diaRef);
+      if (blocos && blocos.length > 0) {
+        for (var i = 0; i < blocos.length; i++) {
+          var b = blocos[i];
+          txt += "  • `" + b.inicio + " - " + b.fim + "` " + b.titulo + "\n";
+          totalEventos++;
+        }
+      } else {
+        txt += "  • ✨ Agenda livre / sem compromissos na Agenda Google\n";
       }
       txt += "\n";
     }
-    txt += "*Domingo:*\n";
-    var gradeDom = RotinaService.obterGradeBase(0);
-    for (var id = 0; id < gradeDom.length; id++) {
-      var bd = gradeDom[id];
-      txt += "  • `" + bd.inicio + " - " + bd.fim + "` " + bd.titulo + "\n";
+
+    if (totalEventos === 0) {
+      txt += "💡 _Seus eventos e compromissos cadastrados no Google Calendar são sincronizados automaticamente aqui._\n";
+    } else {
+      txt += "💡 Para ajustar o dia de hoje, envie: _'/rotina alterar <sua instrução>'_ ou envie um áudio!";
     }
-    txt += "\n💡 Para alterar o dia de hoje, envie: _'/rotina alterar <sua instrução>'_ ou envie um áudio!";
     return txt;
   }
 };
@@ -42448,9 +42436,7 @@ function enviarBriefingMatinal(chatIdDestino, forcar, messageId) {
 
   var msg = "☀️ *Bom dia, Dr. Wagner! Raio-X & Rotina Adaptativa*\n\n" +
             timelineFormatada + "\n\n" +
-            "🏋️ *Foco Físico Hoje:* " + treinoMsg + "\n" +
-            "💤 *Almoço:* Não esqueça do cochilo estratégico de 25 min!\n\n" +
-            "📋 *Compromissos na Agenda Google:*\n" + (listaEventos || "Nenhum evento.") + "\n\n" +
+            "🏋️ *Foco Físico Hoje:* " + treinoMsg + "\n\n" +
             "🩺 *Ferramentas Clínicas:* `/soap`, `/rx`, `/plantao`, `/calc`, `/interacao`\n" +
             "💡 *Para ajustar:* Toque abaixo ou envie: _'Hoje treino às 19h'_ ou áudio gravado!";
 
@@ -42483,16 +42469,7 @@ function obterTreinoDoDia(diaSemanaNum, dataRef) {
     }
   } catch (eTr) {}
 
-  switch (diaSemanaNum) {
-    case 1: return "*Musculação: Superior A* (Peito/Costas/Ombros/Braços)";
-    case 2: return "*Musculação: Inferior A* (Pernas foco Quadríceps)";
-    case 3: return "🌿 *DESCANSO DA ACADEMIA!* (2h de Imersão MedQuest 17:30-19:30)";
-    case 4: return "*Musculação: Superior B* (Costas/Peito/Braços)";
-    case 5: return "*Musculação: Inferior B* (Posterior/Glúteos)";
-    case 6: return "🧘 *Fim de Semana:* Teoria Nobre (08h-12h20) + Hobbies à tarde";
-    case 0: return "🧘 *Fim de Semana:* Simulado Semanal (08h-12h20) + Hobbies à tarde";
-    default: return "Descanso";
-  }
+  return "🧘 *Conforme compromissos da Agenda Google* (Sem treino fixo registrado)";
 }
 
 function enviarCheckinNoturno(chatIdDestino, messageId) {
@@ -43452,12 +43429,12 @@ function tratarComandoRx(chatId, texto) {
       botoesRx.push([{ text: "💊 Extrair Receita do SOAP Ativo", callback_data: "ux:soap:extrair_rx:" }]);
     }
     botoesRx.push([
-      { text: "💊 Receita HAS", callback_data: "ux:amb:remume:has" },
-      { text: "🩸 Receita DM2", callback_data: "ux:amb:remume:dm" }
+      { text: "💊 Antibióticos & Infecções", callback_data: "ux:amb:remume:atb" },
+      { text: "🫀 Cardiovascular", callback_data: "ux:amb:remume:cardio" }
     ]);
     botoesRx.push([
-      { text: "🩹 Dor & Sintomáticos", callback_data: "ux:amb:remume:dor" },
-      { text: "🫁 Asma / DPOC", callback_data: "ux:amb:remume:asma" }
+      { text: "🩹 Analgesia & Sintomáticos", callback_data: "ux:amb:remume:dor" },
+      { text: "🫁 Respiratório & Asma", callback_data: "ux:amb:remume:asma" }
     ]);
     botoesRx.push([
       { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
@@ -43466,9 +43443,9 @@ function tratarComandoRx(chatId, texto) {
 
     return enviarMensagemComTecladoParaChat(chatId,
       "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME SUS)*\n\n" +
-      (planoAtivo ? "💡 *Caso SOAP ativo detectado:* Toque em [💊 Extrair Receita do SOAP Ativo] ou selecione um kit abaixo:\n\n" : "") +
-      "Envie o diagnóstico ou selecione um kit de prescrição rápida abaixo:\n" +
-      "💡 *Exemplo:* `/rx amigdalite 16kg, alergia a penicilina` ou `/rx losartana 50mg, hidroclorotiazida 25mg`",
+      (planoAtivo ? "💡 *Caso SOAP ativo detectado:* Toque em [💊 Extrair Receita do SOAP Ativo] ou informe os medicamentos abaixo:\n\n" : "") +
+      "💡 *Como prescrever:*\n" +
+      "Envie `/rx` seguido da hipótese diagnóstica, medicamentos desejados, peso/idade (se criança ou idoso) e alergias conhecidas para gerar a receita médica estruturada com posologias, orientações de uso e verificação de segurança.",
       { inline_keyboard: botoesRx }
     );
   }
@@ -43480,11 +43457,11 @@ function tratarComandoRxh(chatId, texto) {
   if (!dadosRxh) {
     return enviarMensagemComTecladoParaChat(chatId,
       "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\n" +
-      "Envie os dados do paciente internado (diagnóstico, peso, idade, função renal, alergias):\n" +
-      "💡 *Exemplo:* `/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`",
+      "💡 *Como prescrever no hospital:*\n" +
+      "Envie `/rxh` seguido de idade, peso, diagnóstico principal, creatinina/função renal, comorbidades e alergias do paciente internado.\n\n" +
+      "• O sistema estrutura a prescrição completa em 10 itens padronizados: dieta, hidratação venosa, medicações contínuas com ajuste renal, terapia específica, sintomáticos SOS e profilaxias essenciais (TEV com Enoxaparina e proteção gástrica se indicada).",
       {
         inline_keyboard: [
-          [{ text: "📋 Gerar Exemplo (PAC Grave)", callback_data: "ux:rxh:exemplo_pac" }],
           [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
         ]
       }
@@ -43651,7 +43628,7 @@ function rotearAtalhoTecladoFixo(texto, comando, chatId) {
       "• 🏥 *Leitos:* Painel da enfermaria e SBAR\n" +
       "• 💊 *REMUME:* Busca rápida de doses\n" +
       "• 🧮 *Cálculos:* DVA, SRI, CrCl e Gasometria\n" +
-      "• 📅 *Rotina:* Turma J e MedQuest\n" +
+      "• 📅 *Rotina:* Agenda Google e Time-Blocking\n" +
       "• ✨ *SOAP:* Preceptor socrático e PEP\n\n" +
       "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
     var kbCockpit = {
@@ -45223,11 +45200,10 @@ function processarMensagemTexto(message) {
 
     if (!dadosDm && (comando === "/diabetes" || comando === "/insulina")) {
       return enviarMensagemComTecladoParaChat(chatId, "🩸 *MÓDULO DE ENDOCRINOLOGIA E DIABETES (SBD / ADA)*\n\n" +
-        "Selecione uma opção ou envie os parâmetros clínicos:\n" +
-        "• `/insulina 70kg, dm1` *(Cálculo Basal-Bolus, ICR e Fator de Sensibilidade)*\n" +
-        "• `/insulina 85kg, dm2, descompensado, clcr 35` *(Basalização e Ajuste Renal)*\n" +
-        "• `/ehh 78kg, glicemia 750, k 4.6, na 142` *(Estado Hiperosmolar Hiperglicêmico)*\n" +
-        "• `/glicemia 240 padrao` *(Escala Hospitalar de Correção SC)*", construirTecladoHubDiabetes());
+        "💡 *Como calcular e prescrever:*\n" +
+        "• *Insulinoterapia:* Envie `/insulina` com peso (kg), tipo de diabetes, glicemia capilar e função renal (ClCr) para dose total, divisão basal-bolus e sensibilidade.\n" +
+        "• *CAD / EHH:* Envie `/ehh` ou `/cad` com peso, glicemia, potássio (K+), sódio (Na+) e pH/gaso para reposição volêmica, BIC de insulina e eletrólitos.\n" +
+        "• *Escala Hospitalar:* Envie `/glicemia` com o valor atual para esquema de correção escalonada SC.", construirTecladoHubDiabetes());
     }
 
     var tLowerDm = dadosDm.toLowerCase();
@@ -48409,13 +48385,24 @@ function responderPreceptorVozComIA(chatId, casoOuDuvida, opcoes) {
     ]
   };
 
+function extrairTextoLocucaoSoap_(texto) {
+  if (!texto) return "";
+  var t = String(texto).trim();
+  var matchAvaliacao = t.match(/(?:🧠\s*\*?AVALIA[ÇC][ÃA]O|Hipótese|Conduta)[\s\S]*/i);
+  if (matchAvaliacao && matchAvaliacao[0].length >= 30) {
+    return matchAvaliacao[0].trim();
+  }
+  return t;
+}
+
   // Se opcoes.apenasNarrar === true, pula a geração de texto e vai direto para TTS
   // (usado pelo callback "Ouvir no Fone" para narrar texto já existente)
   if (opcoes.apenasNarrar && casoOuDuvida) {
     enviarChatAction(chatId, "record_voice", true);
-    var blobNarrado = sintetizarVozPreceptor(casoOuDuvida);
+    var textoLocucao = extrairTextoLocucaoSoap_(casoOuDuvida);
+    var blobNarrado = sintetizarVozPreceptor(textoLocucao);
     if (blobNarrado) {
-      var resumoLegenda = String(casoOuDuvida).trim();
+      var resumoLegenda = String(textoLocucao).trim();
       if (resumoLegenda.length > 750) {
         var corteLeg = resumoLegenda.substring(0, 746);
         var ultimoPonto = Math.max(corteLeg.lastIndexOf("."), corteLeg.lastIndexOf("\n"), corteLeg.lastIndexOf(" "));
@@ -56012,10 +55999,11 @@ function enviarTelaEnfHidratacao(chat, messageId) {
 
 function enviarTelaEnfPrescricaoHosp(chat, messageId) {
   var texto = '📝 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\n' +
-    'Gere uma prescrição de internação padronizada (10 itens) com auditoria de segurança:\n\n' +
-    '💡 *Envie os dados do caso por texto ou áudio:*\n' +
-    '`/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`';
-  var linhas = [[['📋 Gerar Exemplo (PAC Grave)', 'ux:rxh:exemplo_pac']]];
+    'Gere uma prescrição de internação estruturada em 10 itens com verificação de profilaxias e ajuste renal:\n\n' +
+    '💡 *Como prescrever (por texto ou áudio):*\n' +
+    'Envie `/rxh` informando idade, peso, diagnóstico principal, creatinina/função renal, comorbidades e alergias.\n\n' +
+    '• O sistema calcula hidratação venosa, ajuste de medicamentos à função renal, analgésicos e profilaxia de TEV.';
+  var linhas = [];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'enf', messageId);
 }
 
@@ -59007,7 +58995,7 @@ function tratarCallbackUX(cb) {
       else if (v === '11kg_bva') texto('/holliday 11kg bronquiolite');
       else texto('/holliday ' + v);
     } else if (op === 'rxh') {
-      if (v === 'exemplo_pac') texto('/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2');
+      if (v === 'exemplo_pac') return enviarTelaEnfPrescricaoHosp(chat, msgId);
       else texto('/rxh ' + v);
     } else if (op === 'amb') {
       if (v === 'soap') return enviarTelaAmbSoap(chat, msgId);

@@ -17,10 +17,11 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Alocação Exclusiva de Luna para Revisões e Liberação de Deploy sem Cota do ChatGPT (`tooling/autoloop/core/model_router.py`, `tooling/autoloop/core/scoped_audit.py`, `tooling/autoloop/autoloop.py`)**:
-    - **Luna para Todas as Revisões**: Toda matriz de rotas de auditoria migrada para a família Luna (`gpt-6-luna`), preservando 100% da cota externa de outros modelos.
-    - **Deploy Desbloqueado com Cota Esgotada**: Auditoria que encontre esgotamento de cota do ChatGPT/Codex não suspende mais o deploy; emite aviso e autoriza o envio para produção imediatamente mantendo a integridade do código.
-    - **Validação e Resultados**: 160/160 testes do autoloop e 49/49 suítes completas de testes no `npm test` aprovadas com zero regressões.
+- [x] **Expurgo Total de Rotinas Fixas (Segunda a Domingo), Timeline Exclusiva Google Calendar e Desmockagem do Cockpit (`src/06_rotina_agenda.js`, `src/07a_telegram_router.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`)**:
+    - **Expurgo Integral de Grades Fixas**: `obterGradeBase` zerada para todos os dias da semana (0 a 6). Eliminadas todas as rotinas hardcoded ("Internato", "Cochilo Estratégico", "Musculação Superior/Inferior", "MedQuest noturno").
+    - **Timeline Exclusiva Google Calendar**: `obterBlocosDoDia` e `formatarTimelineMarkdown` exibem unicamente eventos reais sincronizados da Agenda Google ou plantões detectados; sem eventos, exibe agenda livre sem o falso "0/6 blocos".
+    - **Desmockagem da Aba Rotina no Cockpit**: Removidos cartões estáticos ("Turma J", "Semana Ativa", "Bloco Noturno Sangramento de 1º Trimestre"), conectando a interface à lista viva da Agenda Google.
+    - **Validação e Estabilidade**: 50/50 suítes verdes no `npm test` em 8.57s com zero regressões.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -28,10 +29,10 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Aba Rotina — Reestruturação Visual no Cockpit PWA e Desmockagem da Timeline (`gh_cockpit_deploy/index.html`)**:
-    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/index.html`
-    - **Função/Componente/Seletor**: Container `#tab-rotina` e função `renderizarRotinaBlocos(blocos)`
-    - **Comportamento Esperado / Critério de Aceite**: Substituir cards estáticos genéricos ("Turma J", "Semana Ativa", "Sangramento de 1º Trimestre") por layout limpo e responsivo de time-blocking, com cards visuais de blocos do dia (horário, atividade, categoria, status de execução, notas), ações rápidas (concluir, pular, descanso) e badge de sincronização com a agenda.
+- [ ] **Aba Rotina — Rotas REST Fastify e Endpoint de Blocos e Status (`server/index.js`, `src/13_cockpit_integracao.js`)**:
+    - **Arquivo/Módulo Alvo**: `server/index.js` e `src/13_cockpit_integracao.js`
+    - **Função/Componente/Seletor**: Rotas Fastify `/api/rotina/blocos`, `/api/rotina/status` e função `cockpitPerfil`
+    - **Comportamento Esperado / Critério de Aceite**: Criar rotas REST para ler, atualizar status de blocos e resetar a grade diária conectadas diretamente ao `RotinaService`, permitindo que o Cockpit PWA sincronize alterações em tempo real via HTTP/JSON.
 
 ---
 

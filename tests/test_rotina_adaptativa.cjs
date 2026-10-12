@@ -117,34 +117,48 @@ function runTests() {
 
   const env = setupEnvironment();
 
-  // Teste 1: Grade Base por dia da semana
+  // Teste 1: Expurgo total de rotina genérica e agendas fixas em todos os dias (0 a 6)
   for (let dia = 0; dia <= 6; dia++) {
     const grade = RotinaService.obterGradeBase(dia);
-    assert(Array.isArray(grade), `Grade do dia ${dia} deve ser um array`);
-    assert(grade.length >= 5, `Grade do dia ${dia} deve ter pelo menos 5 blocos`);
-    for (const b of grade) {
-      assert(b.id, "Bloco deve ter id");
-      assert(b.titulo, "Bloco deve ter titulo");
-      assert(b.inicio, "Bloco deve ter inicio");
-      assert(b.fim, "Bloco deve ter fim");
-      assert(b.categoria, "Bloco deve ter categoria");
-      assert(b.status, "Bloco deve ter status");
-    }
+    assert(Array.isArray(grade) && grade.length === 0, `Grade base do dia ${dia} deve ser vazia (sem agendas fixas/genéricas)`);
   }
-  console.log("✓ Teste 1: Grade base de segunda a domingo validada");
+  console.log("✓ Teste 1: Grade base genérica 100% expurgada de todos os dias (0 a 6)");
 
-  // Teste 2: Leitura padrão de blocos sem override
+  // Teste 2: Leitura limpa sem eventos no Google Calendar
   const dataSegunda = new Date('2026-10-05T10:00:00'); // Segunda-feira
+  global.CalendarApp._setMockEventos([]);
+  const blocosVazios = RotinaService.obterBlocosDoDia(dataSegunda);
+  assert(Array.isArray(blocosVazios) && blocosVazios.length === 0, "Sem eventos no Google Calendar, rotina deve ser vazia");
+
+  // Injeção de eventos sincronizados da Agenda Google para validar flexibilidade e time-blocking
+  const eventosSegunda = [
+    {
+      getId: () => 'ev-treino',
+      getTitle: () => 'Musculação: Superior A',
+      getStartTime: () => new Date('2026-10-05T17:30:00'),
+      getEndTime: () => new Date('2026-10-05T19:00:00'),
+      getLocation: () => 'Academia',
+      isAllDayEvent: () => false
+    },
+    {
+      getId: () => 'ev-estudo',
+      getTitle: () => 'Imersão MedQuest & Anki',
+      getStartTime: () => new Date('2026-10-05T20:00:00'),
+      getEndTime: () => new Date('2026-10-05T21:30:00'),
+      getLocation: () => 'Escritório',
+      isAllDayEvent: () => false
+    }
+  ];
+  global.CalendarApp._setMockEventos(eventosSegunda);
   const blocosSeg = RotinaService.obterBlocosDoDia(dataSegunda);
-  assert(blocosSeg.some(b => b.id === 'treino' && b.titulo.includes('Superior A')), "Segunda-feira deve conter treino Superior A");
-  assert(blocosSeg.some(b => b.id === 'estudo'), "Segunda-feira deve conter bloco de estudo");
-  assert(blocosSeg.some(b => b.id === 'cochilo'), "Segunda-feira deve conter cochilo");
-  console.log("✓ Teste 2: Leitura padrão sem override correta");
+  assert(blocosSeg.some(b => b.categoria === 'treino' && b.titulo.includes('Superior A')), "Segunda-feira deve conter treino Superior A da Agenda Google");
+  assert(blocosSeg.some(b => b.categoria === 'estudo'), "Segunda-feira deve conter bloco de estudo da Agenda Google");
+  console.log("✓ Teste 2: Leitura de eventos sincronizados da Agenda Google correta");
 
   // Teste 3: Aplicação de instrução "não vou treinar hoje"
   const resCancelTreino = RotinaService.aplicarInstrucao(dataSegunda, "hoje não vou treinar");
   assert(resCancelTreino.sucesso, "Instrução de cancelamento deve ter sucesso");
-  const bTreino = resCancelTreino.blocos.find(b => b.id === 'treino');
+  const bTreino = resCancelTreino.blocos.find(b => b.categoria === 'treino' || b.id === 'treino');
   assert.equal(bTreino.status, 'pulado', "Status do treino deve ser 'pulado'");
   assert(bTreino.nota.includes('Cancelado'), "Nota deve indicar cancelamento");
   
@@ -161,7 +175,7 @@ function runTests() {
   // Teste 5: Alteração de horário ("mudei o treino para as 19h")
   const resHoraTreino = RotinaService.aplicarInstrucao(dataSegunda, "mudei o treino para as 19h");
   assert(resHoraTreino.sucesso, "Alteração de horário deve ter sucesso");
-  const bTreinoHora = resHoraTreino.blocos.find(b => b.id === 'treino');
+  const bTreinoHora = resHoraTreino.blocos.find(b => b.categoria === 'treino' || b.id === 'treino');
   assert.equal(bTreinoHora.inicio, '19:00', "Horário de início deve ser 19:00");
   assert.equal(bTreinoHora.status, 'pendente', "Status do treino deve voltar a pendente");
   console.log("✓ Teste 5: Reprogramação de horário de treino validada");
@@ -169,14 +183,14 @@ function runTests() {
   // Teste 6: Substituição de atividade ("troquei o treino por corrida de 40 min")
   const resTroca = RotinaService.aplicarInstrucao(dataSegunda, "troquei o treino por corrida de 40 min");
   assert(resTroca.sucesso, "Troca de atividade deve ter sucesso");
-  const bTreinoTroca = resTroca.blocos.find(b => b.id === 'treino');
+  const bTreinoTroca = resTroca.blocos.find(b => b.categoria === 'treino' || b.id === 'treino');
   assert(bTreinoTroca.titulo.includes("Corrida"), "Título deve ter sido alterado para Corrida");
   console.log("✓ Teste 6: Substituição de modalidade física validada");
 
   // Teste 7: Modo descanso total ("modo descanso hoje")
   const resDesc = RotinaService.aplicarInstrucao(dataSegunda, "modo descanso hoje");
   assert(resDesc.sucesso, "Modo descanso deve ter sucesso");
-  const bTreinoDesc = resDesc.blocos.find(b => b.id === 'treino');
+  const bTreinoDesc = resDesc.blocos.find(b => b.categoria === 'treino' || b.id === 'treino');
   assert.equal(bTreinoDesc.status, 'descanso', "Status do treino deve ser 'descanso'");
   console.log("✓ Teste 7: Modo descanso total ativado");
 
@@ -185,7 +199,7 @@ function runTests() {
   assert(resReset.sucesso, "Reset deve ter sucesso");
   assert.equal(env.store['ROTINA_OVERRIDE_' + dataISO], null, "Override deve ser deletado ao resetar");
   const blocosAposReset = RotinaService.obterBlocosDoDia(dataSegunda);
-  const bTreinoReset = blocosAposReset.find(b => b.id === 'treino');
+  const bTreinoReset = blocosAposReset.find(b => b.categoria === 'treino' || b.id === 'treino');
   assert.equal(bTreinoReset.status, 'pendente', "Treino volta ao status pendente padrão");
   assert(bTreinoReset.titulo.includes('Superior A'), "Título original é restaurado");
   console.log("✓ Teste 8: Reset para grade base validado");
@@ -193,7 +207,7 @@ function runTests() {
   // Teste 9: Marcar bloco como concluído
   const resConcluir = RotinaService.marcarStatusBloco(dataSegunda, 'treino', 'concluido', 'Feito com 100% de carga');
   assert(resConcluir.sucesso, "marcarStatusBloco deve ter sucesso");
-  const bConcluido = resConcluir.blocos.find(b => b.id === 'treino');
+  const bConcluido = resConcluir.blocos.find(b => b.categoria === 'treino' || b.id === 'treino');
   assert.equal(bConcluido.status, 'concluido', "Status deve ser concluído");
   assert.equal(bConcluido.nota, 'Feito com 100% de carga');
   console.log("✓ Teste 9: Marcação de status de bloco validada");

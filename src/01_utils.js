@@ -825,7 +825,10 @@ function gerarAudioTtsGeminiNeural(texto) {
               return blob;
             }
           }
-        } else if (code === 429 || code === 404 || code === 504 || code >= 500) {
+        } else if (code === 404) {
+          // Modelo inexistente nesta versão da API: avança imediatamente para o próximo modelo
+          break;
+        } else if (code === 429 || code === 504 || code >= 500) {
           // Se o modelo atingiu cota ou indisponibilidade, avança rapidamente
           continue;
         }

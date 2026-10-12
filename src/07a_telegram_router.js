@@ -685,12 +685,12 @@ function tratarComandoRx(chatId, texto) {
       botoesRx.push([{ text: "💊 Extrair Receita do SOAP Ativo", callback_data: "ux:soap:extrair_rx:" }]);
     }
     botoesRx.push([
-      { text: "💊 Receita HAS", callback_data: "ux:amb:remume:has" },
-      { text: "🩸 Receita DM2", callback_data: "ux:amb:remume:dm" }
+      { text: "💊 Antibióticos & Infecções", callback_data: "ux:amb:remume:atb" },
+      { text: "🫀 Cardiovascular", callback_data: "ux:amb:remume:cardio" }
     ]);
     botoesRx.push([
-      { text: "🩹 Dor & Sintomáticos", callback_data: "ux:amb:remume:dor" },
-      { text: "🫁 Asma / DPOC", callback_data: "ux:amb:remume:asma" }
+      { text: "🩹 Analgesia & Sintomáticos", callback_data: "ux:amb:remume:dor" },
+      { text: "🫁 Respiratório & Asma", callback_data: "ux:amb:remume:asma" }
     ]);
     botoesRx.push([
       { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
@@ -699,9 +699,9 @@ function tratarComandoRx(chatId, texto) {
 
     return enviarMensagemComTecladoParaChat(chatId,
       "💊 *PRESCRIÇÃO AMBULATORIAL (REMUME SUS)*\n\n" +
-      (planoAtivo ? "💡 *Caso SOAP ativo detectado:* Toque em [💊 Extrair Receita do SOAP Ativo] ou selecione um kit abaixo:\n\n" : "") +
-      "Envie o diagnóstico ou selecione um kit de prescrição rápida abaixo:\n" +
-      "💡 *Exemplo:* `/rx amigdalite 16kg, alergia a penicilina` ou `/rx losartana 50mg, hidroclorotiazida 25mg`",
+      (planoAtivo ? "💡 *Caso SOAP ativo detectado:* Toque em [💊 Extrair Receita do SOAP Ativo] ou informe os medicamentos abaixo:\n\n" : "") +
+      "💡 *Como prescrever:*\n" +
+      "Envie `/rx` seguido da hipótese diagnóstica, medicamentos desejados, peso/idade (se criança ou idoso) e alergias conhecidas para gerar a receita médica estruturada com posologias, orientações de uso e verificação de segurança.",
       { inline_keyboard: botoesRx }
     );
   }
@@ -713,11 +713,11 @@ function tratarComandoRxh(chatId, texto) {
   if (!dadosRxh) {
     return enviarMensagemComTecladoParaChat(chatId,
       "🏥 *PRESCRIÇÃO HOSPITALAR DE INTERNAÇÃO*\n\n" +
-      "Envie os dados do paciente internado (diagnóstico, peso, idade, função renal, alergias):\n" +
-      "💡 *Exemplo:* `/rxh Paciente 68a, 70kg, Cr 1.8, internado por PAC grave em enfermaria, HAS e DM2`",
+      "💡 *Como prescrever no hospital:*\n" +
+      "Envie `/rxh` seguido de idade, peso, diagnóstico principal, creatinina/função renal, comorbidades e alergias do paciente internado.\n\n" +
+      "• O sistema estrutura a prescrição completa em 10 itens padronizados: dieta, hidratação venosa, medicações contínuas com ajuste renal, terapia específica, sintomáticos SOS e profilaxias essenciais (TEV com Enoxaparina e proteção gástrica se indicada).",
       {
         inline_keyboard: [
-          [{ text: "📋 Gerar Exemplo (PAC Grave)", callback_data: "ux:rxh:exemplo_pac" }],
           [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
         ]
       }
@@ -884,7 +884,7 @@ function rotearAtalhoTecladoFixo(texto, comando, chatId) {
       "• 🏥 *Leitos:* Painel da enfermaria e SBAR\n" +
       "• 💊 *REMUME:* Busca rápida de doses\n" +
       "• 🧮 *Cálculos:* DVA, SRI, CrCl e Gasometria\n" +
-      "• 📅 *Rotina:* Turma J e MedQuest\n" +
+      "• 📅 *Rotina:* Agenda Google e Time-Blocking\n" +
       "• ✨ *SOAP:* Preceptor socrático e PEP\n\n" +
       "Toque no botão abaixo para abrir diretamente na tela do Telegram:";
     var kbCockpit = {
@@ -2456,11 +2456,10 @@ function processarMensagemTexto(message) {
 
     if (!dadosDm && (comando === "/diabetes" || comando === "/insulina")) {
       return enviarMensagemComTecladoParaChat(chatId, "🩸 *MÓDULO DE ENDOCRINOLOGIA E DIABETES (SBD / ADA)*\n\n" +
-        "Selecione uma opção ou envie os parâmetros clínicos:\n" +
-        "• `/insulina 70kg, dm1` *(Cálculo Basal-Bolus, ICR e Fator de Sensibilidade)*\n" +
-        "• `/insulina 85kg, dm2, descompensado, clcr 35` *(Basalização e Ajuste Renal)*\n" +
-        "• `/ehh 78kg, glicemia 750, k 4.6, na 142` *(Estado Hiperosmolar Hiperglicêmico)*\n" +
-        "• `/glicemia 240 padrao` *(Escala Hospitalar de Correção SC)*", construirTecladoHubDiabetes());
+        "💡 *Como calcular e prescrever:*\n" +
+        "• *Insulinoterapia:* Envie `/insulina` com peso (kg), tipo de diabetes, glicemia capilar e função renal (ClCr) para dose total, divisão basal-bolus e sensibilidade.\n" +
+        "• *CAD / EHH:* Envie `/ehh` ou `/cad` com peso, glicemia, potássio (K+), sódio (Na+) e pH/gaso para reposição volêmica, BIC de insulina e eletrólitos.\n" +
+        "• *Escala Hospitalar:* Envie `/glicemia` com o valor atual para esquema de correção escalonada SC.", construirTecladoHubDiabetes());
     }
 
     var tLowerDm = dadosDm.toLowerCase();
