@@ -1927,6 +1927,7 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=6.0, commit_anterior=None,
     if not build_ok:
         log("ERRO", f"❌ Falha crítica no build_master (código {res_build.returncode}): {res_build.stderr.strip()[:100]}")
         log("ERRO", "🛑 DEPLOY CANCELADO: O bundle de produção falhou. Nenhuma alteração será consolidada ou enviada.")
+        salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + 300)
         return False
     log("OK", "✅ Bundle ultra_rotina_master.js compilado com sucesso.")
 
@@ -1940,8 +1941,15 @@ def _executar_deploy_e_relatorio_core(intervalo_horas=6.0, commit_anterior=None,
     res_test = executar_etapa(["npm", "run", "test:all", "--", "--reuse"], "testes_release", timeout=1800)
     testes_ok = (res_test.returncode == 0)
     if not testes_ok:
+        saida_txt = (getattr(res_test, "stdout", "") or "") + (getattr(res_test, "stderr", "") or "")
+        if "execute sem --reuse" in saida_txt or "--reuse" in saida_txt:
+            log("AVISO", "⚠️ Recibo prévio de reprovação detectado; re-executando bateria completa sem --reuse para revalidação...")
+            res_test = executar_etapa(["npm", "run", "test:all"], "testes_release_fresco", timeout=1800)
+            testes_ok = (res_test.returncode == 0)
+    if not testes_ok:
         log("ERRO", f"❌ Falha detectada na suíte de testes (código {res_test.returncode}).")
         log("ERRO", "🛑 DEPLOY CANCELADO: 100% dos testes devem passar antes da publicação. Push abortado por segurança.")
+        salvar_estado_deploy(last_attempt_ts=time.time(), next_retry_ts=time.time() + 300)
         return False
     if not validar_codigo_estavel(identidade_testada, "os testes finais"):
         return False
@@ -2542,9 +2550,12 @@ def main():
 
         # Verificação do orçamento de diff antes de iniciar nova tarefa
         estado_dep = carregar_estado_deploy()
+        agora_dep = time.time()
+        next_retry_dep = estado_dep.get("next_retry_at")
+        pode_deploy_diff = not (next_retry_dep and agora_dep < next_retry_dep)
         base_dep = estado_dep.get("last_pushed_sha") or estado_dep.get("ultimo_pushed_sha")
         diff_len, is_oversized = check_unreleased_diff_size(Path.cwd(), base=base_dep)
-        if is_oversized:
+        if is_oversized and pode_deploy_diff:
             log("AVISO", f"Diff acumulado não publicado ({diff_len:,} caracteres > 40.000). Priorizando consolidação e deploy antes de novas alterações.")
             executar_deploy_e_relatorio(
                 intervalo_horas=args.deploy_interval,

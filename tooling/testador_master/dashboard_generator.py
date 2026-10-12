@@ -765,6 +765,10 @@ class DashboardGenerator:
         <div class="kpi-label">Issues & Alertas</div>
         <div class="kpi-value {'green' if total_pendentes == 0 else 'rose'}">{total_pendentes} pendentes <span style="font-size:11px; color:var(--emerald);">({total_resolvidos} ✅)</span></div>
       </div>
+      <div class="kpi-item" id="metric-deadends">
+        <div class="kpi-label">Becos Sem Saída</div>
+        <div class="kpi-value {'green' if len(dead_ends) == 0 else 'amber'}">{len(dead_ends)}</div>
+      </div>
       <div class="kpi-item">
         <div class="kpi-label">Estado do Motor</div>
         <div class="kpi-value {status_kpi_cor}">{status_kpi}</div>

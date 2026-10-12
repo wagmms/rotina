@@ -129,12 +129,17 @@ def test_briefing_modo_pos_plantao():
     CalendarApp._setMockEventos([evPlantao]);
 
     var mensagensEnviadas = [];
+    ehUsuarioTitular = function(id) { return true; };
+    enviarMensagemComTecladoParaChat = function(chatId, texto, kb) {
+        mensagensEnviadas.push(texto);
+        return true;
+    };
     enviarMensagemSegmentada = function(chatId, texto, kb) {
         mensagensEnviadas.push(texto);
         return true;
     };
 
-    enviarBriefingMatinal('123456');
+    enviarBriefingMatinal('123456', true);
     console.log(JSON.stringify(mensagensEnviadas));
     """
     out = run_node_eval(code)
