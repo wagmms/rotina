@@ -84,11 +84,10 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
       "habit_reading": "📖 Leitura"
     };
     var propName = mapaHabitos[data] || "";
-    if (propName && typeof atualizarCheckboxNotion === "function") {
-      gravouComSucesso = atualizarCheckboxNotion(pageId, propName, valorStatus);
-    }
-    // Fallback resiliente: persiste localmente se Notion não estiver configurado
-    if (!gravouComSucesso) {
+    if (pageId && propName && typeof atualizarCheckboxNotion === "function") {
+      gravouComSucesso = Boolean(atualizarCheckboxNotion(pageId, propName, valorStatus));
+    } else if (!pageId) {
+      // Fallback resiliente: persiste localmente se Notion não estiver configurado
       try {
         var props = PropertiesService.getScriptProperties();
         props.setProperty("habito_" + dataISO + "_" + data, valorStatus ? "true" : "false");
@@ -97,11 +96,10 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
     }
   } else if (data.startsWith("energy_")) {
     var valorEnergia = parseInt(data.replace("energy_", ""), 10);
-    if (typeof atualizarNumeroNotion === "function") {
-      gravouComSucesso = atualizarNumeroNotion(pageId, "⚡ Energia (1–5)", valorEnergia);
-    }
-    // Fallback resiliente para escala de energia
-    if (!gravouComSucesso) {
+    if (pageId && typeof atualizarNumeroNotion === "function") {
+      gravouComSucesso = Boolean(atualizarNumeroNotion(pageId, "⚡ Energia (1–5)", valorEnergia));
+    } else if (!pageId) {
+      // Fallback resiliente para escala de energia se Notion não estiver configurado
       try {
         var props = PropertiesService.getScriptProperties();
         props.setProperty("habito_" + dataISO + "_energia", String(valorEnergia));

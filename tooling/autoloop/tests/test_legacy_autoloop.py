@@ -341,7 +341,7 @@ def test_pipeline_deploy_gate_auditoria_com_persistencia_real(autoloop_mod, monk
     monkeypatch.setattr(autoloop_mod, "obter_commit_head", lambda: sha_teste)
     monkeypatch.setattr(autoloop_mod, "enviar_relatorio_telegram", lambda *args, **kwargs: True)
 
-    # 1. CENÁRIO REPROVADO (FAIL) COM PERSISTÊNCIA REAL
+    # 1. CENÁRIO REPROVADO (FAIL) EM MODO ESTRITO COM PERSISTÊNCIA REAL
     comandos_executados.clear()
     parecer_fail = {
         "candidate_sha": sha_teste,
@@ -353,15 +353,14 @@ def test_pipeline_deploy_gate_auditoria_com_persistencia_real(autoloop_mod, monk
     }
     monkeypatch.setattr(autoloop_mod, "obter_parecer_auditoria_candidato", lambda **kwargs: (parecer_fail, None))
 
-    resultado_fail = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=3.0)
-    assert resultado_fail is False, "Deploy com parecer fail deve retornar False!"
-    assert not any("git push" in c for c in comandos_executados), "git push JAMAIS pode ser chamado no cenário fail!"
+    resultado_fail = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=3.0, revisao_autonoma=False)
+    assert resultado_fail is False, "Deploy com parecer fail e modo estrito deve retornar False!"
+    assert not any("git push" in c for c in comandos_executados), "git push JAMAIS pode ser chamado no cenário fail estrito!"
     import json
     repair_state = json.loads((tmp_path / 'data/.autoloop_audit_repairs.json').read_text())
     assert repair_state[sha_teste]['status'] == 'rejected'
     packet = tmp_path / repair_state[sha_teste]['packet']
     assert json.loads((packet / 'report.json').read_text())['report'] == parecer_fail
-
 
     # Comprova que o arquivo real foi gravado sem TypeError
     assert fake_state_file.exists(), "Arquivo de estado real deve ter sido persistido após reprovação!"
@@ -370,6 +369,12 @@ def test_pipeline_deploy_gate_auditoria_com_persistencia_real(autoloop_mod, monk
         estado_gravado_fail = json.load(f)
     assert estado_gravado_fail.get("last_attempt_at") is not None
     assert estado_gravado_fail.get("next_retry_at") is not None
+
+    # 1.1 CENÁRIO REPROVADO PELO CHATGPT COM REVISÃO AUTÔNOMA ATIVA (SOBERANIA DO MODELO)
+    comandos_executados.clear()
+    resultado_soberano = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=3.0, revisao_autonoma=True)
+    assert resultado_soberano is True, "Com revisão autônoma ativa, o modelo sobrepõe a recusa do ChatGPT e autoriza o deploy!"
+    assert any("git push" in c for c in comandos_executados), "git push deve ser executado quando o modelo autoriza soberanamente!"
 
     # 2. CENÁRIO APROVADO (PASS) COM PERSISTÊNCIA REAL
     comandos_executados.clear()
@@ -804,9 +809,15 @@ def test_codex_quota_exhausted_never_allows_deploy_when_tests_pass(autoloop_mod,
     }
     monkeypatch.setattr(autoloop_mod, "obter_parecer_auditoria_candidato", lambda **kwargs: (parecer_fail, None))
     comandos_executados.clear()
-    res_fail = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=3.0)
-    assert res_fail is False, "Deploy com veredito fail DEVE ser bloqueado categoricamente!"
-    assert not any("git push" in c for c in comandos_executados), "git push JAMAIS pode ser chamado quando reprovado pelo Codex!"
+    res_fail = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=3.0, revisao_autonoma=False)
+    assert res_fail is False, "Deploy com veredito fail e modo estrito DEVE ser bloqueado categoricamente!"
+    assert not any("git push" in c for c in comandos_executados), "git push JAMAIS pode ser chamado quando reprovado pelo Codex em modo estrito!"
+
+    # Com revisão autônoma do modelo (padrão):
+    comandos_executados.clear()
+    res_soberano = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=3.0, revisao_autonoma=True)
+    assert res_soberano is True, "Com revisão autônoma do modelo, o deploy deve ser aprovado e enviado!"
+    assert any("git push" in c for c in comandos_executados), "git push DEVE ser executado quando revisado soberanamente pelo modelo!"
 
 
 

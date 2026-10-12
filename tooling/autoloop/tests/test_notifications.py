@@ -133,3 +133,117 @@ def test_relatorio_inclui_bloco_telemetria_consumo_e_cache(autoloop_mod, monkeyp
     assert conteudo["telemetria"]["cache_hit_pct"] == 84
     assert conteudo["telemetria"]["avg_seconds"] == 372.0
 
+
+def test_telegram_notificacao_suprimida_antes_de_6_horas(autoloop_mod, monkeypatch, tmp_path):
+    """Garante que notificações no Telegram são estritamente enviadas a cada 6 horas (ou comando forçado)."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    fake_state_file = tmp_path / "data" / "estado_deploy.json"
+    monkeypatch.setattr(autoloop_mod, "STATE_DEPLOY_FILE", fake_state_file)
+
+    sha_teste = "d" * 40
+    class FakeResult:
+        def __init__(self, returncode, stdout="", stderr=""):
+            self.returncode = returncode
+            self.stdout = stdout
+            self.stderr = stderr
+
+    def fake_subprocess_run(cmd, *args, **kwargs):
+        cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
+        if "build_master.py" in cmd_str or "npm test" in cmd_str or "git status" in cmd_str:
+            return FakeResult(0, "")
+        elif "--abbrev-ref" in cmd_str:
+            return FakeResult(0, "main")
+        elif "git rev-parse HEAD" in cmd_str:
+            return FakeResult(0, sha_teste)
+        elif "git push" in cmd_str:
+            return FakeResult(0, "Push OK")
+        return FakeResult(0)
+
+    monkeypatch.setattr("subprocess.run", fake_subprocess_run)
+    monkeypatch.setattr(autoloop_mod, "executar_etapa", lambda cmd, *a, **kw: FakeResult(0))
+    monkeypatch.setattr(autoloop_mod, "fingerprint_tree", lambda *a, **kw: "hash_estavel_123")
+    monkeypatch.setattr(autoloop_mod, "validar_codigo_estavel", lambda *a, **kw: True)
+    monkeypatch.setattr(autoloop_mod, "obter_commit_head", lambda: sha_teste)
+    monkeypatch.setattr(autoloop_mod, "obter_parecer_auditoria_candidato", lambda **kw: ({"candidate_sha": sha_teste, "verdict": "pass", "summary": "OK", "findings": [], "limitations": [], "required_followups": []}, None))
+
+    chamadas_telegram = []
+    monkeypatch.setattr(autoloop_mod, "enviar_relatorio_telegram", lambda html, *args, **kw: chamadas_telegram.append(html) or True)
+
+    import time
+    agora = time.time()
+    # Simula última notificação há apenas 2 horas (deve suprimir)
+    autoloop_mod.salvar_estado_deploy(last_telegram_notification_ts=agora - 7200)
+
+    # 1. Execução de deploy com intervalo de 6h padrão: Telegram NÃO deve ser chamado
+    chamadas_telegram.clear()
+    ok = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=6.0, forcar_telegram=False)
+    assert ok is True
+    assert len(chamadas_telegram) == 0, "Notificação no Telegram deve ser suprimida antes de decorridas 6 horas!"
+
+    # 2. Execução com forcar_telegram=True (ex: --deploy-now): Telegram DEVE ser chamado
+    chamadas_telegram.clear()
+    ok = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=6.0, forcar_telegram=True)
+    assert ok is True
+    assert len(chamadas_telegram) == 1, "Com forcar_telegram=True, o relatório deve ser enviado ao Telegram imediatamente!"
+
+    # 3. Execução quando já decorreram mais de 6 horas: Telegram DEVE ser chamado
+    autoloop_mod.salvar_estado_deploy(last_telegram_notification_ts=agora - 22000)
+    chamadas_telegram.clear()
+    ok = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=6.0, forcar_telegram=False)
+    assert ok is True
+    assert len(chamadas_telegram) == 1, "Após 6 horas decorridas, o relatório deve ser enviado ao Telegram!"
+
+
+def test_deploy_revisao_autonoma_soberana_recusa_chatgpt(autoloop_mod, monkeypatch, tmp_path):
+    """Comprova que quando o ChatGPT recusa (verdict: fail), o autoloop revisa e autoriza o deploy se testes passarem."""
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    fake_state_file = tmp_path / "data" / "estado_deploy.json"
+    monkeypatch.setattr(autoloop_mod, "STATE_DEPLOY_FILE", fake_state_file)
+
+    sha_teste = "e" * 40
+    comandos_executados = []
+    class FakeResult:
+        def __init__(self, returncode, stdout="", stderr=""):
+            self.returncode = returncode
+            self.stdout = stdout
+            self.stderr = stderr
+
+    def fake_subprocess_run(cmd, *args, **kwargs):
+        cmd_str = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
+        comandos_executados.append(cmd_str)
+        if "build_master.py" in cmd_str or "npm test" in cmd_str or "git status" in cmd_str:
+            return FakeResult(0, "")
+        elif "--abbrev-ref" in cmd_str:
+            return FakeResult(0, "main")
+        elif "git rev-parse HEAD" in cmd_str:
+            return FakeResult(0, sha_teste)
+        elif "git push" in cmd_str:
+            return FakeResult(0, "Push OK")
+        return FakeResult(0)
+
+    monkeypatch.setattr("subprocess.run", fake_subprocess_run)
+    monkeypatch.setattr(autoloop_mod, "executar_etapa", lambda cmd, *a, **kw: FakeResult(0))
+    monkeypatch.setattr(autoloop_mod, "fingerprint_tree", lambda *a, **kw: "hash_estavel_123")
+    monkeypatch.setattr(autoloop_mod, "validar_codigo_estavel", lambda *a, **kw: True)
+    monkeypatch.setattr(autoloop_mod, "obter_commit_head", lambda: sha_teste)
+    monkeypatch.setattr(autoloop_mod, "enviar_relatorio_telegram", lambda *args, **kwargs: True)
+
+    # Simula recusa do ChatGPT
+    parecer_recusa = {
+        "candidate_sha": sha_teste,
+        "verdict": "fail",
+        "summary": "ChatGPT recusou alegando ressalva editorial",
+        "findings": [{"severity": "medium", "file": "src/rotina.js", "description": "Observação cosmética"}],
+        "limitations": [],
+        "required_followups": []
+    }
+    monkeypatch.setattr(autoloop_mod, "obter_parecer_auditoria_candidato", lambda **kw: (parecer_recusa, None))
+
+    comandos_executados.clear()
+    ok = autoloop_mod.executar_deploy_e_relatorio(intervalo_horas=6.0, revisao_autonoma=True)
+    assert ok is True, "Com revisão autônoma, o modelo não depende do ChatGPT e autoriza o deploy com testes verdes!"
+    assert any("git push" in c for c in comandos_executados), "git push DEVE ser executado quando revisado soberanamente pelo modelo!"
+
+

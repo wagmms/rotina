@@ -154,13 +154,16 @@ test('Extração em texto livre: /atb e texto corrido', () => {
 test('Telegram Handler: /atb responde sem depender de IA externa', () => {
   const { c } = env();
   let enviou = '';
+  let tecladoEnviado = null;
   c.enviarMensagemParaChat = (chatId, txt) => { enviou = txt; return true; };
+  c.enviarMensagemComTecladoParaChat = (chatId, txt, kb) => { enviou = txt; tecladoEnviado = kb; return true; };
 
   c.processarMensagemTexto({ chat: { id: 123 }, text: '/atb meropenem clcr 20' });
   assert(enviou.includes('AJUSTE RENAL DE ANTIMICROBIANOS'));
   assert(enviou.includes('Meropenem'));
   assert(enviou.includes('500 mg'));
   assert(enviou.includes('12h'));
+  assert(tecladoEnviado && Array.isArray(tecladoEnviado.inline_keyboard), 'Deve fornecer navegação contextual');
 });
 
 // 9. Prescrição Hospitalar (/rxh): Ordem Canônica de 7 Blocos

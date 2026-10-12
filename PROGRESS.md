@@ -17,10 +17,10 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Notion Habit Log & Tasks DB — Sincronização em Nuvem (Render), Normalização de UUIDs e Telemetria de Configuração (`src/05_notion.js`, `server/index.js`, `tests/test_notion_habit_log_resiliencia.cjs`)**:
-    - **Resolução de Ambiente no Render**: Diagnóstico e configuração das variáveis de ambiente (`NOTION_TOKEN`, `NOTION_HABIT_LOG_DB_ID` e `NOTION_TASKS_DB_ID`) no Render; verificado status `token_configurado: true`, `habit_log_db_configurado: true` e `tasks_db_configurado: true` ao vivo no contêiner via `/api/status`.
-    - **Normalização e Tratamento Defensivo**: Implementada `normalizarNotionId` para saneamento automático de URLs/queries e logs ricos da API do Notion.
-    - **Recibo de Estabilidade**: Bateria completa de testes aprovada com 55/55 suítes verdes (zero regressões).
+- [x] **Ditado de Corredor & Evolução de Leito Hospitalar — Alinhamento da Expectativa de Botão Tátil com o Padrão Canônico da Regra 6 de UX (`tests/test_ditado_corredor_enfermaria.cjs`, `tests/test_ditado_corredor_enfermaria.py`, `src/07e_telegram_midia_e_leitos.js`)**:
+    - **Diagnóstico e Causa Raiz**: O teste falhava exigindo estritamente `'Copiar PEP'`, enquanto a função `processarDitadoEvolucaoLeito` emite o botão canônico `📋 Copiar para Prontuário` (Regra 6 de UX Beira-Leito), testado em todo o ecossistema de leitos (`test_gestao_leitos_sbar_ux.cjs`).
+    - **Correção Implementada**: Atualizada asserção em `tests/test_ditado_corredor_enfermaria.cjs` para aceitar `"Copiar para Prontuário"`, harmonizando o contrato com o protocolo UX oficial. Registradas evidências em `data/autoloop_task_notes/test_ditado_corredor_enfermaria.md`.
+    - **Recibo de Estabilidade**: 4/4 testes aprovados no CJS e 2/2 suítes aprovadas no runner (`test_ditado_corredor_enfermaria.cjs` + `.py`) em 0.96s.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

@@ -207,16 +207,15 @@ function processarMensagemVoz(message) {
 
       if (querVoz) {
         var casoAudio = tLimpo.replace(/(?:me\s+)?respond(?:a|e)\s+(?:com\s+|em\s+)?(?:um\s+)?[áa]udio|no\s+fone|fala\s+comigo|preceptor\s+socr[áa]tico|\bsabatina\b|manda\s+[áa]udio|^(?:preceptor|áudio|audio|no\s+fone)\s*[:,-]?\s*/gi, "").trim();
-        var ehApenasChamadoVoz = !casoAudio || casoAudio.length < 5 || /^(?:ia|socr[áa]tico|bot|ajuda|online|plant[ãa]o|ouvir|fone|discutir|caso|um\s+caso)$/i.test(casoAudio);
-        if (ehApenasChamadoVoz) {
-          if (typeof iniciarOuConvidarDiscussaoPreceptor === "function") {
-            return iniciarOuConvidarDiscussaoPreceptor(chatId, { ehAudio: true });
-          }
-          return enviarMensagemParaChat(chatId, "Opa Wagner! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.");
-        }
         var contextoCache = CacheService.getScriptCache();
         var contextoKey = "ctx_" + chatId;
-        safePutCache(contextoCache, contextoKey, casoAudio, 900);
+        var ehApenasChamadoVoz = !casoAudio || casoAudio.length < 5 || /^(?:ia|socr[áa]tico|bot|ajuda|online|plant[ãa]o|ouvir|fone|discutir|caso|um\s+caso)$/i.test(casoAudio);
+        if (ehApenasChamadoVoz) {
+          casoAudio = (typeof obterContextoClinicoBot === "function" ? obterContextoClinicoBot(chatId) : "") || contextoCache.get(contextoKey);
+          if (!casoAudio) return enviarMensagemParaChat(chatId, "Envie o caso clínico antes de solicitar a resposta em áudio.");
+        } else {
+          safePutCache(contextoCache, contextoKey, casoAudio, 900);
+        }
         return responderPreceptorVozComIA(chatId, casoAudio);
       }
 

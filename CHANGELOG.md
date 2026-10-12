@@ -1,5 +1,35 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C54. [x] **Ditado de Corredor & Evolução de Leito Hospitalar — Alinhamento da Expectativa de Botão Tátil com o Padrão Canônico da Regra 6 de UX (`tests/test_ditado_corredor_enfermaria.cjs`, `tests/test_ditado_corredor_enfermaria.py`, `src/07e_telegram_midia_e_leitos.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em `tests/test_ditado_corredor_enfermaria.cjs:110`, o teste falhava com `AssertionError: Deve conter botão Copiar PEP / Conduta para Prontuário`.
+      * A função de produção `processarDitadoEvolucaoLeito` em `src/07e_telegram_midia_e_leitos.js` emite o botão `📋 Copiar para Prontuário`, padrão canônico exigido pela Regra 6 do protocolo UX Beira-Leito e testado em `tests/test_gestao_leitos_sbar_ux.cjs` e `tests/test_enfermaria_ux_fluxos.cjs`.
+      * A asserção no teste continha expectativa desatualizada que exigia estritamente `'Copiar PEP'` ou `'Copiar Conduta/Passagem para Prontuário'`, sem contemplar a nomenclatura canônica vigente `"Copiar para Prontuário"`.
+    - **Correção Implementada (`tests/test_ditado_corredor_enfermaria.cjs`)**:
+      * Atualizada a asserção para aceitar `"Copiar para Prontuário"`, harmonizando o teste com a Regra 6 e com as demais suítes do ecossistema de leitos.
+      * Registrado documento de evidências e auditoria em `data/autoloop_task_notes/test_ditado_corredor_enfermaria.md`.
+    - **Recibo de Estabilidade**:
+      * Suítes direcionadas `tests/test_ditado_corredor_enfermaria.cjs` e `tests/test_ditado_corredor_enfermaria.py` aprovadas (2/2) em 0.96s.
+
+0C53. [x] **Prescrição Hospitalar & Ajuste Renal de Antimicrobianos — Estabilização do Stub de Teclado Inline e Contrato de Navegação Contextual (`tests/test_prescricao_hospitalar_e_ajuste_atb.cjs`, `tests/test_prescricao_hospitalar_e_ajuste_atb.py`, `src/07a_telegram_router.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * No teste do comando `/atb` (`test_prescricao_hospitalar_e_ajuste_atb.cjs:160`), o router em `src/07a_telegram_router.js` despachava a resposta via `enviarMensagemComTecladoParaChat` com teclado inline contextual (`[🔙 Ajuste Renal (ATB)]` + `[🏠 Início]`), em conformidade com o protocolo de UX Beira-Leito.
+      * O teste preparava exclusivamente o mock `c.enviarMensagemParaChat`, fazendo com que a mensagem caísse no runtime padrão (`enviarMensagemSegmentada`) e a variável de captura permanecesse vazia.
+    - **Correção Implementada (`tests/test_prescricao_hospitalar_e_ajuste_atb.cjs`)**:
+      * Injetado stub para `c.enviarMensagemComTecladoParaChat` capturando o texto emitido e o layout de botões;
+      * Fortalecido o contrato do teste com asserção explícita de presença do teclado inline contextual anti-preso (`assert(tecladoEnviado && Array.isArray(tecladoEnviado.inline_keyboard))`).
+    - **Recibo de Estabilidade**:
+      * 10/10 testes determinísticos aprovados em 0.08s e 2/2 suítes do módulo aprovadas via test runner em 1.02s.
+
+0C52. [x] **Comando de Voz & Preceptor Socrático — Herança de Caso Clínico Ativo e Proteção Anti-Alucinação (`src/07e_telegram_midia_e_leitos.js`, `tests/test_auditoria_qualidade_clinica.cjs`, `tests/test_auditoria_qualidade_clinica.py`, `tests/test_correcao_revisao_geral.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em `processarMensagemVoz`, comandos sucintos de voz solicitando resposta do preceptor socrático desviavam indevidamente para formulário interativo de convite em vez de herdar o caso clínico ativo e responder imediatamente em áudio beira-leito.
+    - **Correção Implementada (`src/07e_telegram_midia_e_leitos.js`)**:
+      * Restaurada a consulta a `obterContextoClinicoBot(chatId)` e cache de contexto ativo para que o preceptor socrático herde o caso em andamento (SOAP/anamnese) e acione `responderPreceptorVozComIA`;
+      * Implementada salvaguarda defensiva que impede alucinação quando não há caso prévio, alertando o médico com `"Envie o caso clínico antes de solicitar a resposta em áudio."`.
+    - **Recompilação e Estabilidade**:
+      * Recompilado bundle `ultra_rotina_master.js` via `npm run build` e aprovadas as suítes `tests/test_auditoria_qualidade_clinica.cjs`, `tests/test_auditoria_qualidade_clinica.py` e `tests/test_correcao_revisao_geral.cjs` (100% verde).
+
 0C51. [x] **Notion Habit Log & Tasks DB — Sincronização em Nuvem (Render), Normalização de UUIDs e Telemetria de Configuração (`src/05_notion.js`, `server/index.js`, `tests/test_notion_habit_log_resiliencia.cjs`)**:
     - **Diagnóstico e Resolução de Variáveis no Render**:
       * Identificada a causa-raiz da mensagem `⚠️ Erro ao consultar o Notion Habit Log`: as variáveis de ambiente `NOTION_TOKEN`, `NOTION_HABIT_LOG_DB_ID` e `NOTION_TASKS_DB_ID` não estavam presentes no contêiner do Render (`sync: false` no blueprint).

@@ -107,7 +107,7 @@ test('1. Áudio de leito estável grava no EnfermariaService e envia card com bo
   const kb = msgEnviada.payload.reply_markup?.inline_keyboard;
   assert(kb, 'Deve conter inline keyboard');
   const btnCopiar = kb[0][0];
-  assert(btnCopiar.text.includes('Copiar PEP') || btnCopiar.text.includes('Copiar Conduta/Passagem para Prontuário'), 'Deve conter botão Copiar PEP / Conduta para Prontuário');
+  assert(btnCopiar.text.includes('Copiar PEP') || btnCopiar.text.includes('Copiar para Prontuário') || btnCopiar.text.includes('Copiar Conduta/Passagem para Prontuário'), 'Deve conter botão Copiar PEP / Prontuário');
 });
 
 // -----------------------------------------------------------------------------

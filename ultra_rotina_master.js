@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-12 16:36:43
- * Checksum SHA256: 85d26b7091c22d19
+ * Gerado automaticamente via build_master.py em: 2026-10-12 18:02:08
+ * Checksum SHA256: da3460b9df250030
  * ==============================================================================
  */
 
@@ -41319,6 +41319,14 @@ if (typeof module !== "undefined" && module.exports) {
  * ==============================================================================
  */
 
+function normalizarNotionId(idOuUrl) {
+  if (!idOuUrl) return "";
+  var str = String(idOuUrl).trim();
+  var match = str.match(/([a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+  if (match) return match[1];
+  return str.split("?")[0].replace(/^.*[\/]/, "").trim();
+}
+
 function chamarNotionAPI(url, metodo, dados) {
   var token = ConfigService.get("NOTION_TOKEN");
   if (!token) {
@@ -41349,11 +41357,13 @@ function chamarNotionAPI(url, metodo, dados) {
       if (code === 429) {
         Utilities.sleep(1500);
       } else {
-        Logger.log("Notion erro HTTP " + code);
+        var textoErro = "";
+        try { textoErro = res.getContentText(); } catch (_) {}
+        Logger.log("Notion erro HTTP " + code + (textoErro ? ": " + textoErro.slice(0, 300) : ""));
         return null;
       }
     } catch (e) {
-      Logger.log("Falha de comunicação com o Notion; resultado incerto.");
+      Logger.log("Falha de comunicação com o Notion: " + (e ? e.message : "resultado incerto"));
       return null;
     }
   }
@@ -41361,8 +41371,11 @@ function chamarNotionAPI(url, metodo, dados) {
 }
 
 function obterOuCriarPaginaHabitLog(dataISO) {
-  var dbId = ConfigService.get("NOTION_HABIT_LOG_DB_ID");
-  if (!dbId) return null;
+  var dbId = normalizarNotionId(ConfigService.get("NOTION_HABIT_LOG_DB_ID"));
+  if (!dbId) {
+    Logger.log("Aviso: NOTION_HABIT_LOG_DB_ID não configurado.");
+    return null;
+  }
 
   var res = chamarNotionAPI("https://api.notion.com/v1/databases/" + dbId + "/query", "POST", {
     "filter": { "property": "Date", "date": { "equals": dataISO } }
@@ -41407,8 +41420,16 @@ function enviarRelatorioSemanalHabitos(chatIdDestino) {
   if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(destino)) {
     return false;
   }
-  var dbId = ConfigService.get("NOTION_HABIT_LOG_DB_ID");
+  var token = ConfigService.get("NOTION_TOKEN");
+  var rawDbId = ConfigService.get("NOTION_HABIT_LOG_DB_ID");
+  var dbId = normalizarNotionId(rawDbId);
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
+
+  if (!token || !dbId) {
+    var detalheFalta = !token && !dbId ? "NOTION_TOKEN e NOTION_HABIT_LOG_DB_ID" : (!token ? "NOTION_TOKEN" : "NOTION_HABIT_LOG_DB_ID");
+    Logger.log("Aviso: Falha ao consultar Habit Log - " + detalheFalta + " ausente.");
+    return enviarMensagemParaChat(destino, "⚠️ O Habit Log não pôde ser consultado: `" + detalheFalta + "` não está configurado no servidor (Render). Configure a variável de ambiente para habilitar.");
+  }
 
   var dataISO = Utilities.formatDate(new Date(new Date().getTime() - 7 * 86400000), tz, "yyyy-MM-dd");
   var payload = {
@@ -41418,7 +41439,7 @@ function enviarRelatorioSemanalHabitos(chatIdDestino) {
 
   var res = chamarNotionAPI("https://api.notion.com/v1/databases/" + dbId + "/query", "POST", payload);
   if (!res || !res.results) {
-    return enviarMensagemParaChat(destino, "⚠️ Erro ao consultar o Notion Habit Log.");
+    return enviarMensagemParaChat(destino, "⚠️ Erro ao consultar o Notion Habit Log. Verifique se a integração possui acesso à base e se o ID está correto.");
   }
 
   var cMQ = 0, cGym = 0, cEng = 0, cVio = 0, cLov = 0, cRead = 0, sEn = 0, kEn = 0;
@@ -41460,7 +41481,7 @@ function enviarRelatorioSemanalHabitos(chatIdDestino) {
  * em blocos de texto/callout, eliminando limitações de tamanho de rich_text.
  */
 function criarTarefaNotion(titulo, area, prioridade, notas) {
-  var dbId = ConfigService.get("NOTION_TASKS_DB_ID");
+  var dbId = normalizarNotionId(ConfigService.get("NOTION_TASKS_DB_ID"));
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
   if (!dbId) return false;
 
@@ -41606,7 +41627,7 @@ function listarDuvidasMedQuest(chatIdDestino, messageId) {
 
 function listarTarefasHojeNotion(chatIdDestino, messageId) {
   var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
-  var dbId = ConfigService.get("NOTION_TASKS_DB_ID");
+  var dbId = normalizarNotionId(ConfigService.get("NOTION_TASKS_DB_ID"));
   var tz = ConfigService.get("TIMEZONE", "America/Sao_Paulo");
 
   var kbTarefas = {
@@ -49792,11 +49813,10 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
       "habit_reading": "📖 Leitura"
     };
     var propName = mapaHabitos[data] || "";
-    if (propName && typeof atualizarCheckboxNotion === "function") {
-      gravouComSucesso = atualizarCheckboxNotion(pageId, propName, valorStatus);
-    }
-    // Fallback resiliente: persiste localmente se Notion não estiver configurado
-    if (!gravouComSucesso) {
+    if (pageId && propName && typeof atualizarCheckboxNotion === "function") {
+      gravouComSucesso = Boolean(atualizarCheckboxNotion(pageId, propName, valorStatus));
+    } else if (!pageId) {
+      // Fallback resiliente: persiste localmente se Notion não estiver configurado
       try {
         var props = PropertiesService.getScriptProperties();
         props.setProperty("habito_" + dataISO + "_" + data, valorStatus ? "true" : "false");
@@ -49805,11 +49825,10 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
     }
   } else if (data.startsWith("energy_")) {
     var valorEnergia = parseInt(data.replace("energy_", ""), 10);
-    if (typeof atualizarNumeroNotion === "function") {
-      gravouComSucesso = atualizarNumeroNotion(pageId, "⚡ Energia (1–5)", valorEnergia);
-    }
-    // Fallback resiliente para escala de energia
-    if (!gravouComSucesso) {
+    if (pageId && typeof atualizarNumeroNotion === "function") {
+      gravouComSucesso = Boolean(atualizarNumeroNotion(pageId, "⚡ Energia (1–5)", valorEnergia));
+    } else if (!pageId) {
+      // Fallback resiliente para escala de energia se Notion não estiver configurado
       try {
         var props = PropertiesService.getScriptProperties();
         props.setProperty("habito_" + dataISO + "_energia", String(valorEnergia));
@@ -51065,16 +51084,15 @@ function processarMensagemVoz(message) {
 
       if (querVoz) {
         var casoAudio = tLimpo.replace(/(?:me\s+)?respond(?:a|e)\s+(?:com\s+|em\s+)?(?:um\s+)?[áa]udio|no\s+fone|fala\s+comigo|preceptor\s+socr[áa]tico|\bsabatina\b|manda\s+[áa]udio|^(?:preceptor|áudio|audio|no\s+fone)\s*[:,-]?\s*/gi, "").trim();
-        var ehApenasChamadoVoz = !casoAudio || casoAudio.length < 5 || /^(?:ia|socr[áa]tico|bot|ajuda|online|plant[ãa]o|ouvir|fone|discutir|caso|um\s+caso)$/i.test(casoAudio);
-        if (ehApenasChamadoVoz) {
-          if (typeof iniciarOuConvidarDiscussaoPreceptor === "function") {
-            return iniciarOuConvidarDiscussaoPreceptor(chatId, { ehAudio: true });
-          }
-          return enviarMensagemParaChat(chatId, "Opa Wagner! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.");
-        }
         var contextoCache = CacheService.getScriptCache();
         var contextoKey = "ctx_" + chatId;
-        safePutCache(contextoCache, contextoKey, casoAudio, 900);
+        var ehApenasChamadoVoz = !casoAudio || casoAudio.length < 5 || /^(?:ia|socr[áa]tico|bot|ajuda|online|plant[ãa]o|ouvir|fone|discutir|caso|um\s+caso)$/i.test(casoAudio);
+        if (ehApenasChamadoVoz) {
+          casoAudio = (typeof obterContextoClinicoBot === "function" ? obterContextoClinicoBot(chatId) : "") || contextoCache.get(contextoKey);
+          if (!casoAudio) return enviarMensagemParaChat(chatId, "Envie o caso clínico antes de solicitar a resposta em áudio.");
+        } else {
+          safePutCache(contextoCache, contextoKey, casoAudio, 900);
+        }
         return responderPreceptorVozComIA(chatId, casoAudio);
       }
 
