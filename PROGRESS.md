@@ -17,11 +17,10 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Testador Master & Dashboard de Grafo — Reescrita Integral, Detecção em Tempo Real de Processo Inativo/Cancelado e Auto-Sync Reativo (`tooling/testador_master/dashboard_generator.py`, `tooling/testador_master/reporter.py`, `tooling/testador_master/testador_master.py`, `data/testador_master_relatorio.json`, `tooling/testador_master/dashboard_grafo.html`)**:
-    - **Detecção Real de Processo no SO**: Implementada checagem via `pgrep` e reconciliação com `meta.status_execucao`. Se o testador não estiver rodando, exibe badge âmbar `⏸️ TESTADOR INATIVO (Sessão Cancelada)`, banner informativo de encerramento e pausa o auto-sync por padrão, eliminando falsos positivos de "AO VIVO".
-    - **Reescrita Visual & Componentização**: Banner de estado superior, toolbar flutuante, física de grafo Vis.js, sub-filtros de issues (`🚨 Pendentes`, `✅ Resolvidos`, `🌐 Todos`) e cards com estilo esmeralda para resolvidas.
-    - **Guardião de Regressão & Fechamento Limpo**: Registro de `em_execucao=False` no bloco `finally:` de `testador_master.py` e reabertura automática (`REABERTO_REGRESSAO`) em `reporter.py`.
-    - **Recibo de Estabilidade**: Bateria completa de testes aprovada com zero regressões.
+- [x] **Notion Habit Log & Tasks DB — Sincronização em Nuvem (Render), Normalização de UUIDs e Telemetria de Configuração (`src/05_notion.js`, `server/index.js`, `tests/test_notion_habit_log_resiliencia.cjs`)**:
+    - **Resolução de Ambiente no Render**: Diagnóstico e configuração das variáveis de ambiente (`NOTION_TOKEN`, `NOTION_HABIT_LOG_DB_ID` e `NOTION_TASKS_DB_ID`) no Render; verificado status `token_configurado: true`, `habit_log_db_configurado: true` e `tasks_db_configurado: true` ao vivo no contêiner via `/api/status`.
+    - **Normalização e Tratamento Defensivo**: Implementada `normalizarNotionId` para saneamento automático de URLs/queries e logs ricos da API do Notion.
+    - **Recibo de Estabilidade**: Bateria completa de testes aprovada com 55/55 suítes verdes (zero regressões).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

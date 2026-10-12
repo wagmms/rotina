@@ -1,5 +1,18 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C51. [x] **Notion Habit Log & Tasks DB — Sincronização em Nuvem (Render), Normalização de UUIDs e Telemetria de Configuração (`src/05_notion.js`, `server/index.js`, `tests/test_notion_habit_log_resiliencia.cjs`)**:
+    - **Diagnóstico e Resolução de Variáveis no Render**:
+      * Identificada a causa-raiz da mensagem `⚠️ Erro ao consultar o Notion Habit Log`: as variáveis de ambiente `NOTION_TOKEN`, `NOTION_HABIT_LOG_DB_ID` e `NOTION_TASKS_DB_ID` não estavam presentes no contêiner do Render (`sync: false` no blueprint).
+      * Validação local completa contra a API oficial do Notion confirmou 200 OK e funcionamento dos métodos de consulta e marcação.
+      * Cadastro das variáveis no painel do Render concluído com sucesso e verificado ao vivo via `/api/status`.
+    - **Normalização Defensiva de UUIDs e Tratamento de Erros (`src/05_notion.js`)**:
+      * Implementada a função `normalizarNotionId` para extrair UUIDs limpos mesmo quando URLs inteiras ou query parameters (`?v=...`) forem colados nas variáveis.
+      * Substituída a mensagem genérica por alertas precisos que indicam qual variável específica está ausente no servidor.
+      * `chamarNotionAPI` aprimorado para capturar e imprimir logs com o status HTTP e a mensagem exata retornada pela API do Notion.
+    - **Telemetria de Configuração em Produção (`server/index.js`)**:
+      * Endpoint `/api/status` expandido com o bloco `notion` (`token_configurado`, `habit_log_db_configurado`, `tasks_db_configurado`) sem vazar dados sensíveis.
+    - **Recibo Oficial de Estabilidade**: Nova suíte `tests/test_notion_habit_log_resiliencia.cjs` adicionada; bateria geral `npm test` aprovada com 55/55 suítes verdes (100% de aprovação).
+
 0C50. [x] **Testador Master & Dashboard de Grafo — Reescrita Integral, Detecção Real de Processo no SO e Erradicação de Falsos Positivos "AO VIVO" (`tooling/testador_master/dashboard_generator.py`, `tooling/testador_master/reporter.py`, `tooling/testador_master/testador_master.py`, `data/testador_master_relatorio.json`, `tooling/testador_master/dashboard_grafo.html`, `data/dashboard_grafo.html`, `docs/dashboard_grafo.html`)**:
     - **Reescrita Integral do Gerador de Dashboard (`dashboard_generator.py`)**:
       * Implementada checagem em tempo real de processo Python ativo no sistema operacional (`pgrep -f "testador_master.py"`).
