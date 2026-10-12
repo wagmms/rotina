@@ -45,7 +45,8 @@ class BugReproGenerator:
             problema=problema,
             acao=acao,
             resposta=resposta,
-            issue_id=problema.get("id", "ISSUE-999")
+            issue_id=problema.get("id", "ISSUE-999"),
+            nome_arquivo=nome_arquivo
         )
 
         with open(caminho_arquivo, "w", encoding="utf-8") as f:
@@ -63,7 +64,8 @@ class BugReproGenerator:
         problema: Dict[str, Any],
         acao: Dict[str, Any],
         resposta: Dict[str, Any],
-        issue_id: str
+        issue_id: str,
+        nome_arquivo: str = "repro.cjs"
     ) -> str:
         alvo = acao.get("alvo_desc") or acao.get("rotulo") or acao.get("texto") or ""
         tipo_acao = acao.get("tipo", "comando")
@@ -164,8 +166,8 @@ class BugReproGenerator:
   console.log('  ✓ Navegabilidade garantida (teclado inline ou dicas presentes).');"""
 
         elif "FORMATAÇÃO MARKDOWN" in categoria:
-            bloco_assercao = """  // Validação: entidades markdown devem estar balanceadas em pares
-  const asteriscos = (textoResposta.match(/\\*/g) || []).length;
+            bloco_assercao = r"""  // Validação: entidades markdown devem estar balanceadas em pares
+  const asteriscos = (textoResposta.match(/\*/g) || []).length;
   const crases = (textoResposta.match(/`/g) || []).length;
   if (asteriscos % 2 !== 0) {
     throw new Error(`MARKDOWN QUEBRADO: Quantidade ímpar de asteriscos (*) encontrada (${asteriscos}).`);
@@ -193,7 +195,7 @@ class BugReproGenerator:
  * Gerado em:  {problema.get('timestamp', '')}
  *
  * Como executar este teste isolado:
- *   node tests/repros/{Path(self.repro_dir).name}/{nome_arquivo if 'nome_arquivo' in locals() else 'repro.cjs'}
+ *   node tests/repros/{nome_arquivo}
  * ==============================================================================
  */
 

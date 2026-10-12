@@ -754,6 +754,70 @@ async function buildServer() {
     }
   });
 
+  // Listar dúvidas MedQuest
+  fastify.get('/api/rotina/duvidas', async (request, reply) => {
+    try {
+      if (ehRequisicaoConvidado(request)) {
+        reply.status(403);
+        return { ok: false, sucesso: false, erro: 'Acesso restrito ao titular.' };
+      }
+      const lista = (runtime.ctx.obterDuvidasEstudoLocal)
+        ? runtime.ctx.obterDuvidasEstudoLocal()
+        : [];
+      reply.header('Cache-Control', 'no-cache');
+      return { ok: true, sucesso: true, total: lista.length, duvidas: lista };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
+  // Salvar nova dúvida MedQuest
+  fastify.post('/api/rotina/duvidas', async (request, reply) => {
+    try {
+      if (ehRequisicaoConvidado(request)) {
+        reply.status(403);
+        return { ok: false, sucesso: false, erro: 'Acesso restrito ao titular.' };
+      }
+      const body = request.body || {};
+      const texto = body.texto || body.duvida;
+      if (!texto || !String(texto).trim()) {
+        reply.status(400);
+        return { ok: false, sucesso: false, erro: 'Campo "texto" é obrigatório.' };
+      }
+      const item = (runtime.ctx.salvarDuvidaEstudoLocal)
+        ? runtime.ctx.salvarDuvidaEstudoLocal(String(texto).trim())
+        : null;
+      return { ok: true, sucesso: true, duvida: item };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
+  // Marcar dúvida MedQuest como resolvida
+  fastify.post('/api/rotina/duvidas/resolver', async (request, reply) => {
+    try {
+      if (ehRequisicaoConvidado(request)) {
+        reply.status(403);
+        return { ok: false, sucesso: false, erro: 'Acesso restrito ao titular.' };
+      }
+      const body = request.body || {};
+      const id = body.id;
+      if (!id) {
+        reply.status(400);
+        return { ok: false, sucesso: false, erro: 'Campo "id" é obrigatório.' };
+      }
+      const ok = (runtime.ctx.marcarDuvidaEstudoResolvida)
+        ? runtime.ctx.marcarDuvidaEstudoResolvida(id)
+        : false;
+      return { ok: true, sucesso: ok, id: id, resolvida: ok };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
   // 5.1. TELEMETRIA AO VIVO: Consulta das últimas interações do Bot e Cockpit
   fastify.get('/api/telemetria/ao-vivo', {
     schema: {

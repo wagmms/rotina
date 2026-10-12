@@ -118,7 +118,7 @@ for (const [k, v] of Object.entries(process.env)) {
 
 // Higieniza chaves de sistema legadas do arquivo de propriedades
 for (const k of Object.keys(propsStore)) {
-  if (!ehVariavelPermitida(k) && !k.startsWith('LEITO_') && !k.startsWith('inbox_') && !k.startsWith('outbox_') && !k.startsWith('ctx_') && !k.startsWith('modo_') && !k.startsWith('ultima_') && !k.startsWith('RECEITAS_')) {
+  if (!ehVariavelPermitida(k) && !k.startsWith('LEITO_') && !k.startsWith('inbox_') && !k.startsWith('outbox_') && !k.startsWith('ctx_') && !k.startsWith('modo_') && !k.startsWith('ultima_') && !k.startsWith('RECEITAS_') && !k.startsWith('duvidas_') && !k.startsWith('habito_') && !k.startsWith('rotina_') && !k.startsWith('bloco_')) {
     delete propsStore[k];
   }
 }

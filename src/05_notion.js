@@ -182,9 +182,111 @@ function criarTarefaNotion(titulo, area, prioridade, notas) {
   return res !== null;
 }
 
+function obterDuvidasEstudoLocal() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var raw = props.getProperty("duvidas_medquest_lista");
+    if (raw) {
+      var arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch (_) {}
+  return [];
+}
+
+function salvarDuvidaEstudoLocal(duvidaTexto) {
+  var texto = String(duvidaTexto || "").trim();
+  if (!texto) return null;
+  var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
+  var agora = new Date();
+  var dataISO = Utilities.formatDate(agora, tz, "yyyy-MM-dd");
+  var hora = Utilities.formatDate(agora, tz, "HH:mm");
+  var id = "duv_" + agora.getTime().toString(36) + "_" + Math.random().toString(36).substring(2, 6);
+
+  var item = {
+    id: id,
+    dataISO: dataISO,
+    hora: hora,
+    texto: texto,
+    status: "pendente"
+  };
+
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var lista = obterDuvidasEstudoLocal();
+    lista.unshift(item);
+    if (lista.length > 50) lista = lista.slice(0, 50);
+    props.setProperty("duvidas_medquest_lista", JSON.stringify(lista));
+  } catch (e) {
+    Logger.log("Erro ao salvar duvida local: " + e.message);
+  }
+
+  return item;
+}
+
+function marcarDuvidaEstudoResolvida(duvidaId) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var lista = obterDuvidasEstudoLocal();
+    var modificado = false;
+    for (var i = 0; i < lista.length; i++) {
+      if (lista[i].id === duvidaId) {
+        lista[i].status = "resolvida";
+        modificado = true;
+        break;
+      }
+    }
+    if (modificado) {
+      props.setProperty("duvidas_medquest_lista", JSON.stringify(lista));
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
 function salvarDuvidaEstudoNotion(duvida) {
+  var itemLocal = salvarDuvidaEstudoLocal(duvida);
   var titulo = "🧠 Dúvida: " + duvida;
-  return criarTarefaNotion(titulo, "Studies", "2 · Important", "Registrado via Telegram para revisão noturna no MedQuest:\n" + duvida);
+  try {
+    criarTarefaNotion(titulo, "Studies", "2 · Important", "Registrado via Telegram para revisão noturna no MedQuest:\n" + duvida);
+  } catch (_) {}
+  return itemLocal !== null;
+}
+
+function listarDuvidasMedQuest(chatIdDestino, messageId) {
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
+  var lista = obterDuvidasEstudoLocal().filter(function(d) { return d.status === "pendente"; });
+
+  var msg = "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\n";
+  var botoes = [];
+
+  if (lista.length === 0) {
+    msg += "✨ Nenhuma dúvida pendente no momento!\n\n" +
+      "💡 *Para registrar uma nova dúvida beira-leito:*\n" +
+      "Envie: `/duvida <sua dúvida clínica>`\n" +
+      "Ex: `/duvida Critérios de Light para derrame pleural exsudato vs transudato`";
+  } else {
+    msg += "Pendências salvas para seu bloco de estudo ativo:\n\n";
+    for (var i = 0; i < lista.length; i++) {
+      var d = lista[i];
+      msg += (i + 1) + ". *" + d.texto + "*\n" +
+             "   📅 `" + d.dataISO + " às " + d.hora + "`\n\n";
+      if (i < 5) {
+        botoes.push([{ text: "✅ Resolver #" + (i + 1), callback_data: "duvida:check:" + d.id }]);
+      }
+    }
+  }
+
+  botoes.push([
+    { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
+    { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+  ]);
+
+  var teclado = { inline_keyboard: botoes };
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, msg, teclado, messageId);
+  }
+  return enviarMensagemComTecladoParaChat(destino, msg, teclado);
 }
 
 function listarTarefasHojeNotion(chatIdDestino, messageId) {

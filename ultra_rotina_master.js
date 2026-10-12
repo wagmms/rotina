@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-11 23:44:15
- * Checksum SHA256: b2a782cde3c32221
+ * Gerado automaticamente via build_master.py em: 2026-10-12 09:41:47
+ * Checksum SHA256: fcac591f4d59912a
  * ==============================================================================
  */
 
@@ -41449,9 +41449,111 @@ function criarTarefaNotion(titulo, area, prioridade, notas) {
   return res !== null;
 }
 
+function obterDuvidasEstudoLocal() {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var raw = props.getProperty("duvidas_medquest_lista");
+    if (raw) {
+      var arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch (_) {}
+  return [];
+}
+
+function salvarDuvidaEstudoLocal(duvidaTexto) {
+  var texto = String(duvidaTexto || "").trim();
+  if (!texto) return null;
+  var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
+  var agora = new Date();
+  var dataISO = Utilities.formatDate(agora, tz, "yyyy-MM-dd");
+  var hora = Utilities.formatDate(agora, tz, "HH:mm");
+  var id = "duv_" + agora.getTime().toString(36) + "_" + Math.random().toString(36).substring(2, 6);
+
+  var item = {
+    id: id,
+    dataISO: dataISO,
+    hora: hora,
+    texto: texto,
+    status: "pendente"
+  };
+
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var lista = obterDuvidasEstudoLocal();
+    lista.unshift(item);
+    if (lista.length > 50) lista = lista.slice(0, 50);
+    props.setProperty("duvidas_medquest_lista", JSON.stringify(lista));
+  } catch (e) {
+    Logger.log("Erro ao salvar duvida local: " + e.message);
+  }
+
+  return item;
+}
+
+function marcarDuvidaEstudoResolvida(duvidaId) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var lista = obterDuvidasEstudoLocal();
+    var modificado = false;
+    for (var i = 0; i < lista.length; i++) {
+      if (lista[i].id === duvidaId) {
+        lista[i].status = "resolvida";
+        modificado = true;
+        break;
+      }
+    }
+    if (modificado) {
+      props.setProperty("duvidas_medquest_lista", JSON.stringify(lista));
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
 function salvarDuvidaEstudoNotion(duvida) {
+  var itemLocal = salvarDuvidaEstudoLocal(duvida);
   var titulo = "🧠 Dúvida: " + duvida;
-  return criarTarefaNotion(titulo, "Studies", "2 · Important", "Registrado via Telegram para revisão noturna no MedQuest:\n" + duvida);
+  try {
+    criarTarefaNotion(titulo, "Studies", "2 · Important", "Registrado via Telegram para revisão noturna no MedQuest:\n" + duvida);
+  } catch (_) {}
+  return itemLocal !== null;
+}
+
+function listarDuvidasMedQuest(chatIdDestino, messageId) {
+  var destino = chatIdDestino || ((typeof ConfigService.getPrimary === "function") ? ConfigService.getPrimary("TELEGRAM_CHAT_ID") : String(ConfigService.get("TELEGRAM_CHAT_ID") || "").split(",")[0].trim());
+  var lista = obterDuvidasEstudoLocal().filter(function(d) { return d.status === "pendente"; });
+
+  var msg = "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\n";
+  var botoes = [];
+
+  if (lista.length === 0) {
+    msg += "✨ Nenhuma dúvida pendente no momento!\n\n" +
+      "💡 *Para registrar uma nova dúvida beira-leito:*\n" +
+      "Envie: `/duvida <sua dúvida clínica>`\n" +
+      "Ex: `/duvida Critérios de Light para derrame pleural exsudato vs transudato`";
+  } else {
+    msg += "Pendências salvas para seu bloco de estudo ativo:\n\n";
+    for (var i = 0; i < lista.length; i++) {
+      var d = lista[i];
+      msg += (i + 1) + ". *" + d.texto + "*\n" +
+             "   📅 `" + d.dataISO + " às " + d.hora + "`\n\n";
+      if (i < 5) {
+        botoes.push([{ text: "✅ Resolver #" + (i + 1), callback_data: "duvida:check:" + d.id }]);
+      }
+    }
+  }
+
+  botoes.push([
+    { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
+    { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+  ]);
+
+  var teclado = { inline_keyboard: botoes };
+  if (messageId && typeof enviarTelaBot === "function") {
+    return enviarTelaBot(destino, msg, teclado, messageId);
+  }
+  return enviarMensagemComTecladoParaChat(destino, msg, teclado);
 }
 
 function listarTarefasHojeNotion(chatIdDestino, messageId) {
@@ -42533,7 +42635,7 @@ function enviarCheckinNoturno(chatIdDestino, messageId) {
   var habitosAtivos = RotinaService.obterHabitosAtivosParaCheckin(hoje);
 
   var texto = "🌙 *Check-in da Noite Adaptativo (" + dataFormatada + ")*\n\n" +
-              "Toque nos botões abaixo para marcar os hábitos cumpridos hoje no seu Notion:\n" +
+              "Toque nos botões abaixo para marcar os hábitos cumpridos hoje:\n" +
               (habitosAtivos.treinoDescanso ? "💡 _Hoje foi dia de descanso de academia planejado. Seu corpo agradece!_\n" : "");
 
   var linha1 = [];
@@ -42544,15 +42646,37 @@ function enviarCheckinNoturno(chatIdDestino, messageId) {
     linha1.push({"text": "🏋️ Treino Feito", "callback_data": "habit_gym"});
   }
 
-  var linha2 = [
-    {"text": "📚 Inglês Feito", "callback_data": "habit_english"},
-    {"text": "🎸 Violão Feito", "callback_data": "habit_guitar"}
-  ];
+  // Linhas adaptativas: APENAS exibe os hábitos que realmente estavam programados na timeline do dia!
+  var linhasHabitosDinamicos = [];
+  var linhaDinamicaAtual = [];
 
-  var linha3 = [
-    {"text": "❤️ Namorada", "callback_data": "habit_love"},
-    {"text": "📖 Leitura", "callback_data": "habit_reading"}
-  ];
+  if (habitosAtivos.ingles) {
+    linhaDinamicaAtual.push({"text": "📚 Inglês Feito", "callback_data": "habit_english"});
+  }
+  if (habitosAtivos.violao) {
+    linhaDinamicaAtual.push({"text": "🎸 Violão Feito", "callback_data": "habit_guitar"});
+    if (linhaDinamicaAtual.length === 2) {
+      linhasHabitosDinamicos.push(linhaDinamicaAtual);
+      linhaDinamicaAtual = [];
+    }
+  }
+  if (habitosAtivos.namorada) {
+    linhaDinamicaAtual.push({"text": "❤️ Namorada", "callback_data": "habit_love"});
+    if (linhaDinamicaAtual.length === 2) {
+      linhasHabitosDinamicos.push(linhaDinamicaAtual);
+      linhaDinamicaAtual = [];
+    }
+  }
+  if (habitosAtivos.leitura) {
+    linhaDinamicaAtual.push({"text": "📖 Leitura", "callback_data": "habit_reading"});
+    if (linhaDinamicaAtual.length === 2) {
+      linhasHabitosDinamicos.push(linhaDinamicaAtual);
+      linhaDinamicaAtual = [];
+    }
+  }
+  if (linhaDinamicaAtual.length > 0) {
+    linhasHabitosDinamicos.push(linhaDinamicaAtual);
+  }
 
   var linhaEnergia = [
     {"text": "🔋 1", "callback_data": "energy_1"},
@@ -42567,14 +42691,15 @@ function enviarCheckinNoturno(chatIdDestino, messageId) {
     {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}
   ];
 
+  var matrixTeclado = [linha1];
+  for (var ld = 0; ld < linhasHabitosDinamicos.length; ld++) {
+    matrixTeclado.push(linhasHabitosDinamicos[ld]);
+  }
+  matrixTeclado.push(linhaEnergia);
+  matrixTeclado.push(linhaNav);
+
   var teclado = {
-    "inline_keyboard": [
-      linha1,
-      linha2,
-      linha3,
-      linhaEnergia,
-      linhaNav
-    ]
+    "inline_keyboard": matrixTeclado
   };
 
   if (messageId && typeof enviarTelaBot === "function") {
@@ -47737,6 +47862,7 @@ var TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_ = {
   "/tarefa": true,
   "/tasks": true,
   "/duvida": true,
+  "/duvidas": true,
   "/semana": true,
   "/relatorio": true,
   "/habitos": true,
@@ -47787,7 +47913,7 @@ function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, messag
 
 
   // 4. AGENDA, TAREFAS E NOTION (EXCLUSIVO TITULAR)
-  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina" || comando === "/habitos") {
+  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/duvidas" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina" || comando === "/habitos") {
     if (!ehUsuarioTitular(chatId)) {
       return enviarMensagemParaChat(chatId, "🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas, guias de diluição HSL e consultas clínicas.");
     }
@@ -47811,11 +47937,25 @@ function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, messag
     return listarTarefasHojeNotion(chatId);
   }
 
+  if (comando === "/duvidas") {
+    return listarDuvidasMedQuest(chatId);
+  }
+
   if (comando === "/duvida") {
     var duvidaTexto = texto.replace(/^\/duvida\s*/i, "").trim();
-    if (!duvidaTexto) return enviarMensagemParaChat(chatId, "🧠 Envie sua dúvida médica. Ex: `/duvida Critérios de Light para derrame pleural`");
+    if (!duvidaTexto || duvidaTexto.toLowerCase() === "listar") {
+      return listarDuvidasMedQuest(chatId);
+    }
     var okDuvida = salvarDuvidaEstudoNotion(duvidaTexto);
-    if (okDuvida) return enviarMensagemParaChat(chatId, "🧠 *Dúvida arquivada no Notion para a sessão noturna do MedQuest!*");
+    if (okDuvida) {
+      var kbDuv = {
+        inline_keyboard: [
+          [{ text: "📋 Ver Dúvidas Salvas", callback_data: "ux:rotina:duvidas_lista" }],
+          [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, "🧠 *DÚVIDA CLÍNICA ARQUIVADA COM SUCESSO!*\n\n📌 _\"" + duvidaTexto + "\"_\n\n✅ Salva no banco local para o seu bloco noturno de estudo ativo no MedQuest.\n💡 Digite `/duvidas` a qualquer momento para revisar.", kbDuv);
+    }
     return enviarMensagemParaChat(chatId, "❌ Falha ao arquivar dúvida.");
   }
 
@@ -49483,13 +49623,9 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
     responderCallbackTelegram(cb.id, "🔒 O Habit Tracker do Notion é exclusivo do titular.", true);
     return true;
   }
-  responderCallbackTelegram(cb.id, "Salvando no Notion...");
-
-  var pageId = (typeof obterOuCriarPaginaHabitLog === "function") ? obterOuCriarPaginaHabitLog(ctx.dataAlvoISO) : null;
-  if (!pageId) {
-    responderCallbackTelegram(cb.id, "⚠️ Falha ao acessar o Habit Log do Notion.");
-    return true;
-  }
+  var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
+  var dataISO = ctx.dataAlvoISO || Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
+  var pageId = (typeof obterOuCriarPaginaHabitLog === "function") ? obterOuCriarPaginaHabitLog(dataISO) : null;
 
   var kb = cb.message && cb.message.reply_markup ? cb.message.reply_markup.inline_keyboard : null;
   var valorStatus = true;
@@ -49519,10 +49655,26 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
     if (propName && typeof atualizarCheckboxNotion === "function") {
       gravouComSucesso = atualizarCheckboxNotion(pageId, propName, valorStatus);
     }
+    // Fallback resiliente: persiste localmente se Notion não estiver configurado
+    if (!gravouComSucesso) {
+      try {
+        var props = PropertiesService.getScriptProperties();
+        props.setProperty("habito_" + dataISO + "_" + data, valorStatus ? "true" : "false");
+        gravouComSucesso = true;
+      } catch (_) {}
+    }
   } else if (data.startsWith("energy_")) {
     var valorEnergia = parseInt(data.replace("energy_", ""), 10);
     if (typeof atualizarNumeroNotion === "function") {
       gravouComSucesso = atualizarNumeroNotion(pageId, "⚡ Energia (1–5)", valorEnergia);
+    }
+    // Fallback resiliente para escala de energia
+    if (!gravouComSucesso) {
+      try {
+        var props = PropertiesService.getScriptProperties();
+        props.setProperty("habito_" + dataISO + "_energia", String(valorEnergia));
+        gravouComSucesso = true;
+      } catch (_) {}
     }
   }
 
@@ -49547,9 +49699,9 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
       "message_id": cb.message.message_id,
       "reply_markup": { "inline_keyboard": kb }
     });
-    responderCallbackTelegram(cb.id, "✅ Registrado no Notion!");
+    responderCallbackTelegram(cb.id, "✅ Registrado com sucesso!");
   } else if (!gravouComSucesso) {
-    responderCallbackTelegram(cb.id, "⚠️ Erro ao salvar registro no Notion.");
+    responderCallbackTelegram(cb.id, "⚠️ Erro ao registrar.");
   }
   return true;
 }
@@ -56689,7 +56841,7 @@ function enviarMenuEnfermaria(chat, messageId) {
     [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:enf:sbar']],
     [['🧪 Clearance (Cockcroft)', 'ux:enf:clcr'], ['💊 Ajuste Renal ATB', 'ux:enf:ajuste']],
     [['💧 Hidratação / Holliday', 'ux:enf:hidratacao'], ['📋 Prescrição Hospitalar', 'ux:enf:rxh']],
-    [['💊 Sintomáticos / SOS', 'ux:enf:sintomaticos']]
+    [['💊 Sintomáticos / SOS', 'ux:enf:sintomaticos'], ['🏁 Fim de Plantão', 'ux:enf:plantao_fim']]
   ];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
@@ -59719,6 +59871,7 @@ function tratarCallbackUX(cb) {
       else if (v === 'hidratacao') return enviarTelaEnfHidratacao(chat, msgId);
       else if (v === 'rxh') return enviarTelaEnfPrescricaoHosp(chat, msgId);
       else if (v === 'sbar') return enviarTelaEnfSBAR(chat, msgId);
+      else if (v === 'plantao_fim') return gerarResumoFimPlantao(chat, msgId);
       else if (v === 'sintomaticos') {
         var msgSint = "💊 *SINTOMÁTICOS HOSPITALARES / SOS (ENFERMARIA)*\n\n" +
           "Prescrição rápida padronizada para intercorrências comuns:\n\n" +
@@ -59991,12 +60144,15 @@ function tratarCallbackUX(cb) {
           return enviarCheckinNoturno(chat, msgId);
         } else if (v === 'plantao_fim') {
           return gerarResumoFimPlantao(chat, msgId);
-        } else if (v === 'duvida') {
+        } else if (v === 'duvida' || v === 'duvidas_lista') {
+          if (typeof listarDuvidasMedQuest === 'function') {
+            return listarDuvidasMedQuest(chat, msgId);
+          }
           var msgDuvida = '🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\n' +
             'Envie sua dúvida médica a qualquer momento digitando:\n' +
             '`/duvida <sua dúvida>`\n\n' +
             '💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\n' +
-            'Sua dúvida será salva no Notion para o bloco noturno de estudo ativo e revisão espaçada.';
+            'Sua dúvida é salva localmente e de forma resiliente para o bloco noturno de estudo ativo no MedQuest.';
           var kbDuvida = botoesBot([
             [['🔙 Central de Rotina', 'ux:hub:rotina'], ['🏠 Início', 'ux:hub:inicio']]
           ]);

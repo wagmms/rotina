@@ -778,7 +778,7 @@ function enviarMenuEnfermaria(chat, messageId) {
     [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:enf:sbar']],
     [['🧪 Clearance (Cockcroft)', 'ux:enf:clcr'], ['💊 Ajuste Renal ATB', 'ux:enf:ajuste']],
     [['💧 Hidratação / Holliday', 'ux:enf:hidratacao'], ['📋 Prescrição Hospitalar', 'ux:enf:rxh']],
-    [['💊 Sintomáticos / SOS', 'ux:enf:sintomaticos']]
+    [['💊 Sintomáticos / SOS', 'ux:enf:sintomaticos'], ['🏁 Fim de Plantão', 'ux:enf:plantao_fim']]
   ];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
@@ -3808,6 +3808,7 @@ function tratarCallbackUX(cb) {
       else if (v === 'hidratacao') return enviarTelaEnfHidratacao(chat, msgId);
       else if (v === 'rxh') return enviarTelaEnfPrescricaoHosp(chat, msgId);
       else if (v === 'sbar') return enviarTelaEnfSBAR(chat, msgId);
+      else if (v === 'plantao_fim') return gerarResumoFimPlantao(chat, msgId);
       else if (v === 'sintomaticos') {
         var msgSint = "💊 *SINTOMÁTICOS HOSPITALARES / SOS (ENFERMARIA)*\n\n" +
           "Prescrição rápida padronizada para intercorrências comuns:\n\n" +
@@ -4080,12 +4081,15 @@ function tratarCallbackUX(cb) {
           return enviarCheckinNoturno(chat, msgId);
         } else if (v === 'plantao_fim') {
           return gerarResumoFimPlantao(chat, msgId);
-        } else if (v === 'duvida') {
+        } else if (v === 'duvida' || v === 'duvidas_lista') {
+          if (typeof listarDuvidasMedQuest === 'function') {
+            return listarDuvidasMedQuest(chat, msgId);
+          }
           var msgDuvida = '🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\n' +
             'Envie sua dúvida médica a qualquer momento digitando:\n' +
             '`/duvida <sua dúvida>`\n\n' +
             '💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\n' +
-            'Sua dúvida será salva no Notion para o bloco noturno de estudo ativo e revisão espaçada.';
+            'Sua dúvida é salva localmente e de forma resiliente para o bloco noturno de estudo ativo no MedQuest.';
           var kbDuvida = botoesBot([
             [['🔙 Central de Rotina', 'ux:hub:rotina'], ['🏠 Início', 'ux:hub:inicio']]
           ]);

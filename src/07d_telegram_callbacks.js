@@ -55,13 +55,9 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
     responderCallbackTelegram(cb.id, "🔒 O Habit Tracker do Notion é exclusivo do titular.", true);
     return true;
   }
-  responderCallbackTelegram(cb.id, "Salvando no Notion...");
-
-  var pageId = (typeof obterOuCriarPaginaHabitLog === "function") ? obterOuCriarPaginaHabitLog(ctx.dataAlvoISO) : null;
-  if (!pageId) {
-    responderCallbackTelegram(cb.id, "⚠️ Falha ao acessar o Habit Log do Notion.");
-    return true;
-  }
+  var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
+  var dataISO = ctx.dataAlvoISO || Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
+  var pageId = (typeof obterOuCriarPaginaHabitLog === "function") ? obterOuCriarPaginaHabitLog(dataISO) : null;
 
   var kb = cb.message && cb.message.reply_markup ? cb.message.reply_markup.inline_keyboard : null;
   var valorStatus = true;
@@ -91,10 +87,26 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
     if (propName && typeof atualizarCheckboxNotion === "function") {
       gravouComSucesso = atualizarCheckboxNotion(pageId, propName, valorStatus);
     }
+    // Fallback resiliente: persiste localmente se Notion não estiver configurado
+    if (!gravouComSucesso) {
+      try {
+        var props = PropertiesService.getScriptProperties();
+        props.setProperty("habito_" + dataISO + "_" + data, valorStatus ? "true" : "false");
+        gravouComSucesso = true;
+      } catch (_) {}
+    }
   } else if (data.startsWith("energy_")) {
     var valorEnergia = parseInt(data.replace("energy_", ""), 10);
     if (typeof atualizarNumeroNotion === "function") {
       gravouComSucesso = atualizarNumeroNotion(pageId, "⚡ Energia (1–5)", valorEnergia);
+    }
+    // Fallback resiliente para escala de energia
+    if (!gravouComSucesso) {
+      try {
+        var props = PropertiesService.getScriptProperties();
+        props.setProperty("habito_" + dataISO + "_energia", String(valorEnergia));
+        gravouComSucesso = true;
+      } catch (_) {}
     }
   }
 
@@ -119,9 +131,9 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
       "message_id": cb.message.message_id,
       "reply_markup": { "inline_keyboard": kb }
     });
-    responderCallbackTelegram(cb.id, "✅ Registrado no Notion!");
+    responderCallbackTelegram(cb.id, "✅ Registrado com sucesso!");
   } else if (!gravouComSucesso) {
-    responderCallbackTelegram(cb.id, "⚠️ Erro ao salvar registro no Notion.");
+    responderCallbackTelegram(cb.id, "⚠️ Erro ao registrar.");
   }
   return true;
 }

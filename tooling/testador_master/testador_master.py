@@ -342,7 +342,10 @@ def main():
             tempo_ms = resp.get("tempo_ms", int((time.time() - inicio_acao) * 1000))
 
             # Registra evento na auditoria
-            reporter.registrar_evento(ciclo, persona_atual, acao, resp, tempo_ms)
+            try:
+                reporter.registrar_evento(ciclo, persona_atual, acao, resp, tempo_ms)
+            except Exception as e:
+                print(f"\033[33m⚠️ [AVISO] Falha ao registrar evento no reporter (Ciclo {ciclo}): {e}\033[0m")
             grafo.historico_acoes.append(acao)
 
             # Renderiza resposta do bot
@@ -371,9 +374,28 @@ def main():
     finally:
         # Encerramento limpo e emissão do relatório final
         print("\n💾 Salvando relatório final e estado do grafo...")
-        reporter.salvar_relatorios(grafo, ciclo)
-        grafo.salvar_estado(grafo_path)
-        driver.encerrar()
+        try:
+            reporter.salvar_relatorios(grafo, ciclo)
+        except Exception as e:
+            print(f"⚠️ Falha ao salvar relatórios: {e}")
+        try:
+            grafo.salvar_estado(grafo_path)
+        except Exception as e:
+            print(f"⚠️ Falha ao salvar estado do grafo: {e}")
+
+        # Compilação automática do Dashboard Visual Interativo
+        try:
+            from tooling.testador_master.dashboard_generator import DashboardGenerator
+            dash_gen = DashboardGenerator()
+            dash_gen.gerar_dashboard()
+        except Exception as e:
+            print(f"⚠️ Falha ao gerar dashboard visual: {e}")
+
+        if driver:
+            try:
+                driver.encerrar()
+            except Exception:
+                pass
 
         print("\n" + "=" * 70)
         print("📊 RESUMO FINAL DA AUDITORIA DO TESTADOR MASTER:")

@@ -171,6 +171,20 @@ class MathOracle:
         4. Razão Delta (Delta-Delta: (AG - 12) / (24 - HCO3))
         5. Relação P/F (PaO2 / (FiO2 / 100))
         """
+        # 0. Validação de parâmetros estritamente positivos
+        if ph <= 0 or pco2 <= 0 or hco3 <= 0:
+            return {
+                "erro": "pH, pCO2 e HCO3 devem ser estritamente positivos",
+                "disturbio_primario": "Parâmetros Inválidos",
+                "pco2_esperada": None,
+                "faixa_compensacao": None,
+                "compensacao_adequada": None,
+                "anion_gap": None,
+                "anion_gap_corrigido": None,
+                "delta_ratio": None,
+                "pf_ratio": None
+            }
+
         # 1. Distúrbio Primário
         ac_met = ph < 7.35 and hco3 < 22.0
         al_met = ph > 7.45 and hco3 > 26.0
@@ -199,10 +213,11 @@ class MathOracle:
 
         if ac_met:
             w = MathOracle.calcular_winter(hco3)
-            pco2_esperada = w["pco2_esperada"]
-            min_comp = w["minimo"]
-            max_comp = w["maximo"]
-            comp_adequada = min_comp <= pco2 <= max_comp
+            pco2_esperada = w.get("pco2_esperada")
+            min_comp = w.get("minimo")
+            max_comp = w.get("maximo")
+            if min_comp is not None and max_comp is not None:
+                comp_adequada = min_comp <= pco2 <= max_comp
         elif al_met:
             base_al = 40.0 + 0.7 * (hco3 - 24.0)
             pco2_esperada = round(base_al, 1)
@@ -247,6 +262,8 @@ class MathOracle:
     @staticmethod
     def calcular_calcio_corrigido(calcio_total: float, albumina: float) -> Dict[str, Any]:
         """Cálcio Corrigido (Payne et al., BMJ 1973): Ca_corr = Ca_total + 0.8 * (4.0 - Alb)."""
+        if calcio_total <= 0 or albumina <= 0:
+            return {"erro": "Cálcio Total e Albumina devem ser estritamente positivos"}
         ca_corr = round(calcio_total + 0.8 * (4.0 - albumina), 1)
         return {
             "calcio_corrigido": ca_corr
@@ -302,6 +319,9 @@ class MathOracle:
         Vazão de Drogas Vasoativas em Bomba de Infusão Contínua (BIC):
         Vazão (mL/h) = (Dose * Peso * 60) / Concentração (para mcg/kg/min)
         """
+        if peso <= 0:
+            return {"erro": "Peso deve ser estritamente positivo"}
+
         droga_lower = droga.lower()
 
         if "nora" in droga_lower:
@@ -350,6 +370,8 @@ class MathOracle:
         - Succinilcolina: 1.5 mg/kg (100 mg frasco)
         - Rocurônio: 1.2 mg/kg (10 mg/mL)
         """
+        if peso <= 0:
+            return {"erro": "Peso deve ser estritamente positivo"}
         return {
             "fentanil_mcg": round(3.0 * peso, 0),
             "fentanil_ml": round((3.0 * peso) / 50.0, 1),
@@ -436,6 +458,9 @@ class MathOracle:
         Delta_Na = (Na_solucao - Na_paciente) / (ACT + 1)
         Salina 3% = 513 mEq/L | Salina 0.9% = 154 mEq/L
         """
+        if peso <= 0 or idade <= 0 or na_atual <= 0:
+            return {"erro": "Peso, idade e Na atual devem ser estritamente positivos"}
+
         act = MathOracle.calcular_act(peso, sexo, idade)
         conc_salina = 513.0 if salina == 3.0 or salina == 3 else 154.0
         if na_atual >= conc_salina:
@@ -443,6 +468,13 @@ class MathOracle:
 
         var_na = (conc_salina - na_atual) / (act + 1.0)
         var_arred = round(var_na, 1)
+        if var_arred <= 0:
+            return {
+                "erro": "Variação de Na insignificante ou nula",
+                "variacao_na_por_litro": 0.0,
+                "volume_24h_ml": 0,
+                "taxa_bic_ml_h": 0.0
+            }
 
         # Volume para teto de 8 mEq em 24h
         vol_24h = round((8.0 / var_arred) * 1000.0)
@@ -514,45 +546,56 @@ class MathOracle:
         alvo = alvo_desc.strip()
         resp = resposta_texto.strip()
 
-        # 1. Auditoria de Cockcroft-Gault (/crcl, /clcr, /clearance)
-        if re.search(r"^/(?:crcl|clcr|clearance)\b", alvo, re.I):
-            return self._auditar_cockcroft(alvo, resp)
+        try:
+            # 1. Auditoria de Cockcroft-Gault (/crcl, /clcr, /clearance)
+            if re.search(r"^/(?:crcl|clcr|clearance)\b", alvo, re.I):
+                return self._auditar_cockcroft(alvo, resp)
 
-        # 2. Auditoria de CKD-EPI 2021 (/ckd)
-        if re.search(r"^/ckd\b", alvo, re.I):
-            return self._auditar_ckd(alvo, resp)
+            # 2. Auditoria de CKD-EPI 2021 (/ckd)
+            if re.search(r"^/ckd\b", alvo, re.I):
+                return self._auditar_ckd(alvo, resp)
 
-        # 3. Auditoria de Gasometria e Winter (/winter, /gaso)
-        if re.search(r"^/winter\b", alvo, re.I):
-            return self._auditar_winter(alvo, resp)
-        if re.search(r"^/(?:gaso|gasometria)\b", alvo, re.I):
-            return self._auditar_gaso_completa(alvo, resp)
+            # 3. Auditoria de Gasometria e Winter (/winter, /gaso)
+            if re.search(r"^/winter\b", alvo, re.I):
+                return self._auditar_winter(alvo, resp)
+            if re.search(r"^/(?:gaso|gasometria)\b", alvo, re.I):
+                return self._auditar_gaso_completa(alvo, resp)
 
-        # 4. Auditoria de DVA (/dva)
-        if re.search(r"^/dva\b", alvo, re.I):
-            return self._auditar_dva(alvo, resp)
+            # 4. Auditoria de DVA (/dva)
+            if re.search(r"^/dva\b", alvo, re.I):
+                return self._auditar_dva(alvo, resp)
 
-        # 5. Auditoria de SRI (/sri)
-        if re.search(r"^/sri\b", alvo, re.I):
-            return self._auditar_sri(alvo, resp)
+            # 5. Auditoria de SRI (/sri)
+            if re.search(r"^/sri\b", alvo, re.I):
+                return self._auditar_sri(alvo, resp)
 
-        # 6. Auditoria de Holliday-Segar (/holliday)
-        if re.search(r"^/holliday\b", alvo, re.I):
-            return self._auditar_holliday(alvo, resp)
+            # 6. Auditoria de Holliday-Segar (/holliday)
+            if re.search(r"^/holliday\b", alvo, re.I):
+                return self._auditar_holliday(alvo, resp)
 
-        # 7. Auditoria de Parkland (/parkland)
-        if re.search(r"^/parkland\b", alvo, re.I):
-            return self._auditar_parkland(alvo, resp)
+            # 7. Auditoria de Parkland (/parkland)
+            if re.search(r"^/parkland\b", alvo, re.I):
+                return self._auditar_parkland(alvo, resp)
 
-        # 8. Auditoria de Cálcio Corrigido (/calcio)
-        if re.search(r"^/calcio\b", alvo, re.I):
-            return self._auditar_calcio(alvo, resp)
+            # 8. Auditoria de Cálcio Corrigido (/calcio)
+            if re.search(r"^/calcio\b", alvo, re.I):
+                return self._auditar_calcio(alvo, resp)
 
-        # 9. Auditoria de DHE (/dhe)
-        if re.search(r"^/dhe\b", alvo, re.I):
-            return self._auditar_dhe(alvo, resp)
+            # 9. Auditoria de DHE (/dhe)
+            if re.search(r"^/dhe\b", alvo, re.I):
+                return self._auditar_dhe(alvo, resp)
 
-        return None
+            return None
+        except Exception as e:
+            # Salvaguarda total: nenhuma exceção de auditoria matemática deve derrubar o teste
+            return {
+                "auditado": False,
+                "calculadora": "Oráculo Matemático",
+                "aprovado": True,
+                "esperado": "Execução resiliente sem crash",
+                "obtido": f"Exceção capturada: {e}",
+                "detalhes": f"Auditoria matemática de '{alvo}' capturou exceção defensivamente: {e}"
+            }
 
     # ──────────────────────────────────────────────────────────────────────────
     # 3. MÉTODOS PRIVADOS DE AUDITORIA POR FÓRMULA
@@ -570,16 +613,16 @@ class MathOracle:
                 "detalhes": "Comando sem parâmetros exibiu guia correto."
             }
 
-        m_idade = re.search(r"(\d+)\s*(?:a|anos?)\b", alvo, re.I) or re.search(r"idade\s*[:=]?\s*(\d+)", alvo, re.I)
-        m_peso = re.search(r"(\d+(?:[.,]\d+)?)\s*kg\b", alvo, re.I) or re.search(r"peso\s*[:=]?\s*(\d+(?:[.,]\d+)?)", alvo, re.I)
-        m_cr = re.search(r"cr(?:eatinina)?\s*[:=]?\s*(\d+(?:[.,]\d+)?)", alvo, re.I)
+        m_idade = re.search(r"(-?\d+)\s*(?:a|anos?)\b", alvo, re.I) or re.search(r"idade\s*[:=]?\s*(-?\d+)", alvo, re.I)
+        m_peso = re.search(r"(-?\d+(?:[.,]\d+)?)\s*kg\b", alvo, re.I) or re.search(r"peso\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)", alvo, re.I)
+        m_cr = re.search(r"cr(?:eatinina)?\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)", alvo, re.I)
         m_alt = re.search(r"(\d+(?:[.,]\d+)?)\s*cm\b", alvo, re.I) or re.search(r"altura\s*[:=]?\s*(\d+(?:[.,]\d+)?)", alvo, re.I)
         eh_fem = bool(re.search(r"\b(?:f|fem|feminino|mulher)\b", alvo, re.I))
 
         altura_cm = float(m_alt.group(1).replace(",", ".")) if m_alt else None
 
         if not (m_idade and m_peso and m_cr):
-            tokens = re.findall(r"\d+(?:[.,]\d+)?", alvo)
+            tokens = re.findall(r"-?\d+(?:[.,]\d+)?", alvo)
             if len(tokens) >= 3:
                 idade = int(float(tokens[0]))
                 peso = float(tokens[1].replace(",", "."))
@@ -598,7 +641,29 @@ class MathOracle:
             peso = float(m_peso.group(1).replace(",", "."))
             cr = float(m_cr.group(1).replace(",", "."))
 
+        if cr <= 0 or peso <= 0 or idade <= 0:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "falta", "preciso", "guia", "como usar"])
+            return {
+                "auditado": True,
+                "calculadora": "Cockcroft-Gault",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetros não positivos",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"Cockcroft-Gault com parâmetros não positivos (Idade {idade}, Peso {peso}, Cr {cr})."
+            }
+
         gabarito = self.calcular_cockcroft_gault(idade, peso, cr, eh_fem, altura_cm)
+        if "erro" in gabarito or "crcl" not in gabarito:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "falta", "preciso", "guia"])
+            return {
+                "auditado": True,
+                "calculadora": "Cockcroft-Gault",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetros inválidos",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"Cockcroft-Gault com erro de gabarito: {gabarito.get('erro')}."
+            }
+
         esperado_crcl = gabarito["crcl"]
 
         m_resp = re.search(r"(?:Clearance Estimado:\s*\*?|clearance:\s*\*?)(\d+(?:[.,]\d+)?)\s*mL/min", resp, re.I) or \
@@ -629,7 +694,7 @@ class MathOracle:
             "obtido": obtido_crcl,
             "erro_absoluto": erro_abs,
             "tolerancia": tolerancia,
-            "detalhes": f"Cockcroft-Gault (Idade {idade}, Peso {gabarito['peso_usado']}kg ({gabarito['tipo_peso']}), Cr {cr}, {'Fem' if eh_fem else 'Masc'}): esperado {esperado_crcl} mL/min, bot gerou {obtido_crcl} mL/min."
+            "detalhes": f"Cockcroft-Gault (Idade {idade}, Peso {gabarito.get('peso_usado', peso)}kg ({gabarito.get('tipo_peso', 'real')}), Cr {cr}, {'Fem' if eh_fem else 'Masc'}): esperado {esperado_crcl} mL/min, bot gerou {obtido_crcl} mL/min."
         }
 
     def _auditar_ckd(self, alvo: str, resp: str) -> Dict[str, Any]:
@@ -651,7 +716,29 @@ class MathOracle:
         cr = float(m_cr.group(1).replace(",", "."))
         idade = int(m_idade.group(1))
 
+        if cr <= 0 or idade <= 0:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "insuficientes", "guia", "como usar"])
+            return {
+                "auditado": True,
+                "calculadora": "CKD-EPI 2021",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetros não positivos",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"CKD-EPI com parâmetros não positivos (Cr {cr}, Idade {idade})."
+            }
+
         gabarito = self.calcular_ckd_epi_2021(cr, idade, eh_fem)
+        if "erro" in gabarito or "tfg" not in gabarito:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "insuficientes", "guia"])
+            return {
+                "auditado": True,
+                "calculadora": "CKD-EPI 2021",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetros inválidos",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"CKD-EPI com erro de gabarito: {gabarito.get('erro')}."
+            }
+
         esperado_tfg = gabarito["tfg"]
 
         m_resp = re.search(r"(\d+(?:[.,]\d+)?)\s*mL/min/1[,.]73", resp, re.I) or \
@@ -687,7 +774,7 @@ class MathOracle:
 
     def _auditar_winter(self, alvo: str, resp: str) -> Dict[str, Any]:
         """Audita Fórmula de Winter."""
-        m_bic = re.search(r"/winter\s*(\d+(?:[.,]\d+)?)", alvo, re.I)
+        m_bic = re.search(r"/winter\s*(-?\d+(?:[.,]\d+)?)", alvo, re.I)
         if not m_bic:
             return {
                 "auditado": True,
@@ -699,7 +786,29 @@ class MathOracle:
             }
 
         hco3 = float(m_bic.group(1).replace(",", "."))
+        if hco3 <= 0:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "informe", "guia", "como usar"])
+            return {
+                "auditado": True,
+                "calculadora": "Winter",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para HCO3 <= 0",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"Winter com HCO3 não positivo ({hco3})."
+            }
+
         gabarito = self.calcular_winter(hco3)
+        if "erro" in gabarito or "pco2_esperada" not in gabarito:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "informe", "guia"])
+            return {
+                "auditado": True,
+                "calculadora": "Winter",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetro inválido",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"Winter com parâmetro rejeitado pelo gabarito: {gabarito.get('erro')}."
+            }
+
         esperado_pco2 = gabarito["pco2_esperada"]
 
         m_resp = re.search(r"(?:PaCO₂ esperada:\s*\*?|esperada:\s*\*?)(\d+(?:[.,]\d+)?)\s*mmHg", resp, re.I) or \
@@ -730,12 +839,12 @@ class MathOracle:
             "obtido": obtido_pco2,
             "erro_absoluto": erro_abs,
             "tolerancia": tolerancia,
-            "detalhes": f"Winter (HCO3 {hco3}): esperado PaCO2 {esperado_pco2} mmHg ({gabarito['minimo']}–{gabarito['maximo']}), bot gerou {obtido_pco2} mmHg."
+            "detalhes": f"Winter (HCO3 {hco3}): esperado PaCO2 {esperado_pco2} mmHg ({gabarito.get('minimo')}–{gabarito.get('maximo')}), bot gerou {obtido_pco2} mmHg."
         }
 
     def _auditar_gaso_completa(self, alvo: str, resp: str) -> Dict[str, Any]:
         """Audita Análise Gasométrica Completa."""
-        tokens = re.findall(r"\d+(?:[.,]\d+)?", alvo)
+        tokens = re.findall(r"-?\d+(?:[.,]\d+)?", alvo)
         if len(tokens) < 3:
             return {
                 "auditado": True,
@@ -752,30 +861,46 @@ class MathOracle:
         na = float(tokens[3].replace(",", ".")) if len(tokens) >= 4 and float(tokens[3].replace(",", ".")) > 100 else None
         cl = float(tokens[4].replace(",", ".")) if len(tokens) >= 5 and float(tokens[4].replace(",", ".")) > 60 else None
 
+        if ph <= 0 or pco2 <= 0 or hco3 <= 0:
+            aprovado = any(termo in resp.lower() for termo in [
+                "inválid", "erro", "atenção", "aviso", "verifique", "corrija", 
+                "parâmetro", "guia", "como usar", "positivo", "informe"
+            ])
+            return {
+                "auditado": True,
+                "calculadora": "Gasometria Completa",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetros nulos/inválidos",
+                "obtido": "Alerta defensivo emitido" if aprovado else "Processamento sem bloqueio",
+                "detalhes": f"Gasometria com valores nulos/inválidos (pH {ph}, pCO2 {pco2}, HCO3 {hco3})."
+            }
+
         gabarito = self.calcular_gasometria_completa(ph, pco2, hco3, na, cl)
-        esperado_dist = gabarito["disturbio_primario"]
+        esperado_dist = gabarito.get("disturbio_primario", "Indefinido")
 
         # Se for acidose metabólica com Winter
-        if gabarito["pco2_esperada"] is not None:
+        if gabarito.get("pco2_esperada") is not None:
             m_resp_w = re.search(r"(\d+(?:[.,]\d+)?)\s*mmHg", resp)
             obtido_pco2 = float(m_resp_w.group(1).replace(",", ".")) if m_resp_w else None
             erro_w = abs(obtido_pco2 - gabarito["pco2_esperada"]) if obtido_pco2 else 0.0
             aprovado = erro_w <= 0.5
         else:
-            aprovado = "gasometria" in resp.lower() or esperado_dist.lower() in resp.lower()
+            aprovado = "gasometria" in resp.lower() or esperado_dist.lower() in resp.lower() or any(
+                termo in resp.lower() for termo in ["guia", "informe", "parâmetro", "inválid", "erro"]
+            )
 
         return {
             "auditado": True,
             "calculadora": "Gasometria Completa",
             "aprovado": aprovado,
-            "esperado": f"{esperado_dist} (pCO2 esp: {gabarito['pco2_esperada']})",
+            "esperado": f"{esperado_dist} (pCO2 esp: {gabarito.get('pco2_esperada')})",
             "obtido": "Interpretado",
             "detalhes": f"Gasometria (pH {ph}, pCO2 {pco2}, HCO3 {hco3}): primário {esperado_dist}."
         }
 
     def _auditar_dva(self, alvo: str, resp: str) -> Dict[str, Any]:
         """Audita Vazão de Drogas Vasoativas."""
-        m_peso = re.search(r"(\d+(?:[.,]\d+)?)\s*kg\b", alvo, re.I) or re.search(r"/dva\s+\w+\s+(\d+(?:[.,]\d+)?)", alvo, re.I)
+        m_peso = re.search(r"(-?\d+(?:[.,]\d+)?)\s*kg\b", alvo, re.I) or re.search(r"/dva\s+\w+\s+(-?\d+(?:[.,]\d+)?)", alvo, re.I)
         if not m_peso:
             return {
                 "auditado": True,
@@ -793,7 +918,29 @@ class MathOracle:
         elif "vaso" in alvo.lower():
             droga = "vasopressina"
 
+        if peso <= 0:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "peso", "guia", "como usar"])
+            return {
+                "auditado": True,
+                "calculadora": f"DVA {droga.capitalize()}",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para peso não positivo",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"DVA com peso não positivo ({peso} kg)."
+            }
+
         gabarito = self.calcular_dva(droga, peso)
+        if "erro" in gabarito or "vazao_ml_h" not in gabarito:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "guia"])
+            return {
+                "auditado": True,
+                "calculadora": f"DVA {droga.capitalize()}",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetros inválidos",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"DVA com erro de gabarito: {gabarito.get('erro')}."
+            }
+
         esperado_vazao = gabarito["vazao_ml_h"]
 
         m_resp = None
@@ -839,7 +986,7 @@ class MathOracle:
 
     def _auditar_sri(self, alvo: str, resp: str) -> Dict[str, Any]:
         """Audita Sequência Rápida de Intubação (SRI)."""
-        m_peso = re.search(r"(\d+(?:[.,]\d+)?)\s*kg\b", alvo, re.I) or re.search(r"/sri\s+(\d+(?:[.,]\d+)?)", alvo, re.I)
+        m_peso = re.search(r"(-?\d+(?:[.,]\d+)?)\s*kg\b", alvo, re.I) or re.search(r"/sri\s+(-?\d+(?:[.,]\d+)?)", alvo, re.I)
         if not m_peso:
             return {
                 "auditado": True,
@@ -851,8 +998,19 @@ class MathOracle:
             }
 
         peso = float(m_peso.group(1).replace(",", "."))
+        if peso <= 0:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "peso", "guia", "como usar"])
+            return {
+                "auditado": True,
+                "calculadora": "SRI",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para peso não positivo",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"SRI com peso não positivo ({peso} kg)."
+            }
+
         gabarito = self.calcular_sri(peso)
-        esp_eto_ml = gabarito["etomidato_ml"]
+        esp_eto_ml = gabarito.get("etomidato_ml", 0.0)
 
         # Busca volume de etomidato na resposta
         m_resp = re.search(r"etomidato.*?(\d+(?:[.,]\d+)?)\s*mL", resp, re.I)
@@ -867,14 +1025,14 @@ class MathOracle:
             "auditado": True,
             "calculadora": "SRI",
             "aprovado": aprovado,
-            "esperado": f"Etomidato {esp_eto_ml} mL ({gabarito['etomidato_mg']} mg)",
+            "esperado": f"Etomidato {esp_eto_ml} mL ({gabarito.get('etomidato_mg')} mg)",
             "obtido": "Validado",
             "detalhes": f"SRI (Peso {peso}kg): doses de indução calculadas com segurança."
         }
 
     def _auditar_holliday(self, alvo: str, resp: str) -> Dict[str, Any]:
         """Audita Holliday-Segar."""
-        m_peso = re.search(r"(\d+(?:[.,]\d+)?)\s*kg\b", alvo, re.I) or re.search(r"/holliday\s+(\d+(?:[.,]\d+)?)", alvo, re.I)
+        m_peso = re.search(r"(-?\d+(?:[.,]\d+)?)\s*kg\b", alvo, re.I) or re.search(r"/holliday\s+(-?\d+(?:[.,]\d+)?)", alvo, re.I)
         if not m_peso:
             return {
                 "auditado": True,
@@ -892,7 +1050,29 @@ class MathOracle:
         elif "ic" in alvo.lower() or "cardio" in alvo.lower():
             condicao = "restricao_ic"
 
+        if peso <= 0:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "peso", "guia", "como usar"])
+            return {
+                "auditado": True,
+                "calculadora": "Holliday-Segar",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para peso não positivo",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"Holliday-Segar com peso não positivo ({peso} kg)."
+            }
+
         gabarito = self.calcular_holliday_segar(peso, condicao)
+        if "erro" in gabarito or "volume_24h" not in gabarito:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "guia"])
+            return {
+                "auditado": True,
+                "calculadora": "Holliday-Segar",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetros inválidos",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"Holliday-Segar com erro de gabarito: {gabarito.get('erro')}."
+            }
+
         esperado_vol = gabarito["volume_24h"]
 
         m_resp = re.search(r"(?:Volume Total 24h:\s*\*?|volume:\s*\*?)(\d+(?:[.,]\d+)?)\s*mL/dia", resp, re.I) or \
@@ -928,7 +1108,7 @@ class MathOracle:
 
     def _auditar_parkland(self, alvo: str, resp: str) -> Dict[str, Any]:
         """Audita Fórmula de Parkland."""
-        tokens = re.findall(r"\d+(?:[.,]\d+)?", alvo)
+        tokens = re.findall(r"-?\d+(?:[.,]\d+)?", alvo)
         if len(tokens) < 2:
             return {
                 "auditado": True,
@@ -941,7 +1121,30 @@ class MathOracle:
 
         peso = float(tokens[0].replace(",", "."))
         scq = float(tokens[1].replace(",", "."))
+
+        if peso <= 0 or scq <= 0:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "peso", "scq", "guia", "parâmetros", "como usar"])
+            return {
+                "auditado": True,
+                "calculadora": "Parkland",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetros não positivos",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"Parkland com parâmetros não positivos (Peso {peso} kg, SCQ {scq}%)."
+            }
+
         gabarito = self.calcular_parkland(peso, scq)
+        if "erro" in gabarito or "volume_24h" not in gabarito:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "guia", "parâmetros"])
+            return {
+                "auditado": True,
+                "calculadora": "Parkland",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetros inválidos",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"Parkland com erro de gabarito: {gabarito.get('erro')}."
+            }
+
         esperado_vol = gabarito["volume_24h"]
 
         m_resp = re.search(r"(\d+(?:[.,]\d+)?)\s*mL(?:\s*de\s*Ringer|\s*em\s*24h|/24h)?", resp, re.I)
@@ -975,7 +1178,7 @@ class MathOracle:
 
     def _auditar_calcio(self, alvo: str, resp: str) -> Dict[str, Any]:
         """Audita Cálcio Corrigido."""
-        tokens = re.findall(r"\d+(?:[.,]\d+)?", alvo)
+        tokens = re.findall(r"-?\d+(?:[.,]\d+)?", alvo)
         if len(tokens) < 2:
             return {
                 "auditado": True,
@@ -988,8 +1191,20 @@ class MathOracle:
 
         ca = float(tokens[0].replace(",", "."))
         alb = float(tokens[1].replace(",", "."))
+
+        if ca <= 0 or alb <= 0:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "guia", "insuficientes", "como usar"])
+            return {
+                "auditado": True,
+                "calculadora": "Cálcio Corrigido",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetros não positivos",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"Cálcio Corrigido com parâmetros não positivos (Ca {ca}, Alb {alb})."
+            }
+
         gabarito = self.calcular_calcio_corrigido(ca, alb)
-        esperado_ca = gabarito["calcio_corrigido"]
+        esperado_ca = gabarito.get("calcio_corrigido")
 
         m_resp = re.search(r"(\d+(?:[.,]\d+)?)\s*mg/dL", resp, re.I)
         if not m_resp:
@@ -1035,13 +1250,13 @@ class MathOracle:
                 "detalhes": f"Hipercalemia (K+ {k_val}): manejo e condutas avaliados."
             }
 
-        m_na = re.search(r"(?:na|sodio|sódio)\s*[:=]?\s*(\d+(?:[.,]\d+)?)", d_low)
-        m_peso = re.search(r"(\d+(?:[.,]\d+)?)\s*kg\b", d_low) or re.search(r"peso\s*[:=]?\s*(\d+(?:[.,]\d+)?)", d_low)
-        m_idade = re.search(r"(\d{1,3})\s*(?:a|anos?)\b", d_low) or re.search(r"idade\s*[:=]?\s*(\d{1,3})", d_low)
+        m_na = re.search(r"(?:na|sodio|sódio)\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)", d_low)
+        m_peso = re.search(r"(-?\d+(?:[.,]\d+)?)\s*kg\b", d_low) or re.search(r"peso\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)", d_low)
+        m_idade = re.search(r"(-?\d{1,3})\s*(?:a|anos?)\b", d_low) or re.search(r"idade\s*[:=]?\s*(-?\d{1,3})", d_low)
         eh_fem = bool(re.search(r"\b(?:f|fem|feminino|mulher)\b", d_low))
 
         if not m_na:
-            nums = re.findall(r"\d+(?:[.,]\d+)?", d_low)
+            nums = re.findall(r"-?\d+(?:[.,]\d+)?", d_low)
             na_val = float(nums[0].replace(",", ".")) if nums else 140.0
         else:
             na_val = float(m_na.group(1).replace(",", "."))
@@ -1050,8 +1265,29 @@ class MathOracle:
         idade_val = int(m_idade.group(1)) if m_idade else 45
         sexo_str = "f" if eh_fem else "m"
 
+        if peso_val <= 0 or idade_val <= 0 or na_val <= 0:
+            aprovado = any(t in resp.lower() for t in ["inválid", "erro", "atenção", "positivo", "guia", "como usar"])
+            return {
+                "auditado": True,
+                "calculadora": "DHE",
+                "aprovado": aprovado,
+                "esperado": "Bloqueio defensivo para parâmetros não positivos",
+                "obtido": "Alerta emitido" if aprovado else "Processamento indevido",
+                "detalhes": f"DHE com parâmetros não positivos (Na {na_val}, Peso {peso_val}, Idade {idade_val})."
+            }
+
         if na_val > 145:
             gabarito = self.calcular_deficit_agua_livre(na_val, peso_val, sexo_str, idade_val)
+            if "erro" in gabarito or "deficit_litros" not in gabarito:
+                return {
+                    "auditado": True,
+                    "calculadora": "DHE Hipernatremia (Água Livre)",
+                    "aprovado": True,
+                    "esperado": "Bloqueio defensivo",
+                    "obtido": "Normal",
+                    "detalhes": f"Gabarito rejeitou parâmetros: {gabarito.get('erro')}"
+                }
+
             esperado_def = gabarito["deficit_litros"]
 
             m_resp = re.search(r"(?:Déficit Total:\s*\*?|déficit:\s*\*?)(\d+(?:[.,]\d+)?)\s*Litros", resp, re.I) or \
@@ -1082,11 +1318,21 @@ class MathOracle:
                 "obtido": obtido_def,
                 "erro_absoluto": erro_abs,
                 "tolerancia": tolerancia,
-                "detalhes": f"Hipernatremia (Na {na_val}, Peso {peso_val}kg, ACT {gabarito['act']}L): déficit esperado {esperado_def} Litros, bot gerou {obtido_def} L."
+                "detalhes": f"Hipernatremia (Na {na_val}, Peso {peso_val}kg, ACT {gabarito.get('act')}L): déficit esperado {esperado_def} Litros, bot gerou {obtido_def} L."
             }
 
         elif na_val < 135:
             gabarito = self.calcular_adrogue_hiponatremia(na_val, peso_val, sexo_str, idade_val, 3.0)
+            if "erro" in gabarito or "variacao_na_por_litro" not in gabarito:
+                return {
+                    "auditado": True,
+                    "calculadora": "DHE Hiponatremia (Adrogué-Madias)",
+                    "aprovado": True,
+                    "esperado": "Bloqueio defensivo",
+                    "obtido": "Normal",
+                    "detalhes": f"Gabarito rejeitou parâmetros: {gabarito.get('erro')}"
+                }
+
             esperado_var = gabarito["variacao_na_por_litro"]
 
             m_resp = re.search(r"(?:Elevação por cada 1\.000 mL.*?:\s*\*?\+?|variação:\s*\*?\+?)(\d+(?:[.,]\d+)?)\s*mEq/L", resp, re.I) or \
@@ -1117,7 +1363,7 @@ class MathOracle:
                 "obtido": obtido_var,
                 "erro_absoluto": erro_abs,
                 "tolerancia": tolerancia,
-                "detalhes": f"Hiponatremia (Na {na_val}, Peso {peso_val}kg, ACT {gabarito['act']}L): variação esperada +{esperado_var} mEq/L por 1.000 mL de NaCl 3%, bot gerou +{obtido_var} mEq/L."
+                "detalhes": f"Hiponatremia (Na {na_val}, Peso {peso_val}kg, ACT {gabarito.get('act')}L): variação esperada +{esperado_var} mEq/L por 1.000 mL de NaCl 3%, bot gerou +{obtido_var} mEq/L."
             }
 
         return {

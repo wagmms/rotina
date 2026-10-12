@@ -64,6 +64,11 @@ assert.ok(htmlContent.includes('id="rotina-filtros-container"'), 'Container de f
 assert.ok(htmlContent.includes('id="rotina-blocos-container"'), 'Container rotina-blocos-container deve existir');
 assert.ok(htmlContent.includes('RotinaTimeline.ativarModoDescanso()'), 'Ação rápida de modo descanso deve existir');
 assert.ok(htmlContent.includes('RotinaTimeline.carregarGradePadrao()'), 'Ação rápida de carregar grade padrão deve existir');
+assert.ok(htmlContent.includes('id="rotina-duvidas-card"'), 'Gaveta rotina-duvidas-card deve existir');
+assert.ok(htmlContent.includes('id="rotina-duvidas-lista"'), 'Lista rotina-duvidas-lista deve existir');
+assert.ok(htmlContent.includes('id="input-nova-duvida-cockpit"'), 'Input de nova dúvida deve existir');
+assert.ok(htmlContent.includes('data-filtro="lifestyle"'), 'Filtro de lifestyle deve existir');
+assert.ok(htmlContent.includes('RotinaTimeline.alternarGavetaDuvidas()'), 'Ação de alternar gaveta de dúvidas deve existir');
 assert.ok(htmlContent.includes('rotina_timeline.js'), 'Tag de script de rotina_timeline.js deve ser importada');
 console.log('  ✓ Todos os seletores e ausência de mocks validados no HTML.');
 
@@ -192,5 +197,48 @@ assert.strictEqual(b2Adiado.status, 'adiado');
 assert.strictEqual(b2Adiado.inicio, '20:30');
 assert.strictEqual(b2Adiado.fim, '22:30');
 console.log('  ✓ Lógica de normalização, renderização, contadores, modo descanso e adiar (+30m) aprovada.');
+
+// 4.6 Categoria Lifestyle & Vida Pessoal
+console.log('\n[5] Testando categoria lifestyle e normalização inteligente...');
+const blocoLifestyle = RotinaTimeline.normalizarBloco({
+  id: 'b-life',
+  titulo: 'Prática de Violão & Teoria Musical',
+  horario: '19:30 - 20:30'
+}, 3);
+assert.strictEqual(blocoLifestyle.categoria, 'lifestyle', 'Título com violão deve ser classificado como lifestyle');
+assert.ok(RotinaTimeline.CATEGORIA_CONFIG.lifestyle, 'CATEGORIA_CONFIG deve conter lifestyle');
+console.log('  ✓ Categoria lifestyle reconhecida com sucesso.');
+
+// 4.7 Gaveta de Dúvidas MedQuest
+console.log('\n[6] Testando persistência e resolução de dúvidas MedQuest...');
+assert.strictEqual(typeof RotinaTimeline.carregarDuvidasLocais, 'function');
+assert.strictEqual(typeof RotinaTimeline.salvarDuvidasLocais, 'function');
+assert.strictEqual(typeof RotinaTimeline.renderizarDuvidas, 'function');
+assert.strictEqual(typeof RotinaTimeline.resolverDuvidaCockpit, 'function');
+assert.strictEqual(typeof RotinaTimeline.alternarGavetaDuvidas, 'function');
+
+const listaDuvidasTeste = [
+  { id: 'd1', texto: 'Critérios de Light para exsudato pleural', resolvida: false },
+  { id: 'd2', texto: 'Tratamento de status epilepticus na emergência', resolvida: true }
+];
+RotinaTimeline.salvarDuvidasLocais(listaDuvidasTeste);
+const lidas = RotinaTimeline.carregarDuvidasLocais();
+assert.strictEqual(lidas.length, 2);
+assert.strictEqual(lidas[0].texto, 'Critérios de Light para exsudato pleural');
+
+RotinaTimeline.renderizarDuvidas(lidas);
+const badgeDuvidas = mockDoc.getElementById('duvidas-contador-badge');
+assert.strictEqual(badgeDuvidas.textContent, '1', 'Badge deve contar 1 dúvida pendente');
+
+RotinaTimeline.resolverDuvidaCockpit('d1');
+const lidasAposResolver = RotinaTimeline.carregarDuvidasLocais();
+assert.strictEqual(lidasAposResolver.find(d => d.id === 'd1').resolvida, true, 'Dúvida d1 deve estar marcada como resolvida');
+console.log('  ✓ Persistência e ciclo de vida de dúvidas MedQuest validados.');
+
+// 4.8 Grade Padrão com Confirmação e Polling Suave
+console.log('\n[7] Testando proteção de grade padrão e polling suave...');
+assert.strictEqual(typeof RotinaTimeline.carregarGradePadraoComConfirmacao, 'function');
+assert.strictEqual(typeof RotinaTimeline.iniciarPollingSuave, 'function');
+console.log('  ✓ Métodos de proteção e polling suave validados.');
 
 console.log('\n=== TODOS OS TESTES DA ABA ROTINA COCKPIT APROVADOS COM SUCESSO! ===');

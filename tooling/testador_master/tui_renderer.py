@@ -221,9 +221,13 @@ class TUIRenderer:
             linha_conteudo += f"{CYAN}│{RESET}{' ' * pad_esq}{BOLD}{WHITE}{rotulo}{RESET}{' ' * pad_dir}{CYAN}│ {RESET}"
             linha_base += f"{CYAN}└{'─' * (largura_btn - 2)}┘ {RESET}"
 
-        print(f"{BLUE}│{RESET}{linha_topo[:largura_total - 4]}")
-        print(f"{BLUE}│{RESET}{linha_conteudo[:largura_total - 4]}")
-        print(f"{BLUE}│{RESET}{linha_base[:largura_total - 4]}")
+        pad_topo = max(0, largura_total - 4 - self._tamanho_visivel(linha_topo))
+        pad_conteudo = max(0, largura_total - 4 - self._tamanho_visivel(linha_conteudo))
+        pad_base = max(0, largura_total - 4 - self._tamanho_visivel(linha_base))
+
+        print(f"{BLUE}│{RESET}{linha_topo}{' ' * pad_topo}{BLUE}│{RESET}")
+        print(f"{BLUE}│{RESET}{linha_conteudo}{' ' * pad_conteudo}{BLUE}│{RESET}")
+        print(f"{BLUE}│{RESET}{linha_base}{' ' * pad_base}{BLUE}│{RESET}")
 
     def renderizar_acao_em_progresso(self, mensagem: str):
         sys.stdout.write(f"\r{DIM}⏳ {mensagem}...{RESET}")

@@ -188,7 +188,10 @@ class MasterReporter:
         # 9. Auditoria Matemática Determinística de Fórmulas Clínicas (MathOracle)
         alvo_cmd = acao.get("alvo_desc") or acao.get("texto", "")
         if ok and texto and alvo_cmd:
-            res_math = self.math_oracle.auditar_interacao(str(alvo_cmd), texto)
+            try:
+                res_math = self.math_oracle.auditar_interacao(str(alvo_cmd), texto)
+            except Exception as e:
+                res_math = None
             if res_math:
                 res_math["ciclo"] = ciclo
                 res_math["persona"] = persona.nome

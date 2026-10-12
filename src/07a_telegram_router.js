@@ -4934,6 +4934,7 @@ var TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_ = {
   "/tarefa": true,
   "/tasks": true,
   "/duvida": true,
+  "/duvidas": true,
   "/semana": true,
   "/relatorio": true,
   "/habitos": true,
@@ -4984,7 +4985,7 @@ function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, messag
 
 
   // 4. AGENDA, TAREFAS E NOTION (EXCLUSIVO TITULAR)
-  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina" || comando === "/habitos") {
+  if (comando === "/agenda" || comando === "/task" || comando === "/tarefa" || comando === "/tasks" || comando === "/duvida" || comando === "/duvidas" || comando === "/semana" || comando === "/relatorio" || comando === "/checkin" || comando === "/briefing" || comando === "/rotina" || comando === "/habitos") {
     if (!ehUsuarioTitular(chatId)) {
       return enviarMensagemParaChat(chatId, "🔒 *Recurso Restrito ao Titular*\n\nEste recurso (Notion, Agenda e Rotina pessoal) é exclusivo do administrador da conta.\n\n💡 Use o /menu para acessar calculadoras, condutas, guias de diluição HSL e consultas clínicas.");
     }
@@ -5008,11 +5009,25 @@ function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, messag
     return listarTarefasHojeNotion(chatId);
   }
 
+  if (comando === "/duvidas") {
+    return listarDuvidasMedQuest(chatId);
+  }
+
   if (comando === "/duvida") {
     var duvidaTexto = texto.replace(/^\/duvida\s*/i, "").trim();
-    if (!duvidaTexto) return enviarMensagemParaChat(chatId, "🧠 Envie sua dúvida médica. Ex: `/duvida Critérios de Light para derrame pleural`");
+    if (!duvidaTexto || duvidaTexto.toLowerCase() === "listar") {
+      return listarDuvidasMedQuest(chatId);
+    }
     var okDuvida = salvarDuvidaEstudoNotion(duvidaTexto);
-    if (okDuvida) return enviarMensagemParaChat(chatId, "🧠 *Dúvida arquivada no Notion para a sessão noturna do MedQuest!*");
+    if (okDuvida) {
+      var kbDuv = {
+        inline_keyboard: [
+          [{ text: "📋 Ver Dúvidas Salvas", callback_data: "ux:rotina:duvidas_lista" }],
+          [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+        ]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, "🧠 *DÚVIDA CLÍNICA ARQUIVADA COM SUCESSO!*\n\n📌 _\"" + duvidaTexto + "\"_\n\n✅ Salva no banco local para o seu bloco noturno de estudo ativo no MedQuest.\n💡 Digite `/duvidas` a qualquer momento para revisar.", kbDuv);
+    }
     return enviarMensagemParaChat(chatId, "❌ Falha ao arquivar dúvida.");
   }
 

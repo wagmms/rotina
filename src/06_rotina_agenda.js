@@ -951,7 +951,7 @@ function enviarCheckinNoturno(chatIdDestino, messageId) {
   var habitosAtivos = RotinaService.obterHabitosAtivosParaCheckin(hoje);
 
   var texto = "🌙 *Check-in da Noite Adaptativo (" + dataFormatada + ")*\n\n" +
-              "Toque nos botões abaixo para marcar os hábitos cumpridos hoje no seu Notion:\n" +
+              "Toque nos botões abaixo para marcar os hábitos cumpridos hoje:\n" +
               (habitosAtivos.treinoDescanso ? "💡 _Hoje foi dia de descanso de academia planejado. Seu corpo agradece!_\n" : "");
 
   var linha1 = [];
@@ -962,15 +962,37 @@ function enviarCheckinNoturno(chatIdDestino, messageId) {
     linha1.push({"text": "🏋️ Treino Feito", "callback_data": "habit_gym"});
   }
 
-  var linha2 = [
-    {"text": "📚 Inglês Feito", "callback_data": "habit_english"},
-    {"text": "🎸 Violão Feito", "callback_data": "habit_guitar"}
-  ];
+  // Linhas adaptativas: APENAS exibe os hábitos que realmente estavam programados na timeline do dia!
+  var linhasHabitosDinamicos = [];
+  var linhaDinamicaAtual = [];
 
-  var linha3 = [
-    {"text": "❤️ Namorada", "callback_data": "habit_love"},
-    {"text": "📖 Leitura", "callback_data": "habit_reading"}
-  ];
+  if (habitosAtivos.ingles) {
+    linhaDinamicaAtual.push({"text": "📚 Inglês Feito", "callback_data": "habit_english"});
+  }
+  if (habitosAtivos.violao) {
+    linhaDinamicaAtual.push({"text": "🎸 Violão Feito", "callback_data": "habit_guitar"});
+    if (linhaDinamicaAtual.length === 2) {
+      linhasHabitosDinamicos.push(linhaDinamicaAtual);
+      linhaDinamicaAtual = [];
+    }
+  }
+  if (habitosAtivos.namorada) {
+    linhaDinamicaAtual.push({"text": "❤️ Namorada", "callback_data": "habit_love"});
+    if (linhaDinamicaAtual.length === 2) {
+      linhasHabitosDinamicos.push(linhaDinamicaAtual);
+      linhaDinamicaAtual = [];
+    }
+  }
+  if (habitosAtivos.leitura) {
+    linhaDinamicaAtual.push({"text": "📖 Leitura", "callback_data": "habit_reading"});
+    if (linhaDinamicaAtual.length === 2) {
+      linhasHabitosDinamicos.push(linhaDinamicaAtual);
+      linhaDinamicaAtual = [];
+    }
+  }
+  if (linhaDinamicaAtual.length > 0) {
+    linhasHabitosDinamicos.push(linhaDinamicaAtual);
+  }
 
   var linhaEnergia = [
     {"text": "🔋 1", "callback_data": "energy_1"},
@@ -985,14 +1007,15 @@ function enviarCheckinNoturno(chatIdDestino, messageId) {
     {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}
   ];
 
+  var matrixTeclado = [linha1];
+  for (var ld = 0; ld < linhasHabitosDinamicos.length; ld++) {
+    matrixTeclado.push(linhasHabitosDinamicos[ld]);
+  }
+  matrixTeclado.push(linhaEnergia);
+  matrixTeclado.push(linhaNav);
+
   var teclado = {
-    "inline_keyboard": [
-      linha1,
-      linha2,
-      linha3,
-      linhaEnergia,
-      linhaNav
-    ]
+    "inline_keyboard": matrixTeclado
   };
 
   if (messageId && typeof enviarTelaBot === "function") {

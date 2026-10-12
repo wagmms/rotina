@@ -105,7 +105,7 @@ class TestTestadorMaster(unittest.TestCase):
         md_file = ROOT_DIR / "data" / "temp_test_relatorio.md"
         json_file = ROOT_DIR / "data" / "temp_test_relatorio.json"
 
-        reporter = MasterReporter(md_file, json_file)
+        reporter = MasterReporter(md_file, json_file, gerar_repros=False)
         personas = obter_catalogo_personas()
         p = personas["emergencista"]
 
@@ -452,6 +452,85 @@ class TestTestadorMaster(unittest.TestCase):
         aud_falta = oracle.auditar_interacao("/crcl 60", resp_falta)
         self.assertIsNotNone(aud_falta)
         self.assertTrue(aud_falta["aprovado"])
+
+        # 5. Fuzzing / Edge-cases com valores zerados e negativos (reprodução do bug /gaso 7.0 0 0)
+        res_gaso_zero = oracle.calcular_gasometria_completa(ph=7.0, pco2=0.0, hco3=0.0)
+        self.assertIn("erro", res_gaso_zero)
+        self.assertIsNone(res_gaso_zero["pco2_esperada"])
+
+        aud_gaso_zero = oracle.auditar_interacao("/gaso 7.0 0 0", "⚠️ Atenção: Parâmetros gasométricos inválidos.")
+        self.assertIsNotNone(aud_gaso_zero)
+        self.assertTrue(aud_gaso_zero["aprovado"])
+
+        # Fuzzing de outras calculadoras com zero
+        aud_winter_zero = oracle.auditar_interacao("/winter 0", "⚠️ Atenção: Bicarbonato inválido.")
+        self.assertTrue(aud_winter_zero["aprovado"])
+
+        aud_crcl_zero = oracle.auditar_interacao("/crcl 0 0 0", "❌ Erro: Parâmetros inválidos.")
+        self.assertTrue(aud_crcl_zero["aprovado"])
+
+        aud_ckd_zero = oracle.auditar_interacao("/ckd cr 0 idade 0", "❌ Erro: Parâmetros insuficientes ou inválidos.")
+        self.assertTrue(aud_ckd_zero["aprovado"])
+
+        aud_dva_zero = oracle.auditar_interacao("/dva nora 0", "⚠️ Erro: Peso inválido.")
+        self.assertTrue(aud_dva_zero["aprovado"])
+
+        aud_sri_zero = oracle.auditar_interacao("/sri 0", "⚠️ Erro: Peso inválido.")
+        self.assertTrue(aud_sri_zero["aprovado"])
+
+        aud_holliday_zero = oracle.auditar_interacao("/holliday 0", "⚠️ Erro: Peso inválido.")
+        self.assertTrue(aud_holliday_zero["aprovado"])
+
+        aud_parkland_zero = oracle.auditar_interacao("/parkland 0 0", "⚠️ Erro: Parâmetros inválidos.")
+        self.assertTrue(aud_parkland_zero["aprovado"])
+
+        # Fuzzing com números negativos em todas as calculadoras
+        aud_gaso_neg = oracle.auditar_interacao("/gaso -7.4 40 24", "⚠️ Parâmetros inválidos.")
+        self.assertTrue(aud_gaso_neg["aprovado"])
+
+        aud_winter_neg = oracle.auditar_interacao("/winter -15", "⚠️ Parâmetro inválido.")
+        self.assertTrue(aud_winter_neg["aprovado"])
+
+        aud_dva_neg = oracle.auditar_interacao("/dva nora -50", "⚠️ Peso inválido.")
+        self.assertTrue(aud_dva_neg["aprovado"])
+
+        aud_sri_neg = oracle.auditar_interacao("/sri -70", "⚠️ Peso inválido.")
+        self.assertTrue(aud_sri_neg["aprovado"])
+
+        aud_holliday_neg = oracle.auditar_interacao("/holliday -10", "⚠️ Peso inválido.")
+        self.assertTrue(aud_holliday_neg["aprovado"])
+
+        aud_parkland_neg = oracle.auditar_interacao("/parkland -70 20", "⚠️ Parâmetros inválidos.")
+        self.assertTrue(aud_parkland_neg["aprovado"])
+
+        aud_calcio_neg = oracle.auditar_interacao("/calcio -5 4", "⚠️ Parâmetros inválidos.")
+        self.assertTrue(aud_calcio_neg["aprovado"])
+
+        aud_dhe_neg = oracle.auditar_interacao("/dhe na -10 peso 0", "⚠️ Parâmetros inválidos.")
+        self.assertTrue(aud_dhe_neg["aprovado"])
+
+    def test_repro_generator_header_e_nome_arquivo(self):
+        temp_dir = ROOT_DIR / "data" / "temp_repro_test"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            gen = BugReproGenerator(repro_dir=temp_dir)
+            problema = {
+                "id": "ISSUE-042",
+                "categoria": "🚨 DISCREPÂNCIA MATEMÁTICA",
+                "descricao": "Erro em cálculo clínico"
+            }
+            acao = {"tipo": "comando", "texto": "/gaso 7.0 0 0"}
+            resposta = {"ok": True, "mensagens": [{"texto": "Resposta teste"}]}
+            resultado = gen.gerar_script_reproducao(problema, acao, resposta)
+            self.assertIsNotNone(resultado)
+            caminho = Path(resultado["arquivo"])
+            self.assertTrue(caminho.exists())
+            conteudo = caminho.read_text(encoding="utf-8")
+            self.assertIn(f"node tests/repros/{caminho.name}", conteudo)
+            self.assertNotIn("repros/repros", conteudo)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_master_reporter_com_math_oracle(self):
         temp_dir = ROOT_DIR / "data" / "temp_reporter_math"

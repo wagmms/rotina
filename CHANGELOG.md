@@ -1,5 +1,41 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C46. [x] **Aba Rotina — Gaveta de Dúvidas MedQuest no Cockpit PWA, Filtro Lifestyle, Polling Suave e Proteção da Grade Padrão (`gh_cockpit_deploy/index.html`, `gh_cockpit_deploy/rotina_timeline.js`, `cockpit_movel.html`, `rotina_timeline.js`, `server/index.js`, `tests/test_aba_rotina_cockpit.cjs`, `tests/test_server_render.cjs`)**:
+    - **Gaveta de Dúvidas MedQuest Integrada no Cockpit PWA**:
+      * Implementada gaveta expansível/colapsável no topo da timeline de rotina com badge contador de pendências em tempo real.
+      * Input rápido com atalho Enter e botão "Salvar" para anotação ágil de dúvidas clínicas (ex: critérios diagnósticos, condutas de plantão).
+      * Lista com marcação de revisão/resolução em 1 toque sincronizada bidirecionalmente com o backend Fastify (`/api/rotina/duvidas` e `/api/rotina/duvidas/resolver`) e espelhada no Telegram.
+      * Suporte offline transparente com persistência imediata em `localStorage` (`rotina_duvidas_v1`).
+    - **Filtro e Classificação Inteligente de Categoria "Vida Pessoal & Lifestyle"**:
+      * Adicionado botão de filtro rápido `[🎸 Vida & Lifestyle]` em `#rotina-filtros-container`.
+      * Nova categoria `lifestyle` no `CATEGORIA_CONFIG` com badge temático (`bg-rose-500/10 text-rose-300`) e borda esquerda destacada.
+      * Detecção automática em `normalizarBloco` por regex para termos cotidianos: violão, música, lazer, livro, leitura, hobby, inglês, pessoal.
+    - **Ação Protegida para a Grade Padrão Fixa**:
+      * Substituição do acionamento silencioso por confirmação explícita (`RotinaTimeline.carregarGradePadraoComConfirmacao()`), prevenindo perda acidental de eventos reais do Google Calendar.
+    - **Auto-Sincronização em Tempo Real via Polling Suave**:
+      * Implementado timer discreto de 30 segundos (`iniciarPollingSuave()`) que atualiza timeline e dúvidas do servidor de forma imperceptível apenas quando o navegador está visível e a aba `#tab-rotina` está aberta.
+    - **Validação Completa & Zero Regressões**:
+      * Testes E2E expandidos em `tests/test_aba_rotina_cockpit.cjs` e `tests/test_server_render.cjs`.
+      * Paridade SHA-256 mantida entre os arquivos de desenvolvimento e produção.
+      * Bateria completa de regressão `npm test` aprovada com 52/52 suítes verdes e código estável em 10.09s.
+
+0C45. [x] **Aba Rotina & Telegram — Resolução de Agenda, Dúvidas MedQuest Offline-First, Check-in Adaptativo e Isolamento de Domínio (`gh_cockpit_deploy/index.html`, `rotina_timeline.js`, `src/05_notion.js`, `src/06_rotina_agenda.js`, `src/07a_telegram_router.js`, `src/07d_telegram_callbacks.js`, `src/12_experiencia_bot.js`)**:
+    - **Navegação de Agenda Hoje vs Amanhã no Cockpit PWA**:
+      * Implementado seletor visual de datas `[📅 Hoje]` e `[📆 Amanhã]` em `#tab-rotina`.
+      * Integração assíncrona direta com a Google Calendar API nativa via endpoint `/api/rotina/blocos?data=...`, permitindo consultar instantaneamente os 6 compromissos de amanhã e o bloco MedQuest de hoje.
+      * Auto-carregamento imediato ao abrir a aba Rotina e no evento de carga do cockpit, sem dependência de RPC de perfil.
+    - **Dúvidas MedQuest com Persistência Local Resiliente (Desacoplamento do Notion)**:
+      * Implementado repositório local de dúvidas de estudo (`obterDuvidasEstudoLocal`, `salvarDuvidaEstudoLocal`, `marcarDuvidaEstudoResolvida`), persistindo em `PropertiesService` com chave protegida contra limpeza.
+      * Suporte ao comando `/duvidas` (ou `/duvida listar`) para exibir pendências clínicas do MedQuest com botões de 1 toque para marcar como resolvida/estudada.
+      * Eliminação de falhas quando o Notion não está configurado: grava localmente com confirmação instantânea.
+    - **Check-in Noturno Adaptativo**:
+      * Refatorado teclado inline de `enviarCheckinNoturno`: hábitos opcionais (violão, inglês, leitura, namorada) são renderizados única e exclusivamente se estiverem agendados na timeline do dia do médico.
+      * Persistência resiliente de cliques no check-in no banco local, permitindo marcar `✅` de imediato sem exigir token do Notion.
+    - **Isolamento de Domínio Clínico: Fechamento de Plantão na Enfermaria**:
+      * Alocado o botão `🏁 Fim de Plantão` no menu de Enfermaria (`ux:enf:plantao_fim`), mantendo o fechamento de leitos e passagem SBAR estritamente no fluxo hospitalar e despoluindo a rotina pessoal.
+    - **Validação de Estabilidade**:
+      * 52/52 suítes de teste aprovadas com 100% de sucesso em 9.76s.
+
 0C44. [x] **Testador Master Telegram — Auditor Matemático de Fórmulas Clínicas / MathOracle Anti-Alucinação (`tooling/testador_master/math_oracle.py`, `reporter.py`, `tests/test_testador_master.py`)**:
     - **Oráculo Matemático Determinístico Canônico (`math_oracle.py`)**:
       * Implementada classe `MathOracle` com fórmulas analíticas canônicas puras em Python com dupla precisão (zero dependência de LLM ou IA), eliminando alucinações e erros de aritmética:

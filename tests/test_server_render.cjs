@@ -866,6 +866,39 @@ async function run() {
   });
   assert.equal(resWebhookUpdateInvalido.statusCode, 400);
 
+  // 12. Endpoints da Rotina & Dúvidas MedQuest
+  const resCriarDuvida = await app.inject({
+    method: 'POST',
+    url: '/api/rotina/duvidas',
+    payload: { texto: 'Indicações de ventilação mecânica não invasiva no edema agudo' }
+  });
+  assert.equal(resCriarDuvida.statusCode, 200);
+  const jsonCriar = resCriarDuvida.json();
+  assert.equal(jsonCriar.sucesso, true);
+  assert.ok(jsonCriar.duvida && jsonCriar.duvida.id);
+  const duvidaId = jsonCriar.duvida.id;
+
+  const resListarDuvidas = await app.inject({
+    method: 'GET',
+    url: '/api/rotina/duvidas'
+  });
+  assert.equal(resListarDuvidas.statusCode, 200);
+  const jsonListar = resListarDuvidas.json();
+  assert.equal(jsonListar.sucesso, true);
+  assert.ok(Array.isArray(jsonListar.duvidas));
+  assert(jsonListar.duvidas.some(d => d.id === duvidaId));
+
+  const resResolverDuvida = await app.inject({
+    method: 'POST',
+    url: '/api/rotina/duvidas/resolver',
+    payload: { id: duvidaId }
+  });
+  assert.equal(resResolverDuvida.statusCode, 200);
+  const jsonResolver = resResolverDuvida.json();
+  assert.equal(jsonResolver.sucesso, true);
+  assert.equal(jsonResolver.resolvida, true);
+  console.log('✓ Endpoints Fastify de Dúvidas MedQuest (/api/rotina/duvidas) OK');
+
   console.log('✓ Bateria de Auditoria Defensiva & Resiliência RPC/Webhook OK (Zero Crash)');
 
   console.log('\n🚀 TODOS OS TESTES DO SERVIDOR RENDER PASSARAM COM SUCESSO!');

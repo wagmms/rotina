@@ -344,3 +344,17 @@ rl.on('line', (line) => {
     console.log(JSON.stringify({ ok: false, erro: 'JSON parse error: ' + err.message }));
   }
 });
+
+// Salvaguardas globais contra crashes não capturados no runtime
+process.on('uncaughtException', (err) => {
+  try {
+    process.stderr.write(`[NodeBridge UncaughtException] ${err && err.message ? err.message : err}\n`);
+  } catch (e) {}
+});
+
+process.on('unhandledRejection', (reason) => {
+  try {
+    process.stderr.write(`[NodeBridge UnhandledRejection] ${reason}\n`);
+  } catch (e) {}
+});
+

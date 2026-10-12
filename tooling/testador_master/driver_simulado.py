@@ -8,6 +8,7 @@ import os
 import json
 import subprocess
 import time
+import select
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -94,12 +95,32 @@ class DriverSimulado(BaseTelegramDriver):
         linha_envio = json.dumps(payload) + "\n"
 
         inicio = time.time()
+        timeout_max = 25.0
         try:
             self.process.stdin.write(linha_envio)
             self.process.stdin.flush()
 
             # Lê linhas até encontrar a resposta JSON com req_id
             while True:
+                tempo_decorrido = time.time() - inicio
+                tempo_restante = timeout_max - tempo_decorrido
+                if tempo_restante <= 0:
+                    break
+
+                # Verifica se o processo Node.js morreu durante a requisição
+                if self.process.poll() is not None:
+                    return {
+                        "ok": False,
+                        "erro": f"Processo Node.js encerrou inesperadamente (código {self.process.poll()}).",
+                        "tempo_ms": int((time.time() - inicio) * 1000),
+                        "mensagens": []
+                    }
+
+                # Aguarda dados disponíveis para leitura sem bloqueio perpétuo
+                rlist, _, _ = select.select([self.process.stdout], [], [], min(1.0, tempo_restante))
+                if not rlist:
+                    continue
+
                 linha_resp = self.process.stdout.readline()
                 if not linha_resp:
                     break
@@ -113,7 +134,7 @@ class DriverSimulado(BaseTelegramDriver):
 
                 try:
                     dado = json.loads(linha_resp)
-                    if dado.get("req_id") == self.req_counter or "ok" in dado:
+                    if dado.get("req_id") == self.req_counter or (dado.get("req_id") is None and "ok" in dado):
                         if "tempo_ms" not in dado:
                             dado["tempo_ms"] = int((time.time() - inicio) * 1000)
                         return dado

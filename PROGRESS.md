@@ -17,11 +17,12 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Testador Master Telegram — Auditor Matemático de Fórmulas Clínicas / MathOracle Anti-Alucinação (`math_oracle.py`, `reporter.py`, `tests/test_testador_master.py`)**:
-    - **Oráculo Determinístico Anti-Alucinação**: Módulo `MathOracle` com fórmulas canônicas fechadas em Python com dupla precisão (zero dependência de LLM) para Cockcroft-Gault, Winter, DVA (Nora/Dobu/Vaso), Parkland, Cálcio Corrigido, Holliday-Segar e Adrogué-Madias (DHE).
-    - **Auditoria de Interações em Tempo Real**: Parser determinístico em `MasterReporter` que extrai inputs e outputs clínicos, compara valores com o gabarito canônico e alerta discrepâncias numéricas ($\epsilon < 0.5$).
-    - **Integração com Bug Repro-Generator & Relatórios**: Disparo automático de script de reprodução autônomo (`tests/repros/...`) ao detectar erro de cálculo e geração de tabela comparativa no relatório Markdown e no Dashboard JSON.
-    - **Validação e Zero Regressões**: Suíte `tests/test_testador_master.py` expandida para 12/12 testes aprovados (29.5s) e regressão completa `npm test` aprovada com 52/52 suítes verdes em 9.23s.
+- [x] **Aba Rotina — Gaveta de Dúvidas MedQuest no Cockpit PWA, Filtro Lifestyle, Polling Suave e Proteção da Grade Padrão (`gh_cockpit_deploy/index.html`, `gh_cockpit_deploy/rotina_timeline.js`, `cockpit_movel.html`, `rotina_timeline.js`, `server/index.js`, `tests/test_aba_rotina_cockpit.cjs`, `tests/test_server_render.cjs`)**:
+    - **Gaveta de Dúvidas MedQuest Integrada no Cockpit PWA**: Gaveta expansível com input rápido e lista com resolução em 1 clique, sincronizada com o backend Fastify (`/api/rotina/duvidas`), espelhada no Telegram e com persistência offline transparente (`rotina_duvidas_v1`).
+    - **Filtro e Classificação Lifestyle**: Botão `[🎸 Vida & Lifestyle]` e detecção automática em `normalizarBloco` para violão, música, lazer, livro, inglês e hábitos pessoais.
+    - **Proteção da Grade Padrão Fixa**: Confirmação visual explícita com `confirm()` impedindo que a grade padrão sobrescreva acidentalmente a agenda do Google Calendar.
+    - **Auto-Sincronização por Polling Suave**: Polling a cada 30 segundos disparado apenas com a página visível e aba `#tab-rotina` aberta, trazendo blocos e dúvidas frescos sem travar a interface.
+    - **Zero Regressões**: Bateria completa `npm test` aprovada com 52/52 suítes verdes e código estável em 10.09s.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -29,10 +30,10 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Aba Rotina — Sincronização Bidirecional e Ações Rápidas no Telegram (`src/07g_telegram_ajuda_e_protocolos.js`, `src/06_rotina_agenda.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/07g_telegram_ajuda_e_protocolos.js` e `src/06_rotina_agenda.js`
-    - **Função/Componente/Seletor**: Handlers de `/rotina`, callbacks de transição de status `rotina:check:*` e `RotinaService.formatarTimelineMarkdown`
-    - **Comportamento Esperado / Critério de Aceite**: Atualizar o teclado inline e a formatação da timeline no Telegram para permitir marcar conclusão de bloco com 1 toque (in-place `editMessageText`), sincronizando o estado com o banco de dados e refletindo imediatamente no Cockpit PWA.
+- [ ] **Aba Rotina — Persistência Offline-First e Fila de Sincronização no Cockpit PWA (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `gh_cockpit_deploy/sw.js`)**:
+    - **Arquivo/Módulo Alvo**: `rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js` e `gh_cockpit_deploy/sw.js`
+    - **Função/Componente/Seletor**: Armazenamento IndexedDB de rotina e fila de sincronização em segundo plano
+    - **Comportamento Esperado / Critério de Aceite**: Salvar blocos do dia no IndexedDB local do navegador para renderização offline instantânea (0ms), sincronizando mutações pendentes com o backend Fastify assim que a conexão for restabelecida.
 
 ---
 
