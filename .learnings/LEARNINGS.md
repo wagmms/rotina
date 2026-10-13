@@ -8,6 +8,35 @@ Corrections, insights, and knowledge gaps captured during development.
 
 ---
 
+## [LRN-20261013-001] best_practice
+
+**Logged**: 2026-10-13T00:15:00-03:00
+**Priority**: critical
+**Status**: resolved
+**Area**: infra
+
+### Summary
+Proteção contra sequestro de bots: Webhook obrigatório com Secret Token e sanitização contínua de segredos em repositórios públicos.
+
+### Details
+Quando um token do Telegram Bot vaza em repositórios públicos do GitHub, bots scanners automatizados imediatamente iniciam sessões de long-polling (`getUpdates`). Se o bot legítimo não tiver um Webhook ativo, o invasor intercepta 100% das mensagens dos usuários e responde spam/phishing. A ativação imediata do Webhook (`setWebhook`) corta instantaneamente o sequestro, pois o Telegram passa a retornar `409 Conflict: can't use getUpdates method while webhook is active` para o invasor. Arquivos legados nunca devem ser versionados com chaves reais.
+
+### Suggested Action
+1. Manter Webhook registrado no Telegram com `secret_token` exclusivo para rotas de backend.
+2. Nunca subir arquivos legados com tokens para repositórios públicos.
+3. Revogar imediatamente qualquer token exposto no BotFather.
+
+### Metadata
+- Source: error
+- Related Files: `radar_voos/Code.js`, `server/index.js`, `.gitignore`
+- Tags: telegram, security, token_leak, webhook, botfather
+- Pattern-Key: infra.telegram_webhook_anti_hijack
+- Recurrence-Count: 1
+- First-Seen: 2026-10-13
+- Last-Seen: 2026-10-13
+
+---
+
 ## [LRN-20261012-002] best_practice
 
 **Logged**: 2026-10-12T15:43:00-03:00
