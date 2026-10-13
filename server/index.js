@@ -865,6 +865,41 @@ async function buildServer() {
     };
   });
 
+  // 5.4. ADMIN: Atualização dinâmica de variáveis e tokens protegida por WEBHOOK_SECRET
+  fastify.post('/api/admin/config', async (request, reply) => {
+    const secretEsperado = runtime.ctx.ConfigService.get('WEBHOOK_SECRET');
+    const secretHeader = request.headers['x-admin-secret'] || request.headers['x-telegram-bot-api-secret-token'];
+    const secretQuery = request.query ? request.query.secret : null;
+    const secretRecebido = secretHeader || secretQuery;
+
+    if (!secretEsperado || secretRecebido !== secretEsperado) {
+      reply.status(401);
+      return { ok: false, erro: 'Unauthorized' };
+    }
+
+    const { chave, valor } = request.body || {};
+    if (!chave || typeof chave !== 'string') {
+      reply.status(400);
+      return { ok: false, erro: 'Chave obrigatória' };
+    }
+
+    let valFinal = String(valor ?? '').trim();
+    if (chave === 'TELEGRAM_BOT_TOKEN') {
+      const match = valFinal.match(/^([0-9]{8,10}:[a-zA-Z0-9_-]{35})/);
+      if (match) valFinal = match[1];
+    }
+
+    runtime.ctx.PropertiesService.getScriptProperties().setProperty(chave, valFinal);
+    runtime.ctx.ConfigService.invalidar();
+    runtime.persistirPropriedades(true);
+
+    return {
+      ok: true,
+      chave,
+      valor_preview: valFinal.length > 8 ? `${valFinal.slice(0, 10)}...${valFinal.slice(-4)}` : '***'
+    };
+  });
+
   // 6. WEBHOOK DO TELEGRAM (checkpoint durável antes da resposta + processamento em background)
   //
   // ARQUITETURA: O Telegram espera HTTP 200 em até ~60s. Processamento de IA

@@ -104,6 +104,13 @@ function ehVariavelPermitida(chave) {
          ['WEB_APP_URL', 'TIMEZONE', 'PORT', 'HOST'].includes(chave);
 }
 
+function sanitizarTokenTelegram(token) {
+  if (!token || typeof token !== 'string') return '';
+  const limpo = token.trim();
+  const match = limpo.match(/^([0-9]{8,10}:[a-zA-Z0-9_-]{35})/);
+  return match ? match[1] : limpo;
+}
+
 // Sobrescreve com variáveis de ambiente reais do sistema (Render / Docker)
 for (const [k, v] of Object.entries(process.env)) {
   if (!ehVariavelPermitida(k)) continue;
@@ -112,8 +119,12 @@ for (const [k, v] of Object.entries(process.env)) {
     continue;
   }
   if (v !== undefined && v !== '') {
-    propsStore[k] = v;
+    propsStore[k] = (k === 'TELEGRAM_BOT_TOKEN') ? sanitizarTokenTelegram(v) : v;
   }
+}
+
+if (propsStore.TELEGRAM_BOT_TOKEN) {
+  propsStore.TELEGRAM_BOT_TOKEN = sanitizarTokenTelegram(propsStore.TELEGRAM_BOT_TOKEN);
 }
 
 // Higieniza chaves de sistema legadas do arquivo de propriedades
