@@ -28,6 +28,7 @@ gh_cockpit_deploy/
 archive/
 scratch/
 gas_deploy/
+radar_voos/
 
 # Arquivos de exportação PWA soltos na raiz (deploy oficial em gh_cockpit_deploy/)
 /apple-touch-icon.png
