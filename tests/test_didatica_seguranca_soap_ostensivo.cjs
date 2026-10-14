@@ -129,7 +129,15 @@ console.log('✅ APROVADO: 1. Prompt do SOAP e entrega formatada exigem e exibem
 
 // Teste 2: Prompt do Áudio Multimodal em Tempo Único também exige justificativa nas perguntas
 const codeMaster = fs.readFileSync('ultra_rotina_master.js', 'utf8');
-assert(codeMaster.includes('Perguntas de Anamnese com Racional Didático: no máximo 2 a 3 perguntas investigativas diretas que mudem a conduta, CADA UMA COM SUA JUSTIFICATIVA CLÍNICA OU HIPÓTESE A DESCARTAR ENTRE PARÊNTESES. Se houver dados suficientes, retorne lista vazia.'), 'Áudio multimodal deve exigir perguntas decisórias com justificativa didática');
+assert(codeMaster.includes('Perguntas de Anamnese com Racional Didático: faça apenas as perguntas investigativas que mudem a conduta, sem limite numérico, CADA UMA COM SUA JUSTIFICATIVA CLÍNICA OU HIPÓTESE A DESCARTAR ENTRE PARÊNTESES. Se houver dados suficientes, retorne lista vazia.'), 'Áudio multimodal deve exigir perguntas decisórias sem limite numérico');
+c.chamarGeminiPoolMultimodal = () => JSON.stringify({
+  transcricao: 'Paciente com tosse há 3 dias.', eh_clinico: true, tipo_relato: 'soap',
+  subjetivo: 'Tosse há 3 dias.', objetivo: 'Exame físico pendente.',
+  perguntas_anamnese: ['Há febre? (avaliar infecção)', 'Há hemoptise? (avaliar gravidade)', 'Há alergias? (segurança)', 'Usa medicações? (interações)', 'Quais os sinais vitais? (risco)']
+});
+const audioSemCorte = c.processarAudioClinicoMultimodal('YQ==', 'audio/ogg', { fallbackOffline: false });
+assert(audioSemCorte.soapTexto.includes('Há febre?'));
+assert(audioSemCorte.soapTexto.includes('Quais os sinais vitais?'));
 console.log('✅ APROVADO: 2. Áudio Multimodal em Tempo Único alinhado com o mesmo rigor didático');
 
 // -------------------------------------------------------------
@@ -245,9 +253,42 @@ const semPerguntas = atual.gerarSOAPComIA(completo);
 assert(semPerguntas.includes('Pode gerar o plano'));
 assert(!semPerguntas.includes('Perguntas para Completar'));
 const aposComplemento = atual.gerarSOAPComIA('Paciente com tosse há 3 dias. Nega dispneia.', { historicoSessao: { respostasComplementares: 1, perguntasFeitas: ['Tem dispneia? (estratificar gravidade)'] } });
-assert(aposComplemento.includes('Pode gerar o plano'));
-assert(!aposComplemento.includes('Perguntas para Completar'));
-console.log('✅ APROVADO: suficiência clínica e resposta complementar encerram perguntas mesmo quando a IA as repete');
+assert(!aposComplemento.includes('Pode gerar o plano'));
+assert(aposComplemento.includes('Perguntas para Completar'));
+assert(!aposComplemento.includes('Tem dispneia?'));
+console.log('✅ APROVADO: uma resposta complementar incompleta permite nova investigação sem repetir a pergunta');
+
+atual.executarRaciocinioClinico = () => JSON.stringify({
+  subjetivo: 'Paciente com tosse há 3 dias.', objetivo: 'Exame físico pendente.',
+  perguntas_anamnese: [
+    'Há febre? (avaliar infecção)',
+    'Há hemoptise? (avaliar gravidade)',
+    'Há alergias? (segurança de prescrição)',
+    'Usa medicações? (avaliar interações)',
+    'Quais sinais vitais estão disponíveis? (estratificar risco)'
+  ]
+});
+const variasPerguntas = atual.gerarSOAPComIA('Paciente com tosse há 3 dias.', { historicoSessao: { respostasComplementares: 2, perguntasFeitas: [] } });
+assert(variasPerguntas.includes('Há febre?'));
+assert(variasPerguntas.includes('Há hemoptise?'));
+assert(variasPerguntas.includes('Há alergias?'));
+assert(variasPerguntas.includes('Usa medicações?'));
+assert(variasPerguntas.includes('Quais sinais vitais estão disponíveis?'));
+assert(!variasPerguntas.includes('Pode gerar o plano'));
+console.log('✅ APROVADO: perguntas clinicamente relevantes não são truncadas após três nem após duas respostas');
+
+atual.executarRaciocinioClinico = () => JSON.stringify({ subjetivo: 'Paciente com tosse.', objetivo: 'Exame físico pendente.', perguntas_anamnese: [] });
+const perguntasAnteriores = [
+  'Qual a queixa principal e há quanto tempo começou? (definir síndrome e cronologia)',
+  'Há sinais de alarme pertinentes, como dispneia, síncope, febre ou sangramento? (estratificar gravidade)',
+  'Há alergias, comorbidades e medicações em uso? (segurança de prescrição)',
+  'Quais sinais vitais e achados objetivos estão disponíveis? (estratificar risco)'
+];
+const semNovidade = atual.gerarSOAPComIA('Paciente com tosse.', { historicoSessao: { perguntasFeitas: perguntasAnteriores } });
+assert(!semNovidade.includes('Perguntas para Completar'));
+assert(semNovidade.includes('Pendências de segurança'));
+assert(!semNovidade.includes('Pode gerar o plano'));
+console.log('✅ APROVADO: perguntas já feitas não reaparecem; lacunas não resolvidas permanecem explícitas');
 
 atual.executarRaciocinioClinico = () => JSON.stringify({
   subjetivo: 'Tosse há 3 dias; sem dispneia; sem alergias, comorbidades ou medicações.',

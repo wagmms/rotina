@@ -82,21 +82,27 @@ const tests = [
    const {c}=env();c.definirModoBot(123,'soap','Caso A');c.definirModoBot(456,'soap','Caso B');c.limparEstadoBot(123);
    assert.equal(c.modoBot(456).data,'Caso B');
  }],
- ['resposta complementar encerra perguntas e mantém memória no atendimento', () => {
+ ['respostas complementares mantêm investigação até suficiência clínica', () => {
    const {c}=env();let chamadas=0;
    c.gerarSOAPComIA=(dados,opcoes)=>{
      chamadas++;
-     if (opcoes.historicoSessao.respostasComplementares) return '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*\n\n✅ Anamnese suficiente para tomada de decisão. Pode gerar o plano.';
+     if (c.avaliarSuficienciaAnamnese(dados,opcoes.historicoSessao).anamneseSuficiente) return '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*\n\n✅ Anamnese suficiente para tomada de decisão. Pode gerar o plano.';
+     if (opcoes.historicoSessao.respostasComplementares) return '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*\n\n❓ *Perguntas para Completar a Anamnese*\n• Quais sinais vitais estão disponíveis? (estratificar risco)';
      return '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*\n\n❓ *Perguntas para Completar a Anamnese*\n• Há dispneia? (estratificar gravidade)';
    };
    c.processarEEntregarIA=(chat,gerar,dados)=>gerar(dados);
    c.processarEntradaSoap(123,'Tosse há 2 dias');
    assert.equal(c.modoBot(123).soapAnamnese.perguntasFeitas.length,1);
    const resposta=c.processarEntradaSoap(123,'Nega dispneia e febre. Sem alergias, comorbidades ou medicações.');
-   assert(resposta.includes('Pode gerar o plano'));
-   assert(!resposta.includes('Perguntas para Completar'));
-   assert.equal(chamadas,2);
-   assert.equal(c.modoBot(123).soapAnamnese.respostasComplementares,1);
+   assert(resposta.includes('Quais sinais vitais estão disponíveis?'));
+   assert(!resposta.includes('Pode gerar o plano'));
+   assert.equal(c.modoBot(123).soapAnamnese.anamneseSuficiente,false);
+   assert.equal(c.modoBot(123).soapAnamnese.perguntasPendentes.length,1);
+   const completo=c.processarEntradaSoap(123,'SpO2 98% em ar ambiente.');
+   assert(completo.includes('Pode gerar o plano'));
+   assert(!completo.includes('Perguntas para Completar'));
+   assert.equal(chamadas,3);
+   assert.equal(c.modoBot(123).soapAnamnese.respostasComplementares,2);
    assert.equal(c.modoBot(123).soapAnamnese.anamneseSuficiente,true);
    assert.equal(c.modoBot(123).soapAnamnese.perguntasPendentes.length,0);
  }]

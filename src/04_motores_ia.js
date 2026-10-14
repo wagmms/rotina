@@ -1459,7 +1459,7 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     "      - tipo_relato: 'soap'",
     "      - Subjetivo: QP com duração e HDA cronológica formal (sem transcrição literal, em prosa médica culta). Antecedentes, comorbidades, medicações e alergias.",
     "      - Objetivo: Exame físico inteligente no modelo meio-termo com os 5 sistemas clássicos (Geral, ACV, AR, Abdome, Extremidades). NUNCA invente sinais vitais não ditados.",
-    "      - Perguntas de Anamnese com Racional Didático: no máximo 2 a 3 perguntas investigativas diretas que mudem a conduta, CADA UMA COM SUA JUSTIFICATIVA CLÍNICA OU HIPÓTESE A DESCARTAR ENTRE PARÊNTESES. Se houver dados suficientes, retorne lista vazia.",
+    "      - Perguntas de Anamnese com Racional Didático: faça apenas as perguntas investigativas que mudem a conduta, sem limite numérico, CADA UMA COM SUA JUSTIFICATIVA CLÍNICA OU HIPÓTESE A DESCARTAR ENTRE PARÊNTESES. Se houver dados suficientes, retorne lista vazia.",
     "      - Exame Dirigido: Sinais vitais essenciais e manobras físicas direcionadas à queixa que não foram informadas.",
     "      - REGRA ABSOLUTA DE SEGURANÇA: NÃO inclua hipóteses diagnósticas (Avaliação) e NÃO inclua prescrição ou condutas (Plano) nesta fase.",
     "3. SE NÃO FOR RELATO CLÍNICO (ex: agendamento de calendário, hábito pessoal, tarefa do Notion ou conversa geral): defina 'eh_clinico' como false.",
@@ -1531,7 +1531,7 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
       oSanitizado = formatarExameFisicoSistemas(oSanitizado);
     }
     var gateAudio = typeof avaliarSuficienciaAnamnese === 'function' ? avaliarSuficienciaAnamnese(transcricao, {}) : null;
-    var perguntas = gateAudio && gateAudio.anamneseSuficiente ? [] : (obj.perguntas_anamnese || obj.perguntas || []).slice(0, 3);
+    var perguntas = gateAudio && gateAudio.anamneseSuficiente ? [] : (obj.perguntas_anamnese || obj.perguntas || []);
     var exameDirigido = obj.exame_dirigido || [];
     var temEfAudio = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(transcricao);
 
@@ -2124,8 +2124,8 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - Integre exame especial se contido no caso.",
     "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Geral, ACV, AR, Abdome e Extremidades), cada um em sua própria linha separada. NUNCA junte na mesma linha e NUNCA sintetize em apenas 'EF normal'.",
     "3. INVESTIGAÇÃO ATIVA DA ANAMNESE COM JUSTIFICATIVA DIDÁTICA (FMRP-USP):",
-    "   - Formule NO MÁXIMO 2 a 3 perguntas que mudem a conduta, apenas para lacunas críticas de QP/tempo, sinais de alarme pertinentes, alergias/comorbidades/medicações, G_P_A_/DUM/IG em queixa gineco-obstétrica e dado objetivo indispensável. Negativas explícitas já cobrem o eixo. NÃO crie perguntas acadêmicas intermináveis.",
-    "   - Se os quatro pilares decisórios já estiverem cobertos, retorne perguntas_anamnese=[] e a mensagem: ✅ Anamnese suficiente. Pode gerar o plano. Após uma resposta complementar, não faça nova rodada de perguntas; registre lacunas críticas como pendências de segurança.",
+    "   - Formule apenas perguntas que mudem a conduta, sem limite numérico, para lacunas críticas de QP/tempo, sinais de alarme pertinentes, alergias/comorbidades/medicações, G_P_A_/DUM/IG em queixa gineco-obstétrica e dado objetivo indispensável. Negativas explícitas já cobrem o eixo. Evite perguntas repetidas ou acadêmicas sem impacto na decisão.",
+    "   - Se os pilares decisórios estiverem cobertos, retorne perguntas_anamnese=[] e a mensagem: ✅ Anamnese suficiente. Pode gerar o plano. Após respostas complementares, pergunte novamente somente sobre lacunas clínicas relevantes ainda não investigadas; registre dados indisponíveis como pendências de segurança.",
     "   - RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses ao final. Exemplo: 'Investigar se a dor epigástrica irradia para o dorso (descartar pancreatite aguda ou dissecção de aorta abdominal)'.",
     "4. EXAME FÍSICO DIRIGIDO (SUGESTÃO COMPLEMENTAR):",
     "   - 1 a 2 tópicos com sinais vitais críticos (PA, FC, FR, SpO2, Tax) e manobras/auscultas essenciais para o caso que ainda não foram informados.",
@@ -2169,18 +2169,20 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   var historicoSoap = opcoes.historicoSessao || {};
   var suficiencia = typeof avaliarSuficienciaAnamnese === 'function'
     ? avaliarSuficienciaAnamnese(dadosCaso, historicoSoap)
-    : { anamneseSuficiente: Number(historicoSoap.respostasComplementares || 0) >= 1, eixos: {} };
-  var jaFeitas = (historicoSoap.perguntasFeitas || []).map(function(p) { return String(p).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s*\([^)]*\)\s*$/, '').trim(); });
+    : { anamneseSuficiente: false, eixos: {} };
+  var chavePergunta = function(p) { return String(p).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s*\([^)]*\)\s*$/, '').trim(); };
+  var jaFeitas = (historicoSoap.perguntasFeitas || []).map(chavePergunta);
   var perguntas = (Array.isArray(objRasc.perguntas_anamnese) ? objRasc.perguntas_anamnese : (Array.isArray(objRasc.perguntas) ? objRasc.perguntas : [])).filter(function(p) {
     if (typeof p !== 'string' || !p.trim()) return false;
-    var chave = p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+    var chave = chavePergunta(p);
     if (jaFeitas.indexOf(chave) !== -1) return false;
-    if (/(alerg|comorb|medicac|medicamento|remedio|antecedente)/.test(chave)) return !suficiencia.eixos.seguranca;
-    if (/(dum|idade gestacional|\big\b|gesta|paridade)/.test(chave)) return !suficiencia.eixos.gineco;
-    if (/(sinais vitais|\bpa\b|saturac|\bspo2\b|\bfc\b|\bfr\b|temperatura)/.test(chave)) return !suficiencia.eixos.objetivo;
-    if (/(febre|dispneia|sangramento|sincope|sudorese|irradi|alarme)/.test(chave)) return !suficiencia.eixos.alarmes;
+    if (/(alerg|comorb|medicac|medicamento|remedio|antecedente)/.test(chave) && suficiencia.eixos.seguranca) return false;
+    if (/(dum|idade gestacional|\big\b|gesta|paridade)/.test(chave) && suficiencia.eixos.gineco) return false;
+    if (/(sinais vitais|\bpa\b|saturac|\bspo2\b|\bfc\b|\bfr\b|temperatura)/.test(chave) && suficiencia.eixos.objetivo) return false;
+    if (/(febre|dispneia|sangramento|sincope|sudorese|irradi|alarme)/.test(chave) && suficiencia.eixos.alarmes) return false;
+    jaFeitas.push(chave);
     return true;
-  }).slice(0, 3);
+  });
   if (suficiencia.anamneseSuficiente) perguntas = [];
   if (!suficiencia.anamneseSuficiente && !perguntas.length) {
     if (!suficiencia.eixos.historia) perguntas.push('Qual a queixa principal e há quanto tempo começou? (definir síndrome e cronologia)');
@@ -2188,7 +2190,12 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     if (!suficiencia.eixos.seguranca) perguntas.push('Há alergias, comorbidades e medicações em uso? (segurança de prescrição)');
     if (!suficiencia.eixos.gineco) perguntas.push('Informe G_P_A_, DUM e IG ou possibilidade de gestação. (segurança obstétrica)');
     if (!suficiencia.eixos.objetivo) perguntas.push('Quais sinais vitais e achados objetivos estão disponíveis? (estratificar risco)');
-    perguntas = perguntas.slice(0, 3);
+    perguntas = perguntas.filter(function(p) {
+      var chave = chavePergunta(p);
+      if (jaFeitas.indexOf(chave) !== -1) return false;
+      jaFeitas.push(chave);
+      return true;
+    });
   }
   var exameDirigido = objRasc.exame_dirigido;
   var temEfCompleto = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(dadosCaso);
@@ -2203,6 +2210,10 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     blocosRasc.push("❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
   }
   if (suficiencia.anamneseSuficiente) blocosRasc.push('✅ Anamnese suficiente para tomada de decisão. Pode gerar o plano.');
+  else if (!perguntas.length && suficiencia.faltantes && suficiencia.faltantes.length) {
+    var nomesPendencias = { historia: 'história e cronologia', alarmes: 'sinais de alarme', seguranca: 'alergias, comorbidades e medicações', gineco: 'dados obstétricos', objetivo: 'sinais vitais e exame objetivo' };
+    blocosRasc.push('⚠️ *Pendências de segurança:* ' + suficiencia.faltantes.map(function(eixo) { return nomesPendencias[eixo] || eixo; }).join('; ') + '. Confirmar antes da decisão clínica.');
+  }
 
   if (objRasc.contingencia_offline) {
     blocosRasc.unshift("⚠️ *MODO OFFLINE DE CONTINGÊNCIA (PROVEDOR EM NUVEM EM TIMEOUT)*\nProcessado pelo Motor Determinístico Offline.");

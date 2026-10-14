@@ -4,6 +4,17 @@ Command failures, exceptions, and unexpected behaviors.
 
 ---
 
+## [ERR-20261014-001] testes SOAP concorrentes e asserção desatualizada
+
+**Logged**: 2026-10-14
+**Status**: resolved
+**Area**: tests
+
+### Summary
+`test_soap_modo_e_receita_ux.cjs` falhou ao gravar `data/properties.json` quando executado em paralelo com outra suíte que usa o mesmo runtime; passou isoladamente. `test_soap_dois_tempos.cjs` esperava um rótulo de pendências antigo e também falhava no código-base anterior; a asserção foi alinhada ao rótulo atual. Para testes que persistem propriedades, executar as suítes em sequência.
+
+---
+
 ## [ERR-20261013-001] telegram_bot_token_leak_hijacking
 
 **Logged**: 2026-10-13T00:15:00-03:00

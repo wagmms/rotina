@@ -114,7 +114,7 @@ test('4. Solicitação explícita por texto gera Fase 2 completa com A, P e pend
   assert(r.includes('P - Plano'));
   assert(r.includes('Enxaqueca sem aura'));
   assert(r.includes('Dipirona 1g'));
-  assert(r.includes('Dados pendentes — conferir antes de concluir'));
+  assert(r.includes('Dados de segurança a conferir antes de prescrever'));
 });
 
 // 5. Botões inline de Fase 2 consolidada

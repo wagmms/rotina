@@ -1456,7 +1456,6 @@ var SoapAmbulatorialService = (function() {
   // A suficiência depende do relato confirmado, nunca de achados inferidos pela IA.
   function avaliarSuficienciaAnamnese(contextoAcumulado, historicoSessao) {
     var texto = String(contextoAcumulado || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    var historico = historicoSessao || {};
     var gineco = /gesta|gravidez|gravida|obstetric|ginecolog|sangramento vaginal|dor pelvica|amenorreia|corrimento vaginal/.test(texto);
     var agudo = /dor toracica|dor no peito|dispneia|falta de ar|tosse|febre|dor abdominal|sangramento|gesta|gravidez|gravida|cefaleia intensa/.test(texto);
     var alarmeRelatado = /nega\s+sinais? de alarme|sem\s+sinais? de alarme/.test(texto);
@@ -1472,7 +1471,7 @@ var SoapAmbulatorialService = (function() {
       objetivo: !agudo || /\bpa\s*[:=]?\s*\d|\bfc\s*[:=]?\s*\d|spo2\s*[:=]?\s*\d|saturac.{0,8}\d|\bfr\s*[:=]?\s*\d|\btax?\s*[:=]?\s*\d|glicemia\s*[:=]?\s*\d|\becg\s*[:=]?\s*(?:com|sem|mostra|alterad)|\b(?:crepitac|sibil|rigidez|defesa abdominal)\b/.test(texto)
     };
     var faltantes = Object.keys(eixos).filter(function(chave) { return !eixos[chave]; });
-    return { anamneseSuficiente: !faltantes.length || Number(historico.respostasComplementares || 0) >= 1,
+    return { anamneseSuficiente: !faltantes.length,
       faltantes: faltantes, eixos: eixos };
   }
 
