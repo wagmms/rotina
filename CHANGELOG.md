@@ -1,5 +1,46 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C62. [x] **Rigor & Segurança Clínica Decisional — Desengessar /pancreatite (BISAP Real), Trava de Dose Máxima Pediátrica da Amoxicilina e Expansão de Protocolos Determinísticos (`src/07a_telegram_router.js`, `src/03_gastroenterologia_pancreatite.js`, `src/03_bases_locais.js`, `src/04_motores_ia.js`, `tests/test_gastroenterologia_pancreatite.cjs`, `tests/test_auditoria_qualidade_clinica.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Comandos `/pancreatite` e `/bisap` retornavam um mock com dados clínicos fixos hardcoded e aviso de "parâmetros simulados", sem permitir ao médico calcular o risco real com base no caso do paciente.
+      * Roteamento coloquial de amoxicilina pediátrica calculava doses de 50 e 90 mg/kg puramente multiplicativas sem travar nos limites máximos diários de adulto/pediátrico (1.500 mg e 2.000 mg/dia), gerando risco de sobredose em crianças com peso > 30 kg.
+      * Catálogo de emergência determinístico (`PROTOCOLOS_CLINICOS_EMERGENCIA`) não contemplava os gabaritos oficiais brasileiros para anafilaxia (ASBAI), crise convulsiva/estado de mal epiléptico (ABN) e hemorragia digestiva alta varicosa/não varicosa (FBG/FMRP-USP).
+      * `gerarCondutaEmergenciaComIA`, `gerarRespostaConversaClinica` e Preceptor Socrático não injetavam as bases farmacológicas locais (HSL / PedBook / REMUME) e não anexavam automaticamente alertas críticos de segurança em RAM (0ms) contra incompatibilidades em Y e interações graves.
+    - **Correções Implementadas**:
+      * *Frente 1 (Parser Dinâmico do BISAP & Ajuda Interativa)*: Em `src/07a_telegram_router.js` e `src/03_gastroenterologia_pancreatite.js`, implementado `extrairParametrosTexto` extraindo idade > 60, BUN > 25 (ou Ureia > 50), estado mental alterado (Glasgow < 15, confuso, rebaixado), SIRS (ou vitais FC>90, FR>20, Tax>38/<36, Leuco>12k/<4k), derrame pleural, e parâmetros de hidratação (cardio/renal) e nutrição precoce. Comandos `/pancreatite` e `/bisap` sem argumentos exibem card didático de ajuda com exemplos; com argumentos, calculam o BISAP real sem mensagens simuladas.
+      * *Frente 2 (Trava de Teto Máximo Pediátrico na Amoxicilina)*: Em `src/07a_telegram_router.js`, aplicada trava de teto máximo diário: dose padrão 50 mg/kg limitada a 1.500 mg/dia (`Math.min(1500, dose50)`) e dose alta OMA/PAC 90 mg/kg limitada a 2.000 mg/dia (`Math.min(2000, dose90)`), adicionando o alerta explícito `⚠️ [Dose travada no teto máximo diário de adulto/pediátrico]` quando o cálculo excede os limites.
+      * *Frente 3 (Expansão de Protocolos Determinísticos em Bases Locais)*: Em `src/03_bases_locais.js`, adicionados em `PROTOCOLOS_CLINICOS_EMERGENCIA` e no matcher `obterProtocoloClinico` os protocolos oficiais com dosagens, diluições e divergências SUS vs internacional para:
+        - `anafilaxia`: Adrenalina IM 1:1000 (0,01 mg/kg, máx 0,5 mg adulto / 0,3 mg criança no vasto lateral), decúbito dorsal com MMII elevados, expansão SF 0,9% 20 mL/kg, e adjuvantes de 2ª linha.
+        - `convulsao`: 1ª linha Diazepam 10 mg IV lento ou Midazolam 10 mg IM; 2ª linha Fenitoína 20 mg/kg IV exclusivamente em SF 0,9% a no máx 50 mg/min; 3ª linha IOT + sedação contínua.
+        - `hda`: Estratégia transfusional restritiva (alvo Hb 7-8 g/dL), Omeprazol 80 mg IV bolus + 8 mg/h, Terlipressina 2 mg IV 4/4h + Ceftriaxona 1 g/dia por 7 dias em cirróticos, e EDA precoce em até 12-24h.
+      * *Frente 4 (Grounding Farmacológico & Cross-Check em RAM 0ms)*: Em `src/04_motores_ia.js`, implementado helper reutilizável `_iaAnexarCrossCheckSeguranca` e integrado em `gerarCondutaEmergenciaComIA`, `gerarRespostaConversaClinica` e Preceptor Socrático (`gerarDialogoPreceptorSocratico`). Injeta o grounding farmacológico do HSL/PedBook/REMUME no prompt quando há fármacos ou síndrome mapeada, e anexa automaticamente alertas críticos de incompatibilidade em Y e interações graves ao final da resposta.
+      * *Frente 5 (Detecção de Fármacos de UTI & Compatibilidade em Y)*: Em `src/03_bases_locais.js` (`extrairFarmacosDoTexto`), adicionada detecção automática em memória das 16 drogas vasoativas e sedativos de UTI de `CompatibilidadeYDvaService`, permitindo ao cross-check identificar incompatibilidades severas em Y mesmo sem conexão a planilhas.
+      * *Frente 6 (Validação e Cobertura de Testes)*: Em `tests/test_gastroenterologia_pancreatite.cjs`, adicionados testes cobrindo caso grave (BISAP 5), caso leve com negações e nutrição precoce (BISAP 0), e sinais vitais com alerta por cardiopatia; em `tests/test_auditoria_qualidade_clinica.cjs`, adicionados 4 novos testes (teto de amoxicilina pediátrica, 3 novos protocolos de emergência, comando /pancreatite interativo e cross-check em RAM 0ms com incompatibilidade em Y).
+    - **Recibo de Estabilidade**:
+      * `node scripts/run_tests.cjs tests/test_gastroenterologia_pancreatite.cjs`: 100% aprovado;
+      * `node scripts/run_tests.cjs tests/test_auditoria_qualidade_clinica.cjs`: 100% aprovado (12/12 testes);
+      * `python3 build_master.py`: 78 módulos empacotados, validação de sintaxe JS 100% OK;
+      * `node scripts/run_tests.cjs`: 57/57 suítes aprovadas com 100% de sucesso em 30.02s.
+
+0C61. [x] **Telegram Router & Motores IA — Latência Zero, Fix tEmerg, Bypass Double-LLM e Pré-Indexação em RAM (`src/07a_telegram_router.js`, `src/04_motores_ia.js`, `src/03_bases_locais.js`, `tests/test_etapa2_performance_deterministico.cjs`, `tests/test_ia_motores_pipeline_refatorado.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * `ReferenceError: tEmerg is not defined` fatal na rota `CLINICO_EMERGENCIA` em `processarMensagemTexto` ao avaliar `tEmerg.indexOf("nora")`.
+      * Duplicação do bloco de regex `matchDiluicao` executado duas vezes seguidas em `processarMensagemTexto`.
+      * Latência dobrada em requisições clínicas gerada por uma segunda chamada síncrona bloqueante de LLM (`_iaAuditarRascunho`) mesmo após cross-check determinístico em RAM ter liberado a prescrição.
+      * Re-execução síncrona de `.normalize("NFD")` nas 219 regras de interações e 447 medicamentos do HSL a cada mensagem recebida.
+      * Ausência de Fast-Path determinístico sem barra para consultas curtas de antibióticos com ajuste renal (`meropenem clcr 25`) e posologia oficial HSL (`ceftriaxona`).
+    - **Correções Implementadas**:
+      * *Frente 1 (Fix tEmerg & Eliminação de Duplicata)*: Em `src/07a_telegram_router.js`, definido `var tEmerg = textoLow;` em `CLINICO_EMERGENCIA` antes da checagem de DVA e removido bloco duplicado de `matchDiluicao`.
+      * *Frente 2 (Fast-Path Determinístico Farmacológico sem Barra)*: Em `src/07a_telegram_router.js`, adicionado Fast-Path $O(1)$ em RAM antes de `classificarIntencaoMensagem` despachando consultas de 1 a 4 palavras de antimicrobianos + ClCr/TFG/HD direto para `consultarCatalogoAjusteRenal`, ou fármacos puros para `responderConsultaPediatricaPedB` ou `responderConsultaPosologiaHSL` em < 15ms sem acionar LLM.
+      * *Frente 3 (Eliminação do Double-LLM Round-Trip)*: Em `src/04_motores_ia.js`, tornado o segundo round-trip de LLM em `_iaAuditarRascunho` condicional à flag `_iaCfgBool("IA_AUDITORIA_LLM_SEGUNDA_PASSADA", false)` (default `false`), retornando imediatamente `rascunho + blocoCrossCheck` em 0ms.
+      * *Frente 4 (Otimização de thinkingBudget)*: Em `src/04_motores_ia.js`, reduzido o default de `IA_THINKING_BUDGET_CLINICO` de 1024 para 384 em `_iaProvGemini`, e mantido `{ thinkingBudget: 0, semThinking: true }` nos fluxos de áudio do Preceptor.
+      * *Frente 5 (Pré-Indexação em RAM)*: Em `src/03_bases_locais.js`, criados caches estáticos memoizados `_cacheRegrasInteracoesNorm` e `_cacheNomesHslNorm` na primeira chamada, eliminando milhares de normalizações NFD e splits por mensagem.
+      * *Frente 6 (Validação e Testes)*: Em `tests/test_etapa2_performance_deterministico.cjs`, adicionada validação para `"paciente 70kg em choque precisando de nora"` (< 15ms sem erro), `"meropenem clcr 25"` (< 15ms sem LLM) e `"ceftriaxona"` (< 15ms sem LLM); em `tests/test_ia_motores_pipeline_refatorado.cjs`, adicionado teste 12 validando a flag `IA_AUDITORIA_LLM_SEGUNDA_PASSADA` e o thinkingBudget 384.
+    - **Recibo de Estabilidade**:
+      * `node scripts/run_tests.cjs tests/test_etapa2_performance_deterministico.cjs`: 100% aprovado;
+      * `node scripts/run_tests.cjs tests/test_ia_motores_pipeline_refatorado.cjs`: 100% aprovado (12/12 testes);
+      * `node scripts/run_tests.cjs`: 57/57 suítes aprovadas com 100% de sucesso em 31.67s.
+
 0C60. [x] **Preceptor Socrático — Latência Zero no TTS, Normalização Fonética Médica e Grounding Clínico Determinístico (`src/04_motores_ia.js`, `src/07b_telegram_preceptor.js`, `src/07d_telegram_callbacks.js`, `tests/test_audio_tempo_unico.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * Latência de 2 a 4s na síntese de voz do Preceptor causada pelo raciocínio em cadeia oculto (`thinkingBudget: 1024`) habilitado por padrão em chamadas clínicas para modelos Gemini 2.5/3.x, mesmo em falas curtas (30 a 70 palavras).

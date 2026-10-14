@@ -1702,43 +1702,47 @@ function auditoriaClinicaPendente(texto) {
   return /auditoria autom[aá]tica (?:indispon[ií]vel|incompleta)|alertas da auditoria autom[aá]tica/i.test(String(texto || ""));
 }
 
+function _iaAnexarCrossCheckSeguranca(rascunho, dadosCaso) {
+  if (!rascunho) return rascunho;
+  if (typeof executarCrossCheckSegurancaClinica !== "function") return rascunho;
+  try {
+    var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
+    if (check && check.temAlertasCriticos) {
+      var alertasSentinela = [];
+      if (check.interacoes) {
+        check.interacoes.filter(function(it) {
+          return it.grauNormalizado === "CONTRAINDICADO" || it.grauNormalizado === "GRAVE";
+        }).forEach(function(it) {
+          alertasSentinela.push("• 🛑 *Interação " + it.grau + ":* " + it.drogaA + " + " + it.drogaB + " (" + (it.recomendacao || it.efeito) + ")");
+        });
+      }
+      if (check.compatibilidadeY) {
+        check.compatibilidadeY.filter(function(p) {
+          return p.status === "INCOMPATIVEL" || p.alertaCritico;
+        }).forEach(function(p) {
+          alertasSentinela.push("• 🛑 *Incompatibilidade em Y:* " + p.drogaA.toUpperCase() + " ⚡ " + p.drogaB.toUpperCase() + " (" + p.conduta + ")");
+        });
+      }
+      if (alertasSentinela.length > 0) {
+        return rascunho + "\n\n⚠️ *ALERTAS CRÍTICOS DE SEGURANÇA FARMACOLÓGICA:*\n" + alertasSentinela.join("\n");
+      }
+    }
+  } catch (eCheck) {
+    Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
+  }
+  return rascunho;
+}
+
 function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   if (!rascunho) return rascunho;
 
   // 1. Cross-Check determinístico imediato em RAM (0ms) contra bases locais (interações, HSL e REMUME)
-  var blocoCrossCheck = "";
-  if (typeof executarCrossCheckSegurancaClinica === "function") {
-    try {
-      var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
-      if (check && check.temAlertasCriticos) {
-        var alertasSentinela = [];
-        if (check.interacoes) {
-          check.interacoes.filter(function(it) {
-            return it.grauNormalizado === "CONTRAINDICADO" || it.grauNormalizado === "GRAVE";
-          }).forEach(function(it) {
-            alertasSentinela.push("• 🛑 *Interação " + it.grau + ":* " + it.drogaA + " + " + it.drogaB + " (" + (it.recomendacao || it.efeito) + ")");
-          });
-        }
-        if (check.compatibilidadeY) {
-          check.compatibilidadeY.filter(function(p) {
-            return p.status === "INCOMPATIVEL" || p.alertaCritico;
-          }).forEach(function(p) {
-            alertasSentinela.push("• 🛑 *Incompatibilidade em Y:* " + p.drogaA.toUpperCase() + " ⚡ " + p.drogaB.toUpperCase() + " (" + p.conduta + ")");
-          });
-        }
-        if (alertasSentinela.length > 0) {
-          blocoCrossCheck = "\n\n⚠️ *ALERTAS CRÍTICOS DE SEGURANÇA FARMACOLÓGICA:*\n" + alertasSentinela.join("\n");
-        }
-      }
-    } catch (eCheck) {
-      Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
-    }
-  }
+  var rascunhoComCrossCheck = _iaAnexarCrossCheckSeguranca(rascunho, dadosCaso);
 
   // Se a segunda passada de LLM estiver desativada (padrão de latência zero),
   // retorna imediatamente com a validação determinística de RAM
   if (!_iaCfgBool("IA_AUDITORIA_LLM_SEGUNDA_PASSADA", false)) {
-    return rascunho + blocoCrossCheck;
+    return rascunhoComCrossCheck;
   }
 
   var sistema = [
@@ -2814,6 +2818,19 @@ function gerarCondutaEmergenciaComIA(dadosEmergencia) {
       "Divergência Notável: " + protocoloLocal.divergencia + "\n\n";
   }
 
+  var contextoMedicamentos = "";
+  var farmacosEmerg = (typeof extrairFarmacosDoTexto === "function") ? extrairFarmacosDoTexto(dadosEmergencia) : [];
+  if (((farmacosEmerg && farmacosEmerg.length > 0) || protocoloLocal) && typeof obterContextoMedicamentosParaIA === "function") {
+    try {
+      var baseMedEmerg = obterContextoMedicamentosParaIA(dadosEmergencia);
+      if (baseMedEmerg && baseMedEmerg.texto) {
+        contextoMedicamentos = "\n\nBASES FARMACOLÓGICAS LOCAIS (HSL / PEDBOOK / REMUME):\n" + baseMedEmerg.texto + "\n\n";
+      }
+    } catch (eMedEmerg) {
+      Logger.log("Aviso ao obter contexto de medicamentos na emergência: " + eMedEmerg.message);
+    }
+  }
+
   var promptSistema = [
     IA_PERSONA, "", IA_VISUAL, "",
     "MODO: EMERGÊNCIA (SALA VERMELHA). Resposta telegráfica, operacional e ultra-precisa. Sem introdução, sem sabatina, sem perguntas didáticas.",
@@ -2846,7 +2863,7 @@ function gerarCondutaEmergenciaComIA(dadosEmergencia) {
     "_Sugestão gerada por IA. Conferir dose, diluição e diretriz; a responsabilidade da prescrição é do prescritor._"
   ].join("\n");
 
-  var promptUsuario = contextoProtocolo + "EMERGÊNCIA APRESENTADA:\n" + dadosEmergencia;
+  var promptUsuario = contextoProtocolo + contextoMedicamentos + "EMERGÊNCIA APRESENTADA:\n" + dadosEmergencia;
   var resposta = null;
 
   if (_iaCfgBool("IA_GROUNDING_EMERGENCIA", false)) {
@@ -2858,6 +2875,7 @@ function gerarCondutaEmergenciaComIA(dadosEmergencia) {
   if (resposta && _iaCfgBool("IA_AUDITORIA_EMERGENCIA", false)) {
     resposta = _iaAuditarRascunho(resposta, dadosEmergencia, "emergencia");
   }
+  resposta = _iaAnexarCrossCheckSeguranca(resposta, dadosEmergencia);
   return resposta;
 }
 
@@ -3049,6 +3067,19 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
       "Divergência Notável: " + protocoloLocal.divergencia + "\n\n";
   }
 
+  var contextoMedicamentos = "";
+  var farmacosConv = (typeof extrairFarmacosDoTexto === "function") ? extrairFarmacosDoTexto(textoMensagem) : [];
+  if (((farmacosConv && farmacosConv.length > 0) || protocoloLocal) && typeof obterContextoMedicamentosParaIA === "function") {
+    try {
+      var baseMedConv = obterContextoMedicamentosParaIA(textoMensagem);
+      if (baseMedConv && baseMedConv.texto) {
+        contextoMedicamentos = "\n\nBASES FARMACOLÓGICAS LOCAIS (HSL / PEDBOOK / REMUME):\n" + baseMedConv.texto + "\n\n";
+      }
+    } catch (eMedConv) {
+      Logger.log("Aviso ao obter contexto de medicamentos na conversa: " + eMedConv.message);
+    }
+  }
+
   var promptSistema = [
     IA_PERSONA, "", IA_VISUAL, "",
     "MODO ADAPTATIVO - escolha o modo conforme a mensagem:",
@@ -3066,11 +3097,12 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
     IA_SEGURANCA_MEDICAMENTOSA
   ].join("\n");
 
-  var promptUsuario = contextoProtocolo + textoMensagem;
+  var promptUsuario = contextoProtocolo + contextoMedicamentos + textoMensagem;
   if (contextoAnterior) {
-    promptUsuario = "HISTÓRICO RECENTE DA CONVERSA:\n" + contextoAnterior + "\n\nNOVA MENSAGEM DE WAGNER:\n" + contextoProtocolo + textoMensagem;
+    promptUsuario = "HISTÓRICO RECENTE DA CONVERSA:\n" + contextoAnterior + "\n\nNOVA MENSAGEM DE WAGNER:\n" + contextoProtocolo + contextoMedicamentos + textoMensagem;
   }
-  return _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, promptUsuario, 1800));
+  var respostaConv = _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, promptUsuario, 1800));
+  return _iaAnexarCrossCheckSeguranca(respostaConv, textoMensagem);
 }
 
 /**
@@ -3088,7 +3120,18 @@ function gerarProvocacaoPreceptorAudio(casoOuDuvida) {
       "Divergência/Segurança: " + (protocoloLocal.divergencia || "");
   }
   var farmacos = (typeof extrairFarmacosDoTexto === "function") ? extrairFarmacosDoTexto(textoCaso) : [];
-  if (farmacos && farmacos.length > 0 && typeof filtrarContextoPosologiasHSL === "function") {
+  if (((farmacos && farmacos.length > 0) || protocoloLocal) && typeof obterContextoMedicamentosParaIA === "function") {
+    try {
+      var baseMedAudio = obterContextoMedicamentosParaIA(textoCaso);
+      if (baseMedAudio && baseMedAudio.texto) {
+        var txtMedAudio = baseMedAudio.texto;
+        if (txtMedAudio.length > 2500) txtMedAudio = txtMedAudio.substring(0, 2500) + "...";
+        contextoGrounding += "\n\nBASES FARMACOLÓGICAS LOCAIS (HSL / PEDBOOK / REMUME):\n" + txtMedAudio;
+      }
+    } catch (eAudioMed) {
+      Logger.log("Aviso ao obter medicamentos áudio: " + eAudioMed.message);
+    }
+  } else if (farmacos && farmacos.length > 0 && typeof filtrarContextoPosologiasHSL === "function") {
     var hsl = filtrarContextoPosologiasHSL(textoCaso);
     if (hsl) {
       if (hsl.length > 2500) hsl = hsl.substring(0, 2500) + "...";
@@ -3134,7 +3177,18 @@ function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagn
       "Divergência/Segurança: " + (protocoloLocal.divergencia || "");
   }
   var farmacos = (typeof extrairFarmacosDoTexto === "function") ? extrairFarmacosDoTexto(textoConsulta) : [];
-  if (farmacos && farmacos.length > 0 && typeof filtrarContextoPosologiasHSL === "function") {
+  if (((farmacos && farmacos.length > 0) || protocoloLocal) && typeof obterContextoMedicamentosParaIA === "function") {
+    try {
+      var baseMedSocr = obterContextoMedicamentosParaIA(textoConsulta);
+      if (baseMedSocr && baseMedSocr.texto) {
+        var txtMedSocr = baseMedSocr.texto;
+        if (txtMedSocr.length > 2500) txtMedSocr = txtMedSocr.substring(0, 2500) + "...";
+        contextoGrounding += "\n\nBASES FARMACOLÓGICAS LOCAIS (HSL / PEDBOOK / REMUME):\n" + txtMedSocr;
+      }
+    } catch (eSocrMed) {
+      Logger.log("Aviso ao obter medicamentos socrático: " + eSocrMed.message);
+    }
+  } else if (farmacos && farmacos.length > 0 && typeof filtrarContextoPosologiasHSL === "function") {
     var hsl = filtrarContextoPosologiasHSL(textoConsulta);
     if (hsl) {
       if (hsl.length > 2500) hsl = hsl.substring(0, 2500) + "...";

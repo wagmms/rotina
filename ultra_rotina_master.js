@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-14 00:04:59
- * Checksum SHA256: ed49c145860dd6bb
+ * Gerado automaticamente via build_master.py em: 2026-10-14 00:24:10
+ * Checksum SHA256: 6b2ffa6437505baf
  * ==============================================================================
  */
 
@@ -35609,6 +35609,56 @@ var PROTOCOLOS_CLINICOS_EMERGENCIA = {
       "5. Critérios de Alarme (Via Aérea / UTI):\n" +
       "   • Silêncio respiratório, exaustão, confusão mental ou PaCO₂ normal/elevada (indica falência muscular iminente).",
     "divergencia": "Diferente da DPOC (alvo 88–92% pelo risco de retenção de CO₂), na Asma o alvo mandatório é SpO₂ 93–95% (GINA 2026)."
+  },
+  "anafilaxia": {
+    "titulo": "Anafilaxia e Choque Anafilático",
+    "diretriz_brasileira": "ASBAI (Associação Brasileira de Alergia e Imunologia) / CFM",
+    "diretriz_internacional": "WAO (World Allergy Organization) 2020 / EAACI",
+    "conduta_imediata": "1. Droga de 1ª Linha Mandatória (Imediata / Intramuscular):\n" +
+      "   • Adrenalina (Epinefrina) 1:1000 (1 mg/mL) IM no vasto lateral da coxa (face anterolateral).\n" +
+      "   • Dose adulto: 0,5 mg (0,5 mL) IM. Dose pediátrica: 0,01 mg/kg (máx 0,3 mg) IM.\n" +
+      "   • Repetir a cada 5 a 15 minutos se má resposta ou refratariedade.\n" +
+      "2. Posicionamento e Manejo Hemodinâmico:\n" +
+      "   • Decúbito dorsal com membros inferiores elevados (Trendelenburg/elevação de pernas). NUNCA colocar o paciente sentado ou em pé subitamente (risco de síndrome da veia cava vazia e parada cardíaca).\n" +
+      "   • Oxigenoterapia sob máscara com reservatório (alvo SpO₂ > 95%).\n" +
+      "   • Expansão volêmica rápida: SF 0,9% ou Ringer Lactato 20 mL/kg em bolus rápido (adulto: 1.000 a 2.000 mL se hipotensão).\n" +
+      "3. Adjuvantes de 2ª Linha (NÃO substituem adrenalina e NÃO devem atrasá-la):\n" +
+      "   • Anti-histamínicos: Difenidramina 25-50 mg IV ou Prometazina 25 mg IM/IV (alívio de prurido/urticária).\n" +
+      "   • Corticoterapia: Hidrocortisona 200-500 mg IV ou Metilprednisolona 1-2 mg/kg IV (prevenção de reação bifásica tardia).\n" +
+      "   • Broncodilatador inalatório (Salbutamol 4-8 jatos) se broncoespasmo associado.",
+    "divergencia": "🇧🇷 ASBAI vs 🌐 WAO: A via intramuscular no vasto lateral da coxa é a única via de eleição na anafilaxia inicial (pico sérico em ~8 min vs ~34 min no deltoide/SC). O uso isolado de corticoides ou anti-histamínicos sem adrenalina é falha grave e não previne óbito por asfixia ou colapso circulatório."
+  },
+  "convulsao": {
+    "titulo": "Crise Convulsiva e Estado de Mal Epiléptico (EME)",
+    "diretriz_brasileira": "Academia Brasileira de Neurologia (ABN) / Ministério da Saúde",
+    "diretriz_internacional": "AES (American Epilepsy Society) Guideline / Neurocritical Care Society",
+    "conduta_imediata": "1. Estabilização Imediata (Minutos 0 a 5):\n" +
+      "   • Proteção de via aérea (decúbito lateral para prevenir aspiração, oxigênio sob máscara), glicemia capilar imediata (se < 70 mg/dL: 4 ampolas de Glicose 50% IV + Tiamina 100 mg se etilista).\n" +
+      "2. 1ª Linha — Benzodiazepínicos (Minutos 5 a 10 se crise > 5 min):\n" +
+      "   • Diazepam 10 mg IV lento (0,2 a 0,3 mg/kg, velocidade máx 2-5 mg/min) puro; pode repetir 1x após 5 minutos se mantiver atividade convulsiva.\n" +
+      "   • Sem acesso venoso imediato: Midazolam 10 mg IM (0,2 mg/kg, máx 10 mg) no deltoide/vasto lateral.\n" +
+      "3. 2ª Linha — Anticonvulsivantes Venosos Não-Sedativos (Minutos 10 a 20):\n" +
+      "   • Fenitoína (Hidantal): Dose de ataque 20 mg/kg IV diluída EXCLUSIVAMENTE em Soro Fisiológico 0,9% (precipita em solução glicosada!) na velocidade máxima de 50 mg/min (risco de hipotensão e arritmias ventriculares graves; monitorização com ECG contínuo).\n" +
+      "   • Alternativas: Levetiracetam 60 mg/kg IV (máx 4.500 mg) ou Valproato de Sódio 40 mg/kg IV.\n" +
+      "4. 3ª Linha — Estado de Mal Refratário (Minutos 20 a 60):\n" +
+      "   • Intubação orotraqueal imediata (IOT) + infusão contínua em bomba de Midazolam (0,2 mg/kg bolus + 0,05-2 mg/kg/h) ou Propofol (1-2 mg/kg bolus + 1-5 mg/kg/h) e transferência para UTI.",
+    "divergencia": "🇧🇷 ABN/SUS vs 🌐 AES: No SUS, a Fenitoína é a droga de 2ª linha universalmente disponível, exigindo diluição estrita apenas em SF 0,9% e infusão em no máx 50 mg/min. No exterior, Levetiracetam IV e Fosfenitoína são mais utilizados pela comodidade."
+  },
+  "hda": {
+    "titulo": "Hemorragia Digestiva Alta (HDA Varicosa e Não Varicosa)",
+    "diretriz_brasileira": "Fisiopatologia e Condutas FMRP-USP / FBG (Federação Brasileira de Gastroenterologia)",
+    "diretriz_internacional": "Baveno VII / ACG Upper GI Bleeding Guidelines 2021",
+    "conduta_imediata": "1. Estabilização e Estratégia Transfusional Restritiva:\n" +
+      "   • 2 acessos venosos calibrosos (14G ou 16G), reposição com Ringer Lactato ou SF 0,9% criteriosa para evitar hipervolemia e agravamento do sangramento varicoso.\n" +
+      "   • Transfusão restritiva de Concentrado de Hemácias: indicar apenas se Hb < 7 g/dL (alvo Hb 7 a 8 g/dL). Em coronariopatas graves sintomáticos, alvo Hb > 8 g/dL.\n" +
+      "2. Supressão Ácida em Alta Dose (Não Varicosa e Indiferenciada):\n" +
+      "   • Omeprazol 80 mg IV em bolus, seguido de infusão contínua 8 mg/h por 72 horas (ou 40 mg IV 12/12h).\n" +
+      "3. Terapia Vasoativa Precoce na Suspeita de HDA Varicosa (Cirrose / Hipertensão Portal):\n" +
+      "   • Terlipressina 2 mg IV bolus 4/4h (ou Octreotide 50 mcg bolus + 50 mcg/h) iniciada imediatamente antes da EDA.\n" +
+      "   • Antibioticoprofilaxia mandatória em cirróticos: Ceftriaxona 1 g IV 1x/dia por 7 dias (reduz infecções bacterianas, ressangramento e mortalidade).\n" +
+      "4. Endoscopia Digestiva Alta (EDA) Precoce:\n" +
+      "   • Realizar EDA diagnóstica e terapêutica em até 12 horas (no máximo 24h) da admissão após estabilização hemodinâmica.",
+    "divergencia": "🇧🇷 FBG/SUS vs 🌐 Baveno VII: No Brasil, Ceftriaxona 1 g/dia é a profilaxia de 1ª linha em cirróticos com HDA devido à alta prevalência de resistência a quinolonas no país. A Terlipressina é o vasoconstritor esplâncnico de escolha na hepatologia brasileira e Baveno VII."
   }
 };
 
@@ -35625,10 +35675,13 @@ function obterProtocoloClinico(termo) {
     cad: /\b(?:cad|cetoacidose(?: diabetica)?)\b/g,
     tep: /\b(?:tep|tromboembolismo pulmonar|embolia pulmonar)\b/g,
     dpoc: /\bdpoc\b/g,
-    asma: /\b(?:asma|crise asmatica)\b/g
+    asma: /\b(?:asma|crise asmatica)\b/g,
+    anafilaxia: /\b(?:anafilaxia|choque anafilatico|reacao anafilatica|anafilat\w*)\b/g,
+    convulsao: /\b(?:convulsao|crise convulsiva|estado de mal epiletico|epilepsia|status epilepticus)\b/g,
+    hda: /\b(?:hda|hemorragia digestiva alta|sangramento digestivo alto|varizes esofagicas sangrantes)\b/g
   };
-  // Um protocolo único não representa choques de etiologias diferentes.
-  if (/\b(?:anafil\w*|choque (?:hemorragico|cardiogenico|hipovolemico|obstrutivo))\b/.test(texto)) return null;
+  // Um protocolo único não representa choques de etiologias diferentes (exceto anafilaxia).
+  if (/\b(?:choque (?:hemorragico|cardiogenico|hipovolemico|obstrutivo))\b/.test(texto) && !/\b(?:anafil\w*)\b/.test(texto)) return null;
   var candidatos = [];
   Object.keys(aliases).forEach(function(chave) {
     var matches = Array.from(texto.matchAll(aliases[chave]));
@@ -36815,6 +36868,21 @@ function extrairFarmacosDoTexto(texto) {
     }
   }
 
+  // 5. Drogas vasoativas, eletrólitos e sedativos de UTI (Compatibilidade Y)
+  if (typeof CompatibilidadeYDvaService !== "undefined" && CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA) {
+    for (var kDva in CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA) {
+      var kDvaNorm = kDva.replace(/_/g, " ");
+      if (textoNorm.indexOf(" " + kDvaNorm + " ") !== -1 || textoNorm.indexOf(" " + kDva + " ") !== -1) {
+        adicionar(kDva);
+      } else {
+        var primTermo = kDva.split("_")[0];
+        if (primTermo.length >= 5 && !STOPWORDS_FARMACOS[primTermo] && textoNorm.indexOf(" " + primTermo + " ") !== -1) {
+          adicionar(kDva);
+        }
+      }
+    }
+  }
+
   return encontrados;
 }
 
@@ -37206,11 +37274,119 @@ var GastroenterologiaPancreatiteService = (function() {
         };
     }
 
+    function extrairParametrosTexto(texto) {
+        var tLimpo = String(texto || "").trim();
+        var tNorm = tLimpo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        // 1. Idade > 60
+        var idadeMaior60 = false;
+        var mIdade = tNorm.match(/(?:idade\s*[:=]?\s*(\d+)|\b(\d+)\s*(?:a|anos|y|yo)\b)/i);
+        if (mIdade) {
+            var vIdade = parseInt(mIdade[1] || mIdade[2], 10);
+            if (vIdade > 60) idadeMaior60 = true;
+        } else if (/\b(?:idade\s*(?:>|maior(?:\s*que)?)\s*60|idoso|idosa|>60\s*anos)\b/i.test(tNorm)) {
+            idadeMaior60 = true;
+        }
+
+        // 2. BUN > 25 ou Ureia > 50
+        var bunMaior25 = false;
+        var mBun = tNorm.match(/\bbun\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+        var mUreia = tNorm.match(/(?:ureia|urea)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+        if (mBun && parseFloat(mBun[1].replace(",", ".")) > 25) {
+            bunMaior25 = true;
+        } else if (mUreia && parseFloat(mUreia[1].replace(",", ".")) > 50) {
+            bunMaior25 = true;
+        } else if (/\b(?:bun\s*(?:>|maior)\s*25|ureia\s*(?:>|maior)\s*50|bun\s*elevad[ao]|ureia\s*elevad[ao]|azotemia)\b/i.test(tNorm)) {
+            bunMaior25 = true;
+        }
+
+        // 3. Estado Mental Alterado (Glasgow < 15, confuso, rebaixado, sonolento)
+        var mentalAlterado = false;
+        var mGcs = tNorm.match(/(?:glasgow|ecg|gcs)\s*[:=]?\s*(\d+)/i);
+        if (mGcs && parseInt(mGcs[1], 10) < 15) {
+            mentalAlterado = true;
+        } else if (/\b(?:confus[ao]|sonolent[ao]|rebaixad[ao]|desorientad[ao]|torpor(?:os[ao])?|coma|mental\s*alterad[ao]|glasgow\s*<\s*15)\b/i.test(tNorm)) {
+            if (!/\b(?:sem\s+confus|nao\s+confus|sem\s+rebaixamento|lucid[ao]|orientad[ao])\b/i.test(tNorm)) {
+                mentalAlterado = true;
+            }
+        }
+
+        // 4. SIRS presente
+        var sirs = false;
+        var critsSirs = 0;
+        var mFc = tNorm.match(/\bfc\s*[:=]?\s*(\d+)/i);
+        if (mFc && parseInt(mFc[1], 10) > 90) critsSirs++;
+        var mFr = tNorm.match(/\bfr\s*[:=]?\s*(\d+)/i);
+        if (mFr && parseInt(mFr[1], 10) > 20) critsSirs++;
+        var mTemp = tNorm.match(/(?:tax|temp(?:eratura)?)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+        if (mTemp) {
+            var vT = parseFloat(mTemp[1].replace(",", "."));
+            if (vT > 38 || vT < 36) critsSirs++;
+        } else if (/\b(?:febre|febril|hipotermia)\b/i.test(tNorm)) {
+            critsSirs++;
+        }
+        var mLeuco = tNorm.match(/leuco(?:citos)?\s*[:=]?\s*(\d+)/i);
+        if (mLeuco) {
+            var vL = parseInt(mLeuco[1], 10);
+            if (vL > 12000 || (vL > 12 && vL < 100) || vL < 4000) critsSirs++;
+        } else if (/\b(?:leucocitose|leucopenia)\b/i.test(tNorm)) {
+            critsSirs++;
+        }
+
+        if (critsSirs >= 2) {
+            sirs = true;
+        } else if (/\bsirs\b/i.test(tNorm) && !/\b(?:sem\s+sirs|sirs\s*[-:]?\s*nao)\b/i.test(tNorm)) {
+            sirs = true;
+        }
+
+        // 5. Derrame Pleural
+        var derramePleural = false;
+        if (/\b(?:derrame(?:\s+pleural)?|\bep\b)\b/i.test(tNorm)) {
+            if (!/\b(?:sem\s+derrame|derrame\s*(?:ausente|negativo|nao))\b/i.test(tNorm)) {
+                derramePleural = true;
+            }
+        }
+
+        // Hidratação
+        var doencaCardioRenal = /\b(?:ic|icc|insuficiencia\s+cardiaca|drc|ira|cardiopata|nefropata|renal)\b/i.test(tNorm) &&
+            !/\b(?:sem\s+(?:ic|icc|drc|ira|doenca)|nao\s+cardiopata)\b/i.test(tNorm);
+        var mHt = tNorm.match(/(?:ht|hematocrito)\s*[:=]?\s*(\d+)/i);
+        var htElevado = (mHt && parseInt(mHt[1], 10) > 44) || /\b(?:hematocrito\s*elevad[ao]|ht\s*elevad[ao]|hemoconcentracao)\b/i.test(tNorm);
+        var bunElevado = bunMaior25 || /\b(?:bun\s*elevad[ao]|ureia\s*elevad[ao])\b/i.test(tNorm);
+
+        // Nutrição
+        var dorControlada = /\b(?:dor\s+(?:controlada|aliviada|ausente|melhor|cedeu)|sem\s+dor)\b/i.test(tNorm);
+        var nauseaVomitoAusentes = /\b(?:sem\s+(?:vomito|nausea|emese)|tolerando|vomitos?\s+ausente|nauseas?\s+ausente)\b/i.test(tNorm);
+        var mNpo = tNorm.match(/(?:npo|jejum)\s*[:=]?\s*(\d+)\s*(?:h|horas)?/i);
+        var tempoNPO = mNpo ? parseInt(mNpo[1], 10) : 0;
+
+        return {
+            bisap: {
+                bunMaior25: bunMaior25,
+                mentalAlterado: mentalAlterado,
+                sirs: sirs,
+                idadeMaior60: idadeMaior60,
+                derramePleural: derramePleural
+            },
+            hidratacao: {
+                doencaCardiovascularOuRenal: doencaCardioRenal,
+                hematocritoElevado: htElevado,
+                bunElevado: bunElevado
+            },
+            nutricao: {
+                dorAbdominalControlada: dorControlada,
+                nauseaVomitoAusentes: nauseaVomitoAusentes,
+                tempoNPO: tempoNPO
+            }
+        };
+    }
+
     return {
         calcularBISAP: calcularBISAP,
         protocoloHidratacao: protocoloHidratacao,
         protocoloNutricao: protocoloNutricao,
-        avaliarPaciente: avaliarPaciente
+        avaliarPaciente: avaliarPaciente,
+        extrairParametrosTexto: extrairParametrosTexto
     };
 })();
 
@@ -40035,43 +40211,47 @@ function auditoriaClinicaPendente(texto) {
   return /auditoria autom[aá]tica (?:indispon[ií]vel|incompleta)|alertas da auditoria autom[aá]tica/i.test(String(texto || ""));
 }
 
+function _iaAnexarCrossCheckSeguranca(rascunho, dadosCaso) {
+  if (!rascunho) return rascunho;
+  if (typeof executarCrossCheckSegurancaClinica !== "function") return rascunho;
+  try {
+    var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
+    if (check && check.temAlertasCriticos) {
+      var alertasSentinela = [];
+      if (check.interacoes) {
+        check.interacoes.filter(function(it) {
+          return it.grauNormalizado === "CONTRAINDICADO" || it.grauNormalizado === "GRAVE";
+        }).forEach(function(it) {
+          alertasSentinela.push("• 🛑 *Interação " + it.grau + ":* " + it.drogaA + " + " + it.drogaB + " (" + (it.recomendacao || it.efeito) + ")");
+        });
+      }
+      if (check.compatibilidadeY) {
+        check.compatibilidadeY.filter(function(p) {
+          return p.status === "INCOMPATIVEL" || p.alertaCritico;
+        }).forEach(function(p) {
+          alertasSentinela.push("• 🛑 *Incompatibilidade em Y:* " + p.drogaA.toUpperCase() + " ⚡ " + p.drogaB.toUpperCase() + " (" + p.conduta + ")");
+        });
+      }
+      if (alertasSentinela.length > 0) {
+        return rascunho + "\n\n⚠️ *ALERTAS CRÍTICOS DE SEGURANÇA FARMACOLÓGICA:*\n" + alertasSentinela.join("\n");
+      }
+    }
+  } catch (eCheck) {
+    Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
+  }
+  return rascunho;
+}
+
 function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   if (!rascunho) return rascunho;
 
   // 1. Cross-Check determinístico imediato em RAM (0ms) contra bases locais (interações, HSL e REMUME)
-  var blocoCrossCheck = "";
-  if (typeof executarCrossCheckSegurancaClinica === "function") {
-    try {
-      var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
-      if (check && check.temAlertasCriticos) {
-        var alertasSentinela = [];
-        if (check.interacoes) {
-          check.interacoes.filter(function(it) {
-            return it.grauNormalizado === "CONTRAINDICADO" || it.grauNormalizado === "GRAVE";
-          }).forEach(function(it) {
-            alertasSentinela.push("• 🛑 *Interação " + it.grau + ":* " + it.drogaA + " + " + it.drogaB + " (" + (it.recomendacao || it.efeito) + ")");
-          });
-        }
-        if (check.compatibilidadeY) {
-          check.compatibilidadeY.filter(function(p) {
-            return p.status === "INCOMPATIVEL" || p.alertaCritico;
-          }).forEach(function(p) {
-            alertasSentinela.push("• 🛑 *Incompatibilidade em Y:* " + p.drogaA.toUpperCase() + " ⚡ " + p.drogaB.toUpperCase() + " (" + p.conduta + ")");
-          });
-        }
-        if (alertasSentinela.length > 0) {
-          blocoCrossCheck = "\n\n⚠️ *ALERTAS CRÍTICOS DE SEGURANÇA FARMACOLÓGICA:*\n" + alertasSentinela.join("\n");
-        }
-      }
-    } catch (eCheck) {
-      Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
-    }
-  }
+  var rascunhoComCrossCheck = _iaAnexarCrossCheckSeguranca(rascunho, dadosCaso);
 
   // Se a segunda passada de LLM estiver desativada (padrão de latência zero),
   // retorna imediatamente com a validação determinística de RAM
   if (!_iaCfgBool("IA_AUDITORIA_LLM_SEGUNDA_PASSADA", false)) {
-    return rascunho + blocoCrossCheck;
+    return rascunhoComCrossCheck;
   }
 
   var sistema = [
@@ -41147,6 +41327,19 @@ function gerarCondutaEmergenciaComIA(dadosEmergencia) {
       "Divergência Notável: " + protocoloLocal.divergencia + "\n\n";
   }
 
+  var contextoMedicamentos = "";
+  var farmacosEmerg = (typeof extrairFarmacosDoTexto === "function") ? extrairFarmacosDoTexto(dadosEmergencia) : [];
+  if (((farmacosEmerg && farmacosEmerg.length > 0) || protocoloLocal) && typeof obterContextoMedicamentosParaIA === "function") {
+    try {
+      var baseMedEmerg = obterContextoMedicamentosParaIA(dadosEmergencia);
+      if (baseMedEmerg && baseMedEmerg.texto) {
+        contextoMedicamentos = "\n\nBASES FARMACOLÓGICAS LOCAIS (HSL / PEDBOOK / REMUME):\n" + baseMedEmerg.texto + "\n\n";
+      }
+    } catch (eMedEmerg) {
+      Logger.log("Aviso ao obter contexto de medicamentos na emergência: " + eMedEmerg.message);
+    }
+  }
+
   var promptSistema = [
     IA_PERSONA, "", IA_VISUAL, "",
     "MODO: EMERGÊNCIA (SALA VERMELHA). Resposta telegráfica, operacional e ultra-precisa. Sem introdução, sem sabatina, sem perguntas didáticas.",
@@ -41179,7 +41372,7 @@ function gerarCondutaEmergenciaComIA(dadosEmergencia) {
     "_Sugestão gerada por IA. Conferir dose, diluição e diretriz; a responsabilidade da prescrição é do prescritor._"
   ].join("\n");
 
-  var promptUsuario = contextoProtocolo + "EMERGÊNCIA APRESENTADA:\n" + dadosEmergencia;
+  var promptUsuario = contextoProtocolo + contextoMedicamentos + "EMERGÊNCIA APRESENTADA:\n" + dadosEmergencia;
   var resposta = null;
 
   if (_iaCfgBool("IA_GROUNDING_EMERGENCIA", false)) {
@@ -41191,6 +41384,7 @@ function gerarCondutaEmergenciaComIA(dadosEmergencia) {
   if (resposta && _iaCfgBool("IA_AUDITORIA_EMERGENCIA", false)) {
     resposta = _iaAuditarRascunho(resposta, dadosEmergencia, "emergencia");
   }
+  resposta = _iaAnexarCrossCheckSeguranca(resposta, dadosEmergencia);
   return resposta;
 }
 
@@ -41382,6 +41576,19 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
       "Divergência Notável: " + protocoloLocal.divergencia + "\n\n";
   }
 
+  var contextoMedicamentos = "";
+  var farmacosConv = (typeof extrairFarmacosDoTexto === "function") ? extrairFarmacosDoTexto(textoMensagem) : [];
+  if (((farmacosConv && farmacosConv.length > 0) || protocoloLocal) && typeof obterContextoMedicamentosParaIA === "function") {
+    try {
+      var baseMedConv = obterContextoMedicamentosParaIA(textoMensagem);
+      if (baseMedConv && baseMedConv.texto) {
+        contextoMedicamentos = "\n\nBASES FARMACOLÓGICAS LOCAIS (HSL / PEDBOOK / REMUME):\n" + baseMedConv.texto + "\n\n";
+      }
+    } catch (eMedConv) {
+      Logger.log("Aviso ao obter contexto de medicamentos na conversa: " + eMedConv.message);
+    }
+  }
+
   var promptSistema = [
     IA_PERSONA, "", IA_VISUAL, "",
     "MODO ADAPTATIVO - escolha o modo conforme a mensagem:",
@@ -41399,11 +41606,12 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
     IA_SEGURANCA_MEDICAMENTOSA
   ].join("\n");
 
-  var promptUsuario = contextoProtocolo + textoMensagem;
+  var promptUsuario = contextoProtocolo + contextoMedicamentos + textoMensagem;
   if (contextoAnterior) {
-    promptUsuario = "HISTÓRICO RECENTE DA CONVERSA:\n" + contextoAnterior + "\n\nNOVA MENSAGEM DE WAGNER:\n" + contextoProtocolo + textoMensagem;
+    promptUsuario = "HISTÓRICO RECENTE DA CONVERSA:\n" + contextoAnterior + "\n\nNOVA MENSAGEM DE WAGNER:\n" + contextoProtocolo + contextoMedicamentos + textoMensagem;
   }
-  return _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, promptUsuario, 1800));
+  var respostaConv = _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, promptUsuario, 1800));
+  return _iaAnexarCrossCheckSeguranca(respostaConv, textoMensagem);
 }
 
 /**
@@ -41421,7 +41629,18 @@ function gerarProvocacaoPreceptorAudio(casoOuDuvida) {
       "Divergência/Segurança: " + (protocoloLocal.divergencia || "");
   }
   var farmacos = (typeof extrairFarmacosDoTexto === "function") ? extrairFarmacosDoTexto(textoCaso) : [];
-  if (farmacos && farmacos.length > 0 && typeof filtrarContextoPosologiasHSL === "function") {
+  if (((farmacos && farmacos.length > 0) || protocoloLocal) && typeof obterContextoMedicamentosParaIA === "function") {
+    try {
+      var baseMedAudio = obterContextoMedicamentosParaIA(textoCaso);
+      if (baseMedAudio && baseMedAudio.texto) {
+        var txtMedAudio = baseMedAudio.texto;
+        if (txtMedAudio.length > 2500) txtMedAudio = txtMedAudio.substring(0, 2500) + "...";
+        contextoGrounding += "\n\nBASES FARMACOLÓGICAS LOCAIS (HSL / PEDBOOK / REMUME):\n" + txtMedAudio;
+      }
+    } catch (eAudioMed) {
+      Logger.log("Aviso ao obter medicamentos áudio: " + eAudioMed.message);
+    }
+  } else if (farmacos && farmacos.length > 0 && typeof filtrarContextoPosologiasHSL === "function") {
     var hsl = filtrarContextoPosologiasHSL(textoCaso);
     if (hsl) {
       if (hsl.length > 2500) hsl = hsl.substring(0, 2500) + "...";
@@ -41467,7 +41686,18 @@ function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagn
       "Divergência/Segurança: " + (protocoloLocal.divergencia || "");
   }
   var farmacos = (typeof extrairFarmacosDoTexto === "function") ? extrairFarmacosDoTexto(textoConsulta) : [];
-  if (farmacos && farmacos.length > 0 && typeof filtrarContextoPosologiasHSL === "function") {
+  if (((farmacos && farmacos.length > 0) || protocoloLocal) && typeof obterContextoMedicamentosParaIA === "function") {
+    try {
+      var baseMedSocr = obterContextoMedicamentosParaIA(textoConsulta);
+      if (baseMedSocr && baseMedSocr.texto) {
+        var txtMedSocr = baseMedSocr.texto;
+        if (txtMedSocr.length > 2500) txtMedSocr = txtMedSocr.substring(0, 2500) + "...";
+        contextoGrounding += "\n\nBASES FARMACOLÓGICAS LOCAIS (HSL / PEDBOOK / REMUME):\n" + txtMedSocr;
+      }
+    } catch (eSocrMed) {
+      Logger.log("Aviso ao obter medicamentos socrático: " + eSocrMed.message);
+    }
+  } else if (farmacos && farmacos.length > 0 && typeof filtrarContextoPosologiasHSL === "function") {
     var hsl = filtrarContextoPosologiasHSL(textoConsulta);
     if (hsl) {
       if (hsl.length > 2500) hsl = hsl.substring(0, 2500) + "...";
@@ -43636,16 +43866,22 @@ function tentarRoteamentoColoquialPlantao(texto, chatId) {
     var matchPesoAmoxi = tLow.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i) || tLow.match(/crian[çc]a\s+(\d+(?:[.,]\d+)?)/i);
     if (matchPesoAmoxi) {
       var pesoAmoxi = parseFloat(matchPesoAmoxi[1].replace(",", "."));
-      var dose50 = Math.round(pesoAmoxi * 50);
-      var dose90 = Math.round(pesoAmoxi * 90);
+      var dose50Calculada = Math.round(pesoAmoxi * 50);
+      var dose90Calculada = Math.round(pesoAmoxi * 90);
+      var dose50 = Math.min(1500, dose50Calculada);
+      var dose90 = Math.min(2000, dose90Calculada);
+      var travouTeto = (dose50Calculada > 1500) || (dose90Calculada > 2000);
       var doseToma50 = Math.round(dose50 / 3);
       var mlToma50 = (doseToma50 / 50).toFixed(1); // suspensão 250mg/5mL = 50mg/mL
+      var doseToma90 = Math.round(dose90 / 2);
+      var mlToma90 = ((dose90 / 2) / 80).toFixed(1); // suspensão 400mg/5mL = 80mg/mL
+      var alertaTeto = travouTeto ? "\n\n⚠️ [Dose travada no teto máximo diário de adulto/pediátrico]" : "";
       var txtAmoxiPed = "💊 *AMOXICILINA PEDIÁTRICA (" + pesoAmoxi + " kg)*\n\n" +
         "🔴 *Dose Padrão (50 mg/kg/dia):* " + dose50 + " mg/dia dividido 8/8h\n" +
         "• *Por tomada:* ~" + doseToma50 + " mg (ou *" + mlToma50 + " mL* da suspensão 250mg/5mL 8/8h por 7 a 10 dias)\n\n" +
         "🟡 *Dose OMA Alto Risco / PAC (90 mg/kg/dia):* " + dose90 + " mg/dia dividido 12/12h\n" +
-        "• *Por tomada:* ~" + Math.round(dose90 / 2) + " mg (ou *" + ((dose90 / 2) / 80).toFixed(1) + " mL* da suspensão 400mg/5mL 12/12h)\n\n" +
-        "⚠️ *Segurança:* Teto pediátrico máximo: 1.500 mg a 2.000 mg/dia. Alergia prévia a beta-lactâmicos contraindica.";
+        "• *Por tomada:* ~" + doseToma90 + " mg (ou *" + mlToma90 + " mL* da suspensão 400mg/5mL 12/12h)\n\n" +
+        "⚠️ *Segurança:* Teto pediátrico máximo: 1.500 mg a 2.000 mg/dia. Alergia prévia a beta-lactâmicos contraindica." + alertaTeto;
       if (kbNav && typeof enviarMensagemComTecladoParaChat === "function") {
         enviarMensagemComTecladoParaChat(chatId, txtAmoxiPed, kbNav);
       } else {
@@ -47945,16 +48181,139 @@ function executarComandoCalculadorasUTIInterno_(comando, texto, chatId, contexto
     return tratarComandoDhe(chatId, dadosDheCmd);
   }
 
+function extrairParametrosPancreatite(texto) {
+  var tLimpo = String(texto || "").trim();
+  var tNorm = tLimpo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  // 1. Idade > 60
+  var idadeMaior60 = false;
+  var mIdade = tNorm.match(/(?:idade\s*[:=]?\s*(\d+)|\b(\d+)\s*(?:a|anos|y|yo)\b)/i);
+  if (mIdade) {
+    var vIdade = parseInt(mIdade[1] || mIdade[2], 10);
+    if (vIdade > 60) idadeMaior60 = true;
+  } else if (/\b(?:idade\s*(?:>|maior(?:\s*que)?)\s*60|idoso|idosa|>60\s*anos)\b/i.test(tNorm)) {
+    idadeMaior60 = true;
+  }
+
+  // 2. BUN > 25 ou Ureia > 50
+  var bunMaior25 = false;
+  var mBun = tNorm.match(/\bbun\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+  var mUreia = tNorm.match(/(?:ureia|urea)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+  if (mBun && parseFloat(mBun[1].replace(",", ".")) > 25) {
+    bunMaior25 = true;
+  } else if (mUreia && parseFloat(mUreia[1].replace(",", ".")) > 50) {
+    bunMaior25 = true;
+  } else if (/\b(?:bun\s*(?:>|maior)\s*25|ureia\s*(?:>|maior)\s*50|bun\s*elevad[ao]|ureia\s*elevad[ao]|azotemia)\b/i.test(tNorm)) {
+    bunMaior25 = true;
+  }
+
+  // 3. Estado Mental Alterado (Glasgow < 15, confuso, rebaixado, sonolento)
+  var mentalAlterado = false;
+  var mGcs = tNorm.match(/(?:glasgow|ecg|gcs)\s*[:=]?\s*(\d+)/i);
+  if (mGcs && parseInt(mGcs[1], 10) < 15) {
+    mentalAlterado = true;
+  } else if (/\b(?:confus[ao]|sonolent[ao]|rebaixad[ao]|desorientad[ao]|torpor(?:os[ao])?|coma|mental\s*alterad[ao]|glasgow\s*<\s*15)\b/i.test(tNorm)) {
+    if (!/\b(?:sem\s+confus|nao\s+confus|sem\s+rebaixamento|lucid[ao]|orientad[ao])\b/i.test(tNorm)) {
+      mentalAlterado = true;
+    }
+  }
+
+  // 4. SIRS presente
+  var sirs = false;
+  var critsSirs = 0;
+  var mFc = tNorm.match(/\bfc\s*[:=]?\s*(\d+)/i);
+  if (mFc && parseInt(mFc[1], 10) > 90) critsSirs++;
+  var mFr = tNorm.match(/\bfr\s*[:=]?\s*(\d+)/i);
+  if (mFr && parseInt(mFr[1], 10) > 20) critsSirs++;
+  var mTemp = tNorm.match(/(?:tax|temp(?:eratura)?)\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+  if (mTemp) {
+    var vT = parseFloat(mTemp[1].replace(",", "."));
+    if (vT > 38 || vT < 36) critsSirs++;
+  } else if (/\b(?:febre|febril|hipotermia)\b/i.test(tNorm)) {
+    critsSirs++;
+  }
+  var mLeuco = tNorm.match(/leuco(?:citos)?\s*[:=]?\s*(\d+)/i);
+  if (mLeuco) {
+    var vL = parseInt(mLeuco[1], 10);
+    if (vL > 12000 || (vL > 12 && vL < 100) || vL < 4000) critsSirs++;
+  } else if (/\b(?:leucocitose|leucopenia)\b/i.test(tNorm)) {
+    critsSirs++;
+  }
+
+  if (critsSirs >= 2) {
+    sirs = true;
+  } else if (/\bsirs\b/i.test(tNorm) && !/\b(?:sem\s+sirs|sirs\s*[-:]?\s*nao)\b/i.test(tNorm)) {
+    sirs = true;
+  }
+
+  // 5. Derrame Pleural
+  var derramePleural = false;
+  if (/\b(?:derrame(?:\s+pleural)?|\bep\b)\b/i.test(tNorm)) {
+    if (!/\b(?:sem\s+derrame|derrame\s*(?:ausente|negativo|nao))\b/i.test(tNorm)) {
+      derramePleural = true;
+    }
+  }
+
+  // Hidratação
+  var doencaCardioRenal = /\b(?:ic|icc|insuficiencia\s+cardiaca|drc|ira|cardiopata|nefropata|renal)\b/i.test(tNorm) &&
+    !/\b(?:sem\s+(?:ic|icc|drc|ira|doenca)|nao\s+cardiopata)\b/i.test(tNorm);
+  var mHt = tNorm.match(/(?:ht|hematocrito)\s*[:=]?\s*(\d+)/i);
+  var htElevado = (mHt && parseInt(mHt[1], 10) > 44) || /\b(?:hematocrito\s*elevad[ao]|ht\s*elevad[ao]|hemoconcentracao)\b/i.test(tNorm);
+  var bunElevado = bunMaior25 || /\b(?:bun\s*elevad[ao]|ureia\s*elevad[ao])\b/i.test(tNorm);
+
+  // Nutrição
+  var dorControlada = /\b(?:dor\s+(?:controlada|aliviada|ausente|melhor|cedeu)|sem\s+dor)\b/i.test(tNorm);
+  var nauseaVomitoAusentes = /\b(?:sem\s+(?:vomito|nausea|emese)|tolerando|vomitos?\s+ausente|nauseas?\s+ausente)\b/i.test(tNorm);
+  var mNpo = tNorm.match(/(?:npo|jejum)\s*[:=]?\s*(\d+)\s*(?:h|horas)?/i);
+  var tempoNPO = mNpo ? parseInt(mNpo[1], 10) : 0;
+
+  return {
+    bisap: {
+      bunMaior25: bunMaior25,
+      mentalAlterado: mentalAlterado,
+      sirs: sirs,
+      idadeMaior60: idadeMaior60,
+      derramePleural: derramePleural
+    },
+    hidratacao: {
+      doencaCardiovascularOuRenal: doencaCardioRenal,
+      hematocritoElevado: htElevado,
+      bunElevado: bunElevado
+    },
+    nutricao: {
+      dorAbdominalControlada: dorControlada,
+      nauseaVomitoAusentes: nauseaVomitoAusentes,
+      tempoNPO: tempoNPO
+    }
+  };
+}
+
   if (comando === "/pancreatite" || comando === "/bisap") {
     if (typeof GastroenterologiaPancreatiteService === "undefined") {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo GastroenterologiaPancreatiteService indisponível.");
     }
-    var resPancreatite = cockpitGastroenterologiaPancreatite('bot', {
-        bisap: { bunMaior25: true, mentalAlterado: false, sirs: true, idadeMaior60: false, derramePleural: true },
-        hidratacao: { doencaCardiovascularOuRenal: false, hematocritoElevado: true, bunElevado: true },
-        nutricao: { dorAbdominalControlada: false, nauseaVomitoAusentes: true, tempoNPO: 24 }
-    });
-    return enviarMensagemParaChat(chatId, resPancreatite.textoFormatado + "\n\n_(Exemplo gerado com parâmetros simulados. Interatividade será adicionada no PWA.)_");
+    var dadosPancreatite = texto.replace(/^\/(?:pancreatite|bisap)\s*/i, "").trim();
+    if (!dadosPancreatite) {
+      var msgAjudaPancreatite = "🩸 *COCKPIT DE PANCREATITE AGUDA & ESCORE BISAP*\n\n" +
+        "Avalie a gravidade nas primeiras 24h, estratifique mortalidade e oriente hidratação/nutrição.\n\n" +
+        "📌 *Como Usar:*\n" +
+        "`/pancreatite [idade] [ureia/bun] [estado mental] [sirs/sinais vitais] [derrame]`\n\n" +
+        "💡 *Exemplos Práticos:*\n" +
+        "• `/pancreatite 68a ureia 65 confuso sirs derrame pleural`\n" +
+        "• `/bisap idade 72 bun 30 glasgow 14 fc 105 fr 22 derrame`\n" +
+        "• `/pancreatite 45a ureia 28 lúcido sem sirs sem derrame dor controlada sem vomito`\n\n" +
+        "⚙️ *Critérios do Escore BISAP (1 ponto cada):*\n" +
+        "• **B**UN > 25 mg/dL (ou Ureia > 50 mg/dL)\n" +
+        "• **I**mpaired mental status (Glasgow < 15, confuso, sonolento)\n" +
+        "• **S**IRS presente (2+ de: FC>90, FR>20, Tax>38°C ou <36°C, Leuco>12k ou <4k)\n" +
+        "• **A**ge > 60 anos\n" +
+        "• **P**leural effusion (Derrame pleural no Rx/TC)";
+      return enviarMensagemParaChat(chatId, msgAjudaPancreatite);
+    }
+
+    var paramsPancreatite = extrairParametrosPancreatite(dadosPancreatite);
+    var resPancreatite = cockpitGastroenterologiaPancreatite('bot', paramsPancreatite);
+    return enviarMensagemParaChat(chatId, resPancreatite.textoFormatado);
   }
 
   if (comando === "/sca" || comando === "/iam" || comando === "/heart" || comando === "/dapt") {

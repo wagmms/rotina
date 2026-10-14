@@ -928,6 +928,56 @@ var PROTOCOLOS_CLINICOS_EMERGENCIA = {
       "5. Critérios de Alarme (Via Aérea / UTI):\n" +
       "   • Silêncio respiratório, exaustão, confusão mental ou PaCO₂ normal/elevada (indica falência muscular iminente).",
     "divergencia": "Diferente da DPOC (alvo 88–92% pelo risco de retenção de CO₂), na Asma o alvo mandatório é SpO₂ 93–95% (GINA 2026)."
+  },
+  "anafilaxia": {
+    "titulo": "Anafilaxia e Choque Anafilático",
+    "diretriz_brasileira": "ASBAI (Associação Brasileira de Alergia e Imunologia) / CFM",
+    "diretriz_internacional": "WAO (World Allergy Organization) 2020 / EAACI",
+    "conduta_imediata": "1. Droga de 1ª Linha Mandatória (Imediata / Intramuscular):\n" +
+      "   • Adrenalina (Epinefrina) 1:1000 (1 mg/mL) IM no vasto lateral da coxa (face anterolateral).\n" +
+      "   • Dose adulto: 0,5 mg (0,5 mL) IM. Dose pediátrica: 0,01 mg/kg (máx 0,3 mg) IM.\n" +
+      "   • Repetir a cada 5 a 15 minutos se má resposta ou refratariedade.\n" +
+      "2. Posicionamento e Manejo Hemodinâmico:\n" +
+      "   • Decúbito dorsal com membros inferiores elevados (Trendelenburg/elevação de pernas). NUNCA colocar o paciente sentado ou em pé subitamente (risco de síndrome da veia cava vazia e parada cardíaca).\n" +
+      "   • Oxigenoterapia sob máscara com reservatório (alvo SpO₂ > 95%).\n" +
+      "   • Expansão volêmica rápida: SF 0,9% ou Ringer Lactato 20 mL/kg em bolus rápido (adulto: 1.000 a 2.000 mL se hipotensão).\n" +
+      "3. Adjuvantes de 2ª Linha (NÃO substituem adrenalina e NÃO devem atrasá-la):\n" +
+      "   • Anti-histamínicos: Difenidramina 25-50 mg IV ou Prometazina 25 mg IM/IV (alívio de prurido/urticária).\n" +
+      "   • Corticoterapia: Hidrocortisona 200-500 mg IV ou Metilprednisolona 1-2 mg/kg IV (prevenção de reação bifásica tardia).\n" +
+      "   • Broncodilatador inalatório (Salbutamol 4-8 jatos) se broncoespasmo associado.",
+    "divergencia": "🇧🇷 ASBAI vs 🌐 WAO: A via intramuscular no vasto lateral da coxa é a única via de eleição na anafilaxia inicial (pico sérico em ~8 min vs ~34 min no deltoide/SC). O uso isolado de corticoides ou anti-histamínicos sem adrenalina é falha grave e não previne óbito por asfixia ou colapso circulatório."
+  },
+  "convulsao": {
+    "titulo": "Crise Convulsiva e Estado de Mal Epiléptico (EME)",
+    "diretriz_brasileira": "Academia Brasileira de Neurologia (ABN) / Ministério da Saúde",
+    "diretriz_internacional": "AES (American Epilepsy Society) Guideline / Neurocritical Care Society",
+    "conduta_imediata": "1. Estabilização Imediata (Minutos 0 a 5):\n" +
+      "   • Proteção de via aérea (decúbito lateral para prevenir aspiração, oxigênio sob máscara), glicemia capilar imediata (se < 70 mg/dL: 4 ampolas de Glicose 50% IV + Tiamina 100 mg se etilista).\n" +
+      "2. 1ª Linha — Benzodiazepínicos (Minutos 5 a 10 se crise > 5 min):\n" +
+      "   • Diazepam 10 mg IV lento (0,2 a 0,3 mg/kg, velocidade máx 2-5 mg/min) puro; pode repetir 1x após 5 minutos se mantiver atividade convulsiva.\n" +
+      "   • Sem acesso venoso imediato: Midazolam 10 mg IM (0,2 mg/kg, máx 10 mg) no deltoide/vasto lateral.\n" +
+      "3. 2ª Linha — Anticonvulsivantes Venosos Não-Sedativos (Minutos 10 a 20):\n" +
+      "   • Fenitoína (Hidantal): Dose de ataque 20 mg/kg IV diluída EXCLUSIVAMENTE em Soro Fisiológico 0,9% (precipita em solução glicosada!) na velocidade máxima de 50 mg/min (risco de hipotensão e arritmias ventriculares graves; monitorização com ECG contínuo).\n" +
+      "   • Alternativas: Levetiracetam 60 mg/kg IV (máx 4.500 mg) ou Valproato de Sódio 40 mg/kg IV.\n" +
+      "4. 3ª Linha — Estado de Mal Refratário (Minutos 20 a 60):\n" +
+      "   • Intubação orotraqueal imediata (IOT) + infusão contínua em bomba de Midazolam (0,2 mg/kg bolus + 0,05-2 mg/kg/h) ou Propofol (1-2 mg/kg bolus + 1-5 mg/kg/h) e transferência para UTI.",
+    "divergencia": "🇧🇷 ABN/SUS vs 🌐 AES: No SUS, a Fenitoína é a droga de 2ª linha universalmente disponível, exigindo diluição estrita apenas em SF 0,9% e infusão em no máx 50 mg/min. No exterior, Levetiracetam IV e Fosfenitoína são mais utilizados pela comodidade."
+  },
+  "hda": {
+    "titulo": "Hemorragia Digestiva Alta (HDA Varicosa e Não Varicosa)",
+    "diretriz_brasileira": "Fisiopatologia e Condutas FMRP-USP / FBG (Federação Brasileira de Gastroenterologia)",
+    "diretriz_internacional": "Baveno VII / ACG Upper GI Bleeding Guidelines 2021",
+    "conduta_imediata": "1. Estabilização e Estratégia Transfusional Restritiva:\n" +
+      "   • 2 acessos venosos calibrosos (14G ou 16G), reposição com Ringer Lactato ou SF 0,9% criteriosa para evitar hipervolemia e agravamento do sangramento varicoso.\n" +
+      "   • Transfusão restritiva de Concentrado de Hemácias: indicar apenas se Hb < 7 g/dL (alvo Hb 7 a 8 g/dL). Em coronariopatas graves sintomáticos, alvo Hb > 8 g/dL.\n" +
+      "2. Supressão Ácida em Alta Dose (Não Varicosa e Indiferenciada):\n" +
+      "   • Omeprazol 80 mg IV em bolus, seguido de infusão contínua 8 mg/h por 72 horas (ou 40 mg IV 12/12h).\n" +
+      "3. Terapia Vasoativa Precoce na Suspeita de HDA Varicosa (Cirrose / Hipertensão Portal):\n" +
+      "   • Terlipressina 2 mg IV bolus 4/4h (ou Octreotide 50 mcg bolus + 50 mcg/h) iniciada imediatamente antes da EDA.\n" +
+      "   • Antibioticoprofilaxia mandatória em cirróticos: Ceftriaxona 1 g IV 1x/dia por 7 dias (reduz infecções bacterianas, ressangramento e mortalidade).\n" +
+      "4. Endoscopia Digestiva Alta (EDA) Precoce:\n" +
+      "   • Realizar EDA diagnóstica e terapêutica em até 12 horas (no máximo 24h) da admissão após estabilização hemodinâmica.",
+    "divergencia": "🇧🇷 FBG/SUS vs 🌐 Baveno VII: No Brasil, Ceftriaxona 1 g/dia é a profilaxia de 1ª linha em cirróticos com HDA devido à alta prevalência de resistência a quinolonas no país. A Terlipressina é o vasoconstritor esplâncnico de escolha na hepatologia brasileira e Baveno VII."
   }
 };
 
@@ -944,10 +994,13 @@ function obterProtocoloClinico(termo) {
     cad: /\b(?:cad|cetoacidose(?: diabetica)?)\b/g,
     tep: /\b(?:tep|tromboembolismo pulmonar|embolia pulmonar)\b/g,
     dpoc: /\bdpoc\b/g,
-    asma: /\b(?:asma|crise asmatica)\b/g
+    asma: /\b(?:asma|crise asmatica)\b/g,
+    anafilaxia: /\b(?:anafilaxia|choque anafilatico|reacao anafilatica|anafilat\w*)\b/g,
+    convulsao: /\b(?:convulsao|crise convulsiva|estado de mal epiletico|epilepsia|status epilepticus)\b/g,
+    hda: /\b(?:hda|hemorragia digestiva alta|sangramento digestivo alto|varizes esofagicas sangrantes)\b/g
   };
-  // Um protocolo único não representa choques de etiologias diferentes.
-  if (/\b(?:anafil\w*|choque (?:hemorragico|cardiogenico|hipovolemico|obstrutivo))\b/.test(texto)) return null;
+  // Um protocolo único não representa choques de etiologias diferentes (exceto anafilaxia).
+  if (/\b(?:choque (?:hemorragico|cardiogenico|hipovolemico|obstrutivo))\b/.test(texto) && !/\b(?:anafil\w*)\b/.test(texto)) return null;
   var candidatos = [];
   Object.keys(aliases).forEach(function(chave) {
     var matches = Array.from(texto.matchAll(aliases[chave]));
@@ -2129,6 +2182,21 @@ function extrairFarmacosDoTexto(texto) {
             adicionar(kAtb);
             break;
           }
+        }
+      }
+    }
+  }
+
+  // 5. Drogas vasoativas, eletrólitos e sedativos de UTI (Compatibilidade Y)
+  if (typeof CompatibilidadeYDvaService !== "undefined" && CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA) {
+    for (var kDva in CompatibilidadeYDvaService.FICHAS_DILUICAO_DVA) {
+      var kDvaNorm = kDva.replace(/_/g, " ");
+      if (textoNorm.indexOf(" " + kDvaNorm + " ") !== -1 || textoNorm.indexOf(" " + kDva + " ") !== -1) {
+        adicionar(kDva);
+      } else {
+        var primTermo = kDva.split("_")[0];
+        if (primTermo.length >= 5 && !STOPWORDS_FARMACOS[primTermo] && textoNorm.indexOf(" " + primTermo + " ") !== -1) {
+          adicionar(kDva);
         }
       }
     }

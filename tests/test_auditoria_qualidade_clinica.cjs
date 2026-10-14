@@ -290,4 +290,104 @@ test('Persistência e Interface: Modos de sessão, unicode e teclados inline 100
   assert(kbStr.includes('ux:hub:rx'));
 });
 
+// -----------------------------------------------------------------------------
+// 8. TRAVA DE SEGURANÇA E TETO MÁXIMO NA AMOXICILINA PEDIÁTRICA COLOQUIAL
+// -----------------------------------------------------------------------------
+test('Amoxicilina Coloquial: Trava doses pediátricas no teto diário com alerta explícito', () => {
+  const { c, sent } = env();
+
+  // Caso 1: Criança 10 kg (50 mg/kg = 500 mg, 90 mg/kg = 900 mg -> dentro do teto)
+  sent.length = 0;
+  c.processarMensagemTexto({ chat: { id: 123 }, text: 'amoxicilina 10kg' });
+  const msg10 = sent[sent.length - 1]?.payload?.text || '';
+  assert(msg10.includes('500 mg/dia'), 'Dose 50 mg/kg deve ser 500 mg');
+  assert(msg10.includes('900 mg/dia'), 'Dose 90 mg/kg deve ser 900 mg');
+  assert(!msg10.includes('Dose travada no teto'), 'Não deve exibir alerta de trava se abaixo do teto');
+
+  // Caso 2: Criança 35 kg (50 mg/kg = 1750 mg -> trava em 1500; 90 mg/kg = 3150 mg -> trava em 2000)
+  sent.length = 0;
+  c.processarMensagemTexto({ chat: { id: 123 }, text: 'amoxi 35kg' });
+  const msg35 = sent[sent.length - 1]?.payload?.text || '';
+  assert(msg35.includes('1500 mg/dia'), 'Dose padrão deve travar em 1500 mg/dia');
+  assert(msg35.includes('2000 mg/dia'), 'Dose OMA/PAC deve travar em 2000 mg/dia');
+  assert(msg35.includes('⚠️ [Dose travada no teto máximo diário de adulto/pediátrico]'), 'Deve emitir alerta de trava de teto');
+});
+
+// -----------------------------------------------------------------------------
+// 9. EXPANSÃO DE PROTOCOLOS DETERMINÍSTICOS (ANAFILAXIA, CONVULSÃO E HDA)
+// -----------------------------------------------------------------------------
+test('Protocolos Determinísticos: Anafilaxia, Convulsão e HDA com diretrizes oficiais brasileiras', () => {
+  const { c } = env();
+
+  // 1. Anafilaxia
+  const pAnafilaxia = c.obterProtocoloClinico('paciente em anafilaxia grave com estridor');
+  assert(pAnafilaxia !== null, 'Deve encontrar protocolo de anafilaxia');
+  assert(pAnafilaxia.titulo.includes('Anafilaxia'), 'Título deve ser Anafilaxia');
+  assert(pAnafilaxia.conduta_imediata.includes('Adrenalina'), 'Deve conter adrenalina');
+  assert(pAnafilaxia.conduta_imediata.includes('vasto lateral da coxa'), 'Via IM no vasto lateral');
+  assert(pAnafilaxia.conduta_imediata.includes('0,01 mg/kg'), 'Dose pediátrica');
+  assert(pAnafilaxia.conduta_imediata.includes('0,5 mg'), 'Dose adulto');
+  assert(pAnafilaxia.conduta_imediata.includes('SF 0,9% ou Ringer Lactato 20 mL/kg'), 'Expansão volêmica');
+
+  // 2. Convulsão (Estado de Mal Epiléptico)
+  const pConvulsao = c.obterProtocoloClinico('paciente em crise convulsiva ha 10 minutos');
+  assert(pConvulsao !== null, 'Deve encontrar protocolo de convulsão');
+  assert(pConvulsao.conduta_imediata.includes('Diazepam 10 mg IV'), '1ª linha Diazepam');
+  assert(pConvulsao.conduta_imediata.includes('Midazolam 10 mg IM'), 'Midazolam IM se sem acesso');
+  assert(pConvulsao.conduta_imediata.includes('Fenitoína'), '2ª linha Fenitoína');
+  assert(pConvulsao.conduta_imediata.includes('20 mg/kg IV diluída EXCLUSIVAMENTE em Soro Fisiológico 0,9%'), 'Rigor SF 0.9%');
+  assert(pConvulsao.conduta_imediata.includes('50 mg/min'), 'Velocidade máxima 50 mg/min');
+  assert(pConvulsao.conduta_imediata.includes('Intubação orotraqueal imediata (IOT)'), '3ª linha IOT');
+
+  // 3. Hemorragia Digestiva Alta (HDA)
+  const pHda = c.obterProtocoloClinico('paciente com hemorragia digestiva alta varicosa cirrotico');
+  assert(pHda !== null, 'Deve encontrar protocolo de HDA');
+  assert(pHda.conduta_imediata.includes('Transfusão restritiva de Concentrado de Hemácias: indicar apenas se Hb < 7 g/dL'), 'Alvo restritivo Hb 7-8');
+  assert(pHda.conduta_imediata.includes('Omeprazol 80 mg IV em bolus, seguido de infusão contínua 8 mg/h'), 'Omeprazol alta dose');
+  assert(pHda.conduta_imediata.includes('Terlipressina 2 mg IV bolus 4/4h'), 'Terlipressina');
+  assert(pHda.conduta_imediata.includes('Ceftriaxona 1 g IV 1x/dia por 7 dias'), 'Profilaxia Ceftriaxona');
+  assert(pHda.conduta_imediata.includes('EDA'), 'Endoscopia precoce');
+});
+
+// -----------------------------------------------------------------------------
+// 10. COMANDO /PANCREATITE E /BISAP NO ROTEADOR TELEGRAM
+// -----------------------------------------------------------------------------
+test('Comandos /pancreatite e /bisap: Card de ajuda sem parâmetros e parser real quando informado', () => {
+  const { c, sent } = env();
+
+  // Sem parâmetros -> Exibe ajuda
+  sent.length = 0;
+  c.processarMensagemTexto({ chat: { id: 123 }, text: '/pancreatite' });
+  const msgAjuda = sent[sent.length - 1]?.payload?.text || '';
+  assert(msgAjuda.includes('COCKPIT DE PANCREATITE AGUDA & ESCORE BISAP'), 'Deve exibir card de ajuda');
+  assert(msgAjuda.includes('/pancreatite 68a ureia 65 confuso sirs derrame pleural'), 'Deve conter exemplo');
+
+  // Com parâmetros reais -> Calcula BISAP dinâmico sem mensagem de parâmetros simulados
+  sent.length = 0;
+  c.processarMensagemTexto({ chat: { id: 123 }, text: '/pancreatite 68a ureia 65 confuso sirs derrame pleural' });
+  const msgCalc = sent[sent.length - 1]?.payload?.text || '';
+  assert(msgCalc.includes('PANCREATITE AGUDA E MANEJO DE HIDRATAÇÃO'), 'Deve processar com sucesso');
+  assert(msgCalc.includes('Escore BISAP:* 5 pontos'), 'Deve calcular BISAP = 5');
+  assert(msgCalc.includes('Alto Risco'), 'Deve classificar como Alto Risco');
+  assert(!msgCalc.includes('parâmetros simulados'), 'NÃO deve conter aviso de parâmetros simulados');
+});
+
+// -----------------------------------------------------------------------------
+// 11. GROUNDING FARMACOLÓGICO E CROSS-CHECK 0MS NA CONVERSA E EMERGÊNCIA
+// -----------------------------------------------------------------------------
+test('Grounding Farmacológico e Cross-Check 0ms: Injeta HSL/PedBook e anexa alertas críticos', () => {
+  const { c } = env();
+
+  // Mock de retorno de IA gerando incompatibilidade em Y crítica (Noradrenalina + Furosemida)
+  c.executarRaciocinioClinico = (prompt, user) => {
+    return 'Prescrição imediata de emergência:\n' +
+      '1. Noradrenalina 0.2 mcg/kg/min em BIC contínua.\n' +
+      '2. Furosemida 20mg EV em bolus na mesma via em Y.';
+  };
+
+  const conduta = c.gerarCondutaEmergenciaComIA('Paciente com choque séptico e congestão pulmonar');
+  assert(conduta.includes('ALERTAS CRÍTICOS DE SEGURANÇA FARMACOLÓGICA'), 'Deve anexar alertas do cross-check em RAM');
+  assert(conduta.includes('Incompatibilidade em Y') || conduta.includes('INCOMPATÍVEL'), 'Deve detectar incompatibilidade em Y');
+});
+
 console.log(`\n🎉 BATERIA DE QUALIDADE CLÍNICA E DIDÁTICA: ${pass}/${total} testes aprovados com 100% de êxito!`);
