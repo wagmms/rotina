@@ -44,3 +44,13 @@ def test_install_idempotent_and_backup_and_resume_preserves_user_choice(tmp_path
     control.write_text("pausar")
     installer.resume(home)
     assert control.read_text() == "rotina" and not state.exists()
+
+
+def test_manifest_covers_all_core_files():
+    import json
+    manifest = json.loads((SOURCE / "install_manifest.json").read_text())
+    declared = set(manifest.get("core_modules", []))
+    actual = {p.name for p in (SOURCE / "core").iterdir() if p.suffix in {".py", ".json"}}
+    assert declared, "Manifesto deve declarar core_modules"
+    assert actual == declared, f"Módulos em core/ órfãos ou não declarados no manifesto: {actual ^ declared}"
+

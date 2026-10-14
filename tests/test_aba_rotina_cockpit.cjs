@@ -69,6 +69,13 @@ assert.ok(htmlContent.includes('id="rotina-duvidas-lista"'), 'Lista rotina-duvid
 assert.ok(htmlContent.includes('id="input-nova-duvida-cockpit"'), 'Input de nova dúvida deve existir');
 assert.ok(htmlContent.includes('data-filtro="lifestyle"'), 'Filtro de lifestyle deve existir');
 assert.ok(htmlContent.includes('RotinaTimeline.alternarGavetaDuvidas()'), 'Ação de alternar gaveta de dúvidas deve existir');
+assert.ok(htmlContent.includes('id="painel-aderencia-rotina"'), 'Painel de aderência semanal deve existir');
+assert.ok(htmlContent.includes('id="aderencia-pct-semanal"'), 'Badge de aderência percentual deve existir');
+assert.ok(htmlContent.includes('id="aderencia-eixos-grid"'), 'Grid de mini-barras por eixo deve existir');
+assert.ok(htmlContent.includes('id="aderencia-eixo-plantao-val"'), 'Mini-barra de plantão deve existir');
+assert.ok(htmlContent.includes('id="aderencia-eixo-estudo-val"'), 'Mini-barra de estudo deve existir');
+assert.ok(htmlContent.includes('id="aderencia-eixo-treino-val"'), 'Mini-barra de treino deve existir');
+assert.ok(htmlContent.includes('id="aderencia-eixo-habitos-val"'), 'Mini-barra de hábitos deve existir');
 assert.ok(htmlContent.includes('rotina_timeline.js'), 'Tag de script de rotina_timeline.js deve ser importada');
 console.log('  ✓ Todos os seletores e ausência de mocks validados no HTML.');
 
@@ -138,6 +145,8 @@ assert.strictEqual(typeof RotinaTimeline.renderizar, 'function', 'renderizar dev
 assert.strictEqual(typeof RotinaTimeline.alterarStatus, 'function', 'alterarStatus deve ser função');
 assert.strictEqual(typeof RotinaTimeline.ativarModoDescanso, 'function', 'ativarModoDescanso deve ser função');
 assert.strictEqual(typeof RotinaTimeline.carregarGradePadrao, 'function', 'carregarGradePadrao deve ser função');
+assert.strictEqual(typeof RotinaTimeline.calcularAderenciaSemanalLocal, 'function', 'calcularAderenciaSemanalLocal deve ser função');
+assert.strictEqual(typeof RotinaTimeline.atualizarPainelAderencia, 'function', 'atualizarPainelAderencia deve ser função');
 
 // 4.1 Normalização de Blocos e Categorias
 const bNormal = RotinaTimeline.normalizarBloco({

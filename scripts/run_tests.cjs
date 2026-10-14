@@ -89,6 +89,11 @@ function snapshot(root, destination) {
     fs.mkdirSync(path.dirname(destToken), { recursive: true });
     try { fs.copyFileSync(path.join(root, 'calendar_manager', 'token.json'), destToken); } catch (_) {}
   }
+  if (fs.existsSync(path.join(root, 'calendar_manager', 'credentials.json'))) {
+    const destCreds = path.join(destination, 'calendar_manager', 'credentials.json');
+    fs.mkdirSync(path.dirname(destCreds), { recursive: true });
+    try { fs.copyFileSync(path.join(root, 'calendar_manager', 'credentials.json'), destCreds); } catch (_) {}
+  }
   if (fs.existsSync(path.join(root, 'node_modules'))) {
     fs.symlinkSync(path.join(root, 'node_modules'), path.join(destination, 'node_modules'), 'dir');
   }

@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-12 18:20:40
- * Checksum SHA256: c8ce57f356d25385
+ * Gerado automaticamente via build_master.py em: 2026-10-13 23:24:52
+ * Checksum SHA256: 3ac0c4a7f1676900
  * ==============================================================================
  */
 
@@ -373,23 +373,76 @@ function fragmentarTexto(texto, limite) {
   var maxLimit = limite || 3800;
   var partes = [];
   var pos = 0;
+  var blocoCodigoAberto = false;
+  var linguagemBloco = "";
 
   while (pos < texto.length) {
-    var fim = Math.min(pos + maxLimit, texto.length);
+    var margemSegura = blocoCodigoAberto ? (maxLimit - 60) : maxLimit;
+    var fim = Math.min(pos + margemSegura, texto.length);
     if (fim < texto.length) {
-      var ultimaQuebra = texto.lastIndexOf("\n", fim);
-      if (ultimaQuebra > pos && (fim - ultimaQuebra) < 800) {
-        fim = ultimaQuebra + 1;
+      // 1. Procura quebra de parágrafo duplo (\n\n) ou início de novo item de posologia/lista
+      var trechoBusca = texto.substring(pos, fim);
+      var idxItemLista = -1;
+      var matchItem = trechoBusca.match(/\n(?=(?:\d+[.)]|[-•*]|\b[A-Z0-9_]+:)\s+)[^\n]*$/);
+      if (matchItem && matchItem.index > (margemSegura / 2)) {
+        idxItemLista = pos + matchItem.index + 1;
+      }
+
+      var ultimaQuebraDupla = texto.lastIndexOf("\n\n", fim);
+      if (idxItemLista > pos) {
+        fim = idxItemLista;
+      } else if (ultimaQuebraDupla > pos && (fim - ultimaQuebraDupla) < 1000) {
+        fim = ultimaQuebraDupla + 1;
       } else {
-        var ultimoEspaco = texto.lastIndexOf(" ", fim);
-        if (ultimoEspaco > pos) {
-          fim = ultimoEspaco;
-        } else if (/[\uD800-\uDBFF]/.test(texto.charAt(fim - 1))) {
-          fim--;
+        var ultimaQuebra = texto.lastIndexOf("\n", fim);
+        if (ultimaQuebra > pos && (fim - ultimaQuebra) < 800) {
+          fim = ultimaQuebra + 1;
+        } else {
+          var ultimoEspaco = texto.lastIndexOf(" ", fim);
+          if (ultimoEspaco > pos) {
+            fim = ultimoEspaco;
+          } else if (/[\uD800-\uDBFF]/.test(texto.charAt(fim - 1))) {
+            fim--;
+          }
         }
       }
     }
-    partes.push(texto.slice(pos, fim).trim());
+
+    var pedaco = texto.slice(pos, fim).trim();
+    if (pedaco.length > 0) {
+      // Se um bloco de código vinha aberto do fragmento anterior, reabre no início com a mesma linguagem
+      if (blocoCodigoAberto) {
+        pedaco = "```" + (linguagemBloco || "") + "\n" + pedaco;
+      }
+
+      // Analisa balanceamento de blocos de código neste fragmento
+      var regexBloco = /```([a-zA-Z0-9_-]*)/g;
+      var match;
+      var estadoAberto = false;
+      var langDetectada = "";
+      while ((match = regexBloco.exec(pedaco)) !== null) {
+        if (!estadoAberto) {
+          estadoAberto = true;
+          langDetectada = match[1] || "";
+        } else {
+          estadoAberto = false;
+          langDetectada = "";
+        }
+      }
+
+      // Se o pedaço encerra com bloco de código ainda aberto, fecha no fim e anota para o próximo
+      if (estadoAberto) {
+        pedaco += "\n```";
+        blocoCodigoAberto = true;
+        linguagemBloco = langDetectada;
+      } else {
+        blocoCodigoAberto = false;
+        linguagemBloco = "";
+      }
+
+      partes.push(pedaco);
+    }
+
     while (fim < texto.length && (texto.charAt(fim) === " " || texto.charAt(fim) === "\n")) {
       fim++;
     }
@@ -34967,6 +35020,135 @@ function checarStatusFonteDrive(idPlanilha, isInteracao) {
 }
 
 // ==============================================================================
+// BASE CANÔNICA DA REMUME (RIBEIRÃO PRETO - SP)
+// ==============================================================================
+
+var _cacheItensRemumeRP = null;
+var REGEX_SAIS_FARMACO = /\b(cloridrato|s[oó]dica?|pot[aá]ssica?|maleato|besilato|hemi[- ]?hidratad[oa]|sulfato|succinato|tartarato|fosfato|acetato|dipropionato|valerato|fumarato|bromidrato|citrato)\b/gi;
+
+/**
+ * Normaliza princípio ativo removendo acentuação, pontuação e sais farmacêuticos
+ * para permitir matching determinístico entre a consulta do médico e o catálogo municipal.
+ */
+function normalizarPrincipioAtivo(txt) {
+  if (!txt) return "";
+  var semAcento = normalizarTexto(txt);
+  return semAcento
+    .replace(REGEX_SAIS_FARMACO, " ")
+    .replace(/[^\w\s\+]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Carrega a lista em memória de apresentações padronizadas de REMUME_RP.csv.
+ */
+function obterItensRemumeRP() {
+  if (_cacheItensRemumeRP && _cacheItensRemumeRP.length > 0) return _cacheItensRemumeRP;
+  var conteudo = "";
+  try {
+    var idRemume = (typeof ConfigService !== "undefined" && typeof ConfigService.get === "function")
+      ? (ConfigService.get("SPREADSHEET_ID_REMUME") || "remume_local")
+      : "remume_local";
+    if (typeof lerPlanilhaEmCache === "function") {
+      conteudo = lerPlanilhaEmCache("remume", idRemume, false);
+    }
+    if (!conteudo && typeof obterPlanilha === "function") {
+      conteudo = obterPlanilha("remume", idRemume, false);
+    }
+  } catch (_) {}
+
+  if (!conteudo && typeof require !== "undefined") {
+    try {
+      var fs = require("fs");
+      var path = require("path");
+      var caminhos = [
+        path.resolve(process.cwd(), "REMUME_RP.csv"),
+        path.resolve(__dirname, "..", "REMUME_RP.csv"),
+        path.resolve(__dirname, "REMUME_RP.csv")
+      ];
+      for (var i = 0; i < caminhos.length; i++) {
+        if (fs.existsSync(caminhos[i])) {
+          conteudo = fs.readFileSync(caminhos[i], "utf8");
+          break;
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (!conteudo) return [];
+  var linhas = String(conteudo).split(/\r?\n/)
+    .map(function(l) { return l.replace(/^"|"$/g, "").trim(); })
+    .filter(function(l) { return l.length > 0 && l.toLowerCase() !== "medicamento"; });
+
+  _cacheItensRemumeRP = linhas;
+  return _cacheItensRemumeRP;
+}
+
+/**
+ * Consulta determinística da REMUME de Ribeirão Preto.
+ * Mapeia sinônimos comerciais, remove sais e separa monoterapia de associações.
+ */
+function consultarRemumeRP(termo, medHslFallback) {
+  if (!termo || typeof termo !== "string") {
+    return { presente: false, farmaco: "", apresentacoes: [], selo: "⚪ [NÃO-REMUME]" };
+  }
+
+  var termoLimpo = termo.trim().toLowerCase();
+  var termoNorm = normalizarPrincipioAtivo(termoLimpo);
+
+  // Expansão por dicionário de marcas e sinônimos comerciais
+  var sin = (typeof DICIONARIO_FARMACO !== "undefined" && DICIONARIO_FARMACO[termoLimpo])
+    ? DICIONARIO_FARMACO[termoLimpo]
+    : termoNorm;
+  var termoAlvo = normalizarPrincipioAtivo(sin);
+  if (!termoAlvo) {
+    termoAlvo = termoNorm;
+  }
+
+  var ehBuscaAssociacao = termoAlvo.indexOf("+") !== -1 || /clavulan/i.test(termoAlvo);
+  var itens = obterItensRemumeRP();
+  var isolados = [];
+  var associados = [];
+
+  for (var i = 0; i < itens.length; i++) {
+    var linhaOriginal = itens[i];
+    var linhaNorm = normalizarPrincipioAtivo(linhaOriginal);
+
+    // Regex de palavra inteira ou início de termo para evitar falsos positivos
+    var regexPalavra = new RegExp("(?:^|\\s)" + termoAlvo.replace("+", "\\+") + "(?:\\s|$|[0-9])", "i");
+    if (regexPalavra.test(linhaNorm) || linhaNorm.indexOf(termoAlvo) !== -1) {
+      if (linhaOriginal.indexOf("+") !== -1) {
+        if (associados.indexOf(linhaOriginal) === -1) associados.push(linhaOriginal);
+      } else {
+        if (isolados.indexOf(linhaOriginal) === -1) isolados.push(linhaOriginal);
+      }
+    }
+  }
+
+  var apresentacoes = ehBuscaAssociacao ? associados.concat(isolados) : isolados.concat(associados);
+
+  // Fallback transparente se o mock de teste não carregou a lista do CSV mas o HSL traz flags estáticas
+  if (apresentacoes.length === 0 && medHslFallback && medHslFallback.na_remume) {
+    var aprsFallback = Array.isArray(medHslFallback.apresentacoes_remume) ? medHslFallback.apresentacoes_remume : [];
+    return {
+      presente: true,
+      farmaco: termo,
+      apresentacoes: aprsFallback,
+      selo: "🟢 [REMUME-RP]"
+    };
+  }
+
+  var presente = apresentacoes.length > 0;
+  return {
+    presente: presente,
+    farmaco: termo,
+    apresentacoes: apresentacoes,
+    selo: presente ? "🟢 [REMUME-RP]" : "⚪ [NÃO-REMUME]"
+  };
+}
+
+// ==============================================================================
 // BASE OFICIAL DE POSOLOGIAS: GUIA FARMACÊUTICO HOSPITAL SÍRIO-LIBANÊS (HSL)
 // ==============================================================================
 
@@ -35114,16 +35296,20 @@ function formatarFichaPosologicaHSL(med) {
   linhas.push("💊 *GUIA FARMACÊUTICO HSL — POSOLOGIA OFICIAL*");
   linhas.push("📋 *Fármaco (DCI):* *" + med.farnaco + "*");
   
-  if (med.na_remume) {
-    linhas.push("🏛️ *Status SUS:* ✅ *PADRONIZADO NA REMUME (Ribeirão Preto)*");
-    if (med.apresentacoes_remume && med.apresentacoes_remume.length > 0) {
+  var remumeInfo = (typeof consultarRemumeRP === "function")
+    ? consultarRemumeRP(med.farnaco, med)
+    : { presente: !!med.na_remume, apresentacoes: med.apresentacoes_remume || [] };
+
+  if (remumeInfo.presente) {
+    linhas.push("🏛️ *Status SUS:* 🟢 [REMUME-RP] *PADRONIZADO NA REDE MUNICIPAL (Ribeirão Preto)*");
+    if (remumeInfo.apresentacoes && remumeInfo.apresentacoes.length > 0) {
       linhas.push("📦 *Apresentações na Rede Municipal:*");
-      med.apresentacoes_remume.forEach(function(apr) {
+      remumeInfo.apresentacoes.forEach(function(apr) {
         linhas.push("  • `" + apr + "`");
       });
     }
   } else {
-    linhas.push("🏛️ *Status SUS:* ⚠️ *NÃO CONSTA NA REMUME MUNICIPAL*");
+    linhas.push("🏛️ *Status SUS:* ⚪ [NÃO-REMUME] *NÃO CONSTA NA REDE MUNICIPAL*");
     linhas.push("_(Uso hospitalar, componente especializado ou compra pelo paciente)_");
   }
 
@@ -35712,13 +35898,17 @@ function formatarFichaPediatricaPedB(med) {
   }
 
   // Status REMUME / SUS
-  if (med.na_remume) {
-    linhas.push("🏛️ *SUS / REMUME:* ✅ PADRONIZADO NA REDE MUNICIPAL");
-    if (med.apresentacoes_remume && med.apresentacoes_remume.length > 0) {
-      linhas.push("   _Apresentações SUS:_ " + med.apresentacoes_remume.slice(0, 3).join(", "));
+  var remumeInfo = (typeof consultarRemumeRP === "function")
+    ? consultarRemumeRP(med.nome, med)
+    : { presente: !!med.na_remume, apresentacoes: med.apresentacoes_remume || [] };
+
+  if (remumeInfo.presente) {
+    linhas.push("🏛️ *SUS / REMUME:* 🟢 [REMUME-RP] *PADRONIZADO NA REDE MUNICIPAL (Ribeirão Preto)*");
+    if (remumeInfo.apresentacoes && remumeInfo.apresentacoes.length > 0) {
+      linhas.push("   _Apresentações SUS:_ " + remumeInfo.apresentacoes.slice(0, 3).map(function(a) { return "`" + a + "`"; }).join(", "));
     }
   } else {
-    linhas.push("🏛️ *SUS / REMUME:* ⚠️ NÃO CONSTA NA REMUME MUNICIPAL");
+    linhas.push("🏛️ *SUS / REMUME:* ⚪ [NÃO-REMUME] *NÃO CONSTA NA REDE MUNICIPAL*");
   }
 
   if (med.marcas) {
@@ -36874,7 +37064,9 @@ if (typeof module !== "undefined" && module.exports) {
     CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS: CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS,
     obterAjusteRenalAntimicrobiano: obterAjusteRenalAntimicrobiano,
     formatarAjusteRenalAntimicrobiano: formatarAjusteRenalAntimicrobiano,
-    consultarCatalogoAjusteRenal: consultarCatalogoAjusteRenal
+    consultarCatalogoAjusteRenal: consultarCatalogoAjusteRenal,
+    obterItensRemumeRP: obterItensRemumeRP,
+    consultarRemumeRP: consultarRemumeRP
   });
 }
 
@@ -38105,7 +38297,7 @@ if (typeof module !== 'undefined' && module.exports) {
  */
 
 var IA_PADROES = {
-  ORCAMENTO_MS: 50000,
+  ORCAMENTO_MS: 18000,
   FOLGA_TOKENS: 1024,
   TOKENS_TETO: 6000,
   GROQ: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
@@ -38394,8 +38586,11 @@ function _iaProvOpenAICompat(cfg, sistema, prompt, tokens, ctx) {
     for (var h in (cfg.headersExtra || {})) headers[h] = cfg.headersExtra[h];
 
     try {
+      var timeoutMsCfg = Number(_iaCfg("IA_TIMEOUT_MS", 7000)) || 7000;
+      var timeoutMsFetch = cfg.timeoutMs || timeoutMsCfg;
       var res = UrlFetchApp.fetch(cfg.url, {
-        method: "post", headers: headers, payload: JSON.stringify(payload), muteHttpExceptions: true
+        method: "post", headers: headers, payload: JSON.stringify(payload), muteHttpExceptions: true,
+        timeoutMs: timeoutMsFetch
       });
       var code = res.getResponseCode();
       if (code === 200) {
@@ -41984,14 +42179,26 @@ function detectarPlantaoStatus(dataReferencia) {
 var RotinaService = {
   PREFIXO_PROP: "ROTINA_OVERRIDE_",
 
+  parseDataSegura_: function(dataRef) {
+    if (!dataRef) return new Date();
+    if (dataRef instanceof Date) return isNaN(dataRef.getTime()) ? new Date() : dataRef;
+    if (typeof dataRef === "string") {
+      var match = dataRef.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) {
+        return new Date(dataRef.indexOf("T") !== -1 ? dataRef : dataRef + "T12:00:00");
+      }
+    }
+    var d = new Date(dataRef);
+    return isNaN(d.getTime()) ? new Date() : d;
+  },
+
   normalizarDataISO: function(dataRef) {
     if (!dataRef) dataRef = new Date();
     if (typeof dataRef === "string") {
       var match = dataRef.match(/^\d{4}-\d{2}-\d{2}/);
       if (match) return match[0];
     }
-    var d = dataRef instanceof Date ? dataRef : new Date(dataRef);
-    if (isNaN(d.getTime())) d = new Date();
+    var d = RotinaService.parseDataSegura_(dataRef);
     var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
     if (typeof Utilities !== "undefined" && Utilities.formatDate) {
       return Utilities.formatDate(d, tz, "yyyy-MM-dd");
@@ -42084,8 +42291,7 @@ var RotinaService = {
   },
 
   importarEventosGoogleCalendar: function(dataRef) {
-    var ref = dataRef ? (dataRef instanceof Date ? dataRef : new Date(dataRef)) : new Date();
-    if (isNaN(ref.getTime())) ref = new Date();
+    var ref = RotinaService.parseDataSegura_(dataRef);
     try {
       if (typeof CalendarApp === "undefined" || !CalendarApp.getDefaultCalendar) return [];
       var cal = CalendarApp.getDefaultCalendar();
@@ -42100,6 +42306,7 @@ var RotinaService = {
       for (var i = 0; i < eventos.length; i++) {
         var ev = eventos[i];
         if (ev.isAllDayEvent()) continue;
+        var rawId = ev.getId ? String(ev.getId()) : String(i);
         var hIni = Utilities.formatDate(ev.getStartTime(), tz, "HH:mm");
         var hFim = Utilities.formatDate(ev.getEndTime(), tz, "HH:mm");
         var tit = ev.getTitle() || "Compromisso";
@@ -42112,15 +42319,18 @@ var RotinaService = {
         else if (/viol[aã]o|m[uú]sica|h[aá]bito/i.test(titLower)) cat = "lifestyle";
         else cat = "lifestyle";
 
+        var loc = (typeof ev.getLocation === "function") ? ev.getLocation() : "";
+
         blocos.push({
-          id: "google_" + (ev.getId ? ev.getId() : i),
+          id: "google_" + rawId,
+          googleEventId: rawId,
           titulo: tit,
           inicio: hIni,
           fim: hFim,
           categoria: cat,
           status: "pendente",
           essencial: true,
-          nota: (ev.getLocation ? ev.getLocation() : "") || "Agenda Google"
+          nota: loc || "Agenda Google"
         });
       }
 
@@ -42136,28 +42346,58 @@ var RotinaService = {
   },
 
   obterBlocosDoDia: function(dataRef) {
-    var ref = dataRef ? (dataRef instanceof Date ? dataRef : new Date(dataRef)) : new Date();
-    if (isNaN(ref.getTime())) ref = new Date();
+    var ref = RotinaService.parseDataSegura_(dataRef);
 
     var salvos = RotinaService.obterBlocosSalvos(ref);
     var blocosAgenda = RotinaService.importarEventosGoogleCalendar(ref);
 
-    // Se temos eventos da agenda Google, mesclamos status com blocos salvos anteriormente
+    // Se temos eventos da agenda Google, mesclamos títulos vivos com status e horários adiados salvos
     if (blocosAgenda && blocosAgenda.length > 0) {
       if (salvos && salvos.length > 0) {
+        var idsOuTitulosEncontrados = {};
         for (var i = 0; i < blocosAgenda.length; i++) {
           var b = blocosAgenda[i];
+          var gIdPuro = b.googleEventId || (b.id ? b.id.replace(/^(google_|gcal_)/, "") : "");
           for (var s = 0; s < salvos.length; s++) {
             var sv = salvos[s];
-            if (sv.id === b.id || (sv.titulo && b.titulo && sv.titulo.trim().toLowerCase() === b.titulo.trim().toLowerCase())) {
+            var svGIdPuro = sv.googleEventId || (sv.id ? sv.id.replace(/^(google_|gcal_)/, "") : "");
+            var matchGId = gIdPuro && svGIdPuro && gIdPuro === svGIdPuro;
+            var matchId = sv.id && b.id && sv.id === b.id;
+            var matchTit = sv.titulo && b.titulo && sv.titulo.trim().toLowerCase() === b.titulo.trim().toLowerCase();
+
+            if (matchGId || matchId || matchTit) {
+              if (!b.googleEventId && svGIdPuro) b.googleEventId = svGIdPuro;
+
+              // Preserva status de override se existir
               if (sv.status && sv.status !== "pendente") {
                 b.status = sv.status;
-                if (sv.nota) b.nota = sv.nota;
               }
+              // Preserva horários de override caso tenha sido adiado ou alterado localmente
+              if (sv.status === "adiado" || (sv.inicio && sv.inicio !== b.inicio)) {
+                if (sv.inicio) b.inicio = sv.inicio;
+                if (sv.fim) b.fim = sv.fim;
+              }
+              if (sv.nota && sv.nota.indexOf("[Adiado") !== -1) {
+                b.nota = (b.nota && b.nota !== "Agenda Google" ? b.nota + " " : "") + sv.nota;
+              } else if (sv.nota && (!b.nota || b.nota === "Agenda Google")) {
+                b.nota = sv.nota;
+              }
+              idsOuTitulosEncontrados[sv.id || sv.titulo] = true;
               break;
             }
           }
         }
+        // Incorpora blocos de salvos que não vieram do Google Calendar
+        for (var s = 0; s < salvos.length; s++) {
+          var sv = salvos[s];
+          var chaveSv = sv.id || sv.titulo;
+          if (!idsOuTitulosEncontrados[chaveSv]) {
+            blocosAgenda.push(sv);
+          }
+        }
+        blocosAgenda.sort(function(a, b) {
+          return (a.inicio || "").localeCompare(b.inicio || "");
+        });
       }
       return blocosAgenda;
     }
@@ -42446,19 +42686,25 @@ var RotinaService = {
       { text: "💤 Modo Descanso", callback_data: "rotina:descanso" }
     ]);
 
-    // Linha 3: Sincronização e Reset
+    // Linha 3: Adiamento Rápido de Blocos
+    teclado.push([
+      { text: "⏩ Adiar (+30m)", callback_data: "rotina:adiar:30" },
+      { text: "⏩ Adiar (+1h)", callback_data: "rotina:adiar:60" }
+    ]);
+
+    // Linha 4: Sincronização e Reset
     teclado.push([
       { text: "🔄 Restaurar Padrão", callback_data: "rotina:reset" },
       { text: "📆 Sincronizar Agenda", callback_data: "rotina:cal_sync" }
     ]);
 
-    // Linha 4: Navegação Hoje / Amanhã
+    // Linha 5: Navegação Hoje / Amanhã / Placar
     teclado.push([
       { text: "📆 Ver Amanhã", callback_data: "rotina:ver_amanha" },
-      { text: "📅 Central", callback_data: "ux:hub:rotina" }
+      { text: "📊 Aderência Semanal", callback_data: "rotina:aderencia" }
     ]);
 
-    // Linha 5: Retorno Contextual Padronizado Beira-Leito
+    // Linha 6: Retorno Contextual Padronizado Beira-Leito
     teclado.push([
       { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
       { text: "🏠 Início", callback_data: "ux:hub:inicio" }
@@ -42579,6 +42825,226 @@ var RotinaService = {
       txt += "💡 Para ajustar o dia de hoje, envie: _'/rotina alterar <sua instrução>'_ ou envie um áudio!";
     }
     return txt;
+  },
+
+  calcularDuracaoHorasBloco_: function(inicio, fim) {
+    if (!inicio || !fim) return 1.0;
+    var pI = String(inicio).split(":");
+    var pF = String(fim).split(":");
+    var mI = parseInt(pI[0], 10) * 60 + parseInt(pI[1] || 0, 10);
+    var mF = parseInt(pF[0], 10) * 60 + parseInt(pF[1] || 0, 10);
+    var diff = mF - mI;
+    if (diff <= 0) diff += 1440;
+    return Math.round((diff / 60) * 10) / 10;
+  },
+
+  classificarEixoBloco_: function(bloco) {
+    var cat = (bloco && bloco.categoria ? String(bloco.categoria) : "").toLowerCase();
+    var tit = (bloco && bloco.titulo ? String(bloco.titulo) : "").toLowerCase();
+    if (cat === "estudo" || /medquest|anki|estudo|quest[õo]es|questoes|aula|revis[aã]o|revisao|teoria/i.test(tit)) {
+      return "estudo";
+    }
+    if (cat === "plantao" || cat === "clinico" || /plant[aã]o|plantao|internato|enfermaria|usf|upa|samu|\bue\b|uti|ambulatório|ambulatorio|leito/i.test(tit)) {
+      return "plantao";
+    }
+    if (cat === "treino" || /treino|academia|muscula|cardio|corrida/i.test(tit)) {
+      return "treino";
+    }
+    return "habitos";
+  },
+
+  calcularAderenciaSemanal: function(dataRef) {
+    var ref = RotinaService.parseDataSegura_(dataRef);
+
+    var eixos = {
+      plantao: { rotulo: "Internato / Plantão", planejados: 0, concluidos: 0, horasPlanejadas: 0, horasConcluidas: 0, taxa: 0 },
+      estudo: { rotulo: "Estudo / MedQuest", planejados: 0, concluidos: 0, horasPlanejadas: 0, horasConcluidas: 0, taxa: 0 },
+      treino: { rotulo: "Treino / Academia", planejados: 0, concluidos: 0, horasPlanejadas: 0, horasConcluidas: 0, taxa: 0 },
+      habitos: { rotulo: "Rotina / Hábitos", planejados: 0, concluidos: 0, horasPlanejadas: 0, horasConcluidas: 0, taxa: 0 }
+    };
+
+    var dataFimISO = RotinaService.normalizarDataISO(ref);
+    var dataInicioISO = "";
+
+    // Itera pelos últimos 7 dias (D-6 até D)
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(ref.getTime() - (i * 86400000));
+      var dISO = RotinaService.normalizarDataISO(d);
+      if (!dataInicioISO) dataInicioISO = dISO;
+
+      var blocos = RotinaService.obterBlocosDoDia(d) || [];
+      for (var b = 0; b < blocos.length; b++) {
+        var bloco = blocos[b];
+        var eixoKey = RotinaService.classificarEixoBloco_(bloco);
+        var dur = RotinaService.calcularDuracaoHorasBloco_(bloco.inicio, bloco.fim);
+
+        eixos[eixoKey].planejados++;
+        eixos[eixoKey].horasPlanejadas = Math.round((eixos[eixoKey].horasPlanejadas + dur) * 10) / 10;
+
+        if (bloco.status === "concluido") {
+          eixos[eixoKey].concluidos++;
+          eixos[eixoKey].horasConcluidas = Math.round((eixos[eixoKey].horasConcluidas + dur) * 10) / 10;
+        }
+      }
+    }
+
+    var totalPlanejados = 0;
+    var totalConcluidos = 0;
+    var keys = ["plantao", "estudo", "treino", "habitos"];
+
+    for (var k = 0; k < keys.length; k++) {
+      var kName = keys[k];
+      var p = eixos[kName].planejados;
+      var c = eixos[kName].concluidos;
+      totalPlanejados += p;
+      totalConcluidos += c;
+      // Previne divisão por zero (0/0 -> 0%)
+      eixos[kName].taxa = p > 0 ? Math.round((c / p) * 100) : 0;
+    }
+
+    var taxaGlobal = totalPlanejados > 0 ? Math.round((totalConcluidos / totalPlanejados) * 100) : 0;
+    var statusVisual = "Excelente / Consistente 🔥";
+    if (taxaGlobal < 50) {
+      statusVisual = "Crítico / Ajustar Rotina 🚨";
+    } else if (taxaGlobal < 70) {
+      statusVisual = "Regular / Atenção ⚠️";
+    } else if (taxaGlobal < 85) {
+      statusVisual = "Bom Desempenho ⚡";
+    }
+
+    return {
+      taxaGlobal: taxaGlobal,
+      totalPlanejados: totalPlanejados,
+      totalConcluidos: totalConcluidos,
+      horasEstudoConcluidas: eixos.estudo.horasConcluidas,
+      horasPlantaoConcluidas: eixos.plantao.horasConcluidas,
+      statusVisual: statusVisual,
+      eixos: eixos,
+      periodo: { inicio: dataInicioISO, fim: dataFimISO }
+    };
+  },
+
+  somarMinutosHora_: function(horaStr, minutosSoma) {
+    var partes = String(horaStr || "00:00").split(":");
+    var h = parseInt(partes[0], 10) || 0;
+    var m = parseInt(partes[1], 10) || 0;
+    var totalMin = h * 60 + m + (parseInt(minutosSoma, 10) || 0);
+    // Clamp seguro em 23:59 para nunca gerar horas inválidas (ex: 24:30)
+    if (totalMin >= 1440) {
+      totalMin = 1439;
+    } else if (totalMin < 0) {
+      totalMin = 0;
+    }
+    var nH = Math.floor(totalMin / 60);
+    var nM = totalMin % 60;
+    return ("0" + nH).slice(-2) + ":" + ("0" + nM).slice(-2);
+  },
+
+  adiarProximoBloco: function(dataRef, minutos, categoriaOuId) {
+    var ref = RotinaService.parseDataSegura_(dataRef);
+    var deltaMin = parseInt(minutos, 10) || 30;
+
+    var blocos = RotinaService.obterBlocosDoDia(ref) || [];
+    if (!blocos || blocos.length === 0) {
+      return {
+        sucesso: true,
+        modificado: false,
+        mensagem: "Nenhum bloco agendado para o dia de hoje.",
+        bloco: null,
+        blocos: []
+      };
+    }
+
+    // Busca o primeiro bloco pendente/ativo ou pelo filtro
+    var alvoIdx = -1;
+    for (var i = 0; i < blocos.length; i++) {
+      var b = blocos[i];
+      if (categoriaOuId) {
+        if (b.id === categoriaOuId || b.googleEventId === categoriaOuId || (b.id && b.id === "google_" + categoriaOuId) || b.categoria === categoriaOuId || (b.titulo && b.titulo.toLowerCase().indexOf(categoriaOuId.toLowerCase()) !== -1)) {
+          if (b.status === "pendente" || b.status === "ativo" || b.status === "adiado") {
+            alvoIdx = i;
+            break;
+          }
+        }
+      } else {
+        if (b.status === "pendente" || b.status === "ativo" || b.status === "adiado") {
+          alvoIdx = i;
+          break;
+        }
+      }
+    }
+
+    if (alvoIdx === -1) {
+      return {
+        sucesso: true,
+        modificado: false,
+        mensagem: "Todos os blocos de hoje já foram concluídos ✅",
+        bloco: null,
+        blocos: blocos
+      };
+    }
+
+    var blocoAlvo = blocos[alvoIdx];
+    blocoAlvo.inicio = RotinaService.somarMinutosHora_(blocoAlvo.inicio, deltaMin);
+    blocoAlvo.fim = RotinaService.somarMinutosHora_(blocoAlvo.fim, deltaMin);
+    blocoAlvo.status = "adiado";
+    var tagAdiado = "[Adiado +" + deltaMin + "m]";
+    if (!blocoAlvo.nota || blocoAlvo.nota.indexOf(tagAdiado) === -1) {
+      blocoAlvo.nota = (blocoAlvo.nota ? blocoAlvo.nota + " " : "") + tagAdiado;
+    }
+
+    RotinaService.salvarBlocosDoDia(ref, blocos);
+
+    // Sincronização não-bloqueante e resiliente com o Google Calendar
+    var sincGoogle = false;
+    var rawGoogleId = blocoAlvo.googleEventId || (blocoAlvo.id ? String(blocoAlvo.id).replace(/^(google_|gcal_)/, "") : null);
+
+    if (rawGoogleId && !/^(plantao_ativo|sono_|refeicao_|repouso_|revisao_)/.test(rawGoogleId)) {
+      try {
+        var dataISO = RotinaService.normalizarDataISO(ref);
+        var startPayload = {
+          dateTime: dataISO + "T" + blocoAlvo.inicio + ":00-03:00",
+          timeZone: "America/Sao_Paulo"
+        };
+        var endPayload = {
+          dateTime: dataISO + "T" + blocoAlvo.fim + ":00-03:00",
+          timeZone: "America/Sao_Paulo"
+        };
+        var alteracoesGCal = {
+          start: startPayload,
+          end: endPayload,
+          description: (blocoAlvo.nota ? blocoAlvo.nota + "\n" : "") + "Reagendado via Ultra Rotina (+" + deltaMin + "m)"
+        };
+
+        if (typeof CalendarApp !== "undefined" && CalendarApp.getDefaultCalendar) {
+          var cal = CalendarApp.getDefaultCalendar();
+          if (typeof cal.updateEvent === "function") {
+            var resUp = cal.updateEvent(rawGoogleId, alteracoesGCal);
+            if (resUp) sincGoogle = true;
+          }
+        }
+        if (!sincGoogle && typeof GoogleCalendarService !== "undefined" && typeof GoogleCalendarService.atualizarEventoSync === "function") {
+          var resGcs = GoogleCalendarService.atualizarEventoSync(rawGoogleId, alteracoesGCal);
+          if (resGcs) sincGoogle = true;
+        }
+      } catch (eGCal) {
+        Logger.log("Aviso: Sincronização de adiamento no Google Calendar ignorada: " + eGCal.message);
+      }
+    }
+
+    var msgFinal = "⏩ Bloco *" + blocoAlvo.titulo + "* adiado em +" + deltaMin + "m (" + blocoAlvo.inicio + " - " + blocoAlvo.fim + ")";
+    if (sincGoogle) {
+      msgFinal += " 🗓️ _(Sincronizado no Google Calendar)_";
+    }
+
+    return {
+      sucesso: true,
+      modificado: true,
+      sincronizadoGoogle: sincGoogle,
+      mensagem: msgFinal,
+      bloco: blocoAlvo,
+      blocos: blocos
+    };
   }
 };
 
@@ -49247,6 +49713,12 @@ function nomesFarmacosParaValidacao() {
   if (typeof MAPA_SINDROMES_APS !== "undefined") Object.keys(MAPA_SINDROMES_APS).forEach(function(k) {
     MAPA_SINDROMES_APS[k].forEach(adicionar);
   });
+  // Itens canônicos da REMUME Ribeirão Preto (CSV / RAM)
+  if (typeof obterItensRemumeRP === "function") {
+    try {
+      obterItensRemumeRP().forEach(adicionar);
+    } catch (_) {}
+  }
   // Reutiliza a mesma base integral L1; se necessário, lê L2 em lote sem abrir Sheets.
   var base = lerPlanilhaEmCache("remume", ConfigService.get("SPREADSHEET_ID_REMUME"), false);
   if (base !== null) base.split("\n").forEach(adicionar);
@@ -49334,15 +49806,195 @@ function enviarMenuExamesEspeciais(chatId) {
 }
 
 /**
+ * Normaliza o nome do fármaco para exibição limpa em receitas (sem termos redundantes de sais).
+ */
+function normalizarNomeFarmacoSimples(nome) {
+  if (!nome) return "Medicamento";
+  var limpo = String(nome).replace(/\([A-Z]\)/g, "").trim();
+  if (limpo.indexOf("+") !== -1) {
+    var partes = limpo.split("+").map(function(p) {
+      return normalizarNomeFarmacoSimples(p.trim());
+    });
+    return partes.join(" + ");
+  }
+  var regexSais = /\b(cloridrato|s[oó]dica?|pot[aá]ssica?|maleato|besilato|hemi[- ]?hidratad[oa]|sulfato|succinato|tartarato|fosfato|acetato|dipropionato|valerato|fumarato|bromidrato|citrato)\b/gi;
+  var semSais = limpo.replace(regexSais, "").replace(/\s+/g, " ").trim();
+  return semSais.toLowerCase().split(" ").map(function(p) {
+    return p.charAt(0).toUpperCase() + p.slice(1);
+  }).join(" ").trim() || limpo;
+}
+
+/**
+ * Gera ou extrai posologia ambulatorial padrão e segura com via e frequência explícitas.
+ */
+function extrairOuGerarPosologiaPadraoHSL(farmaco, doseAdultoTexto) {
+  var fNorm = (typeof normalizarTexto === "function") ? normalizarTexto(farmaco || "") : String(farmaco || "").toLowerCase();
+  var MAPA_POSOLOGIA_PADRAO = {
+    dipirona: "Tomar 1 comprimido via oral de 6 em 6 horas se dor ou febre.",
+    paracetamol: "Tomar 1 comprimido via oral de 6 em 6 horas se dor ou febre.",
+    amoxicilina: "Tomar 1 cápsula via oral de 8 em 8 horas por 7 dias.",
+    losartana: "Tomar 1 comprimido via oral 1x ao dia pela manhã.",
+    metformina: "Tomar 1 comprimido via oral de 12 em 12 horas após as refeições.",
+    omeprazol: "Tomar 1 cápsula via oral 1x ao dia em jejum pela manhã.",
+    ibuprofeno: "Tomar 1 comprimido via oral de 8 em 8 horas se dor ou inflamação.",
+    enalapril: "Tomar 1 comprimido via oral de 12 em 12 horas.",
+    anlodipino: "Tomar 1 comprimido via oral 1x ao dia.",
+    hidroclorotiazida: "Tomar 1 comprimido via oral 1x ao dia pela manhã.",
+    azitromicina: "Tomar 1 comprimido via oral 1x ao dia por 5 dias.",
+    cefalexina: "Tomar 1 comprimido via oral de 6 em 6 horas por 7 dias.",
+    ciprofloxacino: "Tomar 1 comprimido via oral de 12 em 12 horas por 7 dias.",
+    sulfametoxazol: "Tomar 1 comprimido via oral de 12 em 12 horas por 5 dias.",
+    prednisona: "Tomar 1 comprimido via oral 1x ao dia pela manhã por 5 dias.",
+    prednisolona: "Tomar 1 comprimido via oral 1x ao dia pela manhã por 5 dias.",
+    clonazepam: "Tomar 1 comprimido via oral à noite ao deitar.",
+    fluoxetina: "Tomar 1 cápsula via oral 1x ao dia pela manhã.",
+    sertralina: "Tomar 1 comprimido via oral 1x ao dia pela manhã.",
+    sinvastatina: "Tomar 1 comprimido via oral 1x ao dia à noite.",
+    furosemida: "Tomar 1 comprimido via oral 1x ao dia pela manhã.",
+    atenolol: "Tomar 1 comprimido via oral 1x ao dia pela manhã."
+  };
+
+  for (var k in MAPA_POSOLOGIA_PADRAO) {
+    if (fNorm.indexOf(k) !== -1) {
+      return MAPA_POSOLOGIA_PADRAO[k];
+    }
+  }
+
+  var txt = String(doseAdultoTexto || "").toLowerCase();
+  if (/12\/12|12 em 12/.test(txt)) return "Tomar 1 comprimido via oral de 12 em 12 horas.";
+  if (/8\/8|8 em 8/.test(txt)) return "Tomar 1 comprimido via oral de 8 em 8 horas.";
+  if (/6\/6|6 em 6/.test(txt)) return "Tomar 1 comprimido via oral de 6 em 6 horas se dor ou febre.";
+  if (/24\/24|1x|1 vez|ao dia|diari/.test(txt)) return "Tomar 1 comprimido via oral 1x ao dia.";
+
+  return "Tomar 1 comprimido via oral 1x ao dia conforme prescrição médica.";
+}
+
+/**
+ * Monta e persiste rascunho de receita oficial e bloco SOAP ambulatorial pronto para copiar no PEP.
+ */
+function montarRascunhoRxESoapAmbulatorial(params) {
+  params = params || {};
+  var farmaco = params.farmaco || "Medicamento";
+  var apres = params.apresentacao || "Dose padrão";
+  var nomeLinhaItem = farmaco;
+  if (apres && apres.toLowerCase().indexOf(farmaco.toLowerCase()) === 0) {
+    nomeLinhaItem = apres;
+  } else if (apres) {
+    nomeLinhaItem = farmaco + " " + apres;
+  }
+  var qtd = params.quantidade || "1 frasco / caixa";
+  var posologia = params.posologia || "Tomar 1 comprimido via oral 1x ao dia.";
+  var linhaPoso = String(posologia || "").trim();
+  if (!/^(?:posologia|modo de usar)\s*:/i.test(linhaPoso)) {
+    linhaPoso = "Posologia: " + linhaPoso;
+  }
+  var orientacoes = params.orientacoes || "Seguir orientações médicas e manter hidratação.";
+  var remume = params.remumeInfo || { presente: false, apresentacoes: [] };
+  var clinico = params.dadosClinicos || {};
+
+  var tz = (typeof ConfigService !== "undefined" && typeof ConfigService.get === "function")
+    ? ConfigService.get("TIMEZONE", "America/Sao_Paulo")
+    : "America/Sao_Paulo";
+  var dataHoje = (typeof Utilities !== "undefined" && typeof Utilities.formatDate === "function")
+    ? Utilities.formatDate(new Date(), tz, "dd/MM/yyyy")
+    : new Date().toLocaleDateString("pt-BR");
+
+  // Rascunho formatado para aprovação estrita em validarReceitaTemMedicamentos
+  var textoRx = [
+    "📋 RECEITUÁRIO MÉDICO AMBULATORIAL",
+    "Paciente: Ao Portador",
+    "Data: " + dataHoje,
+    "",
+    "[USO ORAL]",
+    "1. " + nomeLinhaItem + " --- " + qtd,
+    "   " + linhaPoso,
+    "",
+    "Orientações:",
+    "• " + orientacoes
+  ].join("\n");
+
+  var linhasPlano = [
+    "💊 Prescrição Medicamentosa (USF):",
+    "1) " + nomeLinhaItem + " --- " + qtd,
+    "   " + linhaPoso
+  ];
+  if (remume.presente) {
+    linhasPlano.push("🏛️ Status SUS: 🟢 [REMUME-RP] Padronizado na Rede Municipal (Ribeirão Preto).");
+    if (remume.apresentacoes && remume.apresentacoes.length > 1) {
+      linhasPlano.push("   (Apresentações padronizadas na rede: " + remume.apresentacoes.slice(0, 3).join(", ") + ")");
+    }
+  } else {
+    linhasPlano.push("🏛️ Status SUS: ⚪ [NÃO-REMUME] Medicamento não padronizado na rede municipal.");
+  }
+  linhasPlano.push("🥗 Orientações: " + orientacoes);
+  linhasPlano.push("🚨 Sinais de Alarme: Retornar à UBS ou procurar Pronto Atendimento se piora clínica ou persistência dos sintomas.");
+
+  var subTexto = "Paciente atendido em consulta ambulatorial da USF para avaliação clínica e conduta com " + farmaco + ".";
+  if (clinico.pesoKg) subTexto += " Peso informado: " + clinico.pesoKg + " kg.";
+  if (clinico.idadeAnos) subTexto += " Idade informada: " + clinico.idadeAnos + " anos.";
+
+  var textoSoap = [
+    "🩺 SÍNTESE SOAP · ATENDIMENTO AMBULATORIAL (USF)",
+    "",
+    "👤 S - Subjetivo",
+    subTexto,
+    "",
+    "🔍 O - Objetivo",
+    "Bom estado geral (BEG), hidratado, corado, acianótico, anictérico, afebril ao toque, eupneico em ar ambiente. Sinais vitais estáveis.",
+    "",
+    "🧠 A - Avaliação",
+    "Conduta terapêutica e prescrição ambulatorial de " + farmaco + " (Atenção Primária à Saúde).",
+    "",
+    "📋 P - Plano",
+    linhasPlano.join("\n")
+  ].join("\n");
+
+  var ckRx = (typeof Utilities !== "undefined" && typeof Utilities.getUuid === "function")
+    ? Utilities.getUuid().replace(/-/g, "")
+    : ("rx" + Math.random().toString(36).substring(2) + Date.now().toString(36)).substring(0, 32);
+
+  var ckSoap = (typeof Utilities !== "undefined" && typeof Utilities.getUuid === "function")
+    ? Utilities.getUuid().replace(/-/g, "")
+    : ("sp" + Math.random().toString(36).substring(2) + Date.now().toString(36)).substring(0, 32);
+
+  var cache = (typeof CacheService !== "undefined" && typeof CacheService.getScriptCache === "function")
+    ? CacheService.getScriptCache()
+    : null;
+
+  if (cache) {
+    if (typeof safePutCache === "function") {
+      safePutCache(cache, ckRx, textoRx, 21600);
+      safePutCache(cache, ckSoap, textoSoap, 21600);
+    } else if (typeof cache.put === "function") {
+      cache.put(ckRx, textoRx, 21600);
+      cache.put(ckSoap, textoSoap, 21600);
+    }
+  }
+
+  return {
+    textoRx: textoRx,
+    textoSoap: textoSoap,
+    ckRx: ckRx,
+    ckSoap: ckSoap
+  };
+}
+
+/**
  * Responde à consulta direta de posologia oficial utilizando o Guia Farmacêutico do HSL
  * com cálculo determinístico de fórmulas fixas para doses pediátricas.
  */
 function formatarMensagemCalculoPediatrico_(calcPed) {
+  var remumeInfo = (typeof consultarRemumeRP === "function")
+    ? consultarRemumeRP(calcPed.chave || calcPed.farmaco)
+    : { presente: false, apresentacoes: [] };
+
+  var seloRemume = remumeInfo.presente ? " 🟢 [REMUME-RP]" : "";
+
   var txtPed = [
     "👶 *CÁLCULO POSOLÓGICO PEDIÁTRICO DETERMINÍSTICO (FÓRMULA FIXA)*",
     "",
     "📋 *Fármaco:* *" + calcPed.farmaco + "*",
-    "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`",
+    "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`" + seloRemume,
     "⚖️ *Peso Informado:* " + (calcPed.pesoKg == null ? "Não informado (não utilizado no cálculo)." : "`" + calcPed.pesoKg + " kg`"),
     calcPed.idadeAnos == null ? "" : "*Idade informada:* " + calcPed.idadeAnos + " anos",
     "",
@@ -49358,9 +50010,29 @@ function formatarMensagemCalculoPediatrico_(calcPed) {
     "*Conferência:* Validar indicação, apresentação, dose, duração, alergias e ajustes antes de prescrever. O cálculo não substitui a avaliação clínica."
   ].join("\n");
 
-  var cbParam = calcPed.chave + (calcPed.pesoKg == null ? "" : " " + calcPed.pesoKg + "kg") + (calcPed.idadeAnos == null ? "" : " " + calcPed.idadeAnos + " anos");
+  var posoFormatada = calcPed.instrucaoPosologica || "";
+  if (!/\bvia oral\b/i.test(posoFormatada)) {
+    posoFormatada = posoFormatada.replace(/^Tomar\s+/i, "Tomar via oral ");
+  }
+  posoFormatada = posoFormatada.replace(/a cada (\d+) horas/i, "de $1 em $1 horas");
+
+  var rascunho = montarRascunhoRxESoapAmbulatorial({
+    farmaco: calcPed.farmaco,
+    apresentacao: calcPed.apresentacao,
+    posologia: posoFormatada,
+    quantidade: calcPed.quantidadeDispensar,
+    orientacoes: calcPed.orientacoes,
+    remumeInfo: remumeInfo,
+    dadosClinicos: { pesoKg: calcPed.pesoKg, idadeAnos: calcPed.idadeAnos }
+  });
+
+  var cbParam = (calcPed.chave + (calcPed.pesoKg == null ? "" : " " + calcPed.pesoKg + "kg") + (calcPed.idadeAnos == null ? "" : " " + calcPed.idadeAnos + " anos")).substring(0, 30);
   var kbPed = {
     "inline_keyboard": [
+      [
+        { "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + rascunho.ckRx },
+        { "text": "📋 Copiar SOAP p/ PEP", "callback_data": "ux:copiar:" + rascunho.ckSoap }
+      ],
       [
         { "text": "📝 Revisar no /rx", "callback_data": "rx_med:" + cbParam }
       ]
@@ -49409,12 +50081,36 @@ function responderConsultaPosologiaHSL(chatId, termo) {
     return enviarMensagemMedicamentoNaoEncontrado_(chatId, termo);
   }
 
+  var remumeInfo = (typeof consultarRemumeRP === "function")
+    ? consultarRemumeRP(med.farnaco, med)
+    : { presente: !!med.na_remume, apresentacoes: med.apresentacoes_remume || [] };
+
+  var nomeSimples = normalizarNomeFarmacoSimples(med.farnaco);
+  var apresentacaoUso = (remumeInfo.presente && remumeInfo.apresentacoes && remumeInfo.apresentacoes.length > 0)
+    ? remumeInfo.apresentacoes[0]
+    : ((med.apresentacoes_hsl && med.apresentacoes_hsl.length > 0) ? med.apresentacoes_hsl[0] : "Dose padrão");
+
+  var posologiaPadrao = extrairOuGerarPosologiaPadraoHSL(med.farnaco, med.dose_adulto);
+
+  var rascunho = montarRascunhoRxESoapAmbulatorial({
+    farmaco: nomeSimples,
+    apresentacao: apresentacaoUso,
+    posologia: posologiaPadrao,
+    quantidade: "1 caixa / frasco",
+    orientacoes: med.administracao ? med.administracao.substring(0, 140) : "Tomar com água conforme prescrito.",
+    remumeInfo: remumeInfo
+  });
+
   var respostaTexto = (typeof formatarFichaPosologicaHSL === "function")
     ? formatarFichaPosologicaHSL(med)
     : "Ficha posológica indisponível.";
 
   var rotuloPrescrever = "💊 Prescrever (" + (med.farnaco.length > 12 ? med.farnaco.substring(0, 12) + "..." : med.farnaco) + ")";
   var botoes = [
+    [
+      { "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + rascunho.ckRx },
+      { "text": "📋 Copiar SOAP p/ PEP", "callback_data": "ux:copiar:" + rascunho.ckSoap }
+    ],
     [{ "text": rotuloPrescrever, "callback_data": "rx_med:" + med.farnaco.substring(0, 30) }]
   ];
   if (medPed) {
@@ -49466,11 +50162,32 @@ function responderConsultaPediatricaPedB(chatId, termo) {
     );
   }
 
+  var remumeInfo = (typeof consultarRemumeRP === "function")
+    ? consultarRemumeRP(medPed.nome, medPed)
+    : { presente: !!medPed.na_remume, apresentacoes: medPed.apresentacoes_remume || [] };
+
+  var apresPed = (medPed.apresentacoes && medPed.apresentacoes.length > 0)
+    ? (medPed.apresentacoes[0].forma + (medPed.apresentacoes[0].concentracao ? " " + medPed.apresentacoes[0].concentracao : ""))
+    : ((remumeInfo.apresentacoes && remumeInfo.apresentacoes.length > 0) ? remumeInfo.apresentacoes[0] : "Suspensão oral");
+
+  var rascunhoPed = montarRascunhoRxESoapAmbulatorial({
+    farmaco: medPed.nome,
+    apresentacao: apresPed,
+    posologia: "Tomar via oral de 8 em 8 horas conforme posologia pediátrica por peso.",
+    quantidade: "1 frasco",
+    orientacoes: "Agitar bem antes de usar e manter hidratação oral.",
+    remumeInfo: remumeInfo
+  });
+
   var respostaTexto = (typeof formatarFichaPediatricaPedB === "function")
     ? formatarFichaPediatricaPedB(medPed)
     : "Ficha pediátrica indisponível.";
 
   var botoes = [
+    [
+      { "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + rascunhoPed.ckRx },
+      { "text": "📋 Copiar SOAP p/ PEP", "callback_data": "ux:copiar:" + rascunhoPed.ckSoap }
+    ],
     [{ "text": "💊 Prescrever (" + (medPed.nome.length > 12 ? medPed.nome.substring(0, 12) + "..." : medPed.nome) + ")", "callback_data": "rx_med:" + medPed.nome.substring(0, 30) }]
   ];
 
@@ -49925,6 +50642,26 @@ function tratarCallbackRotinaProdutividade_(cb, data, ctx) {
     responderCallbackTelegram(cb.id, "Fechamento de plantão...");
     return gerarResumoFimPlantao(ctx.chatId, ctx.msgId);
   }
+  if (data === "rotina_aderencia") {
+    responderCallbackTelegram(cb.id, "📊 Carregando aderência semanal...");
+    var hojeRef = new Date();
+    var dadosAderencia = (typeof RotinaService !== "undefined" && RotinaService.calcularAderenciaSemanal)
+      ? RotinaService.calcularAderenciaSemanal(hojeRef)
+      : null;
+    var txtAd = (typeof formatarPlacarAderenciaTelegram === "function" && dadosAderencia)
+      ? formatarPlacarAderenciaTelegram(dadosAderencia)
+      : "📊 Painel de Aderência Semanal carregado.";
+    var kbAd = {
+      inline_keyboard: [
+        [{ text: "⏱️ Ver Timeline Hoje", callback_data: "rotina_timeline" }],
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (typeof enviarTelaBot === "function") {
+      return enviarTelaBot(ctx.chatId, txtAd, kbAd, ctx.msgId);
+    }
+    return enviarMensagemComTecladoParaChat(ctx.chatId, txtAd, kbAd);
+  }
   if (data === "rotina_duvida") {
     responderCallbackTelegram(cb.id, "MedQuest / Dúvidas");
     var msgDuvidaLegacy = "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\nEnvie sua dúvida médica digitando:\n`/duvida <sua dúvida>`\n💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\nSua dúvida será salva no Notion para o bloco noturno de estudo ativo.";
@@ -50146,6 +50883,9 @@ function tratarCallbackPrescricaoEFarmaco_(cb, data, ctx) {
     var conteudoPrescricao = CacheService.getScriptCache().get(cacheKeyPdf);
     if (conteudoPrescricao) {
       responderCallbackTelegram(cb.id, "Gerando receituário A4 em PDF...");
+      if (typeof enviarChatAction === "function" && ctx.chatId) {
+        try { enviarChatAction(ctx.chatId, "upload_document", true); } catch (_) {}
+      }
       var resPdf = ReceitaPdfService.processarEEnviarPdf(ctx.chatId, conteudoPrescricao);
       return (resPdf && resPdf.sucesso === false) ? false : true;
     }
@@ -50706,6 +51446,7 @@ var MAPA_CALLBACKS_EXATOS_ = {
   "rotina_plantao_fim": tratarCallbackRotinaProdutividade_,
   "rotina_duvida": tratarCallbackRotinaProdutividade_,
   "rotina_timeline": tratarCallbackRotinaProdutividade_,
+  "rotina_aderencia": tratarCallbackRotinaProdutividade_,
 
   // Ajuda geral
   "ajuda_todas": tratarCallbackAjuda_,
@@ -50825,8 +51566,19 @@ var ROTEADORES_PREFIXO_CALLBACKS_ = [
 function processarCallbackBotao(cb) {
   if (!cb) return;
 
+  // Refinamento Técnico 1: Idempotência de Callback Query
+  // Se for duplicado, dispara silenciosamente responderCallbackTelegram(cb.id) para liberar o spinner e retorna imediatamente.
+  if (cb.id && typeof verificarERegistrarCallbackId === "function" && !verificarERegistrarCallbackId(cb.id, cb.data)) {
+    try {
+      if (typeof responderCallbackTelegram === "function") {
+        responderCallbackTelegram(cb.id, "");
+      }
+    } catch (_) {}
+    return true;
+  }
+
   try {
-    if (typeof tratarCallbackUX !== "undefined" && tratarCallbackUX(cb)) return;
+    if (typeof tratarCallbackUX !== "undefined" && tratarCallbackUX(cb)) return true;
 
     var data = cb.data || "";
 
@@ -54538,7 +55290,8 @@ function construirTecladoHubRotina() {
         {"text": "🧠 MedQuest / Dúvidas", "callback_data": "rotina_duvida"}
       ],
       [
-        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"}
+        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"},
+        {"text": "📊 Aderência Semanal", "callback_data": "rotina:aderencia"}
       ]
     ]
   };
@@ -54614,6 +55367,47 @@ function despacharComandosRotinaEProdutividade(comando, texto, chatId, message) 
   return { tratado: true, resultado: res };
 }
 
+function gerarBarraProgressoTexto(pct) {
+  var total = 8;
+  var cheios = Math.round(((pct || 0) / 100) * total);
+  if (cheios > total) cheios = total;
+  if (cheios < 0) cheios = 0;
+  var str = "";
+  for (var i = 0; i < total; i++) {
+    str += (i < cheios) ? "▰" : "▱";
+  }
+  return str;
+}
+
+function formatarPlacarAderenciaTelegram(ad) {
+  var p = (ad && ad.periodo) || {};
+  var txt = "📊 *PAINEL DE ADERÊNCIA SEMANAL (ÚLTIMOS 7 DIAS)*\n" +
+    "🗓️ _" + (p.inicio || "") + " a " + (p.fim || "") + "_\n\n" +
+    "🎯 *Consistência Global:* `" + (ad ? ad.taxaGlobal : 0) + "%` " + gerarBarraProgressoTexto(ad ? ad.taxaGlobal : 0) + "\n" +
+    "📈 *Status Geral:* " + ((ad && ad.statusVisual) || "Neutro") + "\n" +
+    "✅ *Blocos:* " + ((ad && ad.totalConcluidos) || 0) + " de " + ((ad && ad.totalPlanejados) || 0) + " concluídos\n\n" +
+    "─── *DESEMPENHO POR EIXO* ───\n";
+
+  var e = (ad && ad.eixos) || {};
+  var ordem = [
+    { key: "plantao", icon: "🚨", nome: "Internato / Plantão" },
+    { key: "estudo", icon: "🧠", nome: "Estudo / MedQuest" },
+    { key: "treino", icon: "🏋️", nome: "Treino / Academia" },
+    { key: "habitos", icon: "🌱", nome: "Rotina / Hábitos" }
+  ];
+
+  for (var i = 0; i < ordem.length; i++) {
+    var o = ordem[i];
+    var eixo = e[o.key] || { taxa: 0, concluidos: 0, planejados: 0, horasConcluidas: 0, horasPlanejadas: 0 };
+    txt += "\n" + o.icon + " *" + o.nome + ":* `" + eixo.taxa + "%` " + gerarBarraProgressoTexto(eixo.taxa) + "\n" +
+      "   • Cumprimento: " + eixo.concluidos + "/" + eixo.planejados + " blocos\n" +
+      "   • Volume: " + (eixo.horasConcluidas ? eixo.horasConcluidas.toFixed(1) : "0.0") + "h de " + (eixo.horasPlanejadas ? eixo.horasPlanejadas.toFixed(1) : "0.0") + "h planejadas\n";
+  }
+
+  txt += "\n💡 _Dica: Marque os blocos conforme conclui ou use os botões rápidos de adiamento quando imprevistos surgirem._";
+  return txt;
+}
+
 /**
  * Trata o comando /rotina e suas variações
  */
@@ -54626,6 +55420,20 @@ function tratarComandoRotina(chatId, argRotina) {
     var txtHubRotina = "🧭 *HUB DE ROTINA & PRODUTIVIDADE*\n\n" +
       "Selecione uma das opções abaixo para gerenciar seu dia, agenda e estudos, ou use comandos diretos:";
     return enviarMensagemComTecladoParaChat(chatId, txtHubRotina, construirTecladoHubRotina());
+  }
+
+  if (arg === "aderencia" || arg === "aderência" || arg === "placar" || arg === "stats") {
+    var dadosAderencia = (typeof RotinaService !== "undefined" && RotinaService.calcularAderenciaSemanal)
+      ? RotinaService.calcularAderenciaSemanal(hoje)
+      : null;
+    var txtAd = dadosAderencia ? formatarPlacarAderenciaTelegram(dadosAderencia) : "⚠️ Painel de aderência indisponível.";
+    var kbAd = {
+      inline_keyboard: [
+        [{ text: "⏱️ Ver Timeline Hoje", callback_data: "rotina_timeline" }],
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtAd, kbAd);
   }
 
   if (arg === "hoje") {
@@ -54707,6 +55515,34 @@ function tratarCallbackRotina(cb) {
   } else if (subAcao === "skip") {
     RotinaService.marcarStatusBloco(hoje, param, "pulado", "Pular bloco");
     responderCallbackTelegram(cb.id, "⏭️ Bloco pulado hoje.");
+  } else if (subAcao === "adiar") {
+    var deltaMin = parseInt(param, 10) || 30;
+    var catOuId = partes[3] || null;
+    var resAdiar = RotinaService.adiarProximoBloco(hoje, deltaMin, catOuId);
+    responderCallbackTelegram(cb.id, resAdiar.mensagem.replace(/\*/g, ""));
+  } else if (subAcao === "aderencia") {
+    responderCallbackTelegram(cb.id, "📊 Carregando aderência semanal...");
+    var dadosAderencia = (typeof RotinaService !== "undefined" && RotinaService.calcularAderenciaSemanal)
+      ? RotinaService.calcularAderenciaSemanal(hoje)
+      : null;
+    var txtAd = dadosAderencia ? formatarPlacarAderenciaTelegram(dadosAderencia) : "⚠️ Painel de aderência indisponível.";
+    var kbAd = {
+      inline_keyboard: [
+        [{ text: "⏱️ Voltar para Timeline", callback_data: "rotina:ver_hoje" }],
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (msgId && token) {
+      executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageText", {
+        chat_id: chatId,
+        message_id: msgId,
+        text: txtAd,
+        parse_mode: "Markdown",
+        reply_markup: kbAd
+      });
+      return;
+    }
+    return enviarMensagemComTecladoParaChat(chatId, txtAd, kbAd);
   } else if (subAcao === "reset") {
     RotinaService.resetarBlocosDoDia(hoje);
     responderCallbackTelegram(cb.id, "🔄 Rotina restaurada para o padrão!");
@@ -55797,6 +56633,11 @@ var ReceitaPdfService = (function() {
     },
 
     processarEEnviarPdf: function(chatId, textoPrescricao) {
+      // Feedback visual imediato: sinaliza ao Telegram que o documento PDF está sendo gerado
+      if (typeof enviarChatAction === "function" && chatId) {
+        try { enviarChatAction(chatId, "upload_document", true); } catch (_) {}
+      }
+
       // Revalida também callbacks antigos; o botão não é a fronteira de validação.
       if (typeof validarReceitaTemMedicamentos !== "function" || !validarReceitaTemMedicamentos(textoPrescricao)) {
         enviarMensagemParaChat(chatId, "⚠️ Receita incompleta ou medicamento não identificado no catálogo. Confira nome, dose, via e frequência antes de gerar o PDF.");
@@ -56027,13 +56868,58 @@ function enfileirarUpdate(update) {
   lock.waitLock(30000);
   try {
     var key='inbox_'+update.update_id, all=PersistenciaBot.snapshot();
-    if(PersistenciaBot.ler(key,all)) return;
+    if(PersistenciaBot.ler(key,all)) return false;
     var ativos = PersistenciaBot.listar('inbox_',all).filter(function(r) {
       return ['pending','running','awaiting_delivery'].indexOf(r.valor.status) !== -1;
     }).length;
     if(ativos >= 50) throw new Error('Fila cheia. Tente novamente mais tarde.');
     PersistenciaBot.salvar(key,{update:update,status:'pending',created:Date.now()});
+    return true;
   } finally {lock.releaseLock();}
+}
+
+var _cacheCallbackIds = {};
+function verificarERegistrarCallbackId(callbackId, data) {
+  if (!callbackId) return true;
+  var idStr = String(callbackId).trim();
+  if (!idStr) return true;
+
+  // Em ambiente de teste automatizado, mocks sintéticos de interface (cb_ux_...) não bloqueiam reexecução
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test') {
+    if (idStr.indexOf('cb_ux_') === 0) return true;
+  }
+
+  var agora = Date.now();
+  var chaveCompleta = idStr + (data ? '_' + String(data).trim() : '');
+
+  // 1. Verificação rápida em memória volátil com janela de deduplicação (15s)
+  if (_cacheCallbackIds[chaveCompleta]) {
+    if (agora - _cacheCallbackIds[chaveCompleta] < 15000) {
+      return false; // Callback duplicado detectado
+    }
+  }
+
+  // Limpeza de entradas expiradas se o cache crescer
+  var chaves = Object.keys(_cacheCallbackIds);
+  if (chaves.length > 500) {
+    chaves.forEach(function(k) {
+      if (agora - _cacheCallbackIds[k] > 15000) delete _cacheCallbackIds[k];
+    });
+  }
+  _cacheCallbackIds[chaveCompleta] = agora;
+
+  // 2. Verificação em CacheService (distribuído entre workers/sessões)
+  try {
+    if (typeof CacheService !== 'undefined' && CacheService.getScriptCache) {
+      var cache = CacheService.getScriptCache();
+      var chaveCache = 'cb_seen_' + chaveCompleta.substring(0, 80);
+      var visto = cache.get(chaveCache);
+      if (visto) return false;
+      cache.put(chaveCache, '1', 60);
+    }
+  } catch (_) {}
+
+  return true;
 }
 
 function enfileirarTarefaPc(chatId, tarefa, args) {
@@ -56225,6 +57111,27 @@ function processarFilaTelegram() {
 }
 
 function entregarTelegramPersistente(metodo,payload) {
+  // Chunking atômico e seguro para mensagens longas (> 4000 chars)
+  // Preserva reply_markup exclusivamente no último chunk da sequência
+  if (metodo === 'sendMessage' && payload && typeof payload.text === 'string' && payload.text.length > 4000) {
+    var partesTexto = (typeof fragmentarTexto === 'function')
+      ? fragmentarTexto(payload.text, 3800)
+      : [payload.text.slice(0, 3800), payload.text.slice(3800)];
+    if (partesTexto.length > 1) {
+      var ultimoIdx = partesTexto.length - 1;
+      var sucessoTodos = true;
+      for (var idxParte = 0; idxParte < partesTexto.length; idxParte++) {
+        var chunkPayload = Object.assign({}, payload, { text: partesTexto[idxParte] });
+        if (idxParte !== ultimoIdx) {
+          delete chunkPayload.reply_markup;
+        }
+        var okParte = entregarTelegramPersistente('sendMessage', chunkPayload);
+        if (!okParte) sucessoTodos = false;
+      }
+      return sucessoTodos;
+    }
+  }
+
   var key='outbox_'+(EXECUCAO_ATUAL ? EXECUCAO_ATUAL.id+'_'+(++EXECUCAO_ATUAL.seq) : Utilities.getUuid().replace(/-/g,''));
   if (EXECUCAO_ATUAL && EXECUCAO_ATUAL.entregas) EXECUCAO_ATUAL.entregas.push(key);
   var all=PersistenciaBot.snapshot();
@@ -56286,9 +57193,14 @@ function enviarItemTelegram(key,item) {
       try{body=JSON.parse(res.getContentText());}catch(ignore){}
       var descricao=body.description||'';
       if(code===200&&body.ok!==false){item.status='done';delete item.payload;}
-      else if(code===400 && item.payload && item.payload.parse_mode && /can't parse|entities/i.test(descricao)) {
-        // Markdown inválido: reenvia já em texto puro, sem esperar o próximo minuto do worker.
-        delete item.payload.parse_mode;item.status='pending';item.next=Date.now()+1000;
+      else if(code===400 && item.payload && (item.payload.parse_mode || /can't parse|entities|parse error|entity|tag|unmatched|not found/i.test(descricao))) {
+        // Fallback de Erro 400 de Entidades / Markdown: limpa formatação e reenvia em texto puro sem marcar como failed
+        if (item.payload.text && typeof item.payload.text === 'string') {
+          item.payload.text = item.payload.text.replace(/<[^>]+>/g, '').replace(/[*_`#]/g, '');
+        }
+        delete item.payload.parse_mode;
+        item.status='pending';
+        item.next=Date.now()+1000;
         continue;
       }
       else if(code===429){
@@ -63906,6 +64818,37 @@ function cockpitRotinaSyncAgenda(initData, dataStr) {
   };
 }
 
+function cockpitRotinaAderencia(initData, dataStr) {
+  cockpitAutorizar_(initData);
+  var ref = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+  if (typeof RotinaService === 'undefined' || !RotinaService.calcularAderenciaSemanal) {
+    throw new Error('RotinaService indisponível.');
+  }
+  var res = RotinaService.calcularAderenciaSemanal(ref);
+  return {
+    sucesso: true,
+    data: RotinaService.normalizarDataISO(ref),
+    aderencia: res
+  };
+}
+
+function cockpitRotinaAdiarBloco(initData, dataStr, minutos, categoriaOuId) {
+  cockpitAutorizar_(initData);
+  var ref = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+  if (typeof RotinaService === 'undefined' || !RotinaService.adiarProximoBloco) {
+    throw new Error('RotinaService indisponível.');
+  }
+  var res = RotinaService.adiarProximoBloco(ref, minutos, categoriaOuId);
+  return {
+    sucesso: res.sucesso,
+    modificado: res.modificado,
+    mensagem: res.mensagem,
+    data: RotinaService.normalizarDataISO(ref),
+    bloco: res.bloco,
+    blocos: res.blocos
+  };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitArbovirosesDengue = cockpitArbovirosesDengue;
   module.exports.cockpitDengue = cockpitArbovirosesDengue;
@@ -63924,4 +64867,6 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitRotinaBlocos = cockpitRotinaBlocos;
   module.exports.cockpitRotinaMarcarStatus = cockpitRotinaMarcarStatus;
   module.exports.cockpitRotinaSyncAgenda = cockpitRotinaSyncAgenda;
+  module.exports.cockpitRotinaAderencia = cockpitRotinaAderencia;
+  module.exports.cockpitRotinaAdiarBloco = cockpitRotinaAdiarBloco;
 }

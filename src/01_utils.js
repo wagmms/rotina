@@ -239,23 +239,76 @@ function fragmentarTexto(texto, limite) {
   var maxLimit = limite || 3800;
   var partes = [];
   var pos = 0;
+  var blocoCodigoAberto = false;
+  var linguagemBloco = "";
 
   while (pos < texto.length) {
-    var fim = Math.min(pos + maxLimit, texto.length);
+    var margemSegura = blocoCodigoAberto ? (maxLimit - 60) : maxLimit;
+    var fim = Math.min(pos + margemSegura, texto.length);
     if (fim < texto.length) {
-      var ultimaQuebra = texto.lastIndexOf("\n", fim);
-      if (ultimaQuebra > pos && (fim - ultimaQuebra) < 800) {
-        fim = ultimaQuebra + 1;
+      // 1. Procura quebra de parágrafo duplo (\n\n) ou início de novo item de posologia/lista
+      var trechoBusca = texto.substring(pos, fim);
+      var idxItemLista = -1;
+      var matchItem = trechoBusca.match(/\n(?=(?:\d+[.)]|[-•*]|\b[A-Z0-9_]+:)\s+)[^\n]*$/);
+      if (matchItem && matchItem.index > (margemSegura / 2)) {
+        idxItemLista = pos + matchItem.index + 1;
+      }
+
+      var ultimaQuebraDupla = texto.lastIndexOf("\n\n", fim);
+      if (idxItemLista > pos) {
+        fim = idxItemLista;
+      } else if (ultimaQuebraDupla > pos && (fim - ultimaQuebraDupla) < 1000) {
+        fim = ultimaQuebraDupla + 1;
       } else {
-        var ultimoEspaco = texto.lastIndexOf(" ", fim);
-        if (ultimoEspaco > pos) {
-          fim = ultimoEspaco;
-        } else if (/[\uD800-\uDBFF]/.test(texto.charAt(fim - 1))) {
-          fim--;
+        var ultimaQuebra = texto.lastIndexOf("\n", fim);
+        if (ultimaQuebra > pos && (fim - ultimaQuebra) < 800) {
+          fim = ultimaQuebra + 1;
+        } else {
+          var ultimoEspaco = texto.lastIndexOf(" ", fim);
+          if (ultimoEspaco > pos) {
+            fim = ultimoEspaco;
+          } else if (/[\uD800-\uDBFF]/.test(texto.charAt(fim - 1))) {
+            fim--;
+          }
         }
       }
     }
-    partes.push(texto.slice(pos, fim).trim());
+
+    var pedaco = texto.slice(pos, fim).trim();
+    if (pedaco.length > 0) {
+      // Se um bloco de código vinha aberto do fragmento anterior, reabre no início com a mesma linguagem
+      if (blocoCodigoAberto) {
+        pedaco = "```" + (linguagemBloco || "") + "\n" + pedaco;
+      }
+
+      // Analisa balanceamento de blocos de código neste fragmento
+      var regexBloco = /```([a-zA-Z0-9_-]*)/g;
+      var match;
+      var estadoAberto = false;
+      var langDetectada = "";
+      while ((match = regexBloco.exec(pedaco)) !== null) {
+        if (!estadoAberto) {
+          estadoAberto = true;
+          langDetectada = match[1] || "";
+        } else {
+          estadoAberto = false;
+          langDetectada = "";
+        }
+      }
+
+      // Se o pedaço encerra com bloco de código ainda aberto, fecha no fim e anota para o próximo
+      if (estadoAberto) {
+        pedaco += "\n```";
+        blocoCodigoAberto = true;
+        linguagemBloco = langDetectada;
+      } else {
+        blocoCodigoAberto = false;
+        linguagemBloco = "";
+      }
+
+      partes.push(pedaco);
+    }
+
     while (fim < texto.length && (texto.charAt(fim) === " " || texto.charAt(fim) === "\n")) {
       fim++;
     }

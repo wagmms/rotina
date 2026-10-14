@@ -8,6 +8,35 @@ Corrections, insights, and knowledge gaps captured during development.
 
 ---
 
+## [LRN-20261013-002] best_practice
+
+**Logged**: 2026-10-13T23:05:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Sincronia de eventos e adiamento de rotina com Google Calendar em RFC3339 com fuso explícito e paridade tripla de espelhos HTML.
+
+### Details
+1. Ao atualizar horários de eventos no Google Calendar API v3 (`PATCH /calendars/{calendarId}/events/{eventId}`), datas enviadas sem offset explícito podem sofrer desvio de +3h caso o container Node rode em UTC. Construir timestamps RFC3339 com `timeZone: "America/Sao_Paulo"` e `${dataStr}T${horario}:00-03:00` blinda a aplicação contra regressões de fuso horário.
+2. Na mesclagem entre eventos do Google Calendar e overrides locais (`ROTINA_OVERRIDE_<data>`), os títulos e notas do Google Calendar devem ter precedência de exibição para manter os temas vivos de estudo (ex: `[MedQuest] ✍️ ...`), enquanto o status (`concluido`, `adiado`) e horários locais devem ser preservados se o usuário tiver feito adiamento ou checagem manual.
+3. A automação `build_master.py` deve sincronizar de forma atômica e simultânea todos os pontos de entrada do PWA (`cockpit_movel.html`, `index.html` e `gh_cockpit_deploy/index.html`) para garantir paridade 100% SHA-256 sem falhas de deploy.
+
+### Suggested Action
+Sempre anexar `timeZone` e offset explícito ao montar payloads de data/hora no Google Calendar e incluir todos os arquivos de entrada web no pipeline do `build_master.py`.
+
+### Metadata
+- Source: feature_delivery
+- Related Files: `server/google_calendar.js`, `src/06_rotina_agenda.js`, `build_master.py`, `tests/test_google_calendar_sync.cjs`
+- Tags: google_calendar, timezone, rfc3339, rotina, build_master, parity
+- Pattern-Key: backend.google_calendar_timezone_rfc3339
+- Recurrence-Count: 1
+- First-Seen: 2026-10-13
+- Last-Seen: 2026-10-13
+
+---
+
 ## [LRN-20261013-001] best_practice
 
 **Logged**: 2026-10-13T00:15:00-03:00
@@ -215,4 +244,44 @@ Sempre equipar geradores de relatórios e dashboards com controle visual de auto
 - Evidence: Dashboard gerado com live-sync de 10s e 96/122 issues marcadas como resolvidas/protegidas.
 - Disposition: retain
 - Guidance: Manter o timer de auto-sync ativado por padrão.
+
+---
+
+## [LRN-20261013-001] best_practice
+
+**Logged**: 2026-10-13T23:28:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Rascunhos de receita em cache (`ckRx`) para emissão de PDF em 1 toque exigem prefixo explícito `Posologia:` para blindar o parser de prescrição contra desagregação de termos.
+
+### Details
+O parser de prescrições ambulatoriais `analisarItensReceita` (`src/07c_telegram_consultas_e_ia.js`) utiliza expressões regulares para identificar linhas de posologia (`^(?:posologia|modo de usar|quantidade|qtd|total)\s*[:=]` ou verbos posológicos no imperativo seguidos de dígito). Se uma linha de posologia incluir palavras intermediárias antes do valor numérico (ex: `Tomar via oral 1 comprimido`), o parser pode classificar incorretamente o texto como uma nova linha de medicamento não reconhecido, falhando a validação estrita em `validarReceitaTemMedicamentos`.
+Adicionalmente, ao integrar apresentações de `REMUME_RP.csv` que já contenham o nome do fármaco (ex: `Amoxicilina 250 mg/5 mL`), o gerador de rascunhos deve verificar duplicidade para não gerar termos duplicados (`Amoxicilina Amoxicilina...`).
+Por fim, `uxTextoProntuario` em `src/12_experiencia_bot.js` higieniza emojis Unicode para prontuários eletrônicos (PEP), convertendo o selo visual `🟢 [REMUME-RP]` em `[REMUME-RP]` na mensagem de cópia final, preservando o emoji apenas no rascunho de tela.
+
+### Suggested Action
+Sempre formatar linhas posológicas geradas programaticamente com o prefixo canônico `Posologia: <texto>` e aplicar desduplicação de nome de fármaco na apresentação padronizada.
+
+### Metadata
+- Source: best_practice
+- Related Files: `src/03_bases_locais.js`, `src/07c_telegram_consultas_e_ia.js`, `src/10_pdf_receita.js`, `src/12_experiencia_bot.js`
+- Tags: remume_rp, posologia, parser, receita_pdf, soap
+- Pattern-Key: backend.rx_parser_posologia_prefix
+- Recurrence-Count: 1
+- First-Seen: 2026-10-13
+- Last-Seen: 2026-10-13
+
+### Maintenance
+- Claim: Rascunhos de prescrição e blocos SOAP para cópia devem ser blindados com prefixos canônicos e desduplicação farmacológica.
+- Scope: `src/03_bases_locais.js`, `src/07c_telegram_consultas_e_ia.js`, `src/10_pdf_receita.js`
+- Authority: Preceptor Médico / Clean Code Guard
+- Decay: project / architectural
+- Revalidate: when updating recipe parsing or soap extraction
+- Validation: validated
+- Evidence: 10/10 testes da suíte `tests/test_remume_soap_pdf_integracao.cjs` aprovados e 57/57 aprovados no `npm test`.
+- Disposition: retain
+- Guidance: Seguir o padrão de `montarRascunhoRxESoapAmbulatorial` em qualquer novo gerador de prescrição.
 

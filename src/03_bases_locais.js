@@ -339,6 +339,135 @@ function checarStatusFonteDrive(idPlanilha, isInteracao) {
 }
 
 // ==============================================================================
+// BASE CANÔNICA DA REMUME (RIBEIRÃO PRETO - SP)
+// ==============================================================================
+
+var _cacheItensRemumeRP = null;
+var REGEX_SAIS_FARMACO = /\b(cloridrato|s[oó]dica?|pot[aá]ssica?|maleato|besilato|hemi[- ]?hidratad[oa]|sulfato|succinato|tartarato|fosfato|acetato|dipropionato|valerato|fumarato|bromidrato|citrato)\b/gi;
+
+/**
+ * Normaliza princípio ativo removendo acentuação, pontuação e sais farmacêuticos
+ * para permitir matching determinístico entre a consulta do médico e o catálogo municipal.
+ */
+function normalizarPrincipioAtivo(txt) {
+  if (!txt) return "";
+  var semAcento = normalizarTexto(txt);
+  return semAcento
+    .replace(REGEX_SAIS_FARMACO, " ")
+    .replace(/[^\w\s\+]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Carrega a lista em memória de apresentações padronizadas de REMUME_RP.csv.
+ */
+function obterItensRemumeRP() {
+  if (_cacheItensRemumeRP && _cacheItensRemumeRP.length > 0) return _cacheItensRemumeRP;
+  var conteudo = "";
+  try {
+    var idRemume = (typeof ConfigService !== "undefined" && typeof ConfigService.get === "function")
+      ? (ConfigService.get("SPREADSHEET_ID_REMUME") || "remume_local")
+      : "remume_local";
+    if (typeof lerPlanilhaEmCache === "function") {
+      conteudo = lerPlanilhaEmCache("remume", idRemume, false);
+    }
+    if (!conteudo && typeof obterPlanilha === "function") {
+      conteudo = obterPlanilha("remume", idRemume, false);
+    }
+  } catch (_) {}
+
+  if (!conteudo && typeof require !== "undefined") {
+    try {
+      var fs = require("fs");
+      var path = require("path");
+      var caminhos = [
+        path.resolve(process.cwd(), "REMUME_RP.csv"),
+        path.resolve(__dirname, "..", "REMUME_RP.csv"),
+        path.resolve(__dirname, "REMUME_RP.csv")
+      ];
+      for (var i = 0; i < caminhos.length; i++) {
+        if (fs.existsSync(caminhos[i])) {
+          conteudo = fs.readFileSync(caminhos[i], "utf8");
+          break;
+        }
+      }
+    } catch (_) {}
+  }
+
+  if (!conteudo) return [];
+  var linhas = String(conteudo).split(/\r?\n/)
+    .map(function(l) { return l.replace(/^"|"$/g, "").trim(); })
+    .filter(function(l) { return l.length > 0 && l.toLowerCase() !== "medicamento"; });
+
+  _cacheItensRemumeRP = linhas;
+  return _cacheItensRemumeRP;
+}
+
+/**
+ * Consulta determinística da REMUME de Ribeirão Preto.
+ * Mapeia sinônimos comerciais, remove sais e separa monoterapia de associações.
+ */
+function consultarRemumeRP(termo, medHslFallback) {
+  if (!termo || typeof termo !== "string") {
+    return { presente: false, farmaco: "", apresentacoes: [], selo: "⚪ [NÃO-REMUME]" };
+  }
+
+  var termoLimpo = termo.trim().toLowerCase();
+  var termoNorm = normalizarPrincipioAtivo(termoLimpo);
+
+  // Expansão por dicionário de marcas e sinônimos comerciais
+  var sin = (typeof DICIONARIO_FARMACO !== "undefined" && DICIONARIO_FARMACO[termoLimpo])
+    ? DICIONARIO_FARMACO[termoLimpo]
+    : termoNorm;
+  var termoAlvo = normalizarPrincipioAtivo(sin);
+  if (!termoAlvo) {
+    termoAlvo = termoNorm;
+  }
+
+  var ehBuscaAssociacao = termoAlvo.indexOf("+") !== -1 || /clavulan/i.test(termoAlvo);
+  var itens = obterItensRemumeRP();
+  var isolados = [];
+  var associados = [];
+
+  for (var i = 0; i < itens.length; i++) {
+    var linhaOriginal = itens[i];
+    var linhaNorm = normalizarPrincipioAtivo(linhaOriginal);
+
+    // Regex de palavra inteira ou início de termo para evitar falsos positivos
+    var regexPalavra = new RegExp("(?:^|\\s)" + termoAlvo.replace("+", "\\+") + "(?:\\s|$|[0-9])", "i");
+    if (regexPalavra.test(linhaNorm) || linhaNorm.indexOf(termoAlvo) !== -1) {
+      if (linhaOriginal.indexOf("+") !== -1) {
+        if (associados.indexOf(linhaOriginal) === -1) associados.push(linhaOriginal);
+      } else {
+        if (isolados.indexOf(linhaOriginal) === -1) isolados.push(linhaOriginal);
+      }
+    }
+  }
+
+  var apresentacoes = ehBuscaAssociacao ? associados.concat(isolados) : isolados.concat(associados);
+
+  // Fallback transparente se o mock de teste não carregou a lista do CSV mas o HSL traz flags estáticas
+  if (apresentacoes.length === 0 && medHslFallback && medHslFallback.na_remume) {
+    var aprsFallback = Array.isArray(medHslFallback.apresentacoes_remume) ? medHslFallback.apresentacoes_remume : [];
+    return {
+      presente: true,
+      farmaco: termo,
+      apresentacoes: aprsFallback,
+      selo: "🟢 [REMUME-RP]"
+    };
+  }
+
+  var presente = apresentacoes.length > 0;
+  return {
+    presente: presente,
+    farmaco: termo,
+    apresentacoes: apresentacoes,
+    selo: presente ? "🟢 [REMUME-RP]" : "⚪ [NÃO-REMUME]"
+  };
+}
+
+// ==============================================================================
 // BASE OFICIAL DE POSOLOGIAS: GUIA FARMACÊUTICO HOSPITAL SÍRIO-LIBANÊS (HSL)
 // ==============================================================================
 
@@ -486,16 +615,20 @@ function formatarFichaPosologicaHSL(med) {
   linhas.push("💊 *GUIA FARMACÊUTICO HSL — POSOLOGIA OFICIAL*");
   linhas.push("📋 *Fármaco (DCI):* *" + med.farnaco + "*");
   
-  if (med.na_remume) {
-    linhas.push("🏛️ *Status SUS:* ✅ *PADRONIZADO NA REMUME (Ribeirão Preto)*");
-    if (med.apresentacoes_remume && med.apresentacoes_remume.length > 0) {
+  var remumeInfo = (typeof consultarRemumeRP === "function")
+    ? consultarRemumeRP(med.farnaco, med)
+    : { presente: !!med.na_remume, apresentacoes: med.apresentacoes_remume || [] };
+
+  if (remumeInfo.presente) {
+    linhas.push("🏛️ *Status SUS:* 🟢 [REMUME-RP] *PADRONIZADO NA REDE MUNICIPAL (Ribeirão Preto)*");
+    if (remumeInfo.apresentacoes && remumeInfo.apresentacoes.length > 0) {
       linhas.push("📦 *Apresentações na Rede Municipal:*");
-      med.apresentacoes_remume.forEach(function(apr) {
+      remumeInfo.apresentacoes.forEach(function(apr) {
         linhas.push("  • `" + apr + "`");
       });
     }
   } else {
-    linhas.push("🏛️ *Status SUS:* ⚠️ *NÃO CONSTA NA REMUME MUNICIPAL*");
+    linhas.push("🏛️ *Status SUS:* ⚪ [NÃO-REMUME] *NÃO CONSTA NA REDE MUNICIPAL*");
     linhas.push("_(Uso hospitalar, componente especializado ou compra pelo paciente)_");
   }
 
@@ -1084,13 +1217,17 @@ function formatarFichaPediatricaPedB(med) {
   }
 
   // Status REMUME / SUS
-  if (med.na_remume) {
-    linhas.push("🏛️ *SUS / REMUME:* ✅ PADRONIZADO NA REDE MUNICIPAL");
-    if (med.apresentacoes_remume && med.apresentacoes_remume.length > 0) {
-      linhas.push("   _Apresentações SUS:_ " + med.apresentacoes_remume.slice(0, 3).join(", "));
+  var remumeInfo = (typeof consultarRemumeRP === "function")
+    ? consultarRemumeRP(med.nome, med)
+    : { presente: !!med.na_remume, apresentacoes: med.apresentacoes_remume || [] };
+
+  if (remumeInfo.presente) {
+    linhas.push("🏛️ *SUS / REMUME:* 🟢 [REMUME-RP] *PADRONIZADO NA REDE MUNICIPAL (Ribeirão Preto)*");
+    if (remumeInfo.apresentacoes && remumeInfo.apresentacoes.length > 0) {
+      linhas.push("   _Apresentações SUS:_ " + remumeInfo.apresentacoes.slice(0, 3).map(function(a) { return "`" + a + "`"; }).join(", "));
     }
   } else {
-    linhas.push("🏛️ *SUS / REMUME:* ⚠️ NÃO CONSTA NA REMUME MUNICIPAL");
+    linhas.push("🏛️ *SUS / REMUME:* ⚪ [NÃO-REMUME] *NÃO CONSTA NA REDE MUNICIPAL*");
   }
 
   if (med.marcas) {
@@ -2246,7 +2383,9 @@ if (typeof module !== "undefined" && module.exports) {
     CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS: CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS,
     obterAjusteRenalAntimicrobiano: obterAjusteRenalAntimicrobiano,
     formatarAjusteRenalAntimicrobiano: formatarAjusteRenalAntimicrobiano,
-    consultarCatalogoAjusteRenal: consultarCatalogoAjusteRenal
+    consultarCatalogoAjusteRenal: consultarCatalogoAjusteRenal,
+    obterItensRemumeRP: obterItensRemumeRP,
+    consultarRemumeRP: consultarRemumeRP
   });
 }
 

@@ -348,6 +348,11 @@ var ReceitaPdfService = (function() {
     },
 
     processarEEnviarPdf: function(chatId, textoPrescricao) {
+      // Feedback visual imediato: sinaliza ao Telegram que o documento PDF está sendo gerado
+      if (typeof enviarChatAction === "function" && chatId) {
+        try { enviarChatAction(chatId, "upload_document", true); } catch (_) {}
+      }
+
       // Revalida também callbacks antigos; o botão não é a fronteira de validação.
       if (typeof validarReceitaTemMedicamentos !== "function" || !validarReceitaTemMedicamentos(textoPrescricao)) {
         enviarMensagemParaChat(chatId, "⚠️ Receita incompleta ou medicamento não identificado no catálogo. Confira nome, dose, via e frequência antes de gerar o PDF.");

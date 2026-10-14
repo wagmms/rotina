@@ -231,14 +231,26 @@ function detectarPlantaoStatus(dataReferencia) {
 var RotinaService = {
   PREFIXO_PROP: "ROTINA_OVERRIDE_",
 
+  parseDataSegura_: function(dataRef) {
+    if (!dataRef) return new Date();
+    if (dataRef instanceof Date) return isNaN(dataRef.getTime()) ? new Date() : dataRef;
+    if (typeof dataRef === "string") {
+      var match = dataRef.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) {
+        return new Date(dataRef.indexOf("T") !== -1 ? dataRef : dataRef + "T12:00:00");
+      }
+    }
+    var d = new Date(dataRef);
+    return isNaN(d.getTime()) ? new Date() : d;
+  },
+
   normalizarDataISO: function(dataRef) {
     if (!dataRef) dataRef = new Date();
     if (typeof dataRef === "string") {
       var match = dataRef.match(/^\d{4}-\d{2}-\d{2}/);
       if (match) return match[0];
     }
-    var d = dataRef instanceof Date ? dataRef : new Date(dataRef);
-    if (isNaN(d.getTime())) d = new Date();
+    var d = RotinaService.parseDataSegura_(dataRef);
     var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
     if (typeof Utilities !== "undefined" && Utilities.formatDate) {
       return Utilities.formatDate(d, tz, "yyyy-MM-dd");
@@ -331,8 +343,7 @@ var RotinaService = {
   },
 
   importarEventosGoogleCalendar: function(dataRef) {
-    var ref = dataRef ? (dataRef instanceof Date ? dataRef : new Date(dataRef)) : new Date();
-    if (isNaN(ref.getTime())) ref = new Date();
+    var ref = RotinaService.parseDataSegura_(dataRef);
     try {
       if (typeof CalendarApp === "undefined" || !CalendarApp.getDefaultCalendar) return [];
       var cal = CalendarApp.getDefaultCalendar();
@@ -347,6 +358,7 @@ var RotinaService = {
       for (var i = 0; i < eventos.length; i++) {
         var ev = eventos[i];
         if (ev.isAllDayEvent()) continue;
+        var rawId = ev.getId ? String(ev.getId()) : String(i);
         var hIni = Utilities.formatDate(ev.getStartTime(), tz, "HH:mm");
         var hFim = Utilities.formatDate(ev.getEndTime(), tz, "HH:mm");
         var tit = ev.getTitle() || "Compromisso";
@@ -359,15 +371,18 @@ var RotinaService = {
         else if (/viol[aã]o|m[uú]sica|h[aá]bito/i.test(titLower)) cat = "lifestyle";
         else cat = "lifestyle";
 
+        var loc = (typeof ev.getLocation === "function") ? ev.getLocation() : "";
+
         blocos.push({
-          id: "google_" + (ev.getId ? ev.getId() : i),
+          id: "google_" + rawId,
+          googleEventId: rawId,
           titulo: tit,
           inicio: hIni,
           fim: hFim,
           categoria: cat,
           status: "pendente",
           essencial: true,
-          nota: (ev.getLocation ? ev.getLocation() : "") || "Agenda Google"
+          nota: loc || "Agenda Google"
         });
       }
 
@@ -383,28 +398,58 @@ var RotinaService = {
   },
 
   obterBlocosDoDia: function(dataRef) {
-    var ref = dataRef ? (dataRef instanceof Date ? dataRef : new Date(dataRef)) : new Date();
-    if (isNaN(ref.getTime())) ref = new Date();
+    var ref = RotinaService.parseDataSegura_(dataRef);
 
     var salvos = RotinaService.obterBlocosSalvos(ref);
     var blocosAgenda = RotinaService.importarEventosGoogleCalendar(ref);
 
-    // Se temos eventos da agenda Google, mesclamos status com blocos salvos anteriormente
+    // Se temos eventos da agenda Google, mesclamos títulos vivos com status e horários adiados salvos
     if (blocosAgenda && blocosAgenda.length > 0) {
       if (salvos && salvos.length > 0) {
+        var idsOuTitulosEncontrados = {};
         for (var i = 0; i < blocosAgenda.length; i++) {
           var b = blocosAgenda[i];
+          var gIdPuro = b.googleEventId || (b.id ? b.id.replace(/^(google_|gcal_)/, "") : "");
           for (var s = 0; s < salvos.length; s++) {
             var sv = salvos[s];
-            if (sv.id === b.id || (sv.titulo && b.titulo && sv.titulo.trim().toLowerCase() === b.titulo.trim().toLowerCase())) {
+            var svGIdPuro = sv.googleEventId || (sv.id ? sv.id.replace(/^(google_|gcal_)/, "") : "");
+            var matchGId = gIdPuro && svGIdPuro && gIdPuro === svGIdPuro;
+            var matchId = sv.id && b.id && sv.id === b.id;
+            var matchTit = sv.titulo && b.titulo && sv.titulo.trim().toLowerCase() === b.titulo.trim().toLowerCase();
+
+            if (matchGId || matchId || matchTit) {
+              if (!b.googleEventId && svGIdPuro) b.googleEventId = svGIdPuro;
+
+              // Preserva status de override se existir
               if (sv.status && sv.status !== "pendente") {
                 b.status = sv.status;
-                if (sv.nota) b.nota = sv.nota;
               }
+              // Preserva horários de override caso tenha sido adiado ou alterado localmente
+              if (sv.status === "adiado" || (sv.inicio && sv.inicio !== b.inicio)) {
+                if (sv.inicio) b.inicio = sv.inicio;
+                if (sv.fim) b.fim = sv.fim;
+              }
+              if (sv.nota && sv.nota.indexOf("[Adiado") !== -1) {
+                b.nota = (b.nota && b.nota !== "Agenda Google" ? b.nota + " " : "") + sv.nota;
+              } else if (sv.nota && (!b.nota || b.nota === "Agenda Google")) {
+                b.nota = sv.nota;
+              }
+              idsOuTitulosEncontrados[sv.id || sv.titulo] = true;
               break;
             }
           }
         }
+        // Incorpora blocos de salvos que não vieram do Google Calendar
+        for (var s = 0; s < salvos.length; s++) {
+          var sv = salvos[s];
+          var chaveSv = sv.id || sv.titulo;
+          if (!idsOuTitulosEncontrados[chaveSv]) {
+            blocosAgenda.push(sv);
+          }
+        }
+        blocosAgenda.sort(function(a, b) {
+          return (a.inicio || "").localeCompare(b.inicio || "");
+        });
       }
       return blocosAgenda;
     }
@@ -693,19 +738,25 @@ var RotinaService = {
       { text: "💤 Modo Descanso", callback_data: "rotina:descanso" }
     ]);
 
-    // Linha 3: Sincronização e Reset
+    // Linha 3: Adiamento Rápido de Blocos
+    teclado.push([
+      { text: "⏩ Adiar (+30m)", callback_data: "rotina:adiar:30" },
+      { text: "⏩ Adiar (+1h)", callback_data: "rotina:adiar:60" }
+    ]);
+
+    // Linha 4: Sincronização e Reset
     teclado.push([
       { text: "🔄 Restaurar Padrão", callback_data: "rotina:reset" },
       { text: "📆 Sincronizar Agenda", callback_data: "rotina:cal_sync" }
     ]);
 
-    // Linha 4: Navegação Hoje / Amanhã
+    // Linha 5: Navegação Hoje / Amanhã / Placar
     teclado.push([
       { text: "📆 Ver Amanhã", callback_data: "rotina:ver_amanha" },
-      { text: "📅 Central", callback_data: "ux:hub:rotina" }
+      { text: "📊 Aderência Semanal", callback_data: "rotina:aderencia" }
     ]);
 
-    // Linha 5: Retorno Contextual Padronizado Beira-Leito
+    // Linha 6: Retorno Contextual Padronizado Beira-Leito
     teclado.push([
       { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
       { text: "🏠 Início", callback_data: "ux:hub:inicio" }
@@ -826,6 +877,226 @@ var RotinaService = {
       txt += "💡 Para ajustar o dia de hoje, envie: _'/rotina alterar <sua instrução>'_ ou envie um áudio!";
     }
     return txt;
+  },
+
+  calcularDuracaoHorasBloco_: function(inicio, fim) {
+    if (!inicio || !fim) return 1.0;
+    var pI = String(inicio).split(":");
+    var pF = String(fim).split(":");
+    var mI = parseInt(pI[0], 10) * 60 + parseInt(pI[1] || 0, 10);
+    var mF = parseInt(pF[0], 10) * 60 + parseInt(pF[1] || 0, 10);
+    var diff = mF - mI;
+    if (diff <= 0) diff += 1440;
+    return Math.round((diff / 60) * 10) / 10;
+  },
+
+  classificarEixoBloco_: function(bloco) {
+    var cat = (bloco && bloco.categoria ? String(bloco.categoria) : "").toLowerCase();
+    var tit = (bloco && bloco.titulo ? String(bloco.titulo) : "").toLowerCase();
+    if (cat === "estudo" || /medquest|anki|estudo|quest[õo]es|questoes|aula|revis[aã]o|revisao|teoria/i.test(tit)) {
+      return "estudo";
+    }
+    if (cat === "plantao" || cat === "clinico" || /plant[aã]o|plantao|internato|enfermaria|usf|upa|samu|\bue\b|uti|ambulatório|ambulatorio|leito/i.test(tit)) {
+      return "plantao";
+    }
+    if (cat === "treino" || /treino|academia|muscula|cardio|corrida/i.test(tit)) {
+      return "treino";
+    }
+    return "habitos";
+  },
+
+  calcularAderenciaSemanal: function(dataRef) {
+    var ref = RotinaService.parseDataSegura_(dataRef);
+
+    var eixos = {
+      plantao: { rotulo: "Internato / Plantão", planejados: 0, concluidos: 0, horasPlanejadas: 0, horasConcluidas: 0, taxa: 0 },
+      estudo: { rotulo: "Estudo / MedQuest", planejados: 0, concluidos: 0, horasPlanejadas: 0, horasConcluidas: 0, taxa: 0 },
+      treino: { rotulo: "Treino / Academia", planejados: 0, concluidos: 0, horasPlanejadas: 0, horasConcluidas: 0, taxa: 0 },
+      habitos: { rotulo: "Rotina / Hábitos", planejados: 0, concluidos: 0, horasPlanejadas: 0, horasConcluidas: 0, taxa: 0 }
+    };
+
+    var dataFimISO = RotinaService.normalizarDataISO(ref);
+    var dataInicioISO = "";
+
+    // Itera pelos últimos 7 dias (D-6 até D)
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(ref.getTime() - (i * 86400000));
+      var dISO = RotinaService.normalizarDataISO(d);
+      if (!dataInicioISO) dataInicioISO = dISO;
+
+      var blocos = RotinaService.obterBlocosDoDia(d) || [];
+      for (var b = 0; b < blocos.length; b++) {
+        var bloco = blocos[b];
+        var eixoKey = RotinaService.classificarEixoBloco_(bloco);
+        var dur = RotinaService.calcularDuracaoHorasBloco_(bloco.inicio, bloco.fim);
+
+        eixos[eixoKey].planejados++;
+        eixos[eixoKey].horasPlanejadas = Math.round((eixos[eixoKey].horasPlanejadas + dur) * 10) / 10;
+
+        if (bloco.status === "concluido") {
+          eixos[eixoKey].concluidos++;
+          eixos[eixoKey].horasConcluidas = Math.round((eixos[eixoKey].horasConcluidas + dur) * 10) / 10;
+        }
+      }
+    }
+
+    var totalPlanejados = 0;
+    var totalConcluidos = 0;
+    var keys = ["plantao", "estudo", "treino", "habitos"];
+
+    for (var k = 0; k < keys.length; k++) {
+      var kName = keys[k];
+      var p = eixos[kName].planejados;
+      var c = eixos[kName].concluidos;
+      totalPlanejados += p;
+      totalConcluidos += c;
+      // Previne divisão por zero (0/0 -> 0%)
+      eixos[kName].taxa = p > 0 ? Math.round((c / p) * 100) : 0;
+    }
+
+    var taxaGlobal = totalPlanejados > 0 ? Math.round((totalConcluidos / totalPlanejados) * 100) : 0;
+    var statusVisual = "Excelente / Consistente 🔥";
+    if (taxaGlobal < 50) {
+      statusVisual = "Crítico / Ajustar Rotina 🚨";
+    } else if (taxaGlobal < 70) {
+      statusVisual = "Regular / Atenção ⚠️";
+    } else if (taxaGlobal < 85) {
+      statusVisual = "Bom Desempenho ⚡";
+    }
+
+    return {
+      taxaGlobal: taxaGlobal,
+      totalPlanejados: totalPlanejados,
+      totalConcluidos: totalConcluidos,
+      horasEstudoConcluidas: eixos.estudo.horasConcluidas,
+      horasPlantaoConcluidas: eixos.plantao.horasConcluidas,
+      statusVisual: statusVisual,
+      eixos: eixos,
+      periodo: { inicio: dataInicioISO, fim: dataFimISO }
+    };
+  },
+
+  somarMinutosHora_: function(horaStr, minutosSoma) {
+    var partes = String(horaStr || "00:00").split(":");
+    var h = parseInt(partes[0], 10) || 0;
+    var m = parseInt(partes[1], 10) || 0;
+    var totalMin = h * 60 + m + (parseInt(minutosSoma, 10) || 0);
+    // Clamp seguro em 23:59 para nunca gerar horas inválidas (ex: 24:30)
+    if (totalMin >= 1440) {
+      totalMin = 1439;
+    } else if (totalMin < 0) {
+      totalMin = 0;
+    }
+    var nH = Math.floor(totalMin / 60);
+    var nM = totalMin % 60;
+    return ("0" + nH).slice(-2) + ":" + ("0" + nM).slice(-2);
+  },
+
+  adiarProximoBloco: function(dataRef, minutos, categoriaOuId) {
+    var ref = RotinaService.parseDataSegura_(dataRef);
+    var deltaMin = parseInt(minutos, 10) || 30;
+
+    var blocos = RotinaService.obterBlocosDoDia(ref) || [];
+    if (!blocos || blocos.length === 0) {
+      return {
+        sucesso: true,
+        modificado: false,
+        mensagem: "Nenhum bloco agendado para o dia de hoje.",
+        bloco: null,
+        blocos: []
+      };
+    }
+
+    // Busca o primeiro bloco pendente/ativo ou pelo filtro
+    var alvoIdx = -1;
+    for (var i = 0; i < blocos.length; i++) {
+      var b = blocos[i];
+      if (categoriaOuId) {
+        if (b.id === categoriaOuId || b.googleEventId === categoriaOuId || (b.id && b.id === "google_" + categoriaOuId) || b.categoria === categoriaOuId || (b.titulo && b.titulo.toLowerCase().indexOf(categoriaOuId.toLowerCase()) !== -1)) {
+          if (b.status === "pendente" || b.status === "ativo" || b.status === "adiado") {
+            alvoIdx = i;
+            break;
+          }
+        }
+      } else {
+        if (b.status === "pendente" || b.status === "ativo" || b.status === "adiado") {
+          alvoIdx = i;
+          break;
+        }
+      }
+    }
+
+    if (alvoIdx === -1) {
+      return {
+        sucesso: true,
+        modificado: false,
+        mensagem: "Todos os blocos de hoje já foram concluídos ✅",
+        bloco: null,
+        blocos: blocos
+      };
+    }
+
+    var blocoAlvo = blocos[alvoIdx];
+    blocoAlvo.inicio = RotinaService.somarMinutosHora_(blocoAlvo.inicio, deltaMin);
+    blocoAlvo.fim = RotinaService.somarMinutosHora_(blocoAlvo.fim, deltaMin);
+    blocoAlvo.status = "adiado";
+    var tagAdiado = "[Adiado +" + deltaMin + "m]";
+    if (!blocoAlvo.nota || blocoAlvo.nota.indexOf(tagAdiado) === -1) {
+      blocoAlvo.nota = (blocoAlvo.nota ? blocoAlvo.nota + " " : "") + tagAdiado;
+    }
+
+    RotinaService.salvarBlocosDoDia(ref, blocos);
+
+    // Sincronização não-bloqueante e resiliente com o Google Calendar
+    var sincGoogle = false;
+    var rawGoogleId = blocoAlvo.googleEventId || (blocoAlvo.id ? String(blocoAlvo.id).replace(/^(google_|gcal_)/, "") : null);
+
+    if (rawGoogleId && !/^(plantao_ativo|sono_|refeicao_|repouso_|revisao_)/.test(rawGoogleId)) {
+      try {
+        var dataISO = RotinaService.normalizarDataISO(ref);
+        var startPayload = {
+          dateTime: dataISO + "T" + blocoAlvo.inicio + ":00-03:00",
+          timeZone: "America/Sao_Paulo"
+        };
+        var endPayload = {
+          dateTime: dataISO + "T" + blocoAlvo.fim + ":00-03:00",
+          timeZone: "America/Sao_Paulo"
+        };
+        var alteracoesGCal = {
+          start: startPayload,
+          end: endPayload,
+          description: (blocoAlvo.nota ? blocoAlvo.nota + "\n" : "") + "Reagendado via Ultra Rotina (+" + deltaMin + "m)"
+        };
+
+        if (typeof CalendarApp !== "undefined" && CalendarApp.getDefaultCalendar) {
+          var cal = CalendarApp.getDefaultCalendar();
+          if (typeof cal.updateEvent === "function") {
+            var resUp = cal.updateEvent(rawGoogleId, alteracoesGCal);
+            if (resUp) sincGoogle = true;
+          }
+        }
+        if (!sincGoogle && typeof GoogleCalendarService !== "undefined" && typeof GoogleCalendarService.atualizarEventoSync === "function") {
+          var resGcs = GoogleCalendarService.atualizarEventoSync(rawGoogleId, alteracoesGCal);
+          if (resGcs) sincGoogle = true;
+        }
+      } catch (eGCal) {
+        Logger.log("Aviso: Sincronização de adiamento no Google Calendar ignorada: " + eGCal.message);
+      }
+    }
+
+    var msgFinal = "⏩ Bloco *" + blocoAlvo.titulo + "* adiado em +" + deltaMin + "m (" + blocoAlvo.inicio + " - " + blocoAlvo.fim + ")";
+    if (sincGoogle) {
+      msgFinal += " 🗓️ _(Sincronizado no Google Calendar)_";
+    }
+
+    return {
+      sucesso: true,
+      modificado: true,
+      sincronizadoGoogle: sincGoogle,
+      mensagem: msgFinal,
+      bloco: blocoAlvo,
+      blocos: blocos
+    };
   }
 };
 

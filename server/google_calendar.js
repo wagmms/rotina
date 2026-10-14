@@ -445,6 +445,157 @@ class GoogleCalendarService {
   }
 
   /**
+   * Converte data/hora para objeto RFC3339 com timezone explícito America/Sao_Paulo (-03:00)
+   */
+  _formatarDateTimeTimeZone(valor, tzPadrao = 'America/Sao_Paulo') {
+    if (!valor) return null;
+    if (typeof valor === 'object' && valor.dateTime) {
+      return {
+        dateTime: valor.dateTime,
+        timeZone: valor.timeZone || tzPadrao
+      };
+    }
+    if (typeof valor === 'string') {
+      if (valor.includes('T')) {
+        const hasOffset = /[+-]\d{2}:\d{2}$|Z$/.test(valor);
+        const dtStr = hasOffset ? valor : `${valor}-03:00`;
+        return {
+          dateTime: dtStr,
+          timeZone: tzPadrao
+        };
+      }
+    }
+    const d = valor instanceof Date ? valor : new Date(valor);
+    if (isNaN(d.getTime())) return null;
+    return {
+      dateTime: d.toISOString(),
+      timeZone: tzPadrao
+    };
+  }
+
+  /**
+   * Atualiza parcialmente um evento existente na Google Calendar API (síncrono via syncFetch)
+   */
+  atualizarEventoSync(eventId, alteracoes = {}, calendarId = 'primary') {
+    if (!eventId) return null;
+    const token = this.garantirAccessTokenSync();
+    if (!token) return null;
+
+    try {
+      const payload = {};
+      if (alteracoes.summary !== undefined) payload.summary = alteracoes.summary;
+      if (alteracoes.description !== undefined) payload.description = alteracoes.description;
+      if (alteracoes.location !== undefined) payload.location = alteracoes.location;
+
+      if (alteracoes.start) {
+        const st = this._formatarDateTimeTimeZone(alteracoes.start, this.timezone);
+        if (st) payload.start = st;
+      }
+      if (alteracoes.end) {
+        const en = this._formatarDateTimeTimeZone(alteracoes.end, this.timezone);
+        if (en) payload.end = en;
+      }
+
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`;
+      let res = syncFetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.status === 401) {
+        const novoToken = this.garantirAccessTokenSync(true);
+        if (novoToken) {
+          res = syncFetch(url, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${novoToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+        }
+      }
+
+      if (!res.ok) {
+        console.warn(`[GoogleCalendar] Erro ao atualizar evento (${eventId}): HTTP ${res.status}`);
+        return null;
+      }
+
+      this._cacheEventos.clear();
+      const updated = res.json();
+      return this._formatarEvento(updated);
+    } catch (e) {
+      console.warn(`[GoogleCalendar] Erro ao atualizar evento sync (${eventId}):`, e.message);
+      return null;
+    }
+  }
+
+  /**
+   * Atualiza parcialmente um evento existente na Google Calendar API (assíncrono via fetch)
+   */
+  async atualizarEventoAsync(eventId, alteracoes = {}, calendarId = 'primary') {
+    if (!eventId) return null;
+    const token = await this.garantirAccessTokenAsync();
+    if (!token) return null;
+
+    try {
+      const payload = {};
+      if (alteracoes.summary !== undefined) payload.summary = alteracoes.summary;
+      if (alteracoes.description !== undefined) payload.description = alteracoes.description;
+      if (alteracoes.location !== undefined) payload.location = alteracoes.location;
+
+      if (alteracoes.start) {
+        const st = this._formatarDateTimeTimeZone(alteracoes.start, this.timezone);
+        if (st) payload.start = st;
+      }
+      if (alteracoes.end) {
+        const en = this._formatarDateTimeTimeZone(alteracoes.end, this.timezone);
+        if (en) payload.end = en;
+      }
+
+      const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`;
+      let res = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.status === 401) {
+        const novoToken = await this.garantirAccessTokenAsync(true);
+        if (novoToken) {
+          res = await fetch(url, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${novoToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+        }
+      }
+
+      if (!res.ok) {
+        console.warn(`[GoogleCalendar] Erro ao atualizar evento async (${eventId}): HTTP ${res.status}`);
+        return null;
+      }
+
+      this._cacheEventos.clear();
+      const updated = await res.json();
+      return this._formatarEvento(updated);
+    } catch (e) {
+      console.warn(`[GoogleCalendar] Erro ao atualizar evento async (${eventId}):`, e.message);
+      return null;
+    }
+  }
+
+  /**
    * Limpa cache de eventos
    */
   limparCache() {

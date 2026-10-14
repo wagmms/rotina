@@ -55,6 +55,8 @@
     "tests/test_convidado_onboarding_e_ajuda_ux.cjs",
     "tests/test_google_calendar_sync.cjs",
     "tests/test_cockpit_soap_modais_responsividade.cjs",
-    "tests/test_preceptor_dialogo_socratico.cjs"
+    "tests/test_preceptor_dialogo_socratico.cjs",
+    "tests/test_aderencia_semanal_rotina.cjs",
+    "tests/test_remume_soap_pdf_integracao.cjs"
   ]
 }

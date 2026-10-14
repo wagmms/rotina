@@ -1105,7 +1105,7 @@ async function buildServer() {
         if (d1Inbox) novo = await d1Inbox.accept(updateData);
         else {
           // Sem D1, o checkpoint local precisa ser persistido antes do ACK.
-          runtime.ctx.enfileirarUpdate(updateData);
+          novo = runtime.ctx.enfileirarUpdate(updateData);
           runtime.persistirPropriedades(true);
         }
         checkpointOk = true;

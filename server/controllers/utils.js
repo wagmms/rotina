@@ -96,7 +96,8 @@ function verificarPayloadSeguro(request, reply, nomeEntidade = 'da requisição'
 
 const COCKPIT_READ_METHODS = new Set([
   'cockpitConsultar', 'cockpitPerfil', 'cockpitRemume', 'cockpitAulasProgresso',
-  'cockpitBuscarCid', 'cockpitEstratificarRisco', 'cockpitConsultarFarmaco'
+  'cockpitBuscarCid', 'cockpitEstratificarRisco', 'cockpitConsultarFarmaco',
+  'cockpitRotinaBlocos', 'cockpitRotinaAderencia'
 ]);
 
 module.exports = {

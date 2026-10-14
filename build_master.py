@@ -75,8 +75,43 @@ def salvar_cache(caminho_cache, dados):
             except OSError:
                 pass
 
+def sincronizar_espelhos_cockpit():
+    """Garante paridade atômica e automática dos espelhos estáticos do Cockpit PWA."""
+    base_dir = os.path.dirname(__file__)
+    pares_sincronia = [
+        (os.path.join(base_dir, "cockpit_movel.html"), os.path.join(base_dir, "gh_cockpit_deploy", "index.html")),
+        (os.path.join(base_dir, "cockpit_movel.html"), os.path.join(base_dir, "index.html")),
+        (os.path.join(base_dir, "rotina_timeline.js"), os.path.join(base_dir, "gh_cockpit_deploy", "rotina_timeline.js")),
+        (os.path.join(base_dir, "sw.js"), os.path.join(base_dir, "gh_cockpit_deploy", "sw.js")),
+        (os.path.join(base_dir, "manifest.json"), os.path.join(base_dir, "gh_cockpit_deploy", "manifest.json")),
+    ]
+    sincronizados = 0
+    for origem, destino in pares_sincronia:
+        if not os.path.exists(origem):
+            continue
+        os.makedirs(os.path.dirname(destino), exist_ok=True)
+        try:
+            with open(origem, "rb") as fo:
+                bytes_origem = fo.read()
+            bytes_destino = b""
+            if os.path.exists(destino):
+                with open(destino, "rb") as fd:
+                    bytes_destino = fd.read()
+            if bytes_origem != bytes_destino:
+                tmp = destino + f".{os.getpid()}.tmp"
+                with open(tmp, "wb") as ft:
+                    ft.write(bytes_origem)
+                os.replace(tmp, destino)
+                sincronizados += 1
+                print(f"  ✓ Espelho sincronizado: {os.path.relpath(origem)} -> {os.path.relpath(destino)}")
+        except Exception as e:
+            print(f"  ⚠️ Falha ao sincronizar espelho {os.path.basename(origem)}: {e}")
+    if sincronizados > 0:
+        print(f"📱 Cockpit PWA: {sincronizados} arquivo(s) espelho sincronizado(s) com paridade SHA-256 ✅")
+
 def build(force=False):
     t0 = time.perf_counter()
+    sincronizar_espelhos_cockpit()
     if not os.path.exists(SRC_DIR):
         print(f"❌ Diretório fonte '{SRC_DIR}' não encontrado.")
         return 1

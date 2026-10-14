@@ -3134,6 +3134,37 @@ function cockpitRotinaSyncAgenda(initData, dataStr) {
   };
 }
 
+function cockpitRotinaAderencia(initData, dataStr) {
+  cockpitAutorizar_(initData);
+  var ref = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+  if (typeof RotinaService === 'undefined' || !RotinaService.calcularAderenciaSemanal) {
+    throw new Error('RotinaService indisponível.');
+  }
+  var res = RotinaService.calcularAderenciaSemanal(ref);
+  return {
+    sucesso: true,
+    data: RotinaService.normalizarDataISO(ref),
+    aderencia: res
+  };
+}
+
+function cockpitRotinaAdiarBloco(initData, dataStr, minutos, categoriaOuId) {
+  cockpitAutorizar_(initData);
+  var ref = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+  if (typeof RotinaService === 'undefined' || !RotinaService.adiarProximoBloco) {
+    throw new Error('RotinaService indisponível.');
+  }
+  var res = RotinaService.adiarProximoBloco(ref, minutos, categoriaOuId);
+  return {
+    sucesso: res.sucesso,
+    modificado: res.modificado,
+    mensagem: res.mensagem,
+    data: RotinaService.normalizarDataISO(ref),
+    bloco: res.bloco,
+    blocos: res.blocos
+  };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitArbovirosesDengue = cockpitArbovirosesDengue;
   module.exports.cockpitDengue = cockpitArbovirosesDengue;
@@ -3152,6 +3183,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitRotinaBlocos = cockpitRotinaBlocos;
   module.exports.cockpitRotinaMarcarStatus = cockpitRotinaMarcarStatus;
   module.exports.cockpitRotinaSyncAgenda = cockpitRotinaSyncAgenda;
+  module.exports.cockpitRotinaAderencia = cockpitRotinaAderencia;
+  module.exports.cockpitRotinaAdiarBloco = cockpitRotinaAdiarBloco;
 }
 
 

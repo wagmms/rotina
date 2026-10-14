@@ -17,10 +17,10 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Ditado de Corredor & Evolução de Leito Hospitalar — Alinhamento da Expectativa de Botão Tátil com o Padrão Canônico da Regra 6 de UX (`tests/test_ditado_corredor_enfermaria.cjs`, `tests/test_ditado_corredor_enfermaria.py`, `src/07e_telegram_midia_e_leitos.js`)**:
-    - **Diagnóstico e Causa Raiz**: O teste falhava exigindo estritamente `'Copiar PEP'`, enquanto a função `processarDitadoEvolucaoLeito` emite o botão canônico `📋 Copiar para Prontuário` (Regra 6 de UX Beira-Leito), testado em todo o ecossistema de leitos (`test_gestao_leitos_sbar_ux.cjs`).
-    - **Correção Implementada**: Atualizada asserção em `tests/test_ditado_corredor_enfermaria.cjs` para aceitar `"Copiar para Prontuário"`, harmonizando o contrato com o protocolo UX oficial. Registradas evidências em `data/autoloop_task_notes/test_ditado_corredor_enfermaria.md`.
-    - **Recibo de Estabilidade**: 4/4 testes aprovados no CJS e 2/2 suítes aprovadas no runner (`test_ditado_corredor_enfermaria.cjs` + `.py`) em 0.96s.
+- [x] **Atenção Primária / Ambulatório — Destaque Determinístico REMUME-RP e Ponte 1-Toque para Receita em PDF & Bloco SOAP (`src/03_bases_locais.js`, `src/07c_telegram_consultas_e_ia.js`, `src/07d_telegram_callbacks.js`, `scripts/test_manifest.json`, `tests/test_remume_soap_pdf_integracao.cjs`)**:
+    - **Diagnóstico e Causa Raiz**: Ausência de identificação direta da padronização municipal de Ribeirão Preto (`REMUME_RP.csv`) nas consultas posológicas ambulatoriais no bot Telegram; falta de conexão fluida entre a dosagem consultada e a emissão documental (PDF) ou transcrição para o prontuário eletrônico (SOAP/PEP); risco de falsos negativos em buscas com sais farmacêuticos (`cloridrato`, `sodica`, `maleato`) e de rejeição de receitas no parser regex caso houvesse palavras soltas na posologia.
+    - **Correção Implementada**: Criadas em `src/03_bases_locais.js` as funções canônicas `obterItensRemumeRP`, `normalizarPrincipioAtivo` e `consultarRemumeRP`, com resolução de sinônimos comerciais (`DICIONARIO_FARMACO`), normalização de sais e precedência de monoterapias antes de associações; inseridos selos visuais `🟢 [REMUME-RP]` com apresentações da rede nas fichas HSL e PedBook; implementado em `src/07c_telegram_consultas_e_ia.js` o helper `montarRascunhoRxESoapAmbulatorial` gerando botões inline com callbacks < 64 bytes (`gerarPdfRx_<hash>` [43B] e `ux:copiar:<hash>` [42B]) e rascunhos pré-salvos com o prefixo canônico `Posologia: <dose>` aprovados sem restrição em `validarReceitaTemMedicamentos`; ajustado `src/07d_telegram_callbacks.js` com delegação defensiva para `tratarCallbackUX`; criada suíte `tests/test_remume_soap_pdf_integracao.cjs` com 10 testes rigorosos e incorporada ao baseline oficial permanente em `scripts/test_manifest.json`.
+    - **Recibo de Estabilidade**: `node scripts/check_syntax.cjs` e `python3 build_master.py` 100% íntegros; suíte completa de regressão `npm test` aprovada com 57/57 suítes verdes (100% de aprovação) em 17.33s com código estável.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -28,34 +28,34 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Aba Rotina — Painel de Estatísticas e Aderência Semanal (`gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
-    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js` e `src/06_rotina_agenda.js`
-    - **Função/Componente/Seletor**: Função `calcularAderenciaSemanal` e componente de resumo no topo da aba rotina (`#painel-aderencia-rotina`)
-    - **Comportamento Esperado / Critério de Aceite**: Exibir percentual real de blocos cumpridos nos últimos 7 dias, total de horas de estudo ativo (MedQuest/Anki) e horas de plantão com persistência local (`rotina_aderencia_v1`) e atualização offline-first.
+- [ ] **Aba Rotina — Sincronização Bidirecional Telegram ↔ Cockpit PWA (`src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`, `gh_cockpit_deploy/rotina_timeline.js`)**:
+    - **Arquivo/Módulo Alvo**: `src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js` e `gh_cockpit_deploy/rotina_timeline.js`
+    - **Função/Componente/Seletor**: Callbacks inline `rt_concluir:ID`, `rt_adiar:ID` e rota `/api/rotina/status`
+    - **Comportamento Esperado / Critério de Aceite**: Ao interagir com o teclado inline do Telegram (`/rotina`), a alteração de status reflete instantaneamente no Cockpit PWA e vice-versa, sem inconsistências de cache.
 
 ---
 
 ## 📋 Backlog Prioritário: Desenvolvimento Integral da Aba Rotina
 
-1. [ ] **Aba Rotina — Painel de Estatísticas e Aderência Semanal (`gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
-    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js` e `src/06_rotina_agenda.js`
-    - **Função/Componente/Seletor**: Função `calcularAderenciaSemanal` e componente de resumo no topo da aba rotina (`#painel-aderencia-rotina`)
-    - **Comportamento Esperado / Critério de Aceite**: Exibir percentual real de blocos cumpridos nos últimos 7 dias, total de horas de estudo ativo (MedQuest/Anki) e horas de plantão com persistência local (`rotina_aderencia_v1`) e atualização offline-first.
-
-2. [ ] **Aba Rotina — Alertas Web Push 10 Minutos Antes de Blocos Críticos (`gh_cockpit_deploy/sw.js`, `gh_cockpit_deploy/rotina_timeline.js`, `server/index.js`)**:
-    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/sw.js`, `gh_cockpit_deploy/rotina_timeline.js` e `server/index.js`
-    - **Função/Componente/Seletor**: Service Worker push notification handler `notificarBlocoPrevisao` e cron de alertas da agenda
-    - **Comportamento Esperado / Critério de Aceite**: Disparo de notificação push/local no celular do médico 10 minutos antes de plantões e blocos de estudo ativo MedQuest, com botão de 1 toque para abrir o Cockpit diretamente no bloco ativo.
-
-3. [ ] **Aba Rotina — Sincronização Real com Google Calendar via Node.js Nativo (`src/06_rotina_agenda.js`, `server/index.js`, `tests/test_google_calendar_sync.cjs`)**:
-    - **Arquivo/Módulo Alvo**: `src/06_rotina_agenda.js`, `server/index.js` e `tests/test_google_calendar_sync.cjs`
-    - **Função/Componente/Seletor**: Endpoint Fastify `GET /api/rotina/agenda/sync` e função `sincronizarAgendaGoogleNativo`
-    - **Comportamento Esperado / Critério de Aceite**: Consumir feed iCal / Google API com zero dependências órfãs de GAS `CalendarApp`, mapeando automaticamente eventos para os blocos da timeline com tags de rodízio, plantão e descanso.
-
-4. [ ] **Aba Rotina — Sincronização Bidirecional Telegram ↔ Cockpit PWA (`src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`, `gh_cockpit_deploy/rotina_timeline.js`)**:
+1. [ ] **Aba Rotina — Sincronização Bidirecional Telegram ↔ Cockpit PWA (`src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`, `gh_cockpit_deploy/rotina_timeline.js`)**:
     - **Arquivo/Módulo Alvo**: `src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js` e `gh_cockpit_deploy/rotina_timeline.js`
-    - **Função/Componente/Seletor**: Callbacks inline `rt_concluir:ID`, `rt_adiar:ID` e rota `/api/rotina/blocos/status`
+    - **Função/Componente/Seletor**: Callbacks inline `rt_concluir:ID`, `rt_adiar:ID` e rota `/api/rotina/status`
     - **Comportamento Esperado / Critério de Aceite**: Ao interagir com o teclado inline do Telegram (`/rotina`), a alteração de status reflete instantaneamente no Cockpit PWA e vice-versa, sem inconsistências de cache.
+
+2. [ ] **Aba Rotina — Modo Plantão 24h & Alternância de Contraste Beira-Leito (`gh_cockpit_deploy/index.html`, `rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
+    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/index.html`, `rotina_timeline.js` e `src/06_rotina_agenda.js`
+    - **Função/Componente/Seletor**: Botão de alternância `#modo-plantao-toggle` e classe `.tema-plantao-urgente`
+    - **Comportamento Esperado / Critério de Aceite**: Ativação com 1 toque de visual escuro de altíssimo contraste para uso em emergência/sala vermelha, priorizando blocos de DVA, SRI e acesso vascular sem rolagem.
+
+3. [ ] **Aba Rotina — Gamificação & Consistência Visual de Streaks (`gh_cockpit_deploy/index.html`, `rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
+    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/index.html`, `rotina_timeline.js` e `src/06_rotina_agenda.js`
+    - **Função/Componente/Seletor**: Componente visual `#streak-semanal-banner` e função `RotinaService.calcularStreakSemanal`
+    - **Comportamento Esperado / Critério de Aceite**: Exibir sequência ininterrupta de dias com metas de MedQuest e plantão cumpridas, aumentando a motivação diária de estudo.
+
+4. [ ] **Aba Rotina — Pomodoro Integrado no Card de Estudo (`gh_cockpit_deploy/index.html`, `rotina_timeline.js`)**:
+    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/index.html` e `rotina_timeline.js`
+    - **Função/Componente/Seletor**: Timer tátil `iniciarTimerPomodoroEstudo` no card de bloco MedQuest
+    - **Comportamento Esperado / Critério de Aceite**: Cronômetro regressivo de 25 min/50 min com alerta sonoro suave e botão de conclusão imediata refletindo no Telegram.
 
 ---
 
@@ -63,10 +63,10 @@
 
 > 💡 Catálogo completo e limpo de sugestões arquivado e documentado em [docs/SUGESTOES_FUTURAS.md](docs/SUGESTOES_FUTURAS.md).
 
-- *Sugestão 01 (Aba Rotina / Notificações Push)*: Disparo de Web Push Notifications no Cockpit PWA 10 minutos antes do início de blocos críticos (ex: plantão, rodízio e bloco MedQuest).
-- *Sugestão 02 (Aba Rotina / Integração Wearables)*: Consumo de métricas de sono e prontidão biológica (Apple Health / Garmin) para sugestão automática de "modo descanso" nos blocos da rotina.
-- *Sugestão 03 (Aba Rotina / Gamificação & Streaks)*: Contador visual de consistência semanal de blocos cumpridos no topo da aba rotina.
-- *Sugestão 04 (Aba Rotina / Modo Plantão 24h)*: Alternância automática de layout para alto contraste noturno com acesso rápido e prioritário a DVA e SRI durante horas de plantão ativo.
-- *Sugestão 05 (Aba Rotina / Pomodoro Integrado)*: Timer embutido no card de bloco de estudo com sincronização de conclusão direta no Telegram.
+- *Sugestão 01 (Aba Rotina / Integração Wearables)*: Consumo de métricas de sono e prontidão biológica (Apple Health / Garmin) para sugestão automática de "modo descanso" nos blocos da rotina.
+- *Sugestão 02 (Aba Rotina / Gamificação & Streaks)*: Contador visual de consistência semanal de blocos cumpridos no topo da aba rotina.
+- *Sugestão 03 (Aba Rotina / Modo Plantão 24h)*: Alternância automática de layout para alto contraste noturno com acesso rápido e prioritário a DVA e SRI durante horas de plantão ativo.
+- *Sugestão 04 (Aba Rotina / Pomodoro Integrado)*: Timer embutido no card de bloco de estudo com sincronização de conclusão direta no Telegram.
+- *Sugestão 05 (Aba Rotina / Notificações Nativas do Calendário)*: Alinhamento das descrições de alertas nativos do Google Calendar com links diretos para condutas da Sala Vermelha.
 
 ---

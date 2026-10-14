@@ -51,7 +51,8 @@ function construirTecladoHubRotina() {
         {"text": "🧠 MedQuest / Dúvidas", "callback_data": "rotina_duvida"}
       ],
       [
-        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"}
+        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"},
+        {"text": "📊 Aderência Semanal", "callback_data": "rotina:aderencia"}
       ]
     ]
   };
@@ -127,6 +128,47 @@ function despacharComandosRotinaEProdutividade(comando, texto, chatId, message) 
   return { tratado: true, resultado: res };
 }
 
+function gerarBarraProgressoTexto(pct) {
+  var total = 8;
+  var cheios = Math.round(((pct || 0) / 100) * total);
+  if (cheios > total) cheios = total;
+  if (cheios < 0) cheios = 0;
+  var str = "";
+  for (var i = 0; i < total; i++) {
+    str += (i < cheios) ? "▰" : "▱";
+  }
+  return str;
+}
+
+function formatarPlacarAderenciaTelegram(ad) {
+  var p = (ad && ad.periodo) || {};
+  var txt = "📊 *PAINEL DE ADERÊNCIA SEMANAL (ÚLTIMOS 7 DIAS)*\n" +
+    "🗓️ _" + (p.inicio || "") + " a " + (p.fim || "") + "_\n\n" +
+    "🎯 *Consistência Global:* `" + (ad ? ad.taxaGlobal : 0) + "%` " + gerarBarraProgressoTexto(ad ? ad.taxaGlobal : 0) + "\n" +
+    "📈 *Status Geral:* " + ((ad && ad.statusVisual) || "Neutro") + "\n" +
+    "✅ *Blocos:* " + ((ad && ad.totalConcluidos) || 0) + " de " + ((ad && ad.totalPlanejados) || 0) + " concluídos\n\n" +
+    "─── *DESEMPENHO POR EIXO* ───\n";
+
+  var e = (ad && ad.eixos) || {};
+  var ordem = [
+    { key: "plantao", icon: "🚨", nome: "Internato / Plantão" },
+    { key: "estudo", icon: "🧠", nome: "Estudo / MedQuest" },
+    { key: "treino", icon: "🏋️", nome: "Treino / Academia" },
+    { key: "habitos", icon: "🌱", nome: "Rotina / Hábitos" }
+  ];
+
+  for (var i = 0; i < ordem.length; i++) {
+    var o = ordem[i];
+    var eixo = e[o.key] || { taxa: 0, concluidos: 0, planejados: 0, horasConcluidas: 0, horasPlanejadas: 0 };
+    txt += "\n" + o.icon + " *" + o.nome + ":* `" + eixo.taxa + "%` " + gerarBarraProgressoTexto(eixo.taxa) + "\n" +
+      "   • Cumprimento: " + eixo.concluidos + "/" + eixo.planejados + " blocos\n" +
+      "   • Volume: " + (eixo.horasConcluidas ? eixo.horasConcluidas.toFixed(1) : "0.0") + "h de " + (eixo.horasPlanejadas ? eixo.horasPlanejadas.toFixed(1) : "0.0") + "h planejadas\n";
+  }
+
+  txt += "\n💡 _Dica: Marque os blocos conforme conclui ou use os botões rápidos de adiamento quando imprevistos surgirem._";
+  return txt;
+}
+
 /**
  * Trata o comando /rotina e suas variações
  */
@@ -139,6 +181,20 @@ function tratarComandoRotina(chatId, argRotina) {
     var txtHubRotina = "🧭 *HUB DE ROTINA & PRODUTIVIDADE*\n\n" +
       "Selecione uma das opções abaixo para gerenciar seu dia, agenda e estudos, ou use comandos diretos:";
     return enviarMensagemComTecladoParaChat(chatId, txtHubRotina, construirTecladoHubRotina());
+  }
+
+  if (arg === "aderencia" || arg === "aderência" || arg === "placar" || arg === "stats") {
+    var dadosAderencia = (typeof RotinaService !== "undefined" && RotinaService.calcularAderenciaSemanal)
+      ? RotinaService.calcularAderenciaSemanal(hoje)
+      : null;
+    var txtAd = dadosAderencia ? formatarPlacarAderenciaTelegram(dadosAderencia) : "⚠️ Painel de aderência indisponível.";
+    var kbAd = {
+      inline_keyboard: [
+        [{ text: "⏱️ Ver Timeline Hoje", callback_data: "rotina_timeline" }],
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    return enviarMensagemComTecladoParaChat(chatId, txtAd, kbAd);
   }
 
   if (arg === "hoje") {
@@ -220,6 +276,34 @@ function tratarCallbackRotina(cb) {
   } else if (subAcao === "skip") {
     RotinaService.marcarStatusBloco(hoje, param, "pulado", "Pular bloco");
     responderCallbackTelegram(cb.id, "⏭️ Bloco pulado hoje.");
+  } else if (subAcao === "adiar") {
+    var deltaMin = parseInt(param, 10) || 30;
+    var catOuId = partes[3] || null;
+    var resAdiar = RotinaService.adiarProximoBloco(hoje, deltaMin, catOuId);
+    responderCallbackTelegram(cb.id, resAdiar.mensagem.replace(/\*/g, ""));
+  } else if (subAcao === "aderencia") {
+    responderCallbackTelegram(cb.id, "📊 Carregando aderência semanal...");
+    var dadosAderencia = (typeof RotinaService !== "undefined" && RotinaService.calcularAderenciaSemanal)
+      ? RotinaService.calcularAderenciaSemanal(hoje)
+      : null;
+    var txtAd = dadosAderencia ? formatarPlacarAderenciaTelegram(dadosAderencia) : "⚠️ Painel de aderência indisponível.";
+    var kbAd = {
+      inline_keyboard: [
+        [{ text: "⏱️ Voltar para Timeline", callback_data: "rotina:ver_hoje" }],
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (msgId && token) {
+      executarPostTelegram("https://api.telegram.org/bot" + token + "/editMessageText", {
+        chat_id: chatId,
+        message_id: msgId,
+        text: txtAd,
+        parse_mode: "Markdown",
+        reply_markup: kbAd
+      });
+      return;
+    }
+    return enviarMensagemComTecladoParaChat(chatId, txtAd, kbAd);
   } else if (subAcao === "reset") {
     RotinaService.resetarBlocosDoDia(hoje);
     responderCallbackTelegram(cb.id, "🔄 Rotina restaurada para o padrão!");

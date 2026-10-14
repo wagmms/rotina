@@ -24,10 +24,15 @@ def install(home=Path.home()):
         valid_hashes.update(manifest["known_executable_sha256"])
     if sha(executable) not in valid_hashes:
         raise RuntimeError("Executável original mudou após a preparação; instalação cancelada.")
-    pairs = [(SOURCE / "core/execution.py", home / ".local/lib/autoloop_core/execution.py"),
-             (SOURCE / "autoloop.py", executable)]
-    pairs += [(SOURCE / 'core' / name, home / '.local/lib/autoloop_core' / name)
-              for name in ['failure_queue.py', 'queue_policy.json', 'task_context.py', 'audit_repairs.py', 'scoped_audit.py', 'loop_guard.py', 'observation.py', 'prune_artifacts.py', 'backlog_sjf.py', 'syntax_checker.py', 'model_router.py']]
+    core_modules = manifest.get("core_modules", [
+        'execution.py', 'failure_queue.py', 'queue_policy.json', 'task_context.py',
+        'audit_repairs.py', 'scoped_audit.py', 'loop_guard.py', 'observation.py',
+        'prune_artifacts.py', 'backlog_sjf.py', 'syntax_checker.py', 'model_router.py',
+        'contracts.py', 'scheduler.py', 'engine.py', 'verification_gate.py',
+        'observability.py', 'notifications.py', 'deploy_pipeline.py', 'audit_validator.py', '__init__.py'
+    ])
+    pairs = [(SOURCE / "autoloop.py", executable)]
+    pairs += [(SOURCE / 'core' / name, home / '.local/lib/autoloop_core' / name) for name in core_modules]
     runner = home / '.local/bin/ia-hub-janela-runner'
     if runner.exists() and sha(runner) not in {manifest['original_runner_sha256'], sha(SOURCE / 'visual_runner.py')}:
         raise RuntimeError('Runner visual mudou após a preparação; instalação cancelada.')

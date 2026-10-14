@@ -196,6 +196,26 @@ function tratarCallbackRotinaProdutividade_(cb, data, ctx) {
     responderCallbackTelegram(cb.id, "Fechamento de plantão...");
     return gerarResumoFimPlantao(ctx.chatId, ctx.msgId);
   }
+  if (data === "rotina_aderencia") {
+    responderCallbackTelegram(cb.id, "📊 Carregando aderência semanal...");
+    var hojeRef = new Date();
+    var dadosAderencia = (typeof RotinaService !== "undefined" && RotinaService.calcularAderenciaSemanal)
+      ? RotinaService.calcularAderenciaSemanal(hojeRef)
+      : null;
+    var txtAd = (typeof formatarPlacarAderenciaTelegram === "function" && dadosAderencia)
+      ? formatarPlacarAderenciaTelegram(dadosAderencia)
+      : "📊 Painel de Aderência Semanal carregado.";
+    var kbAd = {
+      inline_keyboard: [
+        [{ text: "⏱️ Ver Timeline Hoje", callback_data: "rotina_timeline" }],
+        [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (typeof enviarTelaBot === "function") {
+      return enviarTelaBot(ctx.chatId, txtAd, kbAd, ctx.msgId);
+    }
+    return enviarMensagemComTecladoParaChat(ctx.chatId, txtAd, kbAd);
+  }
   if (data === "rotina_duvida") {
     responderCallbackTelegram(cb.id, "MedQuest / Dúvidas");
     var msgDuvidaLegacy = "🧠 *MEDQUEST / DÚVIDAS MÉDICAS*\n\nEnvie sua dúvida médica digitando:\n`/duvida <sua dúvida>`\n💡 *Exemplo:* `/duvida Critérios de Light para derrame pleural`\n\nSua dúvida será salva no Notion para o bloco noturno de estudo ativo.";
@@ -417,6 +437,9 @@ function tratarCallbackPrescricaoEFarmaco_(cb, data, ctx) {
     var conteudoPrescricao = CacheService.getScriptCache().get(cacheKeyPdf);
     if (conteudoPrescricao) {
       responderCallbackTelegram(cb.id, "Gerando receituário A4 em PDF...");
+      if (typeof enviarChatAction === "function" && ctx.chatId) {
+        try { enviarChatAction(ctx.chatId, "upload_document", true); } catch (_) {}
+      }
       var resPdf = ReceitaPdfService.processarEEnviarPdf(ctx.chatId, conteudoPrescricao);
       return (resPdf && resPdf.sucesso === false) ? false : true;
     }
@@ -977,6 +1000,7 @@ var MAPA_CALLBACKS_EXATOS_ = {
   "rotina_plantao_fim": tratarCallbackRotinaProdutividade_,
   "rotina_duvida": tratarCallbackRotinaProdutividade_,
   "rotina_timeline": tratarCallbackRotinaProdutividade_,
+  "rotina_aderencia": tratarCallbackRotinaProdutividade_,
 
   // Ajuda geral
   "ajuda_todas": tratarCallbackAjuda_,
@@ -1096,8 +1120,19 @@ var ROTEADORES_PREFIXO_CALLBACKS_ = [
 function processarCallbackBotao(cb) {
   if (!cb) return;
 
+  // Refinamento Técnico 1: Idempotência de Callback Query
+  // Se for duplicado, dispara silenciosamente responderCallbackTelegram(cb.id) para liberar o spinner e retorna imediatamente.
+  if (cb.id && typeof verificarERegistrarCallbackId === "function" && !verificarERegistrarCallbackId(cb.id, cb.data)) {
+    try {
+      if (typeof responderCallbackTelegram === "function") {
+        responderCallbackTelegram(cb.id, "");
+      }
+    } catch (_) {}
+    return true;
+  }
+
   try {
-    if (typeof tratarCallbackUX !== "undefined" && tratarCallbackUX(cb)) return;
+    if (typeof tratarCallbackUX !== "undefined" && tratarCallbackUX(cb)) return true;
 
     var data = cb.data || "";
 

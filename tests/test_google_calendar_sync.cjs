@@ -67,6 +67,42 @@ async function runTests() {
   runtime.ctx.CalendarApp._setMockEventos(null);
   console.log('✓ Teste 5: Isolamento seguro de mocks para testes unitários preservado');
 
+  // Teste 5.1: Sincronia de temas reais e reagendamento com updateEvent em modo offline/mock
+  const temaRealMedQuest = '[MedQuest] ✍️ Nefrologia: Glomerulopatias e IRA';
+  const mockEvsRotina = [{
+    getId: () => 'medquest-ev-42',
+    getTitle: () => temaRealMedQuest,
+    getStartTime: () => new Date(2026, 9, 14, 19, 0, 0),
+    getEndTime: () => new Date(2026, 9, 14, 20, 30, 0),
+    isAllDayEvent: () => false,
+    getLocation: () => 'Home Office / Anki',
+    getDescription: () => 'Bloco focado em questões comentadas'
+  }];
+  runtime.ctx.CalendarApp._setMockEventos(mockEvsRotina);
+  const dataTeste = new Date(2026, 9, 14, 12, 0, 0);
+  runtime.ctx.RotinaService.resetarBlocosDoDia(dataTeste);
+
+  const blocosImportados = runtime.ctx.RotinaService.obterBlocosDoDia(dataTeste);
+  assert(blocosImportados.length > 0, 'Deve importar evento mockado da agenda');
+  const blocoMq = blocosImportados.find(b => b.googleEventId === 'medquest-ev-42');
+  assert(blocoMq, 'Bloco deve conter googleEventId medquest-ev-42');
+  assert.strictEqual(blocoMq.titulo, temaRealMedQuest, 'Deve refletir o tema real com precisão');
+  assert.strictEqual(blocoMq.inicio, '19:00');
+  assert.strictEqual(blocoMq.fim, '20:30');
+
+  // Adiar bloco em +30m
+  const resAdiarMq = runtime.ctx.RotinaService.adiarProximoBloco(dataTeste, 30, 'medquest-ev-42');
+  assert.strictEqual(resAdiarMq.sucesso, true);
+  assert.strictEqual(resAdiarMq.modificado, true);
+  assert.strictEqual(resAdiarMq.sincronizadoGoogle, true, 'Deve ter sincronizado via updateEvent no adaptador mock');
+  assert.strictEqual(resAdiarMq.bloco.inicio, '19:30', 'Horário inicial deve ser adiado para 19:30');
+  assert.strictEqual(resAdiarMq.bloco.fim, '21:00', 'Horário final deve ser adiado para 21:00');
+  assert.strictEqual(resAdiarMq.bloco.titulo, temaRealMedQuest, 'Deve preservar o tema real');
+
+  // Limpa mock para voltar ao Google Calendar real
+  runtime.ctx.CalendarApp._setMockEventos(null);
+  console.log('✓ Teste 5.1: Sincronia de temas reais e reagendamento seguro com updateEvent offline validado');
+
   // Teste 6: Inicialização do servidor Fastify e endpoints REST
   const app = await buildServer({ logger: false });
 

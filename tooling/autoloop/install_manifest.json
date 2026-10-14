@@ -17,5 +17,30 @@
     "405fe2b90d437241816d2c1b0541ba4ef959dc6483c8e799f27951b2a03f2e7e",
     "bf0e0c268d8a5c6404dfed2a3158c82af6c02783db87627b03d3920a129624c1"
   ],
-  "original_runner_sha256": "795dbbe1f6392c64576c32de471040ad996bd2a9207ff2d421d6b49144926c95"
+  "original_runner_sha256": "795dbbe1f6392c64576c32de471040ad996bd2a9207ff2d421d6b49144926c95",
+  "core_modules": [
+    "__init__.py",
+    "audit_repairs.py",
+    "audit_validator.py",
+    "backlog_sjf.py",
+    "contracts.py",
+    "cycle_runner.py",
+    "deploy_pipeline.py",
+    "engine.py",
+    "execution.py",
+    "failure_queue.py",
+    "loop_guard.py",
+    "model_router.py",
+    "notifications.py",
+    "observability.py",
+    "observation.py",
+    "prune_artifacts.py",
+    "queue_policy.json",
+    "scheduler.py",
+    "scoped_audit.py",
+    "syntax_checker.py",
+    "task_context.py",
+    "verification_gate.py"
+  ]
 }
+

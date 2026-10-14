@@ -240,7 +240,8 @@ def fingerprint_tree(root="."):
                              "--exclude-standard", "-z"], cwd=root,
                             capture_output=True, check=True, timeout=15)
     digest = hashlib.sha256()
-    inventory = set(result.stdout.decode().split("\0")) - {""}
+    raw_out = result.stdout.decode("utf-8", errors="replace") if isinstance(result.stdout, bytes) else str(result.stdout or "")
+    inventory = set(raw_out.split("\0")) - {""}
     public = root / "gh_cockpit_deploy"
     if public.exists():
         for path in public.rglob("*"):

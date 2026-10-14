@@ -212,3 +212,25 @@ ociosidade. Um processo anterior à instrumentação pode fornecer menos dados;
 novas métricas de espera/correlação entram quando o autoloop iniciar novamente.
 Ausência de eventos é registrada como cobertura insuficiente, sem inventar duração
 de tarefas nem multiplicador de velocidade.
+
+## Arquitetura Moderna: Contratos de Domínio e Deep Modules (Outubro/2026)
+
+O orquestrador `tooling/autoloop/autoloop.py` opera como um coordenador CLI enxuto (~300–400 linhas), delegando as responsabilidades pesadas a módulos profundos com interfaces estreitas e contratos imutáveis:
+
+### 1. Contratos de Domínio (`core/contracts.py`)
+Modelagem estrita com dataclasses imutáveis (`frozen=True`) em Python stdlib puro:
+- `TaskItem`: Identidade da tarefa, proveniência (`TaskOrigin`: SJF, REPAIR, PROGRESS), scores WSJF e rastreamento de tentativas.
+- `RoutingDecision`: Decisão determinística de modelo (`pro` vs `flash`), esforço, tier de segurança clínica e status de cota.
+- `ExecutionOutcome`: Resultado imutável do ciclo com fingerprints de integridade (SHA pré/pós), código de saída, métricas de tokens e duração.
+- `AuditVerdict`: Veredito de auditoria com parecer estruturado, severidade e bloqueios.
+- `LoopReceipt`: Recibo criptográfico imutável gravado em `data/loop_receipts/` para auditoria do ciclo.
+
+### 2. Módulos Profundos (Deep Modules)
+- **`TaskScheduler` (`core/scheduler.py`)**: Centraliza o agendamento justo e proteção de exclusão mútua. Precedência arquitetural estrita: Reparos de Auditoria > Fila Justa SJF > Tarefas ativas WSJF no PROGRESS.md.
+- **`ExecutionEngine` (`core/engine.py`)**: Roteamento semântico de modelos, cooldown inteligente, rotação imediata 0ms entre contas (Contas 1 a 7) em erros 429, squads e montagem de prompts canônicos com Context Caching.
+- **`CycleRunner` (`core/cycle_runner.py`)**: Máquina de estados de execução supervisionada do `agy` com streaming amigável, validação sintática expressa (`node --check`), orquestração do loop perpétuo de tarefas e deploys agendados.
+- **`VerificationGate` (`core/verification_gate.py`)**: Porta de verificação estrita que valida o estado do código, classifica risco de release, faz parsing de cotas/timeouts e submete diffs à auditoria cruzada sem permissividade.
+- **`ObservabilityHub` (`core/observability.py`)**: Ponto focal para telemetria sem vazamento clínico (`data/autoloop_metrics.jsonl`), geração de relatórios (`data/autoloop_observacao.md`), consolidação de métricas (`summarize_metrics`) e higienização automática de artefatos obsoletos (`prune_artifacts`).
+- **`notifications` (`core/notifications.py`)**: Formatação segura em HTML e entrega de despachos periódicos e relatórios de ciclo para o Telegram Bot.
+- **`deploy_pipeline` (`core/deploy_pipeline.py`)**: Pipeline autônomo de publicação git/deploy, sincronização agendada com backoff defensivo e barreira de segurança clínica.
+

@@ -10,6 +10,7 @@ import time
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'core'))
+from observability import ObservabilityHub
 from observation import atomic_json, collect_once
 ROOT = Path(__file__).resolve().parents[2]
 STATE = ROOT / 'data/.autoloop_observation.json'
@@ -21,8 +22,9 @@ def main():
     parser.add_argument('--worker', action='store_true')
     parser.add_argument('--status', action='store_true')
     args = parser.parse_args()
+    hub = ObservabilityHub(ROOT)
     if args.status:
-        print(STATE.read_text() if STATE.exists() else 'Nenhuma coleta iniciada.')
+        print(hub.get_observation_status())
         return
     if not 0 < args.hours <= 168:
         parser.error('--hours deve estar entre 0 e 168 (exclusivo de zero).')
@@ -51,8 +53,7 @@ def main():
         state['collector_pid'] = os.getpid()
         while True:
             try:
-                collect_once(ROOT, state)
-                atomic_json(STATE, state)
+                hub.collect_telemetry(state)
             except OSError:
                 # Observabilidade não altera nenhuma etapa nem aprovação do autoloop.
                 pass

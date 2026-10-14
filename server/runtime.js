@@ -813,6 +813,33 @@ const ctx = {
             return ev;
           }
           return googleCalendarInstance.criarEventoSync(tit, ini, fim, opt);
+        },
+        updateEvent: (eventId, alteracoes) => {
+          if (Array.isArray(self._mockEventos)) {
+            const ev = self._mockEventos.find(e => {
+              const id = typeof e.getId === 'function' ? e.getId() : e.id;
+              return id === eventId;
+            });
+            if (ev) {
+              if (alteracoes.summary !== undefined && typeof ev.getTitle === 'function') {
+                const s = alteracoes.summary;
+                ev.getTitle = () => s;
+              }
+              if (alteracoes.start) {
+                const stStr = alteracoes.start.dateTime || alteracoes.start;
+                const st = (stStr instanceof Date) ? stStr : new Date(stStr);
+                ev.getStartTime = () => st;
+              }
+              if (alteracoes.end) {
+                const enStr = alteracoes.end.dateTime || alteracoes.end;
+                const en = (enStr instanceof Date) ? enStr : new Date(enStr);
+                ev.getEndTime = () => en;
+              }
+              return ev;
+            }
+            return null;
+          }
+          return googleCalendarInstance.atualizarEventoSync(eventId, alteracoes);
         }
       };
     }
@@ -1016,6 +1043,8 @@ module.exports = {
         _rpcMap.cockpitRotinaBlocos = ctx.cockpitRotinaBlocos;
         _rpcMap.cockpitRotinaMarcarStatus = ctx.cockpitRotinaMarcarStatus;
         _rpcMap.cockpitRotinaSyncAgenda = ctx.cockpitRotinaSyncAgenda;
+        _rpcMap.cockpitRotinaAderencia = ctx.cockpitRotinaAderencia;
+        _rpcMap.cockpitRotinaAdiarBloco = ctx.cockpitRotinaAdiarBloco;
         Object.freeze(_rpcMap);
       }
       if (!metodo || typeof metodo !== 'string') {

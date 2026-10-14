@@ -92,3 +92,13 @@ Um commit local de progresso pode conter correção coerente e registrar pendên
 Ele não autoriza publicação. A publicação permanece condicionada à bateria completa
 e à auditoria. Isso permite progresso incremental sem exigir que uma única tentativa
 resolva simultaneamente todas as falhas históricas do projeto.
+
+## Arquitetura e Contratos de Testes do Autoloop
+
+A suíte de testes do subsistema Autoloop (`tooling/autoloop/tests/` e `tests/test_autoloop_orchestrator.py`) foi unificada para garantir a integridade dos Deep Modules e Contratos de Domínio:
+- **`test_install.py`**: Validação estrita do manifesto de instalação (`install_manifest.json`), garantindo que 100% dos módulos em `tooling/autoloop/core/` estejam declarados e sejam instalados atomicamente com checagem de hash SHA-256 e backup roll-forward.
+- **`test_contracts.py`**: Valida a imutabilidade dos contratos (`@dataclass(frozen=True)`), coerência de serialização e integridade de tipos.
+- **`test_rotacao_cota_0ms.py`**: Comprova a rotação imediata entre contas (0ms) em caso de erro 429/cota esgotada, reaproveitando brief de tarefa e prompt cache sem latência ociosa.
+- **`test_observation.py`**: Garante a sanitização completa de dados clínicos na telemetria operacional (`data/autoloop_metrics.jsonl` e `ObservabilityHub`).
+- **`test_legacy_autoloop.py`**: Preserva integralmente os contratos e monkeypatches legados (resolução de squads, rotas, cotas e adapters de auditoria).
+

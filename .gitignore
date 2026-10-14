@@ -47,11 +47,17 @@ logs/
 .build_master_cache.json
 
 
-# Tokens do Calendar
-calendar_manager/token*.json
+# Tokens e credenciais do Calendar
+**/credentials.json
+!**/credentials.example.json
+**/token*.json*
+
+# Dumps, backups e relatórios temporários de calendário
+calendar_manager/*_backup_*.json
+calendar_manager/*_dump.json
+calendar_manager/*.txt
 
 # Artefatos dinâmicos do testador master
 tests/repros/
 docs/RELATORIO_TESTADOR_VERIFICACAO.md
 tooling/testador_master/*.json
-calendar_manager/credentials*.json

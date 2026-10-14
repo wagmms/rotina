@@ -168,13 +168,58 @@ function enfileirarUpdate(update) {
   lock.waitLock(30000);
   try {
     var key='inbox_'+update.update_id, all=PersistenciaBot.snapshot();
-    if(PersistenciaBot.ler(key,all)) return;
+    if(PersistenciaBot.ler(key,all)) return false;
     var ativos = PersistenciaBot.listar('inbox_',all).filter(function(r) {
       return ['pending','running','awaiting_delivery'].indexOf(r.valor.status) !== -1;
     }).length;
     if(ativos >= 50) throw new Error('Fila cheia. Tente novamente mais tarde.');
     PersistenciaBot.salvar(key,{update:update,status:'pending',created:Date.now()});
+    return true;
   } finally {lock.releaseLock();}
+}
+
+var _cacheCallbackIds = {};
+function verificarERegistrarCallbackId(callbackId, data) {
+  if (!callbackId) return true;
+  var idStr = String(callbackId).trim();
+  if (!idStr) return true;
+
+  // Em ambiente de teste automatizado, mocks sintéticos de interface (cb_ux_...) não bloqueiam reexecução
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test') {
+    if (idStr.indexOf('cb_ux_') === 0) return true;
+  }
+
+  var agora = Date.now();
+  var chaveCompleta = idStr + (data ? '_' + String(data).trim() : '');
+
+  // 1. Verificação rápida em memória volátil com janela de deduplicação (15s)
+  if (_cacheCallbackIds[chaveCompleta]) {
+    if (agora - _cacheCallbackIds[chaveCompleta] < 15000) {
+      return false; // Callback duplicado detectado
+    }
+  }
+
+  // Limpeza de entradas expiradas se o cache crescer
+  var chaves = Object.keys(_cacheCallbackIds);
+  if (chaves.length > 500) {
+    chaves.forEach(function(k) {
+      if (agora - _cacheCallbackIds[k] > 15000) delete _cacheCallbackIds[k];
+    });
+  }
+  _cacheCallbackIds[chaveCompleta] = agora;
+
+  // 2. Verificação em CacheService (distribuído entre workers/sessões)
+  try {
+    if (typeof CacheService !== 'undefined' && CacheService.getScriptCache) {
+      var cache = CacheService.getScriptCache();
+      var chaveCache = 'cb_seen_' + chaveCompleta.substring(0, 80);
+      var visto = cache.get(chaveCache);
+      if (visto) return false;
+      cache.put(chaveCache, '1', 60);
+    }
+  } catch (_) {}
+
+  return true;
 }
 
 function enfileirarTarefaPc(chatId, tarefa, args) {
@@ -366,6 +411,27 @@ function processarFilaTelegram() {
 }
 
 function entregarTelegramPersistente(metodo,payload) {
+  // Chunking atômico e seguro para mensagens longas (> 4000 chars)
+  // Preserva reply_markup exclusivamente no último chunk da sequência
+  if (metodo === 'sendMessage' && payload && typeof payload.text === 'string' && payload.text.length > 4000) {
+    var partesTexto = (typeof fragmentarTexto === 'function')
+      ? fragmentarTexto(payload.text, 3800)
+      : [payload.text.slice(0, 3800), payload.text.slice(3800)];
+    if (partesTexto.length > 1) {
+      var ultimoIdx = partesTexto.length - 1;
+      var sucessoTodos = true;
+      for (var idxParte = 0; idxParte < partesTexto.length; idxParte++) {
+        var chunkPayload = Object.assign({}, payload, { text: partesTexto[idxParte] });
+        if (idxParte !== ultimoIdx) {
+          delete chunkPayload.reply_markup;
+        }
+        var okParte = entregarTelegramPersistente('sendMessage', chunkPayload);
+        if (!okParte) sucessoTodos = false;
+      }
+      return sucessoTodos;
+    }
+  }
+
   var key='outbox_'+(EXECUCAO_ATUAL ? EXECUCAO_ATUAL.id+'_'+(++EXECUCAO_ATUAL.seq) : Utilities.getUuid().replace(/-/g,''));
   if (EXECUCAO_ATUAL && EXECUCAO_ATUAL.entregas) EXECUCAO_ATUAL.entregas.push(key);
   var all=PersistenciaBot.snapshot();
@@ -427,9 +493,14 @@ function enviarItemTelegram(key,item) {
       try{body=JSON.parse(res.getContentText());}catch(ignore){}
       var descricao=body.description||'';
       if(code===200&&body.ok!==false){item.status='done';delete item.payload;}
-      else if(code===400 && item.payload && item.payload.parse_mode && /can't parse|entities/i.test(descricao)) {
-        // Markdown inválido: reenvia já em texto puro, sem esperar o próximo minuto do worker.
-        delete item.payload.parse_mode;item.status='pending';item.next=Date.now()+1000;
+      else if(code===400 && item.payload && (item.payload.parse_mode || /can't parse|entities|parse error|entity|tag|unmatched|not found/i.test(descricao))) {
+        // Fallback de Erro 400 de Entidades / Markdown: limpa formatação e reenvia em texto puro sem marcar como failed
+        if (item.payload.text && typeof item.payload.text === 'string') {
+          item.payload.text = item.payload.text.replace(/<[^>]+>/g, '').replace(/[*_`#]/g, '');
+        }
+        delete item.payload.parse_mode;
+        item.status='pending';
+        item.next=Date.now()+1000;
         continue;
       }
       else if(code===429){

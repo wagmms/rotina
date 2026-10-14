@@ -19,6 +19,12 @@ function nomesFarmacosParaValidacao() {
   if (typeof MAPA_SINDROMES_APS !== "undefined") Object.keys(MAPA_SINDROMES_APS).forEach(function(k) {
     MAPA_SINDROMES_APS[k].forEach(adicionar);
   });
+  // Itens canônicos da REMUME Ribeirão Preto (CSV / RAM)
+  if (typeof obterItensRemumeRP === "function") {
+    try {
+      obterItensRemumeRP().forEach(adicionar);
+    } catch (_) {}
+  }
   // Reutiliza a mesma base integral L1; se necessário, lê L2 em lote sem abrir Sheets.
   var base = lerPlanilhaEmCache("remume", ConfigService.get("SPREADSHEET_ID_REMUME"), false);
   if (base !== null) base.split("\n").forEach(adicionar);
@@ -106,15 +112,195 @@ function enviarMenuExamesEspeciais(chatId) {
 }
 
 /**
+ * Normaliza o nome do fármaco para exibição limpa em receitas (sem termos redundantes de sais).
+ */
+function normalizarNomeFarmacoSimples(nome) {
+  if (!nome) return "Medicamento";
+  var limpo = String(nome).replace(/\([A-Z]\)/g, "").trim();
+  if (limpo.indexOf("+") !== -1) {
+    var partes = limpo.split("+").map(function(p) {
+      return normalizarNomeFarmacoSimples(p.trim());
+    });
+    return partes.join(" + ");
+  }
+  var regexSais = /\b(cloridrato|s[oó]dica?|pot[aá]ssica?|maleato|besilato|hemi[- ]?hidratad[oa]|sulfato|succinato|tartarato|fosfato|acetato|dipropionato|valerato|fumarato|bromidrato|citrato)\b/gi;
+  var semSais = limpo.replace(regexSais, "").replace(/\s+/g, " ").trim();
+  return semSais.toLowerCase().split(" ").map(function(p) {
+    return p.charAt(0).toUpperCase() + p.slice(1);
+  }).join(" ").trim() || limpo;
+}
+
+/**
+ * Gera ou extrai posologia ambulatorial padrão e segura com via e frequência explícitas.
+ */
+function extrairOuGerarPosologiaPadraoHSL(farmaco, doseAdultoTexto) {
+  var fNorm = (typeof normalizarTexto === "function") ? normalizarTexto(farmaco || "") : String(farmaco || "").toLowerCase();
+  var MAPA_POSOLOGIA_PADRAO = {
+    dipirona: "Tomar 1 comprimido via oral de 6 em 6 horas se dor ou febre.",
+    paracetamol: "Tomar 1 comprimido via oral de 6 em 6 horas se dor ou febre.",
+    amoxicilina: "Tomar 1 cápsula via oral de 8 em 8 horas por 7 dias.",
+    losartana: "Tomar 1 comprimido via oral 1x ao dia pela manhã.",
+    metformina: "Tomar 1 comprimido via oral de 12 em 12 horas após as refeições.",
+    omeprazol: "Tomar 1 cápsula via oral 1x ao dia em jejum pela manhã.",
+    ibuprofeno: "Tomar 1 comprimido via oral de 8 em 8 horas se dor ou inflamação.",
+    enalapril: "Tomar 1 comprimido via oral de 12 em 12 horas.",
+    anlodipino: "Tomar 1 comprimido via oral 1x ao dia.",
+    hidroclorotiazida: "Tomar 1 comprimido via oral 1x ao dia pela manhã.",
+    azitromicina: "Tomar 1 comprimido via oral 1x ao dia por 5 dias.",
+    cefalexina: "Tomar 1 comprimido via oral de 6 em 6 horas por 7 dias.",
+    ciprofloxacino: "Tomar 1 comprimido via oral de 12 em 12 horas por 7 dias.",
+    sulfametoxazol: "Tomar 1 comprimido via oral de 12 em 12 horas por 5 dias.",
+    prednisona: "Tomar 1 comprimido via oral 1x ao dia pela manhã por 5 dias.",
+    prednisolona: "Tomar 1 comprimido via oral 1x ao dia pela manhã por 5 dias.",
+    clonazepam: "Tomar 1 comprimido via oral à noite ao deitar.",
+    fluoxetina: "Tomar 1 cápsula via oral 1x ao dia pela manhã.",
+    sertralina: "Tomar 1 comprimido via oral 1x ao dia pela manhã.",
+    sinvastatina: "Tomar 1 comprimido via oral 1x ao dia à noite.",
+    furosemida: "Tomar 1 comprimido via oral 1x ao dia pela manhã.",
+    atenolol: "Tomar 1 comprimido via oral 1x ao dia pela manhã."
+  };
+
+  for (var k in MAPA_POSOLOGIA_PADRAO) {
+    if (fNorm.indexOf(k) !== -1) {
+      return MAPA_POSOLOGIA_PADRAO[k];
+    }
+  }
+
+  var txt = String(doseAdultoTexto || "").toLowerCase();
+  if (/12\/12|12 em 12/.test(txt)) return "Tomar 1 comprimido via oral de 12 em 12 horas.";
+  if (/8\/8|8 em 8/.test(txt)) return "Tomar 1 comprimido via oral de 8 em 8 horas.";
+  if (/6\/6|6 em 6/.test(txt)) return "Tomar 1 comprimido via oral de 6 em 6 horas se dor ou febre.";
+  if (/24\/24|1x|1 vez|ao dia|diari/.test(txt)) return "Tomar 1 comprimido via oral 1x ao dia.";
+
+  return "Tomar 1 comprimido via oral 1x ao dia conforme prescrição médica.";
+}
+
+/**
+ * Monta e persiste rascunho de receita oficial e bloco SOAP ambulatorial pronto para copiar no PEP.
+ */
+function montarRascunhoRxESoapAmbulatorial(params) {
+  params = params || {};
+  var farmaco = params.farmaco || "Medicamento";
+  var apres = params.apresentacao || "Dose padrão";
+  var nomeLinhaItem = farmaco;
+  if (apres && apres.toLowerCase().indexOf(farmaco.toLowerCase()) === 0) {
+    nomeLinhaItem = apres;
+  } else if (apres) {
+    nomeLinhaItem = farmaco + " " + apres;
+  }
+  var qtd = params.quantidade || "1 frasco / caixa";
+  var posologia = params.posologia || "Tomar 1 comprimido via oral 1x ao dia.";
+  var linhaPoso = String(posologia || "").trim();
+  if (!/^(?:posologia|modo de usar)\s*:/i.test(linhaPoso)) {
+    linhaPoso = "Posologia: " + linhaPoso;
+  }
+  var orientacoes = params.orientacoes || "Seguir orientações médicas e manter hidratação.";
+  var remume = params.remumeInfo || { presente: false, apresentacoes: [] };
+  var clinico = params.dadosClinicos || {};
+
+  var tz = (typeof ConfigService !== "undefined" && typeof ConfigService.get === "function")
+    ? ConfigService.get("TIMEZONE", "America/Sao_Paulo")
+    : "America/Sao_Paulo";
+  var dataHoje = (typeof Utilities !== "undefined" && typeof Utilities.formatDate === "function")
+    ? Utilities.formatDate(new Date(), tz, "dd/MM/yyyy")
+    : new Date().toLocaleDateString("pt-BR");
+
+  // Rascunho formatado para aprovação estrita em validarReceitaTemMedicamentos
+  var textoRx = [
+    "📋 RECEITUÁRIO MÉDICO AMBULATORIAL",
+    "Paciente: Ao Portador",
+    "Data: " + dataHoje,
+    "",
+    "[USO ORAL]",
+    "1. " + nomeLinhaItem + " --- " + qtd,
+    "   " + linhaPoso,
+    "",
+    "Orientações:",
+    "• " + orientacoes
+  ].join("\n");
+
+  var linhasPlano = [
+    "💊 Prescrição Medicamentosa (USF):",
+    "1) " + nomeLinhaItem + " --- " + qtd,
+    "   " + linhaPoso
+  ];
+  if (remume.presente) {
+    linhasPlano.push("🏛️ Status SUS: 🟢 [REMUME-RP] Padronizado na Rede Municipal (Ribeirão Preto).");
+    if (remume.apresentacoes && remume.apresentacoes.length > 1) {
+      linhasPlano.push("   (Apresentações padronizadas na rede: " + remume.apresentacoes.slice(0, 3).join(", ") + ")");
+    }
+  } else {
+    linhasPlano.push("🏛️ Status SUS: ⚪ [NÃO-REMUME] Medicamento não padronizado na rede municipal.");
+  }
+  linhasPlano.push("🥗 Orientações: " + orientacoes);
+  linhasPlano.push("🚨 Sinais de Alarme: Retornar à UBS ou procurar Pronto Atendimento se piora clínica ou persistência dos sintomas.");
+
+  var subTexto = "Paciente atendido em consulta ambulatorial da USF para avaliação clínica e conduta com " + farmaco + ".";
+  if (clinico.pesoKg) subTexto += " Peso informado: " + clinico.pesoKg + " kg.";
+  if (clinico.idadeAnos) subTexto += " Idade informada: " + clinico.idadeAnos + " anos.";
+
+  var textoSoap = [
+    "🩺 SÍNTESE SOAP · ATENDIMENTO AMBULATORIAL (USF)",
+    "",
+    "👤 S - Subjetivo",
+    subTexto,
+    "",
+    "🔍 O - Objetivo",
+    "Bom estado geral (BEG), hidratado, corado, acianótico, anictérico, afebril ao toque, eupneico em ar ambiente. Sinais vitais estáveis.",
+    "",
+    "🧠 A - Avaliação",
+    "Conduta terapêutica e prescrição ambulatorial de " + farmaco + " (Atenção Primária à Saúde).",
+    "",
+    "📋 P - Plano",
+    linhasPlano.join("\n")
+  ].join("\n");
+
+  var ckRx = (typeof Utilities !== "undefined" && typeof Utilities.getUuid === "function")
+    ? Utilities.getUuid().replace(/-/g, "")
+    : ("rx" + Math.random().toString(36).substring(2) + Date.now().toString(36)).substring(0, 32);
+
+  var ckSoap = (typeof Utilities !== "undefined" && typeof Utilities.getUuid === "function")
+    ? Utilities.getUuid().replace(/-/g, "")
+    : ("sp" + Math.random().toString(36).substring(2) + Date.now().toString(36)).substring(0, 32);
+
+  var cache = (typeof CacheService !== "undefined" && typeof CacheService.getScriptCache === "function")
+    ? CacheService.getScriptCache()
+    : null;
+
+  if (cache) {
+    if (typeof safePutCache === "function") {
+      safePutCache(cache, ckRx, textoRx, 21600);
+      safePutCache(cache, ckSoap, textoSoap, 21600);
+    } else if (typeof cache.put === "function") {
+      cache.put(ckRx, textoRx, 21600);
+      cache.put(ckSoap, textoSoap, 21600);
+    }
+  }
+
+  return {
+    textoRx: textoRx,
+    textoSoap: textoSoap,
+    ckRx: ckRx,
+    ckSoap: ckSoap
+  };
+}
+
+/**
  * Responde à consulta direta de posologia oficial utilizando o Guia Farmacêutico do HSL
  * com cálculo determinístico de fórmulas fixas para doses pediátricas.
  */
 function formatarMensagemCalculoPediatrico_(calcPed) {
+  var remumeInfo = (typeof consultarRemumeRP === "function")
+    ? consultarRemumeRP(calcPed.chave || calcPed.farmaco)
+    : { presente: false, apresentacoes: [] };
+
+  var seloRemume = remumeInfo.presente ? " 🟢 [REMUME-RP]" : "";
+
   var txtPed = [
     "👶 *CÁLCULO POSOLÓGICO PEDIÁTRICO DETERMINÍSTICO (FÓRMULA FIXA)*",
     "",
     "📋 *Fármaco:* *" + calcPed.farmaco + "*",
-    "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`",
+    "📦 *Apresentação (REMUME/HSL):* `" + calcPed.apresentacao + "`" + seloRemume,
     "⚖️ *Peso Informado:* " + (calcPed.pesoKg == null ? "Não informado (não utilizado no cálculo)." : "`" + calcPed.pesoKg + " kg`"),
     calcPed.idadeAnos == null ? "" : "*Idade informada:* " + calcPed.idadeAnos + " anos",
     "",
@@ -130,9 +316,29 @@ function formatarMensagemCalculoPediatrico_(calcPed) {
     "*Conferência:* Validar indicação, apresentação, dose, duração, alergias e ajustes antes de prescrever. O cálculo não substitui a avaliação clínica."
   ].join("\n");
 
-  var cbParam = calcPed.chave + (calcPed.pesoKg == null ? "" : " " + calcPed.pesoKg + "kg") + (calcPed.idadeAnos == null ? "" : " " + calcPed.idadeAnos + " anos");
+  var posoFormatada = calcPed.instrucaoPosologica || "";
+  if (!/\bvia oral\b/i.test(posoFormatada)) {
+    posoFormatada = posoFormatada.replace(/^Tomar\s+/i, "Tomar via oral ");
+  }
+  posoFormatada = posoFormatada.replace(/a cada (\d+) horas/i, "de $1 em $1 horas");
+
+  var rascunho = montarRascunhoRxESoapAmbulatorial({
+    farmaco: calcPed.farmaco,
+    apresentacao: calcPed.apresentacao,
+    posologia: posoFormatada,
+    quantidade: calcPed.quantidadeDispensar,
+    orientacoes: calcPed.orientacoes,
+    remumeInfo: remumeInfo,
+    dadosClinicos: { pesoKg: calcPed.pesoKg, idadeAnos: calcPed.idadeAnos }
+  });
+
+  var cbParam = (calcPed.chave + (calcPed.pesoKg == null ? "" : " " + calcPed.pesoKg + "kg") + (calcPed.idadeAnos == null ? "" : " " + calcPed.idadeAnos + " anos")).substring(0, 30);
   var kbPed = {
     "inline_keyboard": [
+      [
+        { "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + rascunho.ckRx },
+        { "text": "📋 Copiar SOAP p/ PEP", "callback_data": "ux:copiar:" + rascunho.ckSoap }
+      ],
       [
         { "text": "📝 Revisar no /rx", "callback_data": "rx_med:" + cbParam }
       ]
@@ -181,12 +387,36 @@ function responderConsultaPosologiaHSL(chatId, termo) {
     return enviarMensagemMedicamentoNaoEncontrado_(chatId, termo);
   }
 
+  var remumeInfo = (typeof consultarRemumeRP === "function")
+    ? consultarRemumeRP(med.farnaco, med)
+    : { presente: !!med.na_remume, apresentacoes: med.apresentacoes_remume || [] };
+
+  var nomeSimples = normalizarNomeFarmacoSimples(med.farnaco);
+  var apresentacaoUso = (remumeInfo.presente && remumeInfo.apresentacoes && remumeInfo.apresentacoes.length > 0)
+    ? remumeInfo.apresentacoes[0]
+    : ((med.apresentacoes_hsl && med.apresentacoes_hsl.length > 0) ? med.apresentacoes_hsl[0] : "Dose padrão");
+
+  var posologiaPadrao = extrairOuGerarPosologiaPadraoHSL(med.farnaco, med.dose_adulto);
+
+  var rascunho = montarRascunhoRxESoapAmbulatorial({
+    farmaco: nomeSimples,
+    apresentacao: apresentacaoUso,
+    posologia: posologiaPadrao,
+    quantidade: "1 caixa / frasco",
+    orientacoes: med.administracao ? med.administracao.substring(0, 140) : "Tomar com água conforme prescrito.",
+    remumeInfo: remumeInfo
+  });
+
   var respostaTexto = (typeof formatarFichaPosologicaHSL === "function")
     ? formatarFichaPosologicaHSL(med)
     : "Ficha posológica indisponível.";
 
   var rotuloPrescrever = "💊 Prescrever (" + (med.farnaco.length > 12 ? med.farnaco.substring(0, 12) + "..." : med.farnaco) + ")";
   var botoes = [
+    [
+      { "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + rascunho.ckRx },
+      { "text": "📋 Copiar SOAP p/ PEP", "callback_data": "ux:copiar:" + rascunho.ckSoap }
+    ],
     [{ "text": rotuloPrescrever, "callback_data": "rx_med:" + med.farnaco.substring(0, 30) }]
   ];
   if (medPed) {
@@ -238,11 +468,32 @@ function responderConsultaPediatricaPedB(chatId, termo) {
     );
   }
 
+  var remumeInfo = (typeof consultarRemumeRP === "function")
+    ? consultarRemumeRP(medPed.nome, medPed)
+    : { presente: !!medPed.na_remume, apresentacoes: medPed.apresentacoes_remume || [] };
+
+  var apresPed = (medPed.apresentacoes && medPed.apresentacoes.length > 0)
+    ? (medPed.apresentacoes[0].forma + (medPed.apresentacoes[0].concentracao ? " " + medPed.apresentacoes[0].concentracao : ""))
+    : ((remumeInfo.apresentacoes && remumeInfo.apresentacoes.length > 0) ? remumeInfo.apresentacoes[0] : "Suspensão oral");
+
+  var rascunhoPed = montarRascunhoRxESoapAmbulatorial({
+    farmaco: medPed.nome,
+    apresentacao: apresPed,
+    posologia: "Tomar via oral de 8 em 8 horas conforme posologia pediátrica por peso.",
+    quantidade: "1 frasco",
+    orientacoes: "Agitar bem antes de usar e manter hidratação oral.",
+    remumeInfo: remumeInfo
+  });
+
   var respostaTexto = (typeof formatarFichaPediatricaPedB === "function")
     ? formatarFichaPediatricaPedB(medPed)
     : "Ficha pediátrica indisponível.";
 
   var botoes = [
+    [
+      { "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + rascunhoPed.ckRx },
+      { "text": "📋 Copiar SOAP p/ PEP", "callback_data": "ux:copiar:" + rascunhoPed.ckSoap }
+    ],
     [{ "text": "💊 Prescrever (" + (medPed.nome.length > 12 ? medPed.nome.substring(0, 12) + "..." : medPed.nome) + ")", "callback_data": "rx_med:" + medPed.nome.substring(0, 30) }]
   ];
 

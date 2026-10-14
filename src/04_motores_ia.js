@@ -20,7 +20,7 @@
  */
 
 var IA_PADROES = {
-  ORCAMENTO_MS: 50000,
+  ORCAMENTO_MS: 18000,
   FOLGA_TOKENS: 1024,
   TOKENS_TETO: 6000,
   GROQ: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
@@ -309,8 +309,11 @@ function _iaProvOpenAICompat(cfg, sistema, prompt, tokens, ctx) {
     for (var h in (cfg.headersExtra || {})) headers[h] = cfg.headersExtra[h];
 
     try {
+      var timeoutMsCfg = Number(_iaCfg("IA_TIMEOUT_MS", 7000)) || 7000;
+      var timeoutMsFetch = cfg.timeoutMs || timeoutMsCfg;
       var res = UrlFetchApp.fetch(cfg.url, {
-        method: "post", headers: headers, payload: JSON.stringify(payload), muteHttpExceptions: true
+        method: "post", headers: headers, payload: JSON.stringify(payload), muteHttpExceptions: true,
+        timeoutMs: timeoutMsFetch
       });
       var code = res.getResponseCode();
       if (code === 200) {
