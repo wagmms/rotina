@@ -982,6 +982,8 @@ var GinecologiaAmbulatorialService = (function() {
     linhas.push('════════════════════════════════════════════════════════════════');
     linhas.push('🌸 AVALIAÇÃO DE GINECOLOGIA AMBULATORIAL — CONSULTÓRIO & APS');
     linhas.push('════════════════════════════════════════════════════════════════');
+    linhas.push('TRIAGEM UBS: confirmar possibilidade de gestação, estabilidade hemodinâmica, febre/dor pélvica, sangramento e risco de IST antes da conduta.');
+    linhas.push('EXAME: registrar consentimento; especular e toque apenas quando indicados, com achados observados, sem presumir exame normal.');
 
     // 1. Rastreamento de Colo Uterino
     if (cenario.coloUterino) {

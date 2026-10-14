@@ -344,7 +344,7 @@ function listarTarefasHojeNotion(chatIdDestino, messageId) {
   if (!res || !res.results) {
     var msgErro = "⚠️ Erro ao consultar o Notion Tasks. Tente novamente em instantes.";
     if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msgErro, kbTarefas, messageId);
-    return enviarMensagemParaChat(destino, msgErro);
+    return enviarMensagemComTecladoParaChat(destino, msgErro, kbTarefas);
   }
   if (res.results.length === 0) {
     var msgVazio = "📋 *Tarefas do Notion:* Nenhuma pendência para hoje ou no Inbox! Tudo zerado. 🎉\n\n💡 *Para adicionar nova tarefa:* Digite `/task <descrição>` ou envie por voz.";

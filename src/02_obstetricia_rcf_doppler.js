@@ -557,6 +557,15 @@ var ObstetriciaRcfDopplerService = (function() {
             classificacao.titulo = 'PIG com marcador Doppler de insuficiência placentária (conduzir como Estágio I de Barcelona)';
         }
         var conduta = planejarConduta(estadiamento, ig, params);
+        var decisaoInterno = estadiamento.estagio === null
+            ? 'Sem critérios de RCF: manter pré-natal e reavaliar biometria conforme suspeita clínica.'
+            : (estadiamento.estagio >= 3
+                ? 'Internar em centro terciário com UTI neonatal hoje; avaliar ducto venoso e cCTG seriados.'
+                : estadiamento.estagio === 2
+                    ? 'Diástole zero na artéria umbilical: avaliação em centro terciário hoje e considerar internação.'
+                    : 'AU com fluxo presente/ACM ou RCP alterada isoladamente: seguimento especializado; não antecipar parto antes de 34 semanas só pela ACM.') +
+              ' Alvo de interrupção do estágio: ' + PROTOCOLO_ESTAGIOS[estadiamento.estagio].ig_alvo_texto +
+              '; antecipar por deterioração fetal ou indicação materna.';
 
         return {
             ig: ig,
@@ -564,6 +573,7 @@ var ObstetriciaRcfDopplerService = (function() {
             doppler: { achados: interpretacao.achados, rcp: interpretacao.rcp, marcadores: m },
             estadiamento: estadiamento,
             conduta: conduta,
+            decisao_interno: decisaoInterno,
             corticoide: planejarCorticoide(estadiamento, conduta, ig),
             neuroprotecao_magnesio: planejarNeuroprotecao(conduta, ig, estadiamento),
             investigacao_etiologica: investigarEtiologia(classificacao, m, ig, params),
@@ -675,7 +685,8 @@ var ObstetriciaRcfDopplerService = (function() {
             txt += '  ↳ ' + a.estadiamento.fisiopatologia + '\n';
         }
 
-        txt += '\n👉 *DECISÃO:* ' + a.conduta.decisao + '\n';
+        txt += '\n🚨 *PARA O INTERNO — INTERNAR / INTERROMPER:* ' + a.decisao_interno + '\n';
+        txt += '👉 *DECISÃO:* ' + a.conduta.decisao + '\n';
         txt += '• *Vigilância:* ' + a.conduta.vigilancia + '\n';
         txt += '• *Via de parto:* ' + a.conduta.via_parto + '\n';
         if (a.conduta.local_parto) txt += '• *Local:* ' + a.conduta.local_parto + '\n';

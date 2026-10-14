@@ -1459,7 +1459,7 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     "      - tipo_relato: 'soap'",
     "      - Subjetivo: QP com duração e HDA cronológica formal (sem transcrição literal, em prosa médica culta). Antecedentes, comorbidades, medicações e alergias.",
     "      - Objetivo: Exame físico inteligente no modelo meio-termo com os 5 sistemas clássicos (Geral, ACV, AR, Abdome, Extremidades). NUNCA invente sinais vitais não ditados.",
-    "      - Perguntas de Anamnese com Racional Didático: 2 a 4 perguntas investigativas diretas, CADA UMA COM SUA JUSTIFICATIVA CLÍNICA OU HIPÓTESE A DESCARTAR ENTRE PARÊNTESES.",
+    "      - Perguntas de Anamnese com Racional Didático: no máximo 2 a 3 perguntas investigativas diretas que mudem a conduta, CADA UMA COM SUA JUSTIFICATIVA CLÍNICA OU HIPÓTESE A DESCARTAR ENTRE PARÊNTESES. Se houver dados suficientes, retorne lista vazia.",
     "      - Exame Dirigido: Sinais vitais essenciais e manobras físicas direcionadas à queixa que não foram informadas.",
     "      - REGRA ABSOLUTA DE SEGURANÇA: NÃO inclua hipóteses diagnósticas (Avaliação) e NÃO inclua prescrição ou condutas (Plano) nesta fase.",
     "3. SE NÃO FOR RELATO CLÍNICO (ex: agendamento de calendário, hábito pessoal, tarefa do Notion ou conversa geral): defina 'eh_clinico' como false.",
@@ -1530,7 +1530,8 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     if (typeof formatarExameFisicoSistemas === "function") {
       oSanitizado = formatarExameFisicoSistemas(oSanitizado);
     }
-    var perguntas = obj.perguntas_anamnese || obj.perguntas || [];
+    var gateAudio = typeof avaliarSuficienciaAnamnese === 'function' ? avaliarSuficienciaAnamnese(transcricao, {}) : null;
+    var perguntas = gateAudio && gateAudio.anamneseSuficiente ? [] : (obj.perguntas_anamnese || obj.perguntas || []).slice(0, 3);
     var exameDirigido = obj.exame_dirigido || [];
     var temEfAudio = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(transcricao);
 
@@ -1542,6 +1543,7 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     if (perguntas && perguntas.length > 0) {
       blocosRasc.push("❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
     }
+    if (gateAudio && gateAudio.anamneseSuficiente) blocosRasc.push('✅ Anamnese suficiente para tomada de decisão. Pode gerar o plano.');
     if (!temEfAudio && exameDirigido && exameDirigido.length > 0) {
       blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
     }
@@ -2039,15 +2041,14 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "3. AVALIAÇÃO (A):",
       "   - Diagnóstico principal ou problema sindrômico com CID-10 e CIAP-2.",
       "   - Diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade. Sem teorizações prolixas.",
-      "4. PLANO (P):",
-      "   - Prescrição farmacológica detalhada e objetiva (fármaco, dose, posologia com intervalo/horário, via, tempo), de acordo com REMUME RP e segurança (ajuste renal/peso se informado).",
-      "   - Exames complementares imediatos.",
-      "   - Orientações farmacológicas e critérios de alarme objetivos. Sem conselhos de estilo de vida genéricos óbvios.",
+      "4. PLANO (P): divida em Prescrição Pronta Copy-Paste (UBS/REMUME ou Urgência/Enfermaria conforme cenário), Exames que mudam conduta imediata e Orientações/Sinais de Alarme.",
+      "   - Prescrição: fármaco, apresentação, dose, via, intervalo e duração somente quando segurança e referência permitirem. Se alergias, gestação, peso ou função renal imprescindíveis faltarem, sinalize a lacuna e NÃO invente dose nem negativa.",
+      "   - Exames: apenas os que alteram conduta no cenário; orientações: retorno e alarmes pertinentes. Evite exames e conselhos genéricos.",
       ambulatorialAgil ? "   - Foco APS: Prescrição REMUME, sinais de alarme para PS e meta de reavaliação." : "",
       "5. PENDÊNCIAS CRÍTICAS: Liste apenas dados que condicionem a segurança antes de prescrever; omita se não houver.",
       "",
       "Contrato JSON estrito:",
-      '{"subjetivo":"Texto limpo organizado com QP, HDA, Antecedentes, Medicações e Alergias","objetivo":"Texto estruturado do O por sistemas com achados e exames","avaliacao":["hipótese principal com CID-10 e CIAP-2","diferenciais em ordem de probabilidade/gravidade"],"plano":["item 1 da conduta com prescrição detalhada","exames solicitados","orientações e critérios de alarme"],"pendencias_opcionais":["dado crítico ausente"]}'
+      '{"subjetivo":"QP, HDA e antecedentes confirmados","objetivo":"achados e sinais vitais informados","avaliacao":["hipótese principal e diferenciais pertinentes"],"plano":{"prescricao":["prescrição pronta ou lacuna de segurança"],"exames":["exame que muda conduta imediata"],"orientacoes":["retorno e sinais de alarme"]},"pendencias_opcionais":["dado crítico ausente"]}'
     ].join("\n");
 
     var rawCons = executarRaciocinioClinico(promptSistemaConsolidado, "CASO CLÍNICO:\n" + dadosCaso, 3500, { json: true });
@@ -2076,23 +2077,23 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     }
     var pendencias = Array.isArray(objCons.pendencias_opcionais) ? objCons.pendencias_opcionais.filter(Boolean) : [];
 
+    var planoCons = objCons.plano || {};
+    var planoTexto = Array.isArray(planoCons)
+      ? "Prescrição Pronta Copy-Paste (UBS/REMUME ou Urgência/Enfermaria)\n" + formatarListaTopicos(planoCons, "Conduta a definir após conferir dados de segurança.")
+      : "Prescrição Pronta Copy-Paste (UBS/REMUME ou Urgência/Enfermaria)\n" + formatarListaTopicos(planoCons.prescricao, "Prescrição condicionada à conferência de dados clínicos e segurança.") +
+        "\nExames que mudam conduta imediata\n" + formatarListaTopicos(planoCons.exames, "Nenhum exame imediato indicado pelos dados informados.") +
+        "\nOrientações/Sinais de Alarme\n" + formatarListaTopicos(planoCons.orientacoes, "Reavaliar conforme evolução e orientar retorno diante de piora.");
+    if (pendencias.length) planoTexto += "\nDados de segurança a conferir antes de prescrever\n" + formatarListaTopicos(pendencias, "");
     var blocosCons = [
       "🩺 *SÍNTESE SOAP · REGISTRO CONSOLIDADO*",
       "👤 *S - Subjetivo*\n" + sTexto,
       "🔍 *O - Objetivo*\n" + oTexto,
       "🧠 *A - Avaliação*\n" + formatarListaTopicos(objCons.avaliacao, "Avaliação diagnóstica a definir pelo médico assistente."),
-      "📋 *P - Plano*\n" + formatarListaTopicos(objCons.plano, "Conduta e prescrição a definir pelo médico assistente.")
+      "📋 *P - Plano*\n" + planoTexto
     ];
 
     if (objCons.contingencia_offline) {
       blocosCons.unshift("⚠️ *MODO OFFLINE DE CONTINGÊNCIA (PROVEDOR EM NUVEM EM TIMEOUT)*\nProcessado pelo Motor Determinístico Offline.");
-    }
-
-    if (pendencias.length > 0) {
-      blocosCons.push(
-        "⚠️ *Dados adicionais que enriqueceriam o caso (Dados pendentes — conferir antes de concluir):*\n" +
-        formatarListaTopicos(pendencias, "")
-      );
     }
 
     var consolidado = _iaFinalizarTexto(blocosCons.join("\n\n"));
@@ -2123,7 +2124,8 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - Integre exame especial se contido no caso.",
     "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Geral, ACV, AR, Abdome e Extremidades), cada um em sua própria linha separada. NUNCA junte na mesma linha e NUNCA sintetize em apenas 'EF normal'.",
     "3. INVESTIGAÇÃO ATIVA DA ANAMNESE COM JUSTIFICATIVA DIDÁTICA (FMRP-USP):",
-    "   - Formule de 2 a 4 perguntas diretas e clínicas para completar as lacunas da história (início detalhado, fatores de alívio/piora, antecedentes, alergias, medicações).",
+    "   - Formule NO MÁXIMO 2 a 3 perguntas que mudem a conduta, apenas para lacunas críticas de QP/tempo, sinais de alarme pertinentes, alergias/comorbidades/medicações, G_P_A_/DUM/IG em queixa gineco-obstétrica e dado objetivo indispensável. Negativas explícitas já cobrem o eixo. NÃO crie perguntas acadêmicas intermináveis.",
+    "   - Se os quatro pilares decisórios já estiverem cobertos, retorne perguntas_anamnese=[] e a mensagem: ✅ Anamnese suficiente. Pode gerar o plano. Após uma resposta complementar, não faça nova rodada de perguntas; registre lacunas críticas como pendências de segurança.",
     "   - RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses ao final. Exemplo: 'Investigar se a dor epigástrica irradia para o dorso (descartar pancreatite aguda ou dissecção de aorta abdominal)'.",
     "4. EXAME FÍSICO DIRIGIDO (SUGESTÃO COMPLEMENTAR):",
     "   - 1 a 2 tópicos com sinais vitais críticos (PA, FC, FR, SpO2, Tax) e manobras/auscultas essenciais para o caso que ainda não foram informados.",
@@ -2164,7 +2166,30 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   }
   if (!oRasc) oRasc = "Exame físico em estruturação; conferir sinais vitais e achados.";
 
-  var perguntas = objRasc.perguntas_anamnese || objRasc.perguntas;
+  var historicoSoap = opcoes.historicoSessao || {};
+  var suficiencia = typeof avaliarSuficienciaAnamnese === 'function'
+    ? avaliarSuficienciaAnamnese(dadosCaso, historicoSoap)
+    : { anamneseSuficiente: Number(historicoSoap.respostasComplementares || 0) >= 1, eixos: {} };
+  var jaFeitas = (historicoSoap.perguntasFeitas || []).map(function(p) { return String(p).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s*\([^)]*\)\s*$/, '').trim(); });
+  var perguntas = (Array.isArray(objRasc.perguntas_anamnese) ? objRasc.perguntas_anamnese : (Array.isArray(objRasc.perguntas) ? objRasc.perguntas : [])).filter(function(p) {
+    if (typeof p !== 'string' || !p.trim()) return false;
+    var chave = p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+    if (jaFeitas.indexOf(chave) !== -1) return false;
+    if (/(alerg|comorb|medicac|medicamento|remedio|antecedente)/.test(chave)) return !suficiencia.eixos.seguranca;
+    if (/(dum|idade gestacional|\big\b|gesta|paridade)/.test(chave)) return !suficiencia.eixos.gineco;
+    if (/(sinais vitais|\bpa\b|saturac|\bspo2\b|\bfc\b|\bfr\b|temperatura)/.test(chave)) return !suficiencia.eixos.objetivo;
+    if (/(febre|dispneia|sangramento|sincope|sudorese|irradi|alarme)/.test(chave)) return !suficiencia.eixos.alarmes;
+    return true;
+  }).slice(0, 3);
+  if (suficiencia.anamneseSuficiente) perguntas = [];
+  if (!suficiencia.anamneseSuficiente && !perguntas.length) {
+    if (!suficiencia.eixos.historia) perguntas.push('Qual a queixa principal e há quanto tempo começou? (definir síndrome e cronologia)');
+    if (!suficiencia.eixos.alarmes) perguntas.push('Há sinais de alarme pertinentes, como dispneia, síncope, febre ou sangramento? (estratificar gravidade)');
+    if (!suficiencia.eixos.seguranca) perguntas.push('Há alergias, comorbidades e medicações em uso? (segurança de prescrição)');
+    if (!suficiencia.eixos.gineco) perguntas.push('Informe G_P_A_, DUM e IG ou possibilidade de gestação. (segurança obstétrica)');
+    if (!suficiencia.eixos.objetivo) perguntas.push('Quais sinais vitais e achados objetivos estão disponíveis? (estratificar risco)');
+    perguntas = perguntas.slice(0, 3);
+  }
   var exameDirigido = objRasc.exame_dirigido;
   var temEfCompleto = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(dadosCaso);
 
@@ -2177,6 +2202,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   if (perguntas && perguntas.length > 0) {
     blocosRasc.push("❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
   }
+  if (suficiencia.anamneseSuficiente) blocosRasc.push('✅ Anamnese suficiente para tomada de decisão. Pode gerar o plano.');
 
   if (objRasc.contingencia_offline) {
     blocosRasc.unshift("⚠️ *MODO OFFLINE DE CONTINGÊNCIA (PROVEDOR EM NUVEM EM TIMEOUT)*\nProcessado pelo Motor Determinístico Offline.");

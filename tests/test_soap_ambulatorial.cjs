@@ -169,7 +169,7 @@ test('5. Estruturação do SOAP ambulatorial contempla todos os 4 eixos e crité
   assert(soap.plano.includes('08:00') && soap.plano.includes('Dieta DASH'), 'Plano deve conter horários e MEV');
   assert(soap.plano.includes('Sinais de Alarme'), 'Plano deve conter sinais de alarme');
   assert(soap.plano.includes('60 dias'), 'Plano deve conter retorno em 60 dias');
-  assert(soap.textoProntuario.includes('PRONTUÁRIO CLÍNICO AMBULATORIAL'), 'Texto de prontuário deve estar completo');
+  assert(['[S - SUBJETIVO]', '[O - OBJETIVO]', '[A - AVALIAÇÃO]', '[P - PLANO]'].every(eixo => soap.textoProntuario.includes(eixo)), 'Texto de prontuário deve conter os quatro eixos SOAP');
 });
 
 // =============================================================================

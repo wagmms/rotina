@@ -1058,13 +1058,13 @@ var SoapAmbulatorialService = (function() {
     dados = dados || {};
 
     // S - SUBJETIVO
-    var qp = dados.queixaPrincipal || dados.qp || 'Consulta de rotina / acompanhamento ambulatorial';
+    var qp = dados.queixaPrincipal || dados.qp || 'Queixa principal não informada';
     var tempoEvolucao = dados.tempoEvolucao || dados.tempo || 'Tempo de evolução não informado';
-    var hda = dados.hda || 'Paciente comparece para avaliação clínica ambulatorial, relatando ' + qp + ' há ' + tempoEvolucao + '.';
-    var medUso = dados.medicacoesUso || dados.medicacoes || 'Nega uso de medicações contínuas';
-    var alergias = dados.alergias || 'Nega alergias medicamentosas conhecidas';
-    var antecedentes = dados.antecedentes || 'Sem outras comorbidades relatadas';
-    var habitos = dados.habitos || 'Nega tabagismo, etilismo social ou negado, sedentarismo habitual';
+    var hda = dados.hda || 'História da doença atual não informada.';
+    var medUso = dados.medicacoesUso || dados.medicacoes || 'Não informado';
+    var alergias = dados.alergias || 'Não informado';
+    var antecedentes = dados.antecedentes || 'Não informado';
+    var habitos = dados.habitos || 'Não informado';
 
     var blocoS = [
       '• Queixa Principal (QP): ' + qp + ' (tempo de evolução: ' + tempoEvolucao + ')',
@@ -1088,13 +1088,13 @@ var SoapAmbulatorialService = (function() {
     if (sv.altura) linhasSv.push('Altura: ' + sv.altura + ' m');
     if (sv.imc) linhasSv.push('IMC: ' + sv.imc + ' kg/m²');
 
-    var textoSv = linhasSv.length ? linhasSv.join(' | ') : 'Sinais vitais normais aferidos na triagem.';
+    var textoSv = linhasSv.length ? linhasSv.join(' | ') : 'Sinais vitais não informados.';
 
     var textoEf = dados.exameFisicoTexto || '';
     if (!textoEf && dados.modeloExameFisico && MODELOS_EXAME_FISICO[dados.modeloExameFisico]) {
       textoEf = MODELOS_EXAME_FISICO[dados.modeloExameFisico].texto;
     } else if (!textoEf) {
-      textoEf = MODELOS_EXAME_FISICO.checkup_geral.texto;
+      textoEf = 'Exame físico não informado.';
     }
 
     var blocoO = '• Sinais Vitais: ' + textoSv + '\n' + textoEf;
@@ -1106,7 +1106,7 @@ var SoapAmbulatorialService = (function() {
     } else if (dados.diagnosticoPrincipal) {
       listaDiag = [dados.diagnosticoPrincipal];
     } else {
-      listaDiag = ['1. Acompanhamento ambulatorial geral (CID-10: Z00.0 / CIAP-2: A98)'];
+      listaDiag = ['Hipótese diagnóstica a definir com os dados clínicos disponíveis.'];
     }
 
     var textoAvaliacao = listaDiag.map(function(d, i) {
@@ -1136,13 +1136,13 @@ var SoapAmbulatorialService = (function() {
     }
 
     // P - PLANO
-    var planoLinhas = [];
+    var planoLinhas = [], prescricaoLinhas = [], examesLinhas = [], orientacoesLinhas = [];
 
     // Metas Pressóricas e Escalonamento SBC 2020/2024 se HAS
     if (condutaHas) {
-      planoLinhas.push('🎯 Metas Pressóricas & Escalonamento (SBC 2020/2024):');
-      planoLinhas.push('  • Meta Alvo: ' + condutaHas.metaPressoricaTexto + ' [Alvo numérico: ' + condutaHas.metaPressorica + ']');
-      planoLinhas.push('  • Estratégia de Escalonamento: ' + condutaHas.escalonamentoDetalhe);
+      orientacoesLinhas.push('🎯 Metas Pressóricas & Escalonamento (SBC 2020/2024):');
+      orientacoesLinhas.push('  • Meta Alvo: ' + condutaHas.metaPressoricaTexto + ' [Alvo numérico: ' + condutaHas.metaPressorica + ']');
+      orientacoesLinhas.push('  • Estratégia de Escalonamento: ' + condutaHas.escalonamentoDetalhe);
     }
 
     // 1. Prescrição Farmacológica
@@ -1152,76 +1152,70 @@ var SoapAmbulatorialService = (function() {
     }
 
     if (listaPrescricao && listaPrescricao.length) {
-      planoLinhas.push((condutaHas ? '\n' : '') + '💊 Prescrição Medicamentosa (REMUME / Farmácia Popular):');
+      prescricaoLinhas.push('💊 Prescrição Medicamentosa (REMUME / Farmácia Popular):');
       var itensMed = Array.isArray(listaPrescricao) ? listaPrescricao : [listaPrescricao];
       itensMed.forEach(function(m, idx) {
         if (typeof m === 'string') {
-          planoLinhas.push('  ' + (idx + 1) + ') ' + m);
+          prescricaoLinhas.push('  ' + (idx + 1) + ') ' + m);
         } else if (m && m.nome) {
           var desc = m.nome + ' ' + (m.apresentacao || '') + ' --- ' + (m.quantidade || 'Uso contínuo');
           desc += '\n     Posologia: ' + (m.posologia || '') + (m.horarios ? ' (Horários: ' + m.horarios + ')' : '');
-          planoLinhas.push('  ' + (idx + 1) + ') ' + desc);
+          prescricaoLinhas.push('  ' + (idx + 1) + ') ' + desc);
         }
       });
     }
 
     // Protocolo de Monitorização K+/Cr após 2 semanas se HAS
     if (condutaHas) {
-      planoLinhas.push('\n🧪 Protocolo de Monitorização Laboratorial (K+ e Creatinina após 2 semanas):');
-      planoLinhas.push('  • Janela de Avaliação: Dosar Creatinina sérica (TFG CKD-EPI) e Potássio sérico (K+) em 1 a 2 semanas (7 a 14 dias).');
-      planoLinhas.push('  • Tolerância de Creatinina: Elevação de até 30% da Cr em relação ao basal é esperada e aceitável (vasodilatação eferente protetora). Suspender IECA/BRA e investigar se elevação > 30%.');
-      planoLinhas.push('  • Manejo de Potássio: Reduzir dose ou suspender IECA/BRA/Espironolactona se K+ > 5,5 mEq/L; emergência com ECG se K+ >= 6,0 mEq/L.');
-      planoLinhas.push('  • Bloqueio Sentinela: Contraindicação formal a AINEs (prevenção do triplo golpe renal) e proibição absoluta de associar IECA + BRA.');
+      examesLinhas.push('🧪 Protocolo de Monitorização Laboratorial (K+ e Creatinina após 2 semanas):');
+      examesLinhas.push('  • Janela de Avaliação: Dosar Creatinina sérica (TFG CKD-EPI) e Potássio sérico (K+) em 1 a 2 semanas (7 a 14 dias).');
+      orientacoesLinhas.push('  • Tolerância de Creatinina: Elevação de até 30% da Cr em relação ao basal é esperada e aceitável (vasodilatação eferente protetora). Suspender IECA/BRA e investigar se elevação > 30%.');
+      orientacoesLinhas.push('  • Manejo de Potássio: Reduzir dose ou suspender IECA/BRA/Espironolactona se K+ > 5,5 mEq/L; emergência com ECG se K+ >= 6,0 mEq/L.');
+      orientacoesLinhas.push('  • Bloqueio Sentinela: Contraindicação formal a AINEs (prevenção do triplo golpe renal) e proibição absoluta de associar IECA + BRA.');
     }
 
     // 2. Orientações Não Farmacológicas (MEV)
-    var mev = dados.mev || (condutaHas ? condutaHas.mev : [
-      'Alimentação balanceada (redução de sódio < 2g/dia, açúcares simples e ultraprocessados).',
-      'Atividade física regular aeróbica (meta de 150 min/semana divididos em 3 a 5 sessões).',
-      'Manter hidratação oral adequada e cessação do tabagismo se aplicável.'
-    ]);
+    var mev = dados.mev || (condutaHas ? condutaHas.mev : []);
     if (Array.isArray(mev) && mev.length) {
-      planoLinhas.push('\n🥗 Orientações Não Farmacológicas / Mudanças de Estilo de Vida (MEV):');
+      orientacoesLinhas.push('🥗 Orientações Não Farmacológicas / Mudanças de Estilo de Vida (MEV):');
       mev.forEach(function(item) {
-        planoLinhas.push('  • ' + item);
+        orientacoesLinhas.push('  • ' + item);
       });
     }
 
     // 3. Exames Solicitados
     var exames = dados.examesSolicitados || (condutaHas ? condutaHas.examesSolicitados : null);
     if (exames && exames.length) {
-      planoLinhas.push('\n🔬 Exames Complementares Solicitados:');
+      examesLinhas.push('🔬 Exames Complementares Solicitados:');
       var exList = Array.isArray(exames) ? exames : [exames];
       exList.forEach(function(ex) {
-        planoLinhas.push('  • ' + ex);
+        examesLinhas.push('  • ' + ex);
       });
     }
 
     // 4. Sinais de Alarme
-    var alarmes = dados.sinaisAlarme || (condutaHas ? condutaHas.sinaisAlarme : [
-      'Procurar atendimento imediato em Pronto-Socorro se: dor no peito em aperto, falta de ar súbita, perda de força em um lado do corpo, fala enrolada ou febre alta persistente.'
-    ]);
+    var alarmes = dados.sinaisAlarme || (condutaHas ? condutaHas.sinaisAlarme : []);
     if (Array.isArray(alarmes) && alarmes.length) {
-      planoLinhas.push('\n🚨 Sinais de Alarme para Procura de Pronto-Socorro:');
+      orientacoesLinhas.push('🚨 Sinais de Alarme para Procura de Pronto-Socorro:');
       alarmes.forEach(function(al) {
-        planoLinhas.push('  • ' + al);
+        orientacoesLinhas.push('  • ' + al);
       });
     }
 
     // 5. Retorno
     var diasRetorno = dados.retornoDias ? (dados.retornoDias + ' dias') : (condutaHas ? (condutaHas.retornoDias + ' dias (1 a 2 semanas para controle de K+/Cr e titulação)') : '30 a 60 dias');
-    planoLinhas.push('\n📅 Retorno Ambulatorial: Reavaliação clínica e checagem de exames em ' + diasRetorno + '.');
+    orientacoesLinhas.push('📅 Retorno Ambulatorial: Reavaliação clínica e checagem de exames em ' + diasRetorno + '.');
 
+    planoLinhas.push('Prescrição Pronta Copy-Paste (UBS/REMUME vs. Urgência/Enfermaria):');
+    planoLinhas.push(prescricaoLinhas.length ? prescricaoLinhas.join('\n') : 'Prescrição não informada; conferir dados de segurança antes de prescrever.');
+    planoLinhas.push('\nExames que mudam conduta imediata:');
+    planoLinhas.push(examesLinhas.length ? examesLinhas.join('\n') : 'Nenhum exame imediato indicado pelos dados informados.');
+    planoLinhas.push('\nOrientações/Sinais de Alarme:');
+    planoLinhas.push(orientacoesLinhas.join('\n'));
     var blocoP = planoLinhas.join('\n');
 
     // Texto integral consolidado
     var textoProntuario = [
-      '======================================================================',
-      '                  PRONTUÁRIO CLÍNICO AMBULATORIAL (SOAP)              ',
-      '======================================================================',
-      'Data: ' + (dados.data || new Date().toLocaleDateString('pt-BR')),
-      'Paciente: ' + (dados.pacienteNome || 'Ao Portador') + (dados.idade ? ' (' + dados.idade + ' anos)' : ''),
-      '',
       '[S - SUBJETIVO]',
       blocoS,
       '',
@@ -1232,8 +1226,7 @@ var SoapAmbulatorialService = (function() {
       textoAvaliacao,
       '',
       '[P - PLANO]',
-      blocoP,
-      '======================================================================'
+      blocoP
     ].join('\n');
 
     return {
@@ -1460,6 +1453,29 @@ var SoapAmbulatorialService = (function() {
     ].join('\n');
   }
 
+  // A suficiência depende do relato confirmado, nunca de achados inferidos pela IA.
+  function avaliarSuficienciaAnamnese(contextoAcumulado, historicoSessao) {
+    var texto = String(contextoAcumulado || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    var historico = historicoSessao || {};
+    var gineco = /gesta|gravidez|gravida|obstetric|ginecolog|sangramento vaginal|dor pelvica|amenorreia|corrimento vaginal/.test(texto);
+    var agudo = /dor toracica|dor no peito|dispneia|falta de ar|tosse|febre|dor abdominal|sangramento|gesta|gravidez|gravida|cefaleia intensa/.test(texto);
+    var alarmeRelatado = /nega\s+sinais? de alarme|sem\s+sinais? de alarme/.test(texto);
+    if (/dor toracica|dor no peito/.test(texto)) alarmeRelatado = alarmeRelatado || /(nega|sem).{0,30}(dispneia|sudorese|sincope|irradiacao)|\b(dispneia|sudorese|sincope|irradiacao)\b/.test(texto);
+    else if (/tosse|falta de ar|dispneia/.test(texto)) alarmeRelatado = alarmeRelatado || /(nega|sem).{0,30}(dispneia|falta de ar|febre|hemoptise)|\b(dispneia|falta de ar|hemoptise|febre)\b/.test(texto);
+    else if (gineco) alarmeRelatado = alarmeRelatado || /(nega|sem).{0,30}(sangramento|dor intensa|sincope)|\b(sangramento|sincope|dor intensa)\b/.test(texto);
+    else alarmeRelatado = alarmeRelatado || /(nega|sem).{0,30}(febre|dispneia|sangramento|sincope)|\b(febre|dispneia|sangramento|sincope)\b/.test(texto);
+    var eixos = {
+      historia: /paciente|dor|tosse|febre|sangramento|queixa|dispneia/.test(texto) && /\bha\s+\d|\bdesde\b|\binicio\b|\bevolucao\b|\bhoje\b|\bontem\b|\bsemanas?\b|\bdias?\b/.test(texto),
+      alarmes: alarmeRelatado,
+      seguranca: /(alergia|alergico)/.test(texto) && /(comorbidade|antecedente|diabet|hipertens|sem doencas)/.test(texto) && /(medicac|medicamento|remedio|farmaco|uso continuo)/.test(texto) && !/(alergia|comorbidade|medicac|medicamento).{0,20}(desconhecid|nao informad|nao sabe)/.test(texto),
+      gineco: !gineco || (/\bg\s*\d+\s*p\s*\d+\s*a\s*\d+|\bgesta\s*\d+/.test(texto) && /\bdum\s*[:=]?\s*\d|idade gestacional\s*[:=]?\s*\d|\big\s*[:=]?\s*\d/.test(texto)),
+      objetivo: !agudo || /\bpa\s*[:=]?\s*\d|\bfc\s*[:=]?\s*\d|spo2\s*[:=]?\s*\d|saturac.{0,8}\d|\bfr\s*[:=]?\s*\d|\btax?\s*[:=]?\s*\d|glicemia\s*[:=]?\s*\d|\becg\s*[:=]?\s*(?:com|sem|mostra|alterad)|\b(?:crepitac|sibil|rigidez|defesa abdominal)\b/.test(texto)
+    };
+    var faltantes = Object.keys(eixos).filter(function(chave) { return !eixos[chave]; });
+    return { anamneseSuficiente: !faltantes.length || Number(historico.respostasComplementares || 0) >= 1,
+      faltantes: faltantes, eixos: eixos };
+  }
+
   // 11. FORMATAÇÃO CANÔNICA DE RASCUNHO SOAP PARA O TELEGRAM (FASE 1 vs FASE 2)
   function formatarRascunhoSoapTelegram(dados, opcoes) {
     opcoes = opcoes || {};
@@ -1501,6 +1517,16 @@ var SoapAmbulatorialService = (function() {
       var pText = dados.plano || (estruturado && estruturado.plano) || 'Conduta e orientações a definir.';
       if (Array.isArray(aText)) aText = aText.join('\n');
       if (Array.isArray(pText)) pText = pText.join('\n');
+      if (pText && typeof pText === 'object') {
+        pText = 'Prescrição Pronta Copy-Paste (UBS/REMUME vs. Urgência/Enfermaria):\n' + (pText.prescricao || []).join('\n') +
+          '\nExames que mudam conduta imediata:\n' + (pText.exames || []).join('\n') +
+          '\nOrientações/Sinais de Alarme:\n' + (pText.orientacoes || []).join('\n');
+      } else if (pText.indexOf('Prescrição Pronta Copy-Paste') === -1) {
+        pText = 'Prescrição Pronta Copy-Paste (UBS/REMUME vs. Urgência/Enfermaria):\n' + pText +
+          '\nExames que mudam conduta imediata:\nNão informados.\nOrientações/Sinais de Alarme:\nNão informados.';
+      }
+      var pends = dados.pendencias || dados.pendencias_opcionais;
+      if (Array.isArray(pends) && pends.length) pText += '\nDados de segurança a conferir antes de prescrever:\n' + pends.join('\n');
 
       var linhasFase2 = [
         '🩺 *SÍNTESE SOAP · REGISTRO CONSOLIDADO*',
@@ -1509,11 +1535,6 @@ var SoapAmbulatorialService = (function() {
         '🧠 *A - Avaliação*\n' + aText,
         '📋 *P - Plano*\n' + pText
       ];
-
-      var pends = dados.pendencias || dados.pendencias_opcionais;
-      if (Array.isArray(pends) && pends.length) {
-        linhasFase2.push('💡 *Dados adicionais sugeridos (se houver):*\n' + pends.map(function(item) { return '• ' + item; }).join('\n'));
-      }
 
       return linhasFase2.join('\n\n');
     } else {
@@ -1597,6 +1618,7 @@ var SoapAmbulatorialService = (function() {
     formatarExameFisicoSistemas: formatarExameFisicoSistemas,
     obterModeloExameFisicoCompleto: obterModeloExameFisicoCompleto,
     formatarRascunhoSoapTelegram: formatarRascunhoSoapTelegram,
+    avaliarSuficienciaAnamnese: avaliarSuficienciaAnamnese,
     processarEntradaSoap: processarEntradaSoap
   };
 })();
@@ -1615,6 +1637,10 @@ function obterModeloExameFisicoCompleto(contextoPrevio) {
 
 function formatarRascunhoSoapTelegram(dados, opcoes) {
   return SoapAmbulatorialService.formatarRascunhoSoapTelegram(dados, opcoes);
+}
+
+function avaliarSuficienciaAnamnese(contextoAcumulado, historicoSessao) {
+  return SoapAmbulatorialService.avaliarSuficienciaAnamnese(contextoAcumulado, historicoSessao);
 }
 
 function processarEntradaSoap(chatId, textoEntrada, opcoes) {

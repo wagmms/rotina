@@ -81,6 +81,24 @@ const tests = [
  ['casos de chats distintos não compartilham estado', () => {
    const {c}=env();c.definirModoBot(123,'soap','Caso A');c.definirModoBot(456,'soap','Caso B');c.limparEstadoBot(123);
    assert.equal(c.modoBot(456).data,'Caso B');
+ }],
+ ['resposta complementar encerra perguntas e mantém memória no atendimento', () => {
+   const {c}=env();let chamadas=0;
+   c.gerarSOAPComIA=(dados,opcoes)=>{
+     chamadas++;
+     if (opcoes.historicoSessao.respostasComplementares) return '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*\n\n✅ Anamnese suficiente para tomada de decisão. Pode gerar o plano.';
+     return '🩺 *SÍNTESE SOAP · ATENDIMENTO CLÍNICO*\n\n❓ *Perguntas para Completar a Anamnese*\n• Há dispneia? (estratificar gravidade)';
+   };
+   c.processarEEntregarIA=(chat,gerar,dados)=>gerar(dados);
+   c.processarEntradaSoap(123,'Tosse há 2 dias');
+   assert.equal(c.modoBot(123).soapAnamnese.perguntasFeitas.length,1);
+   const resposta=c.processarEntradaSoap(123,'Nega dispneia e febre. Sem alergias, comorbidades ou medicações.');
+   assert(resposta.includes('Pode gerar o plano'));
+   assert(!resposta.includes('Perguntas para Completar'));
+   assert.equal(chamadas,2);
+   assert.equal(c.modoBot(123).soapAnamnese.respostasComplementares,1);
+   assert.equal(c.modoBot(123).soapAnamnese.anamneseSuficiente,true);
+   assert.equal(c.modoBot(123).soapAnamnese.perguntasPendentes.length,0);
  }]
 ];
 for (const [nome,fn] of tests) {fn();console.log('OK '+nome)}

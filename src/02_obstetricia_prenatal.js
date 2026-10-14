@@ -1412,6 +1412,23 @@ var ObstetriciaPrenatalService = (function() {
     }
 
     var diretrizesTrimestre = obterDiretrizesTrimestre(avaliacaoIg.trimestre.numero);
+    var semanasAtuais = avaliacaoIg.igAtual.semanas;
+    var planoImediato = {
+      exames: diretrizesTrimestre.examesObrigatorios.map(function (item) { return item.exame; }),
+      vacinas: [
+        semanasAtuais >= 20 ? 'dTpa: aplicar 1 dose nesta gestação se ainda não recebida.' : 'dTpa: agendar a partir de 20 semanas.',
+        'dT: conferir e completar esquema antitetânico conforme histórico vacinal.',
+        'Hepatite B: completar 3 doses se suscetível/esquema incompleto.',
+        'Influenza: 1 dose na gestação conforme calendário vigente.'
+      ],
+      gbs: semanasAtuais >= 35 && semanasAtuais < 38 ? 'Coletar swab anovaginal para GBS nesta consulta, se ainda não coletado.' : 'Programar swab anovaginal para GBS entre 35 e 37 semanas.',
+      prescricoes: [
+        semanasAtuais <= 13 ? 'Ácido fólico 0,4 mg VO ao dia até o fim do 1º trimestre (dose maior somente se indicação específica).' : 'Ácido fólico: verificar uso no período periconcepcional e 1º trimestre; não iniciar como profilaxia de defeito do tubo neural tardiamente.',
+        semanasAtuais >= 20 ? 'Sulfato ferroso 200 mg VO ao dia (40 mg de ferro elementar), se não houver anemia; manter até 3 meses pós-parto.' : 'Sulfato ferroso 200 mg VO ao dia (40 mg de ferro elementar): iniciar na 20ª semana se não houver anemia.',
+        'Cálcio: avaliar ingestão alimentar; se baixa, suplementar 1 a 1,5 g/dia de cálcio elementar conforme protocolo local.',
+        'AAS 100 mg VO à noite apenas se risco de pré-eclâmpsia; iniciar idealmente entre 12 e 16 semanas e manter até 36 semanas, após avaliação clínica.'
+      ]
+    };
 
     var auditoriaFarmacos = null;
     if (dados.medicamentosUso) {
@@ -1479,6 +1496,11 @@ var ObstetriciaPrenatalService = (function() {
       }
     }
 
+    linhas.push('PLANO PRÁTICO PELA IG ATUAL:');
+    planoImediato.vacinas.forEach(function (item) { linhas.push('• ' + item); });
+    linhas.push('• ' + planoImediato.gbs);
+    planoImediato.prescricoes.forEach(function (item) { linhas.push('• ' + item); });
+
     if (auditoriaFarmacos && auditoriaFarmacos.sucesso && auditoriaFarmacos.totalAvaliados > 0) {
       linhas.push('----------------------------------------------------------------------');
       linhas.push('AUDITORIA DE SEGURANÇA FARMACOLÓGICA: Parecer Geral = ' + auditoriaFarmacos.parecerGeral);
@@ -1510,6 +1532,7 @@ var ObstetriciaPrenatalService = (function() {
       cronologia: avaliacaoIg,
       ganhoPeso: ganhoPeso,
       diretrizes: diretrizesTrimestre,
+      planoImediato: planoImediato,
       auditoriaFarmacos: auditoriaFarmacos
     };
   }

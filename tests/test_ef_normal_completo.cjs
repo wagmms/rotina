@@ -150,4 +150,26 @@ console.log('🧪 Iniciando Testes de Expansão do Exame Físico Normal Completo
   console.log('  ✓ 5. Omite cobrança ativa redundante de exame físico quando EF completo já foi registrado');
 }
 
-console.log('\n🎉 TODOS OS 5 TESTES DE EXPANSÃO DO EXAME FÍSICO NORMAL COMPLETO FORAM APROVADOS COM 100% DE SUCESSO!\n');
+// Máscaras PEP e checklist no serviço público, sem alterar a máscara de EF existente.
+{
+  const { c } = env();
+  const modelos = c.EnfermariaService.obterMascarasPep();
+  ['admissaoCo', 'puerpera', 'prenatal', 'exameGinecologico', 'clinicaGeral'].forEach(chave => {
+    assert(modelos[chave].startsWith('<code>'));
+    assert(modelos[chave].endsWith('</code>'));
+  });
+  assert(modelos.admissaoCo.includes('BCF'));
+  assert(modelos.puerpera.toLowerCase().includes('lóquios'));
+  assert(modelos.exameGinecologico.includes('consentimento'));
+  assert(modelos.clinicaGeral.includes('Profilaxia TEV'));
+  assert(c.EnfermariaService.obterChecklistPreRound().includes('Dia de ATB'));
+  let tela;
+  c.enviarTelaBot = (_chat, texto, teclado) => { tela = { texto, teclado }; return tela; };
+  c.enviarManualCompletoComandos(123, 'enfermaria');
+  assert(tela.teclado.inline_keyboard.flat().some(botao => botao.callback_data === 'ajuda_cat_mascaras'));
+  c.enviarManualCompletoComandos(123, 'mascaras');
+  assert(tela.texto.includes('ADMISSÃO CO'));
+  assert(tela.texto.includes('EVOLUÇÃO ENFERMARIA'));
+}
+
+console.log('\n🎉 TODOS OS TESTES DE EXAME FÍSICO E MÁSCARAS PEP FORAM APROVADOS!\n');

@@ -179,7 +179,7 @@ var EnfermariaService=(function(){
     var pendTxt = pendencias.length > 0 ? '\n⏰ *Pendências:* ' + pendencias.join('; ') : '';
     return '🛏️ *LEITO ' + id + '* · ' + leito.status + '\n' +
       '⏱️ Atualizado: ' + leito.dataISO + ' às ' + leito.atualizadoEm + '\n' +
-      '📝 *Evolução:* ' + leito.dados + pendTxt;
+      '📝 *Evolução:* ' + leito.dados + pendTxt + '\n' + CHECKLIST_PRE_ROUND;
   }
 
   function formatarSecaoSituacao(censoResumo) {
@@ -199,7 +199,21 @@ var EnfermariaService=(function(){
         : '• Sem pendências críticas registradas no momento. Manter vigilância clínica e planos vigentes.');
   }
 
+  var CHECKLIST_PRE_ROUND = 'Checklist rápido pré-round: Profilaxia TEV (indicação/contraindicação); Sonda/Acesso (necessidade e retirada); Dia de ATB/Descalonamento (culturas, foco e duração); Diurese/Eletrólitos (balanço, creatinina, Na/K/Mg).';
+
+  function obterMascarasPep() {
+    return {
+      admissaoCo: '<code>ADMISSÃO CO | Data/hora: [ ]\nG/P/A: [ ] | IG: [ ] por [DUM/USG] | DPP: [ ] | Rh/GBS: [ ]\nQueixa e início: [ ] | Movimentos fetais: [ ] | Perda líquida/sangramento: [ ]\nPA/FC/FR/SpO2/T: [ ] | BCF: [ ] | Dinâmica uterina: [ ]\nAbdome/apresentação: [ ] | Bolsa: [ ] | Especular se indicado: [ ]\nToque vaginal somente se indicado, após consentimento e excluída placenta prévia: dilatação [ ], apagamento [ ], De Lee [ ].\nHipótese/risco materno-fetal: [ ] | Conduta, exames, vigilância e comunicação à obstetrícia: [ ]</code>',
+      puerpera: '<code>EVOLUÇÃO ALOJAMENTO CONJUNTO | DPP: [ ] | Parto: [ ] | RN: [ ]\nQueixas, dor, amamentação e deambulação: [ ]\nPA/FC/T: [ ] | Mamas/mamilos: [ ] | Útero/involução: [ ]\nLóquios (volume, odor): [ ] | Períneo/ferida operatória: [ ] | Diurese/evacuação: [ ]\nProfilaxia TEV/risco hemorrágico: [ ] | Conduta, sinais de alarme e alta: [ ]</code>',
+      prenatal: '<code>CONSULTA PRÉ-NATAL | G/P/A: [ ] | DUM: [ ] | IG: [ ] | DPP: [ ]\nQueixas, sangramento/perda líquida, movimentos fetais: [ ]\nPA/peso/edema: [ ] | AU: [ ] | BCF: [ ]\nExames por trimestre e resultados pendentes: [ ] | Vacinas (dT/dTpa/Hep B/Influenza): [ ]\nFerro/ácido fólico/cálcio; AAS se risco de PE: [ ] | GBS 35–37 sem: [ ]\nRisco gestacional, conduta, retorno e sinais de alarme: [ ]</code>',
+      exameGinecologico: '<code>EXAME GINECOLÓGICO | Indicação e consentimento: [ ] | Acompanhante ofertado: [ ]\nInspeção vulvar/perineal: [ ] | Espéculo: paredes vaginais [ ], colo [ ], secreção [ ], sangramento [ ].\nColetas, se indicadas: [ ] | Toque bimanual somente se indicado: colo [ ], útero [ ], anexos [ ], dor [ ].\nAchados, tolerância, hipótese e conduta: [ ]</code>',
+      clinicaGeral: '<code>EVOLUÇÃO ENFERMARIA | Leito: [ ] | D de internação: [ ]\nProblemas ativos e eventos 24h: [ ] | Sinais vitais: [ ] | Exame dirigido: [ ]\nExames/culturas: [ ] | Plano por problema: [ ]\nProfilaxia TEV: [ ] | Sonda/Acesso: [ ] | Dia de ATB/Descalonamento: [ ] | Diurese/Eletrólitos: [ ]\nPendências e critérios de alta: [ ]</code>'
+    };
+  }
+
   return {
+    obterChecklistPreRound: function () { return CHECKLIST_PRE_ROUND; },
+    obterMascarasPep: obterMascarasPep,
     obterTodos: carregar,
     obterLeito: function (id) { return carregar()[String(id).trim()] || null; },
     atualizarLeito: function (num, texto) {
@@ -276,7 +290,7 @@ var EnfermariaService=(function(){
       var censo = contarCensoLeitos(all, keys);
       var cards = keys.map(function (id) {
         var l = all[id];
-        return '*LEITO ' + id + '* · ' + l.status + '\n' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados;
+        return '*LEITO ' + id + '* · ' + l.status + '\n' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados + '\n' + CHECKLIST_PRE_ROUND;
       });
       return '🏥 *Enfermaria* · ' + censo.resumoPainel + '\n\n' + cards.join('\n\n');
     },
@@ -284,7 +298,7 @@ var EnfermariaService=(function(){
       var all = carregar(), keys = ids(all);
       return keys.length ? keys.map(function (id) {
         var l = all[id];
-        return 'LEITO ' + id + ' · ' + l.status + ' · ' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados;
+        return 'LEITO ' + id + ' · ' + l.status + ' · ' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados + '\n' + CHECKLIST_PRE_ROUND;
       }).join('\n\n') : null;
     },
     gerarPassagemSBARConsolidada: function (idLeitoAlvo) {

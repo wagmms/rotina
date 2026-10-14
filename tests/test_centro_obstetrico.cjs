@@ -405,4 +405,18 @@ assert.strictEqual(rpcGbs.indicada, true);
 
 console.log('  ✓ Caso 24: Métodos RPC do Cockpit (cockpitTrabalhoParto, cockpitSulfatoMagnesio, cockpitHemorragiaPosParto, cockpitProfilaxiaGbs) 100% integrados.');
 
+// Resposta inicial à HPP: TXA precoce, contraindicação à ergotamina e bloqueio após 3 h.
+const hppPrimeiraHora = CentroObstetricoService.gerenciarHemorragiaPosParto({ perdaEstimadaMl: 900, tempoDesdePartoMin: 40, temHipertensao: true });
+assert(hppPrimeiraHora.primeiraHoraPep.includes('Ácido Tranexâmico 1 g IV'));
+assert(hppPrimeiraHora.primeiraHoraPep.indexOf('Ácido Tranexâmico') < hppPrimeiraHora.primeiraHoraPep.indexOf('Misoprostol'));
+assert(hppPrimeiraHora.primeiraHoraPep.includes('CONTRAINDICADA em hipertensão'));
+const hppTardia = CentroObstetricoService.gerenciarHemorragiaPosParto({ perdaEstimadaMl: 900, tempoDesdePartoMin: 200 });
+assert(!hppTardia.primeiraHoraPep.includes('Administrar Ácido Tranexâmico'));
+
+const premLimite = CentroObstetricoService.protocoloPrematuridadeRpmo({ igSemanas: 34, ameacaParto: true });
+assert.strictEqual(premLimite.corticoterapia, null);
+const premComGbs = CentroObstetricoService.protocoloPrematuridadeRpmo({ igSemanas: 30, ameacaPartoIminente: true, rpmConfirmada: true });
+assert(premComGbs.condutasGerais.some(item => item.includes('profilaxia intraparto')));
+assert(premComGbs.latenciaRpmo.fase1_primeiras48h.some(item => item.includes('Ampicilina')));
+
 console.log('\n🎉 Todos os 24 casos clínicos de Centro Obstétrico passaram com 100% de sucesso!');

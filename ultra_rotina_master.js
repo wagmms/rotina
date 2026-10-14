@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-14 00:36:25
- * Checksum SHA256: f09efac504ae567c
+ * Gerado automaticamente via build_master.py em: 2026-10-14 16:08:42
+ * Checksum SHA256: 736e4a671bf74d9a
  * ==============================================================================
  */
 
@@ -6562,7 +6562,17 @@ var CentroObstetricoService = (function() {
       nota: '⚠️ NUNCA aplicar ocitocina pura em bolus IV rápido (risco de vasodilatação súbita, hipotensão letal e colapso circulatório).'
     });
 
-    // Passo 2: Metilergometrina (Ergotrate)
+    // TXA é adjuvante da resposta inicial; não aguardar falha dos uterotônicos.
+    var oportunoTransamin = tempoDesdePartoMin <= 180;
+    sequenciaUterotonica.push({
+      etapa: 4,
+      farmaco: 'Ácido Tranexâmico 1g IV (adjuvante precoce)',
+      dose: oportunoTransamin ? '1 g IV em 10 minutos, iniciar em até 3 horas do parto; repetir 1 g se persistir após 30 minutos ou recidivar em 24 horas.' : 'Não iniciar rotineiramente após 3 horas do parto: benefício não demonstrado.',
+      nota: oportunoTransamin ? 'Administrar em até 3 horas do parto, junto da resposta inicial à HPP.' : 'Após 3 horas do parto, benefício não demonstrado.',
+      bloqueado: !oportunoTransamin
+    });
+
+    // Passo 3: Metilergometrina (Ergotrate)
     if (temHas) {
       sequenciaUterotonica.push({
         etapa: 2,
@@ -6580,23 +6590,12 @@ var CentroObstetricoService = (function() {
       });
     }
 
-    // Passo 3: Misoprostol
+    // Passo 4: Misoprostol
     sequenciaUterotonica.push({
       etapa: 3,
       farmaco: 'Misoprostol 800 mcg (3ª Linha)',
       dose: '800 mcg (4 comprimidos de 200 mcg) via Retal ou Sublingual.',
       nota: 'Absorção rápida e potente tônus miometrial mantido por várias horas.'
-    });
-
-    // Passo 4: Ácido Tranexâmico (Estudo WOMAN)
-    var oportunoTransamin = tempoDesdePartoMin <= 180;
-    sequenciaUterotonica.push({
-      etapa: 4,
-      farmaco: 'Ácido Tranexâmico 1g IV (Hemostático Adjuvante de Alta Eficácia)',
-      dose: '1g (2 ampolas de 500 mg) diluído em 100 mL de SF 0,9% infundido em 10 a 20 minutos.',
-      nota: oportunoTransamin
-        ? '✅ Momento ideal: administrado precocemente em até 3 horas do parto reduz drasticamente a mortalidade materna por sangramento (Lancet / Estudo WOMAN). Se sangramento persistir após 30 minutos ou recorrer em 24h: repetir 2ª dose de 1g IV.'
-        : '⚠️ Parto há mais de 3 horas: eficácia reduzida, mas ainda pode ser considerado se sangramento ativo com coagulopatia hiperfibrinolítica.'
     });
 
     // 5. Medidas Não Farmacológicas e Cirúrgicas de Resgate
@@ -6618,6 +6617,13 @@ var CentroObstetricoService = (function() {
       alertaChoque: alertaChoque,
       quatroTs: quatroTs,
       sequenciaUterotonica: sequenciaUterotonica,
+      primeiraHoraPep: [
+        'HPP — PRIMEIRA HORA: chamar equipe, quantificar perda, 2 acessos calibrosos, cristaloide aquecido, hemograma/coagulograma e reserva de hemocomponentes; massagear útero e revisar 4Ts.',
+        'Ocitocina 20 a 40 UI em 500 mL de SF 0,9%/Ringer lactato IV em infusão; não fazer bolus IV rápido.',
+        oportunoTransamin ? 'Administrar Ácido Tranexâmico 1 g IV em 10 minutos, até 3 horas do parto; repetir 1 g se persistir após 30 minutos ou recidivar em 24 horas.' : 'Ácido Tranexâmico: após 3 horas do parto, não iniciar rotineiramente; benefício não demonstrado.',
+        temHas ? 'Metilergometrina CONTRAINDICADA em hipertensão/pré-eclâmpsia.' : 'Metilergometrina 0,2 mg IM se atonia persistente e sem hipertensão.',
+        'Misoprostol 800 mcg por via retal ou sublingual se atonia persistente; escalar tamponamento/cirurgia sem atraso.'
+      ].join('\n'),
       medidasResgate: medidasResgate
     };
   }
@@ -6803,7 +6809,7 @@ var CentroObstetricoService = (function() {
 
     // 2. Corticoterapia Antenatal para Maturação Pulmonar Fetal
     // Indicada formalmente entre 24s0d e 33s6d (e em casos selecionados até 36s6d se sem ciclo prévio)
-    if (igSemanas >= 24 && (igSemanas < 34 || (igSemanas < 37 && ameacaParto))) {
+    if (igSemanas >= 24 && igSemanas < 34) {
       corticoterapia = {
         indicada: true,
         objetivo: 'Reduz a Síndrome do Desconforto Respiratório do RN (doença da membrana hialina), hemorragia intraventricular grave e enterocolite necrosante neonatal.',
@@ -6866,6 +6872,10 @@ var CentroObstetricoService = (function() {
         nota: 'NÃO utilizar Amoxicilina + Clavulanato na RPMO (associado a aumento de risco de enterocolite necrosante neonatal).'
       };
       condutas.push('Iniciar Protocolo de Latência Antimicrobiana para RPMO.');
+    }
+
+    if (ameacaParto || rpm) {
+      condutas.push('Checar cultura anovaginal/GBS. Se parto prematuro com GBS desconhecido ou positivo, indicar profilaxia intraparto (penicilina G cristalina conforme protocolo de GBS); antibiótico de latência da RPMO não dispensa reavaliação intraparto.');
     }
 
     return {
@@ -6966,6 +6976,7 @@ var CentroObstetricoService = (function() {
       if (hppRes.alertaChoque) {
         linhas.push('  ' + hppRes.alertaChoque);
       }
+      linhas.push(hppRes.primeiraHoraPep);
       linhas.push('  💊 SEQUENCIAMENTO UTEROTÔNICO ESCALONADO:');
       for (var u = 0; u < hppRes.sequenciaUterotonica.length; u++) {
         var ut = hppRes.sequenciaUterotonica[u];
@@ -7018,6 +7029,7 @@ var CentroObstetricoService = (function() {
         if (premRes.latenciaRpmo && premRes.latenciaRpmo.indicada) {
           linhas.push('  🛡️ Latência RPMO: ' + premRes.latenciaRpmo.fase1_primeiras48h[0] + ' + ' + premRes.latenciaRpmo.fase1_primeiras48h[1]);
         }
+        premRes.condutasGerais.filter(function (item) { return item.indexOf('GBS') !== -1; }).forEach(function (item) { linhas.push('  🔬 ' + item); });
       }
     }
 
@@ -14034,6 +14046,8 @@ var GinecologiaAmbulatorialService = (function() {
     linhas.push('════════════════════════════════════════════════════════════════');
     linhas.push('🌸 AVALIAÇÃO DE GINECOLOGIA AMBULATORIAL — CONSULTÓRIO & APS');
     linhas.push('════════════════════════════════════════════════════════════════');
+    linhas.push('TRIAGEM UBS: confirmar possibilidade de gestação, estabilidade hemodinâmica, febre/dor pélvica, sangramento e risco de IST antes da conduta.');
+    linhas.push('EXAME: registrar consentimento; especular e toque apenas quando indicados, com achados observados, sem presumir exame normal.');
 
     // 1. Rastreamento de Colo Uterino
     if (cenario.coloUterino) {
@@ -19932,6 +19946,23 @@ var ObstetriciaPrenatalService = (function() {
     }
 
     var diretrizesTrimestre = obterDiretrizesTrimestre(avaliacaoIg.trimestre.numero);
+    var semanasAtuais = avaliacaoIg.igAtual.semanas;
+    var planoImediato = {
+      exames: diretrizesTrimestre.examesObrigatorios.map(function (item) { return item.exame; }),
+      vacinas: [
+        semanasAtuais >= 20 ? 'dTpa: aplicar 1 dose nesta gestação se ainda não recebida.' : 'dTpa: agendar a partir de 20 semanas.',
+        'dT: conferir e completar esquema antitetânico conforme histórico vacinal.',
+        'Hepatite B: completar 3 doses se suscetível/esquema incompleto.',
+        'Influenza: 1 dose na gestação conforme calendário vigente.'
+      ],
+      gbs: semanasAtuais >= 35 && semanasAtuais < 38 ? 'Coletar swab anovaginal para GBS nesta consulta, se ainda não coletado.' : 'Programar swab anovaginal para GBS entre 35 e 37 semanas.',
+      prescricoes: [
+        semanasAtuais <= 13 ? 'Ácido fólico 0,4 mg VO ao dia até o fim do 1º trimestre (dose maior somente se indicação específica).' : 'Ácido fólico: verificar uso no período periconcepcional e 1º trimestre; não iniciar como profilaxia de defeito do tubo neural tardiamente.',
+        semanasAtuais >= 20 ? 'Sulfato ferroso 200 mg VO ao dia (40 mg de ferro elementar), se não houver anemia; manter até 3 meses pós-parto.' : 'Sulfato ferroso 200 mg VO ao dia (40 mg de ferro elementar): iniciar na 20ª semana se não houver anemia.',
+        'Cálcio: avaliar ingestão alimentar; se baixa, suplementar 1 a 1,5 g/dia de cálcio elementar conforme protocolo local.',
+        'AAS 100 mg VO à noite apenas se risco de pré-eclâmpsia; iniciar idealmente entre 12 e 16 semanas e manter até 36 semanas, após avaliação clínica.'
+      ]
+    };
 
     var auditoriaFarmacos = null;
     if (dados.medicamentosUso) {
@@ -19999,6 +20030,11 @@ var ObstetriciaPrenatalService = (function() {
       }
     }
 
+    linhas.push('PLANO PRÁTICO PELA IG ATUAL:');
+    planoImediato.vacinas.forEach(function (item) { linhas.push('• ' + item); });
+    linhas.push('• ' + planoImediato.gbs);
+    planoImediato.prescricoes.forEach(function (item) { linhas.push('• ' + item); });
+
     if (auditoriaFarmacos && auditoriaFarmacos.sucesso && auditoriaFarmacos.totalAvaliados > 0) {
       linhas.push('----------------------------------------------------------------------');
       linhas.push('AUDITORIA DE SEGURANÇA FARMACOLÓGICA: Parecer Geral = ' + auditoriaFarmacos.parecerGeral);
@@ -20030,6 +20066,7 @@ var ObstetriciaPrenatalService = (function() {
       cronologia: avaliacaoIg,
       ganhoPeso: ganhoPeso,
       diretrizes: diretrizesTrimestre,
+      planoImediato: planoImediato,
       auditoriaFarmacos: auditoriaFarmacos
     };
   }
@@ -20900,6 +20937,15 @@ var ObstetriciaRcfDopplerService = (function() {
             classificacao.titulo = 'PIG com marcador Doppler de insuficiência placentária (conduzir como Estágio I de Barcelona)';
         }
         var conduta = planejarConduta(estadiamento, ig, params);
+        var decisaoInterno = estadiamento.estagio === null
+            ? 'Sem critérios de RCF: manter pré-natal e reavaliar biometria conforme suspeita clínica.'
+            : (estadiamento.estagio >= 3
+                ? 'Internar em centro terciário com UTI neonatal hoje; avaliar ducto venoso e cCTG seriados.'
+                : estadiamento.estagio === 2
+                    ? 'Diástole zero na artéria umbilical: avaliação em centro terciário hoje e considerar internação.'
+                    : 'AU com fluxo presente/ACM ou RCP alterada isoladamente: seguimento especializado; não antecipar parto antes de 34 semanas só pela ACM.') +
+              ' Alvo de interrupção do estágio: ' + PROTOCOLO_ESTAGIOS[estadiamento.estagio].ig_alvo_texto +
+              '; antecipar por deterioração fetal ou indicação materna.';
 
         return {
             ig: ig,
@@ -20907,6 +20953,7 @@ var ObstetriciaRcfDopplerService = (function() {
             doppler: { achados: interpretacao.achados, rcp: interpretacao.rcp, marcadores: m },
             estadiamento: estadiamento,
             conduta: conduta,
+            decisao_interno: decisaoInterno,
             corticoide: planejarCorticoide(estadiamento, conduta, ig),
             neuroprotecao_magnesio: planejarNeuroprotecao(conduta, ig, estadiamento),
             investigacao_etiologica: investigarEtiologia(classificacao, m, ig, params),
@@ -21018,7 +21065,8 @@ var ObstetriciaRcfDopplerService = (function() {
             txt += '  ↳ ' + a.estadiamento.fisiopatologia + '\n';
         }
 
-        txt += '\n👉 *DECISÃO:* ' + a.conduta.decisao + '\n';
+        txt += '\n🚨 *PARA O INTERNO — INTERNAR / INTERROMPER:* ' + a.decisao_interno + '\n';
+        txt += '👉 *DECISÃO:* ' + a.conduta.decisao + '\n';
         txt += '• *Vigilância:* ' + a.conduta.vigilancia + '\n';
         txt += '• *Via de parto:* ' + a.conduta.via_parto + '\n';
         if (a.conduta.local_parto) txt += '• *Local:* ' + a.conduta.local_parto + '\n';
@@ -30473,13 +30521,13 @@ var SoapAmbulatorialService = (function() {
     dados = dados || {};
 
     // S - SUBJETIVO
-    var qp = dados.queixaPrincipal || dados.qp || 'Consulta de rotina / acompanhamento ambulatorial';
+    var qp = dados.queixaPrincipal || dados.qp || 'Queixa principal não informada';
     var tempoEvolucao = dados.tempoEvolucao || dados.tempo || 'Tempo de evolução não informado';
-    var hda = dados.hda || 'Paciente comparece para avaliação clínica ambulatorial, relatando ' + qp + ' há ' + tempoEvolucao + '.';
-    var medUso = dados.medicacoesUso || dados.medicacoes || 'Nega uso de medicações contínuas';
-    var alergias = dados.alergias || 'Nega alergias medicamentosas conhecidas';
-    var antecedentes = dados.antecedentes || 'Sem outras comorbidades relatadas';
-    var habitos = dados.habitos || 'Nega tabagismo, etilismo social ou negado, sedentarismo habitual';
+    var hda = dados.hda || 'História da doença atual não informada.';
+    var medUso = dados.medicacoesUso || dados.medicacoes || 'Não informado';
+    var alergias = dados.alergias || 'Não informado';
+    var antecedentes = dados.antecedentes || 'Não informado';
+    var habitos = dados.habitos || 'Não informado';
 
     var blocoS = [
       '• Queixa Principal (QP): ' + qp + ' (tempo de evolução: ' + tempoEvolucao + ')',
@@ -30503,13 +30551,13 @@ var SoapAmbulatorialService = (function() {
     if (sv.altura) linhasSv.push('Altura: ' + sv.altura + ' m');
     if (sv.imc) linhasSv.push('IMC: ' + sv.imc + ' kg/m²');
 
-    var textoSv = linhasSv.length ? linhasSv.join(' | ') : 'Sinais vitais normais aferidos na triagem.';
+    var textoSv = linhasSv.length ? linhasSv.join(' | ') : 'Sinais vitais não informados.';
 
     var textoEf = dados.exameFisicoTexto || '';
     if (!textoEf && dados.modeloExameFisico && MODELOS_EXAME_FISICO[dados.modeloExameFisico]) {
       textoEf = MODELOS_EXAME_FISICO[dados.modeloExameFisico].texto;
     } else if (!textoEf) {
-      textoEf = MODELOS_EXAME_FISICO.checkup_geral.texto;
+      textoEf = 'Exame físico não informado.';
     }
 
     var blocoO = '• Sinais Vitais: ' + textoSv + '\n' + textoEf;
@@ -30521,7 +30569,7 @@ var SoapAmbulatorialService = (function() {
     } else if (dados.diagnosticoPrincipal) {
       listaDiag = [dados.diagnosticoPrincipal];
     } else {
-      listaDiag = ['1. Acompanhamento ambulatorial geral (CID-10: Z00.0 / CIAP-2: A98)'];
+      listaDiag = ['Hipótese diagnóstica a definir com os dados clínicos disponíveis.'];
     }
 
     var textoAvaliacao = listaDiag.map(function(d, i) {
@@ -30551,13 +30599,13 @@ var SoapAmbulatorialService = (function() {
     }
 
     // P - PLANO
-    var planoLinhas = [];
+    var planoLinhas = [], prescricaoLinhas = [], examesLinhas = [], orientacoesLinhas = [];
 
     // Metas Pressóricas e Escalonamento SBC 2020/2024 se HAS
     if (condutaHas) {
-      planoLinhas.push('🎯 Metas Pressóricas & Escalonamento (SBC 2020/2024):');
-      planoLinhas.push('  • Meta Alvo: ' + condutaHas.metaPressoricaTexto + ' [Alvo numérico: ' + condutaHas.metaPressorica + ']');
-      planoLinhas.push('  • Estratégia de Escalonamento: ' + condutaHas.escalonamentoDetalhe);
+      orientacoesLinhas.push('🎯 Metas Pressóricas & Escalonamento (SBC 2020/2024):');
+      orientacoesLinhas.push('  • Meta Alvo: ' + condutaHas.metaPressoricaTexto + ' [Alvo numérico: ' + condutaHas.metaPressorica + ']');
+      orientacoesLinhas.push('  • Estratégia de Escalonamento: ' + condutaHas.escalonamentoDetalhe);
     }
 
     // 1. Prescrição Farmacológica
@@ -30567,76 +30615,70 @@ var SoapAmbulatorialService = (function() {
     }
 
     if (listaPrescricao && listaPrescricao.length) {
-      planoLinhas.push((condutaHas ? '\n' : '') + '💊 Prescrição Medicamentosa (REMUME / Farmácia Popular):');
+      prescricaoLinhas.push('💊 Prescrição Medicamentosa (REMUME / Farmácia Popular):');
       var itensMed = Array.isArray(listaPrescricao) ? listaPrescricao : [listaPrescricao];
       itensMed.forEach(function(m, idx) {
         if (typeof m === 'string') {
-          planoLinhas.push('  ' + (idx + 1) + ') ' + m);
+          prescricaoLinhas.push('  ' + (idx + 1) + ') ' + m);
         } else if (m && m.nome) {
           var desc = m.nome + ' ' + (m.apresentacao || '') + ' --- ' + (m.quantidade || 'Uso contínuo');
           desc += '\n     Posologia: ' + (m.posologia || '') + (m.horarios ? ' (Horários: ' + m.horarios + ')' : '');
-          planoLinhas.push('  ' + (idx + 1) + ') ' + desc);
+          prescricaoLinhas.push('  ' + (idx + 1) + ') ' + desc);
         }
       });
     }
 
     // Protocolo de Monitorização K+/Cr após 2 semanas se HAS
     if (condutaHas) {
-      planoLinhas.push('\n🧪 Protocolo de Monitorização Laboratorial (K+ e Creatinina após 2 semanas):');
-      planoLinhas.push('  • Janela de Avaliação: Dosar Creatinina sérica (TFG CKD-EPI) e Potássio sérico (K+) em 1 a 2 semanas (7 a 14 dias).');
-      planoLinhas.push('  • Tolerância de Creatinina: Elevação de até 30% da Cr em relação ao basal é esperada e aceitável (vasodilatação eferente protetora). Suspender IECA/BRA e investigar se elevação > 30%.');
-      planoLinhas.push('  • Manejo de Potássio: Reduzir dose ou suspender IECA/BRA/Espironolactona se K+ > 5,5 mEq/L; emergência com ECG se K+ >= 6,0 mEq/L.');
-      planoLinhas.push('  • Bloqueio Sentinela: Contraindicação formal a AINEs (prevenção do triplo golpe renal) e proibição absoluta de associar IECA + BRA.');
+      examesLinhas.push('🧪 Protocolo de Monitorização Laboratorial (K+ e Creatinina após 2 semanas):');
+      examesLinhas.push('  • Janela de Avaliação: Dosar Creatinina sérica (TFG CKD-EPI) e Potássio sérico (K+) em 1 a 2 semanas (7 a 14 dias).');
+      orientacoesLinhas.push('  • Tolerância de Creatinina: Elevação de até 30% da Cr em relação ao basal é esperada e aceitável (vasodilatação eferente protetora). Suspender IECA/BRA e investigar se elevação > 30%.');
+      orientacoesLinhas.push('  • Manejo de Potássio: Reduzir dose ou suspender IECA/BRA/Espironolactona se K+ > 5,5 mEq/L; emergência com ECG se K+ >= 6,0 mEq/L.');
+      orientacoesLinhas.push('  • Bloqueio Sentinela: Contraindicação formal a AINEs (prevenção do triplo golpe renal) e proibição absoluta de associar IECA + BRA.');
     }
 
     // 2. Orientações Não Farmacológicas (MEV)
-    var mev = dados.mev || (condutaHas ? condutaHas.mev : [
-      'Alimentação balanceada (redução de sódio < 2g/dia, açúcares simples e ultraprocessados).',
-      'Atividade física regular aeróbica (meta de 150 min/semana divididos em 3 a 5 sessões).',
-      'Manter hidratação oral adequada e cessação do tabagismo se aplicável.'
-    ]);
+    var mev = dados.mev || (condutaHas ? condutaHas.mev : []);
     if (Array.isArray(mev) && mev.length) {
-      planoLinhas.push('\n🥗 Orientações Não Farmacológicas / Mudanças de Estilo de Vida (MEV):');
+      orientacoesLinhas.push('🥗 Orientações Não Farmacológicas / Mudanças de Estilo de Vida (MEV):');
       mev.forEach(function(item) {
-        planoLinhas.push('  • ' + item);
+        orientacoesLinhas.push('  • ' + item);
       });
     }
 
     // 3. Exames Solicitados
     var exames = dados.examesSolicitados || (condutaHas ? condutaHas.examesSolicitados : null);
     if (exames && exames.length) {
-      planoLinhas.push('\n🔬 Exames Complementares Solicitados:');
+      examesLinhas.push('🔬 Exames Complementares Solicitados:');
       var exList = Array.isArray(exames) ? exames : [exames];
       exList.forEach(function(ex) {
-        planoLinhas.push('  • ' + ex);
+        examesLinhas.push('  • ' + ex);
       });
     }
 
     // 4. Sinais de Alarme
-    var alarmes = dados.sinaisAlarme || (condutaHas ? condutaHas.sinaisAlarme : [
-      'Procurar atendimento imediato em Pronto-Socorro se: dor no peito em aperto, falta de ar súbita, perda de força em um lado do corpo, fala enrolada ou febre alta persistente.'
-    ]);
+    var alarmes = dados.sinaisAlarme || (condutaHas ? condutaHas.sinaisAlarme : []);
     if (Array.isArray(alarmes) && alarmes.length) {
-      planoLinhas.push('\n🚨 Sinais de Alarme para Procura de Pronto-Socorro:');
+      orientacoesLinhas.push('🚨 Sinais de Alarme para Procura de Pronto-Socorro:');
       alarmes.forEach(function(al) {
-        planoLinhas.push('  • ' + al);
+        orientacoesLinhas.push('  • ' + al);
       });
     }
 
     // 5. Retorno
     var diasRetorno = dados.retornoDias ? (dados.retornoDias + ' dias') : (condutaHas ? (condutaHas.retornoDias + ' dias (1 a 2 semanas para controle de K+/Cr e titulação)') : '30 a 60 dias');
-    planoLinhas.push('\n📅 Retorno Ambulatorial: Reavaliação clínica e checagem de exames em ' + diasRetorno + '.');
+    orientacoesLinhas.push('📅 Retorno Ambulatorial: Reavaliação clínica e checagem de exames em ' + diasRetorno + '.');
 
+    planoLinhas.push('Prescrição Pronta Copy-Paste (UBS/REMUME vs. Urgência/Enfermaria):');
+    planoLinhas.push(prescricaoLinhas.length ? prescricaoLinhas.join('\n') : 'Prescrição não informada; conferir dados de segurança antes de prescrever.');
+    planoLinhas.push('\nExames que mudam conduta imediata:');
+    planoLinhas.push(examesLinhas.length ? examesLinhas.join('\n') : 'Nenhum exame imediato indicado pelos dados informados.');
+    planoLinhas.push('\nOrientações/Sinais de Alarme:');
+    planoLinhas.push(orientacoesLinhas.join('\n'));
     var blocoP = planoLinhas.join('\n');
 
     // Texto integral consolidado
     var textoProntuario = [
-      '======================================================================',
-      '                  PRONTUÁRIO CLÍNICO AMBULATORIAL (SOAP)              ',
-      '======================================================================',
-      'Data: ' + (dados.data || new Date().toLocaleDateString('pt-BR')),
-      'Paciente: ' + (dados.pacienteNome || 'Ao Portador') + (dados.idade ? ' (' + dados.idade + ' anos)' : ''),
-      '',
       '[S - SUBJETIVO]',
       blocoS,
       '',
@@ -30647,8 +30689,7 @@ var SoapAmbulatorialService = (function() {
       textoAvaliacao,
       '',
       '[P - PLANO]',
-      blocoP,
-      '======================================================================'
+      blocoP
     ].join('\n');
 
     return {
@@ -30875,6 +30916,29 @@ var SoapAmbulatorialService = (function() {
     ].join('\n');
   }
 
+  // A suficiência depende do relato confirmado, nunca de achados inferidos pela IA.
+  function avaliarSuficienciaAnamnese(contextoAcumulado, historicoSessao) {
+    var texto = String(contextoAcumulado || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    var historico = historicoSessao || {};
+    var gineco = /gesta|gravidez|gravida|obstetric|ginecolog|sangramento vaginal|dor pelvica|amenorreia|corrimento vaginal/.test(texto);
+    var agudo = /dor toracica|dor no peito|dispneia|falta de ar|tosse|febre|dor abdominal|sangramento|gesta|gravidez|gravida|cefaleia intensa/.test(texto);
+    var alarmeRelatado = /nega\s+sinais? de alarme|sem\s+sinais? de alarme/.test(texto);
+    if (/dor toracica|dor no peito/.test(texto)) alarmeRelatado = alarmeRelatado || /(nega|sem).{0,30}(dispneia|sudorese|sincope|irradiacao)|\b(dispneia|sudorese|sincope|irradiacao)\b/.test(texto);
+    else if (/tosse|falta de ar|dispneia/.test(texto)) alarmeRelatado = alarmeRelatado || /(nega|sem).{0,30}(dispneia|falta de ar|febre|hemoptise)|\b(dispneia|falta de ar|hemoptise|febre)\b/.test(texto);
+    else if (gineco) alarmeRelatado = alarmeRelatado || /(nega|sem).{0,30}(sangramento|dor intensa|sincope)|\b(sangramento|sincope|dor intensa)\b/.test(texto);
+    else alarmeRelatado = alarmeRelatado || /(nega|sem).{0,30}(febre|dispneia|sangramento|sincope)|\b(febre|dispneia|sangramento|sincope)\b/.test(texto);
+    var eixos = {
+      historia: /paciente|dor|tosse|febre|sangramento|queixa|dispneia/.test(texto) && /\bha\s+\d|\bdesde\b|\binicio\b|\bevolucao\b|\bhoje\b|\bontem\b|\bsemanas?\b|\bdias?\b/.test(texto),
+      alarmes: alarmeRelatado,
+      seguranca: /(alergia|alergico)/.test(texto) && /(comorbidade|antecedente|diabet|hipertens|sem doencas)/.test(texto) && /(medicac|medicamento|remedio|farmaco|uso continuo)/.test(texto) && !/(alergia|comorbidade|medicac|medicamento).{0,20}(desconhecid|nao informad|nao sabe)/.test(texto),
+      gineco: !gineco || (/\bg\s*\d+\s*p\s*\d+\s*a\s*\d+|\bgesta\s*\d+/.test(texto) && /\bdum\s*[:=]?\s*\d|idade gestacional\s*[:=]?\s*\d|\big\s*[:=]?\s*\d/.test(texto)),
+      objetivo: !agudo || /\bpa\s*[:=]?\s*\d|\bfc\s*[:=]?\s*\d|spo2\s*[:=]?\s*\d|saturac.{0,8}\d|\bfr\s*[:=]?\s*\d|\btax?\s*[:=]?\s*\d|glicemia\s*[:=]?\s*\d|\becg\s*[:=]?\s*(?:com|sem|mostra|alterad)|\b(?:crepitac|sibil|rigidez|defesa abdominal)\b/.test(texto)
+    };
+    var faltantes = Object.keys(eixos).filter(function(chave) { return !eixos[chave]; });
+    return { anamneseSuficiente: !faltantes.length || Number(historico.respostasComplementares || 0) >= 1,
+      faltantes: faltantes, eixos: eixos };
+  }
+
   // 11. FORMATAÇÃO CANÔNICA DE RASCUNHO SOAP PARA O TELEGRAM (FASE 1 vs FASE 2)
   function formatarRascunhoSoapTelegram(dados, opcoes) {
     opcoes = opcoes || {};
@@ -30916,6 +30980,16 @@ var SoapAmbulatorialService = (function() {
       var pText = dados.plano || (estruturado && estruturado.plano) || 'Conduta e orientações a definir.';
       if (Array.isArray(aText)) aText = aText.join('\n');
       if (Array.isArray(pText)) pText = pText.join('\n');
+      if (pText && typeof pText === 'object') {
+        pText = 'Prescrição Pronta Copy-Paste (UBS/REMUME vs. Urgência/Enfermaria):\n' + (pText.prescricao || []).join('\n') +
+          '\nExames que mudam conduta imediata:\n' + (pText.exames || []).join('\n') +
+          '\nOrientações/Sinais de Alarme:\n' + (pText.orientacoes || []).join('\n');
+      } else if (pText.indexOf('Prescrição Pronta Copy-Paste') === -1) {
+        pText = 'Prescrição Pronta Copy-Paste (UBS/REMUME vs. Urgência/Enfermaria):\n' + pText +
+          '\nExames que mudam conduta imediata:\nNão informados.\nOrientações/Sinais de Alarme:\nNão informados.';
+      }
+      var pends = dados.pendencias || dados.pendencias_opcionais;
+      if (Array.isArray(pends) && pends.length) pText += '\nDados de segurança a conferir antes de prescrever:\n' + pends.join('\n');
 
       var linhasFase2 = [
         '🩺 *SÍNTESE SOAP · REGISTRO CONSOLIDADO*',
@@ -30924,11 +30998,6 @@ var SoapAmbulatorialService = (function() {
         '🧠 *A - Avaliação*\n' + aText,
         '📋 *P - Plano*\n' + pText
       ];
-
-      var pends = dados.pendencias || dados.pendencias_opcionais;
-      if (Array.isArray(pends) && pends.length) {
-        linhasFase2.push('💡 *Dados adicionais sugeridos (se houver):*\n' + pends.map(function(item) { return '• ' + item; }).join('\n'));
-      }
 
       return linhasFase2.join('\n\n');
     } else {
@@ -31012,6 +31081,7 @@ var SoapAmbulatorialService = (function() {
     formatarExameFisicoSistemas: formatarExameFisicoSistemas,
     obterModeloExameFisicoCompleto: obterModeloExameFisicoCompleto,
     formatarRascunhoSoapTelegram: formatarRascunhoSoapTelegram,
+    avaliarSuficienciaAnamnese: avaliarSuficienciaAnamnese,
     processarEntradaSoap: processarEntradaSoap
   };
 })();
@@ -31030,6 +31100,10 @@ function obterModeloExameFisicoCompleto(contextoPrevio) {
 
 function formatarRascunhoSoapTelegram(dados, opcoes) {
   return SoapAmbulatorialService.formatarRascunhoSoapTelegram(dados, opcoes);
+}
+
+function avaliarSuficienciaAnamnese(contextoAcumulado, historicoSessao) {
+  return SoapAmbulatorialService.avaliarSuficienciaAnamnese(contextoAcumulado, historicoSessao);
 }
 
 function processarEntradaSoap(chatId, textoEntrada, opcoes) {
@@ -34815,6 +34889,50 @@ function normalizarTexto(texto) {
     .trim();
 }
 
+var _indicesBasesLocais = new Map();
+
+function obterIndiceBaseLocal(nome, registros, termosDoRegistro) {
+  var anterior = _indicesBasesLocais.get(nome);
+  if (anterior && anterior.registros === registros) return anterior;
+  var indice = { registros: registros, exatos: new Map(), tokens: new Map(), trechos: new Map(), consultas: new Map() };
+  registros.forEach(function(registro) {
+    termosDoRegistro(registro).forEach(function(termo) {
+      var chave = normalizarTexto(termo).replace(/\s+/g, " ");
+      if (!chave) return;
+      if (!indice.exatos.has(chave)) indice.exatos.set(chave, registro);
+      chave.split(/[\s+]+/).forEach(function(token) {
+        if (token.length < 3) return;
+        if (!indice.tokens.has(token)) indice.tokens.set(token, []);
+        var candidatos = indice.tokens.get(token);
+        if (candidatos[candidatos.length - 1] !== registro) candidatos.push(registro);
+      });
+      for (var pos = 0; pos <= chave.length - 3; pos++) {
+        var trecho = chave.slice(pos, pos + 3);
+        if (!indice.trechos.has(trecho)) indice.trechos.set(trecho, []);
+        var entradas = indice.trechos.get(trecho);
+        if (entradas[entradas.length - 1] !== registro) entradas.push(registro);
+      }
+    });
+  });
+  _indicesBasesLocais.set(nome, indice);
+  return indice;
+}
+
+function lerConsultaLocal(indice, chave) {
+  if (!indice.consultas.has(chave)) return { encontrado: false };
+  var resposta = indice.consultas.get(chave);
+  indice.consultas.delete(chave);
+  indice.consultas.set(chave, resposta);
+  return { encontrado: true, resposta: resposta };
+}
+
+function guardarConsultaLocal(indice, chave, resposta) {
+  if (indice.consultas.has(chave)) indice.consultas.delete(chave);
+  indice.consultas.set(chave, resposta);
+  if (indice.consultas.size > 256) indice.consultas.delete(indice.consultas.keys().next().value);
+  return resposta;
+}
+
 // Cache integral por execução. A identidade da fonte impede reutilizar outra planilha.
 var _cachePlanilhasExecucao = {};
 var _fontesPlanilhasExecucao = {};
@@ -35108,11 +35226,17 @@ function consultarRemumeRP(termo, medHslFallback) {
 
   var ehBuscaAssociacao = termoAlvo.indexOf("+") !== -1 || /clavulan/i.test(termoAlvo);
   var itens = obterItensRemumeRP();
+  var indice = obterIndiceBaseLocal("remume", itens, function(linha) {
+    return [normalizarPrincipioAtivo(linha)];
+  });
+  var chaveConsulta = termoAlvo + "|" + ehBuscaAssociacao;
+  var salvo = lerConsultaLocal(indice, chaveConsulta);
   var isolados = [];
   var associados = [];
 
-  for (var i = 0; i < itens.length; i++) {
-    var linhaOriginal = itens[i];
+  var candidatos = indice.trechos.get(termoAlvo.slice(0, 3)) || itens;
+  for (var i = 0; !salvo.encontrado && i < candidatos.length; i++) {
+    var linhaOriginal = candidatos[i];
     var linhaNorm = normalizarPrincipioAtivo(linhaOriginal);
 
     // Regex de palavra inteira ou início de termo para evitar falsos positivos
@@ -35126,7 +35250,8 @@ function consultarRemumeRP(termo, medHslFallback) {
     }
   }
 
-  var apresentacoes = ehBuscaAssociacao ? associados.concat(isolados) : isolados.concat(associados);
+  var apresentacoes = salvo.encontrado ? salvo.resposta :
+    guardarConsultaLocal(indice, chaveConsulta, ehBuscaAssociacao ? associados.concat(isolados) : isolados.concat(associados));
 
   // Fallback transparente se o mock de teste não carregou a lista do CSV mas o HSL traz flags estáticas
   if (apresentacoes.length === 0 && medHslFallback && medHslFallback.na_remume) {
@@ -35245,12 +35370,18 @@ function buscarMedicamentoNoHSL(termo) {
   // Expansão por dicionário de sinônimos/marcas
   var sin = DICIONARIO_FARMACO[termoLimpo];
   var sinNorm = sin ? normalizarTermoMedicamento(sin) : null;
+  var indice = obterIndiceBaseLocal("hsl", meds, function(med) { return [med.nome_normalizado]; });
+  var chaveConsulta = normalizarTexto(termoLimpo);
+  var salvo = lerConsultaLocal(indice, chaveConsulta);
+  if (salvo.encontrado) return salvo.resposta;
+  var exato = sinNorm ? null : indice.exatos.get(normalizarTexto(termoNorm));
+  if (exato) return guardarConsultaLocal(indice, chaveConsulta, exato);
 
   // 1. Correspondência exata no nome normalizado
   for (var i = 0; i < meds.length; i++) {
     var m = meds[i];
     if (m.nome_normalizado === termoNorm || (sinNorm && m.nome_normalizado === sinNorm)) {
-      return m;
+      return guardarConsultaLocal(indice, chaveConsulta, m);
     }
   }
 
@@ -35258,7 +35389,7 @@ function buscarMedicamentoNoHSL(termo) {
   for (var j = 0; j < meds.length; j++) {
     var med = meds[j];
     if (med.nome_normalizado.indexOf(termoNorm) === 0 || (sinNorm && med.nome_normalizado.indexOf(sinNorm) === 0)) {
-      return med;
+      return guardarConsultaLocal(indice, chaveConsulta, med);
     }
   }
 
@@ -35266,7 +35397,7 @@ function buscarMedicamentoNoHSL(termo) {
   for (var k = 0; k < meds.length; k++) {
     var item = meds[k];
     if (item.nome_normalizado.indexOf(termoNorm) !== -1 || (sinNorm && item.nome_normalizado.indexOf(sinNorm) !== -1)) {
-      return item;
+      return guardarConsultaLocal(indice, chaveConsulta, item);
     }
   }
 
@@ -35277,13 +35408,13 @@ function buscarMedicamentoNoHSL(termo) {
       for (var a = 0; a < cand.apresentacoes_hsl.length; a++) {
         var aprNorm = normalizarTermoMedicamento(cand.apresentacoes_hsl[a]);
         if (aprNorm.indexOf(termoNorm) !== -1) {
-          return cand;
+          return guardarConsultaLocal(indice, chaveConsulta, cand);
         }
       }
     }
   }
 
-  return null;
+  return guardarConsultaLocal(indice, chaveConsulta, null);
 }
 
 /**
@@ -35924,16 +36055,22 @@ function buscarMedicamentoPediatricoPedB(termo) {
 
   var sin = DICIONARIO_FARMACO[termoLimpo];
   var sinNorm = sin ? normalizarTermoMedicamento(sin) : null;
+  var indice = obterIndiceBaseLocal("pedb_medicamentos", meds, function(med) {
+    return [med.nome_normalizado || med.nome];
+  });
+  var chaveConsulta = normalizarTexto(termoLimpo);
+  var salvo = lerConsultaLocal(indice, chaveConsulta);
+  if (salvo.encontrado) return salvo.resposta;
 
   // 1. Correspondência exata no nome normalizado ou slug
   for (var i = 0; i < meds.length; i++) {
     var m = meds[i];
     var mNorm = m.nome_normalizado || normalizarTermoMedicamento(m.nome);
     if (mNorm === termoNorm || (sinNorm && mNorm === sinNorm)) {
-      return m;
+      return guardarConsultaLocal(indice, chaveConsulta, m);
     }
     if (m.slug && (m.slug === termoLimpo || (sin && m.slug === sin))) {
-      return m;
+      return guardarConsultaLocal(indice, chaveConsulta, m);
     }
   }
 
@@ -35945,7 +36082,7 @@ function buscarMedicamentoPediatricoPedB(termo) {
       var palavrasMarcas = marcasNorm.split(/\s+/);
       for (var pm = 0; pm < palavrasMarcas.length; pm++) {
         if (palavrasMarcas[pm] === termoNorm || (sinNorm && palavrasMarcas[pm] === sinNorm)) {
-          return medK;
+          return guardarConsultaLocal(indice, chaveConsulta, medK);
         }
       }
     }
@@ -35956,7 +36093,7 @@ function buscarMedicamentoPediatricoPedB(termo) {
     var med = meds[j];
     var mNomeNorm = med.nome_normalizado || normalizarTermoMedicamento(med.nome);
     if (mNomeNorm.indexOf(termoNorm) === 0 || (sinNorm && mNomeNorm.indexOf(sinNorm) === 0)) {
-      return med;
+      return guardarConsultaLocal(indice, chaveConsulta, med);
     }
   }
 
@@ -35966,7 +36103,7 @@ function buscarMedicamentoPediatricoPedB(termo) {
       var medL = meds[l];
       var mNN = medL.nome_normalizado || normalizarTermoMedicamento(medL.nome);
       if (mNN.indexOf(termoNorm) !== -1 || (sinNorm && mNN.indexOf(sinNorm) !== -1)) {
-        return medL;
+        return guardarConsultaLocal(indice, chaveConsulta, medL);
       }
     }
   }
@@ -35978,13 +36115,13 @@ function buscarMedicamentoPediatricoPedB(termo) {
       for (var pk = 0; pk < medP.palavras_chave.length; pk++) {
         var kwNorm = normalizarTermoMedicamento(medP.palavras_chave[pk]);
         if (kwNorm === termoNorm || (sinNorm && kwNorm === sinNorm)) {
-          return medP;
+          return guardarConsultaLocal(indice, chaveConsulta, medP);
         }
       }
     }
   }
 
-  return null;
+  return guardarConsultaLocal(indice, chaveConsulta, null);
 }
 
 /**
@@ -36273,18 +36410,24 @@ function buscarCondutaPediatricaPedB(termo) {
   if (sinonimosCondutas[chaveSin]) {
     termoNorm = sinonimosCondutas[chaveSin];
   }
+  var indice = obterIndiceBaseLocal("pedb_condutas", conds, function(conduta) {
+    return [conduta.titulo_normalizado];
+  });
+  var chaveConsulta = normalizarTexto(termoLower);
+  var salvo = lerConsultaLocal(indice, chaveConsulta);
+  if (salvo.encontrado) return salvo.resposta;
 
   for (var i = 0; i < conds.length; i++) {
     var c = conds[i];
     if (c.titulo_normalizado === termoNorm || c.slug === termoLower) {
-      return c;
+      return guardarConsultaLocal(indice, chaveConsulta, c);
     }
   }
 
   for (var j = 0; j < conds.length; j++) {
     var cond = conds[j];
     if (cond.titulo_normalizado.indexOf(termoNorm) !== -1) {
-      return cond;
+      return guardarConsultaLocal(indice, chaveConsulta, cond);
     }
   }
 
@@ -36293,13 +36436,13 @@ function buscarCondutaPediatricaPedB(termo) {
     if (Array.isArray(cTag.tags)) {
       for (var t = 0; t < cTag.tags.length; t++) {
         if (normalizarTermoMedicamento(cTag.tags[t]) === termoNorm) {
-          return cTag;
+          return guardarConsultaLocal(indice, chaveConsulta, cTag);
         }
       }
     }
   }
 
-  return null;
+  return guardarConsultaLocal(indice, chaveConsulta, null);
 }
 
 /**
@@ -36801,6 +36944,7 @@ function _obterRegrasInteracoesNorm() {
     }
   } catch (e) {}
   regras.termos = termos;
+  obterIndiceBaseLocal("interacoes", regras, function(regra) { return [regra.colA, regra.colB]; });
   _cacheRegrasInteracoesNorm = regras;
   return _cacheRegrasInteracoesNorm;
 }
@@ -37193,13 +37337,21 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
   try {
     if (farmacos.length >= 2) {
       var regras = _obterRegrasInteracoesNorm();
+      var indiceInteracoes = obterIndiceBaseLocal("interacoes", regras, function(regra) {
+        return [regra.colA, regra.colB];
+      });
       for (var i = 0; i < farmacos.length; i++) {
         for (var j = i + 1; j < farmacos.length; j++) {
           var d1 = farmacos[i];
           var d2 = farmacos[j];
-          for (var k = 0; k < regras.length; k++) {
-            var r = regras[k];
+          var chavePar = d1 + "|" + d2;
+          var parSalvo = lerConsultaLocal(indiceInteracoes, chavePar);
+          var candidatas = parSalvo.encontrado ? parSalvo.resposta : regras;
+          var correspondentes = [];
+          for (var k = 0; k < candidatas.length; k++) {
+            var r = candidatas[k];
             if ((r.colA.indexOf(d1) !== -1 && r.colB.indexOf(d2) !== -1) || (r.colA.indexOf(d2) !== -1 && r.colB.indexOf(d1) !== -1)) {
+              if (!parSalvo.encontrado) correspondentes.push(r);
               interacoesAchadas.push({
                 drogaA: r.drogaA,
                 drogaB: r.drogaB,
@@ -37210,6 +37362,7 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
               });
             }
           }
+          if (!parSalvo.encontrado) guardarConsultaLocal(indiceInteracoes, chavePar, correspondentes);
         }
       }
     }
@@ -38157,10 +38310,12 @@ var IaLocalFallbackService = (function () {
       resultado.avaliacao = ehEmergencia ? ['Emergência clínica aguda / PCR'] : ['Atendimento clínico geral'];
       resultado.plano = condutaProto ? [condutaProto] : ['Monitorização multiparamétrica contínua e reavaliação assistencial.'];
       resultado.conduta_emergencia = condutaProto || null;
-      resultado.perguntas_anamnese = [
-        '1. Quais os sinais vitais atuais (PA, FC, FR, SatO2, T)? (Para estratificação objetiva de risco)',
-        '2. Há alergias ou comorbidades conhecidas? (Para salvaguarda terapêutica)'
+      var gateSoap = typeof avaliarSuficienciaAnamnese === 'function' ? avaliarSuficienciaAnamnese(textoLimpo, {}) : null;
+      resultado.perguntas_anamnese = gateSoap && gateSoap.anamneseSuficiente ? [] : [
+        'Quais os sinais vitais atuais (PA, FC, FR, SatO2, T)? (estratificação objetiva de risco)',
+        'Há alergias, comorbidades ou medicações em uso? (segurança da prescrição)'
       ];
+      resultado.anamneseSuficiente = !!(gateSoap && gateSoap.anamneseSuficiente);
       resultado.exame_dirigido = ['Monitorização multiparamétrica contínua e oximetria de pulso'];
     }
 
@@ -38406,9 +38561,9 @@ var IaLocalFallbackService = (function () {
       pendencias: [],
       subjetivo: subjetivo || null,
       objetivo: objetivo,
-      perguntas_anamnese: [
-        '1. Quais os sinais vitais atuais (PA, FC, FR, SatO2, Temperatura)? (Para estratificação objetiva de risco)',
-        '2. Há comorbidades prévias ou alergias a medicamentos conhecidas? (Para salvaguarda de prescrição)'
+      perguntas_anamnese: (typeof avaliarSuficienciaAnamnese === 'function' && avaliarSuficienciaAnamnese(textoContexto, {}).anamneseSuficiente) ? [] : [
+        'Quais os sinais vitais atuais (PA, FC, FR, SatO2, Temperatura)? (estratificação objetiva de risco)',
+        'Há comorbidades, alergias e medicações em uso? (segurança de prescrição)'
       ],
       exame_dirigido: ['Aferição multiparamétrica completa e exame clínico dos 5 sistemas vitais.'],
       soapTexto: soapTexto || null,
@@ -40238,7 +40393,7 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     "      - tipo_relato: 'soap'",
     "      - Subjetivo: QP com duração e HDA cronológica formal (sem transcrição literal, em prosa médica culta). Antecedentes, comorbidades, medicações e alergias.",
     "      - Objetivo: Exame físico inteligente no modelo meio-termo com os 5 sistemas clássicos (Geral, ACV, AR, Abdome, Extremidades). NUNCA invente sinais vitais não ditados.",
-    "      - Perguntas de Anamnese com Racional Didático: 2 a 4 perguntas investigativas diretas, CADA UMA COM SUA JUSTIFICATIVA CLÍNICA OU HIPÓTESE A DESCARTAR ENTRE PARÊNTESES.",
+    "      - Perguntas de Anamnese com Racional Didático: no máximo 2 a 3 perguntas investigativas diretas que mudem a conduta, CADA UMA COM SUA JUSTIFICATIVA CLÍNICA OU HIPÓTESE A DESCARTAR ENTRE PARÊNTESES. Se houver dados suficientes, retorne lista vazia.",
     "      - Exame Dirigido: Sinais vitais essenciais e manobras físicas direcionadas à queixa que não foram informadas.",
     "      - REGRA ABSOLUTA DE SEGURANÇA: NÃO inclua hipóteses diagnósticas (Avaliação) e NÃO inclua prescrição ou condutas (Plano) nesta fase.",
     "3. SE NÃO FOR RELATO CLÍNICO (ex: agendamento de calendário, hábito pessoal, tarefa do Notion ou conversa geral): defina 'eh_clinico' como false.",
@@ -40309,7 +40464,8 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     if (typeof formatarExameFisicoSistemas === "function") {
       oSanitizado = formatarExameFisicoSistemas(oSanitizado);
     }
-    var perguntas = obj.perguntas_anamnese || obj.perguntas || [];
+    var gateAudio = typeof avaliarSuficienciaAnamnese === 'function' ? avaliarSuficienciaAnamnese(transcricao, {}) : null;
+    var perguntas = gateAudio && gateAudio.anamneseSuficiente ? [] : (obj.perguntas_anamnese || obj.perguntas || []).slice(0, 3);
     var exameDirigido = obj.exame_dirigido || [];
     var temEfAudio = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(transcricao);
 
@@ -40321,6 +40477,7 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
     if (perguntas && perguntas.length > 0) {
       blocosRasc.push("❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
     }
+    if (gateAudio && gateAudio.anamneseSuficiente) blocosRasc.push('✅ Anamnese suficiente para tomada de decisão. Pode gerar o plano.');
     if (!temEfAudio && exameDirigido && exameDirigido.length > 0) {
       blocosRasc.push("🎯 *Cobrança Ativa do Exame Físico Dirigido*\n" + formatarListaTopicos(exameDirigido, "Aferir sinais vitais completos e exame direcionado ao foco da queixa."));
     }
@@ -40818,15 +40975,14 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "3. AVALIAÇÃO (A):",
       "   - Diagnóstico principal ou problema sindrômico com CID-10 e CIAP-2.",
       "   - Diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade. Sem teorizações prolixas.",
-      "4. PLANO (P):",
-      "   - Prescrição farmacológica detalhada e objetiva (fármaco, dose, posologia com intervalo/horário, via, tempo), de acordo com REMUME RP e segurança (ajuste renal/peso se informado).",
-      "   - Exames complementares imediatos.",
-      "   - Orientações farmacológicas e critérios de alarme objetivos. Sem conselhos de estilo de vida genéricos óbvios.",
+      "4. PLANO (P): divida em Prescrição Pronta Copy-Paste (UBS/REMUME ou Urgência/Enfermaria conforme cenário), Exames que mudam conduta imediata e Orientações/Sinais de Alarme.",
+      "   - Prescrição: fármaco, apresentação, dose, via, intervalo e duração somente quando segurança e referência permitirem. Se alergias, gestação, peso ou função renal imprescindíveis faltarem, sinalize a lacuna e NÃO invente dose nem negativa.",
+      "   - Exames: apenas os que alteram conduta no cenário; orientações: retorno e alarmes pertinentes. Evite exames e conselhos genéricos.",
       ambulatorialAgil ? "   - Foco APS: Prescrição REMUME, sinais de alarme para PS e meta de reavaliação." : "",
       "5. PENDÊNCIAS CRÍTICAS: Liste apenas dados que condicionem a segurança antes de prescrever; omita se não houver.",
       "",
       "Contrato JSON estrito:",
-      '{"subjetivo":"Texto limpo organizado com QP, HDA, Antecedentes, Medicações e Alergias","objetivo":"Texto estruturado do O por sistemas com achados e exames","avaliacao":["hipótese principal com CID-10 e CIAP-2","diferenciais em ordem de probabilidade/gravidade"],"plano":["item 1 da conduta com prescrição detalhada","exames solicitados","orientações e critérios de alarme"],"pendencias_opcionais":["dado crítico ausente"]}'
+      '{"subjetivo":"QP, HDA e antecedentes confirmados","objetivo":"achados e sinais vitais informados","avaliacao":["hipótese principal e diferenciais pertinentes"],"plano":{"prescricao":["prescrição pronta ou lacuna de segurança"],"exames":["exame que muda conduta imediata"],"orientacoes":["retorno e sinais de alarme"]},"pendencias_opcionais":["dado crítico ausente"]}'
     ].join("\n");
 
     var rawCons = executarRaciocinioClinico(promptSistemaConsolidado, "CASO CLÍNICO:\n" + dadosCaso, 3500, { json: true });
@@ -40855,23 +41011,23 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     }
     var pendencias = Array.isArray(objCons.pendencias_opcionais) ? objCons.pendencias_opcionais.filter(Boolean) : [];
 
+    var planoCons = objCons.plano || {};
+    var planoTexto = Array.isArray(planoCons)
+      ? "Prescrição Pronta Copy-Paste (UBS/REMUME ou Urgência/Enfermaria)\n" + formatarListaTopicos(planoCons, "Conduta a definir após conferir dados de segurança.")
+      : "Prescrição Pronta Copy-Paste (UBS/REMUME ou Urgência/Enfermaria)\n" + formatarListaTopicos(planoCons.prescricao, "Prescrição condicionada à conferência de dados clínicos e segurança.") +
+        "\nExames que mudam conduta imediata\n" + formatarListaTopicos(planoCons.exames, "Nenhum exame imediato indicado pelos dados informados.") +
+        "\nOrientações/Sinais de Alarme\n" + formatarListaTopicos(planoCons.orientacoes, "Reavaliar conforme evolução e orientar retorno diante de piora.");
+    if (pendencias.length) planoTexto += "\nDados de segurança a conferir antes de prescrever\n" + formatarListaTopicos(pendencias, "");
     var blocosCons = [
       "🩺 *SÍNTESE SOAP · REGISTRO CONSOLIDADO*",
       "👤 *S - Subjetivo*\n" + sTexto,
       "🔍 *O - Objetivo*\n" + oTexto,
       "🧠 *A - Avaliação*\n" + formatarListaTopicos(objCons.avaliacao, "Avaliação diagnóstica a definir pelo médico assistente."),
-      "📋 *P - Plano*\n" + formatarListaTopicos(objCons.plano, "Conduta e prescrição a definir pelo médico assistente.")
+      "📋 *P - Plano*\n" + planoTexto
     ];
 
     if (objCons.contingencia_offline) {
       blocosCons.unshift("⚠️ *MODO OFFLINE DE CONTINGÊNCIA (PROVEDOR EM NUVEM EM TIMEOUT)*\nProcessado pelo Motor Determinístico Offline.");
-    }
-
-    if (pendencias.length > 0) {
-      blocosCons.push(
-        "⚠️ *Dados adicionais que enriqueceriam o caso (Dados pendentes — conferir antes de concluir):*\n" +
-        formatarListaTopicos(pendencias, "")
-      );
     }
 
     var consolidado = _iaFinalizarTexto(blocosCons.join("\n\n"));
@@ -40902,7 +41058,8 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - Integre exame especial se contido no caso.",
     "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Geral, ACV, AR, Abdome e Extremidades), cada um em sua própria linha separada. NUNCA junte na mesma linha e NUNCA sintetize em apenas 'EF normal'.",
     "3. INVESTIGAÇÃO ATIVA DA ANAMNESE COM JUSTIFICATIVA DIDÁTICA (FMRP-USP):",
-    "   - Formule de 2 a 4 perguntas diretas e clínicas para completar as lacunas da história (início detalhado, fatores de alívio/piora, antecedentes, alergias, medicações).",
+    "   - Formule NO MÁXIMO 2 a 3 perguntas que mudem a conduta, apenas para lacunas críticas de QP/tempo, sinais de alarme pertinentes, alergias/comorbidades/medicações, G_P_A_/DUM/IG em queixa gineco-obstétrica e dado objetivo indispensável. Negativas explícitas já cobrem o eixo. NÃO crie perguntas acadêmicas intermináveis.",
+    "   - Se os quatro pilares decisórios já estiverem cobertos, retorne perguntas_anamnese=[] e a mensagem: ✅ Anamnese suficiente. Pode gerar o plano. Após uma resposta complementar, não faça nova rodada de perguntas; registre lacunas críticas como pendências de segurança.",
     "   - RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses ao final. Exemplo: 'Investigar se a dor epigástrica irradia para o dorso (descartar pancreatite aguda ou dissecção de aorta abdominal)'.",
     "4. EXAME FÍSICO DIRIGIDO (SUGESTÃO COMPLEMENTAR):",
     "   - 1 a 2 tópicos com sinais vitais críticos (PA, FC, FR, SpO2, Tax) e manobras/auscultas essenciais para o caso que ainda não foram informados.",
@@ -40943,7 +41100,30 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   }
   if (!oRasc) oRasc = "Exame físico em estruturação; conferir sinais vitais e achados.";
 
-  var perguntas = objRasc.perguntas_anamnese || objRasc.perguntas;
+  var historicoSoap = opcoes.historicoSessao || {};
+  var suficiencia = typeof avaliarSuficienciaAnamnese === 'function'
+    ? avaliarSuficienciaAnamnese(dadosCaso, historicoSoap)
+    : { anamneseSuficiente: Number(historicoSoap.respostasComplementares || 0) >= 1, eixos: {} };
+  var jaFeitas = (historicoSoap.perguntasFeitas || []).map(function(p) { return String(p).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s*\([^)]*\)\s*$/, '').trim(); });
+  var perguntas = (Array.isArray(objRasc.perguntas_anamnese) ? objRasc.perguntas_anamnese : (Array.isArray(objRasc.perguntas) ? objRasc.perguntas : [])).filter(function(p) {
+    if (typeof p !== 'string' || !p.trim()) return false;
+    var chave = p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+    if (jaFeitas.indexOf(chave) !== -1) return false;
+    if (/(alerg|comorb|medicac|medicamento|remedio|antecedente)/.test(chave)) return !suficiencia.eixos.seguranca;
+    if (/(dum|idade gestacional|\big\b|gesta|paridade)/.test(chave)) return !suficiencia.eixos.gineco;
+    if (/(sinais vitais|\bpa\b|saturac|\bspo2\b|\bfc\b|\bfr\b|temperatura)/.test(chave)) return !suficiencia.eixos.objetivo;
+    if (/(febre|dispneia|sangramento|sincope|sudorese|irradi|alarme)/.test(chave)) return !suficiencia.eixos.alarmes;
+    return true;
+  }).slice(0, 3);
+  if (suficiencia.anamneseSuficiente) perguntas = [];
+  if (!suficiencia.anamneseSuficiente && !perguntas.length) {
+    if (!suficiencia.eixos.historia) perguntas.push('Qual a queixa principal e há quanto tempo começou? (definir síndrome e cronologia)');
+    if (!suficiencia.eixos.alarmes) perguntas.push('Há sinais de alarme pertinentes, como dispneia, síncope, febre ou sangramento? (estratificar gravidade)');
+    if (!suficiencia.eixos.seguranca) perguntas.push('Há alergias, comorbidades e medicações em uso? (segurança de prescrição)');
+    if (!suficiencia.eixos.gineco) perguntas.push('Informe G_P_A_, DUM e IG ou possibilidade de gestação. (segurança obstétrica)');
+    if (!suficiencia.eixos.objetivo) perguntas.push('Quais sinais vitais e achados objetivos estão disponíveis? (estratificar risco)');
+    perguntas = perguntas.slice(0, 3);
+  }
   var exameDirigido = objRasc.exame_dirigido;
   var temEfCompleto = /totalmente\s+normal|exame\s+f[ií]sico\s+geral\s+e\s+segmentar\s+completo|\bbom\s+estado\s+geral,\s+l[uú]cido|\bsem\s+edema\s+de\s+membros\s+inferiores\b|\bpulsos?\s+radiai[s]\b/i.test(dadosCaso);
 
@@ -40956,6 +41136,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   if (perguntas && perguntas.length > 0) {
     blocosRasc.push("❓ *Perguntas para Completar a Anamnese (Investigação Ativa do Subjetivo)*\n" + formatarListaTopicos(perguntas, "Informar início detalhado, fatores de melhora/piora, antecedentes e alergias."));
   }
+  if (suficiencia.anamneseSuficiente) blocosRasc.push('✅ Anamnese suficiente para tomada de decisão. Pode gerar o plano.');
 
   if (objRasc.contingencia_offline) {
     blocosRasc.unshift("⚠️ *MODO OFFLINE DE CONTINGÊNCIA (PROVEDOR EM NUVEM EM TIMEOUT)*\nProcessado pelo Motor Determinístico Offline.");
@@ -42605,7 +42786,7 @@ function listarTarefasHojeNotion(chatIdDestino, messageId) {
   if (!res || !res.results) {
     var msgErro = "⚠️ Erro ao consultar o Notion Tasks. Tente novamente em instantes.";
     if (messageId && typeof enviarTelaBot === "function") return enviarTelaBot(destino, msgErro, kbTarefas, messageId);
-    return enviarMensagemParaChat(destino, msgErro);
+    return enviarMensagemComTecladoParaChat(destino, msgErro, kbTarefas);
   }
   if (res.results.length === 0) {
     var msgVazio = "📋 *Tarefas do Notion:* Nenhuma pendência para hoje ou no Inbox! Tudo zerado. 🎉\n\n💡 *Para adicionar nova tarefa:* Digite `/task <descrição>` ou envie por voz.";
@@ -45745,6 +45926,17 @@ function despacharComandosAmbulatorioESoap_(comando, texto, chatId, contextoCach
   }
 
   if (comando === "/remume") {
+    var termoRemume = texto.replace(/^\/remume\s*/i, "").trim();
+    if (termoRemume && typeof consultarRemumeRP === "function") {
+      var consultaRemume = consultarRemumeRP(termoRemume);
+      var textoRemume = consultaRemume.selo + " *" + termoRemume + "*";
+      if (consultaRemume.apresentacoes.length) {
+        textoRemume += "\n\n• " + consultaRemume.apresentacoes.join("\n• ");
+      } else {
+        textoRemume += "\n\nNenhuma apresentação localizada na REMUME-RP consultada.";
+      }
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, textoRemume) };
+    }
     if (typeof enviarTelaAmbRemume === "function") {
       return { executado: true, resultado: enviarTelaAmbRemume(chatId) };
     }
@@ -49346,15 +49538,16 @@ function extrairParametrosPancreatite(texto) {
     
     // 1. Checagem imediata em RAM (0ms)
     var check = (typeof executarCrossCheckSegurancaClinica === "function") ? executarCrossCheckSegurancaClinica(drogas) : null;
-    if (check && (check.interacoes.length > 0 || check.ajustesRenais.length > 0 || check.tetosDose.length > 0)) {
+    if (check && check.farmacosDetectados.length >= 2) {
       var kbInteracao = {
         inline_keyboard: [
           [{ text: "🔙 Prescrição & Farmaco", callback_data: "ux:farmaco:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
         ]
       };
-      return enviarMensagemComTecladoParaChat(chatId, check.textoFormatado, kbInteracao);
+      var ressalvaCatalogo = check.interacoes.length === 0 ? "\n\n⚠️ A ausência de registro nesta base não exclui outras interações. Confirme com fonte farmacológica atualizada antes da prescrição." : "";
+      return enviarMensagemComTecladoParaChat(chatId, check.textoFormatado + ressalvaCatalogo, kbInteracao);
     }
-    return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
+    return enviarMensagemParaChat(chatId, "⚠️ Não identifiquei dois fármacos com segurança. Informe os princípios ativos separados por vírgula para consultar as interações catalogadas.");
   }
 
   return null;
@@ -49508,7 +49701,7 @@ function processarMensagemTexto(message) {
       }
       var comandosSemBarra = [
         "menu", "ajuda", "help", "manual", "start", "novo", "cancelar", "cockpit", "app",
-        "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot",
+        "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot", "compatibilidade", "compatibilidade_y", "remume",
         "pcr", "acls", "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
         "prenatal", "parto", "ginecologia", "go", "obstetricia", "oftalmo", "vertigem", "epistaxe", "colica",
         "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
@@ -53191,6 +53384,19 @@ var LISTA_CALCULADORAS_DETERMINISTICAS = [
   "parkland", "dva", "gasometria", "gaso", "holliday"
 ];
 
+var INDICE_ALIASES_CALCULADORAS = Object.keys(CATALOGO_CALCULADORAS).reduce(function(indice, chave) {
+  CATALOGO_CALCULADORAS[chave].aliases.forEach(function(alias) {
+    var escapado = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    indice.regex.push({
+      id: CATALOGO_CALCULADORAS[chave].id,
+      tamanho: alias.length,
+      regex: new RegExp("(^|[^a-z0-9à-ÿ])" + escapado + "(?=$|[^a-z0-9à-ÿ])", "i")
+    });
+    if (!indice.exatos.has(alias)) indice.exatos.set(alias, true);
+  });
+  return indice;
+}, { regex: [], exatos: new Map() });
+
 function ehCalculadoraDeterministica(texto) {
   var id = identificarCalculadora(texto);
   return id ? LISTA_CALCULADORAS_DETERMINISTICAS.indexOf(id) !== -1 : false;
@@ -53198,25 +53404,14 @@ function ehCalculadoraDeterministica(texto) {
 
 function ehApenasNomeCalculadora(texto) {
   var s = (texto || "").trim().toLowerCase();
-  for (var k in CATALOGO_CALCULADORAS) {
-    var c = CATALOGO_CALCULADORAS[k];
-    if (c.aliases.indexOf(s) !== -1) return true;
-  }
-  return false;
+  return INDICE_ALIASES_CALCULADORAS.exatos.has(s);
 }
 
 function ehCalculadoraReconhecida(texto) {
   if (!texto || typeof texto !== "string") return false;
-  var t = texto.toLowerCase();
-  for (var k in CATALOGO_CALCULADORAS) {
-    var c = CATALOGO_CALCULADORAS[k];
-    for (var i = 0; i < c.aliases.length; i++) {
-      var alias = c.aliases[i];
-      var escAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      var re = new RegExp("(?:^|[^a-z0-9à-ÿ])" + escAlias + "(?:$|[^a-z0-9à-ÿ])", "i");
-      if (re.test(t)) {
-        return true;
-      }
+  for (var i = 0; i < INDICE_ALIASES_CALCULADORAS.regex.length; i++) {
+    if (INDICE_ALIASES_CALCULADORAS.regex[i].regex.test(texto)) {
+      return true;
     }
   }
   return false;
@@ -53224,17 +53419,17 @@ function ehCalculadoraReconhecida(texto) {
 
 // O primeiro identificador explícito prevalece sobre palavras dos dados clínicos.
 function identificarCalculadora(texto) {
-  var encontrados = [];
-  Object.keys(CATALOGO_CALCULADORAS).forEach(function(k) {
-    var c = CATALOGO_CALCULADORAS[k];
-    c.aliases.forEach(function(alias) {
-      var re = new RegExp("(^|[^a-z0-9à-ÿ])" + alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?=$|[^a-z0-9à-ÿ])", "i");
-      var m = String(texto).match(re);
-      if (m) encontrados.push({id:c.id, pos:m.index, tamanho:alias.length});
-    });
-  });
-  encontrados.sort(function(a,b) {return a.pos-b.pos || b.tamanho-a.tamanho;});
-  return encontrados.length ? encontrados[0].id : null;
+  var primeiro = null;
+  var consulta = String(texto);
+  for (var i = 0; i < INDICE_ALIASES_CALCULADORAS.regex.length; i++) {
+    var entrada = INDICE_ALIASES_CALCULADORAS.regex[i];
+    var encontrado = entrada.regex.exec(consulta);
+    if (encontrado && (!primeiro || encontrado.index < primeiro.pos ||
+        (encontrado.index === primeiro.pos && entrada.tamanho > primeiro.tamanho))) {
+      primeiro = { id: entrada.id, pos: encontrado.index, tamanho: entrada.tamanho };
+    }
+  }
+  return primeiro ? primeiro.id : null;
 }
 
 function tentarCalcularDeterministico(texto) {
@@ -54607,7 +54802,8 @@ function obterCatalogoComandosSlash(chatId) {
       titulo: "🏥 ENFERMARIA, LEITOS & PLANTÃO",
       comandos: [
         { cmd: "/enfermaria", aliases: ["/enfermaria"], sintaxe: "/enfermaria", desc: "Censo dos leitos internados, gravidade e pendências." },
-        { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Relatório consolidado de passagem de plantão da enfermaria." }
+        { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Relatório consolidado de passagem de plantão da enfermaria." },
+        { cmd: "/ajuda", aliases: ["/ajuda mascaras"], sintaxe: "/ajuda mascaras", desc: "Máscaras PEP copiáveis de CO, puerpério, pré-natal, exame ginecológico e enfermaria." }
       ]
     },
     ehConvidado ? {
@@ -54858,6 +55054,20 @@ function enviarManualCompletoComandos(chatId, filtro, messageId) {
     return enviarMenuAjudaInterativo(chatId, messageId);
   }
 
+  if (filtroNorm === 'mascaras' || filtroNorm === 'mascara' || filtroNorm === 'pep') {
+    var modelosPep = EnfermariaService.obterMascarasPep();
+    var titulosPep = { admissaoCo: 'Admissão CO', puerpera: 'Puérpera no alojamento conjunto', prenatal: 'Consulta de pré-natal', exameGinecologico: 'Exame ginecológico/especular/toque', clinicaGeral: 'Enfermaria clínica geral' };
+    var textoPep = '📋 *MÁSCARAS PEP COPIÁVEIS*\nPreencha apenas achados verificados; adapte ao protocolo local.\n\n';
+    Object.keys(titulosPep).forEach(function (chave) {
+      textoPep += '*' + titulosPep[chave] + '*\n```\n' + modelosPep[chave].replace(/^<code>|<\/code>$/g, '') + '\n```\n\n';
+    });
+    textoPep += EnfermariaService.obterChecklistPreRound();
+    var kbPep = { inline_keyboard: [[{ text: '🔙 Enfermaria', callback_data: 'ajuda_cat_enfermaria' }]] };
+    if (typeof enviarTelaBot === 'function') return enviarTelaBot(chatId, textoPep, kbPep, messageId);
+    if (typeof enviarMensagemComTecladoParaChat === 'function') return enviarMensagemComTecladoParaChat(chatId, textoPep, kbPep);
+    return enviarMensagemParaChat(chatId, textoPep);
+  }
+
   // Bloqueio explícito de ajuda sobre rotina e agenda pessoal para convidados
   if (typeof ehUsuarioTitular === "function" && chatId && !ehUsuarioTitular(chatId)) {
     if (filtroNorm === "rotina" || filtroNorm === "agenda" || filtroNorm === "habitos" || filtroNorm === "task" || filtroNorm === "tarefa" || filtroNorm === "tasks" || filtroNorm === "briefing" || filtroNorm === "checkin") {
@@ -54918,6 +55128,7 @@ function enviarManualCompletoComandos(chatId, filtro, messageId) {
               ]
             ]
           };
+          if (catAlvoId === 'enfermaria') kbCat.inline_keyboard.unshift([{ text: '📋 Máscaras PEP', callback_data: 'ajuda_cat_mascaras' }]);
           if (typeof enviarTelaBot === "function") {
             return enviarTelaBot(chatId, msgCat, kbCat, messageId);
           }
@@ -57099,7 +57310,7 @@ var EnfermariaService=(function(){
     var pendTxt = pendencias.length > 0 ? '\n⏰ *Pendências:* ' + pendencias.join('; ') : '';
     return '🛏️ *LEITO ' + id + '* · ' + leito.status + '\n' +
       '⏱️ Atualizado: ' + leito.dataISO + ' às ' + leito.atualizadoEm + '\n' +
-      '📝 *Evolução:* ' + leito.dados + pendTxt;
+      '📝 *Evolução:* ' + leito.dados + pendTxt + '\n' + CHECKLIST_PRE_ROUND;
   }
 
   function formatarSecaoSituacao(censoResumo) {
@@ -57119,7 +57330,21 @@ var EnfermariaService=(function(){
         : '• Sem pendências críticas registradas no momento. Manter vigilância clínica e planos vigentes.');
   }
 
+  var CHECKLIST_PRE_ROUND = 'Checklist rápido pré-round: Profilaxia TEV (indicação/contraindicação); Sonda/Acesso (necessidade e retirada); Dia de ATB/Descalonamento (culturas, foco e duração); Diurese/Eletrólitos (balanço, creatinina, Na/K/Mg).';
+
+  function obterMascarasPep() {
+    return {
+      admissaoCo: '<code>ADMISSÃO CO | Data/hora: [ ]\nG/P/A: [ ] | IG: [ ] por [DUM/USG] | DPP: [ ] | Rh/GBS: [ ]\nQueixa e início: [ ] | Movimentos fetais: [ ] | Perda líquida/sangramento: [ ]\nPA/FC/FR/SpO2/T: [ ] | BCF: [ ] | Dinâmica uterina: [ ]\nAbdome/apresentação: [ ] | Bolsa: [ ] | Especular se indicado: [ ]\nToque vaginal somente se indicado, após consentimento e excluída placenta prévia: dilatação [ ], apagamento [ ], De Lee [ ].\nHipótese/risco materno-fetal: [ ] | Conduta, exames, vigilância e comunicação à obstetrícia: [ ]</code>',
+      puerpera: '<code>EVOLUÇÃO ALOJAMENTO CONJUNTO | DPP: [ ] | Parto: [ ] | RN: [ ]\nQueixas, dor, amamentação e deambulação: [ ]\nPA/FC/T: [ ] | Mamas/mamilos: [ ] | Útero/involução: [ ]\nLóquios (volume, odor): [ ] | Períneo/ferida operatória: [ ] | Diurese/evacuação: [ ]\nProfilaxia TEV/risco hemorrágico: [ ] | Conduta, sinais de alarme e alta: [ ]</code>',
+      prenatal: '<code>CONSULTA PRÉ-NATAL | G/P/A: [ ] | DUM: [ ] | IG: [ ] | DPP: [ ]\nQueixas, sangramento/perda líquida, movimentos fetais: [ ]\nPA/peso/edema: [ ] | AU: [ ] | BCF: [ ]\nExames por trimestre e resultados pendentes: [ ] | Vacinas (dT/dTpa/Hep B/Influenza): [ ]\nFerro/ácido fólico/cálcio; AAS se risco de PE: [ ] | GBS 35–37 sem: [ ]\nRisco gestacional, conduta, retorno e sinais de alarme: [ ]</code>',
+      exameGinecologico: '<code>EXAME GINECOLÓGICO | Indicação e consentimento: [ ] | Acompanhante ofertado: [ ]\nInspeção vulvar/perineal: [ ] | Espéculo: paredes vaginais [ ], colo [ ], secreção [ ], sangramento [ ].\nColetas, se indicadas: [ ] | Toque bimanual somente se indicado: colo [ ], útero [ ], anexos [ ], dor [ ].\nAchados, tolerância, hipótese e conduta: [ ]</code>',
+      clinicaGeral: '<code>EVOLUÇÃO ENFERMARIA | Leito: [ ] | D de internação: [ ]\nProblemas ativos e eventos 24h: [ ] | Sinais vitais: [ ] | Exame dirigido: [ ]\nExames/culturas: [ ] | Plano por problema: [ ]\nProfilaxia TEV: [ ] | Sonda/Acesso: [ ] | Dia de ATB/Descalonamento: [ ] | Diurese/Eletrólitos: [ ]\nPendências e critérios de alta: [ ]</code>'
+    };
+  }
+
   return {
+    obterChecklistPreRound: function () { return CHECKLIST_PRE_ROUND; },
+    obterMascarasPep: obterMascarasPep,
     obterTodos: carregar,
     obterLeito: function (id) { return carregar()[String(id).trim()] || null; },
     atualizarLeito: function (num, texto) {
@@ -57196,7 +57421,7 @@ var EnfermariaService=(function(){
       var censo = contarCensoLeitos(all, keys);
       var cards = keys.map(function (id) {
         var l = all[id];
-        return '*LEITO ' + id + '* · ' + l.status + '\n' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados;
+        return '*LEITO ' + id + '* · ' + l.status + '\n' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados + '\n' + CHECKLIST_PRE_ROUND;
       });
       return '🏥 *Enfermaria* · ' + censo.resumoPainel + '\n\n' + cards.join('\n\n');
     },
@@ -57204,7 +57429,7 @@ var EnfermariaService=(function(){
       var all = carregar(), keys = ids(all);
       return keys.length ? keys.map(function (id) {
         var l = all[id];
-        return 'LEITO ' + id + ' · ' + l.status + ' · ' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados;
+        return 'LEITO ' + id + ' · ' + l.status + ' · ' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados + '\n' + CHECKLIST_PRE_ROUND;
       }).join('\n\n') : null;
     },
     gerarPassagemSBARConsolidada: function (idLeitoAlvo) {
@@ -58531,7 +58756,8 @@ function salvarModoBot(chat, state) {
   var registro = {
     version: 3, caseId: state.caseId || Utilities.getUuid().replace(/-/g, ''),
     revision: Utilities.getUuid().replace(/-/g, ''),
-    mode: state.mode || '', data: state.data || '', updatedAt: Date.now()
+    mode: state.mode || '', data: state.data || '', updatedAt: Date.now(),
+    soapAnamnese: state.soapAnamnese || null
   };
   PersistenciaBot.salvar('atendimento_' + chat, registro);
   safePutCache(uxCache(), 'modo_' + chat, JSON.stringify(registro), UX_TTL_SEG);
@@ -58549,7 +58775,8 @@ function obterContextoClinicoBot(chat) {
 function definirModoBot(chat, mode, dados, novo) {
   var anterior = modoBot(chat), conteudo = dados || '';
   var estado = !novo && anterior && anterior.mode === mode && anterior.data === conteudo
-    ? anterior : salvarModoBot(chat, { caseId: !novo && anterior ? anterior.caseId : null, mode: mode, data: conteudo });
+    ? anterior : salvarModoBot(chat, { caseId: !novo && anterior ? anterior.caseId : null, mode: mode, data: conteudo,
+      soapAnamnese: !novo && anterior && anterior.mode === 'soap' && mode === 'soap' ? anterior.soapAnamnese : null });
   // Só limpa os auxiliares depois que os dados foram gravados com sucesso.
   var c = uxCache();
   ['ctx_' + chat, 'pending_' + chat, 'dvaw_' + chat, 'leito_' + chat, 'efconfirm_' + chat].forEach(function (k) {
@@ -61866,6 +62093,9 @@ function processarEntradaSoap(chatId, textoEntrada, opcoes) {
   var dadosPrevios = (estadoAtual && estadoAtual.data) ? estadoAtual.data : String(legSoap || '');
 
   var ehNovo = !!(opcoes.novo || !dadosPrevios.trim());
+  var historicoSoap = !ehNovo && estadoAtual && estadoAtual.soapAnamnese
+    ? { perguntasFeitas: (estadoAtual.soapAnamnese.perguntasFeitas || []).slice(), respostasComplementares: estadoAtual.soapAnamnese.respostasComplementares || 0 }
+    : { perguntasFeitas: [], respostasComplementares: 0 };
   var casoAcumulado = '';
 
   if (ehNovo) {
@@ -61879,6 +62109,7 @@ function processarEntradaSoap(chatId, textoEntrada, opcoes) {
   } else {
     casoAcumulado = dadosPrevios;
   }
+  if (!ehNovo && texto && casoAcumulado !== dadosPrevios) historicoSoap.respostasComplementares++;
 
   if (!casoAcumulado.trim()) {
     if (typeof iniciarModoBot === 'function') {
@@ -61903,13 +62134,32 @@ function processarEntradaSoap(chatId, textoEntrada, opcoes) {
     /fechar\s+plano|gerar\s+plano|avalia[çc][ãa]o\s+e\s+plano|conduta\s+definitiva/i.test(texto));
 
   var fnGeradora = function(d) {
+    var resultado;
     if (typeof gerarSOAPComIA === 'function') {
-      return gerarSOAPComIA(d, { fecharPlano: fecharPlano, ambulatorialAgil: !!opcoes.ambulatorialAgil });
+      resultado = gerarSOAPComIA(d, { fecharPlano: fecharPlano, ambulatorialAgil: !!opcoes.ambulatorialAgil, historicoSessao: historicoSoap });
+    } else if (typeof formatarRascunhoSoapTelegram === 'function') {
+      resultado = formatarRascunhoSoapTelegram(d, { fecharPlano: fecharPlano });
+    } else {
+      resultado = String(d);
     }
-    if (typeof formatarRascunhoSoapTelegram === 'function') {
-      return formatarRascunhoSoapTelegram(d, { fecharPlano: fecharPlano });
+    var blocoPerguntas = String(resultado).match(/Perguntas para Completar a Anamnese[^\n]*\n([\s\S]*?)(?:\n\n|$)/i);
+    if (blocoPerguntas) {
+      blocoPerguntas[1].split('\n').forEach(function(linha) {
+        var pergunta = linha.replace(/^\s*[•\-*\d.]+\s*/, '').trim();
+        if (pergunta && historicoSoap.perguntasFeitas.indexOf(pergunta) === -1) historicoSoap.perguntasFeitas.push(pergunta);
+      });
     }
-    return String(d);
+    historicoSoap.anamneseSuficiente = fecharPlano || (typeof avaliarSuficienciaAnamnese === 'function' && avaliarSuficienciaAnamnese(d, historicoSoap).anamneseSuficiente);
+    historicoSoap.perguntasPendentes = historicoSoap.anamneseSuficiente || !blocoPerguntas ? [] : blocoPerguntas[1].split('\n').map(function(linha) {
+      return linha.replace(/^\s*[•\-*\d.]+\s*/, '').trim();
+    }).filter(Boolean);
+    var estadoPersistido = modoBot(chat);
+    if (estadoPersistido && estadoPersistido.mode === 'soap' && estadoPersistido.data === d) {
+      estadoPersistido.soapAnamnese = historicoSoap;
+      PersistenciaBot.salvar('atendimento_' + chat, estadoPersistido);
+      safePutCache(uxCache(), 'modo_' + chat, JSON.stringify(estadoPersistido), UX_TTL_SEG);
+    }
+    return resultado;
   };
 
   return processarEEntregarIA(chat, fnGeradora, casoAcumulado, 'soap', opcoes.messageId);
@@ -62314,7 +62564,7 @@ function tratarCallbackUX(cb) {
         dadosNorm += '\n\n' + modeloEfTexto;
         definirModoBot(chat, 'soap', dadosNorm);
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);
-        return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, dadosNorm, "soap", msgId);
+        return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false, historicoSessao: (modoBot(chat) || {}).soapAnamnese }); }, dadosNorm, "soap", msgId);
       } else if (v === 'atualizar') {
         var estAtu = modoBot(chat);
         var revAtu = (estAtu && estAtu.revision) ? (':' + estAtu.revision) : '';
@@ -62341,7 +62591,7 @@ function tratarCallbackUX(cb) {
       definirModoBot(chat, 'soap', dadosInc);
       safePutCache(cache, 'ctx_' + chat, dadosInc, UX_TTL_SEG);
       enviarMensagemParaChat(chat, '🩺 *Exame especial (' + v.toUpperCase() + ') incorporado ao SOAP.* Atualizando rascunho...');
-      return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, dadosInc, "soap");
+      return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false, historicoSessao: (modoBot(chat) || {}).soapAnamnese }); }, dadosInc, "soap");
     } else if (op === 'img_inc') {
       var laudoTextoUx = cache.get(v);
       if (!laudoTextoUx) {

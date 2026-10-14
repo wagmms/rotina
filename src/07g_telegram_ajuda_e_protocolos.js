@@ -176,7 +176,8 @@ function obterCatalogoComandosSlash(chatId) {
       titulo: "🏥 ENFERMARIA, LEITOS & PLANTÃO",
       comandos: [
         { cmd: "/enfermaria", aliases: ["/enfermaria"], sintaxe: "/enfermaria", desc: "Censo dos leitos internados, gravidade e pendências." },
-        { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Relatório consolidado de passagem de plantão da enfermaria." }
+        { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Relatório consolidado de passagem de plantão da enfermaria." },
+        { cmd: "/ajuda", aliases: ["/ajuda mascaras"], sintaxe: "/ajuda mascaras", desc: "Máscaras PEP copiáveis de CO, puerpério, pré-natal, exame ginecológico e enfermaria." }
       ]
     },
     ehConvidado ? {
@@ -427,6 +428,20 @@ function enviarManualCompletoComandos(chatId, filtro, messageId) {
     return enviarMenuAjudaInterativo(chatId, messageId);
   }
 
+  if (filtroNorm === 'mascaras' || filtroNorm === 'mascara' || filtroNorm === 'pep') {
+    var modelosPep = EnfermariaService.obterMascarasPep();
+    var titulosPep = { admissaoCo: 'Admissão CO', puerpera: 'Puérpera no alojamento conjunto', prenatal: 'Consulta de pré-natal', exameGinecologico: 'Exame ginecológico/especular/toque', clinicaGeral: 'Enfermaria clínica geral' };
+    var textoPep = '📋 *MÁSCARAS PEP COPIÁVEIS*\nPreencha apenas achados verificados; adapte ao protocolo local.\n\n';
+    Object.keys(titulosPep).forEach(function (chave) {
+      textoPep += '*' + titulosPep[chave] + '*\n```\n' + modelosPep[chave].replace(/^<code>|<\/code>$/g, '') + '\n```\n\n';
+    });
+    textoPep += EnfermariaService.obterChecklistPreRound();
+    var kbPep = { inline_keyboard: [[{ text: '🔙 Enfermaria', callback_data: 'ajuda_cat_enfermaria' }]] };
+    if (typeof enviarTelaBot === 'function') return enviarTelaBot(chatId, textoPep, kbPep, messageId);
+    if (typeof enviarMensagemComTecladoParaChat === 'function') return enviarMensagemComTecladoParaChat(chatId, textoPep, kbPep);
+    return enviarMensagemParaChat(chatId, textoPep);
+  }
+
   // Bloqueio explícito de ajuda sobre rotina e agenda pessoal para convidados
   if (typeof ehUsuarioTitular === "function" && chatId && !ehUsuarioTitular(chatId)) {
     if (filtroNorm === "rotina" || filtroNorm === "agenda" || filtroNorm === "habitos" || filtroNorm === "task" || filtroNorm === "tarefa" || filtroNorm === "tasks" || filtroNorm === "briefing" || filtroNorm === "checkin") {
@@ -487,6 +502,7 @@ function enviarManualCompletoComandos(chatId, filtro, messageId) {
               ]
             ]
           };
+          if (catAlvoId === 'enfermaria') kbCat.inline_keyboard.unshift([{ text: '📋 Máscaras PEP', callback_data: 'ajuda_cat_mascaras' }]);
           if (typeof enviarTelaBot === "function") {
             return enviarTelaBot(chatId, msgCat, kbCat, messageId);
           }

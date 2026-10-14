@@ -240,7 +240,8 @@ function salvarModoBot(chat, state) {
   var registro = {
     version: 3, caseId: state.caseId || Utilities.getUuid().replace(/-/g, ''),
     revision: Utilities.getUuid().replace(/-/g, ''),
-    mode: state.mode || '', data: state.data || '', updatedAt: Date.now()
+    mode: state.mode || '', data: state.data || '', updatedAt: Date.now(),
+    soapAnamnese: state.soapAnamnese || null
   };
   PersistenciaBot.salvar('atendimento_' + chat, registro);
   safePutCache(uxCache(), 'modo_' + chat, JSON.stringify(registro), UX_TTL_SEG);
@@ -258,7 +259,8 @@ function obterContextoClinicoBot(chat) {
 function definirModoBot(chat, mode, dados, novo) {
   var anterior = modoBot(chat), conteudo = dados || '';
   var estado = !novo && anterior && anterior.mode === mode && anterior.data === conteudo
-    ? anterior : salvarModoBot(chat, { caseId: !novo && anterior ? anterior.caseId : null, mode: mode, data: conteudo });
+    ? anterior : salvarModoBot(chat, { caseId: !novo && anterior ? anterior.caseId : null, mode: mode, data: conteudo,
+      soapAnamnese: !novo && anterior && anterior.mode === 'soap' && mode === 'soap' ? anterior.soapAnamnese : null });
   // Só limpa os auxiliares depois que os dados foram gravados com sucesso.
   var c = uxCache();
   ['ctx_' + chat, 'pending_' + chat, 'dvaw_' + chat, 'leito_' + chat, 'efconfirm_' + chat].forEach(function (k) {
@@ -3575,6 +3577,9 @@ function processarEntradaSoap(chatId, textoEntrada, opcoes) {
   var dadosPrevios = (estadoAtual && estadoAtual.data) ? estadoAtual.data : String(legSoap || '');
 
   var ehNovo = !!(opcoes.novo || !dadosPrevios.trim());
+  var historicoSoap = !ehNovo && estadoAtual && estadoAtual.soapAnamnese
+    ? { perguntasFeitas: (estadoAtual.soapAnamnese.perguntasFeitas || []).slice(), respostasComplementares: estadoAtual.soapAnamnese.respostasComplementares || 0 }
+    : { perguntasFeitas: [], respostasComplementares: 0 };
   var casoAcumulado = '';
 
   if (ehNovo) {
@@ -3588,6 +3593,7 @@ function processarEntradaSoap(chatId, textoEntrada, opcoes) {
   } else {
     casoAcumulado = dadosPrevios;
   }
+  if (!ehNovo && texto && casoAcumulado !== dadosPrevios) historicoSoap.respostasComplementares++;
 
   if (!casoAcumulado.trim()) {
     if (typeof iniciarModoBot === 'function') {
@@ -3612,13 +3618,32 @@ function processarEntradaSoap(chatId, textoEntrada, opcoes) {
     /fechar\s+plano|gerar\s+plano|avalia[çc][ãa]o\s+e\s+plano|conduta\s+definitiva/i.test(texto));
 
   var fnGeradora = function(d) {
+    var resultado;
     if (typeof gerarSOAPComIA === 'function') {
-      return gerarSOAPComIA(d, { fecharPlano: fecharPlano, ambulatorialAgil: !!opcoes.ambulatorialAgil });
+      resultado = gerarSOAPComIA(d, { fecharPlano: fecharPlano, ambulatorialAgil: !!opcoes.ambulatorialAgil, historicoSessao: historicoSoap });
+    } else if (typeof formatarRascunhoSoapTelegram === 'function') {
+      resultado = formatarRascunhoSoapTelegram(d, { fecharPlano: fecharPlano });
+    } else {
+      resultado = String(d);
     }
-    if (typeof formatarRascunhoSoapTelegram === 'function') {
-      return formatarRascunhoSoapTelegram(d, { fecharPlano: fecharPlano });
+    var blocoPerguntas = String(resultado).match(/Perguntas para Completar a Anamnese[^\n]*\n([\s\S]*?)(?:\n\n|$)/i);
+    if (blocoPerguntas) {
+      blocoPerguntas[1].split('\n').forEach(function(linha) {
+        var pergunta = linha.replace(/^\s*[•\-*\d.]+\s*/, '').trim();
+        if (pergunta && historicoSoap.perguntasFeitas.indexOf(pergunta) === -1) historicoSoap.perguntasFeitas.push(pergunta);
+      });
     }
-    return String(d);
+    historicoSoap.anamneseSuficiente = fecharPlano || (typeof avaliarSuficienciaAnamnese === 'function' && avaliarSuficienciaAnamnese(d, historicoSoap).anamneseSuficiente);
+    historicoSoap.perguntasPendentes = historicoSoap.anamneseSuficiente || !blocoPerguntas ? [] : blocoPerguntas[1].split('\n').map(function(linha) {
+      return linha.replace(/^\s*[•\-*\d.]+\s*/, '').trim();
+    }).filter(Boolean);
+    var estadoPersistido = modoBot(chat);
+    if (estadoPersistido && estadoPersistido.mode === 'soap' && estadoPersistido.data === d) {
+      estadoPersistido.soapAnamnese = historicoSoap;
+      PersistenciaBot.salvar('atendimento_' + chat, estadoPersistido);
+      safePutCache(uxCache(), 'modo_' + chat, JSON.stringify(estadoPersistido), UX_TTL_SEG);
+    }
+    return resultado;
   };
 
   return processarEEntregarIA(chat, fnGeradora, casoAcumulado, 'soap', opcoes.messageId);
@@ -4023,7 +4048,7 @@ function tratarCallbackUX(cb) {
         dadosNorm += '\n\n' + modeloEfTexto;
         definirModoBot(chat, 'soap', dadosNorm);
         safePutCache(cache, 'ctx_' + chat, dadosNorm, UX_TTL_SEG);
-        return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, dadosNorm, "soap", msgId);
+        return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false, historicoSessao: (modoBot(chat) || {}).soapAnamnese }); }, dadosNorm, "soap", msgId);
       } else if (v === 'atualizar') {
         var estAtu = modoBot(chat);
         var revAtu = (estAtu && estAtu.revision) ? (':' + estAtu.revision) : '';
@@ -4050,7 +4075,7 @@ function tratarCallbackUX(cb) {
       definirModoBot(chat, 'soap', dadosInc);
       safePutCache(cache, 'ctx_' + chat, dadosInc, UX_TTL_SEG);
       enviarMensagemParaChat(chat, '🩺 *Exame especial (' + v.toUpperCase() + ') incorporado ao SOAP.* Atualizando rascunho...');
-      return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false }); }, dadosInc, "soap");
+      return processarEEntregarIA(chat, function(d) { return gerarSOAPComIA(d, { fecharPlano: false, historicoSessao: (modoBot(chat) || {}).soapAnamnese }); }, dadosInc, "soap");
     } else if (op === 'img_inc') {
       var laudoTextoUx = cache.get(v);
       if (!laudoTextoUx) {

@@ -10,8 +10,8 @@ const assert = require('assert');
 const fs = require('fs');
 const vm = require('vm');
 
-function carregarAmbiente() {
-  const code = fs.readFileSync('ultra_rotina_master.js', 'utf8');
+function carregarAmbiente(codigo) {
+  const code = codigo || fs.readFileSync('ultra_rotina_master.js', 'utf8');
   const cacheMock = {};
   const propsMock = {
     TELEGRAM_BOT_TOKEN: 'token123',
@@ -129,7 +129,7 @@ console.log('✅ APROVADO: 1. Prompt do SOAP e entrega formatada exigem e exibem
 
 // Teste 2: Prompt do Áudio Multimodal em Tempo Único também exige justificativa nas perguntas
 const codeMaster = fs.readFileSync('ultra_rotina_master.js', 'utf8');
-assert(codeMaster.includes('Perguntas de Anamnese com Racional Didático: 2 a 4 perguntas investigativas diretas, CADA UMA COM SUA JUSTIFICATIVA CLÍNICA OU HIPÓTESE A DESCARTAR ENTRE PARÊNTESES'), 'Áudio multimodal deve exigir justificativa didática nas perguntas');
+assert(codeMaster.includes('Perguntas de Anamnese com Racional Didático: no máximo 2 a 3 perguntas investigativas diretas que mudem a conduta, CADA UMA COM SUA JUSTIFICATIVA CLÍNICA OU HIPÓTESE A DESCARTAR ENTRE PARÊNTESES. Se houver dados suficientes, retorne lista vazia.'), 'Áudio multimodal deve exigir perguntas decisórias com justificativa didática');
 console.log('✅ APROVADO: 2. Áudio Multimodal em Tempo Único alinhado com o mesmo rigor didático');
 
 // -------------------------------------------------------------
@@ -232,5 +232,32 @@ console.log('✅ APROVADO: 8. Filtro cirúrgico: preserva a medição verídica 
 // Teste 9: Alerta explícito de sistemas-foco pendentes no exame físico
 assert(promptCapturado.includes("NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa"), "Prompt deve proibir normalidade presumida para sistemas com queixas ativas");
 console.log('✅ APROVADO: 9. Prompt proíbe formalmente transformar ausência de dados de foco de queixa em normalidade');
+
+const atual = carregarAmbiente(require('./source_producao.cjs')).sandbox;
+atual.executarRaciocinioClinico = () => JSON.stringify({
+  subjetivo: 'Tosse há três dias; nega febre e dispneia. Sem alergias, comorbidades ou medicações.',
+  objetivo: 'SpO2 98% em ar ambiente.',
+  perguntas_anamnese: ['Tem dispneia? (estratificar gravidade)', 'Tem febre? (avaliar infecção)'],
+  exame_dirigido: []
+});
+const completo = 'Paciente com tosse há 3 dias. Nega febre e dispneia. Sem alergias, comorbidades ou medicações. SpO2 98%.';
+const semPerguntas = atual.gerarSOAPComIA(completo);
+assert(semPerguntas.includes('Pode gerar o plano'));
+assert(!semPerguntas.includes('Perguntas para Completar'));
+const aposComplemento = atual.gerarSOAPComIA('Paciente com tosse há 3 dias. Nega dispneia.', { historicoSessao: { respostasComplementares: 1, perguntasFeitas: ['Tem dispneia? (estratificar gravidade)'] } });
+assert(aposComplemento.includes('Pode gerar o plano'));
+assert(!aposComplemento.includes('Perguntas para Completar'));
+console.log('✅ APROVADO: suficiência clínica e resposta complementar encerram perguntas mesmo quando a IA as repete');
+
+atual.executarRaciocinioClinico = () => JSON.stringify({
+  subjetivo: 'Tosse há 3 dias; sem dispneia; sem alergias, comorbidades ou medicações.',
+  objetivo: 'SpO2 98%.', avaliacao: ['Síndrome respiratória alta'],
+  plano: { prescricao: ['Dipirona 500 mg VO de 6/6h se dor, por até 3 dias após conferir contraindicações.'], exames: ['Sem exame imediato indicado.'], orientacoes: ['Retornar se dispneia.'] },
+  perguntas_anamnese: ['Tem febre?']
+});
+const pep = atual.gerarSOAPComIA(completo, { fecharPlano: true });
+assert(pep.includes('Prescrição Pronta Copy-Paste') && pep.includes('Exames que mudam conduta imediata') && pep.includes('Orientações/Sinais de Alarme'));
+assert(!pep.includes('Perguntas para Completar') && !pep.includes('Tem febre?'));
+console.log('✅ APROVADO: P consolidado fica dividido em prescrição, exames decisórios e orientações sem perguntas residuais');
 
 console.log('\n🎉 TESTES OSTENSIVOS CONCLUÍDOS COM 100% DE SUCESSO! ZERO PREJUÍZO OU REGRESSÃO CLÍNICA DETECTADA.');

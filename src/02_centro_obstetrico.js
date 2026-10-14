@@ -671,7 +671,17 @@ var CentroObstetricoService = (function() {
       nota: '⚠️ NUNCA aplicar ocitocina pura em bolus IV rápido (risco de vasodilatação súbita, hipotensão letal e colapso circulatório).'
     });
 
-    // Passo 2: Metilergometrina (Ergotrate)
+    // TXA é adjuvante da resposta inicial; não aguardar falha dos uterotônicos.
+    var oportunoTransamin = tempoDesdePartoMin <= 180;
+    sequenciaUterotonica.push({
+      etapa: 4,
+      farmaco: 'Ácido Tranexâmico 1g IV (adjuvante precoce)',
+      dose: oportunoTransamin ? '1 g IV em 10 minutos, iniciar em até 3 horas do parto; repetir 1 g se persistir após 30 minutos ou recidivar em 24 horas.' : 'Não iniciar rotineiramente após 3 horas do parto: benefício não demonstrado.',
+      nota: oportunoTransamin ? 'Administrar em até 3 horas do parto, junto da resposta inicial à HPP.' : 'Após 3 horas do parto, benefício não demonstrado.',
+      bloqueado: !oportunoTransamin
+    });
+
+    // Passo 3: Metilergometrina (Ergotrate)
     if (temHas) {
       sequenciaUterotonica.push({
         etapa: 2,
@@ -689,23 +699,12 @@ var CentroObstetricoService = (function() {
       });
     }
 
-    // Passo 3: Misoprostol
+    // Passo 4: Misoprostol
     sequenciaUterotonica.push({
       etapa: 3,
       farmaco: 'Misoprostol 800 mcg (3ª Linha)',
       dose: '800 mcg (4 comprimidos de 200 mcg) via Retal ou Sublingual.',
       nota: 'Absorção rápida e potente tônus miometrial mantido por várias horas.'
-    });
-
-    // Passo 4: Ácido Tranexâmico (Estudo WOMAN)
-    var oportunoTransamin = tempoDesdePartoMin <= 180;
-    sequenciaUterotonica.push({
-      etapa: 4,
-      farmaco: 'Ácido Tranexâmico 1g IV (Hemostático Adjuvante de Alta Eficácia)',
-      dose: '1g (2 ampolas de 500 mg) diluído em 100 mL de SF 0,9% infundido em 10 a 20 minutos.',
-      nota: oportunoTransamin
-        ? '✅ Momento ideal: administrado precocemente em até 3 horas do parto reduz drasticamente a mortalidade materna por sangramento (Lancet / Estudo WOMAN). Se sangramento persistir após 30 minutos ou recorrer em 24h: repetir 2ª dose de 1g IV.'
-        : '⚠️ Parto há mais de 3 horas: eficácia reduzida, mas ainda pode ser considerado se sangramento ativo com coagulopatia hiperfibrinolítica.'
     });
 
     // 5. Medidas Não Farmacológicas e Cirúrgicas de Resgate
@@ -727,6 +726,13 @@ var CentroObstetricoService = (function() {
       alertaChoque: alertaChoque,
       quatroTs: quatroTs,
       sequenciaUterotonica: sequenciaUterotonica,
+      primeiraHoraPep: [
+        'HPP — PRIMEIRA HORA: chamar equipe, quantificar perda, 2 acessos calibrosos, cristaloide aquecido, hemograma/coagulograma e reserva de hemocomponentes; massagear útero e revisar 4Ts.',
+        'Ocitocina 20 a 40 UI em 500 mL de SF 0,9%/Ringer lactato IV em infusão; não fazer bolus IV rápido.',
+        oportunoTransamin ? 'Administrar Ácido Tranexâmico 1 g IV em 10 minutos, até 3 horas do parto; repetir 1 g se persistir após 30 minutos ou recidivar em 24 horas.' : 'Ácido Tranexâmico: após 3 horas do parto, não iniciar rotineiramente; benefício não demonstrado.',
+        temHas ? 'Metilergometrina CONTRAINDICADA em hipertensão/pré-eclâmpsia.' : 'Metilergometrina 0,2 mg IM se atonia persistente e sem hipertensão.',
+        'Misoprostol 800 mcg por via retal ou sublingual se atonia persistente; escalar tamponamento/cirurgia sem atraso.'
+      ].join('\n'),
       medidasResgate: medidasResgate
     };
   }
@@ -912,7 +918,7 @@ var CentroObstetricoService = (function() {
 
     // 2. Corticoterapia Antenatal para Maturação Pulmonar Fetal
     // Indicada formalmente entre 24s0d e 33s6d (e em casos selecionados até 36s6d se sem ciclo prévio)
-    if (igSemanas >= 24 && (igSemanas < 34 || (igSemanas < 37 && ameacaParto))) {
+    if (igSemanas >= 24 && igSemanas < 34) {
       corticoterapia = {
         indicada: true,
         objetivo: 'Reduz a Síndrome do Desconforto Respiratório do RN (doença da membrana hialina), hemorragia intraventricular grave e enterocolite necrosante neonatal.',
@@ -975,6 +981,10 @@ var CentroObstetricoService = (function() {
         nota: 'NÃO utilizar Amoxicilina + Clavulanato na RPMO (associado a aumento de risco de enterocolite necrosante neonatal).'
       };
       condutas.push('Iniciar Protocolo de Latência Antimicrobiana para RPMO.');
+    }
+
+    if (ameacaParto || rpm) {
+      condutas.push('Checar cultura anovaginal/GBS. Se parto prematuro com GBS desconhecido ou positivo, indicar profilaxia intraparto (penicilina G cristalina conforme protocolo de GBS); antibiótico de latência da RPMO não dispensa reavaliação intraparto.');
     }
 
     return {
@@ -1075,6 +1085,7 @@ var CentroObstetricoService = (function() {
       if (hppRes.alertaChoque) {
         linhas.push('  ' + hppRes.alertaChoque);
       }
+      linhas.push(hppRes.primeiraHoraPep);
       linhas.push('  💊 SEQUENCIAMENTO UTEROTÔNICO ESCALONADO:');
       for (var u = 0; u < hppRes.sequenciaUterotonica.length; u++) {
         var ut = hppRes.sequenciaUterotonica[u];
@@ -1127,6 +1138,7 @@ var CentroObstetricoService = (function() {
         if (premRes.latenciaRpmo && premRes.latenciaRpmo.indicada) {
           linhas.push('  🛡️ Latência RPMO: ' + premRes.latenciaRpmo.fase1_primeiras48h[0] + ' + ' + premRes.latenciaRpmo.fase1_primeiras48h[1]);
         }
+        premRes.condutasGerais.filter(function (item) { return item.indexOf('GBS') !== -1; }).forEach(function (item) { linhas.push('  🔬 ' + item); });
       }
     }
 

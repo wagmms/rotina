@@ -486,10 +486,12 @@ var IaLocalFallbackService = (function () {
       resultado.avaliacao = ehEmergencia ? ['Emergência clínica aguda / PCR'] : ['Atendimento clínico geral'];
       resultado.plano = condutaProto ? [condutaProto] : ['Monitorização multiparamétrica contínua e reavaliação assistencial.'];
       resultado.conduta_emergencia = condutaProto || null;
-      resultado.perguntas_anamnese = [
-        '1. Quais os sinais vitais atuais (PA, FC, FR, SatO2, T)? (Para estratificação objetiva de risco)',
-        '2. Há alergias ou comorbidades conhecidas? (Para salvaguarda terapêutica)'
+      var gateSoap = typeof avaliarSuficienciaAnamnese === 'function' ? avaliarSuficienciaAnamnese(textoLimpo, {}) : null;
+      resultado.perguntas_anamnese = gateSoap && gateSoap.anamneseSuficiente ? [] : [
+        'Quais os sinais vitais atuais (PA, FC, FR, SatO2, T)? (estratificação objetiva de risco)',
+        'Há alergias, comorbidades ou medicações em uso? (segurança da prescrição)'
       ];
+      resultado.anamneseSuficiente = !!(gateSoap && gateSoap.anamneseSuficiente);
       resultado.exame_dirigido = ['Monitorização multiparamétrica contínua e oximetria de pulso'];
     }
 
@@ -735,9 +737,9 @@ var IaLocalFallbackService = (function () {
       pendencias: [],
       subjetivo: subjetivo || null,
       objetivo: objetivo,
-      perguntas_anamnese: [
-        '1. Quais os sinais vitais atuais (PA, FC, FR, SatO2, Temperatura)? (Para estratificação objetiva de risco)',
-        '2. Há comorbidades prévias ou alergias a medicamentos conhecidas? (Para salvaguarda de prescrição)'
+      perguntas_anamnese: (typeof avaliarSuficienciaAnamnese === 'function' && avaliarSuficienciaAnamnese(textoContexto, {}).anamneseSuficiente) ? [] : [
+        'Quais os sinais vitais atuais (PA, FC, FR, SatO2, Temperatura)? (estratificação objetiva de risco)',
+        'Há comorbidades, alergias e medicações em uso? (segurança de prescrição)'
       ],
       exame_dirigido: ['Aferição multiparamétrica completa e exame clínico dos 5 sistemas vitais.'],
       soapTexto: soapTexto || null,
