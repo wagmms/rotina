@@ -390,4 +390,86 @@ test('Grounding Farmacológico e Cross-Check 0ms: Injeta HSL/PedBook e anexa ale
   assert(conduta.includes('Incompatibilidade em Y') || conduta.includes('INCOMPATÍVEL'), 'Deve detectar incompatibilidade em Y');
 });
 
+// -----------------------------------------------------------------------------
+// 12. HARDENING CLÍNICO: /CRCL SEM SEXO EXIBE COMPARAÇÃO LADO A LADO M/F
+// -----------------------------------------------------------------------------
+test('/crcl sem sexo biológico informado: Não assume Masculino em silêncio e exibe ambos lado a lado', () => {
+  const { c, sent } = env();
+  sent.length = 0;
+
+  c.processarMensagemTexto({ chat: { id: 123 }, text: '/crcl 65 anos, 70kg, cr 1.8' });
+  const msgCrcl = sent[sent.length - 1]?.payload?.text || '';
+
+  assert(msgCrcl.includes('SEXO BIOLÓGICO NÃO INFORMADO'), 'Deve alertar que o sexo biológico não foi informado');
+  assert(msgCrcl.includes('Masculino:'), 'Deve exibir clearance estimado masculino');
+  assert(msgCrcl.includes('Feminino (x0,85):'), 'Deve exibir clearance estimado feminino');
+  assert(msgCrcl.includes('40.5 mL/min') || msgCrcl.includes('41 mL/min') || msgCrcl.includes('40'), 'Valor de ClCr masculino condizente');
+  assert(msgCrcl.includes('34.4 mL/min') || msgCrcl.includes('34 mL/min') || msgCrcl.includes('35'), 'Valor de ClCr feminino condizente');
+});
+
+// -----------------------------------------------------------------------------
+// 13. CROSS-CHECK DETERMINÍSTICO EM RAM: ALERGIAS CRUZADAS E GESTAÇÃO
+// -----------------------------------------------------------------------------
+test('executarCrossCheckSegurancaClinica: Bloqueio de alergias a penicilinas e teratógenos na gestação', () => {
+  const { c } = env();
+
+  // Teste A: Alergia a Penicilina com Amoxicilina
+  const rAlergia = c.executarCrossCheckSegurancaClinica('Amoxicilina 500mg 8/8h', 'Paciente alérgico a penicilina com histórico de anafilaxia');
+  assert.strictEqual(rAlergia.temAlertasCriticos, true, 'Deve marcar temAlertasCriticos para alergia grave');
+  assert(rAlergia.alergias.length > 0, 'Deve registrar o alerta de alergia');
+  assert.strictEqual(rAlergia.alergias[0].tipo, 'CONTRAINDICADO');
+  assert.strictEqual(rAlergia.alergias[0].farmaco, 'amoxicilina');
+  assert(rAlergia.textoFormatado.includes('ALERTA DE ALERGIA MEDICAMENTOSA'), 'Deve incluir cabeçalho de alergia no texto formatado');
+
+  // Teste B: Gestante com Losartana
+  const rGestacao = c.executarCrossCheckSegurancaClinica('Losartana 50mg 1x ao dia', 'Gestante de 14 semanas com pico pressórico');
+  assert.strictEqual(rGestacao.temAlertasCriticos, true, 'Deve marcar temAlertasCriticos para teratógeno');
+  assert(rGestacao.gestacao.length > 0, 'Deve registrar alerta gestacional');
+  assert.strictEqual(rGestacao.gestacao[0].farmaco, 'losartana');
+  assert.strictEqual(rGestacao.gestacao[0].categoriaFda, 'D');
+  assert(rGestacao.textoFormatado.includes('CONTRAINDICADO NA GESTAÇÃO'), 'Deve incluir aviso explícito no texto');
+});
+
+// -----------------------------------------------------------------------------
+// 14. AUDITOR ARITMÉTICO PÓS-IA DE DOSES LÍQUIDAS (_iaAuditarMatematicaPosologica)
+// -----------------------------------------------------------------------------
+test('_iaAuditarMatematicaPosologica: Detecta erro de conversão mg ➔ mL com tolerância de 12%', () => {
+  const { c } = env();
+
+  // Prescrição com erro evidente (Amoxicilina 250mg/5mL -> 250mg é 5 mL, mas prescreveu 10 mL)
+  const textoComErro = '1. Amoxicilina 250mg/5mL suspensão oral. Administrar 10 mL (Dose: 250 mg) via oral de 8/8h por 7 dias.';
+  const erroDetectado = c._iaAuditarMatematicaPosologica(textoComErro);
+  assert(erroDetectado !== null, 'Deve capturar a discrepância matemática');
+  assert(erroDetectado.includes('ERRO ARITMÉTICO NA PRESCRIÇÃO'), 'Deve emitir mensagem de erro aritmético');
+  assert(erroDetectado.includes('5 mL'), 'Deve apontar o volume correto de 5 mL');
+  assert(erroDetectado.includes('10 mL'), 'Deve apontar o volume prescrito incorretamente de 10 mL');
+
+  // Prescrição correta (volume 5 mL)
+  const textoCorreto = '1. Amoxicilina 250mg/5mL suspensão oral. Administrar 5 mL (Dose: 250 mg) via oral de 8/8h por 7 dias.';
+  const erroCorreto = c._iaAuditarMatematicaPosologica(textoCorreto);
+  assert.strictEqual(erroCorreto, null, 'Prescrição matematicamente consistente não deve gerar alertas');
+});
+
+// -----------------------------------------------------------------------------
+// 15. ERRADICAÇÃO DE SILENT DEFAULTS EM /DHE E /HIC
+// -----------------------------------------------------------------------------
+test('Comandos /dhe e /hic: Alerta explícito no topo quando peso ou sexo são omitidos', () => {
+  const { c, sent } = env();
+
+  // /dhe sem peso e sem sexo
+  sent.length = 0;
+  c.tratarComandoDhe(123, 'na 118');
+  const msgDhe = sent[sent.length - 1]?.payload?.text || '';
+  assert(msgDhe.includes('ATENÇÃO: Peso/Sexo não informados'), 'Deve avisar que peso/sexo não foram informados');
+  assert(msgDhe.includes('referência padrão (70kg Masc)'), 'Deve explicitar a simulação adotada');
+
+  // /hic sem peso informado
+  sent.length = 0;
+  c.processarMensagemTexto({ chat: { id: 123 }, text: '/hic sodio 145 gli 180' });
+  const msgHic = sent[sent.length - 1]?.payload?.text || '';
+  assert(msgHic.includes('ATENÇÃO: Peso não informado'), 'Deve alertar que o peso não foi informado no /hic');
+  assert(msgHic.includes('adulto padrão (70 kg)'), 'Deve deixar transparente a estimativa de 70 kg');
+});
+
 console.log(`\n🎉 BATERIA DE QUALIDADE CLÍNICA E DIDÁTICA: ${pass}/${total} testes aprovados com 100% de êxito!`);
+

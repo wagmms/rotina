@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-14 00:24:10
- * Checksum SHA256: 6b2ffa6437505baf
+ * Gerado automaticamente via build_master.py em: 2026-10-14 00:36:25
+ * Checksum SHA256: f09efac504ae567c
  * ==============================================================================
  */
 
@@ -35553,7 +35553,7 @@ var PROTOCOLOS_CLINICOS_EMERGENCIA = {
       "   • Após 1ª hora: avaliar Na corrigido. Se Na normal/alto: trocar para NaCl 0,45% 250-500 mL/h.\n" +
       "2. Avaliação Mandatória do Potássio ANTES da Insulina (ADA 2024):\n" +
       "   • Se K < 3,5 mEq/L: NÃO INICIAR INSULINA! Repor KCl 20 a 30 mEq/h até K > 3,5 mEq/L.\n" +
-      "   • Se K 3,5 a 5,2 mEq/L: Iniciar insulina E repor KCl 20-30 mEq por litro de soro de manutenção.\n" +
+      "   • Se K 3,5 a 5,2 mEq/L: Iniciar insulina E repor KCl 20-30 mEq por litro de soro de manutenção (Atenção ISMP Brasil: KCl 19,1% [1 mL = 2,56 mEq -> 10 mL = ~25,6 mEq] OU KCl 10% [1 mL = 1,34 mEq -> 10 mL = ~13,4 mEq]. NUNCA administrar KCl puro em bolus venoso!).\n" +
       "   • Se K > 5,2 mEq/L: Iniciar insulina e NÃO repor potássio (monitorar a cada 2h).\n" +
       "3. Insulinoterapia:\n" +
       "   • Insulina Regular IV contínua: 0,1 U/kg/h (ou bolus 0,1 U/kg + 0,1 U/kg/h).\n" +
@@ -35605,7 +35605,7 @@ var PROTOCOLOS_CLINICOS_EMERGENCIA = {
       "3. Oxigenoterapia Titulada (Alvo GINA):\n" +
       "   • Alvo SpO₂: 93% a 95% em adultos (em gestantes ≥ 95%). Evitar hipoxemia e evitar hiperóxia excessiva.\n" +
       "4. Sulfato de Magnésio EV (se má resposta inicial ou crise grave):\n" +
-      "   • Sulfato de magnésio 2 g IV em 20 minutos.\n" +
+      "   • Sulfato de Magnésio 2 g IV em 20 minutos (Atenção ISMP Brasil: MgSO4 50% [500 mg/mL -> 2g = 4 mL] OU MgSO4 10% [100 mg/mL -> 2g = 20 mL] diluídos em 100 mL de SF 0,9% ou SG 5%).\n" +
       "5. Critérios de Alarme (Via Aérea / UTI):\n" +
       "   • Silêncio respiratório, exaustão, confusão mental ou PaCO₂ normal/elevada (indica falência muscular iminente).",
     "divergencia": "Diferente da DPOC (alvo 88–92% pelo risco de retenção de CO₂), na Asma o alvo mandatório é SpO₂ 93–95% (GINA 2026)."
@@ -35615,9 +35615,7 @@ var PROTOCOLOS_CLINICOS_EMERGENCIA = {
     "diretriz_brasileira": "ASBAI (Associação Brasileira de Alergia e Imunologia) / CFM",
     "diretriz_internacional": "WAO (World Allergy Organization) 2020 / EAACI",
     "conduta_imediata": "1. Droga de 1ª Linha Mandatória (Imediata / Intramuscular):\n" +
-      "   • Adrenalina (Epinefrina) 1:1000 (1 mg/mL) IM no vasto lateral da coxa (face anterolateral).\n" +
-      "   • Dose adulto: 0,5 mg (0,5 mL) IM. Dose pediátrica: 0,01 mg/kg (máx 0,3 mg) IM.\n" +
-      "   • Repetir a cada 5 a 15 minutos se má resposta ou refratariedade.\n" +
+      "   • Adrenalina (Epinefrina) 1:1000 (1 mg/mL) IM no vasto lateral da coxa (face anterolateral). Dose adulto: 0,5 mg (0,5 mL) IM; dose pediátrica: 0,01 mg/kg (máx 0,3 mg) IM. Repetir a cada 5-15 min se refratário. Atenção ISMP: NUNCA usar Adrenalina 1:10.000 (0,1 mg/mL - solução de PCR) para aplicação IM em anafilaxia! Se necessária infusão contínua em choque refratário: 1 ampola 1:1000 (1 mg/1 mL) em 249 mL SG 5% (4 mcg/mL).\n" +
       "2. Posicionamento e Manejo Hemodinâmico:\n" +
       "   • Decúbito dorsal com membros inferiores elevados (Trendelenburg/elevação de pernas). NUNCA colocar o paciente sentado ou em pé subitamente (risco de síndrome da veia cava vazia e parada cardíaca).\n" +
       "   • Oxigenoterapia sob máscara com reservatório (alvo SpO₂ > 95%).\n" +
@@ -35692,6 +35690,59 @@ function obterProtocoloClinico(termo) {
     })) candidatos.push(chave);
   });
   return candidatos.length === 1 ? PROTOCOLOS_CLINICOS_EMERGENCIA[candidatos[0]] : null;
+}
+
+// ==============================================================================
+// PADRONIZAÇÃO DE AMPOLAS DUPLAS E SEGURANÇA HOSPITALAR (ISMP BRASIL)
+// ==============================================================================
+
+var PADRONIZACAO_AMPOLAS_DUPLAS_ISMP = {
+  "kcl": {
+    "farmaco": "Cloreto de Potássio (KCl)",
+    "alertaSeguranca": "🚨 ALTO RISCO (ISMP Brasil): NUNCA administrar KCl em bolus venoso direto (risco fatal de PCR em assistolia). Diluição obrigatória!",
+    "ampolas": [
+      { "apresentacao": "KCl 19,1%", "concentracao": "191 mg/mL", "meq_por_ml": 2.56, "equivalencia": "1 ampola (10 mL) = 1.910 mg KCl = ~25,6 mEq de K+" },
+      { "apresentacao": "KCl 10%", "concentracao": "100 mg/mL", "meq_por_ml": 1.34, "equivalencia": "1 ampola (10 mL) = 1.000 mg KCl = ~13,4 mEq de K+" }
+    ],
+    "regras": "Velocidade máxima de infusão periférica: 10 mEq/h (máx 40 mEq/L de solução). Acesso venoso central com monitorização contínua: 20 a 40 mEq/h em hipocalemia grave."
+  },
+  "mgso4": {
+    "farmaco": "Sulfato de Magnésio (MgSO4)",
+    "alertaSeguranca": "🚨 ALTO RISCO (ISMP Brasil): Confusão frequente entre as ampolas de 50% e 10% (risco de superdosagem de 5x com PCR/bloqueio neuromuscular ou subdose ineficaz).",
+    "ampolas": [
+      { "apresentacao": "MgSO4 50%", "concentracao": "500 mg/mL (0,5 g/mL)", "gramas_por_ml": 0.5, "equivalencia": "1 ampola (10 mL) = 5 g (2 g = 4 mL; 4 g = 8 mL; 1 g = 2 mL)" },
+      { "apresentacao": "MgSO4 10%", "concentracao": "100 mg/mL (0,1 g/mL)", "gramas_por_ml": 0.1, "equivalencia": "1 ampola (10 mL) = 1 g (2 g = 20 mL; 4 g = 40 mL; 1 g = 10 mL)" }
+    ],
+    "regras": "Pré-eclâmpsia grave/Eclâmpsia: Ataque 4g IV (8 mL a 50% em 100 mL SG 5% em 20 min). Asma grave: 2g IV (4 mL a 50% em 100 mL SF em 20 min). Monitorar FR > 16, reflexo patelar presente e diurese > 25 mL/h."
+  },
+  "adrenalina": {
+    "farmaco": "Adrenalina (Epinefrina)",
+    "alertaSeguranca": "🚨 ALTO RISCO (ISMP Brasil): NUNCA aplicar Adrenalina 1:10.000 IM em anafilaxia (subdose fatal por diluição 10x menor) e NUNCA aplicar 1:1.000 IV direta em bólus (risco de arritmia maligna/isquemia cerebral).",
+    "ampolas": [
+      { "apresentacao": "Adrenalina 1:1.000 (1 mg/mL)", "indicacao": "Anafilaxia Intramuscular (IM) no vasto lateral da coxa ou preparo de infusão contínua", "dose": "Adulto: 0,5 mg (0,5 mL) IM puro. Criança: 0,01 mg/kg (máx 0,3 mL) IM puro." },
+      { "apresentacao": "Adrenalina 1:10.000 (0,1 mg/mL)", "indicacao": "PCR Adulto/Pediátrico IV/IO ou preparo para choque refratário", "dose": "1 mg IV (10 mL a 1:10.000) a cada 3-5 min em PCR. Preparo: 1 ampola 1:1.000 (1 mL) + 9 mL SF 0,9% = 10 mL a 1:10.000." }
+    ],
+    "regras": "Anafilaxia: 1ª linha SEMPRE IM no vasto lateral da coxa com 1:1.000. PCR: 1 mg IV (solução 1:10.000). Choque anafilático refratário: infusão contínua em BIC (1 ampola 1:1.000 em 249 mL SG 5% = 4 mcg/mL)."
+  }
+};
+
+function formatarGuiaAmpolasDuplasISMP(chave) {
+  var k = String(chave || "").toLowerCase().trim();
+  var item = null;
+  if (/kcl|potassio|cloreto de potassio/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.kcl;
+  else if (/mgso4|magnesio|sulfato de magnesio/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.mgso4;
+  else if (/adrenalina|epinefrina/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.adrenalina;
+  if (!item) return null;
+
+  var out = [];
+  out.push("💉 *" + item.farmaco.toUpperCase() + " — PADRONIZAÇÃO DE AMPOLAS DUPLAS (ISMP BRASIL)*");
+  out.push(item.alertaSeguranca);
+  out.push("\n📋 *Apresentações Hospitalares:*");
+  item.ampolas.forEach(function(amp) {
+    out.push("• *" + amp.apresentacao + "*: " + (amp.equivalencia || amp.indicacao + " — " + amp.dose));
+  });
+  out.push("\n⚖️ *Regras de Segurança:* " + item.regras);
+  return out.join("\n");
 }
 
 // ==============================================================================
@@ -36775,6 +36826,25 @@ function _obterNomesHslNorm() {
   return _cacheNomesHslNorm;
 }
 
+var FARMACOS_SEGURANCA_ESSENCIAIS = [
+  // Beta-lactâmicos & Penicilinas
+  "amoxicilina", "ampicilina", "piperacilina", "benzilpenicilina", "oxacilina", "penicilina", "clavulanato", "tazobactam",
+  // Cefalosporinas
+  "cefalexina", "cefazolina", "ceftriaxona", "cefepima", "cefotaxima", "ceftazidima", "cefuroxima",
+  // Quinolonas
+  "ciprofloxacino", "levofloxacino", "norfloxacino", "moxifloxacino",
+  // Outros antimicrobianos
+  "azitromicina", "claritromicina", "clindamicina", "metronidazol", "sulfametoxazol", "trimetoprima", "vancomicina", "meropenem", "gentamicina", "amicacina", "doxiciclina", "tetraciclina", "nitrofurantoina", "fosfomicina",
+  // AINEs & Analgésicos
+  "ibuprofeno", "cetoprofeno", "diclofenaco", "cetorolaco", "naproxeno", "nimesulida", "tenoxicam", "piroxicam", "meloxicam", "indometacina", "aspirina", "aas", "dipirona", "metamizol", "paracetamol", "morfina", "tramadol", "fentanil", "codeina",
+  // Cardiovascular & Hipertensão
+  "losartana", "valsartana", "candesartana", "enalapril", "captopril", "ramipril", "anlodipino", "nifedipino", "hidralazina", "metildopa", "hidroclorotiazida", "furosemida", "espironolactona", "atenolol", "metoprolol", "carvedilol", "sinvastatina", "atorvastatina", "rosuvastatina", "varfarina", "heparina", "enoxaparina", "clopidogrel", "amiodarona", "digoxina",
+  // SNC & Psiquiatria
+  "fenitoina", "valproato", "carbamazepina", "haloperidol", "quetiapina", "diazepam", "midazolam", "propofol", "clonazepam", "fluoxetina", "sertralina", "litio",
+  // Imunossupressores, Gastro & Outros
+  "metotrexato", "omeprazol", "pantoprazol", "metformina", "insulina", "prednisona", "prednisolona", "dexametasona", "hidrocortisona"
+];
+
 function extrairFarmacosDoTexto(texto) {
   if (!texto) return [];
   if (Array.isArray(texto)) {
@@ -36883,6 +36953,24 @@ function extrairFarmacosDoTexto(texto) {
     }
   }
 
+  // 6. Fármacos essenciais de segurança (garantia em testes / offline)
+  for (var ef = 0; ef < FARMACOS_SEGURANCA_ESSENCIAIS.length; ef++) {
+    var farmacoEssencial = FARMACOS_SEGURANCA_ESSENCIAIS[ef];
+    if (textoNorm.indexOf(" " + farmacoEssencial + " ") !== -1) {
+      adicionar(farmacoEssencial);
+    }
+  }
+
+  // 7. Catálogo gestacional obstétrico
+  if (typeof ObstetriciaPrenatalService !== "undefined" && ObstetriciaPrenatalService.BANCO_FARMACOS_GESTACAO) {
+    for (var kGest in ObstetriciaPrenatalService.BANCO_FARMACOS_GESTACAO) {
+      var kGestNorm = kGest.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (kGestNorm.length >= 3 && !STOPWORDS_FARMACOS[kGestNorm] && textoNorm.indexOf(" " + kGestNorm + " ") !== -1) {
+        adicionar(kGestNorm);
+      }
+    }
+  }
+
   return encontrados;
 }
 
@@ -36922,6 +37010,161 @@ function extrairContextoRenalDoTexto(texto) {
   }
 
   return res;
+}
+
+/**
+ * Auditor determinístico em RAM (0ms) de alergias medicamentosas, reatividade cruzada e contraindicações na gestação.
+ */
+function auditarAlergiasEGestacaoDeterministico(farmacosDetectados, textoContexto) {
+  var resultado = {
+    temCritico: false,
+    alergias: [],
+    gestacao: []
+  };
+
+  if (!farmacosDetectados || farmacosDetectados.length === 0) return resultado;
+
+  var ctxNorm = " " + String(textoContexto || "").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s+]/g, " ") + " ";
+
+  // 1. AUDITORIA DE ALERGIAS MEDICAMENTOSAS E REATIVIDADE CRUZADA
+  var temAlergiaPenicilina = /\b(?:alergia|alergico|alergica|choque|anafilaxia)\b.*?\b(?:penicilina|amoxicilina|ampicilina|beta[\s-]?lactamico|betalactamico)\b/i.test(ctxNorm) ||
+    /\b(?:alergia|alergico|alergica)\s+(?:a|ao|aos|as)?\s*(?:penicilina|amoxicilina|ampicilina|beta[\s-]?lactamicos?|betalactamicos?)\b/i.test(ctxNorm);
+
+  var temAlergiaAine = /\b(?:alergia|alergico|alergica)\s+(?:a|ao|aos|as)?\s*(?:aine|aines|anti[\s-]?inflamatorio|antiinflamatorio|ibuprofeno|diclofenaco|cetoprofeno|aas|aspirina)\b/i.test(ctxNorm) ||
+    /\b(?:triade\s+de\s+widal|drea|asma\s+induzida\s+por\s+aspirina)\b/i.test(ctxNorm);
+
+  var temAlergiaSulfa = /\b(?:alergia|alergico|alergica)\s+(?:a|ao|aos|as)?\s*(?:sulfa|sulfas|sulfonamida|sulfonamidas|bactrim)\b/i.test(ctxNorm);
+
+  var temAlergiaDipirona = /\b(?:alergia|alergico|alergica)\s+(?:a|ao|aos|as)?\s*(?:dipirona|metamizol|novalgina)\b/i.test(ctxNorm);
+
+  var PENICILINAS_MAP = {
+    "amoxicilina": 1, "ampicilina": 1, "piperacilina": 1, "benzilpenicilina": 1,
+    "oxacilina": 1, "penicilina": 1, "penicilina_g": 1, "amoxil": 1, "tazocin": 1,
+    "clavulanato": 1, "tazobactam": 1
+  };
+  var CEFALOSPORINAS_1A_GER = {
+    "cefalexina": 1, "cefazolina": 1, "cefradina": 1, "cefadroxil": 1
+  };
+  var AINES_MAP = {
+    "ibuprofeno": 1, "cetoprofeno": 1, "diclofenaco": 1, "cetorolaco": 1,
+    "naproxeno": 1, "nimesulida": 1, "tenoxicam": 1, "piroxicam": 1,
+    "meloxicam": 1, "indometacina": 1, "aspirina": 1, "aas": 1, "flurbiprofeno": 1
+  };
+  var SULFAS_MAP = {
+    "sulfametoxazol": 1, "sulfadiazina": 1, "dapsona": 1, "sulfassalazina": 1
+  };
+
+  farmacosDetectados.forEach(function(fBruto) {
+    var f = String(fBruto || "").toLowerCase().trim();
+
+    // Checagem de Penicilinas / Beta-lactâmicos
+    if (temAlergiaPenicilina) {
+      if (PENICILINAS_MAP[f]) {
+        resultado.alergias.push({
+          tipo: "CONTRAINDICADO",
+          farmaco: f,
+          motivo: "Paciente alérgico a Penicilinas/Beta-lactâmicos. Risco de anafilaxia grave com " + f.toUpperCase() + ".",
+          alternativa: "Macrolídeos (Azitromicina), Quinolonas, Clindamicina ou Vancomicina conforme indicação clínica."
+        });
+        resultado.temCritico = true;
+      } else if (CEFALOSPORINAS_1A_GER[f]) {
+        resultado.alergias.push({
+          tipo: "ALERTA CRUZADO",
+          farmaco: f,
+          motivo: "Risco de reatividade cruzada (~1-3% nas cefalosporinas de 1ª geração em alérgicos a penicilinas).",
+          alternativa: "Avaliar histórico de anafilaxia prévia. Considerar Cefalosporinas de 3ª/4ª geração ou outra classe não beta-lactâmica."
+        });
+        resultado.temCritico = true;
+      }
+    }
+
+    // Checagem de AINEs
+    if (temAlergiaAine && AINES_MAP[f]) {
+      resultado.alergias.push({
+        tipo: "CONTRAINDICADO",
+        farmaco: f,
+        motivo: "Histórico de alergia/hipersensibilidade a AINEs. Risco de broncoespasmo grave (Tríade de Widal/DREA) ou anafilaxia.",
+        alternativa: "Paracetamol ou Dipirona (se tolerados) ou analgésicos opioides (Tramadol/Codeína)."
+      });
+      resultado.temCritico = true;
+    }
+
+    // Checagem de Sulfas
+    if (temAlergiaSulfa && SULFAS_MAP[f]) {
+      resultado.alergias.push({
+        tipo: "CONTRAINDICADO",
+        farmaco: f,
+        motivo: "Histórico de alergia a Sulfas/Sulfonamidas. Risco de Síndrome de Stevens-Johnson (SSJ), NET ou anafilaxia.",
+        alternativa: "Ceftriaxona, Ciprofloxacino, Fosfomicina ou Nitrofurantoína conforme foco infeccioso."
+      });
+      resultado.temCritico = true;
+    }
+
+    // Checagem de Dipirona
+    if (temAlergiaDipirona && (f === "dipirona" || f === "metamizol")) {
+      resultado.alergias.push({
+        tipo: "CONTRAINDICADO",
+        farmaco: f,
+        motivo: "Alergia documentada à Dipirona/Metamizol.",
+        alternativa: "Paracetamol (se tolerado) ou analgésicos opioides fracos."
+      });
+      resultado.temCritico = true;
+    }
+  });
+
+  // 2. AUDITORIA DE TERATOGENICIDADE & GESTAÇÃO
+  var ehGestante = /\b(?:gestante|gravida|gravidez|gestacao|puerpera|lactante)\b/i.test(ctxNorm) ||
+    /\b(?:ig|dpp|dum)\s*[:=]?\s*\d+/i.test(ctxNorm) ||
+    /\b\d+\s*sem(?:anas?)?\s*(?:de\s+gestacao)?\b/i.test(ctxNorm) ||
+    /\b(?:1[oº]|2[oº]|3[oº]|primeiro|segundo|terceiro)\s+trimestre\b/i.test(ctxNorm);
+
+  if (ehGestante) {
+    var DROGAS_CONTRAINDICADAS_GESTAO = {
+      "losartana": { fda: "D", risco: "Disgenesia renal, anúria neonatal, oligoidrâmnio grave e hipoplasia pulmonar (BRA).", alt: "Metildopa, Nifedipino ou Hidralazina." },
+      "valsartana": { fda: "D", risco: "Toxicidade feto-renal grave (BRA).", alt: "Metildopa ou Nifedipino." },
+      "candesartana": { fda: "D", risco: "Toxicidade feto-renal grave (BRA).", alt: "Metildopa ou Nifedipino." },
+      "enalapril": { fda: "D", risco: "Fetotoxicidade feto-renal grave, oligoidrâmnio e anúria neonatal (IECA).", alt: "Metildopa, Nifedipino ou Hidralazina." },
+      "captopril": { fda: "D", risco: "Fetotoxicidade feto-renal grave (IECA).", alt: "Metildopa ou Nifedipino." },
+      "ramipril": { fda: "D", risco: "Fetotoxicidade feto-renal grave (IECA).", alt: "Metildopa ou Nifedipino." },
+      "sinvastatina": { fda: "X", risco: "Teratogênico na embriogênese e síntese de colesterol fetal.", alt: "Suspender estatina durante a gestação." },
+      "atorvastatina": { fda: "X", risco: "Teratogênico na síntese de colesterol e membranas fetais.", alt: "Suspender estatina durante a gestação." },
+      "rosuvastatina": { fda: "X", risco: "Contraindicado absoluto na gestação.", alt: "Suspender estatina durante a gestação." },
+      "varfarina": { fda: "D/X", risco: "Síndrome da embriopatia varfarínica (hipoplasia nasal, condrodisplasia pontilhada) e hemorragia fetal.", alt: "Enoxaparina (HBPM) ou Heparina Não Fracionada." },
+      "ciprofloxacino": { fda: "C", risco: "Toxicidade cartilaginosa e artropatias em articulações de suporte fetal (Quinolona).", alt: "Ceftriaxona, Cefuroxima, Amoxicilina ou Fosfomicina." },
+      "levofloxacino": { fda: "C", risco: "Toxicidade cartilaginosa articular fetal (Quinolona).", alt: "Ceftriaxona ou Amoxicilina+Clavulanato." },
+      "norfloxacino": { fda: "C", risco: "Toxicidade cartilaginosa articular fetal (Quinolona).", alt: "Fosfomicina ou Cefalexina." },
+      "moxifloxacino": { fda: "C", risco: "Toxicidade cartilaginosa articular fetal (Quinolona).", alt: "Ceftriaxona ou Azitromicina." },
+      "doxiciclina": { fda: "D", risco: "Descoloração dental permanente e alteração no crescimento ósseo fetal (Tetraciclina).", alt: "Azitromicina ou Amoxicilina." },
+      "tetraciclina": { fda: "D", risco: "Hipoplasia do esmalte dentário e retardo no crescimento ósseo fetal.", alt: "Amoxicilina ou Azitromicina." },
+      "valproato": { fda: "X", risco: "Defeitos graves do tubo neural (espinha bífida), fenda palatina e déficit cognitivo grave.", alt: "Lamotrigina ou Levetiracetam com ácido fólico 5mg/dia." },
+      "acido valproico": { fda: "X", risco: "Defeitos do tubo neural (espinha bífida) e malformações congênitas múltiplas.", alt: "Lamotrigina ou Levetiracetam." },
+      "metotrexato": { fda: "X", risco: "Teratogênese grave, abortamento e malformações craniofaciais e esqueléticas.", alt: "Contraindicação absoluta na gestação." },
+      "ibuprofeno": { fda: "D", risco: "Fechamento prematuro do canal arterial (ductus arteriosus), hipertensão pulmonar persistente neonatal e oligoidrâmnio (AINE).", alt: "Paracetamol (analgésico de 1ª linha na gestação)." },
+      "cetoprofeno": { fda: "D", risco: "Fechamento prematuro do ducto arterioso e oligoidrâmnio (AINE).", alt: "Paracetamol." },
+      "diclofenaco": { fda: "D", risco: "Fechamento prematuro do canal arterial e disfunção renal fetal (AINE).", alt: "Paracetamol." },
+      "cetorolaco": { fda: "D", risco: "Fechamento prematuro do canal arterial e risco hemorrágico (AINE).", alt: "Paracetamol." },
+      "naproxeno": { fda: "D", risco: "Fechamento prematuro do canal arterial (AINE).", alt: "Paracetamol." },
+      "nimesulida": { fda: "D", risco: "Fechamento prematuro do canal arterial e insuficiência renal fetal (AINE).", alt: "Paracetamol." }
+    };
+
+    farmacosDetectados.forEach(function(fBruto) {
+      var f = String(fBruto || "").toLowerCase().trim();
+      var infoTerato = DROGAS_CONTRAINDICADAS_GESTAO[f];
+      if (infoTerato) {
+        resultado.gestacao.push({
+          farmaco: f,
+          categoriaFda: infoTerato.fda,
+          risco: infoTerato.risco,
+          alternativa: infoTerato.alt
+        });
+        resultado.temCritico = true;
+      }
+    });
+  }
+
+  return resultado;
 }
 
 function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
@@ -37033,12 +37276,37 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
   var temContraindicado = interacoesAchadas.some(function(it) { return it.grauNormalizado === "CONTRAINDICADO"; });
   var temGrave = interacoesAchadas.some(function(it) { return it.grauNormalizado === "GRAVE"; });
   var temIncompativelY = auditoriaY ? (auditoriaY.temIncompativel || auditoriaY.temAlertasCriticos) : false;
-  var temAlertasCriticos = temContraindicado || temGrave || temIncompativelY || (ctxRenal.temDisfuncao && ajustesRenais.length > 0);
+
+  // 4. Auditoria Determinística de Alergias Cruzadas e Gestação em RAM (0ms)
+  var auditoriaAlergiasGestacao = auditarAlergiasEGestacaoDeterministico(farmacos, (typeof drogasOuTexto === "string" ? drogasOuTexto + " " : "") + contextoTexto);
+
+  var temAlertasCriticos = temContraindicado || temGrave || temIncompativelY || (ctxRenal.temDisfuncao && ajustesRenais.length > 0) || auditoriaAlergiasGestacao.temCritico;
 
   // Formatação clínica para Telegram, Cockpit e Auditoria
   var linhasTexto = [];
   linhasTexto.push("🛡️ *CROSS-CHECK DE SEGURANÇA FARMACOLÓGICA*");
   linhasTexto.push("🔍 *Fármacos rastreados:* " + (farmacos.length > 0 ? farmacos.map(function(s){return "`" + s.toUpperCase() + "`";}).join(", ") : "Nenhum fármaco identificado"));
+
+  // Alergias medicamentosas e reatividade cruzada
+  if (auditoriaAlergiasGestacao.alergias.length > 0) {
+    linhasTexto.push("\n🚫 *ALERTA DE ALERGIA MEDICAMENTOSA / REAÇÃO CRUZADA:*");
+    auditoriaAlergiasGestacao.alergias.forEach(function(al) {
+      var iconeAl = al.tipo === "CONTRAINDICADO" ? "🛑" : "⚠️";
+      linhasTexto.push(iconeAl + " *" + al.tipo + ":* `" + al.farmaco.toUpperCase() + "`");
+      linhasTexto.push("   • *Motivo:* " + al.motivo);
+      if (al.alternativa) linhasTexto.push("   • *Alternativa sugerida:* " + al.alternativa);
+    });
+  }
+
+  // Segurança gestacional e teratogenicidade
+  if (auditoriaAlergiasGestacao.gestacao.length > 0) {
+    linhasTexto.push("\n🤰 *SEGURANÇA NA GESTAÇÃO & LACTAÇÃO:*");
+    auditoriaAlergiasGestacao.gestacao.forEach(function(gt) {
+      linhasTexto.push("🛑 *CONTRAINDICADO NA GESTAÇÃO (Cat " + gt.categoriaFda + "):* `" + gt.farmaco.toUpperCase() + "`");
+      linhasTexto.push("   • *Risco:* " + gt.risco);
+      if (gt.alternativa) linhasTexto.push("   • *Alternativa segura:* " + gt.alternativa);
+    });
+  }
 
   if (interacoesAchadas.length > 0) {
     linhasTexto.push("\n⚠️ *INTERAÇÕES MEDICAMENTOSAS IDENTIFICADAS:*");
@@ -37126,6 +37394,8 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
     compatibilidadeY: auditoriaY ? auditoriaY.pares : [],
     ajustesRenais: ajustesRenais,
     tetosDose: tetosDose,
+    alergias: auditoriaAlergiasGestacao.alergias,
+    gestacao: auditoriaAlergiasGestacao.gestacao,
     contextoRenalDetectado: ctxRenal,
     textoFormatado: linhasTexto.join("\n")
   };
@@ -40211,34 +40481,143 @@ function auditoriaClinicaPendente(texto) {
   return /auditoria autom[aá]tica (?:indispon[ií]vel|incompleta)|alertas da auditoria autom[aá]tica/i.test(String(texto || ""));
 }
 
-function _iaAnexarCrossCheckSeguranca(rascunho, dadosCaso) {
-  if (!rascunho) return rascunho;
-  if (typeof executarCrossCheckSegurancaClinica !== "function") return rascunho;
-  try {
-    var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
-    if (check && check.temAlertasCriticos) {
-      var alertasSentinela = [];
-      if (check.interacoes) {
-        check.interacoes.filter(function(it) {
-          return it.grauNormalizado === "CONTRAINDICADO" || it.grauNormalizado === "GRAVE";
-        }).forEach(function(it) {
-          alertasSentinela.push("• 🛑 *Interação " + it.grau + ":* " + it.drogaA + " + " + it.drogaB + " (" + (it.recomendacao || it.efeito) + ")");
-        });
+/**
+ * Auditor Aritmético Pós-IA de Conversão Posológica (mg -> mL / gotas).
+ * Detecta discrepâncias matemáticas > 12% entre a dose indicada em mg e o volume informado em mL ou gotas.
+ */
+function _iaAuditarMatematicaPosologica(textoGerado) {
+  if (!textoGerado || typeof textoGerado !== "string") return null;
+
+  var linhas = textoGerado.split(/\n+/);
+  var errosDetectados = [];
+
+  for (var i = 0; i < linhas.length; i++) {
+    var l = linhas[i].trim();
+    if (!l || l.length < 10) continue;
+
+    // 1. Extrai concentração (ex: 250mg/5mL, 125mg/5mL, 500mg/mL, 200 mg em 5 ml)
+    var mConcDupla = l.match(/(\d+(?:[.,]\d+)?)\s*mg\s*(?:\/|\s+em\s+)\s*(\d+(?:[.,]\d+)?)\s*m[Ll]/i);
+    var mConcSimples = !mConcDupla ? l.match(/(\d+(?:[.,]\d+)?)\s*mg\s*\/\s*m[Ll]/i) : null;
+
+    var concMgPorMl = null;
+    var concDesc = "";
+    if (mConcDupla) {
+      var mgC = parseFloat(mConcDupla[1].replace(",", "."));
+      var mlC = parseFloat(mConcDupla[2].replace(",", "."));
+      if (mgC > 0 && mlC > 0) {
+        concMgPorMl = mgC / mlC;
+        concDesc = mConcDupla[1] + "mg/" + mConcDupla[2] + "mL";
       }
-      if (check.compatibilidadeY) {
-        check.compatibilidadeY.filter(function(p) {
-          return p.status === "INCOMPATIVEL" || p.alertaCritico;
-        }).forEach(function(p) {
-          alertasSentinela.push("• 🛑 *Incompatibilidade em Y:* " + p.drogaA.toUpperCase() + " ⚡ " + p.drogaB.toUpperCase() + " (" + p.conduta + ")");
-        });
-      }
-      if (alertasSentinela.length > 0) {
-        return rascunho + "\n\n⚠️ *ALERTAS CRÍTICOS DE SEGURANÇA FARMACOLÓGICA:*\n" + alertasSentinela.join("\n");
+    } else if (mConcSimples) {
+      var mgS = parseFloat(mConcSimples[1].replace(",", "."));
+      if (mgS > 0) {
+        concMgPorMl = mgS;
+        concDesc = mConcSimples[1] + "mg/mL";
       }
     }
-  } catch (eCheck) {
-    Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
+
+    if (!concMgPorMl) continue;
+
+    // 2. Extrai dose indicada em mg (ex: "dose de 250 mg", "250 mg", "dose: 500mg")
+    var mDose = l.match(/(?:dose(?:\s+de|\s*[:=])?\s*)(\d+(?:[.,]\d+)?)\s*mg\b/i) ||
+      l.match(/\((\s*\d+(?:[.,]\d+)?\s*mg\s*)\)/i) ||
+      l.match(/\b(\d+(?:[.,]\d+)?)\s*mg\b/i);
+
+    var doseMg = null;
+    if (mDose) {
+      doseMg = parseFloat(mDose[1].replace(",", "."));
+      var mDoseExpl = l.match(/(?:dose(?:\s+de|\s*[:=])?\s*|\()(\d+(?:[.,]\d+)?)\s*mg/i);
+      if (mDoseExpl) {
+        doseMg = parseFloat(mDoseExpl[1].replace(",", "."));
+      }
+    }
+
+    if (!doseMg || doseMg <= 0) continue;
+
+    // 3. Extrai volume a administrar em mL ou gotas
+    var mVolMl = l.match(/(?:tomar|administrar|dar|prescrever|ingerir|posologia[:\s]*)\s*(\d+(?:[.,]\d+)?)\s*m[Ll]\b/i) ||
+      l.match(/(\d+(?:[.,]\d+)?)\s*m[Ll]\s*(?:por\s+via|vo|via\s+oral|de\s+\d+\/\d+h|a\s+cada|\d+x|x\s+ao\s+dia|de\s+hor[aá]rio)/i) ||
+      l.match(/:\s*(\d+(?:[.,]\d+)?)\s*m[Ll]\b/i);
+
+    var mGotas = l.match(/(\d+)\s*gotas\b/i);
+
+    var volInformadoMl = null;
+    if (mVolMl) {
+      volInformadoMl = parseFloat(mVolMl[1].replace(",", "."));
+    } else if (mGotas) {
+      var numGotas = parseInt(mGotas[1], 10);
+      volInformadoMl = numGotas / 20; // 20 gotas = 1 mL
+    }
+
+    if (!volInformadoMl || volInformadoMl <= 0) continue;
+
+    var volEsperadoMl = doseMg / concMgPorMl;
+    var erroRelativo = Math.abs(volEsperadoMl - volInformadoMl) / volEsperadoMl;
+
+    if (erroRelativo > 0.12) {
+      var volFormatado = (Math.round(volEsperadoMl * 10) / 10).toString().replace(".", ",");
+      var volInfFormatado = volInformadoMl.toString().replace(".", ",");
+      var tipoErro = volInformadoMl > volEsperadoMl ? "superdosagem" : "subdosagem";
+      errosDetectados.push("ERRO ARITMÉTICO NA PRESCRIÇÃO (" + concDesc + "): Dose indicada: " + doseMg + " mg ➔ Volume correto: " + volFormatado + " mL (prescrito: " + volInfFormatado + " mL). Risco grave de " + tipoErro + "!");
+    }
   }
+
+  return errosDetectados.length > 0 ? errosDetectados.join("\n") : null;
+}
+
+function _iaAnexarCrossCheckSeguranca(rascunho, dadosCaso) {
+  if (!rascunho) return rascunho;
+  var alertasSentinela = [];
+
+  if (typeof executarCrossCheckSegurancaClinica === "function") {
+    try {
+      var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
+      if (check && check.temAlertasCriticos) {
+        if (check.interacoes) {
+          check.interacoes.filter(function(it) {
+            return it.grauNormalizado === "CONTRAINDICADO" || it.grauNormalizado === "GRAVE";
+          }).forEach(function(it) {
+            alertasSentinela.push("• 🛑 *Interação " + it.grau + ":* " + it.drogaA + " + " + it.drogaB + " (" + (it.recomendacao || it.efeito) + ")");
+          });
+        }
+        if (check.compatibilidadeY) {
+          check.compatibilidadeY.filter(function(p) {
+            return p.status === "INCOMPATIVEL" || p.alertaCritico;
+          }).forEach(function(p) {
+            alertasSentinela.push("• 🛑 *Incompatibilidade em Y:* " + p.drogaA.toUpperCase() + " ⚡ " + p.drogaB.toUpperCase() + " (" + p.conduta + ")");
+          });
+        }
+        if (check.alergias && check.alergias.length > 0) {
+          check.alergias.forEach(function(al) {
+            var iconeAl = al.tipo === "CONTRAINDICADO" ? "🛑" : "⚠️";
+            alertasSentinela.push("• " + iconeAl + " *Alergia/Risco Cruzado (" + al.tipo + "):* `" + al.farmaco.toUpperCase() + "` — " + al.motivo);
+          });
+        }
+        if (check.gestacao && check.gestacao.length > 0) {
+          check.gestacao.forEach(function(gt) {
+            alertasSentinela.push("• 🛑 *Contraindicado na Gestação (Cat " + gt.categoriaFda + "):* `" + gt.farmaco.toUpperCase() + "` — " + gt.risco);
+          });
+        }
+      }
+    } catch (eCheck) {
+      Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
+    }
+  }
+
+  // Validador aritmético pós-IA
+  try {
+    var alertaMatematica = _iaAuditarMatematicaPosologica(rascunho);
+    if (alertaMatematica) {
+      alertasSentinela.push("• 🚨 *" + alertaMatematica + "*");
+    }
+  } catch (eMat) {
+    Logger.log("Aviso na auditoria matemática: " + eMat.message);
+  }
+
+  if (alertasSentinela.length > 0) {
+    return rascunho + "\n\n⚠️ *ALERTAS CRÍTICOS DE SEGURANÇA FARMACOLÓGICA:*\n" + alertasSentinela.join("\n");
+  }
+
   return rascunho;
 }
 
@@ -40272,12 +40651,12 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   try { r = _iaExecutar(sistema, contexto, 600, { clinico: true, exigirRespostaCompleta: true }); }
   catch (e) { Logger.log("Auditoria automática indisponível."); }
   var limpo = String(r || "").trim();
-  if (!limpo) return rascunho + blocoCrossCheck + "\n\n⚠️ *Auditoria automática indisponível — revisão pendente*\nNão foi possível concluir a segunda revisão. Este rascunho não foi liberado pela auditoria; confira-o antes de qualquer uso.";
-  if (/^SEM ALERTAS\.?$/i.test(limpo)) return rascunho + blocoCrossCheck;
+  if (!limpo) return rascunhoComCrossCheck + "\n\n⚠️ *Auditoria automática indisponível — revisão pendente*\nNão foi possível concluir a segunda revisão. Este rascunho não foi liberado pela auditoria; confira-o antes de qualquer uso.";
+  if (/^SEM ALERTAS\.?$/i.test(limpo)) return rascunhoComCrossCheck;
   if (!/^-\s+/m.test(limpo) || /resposta interrompida por limite/i.test(limpo)) {
-    return rascunho + blocoCrossCheck + "\n\n⚠️ *Auditoria automática incompleta — revisão pendente*\nA revisão não produziu uma conclusão completa. Retorno recebido:\n" + _iaFinalizarTexto(limpo);
+    return rascunhoComCrossCheck + "\n\n⚠️ *Auditoria automática incompleta — revisão pendente*\nA revisão não produziu uma conclusão completa. Retorno recebido:\n" + _iaFinalizarTexto(limpo);
   }
-  return rascunho + blocoCrossCheck + "\n\n🛑 *Alertas da auditoria automática (" + titulo + ") — revisão pendente*\n" + _iaFinalizarTexto(limpo);
+  return rascunhoComCrossCheck + "\n\n🛑 *Alertas da auditoria automática (" + titulo + ") — revisão pendente*\n" + _iaFinalizarTexto(limpo);
 }
 
 // ==============================================================================
@@ -48117,6 +48496,7 @@ function executarComandoCalculadorasUTIInterno_(comando, texto, chatId, contexto
     var idadeCrcl = mIdade ? parseInt(mIdade[1], 10) : null;
     var pesoCrcl = mPeso ? parseFloat(mPeso[1].replace(',', '.')) : null;
     var cr = mCr ? parseFloat(mCr[1].replace(',', '.')) : null;
+    var sexoInformado = !!mSexo;
     var sexoCrcl = (mSexo && (mSexo[1].toLowerCase().startsWith('f') || mSexo[1].toLowerCase() === 'mulher')) ? 'F' : 'M';
 
     // Suporte posicional rápido: ex: 68 70 1.4 ou 68 70 1.4 fem
@@ -48169,8 +48549,31 @@ function executarComandoCalculadorasUTIInterno_(comando, texto, chatId, contexto
       medicamentos: medsArray
     };
 
-    var resCrcl = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrcl });
-    return enviarMensagemComTecladoParaChat(chatId, resCrcl.textoFormatado, kbCrclRetorno);
+    if (sexoInformado) {
+      var resCrcl = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrcl });
+      return enviarMensagemComTecladoParaChat(chatId, resCrcl.textoFormatado, kbCrclRetorno);
+    }
+
+    // Se sexo não informado: NÃO assume M silenciosamente. Calcula ambos lado a lado!
+    var reqCrclM = Object.assign({}, reqCrcl, { sexo: 'M' });
+    var reqCrclF = Object.assign({}, reqCrcl, { sexo: 'F' });
+    var resCrclM = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrclM });
+    var resCrclF = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrclF });
+
+    var clM = (resCrclM.resultado && resCrclM.resultado.clearance) || Math.round(((140 - idadeCrcl) * pesoCrcl / (72 * cr)) * 10) / 10;
+    var clF = (resCrclF.resultado && resCrclF.resultado.clearance) || Math.round((clM * 0.85) * 10) / 10;
+
+    var cabecalhoComparativo = "⚠️ *[SEXO BIOLÓGICO NÃO INFORMADO — ESTIMATIVAS LADO A LADO]*\n" +
+      "🚹 *Masculino:* `" + clM + " mL/min` | 🚺 *Feminino (x0,85):* `" + clF + " mL/min`\n";
+
+    var estM = (resCrclM.resultado && resCrclM.resultado.estagio) || "";
+    var estF = (resCrclF.resultado && resCrclF.resultado.estagio) || "";
+    if (estM && estF && estM !== estF) {
+      cabecalhoComparativo += "⚠️ *Alerta Clínico:* A diferença de sexo altera a faixa/estágio renal (" + estM + " vs " + estF + "). Confirme o sexo biológico para ajuste posológico exato!\n";
+    }
+    cabecalhoComparativo += "─────────────────────────────────────────\n\n";
+
+    return enviarMensagemComTecladoParaChat(chatId, cabecalhoComparativo + resCrclM.textoFormatado, kbCrclRetorno);
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -48600,6 +49003,9 @@ function extrairParametrosPancreatite(texto) {
 
       var resHic = NeurologiaAvcService.calcularHic(paramsHic);
       var txtHic = NeurologiaAvcService.formatarResumoAvc(resHic);
+      if (!mPesoHic) {
+        txtHic = "⚠️ *[ATENÇÃO: Peso não informado — doses osmoterapêuticas estimadas para adulto padrão (70 kg). Confirme o peso real antes da infusão!]*\n\n" + txtHic;
+      }
       if (typeof enviarMensagemComTecladoParaChat === "function") {
         return enviarMensagemComTecladoParaChat(chatId, txtHic, kbHicRetorno);
       }
@@ -55196,6 +55602,26 @@ function tratarComandoDhe(chatId, dadosDhe) {
     return enviarMensagemComTecladoParaChat(chatId, "⚠️ *Atenção:* Sódio não identificado. Informe o valor do sódio sérico.\n\n💡 *Como usar:* `/dhe na 118 peso 60 f`", kbDheRetorno);
   }
 
+  var pesoOmitido = (pesoNum === null);
+  var sexoOmitido = (mSexo === null);
+  var avisoDefaultDhe = "";
+  if (pesoOmitido || sexoOmitido) {
+    avisoDefaultDhe = "⚠️ *[ATENÇÃO: Peso/Sexo não informados — simulação calculada para referência padrão (70kg Masc). Informe peso e sexo reais para ajuste exato da ACT]*\n\n";
+    kbDheRetorno = {
+      inline_keyboard: [
+        [
+          { text: "🚺 50kg F", callback_data: "cmd_dhe:na_" + naNum + "_peso_50_f" },
+          { text: "🚺 60kg F", callback_data: "cmd_dhe:na_" + naNum + "_peso_60_f" }
+        ],
+        [
+          { text: "🚹 70kg M", callback_data: "cmd_dhe:na_" + naNum + "_peso_70_m" },
+          { text: "🚹 80kg M", callback_data: "cmd_dhe:na_" + naNum + "_peso_80_m" }
+        ],
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+  }
+
   if (pesoNum === null) pesoNum = 70;
 
   // Validação clínica defensiva mandatória beira-leito
@@ -55228,6 +55654,7 @@ function tratarComandoDhe(chatId, dadosDhe) {
         txtHiper += "• " + resHiper.alertas[ah] + "\n";
       }
     }
+    if (pesoOmitido || sexoOmitido) txtHiper = avisoDefaultDhe + txtHiper;
     return enviarMensagemComTecladoParaChat(chatId, txtHiper, kbDheRetorno);
   }
 
@@ -55250,6 +55677,7 @@ function tratarComandoDhe(chatId, dadosDhe) {
     "⚠️ *BLOQUEIO DE SEGURANÇA MANDATÓRIO:*\n" +
     "• " + resHipo.alerta + "\n" +
     "• Dosar sódio sérico a cada *2 a 4 horas* em fase aguda.";
+  if (pesoOmitido || sexoOmitido) txtHipo = avisoDefaultDhe + txtHipo;
   return enviarMensagemComTecladoParaChat(chatId, txtHipo, kbDheRetorno);
 }
 

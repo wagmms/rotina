@@ -4282,6 +4282,7 @@ function executarComandoCalculadorasUTIInterno_(comando, texto, chatId, contexto
     var idadeCrcl = mIdade ? parseInt(mIdade[1], 10) : null;
     var pesoCrcl = mPeso ? parseFloat(mPeso[1].replace(',', '.')) : null;
     var cr = mCr ? parseFloat(mCr[1].replace(',', '.')) : null;
+    var sexoInformado = !!mSexo;
     var sexoCrcl = (mSexo && (mSexo[1].toLowerCase().startsWith('f') || mSexo[1].toLowerCase() === 'mulher')) ? 'F' : 'M';
 
     // Suporte posicional rápido: ex: 68 70 1.4 ou 68 70 1.4 fem
@@ -4334,8 +4335,31 @@ function executarComandoCalculadorasUTIInterno_(comando, texto, chatId, contexto
       medicamentos: medsArray
     };
 
-    var resCrcl = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrcl });
-    return enviarMensagemComTecladoParaChat(chatId, resCrcl.textoFormatado, kbCrclRetorno);
+    if (sexoInformado) {
+      var resCrcl = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrcl });
+      return enviarMensagemComTecladoParaChat(chatId, resCrcl.textoFormatado, kbCrclRetorno);
+    }
+
+    // Se sexo não informado: NÃO assume M silenciosamente. Calcula ambos lado a lado!
+    var reqCrclM = Object.assign({}, reqCrcl, { sexo: 'M' });
+    var reqCrclF = Object.assign({}, reqCrcl, { sexo: 'F' });
+    var resCrclM = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrclM });
+    var resCrclF = cockpitNefrologiaClearance('bot', { acao: 'completo', paciente: reqCrclF });
+
+    var clM = (resCrclM.resultado && resCrclM.resultado.clearance) || Math.round(((140 - idadeCrcl) * pesoCrcl / (72 * cr)) * 10) / 10;
+    var clF = (resCrclF.resultado && resCrclF.resultado.clearance) || Math.round((clM * 0.85) * 10) / 10;
+
+    var cabecalhoComparativo = "⚠️ *[SEXO BIOLÓGICO NÃO INFORMADO — ESTIMATIVAS LADO A LADO]*\n" +
+      "🚹 *Masculino:* `" + clM + " mL/min` | 🚺 *Feminino (x0,85):* `" + clF + " mL/min`\n";
+
+    var estM = (resCrclM.resultado && resCrclM.resultado.estagio) || "";
+    var estF = (resCrclF.resultado && resCrclF.resultado.estagio) || "";
+    if (estM && estF && estM !== estF) {
+      cabecalhoComparativo += "⚠️ *Alerta Clínico:* A diferença de sexo altera a faixa/estágio renal (" + estM + " vs " + estF + "). Confirme o sexo biológico para ajuste posológico exato!\n";
+    }
+    cabecalhoComparativo += "─────────────────────────────────────────\n\n";
+
+    return enviarMensagemComTecladoParaChat(chatId, cabecalhoComparativo + resCrclM.textoFormatado, kbCrclRetorno);
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -4765,6 +4789,9 @@ function extrairParametrosPancreatite(texto) {
 
       var resHic = NeurologiaAvcService.calcularHic(paramsHic);
       var txtHic = NeurologiaAvcService.formatarResumoAvc(resHic);
+      if (!mPesoHic) {
+        txtHic = "⚠️ *[ATENÇÃO: Peso não informado — doses osmoterapêuticas estimadas para adulto padrão (70 kg). Confirme o peso real antes da infusão!]*\n\n" + txtHic;
+      }
       if (typeof enviarMensagemComTecladoParaChat === "function") {
         return enviarMensagemComTecladoParaChat(chatId, txtHic, kbHicRetorno);
       }

@@ -1,5 +1,25 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C63. [x] **Hardening Clínico — Tolerância Zero a Erros Médicos, Bloqueio Determinístico de Alergias/Gestação, Auditor Aritmético Pós-IA e Erradicação de Silent Defaults (`src/03_bases_locais.js`, `src/04_motores_ia.js`, `src/07a_telegram_router.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `tests/test_auditoria_qualidade_clinica.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Em `/crcl` (`src/07a_telegram_router.js`), quando o sexo biológico era omitido pelo médico, o sistema adotava silenciosamente sexo masculino (`M`), com risco de superestimar a TFG em 15% em mulheres e aplicar subdose ou toxicidade em antimicrobianos de faixa estreita.
+      * Em `/hic` (`src/07a_telegram_router.js`) e `/dhe` (`src/07g_telegram_ajuda_e_protocolos.js`), cálculos osmoterapêuticos (Manitol 20% e Salina 3%) e de ACT (Adrogué-Madias) assumiam `peso = 70 kg` e `sexo = "m"` sem alertar o usuário no texto.
+      * O cross-check determinístico em RAM (`executarCrossCheckSegurancaClinica`) cobria interações e incompatibilidade em Y, mas não continha bloqueio imediato para pacientes alérgicos (penicilinas com risco cruzado em cefalosporinas de 1ª ger, AINEs, sulfas e dipirona) nem bloqueio de teratógenos em gestantes (IECA/BRA, estatinas, varfarina, quinolonas, ácido valproico, metotrexato, AINEs).
+      * Prescrições líquidas pediátricas/adultas geradas por IA podiam conter alucinações aritméticas de conversão (mg ➔ mL/gotas) sem auditoria determinística de segurança.
+      * Risco de confusão hospitalar entre ampolas duplas de alta vigilância (KCl 19,1% vs 10%, MgSO4 50% vs 10%, Adrenalina 1:1.000 vs 1:10.000).
+    - **Correções Implementadas**:
+      * *Frente 1 (Eliminação de Silent Defaults em /crcl e /hic)*: Em `src/07a_telegram_router.js`, quando o sexo não é informado em `/crcl`, calcula e exibe lado a lado `🚹 Masculino: X mL/min | 🚺 Feminino (x0,85): Y mL/min`, alertando se a variação alterar a faixa ou estágio renal. Em `/hic`, se o peso for omitido, anexa no topo aviso explícito de que os volumes de osmoterapia foram calculados para adulto padrão (70 kg) e exigem confirmação do peso real.
+      * *Frente 2 (Erradicação de Silent Defaults em /dhe)*: Em `src/07g_telegram_ajuda_e_protocolos.js`, se peso ou sexo forem omitidos em `/dhe` (Adrogué-Madias), anexa aviso explícito no topo e fornece botões de teclado inline para ajuste imediato em 1 toque (`[50kg F] [60kg F] [70kg M] [80kg M]`).
+      * *Frente 3 (Bloqueio Determinístico de Alergias Cruzadas e Gestação em RAM 0ms)*: Em `src/03_bases_locais.js`, criada a função pura `auditarAlergiasEGestacaoDeterministico` e acoplada a `executarCrossCheckSegurancaClinica`. Bloqueia penicilinas se alergia a beta-lactâmicos (e alerta risco cruzado em cefalosporinas 1ª ger), bloqueia AINEs, sulfas e dipirona; bloqueia teratógenos na gestação (BRA/IECA, estatinas, varfarina, quinolonas, tetraciclinas, ácido valproico, metotrexato, AINEs no 3º tri), marcando `temAlertasCriticos = true` e exibindo seções formatadas com ícones `🛑` e `⚠️`.
+      * *Frente 4 (Auditor Aritmético Pós-IA de Doses Líquidas)*: Em `src/04_motores_ia.js`, implementado `_iaAuditarMatematicaPosologica(textoGerado)` integrado a `_iaAnexarCrossCheckSeguranca`. Detecta discrepâncias > 12% entre dose em mg e volume em mL/gotas e anexa alerta sentinela com a conversão corrigida em mL.
+      * *Frente 5 (Padronização ISMP de Ampolas Duplas)*: Em `src/03_bases_locais.js`, definida `PADRONIZACAO_AMPOLAS_DUPLAS_ISMP` e função `formatarGuiaAmpolasDuplasISMP` cobrindo KCl 19,1% vs 10%, MgSO4 50% vs 10% e Adrenalina 1:1.000 vs 1:10.000, e enriquecidos os protocolos determinísticos de CAD, Asma e Anafilaxia.
+      * *Frente 6 (Cobertura de Testes)*: Em `tests/test_auditoria_qualidade_clinica.cjs`, adicionados 4 novos testes unitários (seções 12, 13, 14 e 15) validando todos os fluxos com 100% de cobertura.
+    - **Recibo de Estabilidade**:
+      * `node scripts/run_tests.cjs tests/test_auditoria_qualidade_clinica.cjs`: 100% aprovado;
+      * `node scripts/run_tests.cjs tests/test_auditoria_edge_cases_clinicos.cjs`: 100% aprovado;
+      * `python3 build_master.py`: 78 módulos empacotados, validação de sintaxe JS 100% OK;
+      * `npm test` (`node scripts/run_tests.cjs`): 57/57 suítes aprovadas com 100% de sucesso em 33.38s.
+
 0C62. [x] **Rigor & Segurança Clínica Decisional — Desengessar /pancreatite (BISAP Real), Trava de Dose Máxima Pediátrica da Amoxicilina e Expansão de Protocolos Determinísticos (`src/07a_telegram_router.js`, `src/03_gastroenterologia_pancreatite.js`, `src/03_bases_locais.js`, `src/04_motores_ia.js`, `tests/test_gastroenterologia_pancreatite.cjs`, `tests/test_auditoria_qualidade_clinica.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * Comandos `/pancreatite` e `/bisap` retornavam um mock com dados clínicos fixos hardcoded e aviso de "parâmetros simulados", sem permitir ao médico calcular o risco real com base no caso do paciente.

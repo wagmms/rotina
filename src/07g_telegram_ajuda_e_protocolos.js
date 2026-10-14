@@ -1171,6 +1171,26 @@ function tratarComandoDhe(chatId, dadosDhe) {
     return enviarMensagemComTecladoParaChat(chatId, "⚠️ *Atenção:* Sódio não identificado. Informe o valor do sódio sérico.\n\n💡 *Como usar:* `/dhe na 118 peso 60 f`", kbDheRetorno);
   }
 
+  var pesoOmitido = (pesoNum === null);
+  var sexoOmitido = (mSexo === null);
+  var avisoDefaultDhe = "";
+  if (pesoOmitido || sexoOmitido) {
+    avisoDefaultDhe = "⚠️ *[ATENÇÃO: Peso/Sexo não informados — simulação calculada para referência padrão (70kg Masc). Informe peso e sexo reais para ajuste exato da ACT]*\n\n";
+    kbDheRetorno = {
+      inline_keyboard: [
+        [
+          { text: "🚺 50kg F", callback_data: "cmd_dhe:na_" + naNum + "_peso_50_f" },
+          { text: "🚺 60kg F", callback_data: "cmd_dhe:na_" + naNum + "_peso_60_f" }
+        ],
+        [
+          { text: "🚹 70kg M", callback_data: "cmd_dhe:na_" + naNum + "_peso_70_m" },
+          { text: "🚹 80kg M", callback_data: "cmd_dhe:na_" + naNum + "_peso_80_m" }
+        ],
+        [{ text: "🔙 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+  }
+
   if (pesoNum === null) pesoNum = 70;
 
   // Validação clínica defensiva mandatória beira-leito
@@ -1203,6 +1223,7 @@ function tratarComandoDhe(chatId, dadosDhe) {
         txtHiper += "• " + resHiper.alertas[ah] + "\n";
       }
     }
+    if (pesoOmitido || sexoOmitido) txtHiper = avisoDefaultDhe + txtHiper;
     return enviarMensagemComTecladoParaChat(chatId, txtHiper, kbDheRetorno);
   }
 
@@ -1225,6 +1246,7 @@ function tratarComandoDhe(chatId, dadosDhe) {
     "⚠️ *BLOQUEIO DE SEGURANÇA MANDATÓRIO:*\n" +
     "• " + resHipo.alerta + "\n" +
     "• Dosar sódio sérico a cada *2 a 4 horas* em fase aguda.";
+  if (pesoOmitido || sexoOmitido) txtHipo = avisoDefaultDhe + txtHipo;
   return enviarMensagemComTecladoParaChat(chatId, txtHipo, kbDheRetorno);
 }
 

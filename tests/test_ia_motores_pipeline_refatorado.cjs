@@ -187,5 +187,43 @@ test('Pipeline de Motores de IA - Refatoração e Resiliência', async (t) => {
     const modelosRapidos = ctx._iaLista('IA_MODELOS_RAPIDOS_GEMINI', ctx.IA_PADROES.GEMINI_RAPIDO);
     assert.strictEqual(modelosRapidos[0], 'gemini-flash-lite-latest', 'Modelos rápidos devem priorizar velocidade');
   });
+
+  await t.test('12. _iaAuditarRascunho elimina double-LLM round-trip por padrão e respeita thinkingBudget 384', () => {
+    const origExecutar = ctx._iaExecutar;
+    let chamadasLlm = 0;
+    ctx._iaExecutar = () => {
+      chamadasLlm++;
+      return 'SEM ALERTAS';
+    };
+
+    const props = ctx.PropertiesService.getScriptProperties();
+    const origSegundaPassada = props.getProperty('IA_AUDITORIA_LLM_SEGUNDA_PASSADA');
+
+    try {
+      // 1. Por padrão (false), não deve acionar segunda chamada de LLM
+      props.deleteProperty('IA_AUDITORIA_LLM_SEGUNDA_PASSADA');
+      ctx.ConfigService.invalidar();
+
+      const resPadrao = ctx._iaAuditarRascunho('1. Amoxicilina 500mg 8/8h', 'Amigdalite aguda', 'prescricao');
+      assert.strictEqual(chamadasLlm, 0, 'Não deve chamar _iaExecutar na auditoria por padrão');
+      assert.ok(resPadrao.includes('Amoxicilina 500mg'), 'Deve preservar rascunho com validação em RAM');
+
+      // 2. Quando ativado explicitamente (true), deve executar a auditoria via LLM
+      props.setProperty('IA_AUDITORIA_LLM_SEGUNDA_PASSADA', 'true');
+      ctx.ConfigService.invalidar();
+
+      const resAtivo = ctx._iaAuditarRascunho('1. Amoxicilina 500mg 8/8h', 'Amigdalite aguda', 'prescricao');
+      assert.strictEqual(chamadasLlm, 1, 'Deve chamar _iaExecutar quando flag estiver ativa');
+      assert.ok(resAtivo.includes('Amoxicilina 500mg'));
+
+      // 3. Verifica default de IA_THINKING_BUDGET_CLINICO para 384
+      assert.strictEqual(Number(ctx._iaCfg('IA_THINKING_BUDGET_CLINICO', 384)), 384);
+    } finally {
+      ctx._iaExecutar = origExecutar;
+      if (origSegundaPassada) props.setProperty('IA_AUDITORIA_LLM_SEGUNDA_PASSADA', origSegundaPassada);
+      else props.deleteProperty('IA_AUDITORIA_LLM_SEGUNDA_PASSADA');
+      ctx.ConfigService.invalidar();
+    }
+  });
 });
 

@@ -1702,34 +1702,143 @@ function auditoriaClinicaPendente(texto) {
   return /auditoria autom[aá]tica (?:indispon[ií]vel|incompleta)|alertas da auditoria autom[aá]tica/i.test(String(texto || ""));
 }
 
-function _iaAnexarCrossCheckSeguranca(rascunho, dadosCaso) {
-  if (!rascunho) return rascunho;
-  if (typeof executarCrossCheckSegurancaClinica !== "function") return rascunho;
-  try {
-    var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
-    if (check && check.temAlertasCriticos) {
-      var alertasSentinela = [];
-      if (check.interacoes) {
-        check.interacoes.filter(function(it) {
-          return it.grauNormalizado === "CONTRAINDICADO" || it.grauNormalizado === "GRAVE";
-        }).forEach(function(it) {
-          alertasSentinela.push("• 🛑 *Interação " + it.grau + ":* " + it.drogaA + " + " + it.drogaB + " (" + (it.recomendacao || it.efeito) + ")");
-        });
+/**
+ * Auditor Aritmético Pós-IA de Conversão Posológica (mg -> mL / gotas).
+ * Detecta discrepâncias matemáticas > 12% entre a dose indicada em mg e o volume informado em mL ou gotas.
+ */
+function _iaAuditarMatematicaPosologica(textoGerado) {
+  if (!textoGerado || typeof textoGerado !== "string") return null;
+
+  var linhas = textoGerado.split(/\n+/);
+  var errosDetectados = [];
+
+  for (var i = 0; i < linhas.length; i++) {
+    var l = linhas[i].trim();
+    if (!l || l.length < 10) continue;
+
+    // 1. Extrai concentração (ex: 250mg/5mL, 125mg/5mL, 500mg/mL, 200 mg em 5 ml)
+    var mConcDupla = l.match(/(\d+(?:[.,]\d+)?)\s*mg\s*(?:\/|\s+em\s+)\s*(\d+(?:[.,]\d+)?)\s*m[Ll]/i);
+    var mConcSimples = !mConcDupla ? l.match(/(\d+(?:[.,]\d+)?)\s*mg\s*\/\s*m[Ll]/i) : null;
+
+    var concMgPorMl = null;
+    var concDesc = "";
+    if (mConcDupla) {
+      var mgC = parseFloat(mConcDupla[1].replace(",", "."));
+      var mlC = parseFloat(mConcDupla[2].replace(",", "."));
+      if (mgC > 0 && mlC > 0) {
+        concMgPorMl = mgC / mlC;
+        concDesc = mConcDupla[1] + "mg/" + mConcDupla[2] + "mL";
       }
-      if (check.compatibilidadeY) {
-        check.compatibilidadeY.filter(function(p) {
-          return p.status === "INCOMPATIVEL" || p.alertaCritico;
-        }).forEach(function(p) {
-          alertasSentinela.push("• 🛑 *Incompatibilidade em Y:* " + p.drogaA.toUpperCase() + " ⚡ " + p.drogaB.toUpperCase() + " (" + p.conduta + ")");
-        });
-      }
-      if (alertasSentinela.length > 0) {
-        return rascunho + "\n\n⚠️ *ALERTAS CRÍTICOS DE SEGURANÇA FARMACOLÓGICA:*\n" + alertasSentinela.join("\n");
+    } else if (mConcSimples) {
+      var mgS = parseFloat(mConcSimples[1].replace(",", "."));
+      if (mgS > 0) {
+        concMgPorMl = mgS;
+        concDesc = mConcSimples[1] + "mg/mL";
       }
     }
-  } catch (eCheck) {
-    Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
+
+    if (!concMgPorMl) continue;
+
+    // 2. Extrai dose indicada em mg (ex: "dose de 250 mg", "250 mg", "dose: 500mg")
+    var mDose = l.match(/(?:dose(?:\s+de|\s*[:=])?\s*)(\d+(?:[.,]\d+)?)\s*mg\b/i) ||
+      l.match(/\((\s*\d+(?:[.,]\d+)?\s*mg\s*)\)/i) ||
+      l.match(/\b(\d+(?:[.,]\d+)?)\s*mg\b/i);
+
+    var doseMg = null;
+    if (mDose) {
+      doseMg = parseFloat(mDose[1].replace(",", "."));
+      var mDoseExpl = l.match(/(?:dose(?:\s+de|\s*[:=])?\s*|\()(\d+(?:[.,]\d+)?)\s*mg/i);
+      if (mDoseExpl) {
+        doseMg = parseFloat(mDoseExpl[1].replace(",", "."));
+      }
+    }
+
+    if (!doseMg || doseMg <= 0) continue;
+
+    // 3. Extrai volume a administrar em mL ou gotas
+    var mVolMl = l.match(/(?:tomar|administrar|dar|prescrever|ingerir|posologia[:\s]*)\s*(\d+(?:[.,]\d+)?)\s*m[Ll]\b/i) ||
+      l.match(/(\d+(?:[.,]\d+)?)\s*m[Ll]\s*(?:por\s+via|vo|via\s+oral|de\s+\d+\/\d+h|a\s+cada|\d+x|x\s+ao\s+dia|de\s+hor[aá]rio)/i) ||
+      l.match(/:\s*(\d+(?:[.,]\d+)?)\s*m[Ll]\b/i);
+
+    var mGotas = l.match(/(\d+)\s*gotas\b/i);
+
+    var volInformadoMl = null;
+    if (mVolMl) {
+      volInformadoMl = parseFloat(mVolMl[1].replace(",", "."));
+    } else if (mGotas) {
+      var numGotas = parseInt(mGotas[1], 10);
+      volInformadoMl = numGotas / 20; // 20 gotas = 1 mL
+    }
+
+    if (!volInformadoMl || volInformadoMl <= 0) continue;
+
+    var volEsperadoMl = doseMg / concMgPorMl;
+    var erroRelativo = Math.abs(volEsperadoMl - volInformadoMl) / volEsperadoMl;
+
+    if (erroRelativo > 0.12) {
+      var volFormatado = (Math.round(volEsperadoMl * 10) / 10).toString().replace(".", ",");
+      var volInfFormatado = volInformadoMl.toString().replace(".", ",");
+      var tipoErro = volInformadoMl > volEsperadoMl ? "superdosagem" : "subdosagem";
+      errosDetectados.push("ERRO ARITMÉTICO NA PRESCRIÇÃO (" + concDesc + "): Dose indicada: " + doseMg + " mg ➔ Volume correto: " + volFormatado + " mL (prescrito: " + volInfFormatado + " mL). Risco grave de " + tipoErro + "!");
+    }
   }
+
+  return errosDetectados.length > 0 ? errosDetectados.join("\n") : null;
+}
+
+function _iaAnexarCrossCheckSeguranca(rascunho, dadosCaso) {
+  if (!rascunho) return rascunho;
+  var alertasSentinela = [];
+
+  if (typeof executarCrossCheckSegurancaClinica === "function") {
+    try {
+      var check = executarCrossCheckSegurancaClinica(rascunho + "\n" + (dadosCaso || ""), dadosCaso);
+      if (check && check.temAlertasCriticos) {
+        if (check.interacoes) {
+          check.interacoes.filter(function(it) {
+            return it.grauNormalizado === "CONTRAINDICADO" || it.grauNormalizado === "GRAVE";
+          }).forEach(function(it) {
+            alertasSentinela.push("• 🛑 *Interação " + it.grau + ":* " + it.drogaA + " + " + it.drogaB + " (" + (it.recomendacao || it.efeito) + ")");
+          });
+        }
+        if (check.compatibilidadeY) {
+          check.compatibilidadeY.filter(function(p) {
+            return p.status === "INCOMPATIVEL" || p.alertaCritico;
+          }).forEach(function(p) {
+            alertasSentinela.push("• 🛑 *Incompatibilidade em Y:* " + p.drogaA.toUpperCase() + " ⚡ " + p.drogaB.toUpperCase() + " (" + p.conduta + ")");
+          });
+        }
+        if (check.alergias && check.alergias.length > 0) {
+          check.alergias.forEach(function(al) {
+            var iconeAl = al.tipo === "CONTRAINDICADO" ? "🛑" : "⚠️";
+            alertasSentinela.push("• " + iconeAl + " *Alergia/Risco Cruzado (" + al.tipo + "):* `" + al.farmaco.toUpperCase() + "` — " + al.motivo);
+          });
+        }
+        if (check.gestacao && check.gestacao.length > 0) {
+          check.gestacao.forEach(function(gt) {
+            alertasSentinela.push("• 🛑 *Contraindicado na Gestação (Cat " + gt.categoriaFda + "):* `" + gt.farmaco.toUpperCase() + "` — " + gt.risco);
+          });
+        }
+      }
+    } catch (eCheck) {
+      Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
+    }
+  }
+
+  // Validador aritmético pós-IA
+  try {
+    var alertaMatematica = _iaAuditarMatematicaPosologica(rascunho);
+    if (alertaMatematica) {
+      alertasSentinela.push("• 🚨 *" + alertaMatematica + "*");
+    }
+  } catch (eMat) {
+    Logger.log("Aviso na auditoria matemática: " + eMat.message);
+  }
+
+  if (alertasSentinela.length > 0) {
+    return rascunho + "\n\n⚠️ *ALERTAS CRÍTICOS DE SEGURANÇA FARMACOLÓGICA:*\n" + alertasSentinela.join("\n");
+  }
+
   return rascunho;
 }
 
@@ -1763,12 +1872,12 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
   try { r = _iaExecutar(sistema, contexto, 600, { clinico: true, exigirRespostaCompleta: true }); }
   catch (e) { Logger.log("Auditoria automática indisponível."); }
   var limpo = String(r || "").trim();
-  if (!limpo) return rascunho + blocoCrossCheck + "\n\n⚠️ *Auditoria automática indisponível — revisão pendente*\nNão foi possível concluir a segunda revisão. Este rascunho não foi liberado pela auditoria; confira-o antes de qualquer uso.";
-  if (/^SEM ALERTAS\.?$/i.test(limpo)) return rascunho + blocoCrossCheck;
+  if (!limpo) return rascunhoComCrossCheck + "\n\n⚠️ *Auditoria automática indisponível — revisão pendente*\nNão foi possível concluir a segunda revisão. Este rascunho não foi liberado pela auditoria; confira-o antes de qualquer uso.";
+  if (/^SEM ALERTAS\.?$/i.test(limpo)) return rascunhoComCrossCheck;
   if (!/^-\s+/m.test(limpo) || /resposta interrompida por limite/i.test(limpo)) {
-    return rascunho + blocoCrossCheck + "\n\n⚠️ *Auditoria automática incompleta — revisão pendente*\nA revisão não produziu uma conclusão completa. Retorno recebido:\n" + _iaFinalizarTexto(limpo);
+    return rascunhoComCrossCheck + "\n\n⚠️ *Auditoria automática incompleta — revisão pendente*\nA revisão não produziu uma conclusão completa. Retorno recebido:\n" + _iaFinalizarTexto(limpo);
   }
-  return rascunho + blocoCrossCheck + "\n\n🛑 *Alertas da auditoria automática (" + titulo + ") — revisão pendente*\n" + _iaFinalizarTexto(limpo);
+  return rascunhoComCrossCheck + "\n\n🛑 *Alertas da auditoria automática (" + titulo + ") — revisão pendente*\n" + _iaFinalizarTexto(limpo);
 }
 
 // ==============================================================================
