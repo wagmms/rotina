@@ -1969,6 +1969,78 @@ function consultarCatalogoAjusteRenal(texto) {
   return null;
 }
 
+var _cacheRegrasInteracoesNorm = null;
+var _cacheNomesHslNorm = null;
+
+function _obterRegrasInteracoesNorm() {
+  if (_cacheRegrasInteracoesNorm && _cacheRegrasInteracoesNorm.length > 0) {
+    return _cacheRegrasInteracoesNorm;
+  }
+  var regras = [];
+  var termos = [];
+  var vistosTermos = {};
+  try {
+    var ss = (typeof SpreadsheetApp !== "undefined") ? SpreadsheetApp.openById("interacoes") : null;
+    if (ss) {
+      var linhas = ss.getSheets()[0].getRange(2, 1, 219, 6).getValues();
+      for (var k = 0; k < linhas.length; k++) {
+        var r = linhas[k];
+        var colANorm = String(r[1] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        var colBNorm = String(r[2] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        var grauRaw = String(r[3] || "Moderado").trim();
+        var grauNorm = "MODERADO";
+        if (/contraindic/i.test(grauRaw)) grauNorm = "CONTRAINDICADO";
+        else if (/grave/i.test(grauRaw)) grauNorm = "GRAVE";
+        else if (/leve|menor/i.test(grauRaw)) grauNorm = "LEVE";
+
+        regras.push({
+          colA: colANorm,
+          colB: colBNorm,
+          drogaA: String(r[1] || "").trim(),
+          drogaB: String(r[2] || "").trim(),
+          grau: grauRaw,
+          grauNormalizado: grauNorm,
+          efeito: String(r[4] || "").trim(),
+          recomendacao: String(r[5] || "").trim()
+        });
+
+        var partes = colANorm.split(/[\s,+/]+/);
+        for (var p = 0; p < partes.length; p++) {
+          var t = partes[p].trim();
+          if (t.length >= 4 && !vistosTermos[t]) {
+            vistosTermos[t] = true;
+            termos.push(t);
+          }
+        }
+      }
+    }
+  } catch (e) {}
+  regras.termos = termos;
+  _cacheRegrasInteracoesNorm = regras;
+  return _cacheRegrasInteracoesNorm;
+}
+
+function _obterNomesHslNorm() {
+  if (_cacheNomesHslNorm && _cacheNomesHslNorm.length > 0) {
+    return _cacheNomesHslNorm;
+  }
+  var termos = [];
+  var vistos = {};
+  try {
+    var medsHsl = (typeof obterGuiaFarmaceuticoHSL === "function") ? obterGuiaFarmaceuticoHSL() : [];
+    for (var k = 0; k < medsHsl.length; k++) {
+      var farnacoStr = String(medsHsl[k].farnaco || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      var primeiroTermo = farnacoStr.split(/[\s,()]+/)[0].trim();
+      if (primeiroTermo.length >= 4 && !vistos[primeiroTermo]) {
+        vistos[primeiroTermo] = true;
+        termos.push(primeiroTermo);
+      }
+    }
+  } catch (eHsl) {}
+  _cacheNomesHslNorm = termos;
+  return _cacheNomesHslNorm;
+}
+
 function extrairFarmacosDoTexto(texto) {
   if (!texto) return [];
   if (Array.isArray(texto)) {
@@ -2025,35 +2097,24 @@ function extrairFarmacosDoTexto(texto) {
     }
   }
 
-  // 2. Termos presentes nas regras de interações em RAM
-  try {
-    var ss = (typeof SpreadsheetApp !== "undefined") ? SpreadsheetApp.openById("interacoes") : null;
-    if (ss) {
-      var linhas = ss.getSheets()[0].getRange(2, 1, 219, 6).getValues();
-      for (var j = 0; j < linhas.length; j++) {
-        var medCol = String(linhas[j][1] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-        var partes = medCol.split(/[\s,+/]+/);
-        for (var p = 0; p < partes.length; p++) {
-          var termoP = partes[p].trim();
-          if (termoP.length >= 4 && !STOPWORDS_FARMACOS[termoP] && textoNorm.indexOf(" " + termoP + " ") !== -1) {
-            adicionar(termoP);
-          }
-        }
-      }
+  // 2. Termos presentes nas regras de interações em RAM (pré-indexados)
+  var regrasInter = _obterRegrasInteracoesNorm();
+  var termosInter = (regrasInter && regrasInter.termos) ? regrasInter.termos : [];
+  for (var j = 0; j < termosInter.length; j++) {
+    var termoP = termosInter[j];
+    if (!STOPWORDS_FARMACOS[termoP] && textoNorm.indexOf(" " + termoP + " ") !== -1) {
+      adicionar(termoP);
     }
-  } catch (eInter) {}
+  }
 
-  // 3. Fármacos oficiais do Guia HSL
-  try {
-    var medsHsl = (typeof obterGuiaFarmaceuticoHSL === "function") ? obterGuiaFarmaceuticoHSL() : [];
-    for (var k = 0; k < medsHsl.length; k++) {
-      var farnacoStr = String(medsHsl[k].farnaco || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      var primeiroTermo = farnacoStr.split(/[\s,()]+/)[0].trim();
-      if (primeiroTermo.length >= 4 && !STOPWORDS_FARMACOS[primeiroTermo] && textoNorm.indexOf(" " + primeiroTermo + " ") !== -1) {
-        adicionar(primeiroTermo);
-      }
+  // 3. Fármacos oficiais do Guia HSL (pré-indexados)
+  var termosHsl = _obterNomesHslNorm();
+  for (var k = 0; k < termosHsl.length; k++) {
+    var termoHsl = termosHsl[k];
+    if (!STOPWORDS_FARMACOS[termoHsl] && textoNorm.indexOf(" " + termoHsl + " ") !== -1) {
+      adicionar(termoHsl);
     }
-  } catch (eHsl) {}
+  }
 
   // 4. Antimicrobianos do Catálogo de Ajuste Renal
   if (typeof CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS !== "undefined") {
@@ -2138,31 +2199,22 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
 
   var interacoesAchadas = [];
   try {
-    var ss = (typeof SpreadsheetApp !== "undefined") ? SpreadsheetApp.openById("interacoes") : null;
-    if (ss && farmacos.length >= 2) {
-      var linhas = ss.getSheets()[0].getRange(2, 1, 219, 6).getValues();
+    if (farmacos.length >= 2) {
+      var regras = _obterRegrasInteracoesNorm();
       for (var i = 0; i < farmacos.length; i++) {
         for (var j = i + 1; j < farmacos.length; j++) {
           var d1 = farmacos[i];
           var d2 = farmacos[j];
-          for (var k = 0; k < linhas.length; k++) {
-            var r = linhas[k];
-            var colA = String(r[1] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            var colB = String(r[2] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            if ((colA.indexOf(d1) !== -1 && colB.indexOf(d2) !== -1) || (colA.indexOf(d2) !== -1 && colB.indexOf(d1) !== -1)) {
-              var grauRaw = String(r[3] || "Moderado").trim();
-              var grauNorm = "MODERADO";
-              if (/contraindic/i.test(grauRaw)) grauNorm = "CONTRAINDICADO";
-              else if (/grave/i.test(grauRaw)) grauNorm = "GRAVE";
-              else if (/leve|menor/i.test(grauRaw)) grauNorm = "LEVE";
-
+          for (var k = 0; k < regras.length; k++) {
+            var r = regras[k];
+            if ((r.colA.indexOf(d1) !== -1 && r.colB.indexOf(d2) !== -1) || (r.colA.indexOf(d2) !== -1 && r.colB.indexOf(d1) !== -1)) {
               interacoesAchadas.push({
-                drogaA: String(r[1] || "").trim(),
-                drogaB: String(r[2] || "").trim(),
-                grau: grauRaw,
-                grauNormalizado: grauNorm,
-                efeito: String(r[4] || "").trim(),
-                recomendacao: String(r[5] || "").trim()
+                drogaA: r.drogaA,
+                drogaB: r.drogaB,
+                grau: r.grau,
+                grauNormalizado: r.grauNormalizado,
+                efeito: r.efeito,
+                recomendacao: r.recomendacao
               });
             }
           }
@@ -2385,7 +2437,11 @@ if (typeof module !== "undefined" && module.exports) {
     formatarAjusteRenalAntimicrobiano: formatarAjusteRenalAntimicrobiano,
     consultarCatalogoAjusteRenal: consultarCatalogoAjusteRenal,
     obterItensRemumeRP: obterItensRemumeRP,
-    consultarRemumeRP: consultarRemumeRP
+    consultarRemumeRP: consultarRemumeRP,
+    _cacheRegrasInteracoesNorm: _cacheRegrasInteracoesNorm,
+    _cacheNomesHslNorm: _cacheNomesHslNorm,
+    _obterRegrasInteracoesNorm: _obterRegrasInteracoesNorm,
+    _obterNomesHslNorm: _obterNomesHslNorm
   });
 }
 

@@ -284,4 +284,121 @@ test('8. Áudio com "paciente parou no box 1" reconhece emergência diretamente'
   assert.equal(tipoCacheRecebido, 'emergencia');
 });
 
+// -----------------------------------------------------------------------------
+// 9. NORMALIZADOR FONÉTICO MÉDICO PARA TTS (_iaTextoFalado)
+// -----------------------------------------------------------------------------
+test('9. Normalizador fonético médico converte abreviações, doses e siglas para pronúncia fluida', () => {
+  const { c } = env();
+
+  // Pressão arterial e intervalos
+  assert.equal(
+    c._iaTextoFalado('PA 120x80 mmHg e FC 82 bpm com FR 18 irpm.'),
+    'PA 120 por 80 milímetros de mercúrio e FC 82 batimentos por minuto com FR 18 incursões por minuto.'
+  );
+  assert.equal(
+    c._iaTextoFalado('Prescrever amoxicilina 8/8h e dipirona 6/6h.'),
+    'Prescrever amoxicilina de 8 em 8 horas e dipirona de 6 em 6 horas.'
+  );
+
+  // Unidades de infusão e exames
+  assert.equal(
+    c._iaTextoFalado('Iniciar noradrenalina a 0,1 mcg/kg/min ou 5 mcg/min.'),
+    'Iniciar noradrenalina a 0,1 microgramas por quilo por minuto ou 5 microgramas por minuto.'
+  );
+  assert.equal(
+    c._iaTextoFalado('Dose de 50 mg/kg/dia dividida ou 2 mg/kg ataque.'),
+    'Dose de 50 miligramas por quilo por dia dividida ou 2 miligramas por quilo ataque.'
+  );
+  assert.equal(
+    c._iaTextoFalado('Infusão a 100 mL/h, Na+ 135 mEq/L, glicemia 120 mg/dL.'),
+    'Infusão a 100 mililitros por hora, sódio 135 miliequivalentes por litro, glicemia 120 miligramas por decilitro.'
+  );
+
+  // Siglas de plantão, gases e emergência
+  assert.equal(
+    c._iaTextoFalado('Gaso: pCO2 48, PaCO2 50, HCO3 18, SpO2 90%, FiO2 40%.'),
+    'Gaso: pê cê ó dois 48, pê cê ó dois 50, bicarbonato 18, saturação de oxigênio 90%, fração inspirada de oxigênio 40%.'
+  );
+  assert.equal(
+    c._iaTextoFalado('Paciente com EAP e choque em uso de DVA, indicado IOT com SRI por BAVT.'),
+    'Paciente com edema agudo de pulmão e choque em uso de droga vasoativa, indicado intubação orotraqueal com sequência rápida de intubação por bloqueio atrioventricular total.'
+  );
+});
+
+// -----------------------------------------------------------------------------
+// 10. REUSO DE TEXTOPRONTO EM GERARAUDIOPRECEPTORDIRETO (BOTÃO OUVIR NO FONE)
+// -----------------------------------------------------------------------------
+test('10. gerarAudioPreceptorDireto reutiliza textoPronto sem chamar LLM intermediário', () => {
+  const { c } = env();
+
+  let chamouProvocacao = 0;
+  let textoSintetizado = '';
+
+  c.gerarProvocacaoPreceptorAudio = () => {
+    chamouProvocacao++;
+    return 'Texto gerado pelo LLM';
+  };
+
+  c.sintetizarVozPreceptor = (txt) => {
+    textoSintetizado = txt;
+    return { getBytes: () => Buffer.from('audio_wav_fake') };
+  };
+
+  const res = c.gerarAudioPreceptorDireto('Caso qualquer', {
+    textoPronto: 'PA 120x80 mmHg com noradrenalina a 0,1 mcg/kg/min.'
+  });
+
+  assert.equal(chamouProvocacao, 0, 'NÃO deve chamar gerarProvocacaoPreceptorAudio quando textoPronto é fornecido');
+  assert.ok(res && res.audioBlob, 'Deve retornar o blob de áudio sintetizado');
+  assert.equal(res.direto, true, 'Flag direto deve ser true');
+  assert.equal(
+    textoSintetizado,
+    'PA 120 por 80 milímetros de mercúrio com noradrenalina a 0,1 microgramas por quilo por minuto.',
+    'Deve sintetizar voz com o textoPronto normalizado foneticamente'
+  );
+});
+
+// -----------------------------------------------------------------------------
+// 11. LATÊNCIA ZERO (THINKINGBUDGET: 0) E GROUNDING CLÍNICO NO PRECEPTOR
+// -----------------------------------------------------------------------------
+test('11. Preceptor passa thinkingBudget: 0 nas falas curtas e injeta grounding de diretrizes', () => {
+  const { c } = env();
+
+  let opcoesProvocacao = null;
+  let opcoesDialogo = null;
+  let opcoesCritica = null;
+  let promptSistemaRecebido = '';
+
+  c.executarRaciocinioClinico = (sistema, promptUsuario, maxTokens, opcoes) => {
+    promptSistemaRecebido = sistema;
+    return 'Hipótese confirmada. Iniciar expansão volêmica imediata. Qual é o alvo hemodinâmico de PAM?';
+  };
+
+  // Mock de interceptação de opções
+  const origExecutar = c.executarRaciocinioClinico;
+  c.executarRaciocinioClinico = (sistema, promptUsuario, maxTokens, opcoes) => {
+    promptSistemaRecebido = sistema;
+    if (maxTokens === 250) opcoesProvocacao = opcoes;
+    if (maxTokens === 350) opcoesDialogo = opcoes;
+    if (maxTokens === 400) opcoesCritica = opcoes;
+    return 'Compreendido. Qual é a sua conduta imediata?';
+  };
+
+  c.gerarProvocacaoPreceptorAudio('Paciente hipotenso em choque séptico');
+  assert.equal(opcoesProvocacao && opcoesProvocacao.thinkingBudget, 0, 'gerarProvocacaoPreceptorAudio deve passar thinkingBudget: 0');
+  assert.equal(opcoesProvocacao && opcoesProvocacao.semThinking, true, 'gerarProvocacaoPreceptorAudio deve passar semThinking: true');
+
+  c.gerarDialogoPreceptorSocratico('Sepse grave', 'Qual a conduta?', 'Cristaloide 30 mL/kg e noradrenalina', '');
+  assert.equal(opcoesDialogo && opcoesDialogo.thinkingBudget, 0, 'gerarDialogoPreceptorSocratico deve passar thinkingBudget: 0');
+  assert.equal(opcoesDialogo && opcoesDialogo.semThinking, true, 'gerarDialogoPreceptorSocratico deve passar semThinking: true');
+  assert(
+    promptSistemaRecebido.includes('ESTRUTURA OBRIGATÓRIA DA FALA EM 3 MOVIMENTOS'),
+    'Dialogo socrático deve conter estrutura em 3 movimentos no prompt'
+  );
+
+  c.gerarCriticaSocraticaPreceptor('Paciente instável no box 2');
+  assert.equal(opcoesCritica && opcoesCritica.thinkingBudget, 0, 'gerarCriticaSocraticaPreceptor deve passar thinkingBudget: 0');
+  assert.equal(opcoesCritica && opcoesCritica.semThinking, true, 'gerarCriticaSocraticaPreceptor deve passar semThinking: true');
+});
+
 console.log(`\n🎉 ÁUDIO CLÍNICO EM TEMPO ÚNICO: ${pass}/${total} testes aprovados com 100% de êxito!`);

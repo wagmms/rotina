@@ -1,5 +1,28 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C60. [x] **Preceptor Socrático — Latência Zero no TTS, Normalização Fonética Médica e Grounding Clínico Determinístico (`src/04_motores_ia.js`, `src/07b_telegram_preceptor.js`, `src/07d_telegram_callbacks.js`, `tests/test_audio_tempo_unico.cjs`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Latência de 2 a 4s na síntese de voz do Preceptor causada pelo raciocínio em cadeia oculto (`thinkingBudget: 1024`) habilitado por padrão em chamadas clínicas para modelos Gemini 2.5/3.x, mesmo em falas curtas (30 a 70 palavras).
+      * O botão inline "🎧 Ouvir no Fone" disparava nova requisição ao LLM intermediário em vez de aproveitar o texto pré-gerado em cache na sessão do Preceptor.
+      * O motor TTS lia abreviações médicas cruas em jargão literal (ex.: "120x80 mmHg", "0,1 mcg/kg/min", "8/8h"), comprometendo a clareza e naturalidade auditiva beira-leito.
+      * Ausência de ancoragem determinística das diretrizes brasileiras (SBC, ILAS, AMIB, SBD) e posologias do Guia HSL no raciocínio socrático.
+    - **Correções Implementadas**:
+      * *Frente 1 (Latência Zero & thinkingBudget: 0)*: Em `src/04_motores_ia.js`, passado `{ thinkingBudget: 0, semThinking: true }` para `executarRaciocinioClinico` em `gerarProvocacaoPreceptorAudio`, `gerarDialogoPreceptorSocratico` e `gerarCriticaSocraticaPreceptor`.
+      * *Frente 2 (Reuso de Texto Pronto em Tempo Único)*: Em `src/04_motores_ia.js`, `gerarAudioPreceptorDireto(casoOuDuvida, opcoes)` aceita `opcoes.textoPronto`: quando presente, pula `gerarProvocacaoPreceptorAudio` e chama diretamente `sintetizarVozPreceptor(_iaTextoFalado(opcoes.textoPronto))`, reduzindo o botão "Ouvir no Fone" a 1 única chamada de TTS.
+      * *Frente 3 (Normalizador Fonético Médico Completo)*: Em `src/04_motores_ia.js`, expandido `_iaTextoFalado` com conversões fonéticas fluidas em português para PA e intervalos (`120x80 mmHg` -> `120 por 80 milímetros de mercúrio`, `8/8h` -> `de 8 em 8 horas`); unidades de infusão e exames (`mcg/kg/min`, `mcg/min`, `mg/kg/dia`, `mg/kg`, `mL/h`, `mEq/L`, `mg/dL`, `mmHg`, `bpm`, `irpm`); e siglas de plantão e gases (`pCO2`/`PaCO2` -> `pê cê ó dois`, `SpO2`/`SatO2` -> `saturação de oxigênio`, `HCO3` -> `bicarbonato`, `FiO2` -> `fração inspirada de oxigênio`, `Na+`/`K+` -> `sódio`/`potássio`, `IOT` -> `intubação orotraqueal`, `SRI` -> `sequência rápida de intubação`, `DVA` -> `droga vasoativa`, `EAP` -> `edema agudo de pulmão`, `BAVT` -> `bloqueio atrioventricular total`).
+      * *Frente 4 (Grounding Clínico Determinístico & 3 Movimentos)*: Em `src/04_motores_ia.js`, `gerarProvocacaoPreceptorAudio` e `gerarDialogoPreceptorSocratico` consultam em RAM (0ms) `obterProtocoloClinico` e injetam fichas do Guia HSL (`filtrarContextoPosologiasHSL`) para fármacos citados (`extrairFarmacosDoTexto`). A fala socrática foi padronizada em 3 movimentos curtos e incisivos (40-70 palavras): (1) veredito direto; (2) pérola clínica decisional com dose/meta numérica; (3) pergunta socrática discriminante.
+      * *Frente 5 (Entrega Não-Bloqueante & Record Voice Antecipado)*: Em `src/07b_telegram_preceptor.js` e `src/07d_telegram_callbacks.js`, garantido salvamento imediato do texto do diálogo no cache de sessão e acionamento de `enviarChatAction(chatId, "record_voice", true)` antes de `sintetizarVozPreceptor`.
+      * *Frente 6 (Cobertura de Testes)*: Em `tests/test_audio_tempo_unico.cjs`, adicionados os testes 9 (normalizador fonético médico), 10 (reuso de textoPronto em gerarAudioPreceptorDireto) e 11 (thinkingBudget: 0 e estrutura em 3 movimentos).
+    - **Recibo de Estabilidade**:
+      * `node tests/test_audio_tempo_unico.cjs`: 11/11 aprovados (100%);
+      * `node tests/repros/repro_issue_006_ouvir_no_fone.cjs`: 100% OK;
+      * `node tests/repros/repro_issue_019_ouvir_no_fone.cjs`: 100% OK;
+      * `node tests/repros/repro_issue_020_ouvir_no_fone.cjs`: 100% OK;
+      * `node tests/test_preceptor_dialogo_socratico.cjs`: 10/10 aprovados;
+      * `node tests/test_tts_modo_rapido_preceptor.cjs`: 5/5 aprovados;
+      * `node tests/test_pipeline_audio_otimizado.cjs`: 11/11 aprovados;
+      * `npm test`: 57/57 suítes verdes com 100% de estabilidade em 29.88s.
+
 0C59. [x] **Atenção Primária / Ambulatório — Destaque Determinístico REMUME-RP e Ponte 1-Toque para Receita em PDF & Bloco SOAP (`src/03_bases_locais.js`, `src/07c_telegram_consultas_e_ia.js`, `src/07d_telegram_callbacks.js`, `scripts/test_manifest.json`, `tests/test_remume_soap_pdf_integracao.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em consultas farmacológicas e posológicas ambulatoriais no Telegram (fichas do Guia HSL, PedBook e calculadora de dose por peso), não havia sinalização explícita de padronização na rede municipal de Ribeirão Preto (`REMUME_RP.csv`), obrigando o médico a consultas paralelas em planilhas ou PDFs externos.

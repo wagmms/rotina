@@ -84,6 +84,81 @@ async function run() {
   assert(resTextoDil && resTextoDil.includes('GUIA FARMACÊUTICO HSL'), 'Texto livre de diluição deve calcular');
   console.log('   ✓ Texto livre "como diluir meropenem" resolvido deterministicamente em 0ms!');
 
+  console.log('\n🧪 2B. Testando Fast-Path no Telegram Router sem barra e Rota CLINICO_EMERGENCIA...');
+  const origEnviarMsg = ctx.enviarMensagemParaChat;
+  const origEnviarKb = ctx.enviarMensagemComTecladoParaChat;
+  const origIaExec = ctx._iaExecutar;
+  let llmFoiAcionada = false;
+
+  ctx._iaExecutar = () => {
+    llmFoiAcionada = true;
+    throw new Error('LLM NÃO DEVERIA TER SIDO ACIONADA NO FAST-PATH DE RAM!');
+  };
+
+  try {
+    // Aquecimento prévio em RAM para estabilização JIT do V8
+    ctx.enviarMensagemParaChat = () => true;
+    ctx.enviarMensagemComTecladoParaChat = () => true;
+    ctx.processarMensagemTexto({ chat: { id: 1771571035 }, text: 'meropenem clcr 25' });
+    ctx.processarMensagemTexto({ chat: { id: 1771571035 }, text: 'ceftriaxona' });
+    ctx.processarMensagemTexto({ chat: { id: 1771571035 }, text: 'paciente 70kg em choque precisando de nora' });
+
+    // Teste 1: "paciente 70kg em choque precisando de nora" (CLINICO_EMERGENCIA, fix tEmerg, < 15ms)
+    let msgEmerg = '';
+    ctx.enviarMensagemParaChat = (chatId, texto) => { msgEmerg = texto; return true; };
+    ctx.enviarMensagemComTecladoParaChat = (chatId, texto, kb) => { msgEmerg = texto; return true; };
+
+    const tEmerg0 = process.hrtime();
+    ctx.processarMensagemTexto({
+      chat: { id: 1771571035 },
+      text: 'paciente 70kg em choque precisando de nora'
+    });
+    const diffEmerg = process.hrtime(tEmerg0);
+    const msEmerg = (diffEmerg[0] * 1000 + diffEmerg[1] / 1e6);
+    assert(msgEmerg && /noradrenalina/i.test(msgEmerg), 'Deve responder DVA de Noradrenalina');
+    assert(msEmerg < 15, `Resposta da emergência deve ser < 15ms, levou ${msEmerg.toFixed(2)}ms`);
+    assert.strictEqual(llmFoiAcionada, false, 'LLM não pode ser chamada na rota de emergência determinística');
+    console.log(`   ✓ "paciente 70kg em choque precisando de nora" respondeu DVA sem ReferenceError em ${msEmerg.toFixed(2)}ms`);
+
+    // Teste 2A: "meropenem clcr 25" (Ajuste Renal, < 15ms sem LLM)
+    let msgMero = '';
+    ctx.enviarMensagemParaChat = (chatId, texto) => { msgMero = texto; return true; };
+    ctx.enviarMensagemComTecladoParaChat = (chatId, texto, kb) => { msgMero = texto; return true; };
+
+    const tMero0 = process.hrtime();
+    ctx.processarMensagemTexto({
+      chat: { id: 1771571035 },
+      text: 'meropenem clcr 25'
+    });
+    const diffMero = process.hrtime(tMero0);
+    const msMero = (diffMero[0] * 1000 + diffMero[1] / 1e6);
+    assert(msgMero && /meropenem/i.test(msgMero), 'Deve responder ajuste renal de Meropenem');
+    assert(msMero < 15, `Consulta "meropenem clcr 25" deve responder em < 15ms, levou ${msMero.toFixed(2)}ms`);
+    assert.strictEqual(llmFoiAcionada, false, 'LLM não pode ser chamada em ajuste renal determinístico');
+    console.log(`   ✓ "meropenem clcr 25" respondeu via RAM em ${msMero.toFixed(2)}ms sem chamar LLM`);
+
+    // Teste 2B: "ceftriaxona" (Posologia HSL direta sem barra, < 15ms sem LLM)
+    let msgCeft = '';
+    ctx.enviarMensagemParaChat = (chatId, texto) => { msgCeft = texto; return true; };
+    ctx.enviarMensagemComTecladoParaChat = (chatId, texto, kb) => { msgCeft = texto; return true; };
+
+    const tCeft0 = process.hrtime();
+    ctx.processarMensagemTexto({
+      chat: { id: 1771571035 },
+      text: 'ceftriaxona'
+    });
+    const diffCeft = process.hrtime(tCeft0);
+    const msCeft = (diffCeft[0] * 1000 + diffCeft[1] / 1e6);
+    assert(msgCeft && /ceftriaxona/i.test(msgCeft), 'Deve responder posologia de Ceftriaxona');
+    assert(msCeft < 15, `Consulta "ceftriaxona" deve responder em < 15ms, levou ${msCeft.toFixed(2)}ms`);
+    assert.strictEqual(llmFoiAcionada, false, 'LLM não pode ser chamada em consulta direta HSL');
+    console.log(`   ✓ "ceftriaxona" respondeu via RAM em ${msCeft.toFixed(2)}ms sem chamar LLM`);
+  } finally {
+    ctx.enviarMensagemParaChat = origEnviarMsg;
+    ctx.enviarMensagemComTecladoParaChat = origEnviarKb;
+    ctx._iaExecutar = origIaExec;
+  }
+
   console.log('\n🧪 3. Testando Fast-Path no Cockpit RPC (/api/cockpit)...');
   const sessaoToken = ctx.criarSessaoCockpit_(process.env.TELEGRAM_CHAT_ID);
   const resCockpitCalc = await app.inject({

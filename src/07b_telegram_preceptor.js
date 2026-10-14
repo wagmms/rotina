@@ -149,6 +149,7 @@ function processarRespostaPreceptorSocratico(chatId, textoResposta, ehAudio) {
 
   // 4. Se a resposta veio por áudio, prioriza responder com voz neural do preceptor
   if (ehAudio) {
+    enviarChatAction(chatId, "record_voice", true);
     if (typeof renovarChatActionSeNecessario === "function") {
       renovarChatActionSeNecessario(chatId, "record_voice");
     }
@@ -204,12 +205,16 @@ function extrairTextoLocucaoSoap_(texto) {
   return t;
 }
 
-  // Se opcoes.apenasNarrar === true, pula a geração de texto e vai direto para TTS
+  // Se opcoes.apenasNarrar === true ou se opcoes.textoPronto foi fornecido, pula a geração de texto e vai direto para TTS
   // (usado pelo callback "Ouvir no Fone" para narrar texto já existente)
-  if (opcoes.apenasNarrar && casoOuDuvida) {
+  var textoBaseNarrar = (opcoes && opcoes.textoPronto) || (opcoes && opcoes.apenasNarrar && casoOuDuvida);
+  if (textoBaseNarrar) {
     enviarChatAction(chatId, "record_voice", true);
-    var textoLocucao = extrairTextoLocucaoSoap_(casoOuDuvida);
-    var blobNarrado = sintetizarVozPreceptor(textoLocucao);
+    var textoLocucao = extrairTextoLocucaoSoap_(textoBaseNarrar);
+    var resDireto = (typeof gerarAudioPreceptorDireto === "function")
+      ? gerarAudioPreceptorDireto(null, { textoPronto: textoLocucao })
+      : null;
+    var blobNarrado = (resDireto && resDireto.audioBlob) || sintetizarVozPreceptor(typeof _iaTextoFalado === "function" ? _iaTextoFalado(textoLocucao) : textoLocucao);
     if (blobNarrado) {
       var resumoLegenda = String(textoLocucao).trim();
       if (resumoLegenda.length > 750) {
@@ -239,8 +244,9 @@ function extrairTextoLocucaoSoap_(texto) {
   // 1. MODO RÁPIDO: Geração direta de áudio em tempo único (Single-Pass Audio)
   if (typeof gerarAudioPreceptorDireto === "function") {
     try {
-      var resDireto = gerarAudioPreceptorDireto(casoOuDuvida);
+      var resDireto = gerarAudioPreceptorDireto(casoOuDuvida, opcoes);
       if (resDireto && resDireto.audioBlob) {
+        enviarChatAction(chatId, "record_voice", true);
         if (typeof renovarChatActionSeNecessario === "function") {
           renovarChatActionSeNecessario(chatId, "record_voice");
         }
@@ -274,6 +280,7 @@ function extrairTextoLocucaoSoap_(texto) {
 
   // 2. FALLBACK RESILIENTE EM DOIS TEMPOS (Texto -> TTS)
   // CORREÇÃO: reutiliza textoGeradoDireto se disponível, evitando chamada LLM redundante
+  enviarChatAction(chatId, "record_voice", true);
   if (typeof renovarChatActionSeNecessario === "function") {
     renovarChatActionSeNecessario(chatId, "record_voice");
   }
@@ -291,6 +298,7 @@ function extrairTextoLocucaoSoap_(texto) {
     definirModoBot(chatId, "voz", casoOuDuvida);
   }
 
+  enviarChatAction(chatId, "record_voice", true);
   if (typeof renovarChatActionSeNecessario === "function") {
     renovarChatActionSeNecessario(chatId, "record_voice");
   }
@@ -389,6 +397,7 @@ function iniciarOuConvidarDiscussaoPreceptor(chatId, opcoes) {
     };
 
     if (ehAudio) {
+      enviarChatAction(chatId, "record_voice", true);
       var blobVozRecente = sintetizarVozPreceptor(textoConvite);
       if (blobVozRecente) {
         var enviadoVozRec = enviarAudioVozTelegram(chatId, blobVozRecente, textoComRecente, kbBotoes);
@@ -413,6 +422,7 @@ function iniciarOuConvidarDiscussaoPreceptor(chatId, opcoes) {
   };
 
   if (ehAudio) {
+    enviarChatAction(chatId, "record_voice", true);
     var blobVozSimples = sintetizarVozPreceptor(textoConvite);
     if (blobVozSimples) {
       var legendaVoz = "🎧 *Preceptor Socrático:*\n\n" + textoConvite;

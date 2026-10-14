@@ -482,7 +482,7 @@ function tratarCallbackPreceptorSocratico_(cb, data, ctx) {
     }
     if (conteudoCaso) {
       responderCallbackTelegram(cb.id, "Transmitindo áudio para o fone...");
-      return responderPreceptorVozComIA(ctx.chatId, conteudoCaso, { apenasNarrar: true });
+      return responderPreceptorVozComIA(ctx.chatId, conteudoCaso, { apenasNarrar: true, textoPronto: conteudoCaso });
     }
     responderCallbackTelegram(cb.id, "⚠️ Caso expirado do cache.");
     return enviarMensagemComTecladoParaChat(ctx.chatId, "⚠️ *Áudio indisponível:* O conteúdo clínico não foi encontrado no cache recente (ou expirou).\n\n💡 Envie o caso novamente ou escolha uma opção abaixo:", {

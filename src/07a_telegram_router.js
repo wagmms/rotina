@@ -5559,11 +5559,12 @@ function processarMensagemTexto(message) {
   // ⚡ FAST-PATH DETERMINÍSTICO (0ms a 15ms em RAM)
   // Cálculos puros (CURB-65, Glasgow, Parkland, DVA, Clearance, Diluição, Ajuste Renal)
   // NUNCA envie essas tarefas para o modelo de linguagem se a matemática/tabela está no código Node.js!
-  var ehConsultaDeterministica = (
-    typeof ehCalculadoraReconhecida === "function" && ehCalculadoraReconhecida(texto)
-  ) || (
-    typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(texto)
-  ) || /\b(?:curb|crcl|clcr|cockcroft|ckd|glasgow|parkland|queimadur|dva|nora|dobuta|vaso|nitroprussiato|nitroglicerina|dilui[çc][ãa]o|como\s+diluir|preparo|ajuste\s+renal)\b/i.test(texto);
+  var ehRelatoCaso = /\b(?:paciente|pcte)\b/i.test(texto);
+  var ehConsultaDeterministica = !ehRelatoCaso && (
+    /\b(?:curb|crcl|clcr|cockcroft|ckd|glasgow|parkland|queimadur|dva|nora|dobuta|vaso|nitroprussiato|nitroglicerina|dilui[çc][ãa]o|como\s+diluir|preparo|ajuste\s+renal)\b/i.test(texto) ||
+    (typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(texto)) ||
+    (typeof ehCalculadoraReconhecida === "function" && ehCalculadoraReconhecida(texto))
+  );
 
   if (ehConsultaDeterministica && typeof tentarCalcularDeterministico === "function") {
     var resFastDet = tentarCalcularDeterministico(texto);
@@ -5600,6 +5601,50 @@ function processarMensagemTexto(message) {
       if (medHsl && (medHsl.preparo_diluicao || medHsl.administracao)) {
         var respDiluicao = formatarDiluicaoPreparoHSL(medHsl);
         if (respDiluicao) return enviarMensagemParaChat(chatId, respDiluicao);
+      }
+    }
+  }
+
+  // ⚡ FAST-PATH FARMACOLÓGICO DETERMINÍSTICO EM RAM (0ms a 15ms - SEM CHAMAR LLM)
+  // Atende buscas diretas curtas sem barra (1 a 4 palavras)
+  var palavrasFast = textoTrim.split(/\s+/).filter(Boolean);
+  if (textoTrim.charAt(0) !== "/" && palavrasFast.length >= 1 && palavrasFast.length <= 4) {
+    // A. Antimicrobianos com ajuste renal (ClCr/TFG/HD)
+    if (/\b(?:clcr|crcl|tfg|clearance|hd|hemodialise|dialise)\b/i.test(textoTrim) && typeof consultarCatalogoAjusteRenal === "function") {
+      var respAjusteRenalFast = consultarCatalogoAjusteRenal(textoTrim);
+      if (respAjusteRenalFast) {
+        return enviarMensagemParaChat(chatId, respAjusteRenalFast);
+      }
+    }
+
+    // B. Apenas nome de fármaco (+ opcionalmente peso em kg / criança)
+    var temPediatrico = /(\bkg\b|\bquilo|crian[çc]a|lactente|pediat|\bmes(?:es)?\b)/i.test(textoTrim);
+    var termoApenasFarmaco = textoTrim
+      .replace(/(?:peso\s*[:=]?\s*)?\d+(?:[.,]\d+)?\s*kg\b/gi, "")
+      .replace(/crian[çc]a\s*(?:de\s*)?\d+(?:[.,]\d+)?(?:\s*kg)?/gi, "")
+      .replace(/\bcrian[çc]a\b/gi, "")
+      .replace(/\blactente\b/gi, "")
+      .trim();
+
+    if (termoApenasFarmaco && termoApenasFarmaco.length >= 3) {
+      var medHslExiste = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(termoApenasFarmaco) : null;
+      var medPedExiste = (typeof buscarMedicamentoPediatricoPedB === "function") ? buscarMedicamentoPediatricoPedB(termoApenasFarmaco) : null;
+      var ehFarmacoConhecido = !!(medHslExiste || medPedExiste);
+
+      if (!ehFarmacoConhecido && typeof CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS !== "undefined") {
+        var tNorm = termoApenasFarmaco.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS[tNorm]) {
+          ehFarmacoConhecido = true;
+        }
+      }
+
+      if (ehFarmacoConhecido) {
+        if (temPediatrico && typeof responderConsultaPediatricaPedB === "function") {
+          return responderConsultaPediatricaPedB(chatId, textoTrim);
+        }
+        if (typeof responderConsultaPosologiaHSL === "function") {
+          return responderConsultaPosologiaHSL(chatId, textoTrim);
+        }
       }
     }
   }
@@ -5656,22 +5701,9 @@ function processarMensagemTexto(message) {
     return responderPreceptorVozComIA(chatId, casoAudio);
   }
 
-  // 1. CHECAGEM DETERMINÍSTICA RÁPIDA EM RAM (0ms a 15ms)
-  // Se for consulta de preparo/diluição de fármaco do Guia HSL, responde na hora sem chamar IA
-  var matchDiluicao = texto.match(/(?:como\s+diluir|dilui[çc][ãa]o\s+d[eo]?|preparo\s+d[eo]?|tempo\s+de\s+infus[ãa]o\s+d[eo]?|estabilidade\s+d[eo]?)\s+([a-zA-Z0-9\s+]+)/i);
-  if (matchDiluicao && matchDiluicao[1]) {
-    var termoDroga = matchDiluicao[1].trim().replace(/[?!.]+$/, "");
-    if (termoDroga.length >= 3 && typeof buscarMedicamentoNoHSL === "function") {
-      var medHsl = buscarMedicamentoNoHSL(termoDroga);
-      if (medHsl && (medHsl.preparo_diluicao || medHsl.administracao)) {
-        var respDiluicao = formatarDiluicaoPreparoHSL(medHsl);
-        if (respDiluicao) return enviarMensagemParaChat(chatId, respDiluicao);
-      }
-    }
-  }
-
-  // 2. CÁLCULOS DETERMINÍSTICOS DIRETOS EM RAM (0ms a 15ms)
+  // CÁLCULOS DETERMINÍSTICOS DIRETOS EM RAM (0ms a 15ms)
   if (decisao.intencao === "CLINICO_EMERGENCIA") {
+    var tEmerg = textoLow;
     var matchPesoGeral = texto.match(/(?:peso\s*[:=]?\s*)(\d+(?:[.,]\d+)?)/i) ||
                          texto.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i);
 

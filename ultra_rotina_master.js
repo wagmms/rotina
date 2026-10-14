@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-13 23:24:52
- * Checksum SHA256: 3ac0c4a7f1676900
+ * Gerado automaticamente via build_master.py em: 2026-10-14 00:04:59
+ * Checksum SHA256: ed49c145860dd6bb
  * ==============================================================================
  */
 
@@ -36650,6 +36650,78 @@ function consultarCatalogoAjusteRenal(texto) {
   return null;
 }
 
+var _cacheRegrasInteracoesNorm = null;
+var _cacheNomesHslNorm = null;
+
+function _obterRegrasInteracoesNorm() {
+  if (_cacheRegrasInteracoesNorm && _cacheRegrasInteracoesNorm.length > 0) {
+    return _cacheRegrasInteracoesNorm;
+  }
+  var regras = [];
+  var termos = [];
+  var vistosTermos = {};
+  try {
+    var ss = (typeof SpreadsheetApp !== "undefined") ? SpreadsheetApp.openById("interacoes") : null;
+    if (ss) {
+      var linhas = ss.getSheets()[0].getRange(2, 1, 219, 6).getValues();
+      for (var k = 0; k < linhas.length; k++) {
+        var r = linhas[k];
+        var colANorm = String(r[1] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        var colBNorm = String(r[2] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        var grauRaw = String(r[3] || "Moderado").trim();
+        var grauNorm = "MODERADO";
+        if (/contraindic/i.test(grauRaw)) grauNorm = "CONTRAINDICADO";
+        else if (/grave/i.test(grauRaw)) grauNorm = "GRAVE";
+        else if (/leve|menor/i.test(grauRaw)) grauNorm = "LEVE";
+
+        regras.push({
+          colA: colANorm,
+          colB: colBNorm,
+          drogaA: String(r[1] || "").trim(),
+          drogaB: String(r[2] || "").trim(),
+          grau: grauRaw,
+          grauNormalizado: grauNorm,
+          efeito: String(r[4] || "").trim(),
+          recomendacao: String(r[5] || "").trim()
+        });
+
+        var partes = colANorm.split(/[\s,+/]+/);
+        for (var p = 0; p < partes.length; p++) {
+          var t = partes[p].trim();
+          if (t.length >= 4 && !vistosTermos[t]) {
+            vistosTermos[t] = true;
+            termos.push(t);
+          }
+        }
+      }
+    }
+  } catch (e) {}
+  regras.termos = termos;
+  _cacheRegrasInteracoesNorm = regras;
+  return _cacheRegrasInteracoesNorm;
+}
+
+function _obterNomesHslNorm() {
+  if (_cacheNomesHslNorm && _cacheNomesHslNorm.length > 0) {
+    return _cacheNomesHslNorm;
+  }
+  var termos = [];
+  var vistos = {};
+  try {
+    var medsHsl = (typeof obterGuiaFarmaceuticoHSL === "function") ? obterGuiaFarmaceuticoHSL() : [];
+    for (var k = 0; k < medsHsl.length; k++) {
+      var farnacoStr = String(medsHsl[k].farnaco || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      var primeiroTermo = farnacoStr.split(/[\s,()]+/)[0].trim();
+      if (primeiroTermo.length >= 4 && !vistos[primeiroTermo]) {
+        vistos[primeiroTermo] = true;
+        termos.push(primeiroTermo);
+      }
+    }
+  } catch (eHsl) {}
+  _cacheNomesHslNorm = termos;
+  return _cacheNomesHslNorm;
+}
+
 function extrairFarmacosDoTexto(texto) {
   if (!texto) return [];
   if (Array.isArray(texto)) {
@@ -36706,35 +36778,24 @@ function extrairFarmacosDoTexto(texto) {
     }
   }
 
-  // 2. Termos presentes nas regras de interações em RAM
-  try {
-    var ss = (typeof SpreadsheetApp !== "undefined") ? SpreadsheetApp.openById("interacoes") : null;
-    if (ss) {
-      var linhas = ss.getSheets()[0].getRange(2, 1, 219, 6).getValues();
-      for (var j = 0; j < linhas.length; j++) {
-        var medCol = String(linhas[j][1] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-        var partes = medCol.split(/[\s,+/]+/);
-        for (var p = 0; p < partes.length; p++) {
-          var termoP = partes[p].trim();
-          if (termoP.length >= 4 && !STOPWORDS_FARMACOS[termoP] && textoNorm.indexOf(" " + termoP + " ") !== -1) {
-            adicionar(termoP);
-          }
-        }
-      }
+  // 2. Termos presentes nas regras de interações em RAM (pré-indexados)
+  var regrasInter = _obterRegrasInteracoesNorm();
+  var termosInter = (regrasInter && regrasInter.termos) ? regrasInter.termos : [];
+  for (var j = 0; j < termosInter.length; j++) {
+    var termoP = termosInter[j];
+    if (!STOPWORDS_FARMACOS[termoP] && textoNorm.indexOf(" " + termoP + " ") !== -1) {
+      adicionar(termoP);
     }
-  } catch (eInter) {}
+  }
 
-  // 3. Fármacos oficiais do Guia HSL
-  try {
-    var medsHsl = (typeof obterGuiaFarmaceuticoHSL === "function") ? obterGuiaFarmaceuticoHSL() : [];
-    for (var k = 0; k < medsHsl.length; k++) {
-      var farnacoStr = String(medsHsl[k].farnaco || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      var primeiroTermo = farnacoStr.split(/[\s,()]+/)[0].trim();
-      if (primeiroTermo.length >= 4 && !STOPWORDS_FARMACOS[primeiroTermo] && textoNorm.indexOf(" " + primeiroTermo + " ") !== -1) {
-        adicionar(primeiroTermo);
-      }
+  // 3. Fármacos oficiais do Guia HSL (pré-indexados)
+  var termosHsl = _obterNomesHslNorm();
+  for (var k = 0; k < termosHsl.length; k++) {
+    var termoHsl = termosHsl[k];
+    if (!STOPWORDS_FARMACOS[termoHsl] && textoNorm.indexOf(" " + termoHsl + " ") !== -1) {
+      adicionar(termoHsl);
     }
-  } catch (eHsl) {}
+  }
 
   // 4. Antimicrobianos do Catálogo de Ajuste Renal
   if (typeof CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS !== "undefined") {
@@ -36819,31 +36880,22 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
 
   var interacoesAchadas = [];
   try {
-    var ss = (typeof SpreadsheetApp !== "undefined") ? SpreadsheetApp.openById("interacoes") : null;
-    if (ss && farmacos.length >= 2) {
-      var linhas = ss.getSheets()[0].getRange(2, 1, 219, 6).getValues();
+    if (farmacos.length >= 2) {
+      var regras = _obterRegrasInteracoesNorm();
       for (var i = 0; i < farmacos.length; i++) {
         for (var j = i + 1; j < farmacos.length; j++) {
           var d1 = farmacos[i];
           var d2 = farmacos[j];
-          for (var k = 0; k < linhas.length; k++) {
-            var r = linhas[k];
-            var colA = String(r[1] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            var colB = String(r[2] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            if ((colA.indexOf(d1) !== -1 && colB.indexOf(d2) !== -1) || (colA.indexOf(d2) !== -1 && colB.indexOf(d1) !== -1)) {
-              var grauRaw = String(r[3] || "Moderado").trim();
-              var grauNorm = "MODERADO";
-              if (/contraindic/i.test(grauRaw)) grauNorm = "CONTRAINDICADO";
-              else if (/grave/i.test(grauRaw)) grauNorm = "GRAVE";
-              else if (/leve|menor/i.test(grauRaw)) grauNorm = "LEVE";
-
+          for (var k = 0; k < regras.length; k++) {
+            var r = regras[k];
+            if ((r.colA.indexOf(d1) !== -1 && r.colB.indexOf(d2) !== -1) || (r.colA.indexOf(d2) !== -1 && r.colB.indexOf(d1) !== -1)) {
               interacoesAchadas.push({
-                drogaA: String(r[1] || "").trim(),
-                drogaB: String(r[2] || "").trim(),
-                grau: grauRaw,
-                grauNormalizado: grauNorm,
-                efeito: String(r[4] || "").trim(),
-                recomendacao: String(r[5] || "").trim()
+                drogaA: r.drogaA,
+                drogaB: r.drogaB,
+                grau: r.grau,
+                grauNormalizado: r.grauNormalizado,
+                efeito: r.efeito,
+                recomendacao: r.recomendacao
               });
             }
           }
@@ -37066,7 +37118,11 @@ if (typeof module !== "undefined" && module.exports) {
     formatarAjusteRenalAntimicrobiano: formatarAjusteRenalAntimicrobiano,
     consultarCatalogoAjusteRenal: consultarCatalogoAjusteRenal,
     obterItensRemumeRP: obterItensRemumeRP,
-    consultarRemumeRP: consultarRemumeRP
+    consultarRemumeRP: consultarRemumeRP,
+    _cacheRegrasInteracoesNorm: _cacheRegrasInteracoesNorm,
+    _cacheNomesHslNorm: _cacheNomesHslNorm,
+    _obterRegrasInteracoesNorm: _obterRegrasInteracoesNorm,
+    _obterNomesHslNorm: _obterNomesHslNorm
   });
 }
 
@@ -38538,12 +38594,41 @@ function _iaCortarNaFrase(texto) {
 
 function _iaTextoFalado(texto) {
   if (!texto) return texto;
-  return String(texto)
+  var t = String(texto)
     .replace(/https?:\/\/\S+/g, "")
     .replace(/[*_#`>~\[\]]/g, "")
-    .replace(/^\s*[-\u2022]\s+/gm, "")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/^\s*[-\u2022]\s+/gm, "");
+
+  // Pressão arterial e intervalos
+  t = t.replace(/(\d{2,3})\s*[xX\/]\s*(\d{2,3})\s*mmHg/gi, "$1 por $2 milímetros de mercúrio");
+  t = t.replace(/\b(6|8|12|24)\s*\/\s*\1\s*h\b/gi, "de $1 em $1 horas");
+
+  // Unidades de infusão e exames (ordem decrescente de especificidade)
+  t = t.replace(/\bmcg\/kg\/min\b/gi, "microgramas por quilo por minuto");
+  t = t.replace(/\bmcg\/min\b/gi, "microgramas por minuto");
+  t = t.replace(/\bmg\/kg\/dia\b/gi, "miligramas por quilo por dia");
+  t = t.replace(/\bmg\/kg\b/gi, "miligramas por quilo");
+  t = t.replace(/\bml\/h\b/gi, "mililitros por hora");
+  t = t.replace(/\bmeq\/l\b/gi, "miliequivalentes por litro");
+  t = t.replace(/\bmg\/dl\b/gi, "miligramas por decilitro");
+  t = t.replace(/\bmmHg\b/gi, "milímetros de mercúrio");
+  t = t.replace(/\bbpm\b/gi, "batimentos por minuto");
+  t = t.replace(/\birpm\b/gi, "incursões por minuto");
+
+  // Siglas de plantão e gases
+  t = t.replace(/\b(?:PaCO2|pCO2)\b/gi, "pê cê ó dois");
+  t = t.replace(/\b(?:SpO2|SatO2)\b/gi, "saturação de oxigênio");
+  t = t.replace(/\bHCO3\b/gi, "bicarbonato");
+  t = t.replace(/\bFiO2\b/gi, "fração inspirada de oxigênio");
+  t = t.replace(/\bNa\s*\+/g, "sódio");
+  t = t.replace(/\bK\s*\+/g, "potássio");
+  t = t.replace(/\b(?:IOT|iot)\b/g, "intubação orotraqueal");
+  t = t.replace(/\b(?:SRI|sri)\b/g, "sequência rápida de intubação");
+  t = t.replace(/\b(?:DVA|dva)\b/g, "droga vasoativa");
+  t = t.replace(/\b(?:EAP|eap)\b/g, "edema agudo de pulmão");
+  t = t.replace(/\b(?:BAVT|bavt)\b/g, "bloqueio atrioventricular total");
+
+  return t.replace(/\s+/g, " ").trim();
 }
 
 function _iaExtrairJSON(texto) {
@@ -38943,7 +39028,7 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
         } else if (opcoes.semThinking || opcoes.extrativo) {
           payload.generationConfig.thinkingConfig = { thinkingBudget: 0 };
         } else if (opcoes.clinico) {
-          var tBudget = Number(_iaCfg("IA_THINKING_BUDGET_CLINICO", 1024));
+          var tBudget = Number(_iaCfg("IA_THINKING_BUDGET_CLINICO", 384));
           payload.generationConfig.thinkingConfig = { thinkingBudget: tBudget };
         }
       }
@@ -39981,6 +40066,12 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
     } catch (eCheck) {
       Logger.log("Aviso no cross-check de segurança: " + eCheck.message);
     }
+  }
+
+  // Se a segunda passada de LLM estiver desativada (padrão de latência zero),
+  // retorna imediatamente com a validação determinística de RAM
+  if (!_iaCfgBool("IA_AUDITORIA_LLM_SEGUNDA_PASSADA", false)) {
+    return rascunho + blocoCrossCheck;
   }
 
   var sistema = [
@@ -41319,6 +41410,25 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
  * Fala curta para áudio (TTS). Retorna texto limpo, sem markdown.
  */
 function gerarProvocacaoPreceptorAudio(casoOuDuvida) {
+  var textoCaso = String(casoOuDuvida || "").trim();
+  var protocoloLocal = (typeof obterProtocoloClinico === "function") ? obterProtocoloClinico(textoCaso) : null;
+  var contextoGrounding = "";
+  if (protocoloLocal) {
+    contextoGrounding += "\n\nPROTOCOLO CLÍNICO DETERMINÍSTICO (DIRETRIZ BRASILEIRA):\n" +
+      "Patologia: " + (protocoloLocal.titulo || "") + "\n" +
+      "Diretriz Brasileira: " + (protocoloLocal.diretriz_brasileira || "") + "\n" +
+      "Conduta Padronizada: " + (protocoloLocal.conduta_imediata || "") + "\n" +
+      "Divergência/Segurança: " + (protocoloLocal.divergencia || "");
+  }
+  var farmacos = (typeof extrairFarmacosDoTexto === "function") ? extrairFarmacosDoTexto(textoCaso) : [];
+  if (farmacos && farmacos.length > 0 && typeof filtrarContextoPosologiasHSL === "function") {
+    var hsl = filtrarContextoPosologiasHSL(textoCaso);
+    if (hsl) {
+      if (hsl.length > 2500) hsl = hsl.substring(0, 2500) + "...";
+      contextoGrounding += "\n\nGUIA FARMACÊUTICO HSL (DOSES, DILUIÇÕES E SEGURANÇA):\n" + hsl;
+    }
+  }
+
   var promptSistema = [
     "Você é um preceptor experiente de clínica médica e emergência falando no fone de ouvido de Wagner durante o plantão.",
     "Gere uma fala concisa, firme e instigante, de 30 a 50 palavras, para ser lida em voz alta.",
@@ -41326,10 +41436,18 @@ function gerarProvocacaoPreceptorAudio(casoOuDuvida) {
     "1. Texto corrido, SEM tópicos, SEM markdown, SEM asteriscos, SEM emojis, SEM URLs.",
     "2. Emergência (ex: pneumotórax, choque, PCR): diga PRIMEIRO a ação prioritária imediata; só depois, uma pergunta curta de checagem.",
     "3. Caso clínico: aponte o achado semiológico discriminante ou o critério de gravidade mais crítico e termine com UMA pergunta de raciocínio.",
-    "4. NUNCA INVENTE DADOS DO PACIENTE, idades, valores laboratoriais ou sinais vitais fictícios. Baseie-se estritamente no que Wagner informou. Se faltarem informações críticas (sinais vitais, exames ou histórico), PERGUNTE ATIVAMENTE o dado faltante para Wagner antes de propor condutas definitivas. Somente formule caso fictício se Wagner pedir expressamente uma simulação (ex: 'simule um caso'). Não use LaTeX. Termine sempre com frase completa.",
-    "5. Você não é o médico responsável: em risco de vida, reforce acionar a equipe/preceptor."
+    "4. Valide e cobre doses, diluições e metas hemodinâmicas exatas das diretrizes brasileiras (SBC, ILAS, AMIB, SBD, Guia HSL) quando aplicável.",
+    "5. NUNCA INVENTE DADOS DO PACIENTE, idades, valores laboratoriais ou sinais vitais fictícios. Baseie-se estritamente no que Wagner informou. Se faltarem informações críticas (sinais vitais, exames ou histórico), PERGUNTE ATIVAMENTE o dado faltante para Wagner antes de propor condutas definitivas. Somente formule caso fictício se Wagner pedir expressamente uma simulação (ex: 'simule um caso'). Não use LaTeX. Termine sempre com frase completa.",
+    "6. Você não é o médico responsável: em risco de vida, reforce acionar a equipe/preceptor."
   ].join("\n");
-  var r = executarRaciocinioClinico(promptSistema, casoOuDuvida, 250);
+
+  if (contextoGrounding) {
+    promptSistema += "\n\nGROUNDING CLÍNICO DETERMINÍSTICO (DIRETRIZES BRASILEIRAS & GUIA HSL):\n" +
+      "Use as referências a seguir para cobrar e validar doses, diluições e metas hemodinâmicas exatas:" +
+      contextoGrounding;
+  }
+
+  var r = executarRaciocinioClinico(promptSistema, textoCaso, 250, { thinkingBudget: 0, semThinking: true });
   return r ? _iaTextoFalado(r) : r;
 }
 
@@ -41338,24 +41456,47 @@ function gerarProvocacaoPreceptorAudio(casoOuDuvida) {
  * e propõe o próximo desafio ou conduta clínica. Retorna texto limpo para áudio/TTS.
  */
 function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagner, historicoAnterior) {
+  var textoConsulta = [casoBase, perguntaAnterior, respostaWagner].filter(Boolean).join(" ");
+  var protocoloLocal = (typeof obterProtocoloClinico === "function") ? obterProtocoloClinico(textoConsulta) : null;
+  var contextoGrounding = "";
+  if (protocoloLocal) {
+    contextoGrounding += "\n\nPROTOCOLO CLÍNICO DETERMINÍSTICO (DIRETRIZ BRASILEIRA):\n" +
+      "Patologia: " + (protocoloLocal.titulo || "") + "\n" +
+      "Diretriz Brasileira: " + (protocoloLocal.diretriz_brasileira || "") + "\n" +
+      "Conduta Padronizada: " + (protocoloLocal.conduta_imediata || "") + "\n" +
+      "Divergência/Segurança: " + (protocoloLocal.divergencia || "");
+  }
+  var farmacos = (typeof extrairFarmacosDoTexto === "function") ? extrairFarmacosDoTexto(textoConsulta) : [];
+  if (farmacos && farmacos.length > 0 && typeof filtrarContextoPosologiasHSL === "function") {
+    var hsl = filtrarContextoPosologiasHSL(textoConsulta);
+    if (hsl) {
+      if (hsl.length > 2500) hsl = hsl.substring(0, 2500) + "...";
+      contextoGrounding += "\n\nGUIA FARMACÊUTICO HSL (DOSES, DILUIÇÕES E SEGURANÇA):\n" + hsl;
+    }
+  }
+
   var promptSistema = [
     "Você é um preceptor experiente de clínica médica e emergência falando no fone de ouvido de Wagner durante o plantão.",
     "Wagner acabou de responder a uma pergunta ou provocação que você fez a ele durante a discussão do caso.",
     "",
-    "SUA MISSÃO COMO PRECEPTOR SOCRÁTICO:",
-    "1. AVALIE A RESPOSTA DE WAGNER:",
-    "   - Valide claramente o que estiver correto com precisão médica (ex: hipótese correta, achado semiológico, escore de gravidade).",
-    "   - Se houver equívoco, imprecisão ou risco de segurança, aponte com firmeza didática o porquê e corrija o raciocínio.",
-    "2. CONECTE À CONDUTA E FAÇA A PRÓXIMA PERGUNTA:",
-    "   - Relacione a resposta à fisiopatologia, ao diagnóstico diferencial ou à conduta prática imediata.",
-    "   - Formule UMA ÚNICA nova pergunta socrática clinicamente discriminante (investigação, exame confirmatório, estratificação de risco ou conduta terapêutica).",
-    "3. REGRAS E FORMATO PARA FALA / ÁUDIO:",
-    "   - Texto corrido, natural para leitura em voz alta, de 40 a 70 palavras.",
-    "   - SEM tópicos, SEM markdown, SEM asteriscos, SEM emojis, SEM URLs, SEM introduções vazias.",
-    "   - Termine com frase completa e UMA pergunta direta.",
-    "   - Diretrizes brasileiras vigentes como base (SBC, SBPT, SBD, AMIB, Conitec).",
-    "   - NUNCA invente dados do paciente. Se a resposta de Wagner estiver incompleta ou faltarem dados fundamentais para o desfecho clínico, pergunte diretamente o dado que falta em vez de presumir valores laboratoriais ou sinais vitais."
+    "ESTRUTURA OBRIGATÓRIA DA FALA EM 3 MOVIMENTOS CURTOS E INCISIVOS (40 A 70 PALAVRAS):",
+    "1. Veredito direto sobre a resposta de Wagner (validação clara do acerto ou correção firme de segurança);",
+    "2. Pérola clínica decisional com parâmetro numérico, dose ou meta hemodinâmica exata das diretrizes brasileiras (SBC, ILAS, AMIB, SBD, Guia HSL);",
+    "3. Próxima pergunta socrática clinicamente discriminante para tomada de decisão imediata.",
+    "",
+    "REGRAS E FORMATO PARA FALA / ÁUDIO:",
+    "- Texto corrido, natural para leitura em voz alta no fone de ouvido, de 40 a 70 palavras.",
+    "- SEM tópicos, SEM markdown, SEM asteriscos, SEM emojis, SEM URLs, SEM introduções vazias.",
+    "- Termine com frase completa e UMA pergunta direta.",
+    "- Diretrizes brasileiras vigentes como base (SBC, ILAS, AMIB, SBD, Guia HSL).",
+    "- NUNCA invente dados do paciente. Se a resposta de Wagner estiver incompleta ou faltarem dados fundamentais para o desfecho clínico, pergunte diretamente o dado que falta em vez de presumir valores laboratoriais ou sinais vitais."
   ].join("\n");
+
+  if (contextoGrounding) {
+    promptSistema += "\n\nGROUNDING CLÍNICO DETERMINÍSTICO (DIRETRIZES BRASILEIRAS & GUIA HSL):\n" +
+      "Use as referências a seguir para cobrar e validar doses, diluições e metas hemodinâmicas exatas:" +
+      contextoGrounding;
+  }
 
   var partesUsuario = [];
   if (casoBase) partesUsuario.push("CASO CLÍNICO DE BASE:\n" + casoBase);
@@ -41365,7 +41506,7 @@ function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagn
   if (perguntaAnterior) partesUsuario.push("SUA ÚLTIMA PERGUNTA A WAGNER:\n" + perguntaAnterior);
   partesUsuario.push("RESPOSTA DE WAGNER:\n" + respostaWagner);
 
-  var r = executarRaciocinioClinico(promptSistema, partesUsuario.join("\n\n"), 350);
+  var r = executarRaciocinioClinico(promptSistema, partesUsuario.join("\n\n"), 350, { thinkingBudget: 0, semThinking: true });
   return r ? _iaTextoFalado(r) : r;
 }
 
@@ -41426,7 +41567,7 @@ function gerarCriticaSocraticaPreceptor(casoOuLeitoTexto) {
     "3. Não invente dados do paciente. Não assuma valores numéricos ou achados não mencionados. Se o caso estiver omisso em dados críticos, pergunte o dado que falta. Não use LaTeX nem markdown. Português do Brasil natural.",
     "4. Se o caso descrever instabilidade, a pergunta deve focar a prioridade imediata de segurança."
   ].join("\n");
-  var res = executarRaciocinioClinico(promptSistema, "CASO CLÍNICO:\n" + casoOuLeitoTexto, 400);
+  var res = executarRaciocinioClinico(promptSistema, "CASO CLÍNICO:\n" + casoOuLeitoTexto, 400, { thinkingBudget: 0, semThinking: true });
   if (res) {
     var limpo = _iaTextoFalado(res);
     if (/\?\s*$/.test(limpo)) return limpo;
@@ -41442,10 +41583,11 @@ function gerarCriticaSocraticaPreceptor(casoOuLeitoTexto) {
  */
 function gerarAudioPreceptorDireto(casoOuDuvida, opcoes) {
   opcoes = opcoes || {};
+  var textoPronto = opcoes.textoPronto ? String(opcoes.textoPronto).trim() : "";
   var textoCaso = String(casoOuDuvida || "").trim();
-  if (!textoCaso) return null;
+  if (!textoCaso && !textoPronto) return null;
 
-  var textoProvocacao = gerarProvocacaoPreceptorAudio(textoCaso);
+  var textoProvocacao = textoPronto ? _iaTextoFalado(textoPronto) : gerarProvocacaoPreceptorAudio(textoCaso);
   if (!textoProvocacao) return null;
 
   var blobAudio = sintetizarVozPreceptor(textoProvocacao);
@@ -49022,11 +49164,12 @@ function processarMensagemTexto(message) {
   // ⚡ FAST-PATH DETERMINÍSTICO (0ms a 15ms em RAM)
   // Cálculos puros (CURB-65, Glasgow, Parkland, DVA, Clearance, Diluição, Ajuste Renal)
   // NUNCA envie essas tarefas para o modelo de linguagem se a matemática/tabela está no código Node.js!
-  var ehConsultaDeterministica = (
-    typeof ehCalculadoraReconhecida === "function" && ehCalculadoraReconhecida(texto)
-  ) || (
-    typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(texto)
-  ) || /\b(?:curb|crcl|clcr|cockcroft|ckd|glasgow|parkland|queimadur|dva|nora|dobuta|vaso|nitroprussiato|nitroglicerina|dilui[çc][ãa]o|como\s+diluir|preparo|ajuste\s+renal)\b/i.test(texto);
+  var ehRelatoCaso = /\b(?:paciente|pcte)\b/i.test(texto);
+  var ehConsultaDeterministica = !ehRelatoCaso && (
+    /\b(?:curb|crcl|clcr|cockcroft|ckd|glasgow|parkland|queimadur|dva|nora|dobuta|vaso|nitroprussiato|nitroglicerina|dilui[çc][ãa]o|como\s+diluir|preparo|ajuste\s+renal)\b/i.test(texto) ||
+    (typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(texto)) ||
+    (typeof ehCalculadoraReconhecida === "function" && ehCalculadoraReconhecida(texto))
+  );
 
   if (ehConsultaDeterministica && typeof tentarCalcularDeterministico === "function") {
     var resFastDet = tentarCalcularDeterministico(texto);
@@ -49063,6 +49206,50 @@ function processarMensagemTexto(message) {
       if (medHsl && (medHsl.preparo_diluicao || medHsl.administracao)) {
         var respDiluicao = formatarDiluicaoPreparoHSL(medHsl);
         if (respDiluicao) return enviarMensagemParaChat(chatId, respDiluicao);
+      }
+    }
+  }
+
+  // ⚡ FAST-PATH FARMACOLÓGICO DETERMINÍSTICO EM RAM (0ms a 15ms - SEM CHAMAR LLM)
+  // Atende buscas diretas curtas sem barra (1 a 4 palavras)
+  var palavrasFast = textoTrim.split(/\s+/).filter(Boolean);
+  if (textoTrim.charAt(0) !== "/" && palavrasFast.length >= 1 && palavrasFast.length <= 4) {
+    // A. Antimicrobianos com ajuste renal (ClCr/TFG/HD)
+    if (/\b(?:clcr|crcl|tfg|clearance|hd|hemodialise|dialise)\b/i.test(textoTrim) && typeof consultarCatalogoAjusteRenal === "function") {
+      var respAjusteRenalFast = consultarCatalogoAjusteRenal(textoTrim);
+      if (respAjusteRenalFast) {
+        return enviarMensagemParaChat(chatId, respAjusteRenalFast);
+      }
+    }
+
+    // B. Apenas nome de fármaco (+ opcionalmente peso em kg / criança)
+    var temPediatrico = /(\bkg\b|\bquilo|crian[çc]a|lactente|pediat|\bmes(?:es)?\b)/i.test(textoTrim);
+    var termoApenasFarmaco = textoTrim
+      .replace(/(?:peso\s*[:=]?\s*)?\d+(?:[.,]\d+)?\s*kg\b/gi, "")
+      .replace(/crian[çc]a\s*(?:de\s*)?\d+(?:[.,]\d+)?(?:\s*kg)?/gi, "")
+      .replace(/\bcrian[çc]a\b/gi, "")
+      .replace(/\blactente\b/gi, "")
+      .trim();
+
+    if (termoApenasFarmaco && termoApenasFarmaco.length >= 3) {
+      var medHslExiste = (typeof buscarMedicamentoNoHSL === "function") ? buscarMedicamentoNoHSL(termoApenasFarmaco) : null;
+      var medPedExiste = (typeof buscarMedicamentoPediatricoPedB === "function") ? buscarMedicamentoPediatricoPedB(termoApenasFarmaco) : null;
+      var ehFarmacoConhecido = !!(medHslExiste || medPedExiste);
+
+      if (!ehFarmacoConhecido && typeof CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS !== "undefined") {
+        var tNorm = termoApenasFarmaco.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (CATALOGO_AJUSTE_RENAL_ANTIMICROBIANOS[tNorm]) {
+          ehFarmacoConhecido = true;
+        }
+      }
+
+      if (ehFarmacoConhecido) {
+        if (temPediatrico && typeof responderConsultaPediatricaPedB === "function") {
+          return responderConsultaPediatricaPedB(chatId, textoTrim);
+        }
+        if (typeof responderConsultaPosologiaHSL === "function") {
+          return responderConsultaPosologiaHSL(chatId, textoTrim);
+        }
       }
     }
   }
@@ -49119,22 +49306,9 @@ function processarMensagemTexto(message) {
     return responderPreceptorVozComIA(chatId, casoAudio);
   }
 
-  // 1. CHECAGEM DETERMINÍSTICA RÁPIDA EM RAM (0ms a 15ms)
-  // Se for consulta de preparo/diluição de fármaco do Guia HSL, responde na hora sem chamar IA
-  var matchDiluicao = texto.match(/(?:como\s+diluir|dilui[çc][ãa]o\s+d[eo]?|preparo\s+d[eo]?|tempo\s+de\s+infus[ãa]o\s+d[eo]?|estabilidade\s+d[eo]?)\s+([a-zA-Z0-9\s+]+)/i);
-  if (matchDiluicao && matchDiluicao[1]) {
-    var termoDroga = matchDiluicao[1].trim().replace(/[?!.]+$/, "");
-    if (termoDroga.length >= 3 && typeof buscarMedicamentoNoHSL === "function") {
-      var medHsl = buscarMedicamentoNoHSL(termoDroga);
-      if (medHsl && (medHsl.preparo_diluicao || medHsl.administracao)) {
-        var respDiluicao = formatarDiluicaoPreparoHSL(medHsl);
-        if (respDiluicao) return enviarMensagemParaChat(chatId, respDiluicao);
-      }
-    }
-  }
-
-  // 2. CÁLCULOS DETERMINÍSTICOS DIRETOS EM RAM (0ms a 15ms)
+  // CÁLCULOS DETERMINÍSTICOS DIRETOS EM RAM (0ms a 15ms)
   if (decisao.intencao === "CLINICO_EMERGENCIA") {
+    var tEmerg = textoLow;
     var matchPesoGeral = texto.match(/(?:peso\s*[:=]?\s*)(\d+(?:[.,]\d+)?)/i) ||
                          texto.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i);
 
@@ -49412,6 +49586,7 @@ function processarRespostaPreceptorSocratico(chatId, textoResposta, ehAudio) {
 
   // 4. Se a resposta veio por áudio, prioriza responder com voz neural do preceptor
   if (ehAudio) {
+    enviarChatAction(chatId, "record_voice", true);
     if (typeof renovarChatActionSeNecessario === "function") {
       renovarChatActionSeNecessario(chatId, "record_voice");
     }
@@ -49467,12 +49642,16 @@ function extrairTextoLocucaoSoap_(texto) {
   return t;
 }
 
-  // Se opcoes.apenasNarrar === true, pula a geração de texto e vai direto para TTS
+  // Se opcoes.apenasNarrar === true ou se opcoes.textoPronto foi fornecido, pula a geração de texto e vai direto para TTS
   // (usado pelo callback "Ouvir no Fone" para narrar texto já existente)
-  if (opcoes.apenasNarrar && casoOuDuvida) {
+  var textoBaseNarrar = (opcoes && opcoes.textoPronto) || (opcoes && opcoes.apenasNarrar && casoOuDuvida);
+  if (textoBaseNarrar) {
     enviarChatAction(chatId, "record_voice", true);
-    var textoLocucao = extrairTextoLocucaoSoap_(casoOuDuvida);
-    var blobNarrado = sintetizarVozPreceptor(textoLocucao);
+    var textoLocucao = extrairTextoLocucaoSoap_(textoBaseNarrar);
+    var resDireto = (typeof gerarAudioPreceptorDireto === "function")
+      ? gerarAudioPreceptorDireto(null, { textoPronto: textoLocucao })
+      : null;
+    var blobNarrado = (resDireto && resDireto.audioBlob) || sintetizarVozPreceptor(typeof _iaTextoFalado === "function" ? _iaTextoFalado(textoLocucao) : textoLocucao);
     if (blobNarrado) {
       var resumoLegenda = String(textoLocucao).trim();
       if (resumoLegenda.length > 750) {
@@ -49502,8 +49681,9 @@ function extrairTextoLocucaoSoap_(texto) {
   // 1. MODO RÁPIDO: Geração direta de áudio em tempo único (Single-Pass Audio)
   if (typeof gerarAudioPreceptorDireto === "function") {
     try {
-      var resDireto = gerarAudioPreceptorDireto(casoOuDuvida);
+      var resDireto = gerarAudioPreceptorDireto(casoOuDuvida, opcoes);
       if (resDireto && resDireto.audioBlob) {
+        enviarChatAction(chatId, "record_voice", true);
         if (typeof renovarChatActionSeNecessario === "function") {
           renovarChatActionSeNecessario(chatId, "record_voice");
         }
@@ -49537,6 +49717,7 @@ function extrairTextoLocucaoSoap_(texto) {
 
   // 2. FALLBACK RESILIENTE EM DOIS TEMPOS (Texto -> TTS)
   // CORREÇÃO: reutiliza textoGeradoDireto se disponível, evitando chamada LLM redundante
+  enviarChatAction(chatId, "record_voice", true);
   if (typeof renovarChatActionSeNecessario === "function") {
     renovarChatActionSeNecessario(chatId, "record_voice");
   }
@@ -49554,6 +49735,7 @@ function extrairTextoLocucaoSoap_(texto) {
     definirModoBot(chatId, "voz", casoOuDuvida);
   }
 
+  enviarChatAction(chatId, "record_voice", true);
   if (typeof renovarChatActionSeNecessario === "function") {
     renovarChatActionSeNecessario(chatId, "record_voice");
   }
@@ -49652,6 +49834,7 @@ function iniciarOuConvidarDiscussaoPreceptor(chatId, opcoes) {
     };
 
     if (ehAudio) {
+      enviarChatAction(chatId, "record_voice", true);
       var blobVozRecente = sintetizarVozPreceptor(textoConvite);
       if (blobVozRecente) {
         var enviadoVozRec = enviarAudioVozTelegram(chatId, blobVozRecente, textoComRecente, kbBotoes);
@@ -49676,6 +49859,7 @@ function iniciarOuConvidarDiscussaoPreceptor(chatId, opcoes) {
   };
 
   if (ehAudio) {
+    enviarChatAction(chatId, "record_voice", true);
     var blobVozSimples = sintetizarVozPreceptor(textoConvite);
     if (blobVozSimples) {
       var legendaVoz = "🎧 *Preceptor Socrático:*\n\n" + textoConvite;
@@ -50928,7 +51112,7 @@ function tratarCallbackPreceptorSocratico_(cb, data, ctx) {
     }
     if (conteudoCaso) {
       responderCallbackTelegram(cb.id, "Transmitindo áudio para o fone...");
-      return responderPreceptorVozComIA(ctx.chatId, conteudoCaso, { apenasNarrar: true });
+      return responderPreceptorVozComIA(ctx.chatId, conteudoCaso, { apenasNarrar: true, textoPronto: conteudoCaso });
     }
     responderCallbackTelegram(cb.id, "⚠️ Caso expirado do cache.");
     return enviarMensagemComTecladoParaChat(ctx.chatId, "⚠️ *Áudio indisponível:* O conteúdo clínico não foi encontrado no cache recente (ou expirou).\n\n💡 Envie o caso novamente ou escolha uma opção abaixo:", {
