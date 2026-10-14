@@ -13,6 +13,44 @@ async function run() {
   const app = await buildServer();
   const ctx = runtime.ctx;
 
+  const medirConsulta = (consulta, limiteMs, rotulo) => {
+    const inicio = process.hrtime.bigint();
+    const resposta = consulta();
+    const duracaoMs = Number(process.hrtime.bigint() - inicio) / 1e6;
+    assert(resposta, `${rotulo} deve produzir resposta`);
+    assert(duracaoMs < limiteMs, `${rotulo}: ${duracaoMs.toFixed(2)}ms excedeu ${limiteMs}ms`);
+    return resposta;
+  };
+
+  const consultasLocais = [
+    ['HSL', () => ctx.buscarMedicamentoNoHSL('vancomicina')],
+    ['REMUME', () => ctx.consultarRemumeRP('dipirona')],
+    ['PedBook fármaco', () => ctx.buscarMedicamentoPediatricoPedB('amoxicilina')],
+    ['PedBook conduta', () => ctx.buscarCondutaPediatricaPedB('bronquiolite')]
+  ];
+  for (const [nome, consulta] of consultasLocais) {
+    medirConsulta(consulta, 50, `${nome} após aquecimento`);
+    for (let repeticao = 0; repeticao < 20; repeticao++) {
+      medirConsulta(consulta, 5, `${nome} em cache`);
+    }
+  }
+  const consultasCalculadoras = [
+    ['Parkland', 'parkland 70kg 30%'],
+    ['DVA', 'nora 80kg concentrada'],
+    ['Diluição', 'como diluir meropenem']
+  ];
+  for (const [nome, entrada] of consultasCalculadoras) {
+    medirConsulta(() => ctx.tentarCalcularDeterministico(entrada), 50, `${nome} determinística`);
+    for (let repeticao = 0; repeticao < 20; repeticao++) {
+      medirConsulta(() => ctx.tentarCalcularDeterministico(entrada), 5, `${nome} repetida`);
+    }
+  }
+  const interacaoConhecida = medirConsulta(() => ctx.executarCrossCheckSegurancaClinica('amiodarona fluconazol'), 50, 'Interação local');
+  assert(interacaoConhecida.interacoes.length > 0, 'Par amiodarona/fluconazol deve manter interação catalogada');
+  for (let repeticao = 0; repeticao < 20; repeticao++) {
+    medirConsulta(() => ctx.executarCrossCheckSegurancaClinica('amiodarona fluconazol'), 5, 'Interação repetida');
+  }
+
   console.log('🧪 1. Testando Separação Rígida Determinística em RAM (0ms a 15ms)...');
 
   // A. Parkland
@@ -153,6 +191,43 @@ async function run() {
     assert(msCeft < 15, `Consulta "ceftriaxona" deve responder em < 15ms, levou ${msCeft.toFixed(2)}ms`);
     assert.strictEqual(llmFoiAcionada, false, 'LLM não pode ser chamada em consulta direta HSL');
     console.log(`   ✓ "ceftriaxona" respondeu via RAM em ${msCeft.toFixed(2)}ms sem chamar LLM`);
+
+    let msgInteracao = '';
+    ctx.enviarMensagemParaChat = (chatId, texto) => { msgInteracao = texto; return true; };
+    ctx.enviarMensagemComTecladoParaChat = (chatId, texto) => { msgInteracao = texto; return true; };
+    medirConsulta(() => ctx.processarMensagemTexto({
+      chat: { id: 1771571035 }, text: '/interacao paracetamol, metformina'
+    }) || msgInteracao, 50, 'Interação catalogada sem achado');
+    assert(msgInteracao.includes('CROSS-CHECK DE SEGURANÇA'), 'Interação deve usar auditoria local');
+    assert.strictEqual(llmFoiAcionada, false, 'Interação sem achado não pode chamar LLM');
+
+    for (const [entrada, trecho] of [
+      ['/remume dipirona', 'REMUME-RP'],
+      ['/compatibilidade nora furosemida', 'COMPATIBILIDADE']
+    ]) {
+      let mensagem = '';
+      ctx.enviarMensagemParaChat = (chatId, texto) => { mensagem = texto; return true; };
+      ctx.enviarMensagemComTecladoParaChat = (chatId, texto) => { mensagem = texto; return true; };
+      medirConsulta(() => ctx.processarMensagemTexto({
+        chat: { id: 1771571035 }, text: entrada
+      }) || mensagem, 50, entrada);
+      assert(mensagem.toUpperCase().includes(trecho), `${entrada} deve usar base local: ${mensagem.slice(0, 180)}`);
+      assert.strictEqual(llmFoiAcionada, false, `${entrada} não pode chamar LLM`);
+    }
+
+    for (const entrada of [
+      '/pals 14kg', '/sri 70kg', '/prenatal DUM 10/02/2026',
+      '/dhe sodio 160', '/gaso pH 7.30 pCO2 30 HCO3 15'
+    ]) {
+      let mensagem = '';
+      ctx.enviarMensagemParaChat = (chatId, texto) => { mensagem = texto; return true; };
+      ctx.enviarMensagemComTecladoParaChat = (chatId, texto) => { mensagem = texto; return true; };
+      medirConsulta(() => ctx.processarMensagemTexto({
+        chat: { id: 1771571035 }, text: entrada
+      }) || mensagem, 50, entrada);
+      assert(mensagem.length > 20, `${entrada} deve produzir resposta clínica`);
+      assert.strictEqual(llmFoiAcionada, false, `${entrada} não pode chamar LLM`);
+    }
   } finally {
     ctx.enviarMensagemParaChat = origEnviarMsg;
     ctx.enviarMensagemComTecladoParaChat = origEnviarKb;

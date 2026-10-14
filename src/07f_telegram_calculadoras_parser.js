@@ -150,6 +150,19 @@ var LISTA_CALCULADORAS_DETERMINISTICAS = [
   "parkland", "dva", "gasometria", "gaso", "holliday"
 ];
 
+var INDICE_ALIASES_CALCULADORAS = Object.keys(CATALOGO_CALCULADORAS).reduce(function(indice, chave) {
+  CATALOGO_CALCULADORAS[chave].aliases.forEach(function(alias) {
+    var escapado = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    indice.regex.push({
+      id: CATALOGO_CALCULADORAS[chave].id,
+      tamanho: alias.length,
+      regex: new RegExp("(^|[^a-z0-9à-ÿ])" + escapado + "(?=$|[^a-z0-9à-ÿ])", "i")
+    });
+    if (!indice.exatos.has(alias)) indice.exatos.set(alias, true);
+  });
+  return indice;
+}, { regex: [], exatos: new Map() });
+
 function ehCalculadoraDeterministica(texto) {
   var id = identificarCalculadora(texto);
   return id ? LISTA_CALCULADORAS_DETERMINISTICAS.indexOf(id) !== -1 : false;
@@ -157,25 +170,14 @@ function ehCalculadoraDeterministica(texto) {
 
 function ehApenasNomeCalculadora(texto) {
   var s = (texto || "").trim().toLowerCase();
-  for (var k in CATALOGO_CALCULADORAS) {
-    var c = CATALOGO_CALCULADORAS[k];
-    if (c.aliases.indexOf(s) !== -1) return true;
-  }
-  return false;
+  return INDICE_ALIASES_CALCULADORAS.exatos.has(s);
 }
 
 function ehCalculadoraReconhecida(texto) {
   if (!texto || typeof texto !== "string") return false;
-  var t = texto.toLowerCase();
-  for (var k in CATALOGO_CALCULADORAS) {
-    var c = CATALOGO_CALCULADORAS[k];
-    for (var i = 0; i < c.aliases.length; i++) {
-      var alias = c.aliases[i];
-      var escAlias = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      var re = new RegExp("(?:^|[^a-z0-9à-ÿ])" + escAlias + "(?:$|[^a-z0-9à-ÿ])", "i");
-      if (re.test(t)) {
-        return true;
-      }
+  for (var i = 0; i < INDICE_ALIASES_CALCULADORAS.regex.length; i++) {
+    if (INDICE_ALIASES_CALCULADORAS.regex[i].regex.test(texto)) {
+      return true;
     }
   }
   return false;
@@ -183,17 +185,17 @@ function ehCalculadoraReconhecida(texto) {
 
 // O primeiro identificador explícito prevalece sobre palavras dos dados clínicos.
 function identificarCalculadora(texto) {
-  var encontrados = [];
-  Object.keys(CATALOGO_CALCULADORAS).forEach(function(k) {
-    var c = CATALOGO_CALCULADORAS[k];
-    c.aliases.forEach(function(alias) {
-      var re = new RegExp("(^|[^a-z0-9à-ÿ])" + alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?=$|[^a-z0-9à-ÿ])", "i");
-      var m = String(texto).match(re);
-      if (m) encontrados.push({id:c.id, pos:m.index, tamanho:alias.length});
-    });
-  });
-  encontrados.sort(function(a,b) {return a.pos-b.pos || b.tamanho-a.tamanho;});
-  return encontrados.length ? encontrados[0].id : null;
+  var primeiro = null;
+  var consulta = String(texto);
+  for (var i = 0; i < INDICE_ALIASES_CALCULADORAS.regex.length; i++) {
+    var entrada = INDICE_ALIASES_CALCULADORAS.regex[i];
+    var encontrado = entrada.regex.exec(consulta);
+    if (encontrado && (!primeiro || encontrado.index < primeiro.pos ||
+        (encontrado.index === primeiro.pos && entrada.tamanho > primeiro.tamanho))) {
+      primeiro = { id: entrada.id, pos: encontrado.index, tamanho: entrada.tamanho };
+    }
+  }
+  return primeiro ? primeiro.id : null;
 }
 
 function tentarCalcularDeterministico(texto) {

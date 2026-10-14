@@ -134,6 +134,50 @@ function normalizarTexto(texto) {
     .trim();
 }
 
+var _indicesBasesLocais = new Map();
+
+function obterIndiceBaseLocal(nome, registros, termosDoRegistro) {
+  var anterior = _indicesBasesLocais.get(nome);
+  if (anterior && anterior.registros === registros) return anterior;
+  var indice = { registros: registros, exatos: new Map(), tokens: new Map(), trechos: new Map(), consultas: new Map() };
+  registros.forEach(function(registro) {
+    termosDoRegistro(registro).forEach(function(termo) {
+      var chave = normalizarTexto(termo).replace(/\s+/g, " ");
+      if (!chave) return;
+      if (!indice.exatos.has(chave)) indice.exatos.set(chave, registro);
+      chave.split(/[\s+]+/).forEach(function(token) {
+        if (token.length < 3) return;
+        if (!indice.tokens.has(token)) indice.tokens.set(token, []);
+        var candidatos = indice.tokens.get(token);
+        if (candidatos[candidatos.length - 1] !== registro) candidatos.push(registro);
+      });
+      for (var pos = 0; pos <= chave.length - 3; pos++) {
+        var trecho = chave.slice(pos, pos + 3);
+        if (!indice.trechos.has(trecho)) indice.trechos.set(trecho, []);
+        var entradas = indice.trechos.get(trecho);
+        if (entradas[entradas.length - 1] !== registro) entradas.push(registro);
+      }
+    });
+  });
+  _indicesBasesLocais.set(nome, indice);
+  return indice;
+}
+
+function lerConsultaLocal(indice, chave) {
+  if (!indice.consultas.has(chave)) return { encontrado: false };
+  var resposta = indice.consultas.get(chave);
+  indice.consultas.delete(chave);
+  indice.consultas.set(chave, resposta);
+  return { encontrado: true, resposta: resposta };
+}
+
+function guardarConsultaLocal(indice, chave, resposta) {
+  if (indice.consultas.has(chave)) indice.consultas.delete(chave);
+  indice.consultas.set(chave, resposta);
+  if (indice.consultas.size > 256) indice.consultas.delete(indice.consultas.keys().next().value);
+  return resposta;
+}
+
 // Cache integral por execução. A identidade da fonte impede reutilizar outra planilha.
 var _cachePlanilhasExecucao = {};
 var _fontesPlanilhasExecucao = {};
@@ -427,11 +471,17 @@ function consultarRemumeRP(termo, medHslFallback) {
 
   var ehBuscaAssociacao = termoAlvo.indexOf("+") !== -1 || /clavulan/i.test(termoAlvo);
   var itens = obterItensRemumeRP();
+  var indice = obterIndiceBaseLocal("remume", itens, function(linha) {
+    return [normalizarPrincipioAtivo(linha)];
+  });
+  var chaveConsulta = termoAlvo + "|" + ehBuscaAssociacao;
+  var salvo = lerConsultaLocal(indice, chaveConsulta);
   var isolados = [];
   var associados = [];
 
-  for (var i = 0; i < itens.length; i++) {
-    var linhaOriginal = itens[i];
+  var candidatos = indice.trechos.get(termoAlvo.slice(0, 3)) || itens;
+  for (var i = 0; !salvo.encontrado && i < candidatos.length; i++) {
+    var linhaOriginal = candidatos[i];
     var linhaNorm = normalizarPrincipioAtivo(linhaOriginal);
 
     // Regex de palavra inteira ou início de termo para evitar falsos positivos
@@ -445,7 +495,8 @@ function consultarRemumeRP(termo, medHslFallback) {
     }
   }
 
-  var apresentacoes = ehBuscaAssociacao ? associados.concat(isolados) : isolados.concat(associados);
+  var apresentacoes = salvo.encontrado ? salvo.resposta :
+    guardarConsultaLocal(indice, chaveConsulta, ehBuscaAssociacao ? associados.concat(isolados) : isolados.concat(associados));
 
   // Fallback transparente se o mock de teste não carregou a lista do CSV mas o HSL traz flags estáticas
   if (apresentacoes.length === 0 && medHslFallback && medHslFallback.na_remume) {
@@ -564,12 +615,18 @@ function buscarMedicamentoNoHSL(termo) {
   // Expansão por dicionário de sinônimos/marcas
   var sin = DICIONARIO_FARMACO[termoLimpo];
   var sinNorm = sin ? normalizarTermoMedicamento(sin) : null;
+  var indice = obterIndiceBaseLocal("hsl", meds, function(med) { return [med.nome_normalizado]; });
+  var chaveConsulta = normalizarTexto(termoLimpo);
+  var salvo = lerConsultaLocal(indice, chaveConsulta);
+  if (salvo.encontrado) return salvo.resposta;
+  var exato = sinNorm ? null : indice.exatos.get(normalizarTexto(termoNorm));
+  if (exato) return guardarConsultaLocal(indice, chaveConsulta, exato);
 
   // 1. Correspondência exata no nome normalizado
   for (var i = 0; i < meds.length; i++) {
     var m = meds[i];
     if (m.nome_normalizado === termoNorm || (sinNorm && m.nome_normalizado === sinNorm)) {
-      return m;
+      return guardarConsultaLocal(indice, chaveConsulta, m);
     }
   }
 
@@ -577,7 +634,7 @@ function buscarMedicamentoNoHSL(termo) {
   for (var j = 0; j < meds.length; j++) {
     var med = meds[j];
     if (med.nome_normalizado.indexOf(termoNorm) === 0 || (sinNorm && med.nome_normalizado.indexOf(sinNorm) === 0)) {
-      return med;
+      return guardarConsultaLocal(indice, chaveConsulta, med);
     }
   }
 
@@ -585,7 +642,7 @@ function buscarMedicamentoNoHSL(termo) {
   for (var k = 0; k < meds.length; k++) {
     var item = meds[k];
     if (item.nome_normalizado.indexOf(termoNorm) !== -1 || (sinNorm && item.nome_normalizado.indexOf(sinNorm) !== -1)) {
-      return item;
+      return guardarConsultaLocal(indice, chaveConsulta, item);
     }
   }
 
@@ -596,13 +653,13 @@ function buscarMedicamentoNoHSL(termo) {
       for (var a = 0; a < cand.apresentacoes_hsl.length; a++) {
         var aprNorm = normalizarTermoMedicamento(cand.apresentacoes_hsl[a]);
         if (aprNorm.indexOf(termoNorm) !== -1) {
-          return cand;
+          return guardarConsultaLocal(indice, chaveConsulta, cand);
         }
       }
     }
   }
 
-  return null;
+  return guardarConsultaLocal(indice, chaveConsulta, null);
 }
 
 /**
@@ -1243,16 +1300,22 @@ function buscarMedicamentoPediatricoPedB(termo) {
 
   var sin = DICIONARIO_FARMACO[termoLimpo];
   var sinNorm = sin ? normalizarTermoMedicamento(sin) : null;
+  var indice = obterIndiceBaseLocal("pedb_medicamentos", meds, function(med) {
+    return [med.nome_normalizado || med.nome];
+  });
+  var chaveConsulta = normalizarTexto(termoLimpo);
+  var salvo = lerConsultaLocal(indice, chaveConsulta);
+  if (salvo.encontrado) return salvo.resposta;
 
   // 1. Correspondência exata no nome normalizado ou slug
   for (var i = 0; i < meds.length; i++) {
     var m = meds[i];
     var mNorm = m.nome_normalizado || normalizarTermoMedicamento(m.nome);
     if (mNorm === termoNorm || (sinNorm && mNorm === sinNorm)) {
-      return m;
+      return guardarConsultaLocal(indice, chaveConsulta, m);
     }
     if (m.slug && (m.slug === termoLimpo || (sin && m.slug === sin))) {
-      return m;
+      return guardarConsultaLocal(indice, chaveConsulta, m);
     }
   }
 
@@ -1264,7 +1327,7 @@ function buscarMedicamentoPediatricoPedB(termo) {
       var palavrasMarcas = marcasNorm.split(/\s+/);
       for (var pm = 0; pm < palavrasMarcas.length; pm++) {
         if (palavrasMarcas[pm] === termoNorm || (sinNorm && palavrasMarcas[pm] === sinNorm)) {
-          return medK;
+          return guardarConsultaLocal(indice, chaveConsulta, medK);
         }
       }
     }
@@ -1275,7 +1338,7 @@ function buscarMedicamentoPediatricoPedB(termo) {
     var med = meds[j];
     var mNomeNorm = med.nome_normalizado || normalizarTermoMedicamento(med.nome);
     if (mNomeNorm.indexOf(termoNorm) === 0 || (sinNorm && mNomeNorm.indexOf(sinNorm) === 0)) {
-      return med;
+      return guardarConsultaLocal(indice, chaveConsulta, med);
     }
   }
 
@@ -1285,7 +1348,7 @@ function buscarMedicamentoPediatricoPedB(termo) {
       var medL = meds[l];
       var mNN = medL.nome_normalizado || normalizarTermoMedicamento(medL.nome);
       if (mNN.indexOf(termoNorm) !== -1 || (sinNorm && mNN.indexOf(sinNorm) !== -1)) {
-        return medL;
+        return guardarConsultaLocal(indice, chaveConsulta, medL);
       }
     }
   }
@@ -1297,13 +1360,13 @@ function buscarMedicamentoPediatricoPedB(termo) {
       for (var pk = 0; pk < medP.palavras_chave.length; pk++) {
         var kwNorm = normalizarTermoMedicamento(medP.palavras_chave[pk]);
         if (kwNorm === termoNorm || (sinNorm && kwNorm === sinNorm)) {
-          return medP;
+          return guardarConsultaLocal(indice, chaveConsulta, medP);
         }
       }
     }
   }
 
-  return null;
+  return guardarConsultaLocal(indice, chaveConsulta, null);
 }
 
 /**
@@ -1592,18 +1655,24 @@ function buscarCondutaPediatricaPedB(termo) {
   if (sinonimosCondutas[chaveSin]) {
     termoNorm = sinonimosCondutas[chaveSin];
   }
+  var indice = obterIndiceBaseLocal("pedb_condutas", conds, function(conduta) {
+    return [conduta.titulo_normalizado];
+  });
+  var chaveConsulta = normalizarTexto(termoLower);
+  var salvo = lerConsultaLocal(indice, chaveConsulta);
+  if (salvo.encontrado) return salvo.resposta;
 
   for (var i = 0; i < conds.length; i++) {
     var c = conds[i];
     if (c.titulo_normalizado === termoNorm || c.slug === termoLower) {
-      return c;
+      return guardarConsultaLocal(indice, chaveConsulta, c);
     }
   }
 
   for (var j = 0; j < conds.length; j++) {
     var cond = conds[j];
     if (cond.titulo_normalizado.indexOf(termoNorm) !== -1) {
-      return cond;
+      return guardarConsultaLocal(indice, chaveConsulta, cond);
     }
   }
 
@@ -1612,13 +1681,13 @@ function buscarCondutaPediatricaPedB(termo) {
     if (Array.isArray(cTag.tags)) {
       for (var t = 0; t < cTag.tags.length; t++) {
         if (normalizarTermoMedicamento(cTag.tags[t]) === termoNorm) {
-          return cTag;
+          return guardarConsultaLocal(indice, chaveConsulta, cTag);
         }
       }
     }
   }
 
-  return null;
+  return guardarConsultaLocal(indice, chaveConsulta, null);
 }
 
 /**
@@ -2120,6 +2189,7 @@ function _obterRegrasInteracoesNorm() {
     }
   } catch (e) {}
   regras.termos = termos;
+  obterIndiceBaseLocal("interacoes", regras, function(regra) { return [regra.colA, regra.colB]; });
   _cacheRegrasInteracoesNorm = regras;
   return _cacheRegrasInteracoesNorm;
 }
@@ -2512,13 +2582,21 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
   try {
     if (farmacos.length >= 2) {
       var regras = _obterRegrasInteracoesNorm();
+      var indiceInteracoes = obterIndiceBaseLocal("interacoes", regras, function(regra) {
+        return [regra.colA, regra.colB];
+      });
       for (var i = 0; i < farmacos.length; i++) {
         for (var j = i + 1; j < farmacos.length; j++) {
           var d1 = farmacos[i];
           var d2 = farmacos[j];
-          for (var k = 0; k < regras.length; k++) {
-            var r = regras[k];
+          var chavePar = d1 + "|" + d2;
+          var parSalvo = lerConsultaLocal(indiceInteracoes, chavePar);
+          var candidatas = parSalvo.encontrado ? parSalvo.resposta : regras;
+          var correspondentes = [];
+          for (var k = 0; k < candidatas.length; k++) {
+            var r = candidatas[k];
             if ((r.colA.indexOf(d1) !== -1 && r.colB.indexOf(d2) !== -1) || (r.colA.indexOf(d2) !== -1 && r.colB.indexOf(d1) !== -1)) {
+              if (!parSalvo.encontrado) correspondentes.push(r);
               interacoesAchadas.push({
                 drogaA: r.drogaA,
                 drogaB: r.drogaB,
@@ -2529,6 +2607,7 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
               });
             }
           }
+          if (!parSalvo.encontrado) guardarConsultaLocal(indiceInteracoes, chavePar, correspondentes);
         }
       }
     }

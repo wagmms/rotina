@@ -1531,6 +1531,17 @@ function despacharComandosAmbulatorioESoap_(comando, texto, chatId, contextoCach
   }
 
   if (comando === "/remume") {
+    var termoRemume = texto.replace(/^\/remume\s*/i, "").trim();
+    if (termoRemume && typeof consultarRemumeRP === "function") {
+      var consultaRemume = consultarRemumeRP(termoRemume);
+      var textoRemume = consultaRemume.selo + " *" + termoRemume + "*";
+      if (consultaRemume.apresentacoes.length) {
+        textoRemume += "\n\n• " + consultaRemume.apresentacoes.join("\n• ");
+      } else {
+        textoRemume += "\n\nNenhuma apresentação localizada na REMUME-RP consultada.";
+      }
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, textoRemume) };
+    }
     if (typeof enviarTelaAmbRemume === "function") {
       return { executado: true, resultado: enviarTelaAmbRemume(chatId) };
     }
@@ -5132,15 +5143,16 @@ function extrairParametrosPancreatite(texto) {
     
     // 1. Checagem imediata em RAM (0ms)
     var check = (typeof executarCrossCheckSegurancaClinica === "function") ? executarCrossCheckSegurancaClinica(drogas) : null;
-    if (check && (check.interacoes.length > 0 || check.ajustesRenais.length > 0 || check.tetosDose.length > 0)) {
+    if (check && check.farmacosDetectados.length >= 2) {
       var kbInteracao = {
         inline_keyboard: [
           [{ text: "🔙 Prescrição & Farmaco", callback_data: "ux:farmaco:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
         ]
       };
-      return enviarMensagemComTecladoParaChat(chatId, check.textoFormatado, kbInteracao);
+      var ressalvaCatalogo = check.interacoes.length === 0 ? "\n\n⚠️ A ausência de registro nesta base não exclui outras interações. Confirme com fonte farmacológica atualizada antes da prescrição." : "";
+      return enviarMensagemComTecladoParaChat(chatId, check.textoFormatado + ressalvaCatalogo, kbInteracao);
     }
-    return processarEEntregarIA(chatId, verificarInteracaoComIA, drogas, "interacao");
+    return enviarMensagemParaChat(chatId, "⚠️ Não identifiquei dois fármacos com segurança. Informe os princípios ativos separados por vírgula para consultar as interações catalogadas.");
   }
 
   return null;
@@ -5294,7 +5306,7 @@ function processarMensagemTexto(message) {
       }
       var comandosSemBarra = [
         "menu", "ajuda", "help", "manual", "start", "novo", "cancelar", "cockpit", "app",
-        "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot",
+        "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot", "compatibilidade", "compatibilidade_y", "remume",
         "pcr", "acls", "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
         "prenatal", "parto", "ginecologia", "go", "obstetricia", "oftalmo", "vertigem", "epistaxe", "colica",
         "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
