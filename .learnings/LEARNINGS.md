@@ -285,3 +285,47 @@ Sempre formatar linhas posológicas geradas programaticamente com o prefixo can�
 - Disposition: retain
 - Guidance: Seguir o padrão de `montarRascunhoRxESoapAmbulatorial` em qualquer novo gerador de prescrição.
 
+---
+
+## [LRN-20261013-002] bug_fix
+
+**Logged**: 2026-10-13T23:40:00-03:00
+**Priority**: critical
+**Status**: resolved
+**Area**: pwa
+
+### Summary
+Migração de domínio de backend em PWA requer deploy atômico no repositório do GitHub Pages (`gh_cockpit_deploy`), bump do `CACHE_NAME` do Service Worker e sanitização defensiva de `localStorage`.
+
+### Details
+Quando o backend de produção do Render foi atualizado de `ultra-rotina-backend.onrender.com` para `rotina-tt8n.onrender.com`, o espelho compilado localmente em `gh_cockpit_deploy/index.html` não havia recebido commit e push para o repositório remoto `wagmms/cockpit.git`. Como resultado:
+1. O GitHub Pages continuava servindo o build antigo, que disparava requisições RPC para o domínio 404 sem cabeçalhos CORS, gerando erro de rede (`TypeError: Failed to fetch`) e acionando o banner persistente "Servidor inalcançável no momento".
+2. Em dispositivos móveis com o PWA previamente instalado, o Service Worker (`sw.js`) mantinha o App Shell cacheado caso o `CACHE_NAME` não fosse incrementado.
+3. Além disso, se o `localStorage` do dispositivo tivesse gravado a URL legada na chave `cockpit_backend_url`, a aplicação continuaria insistindo no endpoint desativado.
+
+### Suggested Action
+1. Sempre commitar e fazer push no repositório `gh_cockpit_deploy` (`wagmms/cockpit`) imediatamente após atualizações no build do Cockpit.
+2. Incrementar o `CACHE_NAME` no `sw.js` (ex: de `v3.1` para `v3.2`) a cada mudança de infraestrutura crítica para forçar o ciclo de vida do Service Worker (`activate` -> `caches.delete` dos caches antigos e `self.clients.claim()`).
+3. Adicionar sanitização defensiva no cliente para expurgar chaves obsoletas do `localStorage` que apontem para hosts extintos.
+
+### Metadata
+- Source: bug_fix
+- Related Files: `cockpit_movel.html`, `sw.js`, `gh_cockpit_deploy/index.html`, `gh_cockpit_deploy/sw.js`
+- Tags: pwa, service_worker, render, cors, cache_invalidation, github_pages
+- Pattern-Key: pwa.backend_migration_cache_lifecycle
+- Recurrence-Count: 1
+- First-Seen: 2026-10-13
+- Last-Seen: 2026-10-13
+
+### Maintenance
+- Claim: Deploys do PWA no GitHub Pages devem ser sincronizados e com versionamento do Service Worker atualizado.
+- Scope: `cockpit_movel.html`, `sw.js`, `gh_cockpit_deploy/*`
+- Authority: Arquitetura PWA e Resiliência
+- Decay: project / architectural
+- Revalidate: when updating PWA caching or backend hosting
+- Validation: validated
+- Evidence: Deploy no GitHub Pages concluído com sucesso e verificado via curl com HTTP 200, Service Worker v3.2 e endpoint `rotina-tt8n.onrender.com`.
+- Disposition: retain
+- Guidance: Manter o fluxo de deploy atômico no repositório do Cockpit e bump de versão no `sw.js`.
+
+

@@ -4396,7 +4396,16 @@
     try {
       sessionStored = localStorage.getItem('cockpit_session') || '';
       if (customBackendFromUrl) {
-        localStorage.setItem('cockpit_backend_url', customBackendFromUrl);
+        if (customBackendFromUrl.includes('ultra-rotina-backend.onrender.com')) {
+          localStorage.removeItem('cockpit_backend_url');
+        } else {
+          localStorage.setItem('cockpit_backend_url', customBackendFromUrl);
+        }
+      } else {
+        const stored = localStorage.getItem('cockpit_backend_url') || '';
+        if (stored.includes('ultra-rotina-backend.onrender.com')) {
+          localStorage.removeItem('cockpit_backend_url');
+        }
       }
     } catch (eStore) {}
 
@@ -5017,6 +5026,10 @@
       let customBackend = '';
       try {
         customBackend = localStorage.getItem('cockpit_backend_url') || '';
+        if (customBackend && customBackend.includes('ultra-rotina-backend.onrender.com')) {
+          localStorage.removeItem('cockpit_backend_url');
+          customBackend = '';
+        }
       } catch (e) {}
 
       const pingUrl = (customBackend || RENDER_BACKEND).replace(/\/+$/, '') + '/ping';
@@ -5403,6 +5416,10 @@
       let customBackend = '';
       try {
         customBackend = localStorage.getItem('cockpit_backend_url') || '';
+        if (customBackend && customBackend.includes('ultra-rotina-backend.onrender.com')) {
+          localStorage.removeItem('cockpit_backend_url');
+          customBackend = '';
+        }
       } catch (e) {}
 
       const activeUrl = String(customBackend || RENDER_BACKEND).toLowerCase();
@@ -5759,6 +5776,10 @@
       let customBackend = '';
       try {
         customBackend = localStorage.getItem('cockpit_backend_url') || '';
+        if (customBackend && customBackend.includes('ultra-rotina-backend.onrender.com')) {
+          localStorage.removeItem('cockpit_backend_url');
+          customBackend = '';
+        }
       } catch (e) {}
 
       const primaryUrl = (customBackend || RENDER_BACKEND).replace(/\/+$/, '') + '/api/cockpit';

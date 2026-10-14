@@ -170,7 +170,7 @@ async function executarTestes() {
   assert(fs.existsSync(swDeployPath), 'sw.js deve existir em gh_cockpit_deploy/ para GitHub Pages');
 
   const swContent = fs.readFileSync(swRootPath, 'utf8');
-  assert(swContent.includes('ultra-rotina-cockpit-v3.1'), 'sw.js deve conter versão v3.1 atualizada');
+  assert(swContent.includes('ultra-rotina-cockpit-v3.2'), 'sw.js deve conter versão v3.2 atualizada');
   assert(swContent.includes("'./index.html'") && swContent.includes("'./manifest.json'"), 'sw.js deve suportar caminhos relativos para subpaths');
   assert(swContent.includes('fallbackCockpit'), 'sw.js deve conter fallback para abertura offline 0ms');
 
