@@ -1778,7 +1778,9 @@ var CalculadorasClinicas = (function () {
           doseMaximaAdultoMgDia: opt.doseAlta ? 3000 : 1500,
           volumeFrascoMl: 75,
           indicacao: opt.doseAlta ? 'Otite complicada / Sinusite refratária (dose alta 90 mg/kg/dia)' : 'Infecções de vias aéreas com suspeita de germes produtores de beta-lactamase (50 mg/kg/dia)',
-          instrucoes: 'Administrar preferencialmente no início da refeição para minimizar risco de intolerância gastrintestinal.'
+          instrucoes: opt.doseAlta
+            ? '⚠️ ALERTA FARMACOTÉCNICO SBP/CDC: Em dose alta (90 mg/kg/dia de amoxicilina), a suspensão 4:1 (250+62,5) entrega clavulanato excessivo (> 20 mg/kg/dia) com alta taxa de diarreia. Recomenda-se formulação 7:1 (400+57 mg/5 mL de 12/12h) ou 14:1 (ES 600 mg/5 mL), limitando o clavulanato a 6,4-10 mg/kg/dia.'
+            : 'Administrar preferencialmente no início da refeição para minimizar risco de intolerância gastrintestinal.'
         },
         azitromicina: {
           nome: 'Azitromicina',
@@ -1828,7 +1830,7 @@ var CalculadorasClinicas = (function () {
           intervaloHoras: 6,
           doseMaximaPorDoseMg: 500,
           indicacao: 'Dor ou febre (1 gota por kg de peso de 6/6h se necessário)',
-          instrucoes: 'Administrar a cada 6 horas se dor ou febre. Não ultrapassar 5 tomadas ao dia.'
+          instrucoes: 'Administrar a cada 6 horas se dor ou febre (máximo 4 a 5 tomadas ao dia). Teto hepatotóxico: nunca exceder 75 mg/kg/dia ou 4.000 mg/dia.'
         },
         ibuprofeno: {
           nome: 'Ibuprofeno',
@@ -1838,9 +1840,9 @@ var CalculadorasClinicas = (function () {
           doseMgKgDose: 10,
           tomadasDia: 3,
           intervaloHoras: 8,
-          doseMaximaPorDoseMg: 400,
+          doseMaximaPorDoseMg: (peso < 20) ? 200 : 400,
           indicacao: 'Dor, febre ou inflamação (2 gotas por kg da suspensão 50 mg/mL de 8/8h se dor/febre)',
-          instrucoes: 'Administrar junto ou logo após alimentos para proteção gástrica. Respeitar o teto de 40 gotas (200 mg) em crianças menores.'
+          instrucoes: 'Administrar junto ou logo após alimentos para proteção gástrica. Respeitar o teto de 40 gotas (200 mg) em crianças menores de 20 kg.'
         },
         prednisolona: {
           nome: 'Prednisolona (Fosfato Sódico)',
@@ -2819,12 +2821,74 @@ var CalculadorasClinicas = (function () {
     };
   }
 
+  /**
+   * Cálculo de Peso Predito (PBW) pela altura e Ventilação Mecânica Protetora (Fórmula de Devine / ARDSNet)
+   */
+  function pesoPreditoEVolumeCorrente(alturaCm, ehFemininoOuSexo) {
+    var ID = 'pbw', NOME = 'Peso Predito e Ventilação Mecânica Protetora (PBW)';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var alt = num(c, alturaCm, 'Altura (cm)', 120, 240);
+      var fem = false;
+      if (typeof ehFemininoOuSexo === 'string') {
+        var sLow = ehFemininoOuSexo.trim().toLowerCase();
+        if (sLow === 'f' || sLow === 'fem' || sLow === 'feminino' || sLow === 'mulher') fem = true;
+        else if (sLow === 'm' || sLow === 'masc' || sLow === 'masculino' || sLow === 'homem') fem = false;
+        else fem = bool(c, ehFemininoOuSexo, 'Sexo feminino');
+      } else {
+        fem = bool(c, ehFemininoOuSexo, 'Sexo feminino');
+      }
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+
+      // Fórmula canônica de Devine (1974)
+      var pbw = (!fem)
+        ? 50 + 0.91 * (alt - 152.4)
+        : 45.5 + 0.91 * (alt - 152.4);
+
+      if (alt < 152.4) {
+        pbw = Math.max(pbw, (!fem) ? 45 : 40);
+      }
+
+      var vt4 = Math.round(pbw * 4);
+      var vt6 = Math.round(pbw * 6); // Padrão-Ouro ARDSNet (6 mL/kg PBW)
+      var vt8 = Math.round(pbw * 8);
+
+      var txt = [
+        '🫁 *PESO PREDITO (PBW) & VENTILAÇÃO MECÂNICA PROTETORA*',
+        '• *Altura:* ' + fmt(alt, 0) + ' cm | *Sexo:* ' + (fem ? 'Feminino' : 'Masculino'),
+        '• *Peso Predito / Ideal (Fórmula de Devine):* ' + fmt(pbw, 1) + ' kg',
+        '',
+        '📊 *Volume Corrente Alvo (VT por Peso Predito):*',
+        '• *6 mL/kg (Padrão-Ouro / ARDSNet):* ' + vt6 + ' mL (meta mandatória na SDRA e proteção alveolar)',
+        '• *Faixa Protetora (4 a 8 mL/kg):* ' + vt4 + ' mL a ' + vt8 + ' mL',
+        '',
+        '⚠️ *Regra de Ouro Beira-Leito:* Em pacientes obesos, NUNCA programe o ventilador mecânico pelo peso real (risco severo de barotrauma, volutrauma e pneumotórax). O cálculo de VT deve ser EXCLUSIVAMENTE pelo Peso Predito (PBW).'
+      ].join('\n');
+
+      return {
+        ok: true,
+        id: ID,
+        nome: NOME,
+        dados: {
+          alturaCm: alt,
+          sexo: fem ? 'F' : 'M',
+          pesoPreditoKg: Math.round(pbw * 10) / 10,
+          volumeCorrente6mlKg: vt6,
+          volumeCorrente4mlKg: vt4,
+          volumeCorrente8mlKg: vt8
+        },
+        textoFormatado: txt
+      };
+    });
+  }
+
   var publico = {
     versao: VERSAO,
     curb65: curb65,
     ckdEpi2021: ckdEpi2021,
     cockcroftGault: cockcroftGault,
     schwartzPediatrico: schwartzPediatrico,
+    pesoPreditoEVolumeCorrente: pesoPreditoEVolumeCorrente,
     cha2ds2va: cha2ds2va,
     cha2ds2vasc: cha2ds2vasc,
     hasbled: hasbled,

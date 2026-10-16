@@ -93,7 +93,8 @@ var IA_SEGURANCA_MEDICAMENTOSA = [
 var IA_DIRETRIZES_EMERGENCIA = [
   "DIRETRIZES DE REFERÊNCIA (VERSÕES)",
   "- PCR/ACLS: American Heart Association 2025 (ILCOR CoSTR vigente). Não cite 'ACLS 2024'.",
-  "- Sepse (adulto): Surviving Sepsis Campaign 2021 e atualizações subsequentes; a triagem NÃO deve usar qSOFA isolado. Hora 1: lactato, hemoculturas antes do antimicrobiano, antimicrobiano de amplo espectro, cristaloide 30 mL/kg se hipotensão ou lactato elevado, vasopressor (noradrenalina de primeira linha) para PAM alvo >= 65 mmHg.",
+  "- Sepse (adulto): Surviving Sepsis Campaign 2021 e atualizações subsequentes; a triagem NÃO deve usar qSOFA isolado. Hora 1: lactato, hemoculturas antes do antimicrobiano, antimicrobiano de amplo espectro, cristaloide 30 mL/kg se hipotensão ou lactato elevado (em cardiopatas graves ou DRC estágio 5, titular alíquotas com avaliação de tolerância volêmica/POCUS para prevenir EAP), vasopressor (noradrenalina de primeira linha) para PAM alvo >= 65 mmHg.",
+  "- Ventilação Mecânica Protetora e SRI: Em pacientes com sobrepeso ou obesidade, o volume corrente (6 mL/kg) e parâmetros ventilatórios devem ser guiados pelo PESO PREDITO PELA ALTURA (Fórmula de Devine: Homens 50 + 0.91*(alt-152.4); Mulheres 45.5 + 0.91*(alt-152.4)), NUNCA pelo peso real, prevenindo barotrauma e volutrauma.",
   "- Prioridade a diretrizes brasileiras (SBC, AMIB, ILAS, SBPT, SBN, Ministério da Saúde/Conitec). Cite sociedade e ano apenas quando tiver certeza; se não tiver, escreva 'conferir versão vigente'.",
   "- Se houver PROTOCOLO OFICIAL DE REFERÊNCIA no contexto, use-o como base e sinalize qualquer divergência sua em relação a ele.",
   "- Mencione divergência internacional somente se mudar a conduta prática."
@@ -2046,12 +2047,13 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "     * [VIA ORAL]: Fármaco, apresentação, dose, intervalo e duração do tratamento.",
       "     * [PARENTERAL/EMERGÊNCIA]: Fármaco, dose, diluente (ex: SF 0,9% 100ml), tempo ou velocidade de infusão e via (EV/IM/SC).",
       "     * Somente quando segurança e referência permitirem. Se faltarem dados imprescindíveis (alergias, gestação, peso, função renal), aponte a lacuna e NÃO invente dose.",
-      "   - Exames: apenas os que alteram conduta no cenário; orientações: retorno e alarmes pertinentes. Evite exames e conselhos genéricos.",
+      "   - Exames: apenas os que alteram conduta no cenário.",
+      "   - Orientações e Sinais de Alarme (RED FLAGS OBRIGATÓRIOS EM LINGUAGEM LEIGA): Redija os sinais de alarme de retorno imediato ao PS em linguagem direta e acessível ao paciente/familiar (ex: 'dificuldade para falar frases completas sem pausar para respirar', 'febre que não baixa após 48h de antibiótico', 'dor na barriga forte e contínua', 'sonolência excessiva com dificuldade para acordar', 'lábios arroxeados'). NUNCA use jargões indecifráveis como 'dispneia' ou 'sinais de choque'.",
       ambulatorialAgil ? "   - Foco APS: Prescrição REMUME, sinais de alarme para PS e meta de reavaliação." : "",
       "5. PENDÊNCIAS CRÍTICAS: Liste apenas dados que condicionem a segurança antes de prescrever; omita se não houver.",
       "",
       "Contrato JSON estrito:",
-      '{"subjetivo":"QP, HDA e antecedentes confirmados","objetivo":"achados e sinais vitais informados","avaliacao":["hipótese principal com CID-10 e diferenciais pertinentes"],"plano":{"prescricao":["prescrição pronta com via ou lacuna de segurança"],"exames":["exame que muda conduta imediata"],"orientacoes":["retorno e sinais de alarme"]},"pendencias_opcionais":["dado crítico ausente"]}'
+      '{"subjetivo":"QP, HDA e antecedentes confirmados","objetivo":"achados e sinais vitais informados","avaliacao":["hipótese principal com CID-10 e diferenciais pertinentes"],"plano":{"prescricao":["prescrição pronta com via ou lacuna de segurança"],"exames":["exame que muda conduta imediata"],"orientacoes":["orientações e sinais de alarme em linguagem leiga"]},"pendencias_opcionais":["dado crítico ausente"]}'
     ].join("\n");
 
     var rawCons = executarRaciocinioClinico(promptSistemaConsolidado, "CASO CLÍNICO:\n" + dadosCaso, 3500, { json: true });
@@ -2279,7 +2281,7 @@ function obterRoteiroPadraoNeuro() {
     "• Pares Cranianos: Pares cranianos II a XII sem déficits aparentes. Motilidade ocular extrínseca (MOE) preservada sem nistagmo ou diplopia. Mímica facial simétrica. Deglutição preservada, úvula e palato simétricos à fonação.\n" +
     "• Sistema Motor & Tônus: Eutrófico e eutônico. Força muscular grau 5/5 simétrica nos 4 membros (escala MRC). Manobras deficitárias (Mingazzini, Barré e braços estendidos) negativas.\n" +
     "• Sensibilidade: Sensibilidade tátil, térmica e dolorosa preservadas e simétricas nos 4 membros.\n" +
-    "• Reflexos: Reflexos tendinosos profundos normoativos (2+/4+) e simétricos (bicipital, tricipital, patelar e aquileu). Reflexo cutâneo-plantar em flexão bilateral (Babinski ausente).\n" +
+    "• Reflexos: Reflexos tendinosos profundos normoativos (2+/4+) e simétricos (bicipital, tricipital, patelar e aquileu). Reflexo cutâneo-plantar em flexão bilateral (Babinski ausente) [CONFERIR SE TESTADO].\n" +
     "• Coordenação & Marcha: Coordenação apendicular preservada (índex-nariz e diadococinesia sem dismetria). Sinal de Romberg negativo. Marcha típica, estável e coordenada, inclusive em tandem.\n" +
     "• Sinais Meníngeos & Radiculares: Rigidez de nuca ausente. Sinais de Kernig, Brudzinski e Lasègue negativos bilateralmente.\n" +
     "```";
@@ -2300,7 +2302,7 @@ function obterRoteiroPadraoPqu() {
     "• Linguagem e Fala: Fala fluida, clara, articulada e em tom/volume adequados. Boa capacidade de compreensão.\n" +
     "• Memória: Fixação e evocação preservadas para fatos imediatos, recentes e remotos.\n" +
     "• Juízo Crítico e Insight: Capacidade de julgamento da realidade mantida e boa percepção sobre seu estado de saúde geral.\n" +
-    "• Risco: Nega ativamente ideação de morte, planos suicidas ou heteroagressividade.\n" +
+    "• Risco: Nega ativamente ideação de morte, planos suicidas ou heteroagressividade [CONFERIR: Checar ativamente ideação suicida antes de registrar].\n" +
     "```";
 }
 
@@ -2625,7 +2627,8 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "- *Posologia:* [instrução clara com via, dose, intervalo com horários sugeridos de tomada e duração]",
     "",
     "💡 *Orientações ao paciente*",
-    "- [Apenas orientações farmacológicas indispensáveis: ex. jejum, horário de tomada ou agitar. NUNCA coloque conselhos óbvios como beber água ou repousar]",
+    "- [Orientações farmacológicas indispensáveis: ex. jejum, horário de tomada, agitar suspensão ou ingerir com alimentos. NUNCA coloque conselhos óbvios como beber água ou repousar]",
+    "- *Sinais de Alarme para Retorno ao PS (em linguagem do paciente):* [Listar 2 a 3 sinais objetivos claros para procurar a emergência imediatamente]",
     "",
     "📋 *Conferência médica*",
     "- *Indicação clínica:* [...]",

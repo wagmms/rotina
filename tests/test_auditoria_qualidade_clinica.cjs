@@ -470,5 +470,63 @@ test('Comandos /dhe e /hic: Alerta explícito no topo quando peso ou sexo são o
   assert(msgHic.includes('adulto padrão (70 kg)'), 'Deve deixar transparente a estimativa de 70 kg');
 });
 
+// -----------------------------------------------------------------------------
+// 16. PESO PREDITO (DEVINE) E VENTILAÇÃO MECÂNICA PROTETORA (ARDSNET)
+// -----------------------------------------------------------------------------
+test('CalculadorasClinicas.pesoPreditoEVolumeCorrente: Rigor de Devine e metas de VT 6 mL/kg', () => {
+  const { c } = env();
+
+  // Homem 175 cm: 50 + 0.91 * (175 - 152.4) = 50 + 20.566 = 70.6 kg
+  const rMasc = c.CalculadorasClinicas.pesoPreditoEVolumeCorrente(175, 'm');
+  assert(rMasc.ok, 'Cálculo de PBW masculino deve ser executado com sucesso');
+  assert.equal(rMasc.dados.pesoPreditoKg, 70.6, 'Homem 175 cm deve ter PBW de 70.6 kg');
+  assert.equal(rMasc.dados.volumeCorrente6mlKg, 423, 'VT de 6 mL/kg deve ser ~423 mL');
+  assert(rMasc.textoFormatado.includes('ARDSNet'), 'Texto deve citar padrão-ouro ARDSNet');
+
+  // Mulher 160 cm: 45.5 + 0.91 * (160 - 152.4) = 45.5 + 6.916 = 52.4 kg
+  const rFem = c.CalculadorasClinicas.pesoPreditoEVolumeCorrente(160, 'f');
+  assert(rFem.ok, 'Cálculo de PBW feminino deve ser executado com sucesso');
+  assert.equal(rFem.dados.pesoPreditoKg, 52.4, 'Mulher 160 cm deve ter PBW de 52.4 kg');
+  assert.equal(rFem.dados.volumeCorrente6mlKg, 314, 'VT de 6 mL/kg deve ser ~314 mL');
+});
+
+// -----------------------------------------------------------------------------
+// 17. SÍNDROMES FARMACOLÓGICAS CRÍTICAS & AMPOLAS DUPLAS ISMP (CÁLCIO / SALINA 3%)
+// -----------------------------------------------------------------------------
+test('auditarSindromesFarmacologicasCriticas e Ampolas ISMP: QTc, Triple Whammy e Eletrólitos', () => {
+  const { c } = env();
+
+  // 1. Sinergismo de QTc (Amiodarona + Haloperidol + Ondansetrona)
+  const crossQt = c.executarCrossCheckSegurancaClinica(['amiodarona', 'haloperidol', 'ondansetrona'], 'Paciente internado');
+  assert(crossQt.textoFormatado.includes('SINERGISMO DE QTc') || crossQt.textoFormatado.includes('Torsades de Pointes'), 'Deve alertar para risco de Torsades de Pointes');
+
+  // 2. Triple Whammy Renal (Enalapril + Furosemida + Ibuprofeno)
+  const crossTw = c.executarCrossCheckSegurancaClinica(['enalapril', 'furosemida', 'ibuprofeno'], 'Idoso com dor lombar');
+  assert(crossTw.textoFormatado.includes('TRIPLE WHAMMY RENAL'), 'Deve alertar para a tríade nefrotóxica Triple Whammy');
+  assert(crossTw.textoFormatado.includes('Dipirona') || crossTw.textoFormatado.includes('Paracetamol'), 'Deve sugerir substituição por analgésico seguro');
+
+  // 3. Sinergismo de Hipercalemia (Trimetoprima + Losartana)
+  const crossK = c.executarCrossCheckSegurancaClinica(['sulfametoxazol', 'trimetoprima', 'losartana'], 'ITU em cardiopata');
+  assert(crossK.textoFormatado.includes('RISCO DE HIPERCALEMIA'), 'Deve alertar para combinação hipercalemiante com Bactrim');
+
+  // 4. Incompatibilidade física letal no texto (Fenitoína em SG 5%)
+  const crossFen = c.executarCrossCheckSegurancaClinica(['fenitoina'], 'Prescrever fenitoina 1000mg em soro glicosado 5%');
+  assert(crossFen.textoFormatado.includes('PRECIPITAÇÃO IV') && crossFen.textoFormatado.includes('Fenitoína'), 'Deve alertar contra diluição de fenitoína em SG 5%');
+
+  // 5. Ampolas Duplas ISMP: Cálcio e Salina 3%
+  const guiaCalcio = c.formatarGuiaAmpolasDuplasISMP('gluconato de calcio');
+  assert(guiaCalcio !== null, 'Guia de ampolas de Cálcio deve existir');
+  assert(guiaCalcio.includes('Gluconato de Cálcio 10%'), 'Deve conter Gluconato 10%');
+  assert(guiaCalcio.includes('Cloreto de Cálcio 10%'), 'Deve conter Cloreto 10%');
+  assert(guiaCalcio.includes('3x mais'), 'Deve destacar diferença de potência');
+
+  const guiaSalina = c.formatarGuiaAmpolasDuplasISMP('salina hipertonica');
+  assert(guiaSalina !== null, 'Guia de Salina Hipertônica deve existir');
+  assert(guiaSalina.includes('Salina Hipertônica a 3%'), 'Deve conter Salina 3%');
+  assert(guiaSalina.includes('85 mL'), 'Deve orientar preparo prático (85 mL + 15 mL)');
+  assert(guiaSalina.includes('mielinólise pontina') || guiaSalina.includes('desmielinização'), 'Deve orientar limite contra mielinólise pontina');
+});
+
 console.log(`\n🎉 BATERIA DE QUALIDADE CLÍNICA E DIDÁTICA: ${pass}/${total} testes aprovados com 100% de êxito!`);
+
 

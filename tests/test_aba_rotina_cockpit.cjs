@@ -127,6 +127,8 @@ const sandbox = {
   navigator: { onLine: true },
   fetch: async function() { return { ok: true }; },
   console: console,
+  setTimeout: setTimeout,
+  clearTimeout: clearTimeout,
   JSON: JSON,
   Array: Array,
   Math: Math,

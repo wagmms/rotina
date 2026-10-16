@@ -17,15 +17,16 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Otimização de Baixa Latência do Bot Telegram com Gemini 4 Argon: Fast-Lane de Navegação, Persistência O(1) e Calibragem de Thinking Budget (`server/index.js`, `server/runtime.js`, `src/11_entrega_confiavel.js`, `src/04_motores_ia.js`, `ultra_rotina_master.js`)**:
-    - **Diagnóstico e Causa Raiz**: Head-of-line blocking na fila do webhook com comandos e botões imediatos enfileirados atrás de LLMs pesadas; indentação de JSON com overhead de I/O em disco; recálculo O(n) e fatiamento herdado do GAS em `PersistenciaBot`; e thinking budget excessivo na anamnese do SOAP Fase 1.
+- [x] **Elevação Padrão-Ouro de Conteúdo Clínico com Gemini 4 Argon: PBW/ARDSNet na Ventilação/SRI, Síndromes Farmacológicas em RAM (QTc, Triple Whammy, Sais de Cálcio ISMP) e Sinais de Alarme Leigos na Alta (`src/03_bases_locais.js`, `src/02_calculadoras_puras.js`, `src/04_motores_ia.js`, `tests/test_auditoria_qualidade_clinica.cjs`, `ultra_rotina_master.js`)**:
+    - **Diagnóstico e Causa Raiz**: Falta de cálculo de Peso Predito (PBW) na ventilação mecânica gerando risco de barotrauma em obesos; lacuna de detecção para prolongadores sinérgicos de QTc (Torsades de Pointes), tríade nefrotóxica *Triple Whammy* e hipercalemia por Trimetoprima; ausência de ampolas duplas de Cálcio e Salina 3% na padronização ISMP; sinais de alarme na alta hospitalar contendo jargões médicos indecifráveis para leigos; e sobredose de clavulanato na suspensão 4:1 em dose alta pediátrica.
     - **Correções Implementadas**:
-      1. *Fast-Lane Prioritária*: Fila de webhook com priorização de comandos e botões imediatos de navegação rápida (`🚨 Sala Vermelha`, `/calc`, `/dva`, menus diretos), furando a fila sem esperar o término de chamadas de LLM.
-      2. *Gravação Atômica Compacta*: Serialização direta via `JSON.stringify(valor)` em `escreverPropriedades()`, reduzindo ~40% do tamanho em disco e acelerando escritas atômicas.
-      3. *Rastreamento O(1) e Bloco Único*: Cache incremental de bytes `_totalBytesCache`, gravação em pedaço único (`nPartes = 1`) no Node.js e cache de objetos `_objCache` com cópia profunda defensiva `structuredClone`.
-      4. *Calibragem de Thinking Budget*: `thinkingBudget: 0` no SOAP Fase 1 (reduzindo TTFT em ~1.5-2s) e `thinkingBudget: 512` em imagens médicas multimodais.
-      5. *Sincronia de Bundles*: Recompilação do master e verificação de hashes SHA-256 dos espelhos do Cockpit.
-    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 14.14s** via `npm test`. Código estável e zero regressões.
+      1. *Peso Predito & ARDSNet*: Implementada `CalculadorasClinicas.pesoPreditoEVolumeCorrente` com fórmula de Devine, faixa 4-8 mL/kg e alvo de 6 mL/kg.
+      2. *Síndromes Farmacológicas em RAM 0ms*: Função `auditarSindromesFarmacologicasCriticas` integrada ao cross-check cobrindo QTc múltiplo, Tríade Triple Whammy, sinergismo hipercalemiante e precipitações físico-químicas letais (Fenitoína em SG 5% e Ceftriaxona com Cálcio).
+      3. *Padronização ISMP Expandida*: Sais de Cálcio (Gluconato 10% vs Cloreto 10%) e Salina 3% com preparo de 85 mL + 15 mL e teto de correção de 8-10 mEq/L/24h.
+      4. *Sinais de Alarme em Linguagem Leiga*: Prompts de SOAP Fase 2 e Prescrição atualizados para exigir red flags objetivos e acessíveis ao paciente/familiar.
+      5. *Segurança Farmacotécnica Pediátrica*: Alerta SBP/CDC para formulações 7:1/14:1 em dose alta de Amox/Clav e trava de 200 mg (40 gotas) de Ibuprofeno para crianças < 20 kg.
+      6. *Marcadores Ativos de Exames*: Inseridos `[CONFERIR SE TESTADO]` e `[CONFERIR ATIVAMENTE]` nos modelos neuro e psiquiátrico.
+    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 21.51s** via `npm test`. Testes clínicos ampliados para 18/18 testes em `tests/test_auditoria_qualidade_clinica.cjs` 100% aprovados.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -33,10 +34,10 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Aba Rotina — Ergonomia Mobile, Thumb-Zone de 42px e Foco Inteligente no Card Ativo (`gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js`, `gh_cockpit_deploy/index.html`)**:
-    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js` e `gh_cockpit_deploy/index.html`
-    - **Função/Componente/Seletor**: Função `criarCardBloco` (alvos de toque de 42px) e auto-scroll no card ativo (`scrollIntoView`)
-    - **Comportamento Esperado / Critério de Aceite**: Elevar altura tátil mínima dos botões de ação para 42px (padrão Apple HIG / Material), isolar botão de pular e focar automaticamente o card em andamento ao carregar a aba.
+- [ ] **Aba Rotina — Sincronização Bidirecional Telegram ↔ Cockpit PWA (`src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`, `gh_cockpit_deploy/rotina_timeline.js`)**:
+    - **Arquivo/Módulo Alvo**: `src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js` e `gh_cockpit_deploy/rotina_timeline.js`
+    - **Função/Componente/Seletor**: Callbacks inline `rt_concluir:ID`, `rt_adiar:ID` e rota `/api/rotina/status`
+    - **Comportamento Esperado / Critério de Aceite**: Ao interagir com o teclado inline do Telegram (`/rotina`), a alteração de status reflete instantaneamente no Cockpit PWA e vice-versa, sem inconsistências de cache.
 
 ---
 

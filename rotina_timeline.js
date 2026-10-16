@@ -12,6 +12,22 @@
   var SYNC_STATE_KEY = 'rotina_sync_status_v1';
   var STORAGE_KEY_DUVIDAS = 'rotina_duvidas_v1';
 
+  function dispararHaptic(tipo) {
+    try {
+      if (typeof window !== 'undefined' && window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+        if (tipo === 'sucesso') {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        } else if (tipo === 'aviso') {
+          window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+        } else {
+          window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+      } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(tipo === 'sucesso' ? [15, 30, 20] : 12);
+      }
+    } catch (_) {}
+  }
+
   function obterApiBaseUrl() {
     if (typeof window !== 'undefined') {
       if (window.BACKEND_URL && typeof window.BACKEND_URL === 'string' && window.BACKEND_URL.trim()) {
@@ -417,33 +433,38 @@
     horaTexto.textContent = bloco.inicio + (bloco.fim ? ' - ' + bloco.fim : '');
 
     var catBadge = document.createElement('span');
-    catBadge.className = 'text-[9.5px] px-2 py-0.5 rounded-md font-semibold border ' + catCfg.badgeCor;
+    catBadge.className = 'text-[11px] px-2.5 py-0.5 rounded-md font-semibold border ' + catCfg.badgeCor;
     catBadge.textContent = catCfg.rotulo;
 
     faixaHoraria.append(iconeCat, horaTexto, catBadge);
 
     if (ehAtivoAgora) {
       var liveBadge = document.createElement('span');
-      liveBadge.className = 'text-[9.5px] px-2 py-0.5 rounded-md font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5';
+      liveBadge.className = 'text-[11px] px-2.5 py-0.5 rounded-md font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5 shadow-sm';
       liveBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span> AGORA' + (tempoInfo.rotulo ? ' · ' + tempoInfo.rotulo : '');
       faixaHoraria.append(liveBadge);
     } else if (tempoInfo.rotulo && bloco.status === 'pendente') {
       var proxBadge = document.createElement('span');
-      proxBadge.className = 'text-[9px] px-1.5 py-0.5 rounded-md font-medium bg-slate-800/90 text-slate-300 border border-slate-700/80';
+      proxBadge.className = 'text-[11px] px-2 py-0.5 rounded-md font-medium bg-slate-800/90 text-slate-300 border border-slate-700/80';
       proxBadge.textContent = '⏱️ ' + tempoInfo.rotulo;
       faixaHoraria.append(proxBadge);
     }
 
-    var statusBadge = document.createElement('span');
-    statusBadge.className = 'text-[9.5px] px-2 py-0.5 rounded-full font-bold ' + stCfg.classe;
-    statusBadge.textContent = stCfg.rotulo;
+    topo.append(faixaHoraria);
 
-    topo.append(faixaHoraria, statusBadge);
+    // Se estiver ativo AGORA, suprime o badge de status redundante para reduzir ruído visual
+    if (!ehAtivoAgora) {
+      var statusBadge = document.createElement('span');
+      statusBadge.className = 'text-[11px] px-2.5 py-0.5 rounded-full font-bold ' + stCfg.classe;
+      statusBadge.textContent = stCfg.rotulo;
+      topo.append(statusBadge);
+    }
+
     card.append(topo);
 
     // Linha 2: Título e Notas/Instruções
     var corpo = document.createElement('div');
-    corpo.className = 'space-y-1';
+    corpo.className = 'space-y-1.5';
 
     var tituloEl = document.createElement('h4');
     tituloEl.className = 'text-xs sm:text-sm font-bold ' + (ehConcluido ? 'text-slate-300 line-through' : 'text-white') + ' flex items-center gap-1.5';
@@ -452,50 +473,79 @@
 
     if (bloco.nota) {
       var notaEl = document.createElement('p');
-      notaEl.className = 'text-[11px] sm:text-xs text-slate-300/90 font-normal leading-relaxed pl-2 py-1 rounded bg-slate-950/40 border-l-2 border-slate-700/80';
+      notaEl.className = 'text-xs text-slate-200/90 font-medium leading-relaxed pl-2.5 py-1.5 rounded-lg bg-slate-950/50 border-l-2 border-slate-700/80';
       notaEl.textContent = bloco.nota;
       corpo.append(notaEl);
     }
+
+    // Contexto Zero-Click no card ativo: Atalho clínico imediato em 1 toque
+    if (ehAtivoAgora) {
+      var ctxAcao = document.createElement('div');
+      ctxAcao.className = 'flex items-center gap-2 pt-0.5';
+      if (bloco.categoria === 'estudo') {
+        ctxAcao.innerHTML = '<button type="button" onclick="document.getElementById(\'input-nova-duvida-cockpit\')?.focus(); document.getElementById(\'rotina-duvidas-lista\')?.scrollIntoView({ behavior: \'smooth\' });" class="text-[11px] px-2.5 py-1 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 flex items-center gap-1.5 transition active:scale-95 font-semibold"><i data-lucide="help-circle" class="w-3.5 h-3.5"></i> Anotar Dúvida MedQuest</button>';
+        corpo.append(ctxAcao);
+      } else if (bloco.categoria === 'plantao') {
+        ctxAcao.innerHTML = '<button type="button" onclick="if(typeof abrirModalSbarPassagem===\'function\') abrirModalSbarPassagem();" class="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition active:scale-95 font-semibold"><i data-lucide="layers" class="w-3.5 h-3.5"></i> Passagem de Plantão SBAR</button>';
+        corpo.append(ctxAcao);
+      }
+    }
     card.append(corpo);
 
-    // Linha 3: Barra de Ações Rápidas em 1 Toque (Alvos táteis confortáveis ≥ 34px)
+    // Linha 3: Barra de Ações Rápidas (Alvos ergonômicos 42px & Thumb-Zone Fitts)
     var acoes = document.createElement('div');
-    acoes.className = 'flex items-center justify-end gap-2 pt-1.5 border-t border-slate-800/80 text-xs font-semibold';
-
-    if (bloco.status !== 'concluido') {
-      var btnConcluir = document.createElement('button');
-      btnConcluir.type = 'button';
-      btnConcluir.className = 'min-h-[34px] px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition active:scale-95 flex items-center gap-1.5 shadow-sm';
-      btnConcluir.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Concluir';
-      btnConcluir.onclick = function() { RotinaTimeline.alterarStatus(bloco.id, 'concluido'); };
-      acoes.append(btnConcluir);
-    }
-
-    if (bloco.status !== 'adiado' && bloco.status !== 'concluido') {
-      var btnAdiar = document.createElement('button');
-      btnAdiar.type = 'button';
-      btnAdiar.className = 'min-h-[34px] px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition active:scale-95 flex items-center gap-1.5 shadow-sm';
-      btnAdiar.innerHTML = '<i data-lucide="clock" class="w-3.5 h-3.5"></i> Adiar (+30m)';
-      btnAdiar.onclick = function() { RotinaTimeline.adiarBloco(bloco.id, 30); };
-      acoes.append(btnAdiar);
-    }
-
-    if (bloco.status !== 'pulado' && bloco.status !== 'concluido') {
-      var btnPular = document.createElement('button');
-      btnPular.type = 'button';
-      btnPular.className = 'min-h-[34px] px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 transition active:scale-95 flex items-center gap-1';
-      btnPular.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5"></i> Pular';
-      btnPular.onclick = function() { RotinaTimeline.alterarStatus(bloco.id, 'pulado'); };
-      acoes.append(btnPular);
-    }
+    acoes.className = 'flex items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs font-semibold';
 
     if (bloco.status === 'concluido' || bloco.status === 'pulado') {
       var btnReabrir = document.createElement('button');
       btnReabrir.type = 'button';
-      btnReabrir.className = 'min-h-[34px] px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition active:scale-95 flex items-center gap-1.5 shadow-sm';
-      btnReabrir.innerHTML = '<i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reabrir Bloco';
-      btnReabrir.onclick = function() { RotinaTimeline.alterarStatus(bloco.id, 'pendente'); };
+      btnReabrir.className = 'min-h-[42px] px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition active:scale-95 flex items-center gap-1.5 shadow-sm text-xs font-medium';
+      btnReabrir.innerHTML = '<i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reabrir Bloco';
+      btnReabrir.onclick = function() {
+        dispararHaptic('light');
+        RotinaTimeline.alterarStatus(bloco.id, 'pendente');
+      };
       acoes.append(btnReabrir);
+    } else {
+      // Lado Esquerdo: Ações secundárias com isolamento de Pular para evitar toque acidental
+      var acoesEsq = document.createElement('div');
+      acoesEsq.className = 'flex items-center gap-1.5';
+
+      if (bloco.status !== 'pulado') {
+        var btnPular = document.createElement('button');
+        btnPular.type = 'button';
+        btnPular.className = 'min-h-[42px] px-2.5 py-2 rounded-xl bg-slate-800/60 hover:bg-rose-500/15 text-slate-400 hover:text-rose-300 border border-slate-800 transition active:scale-95 flex items-center justify-center gap-1 text-[11px] font-semibold';
+        btnPular.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5"></i> Pular';
+        btnPular.onclick = function() {
+          dispararHaptic('aviso');
+          RotinaTimeline.alterarStatus(bloco.id, 'pulado');
+        };
+        acoesEsq.append(btnPular);
+      }
+
+      if (bloco.status !== 'adiado') {
+        var btnAdiar = document.createElement('button');
+        btnAdiar.type = 'button';
+        btnAdiar.className = 'min-h-[42px] px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition active:scale-95 flex items-center gap-1.5 shadow-sm text-xs font-bold';
+        btnAdiar.innerHTML = '<i data-lucide="clock" class="w-3.5 h-3.5"></i> +30m';
+        btnAdiar.onclick = function() {
+          dispararHaptic('light');
+          RotinaTimeline.adiarBloco(bloco.id, 30);
+        };
+        acoesEsq.append(btnAdiar);
+      }
+
+      // Lado Direito: Thumb-zone primária para o polegar destro (Ação principal Concluir)
+      var btnConcluir = document.createElement('button');
+      btnConcluir.type = 'button';
+      btnConcluir.className = 'min-h-[42px] flex-1 max-w-[150px] px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-500/50 transition active:scale-95 flex items-center justify-center gap-1.5 shadow-md shadow-emerald-950 font-bold text-xs';
+      btnConcluir.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i> Concluir';
+      btnConcluir.onclick = function() {
+        dispararHaptic('sucesso');
+        RotinaTimeline.alterarStatus(bloco.id, 'concluido');
+      };
+
+      acoes.append(acoesEsq, btnConcluir);
     }
 
     card.append(acoes);
@@ -566,6 +616,19 @@
         window.lucide.createIcons({ root: container });
       } catch (_) {}
     }
+
+    // Auto-foco inteligente no card ativo ou próximo pendente (Focus Mode Beira-Leito)
+    if (estadoAtual.modoData === 'hoje' && typeof setTimeout === 'function') {
+      setTimeout(function() {
+        try {
+          var cardFoco = container.querySelector('[id^="card-"].ring-1\\.5') ||
+                         container.querySelector('[id^="card-"]:not(.opacity-80):not(.opacity-60)');
+          if (cardFoco && typeof cardFoco.scrollIntoView === 'function') {
+            cardFoco.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        } catch (_) {}
+      }, 120);
+    }
   }
 
   function alterarStatus(blocoId, novoStatus, nota) {
@@ -580,6 +643,7 @@
     }
     if (!bloco) return;
 
+    dispararHaptic(novoStatus === 'concluido' ? 'sucesso' : (novoStatus === 'pulado' ? 'aviso' : 'light'));
     salvarBlocosLocais(estadoAtual.blocos);
     renderizar(estadoAtual.blocos);
 
@@ -1164,6 +1228,7 @@
     lista.unshift(novaDuvida);
     salvarDuvidasLocais(lista);
     renderizarDuvidas(lista);
+    dispararHaptic('sucesso');
 
     if (typeof window.copiarToast === 'function') {
       window.copiarToast('💡 Dúvida anotada! Disponível no Cockpit e no Telegram.');
@@ -1211,6 +1276,8 @@
     }
     salvarDuvidasLocais(lista);
     renderizarDuvidas(lista);
+
+    dispararHaptic(encontrada && encontrada.resolvida ? 'sucesso' : 'light');
 
     if (encontrada && encontrada.resolvida && typeof window.copiarToast === 'function') {
       window.copiarToast('✅ Dúvida marcada como revisada!');

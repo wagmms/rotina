@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-16 00:53:36
- * Checksum SHA256: f4af0b82bbef14bc
+ * Gerado automaticamente via build_master.py em: 2026-10-16 01:03:40
+ * Checksum SHA256: 0c67a2a21c6aa537
  * ==============================================================================
  */
 
@@ -3505,7 +3505,9 @@ var CalculadorasClinicas = (function () {
           doseMaximaAdultoMgDia: opt.doseAlta ? 3000 : 1500,
           volumeFrascoMl: 75,
           indicacao: opt.doseAlta ? 'Otite complicada / Sinusite refratária (dose alta 90 mg/kg/dia)' : 'Infecções de vias aéreas com suspeita de germes produtores de beta-lactamase (50 mg/kg/dia)',
-          instrucoes: 'Administrar preferencialmente no início da refeição para minimizar risco de intolerância gastrintestinal.'
+          instrucoes: opt.doseAlta
+            ? '⚠️ ALERTA FARMACOTÉCNICO SBP/CDC: Em dose alta (90 mg/kg/dia de amoxicilina), a suspensão 4:1 (250+62,5) entrega clavulanato excessivo (> 20 mg/kg/dia) com alta taxa de diarreia. Recomenda-se formulação 7:1 (400+57 mg/5 mL de 12/12h) ou 14:1 (ES 600 mg/5 mL), limitando o clavulanato a 6,4-10 mg/kg/dia.'
+            : 'Administrar preferencialmente no início da refeição para minimizar risco de intolerância gastrintestinal.'
         },
         azitromicina: {
           nome: 'Azitromicina',
@@ -3555,7 +3557,7 @@ var CalculadorasClinicas = (function () {
           intervaloHoras: 6,
           doseMaximaPorDoseMg: 500,
           indicacao: 'Dor ou febre (1 gota por kg de peso de 6/6h se necessário)',
-          instrucoes: 'Administrar a cada 6 horas se dor ou febre. Não ultrapassar 5 tomadas ao dia.'
+          instrucoes: 'Administrar a cada 6 horas se dor ou febre (máximo 4 a 5 tomadas ao dia). Teto hepatotóxico: nunca exceder 75 mg/kg/dia ou 4.000 mg/dia.'
         },
         ibuprofeno: {
           nome: 'Ibuprofeno',
@@ -3565,9 +3567,9 @@ var CalculadorasClinicas = (function () {
           doseMgKgDose: 10,
           tomadasDia: 3,
           intervaloHoras: 8,
-          doseMaximaPorDoseMg: 400,
+          doseMaximaPorDoseMg: (peso < 20) ? 200 : 400,
           indicacao: 'Dor, febre ou inflamação (2 gotas por kg da suspensão 50 mg/mL de 8/8h se dor/febre)',
-          instrucoes: 'Administrar junto ou logo após alimentos para proteção gástrica. Respeitar o teto de 40 gotas (200 mg) em crianças menores.'
+          instrucoes: 'Administrar junto ou logo após alimentos para proteção gástrica. Respeitar o teto de 40 gotas (200 mg) em crianças menores de 20 kg.'
         },
         prednisolona: {
           nome: 'Prednisolona (Fosfato Sódico)',
@@ -4546,12 +4548,74 @@ var CalculadorasClinicas = (function () {
     };
   }
 
+  /**
+   * Cálculo de Peso Predito (PBW) pela altura e Ventilação Mecânica Protetora (Fórmula de Devine / ARDSNet)
+   */
+  function pesoPreditoEVolumeCorrente(alturaCm, ehFemininoOuSexo) {
+    var ID = 'pbw', NOME = 'Peso Predito e Ventilação Mecânica Protetora (PBW)';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var alt = num(c, alturaCm, 'Altura (cm)', 120, 240);
+      var fem = false;
+      if (typeof ehFemininoOuSexo === 'string') {
+        var sLow = ehFemininoOuSexo.trim().toLowerCase();
+        if (sLow === 'f' || sLow === 'fem' || sLow === 'feminino' || sLow === 'mulher') fem = true;
+        else if (sLow === 'm' || sLow === 'masc' || sLow === 'masculino' || sLow === 'homem') fem = false;
+        else fem = bool(c, ehFemininoOuSexo, 'Sexo feminino');
+      } else {
+        fem = bool(c, ehFemininoOuSexo, 'Sexo feminino');
+      }
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+
+      // Fórmula canônica de Devine (1974)
+      var pbw = (!fem)
+        ? 50 + 0.91 * (alt - 152.4)
+        : 45.5 + 0.91 * (alt - 152.4);
+
+      if (alt < 152.4) {
+        pbw = Math.max(pbw, (!fem) ? 45 : 40);
+      }
+
+      var vt4 = Math.round(pbw * 4);
+      var vt6 = Math.round(pbw * 6); // Padrão-Ouro ARDSNet (6 mL/kg PBW)
+      var vt8 = Math.round(pbw * 8);
+
+      var txt = [
+        '🫁 *PESO PREDITO (PBW) & VENTILAÇÃO MECÂNICA PROTETORA*',
+        '• *Altura:* ' + fmt(alt, 0) + ' cm | *Sexo:* ' + (fem ? 'Feminino' : 'Masculino'),
+        '• *Peso Predito / Ideal (Fórmula de Devine):* ' + fmt(pbw, 1) + ' kg',
+        '',
+        '📊 *Volume Corrente Alvo (VT por Peso Predito):*',
+        '• *6 mL/kg (Padrão-Ouro / ARDSNet):* ' + vt6 + ' mL (meta mandatória na SDRA e proteção alveolar)',
+        '• *Faixa Protetora (4 a 8 mL/kg):* ' + vt4 + ' mL a ' + vt8 + ' mL',
+        '',
+        '⚠️ *Regra de Ouro Beira-Leito:* Em pacientes obesos, NUNCA programe o ventilador mecânico pelo peso real (risco severo de barotrauma, volutrauma e pneumotórax). O cálculo de VT deve ser EXCLUSIVAMENTE pelo Peso Predito (PBW).'
+      ].join('\n');
+
+      return {
+        ok: true,
+        id: ID,
+        nome: NOME,
+        dados: {
+          alturaCm: alt,
+          sexo: fem ? 'F' : 'M',
+          pesoPreditoKg: Math.round(pbw * 10) / 10,
+          volumeCorrente6mlKg: vt6,
+          volumeCorrente4mlKg: vt4,
+          volumeCorrente8mlKg: vt8
+        },
+        textoFormatado: txt
+      };
+    });
+  }
+
   var publico = {
     versao: VERSAO,
     curb65: curb65,
     ckdEpi2021: ckdEpi2021,
     cockcroftGault: cockcroftGault,
     schwartzPediatrico: schwartzPediatrico,
+    pesoPreditoEVolumeCorrente: pesoPreditoEVolumeCorrente,
     cha2ds2va: cha2ds2va,
     cha2ds2vasc: cha2ds2vasc,
     hasbled: hasbled,
@@ -37971,6 +38035,24 @@ var PADRONIZACAO_AMPOLAS_DUPLAS_ISMP = {
       { "apresentacao": "Adrenalina 1:10.000 (0,1 mg/mL)", "indicacao": "PCR Adulto/Pediátrico IV/IO ou preparo para choque refratário", "dose": "1 mg IV (10 mL a 1:10.000) a cada 3-5 min em PCR. Preparo: 1 ampola 1:1.000 (1 mL) + 9 mL SF 0,9% = 10 mL a 1:10.000." }
     ],
     "regras": "Anafilaxia: 1ª linha SEMPRE IM no vasto lateral da coxa com 1:1.000. PCR: 1 mg IV (solução 1:10.000). Choque anafilático refratário: infusão contínua em BIC (1 ampola 1:1.000 em 249 mL SG 5% = 4 mcg/mL)."
+  },
+  "calcio": {
+    "farmaco": "Sais de Cálcio Injetáveis (Gluconato 10% vs Cloreto 10%)",
+    "alertaSeguranca": "🚨 ALTO RISCO (ISMP Brasil): NUNCA confundir Gluconato de Cálcio 10% com Cloreto de Cálcio 10%! O Cloreto de Cálcio tem 3x mais Cálcio elementar e causa necrose tecidual grave se extravasado em veia periférica.",
+    "ampolas": [
+      { "apresentacao": "Gluconato de Cálcio 10%", "concentracao": "100 mg/mL (0,1 g/mL)", "equivalencia": "1 ampola (10 mL) = 1 g gluconato = 90 mg (4,6 mEq) de Ca2+ elementar. (1ª escolha em veia periférica na hipercalemia com alteração de ECG/hipocalcemia)." },
+      { "apresentacao": "Cloreto de Cálcio 10%", "concentracao": "100 mg/mL (0,1 g/mL)", "equivalencia": "1 ampola (10 mL) = 1 g cloreto = 270 mg (13,6 mEq) de Ca2+ elementar (3x mais potente). Uso preferencial em Acesso Venoso Central ou PCR." }
+    ],
+    "regras": "Hipercalemia com onda T bicuda/alargamento de QRS: Gluconato de Cálcio 10% 1 a 2 ampolas (10 a 20 mL) IV em 5 a 10 min sob monitorização eletrocardiográfica. Repetir em 5 min se traçado mantido."
+  },
+  "nacl": {
+    "farmaco": "Cloreto de Sódio Hipertônico (NaCl 20% vs Salina 3%)",
+    "alertaSeguranca": "🚨 ALTO RISCO (ISMP Brasil): NUNCA infundir ampola de NaCl 20% pura diretamente! Risco fatal de hipernatremia aguda, desidratação neuronal e mielinólise pontina osmótica.",
+    "ampolas": [
+      { "apresentacao": "NaCl 20% (Ampola Concentrada)", "concentracao": "200 mg/mL", "equivalencia": "1 mL = 3,42 mEq de Na+. Ampola de 10 mL = 34,2 mEq de Na+; Ampola de 20 mL = 68,4 mEq de Na+." },
+      { "apresentacao": "Salina Hipertônica a 3% (Preparo Prático)", "concentracao": "30 mg/mL (~513 mEq/L)", "equivalencia": "Preparo rápido de 100 mL: 85 mL de SF 0,9% (ou Água Destilada) + 15 mL de NaCl 20% = 100 mL de Salina ~3%. Bólus na hiponatremia grave sintomática (coma/convulsão): 100 a 150 mL IV em 10-20 min." }
+    ],
+    "regras": "Limite máximo de elevação do Sódio sérico: 8 a 10 mEq/L nas primeiras 24 horas (máx 6 a 8 mEq/L/24h se alto risco de desmielinização osmótica: etilistas, desnutridos e hipocalêmicos)."
   }
 };
 
@@ -37980,6 +38062,8 @@ function formatarGuiaAmpolasDuplasISMP(chave) {
   if (/kcl|potassio|cloreto de potassio/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.kcl;
   else if (/mgso4|magnesio|sulfato de magnesio/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.mgso4;
   else if (/adrenalina|epinefrina/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.adrenalina;
+  else if (/calcio|gluconato|cloreto de calcio/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.calcio;
+  else if (/nacl|salina|hipertonica|cloreto de sodio/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.nacl;
   if (!item) return null;
 
   var out = [];
@@ -39428,6 +39512,87 @@ function auditarAlergiasEGestacaoDeterministico(farmacosDetectados, textoContext
   return resultado;
 }
 
+/**
+ * Auditoria determinística em RAM (0ms) de síndromes farmacológicas de alto risco:
+ * 1. Prolongadores de QTc múltiplos (CredibleMeds - Risco de Torsades de Pointes)
+ * 2. Sinergismo de Hipercalemia (Trimetoprima/Bactrim + IECA/BRA + Espironolactona)
+ * 3. Tríade Nefrotóxica ("Triple Whammy": IECA/BRA + Diurético + AINE)
+ * 4. Incompatibilidades Físico-Químicas Letais (Fenitoína em SG5% e Ceftriaxona com Cálcio)
+ */
+function auditarSindromesFarmacologicasCriticas(farmacos, textoOriginal) {
+  var alertas = [];
+  var setF = {};
+  (farmacos || []).forEach(function(f) { setF[String(f).toLowerCase().trim()] = true; });
+  var txtNorm = " " + String(textoOriginal || "").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s+]/g, " ") + " ";
+
+  // 1. Prolongadores de QTc (CredibleMeds - Known Risk of Torsades de Pointes)
+  var LISTA_QT = [
+    "amiodarona", "haloperidol", "ondansetrona", "ciprofloxacino", "levofloxacino",
+    "moxifloxacino", "azitromicina", "claritromicina", "clorpromazina", "metoclopramida",
+    "fluconazol", "escitalopram", "citalopram", "metadona", "sotalol"
+  ];
+  var qtEncontrados = LISTA_QT.filter(function(d) { return !!setF[d]; });
+  if (qtEncontrados.length >= 2) {
+    alertas.push({
+      grau: "GRAVE (SINERGISMO DE QTc)",
+      titulo: "Associação de Múltiplos Fármacos que Prolongam o Intervalo QTc (" + qtEncontrados.map(function(x){return x.toUpperCase();}).join(" + ") + ")",
+      efeito: "Risco sinérgico de prolongamento grave do intervalo QTc (> 500 ms) e taquicardia ventricular polimórfica com risco de parada cardíaca (Torsades de Pointes).",
+      conduta: "Realizar ECG basal e seriado; manter K+ > 4,0 mEq/L e Mg2+ > 2,0 mg/dL. Considerar substituir antiemético (ex: Dimenidrinato) ou antimicrobiano."
+    });
+  }
+
+  // 2. Sinergismo de Hipercalemia (Trimetoprima + IECA/BRA / Espironolactona)
+  var temEspiro = !!setF["espironolactona"];
+  var temIecaBra = !!(setF["enalapril"] || setF["captopril"] || setF["ramipril"] || setF["losartana"] || setF["valsartana"] || setF["candesartana"]);
+  var temBactrim = !!(setF["sulfametoxazol"] || setF["trimetoprima"]);
+  if ((temEspiro && temBactrim) || (temIecaBra && temBactrim)) {
+    var kDrogas = [];
+    if (temBactrim) kDrogas.push("SULFAMETOXAZOL+TRIMETOPRIMA");
+    if (temIecaBra) kDrogas.push("IECA/BRA");
+    if (temEspiro) kDrogas.push("ESPIRONOLACTONA");
+    alertas.push({
+      grau: "GRAVE (RISCO DE HIPERCALEMIA)",
+      titulo: "Combinação Hipercalemiante Crítica (" + kDrogas.join(" + ") + ")",
+      efeito: "A Trimetoprima age como a amilorida bloqueando canais ENaC no túbulo distal. Associada a IECA/BRA e/ou Espironolactona, eleva drasticamente o risco de hipercalemia grave e arritmia fatal.",
+      conduta: "Monitorar Potássio sérico e Creatinina em 48-72h ou substituir Sulfametoxazol+Trimetoprima por opção não hipercalemiante."
+    });
+  }
+
+  // 3. Triple Whammy (Lesão Renal Aguda Hemodinâmica)
+  var temDiuretico = !!(setF["furosemida"] || setF["hidroclorotiazida"] || setF["espironolactona"] || setF["indapamida"]);
+  var temAine = !!(setF["ibuprofeno"] || setF["cetoprofeno"] || setF["diclofenaco"] || setF["cetorolaco"] || setF["naproxeno"] || setF["nimesulida"] || setF["meloxicam"] || setF["piroxicam"] || setF["tenoxicam"]);
+  if (temIecaBra && temDiuretico && temAine) {
+    alertas.push({
+      grau: "GRAVE (TRIPLE WHAMMY RENAL)",
+      titulo: "Tríade Nefrotóxica Hemodinâmica (IECA/BRA + Diurético + AINE)",
+      efeito: "O AINE inibe prostaglandinas e causa vasoconstrição da arteríola aferente, o IECA/BRA dilata a arteríola eferente e o diurético reduz a volemia eficaz, precipitando queda abrupta da TFG e Injúria Renal Aguda (IRA) grave.",
+      conduta: "Suspender o AINE imediatamente; substituir analgesia por Paracetamol ou Dipirona."
+    });
+  }
+
+  // 4. Incompatibilidades Físico-Químicas Letais no Texto da Prescrição
+  if (setF["fenitoina"] && /\b(?:sg\s*5|soro\s+glicosado|glicose\s*5)\b/i.test(txtNorm)) {
+    alertas.push({
+      grau: "CONTRAINDICADO (PRECIPITAÇÃO IV)",
+      titulo: "Fenitoína diluída em Soro Glicosado (SG 5%)",
+      efeito: "A Fenitoína possui pH ~12 e precipita rapidamente em microcristais insolúveis em meio ácido como o SG 5%, causando flebite grave, embolia microvascular ou obstrução de cateter.",
+      conduta: "Diluir Fenitoína EXCLUSIVAMENTE em Soro Fisiológico 0,9% (SF 0,9%) a no máximo 50 mg/min em adultos."
+    });
+  }
+  if (setF["ceftriaxona"] && /\b(?:ringer|gluconato\s+de\s+calcio|cloreto\s+de\s+calcio)\b/i.test(txtNorm)) {
+    alertas.push({
+      grau: "CONTRAINDICADO (PRECIPITAÇÃO IV)",
+      titulo: "Ceftriaxona concomitante a Soluções com Cálcio (Ringer Lactato / Sais de Cálcio)",
+      efeito: "Formação de precipitado insolúvel de ceftriaxona-cálcio com risco de embolia microvascular pulmonar e renal (contraindicação absoluta em neonatos).",
+      conduta: "Diluir Ceftriaxona em SF 0,9% ou SG 5%. Lavar a linha venosa com SF 0,9% antes e após a infusão se não houver via exclusiva."
+    });
+  }
+
+  return alertas;
+}
+
 function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
   var t0 = Date.now();
   var farmacos = [];
@@ -39550,12 +39715,25 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
   // 4. Auditoria Determinística de Alergias Cruzadas e Gestação em RAM (0ms)
   var auditoriaAlergiasGestacao = auditarAlergiasEGestacaoDeterministico(farmacos, (typeof drogasOuTexto === "string" ? drogasOuTexto + " " : "") + contextoTexto);
 
-  var temAlertasCriticos = temContraindicado || temGrave || temIncompativelY || (ctxRenal.temDisfuncao && ajustesRenais.length > 0) || auditoriaAlergiasGestacao.temCritico;
+  // 5. Auditoria de Síndromes Farmacológicas Críticas (QTc, Hipercalemia, Triple Whammy)
+  var auditoriaSindromes = auditarSindromesFarmacologicasCriticas(farmacos, (typeof drogasOuTexto === "string" ? drogasOuTexto + " " : "") + contextoTexto);
+
+  var temAlertasCriticos = temContraindicado || temGrave || temIncompativelY || (ctxRenal.temDisfuncao && ajustesRenais.length > 0) || auditoriaAlergiasGestacao.temCritico || auditoriaSindromes.length > 0;
 
   // Formatação clínica para Telegram, Cockpit e Auditoria
   var linhasTexto = [];
   linhasTexto.push("🛡️ *CROSS-CHECK DE SEGURANÇA FARMACOLÓGICA*");
   linhasTexto.push("🔍 *Fármacos rastreados:* " + (farmacos.length > 0 ? farmacos.map(function(s){return "`" + s.toUpperCase() + "`";}).join(", ") : "Nenhum fármaco identificado"));
+
+  // Síndromes farmacológicas de alto risco (QTc, Hipercalemia, Triple Whammy, Incompatibilidade Física)
+  if (auditoriaSindromes.length > 0) {
+    linhasTexto.push("\n⚡ *ALERTA DE SÍNDROMES FARMACOLÓGICAS & TOXICIDADE:*");
+    auditoriaSindromes.forEach(function(sd) {
+      linhasTexto.push("🚨 *" + sd.grau + ":* " + sd.titulo);
+      linhasTexto.push("   • *Risco Clínico:* " + sd.efeito);
+      linhasTexto.push("   • *Conduta Mandatória:* " + sd.conduta);
+    });
+  }
 
   // Alergias medicamentosas e reatividade cruzada
   if (auditoriaAlergiasGestacao.alergias.length > 0) {
@@ -41144,7 +41322,8 @@ var IA_SEGURANCA_MEDICAMENTOSA = [
 var IA_DIRETRIZES_EMERGENCIA = [
   "DIRETRIZES DE REFERÊNCIA (VERSÕES)",
   "- PCR/ACLS: American Heart Association 2025 (ILCOR CoSTR vigente). Não cite 'ACLS 2024'.",
-  "- Sepse (adulto): Surviving Sepsis Campaign 2021 e atualizações subsequentes; a triagem NÃO deve usar qSOFA isolado. Hora 1: lactato, hemoculturas antes do antimicrobiano, antimicrobiano de amplo espectro, cristaloide 30 mL/kg se hipotensão ou lactato elevado, vasopressor (noradrenalina de primeira linha) para PAM alvo >= 65 mmHg.",
+  "- Sepse (adulto): Surviving Sepsis Campaign 2021 e atualizações subsequentes; a triagem NÃO deve usar qSOFA isolado. Hora 1: lactato, hemoculturas antes do antimicrobiano, antimicrobiano de amplo espectro, cristaloide 30 mL/kg se hipotensão ou lactato elevado (em cardiopatas graves ou DRC estágio 5, titular alíquotas com avaliação de tolerância volêmica/POCUS para prevenir EAP), vasopressor (noradrenalina de primeira linha) para PAM alvo >= 65 mmHg.",
+  "- Ventilação Mecânica Protetora e SRI: Em pacientes com sobrepeso ou obesidade, o volume corrente (6 mL/kg) e parâmetros ventilatórios devem ser guiados pelo PESO PREDITO PELA ALTURA (Fórmula de Devine: Homens 50 + 0.91*(alt-152.4); Mulheres 45.5 + 0.91*(alt-152.4)), NUNCA pelo peso real, prevenindo barotrauma e volutrauma.",
   "- Prioridade a diretrizes brasileiras (SBC, AMIB, ILAS, SBPT, SBN, Ministério da Saúde/Conitec). Cite sociedade e ano apenas quando tiver certeza; se não tiver, escreva 'conferir versão vigente'.",
   "- Se houver PROTOCOLO OFICIAL DE REFERÊNCIA no contexto, use-o como base e sinalize qualquer divergência sua em relação a ele.",
   "- Mencione divergência internacional somente se mudar a conduta prática."
@@ -43097,12 +43276,13 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "     * [VIA ORAL]: Fármaco, apresentação, dose, intervalo e duração do tratamento.",
       "     * [PARENTERAL/EMERGÊNCIA]: Fármaco, dose, diluente (ex: SF 0,9% 100ml), tempo ou velocidade de infusão e via (EV/IM/SC).",
       "     * Somente quando segurança e referência permitirem. Se faltarem dados imprescindíveis (alergias, gestação, peso, função renal), aponte a lacuna e NÃO invente dose.",
-      "   - Exames: apenas os que alteram conduta no cenário; orientações: retorno e alarmes pertinentes. Evite exames e conselhos genéricos.",
+      "   - Exames: apenas os que alteram conduta no cenário.",
+      "   - Orientações e Sinais de Alarme (RED FLAGS OBRIGATÓRIOS EM LINGUAGEM LEIGA): Redija os sinais de alarme de retorno imediato ao PS em linguagem direta e acessível ao paciente/familiar (ex: 'dificuldade para falar frases completas sem pausar para respirar', 'febre que não baixa após 48h de antibiótico', 'dor na barriga forte e contínua', 'sonolência excessiva com dificuldade para acordar', 'lábios arroxeados'). NUNCA use jargões indecifráveis como 'dispneia' ou 'sinais de choque'.",
       ambulatorialAgil ? "   - Foco APS: Prescrição REMUME, sinais de alarme para PS e meta de reavaliação." : "",
       "5. PENDÊNCIAS CRÍTICAS: Liste apenas dados que condicionem a segurança antes de prescrever; omita se não houver.",
       "",
       "Contrato JSON estrito:",
-      '{"subjetivo":"QP, HDA e antecedentes confirmados","objetivo":"achados e sinais vitais informados","avaliacao":["hipótese principal com CID-10 e diferenciais pertinentes"],"plano":{"prescricao":["prescrição pronta com via ou lacuna de segurança"],"exames":["exame que muda conduta imediata"],"orientacoes":["retorno e sinais de alarme"]},"pendencias_opcionais":["dado crítico ausente"]}'
+      '{"subjetivo":"QP, HDA e antecedentes confirmados","objetivo":"achados e sinais vitais informados","avaliacao":["hipótese principal com CID-10 e diferenciais pertinentes"],"plano":{"prescricao":["prescrição pronta com via ou lacuna de segurança"],"exames":["exame que muda conduta imediata"],"orientacoes":["orientações e sinais de alarme em linguagem leiga"]},"pendencias_opcionais":["dado crítico ausente"]}'
     ].join("\n");
 
     var rawCons = executarRaciocinioClinico(promptSistemaConsolidado, "CASO CLÍNICO:\n" + dadosCaso, 3500, { json: true });
@@ -43330,7 +43510,7 @@ function obterRoteiroPadraoNeuro() {
     "• Pares Cranianos: Pares cranianos II a XII sem déficits aparentes. Motilidade ocular extrínseca (MOE) preservada sem nistagmo ou diplopia. Mímica facial simétrica. Deglutição preservada, úvula e palato simétricos à fonação.\n" +
     "• Sistema Motor & Tônus: Eutrófico e eutônico. Força muscular grau 5/5 simétrica nos 4 membros (escala MRC). Manobras deficitárias (Mingazzini, Barré e braços estendidos) negativas.\n" +
     "• Sensibilidade: Sensibilidade tátil, térmica e dolorosa preservadas e simétricas nos 4 membros.\n" +
-    "• Reflexos: Reflexos tendinosos profundos normoativos (2+/4+) e simétricos (bicipital, tricipital, patelar e aquileu). Reflexo cutâneo-plantar em flexão bilateral (Babinski ausente).\n" +
+    "• Reflexos: Reflexos tendinosos profundos normoativos (2+/4+) e simétricos (bicipital, tricipital, patelar e aquileu). Reflexo cutâneo-plantar em flexão bilateral (Babinski ausente) [CONFERIR SE TESTADO].\n" +
     "• Coordenação & Marcha: Coordenação apendicular preservada (índex-nariz e diadococinesia sem dismetria). Sinal de Romberg negativo. Marcha típica, estável e coordenada, inclusive em tandem.\n" +
     "• Sinais Meníngeos & Radiculares: Rigidez de nuca ausente. Sinais de Kernig, Brudzinski e Lasègue negativos bilateralmente.\n" +
     "```";
@@ -43351,7 +43531,7 @@ function obterRoteiroPadraoPqu() {
     "• Linguagem e Fala: Fala fluida, clara, articulada e em tom/volume adequados. Boa capacidade de compreensão.\n" +
     "• Memória: Fixação e evocação preservadas para fatos imediatos, recentes e remotos.\n" +
     "• Juízo Crítico e Insight: Capacidade de julgamento da realidade mantida e boa percepção sobre seu estado de saúde geral.\n" +
-    "• Risco: Nega ativamente ideação de morte, planos suicidas ou heteroagressividade.\n" +
+    "• Risco: Nega ativamente ideação de morte, planos suicidas ou heteroagressividade [CONFERIR: Checar ativamente ideação suicida antes de registrar].\n" +
     "```";
 }
 
@@ -43676,7 +43856,8 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "- *Posologia:* [instrução clara com via, dose, intervalo com horários sugeridos de tomada e duração]",
     "",
     "💡 *Orientações ao paciente*",
-    "- [Apenas orientações farmacológicas indispensáveis: ex. jejum, horário de tomada ou agitar. NUNCA coloque conselhos óbvios como beber água ou repousar]",
+    "- [Orientações farmacológicas indispensáveis: ex. jejum, horário de tomada, agitar suspensão ou ingerir com alimentos. NUNCA coloque conselhos óbvios como beber água ou repousar]",
+    "- *Sinais de Alarme para Retorno ao PS (em linguagem do paciente):* [Listar 2 a 3 sinais objetivos claros para procurar a emergência imediatamente]",
     "",
     "📋 *Conferência médica*",
     "- *Indicação clínica:* [...]",
