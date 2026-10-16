@@ -430,6 +430,9 @@ function construirTecladoHubGO() {
         {"text": "🩹 DIP & Infecção Pélvica", "callback_data": "go_dip"}
       ],
       [
+        {"text": "🤱 Lactação: Fármacos a Evitar", "callback_data": "go_lactacao"}
+      ],
+      [
         {"text": "🔙 Hub G&O", "callback_data": "ux:rotina:go"},
         {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}
       ]
@@ -480,20 +483,11 @@ function tratarComandoUltimasMudancas(chatId, modoDeploy) {
     } catch (ePr) {}
   }
 
-  // Tenta obter commits recentes via git de forma síncrona com timeout estrito
+  // Obtém histórico de commits recentes de forma assíncrona/segura sem bloquear o Event Loop
   var commitsGit = [];
-  try {
-    var cp = require("child_process");
-    var saidaGit = cp.execSync('git log -n 3 --pretty=format:"%h|%s"', { timeout: 3000, encoding: "utf8" });
-    if (saidaGit) {
-      saidaGit.trim().split("\n").forEach(function(l) {
-        var partes = l.split("|");
-        if (partes.length >= 2) {
-          commitsGit.push("• `" + partes[0] + "` " + partes.slice(1).join("|"));
-        }
-      });
-    }
-  } catch (eGit) {}
+  if (infoJson && Array.isArray(infoJson.commits_recentes)) {
+    commitsGit = infoJson.commits_recentes;
+  }
 
   var linhas = [];
   linhas.push("🚀 *ULTRA ROTINA · STATUS DE MUDANÇAS & DEPLOY*");
@@ -1385,8 +1379,7 @@ function despacharComandosAmbulatorioESoap_(comando, texto, chatId, contextoCach
         "💡 *Exemplos:*\n" +
         "• `/ambulatorio Homem 54a, hipertenso e diabético, traz PA 150/94, glicemia jejum 164, em uso de Losartana 50mg e Metformina 850mg`\n" +
         "• `/ambulatorio Mulher 32a, tosse produtiva e coriza há 4 dias, afebril, PA 118/76, sem dispneia`\n" +
-        "• `/ambulatorio Paciente 45a, dor lombar mecânica há 1 semana após esforço, Lasègue negativo bilateral`\n\n" +
-        "📜 *Para gerar Atestado Médico CFM:* use `/atestado [dias] [motivo]`";
+        "• `/ambulatorio Paciente 45a, dor lombar mecânica há 1 semana após esforço, Lasègue negativo bilateral`";
       var tecladoAmb = {
         inline_keyboard: [
           [
@@ -1394,8 +1387,7 @@ function despacharComandosAmbulatorioESoap_(comando, texto, chatId, contextoCach
             { text: "💊 Prescrição REMUME", callback_data: "ux:amb:remume" }
           ],
           [
-            { text: "🏷️ CID-10 & CIAP-2", callback_data: "ux:amb:cid" },
-            { text: "📄 Atestado CFM", callback_data: "ux:amb:atestado" }
+            { text: "📋 Exame Físico Padrão", callback_data: "ux:amb:ef" }
           ],
           [
             { text: "🔙 Ambulatório", callback_data: "ux:hub:amb" },
@@ -1924,9 +1916,12 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
   }
 
   // 3. Ginecologia Ambulatorial (/go, /obstetricia, /ginecologia, /preventivo, /sua, /anticoncepcao, /leucorreia, /corrimento)
-  if (comando === "/go" || comando === "/obstetricia" || comando === "/ginecologia" || comando === "/preventivo" || comando === "/sua" || comando === "/anticoncepcao" || comando === "/leucorreia" || comando === "/corrimento") {
+  if (comando === "/go" || comando === "/obstetricia" || comando === "/ginecologia" || comando === "/preventivo" || comando === "/sua" || comando === "/anticoncepcao" || comando === "/leucorreia" || comando === "/corrimento" || comando === "/lactacao" || comando === "/amamentacao") {
     var dadosGin = texto.replace(/^\/\w+\s*/, "").trim();
-    if (!dadosGin || comando === "/go" || (comando === "/obstetricia" && !dadosGin)) {
+    if (!dadosGin || comando === "/go" || (comando === "/obstetricia" && !dadosGin) || ((comando === "/lactacao" || comando === "/amamentacao") && !dadosGin)) {
+      if (typeof enviarTelaGOLactacao === "function" && (comando === "/lactacao" || comando === "/amamentacao")) {
+        return { executado: true, resultado: enviarTelaGOLactacao(chatId) };
+      }
       if (typeof enviarTelaGOPreventivo === "function" && comando === "/preventivo") {
         return { executado: true, resultado: enviarTelaGOPreventivo(chatId) };
       }
@@ -1948,7 +1943,8 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
         "• 🌸 *Corrimento / Vulvovaginites:* `/corrimento branco grumoso prurido`\n" +
         "• 🩺 *Preventivo / Citopatológico:* `/preventivo lsil 28 anos`\n" +
         "• 💊 *Anticoncepção OMS:* `/anticoncepcao 35 anos enxaqueca com aura`\n" +
-        "• 🩹 *DIP & Infecção Pélvica:* `/dip febre dor anexial corrimento purulento`";
+        "• 🩹 *DIP & Infecção Pélvica:* `/dip febre dor anexial corrimento purulento`\n" +
+        "• 🤱 *Lactação / Fármacos a Evitar:* `/lactacao amiodarona` (Hale L1-L5 e MS)";
       return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, msgAjudaGin, construirTecladoHubGO()) };
     }
 
@@ -2058,6 +2054,43 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
       if (dadosGin.match(/alerg(?:ia)?\s*metro/i)) inf.alergiaMetronidazol = true;
 
       cenario.infeccao = inf;
+    }
+
+    // 5. Segurança de Medicamentos na Lactação (/lactacao, /amamentacao)
+    if (comando === "/lactacao" || comando === "/amamentacao" || dadosGin.match(/^(?:lactac|amament)/i)) {
+      var termoLact = dadosGin.replace(/^(?:lactac[aã]o|amamentac[aã]o|f[aá]rmacos?|medicamentos?)\s*/i, '').trim();
+      var domainLact = (typeof LactacaoSegurancaService !== 'undefined' && LactacaoSegurancaService)
+        || (typeof LactacaoSegurancaDomain !== 'undefined' && LactacaoSegurancaDomain)
+        || ((typeof require !== 'undefined') ? (function() {
+            try { return require('./02_lactacao_seguranca.js'); } catch (e) {
+              try { return require('./domain/lactacao_seguranca_domain.js'); } catch (e2) {
+                try { return require('../src/02_lactacao_seguranca.js'); } catch (e3) { return null; }
+              }
+            }
+          })() : null);
+      if (!termoLact || !domainLact) {
+        if (typeof enviarTelaGOLactacao === "function") {
+          return { executado: true, resultado: enviarTelaGOLactacao(chatId) };
+        }
+      }
+      var medLact = domainLact.consultarMedicamento(termoLact);
+      if (medLact) {
+        var cardLact = domainLact.formatarCardLactacao(medLact);
+        var ckLact = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+        var cacheLact = (typeof uxCache === "function") ? uxCache() : null;
+        if (cacheLact && typeof safePutCache === "function") safePutCache(cacheLact, ckLact, cardLact, 21600);
+        return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, cardLact, {
+          inline_keyboard: [
+            [{ text: "📋 Copiar Card", callback_data: "ux:copiar:" + ckLact }],
+            [{ text: "🔴 Contraindicados", callback_data: "go_lactacao:red" }, { text: "🟢 1ª Escolha", callback_data: "go_lactacao:grn" }],
+            [{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }) };
+      } else {
+        var msgLactNao = "⚠️ Medicamento *" + termoLact + "* não localizado no catálogo determinístico de lactação.\n\n" +
+          "💡 Tente pelo princípio ativo ou marca comercial (ex: `/lactacao amiodarona`, `/lactacao sertralina`, `/lactacao bactrim`, `/lactacao enalapril`).";
+        return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, msgLactNao, construirTecladoHubGO()) };
+      }
     }
 
     var textoResumo = GinecologiaAmbulatorialService.gerarResumoGinecologia(cenario);
@@ -2770,7 +2803,7 @@ function executarComandoEspecialidadesInterno_(comando, texto, chatId) {
   // ───────────────────────────────────────────────────────────────────────────
   // SUPORTE NUTRICIONAL EM PEDIATRIA (HOLLIDAY-SEGAR & FÓRMULAS INFANTIS)
   // ───────────────────────────────────────────────────────────────────────────
-  if (comando === "/nutriped" || comando === "/holliday" || comando === "/formulainfantil" || comando === "/diluicao") {
+  if (comando === "/nutriped" || comando === "/holliday" || comando === "/formulainfantil" || comando === "/diluicaoleite" || comando === "/leite") {
     var dadosNutriPed = texto.replace(/^\/\w+\s*/, "").trim();
     if (typeof SuporteNutricionalPediatricoService === "undefined") {
       return enviarMensagemParaChat(chatId, "⚠️ Módulo SuporteNutricionalPediatricoService indisponível temporariamente.");
@@ -2839,7 +2872,7 @@ function executarComandoEspecialidadesInterno_(comando, texto, chatId) {
       var mNumSolto = dadosNutriPed.match(/^(\d{1,2}(?:[.,]\d+)?)/);
       if (mNumSolto) {
         var valNum = parseFloat(mNumSolto[1].replace(',', '.'));
-        if (comando === "/diluicao" || comando === "/formulainfantil") {
+        if (comando === "/formulainfantil" || comando === "/diluicaoleite" || comando === "/leite") {
           if (valNum >= 30) paramsNP.volumeMamadaMl = valNum;
           else paramsNP.pesoKg = valNum;
         } else {
@@ -5349,15 +5382,14 @@ function processarMensagemTexto(message) {
         "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot", "compatibilidade", "compatibilidade_y", "remume",
         "pcr", "acls", "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
         "prenatal", "parto", "ginecologia", "go", "obstetricia", "oftalmo", "vertigem", "epistaxe", "colica",
-        "asma", "dpoc", "icc", "fa", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
+        "asma", "dpoc", "icc", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
         "swansea", "colestase", "monoartrite", "febrereumatica", "pancreatite",
         "diabetes", "anemia", "intox", "sca",
-        "avc", "hic", "kdigo", "dhe", "eletrolitos", "acidobase", "interacao", "cid", "atestado", "hub", "emergencia",
-        "dengue", "arbovirose", "chikungunya", "zika", "pac", "pneumonia", "curb", "curb65", "crb65", "itu", "cistite", "pielonefrite",
-        "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "crisehas", "has", "cefaleia", "dorcabeca",
+        "hic", "kdigo", "dhe", "eletrolitos", "acidobase", "interacao", "hub", "emergencia",
+        "dengue", "arbovirose", "chikungunya", "zika", "pneumonia", "curb", "curb65", "crb65", "cistite", "pielonefrite",
+        "infeccaourinaria", "crisehipertensiva", "pseudocrise", "emergenciahipertensiva", "crisehas", "cefaleia", "dorcabeca",
         "enxaqueca", "sutura", "ottawa", "tetano", "raiva", "mordedura", "ferimento", "obito", "declaracaoobito", "sinan",
-        "glasgow", "choque", "eap", "anafilaxia", "convulsao", "hipercalemia", "hipoglicemia",
-        "mudancas", "deploy"
+        "glasgow", "choque", "eap", "anafilaxia", "convulsao", "hipercalemia", "hipoglicemia"
       ];
       if (comandosSemBarra.indexOf(primPalavra) !== -1) {
         var ehEvolucaoLeitoNatural = (primPalavra === "leito" || primPalavra === "quarto") &&
@@ -5413,7 +5445,7 @@ function processarMensagemTexto(message) {
     }
   }
 
-  var clinicos = ["/preceptor", "/voz", "/sabatina", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/toxo", "/toxoplasmose", "/avidez", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/dip", "/pelvica", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/curb", "/curb65", "/crb65", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehas", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan", "/leitos", "/censo"];
+  var clinicos = ["/preceptor", "/voz", "/sabatina", "/soap", "/soap_ambulatorial", "/ambulatorio", "/atestado", "/go", "/obstetricia", "/prenatal", "/dpp", "/parto", "/co", "/hpp", "/mgso4", "/preeclampsia", "/gbs", "/prematuridade", "/toxo", "/toxoplasmose", "/avidez", "/ginecologia", "/preventivo", "/sua", "/anticoncepcao", "/leucorreia", "/corrimento", "/dip", "/pelvica", "/lactacao", "/amamentacao", "/idoso", "/aga", "/beers", "/cfs", "/frax", "/osteoporose", "/quedas", "/polifarmacia", "/frids", "/psiq", "/agitacao", "/suicidio", "/phq9", "/rx", "/rxh", "/prescricao_hospitalar", "/receita", "/plantao", "/sbar", "/calc", "/round", "/pitch", "/interacao", "/gaso", "/gasometria", "/winter", "/aniongap", "/conduta", "/sos", "/dva", "/compatibilidade", "/compatibilidade_y", "/sri", "/iot", "/pcr", "/acls", "/arritmia", "/taquiarritmia", "/taquicardia", "/bradiarritmia", "/bradicardia", "/crcl", "/clcr", "/clearance", "/dhe", "/eletrolitos", "/atb", "/ajuste", "/dpoc", "/vni", "/bipap", "/hipercapnia", "/asma", "/criseasma", "/broncoespasmo", "/salbutamol", "/monoartrite", "/artriteseptica", "/artriteséptica", "/gota", "/artrocentese", "/febrereumatica", "/fr", "/jones", "/aslo", "/dermato", "/lesao", "/lesoes", "/ulceragenital", "/cancro", "/donovanose", "/lgv", "/mpox", "/monkeypox", "/dengue", "/arbovirose", "/chikungunya", "/zika", "/pac", "/pneumonia", "/curb", "/curb65", "/crb65", "/itu", "/cistite", "/pielonefrite", "/infeccaourinaria", "/crisehas", "/crisehipertensiva", "/pseudocrise", "/emergenciahipertensiva", "/cefaleia", "/dorcabeca", "/enxaqueca", "/sutura", "/ottawa", "/tetano", "/raiva", "/mordedura", "/ferimento", "/obito", "/declaracaoobito", "/do", "/notificacao", "/sinan", "/leitos", "/censo"];
 
   // Se for comando clínico, salva no contexto de conversação (15 min)
   if (clinicos.indexOf(comando) !== -1) {
@@ -5530,6 +5562,10 @@ function processarMensagemTexto(message) {
     }
     if (/(?:amea[çc]a\s+de\s+parto\s+prematuro|parto\s+prematuro|tocolise|corticoide\s+para\s+matura[çc][ãa]o)/i.test(textoTrim)) {
       message.text = "/prematuridade " + textoTrim;
+      return processarMensagemTexto(message);
+    }
+    if (/^(?:lactac[aã]o|amamentac[aã]o|puerpera\s+amamentando)\b/i.test(textoTrim)) {
+      message.text = "/lactacao " + textoTrim.replace(/^(?:lactac[aã]o|amamentac[aã]o|puerpera\s+amamentando)\s*/i, '');
       return processarMensagemTexto(message);
     }
     if (/(?:colestase\s+intra[- ]hep[aá]tica|\bcig\b\s+gesta[çc][ãa]o|[aá]cidos\s+biliares\s+gestante|[aá]cido\s+ursodesoxic[oó]lico)/i.test(textoTrim)) {

@@ -67,10 +67,11 @@ async function testAmbulatorioUX() {
   let callbacksMenu = botoesMenu.map(b => b.callback_data);
   assert(callbacksMenu.includes('ux:amb:soap'), 'Menu deve conter botão ux:amb:soap');
   assert(callbacksMenu.includes('ux:amb:remume'), 'Menu deve conter botão ux:amb:remume');
-  assert(callbacksMenu.includes('ux:amb:cid'), 'Menu deve conter botão ux:amb:cid');
-  assert(callbacksMenu.includes('ux:amb:atestado'), 'Menu deve conter botão ux:amb:atestado');
-  assert(!callbacksMenu.includes('ux:amb:ef'), 'Menu não deve conter modelo EF solto (apenas dentro do caso)');
-  assert(callbacksMenu.includes('ux:amb:sisreg'), 'Menu deve conter botão ux:amb:sisreg');
+  assert(!callbacksMenu.includes('ux:rotina:preventivo'), 'Preventivo agora mora no Hub G&O');
+  assert(!callbacksMenu.includes('ux:rotina:go'), 'Hub G&O agora mora no Hub Principal');
+  assert(!callbacksMenu.includes('ux:amb:cid'), 'Menu não deve poluir com botão ux:amb:cid');
+  assert(!callbacksMenu.includes('ux:amb:atestado'), 'Menu não deve poluir com botão ux:amb:atestado');
+  assert(!callbacksMenu.includes('ux:amb:sisreg'), 'Menu não deve poluir com botão ux:amb:sisreg');
   assert(callbacksMenu.includes('ux:menu') || callbacksMenu.includes('ux:hub:inicio'), 'Menu deve conter botão de retorno');
   console.log('  ✓ Menu principal e seus submódulos essenciais validados com sucesso.');
 
@@ -78,15 +79,14 @@ async function testAmbulatorioUX() {
   console.log('\n[2] Testando Submódulo SOAP Ágil Ambulatorial (ux:amb:soap)...');
   msgs = acionarCallback('ux:amb:soap');
   assert(msgs.length >= 1, 'ux:amb:soap deve responder');
-  let msgSoap = msgs.find(m => m.texto && m.texto.includes('SOAP AMBULATORIAL ÁGIL'));
-  assert(msgSoap, 'ux:amb:soap deve conter SOAP AMBULATORIAL ÁGIL no cabeçalho');
-  assert(msgSoap.texto.includes('Subjetivo') && msgSoap.texto.includes('Objetivo'), 'Deve conter estrutura canônica SOAP');
+  let msgSoap = msgs.find(m => m.texto && (m.texto.includes('SOAP') || m.texto.includes('Novo Caso')));
+  assert(msgSoap, 'ux:amb:soap deve ativar diretamente a captura de SOAP');
+  assert(msgSoap.texto.includes('áudio') || msgSoap.texto.includes('caso'), 'Deve orientar envio de áudio ou texto');
   let botoesSoap = msgSoap.kb.inline_keyboard.flat();
   let cbsSoap = botoesSoap.map(b => b.callback_data);
   assert(cbsSoap.includes('ux:hub:amb'), 'Deve conter retorno contextual [🔙 Ambulatório]');
   assert(cbsSoap.includes('ux:hub:inicio'), 'Deve conter retorno [🏠 Início]');
-  assert(cbsSoap.includes('ux:iniciar:soap'), 'Deve conter botão [📝 Iniciar SOAP]');
-  console.log('  ✓ Tela principal de SOAP validada com retorno contextual e início rápido.');
+  console.log('  ✓ Tela direta de SOAP validada com retorno contextual e captura instantânea.');
 
   // Sub-callbacks táteis de SOAP
   console.log('  [2.1] Testando sub-callbacks táteis de casos SOAP (HAS, DM2, IVAS e Lombalgia)...');

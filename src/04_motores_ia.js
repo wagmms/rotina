@@ -2039,16 +2039,19 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       "2. OBJETIVO (O): Sinais vitais e achados informados organizados por sistemas. Cada sistema DEVE estar em uma linha diferente separada por quebra de linha (\\n): Sinais Vitais / Geral / ACV / AR / Abdome / Extremidades. Para sinais vitais não informados, reserve o espaço [   ] com a unidade (PA: [   ] mmHg | FC: [   ] bpm | FR: [   ] irpm | SpO2: [   ]% em ar ambiente | T: [   ]°C). Incorpore exame especial se presente.",
       "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Geral, ACV, AR, Abdome e Extremidades), cada um em sua própria linha separada. NUNCA sintetize em apenas 'EF normal' ou 'exame físico sem alterações' e NUNCA junte na mesma linha.",
       "3. AVALIAÇÃO (A):",
-      "   - Diagnóstico principal ou problema sindrômico com CID-10 e CIAP-2.",
-      "   - Diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade. Sem teorizações prolixas.",
+      "   - Diagnóstico principal ou problema sindrômico com CID-10 e CIAP-2 OBRIGATÓRIOS (ex: Hipertensão Arterial Sistêmica - CID-10 I10, CIAP-2 K86).",
+      "   - Estratificação de risco/estágio clínico e diagnósticos diferenciais pertinentes em ordem de probabilidade/gravidade. Sem teorizações prolixas.",
       "4. PLANO (P): divida em Prescrição Pronta Copy-Paste (UBS/REMUME ou Urgência/Enfermaria conforme cenário), Exames que mudam conduta imediata e Orientações/Sinais de Alarme.",
-      "   - Prescrição: fármaco, apresentação, dose, via, intervalo e duração somente quando segurança e referência permitirem. Se alergias, gestação, peso ou função renal imprescindíveis faltarem, sinalize a lacuna e NÃO invente dose nem negativa.",
+      "   - Prescrição: estruture claramente por via de administração:",
+      "     * [VIA ORAL]: Fármaco, apresentação, dose, intervalo e duração do tratamento.",
+      "     * [PARENTERAL/EMERGÊNCIA]: Fármaco, dose, diluente (ex: SF 0,9% 100ml), tempo ou velocidade de infusão e via (EV/IM/SC).",
+      "     * Somente quando segurança e referência permitirem. Se faltarem dados imprescindíveis (alergias, gestação, peso, função renal), aponte a lacuna e NÃO invente dose.",
       "   - Exames: apenas os que alteram conduta no cenário; orientações: retorno e alarmes pertinentes. Evite exames e conselhos genéricos.",
       ambulatorialAgil ? "   - Foco APS: Prescrição REMUME, sinais de alarme para PS e meta de reavaliação." : "",
       "5. PENDÊNCIAS CRÍTICAS: Liste apenas dados que condicionem a segurança antes de prescrever; omita se não houver.",
       "",
       "Contrato JSON estrito:",
-      '{"subjetivo":"QP, HDA e antecedentes confirmados","objetivo":"achados e sinais vitais informados","avaliacao":["hipótese principal e diferenciais pertinentes"],"plano":{"prescricao":["prescrição pronta ou lacuna de segurança"],"exames":["exame que muda conduta imediata"],"orientacoes":["retorno e sinais de alarme"]},"pendencias_opcionais":["dado crítico ausente"]}'
+      '{"subjetivo":"QP, HDA e antecedentes confirmados","objetivo":"achados e sinais vitais informados","avaliacao":["hipótese principal com CID-10 e diferenciais pertinentes"],"plano":{"prescricao":["prescrição pronta com via ou lacuna de segurança"],"exames":["exame que muda conduta imediata"],"orientacoes":["retorno e sinais de alarme"]},"pendencias_opcionais":["dado crítico ausente"]}'
     ].join("\n");
 
     var rawCons = executarRaciocinioClinico(promptSistemaConsolidado, "CASO CLÍNICO:\n" + dadosCaso, 3500, { json: true });
@@ -2084,12 +2087,43 @@ function gerarSOAPComIA(casoClinico, opcoes) {
         "\nExames que mudam conduta imediata\n" + formatarListaTopicos(planoCons.exames, "Nenhum exame imediato indicado pelos dados informados.") +
         "\nOrientações/Sinais de Alarme\n" + formatarListaTopicos(planoCons.orientacoes, "Reavaliar conforme evolução e orientar retorno diante de piora.");
     if (pendencias.length) planoTexto += "\nDados de segurança a conferir antes de prescrever\n" + formatarListaTopicos(pendencias, "");
+
+    // Bloco Limpo para Prontuário Eletrônico (PEP) - Cópia em 1 Toque
+    var sPep = sTexto.replace(/\*/g, '').trim();
+    var oPep = oTexto.replace(/\*/g, '').trim();
+    var aPep = (Array.isArray(objCons.avaliacao) ? objCons.avaliacao : [objCons.avaliacao || '']).filter(Boolean).map(function(item) { return String(item).replace(/\*/g, '').trim(); }).join('; ');
+    var pPep = "";
+    if (Array.isArray(planoCons)) {
+      pPep = planoCons.map(function(item) { return String(item).replace(/\*/g, '').trim(); }).join('\n');
+    } else {
+      var partesP = [];
+      if (planoCons.prescricao && planoCons.prescricao.length) {
+        partesP.push("PRESCRIÇÃO:\n" + planoCons.prescricao.map(function(x) { return "• " + String(x).replace(/\*/g, '').trim(); }).join('\n'));
+      }
+      if (planoCons.exames && planoCons.exames.length) {
+        partesP.push("EXAMES:\n" + planoCons.exames.map(function(x) { return "• " + String(x).replace(/\*/g, '').trim(); }).join('\n'));
+      }
+      if (planoCons.orientacoes && planoCons.orientacoes.length) {
+        partesP.push("ORIENTAÇÕES:\n" + planoCons.orientacoes.map(function(x) { return "• " + String(x).replace(/\*/g, '').trim(); }).join('\n'));
+      }
+      pPep = partesP.join('\n\n');
+    }
+
+    var blocoPep = "```text\n" +
+      "[REGISTRO SOAP - PRONTUÁRIO ELETRÔNICO]\n\n" +
+      "S: " + sPep + "\n\n" +
+      "O:\n" + oPep + "\n\n" +
+      "A: " + aPep + "\n\n" +
+      "P:\n" + pPep + "\n" +
+      "```";
+
     var blocosCons = [
       "🩺 *SÍNTESE SOAP · REGISTRO CONSOLIDADO*",
       "👤 *S - Subjetivo*\n" + sTexto,
       "🔍 *O - Objetivo*\n" + oTexto,
       "🧠 *A - Avaliação*\n" + formatarListaTopicos(objCons.avaliacao, "Avaliação diagnóstica a definir pelo médico assistente."),
-      "📋 *P - Plano*\n" + planoTexto
+      "📋 *P - Plano*\n" + planoTexto,
+      "📋 *CÓPIA DIRETA PARA O PEP (1 TOQUE)*\n" + blocoPep
     ];
 
     if (objCons.contingencia_offline) {

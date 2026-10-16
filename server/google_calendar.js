@@ -42,10 +42,12 @@ class GoogleCalendarService {
     if (this._credsMemoria) return this._credsMemoria;
 
     // Prioridade 1: Variáveis de ambiente
-    if (process.env.GOOGLE_CALENDAR_CLIENT_ID && process.env.GOOGLE_CALENDAR_CLIENT_SECRET) {
+    const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+    if (clientId && clientSecret) {
       this._credsMemoria = {
-        client_id: process.env.GOOGLE_CALENDAR_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET
+        client_id: clientId,
+        client_secret: clientSecret
       };
       return this._credsMemoria;
     }
@@ -88,10 +90,11 @@ class GoogleCalendarService {
     }
 
     // Prioridade 2: Variáveis de ambiente
-    if (process.env.GOOGLE_CALENDAR_REFRESH_TOKEN) {
+    const refreshToken = process.env.GOOGLE_CALENDAR_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN;
+    if (refreshToken) {
       this._tokenMemoria = {
-        token: process.env.GOOGLE_CALENDAR_ACCESS_TOKEN || '',
-        refresh_token: process.env.GOOGLE_CALENDAR_REFRESH_TOKEN,
+        token: process.env.GOOGLE_CALENDAR_ACCESS_TOKEN || process.env.GOOGLE_ACCESS_TOKEN || '',
+        refresh_token: refreshToken,
         account: this.account
       };
       return this._tokenMemoria;

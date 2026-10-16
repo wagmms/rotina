@@ -351,7 +351,7 @@ function iniciarModoBot(chat, mode, novo, messageId) {
   if (mode === 'gaso') {
     orientacao = 'Envie pH, pCO2 e HCO3 (ex: `7.20 23 10` ou `pH 7.20, pCO2 23, HCO3 10, Na 140, Cl 105`) ou toque em um caso predefinido abaixo:';
   } else if (mode === 'soap') {
-    orientacao = 'Grave um áudio narrando o caso ou envie os dados por texto (queixa, história, sinais vitais e exame físico).\n\n💡 Ou toque em um caso predefinido abaixo para praticar:';
+    orientacao = '🎙️ *Envie o áudio narrando o caso ou digite os dados* (queixa principal, tempo de evolução, sinais vitais e exame físico).\n\nO sistema estruturará o prontuário SOAP, estratificação de risco e prescrição REMUME imediatamente.';
   } else {
     orientacao = 'Grave um áudio narrando o caso ou envie os dados por texto.';
   }
@@ -362,7 +362,6 @@ function iniciarModoBot(chat, mode, novo, messageId) {
   } else if (mode === 'soap') {
     botoesModo = botoesBot([
       [['🩺 Exemplo HAS', 'ux:amb:soap:has'], ['🩸 Exemplo DM2', 'ux:amb:soap:dm2']],
-      [['🫁 Exemplo IVAS', 'ux:amb:soap:ivas'], ['🦴 Lombalgia', 'ux:amb:soap:lombalgia']],
       [['🔙 Ambulatório', 'ux:hub:amb'], ['🏠 Início', 'ux:hub:inicio']]
     ]);
   } else {
@@ -383,7 +382,8 @@ function enviarMenuUXGinecoObstetricia(chat, messageId) {
     [['🩸 HPP (4 Ts)', 'go_hpp'], ['⚡ Pré-Eclâmpsia & MgSO4', 'go_mgso4']],
     [['👶 Prematuridade & RPMO', 'go_prematuridade'], ['🔬 Toxo & Sorologias', 'go_toxo']],
     [['🌸 Vulvovaginites', 'go_corrimento'], ['🩺 Preventivo (INCA)', 'go_preventivo']],
-    [['💊 Anticoncepção OMS', 'go_anticoncepcao'], ['🩹 DIP & Infecção Pélvica', 'go_dip']]
+    [['💊 Anticoncepção OMS', 'go_anticoncepcao'], ['🩹 DIP & Infecção Pélvica', 'go_dip']],
+    [['🤱 Lactação: Fármacos a Evitar', 'go_lactacao']]
   ];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
@@ -919,24 +919,13 @@ function enviarMenuAmbulatorio(chat, messageId) {
     'Selecione a ferramenta ambulatorial desejada:';
   var linhas = [
     [['📝 SOAP Ambulatorial', 'ux:amb:soap'], ['💊 Prescrição REMUME', 'ux:amb:remume']],
-    [['🏷️ CID-10 & CIAP-2', 'ux:amb:cid'], ['📄 Atestado CFM', 'ux:amb:atestado']],
-    [['🩺 Guia SISREG / Parecer', 'ux:amb:sisreg'], ['🌸 Preventivo', 'ux:rotina:preventivo']],
-    [['🤰 Hub G&O', 'ux:rotina:go']]
+    [['📋 Exame Físico Padrão', 'ux:amb:ef']]
   ];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
 
 function enviarTelaAmbSoap(chat, messageId) {
-  var texto = "📝 *SOAP AMBULATORIAL ÁGIL (ATENÇÃO PRIMÁRIA & UBS)*\n\n" +
-    "Registro clínico canônico estruturado em 4 tempos:\n\n" +
-    "• *S (Subjetivo):* Queixa principal, tempo de evolução, HDA, medicações contínuas e alergias.\n" +
-    "• *O (Objetivo):* Sinais vitais (PA, FC, FR, SpO2, Tax, IMC) e exame físico segmentar dirigido.\n" +
-    "• *A (Avaliação):* Hipótese diagnóstica codificada (CID-10 / CIAP-2) e estratificação de risco (SBC/SBD).\n" +
-    "• *P (Plano):* Prescrição REMUME, exames complementares, MEV (estilo de vida), alarmes e retorno.\n\n" +
-    "👉 *Envie os dados do caso clínico por áudio ou texto, ou toque abaixo para iniciar*:";
-
-  var linhas = [[['📝 Iniciar SOAP', 'ux:iniciar:soap']]];
-  return enviarTelaBotComNavegacao(chat, texto, linhas, 'amb', messageId);
+  return iniciarModoBot(chat, 'soap', false, messageId);
 }
 
 function tratarCallbackAmbSoap(chat, valor, messageId) {
@@ -1851,14 +1840,15 @@ function enviarHubPrincipal(chat, messageId) {
 
   var urlApp = obterUrlCockpit(chat);
   var linha3 = (typeof ehUsuarioTitular === 'function' && ehUsuarioTitular(chat))
-    ? [['📐 Calculadoras', 'ux:hub:calc'], ['📅 Rotina & Estudo', 'ux:hub:rotina']]
-    : [['📐 Calculadoras', 'ux:hub:calc'], ['🩸 Gasometria', 'ux:iniciar:gaso']];
+    ? [['💊 Consultas Bolso', 'ux:hub:bolso'], ['📅 Rotina & Estudo', 'ux:hub:rotina']]
+    : [['💊 Consultas Bolso', 'ux:hub:bolso'], ['🩸 Gasometria', 'ux:iniciar:gaso']];
 
   var botoes = [
     [['🚨 Sala Vermelha', 'ux:hub:sala'], ['🛏️ Enfermaria', 'ux:hub:enf']],
-    [['🩺 Ambulatório', 'ux:hub:amb'], ['💊 Consultas Bolso', 'ux:hub:bolso']],
+    [['🩺 Ambulatório', 'ux:hub:amb'], ['🤰 Hub G&O', 'ux:rotina:go']],
     linha3,
-    [{ text: '📱 Cockpit Mini App', web_app: { url: urlApp } }, ['🧹 Novo Paciente', 'ux:novo:soap']]
+    [['📐 Calculadoras', 'ux:hub:calc'], { text: '📱 Cockpit Mini App', web_app: { url: urlApp } }],
+    [['🧹 Novo Paciente', 'ux:novo:soap']]
   ];
 
   return enviarTelaBot(chat, texto, botoesBot(botoes), messageId);
@@ -3299,6 +3289,91 @@ function tratarCallbackGODip(chat, v, messageId) {
   return enviarTelaBot(chat, msgCorpo, botoes, messageId);
 }
 
+// 11. Lactação & Segurança Farmacológica
+function enviarTelaGOLactacao(chat, messageId) {
+  var texto = "🤱 *SEGURANÇA DE MEDICAMENTOS NA LACTAÇÃO (HALE / MS)*\n\n" +
+    "Classificação farmacológica oficial (Ministério da Saúde & Thomas Hale L1-L5):\n" +
+    "• 🔴 *Contraindicados:* Amiodarona, Lítio, Ergotamina, Codeína/Tramadol, Quimioterápicos.\n" +
+    "• 🟡 *Uso Criterioso:* Ciprofloxacino, Bactrim (evitar < 2 meses), Descongestionantes orais.\n" +
+    "• 🟢 *1ª Escolha Segura:* Paracetamol, Ibuprofeno, Dipirona, Enalapril, Sertralina.\n\n" +
+    "💡 *Toque em um grupo rápido abaixo ou digite `/lactacao [fármaco]`*:";
+
+  var guiaTexto = "DIRETRIZES DE SEGURANÇA DE MEDICAMENTOS NA LACTAÇÃO (HALE / MS)\n" +
+    "- Contraindicados Absolutos (Vermelho MS / Hale L4-L5): Amiodarona, Lítio, Metotrexato, Ciclofosfamida, Ergotamina, Cabergolina, Isotretinoína, Fenindiona, Codeína e Tramadol.\n" +
+    "- Cautela / Monitorar (Amarelo MS / Hale L3): Ciprofloxacino, Bactrim (evitar < 2 meses), Descongestionantes orais (Pseudoefedrina), Diazepam/Clonazepam, Fluoxetina.\n" +
+    "- 1ª Escolha Segura (Verde MS / Hale L1-L2): Paracetamol, Ibuprofeno, Dipirona, Enalapril, Nifedipino, Metoprolol, Sertralina, Cefalexina, Amoxicilina, Ceftriaxona, Enoxaparina, Varfarina.";
+
+  var cache = uxCache();
+  var ckGuia = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ckGuia, guiaTexto, 21600);
+
+  var botoes = botoesBot([
+    [['🔴 Fármacos Contraindicados', 'go_lactacao:red'], ['🟡 Cautela / Monitorar', 'go_lactacao:yel']],
+    [['🟢 Guia Rápido 1ª Escolha', 'go_lactacao:grn'], ['💊 Puerpério: HAS / Dor / Depressão', 'go_lactacao:puerp']],
+    [['📋 Copiar Guia Lactação', 'ux:copiar:' + ckGuia]],
+    [['🔙 Hub G&O', 'ux:rotina:go'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackGOLactacao(chat, v, messageId) {
+  var domainLact = (typeof LactacaoSegurancaService !== 'undefined' && LactacaoSegurancaService)
+    || (typeof LactacaoSegurancaDomain !== 'undefined' && LactacaoSegurancaDomain)
+    || ((typeof require !== 'undefined') ? (function() {
+        try { return require('./02_lactacao_seguranca.js'); } catch (e) {
+          try { return require('./domain/lactacao_seguranca_domain.js'); } catch (e2) {
+            try { return require('../src/02_lactacao_seguranca.js'); } catch (e3) { return null; }
+          }
+        }
+      })() : null);
+  var textoRes = "";
+
+  if (v === 'red') {
+    if (domainLact && typeof domainLact.listarPorCategoriaMS === 'function') {
+      var contra = domainLact.listarPorCategoriaMS('VERMELHO');
+      var linhas = ["🔴 FÁRMACOS CONTRAINDICADOS NA AMAMENTAÇÃO (VERMELHO MS / HALE L4-L5):", ""];
+      contra.slice(0, 10).forEach(function(item) {
+        linhas.push("• " + item.nomeGenerico + " (" + item.hale + "): " + item.mecanismoRisco);
+        if (item.alternativasSeguras && item.alternativasSeguras.length) {
+          linhas.push("  -> Substituir por: " + item.alternativasSeguras.slice(0, 2).join(', '));
+        }
+      });
+      textoRes = linhas.join("\n");
+    } else {
+      textoRes = "🔴 FÁRMACOS CONTRAINDICADOS NA LACTAÇÃO:\n• Amiodarona (L5): hipotireoidismo e bradicardia no lactente.\n• Lítio (L4): toxicidade tireoidiana e hipotonia no RN.\n• Ergotamina (L4): ergotismo e inibição da prolactina (seca o leite).\n• Codeína / Tramadol (L4): depressão respiratória fatal via CYP2D6.\n• Quimioterápicos e Imunossupressores: imunossupressão severa.";
+    }
+  } else if (v === 'yel') {
+    if (domainLact && typeof domainLact.listarPorCategoriaMS === 'function') {
+      var cautela = domainLact.listarPorCategoriaMS('AMARELO');
+      var linhasYel = ["🟡 FÁRMACOS DE USO CRITERIOSO NA LACTAÇÃO (AMARELO MS / HALE L3):", ""];
+      cautela.slice(0, 8).forEach(function(item) {
+        linhasYel.push("• " + item.nomeGenerico + " (" + item.hale + "): " + (item.condutaClinica || item.mecanismoRisco));
+      });
+      textoRes = linhasYel.join("\n");
+    } else {
+      textoRes = "🟡 FÁRMACOS DE USO CRITERIOSO NA LACTAÇÃO:\n• Ciprofloxacino: risco teórico de artropatia; preferir beta-lactâmicos.\n• Bactrim: contraindicado em RN < 2 meses ou G6PD (risco de kernicterus).\n• Descongestionantes orais (Pseudoefedrina): reduzem a produção de leite em 24%.\n• Diazepam / Clonazepam: sedação neonatal e acúmulo por meia-vida longa.";
+    }
+  } else if (v === 'grn' || v === 'puerp') {
+    if (domainLact && typeof domainLact.obterGuiaRapidoClasses === 'function') {
+      textoRes = domainLact.obterGuiaRapidoClasses();
+    } else {
+      textoRes = "🟢 PRESCRIÇÃO SEGURA NA LACTAÇÃO (1ª ESCOLHA):\n• Dor/Febre: Paracetamol (L1), Ibuprofeno (L1), Dipirona (Verde MS).\n• HAS Puerperal: Enalapril (L2), Nifedipino (L2), Metoprolol (L2).\n• Depressão: Sertralina (L2 - padrão-ouro no puerpério).\n• Infecção: Cefalexina (L1), Amoxicilina (L1), Ceftriaxona (L2).\n• Anticoagulação: Enoxaparina (L1), Varfarina (L2).";
+    }
+  }
+
+  var cache = uxCache();
+  var ck = Utilities.getUuid().replace(/-/g, '');
+  safePutCache(cache, ck, textoRes, 21600);
+
+  var msgCorpo = "🤱 *SEGURANÇA NA LACTAÇÃO (FMRP-USP / MS):*\n\n```text\n" + textoRes + "\n```";
+  var botoes = botoesBot([
+    [['📋 Copiar Guia', 'ux:copiar:' + ck]],
+    [['🔴 Contraindicados', 'go_lactacao:red'], ['🟡 Cautela', 'go_lactacao:yel']],
+    [['🟢 1ª Escolha', 'go_lactacao:grn'], ['🔙 Hub G&O', 'ux:rotina:go']]
+  ]);
+  return enviarTelaBot(chat, msgCorpo, botoes, messageId);
+}
+
 // Despachante Unificado de Ginecologia & Obstetrícia
 function tratarCallbackUXGO(chat, v, messageId) {
   v = String(v || '').replace(/^go_/, '');
@@ -3331,6 +3406,9 @@ function tratarCallbackUXGO(chat, v, messageId) {
 
   if (v === 'dip') return enviarTelaGODip(chat, messageId);
   if (v.indexOf('dip:') === 0) return tratarCallbackGODip(chat, v.replace('dip:', ''), messageId);
+
+  if (v === 'lactacao') return enviarTelaGOLactacao(chat, messageId);
+  if (v.indexOf('lactacao:') === 0) return tratarCallbackGOLactacao(chat, v.replace('lactacao:', ''), messageId);
 
   return enviarMenuUXGinecoObstetricia(chat, messageId);
 }
@@ -4525,7 +4603,7 @@ function tratarCallbackUX(cb) {
     } else if (op === 'detalhes' || op === 'copiar' || op === 'pdf') {
       var raw = cache.get(v);
       var kbRetornoCopiar = botoesBot([
-        [['🔙 Sala Vermelha', 'ux:sala'], ['🏠 Início', 'ux:hub:inicio']]
+        [['🔙 Menu Anterior', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
       ]);
       if (!raw) {
         enviarMensagemComTecladoParaChat(chat, '⚠️ Resultado expirado do cache. Gere novamente com os dados do caso.', kbRetornoCopiar);
@@ -4537,7 +4615,7 @@ function tratarCallbackUX(cb) {
         var textoLimpo = uxTextoProntuario(raw);
         var fatias = uxDividirTexto(textoLimpo, 3500);
         fatias.forEach(function (fatia, idx) {
-          var blocoFatia = "📋 *PRONTO PARA O PRONTUÁRIO (1-TOQUE PARA COPIAR" + (fatias.length > 1 ? " · PARTE " + (idx + 1) + "/" + fatias.length : "") + "):*\n\n```text\n" + fatia + "\n```\n\n💡 Retorne ao menu ou sala vermelha abaixo:";
+          var blocoFatia = "📋 *PRONTO PARA O PRONTUÁRIO (1-TOQUE PARA COPIAR" + (fatias.length > 1 ? " · PARTE " + (idx + 1) + "/" + fatias.length : "") + "):*\n\n```text\n" + fatia + "\n```\n\n💡 Retorne ao menu ou início abaixo:";
           enviarMensagemComTecladoParaChat(chat, blocoFatia, kbRetornoCopiar);
         });
       } else {

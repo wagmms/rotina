@@ -90,11 +90,11 @@ test('construirTecladoHubGO: deve conter os 10 submódulos e rodapé contextual'
 
   assert.ok(callbacks.includes('ux:rotina:go'), 'Teclado de /go deve conter [🔙 Hub G&O]');
   assert.ok(callbacks.includes('ux:hub:inicio'), 'Teclado de /go deve conter [🏠 Início]');
-  assert.strictEqual(callbacks.length, 12, 'Deve ter 10 submódulos + 2 botões de navegação no rodapé');
+  assert.strictEqual(callbacks.length, 13, 'Deve ter 11 submódulos + 2 botões de navegação no rodapé');
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. Auditoria dos 10 Submódulos: Telas Iniciais, Presets e Retorno Contextual
+// 2. Auditoria dos 11 Submódulos: Telas Iniciais, Presets e Retorno Contextual
 // ─────────────────────────────────────────────────────────────────────────────
 
 const submódulosParaAuditar = [
@@ -107,7 +107,8 @@ const submódulosParaAuditar = [
   { nome: 'Vulvovaginites', telaFn: 'enviarTelaGOCorrimento', cbPrefix: 'corrimento', termoEsperado: 'VULVOVAGINITES' },
   { nome: 'Preventivo INCA', telaFn: 'enviarTelaGOPreventivo', cbPrefix: 'preventivo', termoEsperado: 'CITOPATOLÓGICA' },
   { nome: 'Anticoncepção OMS', telaFn: 'enviarTelaGOAnticoncepcao', cbPrefix: 'anticoncepcao', termoEsperado: 'CONTRACEPÇÃO' },
-  { nome: 'DIP & Infecção Pélvica', telaFn: 'enviarTelaGODip', cbPrefix: 'dip', termoEsperado: 'INFLAMATÓRIA PÉLVICA' }
+  { nome: 'DIP & Infecção Pélvica', telaFn: 'enviarTelaGODip', cbPrefix: 'dip', termoEsperado: 'INFLAMATÓRIA PÉLVICA' },
+  { nome: 'Lactação / Fármacos a Evitar', telaFn: 'enviarTelaGOLactacao', cbPrefix: 'lactacao', termoEsperado: 'LACTAÇÃO' }
 ];
 
 submódulosParaAuditar.forEach((sm, idx) => {

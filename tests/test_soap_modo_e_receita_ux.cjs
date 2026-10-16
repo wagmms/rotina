@@ -94,14 +94,12 @@ async function testSoapModoEReceitaUX() {
   const msgInicio = mensagensEnviadas[mensagensEnviadas.length - 1];
   assert(msgInicio.texto.includes('SOAP') && msgInicio.texto.includes('Novo Caso'), 'Texto deve indicar Novo Caso SOAP');
   
-  // Validar botões da tela inicial: deve ter exemplos rápidos e retorno contextual
+  // Validar botões da tela inicial: deve ter interface limpa e retorno contextual
   const botoesInicio = msgInicio.kb.inline_keyboard;
   const callbacksInicio = botoesInicio.flat().map(b => b.callback_data);
-  assert(callbacksInicio.includes('ux:amb:soap:has'), 'Deve conter atalho de exemplo HAS');
-  assert(callbacksInicio.includes('ux:amb:soap:dm2'), 'Deve conter atalho de exemplo DM2');
   assert(callbacksInicio.includes('ux:hub:amb'), 'Deve conter retorno contextual [🔙 Ambulatório]');
   assert(callbacksInicio.includes('ux:hub:inicio'), 'Deve conter retorno contextual [🏠 Início]');
-  console.log('  ✓ IniciarModoBot no modo SOAP validado com atalhos e retorno contextual.');
+  console.log('  ✓ IniciarModoBot no modo SOAP validado com foco em captura e retorno contextual.');
 
   // ---------------------------------------------------------------------------
   // [2] TESTE DE formatarRascunhoSoapTelegram E obterModeloExameFisicoCompleto

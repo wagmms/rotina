@@ -1381,8 +1381,9 @@ async function buildServer() {
 
     const MODELOS_LIVE_CANDIDATOS = [
       process.env.GEMINI_LIVE_MODEL,
-      'gemini-omni-flash-preview',
-      'gemini-2.0-flash-exp'
+      'gemini-2.5-flash',
+      'gemini-2.0-flash-exp',
+      'gemini-omni-flash-preview'
     ].filter(Boolean);
 
     const SYSTEM_INSTRUCTION_PRECEPTOR = `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva da FMRP-USP.
@@ -1394,7 +1395,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
 4. Ao ouvir uma conduta, reforce a segurança do paciente, alergias, contraindicações e diretrizes brasileiras (SBC, ILAS, AMIB, SBPT).
 5. NUNCA INVENTE DADOS DE PACIENTES nem simule casos fictícios aleatoriamente do nada. Se Wagner apenas chamar ou se faltarem dados (sinais vitais, exames), pergunte qual caso ele quer discutir ou pergunte ativamente o dado faltante. Somente simule caso se ele pedir expressamente.`;
 
-    // Função de tentativa de conexão com timeout defensivo rápido (2s)
+    // Função de tentativa de conexão com timeout defensivo (5s)
     async function tentarConectarLive(key, modelo) {
       return new Promise((resolve, reject) => {
         let finalizado = false;
@@ -1403,7 +1404,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
             finalizado = true;
             reject(new Error(`Timeout na negociação Live com modelo ${modelo}`));
           }
-        }, 2000);
+        }, 5000);
 
         try {
           const ai = new GoogleGenAI({ apiKey: key });

@@ -1,6 +1,21 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
-0C64. [x] **Plano Mestre Argon — Desacoplamento de IA, Hardening Clínico de Calculadoras e 4 Novos Domínios Puros via Gemini 4 Argon (`src/02_calculadoras_puras.js`, `src/04_motores_ia.js`, `src/07a_telegram_router.js`, `src/07c_telegram_consultas_e_ia.js`, `src/12_experiencia_bot.js`, `src/domain/*`)**:
+0C65. [x] **Elevação do SOAP FMRP-USP / PEP, Segurança na Lactação (G&O), Saneamento da REMUME no Cockpit e Resiliência Live/Calendar (`src/04_motores_ia.js`, `src/02_lactacao_seguranca.js`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js`, `gh_cockpit_deploy/index.html`, `server/google_calendar.js`, `server/index.js`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * *Modo SOAP*: Necessidade de elevar ao padrão-ouro telegráfico FMRP-USP, garantindo exame físico segmentar completo e obrigatório, CID-10 explícito, prescrição pronta dividida por vias e bloco limpo para cópia em 1 toque no PEP sem asteriscos ou poluição de formatação.
+      * *Preceptor Live & Calendar*: Falha de handshake WebSocket por timeout curto (2s) e ausência de modelos recentes (`gemini-2.5-flash`); URLs relativas no frontend do Cockpit PWA causavam 404 contra o GitHub Pages; ausência de suporte flexível a variáveis sem prefixo para OAuth do Google Calendar.
+      * *REMUME no Cockpit*: Chaves com pontuação impediam casamento determinístico O(1), gerando fallback genérico de "comprimido via oral" para ampolas e soluções injetáveis parenterais.
+      * *Lactação (G&O)*: Ausência de módulo determinístico de farmacologia na amamentação com categorização dupla Hale L1-L5 e Semáforo do Ministério da Saúde.
+    - **Correções Implementadas**:
+      1. *SOAP Padrão-Ouro FMRP-USP / PEP*: Prompt da Fase 2 e Fase 1 refinados com obrigatoriedade de CID-10, exame físico em linhas individuais por aparelho (\n), prescrição pronta dividida em [VIA ORAL] e [PARENTERAL/EMERGÊNCIA] com diluente e tempo de infusão, e inclusão de bloco formatado `[REGISTRO SOAP - PRONTUÁRIO ELETRÔNICO]` em bloco de código text para cópia em 1 toque sem truncamento.
+      2. *Segurança na Lactação (G&O)*: Desenvolvido `src/02_lactacao_seguranca.js` (e `src/domain/lactacao_seguranca_domain.js`) com 58 fármacos críticos, 261 termos indexados, categorias Hale L1 a L5, Semáforo MS (🟢/🟡/🔴), busca O(1) < 0.1ms, `formatarCardLactacao` e `obterGuiaRapidoClasses`. Integrado ao bot via `/lactacao`, `/amamentacao` e 11º submódulo do Hub G&O (`go_lactacao`).
+      3. *Saneamento da REMUME*: 20 injetáveis hospitalares de emergência indexados em `POSOLOGIAS_REFERENCIA_REMUME`, criação de `POSOLOGIAS_NORMALIZADAS_REMUME` O(1) e trava estrita de forma farmacêutica (injetável NUNCA casa com comprimido oral; fallbacks específicos por via sem "via oral").
+      4. *Resiliência de Preceptor Live & Google Calendar*: `server/index.js` atualizado com timeout de 5s e modelo `gemini-2.5-flash`; `server/google_calendar.js` com fallback resiliente para variáveis sem prefixo; `window.ULTRA_CONFIG` e `obterApiBaseUrl()` implementados no Cockpit PWA para garantir comunicação perfeita com o Render a partir do GitHub Pages.
+      5. *Dogfooding do Usuário Real*: Criado `tests/test_usuario_dogfooding.cjs` simulando jornada clínica completa (consultas /lactacao, Hub G&O, busca REMUME, geração de SOAP PEP e endpoints).
+    - **Recibo de Estabilidade**:
+      * `tests/test_lactacao_seguranca_domain.cjs` (5/5) e `tests/test_usuario_dogfooding.cjs`: 100% aprovados.
+      * Bateria completa de regressão `npm test` (`node scripts/run_tests.cjs`): **57/57 suítes aprovadas com 100% de sucesso em 21.43s**. Paridade de hash de `cockpit_movel.html` e `gh_cockpit_deploy/index.html` 100% preservada.
+
     - **Diagnóstico e Causa Raiz**:
       * Latência artificial no Telegram de até 18 segundos causada por chamadas síncronas de LLM em `classificarIntencaoMensagem` para intenções rotineiras, comandos de calculadoras e conversação geral.
       * Módulo de calculadoras puras (`src/02_calculadoras_puras.js`) continha falha de `bool()` impedindo execução de `cha2ds2vasc` e `meld` com flags booleanas opcionais; `ReferenceError` por chamada inexistente `entradaInvalida` em posologia pediátrica; comparadores desprotegidos contra idade nula atribuindo dose de lactente a crianças de 40 kg; e cálculo de ibuprofeno gotas 50 mg/mL com sobredose de 20 mg/kg.
