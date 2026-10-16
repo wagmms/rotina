@@ -582,6 +582,124 @@ async function buildServer() {
   // 5.0.3 ROTAS REST DEDICADAS: ABA ROTINA & SINCRONIZAÇÃO GOOGLE CALENDAR
   // ==============================================================================
 
+  // Conjunto de conexões ativas SSE do Cockpit PWA
+  const sseClients = new Set();
+
+  function broadcastSSE(eventName, payload) {
+    const frame = `event: ${eventName}\ndata: ${JSON.stringify(payload)}\n\n`;
+    for (const client of sseClients) {
+      try {
+        client.raw.write(frame);
+      } catch (_) {
+        sseClients.delete(client);
+      }
+    }
+  }
+
+  // Sincronização In-Place com Telegram (editMessageText anti-spam)
+  async function sincronizarMensagemAtivaTelegramInPlace(dateKey) {
+    try {
+      const token = (runtime.ctx.ConfigService && runtime.ctx.ConfigService.get)
+        ? runtime.ctx.ConfigService.get('TELEGRAM_BOT_TOKEN')
+        : runtime.propsStore.TELEGRAM_BOT_TOKEN;
+      const chatId = (runtime.ctx.ConfigService && typeof runtime.ctx.ConfigService.getPrimary === 'function')
+        ? runtime.ctx.ConfigService.getPrimary('TELEGRAM_CHAT_ID')
+        : String(runtime.propsStore.TELEGRAM_CHAT_ID || '').split(',')[0].trim();
+
+      if (!token || !chatId) return false;
+
+      const rawActive = runtime.propsStore[`ROTINA_ACTIVE_MSG_${chatId}`];
+      if (!rawActive) return false;
+
+      let activeInfo = null;
+      try { activeInfo = JSON.parse(rawActive); } catch (_) { return false; }
+      if (!activeInfo || !activeInfo.message_id) return false;
+
+      const dataRef = dateKey ? new Date(dateKey + 'T12:00:00') : new Date();
+      const RotinaService = runtime.ctx.RotinaService;
+      if (!RotinaService || !RotinaService.obterBlocosDoDia) return false;
+
+      const blocos = RotinaService.obterBlocosDoDia(dataRef);
+      const texto = "☀️ *ROTINA DO DIA (TIME-BLOCKING ADAPTATIVO)*\n\n" +
+        RotinaService.formatarTimelineMarkdown(blocos, dataRef) +
+        "\n\n💡 *Para ajustar:* Toque abaixo ou envie áudio/texto:";
+      const teclado = RotinaService.construirTecladoTimeline(dataRef, blocos);
+
+      const hashPayload = crypto.createHash('sha1').update(texto + JSON.stringify(teclado)).digest('hex').substring(0, 16);
+      if (activeInfo.hash === hashPayload) {
+        return true;
+      }
+
+      if (process.env.NODE_ENV === 'test') {
+        activeInfo.hash = hashPayload;
+        runtime.propsStore[`ROTINA_ACTIVE_MSG_${chatId}`] = JSON.stringify(activeInfo);
+        return true;
+      }
+
+      const urlEdit = `https://api.telegram.org/bot${token}/editMessageText`;
+      const res = await fetch(urlEdit, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_id: activeInfo.message_id,
+          text: texto,
+          parse_mode: 'Markdown',
+          reply_markup: teclado
+        })
+      });
+
+      if (res.ok) {
+        activeInfo.hash = hashPayload;
+        runtime.propsStore[`ROTINA_ACTIVE_MSG_${chatId}`] = JSON.stringify(activeInfo);
+        return true;
+      }
+    } catch (err) {
+      fastify.log.warn(`[sincronizarMensagemAtivaTelegramInPlace] Aviso: ${err.message}`);
+    }
+    return false;
+  }
+
+  // Escuta mutações reativas no runtime
+  if (runtime.rotinaBus && typeof runtime.rotinaBus.on === 'function') {
+    runtime.rotinaBus.on('rotina:mutated', async (evt) => {
+      try {
+        const dataRef = evt.dateKey ? new Date(evt.dateKey + 'T12:00:00') : new Date();
+        const blocos = (runtime.ctx.RotinaService && runtime.ctx.RotinaService.obterBlocosDoDia)
+          ? runtime.ctx.RotinaService.obterBlocosDoDia(dataRef)
+          : [];
+
+        broadcastSSE('rotina_update', {
+          dateKey: evt.dateKey,
+          version: evt.version,
+          updatedAt: evt.updatedAt,
+          origin: evt.origin,
+          key: evt.key,
+          blocos
+        });
+
+        if (evt.origin === 'cockpit' || evt.origin === 'gcal') {
+          await sincronizarMensagemAtivaTelegramInPlace(evt.dateKey);
+        }
+      } catch (err) {
+        fastify.log.warn(`[rotinaBus] Erro ao despachar evento SSE/Telegram: ${err.message}`);
+      }
+    });
+  }
+
+  // Heartbeat periódico SSE para manter conexões vivas através de proxies
+  const sseHeartbeatTimer = setInterval(() => {
+    const pingFrame = `event: ping\ndata: {"ts":${Date.now()}}\n\n`;
+    for (const client of sseClients) {
+      try {
+        client.raw.write(pingFrame);
+      } catch (_) {
+        sseClients.delete(client);
+      }
+    }
+  }, 25000);
+  if (sseHeartbeatTimer.unref) sseHeartbeatTimer.unref();
+
   // Função auxiliar para verificar se a requisição veio de convidado (não titular)
   const ehRequisicaoConvidado = (req) => {
     const qGuest = req.query?.guest;
@@ -599,6 +717,74 @@ async function buildServer() {
     }
     return false;
   };
+
+  // Endpoint Server-Sent Events (SSE): /api/rotina/events
+  fastify.get('/api/rotina/events', (request, reply) => {
+    if (ehRequisicaoConvidado(request)) {
+      reply.status(403);
+      return { ok: false, erro: 'Acesso restrito ao titular.' };
+    }
+    const dataParam = request.query?.data || request.query?.date;
+    const dataRef = dataParam ? new Date(dataParam + 'T12:00:00') : new Date();
+    const dataISO = (runtime.ctx.RotinaService && runtime.ctx.RotinaService.normalizarDataISO)
+      ? runtime.ctx.RotinaService.normalizarDataISO(dataRef)
+      : new Date().toISOString().slice(0, 10);
+
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
+      'Access-Control-Allow-Origin': '*'
+    });
+
+    const verInfo = runtime.getRotinaVersion ? runtime.getRotinaVersion(dataISO) : { version: 1 };
+    const blocos = (runtime.ctx.RotinaService && runtime.ctx.RotinaService.obterBlocosDoDia)
+      ? runtime.ctx.RotinaService.obterBlocosDoDia(dataRef)
+      : [];
+
+    reply.raw.write(`event: connected\ndata: ${JSON.stringify({
+      ok: true,
+      data: dataISO,
+      version: verInfo.version,
+      blocos
+    })}\n\n`);
+
+    sseClients.add(reply);
+    request.raw.on('close', () => {
+      sseClients.delete(reply);
+    });
+  });
+
+  // Endpoint de Checagem Ultraleve de Versão / ETag: /api/rotina/version
+  fastify.get('/api/rotina/version', async (request, reply) => {
+    if (ehRequisicaoConvidado(request)) {
+      reply.status(403);
+      return { ok: false, erro: 'Acesso restrito ao titular.' };
+    }
+    const dataParam = request.query?.data || request.query?.date;
+    const dataRef = dataParam ? new Date(dataParam + 'T12:00:00') : new Date();
+    const dataISO = (runtime.ctx.RotinaService && runtime.ctx.RotinaService.normalizarDataISO)
+      ? runtime.ctx.RotinaService.normalizarDataISO(dataRef)
+      : new Date().toISOString().slice(0, 10);
+
+    const verInfo = runtime.getRotinaVersion ? runtime.getRotinaVersion(dataISO) : { version: 1, updatedAt: new Date().toISOString() };
+    const etag = `"rotina-${dataISO}-v${verInfo.version}"`;
+
+    reply.header('ETag', etag);
+    reply.header('Cache-Control', 'no-cache');
+
+    if (request.headers['if-none-match'] === etag) {
+      return reply.code(304).send();
+    }
+
+    return {
+      ok: true,
+      data: dataISO,
+      version: verInfo.version,
+      updatedAt: verInfo.updatedAt
+    };
+  });
 
   // Obter blocos da rotina do dia (Google Calendar + Overrides)
   fastify.get('/api/rotina/blocos', async (request, reply) => {
@@ -638,9 +824,14 @@ async function buildServer() {
         reply.status(400);
         return { ok: false, sucesso: false, erro: 'Campo "blocos" deve ser um array.' };
       }
-      if (runtime.ctx.RotinaService && runtime.ctx.RotinaService.salvarBlocosDoDia) {
-        runtime.ctx.RotinaService.salvarBlocosDoDia(dataRef, blocos);
-      }
+      
+      const runner = runtime.runWithOrigin ? runtime.runWithOrigin : ((o, fn) => fn());
+      runner('cockpit', () => {
+        if (runtime.ctx.RotinaService && runtime.ctx.RotinaService.salvarBlocosDoDia) {
+          runtime.ctx.RotinaService.salvarBlocosDoDia(dataRef, blocos);
+        }
+      });
+
       const dataISO = (runtime.ctx.RotinaService && runtime.ctx.RotinaService.normalizarDataISO)
         ? runtime.ctx.RotinaService.normalizarDataISO(dataRef)
         : (dataParam || new Date().toISOString().slice(0, 10));
@@ -675,7 +866,12 @@ async function buildServer() {
         inicio: typeof body.inicio === 'string' ? body.inicio.trim() : undefined,
         fim: typeof body.fim === 'string' ? body.fim.trim() : undefined
       };
-      const res = runtime.ctx.RotinaService.marcarStatusBloco(dataRef, blocoId, novoStatus, nota, extras);
+      
+      const runner = runtime.runWithOrigin ? runtime.runWithOrigin : ((o, fn) => fn());
+      const res = runner('cockpit', () => {
+        return runtime.ctx.RotinaService.marcarStatusBloco(dataRef, blocoId, novoStatus, nota, extras);
+      });
+
       const dataISO = runtime.ctx.RotinaService.normalizarDataISO(dataRef);
       return { ok: true, sucesso: res.sucesso, data: dataISO, blocos: res.blocos };
     } catch (err) {
@@ -714,8 +910,11 @@ async function buildServer() {
         }
       }
 
+      const runner = runtime.runWithOrigin ? runtime.runWithOrigin : ((o, fn) => fn());
       if (blocosFrescos.length > 0) {
-        runtime.ctx.RotinaService.salvarBlocosDoDia(dataRef, blocosFrescos);
+        runner('gcal', () => {
+          runtime.ctx.RotinaService.salvarBlocosDoDia(dataRef, blocosFrescos);
+        });
       }
 
       const blocosFinais = runtime.ctx.RotinaService.obterBlocosDoDia(dataRef);

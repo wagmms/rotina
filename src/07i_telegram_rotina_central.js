@@ -406,7 +406,28 @@ function tratarCallbackRotina(cb) {
       parse_mode: "Markdown",
       reply_markup: tecladoAtualizado
     });
+    try {
+      var dKey = (typeof RotinaService !== "undefined" && RotinaService.normalizarDataISO) ? RotinaService.normalizarDataISO(hoje) : new Date().toISOString().slice(0, 10);
+      PropertiesService.getScriptProperties().setProperty("ROTINA_ACTIVE_MSG_" + chatId, JSON.stringify({
+        message_id: msgId,
+        chat_id: chatId,
+        dateKey: dKey,
+        hash: ""
+      }));
+    } catch (_) {}
   } else {
-    enviarMensagemComTecladoParaChat(chatId, textoAtualizado, tecladoAtualizado);
+    var resEnvio = enviarMensagemComTecladoParaChat(chatId, textoAtualizado, tecladoAtualizado);
+    try {
+      var envMsgId = (typeof resEnvio === "object" && resEnvio && resEnvio.result && resEnvio.result.message_id) ? resEnvio.result.message_id : null;
+      if (envMsgId) {
+        var dKey = (typeof RotinaService !== "undefined" && RotinaService.normalizarDataISO) ? RotinaService.normalizarDataISO(hoje) : new Date().toISOString().slice(0, 10);
+        PropertiesService.getScriptProperties().setProperty("ROTINA_ACTIVE_MSG_" + chatId, JSON.stringify({
+          message_id: envMsgId,
+          chat_id: chatId,
+          dateKey: dKey,
+          hash: ""
+        }));
+      }
+    } catch (_) {}
   }
 }

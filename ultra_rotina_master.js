@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-16 12:56:05
- * Checksum SHA256: 3ee1ac40a5c74a77
+ * Gerado automaticamente via build_master.py em: 2026-10-16 19:08:58
+ * Checksum SHA256: 5d4525f273a0524a
  * ==============================================================================
  */
 
@@ -604,6 +604,16 @@ function removerBotaoInline(callbackQuery) {
     "reply_markup": { "inline_keyboard": [] }
   };
   executarPostTelegram(url, payload);
+}
+
+function deletarMensagemTelegram(chatId, messageId) {
+  if (!chatId || !messageId) return false;
+  var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
+  if (!token) return false;
+  return executarPostTelegram("https://api.telegram.org/bot" + token + "/deleteMessage", {
+    "chat_id": String(chatId),
+    "message_id": Number(messageId)
+  });
 }
 
 /**
@@ -44208,8 +44218,141 @@ function _iaHashChave(k) {
   return s.slice(0, 6) + "_" + s.slice(-6);
 }
 
+/**
+ * ==============================================================================
+ * MOTOR PRIMÁRIO TIER-0: GOOGLE CLOUD VERTEX AI (GEMINI-4-ARGON)
+ * ==============================================================================
+ * Consome os créditos ativos da Google Cloud Vertex AI via Service Account OAuth2 (RS256).
+ * Suporta Raciocínio Clínico Avançado, Áudio Multimodal e Imagens Médicas (ECG, RX, TC, Exames).
+ */
+function chamarVertexAIGemini(parts, systemPrompt, opcoes) {
+  if (typeof VertexAuthService === "undefined" || !VertexAuthService || !VertexAuthService.isConfigured()) {
+    return null;
+  }
+
+  opcoes = opcoes || {};
+  var auth = null;
+  try {
+    auth = VertexAuthService.getAuthInfo();
+  } catch (eAuth) {
+    if (typeof Logger !== "undefined" && Logger.log) {
+      Logger.log("[VertexAI] Falha ao obter token OAuth2: " + (eAuth.message || eAuth));
+    }
+    return null;
+  }
+  if (!auth || !auth.accessToken) return null;
+
+  var projectId = auth.projectId || VertexAuthService.getProjectId();
+  var primaryLoc = opcoes.location || ConfigService.get("VERTEX_LOCATION", VertexAuthService.getLocation() || "global");
+  var primaryModel = opcoes.model || ConfigService.get("VERTEX_MODEL", VertexAuthService.getModel() || "gemini-4-argon");
+
+  // Lista de tentativas na Vertex AI (Prioridade 1: gemini-4-argon em global)
+  var rotasVertex = [
+    { model: primaryModel, location: primaryLoc }
+  ];
+  if (primaryLoc !== "global") {
+    rotasVertex.push({ model: primaryModel, location: "global" });
+  }
+
+  // Normaliza parts
+  var userParts = Array.isArray(parts) ? parts : [{ text: String(parts || "") }];
+  var payloadObj = {
+    contents: [
+      {
+        role: "user",
+        parts: userParts
+      }
+    ],
+    generationConfig: {
+      temperature: opcoes.temperature !== undefined ? opcoes.temperature : 0.15,
+      maxOutputTokens: opcoes.maxOutputTokens || 4096
+    }
+  };
+
+  if (systemPrompt && String(systemPrompt).trim()) {
+    payloadObj.systemInstruction = {
+      role: "system",
+      parts: [{ text: String(systemPrompt).trim() }]
+    };
+  }
+
+  if (opcoes.responseMimeType) {
+    payloadObj.generationConfig.responseMimeType = opcoes.responseMimeType;
+  }
+
+  var payloadStr = JSON.stringify(payloadObj);
+
+  for (var i = 0; i < rotasVertex.length; i++) {
+    var rota = rotasVertex[i];
+    var host = (rota.location === "global")
+      ? "https://aiplatform.googleapis.com"
+      : "https://" + rota.location + "-aiplatform.googleapis.com";
+
+    var url = host + "/v1/projects/" + projectId +
+              "/locations/" + rota.location +
+              "/publishers/google/models/" + rota.model + ":generateContent";
+
+    try {
+      var res = UrlFetchApp.fetch(url, {
+        method: "post",
+        contentType: "application/json",
+        headers: {
+          "Authorization": "Bearer " + auth.accessToken
+        },
+        payload: payloadStr,
+        muteHttpExceptions: true,
+        timeoutMs: opcoes.timeoutMs || 35000
+      });
+
+      var code = res ? res.getResponseCode() : 0;
+      if (code === 200) {
+        var json = JSON.parse(res.getContentText());
+        if (json && json.candidates && json.candidates[0] &&
+            json.candidates[0].content && json.candidates[0].content.parts) {
+          var textoExtraido = json.candidates[0].content.parts
+            .map(function(p) { return p.text || ""; })
+            .join("")
+            .trim();
+          if (textoExtraido) {
+            return textoExtraido;
+          }
+        }
+      } else {
+        if (typeof Logger !== "undefined" && Logger.log) {
+          Logger.log("[VertexAI] Aviso em " + rota.model + " (" + rota.location + ") HTTP " + code + ": " +
+                     (res ? res.getContentText().slice(0, 220) : "sem resposta"));
+        }
+      }
+    } catch (errV) {
+      if (typeof Logger !== "undefined" && Logger.log) {
+        Logger.log("[VertexAI] Exceção em " + rota.model + " (" + rota.location + "): " + (errV.message || errV));
+      }
+    }
+  }
+
+  return null;
+}
+
 function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
   opcoes = opcoes || {};
+
+  // 0. Prioridade Tier-0: Google Cloud Vertex AI (gemini-4-argon)
+  if (typeof VertexAuthService !== "undefined" && VertexAuthService && VertexAuthService.isConfigured()) {
+    try {
+      var partesUser = opcoes.partesUsuario || [{ text: prompt }];
+      var instrucaoVertex = (opcoes.instrucaoSistema || sistema) + IA_DIRETIVA_SEM_LATEX;
+      var optsVertex = Object.assign({}, opcoes, {
+        maxOutputTokens: _iaTokensEfetivos(tokens)
+      });
+      var resVertex = chamarVertexAIGemini(partesUser, instrucaoVertex, optsVertex);
+      if (resVertex && String(resVertex).trim()) {
+        return { texto: String(resVertex).trim(), truncado: false, modelo: "gemini-4-argon", groundingMetadata: null };
+      }
+    } catch (eVx) {
+      _iaLog(ctx, "VERTEX AI falha, recorrendo ao pool de fallback: " + (eVx.message || eVx));
+    }
+  }
+
   if (_iaBloqueado("GEMINI_NET_FAIL")) {
     _iaLog(ctx, "GEMINI: indisponibilidade transitória de rede ativa (Fast-Ack / cooldown), pulando para motor local.");
     return null;
@@ -44373,6 +44516,12 @@ function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
           _iaBloquear("GEMINI_" + modelo, 3600);
           _iaLog(ctx, "GEMINI " + modelo + ": 404 (bloqueado por 1h)");
           break;
+        } else if (code === 402) {
+          todas429 = false;
+          _iaBloquear("GEMINI_" + modelo, 3600);
+          _iaBloquear("GEMINI_K_" + hashChave + "_" + modelo, 3600);
+          _iaLog(ctx, "GEMINI " + modelo + ": 402 Pré-pagamento esgotado na chave #" + idx + " (bloqueado por 1h)");
+          continue;
         } else if (code === 401 || code === 403) {
           _iaLog(ctx, "GEMINI: chave #" + idx + " recusada (" + code + ")");
           continue;
@@ -58044,7 +58193,19 @@ function processarMensagemVoz(message) {
 
 function processarMensagemFoto(message) {
   var chatId = (message.chat && message.chat.id) ? message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
-  enviarChatAction(chatId, "upload_photo");
+  enviarChatAction(chatId, "typing");
+
+  // Feedback visual instantâneo (< 300ms) para eliminar sensação de travamento no plantão
+  var msgStatusId = null;
+  try {
+    var resStatus = enviarMensagemParaChat(chatId, "🩺 _Analisando imagem médica com IA (Vertex AI)..._");
+    if (resStatus && resStatus.result && resStatus.result.message_id) {
+      msgStatusId = resStatus.result.message_id;
+    } else if (typeof resStatus === "number" || typeof resStatus === "string") {
+      msgStatusId = resStatus;
+    }
+  } catch (eSt) {}
+
   try {
     var photos = message.photo;
     var fotoAlvo = null;
@@ -58063,18 +58224,31 @@ function processarMensagemFoto(message) {
     }
 
     if (!fotoAlvo) {
+      if (msgStatusId && typeof deletarMensagemTelegram === "function") deletarMensagemTelegram(chatId, msgStatusId);
       return enviarMensagemParaChat(chatId, "⚠️ Nenhuma imagem identificada na mensagem.");
     }
 
     var midia = medirEtapaBot('download_midia', function() { return baixarMidiaTelegram(fotoAlvo); });
     if (!midia || !midia.data) {
+      if (msgStatusId && typeof deletarMensagemTelegram === "function") deletarMensagemTelegram(chatId, msgStatusId);
       return enviarMensagemParaChat(chatId, "⚠️ Falha ao baixar imagem do Telegram.");
     }
 
+    enviarChatAction(chatId, "typing");
     var caption = message.caption ? message.caption.trim() : "";
     var resultadoImagem = (typeof analisarImagemMedicaComIA === "function")
       ? analisarImagemMedicaComIA(midia.data, midia.mime, caption)
-      : chamarGeminiPoolMultimodal(midia.data, midia.mime, "Você é um Preceptor de Clínica Médica, Cardiologia e Radiologia da FMRP-USP. Analise a imagem detalhadamente com laudo estruturado.", caption);
+      : chamarGeminiPoolMultimodal(
+          midia.data,
+          midia.mime,
+          "Você é um Preceptor Sênior de Clínica Médica, Emergência e Radiologia da FMRP-USP. Analise a imagem detalhadamente com laudo estruturado e conduta prática imediata.",
+          caption
+        );
+
+    // Remove a mensagem temporária de "Analisando..."
+    if (msgStatusId && typeof deletarMensagemTelegram === "function") {
+      try { deletarMensagemTelegram(chatId, msgStatusId); } catch (eDel) {}
+    }
 
     if (resultadoImagem) {
       var cacheKey = Utilities.getUuid().replace(/-/g, "");
@@ -58084,6 +58258,7 @@ function processarMensagemFoto(message) {
       var tecladoSalvar = {
         "inline_keyboard": [
           [
+            { "text": "📋 Copiar Laudo", "callback_data": "ux:copiar:" + cacheKey },
             { "text": "➕ Incorporar ao SOAP", "callback_data": "incorporarSoap_" + cacheKey }
           ],
           [
@@ -58092,14 +58267,17 @@ function processarMensagemFoto(message) {
           ]
         ]
       };
-      enviarMensagemComTecladoParaChat(chatId, resultadoImagem, tecladoSalvar);
+      return enviarMensagemComTecladoParaChat(chatId, resultadoImagem, tecladoSalvar);
     } else {
-      enviarMensagemParaChat(chatId, "⚠️ Erro ao analisar imagem médica (IA não retornou resposta).");
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao analisar imagem médica (IA não retornou resposta).");
     }
   } catch (err) {
+    if (msgStatusId && typeof deletarMensagemTelegram === "function") {
+      try { deletarMensagemTelegram(chatId, msgStatusId); } catch (eDelErr) {}
+    }
     var msgErrFoto = (err && (err.message || err)) || "Erro desconhecido";
     Logger.log("Erro no processamento de foto: " + (err && err.stack ? err.stack : msgErrFoto));
-    enviarMensagemParaChat(chatId, "⚠️ Erro ao processar imagem: " + msgErrFoto);
+    return enviarMensagemParaChat(chatId, "⚠️ Erro ao processar imagem: " + msgErrFoto);
   }
 }
 
@@ -60359,7 +60537,7 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
       "• *Adrenalina 1 mg IV/IO* em bólus + flush 20 mL SF 0.9% (repetir a cada 3 a 5 min).\n" +
       "• Obter acesso IV/IO e considerar via aérea avançada (EtCO₂).\n\n" +
       "3️⃣ *CICLO 3 (Pós-3º Choque — FV/TV Refratária):*\n" +
-      "• *Amiodarona 300 mg IV/IO* em bólus rápido (2ª dose: 150 mg após 2 ciclos).\n" +
+      "• *Amiodarona 300 mg IV/IO* em bólus rápido (2ª dose: 150 mg pós-4º choque se persistir FV/TV).\n" +
       "• _Alternativa à Amiodarona:_ Lidocaína 1 a 1,5 mg/kg IV/IO (2ª dose: 0,5 a 0,75 mg/kg).\n" +
       "• Sulfato de Magnésio 50% 2g IV em 1-2 min se suspeita de *Torsades de Pointes*.\n\n" +
       "4️⃣ *INVESTIGAR CAUSAS REVERSÍVEIS (5 Hs & 5 Ts)*";
@@ -61759,8 +61937,29 @@ function tratarCallbackRotina(cb) {
       parse_mode: "Markdown",
       reply_markup: tecladoAtualizado
     });
+    try {
+      var dKey = (typeof RotinaService !== "undefined" && RotinaService.normalizarDataISO) ? RotinaService.normalizarDataISO(hoje) : new Date().toISOString().slice(0, 10);
+      PropertiesService.getScriptProperties().setProperty("ROTINA_ACTIVE_MSG_" + chatId, JSON.stringify({
+        message_id: msgId,
+        chat_id: chatId,
+        dateKey: dKey,
+        hash: ""
+      }));
+    } catch (_) {}
   } else {
-    enviarMensagemComTecladoParaChat(chatId, textoAtualizado, tecladoAtualizado);
+    var resEnvio = enviarMensagemComTecladoParaChat(chatId, textoAtualizado, tecladoAtualizado);
+    try {
+      var envMsgId = (typeof resEnvio === "object" && resEnvio && resEnvio.result && resEnvio.result.message_id) ? resEnvio.result.message_id : null;
+      if (envMsgId) {
+        var dKey = (typeof RotinaService !== "undefined" && RotinaService.normalizarDataISO) ? RotinaService.normalizarDataISO(hoje) : new Date().toISOString().slice(0, 10);
+        PropertiesService.getScriptProperties().setProperty("ROTINA_ACTIVE_MSG_" + chatId, JSON.stringify({
+          message_id: envMsgId,
+          chat_id: chatId,
+          dateKey: dKey,
+          hash: ""
+        }));
+      }
+    } catch (_) {}
   }
 }
 

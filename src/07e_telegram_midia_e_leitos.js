@@ -347,7 +347,19 @@ function processarMensagemVoz(message) {
 
 function processarMensagemFoto(message) {
   var chatId = (message.chat && message.chat.id) ? message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
-  enviarChatAction(chatId, "upload_photo");
+  enviarChatAction(chatId, "typing");
+
+  // Feedback visual instantâneo (< 300ms) para eliminar sensação de travamento no plantão
+  var msgStatusId = null;
+  try {
+    var resStatus = enviarMensagemParaChat(chatId, "🩺 _Analisando imagem médica com IA (Vertex AI)..._");
+    if (resStatus && resStatus.result && resStatus.result.message_id) {
+      msgStatusId = resStatus.result.message_id;
+    } else if (typeof resStatus === "number" || typeof resStatus === "string") {
+      msgStatusId = resStatus;
+    }
+  } catch (eSt) {}
+
   try {
     var photos = message.photo;
     var fotoAlvo = null;
@@ -366,18 +378,31 @@ function processarMensagemFoto(message) {
     }
 
     if (!fotoAlvo) {
+      if (msgStatusId && typeof deletarMensagemTelegram === "function") deletarMensagemTelegram(chatId, msgStatusId);
       return enviarMensagemParaChat(chatId, "⚠️ Nenhuma imagem identificada na mensagem.");
     }
 
     var midia = medirEtapaBot('download_midia', function() { return baixarMidiaTelegram(fotoAlvo); });
     if (!midia || !midia.data) {
+      if (msgStatusId && typeof deletarMensagemTelegram === "function") deletarMensagemTelegram(chatId, msgStatusId);
       return enviarMensagemParaChat(chatId, "⚠️ Falha ao baixar imagem do Telegram.");
     }
 
+    enviarChatAction(chatId, "typing");
     var caption = message.caption ? message.caption.trim() : "";
     var resultadoImagem = (typeof analisarImagemMedicaComIA === "function")
       ? analisarImagemMedicaComIA(midia.data, midia.mime, caption)
-      : chamarGeminiPoolMultimodal(midia.data, midia.mime, "Você é um Preceptor de Clínica Médica, Cardiologia e Radiologia da FMRP-USP. Analise a imagem detalhadamente com laudo estruturado.", caption);
+      : chamarGeminiPoolMultimodal(
+          midia.data,
+          midia.mime,
+          "Você é um Preceptor Sênior de Clínica Médica, Emergência e Radiologia da FMRP-USP. Analise a imagem detalhadamente com laudo estruturado e conduta prática imediata.",
+          caption
+        );
+
+    // Remove a mensagem temporária de "Analisando..."
+    if (msgStatusId && typeof deletarMensagemTelegram === "function") {
+      try { deletarMensagemTelegram(chatId, msgStatusId); } catch (eDel) {}
+    }
 
     if (resultadoImagem) {
       var cacheKey = Utilities.getUuid().replace(/-/g, "");
@@ -387,6 +412,7 @@ function processarMensagemFoto(message) {
       var tecladoSalvar = {
         "inline_keyboard": [
           [
+            { "text": "📋 Copiar Laudo", "callback_data": "ux:copiar:" + cacheKey },
             { "text": "➕ Incorporar ao SOAP", "callback_data": "incorporarSoap_" + cacheKey }
           ],
           [
@@ -395,14 +421,17 @@ function processarMensagemFoto(message) {
           ]
         ]
       };
-      enviarMensagemComTecladoParaChat(chatId, resultadoImagem, tecladoSalvar);
+      return enviarMensagemComTecladoParaChat(chatId, resultadoImagem, tecladoSalvar);
     } else {
-      enviarMensagemParaChat(chatId, "⚠️ Erro ao analisar imagem médica (IA não retornou resposta).");
+      return enviarMensagemParaChat(chatId, "⚠️ Erro ao analisar imagem médica (IA não retornou resposta).");
     }
   } catch (err) {
+    if (msgStatusId && typeof deletarMensagemTelegram === "function") {
+      try { deletarMensagemTelegram(chatId, msgStatusId); } catch (eDelErr) {}
+    }
     var msgErrFoto = (err && (err.message || err)) || "Erro desconhecido";
     Logger.log("Erro no processamento de foto: " + (err && err.stack ? err.stack : msgErrFoto));
-    enviarMensagemParaChat(chatId, "⚠️ Erro ao processar imagem: " + msgErrFoto);
+    return enviarMensagemParaChat(chatId, "⚠️ Erro ao processar imagem: " + msgErrFoto);
   }
 }
 

@@ -800,7 +800,7 @@ function tratarComandoPcr(chatId, dadosPcr, messageId) {
       "• *Adrenalina 1 mg IV/IO* em bólus + flush 20 mL SF 0.9% (repetir a cada 3 a 5 min).\n" +
       "• Obter acesso IV/IO e considerar via aérea avançada (EtCO₂).\n\n" +
       "3️⃣ *CICLO 3 (Pós-3º Choque — FV/TV Refratária):*\n" +
-      "• *Amiodarona 300 mg IV/IO* em bólus rápido (2ª dose: 150 mg após 2 ciclos).\n" +
+      "• *Amiodarona 300 mg IV/IO* em bólus rápido (2ª dose: 150 mg pós-4º choque se persistir FV/TV).\n" +
       "• _Alternativa à Amiodarona:_ Lidocaína 1 a 1,5 mg/kg IV/IO (2ª dose: 0,5 a 0,75 mg/kg).\n" +
       "• Sulfato de Magnésio 50% 2g IV em 1-2 min se suspeita de *Torsades de Pointes*.\n\n" +
       "4️⃣ *INVESTIGAR CAUSAS REVERSÍVEIS (5 Hs & 5 Ts)*";

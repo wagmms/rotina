@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const crypto = require('crypto');
+const { EventEmitter } = require('events');
 const syncFetch = require('sync-fetch');
 const { Worker } = require('worker_threads');
 const { googleCalendarInstance } = require('./google_calendar');
@@ -92,7 +93,7 @@ const ENV_BLOCKLIST = new Set([
 ]);
 
 const BOT_ENV_PREFIXES = [
-  'BOT_', 'TELEGRAM_', 'GEMINI_', 'NOTION_', 'GROQ_', 'OPENROUTER_', 'ZAI_',
+  'BOT_', 'TELEGRAM_', 'GEMINI_', 'VERTEX_', 'GCP_', 'NOTION_', 'GROQ_', 'OPENROUTER_', 'ZAI_',
   'LOCAL_LLM_', 'OLLAMA_', 'LOCAL_', 'GOOGLE_', 'CALENDAR_',
   'SPREADSHEET_', 'WEBHOOK_', 'WEB_APP_', 'IA_', 'TIMEZONE', 'PORT', 'HOST',
   'D1_', 'CF_', 'RENDER_', 'NODE_ENV'
@@ -175,6 +176,64 @@ process.on('beforeExit', () => {
     escreverPropriedades();
   } catch (e) {}
 });
+
+// ==============================================================================
+// BARRAMENTO REATIVO DE ROTINA (SSE & TELEGRAM SYNC) E VERSIONAMENTO MONOTÔNICO
+// ==============================================================================
+const rotinaBus = new EventEmitter();
+rotinaBus.setMaxListeners(100);
+
+let currentMutationOrigin = 'system'; // 'telegram' | 'cockpit' | 'gcal' | 'system'
+
+function runWithOrigin(origin, fn) {
+  const prev = currentMutationOrigin;
+  currentMutationOrigin = origin || 'system';
+  try {
+    return fn();
+  } finally {
+    currentMutationOrigin = prev;
+  }
+}
+
+function extractDateKeyFromProperty(key) {
+  const match = String(key || '').match(/(20\d{2}-\d{2}-\d{2})/);
+  if (match) return match[1];
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+}
+
+function bumpRotinaVersion(dateKey, keyChanged = 'ROTINA_MUTATION', origin = currentMutationOrigin) {
+  const targetDate = String(dateKey || '').trim().slice(0, 10) || new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+  const verKey = `ROTINA_VER_${targetDate}`;
+  const baseVer = getRotinaVersion(targetDate).version;
+  const currentVer = baseVer + 1;
+  const nowIso = new Date().toISOString();
+
+  propsStore[verKey] = String(currentVer);
+  propsStore[`ROTINA_UPDATED_AT_${targetDate}`] = nowIso;
+  persistirPropriedades(true);
+
+  const eventPayload = {
+    dateKey: targetDate,
+    version: currentVer,
+    updatedAt: nowIso,
+    key: keyChanged,
+    origin
+  };
+
+  rotinaBus.emit('rotina:mutated', eventPayload);
+  return eventPayload;
+}
+
+function getRotinaVersion(dateKey) {
+  const targetDate = String(dateKey || '').trim().slice(0, 10) || new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+  const verKey = `ROTINA_VER_${targetDate}`;
+  const v = parseInt(propsStore[verKey], 10);
+  return {
+    dateKey: targetDate,
+    version: Number.isSafeInteger(v) && v > 0 ? v : 1,
+    updatedAt: propsStore[`ROTINA_UPDATED_AT_${targetDate}`] || new Date().toISOString()
+  };
+}
 
 // WORKER THREAD HTTP PERSISTENTE DE ALTA VELOCIDADE (KEEP-ALIVE REAL & ZERO FORK)
 const httpWorkerCode = `
@@ -331,6 +390,88 @@ try {
   console.warn('[Runtime] Não foi possível carregar condutas_pediatricas_pedb.json:', eCond.message);
 }
 
+// ==============================================================================
+// MOTOR NATIVO VERTEX AI (OAUTH2 RS256 + TOKEN CACHE EM RAM)
+// ==============================================================================
+let vertexTokenCache = { accessToken: null, expiresAt: 0, projectId: null, credsPath: null };
+
+function carregarCredenciaisVertex() {
+  const candidatos = [
+    process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    propsStore.GOOGLE_APPLICATION_CREDENTIALS,
+    propsStore.VERTEX_CREDENTIALS_PATH,
+    '/home/wagmoraes/.gemini/config/vertex-key.json',
+    path.join(ROOT_DIR, 'google-credentials.json')
+  ].filter(Boolean);
+
+  for (const caminho of candidatos) {
+    try {
+      const resolvido = path.resolve(ROOT_DIR, caminho);
+      if (fs.existsSync(resolvido)) {
+        const raw = JSON.parse(fs.readFileSync(resolvido, 'utf8'));
+        if (raw && raw.client_email && raw.private_key) {
+          return { creds: raw, path: resolvido };
+        }
+      }
+    } catch (e) {
+      console.warn(`[VertexAI] Aviso ao ler credencial ${caminho}:`, e.message);
+    }
+  }
+  return null;
+}
+
+function obterTokenVertexAISync() {
+  const agora = Date.now();
+  if (vertexTokenCache.accessToken && agora < vertexTokenCache.expiresAt - 60000) {
+    return vertexTokenCache;
+  }
+
+  const info = carregarCredenciaisVertex();
+  if (!info || !info.creds) {
+    throw new Error('Credenciais Service Account da Vertex AI não encontradas (google-credentials.json / vertex-key.json).');
+  }
+
+  const { creds } = info;
+  const nowSec = Math.floor(agora / 1000);
+  const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
+  const claim = Buffer.from(JSON.stringify({
+    iss: creds.client_email,
+    scope: 'https://www.googleapis.com/auth/cloud-platform',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: nowSec + 3600,
+    iat: nowSec
+  })).toString('base64url');
+
+  const signatureInput = `${header}.${claim}`;
+  const signer = crypto.createSign('RSA-SHA256');
+  signer.update(signatureInput);
+  signer.end();
+  const signature = signer.sign(creds.private_key, 'base64url');
+  const assertion = `${signatureInput}.${signature}`;
+
+  const bodyPayload = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${assertion}`;
+  const res = ctx.UrlFetchApp.fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    contentType: 'application/x-www-form-urlencoded',
+    payload: bodyPayload,
+    muteHttpExceptions: true,
+    timeoutMs: 10000
+  });
+
+  if (!res || res.getResponseCode() !== 200) {
+    throw new Error(`Falha OAuth2 Vertex AI (HTTP ${res ? res.getResponseCode() : 'null'}): ${res ? res.getContentText() : ''}`);
+  }
+
+  const tokenData = JSON.parse(res.getContentText());
+  vertexTokenCache = {
+    accessToken: tokenData.access_token,
+    expiresAt: agora + ((tokenData.expires_in || 3600) * 1000),
+    projectId: propsStore.VERTEX_PROJECT_ID || propsStore.GCP_PROJECT_ID || creds.project_id || 'gen-lang-client-0798056953',
+    credsPath: info.path
+  };
+  return vertexTokenCache;
+}
+
 // 4. CONSTRUÇÃO DO CONTEXTO VIRTUAL (GAS COMPATIBLE)
 const ctx = {
   console,
@@ -377,27 +518,61 @@ const ctx = {
     }
   },
 
+  VertexAuthService: {
+    isConfigured: () => Boolean(carregarCredenciaisVertex()),
+    getAuthInfo: () => obterTokenVertexAISync(),
+    getProjectId: () => {
+      const info = carregarCredenciaisVertex();
+      return propsStore.VERTEX_PROJECT_ID || propsStore.GCP_PROJECT_ID || (info && info.creds && info.creds.project_id) || 'gen-lang-client-0798056953';
+    },
+    getLocation: () => propsStore.VERTEX_LOCATION || 'global',
+    getModel: () => propsStore.VERTEX_MODEL || propsStore.GEMINI_MODEL || 'gemini-4-argon'
+  },
+
   PropertiesService: {
     getScriptProperties: () => ({
       getProperty: (k) => (propsStore[k] !== undefined && propsStore[k] !== null) ? String(propsStore[k]) : null,
       setProperty: (k, v) => {
-        propsStore[k] = String(v);
+        const strVal = (v !== undefined && v !== null) ? String(v) : '';
+        const changed = propsStore[k] !== strVal;
+        propsStore[k] = strVal;
         if (ctx.ConfigService && typeof ctx.ConfigService.invalidar === 'function') ctx.ConfigService.invalidar();
-        const imediato = k.startsWith('ultima_') || k.startsWith('inbox_') || k.startsWith('LEITO_') || k.startsWith('atendimento_');
+        const ehRotina = k.startsWith('ROTINA_') || k.startsWith('GCAL_');
+        const imediato = ehRotina || k.startsWith('ultima_') || k.startsWith('inbox_') || k.startsWith('LEITO_') || k.startsWith('atendimento_');
         persistirPropriedades(imediato);
+
+        if (ehRotina && !k.startsWith('ROTINA_VER_') && !k.startsWith('ROTINA_UPDATED_AT_')) {
+          if (changed) {
+            const dateKey = extractDateKeyFromProperty(k);
+            bumpRotinaVersion(dateKey, k, currentMutationOrigin);
+          }
+        }
       },
       deleteProperty: (k) => {
         delete propsStore[k];
         if (ctx.ConfigService && typeof ctx.ConfigService.invalidar === 'function') ctx.ConfigService.invalidar();
-        persistirPropriedades();
+        const ehRotina = k.startsWith('ROTINA_') || k.startsWith('GCAL_');
+        persistirPropriedades(ehRotina);
+        if (ehRotina && !k.startsWith('ROTINA_VER_') && !k.startsWith('ROTINA_UPDATED_AT_')) {
+          const dateKey = extractDateKeyFromProperty(k);
+          bumpRotinaVersion(dateKey, k, currentMutationOrigin);
+        }
       },
       getProperties: () => ({ ...propsStore }),
       setProperties: (obj) => {
+        let touchedDateKey = null;
         for (const k in obj) {
           propsStore[k] = String(obj[k]);
+          if ((k.startsWith('ROTINA_') || k.startsWith('GCAL_')) && !k.startsWith('ROTINA_VER_') && !k.startsWith('ROTINA_UPDATED_AT_')) {
+            touchedDateKey = extractDateKeyFromProperty(k);
+          }
         }
         if (ctx.ConfigService && typeof ctx.ConfigService.invalidar === 'function') ctx.ConfigService.invalidar();
-        persistirPropriedades();
+        const imediato = !!touchedDateKey;
+        persistirPropriedades(imediato);
+        if (touchedDateKey) {
+          bumpRotinaVersion(touchedDateKey, 'BATCH_ROTINA', currentMutationOrigin);
+        }
       }
     }),
     getUserProperties: () => ctx.PropertiesService.getScriptProperties(),
@@ -869,6 +1044,11 @@ module.exports = {
   ctx,
   propsStore,
   persistirPropriedades,
+  rotinaBus,
+  bumpRotinaVersion,
+  getRotinaVersion,
+  runWithOrigin,
+  PropertiesService: ctx.PropertiesService,
   
   // Helpers de despacho direto
   doPost: (reqData) => ctx.doPost(reqData),

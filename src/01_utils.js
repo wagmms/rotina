@@ -472,6 +472,16 @@ function removerBotaoInline(callbackQuery) {
   executarPostTelegram(url, payload);
 }
 
+function deletarMensagemTelegram(chatId, messageId) {
+  if (!chatId || !messageId) return false;
+  var token = ConfigService.get("TELEGRAM_BOT_TOKEN");
+  if (!token) return false;
+  return executarPostTelegram("https://api.telegram.org/bot" + token + "/deleteMessage", {
+    "chat_id": String(chatId),
+    "message_id": Number(messageId)
+  });
+}
+
 /**
  * Sanitiza e valida o peso em kg para calculadoras clínicas.
  * Aceita vírgula ou ponto decimal, rejeita caracteres não numéricos e valores não finitos ou <= 0.
