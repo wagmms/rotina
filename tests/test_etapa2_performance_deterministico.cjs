@@ -59,10 +59,11 @@ async function run() {
   const diffPark = process.hrtime(t0);
   const msPark = (diffPark[0] * 1000 + diffPark[1] / 1e6).toFixed(2);
   assert.strictEqual(resPark.ok, true, 'Parkland deve calcular com sucesso');
-  assert.strictEqual(resPark.dados.volumeTotal24hMl, 8400, 'Volume total deve ser 4 * 70 * 30 = 8400 mL');
-  assert.strictEqual(resPark.dados.volumePrimeiras8hMl, 4200, 'Primeiras 8h deve ser 4200 mL');
-  assert.strictEqual(resPark.dados.vazaoPrimeiras8hMlH, 525, 'Vazão 8h deve ser 525 mL/h');
-  console.log(`   ✓ Parkland: 8400 mL total, 525 mL/h nas primeiras 8h (${msPark}ms em RAM)`);
+  assert.strictEqual(resPark.dados.volumeTotal24hMl, 4200, 'Volume total atualizado (ABA/ATLS 2 mL/kg/%): 2 * 70 * 30 = 4200 mL');
+  assert.strictEqual(resPark.dados.volumePrimeiras8hMl, 2100, 'Primeiras 8h deve ser 2100 mL');
+  assert.strictEqual(resPark.dados.vazaoPrimeiras8hMlH, 263, 'Vazão 8h deve ser 263 mL/h');
+  assert.strictEqual(resPark.dados.parklandClassico.volumeTotal24hMl, 8400, 'Parkland clássico preservado: 4 * 70 * 30 = 8400 mL');
+  console.log(`   ✓ Parkland ABA 2024: 4200 mL total (2 mL/kg/%), 263 mL/h nas primeiras 8h (${msPark}ms em RAM)`);
 
   // B. DVA (Noradrenalina e Dobutamina em mcg/kg/min)
   const tDva = process.hrtime();

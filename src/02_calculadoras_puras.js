@@ -322,49 +322,202 @@ var CalculadorasClinicas = (function () {
     });
   }
 
-  /** CKD-EPI 2021 (sem raça). Creatinina em mg/dL. Adultos ≥ 18 anos. */
-  function ckdEpi2021(creatinina, idade, ehFeminino) {
+  /**
+   * Classifica o Estádio KDIGO (G1 a G5) com base na Taxa de Filtração Glomerular.
+   * @private
+   */
+  function classificarEstadioKDIGO(tfg) {
+    if (tfg === null || tfg === undefined || isNaN(tfg)) return null;
+    if (gte(tfg, 90)) {
+      return { estadio: 'G1', descricao: 'Normal ou elevada', faixa: '>= 90 mL/min/1,73m²' };
+    }
+    if (gte(tfg, 60)) {
+      return { estadio: 'G2', descricao: 'Levemente diminuída', faixa: '60–89 mL/min/1,73m²' };
+    }
+    if (gte(tfg, 45)) {
+      return { estadio: 'G3a', descricao: 'Leve a moderadamente diminuída', faixa: '45–59 mL/min/1,73m²' };
+    }
+    if (gte(tfg, 30)) {
+      return { estadio: 'G3b', descricao: 'Moderada a gravemente diminuída', faixa: '30–44 mL/min/1,73m²' };
+    }
+    if (gte(tfg, 15)) {
+      return { estadio: 'G4', descricao: 'Gravemente diminuída', faixa: '15–29 mL/min/1,73m²' };
+    }
+    return { estadio: 'G5', descricao: 'Falência renal (Estádio Terminal)', faixa: '< 15 mL/min/1,73m²' };
+  }
+
+  /**
+   * CKD-EPI 2021 (sem raça) e CKD-EPI 2021 Creatinina-Cistatina C (KDIGO 2024).
+   * Creatinina em mg/dL. Cistatina C em mg/L (opcional). Adultos ≥ 18 anos.
+   */
+  function ckdEpi2021(arg1, arg2, arg3, arg4) {
     var ID = 'ckdepi', NOME = 'CKD-EPI 2021';
     return seguro(ID, NOME, function () {
       var c = novoCtx();
-      var cr = num(c, creatinina, 'Creatinina (mg/dL)', 0.1, 30);
-      var id = num(c, idade, 'Idade (anos)', 18, 120);
-      var fem = bool(c, ehFeminino, 'Sexo feminino (parâmetro da equação)');
+      var creatininaInput, idadeInput, ehFemininoInput, cistatinaCInput;
+
+      if (arg1 && typeof arg1 === 'object') {
+        creatininaInput = arg1.creatinina !== undefined ? arg1.creatinina : arg1.scr;
+        idadeInput = arg1.idade;
+        ehFemininoInput = arg1.ehFeminino !== undefined ? arg1.ehFeminino : (arg1.sexo ? ['F', 'FEM', 'FEMININO', 'FEMALE', 'MULHER'].indexOf(String(arg1.sexo).toUpperCase().trim()) !== -1 : undefined);
+        cistatinaCInput = arg1.cistatinaC !== undefined ? arg1.cistatinaC : arg1.scys;
+      } else {
+        creatininaInput = arg1;
+        idadeInput = arg2;
+        ehFemininoInput = arg3;
+        cistatinaCInput = arg4;
+      }
+
+      var cr = num(c, creatininaInput, 'Creatinina (mg/dL)', 0.1, 30);
+      var id = num(c, idadeInput, 'Idade (anos)', 18, 120);
+      var fem = bool(c, ehFemininoInput, 'Sexo feminino (parâmetro da equação)');
+
+      var scys = null;
+      if (cistatinaCInput !== undefined && cistatinaCInput !== null && String(cistatinaCInput).trim() !== '') {
+        scys = num(c, cistatinaCInput, 'Cistatina C (mg/L)', 0.1, 15);
+      }
+
       if (pendente(c)) return falhaCtx(ID, NOME, c);
 
+      // 1. CKD-EPI 2021 Creatinina isolada (eGFRcr)
       var kappa = fem ? 0.7 : 0.9, alfa = fem ? -0.241 : -0.302, mult = fem ? 1.012 : 1.0;
-      var r = cr / kappa;
-      var tfg = 142 * Math.pow(Math.min(r, 1), alfa) * Math.pow(Math.max(r, 1), -1.200) * Math.pow(0.9938, id) * mult;
-      exigirFinito(tfg);
+      var rCr = cr / kappa;
+      var tfgCrBruta = 142 * Math.pow(Math.min(rCr, 1), alfa) * Math.pow(Math.max(rCr, 1), -1.200) * Math.pow(0.9938, id) * mult;
+      exigirFinito(tfgCrBruta);
 
-      var g, desc;
-      if (gte(tfg, 90)) { g = 'G1'; desc = 'Normal ou elevada (≥ 90 mL/min/1.73m²)'; }
-      else if (gte(tfg, 60)) { g = 'G2'; desc = 'Levemente diminuída (60–89 mL/min/1.73m²)'; }
-      else if (gte(tfg, 45)) { g = 'G3a'; desc = 'Leve a moderadamente diminuída (45–59 mL/min/1.73m²)'; }
-      else if (gte(tfg, 30)) { g = 'G3b'; desc = 'Moderada a gravemente diminuída (30–44 mL/min/1.73m²)'; }
-      else if (gte(tfg, 15)) { g = 'G4'; desc = 'Gravemente diminuída (15–29 mL/min/1.73m²)'; }
-      else { g = 'G5'; desc = 'Falência renal (< 15 mL/min/1.73m²)'; }
+      var tfgCreatinina = Math.round(tfgCrBruta * 10) / 10;
+      var estadiamentoCr = classificarEstadioKDIGO(tfgCreatinina);
+
+      // 2. CKD-EPI 2021 Creatinina-Cistatina C combinada (KDIGO 2024 - eGFRcr-cys)
+      var tfgCombinada = null;
+      var estadiamentoComb = null;
+      var concordanciaDiagnostica = {
+        avaliada: false,
+        cistatinaCFornecida: false,
+        estadiosConcordantes: null,
+        reclassificacaoKDIGO: null,
+        diferencaAbsolutaMlMin: null,
+        diferencaPercentual: null,
+        interpretacaoClinica: 'Cistatina C não informada. Em casos limítrofes (TFG 45–59 mL/min/1,73m² sem albuminúria) ou extremos de massa muscular, o KDIGO 2024 recomenda dosar Cistatina C para cálculo da eGFRcr-cys.'
+      };
+
+      if (scys !== null && !isNaN(scys) && scys > 0) {
+        var kComb = fem ? 0.7 : 0.9;
+        var alphaComb = fem ? -0.219 : -0.144;
+        var fatorSexoComb = fem ? 1.018 : 1.0;
+
+        var razaoScrComb = cr / kComb;
+        var razaoScysComb = scys / 0.8;
+
+        var tfgCombBruta =
+          135 *
+          Math.pow(Math.min(razaoScrComb, 1), alphaComb) *
+          Math.pow(Math.max(razaoScrComb, 1), -0.544) *
+          Math.pow(Math.min(razaoScysComb, 1), -0.323) *
+          Math.pow(Math.max(razaoScysComb, 1), -0.778) *
+          Math.pow(0.9961, id) *
+          fatorSexoComb;
+        exigirFinito(tfgCombBruta);
+
+        tfgCombinada = Math.round(tfgCombBruta * 10) / 10;
+        estadiamentoComb = classificarEstadioKDIGO(tfgCombinada);
+
+        var diffAbs = Math.round((tfgCombinada - tfgCreatinina) * 10) / 10;
+        var diffPct = Math.round((Math.abs(diffAbs) / tfgCreatinina) * 1000) / 10;
+        var mesmoEstadio = estadiamentoCr.estadio === estadiamentoComb.estadio;
+
+        concordanciaDiagnostica = {
+          avaliada: true,
+          cistatinaCFornecida: true,
+          estadiosConcordantes: mesmoEstadio,
+          reclassificacaoKDIGO: mesmoEstadio
+            ? ('Mantido em ' + estadiamentoComb.estadio)
+            : ('Reclassificado de ' + estadiamentoCr.estadio + ' (eGFRcr) para ' + estadiamentoComb.estadio + ' (eGFRcr-cys)'),
+          diferencaAbsolutaMlMin: diffAbs,
+          diferencaPercentual: diffPct,
+          interpretacaoClinica: mesmoEstadio
+            ? ('Alta concordância diagnóstica KDIGO 2024: ambas as equações classificam o paciente no estádio ' + estadiamentoComb.estadio + '. Utilizar a tfgCombinada (' + tfgCombinada + ' mL/min/1,73m²) como referência padrão-ouro.')
+            : ('Discordância inter-equações detectada (' + estadiamentoCr.estadio + ' vs ' + estadiamentoComb.estadio + '). Segundo a Diretriz KDIGO 2024, a equação combinada Creatinina-Cistatina C (' + tfgCombinada + ' mL/min/1,73m² - ' + estadiamentoComb.estadio + ') possui maior acurácia e deve guiar o ajuste posológico e o estadiamento.')
+        };
+      }
+
+      var tfgReferencia = tfgCombinada !== null ? tfgCombinada : tfgCreatinina;
+      var estadiamentoOficial = estadiamentoComb !== null ? estadiamentoComb : estadiamentoCr;
+      var g = estadiamentoOficial.estadio;
+      var desc = estadiamentoOficial.descricao + ' (' + estadiamentoOficial.faixa + ')';
       var grave = (g === 'G4' || g === 'G5');
 
-      var tfgNum = Math.round(tfg * 10) / 10;
+      var secoes = [
+        ['CATEGORIA KDIGO 2024', [g + ': ' + desc]],
+        ['ENTRADAS', [
+          'Creatinina: ' + fmt(cr, 2) + ' mg/dL',
+          scys !== null ? ('Cistatina C: ' + fmt(scys, 2) + ' mg/L (Padrão-ouro KDIGO 2024)') : 'Cistatina C: Não informada (usada eGFRcr)',
+          'Idade: ' + fmt(id, 0) + ' anos',
+          'Parâmetro sexual: ' + (fem ? 'feminino' : 'masculino')
+        ]]
+      ];
+
+      if (concordanciaDiagnostica.avaliada) {
+        secoes.push(['ANÁLISE COMPARATIVA KDIGO 2024', [
+          'eGFRcr (Creatinina): ' + fmt(tfgCreatinina, 1) + ' mL/min/1,73m² [' + estadiamentoCr.estadio + ']',
+          'eGFRcr-cys (Combinada): ' + fmt(tfgCombinada, 1) + ' mL/min/1,73m² [' + estadiamentoComb.estadio + ']',
+          concordanciaDiagnostica.reclassificacaoKDIGO,
+          concordanciaDiagnostica.interpretacaoClinica
+        ]]);
+      }
+
+      secoes.push(['AÇÃO', [
+        'Válida apenas com creatinina estável.',
+        tfgCombinada !== null
+          ? 'eGFRcr-cys (Creatinina-Cistatina C) é a métrica padrão-ouro mais acurada da diretriz KDIGO 2024.'
+          : 'Para dose de fármaco, conferir também o clearance (Cockcroft-Gault) e a bula.'
+      ]]);
+
+      var avisos = [];
+      if (tfgCombinada !== null) {
+        avisos.push('KDIGO 2024: Avaliação com eGFRcr-cys combinada ativa. Reduz viés de sarcopenia e massa muscular atípica.');
+      } else {
+        avisos.push('Em lesão renal aguda, sarcopenia ou dieta atípica a eTFG por creatinina pode ser imprecisa; considerar cistatina C (KDIGO 2024). Categoria de eTFG isolada não define DRC.');
+        if (gte(tfgCreatinina, 45) && lt(tfgCreatinina, 60)) {
+          avisos.push('KDIGO 2024 G3a limítrofe (45–59 mL/min): recomendada confirmação diagnóstica com Cistatina C sérica na ausência de albuminúria.');
+        }
+      }
+
+      if (gt(cr, 15)) {
+        avisos.unshift('🚨 Creatinina extremamente elevada (> 15 mg/dL): Falência renal grave/terminal. As equações perdem acurácia na uremia anúrica; avaliar suporte dialítico urgente.');
+      }
+      if (gte(id, 90)) {
+        avisos.push('⚠️ Paciente muito idoso (≥ 90 anos): Sarcopenia fisiológica comum resulta em creatinina sérica reduzida e eTFG superestimada. Considerar dosagem de Cistatina C.');
+      }
+
       return sucesso({
-        id: ID, nome: NOME, estado: grave ? 'ATENCAO' : 'CALCULO',
+        id: ID,
+        nome: NOME,
+        estado: grave ? 'ATENCAO' : 'CALCULO',
         rotulo: grave ? 'TFG GRAVEMENTE REDUZIDA' : null,
-        principal: fmt(tfg, 1) + ' mL/min/1,73 m²',
-        secoes: [
-          ['CATEGORIA', [g + ': ' + desc]],
-          ['ENTRADAS', ['Creatinina: ' + fmt(cr, 2) + ' mg/dL', 'Idade: ' + fmt(id, 0) + ' anos', 'Parâmetro sexual: ' + (fem ? 'feminino' : 'masculino')]],
-          ['AÇÃO', ['Válida apenas com creatinina estável.', 'Para dose de fármaco, conferir também o clearance (Cockcroft-Gault) e a bula.']]
-        ],
-        avisos: (function () {
-          var av = ['Em lesão renal aguda, sarcopenia ou dieta atípica a eTFG pode ser imprecisa; considerar cistatina C (KDIGO 2024). Categoria de eTFG isolada não define DRC.'];
-          if (gt(cr, 15)) av.unshift('🚨 Creatinina extremamente elevada (> 15 mg/dL): Falência renal grave/terminal. As equações perdem acurácia na uremia anúrica; avaliar suporte dialítico urgente.');
-          if (gte(id, 90)) av.push('⚠️ Paciente muito idoso (≥ 90 anos): Sarcopenia fisiológica comum resulta em creatinina sérica reduzida e eTFG superestimada. Considerar dosagem de Cistatina C.');
-          return av;
-        })(),
-        dados: { tfg: tfgNum, categoria: g, estagio: g },
+        principal: fmt(tfgReferencia, 1) + ' mL/min/1,73 m²' + (tfgCombinada !== null ? ' (eGFRcr-cys)' : ''),
+        secoes: secoes,
+        avisos: avisos,
+        dados: {
+          tfg: tfgReferencia,
+          tfgCreatinina: tfgCreatinina,
+          tfgCombinada: tfgCombinada,
+          tfgReferencia: tfgReferencia,
+          categoria: g,
+          estagio: g,
+          estadiamentoKDIGO: {
+            categoriaOficial: g,
+            descricaoOficial: estadiamentoOficial.descricao,
+            faixaOficial: estadiamentoOficial.faixa,
+            porCreatinina: estadiamentoCr,
+            porCombinada: estadiamentoComb
+          },
+          concordanciaDiagnostica: concordanciaDiagnostica
+        },
         legado: {
-          tfg: tfgNum,
+          tfg: tfgReferencia,
+          tfgCreatinina: tfgCreatinina,
+          tfgCombinada: tfgCombinada,
           estagio: g,
           descricao: desc
         },
@@ -1534,88 +1687,175 @@ var CalculadorasClinicas = (function () {
    * 1ª fase (primeiras 8h a contar do acidente): 50% do volume total
    * 2ª fase (próximas 16h): 50% do volume total
    */
-  function parkland(pesoKg, scqPorcentagem) {
-    var ID = 'parkland', NOME = 'Fórmula de Parkland (Ressuscitação em Grandes Queimados)';
+  /**
+   * Ressuscitação Volêmica no Grande Queimado (Consenso ABA 2024 / ATLS 11ª Ed / SBQ / Parkland):
+   * - Adulto térmico/químico: 2 mL/kg/% SCQ (Ringer Lactato)
+   * - Pediátrico (< 14 anos ou <= 30 kg): 3 mL/kg/% SCQ + Manutenção glicídica SG 5% (Holliday-Segar)
+   * - Elétrica alta voltagem: 4 mL/kg/% SCQ (meta de diurese 1.0-1.5 mL/kg/h)
+   * - Parkland clássico histórico (4 mL/kg/% SCQ) preservado para comparação
+   * 1ª fase (primeiras 8h a contar do ACIDENTE): 50% do volume de expansão
+   * 2ª fase (próximas 16h): 50% do volume de expansão
+   */
+  function parkland(pesoKg, scqPorcentagem, tipoQueimadura, idadeAnos, horasDecorridas, volumeJaInfundido) {
+    var ID = 'parkland', NOME = 'Ressuscitação em Grandes Queimados (Consenso ABA / ATLS / Parkland)';
     return seguro(ID, NOME, function () {
       var c = novoCtx();
-      var peso = num(c, pesoKg, 'Peso corporal (kg)', 3, 350);
-      var scq = num(c, scqPorcentagem, 'Superfície Corpórea Queimada - SCQ (%)', 1, 100);
+      var rawPeso = (typeof pesoKg === 'object' && pesoKg !== null) ? pesoKg.peso : pesoKg;
+      var rawScq = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.scq || pesoKg.sctq) : scqPorcentagem;
+      var rawTipo = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.tipoQueimadura || pesoKg.tipo) : tipoQueimadura;
+      var rawIdade = (typeof pesoKg === 'object' && pesoKg !== null) ? pesoKg.idade : idadeAnos;
+      var rawHoras = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.horasDecorridas || pesoKg.horas) : horasDecorridas;
+      var rawVolInfundido = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.volumeJaInfundido || pesoKg.volumeInfundido) : volumeJaInfundido;
+
+      var peso = num(c, rawPeso, 'Peso corporal (kg)', 0.5, 350);
+      var scq = num(c, rawScq, 'Superfície Corpórea Queimada - SCQ (%)', 0.5, 100);
       if (pendente(c)) return falhaCtx(ID, NOME, c);
 
-      var volTotal = 4 * peso * scq; // em mL de Ringer Lactato
-      var vol8h = volTotal / 2;
-      var vazao8h = vol8h / 8;
-      var vol16h = volTotal / 2;
-      var vazao16h = vol16h / 16;
-      var debitoMin = Math.round(peso * 0.5 * 10) / 10;
-      var debitoMax = Math.round(peso * 1.0 * 10) / 10;
+      var idade = (rawIdade !== undefined && rawIdade !== null && rawIdade !== '') ? Number(rawIdade) : null;
+      var horas = Number(rawHoras || 0);
+      var volJaInfundido = Number(rawVolInfundido || 0);
 
-      var linhasResultado = [
-        '• Peso: ' + fmt(peso, 1) + ' kg | SCQ: ' + fmt(scq, 0) + '%',
-        '• Volume Total 24h (Ringer Lactato): ' + fmt(volTotal, 0) + ' mL',
-        '• 1ª Etapa (Primeiras 8h a contar do ACIDENTE): ' + fmt(vol8h, 0) + ' mL (vazão: ' + fmt(vazao8h, 0) + ' mL/h)',
-        '• 2ª Etapa (Próximas 16h): ' + fmt(vol16h, 0) + ' mL (vazão: ' + fmt(vazao16h, 0) + ' mL/h)',
-        '• Alvo de Débito Urinário (SVD horária): 0,5 a 1,0 mL/kg/h (' + fmt(debitoMin, 1) + ' a ' + fmt(debitoMax, 1) + ' mL/h)'
-      ];
+      var tipoNorm = String(rawTipo || 'termica').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      var isEletrica = tipoNorm.indexOf('eletr') !== -1;
+      var isPediatrico = tipoNorm.indexOf('ped') !== -1 || (idade !== null ? idade < 14 : peso <= 30);
+
+      // Determinação do Fator ABA / ATLS (mL/kg/%SCQ)
+      var fator = 2; // Padrão adulto térmico (ATLS 10ª/11ª Ed / ABA 2024)
+      var perfil = 'Adulto — Queimadura Térmica/Química';
+      var diretriz = 'Consenso ABA 2023/2024 & ATLS 10ª/11ª Ed. (2 mL/kg/%SCQ)';
+
+      if (isEletrica) {
+        fator = 4;
+        perfil = isPediatrico ? 'Pediátrico — Queimadura Elétrica de Alta Voltagem' : 'Adulto — Queimadura Elétrica de Alta Voltagem';
+        diretriz = 'Consenso ABA / ATLS — Alta Voltagem / Rabdomiólise (4 mL/kg/%SCQ)';
+      } else if (isPediatrico) {
+        fator = 3;
+        perfil = 'Pediátrico (< 14 anos ou ≤ 30 kg) — Queimadura Térmica';
+        diretriz = 'Consenso ABA / ATLS Pediátrico (3 mL/kg/%SCQ + Manutenção Glicídica)';
+      }
+
+      var volTotalAba = Math.round(fator * peso * scq); // Volume moderno ABA 2024
+      var vol8hBruto = Math.round(volTotalAba / 2);
+      var vol16h = Math.round(volTotalAba / 2);
+
+      // Parkland Clássico (4 mL/kg/%SCQ) para histórico e rastreabilidade
+      var volTotalClassico = Math.round(4 * peso * scq);
+      var vol8hClassico = Math.round(volTotalClassico / 2);
+      var vol16hClassico = Math.round(volTotalClassico / 2);
+
+      var horasRestantes1 = Math.max(0.5, 8 - horas);
+      var volRestante1 = Math.max(0, vol8hBruto - volJaInfundido);
+      var vazao8h = horas < 8 ? Math.round(volRestante1 / horasRestantes1) : 0;
+      var vazao16h = Math.round(vol16h / 16);
+
+      // Manutenção Pediátrica Holliday-Segar (SG 5%)
+      var volManutencao = 0;
+      var vazaoManutencao = 0;
+      if (isPediatrico) {
+        if (peso <= 10) volManutencao = Math.round(peso * 100);
+        else if (peso <= 20) volManutencao = Math.round(1000 + (peso - 10) * 50);
+        else volManutencao = Math.round(1500 + (peso - 20) * 20);
+        vazaoManutencao = Math.round(volManutencao / 24);
+      }
+
+      var debitoMin = Math.round(peso * (isEletrica ? 1.0 : (isPediatrico ? 1.0 : 0.5)) * 10) / 10;
+      var debitoMax = Math.round(peso * (isEletrica ? 1.5 : (isPediatrico ? 1.0 : 1.0)) * 10) / 10;
+      if (!isPediatrico && !isEletrica) {
+        debitoMin = Math.max(30, debitoMin);
+        debitoMax = Math.max(50, debitoMax);
+      }
 
       var avisos = [
-        'O relógio das primeiras 8 horas conta A PARTIR DO MOMENTO DO ACIDENTE/QUEIMADURA, não da chegada ao hospital.',
-        'Descontar da 1ª etapa qualquer volume já infundido no atendimento pré-hospitalar.',
-        'Ajustar a taxa horária de Ringer Lactato para cima ou para baixo conforme o débito urinário a cada 1 hora.',
-        'Evitar hiper-ressuscitação hídrica ("fluid creep"), que aumenta risco de síndrome compartimental abdominal e edema pulmonar.'
+        '⏱️ MARCO ZERO DO TRAUMA: O relógio das primeiras 8 horas conta A PARTIR DO MOMENTO DO ACIDENTE/QUEIMADURA, não da chegada ao hospital.',
+        '🔥 CÁLCULO DE %SCQ: Contabilize exclusivamente queimaduras de 2º e 3º graus. Eritema simples (1º grau) não entra na fórmula.',
+        '💧 PREVENÇÃO DE FLUID CREEP: O consenso moderno da ABA/ATLS reduziu a reposição para 2 mL/kg/% em adultos para evitar sobrecarga hídrica, síndrome compartimental abdominal e edema pulmonar. Titular vazão pela diurese horária (±20% a 30%/h).',
+        'Descontar da 1ª etapa qualquer volume de cristaloide já infundido no atendimento pré-hospitalar/transporte.'
       ];
-      if (lt(peso, 10)) {
-        avisos.unshift('⚠️ QUEIMADURA EM PEDIATRIA / LACTENTE (< 10 kg): Crianças têm menor reserva hepática de glicogênio. Além do volume de Parkland com Ringer Lactato (3–4 mL/kg/% SCQ), DEVE-SE adicionar hidratação venosa de manutenção com SG 5% (Holliday-Segar) para prevenir hipoglicemia severa.');
+
+      if (lt(peso, 10) || isPediatrico) {
+        avisos.unshift('⚠️ QUEIMADURA EM PEDIATRIA / LACTENTE (< 10 kg): Crianças têm menor reserva hepática de glicogênio. Além do volume de expansão com Ringer Lactato (3 mL/kg/% SCQ), DEVE-SE adicionar hidratação venosa de manutenção com SG 5% (Holliday-Segar: ' + fmt(volManutencao, 0) + ' mL/dia = ' + fmt(vazaoManutencao, 0) + ' mL/h contínua) para prevenir hipoglicemia severa.');
       }
-      if (gt(peso, 150)) {
-        avisos.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo pelo peso real gera volumes massivos com risco extremo de "fluid creep", Síndrome Compartimental Abdominal e edema agudo de pulmão. Utilizar o Peso Ideal (IBW) ou diretriz da ABA (2 mL/kg/% SCQ) e titular estritamente pelo débito urinário (0,5 mL/kg/h pelo peso ideal).');
+      if (gt(peso, 120)) {
+        avisos.unshift('⚠️ OBESIDADE SEVERA (> 120 kg): O cálculo pelo peso real gera volumes massivos com risco extremo de "fluid creep", Síndrome Compartimental Abdominal e edema agudo de pulmão. Utilizar o Peso Ideal (IBW) ou fórmula ABA de 2 mL/kg/% SCQ e titular estritamente pelo débito urinário (alvo: 0,5 mL/kg/h).');
       }
       if (gt(scq, 50)) {
         avisos.unshift('🚨 GRANDE QUEIMADO CRÍTICO (SCQ > 50%): Risco altíssimo de choque distributivo/hipovolêmico precoce e hipotermia. Monitorização em Centro de Queimados e ressuscitação volêmica intensiva.');
       }
+      if (isEletrica) {
+        avisos.unshift('⚡ QUEIMADURA ELÉTRICA DE ALTA VOLTAGEM: Risco de mioglobinúria maciça e rabdomiólise com necrose muscular profunda. Fator de 4 mL/kg/% SCQ com meta de diurese elevada (1,0 a 1,5 mL/kg/h = 75 a 100 mL/h) até clareamento urinário.');
+      }
+
+      var badge = isEletrica ? '⚡ ALTA VOLTAGEM (4 mL/kg/%)' : (isPediatrico ? '👶 PEDIÁTRICO (3 mL/kg/% + SG 5%)' : '🔥 ADULTO TÉRMICO (2 mL/kg/%)');
 
       return sucesso({
         id: ID,
         nome: NOME,
         estado: 'CALCULO',
-        rotulo: 'PARKLAND · RINGER LACTATO 4 mL/kg/%',
-        principal: fmt(volTotal, 0) + ' mL em 24h',
-        textoFormatado: '🔥 <b>FÓRMULA DE PARKLAND (RESSUSCITAÇÃO EM GRANDES QUEIMADOS)</b>\n\n' +
-          '• <b>Peso:</b> ' + fmt(peso, 1) + ' kg | <b>SCQ:</b> ' + fmt(scq, 0) + '%\n' +
-          '• <b>Volume Total (24h):</b> <code>' + fmt(volTotal, 0) + ' mL</code> de Ringer Lactato\n\n' +
-          '⏱️ <b>Esquema de Infusão:</b>\n' +
-          '1️⃣ <b>Primeiras 8 horas (do acidente):</b> <code>' + fmt(vol8h, 0) + ' mL</code> → <b>' + fmt(vazao8h, 0) + ' mL/h</b> na BIC\n' +
-          '2️⃣ <b>Próximas 16 horas:</b> <code>' + fmt(vol16h, 0) + ' mL</code> → <b>' + fmt(vazao16h, 0) + ' mL/h</b> na BIC\n\n' +
+        rotulo: 'PARKLAND / ABA 2024 · ' + badge,
+        principal: fmt(volTotalAba, 0) + ' mL em 24h (' + diretriz + ')',
+        textoFormatado: '🔥 <b>RESSUSCITAÇÃO VOLÊMICA NO QUEIMADO (CONSENSO ABA / ATLS / PARKLAND)</b>\n\n' +
+          '• <b>Perfil:</b> ' + perfil + '\n' +
+          '• <b>Peso:</b> ' + fmt(peso, 1) + ' kg | <b>SCQ (2º/3º grau):</b> ' + fmt(scq, 0) + '%\n' +
+          '• <b>Diretriz Atual (ABA 2024 / ATLS 11ª Ed):</b> <code>' + fmt(volTotalAba, 0) + ' mL</code> de Ringer Lactato (' + fator + ' mL/kg/%)\n' +
+          '• <b>Comparativo Histórico (Parkland 4 mL/kg):</b> <code>' + fmt(volTotalClassico, 0) + ' mL</code> em 24h\n\n' +
+          '⏱️ <b>Esquema de Infusão (Ringer Lactato):</b>\n' +
+          '1️⃣ <b>1ª Etapa (Primeiras 8h do trauma):</b> <code>' + fmt(vol8hBruto, 0) + ' mL</code> → <b>' + fmt(vazao8h, 0) + ' mL/h</b> na BIC' +
+          (horas > 0 ? ' (ajustado para ' + fmt(horasRestantes1, 1) + 'h restantes)' : '') + '\n' +
+          '2️⃣ <b>2ª Etapa (Próximas 16h):</b> <code>' + fmt(vol16h, 0) + ' mL</code> → <b>' + fmt(vazao16h, 0) + ' mL/h</b> na BIC\n\n' +
+          (isPediatrico ? '👶 <b>Manutenção Glicídica Paralela (Holliday-Segar):</b>\n• SG 5% + NaCl 0,45%: <code>' + fmt(volManutencao, 0) + ' mL/24h</code> → <b>' + fmt(vazaoManutencao, 0) + ' mL/h</b> contínua\n\n' : '') +
           '🎯 <b>Meta de Débito Urinário (SVD horária):</b>\n' +
-          '• Adultos: 0,5–1,0 mL/kg/h (<b>' + fmt(debitoMin, 1) + ' a ' + fmt(debitoMax, 1) + ' mL/h</b>)\n\n' +
-          '⚠️ <b>Regras de Segurança ATLS 10ª Ed / SBA:</b>\n' +
+          '• Alvo: <b>' + fmt(debitoMin, 1) + ' a ' + fmt(debitoMax, 1) + ' mL/h</b> (' + (isEletrica ? '1,0–1,5' : (isPediatrico ? '1,0' : '0,5')) + ' mL/kg/h)\n\n' +
+          '⚠️ <b>Regras de Segurança ABA 2024 / ATLS / SBQ:</b>\n' +
+          '• Titular vazão de Ringer Lactato em ±20% a 30% a cada hora conforme diurese.\n' +
           '• Descontar volume já recebido no pré-hospitalar das primeiras 8 horas.\n' +
-          '• Monitorizar diurese horária rigorosa para titular vazão e prevenir síndrome compartimental abdominal.',
+          '• Monitorizar rigorosamente para prevenir sobrecarga ("fluid creep") e síndrome compartimental abdominal.',
         secoes: [
-          ['PARÂMETROS', ['Peso: ' + fmt(peso, 1) + ' kg', 'SCQ: ' + fmt(scq, 0) + '%', 'Fórmula: 4 mL × ' + fmt(peso, 1) + ' × ' + fmt(scq, 0)]],
-          ['CRONOGRAMA DE INFUSÃO', [
-            '1ª Etapa (8h do trauma): ' + fmt(vol8h, 0) + ' mL (' + fmt(vazao8h, 0) + ' mL/h)',
-            '2ª Etapa (16h restantes): ' + fmt(vol16h, 0) + ' mL (' + fmt(vazao16h, 0) + ' mL/h)'
+          ['PARÂMETROS E DIRETRIZ', [
+            'Perfil: ' + perfil,
+            'Peso: ' + fmt(peso, 1) + ' kg | SCQ: ' + fmt(scq, 0) + '%',
+            'Fórmula Atual (ABA/ATLS): ' + fator + ' mL × ' + fmt(peso, 1) + ' kg × ' + fmt(scq, 0) + '%',
+            'Comparativo Parkland Clássico: 4 mL × ' + fmt(peso, 1) + ' kg × ' + fmt(scq, 0) + '% (' + fmt(volTotalClassico, 0) + ' mL)'
           ]],
+          ['CRONOGRAMA DE EXPANSÃO (RINGER LACTATO)', [
+            '1ª Etapa (8h a contar do trauma): ' + fmt(vol8hBruto, 0) + ' mL (' + fmt(vazao8h, 0) + ' mL/h na BIC)',
+            '2ª Etapa (16h seguintes): ' + fmt(vol16h, 0) + ' mL (' + fmt(vazao16h, 0) + ' mL/h na BIC)'
+          ]],
+          (isPediatrico ? ['MANUTENÇÃO PEDIÁTRICA HOLLIDAY-SEGAR (SG 5%)', [
+            'Solução: SG 5% em NaCl 0,45%',
+            'Volume 24h: ' + fmt(volManutencao, 0) + ' mL/dia (' + fmt(vazaoManutencao, 0) + ' mL/h contínua)'
+          ]] : null),
           ['CONDUTAS E MONITORIZAÇÃO', avisos]
-        ],
+        ].filter(Boolean),
         avisos: avisos,
         dados: {
           pesoKg: peso,
           scq: scq,
-          volumeTotal24hMl: volTotal,
-          volumePrimeiras8hMl: vol8h,
+          fatorMlKgScq: fator,
+          isPediatrico: isPediatrico,
+          isEletrica: isEletrica,
+          perfilClinico: perfil,
+          diretrizReferencia: diretriz,
+          volumeTotal24hMl: volTotalAba,
+          volumePrimeiras8hMl: vol8hBruto,
           vazaoPrimeiras8hMlH: vazao8h,
           volumeSeguintes16hMl: vol16h,
           vazaoSeguintes16hMlH: vazao16h,
-          debitoUrinarioAlvoMlH: { min: debitoMin, max: debitoMax }
+          volumeManutencaoPediatrica24hMl: volManutencao,
+          vazaoManutencaoPediatricaMlH: vazaoManutencao,
+          debitoUrinarioAlvoMlH: { min: debitoMin, max: debitoMax },
+          parklandClassico: {
+            volumeTotal24hMl: volTotalClassico,
+            volumePrimeiras8hMl: vol8hClassico,
+            vazaoPrimeiras8hMlH: Math.round(vol8hClassico / 8)
+          }
         },
         legado: {
-          volumeTotalMl: volTotal,
-          volume8hMl: vol8h,
+          volumeTotalMl: volTotalAba,
+          volume8hMl: vol8hBruto,
           vazao8hMlH: vazao8h,
           volume16hMl: vol16h,
-          vazao16hMlH: vazao16h
+          vazao16hMlH: vazao16h,
+          parklandClassicoTotalMl: volTotalClassico
         },
         botoes: botoesEmergencia(ID, [btn('🧮 Novo cálculo', ID, 'voltar')])
       });
@@ -1704,6 +1944,149 @@ var CalculadorasClinicas = (function () {
         avisos: ['MELD pontua entre 6 e 40. Diálise pelo menos 2x nos últimos 7 dias fixa Cr em 4,0 mg/dL.'],
         dados: { meld: meldArred, meldNa: temMeldNa ? meldNaArred : null, dialise: dialise },
         legado: { pontuacao: meldArred, meld: meldArred, meldNa: temMeldNa ? meldNaArred : null, mortalidade: mortalidade3m }
+      });
+    });
+  }
+
+  /**
+   * Escore FIB-4 (Fibrosis-4 Index) para MASLD / MASH (AASLD / EASL 2024).
+   * Fórmula: (Idade [anos] × AST [U/L]) / (Plaquetas [10⁹/L] × √ALT [U/L])
+   */
+  function fib4(arg1, arg2, arg3, arg4) {
+    var ID = 'fib4', NOME = 'Escore FIB-4 (MASLD / MASH)';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var pIdade, pAst, pAlt, pPlaq;
+
+      if (arg1 && typeof arg1 === 'object' && !Array.isArray(arg1)) {
+        pIdade = arg1.idade;
+        pAst = arg1.ast !== undefined ? arg1.ast : arg1.tgo;
+        pAlt = arg1.alt !== undefined ? arg1.alt : arg1.tgp;
+        pPlaq = arg1.plaquetas !== undefined ? arg1.plaquetas : arg1.plaq;
+      } else {
+        pIdade = arg1;
+        pAst = arg2;
+        pAlt = arg3;
+        pPlaq = arg4;
+      }
+
+      var vIdade = num(c, pIdade, 'Idade (anos)', 18, 120);
+      var vAst = num(c, pAst, 'AST / TGO (U/L)', 1, 10000);
+      var vAlt = num(c, pAlt, 'ALT / TGP (U/L)', 1, 10000);
+      var vPlaq = num(c, pPlaq, 'Plaquetas', 1, 2000000);
+
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+
+      // Normalização determinística de unidade de plaquetas:
+      // Se inserido em /mm³ (ex: 210000), ajusta para 10⁹/L (210)
+      var plaquetasNormalizadas = vPlaq;
+      var unidadeConvertida = false;
+      if (vPlaq > 2000) {
+        plaquetasNormalizadas = vPlaq / 1000;
+        unidadeConvertida = true;
+      }
+
+      var denominador = plaquetasNormalizadas * Math.sqrt(vAlt);
+      exigirFinito(denominador);
+      if (denominador <= 0) return falhaCtx(ID, NOME, c);
+
+      var escoreBruto = (vIdade * vAst) / denominador;
+      exigirFinito(escoreBruto);
+      var escoreFib4 = Math.round(escoreBruto * 100) / 100;
+
+      // Estratificação AASLD / EASL 2024 para MASLD
+      var idoso = vIdade >= 65;
+      var corteInferior = idoso ? 2.00 : 1.30;
+      var corteSuperior = 2.67;
+
+      var risco = '';
+      var categoria = '';
+      var estadiamentoFIB4 = '';
+      var condutaSugerida = '';
+      var estado = 'BAIXO';
+
+      if (escoreFib4 < corteInferior) {
+        risco = 'Baixo';
+        estado = 'BAIXO';
+        categoria = 'Baixo risco de fibrose hepática avançada (F0-F2)';
+        estadiamentoFIB4 = 'F0-F2 provável (VPN > 90%)';
+        condutaSugerida = 'Manejo na atenção primária. Reavaliar FIB-4 a cada 1 a 2 anos conforme fatores de risco metabólicos.';
+      } else if (escoreFib4 <= corteSuperior) {
+        risco = 'Intermediário';
+        estado = 'ATENCAO';
+        categoria = 'Risco indeterminado para fibrose avançada (Zona Cinzenta)';
+        estadiamentoFIB4 = 'Indeterminado';
+        condutaSugerida = 'Solicitar teste de segunda linha: Elastografia Hepática Transitória (VCTE/FibroScan) ou escore ELF. Se VCTE >= 8 kPa, encaminhar à Hepatologia.';
+      } else {
+        risco = 'Alto';
+        estado = 'PRIORITARIO';
+        categoria = 'Alto risco de fibrose hepática avançada ou cirrose (F3-F4)';
+        estadiamentoFIB4 = 'F3-F4 provável (VPP ~60-80%)';
+        condutaSugerida = 'Encaminhar prioritariamente à Hepatologia/Gastroenterologia para estadiamento completo e rastreio de hipertensão portal/CHCC.';
+      }
+
+      var avisos = [];
+      if (idoso) {
+        avisos.push('Corte ajustado para idade >= 65 anos (< 2,00 para baixo risco), prevenindo falsos positivos devidos ao avanço etário (AASLD/EASL 2024).');
+      }
+      if (vIdade < 35) {
+        avisos.push('Atenção: O FIB-4 possui menor sensibilidade em adultos jovens com menos de 35 anos.');
+      }
+      if (vAst > 250 || vAlt > 250) {
+        avisos.push('Elevação aguda de transaminases (> 250 U/L) pode superestimar falsamente o FIB-4.');
+      }
+      if (unidadeConvertida) {
+        avisos.push('Plaquetas informadas (' + vPlaq + ') foram convertidas automaticamente para ' + plaquetasNormalizadas + ' × 10⁹/L.');
+      }
+
+      var principal = 'FIB-4 ' + escoreFib4.toFixed(2) + ' · Risco ' + risco;
+
+      var secoes = [
+        ['ESTRATIFICAÇÃO MASLD (AASLD/EASL 2024)', [
+          'Categoria: ' + categoria,
+          'Estadiamento: ' + estadiamentoFIB4,
+          'Limiares aplicados (' + (idoso ? '>= 65 anos' : '< 65 anos') + '): Baixo < ' + corteInferior.toFixed(2) + ' | Intermediário ' + corteInferior.toFixed(2) + '–' + corteSuperior.toFixed(2) + ' | Alto > ' + corteSuperior.toFixed(2)
+        ]],
+        ['CONDUTA RECOMENDADA', [condutaSugerida]],
+        ['PARÂMETROS INFORMADOS', [
+          'Idade: ' + fmt(vIdade, 0) + ' anos',
+          'AST (TGO): ' + fmt(vAst, 0) + ' U/L',
+          'ALT (TGP): ' + fmt(vAlt, 0) + ' U/L',
+          'Plaquetas: ' + fmt(plaquetasNormalizadas, 0) + ' × 10⁹/L'
+        ]]
+      ];
+
+      return sucesso({
+        id: ID,
+        nome: NOME,
+        estado: estado,
+        rotulo: 'FIB-4: ' + categoria.toUpperCase(),
+        principal: principal,
+        secoes: secoes,
+        avisos: avisos,
+        dados: {
+          fib4: escoreFib4,
+          risco: risco,
+          categoria: categoria,
+          estadiamentoFIB4: estadiamentoFIB4,
+          corteInferior: corteInferior,
+          corteSuperior: corteSuperior,
+          faixaEtaria: idoso ? '>= 65 anos' : '< 65 anos',
+          conduta: condutaSugerida,
+          metadadosMASLD: {
+            diretrizReferencia: 'AASLD / EASL-EASD-EASO 2024 (MASLD)',
+            faixaEtariaAplicada: idoso ? '>= 65 anos' : '< 65 anos',
+            corteBaixoRisco: corteInferior,
+            corteAltoRisco: corteSuperior,
+            condutaRecomendada: condutaSugerida
+          }
+        },
+        legado: {
+          fib4: escoreFib4,
+          risco: risco,
+          categoria: categoria
+        },
+        botoes: botoesPadrao(ID, [btn('🔬 Elastografia', ID, 'vcte'), btn('✏️ Revisar dados', ID, 'editar')])
       });
     });
   }
@@ -2900,6 +3283,7 @@ var CalculadorasClinicas = (function () {
     glasgowP: glasgowP,
     gasometria: gasometria,
     meld: meld,
+    fib4: fib4,
     parkland: parkland,
     calcularParklandPorTextoLivre: calcularParklandPorTextoLivre,
     drogasVasoativas: drogasVasoativas,

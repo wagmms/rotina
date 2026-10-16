@@ -39,6 +39,7 @@ var PneumologiaPacService = (function () {
       esquemaSugerido = [
         '• Ceftriaxona 2g IV 1x/dia + Azitromicina 500mg IV 1x/dia por 7 dias',
         '• Alternativa (alergia grave a beta-lactâmicos): Levofloxacino 750mg IV 1x/dia ou Moxifloxacino 400mg IV 1x/dia',
+        '• Corticoterapia na PAC Grave (Estudo CAPE COD / Consenso 2024): Se suporte ventilatório avançado em UTI (VMI ou CNAF com FiO2 >= 50%) e teste negativo para Influenza/fungos, prescrever Hidrocortisona 200mg/dia IV contínua por 4 a 8 dias.',
         '• Solicitar: Hemoculturas (2 pares), Raio-X de tórax, Gasometria arterial, PCR, Função renal e Eletrólitos.'
       ];
     } else if (escore === 2) {

@@ -15,13 +15,20 @@
 var CardiologiaFaAnticoagulacaoService = (function () {
   'use strict';
 
-  function calcularCHA2DS2VASc(dados) {
+  /**
+   * Escore CHA2DS2-VA unissex (Diretrizes ESC 2024 / SBC 2025):
+   * O sexo feminino ("Sc") foi descontinuado como pontuação somatória isolada.
+   * - 0 ponto: Baixo risco tromboembólico. ACO NÃO recomendada (Classe III).
+   * - 1 ponto: Risco intermediário. Considerar ACO individualizada (Classe IIa). DOACs preferenciais.
+   * - >= 2 pontos: Alto risco tromboembólico. ACO formalmente recomendada e indicada (Classe I). DOACs preferenciais.
+   */
+  function calcularCHA2DS2VA(dados) {
+    dados = dados || {};
     var pontos = 0;
-    
+
     if (dados.idade >= 75) pontos += 2;
     else if (dados.idade >= 65) pontos += 1;
-    
-    if (dados.sexo === 'F' || dados.sexo === 'feminino') pontos += 1;
+
     if (dados.insuficienciaCardiaca) pontos += 1;
     if (dados.hipertensao) pontos += 1;
     if (dados.avcOuAitPrevio) pontos += 2;
@@ -29,15 +36,50 @@ var CardiologiaFaAnticoagulacaoService = (function () {
     if (dados.diabetes) pontos += 1;
 
     var recomendacao = "";
-    if (pontos === 0 || (pontos === 1 && (dados.sexo === 'F' || dados.sexo === 'feminino'))) {
-        recomendacao = "Baixo risco. Anticoagulação oral (ACO) não é recomendada.";
-    } else if (pontos === 1 && (dados.sexo === 'M' || dados.sexo === 'masculino')) {
-        recomendacao = "Risco intermediário. Considerar ACO individualizada com base no risco/benefício (DOACs preferíveis à Varfarina).";
+    var classe = "";
+    if (pontos === 0) {
+      classe = "Classe III";
+      recomendacao = "Baixo risco tromboembólico (Score = 0). Anticoagulação oral (ACO) não é recomendada (Classe III).";
+    } else if (pontos === 1) {
+      classe = "Classe IIa";
+      recomendacao = "Risco intermediário (Score = 1). Considerar ACO individualizada com base no risco/benefício (Classe IIa). DOACs preferíveis à Varfarina na FA não valvar.";
     } else {
-        recomendacao = "Alto risco. Anticoagulação oral indicada e recomendada (DOACs são preferíveis à Varfarina na FA não valvar).";
+      classe = "Classe I";
+      recomendacao = "Alto risco tromboembólico (Score ≥ 2). Anticoagulação oral recomendada e indicada (Classe I). DOACs preferíveis à Varfarina na FA não valvar.";
     }
 
-    return { escore: pontos, recomendacao: recomendacao };
+    return {
+      escore: pontos,
+      escoreVA: pontos,
+      diretriz: "ESC 2024 / SBC 2025",
+      classe: classe,
+      recomendacao: recomendacao,
+      doacPreferivel: true
+    };
+  }
+
+  function calcularCHA2DS2VASc(dados) {
+    dados = dados || {};
+    var va = calcularCHA2DS2VA(dados);
+    var pontos = va.escore;
+    if (dados.sexo === 'F' || dados.sexo === 'feminino') pontos += 1;
+
+    var recomendacao = "";
+    if (pontos === 0 || (pontos === 1 && (dados.sexo === 'F' || dados.sexo === 'feminino'))) {
+      recomendacao = "Baixo risco. Anticoagulação oral (ACO) não é recomendada.";
+    } else if (pontos === 1 && (dados.sexo === 'M' || dados.sexo === 'masculino')) {
+      recomendacao = "Risco intermediário. Considerar ACO individualizada com base no risco/benefício (DOACs preferíveis à Varfarina).";
+    } else {
+      recomendacao = "Alto risco. Anticoagulação oral indicada e recomendada (DOACs são preferíveis à Varfarina na FA não valvar).";
+    }
+
+    return {
+      escore: pontos,
+      recomendacao: recomendacao,
+      cha2ds2va: va,
+      escoreVA: va.escore,
+      recomendacaoVA: va.recomendacao
+    };
   }
 
   function calcularHASBLED(dados) {
@@ -203,6 +245,7 @@ var CardiologiaFaAnticoagulacaoService = (function () {
   }
 
   return {
+    calcularCHA2DS2VA: calcularCHA2DS2VA,
     calcularCHA2DS2VASc: calcularCHA2DS2VASc,
     calcularHASBLED: calcularHASBLED,
     avaliarCondutaAgudaFA: avaliarCondutaAgudaFA,

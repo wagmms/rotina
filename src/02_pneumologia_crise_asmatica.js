@@ -394,6 +394,7 @@ var PneumologiaCriseAsmaticaService = (function() {
         // 9. BLOQUEIOS DE SEGURANÇA E CONTRAINDICAÇÕES CRÍTICAS
         plano.bloqueios_seguranca.push("🚫 CONTRAINDICAÇÃO FORMAL: NUNCA prescrever sedativos, ansiolíticos (Benzodiazepínicos como Diazepam/Midazolam) ou opioides no broncoespasmo em paciente sem via aérea definitiva intubada! Causa depressão respiratória aguda e parada cardiorrespiratória por abolição do drive ventilatório de exaustão.");
         if (!isDpoc) {
+            plano.bloqueios_seguranca.push("🚫 ALERTA CRÍTICO GINA 2024 (PROIBIÇÃO DE SABA ISOLADO): O uso de SABA (Salbutamol/Fenoterol) isolado sem Corticoide Inalatório está proscrito pela GINA devido ao aumento comprovado de exacerbações graves e mortalidade. O regime preferencial (Track 1) é a terapia anti-inflamatória de alívio (AIR / MART com CI-Formoterol).");
             plano.bloqueios_seguranca.push("🚫 CONTRAINDICAÇÃO DE ANTIBIÓTICOS ROTINEIROS: Não indicar antimicrobianos empiricamente para exacerbação de asma. Mais de 80% das crises são deflagradas por infecções virais respiratórias ou alérgenos. Reservar apenas se pneumonia bacteriana confirmada radiologicamente ou febre alta mantida com expectoração francamente purulenta.");
         }
         plano.bloqueios_seguranca.push("🚫 CONTRAINDICAÇÃO DE MUCOLÍTICOS: Fluidificantes e mucolíticos (ex: Acetilcisteína inalatória) são formalmente contraindicados na fase aguda de broncoespasmo (pioram tosse, irritação e broncoconstrição reflexa).");
@@ -410,7 +411,7 @@ var PneumologiaCriseAsmaticaService = (function() {
                 prescricao_alta: [
                     "1. Corticoide Oral: Prednisona 40 a 50 mg/dia VO pela manhã por 5 a 7 dias (adultos) ou Prednisolona 1-2 mg/kg/dia por 3 a 5 dias (crianças).",
                     "2. Corticoide Inalatório de Manutenção: Iniciar ou otimizar CI (ex: Budesonida 200 a 400 mcg 12/12h OU Budesonida + Formoterol) para prevenir exacerbações precoces.",
-                    "3. Broncodilatador de Resgate: Salbutamol Spray 100 mcg (2 a 4 jatos com espaçador se sintomas de falta de ar).",
+                    "3. Alívio Anti-inflamatório (Track 1 Preferencial GINA 2024 - AIR/MART): Budesonida/Formoterol 160/4.5 mcg ou 200/6 mcg (1 inalação se sintomas; máx 12 inalações/dia). Proscrita a alta apenas com SABA isolado.",
                     "4. Orientação Técnica: Revisar minuciosamente a técnica de uso do inalador dosimetrado com espaçador antes da alta hospitalar.",
                     "5. Retorno: Consulta médica ambulatorial de retorno agendada em 2 a 7 dias com plano de ação escrito."
                 ]
@@ -554,11 +555,81 @@ var PneumologiaCriseAsmaticaService = (function() {
         return txt;
     }
 
+    var GINA_2024_CONSTANTS = Object.freeze({
+        BLOQUEIO_SABA_ISOLADO: true,
+        SABA_BLACK_BOX_WARNING: "ALERTA CRÍTICO GINA 2024 (PROIBIÇÃO DE SABA ISOLADO): O uso de SABA (Salbutamol/Fenoterol) isolado sem Corticoide Inalatório (CI) está PROSCRITO devido ao aumento comprovado do risco de exacerbações graves e mortalidade por asma.",
+        TRACK_1_PREFERENCIAL: "Track 1 (Preferencial GINA 2024): Esquema AIR (Anti-Inflammatory Reliever) ou MART (Maintenance and Reliever Therapy) com CI-Formoterol.",
+        FORMOTEROL_MAX_MCG_DIA: 72,
+        DISPOSITIVOS_PADRAO: {
+            TURBUHALER_160_4_5: { nome: "Budesonida 160 mcg + Formoterol 4.5 mcg", dose_max_inalacoes_dia: 12 },
+            AEROLIZER_200_6: { nome: "Budesonida 200 mcg + Formoterol 6.0 mcg", dose_max_inalacoes_dia: 12 }
+        }
+    });
+
+    /**
+     * Prescreve o manejo ambulatorial determinístico baseado no Track 1 GINA 2024 (AIR / MART).
+     * @param {Object} paciente - { stepGina: 1|2|3|4|5, etapa: 1|2|3|4|5, usaSabaIsolado: boolean }
+     */
+    function prescreverManejoGina2024(paciente) {
+        paciente = paciente || {};
+        var step = Number(paciente.stepGina || paciente.etapa || paciente.step || 1);
+        if (isNaN(step) || step < 1 || step > 5) {
+            throw new Error("Step GINA inválido. Deve ser um número inteiro entre 1 e 5.");
+        }
+
+        var alertas = [];
+        var alertaSegurancaSaba = GINA_2024_CONSTANTS.SABA_BLACK_BOX_WARNING;
+        if (paciente.usaSabaIsolado) {
+            alertas.push(alertaSegurancaSaba);
+        }
+
+        var estrategia = "";
+        var prescricaoManutencao = "";
+        var prescricaoAlivio = "Budesonida/Formoterol 200/6 mcg (ou 160/4.5 mcg): Inalar 1 dose se dispneia/sibilos (Alívio Anti-inflamatório - AIR).";
+
+        switch (step) {
+            case 1:
+            case 2:
+                estrategia = "TERAPIA AIR (Anti-Inflammatory Reliever) Exclusiva";
+                prescricaoManutencao = "Sem dose fixa diária obrigatória. Uso estritamente sob demanda para sintomas ou antes de exercício.";
+                break;
+            case 3:
+                estrategia = "TERAPIA MART (Maintenance and Reliever Therapy) - Dose Baixa";
+                prescricaoManutencao = "Budesonida/Formoterol 200/6 mcg (ou 160/4.5 mcg): 1 inalação de 12/12h (Manutenção dose baixa).";
+                break;
+            case 4:
+                estrategia = "TERAPIA MART (Maintenance and Reliever Therapy) - Dose Média";
+                prescricaoManutencao = "Budesonida/Formoterol 200/6 mcg (ou 160/4.5 mcg): 2 inalações de 12/12h (Manutenção dose média).";
+                break;
+            case 5:
+                estrategia = "TERAPIA MART - Dose Alta + Avaliação Fenotípica / LAMA";
+                prescricaoManutencao = "Budesonida/Formoterol em dose alta + Associar LAMA (Tiotrópio) e encaminhar para avaliação de Biológicos (Anti-IgE, Anti-IL5/5R, Anti-IL4Rα, Anti-TSLP).";
+                break;
+        }
+
+        return {
+            diretriz: "GINA 2024 - Track 1",
+            track: "Track 1 (Preferencial GINA)",
+            step: step,
+            etapa: step,
+            alertasSeguranca: alertas,
+            alertaSegurancaSaba: alertaSegurancaSaba,
+            estrategiaTerapeutica: estrategia,
+            manutencao: prescricaoManutencao,
+            estrategiaManutencao: prescricaoManutencao,
+            alivio: prescricaoAlivio,
+            estrategiaResgate: prescricaoAlivio + " (" + (step <= 2 ? "AIR" : "MART") + ")",
+            limiteSegurancaDia: "Máximo de 12 inalações totais em 24h (72 mcg de Formoterol)."
+        };
+    }
+
     return {
         classificarGravidade: classificarGravidade,
         calcularPlanoTratamento: calcularPlanoTratamento,
         avaliarCriseAsmatica: avaliarCriseAsmatica,
-        formatarTextoTelegram: formatarTextoTelegram
+        formatarTextoTelegram: formatarTextoTelegram,
+        prescreverManejoGina2024: prescreverManejoGina2024,
+        GINA_2024_CONSTANTS: GINA_2024_CONSTANTS
     };
 })();
 

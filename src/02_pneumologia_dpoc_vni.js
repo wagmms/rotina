@@ -174,9 +174,106 @@ var PneumologiaDpocVniService = (function() {
         return t;
     }
 
+    /**
+     * Classificação GOLD 2024 (Modelo ABE - Substitui o antigo ABCD) e Terapia Tripla / Dupilumabe.
+     * @param {Object} paciente - { mMRC: number, cat: number, exacerbacoesModeradasAno: number, hospitalizacoesAno: number, eosinofilosSangue: number, emTerapiaTripla: boolean }
+     */
+    function classificarEManejarDPOCGold2024(paciente) {
+        paciente = paciente || {};
+        var mMRC = paciente.mMRC !== undefined ? paciente.mMRC : paciente.mmrc;
+        var cat = paciente.cat !== undefined ? paciente.cat : paciente.catScore;
+        var exacerbacoesModeradasAno = paciente.exacerbacoesModeradasAno !== undefined 
+            ? paciente.exacerbacoesModeradasAno 
+            : (paciente.historicoExacerbacoesAno !== undefined ? paciente.historicoExacerbacoesAno : 0);
+        var hospitalizacoesAno = paciente.hospitalizacoesAno !== undefined 
+            ? paciente.hospitalizacoesAno 
+            : (paciente.internacoesPreviasAno !== undefined ? paciente.internacoesPreviasAno : 0);
+        var eosinofilosSangue = paciente.eosinofilosSangue !== undefined ? paciente.eosinofilosSangue : 150;
+        var emTerapiaTripla = Boolean(paciente.emTerapiaTripla || paciente.refratarioTerapiaTripla);
+
+        var isExacerbador = (exacerbacoesModeradasAno >= 2) || (hospitalizacoesAno >= 1);
+        var isMuitoSintomatico = (mMRC !== undefined && mMRC >= 2) || (cat !== undefined && cat >= 10);
+
+        var grupoGold = "";
+        var grupoSimples = "";
+        var terapiaInicial = "";
+        var indicacaoBiologico = null;
+
+        if (isExacerbador) {
+            grupoSimples = "Grupo E";
+            grupoGold = "GRUPO E (Exacerbador Frequente / Grave - Antigos C e D unificados)";
+            if (eosinofilosSangue >= 300) {
+                terapiaInicial = "Terapia Tripla Inalatória: LABA + LAMA + CI (ex: Formoterol/Glicopirrônio/Budesonida ou Vilanterol/Umeclidínio/Fluticasona).";
+            } else {
+                terapiaInicial = "Dupla Broncodilatação: LABA + LAMA (Preferencial se Eosinófilos < 300/mcL). Considerar adição de CI se Eosinófilos >= 100/mcL na persistência de exacerbações.";
+            }
+
+            // Avaliação de Dupilumabe (Estudos BOREAS e NOTUS - GOLD 2024/2025)
+            if (emTerapiaTripla && eosinofilosSangue >= 300) {
+                indicacaoBiologico = {
+                    farmaco: "Dupilumabe (Anti-IL-4Rα - Bloqueio dual de IL-4 e IL-13)",
+                    evidencia: "Estudos Fase 3 BOREAS e NOTUS (GOLD 2024)",
+                    criterioPreenchido: "DPOC Grupo E refratário a LABA + LAMA + CI com fenótipo inflamatório Tipo 2 (Eosinófilos séricos >= 300 células/µL) e bronquite crônica.",
+                    posologia: "Dupilumabe 300 mg SC a cada 2 semanas."
+                };
+            }
+        } else if (isMuitoSintomatico) {
+            grupoSimples = "Grupo B";
+            grupoGold = "GRUPO B (Alto Sintoma, Baixo Risco de Exacerbação)";
+            terapiaInicial = "Dupla Broncodilatação: LABA + LAMA (Superior à monoterapia no controle de sintomas).";
+        } else {
+            grupoSimples = "Grupo A";
+            grupoGold = "GRUPO A (Baixo Sintoma, Baixo Risco de Exacerbação)";
+            terapiaInicial = "Um Broncodilatador (LABA ou LAMA de longa ação preferencialmente).";
+        }
+
+        return {
+            diretriz: "GOLD 2024 (Classificação ABE)",
+            grupo: grupoSimples,
+            grupoABE: grupoGold,
+            perfilEosinofilico: eosinofilosSangue + " células/µL",
+            condutaInalatoria: terapiaInicial,
+            terapiaInicial: terapiaInicial,
+            elegivelDupilumabe: Boolean(indicacaoBiologico),
+            detalheDupilumabe: indicacaoBiologico ? (indicacaoBiologico.farmaco + ": " + indicacaoBiologico.posologia) : null,
+            terapiaAlvoBiologica: indicacaoBiologico || "Sem indicação atual de Dupilumabe (Requer Grupo E refratário a LABA+LAMA+CI com Eosinófilos >= 300/µL).",
+            alertaSeguranca: "Corticoide Inalatório (CI) em monoterapia é contraindicado na DPOC. Evitar CI se pneumonias de repetição ou Eosinófilos < 100/µL."
+        };
+    }
+
+    /**
+     * Avaliação determinística de VNI na Exacerbação Aguda de DPOC
+     */
+    function avaliarIndicacaoVniDpoc(gasometria) {
+        gasometria = gasometria || {};
+        var pH = parseFloat(gasometria.pH || gasometria.ph);
+        var paCO2 = parseFloat(gasometria.paCO2 || gasometria.paco2 || gasometria.pco2);
+        var dispneiaGrave = Boolean(gasometria.dispneiaGrave || (gasometria.frequenciaRespiratoria && gasometria.frequenciaRespiratoria > 25));
+
+        var indicaVNI = (!isNaN(pH) && pH <= 7.35 && !isNaN(paCO2) && paCO2 > 45) || dispneiaGrave;
+
+        return {
+            indicacaoVNI: indicaVNI,
+            indicada: indicaVNI,
+            parametrosIniciais: {
+                ipapCmH2O: 12,
+                epapCmH2O: 4,
+                alvoVcMlKg: "6-8 mL/kg"
+            },
+            modalidade: indicaVNI
+                ? "BiPAP (Bilevel) - IPAP inicial 12-15 cmH2O / EPAP 4-5 cmH2O, titular para Vc 6-8 mL/kg e queda da FR."
+                : "Oxigenoterapia controlada por máscara de Venturi (Alvo SpO2 88-92%).",
+            criterioIOT: (!isNaN(pH) && pH < 7.25 && !isNaN(paCO2) && paCO2 > 60)
+                ? "Alto risco de falha de VNI. Preparar material para IOT se não houver melhora gasométrica e clínica em 1 hora."
+                : "Monitorar resposta clínica e repetir gasometria arterial em 1-2 horas."
+        };
+    }
+
     return {
         avaliarVni: avaliarVni,
-        formatarTextoTelegram: formatarTextoTelegram
+        formatarTextoTelegram: formatarTextoTelegram,
+        classificarEManejarDPOCGold2024: classificarEManejarDPOCGold2024,
+        avaliarIndicacaoVniDpoc: avaliarIndicacaoVniDpoc
     };
 
 })();

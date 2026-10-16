@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-16 02:12:34
- * Checksum SHA256: cd524f0ec158c6c7
+ * Gerado automaticamente via build_master.py em: 2026-10-16 12:56:05
+ * Checksum SHA256: 3ee1ac40a5c74a77
  * ==============================================================================
  */
 
@@ -1623,14 +1623,16 @@ var ArbovirosesDengueService = (function () {
         prescricaoFormatada: '💧 HIDRATAÇÃO ORAL GRUPO A:\n• Volume total em 24h: ' + volTotalA + ' mL (' + (volTotalA / 1000).toFixed(1) + ' L/dia)\n• Soro de Reidratação Oral (SRO): ' + volSroA + ' mL fracionados\n• Outros líquidos (água, sucos de frutas, água de coco): ' + volLiquidosA + ' mL'
       };
     } else if (grupo === 'B') {
-      // 80 mL/kg/dia oral na unidade supervisionada
-      var volTotalB = Math.round(pesoKg * 80);
+      // 60 mL/kg/dia oral na unidade supervisionada (1/3 nas primeiras 4h) - MS 2024
+      var volTotalB = Math.round(pesoKg * 60);
       var volPrimQuatroHoras = Math.round(volTotalB / 3);
+      var volLiquidosB = volTotalB - volPrimQuatroHoras;
       return {
         via: 'Oral Supervisionada',
         volumeTotal24hMl: volTotalB,
         volumeFaseRapidaMl: volPrimQuatroHoras,
-        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL SUPERVISIONADA GRUPO B:\n• Volume nas primeiras 4 horas na UPA: ' + volPrimQuatroHoras + ' mL de SRO\n• Manter ingestão constante até liberação do hematócrito\n• Volume total estimado em 24h: ' + volTotalB + ' mL'
+        volumeOutrosLiquidosMl: volLiquidosB,
+        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL SUPERVISIONADA GRUPO B (MS 2024):\n• Volume nas primeiras 4 horas na UPA: ' + volPrimQuatroHoras + ' mL de SRO (1/3 do volume diário)\n• Manter ingestão constante até liberação do hematócrito\n• Volume total em 24h: ' + volTotalB + ' mL (60 mL/kg/dia)'
       };
     } else if (grupo === 'C') {
       // Fase rápida: 10 mL/kg/h em 2h
@@ -1706,11 +1708,128 @@ var ArbovirosesDengueService = (function () {
     };
   }
 
+  /**
+   * Estadiamento Clínico e Cálculo Determinístico de Hidratação na Dengue (MS Brasil 2024)
+   * @param {Object} paciente - { pesoKg: number, sinaisAlarme: boolean, sinaisChoqueOuSangramentoGrave: boolean, condicaoEspecialOuRiscoSocialOuPetequias: boolean }
+   */
+  function manejarDengueMS2024(paciente) {
+    paciente = paciente || {};
+    var pesoKg = paciente.pesoKg;
+    var sinaisAlarme = Boolean(paciente.sinaisAlarme);
+    var sinaisChoqueOuSangramentoGrave = Boolean(paciente.sinaisChoqueOuSangramentoGrave);
+    var condicaoEspecialOuRiscoSocialOuPetequias = Boolean(paciente.condicaoEspecialOuRiscoSocialOuPetequias);
+
+    if (typeof pesoKg !== 'number' || pesoKg <= 0 || isNaN(pesoKg)) {
+      throw new Error("Peso do paciente (pesoKg) inválido. Deve ser um número maior que zero.");
+    }
+
+    var grupo = "";
+    var localManejo = "";
+    var prescricaoHidratacao = {};
+    var examesObrigatorios = [];
+
+    if (sinaisChoqueOuSangramentoGrave) {
+      grupo = "GRUPO D";
+      localManejo = "Leito de Emergência / UTI (Internação Imediata)";
+      var volumeExpansao20Min = Math.round(pesoKg * 20);
+      prescricaoHidratacao = {
+        via: "ENDOVENOSA IMEDIATA (Acesso calibroso / Intraósseo se necessário)",
+        faseExpansaoRapida: "20 mL/kg em 20 minutos: Infundir " + volumeExpansao20Min + " mL de SF 0.9% ou Ringer Lactato EV em 20 minutos.",
+        reavaliacao: "Reavaliar a cada 15-20 min e hematócrito em 2 horas. Pode repetir a expansão (20 mL/kg em 20 min) até 3 vezes se persistência do choque."
+      };
+      examesObrigatorios = ["Hemograma completo (Hematócrito seriado)", "Tipagem sanguínea", "Transaminases (AST/ALT)", "Albumina sérica", "Gasometria arterial e Lactato", "Coagulograma", "Função Renal"];
+    } else if (sinaisAlarme) {
+      grupo = "GRUPO C";
+      localManejo = "Leito de Internação Hospitalar (Mínimo 48h de estabilização)";
+      var volumePrimeiraHora = Math.round(pesoKg * 10);
+      prescricaoHidratacao = {
+        via: "ENDOVENOSA IMEDIATA",
+        faseExpansao: "10 mL/kg/h na 1ª hora (e até a 2ª hora até resultado do Ht): Infundir " + volumePrimeiraHora + " mL de Ringer Lactato ou SF 0.9% EV em 1 hora.",
+        reavaliacao: "Reavaliar sinais vitais, diurese (alvo >= 1 mL/kg/h) e repetir Hematócrito em 2 horas. Se melhora, iniciar fase de manutenção (25 mL/kg em 6h, depois 25 mL/kg em 8h)."
+      };
+      examesObrigatorios = ["Hemograma completo obrigatório (Urgência)", "Dosagem de Albumina sérica e Transaminases", "Raio-X de Tórax e USG de Abdome (pesquisa de derrames cavitários)"];
+    } else if (condicaoEspecialOuRiscoSocialOuPetequias) {
+      grupo = "GRUPO B";
+      localManejo = "Leito de Observação em Unidade de Saúde / UPA até resultado do Hemograma";
+      var volumeTotalDiaB = Math.round(pesoKg * 60);
+      var volumeSroB = Math.round(volumeTotalDiaB / 3);
+      var volumeLiquidosCaseirosB = volumeTotalDiaB - volumeSroB;
+      prescricaoHidratacao = {
+        via: "ORAL SUPERVISIONADA (Enquanto aguarda o Hemograma)",
+        volumeDiarioTotal: volumeTotalDiaB + " mL/dia (60 mL/kg/dia).",
+        fracionamento: "1/3 com Soro de Reidratação Oral (" + volumeSroB + " mL) e 2/3 com líquidos caseiros (" + volumeLiquidosCaseirosB + " mL: água, sucos, água de coco)."
+      };
+      examesObrigatorios = ["Hemograma completo OBRIGATÓRIO (colher e liberar resultado em até 4h). Se hemoconcentração -> reclassificar para Grupo C."];
+    } else {
+      grupo = "GRUPO A";
+      localManejo = "Ambulatorial / Domiciliar (Unidade Básica de Saúde)";
+      var volumeTotalDiaA = Math.round(pesoKg * 60);
+      var volumeSroA = Math.round(volumeTotalDiaA / 3);
+      var volumeLiquidosCaseirosA = volumeTotalDiaA - volumeSroA;
+      prescricaoHidratacao = {
+        via: "ORAL DOMICILIAR PRECOCE",
+        volumeDiarioTotal: volumeTotalDiaA + " mL/dia (60 mL/kg/dia para adultos).",
+        fracionamento: "1/3 com Soro de Reidratação Oral (" + volumeSroA + " mL) nas primeiras 4 a 6 horas e 2/3 com líquidos claros (" + volumeLiquidosCaseirosA + " mL) ao longo do dia."
+      };
+      examesObrigatorios = ["Não há obrigatoriedade de hemograma de rotina (a critério clínico)."];
+    }
+
+    return {
+      diretriz: "Ministério da Saúde do Brasil - Manejo Clínico da Dengue (2024)",
+      estadiamento: grupo,
+      destinoPaciente: localManejo,
+      hidratacaoCalculada: prescricaoHidratacao,
+      examesComplementares: examesObrigatorios,
+      prescricaoSintomaticaSegura: "Dipirona 500mg-1g (ou Paracetamol). CONTRAINDICADOS: AAS (Aspirina) e AINEs (Ibuprofeno, Diclofenaco, Cetoprofeno, Nimesulida) pelo risco de hemorragia grave."
+    };
+  }
+
+  /**
+   * Avaliação de Elegibilidade e Prescrição da Vacina Qdenga (TAK-003)
+   * @param {Object} perfil - { idadeAnos: number, gestante: boolean, lactante: boolean, imunossuprimido: boolean, teveDengueRecenteMenos6Meses: boolean }
+   */
+  function avaliarVacinaQdenga(perfil) {
+    perfil = perfil || {};
+    var idadeAnos = perfil.idadeAnos;
+    var gestante = Boolean(perfil.gestante);
+    var lactante = Boolean(perfil.lactante);
+    var imunossuprimido = Boolean(perfil.imunossuprimido);
+    var teveDengueRecenteMenos6Meses = Boolean(perfil.teveDengueRecenteMenos6Meses);
+
+    var contraindicacoesDetectadas = [];
+
+    if (gestante) {
+      contraindicacoesDetectadas.push("Gestantes (Vacina de vírus vivo atenuado tetravalente - risco teórico teratogênico/viremia).");
+    }
+    if (lactante) {
+      contraindicacoesDetectadas.push("Lactantes / Mulheres em amamentação (Contraindicada pela ANVISA/MS por risco de excreção viral no leite materno).");
+    }
+    if (imunossuprimido) {
+      contraindicacoesDetectadas.push("Imunossuprimidos (Congênita ou adquirida, HIV com CD4 < 200, quimioterapia ou corticoide em dose imunossupressora >= 20 mg/dia de prednisona por > 14 dias).");
+    }
+    if (typeof idadeAnos !== 'number' || idadeAnos < 4 || idadeAnos > 60) {
+      contraindicacoesDetectadas.push("Idade fora da bula aprovada pela ANVISA (4 a 60 anos). Idade informada: " + idadeAnos + " anos.");
+    }
+
+    var elegivelImediato = contraindicacoesDetectadas.length === 0 && !teveDengueRecenteMenos6Meses;
+
+    return {
+      vacina: "Qdenga (TAK-003) - Vacina Tetravalente de Vírus Vivo Atenuado (DENV-1, DENV-2, DENV-3, DENV-4)",
+      elegivelAgora: elegivelImediato,
+      statusSorologico: "Independe de infecção prévia por dengue (pode ser aplicada em soropositivos e soronegativos).",
+      esquemaPosologico: "2 doses de 0,5 mL via Subcutânea (SC) nos meses 0 e 3 (intervalo de 90 dias entre as doses).",
+      adiamentoTemporario: teveDengueRecenteMenos6Meses ? "Aguardar 6 meses após o início dos sintomas da infecção aguda por dengue para iniciar ou completar o esquema vacinal." : null,
+      contraindicacoesAbsolutas: contraindicacoesDetectadas.length > 0 ? contraindicacoesDetectadas : ["Nenhuma contraindicação absoluta detectada no perfil informado."]
+    };
+  }
+
   return {
     estadiarDengue: estadiarDengue,
     calcularHidratacao: calcularHidratacao,
     formatarTextoTelegram: formatarTextoTelegram,
     extrairParametrosTexto: extrairParametrosTexto,
+    manejarDengueMS2024: manejarDengueMS2024,
+    avaliarVacinaQdenga: avaliarVacinaQdenga,
     SINAIS_ALARME: SINAIS_ALARME,
     SINAIS_CHOQUE: SINAIS_CHOQUE
   };
@@ -2049,49 +2168,202 @@ var CalculadorasClinicas = (function () {
     });
   }
 
-  /** CKD-EPI 2021 (sem raça). Creatinina em mg/dL. Adultos ≥ 18 anos. */
-  function ckdEpi2021(creatinina, idade, ehFeminino) {
+  /**
+   * Classifica o Estádio KDIGO (G1 a G5) com base na Taxa de Filtração Glomerular.
+   * @private
+   */
+  function classificarEstadioKDIGO(tfg) {
+    if (tfg === null || tfg === undefined || isNaN(tfg)) return null;
+    if (gte(tfg, 90)) {
+      return { estadio: 'G1', descricao: 'Normal ou elevada', faixa: '>= 90 mL/min/1,73m²' };
+    }
+    if (gte(tfg, 60)) {
+      return { estadio: 'G2', descricao: 'Levemente diminuída', faixa: '60–89 mL/min/1,73m²' };
+    }
+    if (gte(tfg, 45)) {
+      return { estadio: 'G3a', descricao: 'Leve a moderadamente diminuída', faixa: '45–59 mL/min/1,73m²' };
+    }
+    if (gte(tfg, 30)) {
+      return { estadio: 'G3b', descricao: 'Moderada a gravemente diminuída', faixa: '30–44 mL/min/1,73m²' };
+    }
+    if (gte(tfg, 15)) {
+      return { estadio: 'G4', descricao: 'Gravemente diminuída', faixa: '15–29 mL/min/1,73m²' };
+    }
+    return { estadio: 'G5', descricao: 'Falência renal (Estádio Terminal)', faixa: '< 15 mL/min/1,73m²' };
+  }
+
+  /**
+   * CKD-EPI 2021 (sem raça) e CKD-EPI 2021 Creatinina-Cistatina C (KDIGO 2024).
+   * Creatinina em mg/dL. Cistatina C em mg/L (opcional). Adultos ≥ 18 anos.
+   */
+  function ckdEpi2021(arg1, arg2, arg3, arg4) {
     var ID = 'ckdepi', NOME = 'CKD-EPI 2021';
     return seguro(ID, NOME, function () {
       var c = novoCtx();
-      var cr = num(c, creatinina, 'Creatinina (mg/dL)', 0.1, 30);
-      var id = num(c, idade, 'Idade (anos)', 18, 120);
-      var fem = bool(c, ehFeminino, 'Sexo feminino (parâmetro da equação)');
+      var creatininaInput, idadeInput, ehFemininoInput, cistatinaCInput;
+
+      if (arg1 && typeof arg1 === 'object') {
+        creatininaInput = arg1.creatinina !== undefined ? arg1.creatinina : arg1.scr;
+        idadeInput = arg1.idade;
+        ehFemininoInput = arg1.ehFeminino !== undefined ? arg1.ehFeminino : (arg1.sexo ? ['F', 'FEM', 'FEMININO', 'FEMALE', 'MULHER'].indexOf(String(arg1.sexo).toUpperCase().trim()) !== -1 : undefined);
+        cistatinaCInput = arg1.cistatinaC !== undefined ? arg1.cistatinaC : arg1.scys;
+      } else {
+        creatininaInput = arg1;
+        idadeInput = arg2;
+        ehFemininoInput = arg3;
+        cistatinaCInput = arg4;
+      }
+
+      var cr = num(c, creatininaInput, 'Creatinina (mg/dL)', 0.1, 30);
+      var id = num(c, idadeInput, 'Idade (anos)', 18, 120);
+      var fem = bool(c, ehFemininoInput, 'Sexo feminino (parâmetro da equação)');
+
+      var scys = null;
+      if (cistatinaCInput !== undefined && cistatinaCInput !== null && String(cistatinaCInput).trim() !== '') {
+        scys = num(c, cistatinaCInput, 'Cistatina C (mg/L)', 0.1, 15);
+      }
+
       if (pendente(c)) return falhaCtx(ID, NOME, c);
 
+      // 1. CKD-EPI 2021 Creatinina isolada (eGFRcr)
       var kappa = fem ? 0.7 : 0.9, alfa = fem ? -0.241 : -0.302, mult = fem ? 1.012 : 1.0;
-      var r = cr / kappa;
-      var tfg = 142 * Math.pow(Math.min(r, 1), alfa) * Math.pow(Math.max(r, 1), -1.200) * Math.pow(0.9938, id) * mult;
-      exigirFinito(tfg);
+      var rCr = cr / kappa;
+      var tfgCrBruta = 142 * Math.pow(Math.min(rCr, 1), alfa) * Math.pow(Math.max(rCr, 1), -1.200) * Math.pow(0.9938, id) * mult;
+      exigirFinito(tfgCrBruta);
 
-      var g, desc;
-      if (gte(tfg, 90)) { g = 'G1'; desc = 'Normal ou elevada (≥ 90 mL/min/1.73m²)'; }
-      else if (gte(tfg, 60)) { g = 'G2'; desc = 'Levemente diminuída (60–89 mL/min/1.73m²)'; }
-      else if (gte(tfg, 45)) { g = 'G3a'; desc = 'Leve a moderadamente diminuída (45–59 mL/min/1.73m²)'; }
-      else if (gte(tfg, 30)) { g = 'G3b'; desc = 'Moderada a gravemente diminuída (30–44 mL/min/1.73m²)'; }
-      else if (gte(tfg, 15)) { g = 'G4'; desc = 'Gravemente diminuída (15–29 mL/min/1.73m²)'; }
-      else { g = 'G5'; desc = 'Falência renal (< 15 mL/min/1.73m²)'; }
+      var tfgCreatinina = Math.round(tfgCrBruta * 10) / 10;
+      var estadiamentoCr = classificarEstadioKDIGO(tfgCreatinina);
+
+      // 2. CKD-EPI 2021 Creatinina-Cistatina C combinada (KDIGO 2024 - eGFRcr-cys)
+      var tfgCombinada = null;
+      var estadiamentoComb = null;
+      var concordanciaDiagnostica = {
+        avaliada: false,
+        cistatinaCFornecida: false,
+        estadiosConcordantes: null,
+        reclassificacaoKDIGO: null,
+        diferencaAbsolutaMlMin: null,
+        diferencaPercentual: null,
+        interpretacaoClinica: 'Cistatina C não informada. Em casos limítrofes (TFG 45–59 mL/min/1,73m² sem albuminúria) ou extremos de massa muscular, o KDIGO 2024 recomenda dosar Cistatina C para cálculo da eGFRcr-cys.'
+      };
+
+      if (scys !== null && !isNaN(scys) && scys > 0) {
+        var kComb = fem ? 0.7 : 0.9;
+        var alphaComb = fem ? -0.219 : -0.144;
+        var fatorSexoComb = fem ? 1.018 : 1.0;
+
+        var razaoScrComb = cr / kComb;
+        var razaoScysComb = scys / 0.8;
+
+        var tfgCombBruta =
+          135 *
+          Math.pow(Math.min(razaoScrComb, 1), alphaComb) *
+          Math.pow(Math.max(razaoScrComb, 1), -0.544) *
+          Math.pow(Math.min(razaoScysComb, 1), -0.323) *
+          Math.pow(Math.max(razaoScysComb, 1), -0.778) *
+          Math.pow(0.9961, id) *
+          fatorSexoComb;
+        exigirFinito(tfgCombBruta);
+
+        tfgCombinada = Math.round(tfgCombBruta * 10) / 10;
+        estadiamentoComb = classificarEstadioKDIGO(tfgCombinada);
+
+        var diffAbs = Math.round((tfgCombinada - tfgCreatinina) * 10) / 10;
+        var diffPct = Math.round((Math.abs(diffAbs) / tfgCreatinina) * 1000) / 10;
+        var mesmoEstadio = estadiamentoCr.estadio === estadiamentoComb.estadio;
+
+        concordanciaDiagnostica = {
+          avaliada: true,
+          cistatinaCFornecida: true,
+          estadiosConcordantes: mesmoEstadio,
+          reclassificacaoKDIGO: mesmoEstadio
+            ? ('Mantido em ' + estadiamentoComb.estadio)
+            : ('Reclassificado de ' + estadiamentoCr.estadio + ' (eGFRcr) para ' + estadiamentoComb.estadio + ' (eGFRcr-cys)'),
+          diferencaAbsolutaMlMin: diffAbs,
+          diferencaPercentual: diffPct,
+          interpretacaoClinica: mesmoEstadio
+            ? ('Alta concordância diagnóstica KDIGO 2024: ambas as equações classificam o paciente no estádio ' + estadiamentoComb.estadio + '. Utilizar a tfgCombinada (' + tfgCombinada + ' mL/min/1,73m²) como referência padrão-ouro.')
+            : ('Discordância inter-equações detectada (' + estadiamentoCr.estadio + ' vs ' + estadiamentoComb.estadio + '). Segundo a Diretriz KDIGO 2024, a equação combinada Creatinina-Cistatina C (' + tfgCombinada + ' mL/min/1,73m² - ' + estadiamentoComb.estadio + ') possui maior acurácia e deve guiar o ajuste posológico e o estadiamento.')
+        };
+      }
+
+      var tfgReferencia = tfgCombinada !== null ? tfgCombinada : tfgCreatinina;
+      var estadiamentoOficial = estadiamentoComb !== null ? estadiamentoComb : estadiamentoCr;
+      var g = estadiamentoOficial.estadio;
+      var desc = estadiamentoOficial.descricao + ' (' + estadiamentoOficial.faixa + ')';
       var grave = (g === 'G4' || g === 'G5');
 
-      var tfgNum = Math.round(tfg * 10) / 10;
+      var secoes = [
+        ['CATEGORIA KDIGO 2024', [g + ': ' + desc]],
+        ['ENTRADAS', [
+          'Creatinina: ' + fmt(cr, 2) + ' mg/dL',
+          scys !== null ? ('Cistatina C: ' + fmt(scys, 2) + ' mg/L (Padrão-ouro KDIGO 2024)') : 'Cistatina C: Não informada (usada eGFRcr)',
+          'Idade: ' + fmt(id, 0) + ' anos',
+          'Parâmetro sexual: ' + (fem ? 'feminino' : 'masculino')
+        ]]
+      ];
+
+      if (concordanciaDiagnostica.avaliada) {
+        secoes.push(['ANÁLISE COMPARATIVA KDIGO 2024', [
+          'eGFRcr (Creatinina): ' + fmt(tfgCreatinina, 1) + ' mL/min/1,73m² [' + estadiamentoCr.estadio + ']',
+          'eGFRcr-cys (Combinada): ' + fmt(tfgCombinada, 1) + ' mL/min/1,73m² [' + estadiamentoComb.estadio + ']',
+          concordanciaDiagnostica.reclassificacaoKDIGO,
+          concordanciaDiagnostica.interpretacaoClinica
+        ]]);
+      }
+
+      secoes.push(['AÇÃO', [
+        'Válida apenas com creatinina estável.',
+        tfgCombinada !== null
+          ? 'eGFRcr-cys (Creatinina-Cistatina C) é a métrica padrão-ouro mais acurada da diretriz KDIGO 2024.'
+          : 'Para dose de fármaco, conferir também o clearance (Cockcroft-Gault) e a bula.'
+      ]]);
+
+      var avisos = [];
+      if (tfgCombinada !== null) {
+        avisos.push('KDIGO 2024: Avaliação com eGFRcr-cys combinada ativa. Reduz viés de sarcopenia e massa muscular atípica.');
+      } else {
+        avisos.push('Em lesão renal aguda, sarcopenia ou dieta atípica a eTFG por creatinina pode ser imprecisa; considerar cistatina C (KDIGO 2024). Categoria de eTFG isolada não define DRC.');
+        if (gte(tfgCreatinina, 45) && lt(tfgCreatinina, 60)) {
+          avisos.push('KDIGO 2024 G3a limítrofe (45–59 mL/min): recomendada confirmação diagnóstica com Cistatina C sérica na ausência de albuminúria.');
+        }
+      }
+
+      if (gt(cr, 15)) {
+        avisos.unshift('🚨 Creatinina extremamente elevada (> 15 mg/dL): Falência renal grave/terminal. As equações perdem acurácia na uremia anúrica; avaliar suporte dialítico urgente.');
+      }
+      if (gte(id, 90)) {
+        avisos.push('⚠️ Paciente muito idoso (≥ 90 anos): Sarcopenia fisiológica comum resulta em creatinina sérica reduzida e eTFG superestimada. Considerar dosagem de Cistatina C.');
+      }
+
       return sucesso({
-        id: ID, nome: NOME, estado: grave ? 'ATENCAO' : 'CALCULO',
+        id: ID,
+        nome: NOME,
+        estado: grave ? 'ATENCAO' : 'CALCULO',
         rotulo: grave ? 'TFG GRAVEMENTE REDUZIDA' : null,
-        principal: fmt(tfg, 1) + ' mL/min/1,73 m²',
-        secoes: [
-          ['CATEGORIA', [g + ': ' + desc]],
-          ['ENTRADAS', ['Creatinina: ' + fmt(cr, 2) + ' mg/dL', 'Idade: ' + fmt(id, 0) + ' anos', 'Parâmetro sexual: ' + (fem ? 'feminino' : 'masculino')]],
-          ['AÇÃO', ['Válida apenas com creatinina estável.', 'Para dose de fármaco, conferir também o clearance (Cockcroft-Gault) e a bula.']]
-        ],
-        avisos: (function () {
-          var av = ['Em lesão renal aguda, sarcopenia ou dieta atípica a eTFG pode ser imprecisa; considerar cistatina C (KDIGO 2024). Categoria de eTFG isolada não define DRC.'];
-          if (gt(cr, 15)) av.unshift('🚨 Creatinina extremamente elevada (> 15 mg/dL): Falência renal grave/terminal. As equações perdem acurácia na uremia anúrica; avaliar suporte dialítico urgente.');
-          if (gte(id, 90)) av.push('⚠️ Paciente muito idoso (≥ 90 anos): Sarcopenia fisiológica comum resulta em creatinina sérica reduzida e eTFG superestimada. Considerar dosagem de Cistatina C.');
-          return av;
-        })(),
-        dados: { tfg: tfgNum, categoria: g, estagio: g },
+        principal: fmt(tfgReferencia, 1) + ' mL/min/1,73 m²' + (tfgCombinada !== null ? ' (eGFRcr-cys)' : ''),
+        secoes: secoes,
+        avisos: avisos,
+        dados: {
+          tfg: tfgReferencia,
+          tfgCreatinina: tfgCreatinina,
+          tfgCombinada: tfgCombinada,
+          tfgReferencia: tfgReferencia,
+          categoria: g,
+          estagio: g,
+          estadiamentoKDIGO: {
+            categoriaOficial: g,
+            descricaoOficial: estadiamentoOficial.descricao,
+            faixaOficial: estadiamentoOficial.faixa,
+            porCreatinina: estadiamentoCr,
+            porCombinada: estadiamentoComb
+          },
+          concordanciaDiagnostica: concordanciaDiagnostica
+        },
         legado: {
-          tfg: tfgNum,
+          tfg: tfgReferencia,
+          tfgCreatinina: tfgCreatinina,
+          tfgCombinada: tfgCombinada,
           estagio: g,
           descricao: desc
         },
@@ -3261,88 +3533,175 @@ var CalculadorasClinicas = (function () {
    * 1ª fase (primeiras 8h a contar do acidente): 50% do volume total
    * 2ª fase (próximas 16h): 50% do volume total
    */
-  function parkland(pesoKg, scqPorcentagem) {
-    var ID = 'parkland', NOME = 'Fórmula de Parkland (Ressuscitação em Grandes Queimados)';
+  /**
+   * Ressuscitação Volêmica no Grande Queimado (Consenso ABA 2024 / ATLS 11ª Ed / SBQ / Parkland):
+   * - Adulto térmico/químico: 2 mL/kg/% SCQ (Ringer Lactato)
+   * - Pediátrico (< 14 anos ou <= 30 kg): 3 mL/kg/% SCQ + Manutenção glicídica SG 5% (Holliday-Segar)
+   * - Elétrica alta voltagem: 4 mL/kg/% SCQ (meta de diurese 1.0-1.5 mL/kg/h)
+   * - Parkland clássico histórico (4 mL/kg/% SCQ) preservado para comparação
+   * 1ª fase (primeiras 8h a contar do ACIDENTE): 50% do volume de expansão
+   * 2ª fase (próximas 16h): 50% do volume de expansão
+   */
+  function parkland(pesoKg, scqPorcentagem, tipoQueimadura, idadeAnos, horasDecorridas, volumeJaInfundido) {
+    var ID = 'parkland', NOME = 'Ressuscitação em Grandes Queimados (Consenso ABA / ATLS / Parkland)';
     return seguro(ID, NOME, function () {
       var c = novoCtx();
-      var peso = num(c, pesoKg, 'Peso corporal (kg)', 3, 350);
-      var scq = num(c, scqPorcentagem, 'Superfície Corpórea Queimada - SCQ (%)', 1, 100);
+      var rawPeso = (typeof pesoKg === 'object' && pesoKg !== null) ? pesoKg.peso : pesoKg;
+      var rawScq = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.scq || pesoKg.sctq) : scqPorcentagem;
+      var rawTipo = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.tipoQueimadura || pesoKg.tipo) : tipoQueimadura;
+      var rawIdade = (typeof pesoKg === 'object' && pesoKg !== null) ? pesoKg.idade : idadeAnos;
+      var rawHoras = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.horasDecorridas || pesoKg.horas) : horasDecorridas;
+      var rawVolInfundido = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.volumeJaInfundido || pesoKg.volumeInfundido) : volumeJaInfundido;
+
+      var peso = num(c, rawPeso, 'Peso corporal (kg)', 0.5, 350);
+      var scq = num(c, rawScq, 'Superfície Corpórea Queimada - SCQ (%)', 0.5, 100);
       if (pendente(c)) return falhaCtx(ID, NOME, c);
 
-      var volTotal = 4 * peso * scq; // em mL de Ringer Lactato
-      var vol8h = volTotal / 2;
-      var vazao8h = vol8h / 8;
-      var vol16h = volTotal / 2;
-      var vazao16h = vol16h / 16;
-      var debitoMin = Math.round(peso * 0.5 * 10) / 10;
-      var debitoMax = Math.round(peso * 1.0 * 10) / 10;
+      var idade = (rawIdade !== undefined && rawIdade !== null && rawIdade !== '') ? Number(rawIdade) : null;
+      var horas = Number(rawHoras || 0);
+      var volJaInfundido = Number(rawVolInfundido || 0);
 
-      var linhasResultado = [
-        '• Peso: ' + fmt(peso, 1) + ' kg | SCQ: ' + fmt(scq, 0) + '%',
-        '• Volume Total 24h (Ringer Lactato): ' + fmt(volTotal, 0) + ' mL',
-        '• 1ª Etapa (Primeiras 8h a contar do ACIDENTE): ' + fmt(vol8h, 0) + ' mL (vazão: ' + fmt(vazao8h, 0) + ' mL/h)',
-        '• 2ª Etapa (Próximas 16h): ' + fmt(vol16h, 0) + ' mL (vazão: ' + fmt(vazao16h, 0) + ' mL/h)',
-        '• Alvo de Débito Urinário (SVD horária): 0,5 a 1,0 mL/kg/h (' + fmt(debitoMin, 1) + ' a ' + fmt(debitoMax, 1) + ' mL/h)'
-      ];
+      var tipoNorm = String(rawTipo || 'termica').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      var isEletrica = tipoNorm.indexOf('eletr') !== -1;
+      var isPediatrico = tipoNorm.indexOf('ped') !== -1 || (idade !== null ? idade < 14 : peso <= 30);
+
+      // Determinação do Fator ABA / ATLS (mL/kg/%SCQ)
+      var fator = 2; // Padrão adulto térmico (ATLS 10ª/11ª Ed / ABA 2024)
+      var perfil = 'Adulto — Queimadura Térmica/Química';
+      var diretriz = 'Consenso ABA 2023/2024 & ATLS 10ª/11ª Ed. (2 mL/kg/%SCQ)';
+
+      if (isEletrica) {
+        fator = 4;
+        perfil = isPediatrico ? 'Pediátrico — Queimadura Elétrica de Alta Voltagem' : 'Adulto — Queimadura Elétrica de Alta Voltagem';
+        diretriz = 'Consenso ABA / ATLS — Alta Voltagem / Rabdomiólise (4 mL/kg/%SCQ)';
+      } else if (isPediatrico) {
+        fator = 3;
+        perfil = 'Pediátrico (< 14 anos ou ≤ 30 kg) — Queimadura Térmica';
+        diretriz = 'Consenso ABA / ATLS Pediátrico (3 mL/kg/%SCQ + Manutenção Glicídica)';
+      }
+
+      var volTotalAba = Math.round(fator * peso * scq); // Volume moderno ABA 2024
+      var vol8hBruto = Math.round(volTotalAba / 2);
+      var vol16h = Math.round(volTotalAba / 2);
+
+      // Parkland Clássico (4 mL/kg/%SCQ) para histórico e rastreabilidade
+      var volTotalClassico = Math.round(4 * peso * scq);
+      var vol8hClassico = Math.round(volTotalClassico / 2);
+      var vol16hClassico = Math.round(volTotalClassico / 2);
+
+      var horasRestantes1 = Math.max(0.5, 8 - horas);
+      var volRestante1 = Math.max(0, vol8hBruto - volJaInfundido);
+      var vazao8h = horas < 8 ? Math.round(volRestante1 / horasRestantes1) : 0;
+      var vazao16h = Math.round(vol16h / 16);
+
+      // Manutenção Pediátrica Holliday-Segar (SG 5%)
+      var volManutencao = 0;
+      var vazaoManutencao = 0;
+      if (isPediatrico) {
+        if (peso <= 10) volManutencao = Math.round(peso * 100);
+        else if (peso <= 20) volManutencao = Math.round(1000 + (peso - 10) * 50);
+        else volManutencao = Math.round(1500 + (peso - 20) * 20);
+        vazaoManutencao = Math.round(volManutencao / 24);
+      }
+
+      var debitoMin = Math.round(peso * (isEletrica ? 1.0 : (isPediatrico ? 1.0 : 0.5)) * 10) / 10;
+      var debitoMax = Math.round(peso * (isEletrica ? 1.5 : (isPediatrico ? 1.0 : 1.0)) * 10) / 10;
+      if (!isPediatrico && !isEletrica) {
+        debitoMin = Math.max(30, debitoMin);
+        debitoMax = Math.max(50, debitoMax);
+      }
 
       var avisos = [
-        'O relógio das primeiras 8 horas conta A PARTIR DO MOMENTO DO ACIDENTE/QUEIMADURA, não da chegada ao hospital.',
-        'Descontar da 1ª etapa qualquer volume já infundido no atendimento pré-hospitalar.',
-        'Ajustar a taxa horária de Ringer Lactato para cima ou para baixo conforme o débito urinário a cada 1 hora.',
-        'Evitar hiper-ressuscitação hídrica ("fluid creep"), que aumenta risco de síndrome compartimental abdominal e edema pulmonar.'
+        '⏱️ MARCO ZERO DO TRAUMA: O relógio das primeiras 8 horas conta A PARTIR DO MOMENTO DO ACIDENTE/QUEIMADURA, não da chegada ao hospital.',
+        '🔥 CÁLCULO DE %SCQ: Contabilize exclusivamente queimaduras de 2º e 3º graus. Eritema simples (1º grau) não entra na fórmula.',
+        '💧 PREVENÇÃO DE FLUID CREEP: O consenso moderno da ABA/ATLS reduziu a reposição para 2 mL/kg/% em adultos para evitar sobrecarga hídrica, síndrome compartimental abdominal e edema pulmonar. Titular vazão pela diurese horária (±20% a 30%/h).',
+        'Descontar da 1ª etapa qualquer volume de cristaloide já infundido no atendimento pré-hospitalar/transporte.'
       ];
-      if (lt(peso, 10)) {
-        avisos.unshift('⚠️ QUEIMADURA EM PEDIATRIA / LACTENTE (< 10 kg): Crianças têm menor reserva hepática de glicogênio. Além do volume de Parkland com Ringer Lactato (3–4 mL/kg/% SCQ), DEVE-SE adicionar hidratação venosa de manutenção com SG 5% (Holliday-Segar) para prevenir hipoglicemia severa.');
+
+      if (lt(peso, 10) || isPediatrico) {
+        avisos.unshift('⚠️ QUEIMADURA EM PEDIATRIA / LACTENTE (< 10 kg): Crianças têm menor reserva hepática de glicogênio. Além do volume de expansão com Ringer Lactato (3 mL/kg/% SCQ), DEVE-SE adicionar hidratação venosa de manutenção com SG 5% (Holliday-Segar: ' + fmt(volManutencao, 0) + ' mL/dia = ' + fmt(vazaoManutencao, 0) + ' mL/h contínua) para prevenir hipoglicemia severa.');
       }
-      if (gt(peso, 150)) {
-        avisos.unshift('⚠️ OBESIDADE SEVERA (> 150 kg): O cálculo pelo peso real gera volumes massivos com risco extremo de "fluid creep", Síndrome Compartimental Abdominal e edema agudo de pulmão. Utilizar o Peso Ideal (IBW) ou diretriz da ABA (2 mL/kg/% SCQ) e titular estritamente pelo débito urinário (0,5 mL/kg/h pelo peso ideal).');
+      if (gt(peso, 120)) {
+        avisos.unshift('⚠️ OBESIDADE SEVERA (> 120 kg): O cálculo pelo peso real gera volumes massivos com risco extremo de "fluid creep", Síndrome Compartimental Abdominal e edema agudo de pulmão. Utilizar o Peso Ideal (IBW) ou fórmula ABA de 2 mL/kg/% SCQ e titular estritamente pelo débito urinário (alvo: 0,5 mL/kg/h).');
       }
       if (gt(scq, 50)) {
         avisos.unshift('🚨 GRANDE QUEIMADO CRÍTICO (SCQ > 50%): Risco altíssimo de choque distributivo/hipovolêmico precoce e hipotermia. Monitorização em Centro de Queimados e ressuscitação volêmica intensiva.');
       }
+      if (isEletrica) {
+        avisos.unshift('⚡ QUEIMADURA ELÉTRICA DE ALTA VOLTAGEM: Risco de mioglobinúria maciça e rabdomiólise com necrose muscular profunda. Fator de 4 mL/kg/% SCQ com meta de diurese elevada (1,0 a 1,5 mL/kg/h = 75 a 100 mL/h) até clareamento urinário.');
+      }
+
+      var badge = isEletrica ? '⚡ ALTA VOLTAGEM (4 mL/kg/%)' : (isPediatrico ? '👶 PEDIÁTRICO (3 mL/kg/% + SG 5%)' : '🔥 ADULTO TÉRMICO (2 mL/kg/%)');
 
       return sucesso({
         id: ID,
         nome: NOME,
         estado: 'CALCULO',
-        rotulo: 'PARKLAND · RINGER LACTATO 4 mL/kg/%',
-        principal: fmt(volTotal, 0) + ' mL em 24h',
-        textoFormatado: '🔥 <b>FÓRMULA DE PARKLAND (RESSUSCITAÇÃO EM GRANDES QUEIMADOS)</b>\n\n' +
-          '• <b>Peso:</b> ' + fmt(peso, 1) + ' kg | <b>SCQ:</b> ' + fmt(scq, 0) + '%\n' +
-          '• <b>Volume Total (24h):</b> <code>' + fmt(volTotal, 0) + ' mL</code> de Ringer Lactato\n\n' +
-          '⏱️ <b>Esquema de Infusão:</b>\n' +
-          '1️⃣ <b>Primeiras 8 horas (do acidente):</b> <code>' + fmt(vol8h, 0) + ' mL</code> → <b>' + fmt(vazao8h, 0) + ' mL/h</b> na BIC\n' +
-          '2️⃣ <b>Próximas 16 horas:</b> <code>' + fmt(vol16h, 0) + ' mL</code> → <b>' + fmt(vazao16h, 0) + ' mL/h</b> na BIC\n\n' +
+        rotulo: 'PARKLAND / ABA 2024 · ' + badge,
+        principal: fmt(volTotalAba, 0) + ' mL em 24h (' + diretriz + ')',
+        textoFormatado: '🔥 <b>RESSUSCITAÇÃO VOLÊMICA NO QUEIMADO (CONSENSO ABA / ATLS / PARKLAND)</b>\n\n' +
+          '• <b>Perfil:</b> ' + perfil + '\n' +
+          '• <b>Peso:</b> ' + fmt(peso, 1) + ' kg | <b>SCQ (2º/3º grau):</b> ' + fmt(scq, 0) + '%\n' +
+          '• <b>Diretriz Atual (ABA 2024 / ATLS 11ª Ed):</b> <code>' + fmt(volTotalAba, 0) + ' mL</code> de Ringer Lactato (' + fator + ' mL/kg/%)\n' +
+          '• <b>Comparativo Histórico (Parkland 4 mL/kg):</b> <code>' + fmt(volTotalClassico, 0) + ' mL</code> em 24h\n\n' +
+          '⏱️ <b>Esquema de Infusão (Ringer Lactato):</b>\n' +
+          '1️⃣ <b>1ª Etapa (Primeiras 8h do trauma):</b> <code>' + fmt(vol8hBruto, 0) + ' mL</code> → <b>' + fmt(vazao8h, 0) + ' mL/h</b> na BIC' +
+          (horas > 0 ? ' (ajustado para ' + fmt(horasRestantes1, 1) + 'h restantes)' : '') + '\n' +
+          '2️⃣ <b>2ª Etapa (Próximas 16h):</b> <code>' + fmt(vol16h, 0) + ' mL</code> → <b>' + fmt(vazao16h, 0) + ' mL/h</b> na BIC\n\n' +
+          (isPediatrico ? '👶 <b>Manutenção Glicídica Paralela (Holliday-Segar):</b>\n• SG 5% + NaCl 0,45%: <code>' + fmt(volManutencao, 0) + ' mL/24h</code> → <b>' + fmt(vazaoManutencao, 0) + ' mL/h</b> contínua\n\n' : '') +
           '🎯 <b>Meta de Débito Urinário (SVD horária):</b>\n' +
-          '• Adultos: 0,5–1,0 mL/kg/h (<b>' + fmt(debitoMin, 1) + ' a ' + fmt(debitoMax, 1) + ' mL/h</b>)\n\n' +
-          '⚠️ <b>Regras de Segurança ATLS 10ª Ed / SBA:</b>\n' +
+          '• Alvo: <b>' + fmt(debitoMin, 1) + ' a ' + fmt(debitoMax, 1) + ' mL/h</b> (' + (isEletrica ? '1,0–1,5' : (isPediatrico ? '1,0' : '0,5')) + ' mL/kg/h)\n\n' +
+          '⚠️ <b>Regras de Segurança ABA 2024 / ATLS / SBQ:</b>\n' +
+          '• Titular vazão de Ringer Lactato em ±20% a 30% a cada hora conforme diurese.\n' +
           '• Descontar volume já recebido no pré-hospitalar das primeiras 8 horas.\n' +
-          '• Monitorizar diurese horária rigorosa para titular vazão e prevenir síndrome compartimental abdominal.',
+          '• Monitorizar rigorosamente para prevenir sobrecarga ("fluid creep") e síndrome compartimental abdominal.',
         secoes: [
-          ['PARÂMETROS', ['Peso: ' + fmt(peso, 1) + ' kg', 'SCQ: ' + fmt(scq, 0) + '%', 'Fórmula: 4 mL × ' + fmt(peso, 1) + ' × ' + fmt(scq, 0)]],
-          ['CRONOGRAMA DE INFUSÃO', [
-            '1ª Etapa (8h do trauma): ' + fmt(vol8h, 0) + ' mL (' + fmt(vazao8h, 0) + ' mL/h)',
-            '2ª Etapa (16h restantes): ' + fmt(vol16h, 0) + ' mL (' + fmt(vazao16h, 0) + ' mL/h)'
+          ['PARÂMETROS E DIRETRIZ', [
+            'Perfil: ' + perfil,
+            'Peso: ' + fmt(peso, 1) + ' kg | SCQ: ' + fmt(scq, 0) + '%',
+            'Fórmula Atual (ABA/ATLS): ' + fator + ' mL × ' + fmt(peso, 1) + ' kg × ' + fmt(scq, 0) + '%',
+            'Comparativo Parkland Clássico: 4 mL × ' + fmt(peso, 1) + ' kg × ' + fmt(scq, 0) + '% (' + fmt(volTotalClassico, 0) + ' mL)'
           ]],
+          ['CRONOGRAMA DE EXPANSÃO (RINGER LACTATO)', [
+            '1ª Etapa (8h a contar do trauma): ' + fmt(vol8hBruto, 0) + ' mL (' + fmt(vazao8h, 0) + ' mL/h na BIC)',
+            '2ª Etapa (16h seguintes): ' + fmt(vol16h, 0) + ' mL (' + fmt(vazao16h, 0) + ' mL/h na BIC)'
+          ]],
+          (isPediatrico ? ['MANUTENÇÃO PEDIÁTRICA HOLLIDAY-SEGAR (SG 5%)', [
+            'Solução: SG 5% em NaCl 0,45%',
+            'Volume 24h: ' + fmt(volManutencao, 0) + ' mL/dia (' + fmt(vazaoManutencao, 0) + ' mL/h contínua)'
+          ]] : null),
           ['CONDUTAS E MONITORIZAÇÃO', avisos]
-        ],
+        ].filter(Boolean),
         avisos: avisos,
         dados: {
           pesoKg: peso,
           scq: scq,
-          volumeTotal24hMl: volTotal,
-          volumePrimeiras8hMl: vol8h,
+          fatorMlKgScq: fator,
+          isPediatrico: isPediatrico,
+          isEletrica: isEletrica,
+          perfilClinico: perfil,
+          diretrizReferencia: diretriz,
+          volumeTotal24hMl: volTotalAba,
+          volumePrimeiras8hMl: vol8hBruto,
           vazaoPrimeiras8hMlH: vazao8h,
           volumeSeguintes16hMl: vol16h,
           vazaoSeguintes16hMlH: vazao16h,
-          debitoUrinarioAlvoMlH: { min: debitoMin, max: debitoMax }
+          volumeManutencaoPediatrica24hMl: volManutencao,
+          vazaoManutencaoPediatricaMlH: vazaoManutencao,
+          debitoUrinarioAlvoMlH: { min: debitoMin, max: debitoMax },
+          parklandClassico: {
+            volumeTotal24hMl: volTotalClassico,
+            volumePrimeiras8hMl: vol8hClassico,
+            vazaoPrimeiras8hMlH: Math.round(vol8hClassico / 8)
+          }
         },
         legado: {
-          volumeTotalMl: volTotal,
-          volume8hMl: vol8h,
+          volumeTotalMl: volTotalAba,
+          volume8hMl: vol8hBruto,
           vazao8hMlH: vazao8h,
           volume16hMl: vol16h,
-          vazao16hMlH: vazao16h
+          vazao16hMlH: vazao16h,
+          parklandClassicoTotalMl: volTotalClassico
         },
         botoes: botoesEmergencia(ID, [btn('🧮 Novo cálculo', ID, 'voltar')])
       });
@@ -3431,6 +3790,149 @@ var CalculadorasClinicas = (function () {
         avisos: ['MELD pontua entre 6 e 40. Diálise pelo menos 2x nos últimos 7 dias fixa Cr em 4,0 mg/dL.'],
         dados: { meld: meldArred, meldNa: temMeldNa ? meldNaArred : null, dialise: dialise },
         legado: { pontuacao: meldArred, meld: meldArred, meldNa: temMeldNa ? meldNaArred : null, mortalidade: mortalidade3m }
+      });
+    });
+  }
+
+  /**
+   * Escore FIB-4 (Fibrosis-4 Index) para MASLD / MASH (AASLD / EASL 2024).
+   * Fórmula: (Idade [anos] × AST [U/L]) / (Plaquetas [10⁹/L] × √ALT [U/L])
+   */
+  function fib4(arg1, arg2, arg3, arg4) {
+    var ID = 'fib4', NOME = 'Escore FIB-4 (MASLD / MASH)';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var pIdade, pAst, pAlt, pPlaq;
+
+      if (arg1 && typeof arg1 === 'object' && !Array.isArray(arg1)) {
+        pIdade = arg1.idade;
+        pAst = arg1.ast !== undefined ? arg1.ast : arg1.tgo;
+        pAlt = arg1.alt !== undefined ? arg1.alt : arg1.tgp;
+        pPlaq = arg1.plaquetas !== undefined ? arg1.plaquetas : arg1.plaq;
+      } else {
+        pIdade = arg1;
+        pAst = arg2;
+        pAlt = arg3;
+        pPlaq = arg4;
+      }
+
+      var vIdade = num(c, pIdade, 'Idade (anos)', 18, 120);
+      var vAst = num(c, pAst, 'AST / TGO (U/L)', 1, 10000);
+      var vAlt = num(c, pAlt, 'ALT / TGP (U/L)', 1, 10000);
+      var vPlaq = num(c, pPlaq, 'Plaquetas', 1, 2000000);
+
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+
+      // Normalização determinística de unidade de plaquetas:
+      // Se inserido em /mm³ (ex: 210000), ajusta para 10⁹/L (210)
+      var plaquetasNormalizadas = vPlaq;
+      var unidadeConvertida = false;
+      if (vPlaq > 2000) {
+        plaquetasNormalizadas = vPlaq / 1000;
+        unidadeConvertida = true;
+      }
+
+      var denominador = plaquetasNormalizadas * Math.sqrt(vAlt);
+      exigirFinito(denominador);
+      if (denominador <= 0) return falhaCtx(ID, NOME, c);
+
+      var escoreBruto = (vIdade * vAst) / denominador;
+      exigirFinito(escoreBruto);
+      var escoreFib4 = Math.round(escoreBruto * 100) / 100;
+
+      // Estratificação AASLD / EASL 2024 para MASLD
+      var idoso = vIdade >= 65;
+      var corteInferior = idoso ? 2.00 : 1.30;
+      var corteSuperior = 2.67;
+
+      var risco = '';
+      var categoria = '';
+      var estadiamentoFIB4 = '';
+      var condutaSugerida = '';
+      var estado = 'BAIXO';
+
+      if (escoreFib4 < corteInferior) {
+        risco = 'Baixo';
+        estado = 'BAIXO';
+        categoria = 'Baixo risco de fibrose hepática avançada (F0-F2)';
+        estadiamentoFIB4 = 'F0-F2 provável (VPN > 90%)';
+        condutaSugerida = 'Manejo na atenção primária. Reavaliar FIB-4 a cada 1 a 2 anos conforme fatores de risco metabólicos.';
+      } else if (escoreFib4 <= corteSuperior) {
+        risco = 'Intermediário';
+        estado = 'ATENCAO';
+        categoria = 'Risco indeterminado para fibrose avançada (Zona Cinzenta)';
+        estadiamentoFIB4 = 'Indeterminado';
+        condutaSugerida = 'Solicitar teste de segunda linha: Elastografia Hepática Transitória (VCTE/FibroScan) ou escore ELF. Se VCTE >= 8 kPa, encaminhar à Hepatologia.';
+      } else {
+        risco = 'Alto';
+        estado = 'PRIORITARIO';
+        categoria = 'Alto risco de fibrose hepática avançada ou cirrose (F3-F4)';
+        estadiamentoFIB4 = 'F3-F4 provável (VPP ~60-80%)';
+        condutaSugerida = 'Encaminhar prioritariamente à Hepatologia/Gastroenterologia para estadiamento completo e rastreio de hipertensão portal/CHCC.';
+      }
+
+      var avisos = [];
+      if (idoso) {
+        avisos.push('Corte ajustado para idade >= 65 anos (< 2,00 para baixo risco), prevenindo falsos positivos devidos ao avanço etário (AASLD/EASL 2024).');
+      }
+      if (vIdade < 35) {
+        avisos.push('Atenção: O FIB-4 possui menor sensibilidade em adultos jovens com menos de 35 anos.');
+      }
+      if (vAst > 250 || vAlt > 250) {
+        avisos.push('Elevação aguda de transaminases (> 250 U/L) pode superestimar falsamente o FIB-4.');
+      }
+      if (unidadeConvertida) {
+        avisos.push('Plaquetas informadas (' + vPlaq + ') foram convertidas automaticamente para ' + plaquetasNormalizadas + ' × 10⁹/L.');
+      }
+
+      var principal = 'FIB-4 ' + escoreFib4.toFixed(2) + ' · Risco ' + risco;
+
+      var secoes = [
+        ['ESTRATIFICAÇÃO MASLD (AASLD/EASL 2024)', [
+          'Categoria: ' + categoria,
+          'Estadiamento: ' + estadiamentoFIB4,
+          'Limiares aplicados (' + (idoso ? '>= 65 anos' : '< 65 anos') + '): Baixo < ' + corteInferior.toFixed(2) + ' | Intermediário ' + corteInferior.toFixed(2) + '–' + corteSuperior.toFixed(2) + ' | Alto > ' + corteSuperior.toFixed(2)
+        ]],
+        ['CONDUTA RECOMENDADA', [condutaSugerida]],
+        ['PARÂMETROS INFORMADOS', [
+          'Idade: ' + fmt(vIdade, 0) + ' anos',
+          'AST (TGO): ' + fmt(vAst, 0) + ' U/L',
+          'ALT (TGP): ' + fmt(vAlt, 0) + ' U/L',
+          'Plaquetas: ' + fmt(plaquetasNormalizadas, 0) + ' × 10⁹/L'
+        ]]
+      ];
+
+      return sucesso({
+        id: ID,
+        nome: NOME,
+        estado: estado,
+        rotulo: 'FIB-4: ' + categoria.toUpperCase(),
+        principal: principal,
+        secoes: secoes,
+        avisos: avisos,
+        dados: {
+          fib4: escoreFib4,
+          risco: risco,
+          categoria: categoria,
+          estadiamentoFIB4: estadiamentoFIB4,
+          corteInferior: corteInferior,
+          corteSuperior: corteSuperior,
+          faixaEtaria: idoso ? '>= 65 anos' : '< 65 anos',
+          conduta: condutaSugerida,
+          metadadosMASLD: {
+            diretrizReferencia: 'AASLD / EASL-EASD-EASO 2024 (MASLD)',
+            faixaEtariaAplicada: idoso ? '>= 65 anos' : '< 65 anos',
+            corteBaixoRisco: corteInferior,
+            corteAltoRisco: corteSuperior,
+            condutaRecomendada: condutaSugerida
+          }
+        },
+        legado: {
+          fib4: escoreFib4,
+          risco: risco,
+          categoria: categoria
+        },
+        botoes: botoesPadrao(ID, [btn('🔬 Elastografia', ID, 'vcte'), btn('✏️ Revisar dados', ID, 'editar')])
       });
     });
   }
@@ -4627,6 +5129,7 @@ var CalculadorasClinicas = (function () {
     glasgowP: glasgowP,
     gasometria: gasometria,
     meld: meld,
+    fib4: fib4,
     parkland: parkland,
     calcularParklandPorTextoLivre: calcularParklandPorTextoLivre,
     drogasVasoativas: drogasVasoativas,
@@ -5284,13 +5787,20 @@ if (typeof module !== 'undefined' && module.exports) {
 var CardiologiaFaAnticoagulacaoService = (function () {
   'use strict';
 
-  function calcularCHA2DS2VASc(dados) {
+  /**
+   * Escore CHA2DS2-VA unissex (Diretrizes ESC 2024 / SBC 2025):
+   * O sexo feminino ("Sc") foi descontinuado como pontuação somatória isolada.
+   * - 0 ponto: Baixo risco tromboembólico. ACO NÃO recomendada (Classe III).
+   * - 1 ponto: Risco intermediário. Considerar ACO individualizada (Classe IIa). DOACs preferenciais.
+   * - >= 2 pontos: Alto risco tromboembólico. ACO formalmente recomendada e indicada (Classe I). DOACs preferenciais.
+   */
+  function calcularCHA2DS2VA(dados) {
+    dados = dados || {};
     var pontos = 0;
-    
+
     if (dados.idade >= 75) pontos += 2;
     else if (dados.idade >= 65) pontos += 1;
-    
-    if (dados.sexo === 'F' || dados.sexo === 'feminino') pontos += 1;
+
     if (dados.insuficienciaCardiaca) pontos += 1;
     if (dados.hipertensao) pontos += 1;
     if (dados.avcOuAitPrevio) pontos += 2;
@@ -5298,15 +5808,50 @@ var CardiologiaFaAnticoagulacaoService = (function () {
     if (dados.diabetes) pontos += 1;
 
     var recomendacao = "";
-    if (pontos === 0 || (pontos === 1 && (dados.sexo === 'F' || dados.sexo === 'feminino'))) {
-        recomendacao = "Baixo risco. Anticoagulação oral (ACO) não é recomendada.";
-    } else if (pontos === 1 && (dados.sexo === 'M' || dados.sexo === 'masculino')) {
-        recomendacao = "Risco intermediário. Considerar ACO individualizada com base no risco/benefício (DOACs preferíveis à Varfarina).";
+    var classe = "";
+    if (pontos === 0) {
+      classe = "Classe III";
+      recomendacao = "Baixo risco tromboembólico (Score = 0). Anticoagulação oral (ACO) não é recomendada (Classe III).";
+    } else if (pontos === 1) {
+      classe = "Classe IIa";
+      recomendacao = "Risco intermediário (Score = 1). Considerar ACO individualizada com base no risco/benefício (Classe IIa). DOACs preferíveis à Varfarina na FA não valvar.";
     } else {
-        recomendacao = "Alto risco. Anticoagulação oral indicada e recomendada (DOACs são preferíveis à Varfarina na FA não valvar).";
+      classe = "Classe I";
+      recomendacao = "Alto risco tromboembólico (Score ≥ 2). Anticoagulação oral recomendada e indicada (Classe I). DOACs preferíveis à Varfarina na FA não valvar.";
     }
 
-    return { escore: pontos, recomendacao: recomendacao };
+    return {
+      escore: pontos,
+      escoreVA: pontos,
+      diretriz: "ESC 2024 / SBC 2025",
+      classe: classe,
+      recomendacao: recomendacao,
+      doacPreferivel: true
+    };
+  }
+
+  function calcularCHA2DS2VASc(dados) {
+    dados = dados || {};
+    var va = calcularCHA2DS2VA(dados);
+    var pontos = va.escore;
+    if (dados.sexo === 'F' || dados.sexo === 'feminino') pontos += 1;
+
+    var recomendacao = "";
+    if (pontos === 0 || (pontos === 1 && (dados.sexo === 'F' || dados.sexo === 'feminino'))) {
+      recomendacao = "Baixo risco. Anticoagulação oral (ACO) não é recomendada.";
+    } else if (pontos === 1 && (dados.sexo === 'M' || dados.sexo === 'masculino')) {
+      recomendacao = "Risco intermediário. Considerar ACO individualizada com base no risco/benefício (DOACs preferíveis à Varfarina).";
+    } else {
+      recomendacao = "Alto risco. Anticoagulação oral indicada e recomendada (DOACs são preferíveis à Varfarina na FA não valvar).";
+    }
+
+    return {
+      escore: pontos,
+      recomendacao: recomendacao,
+      cha2ds2va: va,
+      escoreVA: va.escore,
+      recomendacaoVA: va.recomendacao
+    };
   }
 
   function calcularHASBLED(dados) {
@@ -5472,6 +6017,7 @@ var CardiologiaFaAnticoagulacaoService = (function () {
   }
 
   return {
+    calcularCHA2DS2VA: calcularCHA2DS2VA,
     calcularCHA2DS2VASc: calcularCHA2DS2VASc,
     calcularHASBLED: calcularHASBLED,
     avaliarCondutaAgudaFA: avaliarCondutaAgudaFA,
@@ -7113,6 +7659,356 @@ var CentroObstetricoService = (function() {
     };
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. ONDA 5: CONSENSOS 2024–2026 (FIGO E-MOTIVE, FEBRASGO, ACOG & ISUOG)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function toNumberSafe(val, defaultVal) {
+    var n = Number(val);
+    return !isNaN(n) && isFinite(n) ? n : defaultVal;
+  }
+
+  /**
+   * 1. HEMORRAGIA PÓS-PARTO (HPP) - BUNDLE E-MOTIVE (FIGO 2024 / FEBRASGO 2024)
+   * Calcula Índice de Choque Obstétrico (ICO = FC / PAS), indica pacote E-MOTIVE,
+   * bloqueia ergotamínicos na hipertensão e escalona para tamponamento/cirurgia.
+   */
+  function avaliarHemorragiaPosParto(dados) {
+    dados = dados || {};
+    var fc = toNumberSafe(dados.fc, 0);
+    var pas = toNumberSafe(dados.pas, 0);
+    var pad = toNumberSafe(dados.pad, 0);
+    var perdaMl = toNumberSafe(dados.perdaSanguineaEstimadaMl || dados.perdaEstimadaMl, 0);
+    var tempoHoras = toNumberSafe(dados.tempoPosPartoHoras || (dados.tempoDesdePartoMin ? dados.tempoDesdePartoMin / 60 : 0.5), 0.5);
+    var temHasOuPe = Boolean(dados.hipertensaoOuPreEclampsia || dados.temHipertensao || dados.preeclampsia) || pas >= 140 || pad >= 90;
+    var refratario = Boolean(dados.refratarioUterotonicos);
+
+    // Cálculo do Índice de Choque Obstétrico (ICO = FC / PAS)
+    var ico = pas > 0 ? Number((fc / pas).toFixed(2)) : null;
+    var interpretacaoIco = "Dados hemodinâmicos incompletos para cálculo do ICO.";
+    var nivelAlertaIco = "INDETERMINADO";
+    var acionarTransfusaoMacica = false;
+
+    if (ico !== null) {
+      if (ico < 0.9) {
+        nivelAlertaIco = "NORMAL";
+        interpretacaoIco = "ICO < 0.9: Estabilidade hemodinâmica relativa (manter vigilância rigorosa).";
+      } else if (ico >= 0.9 && ico <= 1.1) {
+        nivelAlertaIco = "ALERTA_PRECOCE";
+        interpretacaoIco = "ICO entre 0.9 e 1.1: Alerta de instabilidade hemodinâmica oculta. Iniciar ressuscitação volêmica cautelosa e tipagem sanguínea/prova cruzada.";
+      } else if (ico > 1.1 && ico < 1.4) {
+        nivelAlertaIco = "CHOQUE_MODERADO_GRAVE";
+        interpretacaoIco = "ICO > 1.1: Choque hipovolêmico instalado. Solicitar hemocomponentes imediatamente.";
+      } else {
+        nivelAlertaIco = "CHOQUE_GRAVE_CRITICO";
+        interpretacaoIco = "ICO >= 1.4: Choque grave com risco iminente de colapso materno. ATIVAR PROTOCOLO DE TRANSFUSÃO MACIÇA (1:1:1).";
+        acionarTransfusaoMacica = true;
+      }
+    }
+
+    // Critério diagnóstico de HPP (E-MOTIVE: >= 500mL ou >= 300mL com sinais vitais alterados / ICO >= 0.9)
+    var diagnosticoHppConfirmado =
+      perdaMl >= 500 || (perdaMl >= 300 && ico !== null && ico >= 0.9) || (ico !== null && ico >= 1.0);
+
+    // Bundle E-MOTIVE (FIGO 2024)
+    var condutaAcidoTranexamico = "";
+    if (tempoHoras <= 3) {
+      condutaAcidoTranexamico =
+        "INDICADO IMEDIATAMENTE: Ácido Tranexâmico 1 g (100 mg/mL - 10 mL) IV lento (em 10 minutos; infusão de 1 mL/min). Repetir 1 g IV se sangramento persistir após 30 min ou ressangrar em 24h.";
+    } else {
+      condutaAcidoTranexamico =
+        "CONTRAINDICADO / NÃO RECOMENDADO (> 3 horas pós-parto): Estudos (WOMAN trial) demonstram ausência de benefício e potencial risco após 3 horas do parto.";
+    }
+
+    // Uterotônicos de 2ª linha com trava de segurança para HAS / Pré-Eclâmpsia
+    var condutaErgotaminico = "";
+    if (temHasOuPe) {
+      condutaErgotaminico =
+        "BLOQUEIO DE SEGURANÇA (CONTRAINDICAÇÃO ABSOLUTA): Metilergometrina (Methergin) PROIBIDA devido à Hipertensão Arterial / Pré-Eclâmpsia (risco de crise hipertensiva grave, AVC hemorrágico e eclâmpsia).";
+    } else {
+      condutaErgotaminico =
+        "Metilergometrina 0,2 mg IM (pode repetir a cada 2-4h, máx. 5 doses/24h). Nunca administrar em bolus IV.";
+    }
+
+    var escalonamentoRefratario = [];
+    if (refratario || perdaMl >= 1000 || acionarTransfusaoMacica) {
+      escalonamentoRefratario = [
+        "1. Tamponamento Uterino com Balão Hidrostático (Balão de Bakri ou artesanal): infundir 300 a 500 mL de SF 0,9% morno/temperatura ambiente + manter ocitocina IV contínua + antibioticoprofilaxia (Cefazolina 2g IV dose única).",
+        "2. Traje Anti-Choque Não Pneumático (TAN), se disponível na unidade, para centralização volêmica.",
+        "3. Abordagem Cirúrgica Conservadora (se falha do balão): Suturas compressivas uterinas (B-Lynch, Hayman ou Cho) e/ou Ligadura bilateral das artérias uterinas / ovarianas / ilíacas internas.",
+        "4. Histerectomia puerperal subtotal ou total (última linha, não postergar se coagulopatia/instabilidade refratária)."
+      ];
+    }
+
+    return {
+      protocolo: "HPP - Bundle E-MOTIVE (FIGO 2024 / FEBRASGO 2024)",
+      diagnosticoHppConfirmado: diagnosticoHppConfirmado,
+      hemodinamica: {
+        fc: fc,
+        pas: pas,
+        pad: pad,
+        indiceChoqueObstetrico: ico,
+        nivelAlertaIco: nivelAlertaIco,
+        interpretacaoIco: interpretacaoIco,
+        acionarTransfusaoMacica: acionarTransfusaoMacica
+      },
+      bundleEMOTIVE: {
+        E_EarlyDetection: "Quantificação objetiva por drape calibrado/pesagem de compressas (1g = 1mL) + monitorização do ICO.",
+        M_Massage: "Massagem uterina contínua e Manobra de Compressão Uterina Bimanual (Hamilton) imediata na atonia.",
+        O_Oxytocics_PrimeiraLinha: "Ocitocina: 5 UI IV lento (em 3 min) ou 10 UI IM imediato + Manutenção com 20 a 40 UI em 500-1000 mL de SF 0,9% ou Ringer Lactato a 125-250 mL/h (evitar bolus rápido pelo risco de hipotensão).",
+        T_TranexamicAcid: condutaAcidoTranexamico,
+        I_IVFluids: "Cristaloides aquecidos (Ringer Lactato / SF 0,9%) em alíquotas de 500 mL (evitar sobrecarga > 1500-2000 mL para não provocar coagulopatia dilucional). Iniciar hemocomponentes precocemente se ICO > 1.1.",
+        VE_ExaminationAndEscalation: {
+          revisao4Ts: [
+            "Tônus (70% - Atonia uterina): esvaziar bexiga (sondagem vesical de demora) + bimanual + uterotônicos.",
+            "Trauma (20% - Laceração de canal/rotura/inversão): revisão sob boa iluminação com valvas vaginais.",
+            "Tecido (9% - Retenção placentária/coágulos): revisão da cavidade uterina / curagem sob analgesia.",
+            "Trombina (1% - Coagulopatia): solicitar Fibrinogênio (meta > 200 mg/dL), TP, TTPa, Plaquetas e TEG/ROTEM."
+          ],
+          segundaLinhaUterotonicos: {
+            ergotaminico: condutaErgotaminico,
+            prostaglandina: "Misoprostol 800 mcg via sublingual ou retal (dose única).",
+            travasAtivadas: temHasOuPe ? ["BLOQUEIO_METILERGOMETRINA_POR_HAS_PE"] : []
+          },
+          escalonamentoInvasivo: escalonamentoRefratario
+        }
+      }
+    };
+  }
+
+  /**
+   * 2. PRÉ-ECLÂMPSIA COM SINAIS DE GRAVIDADE E ECLÂMPSIA (FEBRASGO 2024 / ACOG)
+   * Diagnóstico estrito de gravidade, Sulfato de Magnésio (Zuspan/Pritchard),
+   * vigilância de toxicidade com Gluconato de Cálcio e manejo da Crise Hipertensiva.
+   */
+  function manejarPreEclampsiaGraveEclampsia(dados) {
+    dados = dados || {};
+    var pas = toNumberSafe(dados.pas, 0);
+    var pad = toNumberSafe(dados.pad, 0);
+    var convulsao = Boolean(dados.convulsaoEclampsia || dados.convulsao || dados.eclampsia);
+    var iminencia = Boolean(dados.iminenciaEclampsia);
+    var eap = Boolean(dados.edemaAgudoPulmao);
+    var plaquetas = toNumberSafe(dados.plaquetas, 250000);
+    var creatinina = toNumberSafe(dados.creatinina, 0.7);
+    var tgo = toNumberSafe(dados.tgoAst, 25);
+    var ldh = toNumberSafe(dados.ldh, 200);
+    var temBic = dados.bombaInfusaoDisponivel !== undefined ? Boolean(dados.bombaInfusaoDisponivel) : true;
+
+    // 2.1 Verificação de Critérios de Gravidade (FEBRASGO / ACOG)
+    var criteriosGravidadePresentes = [];
+    var criseHipertensiva = pas >= 160 || pad >= 110;
+
+    if (criseHipertensiva) criteriosGravidadePresentes.push("Crise Hipertensiva (PAS >= 160 e/ou PAD >= 110 mmHg)");
+    if (convulsao) criteriosGravidadePresentes.push("Eclâmpsia (Crise convulsiva tônico-clônica generalizada)");
+    if (iminencia) criteriosGravidadePresentes.push("Iminência de Eclâmpsia (Cefaleia grave refratária, escotomas/distúrbios visuais, epigastralgia/dor em hipocôndrio direito)");
+    if (eap) criteriosGravidadePresentes.push("Edema Agudo de Pulmão (EAP)");
+    if (plaquetas > 0 && plaquetas < 100000) criteriosGravidadePresentes.push("Plaquetopenia (< 100.000/mm³)");
+    if (creatinina >= 1.1) criteriosGravidadePresentes.push("Insuficiência Renal Aguda (Creatinina >= 1,1 mg/dL)");
+    if (tgo >= 70) criteriosGravidadePresentes.push("Disfunção Hepática / Elevação de transaminases >= 2x LSN (TGO/AST >= 70 U/L)");
+    if (ldh >= 600) criteriosGravidadePresentes.push("Hemólise microangiopática sugerida (LDH >= 600 U/L)");
+
+    var sindromeHellpCompleta = plaquetas < 100000 && tgo >= 70 && ldh >= 600;
+    if (sindromeHellpCompleta) {
+      criteriosGravidadePresentes.push("SÍNDROME HELLP COMPLETA INSTALADA");
+    }
+
+    var indicaSulfatoMagnesio = criteriosGravidadePresentes.length > 0;
+
+    // 2.2 Esquemas de Sulfato de Magnésio (Zuspan e Pritchard)
+    var esquemasMgSO4 = {
+      esquemaPreferencialUnidade: temBic ? "ZUSPAN (Bomba de Infusão Contínua disponível)" : "PRITCHARD (Sem Bomba de Infusão / Transporte seguro)",
+      zuspan_IV_Exclusivo: {
+        ataque: "4 g de MgSO4 IV em 15 a 20 minutos: diluir 8 mL de MgSO4 a 50% (4g) em 92 mL de SF 0,9% (volume total 100 mL) e correr em BIC a 300 mL/h.",
+        manutencao: "1 a 2 g/hora IV contínuo em BIC: diluir 20 mL de MgSO4 a 50% (10g) em 480 mL de SF 0,9% (concentração 20 mg/mL): correr a 50 mL/h (1 g/h) ou 100 mL/h (2 g/h).",
+        recorrenciaConvulsao: "Se nova convulsão após 20 min do ataque: administrar mais 2 g IV (4 mL de MgSO4 50% diluídos em SF 0,9%) lento em 5-10 min."
+      },
+      pritchard_IV_e_IM: {
+        ataque: "4 g IV lento (8 mL de MgSO4 50% + 12 mL de Água Destilada/SF 0,9% em 15-20 min) + 10 g IM profundo (5 g = 10 mL de MgSO4 50% puro em cada glúteo, quadrante superior externo, técnica em Z).",
+        manutencao: "5 g IM profundo (10 mL de MgSO4 50%) a cada 4 horas em glúteos alternados (após checar reflexo patelar, FR e diurese).",
+        observacaoSeguranca: "CONTRAINDICADO esquema IM (Pritchard) se Plaquetas < 50.000/mm³ ou coagulopatia pelo risco de hematoma glúteo grave."
+      },
+      duracaoPosParto: "Manter por 24 horas após o parto ou 24 horas após a última crise convulsiva (o que ocorrer por último)."
+    };
+
+    // Ajuste se plaquetopenia grave impedir Pritchard
+    if (plaquetas > 0 && plaquetas < 50000) {
+      esquemasMgSO4.esquemaPreferencialUnidade = "ZUSPAN OBRIGATÓRIO (Plaquetas < 50.000/mm³ contraindicam injeção IM profunda do esquema Pritchard).";
+    }
+
+    // 2.3 Vigilância de Toxicidade por Magnésio e Antídoto
+    var mon = dados.monitorizacaoMgSO4 || {};
+    var reflexo = String(mon.reflexoPatelar || "PRESENTE").toUpperCase();
+    var fr = toNumberSafe(mon.fr, 18);
+    var diurese = toNumberSafe(mon.diureseMlHora, 40);
+
+    var condutaVigilanciaMg = "MANTER INFUSÃO: Parâmetros de segurança preservados (Reflexo patelar presente, FR >= 16 irpm, Diurese >= 25 mL/h).";
+    var intoxicacaoDetectada = false;
+    var oliguriaIsolada = false;
+
+    if (reflexo === "AUSENTE" || reflexo === "ABOLIDO" || fr < 16) {
+      intoxicacaoDetectada = true;
+      condutaVigilanciaMg =
+        "INTOXICAÇÃO POR MAGNÉSIO DETECTADA (Reflexo patelar abolido e/ou FR < 16 irpm): " +
+        "1) SUSPENDER IMEDIATAMENTE a infusão de Sulfato de Magnésio; " +
+        "2) ADMINISTRAR ANTÍDOTO: Gluconato de Cálcio a 10% - 10 mL (1 g) IV lento em 3 a 5 minutos; " +
+        "3) Fornecer suporte ventilatório / O2 suplementar e coletar magnesemia sérica.";
+    } else if (diurese < 25) {
+      oliguriaIsolada = true;
+      condutaVigilanciaMg =
+        "ALERTA DE OLIGÚRIA (Diurese < 25 mL/h) COM REFLEXO PRESENTE: " +
+        "Risco elevado de acúmulo renal de magnésio. No esquema Zuspan, reduzir manutenção para 0,5 a 1 g/h ou suspender temporariamente até reavaliação renal/magnesemia; no Pritchard, adiar dose IM de 4/4h até diurese >= 25 mL/h.";
+    }
+
+    // 2.4 Tratamento Agudo da Crise Hipertensiva (PAS >= 160 ou PAD >= 110 mmHg)
+    var manejoPressorico = {
+      emCriseHipertensiva: criseHipertensiva,
+      metaPressorica: "Reduzir PA em 15-25% na 1ª hora, atingindo meta de PAS entre 140-150 mmHg e PAD entre 90-100 mmHg (evitar quedas abruptas < 130/80 mmHg pelo risco de hipoperfusão uteroplacentária e sofrimento fetal agudo).",
+      primeiraLinhaOpcaoA_VO: criseHipertensiva
+        ? "Nifedipino 10 mg VO de liberação imediata (deglutido, NUNCA sublingual). Repetir 10-20 mg VO a cada 20-30 minutos se PA >= 160/110 mmHg (dose máxima aguda: 30-50 mg)."
+        : "Sem crise hipertensiva aguda no momento. Iniciar/ajustar anti-hipertensivo de manutenção (Metildopa 750-2000 mg/dia, Nifedipino Retard 20-60 mg/dia ou Hidralazina VO).",
+      primeiraLinhaOpcaoB_IV: criseHipertensiva
+        ? "Hidralazina 5 mg IV lento (em 2 min). Diluir 1 ampola (20 mg/1 mL) + 19 mL de Água Destilada (concentração 1 mg/mL -> fazer 5 mL IV). Repetir 5 a 10 mg IV a cada 20 minutos se necessário (dose máxima acumulada: 20-30 mg)."
+        : "Não indicada terapia venosa de resgate no momento.",
+      segundaLinhaRefrataria: "Nitroprussiato de Sódio em BIC (0,25 a 4 mcg/kg/min) em ambiente de UTI se refratariedade às 3 doses de 1ª linha ou Edema Agudo de Pulmão (uso curto < 4h se feto vivo pelo risco de toxicidade por cianeto)."
+    };
+
+    return {
+      protocolo: "Pré-Eclâmpsia com Sinais de Gravidade e Eclâmpsia (FEBRASGO 2024 / ACOG)",
+      classificacao: convulsao
+        ? "ECLÂMPSIA"
+        : sindromeHellpCompleta
+        ? "PRÉ-ECLÂMPSIA GRAVE + SÍNDROME HELLP"
+        : criteriosGravidadePresentes.length > 0
+        ? "PRÉ-ECLÂMPSIA COM SINAIS DE GRAVIDADE"
+        : "PRÉ-ECLÂMPSIA SEM SINAIS DE GRAVIDADE ATUAIS",
+      criteriosGravidadePresentes: criteriosGravidadePresentes,
+      sulfatoDeMagnesio: {
+        indicado: indicaSulfatoMagnesio,
+        esquemas: indicaSulfatoMagnesio ? esquemasMgSO4 : null,
+        vigilanciaToxicidade: {
+          parametrosAtuais: { reflexoPatelar: reflexo, fr: fr, diureseMlHora: diurese },
+          intoxicacaoDetectada: intoxicacaoDetectada,
+          oliguriaIsolada: oliguriaIsolada,
+          condutaImediata: condutaVigilanciaMg,
+          antidotoPadrao: "Gluconato de Cálcio 10% - 10 mL (1 g) IV lento em 3 a 5 minutos (manter ampola aspirada/ao lado do leito)."
+        }
+      },
+      manejoCriseHipertensiva: manejoPressorico
+    };
+  }
+
+  /**
+   * 3. INTEGRAÇÃO COM RESTRIÇÃO DE CRESCIMENTO FETAL (RCF / CIUR) E DOPPLER OBSTÉTRICO
+   * Estádios I a IV de Barcelona / ISUOG 2020-2024 / FEBRASGO.
+   */
+  function avaliarRcfDopplerCentroObstetrico(dados) {
+    dados = dados || {};
+
+    if (
+      typeof globalThis !== "undefined" &&
+      globalThis.ObstetriciaRcfDopplerService &&
+      typeof globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona === "function"
+    ) {
+      return globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona(dados);
+    }
+
+    var igSem = toNumberSafe(dados.igSemanas, 37);
+    var igDias = toNumberSafe(dados.igDias, 0);
+    var pfePerc = toNumberSafe(dados.pfePercentil, 15);
+    var ipAuPerc = toNumberSafe(dados.ipUmbilicalPercentil, 50);
+    var fluxoAu = String(dados.fluxoDiastolicoAU || "PRESENTE").toUpperCase();
+    var ipAcmPerc = toNumberSafe(dados.ipAcmPercentil, 50);
+    var icpPerc = toNumberSafe(dados.icpPercentil, 50);
+    var ipUtPerc = toNumberSafe(dados.ipUterinasPercentil, 50);
+    var ipDvPerc = toNumberSafe(dados.ipDuctoVenosoPercentil, 50);
+    var ondaADv = String(dados.ondaADuctoVenoso || "POSITIVA").toUpperCase();
+    var ctgCritico = Boolean(dados.ctgDesaceleracoesOuVcpBaixa);
+
+    var rcfPrecoce = igSem < 32;
+    var alteracaoDopplerPlacentarioOuCerebral =
+      ipAuPerc > 95 || ipAcmPerc < 5 || icpPerc < 5 || ipUtPerc > 95;
+
+    var estadio = "SEM_RCF";
+    var descricaoEstadio = "";
+    var seguimentoDoppler = "";
+    var momentoInterrupcao = "";
+    var viaDePartoRecomendada = "";
+    var indicarCorticoide = false;
+    var indicarNeuroprotecaoMgSO4 = false;
+
+    if (pfePerc >= 10) {
+      estadio = "FETO_ADEQUADO_PARA_IG";
+      descricaoEstadio = "Peso Fetal Estimado >= percentil 10. Sem critérios atuais para Restrição de Crescimento Fetal ou PIG.";
+      seguimentoDoppler = "Seguimento pré-natal habitual.";
+      momentoInterrupcao = "Conforme indicação obstétrica de base (termo: 39-40 semanas).";
+      viaDePartoRecomendada = "Via obstétrica (parto vaginal permitido salvo contraindicação obstétrica).";
+    } else if (
+      pfePerc >= 3 &&
+      pfePerc < 10 &&
+      !alteracaoDopplerPlacentarioOuCerebral &&
+      fluxoAu === "PRESENTE" &&
+      ipDvPerc <= 95 &&
+      ondaADv === "POSITIVA" &&
+      !ctgCritico
+    ) {
+      estadio = "PIG_CONSTITUCIONAL";
+      descricaoEstadio = "Feto Pequeno para a Idade Gestacional (PIG): PFE entre p3 e p9 com estudo Doppler fetoplacentário inteiramente normal.";
+      seguimentoDoppler = "Doppler quinzenal (a cada 14 dias).";
+      momentoInterrupcao = "Interrupção com 40 semanas.";
+      viaDePartoRecomendada = "Indução do trabalho de parto permitida (monitorização contínua da vitalidade fetal intraparto).";
+    } else if (ondaADv === "REVERSA" || ctgCritico) {
+      estadio = "RCF_ESTADIO_IV";
+      descricaoEstadio = "RCF Estádio IV (Descompensação acidótica grave / alto risco de óbito fetal iminente): Onda-A reversa no Ducto Venoso e/ou desacelerações espontâneas / VCP crítica no CTG.";
+      seguimentoDoppler = "INTERNAÇÃO IMEDIATA EM CENTRO OBSTÉTRICO (Vigilância contínua até resolução em horas).";
+      momentoInterrupcao = "Interrupção IMEDIATA se IG >= 26 semanas (após discussão multidisciplinar com Neonatologia).";
+      viaDePartoRecomendada = "CESARIANA ELETIVA / IMEDIATA (Trabalho de parto contraindicado).";
+      indicarCorticoide = igSem >= 24 && igSem < 34;
+      indicarNeuroprotecaoMgSO4 = igSem >= 24 && igSem < 32;
+    } else if (fluxoAu === "REVERSO" || ipDvPerc > 95 || ondaADv === "ZERO") {
+      estadio = "RCF_ESTADIO_III";
+      descricaoEstadio = "RCF Estádio III (Deterioração hemodinâmica avançada / baixa tolerância à hipóxia): Diástole Reversa na Artéria Umbilical e/ou IP do Ducto Venoso > p95 / onda-A zero.";
+      seguimentoDoppler = "Internação hospitalar com Doppler e CTG computadorizado a cada 24 a 48 horas.";
+      momentoInterrupcao = "Interrupção com 30 semanas.";
+      viaDePartoRecomendada = "CESARIANA ELETIVA (Trabalho de parto contraindicado pela reserva placentária crítica).";
+      indicarCorticoide = igSem >= 24 && (igSem < 34 || igSem >= 30);
+      indicarNeuroprotecaoMgSO4 = igSem >= 24 && igSem < 32;
+    } else if (fluxoAu === "ZERO") {
+      estadio = "RCF_ESTADIO_II";
+      descricaoEstadio = "RCF Estádio II (Insuficiência placentária grave): Diástole Zero persistente na Artéria Umbilical (em > 50% dos ciclos nas duas artérias).";
+      seguimentoDoppler = "Doppler e CTG a cada 2 a 4 dias (internação recomendada).";
+      momentoInterrupcao = "Interrupção com 34 semanas.";
+      viaDePartoRecomendada = "CESARIANA ELETIVA.";
+      indicarCorticoide = igSem >= 24 && igSem <= 34;
+      indicarNeuroprotecaoMgSO4 = igSem >= 24 && igSem < 32;
+    } else {
+      estadio = "RCF_ESTADIO_I";
+      descricaoEstadio = "RCF Estádio I (Insuficiência placentária leve/moderada): PFE < p3 isolado OU PFE < p10 associado a IP AU > p95 (com diástole presente), IP ACM < p5, ICP < p5 ou IP Artérias Uterinas > p95.";
+      seguimentoDoppler = "Doppler semanal (a cada 7 dias).";
+      momentoInterrupcao = "Interrupção com 37 semanas.";
+      viaDePartoRecomendada = "Parto vaginal / indução permitidos sob monitorização cardiotocográfica contínua no Centro Obstétrico.";
+      indicarCorticoide = igSem >= 24 && igSem < 34;
+    }
+
+    return {
+      protocolo: "Restrição de Crescimento Fetal e Doppler Obstétrico (Barcelona / ISUOG 2020-2024 / FEBRASGO)",
+      idadeGestacional: igSem + " semanas e " + igDias + " dias",
+      fenotipoRcf: pfePerc < 10 ? (rcfPrecoce ? "RCF PRECOCE (< 32 semanas)" : "RCF TARDIA (>= 32 semanas)") : "NORMAL",
+      classificacaoBarcelona: estadio,
+      descricaoClinica: descricaoEstadio,
+      condutaCentroObstetrico: {
+        periodicidadeVigilancia: seguimentoDoppler,
+        momentoInterrupcaoMeta: momentoInterrupcao,
+        viaDePartoRecomendada: viaDePartoRecomendada,
+        corticoideAntenatal: indicarCorticoide
+          ? "INDICADO: Betametasona 12 mg IM a cada 24h (2 doses) ou Dexametasona 6 mg IM a cada 12h (4 doses)."
+          : "Não indicado no momento (fora da janela ou sem indicação de resolução pré-termo iminente).",
+        neuroprotecaoFetalMgSO4: indicarNeuroprotecaoMgSO4
+          ? "INDICADO SE PARTO IMINENTE (< 32 semanas): Sulfato de Magnésio 4 g IV em 20 min + manutenção 1 g/h até o parto (máximo 24h)."
+          : "Não indicado (IG >= 32 semanas ou sem indicação de interrupção iminente)."
+      }
+    };
+  }
+
   return {
     avaliarTrabalhoParto: avaliarTrabalhoParto,
     calcularIndiceBishop: calcularIndiceBishopInternal,
@@ -7120,6 +8016,9 @@ var CentroObstetricoService = (function() {
     manejarCriseHipertensiva: manejarCriseHipertensiva,
     manejarPreEclampsiaGrave: manejarPreEclampsiaGrave,
     gerenciarHemorragiaPosParto: gerenciarHemorragiaPosParto,
+    avaliarHemorragiaPosParto: avaliarHemorragiaPosParto,
+    manejarPreEclampsiaGraveEclampsia: manejarPreEclampsiaGraveEclampsia,
+    avaliarRcfDopplerCentroObstetrico: avaliarRcfDopplerCentroObstetrico,
     avaliarProfilaxiaGbs: avaliarProfilaxiaGbs,
     protocoloPrematuridadeRpmo: protocoloPrematuridadeRpmo,
     gerarResumoCentroObstetrico: gerarResumoCentroObstetrico
@@ -11023,6 +11922,7 @@ var EmergenciaChoqueSepticoService = {
 
     // Alertas Canônicos de Segurança e Metas Clínicas
     alertas.push("🎯 Alvo Hemodinâmico: PAM alvo >= 65 mmHg (titulação contínua para perfusão orgânica).");
+    alertas.push("⚡ Noradrenalina Precoce (SSC 2024-2026): Iniciar precocemente para PAM < 65 mmHg, inclusive via acesso periférico seguro calibroso por até 24h sem atraso aguardando CVC.");
     alertas.push("🧪 Monitorização Metabólica: Lactato sérico seriado de 2-4h (objetivar clareamento de lactato > 20% a cada 2h) e tempo de enchimento capilar (TEC < 3s).");
     alertas.push("💧 Gestão Volêmica: Restrição volêmica pós-ressuscitação inicial (após cristaloides 30 mL/kg iniciais, evitar sobrecarga hídrica; guiar por parâmetros dinâmicos de fluido-responsividade).");
 
@@ -11111,7 +12011,9 @@ var EmergenciaChoqueSepticoService = {
         hidrocortisona: choqueRefratario ? "Hidrocortisona 50mg pó liofilizado + SF 0,9% 10mL --- EV direto em bolus lento (em 3 min) de 6/6h." : null,
         dobutamina: choqueRefratario ? "Dobutamina 250mg/20mL (1 amp) + SG 5% 230mL (1000 mcg/mL) --- EV em BIC a " + vazaoDobutaAlvo + " mL/h (se disfunção miocárdica / hipoperfusão persistente)." : null
       },
-      textoSOAP: textoSOAP
+      textoSOAP: textoSOAP,
+      alertas: alertas,
+      alertasClinicos: alertas
     };
   },
 
@@ -11119,6 +12021,95 @@ var EmergenciaChoqueSepticoService = {
     if (!res) return "";
     if (res.erro) return "🛑 *ERRO DE SEGURANÇA (CHOQUE SÉPTICO):*\n" + res.erro;
     return "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" + (res.textoSOAP || "");
+  },
+
+  /**
+   * Escore NEWS2 (National Early Warning Score 2 - Royal College of Physicians / SSC 2024):
+   * Triagem precoce de deterioração fisiológica e sepse.
+   */
+  calcularNews2: function(params) {
+    params = params || {};
+    var fr = Number(params.fr || params.frequenciaRespiratoria);
+    var spo2 = Number(params.spo2 || params.saturacao);
+    var o2 = Boolean(params.o2Suplementar || params.oxigenio || params.cateterO2 || params.mascara);
+    var pas = Number(params.pas || params.pressaoSistolica);
+    var fc = Number(params.fc || params.frequenciaCardiaca);
+    var alteracaoConsciencia = Boolean(params.confusao || params.rebaixamento || params.cvpu || params.glasgowMenor15);
+    var temp = Number(params.temperatura || params.temp);
+
+    var pontos = 0;
+    var detalhes = {};
+
+    if (!isNaN(fr) && fr > 0) {
+      if (fr <= 8 || fr >= 25) detalhes.fr = 3;
+      else if (fr >= 21) detalhes.fr = 2;
+      else if (fr >= 9 && fr <= 11) detalhes.fr = 1;
+      else detalhes.fr = 0;
+      pontos += detalhes.fr;
+    }
+
+    if (!isNaN(spo2) && spo2 > 0) {
+      if (spo2 <= 91) detalhes.spo2 = 3;
+      else if (spo2 <= 93) detalhes.spo2 = 2;
+      else if (spo2 <= 95) detalhes.spo2 = 1;
+      else detalhes.spo2 = 0;
+      pontos += detalhes.spo2;
+    }
+
+    detalhes.o2Suplementar = o2 ? 2 : 0;
+    pontos += detalhes.o2Suplementar;
+
+    if (!isNaN(pas) && pas > 0) {
+      if (pas <= 90 || pas >= 220) detalhes.pas = 3;
+      else if (pas <= 100) detalhes.pas = 2;
+      else if (pas <= 110) detalhes.pas = 1;
+      else detalhes.pas = 0;
+      pontos += detalhes.pas;
+    }
+
+    if (!isNaN(fc) && fc > 0) {
+      if (fc <= 40 || fc >= 131) detalhes.fc = 3;
+      else if (fc >= 111) detalhes.fc = 2;
+      else if (fc <= 50 || (fc >= 91 && fc <= 110)) detalhes.fc = 1;
+      else detalhes.fc = 0;
+      pontos += detalhes.fc;
+    }
+
+    detalhes.consciencia = alteracaoConsciencia ? 3 : 0;
+    pontos += detalhes.consciencia;
+
+    if (!isNaN(temp) && temp > 0) {
+      if (temp <= 35.0) detalhes.temp = 3;
+      else if (temp >= 39.1) detalhes.temp = 2;
+      else if (temp <= 36.0 || temp >= 38.1) detalhes.temp = 1;
+      else detalhes.temp = 0;
+      pontos += detalhes.temp;
+    }
+
+    var risco = "BAIXO";
+    var conduta = "Monitorização de rotina na enfermaria.";
+    var gatilhoSepse = false;
+
+    var temParametro3 = Object.values(detalhes).some(function(v) { return v === 3; });
+
+    if (pontos >= 7) {
+      risco = "ALTO";
+      gatilhoSepse = true;
+      conduta = "🚨 RISCO ALTO (NEWS2 >= 7): Resposta médica de emergência imediata. Disparar Protocolo de Sepse / Time de Resposta Rápida (TRR). Avaliar transferência para UTI.";
+    } else if (pontos >= 5 || temParametro3) {
+      risco = "MÉDIO";
+      gatilhoSepse = true;
+      conduta = "🟠 RISCO MÉDIO (Score >= 5 ou parâmetro isolado nível 3): Avaliação médica urgente. Rastrear foco infeccioso, coletar lactato + hemoculturas e avaliar fluidos/vasopressor.";
+    }
+
+    return {
+      escore: pontos,
+      detalhes: detalhes,
+      risco: risco,
+      gatilhoSepse: gatilhoSepse,
+      conduta: conduta,
+      diretriz: "NEWS2 (Royal College of Physicians / SSC 2024)"
+    };
   }
 };
 
@@ -11757,6 +12748,386 @@ var EndocrinologiaDiabetesService = (function() {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
+  // 4. SÍNDROME CARDIO-RENAL-METABÓLICA (CKM - AHA 2024)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia o Estadiamento da Síndrome Cardio-Renal-Metabólica (CKM - AHA 2024).
+   *
+   * @param {Object} params - Parâmetros clínicos e laboratoriais do paciente
+   * @param {number} params.imc - Índice de Massa Corporal (kg/m²)
+   * @param {boolean} [params.etniaAsiatica=false] - Ponto de corte de IMC/CA ajustado para asiáticos
+   * @param {number} [params.circunferenciaAbdominal] - Em cm
+   * @param {string} [params.sexo='M'] - 'M' ou 'F'
+   * @param {number} [params.glicemiaJejum=85] - mg/dL
+   * @param {number} [params.hba1c=5.0] - %
+   * @param {boolean} [params.dm2Diagnostico=false] - Diagnóstico prévio de DM2
+   * @param {boolean} [params.hasDiagnostico=false] - Diagnóstico prévio de Hipertensão
+   * @param {number} [params.pas=120] - Pressão Arterial Sistólica (mmHg)
+   * @param {number} [params.pad=80] - Pressão Arterial Diastólica (mmHg)
+   * @param {number} [params.triglicerideos=100] - mg/dL
+   * @param {boolean} [params.sindromeMetabolica=false] - Critérios de SM preenchidos
+   * @param {number} params.tfg - Taxa de Filtração Glomerular estimada (mL/min/1.73m²)
+   * @param {number} [params.rac=0] - Relação Albumina/Creatinina urinária (mg/g)
+   * @param {boolean} [params.dialise=false] - Paciente em terapia renal substitutiva
+   * @param {Object} [params.dcvSubclinica={}] - Marcadores de DCV subclínica
+   * @param {Object} [params.dcvClinica={}] - Doença Cardiovascular Clínica estabelecida
+   * @returns {Object} Resultado determinístico do estadiamento CKM e condutas
+   */
+  function avaliarSindromeCKM(params) {
+    if (!params || typeof params.imc !== 'number' || typeof params.tfg !== 'number') {
+      throw new Error("Parâmetros obrigatórios ausentes: 'imc' e 'tfg' devem ser fornecidos como números.");
+    }
+
+    const {
+      imc,
+      etniaAsiatica = false,
+      circunferenciaAbdominal = 0,
+      sexo = 'M',
+      glicemiaJejum = 85,
+      hba1c = 5.0,
+      dm2Diagnostico = false,
+      hasDiagnostico = false,
+      pas = 120,
+      pad = 80,
+      triglicerideos = 100,
+      sindromeMetabolica = false,
+      tfg,
+      rac = 0,
+      dialise = false,
+      dcvSubclinica = {},
+      dcvClinica = {}
+    } = params;
+
+    const criteriosAtendidos = [];
+    let estadio = "0";
+    let nomeEstadio = "";
+    let condutasEspecificas = [];
+
+    // 1. Critérios de Adiposidade (Estádio 1)
+    const corteImcSobrepeso = etniaAsiatica ? 23 : 25;
+    const corteCaHomem = etniaAsiatica ? 90 : 102;
+    const corteCaMulher = etniaAsiatica ? 80 : 88;
+    const caAumentada = (sexo.toUpperCase() === 'M' && circunferenciaAbdominal >= corteCaHomem) ||
+                        (sexo.toUpperCase() === 'F' && circunferenciaAbdominal >= corteCaMulher);
+    const excessoAdiposidade = (imc >= corteImcSobrepeso) || caAumentada;
+
+    // 2. Critérios Glicêmicos (Pré-DM vs DM2)
+    const isDiabetes = dm2Diagnostico || glicemiaJejum >= 126 || hba1c >= 6.5;
+    const isPreDiabetes = !isDiabetes && ((glicemiaJejum >= 100 && glicemiaJejum <= 125) || (hba1c >= 5.7 && hba1c <= 6.4));
+
+    // 3. Critérios de Fatores de Risco Metabólicos (Estádio 2)
+    const isHipertenso = hasDiagnostico || pas >= 130 || pad >= 80;
+    const isHipertrigliceridemia = triglicerideos >= 135;
+
+    // 4. Critérios Renais (KDIGO / AHA)
+    const isFalenciaRenal = dialise || tfg < 15;
+    const isDrcMuitoAltoRisco = !isFalenciaRenal && (
+      tfg < 30 ||
+      rac > 300 ||
+      (tfg >= 30 && tfg < 45 && rac >= 30)
+    );
+    const isDrcModeradaAltoRisco = !isFalenciaRenal && !isDrcMuitoAltoRisco && (
+      (tfg >= 30 && tfg < 60) ||
+      (rac >= 30 && rac <= 300)
+    );
+
+    // 5. Critérios Cardiovasculares (Subclínico vs Clínico)
+    const temDcvClinica = Boolean(
+      dcvClinica.dac || dcvClinica.ic || dcvClinica.avc || dcvClinica.dap || dcvClinica.fa
+    );
+
+    const temDcvSubclinica = Boolean(
+      (dcvSubclinica.escoreCalcioCoronario && dcvSubclinica.escoreCalcioCoronario >= 100) ||
+      dcvSubclinica.biomarcadoresElevados ||
+      dcvSubclinica.ecocardiogramaAlterado ||
+      dcvSubclinica.riscoPreventAlto
+    );
+
+    if (temDcvClinica) {
+      if (isFalenciaRenal) {
+        estadio = "4b";
+        nomeEstadio = "Estádio 4b: DCV Clínica na presença de Falência Renal (DRC G5 / Diálise)";
+        criteriosAtendidos.push("Doença Cardiovascular Clínica manifesta associada a TFG < 15 mL/min/1.73m² ou diálise.");
+        condutasEspecificas = [
+          "Manejo multidisciplinar intensivo (Cardio-Nefro-Endócrino).",
+          "Atenção às restrições de prescrição na DRC G5 (iSGLT2 não devem ser iniciados se TFG < 20, mas mantidos até diálise se já em uso).",
+          "Agonistas de GLP-1 (Semaglutida, Liraglutida, Dulaglutida) podem ser usados com segurança até TFG < 15 mL/min.",
+          "Controle rigoroso de volume, potássio e metabolismo mineral ósseo."
+        ];
+      } else {
+        estadio = "4a";
+        nomeEstadio = "Estádio 4a: DCV Clínica sem Falência Renal Terminal";
+        if (dcvClinica.dac) criteriosAtendidos.push("Doença Arterial Coronariana (DAC/IAM)");
+        if (dcvClinica.ic) criteriosAtendidos.push("Insuficiência Cardíaca (IC)");
+        if (dcvClinica.avc) criteriosAtendidos.push("Doença Cerebrovascular (AVC/AIT)");
+        if (dcvClinica.dap) criteriosAtendidos.push("Doença Arterial Periférica (DAP)");
+        if (dcvClinica.fa) criteriosAtendidos.push("Fibrilação Atrial (FA)");
+
+        condutasEspecificas = [
+          "Prevenção secundária intensiva (Estatina de alta potência +/- Ezetimiba para LDL < 55 mg/dL).",
+          "Priorização absoluta de fármacos cardioprotetores: iSGLT2 e/ou AR-GLP1 (ou co-agonista GIP/GLP-1).",
+          "Se DRC albuminúrica (RAC >= 30) e DM2: associar IECA/BRA + iSGLT2 + Finerenona (se K+ <= 4.8 e TFG >= 25).",
+          "Terapia antitrombótica e bloqueio neuro-hormonal conforme diretrizes específicas da DCV de base."
+        ];
+      }
+    } else if (temDcvSubclinica || isDrcMuitoAltoRisco || isFalenciaRenal) {
+      estadio = "3";
+      nomeEstadio = "Estádio 3: DCV Subclínica ou Equivalente de Muito Alto Risco Renal/PREVENT";
+      if (dcvSubclinica.escoreCalcioCoronario >= 100) criteriosAtendidos.push(`Escore de Cálcio Coronário (CAC) >= 100 (${dcvSubclinica.escoreCalcioCoronario} UA)`);
+      if (dcvSubclinica.biomarcadoresElevados) criteriosAtendidos.push("Elevação subclínica de Troponina US ou BNP/NT-proBNP");
+      if (dcvSubclinica.ecocardiogramaAlterado) criteriosAtendidos.push("Alteração ecocardiográfica subclínica (HVE ou disfunção assintomática)");
+      if (dcvSubclinica.riscoPreventAlto) criteriosAtendidos.push("Risco cardiovascular PREVENT em 10 anos >= 20%");
+      if (isDrcMuitoAltoRisco || isFalenciaRenal) criteriosAtendidos.push(`DRC de muito alto risco (TFG: ${tfg} mL/min, RAC: ${rac} mg/g)`);
+
+      condutasEspecificas = [
+        "Intensificação farmacológica preventiva para evitar progressão para DCV sintomática (IC/IAM/AVC).",
+        "Início mandatório de iSGLT2 se DRC ou IC subclínica e TFG >= 20.",
+        "Introdução de estatinas de alta intensidade (particularmente se CAC >= 100 ou DRC avançada não dialítica).",
+        "Controle pressórico estrito (Meta PA < 130/80 mmHg, preferencialmente com IECA ou BRA se RAC >= 30)."
+      ];
+    } else if (isDiabetes || isHipertenso || isHipertrigliceridemia || sindromeMetabolica || isDrcModeradaAltoRisco) {
+      estadio = "2";
+      nomeEstadio = "Estádio 2: Fatores de Risco Metabólicos Estabelecidos e/ou DRC Moderada a Alto Risco";
+      if (isDiabetes) criteriosAtendidos.push("Diabetes Mellitus tipo 2");
+      if (isHipertenso) criteriosAtendidos.push(`Hipertensão Arterial (PA: ${pas}x${pad} mmHg)`);
+      if (isHipertrigliceridemia) criteriosAtendidos.push(`Hipertrigliceridemia (${triglicerideos} mg/dL)`);
+      if (sindromeMetabolica) criteriosAtendidos.push("Síndrome Metabólica");
+      if (isDrcModeradaAltoRisco) criteriosAtendidos.push(`DRC moderado/alto risco (TFG: ${tfg} mL/min, RAC: ${rac} mg/g)`);
+
+      condutasEspecificas = [
+        "Rastreamento anual de DRC com dupla avaliação obrigatória: Creatinina sérica (TFGe) + Relação Albumina/Creatinina urinária (RAC).",
+        "Se DRC presente (TFG < 60 ou RAC >= 30): iniciar IECA/BRA + iSGLT2 imediatamente.",
+        "Se DM2: priorizar agentes com benefício cardiorrenal (iSGLT2 / AR-GLP1) e controle ponderal.",
+        "Calcular escore PREVENT (AHA) para definir metas lipídicas e pressóricas."
+      ];
+    } else if (excessoAdiposidade || isPreDiabetes) {
+      estadio = "1";
+      nomeEstadio = "Estádio 1: Excesso ou Disfunção de Adiposidade (Pré-clínico)";
+      if (excessoAdiposidade) criteriosAtendidos.push(`Excesso de adiposidade (IMC: ${imc} kg/m²${caAumentada ? ', Circunferência Abdominal aumentada' : ''})`);
+      if (isPreDiabetes) criteriosAtendidos.push(`Pré-diabetes / Intolerância à glicose (GJ: ${glicemiaJejum} mg/dL, HbA1c: ${hba1c}%)`);
+
+      condutasEspecificas = [
+        "Meta primária: Perda ponderal >= 5% a 10% através de intervenção intensiva no estilo de vida.",
+        "Se IMC >= 30 (ou >= 27 com pré-diabetes): considerar farmacoterapia antiobesidade (ex: Semaglutida 2.4mg ou Tirzepatida).",
+        "Se Pré-diabetes: considerar Metformina.",
+        "Rastreamento de PA, perfil lipídico e glicemia a cada 1-2 anos."
+      ];
+    } else {
+      estadio = "0";
+      nomeEstadio = "Estádio 0: Ausência de Fatores de Risco CKM";
+      criteriosAtendidos.push("Antropometria, pressão arterial, glicemia, perfil lipídico e função renal normais.");
+      condutasEspecificas = [
+        "Manutenção da saúde cardiovascular primordial (Life's Essential 8 - AHA).",
+        "Reavaliação clínica e triagem metabólica a cada 3 a 5 anos."
+      ];
+    }
+
+    return {
+      estadio,
+      nomeEstadio,
+      criteriosAtendidos,
+      classificacaoRenal: {
+        tfg,
+        rac,
+        status: isFalenciaRenal ? "Falência Renal (G5)" :
+                isDrcMuitoAltoRisco ? "DRC Muito Alto Risco" :
+                isDrcModeradaAltoRisco ? "DRC Risco Moderado/Alto" : "Normal / Baixo Risco"
+      },
+      condutasEspecificas,
+      referencia: "AHA Presidential Advisory: Cardiovascular-Kidney-Metabolic Health (Circulation 2024)"
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. DIRETRIZES FARMACOLÓGICAS DE DM2 (ADA STANDARDS OF CARE 2025/2026)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Algoritmo de Conduta Farmacológica no DM2 (Diretrizes ADA 2025/2026).
+   * Priorização Classe I de iSGLT2 e/ou AR-GLP1 em pacientes com DCV, IC ou DRC,
+   * INDEPENDENTEMENTE da HbA1c basal e do uso prévio de Metformina.
+   *
+   * @param {Object} params - Perfil clínico do paciente com DM2
+   * @param {number} params.hba1c - Hemoglobina glicada atual (%)
+   * @param {number} [params.metaHba1c=7.0] - Meta individualizada de HbA1c (%)
+   * @param {number} params.tfg - Taxa de Filtração Glomerular (mL/min/1.73m²)
+   * @param {number} [params.rac=0] - Relação Albumina/Creatinina urinária (mg/g)
+   * @param {number} [params.imc=25] - Índice de Massa Corporal (kg/m²)
+   * @param {boolean} [params.dcvAterosclerotica=false] - DAC, AVC isquêmico, DAP ou Alto Risco CV
+   * @param {boolean} [params.insuficienciaCardiaca=false] - IC clínica (ICFEr, ICFElr ou ICFEp)
+   * @param {boolean} [params.mashFibrose=false] - Esteato-hepatite associada à disfunção metabólica (MASH) com fibrose F2-F3
+   * @param {boolean} [params.emUsoMetformina=false] - Se o paciente já utiliza metformina
+   * @param {boolean} [params.contraindicacaoGlp1=false] - Contraindicação a agonistas GLP-1
+   * @returns {Object} Plano terapêutico estruturado (ADA 2025/2026)
+   */
+  function prescreverTerapiaDM2_ADA2026(params) {
+    if (!params || typeof params.hba1c !== 'number' || typeof params.tfg !== 'number') {
+      throw new Error("Parâmetros obrigatórios ausentes: 'hba1c' e 'tfg' devem ser fornecidos.");
+    }
+
+    const {
+      hba1c,
+      metaHba1c = 7.0,
+      tfg,
+      rac = 0,
+      imc = 25,
+      dcvAterosclerotica = false,
+      insuficienciaCardiaca = false,
+      mashFibrose = false,
+      emUsoMetformina = false,
+      contraindicacaoGlp1 = false
+    } = params;
+
+    const prescricaoPrioritaria = [];
+    const manejoGlicemicoPeso = [];
+    const alertasSegurancaRenal = [];
+    const classesRecomendadas = new Set();
+
+    const temDRC = (tfg < 60) || (rac >= 30);
+    const elegivelInicioSGLT2 = tfg >= 20;
+
+    // 1.1 Insuficiência Cardíaca
+    if (insuficienciaCardiaca) {
+      if (elegivelInicioSGLT2) {
+        classesRecomendadas.add("iSGLT2");
+        prescricaoPrioritaria.push({
+          indicacao: "Insuficiência Cardíaca (ICFEr / ICFEp)",
+          evidencia: "Classe I, Nível A (ADA 2025/2026)",
+          conduta: "Iniciar Inibidor de SGLT2 com benefício comprovado em IC (Dapagliflozina 10mg/dia ou Empagliflozina 10mg/dia) IMEDIATAMENTE, independentemente da HbA1c basal ou uso de metformina.",
+          observacao: (imc >= 30 && !contraindicacaoGlp1)
+            ? "Se ICFEp associada à obesidade (IMC >= 30): considerar associação de Semaglutida ou Tirzepatida para redução de sintomas e eventos de IC."
+            : null
+        });
+      } else {
+        alertasSegurancaRenal.push("TFG < 20 mL/min/1.73m²: Não iniciar iSGLT2 de novo. Se já em uso prévio, pode ser mantido até o início de diálise.");
+      }
+    }
+
+    // 1.2 Doença Renal Crônica (TFG < 60 ou RAC >= 30)
+    if (temDRC) {
+      if (elegivelInicioSGLT2) {
+        classesRecomendadas.add("iSGLT2");
+        prescricaoPrioritaria.push({
+          indicacao: `Doença Renal Crônica (TFG: ${tfg} mL/min | RAC: ${rac} mg/g)`,
+          evidencia: "Classe I, Nível A (ADA 2025/2026 / KDIGO)",
+          conduta: "Iniciar iSGLT2 com benefício nefroprotetor comprovado (Empagliflozina, Dapagliflozina ou Canagliflozina) IMEDIATAMENTE, independentemente da HbA1c ou uso de metformina.",
+          observacao: (!contraindicacaoGlp1)
+            ? "Associar ou substituir por Agonista de GLP-1 (Semaglutida com benefício nefroprotetor - Estudo FLOW) se intolerância ou necessidade adicional."
+            : null
+        });
+        if (!contraindicacaoGlp1 && (rac >= 30 || tfg < 45)) {
+          classesRecomendadas.add("AR-GLP1");
+        }
+      } else {
+        if (!contraindicacaoGlp1) {
+          classesRecomendadas.add("AR-GLP1");
+          prescricaoPrioritaria.push({
+            indicacao: `DRC Avançada (TFG ${tfg} mL/min < 20 mL/min)`,
+            evidencia: "Classe I, Nível A (ADA 2025/2026)",
+            conduta: "Como a TFG é < 20 mL/min, priorizar Agonista do Receptor de GLP-1 (Semaglutida, Liraglutida ou Dulaglutida) para redução de risco cardiovascular e controle glicêmico seguro."
+          });
+        }
+      }
+    }
+
+    // 1.3 Doença Cardiovascular Aterosclerótica Estabelecida (DCVA)
+    if (dcvAterosclerotica) {
+      const opcoesDCVA = [];
+      if (!contraindicacaoGlp1) {
+        classesRecomendadas.add("AR-GLP1");
+        opcoesDCVA.push("Agonista de GLP-1 com benefício CV comprovado (Semaglutida, Dulaglutida ou Liraglutida)");
+      }
+      if (elegivelInicioSGLT2) {
+        classesRecomendadas.add("iSGLT2");
+        opcoesDCVA.push("Inibidor de SGLT2 com benefício CV comprovado (Empagliflozina, Dapagliflozina ou Canagliflozina)");
+      }
+
+      prescricaoPrioritaria.push({
+        indicacao: "Doença Cardiovascular Aterosclerótica (DCVA) Estabelecida / Alto Risco",
+        evidencia: "Classe I, Nível A (ADA 2025/2026)",
+        conduta: `Iniciar ${opcoesDCVA.join(" E/OU ")} IMEDIATAMENTE, independentemente da HbA1c basal e sem necessidade de aguardar falha da metformina.`,
+        observacao: (elegivelInicioSGLT2 && !contraindicacaoGlp1)
+          ? "Terapia combinada (AR-GLP1 + iSGLT2) deve ser considerada para redução aditiva de desfechos cardiovasculares e renais."
+          : null
+      });
+    }
+
+    // 2.1 MASH / Esteatose Metabólica
+    if (mashFibrose && !contraindicacaoGlp1) {
+      classesRecomendadas.add("AR-GLP1 / Co-agonista GIP/GLP-1");
+      manejoGlicemicoPeso.push(
+        "MASH com fibrose (F2-F3): Priorizar Agonista de GLP-1 (Semaglutida) ou Co-agonista Duplo GIP/GLP-1 (Tirzepatida) e/ou Pioglitazona (se ausência de IC) para resolução histológica da esteato-hepatite."
+      );
+    }
+
+    // 2.2 Gestão de Peso
+    if (imc >= 27 && !contraindicacaoGlp1) {
+      classesRecomendadas.add("AR-GLP1 / Co-agonista GIP/GLP-1");
+      manejoGlicemicoPeso.push(
+        `Sobrepeso/Obesidade (IMC ${imc} kg/m²): Priorizar agentes de Muito Alta Eficácia para perda ponderal e redução de HbA1c (Tirzepatida ou Semaglutida).`
+      );
+    }
+
+    // 2.3 Metformina
+    if (tfg >= 45) {
+      classesRecomendadas.add("Metformina");
+      manejoGlicemicoPeso.push(
+        emUsoMetformina
+          ? "Manter Metformina em dose otimizada (até 2000 mg/dia) como terapia de base."
+          : "Iniciar ou associar Metformina para eficácia glicêmica adicional, salvo contraindicação (não deve atrasar o início de iSGLT2/AR-GLP1 se indicados)."
+      );
+    } else if (tfg >= 30 && tfg < 45) {
+      classesRecomendadas.add("Metformina (Dose Ajustada)");
+      alertasSegurancaRenal.push(
+        "TFG entre 30 e 44 mL/min/1.73m²: Reduzir dose máxima de Metformina para 1000 mg/dia."
+      );
+    } else {
+      alertasSegurancaRenal.push(
+        "TFG < 30 mL/min/1.73m²: CONTRAINDICADO o uso de Metformina (risco de acidose lática). Suspender imediatamente se estiver em uso."
+      );
+    }
+
+    const deltaHba1c = +(hba1c - metaHba1c).toFixed(1);
+
+    if (hba1c >= 10.0) {
+      classesRecomendadas.add("Insulina Basal (+/- AR-GLP1)");
+      manejoGlicemicoPeso.push(
+        `HbA1c severamente elevada (${hba1c}%): Iniciar Insulina Basal (10 UI/dia ou 0.1-0.2 UI/kg/dia), preferencialmente com AR-GLP1.`
+      );
+    } else if (deltaHba1c >= 1.5) {
+      manejoGlicemicoPeso.push(
+        `HbA1c (${hba1c}%) está >= 1.5% acima da meta (${metaHba1c}%): Indicada TERAPIA COMBINADA DUPLA OU TRIPLA DESDE O INÍCIO (estratégia VERIFY / ADA 2026).`
+      );
+    } else if (deltaHba1c <= 0 && prescricaoPrioritaria.length > 0) {
+      manejoGlicemicoPeso.push(
+        `Atenção: Embora a HbA1c (${hba1c}%) esteja na meta (${metaHba1c}%), a introdução de iSGLT2 e/ou AR-GLP1 permanece MANDATÓRIA para redução de mortalidade cardiorrenal.`
+      );
+    }
+
+    if (tfg < 45 && classesRecomendadas.has("iSGLT2")) {
+      alertasSegurancaRenal.push(
+        "Nota Farmacodinâmica: Com TFG < 45 mL/min, o efeito redutor de HbA1c dos iSGLT2 é atenuado, mas a proteção renal e contra IC permanece intacta."
+      );
+    }
+
+    return {
+      statusGlicemico: {
+        hba1cAtual: hba1c,
+        metaHba1c,
+        acimaDaMeta: hba1c > metaHba1c,
+        diferencaMeta: deltaHba1c
+      },
+      temIndicacaoCardiorrenalPrioritaria: prescricaoPrioritaria.length > 0,
+      eixo1_ProtecaoOrgaoAlvo: prescricaoPrioritaria,
+      eixo2_ControleGlicemicoPonderal: manejoGlicemicoPeso,
+      alertasSegurancaRenal,
+      classesFarmacologicasRecomendadas: Array.from(classesRecomendadas),
+      referencia: "ADA Standards of Care in Diabetes - 2025/2026"
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
   // EXPORTAÇÃO PÚBLICA
   // ───────────────────────────────────────────────────────────────────────────
 
@@ -11764,7 +13135,9 @@ var EndocrinologiaDiabetesService = (function() {
     calcularInsulinaAmbulatorial: calcularInsulinaAmbulatorial,
     protocoloCorrecaoHospitalar: protocoloCorrecaoHospitalar,
     manejoCriseHiperglicemica: manejoCriseHiperglicemica,
-    formatarResumoDiabetes: formatarResumoDiabetes
+    formatarResumoDiabetes: formatarResumoDiabetes,
+    avaliarSindromeCKM: avaliarSindromeCKM,
+    prescreverTerapiaDM2_ADA2026: prescreverTerapiaDM2_ADA2026
   };
 })();
 
@@ -19439,10 +20812,197 @@ var NefrologiaClearanceService = (function() {
         return auditoria;
     }
 
+    /**
+     * Avalia a função renal e o clearance nefrológico em conformidade estrita com o KDIGO 2024.
+     * Integra CKD-EPI 2021 Creatinina (eGFRcr) e combinação Creatinina + Cistatina C (eGFRcr-cys),
+     * estadiamento CGA (G1–G5 e A1–A3) e auditoria de concordância diagnóstica.
+     *
+     * @param {Object} params Parâmetros clínicos e laboratoriais
+     * @param {number} params.creatinina Creatinina sérica (mg/dL)
+     * @param {number} params.idade Idade em anos (>= 18)
+     * @param {string|boolean} params.sexo Sexo biológico ('M' | 'F') ou ehFeminino
+     * @param {number} [params.cistatinaC] Cistatina C sérica em mg/L (opcional - KDIGO 2024)
+     * @param {number} [params.pesoKg] Peso corporal em kg (para Cockcroft-Gault complementar)
+     * @param {number} [params.relacaoAlbuminaCreatinina] RAC urinária em mg/g (para estadiamento A1-A3)
+     * @returns {Object} Avaliação nefrológica completa KDIGO 2024
+     */
+    function avaliarClearanceNefrologico(params) {
+        params = params || {};
+        var creatinina = params.creatinina !== undefined ? params.creatinina : params.scr;
+        var idade = params.idade;
+        var sexo = params.sexo !== undefined ? params.sexo : params.ehFeminino;
+        var cistatinaC = params.cistatinaC !== undefined ? params.cistatinaC : params.scys;
+        var pesoKg = params.pesoKg !== undefined ? params.pesoKg : params.peso;
+        var racInput = params.relacaoAlbuminaCreatinina !== undefined ? params.relacaoAlbuminaCreatinina : params.rac;
+
+        var scr = parseFloat(creatinina);
+        var id = parseFloat(idade);
+        var scys = (cistatinaC !== undefined && cistatinaC !== null && String(cistatinaC).trim() !== '') ? parseFloat(cistatinaC) : null;
+
+        if (isNaN(scr) || scr <= 0) {
+            return { erro: "Creatinina sérica inválida para avaliação nefrológica KDIGO 2024." };
+        }
+        if (isNaN(id) || id < 18) {
+            return { erro: "Idade inválida: diretriz KDIGO 2024 CKD-EPI é validada para adultos (>= 18 anos)." };
+        }
+
+        var sexoStr = String(sexo || '').toUpperCase().trim();
+        var isFem = (sexo === true) || ['F', 'FEM', 'FEMININO', 'FEMALE', 'MULHER'].indexOf(sexoStr) !== -1;
+
+        // 1. CKD-EPI 2021 Creatinina Isolada (eGFRcr)
+        var kCr = isFem ? 0.7 : 0.9;
+        var aCr = isFem ? -0.241 : -0.302;
+        var fCr = isFem ? 1.012 : 1.0;
+        var rCr = scr / kCr;
+        var tfgCr = 142 * Math.pow(Math.min(rCr, 1), aCr) * Math.pow(Math.max(rCr, 1), -1.200) * Math.pow(0.9938, id) * fCr;
+        tfgCr = Math.round(tfgCr * 10) / 10;
+
+        function estadiarG(val) {
+            if (val >= 90) return { estadio: 'G1', descricao: 'Normal ou elevada', faixa: '>= 90 mL/min/1,73m²' };
+            if (val >= 60) return { estadio: 'G2', descricao: 'Levemente diminuída', faixa: '60–89 mL/min/1,73m²' };
+            if (val >= 45) return { estadio: 'G3a', descricao: 'Leve a moderadamente diminuída', faixa: '45–59 mL/min/1,73m²' };
+            if (val >= 30) return { estadio: 'G3b', descricao: 'Moderada a gravemente diminuída', faixa: '30–44 mL/min/1,73m²' };
+            if (val >= 15) return { estadio: 'G4', descricao: 'Gravemente diminuída', faixa: '15–29 mL/min/1,73m²' };
+            return { estadio: 'G5', descricao: 'Falência renal (Estádio Terminal)', faixa: '< 15 mL/min/1,73m²' };
+        }
+
+        var estadiamentoCr = estadiarG(tfgCr);
+
+        // 2. CKD-EPI 2021 Combinada Creatinina-Cistatina C (eGFRcr-cys - KDIGO 2024)
+        var tfgComb = null;
+        var estadiamentoComb = null;
+        var concordancia = {
+            avaliada: false,
+            cistatinaCFornecida: false,
+            estadiosConcordantes: null,
+            reclassificacaoKDIGO: null,
+            diferencaAbsolutaMlMin: null,
+            diferencaPercentual: null,
+            interpretacaoClinica: 'Cistatina C não informada. Em casos limítrofes (TFG 45–59 mL/min/1,73m² sem albuminúria) ou extremos de massa muscular, o KDIGO 2024 recomenda dosar Cistatina C para cálculo da eGFRcr-cys.'
+        };
+
+        if (scys !== null && !isNaN(scys) && scys > 0) {
+            var kComb = isFem ? 0.7 : 0.9;
+            var aComb = isFem ? -0.219 : -0.144;
+            var fComb = isFem ? 1.018 : 1.0;
+            var rScr = scr / kComb;
+            var rScys = scys / 0.8;
+
+            var tfgCombBruta =
+                135 *
+                Math.pow(Math.min(rScr, 1), aComb) *
+                Math.pow(Math.max(rScr, 1), -0.544) *
+                Math.pow(Math.min(rScys, 1), -0.323) *
+                Math.pow(Math.max(rScys, 1), -0.778) *
+                Math.pow(0.9961, id) *
+                fComb;
+
+            tfgComb = Math.round(tfgCombBruta * 10) / 10;
+            estadiamentoComb = estadiarG(tfgComb);
+
+            var diffAbs = Math.round((tfgComb - tfgCr) * 10) / 10;
+            var diffPct = Math.round((Math.abs(diffAbs) / tfgCr) * 1000) / 10;
+            var mesmoEstadio = estadiamentoCr.estadio === estadiamentoComb.estadio;
+
+            concordancia = {
+                avaliada: true,
+                cistatinaCFornecida: true,
+                estadiosConcordantes: mesmoEstadio,
+                reclassificacaoKDIGO: mesmoEstadio
+                    ? ('Mantido em ' + estadiamentoComb.estadio)
+                    : ('Reclassificado de ' + estadiamentoCr.estadio + ' (eGFRcr) para ' + estadiamentoComb.estadio + ' (eGFRcr-cys)'),
+                diferencaAbsolutaMlMin: diffAbs,
+                diferencaPercentual: diffPct,
+                interpretacaoClinica: mesmoEstadio
+                    ? ('Alta concordância diagnóstica KDIGO 2024: ambas as equações classificam o paciente no estádio ' + estadiamentoComb.estadio + '. Utilizar a tfgCombinada (' + tfgComb + ' mL/min/1,73m²) como referência padrão-ouro.')
+                    : ('Discordância inter-equações detectada (' + estadiamentoCr.estadio + ' vs ' + estadiamentoComb.estadio + '). Segundo a Diretriz KDIGO 2024, a equação combinada Creatinina-Cistatina C (' + tfgComb + ' mL/min/1,73m² - ' + estadiamentoComb.estadio + ') possui maior acurácia e deve guiar o ajuste posológico e o estadiamento.')
+            };
+        }
+
+        var tfgOficial = tfgComb !== null ? tfgComb : tfgCr;
+        var estadiamentoOficial = estadiamentoComb !== null ? estadiamentoComb : estadiamentoCr;
+
+        // 3. Albuminúria KDIGO (A1, A2, A3)
+        var categoriaAlbuminuria = null;
+        if (racInput !== undefined && racInput !== null && !isNaN(racInput)) {
+            var racNum = parseFloat(racInput);
+            if (racNum < 30) {
+                categoriaAlbuminuria = { categoria: 'A1', descricao: 'Normal a levemente aumentada (< 30 mg/g)' };
+            } else if (racNum <= 300) {
+                categoriaAlbuminuria = { categoria: 'A2', descricao: 'Moderadamente aumentada (30–300 mg/g)' };
+            } else {
+                categoriaAlbuminuria = { categoria: 'A3', descricao: 'Gravemente aumentada (> 300 mg/g)' };
+            }
+        }
+
+        // 4. Cockcroft-Gault se peso informado
+        var cgMlMin = null;
+        if (pesoKg !== undefined && pesoKg !== null && !isNaN(pesoKg) && parseFloat(pesoKg) > 0) {
+            cgMlMin = calcularCockcroftGault(id, pesoKg, scr, isFem ? 'f' : 'm');
+            if (typeof cgMlMin === 'object' && cgMlMin.erro) cgMlMin = null;
+        }
+
+        // 5. Alertas de conformidade KDIGO 2024
+        var alertasKDIGO = [];
+        if (tfgComb !== null) {
+            alertasKDIGO.push(
+                '[CONFORMIDADE KDIGO 2024 - PADRÃO-OURO ATIVO]: Equação combinada CKD-EPI 2021 Creatinina-Cistatina C (eGFRcr-cys = ' + tfgComb + ' mL/min/1,73m²) utilizada como métrica principal de estadiamento (' + estadiamentoOficial.estadio + ') e ajuste de fármacos.'
+            );
+            if (!concordancia.estadiosConcordantes) {
+                alertasKDIGO.push(
+                    '[ALERTA DE RECLASSIFICAÇÃO KDIGO 2024]: ' + concordancia.reclassificacaoKDIGO + '. Priorizar a eGFRcr-cys para decisões clínicas críticas e nefroproteção.'
+                );
+            }
+        } else {
+            alertasKDIGO.push(
+                '[AVISO KDIGO 2024 - CISTATINA C AUSENTE]: Avaliação realizada exclusivamente via CKD-EPI 2021 Creatinina (eGFRcr = ' + tfgCr + ' mL/min/1,73m² - ' + estadiamentoOficial.estadio + ').'
+            );
+            if (tfgCr >= 45 && tfgCr < 60) {
+                alertasKDIGO.push(
+                    '[RECOMENDAÇÃO KDIGO 2024 - ESTÁDIO G3a LIMÍTROFE]: Pacientes com eGFRcr entre 45–59 mL/min/1,73m² têm indicação formal de confirmação diagnóstica com Cistatina C sérica (eGFRcr-cys), especialmente na ausência de albuminúria ou em extremos de massa muscular (sarcopenia, desnutrição, hepatopatia, amputados).'
+                );
+            }
+        }
+
+        if (tfgOficial < 30) {
+            alertasKDIGO.push(
+                '[ALERTA CRÍTICO NEFROLÓGICO - ' + estadiamentoOficial.estadio + ']: TFG < 30 mL/min/1,73m². Revisar imediatamente fármacos nefrotóxicos (AINEs, contrastes iodados, aminoglicosídeos), ajustar antimicrobianos/anticoagulantes e encaminhar ao nefrologista.'
+            );
+        }
+
+        return {
+            diretriz: 'KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of CKD',
+            tfgCreatinina: tfgCr,
+            tfgCombinada: tfgComb,
+            tfgOficialKDIGO2024: tfgOficial,
+            cockcroftGaultMlMin: cgMlMin,
+            estadiamentoKDIGO: {
+                categoriaOficial: estadiamentoOficial.estadio,
+                descricaoOficial: estadiamentoOficial.descricao,
+                faixaOficial: estadiamentoOficial.faixa,
+                porCreatinina: estadiamentoCr,
+                porCombinada: estadiamentoComb,
+                albuminuria: categoriaAlbuminuria,
+                classificacaoCompletaCGA: categoriaAlbuminuria
+                    ? (estadiamentoOficial.estadio + categoriaAlbuminuria.categoria)
+                    : estadiamentoOficial.estadio
+            },
+            concordanciaDiagnostica: concordancia,
+            conformidadeKDIGO2024: {
+                cistatinaCUtilizada: tfgComb !== null,
+                equacaoSelecionada: tfgComb !== null
+                    ? 'CKD-EPI 2021 Creatinina-Cistatina C Combinada (eGFRcr-cys)'
+                    : 'CKD-EPI 2021 Creatinina Isolada (eGFRcr)',
+                alertas: alertasKDIGO
+            }
+        };
+    }
+
     return {
         calcularCockcroftGault: calcularCockcroftGault,
         classificarEstagio: classificarEstagio,
-        auditarPrescricao: auditarPrescricao
+        auditarPrescricao: auditarPrescricao,
+        avaliarClearanceNefrologico: avaliarClearanceNefrologico
     };
 })();
 
@@ -20197,7 +21757,7 @@ var NeurologiaAvcService = (function() {
 
     if (tempoSintomasHoras > 4.5) {
       janela = "fora_da_janela";
-      mensagem = "Trombólise IV contraindicada (Janela terapêutica > 4.5 horas). Avaliar Trombectomia Mecânica se oclusão de grande vaso e janela até 24h (DAWN/DEFUSE-3).";
+      mensagem = "Trombólise IV contraindicada (Janela terapêutica > 4.5 horas). Avaliar Trombectomia Mecânica se oclusão de grande vaso até 24h (DAWN/DEFUSE-3), inclusive em Large Core Strokes com ASPECTS 3 a 5 (SELECT2/ANGEL-ASPECT).";
       if (tempoSintomasHoras <= 9.0 || params.wakeUpStroke) {
         alertasClinicos.push("💡 Janela Estendida / Wake-up Stroke (4.5 a 9h): Considerar trombólise orientada por neuroimagem avançada (mismatch DWI-FLAIR na RM ou perfusão por TC/RM conforme trials WAKE-UP e EXTEND).");
       }
@@ -20439,15 +21999,16 @@ var NeurologiaAvcService = (function() {
       t.push(`• Conclusão: ${e.mensagem}`);
       t.push("");
 
-      if (e.posologiaAlteplase) {
-        t.push("💉 *POSOLOGIA DE ALTEPLASE (rtPA):*");
-        t.push(`👉 ${e.posologiaAlteplase}`);
+      if (e.posologiaTenecteplase) {
+        t.push("⭐ *1ª ESCOLHA / PREFERENCIAL: TENECTEPLASE (TNK):*");
+        t.push(`👉 ${e.posologiaTenecteplase}`);
+        t.push("  ↳ _Bolus IV direto em 5–10s; sem necessidade de BIC; menor risco de interrupção e padrão-ouro para transferência/transporte (AHA/ESO 2024)._");
         t.push("");
       }
 
-      if (e.posologiaTenecteplase) {
-        t.push("💉 *ALTERNATIVA: TENECTEPLASE (TNK):*");
-        t.push(`👉 ${e.posologiaTenecteplase}`);
+      if (e.posologiaAlteplase) {
+        t.push("🔄 *ALTERNATIVA PADRÃO: ALTEPLASE (rtPA):*");
+        t.push(`👉 ${e.posologiaAlteplase}`);
         t.push("");
       }
 
@@ -26077,10 +27638,389 @@ var PalsPediatriaService = (function() {
     };
   }
 
+  /**
+   * ============================================================================
+   * ESCORE PHOENIX DE SEPSE E CHOQUE SÉPTICO PEDIÁTRICO (SCCM / JAMA 2024)
+   * Referência: Schlapbach LJ, Watson RS, Sorce LR, et al. International Consensus
+   * Criteria for Pediatric Sepsis and Septic Shock. JAMA. 2024;331(8):665-674.
+   * ============================================================================
+   */
+
+  /**
+   * Tabela etária de Pressão Arterial Média (PAM em mmHg) do Escore Phoenix (JAMA 2024).
+   * Retorna 0, 1 ou 2 pontos conforme a idade em meses.
+   * @private
+   */
+  function _pontuarPamPhoenixPorIdade(pam, idadeMeses) {
+    if (pam === null || pam === undefined || isNaN(pam) || pam <= 0) return null;
+    if (idadeMeses === null || idadeMeses === undefined || isNaN(idadeMeses) || idadeMeses < 0) return null;
+
+    // < 1 mês (>30: 0 pt | 17-30: 1 pt | <17: 2 pts)
+    if (idadeMeses < 1) {
+      if (pam < 17) return { pontos: 2, faixaEsperada: '> 30 mmHg', limiarCritico: '< 17 mmHg' };
+      if (pam <= 30) return { pontos: 1, faixaEsperada: '> 30 mmHg', limiarCritico: '17–30 mmHg' };
+      return { pontos: 0, faixaEsperada: '> 30 mmHg', limiarCritico: 'Normal' };
+    }
+    // 1 a 11 meses (>38: 0 pt | 25-38: 1 pt | <25: 2 pts)
+    if (idadeMeses < 12) {
+      if (pam < 25) return { pontos: 2, faixaEsperada: '> 38 mmHg', limiarCritico: '< 25 mmHg' };
+      if (pam <= 38) return { pontos: 1, faixaEsperada: '> 38 mmHg', limiarCritico: '25–38 mmHg' };
+      return { pontos: 0, faixaEsperada: '> 38 mmHg', limiarCritico: 'Normal' };
+    }
+    // 1 a < 2 anos (12 a 23 meses) (>43: 0 pt | 31-43: 1 pt | <31: 2 pts)
+    if (idadeMeses < 24) {
+      if (pam < 31) return { pontos: 2, faixaEsperada: '> 43 mmHg', limiarCritico: '< 31 mmHg' };
+      if (pam <= 43) return { pontos: 1, faixaEsperada: '> 43 mmHg', limiarCritico: '31–43 mmHg' };
+      return { pontos: 0, faixaEsperada: '> 43 mmHg', limiarCritico: 'Normal' };
+    }
+    // 2 a < 5 anos (24 a 59 meses) (>44: 0 pt | 32-44: 1 pt | <32: 2 pts)
+    if (idadeMeses < 60) {
+      if (pam < 32) return { pontos: 2, faixaEsperada: '> 44 mmHg', limiarCritico: '< 32 mmHg' };
+      if (pam <= 44) return { pontos: 1, faixaEsperada: '> 44 mmHg', limiarCritico: '32–44 mmHg' };
+      return { pontos: 0, faixaEsperada: '> 44 mmHg', limiarCritico: 'Normal' };
+    }
+    // 5 a < 12 anos (60 a 143 meses) (>48: 0 pt | 36-48: 1 pt | <36: 2 pts)
+    if (idadeMeses < 144) {
+      if (pam < 36) return { pontos: 2, faixaEsperada: '> 48 mmHg', limiarCritico: '< 36 mmHg' };
+      if (pam <= 48) return { pontos: 1, faixaEsperada: '> 48 mmHg', limiarCritico: '36–48 mmHg' };
+      return { pontos: 0, faixaEsperada: '> 48 mmHg', limiarCritico: 'Normal' };
+    }
+    // 12 a 17 anos (144 a 215 meses) (>51: 0 pt | 38-51: 1 pt | <38: 2 pts)
+    if (pam < 38) return { pontos: 2, faixaEsperada: '> 51 mmHg', limiarCritico: '< 38 mmHg' };
+    if (pam <= 51) return { pontos: 1, faixaEsperada: '> 51 mmHg', limiarCritico: '38–51 mmHg' };
+    return { pontos: 0, faixaEsperada: '> 51 mmHg', limiarCritico: 'Normal' };
+  }
+
+  /**
+   * Avalia o Escore Phoenix de Sepse Pediátrica (SCCM 2024 - JAMA 2024).
+   *
+   * @param {Object} params Parâmetros clínicos e laboratoriais do paciente pediátrico
+   * @param {boolean} [params.suspeitaInfeccao=true] Suspeita ou confirmação de infecção aguda
+   * @param {number}  [params.idadeMeses] Idade em meses (ou calculada via idadeAnos * 12)
+   * @param {number}  [params.idadeAnos] Idade em anos (opcional se idadeMeses fornecido)
+   * @param {number}  [params.pesoKg] Peso em kg para cálculo exato da alíquota de cristaloide
+   *
+   * // Domínio Respiratório (0 a 3 pts)
+   * @param {number}  [params.pao2Fio2] Relação PaO2/FiO2 direta
+   * @param {number}  [params.pao2] PaO2 arterial (mmHg)
+   * @param {number}  [params.spo2Fio2] Relação SpO2/FiO2 direta (válida se SpO2 <= 97%)
+   * @param {number}  [params.spo2] SpO2 periférica (%)
+   * @param {number}  [params.fio2] FiO2 (fração 0.21-1.0 ou porcentagem 21-100)
+   * @param {string}  [params.suporteRespiratorio='nenhum'] 'nenhum' | 'oxigenio' | 'cnaf' | 'vni' | 'vmi'
+   * @param {boolean} [params.vmi=false] Atalho booleano para Ventilação Mecânica Invasiva
+   *
+   * // Domínio Cardiovascular (0 a 6 pts)
+   * @param {Array<string>|Object|number} [params.dva] Drogas vasoativas em infusão contínua
+   * @param {number}  [params.pam] Pressão Arterial Média invasiva ou oscilométrica (mmHg)
+   * @param {boolean} [params.pamAbaixoP5=false] Flag direta indicando PAM < percentil 5 para a idade
+   * @param {number}  [params.lactatoMmolL] Lactato sérico em mmol/L
+   * @param {number}  [params.lactatoMgDl] Lactato sérico em mg/dL (convertido: mg/dL / 9)
+   *
+   * // Domínio Coagulação (0 a 2 pts)
+   * @param {number}  [params.plaquetas] Contagem de plaquetas (/mm³ ou x10³/µL)
+   * @param {number}  [params.inr] RNI / INR
+   * @param {number}  [params.fibrinogenio] Fibrinogênio sérico (mg/dL)
+   * @param {number}  [params.dDimero] D-dímero em mg/L FEU (ou ng/mL se > 50, convertido)
+   *
+   * // Domínio Neurológico (0 a 2 pts)
+   * @param {number}  [params.glasgow] Escala de Coma de Glasgow (3 a 15)
+   * @param {boolean} [params.pupilasFixasBilaterais=false] Pupilas médio-fixas ou midriáticas fixas bilaterais
+   *
+   * @returns {Object} Resultado determinístico estruturado com escore, diagnóstico e condutas da 1ª Hora
+   */
+  function avaliarPhoenixSepsis(params) {
+    params = params || {};
+    var suspeitaInfeccao = params.suspeitaInfeccao !== undefined ? Boolean(params.suspeitaInfeccao) : true;
+    var rawIdadeMeses = params.idadeMeses;
+    var idadeAnos = params.idadeAnos;
+    var pesoKg = params.pesoKg;
+    var rawPf = params.pao2Fio2;
+    var pao2 = params.pao2;
+    var rawSf = params.spo2Fio2;
+    var spo2 = params.spo2;
+    var rawFio2 = params.fio2;
+    var suporteRespiratorio = params.suporteRespiratorio || 'nenhum';
+    var vmi = Boolean(params.vmi);
+    var dva = params.dva;
+    var pam = params.pam;
+    var pamAbaixoP5 = Boolean(params.pamAbaixoP5);
+    var rawLactatoMmol = params.lactatoMmolL;
+    var lactatoMgDl = params.lactatoMgDl;
+    var plaquetas = params.plaquetas;
+    var inr = params.inr;
+    var fibrinogenio = params.fibrinogenio;
+    var dDimero = params.dDimero;
+    var glasgow = params.glasgow;
+    var pupilasFixasBilaterais = Boolean(params.pupilasFixasBilaterais);
+
+    var idadeMeses = (rawIdadeMeses !== undefined && rawIdadeMeses !== null)
+      ? Number(rawIdadeMeses)
+      : (idadeAnos !== undefined && idadeAnos !== null ? Number(idadeAnos) * 12 : null);
+
+    // ==========================================================================
+    // 1. DOMÍNIO RESPIRATÓRIO (0 a 3 pontos)
+    // ==========================================================================
+    var fio2 = (rawFio2 !== undefined && rawFio2 !== null) ? Number(rawFio2) : null;
+    if (fio2 !== null && fio2 > 1) fio2 = fio2 / 100;
+
+    var pf = (rawPf !== undefined && rawPf !== null)
+      ? Number(rawPf)
+      : (pao2 && fio2 ? Number(pao2) / fio2 : null);
+
+    // Nota SCCM 2024: SpO2/FiO2 só deve ser calculada se SpO2 <= 97%
+    var spo2ValidaParaCalculo = (spo2 !== undefined && spo2 !== null && Number(spo2) <= 97);
+    var sf = (rawSf !== undefined && rawSf !== null)
+      ? Number(rawSf)
+      : (spo2ValidaParaCalculo && fio2 ? Number(spo2) / fio2 : null);
+
+    var tipoSuporteNorm = String(suporteRespiratorio || 'nenhum').toLowerCase().trim();
+    var emVMI = vmi || tipoSuporteNorm === 'vmi' || tipoSuporteNorm === 'iot';
+    var emQualquerSuporte = emVMI ||
+      ['oxigenio', 'o2', 'cnaf', 'alto_fluxo', 'vni', 'cpap', 'bipap'].indexOf(tipoSuporteNorm) !== -1 ||
+      (fio2 !== null && fio2 > 0.21);
+
+    var ptsRespiratorio = 0;
+    var criteriosRespiratorios = [];
+
+    if (emVMI && ((pf !== null && pf < 100) || (sf !== null && sf < 148))) {
+      ptsRespiratorio = 3;
+      criteriosRespiratorios.push(
+        pf !== null && pf < 100
+          ? 'PaO2/FiO2 < 100 (' + Math.round(pf) + ') em VMI (3 pts)'
+          : 'SpO2/FiO2 < 148 (' + Math.round(sf) + ') em VMI (3 pts)'
+      );
+    } else if (emVMI && ((pf !== null && pf < 200) || (sf !== null && sf < 220))) {
+      ptsRespiratorio = 2;
+      criteriosRespiratorios.push(
+        pf !== null && pf < 200
+          ? 'PaO2/FiO2 100–199 (' + Math.round(pf) + ') em VMI (2 pts)'
+          : 'SpO2/FiO2 148–219 (' + Math.round(sf) + ') em VMI (2 pts)'
+      );
+    } else if (emQualquerSuporte && ((pf !== null && pf < 400) || (sf !== null && sf < 292))) {
+      ptsRespiratorio = 1;
+      criteriosRespiratorios.push(
+        pf !== null && pf < 400
+          ? 'PaO2/FiO2 < 400 (' + Math.round(pf) + ') em suporte respiratório (' + tipoSuporteNorm.toUpperCase() + ') (1 pt)'
+          : 'SpO2/FiO2 < 292 (' + Math.round(sf) + ') em suporte respiratório (' + tipoSuporteNorm.toUpperCase() + ') (1 pt)'
+      );
+    }
+
+    // ==========================================================================
+    // 2. DOMÍNIO CARDIOVASCULAR (0 a 6 pontos: DVA [0-2] + Lactato [0-2] + PAM [0-2])
+    // ==========================================================================
+    var criteriosCardiovasculares = [];
+
+    // 2.1 Drogas Vasoativas
+    var qtdDva = 0;
+    var listaDvasAtivas = [];
+
+    if (typeof dva === 'number' && !isNaN(dva)) {
+      qtdDva = Math.max(0, Math.floor(dva));
+    } else if (Array.isArray(dva)) {
+      dva.forEach(function(item) {
+        if (item && String(item).trim() !== '') listaDvasAtivas.push(String(item).trim());
+      });
+      qtdDva = listaDvasAtivas.length;
+    } else if (dva && typeof dva === 'object') {
+      var agentesReconhecidos = [
+        'noradrenalina', 'norepinefrina', 'adrenalina', 'epinefrina',
+        'dobutamina', 'milrinona', 'vasopressina', 'dopamina'
+      ];
+      Object.keys(dva).forEach(function(chave) {
+        var valor = dva[chave];
+        var chaveNorm = chave.toLowerCase().trim();
+        var ativo = (typeof valor === 'number' && valor > 0) || valor === true;
+        if (ativo && (agentesReconhecidos.indexOf(chaveNorm) !== -1 || chaveNorm.length > 0)) {
+          listaDvasAtivas.push(chave + ' (' + (valor === true ? 'em uso' : valor + ' mcg/kg/min') + ')');
+        }
+      });
+      qtdDva = listaDvasAtivas.length;
+    }
+
+    var ptsDva = 0;
+    if (qtdDva >= 2) {
+      ptsDva = 2;
+      criteriosCardiovasculares.push('Uso de >= 2 drogas vasoativas [' + (listaDvasAtivas.join(', ') || qtdDva) + '] (2 pts)');
+    } else if (qtdDva === 1) {
+      ptsDva = 1;
+      criteriosCardiovasculares.push('Uso de 1 droga vasoativa [' + (listaDvasAtivas[0] || '1 DVA') + '] (1 pt)');
+    }
+
+    // 2.2 Lactato Sérico (mmol/L ou conversão de mg/dL: 45 mg/dL == 5.0 mmol/L; 99 mg/dL == 11.0 mmol/L)
+    var lactatoMmol = (rawLactatoMmol !== undefined && rawLactatoMmol !== null)
+      ? Number(rawLactatoMmol)
+      : (lactatoMgDl !== undefined && lactatoMgDl !== null ? Number(lactatoMgDl) / 9.0 : null);
+
+    var ptsLactato = 0;
+    if (lactatoMmol !== null && !isNaN(lactatoMmol)) {
+      if (lactatoMmol >= 11.0) {
+        ptsLactato = 2;
+        criteriosCardiovasculares.push('Lactato sérico >= 11 mmol/L (' + lactatoMmol.toFixed(1) + ' mmol/L) (2 pts)');
+      } else if (lactatoMmol >= 5.0) {
+        ptsLactato = 1;
+        criteriosCardiovasculares.push('Lactato sérico 5,0–10,9 mmol/L (' + lactatoMmol.toFixed(1) + ' mmol/L / >= 45 mg/dL) (1 pt)');
+      }
+    }
+
+    // 2.3 Hipotensão Arterial (PAM por faixa etária ou PAM < p5)
+    var ptsPam = 0;
+    var avaliacaoPamIdade = _pontuarPamPhoenixPorIdade(Number(pam), idadeMeses);
+
+    if (avaliacaoPamIdade !== null) {
+      ptsPam = avaliacaoPamIdade.pontos;
+      if (ptsPam > 0) {
+        criteriosCardiovasculares.push(
+          'PAM reduzida para a idade (' + pam + ' mmHg; corte ' + avaliacaoPamIdade.limiarCritico + ') (' + ptsPam + ' pt' + (ptsPam > 1 ? 's' : '') + ')'
+        );
+      }
+    }
+
+    if (pamAbaixoP5 === true && ptsPam === 0) {
+      ptsPam = 1;
+      criteriosCardiovasculares.push('PAM abaixo do percentil 5 para a idade (1 pt)');
+    }
+
+    var ptsCardiovascular = Math.min(6, ptsDva + ptsLactato + ptsPam);
+
+    // ==========================================================================
+    // 3. DOMÍNIO COAGULAÇÃO (0 a 2 pontos)
+    // ==========================================================================
+    var ptsCoagulacaoBruto = 0;
+    var criteriosCoagulacao = [];
+
+    if (plaquetas !== undefined && plaquetas !== null && !isNaN(plaquetas) && Number(plaquetas) > 0) {
+      var plaqAbsoluta = Number(plaquetas) < 1000 ? Number(plaquetas) * 1000 : Number(plaquetas);
+      if (plaqAbsoluta < 100000) {
+        ptsCoagulacaoBruto += 1;
+        criteriosCoagulacao.push('Plaquetas < 100.000/mm³ (' + Math.round(plaqAbsoluta).toLocaleString('pt-BR') + '/mm³) (1 pt)');
+      }
+    }
+
+    if (inr !== undefined && inr !== null && !isNaN(inr) && Number(inr) > 1.3) {
+      ptsCoagulacaoBruto += 1;
+      criteriosCoagulacao.push('INR > 1,3 (' + Number(inr).toFixed(2) + ') (1 pt)');
+    }
+
+    if (fibrinogenio !== undefined && fibrinogenio !== null && !isNaN(fibrinogenio) && Number(fibrinogenio) > 0 && Number(fibrinogenio) < 100) {
+      ptsCoagulacaoBruto += 1;
+      criteriosCoagulacao.push('Fibrinogênio < 100 mg/dL (' + Number(fibrinogenio) + ' mg/dL) (1 pt)');
+    }
+
+    if (dDimero !== undefined && dDimero !== null && !isNaN(dDimero) && Number(dDimero) > 0) {
+      var dDimeroMgL = Number(dDimero) > 50 ? Number(dDimero) / 1000 : Number(dDimero);
+      if (dDimeroMgL > 2.0) {
+        ptsCoagulacaoBruto += 1;
+        criteriosCoagulacao.push('D-dímero > 2,0 mg/L FEU (' + dDimeroMgL.toFixed(2) + ' mg/L) (1 pt)');
+      }
+    }
+
+    var ptsCoagulacao = Math.min(2, ptsCoagulacaoBruto);
+
+    // ==========================================================================
+    // 4. DOMÍNIO NEUROLÓGICO (0 a 2 pontos)
+    // ==========================================================================
+    var ptsNeurologico = 0;
+    var criteriosNeurologicos = [];
+
+    if (pupilasFixasBilaterais === true) {
+      ptsNeurologico = 2;
+      criteriosNeurologicos.push('Pupilas fixas bilaterais (2 pts)');
+    } else if (glasgow !== undefined && glasgow !== null && !isNaN(glasgow) && Number(glasgow) <= 10) {
+      ptsNeurologico = 1;
+      criteriosNeurologicos.push('Escala de Coma de Glasgow <= 10 (ECG = ' + Number(glasgow) + ') (1 pt)');
+    }
+
+    // ==========================================================================
+    // 5. CONSOLIDAÇÃO DIAGNÓSTICA E CONDUTAS (GOLDEN HOUR)
+    // ==========================================================================
+    var pontosTotais = ptsRespiratorio + ptsCardiovascular + ptsCoagulacao + ptsNeurologico;
+    var sepsePediatrica = suspeitaInfeccao && pontosTotais >= 2;
+    var choqueSepticoPediatrico = sepsePediatrica && ptsCardiovascular >= 1;
+
+    var diagnostico = 'Sem Critérios de Sepse pelo Escore Phoenix (< 2 pontos)';
+    if (choqueSepticoPediatrico) {
+      diagnostico = 'Choque Séptico Pediátrico (Escore Phoenix >= 2 com >= 1 ponto Cardiovascular)';
+    } else if (sepsePediatrica) {
+      diagnostico = 'Sepse Pediátrica (Escore Phoenix >= 2 com suspeita/confirmação de infecção)';
+    } else if (!suspeitaInfeccao && pontosTotais >= 2) {
+      diagnostico = 'Disfunção Orgânica Múltipla Pediátrica (Phoenix >= 2 sem suspeita de infecção ativa)';
+    }
+
+    var pesoValido = (pesoKg !== undefined && pesoKg !== null && !isNaN(pesoKg) && Number(pesoKg) > 0)
+      ? Number(pesoKg)
+      : null;
+
+    var volumeAliquota10ml = pesoValido ? Math.round(pesoValido * 10) : null;
+    var volumeAliquota20ml = pesoValido ? Math.round(pesoValido * 20) : null;
+
+    return {
+      escore: 'Phoenix Sepsis Score (SCCM / JAMA 2024)',
+      pontosTotais: pontosTotais,
+      suspeitaInfeccao: suspeitaInfeccao,
+      sepseConfirmada: sepsePediatrica,
+      choqueSepticoConfirmado: choqueSepticoPediatrico,
+      diagnostico: diagnostico,
+      dominios: {
+        respiratorio: {
+          pontos: ptsRespiratorio,
+          maximo: 3,
+          criteriosAtivos: criteriosRespiratorios
+        },
+        cardiovascular: {
+          pontos: ptsCardiovascular,
+          maximo: 6,
+          subcomponentes: {
+            dva: ptsDva,
+            lactato: ptsLactato,
+            pam: ptsPam
+          },
+          criteriosAtivos: criteriosCardiovasculares
+        },
+        coagulacao: {
+          pontos: ptsCoagulacao,
+          maximo: 2,
+          criteriosAtivos: criteriosCoagulacao
+        },
+        neurologico: {
+          pontos: ptsNeurologico,
+          maximo: 2,
+          criteriosAtivos: criteriosNeurologicos
+        }
+      },
+      condutas: {
+        goldenHourAntimicrobiano: sepsePediatrica
+          ? {
+              prioridade: choqueSepticoPediatrico ? 'IMEDIATA — Na 1ª Hora (Golden Hour)' : 'URGENTE — Na 1ª Hora após avaliação inicial',
+              recomendacao: 'Coletar hemoculturas (sem atrasar a infusão) e administrar antimicrobiano empírico de amplo espectro endovenoso/intraósseo na 1ª hora (Golden Hour).'
+            }
+          : {
+              prioridade: 'Reavaliação clínica seriada',
+              recomendacao: 'Monitorar sinais vitais e perfusão; antimicrobianos conforme foco infeccioso específico.'
+            },
+        ressuscitacaoVolemica: {
+          fluidoEscolha: 'Cristaloide balanceado (Ringer Lactato ou Plasma-Lyte)',
+          esquema: '10 a 20 mL/kg em bolus EV/IO em 15–30 minutos, guiado por reavaliação hemodinâmica a cada alíquota.',
+          volumeCalculadoPorPeso: pesoValido
+            ? {
+                pesoKg: pesoValido,
+                aliquota10mlKg: volumeAliquota10ml + ' mL',
+                aliquota20mlKg: volumeAliquota20ml + ' mL'
+              }
+            : null,
+          monitorizacaoSobrecarga: 'Suspender expansão se surgirem estertores crepitantes, hepatomegalia aguda ou piora do esforço respiratório.'
+        },
+        suporteVasoAtivo: choqueSepticoPediatrico
+          ? 'Iniciar Epinefrina (0,05–0,3 mcg/kg/min) ou Norepinefrina (0,05–0,3 mcg/kg/min) se hipoperfusão/hipotensão refratária a 40–60 mL/kg de cristaloide (pode ser infundida em acesso periférico seguro até obtenção de acesso central).'
+          : 'Não indicado no momento; manter vigilância rigorosa de PAM, tempo de enchimento capilar e lactato.'
+      }
+    };
+  }
+
   return {
     avaliarPals: avaliarPals,
     estimarPesoPorIdade: estimarPesoPorIdade,
-    estimarPesoPorBroselow: estimarPesoPorBroselow
+    estimarPesoPorBroselow: estimarPesoPorBroselow,
+    avaliarPhoenixSepsis: avaliarPhoenixSepsis
   };
 
 })();
@@ -27695,6 +29635,7 @@ var PneumologiaCriseAsmaticaService = (function() {
         // 9. BLOQUEIOS DE SEGURANÇA E CONTRAINDICAÇÕES CRÍTICAS
         plano.bloqueios_seguranca.push("🚫 CONTRAINDICAÇÃO FORMAL: NUNCA prescrever sedativos, ansiolíticos (Benzodiazepínicos como Diazepam/Midazolam) ou opioides no broncoespasmo em paciente sem via aérea definitiva intubada! Causa depressão respiratória aguda e parada cardiorrespiratória por abolição do drive ventilatório de exaustão.");
         if (!isDpoc) {
+            plano.bloqueios_seguranca.push("🚫 ALERTA CRÍTICO GINA 2024 (PROIBIÇÃO DE SABA ISOLADO): O uso de SABA (Salbutamol/Fenoterol) isolado sem Corticoide Inalatório está proscrito pela GINA devido ao aumento comprovado de exacerbações graves e mortalidade. O regime preferencial (Track 1) é a terapia anti-inflamatória de alívio (AIR / MART com CI-Formoterol).");
             plano.bloqueios_seguranca.push("🚫 CONTRAINDICAÇÃO DE ANTIBIÓTICOS ROTINEIROS: Não indicar antimicrobianos empiricamente para exacerbação de asma. Mais de 80% das crises são deflagradas por infecções virais respiratórias ou alérgenos. Reservar apenas se pneumonia bacteriana confirmada radiologicamente ou febre alta mantida com expectoração francamente purulenta.");
         }
         plano.bloqueios_seguranca.push("🚫 CONTRAINDICAÇÃO DE MUCOLÍTICOS: Fluidificantes e mucolíticos (ex: Acetilcisteína inalatória) são formalmente contraindicados na fase aguda de broncoespasmo (pioram tosse, irritação e broncoconstrição reflexa).");
@@ -27711,7 +29652,7 @@ var PneumologiaCriseAsmaticaService = (function() {
                 prescricao_alta: [
                     "1. Corticoide Oral: Prednisona 40 a 50 mg/dia VO pela manhã por 5 a 7 dias (adultos) ou Prednisolona 1-2 mg/kg/dia por 3 a 5 dias (crianças).",
                     "2. Corticoide Inalatório de Manutenção: Iniciar ou otimizar CI (ex: Budesonida 200 a 400 mcg 12/12h OU Budesonida + Formoterol) para prevenir exacerbações precoces.",
-                    "3. Broncodilatador de Resgate: Salbutamol Spray 100 mcg (2 a 4 jatos com espaçador se sintomas de falta de ar).",
+                    "3. Alívio Anti-inflamatório (Track 1 Preferencial GINA 2024 - AIR/MART): Budesonida/Formoterol 160/4.5 mcg ou 200/6 mcg (1 inalação se sintomas; máx 12 inalações/dia). Proscrita a alta apenas com SABA isolado.",
                     "4. Orientação Técnica: Revisar minuciosamente a técnica de uso do inalador dosimetrado com espaçador antes da alta hospitalar.",
                     "5. Retorno: Consulta médica ambulatorial de retorno agendada em 2 a 7 dias com plano de ação escrito."
                 ]
@@ -27855,11 +29796,81 @@ var PneumologiaCriseAsmaticaService = (function() {
         return txt;
     }
 
+    var GINA_2024_CONSTANTS = Object.freeze({
+        BLOQUEIO_SABA_ISOLADO: true,
+        SABA_BLACK_BOX_WARNING: "ALERTA CRÍTICO GINA 2024 (PROIBIÇÃO DE SABA ISOLADO): O uso de SABA (Salbutamol/Fenoterol) isolado sem Corticoide Inalatório (CI) está PROSCRITO devido ao aumento comprovado do risco de exacerbações graves e mortalidade por asma.",
+        TRACK_1_PREFERENCIAL: "Track 1 (Preferencial GINA 2024): Esquema AIR (Anti-Inflammatory Reliever) ou MART (Maintenance and Reliever Therapy) com CI-Formoterol.",
+        FORMOTEROL_MAX_MCG_DIA: 72,
+        DISPOSITIVOS_PADRAO: {
+            TURBUHALER_160_4_5: { nome: "Budesonida 160 mcg + Formoterol 4.5 mcg", dose_max_inalacoes_dia: 12 },
+            AEROLIZER_200_6: { nome: "Budesonida 200 mcg + Formoterol 6.0 mcg", dose_max_inalacoes_dia: 12 }
+        }
+    });
+
+    /**
+     * Prescreve o manejo ambulatorial determinístico baseado no Track 1 GINA 2024 (AIR / MART).
+     * @param {Object} paciente - { stepGina: 1|2|3|4|5, etapa: 1|2|3|4|5, usaSabaIsolado: boolean }
+     */
+    function prescreverManejoGina2024(paciente) {
+        paciente = paciente || {};
+        var step = Number(paciente.stepGina || paciente.etapa || paciente.step || 1);
+        if (isNaN(step) || step < 1 || step > 5) {
+            throw new Error("Step GINA inválido. Deve ser um número inteiro entre 1 e 5.");
+        }
+
+        var alertas = [];
+        var alertaSegurancaSaba = GINA_2024_CONSTANTS.SABA_BLACK_BOX_WARNING;
+        if (paciente.usaSabaIsolado) {
+            alertas.push(alertaSegurancaSaba);
+        }
+
+        var estrategia = "";
+        var prescricaoManutencao = "";
+        var prescricaoAlivio = "Budesonida/Formoterol 200/6 mcg (ou 160/4.5 mcg): Inalar 1 dose se dispneia/sibilos (Alívio Anti-inflamatório - AIR).";
+
+        switch (step) {
+            case 1:
+            case 2:
+                estrategia = "TERAPIA AIR (Anti-Inflammatory Reliever) Exclusiva";
+                prescricaoManutencao = "Sem dose fixa diária obrigatória. Uso estritamente sob demanda para sintomas ou antes de exercício.";
+                break;
+            case 3:
+                estrategia = "TERAPIA MART (Maintenance and Reliever Therapy) - Dose Baixa";
+                prescricaoManutencao = "Budesonida/Formoterol 200/6 mcg (ou 160/4.5 mcg): 1 inalação de 12/12h (Manutenção dose baixa).";
+                break;
+            case 4:
+                estrategia = "TERAPIA MART (Maintenance and Reliever Therapy) - Dose Média";
+                prescricaoManutencao = "Budesonida/Formoterol 200/6 mcg (ou 160/4.5 mcg): 2 inalações de 12/12h (Manutenção dose média).";
+                break;
+            case 5:
+                estrategia = "TERAPIA MART - Dose Alta + Avaliação Fenotípica / LAMA";
+                prescricaoManutencao = "Budesonida/Formoterol em dose alta + Associar LAMA (Tiotrópio) e encaminhar para avaliação de Biológicos (Anti-IgE, Anti-IL5/5R, Anti-IL4Rα, Anti-TSLP).";
+                break;
+        }
+
+        return {
+            diretriz: "GINA 2024 - Track 1",
+            track: "Track 1 (Preferencial GINA)",
+            step: step,
+            etapa: step,
+            alertasSeguranca: alertas,
+            alertaSegurancaSaba: alertaSegurancaSaba,
+            estrategiaTerapeutica: estrategia,
+            manutencao: prescricaoManutencao,
+            estrategiaManutencao: prescricaoManutencao,
+            alivio: prescricaoAlivio,
+            estrategiaResgate: prescricaoAlivio + " (" + (step <= 2 ? "AIR" : "MART") + ")",
+            limiteSegurancaDia: "Máximo de 12 inalações totais em 24h (72 mcg de Formoterol)."
+        };
+    }
+
     return {
         classificarGravidade: classificarGravidade,
         calcularPlanoTratamento: calcularPlanoTratamento,
         avaliarCriseAsmatica: avaliarCriseAsmatica,
-        formatarTextoTelegram: formatarTextoTelegram
+        formatarTextoTelegram: formatarTextoTelegram,
+        prescreverManejoGina2024: prescreverManejoGina2024,
+        GINA_2024_CONSTANTS: GINA_2024_CONSTANTS
     };
 })();
 
@@ -28048,9 +30059,106 @@ var PneumologiaDpocVniService = (function() {
         return t;
     }
 
+    /**
+     * Classificação GOLD 2024 (Modelo ABE - Substitui o antigo ABCD) e Terapia Tripla / Dupilumabe.
+     * @param {Object} paciente - { mMRC: number, cat: number, exacerbacoesModeradasAno: number, hospitalizacoesAno: number, eosinofilosSangue: number, emTerapiaTripla: boolean }
+     */
+    function classificarEManejarDPOCGold2024(paciente) {
+        paciente = paciente || {};
+        var mMRC = paciente.mMRC !== undefined ? paciente.mMRC : paciente.mmrc;
+        var cat = paciente.cat !== undefined ? paciente.cat : paciente.catScore;
+        var exacerbacoesModeradasAno = paciente.exacerbacoesModeradasAno !== undefined 
+            ? paciente.exacerbacoesModeradasAno 
+            : (paciente.historicoExacerbacoesAno !== undefined ? paciente.historicoExacerbacoesAno : 0);
+        var hospitalizacoesAno = paciente.hospitalizacoesAno !== undefined 
+            ? paciente.hospitalizacoesAno 
+            : (paciente.internacoesPreviasAno !== undefined ? paciente.internacoesPreviasAno : 0);
+        var eosinofilosSangue = paciente.eosinofilosSangue !== undefined ? paciente.eosinofilosSangue : 150;
+        var emTerapiaTripla = Boolean(paciente.emTerapiaTripla || paciente.refratarioTerapiaTripla);
+
+        var isExacerbador = (exacerbacoesModeradasAno >= 2) || (hospitalizacoesAno >= 1);
+        var isMuitoSintomatico = (mMRC !== undefined && mMRC >= 2) || (cat !== undefined && cat >= 10);
+
+        var grupoGold = "";
+        var grupoSimples = "";
+        var terapiaInicial = "";
+        var indicacaoBiologico = null;
+
+        if (isExacerbador) {
+            grupoSimples = "Grupo E";
+            grupoGold = "GRUPO E (Exacerbador Frequente / Grave - Antigos C e D unificados)";
+            if (eosinofilosSangue >= 300) {
+                terapiaInicial = "Terapia Tripla Inalatória: LABA + LAMA + CI (ex: Formoterol/Glicopirrônio/Budesonida ou Vilanterol/Umeclidínio/Fluticasona).";
+            } else {
+                terapiaInicial = "Dupla Broncodilatação: LABA + LAMA (Preferencial se Eosinófilos < 300/mcL). Considerar adição de CI se Eosinófilos >= 100/mcL na persistência de exacerbações.";
+            }
+
+            // Avaliação de Dupilumabe (Estudos BOREAS e NOTUS - GOLD 2024/2025)
+            if (emTerapiaTripla && eosinofilosSangue >= 300) {
+                indicacaoBiologico = {
+                    farmaco: "Dupilumabe (Anti-IL-4Rα - Bloqueio dual de IL-4 e IL-13)",
+                    evidencia: "Estudos Fase 3 BOREAS e NOTUS (GOLD 2024)",
+                    criterioPreenchido: "DPOC Grupo E refratário a LABA + LAMA + CI com fenótipo inflamatório Tipo 2 (Eosinófilos séricos >= 300 células/µL) e bronquite crônica.",
+                    posologia: "Dupilumabe 300 mg SC a cada 2 semanas."
+                };
+            }
+        } else if (isMuitoSintomatico) {
+            grupoSimples = "Grupo B";
+            grupoGold = "GRUPO B (Alto Sintoma, Baixo Risco de Exacerbação)";
+            terapiaInicial = "Dupla Broncodilatação: LABA + LAMA (Superior à monoterapia no controle de sintomas).";
+        } else {
+            grupoSimples = "Grupo A";
+            grupoGold = "GRUPO A (Baixo Sintoma, Baixo Risco de Exacerbação)";
+            terapiaInicial = "Um Broncodilatador (LABA ou LAMA de longa ação preferencialmente).";
+        }
+
+        return {
+            diretriz: "GOLD 2024 (Classificação ABE)",
+            grupo: grupoSimples,
+            grupoABE: grupoGold,
+            perfilEosinofilico: eosinofilosSangue + " células/µL",
+            condutaInalatoria: terapiaInicial,
+            terapiaInicial: terapiaInicial,
+            elegivelDupilumabe: Boolean(indicacaoBiologico),
+            detalheDupilumabe: indicacaoBiologico ? (indicacaoBiologico.farmaco + ": " + indicacaoBiologico.posologia) : null,
+            terapiaAlvoBiologica: indicacaoBiologico || "Sem indicação atual de Dupilumabe (Requer Grupo E refratário a LABA+LAMA+CI com Eosinófilos >= 300/µL).",
+            alertaSeguranca: "Corticoide Inalatório (CI) em monoterapia é contraindicado na DPOC. Evitar CI se pneumonias de repetição ou Eosinófilos < 100/µL."
+        };
+    }
+
+    /**
+     * Avaliação determinística de VNI na Exacerbação Aguda de DPOC
+     */
+    function avaliarIndicacaoVniDpoc(gasometria) {
+        gasometria = gasometria || {};
+        var pH = parseFloat(gasometria.pH || gasometria.ph);
+        var paCO2 = parseFloat(gasometria.paCO2 || gasometria.paco2 || gasometria.pco2);
+        var dispneiaGrave = Boolean(gasometria.dispneiaGrave || (gasometria.frequenciaRespiratoria && gasometria.frequenciaRespiratoria > 25));
+
+        var indicaVNI = (!isNaN(pH) && pH <= 7.35 && !isNaN(paCO2) && paCO2 > 45) || dispneiaGrave;
+
+        return {
+            indicacaoVNI: indicaVNI,
+            indicada: indicaVNI,
+            parametrosIniciais: {
+                ipapCmH2O: 12,
+                epapCmH2O: 4,
+                alvoVcMlKg: "6-8 mL/kg"
+            },
+            modalidade: indicaVNI
+                ? "BiPAP (Bilevel) - IPAP inicial 12-15 cmH2O / EPAP 4-5 cmH2O, titular para Vc 6-8 mL/kg e queda da FR."
+                : "Oxigenoterapia controlada por máscara de Venturi (Alvo SpO2 88-92%).",
+            criterioIOT: (!isNaN(pH) && pH < 7.25 && !isNaN(paCO2) && paCO2 > 60)
+                ? "Alto risco de falha de VNI. Preparar material para IOT se não houver melhora gasométrica e clínica em 1 hora."
+                : "Monitorar resposta clínica e repetir gasometria arterial em 1-2 horas."
+        };
+    }
+
     return {
         avaliarVni: avaliarVni,
-        formatarTextoTelegram: formatarTextoTelegram
+        formatarTextoTelegram: formatarTextoTelegram,
+        classificarEManejarDPOCGold2024: classificarEManejarDPOCGold2024,
+        avaliarIndicacaoVniDpoc: avaliarIndicacaoVniDpoc
     };
 
 })();
@@ -28105,6 +30213,7 @@ var PneumologiaPacService = (function () {
       esquemaSugerido = [
         '• Ceftriaxona 2g IV 1x/dia + Azitromicina 500mg IV 1x/dia por 7 dias',
         '• Alternativa (alergia grave a beta-lactâmicos): Levofloxacino 750mg IV 1x/dia ou Moxifloxacino 400mg IV 1x/dia',
+        '• Corticoterapia na PAC Grave (Estudo CAPE COD / Consenso 2024): Se suporte ventilatório avançado em UTI (VMI ou CNAF com FiO2 >= 50%) e teste negativo para Influenza/fungos, prescrever Hidrocortisona 200mg/dia IV contínua por 4 a 8 dias.',
         '• Solicitar: Hemoculturas (2 pares), Raio-X de tórax, Gasometria arterial, PCR, Função renal e Eletrólitos.'
       ];
     } else if (escore === 2) {
@@ -32177,31 +34286,195 @@ var SoapAmbulatorialService = (function() {
   }
 
   // 4-B. DIRETRIZES DE METAS PRESSÓRICAS, ESCALONAMENTO E MONITORIZAÇÃO (SBC 2020 / 2024)
+  var ESC_2024_HAS_CONFIG = {
+    referencia: "Diretriz ESC 2024 (European Heart Journal)",
+    categorias: {
+      NAO_ELEVADA: {
+        id: "pa_nao_elevada",
+        label: "Pressão Arterial Não Elevada",
+        criterio: "PAS < 120 e PAD < 70 mmHg",
+        corAlerta: "green"
+      },
+      ELEVADA: {
+        id: "pa_elevada",
+        label: "Pressão Arterial Elevada",
+        criterio: "PAS 120-139 ou PAD 70-89 mmHg",
+        corAlerta: "yellow"
+      },
+      HAS_ESTAGIO_1: {
+        id: "has_estagio_1",
+        label: "Hipertensão Arterial - Estágio 1",
+        criterio: "PAS 140-159 ou PAD 90-99 mmHg",
+        corAlerta: "orange"
+      },
+      HAS_ESTAGIO_2: {
+        id: "has_estagio_2",
+        label: "Hipertensão Arterial - Estágio 2",
+        criterio: "PAS 160-179 ou PAD 100-109 mmHg",
+        corAlerta: "red"
+      },
+      HAS_ESTAGIO_3: {
+        id: "has_estagio_3",
+        label: "Hipertensão Arterial - Estágio 3",
+        criterio: "PAS >= 180 ou PAD >= 110 mmHg",
+        corAlerta: "darkred"
+      }
+    }
+  };
+
+  /**
+   * Classifica a Pressão Arterial de acordo com os novos limiares da ESC 2024.
+   */
+  function classificarPA_ESC2024(pas, pad) {
+    var s = Number(pas);
+    var d = Number(pad);
+    if (!s || !d || s <= 0 || d <= 0) {
+      return { erro: "Valores de PA inválidos ou ausentes." };
+    }
+
+    if (s >= 180 || d >= 110) {
+      return {
+        id: "has_estagio_3",
+        label: "Hipertensão Arterial - Estágio 3",
+        criterio: "PAS >= 180 ou PAD >= 110 mmHg",
+        isHipertensao: true,
+        estagio: 3,
+        notaClinica: "Avaliar imediatamente emergência/urgência hipertensiva. Iniciar/otimizar terapia combinada."
+      };
+    }
+
+    if (s >= 160 || d >= 100) {
+      return {
+        id: "has_estagio_2",
+        label: "Hipertensão Arterial - Estágio 2",
+        criterio: "PAS 160-179 ou PAD 100-109 mmHg",
+        isHipertensao: true,
+        estagio: 2,
+        notaClinica: "Confirmar diagnóstico rapidamente. Indicado início imediato de terapia medicamentosa dupla + MEV."
+      };
+    }
+
+    if (s >= 140 || d >= 90) {
+      return {
+        id: "has_estagio_1",
+        label: "Hipertensão Arterial - Estágio 1",
+        criterio: "PAS 140-159 ou PAD 90-99 mmHg",
+        isHipertensao: true,
+        estagio: 1,
+        notaClinica: "Confirmar com MAPA/MRPA. Iniciar tratamento farmacológico + MEV (especialmente se alto risco CV)."
+      };
+    }
+
+    if ((s >= 120 && s <= 139) || (d >= 70 && d <= 89)) {
+      return {
+        id: "pa_elevada",
+        label: "Pressão Arterial Elevada",
+        criterio: "PAS 120-139 ou PAD 70-89 mmHg",
+        isHipertensao: false,
+        estagio: 0,
+        notaClinica: "Estratificar risco CV (SCORE2/SCORE2-OP). Se Risco CV alto/muito alto ou DCV estabelecida, considerar fármaco se PA >= 130/80 após 3 meses de MEV."
+      };
+    }
+
+    return {
+      id: "pa_nao_elevada",
+      label: "Pressão Arterial Não Elevada",
+      criterio: "PAS < 120 e PAD < 70 mmHg",
+      isHipertensao: false,
+      estagio: 0,
+      notaClinica: "Manter estilo de vida saudável. Reavaliar periodicamente."
+    };
+  }
+
+  /**
+   * Define a Meta Pressórica Terapêutica individualizada (ESC 2024 / SBC).
+   */
+  function obterMetaPressorica_ESC2024(idade, isFragil) {
+    var idNum = Number(idade) || 55;
+    var fragil = Boolean(isFragil);
+
+    if (idNum >= 80 || fragil) {
+      return {
+        perfil: "Idoso >= 80 anos ou Paciente Frágil",
+        alvoPAS: { min: 130, max: 139, ideal: "130-139 mmHg" },
+        alvoPAD: { min: 70, max: 79, ideal: "< 80 mmHg" },
+        principioALARA: true,
+        recomendacaoSOAP: "Meta Pressórica (ESC 2024): PAS 130-139 mmHg (ou tão baixa quanto razoavelmente tolerada - princípio ALARA). Monitorar rigorosamente hipotensão ortostática e função renal."
+      };
+    }
+
+    return {
+      perfil: "Adulto Padrão (18-79 anos)",
+      alvoPAS: { min: 120, max: 129, ideal: "120-129 mmHg" },
+      alvoPAD: { min: 70, max: 79, ideal: "70-79 mmHg" },
+      principioALARA: false,
+      recomendacaoSOAP: "Meta Pressórica Primária (ESC 2024): PAS 120-129 mmHg e PAD 70-79 mmHg, desde que bem tolerado (substitui alvo antigo conservador de 130-139 mmHg; se não tolerado, aplicar princípio ALARA visando a menor PA segura)."
+    };
+  }
+
+  /**
+   * Avalia o controle pressórico atual do paciente hipertenso no SOAP (ESC 2024).
+   */
+  function avaliarControleHAS_SOAP(pasAtual, padAtual, idade, isFragil) {
+    var meta = obterMetaPressorica_ESC2024(idade, isFragil);
+    var s = Number(pasAtual);
+    var d = Number(padAtual);
+
+    var pasControlada = s >= meta.alvoPAS.min && s <= meta.alvoPAS.max;
+    var pasAbaixoDoAlvo = s < meta.alvoPAS.min;
+    var padControlada = d <= meta.alvoPAD.max;
+
+    var status = "Fora da Meta (Acima do alvo)";
+    var condutaSugerida = "Otimizar adesão e escalonar terapia anti-hipertensiva (preferir combinações fixas em pílula única).";
+
+    if (pasControlada && padControlada) {
+      status = "Dentro da Meta ESC 2024";
+      condutaSugerida = "Manter conduta farmacológica atual e reforçar mudanças no estilo de vida (MEV).";
+    } else if (pasAbaixoDoAlvo && padControlada) {
+      status = "Abaixo da Meta estrita (Avaliar tolerância)";
+      condutaSugerida = "Se paciente assintomático e sem eventos adversos, manter tratamento. Se tontura/hipotensão ortostática, desescalonar.";
+    }
+
+    return {
+      statusControle: status,
+      metaAplicada: "PAS " + meta.alvoPAS.ideal + " / PAD " + meta.alvoPAD.ideal,
+      condutaSugerida: condutaSugerida,
+      textoEvolucao: "[HAS - Avaliação ESC 2024]: PA atual (" + s + "x" + d + " mmHg) encontra-se " + status.toLowerCase() + ". Alvo terapêutico para o perfil: " + meta.alvoPAS.ideal + "."
+    };
+  }
+
   var METAS_PRESSORICAS_SBC = {
+    esc_2024_padrao: {
+      meta: 'PAS 120 a 129 mmHg e PAD 70 a 79 mmHg',
+      faixa_pas: '120 a 129 mmHg',
+      faixa_pad: '70 a 79 mmHg',
+      populacao: 'Maioria dos adultos (18 a 79 anos) em tratamento anti-hipertensivo',
+      recomendacao: 'Alvo primário ESC 2024 (desde que bem tolerado; se não tolerado, aplicar princípio ALARA)'
+    },
     alto_muito_alto_risco: {
-      meta: '< 130/80 mmHg',
+      meta: 'PAS 120 a 129 mmHg e PAD 70 a 79 mmHg (< 130/80 mmHg)',
       faixa_pas: '120 a 129 mmHg',
       faixa_pad: '70 a 79 mmHg',
       populacao: 'Alto ou Muito Alto Risco Cardiovascular, Diabetes Mellitus, Doença Renal Crônica ou Lesão de Órgão-Alvo (LOA)',
-      recomendacao: 'Classe I, Nível de Evidência A (Diretrizes Brasileiras de Hipertensão Arterial - SBC 2020/2024)'
+      recomendacao: 'Classe I, Nível de Evidência A (Diretrizes ESC 2024 / SBC 2020/2024)'
     },
     baixo_intermediario_risco: {
-      meta: '< 140/90 mmHg',
-      meta_otimizada: '< 130/80 mmHg se bem tolerado',
-      faixa_pas: '120 a 139 mmHg',
-      faixa_pad: '70 a 89 mmHg',
+      meta: 'PAS 120 a 129 mmHg (< 130/80 mmHg se bem tolerado; teto < 140/90 mmHg)',
+      meta_otimizada: '120 a 129 mmHg se bem tolerado',
+      faixa_pas: '120 a 129 mmHg',
+      faixa_pad: '70 a 79 mmHg',
       populacao: 'Baixo ou Intermediário Risco Cardiovascular sem LOA',
-      recomendacao: 'Classe I, Nível de Evidência A (SBC 2020/2024)'
+      recomendacao: 'Classe I, Nível de Evidência A (ESC 2024 / SBC 2020/2024)'
     },
     idoso_higido: {
-      meta: 'PAS 130 a 139 mmHg e PAD 70 a 79 mmHg',
+      meta: 'PAS 120 a 129 mmHg se bem tolerado (ou tão baixa quanto razoavelmente tolerada)',
       populacao: 'Idosos hígidos e independentes (65 a 79 anos)',
-      recomendacao: 'Evitar PAS < 120 e PAD < 70 mmHg'
+      recomendacao: 'Monitorar hipotensão ortostática; meta primária 120-129 mmHg se tolerado'
     },
     idoso_fragil: {
-      meta: '< 140/90 mmHg',
+      meta: 'PAS 130 a 139 mmHg e PAD < 80 mmHg',
       populacao: 'Idosos frágeis, polimedicados ou muito idosos (>= 80 anos)',
-      recomendacao: 'Evitar reduções excessivas de PA pelo risco de quedas e curva J de hipoperfusão coronariana/cerebral'
+      recomendacao: 'Princípio ALARA (As Low As Reasonably Achievable); evitar reduções excessivas com sintomas'
     }
   };
 
@@ -32660,6 +34933,10 @@ var SoapAmbulatorialService = (function() {
       '======================================================================'
     ].join('\n');
 
+    var classificacaoESC = classificarPA_ESC2024(pas, pad);
+    var metaESC = obterMetaPressorica_ESC2024(dados.idade !== undefined ? Number(dados.idade) : 55, !!dados.fragil);
+    var controleESC = avaliarControleHAS_SOAP(pas, pad, dados.idade !== undefined ? Number(dados.idade) : 55, !!dados.fragil);
+
     return {
       pas: pas,
       pad: pad,
@@ -32669,6 +34946,9 @@ var SoapAmbulatorialService = (function() {
       ehAltoRisco: ehAltoRisco,
       metaPressorica: metaPressorica,
       metaPressoricaTexto: metaTexto,
+      classificacaoESC2024: classificacaoESC,
+      metaESC2024: metaESC,
+      avaliacaoControleESC2024: controleESC,
       passo: passo,
       escalonamentoDetalhe: escalonamentoDetalhe,
       prescricaoPEP: prescricaoPEP,
@@ -33252,6 +35532,10 @@ var SoapAmbulatorialService = (function() {
     ESCALONAMENTO_HAS_SBC: ESCALONAMENTO_HAS_SBC,
     MONITORIZACAO_HAS_SBC: MONITORIZACAO_HAS_SBC,
     estruturarCondutaHas: estruturarCondutaHas,
+    classificarPA_ESC2024: classificarPA_ESC2024,
+    obterMetaPressorica_ESC2024: obterMetaPressorica_ESC2024,
+    avaliarControleHAS_SOAP: avaliarControleHAS_SOAP,
+    ESC_2024_HAS_CONFIG: ESC_2024_HAS_CONFIG,
     buscarDiagnostico: buscarDiagnostico,
     estratificarRiscoCardiovascular: estratificarRiscoCardiovascular,
     converterNumeroPorExtenso: converterNumeroPorExtenso,

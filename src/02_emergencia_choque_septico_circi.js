@@ -48,6 +48,7 @@ var EmergenciaChoqueSepticoService = {
 
     // Alertas Canônicos de Segurança e Metas Clínicas
     alertas.push("🎯 Alvo Hemodinâmico: PAM alvo >= 65 mmHg (titulação contínua para perfusão orgânica).");
+    alertas.push("⚡ Noradrenalina Precoce (SSC 2024-2026): Iniciar precocemente para PAM < 65 mmHg, inclusive via acesso periférico seguro calibroso por até 24h sem atraso aguardando CVC.");
     alertas.push("🧪 Monitorização Metabólica: Lactato sérico seriado de 2-4h (objetivar clareamento de lactato > 20% a cada 2h) e tempo de enchimento capilar (TEC < 3s).");
     alertas.push("💧 Gestão Volêmica: Restrição volêmica pós-ressuscitação inicial (após cristaloides 30 mL/kg iniciais, evitar sobrecarga hídrica; guiar por parâmetros dinâmicos de fluido-responsividade).");
 
@@ -136,7 +137,9 @@ var EmergenciaChoqueSepticoService = {
         hidrocortisona: choqueRefratario ? "Hidrocortisona 50mg pó liofilizado + SF 0,9% 10mL --- EV direto em bolus lento (em 3 min) de 6/6h." : null,
         dobutamina: choqueRefratario ? "Dobutamina 250mg/20mL (1 amp) + SG 5% 230mL (1000 mcg/mL) --- EV em BIC a " + vazaoDobutaAlvo + " mL/h (se disfunção miocárdica / hipoperfusão persistente)." : null
       },
-      textoSOAP: textoSOAP
+      textoSOAP: textoSOAP,
+      alertas: alertas,
+      alertasClinicos: alertas
     };
   },
 
@@ -144,6 +147,95 @@ var EmergenciaChoqueSepticoService = {
     if (!res) return "";
     if (res.erro) return "🛑 *ERRO DE SEGURANÇA (CHOQUE SÉPTICO):*\n" + res.erro;
     return "🩸 *PROTOCOLO DE CHOQUE SÉPTICO REFRATÁRIO & CIRCI*\n\n" + (res.textoSOAP || "");
+  },
+
+  /**
+   * Escore NEWS2 (National Early Warning Score 2 - Royal College of Physicians / SSC 2024):
+   * Triagem precoce de deterioração fisiológica e sepse.
+   */
+  calcularNews2: function(params) {
+    params = params || {};
+    var fr = Number(params.fr || params.frequenciaRespiratoria);
+    var spo2 = Number(params.spo2 || params.saturacao);
+    var o2 = Boolean(params.o2Suplementar || params.oxigenio || params.cateterO2 || params.mascara);
+    var pas = Number(params.pas || params.pressaoSistolica);
+    var fc = Number(params.fc || params.frequenciaCardiaca);
+    var alteracaoConsciencia = Boolean(params.confusao || params.rebaixamento || params.cvpu || params.glasgowMenor15);
+    var temp = Number(params.temperatura || params.temp);
+
+    var pontos = 0;
+    var detalhes = {};
+
+    if (!isNaN(fr) && fr > 0) {
+      if (fr <= 8 || fr >= 25) detalhes.fr = 3;
+      else if (fr >= 21) detalhes.fr = 2;
+      else if (fr >= 9 && fr <= 11) detalhes.fr = 1;
+      else detalhes.fr = 0;
+      pontos += detalhes.fr;
+    }
+
+    if (!isNaN(spo2) && spo2 > 0) {
+      if (spo2 <= 91) detalhes.spo2 = 3;
+      else if (spo2 <= 93) detalhes.spo2 = 2;
+      else if (spo2 <= 95) detalhes.spo2 = 1;
+      else detalhes.spo2 = 0;
+      pontos += detalhes.spo2;
+    }
+
+    detalhes.o2Suplementar = o2 ? 2 : 0;
+    pontos += detalhes.o2Suplementar;
+
+    if (!isNaN(pas) && pas > 0) {
+      if (pas <= 90 || pas >= 220) detalhes.pas = 3;
+      else if (pas <= 100) detalhes.pas = 2;
+      else if (pas <= 110) detalhes.pas = 1;
+      else detalhes.pas = 0;
+      pontos += detalhes.pas;
+    }
+
+    if (!isNaN(fc) && fc > 0) {
+      if (fc <= 40 || fc >= 131) detalhes.fc = 3;
+      else if (fc >= 111) detalhes.fc = 2;
+      else if (fc <= 50 || (fc >= 91 && fc <= 110)) detalhes.fc = 1;
+      else detalhes.fc = 0;
+      pontos += detalhes.fc;
+    }
+
+    detalhes.consciencia = alteracaoConsciencia ? 3 : 0;
+    pontos += detalhes.consciencia;
+
+    if (!isNaN(temp) && temp > 0) {
+      if (temp <= 35.0) detalhes.temp = 3;
+      else if (temp >= 39.1) detalhes.temp = 2;
+      else if (temp <= 36.0 || temp >= 38.1) detalhes.temp = 1;
+      else detalhes.temp = 0;
+      pontos += detalhes.temp;
+    }
+
+    var risco = "BAIXO";
+    var conduta = "Monitorização de rotina na enfermaria.";
+    var gatilhoSepse = false;
+
+    var temParametro3 = Object.values(detalhes).some(function(v) { return v === 3; });
+
+    if (pontos >= 7) {
+      risco = "ALTO";
+      gatilhoSepse = true;
+      conduta = "🚨 RISCO ALTO (NEWS2 >= 7): Resposta médica de emergência imediata. Disparar Protocolo de Sepse / Time de Resposta Rápida (TRR). Avaliar transferência para UTI.";
+    } else if (pontos >= 5 || temParametro3) {
+      risco = "MÉDIO";
+      gatilhoSepse = true;
+      conduta = "🟠 RISCO MÉDIO (Score >= 5 ou parâmetro isolado nível 3): Avaliação médica urgente. Rastrear foco infeccioso, coletar lactato + hemoculturas e avaliar fluidos/vasopressor.";
+    }
+
+    return {
+      escore: pontos,
+      detalhes: detalhes,
+      risco: risco,
+      gatilhoSepse: gatilhoSepse,
+      conduta: conduta,
+      diretriz: "NEWS2 (Royal College of Physicians / SSC 2024)"
+    };
   }
 };
 

@@ -420,6 +420,386 @@ var EndocrinologiaDiabetesService = (function() {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
+  // 4. SÍNDROME CARDIO-RENAL-METABÓLICA (CKM - AHA 2024)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia o Estadiamento da Síndrome Cardio-Renal-Metabólica (CKM - AHA 2024).
+   *
+   * @param {Object} params - Parâmetros clínicos e laboratoriais do paciente
+   * @param {number} params.imc - Índice de Massa Corporal (kg/m²)
+   * @param {boolean} [params.etniaAsiatica=false] - Ponto de corte de IMC/CA ajustado para asiáticos
+   * @param {number} [params.circunferenciaAbdominal] - Em cm
+   * @param {string} [params.sexo='M'] - 'M' ou 'F'
+   * @param {number} [params.glicemiaJejum=85] - mg/dL
+   * @param {number} [params.hba1c=5.0] - %
+   * @param {boolean} [params.dm2Diagnostico=false] - Diagnóstico prévio de DM2
+   * @param {boolean} [params.hasDiagnostico=false] - Diagnóstico prévio de Hipertensão
+   * @param {number} [params.pas=120] - Pressão Arterial Sistólica (mmHg)
+   * @param {number} [params.pad=80] - Pressão Arterial Diastólica (mmHg)
+   * @param {number} [params.triglicerideos=100] - mg/dL
+   * @param {boolean} [params.sindromeMetabolica=false] - Critérios de SM preenchidos
+   * @param {number} params.tfg - Taxa de Filtração Glomerular estimada (mL/min/1.73m²)
+   * @param {number} [params.rac=0] - Relação Albumina/Creatinina urinária (mg/g)
+   * @param {boolean} [params.dialise=false] - Paciente em terapia renal substitutiva
+   * @param {Object} [params.dcvSubclinica={}] - Marcadores de DCV subclínica
+   * @param {Object} [params.dcvClinica={}] - Doença Cardiovascular Clínica estabelecida
+   * @returns {Object} Resultado determinístico do estadiamento CKM e condutas
+   */
+  function avaliarSindromeCKM(params) {
+    if (!params || typeof params.imc !== 'number' || typeof params.tfg !== 'number') {
+      throw new Error("Parâmetros obrigatórios ausentes: 'imc' e 'tfg' devem ser fornecidos como números.");
+    }
+
+    const {
+      imc,
+      etniaAsiatica = false,
+      circunferenciaAbdominal = 0,
+      sexo = 'M',
+      glicemiaJejum = 85,
+      hba1c = 5.0,
+      dm2Diagnostico = false,
+      hasDiagnostico = false,
+      pas = 120,
+      pad = 80,
+      triglicerideos = 100,
+      sindromeMetabolica = false,
+      tfg,
+      rac = 0,
+      dialise = false,
+      dcvSubclinica = {},
+      dcvClinica = {}
+    } = params;
+
+    const criteriosAtendidos = [];
+    let estadio = "0";
+    let nomeEstadio = "";
+    let condutasEspecificas = [];
+
+    // 1. Critérios de Adiposidade (Estádio 1)
+    const corteImcSobrepeso = etniaAsiatica ? 23 : 25;
+    const corteCaHomem = etniaAsiatica ? 90 : 102;
+    const corteCaMulher = etniaAsiatica ? 80 : 88;
+    const caAumentada = (sexo.toUpperCase() === 'M' && circunferenciaAbdominal >= corteCaHomem) ||
+                        (sexo.toUpperCase() === 'F' && circunferenciaAbdominal >= corteCaMulher);
+    const excessoAdiposidade = (imc >= corteImcSobrepeso) || caAumentada;
+
+    // 2. Critérios Glicêmicos (Pré-DM vs DM2)
+    const isDiabetes = dm2Diagnostico || glicemiaJejum >= 126 || hba1c >= 6.5;
+    const isPreDiabetes = !isDiabetes && ((glicemiaJejum >= 100 && glicemiaJejum <= 125) || (hba1c >= 5.7 && hba1c <= 6.4));
+
+    // 3. Critérios de Fatores de Risco Metabólicos (Estádio 2)
+    const isHipertenso = hasDiagnostico || pas >= 130 || pad >= 80;
+    const isHipertrigliceridemia = triglicerideos >= 135;
+
+    // 4. Critérios Renais (KDIGO / AHA)
+    const isFalenciaRenal = dialise || tfg < 15;
+    const isDrcMuitoAltoRisco = !isFalenciaRenal && (
+      tfg < 30 ||
+      rac > 300 ||
+      (tfg >= 30 && tfg < 45 && rac >= 30)
+    );
+    const isDrcModeradaAltoRisco = !isFalenciaRenal && !isDrcMuitoAltoRisco && (
+      (tfg >= 30 && tfg < 60) ||
+      (rac >= 30 && rac <= 300)
+    );
+
+    // 5. Critérios Cardiovasculares (Subclínico vs Clínico)
+    const temDcvClinica = Boolean(
+      dcvClinica.dac || dcvClinica.ic || dcvClinica.avc || dcvClinica.dap || dcvClinica.fa
+    );
+
+    const temDcvSubclinica = Boolean(
+      (dcvSubclinica.escoreCalcioCoronario && dcvSubclinica.escoreCalcioCoronario >= 100) ||
+      dcvSubclinica.biomarcadoresElevados ||
+      dcvSubclinica.ecocardiogramaAlterado ||
+      dcvSubclinica.riscoPreventAlto
+    );
+
+    if (temDcvClinica) {
+      if (isFalenciaRenal) {
+        estadio = "4b";
+        nomeEstadio = "Estádio 4b: DCV Clínica na presença de Falência Renal (DRC G5 / Diálise)";
+        criteriosAtendidos.push("Doença Cardiovascular Clínica manifesta associada a TFG < 15 mL/min/1.73m² ou diálise.");
+        condutasEspecificas = [
+          "Manejo multidisciplinar intensivo (Cardio-Nefro-Endócrino).",
+          "Atenção às restrições de prescrição na DRC G5 (iSGLT2 não devem ser iniciados se TFG < 20, mas mantidos até diálise se já em uso).",
+          "Agonistas de GLP-1 (Semaglutida, Liraglutida, Dulaglutida) podem ser usados com segurança até TFG < 15 mL/min.",
+          "Controle rigoroso de volume, potássio e metabolismo mineral ósseo."
+        ];
+      } else {
+        estadio = "4a";
+        nomeEstadio = "Estádio 4a: DCV Clínica sem Falência Renal Terminal";
+        if (dcvClinica.dac) criteriosAtendidos.push("Doença Arterial Coronariana (DAC/IAM)");
+        if (dcvClinica.ic) criteriosAtendidos.push("Insuficiência Cardíaca (IC)");
+        if (dcvClinica.avc) criteriosAtendidos.push("Doença Cerebrovascular (AVC/AIT)");
+        if (dcvClinica.dap) criteriosAtendidos.push("Doença Arterial Periférica (DAP)");
+        if (dcvClinica.fa) criteriosAtendidos.push("Fibrilação Atrial (FA)");
+
+        condutasEspecificas = [
+          "Prevenção secundária intensiva (Estatina de alta potência +/- Ezetimiba para LDL < 55 mg/dL).",
+          "Priorização absoluta de fármacos cardioprotetores: iSGLT2 e/ou AR-GLP1 (ou co-agonista GIP/GLP-1).",
+          "Se DRC albuminúrica (RAC >= 30) e DM2: associar IECA/BRA + iSGLT2 + Finerenona (se K+ <= 4.8 e TFG >= 25).",
+          "Terapia antitrombótica e bloqueio neuro-hormonal conforme diretrizes específicas da DCV de base."
+        ];
+      }
+    } else if (temDcvSubclinica || isDrcMuitoAltoRisco || isFalenciaRenal) {
+      estadio = "3";
+      nomeEstadio = "Estádio 3: DCV Subclínica ou Equivalente de Muito Alto Risco Renal/PREVENT";
+      if (dcvSubclinica.escoreCalcioCoronario >= 100) criteriosAtendidos.push(`Escore de Cálcio Coronário (CAC) >= 100 (${dcvSubclinica.escoreCalcioCoronario} UA)`);
+      if (dcvSubclinica.biomarcadoresElevados) criteriosAtendidos.push("Elevação subclínica de Troponina US ou BNP/NT-proBNP");
+      if (dcvSubclinica.ecocardiogramaAlterado) criteriosAtendidos.push("Alteração ecocardiográfica subclínica (HVE ou disfunção assintomática)");
+      if (dcvSubclinica.riscoPreventAlto) criteriosAtendidos.push("Risco cardiovascular PREVENT em 10 anos >= 20%");
+      if (isDrcMuitoAltoRisco || isFalenciaRenal) criteriosAtendidos.push(`DRC de muito alto risco (TFG: ${tfg} mL/min, RAC: ${rac} mg/g)`);
+
+      condutasEspecificas = [
+        "Intensificação farmacológica preventiva para evitar progressão para DCV sintomática (IC/IAM/AVC).",
+        "Início mandatório de iSGLT2 se DRC ou IC subclínica e TFG >= 20.",
+        "Introdução de estatinas de alta intensidade (particularmente se CAC >= 100 ou DRC avançada não dialítica).",
+        "Controle pressórico estrito (Meta PA < 130/80 mmHg, preferencialmente com IECA ou BRA se RAC >= 30)."
+      ];
+    } else if (isDiabetes || isHipertenso || isHipertrigliceridemia || sindromeMetabolica || isDrcModeradaAltoRisco) {
+      estadio = "2";
+      nomeEstadio = "Estádio 2: Fatores de Risco Metabólicos Estabelecidos e/ou DRC Moderada a Alto Risco";
+      if (isDiabetes) criteriosAtendidos.push("Diabetes Mellitus tipo 2");
+      if (isHipertenso) criteriosAtendidos.push(`Hipertensão Arterial (PA: ${pas}x${pad} mmHg)`);
+      if (isHipertrigliceridemia) criteriosAtendidos.push(`Hipertrigliceridemia (${triglicerideos} mg/dL)`);
+      if (sindromeMetabolica) criteriosAtendidos.push("Síndrome Metabólica");
+      if (isDrcModeradaAltoRisco) criteriosAtendidos.push(`DRC moderado/alto risco (TFG: ${tfg} mL/min, RAC: ${rac} mg/g)`);
+
+      condutasEspecificas = [
+        "Rastreamento anual de DRC com dupla avaliação obrigatória: Creatinina sérica (TFGe) + Relação Albumina/Creatinina urinária (RAC).",
+        "Se DRC presente (TFG < 60 ou RAC >= 30): iniciar IECA/BRA + iSGLT2 imediatamente.",
+        "Se DM2: priorizar agentes com benefício cardiorrenal (iSGLT2 / AR-GLP1) e controle ponderal.",
+        "Calcular escore PREVENT (AHA) para definir metas lipídicas e pressóricas."
+      ];
+    } else if (excessoAdiposidade || isPreDiabetes) {
+      estadio = "1";
+      nomeEstadio = "Estádio 1: Excesso ou Disfunção de Adiposidade (Pré-clínico)";
+      if (excessoAdiposidade) criteriosAtendidos.push(`Excesso de adiposidade (IMC: ${imc} kg/m²${caAumentada ? ', Circunferência Abdominal aumentada' : ''})`);
+      if (isPreDiabetes) criteriosAtendidos.push(`Pré-diabetes / Intolerância à glicose (GJ: ${glicemiaJejum} mg/dL, HbA1c: ${hba1c}%)`);
+
+      condutasEspecificas = [
+        "Meta primária: Perda ponderal >= 5% a 10% através de intervenção intensiva no estilo de vida.",
+        "Se IMC >= 30 (ou >= 27 com pré-diabetes): considerar farmacoterapia antiobesidade (ex: Semaglutida 2.4mg ou Tirzepatida).",
+        "Se Pré-diabetes: considerar Metformina.",
+        "Rastreamento de PA, perfil lipídico e glicemia a cada 1-2 anos."
+      ];
+    } else {
+      estadio = "0";
+      nomeEstadio = "Estádio 0: Ausência de Fatores de Risco CKM";
+      criteriosAtendidos.push("Antropometria, pressão arterial, glicemia, perfil lipídico e função renal normais.");
+      condutasEspecificas = [
+        "Manutenção da saúde cardiovascular primordial (Life's Essential 8 - AHA).",
+        "Reavaliação clínica e triagem metabólica a cada 3 a 5 anos."
+      ];
+    }
+
+    return {
+      estadio,
+      nomeEstadio,
+      criteriosAtendidos,
+      classificacaoRenal: {
+        tfg,
+        rac,
+        status: isFalenciaRenal ? "Falência Renal (G5)" :
+                isDrcMuitoAltoRisco ? "DRC Muito Alto Risco" :
+                isDrcModeradaAltoRisco ? "DRC Risco Moderado/Alto" : "Normal / Baixo Risco"
+      },
+      condutasEspecificas,
+      referencia: "AHA Presidential Advisory: Cardiovascular-Kidney-Metabolic Health (Circulation 2024)"
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 5. DIRETRIZES FARMACOLÓGICAS DE DM2 (ADA STANDARDS OF CARE 2025/2026)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Algoritmo de Conduta Farmacológica no DM2 (Diretrizes ADA 2025/2026).
+   * Priorização Classe I de iSGLT2 e/ou AR-GLP1 em pacientes com DCV, IC ou DRC,
+   * INDEPENDENTEMENTE da HbA1c basal e do uso prévio de Metformina.
+   *
+   * @param {Object} params - Perfil clínico do paciente com DM2
+   * @param {number} params.hba1c - Hemoglobina glicada atual (%)
+   * @param {number} [params.metaHba1c=7.0] - Meta individualizada de HbA1c (%)
+   * @param {number} params.tfg - Taxa de Filtração Glomerular (mL/min/1.73m²)
+   * @param {number} [params.rac=0] - Relação Albumina/Creatinina urinária (mg/g)
+   * @param {number} [params.imc=25] - Índice de Massa Corporal (kg/m²)
+   * @param {boolean} [params.dcvAterosclerotica=false] - DAC, AVC isquêmico, DAP ou Alto Risco CV
+   * @param {boolean} [params.insuficienciaCardiaca=false] - IC clínica (ICFEr, ICFElr ou ICFEp)
+   * @param {boolean} [params.mashFibrose=false] - Esteato-hepatite associada à disfunção metabólica (MASH) com fibrose F2-F3
+   * @param {boolean} [params.emUsoMetformina=false] - Se o paciente já utiliza metformina
+   * @param {boolean} [params.contraindicacaoGlp1=false] - Contraindicação a agonistas GLP-1
+   * @returns {Object} Plano terapêutico estruturado (ADA 2025/2026)
+   */
+  function prescreverTerapiaDM2_ADA2026(params) {
+    if (!params || typeof params.hba1c !== 'number' || typeof params.tfg !== 'number') {
+      throw new Error("Parâmetros obrigatórios ausentes: 'hba1c' e 'tfg' devem ser fornecidos.");
+    }
+
+    const {
+      hba1c,
+      metaHba1c = 7.0,
+      tfg,
+      rac = 0,
+      imc = 25,
+      dcvAterosclerotica = false,
+      insuficienciaCardiaca = false,
+      mashFibrose = false,
+      emUsoMetformina = false,
+      contraindicacaoGlp1 = false
+    } = params;
+
+    const prescricaoPrioritaria = [];
+    const manejoGlicemicoPeso = [];
+    const alertasSegurancaRenal = [];
+    const classesRecomendadas = new Set();
+
+    const temDRC = (tfg < 60) || (rac >= 30);
+    const elegivelInicioSGLT2 = tfg >= 20;
+
+    // 1.1 Insuficiência Cardíaca
+    if (insuficienciaCardiaca) {
+      if (elegivelInicioSGLT2) {
+        classesRecomendadas.add("iSGLT2");
+        prescricaoPrioritaria.push({
+          indicacao: "Insuficiência Cardíaca (ICFEr / ICFEp)",
+          evidencia: "Classe I, Nível A (ADA 2025/2026)",
+          conduta: "Iniciar Inibidor de SGLT2 com benefício comprovado em IC (Dapagliflozina 10mg/dia ou Empagliflozina 10mg/dia) IMEDIATAMENTE, independentemente da HbA1c basal ou uso de metformina.",
+          observacao: (imc >= 30 && !contraindicacaoGlp1)
+            ? "Se ICFEp associada à obesidade (IMC >= 30): considerar associação de Semaglutida ou Tirzepatida para redução de sintomas e eventos de IC."
+            : null
+        });
+      } else {
+        alertasSegurancaRenal.push("TFG < 20 mL/min/1.73m²: Não iniciar iSGLT2 de novo. Se já em uso prévio, pode ser mantido até o início de diálise.");
+      }
+    }
+
+    // 1.2 Doença Renal Crônica (TFG < 60 ou RAC >= 30)
+    if (temDRC) {
+      if (elegivelInicioSGLT2) {
+        classesRecomendadas.add("iSGLT2");
+        prescricaoPrioritaria.push({
+          indicacao: `Doença Renal Crônica (TFG: ${tfg} mL/min | RAC: ${rac} mg/g)`,
+          evidencia: "Classe I, Nível A (ADA 2025/2026 / KDIGO)",
+          conduta: "Iniciar iSGLT2 com benefício nefroprotetor comprovado (Empagliflozina, Dapagliflozina ou Canagliflozina) IMEDIATAMENTE, independentemente da HbA1c ou uso de metformina.",
+          observacao: (!contraindicacaoGlp1)
+            ? "Associar ou substituir por Agonista de GLP-1 (Semaglutida com benefício nefroprotetor - Estudo FLOW) se intolerância ou necessidade adicional."
+            : null
+        });
+        if (!contraindicacaoGlp1 && (rac >= 30 || tfg < 45)) {
+          classesRecomendadas.add("AR-GLP1");
+        }
+      } else {
+        if (!contraindicacaoGlp1) {
+          classesRecomendadas.add("AR-GLP1");
+          prescricaoPrioritaria.push({
+            indicacao: `DRC Avançada (TFG ${tfg} mL/min < 20 mL/min)`,
+            evidencia: "Classe I, Nível A (ADA 2025/2026)",
+            conduta: "Como a TFG é < 20 mL/min, priorizar Agonista do Receptor de GLP-1 (Semaglutida, Liraglutida ou Dulaglutida) para redução de risco cardiovascular e controle glicêmico seguro."
+          });
+        }
+      }
+    }
+
+    // 1.3 Doença Cardiovascular Aterosclerótica Estabelecida (DCVA)
+    if (dcvAterosclerotica) {
+      const opcoesDCVA = [];
+      if (!contraindicacaoGlp1) {
+        classesRecomendadas.add("AR-GLP1");
+        opcoesDCVA.push("Agonista de GLP-1 com benefício CV comprovado (Semaglutida, Dulaglutida ou Liraglutida)");
+      }
+      if (elegivelInicioSGLT2) {
+        classesRecomendadas.add("iSGLT2");
+        opcoesDCVA.push("Inibidor de SGLT2 com benefício CV comprovado (Empagliflozina, Dapagliflozina ou Canagliflozina)");
+      }
+
+      prescricaoPrioritaria.push({
+        indicacao: "Doença Cardiovascular Aterosclerótica (DCVA) Estabelecida / Alto Risco",
+        evidencia: "Classe I, Nível A (ADA 2025/2026)",
+        conduta: `Iniciar ${opcoesDCVA.join(" E/OU ")} IMEDIATAMENTE, independentemente da HbA1c basal e sem necessidade de aguardar falha da metformina.`,
+        observacao: (elegivelInicioSGLT2 && !contraindicacaoGlp1)
+          ? "Terapia combinada (AR-GLP1 + iSGLT2) deve ser considerada para redução aditiva de desfechos cardiovasculares e renais."
+          : null
+      });
+    }
+
+    // 2.1 MASH / Esteatose Metabólica
+    if (mashFibrose && !contraindicacaoGlp1) {
+      classesRecomendadas.add("AR-GLP1 / Co-agonista GIP/GLP-1");
+      manejoGlicemicoPeso.push(
+        "MASH com fibrose (F2-F3): Priorizar Agonista de GLP-1 (Semaglutida) ou Co-agonista Duplo GIP/GLP-1 (Tirzepatida) e/ou Pioglitazona (se ausência de IC) para resolução histológica da esteato-hepatite."
+      );
+    }
+
+    // 2.2 Gestão de Peso
+    if (imc >= 27 && !contraindicacaoGlp1) {
+      classesRecomendadas.add("AR-GLP1 / Co-agonista GIP/GLP-1");
+      manejoGlicemicoPeso.push(
+        `Sobrepeso/Obesidade (IMC ${imc} kg/m²): Priorizar agentes de Muito Alta Eficácia para perda ponderal e redução de HbA1c (Tirzepatida ou Semaglutida).`
+      );
+    }
+
+    // 2.3 Metformina
+    if (tfg >= 45) {
+      classesRecomendadas.add("Metformina");
+      manejoGlicemicoPeso.push(
+        emUsoMetformina
+          ? "Manter Metformina em dose otimizada (até 2000 mg/dia) como terapia de base."
+          : "Iniciar ou associar Metformina para eficácia glicêmica adicional, salvo contraindicação (não deve atrasar o início de iSGLT2/AR-GLP1 se indicados)."
+      );
+    } else if (tfg >= 30 && tfg < 45) {
+      classesRecomendadas.add("Metformina (Dose Ajustada)");
+      alertasSegurancaRenal.push(
+        "TFG entre 30 e 44 mL/min/1.73m²: Reduzir dose máxima de Metformina para 1000 mg/dia."
+      );
+    } else {
+      alertasSegurancaRenal.push(
+        "TFG < 30 mL/min/1.73m²: CONTRAINDICADO o uso de Metformina (risco de acidose lática). Suspender imediatamente se estiver em uso."
+      );
+    }
+
+    const deltaHba1c = +(hba1c - metaHba1c).toFixed(1);
+
+    if (hba1c >= 10.0) {
+      classesRecomendadas.add("Insulina Basal (+/- AR-GLP1)");
+      manejoGlicemicoPeso.push(
+        `HbA1c severamente elevada (${hba1c}%): Iniciar Insulina Basal (10 UI/dia ou 0.1-0.2 UI/kg/dia), preferencialmente com AR-GLP1.`
+      );
+    } else if (deltaHba1c >= 1.5) {
+      manejoGlicemicoPeso.push(
+        `HbA1c (${hba1c}%) está >= 1.5% acima da meta (${metaHba1c}%): Indicada TERAPIA COMBINADA DUPLA OU TRIPLA DESDE O INÍCIO (estratégia VERIFY / ADA 2026).`
+      );
+    } else if (deltaHba1c <= 0 && prescricaoPrioritaria.length > 0) {
+      manejoGlicemicoPeso.push(
+        `Atenção: Embora a HbA1c (${hba1c}%) esteja na meta (${metaHba1c}%), a introdução de iSGLT2 e/ou AR-GLP1 permanece MANDATÓRIA para redução de mortalidade cardiorrenal.`
+      );
+    }
+
+    if (tfg < 45 && classesRecomendadas.has("iSGLT2")) {
+      alertasSegurancaRenal.push(
+        "Nota Farmacodinâmica: Com TFG < 45 mL/min, o efeito redutor de HbA1c dos iSGLT2 é atenuado, mas a proteção renal e contra IC permanece intacta."
+      );
+    }
+
+    return {
+      statusGlicemico: {
+        hba1cAtual: hba1c,
+        metaHba1c,
+        acimaDaMeta: hba1c > metaHba1c,
+        diferencaMeta: deltaHba1c
+      },
+      temIndicacaoCardiorrenalPrioritaria: prescricaoPrioritaria.length > 0,
+      eixo1_ProtecaoOrgaoAlvo: prescricaoPrioritaria,
+      eixo2_ControleGlicemicoPonderal: manejoGlicemicoPeso,
+      alertasSegurancaRenal,
+      classesFarmacologicasRecomendadas: Array.from(classesRecomendadas),
+      referencia: "ADA Standards of Care in Diabetes - 2025/2026"
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
   // EXPORTAÇÃO PÚBLICA
   // ───────────────────────────────────────────────────────────────────────────
 
@@ -427,7 +807,9 @@ var EndocrinologiaDiabetesService = (function() {
     calcularInsulinaAmbulatorial: calcularInsulinaAmbulatorial,
     protocoloCorrecaoHospitalar: protocoloCorrecaoHospitalar,
     manejoCriseHiperglicemica: manejoCriseHiperglicemica,
-    formatarResumoDiabetes: formatarResumoDiabetes
+    formatarResumoDiabetes: formatarResumoDiabetes,
+    avaliarSindromeCKM: avaliarSindromeCKM,
+    prescreverTerapiaDM2_ADA2026: prescreverTerapiaDM2_ADA2026
   };
 })();
 

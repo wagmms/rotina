@@ -17,18 +17,17 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Recriação Integral da Aba de Rotina (v2.0) com Gemini 4 Argon: Radar "AGORA" em Tempo Real, Modo Plantão de Alto Contraste, Pomodoro Integrado, Gamificação de Metas R1 e Caderno de Dúvidas por Grande Área (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`, `tests/test_aba_rotina_cockpit.cjs`)**:
-    - **Diagnóstico e Oportunidades**: A aba de rotina atuava de forma passiva, sem orientação em tempo real ("o que fazer agora?"), sem cronometragem de foco nos blocos de estudo e sem modo de emergência para uso em plantão.
-    - **Implementação com Gemini 4 Argon**:
-      1. *Radar "AGORA" & Relógio Vivo*: Indicador live do bloco atual com barra de decaimento percentual intra-bloco, relógio vivo e barra de progresso dos blocos do dia.
-      2. *Modo Plantão Beira-Leito Ativo (Alto Contraste)*: Banner de emergência com 4 atalhos rápidos (`SRI/IOT`, `DVA/Bomba`, `Passar SBAR`, `+ Dúvida`) e layout de alto contraste ativado em 1 toque.
-      3. *Pomodoro & Timer de Foco Integrado*: Cronômetro regressivo de 25m/50m nos cards de estudo MedQuest com alerta sonoro/haptic e botão `+10 Questões` direto no card.
-      4. *Gamificação & Metas Diárias R1*: Contadores de 1 toque para Questões MedQuest, Flashcards Anki e Hidratação (ml).
-      5. *Seletor de Visualização Trimodal*: Modos `Timeline` (padrão), `Modo Foco` (bloco em andamento/próximo) e `7 Dias` (panorama semanal de consistência).
-      6. *Criação e Edição Rápida (+ Bloco)*: Modal autocontido para criar/editar blocos com ordenação horária automática e persistência offline-first.
-      7. *Caderno de Dúvidas por Grande Área R1*: Classificação rápida por chips (Clínica, Cirurgia, Pediatria, GO, Preventiva).
-      8. *Paridade Absoluta SHA-256*: Espelhamento 100% idêntico entre raiz e `gh_cockpit_deploy/`.
-    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 16.59s** via `npm test`.
+- [x] **Revisão e Modernização de Protocolos Médicos (Onda 5) com Gemini 4 Argon: Hemorragia Pós-Parto (HPP) com Índice de Choque Obstétrico (ICO) e Bundle E-MOTIVE (FIGO 2024 / FEBRASGO 2024), Pré-Eclâmpsia com Sinais de Gravidade (ACOG / FEBRASGO 2024 - Zuspan e Pritchard) e RCF Doppler com Estádios de Barcelona/ISUOG (`src/02_centro_obstetrico.js`, `tests/test_revisao_protocolos_onda5.cjs`)**:
+    - **Diagnóstico e Atualização de Consensos (Auditoria Clínica com Gemini 4 Argon)**:
+      * *Hemorragia Pós-Parto e Bundle E-MOTIVE (FIGO 2024)*: Índice de Choque Obstétrico ($\text{ICO} = \text{FC} / \text{PAS}$) com corte $\ge 0.9$ (alerta precoce) e $\ge 1.4$ (choque grave e transfusão maciça 1:1:1); Ácido Tranexâmico 1g IV precoce $\le 3\text{h}$; bloqueio formal de Metilergometrina na hipertensão; escalonamento para Balão de Bakri (300-500 mL) e B-Lynch.
+      * *Pré-Eclâmpsia e Eclâmpsia (FEBRASGO 2024 / ACOG)*: Critérios estritos de gravidade, esquemas Zuspan (IV em BIC) e Pritchard (IM), contraindicação de IM se plaquetas $< 50\text{k}$, vigilância com Gluconato de Cálcio 10% e crise hipertensiva com Hidralazina 5 mg IV / Nifedipino 10-20 mg VO (meta: PAS 140-150 / PAD 90-100).
+      * *Restrição de Crescimento Fetal (RCF / CIUR)*: Estadiamento Barcelona/ISUOG (Estádio I: 37s; Estádio II: 34s; Estádio III: 30s; Estádio IV: $\ge 26\text{s}$) e indicações de neuroproteção com MgSO4 e corticoterapia.
+    - **Implementação e Entregáveis**:
+      1. *Bundle E-MOTIVE e ICO (`src/02_centro_obstetrico.js`)*: Função `avaliarHemorragiaPosParto` com detecção de choque e travas de segurança.
+      2. *Pré-Eclâmpsia e Eclâmpsia (`src/02_centro_obstetrico.js`)*: Função `manejarPreEclampsiaGraveEclampsia`.
+      3. *Integração com RCF Doppler (`src/02_centro_obstetrico.js`)*: Função `avaliarRcfDopplerCentroObstetrico`.
+      4. *Suíte de Testes Cirúrgica (`tests/test_revisao_protocolos_onda5.cjs`)*: Aprovada em 0.062s.
+    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 17.07s** via `npm test`. Checksum master atualizado.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -36,34 +35,18 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Aba Rotina — Sincronização Bidirecional Telegram ↔ Cockpit PWA (`src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`, `gh_cockpit_deploy/rotina_timeline.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js` e `gh_cockpit_deploy/rotina_timeline.js`
-    - **Função/Componente/Seletor**: Callbacks inline `rt_concluir:ID`, `rt_adiar:ID` e rota `/api/rotina/status`
-    - **Comportamento Esperado / Critério de Aceite**: Ao interagir com o teclado inline do Telegram (`/rotina`), a alteração de status reflete instantaneamente no Cockpit PWA e vice-versa, sem inconsistências de cache.
+- [ ] **Consolidação Final da Revisão de Protocolos Médicos nos Handlers e Parsers do Telegram (`src/07f_telegram_calculadoras_parser.js`, `src/07b_telegram_preceptor.js`, `tests/test_calculadoras_ux.cjs`)**:
+    - **Arquivo/Módulo Alvo**: `src/07f_telegram_calculadoras_parser.js`, `src/07b_telegram_preceptor.js` e `tests/test_calculadoras_ux.cjs`
+    - **Função/Componente/Seletor**: Parsers de comandos rápidos beira-leito (`/parkland`, `/cha2ds2va`, `/phoenix`, `/fib4`, `/dengue`, `/hpp`, `/preeclampsia`), conectando-os diretamente às novas funções determinísticas auditadas pelas 5 Ondas Clínicas.
+    - **Comportamento Esperado / Critério de Aceite**: Garantir que as chamadas de texto livre e comandos estruturados no Telegram processem os parâmetros novos (ex: Parkland com perfis térmico/pediátrico/elétrico, CHA2DS2-VA unissex, FIB-4 com cortes etários, ICO na HPP e dengue 60 mL/kg), retornando respostas formatadas em Markdown rico com zero falhas.
 
 ---
 
-## 📋 Backlog Prioritário: Desenvolvimento Integral da Aba Rotina
+## 📋 Backlog Prioritário: Revisão de Protocolos & Desenvolvimento
 
-1. [ ] **Aba Rotina — Sincronização Bidirecional Telegram ↔ Cockpit PWA (`src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`, `gh_cockpit_deploy/rotina_timeline.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js` e `gh_cockpit_deploy/rotina_timeline.js`
-    - **Função/Componente/Seletor**: Callbacks inline `rt_concluir:ID`, `rt_adiar:ID` e rota `/api/rotina/status`
-    - **Comportamento Esperado / Critério de Aceite**: Ao interagir com o teclado inline do Telegram (`/rotina`), a alteração de status reflete instantaneamente no Cockpit PWA e vice-versa, sem inconsistências de cache.
-
-2. [ ] **Aba Rotina — Notificações Nativas e Sentinela de Bloco no Cockpit (`gh_cockpit_deploy/rotina_timeline.js`, `sw.js`)**:
-    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/rotina_timeline.js` e `sw.js`
-    - **Função/Componente/Seletor**: Função `notificarTransicaoBlocoPWA` via Notification API / Service Worker
-    - **Comportamento Esperado / Critério de Aceite**: Disparar alerta visual suave no início de cada novo bloco (ex: 5 min antes do plantão ou da sessão MedQuest).
-
-3. [ ] **Aba Rotina — Gamificação & Consistência Visual de Streaks (`gh_cockpit_deploy/index.html`, `rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
-    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/index.html`, `rotina_timeline.js` e `src/06_rotina_agenda.js`
-    - **Função/Componente/Seletor**: Componente visual `#streak-semanal-banner` e função `RotinaService.calcularStreakSemanal`
-    - **Comportamento Esperado / Critério de Aceite**: Exibir sequência ininterrupta de dias com metas de MedQuest e plantão cumpridas, aumentando a motivação diária de estudo.
-
-4. [ ] **Aba Rotina — Pomodoro Integrado no Card de Estudo (`gh_cockpit_deploy/index.html`, `rotina_timeline.js`)**:
-    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/index.html` e `rotina_timeline.js`
-    - **Função/Componente/Seletor**: Timer tátil `iniciarTimerPomodoroEstudo` no card de bloco MedQuest
-    - **Comportamento Esperado / Critério de Aceite**: Cronômetro regressivo de 25 min/50 min com alerta sonoro suave e botão de conclusão imediata refletindo no Telegram.
+1. [ ] **Consolidação Final da Revisão de Protocolos Médicos e Verificação dos Handlers do Telegram** (`src/07f_telegram_calculadoras_parser.js`, `src/07b_telegram_preceptor.js`).
+2. [ ] **Aba Rotina — Sincronização Bidirecional Telegram ↔ Cockpit PWA** (`src/07g_telegram_ajuda_e_protocolos.js`, `gh_cockpit_deploy/rotina_timeline.js`).
+3. [ ] **Aba Rotina — Pomodoro Integrado no Card de Estudo** (`gh_cockpit_deploy/index.html`, `rotina_timeline.js`).
 
 ---
 

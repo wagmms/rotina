@@ -1151,6 +1151,356 @@ var CentroObstetricoService = (function() {
     };
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. ONDA 5: CONSENSOS 2024–2026 (FIGO E-MOTIVE, FEBRASGO, ACOG & ISUOG)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function toNumberSafe(val, defaultVal) {
+    var n = Number(val);
+    return !isNaN(n) && isFinite(n) ? n : defaultVal;
+  }
+
+  /**
+   * 1. HEMORRAGIA PÓS-PARTO (HPP) - BUNDLE E-MOTIVE (FIGO 2024 / FEBRASGO 2024)
+   * Calcula Índice de Choque Obstétrico (ICO = FC / PAS), indica pacote E-MOTIVE,
+   * bloqueia ergotamínicos na hipertensão e escalona para tamponamento/cirurgia.
+   */
+  function avaliarHemorragiaPosParto(dados) {
+    dados = dados || {};
+    var fc = toNumberSafe(dados.fc, 0);
+    var pas = toNumberSafe(dados.pas, 0);
+    var pad = toNumberSafe(dados.pad, 0);
+    var perdaMl = toNumberSafe(dados.perdaSanguineaEstimadaMl || dados.perdaEstimadaMl, 0);
+    var tempoHoras = toNumberSafe(dados.tempoPosPartoHoras || (dados.tempoDesdePartoMin ? dados.tempoDesdePartoMin / 60 : 0.5), 0.5);
+    var temHasOuPe = Boolean(dados.hipertensaoOuPreEclampsia || dados.temHipertensao || dados.preeclampsia) || pas >= 140 || pad >= 90;
+    var refratario = Boolean(dados.refratarioUterotonicos);
+
+    // Cálculo do Índice de Choque Obstétrico (ICO = FC / PAS)
+    var ico = pas > 0 ? Number((fc / pas).toFixed(2)) : null;
+    var interpretacaoIco = "Dados hemodinâmicos incompletos para cálculo do ICO.";
+    var nivelAlertaIco = "INDETERMINADO";
+    var acionarTransfusaoMacica = false;
+
+    if (ico !== null) {
+      if (ico < 0.9) {
+        nivelAlertaIco = "NORMAL";
+        interpretacaoIco = "ICO < 0.9: Estabilidade hemodinâmica relativa (manter vigilância rigorosa).";
+      } else if (ico >= 0.9 && ico <= 1.1) {
+        nivelAlertaIco = "ALERTA_PRECOCE";
+        interpretacaoIco = "ICO entre 0.9 e 1.1: Alerta de instabilidade hemodinâmica oculta. Iniciar ressuscitação volêmica cautelosa e tipagem sanguínea/prova cruzada.";
+      } else if (ico > 1.1 && ico < 1.4) {
+        nivelAlertaIco = "CHOQUE_MODERADO_GRAVE";
+        interpretacaoIco = "ICO > 1.1: Choque hipovolêmico instalado. Solicitar hemocomponentes imediatamente.";
+      } else {
+        nivelAlertaIco = "CHOQUE_GRAVE_CRITICO";
+        interpretacaoIco = "ICO >= 1.4: Choque grave com risco iminente de colapso materno. ATIVAR PROTOCOLO DE TRANSFUSÃO MACIÇA (1:1:1).";
+        acionarTransfusaoMacica = true;
+      }
+    }
+
+    // Critério diagnóstico de HPP (E-MOTIVE: >= 500mL ou >= 300mL com sinais vitais alterados / ICO >= 0.9)
+    var diagnosticoHppConfirmado =
+      perdaMl >= 500 || (perdaMl >= 300 && ico !== null && ico >= 0.9) || (ico !== null && ico >= 1.0);
+
+    // Bundle E-MOTIVE (FIGO 2024)
+    var condutaAcidoTranexamico = "";
+    if (tempoHoras <= 3) {
+      condutaAcidoTranexamico =
+        "INDICADO IMEDIATAMENTE: Ácido Tranexâmico 1 g (100 mg/mL - 10 mL) IV lento (em 10 minutos; infusão de 1 mL/min). Repetir 1 g IV se sangramento persistir após 30 min ou ressangrar em 24h.";
+    } else {
+      condutaAcidoTranexamico =
+        "CONTRAINDICADO / NÃO RECOMENDADO (> 3 horas pós-parto): Estudos (WOMAN trial) demonstram ausência de benefício e potencial risco após 3 horas do parto.";
+    }
+
+    // Uterotônicos de 2ª linha com trava de segurança para HAS / Pré-Eclâmpsia
+    var condutaErgotaminico = "";
+    if (temHasOuPe) {
+      condutaErgotaminico =
+        "BLOQUEIO DE SEGURANÇA (CONTRAINDICAÇÃO ABSOLUTA): Metilergometrina (Methergin) PROIBIDA devido à Hipertensão Arterial / Pré-Eclâmpsia (risco de crise hipertensiva grave, AVC hemorrágico e eclâmpsia).";
+    } else {
+      condutaErgotaminico =
+        "Metilergometrina 0,2 mg IM (pode repetir a cada 2-4h, máx. 5 doses/24h). Nunca administrar em bolus IV.";
+    }
+
+    var escalonamentoRefratario = [];
+    if (refratario || perdaMl >= 1000 || acionarTransfusaoMacica) {
+      escalonamentoRefratario = [
+        "1. Tamponamento Uterino com Balão Hidrostático (Balão de Bakri ou artesanal): infundir 300 a 500 mL de SF 0,9% morno/temperatura ambiente + manter ocitocina IV contínua + antibioticoprofilaxia (Cefazolina 2g IV dose única).",
+        "2. Traje Anti-Choque Não Pneumático (TAN), se disponível na unidade, para centralização volêmica.",
+        "3. Abordagem Cirúrgica Conservadora (se falha do balão): Suturas compressivas uterinas (B-Lynch, Hayman ou Cho) e/ou Ligadura bilateral das artérias uterinas / ovarianas / ilíacas internas.",
+        "4. Histerectomia puerperal subtotal ou total (última linha, não postergar se coagulopatia/instabilidade refratária)."
+      ];
+    }
+
+    return {
+      protocolo: "HPP - Bundle E-MOTIVE (FIGO 2024 / FEBRASGO 2024)",
+      diagnosticoHppConfirmado: diagnosticoHppConfirmado,
+      hemodinamica: {
+        fc: fc,
+        pas: pas,
+        pad: pad,
+        indiceChoqueObstetrico: ico,
+        nivelAlertaIco: nivelAlertaIco,
+        interpretacaoIco: interpretacaoIco,
+        acionarTransfusaoMacica: acionarTransfusaoMacica
+      },
+      bundleEMOTIVE: {
+        E_EarlyDetection: "Quantificação objetiva por drape calibrado/pesagem de compressas (1g = 1mL) + monitorização do ICO.",
+        M_Massage: "Massagem uterina contínua e Manobra de Compressão Uterina Bimanual (Hamilton) imediata na atonia.",
+        O_Oxytocics_PrimeiraLinha: "Ocitocina: 5 UI IV lento (em 3 min) ou 10 UI IM imediato + Manutenção com 20 a 40 UI em 500-1000 mL de SF 0,9% ou Ringer Lactato a 125-250 mL/h (evitar bolus rápido pelo risco de hipotensão).",
+        T_TranexamicAcid: condutaAcidoTranexamico,
+        I_IVFluids: "Cristaloides aquecidos (Ringer Lactato / SF 0,9%) em alíquotas de 500 mL (evitar sobrecarga > 1500-2000 mL para não provocar coagulopatia dilucional). Iniciar hemocomponentes precocemente se ICO > 1.1.",
+        VE_ExaminationAndEscalation: {
+          revisao4Ts: [
+            "Tônus (70% - Atonia uterina): esvaziar bexiga (sondagem vesical de demora) + bimanual + uterotônicos.",
+            "Trauma (20% - Laceração de canal/rotura/inversão): revisão sob boa iluminação com valvas vaginais.",
+            "Tecido (9% - Retenção placentária/coágulos): revisão da cavidade uterina / curagem sob analgesia.",
+            "Trombina (1% - Coagulopatia): solicitar Fibrinogênio (meta > 200 mg/dL), TP, TTPa, Plaquetas e TEG/ROTEM."
+          ],
+          segundaLinhaUterotonicos: {
+            ergotaminico: condutaErgotaminico,
+            prostaglandina: "Misoprostol 800 mcg via sublingual ou retal (dose única).",
+            travasAtivadas: temHasOuPe ? ["BLOQUEIO_METILERGOMETRINA_POR_HAS_PE"] : []
+          },
+          escalonamentoInvasivo: escalonamentoRefratario
+        }
+      }
+    };
+  }
+
+  /**
+   * 2. PRÉ-ECLÂMPSIA COM SINAIS DE GRAVIDADE E ECLÂMPSIA (FEBRASGO 2024 / ACOG)
+   * Diagnóstico estrito de gravidade, Sulfato de Magnésio (Zuspan/Pritchard),
+   * vigilância de toxicidade com Gluconato de Cálcio e manejo da Crise Hipertensiva.
+   */
+  function manejarPreEclampsiaGraveEclampsia(dados) {
+    dados = dados || {};
+    var pas = toNumberSafe(dados.pas, 0);
+    var pad = toNumberSafe(dados.pad, 0);
+    var convulsao = Boolean(dados.convulsaoEclampsia || dados.convulsao || dados.eclampsia);
+    var iminencia = Boolean(dados.iminenciaEclampsia);
+    var eap = Boolean(dados.edemaAgudoPulmao);
+    var plaquetas = toNumberSafe(dados.plaquetas, 250000);
+    var creatinina = toNumberSafe(dados.creatinina, 0.7);
+    var tgo = toNumberSafe(dados.tgoAst, 25);
+    var ldh = toNumberSafe(dados.ldh, 200);
+    var temBic = dados.bombaInfusaoDisponivel !== undefined ? Boolean(dados.bombaInfusaoDisponivel) : true;
+
+    // 2.1 Verificação de Critérios de Gravidade (FEBRASGO / ACOG)
+    var criteriosGravidadePresentes = [];
+    var criseHipertensiva = pas >= 160 || pad >= 110;
+
+    if (criseHipertensiva) criteriosGravidadePresentes.push("Crise Hipertensiva (PAS >= 160 e/ou PAD >= 110 mmHg)");
+    if (convulsao) criteriosGravidadePresentes.push("Eclâmpsia (Crise convulsiva tônico-clônica generalizada)");
+    if (iminencia) criteriosGravidadePresentes.push("Iminência de Eclâmpsia (Cefaleia grave refratária, escotomas/distúrbios visuais, epigastralgia/dor em hipocôndrio direito)");
+    if (eap) criteriosGravidadePresentes.push("Edema Agudo de Pulmão (EAP)");
+    if (plaquetas > 0 && plaquetas < 100000) criteriosGravidadePresentes.push("Plaquetopenia (< 100.000/mm³)");
+    if (creatinina >= 1.1) criteriosGravidadePresentes.push("Insuficiência Renal Aguda (Creatinina >= 1,1 mg/dL)");
+    if (tgo >= 70) criteriosGravidadePresentes.push("Disfunção Hepática / Elevação de transaminases >= 2x LSN (TGO/AST >= 70 U/L)");
+    if (ldh >= 600) criteriosGravidadePresentes.push("Hemólise microangiopática sugerida (LDH >= 600 U/L)");
+
+    var sindromeHellpCompleta = plaquetas < 100000 && tgo >= 70 && ldh >= 600;
+    if (sindromeHellpCompleta) {
+      criteriosGravidadePresentes.push("SÍNDROME HELLP COMPLETA INSTALADA");
+    }
+
+    var indicaSulfatoMagnesio = criteriosGravidadePresentes.length > 0;
+
+    // 2.2 Esquemas de Sulfato de Magnésio (Zuspan e Pritchard)
+    var esquemasMgSO4 = {
+      esquemaPreferencialUnidade: temBic ? "ZUSPAN (Bomba de Infusão Contínua disponível)" : "PRITCHARD (Sem Bomba de Infusão / Transporte seguro)",
+      zuspan_IV_Exclusivo: {
+        ataque: "4 g de MgSO4 IV em 15 a 20 minutos: diluir 8 mL de MgSO4 a 50% (4g) em 92 mL de SF 0,9% (volume total 100 mL) e correr em BIC a 300 mL/h.",
+        manutencao: "1 a 2 g/hora IV contínuo em BIC: diluir 20 mL de MgSO4 a 50% (10g) em 480 mL de SF 0,9% (concentração 20 mg/mL): correr a 50 mL/h (1 g/h) ou 100 mL/h (2 g/h).",
+        recorrenciaConvulsao: "Se nova convulsão após 20 min do ataque: administrar mais 2 g IV (4 mL de MgSO4 50% diluídos em SF 0,9%) lento em 5-10 min."
+      },
+      pritchard_IV_e_IM: {
+        ataque: "4 g IV lento (8 mL de MgSO4 50% + 12 mL de Água Destilada/SF 0,9% em 15-20 min) + 10 g IM profundo (5 g = 10 mL de MgSO4 50% puro em cada glúteo, quadrante superior externo, técnica em Z).",
+        manutencao: "5 g IM profundo (10 mL de MgSO4 50%) a cada 4 horas em glúteos alternados (após checar reflexo patelar, FR e diurese).",
+        observacaoSeguranca: "CONTRAINDICADO esquema IM (Pritchard) se Plaquetas < 50.000/mm³ ou coagulopatia pelo risco de hematoma glúteo grave."
+      },
+      duracaoPosParto: "Manter por 24 horas após o parto ou 24 horas após a última crise convulsiva (o que ocorrer por último)."
+    };
+
+    // Ajuste se plaquetopenia grave impedir Pritchard
+    if (plaquetas > 0 && plaquetas < 50000) {
+      esquemasMgSO4.esquemaPreferencialUnidade = "ZUSPAN OBRIGATÓRIO (Plaquetas < 50.000/mm³ contraindicam injeção IM profunda do esquema Pritchard).";
+    }
+
+    // 2.3 Vigilância de Toxicidade por Magnésio e Antídoto
+    var mon = dados.monitorizacaoMgSO4 || {};
+    var reflexo = String(mon.reflexoPatelar || "PRESENTE").toUpperCase();
+    var fr = toNumberSafe(mon.fr, 18);
+    var diurese = toNumberSafe(mon.diureseMlHora, 40);
+
+    var condutaVigilanciaMg = "MANTER INFUSÃO: Parâmetros de segurança preservados (Reflexo patelar presente, FR >= 16 irpm, Diurese >= 25 mL/h).";
+    var intoxicacaoDetectada = false;
+    var oliguriaIsolada = false;
+
+    if (reflexo === "AUSENTE" || reflexo === "ABOLIDO" || fr < 16) {
+      intoxicacaoDetectada = true;
+      condutaVigilanciaMg =
+        "INTOXICAÇÃO POR MAGNÉSIO DETECTADA (Reflexo patelar abolido e/ou FR < 16 irpm): " +
+        "1) SUSPENDER IMEDIATAMENTE a infusão de Sulfato de Magnésio; " +
+        "2) ADMINISTRAR ANTÍDOTO: Gluconato de Cálcio a 10% - 10 mL (1 g) IV lento em 3 a 5 minutos; " +
+        "3) Fornecer suporte ventilatório / O2 suplementar e coletar magnesemia sérica.";
+    } else if (diurese < 25) {
+      oliguriaIsolada = true;
+      condutaVigilanciaMg =
+        "ALERTA DE OLIGÚRIA (Diurese < 25 mL/h) COM REFLEXO PRESENTE: " +
+        "Risco elevado de acúmulo renal de magnésio. No esquema Zuspan, reduzir manutenção para 0,5 a 1 g/h ou suspender temporariamente até reavaliação renal/magnesemia; no Pritchard, adiar dose IM de 4/4h até diurese >= 25 mL/h.";
+    }
+
+    // 2.4 Tratamento Agudo da Crise Hipertensiva (PAS >= 160 ou PAD >= 110 mmHg)
+    var manejoPressorico = {
+      emCriseHipertensiva: criseHipertensiva,
+      metaPressorica: "Reduzir PA em 15-25% na 1ª hora, atingindo meta de PAS entre 140-150 mmHg e PAD entre 90-100 mmHg (evitar quedas abruptas < 130/80 mmHg pelo risco de hipoperfusão uteroplacentária e sofrimento fetal agudo).",
+      primeiraLinhaOpcaoA_VO: criseHipertensiva
+        ? "Nifedipino 10 mg VO de liberação imediata (deglutido, NUNCA sublingual). Repetir 10-20 mg VO a cada 20-30 minutos se PA >= 160/110 mmHg (dose máxima aguda: 30-50 mg)."
+        : "Sem crise hipertensiva aguda no momento. Iniciar/ajustar anti-hipertensivo de manutenção (Metildopa 750-2000 mg/dia, Nifedipino Retard 20-60 mg/dia ou Hidralazina VO).",
+      primeiraLinhaOpcaoB_IV: criseHipertensiva
+        ? "Hidralazina 5 mg IV lento (em 2 min). Diluir 1 ampola (20 mg/1 mL) + 19 mL de Água Destilada (concentração 1 mg/mL -> fazer 5 mL IV). Repetir 5 a 10 mg IV a cada 20 minutos se necessário (dose máxima acumulada: 20-30 mg)."
+        : "Não indicada terapia venosa de resgate no momento.",
+      segundaLinhaRefrataria: "Nitroprussiato de Sódio em BIC (0,25 a 4 mcg/kg/min) em ambiente de UTI se refratariedade às 3 doses de 1ª linha ou Edema Agudo de Pulmão (uso curto < 4h se feto vivo pelo risco de toxicidade por cianeto)."
+    };
+
+    return {
+      protocolo: "Pré-Eclâmpsia com Sinais de Gravidade e Eclâmpsia (FEBRASGO 2024 / ACOG)",
+      classificacao: convulsao
+        ? "ECLÂMPSIA"
+        : sindromeHellpCompleta
+        ? "PRÉ-ECLÂMPSIA GRAVE + SÍNDROME HELLP"
+        : criteriosGravidadePresentes.length > 0
+        ? "PRÉ-ECLÂMPSIA COM SINAIS DE GRAVIDADE"
+        : "PRÉ-ECLÂMPSIA SEM SINAIS DE GRAVIDADE ATUAIS",
+      criteriosGravidadePresentes: criteriosGravidadePresentes,
+      sulfatoDeMagnesio: {
+        indicado: indicaSulfatoMagnesio,
+        esquemas: indicaSulfatoMagnesio ? esquemasMgSO4 : null,
+        vigilanciaToxicidade: {
+          parametrosAtuais: { reflexoPatelar: reflexo, fr: fr, diureseMlHora: diurese },
+          intoxicacaoDetectada: intoxicacaoDetectada,
+          oliguriaIsolada: oliguriaIsolada,
+          condutaImediata: condutaVigilanciaMg,
+          antidotoPadrao: "Gluconato de Cálcio 10% - 10 mL (1 g) IV lento em 3 a 5 minutos (manter ampola aspirada/ao lado do leito)."
+        }
+      },
+      manejoCriseHipertensiva: manejoPressorico
+    };
+  }
+
+  /**
+   * 3. INTEGRAÇÃO COM RESTRIÇÃO DE CRESCIMENTO FETAL (RCF / CIUR) E DOPPLER OBSTÉTRICO
+   * Estádios I a IV de Barcelona / ISUOG 2020-2024 / FEBRASGO.
+   */
+  function avaliarRcfDopplerCentroObstetrico(dados) {
+    dados = dados || {};
+
+    if (
+      typeof globalThis !== "undefined" &&
+      globalThis.ObstetriciaRcfDopplerService &&
+      typeof globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona === "function"
+    ) {
+      return globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona(dados);
+    }
+
+    var igSem = toNumberSafe(dados.igSemanas, 37);
+    var igDias = toNumberSafe(dados.igDias, 0);
+    var pfePerc = toNumberSafe(dados.pfePercentil, 15);
+    var ipAuPerc = toNumberSafe(dados.ipUmbilicalPercentil, 50);
+    var fluxoAu = String(dados.fluxoDiastolicoAU || "PRESENTE").toUpperCase();
+    var ipAcmPerc = toNumberSafe(dados.ipAcmPercentil, 50);
+    var icpPerc = toNumberSafe(dados.icpPercentil, 50);
+    var ipUtPerc = toNumberSafe(dados.ipUterinasPercentil, 50);
+    var ipDvPerc = toNumberSafe(dados.ipDuctoVenosoPercentil, 50);
+    var ondaADv = String(dados.ondaADuctoVenoso || "POSITIVA").toUpperCase();
+    var ctgCritico = Boolean(dados.ctgDesaceleracoesOuVcpBaixa);
+
+    var rcfPrecoce = igSem < 32;
+    var alteracaoDopplerPlacentarioOuCerebral =
+      ipAuPerc > 95 || ipAcmPerc < 5 || icpPerc < 5 || ipUtPerc > 95;
+
+    var estadio = "SEM_RCF";
+    var descricaoEstadio = "";
+    var seguimentoDoppler = "";
+    var momentoInterrupcao = "";
+    var viaDePartoRecomendada = "";
+    var indicarCorticoide = false;
+    var indicarNeuroprotecaoMgSO4 = false;
+
+    if (pfePerc >= 10) {
+      estadio = "FETO_ADEQUADO_PARA_IG";
+      descricaoEstadio = "Peso Fetal Estimado >= percentil 10. Sem critérios atuais para Restrição de Crescimento Fetal ou PIG.";
+      seguimentoDoppler = "Seguimento pré-natal habitual.";
+      momentoInterrupcao = "Conforme indicação obstétrica de base (termo: 39-40 semanas).";
+      viaDePartoRecomendada = "Via obstétrica (parto vaginal permitido salvo contraindicação obstétrica).";
+    } else if (
+      pfePerc >= 3 &&
+      pfePerc < 10 &&
+      !alteracaoDopplerPlacentarioOuCerebral &&
+      fluxoAu === "PRESENTE" &&
+      ipDvPerc <= 95 &&
+      ondaADv === "POSITIVA" &&
+      !ctgCritico
+    ) {
+      estadio = "PIG_CONSTITUCIONAL";
+      descricaoEstadio = "Feto Pequeno para a Idade Gestacional (PIG): PFE entre p3 e p9 com estudo Doppler fetoplacentário inteiramente normal.";
+      seguimentoDoppler = "Doppler quinzenal (a cada 14 dias).";
+      momentoInterrupcao = "Interrupção com 40 semanas.";
+      viaDePartoRecomendada = "Indução do trabalho de parto permitida (monitorização contínua da vitalidade fetal intraparto).";
+    } else if (ondaADv === "REVERSA" || ctgCritico) {
+      estadio = "RCF_ESTADIO_IV";
+      descricaoEstadio = "RCF Estádio IV (Descompensação acidótica grave / alto risco de óbito fetal iminente): Onda-A reversa no Ducto Venoso e/ou desacelerações espontâneas / VCP crítica no CTG.";
+      seguimentoDoppler = "INTERNAÇÃO IMEDIATA EM CENTRO OBSTÉTRICO (Vigilância contínua até resolução em horas).";
+      momentoInterrupcao = "Interrupção IMEDIATA se IG >= 26 semanas (após discussão multidisciplinar com Neonatologia).";
+      viaDePartoRecomendada = "CESARIANA ELETIVA / IMEDIATA (Trabalho de parto contraindicado).";
+      indicarCorticoide = igSem >= 24 && igSem < 34;
+      indicarNeuroprotecaoMgSO4 = igSem >= 24 && igSem < 32;
+    } else if (fluxoAu === "REVERSO" || ipDvPerc > 95 || ondaADv === "ZERO") {
+      estadio = "RCF_ESTADIO_III";
+      descricaoEstadio = "RCF Estádio III (Deterioração hemodinâmica avançada / baixa tolerância à hipóxia): Diástole Reversa na Artéria Umbilical e/ou IP do Ducto Venoso > p95 / onda-A zero.";
+      seguimentoDoppler = "Internação hospitalar com Doppler e CTG computadorizado a cada 24 a 48 horas.";
+      momentoInterrupcao = "Interrupção com 30 semanas.";
+      viaDePartoRecomendada = "CESARIANA ELETIVA (Trabalho de parto contraindicado pela reserva placentária crítica).";
+      indicarCorticoide = igSem >= 24 && (igSem < 34 || igSem >= 30);
+      indicarNeuroprotecaoMgSO4 = igSem >= 24 && igSem < 32;
+    } else if (fluxoAu === "ZERO") {
+      estadio = "RCF_ESTADIO_II";
+      descricaoEstadio = "RCF Estádio II (Insuficiência placentária grave): Diástole Zero persistente na Artéria Umbilical (em > 50% dos ciclos nas duas artérias).";
+      seguimentoDoppler = "Doppler e CTG a cada 2 a 4 dias (internação recomendada).";
+      momentoInterrupcao = "Interrupção com 34 semanas.";
+      viaDePartoRecomendada = "CESARIANA ELETIVA.";
+      indicarCorticoide = igSem >= 24 && igSem <= 34;
+      indicarNeuroprotecaoMgSO4 = igSem >= 24 && igSem < 32;
+    } else {
+      estadio = "RCF_ESTADIO_I";
+      descricaoEstadio = "RCF Estádio I (Insuficiência placentária leve/moderada): PFE < p3 isolado OU PFE < p10 associado a IP AU > p95 (com diástole presente), IP ACM < p5, ICP < p5 ou IP Artérias Uterinas > p95.";
+      seguimentoDoppler = "Doppler semanal (a cada 7 dias).";
+      momentoInterrupcao = "Interrupção com 37 semanas.";
+      viaDePartoRecomendada = "Parto vaginal / indução permitidos sob monitorização cardiotocográfica contínua no Centro Obstétrico.";
+      indicarCorticoide = igSem >= 24 && igSem < 34;
+    }
+
+    return {
+      protocolo: "Restrição de Crescimento Fetal e Doppler Obstétrico (Barcelona / ISUOG 2020-2024 / FEBRASGO)",
+      idadeGestacional: igSem + " semanas e " + igDias + " dias",
+      fenotipoRcf: pfePerc < 10 ? (rcfPrecoce ? "RCF PRECOCE (< 32 semanas)" : "RCF TARDIA (>= 32 semanas)") : "NORMAL",
+      classificacaoBarcelona: estadio,
+      descricaoClinica: descricaoEstadio,
+      condutaCentroObstetrico: {
+        periodicidadeVigilancia: seguimentoDoppler,
+        momentoInterrupcaoMeta: momentoInterrupcao,
+        viaDePartoRecomendada: viaDePartoRecomendada,
+        corticoideAntenatal: indicarCorticoide
+          ? "INDICADO: Betametasona 12 mg IM a cada 24h (2 doses) ou Dexametasona 6 mg IM a cada 12h (4 doses)."
+          : "Não indicado no momento (fora da janela ou sem indicação de resolução pré-termo iminente).",
+        neuroprotecaoFetalMgSO4: indicarNeuroprotecaoMgSO4
+          ? "INDICADO SE PARTO IMINENTE (< 32 semanas): Sulfato de Magnésio 4 g IV em 20 min + manutenção 1 g/h até o parto (máximo 24h)."
+          : "Não indicado (IG >= 32 semanas ou sem indicação de interrupção iminente)."
+      }
+    };
+  }
+
   return {
     avaliarTrabalhoParto: avaliarTrabalhoParto,
     calcularIndiceBishop: calcularIndiceBishopInternal,
@@ -1158,6 +1508,9 @@ var CentroObstetricoService = (function() {
     manejarCriseHipertensiva: manejarCriseHipertensiva,
     manejarPreEclampsiaGrave: manejarPreEclampsiaGrave,
     gerenciarHemorragiaPosParto: gerenciarHemorragiaPosParto,
+    avaliarHemorragiaPosParto: avaliarHemorragiaPosParto,
+    manejarPreEclampsiaGraveEclampsia: manejarPreEclampsiaGraveEclampsia,
+    avaliarRcfDopplerCentroObstetrico: avaliarRcfDopplerCentroObstetrico,
     avaliarProfilaxiaGbs: avaliarProfilaxiaGbs,
     protocoloPrematuridadeRpmo: protocoloPrematuridadeRpmo,
     gerarResumoCentroObstetrico: gerarResumoCentroObstetrico

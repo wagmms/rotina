@@ -129,7 +129,7 @@ var NeurologiaAvcService = (function() {
 
     if (tempoSintomasHoras > 4.5) {
       janela = "fora_da_janela";
-      mensagem = "Trombólise IV contraindicada (Janela terapêutica > 4.5 horas). Avaliar Trombectomia Mecânica se oclusão de grande vaso e janela até 24h (DAWN/DEFUSE-3).";
+      mensagem = "Trombólise IV contraindicada (Janela terapêutica > 4.5 horas). Avaliar Trombectomia Mecânica se oclusão de grande vaso até 24h (DAWN/DEFUSE-3), inclusive em Large Core Strokes com ASPECTS 3 a 5 (SELECT2/ANGEL-ASPECT).";
       if (tempoSintomasHoras <= 9.0 || params.wakeUpStroke) {
         alertasClinicos.push("💡 Janela Estendida / Wake-up Stroke (4.5 a 9h): Considerar trombólise orientada por neuroimagem avançada (mismatch DWI-FLAIR na RM ou perfusão por TC/RM conforme trials WAKE-UP e EXTEND).");
       }
@@ -371,15 +371,16 @@ var NeurologiaAvcService = (function() {
       t.push(`• Conclusão: ${e.mensagem}`);
       t.push("");
 
-      if (e.posologiaAlteplase) {
-        t.push("💉 *POSOLOGIA DE ALTEPLASE (rtPA):*");
-        t.push(`👉 ${e.posologiaAlteplase}`);
+      if (e.posologiaTenecteplase) {
+        t.push("⭐ *1ª ESCOLHA / PREFERENCIAL: TENECTEPLASE (TNK):*");
+        t.push(`👉 ${e.posologiaTenecteplase}`);
+        t.push("  ↳ _Bolus IV direto em 5–10s; sem necessidade de BIC; menor risco de interrupção e padrão-ouro para transferência/transporte (AHA/ESO 2024)._");
         t.push("");
       }
 
-      if (e.posologiaTenecteplase) {
-        t.push("💉 *ALTERNATIVA: TENECTEPLASE (TNK):*");
-        t.push(`👉 ${e.posologiaTenecteplase}`);
+      if (e.posologiaAlteplase) {
+        t.push("🔄 *ALTERNATIVA PADRÃO: ALTEPLASE (rtPA):*");
+        t.push(`👉 ${e.posologiaAlteplase}`);
         t.push("");
       }
 

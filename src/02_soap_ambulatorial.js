@@ -532,31 +532,195 @@ var SoapAmbulatorialService = (function() {
   }
 
   // 4-B. DIRETRIZES DE METAS PRESSÓRICAS, ESCALONAMENTO E MONITORIZAÇÃO (SBC 2020 / 2024)
+  var ESC_2024_HAS_CONFIG = {
+    referencia: "Diretriz ESC 2024 (European Heart Journal)",
+    categorias: {
+      NAO_ELEVADA: {
+        id: "pa_nao_elevada",
+        label: "Pressão Arterial Não Elevada",
+        criterio: "PAS < 120 e PAD < 70 mmHg",
+        corAlerta: "green"
+      },
+      ELEVADA: {
+        id: "pa_elevada",
+        label: "Pressão Arterial Elevada",
+        criterio: "PAS 120-139 ou PAD 70-89 mmHg",
+        corAlerta: "yellow"
+      },
+      HAS_ESTAGIO_1: {
+        id: "has_estagio_1",
+        label: "Hipertensão Arterial - Estágio 1",
+        criterio: "PAS 140-159 ou PAD 90-99 mmHg",
+        corAlerta: "orange"
+      },
+      HAS_ESTAGIO_2: {
+        id: "has_estagio_2",
+        label: "Hipertensão Arterial - Estágio 2",
+        criterio: "PAS 160-179 ou PAD 100-109 mmHg",
+        corAlerta: "red"
+      },
+      HAS_ESTAGIO_3: {
+        id: "has_estagio_3",
+        label: "Hipertensão Arterial - Estágio 3",
+        criterio: "PAS >= 180 ou PAD >= 110 mmHg",
+        corAlerta: "darkred"
+      }
+    }
+  };
+
+  /**
+   * Classifica a Pressão Arterial de acordo com os novos limiares da ESC 2024.
+   */
+  function classificarPA_ESC2024(pas, pad) {
+    var s = Number(pas);
+    var d = Number(pad);
+    if (!s || !d || s <= 0 || d <= 0) {
+      return { erro: "Valores de PA inválidos ou ausentes." };
+    }
+
+    if (s >= 180 || d >= 110) {
+      return {
+        id: "has_estagio_3",
+        label: "Hipertensão Arterial - Estágio 3",
+        criterio: "PAS >= 180 ou PAD >= 110 mmHg",
+        isHipertensao: true,
+        estagio: 3,
+        notaClinica: "Avaliar imediatamente emergência/urgência hipertensiva. Iniciar/otimizar terapia combinada."
+      };
+    }
+
+    if (s >= 160 || d >= 100) {
+      return {
+        id: "has_estagio_2",
+        label: "Hipertensão Arterial - Estágio 2",
+        criterio: "PAS 160-179 ou PAD 100-109 mmHg",
+        isHipertensao: true,
+        estagio: 2,
+        notaClinica: "Confirmar diagnóstico rapidamente. Indicado início imediato de terapia medicamentosa dupla + MEV."
+      };
+    }
+
+    if (s >= 140 || d >= 90) {
+      return {
+        id: "has_estagio_1",
+        label: "Hipertensão Arterial - Estágio 1",
+        criterio: "PAS 140-159 ou PAD 90-99 mmHg",
+        isHipertensao: true,
+        estagio: 1,
+        notaClinica: "Confirmar com MAPA/MRPA. Iniciar tratamento farmacológico + MEV (especialmente se alto risco CV)."
+      };
+    }
+
+    if ((s >= 120 && s <= 139) || (d >= 70 && d <= 89)) {
+      return {
+        id: "pa_elevada",
+        label: "Pressão Arterial Elevada",
+        criterio: "PAS 120-139 ou PAD 70-89 mmHg",
+        isHipertensao: false,
+        estagio: 0,
+        notaClinica: "Estratificar risco CV (SCORE2/SCORE2-OP). Se Risco CV alto/muito alto ou DCV estabelecida, considerar fármaco se PA >= 130/80 após 3 meses de MEV."
+      };
+    }
+
+    return {
+      id: "pa_nao_elevada",
+      label: "Pressão Arterial Não Elevada",
+      criterio: "PAS < 120 e PAD < 70 mmHg",
+      isHipertensao: false,
+      estagio: 0,
+      notaClinica: "Manter estilo de vida saudável. Reavaliar periodicamente."
+    };
+  }
+
+  /**
+   * Define a Meta Pressórica Terapêutica individualizada (ESC 2024 / SBC).
+   */
+  function obterMetaPressorica_ESC2024(idade, isFragil) {
+    var idNum = Number(idade) || 55;
+    var fragil = Boolean(isFragil);
+
+    if (idNum >= 80 || fragil) {
+      return {
+        perfil: "Idoso >= 80 anos ou Paciente Frágil",
+        alvoPAS: { min: 130, max: 139, ideal: "130-139 mmHg" },
+        alvoPAD: { min: 70, max: 79, ideal: "< 80 mmHg" },
+        principioALARA: true,
+        recomendacaoSOAP: "Meta Pressórica (ESC 2024): PAS 130-139 mmHg (ou tão baixa quanto razoavelmente tolerada - princípio ALARA). Monitorar rigorosamente hipotensão ortostática e função renal."
+      };
+    }
+
+    return {
+      perfil: "Adulto Padrão (18-79 anos)",
+      alvoPAS: { min: 120, max: 129, ideal: "120-129 mmHg" },
+      alvoPAD: { min: 70, max: 79, ideal: "70-79 mmHg" },
+      principioALARA: false,
+      recomendacaoSOAP: "Meta Pressórica Primária (ESC 2024): PAS 120-129 mmHg e PAD 70-79 mmHg, desde que bem tolerado (substitui alvo antigo conservador de 130-139 mmHg; se não tolerado, aplicar princípio ALARA visando a menor PA segura)."
+    };
+  }
+
+  /**
+   * Avalia o controle pressórico atual do paciente hipertenso no SOAP (ESC 2024).
+   */
+  function avaliarControleHAS_SOAP(pasAtual, padAtual, idade, isFragil) {
+    var meta = obterMetaPressorica_ESC2024(idade, isFragil);
+    var s = Number(pasAtual);
+    var d = Number(padAtual);
+
+    var pasControlada = s >= meta.alvoPAS.min && s <= meta.alvoPAS.max;
+    var pasAbaixoDoAlvo = s < meta.alvoPAS.min;
+    var padControlada = d <= meta.alvoPAD.max;
+
+    var status = "Fora da Meta (Acima do alvo)";
+    var condutaSugerida = "Otimizar adesão e escalonar terapia anti-hipertensiva (preferir combinações fixas em pílula única).";
+
+    if (pasControlada && padControlada) {
+      status = "Dentro da Meta ESC 2024";
+      condutaSugerida = "Manter conduta farmacológica atual e reforçar mudanças no estilo de vida (MEV).";
+    } else if (pasAbaixoDoAlvo && padControlada) {
+      status = "Abaixo da Meta estrita (Avaliar tolerância)";
+      condutaSugerida = "Se paciente assintomático e sem eventos adversos, manter tratamento. Se tontura/hipotensão ortostática, desescalonar.";
+    }
+
+    return {
+      statusControle: status,
+      metaAplicada: "PAS " + meta.alvoPAS.ideal + " / PAD " + meta.alvoPAD.ideal,
+      condutaSugerida: condutaSugerida,
+      textoEvolucao: "[HAS - Avaliação ESC 2024]: PA atual (" + s + "x" + d + " mmHg) encontra-se " + status.toLowerCase() + ". Alvo terapêutico para o perfil: " + meta.alvoPAS.ideal + "."
+    };
+  }
+
   var METAS_PRESSORICAS_SBC = {
+    esc_2024_padrao: {
+      meta: 'PAS 120 a 129 mmHg e PAD 70 a 79 mmHg',
+      faixa_pas: '120 a 129 mmHg',
+      faixa_pad: '70 a 79 mmHg',
+      populacao: 'Maioria dos adultos (18 a 79 anos) em tratamento anti-hipertensivo',
+      recomendacao: 'Alvo primário ESC 2024 (desde que bem tolerado; se não tolerado, aplicar princípio ALARA)'
+    },
     alto_muito_alto_risco: {
-      meta: '< 130/80 mmHg',
+      meta: 'PAS 120 a 129 mmHg e PAD 70 a 79 mmHg (< 130/80 mmHg)',
       faixa_pas: '120 a 129 mmHg',
       faixa_pad: '70 a 79 mmHg',
       populacao: 'Alto ou Muito Alto Risco Cardiovascular, Diabetes Mellitus, Doença Renal Crônica ou Lesão de Órgão-Alvo (LOA)',
-      recomendacao: 'Classe I, Nível de Evidência A (Diretrizes Brasileiras de Hipertensão Arterial - SBC 2020/2024)'
+      recomendacao: 'Classe I, Nível de Evidência A (Diretrizes ESC 2024 / SBC 2020/2024)'
     },
     baixo_intermediario_risco: {
-      meta: '< 140/90 mmHg',
-      meta_otimizada: '< 130/80 mmHg se bem tolerado',
-      faixa_pas: '120 a 139 mmHg',
-      faixa_pad: '70 a 89 mmHg',
+      meta: 'PAS 120 a 129 mmHg (< 130/80 mmHg se bem tolerado; teto < 140/90 mmHg)',
+      meta_otimizada: '120 a 129 mmHg se bem tolerado',
+      faixa_pas: '120 a 129 mmHg',
+      faixa_pad: '70 a 79 mmHg',
       populacao: 'Baixo ou Intermediário Risco Cardiovascular sem LOA',
-      recomendacao: 'Classe I, Nível de Evidência A (SBC 2020/2024)'
+      recomendacao: 'Classe I, Nível de Evidência A (ESC 2024 / SBC 2020/2024)'
     },
     idoso_higido: {
-      meta: 'PAS 130 a 139 mmHg e PAD 70 a 79 mmHg',
+      meta: 'PAS 120 a 129 mmHg se bem tolerado (ou tão baixa quanto razoavelmente tolerada)',
       populacao: 'Idosos hígidos e independentes (65 a 79 anos)',
-      recomendacao: 'Evitar PAS < 120 e PAD < 70 mmHg'
+      recomendacao: 'Monitorar hipotensão ortostática; meta primária 120-129 mmHg se tolerado'
     },
     idoso_fragil: {
-      meta: '< 140/90 mmHg',
+      meta: 'PAS 130 a 139 mmHg e PAD < 80 mmHg',
       populacao: 'Idosos frágeis, polimedicados ou muito idosos (>= 80 anos)',
-      recomendacao: 'Evitar reduções excessivas de PA pelo risco de quedas e curva J de hipoperfusão coronariana/cerebral'
+      recomendacao: 'Princípio ALARA (As Low As Reasonably Achievable); evitar reduções excessivas com sintomas'
     }
   };
 
@@ -1015,6 +1179,10 @@ var SoapAmbulatorialService = (function() {
       '======================================================================'
     ].join('\n');
 
+    var classificacaoESC = classificarPA_ESC2024(pas, pad);
+    var metaESC = obterMetaPressorica_ESC2024(dados.idade !== undefined ? Number(dados.idade) : 55, !!dados.fragil);
+    var controleESC = avaliarControleHAS_SOAP(pas, pad, dados.idade !== undefined ? Number(dados.idade) : 55, !!dados.fragil);
+
     return {
       pas: pas,
       pad: pad,
@@ -1024,6 +1192,9 @@ var SoapAmbulatorialService = (function() {
       ehAltoRisco: ehAltoRisco,
       metaPressorica: metaPressorica,
       metaPressoricaTexto: metaTexto,
+      classificacaoESC2024: classificacaoESC,
+      metaESC2024: metaESC,
+      avaliacaoControleESC2024: controleESC,
       passo: passo,
       escalonamentoDetalhe: escalonamentoDetalhe,
       prescricaoPEP: prescricaoPEP,
@@ -1607,6 +1778,10 @@ var SoapAmbulatorialService = (function() {
     ESCALONAMENTO_HAS_SBC: ESCALONAMENTO_HAS_SBC,
     MONITORIZACAO_HAS_SBC: MONITORIZACAO_HAS_SBC,
     estruturarCondutaHas: estruturarCondutaHas,
+    classificarPA_ESC2024: classificarPA_ESC2024,
+    obterMetaPressorica_ESC2024: obterMetaPressorica_ESC2024,
+    avaliarControleHAS_SOAP: avaliarControleHAS_SOAP,
+    ESC_2024_HAS_CONFIG: ESC_2024_HAS_CONFIG,
     buscarDiagnostico: buscarDiagnostico,
     estratificarRiscoCardiovascular: estratificarRiscoCardiovascular,
     converterNumeroPorExtenso: converterNumeroPorExtenso,
