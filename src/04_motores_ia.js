@@ -3159,42 +3159,27 @@ function classificarIntencaoMensagem(textoMensagem) {
     return { intencao: "CONVERSA", confianca: 0.90 };
   }
 
-  // 3) Classificador por LLM
-  var promptSistema = [
-    "Você é um classificador de intenções ultrarrápido para um assistente médico pessoal.",
-    "Retorne EXCLUSIVAMENTE um JSON: {\"intencao\": \"CATEGORIA\", \"confianca\": 0.95, \"resumo\": \"motivo curto\"}",
-    "",
-    "REGRA DE SEGURANÇA ABSOLUTA: se houver QUALQUER dúvida entre uma categoria de rotina e CLINICO_EMERGENCIA, escolha CLINICO_EMERGENCIA. Falso-positivo é aceitável; falso-negativo é inaceitável.",
-    "",
-    "Categorias válidas:",
-    "- CLINICO_EMERGENCIA: parada, PCR, choque, sepse, dor torácica, SCA/IAM, AVC agudo, rebaixamento de consciência, convulsão, hipotensão, dessaturação, sangramento grave, anafilaxia, intoxicação, intubação/IOT/SRI, DVA/noradrenalina, dose de ataque, sala vermelha, pneumotórax.",
-    "- PRECEPTOR_VOZ: pedidos de resposta em áudio, preceptor socrático, fone de ouvido, mensagem falada.",
-    "- EVIDENCIA_MEDICA: busca de artigos, evidência, ensaios clínicos, PubMed.",
-    "- CLINICO_SOAP: relato de caso, anamnese, história clínica, exame físico (sem instabilidade).",
-    "- CLINICO_RX: pedido de prescrição médica, receita médica, remédio para sintomas ou patologia.",
-    "- CLINICO_GASO: valores gasométricos (pH, pCO2, HCO3, Na, Cl).",
-    "- ENFERMARIA: evolução ou passagem de plantão de paciente internado em leito de enfermaria.",
-    "- CALENDAR_CRIAR: marcar compromisso, plantão, consulta na agenda.",
-    "- CALENDAR_CONSULTAR: perguntas sobre agenda/compromissos.",
-    "- NOTION_TASK: tarefas ou lembretes executivos.",
-    "- NOTION_DUVIDA: registrar dúvida de estudo (ex: MedQuest) no Notion.",
-    "- HABITO_PROATIVO: hábito cumprido (academia, MedQuest, inglês).",
-    "- CONVERSA: dúvidas clínicas gerais, estudo, discussão médica ou conversa natural (sem paciente instável)."
-  ].join("\n");
-
-  var resposta = _iaExecutar(promptSistema, texto, 250, { json: true, semThinking: true, extrativo: true });
-  var parsed = _iaExtrairJSON(resposta);
-  if (parsed && parsed.intencao) {
-    var cat = String(parsed.intencao).toUpperCase().trim();
-    if (IA_INTENCOES_VALIDAS.indexOf(cat) >= 0) {
-      parsed.intencao = cat;
-      return parsed;
+  // 3) Classificador léxico-estrutural determinístico O(1) / O(K) (Zero LLM em runtime)
+  var tokens = tn.split(/[^a-z0-9+]+/).filter(Boolean);
+  var ehEstudoTeorico = /\b(?:explica|explique|o\s+que\s+[eé]|fisiopatologia|resumo|diferen[çc]a\s+entre|quest[aã]o|prova|acad[eê]mic)\b/.test(tn);
+  if (!ehEstudoTeorico) {
+    var TOKENS_EMERGENCIA = {
+      pcr: true, parada: true, parou: true, assistolia: true, aesp: true, desfibrilacao: true, rcp: true,
+      iot: true, sri: true, intubar: true, intubacao: true, anafilaxia: true, choque: true, chocando: true,
+      chocado: true, noradrenalina: true, dobutamina: true, vasopressina: true, adrenalina: true,
+      convulsao: true, convulsionando: true, status: true, iam: true, infarto: true,
+      suprast: true, avc: true, trombolise: true, alteplase: true, tep: true, pneumotorax: true,
+      tamponamento: true, bavt: true, torsades: true, hematemese: true, cetoacidose: true, eap: true
+    };
+    for (var i = 0; i < tokens.length; i++) {
+      if (TOKENS_EMERGENCIA[tokens[i]]) {
+        return { intencao: "CLINICO_EMERGENCIA", confianca: 0.95, resumo: "token crítico: " + tokens[i] };
+      }
     }
-    Logger.log("Classificador retornou categoria inválida: " + parsed.intencao);
-  } else if (resposta) {
-    Logger.log("Erro no parsing do classificador de intenção");
   }
-  return { intencao: "CONVERSA", confianca: 0.7 };
+
+  // 4) Fallback direto determinístico em 0ms (Zero chamadas de rede/LLM)
+  return { intencao: "CONVERSA", confianca: 0.85, resumo: "roteamento determinístico O(K)" };
 }
 
 // ==============================================================================

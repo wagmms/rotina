@@ -758,18 +758,19 @@ function tratarComandoCalc(chatId, texto, contextoKey) {
     return enviarMensagemComTecladoParaChat(chatId, resDet, tecladoDet);
   }
 
-  // Se o usuário invocou uma calculadora reconhecida deterministicamente mas resDet não retornou resultado, NUNCA cai na IA!
-  if (typeof ehCalculadoraDeterministica === "function" && ehCalculadoraDeterministica(dadosCalc)) {
-    var instrucoes = obterInstrucoesCalculadora(dadosCalc);
-    var tecladoInstr = {
-      inline_keyboard: [
-        [{ text: "🔙 Calculadoras", callback_data: "ux:hub:calc" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-      ]
-    };
-    return enviarMensagemComTecladoParaChat(chatId, "⚠️ *Calculadora Clínica: Parâmetros Insuficientes ou Inválidos*\n\n" + instrucoes, tecladoInstr);
-  }
-
-  return processarEEntregarIA(chatId, processarCalculadoraClinicaComIA, dadosCalc, "calc");
+  // Zero Runtime Hallucination: NUNCA delegar cálculos matemáticos para LLM
+  var instrucoes = (typeof obterInstrucoesCalculadora === "function") ? obterInstrucoesCalculadora(dadosCalc) : "";
+  var tecladoInstr = {
+    inline_keyboard: [
+      [{ text: "📐 Ver Todas Calculadoras", callback_data: "ux:hub:calc" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+    ]
+  };
+  return enviarMensagemComTecladoParaChat(
+    chatId,
+    "⚠️ *Calculadora Clínica Não Reconhecida ou Parâmetros Insuficientes*\n\n" +
+    (instrucoes || "Para utilizar as calculadoras determinísticas oficiais, informe o nome e parâmetros (ex: `/calc curb65 sim 60 32 80 50 68` ou `/calc crcl 1.2 70 65 m`)."),
+    tecladoInstr
+  );
 }
 
 /**
@@ -885,6 +886,34 @@ function rotearComandoSistema(comando, texto, chatId) {
     },
     "/calc": function() {
       return tratarComandoCalc(chatId, texto, "ctx_" + chatId);
+    },
+    "/diluicao": function() {
+      if (typeof enviarMenuDiluicao === "function") return enviarMenuDiluicao(chatId);
+      return false;
+    },
+    "/injetaveis": function() {
+      if (typeof enviarMenuDiluicao === "function") return enviarMenuDiluicao(chatId);
+      return false;
+    },
+    "/kits": function() {
+      if (typeof enviarMenuPacotesSindromicos === "function") return enviarMenuPacotesSindromicos(chatId);
+      return false;
+    },
+    "/sindromes": function() {
+      if (typeof enviarMenuPacotesSindromicos === "function") return enviarMenuPacotesSindromicos(chatId);
+      return false;
+    },
+    "/checklist": function() {
+      if (typeof enviarMenuChecklistClinico === "function") return enviarMenuChecklistClinico(chatId, "fast_hug_sb", 0);
+      return false;
+    },
+    "/timeblocking": function() {
+      if (typeof enviarMenuTimeBlocking === "function") return enviarMenuTimeBlocking(chatId, 0);
+      return false;
+    },
+    "/timeline": function() {
+      if (typeof enviarMenuTimeBlocking === "function") return enviarMenuTimeBlocking(chatId, 0);
+      return false;
     }
   };
 
@@ -5098,7 +5127,18 @@ function extrairParametrosPancreatite(texto) {
       }
     }
 
-    return processarEEntregarIA(chatId, gerarAnaliseGasometriaComIA, dadosGaso, "gaso");
+    if (typeof GasometriaAcidoBaseService !== "undefined" && typeof GasometriaAcidoBaseService.obterTecladoInlineGasometria === "function") {
+      var kbGasoAjuda = GasometriaAcidoBaseService.obterTecladoInlineGasometria("incompleto");
+      return enviarMensagemComTecladoParaChat(
+        chatId,
+        "⚠️ *Gasometria: Parâmetros Insuficientes ou Não Reconhecidos*\n\n" +
+        "Para a análise ácidobase determinística beira-leito, informe os valores:\n" +
+        "💡 *Exemplo:* `/gaso pH 7.25, pCO2 28, HCO3 12, Na 140, Cl 102`\n" +
+        "Ou digite: `/gaso 7.25 28 12`",
+        kbGasoAjuda
+      );
+    }
+    return enviarMensagemParaChat(chatId, "⚠️ *Gasometria:* Informe os valores (ex: `/gaso 7.25 28 12`).");
   }
 
   if (comando === "/conduta" || comando === "/sos") {
@@ -5853,6 +5893,11 @@ function processarMensagemTexto(message) {
   }
 
   if (decisao.intencao === "CLINICO_GASO") {
+    var cmdGasoTexto = /^\/gaso\b/i.test(texto) ? texto : ("/gaso " + texto);
+    if (typeof despacharComandosCalculadorasUTIEEmergenciaIntensiva_ === "function") {
+      var resGasoFast = despacharComandosCalculadorasUTIEEmergenciaIntensiva_("/gaso", cmdGasoTexto, chatId, contextoKey);
+      if (resGasoFast) return resGasoFast;
+    }
     return processarEEntregarIA(chatId, gerarAnaliseGasometriaComIA, texto, "gaso");
   }
 

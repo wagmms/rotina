@@ -176,8 +176,7 @@ function obterCatalogoComandosSlash(chatId) {
       titulo: "🏥 ENFERMARIA, LEITOS & PLANTÃO",
       comandos: [
         { cmd: "/enfermaria", aliases: ["/enfermaria"], sintaxe: "/enfermaria", desc: "Censo dos leitos internados, gravidade e pendências." },
-        { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Relatório consolidado de passagem de plantão da enfermaria." },
-        { cmd: "/ajuda", aliases: ["/ajuda mascaras"], sintaxe: "/ajuda mascaras", desc: "Máscaras PEP copiáveis de CO, puerpério, pré-natal, exame ginecológico e enfermaria." }
+        { cmd: "/passagem", aliases: ["/passagem"], sintaxe: "/passagem", desc: "Relatório consolidado de passagem de plantão da enfermaria." }
       ]
     },
     ehConvidado ? {

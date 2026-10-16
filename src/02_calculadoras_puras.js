@@ -109,8 +109,13 @@ var CalculadorasClinicas = (function () {
     return x;
   }
 
-  function bool(ctx, v, nome) {
-    if (ausente(v)) { ctx.faltas.push(nome); return null; }
+  function bool(ctx, v, nome, opt) {
+    opt = opt || {};
+    if (ausente(v)) {
+      if (opt.opcional) return null;
+      ctx.faltas.push(nome);
+      return null;
+    }
     if (v === true || v === false) return v;
     if (v === 1 || v === 0) return v === 1;
     if (typeof v === 'string') {
@@ -1354,13 +1359,13 @@ var CalculadorasClinicas = (function () {
   // ═════════════════════════════ SEQUÊNCIA RÁPIDA DE INTUBAÇÃO ═════════════════════════════
 
   var SRI_FARMACOS = {
-    etomidato:      { nome: 'Etomidato',      dose: 0.3, un: 'mg', conc: 2,  txt: '0,3 mg/kg · 2 mg/mL (ampola 20mg/10mL)',  grupo: 'indutor', contra: 'Evitar em sepse se suspeita de insuficiência adrenal aguda, risco de supressão adrenal transitória.' },
-    quetamina:      { nome: 'Quetamina',      dose: 1.5, un: 'mg', conc: 50, txt: '1,5 mg/kg · 50 mg/mL (ampola 50mg/mL)', grupo: 'indutor', contra: 'Broncodilatador (ideal em asma). Evitar em hipertensão craniana severa ou glaucoma sem uso prévio de opioide.' },
-    propofol:       { nome: 'Propofol 1%',    dose: 1.5, un: 'mg', conc: 10, txt: '1,5 mg/kg · 10 mg/mL (ampola 1%)',        grupo: 'indutor', contra: 'Hipotensor potente. Reduzir dose pela metade em choque hemodinâmico ou senilidade.' },
-    midazolam:      { nome: 'Midazolam',      dose: 0.2, un: 'mg', conc: 5,  txt: '0,2 mg/kg · 5 mg/mL (ampola 5mg/mL)',   grupo: 'indutor', contra: 'Depressor miocárdico e venodilatador. Evitar em choque descompensado.' },
-    rocuronio:      { nome: 'Rocurônio',      dose: 1.2, un: 'mg', conc: 10, txt: '1,2 mg/kg · 10 mg/mL (frasco 50mg/5mL)', grupo: 'bloqueador', contra: 'Ação em ~45-60s. Escolha de excelência. Reversível com Sugamadex.' },
-    succinilcolina: { nome: 'Succinilcolina', dose: 1.5, un: 'mg', conc: 10, txt: '1,5 mg/kg · 10 mg/mL (frasco 100mg/10mL)', grupo: 'bloqueador', contra: '⚠️ CONTRAINDICADA em: Hipercalemia (> 5.5), grandes queimados, esmagamento, miopatias, paralisia/AVC > 48h (risco de PCR por hipercalemia). Teto máximo: 200 mg.' },
-    fentanil:       { nome: 'Fentanil',       dose: 2.0, un: 'mcg',conc: 50, txt: '2 mcg/kg · 50 mcg/mL (ampola 50mcg/mL)',  grupo: 'adjuvante', contra: 'Pico de ação em 3-5 min. Atenua reflexo simpático da laringoscopia.' }
+    etomidato:      { nome: 'Etomidato',      dose: 0.3, un: 'mg', conc: 2,  tetoMaximo: 40,  txt: '0,3 mg/kg · 2 mg/mL (ampola 20mg/10mL)',  grupo: 'indutor', contra: 'Evitar em sepse se suspeita de insuficiência adrenal aguda, risco de supressão adrenal transitória.' },
+    quetamina:      { nome: 'Quetamina',      dose: 1.5, un: 'mg', conc: 50, tetoMaximo: 200, txt: '1,5 mg/kg · 50 mg/mL (ampola 50mg/mL)', grupo: 'indutor', contra: 'Broncodilatador (ideal em asma). Evitar em hipertensão craniana severa ou glaucoma sem uso prévio de opioide.' },
+    propofol:       { nome: 'Propofol 1%',    dose: 1.5, un: 'mg', conc: 10, tetoMaximo: 200, txt: '1,5 mg/kg · 10 mg/mL (ampola 1%)',        grupo: 'indutor', contra: 'Hipotensor potente. Reduzir dose pela metade em choque hemodinâmico ou senilidade.' },
+    midazolam:      { nome: 'Midazolam',      dose: 0.2, un: 'mg', conc: 5,  tetoMaximo: 15,  txt: '0,2 mg/kg · 5 mg/mL (ampola 5mg/mL)',   grupo: 'indutor', contra: 'Depressor miocárdico e venodilatador. Evitar em choque descompensado.' },
+    rocuronio:      { nome: 'Rocurônio',      dose: 1.2, un: 'mg', conc: 10, tetoMaximo: 120, txt: '1,2 mg/kg · 10 mg/mL (frasco 50mg/5mL)', grupo: 'bloqueador', contra: 'Ação em ~45-60s. Escolha de excelência. Reversível com Sugamadex.' },
+    succinilcolina: { nome: 'Succinilcolina', dose: 1.5, un: 'mg', conc: 10, tetoMaximo: 200, txt: '1,5 mg/kg · 10 mg/mL (frasco 100mg/10mL)', grupo: 'bloqueador', contra: '⚠️ CONTRAINDICADA em: Hipercalemia (> 5.5), grandes queimados, esmagamento, miopatias, paralisia/AVC > 48h (risco de PCR por hipercalemia). Teto máximo: 200 mg.' },
+    fentanil:       { nome: 'Fentanil',       dose: 2.0, un: 'mcg',conc: 50, tetoMaximo: 250, txt: '2 mcg/kg · 50 mcg/mL (ampola 50mcg/mL)',  grupo: 'adjuvante', contra: 'Pico de ação em 3-5 min. Atenua reflexo simpático da laringoscopia.' }
   };
 
   function resolverFarmaco(ctx, v, grupo, rotulo) {
@@ -1405,6 +1410,9 @@ var CalculadorasClinicas = (function () {
       // Pré-cálculo universal de todas as drogas para disponibilidade imediata
       function calcDose(farmaco) {
         var d = farmaco.dose * peso;
+        if (farmaco.tetoMaximo && d > farmaco.tetoMaximo) {
+          d = farmaco.tetoMaximo;
+        }
         var ml = d / farmaco.conc;
         exigirFinito(d, ml);
         return {
@@ -1743,7 +1751,7 @@ var CalculadorasClinicas = (function () {
       var termo = semAcento(farmacoOuCondicao || '');
       var peso = num(ctx, pesoKg, 'Peso (kg)', 1, 80, { opcional: true });
       var idade = num(ctx, opt.idadeAnos, 'Idade (anos)', 0, 17, { opcional: true });
-      if (ctx.erros.length) return entradaInvalida(ID, NOME, ctx);
+      if (ctx.erros.length) return falhaCtx(ID, NOME, ctx);
 
       var tabela = {
         amoxicilina: {
@@ -1754,7 +1762,7 @@ var CalculadorasClinicas = (function () {
           tomadasDia: opt.tomadasDia || 3,
           intervaloHoras: (opt.tomadasDia === 2) ? 12 : 8,
           diasTratamento: opt.diasTratamento || 10,
-          doseMaximaAdultoMgDia: 1500,
+          doseMaximaAdultoMgDia: opt.doseAlta ? 3000 : 1500,
           volumeFrascoMl: 150,
           indicacao: opt.doseAlta ? 'Otite Média Aguda / Sinusite / PAC (dose alta 90 mg/kg/dia)' : 'Amigdalite / Faringite / Infecções bacterianas leves (50 mg/kg/dia)',
           instrucoes: 'Pode ser administrado com ou sem alimentos. Agitar bem antes de usar.'
@@ -1767,7 +1775,7 @@ var CalculadorasClinicas = (function () {
           tomadasDia: 3,
           intervaloHoras: 8,
           diasTratamento: opt.diasTratamento || 10,
-          doseMaximaAdultoMgDia: 1500,
+          doseMaximaAdultoMgDia: opt.doseAlta ? 3000 : 1500,
           volumeFrascoMl: 75,
           indicacao: opt.doseAlta ? 'Otite complicada / Sinusite refratária (dose alta 90 mg/kg/dia)' : 'Infecções de vias aéreas com suspeita de germes produtores de beta-lactamase (50 mg/kg/dia)',
           instrucoes: 'Administrar preferencialmente no início da refeição para minimizar risco de intolerância gastrintestinal.'
@@ -1826,13 +1834,13 @@ var CalculadorasClinicas = (function () {
           nome: 'Ibuprofeno',
           apresentacao: 'Ibuprofeno 50 mg/mL (solução oral gotas)',
           tipo: 'gotas',
-          mgPorGota: 2.5,
+          mgPorGota: 5,
           doseMgKgDose: 10,
           tomadasDia: 3,
           intervaloHoras: 8,
           doseMaximaPorDoseMg: 400,
-          indicacao: 'Dor, febre ou inflamação (4 gotas por kg da suspensão 50 mg/mL de 8/8h se dor/febre)',
-          instrucoes: 'Administrar junto ou logo após alimentos para proteção gástrica.'
+          indicacao: 'Dor, febre ou inflamação (2 gotas por kg da suspensão 50 mg/mL de 8/8h se dor/febre)',
+          instrucoes: 'Administrar junto ou logo após alimentos para proteção gástrica. Respeitar o teto de 40 gotas (200 mg) em crianças menores.'
         },
         prednisolona: {
           nome: 'Prednisolona (Fosfato Sódico)',
@@ -1956,7 +1964,7 @@ var CalculadorasClinicas = (function () {
       var chaveAlvo = identificarFarmacoPosologico(termo);
       if (!chaveAlvo || !tabela[chaveAlvo]) {
         ctx.faltas.push('Um único medicamento explícito; a calculadora não escolhe tratamento por sintomas');
-        return entradaInvalida(ID, NOME, ctx);
+        return falhaCtx(ID, NOME, ctx);
       }
       var cfg = tabela[chaveAlvo];
       if (cfg.tipo === 'dose_fixa_idade') {
@@ -1965,7 +1973,7 @@ var CalculadorasClinicas = (function () {
           ctx.erros.push('Faixa etária não coberta por este cálculo; consultar avaliação pediátrica');
         }
       } else if (peso === null) ctx.faltas.push('Peso (kg)');
-      if (pendente(ctx)) return entradaInvalida(ID, NOME, ctx);
+      if (pendente(ctx)) return falhaCtx(ID, NOME, ctx);
       var dadosCalculados = {};
 
       if (cfg.tipo === 'dose_fixa_idade') {
@@ -2018,8 +2026,8 @@ var CalculadorasClinicas = (function () {
             indicacao: cfg.indicacao
           };
         } else if (chaveAlvo === 'nitazoxanida') {
-          var menor4N = idade < 4;
-          var menor12N = idade < 12;
+          var menor4N = (idade !== null) ? (idade < 4) : (peso !== null ? peso < 15 : false);
+          var menor12N = (idade !== null) ? (idade < 12) : (peso !== null ? peso < 40 : false);
           var volN = menor4N ? 5 : (menor12N ? 10 : 25);
           var doseN = menor4N ? 100 : (menor12N ? 200 : 500);
           var volTotN = volN * 2 * 3;
@@ -2090,7 +2098,7 @@ var CalculadorasClinicas = (function () {
             indicacao: cfg.indicacao
           };
         } else if (chaveAlvo === 'loratadina') {
-          var pesoMaior30 = (peso > 30) || idade > 12;
+          var pesoMaior30 = (peso !== null && peso > 30) || (idade !== null && idade > 12);
           if (pesoMaior30) {
             doseEfetivaMg = 10;
             volumeMl = 10;
@@ -2123,8 +2131,8 @@ var CalculadorasClinicas = (function () {
             indicacao: cfg.indicacao
           };
         } else if (chaveAlvo === 'dexclorfeniramina') {
-          var menor6 = idade < 6;
-          var menor12 = idade < 12;
+          var menor6 = (idade !== null) ? (idade < 6) : (peso !== null ? peso < 22 : false);
+          var menor12 = (idade !== null) ? (idade < 12) : (peso !== null ? peso < 40 : false);
           if (menor6) {
             volumeMl = 1.25;
             doseEfetivaMg = 0.5;

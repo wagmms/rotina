@@ -47,9 +47,10 @@ logs/
 .build_master_cache.json
 
 
-# Tokens e credenciais do Calendar
+# Tokens e credenciais do Calendar e GCP
 **/credentials.json
 !**/credentials.example.json
+google-credentials*.json
 **/token*.json*
 
 # Dumps, backups e relatórios temporários de calendário

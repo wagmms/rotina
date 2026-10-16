@@ -7,10 +7,14 @@
  * ==============================================================================
  */
 
+var _cacheNomesFarmacosParaValidacao = null;
 function nomesFarmacosParaValidacao() {
+  if (_cacheNomesFarmacosParaValidacao !== null && _cacheNomesFarmacosParaValidacao.length > 0) {
+    return _cacheNomesFarmacosParaValidacao;
+  }
   var nomes = [];
   function adicionar(x) {
-    var n = normalizarTexto(String(x || "").split(/\d/)[0]).replace(/\s+/g, " ").trim();
+    var n = (typeof normalizarTexto === "function" ? normalizarTexto(String(x || "").split(/\d/)[0]) : String(x || "").split(/\d/)[0].toLowerCase()).replace(/\s+/g, " ").trim();
     if (n.length >= 3 && nomes.indexOf(n) < 0) nomes.push(n);
   }
   if (typeof DICIONARIO_FARMACO !== "undefined") Object.keys(DICIONARIO_FARMACO).forEach(function(k) {
@@ -26,8 +30,13 @@ function nomesFarmacosParaValidacao() {
     } catch (_) {}
   }
   // Reutiliza a mesma base integral L1; se necessário, lê L2 em lote sem abrir Sheets.
-  var base = lerPlanilhaEmCache("remume", ConfigService.get("SPREADSHEET_ID_REMUME"), false);
-  if (base !== null) base.split("\n").forEach(adicionar);
+  if (typeof lerPlanilhaEmCache === "function") {
+    try {
+      var base = lerPlanilhaEmCache("remume", ConfigService.get("SPREADSHEET_ID_REMUME"), false);
+      if (base !== null) base.split("\n").forEach(adicionar);
+    } catch (_) {}
+  }
+  _cacheNomesFarmacosParaValidacao = nomes;
   return nomes;
 }
 

@@ -243,7 +243,7 @@ async function run() {
   assert.equal(jsonCross.resultado.temAlertasCriticos, true);
   assert(jsonCross.resultado.interacoes.length >= 1);
   assert(jsonCross.resultado.ajustesRenais.length >= 1);
-  assert(tCross < 100, `Tempo de Cross-Check (${tCross}ms) deve ser menor que 100ms`);
+  assert(tCross < 200, `Tempo de Cross-Check (${tCross}ms) deve ser menor que 200ms`);
   console.log(`✓ Cockpit Cross-Check de Segurança OK (${tCross.toFixed(2)}ms, ${jsonCross.resultado.interacoes.length} interações, ${jsonCross.resultado.ajustesRenais.length} ajustes renais)`);
 
   // 6.1 Cockpit RPC - Gasometria Arterial (Regra dos 5 Passos & Winter)

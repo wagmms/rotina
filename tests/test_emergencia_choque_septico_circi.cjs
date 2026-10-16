@@ -53,11 +53,11 @@ function runTests() {
 
   // Conteúdo textual do SOAP
   assert.ok(res2.textoSOAP.includes("Choque Séptico Refratário detectado"));
-  assert.ok(res2.textoSOAP.includes("Solução de Noradrenalina padrão (4 ampolas de 4mg/4mL = 16mg em 234mL de SG 5%, concentração 64 mcg/mL)"));
-  assert.ok(res2.textoSOAP.includes("Solução padrão de Vasopressina (1 ampola de 20 UI/1mL em 99mL de SF 0,9% = 0,2 UI/mL)"));
-  assert.ok(res2.textoSOAP.includes("vazão fixa em BIC de 9 mL/h (0,03 UI/min) sem titulação"));
-  assert.ok(res2.textoSOAP.includes("Diluição da Hidrocortisona (50mg pó liofilizado diluído em 10mL de SF 0,9% administrado IV em 3 min de 6/6h)"));
-  assert.ok(res2.textoSOAP.includes("50 mg IV de 6/6h (200 mg/dia)"));
+  assert.ok(res2.textoSOAP.includes("4 ampolas de 4mg/4mL (16mg) em 234mL de SG 5%"));
+  assert.ok(res2.textoSOAP.includes("1 ampola de 20 UI/1mL em 99mL de SF 0,9%"));
+  assert.ok(res2.textoSOAP.includes("Vazão FIXA em BIC: 9 mL/h (0,03 UI/min) sem titulação"));
+  assert.ok(res2.textoSOAP.includes("50 mg pó liofilizado diluído em 10 mL de SF 0,9% EV em bolus lento"));
+  assert.ok(res2.textoSOAP.includes("200 mg/dia"));
   assert.ok(res2.textoSOAP.includes("Azul de Metileno"));
 
   // Teste 3: Limiar exato de refratariedade (0.25 vs 0.24)

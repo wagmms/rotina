@@ -1,5 +1,23 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C64. [x] **Plano Mestre Argon — Desacoplamento de IA, Hardening Clínico de Calculadoras e 4 Novos Domínios Puros via Gemini 4 Argon (`src/02_calculadoras_puras.js`, `src/04_motores_ia.js`, `src/07a_telegram_router.js`, `src/07c_telegram_consultas_e_ia.js`, `src/12_experiencia_bot.js`, `src/domain/*`)**:
+    - **Diagnóstico e Causa Raiz**:
+      * Latência artificial no Telegram de até 18 segundos causada por chamadas síncronas de LLM em `classificarIntencaoMensagem` para intenções rotineiras, comandos de calculadoras e conversação geral.
+      * Módulo de calculadoras puras (`src/02_calculadoras_puras.js`) continha falha de `bool()` impedindo execução de `cha2ds2vasc` e `meld` com flags booleanas opcionais; `ReferenceError` por chamada inexistente `entradaInvalida` em posologia pediátrica; comparadores desprotegidos contra idade nula atribuindo dose de lactente a crianças de 40 kg; e cálculo de ibuprofeno gotas 50 mg/mL com sobredose de 20 mg/kg.
+      * Ausência de catálogo determinístico puro para diluição hospitalar crítica, pacotes sindrômicos de emergência com prescrições e cópia PEP, checklists com manipulação em bitmask e algoritmo de otimização de grade médica com proteção estrita do sono.
+    - **Correções Implementadas**:
+      * *Fase 1 (Hardening de Calculadoras)*: Correção de `bool()` com suporte a `{ opcional: true }`; substituição de `entradaInvalida` por `falhaCtx`; proteção de idade nula em comparadores pediátricos; calibração exata de ibuprofeno 50 mg/mL (10 gotas/mL -> 1 gota = 5 mg -> 2 gotas/kg/dose = 10 mg/kg); teto diário de amoxicilina expandido para 3.000 mg/dia; tetos de bloqueadores neuromusculares de SRI (succinilcolina 200 mg, rocurônio 120 mg); nota ATLS 10ª Edição incorporada a Parkland.
+      * *Fase 2 (Desacoplamento de IA & Latência Sub-50ms)*: Remoção definitiva da chamada síncrona a `_iaExecutar` em `classificarIntencaoMensagem`, substituída por classificador léxico determinístico com tokens críticos em Hash Set e fallback 0ms para `CONVERSA`. Despacho direto em RAM para calculadoras e gasometria no router do Telegram. Memoização de nomes farmacológicos para validação rápida.
+      * *Fase 3 (Geração com Gemini 4 Argon & 4 Novos Domínios Puros)*:
+        1. `src/domain/diluicao_injetaveis_domain.js` (64 KB): Fármacos críticos, titulação minuto a minuto, regras Trissel's e matriz de compatibilidade em Y.
+        2. `src/domain/pacotes_sindromicos_domain.js` (78 KB): 5 kits de emergência (Cólica Nefrética, Faringoamigdalite, Crise de Asma, Dengue Grupo C, GECA), escore Centor/McIsaac e gerador de cópia PEP.
+        3. `src/domain/checklist_clinico_domain.js` (21 KB): FAST-HUG SB, SBAR, Alta PS e Cirurgia OMS com controle de estado puramente em bitmask inteira (< 64 bytes para callbacks do Telegram).
+        4. `src/domain/time_blocking_optimizer_domain.js` (23 KB): Otimizador heurístico com degradação graciosa para micro-blocos e teto inegociável de sono às 22:30.
+      * *Fase 4 (Apresentação UX & Roteamento)*: Integração dos despachantes `ux:dil:`, `ux:kit:`, `ux:chk:` e `ux:tb:` em `src/12_experiencia_bot.js` e rotas `/diluicao`, `/injetaveis`, `/kits`, `/sindromes`, `/checklist`, `/timeblocking`, `/timeline` em `src/07a_telegram_router.js`.
+    - **Recibo de Estabilidade**:
+      * Suítes dedicadas: `tests/test_calculadoras_puras_audit_argon.cjs` (10/10), `tests/test_novos_dominios_argon.cjs` (4/4), `tests/test_apresentacao_novos_dominios.cjs` (4/4) 100% aprovadas.
+      * Bateria completa `npm test` (`node scripts/run_tests.cjs`): **57/57 suítes aprovadas com 100% de sucesso em 18.73s**.
+
 0C63. [x] **Hardening Clínico — Tolerância Zero a Erros Médicos, Bloqueio Determinístico de Alergias/Gestação, Auditor Aritmético Pós-IA e Erradicação de Silent Defaults (`src/03_bases_locais.js`, `src/04_motores_ia.js`, `src/07a_telegram_router.js`, `src/07g_telegram_ajuda_e_protocolos.js`, `tests/test_auditoria_qualidade_clinica.cjs`)**:
     - **Diagnóstico e Causa Raiz**:
       * Em `/crcl` (`src/07a_telegram_router.js`), quando o sexo biológico era omitido pelo médico, o sistema adotava silenciosamente sexo masculino (`M`), com risco de superestimar a TFG em 15% em mulheres e aplicar subdose ou toxicidade em antimicrobianos de faixa estreita.

@@ -22,6 +22,43 @@ var UX_MAX_EDIT_CHARS = 3800;
 var UX_MAX_CASO_CHARS = 6000;
 var UX_CB_PASSAGEM_SBAR = 'enfermaria_passagem'; // Callback original da Passagem SBAR
 
+function _resolverDominio(nome) {
+  if (typeof require !== 'function') return null;
+  try { return require('./domain/' + nome); } catch (_) {}
+  try { return require('../src/domain/' + nome); } catch (_) {}
+  try { return require('./src/domain/' + nome); } catch (_) {}
+  return null;
+}
+
+var DiluicaoInjetaveisDomain = _resolverDominio('diluicao_injetaveis_domain');
+var PacotesSindromicosDomain = _resolverDominio('pacotes_sindromicos_domain');
+var ChecklistClinicoDomain = _resolverDominio('checklist_clinico_domain');
+var TimeBlockingOptimizerDomain = _resolverDominio('time_blocking_optimizer_domain');
+
+var _instDiluicaoDomain = null;
+function obterDiluicaoDomain() {
+  if (!_instDiluicaoDomain && DiluicaoInjetaveisDomain) _instDiluicaoDomain = new DiluicaoInjetaveisDomain();
+  return _instDiluicaoDomain;
+}
+
+var _instPacotesDomain = null;
+function obterPacotesDomain() {
+  if (!_instPacotesDomain && PacotesSindromicosDomain) _instPacotesDomain = new PacotesSindromicosDomain();
+  return _instPacotesDomain;
+}
+
+var _instChecklistDomain = null;
+function obterChecklistDomain() {
+  if (!_instChecklistDomain && ChecklistClinicoDomain) _instChecklistDomain = new ChecklistClinicoDomain();
+  return _instChecklistDomain;
+}
+
+var _instTimeBlockingDomain = null;
+function obterTimeBlockingDomain() {
+  if (!_instTimeBlockingDomain && TimeBlockingOptimizerDomain) _instTimeBlockingDomain = new TimeBlockingOptimizerDomain();
+  return _instTimeBlockingDomain;
+}
+
 var UX_NOMES_MODO = {
   soap: 'SOAP (Caso Clínico)',
   rx: 'Prescrição & Posologias (REMUME & Guia HSL)',
@@ -3771,6 +3808,235 @@ function executarExtracaoReceitaSoap(chatId, cacheKey, messageId) {
   return processarEEntregarIA(chatId, fnGeradora, dadosPlano, "rx");
 }
 
+/* ========== Funções de Apresentação dos Novos Domínios Puros (Argon) ========== */
+
+function enviarMenuDiluicao(chat, messageId) {
+  var domain = obterDiluicaoDomain();
+  if (!domain) return enviarMensagemParaChat(chat, 'Módulo de diluição indisponível.');
+  var catalogo = domain.listarCatalogo();
+  var botoesFarmacos = catalogo.map(function (f) {
+    var icone = f.id === 'noradrenalina' ? '⚡' : (f.id === 'amiodarona' ? '❤️' : (f.id === 'fentanil' ? '💉' : '🧪'));
+    return [icone + ' ' + f.nomeGenerico.split(' ')[0], 'ux:dil:f:' + f.id];
+  });
+  var matriz = [];
+  for (var i = 0; i < botoesFarmacos.length; i += 2) {
+    matriz.push(botoesFarmacos.slice(i, i + 2));
+  }
+  matriz.push([['🔄 Checar Compatibilidade em Y', 'ux:dil:y_menu']]);
+  matriz.push([['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]);
+
+  var texto = "🧪 *GUIA DE DILUIÇÃO E INFUSÃO HOSPITALAR (TRISSEL'S & SSC)*\n\n" +
+    "Selecione um fármaco crítico de emergência/UTI para consultar preparo, diluição padrão/concentrada, " +
+    "titulação minuto a minuto, pH e estabilidade físico-química em 0ms:";
+  return enviarTelaBot(chat, texto, botoesBot(matriz), messageId);
+}
+
+function tratarCallbackDiluicao(chat, v, messageId) {
+  var domain = obterDiluicaoDomain();
+  if (!domain) return false;
+  if (!v || v === 'menu') return enviarMenuDiluicao(chat, messageId);
+
+  if (v === 'y_menu') {
+    var matrizY = [
+      [['Noradrenalina + Amiodarona', 'ux:dil:y:noradrenalina:amiodarona']],
+      [['Fenitoína + Fentanil', 'ux:dil:y:fenitoina:fentanil']],
+      [['Sulfato Mg + Noradrenalina', 'ux:dil:y:sulfato_mg:noradrenalina']],
+      [['🔙 Diluições', 'ux:dil:menu'], ['🏠 Início', 'ux:hub:inicio']]
+    ];
+    var textoY = "🔬 *MATRIZ DE COMPATIBILIDADE EM Y (TRISSEL'S HANDBOOK)*\n\n" +
+      "Selecione uma combinação rápida ou envie `/compat y <farmacoA> <farmacoB>`:";
+    return enviarTelaBot(chat, textoY, botoesBot(matrizY), messageId);
+  }
+
+  if (v.indexOf('y:') === 0) {
+    var partesY = v.substring(2).split(':');
+    var fA = partesY[0], fB = partesY[1];
+    var resultadoY = domain.checarCompatibilidadeY(fA, fB);
+    var kbResY = botoesBot([
+      [['🔄 Checar Outra', 'ux:dil:y_menu'], ['🔙 Diluições', 'ux:dil:menu']]
+    ]);
+    return enviarTelaBot(chat, resultadoY.textoFormatado, kbResY, messageId);
+  }
+
+  if (v.indexOf('f:') === 0) {
+    var farmacoId = v.substring(2);
+    var info = domain.consultarFarmaco(farmacoId, 70);
+    var cache = uxCache();
+    var ckDil = Utilities.getUuid().replace(/-/g, '');
+    safePutCache(cache, ckDil, info.textoFormatado, 21600);
+
+    var kbFarmaco = botoesBot([
+      [['📋 Copiar Guia', 'ux:copiar:' + ckDil]],
+      [['🔙 Diluições', 'ux:dil:menu'], ['🏠 Início', 'ux:hub:inicio']]
+    ]);
+    return enviarTelaBot(chat, info.textoFormatado, kbFarmaco, messageId);
+  }
+  return false;
+}
+
+function enviarMenuPacotesSindromicos(chat, messageId) {
+  var domain = obterPacotesDomain();
+  if (!domain) return enviarMensagemParaChat(chat, 'Módulo de pacotes sindrômicos indisponível.');
+  var kits = domain.listarKits();
+  var botoesKits = kits.map(function (k) {
+    return [(k.icone || '📦') + ' ' + k.titulo.split('/')[0].trim(), 'ux:kit:ver:' + k.id];
+  });
+  var matriz = [];
+  for (var i = 0; i < botoesKits.length; i += 2) {
+    matriz.push(botoesKits.slice(i, i + 2));
+  }
+  matriz.push([['🔙 Sala Vermelha', 'ux:hub:sala'], ['🏠 Início', 'ux:hub:inicio']]);
+
+  var texto = "📦 *PACOTES SINDRÔMICOS DE EMERGÊNCIA (ORDER SETS)*\n\n" +
+    "Condutas imediatas, prescrição hospitalar e de alta, alertas de gravidade e texto limpo para o PEP em 1-toque:";
+  return enviarTelaBot(chat, texto, botoesBot(matriz), messageId);
+}
+
+function tratarCallbackPacotes(chat, v, messageId) {
+  var domain = obterPacotesDomain();
+  if (!domain) return false;
+  if (!v || v === 'menu') return enviarMenuPacotesSindromicos(chat, messageId);
+
+  if (v.indexOf('ver:') === 0) {
+    var kitId = v.substring(4);
+    var kit = domain.obterKit(kitId, { pesoKg: 70 });
+    var cache = uxCache();
+    var ckPep = Utilities.getUuid().replace(/-/g, '');
+    safePutCache(cache, ckPep, kit.textoCopiaPEP, 21600);
+
+    var kbKit = botoesBot([
+      [['📋 Copiar PEP Completo', 'ux:copiar:' + ckPep]],
+      [['🔙 Pacotes Sindrômicos', 'ux:kit:menu'], ['🏠 Início', 'ux:hub:inicio']]
+    ]);
+    var textoResumo = domain.gerarTextoFormatadoTelegram(kitId);
+    return enviarTelaBot(chat, textoResumo, kbKit, messageId);
+  }
+  return false;
+}
+
+function enviarMenuChecklistClinico(chat, chkId, mascaraAtual, messageId) {
+  var domain = obterChecklistDomain();
+  if (!domain) return enviarMensagemParaChat(chat, 'Módulo de checklists indisponível.');
+  var id = chkId || 'fast_hug_sb';
+  var mask = typeof mascaraAtual === 'number' ? mascaraAtual : 0;
+  var chk = domain.obterChecklist(id);
+  var textoFormatado = domain.gerarTextoFormatadoTelegram(id, mask);
+
+  var botoesItens = chk.itens.map(function (item, idx) {
+    var marcado = Boolean(mask & (1 << idx));
+    var statusIcon = marcado ? '✅' : '⬜';
+    var rotuloCurto = item.label.split('-')[0].trim();
+    return [statusIcon + ' ' + rotuloCurto, 'ux:chk:' + id + ':' + mask + ':' + idx];
+  });
+
+  var matriz = [];
+  for (var i = 0; i < botoesItens.length; i += 3) {
+    matriz.push(botoesItens.slice(i, i + 3));
+  }
+  matriz.push([
+    ['🔄 Alternar Checklist', 'ux:chk:trocar'],
+    ['📋 Gerar Relatório PEP', 'ux:chk:pep:' + id + ':' + mask]
+  ]);
+  matriz.push([['🔙 Enfermaria', 'ux:hub:enf'], ['🏠 Início', 'ux:hub:inicio']]);
+
+  return enviarTelaBot(chat, textoFormatado, botoesBot(matriz), messageId);
+}
+
+function tratarCallbackChecklist(chat, v, messageId) {
+  var domain = obterChecklistDomain();
+  if (!domain) return false;
+  if (!v || v === 'menu') return enviarMenuChecklistClinico(chat, 'fast_hug_sb', 0, messageId);
+
+  if (v === 'trocar') {
+    var listas = domain.listarChecklists();
+    var botoesListas = listas.map(function (c) {
+      return [(c.icone || '📋') + ' ' + c.titulo.split('(')[0].trim(), 'ux:chk:' + c.id + ':0'];
+    });
+    var matriz = [];
+    for (var i = 0; i < botoesListas.length; i += 2) {
+      matriz.push(botoesListas.slice(i, i + 2));
+    }
+    matriz.push([['🔙 Checklists', 'ux:chk:menu'], ['🏠 Início', 'ux:hub:inicio']]);
+    return enviarTelaBot(chat, "📋 *SELECIONE O CHECKLIST DE SEGURANÇA:*", botoesBot(matriz), messageId);
+  }
+
+  var partes = v.split(':');
+  if (partes[0] === 'pep') {
+    var pId = partes[1], pMask = Number(partes[2]) || 0;
+    var chkObj = domain.obterChecklist(pId);
+    var relatorio = domain.avaliar(pId, pMask);
+    var textoPEP = "==================================================\n" +
+      "RELATÓRIO DE CONFORMIDADE E CHECKLIST CLÍNICO\n" +
+      "Protocolo: " + chkObj.titulo + "\n" +
+      "Conformidade: " + relatorio.percentual + "% (" + relatorio.completados + "/" + relatorio.total + " itens)\n" +
+      "Status: " + relatorio.status.toUpperCase() + "\n" +
+      "Parecer: " + relatorio.parecerClinico + "\n" +
+      "==================================================";
+    var cache = uxCache();
+    var ckChk = Utilities.getUuid().replace(/-/g, '');
+    safePutCache(cache, ckChk, textoPEP, 21600);
+    var kbPep = botoesBot([
+      [['📋 Copiar Texto', 'ux:copiar:' + ckChk]],
+      [['🔙 Voltar ao Checklist', 'ux:chk:' + pId + ':' + pMask]]
+    ]);
+    return enviarTelaBot(chat, "📋 *RELATÓRIO CLÍNICO GERADO PARA PRONTUÁRIO:*", kbPep, messageId);
+  }
+
+  var chkId = partes[0];
+  var mask = Number(partes[1]) || 0;
+  if (partes.length >= 3) {
+    var toggleBit = Number(partes[2]);
+    mask = domain.alternarBit(mask, toggleBit);
+  }
+  return enviarMenuChecklistClinico(chat, chkId, mask, messageId);
+}
+
+function enviarMenuTimeBlocking(chat, atrasoMinutos, messageId) {
+  var domain = obterTimeBlockingDomain();
+  if (!domain) return enviarMensagemParaChat(chat, 'Módulo de time-blocking indisponível.');
+  var atraso = Number(atrasoMinutos) || 0;
+  var d = new Date();
+  var horaStr = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  var opt = domain.otimizarGrade({ horaAtual: horaStr, atrasoMinutos: atraso });
+  var textoTimeline = domain.gerarTimelineFormatada(opt);
+
+  var matriz = [
+    [['⏱️ +30 min Atraso', 'ux:tb:atraso:' + (atraso + 30)], ['⏱️ +60 min Atraso', 'ux:tb:atraso:' + (atraso + 60)]],
+    [['🚨 Simular Plantão Extra (+90m)', 'ux:tb:sim:90'], ['🔄 Reset Horário', 'ux:tb:atraso:0']],
+    [['🔙 Rotina Médica', 'ux:rotina:inicio'], ['🏠 Início', 'ux:hub:inicio']]
+  ];
+  return enviarTelaBot(chat, textoTimeline, botoesBot(matriz), messageId);
+}
+
+function tratarCallbackTimeBlocking(chat, v, messageId) {
+  var domain = obterTimeBlockingDomain();
+  if (!domain) return false;
+  if (!v || v === 'menu') return enviarMenuTimeBlocking(chat, 0, messageId);
+
+  var partes = v.split(':');
+  if (partes[0] === 'atraso') {
+    var atraso = Number(partes[1]) || 0;
+    return enviarMenuTimeBlocking(chat, atraso, messageId);
+  }
+  if (partes[0] === 'sim') {
+    var extra = Number(partes[1]) || 90;
+    var d = new Date();
+    var horaStr = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    var sim = domain.simularCenarios(horaStr, extra);
+    var textoSim = "🚨 *SIMULAÇÃO DE PLANTÃO ESTENDIDO (+" + extra + " min)*\n\n" +
+      "• *Perda de Estudo:* " + sim.impactoLiquido.perdaMinutosEstudo + " minutos\n" +
+      "• *Modo:* " + sim.cenarioEstendido.modoDegradacao + "\n" +
+      "• *Retenção:* " + sim.cenarioEstendido.taxaPreservacaoPercentual + "%\n\n" +
+      sim.cenarioEstendido.timelineFormatada;
+    var kbSim = botoesBot([
+      [['🔄 Voltar à Grade Normal', 'ux:tb:atraso:0']],
+      [['🔙 Menu Rotina', 'ux:rotina:inicio']]
+    ]);
+    return enviarTelaBot(chat, textoSim, kbSim, messageId);
+  }
+  return false;
+}
+
 /* ========== Callbacks ========== */
 
 function tratarCallbackUX(cb) {
@@ -4277,6 +4543,14 @@ function tratarCallbackUX(cb) {
       } else {
         enviarMensagemComTecladoParaChat(chat, raw, kbRetornoCopiar);
       }
+    } else if (op === 'dil') {
+      return tratarCallbackDiluicao(chat, v, msgId);
+    } else if (op === 'kit') {
+      return tratarCallbackPacotes(chat, v, msgId);
+    } else if (op === 'chk') {
+      return tratarCallbackChecklist(chat, v, msgId);
+    } else if (op === 'tb') {
+      return tratarCallbackTimeBlocking(chat, v, msgId);
     } else {
       enviarMensagemParaChat(chat, 'Ação não reconhecida. Reabra o menu.');
     }
@@ -4375,6 +4649,14 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarMenuEmergCefaleia: enviarMenuEmergCefaleia,
     tratarEntradaUX: tratarEntradaUX,
     tratarCallbackUX: tratarCallbackUX,
+    enviarMenuDiluicao: enviarMenuDiluicao,
+    tratarCallbackDiluicao: tratarCallbackDiluicao,
+    enviarMenuPacotesSindromicos: enviarMenuPacotesSindromicos,
+    tratarCallbackPacotes: tratarCallbackPacotes,
+    enviarMenuChecklistClinico: enviarMenuChecklistClinico,
+    tratarCallbackChecklist: tratarCallbackChecklist,
+    enviarMenuTimeBlocking: enviarMenuTimeBlocking,
+    tratarCallbackTimeBlocking: tratarCallbackTimeBlocking,
     processarEntradaSoap: typeof processarEntradaSoap === 'function' ? processarEntradaSoap : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.processarEntradaSoap ? SoapAmbulatorialService.processarEntradaSoap : null),
     formatarRascunhoSoapTelegram: typeof formatarRascunhoSoapTelegram === 'function' ? formatarRascunhoSoapTelegram : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.formatarRascunhoSoapTelegram ? SoapAmbulatorialService.formatarRascunhoSoapTelegram : null),
     extrairPlanoDeTextoSoap: extrairPlanoDeTextoSoap,
